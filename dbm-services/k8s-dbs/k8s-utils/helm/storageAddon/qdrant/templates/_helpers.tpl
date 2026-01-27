@@ -49,3 +49,67 @@ Selector labels
 app.kubernetes.io/name: {{ include "qdrant.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+Common annotations
+*/}}
+{{- define "qdrant.annotations" -}}
+{{ include "kblib.helm.resourcePolicy" . }}
+{{ include "qdrant.apiVersion" . }}
+{{- end }}
+
+{{/*
+API version annotation
+*/}}
+{{- define "qdrant.apiVersion" -}}
+kubeblocks.io/crd-api-version: apps.kubeblocks.io/v1
+{{- end }}
+
+{{/*
+Define qdrant component definition name
+*/}}
+{{- define "qdrant.cmpdName" -}}
+qdrant-{{ .Chart.Version }}
+{{- end -}}
+
+{{/*
+Define qdrant component definition regex pattern
+*/}}
+{{- define "qdrant.cmpdRegexPattern" -}}
+^qdrant-
+{{- end -}}
+
+{{/*
+Expand the name of the componentversion.
+*/}}
+{{- define "qdrant.cmpvName" -}}
+qdrant-{{ .Chart.Version }}
+{{- end -}}
+
+{{/*
+Define qdrant scripts tpl name
+*/}}
+{{- define "qdrant.scriptsTplName" -}}
+qdrant-scripts-template
+{{- end -}}
+
+{{/*
+Define qdrant configuration tpl name
+*/}}
+{{- define "qdrant.configTplName" -}}
+qdrant-config-template
+{{- end -}}
+
+{{/*
+Define qdrant config constraint name
+*/}}
+{{- define "qdrant.configConstraintName" -}}
+qdrant-config-constraints
+{{- end -}}
+
+{{/*
+Define qdrant parameter config renderer name
+*/}}
+{{- define "qdrant.pcrName" -}}
+qdrant-pcr
+{{- end -}}

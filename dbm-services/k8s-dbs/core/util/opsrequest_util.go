@@ -61,6 +61,7 @@ var componentTargetPortsMap = map[string][]string{
 	"vmstorage": {"vmselect"},
 	"vminsert":  {"http"},
 	"vmselect":  {"http"},
+	"qdrant":    {"tcp-qdrant", "grpc-qdrant"},
 }
 
 // switchTypeMap 暴露开关类型映射表
@@ -612,6 +613,12 @@ func createOpsService(request *entity.Request, podSelect map[string]string) (opv
 					NodePort:   request.Service.NodePorts[i],
 				})
 			} else {
+				slog.Info("got ports",
+					"Name", ports[i],
+					"Port", request.Service.Ports[i],
+					"TargetPort", intstr.FromString(ports[i]),
+					"Protocol", protocol,
+				)
 				service.Ports = append(service.Ports, corev1.ServicePort{
 					Name:       ports[i],
 					Port:       request.Service.Ports[i],

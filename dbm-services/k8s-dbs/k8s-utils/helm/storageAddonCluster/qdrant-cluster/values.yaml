@@ -11,19 +11,19 @@ topoName: cluster
 addonVersion: "1.0.0"
 componentList:
   - componentName: qdrant
-    componentDef: qdrant
+    serviceVersion: "1.16.3"
     env:
     replicas: 1
     resources:
       requests:
-        cpu: "0.5"
-        memory: "0.5Gi"
+        cpu: "1"
+        memory: "1Gi"
       limits:
-        cpu: "0.5"
-        memory: "0.5Gi"
+        cpu: "1"
+        memory: "1Gi"
     volumeClaimTemplates:
       accessModes: ["ReadWriteOnce"]
-      storage: "20Gi"
+      storage: "100Gi"
       storageClassName: "cbs"
       volumeMode: "Filesystem"
 

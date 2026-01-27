@@ -1,13 +1,10 @@
 apiVersion: apps.kubeblocks.io/v1alpha1
 kind: ComponentDefinition
 metadata:
-  name: qdrant-{{.Chart.Version }}
-  labels:
-    {{- include "qdrant.labels" . | nindent 4 }}
+  name: {{ include "qdrant.cmpdName" . }}
 spec:
-  provider: kubeblocks
-  description: High-performance, massive-scale Vector Database for the next generation of AI.
   serviceKind: qdrant
+  serviceVersion: 1.16.3
   updateStrategy: BestEffortParallel
   services:
   - name: qdrant
@@ -21,36 +18,41 @@ spec:
       - name: grpc-qdrant
         port: 6334
         targetPort: grpc-qdrant
-      - name: tcp-metrics
-        port: 9091
-        targetPort: tcp-metrics
-  lifecycleActions:
-    memberLeave:
-      customHandler:
-        image: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.tools.repository }}:{{ .Values.image.tools.tag | default "latest" }}
-        exec:
-          command:
-          - /bin/sh
-          - -c
-          - |
-            {{- .Files.Get "scripts/qdrant-member-leave.sh" | nindent 12 }}
-        targetPodSelector: Any
-        container: qdrant
   configs:
   - name: qdrant-config-template
-    templateRef: qdrant-config-template
-    constraintRef: qdrant-config-constraints
+    templateRef: {{ include "qdrant.configTplName" . }}
     volumeName: qdrant-config
     namespace: {{ .Release.Namespace }}
   scripts:
   - name: qdrant-scripts
-    templateRef: qdrant-scripts
+    templateRef: {{ include "qdrant.scriptsTplName" . }}
     namespace: {{ .Release.Namespace }}
     volumeName: scripts
     defaultMode: 0555
   volumes:
   - name: data
     needSnapshot: true
+  vars:
+    - name: QDRANT_POD_NAME_LIST
+      valueFrom:
+        componentVarRef:
+          optional: false
+          instanceNames: Required
+    - name: QDRANT_POD_FQDN_LIST
+      valueFrom:
+        componentVarRef:
+          optional: false
+          podFQDNs: Required
+  lifecycleActions:
+    memberLeave:
+      exec:
+        image: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.tools.repository }}:{{ .Values.image.tools.tag | default "latest" }}
+        command:
+          - /bin/sh
+          - -c
+          - /qdrant/scripts/member-leave.sh
+        targetPodSelector: Any
+        container: qdrant
   runtime:
     securityContext:
       fsGroup: 1001
@@ -134,8 +136,11 @@ spec:
         value: "true"
       - name: SERVICE_PORT
         value: "6333"
-      - name: CLUSTER_DOMAIN
-        value: "{{ .Values.clusterDomain }}"
+      - name: CURRENT_POD_NAME
+        valueFrom:
+          fieldRef:
+            apiVersion: v1
+            fieldPath: metadata.name
     dnsPolicy: ClusterFirst
     enableServiceLinks: true
     volumes:
