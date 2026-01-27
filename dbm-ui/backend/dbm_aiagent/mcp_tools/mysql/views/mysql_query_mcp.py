@@ -16,6 +16,7 @@ from rest_framework.response import Response
 
 from backend.db_meta.enums import ClusterType, MachineType
 from backend.db_meta.models import Cluster, Machine
+from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clusters
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.exceptions import (
@@ -61,6 +62,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_variables import (
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import MySQLProcessListInstanceGroupType
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.drf_perm.mcp import McpClusterManagePermission
 
 logger = logging.getLogger("root")
 
@@ -72,6 +74,8 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         description=str(_("获取 tendbsingle, tendbha, tendbcluster 集群的表结构")),
         request_slz=ShowCreateTableInputSerializer,
         response_slz=ShowCreateTableOutputSerializer,
+        permission_classes=[McpClusterManagePermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
         name_prefix="mysql_query",
@@ -96,6 +100,8 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         description=str(_("查询 SQL 执行计划")),
         request_slz=ExplainSQLInputSerializer,
         response_slz=ExplainSQLOutputSerializer,
+        permission_classes=[McpClusterManagePermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
         name_prefix="mysql_query",

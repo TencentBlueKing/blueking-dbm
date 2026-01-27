@@ -69,11 +69,13 @@ def mcp_tools_api_decorator(
     methods: list[str] = ("POST",),
     name_prefix: str = None,
     reference_view: Optional[Callable] = None,
+    permission_classes: Optional[list[Type]] = None,
+    mcp_auth_parser: Optional[Callable] = None,
     is_public: bool = False,
     allow_apply_permission: bool = False,
     resource_permission_required: bool = True,
     match_subpath: bool = False,
-    user_verified_required: bool = True,
+    user_verified_required: bool = False,
     app_verified_required: bool = True,
 ):
     """
@@ -86,13 +88,14 @@ def mcp_tools_api_decorator(
     @params tags: 标签列表
     @params mcp: MCP工具列表，表示当前API属于哪些MCP工具
     @params reference_view: 引用的视图函数，实际执行时会调用该视图的鉴权和处理逻辑
+    @params permission_classes: 使用装饰器提供的权限类进行鉴权（普通视图优先）
+    @params auth_parser: 当使用mcp专用permission_class时，使用提供的parser函数解析request参数进行鉴权
     @params is_public: 是否公开
     @params allow_apply_permission: 是否允许申请权限
     @params resource_permission_required: 是否校验资源权限
     @params match_subpath: 匹配所有子路径
-    @params user_verified_required: 是否校验用户身份
+    @params user_verified_required: 是否校验用户身份(考虑 mcp 也有后台调用，默认都已应用态接口开放)
     @params app_verified_required: 是否校验应用身份
-
     @returns 装饰器函数
     """
 
@@ -139,7 +142,26 @@ def mcp_tools_api_decorator(
             ),
         )
 
-        # 如果指定了 reference_view，包装函数以调用 reference_view 的逻辑
+        def resolve_permission_classes(view_instance, action_name: str, is_reference: bool = False) -> list:
+            if env.DEBUG_MCP:
+                return []
+
+            if is_reference or permission_classes is None:
+                try:
+                    return view_instance.get_permission_class_with_action(action_name)
+                except Exception:  # pylint: disable=broad-except
+                    raise ValueError(_("无法获取引用视图类权限类：{}").format(func.__name__))
+
+            return permission_classes
+
+        def check_permissions(view_instance, request, permission_class_list):
+            for permission_class in permission_class_list or []:
+                permission = permission_class() if isinstance(permission_class, type) else permission_class
+                setattr(permission, "mcp_auth_parser", mcp_auth_parser)
+                if not permission.has_permission(request, view_instance):
+                    raise PermissionDenied(detail=_("用户权限不足：{}").format(permission.__class__.__name__))
+
+        # 指定视图函数，包装函数以调用 reference_view 的逻辑
         if reference_view:
             # 确保视图函数名称和原引用视图函数名称一致
             if func.__name__ != reference_view.__name__:
@@ -152,37 +174,39 @@ def mcp_tools_api_decorator(
 
             @wraps(func)
             def wrapper(self, request, *args, **kwargs):
-                # 如果找到了 reference_view 所属的视图类，先进行权限校验
                 if self.action != reference_view.__name__:
-                    raise ValueError(
-                        _("视图函数action '{}' 与引用视图函数名称 '{}' 不一致").format(self.action, reference_view.__name__)
-                    )
+                    raise ValueError(_("视图函数:{}与引用视图函数{}不一致").format(self.action, reference_view.__name__))
 
-                # 创建临时视图实例用于获取权限类
+                # 创建临时视图实例用于获取引用视图权限类
+                temp_view_instance = None
                 try:
                     temp_view_instance = reference_view_class()
-                    permission_classes = temp_view_instance.get_permission_class_with_action(self.action)
                 except Exception:  # pylint: disable=broad-except
-                    # 如果无法创建实例，跳过鉴权
-                    logger.warning(_("无法获取引用视图类权限类：{}").format(reference_view.__name__))
-                    permission_classes = []
+                    logger.warning(_("无法实例化引用视图：{}").format(reference_view.__name__))
 
-                # 本地调试忽略鉴权
-                if env.DEBUG_MCP:
-                    permission_classes = []
-
-                # 检查权限
-                for permission_class in permission_classes:
-                    if not permission_class.has_permission(request, self):
-                        raise PermissionDenied(detail=_("权限不足：{}").format(permission_class.__class__.__name__))
+                # 获取引用视图权限类进行鉴权
+                resolved_permission_classes = resolve_permission_classes(
+                    temp_view_instance, self.action, is_reference=True
+                )
+                check_permissions(self, request, resolved_permission_classes)
 
                 # 调用 reference_view 的处理逻辑
                 return reference_view(self, request, *args, **kwargs)
 
-            return schema_decorator(wrapper)
+            decorated_func = schema_decorator(wrapper)
+            setattr(decorated_func, "is_mcp_tool", True)
+            return decorated_func
         else:
-            # 如果没有 reference_view，直接应用 schema_decorator
-            return schema_decorator(func)
+            # 普通视图函数
+            @wraps(func)
+            def wrapper(self, request, *args, **kwargs):
+                resolved_permission_classes = resolve_permission_classes(self, self.action)
+                check_permissions(self, request, resolved_permission_classes)
+                return func(self, request, *args, **kwargs)
+
+            decorated_func = schema_decorator(wrapper)
+            setattr(decorated_func, "is_mcp_tool", True)
+            return decorated_func
 
     return decorator
 
