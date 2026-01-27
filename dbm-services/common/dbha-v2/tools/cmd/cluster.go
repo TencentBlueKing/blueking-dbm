@@ -25,39 +25,21 @@
 package main
 
 import (
-	"io"
 	"log"
 	"os"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/version"
 	"dbm-services/common/dbha-v2/tools/internal/cluster/config"
 	"dbm-services/common/dbha-v2/tools/internal/cluster/handler"
 
 	"github.com/spf13/cobra"
-	"go.uber.org/zap"
 )
 
-func init() {
-	// Suppress debug logs
-	logger.SetLogger(&nopLogger{})
-	log.SetOutput(io.Discard)
-}
-
-type nopLogger struct{}
-
-func (n *nopLogger) OriginLogger() *zap.Logger        { return zap.NewNop() }
-func (n *nopLogger) Debug(string, ...any)             {}
-func (n *nopLogger) Info(string, ...any)              {}
-func (n *nopLogger) Warn(string, ...any)              {}
-func (n *nopLogger) Error(string, ...any)             {}
-func (n *nopLogger) Fatal(format string, args ...any) { log.Fatalf(format, args...) }
-
 const (
-	ClusterTypeMySQL        = "mysql"
+	ClusterTypeTendbha      = "tendbha"
 	ClusterTypeTenDBCluster = "tendbcluster"
-	typeOptionsHint         = "please enter one of the following options: mysql, tendbcluster"
+	typeOptionsHint         = "please enter one of the following options: tendbha, tendbcluster"
 )
 
 var configFilePath string
@@ -79,7 +61,7 @@ func ResetRun(cmd *cobra.Command, args []string) error {
 	clusterType, _ := cmd.Flags().GetString("type")
 
 	switch clusterType {
-	case ClusterTypeMySQL:
+	case ClusterTypeTendbha:
 		// Create MySQL cluster handler and process clusters
 		clusterHdl := handler.NewMysqlClusterHandler()
 		if err := clusterHdl.ResetAllMysqlClusters(); err != nil {
@@ -114,7 +96,7 @@ func ShowDomainRun(cmd *cobra.Command, args []string) error {
 	clusterType, _ := cmd.Flags().GetString("type")
 
 	switch clusterType {
-	case ClusterTypeMySQL:
+	case ClusterTypeTendbha:
 		clusterHdl := handler.NewMysqlClusterHandler()
 		return clusterHdl.ShowAllMysqlClustersDomain()
 	case ClusterTypeTenDBCluster:
@@ -141,7 +123,7 @@ func ShowNodesRun(cmd *cobra.Command, args []string) error {
 	clusterType, _ := cmd.Flags().GetString("type")
 
 	switch clusterType {
-	case ClusterTypeMySQL:
+	case ClusterTypeTendbha:
 		clusterHdl := handler.NewMysqlClusterHandler()
 		return clusterHdl.ShowAllMysqlClustersNodes()
 	case ClusterTypeTenDBCluster:
@@ -168,7 +150,7 @@ func ShowReplicationRun(cmd *cobra.Command, args []string) error {
 	clusterType, _ := cmd.Flags().GetString("type")
 
 	switch clusterType {
-	case ClusterTypeMySQL:
+	case ClusterTypeTendbha:
 		clusterHdl := handler.NewMysqlClusterHandler()
 		return clusterHdl.ShowAllMysqlClustersReplication()
 	case ClusterTypeTenDBCluster:
@@ -195,7 +177,7 @@ func ShowRoutingRun(cmd *cobra.Command, args []string) error {
 	clusterType, _ := cmd.Flags().GetString("type")
 
 	switch clusterType {
-	case ClusterTypeMySQL:
+	case ClusterTypeTendbha:
 		clusterHdl := handler.NewMysqlClusterHandler()
 		return clusterHdl.ShowAllMysqlClustersRouting()
 	case ClusterTypeTenDBCluster:
@@ -204,6 +186,34 @@ func ShowRoutingRun(cmd *cobra.Command, args []string) error {
 	default:
 		return gerrors.Newf(gerrors.Failure, typeOptionsHint)
 	}
+}
+
+func newResetCmd() *cobra.Command {
+	resetCmd := &cobra.Command{
+		Use:   "reset",
+		Short: "Reset clusters state according to configuration file",
+		RunE:  ResetRun,
+	}
+	resetCmd.Flags().String("type", "", "cluster type (tendbha, tendbcluster)")
+	resetCmd.MarkFlagRequired("type")
+	resetCmd.PersistentFlags().StringVarP(&configFilePath, "config", "c",
+		"./etc/cluster.yaml", "Path to configuration file")
+	return resetCmd
+}
+
+func newShowCmd() *cobra.Command {
+	showCmd := &cobra.Command{
+		Use:   "show",
+		Short: "Show cluster information",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return cmd.Help()
+		},
+	}
+	showCmd.PersistentFlags().StringVarP(&configFilePath, "config", "c",
+		"./etc/cluster.yaml", "Path to configuration file")
+	showCmd.PersistentFlags().String("type", "", "cluster type (tendbha, tendbcluster)")
+	showCmd.MarkPersistentFlagRequired("type")
+	return showCmd
 }
 
 func main() {
@@ -225,27 +235,7 @@ func main() {
 		},
 	}
 
-	resetCmd := &cobra.Command{
-		Use:   "reset",
-		Short: "Reset clusters state according to configuration file",
-		RunE:  ResetRun,
-	}
-	resetCmd.Flags().String("type", "", "cluster type")
-	resetCmd.MarkFlagRequired("type")
-	resetCmd.PersistentFlags().StringVarP(&configFilePath, "config", "c",
-		"./etc/cluster.yaml", "Path to configuration file")
-
-	showCmd := &cobra.Command{
-		Use:   "show",
-		Short: "Show cluster information",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return cmd.Help()
-		},
-	}
-	showCmd.PersistentFlags().StringVarP(&configFilePath, "config", "c",
-		"./etc/cluster.yaml", "Path to configuration file")
-	showCmd.PersistentFlags().String("type", "", "cluster type (mysql, tendbcluster)")
-	showCmd.MarkPersistentFlagRequired("type")
+	showCmd := newShowCmd()
 
 	showDomainCmd := &cobra.Command{
 		Use:   "domain",
@@ -267,7 +257,7 @@ func main() {
 
 	showRoutingCmd := &cobra.Command{
 		Use:   "routing",
-		Short: "Show routing info: mysql.servers for tendbcluster, proxy backends for mysql (JSON format)",
+		Short: "Show routing info: mysql.servers for tendbcluster, proxy backends for tendbha (JSON format)",
 		RunE:  ShowRoutingRun,
 	}
 
@@ -277,7 +267,7 @@ func main() {
 	showCmd.AddCommand(showRoutingCmd)
 
 	rootCmd.AddCommand(versionCmd)
-	rootCmd.AddCommand(resetCmd)
+	rootCmd.AddCommand(newResetCmd())
 	rootCmd.AddCommand(showCmd)
 
 	if err := rootCmd.Execute(); err != nil {
