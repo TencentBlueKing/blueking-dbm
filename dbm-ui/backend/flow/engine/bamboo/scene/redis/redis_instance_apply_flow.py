@@ -447,6 +447,21 @@ class RedisInstanceApplyFlow(object):
                         "kwargs": asdict(act_kwargs),
                     },
                 )
+
+                from backend.flow.plugins.components.collections.redis.redis_update_version import (
+                    RedisUpdateVersionComponent,
+                )
+
+                act_kwargs.cluster["update_all"] = True
+                act_kwargs.cluster["domain_name"] = rule["domain_name"]
+                act_kwargs.cluster["bk_biz_id"] = self.data["bk_biz_id"]
+                acts_list.append(
+                    {
+                        "act_name": _("{}-更新版本").format(act_kwargs.cluster["domain_name"]),
+                        "act_component_code": RedisUpdateVersionComponent.code,
+                        "kwargs": asdict(act_kwargs),
+                    },
+                )
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
             # 添加域名
