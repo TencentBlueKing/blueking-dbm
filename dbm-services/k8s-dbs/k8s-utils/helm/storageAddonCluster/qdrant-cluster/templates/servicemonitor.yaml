@@ -17,7 +17,7 @@ spec:
       path: /metrics
       port: tcp-metrics
   namespaceSelector:
-       matchNames:
+    matchNames:
       - {{ .Release.Namespace }}
   selector:
     matchExpressions:
