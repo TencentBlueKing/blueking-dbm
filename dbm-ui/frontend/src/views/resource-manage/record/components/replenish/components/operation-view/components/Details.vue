@@ -18,7 +18,7 @@
     :width="900">
     <template #header>
       <span>{{ t('操作详情') }}</span>
-      <span class="header-desc">ID : {{ data.id }}</span>
+      <span class="header-desc">ID : {{ id }}</span>
     </template>
     <div class="replenish-record-details">
       <BkLoading :loading="isLoading">
@@ -119,7 +119,7 @@
   } & ReplenishModel;
 
   interface Props {
-    data: ServiceReturnType<typeof fetchReplenish>['results'][0];
+    id: number;
   }
 
   const props = defineProps<Props>();
@@ -173,28 +173,33 @@
 
   watch(
     isShow,
-    () => {
-      if (isShow.value) {
+    async () => {
+      if (isShow.value && props.id) {
         try {
           isLoading.value = true;
-          Promise.all(
-            props.data.ticket_ids.map((id) =>
-              getTicketDetails({
+          const data = await fetchReplenish({
+            id: props.id,
+          });
+          if (data.results.length === 0) {
+            return;
+          }
+
+          const ticketInfos = await Promise.all(
+            data.results[0].ticket_ids.map((id) =>
+              getTicketDetails<TicketModel<ReplenishModel>>({
                 id,
               }),
             ),
-          ).then((res) => {
-            const results = res as TicketModel<ReplenishModel>[];
+          );
 
-            tableData.value = results.map((item) => ({
-              isRunning: iconMap[item.status] === 'sync-pending',
-              status: item.status,
-              statusIcon: iconMap[item.status],
-              statusText: item.statusText,
-              ticket_id: item.id,
-              ...item.details,
-            }));
-          });
+          tableData.value = ticketInfos.map((item) => ({
+            isRunning: iconMap[item.status] === 'sync-pending',
+            status: item.status,
+            statusIcon: iconMap[item.status],
+            statusText: item.statusText,
+            ticket_id: item.id,
+            ...item.details,
+          }));
         } finally {
           isLoading.value = false;
         }

@@ -156,9 +156,9 @@
         @limit-change="handlePageLimitChange" />
     </div>
     <Details
-      v-if="detailsData"
-      v-model:is-show="isShowDetails"
-      :data="detailsData" />
+      v-if="detailsId"
+      :id="detailsId"
+      v-model:is-show="isShowDetails" />
   </div>
 </template>
 <script setup lang="ts">
@@ -219,7 +219,7 @@
   ]);
   const tableMaxHeight = ref<number | 'auto'>('auto');
   const isShowDetails = ref(false);
-  const detailsData = ref<IRowData>();
+  const detailsId = ref<number>(0);
 
   const colorMap = {
     [TicketModel.STATUS_APPROVE]: '#267BCF',
@@ -249,7 +249,13 @@
 
   const handleViewDetail = (data: IRowData) => {
     isShowDetails.value = true;
-    detailsData.value = data;
+    detailsId.value = data.id;
+    router.replace({
+      params: {
+        id: data.id,
+      },
+      query: getSearchParams(),
+    });
   };
 
   const handleDateRangeChange = (value: [string, string]) => {
@@ -302,6 +308,11 @@
       tableMaxHeight.value = window.innerHeight - getOffset(rootRef.value as HTMLElement).top - 80;
     });
     const urlParams = JSON.parse(decodeURIComponent(String(route.query[URL_REPLENISH_MEMO_KEY] || '{}')));
+    if (route.params.id) {
+      urlParams.id = route.params.id;
+      detailsId.value = Number(route.params.id);
+      isShowDetails.value = true;
+    }
     if (urlParams?.id) {
       filterDateRange.value = ['', '']; // 从“待补货列表”跳转时因为带了ID，需要去掉时间区间
     }
