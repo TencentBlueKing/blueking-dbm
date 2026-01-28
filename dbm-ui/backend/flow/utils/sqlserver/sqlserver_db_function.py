@@ -249,6 +249,36 @@ name not in (select name from {SQLSERVER_CUSTOM_SYS_DB}.dbo.BACKUP_FILTER (NOLOC
     return routine_backup_dbs
 
 
+def get_backup_filter_dbs(cluster_id: int) -> list:
+    """
+    获取集群的主实例中，获取它的备份忽略的数据库列表
+    @param cluster_id 集群id
+    """
+
+    cluster = Cluster.objects.get(id=cluster_id)
+    # 获取当前cluster的主节点,每个集群有且只有一个master/orphan 实例
+    master_instance = cluster.storageinstance_set.get(
+        instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
+    )
+
+    check_sql = f"""select name from {SQLSERVER_CUSTOM_SYS_DB}.dbo.BACKUP_FILTER (NOLOCK)"""
+
+    ret = DRSApi.sqlserver_rpc(
+        {
+            "bk_cloud_id": cluster.bk_cloud_id,
+            "addresses": [master_instance.ip_port],
+            "cmds": [check_sql],
+            "force": False,
+        }
+    )
+    if ret[0]["error_msg"]:
+        raise Exception(f"[{master_instance.ip_port}] get_backup_filter_dbs failed: {ret[0]['error_msg']}")
+    # 获取所有忽略db名称
+    filter_backup_dbs = [i["name"] for i in ret[0]["cmd_results"][0]["table_data"]]
+
+    return filter_backup_dbs
+
+
 def get_restoring_dbs(instance: StorageInstance, bk_cloud_id: int) -> List[str]:
     """
     获取实例上存在的restoring状态的数据库

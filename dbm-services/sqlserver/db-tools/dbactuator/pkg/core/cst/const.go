@@ -19,6 +19,8 @@ const (
 	SysDB = "Monitor"
 	// 临时账号前缀
 	TempJobUserPrefix = "J_%"
+	// mssql_data_read_user固定SID
+	MSSQL_DATA_READ_USER_SID = "0x1234567890ABCDEF1234567890ABCDEF"
 )
 
 const (
@@ -232,8 +234,28 @@ var (
 	set @sql ='
 	use master
 	IF SUSER_SID('''+@username+''') IS NOT NULL
-	DROP LOGIN ' +@username+ '
+	DROP LOGIN ' +@username+ '''
 	CREATE LOGIN ['+@username+'] WITH PASSWORD = N'''+@pwd+''', DEFAULT_DATABASE = [master], CHECK_POLICY = OFF;'
+	IF @role <> 'public'
+	set @sql = @sql + '
+	EXEC master.sys.sp_addsrvrolemember @loginame = ' +@username+', @rolename = N'''+@role+''';'
+	EXEC(@sql)
+	`
+)
+
+// 初始化账号SQL模板, 指定SID
+var (
+	EXEC_INIT_LOGIN_WITH_SID_SQL = `
+	USE [master]
+	DECLARE @username NVARCHAR(50) = '%s'
+	DECLARE @pwd NVARCHAR(50) = '%s'
+	DECLARE @role NVARCHAR(50) = '%s'
+	DECLARE @sql NVARCHAR(MAX)
+	set @sql ='
+	use master
+	IF SUSER_SID('''+@username+''') IS NOT NULL
+	DROP LOGIN ' +@username+ '
+	CREATE LOGIN ['+@username+'] WITH PASSWORD = N'''+@pwd+''', DEFAULT_DATABASE = [master], CHECK_POLICY = OFF, SID=%s;'
 	IF @role <> 'public'
 	set @sql = @sql + '
 	EXEC master.sys.sp_addsrvrolemember @loginame = ' +@username+', @rolename = N'''+@role+''';'
