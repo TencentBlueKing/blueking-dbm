@@ -237,17 +237,17 @@
         if (isWholeChecked.value) {
           return (
             <div
-              class='db-table-whole-check'
               onClick={handleClearWholeSelect}
+              class='db-table-whole-check'
             />
           );
         }
         if (isCurrentPageAllSelected.value) {
           return (
             <bk-checkbox
+              onChange={handleTogglePageSelect}
               label={true}
               modelValue={true}
-              onChange={handleTogglePageSelect}
             />
           );
         }
@@ -261,19 +261,19 @@
               content: () => (
                 <div class='db-table-select-plan'>
                   <div
+                    onClick={handlePageSelect}
                     class={{
                       'is-selected': isCurrentPageAllSelected.value,
                       'plan-item': true,
-                    }}
-                    onClick={handlePageSelect}>
+                    }}>
                     {t('本页全选')}
                   </div>
                   <div
+                    onClick={handleWholeSelect}
                     class={{
                       'is-selected': isWholeChecked.value,
                       'plan-item': true,
-                    }}
-                    onClick={handleWholeSelect}>
+                    }}>
                     {t('跨页全选')}
                   </div>
                 </div>
@@ -301,10 +301,10 @@
       return (
         <span v-bk-tooltips={tips}>
           <bk-checkbox
+            onChange={() => handleSelecteRow(data)}
             disabled={Boolean(selectDisabled)}
             label={true}
             modelValue={Boolean(rowSelectMemo.value[_.get(data, props.primaryKey)])}
-            onChange={() => handleSelecteRow(data)}
           />
         </span>
       );
@@ -486,6 +486,7 @@
         })
         .finally(() => {
           isLoading.value = false;
+          emits('requestFinished', tableData.value.results);
         });
     });
   };
