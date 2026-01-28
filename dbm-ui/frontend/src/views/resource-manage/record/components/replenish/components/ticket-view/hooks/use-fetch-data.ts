@@ -1,11 +1,15 @@
 import { reactive, ref } from 'vue';
+import { useRequest } from 'vue-request';
+
+import { getTickets } from '@services/source/ticket';
 
 import { useUrlSearch } from '@hooks';
-import { useStorage } from '@vueuse/core';
-import { useRequest } from 'vue-request';
-import { getTickets } from '@services/source/ticket';
+
 import { TicketTypes } from '@common/const';
+
 import { transfromDataToQuery } from '@utils';
+
+import { useStorage } from '@vueuse/core';
 
 export default () => {
   const route = useRoute();
@@ -44,9 +48,9 @@ export default () => {
 
   const fetchData = () => {
     dataSource({
-      ticket_type: TicketTypes.RESOURCE_HCM_REPLENISH,
       limit: pagination.limit,
       offset: (pagination.current - 1) * pagination.limit,
+      ticket_type: TicketTypes.RESOURCE_HCM_REPLENISH,
       ...transfromDataToQuery(JSON.parse(decodeURIComponent(String(route.query[URL_REPLENISH_MEMO_KEY] || '{}')))),
     });
   };
@@ -67,9 +71,9 @@ export default () => {
   return {
     dataList,
     fetchData,
-    loading,
-    pagination,
     handlePageLimitChange,
     handlePageValueChange,
+    loading,
+    pagination,
   };
 };

@@ -5,8 +5,10 @@ import { useI18n } from 'vue-i18n';
 import TicketModel from '@services/model/ticket/ticket';
 import { getUserList } from '@services/source/user';
 
-import { type Props } from '@components/db-quick-search/bk-quick-search/Index.vue';
 import { DBTypeInfos } from '@common/const';
+
+import { type Props } from '@components/db-quick-search/bk-quick-search/Index.vue';
+
 import { makeMap } from '@utils';
 
 const quickSearchValue = ref<Record<string, any>>({});

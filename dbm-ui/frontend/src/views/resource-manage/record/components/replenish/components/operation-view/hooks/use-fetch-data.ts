@@ -1,10 +1,13 @@
 import { reactive, ref } from 'vue';
+import { useRequest } from 'vue-request';
+
+import { fetchReplenish } from '@services/source/dbresourceReplenish';
 
 import { useUrlSearch } from '@hooks';
+
 import { transfromDataToQuery } from '@utils';
+
 import { useStorage } from '@vueuse/core';
-import { fetchReplenish } from '@services/source/dbresourceReplenish';
-import { useRequest } from 'vue-request';
 
 export default () => {
   const route = useRoute();
@@ -63,11 +66,11 @@ export default () => {
   };
 
   return {
-    tableData,
     fetchData,
-    loading,
-    pagination,
     handlePageLimitChange,
     handlePageValueChange,
+    loading,
+    pagination,
+    tableData,
   };
 };
