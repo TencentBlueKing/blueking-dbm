@@ -13,12 +13,12 @@ specific language governing permissions and limitations under the License.
 import os
 import requests
 
-import version_log.config as config
+import backend.version_log.config as config
 
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
-from version_log.utils import get_latest_version
+from backend.version_log.utils import get_latest_version
 
 
 def auto_sync_version_log():

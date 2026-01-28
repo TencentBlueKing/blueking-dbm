@@ -85,7 +85,6 @@ openai = "2.7.1"
 pandas = "^3.0.0"
 numpy = "^2.4.1"
 simpleeval = "^1.0.3"
-django-versionlog = "^1.8.1"
 
 [tool.poetry.dev-dependencies]
 flake8 = "7.1.1"
