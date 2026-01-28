@@ -13,6 +13,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import ProfileLabel
@@ -48,6 +49,7 @@ class ProfileViewSet(viewsets.SystemViewSet):
                 "profile": list(profile),
                 "is_superuser": request.user.is_superuser,
                 "is_dba": DBAdministrator.is_dba(request.user.username),
+                "tenant_id": env.BK_TENANT_ID,
             }
         )
 
