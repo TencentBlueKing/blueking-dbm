@@ -75,7 +75,7 @@ func (m *DbInstMetadata) GetMySQLRole() string {
 	if m.InstanceRole != "" {
 		return m.InstanceRole
 	}
-	// TenDBHA proxy 节点没有 instance_role 字段，fallback 到 machine_type
+	// TenDBHA proxy does not have instance_role field, fallback to machine_type
 	return m.MachineType
 }
 
