@@ -40,3 +40,8 @@ cypress/parallel-weights.json
 
 
 !.cursor/
+cypress/parallel-weights.json
+cypress/screenshots
+runner-results/
+cypress.env.json
+multi-reporter-config.json
