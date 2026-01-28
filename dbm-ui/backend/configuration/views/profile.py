@@ -17,7 +17,7 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import ProfileLabel
 from backend.configuration.models import DBAdministrator, Profile
-from backend.configuration.serializers import ProfileSerializer, ProfileSqlSerializer
+from backend.configuration.serializers import IsDBAdminSerializer, ProfileSerializer, ProfileSqlSerializer
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.permission import Permission
 
@@ -29,8 +29,9 @@ class ProfileViewSet(viewsets.SystemViewSet):
     default_permission_class = []
 
     @common_swagger_auto_schema(operation_summary=_("查询个人配置列表"), tags=[SWAGGER_TAG])
-    @action(methods=["GET"], detail=False)
+    @action(methods=["GET"], detail=False, serializer_class=IsDBAdminSerializer)
     def get_profile(self, request, *args, **kwargs):
+        validated_data = self.params_validate(self.get_serializer_class())
         username = request.user.username
         # 鉴权资源管理和平台管理
         client = Permission()
@@ -47,7 +48,7 @@ class ProfileViewSet(viewsets.SystemViewSet):
                 "username": username,
                 "profile": list(profile),
                 "is_superuser": request.user.is_superuser,
-                "is_dba": DBAdministrator.is_dba(request.user.username),
+                "is_dba": DBAdministrator.is_dba(request.user.username, validated_data),
             }
         )
 

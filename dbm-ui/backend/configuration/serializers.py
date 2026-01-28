@@ -86,6 +86,11 @@ class ProfileSqlSerializer(serializers.Serializer):
     sqls = serializers.ListSerializer(help_text=_("收藏sql列表"), child=SqlSelfSerializer())
 
 
+class IsDBAdminSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
+    db_type = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices(), required=False)
+
+
 class ListDBAdminSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
 

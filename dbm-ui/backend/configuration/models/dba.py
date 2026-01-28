@@ -85,5 +85,20 @@ class DBAdministrator(models.Model):
         return list(manage_biz), list(assist_bizs)
 
     @classmethod
-    def is_dba(cls, username: str) -> bool:
+    def is_dba(cls, username: str, validated_data: dict) -> bool:
+        if validated_data.get("db_type"):
+            # 先判断业务有没有配置DBA， 有则查询用户名在不在配置的DBA中 如果没配则直接看平台配置的DBA中有没有
+            if DBAdministrator.objects.filter(
+                bk_biz_id=validated_data["bk_biz_id"], db_type=validated_data["db_type"]
+            ).exists():
+
+                return DBAdministrator.objects.filter(
+                    bk_biz_id=validated_data["bk_biz_id"],
+                    db_type=validated_data["db_type"],
+                    users__contains=username,
+                ).exists()
+            else:
+                return DBAdministrator.objects.filter(
+                    users__contains=username, bk_biz_id=PLAT_BIZ_ID, db_type=validated_data["db_type"]
+                ).exists()
         return DBAdministrator.objects.filter(users__contains=username).exists()
