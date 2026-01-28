@@ -27,7 +27,7 @@
     <TicketInfoTableColumn
       col-key="cluster_type_name"
       :title="t('集群类型')"
-      :width="150">
+      :width="130">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].cluster_type_name }}
       </template>
@@ -35,7 +35,7 @@
     <TicketInfoTableColumn
       col-key="db_patterns"
       :min-width="200"
-      :title="t('DB名')">
+      :title="t('DB 名')">
       <template #default="{ row }: { row: RowData }">
         <TagBlock :data="row.ns_filter.db_patterns" />
       </template>

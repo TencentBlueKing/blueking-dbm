@@ -43,7 +43,7 @@
               field="cluster.cluster_type_name"
               :label="t('集群类型')"
               readonly
-              :width="150">
+              :width="130">
               <EditableBlock
                 v-model="item.cluster.cluster_type_name"
                 :placeholder="t('输入集群后自动生成')" />
@@ -52,7 +52,7 @@
               v-model="item.db_patterns"
               :cluster-id="item.cluster.id"
               field="db_patterns"
-              :label="t('DB名')"
+              :label="t('DB 名')"
               @batch-edit="handleDbTableBatchEdit" />
             <DbNameColumn
               v-model="item.ignore_dbs"
@@ -65,6 +65,7 @@
               v-model="item.table_patterns"
               field="table_patterns"
               :label="t('表名')"
+              :required="false"
               @batch-edit="handleDbTableBatchEdit" />
             <TableNameColumn
               v-model="item.ignore_tables"
@@ -80,7 +81,7 @@
               :rules="queryRules">
               <EditableTextarea
                 v-model="item.query"
-                :placeholder="t('请输入合法的JSON')" />
+                :placeholder="t('请输入合法的 JSON')" />
             </EditableColumn>
             <OperationColumn
               :create-row-method="createRowData"
@@ -191,7 +192,7 @@
     {
       case: 'db1,db2',
       key: 'db_patterns',
-      label: t('DB名'),
+      label: t('DB 名'),
     },
     {
       case: 'db1,db2',
@@ -219,7 +220,12 @@
     {
       message: '',
       trigger: 'change',
-      validator: (value: string) => isValidJSON(value) || t('请输入合法的 JSON'),
+      validator: (value: string) => {
+        if (value) {
+          return isValidJSON(value) || t('请输入合法的 JSON');
+        }
+        return true;
+      },
     },
   ];
 

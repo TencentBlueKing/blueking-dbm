@@ -13,11 +13,20 @@
 
 export const downloadUrl = (url: string) => {
   // 创建隐藏的可下载链接
-
   const eleLink = document.createElement('a');
   eleLink.style.display = 'none';
   eleLink.href = url;
   eleLink.target = '_blank';
+
+  // 添加事件监听器，防止冒泡导致的弹框类组件自动关闭
+  eleLink.addEventListener(
+    'click',
+    (e) => {
+      e.stopPropagation();
+      return false;
+    },
+    { once: true },
+  );
 
   // 触发点击
   document.body.appendChild(eleLink);
