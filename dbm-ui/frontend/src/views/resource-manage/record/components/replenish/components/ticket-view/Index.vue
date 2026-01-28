@@ -304,7 +304,7 @@
     isShowDetail.value = true;
     router.replace({
       params: {
-        ticketId: ticketData.id,
+        id: ticketData.id,
       },
       query: getSearchParams(),
     });
@@ -327,12 +327,6 @@
 
   const handleDetailDialogClose = () => {
     ticketId.value = 0;
-    router.replace({
-      params: {
-        ticketId: 0,
-      },
-      query: getSearchParams(),
-    });
   };
 
   const handleDateRangeChange = (value: [string, string]) => {
@@ -390,6 +384,11 @@
       tableMaxHeight.value = window.innerHeight - getOffset(rootRef.value as HTMLElement).top - 80;
     });
     const urlParams = JSON.parse(decodeURIComponent(String(route.query[URL_REPLENISH_MEMO_KEY] || '{}')));
+    if (route.params.id) {
+      ticketId.value = Number(route.params.id);
+      isShowDetail.value = true;
+      urlParams.ids = route.params.id;
+    }
     if (urlParams?.ids) {
       filterDateRange.value = ['', '']; // 从“补货操作视角”跳转时因为带了过滤字段ids，需要去掉时间区间
     }

@@ -62,7 +62,8 @@
   };
 
   const handleChange = (value: string) => {
-    router.replace({
+    router.push({
+      name: 'resourceReplenishRecord',
       params: {
         page: value,
       },
