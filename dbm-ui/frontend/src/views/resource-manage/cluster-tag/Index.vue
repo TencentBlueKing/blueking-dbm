@@ -501,10 +501,6 @@
       merges.forEach((item) => {
         Object.assign(item, { rowspan: rowSpan });
       });
-      // 解决收起后，表格底部空白问题
-      nextTick(() => {
-        tableRef.value.updateTableKey();
-      });
     } else {
       // TODO: 收起很慢，怀疑是底层实现有问题
       merges.forEach((item) => {
