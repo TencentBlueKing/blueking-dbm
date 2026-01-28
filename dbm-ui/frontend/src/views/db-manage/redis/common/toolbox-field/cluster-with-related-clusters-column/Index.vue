@@ -124,7 +124,7 @@
     manual: true,
     onSuccess: (data) => {
       modelValue.value.related_clusters = [];
-      if (data.length) {
+      if (data[0].related_clusters.length > 0) {
         modelValue.value.related_clusters = data[0].related_clusters;
       }
     },
@@ -164,6 +164,7 @@
     () => {
       if (modelValue.value.id) {
         queryRelatedClusters({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_ids: [modelValue.value.id],
         });
       } else {

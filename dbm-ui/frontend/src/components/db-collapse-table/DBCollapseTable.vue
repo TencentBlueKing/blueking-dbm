@@ -63,6 +63,17 @@
 <script lang="ts">
   import type { TablePropTypes } from 'bkui-vue/lib/table/props';
 
+  interface Props {
+    collapse?: boolean;
+    operations?: CollapseTableOperation[];
+    showIcon?: boolean;
+    tableProps?: {
+      columns: TablePropTypes['columns'];
+      data: TablePropTypes['data'];
+    };
+    title?: string;
+  }
+
   export type CollapseTableOperation = {
     label: string;
     onClick: (params: Array<any>) => void;
@@ -78,17 +89,6 @@
 </script>
 
 <script setup lang="ts">
-  interface Props {
-    collapse?: boolean;
-    operations?: CollapseTableOperation[];
-    showIcon?: boolean;
-    tableProps?: {
-      columns: TablePropTypes['columns'];
-      data: TablePropTypes['data'];
-    };
-    title?: string;
-  }
-
   const props = withDefaults(defineProps<Props>(), {
     collapse: true,
     operations: () => [],

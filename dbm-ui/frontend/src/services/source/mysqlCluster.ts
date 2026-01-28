@@ -23,11 +23,11 @@ const getRootPath = (bizId = window.PROJECT_CONFIG.BIZ_ID) => `/apis/mysql/bizs/
  */
 export function findRelatedClustersByClusterIds(params: { bk_biz_id: number; cluster_ids: number[]; role?: string }) {
   return http.post<
-    Array<{
+    {
       cluster_id: number;
       cluster_info: TendbhaModel;
-      related_clusters: Array<TendbhaModel>;
-    }>
+      related_clusters: TendbhaModel[];
+    }[]
   >(`${getRootPath()}/find_related_clusters_by_cluster_ids/`, params);
 }
 

@@ -52,9 +52,11 @@
     </div>
   </EditableColumn>
   <ClusterSelector
+    v-model="selectedClusters"
     v-model:is-show="showSelector"
+    add-related-cluster
     :cluster-types="localClusterTypes"
-    :selected="selectedClusters"
+    :related-cluster-data-source-map="relatedClusterDataSourceMap"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -68,7 +70,7 @@
   import { ClusterTypes, DBTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
-  import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import ClusterSelector from '@components/cluster-selector-new/Index.vue';
 
   interface ClusterBase {
     cluster_type?: ClusterTypes;
@@ -115,7 +117,7 @@
   const { t } = useI18n();
 
   const showSelector = ref(false);
-  const localClusterTypes = computed<string[]>(() => {
+  const localClusterTypes = computed<NonNullable<Props['clusterTypes']>>(() => {
     if (props.clusterTypes) {
       return props.clusterTypes;
     }
@@ -136,7 +138,7 @@
     }, {});
   });
 
-  const selectedClusters = computed<Record<string, TendbhaModel[]>>(() => {
+  const selectedClusters = computed(() => {
     const clusterMemo = new Set<string>();
     const result = {
       [ClusterTypes.TENDBHA]: [] as TendbhaModel[],
@@ -226,6 +228,13 @@
       }
     },
   });
+
+  const relatedClusterDataSourceMap = {
+    [ClusterTypes.TENDBHA]: (params: ServiceParameters<typeof findRelatedClustersByClusterIds>) =>
+      findRelatedClustersByClusterIds({ ...params, role: props.role }),
+    [ClusterTypes.TENDBSINGLE]: (params: ServiceParameters<typeof findRelatedClustersByClusterIds>) =>
+      findRelatedClustersByClusterIds({ ...params, role: 'orphan' }),
+  };
 
   const handleChange = (value: string) => {
     modelValue.value = Object.assign({} as TendbhaModel, {

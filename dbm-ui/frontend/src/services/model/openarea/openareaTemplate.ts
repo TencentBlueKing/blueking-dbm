@@ -10,11 +10,13 @@
  * on an "AS IS" BASIS; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND; either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
+import type { ClusterTypes } from '@common/const';
+
 import { utcDisplayTime } from '@utils';
 
 export default class Opeanarea {
   bk_biz_id: number;
-  cluster_type: string;
+  cluster_type: ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE;
   config_name: string;
   config_rules: {
     data_tblist: string[];

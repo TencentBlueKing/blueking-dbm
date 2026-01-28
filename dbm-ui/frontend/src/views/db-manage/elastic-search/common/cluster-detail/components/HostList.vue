@@ -194,11 +194,13 @@
   import EsModel from '@services/model/es/es';
   import EsMachineModel from '@services/model/es/es-machine';
 
+  import { useHostQuickSearch } from '@hooks';
+
   import { ClusterTypes } from '@common/const';
 
   import DbTable from '@components/db-table/IndexNew.vue';
 
-  import { HostListFieldColumn, useCopyMachineIp, useHostSearchSelect } from '@views/db-manage/common/cluster-details';
+  import { HostListFieldColumn, useCopyMachineIp } from '@views/db-manage/common/cluster-details';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import ClusterExpansion from '@views/db-manage/elastic-search/common/expansion/Index.vue';
   import ClusterReplace from '@views/db-manage/elastic-search/common/replace/Index.vue';
@@ -217,7 +219,7 @@
   const { copyAllIp, copyNotAliveIp } = useCopyMachineIp();
 
   const hostTableRef = ref<InstanceType<typeof DbTable>>();
-  const { quickSearchData, quickSearchValue } = useHostSearchSelect(ClusterTypes.ES, {
+  const { quickSearchData, quickSearchValue } = useHostQuickSearch(ClusterTypes.ES, {
     clusterId: props.clusterData.id,
     serviceHandler: () => {
       fetchData();

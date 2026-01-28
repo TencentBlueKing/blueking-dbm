@@ -16,7 +16,7 @@ const machineAttrs = [
   'bk_svr_device_cls_name',
 ] as const;
 
-export const useHostListTableFilter = (clusterType: ClusterTypes, clusterId: number) => {
+export const useHostColumnFilter = (clusterType: ClusterTypes, clusterId?: number) => {
   const { t } = useI18n();
 
   const getBizMachineAttrs = (attr: (typeof machineAttrs)[number]) => {

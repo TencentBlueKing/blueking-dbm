@@ -26,33 +26,6 @@ const { currentBizId } = useGlobalBizs();
 
 const getRootPath = () => `/apis/mongodb/bizs/${window.PROJECT_CONFIG.BIZ_ID}/mongodb_resources`;
 
-interface RelatedCluster {
-  cluster_id: number;
-  cluster_info: ClusterInfo;
-  related_clusters: ClusterInfo[];
-}
-
-interface ClusterInfo {
-  alias: string;
-  bk_biz_id: number;
-  bk_cloud_id: number;
-  cluster_name: string;
-  cluster_type: string;
-  creator: string;
-  db_module_id: number;
-  disaster_tolerance_level: string;
-  id: number;
-  immute_domain: string;
-  major_version: string;
-  master_domain: string;
-  name: string;
-  phase: string;
-  region: string;
-  status: string;
-  time_zone: string;
-  updater: string;
-}
-
 /**
  * 获取Mongo集群
  */
@@ -222,11 +195,14 @@ export function getMongoDBResourceTree(params: { cluster_type: string }) {
 /**
  * 通过集群查询同机关联集群
  */
-export function getRelatedClustersByClusterIds(params: { cluster_ids: number[] }) {
-  return http.post<RelatedCluster[]>(
-    `/apis/mongodb/bizs/${currentBizId}/cluster/find_related_clusters_by_cluster_ids/`,
-    params,
-  );
+export function findRelatedClustersByClusterIds(params: { bk_biz_id: number; cluster_ids: number[]; role?: string }) {
+  return http.post<
+    {
+      cluster_id: number;
+      cluster_info: MongodbModel;
+      related_clusters: MongodbModel[];
+    }[]
+  >(`/apis/mongodb/bizs/${currentBizId}/cluster/find_related_clusters_by_cluster_ids/`, params);
 }
 
 /**

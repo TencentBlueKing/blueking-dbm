@@ -102,14 +102,7 @@
   type IRowData = ClusterModel<T>;
 
   const { data: columnFilter } = useClusterColumnFilter({
-    cluster_attrs: [
-      'bk_cloud_id',
-      'db_module_id',
-      'major_version',
-      'region',
-      'time_zone',
-      'disaster_tolerance_level',
-    ] as const,
+    cluster_attrs: ['bk_cloud_id', 'major_version', 'region', 'time_zone', 'disaster_tolerance_level'] as const,
     cluster_type: props.clusterType,
   });
 </script>

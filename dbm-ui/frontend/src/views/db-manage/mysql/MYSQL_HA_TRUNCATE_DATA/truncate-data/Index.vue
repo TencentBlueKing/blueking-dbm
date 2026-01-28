@@ -35,8 +35,8 @@
           <ClusterColumn
             v-model="item.cluster"
             allow-repeat
-            only-one-type
             :selected="selected"
+            unique-panel-settings
             @batch-edit="handleBatchEditCluster" />
           <TruncateTypeColumn
             v-model="item.truncate_data_type"

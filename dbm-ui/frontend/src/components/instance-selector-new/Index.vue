@@ -33,7 +33,7 @@
           v-model="currentPanelTab"
           :cluster-types="clusterTypes"
           :is-empty="isEmpty"
-          :unique-panel-settings="uniquePanelSettings" />
+          :unique-panel-settings="localUniquePanelSettings" />
         <Table
           :key="currentPanelTab"
           :cluster-type="currentPanelTab"
@@ -95,7 +95,7 @@
     disableSelectMethod?: (data: InstanceModel<C>) => boolean | string;
     repeatable?: boolean;
     single?: boolean;
-    uniquePanelSettings?: ComponentProps<typeof PanelTab>['uniquePanelSettings'];
+    uniquePanelSettings?: boolean | ComponentProps<typeof PanelTab>['uniquePanelSettings'];
   }
 
   type Emits = {
@@ -122,6 +122,10 @@
 
   const isEmpty = computed(() =>
     Object.values<InstanceModel<T>[]>(lastValues.value).every((values) => values.length === 0),
+  );
+
+  const localUniquePanelSettings = computed(() =>
+    _.isBoolean(props.uniquePanelSettings) ? { enable: props.uniquePanelSettings } : props.uniquePanelSettings,
   );
 
   watch(isShow, () => {

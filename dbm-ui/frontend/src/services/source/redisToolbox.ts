@@ -115,13 +115,13 @@ export function queryMachineInstancePair(params: {
 /**
  * 通过集群查询同机关联集群
  */
-export function findRelatedClustersByClusterIds(params: { cluster_ids: number[] }) {
+export function findRelatedClustersByClusterIds(params: { bk_biz_id: number; cluster_ids: number[]; role?: string }) {
   return http.post<
-    Array<{
+    {
       cluster_id: number;
       cluster_info: RedisModel;
-      related_clusters: Array<RedisModel>;
-    }>
+      related_clusters: RedisModel[];
+    }[]
   >(`${getRootPath()}/find_related_clusters_by_cluster_ids/`, params);
 }
 

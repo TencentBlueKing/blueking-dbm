@@ -10,7 +10,7 @@
           :key="index">
           {{ item.key }} : {{ item.value.join(' , ') }}
           <template
-            v-if="index === 0"
+            v-if="index === 0 && editable"
             #append>
             <AuthTemplate
               :action-id="actionId"
@@ -39,7 +39,7 @@
       </div>
     </template>
     <AuthTemplate
-      v-if="!isVertical || (isVertical && !totalList.length)"
+      v-if="editable && (!isVertical || (isVertical && !totalList.length))"
       :action-id="actionId"
       class="edit-main"
       :permission="checkEditPermission(data)"
@@ -68,13 +68,15 @@
 
   interface Props {
     data: { permission: Record<string, boolean> } & ClusterCommonInfo;
+    editable?: boolean;
     mode?: 'horizontal' | 'vertical';
   }
 
   type Emits = (e: 'success') => void;
 
   const props = withDefaults(defineProps<Props>(), {
-    mode: 'horizontal',
+    editable: true,
+    mode: 'vertical',
   });
   const emits = defineEmits<Emits>();
 

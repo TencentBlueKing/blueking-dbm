@@ -48,31 +48,25 @@
       </p>
     </EditableBlock>
   </EditableColumn>
-  <InstanceSelector
+  <MachineSelector
+    v-model="selectedMachines"
     v-model:is-show="showSelector"
-    :cluster-types="['TendbhaHost']"
-    hide-manual-input
-    :selected="selectedInstances"
-    :tab-list-config="tabListConfig"
+    :cluster-types="[ClusterTypes.TENDBHA]"
+    :data-source-map="dataSourceMap"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import type TendbhaModel from '@services/model/mysql/tendbha';
+  import TendbhaMachineModel from '@services/model/mysql/tendbha-machine';
   import { checkInstance } from '@services/source/dbbase';
+  import { getTendbhaMachineList } from '@services/source/tendbha';
 
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
-
-  export type SelectorHost = IValue;
+  import MachineSelector from '@components/machine-selector/Index.vue';
 
   interface Props {
     selected: {
@@ -80,7 +74,7 @@
     }[];
   }
 
-  type Emits = (e: 'batch-edit', list: IValue[]) => void;
+  type Emits = (e: 'batch-edit', list: TendbhaMachineModel[]) => void;
 
   const props = defineProps<Props>();
 
@@ -105,45 +99,21 @@
 
   const { t } = useI18n();
 
-  const tabListConfig = {
-    TendbhaHost: [
-      {
-        id: 'TendbhaHost',
-        name: t('目标从库主机'),
-        tableConfig: {
-          firsrColumn: {
-            field: 'ip',
-            label: t('Slave 主机'),
-            role: 'backend_slave',
-          },
-        },
-        topoConfig: {
-          countFunc: (cluster: TendbhaModel) => {
-            return cluster.slaves.length;
-          },
-        },
-      },
-      {
-        id: 'manualInput',
-        name: t('手动输入'),
-        tableConfig: {
-          firsrColumn: {
-            field: 'ip',
-            label: t('Slave 主机'),
-            role: 'backend_slave',
-          },
-        },
-      },
-    ],
-  } as unknown as Record<ClusterTypes, PanelListType>;
+  const dataSourceMap = {
+    [ClusterTypes.TENDBHA]: (params: ServiceParameters<typeof getTendbhaMachineList>) =>
+      getTendbhaMachineList({
+        ...params,
+        instance_role: 'backend_slave',
+      }),
+  };
 
   const showSelector = ref(false);
-  const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
-    TendbhaHost: props.selected.map(
+  const selectedMachines = computed(() => ({
+    [ClusterTypes.TENDBHA]: props.selected.map(
       (item) =>
         ({
           ip: item.ip,
-        }) as IValue,
+        }) as TendbhaMachineModel,
     ),
   }));
   let illegalInstances = '';
@@ -219,8 +189,11 @@
     };
   };
 
-  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected.TendbhaHost);
+  const handleSelectorChange = (selected: { [ClusterTypes.TENDBHA]: TendbhaMachineModel[] }) => {
+    emits(
+      'batch-edit',
+      Object.values(selected).flatMap((item) => item),
+    );
   };
 
   watch(

@@ -142,6 +142,7 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
+  import TendbhaMachineModel from '@services/model/mysql/tendbha-machine';
   import { type Mysql } from '@services/model/ticket/ticket';
   import { BackupSourceType, SourceType } from '@services/types';
 
@@ -162,7 +163,7 @@
 
   import { random } from '@utils';
 
-  import SlaveHostColumnGroup, { type SelectorHost } from './components/SlaveHostColumnGroup.vue';
+  import SlaveHostColumnGroup from './components/SlaveHostColumnGroup.vue';
 
   interface RowData {
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
@@ -353,7 +354,7 @@
     Object.assign(formData, defaultData());
   };
 
-  const handleBatchEdit = (list: SelectorHost[]) => {
+  const handleBatchEdit = (list: TendbhaMachineModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!selectedMap.value[item.ip]) {
         acc.push(

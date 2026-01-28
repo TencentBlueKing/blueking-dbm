@@ -127,12 +127,6 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
         },
       },
       {
-        id: 'db_module_id',
-        name: t('模块'),
-        remoteMethod: () => getBizClusterAttrs('db_module_id'),
-        type: 'multiple',
-      },
-      {
         id: 'status',
         list: [
           {

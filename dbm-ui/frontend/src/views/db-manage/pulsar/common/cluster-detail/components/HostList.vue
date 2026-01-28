@@ -193,11 +193,13 @@
   import PulsarDetailModel from '@services/model/pulsar/pulsar-detail';
   import PulsarMachineModel from '@services/model/pulsar/pulsar-machine';
 
+  import { useHostQuickSearch } from '@hooks';
+
   import { ClusterTypes } from '@common/const';
 
   import DbTable from '@components/db-table/IndexNew.vue';
 
-  import { HostListFieldColumn, useCopyMachineIp, useHostSearchSelect } from '@views/db-manage/common/cluster-details';
+  import { HostListFieldColumn, useCopyMachineIp } from '@views/db-manage/common/cluster-details';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import useClusterMachineList from '@views/db-manage/hooks/useClusterMachineList';
   import ClusterExpansion from '@views/db-manage/pulsar/common/expansion/Index.vue';
@@ -216,7 +218,7 @@
   const { copyAllIp, copyNotAliveIp } = useCopyMachineIp();
 
   const hostTableRef = ref<InstanceType<typeof DbTable>>();
-  const { quickSearchData, quickSearchValue } = useHostSearchSelect(ClusterTypes.PULSAR, {
+  const { quickSearchData, quickSearchValue } = useHostQuickSearch(ClusterTypes.PULSAR, {
     clusterId: props.clusterData.id,
     serviceHandler: () => {
       fetchData();

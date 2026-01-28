@@ -27,6 +27,8 @@ export * from './useDebouncedRef';
 export * from './useDefaultPagination';
 export * from './useEventBus';
 export * from './useFormItem';
+export * from './useHostColumnFilter';
+export * from './useHostQuickSearch';
 export * from './useHostTodoCount';
 export * from './useInstanceColumnFilter';
 export * from './useInstanceQuickSearch';

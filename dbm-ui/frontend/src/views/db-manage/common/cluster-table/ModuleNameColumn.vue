@@ -1,6 +1,7 @@
 <template>
   <TableColumn
-    col-key="db_module_name"
+    col-key="db_module_id"
+    :filter="columnFilter?.db_module_id"
     :title="t('模块')"
     :width="150">
     <template #default="{ row }: { row: IRowData }">
@@ -22,18 +23,24 @@
   ">
   import { useI18n } from 'vue-i18n';
 
+  import { useClusterColumnFilter } from '@hooks';
+
   import { ClusterTypes } from '@common/const';
 
   import type { ClusterModel } from './types';
 
   export interface Props<T> {
-    // eslint-disable-next-line vue/no-unused-properties
     clusterType: T;
   }
 
   type IRowData = ClusterModel<T>;
 
-  defineProps<Props<T>>();
+  const props = defineProps<Props<T>>();
 
   const { t } = useI18n();
+
+  const { data: columnFilter } = useClusterColumnFilter({
+    cluster_attrs: ['db_module_id'] as const,
+    cluster_type: props.clusterType,
+  });
 </script>

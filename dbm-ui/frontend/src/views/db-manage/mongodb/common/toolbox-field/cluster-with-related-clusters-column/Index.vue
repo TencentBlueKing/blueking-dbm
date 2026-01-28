@@ -59,7 +59,7 @@
 
   import MongodbModel from '@services/model/mongodb/mongodb';
   import { filterClusters } from '@services/source/dbbase';
-  import { getRelatedClustersByClusterIds } from '@services/source/mongodb';
+  import { findRelatedClustersByClusterIds } from '@services/source/mongodb';
 
   import { ClusterTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
@@ -140,7 +140,7 @@
     },
   });
 
-  const { loading: relatedClusterLoading, run: queryRelatedClusters } = useRequest(getRelatedClustersByClusterIds, {
+  const { loading: relatedClusterLoading, run: queryRelatedClusters } = useRequest(findRelatedClustersByClusterIds, {
     manual: true,
     onSuccess: (data) => {
       modelValue.value.related_clusters = [];

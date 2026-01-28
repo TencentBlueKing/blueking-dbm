@@ -35,15 +35,15 @@
       @change="handleChange" />
   </EditableColumn>
   <ClusterSelector
+    v-model="selectedClusters"
     v-model:is-show="showSelector"
     :cluster-types="clusterTypes"
-    :only-one-type="onlyOneType"
-    :selected="selectedClusters"
     :support-offline-data="supportOfflineData"
-    :tab-list-config="tabListConfig"
+    :unique-panel-settings="uniquePanelSettings"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useRequest } from 'vue-request';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
@@ -52,7 +52,7 @@
   import { ClusterTypes, DBTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
-  import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
+  import ClusterSelector from '@components/cluster-selector-new/Index.vue';
 
   import { t } from '@/locales/index';
 
@@ -69,11 +69,6 @@
     field?: string;
     label?: string;
     minWidth?: number;
-    /**
-     * @description 只允许选择单一类型的集群
-     * @default false
-     */
-    onlyOneType?: boolean;
     rowspan?: number;
     selected: {
       cluster_type: ClusterTypes;
@@ -85,7 +80,12 @@
      * @default false
      */
     supportOfflineData?: boolean;
-    tabListConfig?: Record<ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE, TabConfig>;
+    /**
+     * @description 只允许选择单一类型的集群
+     * @default false
+     */
+    // eslint-disable-next-line vue/require-default-prop
+    uniquePanelSettings?: ComponentProps<typeof ClusterSelector>['uniquePanelSettings'];
   }
 
   type Emits = (e: 'batch-edit', list: TendbhaModel[]) => void;
@@ -99,15 +99,6 @@
     onlyOneType: false,
     rowspan: 1,
     supportOfflineData: false,
-    tabListConfig: () =>
-      ({
-        [ClusterTypes.TENDBHA]: {
-          showPreviewResultTitle: true,
-        },
-        [ClusterTypes.TENDBSINGLE]: {
-          showPreviewResultTitle: true,
-        },
-      }) as NonNullable<Props['tabListConfig']>,
   });
 
   const emits = defineEmits<Emits>();
@@ -117,7 +108,7 @@
   });
 
   const showSelector = ref(false);
-  const selectedClusters = computed<Record<string, TendbhaModel[]>>(() => ({
+  const selectedClusters = computed(() => ({
     [ClusterTypes.TENDBHA]: props.selected.filter(
       (item) => item.cluster_type === ClusterTypes.TENDBHA,
     ) as TendbhaModel[],
