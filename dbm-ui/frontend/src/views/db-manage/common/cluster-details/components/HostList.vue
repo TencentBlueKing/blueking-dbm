@@ -46,11 +46,13 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import { useHostQuickSearch } from '@hooks';
+
   import DbTable from '@components/db-table/IndexNew.vue';
 
   import useClusterMachineList from '@views/db-manage/hooks/useClusterMachineList';
 
-  import { useCopyMachineIp, useHostSearchSelect } from '../hooks';
+  import { useCopyMachineIp } from '../hooks';
   import HostListFieldColumn from '../HostListFieldColumn.vue';
 
   interface Props {
@@ -67,7 +69,7 @@
   const requestHandler = useClusterMachineList(props.clusterType);
 
   const hostTableRef = ref<InstanceType<typeof DbTable>>();
-  const { quickSearchData, quickSearchValue } = useHostSearchSelect(props.clusterType, {
+  const { quickSearchData, quickSearchValue } = useHostQuickSearch(props.clusterType, {
     clusterId: props.clusterId,
     serviceHandler: () => {
       fetchData();

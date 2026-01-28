@@ -10,7 +10,7 @@ import { useUrlSearch } from '@hooks';
 import { ClusterTypes } from '@common/const';
 import { batchSplitRegex, ipv4 } from '@common/regex';
 
-import { URL_HOST_MEMO_KEY } from '../constants';
+import { URL_HOST_MEMO_KEY } from '@views/db-manage/common/cluster-details/constants';
 
 const machineAttrs = [
   'bk_city_id',
@@ -23,10 +23,10 @@ const machineAttrs = [
 
 const quickSearchValue = ref<Record<string, any>>({});
 
-export const useHostSearchSelect = (
+export const useHostQuickSearch = (
   clusterType: ClusterTypes,
   options: {
-    clusterId: number;
+    clusterId?: number;
     serviceHandler: () => void;
   },
 ) => {

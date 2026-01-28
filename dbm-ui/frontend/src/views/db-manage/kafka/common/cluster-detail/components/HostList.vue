@@ -195,11 +195,13 @@
   import KafkaDetailModel from '@services/model/kafka/kafka-detail';
   import KafkaMachineModel from '@services/model/kafka/kafka-machine';
 
+  import { useHostQuickSearch } from '@hooks';
+
   import { ClusterTypes } from '@common/const';
 
   import DbTable from '@components/db-table/IndexNew.vue';
 
-  import { HostListFieldColumn, useCopyMachineIp, useHostSearchSelect } from '@views/db-manage/common/cluster-details';
+  import { HostListFieldColumn, useCopyMachineIp } from '@views/db-manage/common/cluster-details';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import useClusterMachineList from '@views/db-manage/hooks/useClusterMachineList';
   import ClusterExpansion from '@views/db-manage/kafka/common/expansion/Index.vue';
@@ -236,7 +238,7 @@
   const fetchClusterMachineList = useClusterMachineList(ClusterTypes.KAFKA);
 
   const hostTableRef = ref<InstanceType<typeof DbTable>>();
-  const { quickSearchData, quickSearchValue } = useHostSearchSelect(ClusterTypes.KAFKA, {
+  const { quickSearchData, quickSearchValue } = useHostQuickSearch(ClusterTypes.KAFKA, {
     clusterId: props.clusterData.id,
     serviceHandler: () => {
       fetchData();

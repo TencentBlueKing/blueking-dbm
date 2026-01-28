@@ -91,8 +91,8 @@
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import type { Mysql } from '@services/model/ticket/ticket';
-  import { findRelatedClustersByClusterIds } from '@services/source/mysqlCluster';
 
+  // import { findRelatedClustersByClusterIds } from '@services/source/mysqlCluster';
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
@@ -157,6 +157,19 @@
   const formData = reactive(defaultData());
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
+  const clusterMap = computed(() => {
+    return formData.tableData.reduce<Record<string, string>>((acc, cur) => {
+      Object.assign(acc, {
+        [cur.cluster.master_domain]: cur.cluster.master_domain,
+      });
+      cur.cluster.related_clusters.forEach((item) => {
+        Object.assign(acc, {
+          [item.master_domain]: cur.cluster.master_domain, // 关联集群映射到所属集群
+        });
+      });
+      return acc;
+    }, {});
+  });
 
   useTicketDetail<Mysql.ProxyUpgrade>(TicketTypes.MYSQL_PROXY_UPGRADE, {
     onSuccess(ticketDetail) {
@@ -200,33 +213,34 @@
     });
   };
 
-  const getSortedClusterIds = (clusters: { id: number }[]) =>
-    _.sortBy(clusters, (cluster) => cluster.id)
-      .map((cluster) => cluster.id)
-      .join(',');
+  // const getSortedClusterIds = (clusters: { id: number }[]) =>
+  //   _.sortBy(clusters, (cluster) => cluster.id)
+  //     .map((cluster) => cluster.id)
+  //     .join(',');
 
   const handleBatchEdit = async (list: TendbhaModel[]) => {
     // 查询关联集群
-    const relatedClusters = await findRelatedClustersByClusterIds({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      cluster_ids: list.map((item) => item.id),
-      role: 'proxy',
-    });
+    // const relatedClusters = await findRelatedClustersByClusterIds({
+    //   bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+    //   cluster_ids: list.map((item) => item.id),
+    //   role: 'proxy',
+    // });
 
-    const clusterMap = relatedClusters.reduce<Record<string, string>>((acc, item) => {
-      Object.assign(acc, {
-        [item.cluster_info.master_domain]: getSortedClusterIds([item.cluster_info, ...item.related_clusters]),
-      });
-      return acc;
-    }, {});
+    // const clusterMap = relatedClusters.reduce<Record<string, string>>((acc, item) => {
+    //   Object.assign(acc, {
+    //     [item.cluster_info.master_domain]: getSortedClusterIds([item.cluster_info, ...item.related_clusters]),
+    //   });
+    //   return acc;
+    // }, {});
 
-    const clusterMemo = new Set(
-      formData.tableData.map((item) => getSortedClusterIds([item.cluster, ...item.cluster.related_clusters])),
-    );
+    // const clusterMemo = new Set(
+    //   formData.tableData.map((item) => getSortedClusterIds([item.cluster, ...item.cluster.related_clusters])),
+    // );
 
     const dataList = list.reduce<RowData[]>((acc, item) => {
-      const clusterKey = clusterMap[item.master_domain];
-      if (clusterKey && !clusterMemo.has(clusterKey)) {
+      // const clusterKey = clusterMap[item.master_domain];
+      // if (clusterKey && !clusterMemo.has(clusterKey)) {
+      if (!clusterMap.value[item.master_domain]) {
         acc.push(
           createTableRow({
             cluster: {
@@ -235,7 +249,7 @@
             current_version: _.uniq((item.proxies || []).map((proxy) => proxy.version)),
           }),
         );
-        clusterMemo.add(clusterKey);
+        // clusterMemo.add(clusterKey);
       }
       return acc;
     }, []);

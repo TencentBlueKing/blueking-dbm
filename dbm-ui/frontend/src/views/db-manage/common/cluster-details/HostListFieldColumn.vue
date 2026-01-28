@@ -105,6 +105,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import { useHostColumnFilter } from '@hooks';
+
   import type { ClusterTypes } from '@common/const';
 
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
@@ -112,8 +114,6 @@
 
   import RenderClusterRole from '@views/db-manage/common/RenderRole.vue';
   import useClusterMachineList from '@views/db-manage/hooks/useClusterMachineList';
-
-  import { useHostListTableFilter } from './hooks';
 
   type IRowData = ServiceReturnType<ReturnType<typeof useClusterMachineList>>['results'][number];
 
@@ -126,7 +126,7 @@
 
   const { t } = useI18n();
 
-  const tableFilter = useHostListTableFilter(props.clusterType, props.clusterId);
+  const tableFilter = useHostColumnFilter(props.clusterType, props.clusterId);
 
   const transformMToG = (value: number) => {
     return value ? (value / 1024).toFixed(2) : '--';

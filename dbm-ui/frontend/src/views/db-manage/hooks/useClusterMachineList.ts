@@ -28,6 +28,7 @@ const dataSourceMap = {
   [ClusterTypes.PREDIXY_REDIS_CLUSTER]: getRedisMachineList,
   [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: getRedisMachineList,
   [ClusterTypes.PULSAR]: getPulsarMachineList,
+  [ClusterTypes.REDIS]: getPulsarMachineList,
   // [ClusterTypes.REDIS_CLUSTER]: getRedisMachineList,
   [ClusterTypes.REDIS_INSTANCE]: getRedisMachineList,
   [ClusterTypes.RIAK]: getRiakMachineList,

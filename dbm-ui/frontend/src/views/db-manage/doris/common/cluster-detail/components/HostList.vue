@@ -181,11 +181,13 @@
   import DorisDetailModel from '@services/model/doris/doris-detail';
   import DorisMachineModel from '@services/model/doris/doris-machine';
 
+  import { useHostQuickSearch } from '@hooks';
+
   import { ClusterTypes } from '@common/const';
 
   import DbTable from '@components/db-table/IndexNew.vue';
 
-  import { HostListFieldColumn, useCopyMachineIp, useHostSearchSelect } from '@views/db-manage/common/cluster-details';
+  import { HostListFieldColumn, useCopyMachineIp } from '@views/db-manage/common/cluster-details';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import ClusterExpansion from '@views/db-manage/doris/common/expansion/Index.vue';
   import ClusterReplace from '@views/db-manage/doris/common/replace/Index.vue';
@@ -203,7 +205,7 @@
   const { copyAllIp, copyNotAliveIp } = useCopyMachineIp();
 
   const hostTableRef = ref<InstanceType<typeof DbTable>>();
-  const { quickSearchData, quickSearchValue } = useHostSearchSelect(ClusterTypes.DORIS, {
+  const { quickSearchData, quickSearchValue } = useHostQuickSearch(ClusterTypes.DORIS, {
     clusterId: props.clusterData.id,
     serviceHandler: () => {
       fetchData();

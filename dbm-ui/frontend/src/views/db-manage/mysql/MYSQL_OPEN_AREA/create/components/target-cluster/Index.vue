@@ -76,7 +76,7 @@
   }
 
   interface Props {
-    clusterType: ClusterTypes;
+    clusterType: ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE;
     showIpCloumn: boolean;
     variableList: string[];
   }
