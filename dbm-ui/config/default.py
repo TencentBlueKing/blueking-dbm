@@ -87,7 +87,7 @@ INSTALLED_APPS += (
     "corsheaders",
     "debug_toolbar",
     # version log
-    "version_log",
+    "backend.version_log",
     # bk_notice
     "bk_notice_sdk",
     # bkvison

@@ -24,9 +24,9 @@ from rest_framework.decorators import action
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from version_log.utils import get_latest_version
 
 from backend import env
+from backend.version_log.utils import get_latest_version
 
 logger = logging.getLogger("root")
 
