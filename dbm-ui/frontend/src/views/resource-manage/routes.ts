@@ -110,7 +110,7 @@ export default function getRoutes() {
               component: () => import('@views/resource-manage/record/Index.vue'),
             },
             {
-              path: 'replenish/:page?',
+              path: 'replenish/:page?/:id?',
               name: 'resourceReplenishRecord',
               meta: {
                 fullscreen: true,
