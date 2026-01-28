@@ -14,8 +14,9 @@ from rest_framework.response import Response
 
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
-from backend.dbm_aiagent.mcp_tools.redis.impl.redis_slowlog import get_cluster_slowlog, get_host_slowlog
+from backend.dbm_aiagent.mcp_tools.redis.impl.redis_slowlog import get_cluster_slowlog_static, get_host_slowlog
 from backend.dbm_aiagent.mcp_tools.redis.serializers.redis_log import (
+    RedisSlowClusterStaticSerializer,
     RedisSlowlog4HostInputSerializer,
     RedisSlowlogInputSerializer,
     RedisSlowlogResponseSerializer,
@@ -30,20 +31,27 @@ class RedisQueryLogMcpToolsViewSet(McpToolsViewSet):
     default_permission_class = [RejectPermission()]
 
     @mcp_tools_api_decorator(
-        description=str(_("查询Redis集群的慢查询日志(slowlog)，包括执行时间、命令内容等。可用于分析Redis性能问题和慢查询优化")),
+        description=str(
+            _(
+                """功能:获取集群时间范围内慢查询日志统计数据
+        展示方式: 1.分多个多维表格展示结果;2.按实例维度详细统计的表格,需按照最大耗时,慢日志条数排序"""
+            )
+        ),
         request_slz=RedisSlowlogInputSerializer,
-        response_slz=RedisSlowlogResponseSerializer,
+        response_slz=RedisSlowClusterStaticSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_QUERY_LOG],
         name_prefix="redis_query_log",
     )
-    def fetch_cluster_slowlog(self, request, *args, **kwargs):
-        """获取集群时间范围内慢查询日志"""
+    def get_cluster_slowlog_statics(self, request, *args, **kwargs):
+        """获取集群时间范围内慢查询日志统计数据"""
         start_time = self.get_param("start_time")
         end_time = self.get_param("end_time")
         immute_domain = self.get_param("immute_domain")
 
-        return Response(get_cluster_slowlog(immute_domain=immute_domain, start_time=start_time, end_time=end_time))
+        return Response(
+            get_cluster_slowlog_static(immute_domain=immute_domain, start_time=start_time, end_time=end_time)
+        )
 
     @mcp_tools_api_decorator(
         description=str(_("查询某台机器上的慢查询日志(slowlog),包括执行时间、命令内容等。可用于分析Redis性能问题和慢查询优化")),
