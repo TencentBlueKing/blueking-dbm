@@ -4083,3 +4083,5 @@ EndSave:
 
 GO
 
+/****** Object: init mssql_data_read_drs account ******/
+insert into [Monitor].[dbo].[AUTO_GRANT] ([ACCOUNT], [GRANT_DB], [GRANT_TYPE], [UPDATE_TIME]) values('mssql_data_read_drs', '%', 'db_datareader', GETDATE())

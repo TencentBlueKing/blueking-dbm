@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import logging.config
 from dataclasses import asdict
+from datetime import datetime
 
 from django.utils.translation import gettext as _
 
@@ -55,7 +56,9 @@ class SqlserverDataExportFlow(SqlserverSQLExecuteFlow):
         # 合并下发需要变更的文件，不同的bk_cloud_id需要分组处理
         target_hosts = [
             Host(
-                ip=c.storageinstance_set.get(instance_inner_role=self.data["select_role"]).machine.ip,
+                ip=c.storageinstance_set.get(
+                    instance_inner_role=self.data["select_role"], is_stand_by=True
+                ).machine.ip,
                 bk_cloud_id=c.bk_cloud_id,
             )
             for c in clusters
@@ -109,7 +112,7 @@ class SqlserverDataExportFlow(SqlserverSQLExecuteFlow):
                             "sql_file_path": self.sql_target_path,
                             "execute_objects": self.data["execute_objects"],
                             "zip_file_name": f"{cluster.immute_domain}_{ self.data['select_role']}_"
-                            f"{master_instance.machine.ip}_{master_instance.port}_data_export.zip",
+                            f"{datetime.now().strftime('%Y%m%d%H%M%S')}_data_export.zip",
                         },
                     )
                 ),

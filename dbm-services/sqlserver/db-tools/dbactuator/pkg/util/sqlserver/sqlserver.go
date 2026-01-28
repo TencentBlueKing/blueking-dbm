@@ -377,6 +377,15 @@ func (h *DbWorker) CreateLoginUser(userName string, pwd string, loginRole string
 	return nil
 }
 
+// CreateLoginUserWithSid 定义添加账号, 指定SID
+func (h *DbWorker) CreateLoginUserWithSid(userName string, pwd string, loginRole string, sid string) (err error) {
+	cmd := fmt.Sprintf(cst.EXEC_INIT_LOGIN_WITH_SID_SQL, userName, pwd, loginRole, sid)
+	if _, err := h.Exec(cmd); err != nil {
+		return fmt.Errorf("create login with sid [%s] failed %v", userName, err)
+	}
+	return nil
+}
+
 // CreateLoginUser 初始化账号添加权限，统一给db_owner
 func (h *DbWorker) AddPriv(dbname string, userName string) (err error) {
 	cmd := fmt.Sprintf(cst.EXEC_INIT_PRIV_SQL, dbname, userName)
