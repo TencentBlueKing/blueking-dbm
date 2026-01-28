@@ -69,15 +69,16 @@ type ResetAPI struct {
 
 // GinHTTPServer Gin HTTP server implementation
 type GinHTTPServer struct {
-	config      *GinServerConfig
-	authHandler AuthHandler
-	rateLimit   *RateLimitConfig
-	resetAPIs   []*ResetAPI
-	server      *http.Server
-	router      *gin.Engine
-	mu          sync.RWMutex
-	wg          sync.WaitGroup
-	started     bool
+	config           *GinServerConfig
+	authHandler      AuthHandler
+	rateLimit        *RateLimitConfig
+	resetAPIs        []*ResetAPI
+	server           *http.Server
+	router           *gin.Engine
+	metricMiddleware gin.HandlerFunc
+	mu               sync.RWMutex
+	wg               sync.WaitGroup
+	started          bool
 }
 
 // NewGinHTTPServer creates a new Gin HTTP server
@@ -109,6 +110,13 @@ func (s *GinHTTPServer) SetRateLimit(rateLimit *RateLimitConfig) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.rateLimit = rateLimit
+}
+
+// SetMetricMiddleware sets metric middleware
+func (s *GinHTTPServer) SetMetricMiddleware(middleware gin.HandlerFunc) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.metricMiddleware = middleware
 }
 
 // RegisterAPI register reset API
@@ -192,6 +200,11 @@ func (s *GinHTTPServer) setupMiddlewares() {
 
 	// Logging middleware
 	s.router.Use(s.loggingMiddleware())
+
+	// Metric middleware
+	if s.metricMiddleware != nil {
+		s.router.Use(s.metricMiddleware)
+	}
 
 	// Rate limiting middleware
 	if s.rateLimit != nil && s.rateLimit.Enabled {

@@ -42,21 +42,21 @@ type StrategyPathParam struct {
 
 // StrategyRequest strategy request
 type StrategyRequest struct {
-	BkBizID int    `json:"bk_biz_id" form:"bk_biz_id" binding:"required"`
+	BkBizID int    `json:"bk_biz_id"      form:"bk_biz_id" binding:"required"`
 	Name    string `json:"name,omitempty" form:"name"`
 }
 
 // StrategyInfo strategy info
 type StrategyInfo struct {
 	ID                     int                       `json:"id"`
-	Name                   string                    `json:"name" binding:"required"`
-	BkBizID                int                       `json:"bk_biz_id" binding:"required"`
+	Name                   string                    `json:"name"               binding:"required"`
+	BkBizID                int                       `json:"bk_biz_id"          binding:"required"`
 	TriggerEventName       haprobe.DbEventName       `json:"trigger_event_name" binding:"required"`
 	TriggerEventNameReason haprobe.DbEventNameReason `json:"trigger_event_name_reason" validate:"triggerEventNameReason"`
-	TriggerCount           int                       `json:"trigger_count" validate:"triggerCount"`
-	Priority               int                       `json:"priority" validate:"priority"`
-	Scope                  hamodel.ActionScopeType   `json:"scope" validate:"scope"`
-	Action                 hamodel.ActionType        `json:"action" validate:"action"`
+	TriggerCount           int                       `json:"trigger_count"             validate:"triggerCount"`
+	Priority               int                       `json:"priority"                  validate:"priority"`
+	Scope                  hamodel.ActionScopeType   `json:"scope"                     validate:"scope"`
+	Action                 hamodel.ActionType        `json:"action"                    validate:"action"`
 	Description            string                    `json:"description"`
 }
 
@@ -76,12 +76,14 @@ type StrategyListRequest struct {
 	Scope  string `json:"scope"  form:"scope"`
 	Action string `json:"action" form:"action"`
 	Status string `json:"status" form:"status"`
+	Offset int    `json:"offset" form:"offset"`
+	Limit  int    `json:"limit"  form:"limit"`
 }
 
 // StrategyStatusUpdateRequest strategy status update request
 type StrategyStatusUpdateRequest struct {
 	BkBizID int                `json:"bk_biz_id" binding:"required"`
-	Status  hamodel.StatusType `json:"status" validate:"status"`
+	Status  hamodel.StatusType `json:"status"    binding:"required" validate:"status"`
 }
 
 // StrategyListResponse strategy list response
@@ -98,26 +100,26 @@ type StrategyOutputInfo struct {
 // StrategyBatchCreateRequest strategy batch create request
 type StrategyBatchCreateRequest struct {
 	BkBizID int            `json:"bk_biz_id" binding:"required"`
-	Data    []StrategyInfo `json:"data" binding:"required"`
+	Data    []StrategyInfo `json:"data"      binding:"required"`
 }
 
 // StrategyBatchUpdateRequest strategy batch update request
 type StrategyBatchUpdateRequest struct {
 	BkBizID int            `json:"bk_biz_id" binding:"required"`
-	Data    []StrategyInfo `json:"data" binding:"required"`
+	Data    []StrategyInfo `json:"data"      binding:"required"`
 }
 
 // StrategyBatchDeleteRequest strategy batch delete request
 type StrategyBatchDeleteRequest struct {
 	BkBizID int   `json:"bk_biz_id" binding:"required"`
-	IDs     []int `json:"ids" binding:"required"`
+	IDs     []int `json:"ids"       binding:"required"`
 }
 
 // StrategyBatchUpdateStatusRequest strategy batch update status request
 type StrategyBatchUpdateStatusRequest struct {
-	IDs     []int              `json:"ids" binding:"required"`
+	IDs     []int              `json:"ids"       binding:"required"`
 	BkBizID int                `json:"bk_biz_id" binding:"required"`
-	Status  hamodel.StatusType `json:"status" binding:"required" validate:"status"`
+	Status  hamodel.StatusType `json:"status"    binding:"required" validate:"status"`
 }
 
 // CheckDuplicatedName check duplicated name

@@ -36,9 +36,9 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/admin/api/open"
 	"dbm-services/common/dbha-v2/internal/admin/api/open/handler"
+	"dbm-services/common/dbha-v2/internal/admin/apm"
 	"dbm-services/common/dbha-v2/internal/admin/config"
 	"dbm-services/common/dbha-v2/internal/admin/strategy"
-	"dbm-services/common/dbha-v2/internal/analysis/apm"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/discovery"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
@@ -314,6 +314,9 @@ func (s *Service) createWebServer() error {
 		WriteTimeout: config.Cfg.Web.WriteTimeout,
 	}
 	server := hanet.NewGinHTTPServer(serverConfig)
+
+	// Set metric middleware for API requests
+	server.SetMetricMiddleware(apm.MetricMiddleware())
 
 	// register open api
 	open.RegisterOpenAPI(strategyHandler, server)

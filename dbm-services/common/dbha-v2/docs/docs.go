@@ -42,8 +42,18 @@ const docTemplate = `{
                         "required": true
                     },
                     {
+                        "type": "integer",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
                         "type": "string",
                         "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "offset",
                         "in": "query"
                     },
                     {
@@ -61,7 +71,22 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyOutputInfo"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dbm-services_common_dbha-v2_internal_admin_ginx.PaginatedResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "results": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyOutputInfo"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -573,7 +598,8 @@ const docTemplate = `{
         "dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyStatusUpdateRequest": {
             "type": "object",
             "required": [
-                "bk_biz_id"
+                "bk_biz_id",
+                "status"
             ],
             "properties": {
                 "bk_biz_id": {
@@ -622,6 +648,15 @@ const docTemplate = `{
                 "trigger_event_name_reason": {
                     "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventNameReason"
                 }
+            }
+        },
+        "dbm-services_common_dbha-v2_internal_admin_ginx.PaginatedResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "results": {}
             }
         },
         "dbm-services_common_dbha-v2_pkg_storage_hamodel.ActionScopeType": {
