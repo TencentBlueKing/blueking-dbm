@@ -273,7 +273,7 @@ func (h *StrategyHandler) BatchUpdateStatus(c *gin.Context) {
 //	@Produce	json
 //	@Tags		openapi.strategy
 //	@Param		request	query		serializer.StrategyListRequest	false	"query parameters"
-//	@Success	200		{object}	serializer.StrategyOutputInfo
+//	@Success	200		{object}	ginx.PaginatedResponse{results=serializer.StrategyListResponse}
 //	@Router		/api/admin/strategies/ [get]
 func (h *StrategyHandler) List(c *gin.Context) {
 	var req serializer.StrategyListRequest
@@ -282,7 +282,15 @@ func (h *StrategyHandler) List(c *gin.Context) {
 		return
 	}
 
-	strategies, err := h.strategyService.ListStrategies(req.BkBizID, req.Name, req.Scope, req.Action, req.Status)
+	strategies, count, err := h.strategyService.ListStrategies(
+		req.BkBizID,
+		req.Name,
+		req.Scope,
+		req.Action,
+		req.Status,
+		ginx.GetOffset(c),
+		ginx.GetLimit(c),
+	)
 	if err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
@@ -310,7 +318,7 @@ func (h *StrategyHandler) List(c *gin.Context) {
 		})
 	}
 
-	ginx.SuccessJSONResponse(c, output)
+	ginx.SuccessJSONResponse(c, ginx.NewPaginatedRespData(count, output))
 }
 
 // Get gets a strategy

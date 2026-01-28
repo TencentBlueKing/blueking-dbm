@@ -29,8 +29,69 @@ import (
 	"dbm-services/common/go-pubpkg/apm/metric"
 )
 
-var Metrics []*metric.Metric
+const (
+	MetricLabelMethod = "method"
+	MetricLabelPath   = "path"
+	MetricLabelStatus = "status"
+)
 
+var (
+	Metrics []*metric.Metric
+
+	APIRequestsTotal      *haapm.HaCounter
+	APIRequestLatencyMs   *haapm.HaHistogram
+	APIRequestSizeBytes   *haapm.HaHistogram
+	APIResponseSizeBytes  *haapm.HaHistogram
+	APIRequestErrorsTotal *haapm.HaCounter
+)
+
+// Default histogram buckets for latency (milliseconds)
+var defaultLatencyBuckets = []float64{1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000}
+
+// Default histogram buckets for size (bytes)
+var defaultSizeBuckets = []float64{100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1000000}
+
+func init() {
+	// API request total counter
+	APIRequestsTotal = haapm.NewHaCounter(
+		"api_requests_total",
+		"Total number of API requests",
+		MetricLabelMethod, MetricLabelPath, MetricLabelStatus,
+	)
+
+	// API request latency histogram
+	APIRequestLatencyMs = haapm.NewHaHistogramWithBuckets(
+		"api_request_latency_ms",
+		"API request latency (milliseconds)",
+		defaultLatencyBuckets,
+		MetricLabelMethod, MetricLabelPath,
+	)
+
+	// API request size histogram
+	APIRequestSizeBytes = haapm.NewHaHistogramWithBuckets(
+		"api_request_size_bytes",
+		"API request size (bytes)",
+		defaultSizeBuckets,
+		MetricLabelMethod, MetricLabelPath,
+	)
+
+	// API response size histogram
+	APIResponseSizeBytes = haapm.NewHaHistogramWithBuckets(
+		"api_response_size_bytes",
+		"API response size (bytes)",
+		defaultSizeBuckets,
+		MetricLabelMethod, MetricLabelPath,
+	)
+
+	// API request errors counter
+	APIRequestErrorsTotal = haapm.NewHaCounter(
+		"api_request_errors_total",
+		"Total number of API request errors",
+		MetricLabelMethod, MetricLabelPath,
+	)
+}
+
+// InitAPM init apm
 func InitAPM(serviceID, serviceName string) {
 	haapm.AppStartupMetric.UpdateLabel(map[string]string{
 		haapm.MetricLabelServiceID:   serviceID,
@@ -38,4 +99,11 @@ func InitAPM(serviceID, serviceName string) {
 	})
 
 	Metrics = append(Metrics, haapm.AppStartupMetric.ToMetric())
+
+	// API metrics
+	Metrics = append(Metrics, APIRequestsTotal.ToMetric())
+	Metrics = append(Metrics, APIRequestLatencyMs.ToMetric())
+	Metrics = append(Metrics, APIRequestSizeBytes.ToMetric())
+	Metrics = append(Metrics, APIResponseSizeBytes.ToMetric())
+	Metrics = append(Metrics, APIRequestErrorsTotal.ToMetric())
 }

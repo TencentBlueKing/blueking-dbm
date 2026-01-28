@@ -136,3 +136,14 @@ func SystemErrorJSONResponse(c *gin.Context, err error) {
 	message := fmt.Sprintf("system error: %s", err.Error())
 	BaseErrorJSONResponse(c, SystemError, message, http.StatusInternalServerError)
 }
+
+// PaginatedResponse ...
+type PaginatedResponse struct {
+	Count   int64 `json:"count"`
+	Results any   `json:"results"`
+}
+
+// NewPaginatedRespData ...
+func NewPaginatedRespData(count int64, results any) PaginatedResponse {
+	return PaginatedResponse{Count: count, Results: results}
+}

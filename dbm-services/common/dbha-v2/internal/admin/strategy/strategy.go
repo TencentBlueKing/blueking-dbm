@@ -76,7 +76,10 @@ func (s *Strategy) ListStrategies(
 	scope string,
 	action string,
 	status string,
-) ([]*hamodel.DbSwitchingStrategy, error) {
+	offset int,
+	limit int,
+) ([]*hamodel.DbSwitchingStrategy, int64, error) {
+	var count int64
 	var strategies []*hamodel.DbSwitchingStrategy
 
 	query := s.DB.DB().Model(&hamodel.DbSwitchingStrategy{})
@@ -108,11 +111,16 @@ func (s *Strategy) ListStrategies(
 	}
 
 	bkBizIDCond := fmt.Sprintf("%s = ? ", hamodel.DbSwitchingStrategyFieldBkBizID)
-	if err := query.Where(bkBizIDCond, bkBizID).Find(&strategies).Error; err != nil {
-		return nil, gerrors.NewE(gerrors.MysqlFailure, err)
+	if err := query.Where(bkBizIDCond, bkBizID).Count(&count).Error; err != nil {
+		return nil, 0, gerrors.NewE(gerrors.MysqlFailure, err)
 	}
 
-	return strategies, nil
+	createdAtCond := fmt.Sprintf("%s DESC ", hamodel.DbSwitchingStrategyFieldCreatedAt)
+	if err := query.Offset(offset).Limit(limit).Order(createdAtCond).Find(&strategies).Error; err != nil {
+		return nil, 0, gerrors.NewE(gerrors.MysqlFailure, err)
+	}
+
+	return strategies, count, nil
 }
 
 // DuplicatedName check if name is duplicated
