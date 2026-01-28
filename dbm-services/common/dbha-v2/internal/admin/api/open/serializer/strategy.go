@@ -49,9 +49,9 @@ type StrategyRequest struct {
 // StrategyInfo strategy info
 type StrategyInfo struct {
 	ID                     int                       `json:"id"`
-	Name                   string                    `json:"name"               binding:"required"`
-	BkBizID                int                       `json:"bk_biz_id"          binding:"required"`
-	TriggerEventName       haprobe.DbEventName       `json:"trigger_event_name" binding:"required"`
+	Name                   string                    `json:"name"                      binding:"required"`
+	BkBizID                int                       `json:"bk_biz_id"                 binding:"required"`
+	TriggerEventName       haprobe.DbEventName       `json:"trigger_event_name"        binding:"required"`
 	TriggerEventNameReason haprobe.DbEventNameReason `json:"trigger_event_name_reason" validate:"triggerEventNameReason"`
 	TriggerCount           int                       `json:"trigger_count"             validate:"triggerCount"`
 	Priority               int                       `json:"priority"                  validate:"priority"`
