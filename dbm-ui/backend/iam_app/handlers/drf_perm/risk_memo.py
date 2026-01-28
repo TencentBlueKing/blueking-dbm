@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from typing import List
 
-from backend.db_services.risk_memo.models.risk_memo import RiskMemo
+from backend.db_services.risk_memo.models.risk_memo import RiskMemo, RiskMemoFollowUp
 from backend.iam_app.dataclass import ResourceEnum, ResourceMeta
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta
 from backend.iam_app.handlers.drf_perm.base import (
@@ -62,5 +62,31 @@ class RiskMemoPermission(ResourceActionPermission):
             self.actions = [ActionEnum.RISK_MEMO_MANAGE]
             risk = RiskMemo.objects.get(id=view.kwargs["pk"])
             return [risk.bk_biz_id]
+
+        return []
+
+
+class RiskFollowUpPermission(ResourceActionPermission):
+    """
+    风险跟进相关鉴权
+    """
+
+    def __init__(self, actions: List[ActionMeta] = None, resource_meta: ResourceMeta = None):
+        # 固定资源是业务
+        actions = [ActionEnum.RISK_MEMO_MANAGE]
+        resource_meta = ResourceEnum.BUSINESS
+        super().__init__(actions=actions, resource_meta=resource_meta, instance_ids_getter=self.instance_ids_getter)
+
+    def instance_ids_getter(self, request, view):
+        # 新建跟进 -- 风险管理
+        if view.action == "create":
+            risk_id = get_request_key_id(request, "risk")
+            risk = RiskMemo.objects.get(id=risk_id)
+            return [risk.bk_biz_id]
+
+        # 更新/删除跟进 -- 风险管理
+        if view.action in ["update", "partial_update", "destroy"]:
+            follow_up = RiskMemoFollowUp.objects.select_related("risk").get(id=view.kwargs["pk"])
+            return [follow_up.risk.bk_biz_id]
 
         return []
