@@ -94,7 +94,7 @@ func (job *BackupJob) Run() {
 			svrItem.MetaRole == consts.MetaRoleShardsvrBackupNewName {
 
 			// 如果屏蔽告警，也不发起备份.
-			if config.IsAlaramShield(&svrItem,
+			if config.IsAlarmShield(&svrItem,
 				"skip backup because Shielded", job.Logger) {
 				continue
 			}
