@@ -156,7 +156,7 @@ func (w *Workflow) Close() {
 func (w *Workflow) triggerAlarmWithDetectorResponse(procName string, status process.Status,
 	content string, exitCode int, resp *detector.Response) {
 
-	target := key(resp.Meta.BkCloudID, resp.Meta.IP, resp.Meta.Port)
+	target := instanceKey(resp.Meta.BkCloudID, resp.Meta.IP, resp.Meta.Port)
 	monitorEvent := &monitor.EventData{
 		Name:      resp.DbEventName.String(),
 		Target:    target,
@@ -273,9 +273,8 @@ func (w *Workflow) databaseLivenessDoubleCheck(missedInsts []detector.DoubleChec
 	// Read the detected results.
 	resps := remoteDetector.WaitResponses()
 
-	// Post the alarm event by the bk-monitor.
-	// key: bkCloudId, value: map[dbType][]ip
-	cloudIdIps := map[int]map[haprobe.DbType][]string{}
+	// Collect detector failures by (BkCloudID, DbType) for batch switching.
+	collector := NewFailureCollector()
 
 	for idx, resp := range resps {
 		logger.Debug("idx: %d host: %s:%d resp: %p", idx, resp.Meta.IP, resp.Meta.Port, resp)
@@ -285,71 +284,83 @@ func (w *Workflow) databaseLivenessDoubleCheck(missedInsts []detector.DoubleChec
 		}
 
 		if err != ErrDetectorFailure {
-			instId := key(resp.Meta.BkCloudID, resp.Meta.IP, resp.Meta.Port)
+			instId := instanceKey(resp.Meta.BkCloudID, resp.Meta.IP, resp.Meta.Port)
 			logger.Warn("failed to process detector response, inst: %s, errmsg: %s", instId, err)
 			continue
 		}
 
-		if _, ok := cloudIdIps[resp.Meta.BkCloudID]; ok {
-			if cloudIdIps[resp.Meta.BkCloudID][resp.DbType] == nil {
-				cloudIdIps[resp.Meta.BkCloudID][resp.DbType] = []string{}
-			}
-
-			cloudIdIps[resp.Meta.BkCloudID][resp.DbType] = append(cloudIdIps[resp.Meta.BkCloudID][resp.DbType], resp.Meta.IP)
-			continue
-		}
-
-		cloudIdIps[resp.Meta.BkCloudID] = map[haprobe.DbType][]string{
-			resp.DbType: {resp.Meta.IP},
-		}
+		collector.Add(resp)
 	}
 
-	if len(cloudIdIps) == 0 {
+	if collector.Empty() {
 		return
 	}
 
-	for cloudId, val := range cloudIdIps {
-		for dbType, ips := range val {
-			logger.Debug("cloudId: %d, dbType: %s, ips: %v", cloudId, dbType, ips)
-			req := w.createSwitcherRequestWithIPs(cloudId, dbType, ips)
-			if req == nil {
-				continue
-			}
+	for _, group := range collector.Groups() {
+		logger.Debug("cloudId: %d, dbType: %s, instances: %d, ips: %v",
+			group.BkCloudID, group.DbType, len(group.Instances), group.IPs())
 
-			if !req.HasDbInstMetadata() {
-				logger.Warn("no db inst metadata, dbType: %s, cloudId: %d, ips: %v", dbType, cloudId, ips)
-				continue
-			}
-
-			logger.Debug("trigger switching, dbType: %s, cloudId: %d, ips: %v", dbType, cloudId, ips)
-			w.triggerSwitching(dbType, req)
+		req := w.createSwitcherRequestWithGroup(group)
+		if req == nil {
+			continue
 		}
+
+		if !req.HasDbInstMetadata() {
+			logger.Warn("no db inst metadata, dbType: %s, cloudId: %d, instances: %d",
+				group.DbType, group.BkCloudID, len(group.Instances))
+			continue
+		}
+
+		logger.Debug("trigger switching, dbType: %s, cloudId: %d, instances: %d", group.DbType,
+			group.BkCloudID, len(group.Instances))
+		w.triggerSwitching(group.DbType, req)
 	}
 }
 
-func (w *Workflow) createSwitcherRequestWithIPs(bkCloudId int, dbType haprobe.DbType, ips []string) *switcher.Request {
-	metadatas, err := w.dbmSync.cli.QueryMetadataFromDbm(context.Background(), bkCloudId, ips)
+// createSwitcherRequestWithGroup creates a switcher request from a failure group.
+// It queries metadata from DBM for all instances in the group and filters out unavailable ones.
+func (w *Workflow) createSwitcherRequestWithGroup(group *FailureGroup) *switcher.Request {
+	ips := group.IPs()
+	if len(ips) == 0 {
+		logger.Warn("empty IP list in failure group, cloudId: %d, dbType: %s", group.BkCloudID, group.DbType)
+		return nil
+	}
 
+	metadatas, err := w.dbmSync.cli.QueryMetadataFromDbm(context.Background(), group.BkCloudID, ips)
 	if err != nil {
 		if errors.Is(err, dbm.ErrNoResponse) {
 			return nil
 		}
 
-		logger.Warn("failed to query metadata from DBM, bkCloudId: %d, ips: %v, errmsg: %s", bkCloudId, ips, err)
+		logger.Warn("failed to query metadata from DBM, cloudId: %d, dbType: %s, instances: %d, errmsg: %s",
+			group.BkCloudID, group.DbType, len(group.Instances), err)
 		return nil
 	}
 
-	req := &switcher.Request{DbType: dbType}
+	req := &switcher.Request{DbType: group.DbType}
+	skippedCount := 0
 	for _, meta := range metadatas {
 		if meta.Status == dbm.Unavailable {
-			logger.Info("the database instance is unavailable, skipping, inst: %s", key(meta.BkCloudID, meta.IP, meta.Port))
+			logger.Info("the database instance is unavailable, skipping, inst: %s",
+				instanceKey(meta.BkCloudID, meta.IP, meta.Port))
+			skippedCount++
 			continue
 		}
 
 		req.AddDbInstMetadata((*switcher.MysqlInstanceMetadata)(meta))
 	}
 
+	if skippedCount > 0 {
+		logger.Debug("skipped %d unavailable instances, cloudId: %d, dbType: %s",
+			skippedCount, group.BkCloudID, group.DbType)
+	}
+
 	return req
+}
+
+func (w *Workflow) bindSwitchingStrategyWithBizId(bizId int) error {
+
+	return nil
 }
 
 func (w *Workflow) triggerSwitching(dbType haprobe.DbType, req *switcher.Request) {
@@ -425,7 +436,7 @@ func (w *Workflow) checkEventWithBizId(bizId int, dbEvents []*haprobe.DbEvent,
 	badInsts := []detector.DoubleCheckTask{}
 
 	for _, event := range dbEvents {
-		key := key(event.BkCloudID, event.Endpoint.Host, event.Endpoint.Port)
+		key := instanceKey(event.BkCloudID, event.Endpoint.Host, event.Endpoint.Port)
 
 		if _, exists := skipDbInsts[key]; exists {
 			logger.Info("skip the db-inst: %s", key)
@@ -480,14 +491,14 @@ func (w *Workflow) checkMissedProbe(dbStatus []*hamodel.DbhaDataStatus, skipDbIn
 
 	dbMetricKeys := map[string]struct{}{}
 	for _, dbStat := range dbStatus {
-		key := key(dbStat.BkCloudID, dbStat.DbIp, dbStat.DbPort)
+		key := instanceKey(dbStat.BkCloudID, dbStat.DbIp, dbStat.DbPort)
 		dbMetricKeys[key] = struct{}{}
 	}
 
 	// Extract the instance of the DB that the probe is currently in an office state.
 	missedProbeInsts := []detector.DoubleCheckTask{}
 	for _, dbMeta := range metaInsts {
-		key := key(dbMeta.BkCloudID, dbMeta.IP, dbMeta.Port)
+		key := instanceKey(dbMeta.BkCloudID, dbMeta.IP, dbMeta.Port)
 
 		if _, exists := skipDbInsts[key]; exists {
 			logger.Info("skip the db instance: %s", key)
@@ -559,7 +570,7 @@ func (w *Workflow) readBusinessMetadata(bizId int) (*businessMetadata, error) {
 			IP:        meta.IP,
 			Port:      meta.Port,
 		})
-		metaInsts[key(meta.BkCloudID, meta.IP, meta.Port)] = meta
+		metaInsts[instanceKey(meta.BkCloudID, meta.IP, meta.Port)] = meta
 	}
 
 	return &businessMetadata{
@@ -613,7 +624,7 @@ func (w *Workflow) readBusinessSkipInstances(bizId int) (map[string]*hamodel.Ski
 
 	skipInsts := make(map[string]*hamodel.SkipDbInstance, len(dbSkipInsts))
 	for _, skipInst := range dbSkipInsts {
-		skipInsts[key(skipInst.BkCloudID, skipInst.InstanceIP, skipInst.InstancePort)] = skipInst
+		skipInsts[instanceKey(skipInst.BkCloudID, skipInst.InstanceIP, skipInst.InstancePort)] = skipInst
 	}
 
 	return skipInsts, nil
@@ -739,6 +750,7 @@ func (w *Workflow) scanBusinesses(ctx context.Context) {
 	wg.Wait()
 }
 
-func key[T any](bkCloudId int, ip string, port T) string {
+// instanceKey builds a unique instance identifier from cloud id, IP and port.
+func instanceKey[T any](bkCloudId int, ip string, port T) string {
 	return fmt.Sprintf("%d:%s:%v", bkCloudId, ip, port)
 }
