@@ -13,6 +13,7 @@ package task
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"runtime/debug"
 	"time"
@@ -33,6 +34,12 @@ type ApplyResponseLogItem struct {
 	Data      []model.BatchGetTbDetailResult
 }
 
+// AnalysisTaskItem 智能体分析任务项
+type AnalysisTaskItem struct {
+	BillID      string
+	ApplyParams json.RawMessage
+}
+
 // ApplyResponseLogChan apply response log channel
 var ApplyResponseLogChan chan ApplyResponseLogItem
 
@@ -48,12 +55,16 @@ var SyncRsGseAgentStatusChan chan []int
 // RunningTask running task
 var RunningTask chan struct{}
 
+// AnalysisTaskChan 智能体分析任务 channel
+var AnalysisTaskChan chan AnalysisTaskItem
+
 func init() {
 	ApplyResponseLogChan = make(chan ApplyResponseLogItem, 100)
 	ArchivedResourceChan = make(chan int, 200)
 	RecordRsOperatorInfoChan = make(chan model.TbRpOperationInfo, 20)
 	RunningTask = make(chan struct{}, 100)
 	SyncRsGseAgentStatusChan = make(chan []int, 10)
+	AnalysisTaskChan = make(chan AnalysisTaskItem, 50)
 }
 
 // init TODO
@@ -100,6 +111,12 @@ func init() {
 			case agentIds := <-SyncRsGseAgentStatusChan:
 				if err := UpdateResourceGseAgentStatus(agentIds...); err != nil {
 					logger.Warn("[sync task]: sync gse agent status failed:%s", err.Error())
+				}
+			case analysisTask := <-AnalysisTaskChan:
+				if ProcessAnalysisTask != nil {
+					go ProcessAnalysisTask(analysisTask)
+				} else {
+					logger.Warn("ProcessAnalysisTask is not initialized, skip analysis task for bill %s", analysisTask.BillID)
 				}
 			}
 		}
@@ -311,4 +328,15 @@ func FlushNetDeviceInfo() (err error) {
 		}
 	}
 	return nil
+}
+
+// ProcessAnalysisTask 处理智能体分析任务（由 agent 包实现）
+// 此函数声明在这里，但实际实现在 agent 包中以避免循环导入
+var ProcessAnalysisTask func(task AnalysisTaskItem)
+
+// SetAnalysisTaskProcessor 设置分析任务处理器（在 main.go 中调用）
+func SetAnalysisTaskProcessor(processor func(billID string, applyParamsJSON json.RawMessage)) {
+	ProcessAnalysisTask = func(task AnalysisTaskItem) {
+		processor(task.BillID, task.ApplyParams)
+	}
 }

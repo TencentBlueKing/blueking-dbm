@@ -44,3 +44,13 @@ data:
       api_key_name:  "{{ index .Values "db-resource" "envs" "api_key_name" }}"
       api_key_secret:  "{{ index .Values "db-resource" "envs" "api_key_secret" }}"
       interface_name:  "{{ index .Values "db-resource" "envs" "interface_name" }}"
+    llm:
+      enabled: "{{ index .Values "db-resource" "envs" "enable_llm" }}"
+      provider: "{{ index .Values "db-resource" "envs" "llm_provider" }}"
+      bk_ai:
+        app_code:  "{{ index .Values "db-resource" "envs" "bk_ai_app_code" }}"
+        app_secret: "{{ index .Values "db-resource" "envs" "bk_ai_app_secret" }}"
+        base_url: "{{ index .Values "db-resource" "envs" "bk_ai_base_url" }}"
+        model: "{{ index .Values "db-resource" "envs" "llm_model" }}"
+        max_tokens: "{{ index .Values "db-resource" "envs" "llm_max_tokens" }}"
+        temperature: "{{ index .Values "db-resource" "envs" "temperature" }}"
