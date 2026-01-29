@@ -763,12 +763,12 @@ func (t *TmysqlParse) AnalyzeOne(inputfileName, mysqlVersion, dbtype string) (er
 				goto END
 			}
 		case app.Spider:
-			checkResult.parseResult(SR.CommandRule.HighRiskCommandRule, res, mysqlVersion)
-			checkResult.parseResult(SR.CommandRule.BanCommandRule, res, mysqlVersion)
 			err = checkResult.runSpidercheck(ddlTbls, res, bs, mysqlVersion)
 			if err != nil {
 				goto END
 			}
+			checkResult.parseResult(SR.CommandRule.HighRiskCommandRule, res, mysqlVersion)
+			checkResult.parseResult(SR.CommandRule.BanCommandRule, res, mysqlVersion)
 		}
 	}
 END:
@@ -783,6 +783,8 @@ func (c *CheckInfo) runSpidercheck(ddlTbls map[string][]string, res ParseLineQue
 	mysqlVersion string) (err error) {
 	var sc SpiderChecker
 	// 其他规则分析
+	logger.Info("run spider check")
+	logger.Info("res: %+v", res)
 	switch res.Command {
 	case SQLTypeCreateTable:
 		var o CreateTableResult
@@ -822,6 +824,14 @@ func (c *CheckInfo) runSpidercheck(ddlTbls map[string][]string, res ParseLineQue
 			logger.Error("json unmarshal line failed %s", err.Error())
 			return err
 		}
+		sc = o
+	case SQLTypeRenameTable:
+		var o RenameTableResult
+		if err = json.Unmarshal(bs, &o); err != nil {
+			logger.Error("json unmarshal line failed %s", err.Error())
+			return err
+		}
+		logger.Info("===== rename table result: %+v", o)
 		sc = o
 	case SQLTypeAlterTable:
 		var o AlterTableResult

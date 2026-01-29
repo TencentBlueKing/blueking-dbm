@@ -38,7 +38,8 @@ const (
 	SQLTypeCreateProcedure = "create_procedure"
 	// SQLTypeCreateView is create view sql
 	SQLTypeCreateView = "create_view"
-
+	// SQLTypeRenameTable is rename table sql
+	SQLTypeRenameTable = "rename_table"
 	// SQLTypeInsert is insert sql
 	SQLTypeInsert = "insert"
 	// SQLTypeReplace is replace sql
@@ -352,3 +353,19 @@ type ParseIncludeTableBase struct {
 	DbName    string `json:"db_name"`
 	TableName string `json:"table_name"`
 }
+
+type RenameTableResult struct {
+	ParseBase
+	QueryDigestText  string           `json:"query_digest_text"`
+	QueryDigestMd5   string           `json:"query_digest_md5"`
+	RenameTablePairs RenameTablePairs `json:"rename_table_pairs"`
+}
+
+// RenameTablePair represents a pair of old/new table names for RENAME TABLE
+type RenameTablePair struct {
+	OldName string `json:"old_name"`
+	NewName string `json:"new_name"`
+}
+
+// RenameTablePairs is a slice of RenameTablePair for bulk renames
+type RenameTablePairs []RenameTablePair

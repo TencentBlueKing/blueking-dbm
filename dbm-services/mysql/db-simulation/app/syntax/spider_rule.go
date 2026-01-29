@@ -35,7 +35,13 @@ type SpiderRules struct {
 	CommandRule           CommandRule           `yaml:"CommandRule"`
 	SpiderCreateTableRule SpiderCreateTableRule `yaml:"SpiderCreateTableRule"`
 	AlterTableRule        AlterTableRule        `yaml:"AlterTableRule"`
+	RenameTableRule       RenameTableRule       `yaml:"RenameTableRule"`
 	DmlRule               DmlRule               `yaml:"DmlRule"`
+}
+
+// RenameTableRule rename table rules
+type RenameTableRule struct {
+	MultipleRenamePairsNotAllowed *RuleItem `yaml:"MultipleRenamePairsNotAllowed"`
 }
 
 // SpiderCreateTableRule spider create table 建表规则
@@ -117,6 +123,7 @@ func init() {
 	initCompiles = append(initCompiles, traverseRule(SR.CommandRule)...)
 	initCompiles = append(initCompiles, traverseRule(SR.SpiderCreateTableRule)...)
 	initCompiles = append(initCompiles, traverseRule(SR.AlterTableRule)...)
+	initCompiles = append(initCompiles, traverseRule(SR.RenameTableRule)...)
 	initCompiles = append(initCompiles, traverseRule(SR.DmlRule)...)
 	for _, c := range initCompiles {
 		if err = c.compile(); err != nil {
@@ -152,6 +159,7 @@ func ReloadRuleFromDb() (err error) {
 	initCompiles = []*RuleItem{}
 	initCompiles = append(initCompiles, traverseRule(SR.CommandRule)...)
 	initCompiles = append(initCompiles, traverseRule(SR.SpiderCreateTableRule)...)
+	initCompiles = append(initCompiles, traverseRule(SR.RenameTableRule)...)
 	for _, c := range initCompiles {
 		if err = c.compile(); err != nil {
 			logger.Error("compile rule failed %s", err.Error())

@@ -129,7 +129,7 @@ func (s *SyntaxHandler) SyntaxCheckSQL(r *gin.Context) {
 					LineId:        0,
 					SQLFiles:      []string{fileName},
 					IgnoreDbNames: nil,
-					DbNames:       []string{"test"},
+					DbNames:       []string{"mak01"},
 				},
 			},
 		},

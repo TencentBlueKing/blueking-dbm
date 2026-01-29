@@ -39,6 +39,7 @@ type Checker interface {
 type CheckerResult struct {
 	ObjName   string
 	IsSpFunc  bool
+	IsSQLText bool
 	BanWarns  []string
 	RiskWarns []string
 }
@@ -159,6 +160,9 @@ func (c *CheckerResult) Trigger(rule *BoolRuleItem, additionalMsg string) {
 func (c *CheckerResult) buildObjName() string {
 	if c.IsSpFunc {
 		return fmt.Sprintf("sp_name: %s ", c.ObjName)
+	}
+	if c.IsSQLText {
+		return ""
 	}
 	return fmt.Sprintf("table_name: %s ", c.ObjName)
 }

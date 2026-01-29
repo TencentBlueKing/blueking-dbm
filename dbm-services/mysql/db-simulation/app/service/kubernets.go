@@ -783,8 +783,9 @@ func (k *DbPodSets) getLoadSchemaSQLCmd(bkpath, file string) (cmd string) {
 	// 从中控dump的schema文件,默认是添加了tc_admin=0,需要删除
 	// 因为模拟执行是需要将中控进行sql转发
 	commands = append(commands, fmt.Sprintf("sed -i '/50720 SET tc_admin=0/d' %s", file))
-	// del definer
-	commands = append(commands, fmt.Sprintf("sed -i 's/\\sDEFINER=`[^`]*`@`[^`]*`//g'  %s", file))
+	// del definer: 兼容 DEFINER=`user`@`host`（如 CREATE DEFINER=`ADMIN`@`localhost`）与 DEFINER='user'@'host' 两种格式
+	commands = append(commands, fmt.Sprintf("sed -i 's/[[:space:]]DEFINER=`[^`]*`@`[^`]*`//g' %s", file))
+	commands = append(commands, fmt.Sprintf("sed -i \"s/[[:space:]]DEFINER='[^']*'@'[^']*'//g\" %s", file))
 	commands = append(commands, fmt.Sprintf("mysql -uroot -p%s --default-character-set=%s -vvv < %s", k.BaseInfo.RootPwd,
 		k.BaseInfo.Charset, file))
 	return strings.Join(commands, " && ")
@@ -794,6 +795,8 @@ func (k *DbPodSets) getLoadSchemaSQLCmd(bkpath, file string) (cmd string) {
 func (k *DbPodSets) getLoadSQLCmd(bkpath, file string, dbs []string) (cmd []string) {
 	cmd = append(cmd, k.getDownloadSqlCmd(bkpath, file))
 	for _, db := range dbs {
+		cmd = append(cmd, fmt.Sprintf("sed -i 's/[[:space:]]DEFINER=`[^`]*`@`[^`]*`//g' %s", file))
+		cmd = append(cmd, fmt.Sprintf("sed -i \"s/[[:space:]]DEFINER='[^']*'@'[^']*'//g\" %s", file))
 		cmd = append(cmd, fmt.Sprintf("mysql --defaults-file=/etc/my.cnf -uroot -p%s --default-character-set=%s -vvv %s < %s",
 			k.BaseInfo.RootPwd, k.BaseInfo.Charset, db, file))
 	}

@@ -9,7 +9,6 @@ CommandRule:
         "drop_index",
         "lock_tables",
         "analyze",
-        "rename_table",
         "drop_procedure",
         "drop_view",
         "drop_trigger",
@@ -18,7 +17,6 @@ CommandRule:
         "drop_event",
         "drop_compression_dictionary",
         "optimize",
-        "alter_tablespace",
       ]
 
   BanCommandRule:
@@ -27,28 +25,64 @@ CommandRule:
     ban: true
     item:
       [
-        "revoke",
-        "kill",
-        "reset",
-        "drop_user",
-        "grant",
+        "alter_db_upgrade",
+        "alter_instance",
+        "alter_server",
+        "alter_tablespace",
+        "alter_user",
+        "analyze",
+        "assign_to_keycache",
+        "binlog_base64_event",
+        "change_master",
+        "change_replication_filter",
+        "check",
+        "checksum",
+        "create_compression_dictionary",
+        "create_server",
+        "create_spfunction",
         "create_user",
-        "revoke_all",
-        "shutdown",
-        "lock_tables_for_backup",
-        "reset",
-        "purge",
+        "do",
+        "grant",
+        "drop_compression_dictionary",
+        "drop_server",
+        "drop_user",
+        "explain_other",
+        "get_diagnostics",
+        "ha_close",
+        "ha_open",
+        "ha_read",
+        "install_plugin",
+        "kill",
+        "load",
         "lock_binlog_for_backup",
         "lock_tables_for_backup",
-        "install_plugin",
-        "uninstall_plugin",
-        "alter_user",
+        "optimize",
+        "preload_keys",
+        "purge",
+        "purge_before",
+        "release_savepoint",
+        "rename_user",
+        "repair",
+        "reset",
+        "resignal",
+        "revoke",
+        "revoke_all",
+        "rollback_to_savepoint",
+        "savepoint",
+        "shutdown",
+        "signal",
         "slave_start",
         "slave_stop",
         "start_group_replication",
         "stop_group_replication",
-        "change_master",
-        "change_replication_filter",
+        "uninstall_plugin",
+        "unlock_binlog",
+        "xa_commit",
+        "xa_end",
+        "xa_prepare",
+        "xa_recover",
+        "xa_rollback",
+        "xa_start",
       ]
 
 SpiderCreateTableRule:
@@ -111,6 +145,14 @@ AlterTableRule:
     expr: " ( Item in Val ) && ( len(Val) > 1 ) "
     item: "add_column"
     desc: "加字段和其它alter table 类型混用，可能导致非在线加字段"
+
+RenameTableRule:
+  MultipleRenamePairsNotAllowed:
+    expr: " Val > Item "
+    item: 1
+    desc: "重命名库表不支持一次指定多个表"
+    ban: true
+    suggestion: "建议拆分为多个rename语句来执行"
 
 DmlRule:
   DmlNotHasWhere:
