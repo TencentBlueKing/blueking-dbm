@@ -14,7 +14,7 @@ from django.http import HttpRequest
 from backend.dbm_aiagent.mcp_tools.typing import BizIdList, ClusterIdList
 
 
-def auth_default(request: HttpRequest) -> list:
+def auth_default(request: HttpRequest, *args, **kwargs) -> list:
     """默认鉴权"""
     return []
 
@@ -43,9 +43,14 @@ def auth_parse_clusters(request: HttpRequest, *args, **kwargs) -> ClusterIdList:
     data = request.query_params if request.method == "GET" else request.data
     if "cluster_domain" not in data and "cluster_domains" not in data:
         raise ValueError("cluster_domain is required")
+
     data = data.get("cluster_domain") or data.get("cluster_domains")
     data = data if isinstance(data, list) else [data]
     cluster_ids = list(Cluster.objects.filter(immute_domain__in=data).values_list("id", flat=True))
+
+    if not cluster_ids:
+        raise ValueError("parse error, no clusters found for the given params")
+
     return cluster_ids
 
 
@@ -79,5 +84,8 @@ def auth_parse_hosts(request: HttpRequest, *args, **kwargs) -> ClusterIdList:
         cluster_ids = list(Cluster.objects.filter(filters).values_list("id", flat=True))
     else:
         raise ValueError("ip or bk_host_id is required")
+
+    if not cluster_ids:
+        raise ValueError("parse error, no clusters found for the given params")
 
     return cluster_ids

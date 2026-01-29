@@ -9,10 +9,13 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from typing import List, TypeAlias
+from typing import List, TypeAlias, Union
 
 # 业务列表注解
 BizIdList: TypeAlias = List[int]
 
 # 集群列表注解
 ClusterIdList: TypeAlias = List[int]
+
+# 单据鉴权注解
+TicketResourceList: TypeAlias = Union[BizIdList, ClusterIdList]

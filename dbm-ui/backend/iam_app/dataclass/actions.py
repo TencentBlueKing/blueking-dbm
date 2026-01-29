@@ -2709,6 +2709,129 @@ class ActionEnum:
         group=_("业务"),
     )
 
+    # ---- MCP 工具权限 ---
+    # 目前集群管理可以操作集群的工具箱单据，先给到mcp工具使用
+    MYSQL_MANAGE = ActionMeta(
+        id="mysql_manage",
+        name=_("MySQL 集群管理"),
+        name_en="mysql_manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("MySQL"),
+        subgroup=_("集群管理"),
+    )
+
+    TENDBCLUSTER_MANAGE = ActionMeta(
+        id="tendbcluster_manage",
+        name=_("TenDBCluster 集群管理"),
+        name_en="tendbcluster_manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("TenDBCluster"),
+        subgroup=_("集群管理"),
+    )
+
+    REDIS_MANAGE = ActionMeta(
+        id="redis_manage",
+        name=_("Redis 集群管理"),
+        name_en="redis_manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("Redis"),
+        subgroup=_("集群管理"),
+    )
+
+    ES_MANAGE = ActionMeta(
+        id="es_manage",
+        name=_("ES 集群管理"),
+        name_en="es_manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.ES],
+        group=_("ES"),
+        subgroup=_("集群管理"),
+    )
+
+    DORIS_MANAGE = ActionMeta(
+        id="doris_manage",
+        name=_("Doris 集群管理"),
+        name_en="doris_manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.DORIS],
+        group=_("Doris"),
+        subgroup=_("集群管理"),
+    )
+
+    KAFKA_MANAGE = ActionMeta(
+        id="kafka_manage",
+        name=_("Kafka 集群管理"),
+        name_en="kafka_manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.KAFKA],
+        group=_("Kafka"),
+        subgroup=_("集群管理"),
+    )
+
+    HDFS_MANAGE = ActionMeta(
+        id="hdfs_manage",
+        name=_("HDFS 集群管理"),
+        name_en="hdfs_manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.HDFS],
+        group=_("HDFS"),
+        subgroup=_("集群管理"),
+    )
+
+    PULSAR_MANAGE = ActionMeta(
+        id="pulsar_manage",
+        name=_("Pulsar 集群管理"),
+        name_en="pulsar_manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.PULSAR],
+        group=_("Pulsar"),
+        subgroup=_("集群管理"),
+    )
+
+    MONGODB_MANAGE = ActionMeta(
+        id="mongodb_manage",
+        name=_("MongoDB 集群管理"),
+        name_en="mongodb_manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("MongoDB"),
+        subgroup=_("集群管理"),
+    )
+
+    SQLSERVER_MANAGE = ActionMeta(
+        id="sqlserver_manage",
+        name=_("SQLServer 集群管理"),
+        name_en="sqlserver_manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.SQLSERVER],
+        group=_("SQLServer"),
+        subgroup=_("集群管理"),
+    )
+
+    ORACLE_MANAGE = ActionMeta(
+        id="oracle_manage",
+        name=_("Oracle 集群管理"),
+        name_en="oracle_manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.ORACLE],
+        group=_("Oracle"),
+        subgroup=_("集群管理"),
+    )
+
     @classmethod
     def get_action_by_id(cls, action_id: Union[(ActionMeta, str)]) -> ActionMeta:
         if isinstance(action_id, ActionMeta):
@@ -2716,6 +2839,10 @@ class ActionEnum:
         if action_id.lower() not in _all_actions:
             raise ActionNotExistError(_("动作ID不存在: {}").format(action_id))
         return _all_actions[action_id.lower()]
+
+    @classmethod
+    def get_action_by_ticket_type(cls, ticket_type: str) -> ActionMeta:
+        return getattr(cls, str(ticket_type).upper())
 
     @classmethod
     def cluster_type_to_action(cls, cluster_type, action_key):
