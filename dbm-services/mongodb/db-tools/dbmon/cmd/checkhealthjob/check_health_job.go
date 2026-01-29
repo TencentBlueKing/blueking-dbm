@@ -1,9 +1,9 @@
 package checkhealthjob
 
 import (
-	"bk-dbconfig/pkg/core/logger"
 	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbmon/cmd/basejob"
+	"dbm-services/mongodb/db-tools/dbmon/mylog"
 	"dbm-services/mongodb/db-tools/dbmon/pkg/linuxproc"
 	"fmt"
 	"os"
@@ -19,7 +19,6 @@ import (
 
 	"dbm-services/mongodb/db-tools/dbmon/config"
 	"dbm-services/mongodb/db-tools/dbmon/embedfiles"
-	"dbm-services/mongodb/db-tools/dbmon/mylog"
 	"dbm-services/mongodb/db-tools/dbmon/pkg/consts"
 
 	"github.com/pkg/errors"
@@ -66,8 +65,8 @@ func (job *CheckHealthJob) Run() {
 		return
 	}
 	logger.Info("start", zap.Int("loopTimes", int(job.LoopTimes)))
-	for _, svrItem := range job.MyConf.Servers {
-		job.runOneServer(&svrItem)
+	for i := range job.MyConf.Servers {
+		job.runOneServer(&job.MyConf.Servers[i])
 	}
 	logger.Info("done", zap.Int("loopTimes", int(job.LoopTimes)), zap.Error(job.Err))
 }
@@ -89,7 +88,7 @@ func (job *CheckHealthJob) runOneServer(svrItem *config.ConfServerItem) {
 
 	startTime := time.Now()
 
-	loginTimeout := getLoginTimeout(svrItem)
+	loginTimeout := getLoginTimeout(svrItem, logger)
 	err := checkService(mongoBin, loginTimeout, svrItem, logger)
 	logger.Info("checkService result", zap.Int("loginTimeout", loginTimeout), zap.Any("err", err))
 	if err == nil {
@@ -128,15 +127,17 @@ func (job *CheckHealthJob) runOneServer(svrItem *config.ConfServerItem) {
 	}
 
 	// 如果已屏蔽告警，不会尝试拉起进程
-	if config.IsAlaramShield(svrItem,
-		"skip to start mongo because isAlaramShield", job.Logger) {
+	if config.IsAlarmShield(svrItem,
+		"skip to start mongo because isAlarmShield", job.Logger) {
 		return
 	}
 
 	// 进程不存在，尝试启动
 	// 启动成功: 发送消息LoginSuccess
 	// 启动失败: 发送消息LoginFailed
-	startMongo(svrItem.Port, logger)
+	if err := startMongo(svrItem.Port, logger); err != nil {
+		logger.Warn("startMongo failed", zap.Error(err))
+	}
 	startTime = time.Now()
 	job.Err = checkService(mongoBin, loginTimeout, svrItem, logger)
 	logger.Info(fmt.Sprintf("checkService again,  cost %0.1f seconds, err: %v",
@@ -154,17 +155,17 @@ func (job *CheckHealthJob) runOneServer(svrItem *config.ConfServerItem) {
 
 }
 
-func getLoginTimeout(svrItem *config.ConfServerItem) int {
+func getLoginTimeout(svrItem *config.ConfServerItem, logger *zap.Logger) int {
 	loginTimeoutVal, err := config.ClusterConfig.GetInt64(svrItem, config.SegmentMonitor, config.KeyLoginTimeout, 10)
 	if err != nil {
-		logger.Error("get loginTimeout from config failed", zap.Error(err))
+		logger.Warn("get loginTimeout from config failed, use default 10", zap.Error(err))
 		return 10
 	}
-	// loginTimeoutVal < 5, loginTimeoutVal = 5
+	// 有效值为 [5, 360]，与 cluster_config 注释一致
 	if loginTimeoutVal < 5 {
 		loginTimeoutVal = 5
-	} else if loginTimeoutVal > 300 {
-		loginTimeoutVal = 300
+	} else if loginTimeoutVal > 360 {
+		loginTimeoutVal = 360
 	}
 	return int(loginTimeoutVal)
 }
@@ -172,21 +173,28 @@ func getLoginTimeout(svrItem *config.ConfServerItem) int {
 const secondsDay = 86400
 
 // removeOldMongoLogFiles 删除旧文件
+// 删除/data/mongolog/port/mongo.log* 和 /data1/mongolog/port/mongo.log*文件，保留配置天数前的文件（默认15天，最小2天）.
 func removeOldMongoLogFiles(svrItem *config.ConfServerItem, logger *zap.Logger) {
-	logPattern := path.Join("/data/mongolog", strconv.Itoa(svrItem.Port), "mongo.log*")
-	logMaxTime, _ := config.ClusterConfig.GetInt64(svrItem, "log", "maxtime", secondsDay*15)
+	logMaxTime, err := config.ClusterConfig.GetInt64(svrItem, config.SegmentLog, config.KeyMaxTime, secondsDay*15)
+	if err != nil {
+		logger.Warn("get log maxtime from config failed, use default 15 days", zap.Error(err))
+		logMaxTime = secondsDay * 15
+	}
 	if logMaxTime < secondsDay*2 {
 		logMaxTime = secondsDay * 2
 	}
-	err := removeOldFile(logPattern, logMaxTime, logger)
-	if err != nil {
-		logger.Error(fmt.Sprintf("remove old file failed: %v", err))
+	portStr := strconv.Itoa(svrItem.Port)
+	for _, baseDir := range []string{"/data/mongolog", "/data1/mongolog"} {
+		logPattern := path.Join(baseDir, portStr, "mongo.log*")
+		if err := removeOldFile(logPattern, logMaxTime, logger); err != nil {
+			logger.Error("remove old file failed", zap.String("pattern", logPattern), zap.Error(err))
+		}
 	}
 }
 
-// RemoveOldFile removes the old file that matches the pattern.
-// 1. delete file if modTime < now - maxTimeSeconds
-// 2. delete 1 oldest file if totalSize > maxTotalSize (delete the oldest file first)
+// removeOldFile removes old files that match the pattern.
+// Delete file if modTime < now - maxTimeSeconds.
+// Single file failure (e.g. Stat/Remove) is logged and does not stop other files.
 func removeOldFile(pattern string, maxTimeSeconds int64, logger *zap.Logger) error {
 	files, err := filepath.Glob(pattern)
 	if err != nil {
@@ -197,16 +205,16 @@ func removeOldFile(pattern string, maxTimeSeconds int64, logger *zap.Logger) err
 	for _, file := range files {
 		fileInfo, err := os.Stat(file)
 		if err != nil {
-			return err
+			logger.Warn("stat file failed, skip", zap.String("file", file), zap.Error(err))
+			continue
 		}
 
 		if now-fileInfo.ModTime().Unix() > maxTimeSeconds {
-			err = os.Remove(file)
-			logger.Info(fmt.Sprintf("remove old file %s", file))
-			if err != nil {
-				return err
+			if err := os.Remove(file); err != nil {
+				logger.Warn("remove old file failed", zap.String("file", file), zap.Error(err))
+				continue
 			}
-			continue
+			logger.Info("remove old file", zap.String("file", file))
 		}
 	}
 	return nil
@@ -261,9 +269,9 @@ func checkService(bin string, loginTimeout int, svrItem *config.ConfServerItem, 
 		} else if strings.Contains(line, "auth_success 1") {
 			authSuccess = true
 		} else if strings.Contains(line, "state ") {
-			parts := strings.Split(line, " ")
-			if len(parts) == 2 {
-				stateVal = strings.TrimSpace(parts[1])
+			parts := strings.Fields(line)
+			if len(parts) >= 2 && parts[0] == "state" {
+				stateVal = parts[1]
 				stateOK = (stateVal == "1" || stateVal == "2" || stateVal == "7")
 			}
 		}
