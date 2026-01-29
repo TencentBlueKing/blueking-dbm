@@ -12,7 +12,9 @@ specific language governing permissions and limitations under the License.
 from typing import Callable, List
 
 from pydantic import TypeAdapter
+from rest_framework import permissions
 
+from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.dbm_aiagent.mcp_tools import typing
@@ -89,3 +91,41 @@ class McpClusterManagePermission(BaseMcpDetailPermission):
         self.resource_meta = ResourceEnum.cluster_type_to_resource_meta(cluster_types[0])
         self.actions = [ActionEnum.cluster_type_to_action(cluster_types[0], action_key="VIEW")]
         return cluster_ids
+
+
+class McpTicketToolPermission(BaseMcpDetailPermission):
+    """
+    MCP创建工具箱单据相关动作鉴权，使用方式：
+    1. 工具箱，action_key = MANAGE
+    2. 禁用/下架集群 action_key = DESTROY
+    鉴权字段：集群列表 List[int]
+    """
+
+    resource_checker = TypeAdapter(typing.TicketResourceList)
+
+    def __init__(self, action_key: str = "MANAGE"):
+        super().__init__()
+        self.action_key = action_key
+
+    def instance_ids_getter(self, request, view):
+        cluster_ids = super().instance_ids_getter(request, view)
+        # 通过了父类的checker，这里认为集群是同类且存在的
+        cluster = Cluster.objects.get(id=cluster_ids[0])
+        action = ActionEnum.cluster_type_to_action(cluster.cluster_type, action_key=self.action_key)
+        self.actions = [action]
+        self.resource_meta = action.related_resource_types[0]
+        return cluster_ids
+
+
+class McpIsDbaPermission(permissions.BasePermission):
+    """
+    是否是DBA权限来调用该MCP工具
+    """
+
+    def has_permission(self, request, view):
+        username = request.user.username
+        return DBAdministrator.is_dba(username)
+
+    def has_object_permission(self, request, view, obj):
+        username = request.user.username
+        return DBAdministrator.is_dba(username)

@@ -11,9 +11,11 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
+from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clusters
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpNoneBillSubmittedException, DBMMcpUsernameNotFoundException
+from backend.dbm_aiagent.mcp_tools.mysql.auth_parser.bill import auth_parse_mysql_tdbctl_upgrade_ticket
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_apply_priv import bill_apply_priv
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_db_table_backup import bill_db_table_backup
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_fullbackup import mysql_full_backup
@@ -37,6 +39,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_standardize_bill impo
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.tdbctl_upgrade_bill import SubmitBillTdbctlUpgradeInputSerializer
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.drf_perm.mcp import McpTicketToolPermission
 
 
 class MySQLBillMcpToolsViewSet(McpToolsViewSet):
@@ -46,6 +49,8 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         description=str(_("""创建 TenDBHA, TenDBCluster 全备单据""")),
         request_slz=SubmitBillMySQLFullBackupInputSerializer,
         response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.MYSQL_BILL],
         name_prefix="mysql_bill",
@@ -69,6 +74,8 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         description=str(_("""创建 TenDBHA, TenDBCluster 库表备单据""")),
         request_slz=SubmitBillMySQLDBTableBackupInputSerializer,
         response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.MYSQL_BILL],
         name_prefix="mysql_bill",
@@ -108,6 +115,8 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=SubmitBillMySQLApplyPrivInputSerializer,
         response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.MYSQL_BILL],
         name_prefix="mysql_bill",
@@ -139,6 +148,8 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         description=str(_("""创建 mysql 标准化单据""")),
         request_slz=SubmitBillMySQLStandardizeInputSerializer,
         response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.MYSQL_BILL],
         name_prefix="mysql_bill",
@@ -175,6 +186,8 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         description=str(_("""创建 DB 重命名单据""")),
         request_slz=SubmitBillMySQLDBRenameInputSerializer,
         response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.MYSQL_BILL],
         name_prefix="mysql_bill",
@@ -218,6 +231,8 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=SubmitBillTdbctlUpgradeInputSerializer,
         response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_mysql_tdbctl_upgrade_ticket,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.MYSQL_BILL],
         name_prefix="mysql_bill",
