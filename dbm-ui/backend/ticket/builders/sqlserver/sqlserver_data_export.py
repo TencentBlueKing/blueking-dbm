@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.models import AppCache, Cluster
-from backend.db_services.mysql.sql_import.constants import BKREPO_SQLSERVER_DATA_EXPORT_PATH  # 数据导出文件路径
+from backend.db_services.mysql.sql_import.constants import BKREPO_SQLSERVER_DATA_EXPORT_PATH
 from backend.db_services.sqlserver.sql_import.constants import BKREPO_SQLSERVER_SQLFILE_PATH
 from backend.dbm_init.medium.handlers import MediumHandler
 from backend.flow.engine.controller.sqlserver import SqlserverController
@@ -17,6 +17,7 @@ from backend.ticket.models import Flow
 class SQLServerDataExportDetailSerializer(SQLServerBaseOperateDetailSerializer):
     class DataExportDetailSerializer(serializers.Serializer):
         dbnames = serializers.ListField(help_text=_("导出库列表"), child=serializers.CharField())
+        ignore_dbnames = serializers.ListField(help_text=_("忽略DB"), child=serializers.CharField(), required=False)
         sql_files = serializers.ListField(help_text=_("SQL文件列表"), child=serializers.CharField())
 
     cluster_ids = serializers.ListField(help_text=_("查询集群列表"), child=serializers.IntegerField())
