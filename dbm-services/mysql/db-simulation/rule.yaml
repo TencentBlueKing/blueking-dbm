@@ -32,7 +32,6 @@ CommandRule:
         "drop_event",
         "drop_compression_dictionary",
         "optimize",
-        "alter_tablespace",
       ]
 
   BanCommandRule:
@@ -41,6 +40,7 @@ CommandRule:
     ban: true
     item:
       [
+        "alter_tablespace",
         "revoke",
         "kill",
         "reset",
@@ -50,10 +50,8 @@ CommandRule:
         "revoke_all",
         "shutdown",
         "lock_tables_for_backup",
-        "reset",
         "purge",
         "lock_binlog_for_backup",
-        "lock_tables_for_backup",
         "install_plugin",
         "uninstall_plugin",
         "alter_user",
@@ -63,6 +61,13 @@ CommandRule:
         "stop_group_replication",
         "change_master",
         "change_replication_filter",
+        "signal",
+        "resignal",
+        "alter_db_upgrade",
+        "create_compression_dictionary",
+        "drop_compression_dictionary",
+        "install_plugin",
+        "uninstall_plugin",
       ]
 
 CreateTableRule:
