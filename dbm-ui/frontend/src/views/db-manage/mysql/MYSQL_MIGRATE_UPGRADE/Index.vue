@@ -46,8 +46,7 @@
               required />
             <ResourceTagColumn v-model="item.labels" />
             <ReadonlyHostColumn
-              v-model:new-readonly-host="item.new_readonly_host"
-              v-model:readonly-host="item.readonly_host"
+              v-model="item.read_only_slaves"
               :cluster="item.cluster" />
             <OperationColumn
               v-model:table-data="formData.tableData"
@@ -128,7 +127,7 @@
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
-    bk_sub_zone: string;
+    bk_sub_zone?: string;
     ip: string;
   }
 
@@ -147,9 +146,11 @@
     current_version: ComponentProps<typeof CurrentVersionColumn>['modelValue'];
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     new_db_module_id: number;
-    new_readonly_host: IHostData[];
     pkg_id: number;
-    readonly_host: TendbhaModel['slaves'];
+    read_only_slaves: {
+      new_slave: IHostData;
+      old_slave: IHostData;
+    }[];
     specId: number;
     target_version: ComponentProps<typeof TargetVersionColumn>['modelValue'];
   }
@@ -179,9 +180,8 @@
     ),
     labels: (data.labels || []) as RowData['labels'],
     new_db_module_id: data.new_db_module_id || 0,
-    new_readonly_host: (data.new_readonly_host || []) as RowData['new_readonly_host'],
     pkg_id: data.pkg_id || 0,
-    readonly_host: (data.readonly_host || []) as RowData['readonly_host'],
+    read_only_slaves: (data.read_only_slaves || []) as RowData['read_only_slaves'],
     specId: data.specId || 0,
     target_version: Object.assign(
       {
@@ -238,8 +238,8 @@
                 master_domain: clusters[item.cluster_ids[0]].immute_domain,
               },
               new_db_module_id: item.new_db_module_id,
-              new_readonly_host: item.read_only_slaves.map((item) => item.new_slave),
               pkg_id: item.pkg_id,
+              read_only_slaves: item.read_only_slaves,
               target_version: {
                 charset: item.display_info.charset,
                 db_module_name: item.display_info.target_module_name,
@@ -276,6 +276,13 @@
       resource_spec: {
         backend_group: {
           count: number;
+          label_names: string[]; // 标签名称列表，单据详情回显用
+          labels: string[]; // 标签id列表
+          spec_id: number;
+        };
+        new_read_slave: {
+          count: number;
+          hosts: IHostData[];
           label_names: string[]; // 标签名称列表，单据详情回显用
           labels: string[]; // 标签id列表
           spec_id: number;
@@ -323,21 +330,17 @@
             },
             new_db_module_id: item.new_db_module_id,
             pkg_id: item.pkg_id,
-            read_only_slaves: item.readonly_host.length
-              ? item.readonly_host.map((host, index) => ({
-                  new_slave: item.new_readonly_host[index],
-                  old_slave: {
-                    bk_biz_id: host.bk_biz_id,
-                    bk_cloud_id: host.bk_cloud_id,
-                    bk_host_id: host.bk_host_id,
-                    bk_sub_zone: host.bk_sub_zone || undefined,
-                    ip: host.ip,
-                  },
-                }))
-              : [],
+            read_only_slaves: item.read_only_slaves,
             resource_spec: {
               backend_group: {
                 count: 1,
+                label_names: item.labels.map((item) => item.value),
+                labels: item.labels.map((item) => String(item.id)),
+                spec_id: item.specId,
+              },
+              new_read_slave: {
+                count: item.read_only_slaves.length,
+                hosts: item.read_only_slaves.reduce<IHostData[]>((acc, cur) => [...acc, cur.new_slave], []),
                 label_names: item.labels.map((item) => item.value),
                 labels: item.labels.map((item) => String(item.id)),
                 spec_id: item.specId,
