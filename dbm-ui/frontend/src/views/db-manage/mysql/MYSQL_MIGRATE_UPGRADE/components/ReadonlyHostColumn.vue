@@ -15,7 +15,7 @@
   <EditableColumn
     :append-rules="rules"
     :disabled-method="disabledMethod"
-    field="new_readonly_host"
+    field="read_only_slaves"
     :label="t('只读主机（旧 -> 新）')"
     :loading="loading"
     :min-width="400">
@@ -58,7 +58,6 @@
   </EditableColumn>
 </template>
 <script lang="ts" setup>
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -72,6 +71,7 @@
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
+    bk_sub_zone?: string;
     ip: string;
   }
 
@@ -89,11 +89,12 @@
 
   const props = defineProps<Props>();
 
-  const readonlyHost = defineModel<TendbhaModel['slaves']>('readonlyHost', {
-    required: true,
-  });
-
-  const newReadonlyHost = defineModel<HostInfo[]>('newReadonlyHost', {
+  const modelValue = defineModel<
+    {
+      new_slave: HostInfo;
+      old_slave: HostInfo;
+    }[]
+  >({
     required: true,
   });
 
@@ -101,9 +102,18 @@
 
   const inputIps = ref('');
   const textareaRef = ref();
-  const hostMemo = ref<Record<string, boolean>>({});
+  const hostMemo = ref<Record<string, HostInfo>>({});
+  const hostLimit = ref(0);
+  const readonlyHost = ref<HostInfo[]>([]);
+  let inputStash: string[] = [];
 
-  const hostLimit = computed(() => readonlyHost.value.length);
+  const createHostInfo = (data?: HostInfo) => ({
+    bk_biz_id: data?.bk_biz_id || 0,
+    bk_cloud_id: data?.bk_cloud_id || 0,
+    bk_host_id: data?.bk_host_id || 0,
+    bk_sub_zone: data?.bk_sub_zone || undefined,
+    ip: data?.ip || '',
+  });
 
   // 格式化输入转为ips: string[]
   const formatInputToIps = (value: string) => {
@@ -157,20 +167,28 @@
     onSuccess: (data) => {
       const hostList = data.results || [];
       if (hostList.length) {
-        inputIps.value = hostList.map((item) => `${item.ip}（${item.sub_zone || '--'}）`).join('\n');
-        newReadonlyHost.value = hostList.map((item) => ({
-          bk_biz_id: item.dedicated_biz || item.bk_biz_id,
-          bk_cloud_id: item.bk_cloud_id,
-          bk_host_id: item.bk_host_id,
-          bk_sub_zone: item.sub_zone || undefined,
-          ip: item.ip,
-        }));
-        hostMemo.value = hostList.reduce<Record<string, boolean>>((acc, cur) => {
+        const hostInfoMap = hostList.reduce<Record<string, HostInfo>>((acc, cur) => {
           Object.assign(acc, {
-            [cur.ip]: true,
+            [cur.ip]: createHostInfo(cur),
           });
           return acc;
         }, {});
+
+        const inputIpsArr: string[] = [];
+        const newModelValue: typeof modelValue.value = [];
+
+        inputStash.forEach((ip, index) => {
+          const hostInfo = hostInfoMap[ip];
+          inputIpsArr.push(`${hostInfo.ip}（${hostInfo.bk_sub_zone || '--'}）`);
+          newModelValue.push({
+            new_slave: hostInfo,
+            old_slave: createHostInfo(readonlyHost.value[index]),
+          });
+        });
+
+        hostMemo.value = hostInfoMap;
+        inputIps.value = inputIpsArr.join('\n');
+        modelValue.value = newModelValue;
       }
     },
   });
@@ -179,7 +197,7 @@
     if (!rowData.cluster.id) {
       return t('请先选择集群');
     }
-    if (readonlyHost.value.length === 0) {
+    if (hostLimit.value === 0) {
       return t('无只读主机');
     }
     return '';
@@ -203,12 +221,11 @@
   };
 
   const handleChange = (value: string) => {
-    newReadonlyHost.value = [];
-    const ips = value.split(batchSplitRegex).filter((item) => ipv4.test(item.trim()));
-    if (ips.length === hostLimit.value) {
+    inputStash = value.split(batchSplitRegex).filter((item) => ipv4.test(item.trim()));
+    if (inputStash.length === hostLimit.value) {
       queryHost({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        hosts: ips.join(','),
+        hosts: inputStash.join(','),
         limit: hostLimit.value,
         offset: 0,
       });
@@ -266,20 +283,19 @@
     () => props.cluster.id,
     () => {
       if (props.cluster.id) {
-        readonlyHost.value =
-          _.sortBy(
-            props.cluster.slaves?.filter((item) => !item.is_stand_by), // is_stand_by === false 为原只读主机
-            (item) => item.bk_host_id,
-          ) || [];
+        const readonlySlave = props.cluster.slaves?.filter((item) => !item.is_stand_by);
+        readonlyHost.value = readonlySlave;
+        hostLimit.value = readonlySlave.length;
 
-        for (let i = 0; i < readonlyHost.value.length - 1; i++) {
+        for (let i = 0; i < hostLimit.value - 1; i++) {
           inputIps.value += '\n';
         }
 
         setTimeout(() => {
+          const newReadonlyHost = modelValue.value.map((item) => item.new_slave.ip);
           // 单据克隆回显
-          if (newReadonlyHost.value.length > 0) {
-            handleChange(newReadonlyHost.value.map((item) => item.ip).join('\n'));
+          if (newReadonlyHost.length > 0) {
+            handleChange(newReadonlyHost.join('\n'));
           }
         }, 60);
       }
