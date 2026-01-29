@@ -83,6 +83,8 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             "resource_confirm",
             "resource_delete",
             "resource_update",
+            "resource_export",
+            "resource_osname",
             "append_labels",
         ): [ResourceActionPermission([ActionEnum.RESOURCE_POLL_MANAGE])],
         (
@@ -145,6 +147,20 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             host.update(occupancy=(host["host_id"] in resource_host_ids))
 
         return Response(host_infos)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("资源池操作系统列表"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(detail=False, methods=["POST"])
+    def resource_osname(self, request):
+        data = {}
+        os_names = DBResourceApi.resource_osname()
+        if os_names:
+            bk_os_names = [{"value": os_name, "text": os_name} for os_name in os_names]
+            data["os_names"] = bk_os_names
+
+        return Response(data=data)
 
     @common_swagger_auto_schema(
         operation_summary=_("查询DBA业务下的主机信息"),
@@ -527,3 +543,12 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         params = self.params_validate(self.get_serializer_class())
         data = ResourceHandler.calc_resource_water_level(get_cache=params["cache"])
         return Response(data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("资源池导出"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(detail=False, methods=["POST"], serializer_class=ResourceListSerializer)
+    def resource_export(self, request):
+        params = self.params_validate(self.get_serializer_class())
+        return ResourceHandler.resource_export(params)
