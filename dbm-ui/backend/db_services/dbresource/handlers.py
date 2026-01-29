@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import itertools
 import math
+import time
 from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List
@@ -30,6 +31,8 @@ from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 from backend.utils.cache import func_cache_decorator
+from backend.utils.excel import ExcelHandler
+from backend.utils.string import format_size
 
 
 class ClusterSpecFilter(object):
@@ -692,3 +695,63 @@ class ResourceHandler(object):
             hosts.append({"ip": host_id_ip_map[str(host_id)], "bk_host_id": host_id})
 
         return remark_map, hosts
+
+    @classmethod
+    def resource_export(cls, params):
+        data_list = []
+        headers = [
+            {"id": "ip", "name": _("IP")},
+            {"id": "bk_cloud_name", "name": _("管控区域")},
+            {"id": "agent_status", "name": _("Agent 状态")},
+            {"id": "resource_ownership", "name": _("资源归属")},
+            {"id": "city", "name": _("地域")},
+            {"id": "sub_zone", "name": _("园区")},
+            {"id": "rack_id", "name": _("机架")},
+            {"id": "os_type", "name": _("操作系统类型")},
+            {"id": "os_name", "name": _("操作系统名称")},
+            {"id": "device_class", "name": _("机型")},
+            {"id": "bk_cpu", "name": _("CPU(核)")},
+            {"id": "bk_mem", "name": _("内存")},
+            {"id": "total_data_storage_cap", "name": _("数据盘容量（G）")},
+            {"id": "create_time", "name": _("转入时间")},
+            {"id": "operator", "name": _("转入人")},
+        ]
+
+        def get_resource_ownership(for_biz, resource_type, labels):
+            biz_name = _("公共资源池") if for_biz["bk_biz_id"] == 0 else for_biz["bk_biz_name"]
+            db_type = _("通用") if resource_type == "PUBLIC" else resource_type
+            resource_ownership_str = _("所属业务: {} 所属DB: {}").format(biz_name, db_type)
+            if labels:
+                label_names = " ".join(label["name"] for label in labels)
+                resource_ownership_str = resource_ownership_str + f" {label_names}"
+            return resource_ownership_str
+
+        resource_res = cls.resource_list(params)
+        results = resource_res["results"]
+        if results:
+            for res in results:
+                data_list.append(
+                    {
+                        "ip": res["ip"],
+                        "bk_cloud_name": res["bk_cloud_name"],
+                        "agent_status": _("正常") if res["agent_status"] == 1 else _("异常"),
+                        "resource_ownership": get_resource_ownership(
+                            res["for_biz"], res["resource_type"], res["labels"]
+                        ),
+                        "city": res["city"],
+                        "sub_zone": res["sub_zone"],
+                        "rack_id": res["rack_id"],
+                        "os_type": res["os_type"],
+                        "os_name": res["os_name"],
+                        "device_class": res["device_class"],
+                        "bk_cpu": res["bk_cpu"],
+                        "bk_mem": format_size(res["bk_mem"] * 1024 * 1024),
+                        "total_data_storage_cap": res.get("total_data_storage_cap", 0),
+                        "create_time": res["create_time"],
+                        "operator": res["operator"],
+                    }
+                )
+
+        wb = ExcelHandler.serialize(data_list, headers=headers, match_header=True)
+
+        return ExcelHandler.response(wb, f"{time.strftime('%Y%m%d%H%M%S')}_resource_list.xlsx")
