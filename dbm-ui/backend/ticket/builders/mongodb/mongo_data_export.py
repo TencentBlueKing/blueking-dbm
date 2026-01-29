@@ -17,6 +17,7 @@ from rest_framework import serializers
 from backend.dbm_init.medium.handlers import MediumHandler
 from backend.flow.consts import MONGODB_DATA_EXPORT_PATH
 from backend.flow.engine.controller.mongodb import MongoDBController
+from backend.flow.utils.mongodb.db_table_filter import MongoDbTableFilter
 from backend.ticket import builders
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
@@ -42,7 +43,14 @@ class MongoDBDataExportDetailSerializer(BaseMongoDBOperateDetailSerializer):
             query = serializers.CharField(help_text=_("查询语句"), required=False, allow_null=True, allow_blank=True)
             fields = serializers.CharField(help_text=_("导出字段"), required=False, allow_null=True, allow_blank=True)
 
-        ns_filter = DBTableSerializer(help_text=_("库表选择器"))
+        class DBTableExportSerializer(DBTableSerializer):
+            def validate(self, attrs):
+                MongoDbTableFilter(
+                    attrs["db_patterns"], attrs["table_patterns"], attrs["ignore_dbs"], attrs["ignore_tables"], True
+                )
+                return attrs
+
+        ns_filter = DBTableExportSerializer(help_text=_("库表选择器"))
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         export_options = ExportOptionsSerializer(help_text=_("导出选项配置"))
 
