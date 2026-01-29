@@ -128,8 +128,8 @@ def mock_iam_client():
     mock_client.resource_multi_actions_allowed.return_value = {}
     mock_client._do_policy_query.return_value = MagicMock(to_dict=lambda: {"condition": []})
     mock_client.get_apply_url.return_value = (True, "", "http://apply.url")
-    mock_client.grant_resource_creator_actions.return_value = (True, "", {})
-    mock_client.grant_resource_creator_action_attributes.return_value = (True, "", {})
+    mock_client.grant_resource_creator_actions.return_value = (True, "success")
+    mock_client.grant_resource_creator_action_attributes.return_value = (True, "success")
     mock_client._client = MagicMock()
     mock_client._client.query.return_value = (True, "", {"id": env.BK_IAM_SYSTEM_ID, "name": "DB管理"})
     return mock_client

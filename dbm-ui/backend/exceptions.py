@@ -162,7 +162,7 @@ class PermissionDeniedError(AppBaseException):
                         "system_name": permission.get("system_name") or permission.get("system_id"),
                         "actions": permission.get("actions") or [],
                     },
-                    "apply_url": client.get_apply_url(permission, bk_username="admin")[2],
+                    "apply_url": client.get_apply_url(permission)[2],
                 }
         except Exception as err:
             # 构造权限中心URL失败
