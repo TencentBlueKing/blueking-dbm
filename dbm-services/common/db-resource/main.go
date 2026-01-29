@@ -27,6 +27,7 @@ import (
 	"dbm-services/common/db-resource/internal/middleware"
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/db-resource/internal/routers"
+	"dbm-services/common/db-resource/internal/svr/agent"
 	"dbm-services/common/db-resource/internal/svr/bk"
 	"dbm-services/common/db-resource/internal/svr/cloud/tencent"
 	"dbm-services/common/db-resource/internal/svr/task"
@@ -118,6 +119,40 @@ func init() {
 	bk.InitCCClient()
 	// 依赖 InitConfig 的云厂商初始化，避免在 init() 读取到空配置
 	tencent.InitTencentCloud()
+	// 初始化 LLM 分析器
+	initLLMAnalyzer()
+}
+
+// initLLMAnalyzer 初始化 LLM 分析器
+func initLLMAnalyzer() {
+	llmCfg := config.AppConfig.LLM
+	if !llmCfg.Enabled {
+		logger.Info("LLM analyzer is disabled")
+		return
+	}
+
+	agentCfg := &agent.LLMConfig{
+		Enabled:  llmCfg.Enabled,
+		Provider: llmCfg.Provider,
+		OpenAI: agent.OpenAIConfig{
+			APIKey:      llmCfg.OpenAI.APIKey,
+			BaseURL:     llmCfg.OpenAI.BaseURL,
+			Model:       llmCfg.OpenAI.Model,
+			MaxTokens:   llmCfg.OpenAI.MaxTokens,
+			Temperature: llmCfg.OpenAI.Temperature,
+		},
+		Agent: agent.AgentConfig{
+			MaxIterations:  llmCfg.Agent.MaxIterations,
+			TimeoutSeconds: llmCfg.Agent.TimeoutSeconds,
+		},
+	}
+
+	if err := agent.InitAnalyzer(model.DB.Self, agentCfg); err != nil {
+		logger.Error("Failed to initialize LLM analyzer: %v", err)
+	}
+
+	// 连接 task 包和 agent 包（避免循环导入）
+	task.SetAnalysisTaskProcessor(agent.ProcessAnalysisTaskFromJSON)
 }
 
 // LocalCron define local crontab

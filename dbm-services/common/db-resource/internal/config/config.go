@@ -41,6 +41,39 @@ type Config struct {
 	Redis            Redis             `yaml:"redis"`
 	CloudCertificate *CloudCertificate `yaml:"cloudCertificate"`
 	Yunti            yunti.YuntiConfig `yaml:"yunti"`
+	LLM              LLMConfig         `yaml:"llm" mapstructure:"llm"`
+}
+
+// LLMConfig LLM 大模型配置
+type LLMConfig struct {
+	Enabled  bool         `yaml:"enabled" mapstructure:"enabled"`
+	Provider string       `yaml:"provider" mapstructure:"provider"` // openai / azure
+	OpenAI   OpenAIConfig `yaml:"openai" mapstructure:"openai"`
+	Agent    AgentConfig  `yaml:"agent" mapstructure:"agent"`
+	BkAi     BkAiConfig   `yaml:"bk_ai" mapstructure:"bk_ai"`
+}
+
+type BkAiConfig struct {
+	AppCode   string `yaml:"app_code" mapstructure:"app_code"`
+	AppSecret string `yaml:"app_secret" mapstructure:"app_secret"`
+	BaseURL   string `yaml:"base_url" mapstructure:"base_url"`
+	Model     string `yaml:"model" mapstructure:"model"`
+	MaxTokens int    `yaml:"max_tokens" mapstructure:"max_tokens"`
+}
+
+// OpenAIConfig OpenAI 配置
+type OpenAIConfig struct {
+	APIKey      string  `yaml:"api_key" mapstructure:"api_key"`
+	BaseURL     string  `yaml:"base_url" mapstructure:"base_url"`
+	Model       string  `yaml:"model" mapstructure:"model"`
+	MaxTokens   int     `yaml:"max_tokens" mapstructure:"max_tokens"`
+	Temperature float32 `yaml:"temperature" mapstructure:"temperature"`
+}
+
+// AgentConfig Agent 配置
+type AgentConfig struct {
+	MaxIterations  int `yaml:"max_iterations" mapstructure:"max_iterations"`
+	TimeoutSeconds int `yaml:"timeout_seconds" mapstructure:"timeout_seconds"`
 }
 
 // Db config
