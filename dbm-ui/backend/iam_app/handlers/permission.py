@@ -17,7 +17,7 @@ from typing import Any, Callable, Dict, List, Tuple, Union
 from blueapps.account.models import User
 from django.conf import settings
 from django.utils.translation import gettext as _
-from iam import DummyIAM, MultiActionRequest, ObjectSet, Request, Resource, Subject, make_expression
+from iam import IAM, DummyIAM, MultiActionRequest, ObjectSet, Request, Resource, Subject, make_expression
 from iam.apply.models import (
     ActionWithoutResources,
     ActionWithResources,
@@ -36,7 +36,6 @@ from backend.env import BK_IAM_SYSTEM_ID
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta, _all_actions
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta, _all_resources
 from backend.iam_app.exceptions import ActionNotExistError, GetSystemInfoError, PermissionDeniedError
-from backend.iam_app.handlers.client import IAM
 from backend.utils.local import local
 
 logger = logging.getLogger("root")
@@ -67,12 +66,10 @@ class Permission(object):
 
     @classmethod
     def get_iam_client(cls):
-        if env.BK_IAM_SKIP:
-            return DummyIAM(env.APP_CODE, env.SECRET_KEY, env.BK_IAM_INNER_HOST, env.BK_COMPONENT_API_URL)
-
-        return IAM(
-            env.APP_CODE, env.SECRET_KEY, bk_apigateway_url=env.BK_IAM_APIGATEWAY, api_version=env.BK_IAM_API_VERSION
-        )
+        tenant_id = getattr(env, "BK_TENANT_ID", "")
+        if settings.BK_IAM_SKIP:
+            return DummyIAM(env.APP_CODE, env.SECRET_KEY, env.BK_IAM_APIGATEWAY, tenant_id)
+        return IAM(env.APP_CODE, env.SECRET_KEY, env.BK_IAM_APIGATEWAY, tenant_id)
 
     def get_system_info(self):
         """
@@ -387,7 +384,7 @@ class Permission(object):
         :param system_id: 系统ID
         """
         application = self.make_application(action_ids, resources_list, system_id)
-        ok, message, url = self._iam.get_apply_url(application, self.bk_token, self.username)
+        ok, message, url = self._iam.get_apply_url(application)
         if not ok:
             logger.error(f"iam generate apply url fail: {message}")
             return env.IAM_APP_URL
@@ -444,7 +441,7 @@ class Permission(object):
     def _grant_actions(self, resource, application, grant_func, raise_exception=True):
         grant_result = None
         try:
-            grant_result = grant_func(application, self.bk_token, self.username)
+            grant_result = grant_func(application)
             logger.info(f"[grant_creator_action] Success! resource: {resource.to_dict()}, result: {grant_result}")
         except Exception as e:
             logger.exception(f"[grant_creator_action] Failed! resource: {resource.to_dict()}, result: {e}")
