@@ -11,7 +11,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.urls import re_path as url
+from django.urls import re_path
 
 from backend.version_log import views
 
@@ -19,9 +19,9 @@ app_name = "version_log"
 
 urlpatterns = (
     # 获取版本日志列表
-    url(r"^version_logs_list/$", views.version_logs_list, name="version_logs_list"),
+    re_path(r"^version_logs_list/$", views.version_logs_list, name="version_logs_list"),
     # 获取版本日志详情
-    url(r"^version_log_detail/", views.get_version_log_detail, name="version_log_detail"),
+    re_path(r"^version_log_detail/", views.get_version_log_detail, name="version_log_detail"),
     # 查询当前用户是否看过最新版本日志
-    url(r"^has_user_read_latest/", views.has_user_read_latest, name="has_user_read_latest"),
+    re_path(r"^has_user_read_latest/", views.has_user_read_latest, name="has_user_read_latest"),
 )

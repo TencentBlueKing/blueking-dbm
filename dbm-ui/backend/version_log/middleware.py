@@ -12,9 +12,9 @@ specific language governing permissions and limitations under the License.
 """
 
 import django
-import version_log.config as config
 from django.shortcuts import redirect
 
+import backend.version_log.config as config
 from backend.version_log.models import VersionLogVisited
 
 # 兼容低版本Django

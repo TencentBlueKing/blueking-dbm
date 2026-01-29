@@ -17,11 +17,21 @@ import re
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
-__all__ = ("MD_FILES_DIR", "PARSED_HTML_FILES_DIR", "NAME_PATTERN", "LATEST_VERSION_INFORM", "ENTRANCE_URL")
+__all__ = (
+    "MD_FILES_DIR",
+    "PARSED_HTML_FILES_DIR",
+    "NAME_PATTERN",
+    "LATEST_VERSION_INFORM",
+    "ENTRANCE_URL",
+    "LANGUAGE_MAPPINGS",
+    "LANGUAGE_POSTFIX_SEPARATION",
+)
 
 # 默认设置
 VERSION_LOG = {
     "MD_FILES_DIR": "version_logs_md",
+    "LANGUAGE_POSTFIX_SEPARATION": "_",
+    "LANGUAGE_MAPPINGS": {},
     "NAME_PATTERN": "[vV](\d+\.){2,4}md",  # noqa
     "FILE_TIME_FORMAT": "%Y%m%d",
     "LATEST_VERSION_INFORM": False,
@@ -53,6 +63,7 @@ else:
     # 默认配置下，在项目根目录新建文件夹
     if not os.path.isdir(MD_FILES_DIR):
         os.mkdir(MD_FILES_DIR)
+
 
 # 版本日志html文件夹
 PARSED_HTML_FILES_DIR = os.path.join(os.path.dirname(MD_FILES_DIR), "version_logs_html")
@@ -89,3 +100,7 @@ USE_HASH_URL = version_log["USE_HASH_URL"]
 
 # 文件名时间格式
 FILE_TIME_FORMAT = version_log["FILE_TIME_FORMAT"]
+
+# 语言配置
+LANGUAGE_POSTFIX_SEPARATION = version_log["LANGUAGE_POSTFIX_SEPARATION"]
+LANGUAGE_MAPPINGS = version_log.get("LANGUAGE_MAPPINGS", {})
