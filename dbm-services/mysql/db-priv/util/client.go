@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httputil"
+	"os"
 	"strings"
 	"time"
 
@@ -80,8 +81,10 @@ func (c *Client) DoNew(method, url string, params interface{}, headers map[strin
 	return response, err
 }
 
-func (c *Client) doNewInner(method, url string, params interface{}, headers map[string]string) (*APIServerResponse,
-	error) {
+func (c *Client) doNewInner(method, url string, params interface{}, headers map[string]string) (
+	*APIServerResponse,
+	error,
+) {
 	host := c.apiserver
 	body, err := json.Marshal(params)
 	if err != nil {
@@ -105,13 +108,21 @@ func (c *Client) doNewInner(method, url string, params interface{}, headers map[
 		return nil, fmt.Errorf("new request failed, err: %+v", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	bkAuth := fmt.Sprintf(`{"bk_app_code": %s, "bk_app_secret": %s}`, viper.GetString("bk_app_code"),
-		viper.GetString("bk_app_secret"))
+	bkAuth := fmt.Sprintf(
+		`{"bk_app_code": %s, "bk_app_secret": %s}`, viper.GetString("bk_app_code"),
+		viper.GetString("bk_app_secret"),
+	)
 	req.Header.Set("x-bkapi-authorization", bkAuth)
 
+	if os.Getenv("BK_TENANT_ID") != "" {
+		req.Header.Set("X-Bk-Tenant-Id", os.Getenv("BK_TENANT_ID"))
+	}
+
 	cookieAppCode := http.Cookie{Name: "bk_app_code", Path: "/", Value: viper.GetString("bk_app_code"), MaxAge: 86400}
-	cookieAppSecret := http.Cookie{Name: "bk_app_secret", Path: "/", Value: viper.GetString("bk_app_secret"),
-		MaxAge: 86400}
+	cookieAppSecret := http.Cookie{
+		Name: "bk_app_secret", Path: "/", Value: viper.GetString("bk_app_secret"),
+		MaxAge: 86400,
+	}
 	req.AddCookie(&cookieAppCode)
 	req.AddCookie(&cookieAppSecret)
 
@@ -135,8 +146,12 @@ func (c *Client) doNewInner(method, url string, params interface{}, headers map[
 		// 500 可能正在发布
 		// 429 可能大并发量偶现超频
 		// 504 具体原因未知，先重试
-		if !HasElem(resp.StatusCode, []int{http.StatusInternalServerError, http.StatusTooManyRequests,
-			http.StatusGatewayTimeout}) {
+		if !HasElem(
+			resp.StatusCode, []int{
+				http.StatusInternalServerError, http.StatusTooManyRequests,
+				http.StatusGatewayTimeout,
+			},
+		) {
 			break
 		}
 
@@ -145,8 +160,12 @@ func (c *Client) doNewInner(method, url string, params interface{}, headers map[
 			resp.Body.Close()
 		}
 		time.Sleep(time.Second)
-		slog.Warn(fmt.Sprintf("client.Do result with %s, wait 1 second and retry, url: %s", resp.Status,
-			req.URL.String()))
+		slog.Warn(
+			fmt.Sprintf(
+				"client.Do result with %s, wait 1 second and retry, url: %s", resp.Status,
+				req.URL.String(),
+			),
+		)
 		resp, err = c.client.Do(req)
 		if err != nil {
 			slog.Error(fmt.Sprintf("an error occur while invoking client.Do, url: %s", req.URL.String()), err)
@@ -193,8 +212,12 @@ func (c *Client) doNewInner(method, url string, params interface{}, headers map[
 
 	// check response and data is nil
 	if result.Code != statusSuccess {
-		slog.Warn(fmt.Sprintf("result.Code is %d not equal to %d,message:%s,data:%s,param:%+v", result.Code, statusSuccess,
-			result.Message, string(result.Data), params))
+		slog.Warn(
+			fmt.Sprintf(
+				"result.Code is %d not equal to %d,message:%s,data:%s,param:%+v", result.Code, statusSuccess,
+				result.Message, string(result.Data), params,
+			),
+		)
 		if len(result.Data) != 0 {
 			return nil, fmt.Errorf("[%v - %v - %s]", result.Code, result.Message, string(result.Data))
 		}
