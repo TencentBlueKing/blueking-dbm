@@ -33,11 +33,11 @@ func GetBkMonitorBeatSender(beatConf *BkMonitorBeatConfig, serverConf *ConfServe
 	return
 }
 
-// isAlaramShield 是否屏蔽告警. 如果配置了屏蔽，则不发送告警
+// isAlarmShield 是否屏蔽告警. 如果配置了屏蔽，则不发送告警
 // 如果屏蔽返回异常，则继续发送告警. 记录一个Error日志
-func IsAlaramShield(serverConf *ConfServerItem, msg string, logger *zap.Logger) bool {
+func IsAlarmShield(serverConf *ConfServerItem, msg string, logger *zap.Logger) bool {
 	alarmShield, err := NewAlarmConfig(ClusterConfig).IsAlarmShield(serverConf)
-	logger.Debug("isAlaramShield", zap.Bool("alarm.shielded", alarmShield), zap.Error(err))
+	logger.Debug("isAlarmShield", zap.Bool("alarm.shielded", alarmShield), zap.Error(err))
 	if err != nil {
 		logger.Error("get alarm shield failed", zap.Error(err))
 		return false
@@ -57,7 +57,7 @@ func SendEvent(conf *BkMonitorBeatConfig, serverConf *ConfServerItem,
 		return errors.Wrap(err, "NewBkMonitorEventSender failed")
 	}
 
-	if IsAlaramShield(serverConf,
+	if IsAlarmShield(serverConf,
 		fmt.Sprintf("eventName: %s warnLevel: %s warnMsg: %s ", eventName, warnMsg, warnLevel), logger) {
 		return nil
 	}
