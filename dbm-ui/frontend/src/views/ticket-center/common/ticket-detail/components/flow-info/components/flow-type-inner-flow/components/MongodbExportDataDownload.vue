@@ -15,31 +15,39 @@
     :width="1140">
     <BkButton
       class="mb-8"
-      @click="() => handleCopyUrl()">
-      {{ t('复制全部链接') }}
+      :disabled="selected.length === 0"
+      :loading="isBatchDownloading"
+      @click="() => handleBatchDownload()">
+      {{ t('批量下载') }}
     </BkButton>
-    <TicketInfoTable
+    <PrimaryTable
       :data="dataList"
-      row-key="cluster_id">
-      <TicketInfoTableColumn
+      row-key="cluster_id"
+      :selected-row-keys="selectedRowKeys"
+      @select-change="handleSelectChange">
+      <TableColumn
+        col-key="row-select"
+        type="multiple"
+        :width="40" />
+      <TableColumn
         col-key="file_name"
         :title="t('文件名')" />
-      <TicketInfoTableColumn
+      <TableColumn
         col-key="size"
         :title="t('大小')"
         :width="160">
         <template #default="{ row }: { row: IDataRow }">
           {{ bytePretty(row.size) }}
         </template>
-      </TicketInfoTableColumn>
-      <TicketInfoTableColumn
+      </TableColumn>
+      <TableColumn
         col-key="cluster_id"
         :title="t('集群')">
         <template #default="{ row }: { row: IDataRow }">
           {{ clusters[row.cluster_id].immute_domain }}
         </template>
-      </TicketInfoTableColumn>
-      <TicketInfoTableColumn
+      </TableColumn>
+      <TableColumn
         col-key="operation"
         :title="t('操作')"
         :width="120">
@@ -58,8 +66,8 @@
             {{ t('复制链接') }}
           </BkButton>
         </template>
-      </TicketInfoTableColumn>
-    </TicketInfoTable>
+      </TableColumn>
+    </PrimaryTable>
     <template #footer>
       <BkButton @click="handleClose">{{ t('关闭') }}</BkButton>
     </template>
@@ -84,6 +92,9 @@
   const { t } = useI18n();
 
   const isShow = ref(false);
+  const isBatchDownloading = ref(false);
+  const selectedRowKeys = ref<number[]>([]);
+  const selected = shallowRef<IDataRow[]>([]);
 
   const { clusters, exported_files: exportFiles } = props.ticketDetail.details;
   const dataList = Object.entries(exportFiles).map(([clusterId, fileItem]) => {
@@ -98,10 +109,42 @@
     isShow.value = false;
   };
 
+  const handleSelectChange = (value: (string | number)[], { selectedRowData }: { selectedRowData: unknown[] }) => {
+    selectedRowKeys.value = value as number[];
+    selected.value = selectedRowData as IDataRow[];
+  };
+
   const handleDownload = async (filePath: string) => {
     const tokenResult = await createBkrepoAccessToken({ file_path: filePath });
     const url = generateBkRepoDownloadUrl(tokenResult);
     downloadUrl(url);
+  };
+
+  const handleBatchDownload = () => {
+    if (selected.value.length === 0) {
+      return;
+    }
+    isBatchDownloading.value = true;
+    const paths = selected.value.map((item) => item.file_path);
+    batchDownloadDirs({ file_path_list: paths })
+      .then((result) => {
+        selectedRowKeys.value = [];
+        selected.value = [];
+
+        const urls = Object.values(result);
+        let index = 0;
+        const downloadNext = () => {
+          if (index < urls.length) {
+            downloadUrl(urls[index]);
+            index++;
+            setTimeout(downloadNext, 600);
+          }
+        };
+        downloadNext();
+      })
+      .finally(() => {
+        isBatchDownloading.value = false;
+      });
   };
 
   const handleCopyUrl = (filePath?: string) => {
