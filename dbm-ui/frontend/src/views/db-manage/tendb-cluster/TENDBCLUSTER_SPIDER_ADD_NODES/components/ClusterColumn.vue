@@ -61,6 +61,16 @@
 
   type Emits = (e: 'batch-edit', list: TendbClusterModel[]) => void;
 
+  interface Exposes {
+    fetchData: (
+      tableData: {
+        cluster: {
+          master_domain: string;
+        };
+      }[],
+    ) => void;
+  }
+
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
@@ -140,28 +150,46 @@
       spider_slave: [],
       spider_slave_spec_list: [],
     };
+    queryCluster({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      cluster_type: ClusterTypes.TENDBCLUSTER,
+      db_type: DBTypes.TENDBCLUSTER,
+      exact_domain: value,
+    });
   };
 
   const handleSelectorChange = (selected: Record<string, TendbClusterModel[]>) => {
     emits('batch-edit', selected[ClusterTypes.TENDBCLUSTER]);
   };
 
-  watch(
-    modelValue,
-    () => {
-      if (modelValue.value.master_domain && !modelValue.value.id) {
-        queryCluster({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type: ClusterTypes.TENDBCLUSTER,
-          db_type: DBTypes.TENDBCLUSTER,
-          exact_domain: modelValue.value.master_domain,
-        });
+  defineExpose<Exposes>({
+    fetchData(
+      tableData: {
+        cluster: {
+          master_domain: string;
+        };
+      }[],
+    ) {
+      const domainList = tableData.map((item) => item.cluster.master_domain);
+      if (!domainList.length) {
+        return;
       }
+
+      filterClusters<TendbClusterModel>({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        cluster_type: ClusterTypes.TENDBCLUSTER,
+        db_type: DBTypes.TENDBCLUSTER,
+        exact_domain: domainList.join(','),
+      }).then((data) => {
+        data.forEach((cluster) => {
+          const target = tableData.find((item) => item.cluster.master_domain === cluster.master_domain);
+          if (target) {
+            target.cluster = cluster;
+          }
+        });
+      });
     },
-    {
-      immediate: true,
-    },
-  );
+  });
 </script>
 <style lang="less" scoped>
   .batch-host-select {
