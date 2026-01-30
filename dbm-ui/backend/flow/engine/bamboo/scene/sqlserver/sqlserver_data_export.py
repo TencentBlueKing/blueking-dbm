@@ -110,7 +110,7 @@ class SqlserverDataExportFlow(SqlserverSQLExecuteFlow):
                             "exec_ports": [master_instance.port],
                             "sql_file_path": self.sql_target_path,
                             "execute_objects": self.data["execute_objects"],
-                            "zip_file_name": self.data["dump_file_names"].get(cluster.id),
+                            "zip_file_name": self.data["dump_file_names"].get(str(cluster.id)),
                         },
                     )
                 ),
