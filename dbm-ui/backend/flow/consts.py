@@ -1698,3 +1698,12 @@ class MySQLServerWrapper(StrStructuredEnum):
     SPIDER = EnumField("SPIDER", _("SPIDER"))
     TDBCTL = EnumField("TDBCTL", _("TDBCTL"))
     SPIDER_SLAVE = EnumField("SPIDER_SLAVE", _("SPIDER_SLAVE"))
+
+
+class ClusterRoleEnum(StrStructuredEnum):
+    """
+    定义集群类型的架构role
+    """
+
+    PROXY = EnumField("Proxy", _("Proxy"))
+    BACKEND = EnumField("Backend", _("Backend"))

@@ -10,12 +10,12 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.flow.consts import DbBackupRoleEnum, RedisBackupEnum
+from backend.flow.consts import ClusterRoleEnum, DbBackupRoleEnum, RedisBackupEnum
 
 
 class SubmitBillOutputSerializer(serializers.Serializer):
     bill_id = serializers.IntegerField(help_text=_("单据id, 理论上都会返回，如果没有返回说明有错误，需要把错误暴露出来"))
-    bill_url = serializers.CharField(help_text=_("单据地址"))
+    bill_url = serializers.URLField(help_text=_("单据链接"))
 
 
 class SubmitBillRedisBaseInputSerializer(serializers.Serializer):
@@ -60,3 +60,27 @@ class SubmitBillRedisExtractKeyInputSerializer(SubmitBillRedisBaseInputSerialize
 
 class SubmitBillRedisDeleteKeyInputSerializer(SubmitBillRedisExtractKeyInputSerializer):
     delete_rate = serializers.IntegerField(help_text=_("每秒删除key个数"), default="200")
+
+
+class SubmitBillRedisCutoffInputSerializer(SubmitBillRedisBaseInputSerializer):
+    cutoff_ips = serializers.ListField(help_text=_("需要整机替换的ip列表"))
+
+
+class SubmitBillRedisLoadModulesInputSerializer(SubmitBillRedisBaseInputSerializer):
+    modules = serializers.ListField(help_text=_("需要安装的插件列表，目前只支持redisbloom、redisell、redisjson"))
+
+
+class SubmitBillRedisKeyStatInputSerializer(SubmitBillRedisBaseInputSerializer):
+    ins = serializers.ListField(help_text=_("需要分析的实例列表"))
+
+
+class SubmitBillRedisAnalysisHotkeyInputSerializer(SubmitBillRedisBaseInputSerializer):
+    analysis_time = serializers.IntegerField(help_text=_("分析时长，单位为秒。只允许10、30、60"), default="10")
+    ins = serializers.ListField(help_text=_("需要分析的实例列表。默认只分析proxy角色，除非指定实例"))
+
+
+class SubmitBillRedisVersionUpdateInputSerializer(SubmitBillRedisBaseInputSerializer):
+    node_type = serializers.ChoiceField(choices=ClusterRoleEnum.get_choices(), help_text=_("升级角色，Proxy|Backend"))
+    target_version = serializers.CharField(
+        help_text="目标版本，格式为：twemproxy-0.4.1-v36|predixy-1.6.1|redis-6.2.7" "|tendisplus-2.7.6-rocksdb-v8.5.3"
+    )
