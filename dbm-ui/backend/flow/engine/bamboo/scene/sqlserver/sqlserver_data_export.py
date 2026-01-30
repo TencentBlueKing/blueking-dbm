@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 
 import logging.config
 from dataclasses import asdict
-from datetime import datetime
 
 from django.utils.translation import gettext as _
 
@@ -111,8 +110,7 @@ class SqlserverDataExportFlow(SqlserverSQLExecuteFlow):
                             "exec_ports": [master_instance.port],
                             "sql_file_path": self.sql_target_path,
                             "execute_objects": self.data["execute_objects"],
-                            "zip_file_name": f"{cluster.immute_domain}_{ self.data['select_role']}_"
-                            f"{datetime.now().strftime('%Y%m%d%H%M%S')}_data_export.zip",
+                            "zip_file_name": self.data["dump_file_names"].get(cluster.id),
                         },
                     )
                 ),
