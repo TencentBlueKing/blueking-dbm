@@ -1,4 +1,4 @@
-import time
+from datetime import datetime
 
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
@@ -63,21 +63,15 @@ class SQLServerDataExportFlowParamBuilder(builders.FlowParamBuilder):
 
         # 为每个集群生成对应的文件名
         dump_file_names = []
-        file_names = []
 
         for cluster in clusters:
-            master_instance = cluster.storageinstance_set.get(instance_inner_role=self.ticket_data["select_role"])
             dump_file_name = (
                 f"{cluster.immute_domain}_{ self.ticket_data['select_role']}_"
-                f"{master_instance.machine.ip}_{master_instance.port}_data_export.zip"
+                f"{datetime.now().strftime('%Y%m%d%H%M%S')}_data_export.zip"
             )
 
-            file_name = f"{cluster.name}_{ self.ticket_data['select_role']}_{int(time.time())}_data_export.zip"
-
             dump_file_names.append(dump_file_name)
-            file_names.append(file_name)
         self.ticket_data["dump_file_names"] = dump_file_names
-        self.ticket_data["file_names"] = file_names
 
     def post_callback(self):
         flow = self.ticket.current_flow()
@@ -109,10 +103,9 @@ class SQLServerDataExportFlowParamBuilder(builders.FlowParamBuilder):
                     cluster_id = cluster.id
                     break
 
-            dump_file_list.append({"cluster_id": cluster_id, "size": file_size, "path": dump_file_path})
-
-        for d, file_name in zip(dump_file_list, flow.details["ticket_data"]["file_names"]):
-            d["name"] = file_name
+            dump_file_list.append(
+                {"cluster_id": cluster_id, "size": file_size, "name": dump_file_name, "path": dump_file_path}
+            )
 
         flow.details["ticket_data"].update(
             dump_file_list=dump_file_list,
