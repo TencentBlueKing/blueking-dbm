@@ -34,6 +34,7 @@ from backend.flow.plugins.components.collections.redis.exec_actuator_script impo
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_config import RedisConfigComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
+from backend.flow.plugins.components.collections.redis.redis_update_version import RedisUpdateVersionComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs, InstallNodemanPluginKwargs
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
@@ -447,11 +448,10 @@ class RedisInstanceApplyFlow(object):
                         "kwargs": asdict(act_kwargs),
                     },
                 )
+            sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
-                from backend.flow.plugins.components.collections.redis.redis_update_version import (
-                    RedisUpdateVersionComponent,
-                )
-
+            acts_list = []
+            for rule in info["ip_install_dict"][master_ip]:
                 act_kwargs.cluster["update_all"] = True
                 act_kwargs.cluster["domain_name"] = rule["domain_name"]
                 act_kwargs.cluster["bk_biz_id"] = self.data["bk_biz_id"]
