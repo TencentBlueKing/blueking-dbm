@@ -1,20 +1,23 @@
+from datetime import datetime
+
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.models import AppCache, Cluster
-from backend.db_services.mysql.sql_import.constants import BKREPO_SQLSERVER_DATA_EXPORT_PATH  # 数据导出文件路径
+from backend.db_services.mysql.sql_import.constants import BKREPO_SQLSERVER_DATA_EXPORT_PATH
 from backend.db_services.sqlserver.sql_import.constants import BKREPO_SQLSERVER_SQLFILE_PATH
 from backend.dbm_init.medium.handlers import MediumHandler
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
 from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder, SQLServerBaseOperateDetailSerializer
-from backend.ticket.constants import FlowType, TicketType
+from backend.ticket.constants import FlowType, TicketFlowStatus, TicketType
 from backend.ticket.models import Flow
 
 
 class SQLServerDataExportDetailSerializer(SQLServerBaseOperateDetailSerializer):
     class DataExportDetailSerializer(serializers.Serializer):
         dbnames = serializers.ListField(help_text=_("导出库列表"), child=serializers.CharField())
+        ignore_dbnames = serializers.ListField(help_text=_("忽略DB"), child=serializers.CharField(), required=False)
         sql_files = serializers.ListField(help_text=_("SQL文件列表"), child=serializers.CharField())
 
     cluster_ids = serializers.ListField(help_text=_("查询集群列表"), child=serializers.IntegerField())
@@ -59,28 +62,27 @@ class SQLServerDataExportFlowParamBuilder(builders.FlowParamBuilder):
         clusters = Cluster.objects.filter(id__in=self.ticket_data["cluster_ids"])
 
         # 为每个集群生成对应的文件名
-        dump_file_names = []
+        dump_file_names = {}
+
         for cluster in clusters:
-            master_instance = cluster.storageinstance_set.get(instance_inner_role=self.ticket_data["select_role"])
             dump_file_name = (
-                f"{cluster.immute_domain}_{ self.ticket_data['select_role']}_"
-                f"{master_instance.machine.ip}_{master_instance.port}_data_export.zip"
+                f"{cluster.immute_domain}_{self.ticket_data['select_role']}_"
+                f"{datetime.now().strftime('%Y%m%d%H%M%S')}_data_export.zip"
             )
 
-            dump_file_names.append(dump_file_name)
+            dump_file_names[cluster.id] = dump_file_name
 
         self.ticket_data["dump_file_names"] = dump_file_names
 
     def post_callback(self):
         flow = self.ticket.current_flow()
         # 如果流程树运行不为成功，则忽略
-        # if flow.status != TicketFlowStatus.SUCCEEDED:
-        #     return
+        if flow.status != TicketFlowStatus.SUCCEEDED:
+            return
 
         # 为每个集群的文件生成完整路径并获取文件大小
         dump_file_list = []
-
-        for dump_file_name in flow.details["ticket_data"]["dump_file_names"]:
+        for dump_file_name in flow.details["ticket_data"]["dump_file_names"].values():
             dump_file_path = f"{BKREPO_SQLSERVER_DATA_EXPORT_PATH.format(biz=self.ticket.bk_biz_id)}/{dump_file_name}"
 
             # 获取文件大小
