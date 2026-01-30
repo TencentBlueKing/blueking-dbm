@@ -911,21 +911,49 @@ func (hdl *TenDBClusterHandler) getRemoteNodeReplicationInfo(host string, port i
 	}, nil
 }
 
-// connectToAvailableTdbctl connects to an available tdbctl node from the cluster config
+// connectToAvailableTdbctl connects to an available tdbctl node by querying running spiders from API
 func (hdl *TenDBClusterHandler) connectToAvailableTdbctl(cluster *config.TenDBCluster) (*hamysql.GormDB, error) {
-	db, err := hdl.ConnectTdbctlNode(cluster.CtlMaster.Host, cluster.CtlMaster.Port)
-	if err == nil {
-		return db, nil
+	instInfoList, err := hdl.dbmClient.GetAllInstancesOfDomain(cluster.Domain)
+	if err != nil {
+		return nil, gerrors.Newf(gerrors.Failure, "failed to get instances of domain(%s), errmsg: %s",
+			cluster.Domain, err.Error())
 	}
 
-	for _, ctl := range cluster.CtlSlave {
-		db, err = hdl.ConnectTdbctlNode(ctl.Host, ctl.Port)
-		if err == nil {
-			return db, nil
+	if len(instInfoList) == 0 {
+		return nil, gerrors.Newf(gerrors.Failure, "no instances found in domain(%s)", cluster.Domain)
+	}
+
+	var runningSpiderIPs []string
+	for _, inst := range instInfoList {
+		if inst.Status == string(dbm.StatusRunning) {
+			runningSpiderIPs = append(runningSpiderIPs, inst.Ip)
 		}
 	}
 
-	return nil, gerrors.Newf(gerrors.Failure, "failed to connect to any tdbctl node for cluster(%s)", cluster.Domain)
+	metadataList, err := hdl.dbmClient.QueryMetadataFromDbm(0, runningSpiderIPs)
+	if err != nil {
+		return nil, gerrors.Newf(gerrors.Failure, "failed to query metadata for spiders, errmsg: %s", err.Error())
+	}
+
+	var lastErr error
+	for _, meta := range metadataList {
+		if meta.AdminPort == 0 {
+			continue
+		}
+
+		db, connErr := hdl.ConnectTdbctlNode(meta.IP, meta.AdminPort)
+		if connErr == nil {
+			return db, nil
+		}
+		lastErr = connErr
+	}
+
+	if lastErr != nil {
+		return nil, gerrors.Newf(gerrors.Failure, "failed to connect to any tdbctl node for cluster(%s), last errmsg: %s",
+			cluster.Domain, lastErr.Error())
+	}
+
+	return nil, gerrors.Newf(gerrors.Failure, "no available tdbctl node found for cluster(%s)", cluster.Domain)
 }
 
 // connectToPrimaryTdbctl connects to the primary tdbctl node of a cluster
