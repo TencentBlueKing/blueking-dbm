@@ -60,7 +60,7 @@ class MongoDBDataExportFlowParamBuilder(BaseMongoOperateFlowParamBuilder):
             pop_if_empty(info["export_options"], "fields")
 
             cluster = Cluster.objects.get(id=info["cluster_id"])
-            info["filename"] = f"{cluster.immute_domain}_{int(time.time())}"
+            info["filename"] = f"{cluster.immute_domain}_{time.strftime('%Y%m%d%H%M%S')}"
 
     def post_callback(self):
         flow = self.ticket.current_flow()
