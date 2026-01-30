@@ -15,7 +15,7 @@ import (
 	"regexp"
 	"strings"
 
-	"dbm-services/mysql/db-simulation/app/keyworld"
+	"dbm-services/mysql/db-simulation/app/keyword"
 )
 
 const (
@@ -36,26 +36,26 @@ func init() {
 	sysReservesPrefixNames = []string{"stage_truncate"}
 	reAllowWord = regexp.MustCompile(AllowWordRegex)
 	reAllowOneWord = regexp.MustCompile(`^[a-zA-Z0-9]$`)
-	mysql56WordMap = sliceToMap(keyworld.GetReservedKeyWords(keyworld.Keywords56))
-	mysql57WordMap = sliceToMap(keyworld.GetReservedKeyWords(keyworld.Keywords57))
-	mysql80WordMap = sliceToMap(keyworld.GetReservedKeyWords(keyworld.Keywords80))
-	defaultWordMap = sliceToMap(keyworld.ALL_KEYWORD)
+	mysql56WordMap = sliceToMap(keyword.GetReservedKeyWords(keyword.Keywords56))
+	mysql57WordMap = sliceToMap(keyword.GetReservedKeyWords(keyword.Keywords57))
+	mysql80WordMap = sliceToMap(keyword.GetReservedKeyWords(keyword.Keywords80))
+	defaultWordMap = sliceToMap(keyword.ALL_KEYWORD)
 }
 
 // KeyWordValidator keyword check
 func KeyWordValidator(ver, name string) (matched bool, msg string) {
-	var kwmap map[string]struct{}
+	var keyWordMap map[string]struct{}
 	switch ver {
 	case "mysql5.6":
-		kwmap = mysql56WordMap
+		keyWordMap = mysql56WordMap
 	case "mysql5.7":
-		kwmap = mysql57WordMap
+		keyWordMap = mysql57WordMap
 	case "mysql8.0":
-		kwmap = mysql80WordMap
+		keyWordMap = mysql80WordMap
 	default:
-		kwmap = defaultWordMap
+		keyWordMap = defaultWordMap
 	}
-	if existInKeywords(strings.ToUpper(name), kwmap) {
+	if existInKeywords(strings.ToUpper(name), keyWordMap) {
 		return true, name + " is  mysql keyword"
 	}
 	return
@@ -78,8 +78,8 @@ func SpecialCharValidator(name string) (matched bool, msg string) {
 	return
 }
 
-func existInKeywords(name string, keywordsmap map[string]struct{}) bool {
-	_, ok := keywordsmap[name]
+func existInKeywords(name string, keyWordMap map[string]struct{}) bool {
+	_, ok := keyWordMap[name]
 	return ok
 }
 

@@ -22,7 +22,6 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-simulation/app"
 	"dbm-services/mysql/db-simulation/app/syntax"
 )
 
@@ -70,11 +69,25 @@ func (s *SyntaxHandler) RegisterRouter(engine *gin.Engine) {
 	}
 }
 
+// SyntaxCheckParam 语法检查请求参数
+type SyntaxCheckParam struct {
+	BkBizID     int      `json:"bk_biz_id"`
+	ClusterType string   `json:"cluster_type"`
+	Versions    []string `json:"versions"`
+}
+
+// CheckFileParam 语法检查请求参数
+type CheckFileParam struct {
+	SyntaxCheckParam
+	Path           string                     `json:"path" binding:"required"`
+	Files          []string                   `json:"files" binding:"gt=0,dive,required"`
+	ExecuteObjects []syntax.ExecuteSQLFileObj `json:"execute_objects"`
+}
+
 // CheckSQLStringParam sql string 语法检查参数
 type CheckSQLStringParam struct {
-	ClusterType string   `json:"cluster_type" binding:"required"`
-	Versions    []string `json:"versions"`
-	Sqls        []string `json:"sqls" binding:"gt=0,dive,required"`
+	SyntaxCheckParam
+	Sqls []string `json:"sqls" binding:"gt=0,dive,required"`
 }
 
 // SetDumpAll set dump all
@@ -86,11 +99,10 @@ func (s *SyntaxHandler) SetDumpAll(r *gin.Context) {
 // SyntaxCheckSQL 语法检查入参SQL string
 func (s *SyntaxHandler) SyntaxCheckSQL(r *gin.Context) {
 	var param CheckSQLStringParam
-	var data map[string]*syntax.CheckInfo
 	var versions []string
 	// 将request中的数据按照json格式直接解析到结构体中
 	if err := s.Prepare(r, &param); err != nil {
-		logger.Error("Preare Error %s", err.Error())
+		logger.Error("Prepare Error %s", err.Error())
 		return
 	}
 
@@ -122,6 +134,8 @@ func (s *SyntaxHandler) SyntaxCheckSQL(r *gin.Context) {
 		},
 		IsLocalFile: true,
 		Param: syntax.CheckSQLFileParam{
+			BkBizID:        param.BkBizID,
+			ClusterType:    param.ClusterType,
 			BkRepoBasePath: "",
 			FileNames:      []string{fileName},
 			ExecuteObjects: []syntax.ExecuteSQLFileObj{
@@ -136,16 +150,7 @@ func (s *SyntaxHandler) SyntaxCheckSQL(r *gin.Context) {
 	}
 
 	logger.Info("cluster type :%s,versions:%v", param.ClusterType, versions)
-
-	switch strings.ToLower(param.ClusterType) {
-	case app.Spider, app.TendbCluster:
-		data, err = check.Do(app.Spider, []string{""})
-	case app.MySQL:
-		data, err = check.Do(app.MySQL, versions)
-	default:
-		data, err = check.Do(app.MySQL, versions)
-	}
-
+	data, err := check.RunSyntaxCheck(versions)
 	if err != nil {
 		s.SendResponse(r, err, data)
 		return
@@ -153,19 +158,9 @@ func (s *SyntaxHandler) SyntaxCheckSQL(r *gin.Context) {
 	s.SendResponse(r, nil, data)
 }
 
-// CheckFileParam 语法检查请求参数
-type CheckFileParam struct {
-	ClusterType    string                     `json:"cluster_type"`
-	Path           string                     `json:"path" binding:"required"`
-	Versions       []string                   `json:"versions"`
-	Files          []string                   `json:"files" binding:"gt=0,dive,required"`
-	ExecuteObjects []syntax.ExecuteSQLFileObj `json:"execute_objects"`
-}
-
 // SyntaxCheckFile 运行语法检查
 func (s *SyntaxHandler) SyntaxCheckFile(r *gin.Context) {
 	var param CheckFileParam
-	var data map[string]*syntax.CheckInfo
 	var err error
 	var versions []string
 	// 将request中的数据按照json格式直接解析到结构体中
@@ -186,21 +181,14 @@ func (s *SyntaxHandler) SyntaxCheckFile(r *gin.Context) {
 			BaseWorkdir:        workdir,
 		},
 		Param: syntax.CheckSQLFileParam{
+			BkBizID:        param.BkBizID,
+			ClusterType:    param.ClusterType,
 			BkRepoBasePath: param.Path,
 			FileNames:      param.Files,
 			ExecuteObjects: param.ExecuteObjects,
 		},
 	}
-
-	logger.Info("cluster type :%s", param.ClusterType)
-	switch strings.ToLower(param.ClusterType) {
-	case app.Spider, app.TendbCluster:
-		data, err = check.Do(app.Spider, []string{""})
-	case app.MySQL:
-		data, err = check.Do(app.MySQL, versions)
-	default:
-		data, err = check.Do(app.MySQL, versions)
-	}
+	data, err := check.RunSyntaxCheck(versions)
 	if err != nil {
 		s.SendResponse(r, err, data)
 		return
@@ -262,7 +250,7 @@ func (s SyntaxHandler) ParseSQLFileRelationDb(r *gin.Context) {
 		},
 	}
 	defer p.DelTempDir()
-	createDbs, dbs, allCommands, dumpall, err := p.DoParseRelationDbs("")
+	createDbs, dbs, allCommands, dumpAll, err := p.DoParseRelationDbs("")
 	if err != nil {
 		s.SendResponse(r, err, nil)
 		return
@@ -279,7 +267,7 @@ func (s SyntaxHandler) ParseSQLFileRelationDb(r *gin.Context) {
 	}
 	defer p.DelTempDir()
 	// 如果所有的命令都是alter table, dump指定库表
-	if isAllOperateTable(allCommands) && !dumpall {
+	if isAllOperateTable(allCommands) && !dumpAll {
 		relationTbls, err := p.ParseSpecialTbls("")
 		if err != nil {
 			s.SendResponse(r, err, nil)
@@ -297,7 +285,7 @@ func (s SyntaxHandler) ParseSQLFileRelationDb(r *gin.Context) {
 			s.SendResponse(r, nil, gin.H{
 				"create_dbs": createDbs,
 				"dbs":        dbs,
-				"dump_all":   dumpall,
+				"dump_all":   dumpAll,
 				"timestamp":  time.Now().Unix(),
 			})
 			return
@@ -316,7 +304,7 @@ func (s SyntaxHandler) ParseSQLFileRelationDb(r *gin.Context) {
 	s.SendResponse(r, nil, gin.H{
 		"create_dbs": createDbs,
 		"dbs":        dbs,
-		"dump_all":   dumpall,
+		"dump_all":   dumpAll,
 		"timestamp":  time.Now().Unix(),
 	})
 }
@@ -371,14 +359,14 @@ func (s *SyntaxHandler) ParseSQLRelationDb(r *gin.Context) {
 		},
 	}
 	defer p.DelTempDir()
-	createDbs, dbs, allCommands, dumpall, err := p.DoParseRelationDbs("")
+	createDbs, dbs, allCommands, dumpAll, err := p.DoParseRelationDbs("")
 	if err != nil {
 		s.SendResponse(r, err, nil)
 		return
 	}
 	// 如果所有的命令都是alter table, dump指定库表
 	logger.Info("all command types: %v,%d", allCommands, len(allCommands))
-	if isAllOperateTable(allCommands) && !dumpall {
+	if isAllOperateTable(allCommands) && !dumpAll {
 		relationTbls, err := p.ParseSpecialTbls("")
 		if err != nil {
 			s.SendResponse(r, err, nil)
@@ -397,7 +385,7 @@ func (s *SyntaxHandler) ParseSQLRelationDb(r *gin.Context) {
 	s.SendResponse(r, nil, gin.H{
 		"create_dbs": createDbs,
 		"dbs":        dbs,
-		"dump_all":   dumpall,
+		"dump_all":   dumpAll,
 		"timestamp":  time.Now().Unix(),
 	})
 }

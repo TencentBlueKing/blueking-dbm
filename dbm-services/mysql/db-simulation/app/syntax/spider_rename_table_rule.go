@@ -1,6 +1,6 @@
 package syntax
 
-// SpiderRenameTableRule rename table checker
+// SpiderChecker rename table checker
 func (c RenameTableResult) SpiderChecker(spiderVersion string) (r *CheckerResult) {
 	r = &CheckerResult{
 		ObjName:   "",

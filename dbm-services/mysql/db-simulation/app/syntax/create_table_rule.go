@@ -34,9 +34,7 @@ func (c CreateTableResult) Checker(mysqlVersion string) (r *CheckerResult) {
 			return SpecialCharValidator(c.TableName)
 		})
 	}
-	r.ParseBuiltinBan(func() (bool, string) {
-		return c.JsonColumInvalidDefaultCheck()
-	})
+	r.ParseBuiltinBan(c.JsonColumInvalidDefaultCheck)
 	return
 }
 

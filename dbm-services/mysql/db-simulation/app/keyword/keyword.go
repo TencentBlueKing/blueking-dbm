@@ -8,8 +8,8 @@
  * specific language governing permissions and limitations under the License.
  */
 
-// Package keyworld mysql keyword
-package keyworld
+// Package keyword mysql keyword
+package keyword
 
 import (
 	"dbm-services/common/go-pubpkg/cmutil"

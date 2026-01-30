@@ -8,7 +8,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package keyworld
+package keyword
 
 // Keywords55 mysql 5.5 key words
 var Keywords55 = []Keyword{
