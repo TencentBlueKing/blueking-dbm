@@ -17,7 +17,8 @@ from backend import env
 from backend.components import BKMonitorV3Api
 from backend.db_meta.enums import ClusterType, InstanceStatus, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, StorageInstance
-from backend.db_periodic_task.local_tasks.db_meta.constants import EXPORTER_UP_QUERY_TEMPLATE, UNIFY_QUERY_PARAMS
+from backend.db_monitor.constants import EXPORTER_UP_QUERY_TEMPLATE
+from backend.db_periodic_task.local_tasks.db_meta.constants import UNIFY_QUERY_PARAMS
 from backend.db_report.enums import ReportStateType
 from backend.db_report.enums.mysql_exporter_check_sub_type import MysqlExporterCheckSubType
 from backend.db_report.models.mysql_exporter_check_report import MysqlExporterCheckReport

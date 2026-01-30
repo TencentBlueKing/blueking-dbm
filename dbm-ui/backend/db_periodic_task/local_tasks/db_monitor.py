@@ -22,15 +22,15 @@ from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components import BKMonitorV3Api
-from backend.configuration.constants import DEFAULT_DB_ADMINISTRATORS, PLAT_BIZ_ID, DBType, SystemSettingsEnum
+from backend.configuration.constants import PLAT_BIZ_ID, DBType, SystemSettingsEnum
 from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.core.notify.constants import MsgType
 from backend.core.notify.handlers import BkChatHandler, CmsiHandler
 from backend.db_meta.models import Cluster
-from backend.db_monitor.constants import DEFAULT_ALERT_NOTICE, MONITOR_EVENTS
+from backend.db_monitor.constants import MONITOR_EVENTS
 from backend.db_monitor.exceptions import DutyNoticeScheduleException
 from backend.db_monitor.models import CollectInstance, DispatchGroup, DutyRule, MonitorPolicy, NoticeGroup
-from backend.db_monitor.tasks import update_app_policy
+from backend.db_monitor.tasks import update_app_policy, update_dba_notice_group
 from backend.db_periodic_task.constants import GET_AND_DELETE_SET_LUA
 from backend.db_periodic_task.local_tasks.context_manager import start_new_span
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
@@ -58,35 +58,6 @@ def update_local_notice_group():
     groups = NoticeGroup.objects.filter(receivers__contains=[{"type": "group"}], is_built_in=False)
     for group in groups:
         group.save_monitor_group()
-
-
-@app.task
-def update_dba_notice_group(dba_id: int):
-    dba = DBAdministrator.objects.get(id=dba_id)
-    receiver_users = dba.users or DEFAULT_DB_ADMINISTRATORS
-    try:
-        group_name = f"{dba.get_db_type_display()}_DBA"
-        group_receivers = [{"id": user, "type": "user"} for user in receiver_users if user]
-        logger.info("[local_notice_group] update_or_create notice group: %s", group_name)
-        try:
-            group = NoticeGroup.objects.get(bk_biz_id=dba.bk_biz_id, db_type=dba.db_type, is_built_in=True)
-        except NoticeGroup.DoesNotExist:
-            NoticeGroup.objects.create(
-                name=group_name,
-                receivers=group_receivers,
-                details={"alert_notice": DEFAULT_ALERT_NOTICE},
-                bk_biz_id=dba.bk_biz_id,
-                db_type=dba.db_type,
-                is_built_in=True,
-            )
-        else:
-            group.name = group_name
-            group.receivers = group_receivers
-            if not group.details:
-                group.details = {"alert_notice": DEFAULT_ALERT_NOTICE}
-            group.save(update_fields=["name", "receivers", "details"])
-    except Exception as e:
-        logger.exception("[local_notice_group] update_or_create notice group error: %s", e)
 
 
 @register_periodic_task(run_every=crontab(minute="*/5"))
