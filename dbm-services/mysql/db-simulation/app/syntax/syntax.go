@@ -35,6 +35,7 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/app"
 	"dbm-services/mysql/db-simulation/app/config"
+	"dbm-services/mysql/db-simulation/model"
 )
 
 // CheckSyntax 语法检查
@@ -58,6 +59,8 @@ type TmysqlParseFile struct {
 
 // CheckSQLFileParam TODO
 type CheckSQLFileParam struct {
+	BkBizID        int                 `json:"bk_biz_id"`
+	ClusterType    string              `json:"cluster_type"`
 	BkRepoBasePath string              `json:"bkrepo_base_path"`
 	FileNames      []string            `json:"file_names"`
 	ExecuteObjects []ExecuteSQLFileObj `json:"execute_objects"`
@@ -79,6 +82,82 @@ type TmysqlParse struct {
 	TmysqlParseBinPath string
 	BaseWorkdir        string
 	mu                 sync.Mutex
+	TendbClusterSyntaxCheckOptions
+}
+
+// TendbClusterSyntaxCheckOptions tendbcluster集群语法检查选项
+type TendbClusterSyntaxCheckOptions struct {
+	FastCheckMap     map[string]struct{}
+	AllowProcedureOp bool `json:"allow_procedure_op"` // 允许操作存储过程
+	AllowEventOp     bool `json:"allow_event_op"`     // 允许操作事件
+	AllowFunctionOp  bool `json:"allow_function_op"`  // 允许操作函数
+	AllowTriggerOp   bool `json:"allow_trigger_op"`   // 允许操作触发器
+	AllowViewOp      bool `json:"allow_view_op"`      // 允许操作视图
+	AllowAlterDbOp   bool `json:"allow_alter_db_op"`  // 允许操作数据库
+	AllowFlushOp     bool `json:"allow_flush_op"`     // 允许操作flush
+}
+
+// IsDisabledOperation 检查是否禁止操作
+func (tc *TendbClusterSyntaxCheckOptions) IsDisabledOperation(command_type string) bool {
+	switch command_type {
+	case SQLTypeCreateProcedure, SQLTypeDropProcedure:
+		return !tc.AllowProcedureOp
+	case SQLTypeCreateEvent, SQLTypeDropEvent:
+		return !tc.AllowEventOp
+	case SQLTypeCreateFunction, SQLTypeDropFunction:
+		return !tc.AllowFunctionOp
+	case SQLTypeCreateTrigger, SQLTypeDropTrigger:
+		return !tc.AllowTriggerOp
+	case SQLTypeCreateView, SQLTypeDropView:
+		return !tc.AllowViewOp
+	case SQLTypeAlterDb:
+		return !tc.AllowAlterDbOp
+	case SQLTypeFlush:
+		return !tc.AllowFlushOp
+	}
+	return false
+}
+
+// InitTendbClusterSyntaxCheckOptions 初始化tendbcluster集群语法检查选项
+func (tf *TmysqlParseFile) InitTendbClusterSyntaxCheckOptions() {
+	tf.TendbClusterSyntaxCheckOptions = TendbClusterSyntaxCheckOptions{
+		AllowProcedureOp: false,
+		AllowEventOp:     false,
+		AllowFunctionOp:  false,
+		AllowTriggerOp:   false,
+		AllowViewOp:      false,
+		FastCheckMap:     make(map[string]struct{}),
+	}
+	tf.TendbClusterSyntaxCheckOptions.FastCheckMap[SQLTypeCreateProcedure] = struct{}{}
+	tf.TendbClusterSyntaxCheckOptions.FastCheckMap[SQLTypeDropProcedure] = struct{}{}
+	tf.TendbClusterSyntaxCheckOptions.FastCheckMap[SQLTypeCreateEvent] = struct{}{}
+	tf.TendbClusterSyntaxCheckOptions.FastCheckMap[SQLTypeDropEvent] = struct{}{}
+	tf.TendbClusterSyntaxCheckOptions.FastCheckMap[SQLTypeCreateFunction] = struct{}{}
+	tf.TendbClusterSyntaxCheckOptions.FastCheckMap[SQLTypeDropFunction] = struct{}{}
+	tf.TendbClusterSyntaxCheckOptions.FastCheckMap[SQLTypeCreateTrigger] = struct{}{}
+	tf.TendbClusterSyntaxCheckOptions.FastCheckMap[SQLTypeCreateView] = struct{}{}
+	tf.TendbClusterSyntaxCheckOptions.FastCheckMap[SQLTypeDropTrigger] = struct{}{}
+	tf.TendbClusterSyntaxCheckOptions.FastCheckMap[SQLTypeDropView] = struct{}{}
+	tf.TendbClusterSyntaxCheckOptions.FastCheckMap[SQLTypeFlush] = struct{}{}
+	tf.TendbClusterSyntaxCheckOptions.FastCheckMap[SQLTypeAlterDb] = struct{}{}
+	if tf.Param.BkBizID <= 0 {
+		return
+	}
+	bizIds, err := model.GetWhitelistBizIds(app.TendbCluster)
+	if err != nil {
+		logger.Error("get whitelist biz ids failed %s", err.Error())
+		return
+	}
+	if lo.Contains(bizIds, tf.Param.BkBizID) {
+		tf.TendbClusterSyntaxCheckOptions.AllowProcedureOp = true
+		tf.TendbClusterSyntaxCheckOptions.AllowEventOp = true
+		tf.TendbClusterSyntaxCheckOptions.AllowFunctionOp = true
+		tf.TendbClusterSyntaxCheckOptions.AllowTriggerOp = true
+		tf.TendbClusterSyntaxCheckOptions.AllowViewOp = true
+		tf.TendbClusterSyntaxCheckOptions.AllowAlterDbOp = true
+		tf.TendbClusterSyntaxCheckOptions.AllowFlushOp = true
+		return
+	}
 }
 
 // AddFileResult add file syntax check result
@@ -120,6 +199,22 @@ type RiskInfo struct {
 
 // DdlMapFileSubffix  execution parsing sql provisional results document
 const DdlMapFileSubffix = ".tbl.map"
+
+// RunSyntaxCheck 运行语法检查
+func (tf *TmysqlParseFile) RunSyntaxCheck(versions []string) (result map[string]*CheckInfo, err error) {
+	var data map[string]*CheckInfo
+	logger.Info("cluster type :%s", tf.Param.ClusterType)
+	switch strings.ToLower(tf.Param.ClusterType) {
+	case app.Spider, app.TendbCluster:
+		tf.InitTendbClusterSyntaxCheckOptions()
+		data, err = tf.Do(app.Spider, []string{""})
+	case app.MySQL:
+		data, err = tf.Do(app.MySQL, versions)
+	default:
+		data, err = tf.Do(app.MySQL, versions)
+	}
+	return data, err
+}
 
 // Do  运行语法检查 For SQL 文件
 func (tf *TmysqlParseFile) Do(dbtype string, versions []string) (result map[string]*CheckInfo, err error) {
@@ -763,12 +858,23 @@ func (t *TmysqlParse) AnalyzeOne(inputfileName, mysqlVersion, dbtype string) (er
 				goto END
 			}
 		case app.Spider:
+			if _, ok := t.TendbClusterSyntaxCheckOptions.FastCheckMap[res.Command]; ok {
+				if t.IsDisabledOperation(res.Command) {
+					checkResult.BanWarnings = append(checkResult.BanWarnings, RiskInfo{
+						Line:        int64(res.QueryId),
+						Sqltext:     res.QueryString,
+						CommandType: res.Command,
+						WarnInfo:    fmt.Sprintf("禁止操作: %s,需要开始请找DBA协商", res.Command),
+					})
+					continue
+				}
+			}
+			checkResult.parseResult(SR.CommandRule.HighRiskCommandRule, res, mysqlVersion)
+			checkResult.parseResult(SR.CommandRule.BanCommandRule, res, mysqlVersion)
 			err = checkResult.runSpidercheck(ddlTbls, res, bs, mysqlVersion)
 			if err != nil {
 				goto END
 			}
-			checkResult.parseResult(SR.CommandRule.HighRiskCommandRule, res, mysqlVersion)
-			checkResult.parseResult(SR.CommandRule.BanCommandRule, res, mysqlVersion)
 		}
 	}
 END:
@@ -794,7 +900,7 @@ func (c *CheckInfo) runSpidercheck(ddlTbls map[string][]string, res ParseLineQue
 		}
 		o.TableOptionMap = ConvertTableOptionToMap(o.TableOptions)
 		sc = o
-		// 如果dbname为空，则实际库名由参数指定,无特殊情况
+		// 如果dbName为空，则实际库名由参数指定,无特殊情况
 		ddlTbls[o.DbName] = append(ddlTbls[o.DbName], o.TableName)
 	case SQLTypeCreateDb:
 		var o CreateDBResult

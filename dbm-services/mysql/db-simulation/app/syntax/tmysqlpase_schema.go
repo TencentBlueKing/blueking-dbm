@@ -28,16 +28,26 @@ const (
 	SQLTypeCreateDb = "create_db"
 	// SQLTypeCreateFunction is create function sql
 	SQLTypeCreateFunction = "create_function"
+	// SQLTypeDropFunction is drop function sql
+	SQLTypeDropFunction = "drop_function"
 	// SQLTypeCreateSpFunction is create sp function sql
 	SQLTypeCreateSpFunction = "create_spfunction"
 	// SQLTypeCreateTrigger is create trigger sql
 	SQLTypeCreateTrigger = "create_trigger"
+	// SQLTypeDropTrigger is drop trigger sql
+	SQLTypeDropTrigger = "drop_trigger"
 	// SQLTypeCreateEvent  is create event sql
 	SQLTypeCreateEvent = "create_event"
+	// SQLTypeDropEvent is drop event sql
+	SQLTypeDropEvent = "drop_event"
 	// SQLTypeCreateProcedure is create procedure sql
 	SQLTypeCreateProcedure = "create_procedure"
+	// SQLTypeDropProcedure is drop procedure sql
+	SQLTypeDropProcedure = "drop_procedure"
 	// SQLTypeCreateView is create view sql
 	SQLTypeCreateView = "create_view"
+	// SQLTypeDropView is drop view sql
+	SQLTypeDropView = "drop_view"
 	// SQLTypeRenameTable is rename table sql
 	SQLTypeRenameTable = "rename_table"
 	// SQLTypeInsert is insert sql
@@ -62,6 +72,12 @@ const (
 	SQLTypeCreateIndex = "create_index"
 	// SQLTypeSetOption is set option sql
 	SQLTypeSetOption = "set_option"
+	// SQLTypeDropIndex is drop index sql
+	SQLTypeDropIndex = "drop_index"
+	// SQLTypeAlterDb is alter db sql
+	SQLTypeAlterDb = "alter_db"
+	// SQLTypeFlush is flush sql
+	SQLTypeFlush = "flush"
 )
 
 // NotAllowedDefaultValColMap 不允许默认值的字段

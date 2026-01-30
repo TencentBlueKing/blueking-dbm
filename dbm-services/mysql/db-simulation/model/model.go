@@ -23,7 +23,6 @@ import (
 	"gorm.io/gorm/logger"
 
 	"dbm-services/mysql/db-simulation/app/config"
-	"dbm-services/mysql/db-simulation/assets"
 )
 
 // DB TODO
@@ -50,12 +49,16 @@ func init() {
 	if err != nil {
 		log.Fatalf("init create db failed:%s", err.Error())
 	}
-	err = assets.DoMigrateFromEmbed(user, addr, pwd, dbName)
-	if err != nil {
-		log.Fatalf("init migrate from embed failed:%s", err.Error())
-	}
 	sqldb.Close()
 	DB = openDB(user, pwd, addr, dbName)
+	// auto migrate
+	DB.AutoMigrate(&TbContainerRecord{})
+	DB.AutoMigrate(&TbRequestRecord{})
+	DB.AutoMigrate(&TbSimulationTask{})
+	DB.AutoMigrate(&TbSimulationImgCfg{})
+	DB.AutoMigrate(&TbSqlFileSimulationInfo{})
+	DB.AutoMigrate(&TbSyntaxRule{})
+	DB.AutoMigrate(&TbSpiderPefWhitelist{})
 }
 
 func openDB(username, password, addr, name string) *gorm.DB {

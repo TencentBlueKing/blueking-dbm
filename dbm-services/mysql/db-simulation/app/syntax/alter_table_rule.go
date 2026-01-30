@@ -33,9 +33,7 @@ func (c AlterTableResult) Checker(mysqlVersion string) (r *CheckerResult) {
 		}
 	}
 	r.Parse(R.AlterTableRule.AddColumnMixed, c.GetAllAlterType(), "")
-	r.ParseBuiltinBan(func() (bool, string) {
-		return c.JsonColumInvalidDefaultCheck()
-	})
+	r.ParseBuiltinBan(c.JsonColumInvalidDefaultCheck)
 	return
 }
 
@@ -70,6 +68,7 @@ func (a AlterCommand) GetAlterAlgorithm() string {
 	return a.Algorithm
 }
 
+// JsonColumInvalidDefaultCheck 检查json列的默认值是否无效
 func (c AlterTableResult) JsonColumInvalidDefaultCheck() (bool, string) {
 	for _, alterCmd := range c.AlterCommands {
 		if alterCmd.ColDef.DataType == JsonDataType {

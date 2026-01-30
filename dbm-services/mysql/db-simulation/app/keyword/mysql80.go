@@ -8,7 +8,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package keyworld
+package keyword
 
 // Keywords80 TODO
 var Keywords80 = []Keyword{
