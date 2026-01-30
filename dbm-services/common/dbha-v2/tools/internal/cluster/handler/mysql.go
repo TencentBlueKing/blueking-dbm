@@ -819,12 +819,29 @@ func (hdl *MysqlClusterHandler) ShowAllMysqlClustersRouting() error {
 	clusterRoutingList := make([]ClusterProxyRoutingInfo, 0)
 
 	for _, cluster := range config.ClusterConfig.MysqlClusters {
+		instInfoList, err := hdl.dbmClient.GetAllInstancesOfDomain(cluster.Domain)
+		if err != nil {
+			return gerrors.Newf(gerrors.Failure, "failed to get instances of domain(%s), errmsg: %s",
+				cluster.Domain, err.Error())
+		}
+
+		inDomainIPs := make(map[string]bool)
+		for _, inst := range instInfoList {
+			if inst.Status == string(dbm.StatusRunning) {
+				inDomainIPs[inst.Ip] = true
+			}
+		}
+
 		clusterRouting := ClusterProxyRoutingInfo{
 			Cluster: cluster.Domain,
 			Proxies: make([]ProxyRoutingEntry, 0),
 		}
 
 		for _, proxy := range cluster.Proxy {
+			if !inDomainIPs[proxy.Host] {
+				continue
+			}
+
 			proxyEntry, err := hdl.getProxyRoutingEntry(proxy.Host, proxy.AdminPort)
 			if err != nil {
 				return err
