@@ -8,7 +8,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-func msgCommand(conn *sqlx.Conn, b []byte) ([]byte, int64, error) {
+func handleCommand(conn *sqlx.Conn, b []byte) ([]byte, int64, error) {
 	wcr := WSCommandRequest{}
 	err := json.Unmarshal(b, &wcr)
 	if err != nil {

@@ -11,9 +11,9 @@ func IsQueryCommand(command string) bool {
 	firstWord := strings.ToLower(pattern.Split(command, -1)[0])
 	if firstWord == "tdbctl" {
 		return isTDBCTLQuery(command)
-	} else {
-		return slices.Index(queryCmds, firstWord) >= 0
 	}
+
+	return slices.Index(queryCmds, firstWord) >= 0
 }
 
 func isTDBCTLQuery(command string) bool {
