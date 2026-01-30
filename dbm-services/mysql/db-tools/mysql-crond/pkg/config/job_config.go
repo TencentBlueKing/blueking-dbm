@@ -184,6 +184,17 @@ func InitJobsConfig() error {
 	}
 	JobsConfig.BkBizId = bkBizId
 
+	// 过滤掉 nil 的job
+	validJobs := make([]*ExternalJob, 0, len(JobsConfig.Jobs))
+	for _, j := range JobsConfig.Jobs {
+		if j != nil {
+			validJobs = append(validJobs, j)
+		} else {
+			slog.Warn("skip nil job entry in config")
+		}
+	}
+	JobsConfig.Jobs = validJobs
+
 	slog.Info("init job config", slog.Any("jobs", JobsConfig))
 	for _, j := range JobsConfig.Jobs {
 		slog.Info("validate job", slog.Any("job", j))
