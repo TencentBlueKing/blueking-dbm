@@ -425,7 +425,7 @@ class DataAPI(object):
                 from backend.components.usermanage.client import UserManagerApi
 
                 params = {"lookup_field": "login_name", "lookups": login_name, "bk_username": "bk_admin"}
-                data = UserManagerApi.lookup_admin_user(params, use_admin=False, use_param_user=True)
+                data = UserManagerApi.batch_lookup_virtual_user(params, use_admin=False, use_param_user=True)
                 if isinstance(data, list) and data:
                     bk_username = data[0].get("bk_username") or data[0].get("username")
                 elif isinstance(data, dict) and data:
