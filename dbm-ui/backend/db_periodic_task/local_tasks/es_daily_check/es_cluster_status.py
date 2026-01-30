@@ -10,7 +10,8 @@ from backend.configuration.constants import DBType
 from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, Cluster
-from backend.db_periodic_task.local_tasks.db_meta.constants import ES_DAILY_CHECK_TEMPLATE, UNIFY_QUERY_PARAMS
+from backend.db_monitor.constants import ES_DAILY_CHECK_TEMPLATE
+from backend.db_periodic_task.local_tasks.db_meta.constants import UNIFY_QUERY_PARAMS
 from backend.db_report.enums import ReportStateType
 from backend.db_report.models.es_status_report import EsStatusReport
 
