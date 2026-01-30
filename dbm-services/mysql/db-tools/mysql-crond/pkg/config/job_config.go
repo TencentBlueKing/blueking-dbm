@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"slices"
 	"syscall"
 
 	"github.com/go-playground/validator/v10"
@@ -184,14 +185,18 @@ func InitJobsConfig() error {
 	}
 	JobsConfig.BkBizId = bkBizId
 
-	// 过滤掉 nil 的job
+	// 过滤掉 nil 的job，并按 name 去重
 	validJobs := make([]*ExternalJob, 0, len(JobsConfig.Jobs))
 	for _, j := range JobsConfig.Jobs {
-		if j != nil {
-			validJobs = append(validJobs, j)
-		} else {
+		if j == nil {
 			slog.Warn("skip nil job entry in config")
+			continue
 		}
+		if slices.ContainsFunc(validJobs, func(e *ExternalJob) bool { return e.Name == j.Name }) {
+			slog.Warn("skip duplicate job", slog.String("name", j.Name))
+			continue
+		}
+		validJobs = append(validJobs, j)
 	}
 	JobsConfig.Jobs = validJobs
 

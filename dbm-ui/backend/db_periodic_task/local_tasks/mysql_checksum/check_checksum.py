@@ -1,14 +1,22 @@
 import logging
+from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Optional
 
 from blueapps.core.celery.celery import app
+from celery import shared_task
+from django.utils.translation import gettext as _
 
+from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.context_manager import start_new_span
 from backend.db_periodic_task.local_tasks.mysql_checksum.cluster_checksum import ChecksumService
 from backend.db_periodic_task.utils import TimeUnit, calculate_countdown
+from backend.ticket.builders.common.constants import MYSQL_CHECKSUM_TABLE, MySQLDataRepairTriggerMode
+from backend.ticket.constants import TicketType
+from backend.ticket.models import Ticket
+from backend.utils.time import date2str
 
 logger = logging.getLogger("celery")
 
@@ -79,3 +87,57 @@ def check_cluster_checksum(index: int, cluster_id: int, now: Optional[datetime] 
             "failed to persist checksum report for index = %d cluster = %s", index, cluster_task.cluster.immute_domain
         )
         return
+
+    # 基于 fail_list 生成修复单据
+
+    db_type = ClusterType.cluster_type_to_db_type(cluster_obj.cluster_type)
+    dba, second_dba, other_dba = DBAdministrator.get_dba_for_db_type(cluster_obj.bk_biz_id, db_type)
+
+    try:
+        # 按 master_ip:master_port 聚合不一致的 slave 实例
+        master_to_slaves = defaultdict(list)
+        for fail in fail_list:
+            master_key = f"{fail.master_ip}:{fail.master_port}"
+            master_to_slaves[master_key].append(f"{fail.ip}:{fail.port}")
+
+        ticket_details = {
+            # "非innodb表是否修复"这个参数与校验保持一致，默认为false
+            "is_sync_non_innodb": False,
+            "is_ticket_consistent": False,
+            "checksum_table": MYSQL_CHECKSUM_TABLE,
+            "trigger_type": MySQLDataRepairTriggerMode.ROUTINE.value,
+            # 为了兼容时区问题, 修复范围扩大一天
+            "start_time": date2str(now - timedelta(hours=24)),
+            "end_time": date2str(now + timedelta(hours=24)),
+            "infos": [
+                {
+                    "cluster_id": cluster_id,
+                    "master": master,
+                    "slaves": slaves,
+                }
+                for master, slaves in master_to_slaves.items()
+            ],
+        }
+        ticket_type = getattr(TicketType, f"{db_type.upper()}_DATA_REPAIR")
+
+        _create_ticket.apply_async(
+            kwargs={
+                "ticket_type": ticket_type,
+                "creator": dba[0],
+                "bk_biz_id": cluster_obj.bk_biz_id,
+                "remark": _("集群存在数据不一致，自动创建的数据修复单据"),
+                "details": ticket_details,
+                "helpers": [*second_dba, *other_dba],
+            }
+        )
+
+    except Exception:  # noqa
+        logger.exception("failed to create data repair ticket for cluster %s", cluster_obj.immute_domain)
+
+
+@shared_task
+def _create_ticket(
+    ticket_type, creator, bk_biz_id, remark, details, auto_execute=True, send_msg_config=None, helpers=None
+) -> None:
+    """创建一个新单据"""
+    Ticket.create_ticket(ticket_type, creator, bk_biz_id, remark, details, auto_execute, send_msg_config, helpers)
