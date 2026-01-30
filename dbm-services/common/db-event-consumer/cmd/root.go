@@ -40,13 +40,13 @@ var rootCmd = &cobra.Command{
 		base.GetTopicMetrics()
 
 		// 启动指标上报器（如果配置了）
-		if config.MainConfig.BKMReport != nil && config.MainConfig.BKMReport.ReportUrl != "" {
-			reporter := base.NewMetricsReporter(config.MainConfig.BKMReport)
+		if config.MainConfig.BkmReport != nil && config.MainConfig.BkmReport.ReportUrl != "" {
+			reporter := base.NewMetricsReporter(config.MainConfig.BkmReport)
 			// 每分钟上报一次
 			reporter.StartReporting(1 * time.Minute)
 			slog.Info("metrics reporter started",
-				slog.String("report_url", config.MainConfig.BKMReport.ReportUrl),
-				slog.Int("data_id", config.MainConfig.BKMReport.DataID))
+				slog.String("report_url", config.MainConfig.BkmReport.ReportUrl),
+				slog.Int("data_id", config.MainConfig.BkmReport.DataID))
 		} else {
 			slog.Warn("metrics reporter not configured, skipping")
 		}
@@ -69,9 +69,24 @@ var rootCmd = &cobra.Command{
 			}
 			sinker := consumer.Sinker{
 				RuntimeConfig: sink,
-				MetaInfo:      config.MainConfig.KafkaInfo,
 				DSWriter:      dsWriter,
 			}
+			if sink.BkDataId > 0 {
+				sinker.RuntimeConfig.Topic = ""
+				// get kafka from bk api
+				if err = consumer.QueryKafkaMetaWithBkDataId(&sinker, config.MainConfig.BkmApiInfo); err != nil {
+					slog.Error("get kafka meta", err, slog.Int("bk_data_id", sink.BkDataId))
+					continue
+				}
+				if sinker.RuntimeConfig.Topic == "" {
+					slog.Error("topic is empty", slog.String("table", sink.ModelTable))
+					continue
+				}
+				//sinker.MetaInfo is set// = sinker.RuntimeConfig.KafkaMeta
+			} else {
+				sinker.MetaInfo = config.MainConfig.KafkaInfo
+			}
+
 			cg, err := sinker.NewConsumerGroup()
 			if err != nil {
 				slog.Error("new consumer group", err,

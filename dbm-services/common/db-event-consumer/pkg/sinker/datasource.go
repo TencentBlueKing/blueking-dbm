@@ -81,7 +81,11 @@ func GetDSWriter(ds *Datasource) (base.DSWriter, error) {
 		return NewMysqlRawWriter(&mysqlDsn)
 
 	} else if ds.Type == "doris" {
-		return NewMysqlWriter(nil, nil)
+		var dorisDsn InstanceDsn // same with mysql
+		if err := mapstructure.Decode(ds.Dsn, &dorisDsn); err != nil {
+			return nil, errors.WithMessagef(err, "decode dsn %s", ds.Dsn)
+		}
+		return NewDorisWriter(&dorisDsn)
 	} else {
 		return nil, errors.Errorf("unknown datasource type %s", ds.Type)
 	}
