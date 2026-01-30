@@ -649,7 +649,7 @@ func ExecLocalSQLFileForDataExport(sqlVersion string, dbName string, filenames [
 	for _, filename := range filenames {
 		var ret string
 		var err error
-		outPutFile := strings.Replace(filename, ".sql", fmt.Sprintf("_%d.csv", port), -1)
+		outPutFile := strings.Replace(filename, ".sql", fmt.Sprintf("_%d_%s.csv", port, dbName), -1)
 		outPutFiles = append(outPutFiles, outPutFile)
 		cmd := fmt.Sprintf(
 			"& '%s' -S '127.0.0.1,%d' -C -I -d %s -f %d -b -i %s -U '%s' -P '%s' -s ',' -W | Out-File -FilePath '%s' -Encoding UTF8",
