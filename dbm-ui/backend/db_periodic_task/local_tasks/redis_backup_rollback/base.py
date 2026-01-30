@@ -79,6 +79,8 @@ class RedisRollbackExerciseConfig:
             ClusterType.TendisTwemproxyRedisInstance.value,  # TendisCache 集群
             ClusterType.TwemproxyTendisSSDInstance.value,  # TendisSSD 集群
             ClusterType.TendisRedisInstance.value,  # Redis 主从
+            ClusterType.TendisPredixyRedisCluster.value,
+            ClusterType.TendisPredixyTendisplusCluster.value,
         ]
     )  # Customed ClusterTypes to exercise
 
@@ -471,6 +473,7 @@ class RedisRollbackExercise:
             candidate_ids = list(queryset.only("id").values_list("id", flat=True))
         else:
             all_ids = list(queryset.only("id", "bk_biz_id").values_list("id", "bk_biz_id"))
+            random.shuffle(all_ids)  # Mix the order first to avoid database ordering bias
             candidate_ids = self._weighted_random_selection(all_ids, self.config.batch_size)
 
         logger.info(

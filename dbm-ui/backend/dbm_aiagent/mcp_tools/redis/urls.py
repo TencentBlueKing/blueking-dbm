@@ -10,14 +10,12 @@ specific language governing permissions and limitations under the License.
 from rest_framework.routers import DefaultRouter
 
 from backend.dbm_aiagent.mcp_tools.redis.views.job import RedisJobMcpToolsViewSet
+from backend.dbm_aiagent.mcp_tools.redis.views.metrics import RedisMetricsMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.redis.views.query_alarm import RedisQueryALARMMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.redis.views.query_log import RedisQueryLogMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.redis.views.query_meta import RedisQueryMetaMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.redis.views.query_status import RedisQueryStatusMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.redis.views.redis_bill_mcp import RedisBillMcpToolsViewSet
-
-# from backend.dbm_aiagent.mcp_tools.redis.views.query_metric import RedisQueryMetricMcpToolsViewSet
-
 
 routers = DefaultRouter(trailing_slash=True)
 
@@ -35,7 +33,7 @@ routers.register(r"", RedisQueryLogMcpToolsViewSet, basename="mcp-redis-query-lo
 # 与 告警 相关的查询
 routers.register(r"", RedisQueryALARMMcpToolsViewSet, basename="mcp-redis-query-alrams")
 # # 与 metric相关的 ； exporter 上报的数据
-# routers.register(r"", RedisQueryMetricMcpToolsViewSet, basename="mcp-redis-query-metric")
+routers.register(r"", RedisMetricsMcpToolsViewSet, basename="mcp-redis-query-metric")
 
 # 与 告警 相关的 2do
 # 与 其他组件----
