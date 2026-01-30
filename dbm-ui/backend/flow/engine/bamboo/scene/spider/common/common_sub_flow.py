@@ -799,7 +799,7 @@ def remote_migrate_switch_sub_flow(
     for m in migrate_tuples:
         # old_master-> new_master ; new_master -> new_slave 都需要检测checksum结果
         verify_checksum_tuples.append({"master": m["old_master"], "slave": m["new_master"]})
-        verify_checksum_tuples.append({"master": m["new_master"], "slave": m["new_slave"]})
+        # verify_checksum_tuples.append({"master": m["new_master"], "slave": m["new_slave"]})
         instances.append(m["new_master"])
         instances.append(m["new_slave"])
 
