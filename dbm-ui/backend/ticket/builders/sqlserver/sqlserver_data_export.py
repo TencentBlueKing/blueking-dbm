@@ -62,15 +62,16 @@ class SQLServerDataExportFlowParamBuilder(builders.FlowParamBuilder):
         clusters = Cluster.objects.filter(id__in=self.ticket_data["cluster_ids"])
 
         # 为每个集群生成对应的文件名
-        dump_file_names = []
+        dump_file_names = {}
 
         for cluster in clusters:
             dump_file_name = (
-                f"{cluster.immute_domain}_{ self.ticket_data['select_role']}_"
+                f"{cluster.immute_domain}_{self.ticket_data['select_role']}_"
                 f"{datetime.now().strftime('%Y%m%d%H%M%S')}_data_export.zip"
             )
 
-            dump_file_names.append(dump_file_name)
+            dump_file_names[cluster.id] = dump_file_name
+
         self.ticket_data["dump_file_names"] = dump_file_names
 
     def post_callback(self):
@@ -81,8 +82,7 @@ class SQLServerDataExportFlowParamBuilder(builders.FlowParamBuilder):
 
         # 为每个集群的文件生成完整路径并获取文件大小
         dump_file_list = []
-
-        for dump_file_name in flow.details["ticket_data"]["dump_file_names"]:
+        for dump_file_name in flow.details["ticket_data"]["dump_file_names"].values():
             dump_file_path = f"{BKREPO_SQLSERVER_DATA_EXPORT_PATH.format(biz=self.ticket.bk_biz_id)}/{dump_file_name}"
 
             # 获取文件大小
