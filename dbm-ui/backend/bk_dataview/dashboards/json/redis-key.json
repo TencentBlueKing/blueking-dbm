@@ -24,7 +24,6 @@
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": null,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -124,82 +123,6 @@
             "alias": "",
             "conditions": [
               [
-                {
-                  "key": "7c7oqcvlb9",
-                  "list": [
-                    {
-                      "id": "app",
-                      "name": "app"
-                    }
-                  ],
-                  "open": false,
-                  "type": "key",
-                  "value": "app"
-                },
-                {
-                  "key": "wv12nkd5n8",
-                  "list": [
-                    {
-                      "id": "is",
-                      "name": "is"
-                    },
-                    {
-                      "id": "is one of",
-                      "name": "is one of"
-                    },
-                    {
-                      "id": "is not",
-                      "name": "is not"
-                    },
-                    {
-                      "id": "is not one of",
-                      "name": "is not one of"
-                    },
-                    {
-                      "id": "gt",
-                      "name": ">"
-                    },
-                    {
-                      "id": "gte",
-                      "name": ">="
-                    },
-                    {
-                      "id": "lt",
-                      "name": "<"
-                    },
-                    {
-                      "id": "lte",
-                      "name": "<="
-                    }
-                  ],
-                  "type": "method",
-                  "value": "is"
-                },
-                {
-                  "key": "7em7vad11p",
-                  "list": [],
-                  "type": "value",
-                  "value": [
-                    "$bk_biz_id"
-                  ]
-                }
-              ],
-              [
-                {
-                  "key": "qgitwmxzyr",
-                  "list": [
-                    {
-                      "id": "and",
-                      "name": "AND"
-                    },
-                    {
-                      "id": "or",
-                      "name": "OR"
-                    }
-                  ],
-                  "type": "condition",
-                  "value": "and"
-                },
                 {
                   "key": "cpt6i05iof",
                   "list": [
@@ -309,7 +232,8 @@
                 "key_cnt",
                 "key_ops",
                 "key_ratio",
-                "key_sample"
+                "key_sample",
+                "app"
               ]
             }
           }
@@ -471,82 +395,6 @@
             "alias": "",
             "conditions": [
               [
-                {
-                  "key": "fxrwuccudw",
-                  "list": [
-                    {
-                      "id": "app",
-                      "name": "app"
-                    }
-                  ],
-                  "open": false,
-                  "type": "key",
-                  "value": "app"
-                },
-                {
-                  "key": "kyr5i63r97",
-                  "list": [
-                    {
-                      "id": "is",
-                      "name": "is"
-                    },
-                    {
-                      "id": "is one of",
-                      "name": "is one of"
-                    },
-                    {
-                      "id": "is not",
-                      "name": "is not"
-                    },
-                    {
-                      "id": "is not one of",
-                      "name": "is not one of"
-                    },
-                    {
-                      "id": "gt",
-                      "name": ">"
-                    },
-                    {
-                      "id": "gte",
-                      "name": ">="
-                    },
-                    {
-                      "id": "lt",
-                      "name": "<"
-                    },
-                    {
-                      "id": "lte",
-                      "name": "<="
-                    }
-                  ],
-                  "type": "method",
-                  "value": "is"
-                },
-                {
-                  "key": "kr26oi9dm2",
-                  "list": [],
-                  "type": "value",
-                  "value": [
-                    "$bk_biz_id"
-                  ]
-                }
-              ],
-              [
-                {
-                  "key": "u85q8fqcm8",
-                  "list": [
-                    {
-                      "id": "and",
-                      "name": "AND"
-                    },
-                    {
-                      "id": "or",
-                      "name": "OR"
-                    }
-                  ],
-                  "type": "condition",
-                  "value": "and"
-                },
                 {
                   "key": "9v9z4y6w39",
                   "list": [
@@ -896,82 +744,6 @@
             "conditions": [
               [
                 {
-                  "key": "fxrwuccudw",
-                  "list": [
-                    {
-                      "id": "app",
-                      "name": "app"
-                    }
-                  ],
-                  "open": false,
-                  "type": "key",
-                  "value": "app"
-                },
-                {
-                  "key": "kyr5i63r97",
-                  "list": [
-                    {
-                      "id": "is",
-                      "name": "is"
-                    },
-                    {
-                      "id": "is one of",
-                      "name": "is one of"
-                    },
-                    {
-                      "id": "is not",
-                      "name": "is not"
-                    },
-                    {
-                      "id": "is not one of",
-                      "name": "is not one of"
-                    },
-                    {
-                      "id": "gt",
-                      "name": ">"
-                    },
-                    {
-                      "id": "gte",
-                      "name": ">="
-                    },
-                    {
-                      "id": "lt",
-                      "name": "<"
-                    },
-                    {
-                      "id": "lte",
-                      "name": "<="
-                    }
-                  ],
-                  "type": "method",
-                  "value": "is"
-                },
-                {
-                  "key": "kr26oi9dm2",
-                  "list": [],
-                  "type": "value",
-                  "value": [
-                    "$bk_biz_id"
-                  ]
-                }
-              ],
-              [
-                {
-                  "key": "u85q8fqcm8",
-                  "list": [
-                    {
-                      "id": "and",
-                      "name": "AND"
-                    },
-                    {
-                      "id": "or",
-                      "name": "OR"
-                    }
-                  ],
-                  "type": "condition",
-                  "value": "and"
-                },
-                {
                   "key": "9v9z4y6w39",
                   "list": [
                     {
@@ -1232,7 +1004,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1276,82 +1049,6 @@
             "alias": "$tag_partten",
             "conditions": [
               [
-                {
-                  "key": "vj2e84nokd",
-                  "list": [
-                    {
-                      "id": "app",
-                      "name": "app"
-                    }
-                  ],
-                  "open": false,
-                  "type": "key",
-                  "value": "app"
-                },
-                {
-                  "key": "qz63ikuurr",
-                  "list": [
-                    {
-                      "id": "is",
-                      "name": "is"
-                    },
-                    {
-                      "id": "is one of",
-                      "name": "is one of"
-                    },
-                    {
-                      "id": "is not",
-                      "name": "is not"
-                    },
-                    {
-                      "id": "is not one of",
-                      "name": "is not one of"
-                    },
-                    {
-                      "id": "gt",
-                      "name": ">"
-                    },
-                    {
-                      "id": "gte",
-                      "name": ">="
-                    },
-                    {
-                      "id": "lt",
-                      "name": "<"
-                    },
-                    {
-                      "id": "lte",
-                      "name": "<="
-                    }
-                  ],
-                  "type": "method",
-                  "value": "is"
-                },
-                {
-                  "key": "lu35zv40yf",
-                  "list": [],
-                  "type": "value",
-                  "value": [
-                    "$bk_biz_id"
-                  ]
-                }
-              ],
-              [
-                {
-                  "key": "jj9b7ldv7m",
-                  "list": [
-                    {
-                      "id": "and",
-                      "name": "AND"
-                    },
-                    {
-                      "id": "or",
-                      "name": "OR"
-                    }
-                  ],
-                  "type": "condition",
-                  "value": "and"
-                },
                 {
                   "key": "qc7i763wvn",
                   "list": [
@@ -1502,7 +1199,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -1530,9 +1228,9 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
-          "sortBy": "Last *",
+          "sortBy": "Max",
           "sortDesc": true,
-          "width": 800
+          "width": 700
         },
         "tooltip": {
           "mode": "multi",
@@ -1546,82 +1244,6 @@
             "alias": "$tag_partten",
             "conditions": [
               [
-                {
-                  "key": "vj2e84nokd",
-                  "list": [
-                    {
-                      "id": "app",
-                      "name": "app"
-                    }
-                  ],
-                  "open": false,
-                  "type": "key",
-                  "value": "app"
-                },
-                {
-                  "key": "qz63ikuurr",
-                  "list": [
-                    {
-                      "id": "is",
-                      "name": "is"
-                    },
-                    {
-                      "id": "is one of",
-                      "name": "is one of"
-                    },
-                    {
-                      "id": "is not",
-                      "name": "is not"
-                    },
-                    {
-                      "id": "is not one of",
-                      "name": "is not one of"
-                    },
-                    {
-                      "id": "gt",
-                      "name": ">"
-                    },
-                    {
-                      "id": "gte",
-                      "name": ">="
-                    },
-                    {
-                      "id": "lt",
-                      "name": "<"
-                    },
-                    {
-                      "id": "lte",
-                      "name": "<="
-                    }
-                  ],
-                  "type": "method",
-                  "value": "is"
-                },
-                {
-                  "key": "lu35zv40yf",
-                  "list": [],
-                  "type": "value",
-                  "value": [
-                    "$bk_biz_id"
-                  ]
-                }
-              ],
-              [
-                {
-                  "key": "jj9b7ldv7m",
-                  "list": [
-                    {
-                      "id": "and",
-                      "name": "AND"
-                    },
-                    {
-                      "id": "or",
-                      "name": "OR"
-                    }
-                  ],
-                  "type": "condition",
-                  "value": "and"
-                },
                 {
                   "key": "qc7i763wvn",
                   "list": [
@@ -1746,7 +1368,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           }
@@ -1824,82 +1447,6 @@
             "conditions": [
               [
                 {
-                  "key": "o0juw4ticr",
-                  "list": [
-                    {
-                      "id": "app",
-                      "name": "app"
-                    }
-                  ],
-                  "open": false,
-                  "type": "key",
-                  "value": "app"
-                },
-                {
-                  "key": "t6sdtli57g",
-                  "list": [
-                    {
-                      "id": "is",
-                      "name": "is"
-                    },
-                    {
-                      "id": "is one of",
-                      "name": "is one of"
-                    },
-                    {
-                      "id": "is not",
-                      "name": "is not"
-                    },
-                    {
-                      "id": "is not one of",
-                      "name": "is not one of"
-                    },
-                    {
-                      "id": "gt",
-                      "name": ">"
-                    },
-                    {
-                      "id": "gte",
-                      "name": ">="
-                    },
-                    {
-                      "id": "lt",
-                      "name": "<"
-                    },
-                    {
-                      "id": "lte",
-                      "name": "<="
-                    }
-                  ],
-                  "type": "method",
-                  "value": "is"
-                },
-                {
-                  "key": "nngin5pxk0",
-                  "list": [],
-                  "type": "value",
-                  "value": [
-                    "$bk_biz_id"
-                  ]
-                }
-              ],
-              [
-                {
-                  "key": "spw9gxgfw4",
-                  "list": [
-                    {
-                      "id": "and",
-                      "name": "AND"
-                    },
-                    {
-                      "id": "or",
-                      "name": "OR"
-                    }
-                  ],
-                  "type": "condition",
-                  "value": "and"
-                },
-                {
                   "key": "g3pm2nc4yf",
                   "list": [
                     {
@@ -1971,6 +1518,7 @@
                 "[采集项]redis_keymod"
               ]
             },
+            "indexSetString": "",
             "method": "logs",
             "metric": "sample_raito",
             "period": 86400,
@@ -1991,8 +1539,6 @@
             "type": "bk_log_datasource",
             "uid": "${DS_日志平台}"
           },
-          "datasourceId": "bk_log_datasource",
-          "name": "BlueKing Log TimeSeries",
           "refId": "A"
         }
       ],
@@ -2048,13 +1594,12 @@
     "list": [
       {
         "current": {
-          "selected": false,
           "text": "",
           "value": ""
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "${DS_蓝鲸监控_- 指标数据}"
+          "uid": "${DS_蓝鲸监控_-_指标数据}"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 2,
@@ -2069,7 +1614,7 @@
             "data_type_label": "time_series",
             "group_by": "app",
             "metric_field": "redis_dbmon_heart_beat",
-            "result_table_id": "bkmonitor_time_series_553410.__default__",
+            "result_table_id": "bkmonitor_time_series_{metric_data_id}.__default__",
             "result_table_label": "component",
             "where": []
           },
@@ -2084,13 +1629,12 @@
       },
       {
         "current": {
-          "selected": false,
           "text": "",
           "value": ""
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "${DS_蓝鲸监控_- 指标数据}"
+          "uid": "${DS_蓝鲸监控_-_指标数据}"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 0,
@@ -2105,7 +1649,7 @@
             "data_type_label": "time_series",
             "group_by": "cluster_domain",
             "metric_field": "redis_dbmon_heart_beat",
-            "result_table_id": "bkmonitor_time_series_553410.__default__",
+            "result_table_id": "bkmonitor_time_series_{metric_data_id}.__default__",
             "result_table_label": "component",
             "where": [
               {
@@ -2135,8 +1679,7 @@
   "timepicker": {},
   "timezone": "default",
   "title": "Key统计分析",
-  "uid": "8QRXLyaSz",
-  "version": 48,
+  "version": 51,
   "weekStart": "",
   "__inputs": [
     {
@@ -2156,7 +1699,6 @@
       "pluginName": "BlueKing Log TimeSeries"
     }
   ],
-  "__elements": {},
   "__requires": [
     {
       "type": "datasource",
@@ -2188,5 +1730,7 @@
       "name": "Time series",
       "version": ""
     }
-  ]
+  ],
+  "__elements": {},
+  "id": null
 }
