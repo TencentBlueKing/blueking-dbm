@@ -24,7 +24,7 @@ class DBAdministratorHandler(object):
 
     @staticmethod
     def upsert_biz_admins(bk_biz_id: int, db_admins: List[Dict[str, Union[str, List[str]]]]):
-        from backend.db_periodic_task.local_tasks.db_monitor import update_dba_notice_group
+        from backend.db_monitor.tasks import update_dba_notice_group
 
         # 平台管理员
         db_type_platform_dba = {dba.db_type: dba.users for dba in DBAdministrator.objects.filter(bk_biz_id=0)}

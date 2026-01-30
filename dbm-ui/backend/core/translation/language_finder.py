@@ -459,16 +459,9 @@ class LanguageFinder:
                     f"{json.dumps(self.formatted_strings, ensure_ascii=False, indent=4)}"
                 )
             if self.illegal_imports:
-                # TODO: 待import问题解决后，恢复此异常抛出
-                # raise IllegalImportException(
-                #     f"There are illegal imports in the project: "
-                #     f"{json.dumps(self.illegal_imports, ensure_ascii=False, indent=4)}"
-                # )
-                logger.error(
-                    IllegalImportException(
-                        f"There are illegal imports in the project: "
-                        f"{json.dumps(self.illegal_imports, ensure_ascii=False, indent=4)}"
-                    )
+                raise IllegalImportException(
+                    f"There are illegal imports in the project: "
+                    f"{json.dumps(self.illegal_imports, ensure_ascii=False, indent=4)}"
                 )
         else:
             # 写入未翻译信息
