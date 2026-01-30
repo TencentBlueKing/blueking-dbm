@@ -24,7 +24,6 @@
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": null,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -445,7 +444,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 124
+                "value": 68
               }
             ]
           },
@@ -469,7 +468,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 290
+                "value": 252
               }
             ]
           },
@@ -878,13 +877,12 @@
     "list": [
       {
         "current": {
-          "selected": false,
           "text": "",
           "value": ""
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "${DS_蓝鲸监控_- 指标数据}"
+          "uid": "${DS_蓝鲸监控_-_指标数据}"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 2,
@@ -899,7 +897,7 @@
             "data_type_label": "time_series",
             "group_by": "app",
             "metric_field": "redis_dbmon_heart_beat",
-            "result_table_id": "bkmonitor_time_series_553410.__default__",
+            "result_table_id": "bkmonitor_time_series_{metric_data_id}.__default__",
             "result_table_label": "component",
             "where": []
           },
@@ -914,13 +912,12 @@
       },
       {
         "current": {
-          "selected": false,
           "text": "",
           "value": ""
         },
         "datasource": {
           "type": "bkmonitor-timeseries-datasource",
-          "uid": "${DS_蓝鲸监控_- 指标数据}"
+          "uid": "${DS_蓝鲸监控_-_指标数据}"
         },
         "definition": "- Blueking Monitor - 维度",
         "hide": 0,
@@ -936,7 +933,7 @@
             "data_type_label": "time_series",
             "group_by": "cluster_domain",
             "metric_field": "redis_dbmon_heart_beat",
-            "result_table_id": "bkmonitor_time_series_553410.__default__",
+            "result_table_id": "bkmonitor_time_series_{metric_data_id}.__default__",
             "result_table_label": "component",
             "where": [
               {
@@ -959,61 +956,37 @@
       },
       {
         "current": {
-          "selected": true,
-          "text": "",
-          "value": ""
+          "text": [
+            "proxy",
+            "redis_master"
+          ],
+          "value": [
+            "proxy",
+            "redis_master"
+          ]
         },
-        "description": "proxy, redis_master,redis_slave",
+        "description": "proxy,redis_master,redis_slave",
         "hide": 0,
         "includeAll": true,
         "label": "instance_role",
         "multi": true,
         "name": "instance_role",
-        "options": [
-          {
-            "selected": true,
-            "text": "All",
-            "value": "$__all"
-          },
-          {
-            "selected": false,
-            "text": "proxy",
-            "value": "proxy"
-          },
-          {
-            "selected": false,
-            "text": "redis_master",
-            "value": "redis_master"
-          },
-          {
-            "selected": false,
-            "text": "redis_slave",
-            "value": "redis_slave"
-          }
-        ],
-        "query": "proxy, redis_master,redis_slave",
+        "options": [],
+        "query": "proxy,redis_master,redis_slave",
         "queryValue": "",
         "skipUrlSync": false,
-        "type": "custom"
+        "type": "custom",
+        "refresh": 1
       },
       {
-        "current": {
-          "selected": false,
-          "text": "*",
-          "value": "*"
-        },
+        "current": {},
         "hide": 0,
         "name": "query_string",
-        "options": [
-          {
-            "selected": true,
-            "text": "*",
-            "value": "*"
-          }
-        ],
+        "options": [],
         "query": "*",
         "skipUrlSync": false,
-        "type": "textbox"
+        "type": "textbox",
+        "refresh": 1
       }
     ]
   },
@@ -1024,8 +997,7 @@
   "timepicker": {},
   "timezone": "default",
   "title": "Redis慢查询",
-  "uid": "UMBYOF5Iz",
-  "version": 44,
+  "version": 46,
   "weekStart": "",
   "__inputs": [
     {
@@ -1045,7 +1017,6 @@
       "pluginName": "BlueKing Log TimeSeries"
     }
   ],
-  "__elements": {},
   "__requires": [
     {
       "type": "datasource",
@@ -1077,5 +1048,7 @@
       "name": "Time series",
       "version": ""
     }
-  ]
+  ],
+  "__elements": {},
+  "id": null
 }
