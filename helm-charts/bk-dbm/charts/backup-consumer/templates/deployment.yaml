@@ -46,6 +46,9 @@ spec:
             - name: http
               containerPort: 7000
               protocol: TCP
+          env:
+            - name: BK_TENANT_ID
+              value: "{{ .Values.global.tenantID }}"
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:

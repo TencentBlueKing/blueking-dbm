@@ -15,21 +15,26 @@ import (
 	"net/url"
 	"os"
 	"strconv"
-	"strings"
-
-	"dbm-services/common/bkdata-kafka-consumer/pkg/config"
 
 	"github.com/pkg/errors"
 	"golang.org/x/exp/slog"
+
+	"dbm-services/common/db-event-consumer/pkg/config"
 )
 
-// queryMeta query data_id from bklog api metadata_get_data_id
-func queryMeta(sinker *Sinker) error {
+type messageWrapper struct {
+	Items []struct {
+		Data json.RawMessage `json:"data"`
+	} `json:"items"`
+}
+
+// QueryKafkaMetaWithBkDataId query data_id from bklog api metadata_get_data_id
+func QueryKafkaMetaWithBkDataId(sinker *Sinker, bkdata *config.BkmApiInfo) error {
 	params := url.Values{}
 	params.Add("bk_data_id", strconv.Itoa(sinker.RuntimeConfig.BkDataId))
 
 	metaApiPath := "app/metadata/get_data_id" // bkmonitorv3:metadata_get_data_id
-	urlPath, err := url.JoinPath(config.MainConfig.ApiURL, metaApiPath)
+	urlPath, err := url.JoinPath(bkdata.BkApiUrl, metaApiPath)
 	if err != nil {
 		slog.Error("join api path", err)
 		return err
@@ -54,8 +59,8 @@ func queryMeta(sinker *Sinker) error {
 		BkAppSecret string `json:"bk_app_secret"`
 		BkUsername  string `json:"bk_username"`
 	}{
-		BkAppCode:   config.MainConfig.BkAppCode,
-		BkAppSecret: config.MainConfig.BkAppSecret,
+		BkAppCode:   bkdata.BkAppCode,
+		BkAppSecret: bkdata.BkAppSecret,
 		BkUsername:  "fake",
 	})
 	if err != nil {
@@ -90,13 +95,13 @@ func queryMeta(sinker *Sinker) error {
 		slog.Error("read body", err)
 		return err
 	}
-
 	var res struct {
-		Result  bool   `json:"result"`
-		Code    int    `json:"code"`
-		Message string `json:"message"`
-		Data    struct {
-			MqConfig config.KafkaMeta `json:"mq_config"`
+		RequestId int    `json:"request_id"`
+		Result    bool   `json:"result"`
+		Code      int    `json:"code"`
+		Message   string `json:"message"`
+		Data      struct {
+			MqConfig config.BkDataKafkaMeta `json:"mq_config"`
 		} `json:"data"`
 	}
 	err = json.Unmarshal(body, &res)
@@ -109,20 +114,17 @@ func queryMeta(sinker *Sinker) error {
 		slog.Error("check api response", err)
 		return err
 	}
-
-	sinker.MetaInfo = &res.Data.MqConfig
-
-	if sinker.RuntimeConfig.AltBroker != nil {
-		splitBroker := strings.Split(*sinker.RuntimeConfig.AltBroker, ":")
-		sinker.MetaInfo.ClusterConfig.DomainName = splitBroker[0]
-
-		altPort, err := strconv.Atoi(splitBroker[1])
-		if err != nil {
-			slog.Error("parse alt broker port", err)
-			return err
-		}
-		sinker.MetaInfo.ClusterConfig.Port = altPort
+	sinker.MetaInfo = &config.KafkaMeta{
+		AuthInfo: res.Data.MqConfig.AuthInfo,
 	}
+	sinker.MetaInfo.ClusterConfig.Brokers = res.Data.MqConfig.ClusterConfig.DomainName
+	sinker.MetaInfo.ClusterConfig.Port = res.Data.MqConfig.ClusterConfig.Port
+	sinker.RuntimeConfig.Topic = res.Data.MqConfig.StorageConfig.Topic
+
+	slog.Info("get meta info",
+		slog.Any("bk_data_id", sinker.RuntimeConfig.BkDataId),
+		slog.Any("topic", sinker.RuntimeConfig.Topic),
+		slog.Any("meta", sinker.MetaInfo))
 
 	return nil
 }
