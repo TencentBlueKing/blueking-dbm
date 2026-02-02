@@ -368,8 +368,10 @@ class Builder(object):
 
         # 判断值守旁路节点列表是否为空
         if len(self.sidecar_acts) == 0:
-            # 不符合注入单据值守子流程的条件，报错
-            raise Exception(_("不满足启动单据值守子流程的条件，请联系系统管理员： self.sidecar_acts:{}".format(self.sidecar_acts)))
+            # 不符合注入单据值守子流程的条件，不报错处理，只是进入普通模式启动pipeline
+            return self.run_pipeline(
+                init_trans_data_class=init_trans_data_class, is_drop_random_user=is_drop_random_user
+            )
 
         # 判断是否回收临时账号的流程逻辑
         if self.need_random_pass_cluster_ids and is_drop_random_user:
