@@ -44,3 +44,8 @@ class MySQLClusterTopoOutputSerializer(serializers.Serializer):
     storage_instance_replicate_sets = serializers.ListSerializer(
         child=MySQLStorageInstanceReplicateSetSerializer(), help_text=_("按分片号组织的实例详情")
     )
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+    region = serializers.CharField(help_text=_("地域"))
+    tolerance_level = serializers.IntegerField(help_text=_("容灾级别"))
+    time_zone = serializers.CharField(help_text=_("时区"))

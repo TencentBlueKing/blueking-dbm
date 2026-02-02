@@ -129,7 +129,16 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
 
         cluster_obj = Cluster.objects.get(immute_domain=cluster_domain)
 
-        return Response(mysql_cluster_topo(cluster_obj=cluster_obj))
+        return Response(
+            {
+                "bk_cloud_id": cluster_obj.bk_cloud_id,
+                "bk_biz_id": cluster_obj.bk_biz_id,
+                "region": cluster_obj.region,
+                "tolerance_level": cluster_obj.disaster_tolerance_level,
+                "time_zone": cluster_obj.time_zone,
+                **mysql_cluster_topo(cluster_obj=cluster_obj),
+            }
+        )
 
     @mcp_tools_api_decorator(
         description=str(
@@ -186,7 +195,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         return Response(
             {
                 **show_mysql_variables(
-                    bk_cloud_id=bk_cloud_id,
+                    bk_cloud_id=machine_obj.bk_cloud_id,
                     address=address,
                     machine_type=machine_obj.machine_type,
                     variable_hints=variable_hints,
@@ -212,7 +221,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         return Response(
             {
                 **show_instance_status(
-                    bk_cloud_id=bk_cloud_id,
+                    bk_cloud_id=machine_obj.bk_cloud_id,
                     address=address,
                     machine_type=machine_obj.machine_type,
                     status_hints=status_hints,
@@ -232,11 +241,11 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         bk_cloud_id = self.get_param("bk_cloud_id")
         address = self.get_param("address")
 
-        _ = _validate_and_get_machine(bk_cloud_id, address)
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
 
         return Response(
             {
-                "runtime_status": mysql_show_slave_status(bk_cloud_id=bk_cloud_id, address=address),
+                "runtime_status": mysql_show_slave_status(bk_cloud_id=machine_obj.bk_cloud_id, address=address),
             }
         )
 
