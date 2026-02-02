@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -17,6 +18,57 @@ import (
 
 var name = "proxy-rebind"
 var re *regexp.Regexp
+
+// 常见的系统命令路径
+var commonPaths = []string{
+	"/usr/bin",
+	"/bin",
+	"/usr/sbin",
+	"/sbin",
+	"/usr/local/bin",
+	"/usr/local/sbin",
+}
+
+// findCommand 在 $PATH 和常见路径中查找命令
+func findCommand(cmd string) (string, error) {
+	// 合并用户 $PATH 和常见路径，去重
+	searchPaths := make([]string, 0)
+	seen := make(map[string]bool)
+
+	// 先加入用户 $PATH
+	if pathEnv := os.Getenv("PATH"); pathEnv != "" {
+		for _, p := range strings.Split(pathEnv, string(os.PathListSeparator)) {
+			if p != "" && !seen[p] {
+				seen[p] = true
+				searchPaths = append(searchPaths, p)
+			}
+		}
+	}
+
+	// 再加入常见路径
+	for _, p := range commonPaths {
+		if !seen[p] {
+			seen[p] = true
+			searchPaths = append(searchPaths, p)
+		}
+	}
+
+	slog.Info("search paths for command", slog.String("cmd", cmd), slog.Any("paths", searchPaths))
+
+	// 在合并后的路径中查找
+	for _, dir := range searchPaths {
+		fullPath := filepath.Join(dir, cmd)
+		if info, err := os.Stat(fullPath); err == nil && !info.IsDir() {
+			// 检查是否有执行权限
+			if info.Mode()&0111 != 0 {
+				slog.Info("found command", slog.String("cmd", cmd), slog.String("path", fullPath))
+				return fullPath, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("command %s not found in PATH or common paths", cmd)
+}
 
 type Checker struct {
 	//db *sqlx.DB
@@ -31,10 +83,10 @@ func (c *Checker) Run() (msg string, err error) {
 		),
 	)
 	slog.Info("find lsof command", slog.String("PATH", os.Getenv("PATH")))
-	commandPath, err := exec.LookPath("lsof")
+	commandPath, err := findCommand("lsof")
 	if err != nil {
-		slog.Error("find lsof failed", slog.String("error", err.Error()))
-		return "", err
+		slog.Error("find lsof failed, skip check", slog.String("error", err.Error()))
+		return "", nil
 	}
 	slog.Info("find lsof command", slog.String("path", commandPath))
 
