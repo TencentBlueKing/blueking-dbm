@@ -105,13 +105,10 @@ class ClusterEntrySerializer(serializers.Serializer):
     entry_addr = serializers.CharField(help_text=_("入口地址"))
 
 
-class StorageInstancesTopoSerializer(serializers.Serializer):
+class RedisInstancesTopoSerializer(serializers.Serializer):
     """存储实例拓扑统计信息"""
 
     node_count = serializers.IntegerField(help_text=_("存储节点总数"))
-    by_role = serializers.DictField(
-        child=serializers.IntegerField(), help_text=_("按角色分布统计，如 {'redis_master': 56, 'redis_slave': 56}")
-    )
     by_status = serializers.DictField(child=serializers.IntegerField(), help_text=_("按状态分布统计，如 {'running': 112}"))
     versions = serializers.ListField(child=serializers.CharField(), help_text=_("版本列表"))
     machine_count = serializers.IntegerField(help_text=_("机器数量"))
@@ -120,22 +117,9 @@ class StorageInstancesTopoSerializer(serializers.Serializer):
     by_device_class = serializers.DictField(child=serializers.IntegerField(), help_text=_("按设备类型分布统计"))
 
 
-class ProxyInstancesTopoSerializer(serializers.Serializer):
-    """代理实例拓扑统计信息"""
+class RedisClusterBasicOutputSerializer(serializers.Serializer):
+    """集群基本信息完整输出序列化器"""
 
-    node_count = serializers.IntegerField(help_text=_("代理节点总数"))
-    by_status = serializers.DictField(child=serializers.IntegerField(), help_text=_("按状态分布统计"))
-    versions = serializers.ListField(child=serializers.CharField(), help_text=_("版本列表"))
-    machine_count = serializers.IntegerField(help_text=_("机器数量"))
-    by_os = serializers.DictField(child=serializers.IntegerField(), help_text=_("按操作系统分布统计"))
-    by_sub_zone = serializers.DictField(child=serializers.IntegerField(), help_text=_("按子Zone分布统计"))
-    by_device_class = serializers.DictField(child=serializers.IntegerField(), help_text=_("按设备类型分布统计"))
-
-
-class ClusterTopoOutputSerializer(serializers.Serializer):
-    """集群拓扑信息完整输出序列化器"""
-
-    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     immute_domain = serializers.CharField(help_text=_("集群域名"))
@@ -147,8 +131,10 @@ class ClusterTopoOutputSerializer(serializers.Serializer):
     tags = serializers.ListField(child=serializers.CharField(), help_text=_("标签列表"))
     cluster_entries = serializers.ListField(child=ClusterEntrySerializer(), help_text=_("集群访问入口列表"))
 
-    storage_instances = StorageInstancesTopoSerializer(help_text=_("存储实例统计"))
-    proxy_instances = ProxyInstancesTopoSerializer(help_text=_("代理实例统计"))
+
+class RedisClusterStorageDepOutputSerializer(serializers.Serializer):
+    redis_master = RedisInstancesTopoSerializer(help_text=_("Master实例统计"))
+    redis_slave = RedisInstancesTopoSerializer(help_text=_("Slave实例统计"))
 
 
 class RedisBizInputSerializer(serializers.Serializer):
