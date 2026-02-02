@@ -85,7 +85,7 @@ type ComponentResource struct {
 	// Current request
 	ComponentName          string                  `json:"componentName,omitempty"`
 	ComponentDef           string                  `json:"componentDef,omitempty"`
-	Version                string                  `json:"version,omitempty"`
+	Version                *string                 `json:"version,omitempty"`
 	Replicas               int32                   `json:"replicas,omitempty" binding:"omitempty,gte=1,lte=1000" msg:"replicas 配置有误，范围 1～1000"` // nolint:lll
 	Env                    map[string]interface{}  `json:"env,omitempty"`
 	Request                *Resource               `json:"request,omitempty"`
@@ -163,7 +163,7 @@ func GetClusterResponseData(cluster *unstructured.Unstructured) (*ClusterRespons
 
 		componentResource := ComponentResource{
 			ComponentName: componentSpec.Name,
-			Version:       componentSpec.ServiceVersion,
+			Version:       &componentSpec.ServiceVersion,
 			Replicas:      componentSpec.Replicas,
 			Connect:       connect,
 			Request: &Resource{

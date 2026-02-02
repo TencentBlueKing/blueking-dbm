@@ -39,7 +39,10 @@ func (b *BaseServiceVersionResolver) Resolve(componentList []coreentity.Componen
 		return "", nil
 	}
 	component := componentList[0]
-	return component.Version, nil
+	if component.Version == nil {
+		return "", nil
+	}
+	return *component.Version, nil
 }
 
 // SurrealDBServiceVersionResolver SurrealDB 解析器
@@ -53,7 +56,10 @@ func (v *SurrealDBServiceVersionResolver) Resolve(componentList []coreentity.Com
 	}
 	for _, component := range componentList {
 		if component.ComponentName == "surreal" {
-			return component.Version, nil
+			if component.Version == nil {
+				return "", nil
+			}
+			return *component.Version, nil
 		}
 	}
 	return "", nil

@@ -357,7 +357,7 @@ func CreateUpgradeClusterObject(request *entity.Request, clusterObject *kbv1.Clu
 						ComponentName: compFromReq.ComponentName,
 					},
 					ComponentDefinitionName: util.StringPtr(cmpdName),
-					ServiceVersion:          util.StringPtr(compFromReq.Version),
+					ServiceVersion:          compFromReq.Version,
 				})
 			}
 		}
