@@ -394,7 +394,9 @@ def create_cluster_todo(ticket_id, cluster_phase, ticket_type):
     ticket = Ticket.objects.get(id=ticket_id)
     flow = Flow.objects.filter(ticket=ticket).order_by("-create_at").first()
     cluster_ids = fetch_cluster_ids(ticket.details)
-    if cluster_phase == ClusterPhase.OFFLINE:
+
+    # sqlserver集群禁用的时候状态是offline
+    if cluster_phase == ClusterPhase.OFFLINE and ticket_type != TicketType.SQLSERVER_RESET:
         dba, second_dba, other_dba = DBAdministrator.get_dba_for_db_type(ticket.bk_biz_id, ticket.group)
         biz_helpers = BizSettings.get_assistance(ticket.bk_biz_id)
         dba.append(ticket.creator)
@@ -421,7 +423,7 @@ def create_cluster_todo(ticket_id, cluster_phase, ticket_type):
                 )
             )
         Todo.objects.bulk_create(todo_list)
-    elif cluster_phase in [ClusterPhase.ONLINE, ClusterPhase.DESTROY]:
+    elif cluster_phase in [ClusterPhase.ONLINE, ClusterPhase.DESTROY, ClusterPhase.OFFLINE]:
         for cluster_id in cluster_ids:
             todo = Todo.objects.filter(
                 type=TodoType.CLUSTER_DISABLE, status=TodoStatus.TODO, context__cluster_id=cluster_id
@@ -429,7 +431,7 @@ def create_cluster_todo(ticket_id, cluster_phase, ticket_type):
             if not todo:
                 continue
             # 单据类型是sqlserver重置则获取RESET类型，清除对应的待办
-            if cluster_phase == ClusterPhase.ONLINE and ticket_type == TicketType.SQLSERVER_RESET:
+            if cluster_phase == ClusterPhase.OFFLINE and ticket_type == TicketType.SQLSERVER_RESET:
                 action = TodoActionType.RESET
             elif cluster_phase == ClusterPhase.ONLINE and ticket_type != TicketType.SQLSERVER_RESET:
                 action = TodoActionType.ENABLE
