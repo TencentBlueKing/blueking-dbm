@@ -919,28 +919,22 @@ func (hdl *TenDBClusterHandler) connectToAvailableTdbctl(cluster *config.TenDBCl
 			cluster.Domain, err.Error())
 	}
 
-	if len(instInfoList) == 0 {
-		return nil, gerrors.Newf(gerrors.Failure, "no instances found in domain(%s)", cluster.Domain)
-	}
-
-	var runningSpiderIPs []string
+	spiderIPs := make([]string, 0, len(instInfoList))
 	for _, inst := range instInfoList {
-		if inst.Status == string(dbm.StatusRunning) {
-			runningSpiderIPs = append(runningSpiderIPs, inst.Ip)
-		}
+		spiderIPs = append(spiderIPs, inst.Ip)
 	}
 
-	metadataList, err := hdl.dbmClient.QueryMetadataFromDbm(0, runningSpiderIPs)
+	metadataList, err := hdl.dbmClient.QueryMetadataFromDbm(0, spiderIPs)
 	if err != nil {
-		return nil, gerrors.Newf(gerrors.Failure, "failed to query metadata for spiders, errmsg: %s", err.Error())
+		return nil, gerrors.Newf(gerrors.Failure, "failed to query metadata for spiders, cluster: %s, errmsg: %s",
+			cluster.Domain, err.Error())
 	}
 
 	var lastErr error
 	for _, meta := range metadataList {
-		if meta.AdminPort == 0 {
+		if meta.Status != string(dbm.StatusRunning) {
 			continue
 		}
-
 		db, connErr := hdl.ConnectTdbctlNode(meta.IP, meta.AdminPort)
 		if connErr == nil {
 			return db, nil
@@ -952,7 +946,6 @@ func (hdl *TenDBClusterHandler) connectToAvailableTdbctl(cluster *config.TenDBCl
 		return nil, gerrors.Newf(gerrors.Failure, "failed to connect to any tdbctl node for cluster(%s), last errmsg: %s",
 			cluster.Domain, lastErr.Error())
 	}
-
 	return nil, gerrors.Newf(gerrors.Failure, "no available tdbctl node found for cluster(%s)", cluster.Domain)
 }
 
