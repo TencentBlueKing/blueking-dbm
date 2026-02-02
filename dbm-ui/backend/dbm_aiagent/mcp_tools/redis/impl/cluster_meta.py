@@ -58,15 +58,7 @@ def redis_list_clusters(bk_biz_id: int) -> List:
 
     return [
         {
-            "cluster_id": c.id,
-            "bk_cloud_id": c.bk_cloud_id,
-            "cluster_type": c.cluster_type,
             "immute_domain": c.immute_domain,
-            "alias": c.alias,
-            "region": c.region,
-            "proxy_count": len(c.proxyinstance_set.all()),
-            "master_count": len(c.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)),
-            "redis_version": c.major_version,
         }
         for c in clusters
     ]
