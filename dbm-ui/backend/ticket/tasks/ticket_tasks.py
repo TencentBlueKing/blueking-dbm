@@ -387,7 +387,7 @@ def create_recycle_ticket(revoke_ticket_id: int, recycle_hosts: list, recycle_ty
 
 
 @shared_task
-def create_cluster_todo(ticket_id, cluster_phase, ticket_type):
+def create_cluster_todo(ticket_id, cluster_phase):
     from backend.ticket.todos import ClusterDisableTodoContext, TodoActionType
 
     logger.info("--------------------create_cluster_todo-----{}-{}".format(ticket_id, cluster_phase))
@@ -428,10 +428,7 @@ def create_cluster_todo(ticket_id, cluster_phase, ticket_type):
             ).first()
             if not todo:
                 continue
-            # 单据类型是sqlserver重置则获取RESET类型，清除对应的待办
-            if cluster_phase == ClusterPhase.ONLINE and ticket_type == TicketType.SQLSERVER_RESET:
-                action = TodoActionType.RESET
-            elif cluster_phase == ClusterPhase.ONLINE and ticket_type != TicketType.SQLSERVER_RESET:
+            if cluster_phase == ClusterPhase.ONLINE:
                 action = TodoActionType.ENABLE
             else:
                 action = TodoActionType.DESTROY
