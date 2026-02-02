@@ -56,6 +56,11 @@ type ApmConfig struct {
 	ListenAddress string        `yaml:"listenAddress" mapstructure:"listenAddress"`
 }
 
+// GrpcConfig grpc configuration
+type GrpcConfig struct {
+	ListenAddress string `yaml:"listenAddress" mapstructure:"listenAddress"`
+}
+
 // WebConfig web configuration
 type WebConfig struct {
 	Host         string        `yaml:"host" 		 mapstructure:"host"`
@@ -96,6 +101,7 @@ type Configuration struct {
 	DocFileDir string          `yaml:"docFileDir" mapstructure:"docFileDir"`
 	Discovery  DiscoveryConfig `yaml:"discovery"  mapstructure:"discovery"`
 	Apm        ApmConfig       `yaml:"apm"        mapstructure:"apm"`
+	Grpc       GrpcConfig      `yaml:"grpc"       mapstructure:"grpc"`
 	Web        WebConfig       `yaml:"web"        mapstructure:"web"`
 	DbmApis    []DbmApi        `yaml:"dbmApi"     mapstructure:"dbmApi"`
 	Storage    StorageConfig   `yaml:"storage"    mapstructure:"storage"`

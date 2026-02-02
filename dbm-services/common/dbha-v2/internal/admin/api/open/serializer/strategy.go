@@ -122,6 +122,45 @@ type StrategyBatchUpdateStatusRequest struct {
 	Status  hamodel.StatusType `json:"status"    binding:"required" validate:"status"`
 }
 
+// GlobalStrategyCreateRequest global strategy create request
+type GlobalStrategyCreateRequest struct {
+	Name                   string                    `json:"name"                      binding:"required"`
+	TriggerEventName       haprobe.DbEventName       `json:"trigger_event_name"        binding:"required"`
+	TriggerEventNameReason haprobe.DbEventNameReason `json:"trigger_event_name_reason" validate:"triggerEventNameReason"`
+	TriggerCount           int                       `json:"trigger_count"             validate:"triggerCount"`
+	Priority               int                       `json:"priority"                  validate:"priority"`
+	Scope                  hamodel.ActionScopeType   `json:"scope"                     validate:"scope"`
+	Action                 hamodel.ActionType        `json:"action"                    validate:"action"`
+	Description            string                    `json:"description"`
+}
+
+// GlobalStrategyListRequest global strategy list request
+type GlobalStrategyListRequest struct {
+	Name   string `json:"name"   form:"name"`
+	Scope  string `json:"scope"  form:"scope"`
+	Action string `json:"action" form:"action"`
+	Status string `json:"status" form:"status"`
+	Offset int    `json:"offset" form:"offset"`
+	Limit  int    `json:"limit"  form:"limit"`
+}
+
+// GlobalStrategyUpdateRequest global strategy update request
+type GlobalStrategyUpdateRequest struct {
+	Name                   string                    `json:"name"                      binding:"required"`
+	TriggerEventName       haprobe.DbEventName       `json:"trigger_event_name"        binding:"required"`
+	TriggerEventNameReason haprobe.DbEventNameReason `json:"trigger_event_name_reason" validate:"triggerEventNameReason"`
+	TriggerCount           int                       `json:"trigger_count"             validate:"triggerCount"`
+	Priority               int                       `json:"priority"                  validate:"priority"`
+	Scope                  hamodel.ActionScopeType   `json:"scope"                     validate:"scope"`
+	Action                 hamodel.ActionType        `json:"action"                    validate:"action"`
+	Description            string                    `json:"description"`
+}
+
+// GlobalStrategyStatusUpdateRequest global strategy status update request
+type GlobalStrategyStatusUpdateRequest struct {
+	Status hamodel.StatusType `json:"status"    binding:"required" validate:"status"`
+}
+
 // CheckDuplicatedName check duplicated name
 func CheckDuplicatedName(s *strategy.Strategy, id int, bkBizID int, name string) (bool, error) {
 	return s.DuplicatedName(id, bkBizID, name)

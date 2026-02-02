@@ -193,7 +193,6 @@ func (h *StrategyHandler) BatchUpdate(c *gin.Context) {
 			Scope:                  strategyInfo.Scope,
 			Action:                 strategyInfo.Action,
 			Description:            strategyInfo.Description,
-			Status:                 hamodel.StatusTypeEnabled,
 		})
 	}
 
@@ -401,6 +400,16 @@ func (h *StrategyHandler) Update(c *gin.Context) {
 		return
 	}
 
+	existingStrategy, err := h.strategyService.GetStrategy(pathParam.ID, req.BkBizID)
+	if err != nil {
+		ginx.SystemErrorJSONResponse(c, err)
+		return
+	}
+	if existingStrategy == nil || existingStrategy.ID == 0 {
+		ginx.NotFoundJSONResponse(c, ginx.ErrStrategyNotFound)
+		return
+	}
+
 	isDuplicated, err := serializer.CheckDuplicatedName(h.strategyService, pathParam.ID, req.BkBizID, req.Name)
 	if err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
@@ -422,7 +431,6 @@ func (h *StrategyHandler) Update(c *gin.Context) {
 		Scope:                  req.Scope,
 		Action:                 req.Action,
 		Description:            req.Description,
-		Status:                 hamodel.StatusTypeEnabled,
 	}
 
 	if err := h.strategyService.UpdateStrategy(strategyInfo); err != nil {
@@ -454,6 +462,16 @@ func (h *StrategyHandler) Delete(c *gin.Context) {
 	var req serializer.StrategyRequest
 	if err := c.ShouldBind(&req); err != nil {
 		ginx.BadRequestErrorJSONResponse(c, err)
+		return
+	}
+
+	existingStrategy, err := h.strategyService.GetStrategy(pathParam.ID, req.BkBizID)
+	if err != nil {
+		ginx.SystemErrorJSONResponse(c, err)
+		return
+	}
+	if existingStrategy == nil || existingStrategy.ID == 0 {
+		ginx.NotFoundJSONResponse(c, ginx.ErrStrategyNotFound)
 		return
 	}
 
@@ -489,7 +507,312 @@ func (h *StrategyHandler) StatusUpdate(c *gin.Context) {
 		return
 	}
 
+	existingStrategy, err := h.strategyService.GetStrategy(pathParam.ID, req.BkBizID)
+	if err != nil {
+		ginx.SystemErrorJSONResponse(c, err)
+		return
+	}
+	if existingStrategy == nil || existingStrategy.ID == 0 {
+		ginx.NotFoundJSONResponse(c, ginx.ErrStrategyNotFound)
+		return
+	}
+
 	if err := h.strategyService.UpdateStrategyStatus(pathParam.ID, req.BkBizID, req.Status); err != nil {
+		ginx.SystemErrorJSONResponse(c, err)
+		return
+	}
+
+	ginx.SuccessNoContentResponse(c)
+}
+
+// GlobalList global strategies list
+//
+//	@ID			openapi_global_strategy_list
+//	@Summary	global strategy list
+//	@Accept		json
+//	@Produce	json
+//	@Tags		openapi.strategy
+//	@Param		request	query		serializer.GlobalStrategyListRequest	false	"query parameters"
+//	@Success	200		{object}	ginx.PaginatedResponse{results=serializer.StrategyListResponse}
+//	@Router		/api/admin/global-strategies/ [get]
+func (h *StrategyHandler) GlobalList(c *gin.Context) {
+	var req serializer.GlobalStrategyListRequest
+	if err := c.ShouldBind(&req); err != nil {
+		ginx.BadRequestErrorJSONResponse(c, err)
+		return
+	}
+
+	strategies, count, err := h.strategyService.ListStrategies(
+		0,
+		req.Name,
+		req.Scope,
+		req.Action,
+		req.Status,
+		ginx.GetOffset(c),
+		ginx.GetLimit(c),
+	)
+	if err != nil {
+		ginx.SystemErrorJSONResponse(c, err)
+		return
+	}
+
+	var output serializer.StrategyListResponse
+
+	for _, strategyInfo := range strategies {
+		output = append(output, serializer.StrategyOutputInfo{
+			StrategyInfo: serializer.StrategyInfo{
+				ID:                     strategyInfo.ID,
+				Name:                   strategyInfo.Name,
+				BkBizID:                strategyInfo.BkBizID,
+				TriggerEventName:       strategyInfo.TriggerEventName,
+				TriggerEventNameReason: strategyInfo.TriggerEventNameReason,
+				TriggerCount:           strategyInfo.TriggerCount,
+				Priority:               strategyInfo.Priority,
+				Scope:                  strategyInfo.Scope,
+				Action:                 strategyInfo.Action,
+				Description:            strategyInfo.Description,
+			},
+			Status:    strategyInfo.Status,
+			CreatedAt: strategyInfo.CreatedAt,
+			UpdatedAt: strategyInfo.UpdatedAt,
+		})
+	}
+
+	ginx.SuccessJSONResponse(c, ginx.NewPaginatedRespData(count, output))
+}
+
+// GlobalCreate creates a global strategy
+//
+//	@ID			openapi_global_strategy_create
+//	@Summary	global strategy create
+//	@Accept		json
+//	@Produce	json
+//	@Tags		openapi.strategy
+//	@Param		request	body	serializer.GlobalStrategyCreateRequest	true	"strategy create request"
+//	@Success	201
+//	@Router		/api/admin/global-strategies/ [post]
+func (h *StrategyHandler) GlobalCreate(c *gin.Context) {
+	var req serializer.GlobalStrategyCreateRequest
+	if err := hanet.BindAndValidate(c, &req); err != nil {
+		ginx.BadRequestErrorJSONResponse(c, err)
+		return
+	}
+
+	isDuplicated, err := serializer.CheckDuplicatedName(h.strategyService, 0, 0, req.Name)
+	if err != nil {
+		ginx.SystemErrorJSONResponse(c, err)
+		return
+	}
+	if isDuplicated {
+		ginx.BadRequestErrorJSONResponse(c, ginx.ErrStrategyNameExists)
+		return
+	}
+
+	strategyInfo := &hamodel.DbSwitchingStrategy{
+		Name:                   req.Name,
+		BkBizID:                0,
+		TriggerEventName:       req.TriggerEventName,
+		TriggerEventNameReason: req.TriggerEventNameReason,
+		TriggerCount:           req.TriggerCount,
+		Priority:               req.Priority,
+		Scope:                  req.Scope,
+		Action:                 req.Action,
+		Description:            req.Description,
+		Status:                 hamodel.StatusTypeEnabled,
+	}
+
+	if err := h.strategyService.CreateStrategy(strategyInfo); err != nil {
+		ginx.SystemErrorJSONResponse(c, err)
+		return
+	}
+
+	ginx.SuccessCreateResponse(c)
+}
+
+// GlobalGet gets a global strategy
+//
+//	@ID			openapi_global_strategy_get
+//	@Summary	global strategy get
+//	@Accept		json
+//	@Produce	json
+//	@Tags		openapi.strategy
+//	@Param		id	path		int	true	"strategy id"
+//	@Success	200	{object}	serializer.StrategyOutputInfo
+//	@Router		/api/admin/global-strategies/{id}/ [get]
+func (h *StrategyHandler) GlobalGet(c *gin.Context) {
+	var pathParam serializer.StrategyPathParam
+	if err := c.ShouldBindUri(&pathParam); err != nil {
+		ginx.BadRequestErrorJSONResponse(c, err)
+		return
+	}
+
+	strategyInfo, err := h.strategyService.GetStrategy(pathParam.ID, 0)
+	if err != nil {
+		ginx.SystemErrorJSONResponse(c, err)
+		return
+	}
+
+	if strategyInfo == nil || strategyInfo.ID == 0 {
+		ginx.NotFoundJSONResponse(c, ginx.ErrStrategyNotFound)
+		return
+	}
+
+	output := serializer.StrategyOutputInfo{
+		StrategyInfo: serializer.StrategyInfo{
+			ID:                     strategyInfo.ID,
+			Name:                   strategyInfo.Name,
+			BkBizID:                strategyInfo.BkBizID,
+			TriggerEventName:       strategyInfo.TriggerEventName,
+			TriggerEventNameReason: strategyInfo.TriggerEventNameReason,
+			TriggerCount:           strategyInfo.TriggerCount,
+			Priority:               strategyInfo.Priority,
+			Scope:                  strategyInfo.Scope,
+			Action:                 strategyInfo.Action,
+			Description:            strategyInfo.Description,
+		},
+		Status:    strategyInfo.Status,
+		CreatedAt: strategyInfo.CreatedAt,
+		UpdatedAt: strategyInfo.UpdatedAt,
+	}
+
+	ginx.SuccessJSONResponse(c, output)
+}
+
+// GlobalUpdate updates a global strategy
+//
+//	@ID			openapi_global_strategy_update
+//	@Summary	global strategy update
+//	@Accept		json
+//	@Produce	json
+//	@Tags		openapi.strategy
+//	@Param		id		path	int										true	"strategy id"
+//	@Param		request	body	serializer.GlobalStrategyUpdateRequest	true	"strategy update request"
+//	@Success	204
+//	@Router		/api/admin/global-strategies/{id}/ [put]
+func (h *StrategyHandler) GlobalUpdate(c *gin.Context) {
+	var pathParam serializer.StrategyPathParam
+	if err := c.ShouldBindUri(&pathParam); err != nil {
+		ginx.BadRequestErrorJSONResponse(c, err)
+		return
+	}
+
+	var req serializer.GlobalStrategyUpdateRequest
+	if err := hanet.BindAndValidate(c, &req); err != nil {
+		ginx.BadRequestErrorJSONResponse(c, err)
+		return
+	}
+
+	existingStrategy, err := h.strategyService.GetStrategy(pathParam.ID, 0)
+	if err != nil {
+		ginx.SystemErrorJSONResponse(c, err)
+		return
+	}
+	if existingStrategy == nil || existingStrategy.ID == 0 {
+		ginx.NotFoundJSONResponse(c, ginx.ErrStrategyNotFound)
+		return
+	}
+
+	isDuplicated, err := serializer.CheckDuplicatedName(h.strategyService, pathParam.ID, 0, req.Name)
+	if err != nil {
+		ginx.SystemErrorJSONResponse(c, err)
+		return
+	}
+	if isDuplicated {
+		ginx.BadRequestErrorJSONResponse(c, ginx.ErrStrategyNameExists)
+		return
+	}
+
+	strategyInfo := &hamodel.DbSwitchingStrategy{
+		ID:                     pathParam.ID,
+		Name:                   req.Name,
+		BkBizID:                0,
+		TriggerEventName:       req.TriggerEventName,
+		TriggerEventNameReason: req.TriggerEventNameReason,
+		TriggerCount:           req.TriggerCount,
+		Priority:               req.Priority,
+		Scope:                  req.Scope,
+		Action:                 req.Action,
+		Description:            req.Description,
+	}
+
+	if err := h.strategyService.UpdateStrategy(strategyInfo); err != nil {
+		ginx.SystemErrorJSONResponse(c, err)
+		return
+	}
+
+	ginx.SuccessNoContentResponse(c)
+}
+
+// GlobalDelete deletes a global strategy
+//
+//	@ID			openapi_global_strategy_delete
+//	@Summary	global strategy delete
+//	@Accept		json
+//	@Produce	json
+//	@Tags		openapi.strategy
+//	@Param		id	path	int	true	"strategy id"
+//	@Success	204
+//	@Router		/api/admin/global-strategies/{id}/ [delete]
+func (h *StrategyHandler) GlobalDelete(c *gin.Context) {
+	var pathParam serializer.StrategyPathParam
+	if err := c.ShouldBindUri(&pathParam); err != nil {
+		ginx.BadRequestErrorJSONResponse(c, err)
+		return
+	}
+
+	existingStrategy, err := h.strategyService.GetStrategy(pathParam.ID, 0)
+	if err != nil {
+		ginx.SystemErrorJSONResponse(c, err)
+		return
+	}
+	if existingStrategy == nil || existingStrategy.ID == 0 {
+		ginx.NotFoundJSONResponse(c, ginx.ErrStrategyNotFound)
+		return
+	}
+
+	if err := h.strategyService.UpdateStrategyStatus(pathParam.ID, 0, hamodel.StatusTypeDeleted); err != nil {
+		ginx.SystemErrorJSONResponse(c, err)
+		return
+	}
+
+	ginx.SuccessNoContentResponse(c)
+}
+
+// GlobalStatusUpdate updates a global strategy status
+//
+//	@ID			openapi_global_strategy_status_update
+//	@Summary	global strategy status update
+//	@Accept		json
+//	@Produce	json
+//	@Tags		openapi.strategy
+//	@Param		id		path	int												true	"strategy id"
+//	@Param		request	body	serializer.GlobalStrategyStatusUpdateRequest	true	"strategy status update request"
+//	@Success	204
+//	@Router		/api/admin/global-strategies/{id}/status/ [put]
+func (h *StrategyHandler) GlobalStatusUpdate(c *gin.Context) {
+	var pathParam serializer.StrategyPathParam
+	if err := c.ShouldBindUri(&pathParam); err != nil {
+		ginx.BadRequestErrorJSONResponse(c, err)
+		return
+	}
+
+	var req serializer.GlobalStrategyStatusUpdateRequest
+	if err := hanet.BindAndValidate(c, &req); err != nil {
+		ginx.BadRequestErrorJSONResponse(c, err)
+		return
+	}
+
+	existingStrategy, err := h.strategyService.GetStrategy(pathParam.ID, 0)
+	if err != nil {
+		ginx.SystemErrorJSONResponse(c, err)
+		return
+	}
+	if existingStrategy == nil || existingStrategy.ID == 0 {
+		ginx.NotFoundJSONResponse(c, ginx.ErrStrategyNotFound)
+		return
+	}
+
+	if err := h.strategyService.UpdateStrategyStatus(pathParam.ID, 0, req.Status); err != nil {
 		ginx.SystemErrorJSONResponse(c, err)
 		return
 	}
