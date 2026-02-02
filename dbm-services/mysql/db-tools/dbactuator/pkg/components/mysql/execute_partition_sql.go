@@ -269,7 +269,8 @@ func (e *ExecutePartitionSQLComp) excuteOne(
 	for _, partitionSQL := range partitionSQLSet {
 		_, err = dbw.Exec(partitionSQL)
 		if err != nil {
-			errs = append(errs, fmt.Sprintf("%s执行失败，报错：%s", partitionSQL, err.Error()))
+			logger.InfoNotForAi("%s执行失败，报错：%s", partitionSQL, err.Error())
+			errs = append(errs, fmt.Sprintf("执行失败报错：%s\n", err.Error()))
 		}
 		// c <- struct{}{}
 		// wg.Add(1)
@@ -350,7 +351,8 @@ func (e *ExecutePartitionSQLComp) excuteInitSql(
 				Password:         e.GeneralParam.RuntimeAccountParam.PartitionYwPwd,
 			}.ExecuteInitPartition(command)
 			if err != nil {
-				errs = append(errs, fmt.Sprintf("%s执行失败，报错：%s", command, err.Error()))
+				logger.InfoNotForAi("%s执行失败，报错：%s\n", command, err.Error())
+				errs = append(errs, fmt.Sprintf("执行失败报错：%s\n", err.Error()))
 			}
 		}
 	}

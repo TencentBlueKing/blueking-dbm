@@ -40,6 +40,17 @@ func (l *Logger) Info(format string, args ...interface{}) {
 	l.Zap.Info(fmt.Sprintf(format, args...), l.Fields...)
 }
 
+// InfoWithLabel 输出带标签的日志
+func (l *Logger) InfoWithLabel(label string, format string, args ...interface{}) {
+	fields := append(l.Fields, zap.String("label", label))
+	l.Zap.Info(fmt.Sprintf(format, args...), fields...)
+}
+
+// InfoNotForAi 输出不用于AI分析的日志，避免超过ai模型输入限制
+func (l *Logger) InfoNotForAi(format string, args ...interface{}) {
+	l.InfoWithLabel(NotForAi, format, args...)
+}
+
 // Warn TODO
 func (l *Logger) Warn(format string, args ...interface{}) {
 	l.Zap.Warn(fmt.Sprintf(format, args...), l.Fields...)

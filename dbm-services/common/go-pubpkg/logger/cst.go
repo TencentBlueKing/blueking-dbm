@@ -27,3 +27,6 @@ const (
 
 // DatetimeUnion TODO
 const DatetimeUnion = "20160102150405"
+
+// NotForAi 不做AI分析的日志标签
+const NotForAi = "not_for_ai"
