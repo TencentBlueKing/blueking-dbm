@@ -15,7 +15,6 @@ from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.redis.impl.redis_status import (
     get_redis_client_list,
     get_redis_clients_info,
-    get_redis_cluster_topology_text,
     get_redis_command_stats_delta,
     get_redis_cpu_info,
     get_redis_keyspace_info,
@@ -24,10 +23,6 @@ from backend.dbm_aiagent.mcp_tools.redis.impl.redis_status import (
     get_redis_replication_info,
     get_redis_server_info,
     get_redis_stats_info,
-)
-from backend.dbm_aiagent.mcp_tools.redis.serializers.cluster_status import (
-    RedisClusterInputSerializer,
-    RedisClusterTopologyTextSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.redis.serializers.instance_status import (
     RedisClientListResponseSerializer,
@@ -190,21 +185,21 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
         immute_domain = self.get_param("immute_domain")
         return Response(get_redis_command_stats_delta(redis_addr=redis_addr, immute_domain=immute_domain))
 
-    @mcp_tools_api_decorator(
-        description=str(
-            _(
-                "Redis集群拓扑MCP工具"
-                "查询Redis集群拓扑信息并以文本格式返回，格式类似：\n"
-                "1.2.68.13:30000 (40600 keys 0 B) 21/s OK => (1/1 slaves) 1.3.205.182:30000 (40600 keys 0 B) 24/s OK"
-            )
-        ),
-        request_slz=RedisClusterInputSerializer,
-        response_slz=RedisClusterTopologyTextSerializer,
-        tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
-        name_prefix="redis_query_status",
-    )
-    def get_cluster_topology(self, request, *args, **kwargs):
-        """获取Redis集群拓扑信息(文本格式)"""
-        immute_domain = self.get_param("immute_domain")
-        return Response(get_redis_cluster_topology_text(immute_domain=immute_domain))
+    # @mcp_tools_api_decorator(
+    #     description=str(
+    #         _(
+    #             "Redis集群拓扑MCP工具"
+    #             "查询Redis集群拓扑信息并以文本格式返回，格式类似：\n"
+    #             "1.2.68.13:30000 (40600 keys 0 B) 21/s OK => (1/1 slaves) 1.3.205.182:30000 (40600 keys 0 B) 24/s OK"
+    #         )
+    #     ),
+    #     request_slz=RedisClusterInputSerializer,
+    #     response_slz=RedisClusterTopologyTextSerializer,
+    #     tags=[DBMMCPTags.READ],
+    #     mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
+    #     name_prefix="redis_query_status",
+    # )
+    # def get_cluster_topology(self, request, *args, **kwargs):
+    #     """获取Redis集群拓扑信息(文本格式)"""
+    #     immute_domain = self.get_param("immute_domain")
+    #     return Response(get_redis_cluster_topology_text(immute_domain=immute_domain))
