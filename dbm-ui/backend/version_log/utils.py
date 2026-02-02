@@ -36,6 +36,14 @@ def get_md_files_dir_with_language_code(language_code=None):
 def get_parsed_markdown_file_path(log_version, language_code=None):
     """
     获取版本日志的文件路径
+
+    :param log_version: 版本号，格式如：V1.5.0、V1.5.0-alpha.78等
+                      - 支持V前缀（可选）
+                      - 支持预发布版本标识（alpha/beta/rc等）
+                      - 该参数会经过validate_log_version函数进行安全检查
+                      - 防止路径遍历攻击和非法字符
+    :param language_code: 语言代码，用于多语言版本日志
+    :return: markdown文件的完整路径，如果文件不存在则返回None
     """
     # 根据版本号获取对应md文件
     md_files_dir = get_md_files_dir_with_language_code(language_code)
@@ -55,7 +63,17 @@ def get_parsed_markdown_file_path(log_version, language_code=None):
 
 
 def get_parsed_html(log_version, language_code=None):
-    """获取版本日志对应的html代码"""
+    """
+    获取版本日志对应的html代码
+
+    :param log_version: 版本号，格式如：V1.5.0、V1.5.0-alpha.78等
+                      - 支持V前缀（可选）
+                      - 支持预发布版本标识（alpha/beta/rc等）
+                      - 该参数会经过validate_log_version函数进行安全检查
+                      - 防止路径遍历攻击和非法字符
+    :param language_code: 语言代码，用于多语言版本日志
+    :return: 解析后的HTML内容
+    """
     md_file_path = get_parsed_markdown_file_path(log_version, language_code)
 
     mapped_language_code = None
