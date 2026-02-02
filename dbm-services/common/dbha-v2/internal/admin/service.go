@@ -254,13 +254,23 @@ func (s *Service) createGrpcServer() error {
 	)
 
 	proto.RegisterAdminServiceServer(svr, s)
-	listen, err := net.Listen("tcp", s.address)
+	listen, err := net.Listen("tcp", config.Cfg.Grpc.ListenAddress)
 	if err != nil {
 		return gerrors.New(gerrors.NetException, err.Error())
 	}
 
 	s.svr = svr
-	return s.svr.Serve(listen)
+
+	s.wg.Add(1)
+	go func() {
+		defer s.wg.Done()
+		if err := s.svr.Serve(listen); err != nil {
+			logger.Fatal("failed to run grpc server, errmsg: %s", err)
+		}
+		logger.Info("exited from the grpc server")
+	}()
+
+	return nil
 }
 
 func (s *Service) createApmServer() error {
@@ -286,7 +296,7 @@ func (s *Service) createApmServer() error {
 
 	s.wg.Add(1)
 	go func() {
-		s.wg.Done()
+		defer s.wg.Done()
 		if err := s.httpApmSvr.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal("failed to run apm server, errmsg: %s", err)
 		}

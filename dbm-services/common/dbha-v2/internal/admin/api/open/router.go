@@ -31,74 +31,126 @@ import (
 
 // RegisterOpenAPI register open api
 func RegisterOpenAPI(strategyHandler *handler.StrategyHandler, server *hanet.GinHTTPServer) {
-	// Register strategy apis
+	RegisterStrategyApi(strategyHandler, server)
+	RegisterGlobalStrategyApi(strategyHandler, server)
+}
+
+// RegisterStrategyApi register strategy api
+func RegisterStrategyApi(strategyHandler *handler.StrategyHandler, server *hanet.GinHTTPServer) {
+	group := "/api/admin/strategies"
 	server.RegisterAPI(&hanet.ResetAPI{
-		Group:   "/api/admin",
+		Group:   group,
 		Method:  hanet.HttpMethodPost,
-		Path:    "/strategies/",
+		Path:    "/",
 		Handler: strategyHandler.Create,
 	})
 
 	server.RegisterAPI(&hanet.ResetAPI{
-		Group:   "/api/admin",
+		Group:   group,
 		Method:  hanet.HttpMethodPost,
-		Path:    "/strategies/batch/",
+		Path:    "/batch/",
 		Handler: strategyHandler.BatchCreate,
 	})
 
 	server.RegisterAPI(&hanet.ResetAPI{
-		Group:   "/api/admin",
+		Group:   group,
 		Method:  hanet.HttpMethodPut,
-		Path:    "/strategies/batch/",
+		Path:    "/batch/",
 		Handler: strategyHandler.BatchUpdate,
 	})
 
 	server.RegisterAPI(&hanet.ResetAPI{
-		Group:   "/api/admin",
+		Group:   group,
 		Method:  hanet.HttpMethodDelete,
-		Path:    "/strategies/batch/",
+		Path:    "/batch/",
 		Handler: strategyHandler.BatchDelete,
 	})
 
 	server.RegisterAPI(&hanet.ResetAPI{
-		Group:   "/api/admin",
+		Group:   group,
 		Method:  hanet.HttpMethodPut,
-		Path:    "/strategies/batch/status/",
+		Path:    "/batch/status/",
 		Handler: strategyHandler.BatchUpdateStatus,
 	})
 
 	server.RegisterAPI(&hanet.ResetAPI{
-		Group:   "/api/admin",
+		Group:   group,
 		Method:  hanet.HttpMethodGet,
-		Path:    "/strategies/",
+		Path:    "/",
 		Handler: strategyHandler.List,
 	})
 
 	server.RegisterAPI(&hanet.ResetAPI{
-		Group:   "/api/admin",
+		Group:   group,
 		Method:  hanet.HttpMethodGet,
-		Path:    "/strategies/:id/",
+		Path:    "/:id/",
 		Handler: strategyHandler.Get,
 	})
 
 	server.RegisterAPI(&hanet.ResetAPI{
-		Group:   "/api/admin",
+		Group:   group,
 		Method:  hanet.HttpMethodPut,
-		Path:    "/strategies/:id/",
+		Path:    "/:id/",
 		Handler: strategyHandler.Update,
 	})
 
 	server.RegisterAPI(&hanet.ResetAPI{
-		Group:   "/api/admin",
+		Group:   group,
 		Method:  hanet.HttpMethodDelete,
-		Path:    "/strategies/:id/",
+		Path:    "/:id/",
 		Handler: strategyHandler.Delete,
 	})
 
 	server.RegisterAPI(&hanet.ResetAPI{
-		Group:   "/api/admin",
+		Group:   group,
 		Method:  hanet.HttpMethodPut,
-		Path:    "/strategies/:id/status/",
+		Path:    "/:id/status/",
 		Handler: strategyHandler.StatusUpdate,
+	})
+}
+
+// RegisterGlobalStrategyApi register global strategy api
+func RegisterGlobalStrategyApi(strategyHandler *handler.StrategyHandler, server *hanet.GinHTTPServer) {
+	group := "/api/admin/global-strategies"
+	server.RegisterAPI(&hanet.ResetAPI{
+		Group:   group,
+		Method:  hanet.HttpMethodGet,
+		Path:    "/",
+		Handler: strategyHandler.GlobalList,
+	})
+
+	server.RegisterAPI(&hanet.ResetAPI{
+		Group:   group,
+		Method:  hanet.HttpMethodPost,
+		Path:    "/",
+		Handler: strategyHandler.GlobalCreate,
+	})
+
+	server.RegisterAPI(&hanet.ResetAPI{
+		Group:   group,
+		Method:  hanet.HttpMethodGet,
+		Path:    "/:id/",
+		Handler: strategyHandler.GlobalGet,
+	})
+
+	server.RegisterAPI(&hanet.ResetAPI{
+		Group:   group,
+		Method:  hanet.HttpMethodPut,
+		Path:    "/:id/",
+		Handler: strategyHandler.GlobalUpdate,
+	})
+
+	server.RegisterAPI(&hanet.ResetAPI{
+		Group:   group,
+		Method:  hanet.HttpMethodDelete,
+		Path:    "/:id/",
+		Handler: strategyHandler.GlobalDelete,
+	})
+
+	server.RegisterAPI(&hanet.ResetAPI{
+		Group:   group,
+		Method:  hanet.HttpMethodPut,
+		Path:    "/:id/status/",
+		Handler: strategyHandler.GlobalStatusUpdate,
 	})
 }

@@ -13,7 +13,10 @@ discovery:
 apm:
   readTimeout: 10s
   writeTimeout: 10s
-  listenAddress: http://127.0.0.1:8081
+  listenAddress: 127.0.0.1:8081
+
+grpc:
+  listenAddress: 127.0.0.1:50051
 
 web:
   host: 127.0.0.1

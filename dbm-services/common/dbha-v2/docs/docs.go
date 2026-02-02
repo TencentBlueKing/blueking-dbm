@@ -16,6 +16,238 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/api/admin/global-strategies/": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openapi.strategy"
+                ],
+                "summary": "global strategy list",
+                "operationId": "openapi_global_strategy_list",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "action",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "scope",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "name": "status",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/dbm-services_common_dbha-v2_internal_admin_ginx.PaginatedResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "results": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyOutputInfo"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openapi.strategy"
+                ],
+                "summary": "global strategy create",
+                "operationId": "openapi_global_strategy_create",
+                "parameters": [
+                    {
+                        "description": "strategy create request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_common_dbha-v2_internal_admin_api_open_serializer.GlobalStrategyCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created"
+                    }
+                }
+            }
+        },
+        "/api/admin/global-strategies/{id}/": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openapi.strategy"
+                ],
+                "summary": "global strategy get",
+                "operationId": "openapi_global_strategy_get",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "strategy id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyOutputInfo"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openapi.strategy"
+                ],
+                "summary": "global strategy update",
+                "operationId": "openapi_global_strategy_update",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "strategy id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "strategy update request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_common_dbha-v2_internal_admin_api_open_serializer.GlobalStrategyUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openapi.strategy"
+                ],
+                "summary": "global strategy delete",
+                "operationId": "openapi_global_strategy_delete",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "strategy id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/api/admin/global-strategies/{id}/status/": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openapi.strategy"
+                ],
+                "summary": "global strategy status update",
+                "operationId": "openapi_global_strategy_status_update",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "strategy id",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "strategy status update request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dbm-services_common_dbha-v2_internal_admin_api_open_serializer.GlobalStrategyStatusUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
         "/api/admin/strategies/": {
             "get": {
                 "consumes": [
@@ -390,6 +622,83 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "dbm-services_common_dbha-v2_internal_admin_api_open_serializer.GlobalStrategyCreateRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "trigger_event_name"
+            ],
+            "properties": {
+                "action": {
+                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_hamodel.ActionType"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "priority": {
+                    "type": "integer"
+                },
+                "scope": {
+                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_hamodel.ActionScopeType"
+                },
+                "trigger_count": {
+                    "type": "integer"
+                },
+                "trigger_event_name": {
+                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventName"
+                },
+                "trigger_event_name_reason": {
+                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventNameReason"
+                }
+            }
+        },
+        "dbm-services_common_dbha-v2_internal_admin_api_open_serializer.GlobalStrategyStatusUpdateRequest": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "status": {
+                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_hamodel.StatusType"
+                }
+            }
+        },
+        "dbm-services_common_dbha-v2_internal_admin_api_open_serializer.GlobalStrategyUpdateRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "trigger_event_name"
+            ],
+            "properties": {
+                "action": {
+                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_hamodel.ActionType"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "priority": {
+                    "type": "integer"
+                },
+                "scope": {
+                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_hamodel.ActionScopeType"
+                },
+                "trigger_count": {
+                    "type": "integer"
+                },
+                "trigger_event_name": {
+                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventName"
+                },
+                "trigger_event_name_reason": {
+                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventNameReason"
+                }
+            }
+        },
         "dbm-services_common_dbha-v2_internal_admin_api_open_serializer.StrategyBatchCreateRequest": {
             "type": "object",
             "required": [
