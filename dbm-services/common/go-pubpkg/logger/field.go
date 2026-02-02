@@ -119,6 +119,11 @@ var (
 
 	// Local TODO
 	Local = std.Local
+
+	// InfoNotForAi 不做AI分析的日志输出函数
+	InfoNotForAi = std.InfoNotForAi
+	// InfoWithLabel 带标签的Info日志输出函数
+	InfoWithLabel = std.InfoWithLabel
 )
 
 var std = New(os.Stderr, false, InfoLevel)
@@ -139,6 +144,8 @@ func ResetDefault(l *Logger) {
 	Fatal = std.Fatal
 	Debug = std.Debug
 	Local = std.Local
+	InfoNotForAi = std.InfoNotForAi
+	InfoWithLabel = std.InfoWithLabel
 }
 
 // Sync TODO

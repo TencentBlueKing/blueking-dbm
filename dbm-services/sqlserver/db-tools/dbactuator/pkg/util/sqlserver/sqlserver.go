@@ -665,7 +665,7 @@ func ExecLocalSQLFile(sqlVersion string, dbName string, charsetNO int, filenames
 			logger.Error("the db [%s] exec sql script failed %s, result: %s ", dbName, err.Error(), ret)
 			return err
 		}
-		logger.Info("exec result: %s", ret)
+		logger.InfoNotForAi("exec result: %s", ret)
 		logger.Info("ths db [%s] exec sql script success  [%d:%s]", dbName, port, filename)
 	}
 
@@ -704,7 +704,7 @@ func ExecLocalSQLFileForDataExport(
 			logger.Error("the db [%s] exec sql script failed %s, result: %s ", dbName, err.Error(), ret)
 			return outPutFiles, err
 		}
-		logger.Info("exec result: %s", ret)
+		logger.InfoNotForAi("exec result: %s", ret)
 		logger.Info("ths db [%s] exec sql select script success  [%d:%s]", dbName, port, filename)
 	}
 
