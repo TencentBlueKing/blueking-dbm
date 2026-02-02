@@ -252,8 +252,8 @@ func UpdateValWithCompList(
 		for i, itemFromVal := range compListFromVal {
 			compFromVal, ok := itemFromVal.(map[string]interface{})
 			if ok && compFromVal["componentName"] == compFromReq.ComponentName {
-				if compFromReq.Version != "" {
-					compFromVal["serviceVersion"] = compFromReq.Version
+				if compFromReq.Version != nil {
+					compFromVal["serviceVersion"] = *compFromReq.Version
 				}
 				volumeClaimTemplates, vctOk := compFromVal["volumeClaimTemplates"].(map[string]interface{})
 				if vctOk && !compFromReq.Storage.IsZero() {

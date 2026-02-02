@@ -326,10 +326,13 @@ func (c *ClusterProvider) checkClusterVersion(request *coreentity.Request, errCo
 
 	// 检查组件版本是否在支持的版本列表中
 	for _, component := range request.ComponentList {
-		if !lo.Contains(supportedVersions, component.Version) {
+		if component.Version == nil {
+			continue
+		}
+		if !lo.Contains(supportedVersions, *component.Version) {
 			return dbserrors.NewK8sDbsError(errCode,
 				fmt.Errorf("组件 %s 的版本 %s 不在支持的版本列表中，支持的版本: %v",
-					component.ComponentName, component.Version, supportedVersions))
+					component.ComponentName, *component.Version, supportedVersions))
 		}
 	}
 
