@@ -149,7 +149,6 @@ class TodoActionType(StrStructuredEnum):
     SKIP = EnumField("SKIP", _("跳过"))
     CHANGE = EnumField("CHANGE", _("变更"))
     ENABLE = EnumField("ENABLE", _("启用集群"))
-    RESET = EnumField("RESET", _("重置集群"))
     DESTROY = EnumField("DESTROY", _("删除集群"))
 
 
