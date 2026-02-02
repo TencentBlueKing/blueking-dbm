@@ -152,11 +152,14 @@ class TicketFlowManager(object):
         if target_status == TicketStatus.TERMINATED and is_apply:
             create_recycle_ticket.apply_async(args=(self.ticket.id, [], TicketType.RECYCLE_APPLY_HOST))
 
-        # 如果是集群的禁用、启动、删除则处理相对应代办操作
-        if (
+        # 如果是集群的禁用、启动、删除、sqlserver重置则处理相对应代办操作
+        if target_status == TicketStatus.SUCCEEDED and (
             self.ticket.ticket_type in BuilderFactory.ticket_type__cluster_phase
-            and target_status == TicketStatus.SUCCEEDED
+            or self.ticket.ticket_type == TicketType.SQLSERVER_RESET
         ):
-            create_cluster_todo.apply_async(
-                args=(self.ticket.id, BuilderFactory.ticket_type__cluster_phase[self.ticket.ticket_type])
-            )
+            # sqlserver重置的前提是禁用成功，集群状态是 offline
+            if self.ticket.ticket_type == TicketType.SQLSERVER_RESET:
+                cluster_phase = "offline"
+            else:
+                cluster_phase = BuilderFactory.ticket_type__cluster_phase[self.ticket.ticket_type]
+            create_cluster_todo.apply_async(args=(self.ticket.id, cluster_phase, self.ticket.ticket_type))
