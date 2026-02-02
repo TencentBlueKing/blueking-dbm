@@ -74,6 +74,11 @@ def get_mysql_start_configs(mysql_var_map: dict) -> dict:
         "loose_log_bin_compress",
         "log_bin_compress",
         "slave_exec_mode",
+        "max_binlog_cache_size",
+        "max_allowed_packet",
+        "wait_timeout",
+        "interactive_timeout",
+        "group_concat_max_len",
         # InnoDB 参数
         "innodb_file_format",
         "innodb_file_per_table",
