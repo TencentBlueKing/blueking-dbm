@@ -26,6 +26,24 @@ export default class MonitorPolicy {
     value: string[];
   }[];
   db_type: string; // 所属db组件
+  detects_config: {
+    recovery_config: {
+      check_window: number;
+      status_setter: 'recovery' | 'recovery-nodata' | 'cover';
+    };
+    trigger_config: {
+      check_window: number;
+      count: number;
+      uptime: {
+        active_calendars: string[];
+        calendars: string[];
+        time_ranges: {
+          end: string;
+          start: string;
+        }[];
+      };
+    };
+  };
   dispatch_group_id: number;
   event_count: number; // 事件数量，-1代表未知，实际数量应为>=0
   event_url: string;
@@ -36,6 +54,12 @@ export default class MonitorPolicy {
   monitor_indicator: string;
   monitor_policy_id: number;
   name: string; // 策略名
+  no_data_config: {
+    agg_dimension: string[];
+    continuous: number;
+    is_enabled: boolean;
+    level: number;
+  };
   notify_groups: number[]; // 告警组ID列表
   notify_rules: string[];
   parent_id: number;
@@ -82,6 +106,7 @@ export default class MonitorPolicy {
     this.custom_conditions = payload.custom_conditions;
     this.dispatch_group_id = payload.dispatch_group_id;
     this.db_type = payload.db_type;
+    this.detects_config = payload.detects_config;
     this.event_count = payload.event_count;
     this.event_url = payload.event_url;
     this.id = payload.id;
@@ -91,6 +116,7 @@ export default class MonitorPolicy {
     this.monitor_policy_id = payload.monitor_policy_id;
     this.monitor_indicator = payload.monitor_indicator;
     this.name = payload.name;
+    this.no_data_config = payload.no_data_config;
     this.notify_rules = payload.notify_rules;
     this.notify_groups = payload.notify_groups;
     this.policy_status = payload.policy_status;
