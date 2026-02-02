@@ -13,20 +13,24 @@
 
 <template>
   <DbTab v-model:active="activeTab" />
-  <div class="global-strategy-content">
+  <div
+    v-if="activeTab"
+    class="global-strategy-content">
     <RenderContent
       :key="activeTab"
-      :active-db-type="activeTab" />
+      :db-type="activeTab" />
   </div>
 </template>
 <script setup lang="ts">
+  import { DBTypes } from '@common/const';
+
   import DbTab from '@components/db-tab/Index.vue';
 
   import RenderContent from './components/content/Index.vue';
 
   const route = useRoute();
 
-  const activeTab = ref<string>(route.query.db_type as string);
+  const activeTab = ref(route.query.db_type as DBTypes);
 </script>
 <style lang="less">
   .global-strategy-content {

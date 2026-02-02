@@ -27,6 +27,8 @@ interface UpdatePolicyParams {
     method: string;
     value: string[];
   }[];
+  detects_config: MonitorPolicyModel['detects_config'];
+  no_data_config: MonitorPolicyModel['no_data_config'];
   notify_groups: number[];
   notify_rules: string[];
   targets: {
@@ -410,3 +412,53 @@ export const getPolicyList = (params: {
       }[]
     >
   >(`${path}/policy/`, params);
+
+// 获取策略判断条件的无数据配置
+export const searchAlarmStrategy = (params: { monitor_policy_id: number }) =>
+  http.get<{
+    agg_dimension: string[];
+    data_source_list: {
+      data_source_label: string;
+      data_type_label: string;
+    }[];
+    metric_list: {
+      bk_biz_id: number;
+      collect_interval: number;
+      data_label: string;
+      data_source_label: string;
+      data_target: string;
+      data_type_label: string;
+      default_condition: any[];
+      default_dimensions: string[];
+      default_trigger_config: {
+        check_window: number;
+        count: number;
+      };
+      description: string;
+      dimensions: {
+        id: string;
+        is_dimension: boolean;
+        name: string;
+        type: string;
+      }[];
+      disabled: boolean;
+      extend_fields: Record<string, any>;
+      id: number;
+      metric_field: string;
+      metric_field_name: string;
+      metric_id: string;
+      name: string;
+      promql_metric: string;
+      readable_name: string;
+      related_id: string;
+      related_name: string;
+      remarks: any[];
+      result_table_id: string;
+      result_table_label: string;
+      result_table_label_name: string;
+      result_table_name: string;
+      time_field: string;
+      unit: string;
+      use_frequency: number;
+    }[];
+  }>(`${path}/policy/search_alarm_strategy/`, params);

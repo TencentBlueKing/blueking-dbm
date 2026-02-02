@@ -21,7 +21,7 @@
           @click="batchEditNoticeGroup">
           {{ t('批量设置告警组') }}
         </BkButton>
-        <BkSearchSelect
+        <DbSearchSelect
           v-model="searchValue"
           class="input-box"
           :data="searchSelectList"
@@ -36,6 +36,7 @@
         :columns="columns"
         :data-source="dataSource"
         :disable-select-method="disableSelectMethod"
+        releate-url-query
         :row-class="updateRowClass"
         selectable
         :show-overflow="false"
@@ -50,7 +51,7 @@
       :bizs-map="bizsMap"
       :cluster-list="clusterList"
       :data="currentChoosedRow"
-      :db-type="activeDbType"
+      :db-type="dbType"
       :existed-names="existedNames"
       :module-list="moduleList"
       :page-status="sliderPageType"
@@ -82,9 +83,10 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { DBTypeInfos, DBTypes } from '@common/const';
+
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import AuthButton from '@components/auth-component/button.vue';
-  import MoreActionExtend from '@components/more-action-extend/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { messageSuccess } from '@utils';
@@ -98,7 +100,7 @@
   export type RowData = ServiceReturnType<typeof queryMonitorPolicyList>['results'][0];
 
   interface Props {
-    activeDbType: string;
+    dbType: DBTypes;
   }
 
   interface SearchSelectItem {
@@ -116,7 +118,7 @@
   const dataSource = (params: ServiceParameters<typeof queryMonitorPolicyList>) =>
     queryMonitorPolicyList(
       Object.assign(params, {
-        db_type: props.activeDbType,
+        db_type: props.dbType,
       }),
       {
         permission: 'catch',
@@ -144,7 +146,7 @@
         { ...reqParams.value },
         {
           bk_biz_id: currentBizId,
-          db_type: props.activeDbType,
+          db_type: props.dbType,
         },
       );
     } finally {
@@ -164,6 +166,10 @@
   );
 
   const searchSelectList = computed(() => [
+    {
+      id: 'id',
+      name: 'ID',
+    },
     {
       id: 'name',
       name: t('策略名称'),
@@ -312,7 +318,16 @@
       minWidth: 180,
       render: ({ data }: { data: MonitorPolicyModel }) => {
         if (data.notify_groups.length === 0) {
-          return '--';
+          return (
+            <RenderNotifyGroup
+              data={[
+                {
+                  displayName: `${DBTypeInfos[props.dbType].name}_DBA`,
+                  id: props.dbType,
+                },
+              ]}
+            />
+          );
         }
 
         const dataList: {
@@ -405,39 +420,33 @@
             onClick={() => handleOpenSlider(data, 'clone')}
             action-id='monitor_policy_clone'
             permission={data.permission.monitor_policy_clone}
-            resource={props.activeDbType}
+            resource={props.dbType}
             text
             theme='primary'>
             {t('克隆')}
           </auth-button>
-          <bk-button
+          {/* <bk-button
             onClick={() => handleOpenMonitorAlarmPage(data.event_url)}
             text
             theme='primary'>
             {t('监控告警')}
-          </bk-button>
-          <MoreActionExtend>
-            {{
-              default: () => (
-                <>
-                  <auth-button
-                    onClick={() => handleClickDelete(data)}
-                    action-id='monitor_policy_delete'
-                    disabled={data.isInner}
-                    permission={data.permission.monitor_policy_delete}
-                    resource={data.id}
-                    results={data.permission.monitor_policy_delete}
-                    text>
-                    {t('删除')}
-                  </auth-button>
-                </>
-              ),
-            }}
-          </MoreActionExtend>
+          </bk-button> */}
+          {!data.isInner && (
+            <auth-button
+              onClick={() => handleClickDelete(data)}
+              action-id='monitor_policy_delete'
+              permission={data.permission.monitor_policy_delete}
+              resource={data.id}
+              results={data.permission.monitor_policy_delete}
+              text
+              theme='primary'>
+              {t('删除')}
+            </auth-button>
+          )}
         </div>
       ),
       showOverflow: false,
-      width: 220,
+      width: 120,
     },
   ];
 
@@ -541,7 +550,7 @@
   );
 
   watch(
-    () => props.activeDbType,
+    () => props.dbType,
     (type) => {
       if (type) {
         fetchClusers({
@@ -623,9 +632,9 @@
     isShowEditStrrategySideSilder.value = true;
   };
 
-  const handleOpenMonitorAlarmPage = (url: string) => {
-    window.open(url, '_blank');
-  };
+  // const handleOpenMonitorAlarmPage = (url: string) => {
+  //   window.open(url, '_blank');
+  // };
 
   const handleUpdatePolicySuccess = () => {
     fetchData();
