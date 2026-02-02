@@ -88,7 +88,7 @@
     renderTabs,
     () => {
       isShow.value = renderTabs.value.length > 0;
-      if (renderTabs.value.length > 0) {
+      if (renderTabs.value.length > 0 && !renderTabs.value.find((item) => item.id === moduleValue.value)) {
         moduleValue.value = renderTabs.value[0].id;
       }
     },

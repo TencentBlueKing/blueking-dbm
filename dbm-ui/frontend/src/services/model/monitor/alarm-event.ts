@@ -12,6 +12,8 @@
  */
 import dayjs from 'dayjs';
 
+import { DBTypes } from '@common/const';
+
 import { utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
@@ -37,6 +39,12 @@ export default class AlarmEvent {
   create_time: number;
   data_type: string;
   dbm_event: boolean;
+  dbm_policy: {
+    db_type: DBTypes;
+    id: number;
+    name: string;
+    parent_id: number;
+  };
   dedupe_keys: string[];
   dedupe_md5: string;
   description: string;
@@ -108,6 +116,7 @@ export default class AlarmEvent {
     this.create_time = payload.create_time;
     this.data_type = payload.data_type;
     this.dbm_event = payload.dbm_event;
+    this.dbm_policy = payload.dbm_policy;
     this.dedupe_keys = payload.dedupe_keys;
     this.dedupe_md5 = payload.dedupe_md5;
     this.description = payload.description;
