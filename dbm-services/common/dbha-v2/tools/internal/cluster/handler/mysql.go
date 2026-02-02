@@ -819,16 +819,21 @@ func (hdl *MysqlClusterHandler) ShowAllMysqlClustersRouting() error {
 	clusterRoutingList := make([]ClusterProxyRoutingInfo, 0)
 
 	for _, cluster := range config.ClusterConfig.MysqlClusters {
-		instInfoList, err := hdl.dbmClient.GetAllInstancesOfDomain(cluster.Domain)
+		proxyIPs := make([]string, 0, len(cluster.Proxy))
+		for _, proxy := range cluster.Proxy {
+			proxyIPs = append(proxyIPs, proxy.Host)
+		}
+
+		metadataList, err := hdl.dbmClient.QueryMetadataFromDbm(0, proxyIPs)
 		if err != nil {
-			return gerrors.Newf(gerrors.Failure, "failed to get instances of domain(%s), errmsg: %s",
+			return gerrors.Newf(gerrors.Failure, "failed to query metadata for cluster(%s), errmsg: %s",
 				cluster.Domain, err.Error())
 		}
 
-		inDomainIPs := make(map[string]bool)
-		for _, inst := range instInfoList {
-			if inst.Status == string(dbm.StatusRunning) {
-				inDomainIPs[inst.Ip] = true
+		runningProxyIPs := make(map[string]bool)
+		for _, meta := range metadataList {
+			if meta.Status == string(dbm.StatusRunning) {
+				runningProxyIPs[meta.IP] = true
 			}
 		}
 
@@ -838,7 +843,7 @@ func (hdl *MysqlClusterHandler) ShowAllMysqlClustersRouting() error {
 		}
 
 		for _, proxy := range cluster.Proxy {
-			if !inDomainIPs[proxy.Host] {
+			if !runningProxyIPs[proxy.Host] {
 				continue
 			}
 
