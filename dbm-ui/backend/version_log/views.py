@@ -34,13 +34,22 @@ def validate_log_version(log_version: str) -> bool:
     if not log_version:
         return False
 
-    # 允许的字符：字母、数字、下划线、点、连字符
-    pattern = r"^[a-zA-Z0-9._-]+$"
-
-    # 检查是否包含路径穿越字符
-    if any(char in log_version for char in ["..", "/", "\\"]):
+    if not log_version or len(log_version) > 50:  # 添加长度限制
         return False
 
+    # 只允许字母、数字、下划线、连字符、点号
+    if not re.match(r"^[a-zA-Z0-9._-]+$", log_version):
+        return False
+    # 允许的字符：字母、数字、下划线、点、连字符
+    # 支持格式：V1.5.0, V1.5.0-alpha.78, V1.5.0-beta.1, V1.5.0-rc.1, V1.5.0_20240101等
+    pattern = r"^[vV]?\d+(?:\.\d+)*(?:[-_][a-zA-Z]+(?:\.\d+)?)?$"
+
+    # 检查是否包含路径穿越字符
+    # 检查单个危险字符：点号、斜杠、反斜杠、冒号等
+    dangerous_chars = ["..", "/", "\\", ":", "*", "?", '"', "<", ">", "|"]
+
+    if any(char in log_version for char in dangerous_chars):
+        return False
     # 检查是否符合命名规范
     return bool(re.match(pattern, log_version))
 
