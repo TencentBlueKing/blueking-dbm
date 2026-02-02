@@ -930,7 +930,7 @@ func (hdl *TenDBClusterHandler) connectToAvailableTdbctl(cluster *config.TenDBCl
 			cluster.Domain, err.Error())
 	}
 
-	var lastErr error
+	var errs []string
 	for _, meta := range metadataList {
 		if meta.Status != string(dbm.StatusRunning) {
 			continue
@@ -939,12 +939,12 @@ func (hdl *TenDBClusterHandler) connectToAvailableTdbctl(cluster *config.TenDBCl
 		if connErr == nil {
 			return db, nil
 		}
-		lastErr = connErr
+		errs = append(errs, fmt.Sprintf("%s:%d - %s", meta.IP, meta.AdminPort, connErr.Error()))
 	}
 
-	if lastErr != nil {
-		return nil, gerrors.Newf(gerrors.Failure, "failed to connect to any tdbctl node for cluster(%s), last errmsg: %s",
-			cluster.Domain, lastErr.Error())
+	if len(errs) > 0 {
+		return nil, gerrors.Newf(gerrors.Failure, "failed to connect to any tdbctl node for cluster(%s), errors: [%s]",
+			cluster.Domain, strings.Join(errs, "; "))
 	}
 	return nil, gerrors.Newf(gerrors.Failure, "no available tdbctl node found for cluster(%s)", cluster.Domain)
 }
