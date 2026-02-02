@@ -125,12 +125,26 @@
         </template>
       </BkTableColumn>
       <BkTableColumn
-        field="appointee"
-        :label="t('负责人')"
+        field="dbm_policy"
+        :label="t('关联策略')"
         show-overflow="tooltip"
-        :width="160">
+        :width="240">
         <template #default="{ data }: { data: RowData }">
-          <span>{{ data.appointee?.join(',') }}</span>
+          <TextOverflowLayout>
+            <RouterLink
+              v-if="data.dbm_policy.name"
+              target="_blank"
+              :to="{
+                name: isGlobalPage || isTodoPage ? 'PlatGlobalStrategy' : 'monitorStrategy',
+                query: {
+                  id: data.dbm_policy.id,
+                  db_type: data.dbm_policy.db_type,
+                },
+              }">
+              {{ data.dbm_policy.name }}
+            </RouterLink>
+            <span v-else>--</span>
+          </TextOverflowLayout>
         </template>
       </BkTableColumn>
       <BkTableColumn
@@ -238,6 +252,7 @@
   import { useGlobalBizs, useSystemEnviron } from '@stores';
 
   import DbTable from '@components/db-table/index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { exportExcelFile } from '@utils';
 
@@ -351,6 +366,7 @@
       'createTimeDisplay',
       'bk_biz_id',
       'appointee',
+      'dbm_policy',
     ],
     disabled: ['alert_name'],
   };

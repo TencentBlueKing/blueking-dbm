@@ -15,7 +15,7 @@
   <DbSideslider
     :is-show="isShow"
     :show-footer="!isReadonlyPage"
-    :width="960"
+    :width="1110"
     @closed="handleClose">
     <template #header>
       <div class="header-main">
@@ -94,6 +94,10 @@
             </RuleCheck>
           </div>
         </BkFormItem>
+        <JudgingCondition
+          v-model="formModel"
+          :disabled="isReadonlyPage"
+          :monitor-policy-id="data.monitor_policy_id" />
         <BkFormItem
           :label="t('告警通知')"
           property="notifyRules"
@@ -147,6 +151,7 @@
     <template #footer>
       <BkButton
         class="mr-8"
+        :loading="isLoading"
         theme="primary"
         @click="handleConfirm">
         {{ t('确定') }}
@@ -157,11 +162,15 @@
         trigger="click"
         width="280"
         @confirm="handleClickConfirmRecoverDefault">
-        <BkButton class="mr-8">
+        <BkButton
+          class="mr-8"
+          :disabled="isLoading">
           {{ t('恢复默认') }}
         </BkButton>
       </BkPopConfirm>
-      <BkButton @click="handleClose">
+      <BkButton
+        :disabled="isLoading"
+        @click="handleClose">
         {{ t('取消') }}
       </BkButton>
     </template>
@@ -170,7 +179,8 @@
 
 <script setup lang="tsx">
   import _ from 'lodash';
-  import { computed } from 'vue';
+  import { computed, type UnwrapRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -180,6 +190,8 @@
   import { useGlobalBizs } from '@stores';
 
   import RuleCheck from '@components/monitor-rule-check/index.vue';
+
+  import JudgingCondition from '@views/monitor-alarm/common/JudgingCondition.vue';
 
   import { messageSuccess } from '@utils';
 
@@ -227,6 +239,8 @@
   const dangerValueRef = ref();
   const formRef = ref();
   const formModel = reactive({
+    detectsConfig: {} as ComponentProps<typeof JudgingCondition>['modelValue']['detectsConfig'],
+    noDataConfig: {} as ComponentProps<typeof JudgingCondition>['modelValue']['noDataConfig'],
     notifyRules: [] as string[],
     notifyTarget: [] as number[],
     strategyName: '',
@@ -237,6 +251,7 @@
   const dangerRule = computed(() => generateRule(props.data, 1));
   const warnRule = computed(() => generateRule(props.data, 2));
   const infoRule = computed(() => generateRule(props.data, 3));
+  const isLoading = computed(() => updateLoading.value || cloneLoading.value);
 
   const titleMap = {
     clone: t('克隆策略'),
@@ -304,7 +319,7 @@
     ],
   };
 
-  const { run: runClonePolicy } = useRequest(clonePolicy, {
+  const { loading: cloneLoading, run: runClonePolicy } = useRequest(clonePolicy, {
     manual: true,
     onSuccess: (cloneResponse) => {
       if (cloneResponse.bkm_id) {
@@ -315,7 +330,7 @@
     },
   });
 
-  const { run: runUpdatePolicy } = useRequest(updatePolicy, {
+  const { loading: updateLoading, run: runUpdatePolicy } = useRequest(updatePolicy, {
     manual: true,
     onSuccess: (updateResponse) => {
       if (updateResponse.bkm_id) {
@@ -352,6 +367,15 @@
         formModel.strategyName = getStrategyName();
         formModel.notifyRules = _.cloneDeep(data.notify_rules);
         formModel.notifyTarget = data.notify_groups.filter((id) => id in props.alarmGroupNameMap);
+        formModel.noDataConfig = _.cloneDeep(data.no_data_config);
+
+        const detectsConfig = _.cloneDeep(data.detects_config) as unknown as UnwrapRef<
+          typeof formModel
+        >['detectsConfig'];
+        detectsConfig.trigger_config.uptime.time_ranges = _.cloneDeep(
+          data.detects_config.trigger_config.uptime.time_ranges,
+        ).map((item) => [item.start, item.end] as [string, string]);
+        formModel.detectsConfig = detectsConfig;
       }
     },
   );
@@ -370,6 +394,16 @@
     formModel.strategyName = getStrategyName();
     formModel.notifyRules = _.cloneDeep(props.data.notify_rules);
     formModel.notifyTarget = _.cloneDeep(props.data.notify_groups);
+    formModel.noDataConfig = _.cloneDeep(props.data.no_data_config);
+
+    const detectsConfig = _.cloneDeep(props.data.detects_config) as unknown as UnwrapRef<
+      typeof formModel
+    >['detectsConfig'];
+    detectsConfig.trigger_config.uptime.time_ranges = _.cloneDeep(
+      props.data.detects_config.trigger_config.uptime.time_ranges,
+    ).map((item) => [item.start, item.end] as [string, string]);
+    formModel.detectsConfig = detectsConfig;
+
     monitorTargetRef.value.resetValue();
     if (infoValueRef.value) {
       infoValueRef.value.resetValue();
@@ -391,8 +425,17 @@
       dangerRule.value ? dangerValueRef.value.getValue() : undefined,
     ];
     const { custom_conditions, targets } = monitorTargetRef.value.getValue();
+    const detectsConfig = _.cloneDeep(formModel.detectsConfig) as unknown as MonitorPolicyModel['detects_config'];
+    detectsConfig.trigger_config.uptime.time_ranges = formModel.detectsConfig.trigger_config.uptime.time_ranges.map(
+      (item) => ({
+        end: item[1],
+        start: item[0],
+      }),
+    );
     const reqParams = {
       custom_conditions,
+      detects_config: detectsConfig,
+      no_data_config: formModel.noDataConfig,
       notify_groups: formModel.notifyTarget,
       notify_rules: formModel.notifyRules,
       targets,
