@@ -85,10 +85,10 @@ func main() {
 		}
 	}()
 
-	lcron := cron.New()
-	registerCrontab(lcron)
-	lcron.Start()
-	defer lcron.Stop()
+	localCron := cron.New()
+	registerCrontab(localCron)
+	localCron.Start()
+	defer localCron.Stop()
 
 	// Wait for interrupt signal to gracefully shutdown the server with
 	// a timeout of 5 seconds.
@@ -190,7 +190,7 @@ func registerCrontab(localcron *cron.Cron) {
 			Spec: "20 */12 * * *",
 			Func: func() {
 				logger.Info("Start sync machine hardware information .....")
-				if err := task.AsyncResourceHardInfo(); err != nil {
+				if err := task.AsyncBkCmdbAttributes(); err != nil {
 					logger.Error("async machine hardware information failed:%s", err.Error())
 				}
 			},

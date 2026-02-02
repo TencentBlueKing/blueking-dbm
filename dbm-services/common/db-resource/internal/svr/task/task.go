@@ -125,7 +125,7 @@ func init() {
 
 // archiveResource 异步归档资源
 func archiveResource(ids []int) (err error) {
-	return model.ArchiverResouce(ids)
+	return model.ArchiveResource(ids)
 }
 
 func recordTask(data ApplyResponseLogItem) error {
@@ -219,8 +219,8 @@ func UpdateResourceGseAgentStatus(bkHostIds ...int) (err error) {
 	return nil
 }
 
-// AsyncResourceHardInfo 异步同步主机磁盘硬件信息
-func AsyncResourceHardInfo() (err error) {
+// AsyncBkCmdbAttributes 异步同步主机CMDB属性
+func AsyncBkCmdbAttributes() (err error) {
 	logger.Info("start async from cmdb ...")
 	var rsList []model.TbRpDetail
 	err = model.DB.Self.Table(model.TbRpDetailName()).Where("total_storage_cap <= 0").Limit(300).Find(&rsList).Error
@@ -249,6 +249,15 @@ func AsyncResourceHardInfo() (err error) {
 				err = model.DB.Self.Table(model.TbRpDetailName()).Where("ip = ?  and  bk_biz_id = ? ", ccInfo.InnerIP, bizId).
 					Updates(map[string]interface{}{
 						"total_storage_cap": ccInfo.BkDisk,
+						"city":              ccInfo.IdcCityName,
+						"city_id":           ccInfo.IdcCityId,
+						"sub_zone":          ccInfo.SZone,
+						"sub_zone_id":       ccInfo.SZoneID,
+						"rack_id":           util.CleanStr(ccInfo.Equipment),
+						"net_device_id":     util.TransInnerSwitchIpAsNetDeviceId(ccInfo.InnerSwitchIp),
+						"os_name":           util.CleanOsName(ccInfo.OSName),
+						"os_version":        ccInfo.BkOsVersion,
+						"os_name_origin":    ccInfo.OSName,
 					}).Error
 				if err != nil {
 					logger.Warn("request cmdb api failed %s", err.Error())

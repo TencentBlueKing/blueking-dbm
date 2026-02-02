@@ -48,3 +48,8 @@ func TransInnerSwitchIpAsNetDeviceId(inner_switch_ips string) string {
 	}
 	return strings.Join(lo.Uniq(fakeNetDeviceIdList), ",")
 }
+
+// CleanStr clean string
+func CleanStr(v string) string {
+	return strings.ReplaceAll(strings.TrimSpace(v), "\"", "")
+}
