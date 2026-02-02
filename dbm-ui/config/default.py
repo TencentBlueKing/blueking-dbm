@@ -149,7 +149,11 @@ INSTALLED_APPS += (
 )
 
 if env.ENABLE_DBM_AI:
-    INSTALLED_APPS += ("backend.dbm_aiagent",)
+    INSTALLED_APPS += (
+        # aidev
+        "aidev_bkplugin",
+        "backend.dbm_aiagent",
+    )
 
 # 中间件
 MIDDLEWARE = (

@@ -92,4 +92,3 @@ class LogLevelName(StrStructuredEnum):
     WARNING = EnumField("WARNING", "WARNING")
     ERROR = EnumField("ERROR", "ERROR")
     DEBUG = EnumField("DEBUG", "DEBUG")
-    NOTSET = EnumField("NOTSET", "NOTSET")
