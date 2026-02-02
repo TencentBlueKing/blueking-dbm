@@ -37,5 +37,8 @@ class AILogAnalysisViewSet(viewsets.SystemViewSet):
     def get_flow_log_analysis(self, request):
         """获取单据流程日志分析"""
         params = self.params_validate(self.get_serializer_class())
-        result = TicketFlowAILog.objects.get(ticket_id=params["ticket_id"], flow_obj_id=params["flow_id"]).ai_summary
-        return Response(result)
+        try:
+            log = TicketFlowAILog.objects.get(ticket_id=params["ticket_id"], flow_obj_id=params["flow_id"]).ai_summary
+        except TicketFlowAILog.DoesNotExist:
+            log = _("暂无 AI 分析结果，如需排查错误，请先查阅原始日志。")
+        return Response(log)
