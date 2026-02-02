@@ -16,7 +16,7 @@
     :before-close="handleClose"
     :is-show="isShow"
     render-directive="if"
-    :width="960"
+    :width="1110"
     @closed="handleClose">
     <template #header>
       <div class="header-main">
@@ -84,6 +84,9 @@
             </RuleCheck>
           </div>
         </BkFormItem>
+        <JudgingCondition
+          v-model="formModel"
+          :monitor-policy-id="data.monitor_policy_id" />
         <BkFormItem
           :label="t('告警通知')"
           property="notifyRules"
@@ -123,6 +126,7 @@
     <template #footer>
       <BkButton
         class="mr-8"
+        :loading="updateLoading"
         theme="primary"
         @click="handleConfirm">
         {{ t('确定') }}
@@ -133,12 +137,15 @@
         trigger="click"
         width="280"
         @confirm="handleClickConfirmRecoverDefault">
-        <BkButton class="mr-8">
+        <BkButton
+          class="mr-8"
+          :disabled="updateLoading">
           {{ t('恢复默认') }}
         </BkButton>
       </BkPopConfirm>
-
-      <BkButton @click="handleClose">
+      <BkButton
+        :disabled="updateLoading"
+        @click="handleClose">
         {{ t('取消') }}
       </BkButton>
     </template>
@@ -147,7 +154,8 @@
 
 <script setup lang="tsx">
   import _ from 'lodash';
-  import { computed } from 'vue';
+  import { computed, type UnwrapRef } from 'vue';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -157,6 +165,8 @@
   import { useBeforeClose } from '@hooks';
 
   import RuleCheck from '@components/monitor-rule-check/index.vue';
+
+  import JudgingCondition from '@views/monitor-alarm/common/JudgingCondition.vue';
 
   import { messageSuccess } from '@utils';
 
@@ -170,10 +180,10 @@
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>();
 
-  function generateRule(data: MonitorPolicyModel, level: number) {
+  const generateRule = (data: MonitorPolicyModel, level: number) => {
     const arr = data.test_rules.filter((item) => item.level === level);
     return arr.length > 0 ? arr[0] : undefined;
-  }
+  };
 
   const { t } = useI18n();
   const handleBeforeClose = useBeforeClose();
@@ -185,13 +195,13 @@
   const nofityTarget = ref(t('各业务 DBA'));
   const formRef = ref();
   const formModel = reactive({
+    detectsConfig: {} as ComponentProps<typeof JudgingCondition>['modelValue']['detectsConfig'],
+    noDataConfig: {} as ComponentProps<typeof JudgingCondition>['modelValue']['noDataConfig'],
     notifyRules: [] as string[],
   });
 
   const dangerRule = computed(() => generateRule(props.data, 1));
-
   const warnRule = computed(() => generateRule(props.data, 2));
-
   const infoRule = computed(() => generateRule(props.data, 3));
 
   const notifyTypes = [
@@ -213,7 +223,7 @@
     },
   ];
 
-  const { run: runUpdatePolicy } = useRequest(updatePolicy, {
+  const { loading: updateLoading, run: runUpdatePolicy } = useRequest(updatePolicy, {
     manual: true,
     onSuccess: (updateResult) => {
       if (updateResult.bkm_id) {
@@ -227,8 +237,17 @@
   watch(
     () => props.data,
     (data) => {
-      if (data) {
+      if (data.id) {
         formModel.notifyRules = _.cloneDeep(data.notify_rules);
+        formModel.noDataConfig = _.cloneDeep(data.no_data_config);
+
+        const detectsConfig = _.cloneDeep(data.detects_config) as unknown as UnwrapRef<
+          typeof formModel
+        >['detectsConfig'];
+        detectsConfig.trigger_config.uptime.time_ranges = data.detects_config.trigger_config.uptime.time_ranges.map(
+          (item) => [item.start, item.end] as [string, string],
+        );
+        formModel.detectsConfig = detectsConfig;
       }
     },
     {
@@ -238,6 +257,16 @@
 
   const handleClickConfirmRecoverDefault = () => {
     formModel.notifyRules = _.cloneDeep(props.data.notify_rules);
+    formModel.noDataConfig = _.cloneDeep(props.data.no_data_config);
+
+    const detectsConfig = _.cloneDeep(props.data.detects_config) as unknown as UnwrapRef<
+      typeof formModel
+    >['detectsConfig'];
+    detectsConfig.trigger_config.uptime.time_ranges = props.data.detects_config.trigger_config.uptime.time_ranges.map(
+      (item) => [item.start, item.end] as [string, string],
+    );
+    formModel.detectsConfig = detectsConfig;
+
     infoValueRef.value.resetValue();
     warnValueRef.value.resetValue();
     dangerValueRef.value.resetValue();
@@ -251,8 +280,17 @@
       warnRule.value ? warnValueRef.value.getValue() : undefined,
       dangerRule.value ? dangerValueRef.value.getValue() : undefined,
     ];
+    const detectsConfig = _.cloneDeep(formModel.detectsConfig) as unknown as MonitorPolicyModel['detects_config'];
+    detectsConfig.trigger_config.uptime.time_ranges = formModel.detectsConfig.trigger_config.uptime.time_ranges.map(
+      (item) => ({
+        end: item[1],
+        start: item[0],
+      }),
+    );
     const reqParams = {
       custom_conditions: props.data.custom_conditions,
+      detects_config: detectsConfig,
+      no_data_config: formModel.noDataConfig,
       notify_groups: props.data.notify_groups,
       notify_rules: formModel.notifyRules,
       targets: props.data.targets,
@@ -264,10 +302,11 @@
   async function handleClose() {
     const result = await handleBeforeClose();
     if (!result) {
-      return;
+      return false;
     }
     window.changeConfirm = false;
     isShow.value = false;
+    return true;
   }
 </script>
 
@@ -292,6 +331,11 @@
     width: 100%;
     padding: 24px 40px;
     flex-direction: column;
+
+    :deep(.bk-form-label) {
+      font-weight: bolder;
+      color: #63656e;
+    }
 
     .item-title {
       margin-bottom: 6px;

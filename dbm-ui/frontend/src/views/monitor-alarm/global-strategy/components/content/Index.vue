@@ -14,7 +14,7 @@
 <template>
   <ApplyPermissionCatch>
     <div class="global-strategy-type-content">
-      <BkSearchSelect
+      <DbSearchSelect
         v-model="searchValue"
         class="input-box"
         :data="searchSelectList"
@@ -28,6 +28,7 @@
           class="table-box"
           :columns="columns"
           :data-source="dataSource"
+          releate-url-query
           :row-class="updateRowClass"
           @clear-search="handleClearSearch" />
       </BkLoading>
@@ -114,6 +115,10 @@
 
   const searchSelectList = [
     {
+      id: 'id',
+      name: 'ID',
+    },
+    {
       id: 'name',
       name: t('策略名称'),
     },
@@ -132,12 +137,12 @@
       render: ({ data }: { data: MonitorPolicyModel }) => (
         <span>
           <auth-button
+            onClick={() => handleEdit(data)}
             action-id='global_monitor_policy_edit'
             permission={data.permission.global_monitor_policy_edit}
             resource={data.id}
-            theme='primary'
             text
-            onClick={() => handleEdit(data)}>
+            theme='primary'>
             {data.name}
           </auth-button>
           {data.isNewCreated && (
@@ -148,6 +153,11 @@
           )}
         </span>
       ),
+    },
+    {
+      field: 'id',
+      label: 'ID',
+      width: 130,
     },
     {
       field: 'targets',
@@ -190,22 +200,22 @@
       label: t('启停'),
       render: ({ data }: { data: MonitorPolicyModel }) => (
         <bk-pop-confirm
+          onCancel={() => handleCancelConfirm(data)}
+          onConfirm={() => handleClickConfirm(data)}
           content={t('停用后，所有的业务将会停用该策略，请谨慎操作！')}
           is-show={showTipMap.value[data.id]}
           placement='bottom'
           title={t('确认停用该策略？')}
           trigger='manual'
-          width='320'
-          onCancel={() => handleCancelConfirm(data)}
-          onConfirm={() => handleClickConfirm(data)}>
+          width='320'>
           <auth-switcher
             v-model={data.is_enabled}
+            onChange={() => handleChangeSwitch(data)}
             action-id='global_monitor_policy_start_stop'
             permission={data.permission.global_monitor_policy_start_stop}
             resource={data.id}
             size='small'
             theme='primary'
-            onChange={() => handleChangeSwitch(data)}
           />
         </bk-pop-confirm>
       ),
@@ -217,12 +227,12 @@
       label: t('操作'),
       render: ({ data }: { data: MonitorPolicyModel }) => (
         <auth-button
+          onClick={() => handleEdit(data)}
           action-id='global_monitor_policy_edit'
           permission={data.permission.global_monitor_policy_edit}
           resource={data.id}
-          theme='primary'
           text
-          onClick={() => handleEdit(data)}>
+          theme='primary'>
           {t('编辑')}
         </auth-button>
       ),

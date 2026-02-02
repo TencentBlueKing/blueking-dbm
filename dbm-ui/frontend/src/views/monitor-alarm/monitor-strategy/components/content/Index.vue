@@ -21,7 +21,7 @@
           @click="batchEditNoticeGroup">
           {{ t('批量设置告警组') }}
         </BkButton>
-        <BkSearchSelect
+        <DbSearchSelect
           v-model="searchValue"
           class="input-box"
           :data="searchSelectList"
@@ -36,6 +36,7 @@
         :columns="columns"
         :data-source="dataSource"
         :disable-select-method="disableSelectMethod"
+        releate-url-query
         :row-class="updateRowClass"
         selectable
         :show-overflow="false"
@@ -164,6 +165,10 @@
   );
 
   const searchSelectList = computed(() => [
+    {
+      id: 'id',
+      name: 'ID',
+    },
     {
       id: 'name',
       name: t('策略名称'),
