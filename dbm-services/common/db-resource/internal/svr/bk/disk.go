@@ -220,7 +220,7 @@ func GetDiskInfo(hosts []IPList, bk_biz_id int, hostOsMap map[string]string) (re
 			logger.Debug("主机 %s 操作系统类型: %s", host.IP, os_type)
 		} else {
 			logger.Warn("没有获取到%s的操作系统类型，默认当做Linux处理", host.IP)
-			// 默认当做Liunx处理
+			// 默认当做Linux处理
 			ipListOsMap[OsLinux] = append(ipListOsMap[OsLinux], host)
 		}
 	}

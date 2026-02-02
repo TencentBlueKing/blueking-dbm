@@ -53,6 +53,7 @@ type LLMConfig struct {
 	BkAi     BkAiConfig   `yaml:"bk_ai" mapstructure:"bk_ai"`
 }
 
+// BkAiConfig Bk AI 配置
 type BkAiConfig struct {
 	AppCode   string `yaml:"app_code" mapstructure:"app_code"`
 	AppSecret string `yaml:"app_secret" mapstructure:"app_secret"`
@@ -114,6 +115,7 @@ type CloudCertificate struct {
 	SecretKey   string `yaml:"secret_key" mapstructure:"secret_key"`
 } // load configuration file
 
+// InitConfig 初始化配置
 func InitConfig() {
 	log.Println("init config")
 	viper.SetConfigName("config")

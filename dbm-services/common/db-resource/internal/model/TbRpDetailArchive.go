@@ -99,8 +99,8 @@ func TbRpDetailArchiveName() string {
 	return "tb_rp_detail_archive"
 }
 
-// ArchiverResouce 将申请完的资源转移到归档表
-func ArchiverResouce(ids []int) (err error) {
+// ArchiveResource 将申请完的资源转移到归档表
+func ArchiveResource(ids []int) (err error) {
 	tx := DB.Self.Begin()
 	defer func() {
 		if err != nil {
