@@ -45,9 +45,11 @@ type FailureInstanceInfo struct {
 
 // FailureGroup groups failure instances by (BkCloudID, DbType) for batch switching.
 type FailureGroup struct {
-	BkCloudID int
-	DbType    haprobe.DbType
-	Instances []FailureInstanceInfo
+	BkCloudID       int
+	DbType          haprobe.DbType
+	Instances       []FailureInstanceInfo
+	EventName       haprobe.DbEventName       // event type that led to this failure (for strategy matching)
+	EventNameReason haprobe.DbEventNameReason // event reason (for strategy matching)
 }
 
 // IPs returns the list of IPs for building switcher request (deduplicated).
@@ -94,9 +96,11 @@ func (c *FailureCollector) Add(resp *detector.Response) {
 	}
 
 	c.groups[key] = &FailureGroup{
-		BkCloudID: meta.BkCloudID,
-		DbType:    resp.DbType,
-		Instances: []FailureInstanceInfo{info},
+		BkCloudID:       meta.BkCloudID,
+		DbType:          resp.DbType,
+		Instances:       []FailureInstanceInfo{info},
+		EventName:       resp.DbEventName,
+		EventNameReason: resp.DbEventNameReason,
 	}
 }
 
