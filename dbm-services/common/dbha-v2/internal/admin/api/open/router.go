@@ -111,7 +111,7 @@ func RegisterStrategyApi(strategyHandler *handler.StrategyHandler, server *hanet
 
 // RegisterGlobalStrategyApi register global strategy api
 func RegisterGlobalStrategyApi(strategyHandler *handler.StrategyHandler, server *hanet.GinHTTPServer) {
-	group := "/api/admin/global-strategies"
+	group := "/api/admin/global/strategies"
 	server.RegisterAPI(&hanet.ResetAPI{
 		Group:   group,
 		Method:  hanet.HttpMethodGet,
