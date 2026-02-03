@@ -112,7 +112,7 @@
         "sortBy": [
           {
             "desc": true,
-            "displayName": "key_cnt"
+            "displayName": "dtEventTimeStamp"
           }
         ]
       },
@@ -179,7 +179,7 @@
                   "list": [],
                   "type": "value",
                   "value": [
-                    "$domain"
+                    "$cluster_domain"
                   ]
                 }
               ]
@@ -232,8 +232,7 @@
                 "key_cnt",
                 "key_ops",
                 "key_ratio",
-                "key_sample",
-                "app"
+                "key_sample"
               ]
             }
           }
@@ -451,7 +450,7 @@
                   "list": [],
                   "type": "value",
                   "value": [
-                    "$domain"
+                    "$cluster_domain"
                   ]
                 }
               ],
@@ -732,7 +731,7 @@
         "sortBy": [
           {
             "desc": true,
-            "displayName": "valsize"
+            "displayName": "fields"
           }
         ]
       },
@@ -799,7 +798,7 @@
                   "list": [],
                   "type": "value",
                   "value": [
-                    "$domain"
+                    "$cluster_domain"
                   ]
                 }
               ],
@@ -1105,7 +1104,7 @@
                   "list": [],
                   "type": "value",
                   "value": [
-                    "$domain"
+                    "$cluster_domain"
                   ]
                 }
               ]
@@ -1300,7 +1299,7 @@
                   "list": [],
                   "type": "value",
                   "value": [
-                    "$domain"
+                    "$cluster_domain"
                   ]
                 }
               ]
@@ -1502,7 +1501,7 @@
                   "list": [],
                   "type": "value",
                   "value": [
-                    "$domain"
+                    "$cluster_domain"
                   ]
                 }
               ]
@@ -1640,7 +1639,7 @@
         "hide": 0,
         "includeAll": false,
         "multi": false,
-        "name": "domain",
+        "name": "cluster_domain",
         "options": [],
         "query": {
           "metricConfig": {
@@ -1679,7 +1678,7 @@
   "timepicker": {},
   "timezone": "default",
   "title": "Key统计分析",
-  "version": 51,
+  "version": 55,
   "weekStart": "",
   "__inputs": [
     {
