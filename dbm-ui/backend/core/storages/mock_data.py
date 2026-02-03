@@ -16,3 +16,20 @@ CREATE_TOKEN_DATA = {
     "repo": "bkdbm",
     "path": "mysql/actuator/latest/dbactuator",
 }
+
+BATCH_TOKEN_DATA = [
+    {
+        "token": "xxxxx",
+        "url": "https://bkrepo.xxx.xxx.com",
+        "project": "blueking",
+        "repo": "bkdbm",
+        "path": "mysql/actuator/latest/dbactuator",
+    },
+    {
+        "token": "xxxxxx",
+        "url": "https://bkrepo.xxx.xxx.com",
+        "project": "blueking",
+        "repo": "bkdbm",
+        "path": "mysql/actuator/latest/dbactuator",
+    },
+]

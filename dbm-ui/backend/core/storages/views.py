@@ -18,6 +18,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.core.storages.handlers import StorageHandler
 from backend.core.storages.serializers import (
     BatchDownloadFileSerializer,
+    BatchTokenFileSerializerResponseSerializer,
     CreateTokenSerializer,
     CreateTokenSerializerResponseSerializer,
     DirDownloadSerializer,
@@ -86,6 +87,17 @@ class StorageViewSet(viewsets.SystemViewSet):
     def create_bkrepo_access_token(self, request):
         file_path = self.params_validate(self.get_serializer_class())["file_path"]
         return Response(StorageHandler().create_bkrepo_access_token(path=file_path))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("批量获取临时凭证"),
+        request_body=BatchDownloadFileSerializer(),
+        tags=[SWAGGER_TAG],
+        responses={status.HTTP_200_OK: BatchTokenFileSerializerResponseSerializer()},
+    )
+    @action(methods=["POST"], detail=False, serializer_class=BatchDownloadFileSerializer)
+    def batch_create_bkrepo_access_token(self, request):
+        file_path_list = self.params_validate(self.get_serializer_class())["file_path_list"]
+        return Response(StorageHandler().batch_create_bkrepo_access_token(file_path_list=file_path_list))
 
     @common_swagger_auto_schema(
         operation_summary=_("指定目录下载（返回下载链接）"),
