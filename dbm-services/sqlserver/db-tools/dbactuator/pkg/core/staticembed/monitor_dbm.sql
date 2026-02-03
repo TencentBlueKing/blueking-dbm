@@ -4215,3 +4215,6 @@ SELECT @scheduleid=schedule_id FROM msdb.dbo.sysjobschedules WHERE job_id in(SEL
 
 EXEC msdb.dbo.sp_update_schedule @schedule_id=@scheduleid, @active_start_time=@START_TIME
 GO
+
+/****** Object: init mssql_data_read_drs account ******/
+insert into [Monitor].[dbo].[AUTO_GRANT] ([ACCOUNT], [GRANT_DB], [GRANT_TYPE], [UPDATE_TIME]) values('mssql_data_read_drs', '%', 'db_datareader', GETDATE())

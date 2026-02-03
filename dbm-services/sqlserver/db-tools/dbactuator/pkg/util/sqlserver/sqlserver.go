@@ -59,6 +59,17 @@ type ProcessInfo struct {
 	LoginTime   sql.NullString `db:"login_time"`
 }
 
+func (p ProcessInfo) String() string {
+	return fmt.Sprintf("spid=%d, db=%s, cmd=%s, status=%s, program=%s, host=%s, login_time=%s",
+		p.Spid,
+		osutil.NullStringValue(p.DbName),
+		osutil.NullStringValue(p.Cmd),
+		osutil.NullStringValue(p.Status),
+		osutil.NullStringValue(p.ProgramName),
+		osutil.NullStringValue(p.Hostname),
+		osutil.NullStringValue(p.LoginTime))
+}
+
 type DefaultPathInfo struct {
 	DefaultDataPath string `db:"Default_Data_Path"`
 	DefaultLogPath  string `db:"Default_Log_Path"`
@@ -294,11 +305,11 @@ func (h *DbWorker) CheckDBProcessExist(dbName string) bool {
 	// 异常退出
 	for _, info := range procinfos {
 		if strings.Contains(info.ProgramName.String, "Microsoft SQL Server Management Studio") {
-			logger.Warn("process:[%+v], kill this", info)
+			logger.Warn("process:[%s], kill this", info.String())
 			killCmd = append(killCmd, fmt.Sprintf("kill %d", info.Spid))
 		} else {
 			isNoErr = false
-			logger.Error("process:[%+v]", info)
+			logger.Error("process:[%s]", info.String())
 		}
 	}
 	if !isNoErr {

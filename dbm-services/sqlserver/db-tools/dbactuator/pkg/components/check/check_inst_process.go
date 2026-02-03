@@ -78,7 +78,7 @@ func (c *CheckInstProcessComp) CheckInstProcess() error {
 	} else {
 		// 如果IsFroceKill为false，异常退出输出；
 		for _, info := range procinfos {
-			logger.Error("process:[%+v]", info)
+			logger.Error("process:[%s]", info.String())
 		}
 		return fmt.Errorf(
 			"[%s:%d] there is a business connections [%d], please check",

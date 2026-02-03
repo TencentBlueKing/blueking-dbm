@@ -674,9 +674,9 @@ BEGIN
 	WHILE @@FETCH_STATUS = 0
 	BEGIN
 		SET @SQL = ''
-		SELECT @SQL = ISNULL(@SQL+'','')+'USE ['+name+'] IF EXISTS (SELECT * FROM sys.database_principals WHERE name = N'''+@ACCOUNT+''') BEGIN EXEC ['+name+'].dbo.sp_change_users_login ''AUTO_FIX'','''+@ACCOUNT+''' END ELSE BEGIN CREATE USER ['+@ACCOUNT+'] FOR LOGIN ['+@ACCOUNT+'] END;EXEC sp_addrolemember N'''+@GRANT_TYPE+''', N'''+@ACCOUNT+''';'
+		SELECT @SQL = ISNULL(@SQL+'','')+'USE ['+name+'] IF EXISTS (SELECT * FROM sys.database_principals WHERE name = N'''+@ACCOUNT+''') BEGIN EXEC ['+name+'].dbo.sp_change_users_login ''AUTO_FIX'','''+@ACCOUNT+''' END ELSE BEGIN CREATE USER ['+@ACCOUNT+'] FOR LOGIN ['+@ACCOUNT+'] END;EXEC sp_addrolemember N'''+@GRANT_TYPE+''', N'''+@ACCOUNT+'''; IF '''+@ACCOUNT+'''=''mssql_data_read_drs'' BEGIN GRANT SHOWPLAN TO [mssql_data_read_drs] END;'
 		from master.sys.databases where database_id>4 and name not in('Monitor') and state=0 and is_read_only=0 and is_distributor = 0 and name like @GRANT_DB and name in(select name from #dblist)
-		PRINT(@SQL)
+		--PRINT(@SQL)
 		EXEC(@SQL)
 
 		FETCH NEXT FROM list_cur INTO @ACCOUNT,@GRANT_DB,@GRANT_TYPE;
@@ -4082,6 +4082,3 @@ QuitWithRollback:
 EndSave:
 
 GO
-
-/****** Object: init mssql_data_read_drs account ******/
-insert into [Monitor].[dbo].[AUTO_GRANT] ([ACCOUNT], [GRANT_DB], [GRANT_TYPE], [UPDATE_TIME]) values('mssql_data_read_drs', '%', 'db_datareader', GETDATE())
