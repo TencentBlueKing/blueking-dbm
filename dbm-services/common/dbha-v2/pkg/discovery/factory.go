@@ -70,6 +70,12 @@ func (c Client) OriginClient() (*clientv3.Client, error) {
 	return c.createEtcdClient()
 }
 
+// GetRegistryPrefix returns the etcd key prefix under which same-module instances register.
+// Use with Discovery.GetWithPrefix / WatchWithPrefix to list or watch analysis instances.
+func (c Client) GetRegistryPrefix() string {
+	return c.opts.registryRootKeyPrefix
+}
+
 // CreateRegistry create new etcd registry
 func (c Client) CreateRegistry() *Registry {
 	rootKey := c.opts.registryRootKeyPrefix
