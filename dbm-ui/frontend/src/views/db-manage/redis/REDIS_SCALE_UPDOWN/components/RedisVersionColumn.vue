@@ -32,13 +32,6 @@
             theme="info">
             {{ t('当前版本') }}
           </BkTag>
-          <BkTag
-            v-if="item.index === 0"
-            class="ml-4"
-            size="small"
-            theme="warning">
-            {{ t('推荐') }}
-          </BkTag>
         </div>
       </template>
     </EditableSelect>
