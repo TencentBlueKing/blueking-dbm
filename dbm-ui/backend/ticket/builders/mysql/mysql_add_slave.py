@@ -25,7 +25,7 @@ from backend.ticket.constants import TicketType
 
 class MysqlAddSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
     class AddSlaveInfoSerializer(serializers.Serializer):
-        new_slave = HostInfoSerializer(help_text=_("新从库机器信息"), required=False)
+        new_slave = serializers.ListField(help_text=_("新从库机器信息列表"), child=HostInfoSerializer(), required=False)
         cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
         resource_spec = serializers.JSONField(help_text=_("资源规格"), required=False)
 
@@ -64,7 +64,7 @@ class MysqlAddSlaveParamBuilder(builders.FlowParamBuilder):
             return
 
         for info in self.ticket_data["infos"]:
-            info["new_slave_ip"] = info["new_slave"]["ip"]
+            info["new_slave_ip"] = [slave["ip"] for slave in info.get("new_slave", [])]
 
 
 class MysqlAddSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
@@ -93,8 +93,7 @@ class MysqlAddSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
         next_flow = self.ticket.next_flow()
         ticket_data = next_flow.details["ticket_data"]
         for info in ticket_data["infos"]:
-            info["new_slave"] = info.pop("new_slave")[0]
-            info["new_slave_ip"] = info["new_slave"]["ip"]
+            info["new_slave_ip"] = [slave["ip"] for slave in info.get("new_slave", [])]
 
         next_flow.save(update_fields=["details"])
 
