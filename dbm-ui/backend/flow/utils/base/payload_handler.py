@@ -95,6 +95,22 @@ class PayloadHandler(object):
         }
 
     @staticmethod
+    def get_repl_account():
+        """
+        获取实例内置同步repl帐户密码
+        """
+        data = DBPrivManagerApi.get_password(
+            {
+                "instances": [DEFAULT_INSTANCE],
+                "users": [{"username": UserName.REPL.value, "component": MySQLPrivComponent.MYSQL.value}],
+            }
+        )["items"]
+        return {
+            "repl_pwd": base64.b64decode(data[0]["password"]).decode("utf-8"),
+            "repl_user": data[0]["username"],
+        }
+
+    @staticmethod
     def get_mysql_static_account() -> dict:
         user_map = {}
         value_to_name = {member.value: member.name.lower() for member in UserName}

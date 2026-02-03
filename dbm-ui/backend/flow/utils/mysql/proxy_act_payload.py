@@ -15,7 +15,7 @@ from backend.db_meta.enums import InstanceInnerRole, InstanceStatus
 from backend.db_meta.exceptions import MasterInstanceNotExistException
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_package.models import Package
-from backend.flow.consts import ConfigTypeEnum, DBActuatorActionEnum, DBActuatorTypeEnum, MediumEnum, NameSpaceEnum
+from backend.flow.consts import DBActuatorActionEnum, DBActuatorTypeEnum, MediumEnum
 
 logger = logging.getLogger("flow")
 
@@ -24,24 +24,6 @@ class ProxyActPayload(object):
     """
     定义proxy不同执行类型，拼接不同的payload参数，对应不同的dict结构体.
     """
-
-    @staticmethod
-    def __get_proxy_account():
-        """
-        获取proxy实例内置帐户密码
-        """
-        data = DBConfigApi.query_conf_item(
-            {
-                "bk_biz_id": "0",
-                "level_name": LevelName.PLAT,
-                "level_value": "0",
-                "conf_file": "proxy#user",
-                "conf_type": ConfigTypeEnum.InitUser,
-                "namespace": NameSpaceEnum.TenDB.value,
-                "format": FormatType.MAP,
-            }
-        )
-        return data["content"]
 
     def __get_proxy_config(self):
         """获取proxy安装配置, 平台层级的配置，没有业务区分"""

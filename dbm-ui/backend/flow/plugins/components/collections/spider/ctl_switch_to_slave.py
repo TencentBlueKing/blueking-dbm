@@ -14,15 +14,15 @@ from typing import List
 from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
-from backend.components import DBConfigApi, DRSApi
-from backend.components.dbconfig.constants import FormatType, LevelName
+from backend.components import DRSApi
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import InstanceStatus, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, ProxyInstance
-from backend.flow.consts import TDBCTL_USER, ConfigTypeEnum, NameSpaceEnum
+from backend.flow.consts import TDBCTL_USER
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import CtlSwitchToSlaveFailedException
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.plugins.components.collections.mysql.sync_master import SyncMasterService
+from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.spider.spider_db_function import get_flush_routing_sql_for_server
 
 
@@ -330,17 +330,7 @@ class CtlSwitchToSlaveService(BaseService):
         其余的slave节点同步新的master
         """
         # 获取同步账号
-        data = DBConfigApi.query_conf_item(
-            {
-                "bk_biz_id": "0",
-                "level_name": LevelName.PLAT,
-                "level_value": "0",
-                "conf_file": "mysql#user",
-                "conf_type": ConfigTypeEnum.InitUser,
-                "namespace": NameSpaceEnum.TenDB.value,
-                "format": FormatType.MAP,
-            }
-        )["content"]
+        data = PayloadHandler.get_repl_account()
 
         # 基于GTID建立同步
         # 采用指定position的方式来同步数据
