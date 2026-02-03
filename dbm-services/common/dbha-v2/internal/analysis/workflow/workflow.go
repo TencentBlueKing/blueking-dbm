@@ -30,6 +30,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -311,8 +312,20 @@ func (w *Workflow) databaseLivenessDoubleCheck(missedInsts []detector.DoubleChec
 			continue
 		}
 
-		logger.Debug("trigger switching, dbType: %s, cloudId: %d, instances: %d", group.DbType,
-			group.BkCloudID, len(group.Instances))
+		matched, strategy := w.matchStrategyForGroup(group)
+		if !matched {
+			logger.Info("no matching switching strategy, skip switching, cloudId: %d, dbType: %s, event: %s, reason: %s",
+				group.BkCloudID, group.DbType, group.EventName, group.EventNameReason.Str())
+			continue
+		}
+		if strategy.Action != hamodel.ActionTypeSwitch {
+			logger.Info("strategy action is %s, skip switching, strategy: %s, cloudId: %d, dbType: %s",
+				strategy.Action, strategy.Name, group.BkCloudID, group.DbType)
+			continue
+		}
+
+		logger.Debug("trigger switching by strategy %s, dbType: %s, cloudId: %d, instances: %d",
+			strategy.Name, group.DbType, group.BkCloudID, len(group.Instances))
 		w.triggerSwitching(group.DbType, req)
 	}
 }
@@ -356,6 +369,53 @@ func (w *Workflow) createSwitcherRequestWithGroup(group *FailureGroup) *switcher
 	}
 
 	return req
+}
+
+// matchStrategyForGroup loads strategies for the group's biz, matches by event name/reason and trigger count,
+// and returns the highest-priority (smallest Priority value) enabled strategy, or (false, nil) if none match.
+func (w *Workflow) matchStrategyForGroup(group *FailureGroup) (matched bool, strategy *hamodel.DbSwitchingStrategy) {
+	if len(group.Instances) == 0 {
+		return false, nil
+	}
+
+	bkBizID := group.Instances[0].BkBizID
+	strategies, err := w.hadata.ReadSwitchingStrategyWithBkBizId(bkBizID)
+	if err != nil {
+		logger.Warn("failed to read switching strategy, bkBizId: %d, errmsg: %s", bkBizID, err)
+		return false, nil
+	}
+
+	instanceCount := len(group.Instances)
+	var candidates []*hamodel.DbSwitchingStrategy
+	for _, s := range strategies {
+		if s.Status != hamodel.StatusTypeEnabled {
+			continue
+		}
+
+		if s.TriggerEventName != group.EventName || s.TriggerEventNameReason != group.EventNameReason {
+			continue
+		}
+
+		threshold := s.TriggerCount
+		if threshold <= 0 {
+			threshold = 1
+		}
+
+		if instanceCount < threshold {
+			continue
+		}
+
+		candidates = append(candidates, s)
+	}
+
+	if len(candidates) == 0 {
+		return false, nil
+	}
+
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].Priority < candidates[j].Priority
+	})
+	return true, candidates[0]
 }
 
 func (w *Workflow) bindSwitchingStrategyWithBizId(bizId int) error {
