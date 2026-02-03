@@ -314,12 +314,10 @@ class HCMReplenishResourceTaskFlow(SimpleTaskFlow):
     """
 
     def run_lack_resource_status_handler(self, count, applied_count):
-        self.flow_obj.status = TicketFlowStatus.FAILED
         self.flow_obj.err_code = FlowErrCode.HCM_APPLY_LACK_RESOURCE_ERROR.value
         self.flow_obj.err_msg = _("海磊资源申请不足，预期数量: {count}, 实际申请数量: {applied_count}").format(
             count=count, applied_count=applied_count
         )
-        self.flow_obj.save(update_fields=["status", "err_code", "err_msg", "update_at"])
         return TicketFlowStatus.FAILED
 
     @property
@@ -339,13 +337,17 @@ class HCMReplenishResourceTaskFlow(SimpleTaskFlow):
         # 如果流程已完成，但是补货数量不及预期，则仍然失败
         count = self.ticket.details["count"]
         applied_count = len(self.flow_obj.output_data[0]["values"]) if self.flow_obj.output_data else 0
+        # 更新补货错误信息
         if count != applied_count:
             status = self.run_lack_resource_status_handler(count, applied_count)
 
-        # 根据流程状态映射todo的状态
+        # 更新todo状态和flow_obj状态
         self.set_inner_flow_todo(status)
+        if self.flow_obj.status != status:
+            self.flow_obj.status = status
+            self.flow_obj.save()
 
-        return self.flow_obj.update_status(status)
+        return status
 
     def _retry(self) -> Any:
         # 把flow_obj_id置空，则每次重试就会重新发起任务
