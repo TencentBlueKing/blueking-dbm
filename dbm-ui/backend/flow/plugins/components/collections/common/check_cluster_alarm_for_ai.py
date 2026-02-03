@@ -100,8 +100,9 @@ class CheckClusterAlarmForAIService(SidecarServiceABC):
 
         clusters = Cluster.objects.filter(id__in=cluster_ids)
         if not clusters:
+            # 打印异常日志，但是不报错
             self.log_error(_("查询集群元数据为空，请检查传入的cluster_ids列表是否有问题:{}".format(cluster_ids)))
-            return False
+            return True
         cluster_domains = [c.immute_domain for c in clusters]
         self.log_info(_("-------------------分割线-------------------"))
         self.log_info(_("监听集群有：{}".format(cluster_domains)))

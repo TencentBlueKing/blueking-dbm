@@ -12,6 +12,7 @@ package osutil
 
 import (
 	"bytes"
+	"database/sql"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -162,4 +163,12 @@ func StandardPowerShellCommandsForSleep(params []string) (stdoutStr string, err 
 		}
 	}
 	return "", nil
+}
+
+// NullStringValue safely converts sql.NullString to string, returns "<NULL>" if invalid
+func NullStringValue(ns sql.NullString) string {
+	if ns.Valid {
+		return ns.String
+	}
+	return "<NULL>"
 }

@@ -269,7 +269,11 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
             )
 
         main_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        main_pipeline.run_pipeline(init_trans_data_class=SqlserverRebuildSlaveContext())
+        # main_pipeline.run_pipeline(init_trans_data_class=SqlserverRebuildSlaveContext())
+        main_pipeline.run_pipeline_with_sidecar(
+            check_ai_monitor_cluster_list=[info["cluster_id"] for info in self.data["infos"]],
+            init_trans_data_class=SqlserverRebuildSlaveContext(),
+        )
 
     def slave_rebuild_in_new_slave_flow(self):
         """
@@ -595,7 +599,11 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
             )
 
         main_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        main_pipeline.run_pipeline(init_trans_data_class=SqlserverBackupIDContext())
+        # main_pipeline.run_pipeline(init_trans_data_class=SqlserverBackupIDContext())
+        main_pipeline.run_pipeline_with_sidecar(
+            check_ai_monitor_cluster_list=sum([info["cluster_ids"] for info in self.data["infos"]], []),
+            init_trans_data_class=SqlserverBackupIDContext(),
+        )
 
     @classmethod
     def fix_slave_dns_sub_flow(

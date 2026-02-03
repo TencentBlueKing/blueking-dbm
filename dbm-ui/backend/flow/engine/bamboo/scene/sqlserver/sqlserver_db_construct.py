@@ -314,4 +314,9 @@ class SqlserverDataConstruct(BaseFlow):
             is_remote_rewritable=True,
         )
 
-        main_pipeline.run_pipeline(init_trans_data_class=SqlserverDBConstructContext())
+        # main_pipeline.run_pipeline(init_trans_data_class=SqlserverDBConstructContext())
+        main_pipeline.run_pipeline_with_sidecar(
+            init_trans_data_class=SqlserverDBConstructContext(),
+            check_ai_monitor_cluster_list=list(set([i["dst_cluster"] for i in self.data["infos"]]))
+            + list(set([i["src_cluster"] for i in self.data["infos"]])),
+        )
