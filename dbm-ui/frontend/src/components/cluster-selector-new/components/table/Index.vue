@@ -90,6 +90,7 @@
           <ClusterRoleStatus :data="row" />
         </template>
       </TableColumn>
+      <InstanceColumn :cluster-type="clusterType" />
       <TableColumn
         v-if="showModuleColumn"
         col-key="db_module_id"
@@ -160,7 +161,8 @@
 
   import type { ClusterModel, ISupportClusterType } from '../../types';
 
-  import ClusterRelatedTasks from './task-panel/Index.vue';
+  import InstanceColumn from './components/InstanceColumn.vue';
+  import ClusterRelatedTasks from './components/task-panel/Index.vue';
 
   export interface Props<C extends ISupportClusterType> {
     clusterType: ISupportClusterType;
