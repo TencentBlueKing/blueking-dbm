@@ -16,7 +16,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/admin/global-strategies/": {
+        "/api/admin/global/strategies/": {
             "get": {
                 "consumes": [
                     "application/json"
@@ -115,7 +115,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/admin/global-strategies/{id}/": {
+        "/api/admin/global/strategies/{id}/": {
             "get": {
                 "consumes": [
                     "application/json"
@@ -210,7 +210,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/admin/global-strategies/{id}/status/": {
+        "/api/admin/global/strategies/{id}/status/": {
             "put": {
                 "consumes": [
                     "application/json"

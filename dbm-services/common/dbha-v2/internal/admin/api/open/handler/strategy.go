@@ -534,7 +534,7 @@ func (h *StrategyHandler) StatusUpdate(c *gin.Context) {
 //	@Tags		openapi.strategy
 //	@Param		request	query		serializer.GlobalStrategyListRequest	false	"query parameters"
 //	@Success	200		{object}	ginx.PaginatedResponse{results=serializer.StrategyListResponse}
-//	@Router		/api/admin/global-strategies/ [get]
+//	@Router		/api/admin/global/strategies/ [get]
 func (h *StrategyHandler) GlobalList(c *gin.Context) {
 	var req serializer.GlobalStrategyListRequest
 	if err := c.ShouldBind(&req); err != nil {
@@ -590,7 +590,7 @@ func (h *StrategyHandler) GlobalList(c *gin.Context) {
 //	@Tags		openapi.strategy
 //	@Param		request	body	serializer.GlobalStrategyCreateRequest	true	"strategy create request"
 //	@Success	201
-//	@Router		/api/admin/global-strategies/ [post]
+//	@Router		/api/admin/global/strategies/ [post]
 func (h *StrategyHandler) GlobalCreate(c *gin.Context) {
 	var req serializer.GlobalStrategyCreateRequest
 	if err := hanet.BindAndValidate(c, &req); err != nil {
@@ -638,7 +638,7 @@ func (h *StrategyHandler) GlobalCreate(c *gin.Context) {
 //	@Tags		openapi.strategy
 //	@Param		id	path		int	true	"strategy id"
 //	@Success	200	{object}	serializer.StrategyOutputInfo
-//	@Router		/api/admin/global-strategies/{id}/ [get]
+//	@Router		/api/admin/global/strategies/{id}/ [get]
 func (h *StrategyHandler) GlobalGet(c *gin.Context) {
 	var pathParam serializer.StrategyPathParam
 	if err := c.ShouldBindUri(&pathParam); err != nil {
@@ -688,7 +688,7 @@ func (h *StrategyHandler) GlobalGet(c *gin.Context) {
 //	@Param		id		path	int										true	"strategy id"
 //	@Param		request	body	serializer.GlobalStrategyUpdateRequest	true	"strategy update request"
 //	@Success	204
-//	@Router		/api/admin/global-strategies/{id}/ [put]
+//	@Router		/api/admin/global/strategies/{id}/ [put]
 func (h *StrategyHandler) GlobalUpdate(c *gin.Context) {
 	var pathParam serializer.StrategyPathParam
 	if err := c.ShouldBindUri(&pathParam); err != nil {
@@ -752,7 +752,7 @@ func (h *StrategyHandler) GlobalUpdate(c *gin.Context) {
 //	@Tags		openapi.strategy
 //	@Param		id	path	int	true	"strategy id"
 //	@Success	204
-//	@Router		/api/admin/global-strategies/{id}/ [delete]
+//	@Router		/api/admin/global/strategies/{id}/ [delete]
 func (h *StrategyHandler) GlobalDelete(c *gin.Context) {
 	var pathParam serializer.StrategyPathParam
 	if err := c.ShouldBindUri(&pathParam); err != nil {
@@ -788,7 +788,7 @@ func (h *StrategyHandler) GlobalDelete(c *gin.Context) {
 //	@Param		id		path	int												true	"strategy id"
 //	@Param		request	body	serializer.GlobalStrategyStatusUpdateRequest	true	"strategy status update request"
 //	@Success	204
-//	@Router		/api/admin/global-strategies/{id}/status/ [put]
+//	@Router		/api/admin/global/strategies/{id}/status/ [put]
 func (h *StrategyHandler) GlobalStatusUpdate(c *gin.Context) {
 	var pathParam serializer.StrategyPathParam
 	if err := c.ShouldBindUri(&pathParam); err != nil {
