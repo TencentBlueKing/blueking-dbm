@@ -26,11 +26,13 @@ package switcher
 
 import (
 	"context"
+	"sync"
 
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
@@ -79,6 +81,126 @@ func (m *Mysql) NewSwitchLogger() ([]switchlogger.DbSwitchLogger, error) {
 	return loggers, nil
 }
 
+// InstanceLevelSwitch handles MySQL instance switching operations
+func (m *Mysql) InstanceLevelSwitch(ctx context.Context, switchLoggers []switchlogger.DbSwitchLogger, req *Request) *Response {
+	rsp := &Response{
+		MySqlFailureInsts: map[MetadataKey]*MysqlInstanceMetadata{},
+	}
+
+	var wg sync.WaitGroup
+
+	for _, inst := range req.MySqlInstData {
+		if inst == nil {
+			logger.Warn("Mysql switcher get nil instance")
+			continue
+		}
+
+		wg.Add(1)
+		go func(inst *MysqlInstanceMetadata) {
+			defer wg.Done()
+
+			instKey := GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
+			swInst, newErr := m.NewSwitchInstance(inst)
+			if newErr != nil {
+				logger.Warn("failed to create mysql switcher, inst: %s, errmsg: %s", instKey, newErr)
+				rsp.AddFailureInst(instKey, (*dbm.DbInstMetadata)(inst))
+				return
+			}
+
+			swInst.SetSwitchLogger(switchLoggers)
+
+			logger.Info("start to switch the single mysql instance: %s", instKey)
+			if switchSuccess, swErr := SwitchSingleInstance(swInst); !switchSuccess {
+				errStr := "nil"
+				if swErr != nil {
+					errStr = swErr.Error()
+				}
+				logger.Warn("failed to switch the single mysql instance: %s, errmsg: %s", instKey, errStr)
+				rsp.AddFailureInst(instKey, (*dbm.DbInstMetadata)(inst))
+				return
+			}
+			logger.Info("successfully switched the single mysql instance: %s", instKey)
+		}(inst)
+	}
+
+	wg.Wait()
+
+	if len(rsp.MySqlFailureInsts) == 0 {
+		return rsp
+	}
+
+	rsp.Err = ErrSwitchPartialSuccess
+	return rsp
+}
+
+// HostLevelSwitch handles MySQL host switching operations
+func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogger.DbSwitchLogger, req *Request) *Response {
+	rsp := &Response{
+		MySqlFailureInsts: map[MetadataKey]*MysqlInstanceMetadata{},
+	}
+
+	ipGroup := make(map[string][]*MysqlInstanceMetadata)
+	var wg sync.WaitGroup
+
+	// group instances by ip
+	for _, instData := range req.MySqlInstData {
+		if instData == nil {
+			logger.Warn("Mysql switcher get nil instance")
+			continue
+		}
+		ipGroup[instData.IP] = append(ipGroup[instData.IP], instData)
+	}
+
+	// parallelize the processing of the same host
+	for ip, instDataList := range ipGroup {
+		wg.Add(1)
+		go func(ip string, instDataList []*MysqlInstanceMetadata) {
+			defer wg.Done()
+
+			sameHostInstances := []SwitchableInstance{}
+			dataMap := make(map[MetadataKey]*MysqlInstanceMetadata)
+
+			// create switchable instances for all instances on the same host
+			for _, inst := range instDataList {
+				instKey := GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
+				dataMap[instKey] = inst
+
+				swInst, newErr := m.NewSwitchInstance(inst)
+				if newErr == nil {
+					swInst.SetSwitchLogger(switchLoggers)
+					sameHostInstances = append(sameHostInstances, swInst)
+					continue
+				}
+
+				logger.Warn("Before switching the host: %s, failed to create mysql switcher, inst: %s, errmsg: %s",
+					ip, instKey, newErr)
+				rsp.AddFailureInst(instKey, (*dbm.DbInstMetadata)(inst))
+				return
+			}
+
+			logger.Info("start to switch the host: %s", ip)
+			switchSuccess, errMap := SwitchSameHostInstances(sameHostInstances)
+			if switchSuccess {
+				logger.Info("successfully switched the host: %s", ip)
+				return
+			}
+
+			logger.Warn("failed to switch the host: %s, errmsg: switch of %d instance(s) failed", ip, len(errMap))
+			for instKey := range errMap {
+				rsp.AddFailureInst(instKey, (*dbm.DbInstMetadata)(dataMap[instKey]))
+			}
+		}(ip, instDataList)
+	}
+
+	wg.Wait()
+
+	if len(rsp.MySqlFailureInsts) > 0 {
+		rsp.Err = ErrSwitchPartialSuccess
+	}
+
+	return rsp
+}
+
 // Switch handles MySQL instance switching operations
 // Note: This function may be called concurrently, avoid unnecessary duplicate switching
 // Note: Handle partial switch failures when multiple instances on same host
@@ -103,39 +225,16 @@ func (m *Mysql) Switch(ctx context.Context, req *Request) *Response {
 		}
 	}()
 
-	for _, inst := range req.MySqlInstData {
-		if inst == nil {
-			logger.Warn("Mysql switcher get nil instance")
-			continue
-		}
-
-		instKey := GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
-		swInst, newErr := m.NewSwitchInstance(inst)
-		if newErr != nil {
-			logger.Warn("failed to create mysql switcher, inst: %s, errmsg: %s", instKey, newErr)
-			rsp.MySqlFailureInsts[instKey] = inst
-			continue
-		}
-
-		swInst.SetSwitchLogger(switchLoggers)
-
-		logger.Info("start to switch the single mysql instance: %s", instKey)
-		if switchSuccess, swErr := SwitchSingleInstance(swInst); !switchSuccess {
-			errStr := "nil"
-			if swErr != nil {
-				errStr = swErr.Error()
-			}
-			logger.Warn("failed to switch the single mysql instance: %s, errmsg: %s", instKey, errStr)
-			rsp.MySqlFailureInsts[instKey] = inst
-			continue
-		}
-		logger.Info("successfully switched the single mysql instance: %s", instKey)
-	}
-
-	if len(rsp.MySqlFailureInsts) == 0 {
+	switch req.ActionScope {
+	case hamodel.ActionScopeTypeCluster:
+		rsp.Err = gerrors.Newf(gerrors.Failure, "cluster action scope is not supported")
 		return rsp
+
+	case hamodel.ActionScopeTypeHost:
+		return m.HostLevelSwitch(ctx, switchLoggers, req)
+
+	default:
+		return m.InstanceLevelSwitch(ctx, switchLoggers, req)
 	}
 
-	rsp.Err = ErrSwitchPartialSuccess
-	return rsp
 }

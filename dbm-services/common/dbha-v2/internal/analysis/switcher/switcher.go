@@ -28,6 +28,7 @@ package switcher
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
@@ -36,6 +37,7 @@ import (
 )
 
 type MetadataKey string
+type ClusterKey string
 
 var (
 	ErrSwitchPartialSuccess = gerrors.Newf(gerrors.Failure, "the switching achieved partial success")
@@ -76,6 +78,7 @@ func (req *Request) GetDbInstMetadata() []*dbm.DbInstMetadata {
 type Response struct {
 	MySqlFailureInsts map[MetadataKey]*MysqlInstanceMetadata
 	Err               error
+	mu                sync.Mutex
 }
 
 // GetFailureInsts gets the failed instances
@@ -93,6 +96,24 @@ func (rsp *Response) GetFailureInsts() map[MetadataKey]*dbm.DbInstMetadata {
 	return insts
 }
 
+// AddFailureInst appends a failure instance in a concurrency-safe way.
+func (rsp *Response) AddFailureInst(instKey MetadataKey, inst *dbm.DbInstMetadata) {
+	if rsp == nil {
+		return
+	}
+	if inst == nil {
+		return
+	}
+
+	rsp.mu.Lock()
+	defer rsp.mu.Unlock()
+
+	if rsp.MySqlFailureInsts == nil {
+		rsp.MySqlFailureInsts = map[MetadataKey]*MysqlInstanceMetadata{}
+	}
+	rsp.MySqlFailureInsts[instKey] = (*MysqlInstanceMetadata)(inst)
+}
+
 // Switcher defines the interface for database switching implementations
 type Switcher interface {
 	DbTypeName() haprobe.DbType
@@ -102,4 +123,9 @@ type Switcher interface {
 // GenerateMetadataKey generates a unique key for instance metadata
 func GenerateMetadataKey(bkCloudId int, ip string, port int) MetadataKey {
 	return MetadataKey(fmt.Sprintf("%d:%s:%d", bkCloudId, ip, port))
+}
+
+// GenerateClusterKey generates a unique key for cluster-level lock.
+func GenerateClusterKey(bkCloudId int, cluster string) ClusterKey {
+	return ClusterKey(fmt.Sprintf("%d:%s", bkCloudId, cluster))
 }
