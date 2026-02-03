@@ -127,7 +127,7 @@ func (s *SimulationHandler) CreateClusterByRequestId(r *gin.Context) {
 	ps.BackendStartArgs = config.BackendStartArgs
 
 	// 创建集群 Pod
-	if err := ps.CreateClusterPod(config.MySQLVersion); err != nil {
+	if err := ps.CreateClusterPod(config.MySQLVersion, nil); err != nil {
 		logger.Error("创建集群 Pod 失败 request_id:%s pod_name:%s mysql_version:%s error:%s",
 			param.RequestId, param.Name, config.MySQLVersion, err.Error())
 		s.SendResponse(r, errors.Wrap(err, "创建集群 Pod 失败"), nil)
@@ -281,7 +281,7 @@ func (s *SimulationHandler) CreateTmpSpiderPodCluster(r *gin.Context) {
 	// 获取 TdbCtl 镜像
 	_, ps.TdbCtlImage = service.GetSpiderAndTdbctlImg(param.SpiderVersions[0].Version, service.LatestVersion)
 
-	if err := ps.CreateClusterPod(""); err != nil {
+	if err := ps.CreateClusterPod("", nil); err != nil {
 		logger.Error(err.Error())
 		return
 	}

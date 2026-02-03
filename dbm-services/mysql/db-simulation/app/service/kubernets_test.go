@@ -1,8 +1,10 @@
 package service_test
 
 import (
+	"os"
 	"testing"
 
+	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/app/config"
 	"dbm-services/mysql/db-simulation/app/service"
 )
@@ -24,7 +26,8 @@ func TestCreateClusterPod(t *testing.T) {
 			SpiderStartArgs: nil,
 		},
 	}
-	if err := ps.CreateClusterPod(""); err != nil {
+	xlogger := logger.New(os.Stdout, true, logger.InfoLevel, map[string]string{"pod_name": ps.BaseInfo.PodName})
+	if err := ps.CreateClusterPod("", xlogger); err != nil {
 		t.Fatalf("%s", err.Error())
 		return
 	}

@@ -287,7 +287,7 @@ func (r ReloadParam) BuildTsk(requestId string) (tsk SimulationTask) {
 	img, err := GetImgFromMySQLVersion(version)
 	if err != nil {
 		logger.Error("GetImgFromMySQLVersion %s failed:%s", version, err.Error())
-		return
+		return tsk
 	}
 	tsk.DbImage = img
 
@@ -365,7 +365,7 @@ func run(task SimulationTask, tkType string) {
 			logger.Info("delete pod successfully~")
 		}
 	}()
-	if err = createPod(task, tkType); err != nil {
+	if err = createPod(task, tkType, xlogger); err != nil {
 		xlogger.Error("create pod failed %s", err.Error())
 		return
 	}
@@ -377,14 +377,30 @@ func run(task SimulationTask, tkType string) {
 	xlogger.Info("the simulation was executed successfully")
 }
 
-func createPod(task SimulationTask, tkType string) (err error) {
+func createPod(task SimulationTask, tkType string, xlogger *logger.Logger) (err error) {
+	defer func() {
+		if err != nil {
+			errx := model.DB.Create(&model.TbSqlFileSimulationInfo{
+				TaskId:     task.TaskId,
+				BillTaskId: task.Uid,
+				LineId:     0,
+				Status:     model.TaskFailed,
+				ErrMsg:     fmt.Sprintf("create pod failed:%s", err.Error()),
+				CreateTime: time.Now(),
+				UpdateTime: time.Now(),
+			}).Error
+			if errx != nil {
+				logger.Warn("create pod simulation record failed %v", errx)
+			}
+		}
+	}()
 	switch tkType {
 	case app.MySQL:
-		return task.CreateMySQLPod(task.BaseParam.MySQLVersion)
+		err = task.CreateMySQLPod(task.BaseParam.MySQLVersion, xlogger)
 	case app.TdbCtl:
-		return task.CreateClusterPod(task.BaseParam.MySQLVersion)
+		err = task.CreateClusterPod(task.BaseParam.MySQLVersion, xlogger)
 	}
-	return
+	return err
 }
 
 func (t *SimulationTask) getDbsExcludeSysDb() (err error) {

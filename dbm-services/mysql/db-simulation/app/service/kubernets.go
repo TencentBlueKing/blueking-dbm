@@ -243,7 +243,7 @@ func (k *DbPodSets) getClusterPodContainerSpec() []v1.Container {
 }
 
 // CreateClusterPod create tendbcluster simulation pod
-func (k *DbPodSets) CreateClusterPod(mySQLVersion string) (err error) {
+func (k *DbPodSets) CreateClusterPod(mySQLVersion string, xlogger *logger.Logger) (err error) {
 	// 创建 ConfigMap 存储 my.cnf 配置
 	if err = k.createClusterConfigMap(mySQLVersion); err != nil {
 		return err
@@ -282,7 +282,7 @@ func (k *DbPodSets) CreateClusterPod(mySQLVersion string) (err error) {
 			Containers: k.getClusterPodContainerSpec(),
 		},
 	}
-	if err = k.createpod(c, 26000); err != nil {
+	if err = k.createPod(c, 26000, xlogger); err != nil {
 		logger.Error("create spider cluster failed %s", err.Error())
 		if deleteErr := k.deleteClusterConfigMap(); deleteErr != nil {
 			logger.Error("delete cluster configMap failed %s", deleteErr.Error())
@@ -299,14 +299,11 @@ func (k *DbPodSets) CreateClusterPod(mySQLVersion string) (err error) {
 	return nil
 }
 
-// createpod create pod
-func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
-	// 创建日志记录器，用于前端展示日志（参考 executeInPod 的实现）
-	extMap := map[string]string{
-		"pod_name": k.BaseInfo.PodName,
+// CreatePod create pod
+func (k *DbPodSets) createPod(pod *v1.Pod, probePort int, xlogger *logger.Logger) (err error) {
+	if xlogger == nil {
+		xlogger = logger.New(os.Stdout, true, logger.InfoLevel, map[string]string{"pod_name": k.BaseInfo.PodName})
 	}
-	xlogger := logger.New(os.Stdout, true, logger.InfoLevel, extMap)
-
 	podc, err := k.K8S.Cli.CoreV1().Pods(k.K8S.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
 	if err != nil {
 		logger.Error("create pod failed %s", err.Error())
@@ -319,16 +316,13 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 		CreatePodTime: time.Now(),
 		CreateTime:    time.Now()})
 	podIp := podc.Status.PodIP
-
 	// 用于跟踪每个容器的 CrashLoopBackOff 连续出现次数（按容器名称分别跟踪）
 	crashLoopCounts := make(map[string]int)
 	const maxCrashLoopChecks = 3 // 连续 3 次检测到 CrashLoopBackOff 就退出
-
 	// 自定义重试循环，支持提前退出
 	maxRetries := 120
 	retryDelay := 2 * time.Second
 	var lastErr error
-
 	// 连续多次探测pod的状态
 	fn := func() (err error) {
 		var podI *v1.Pod
@@ -506,13 +500,14 @@ func (k *DbPodSets) getPodContainersInfo(podI *v1.Pod) string {
 		var restartCount int32
 		for _, cStatus := range podI.Status.ContainerStatuses {
 			if cStatus.Name == container.Name {
-				if cStatus.Ready {
+				switch {
+				case cStatus.Ready:
 					status = "Ready"
-				} else if cStatus.State.Waiting != nil {
+				case cStatus.State.Waiting != nil:
 					status = fmt.Sprintf("Waiting (%s)", cStatus.State.Waiting.Reason)
-				} else if cStatus.State.Terminated != nil {
+				case cStatus.State.Terminated != nil:
 					status = fmt.Sprintf("Terminated (%s)", cStatus.State.Terminated.Reason)
-				} else {
+				default:
 					status = "Not Ready"
 				}
 				restartCount = cStatus.RestartCount
@@ -859,7 +854,7 @@ func (k *DbPodSets) deleteClusterConfigMap() error {
 }
 
 // CreateMySQLPod create mysql pod
-func (k *DbPodSets) CreateMySQLPod(mysqlVersion string) (err error) {
+func (k *DbPodSets) CreateMySQLPod(mysqlVersion string, xlogger *logger.Logger) (err error) {
 	// 创建 ConfigMap 存储 my.cnf 配置
 	if err = k.createMySQLConfigMap(mysqlVersion); err != nil {
 		return err
@@ -934,7 +929,7 @@ func (k *DbPodSets) CreateMySQLPod(mysqlVersion string) (err error) {
 		},
 	}
 
-	return k.createpod(c, 3306)
+	return k.createPod(c, 3306, xlogger)
 }
 
 // DeletePod delete pod and associated ConfigMap
