@@ -25,7 +25,10 @@
 package switchlogger
 
 import (
+	"context"
 	"fmt"
+	"sync"
+	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
@@ -49,7 +52,9 @@ type LogToDbHandler struct {
 	Passwd string
 
 	// the mysql instance for writing switch log
-	logDb *storage.DbhaData
+	logDb        *storage.DbhaData
+	mu           sync.Mutex
+	writeTimeout time.Duration
 }
 
 type DbSwitchLogger SwitchLogger[*hamodel.DbSwitchingLog]
@@ -57,11 +62,12 @@ type DbSwitchLogger SwitchLogger[*hamodel.DbSwitchingLog]
 // NewLogToDbHandler creates a LogToDbHandler by the connection information
 func NewLogToDbHandler(proto string, ip string, port int, user string, passwd string) *LogToDbHandler {
 	return &LogToDbHandler{
-		Proto:  proto,
-		Ip:     ip,
-		Port:   port,
-		User:   user,
-		Passwd: passwd,
+		Proto:        proto,
+		Ip:           ip,
+		Port:         port,
+		User:         user,
+		Passwd:       passwd,
+		writeTimeout: time.Second,
 	}
 }
 
@@ -169,5 +175,21 @@ func (hdl *LogToDbHandler) Append(record *hamodel.DbSwitchingLog) error {
 	if record == nil {
 		return gerrors.New(gerrors.InvalidParameter, "switch log record for db is nil")
 	}
-	return hdl.logDb.SaveSwitchingLog(record)
+
+	if hdl.writeTimeout <= 0 {
+		hdl.writeTimeout = time.Second
+	}
+
+	// avoid concurrent write to database
+	hdl.mu.Lock()
+	defer hdl.mu.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), hdl.writeTimeout)
+	defer cancel()
+
+	err := hdl.logDb.SaveSwitchingLog(ctx, record)
+	if ctx.Err() == context.DeadlineExceeded {
+		return gerrors.Newf(gerrors.Failure, "switch log write timeout after %s", hdl.writeTimeout)
+	}
+	return err
 }

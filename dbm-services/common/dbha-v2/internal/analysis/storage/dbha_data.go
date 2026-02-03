@@ -25,6 +25,7 @@
 package storage
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -153,8 +154,9 @@ func (ha *DbhaData) ReadDbStatusWithDbInstances(dbInstances []*DbInstance,
 	return
 }
 
-func (ha *DbhaData) SaveSwitchingLog(records ...*hamodel.DbSwitchingLog) error {
-	err := ha.DB.DB().Model(&hamodel.DbSwitchingLog{}).CreateInBatches(records, 100).Error
+// SaveSwitchingLog save switching log into database
+func (ha *DbhaData) SaveSwitchingLog(ctx context.Context, records ...*hamodel.DbSwitchingLog) error {
+	err := ha.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingLog{}).CreateInBatches(records, 100).Error
 	if err != nil {
 		return gerrors.NewE(gerrors.MysqlFailure, err)
 	}

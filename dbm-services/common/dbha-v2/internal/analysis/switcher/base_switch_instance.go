@@ -97,6 +97,26 @@ func (sw *BaseSwitchInstance) GetInstanceInfo() string {
 	return infoStr
 }
 
+// GetBkCloudID returns the cloud ID of the instance.
+func (sw *BaseSwitchInstance) GetBkCloudID() int {
+	return sw.BkCloudID
+}
+
+// GetCluster returns the cluster name of the instance.
+func (sw *BaseSwitchInstance) GetCluster() string {
+	return sw.Cluster
+}
+
+// GetIP returns the instance IP.
+func (sw *BaseSwitchInstance) GetIP() string {
+	return sw.IP
+}
+
+// GetPort returns the instance port.
+func (sw *BaseSwitchInstance) GetPort() int {
+	return sw.Port
+}
+
 // SetInstanceUnavailable marks the instance as unavailable
 func (sw *BaseSwitchInstance) SetInstanceUnavailable() error {
 	err := sw.dbmClient.UpdateInstanceStatus(sw.BkCloudID, sw.IP, sw.Port, dbm.Unavailable)
