@@ -70,6 +70,14 @@ func (s *Synchronizer) Close() {
 	s.wg.Wait()
 }
 
+// QueryMetadataFromDbm queries metadata from DBM for the given cloud and IPs.
+func (s *Synchronizer) QueryMetadataFromDbm(ctx context.Context, bkCloudID int, ips []string) ([]*dbm.DbInstMetadata, error) {
+	if s.cli == nil {
+		return nil, errors.New("dbm client not initialized")
+	}
+	return s.cli.QueryMetadataFromDbm(ctx, bkCloudID, ips)
+}
+
 func (s *Synchronizer) saveRespond(resp *dbm.Response) error {
 	datas := []*hamodel.DbmMetadata{}
 	for _, rsp := range resp.Data {

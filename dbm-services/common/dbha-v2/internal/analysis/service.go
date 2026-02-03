@@ -65,6 +65,7 @@ type Service struct {
 	engine       *gin.Engine
 	httpApmSvr   *http.Server
 	discoveryCli *discovery.Client
+	discovery    *discovery.Discovery
 	regCli       *discovery.Registry
 	wflow        *workflow.Workflow
 	db           *hamysql.GormDB
@@ -138,6 +139,10 @@ func (s *Service) Run(ctx context.Context) error {
 
 func (s *Service) Close() {
 	s.wflow.Close()
+	if s.discovery != nil {
+		s.discovery.Close()
+		s.discovery = nil
+	}
 	if s.httpApmSvr != nil {
 		timeout := max(config.Cfg.Apm.ReadTimeout, config.Cfg.Apm.WriteTimeout)
 
@@ -166,6 +171,12 @@ func (s *Service) createDiscovery() error {
 		return err
 	}
 	s.discoveryCli = cli
+
+	disc, err := cli.CreateDiscovery()
+	if err != nil {
+		return err
+	}
+	s.discovery = disc
 
 	s.regCli = cli.CreateRegistry()
 	s.updateInfo()
@@ -257,7 +268,7 @@ func (s *Service) createNotifier() error {
 }
 
 func (s *Service) createWorkflow(ctx context.Context) error {
-	wflow, err := workflow.New(s.discoveryCli, s.db)
+	wflow, err := workflow.New(s.discoveryCli, s.db, s.discovery, s.discoveryCli.GetRegistryPrefix(), s.info.ID)
 	if err != nil {
 		return err
 	}
