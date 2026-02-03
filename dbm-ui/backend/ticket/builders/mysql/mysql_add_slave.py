@@ -63,8 +63,23 @@ class MysqlAddSlaveParamBuilder(builders.FlowParamBuilder):
         if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
             return
 
+        # 重新组织infos结构：将每个new_slave拆分成独立的info对象
+        new_infos = []
         for info in self.ticket_data["infos"]:
-            info["new_slave_ip"] = [slave["ip"] for slave in info.get("new_slave", [])]
+            cluster_ids = info.get("cluster_ids", [])
+            new_slaves = info.get("new_slave", [])
+
+            for new_slave in new_slaves:
+                new_info = {
+                    "cluster_ids": cluster_ids.copy(),  # 复制cluster_ids避免引用问题
+                    "new_slave_ip": new_slave["ip"],  # 单个IP字符串
+                    "new_slave": new_slave,  # 保留完整的new_slave信息
+                    "resource_spec": info.get("resource_spec", {}),
+                }
+                new_infos.append(new_info)
+
+        # 替换原来的infos结构
+        self.ticket_data["infos"] = new_infos
 
 
 class MysqlAddSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
@@ -92,8 +107,24 @@ class MysqlAddSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         ticket_data = next_flow.details["ticket_data"]
+
+        # 重新组织infos结构：将每个new_slave拆分成独立的info对象
+        new_infos = []
         for info in ticket_data["infos"]:
-            info["new_slave_ip"] = [slave["ip"] for slave in info.get("new_slave", [])]
+            cluster_ids = info.get("cluster_ids", [])
+            new_slaves = info.get("new_slave", [])
+
+            for new_slave in new_slaves:
+                new_info = {
+                    "cluster_ids": cluster_ids.copy(),  # 复制cluster_ids避免引用问题
+                    "new_slave_ip": new_slave["ip"],  # 单个IP字符串
+                    "new_slave": new_slave,  # 保留完整的new_slave信息
+                    "resource_spec": info.get("resource_spec", {}),
+                }
+                new_infos.append(new_info)
+
+        # 替换原来的infos结构
+        ticket_data["infos"] = new_infos
 
         next_flow.save(update_fields=["details"])
 
