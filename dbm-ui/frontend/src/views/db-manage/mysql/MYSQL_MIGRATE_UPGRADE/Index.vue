@@ -280,7 +280,7 @@
           labels: string[]; // 标签id列表
           spec_id: number;
         };
-        new_read_slave: {
+        new_read_slave?: {
           count: number;
           hosts: IHostData[];
           label_names: string[]; // 标签名称列表，单据详情回显用
@@ -338,13 +338,16 @@
                 labels: item.labels.map((item) => String(item.id)),
                 spec_id: item.specId,
               },
-              new_read_slave: {
-                count: item.read_only_slaves.length,
-                hosts: item.read_only_slaves.reduce<IHostData[]>((acc, cur) => [...acc, cur.new_slave], []),
-                label_names: item.labels.map((item) => item.value),
-                labels: item.labels.map((item) => String(item.id)),
-                spec_id: item.specId,
-              },
+              new_read_slave:
+                item.read_only_slaves.length > 0
+                  ? {
+                      count: item.read_only_slaves.length,
+                      hosts: item.read_only_slaves.reduce<IHostData[]>((acc, cur) => [...acc, cur.new_slave], []),
+                      label_names: item.labels.map((item) => item.value),
+                      labels: item.labels.map((item) => String(item.id)),
+                      spec_id: item.specId,
+                    }
+                  : undefined,
             },
           })),
           ip_source: 'resource_pool',
