@@ -44,7 +44,7 @@ class MysqlMigrateUpgradeDetailSerializer(MySQLBaseOperateDetailSerializer):
 
         class ResourceModelSerializer(serializers.Serializer):
             backend_group = ResourceSpecBaseSerializer(help_text=_("主机规格信息"))
-            new_read_slave = ResourceSpecBaseSerializer(help_text=_("只读从库主机规格信息"))
+            new_read_slave = ResourceSpecBaseSerializer(help_text=_("只读从库主机规格信息"), required=False)
 
         cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField(), min_length=1)
         resource_spec = ResourceModelSerializer(help_text=_("资源规格参数"), required=False)
