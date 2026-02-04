@@ -14,6 +14,9 @@ import (
 
 // Pause TODO
 func Pause(name string, du time.Duration) (int, error) {
+	crondMu.Lock()
+	defer crondMu.Unlock()
+
 	existEntry := findEntry(name)
 	if existEntry == nil {
 		err := errors.WithMessagef(api.NotFoundError, "entry %s from active jobs", name)

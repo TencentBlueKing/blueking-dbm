@@ -11,6 +11,14 @@ import (
 
 // Delete delete job from active job-list or disabled job-list
 func Delete(name string, permanent bool) (int, error) {
+	crondMu.Lock()
+	defer crondMu.Unlock()
+
+	return delete_(name, permanent)
+}
+
+// delete_ 内部实现，不加锁
+func delete_(name string, permanent bool) (int, error) {
 	existEntry := findEntry(name)
 	if existEntry != nil {
 		return deleteActivate(existEntry, permanent)

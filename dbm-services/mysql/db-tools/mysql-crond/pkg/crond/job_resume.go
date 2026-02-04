@@ -13,6 +13,9 @@ import (
 // Resume enable / resume form disabled list
 // if not found from disabled list, return error
 func Resume(name string, permanent bool) (int, error) {
+	crondMu.Lock()
+	defer crondMu.Unlock()
+
 	if value, ok := DisabledJobs.LoadAndDelete(name); ok {
 		if j, ok := value.(*config.ExternalJob); ok {
 			if j.JobID > 0 {
