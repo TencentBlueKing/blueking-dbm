@@ -9,7 +9,7 @@ from django.utils.translation import gettext as _
 
 from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_periodic_task.local_tasks.context_manager import start_new_span
 from backend.db_periodic_task.local_tasks.mysql_checksum.cluster_checksum import ChecksumService
 from backend.db_periodic_task.utils import TimeUnit, calculate_countdown
@@ -89,16 +89,20 @@ def check_cluster_checksum(index: int, cluster_id: int, now: Optional[datetime] 
         return
 
     # 基于 fail_list 生成修复单据
+    if not fail_list:
+        return
+
+    logger.info("found %d inconsistent instances for cluster %s", len(fail_list), cluster_task.cluster.immute_domain)
 
     db_type = ClusterType.cluster_type_to_db_type(cluster_obj.cluster_type)
     dba, second_dba, other_dba = DBAdministrator.get_dba_for_db_type(cluster_obj.bk_biz_id, db_type)
 
     try:
         # 按 master_ip:master_port 聚合不一致的 slave 实例
-        master_to_slaves = defaultdict(list)
+        master_to_slaves = defaultdict(set)
         for fail in fail_list:
             master_key = f"{fail.master_ip}:{fail.master_port}"
-            master_to_slaves[master_key].append(f"{fail.ip}:{fail.port}")
+            master_to_slaves[master_key].add(f"{fail.ip}:{fail.port}")
 
         ticket_details = {
             # "非innodb表是否修复"这个参数与校验保持一致，默认为false
@@ -112,8 +116,14 @@ def check_cluster_checksum(index: int, cluster_id: int, now: Optional[datetime] 
             "infos": [
                 {
                     "cluster_id": cluster_id,
-                    "master": master,
-                    "slaves": slaves,
+                    "master": _ip_port_to_repair_instance_info(cluster_obj, master),
+                    "slaves": [
+                        {
+                            **_ip_port_to_repair_instance_info(cluster_obj, slave),
+                            "is_consistent": False,
+                        }
+                        for slave in slaves
+                    ],
                 }
                 for master, slaves in master_to_slaves.items()
             ],
@@ -141,3 +151,16 @@ def _create_ticket(
 ) -> None:
     """创建一个新单据"""
     Ticket.create_ticket(ticket_type, creator, bk_biz_id, remark, details, auto_execute, send_msg_config, helpers)
+
+
+def _ip_port_to_repair_instance_info(cluster_obj: Cluster, ip_port: str) -> dict:
+    ip, port = ip_port.split(":")
+    inst_obj = StorageInstance.objects.get(cluster=cluster_obj, machine__ip=ip, port=port)
+    return {
+        "id": inst_obj.id,
+        "bk_biz_id": cluster_obj.bk_biz_id,
+        "ip": ip,
+        "port": port,
+        "bk_host_id": inst_obj.machine.bk_host_id,
+        "bk_cloud_id": cluster_obj.bk_cloud_id,
+    }

@@ -16,6 +16,9 @@ import (
 // DisabledJobs store *config.ExternalJob by name
 var DisabledJobs sync.Map
 
+// crondMu 用于保护 crond 操作的并发访问
+var crondMu sync.Mutex
+
 // cronJob all active cronjob entries
 var cronJob *cron.Cron
 
@@ -104,6 +107,9 @@ func Start() error {
 
 // Reload TODO
 func Reload() error {
+	crondMu.Lock()
+	defer crondMu.Unlock()
+
 	cronJob.Stop()
 	for _, e := range cronJob.Entries() {
 		cronJob.Remove(e.ID)

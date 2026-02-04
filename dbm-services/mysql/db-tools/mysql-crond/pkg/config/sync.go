@@ -8,47 +8,62 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// SyncAddJob TODO
-func SyncAddJob(newJob *ExternalJob) error {
+// loadAndCleanJobsConfig 从磁盘读取配置并清理 nil 项
+func loadAndCleanJobsConfig() error {
 	content, err := os.ReadFile(RuntimeConfig.JobsConfigFile)
 	if err != nil {
-		slog.Error("sync add new read config from disk", slog.String("error", err.Error()))
+		slog.Error("read config from disk", slog.String("error", err.Error()))
 		return err
 	}
 
 	err = yaml.Unmarshal(content, &JobsConfig)
 	if err != nil {
-		slog.Error("sync add encode config", slog.String("error", err.Error()))
+		slog.Error("unmarshal config", slog.String("error", err.Error()))
 		return err
 	}
 
-	JobsConfig.Jobs = append(JobsConfig.Jobs, newJob)
+	// 清理 nil 项
+	validJobs := make([]*ExternalJob, 0, len(JobsConfig.Jobs))
+	for _, j := range JobsConfig.Jobs {
+		if j != nil {
+			validJobs = append(validJobs, j)
+		}
+	}
+	JobsConfig.Jobs = validJobs
 
+	return nil
+}
+
+// saveJobsConfig 将配置序列化并写入磁盘
+func saveJobsConfig() error {
 	output, err := yaml.Marshal(JobsConfig)
 	if err != nil {
-		slog.Error("sync add decode updated config", slog.String("error", err.Error()))
+		slog.Error("marshal config", slog.String("error", err.Error()))
 		return err
 	}
 
 	err = os.WriteFile(RuntimeConfig.JobsConfigFile, output, 0644)
 	if err != nil {
-		slog.Error("sync add write to disk", slog.String("error", err.Error()))
+		slog.Error("write config to disk", slog.String("error", err.Error()))
 		return err
 	}
 	return nil
 }
 
-// SyncJobEnable TODO
-func SyncJobEnable(name string, enable bool) error {
-	content, err := os.ReadFile(RuntimeConfig.JobsConfigFile)
-	if err != nil {
-		slog.Error("sync job enable new read config from disk", slog.String("error", err.Error()))
+// SyncAddJob TODO
+func SyncAddJob(newJob *ExternalJob) error {
+	if err := loadAndCleanJobsConfig(); err != nil {
 		return err
 	}
 
-	err = yaml.Unmarshal(content, &JobsConfig)
-	if err != nil {
-		slog.Error("sync job enable encode config", slog.String("error", err.Error()))
+	JobsConfig.Jobs = append(JobsConfig.Jobs, newJob)
+
+	return saveJobsConfig()
+}
+
+// SyncJobEnable TODO
+func SyncJobEnable(name string, enable bool) error {
+	if err := loadAndCleanJobsConfig(); err != nil {
 		return err
 	}
 
@@ -68,31 +83,12 @@ func SyncJobEnable(name string, enable bool) error {
 		return err
 	}
 
-	output, err := yaml.Marshal(JobsConfig)
-	if err != nil {
-		slog.Error("sync enable decode updated config", slog.String("error", err.Error()))
-		return err
-	}
-
-	err = os.WriteFile(RuntimeConfig.JobsConfigFile, output, 0644)
-	if err != nil {
-		slog.Error("sync enable write to disk", slog.String("error", err.Error()))
-		return err
-	}
-	return nil
+	return saveJobsConfig()
 }
 
 // SyncDelete TODO
 func SyncDelete(name string) error {
-	content, err := os.ReadFile(RuntimeConfig.JobsConfigFile)
-	if err != nil {
-		slog.Error("sync job enable new read config from disk", slog.String("error", err.Error()))
-		return err
-	}
-
-	err = yaml.Unmarshal(content, &JobsConfig)
-	if err != nil {
-		slog.Error("sync job enable encode config", slog.String("error", err.Error()))
+	if err := loadAndCleanJobsConfig(); err != nil {
 		return err
 	}
 
@@ -113,16 +109,5 @@ func SyncDelete(name string) error {
 
 	JobsConfig.Jobs = append(JobsConfig.Jobs[:idx], JobsConfig.Jobs[idx+1:]...)
 
-	output, err := yaml.Marshal(JobsConfig)
-	if err != nil {
-		slog.Error("sync enable decode updated config", slog.String("error", err.Error()))
-		return err
-	}
-
-	err = os.WriteFile(RuntimeConfig.JobsConfigFile, output, 0644)
-	if err != nil {
-		slog.Error("sync enable write to disk", slog.String("error", err.Error()))
-		return err
-	}
-	return nil
+	return saveJobsConfig()
 }

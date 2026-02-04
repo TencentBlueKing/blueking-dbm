@@ -226,6 +226,7 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 
 			entryID, err := crond.CreateOrReplace(body.Job, *body.Permanent)
 			if err != nil {
+				slog.Error("create or replace job", slog.String("error", err.Error()), slog.Any("job body", body))
 				ctx.AbortWithStatusJSON(http.StatusInternalServerError, api.NewErrorResp(500, err))
 				return
 			}

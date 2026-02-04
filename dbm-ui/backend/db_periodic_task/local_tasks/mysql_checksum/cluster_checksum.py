@@ -87,7 +87,7 @@ class ChecksumService:
             master_ip = master_ins.machine.ip
             master_port = master_ins.port
 
-            checksum = ChecksumResult(ip=ip, port=port)
+            checksum = ChecksumResult(master_ip=master_ip, master_port=master_port, ip=ip, port=port)
 
             drs_raw_res = DRSApi.rpc(
                 {
