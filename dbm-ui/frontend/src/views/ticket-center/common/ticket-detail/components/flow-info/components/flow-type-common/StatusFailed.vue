@@ -44,6 +44,7 @@
       <RenderErrorMessage
         :data="data"
         :ticket-detail="ticketDetail" />
+      <Abstract :data="data" />
       <div
         v-if="isCanOperation && isNeedOperation"
         class="mt-12">
@@ -67,7 +68,6 @@
           {{ utcDisplayTime(data.update_at) }}
         </div>
       </template>
-      <Abstract :data="data" />
     </template>
     <template #desc>
       {{ utcDisplayTime(data.update_at) }}
