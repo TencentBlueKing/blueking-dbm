@@ -548,9 +548,10 @@ func (task *BackupTask) PreCheckReplLink() {
 		}
 
 		mylog.Logger.Info("myself:%s, master:%s:%s, linkStatus:%s", task.Addr(), masterIp, masterPort, linkStatus)
+		// 如果是master，那么直接在master上执行备份逻辑。场景：清档前备份
 		if selfRole == consts.RedisMasterRole {
 			mylog.Logger.Warn("my role is master, sure backup in master?")
-			continue
+			break
 		}
 		if linkStatus != consts.MasterLinkStatusUP {
 			task.Err = fmt.Errorf("master_ip: %s, master_port: %s, link_status: %s. check repl status failed, don't backup", masterIp, masterPort, linkStatus)
