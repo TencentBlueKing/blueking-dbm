@@ -1,1 +1,0 @@
-SET names utf8;

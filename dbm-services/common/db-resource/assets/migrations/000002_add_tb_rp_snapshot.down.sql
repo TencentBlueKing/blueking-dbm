@@ -1,1 +1,0 @@
-DROP TABLE tb_rp_daily_snap_shot;

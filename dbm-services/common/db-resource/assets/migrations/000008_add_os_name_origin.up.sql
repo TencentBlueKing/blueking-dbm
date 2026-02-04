@@ -1,2 +1,0 @@
-alter table tb_rp_detail add column `os_name_origin` varchar(128) not null default '' comment '操作系统名称原始' after `os_name`;
-alter table tb_rp_detail_archive add column `os_name_origin` varchar(128) not null default '' comment '操作系统名称原始' after `os_name`;
