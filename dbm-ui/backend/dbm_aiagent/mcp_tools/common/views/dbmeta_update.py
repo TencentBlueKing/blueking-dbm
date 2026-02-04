@@ -16,6 +16,7 @@ from rest_framework.response import Response
 
 from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums.spec import machine_type_to_spec_machine_type
 from backend.db_meta.models import Machine, Spec
 from backend.dbm_aiagent.mcp_tools.common.impl.recommend_host_spec import recommend_specs_for_hosts
 from backend.dbm_aiagent.mcp_tools.common.serializers.recommend_spec import (
@@ -165,10 +166,24 @@ class DBMetaUpdateMcpToolsViewSet(McpToolsViewSet):
                 )
             return False
 
-        if spec.spec_machine_type != machine_machine_type:
+        # 将 MachineType 转换为对应的 SpecMachineType 进行比较
+        try:
+            expected_spec_machine_type = machine_type_to_spec_machine_type(machine_machine_type)
+        except ValueError as e:
+            logger.warning(_("无法转换 machine_type ({}): {}").format(machine_machine_type, str(e)))
+            for machine in machines:
+                failed_list.append(
+                    {
+                        "ip": machine.ip,
+                        "reason": _("无法转换机器类型 ({}) 为规格类型: {}").format(machine_machine_type, str(e)),
+                    }
+                )
+            return False
+
+        if spec.spec_machine_type != expected_spec_machine_type:
             logger.warning(
-                _("规格的 spec_machine_type ({}) 与机器的 machine_type ({}) 不匹配").format(
-                    spec.spec_machine_type, machine_machine_type
+                _("规格的 spec_machine_type ({}) 与机器的 machine_type ({}) 转换后的规格类型 ({}) 不匹配").format(
+                    spec.spec_machine_type, machine_machine_type, expected_spec_machine_type
                 )
             )
             for machine in machines:
@@ -176,10 +191,15 @@ class DBMetaUpdateMcpToolsViewSet(McpToolsViewSet):
                     {
                         "ip": machine.ip,
                         "reason": _(
-                            "Spec machine_type ({}) does not match machine type ({}). "
-                            "规格的 machine_type ({}) 与机器类型 ({}) 不匹配。"
+                            "Spec machine_type ({}) does not match machine type ({}) converted spec type ({}). "
+                            "规格的 machine_type ({}) 与机器类型 ({}) 转换后的规格类型 ({}) 不匹配。"
                         ).format(
-                            spec.spec_machine_type, machine_machine_type, spec.spec_machine_type, machine_machine_type
+                            spec.spec_machine_type,
+                            machine_machine_type,
+                            expected_spec_machine_type,
+                            spec.spec_machine_type,
+                            machine_machine_type,
+                            expected_spec_machine_type,
                         ),
                     }
                 )
