@@ -154,7 +154,7 @@ func TestMultipleWatchers(t *testing.T) {
 	watcherCount := 50
 	eventCount := 100
 
-	var watchers []chan *discovery.WatchEvent
+	var watchers []<-chan *discovery.WatchEvent
 	var receivedCounts []int32 = make([]int32, watcherCount)
 
 	// Create multiple watchers
@@ -176,7 +176,7 @@ func TestMultipleWatchers(t *testing.T) {
 	var wg sync.WaitGroup
 	for i := 0; i < watcherCount; i++ {
 		wg.Add(1)
-		go func(idx int, ch chan *discovery.WatchEvent) {
+		go func(idx int, ch <-chan *discovery.WatchEvent) {
 			defer wg.Done()
 			for range ch {
 				atomic.AddInt32(&receivedCounts[idx], 1)
@@ -602,7 +602,7 @@ func TestMaxWatchersPerKey(t *testing.T) {
 	maxWatchers := 200
 
 	var discoveries []*discovery.Discovery
-	var watchChans []chan *discovery.WatchEvent
+	var watchChans []<-chan *discovery.WatchEvent
 	var createErrors int
 
 	// Create large number of watchers

@@ -31,6 +31,12 @@ import (
 	"go.etcd.io/etcd/client/v3/concurrency"
 )
 
+const (
+	etcdKeySegmentSelf     = "self"
+	etcdKeySegmentMutex    = "mutex"
+	etcdKeySegmentElection = "election/leader"
+)
+
 // Client etcd client
 type Client struct {
 	opts             options
@@ -76,11 +82,25 @@ func (c Client) GetRegistryPrefix() string {
 	return c.opts.registryRootKeyPrefix
 }
 
+// GetSelfPrefix returns the etcd key prefix under which same-module instances register (self nodes).
+// Full key for one instance is GetSelfPrefix() + "/" + serviceID.
+// Use with GetWithPrefix to list all instances.
+func (c Client) GetSelfPrefix() string {
+	return c.opts.registryRootKeyPrefix + "/" + etcdKeySegmentSelf
+}
+
+// GetElectionPrefix returns the etcd key prefix for leader election.
+//
+//	Full key for one election is GetElectionPrefix() + "/" + name.
+func (c Client) GetElectionPrefix() string {
+	return c.opts.registryRootKeyPrefix + "/" + etcdKeySegmentElection
+}
+
 // CreateRegistry create new etcd registry
 func (c Client) CreateRegistry() *Registry {
 	rootKey := c.opts.registryRootKeyPrefix
 	if c.opts.serviceID != "" {
-		rootKey += "/" + c.opts.serviceID
+		rootKey += "/" + etcdKeySegmentSelf + "/" + c.opts.serviceID
 	}
 
 	registry := &Registry{
@@ -115,7 +135,7 @@ func (c Client) CreateMutex(key string) (ConcurrencyMutex, error) {
 		return nil, gerrors.NewE(gerrors.EtcdFailure, err)
 	}
 
-	muKey := c.opts.registryRootKeyPrefix + "/mutex/" + key
+	muKey := c.opts.registryRootKeyPrefix + "/" + etcdKeySegmentMutex + "/" + key
 	mu := &concurrencyMutex{
 		etcdCli: etcdCli,
 		session: session,
@@ -138,7 +158,7 @@ func (c Client) CreateElection(name string) (ConcurrencyElection, error) {
 		return nil, gerrors.NewE(gerrors.EtcdFailure, err)
 	}
 
-	electionKey := c.opts.registryRootKeyPrefix + "/election/leader/" + name
+	electionKey := c.opts.registryRootKeyPrefix + "/" + etcdKeySegmentElection + "/" + name
 
 	election := &concurrencyElection{
 		etcdCli:  etcdCli,

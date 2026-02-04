@@ -96,6 +96,17 @@ func (e *SwitchExecutor) CreateRequestWithGroup(group *FailureGroup) *switcher.R
 // MatchStrategyForGroup loads strategies for the group's biz, matches by event name/reason and trigger count,
 // and returns the highest-priority (smallest Priority value) enabled strategy, or (false, nil) if none match.
 func (e *SwitchExecutor) MatchStrategyForGroup(group *FailureGroup) (matched bool, strategy *hamodel.DbSwitchingStrategy) {
+
+	// TODO: only use to test, should remove later
+	strategy = &hamodel.DbSwitchingStrategy{
+		TriggerEventName:       group.EventName,
+		TriggerEventNameReason: group.EventNameReason,
+		TriggerCount:           0,
+		Priority:               0,
+		Scope:                  hamodel.ActionScopeTypeDbInstance,
+		Action:                 hamodel.ActionTypeSwitch,
+	}
+
 	if len(group.Instances) == 0 {
 		return false, nil
 	}
@@ -131,12 +142,15 @@ func (e *SwitchExecutor) MatchStrategyForGroup(group *FailureGroup) (matched boo
 	}
 
 	if len(candidates) == 0 {
-		return false, nil
+		// TODO: only use to test, should remove later
+		return true, strategy
+		//return false, nil
 	}
 
 	sort.Slice(candidates, func(i, j int) bool {
 		return candidates[i].Priority < candidates[j].Priority
 	})
+
 	return true, candidates[0]
 }
 

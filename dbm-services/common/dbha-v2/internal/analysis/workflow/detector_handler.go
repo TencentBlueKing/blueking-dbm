@@ -160,6 +160,7 @@ func (h *DetectorHandler) LivenessDoubleCheck(missedInsts []detector.DoubleCheck
 				group.BkCloudID, group.DbType, group.EventName, group.EventNameReason.Str())
 			continue
 		}
+
 		if strategy.Action != hamodel.ActionTypeSwitch {
 			logger.Info("strategy action is %s, skip switching, strategy: %s, cloudId: %d, dbType: %s",
 				strategy.Action, strategy.Name, group.BkCloudID, group.DbType)
