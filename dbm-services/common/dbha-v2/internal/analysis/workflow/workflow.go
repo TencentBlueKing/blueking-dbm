@@ -41,11 +41,6 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
-const (
-	scanIntervalLimitMin = 5 * time.Second
-	readBatchCount       = 1000
-)
-
 var (
 	ErrCreateMutexFailure    = gerrors.Newf(gerrors.EtcdFailure, "failed to create a mutex for a business")
 	ErrReadMetadataFailure   = gerrors.Newf(gerrors.MysqlFailure, "failed to read metadata")
@@ -54,6 +49,11 @@ var (
 	ErrReadSkipDbInstFailure = gerrors.Newf(gerrors.MysqlFailure, "failed to read skip db-inst")
 	ErrAcquireLockFailure    = gerrors.Newf(gerrors.EtcdFailure, "failed to acquire the lock for the business")
 	ErrDetectorFailure       = gerrors.Newf(gerrors.Failure, "detector failure, switching is needed")
+)
+
+const (
+	scanIntervalLimitMin = 5 * time.Second
+	readBatchCount       = 1000
 )
 
 // Workflow represents the workflow engine for DBHA, composed of instance discovery, alarm, metadata, switch, detector, and checker.
@@ -207,7 +207,8 @@ func (w *Workflow) CheckBusinessWithBizID(ctx context.Context, bizId int) error 
 	return nil
 }
 
-// ScanBusinesses fetches business IDs, filters by instance sharding, and runs CheckBusinessWithBizID for each (with concurrency limit).
+// ScanBusinesses fetches business IDs, filters by instance sharding,
+// and runs CheckBusinessWithBizID for each (with concurrency limit).
 func (w *Workflow) ScanBusinesses(ctx context.Context) {
 	bizIDs, err := w.hadata.GetBizIDs()
 	if err != nil {

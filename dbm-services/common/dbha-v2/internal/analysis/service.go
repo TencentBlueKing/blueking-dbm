@@ -268,7 +268,7 @@ func (s *Service) createNotifier() error {
 }
 
 func (s *Service) createWorkflow(ctx context.Context) error {
-	wflow, err := workflow.New(s.discoveryCli, s.db, s.discovery, s.discoveryCli.GetRegistryPrefix(), s.info.ID)
+	wflow, err := workflow.New(s.discoveryCli, s.db, s.discovery, s.discoveryCli.GetSelfPrefix(), s.info.ID)
 	if err != nil {
 		return err
 	}
