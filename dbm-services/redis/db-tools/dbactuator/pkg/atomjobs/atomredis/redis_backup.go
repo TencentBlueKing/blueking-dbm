@@ -447,6 +447,11 @@ func (task *BackupTask) GoFullBakcup() {
 	if task.Err != nil {
 		return
 	}
+	// 如果角色是slave，需要检查master_link_status==up
+	task.PreCheckReplLink()
+	if task.Err != nil {
+		return
+	}
 
 	// 如果有备份正在执行,则先等待其完成
 	task.Err = task.Cli.WaitForBackupFinish()
@@ -462,6 +467,10 @@ func (task *BackupTask) GoFullBakcup() {
 		if task.Err != nil {
 			return
 		}
+
+		// 与脚本保持一致，sleep一下
+		time.Sleep(20 * time.Second)
+
 		task.TendisSSDInstanceBackup()
 	}
 	if task.Err != nil {
@@ -520,6 +529,37 @@ func (task *BackupTask) newConnect() {
 	if task.Err != nil {
 		return
 	}
+	return
+}
+
+// PreCheckReplLink 主从关系链检查
+func (task *BackupTask) PreCheckReplLink() {
+	maxCheckMinute := 10
+	for i := 0; i < maxCheckMinute*2; i++ {
+		mylog.Logger.Info("PreCheckReplLink %d begin...", i)
+
+		// 每30秒 check 一次
+		task.Err = nil
+		time.Sleep(30 * time.Second)
+		masterIp, masterPort, linkStatus, selfRole, err := task.Cli.GetMasterData()
+		if err != nil {
+			task.Err = err
+			continue
+		}
+
+		mylog.Logger.Info("myself:%s, master:%s:%s, linkStatus:%s", task.Addr(), masterIp, masterPort, linkStatus)
+		if selfRole == consts.RedisMasterRole {
+			mylog.Logger.Warn("my role is master, sure backup in master?")
+			continue
+		}
+		if linkStatus != consts.MasterLinkStatusUP {
+			task.Err = fmt.Errorf("master_ip: %s, master_port: %s, link_status: %s. check repl status failed, don't backup", masterIp, masterPort, linkStatus)
+			continue
+		}
+		// 走到这里，说明master_link_status is up
+		break
+	}
+	mylog.Logger.Info("PreCheckReplLink end...")
 	return
 }
 
