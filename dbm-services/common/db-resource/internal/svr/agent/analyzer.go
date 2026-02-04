@@ -32,6 +32,7 @@ type AnalysisResult struct {
 	Verification *VerificationInfo `json:"verification,omitempty"`
 	Duration     string            `json:"duration"`
 	RawResponse  string            `json:"raw_response,omitempty"`
+	MarkdownText string            `json:"markdown_text,omitempty"`
 }
 
 // FailureReason 失败原因
@@ -204,15 +205,39 @@ func (a *ResourceAnalyzer) Analyze(ctx context.Context, applyParams *apply.Reque
 	// 后处理：将园区 ID 转换为友好的显示格式
 	formatAnalysisResult(result)
 
+	// 如果 LLM 没有返回 Markdown 格式，使用备用格式化函数生成
+	if result.MarkdownText == "" {
+		logger.Info("[Analyzer] No Markdown from LLM, generating from JSON data")
+		result.MarkdownText = FormatAnalysisResultToMarkdown(result)
+	}
+
 	return result, nil
 }
 
 // parseResponse 解析 LLM 响应
 func (a *ResourceAnalyzer) parseResponse(response string, result *AnalysisResult) error {
+	// 检查是否包含 Markdown 分隔符
+	markdownSeparator := "---MARKDOWN---"
+	markdownStartIdx := strings.Index(response, markdownSeparator)
+
+	var jsonPart string
+	if markdownStartIdx != -1 {
+		// 提取 JSON 部分（分隔符之前）
+		jsonPart = response[:markdownStartIdx]
+		// 提取 Markdown 部分（分隔符之后）
+		markdownPart := strings.TrimSpace(response[markdownStartIdx+len(markdownSeparator):])
+		result.MarkdownText = markdownPart
+		logger.Info("[Analyzer] Found Markdown section, length: %d", len(markdownPart))
+	} else {
+		// 没有分隔符，整个响应都是 JSON
+		jsonPart = response
+		logger.Info("[Analyzer] No Markdown separator found, will generate Markdown later")
+	}
+
 	// 尝试从响应中提取 JSON
-	jsonStr := extractJSON(response)
+	jsonStr := extractJSON(jsonPart)
 	if jsonStr == "" {
-		logger.Warn("[Analyzer] No JSON found in response, response length: %d", len(response))
+		logger.Warn("[Analyzer] No JSON found in response, response length: %d", len(jsonPart))
 		return fmt.Errorf("no JSON found in response")
 	}
 
@@ -399,6 +424,12 @@ func (a *ResourceAnalyzer) AnalyzeWithKnownReasons(ctx context.Context, analysis
 
 	// 后处理：将园区 ID 转换为友好的显示格式
 	formatAnalysisResult(result)
+
+	// 如果 LLM 没有返回 Markdown 格式，使用备用格式化函数生成
+	if result.MarkdownText == "" {
+		logger.Info("[Analyzer] No Markdown from LLM, generating from JSON data")
+		result.MarkdownText = FormatAnalysisResultToMarkdown(result)
+	}
 
 	return result, nil
 }

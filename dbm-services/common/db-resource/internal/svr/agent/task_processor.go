@@ -154,6 +154,7 @@ func ProcessAnalysisTaskFromJSON(billID string, applyParamsJSON json.RawMessage)
 		Updates(map[string]interface{}{
 			"status":          model.AnalysisStatusCompleted,
 			"analysis_result": resultJSON,
+			"markdown_text":   result.MarkdownText,
 			"duration":        duration,
 		}).Error; err != nil {
 		logger.Error("Failed to update analysis result for bill %s: %v", billID, err)

@@ -32,6 +32,7 @@ type TbRpAnalysisResult struct {
 	BillId         string          `gorm:"uniqueIndex:uk_bill_id;column:bill_id;type:varchar(128);not null" json:"bill_id"`
 	ApplyParams    json.RawMessage `gorm:"column:apply_params;type:json;not null" json:"apply_params"`
 	AnalysisResult json.RawMessage `gorm:"column:analysis_result;type:json" json:"analysis_result"`
+	MarkdownText   string          `gorm:"column:markdown_text;type:text" json:"markdown_text"`
 	Status         string          `gorm:"index:idx_status;column:status;type:varchar(20);not null;default:'pending'" json:"status"`
 	ErrorMsg       string          `gorm:"column:error_msg;type:text" json:"error_msg"`
 	Duration       string          `gorm:"column:duration;type:varchar(32)" json:"duration"`
