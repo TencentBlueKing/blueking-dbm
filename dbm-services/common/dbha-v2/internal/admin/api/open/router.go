@@ -76,6 +76,13 @@ func RegisterStrategyApi(strategyHandler *handler.StrategyHandler, server *hanet
 	server.RegisterAPI(&hanet.ResetAPI{
 		Group:   group,
 		Method:  hanet.HttpMethodGet,
+		Path:    "/eventnames/",
+		Handler: strategyHandler.TriggerEventNamesList,
+	})
+
+	server.RegisterAPI(&hanet.ResetAPI{
+		Group:   group,
+		Method:  hanet.HttpMethodGet,
 		Path:    "/",
 		Handler: strategyHandler.List,
 	})

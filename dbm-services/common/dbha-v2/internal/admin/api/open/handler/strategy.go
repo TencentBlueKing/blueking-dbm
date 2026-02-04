@@ -30,6 +30,7 @@ import (
 	"dbm-services/common/dbha-v2/internal/admin/strategy"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
 	"github.com/gin-gonic/gin"
 )
@@ -74,16 +75,15 @@ func (h *StrategyHandler) Create(c *gin.Context) {
 	}
 
 	strategyInfo := &hamodel.DbSwitchingStrategy{
-		Name:                   req.Name,
-		BkBizID:                req.BkBizID,
-		TriggerEventName:       req.TriggerEventName,
-		TriggerEventNameReason: req.TriggerEventNameReason,
-		TriggerCount:           req.TriggerCount,
-		Priority:               req.Priority,
-		Scope:                  req.Scope,
-		Action:                 req.Action,
-		Description:            req.Description,
-		Status:                 hamodel.StatusTypeEnabled,
+		Name:             req.Name,
+		BkBizID:          req.BkBizID,
+		TriggerEventName: req.TriggerEventName,
+		TriggerCount:     req.TriggerCount,
+		Priority:         req.Priority,
+		Scope:            req.Scope,
+		Action:           req.Action,
+		Description:      req.Description,
+		Status:           hamodel.StatusTypeEnabled,
 	}
 
 	if err := h.strategyService.CreateStrategy(strategyInfo); err != nil {
@@ -123,16 +123,15 @@ func (h *StrategyHandler) BatchCreate(c *gin.Context) {
 		names = append(names, strategyInfo.Name)
 		nameIDMap[strategyInfo.Name] = strategyInfo.ID
 		strategies = append(strategies, &hamodel.DbSwitchingStrategy{
-			Name:                   strategyInfo.Name,
-			BkBizID:                strategyInfo.BkBizID,
-			TriggerEventName:       strategyInfo.TriggerEventName,
-			TriggerEventNameReason: strategyInfo.TriggerEventNameReason,
-			TriggerCount:           strategyInfo.TriggerCount,
-			Priority:               strategyInfo.Priority,
-			Scope:                  strategyInfo.Scope,
-			Action:                 strategyInfo.Action,
-			Description:            strategyInfo.Description,
-			Status:                 hamodel.StatusTypeEnabled,
+			Name:             strategyInfo.Name,
+			BkBizID:          strategyInfo.BkBizID,
+			TriggerEventName: strategyInfo.TriggerEventName,
+			TriggerCount:     strategyInfo.TriggerCount,
+			Priority:         strategyInfo.Priority,
+			Scope:            strategyInfo.Scope,
+			Action:           strategyInfo.Action,
+			Description:      strategyInfo.Description,
+			Status:           hamodel.StatusTypeEnabled,
 		})
 	}
 
@@ -183,16 +182,15 @@ func (h *StrategyHandler) BatchUpdate(c *gin.Context) {
 		names = append(names, strategyInfo.Name)
 		nameIDMap[strategyInfo.Name] = strategyInfo.ID
 		strategies = append(strategies, &hamodel.DbSwitchingStrategy{
-			ID:                     strategyInfo.ID,
-			Name:                   strategyInfo.Name,
-			BkBizID:                strategyInfo.BkBizID,
-			TriggerEventName:       strategyInfo.TriggerEventName,
-			TriggerEventNameReason: strategyInfo.TriggerEventNameReason,
-			TriggerCount:           strategyInfo.TriggerCount,
-			Priority:               strategyInfo.Priority,
-			Scope:                  strategyInfo.Scope,
-			Action:                 strategyInfo.Action,
-			Description:            strategyInfo.Description,
+			ID:               strategyInfo.ID,
+			Name:             strategyInfo.Name,
+			BkBizID:          strategyInfo.BkBizID,
+			TriggerEventName: strategyInfo.TriggerEventName,
+			TriggerCount:     strategyInfo.TriggerCount,
+			Priority:         strategyInfo.Priority,
+			Scope:            strategyInfo.Scope,
+			Action:           strategyInfo.Action,
+			Description:      strategyInfo.Description,
 		})
 	}
 
@@ -264,6 +262,19 @@ func (h *StrategyHandler) BatchUpdateStatus(c *gin.Context) {
 	ginx.SuccessNoContentResponse(c)
 }
 
+// TriggerEventNamesList lists trigger event names
+//
+//	@ID			openapi_strategy_trigger_event_names_list
+//	@Summary	strategy trigger event names list
+//	@Accept		json
+//	@Produce	json
+//	@Tags		openapi.strategy
+//	@Success	200	{object}	[]string
+//	@Router		/api/admin/strategies/eventnames/ [get]
+func (h *StrategyHandler) TriggerEventNamesList(c *gin.Context) {
+	ginx.SuccessJSONResponse(c, haprobe.DbEventNameList)
+}
+
 // List lists strategies
 //
 //	@ID			openapi_strategy_list
@@ -300,16 +311,15 @@ func (h *StrategyHandler) List(c *gin.Context) {
 	for _, strategyInfo := range strategies {
 		output = append(output, serializer.StrategyOutputInfo{
 			StrategyInfo: serializer.StrategyInfo{
-				ID:                     strategyInfo.ID,
-				Name:                   strategyInfo.Name,
-				BkBizID:                strategyInfo.BkBizID,
-				TriggerEventName:       strategyInfo.TriggerEventName,
-				TriggerEventNameReason: strategyInfo.TriggerEventNameReason,
-				TriggerCount:           strategyInfo.TriggerCount,
-				Priority:               strategyInfo.Priority,
-				Scope:                  strategyInfo.Scope,
-				Action:                 strategyInfo.Action,
-				Description:            strategyInfo.Description,
+				ID:               strategyInfo.ID,
+				Name:             strategyInfo.Name,
+				BkBizID:          strategyInfo.BkBizID,
+				TriggerEventName: strategyInfo.TriggerEventName,
+				TriggerCount:     strategyInfo.TriggerCount,
+				Priority:         strategyInfo.Priority,
+				Scope:            strategyInfo.Scope,
+				Action:           strategyInfo.Action,
+				Description:      strategyInfo.Description,
 			},
 			Status:    strategyInfo.Status,
 			CreatedAt: strategyInfo.CreatedAt,
@@ -357,16 +367,15 @@ func (h *StrategyHandler) Get(c *gin.Context) {
 
 	output := serializer.StrategyOutputInfo{
 		StrategyInfo: serializer.StrategyInfo{
-			ID:                     strategyInfo.ID,
-			Name:                   strategyInfo.Name,
-			BkBizID:                strategyInfo.BkBizID,
-			TriggerEventName:       strategyInfo.TriggerEventName,
-			TriggerEventNameReason: strategyInfo.TriggerEventNameReason,
-			TriggerCount:           strategyInfo.TriggerCount,
-			Priority:               strategyInfo.Priority,
-			Scope:                  strategyInfo.Scope,
-			Action:                 strategyInfo.Action,
-			Description:            strategyInfo.Description,
+			ID:               strategyInfo.ID,
+			Name:             strategyInfo.Name,
+			BkBizID:          strategyInfo.BkBizID,
+			TriggerEventName: strategyInfo.TriggerEventName,
+			TriggerCount:     strategyInfo.TriggerCount,
+			Priority:         strategyInfo.Priority,
+			Scope:            strategyInfo.Scope,
+			Action:           strategyInfo.Action,
+			Description:      strategyInfo.Description,
 		},
 		Status:    strategyInfo.Status,
 		CreatedAt: strategyInfo.CreatedAt,
@@ -421,16 +430,15 @@ func (h *StrategyHandler) Update(c *gin.Context) {
 	}
 
 	strategyInfo := &hamodel.DbSwitchingStrategy{
-		ID:                     pathParam.ID,
-		Name:                   req.Name,
-		BkBizID:                req.BkBizID,
-		TriggerEventName:       req.TriggerEventName,
-		TriggerEventNameReason: req.TriggerEventNameReason,
-		TriggerCount:           req.TriggerCount,
-		Priority:               req.Priority,
-		Scope:                  req.Scope,
-		Action:                 req.Action,
-		Description:            req.Description,
+		ID:               pathParam.ID,
+		Name:             req.Name,
+		BkBizID:          req.BkBizID,
+		TriggerEventName: req.TriggerEventName,
+		TriggerCount:     req.TriggerCount,
+		Priority:         req.Priority,
+		Scope:            req.Scope,
+		Action:           req.Action,
+		Description:      req.Description,
 	}
 
 	if err := h.strategyService.UpdateStrategy(strategyInfo); err != nil {
@@ -561,16 +569,15 @@ func (h *StrategyHandler) GlobalList(c *gin.Context) {
 	for _, strategyInfo := range strategies {
 		output = append(output, serializer.StrategyOutputInfo{
 			StrategyInfo: serializer.StrategyInfo{
-				ID:                     strategyInfo.ID,
-				Name:                   strategyInfo.Name,
-				BkBizID:                strategyInfo.BkBizID,
-				TriggerEventName:       strategyInfo.TriggerEventName,
-				TriggerEventNameReason: strategyInfo.TriggerEventNameReason,
-				TriggerCount:           strategyInfo.TriggerCount,
-				Priority:               strategyInfo.Priority,
-				Scope:                  strategyInfo.Scope,
-				Action:                 strategyInfo.Action,
-				Description:            strategyInfo.Description,
+				ID:               strategyInfo.ID,
+				Name:             strategyInfo.Name,
+				BkBizID:          strategyInfo.BkBizID,
+				TriggerEventName: strategyInfo.TriggerEventName,
+				TriggerCount:     strategyInfo.TriggerCount,
+				Priority:         strategyInfo.Priority,
+				Scope:            strategyInfo.Scope,
+				Action:           strategyInfo.Action,
+				Description:      strategyInfo.Description,
 			},
 			Status:    strategyInfo.Status,
 			CreatedAt: strategyInfo.CreatedAt,
@@ -609,16 +616,15 @@ func (h *StrategyHandler) GlobalCreate(c *gin.Context) {
 	}
 
 	strategyInfo := &hamodel.DbSwitchingStrategy{
-		Name:                   req.Name,
-		BkBizID:                0,
-		TriggerEventName:       req.TriggerEventName,
-		TriggerEventNameReason: req.TriggerEventNameReason,
-		TriggerCount:           req.TriggerCount,
-		Priority:               req.Priority,
-		Scope:                  req.Scope,
-		Action:                 req.Action,
-		Description:            req.Description,
-		Status:                 hamodel.StatusTypeEnabled,
+		Name:             req.Name,
+		BkBizID:          0,
+		TriggerEventName: req.TriggerEventName,
+		TriggerCount:     req.TriggerCount,
+		Priority:         req.Priority,
+		Scope:            req.Scope,
+		Action:           req.Action,
+		Description:      req.Description,
+		Status:           hamodel.StatusTypeEnabled,
 	}
 
 	if err := h.strategyService.CreateStrategy(strategyInfo); err != nil {
@@ -659,16 +665,15 @@ func (h *StrategyHandler) GlobalGet(c *gin.Context) {
 
 	output := serializer.StrategyOutputInfo{
 		StrategyInfo: serializer.StrategyInfo{
-			ID:                     strategyInfo.ID,
-			Name:                   strategyInfo.Name,
-			BkBizID:                strategyInfo.BkBizID,
-			TriggerEventName:       strategyInfo.TriggerEventName,
-			TriggerEventNameReason: strategyInfo.TriggerEventNameReason,
-			TriggerCount:           strategyInfo.TriggerCount,
-			Priority:               strategyInfo.Priority,
-			Scope:                  strategyInfo.Scope,
-			Action:                 strategyInfo.Action,
-			Description:            strategyInfo.Description,
+			ID:               strategyInfo.ID,
+			Name:             strategyInfo.Name,
+			BkBizID:          strategyInfo.BkBizID,
+			TriggerEventName: strategyInfo.TriggerEventName,
+			TriggerCount:     strategyInfo.TriggerCount,
+			Priority:         strategyInfo.Priority,
+			Scope:            strategyInfo.Scope,
+			Action:           strategyInfo.Action,
+			Description:      strategyInfo.Description,
 		},
 		Status:    strategyInfo.Status,
 		CreatedAt: strategyInfo.CreatedAt,
@@ -723,16 +728,15 @@ func (h *StrategyHandler) GlobalUpdate(c *gin.Context) {
 	}
 
 	strategyInfo := &hamodel.DbSwitchingStrategy{
-		ID:                     pathParam.ID,
-		Name:                   req.Name,
-		BkBizID:                0,
-		TriggerEventName:       req.TriggerEventName,
-		TriggerEventNameReason: req.TriggerEventNameReason,
-		TriggerCount:           req.TriggerCount,
-		Priority:               req.Priority,
-		Scope:                  req.Scope,
-		Action:                 req.Action,
-		Description:            req.Description,
+		ID:               pathParam.ID,
+		Name:             req.Name,
+		BkBizID:          0,
+		TriggerEventName: req.TriggerEventName,
+		TriggerCount:     req.TriggerCount,
+		Priority:         req.Priority,
+		Scope:            req.Scope,
+		Action:           req.Action,
+		Description:      req.Description,
 	}
 
 	if err := h.strategyService.UpdateStrategy(strategyInfo); err != nil {
