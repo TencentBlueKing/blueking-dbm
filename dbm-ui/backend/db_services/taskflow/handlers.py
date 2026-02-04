@@ -245,7 +245,7 @@ class TaskFlowHandler:
         )
         return resp["hits"]["hits"]
 
-    def get_version_logs(self, node_id: str, version_id: str) -> List[Dict[str, Dict[str, str]]]:
+    def get_version_logs(self, node_id: str, version_id: str, label_filters: list = None) -> List[Dict[str, Dict]]:
         """获取节点的日志信息"""
         if not FlowNode.objects.filter(root_id=self.root_id, node_id=node_id).count():
             return [self.generate_log_record(message=_("节点尚未运行，请稍后查看"))]
@@ -297,12 +297,14 @@ class TaskFlowHandler:
 
         for hit in sorted_hits:
             log = self._format_log(hit["_source"]["log"], hit["_source"]["serverIp"], hit["_index"])
-            if log:
-                logs.append(
-                    self.generate_log_record(
-                        timestamp=hit["_source"].get("time"), levelname=log["levelname"], message=log["log"]
-                    )
+            # 日志不存在，或者在过滤标签里面，则忽略
+            if not log or (label_filters and log.get("label") in label_filters):
+                continue
+            logs.append(
+                self.generate_log_record(
+                    timestamp=hit["_source"].get("time"), levelname=log["levelname"], message=log["log"]
                 )
+            )
         if not logs:
             return [self.generate_log_record(message=_("日志上报中，请稍后查看"))]
         return logs

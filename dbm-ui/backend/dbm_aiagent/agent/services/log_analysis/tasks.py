@@ -13,6 +13,7 @@ from typing import Dict, List
 
 from celery import shared_task
 
+from backend.bk_web.constants import LogLabel
 from backend.db_services.taskflow.handlers import TaskFlowHandler
 from backend.dbm_aiagent.agent.commands import TicketFlowLogAnalysisCommand
 from backend.dbm_aiagent.agent.handlers import AgentHandler
@@ -55,7 +56,7 @@ def pipeline_log_ai_analysis(root_id: str = None) -> List[Dict]:
     error_logs = []
     for node_id in node_ids:
         # 从日志平台获取节点日志
-        logs = handler.get_version_logs(node_id, node_version_map[node_id])
+        logs = handler.get_version_logs(node_id, node_version_map[node_id], label_filters=[LogLabel.NOT_AI])
         if not logs:
             continue
 

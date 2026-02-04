@@ -183,12 +183,12 @@ class SystemSettingsEnum(StrStructuredEnum):
     REPLENISH_RATIO_MAP = EnumField("REPLENISH_RATIO_MAP", _("补货比例"))
     REPLENISH_OS_MAP = EnumField("REPLENISH_OS_MAP", _("补货操作系统映射"))
     REPLENISH_SUBZONE_MAP = EnumField("REPLENISH_SUBZONE_MAP", _("补货园区映射"))
-    # 判断待裁撤主机开关
+    # 主机池转移开发配置
     HOST_DISSOLVED_SWITCH = EnumField("HOST_DISSOLVED_SWITCH", _("判断待裁撤主机开关"))
-    # 转入故障池主机开关
     HOST_TO_FAULT_SWITCH = EnumField("HOST_TO_FAULT_SWITCH", _("转入故障池主机开关"))
-    # 判断windows主机开关
     WINDOWS_HOST_TO_RECYCLE_SWITCH = EnumField("WINDOWS_HOST_TO_RECYCLE_SWITCH", _("判断windows主机开关"))
+    # AIDEV相关配置
+    AI_CODE_SCENE_MAP = EnumField("AI_CODE_SCENE_MAP", _("智能体code场景映射关系表"))
 
 
 class BizSettingsEnum(StrStructuredEnum):
@@ -319,6 +319,9 @@ DEFAULT_MACHINE_PROPERTY = {
     "storage_device": True,  # 磁盘
 }
 
+# 默认智能体场景映射表
+DEFAULT_AI_CODE_SCENE_MAP = {"log_analysis": {"default": "LogAnalysis"}}
+
 # DEFAULT_REVERSE_REPORT_EVENT_TYPES = ["mysql_dbbackup_result", "mysql_dbbackup_progress", "mysql_binlog_result"]
 
 # 默认具备迁移权限的人员
@@ -343,6 +346,7 @@ DEFAULT_SETTINGS = [
     [SystemSettingsEnum.DISABLE_DBHA_APPS_CLUSTER_TYPE, "dict", {}, _("禁用DBHA业务")],
     # [SystemSettingsEnum.REVERSE_REPORT_EVENT_TYPES, "list", DEFAULT_REVERSE_REPORT_EVENT_TYPES, _("反向上报事件类型")],
     [SystemSettingsEnum.OPERATION_DATA_SWITCH.value, "bool", False, _("运营数据开关")],
+    [SystemSettingsEnum.AI_CODE_SCENE_MAP.value, "str", DEFAULT_AI_CODE_SCENE_MAP, _("智能体code场景映射关系表")],
 ]
 
 # 环境配置项 是否支持DNS解析 pulsar flow used
