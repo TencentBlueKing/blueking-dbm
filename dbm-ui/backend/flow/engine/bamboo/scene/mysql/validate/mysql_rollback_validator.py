@@ -165,4 +165,5 @@ class TenDbClusterRollbackFlowValidator(MysqlBaseValidator):
 
 
 def msg_format(index: int = 0, msg="") -> str:
+    index = index + 1
     return _("第{}行:{}").format(index, msg)
