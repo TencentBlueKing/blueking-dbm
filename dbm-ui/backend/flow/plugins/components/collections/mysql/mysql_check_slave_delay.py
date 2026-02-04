@@ -59,14 +59,15 @@ class MySQLCheckSlaveDelayService(BaseService):
                         ):
                             self.log_info(_("请确定实例对应的主节点是否正确"))
                             return False
-                    if not (slave_info["Slave_IO_Running"] == "Yes" and slave_info["Slave_SQL_Running"] == "Yes"):
+                    if slave_info["Slave_IO_Running"] != "Yes" or slave_info["Slave_SQL_Running"] != "Yes":
                         self.log_info(
                             _(
-                                "复制链路错误: Slave_IO_Running: {} Slave_SQL_Running: {}".format(
+                                "IO/SQL线程问题: IO线程: {} SQL线程: {} 请登录机器查看错误原因".format(
                                     slave_info["Slave_IO_Running"], slave_info["Slave_SQL_Running"]
                                 )
                             )
                         )
+                        return False
                     # 查看主节点位点
                     res = DRSApi.rpc(
                         {
@@ -90,16 +91,8 @@ class MySQLCheckSlaveDelayService(BaseService):
                     master_file_num = master_info["File"].strip().split(".")[-1]
                     slave_file_num = slave_info["Relay_Master_Log_File"].strip().split(".")[-1]
                     file_delay = int(master_file_num) - int(slave_file_num)
-                    # if slave_info["Seconds_Behind_Master"] is not None:
-                    # seconds_behind_master = int(slave_info["Seconds_Behind_Master"])
-
-                    if (
-                        slave_info["Slave_IO_Running"] != "Yes"
-                        or slave_info["Slave_SQL_Running"] != "Yes"
-                        or slave_delay > kwargs["slave_delay_threshold"]
-                        or (file_delay > kwargs["check_file_delay"] >= 0)
-                    ):
-                        self.log_info(_("从库延迟过大: 延迟文件个数: {} 延迟位点: {}".format(file_delay, slave_delay)))
+                    if slave_delay > kwargs["slave_delay_threshold"] or (file_delay > kwargs["check_file_delay"] >= 0):
+                        self.log_info(_("从库延迟过大: 延迟文件个数: {} 延迟位点: {} ".format(file_delay, slave_delay)))
                         return False
                     else:
                         self.log_info(_("当前从库延迟: 延迟文件个数: {} 延迟位点: {}".format(file_delay, slave_delay)))
