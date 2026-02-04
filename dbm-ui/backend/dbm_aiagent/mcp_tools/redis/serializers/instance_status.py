@@ -17,7 +17,7 @@ class RedisInstanceInputSerializer(serializers.Serializer):
     """Redis实例输入序列化器"""
 
     redis_addr = serializers.CharField(help_text=_("实例地址"))
-    immute_domain = serializers.CharField(help_text=_("集群域名"))
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
 
 
 # ==================== 输出序列化器 ====================

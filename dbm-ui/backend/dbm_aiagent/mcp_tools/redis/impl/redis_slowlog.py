@@ -158,6 +158,43 @@ def get_host_slowlog(
     return {"slowlog_entries": host_slows, "total_count": len(host_slows)}
 
 
+def get_instance_slowlog(
+    host: str,
+    port: int,
+    immute_domain: str,
+    start_time: timezone.datetime,
+    end_time: timezone.datetime,
+) -> List[Dict]:
+    cluster_obj = Cluster.objects.get(immute_domain=immute_domain)
+    machine_obj = Machine.objects.get(bk_cloud_id=cluster_obj.bk_cloud_id, ip=host)
+
+    host_slows = []
+    if machine_obj.access_layer == AccessLayer.PROXY.value:
+        host_slows = _get_slowlog(
+            get_query_params(
+                immute_domain=immute_domain,
+                role="proxy",
+                start_time=start_time,
+                end_time=end_time,
+                host=host,
+                port=port,
+            )
+        )
+    else:
+        host_slows = _get_slowlog(
+            get_query_params(
+                immute_domain=immute_domain,
+                role="redis_master",
+                start_time=start_time,
+                end_time=end_time,
+                host=host,
+                port=port,
+            )
+        )
+
+    return {"slowlog_entries": host_slows, "total_count": len(host_slows)}
+
+
 def _get_slowlog(
     query_params: Dict,
 ) -> Dict:
@@ -195,6 +232,7 @@ def get_query_params(
     end_time: timezone.datetime,
     role=None,
     host=None,
+    port=None,
 ) -> Dict:
 
     query_parts = [f'__ext.cluster_domain:"{immute_domain}"']
@@ -202,6 +240,8 @@ def get_query_params(
         query_parts.append(f'__ext.instance_role:"{role}"')
     if host:
         query_parts.append(f'__ext.instance_host:"{host}"')
+    if port:
+        query_parts.append(f'__ext.instance_port:"{port}"')
 
     query_params = {
         "indices": f"{env.DBA_APP_BK_BIZ_ID}_bklog.redis_slowlog",

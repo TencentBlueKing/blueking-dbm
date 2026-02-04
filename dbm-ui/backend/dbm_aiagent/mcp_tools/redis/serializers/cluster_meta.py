@@ -43,13 +43,13 @@ class RedisEntrySerializer(RedisBaseInstanceSerializer):
 
 
 class RedisTopoInputSerializer(serializers.Serializer):
-    immute_domain = serializers.CharField(help_text=_("集群域名"))
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
 
 
 class RedisHostInputSerializer(serializers.Serializer):
     """Redis主机列表序列化器"""
 
-    hosts = serializers.ListField(
+    ips = serializers.ListField(
         child=serializers.IPAddressField(protocol="both"), help_text=_("主机IP地址列表"), required=True
     )
 

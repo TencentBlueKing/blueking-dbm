@@ -19,6 +19,7 @@ from rest_framework.response import Response
 from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.db_services.redis.util import is_have_proxy, is_redis_cluster_protocal
+from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clusters
 from backend.dbm_aiagent.mcp_tools.common.impl.job import exec_cluster_query_net_tcp_cmd, get_job_exec_status
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
@@ -32,6 +33,7 @@ from backend.dbm_aiagent.mcp_tools.redis.serializers.get_source_access import (
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.drf_perm.mcp import McpClusterManagePermission
 
 
 class RedisJobMcpToolsViewSet(McpToolsViewSet):
@@ -92,6 +94,8 @@ class RedisJobMcpToolsViewSet(McpToolsViewSet):
         description=str(_("""根据关键字，实时获取对应关键字的请求情况""")),
         request_slz=GetRedisSourceAccessByKeyInputSerializer,
         response_slz=GetRedisSourceAccessByKeyOutputSerializer,
+        permission_classes=[McpClusterManagePermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_JOB],
         name_prefix="redis_job",

@@ -12,23 +12,30 @@ import logging.config
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
+from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clusters
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
-from backend.dbm_aiagent.mcp_tools.redis.impl.redis_slowlog import get_cluster_slowlog_static, get_host_slowlog
+from backend.dbm_aiagent.mcp_tools.redis.impl.redis_slowlog import (
+    get_cluster_slowlog_static,
+    get_host_slowlog,
+    get_instance_slowlog,
+)
 from backend.dbm_aiagent.mcp_tools.redis.serializers.redis_log import (
     RedisSlowClusterStaticSerializer,
     RedisSlowlog4HostInputSerializer,
+    RedisSlowlog4InstInputSerializer,
     RedisSlowlogInputSerializer,
     RedisSlowlogResponseSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
-from backend.iam_app.handlers.drf_perm.base import RejectPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.drf_perm.mcp import McpClusterManagePermission
 
 logger = logging.getLogger("root")
 
 
 class RedisQueryLogMcpToolsViewSet(McpToolsViewSet):
-    default_permission_class = [RejectPermission()]
+    default_permission_class = [DBManagePermission()]
 
     @mcp_tools_api_decorator(
         description=str(
@@ -39,6 +46,8 @@ class RedisQueryLogMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=RedisSlowlogInputSerializer,
         response_slz=RedisSlowClusterStaticSerializer,
+        permission_classes=[McpClusterManagePermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_QUERY_LOG],
         name_prefix="redis_query_log",
@@ -47,7 +56,7 @@ class RedisQueryLogMcpToolsViewSet(McpToolsViewSet):
         """获取集群时间范围内慢查询日志统计数据"""
         start_time = self.get_param("start_time")
         end_time = self.get_param("end_time")
-        immute_domain = self.get_param("immute_domain")
+        immute_domain = self.get_param("cluster_domain")
 
         return Response(
             get_cluster_slowlog_static(immute_domain=immute_domain, start_time=start_time, end_time=end_time)
@@ -57,6 +66,8 @@ class RedisQueryLogMcpToolsViewSet(McpToolsViewSet):
         description=str(_("查询某台机器上的慢查询日志(slowlog),包括执行时间、命令内容等。可用于分析Redis性能问题和慢查询优化")),
         request_slz=RedisSlowlog4HostInputSerializer,
         response_slz=RedisSlowlogResponseSerializer,
+        permission_classes=[McpClusterManagePermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_QUERY_LOG],
         name_prefix="redis_query_log",
@@ -66,8 +77,32 @@ class RedisQueryLogMcpToolsViewSet(McpToolsViewSet):
         start_time = self.get_param("start_time")
         end_time = self.get_param("end_time")
         ip = self.get_param("ip")
-        immute_domain = self.get_param("immute_domain")
+        immute_domain = self.get_param("cluster_domain")
 
         return Response(
             get_host_slowlog(immute_domain=immute_domain, start_time=start_time, end_time=end_time, host=ip)
+        )
+
+    @mcp_tools_api_decorator(
+        description=str(_("查询某个实例的慢查询日志(slowlog),包括执行时间、命令内容等。可用于分析Redis性能问题和慢查询优化")),
+        request_slz=RedisSlowlog4InstInputSerializer,
+        response_slz=RedisSlowlogResponseSerializer,
+        permission_classes=[McpClusterManagePermission],
+        mcp_auth_parser=auth_parse_clusters,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.REDIS_QUERY_LOG],
+        name_prefix="redis_query_log",
+    )
+    def fetch_instance_slowlog(self, request, *args, **kwargs):
+        """获取某个实例上时间范围内慢查询日志"""
+        start_time = self.get_param("start_time")
+        end_time = self.get_param("end_time")
+        host = self.get_param("host")
+        port = self.get_param("port")
+        immute_domain = self.get_param("cluster_domain")
+
+        return Response(
+            get_instance_slowlog(
+                immute_domain=immute_domain, start_time=start_time, end_time=end_time, host=host, port=port
+            )
         )
