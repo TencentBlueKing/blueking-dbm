@@ -1,1 +1,0 @@
-ALTER TABLE `tb_rp_analysis_result` DROP COLUMN `markdown_text`;

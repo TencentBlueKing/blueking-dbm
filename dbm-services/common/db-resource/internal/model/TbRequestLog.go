@@ -18,9 +18,9 @@ type TbRequestLog struct {
 	RequestBody     string    `gorm:"column:request_body;type:json" json:"request_body"`                                // 请求体
 	RequestUrl      string    `gorm:"column:request_url;type:varchar(32);not null" json:"request_url"`                  // 请求路径
 	SourceIP        string    `gorm:"column:source_ip;type:varchar(32);not null" json:"source_ip"`                      // 请求来源Ip
-	ResponeBody     string    `gorm:"column:respone_body;type:json" json:"respone_body"`                                // respone data message
-	ResponeCode     int       `gorm:"column:respone_code;type:int(11);not null" json:"respone_code"`                    // respone code
-	ResponeMesssage string    `gorm:"column:respone_messsage;type:text" json:"respone_messsage"`                        // respone data message
+	ResponseBody    string    `gorm:"column:response_body;type:json" json:"response_body"`                              // response data message
+	ResponseCode    int       `gorm:"column:response_code;type:int(11);not null" json:"response_code"`                  // response code
+	ResponseMessage string    `gorm:"column:response_message;type:text" json:"response_message"`                        // response data message
 	UpdateTime      time.Time `gorm:"column:update_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"update_time"` // 最后修改时间
 	CreateTime      time.Time `gorm:"column:create_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"create_time"` // 创建时间
 }
