@@ -17,7 +17,11 @@ from aidev_bkplugin.views.builtin import (
     ChatSessionShareView,
     ChatSessionViewSet,
 )
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models import SystemSettings
 from backend.dbm_aiagent.agent.commands import CommandProcessor
 
 
@@ -53,7 +57,9 @@ class AIChatSessionContentFeedbackViewSet(ChatSessionContentFeedbackViewSet):
 
 
 class AIAgentInfoViewSet(AgentInfoViewSet):
-    pass
+    @action(detail=False, methods=["GET"], url_path="agent_scene", url_name="agent_scene")
+    def get_agent_scene(self, request):
+        return Response(SystemSettings.get_setting_value(key=SystemSettingsEnum.AI_CODE_SCENE_MAP, default={}))
 
 
 class AIChatGroupViewSet(ChatGroupViewSet):

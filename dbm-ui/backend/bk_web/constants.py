@@ -92,3 +92,7 @@ class LogLevelName(StrStructuredEnum):
     WARNING = EnumField("WARNING", "WARNING")
     ERROR = EnumField("ERROR", "ERROR")
     DEBUG = EnumField("DEBUG", "DEBUG")
+
+
+class LogLabel(StrStructuredEnum):
+    NOT_AI = EnumField("not_for_ai", "not_for_ai")

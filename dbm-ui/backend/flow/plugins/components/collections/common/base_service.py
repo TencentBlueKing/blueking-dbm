@@ -23,6 +23,7 @@ from pipeline.core.flow.activity import Service, StaticIntervalGenerator
 from backend import env
 from backend.bk_dataview.prometheus import metrics
 from backend.bk_dataview.prometheus.handlers import node_label_func, setup_counter, setup_gauge, setup_histogram
+from backend.bk_web.constants import LogLabel
 from backend.components import JobApi
 from backend.components.sops.client import BkSopsApi
 from backend.core.translation.constants import Language
@@ -39,6 +40,11 @@ cpl = re.compile("<ctx>(?P<context>.+?)</ctx>")  # 非贪婪模式，只匹配�
 class ServiceLogMixin:
     def log_info(self, msg: str):
         logger.info(msg, extra=self.extra_log)
+
+    def info_not_for_ai(self, msg: str):
+        # 展示日志不交给AI分析
+        extra = {**self.extra_log, "label": LogLabel.NOT_AI.value}
+        logger.info(msg, extra=extra)
 
     def log_error(self, msg: str):
         logger.error(msg, extra=self.extra_log)
