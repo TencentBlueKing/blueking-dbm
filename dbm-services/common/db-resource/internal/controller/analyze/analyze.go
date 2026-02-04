@@ -13,7 +13,6 @@ package analyze
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"dbm-services/common/db-resource/internal/controller"
@@ -37,7 +36,7 @@ func (c *AnalyzeHandler) RegisterRouter(engine *gin.Engine) {
 	{
 		r.POST("/analyze", c.AnalyzeResource)
 		r.POST("/quick-analyze", c.QuickAnalyzeResource)
-		r.GET("/analysis/result", c.GetAnalysisResult)
+		r.POST("/analysis/result", c.GetAnalysisResult)
 	}
 }
 
@@ -152,14 +151,14 @@ func (c *AnalyzeHandler) QuickAnalyzeResource(r *gin.Context) {
 
 // GetAnalysisResultParam 查询参数
 type GetAnalysisResultParam struct {
-	BillId string `json:"bill_id" form:"bill_id" binding:"required"`
+	BillId int `json:"bill_id" form:"bill_id" binding:"required"`
 }
 
 // GetAnalysisResult 根据单据ID查询智能体分析结果
 // GET /resource/analysis/result?bill_id=xxx
 func (c *AnalyzeHandler) GetAnalysisResult(r *gin.Context) {
 	var param GetAnalysisResultParam
-	if err := r.ShouldBindQuery(&param); err != nil {
+	if err := r.ShouldBindJSON(&param); err != nil {
 		c.SendResponse(r, err, nil)
 		return
 	}
@@ -168,43 +167,47 @@ func (c *AnalyzeHandler) GetAnalysisResult(r *gin.Context) {
 	err := model.DB.Self.Where("bill_id = ?", param.BillId).First(&record).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			// 未找到记录，返回空对象
-			c.SendResponse(r, nil, map[string]interface{}{})
+			// 未找到记录，返回提示文本
+			c.SendResponse(r, nil, map[string]interface{}{
+				"markdown_text": "# 分析结果\n\n未找到该单据的分析记录。",
+			})
 			return
 		}
 		c.SendResponse(r, err, nil)
 		return
 	}
 
-	// 如果状态是 pending 或 running，返回空对象（分析未完成）
-	if record.Status == model.AnalysisStatusPending ||
-		record.Status == model.AnalysisStatusRunning {
-		c.SendResponse(r, nil, map[string]interface{}{})
-		return
-	}
+	var markdownText string
 
-	// 如果状态是 completed，返回分析结果
-	if record.Status == model.AnalysisStatusCompleted {
-		var result map[string]interface{}
-		if len(record.AnalysisResult) > 0 {
-			if err := json.Unmarshal(record.AnalysisResult, &result); err != nil {
-				logger.Error("Failed to unmarshal analysis result: %v", err)
-				c.SendResponse(r, nil, map[string]interface{}{})
-				return
-			}
+	// 根据状态返回不同的文本
+	switch record.Status {
+	case model.AnalysisStatusPending:
+		markdownText = "# 资源申请分析\n\n⏳ **分析待处理**\n\n您的资源申请分析任务已提交，正在等待处理，请稍候...\n\n---\n*刷新页面查看最新状态*"
+
+	case model.AnalysisStatusRunning:
+		markdownText = "# 资源申请分析\n\n🔄 **分析进行中**\n\n正在智能分析您的资源申请，这可能需要几十秒时间，请耐心等待...\n\n---\n*刷新页面查看最新状态*"
+
+	case model.AnalysisStatusCompleted:
+		// 返回实际的分析结果
+		if record.MarkdownText != "" {
+			markdownText = record.MarkdownText
 		} else {
-			result = map[string]interface{}{}
+			markdownText = "# 资源申请分析报告\n\n分析已完成，但未生成报告内容。"
 		}
-		c.SendResponse(r, nil, result)
-		return
+
+	case model.AnalysisStatusFailed:
+		// 返回失败信息
+		errorMsg := record.ErrorMsg
+		if errorMsg == "" {
+			errorMsg = "未知错误"
+		}
+		markdownText = "# 资源申请分析\n\n❌ **分析失败**\n\n分析过程中发生错误：\n\n```\n" + errorMsg + "\n```\n\n---\n*请检查申请参数或联系管理员*"
+
+	default:
+		markdownText = "# 资源申请分析\n\n⚠️ **未知状态**\n\n当前分析状态: " + record.Status
 	}
 
-	// 如果状态是 failed，返回空对象
-	if record.Status == model.AnalysisStatusFailed {
-		c.SendResponse(r, nil, map[string]interface{}{})
-		return
-	}
-
-	// 默认返回空对象
-	c.SendResponse(r, nil, map[string]interface{}{})
+	c.SendResponse(r, nil, map[string]interface{}{
+		"markdown_text": markdownText,
+	})
 }
