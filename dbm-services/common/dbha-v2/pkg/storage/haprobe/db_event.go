@@ -69,7 +69,21 @@ const (
 	DbEventNameProbeOffline     DbEventName = "dbha_probe_offline"
 )
 
-// DbEventNameReason db event name reason
+// DbEventNameMap db event name map
+var DbEventNameMap = map[DbEventName]DbEventName{
+	DbEventNameDetectFailure:    DbEventNameDetectFailure,
+	DbEventNameDetectSSHFailure: DbEventNameDetectSSHFailure,
+	DbEventNameProbeOffline:     DbEventNameProbeOffline,
+}
+
+// DbEventNameList db event name list
+var DbEventNameList = []DbEventName{
+	DbEventNameDetectFailure,
+	DbEventNameDetectSSHFailure,
+	DbEventNameProbeOffline,
+}
+
+// DbEventNameReasonStr db event name reason
 type DbEventNameReasonStr string
 
 func (v DbEventNameReasonStr) String() string {

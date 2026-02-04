@@ -48,16 +48,15 @@ type StrategyRequest struct {
 
 // StrategyInfo strategy info
 type StrategyInfo struct {
-	ID                     int                       `json:"id"`
-	Name                   string                    `json:"name"                      binding:"required"`
-	BkBizID                int                       `json:"bk_biz_id"                 binding:"required"`
-	TriggerEventName       haprobe.DbEventName       `json:"trigger_event_name"        binding:"required"`
-	TriggerEventNameReason haprobe.DbEventNameReason `json:"trigger_event_name_reason" validate:"triggerEventNameReason"`
-	TriggerCount           int                       `json:"trigger_count"             validate:"triggerCount"`
-	Priority               int                       `json:"priority"                  validate:"priority"`
-	Scope                  hamodel.ActionScopeType   `json:"scope"                     validate:"scope"`
-	Action                 hamodel.ActionType        `json:"action"                    validate:"action"`
-	Description            string                    `json:"description"`
+	ID               int                     `json:"id"`
+	Name             string                  `json:"name"               binding:"required"`
+	BkBizID          int                     `json:"bk_biz_id"          binding:"required"`
+	TriggerEventName haprobe.DbEventName     `json:"trigger_event_name" validate:"triggerEventName"`
+	TriggerCount     int                     `json:"trigger_count"      validate:"triggerCount"`
+	Priority         int                     `json:"priority"           validate:"priority"`
+	Scope            hamodel.ActionScopeType `json:"scope"              validate:"scope"`
+	Action           hamodel.ActionType      `json:"action"             validate:"action"`
+	Description      string                  `json:"description"`
 }
 
 // StrategyCreateRequest strategy create request
@@ -124,14 +123,13 @@ type StrategyBatchUpdateStatusRequest struct {
 
 // GlobalStrategyCreateRequest global strategy create request
 type GlobalStrategyCreateRequest struct {
-	Name                   string                    `json:"name"                      binding:"required"`
-	TriggerEventName       haprobe.DbEventName       `json:"trigger_event_name"        binding:"required"`
-	TriggerEventNameReason haprobe.DbEventNameReason `json:"trigger_event_name_reason" validate:"triggerEventNameReason"`
-	TriggerCount           int                       `json:"trigger_count"             validate:"triggerCount"`
-	Priority               int                       `json:"priority"                  validate:"priority"`
-	Scope                  hamodel.ActionScopeType   `json:"scope"                     validate:"scope"`
-	Action                 hamodel.ActionType        `json:"action"                    validate:"action"`
-	Description            string                    `json:"description"`
+	Name             string                  `json:"name"               binding:"required"`
+	TriggerEventName haprobe.DbEventName     `json:"trigger_event_name" validate:"triggerEventName"`
+	TriggerCount     int                     `json:"trigger_count"      validate:"triggerCount"`
+	Priority         int                     `json:"priority"           validate:"priority"`
+	Scope            hamodel.ActionScopeType `json:"scope"              validate:"scope"`
+	Action           hamodel.ActionType      `json:"action"             validate:"action"`
+	Description      string                  `json:"description"`
 }
 
 // GlobalStrategyListRequest global strategy list request
@@ -146,14 +144,13 @@ type GlobalStrategyListRequest struct {
 
 // GlobalStrategyUpdateRequest global strategy update request
 type GlobalStrategyUpdateRequest struct {
-	Name                   string                    `json:"name"                      binding:"required"`
-	TriggerEventName       haprobe.DbEventName       `json:"trigger_event_name"        binding:"required"`
-	TriggerEventNameReason haprobe.DbEventNameReason `json:"trigger_event_name_reason" validate:"triggerEventNameReason"`
-	TriggerCount           int                       `json:"trigger_count"             validate:"triggerCount"`
-	Priority               int                       `json:"priority"                  validate:"priority"`
-	Scope                  hamodel.ActionScopeType   `json:"scope"                     validate:"scope"`
-	Action                 hamodel.ActionType        `json:"action"                    validate:"action"`
-	Description            string                    `json:"description"`
+	Name             string                  `json:"name"               binding:"required"`
+	TriggerEventName haprobe.DbEventName     `json:"trigger_event_name" validate:"triggerEventName"`
+	TriggerCount     int                     `json:"trigger_count"      validate:"triggerCount"`
+	Priority         int                     `json:"priority"           validate:"priority"`
+	Scope            hamodel.ActionScopeType `json:"scope"              validate:"scope"`
+	Action           hamodel.ActionType      `json:"action"             validate:"action"`
+	Description      string                  `json:"description"`
 }
 
 // GlobalStrategyStatusUpdateRequest global strategy status update request
@@ -212,10 +209,10 @@ func BatchUpdateCheckDuplicatedName(s *strategy.Strategy, bkBizID int, names []s
 	return false, nil
 }
 
-// CheckTriggerEventNameReason check trigger_event_name_reason
-func CheckTriggerEventNameReason(fl validator.FieldLevel) bool {
-	value := fl.Field().Int()
-	if value < 0 || value > 4 {
+// CheckTriggerEventName check trigger_event_name
+func CheckTriggerEventName(fl validator.FieldLevel) bool {
+	value := fl.Field().String()
+	if _, ok := haprobe.DbEventNameMap[haprobe.DbEventName(value)]; !ok {
 		return false
 	}
 	return true
@@ -267,7 +264,7 @@ func CheckStatus(fl validator.FieldLevel) bool {
 }
 
 func init() {
-	hanet.AddValidation("triggerEventNameReason", CheckTriggerEventNameReason, "must be between 0 and 4")
+	hanet.AddValidation("triggerEventName", CheckTriggerEventName, "event name is invalid")
 	hanet.AddValidation("triggerCount", CheckTriggerCount, "must be greater than 0")
 	hanet.AddValidation("priority", CheckPriority, "must be greater than or equal to 0")
 	hanet.AddValidation("scope", CheckScope, "must be one of cluster, host")

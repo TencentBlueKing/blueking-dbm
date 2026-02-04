@@ -170,7 +170,6 @@ func (s *Strategy) UpdateStrategy(strategy *hamodel.DbSwitchingStrategy) error {
 		Not(statusCond, hamodel.StatusTypeDeleted).Select(
 		hamodel.DbSwitchingStrategyFieldName,
 		hamodel.DbSwitchingStrategyFieldTriggerEventName,
-		hamodel.DbSwitchingStrategyFieldTriggerEventNameReason,
 		hamodel.DbSwitchingStrategyFieldTriggerCount,
 		hamodel.DbSwitchingStrategyFieldPriority,
 		hamodel.DbSwitchingStrategyFieldScope,
@@ -232,7 +231,6 @@ func (s *Strategy) BatchUpdateStrategy(strategies []*hamodel.DbSwitchingStrategy
 				Select(
 					hamodel.DbSwitchingStrategyFieldName,
 					hamodel.DbSwitchingStrategyFieldTriggerEventName,
-					hamodel.DbSwitchingStrategyFieldTriggerEventNameReason,
 					hamodel.DbSwitchingStrategyFieldTriggerCount,
 					hamodel.DbSwitchingStrategyFieldPriority,
 					hamodel.DbSwitchingStrategyFieldScope,

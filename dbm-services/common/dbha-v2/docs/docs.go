@@ -473,6 +473,32 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/admin/strategies/eventnames/": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "openapi.strategy"
+                ],
+                "summary": "strategy trigger event names list",
+                "operationId": "openapi_strategy_trigger_event_names_list",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/admin/strategies/{id}/": {
             "get": {
                 "consumes": [
@@ -649,9 +675,6 @@ const docTemplate = `{
                 },
                 "trigger_event_name": {
                     "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventName"
-                },
-                "trigger_event_name_reason": {
-                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventNameReason"
                 }
             }
         },
@@ -693,9 +716,6 @@ const docTemplate = `{
                 },
                 "trigger_event_name": {
                     "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventName"
-                },
-                "trigger_event_name_reason": {
-                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventNameReason"
                 }
             }
         },
@@ -779,8 +799,7 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "bk_biz_id",
-                "name",
-                "trigger_event_name"
+                "name"
             ],
             "properties": {
                 "action": {
@@ -809,9 +828,6 @@ const docTemplate = `{
                 },
                 "trigger_event_name": {
                     "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventName"
-                },
-                "trigger_event_name_reason": {
-                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventNameReason"
                 }
             }
         },
@@ -819,8 +835,7 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "bk_biz_id",
-                "name",
-                "trigger_event_name"
+                "name"
             ],
             "properties": {
                 "action": {
@@ -849,9 +864,6 @@ const docTemplate = `{
                 },
                 "trigger_event_name": {
                     "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventName"
-                },
-                "trigger_event_name_reason": {
-                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventNameReason"
                 }
             }
         },
@@ -859,8 +871,7 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "bk_biz_id",
-                "name",
-                "trigger_event_name"
+                "name"
             ],
             "properties": {
                 "action": {
@@ -896,9 +907,6 @@ const docTemplate = `{
                 "trigger_event_name": {
                     "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventName"
                 },
-                "trigger_event_name_reason": {
-                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventNameReason"
-                },
                 "updated_at": {
                     "type": "string"
                 }
@@ -923,8 +931,7 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "bk_biz_id",
-                "name",
-                "trigger_event_name"
+                "name"
             ],
             "properties": {
                 "action": {
@@ -953,9 +960,6 @@ const docTemplate = `{
                 },
                 "trigger_event_name": {
                     "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventName"
-                },
-                "trigger_event_name_reason": {
-                    "$ref": "#/definitions/dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventNameReason"
                 }
             }
         },
@@ -1050,23 +1054,6 @@ const docTemplate = `{
                 "DbEventNameDetectFailure",
                 "DbEventNameDetectSSHFailure",
                 "DbEventNameProbeOffline"
-            ]
-        },
-        "dbm-services_common_dbha-v2_pkg_storage_haprobe.DbEventNameReason": {
-            "type": "integer",
-            "enum": [
-                0,
-                1,
-                2,
-                3,
-                4
-            ],
-            "x-enum-varnames": [
-                "DbEventNameReasonConnectionException",
-                "DbEventNameReasonAuthException",
-                "DbEventNameReasonSSHAuthException",
-                "DbEventNameReasonMissedProbe",
-                "DbEventNameReasonNoTarget"
             ]
         }
     }
