@@ -547,7 +547,7 @@ class RedisClusterAddSlaveFlow(object):
             )
 
             act_kwargs.cluster["update_all"] = True
-            act_kwargs.cluster["cluster_id"] = (cluster_id,)
+            act_kwargs.cluster["cluster_id"] = int(cluster_id)
             act_kwargs.cluster["bk_biz_id"] = bk_biz_id
             sub_pipeline.add_act(
                 act_name=_("{}-更新版本").format(cluster_info["immute_domain"]),
