@@ -40,12 +40,12 @@ type AgentConfig struct {
 func NewAgentExecutor(provider LLMProvider, tools *ResourceTools, cfg AgentConfig) *AgentExecutor {
 	maxIterations := cfg.MaxIterations
 	if maxIterations <= 0 {
-		maxIterations = 5
+		maxIterations = 15
 	}
 
 	timeout := time.Duration(cfg.TimeoutSeconds) * time.Second
 	if timeout <= 0 {
-		timeout = 30 * time.Second
+		timeout = 360 * time.Second
 	}
 
 	return &AgentExecutor{

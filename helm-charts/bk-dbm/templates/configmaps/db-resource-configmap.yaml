@@ -47,6 +47,9 @@ data:
     llm:
       enabled: "{{ index .Values "db-resource" "envs" "enable_llm" }}"
       provider: "{{ index .Values "db-resource" "envs" "llm_provider" }}"
+      agent:
+        max_iterations: {{ index .Values "db-resource" "envs" "agent_max_iterations" | default 15 }}
+        timeout_seconds: {{ index .Values "db-resource" "envs" "agent_timeout_seconds" | default 360 }}
       bk_ai:
         app_code:  "{{ index .Values "db-resource" "envs" "bk_ai_app_code" }}"
         app_secret: "{{ index .Values "db-resource" "envs" "bk_ai_app_secret" }}"
