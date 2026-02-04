@@ -16,7 +16,7 @@ class RedisSlowlogInputSerializer(serializers.Serializer):
 
     start_time = serializers.DateTimeField(help_text=_("开始时间"))
     end_time = serializers.DateTimeField(help_text=_("结束时间"))
-    immute_domain = serializers.CharField(help_text=_("集群域名"))
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
 
 
 class RedisSlowlog4HostInputSerializer(serializers.Serializer):
@@ -24,8 +24,18 @@ class RedisSlowlog4HostInputSerializer(serializers.Serializer):
 
     start_time = serializers.DateTimeField(help_text=_("开始时间"))
     end_time = serializers.DateTimeField(help_text=_("结束时间"))
-    immute_domain = serializers.CharField(help_text=_("集群域名"))
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
     ip = serializers.CharField(help_text=_("主机IP"))
+
+
+class RedisSlowlog4InstInputSerializer(serializers.Serializer):
+    """Redis慢查询输入序列化器"""
+
+    start_time = serializers.DateTimeField(help_text=_("开始时间"))
+    end_time = serializers.DateTimeField(help_text=_("结束时间"))
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    host = serializers.CharField(help_text=_("主机IP"))
+    port = serializers.IntegerField(help_text=_("实例端口"))
 
 
 class RedisSlowlogEntrySerializer(serializers.Serializer):

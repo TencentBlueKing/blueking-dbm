@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
+from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clusters
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.redis.impl.redis_bill_impl import (
@@ -43,7 +44,8 @@ from backend.dbm_aiagent.mcp_tools.redis.serializers.redis_bill import (
     SubmitBillRedisVersionUpdateInputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
-from backend.iam_app.handlers.drf_perm.base import RejectPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.drf_perm.mcp import McpTicketToolPermission
 
 """
 单据相关 mcp
@@ -58,7 +60,7 @@ from backend.iam_app.handlers.drf_perm.base import RejectPermission
 
 
 class RedisBillMcpToolsViewSet(McpToolsViewSet):
-    default_permission_class = [RejectPermission()]
+    default_permission_class = [DBManagePermission()]
 
     # =========================== 涉及机器资源类单据 begin ===========================
     # done: proxy扩容、proxy缩容、整机替换
@@ -69,6 +71,8 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         description=str(_("""redis 整机替换""")),
         request_slz=SubmitBillRedisCutoffInputSerializer,
         response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.REDIS_BILL],
         name_prefix="redis_bill",
@@ -84,6 +88,8 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         description=str(_("""减少Redis集群proxy数量单据, 缩容后的proxy数量不允许少于2""")),
         request_slz=SubmitBillRedisProxyReduceOrIncreaseInputSerializer,
         response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.REDIS_BILL],
         name_prefix="redis_bill",
@@ -99,6 +105,8 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         description=str(_("""指定IP 下架redis集群的proxy""")),
         request_slz=SubmitBillRedisProxyReduceByIpInputSerializer,
         response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.REDIS_BILL],
         name_prefix="redis_bill",
@@ -114,6 +122,8 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         description=str(_("""增加Redis集群proxy数量单据""")),
         request_slz=SubmitBillRedisProxyReduceOrIncreaseInputSerializer,
         response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.REDIS_BILL],
         name_prefix="redis_bill",
@@ -134,6 +144,8 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         description=str(_("""Redis集群备份单据""")),
         request_slz=SubmitBillRedisFullBackupInputSerializer,
         response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.REDIS_BILL],
         name_prefix="redis_bill",
@@ -150,6 +162,8 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         description=str(_("""Redis集群清档单据""")),
         request_slz=SubmitBillRedisFlushDBInputSerializer,
         response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.REDIS_BILL],
         name_prefix="redis_bill",
@@ -166,6 +180,8 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         description=str(_("""Redis集群提取key单据""")),
         request_slz=SubmitBillRedisExtractKeyInputSerializer,
         response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.REDIS_BILL],
         name_prefix="redis_bill",
@@ -182,6 +198,8 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         description=str(_("""Redis集群删除key单据""")),
         request_slz=SubmitBillRedisDeleteKeyInputSerializer,
         response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.REDIS_BILL],
         name_prefix="redis_bill",
@@ -201,6 +219,8 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         description=str(_("""Redis集群标准化""")),
         request_slz=SubmitBillRedisBaseInputSerializer,
         response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.REDIS_BILL],
         name_prefix="redis_bill",
@@ -215,6 +235,8 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         description=str(_("""Redis集群版本升级""")),
         request_slz=SubmitBillRedisVersionUpdateInputSerializer,
         response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.REDIS_BILL],
         name_prefix="redis_bill",
@@ -231,6 +253,8 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         description=str(_("""Redis安装modules插件""")),
         request_slz=SubmitBillRedisLoadModulesInputSerializer,
         response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.REDIS_BILL],
         name_prefix="redis_bill",
@@ -251,6 +275,8 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         description=str(_("""提Redis热key分析单据""")),
         request_slz=SubmitBillRedisAnalysisHotkeyInputSerializer,
         response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.REDIS_BILL],
         name_prefix="redis_bill",
@@ -267,6 +293,8 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         description=str(_("""Redis内存分析""")),
         request_slz=SubmitBillRedisKeyStatInputSerializer,
         response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.REDIS_BILL],
         name_prefix="redis_bill",

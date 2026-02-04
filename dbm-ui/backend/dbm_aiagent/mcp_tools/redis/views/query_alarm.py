@@ -12,6 +12,7 @@ import logging.config
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
+from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_bizs, auth_parse_clusters
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.redis.impl.redis_alarms import get_alarms_flat, get_cluster_alarms
@@ -22,18 +23,21 @@ from backend.dbm_aiagent.mcp_tools.redis.serializers.redis_alarms import (
     RedisClusertAlarmOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
-from backend.iam_app.handlers.drf_perm.base import RejectPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.drf_perm.mcp import McpClusterManagePermission
 
 logger = logging.getLogger("flow")
 
 
 class RedisQueryALARMMcpToolsViewSet(McpToolsViewSet):
-    default_permission_class = [RejectPermission()]
+    default_permission_class = [DBManagePermission()]
 
     @mcp_tools_api_decorator(
         description=str(_("查询获取集群时间范围内告警列表")),
         request_slz=RedisClusertAlarmInputSerializer,
         response_slz=RedisClusertAlarmOutputSerializer,
+        permission_classes=[McpClusterManagePermission],
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_QUERY_ALARM],
         name_prefix="redis_query_alarm",
@@ -42,7 +46,7 @@ class RedisQueryALARMMcpToolsViewSet(McpToolsViewSet):
         """获取集群时间范围内告警信息"""
         start_time = self.get_param("start_time")
         end_time = self.get_param("end_time")
-        immute_domain = self.get_param("immute_domain")
+        immute_domain = self.get_param("cluster_domain")
 
         return Response(get_cluster_alarms(immute_domain=immute_domain, start_time=start_time, end_time=end_time))
 
@@ -50,6 +54,8 @@ class RedisQueryALARMMcpToolsViewSet(McpToolsViewSet):
         description=str(_("查询某个业务在时间范围内告警信息,按集群汇总")),
         request_slz=RedisAppAlarmInputSerializer,
         response_slz=RedisAppAlarmOutputSerializer,
+        permission_classes=[McpClusterManagePermission],
+        mcp_auth_parser=auth_parse_bizs,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_QUERY_ALARM],
         name_prefix="redis_query_alarm",

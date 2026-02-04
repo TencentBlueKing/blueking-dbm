@@ -16,7 +16,7 @@ class RedisClusertAlarmInputSerializer(serializers.Serializer):
 
     start_time = serializers.DateTimeField(help_text=_("开始时间"))
     end_time = serializers.DateTimeField(help_text=_("结束时间"))
-    immute_domain = serializers.CharField(help_text=_("集群域名"))
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
 
     def validate(self, attrs):
         """验证时间参数"""
