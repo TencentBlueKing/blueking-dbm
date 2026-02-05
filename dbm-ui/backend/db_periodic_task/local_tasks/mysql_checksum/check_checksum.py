@@ -160,7 +160,7 @@ def _ip_port_to_repair_instance_info(cluster_obj: Cluster, ip_port: str) -> dict
         "id": inst_obj.id,
         "bk_biz_id": cluster_obj.bk_biz_id,
         "ip": ip,
-        "port": port,
+        "port": int(port),
         "bk_host_id": inst_obj.machine.bk_host_id,
         "bk_cloud_id": cluster_obj.bk_cloud_id,
     }
