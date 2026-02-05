@@ -1060,9 +1060,9 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "general": {"runtime_account": self.account},
                 "extend": {
                     "host": self.cluster["slave_ip"],
-                    "port": self.cluster["slave_port"],
+                    "port": int(self.cluster["slave_port"]),
                     "master_host": self.cluster["master_ip"],
-                    "master_port": self.cluster["master_port"],
+                    "master_port": int(self.cluster["master_port"]),
                     "is_sync_non_innodb": self.cluster.get("is_sync_non_innodb", False),
                     "sync_user": self.cluster["sync_user"],
                     "sync_pass": self.cluster["sync_pass"],
