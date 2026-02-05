@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.db.models import Q
 from django.http import HttpRequest
 
+from backend.constants import IP_PORT_DIVIDER
 from backend.dbm_aiagent.mcp_tools.typing import BizIdList, ClusterIdList
 
 
@@ -85,6 +86,78 @@ def auth_parse_hosts(request: HttpRequest, *args, **kwargs) -> ClusterIdList:
     else:
         raise ValueError("ip or bk_host_id is required")
 
+    if not cluster_ids:
+        raise ValueError("parse error, no clusters found for the given params")
+
+    return cluster_ids
+
+
+def auth_parse_ticket_biz(request: HttpRequest, *args, **kwargs) -> BizIdList:
+    """
+    解析单据 - 获取单据所属业务鉴权
+    request 接收params:
+    - bill_id: 单据ID
+    - ticket_id: 单据ID
+    - bill_ids: 单据ID列表
+    - ticket_ids: 单据ID列表
+    """
+    from backend.ticket.models import Ticket
+
+    data = request.query_params if request.method == "GET" else request.data
+    ticket_ids = data.get("bill_id") or data.get("ticket_id") or data.get("bill_ids") or data.get("ticket_ids")
+    if not ticket_ids:
+        raise ValueError("bill_id or ticket_id is required")
+
+    ticket_ids = ticket_ids if isinstance(ticket_ids, list) else [ticket_ids]
+    biz_ids = list(Ticket.objects.filter(id__in=ticket_ids).values_list("bk_biz_id", flat=True).distinct())
+
+    if not biz_ids:
+        raise ValueError("parse error, no tickets found for the given params")
+
+    return biz_ids
+
+
+def auth_parse_instances(request: HttpRequest, *args, **kwargs) -> ClusterIdList:
+    """
+    解析实例地址 - 获取实例所属集群鉴权
+    request 接收params:
+    - instances/address: ["ip:port", ...] 或 [{"ip": xx, "port": xxxx}]
+    - instance/ip_port: "ip:port" 或 {"ip": xx, "port": xxxx}
+    - ip: 主机IP
+    - port: 端口
+    """
+    from backend.db_meta.models import Cluster
+
+    data = request.query_params if request.method == "GET" else request.data
+    addresses = data.get("instances") or data.get("address") or data.get("instance") or data.get("ip_port")
+    ip, port = data.get("ip"), data.get("port")
+
+    ip_ports = []
+    if addresses:
+        addresses = addresses if isinstance(addresses, list) else [addresses]
+        for address in addresses:
+            if isinstance(address, dict):
+                addr_ip = address.get("ip")
+                addr_port = address.get("port")
+                if not addr_ip or addr_port is None:
+                    raise ValueError("address must contain ip and port")
+            else:
+                if IP_PORT_DIVIDER not in str(address):
+                    raise ValueError("address must be in ip:port format")
+                addr_ip, addr_port = str(address).split(IP_PORT_DIVIDER, 1)
+            ip_ports.append((addr_ip, int(addr_port)))
+    elif ip and port is not None:
+        ip_ports.append((ip, int(port)))
+    else:
+        raise ValueError("instances/address/instance/ip_port is required")
+
+    filters = Q()
+    for addr_ip, addr_port in ip_ports:
+        filters |= Q(storageinstance__machine__ip=addr_ip, storageinstance__port=addr_port) | Q(
+            proxyinstance__machine__ip=addr_ip, proxyinstance__port=addr_port
+        )
+
+    cluster_ids = list(Cluster.objects.filter(filters).values_list("id", flat=True).distinct())
     if not cluster_ids:
         raise ValueError("parse error, no clusters found for the given params")
 
