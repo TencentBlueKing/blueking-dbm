@@ -13,9 +13,10 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 
-class SubmitBillMySQLApplyPrivInputSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务 id, bk_biz_id"))
+class GenerateMySQLDBTableBackupParamInputSerializer(serializers.Serializer):
+    # bk_biz_id = serializers.IntegerField(help_text=_("业务 id, bk_biz_id"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    account_name = serializers.CharField(help_text=_("权限模版中的用户名"))
-    dbnames = serializers.ListField(child=serializers.CharField(), help_text=_("权限模版中用户名下的 db 名"))
-    apply_source_ips = serializers.ListField(child=serializers.CharField(), help_text=_("新权限访问来源 IP 列表, 允许带有 % 通配符"))
+    include_dbs = serializers.ListField(child=serializers.CharField(), help_text=_("需要备份的库名列表, 都允许带有 %, ?, * 这样的通配"))
+    ignore_dbs = serializers.ListField(
+        child=serializers.CharField(), help_text=_("需要排除的库名列表, 都允许带有 %, ?, * 这样的通配"), required=False
+    )

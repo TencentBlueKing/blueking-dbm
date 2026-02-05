@@ -10,19 +10,15 @@ specific language governing permissions and limitations under the License.
 """
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
-from backend.dbm_aiagent.mcp_tools.decorators import bill_response_wrapper
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpNotSupportClusterTypeException
 from backend.ticket.builders.mysql.mysql_rename_database import MySQLRenameDatabaseSerializer
 from backend.ticket.builders.tendbcluster.tendb_rename import TendbRenameSerializer
 from backend.ticket.constants import TicketType
-from backend.ticket.models import Ticket
 
 
-@bill_response_wrapper
-def bill_rename_db(
-    bk_biz_id: int, username: str, cluster_domain: str, source_dbname: str, target_dbname: str
-) -> Ticket:
-    cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
+# @bill_response_wrapper
+def ticket_param_rename_db(cluster_obj: Cluster, username: str, source_dbname: str, target_dbname: str):
+    # cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
     if cluster_obj.cluster_type in [ClusterType.TenDBSingle, ClusterType.TenDBHA]:
         ticket_type = TicketType.MYSQL_RENAME_DATABASE
     elif cluster_obj.cluster_type == ClusterType.TenDBCluster:
@@ -35,7 +31,7 @@ def bill_rename_db(
         "remark": ticket_type,
         "creator": username,
         "helpers": [],
-        "bk_biz_id": bk_biz_id,
+        "bk_biz_id": cluster_obj.bk_biz_id,
         "details": {
             "force": True,
             "infos": [{"cluster_id": cluster_obj.pk, "from_database": source_dbname, "to_database": target_dbname}],
@@ -48,8 +44,8 @@ def bill_rename_db(
         slz = TendbRenameSerializer(data=ticket_param["details"])
 
     slz.context["ticket_type"] = ticket_type
-    slz.context["bk_biz_id"] = bk_biz_id
+    slz.context["bk_biz_id"] = cluster_obj.bk_biz_id
 
     slz.is_valid(raise_exception=True)
 
-    return Ticket.create_ticket(**ticket_param)
+    return {"ticket_params": [{"ticket_param": ticket_param}]}  # Ticket.create_ticket(**ticket_param)

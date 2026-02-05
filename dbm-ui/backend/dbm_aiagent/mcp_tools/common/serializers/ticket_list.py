@@ -30,6 +30,7 @@ class TicketListInputSerializer(serializers.Serializer):
 
 class TicketInfoSerializer(serializers.Serializer):
     ticket_id = serializers.IntegerField(help_text=_("单据 ID"))
+    ticket_url = serializers.URLField(help_text=_("单据链接"))
     ticket_type = serializers.ChoiceField(choices=TicketType.get_labels(), help_text=_("单据类型"))
     creator = serializers.CharField(help_text=_("提单人"))
     helpers = serializers.ListField(child=serializers.CharField(), help_text=_("前 2 个协助人"))
@@ -44,3 +45,4 @@ class TicketInfoSerializer(serializers.Serializer):
 
 class TicketListOutputSerializer(serializers.Serializer):
     ticket_infos = serializers.ListField(child=TicketInfoSerializer(), help_text=_("单据信息"))
+    username = serializers.CharField(help_text=_("用户名"))

@@ -12,9 +12,9 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 
-class SubmitBillMySQLStandardizeInputSerializer(serializers.Serializer):
+class GenerateMySQLStandardizeParamInputSerializer(serializers.Serializer):
     # bk_cloud_id = serializers.Serializer(help_text=_("云区域 ID"))
-    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
+    # bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     cluster_domains = serializers.ListField(child=serializers.CharField(), help_text=_("集群域名列表"))
     with_instance_standardize = serializers.BooleanField(
         help_text=_("是否实例标准化, 重建 DBM 系统库表和权限. 高危慎用"), default=False, required=False

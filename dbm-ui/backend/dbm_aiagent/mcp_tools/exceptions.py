@@ -76,3 +76,9 @@ class DBMMcpBadTicketStatusException(DBMMcpBaseException):
     ERROR_CODE = "010"
     MESSAGE = _("单据类型不支持当前操作")
     MESSAGE_TPL = _("{msg}")
+
+
+class DBMMcpMultiBkBizIdFoundException(DBMMcpBaseException):
+    ERROR_CODE = "011"
+    MESSAGE = _("多个业务ID")
+    MESSAGE_TPL = _("{msg}")

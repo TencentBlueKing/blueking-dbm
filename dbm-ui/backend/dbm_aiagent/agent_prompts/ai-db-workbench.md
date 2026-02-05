@@ -20,3 +20,7 @@
 * 使用 list_bizs_base_info 做 bk_biz_id 和 app_abbr 的转换
 * 集群同步状态查询先获取集群拓扑结构, 再获取 slave 和 repeater 实例的同步状态汇总
 * 连接数评估应先获取 processlist 摘要, 再对比运行时变量 max_connections
+* 单据参数生成后, 必须先返回给用户获得确认
+* generate 工具生成的单据参数, 不允许任何形式的修改
+* ticket_url 渲染成一个<a href=ticket_url>ticket_url</a> 形式的超链接
+

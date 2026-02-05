@@ -72,6 +72,7 @@ def ticket_list(
                 want_tickets.append(
                     {
                         "ticket_id": t.pk,
+                        "ticket_url": t.url,
                         "ticket_type": TicketType.get_choice_label(t.ticket_type),
                         "creator": creator,
                         "helpers": helpers[:2],
@@ -88,6 +89,7 @@ def ticket_list(
             want_tickets.append(
                 {
                     "ticket_id": t.pk,
+                    "ticket_url": t.url,
                     "ticket_type": TicketType.get_choice_label(t.ticket_type),
                     "creator": creator,
                     "helpers": helpers[:2],

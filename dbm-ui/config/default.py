@@ -683,11 +683,11 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "tools": [],
     },
     {
-        "name": "mysql-bill",
-        "description": """create mysql bill""",
+        "name": "mysql-ticket",
+        "description": """generate mysql ticket param""",
         # 主动授权 app_code
         "target_app_codes": [APP_CODE],
-        "labels": ["mysql-bill"],
+        "labels": ["mysql-ticket"],
         # 是否启用：1-启用，0-停止
         "status": 1,
         # 是否公开

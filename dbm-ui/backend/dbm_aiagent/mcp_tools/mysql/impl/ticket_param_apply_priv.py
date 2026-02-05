@@ -16,7 +16,6 @@ from backend.components import DBPrivManagerApi
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_services.dbpermission.db_account.handlers import AccountHandler
-from backend.dbm_aiagent.mcp_tools.decorators import bill_response_wrapper
 from backend.dbm_aiagent.mcp_tools.exceptions import (
     DBMMcpMySQLApplyPrivAccountNotFoundException,
     DBMMcpMySQLApplyPrivDBRuleNotFoundException,
@@ -24,20 +23,18 @@ from backend.dbm_aiagent.mcp_tools.exceptions import (
 )
 from backend.ticket.builders.mysql.mysql_authorize_rules import MySQLAuthorizeRulesSerializer
 from backend.ticket.constants import TicketType
-from backend.ticket.models import Ticket
 
 
-@bill_response_wrapper
-def bill_apply_priv(
+# @bill_response_wrapper
+def ticket_param_apply_priv(
     request,
     username: str,
     apply_access_dbs: List[str],
     apply_username: str,
     apply_source_ips: List[str],
-    cluster_domain: str,
-    bk_biz_id: int,
-) -> Ticket:
-    cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
+    cluster_obj: Cluster,
+):
+    # cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
     cluster_type = cluster_obj.cluster_type
 
     if cluster_type == ClusterType.TenDBCluster:
@@ -51,18 +48,18 @@ def bill_apply_priv(
         "access_dbs": apply_access_dbs,
         "user": apply_username,
         "source_ips": apply_source_ips,
-        "target_instances": [cluster_domain],
+        "target_instances": [cluster_obj.immute_domain],
         "cluster_type": cluster_type,
     }
 
     account_type = ClusterType.cluster_type_to_db_type(cluster_type)
 
-    priv_res = DBPrivManagerApi.get_account(params={"cluster_type": account_type, "bk_biz_id": bk_biz_id})
+    priv_res = DBPrivManagerApi.get_account(params={"cluster_type": account_type, "bk_biz_id": cluster_obj.bk_biz_id})
     user_info_map = {user["user"]: user for user in priv_res["results"]}
     if apply_username not in user_info_map:
         raise DBMMcpMySQLApplyPrivAccountNotFoundException(msg=_("需要在 DBM 授权管理中创建 {} 账号".format(apply_username)))
 
-    user_db_map = AccountHandler.aggregate_user_db_rules(bk_biz_id, account_type)
+    user_db_map = AccountHandler.aggregate_user_db_rules(cluster_obj.bk_biz_id, account_type)
 
     not_found_dbs = [a_db for a_db in apply_access_dbs if a_db not in user_db_map[apply_username]]
 
@@ -72,7 +69,7 @@ def bill_apply_priv(
         )
 
     slz = MySQLAuthorizeRulesSerializer(
-        data={"authorize_plugin_infos": [{**auth_data, "bk_biz_id": bk_biz_id}], "need_itsm": True}
+        data={"authorize_plugin_infos": [{**auth_data, "bk_biz_id": cluster_obj.bk_biz_id}], "need_itsm": True}
     )
     slz.context["request"] = request
     slz.is_valid(raise_exception=True)
@@ -82,8 +79,8 @@ def bill_apply_priv(
         "remark": ticket_type,
         "creator": username,
         "helpers": [],
-        "bk_biz_id": bk_biz_id,
+        "bk_biz_id": cluster_obj.bk_biz_id,
         "details": slz.validated_data,
     }
 
-    return Ticket.create_ticket(**ticket_param)
+    return {"ticket_params": [{"ticket_param": ticket_param}]}  # Ticket.create_ticket(**ticket_param)

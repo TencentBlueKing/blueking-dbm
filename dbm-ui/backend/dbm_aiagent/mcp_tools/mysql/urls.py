@@ -11,17 +11,17 @@ specific language governing permissions and limitations under the License.
 from rest_framework.routers import DefaultRouter
 
 from backend.dbm_aiagent.mcp_tools.mysql.views import (
-    MySQLBillMcpToolsViewSet,
     MySQLMetricsMcpToolsViewSet,
     MySQLQueryMcpToolsViewSet,
     MySQLSlowlogMcpToolsViewSet,
+    MySQLTicketMcpToolsViewSet,
     SqlSyntaxCheckMcpViewSet,
 )
 
 routers = DefaultRouter(trailing_slash=True)
 
 routers.register(r"", MySQLQueryMcpToolsViewSet, basename="mcp-mysql-query")
-routers.register(r"", MySQLBillMcpToolsViewSet, basename="mcp-mysql-bill")
+routers.register(r"", MySQLTicketMcpToolsViewSet, basename="mcp-mysql-ticket")
 routers.register(r"", MySQLSlowlogMcpToolsViewSet, basename="mcp-mysql-slowlog")
 routers.register(r"", SqlSyntaxCheckMcpViewSet, basename="mcp-sql-syntax-check")
 routers.register(r"", MySQLMetricsMcpToolsViewSet, basename="mcp-mysql-metrics")

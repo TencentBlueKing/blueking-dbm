@@ -12,7 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 
-class SubmitBillTdbctlUpgradeInputSerializer(serializers.Serializer):
+class GenerateTdbctlUpgradeParamInputSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     cluster_domain = serializers.CharField(
         help_text=_("集群域名（可选，与 cluster_id 二选一）"),

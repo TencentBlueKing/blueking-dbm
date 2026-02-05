@@ -18,7 +18,7 @@ class DBMMcpTools(StrStructuredEnum):
     DBMETA_QUERY = EnumField("dbmeta-query", "dbmeta-query")
     DBMETA_UPDATE = EnumField("dbmeta-update", "dbmeta-update")
     MYSQL_QUERY = EnumField("mysql-query", "mysql-query")
-    MYSQL_BILL = EnumField("mysql-bill", "mysql-bill")
+    MYSQL_TICKET = EnumField("mysql-ticket", "mysql-ticket")
     MYSQL_SLOWLOG = EnumField("mysql-slowlog", "mysql-slowlog")
     MYSQL_METRICS = EnumField("mysql-metrics", "mysql-metrics")
     SQLSERVER_QUERY = EnumField("sqlserver-query", "sqlserver-query")

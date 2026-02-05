@@ -15,19 +15,17 @@ from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.db_services.mysql.toolbox.serializers import TdbctlUpgradeSerializer
 from backend.db_services.mysql.toolbox.tdbctl_upgrade_handler import TdbctlUpgradeHandler
-from backend.dbm_aiagent.mcp_tools.decorators import bill_response_wrapper
 from backend.ticket.constants import TicketType
-from backend.ticket.models import Ticket
 
 
-@bill_response_wrapper
-def bill_tdbctl_upgrade(
+# @bill_response_wrapper
+def ticket_param_tdbctl_upgrade(
     bk_biz_id: int,
     username: str,
     cluster_domain: str = None,
     cluster_id: int = None,
     version: str = None,
-) -> Ticket:
+):
     """
     创建 TenDBCluster 中控（tdbctl）升级单据
 
@@ -136,4 +134,4 @@ def bill_tdbctl_upgrade(
         "details": details,
     }
 
-    return Ticket.create_ticket(**ticket_param)
+    return {"ticket_params": [{"ticket_param": ticket_param}]}  # Ticket.create_ticket(**ticket_param)

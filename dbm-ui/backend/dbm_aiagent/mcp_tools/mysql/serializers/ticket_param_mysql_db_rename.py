@@ -14,8 +14,8 @@ from rest_framework import serializers
 from backend.flow.consts import STAGE_DB_HEADER
 
 
-class SubmitBillMySQLDBRenameInputSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务 id, bk_biz_id"))
+class GenerateMySQLDBRenameParamInputSerializer(serializers.Serializer):
+    # bk_biz_id = serializers.IntegerField(help_text=_("业务 id, bk_biz_id"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     source_dbname = serializers.RegexField(regex=r"^{}.*$".format(STAGE_DB_HEADER), help_text=_("源 DB 名"))
     target_dbname = serializers.CharField(help_text=_("新 DB 名"))

@@ -12,19 +12,14 @@ from typing import List
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
-from backend.dbm_aiagent.mcp_tools.decorators import bill_response_wrapper
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpNotSupportClusterTypeException
 from backend.ticket.builders.mysql.mysql_db_table_backup import MySQLDBTableBackupDetailSerializer
 from backend.ticket.builders.tendbcluster.db_table_backup import TenDBClusterDBTableBackUpDetailSerializer
 from backend.ticket.constants import TicketType
-from backend.ticket.models import Ticket
 
 
-@bill_response_wrapper
-def bill_db_table_backup(
-    username: str, bk_biz_id: int, cluster_domain: str, include_dbs: List[str], ignore_dbs: List[str]
-) -> Ticket:
-    cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
+# @bill_response_wrapper
+def ticket_param_db_table_backup(username: str, cluster_obj: Cluster, include_dbs: List[str], ignore_dbs: List[str]):
     cluster_type = cluster_obj.cluster_type
 
     if cluster_type == ClusterType.TenDBCluster:
@@ -39,7 +34,7 @@ def bill_db_table_backup(
         "remark": ticket_type,
         "creator": username,
         "helpers": [],
-        "bk_biz_id": bk_biz_id,
+        "bk_biz_id": cluster_obj.bk_biz_id,
         "details": {
             "infos": [
                 {
@@ -59,8 +54,8 @@ def bill_db_table_backup(
         slz = TenDBClusterDBTableBackUpDetailSerializer(data=ticket_param["details"])
 
     slz.context["ticket_type"] = ticket_type
-    slz.context["bk_biz_id"] = bk_biz_id
+    slz.context["bk_biz_id"] = cluster_obj.bk_biz_id
 
     slz.is_valid(raise_exception=True)
 
-    return Ticket.create_ticket(**ticket_param)
+    return {"ticket_params": [{"ticket_param": ticket_param}]}  # Ticket.create_ticket(**ticket_param)

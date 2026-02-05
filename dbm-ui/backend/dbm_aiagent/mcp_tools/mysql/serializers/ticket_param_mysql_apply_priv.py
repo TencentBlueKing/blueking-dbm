@@ -8,21 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.flow.consts import MySQLBackupTypeEnum
 
-
-class SubmitBillMySQLFullBackupInputSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务 id, bk_biz_id"))
+class GenerateMySQLApplyPrivParamInputSerializer(serializers.Serializer):
+    # bk_biz_id = serializers.IntegerField(help_text=_("业务 id, bk_biz_id"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    backup_type = serializers.ChoiceField(choices=MySQLBackupTypeEnum.get_choices(), help_text=_("备份类型"))
-    # cluster_type = serializers.ChoiceField(
-    #     choices=[
-    #         (ClusterType.TenDBHA.value, ClusterType.TenDBHA.name),
-    #         # (ClusterType.TenDBSingle.value, ClusterType.TenDBSingle.name),
-    #         (ClusterType.TenDBCluster.value, ClusterType.TenDBCluster.name)
-    #     ],
-    #     help_text=_("集群类型, 只能是 tendbha, tendbcluster"),
-    # )
+    account_name = serializers.CharField(help_text=_("权限模版中的用户名"))
+    dbnames = serializers.ListField(child=serializers.CharField(), help_text=_("权限模版中用户名下的 db 名"))
+    apply_source_ips = serializers.ListField(child=serializers.CharField(), help_text=_("新权限访问来源 IP 列表, 允许带有 % 通配符"))
