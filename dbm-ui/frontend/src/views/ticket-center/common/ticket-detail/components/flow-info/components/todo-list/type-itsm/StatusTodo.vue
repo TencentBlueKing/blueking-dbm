@@ -32,7 +32,9 @@
       style="color: #979ba5">
       {{ utcDisplayTime(data.done_at) }}
     </div>
-    <template v-if="isCanOperation">
+    <div
+      v-if="isCanOperation"
+      class="mt-12">
       <ProcessPass :todo-data="data">
         <BkButton
           class="w-88"
@@ -47,7 +49,7 @@
           {{ t('拒绝') }}
         </BkButton>
       </ProcessRefuse>
-    </template>
+    </div>
   </div>
 </template>
 <script setup lang="ts">
