@@ -90,7 +90,7 @@ spec:
           - /bin/sh
           - -c
           - |
-            consensus_status=`/qdrant/tools/curl -s http://localhost:6333/cluster | /qdrant/tools/jq -r .result.consensus_thread_status.consensus_thread_status`
+            consensus_status=`/qdrant/tools/curl -s -H "api-key: ${QDRANT__SERVICE__API_KEY}" http://localhost:6333/cluster | /qdrant/tools/jq -r .result.consensus_thread_status.consensus_thread_status`
             if [ "$consensus_status" != "working" ]; then
               echo "consensus stopped"
               exit 1
