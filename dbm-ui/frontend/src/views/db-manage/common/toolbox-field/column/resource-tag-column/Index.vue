@@ -217,6 +217,10 @@
     tagTheme.value = ids.value[0] === DEFAULT_TAG_ID ? 'success' : '';
   };
 
+  watch(modelValue, () => {
+    updateModel(modelValue.value);
+  });
+
   watch(
     tagList,
     () => {
