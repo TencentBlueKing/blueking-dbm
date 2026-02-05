@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"strings"
 
 	"github.com/antonmedv/expr"
 	"github.com/antonmedv/expr/vm"
@@ -135,10 +136,11 @@ func (c CheckerResult) IsPass() bool {
 func (c *CheckerResult) Parse(rule *RuleItem, val interface{}, additionalMsg string) {
 	matched, err := rule.CheckItem(val)
 	if matched {
+		msg := strings.TrimSpace(fmt.Sprintf("%s %s\n%s\n%s", c.buildObjName(), err.Error(), additionalMsg, rule.Suggestion))
 		if rule.Ban {
-			c.BanWarns = append(c.BanWarns, fmt.Sprintf("%s %s\n%s", c.buildObjName(), err.Error(), additionalMsg))
+			c.BanWarns = append(c.BanWarns, msg)
 		} else {
-			c.RiskWarns = append(c.RiskWarns, fmt.Sprintf("%s %s\n%s", c.buildObjName(), err.Error(), additionalMsg))
+			c.RiskWarns = append(c.RiskWarns, msg)
 		}
 	}
 }
@@ -149,12 +151,11 @@ func (c *CheckerResult) Trigger(rule *BoolRuleItem, additionalMsg string) {
 	if !rule.TurnOn {
 		return
 	}
+	msg := strings.TrimSpace(fmt.Sprintf("%s %s:%s\n%s", c.buildObjName(), rule.Desc, additionalMsg, rule.Suggestion))
 	if rule.Ban {
-		c.BanWarns = append(c.BanWarns, fmt.Sprintf("%s %s:%s\n%s", c.buildObjName(), rule.Desc, additionalMsg,
-			rule.Suggestion))
+		c.BanWarns = append(c.BanWarns, msg)
 	} else {
-		c.RiskWarns = append(c.RiskWarns, fmt.Sprintf("%s %s:%s\n%s", c.buildObjName(), rule.Desc, additionalMsg,
-			rule.Suggestion))
+		c.RiskWarns = append(c.RiskWarns, msg)
 	}
 }
 func (c *CheckerResult) buildObjName() string {
@@ -162,6 +163,9 @@ func (c *CheckerResult) buildObjName() string {
 		return fmt.Sprintf("sp_name: %s ", c.ObjName)
 	}
 	if c.IsSQLText {
+		return ""
+	}
+	if c.ObjName == "" {
 		return ""
 	}
 	return fmt.Sprintf("table_name: %s ", c.ObjName)

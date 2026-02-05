@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/go-pubpkg/logger"
@@ -53,6 +54,7 @@ func NewBkAiDevProvider(appCode, appSecret string) *OpenAIProvider {
 	aiConfig.BaseURL = config.AppConfig.LLM.BkAi.BaseURL
 	// 设置自定义 HTTP 客户端以添加 headers
 	aiConfig.HTTPClient = &http.Client{
+		Timeout: 180 * time.Second,
 		Transport: &customTransport{
 			headers: map[string]string{
 				"X-Bkapi-Authorization": string(authHeaderJSON),
