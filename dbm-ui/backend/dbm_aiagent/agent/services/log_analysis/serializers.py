@@ -15,3 +15,8 @@ from rest_framework import serializers
 class GetLogAnalysisSerializer(serializers.Serializer):
     ticket_id = serializers.IntegerField(help_text=_("单据ID"))
     flow_id = serializers.CharField(help_text=_("流程ID"))
+
+
+class GetNodeLogAnalysisSerializer(serializers.Serializer):
+    node_id = serializers.CharField(help_text=_("节点ID"))
+    command = serializers.CharField(help_text=_("快捷指令"))

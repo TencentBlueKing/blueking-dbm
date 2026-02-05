@@ -108,6 +108,7 @@ class GetSpecifiedNodeSerializer(serializers.Serializer):
 class VersionSerializer(NodeSerializer):
     version_id = serializers.CharField(help_text=_("版本ID"))
     download = serializers.BooleanField(help_text=_("是否下载日志"), default=False)
+    labels = serializers.CharField(help_text=_("标签过滤,逗号分割"), required=False)
 
 
 class BatchDownloadSerializer(serializers.Serializer):
