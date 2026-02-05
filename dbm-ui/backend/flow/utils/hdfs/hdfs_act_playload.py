@@ -13,7 +13,6 @@ from typing import Any, Dict, List
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
-from backend.db_meta.enums import MachineType
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.flow.consts import (
     ConfigTypeEnum,
@@ -23,9 +22,8 @@ from backend.flow.consts import (
     LevelInfoEnum,
     NameSpaceEnum,
 )
-from backend.flow.utils.hdfs.hdfs_context_dataclass import HdfsApplyContext, HdfsReplaceContext, UpdateDfsHostOperation
+from backend.flow.utils.hdfs.hdfs_context_dataclass import UpdateDfsHostOperation
 from backend.flow.utils.hdfs.hdfs_flow_data_initializer import get_node_ips_in_ticket_by_role
-from backend.ticket.constants import TicketType
 
 
 class HdfsActPayload(object):
@@ -97,7 +95,7 @@ class HdfsActPayload(object):
         """
         if "all_ip_hosts" in self.ticket_data:
             return self.ticket_data["all_ip_hosts"]
-        return self._build_nn_domain_mapping()
+        return self.ticket_data["nn_domain"]
 
     def _build_nn_domain_mapping(self) -> Dict[str, str]:
         """
@@ -371,16 +369,6 @@ class HdfsActPayload(object):
                     "rpc_port": self.ticket_data["rpc_port"],
                 },
             },
-        }
-
-    def get_install_telegraf_payload(self, **kwargs) -> dict:
-        """
-        拼接安装telegraf的payload参数
-        """
-        return {
-            "db_type": DBActuatorTypeEnum.Hdfs.value,
-            "action": HdfsDBActuatorActionEnum.InstallTelegraf.value,
-            "payload": {"general": {}, "extend": {}},
         }
 
     def get_decompress_package_payload(self, **kwargs) -> dict:
@@ -677,68 +665,3 @@ def get_cluster_all_ip_from_meta(cluster_id: int) -> list:
     cluster = Cluster.objects.get(id=cluster_id)
     storage_ips = list(set(StorageInstance.objects.filter(cluster=cluster).values_list("machine__ip", flat=True)))
     return storage_ips
-
-
-# 获取不同单据类型需要操作转移模块到机器类型列表
-def get_machine_list(ticket_type: str, replace_dn=False, replace_master=False) -> list:
-    machine_list = []
-    if ticket_type == TicketType.HDFS_APPLY.value:
-        machine_list = [
-            {
-                "machine_type": MachineType.HDFS_MASTER.value,
-                "ips_var_name": HdfsApplyContext.get_master_ips_var_name(),
-            },
-            {
-                "machine_type": MachineType.HDFS_DATANODE.value,
-                "ips_var_name": HdfsApplyContext.get_dn_ips_var_name(),
-            },
-        ]
-    elif ticket_type == TicketType.HDFS_SCALE_UP.value:
-        machine_list = [
-            {
-                "machine_type": MachineType.HDFS_DATANODE.value,
-                "ips_var_name": HdfsApplyContext.get_new_dn_ips_var_name(),
-            },
-        ]
-    elif ticket_type == TicketType.HDFS_REPLACE.value:
-        if replace_dn:
-            machine_list.append(
-                {
-                    "machine_type": MachineType.HDFS_DATANODE.value,
-                    "ips_var_name": HdfsReplaceContext.get_new_dn_ips_var_name(),
-                }
-            )
-        if replace_master:
-            machine_list.append(
-                {
-                    "machine_type": MachineType.HDFS_MASTER.value,
-                    "ips_var_name": HdfsReplaceContext.get_new_master_ips_var_name(),
-                }
-            )
-    else:
-        machine_list = []
-    return machine_list
-
-
-# 从meta中获取需要被完全替换的IP
-def get_replace_ip_from_meta(ticket_data: dict) -> list:
-    replace_master_ip_set = set()
-    if ticket_data["old_nn_ips"]:
-        for nn_ip in ticket_data["old_nn_ips"]:
-            if (
-                nn_ip in ticket_data["zk_ips"] + ticket_data["new_master_ips"]
-                and nn_ip not in ticket_data["old_zk_ips"]
-            ):
-                pass
-            else:
-                replace_master_ip_set.add(nn_ip)
-    if ticket_data["old_zk_ips"]:
-        for zk_ip in ticket_data["old_zk_ips"]:
-            if (
-                zk_ip in ticket_data["nn_ips"] + ticket_data["new_master_ips"]
-                and zk_ip not in ticket_data["old_nn_ips"]
-            ):
-                pass
-            else:
-                replace_master_ip_set.add(zk_ip)
-    return ticket_data["del_dn_ips"] + list(replace_master_ip_set)
