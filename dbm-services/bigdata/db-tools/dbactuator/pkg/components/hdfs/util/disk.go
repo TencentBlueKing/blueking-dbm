@@ -76,6 +76,8 @@ func GetLocalHostNameByMap(hostMap map[string]string) string {
 				value, exists := hostMap[localIP]
 				if exists {
 					return value
+				} else {
+					return localIP
 				}
 			}
 		}

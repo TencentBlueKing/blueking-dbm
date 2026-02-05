@@ -49,9 +49,15 @@ class HdfsDnsManageService(BaseService):
                     nn_result = dns_manage.create_domain(instance_list=nn_instance_list, add_domain_name=domain)
                     if not nn_result:
                         self.log_error(_("添加NN域名失败, ip: {}, domain: {}").format(ip, domain))
-
-            # 添加域名映射,适配集群申请，单独添加域名的场景
+            # 统一获取接入主域名的DN节点IP，尚未兼容替换单据
             exec_ips = get_node_ips_in_ticket_by_role(global_data, HdfsRoleEnum.DataNode.value)
+            # 使用旧逻辑获取DN节点IP
+            if not exec_ips:
+                if "new_dn_ips" not in global_data:
+                    exec_ips = global_data["dn_ips"]
+                else:
+                    exec_ips = global_data["new_dn_ips"]
+
             if not exec_ips:
                 self.log_error(_("获取DNS操作IP为空"))
                 return False
