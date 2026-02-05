@@ -533,6 +533,7 @@ class TicketType(StrStructuredEnum):
     REDIS_ENTRY_CHECK = TicketEnumField("REDIS_ENTRY_CHECK", _("Redis 入口一致性检查"))
     REDIS_FAILOVER_DRILL = TicketEnumField("REDIS_FAILOVER_DRILL", _("Redis 容灾演练"), register_iam=False)
     REDIS_ROLLBACK_EXERCISE = TicketEnumField("REDIS_ROLLBACK_EXERCISE", _("Redis 回档演练"))
+    REDIS_PROXY_FAST_RECOVER = TicketEnumField("REDIS_PROXY_FAST_RECOVER", _("Redis Proxy剔除和修复"), _("集群维护"))
 
     # 大数据
     KAFKA_APPLY = TicketEnumField("KAFKA_APPLY", _("Kafka 集群部署"), register_iam=False)
