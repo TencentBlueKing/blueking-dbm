@@ -173,6 +173,11 @@
       label: t('目标集群'),
     },
     {
+      case: '1',
+      key: 'count',
+      label: t('扩容数量（台）'),
+    },
+    {
       case: '2核_4G_50G',
       key: 'spec_name',
       label: t('目标规格'),
@@ -296,6 +301,7 @@
           cluster: {
             master_domain: item.master_domain,
           },
+          count: item.count,
           labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
           specId: item.spec_name,
         }),
