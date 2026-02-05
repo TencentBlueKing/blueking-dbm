@@ -52,6 +52,18 @@
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
+  interface ClusterSpecModel {
+    bk_cloud_id: number;
+    id: number;
+    master_domain: string;
+    mnt_count: number;
+    region: string;
+    spider_master: TendbClusterModel['spider_master'];
+    spider_master_spec_list: number[];
+    spider_slave: TendbClusterModel['spider_slave'];
+    spider_slave_spec_list: number[];
+  }
+
   interface Props {
     selected: {
       id: number;
@@ -64,9 +76,7 @@
   interface Exposes {
     fetchData: (
       tableData: {
-        cluster: {
-          master_domain: string;
-        };
+        cluster: ClusterSpecModel;
       }[],
     ) => void;
   }
@@ -75,17 +85,7 @@
 
   const emits = defineEmits<Emits>();
 
-  const modelValue = defineModel<{
-    bk_cloud_id: number;
-    id: number;
-    master_domain: string;
-    mnt_count: number;
-    region: string;
-    spider_master: TendbClusterModel['spider_master'];
-    spider_master_spec_list: number[];
-    spider_slave: TendbClusterModel['spider_slave'];
-    spider_slave_spec_list: number[];
-  }>({
+  const modelValue = defineModel<ClusterSpecModel>({
     required: true,
   });
 
@@ -165,9 +165,7 @@
   defineExpose<Exposes>({
     fetchData(
       tableData: {
-        cluster: {
-          master_domain: string;
-        };
+        cluster: ClusterSpecModel;
       }[],
     ) {
       const domainList = tableData.map((item) => item.cluster.master_domain);
@@ -184,7 +182,17 @@
         data.forEach((cluster) => {
           const target = tableData.find((item) => item.cluster.master_domain === cluster.master_domain);
           if (target) {
-            target.cluster = cluster;
+            target.cluster = {
+              bk_cloud_id: cluster.bk_cloud_id,
+              id: cluster.id,
+              master_domain: cluster.master_domain,
+              mnt_count: cluster.spider_mnt.length,
+              region: cluster.region,
+              spider_master: cluster.spider_master,
+              spider_master_spec_list: cluster.spider_master.map((host) => host.spec_config.id),
+              spider_slave: cluster.spider_slave,
+              spider_slave_spec_list: cluster.spider_slave.map((host) => host.spec_config.id),
+            };
           }
         });
       });
