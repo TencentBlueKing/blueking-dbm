@@ -279,7 +279,9 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
         validated_data = self.params_validate(self.get_serializer_class())
         node_id = validated_data["node_id"]
         version_id = validated_data["version_id"]
-        logs = TaskFlowHandler(root_id=root_id).get_version_logs(node_id, version_id)
+        label_filters = validated_data.get("labels")
+        label_filters = label_filters.split(",") if label_filters else []
+        logs = TaskFlowHandler(root_id=root_id).get_version_logs(node_id, version_id, label_filters)
         if validated_data["download"]:
             # 导出下载日志
             return HttpResponse(

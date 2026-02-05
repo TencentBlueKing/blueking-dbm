@@ -14,6 +14,7 @@ import uuid
 from aidev_agent.services.pydantic_models import ExecuteKwargs
 from aidev_bkplugin.services.agent import build_chat_completion_agent_by_session_code
 from aidev_bkplugin.views.builtin import client
+from django.http import StreamingHttpResponse
 
 from backend.dbm_aiagent.agent.commands import CommandProcessor
 from backend.dbm_aiagent.agent.constants import DBMAgentCode
@@ -47,16 +48,16 @@ class AgentHandler:
         return session_code
 
     @classmethod
-    def create_chat_completion(cls, session_code, session_content_id):
-        """获得本次对话内容，内部调用默认非流式"""
-        execute_kwargs = ExecuteKwargs(stream=False)
+    def create_chat_completion(cls, session_code, session_content_id, stream: bool = False):
+        """获得本次对话内容，支持流式/非流式"""
+        execute_kwargs = ExecuteKwargs(stream=stream)
         agent_instance = build_chat_completion_agent_by_session_code(session_code)
         result = agent_instance.execute(execute_kwargs)
         return result
 
     @classmethod
     def ask_agent_with_content(
-        cls, agent_code: DBMAgentCode, content: str, username=DEFAULT_USERNAME, session_code=None
+        cls, agent_code: DBMAgentCode, content: str, username=DEFAULT_USERNAME, session_code=None, stream: bool = False
     ):
         """根据agent直接内容询问agent"""
         # 创建临时会话
@@ -72,7 +73,11 @@ class AgentHandler:
 
         # 获取AI回复
         session_content_id = resp["data"]["id"]
-        ai_response = cls.create_chat_completion(session_code, session_content_id)
+        ai_response = cls.create_chat_completion(session_code, session_content_id, stream=stream)
+
+        if stream and not isinstance(ai_response, dict):
+            return cls.streaming_response(ai_response)
+
         return ai_response["choices"][0]["delta"]["content"]
 
     @classmethod
@@ -85,7 +90,9 @@ class AgentHandler:
         return ai_response, session_code
 
     @classmethod
-    def ask_agent_with_command(cls, command: str, command_params: dict, username=DEFAULT_USERNAME):
+    def ask_agent_with_command(
+        cls, command: str, command_params: dict, username=DEFAULT_USERNAME, stream: bool = False
+    ):
         """根据快捷指令询问agent"""
         if command not in CommandProcessor._handlers:
             raise ValueError(f"Command {command} not found")
@@ -111,5 +118,17 @@ class AgentHandler:
 
         # 获取AI回复
         session_content_id = resp["data"]["id"]
-        ai_response = cls.create_chat_completion(session_code, session_content_id)
+        ai_response = cls.create_chat_completion(session_code, session_content_id, stream=stream)
+
+        if stream and not isinstance(ai_response, dict):
+            return cls.streaming_response(ai_response)
+
         return ai_response["choices"][0]["delta"]["content"]
+
+    @staticmethod
+    def streaming_response(generator):
+        sr = StreamingHttpResponse(generator)
+        sr.headers["Cache-Control"] = "no-cache"
+        sr.headers["X-Accel-Buffering"] = "no"
+        sr.headers["content-type"] = "text/event-stream"
+        return sr
