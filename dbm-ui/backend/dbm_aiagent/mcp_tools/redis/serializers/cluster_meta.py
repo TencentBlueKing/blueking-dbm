@@ -42,6 +42,13 @@ class RedisEntrySerializer(RedisBaseInstanceSerializer):
     entry_addr = serializers.CharField(help_text=_("访问地址"))
 
 
+class RedisListInstsTopoInputSerializer(serializers.Serializer):
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    ips = serializers.ListField(
+        child=serializers.CharField(), required=False, allow_null=True, help_text="可选的主机列表，支持 IP "
+    )
+
+
 class RedisTopoInputSerializer(serializers.Serializer):
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
 
@@ -62,17 +69,17 @@ class RedisHostClusterOutputSerializer(serializers.Serializer):
     host = serializers.IPAddressField(protocol="both", help_text=_("主机IP地址"), required=True)
 
 
-class RedisBatchTopoInputSerializer(serializers.Serializer):
-    """Redis批量拓扑输入序列化器"""
+# class RedisBatchTopoInputSerializer(serializers.Serializer):
+#     """Redis批量拓扑输入序列化器"""
 
-    hosts = serializers.ListField(child=serializers.CharField(), help_text=_("主机IP地址列表"), required=False)
-    instances = serializers.ListField(child=RedisTopoInputSerializer(), help_text=_("Redis实例列表"), required=False)
+#     hosts = serializers.ListField(child=serializers.CharField(), help_text=_("主机IP地址列表"), required=False)
+#     instances = serializers.ListField(child=RedisTopoInputSerializer(), help_text=_("Redis实例列表"), required=False)
 
-    def validate(self, attrs):
-        """验证至少提供hosts或instances之一"""
-        if not attrs.get("hosts") and not attrs.get("instances"):
-            raise serializers.ValidationError(_("必须提供hosts或instances中的至少一个字段"))
-        return attrs
+#     def validate(self, attrs):
+#         """验证至少提供hosts或instances之一"""
+#         if not attrs.get("hosts") and not attrs.get("instances"):
+#             raise serializers.ValidationError(_("必须提供hosts或instances中的至少一个字段"))
+#         return attrs
 
 
 class RedisProxiesOutputSerializer(serializers.Serializer):
@@ -151,12 +158,12 @@ class RedisEmptyInputSerializer(serializers.Serializer):
 
 class RedisClustersOutputSerializer(serializers.Serializer):
     # bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
-    # cluster_type = serializers.CharField(help_text=_("集群类型"))
+    cluster_type = serializers.CharField(help_text=_("集群类型"))
     # cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     immute_domain = serializers.CharField(help_text=_("集群域名"))
-    # alias = serializers.CharField(help_text=_("集群别名"))
+    alias = serializers.CharField(help_text=_("集群别名"))
     # redis_version = serializers.CharField(help_text=_("Redis版本"))
-    # region = serializers.CharField(help_text=_("地域"))
+    region = serializers.CharField(help_text=_("地域"))
     # proxy_count = serializers.IntegerField(help_text=_("proxy节点数"))
     # master_count = serializers.IntegerField(help_text=_("master节点数"))
 

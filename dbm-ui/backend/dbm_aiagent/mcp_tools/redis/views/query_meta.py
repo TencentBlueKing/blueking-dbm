@@ -41,6 +41,7 @@ from backend.dbm_aiagent.mcp_tools.redis.serializers.cluster_meta import (
     RedisHostClusterOutputSerializer,
     RedisHostInputSerializer,
     RedisInstancesTopoSerializer,
+    RedisListInstsTopoInputSerializer,
     RedisMastersSummarySerializer,
     RedisProxiesSummarySerializer,
     RedisTopoInputSerializer,
@@ -146,7 +147,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
 
     @mcp_tools_api_decorator(
         description=str(_("查询 Redis 集群的Proxy节点详细列表")),
-        request_slz=RedisTopoInputSerializer,
+        request_slz=RedisListInstsTopoInputSerializer,
         response_slz=RedisProxiesSummarySerializer,
         permission_classes=[McpClusterManagePermission],
         mcp_auth_parser=auth_parse_clusters,
@@ -156,7 +157,8 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
     )
     def list_cluster_proxies(self, request, *args, **kwargs):
         immute_domain = self.get_param("cluster_domain")
-        return Response(cluster_proxies(immute_domain=immute_domain))
+        hosts = self.get_param("ips", default=None)  # 获取可选的 hosts 参数
+        return Response(cluster_proxies(immute_domain=immute_domain, hosts=hosts))
 
     @mcp_tools_api_decorator(
         description=str(_("查询 Redis 集群的Master节点详细列表")),
