@@ -139,16 +139,17 @@ class StorageHandler(object):
         # 保证文件路径和凭证信息一一对应
         result = []
         for token_data in tokens_data:
-            if token_data["fullPath"] in file_path_list:
-                result.append(
-                    {
-                        "token": token_data["token"],
-                        "url": env.BKREPO_FRONTEND_URL,
-                        "project": env.BKREPO_PROJECT,
-                        "repo": env.BKREPO_BUCKET,
-                        "path": token_data["fullPath"],
-                    }
-                )
+            # TODO: 取消校验文件路径，因为制品库会自动添加前缀‘/’
+            # if token_data["fullPath"] in file_path_list:
+            result.append(
+                {
+                    "token": token_data["token"],
+                    "url": env.BKREPO_FRONTEND_URL,
+                    "project": env.BKREPO_PROJECT,
+                    "repo": env.BKREPO_BUCKET,
+                    "path": token_data["fullPath"],
+                }
+            )
 
         return result
 
