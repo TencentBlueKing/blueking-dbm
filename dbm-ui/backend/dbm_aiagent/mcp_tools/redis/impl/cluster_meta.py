@@ -8,7 +8,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from collections import defaultdict
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from django.db.models import F
 
@@ -59,6 +59,9 @@ def redis_list_clusters(bk_biz_id: int) -> List:
     return [
         {
             "immute_domain": c.immute_domain,
+            "cluster_type": c.cluster_type,
+            "alias": c.alias,
+            "region": c.region,
         }
         for c in clusters
     ]
@@ -204,13 +207,32 @@ def cluster_storage_overiew(immute_domain: str) -> Dict:
     return {"redis_master": masters, "redis_slave": slaves}
 
 
-def cluster_proxies(immute_domain: str) -> List:
-    """集群proxy 列表"""
+def cluster_proxies(immute_domain: str, hosts: Optional[List[str]] = None) -> List:
+    """
+    集群proxy列表
+
+    Args:
+        immute_domain: 集群域名
+        hosts: 可选的主机IP列表，用于过滤特定实例。格式: ["ip1", "ip2"]
+
+    Returns:
+        proxy实例信息列表
+    """
     c_obj = Cluster.objects.get(immute_domain=immute_domain)
     proxy_instances = c_obj.proxyinstance_set.all()
+
+    # 如果指定了hosts参数，进行过滤
+    if hosts:
+        filtered_instances = []
+        for s in proxy_instances:
+            if s.machine.ip in hosts:
+                filtered_instances.append(s)
+
+        proxy_instances = filtered_instances
+
     return [
         {
-            "address": "{}:{}".format(s.machine.ip, s.port),
+            "address": f"{s.machine.ip}:{s.port}",
             "status": s.status,
             "version": s.version,
             "sub_zone": s.machine.bk_sub_zone,
