@@ -208,7 +208,7 @@
       render: ({ data }: { data: ResourceTagModel }) => (
         <BKPopConfirm
           onConfirm={() => handleDelete(data)}
-          ext-cls='content-wrapper'
+          ext-cls='tag-delelte-popconfirm-content-wrapper'
           title={t('确认删除该标签值？')}
           trigger='click'
           width={280}>
@@ -453,7 +453,7 @@
     }
   }
 
-  .content-wrapper {
+  .tag-delelte-popconfirm-content-wrapper {
     .bk-pop-confirm-title {
       font-size: 16px !important;
       color: #313238 !important;
