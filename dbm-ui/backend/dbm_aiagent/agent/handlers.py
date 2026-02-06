@@ -87,7 +87,8 @@ class AgentHandler:
         context = [{"__key": key, "__value": value, "context_type": "text"} for key, value in command_params.items()]
         command_data = {"command": command, "context": context}
         rendered_content = CommandProcessor.process_command(command_data)
-        # 创建会话内容
+        # 创建会话内容。特殊：为了统计工时，这里加上command名称
+        rendered_content = f"comment：{command}\n" + rendered_content
         content_property = {"extra": {"command": command, "rendered_content": rendered_content, "context": context}}
         content_params = {
             "session_code": session_code,
