@@ -69,20 +69,20 @@
         fixed="right"
         :label="t('操作')"
         :width="150">
-        <template #default="{data, index}: {data: RowData, index: number}">
+        <template #default="{data, rowIndex}: {data: RowData, rowIndex: number}">
           <BkButton
             class="mr-8"
-            :loading="state.downloadLoadings[index]"
+            :loading="state.downloadLoadings[rowIndex]"
             text
             theme="primary"
-            @click="handleDownloadFile(data, index)">
+            @click="handleDownloadFile(data, rowIndex)">
             {{ t('下载') }}
           </BkButton>
           <BkButton
-            :loading="state.fileLoadings[index]"
+            :loading="state.fileLoadings[rowIndex]"
             text
             theme="primary"
-            @click="handleCopy(data, index)">
+            @click="handleCopy(data, rowIndex)">
             {{ t('复制链接') }}
           </BkButton>
         </template>
@@ -96,7 +96,7 @@
   import { useI18n } from 'vue-i18n';
 
   import type { DetailClusters } from '@services/model/ticket/details/common';
-  import { batchDownloadDirs, createBkrepoAccessToken } from '@services/source/storage';
+  import { batchCreateBkrepoAccessToken, createBkrepoAccessToken } from '@services/source/storage';
 
   import { bytePretty, downloadUrl, execCopy, generateBkRepoDownloadUrl } from '@utils';
 
@@ -192,9 +192,9 @@
     }
     state.isBatchDownloading = true;
     const paths = state.selected.map((item) => item.path);
-    batchDownloadDirs({ file_path_list: paths })
-      .then((result) => {
-        const urls = Object.values(result);
+    batchCreateBkrepoAccessToken({ file_path_list: paths })
+      .then((tokenResultList) => {
+        const urls = tokenResultList.map((item) => generateBkRepoDownloadUrl(item));
         let index = 0;
         const downloadNext = () => {
           if (index < urls.length) {
