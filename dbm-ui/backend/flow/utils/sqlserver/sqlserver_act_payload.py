@@ -734,6 +734,8 @@ class SqlserverActPayload(PayloadHandler):
         self,
         bk_biz_id: int,
         bk_cloud_id: int,
+        cluster_domain: str,
+        instance_role: str,
         exec_ports: List[int],
         sql_file_path: str,
         execute_objects: dict,
@@ -756,6 +758,8 @@ class SqlserverActPayload(PayloadHandler):
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "ports": exec_ports,
+                    "cluster_domain": cluster_domain,
+                    "instance_role": instance_role,
                     "file_path": sql_file_path,
                     "execute_objects": execute_objects,
                     "zip_file_name": zip_file_name,

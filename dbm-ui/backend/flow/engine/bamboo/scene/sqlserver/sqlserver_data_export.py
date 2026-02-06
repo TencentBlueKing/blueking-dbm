@@ -107,6 +107,8 @@ class SqlserverDataExportFlow(SqlserverSQLExecuteFlow):
                         component_kwargs={
                             "bk_biz_id": cluster.bk_biz_id,
                             "bk_cloud_id": cluster.bk_cloud_id,
+                            "cluster_domain": cluster.immute_domain,
+                            "instance_role": self.data["select_role"],
                             "exec_ports": [master_instance.port],
                             "sql_file_path": self.sql_target_path,
                             "execute_objects": self.data["execute_objects"],
