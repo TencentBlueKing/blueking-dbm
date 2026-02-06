@@ -134,6 +134,7 @@ class CloudNginxDetail(CloudServiceDetail):
     dbm_port: int = 80  # dbm端口
     manage_port: int = 8080  # 管理端服务端口
     bk_outer_ip: str = None  # nginx外网地址
+    nginx_version: Optional[str] = None  # nginx版本
 
 
 @dataclass()
@@ -169,6 +170,7 @@ class CloudDBHADetail(CloudServiceDetail):
     bk_city_code: int = None  # 部署机器的城市代码
     bk_city_name: str = ""  # 部署机器的城市信息
     dbha_type: str = ""  # gm/agent
+    ssh_port: Optional[int] = None  # ssh端口
 
 
 @dataclass()
