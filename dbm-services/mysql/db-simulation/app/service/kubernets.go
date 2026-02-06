@@ -962,16 +962,15 @@ func (k *DbPodSets) getLoadSchemaSQLCmd(bkpath, file string) (cmd string) {
 	return strings.Join(commands, " && ")
 }
 
-// getLoadSQLCmd get load sql cmd
-func (k *DbPodSets) getLoadSQLCmd(bkpath, file string, dbs []string) (cmd []string) {
-	cmd = append(cmd, k.getDownloadSqlCmd(bkpath, file))
-	for _, db := range dbs {
-		cmd = append(cmd, fmt.Sprintf("sed -i 's/[[:space:]]DEFINER=`[^`]*`@`[^`]*`//g' %s", file))
-		cmd = append(cmd, fmt.Sprintf("sed -i \"s/[[:space:]]DEFINER='[^']*'@'[^']*'//g\" %s", file))
-		cmd = append(cmd, fmt.Sprintf("mysql --defaults-file=/etc/my.cnf -uroot -p%s --default-character-set=%s -vvv %s < %s",
-			k.BaseInfo.RootPwd, k.BaseInfo.Charset, db, file))
+// getExecuteSQLCmds 获取针对单个数据库的 SQL 执行命令列表
+// 包括清理 DEFINER 和执行 SQL 的命令
+func (k *DbPodSets) getExecuteSQLCmds(file, db string) []string {
+	return []string{
+		fmt.Sprintf("sed -i 's/[[:space:]]DEFINER=`[^`]*`@`[^`]*`//g' %s", file),
+		fmt.Sprintf("sed -i \"s/[[:space:]]DEFINER='[^']*'@'[^']*'//g\" %s", file),
+		fmt.Sprintf("mysql --defaults-file=/etc/my.cnf -uroot -p%s --default-character-set=%s -vvv %s < %s",
+			k.BaseInfo.RootPwd, k.BaseInfo.Charset, db, file),
 	}
-	return cmd
 }
 
 func (k *DbPodSets) getDownloadSqlCmd(bkpath, file string) string {
