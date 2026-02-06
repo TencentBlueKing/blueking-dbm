@@ -22,6 +22,8 @@ export DBHA_USER=$(echo $data | jq -r '.data.dbha_account.user')
 export DBHA_PASSWORD=$(echo $data | jq -r '.data.dbha_account.password')
 export DBHA_PROXY_PASSWORD=$(echo $data | jq -r '.data.proxy_password')
 export MYSQL_OS_PASSWORD=$(echo $data | jq -r '.data.mysql_os_password')
+# DBHA ssh端口：优先环境变量，否则默认36000
+export DBHA_SSH_PORT=${DBHA_SSH_PORT:-36000}
 # 导出监控环境变量
 export BKMONITOR_EVENT_DATA_ID=$(echo $data | jq -r '.data.bkm_dbm_report.event.data_id')
 export BKMONITOR_EVENT_TOKEN=$(echo $data | jq -r '.data.bkm_dbm_report.event.token')

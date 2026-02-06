@@ -134,6 +134,7 @@ class CloudBaseServiceFlow(object):
         get_file_func: str,
         script_template: str,
         get_script_payload: str,
+        get_file_params: Dict[Union[str, int], Any] = None,
         extra_params: Dict[Union[str, int], Any] = None,
     ) -> Union[Builder, SubBuilder]:
         """
@@ -146,15 +147,17 @@ class CloudBaseServiceFlow(object):
         @param get_file_func: 获取二进制/压缩包文件函数名
         @param script_template: 部署的脚本模板
         @param get_script_payload: 脚本渲染函数名称
+        @param get_file_params: 获取文件列表的额外参数，默认为空
         @param extra_params: 额外参数，填充到act的kwagrs中，默认为空
         """
 
+        get_file_params = get_file_params or {}
         extra_params = extra_params or {}
 
         # 下发服务二进制文件/压缩包
         act_kwargs = CloudServiceActKwargs(
             bk_cloud_id=bk_cloud_id,
-            file_list=getattr(GetFileList, get_file_func)(),
+            file_list=getattr(GetFileList, get_file_func)(**get_file_params),
             exec_ip=host_info,
             ticket_data=self.data,
         )
@@ -237,6 +240,7 @@ class CloudBaseServiceFlow(object):
 
     def deploy_nginx_service_pipeline(self, nginx_host_info: Dict, pipeline: Union[Builder, SubBuilder]):
         """nginx的部署流程抽象"""
+        nginx_version = nginx_host_info.get("nginx_version")
         pipeline = self.deploy_service_flow(
             pipeline=pipeline,
             bk_cloud_id=self.data["bk_cloud_id"],
@@ -245,6 +249,7 @@ class CloudBaseServiceFlow(object):
             get_file_func=GetFileList.nginx_apply.__name__,
             script_template=start_nginx_template,
             get_script_payload=CloudServiceActPayload.get_nginx_apply_payload.__name__,
+            get_file_params={"version": nginx_version} if nginx_version else {},
         )
         return pipeline
 

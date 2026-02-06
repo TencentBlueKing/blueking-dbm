@@ -132,6 +132,7 @@ class CloudServiceActPayload(object):
                 {"username": SqlserverUserName.MSSQL.value, "component": SqlserverComponent.SQLSERVER.value},
             ]
         )
+        ssh_port = self.kwargs["exec_ip"].get("ssh_port") or env.DBHA_SSH_PORT
         return {
             "db_cloud_token": db_cloud_token,
             "cloud": self.cloud_id,
@@ -150,6 +151,7 @@ class CloudServiceActPayload(object):
             "sqlserver_os_user": SqlserverUserName.MSSQL.value,
             "sqlserver_os_password": dbha_password_map[SqlserverUserName.MSSQL][SqlserverComponent.SQLSERVER],
             "local_ip": self.kwargs["exec_ip"]["ip"],
+            "ssh_port": ssh_port,
         }
 
     def get_dbha_apply_payload(self):

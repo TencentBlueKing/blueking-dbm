@@ -522,11 +522,9 @@ class GetFileList(object):
         ]
 
     @classmethod
-    def nginx_apply(cls) -> list:
+    def nginx_apply(cls, version: str = MediumEnum.Latest) -> list:
         # 部署云区域nginx服务的文件列表
-        nginx_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.CloudNginx, db_type=DBType.Cloud
-        )
+        nginx_pkg = Package.get_latest_package(version=version, pkg_type=MediumEnum.CloudNginx, db_type=DBType.Cloud)
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{nginx_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{CLOUD_SSL_PATH}/{SSLEnum.SERVER_CRT}",
