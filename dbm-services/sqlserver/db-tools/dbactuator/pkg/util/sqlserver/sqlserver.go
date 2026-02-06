@@ -235,10 +235,19 @@ func (h *DbWorker) ExportToCSVWithSelect(query string) (string, error) {
 	return h.ExportToCSVFile(results, options)
 }
 
-// ShowDatabases 执行show database 获取所有的dbName
+// ShowDatabases 执行show database 获取所有的dbName, 不包括系统数据库、异常的库、以及快照库
 // 正常情况值遍历可读写以及状态为running 的 业务数据库列表
 func (h *DbWorker) ShowDatabases() (databases []string, err error) {
 	cmd := "select name from sys.databases where is_read_only=0 and state=0 " +
+		"and name not in ('msdb', 'master', 'model', 'tempdb', 'Monitor');"
+	err = h.Queryx(&databases, cmd)
+	return
+}
+
+// ShowDatabases 执行show database 获取所有的dbName, 不包括系统数据库、异常的库
+// 正常情况值遍历可读写以及状态为running 的 业务数据库列表
+func (h *DbWorker) ShowDatabasesIncludeSnapshots() (databases []string, err error) {
+	cmd := "select name from sys.databases where state=0 " +
 		"and name not in ('msdb', 'master', 'model', 'tempdb', 'Monitor');"
 	err = h.Queryx(&databases, cmd)
 	return
@@ -282,6 +291,20 @@ func (h *DbWorker) GetFullBackupPath() (getpath sql.NullString, err error) {
 func (h *DbWorker) GetLogBackupPath() (getpath sql.NullString, err error) {
 	cmd := "select [LOG_BACKUP_PATH] from [Monitor].[dbo].[APP_SETTING]"
 	err = h.Queryxs(&getpath, cmd)
+	return
+}
+
+// GetClusterDomain 获取实例所在的集群域名
+func (h *DbWorker) GetClusterDomain() (cluster_domain sql.NullString, err error) {
+	cmd := "select [CLUSTER_DOMAIN] from [Monitor].[dbo].[APP_SETTING]"
+	err = h.Queryxs(&cluster_domain, cmd)
+	return
+}
+
+// GetInstanceRole 获取实例在DBM的角色信息
+func (h *DbWorker) GetInstanceRole() (role sql.NullString, err error) {
+	cmd := "select [ROLE] from [Monitor].[dbo].[APP_SETTING]"
+	err = h.Queryxs(&role, cmd)
 	return
 }
 
@@ -650,7 +673,16 @@ func ExecLocalSQLFile(sqlVersion string, dbName string, charsetNO int, filenames
 }
 
 // ExecLocalSQLFileForDataExport 执行本地sql脚本，导出数据
-func ExecLocalSQLFileForDataExport(sqlVersion string, dbName string, filenames []string, port int, userName string, pwd string) ([]string, error) {
+func ExecLocalSQLFileForDataExport(
+	cluster_domain string,
+	sqlVersion string,
+	dbName string,
+	filenames []string,
+	port int,
+	userName string,
+	pwd string,
+) ([]string, error) {
+
 	var cmdSql string
 	var outPutFiles []string
 	cmdSql, err := GetCmdSql(sqlVersion)
@@ -660,7 +692,7 @@ func ExecLocalSQLFileForDataExport(sqlVersion string, dbName string, filenames [
 	for _, filename := range filenames {
 		var ret string
 		var err error
-		outPutFile := strings.Replace(filename, ".sql", fmt.Sprintf("_%d_%s.csv", port, dbName), -1)
+		outPutFile := strings.Replace(filename, ".sql", fmt.Sprintf("_%s_%d_%s.csv", cluster_domain, port, dbName), -1)
 		outPutFiles = append(outPutFiles, outPutFile)
 		cmd := fmt.Sprintf(
 			"& '%s' -S '127.0.0.1,%d' -C -I -d %s -f %d -b -i %s -U '%s' -P '%s' -s ',' -W | Out-File -FilePath '%s' -Encoding UTF8",
