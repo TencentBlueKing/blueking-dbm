@@ -153,7 +153,7 @@
       col-key="id"
       fixed="right"
       :title="t('操作')"
-      :width="100">
+      :width="150">
       <template #default="{ row }">
         <BkButton
           size="small"
@@ -162,6 +162,7 @@
           @click="() => handleEditDbVersion(row)">
           {{ t('编辑') }}
         </BkButton>
+        <DownloadPackage :data="row" />
         <DeleteVersion
           :data="row"
           @success="handleDeleteVersionSuccess" />
@@ -194,6 +195,7 @@
   import CollapseCard from '@/components/collapse-card/Index.vue';
 
   import DeleteVersion from './components/DeleteVersion.vue';
+  import DownloadPackage from './components/DownloadPackage.vue';
   import EnableConfig from './components/EnableConfig.vue';
   import OperationHeader from './components/OperationHeader.vue';
   import RecommendConfig from './components/RecommendConfig.vue';

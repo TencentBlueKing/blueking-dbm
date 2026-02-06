@@ -5195,5 +5195,7 @@
   "请输入6位点分数字，如 1.2.1.0.0.1": "Please enter 6-digit numbers, such as 1.2.1.0.0.1",
   "请输入3位点分数字，如 1.2.1": "Please enter 3-digit numbers, such as 1.2.1",
   "请选择所属系列": "Please select the series",
+  "请勾选需要下载的文件": "Please select the files to download",
+  "下载文件": "Download file",
   "这行勿动！新增翻译请在上一行添加！": ""
 }
