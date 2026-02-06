@@ -77,7 +77,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         permission_classes=[McpClusterManagePermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.MYSQL_QUERY],
+        mcp=[DBMMcpTools.MYSQL_QUERY, DBMMcpTools.MYSQL_SLOWLOG],
         name_prefix="mysql_query",
     )
     def show_create_table(self, request, *args, **kwargs):
@@ -103,7 +103,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         permission_classes=[McpClusterManagePermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.MYSQL_QUERY],
+        mcp=[DBMMcpTools.MYSQL_QUERY, DBMMcpTools.MYSQL_SLOWLOG],
         name_prefix="mysql_query",
     )
     def explain_sql(self, request, *args, **kwargs):
@@ -184,7 +184,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         return Response(summary)
 
     @mcp_tools_api_decorator(
-        description=str(_("""查询 MySQL 常见运行时参数""")),
+        description=str(_("""查询 MySQL 常见运行时参数, 执行 show global variables""")),
         request_slz=ShowMySQLVariablesInputSerializer,
         response_slz=ShowMySQLVariablesOutputSerializer,
         tags=[DBMMCPTags.READ],
@@ -210,7 +210,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         )
 
     @mcp_tools_api_decorator(
-        description=str(_("""查询实例常见运行时状态""")),
+        description=str(_("""查询实例常见运行时状态, 执行 show global status""")),
         request_slz=ShowInstanceStatusesInputSerializer,
         response_slz=ShowInstanceStatuesOutputSerializer,
         tags=[DBMMCPTags.READ],
@@ -236,7 +236,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         )
 
     @mcp_tools_api_decorator(
-        description=str(_("""查询实例同步状态状态""")),
+        description=str(_("""查询实例主从同步状态, 执行 show slave status""")),
         request_slz=ShowInstanceSlaveStatusInputSerializer,
         response_slz=ShowInstanceStatuesOutputSerializer,
         tags=[DBMMCPTags.READ],

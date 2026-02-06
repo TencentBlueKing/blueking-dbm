@@ -122,6 +122,7 @@ func QueryKafkaMetaWithBkDataId(sinker *Sinker, bkdata *config.BkmApiInfo) error
 	sinker.RuntimeConfig.Topic = res.Data.MqConfig.StorageConfig.Topic
 
 	slog.Info("get meta info",
+		slog.Any("table", sinker.RuntimeConfig.ModelTable),
 		slog.Any("bk_data_id", sinker.RuntimeConfig.BkDataId),
 		slog.Any("topic", sinker.RuntimeConfig.Topic),
 		slog.Any("meta", sinker.MetaInfo))

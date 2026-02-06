@@ -12,14 +12,17 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
+	"strings"
 	"time"
 
 	sb "github.com/huandu/go-sqlbuilder"
 	"github.com/pkg/errors"
+	"github.com/spf13/cast"
 	"gorm.io/gorm"
 
 	"dbm-services/common/db-event-consumer/pkg/base"
 	"dbm-services/common/db-event-consumer/pkg/sinker"
+	"dbm-services/common/go-pubpkg/cmutil"
 )
 
 type MysqlTableSize struct {
@@ -52,25 +55,46 @@ func (m *MysqlTableSize) TableName() string {
 
 func (m *MysqlTableSize) MigrateSchema(w base.DSWriter) error {
 	slog.Info("run migrate for MysqlTableSize", slog.String("table", m.TableName()))
-	if w.Type() == "doris" || w.Type() == "mysql" {
-		dbWriter, ok := w.(base.GormMigrator)
-		if !ok {
-			return errors.Errorf("writer_type=%s has no gorm db for custom migrate: %s", w.Type(), m.TableName())
-		}
-		db := dbWriter.GormDB()
+	dbWriter, ok := w.(base.GormMigrator)
+	if !ok {
+		return errors.Errorf("writer_type=%s has no gorm db for custom migrate: %s", w.Type(), m.TableName())
+	}
+	db := dbWriter.GormDB()
+	if w.Type() == "mysql" || w.Type() == "mysql_raw" {
 		createTableSql := ""
-		if w.Type() == "doris" {
-			createTableSql = CREATE_TABLE_SQL_DORIS
-		} else {
-			createTableSql = CREATE_TABLE_SQL_MYSQL
+		timeNow := time.Now()
+
+		// 第一次 migrate 创建表的时候，同时创建未来 7 天的分区
+		partitionsPreCreated := []string{}
+		for i := -7; i < 7; i++ {
+			days := cmutil.TimeToDays(timeNow.AddDate(0, 0, i))
+			dateint := cast.ToInt(timeNow.AddDate(0, 0, i).Format("20060102"))
+			partitionsPreCreated = append(partitionsPreCreated,
+				fmt.Sprintf("PARTITION p%d VALUES LESS THAN (%d) ENGINE = InnoDB", dateint, days+1))
 		}
+		//partitionInfo = append(partitionInfo, "PARTITION pmax VALUES LESS THAN (MAXVALUE) ENGINE = InnoDB")
+		partitionInfo := []string{
+			"/*!50100 PARTITION BY RANGE (to_days(`dteventtimehour`))",
+			"(",
+			strings.Join(partitionsPreCreated, ",\n"),
+			")",
+			"*/",
+		}
+		createTableSql = CREATE_TABLE_SQL_MYSQL + strings.Join(partitionInfo, "\n")
 		if err := db.Exec(fmt.Sprintf(createTableSql, m.TableName())).Error; err != nil {
 			slog.Error("create table failed", slog.Any("err", err), slog.String("sql", createTableSql))
 			return err
 		}
 		return nil
+	} else if w.Type() == "doris" {
+		if err := db.Exec(fmt.Sprintf(CREATE_TABLE_SQL_DORIS, m.TableName())).Error; err != nil {
+			slog.Error("create table failed", slog.Any("err", err), slog.String("sql", CREATE_TABLE_SQL_DORIS))
+			return err
+		}
+		return nil
+	} else {
+		return w.AutoMigrate(m)
 	}
-	return w.AutoMigrate(m)
 }
 
 func (m *MysqlTableSize) StrictSchema() bool {
@@ -78,12 +102,12 @@ func (m *MysqlTableSize) StrictSchema() bool {
 }
 
 func (m *MysqlTableSize) Create(objs interface{}, w base.DSWriter) error {
-	if w.Type() == "doris" {
-		if writer, ok := w.(*sinker.DorisWriter); ok {
-			return m.dorisCreate(objs, writer.GormDB())
-		}
-		return errors.Errorf("not implement custom writer: %s", w.Type())
+	if writer, ok := w.(*sinker.DorisWriter); ok {
+		return m.dorisCreate(objs, writer.GormDB())
+	} else if writer, ok := w.(*sinker.MysqlWriter); ok {
+		return m.dorisCreate(objs, writer.GormDB())
 	} else {
+		//return errors.Errorf("not implement custom writer: %s", w.Type())
 		// mysql writer?
 		newObj := objs.([]MysqlTableSize)
 		return w.WriteBatch(m, newObj)
@@ -121,7 +145,7 @@ func (m *MysqlTableSize) dorisCreate(i interface{}, db *gorm.DB) error {
 		kafkaObj.TheDate, _ = strconv.Atoi(kafkaObj.ReportTime.Format("20060102"))
 		kafkaObj.DtEventTimeStamp = kafkaObj.ReportTime.UnixMilli()
 		kafkaObj.DtEventTimeHour = kafkaObj.ReportTime.Format("2006-01-02 15")
-		slog.Debug("unmarshal task obj", slog.Any("obj", kafkaObj))
+		// slog.Debug("unmarshal task obj", slog.Any("obj", kafkaObj))
 		builder.Values(
 			kafkaObj.TheDate, kafkaObj.DtEventTimeStamp, kafkaObj.DtEventTimeHour,
 			kafkaObj.ReportTime,

@@ -15,7 +15,6 @@ from django.utils import timezone
 
 from backend import env
 from backend.components import BKLogApi
-from backend.db_meta.enums import ClusterType
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
 from backend.utils.time import datetime2str, timezone2timestamp
 
@@ -32,15 +31,14 @@ SLOW_LOG_QUERY_PARAM = {
         {
             "method": "max",
             "dimensions": [
-                "__ext.cluster_domain",
-                "__ext.instance_role",
-                "user",
-                "db_name",
-                "slow_query.db_name",
-                "slow_query.table_name",
                 "slow_query.query_digest_md5",
-                "slow_query.query_digest_text"
-                # sql_text
+                # "__ext.cluster_domain",
+                # "__ext.instance_role",
+                # "user",
+                # "db_name",
+                # "slow_query.db_name",
+                # "slow_query.table_name",
+                # "slow_query.query_digest_text"
             ],
         }
     ],
@@ -51,7 +49,6 @@ SLOW_LOG_QUERY_PARAM = {
 
 
 def query_slow_logs_by_metric(
-    cluster_type: ClusterType,
     cluster_domain: str,
     instance_role: str,
     start_time: timezone.datetime,
@@ -97,7 +94,7 @@ def query_slow_logs_by_metric(
     if not query_param["field_name"]:
         raise DBMMcpBaseException(msg="metric_name is not supported")
 
-    query_result = query_slow_logs(cluster_type, cluster_domain, query_param, start_time, end_time)
+    query_result = query_slow_logs(cluster_domain, query_param, start_time, end_time)
     query_result["metric_aggregate_type"] = "%s by %s" % (
         query_param["function"][0]["method"],
         query_param["field_name"],
@@ -106,7 +103,6 @@ def query_slow_logs_by_metric(
 
 
 def query_slow_logs(
-    cluster_type: ClusterType,
     cluster_domain: str,
     metric_param: Dict,
     start_time: timezone.datetime,
@@ -148,9 +144,15 @@ def query_slow_logs(
                         item[log_label] = value
                     continue
                 item[log_label] = value
-            # item[metric_param["field_name"]] = row["values"][-1]
             item["values"] = row["values"][-1]  # row["values"]
+            item[metric_param["field_name"]] = row["values"][-1]
+
+            # query one sample detail
+            item["sample"] = query_slow_log_detail(
+                item.get("cluster_domain"), item.get("query_digest_md5"), start_time, end_time
+            )
             slog_logs.append(item)
+
     except Exception as e:
         raise DBMMcpBaseException(msg=f"query slow logs failed: {e}")
 

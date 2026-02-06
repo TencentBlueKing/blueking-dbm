@@ -237,6 +237,15 @@ mysql_popular_runtime_variables = [
 mysql_popular_runtime_status = [
     "Uptime",
     "Open_tables",
+    "Aborted_clients",
+    "Aborted_connects",
+    "Queries",
+    "Questions",
+    "Slow_queries",
+    "Table_open_cache_misses",
+    "Table_open_cache_hits",
+    "Threads_connected",
+    "Threads_running",
 ]
 
 mysql_slave_status_masks = [

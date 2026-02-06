@@ -42,7 +42,7 @@ func NewMysqlRawWriter(dsn *InstanceDsn) (*MysqlRawWriter, error) {
 }
 
 type MysqlRawWriter struct {
-	dbGorm      *gorm.DB
+	dbGorm      *gorm.DB // for migrate
 	db          gdb.DB
 	session     *gdb.Model
 	dbWithModel bool

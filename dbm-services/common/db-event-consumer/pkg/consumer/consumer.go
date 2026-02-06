@@ -95,6 +95,10 @@ func (s *AnySinker) ConsumeClaim(session sarama.ConsumerGroupSession, claim sara
 				msgs = msgs[:0]
 			}
 		case message := <-claim.Messages():
+			if message == nil {
+				// channel 已关闭，应该退出或跳过
+				continue
+			}
 			msgs = append(msgs, message)
 			if len(msgs) >= BatchSize {
 				if err := s.HandleMessageTryBatch(msgs, s.Sinker); err != nil {
@@ -242,7 +246,7 @@ func (s *AnySinker) HandleMessagesBklog(msgs []*sarama.ConsumerMessage, sk *Sink
 	}
 	var objs []base.ModelSinker
 	for _, message := range msgs {
-		slog.Debug("process message", slog.String("Value", string(message.Value)))
+		// slog.Debug("process message", slog.String("Value", string(message.Value)))
 		var msg messageWrapper
 		err := json.Unmarshal(message.Value, &msg)
 		if err != nil {
