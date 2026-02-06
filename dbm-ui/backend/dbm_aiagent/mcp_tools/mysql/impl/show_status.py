@@ -62,7 +62,7 @@ def __show_proxy_status(bk_cloud_id: int, address: str) -> Dict:
 
 
 def __mysql_show_status(bk_cloud_id: int, address: str) -> List:
-    raw_drs_res = DRSApi.rpc({"addresses": [address], "cmds": ["SHOW STATUS"], "bk_cloud_id": bk_cloud_id})
+    raw_drs_res = DRSApi.rpc({"addresses": [address], "cmds": ["SHOW GLOBAL STATUS"], "bk_cloud_id": bk_cloud_id})
 
     address_res = raw_drs_res[0]
     if address_res["error_msg"]:
