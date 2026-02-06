@@ -64,3 +64,16 @@ Create the name of the service account to use
 {{- define "qdrant.version" }}
 {{- trimPrefix "qdrant-" .Values.addonVersion }}
 {{- end }}
+
+{{/*
+Get QDRANT__SERVICE__API_KEY from componentList env
+*/}}
+{{- define "qdrant.apiKey" -}}
+{{- range .Values.componentList }}
+  {{- if .env }}
+    {{- if hasKey .env "QDRANT__SERVICE__API_KEY" }}
+      {{- .env.QDRANT__SERVICE__API_KEY }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+{{- end }}
