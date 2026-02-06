@@ -91,7 +91,7 @@ func ProcessAnalysisTaskFromJSON(billID string, applyParamsJSON json.RawMessage)
 	}
 
 	// 3. 调用智能体分析
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), LLMAnalysisTimeout)
 	defer cancel()
 
 	analyzer := GetAnalyzer()
