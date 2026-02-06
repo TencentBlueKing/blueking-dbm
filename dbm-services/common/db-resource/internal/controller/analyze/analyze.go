@@ -13,7 +13,6 @@ package analyze
 
 import (
 	"context"
-	"time"
 
 	"dbm-services/common/db-resource/internal/controller"
 	"dbm-services/common/db-resource/internal/model"
@@ -70,7 +69,7 @@ func (c *AnalyzeHandler) AnalyzeResource(r *gin.Context) {
 	}
 
 	// 执行分析
-	ctx, cancel := context.WithTimeout(r.Request.Context(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(r.Request.Context(), agent.LLMAnalysisTimeout)
 	defer cancel()
 
 	result, err := analyzer.Analyze(ctx, param.ApplyParams)

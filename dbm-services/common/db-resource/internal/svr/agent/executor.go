@@ -45,7 +45,7 @@ func NewAgentExecutor(provider LLMProvider, tools *ResourceTools, cfg AgentConfi
 
 	timeout := time.Duration(cfg.TimeoutSeconds) * time.Second
 	if timeout <= 0 {
-		timeout = 360 * time.Second
+		timeout = LLMAnalysisTimeout
 	}
 
 	return &AgentExecutor{
@@ -78,6 +78,11 @@ type ToolCallLog struct {
 // Execute 执行 Agent
 func (e *AgentExecutor) Execute(ctx context.Context, systemPrompt, userMessage string) (*ExecutionResult, error) {
 	startTime := time.Now()
+
+	// #region agent log - 假设 B: 记录 Agent Executor 超时配置
+	logger.Info("[DEBUG-B] Agent Execute started - timeout: %.2fs, maxIterations: %d",
+		e.timeout.Seconds(), e.maxIterations)
+	// #endregion
 
 	// 设置超时
 	ctx, cancel := context.WithTimeout(ctx, e.timeout)
@@ -112,6 +117,13 @@ func (e *AgentExecutor) Execute(ctx context.Context, systemPrompt, userMessage s
 		logger.Info("[Agent] Iteration %d/%d, messages count: %d",
 			iteration, e.maxIterations, len(messages))
 
+		// #region agent log - 假设 B/E: 记录每次迭代的剩余超时时间
+		deadline, _ := ctx.Deadline()
+		remainingTimeout := time.Until(deadline)
+		logger.Info("[DEBUG-B/E] Before Chat call - iteration: %d, remainingTimeout: %.2fs, elapsedTotal: %.2fs",
+			iteration, remainingTimeout.Seconds(), time.Since(startTime).Seconds())
+		// #endregion
+
 		// 调用 LLM
 		chatReq := &ChatRequest{
 			Messages: messages,
@@ -120,6 +132,10 @@ func (e *AgentExecutor) Execute(ctx context.Context, systemPrompt, userMessage s
 
 		resp, err := e.provider.Chat(ctx, chatReq)
 		if err != nil {
+			// #region agent log - 假设 E: 记录失败时的详细信息
+			logger.Error("[DEBUG-E] Chat failed - iteration: %d, error: %v, elapsedTotal: %.2fs",
+				iteration, err, time.Since(startTime).Seconds())
+			// #endregion
 			result.Error = fmt.Sprintf("LLM chat failed: %v", err)
 			result.Duration = time.Since(startTime)
 			return result, err
