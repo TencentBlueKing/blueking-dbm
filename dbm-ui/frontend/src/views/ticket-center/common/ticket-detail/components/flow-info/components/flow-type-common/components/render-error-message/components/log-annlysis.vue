@@ -131,6 +131,7 @@
     ol > li {
       line-height: 1.8;
       white-space: normal;
+      list-style: decimal;
     }
 
     ul > li {

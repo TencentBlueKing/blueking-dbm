@@ -70,12 +70,12 @@
 
   const isShow = computed(() => {
     return [
-      FlowMode.TYPE_RESOURCE_APPLY,
-      FlowMode.TYPE_INNER_FLOW,
       FlowMode.TYPE_HOST_RECYCLE,
       FlowMode.TYPE_INNER_FLOW,
+      FlowMode.TYPE_INNER_FLOW,
+      FlowMode.TYPE_RESOURCE_APPLY,
       FlowMode.TYPE_RESOURCE_HCM_REPLENISH,
-    ];
+    ].includes(props.data.flow_type);
   });
 
   const renderContent = computed(() => {
