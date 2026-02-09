@@ -8,17 +8,22 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
 import logging
+import os
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Union
 
 from celery import shared_task
 from celery.result import AsyncResult
+from django.core.cache import cache
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from backend.bk_dataview.grafana.constants import DASHBOARD_APP_ID, DASHBOARD_JSON_PATH
+from backend.components import BKMonitorV3Api
 from backend.components.bklog.handler import BKLogHandler
 from backend.configuration.constants import PLAT_BIZ_ID, DBType, SystemSettingsEnum
 from backend.configuration.models import BizSettings, DBAdministrator, SystemSettings
@@ -29,6 +34,7 @@ from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_services.cmdb.biz import get_resource_biz
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.dbresource.serializers import ResourceHcmReplenishSerializer
+from backend.exceptions import ApiResultError
 from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.builders.common.constants import MYSQL_CHECKSUM_TABLE, MySQLDataRepairTriggerMode
 from backend.ticket.constants import (
@@ -433,3 +439,48 @@ def create_cluster_todo(ticket_id, cluster_phase):
             else:
                 action = TodoActionType.DESTROY
             todo.set_success(ticket.creator, action)
+
+
+@shared_task
+def create_monitor_grafana(bk_biz_id, cluster_type):
+
+    # 如果是个列表类型，则表示未获取到准确的集群类型，跳过此次导入
+    if isinstance(cluster_type, list):
+        logger.error(_("grafana import error, cluster_type is list type"))
+        return
+
+    json_file_list = os.listdir(DASHBOARD_JSON_PATH)
+    target_files = {}
+
+    for file_name in json_file_list:
+        # 先从缓存读取， 如果没有数据则读文件
+        data = cache.get(file_name)
+        if not data:
+            with open(os.path.join(DASHBOARD_JSON_PATH, file_name), "r", encoding="utf-8") as f:
+                data = json.load(f)
+                # 存入缓存，时效7天
+                cache.set(file_name, data, 60 * 60 * 24 * 7)
+
+        tags = data.get("tags", [])
+        if cluster_type in tags:
+            target_files[file_name] = data
+
+    db_type = ClusterType.cluster_type_to_db_type(cluster_type).upper()
+    for target_file in target_files:
+        configs = {}
+        yaml_name = target_file.replace(".json", ".yaml")
+        configs[_("grafana/DBM内置仪表盘-{}/{}").format(db_type, yaml_name)] = json.dumps(target_files[target_file])
+
+        if not configs:
+            logger.info(_("没有匹配到对应的yaml数据"))
+            continue
+
+        try:
+            res = BKMonitorV3Api.as_code_import_config(
+                {"app": DASHBOARD_APP_ID, "bk_biz_id": bk_biz_id, "overwrite": True, "configs": configs},
+                use_admin=True,
+            )
+            logger.info(res)
+
+        except ApiResultError as e:
+            logger.error(_("grafana import error, file name is {}, {}").format(yaml_name, e))

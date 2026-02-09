@@ -14,6 +14,7 @@ from typing import Any, Optional
 from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import DBType
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.exceptions import ClusterExclusiveOperateException
 from backend.flow.consts import StateType
 from backend.ticket.exceptions import TicketBaseException
@@ -940,3 +941,30 @@ SPECIAL_APPROVE_TICKETS = [
     TicketType.MYSQL_DUMP_DATA,
     TicketType.TENDBCLUSTER_DUMP_DATA,
 ]
+
+# 部署类单据，用于部署集群完成之后创建仪表盘
+CLUSTER_APPLY_TICKET_TO_CLUSTER_TYPE = {
+    TicketType.DORIS_APPLY: ClusterType.Doris,
+    TicketType.ES_APPLY: ClusterType.Es,
+    TicketType.HDFS_APPLY: ClusterType.Hdfs,
+    TicketType.INFLUXDB_APPLY: ClusterType.Influxdb,
+    TicketType.KAFKA_APPLY: ClusterType.Kafka,
+    TicketType.MONGODB_REPLICASET_APPLY: ClusterType.MongoReplicaSet,
+    TicketType.MONGODB_SHARD_APPLY: ClusterType.MongoShardedCluster,
+    TicketType.MYSQL_HA_APPLY: ClusterType.TenDBHA,
+    TicketType.MYSQL_HA_APPLY_QUICK_MINOR_PASS: ClusterType.TenDBHA,
+    TicketType.MYSQL_SINGLE_APPLY: ClusterType.TenDBSingle,
+    TicketType.PULSAR_APPLY: ClusterType.Pulsar,
+    TicketType.REDIS_CLUSTER_APPLY: [
+        ClusterType.TendisPredixyRedisCluster,
+        ClusterType.TendisPredixyTendisplusCluster,
+        ClusterType.TendisTwemproxyRedisInstance,
+        ClusterType.TwemproxyTendisSSDInstance,
+    ],
+    TicketType.REDIS_INS_APPLY: ClusterType.TendisRedisInstance,
+    TicketType.RIAK_CLUSTER_APPLY: ClusterType.Riak,
+    TicketType.SQLSERVER_HA_APPLY: ClusterType.SqlserverHA,
+    TicketType.SQLSERVER_SINGLE_APPLY: ClusterType.SqlserverSingle,
+    TicketType.TBINLOGDUMPER_INSTALL: ClusterType.TBinlogDumper,
+    TicketType.TENDBCLUSTER_APPLY: ClusterType.TenDBCluster,
+}
