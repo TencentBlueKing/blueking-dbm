@@ -91,10 +91,32 @@ export function importResource(params: {
   }>(`${path}/import/`, params);
 }
 
+interface ResouceListParams {
+  agent_status?: string;
+  bk_cloud_ids?: string;
+  city?: string;
+  cpu?: string;
+  device_class?: string;
+  disk?: string;
+  disk_type?: string;
+  for_biz?: number;
+  hosts?: string;
+  label_names?: string;
+  limit?: number;
+  mem?: string;
+  mount_point?: string;
+  offset?: number;
+  os_names?: string;
+  os_type?: string;
+  resource_type?: string;
+  spec_id?: string;
+  subzone_ids?: string;
+}
+
 /**
  * 资源池列表
  */
-export function fetchList(params: Record<string, any>, payload = {} as IRequestPayload) {
+export function fetchList(params: ResouceListParams, payload = {} as IRequestPayload) {
   return http.post<ListBase<DbResourceModel[]>>(`${path}/list/`, params, payload).then((data) => ({
     ...data,
     results: data.results.map(
@@ -106,6 +128,13 @@ export function fetchList(params: Record<string, any>, payload = {} as IRequestP
         ),
     ),
   }));
+}
+
+/**
+ * 资源池导出
+ */
+export function resourceExport(params: ResouceListParams) {
+  return http.post<string>(`${path}/resource_export/`, params, { responseType: 'blob' });
 }
 
 /**
@@ -225,6 +254,18 @@ export function updateResource(params: {
  */
 export function getOsTypeList(params: { limit?: number; offset?: number }) {
   return http.get<string[]>(`${path}/get_os_types/`, params);
+}
+
+/**
+ * 获取操作系统名称
+ */
+export function getResourceOsName() {
+  return http.post<{
+    os_names: {
+      text: string;
+      value: string;
+    }[];
+  }>(`${path}/resource_osname/`);
 }
 
 /**

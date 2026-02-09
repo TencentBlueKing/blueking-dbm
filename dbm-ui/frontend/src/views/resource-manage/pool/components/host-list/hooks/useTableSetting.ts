@@ -83,15 +83,15 @@ export default function () {
       },
       {
         field: 'bk_cpu',
-        label: t('CPU(核)'),
+        label: t('CPU（核）'),
       },
       {
         field: 'bk_mem',
-        label: t('内存(G)'),
+        label: t('内存（G）'),
       },
       {
         field: 'total_data_storage_cap',
-        label: t('数据盘容量(G)'),
+        label: t('数据盘容量（G）'),
       },
     ],
     size: cache.size || 'small',
