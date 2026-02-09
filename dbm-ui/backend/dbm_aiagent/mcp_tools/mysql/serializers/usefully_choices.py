@@ -315,3 +315,16 @@ mysql_slowlog_metric_name_choices = [
     ("slow_count", _("按照慢查询数量排序聚合")),
     ("rows_scan", _("按照查询扫描行数排序聚合")),
 ]
+
+processlist_group_by_choices = [
+    ("group_by_fingerprint", _("按 sql 类型聚合计数")),
+    ("longest_top_5", _("按连 sql 执行时长排序前 5")),
+    ("group_by_user", _("按连接账号名聚合计数")),
+    ("group_by_client_host", _("按访问来源ip聚合计数")),
+]
+
+mysql_config_update_allowed = [
+    ("backup", _("备份配置")),
+    ("mysql_monitor", _("监控配置")),
+    ("checksum", _("校验配置")),
+]

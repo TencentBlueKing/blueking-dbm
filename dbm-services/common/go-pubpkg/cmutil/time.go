@@ -13,7 +13,7 @@ func TimeToSecondPrecision(t time.Time) time.Time {
 	return tt
 }
 
-// ParseLocalTimeString 讲 time.Datetime or time.RFC3339 格式转换传本地时区 time.Time 类型
+// ParseLocalTimeString 将 time.Datetime or time.RFC3339 格式转换传本地时区 time.Time 类型
 func ParseLocalTimeString(s string) (time.Time, error) {
 	t, err := time.ParseInLocation(time.DateTime, s, time.Local)
 	if err != nil {
