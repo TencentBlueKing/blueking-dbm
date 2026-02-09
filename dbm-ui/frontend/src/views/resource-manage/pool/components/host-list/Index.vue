@@ -91,6 +91,31 @@
           </BkDropdownMenu>
         </template>
       </BkDropdown>
+      <BkDropdown
+        :popover-options="{
+          hideIgnoreReference: true,
+        }">
+        <BkButton
+          class="ml-8"
+          style="width: 80px">
+          {{ t('导出') }}
+          <DbIcon type="down-big" />
+        </BkButton>
+        <template #content>
+          <BkDropdownMenu>
+            <AuthTemplate action-id="resource_pool_manage">
+              <BkDropdownItem @click="handleExportAll">
+                {{ t('导出（全量）') }}
+              </BkDropdownItem>
+              <BkDropdownItem
+                :class="{ 'disabled-cls': !isFilter }"
+                @click="handleExportFilter">
+                {{ t('导出（筛选后）') }}
+              </BkDropdownItem>
+            </AuthTemplate>
+          </BkDropdownMenu>
+        </template>
+      </BkDropdown>
       <BkButton
         class="ml-8"
         @click="handleRefresh">
@@ -171,7 +196,7 @@
   import { useI18n } from 'vue-i18n';
 
   import DbResourceModel from '@services/model/db-resource/DbResource';
-  import { fetchList } from '@services/source/dbresourceResource';
+  import { fetchList, resourceExport } from '@services/source/dbresourceResource';
 
   import { useGlobalBizs } from '@stores';
 
@@ -194,6 +219,7 @@
   import BatchSetting from './components/batch-setting/Index.vue';
   import BatchUndoImport from './components/batch-undo-import/Index.vue';
   import RenderTable from './components/RenderTable.vue';
+  import { isValueEmpty } from './components/search-box/components/utils';
   import SearchBox from './components/search-box/Index.vue';
   import UpdateAssign from './components/update-assign/Index.vue';
   import useTableSetting from './hooks/useTableSetting';
@@ -233,6 +259,7 @@
   const searchParams = shallowRef<Record<string, any>>({});
 
   const selectionHostIdList = computed(() => selectionList.value.map((selectionItem) => selectionItem.bk_host_id));
+  const isFilter = computed(() => Object.values(searchParams.value).some((item) => !isValueEmpty(item)));
 
   const curBizId = computed(() => {
     let bizId = undefined;
@@ -248,8 +275,7 @@
   });
 
   const copyAllHostText = computed(() => {
-    const isFilter = Object.keys(searchParams.value).length > 0;
-    return `${t('所有 IP')}（${isFilter ? t('筛选后') : t('全量')}）`;
+    return `${t('所有 IP')}（${isFilter.value ? t('筛选后') : t('全量')}）`;
   });
 
   const dataSource = (params: ServiceParameters<typeof fetchList>) =>
@@ -281,10 +307,10 @@
       label: t('资源归属'),
       render: ({ data }: { data: DbResourceModel }) => (
         <bk-popover
+          disable-outside-click
           placement='top'
           popover-delay={[300, 0]}
-          theme='light'
-          disable-outside-click>
+          theme='light'>
           {{
             content: () => (
               <div class='resource-owner-tips'>
@@ -325,10 +351,10 @@
                 </div>
                 {props.type !== ResourcePool.public && (
                   <auth-button
+                    onClick={() => handleEdit(data)}
                     action-id='resource_pool_manage'
                     permission={data.permission.resource_pool_manage}
-                    text
-                    onClick={() => handleEdit(data)}>
+                    text>
                     <DbIcon
                       class='operation-icon'
                       type='edit'
@@ -474,6 +500,24 @@
         return result;
       }, []);
       execCopy(ipList.join('\n'), t('复制成功，共n条', { n: ipList.length }));
+    });
+  };
+
+  const handleExportAll = () => {
+    resourceExport({
+      limit: -1,
+      offset: 0,
+    });
+  };
+
+  const handleExportFilter = () => {
+    if (!isFilter.value) {
+      return;
+    }
+    resourceExport({
+      ...searchParams.value,
+      limit: -1,
+      offset: 0,
     });
   };
 

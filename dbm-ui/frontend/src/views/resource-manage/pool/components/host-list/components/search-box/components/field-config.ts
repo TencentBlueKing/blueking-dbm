@@ -150,6 +150,11 @@ export default {
     service: fetchMountPoints,
     type: 'string',
   },
+  os_names: {
+    component: 'os_names',
+    label: t('操作系统名称'),
+    type: 'string',
+  },
   os_type: {
     component: 'os_type',
     label: t('操作系统类型'),

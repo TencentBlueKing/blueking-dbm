@@ -101,6 +101,8 @@
 
   import { getProfile, upsertProfile } from '@services/source/profile';
 
+  import { isValueEmpty } from '../../utils';
+
   interface Props {
     searchParams: Record<string, any>;
   }
@@ -125,7 +127,7 @@
     name: '',
   });
 
-  const isDisabled = computed(() => Object.keys(props.searchParams).length < 1);
+  const isDisabled = computed(() => Object.values(props.searchParams).every((item) => isValueEmpty(item)));
   let changeBySelect = false;
 
   watch(
