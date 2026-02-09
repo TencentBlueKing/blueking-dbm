@@ -65,6 +65,7 @@
   import LabelNames from './components/LabelNames.vue';
   import Mem from './components/Mem.vue';
   import MountPoint from './components/MountPoint.vue';
+  import OSNames from './components/OSNames.vue';
   import OSType from './components/OSType.vue';
   import ResourceType from './components/ResourceType.vue';
   import SpecId from './components/SpecId.vue';
@@ -103,6 +104,7 @@
     label_names: LabelNames,
     mem: Mem,
     mount_point: MountPoint,
+    os_names: OSNames,
     os_type: OSType,
     resource_type: ResourceType,
     spec_id: SpecId,
