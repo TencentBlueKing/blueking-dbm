@@ -255,6 +255,9 @@ class _BKMonitorV3Api(BaseApi):
             url="app/alarm_strategy/search/v3/",
             description=_("查询告警策略"),
         )
+        self.as_code_import_config = self.generate_data_api(
+            method="POST", url="app/as_code/import_config/", description=_("导入AsCode配置")
+        )
 
     def bulk_save_subscribe_in_batch(self, bk_biz_id, subscriptions):
         """按批次，批量新增/保存策略订阅"""
