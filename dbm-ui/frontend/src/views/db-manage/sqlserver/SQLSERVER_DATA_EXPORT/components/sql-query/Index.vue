@@ -12,10 +12,12 @@
 -->
 
 <template>
-  <div class="editor-resize-wrapper">
-    <Editor
-      v-model="uploadFileData.content"
-      @change="handleEditorChange" />
+  <div class="sqlserver-data-export-editor">
+    <div class="editor-resize-wrapper">
+      <Editor
+        v-model="uploadFileData.content"
+        @change="handleEditorChange" />
+    </div>
     <div
       v-if="!uploadFileData.grammarCheck"
       class="footer-action">
@@ -145,13 +147,17 @@
   });
 </script>
 <style lang="less">
-  .editor-resize-wrapper {
-    height: 500px !important;
+  .sqlserver-data-export-editor {
+    height: 500px;
     position: relative;
 
-    .bk-resize-layout-aside-content {
-      height: auto !important;
-      overflow: auto !important;
+    .editor-resize-wrapper {
+      height: 100%;
+
+      .bk-resize-layout-aside-content {
+        height: auto !important;
+        overflow: auto !important;
+      }
     }
 
     .footer-action {
