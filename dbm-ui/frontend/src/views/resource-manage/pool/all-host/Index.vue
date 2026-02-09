@@ -90,13 +90,8 @@
       </TableColumn>
       <TableColumn
         col-key="bkMemText"
-        show-overflow
-        :title="t('内存')"
-        :width="80">
-        <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
-          {{ row.bkMemText || '0 M' }}
-        </template>
-      </TableColumn>
+        :min-width="90"
+        :title="t('内存（G）')" />
       <TableColumn
         col-key="bk_disk"
         :title="t('磁盘 (G)')">
