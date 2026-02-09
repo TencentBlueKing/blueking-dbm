@@ -18,7 +18,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import (
 
 
 class MysqlMetricsInputSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
+    # bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     cluster_type = serializers.ChoiceField(choices=mysql_cluster_type_choices, help_text=_("集群类型"))
     # instance_role = serializers.ChoiceField(choices=mysql_instance_role_choices, help_text=_("db实例角色"))

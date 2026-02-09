@@ -43,7 +43,7 @@ class MySQLSlowlogMcpToolsViewSet(McpToolsViewSet):
                 "query_digest_md5: 是慢日志摘要字段的 MD5 值，也叫 digest 或者 query_digest;\n"
                 "metric_aggregate_type: 是慢查询的聚合统计方法，比如按查执行耗时排序(max by query_time), "
                 "按执行次数取总和排序(count by query_digest_md5)，按扫描行数总和排序(sum by rows_examined)\n"
-                "values: 聚合的结果，具体含义根据聚合字段的类型来定\n"
+                "values: 聚合的结果，具体含义根据 metric_aggregate_type 来定\n"
                 "sample: 对应的一个慢 sql 样例，里面有详细信息，比如 sql指纹，sql 原文，扫描行数等"
             )
         ),

@@ -723,6 +723,19 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "tools": [],
     },
     {
+        "name": "mysql-config",
+        "description": """query or update mysql tools's config, like backup,mysql_monitor,checksum""",
+        # 主动授权 app_code
+        "target_app_codes": [APP_CODE],
+        "labels": ["mysql-config"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
+    {
         "name": "dbmeta-query",
         "description": """query dbm meta info""",
         # 主动授权 app_code

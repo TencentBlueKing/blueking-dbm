@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from .mysql_bill_mcp import MySQLBillMcpToolsViewSet
+from .mysql_config_update import MySQLConfigUpdateMcpToolsViewSet
 from .mysql_metrics_mcp import MySQLMetricsMcpToolsViewSet
 from .mysql_query_mcp import MySQLQueryMcpToolsViewSet
 from .mysql_slowlog_mcp import MySQLSlowlogMcpToolsViewSet

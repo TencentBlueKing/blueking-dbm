@@ -31,6 +31,11 @@ data:
       data_id: {{ .Values.dbm.envs.BKAPP_MONITOR_REPORTER_DATA_ID }}
       token: {{ .Values.dbm.envs.BKAPP_MONITOR_REPORTER_ACCESS_TOKEN }}
       report_url: {{ .Values.dbm.envs.BKAPP_MONITOR_REPORTER_URL }}
+    bkm_api_info:
+      bk_app_code: {{ .Values.dbm.envs.bkAppCode }}
+      bk_app_secret: {{ .Values.dbm.envs.bkAppToken }}
+      bk_biz_id: {{ .Values.dbm.envs.dbaAppBkBizId }}
+      api_url: {{ .Values.bk.bkMonitorApiUrl }}
   datasource.yaml: |-
     - name: prod_bk_dbm_report
       type: mysql
