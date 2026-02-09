@@ -17,7 +17,13 @@ from backend.core import notify
 from backend.iam_app.handlers.drf_perm.ticket import add_ticket_audit_event, audit_ticket_status
 from backend.ticket import constants
 from backend.ticket.builders import BuilderFactory
-from backend.ticket.constants import FLOW_FINISHED_STATUS, FlowType, TicketStatus, TicketType
+from backend.ticket.constants import (
+    CLUSTER_APPLY_TICKET_TO_CLUSTER_TYPE,
+    FLOW_FINISHED_STATUS,
+    FlowType,
+    TicketStatus,
+    TicketType,
+)
 from backend.ticket.flow_manager.delivery import DeliveryFlow, DescribeTaskFlow
 from backend.ticket.flow_manager.inner import (
     HCMReplenishResourceTaskFlow,
@@ -31,7 +37,7 @@ from backend.ticket.flow_manager.pause import PauseFlow
 from backend.ticket.flow_manager.resource import ResourceApplyFlow, ResourceBatchApplyFlow, ResourceDeliveryFlow
 from backend.ticket.flow_manager.timer import TimerFlow
 from backend.ticket.models import Ticket
-from backend.ticket.tasks.ticket_tasks import create_cluster_todo, create_recycle_ticket
+from backend.ticket.tasks.ticket_tasks import create_cluster_todo, create_monitor_grafana, create_recycle_ticket
 
 SUPPORTED_FLOW_MAP = {
     FlowType.BK_ITSM.value: ItsmFlow,
@@ -160,3 +166,12 @@ class TicketFlowManager(object):
             create_cluster_todo.apply_async(
                 args=(self.ticket.id, BuilderFactory.ticket_type__cluster_phase[self.ticket.ticket_type])
             )
+
+        # 如果是部署集群单据，则下发监控大盘
+        if self.ticket.ticket_type in CLUSTER_APPLY_TICKET_TO_CLUSTER_TYPE and target_status == TicketStatus.SUCCEEDED:
+            # redis类型的集群部署的details中有cluster_type字段 其它类型的部署都是一对一的，从map映射中获取
+            cluster_type = self.ticket.details.get("cluster_type") or CLUSTER_APPLY_TICKET_TO_CLUSTER_TYPE.get(
+                self.ticket.ticket_type
+            )
+            bk_biz_id = self.ticket.bk_biz_id
+            create_monitor_grafana.apply_async(args=(bk_biz_id, cluster_type))
