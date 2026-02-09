@@ -349,6 +349,7 @@ class TenDBRemoteRebalanceFlow(object):
                     )
                 ),
             )
+            #  todo 注销旧实例cc
             switch_sub_pipeline_list.append(switch_sub_pipeline.build_sub_process(sub_name=_("切换remote node 节点")))
 
             # 阶段5: 主机级别卸载实例,卸载指定ip下的所有实例

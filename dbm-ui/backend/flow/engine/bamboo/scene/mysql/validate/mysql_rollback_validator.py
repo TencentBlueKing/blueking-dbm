@@ -15,6 +15,7 @@ from django.utils.translation import gettext as _
 from backend.db_meta.models import Cluster
 from backend.flow.consts import MySQLBackupTypeEnum, RollbackType
 from backend.flow.engine.validate.mysql_base_validate import MysqlBaseValidator
+from backend.flow.utils.mysql.db_table_filter.tools import replace_glob
 
 logger = logging.getLogger("root")
 
@@ -60,7 +61,9 @@ class TenDbHaRollbackFlowValidator(MysqlBaseValidator):
             else:
                 # 1. 匹对指定的回档DB在备份中是否存在
                 backup_pattern_dbs = []
-                for db_pattern in rollback_databases:
+                # 替换数据库的模糊匹配为正则匹配.
+                rollback_databases_parts = ["{}$".format(replace_glob(db)) for db in rollback_databases]
+                for db_pattern in rollback_databases_parts:
                     db_patterns = [db for db in backup_database_list if re.match(db_pattern, db)]
                     backup_pattern_dbs.extend(db_patterns)
                 if len(backup_pattern_dbs) == 0:
@@ -134,7 +137,8 @@ class TenDbClusterRollbackFlowValidator(MysqlBaseValidator):
             else:
                 # 1. 匹对指定的回档DB在备份中是否存在
                 backup_pattern_dbs = []
-                for db_pattern in rollback_databases:
+                rollback_databases_parts = ["{}$".format(replace_glob(db)) for db in rollback_databases]
+                for db_pattern in rollback_databases_parts:
                     db_patterns = [db for db in backup_database_list if re.match(db_pattern, db)]
                     backup_pattern_dbs.extend(db_patterns)
                 if len(backup_pattern_dbs) == 0:
