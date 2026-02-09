@@ -26,7 +26,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import AuditedModelViewSet
 from backend.configuration.constants import PLAT_BIZ_ID
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance
+from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance, TenDBClusterSpiderExt
 from backend.db_monitor import constants, serializers
 from backend.db_monitor.models import MonitorPolicy
 from backend.iam_app.dataclass import ResourceEnum
@@ -352,7 +352,11 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         bk_biz_id = self.validated_data["bk_biz_id"]
         storage_roles = StorageInstance.objects.filter(bk_biz_id=bk_biz_id).values_list("instance_role", flat=True)
         proxy_roles = ProxyInstance.objects.filter(bk_biz_id=bk_biz_id).values_list("access_layer", flat=True)
-        return Response(list(set(list(storage_roles) + list(proxy_roles))))
+        # 添加spider 相关角色
+        spider_roles = TenDBClusterSpiderExt.objects.filter(instance__bk_biz_id=bk_biz_id).values_list(
+            "spider_role", flat=True
+        )
+        return Response(list(set(list(storage_roles) + list(proxy_roles) + list(spider_roles))))
 
     @common_swagger_auto_schema(
         operation_summary=_("根据db类型查询模块列表"),
