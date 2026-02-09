@@ -297,6 +297,7 @@ class SqlserverRebuildSlaveContext:
     clean_dbs: list = field(default_factory=list)
     full_backup_id: dict = field(default_factory=dict)
     log_backup_id: dict = field(default_factory=dict)
+    alarm_shield_id: int = None
 
     @staticmethod
     def sync_dbs_var_name() -> str:
