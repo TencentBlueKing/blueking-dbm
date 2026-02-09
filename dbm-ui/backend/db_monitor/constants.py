@@ -614,3 +614,9 @@ class TimeUnit:
     MINUTE = SECOND * 60
     HOUR = MINUTE * 60
     DAY = HOUR * 24
+
+
+# 告警屏蔽类型
+class MonitorShieldType(StrStructuredEnum):
+    DIMENSION = EnumField("dimension", _("基于维度屏蔽"))
+    STRATEGY = EnumField("strategy", _("基于策略屏蔽"))

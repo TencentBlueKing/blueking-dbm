@@ -19,6 +19,8 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
+from backend.db_monitor.constants import MonitorShieldType
+from backend.db_monitor.models import MonitorPolicy
 from backend.flow.consts import SqlserverCleanMode, SqlserverLoginExecMode, SqlserverSyncMode, SqlserverSyncModeMaps
 from backend.flow.engine.bamboo.scene.common.builder import Builder, Conditions, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -32,7 +34,9 @@ from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import (
     sync_dbs_for_cluster_sub_flow,
 )
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_add_slave import SqlserverAddSlaveFlow
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.sqlserver.check_slave_sync_status import CheckSlaveSyncStatusComponent
@@ -56,7 +60,6 @@ from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     DropRandomJobUserKwargs,
     ExecActuatorKwargs,
     ExecLoginKwargs,
-    SqlserverBackupIDContext,
     SqlserverRebuildSlaveContext,
 )
 from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
@@ -130,6 +133,28 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                     ),
                 ),
             )
+            sub_pipeline.add_act(
+                act_name=_("屏蔽镜像缺失告警策略一天"),
+                act_component_code=AddAlarmShieldComponent.code,
+                kwargs=asdict(
+                    AddAlarmShieldComponent.kwargs(
+                        description=("执行集群原地重建单据，单据号:{}".format(self.data.get("uid"))),
+                        duration_seconds=86400,
+                        category=MonitorShieldType.STRATEGY,
+                        strategy_id=[
+                            i.monitor_policy_id
+                            for i in MonitorPolicy.objects.filter(
+                                name__in=[_("Sqlserver-数据库镜像缺失【mirroring】"), _("Sqlserver-数据库镜像缺失【Alwayson】")]
+                            )
+                        ],
+                        level=[1, 2, 3],
+                        dimensions=[
+                            {"name": "cluster_domain", "values": [cluster.immute_domain]},
+                        ],
+                    )
+                ),
+            )
+
             source_act = sub_pipeline.add_act(
                 act_name=_("检测带重建slave状态[{}]".format(rebuild_slave.ip_port)),
                 act_component_code=CheckSlaveSyncStatusComponent.code,
@@ -191,6 +216,10 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                 conditions=conditions,
                 name=_("判断待修复slave[{}]的状态".format(rebuild_slave.ip_port)),
                 conditions_param=SqlserverRebuildSlaveContext.conditions_var_name(),
+            )
+
+            sub_pipeline.add_act(
+                act_name=_("15 分钟后解除旧实例告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={}
             )
 
             # 先做克隆周边配置
@@ -406,6 +435,28 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                     - set(get_sync_filter_dbs(cluster.id))
                 )
                 if len(sync_dbs) > 0:
+                    cluster_sub_pipeline.add_act(
+                        act_name=_("屏蔽镜像缺失告警策略一天"),
+                        act_component_code=AddAlarmShieldComponent.code,
+                        kwargs=asdict(
+                            AddAlarmShieldComponent.kwargs(
+                                description=_("执行集群新机重建单据，单据号:{}".format(self.data.get("uid"))),
+                                duration_seconds=86400,
+                                category=MonitorShieldType.STRATEGY,
+                                strategy_id=[
+                                    i.monitor_policy_id
+                                    for i in MonitorPolicy.objects.filter(
+                                        name__in=[_("Sqlserver-数据库镜像缺失【mirroring】"), _("Sqlserver-数据库镜像缺失【Alwayson】")]
+                                    )
+                                ],
+                                level=[1, 2, 3],
+                                dimensions=[
+                                    {"name": "cluster_domain", "values": [cluster.immute_domain]},
+                                ],
+                            )
+                        ),
+                    )
+
                     cluster_sub_pipeline.add_sub_pipeline(
                         sub_flow=sync_dbs_for_cluster_sub_flow(
                             uid=self.data["uid"],
@@ -416,6 +467,10 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                             master_host=Host(ip=master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
                             port=master.port,
                         )
+                    )
+
+                    cluster_sub_pipeline.add_act(
+                        act_name=_("15 分钟后解除旧实例告警屏蔽"), act_component_code=DisableAlarmShieldComponent.code, kwargs={}
                     )
 
                 # 先做克隆周边配置
@@ -602,7 +657,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
         # main_pipeline.run_pipeline(init_trans_data_class=SqlserverBackupIDContext())
         main_pipeline.run_pipeline_with_sidecar(
             check_ai_monitor_cluster_list=sum([info["cluster_ids"] for info in self.data["infos"]], []),
-            init_trans_data_class=SqlserverBackupIDContext(),
+            init_trans_data_class=SqlserverRebuildSlaveContext(),
         )
 
     @classmethod
