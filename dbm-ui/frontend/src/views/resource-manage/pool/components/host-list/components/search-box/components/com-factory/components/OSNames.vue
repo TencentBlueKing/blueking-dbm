@@ -17,20 +17,22 @@
     :input-search="false"
     :loading="loading"
     :model-value="defaultValue"
-    :placeholder="t('请选择操作系统类型')"
+    :placeholder="t('请选择操作系统名称')"
     @change="handleChange">
     <BkOption
-      v-for="item in data"
-      :key="item"
-      :label="item"
-      :value="item" />
+      v-for="item in data?.os_names"
+      :key="item.value"
+      :label="item.text"
+      :value="item.value">
+      {{ item.text }}
+    </BkOption>
   </BkSelect>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getOsTypeList } from '@services/source/dbresourceResource';
+  import { getResourceOsName } from '@services/source/dbresourceResource';
 
   interface Props {
     defaultValue?: string;
@@ -50,15 +52,7 @@
 
   const { t } = useI18n();
 
-  const { data, loading } = useRequest(getOsTypeList, {
-    defaultParams: [
-      {
-        limit: -1,
-        offset: 0,
-      },
-    ],
-    initialData: [],
-  });
+  const { data, loading } = useRequest(getResourceOsName);
 
   const handleChange = (value: string) => {
     emits('change', value);
