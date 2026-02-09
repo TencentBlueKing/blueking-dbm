@@ -13,7 +13,7 @@
 
 import { DBTypeInfos, DBTypes } from '@common/const';
 
-import { bytePretty, utcDisplayTime } from '@utils';
+import { utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
@@ -112,7 +112,8 @@ export default class DbResource {
   }
 
   get bkMemText() {
-    return bytePretty(this.bk_mem * 1024 * 1024);
+    // return bytePretty(this.bk_mem * 1024 * 1024);
+    return (this.bk_mem / 1024).toFixed(2);
   }
 
   get forBizDisplay() {

@@ -139,7 +139,7 @@
       </TableColumn>
       <TableColumn
         col-key="bk_cpu"
-        :title="t('CPU(核)')">
+        :title="t('CPU（核）')">
         <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
           {{ row.bk_cpu || '--' }}
         </template>
@@ -147,8 +147,7 @@
       <TableColumn
         col-key="bkMemText"
         :min-width="90"
-        :title="t('内存(G)')">
-      </TableColumn>
+        :title="t('内存（G）')" />
       <TableColumn
         col-key="bk_disk"
         :title="t('磁盘总容量(G)')"
