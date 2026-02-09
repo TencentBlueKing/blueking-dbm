@@ -150,7 +150,7 @@ export JRE=$JAVA_HOME/jre
 export KAFKA_PORT=%s
 
 # PATH 优先包含 mysql 和 jdk/jre bin
-export PATH=/usr/local/mysql/bin:$JAVA_HOME/bin:$JRE/bin:$PATH
+export PATH=/usr/local/bin:/usr/local/mysql/bin:$JAVA_HOME/bin:$JRE/bin:$PATH
 
 # 类路径
 export CLASSPATH=".:$JAVA_HOME/lib:$JRE/lib:$CLASSPATH"
@@ -204,6 +204,14 @@ export SASL_ENABLED=true
 			return err
 		}
 	}
+
+	// 创建 java 软链接到 /usr/bin/java，解决 crontab 拉起 supervisord 时找不到 java 的问题
+	extraCmd = "[ ! -e /usr/bin/java ] && ln -sf $JAVA_HOME/bin/java /usr/bin/java || true"
+	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+		logger.Error("创建java软链接失败: %s", err.Error())
+		return err
+	}
+	logger.Info("检查并创建java软链接完成")
 
 	return nil
 }
@@ -346,7 +354,7 @@ func configCrontab() (err error) {
 		return err
 	}
 	extraCmd = fmt.Sprintf(
-		`echo '*/1 * * * *  %s >> /data/kafkaenv/supervisor/check_supervisord.err 2>&1' >>%s`,
+		`echo '*/1 * * * *  source /etc/profile && %s >> /data/kafkaenv/supervisor/check_supervisord.err 2>&1' >>%s`,
 		"/data/kafkaenv/supervisor/check_supervisord.sh", "/home/mysql/crontab.bak")
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("%s execute failed, %v", extraCmd, err)

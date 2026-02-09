@@ -131,7 +131,7 @@ func (i *InstallPulsarComp) InitPulsarDirs() error {
 ulimit -n 500000
 export JAVA_HOME=/data/pulsarenv/java/jdk
 export JRE=$JAVA_HOME/jre
-export PATH=$JAVA_HOME/bin:$JRE_HOME/bin:$PATH
+export PATH=/usr/local/bin:$JAVA_HOME/bin:$JRE_HOME/bin:$PATH
 export CLASSPATH=".:$JAVA_HOME/lib:$JRE/lib:$CLASSPATH"
 export LC_ALL=en_US
 EOF

@@ -38,7 +38,7 @@ export JAVA_HOME="/data/hadoopenv/java"
 export CLASSPATH=".:$JAVA_HOME/lib:$JRE/lib:$CLASSPATH"
 export HADOOP_HOME="/data/hadoopenv/hadoop"
 export HADOOP_CONF_DIR="$HADOOP_HOME/etc/hadoop"
-export PATH="${JAVA_HOME}/bin:${HADOOP_HOME}/bin:${HADOOP_HOME}/sbin:$PATH"
+export PATH="/usr/local/bin:${JAVA_HOME}/bin:${HADOOP_HOME}/bin:${HADOOP_HOME}/sbin:$PATH"
 EOF
 
 chown hadoop:root /data/hadoopenv/hdfsProfile
