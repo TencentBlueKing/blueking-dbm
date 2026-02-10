@@ -144,7 +144,7 @@ class MySQLSlowlogMcpToolsViewSet(McpToolsViewSet):
                 },
             )
         except Exception as e:
-            logger.error(f"sql_tune error: {e}")
-            return Response({"error": str(e)})
+            logger.error(_(f"sql_tune error: {e}"))
+            return Response({"error": _("SQL调优处理失败，请联系管理员")})
 
         return Response(result)

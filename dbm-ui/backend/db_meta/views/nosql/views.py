@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.http import JsonResponse
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -58,7 +59,8 @@ def instances(request: Request):
     try:
         return JsonResponse({"code": 0, "msg": "", "data": api.cluster.query_instances(**request.query_params)})
     except Exception as e:  # NOCC:broad-except(检查工具误报)
-        return JsonResponse({"code": 1, "msg": "{}".format(e), "data": ""})
+        logger.error(_("查询实例信息失败: {}").format(e))
+        return JsonResponse({"code": 1, "msg": _("查询实例信息失败"), "data": ""})
 
 
 @api_view(["POST"])
@@ -109,4 +111,5 @@ def create_nosql_cluster(request: Request):
             return JsonResponse({"code": 1, "data": "", "msg": "unsupported {}".format(request.data["cluster_type"])})
         return JsonResponse({"code": 0, "data": "", "msg": ""})
     except Exception as e:  # NOCC:broad-except(检查工具误报)
-        return JsonResponse({"code": 1, "data": "", "msg": "{}".format(e)})
+        logger.error(_("创建Nosql集群失败: {e}").format(e=e))
+        return JsonResponse({"code": 1, "data": "", "msg": _("创建NoSQL集群失败")})

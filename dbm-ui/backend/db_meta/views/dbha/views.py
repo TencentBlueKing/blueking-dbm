@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.http import JsonResponse
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -30,7 +31,8 @@ def cities(request: Request):
     try:
         return JsonResponse({"code": 0, "msg": "", "data": api.dbha.cities()})
     except Exception as e:
-        return JsonResponse({"code": 1, "msg": "{}".format(e), "data": ""})
+        logger.error(_("获取城市列表失败: {}").format(e))
+        return JsonResponse({"code": 1, "msg": _("获取城市列表失败，请稍后重试"), "data": ""})
 
 
 @swagger_auto_schema(
@@ -67,7 +69,8 @@ def instances(request: Request):
     try:
         return JsonResponse({"code": 0, "msg": "", "data": api.dbha.instances(**request.query_params)})
     except Exception as e:
-        return JsonResponse({"code": 1, "msg": "{}".format(e), "data": ""})
+        logger.error(_("获取实例列表失败: {e}").format(e=e))
+        return JsonResponse({"code": 1, "msg": _("获取实例列表失败，请稍后重试"), "data": ""})
 
 
 @swagger_auto_schema(
@@ -93,7 +96,8 @@ def update_status(request: Request):
         api.dbha.update_status(request.data)
         return JsonResponse({"code": 0, "data": "", "msg": ""})
     except Exception as e:
-        return JsonResponse({"code": 1, "data": "", "msg": "{}".format(e)})
+        logger.error(_("更新实例状态失败: {e}").format(e=e))
+        return JsonResponse({"code": 1, "data": "", "msg": _("更新实例状态失败，请稍后重试")})
 
 
 @swagger_auto_schema(
@@ -130,7 +134,8 @@ def swap_role(request: Request):
         api.dbha.swap_role(request.data)
         return JsonResponse({"code": 0, "data": "", "msg": ""})
     except Exception as e:
-        return JsonResponse({"code": 1, "data": "", "msg": "{}".format(e)})
+        logger.error(_("交换角色失败: {e}").format(e=e))
+        return JsonResponse({"code": 1, "data": "", "msg": _("交换角色失败，请稍后重试")})
 
 
 @api_view(["POST"])
@@ -141,7 +146,8 @@ def entry_detail(request: Request):
         api.dbha.entry_detail(request.data)
         return JsonResponse({"code": 0, "data": "", "msg": ""})
     except Exception as e:
-        return JsonResponse({"code": 1, "data": "", "msg": "{}".format(e)})
+        logger.error(_("获取入口详情失败: {e}").format(e=e))
+        return JsonResponse({"code": 1, "data": "", "msg": _("获取入口详情失败，请稍后重试")})
 
 
 @api_view(["POST"])
@@ -152,7 +158,8 @@ def tendis_cluster_swap(request: Request):
         api.dbha.tendis_cluster_swap(request.data)
         return JsonResponse({"code": 0, "data": "", "msg": ""})
     except Exception as e:
-        return JsonResponse({"code": 1, "data": "", "msg": "{}".format(e)})
+        logger.error(_("Tendis集群交换失败: {e}").format(e=e))
+        return JsonResponse({"code": 1, "data": "", "msg": _("Tendis集群交换失败，请稍后重试")})
 
 
 @swagger_auto_schema(
@@ -189,7 +196,8 @@ def swap_ctl_role(request: Request):
         api.dbha.swap_ctl_role(request.data)
         return JsonResponse({"code": 0, "data": "", "msg": ""})
     except Exception as e:
-        return JsonResponse({"code": 1, "data": "", "msg": "{}".format(e)})
+        logger.error(_("交换控制角色失败: {e}").format(e=e))
+        return JsonResponse({"code": 1, "data": "", "msg": _("交换控制角色失败，请稍后重试")})
 
 
 @api_view(["POST"])
@@ -200,4 +208,5 @@ def sqlserver_cluster_swap(request: Request):
         api.dbha.sqlserver_cluster_swap(request.data)
         return JsonResponse({"code": 0, "data": "", "msg": ""})
     except Exception as e:
-        return JsonResponse({"code": 1, "data": "", "msg": "{}".format(e)})
+        logger.error(_("SQLServer集群交换失败: {e}").format(e=e))
+        return JsonResponse({"code": 1, "data": "", "msg": _("SQLServer集群交换失败，请稍后重试")})

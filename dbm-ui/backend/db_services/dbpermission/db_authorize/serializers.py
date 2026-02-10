@@ -9,12 +9,16 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import logging
+
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_services.dbpermission.db_authorize import mock_data
 from backend.utils.excel import ExcelHandler
+
+logger = logging.getLogger("root")
 
 
 class PreCheckAuthorizeRulesSerializer(serializers.Serializer):
@@ -57,7 +61,8 @@ class PreCheckExcelAuthorizeRulesSerializer(serializers.Serializer):
         try:
             authorize_excel_data__list = ExcelHandler.paser(excel, header_row=1)
         except Exception as e:  # pylint: disable=broad-except
-            raise serializers.ValidationError(_("excel内容解析失败, 错误信息:{}。提示: 请按照模板填写授权数据").format(e))
+            logger.error(_("Excel内容解析失败: {}").format(e))
+            raise serializers.ValidationError(_("excel内容解析失败。提示: 请按照模板填写授权数据"))
 
         # 校验excel内容是否为空
         if not authorize_excel_data__list:

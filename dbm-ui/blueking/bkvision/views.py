@@ -10,7 +10,9 @@ from django.views.decorators.http import require_http_methods
 
 from blueking.bkvision.settings import PRE_PROCESS_FUNC, BKVISION_APIGW_URL
 from blueking.bkvision.utils import normalize_request_headers
-
+from django.utils.translation import gettext_lazy as _
+import logging
+logger = logging.getLogger("root")
 
 def build_headers(request):
     request_headers = normalize_request_headers(request)
@@ -51,7 +53,8 @@ def query_variable(request):
     try:
         return proxy_request(request, '/api/v1/variable/query/')
     except Exception as e:
-        return JsonResponse({"result": False, "message": "query_variable exception: {}".format(e), "code": 400})
+        logger.error(_(f"query_variable exception: {e}"))
+        return JsonResponse({"result": False, "message": _("查询变量数据失败"), "code": 400})
 
 
 @login_exempt
@@ -63,7 +66,8 @@ def test_variable(request):
     try:
         return proxy_request(request, '/api/v1/variable/test/')
     except Exception as e:
-        return JsonResponse({"result": False, "message": "query_variable exception: {}".format(e), "code": 400})
+        logger.error(_(f"test_variable exception: {e}"))
+        return JsonResponse({"result": False, "message": _("测试变量数据失败"), "code": 400})
 
 
 @login_exempt
@@ -75,7 +79,8 @@ def preview_field_data(request, uid):
     try:
         return proxy_request(request, f'/api/v1/field/{uid}/preview_data/')
     except Exception as e:
-        return JsonResponse({"result": False, "message": "query_variable exception: {}".format(e), "code": 400})
+        logger.error(_(f"preview_field_data exception: {e}"))
+        return JsonResponse({"result": False, "message": _("预览字段数据失败"), "code": 400})
 
 
 @login_exempt
@@ -89,7 +94,8 @@ def query_datasource(request):
         request = PRE_PROCESS_FUNC(request)
         return proxy_request(request, '/api/v1/datasource/query/')
     except Exception as e:
-        return JsonResponse({"result": False, "message": "query_datasource exception: {}".format(e), "code": 400})
+        logger.error(_(f"query_datasource exception: {e}"))
+        return JsonResponse({"result": False, "message": _("查询数据源数据失败"), "code": 400})
 
 
 @login_exempt
@@ -103,7 +109,8 @@ def query_dataset(request):
         request = PRE_PROCESS_FUNC(request)
         return proxy_request(request, '/api/v1/dataset/query/')
     except Exception as e:
-        return JsonResponse({"result": False, "message": "query_dataset exception: {}".format(e), "code": 400})
+        logger.error(_(f"query_dataset exception: {e}"))
+        return JsonResponse({"result": False, "message": _("查询数据集数据失败"), "code": 400})
 
 
 @login_exempt
@@ -117,7 +124,8 @@ def query_meta(request):
     try:
         return proxy_request(request, '/api/v1/meta/query/')
     except Exception as e:
-        return JsonResponse({"result": False, "message": "query_meta exception: {}".format(e), "code": 400})
+        logger.error(_(f"query_meta exception: {e}"))
+        return JsonResponse({"result": False, "message": _("查询元数据失败"), "code": 400})
 
 
 @login_exempt
@@ -129,7 +137,8 @@ def get_panel(request):
     try:
         return proxy_request(request, '/api/v1/panel/')
     except Exception as e:
-        return JsonResponse({"result": False, "message": "get_panel exception: {}".format(e), "code": 400})
+        logger.error(_(f"get_panel exception: {e}"))
+        return JsonResponse({"result": False, "message": _("获取图表配置失败"), "code": 400})
 
 
 @login_exempt
@@ -141,7 +150,8 @@ def get_child_panels(request):
     try:
         return proxy_request(request, '/api/v1/panel/get_child_panels/')
     except Exception as e:
-        return JsonResponse({"result": False, "message": "get_child_panels exception: {}".format(e), "code": 400})
+        logger.error(_(f"get_child_panels exception: {e}"))
+        return JsonResponse({"result": False, "message": _("获取子图列表失败"), "code": 400})
 
 
 @login_exempt
@@ -156,4 +166,5 @@ def get_app_share_list(request):
         data = next((data["share"] for data in datas if data["name"] == "DBM内部环境"), [])
         return JsonResponse({"result": True, "message": "", "data": data, "code": 200})
     except Exception as e:
-        return JsonResponse({"result": False, "message": "get_app_share_list exception: {}".format(e), "code": 400})
+        logger.error(_(f"get_app_share_list exception: {e}"))
+        return JsonResponse({"result": False, "message": _("获取应用有权限的嵌入列表失败"), "code": 400})

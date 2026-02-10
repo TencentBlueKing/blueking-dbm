@@ -9,6 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import logging
+
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
@@ -16,6 +18,8 @@ from backend.db_meta.request_validator import validate_instance_in_biz
 from backend.db_services.mysql.permission.clone import mock_data
 from backend.db_services.mysql.permission.constants import CLONE_EXCEL_HEADER_MAP, CloneClusterType, CloneType
 from backend.utils.excel import ExcelHandler
+
+logger = logging.getLogger("root")
 
 
 class PreCheckCloneSerializer(serializers.Serializer):
@@ -93,7 +97,8 @@ class PreCheckExcelCloneSerializere(serializers.Serializer):
         try:
             clone_data_list = ExcelHandler.paser(clone_excel_file)
         except Exception as e:  # pylint: disable=broad-except
-            raise serializers.ValidationError(_("excel内容解析失败, 错误信息:{}。").format(e))
+            logger.error(_("Excel内容解析失败: {}").format(e))
+            raise serializers.ValidationError(_("excel内容解析失败。"))
 
         # 校验表头是否正确
         if not set(CLONE_EXCEL_HEADER_MAP[attrs["clone_type"]]).issubset(set(clone_data_list[0].keys())):

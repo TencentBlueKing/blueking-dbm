@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.http import JsonResponse
-from django.utils.translation import gettext as _
+from django.utils.translation import gettext_lazy as _
 from rest_framework.decorators import action
 
 from backend.bk_web.swagger import common_swagger_auto_schema
@@ -118,6 +118,6 @@ class DBAuthorizeViewSet(BaseDBAuthorizeViewSet):
         except ApiError as err:
             msg = f"authorize_apply[user:{username}, db_name:{db_name}, client_hosts:{client_hosts}] error, {err}"
             logger.error(msg)
-            return JsonResponse({"msg": msg, "job_id": -1, "code": 1})
+            return JsonResponse({"msg": _("授权申请失败，请稍后重试或联系管理员"), "job_id": -1, "code": 1})
         # 兼容老接口
         return JsonResponse({"msg": "", "job_id": grant_result["job_id"], "code": 0})

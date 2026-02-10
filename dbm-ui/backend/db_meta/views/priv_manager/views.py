@@ -8,7 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
+
 from django.http import JsonResponse
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import api_view
@@ -16,6 +19,8 @@ from rest_framework.request import Request
 
 from backend.db_meta import api
 from backend.db_meta.enums import ClusterType
+
+logger = logging.getLogger("root")
 
 
 # sqlserver_single
@@ -37,7 +42,8 @@ def sqlserver_single_cluster_instances(request: Request):
             }
         )
     except Exception as e:
-        return JsonResponse({"msg": "{}".format(e), "code": 1, "data": ""})
+        logger.error(_("获取SQLServer单实例集群失败: {}".format(e)))
+        return JsonResponse({"msg": _("获取SQLServer单实例集群失败"), "code": 1, "data": ""})
 
 
 # sqlserver_single
@@ -59,7 +65,8 @@ def sqlserver_ha_cluster_instances(request: Request):
             }
         )
     except Exception as e:
-        return JsonResponse({"msg": "{}".format(e), "code": 1, "data": ""})
+        logger.error(_("获取SQLServer高可用集群失败: {}".format(e)))
+        return JsonResponse({"msg": _("获取SQLServer高可用集群失败"), "code": 1, "data": ""})
 
 
 @swagger_auto_schema(methods=["get"])
@@ -78,4 +85,5 @@ def biz_clusters(request: Request):
             }
         )
     except Exception as e:  # pylint: disable=broad-except
-        return JsonResponse({"msg": "{}".format(e), "code": 1, "data": ""})
+        logger.error(_("获取业务集群失败: {}".format(e)))
+        return JsonResponse({"msg": _("获取业务集群失败"), "code": 1, "data": ""})

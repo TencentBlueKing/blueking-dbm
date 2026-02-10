@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.http import JsonResponse
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
@@ -45,7 +46,8 @@ def fake_create_tendbha_cluster(request: Request):
     try:
         return JsonResponse({"msg": "", "code": 0, "data": api.fake.fake_create_tendbha_cluster(**request.data)})
     except Exception as e:  # pylint: disable=broad-except
-        return JsonResponse({"msg": "{}".format(e), "code": 1, "data": ""})
+        logger.error(_(f"fake_create_tendbha_cluster error: {e}"))
+        return JsonResponse({"msg": _("创建TendbHA集群失败"), "code": 1, "data": ""})
 
 
 @swagger_auto_schema(
@@ -68,7 +70,8 @@ def fake_create_tendbsingle(request: Request):
     try:
         return JsonResponse({"msg": "", "code": 0, "data": api.fake.fake_create_tendbsingle(**request.data)})
     except Exception as e:  # pylint: disable=broad-except
-        return JsonResponse({"msg": "{}".format(e), "code": 1, "data": ""})
+        logger.error(_(f"fake_create_tendbsingle error: {e}"))
+        return JsonResponse({"msg": _("创建TendbSingle实例失败"), "code": 1, "data": ""})
 
 
 @api_view(["POST"])
@@ -78,7 +81,8 @@ def fake_reset_tendbha_cluster(request: Request):
     try:
         return JsonResponse({"msg": "", "code": 0, "data": api.fake.fake_reset_tendbha_cluster(**request.data)})
     except Exception as e:  # pylint: disable=broad-except
-        return JsonResponse({"msg": "{}".format(e), "code": 1, "data": ""})
+        logger.error(_(f"fake_reset_tendbha_cluster error: {e}"))
+        return JsonResponse({"msg": _("重置TendbHA集群失败"), "code": 1, "data": ""})
 
 
 @api_view(["POST"])
@@ -88,4 +92,5 @@ def fake_reset_tendbcluster_cluster(request: Request):
     try:
         return JsonResponse({"msg": "", "code": 0, "data": api.fake.fake_reset_tendbcluster_cluster(**request.data)})
     except Exception as e:  # pylint: disable=broad-except
-        return JsonResponse({"msg": "{}".format(e), "code": 1, "data": ""})
+        logger.error(_(f"fake_reset_tendbcluster_cluster error: {e}"))
+        return JsonResponse({"msg": _("重置TendbCluster集群失败"), "code": 1, "data": ""})

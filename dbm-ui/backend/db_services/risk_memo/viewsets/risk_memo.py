@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
+
 from bkstorages.backends.bkrepo import BKRepoStorage
 from django.db.models import OuterRef, Subquery
 from django.db.models.functions import Coalesce
@@ -41,6 +43,8 @@ from backend.iam_app.dataclass import ActionEnum, ResourceEnum
 from backend.iam_app.handlers.drf_perm.risk_memo import ListRiskMemoPermission, RiskMemoPermission
 from backend.iam_app.handlers.permission import Permission
 from backend.utils.string import make_unique_key
+
+logger = logging.getLogger("root")
 
 RISK_MEMO_VIEW_TAGS = ["risk_memo"]
 
@@ -152,7 +156,8 @@ class RiskMemoViewSet(viewsets.AuditedModelViewSet):
         try:
             RiskMemo.objects.handler_risk_status(request=request, validated_data=validated_data, risk=risk)
         except Exception as e:
-            return JsonResponse({"msg": "{}".format(e), "code": 1, "data": ""})
+            logger.error(_("更新风险状态失败: {}").format(e))
+            return JsonResponse({"msg": _("更新风险状态失败，请联系管理员"), "code": 1, "data": ""})
 
         oper_type = get_operation_type(validated_data["status"], risk.is_special)
 
@@ -207,6 +212,7 @@ class RiskMemoViewSet(viewsets.AuditedModelViewSet):
             url = storage.url(bkrepo_path)
 
         except Exception as e:
-            return JsonResponse({"msg": "{}".format(e), "code": 1, "data": ""})
+            logger.error(_("上传图片失败: {}").format(e))
+            return JsonResponse({"msg": _("图片上传失败，请联系管理员"), "code": 1, "data": ""})
 
         return Response({"url": url})

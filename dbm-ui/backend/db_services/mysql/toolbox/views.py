@@ -246,12 +246,10 @@ class ToolboxViewSet(viewsets.SystemViewSet):
             return Response({"root_id": root_id, "result": True, "message": _("回档演练任务已启动")})
         except ValueError as e:
             logger.error(_("回档演练失败: {}").format(str(e)))
-            return Response({"root_id": root_id, "result": False, "message": str(e)}, status=400)
+            return Response({"root_id": root_id, "result": False, "message": _("回档演练失败")}, status=400)
         except Exception as e:
             logger.exception(_("回档演练异常: {}").format(str(e)))
-            return Response(
-                {"root_id": root_id, "result": False, "message": _("回档演练异常: {}").format(str(e))}, status=500
-            )
+            return Response({"root_id": root_id, "result": False, "message": _("回档演练异常")}, status=500)
 
     @common_swagger_auto_schema(
         operation_summary=_("待办处理"),
@@ -309,7 +307,8 @@ class TendbHaSlaveInstanceAddDomainSet(viewsets.SystemViewSet):
             dns_manage.create_domain(instance_list=["{}#{}".format(slave_ip, str(slave_port))], add_domain_name=domain)
         except Exception as e:
             logger.error(traceback.format_exc())
-            return Response({"result": False, "message": _("添加dns记录失败{}".format(e))})
+            logger.error(_("添加dns记录失败:{}".format(e)))
+            return Response({"result": False, "message": _("添加dns记录失败")})
         return Response({"result": True, "message": _("success")})
 
 
@@ -483,12 +482,12 @@ class TdbctlUpgradeViewSet(viewsets.SystemViewSet):
                 }
             )
         except ValueError as e:
-            logger.error(_("tdbctl 升级调度参数错误: {}").format(str(e)))
-            return Response({"result": False, "message": str(e)}, status=400)
+            logger.error(_("tdbctl 升级调度参数错误 {}").format(str(e)))
+            return Response({"result": False, "message": _("tdbctl 升级调度参数错误")}, status=400)
         except Exception as e:
             logger.exception(_("tdbctl 升级调度异常: {}").format(str(e)))
             return Response(
-                {"result": False, "message": _("调度异常: {}").format(str(e))},
+                {"result": False, "message": _("tdbctl 升级调度异常")},
                 status=500,
             )
 
@@ -518,11 +517,11 @@ class TdbctlUpgradeViewSet(viewsets.SystemViewSet):
             return Response({"result": True, "data": result})
         except ValueError as e:
             logger.error(_("查询升级进度参数错误: {}").format(str(e)))
-            return Response({"result": False, "message": str(e)}, status=400)
+            return Response({"result": False, "message": _("查询升级进度参数错误")}, status=400)
         except Exception as e:
             logger.exception(_("查询升级进度异常: {}").format(str(e)))
             return Response(
-                {"result": False, "message": _("查询异常: {}").format(str(e))},
+                {"result": False, "message": _("查询异常")},
                 status=500,
             )
 
@@ -555,11 +554,11 @@ class TdbctlUpgradeViewSet(viewsets.SystemViewSet):
             return Response({"result": True, "data": result})
         except ValueError as e:
             logger.error(_("查询升级记录参数错误: {}").format(str(e)))
-            return Response({"result": False, "message": str(e)}, status=400)
+            return Response({"result": False, "message": _("查询升级记录参数错误")}, status=400)
         except Exception as e:
             logger.exception(_("查询升级记录异常: {}").format(str(e)))
             return Response(
-                {"result": False, "message": _("查询异常: {}").format(str(e))},
+                {"result": False, "message": _("查询升级记录异常")},
                 status=500,
             )
 
@@ -594,11 +593,11 @@ class TdbctlUpgradeViewSet(viewsets.SystemViewSet):
             return Response(result)
         except ValueError as e:
             logger.error(_("tdbctl 升级参数错误: {}").format(str(e)))
-            return Response({"result": False, "message": str(e)}, status=400)
+            return Response({"result": False, "message": _("tdbctl 升级参数错误")}, status=400)
         except Exception as e:
             logger.exception(_("tdbctl 升级异常: {}").format(str(e)))
             return Response(
-                {"result": False, "message": _("升级异常: {}").format(str(e))},
+                {"result": False, "message": _("tdbctl 升级异常")},
                 status=500,
             )
 
@@ -658,10 +657,10 @@ class TdbctlUpgradeViewSet(viewsets.SystemViewSet):
             )
         except ValueError as e:
             logger.error(_("创建升级单据参数错误: {}").format(str(e)))
-            return Response({"result": False, "message": str(e)}, status=400)
+            return Response({"result": False, "message": _("创建升级单据参数错误")}, status=400)
         except Exception as e:
             logger.exception(_("创建升级单据异常: {}").format(str(e)))
             return Response(
-                {"result": False, "message": _("创建单据异常: {}").format(str(e))},
+                {"result": False, "message": _("创建升级单据异常")},
                 status=500,
             )

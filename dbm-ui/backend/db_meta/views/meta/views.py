@@ -8,12 +8,17 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
+
 from django.http import JsonResponse
+from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
 from rest_framework.request import Request
 
 from backend.db_meta import api
+
+logger = logging.getLogger("root")
 
 
 @api_view(["GET"])
@@ -29,4 +34,5 @@ def tendis_cluster_detail(request: Request, cluster_id):
             }
         )
     except Exception as e:  # pylint: disable=broad-except
-        return JsonResponse({"msg": "{}".format(e), "code": 1, "data": ""})
+        logger.error(_("获取Tendis集群详情失败，集群ID: {}, 错误信息: {}").format(cluster_id, e))
+        return JsonResponse({"msg": _("获取集群详情失败，请稍后重试或联系管理员"), "code": 1, "data": ""})

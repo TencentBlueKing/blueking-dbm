@@ -9,6 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import logging
+
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
@@ -20,6 +22,8 @@ from backend.ticket import builders
 from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder, SQLServerBaseOperateDetailSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
+
+logger = logging.getLogger("root")
 
 
 class SQLServerBackupDetailSerializer(SQLServerBaseOperateDetailSerializer):
@@ -49,10 +53,12 @@ class SQLServerBackupDetailSerializer(SQLServerBaseOperateDetailSerializer):
             id__cluster = {cluster.id: cluster for cluster in clusters}
             # 如果备份位置选的是master，但是slave异常，则认为是可以的
             if attrs["backup_place"] != InstanceInnerRole.MASTER:
-                raise serializers.ValidationError(e)
+                logger.error(_(f"SQLServerBackupDetailSerializer validate cluster access error: {e}"))
+                raise serializers.ValidationError(_("集群访问校验失败，请检查集群状态"))
             for info in attrs["infos"]:
                 if id__cluster[info["cluster_id"]].status_flag & ClusterSqlserverStatusFlags.BackendMasterUnavailable:
-                    raise serializers.ValidationError(e)
+                    logger.error(_(f"SQLServerBackupDetailSerializer validate cluster access error: {e}"))
+                    raise serializers.ValidationError(_("集群访问校验失败，请检查集群状态"))
         return attrs
 
 
