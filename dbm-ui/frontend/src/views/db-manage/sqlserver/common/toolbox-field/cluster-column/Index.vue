@@ -54,7 +54,10 @@
     tabListConfig?: Record<string, TabConfig>;
   }
 
-  type Emits = (e: 'batch-edit', value: SqlserverHaModel[]) => void;
+  interface Emits {
+    (e: 'batch-edit', value: SqlserverHaModel[]): void;
+    (e: 'request-success'): void;
+  }
 
   withDefaults(defineProps<Props>(), {
     field: 'cluster.master_domain',
@@ -89,6 +92,7 @@
     onSuccess(data) {
       if (data.length > 0) {
         [modelValue.value] = data;
+        emits('request-success');
       }
     },
   });
