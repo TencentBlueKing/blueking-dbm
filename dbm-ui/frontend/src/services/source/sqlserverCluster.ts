@@ -62,3 +62,12 @@ export function getIntersectedSlaveMachinesFromClusters(params: {
     }>
   >(`${getRootPath(params.bk_biz_id)}/get_intersected_slave_machines_from_clusters/`, params);
 }
+
+/**
+ * 获取集群的忽略库配置
+ */
+export function getIgnoreDbs() {
+  return http.get<{
+    [clusterId: string]: string[];
+  }>(`${getRootPath()}/get_ignore_dbs/`);
+}

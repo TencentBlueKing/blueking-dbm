@@ -21,7 +21,8 @@
               v-model="rowData.cluster"
               :cluster-types="[ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE]"
               :selected="selected"
-              @batch-edit="handleClusterBatchEdit" />
+              @batch-edit="handleClusterBatchEdit"
+              @request-success="() => handleClusterRequestSuccess(rowData)" />
             <DbNameColumn
               v-model="rowData.db_list"
               check-not-exist
@@ -117,9 +118,11 @@
 <script setup lang="ts">
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import SqlserverHaModel from '@services/model/sqlserver/sqlserver-ha';
   import { type Sqlserver } from '@services/model/ticket/ticket';
+  import { getIgnoreDbs } from '@services/source/sqlserverCluster';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
@@ -136,7 +139,7 @@
   interface IDataRow {
     backup_dbs: string[];
     cluster: {
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       id: number;
       master_domain: string;
     };
@@ -202,6 +205,8 @@
     }[];
   }>(TicketTypes.SQLSERVER_BACKUP_DBS);
 
+  const { data: ingoreDbsMap } = useRequest(getIgnoreDbs);
+
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('editableTable');
 
@@ -257,22 +262,29 @@
 
   const isBackupTypeFull = computed(() => formData.backup_type === 'full_backup');
 
-  const handleClusterBatchEdit = (clusterList: SqlserverHaModel[]) => {
-    const newList: IDataRow[] = [];
-    clusterList.forEach((item) => {
+  const handleClusterRequestSuccess = (rowData: IDataRow) => {
+    Object.assign(rowData, {
+      ignore_db_list: ingoreDbsMap.value?.[rowData.cluster.id] || [],
+    });
+  };
+
+  const handleClusterBatchEdit = (data: SqlserverHaModel[]) => {
+    const dataList = data.reduce<IDataRow[]>((acc, item) => {
       if (!clusterMemo.value[item.master_domain]) {
-        newList.push(
+        acc.push(
           createRowData({
             cluster: {
               cluster_type: item.cluster_type,
               id: item.id,
               master_domain: item.master_domain,
             },
+            ignore_db_list: ingoreDbsMap.value?.[item.id] || [],
           }),
         );
       }
-    });
-    formData.tableData = [...(formData.tableData[0].cluster.master_domain ? formData.tableData : []), ...newList];
+      return acc;
+    }, []);
+    formData.tableData = [...(formData.tableData[0].cluster.master_domain ? formData.tableData : []), ...dataList];
   };
 
   const handleDbTableBatchEdit = (value: string[], field: string) => {
