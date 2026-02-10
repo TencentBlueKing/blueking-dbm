@@ -874,7 +874,19 @@
   "refresh": "",
   "schemaVersion": 39,
   "tags": [
-    "Redis"
+    "Redis",
+    "TwemproxyRedisInstance",
+    "PredixyTendisplusCluster",
+    "TwemproxyTendisSSDInstance",
+    "PredixyRedisCluster",
+    "PredixyTendisplusCluster",
+    "TwemproxyTendisplusInstance",
+    "RedisInstance",
+    "TendisSSDInstance",
+    "TendisplusInstance",
+    "RedisCluster",
+    "TendisplusCluster",
+    "慢查询"
   ],
   "templating": {
     "list": [
@@ -1000,7 +1012,7 @@
   "timepicker": {},
   "timezone": "default",
   "title": "Redis慢查询",
-  "version": 49,
+  "version": 50,
   "weekStart": "",
   "__inputs": [
     {

@@ -1588,7 +1588,21 @@
     }
   ],
   "schemaVersion": 39,
-  "tags": [],
+  "tags": [
+    "Redis",
+    "TwemproxyRedisInstance",
+    "PredixyTendisplusCluster",
+    "TwemproxyTendisSSDInstance",
+    "PredixyRedisCluster",
+    "PredixyTendisplusCluster",
+    "TwemproxyTendisplusInstance",
+    "RedisInstance",
+    "TendisSSDInstance",
+    "TendisplusInstance",
+    "RedisCluster",
+    "TendisplusCluster",
+    "Key统计分析"
+  ],
   "templating": {
     "list": [
       {
@@ -1678,7 +1692,7 @@
   "timepicker": {},
   "timezone": "default",
   "title": "Key统计分析",
-  "version": 55,
+  "version": 56,
   "weekStart": "",
   "__inputs": [
     {
