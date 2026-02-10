@@ -14,7 +14,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.db_meta.enums import InstanceInnerRole
+from backend.db_meta.enums import ClusterType, InstanceInnerRole
+from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.cluster.views import ClusterViewSet as BaseClusterViewSet
 from backend.db_services.mysql.cluster.serializers import (
     GetIntersectedSlavaMachinesResponseSerializer,
@@ -31,6 +32,7 @@ from backend.db_services.sqlserver.cluster.serializers import (
     MultiGetDBForDrsResponseSerializer,
     MultiGetDBForDrsSerializer,
 )
+from backend.flow.utils.sqlserver.sqlserver_db_function import get_backup_filter_dbs
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 SWAGGER_TAG = "db_services/sqlserver/cluster"
@@ -100,3 +102,16 @@ class ClusterViewSet(BaseClusterViewSet):
                 is_stand_by=validated_data["is_stand_by"],
             )
         )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取集群的忽略库配置"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False)
+    def get_ignore_dbs(self, request, bk_biz_id):
+        cluster_ids = Cluster.objects.filter(
+            bk_biz_id=bk_biz_id,
+            cluster_type__in=[ClusterType.SqlserverHA, ClusterType.SqlserverSingle],
+        ).values_list("id", flat=True)
+        ignore_infos = {cluster_id: get_backup_filter_dbs(cluster_id) for cluster_id in cluster_ids}
+        return Response(ignore_infos)
