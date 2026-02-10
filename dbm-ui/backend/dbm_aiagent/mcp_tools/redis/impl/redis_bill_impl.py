@@ -9,17 +9,232 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import random
+import string
 from collections import defaultdict
 from itertools import chain
 
 from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.enums import InstanceRole
+from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Cluster, Spec, StorageInstanceTuple
-from backend.flow.consts import ClusterRoleEnum
+from backend.flow.consts import ClusterRoleEnum, RedisCapacityUpdateType
 from backend.ticket.builders.common.base import IpSource
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import SwitchConfirmType, TicketType
 from backend.ticket.models import Ticket
+
+
+def generate_custom_id():
+    """生成格式: 6位数字_13位数字_6位数字"""
+    part1 = "".join(random.choices(string.digits, k=6))
+    part2 = "".join(random.choices(string.digits, k=13))
+    part3 = "".join(random.choices(string.digits, k=6))
+    return f"{part1}_{part2}_{part3}"
+
+
+# 集群扩容
+def redis_general_scale_down(request, bk_biz_id, cluster_domain, target_group_num):
+    cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
+    if cluster_obj.cluster_type in [ClusterType.TendisPredixyTendisplusCluster, ClusterType.TendisPredixyRedisCluster]:
+        return predixy_tendisplus_rediscluster_scale_down(request, bk_biz_id, cluster_domain, target_group_num)
+    elif cluster_obj.cluster_type in [
+        ClusterType.TendisTwemproxyRedisInstance,
+        ClusterType.TwemproxyTendisSSDInstance,
+    ]:
+        return twemproxy_ssd_cache_scale_down(request, bk_biz_id, cluster_domain, target_group_num)
+    else:
+        return {"error": "redis_cluster_scale_down tools not support {}".format(cluster_obj.cluster_type)}
+
+
+def predixy_tendisplus_rediscluster_scale_down(request, bk_biz_id, cluster_domain, target_group_num):
+    """
+    predixy集群slot迁移扩缩容。 单机分片数不变。
+    """
+    if target_group_num < 3:
+        return {"error": "redis_cluster_scale_down target_group_num must >= 3"}
+    # tendisplus分片扩缩容， 对应单据：集群分片变更（Slot迁移）
+    cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
+    storageinstance_set = cluster_obj.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value).all()
+
+    master_ips = []
+    spec_id = 0
+    for st in storageinstance_set:
+        ip = st.machine.ip
+        if ip not in master_ips:
+            master_ips.append(ip)
+            spec_id = st.machine.spec_id
+    spec_mem = int(Spec.objects.get(spec_id=spec_id).get_spec_info().get("mem", {}).get("min", 0))
+
+    current_group_num = len(master_ips)
+    current_shard_num = len(storageinstance_set)
+    target_shard_num = target_group_num * current_shard_num / current_group_num
+
+    current_capacity = current_group_num * spec_mem
+    future_capacity = target_group_num * spec_mem
+    infos = []
+    # 扩容
+    if target_group_num > current_group_num:
+        ticket_type = TicketType.REDIS_SHARD_ADD
+        # 扩容组数
+        count = target_group_num - current_group_num
+        #
+        infos = [
+            {
+                "bk_cloud_id": cluster_obj.bk_cloud_id,
+                "capacity": current_capacity,
+                "cluster_id": cluster_obj.id,
+                "db_version": cluster_obj.major_version,
+                "future_capacity": future_capacity,
+                "group_num": target_group_num,
+                "resource_spec": {
+                    "backend_group": {"count": count, "label_names": [], "labels": [], "spec_id": spec_id}
+                },
+                "row_key": generate_custom_id(),
+                "shard_num": target_shard_num,
+                "update_mode": RedisCapacityUpdateType.SLOT_MIGRATE_UP,
+            }
+        ]
+    # 缩容
+    else:
+        ticket_type = TicketType.REDIS_SHARD_REDUCE
+        infos = [
+            {
+                "bk_cloud_id": cluster_obj.bk_cloud_id,
+                "capacity": current_capacity,
+                "cluster_id": cluster_obj.id,
+                "current_group_num": current_group_num,
+                "db_version": cluster_obj.major_version,
+                "future_capacity": future_capacity,
+                "group_num": target_group_num,
+                "row_key": generate_custom_id(),
+                "shard_num": target_shard_num,
+                "spec_id": spec_id,
+                "update_mode": RedisCapacityUpdateType.SLOT_MIGRATE_DOWN,
+            }
+        ]
+
+    ticket_param = {
+        "bk_biz_id": bk_biz_id,
+        "creator": request.user.username,
+        "helpers": [],
+        "remark": "mcp {} scale ticket".format(cluster_obj.cluster_type),
+        "ticket_type": ticket_type,
+        "details": {
+            # 扩容
+            "infos": infos,
+            "ip_source": IpSource.RESOURCE_POOL.value,
+        },
+    }
+    tk = Ticket.create_ticket(**ticket_param)
+    return {"bill_id": tk.pk, "bill_url": tk.url}
+
+
+def twemproxy_ssd_cache_scale_down(request, bk_biz_id, cluster_domain, target_group_num):
+    """
+    twemproxy集群容量变更。 总分片数不变
+    """
+    cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
+    master_ins = cluster_obj.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value).all()
+
+    master_ips = []
+    spec_id_statistics = defaultdict(int)
+    target_spec_id = ""
+    max_spec_id_count = 0
+    backend_hosts = []
+    for ins in master_ins:
+        # 整个集群里的spec_id可能不一样？选用数量最多的那个
+        spec_id = ins.machine.spec_id
+        spec_id_statistics[spec_id] += 1
+        if spec_id_statistics[spec_id] > max_spec_id_count:
+            target_spec_id = spec_id
+
+        if ins.machine.ip not in master_ips:
+            master_ips.append(ins.machine.ip)
+            backend_hosts.append(
+                {
+                    "ip": ins.machine.ip,
+                    "bk_biz_id": bk_biz_id,
+                    "bk_host_id": ins.machine.bk_host_id,
+                    "bk_cloud_id": cluster_obj.bk_cloud_id,
+                }
+            )
+
+            slave = StorageInstanceTuple.objects.get(ejector=ins).receiver
+            backend_hosts.append(
+                {
+                    "ip": slave.machine.ip,
+                    "bk_biz_id": bk_biz_id,
+                    "bk_host_id": slave.machine.bk_host_id,
+                    "bk_cloud_id": cluster_obj.bk_cloud_id,
+                }
+            )
+
+    current_group_num = len(master_ips)
+    shard_num = len(master_ins)
+
+    # 如果是扩容,不需要替换机器
+    if target_group_num > current_group_num:
+        update_mode = RedisCapacityUpdateType.KEEP_CURRENT_MACHINES
+        need_apply_machine_group_count = target_group_num - len(master_ips)
+        # 扩容置空
+        backend_hosts = []
+    # 如果是缩容，需要将当前机器下架
+    else:
+        update_mode = RedisCapacityUpdateType.ALL_MACHINES_REPLACE
+        need_apply_machine_group_count = target_group_num
+
+    spec_info = Spec.objects.get(spec_id=target_spec_id)
+    spec_mem = int(spec_info.get_spec_info().get("mem", {}).get("min", 0))
+    current_capacity = current_group_num * spec_mem
+    future_capacity = target_group_num * spec_mem
+
+    ticket_param = {
+        "bk_biz_id": bk_biz_id,
+        "creator": request.user.username,
+        "helpers": [],
+        "remark": "mcp {} scale ticket".format(cluster_obj.cluster_type),
+        "ticket_type": TicketType.REDIS_SCALE_UPDOWN,
+        "details": {
+            "infos": [
+                {
+                    "bk_cloud_id": cluster_obj.bk_cloud_id,
+                    "capacity": current_capacity,
+                    "cluster_id": cluster_obj.id,
+                    "db_version": cluster_obj.major_version,
+                    "display_info": {
+                        # "cluster_capacity": 14,
+                        "cluster_shard_num": shard_num,
+                        "cluster_spec": spec_info.to_dict(),
+                        # "cluster_stats": {
+                        #     "used": 68100520,
+                        #     "total": 15334772736,
+                        #     "in_use": 0.44
+                        # },
+                        "machine_pair_cnt": current_group_num,
+                    },
+                    "future_capacity": future_capacity,
+                    "group_num": target_group_num,
+                    "old_nodes": {"backend_hosts": backend_hosts},
+                    "online_switch_type": SwitchConfirmType.USER_CONFIRM,
+                    "resource_spec": {
+                        "backend_group": {
+                            "affinity": cluster_obj.disaster_tolerance_level,
+                            "count": need_apply_machine_group_count,
+                            "label_names": [],
+                            "labels": [],
+                            "spec_id": target_spec_id,
+                        }
+                    },
+                    "shard_num": shard_num,
+                    "update_mode": update_mode,
+                }
+            ],
+            "ip_source": IpSource.RESOURCE_POOL.value,
+        },
+    }
+    tk = Ticket.create_ticket(**ticket_param)
+    return {"bill_id": tk.pk, "bill_url": tk.url}
 
 
 def redis_cluster_cutoff(request, bk_biz_id, cluster_domain, cutoff_ips):
@@ -39,7 +254,7 @@ def redis_cluster_cutoff(request, bk_biz_id, cluster_domain, cutoff_ips):
                 return {"error": "{} 与 {}不是相同角色".format(ip, cutoff_ip)}
             cutoff_role_list.append({"bk_host_id": ins.machine.bk_host_id, "ip": ip, "spec_id": ins.machine.spec_id})
             spec_info = Spec.objects.get(spec_id=ins.machine.spec_id).get_spec_info()
-            spec_info["count"] = count
+            spec_info["count"] = cluster_obj.proxyinstance_set.count()
             spec_info_list.append({"bk_host_id": ins.machine.bk_host_id, "ip": ip, "spec": spec_info})
             spec_id = ins.machine.spec_id
         resource_spec = {"new_proxy": {"count": count, "label_names": [], "labels": [], "spec_id": spec_id}}
@@ -57,15 +272,11 @@ def redis_cluster_cutoff(request, bk_biz_id, cluster_domain, cutoff_ips):
                 return {"error": "{} 与 {}不是相同角色".format(ip, cutoff_ip)}
             cutoff_role_list.append({"bk_host_id": ins.machine.bk_host_id, "ip": ip, "spec_id": ins.machine.spec_id})
             spec_info = Spec.objects.get(spec_id=ins.machine.spec_id).get_spec_info()
+            # 这个count应该没什么用,先直接填充，避免因为缺少这个东西报错
             spec_info["count"] = count
             spec_info_list.append({"bk_host_id": ins.machine.bk_host_id, "ip": ip, "spec": spec_info})
             # 补充slave
             slave = StorageInstanceTuple.objects.get(ejector=ins).receiver
-            # cutoff_role_list.append({
-            #     "bk_host_id": slave.machine.bk_host_id,
-            #     "ip": slave.machine.ip,
-            #     "spec_id": slave.machine.spec_id
-            # })
             spec_info = Spec.objects.get(spec_id=slave.machine.spec_id).get_spec_info()
             spec_info["count"] = count
             spec_info_list.append({"bk_host_id": slave.machine.bk_host_id, "ip": slave.machine.ip, "spec": spec_info})
@@ -89,7 +300,7 @@ def redis_cluster_cutoff(request, bk_biz_id, cluster_domain, cutoff_ips):
             spec_info["count"] = count
             spec_info_list.append({"bk_host_id": ins.machine.bk_host_id, "ip": ip, "spec": spec_info})
             resource_spec_map[f"redis_slave_{ip}"] = {
-                "count": count,
+                "count": 1,
                 "label_names": [],
                 "labels": [],
                 "spec_id": ins.machine.spec_id,
@@ -115,7 +326,7 @@ def redis_cluster_cutoff(request, bk_biz_id, cluster_domain, cutoff_ips):
                     "resource_spec": resource_spec,
                 }
             ],
-            "ip_source": "resource_pool",
+            "ip_source": IpSource.RESOURCE_POOL.value,
         },
     }
     tk = Ticket.create_ticket(**ticket_param)
@@ -431,7 +642,7 @@ def redis_hotkey_analysis(request, bk_biz_id, cluster_domain, analysis_time, ins
             "infos": [
                 {
                     "cluster_id": cluster_obj.id,
-                    "cluster_type": "TwemproxyRedisInstance",
+                    "cluster_type": ClusterType.TendisTwemproxyRedisInstance,
                     "immute_domain": cluster_domain,
                     "ins": ins,
                     # "record_id"
