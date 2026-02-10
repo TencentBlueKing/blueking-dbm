@@ -52,7 +52,9 @@
       <div class="mt-24 mb-12">
         <span class="db-list-title">{{ t('DB 列表') }}</span>
         <span class="ml-6">
-          {{ t('( 共 x 个，共 y G )', { x: dbList.length, y: dbList.reduce((acc, cur) => acc + cur.size, 0) }) }}
+          {{
+            t('( 共 x 个，共 y G )', { x: dbList.length, y: dbList.reduce((acc, cur) => acc + cur.size, 0).toFixed(2) })
+          }}
         </span>
       </div>
       <BkTable
