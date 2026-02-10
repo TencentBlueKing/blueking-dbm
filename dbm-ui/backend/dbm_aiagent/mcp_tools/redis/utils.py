@@ -14,20 +14,25 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
 from backend.db_services.redis.util import is_predixy_proxy_type, is_twemproxy_proxy_type
-from backend.dbm_aiagent.mcp_tools.redis.constants import (
-    PREDIXY_METRICS_KEY_MAP,
-    REDIS_METRICS_KEY_MAP,
-    TWEMPROXY_METRICS_KEY_MAP,
-)
+from backend.dbm_aiagent.mcp_tools.redis.constants import METRIC_REGISTRY
 from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsInstanceRole as InstanceRole
 from backend.dbm_aiagent.mcp_tools.redis.enums import MetricType
 
 logger = logging.getLogger("root")
 
 
-def get_metric_key(cluster_type: str, metric_type: MetricType, instance_role: InstanceRole) -> Optional[str]:
+def resolve_metric_key(
+    cluster_type: str,
+    metric_type: MetricType,
+    instance_role: InstanceRole,
+) -> Optional[str]:
     """
-    Dynamically determine the metric key based on cluster type, metric type, and instance role.
+    Resolve metric key from METRIC_REGISTRY.
+
+    Logic:
+    1. Determine component (redis/predixy/twemproxy) from cluster_type and instance_role
+    2. Determine metric name from metric_type
+    3. Return "{component}_{metric_name}"
 
     Args:
         cluster_type: Cluster type string (e.g., "TendisTwemproxyRedisInstance")
@@ -35,20 +40,24 @@ def get_metric_key(cluster_type: str, metric_type: MetricType, instance_role: In
         instance_role: Role of instances (InstanceRole enum)
 
     Returns:
-        Metric config key or None if not found
+        Metric key from METRIC_REGISTRY or None if not found
     """
-    # For proxy instances, determine which proxy type
-    metric_key = None
     if instance_role == InstanceRole.PROXY:
         if is_twemproxy_proxy_type(cluster_type):
-            metric_key = TWEMPROXY_METRICS_KEY_MAP.get(metric_type)
+            component = "twemproxy"
         elif is_predixy_proxy_type(cluster_type):
-            metric_key = PREDIXY_METRICS_KEY_MAP.get(metric_type)
+            component = "predixy"
         else:
             logger.warning(f"Unknown proxy type for cluster_type: {cluster_type}")
             return None
     else:
-        metric_key = REDIS_METRICS_KEY_MAP.get(metric_type)
+        component = "redis"
+
+    metric_key = f"{component}_{metric_type.value}"
+
+    if metric_key not in METRIC_REGISTRY:
+        logger.warning(f"Metric key '{metric_key}' not found in METRIC_REGISTRY")
+        return None
 
     return metric_key
 

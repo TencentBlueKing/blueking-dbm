@@ -12,12 +12,20 @@ from enum import Enum
 
 
 class MetricType(str, Enum):
-    """Metric types supported by Redis monitoring"""
+    """
+    Metric types supported by Redis monitoring.
+    These are used as suffix of metric key in METRIC_REGISTRY.
+    """
 
-    CPU = "cpu"
-    MEMORY = "memory"
+    CPU_USAGE = "cpu_usage"
+    MEMORY_USAGE = "memory_usage"
     CONNECTIONS = "connections"
     QPS = "qps"
+    IO_USAGE = "io_usage"
+    DISK_USAGE = "disk_usage"
+    HOST_LATENCY = "host_latency"
+    COMMAND_LATENCY = "command_latency"
+    LATENCY_DISTRIBUTION = "latency_distribution"  # proxy only
 
     @staticmethod
     def get_choices() -> list:
@@ -71,3 +79,18 @@ class MetricsAggFunction(str, Enum):
     @staticmethod
     def get_choices() -> list:
         return [func.value for func in MetricsAggFunction]
+
+
+class MetricsGroupBy(str, Enum):
+    """Defines the dimension for grouping metric results"""
+
+    IP = "ip"  # Group by IP address
+    INSTANCE = "instance"  # Group by instance (ip:port)
+    CMD = "cmd"  # Group by command (for latency metrics)
+    CLUSTER_DOMAIN = "cluster_domain"  # Aggregate at cluster level
+    BUCKET = "bucket"  # Group by latency distribution buckets (for latency distribution metrics)
+
+    @staticmethod
+    def get_choices() -> list:
+        """Get list of valid group_by values for serializer choices"""
+        return [None] + [dim.value for dim in MetricsGroupBy]
