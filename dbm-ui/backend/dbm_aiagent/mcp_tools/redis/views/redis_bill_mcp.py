@@ -19,6 +19,7 @@ from backend.dbm_aiagent.mcp_tools.redis.impl.redis_bill_impl import (
     redis_extract_key,
     redis_flush_db,
     redis_full_backup,
+    redis_general_scale_down,
     redis_hotkey_analysis,
     redis_load_modules,
     redis_memory_analysis,
@@ -32,6 +33,7 @@ from backend.dbm_aiagent.mcp_tools.redis.serializers.redis_bill import (
     SubmitBillOutputSerializer,
     SubmitBillRedisAnalysisHotkeyInputSerializer,
     SubmitBillRedisBaseInputSerializer,
+    SubmitBillRedisClusterScaleInputSerializer,
     SubmitBillRedisCutoffInputSerializer,
     SubmitBillRedisDeleteKeyInputSerializer,
     SubmitBillRedisExtractKeyInputSerializer,
@@ -66,6 +68,21 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
     # done: proxy扩容、proxy缩容、整机替换
     # todo: 集群部署、容量变更、分片变更、类型变更、重做slave、迁移、回档
     # 高危todo：禁用、删除
+
+    @mcp_tools_api_decorator(
+        description=str(_("""redis集群后端存储容量变更""")),
+        request_slz=SubmitBillRedisClusterScaleInputSerializer,
+        response_slz=SubmitBillOutputSerializer,
+        tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
+        mcp=[DBMMcpTools.REDIS_BILL],
+        name_prefix="redis_bill",
+    )
+    def submit_bill_redis_cluster_scale_down(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")
+        cluster_domain = self.get_param("cluster_domain")
+        target_group_num = self.get_param("target_group_num")
+
+        return Response(redis_general_scale_down(request, bk_biz_id, cluster_domain, target_group_num))
 
     @mcp_tools_api_decorator(
         description=str(_("""redis 整机替换""")),

@@ -66,6 +66,10 @@ class SubmitBillRedisCutoffInputSerializer(SubmitBillRedisBaseInputSerializer):
     cutoff_ips = serializers.ListField(help_text=_("需要整机替换的ip列表"))
 
 
+class SubmitBillRedisClusterScaleInputSerializer(SubmitBillRedisBaseInputSerializer):
+    target_group_num = serializers.IntegerField(help_text=_("集群目标机器组数"))
+
+
 class SubmitBillRedisLoadModulesInputSerializer(SubmitBillRedisBaseInputSerializer):
     modules = serializers.ListField(help_text=_("需要安装的插件列表，目前只支持redisbloom、redisell、redisjson"))
 
