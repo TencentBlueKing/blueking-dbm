@@ -482,7 +482,8 @@ class TicketType(StrStructuredEnum):
     REDIS_DESTROY = TicketEnumField("REDIS_DESTROY", _("Redis 集群删除"), _("集群管理"))
     REDIS_INSTANCE_DESTROY = TicketEnumField("REDIS_INSTANCE_DESTROY", _("Redis 主从集群删除"), _("集群管理"))
     REDIS_PURGE = TicketEnumField("REDIS_PURGE", _("Redis 集群清档"), _("集群管理"))
-    REDIS_PROXY_FAST_FIX = TicketEnumField("REDIS_PROXY_FAST_FIX", _("Redis 集群Proxy快速恢复"), _("集群管理"))
+    REDIS_PROXY_KICKOFF = TicketEnumField("REDIS_PROXY_KICKOFF", _("Redis 集群Proxy剔除"), _("集群管理"))
+    REDIS_PROXY_FIX = TicketEnumField("REDIS_PROXY_FIX", _("Redis 集群Proxy恢复"), _("集群管理"))
 
     REDIS_SCALE_UPDOWN = TicketEnumField("REDIS_SCALE_UPDOWN", _("Redis 集群容量变更"), _("集群维护"))
     REDIS_CLUSTER_CUTOFF = TicketEnumField("REDIS_CLUSTER_CUTOFF", _("Redis 整机替换"), _("集群维护"))
@@ -534,6 +535,7 @@ class TicketType(StrStructuredEnum):
     REDIS_ENTRY_CHECK = TicketEnumField("REDIS_ENTRY_CHECK", _("Redis 入口一致性检查"))
     REDIS_FAILOVER_DRILL = TicketEnumField("REDIS_FAILOVER_DRILL", _("Redis 容灾演练"), register_iam=False)
     REDIS_ROLLBACK_EXERCISE = TicketEnumField("REDIS_ROLLBACK_EXERCISE", _("Redis 回档演练"))
+    REDIS_PROXY_FAST_RECOVER = TicketEnumField("REDIS_PROXY_FAST_RECOVER", _("Redis Proxy剔除和修复"), _("集群维护"))
 
     # 大数据
     KAFKA_APPLY = TicketEnumField("KAFKA_APPLY", _("Kafka 集群部署"), register_iam=False)
