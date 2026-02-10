@@ -142,14 +142,27 @@ func (r *Checker) runGeneral() error {
 		),
 		retry.OnRetry(
 			func(_ uint, _ error) {
-				_, cleanUpErr = r.db.Exec(
-					fmt.Sprintf("TRUNCATE TABLE `%s`.`%s`", r.resultDB, r.resultTbl),
-				)
+				// 查询MySQL版本，5.7版本使用DELETE，其他版本使用TRUNCATE TABLE
+				var version string
+				if err := r.db.QueryRow("SELECT VERSION()").Scan(&version); err != nil {
+					slog.Error("query mysql version", slog.String("error", err.Error()))
+					cleanUpErr = err
+					return
+				}
+
+				var cleanUpSQL string
+				if strings.HasPrefix(version, "5.7") {
+					cleanUpSQL = fmt.Sprintf("DELETE FROM `%s`.`%s`", r.resultDB, r.resultTbl)
+				} else {
+					cleanUpSQL = fmt.Sprintf("TRUNCATE TABLE `%s`.`%s`", r.resultDB, r.resultTbl)
+				}
+
+				_, cleanUpErr = r.db.Exec(cleanUpSQL)
 				if cleanUpErr != nil {
 					slog.Error("clean up retry run checksum", slog.String("error", cleanUpErr.Error()))
 					return
 				}
-				slog.Info("clean up retry run checksum success")
+				slog.Info("clean up retry run checksum success", slog.String("sql", cleanUpSQL))
 			},
 		),
 	).Do(

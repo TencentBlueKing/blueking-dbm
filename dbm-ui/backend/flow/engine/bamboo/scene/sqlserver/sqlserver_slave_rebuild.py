@@ -138,7 +138,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                 act_component_code=AddAlarmShieldComponent.code,
                 kwargs=asdict(
                     AddAlarmShieldComponent.kwargs(
-                        description=("执行集群原地重建单据，单据号:{}".format(self.data.get("uid"))),
+                        description=_("执行集群原地重建单据，单据号:{}".format(self.data.get("uid"))),
                         duration_seconds=86400,
                         category=MonitorShieldType.STRATEGY,
                         strategy_id=[
