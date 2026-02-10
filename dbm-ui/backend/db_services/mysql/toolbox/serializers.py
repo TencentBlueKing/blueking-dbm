@@ -323,12 +323,12 @@ class TdbctlUpgradeSerializer(serializers.Serializer):
             attrs["_validated_clusters"] = upgraded_clusters
             attrs["_skipped_clusters"] = skipped_clusters
 
-        except ValueError as e:
-            # TdbctlUpgradeHandler 抛出的参数错误
-            raise serializers.ValidationError(str(e))
-        except Exception as e:
-            # 其他异常
-            raise serializers.ValidationError(_("校验集群时发生错误: {}").format(str(e)))
+        except ValueError:
+            # TdbctlUpgradeHandler 抛出的参数错误，不向用户暴露具体异常内容
+            raise serializers.ValidationError(_("校验集群失败，请检查请求参数"))
+        except Exception:
+            # 其他异常，不向用户暴露具体异常内容
+            raise serializers.ValidationError(_("校验集群时发生错误，请稍后重试或联系管理员"))
 
         return attrs
 
