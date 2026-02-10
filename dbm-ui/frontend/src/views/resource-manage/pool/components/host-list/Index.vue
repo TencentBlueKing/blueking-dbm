@@ -94,6 +94,7 @@
       <BkDropdown
         :popover-options="{
           hideIgnoreReference: true,
+          renderDirective: 'show',
         }">
         <BkButton
           class="ml-8"
@@ -105,12 +106,12 @@
           <BkDropdownMenu>
             <AuthTemplate action-id="resource_pool_manage">
               <BkDropdownItem @click="handleExportAll">
-                {{ t('导出（全量）') }}
+                {{ isFilter ? t('导出所有（筛选后）') : t('导出所有（全量）') }}
               </BkDropdownItem>
               <BkDropdownItem
-                :class="{ 'disabled-cls': !isFilter }"
-                @click="handleExportFilter">
-                {{ t('导出（筛选后）') }}
+                :class="{ 'disabled-cls': selectionHostIdList.length === 0 }"
+                @click="handleExportSelected">
+                {{ t('导出已选') }}
               </BkDropdownItem>
             </AuthTemplate>
           </BkDropdownMenu>
@@ -504,18 +505,26 @@
   };
 
   const handleExportAll = () => {
-    resourceExport({
-      limit: -1,
-      offset: 0,
-    });
+    if (isFilter.value) {
+      resourceExport({
+        ...searchParams.value,
+        limit: -1,
+        offset: 0,
+      });
+    } else {
+      resourceExport({
+        limit: -1,
+        offset: 0,
+      });
+    }
   };
 
-  const handleExportFilter = () => {
-    if (!isFilter.value) {
+  const handleExportSelected = () => {
+    if (selectionHostIdList.value.length === 0) {
       return;
     }
     resourceExport({
-      ...searchParams.value,
+      hosts: selectionList.value.map((item) => item.ip).join(','),
       limit: -1,
       offset: 0,
     });
