@@ -128,6 +128,7 @@ func printShowResponse(result bool, errmsg string, data interface{}) error {
 		Errmsg: errmsg,
 		Data:   data,
 	}
+
 	jsonData, err := json.MarshalIndent(response, "", "  ")
 	if err != nil {
 		errResponse := ShowResponse{
@@ -139,6 +140,7 @@ func printShowResponse(result bool, errmsg string, data interface{}) error {
 		fmt.Println(string(errJsonData))
 		return nil
 	}
+
 	fmt.Println(string(jsonData))
 	return nil
 }
@@ -146,4 +148,9 @@ func printShowResponse(result bool, errmsg string, data interface{}) error {
 // printErrorResponse prints error response and returns nil (no error)
 func printErrorResponse(errmsg string) error {
 	return printShowResponse(false, errmsg, nil)
+}
+
+// printErrorResponsef prints formatted error response and returns nil (no error)
+func printErrorResponsef(format string, args ...interface{}) error {
+	return printShowResponse(false, fmt.Sprintf(format, args...), nil)
 }

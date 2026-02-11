@@ -640,8 +640,8 @@ func (hdl *MysqlClusterHandler) ShowAllMysqlClustersDomain() error {
 		if cluster.Domain != "" {
 			instList, err := hdl.dbmClient.GetAllInstancesOfDomain(cluster.Domain)
 			if err != nil {
-				return printErrorResponse(fmt.Sprintf("failed to get instances of domain(%s), errmsg: %s",
-					cluster.Domain, err.Error()))
+				return printErrorResponsef("failed to get instances of domain(%s), errmsg: %s",
+					cluster.Domain, err.Error())
 			}
 			instanceList := make([]string, 0)
 			for _, inst := range instList {
@@ -656,8 +656,8 @@ func (hdl *MysqlClusterHandler) ShowAllMysqlClustersDomain() error {
 		if cluster.DomainSlave != "" {
 			instList, err := hdl.dbmClient.GetAllInstancesOfDomain(cluster.DomainSlave)
 			if err != nil {
-				return printErrorResponse(fmt.Sprintf("failed to get instances of domain(%s), errmsg: %s",
-					cluster.DomainSlave, err.Error()))
+				return printErrorResponsef("failed to get instances of domain(%s), errmsg: %s",
+					cluster.DomainSlave, err.Error())
 			}
 			instanceList := make([]string, 0)
 			for _, inst := range instList {
@@ -699,8 +699,8 @@ func (hdl *MysqlClusterHandler) ShowAllMysqlClustersNodes() error {
 
 		metadataList, err := hdl.dbmClient.QueryMetadataFromDbm(0, ipList)
 		if err != nil {
-			return printErrorResponse(fmt.Sprintf("failed to query metadata for cluster(%s), errmsg: %s",
-				cluster.Domain, err.Error()))
+			return printErrorResponsef("failed to query metadata for cluster(%s), errmsg: %s",
+				cluster.Domain, err.Error())
 		}
 
 		clusterNodeInfo := ClusterNodeInfo{
@@ -826,8 +826,8 @@ func (hdl *MysqlClusterHandler) ShowAllMysqlClustersRouting() error {
 
 		metadataList, err := hdl.dbmClient.QueryMetadataFromDbm(0, proxyIPs)
 		if err != nil {
-			return printErrorResponse(fmt.Sprintf("failed to query metadata for cluster(%s), errmsg: %s",
-				cluster.Domain, err.Error()))
+			return printErrorResponsef("failed to query metadata for cluster(%s), errmsg: %s",
+				cluster.Domain, err.Error())
 		}
 
 		runningProxyIPs := make(map[string]bool)
