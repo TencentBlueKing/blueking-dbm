@@ -590,11 +590,11 @@
     }
 
     .trigger-input-wrap {
-      height: 20px;
+      // height: 20px;
 
       &.hide-second {
         .trigger-input {
-          width: 65px;
+          width: 68px;
         }
       }
 
