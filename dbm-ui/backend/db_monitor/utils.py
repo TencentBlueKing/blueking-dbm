@@ -28,7 +28,7 @@ logger = logging.getLogger("root")
 def bkm_get_alarm_strategy(name, bk_biz_id=env.DBA_APP_BK_BIZ_ID):
     """获取监控策略"""
 
-    res = BKMonitorV3Api.search_alarm_strategy_v3(
+    res = BKMonitorV3Api.search_alarm_strategy(
         {
             "page": 1,
             "page_size": 100,
@@ -48,12 +48,12 @@ def bkm_get_alarm_strategy(name, bk_biz_id=env.DBA_APP_BK_BIZ_ID):
 def bkm_save_alarm_strategy(params):
     """保存监控策略"""
 
-    response = BKMonitorV3Api.save_alarm_strategy_v3(params, use_admin=True, raw=True)
+    response = BKMonitorV3Api.save_alarm_strategy(params, use_admin=True, raw=True)
 
     if not response.get("result"):
         if response.get("code") == BKMonitorV3Api.ErrorCode.STRATEGY_ALREADY_EXISTS:
             params["id"] = bkm_get_alarm_strategy(params["name"])["id"]
-            return BKMonitorV3Api.save_alarm_strategy_v3(params, use_admin=True)
+            return BKMonitorV3Api.save_alarm_strategy(params, use_admin=True)
         else:
             logger.error("bkm_save_alarm_strategy failed: params: %s\n response: %s", params, response)
             raise BkMonitorSaveAlarmException(message=response.get("message"))
@@ -65,7 +65,7 @@ def bkm_delete_alarm_strategy(monitor_policy_id):
     """删除监控策略"""
 
     params = {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "ids": [monitor_policy_id]}
-    response = BKMonitorV3Api.delete_alarm_strategy_v3(params, use_admin=True, raw=True)
+    response = BKMonitorV3Api.delete_alarm_strategy(params, use_admin=True, raw=True)
     if not response.get("result"):
         logger.error("bkm_delete_alarm_strategy failed: params: %s\n response: %s", params, response)
         raise BkMonitorDeleteAlarmException(message=response.get("message"))
