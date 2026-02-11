@@ -79,6 +79,12 @@
           name: t('节点状态修复'),
           parentId: 'mongo_data',
         },
+        {
+          dbConsoleValue: 'mongodb.toolbox.clusterStandardize',
+          id: TicketTypes.MONGODB_CLUSTER_STANDARDIZE,
+          name: t('集群标准化'),
+          parentId: 'mongo_data',
+        },
       ],
       icon: 'db-icon-cluster',
       id: 'mongo_manage',
