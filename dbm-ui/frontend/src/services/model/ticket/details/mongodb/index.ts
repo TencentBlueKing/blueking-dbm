@@ -1,6 +1,7 @@
 export * from './addShardNodes';
 export * from './authorizeRules';
 export * from './backup';
+export * from './clusterStandardize';
 export * from './cutoff';
 export * from './dataExport';
 export * from './destroy';
