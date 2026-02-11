@@ -675,11 +675,11 @@ func (hdl *TenDBClusterHandler) ResetAllTenDBClusters() error {
 // ShowAllTenDBClustersDomain shows domain binding information for all TenDB clusters
 func (hdl *TenDBClusterHandler) ShowAllTenDBClustersDomain() error {
 	if config.ClusterConfig == nil {
-		return gerrors.Newf(gerrors.Failure, "config is not loaded")
+		return printErrorResponse("config is not loaded")
 	}
 
 	if hdl.dbmClient == nil {
-		return gerrors.Newf(gerrors.Failure, "dbm client is nil")
+		return printErrorResponse("dbm client is nil")
 	}
 
 	clusterDomainInfoList := make([]ClusterDomainInfo, 0)
@@ -693,8 +693,8 @@ func (hdl *TenDBClusterHandler) ShowAllTenDBClustersDomain() error {
 		if cluster.Domain != "" {
 			instList, err := hdl.dbmClient.GetAllInstancesOfDomain(cluster.Domain)
 			if err != nil {
-				return gerrors.Newf(gerrors.Failure, "failed to get instances of domain(%s), errmsg: %s",
-					cluster.Domain, err.Error())
+				return printErrorResponse(fmt.Sprintf("failed to get instances of domain(%s), errmsg: %s",
+					cluster.Domain, err.Error()))
 			}
 			instanceList := make([]string, 0)
 			for _, inst := range instList {
@@ -709,8 +709,8 @@ func (hdl *TenDBClusterHandler) ShowAllTenDBClustersDomain() error {
 		if cluster.DomainSlave != "" {
 			instList, err := hdl.dbmClient.GetAllInstancesOfDomain(cluster.DomainSlave)
 			if err != nil {
-				return gerrors.Newf(gerrors.Failure, "failed to get instances of domain(%s), errmsg: %s",
-					cluster.DomainSlave, err.Error())
+				return printErrorResponse(fmt.Sprintf("failed to get instances of domain(%s), errmsg: %s",
+					cluster.DomainSlave, err.Error()))
 			}
 			instanceList := make([]string, 0)
 			for _, inst := range instList {
@@ -731,11 +731,11 @@ func (hdl *TenDBClusterHandler) ShowAllTenDBClustersDomain() error {
 // ShowAllTenDBClustersNodes shows all nodes status and role for all TenDB clusters
 func (hdl *TenDBClusterHandler) ShowAllTenDBClustersNodes() error {
 	if config.ClusterConfig == nil {
-		return gerrors.Newf(gerrors.Failure, "config is not loaded")
+		return printErrorResponse("config is not loaded")
 	}
 
 	if hdl.dbmClient == nil {
-		return gerrors.Newf(gerrors.Failure, "dbm client is nil")
+		return printErrorResponse("dbm client is nil")
 	}
 
 	clusterNodeInfoList := make([]ClusterNodeInfo, 0)
@@ -777,8 +777,8 @@ func (hdl *TenDBClusterHandler) ShowAllTenDBClustersNodes() error {
 
 		metadataList, err := hdl.dbmClient.QueryMetadataFromDbm(0, ipList)
 		if err != nil {
-			return gerrors.Newf(gerrors.Failure, "failed to query metadata for cluster(%s), errmsg: %s",
-				cluster.Domain, err.Error())
+			return printErrorResponse(fmt.Sprintf("failed to query metadata for cluster(%s), errmsg: %s",
+				cluster.Domain, err.Error()))
 		}
 
 		clusterNodeInfo := ClusterNodeInfo{
@@ -811,7 +811,7 @@ func (hdl *TenDBClusterHandler) ShowAllTenDBClustersNodes() error {
 // Only checks Remote nodes and tdbctl nodes (Spider nodes are stateless proxies without replication)
 func (hdl *TenDBClusterHandler) ShowAllTenDBClustersReplication() error {
 	if config.ClusterConfig == nil {
-		return gerrors.Newf(gerrors.Failure, "config is not loaded")
+		return printErrorResponse("config is not loaded")
 	}
 
 	clusterReplList := make([]ClusterReplicationInfo, 0)
@@ -860,7 +860,7 @@ func (hdl *TenDBClusterHandler) ShowAllTenDBClustersReplication() error {
 		for range nodes {
 			result := <-resultCh
 			if result.err != nil {
-				return result.err
+				return printErrorResponse(result.err.Error())
 			}
 			results[result.index] = result.replInfo
 		}
@@ -1019,7 +1019,7 @@ func (hdl *TenDBClusterHandler) getClusterRoutingInfo(cluster *config.TenDBClust
 // ShowAllTenDBClustersRouting shows routing table (mysql.servers) for all TenDB clusters
 func (hdl *TenDBClusterHandler) ShowAllTenDBClustersRouting() error {
 	if config.ClusterConfig == nil {
-		return gerrors.Newf(gerrors.Failure, "config is not loaded")
+		return printErrorResponse("config is not loaded")
 	}
 
 	clusterRoutingList := make([]ClusterRoutingInfo, 0)
@@ -1027,7 +1027,7 @@ func (hdl *TenDBClusterHandler) ShowAllTenDBClustersRouting() error {
 	for _, cluster := range config.ClusterConfig.TenDBClusters {
 		routingInfo, err := hdl.getClusterRoutingInfo(&cluster)
 		if err != nil {
-			return err
+			return printErrorResponse(err.Error())
 		}
 		clusterRoutingList = append(clusterRoutingList, *routingInfo)
 	}
