@@ -164,6 +164,8 @@
 
   import { useBeforeClose } from '@hooks';
 
+  import { DBTypeInfos, DBTypes } from '@common/const';
+
   import RuleCheck from '@components/monitor-rule-check/index.vue';
 
   import JudgingCondition from '@views/monitor-alarm/common/JudgingCondition.vue';
@@ -172,6 +174,7 @@
 
   interface Props {
     data: MonitorPolicyModel;
+    dbType: DBTypes;
   }
 
   type Emits = (e: 'success') => void;
@@ -192,7 +195,7 @@
   const warnValueRef = ref();
   const dangerValueRef = ref();
   const monitorTarget = ref(t('全部业务'));
-  const nofityTarget = ref(t('各业务 DBA'));
+  const nofityTarget = ref(`{${DBTypeInfos[props.dbType].name}_DBA}`);
   const formRef = ref();
   const formModel = reactive({
     detectsConfig: {} as ComponentProps<typeof JudgingCondition>['modelValue']['detectsConfig'],

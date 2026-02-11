@@ -124,7 +124,7 @@
               disabled: nodataConfigItemTooltipsDisabled,
             }"
             behavior="simplicity"
-            class="small-select"
+            class="small-select no-data-config-agg-dimension"
             collapse-tags
             :disabled="nodataConfigItemDisabled"
             filterable
@@ -397,13 +397,17 @@
         }
 
         .small-select {
-          max-width: 200px;
+          max-width: 280px;
           min-width: 72px;
           margin: 0 6px;
         }
 
         .nodata-unchecked {
           color: #979ba5;
+        }
+
+        .no-data-config-agg-dimension {
+          width: 280px;
         }
       }
 
@@ -413,6 +417,7 @@
       }
 
       .bk-select.is-focus:not(.is-disabled).simplicity .bk-select-trigger .bk-select-tag {
+        background-color: #fff;
         border-color: #3a84ff;
       }
     }

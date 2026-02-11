@@ -36,6 +36,7 @@
     <EditStrategy
       v-model="isShowEditStrrategySideSilder"
       :data="currentChoosedRow"
+      :db-type="dbType"
       @success="handleEditRuleSuccess" />
   </ApplyPermissionCatch>
 </template>
@@ -46,6 +47,8 @@
   import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
   import { disablePolicy, enablePolicy, queryMonitorPolicyList } from '@services/source/monitor';
 
+  import { DBTypeInfos, DBTypes } from '@common/const';
+
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import MiniTag from '@components/mini-tag/index.vue';
 
@@ -54,7 +57,7 @@
   import EditStrategy from '../edit-strategy/Index.vue';
 
   interface Props {
-    activeDbType: string;
+    dbType: DBTypes;
   }
 
   interface SearchSelectItem {
@@ -69,7 +72,7 @@
   const dataSource = (params: ServiceParameters<typeof queryMonitorPolicyList>) =>
     queryMonitorPolicyList(
       Object.assign(params, {
-        db_type: props.activeDbType,
+        db_type: props.dbType,
       }),
       {
         permission: 'catch',
@@ -90,7 +93,7 @@
         { ...reqParams.value },
         {
           bk_biz_id: 0,
-          db_type: props.activeDbType,
+          db_type: props.dbType,
         },
       );
     } finally {
@@ -174,7 +177,7 @@
             style='font-size: 16px;color: #979BA5'
             type='yonghuzu'
           />
-          <span class='dba'>{t('业务 DBA')}</span>
+          <span class='dba'>{`{${DBTypeInfos[props.dbType].name}_DBA}`}</span>
         </span>
       ),
       showOverflowTooltip: true,
@@ -237,7 +240,7 @@
         </auth-button>
       ),
       showOverflowTooltip: false,
-      width: 120,
+      width: 60,
     },
   ];
 

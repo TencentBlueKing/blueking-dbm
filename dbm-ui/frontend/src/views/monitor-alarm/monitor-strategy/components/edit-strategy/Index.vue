@@ -118,6 +118,7 @@
           property="notifyTarget"
           required>
           <BkSelect
+            v-if="!isReadonlyPage"
             v-model="formModel.notifyTarget"
             class="notify-select"
             collapse-tags
@@ -144,6 +145,28 @@
               :key="item.value"
               :label="item.label"
               :value="item.value" />
+          </BkSelect>
+          <BkSelect
+            v-else
+            v-model="innerNotifyTarget"
+            disabled
+            multiple
+            multiple-mode="tag">
+            <template #tag="{ selected }">
+              <BkTag
+                v-for="item in selected"
+                :key="item">
+                <template #icon>
+                  <DbIcon
+                    class="alarm-icon"
+                    type="yonghuzu" />
+                </template>
+                {{ `${DBTypeInfos[props.dbType].name}_DBA` }}
+              </BkTag>
+            </template>
+            <BkOption
+              :label="`${DBTypeInfos[props.dbType].name}_DBA`"
+              :value="dbType" />
           </BkSelect>
         </BkFormItem>
       </BkForm>
@@ -189,6 +212,8 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { DBTypeInfos, DBTypes } from '@common/const';
+
   import RuleCheck from '@components/monitor-rule-check/index.vue';
 
   import JudgingCondition from '@views/monitor-alarm/common/JudgingCondition.vue';
@@ -203,7 +228,7 @@
     bizsMap: Record<string, string>;
     clusterList: SelectItem<string>[];
     data: MonitorPolicyModel;
-    dbType: string;
+    dbType: DBTypes;
     existedNames?: string[];
     moduleList: SelectItem<string>[];
     pageStatus?: string;
@@ -238,6 +263,8 @@
   const warnValueRef = ref();
   const dangerValueRef = ref();
   const formRef = ref();
+  const innerNotifyTarget = ref([props.dbType]);
+
   const formModel = reactive({
     detectsConfig: {} as ComponentProps<typeof JudgingCondition>['modelValue']['detectsConfig'],
     noDataConfig: {} as ComponentProps<typeof JudgingCondition>['modelValue']['noDataConfig'],
