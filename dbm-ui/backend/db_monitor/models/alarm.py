@@ -467,7 +467,7 @@ class AlertRule(AuditedModel):
 
         ids = list(cls.objects.all().values_list("monitor_policy_id", flat=True)) if not ids else ids.split(",")
         params = {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "ids": ids}
-        response = BKMonitorV3Api.delete_alarm_strategy_v3(params, use_admin=True, raw=True)
+        response = BKMonitorV3Api.delete_alarm_strategy(params, use_admin=True, raw=True)
         if not response.get("result"):
             logger.error("bkm_delete_alarm_strategy failed: params: %s\n response: %s", params, response)
             raise BkMonitorDeleteAlarmException(message=response.get("message"))

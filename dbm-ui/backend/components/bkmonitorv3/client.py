@@ -252,8 +252,18 @@ class _BKMonitorV3Api(BaseApi):
         )
         self.search_alarm_strategy = self.generate_data_api(
             method="POST",
-            url="app/alarm_strategy/search/v3/",
+            url="app/alarm_strategy/search/",
             description=_("查询告警策略"),
+        )
+        self.save_alarm_strategy = self.generate_data_api(
+            method="POST",
+            url="app/alarm_strategy/save/",
+            description=_("保存告警策略"),
+        )
+        self.delete_alarm_strategy = self.generate_data_api(
+            method="POST",
+            url="app/alarm_strategy/delete/",
+            description=_("删除告警策略"),
         )
         self.as_code_import_config = self.generate_data_api(
             method="POST", url="app/as_code/import_config/", description=_("导入AsCode配置")
