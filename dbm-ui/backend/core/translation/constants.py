@@ -46,6 +46,7 @@ EXCLUDE_FILE_PATHS = [
     "backend/iam_app/dataclass/__init__.py",
     "backend/ticket/constants.py",
     # aidev 快捷指令中文
+    "backend/dbm_aiagent/config.py",
     "backend/dbm_aiagent/agent/commands/commands.py",
     "backend/dbm_aiagent/agent/commands/es_commands.py",
     "backend/dbm_aiagent/agent/commands/kafka_commands.py",

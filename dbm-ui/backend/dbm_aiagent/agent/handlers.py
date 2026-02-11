@@ -43,7 +43,7 @@ class AgentHandler:
         create_session_params = {
             "session_code": session_code,
             "session_name": "temporary_session",
-            "is_temporary": False,
+            "is_temporary": True,
             "session_property": {},
         }
         client.api.create_chat_session(json=create_session_params, headers={"X-BKAIDEV-USER": username})
@@ -60,12 +60,7 @@ class AgentHandler:
 
     @classmethod
     def ask_agent_with_content(
-        cls,
-        agent_code: DBMAgentCode,
-        content: str,
-        username=DEFAULT_USERNAME,
-        session_code=None,
-        stream: bool = False
+        cls, agent_code: DBMAgentCode, content: str, username=DEFAULT_USERNAME, session_code=None, stream: bool = False
     ):
         """根据agent直接内容询问agent"""
         # 创建临时会话
@@ -90,11 +85,7 @@ class AgentHandler:
 
     @classmethod
     def ask_agent_with_content_in_session(
-        cls,
-        agent_code: DBMAgentCode,
-        content: str,
-        username=DEFAULT_USERNAME,
-        session_code=None
+        cls, agent_code: DBMAgentCode, content: str, username=DEFAULT_USERNAME, session_code=None
     ):
         """根据agent直接内容询问agent, 连续对话"""
         session_code = session_code or cls.create_temporary_session(username)
@@ -103,11 +94,7 @@ class AgentHandler:
 
     @classmethod
     def ask_agent_with_command(
-        cls,
-        command: str,
-        command_params: dict,
-        username=DEFAULT_USERNAME,
-        stream: bool = False
+        cls, command: str, command_params: dict, username=DEFAULT_USERNAME, stream: bool = False
     ):
         """根据快捷指令询问agent"""
         if command not in CommandProcessor._handlers:

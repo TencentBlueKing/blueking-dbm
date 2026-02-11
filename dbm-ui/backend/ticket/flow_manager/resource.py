@@ -202,8 +202,7 @@ class ResourceApplyFlow(BaseTicketFlow):
         if resp["code"] == ResourceApplyErrCode.RESOURCE_LAKE:
             # 如果是资源不足，则创建补货单，用户手动处理后可以重试资源申请
             self.create_replenish_todo()
-            log = DBResourceApi.resource_lack_analysis(params={"bill_id": self.ticket.id})["markdown_text"]
-            raise ResourceApplyInsufficientException(_("资源不足申请失败，请前往补货后重试。\n{}").format(log))
+            raise ResourceApplyInsufficientException(_("资源不足申请失败，请前往补货后重试{}").format(resp.get("message")))
         elif resp["code"] in ResourceApplyErrCode.get_values():
             raise ResourceApplyException(
                 _("资源池服务出现系统错误，请联系管理员或稍后重试。错误信息: [{}]{}").format(

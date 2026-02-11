@@ -35,9 +35,6 @@ from pipeline.eri.runtime import BambooDjangoRuntime
 from backend.env import ENABLE_DBM_AI
 from backend.flow.engine.exceptions import PipelineError
 from backend.flow.models import FlowNode, FlowTree, StateType
-from backend.flow.plugins.components.collections.common.check_cluster_alarm_for_ai import (
-    CheckClusterAlarmForAIComponent,
-)
 from backend.flow.plugins.components.collections.common.create_random_job_user import AddTempUserForClusterComponent
 from backend.flow.plugins.components.collections.common.drop_random_job_user import DropTempUserForClusterComponent
 from backend.flow.plugins.components.collections.common.empty_node import EmptyNodeComponent
@@ -122,6 +119,10 @@ class Builder(object):
         @param check_cluster_ids：需要监听的集群列表
         @param enable_converge：是否启用消息推送收敛，默认为True
         """
+        from backend.flow.plugins.components.collections.common.check_cluster_alarm_for_ai import (
+            CheckClusterAlarmForAIComponent,
+        )
+
         self.sidecar_acts.append(
             {
                 "act_name": _("分析运行期间的集群风险"),

@@ -2,13 +2,13 @@
 
 [[package]]
 name = "aidev-agent"
-version = "1.0.7.post1"
+version = "1.0.9.post4"
 description = "bkaidev agent builder"
 optional = false
 python-versions = "<4.0,>=3.10.5"
 files = [
-    {file = "aidev_agent-1.0.7.post1-py3-none-any.whl", hash = "sha256:1308dcaec9bca1992d6760425fe5a77baaca804512e86e202b5d28137c23151e"},
-    {file = "aidev_agent-1.0.7.post1.tar.gz", hash = "sha256:9104a7aed4ca45bb028bda4173ea3a258799763f23f244413b0a50db7757acd7"},
+    {file = "aidev_agent-1.0.9.post4-py3-none-any.whl", hash = "sha256:7e6a96112f0a86a4616b4d44039bef3821b158d66bab7498304825c594030c22"},
+    {file = "aidev_agent-1.0.9.post4.tar.gz", hash = "sha256:98ee12779759604c2eeb2a87e045bfdd83033381652544f2e7559f926b906ffc"},
 ]
 
 [package.dependencies]
@@ -30,19 +30,24 @@ pytz = ">=2025.2,<2026.0"
 urllib3 = ">=2.6.0"
 werkzeug = ">=3.1.3,<4.0.0"
 
+[package.source]
+type = "legacy"
+url = "https://mirrors.tencent.com/repository/pypi/tencent_pypi/simple"
+reference = "tencent"
+
 [[package]]
 name = "aidev-bkplugin"
-version = "1.0.8rc1"
+version = "1.0.15rc1"
 description = "AiDev Agent Bkplugin builtin functions"
 optional = false
 python-versions = "<4,>=3.11.9"
 files = [
-    {file = "aidev_bkplugin-1.0.8rc1-py3-none-any.whl", hash = "sha256:84e10070926d19d6e6e44807d260b2b0d634337f08f5e030a8cec60e0c6b3a24"},
-    {file = "aidev_bkplugin-1.0.8rc1.tar.gz", hash = "sha256:f093cd7e3d7457d8e5691f1f575c3f379ddf1e499936ef7691392a6c5b8b7a1b"},
+    {file = "aidev_bkplugin-1.0.15rc1-py3-none-any.whl", hash = "sha256:d59abe683e2541699b475af4ac157a48a7330d4aed2ecd0dd35f33e1ce581cfc"},
+    {file = "aidev_bkplugin-1.0.15rc1.tar.gz", hash = "sha256:5cd7a2d13846c697331f4bd59a7bc6487096fa60e2bbc18d8bbff5cd6be96bfd"},
 ]
 
 [package.dependencies]
-aidev-agent = ">=1.0.6,<1.1"
+aidev-agent = ">=1.0.9,<1.1"
 blueapps = ">=4.15.1,<5.0"
 
 [[package]]
@@ -6603,4 +6608,4 @@ cffi = ["cffi (>=1.17,<2.0)", "cffi (>=2.0.0b)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11.10,<3.12"
-content-hash = "9d329bef7f96fb55e2c1b160a311ed495652de82ef8be352fdeb0741c6add32b"
+content-hash = "28a0b734413b24d01a313dffcf86a3d2cff0e70bcc0f7779338b14bcbafc32fc"
