@@ -17,6 +17,7 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.constants import LogLabel
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.components.dbresource.client import DBResourceApi
 from backend.db_services.taskflow.handlers import TaskFlowHandler
 from backend.dbm_aiagent.agent.handlers import AgentHandler
 from backend.dbm_aiagent.agent.services.log_analysis.serializers import (
@@ -85,3 +86,19 @@ class AILogAnalysisViewSet(viewsets.SystemViewSet):
         )
 
         return res
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取单据缺货日志AI分析"),
+        request_body=GetLogAnalysisSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=GetLogAnalysisSerializer)
+    def get_resource_lack_log_analysis(self, request):
+        """获取单据缺货日志AI分析"""
+        params = self.params_validate(self.get_serializer_class())
+        try:
+            lack_log = DBResourceApi.resource_lack_analysis(params={"bill_id": params["ticket_id"]})["markdown_text"]
+        except Exception as e:  # pylint: disable=broad-except
+            logger.error(_("获取单据缺货日志AI分析失败: {}").format(e))
+            lack_log = _("暂无 AI 分析结果，如需排查错误，请先查阅原始日志。")
+        return Response(lack_log)
