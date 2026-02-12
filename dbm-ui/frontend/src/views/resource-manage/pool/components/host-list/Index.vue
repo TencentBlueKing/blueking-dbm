@@ -417,9 +417,9 @@
     },
     {
       field: 'bkMemText',
-      label: t('内存'),
+      label: t('内存（G）'),
       minWidth: 90,
-      render: ({ data }: { data: DbResourceModel }) => data.bkMemText || '0 M',
+      // render: ({ data }: { data: DbResourceModel }) => data.bkMemText || '0 M',
       showOverflow: true,
     },
     {

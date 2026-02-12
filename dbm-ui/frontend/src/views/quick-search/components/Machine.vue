@@ -84,13 +84,9 @@
         </BkTableColumn>
         <BkTableColumn
           field="bkMemText"
-          :label="t('内存')"
+          :label="t('内存（G）')"
           show-overflow
-          :width="120">
-          <template #default="{ data: rowData }: { data: FaultOrRecycleMachineModel }">
-            {{ rowData.bkMemText || '0 M' }}
-          </template>
-        </BkTableColumn>
+          :width="120" />
         <BkTableColumn
           field="bk_disk"
           :label="t('磁盘 (G)')">
