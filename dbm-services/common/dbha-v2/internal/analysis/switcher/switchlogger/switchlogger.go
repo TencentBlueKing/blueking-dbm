@@ -25,6 +25,10 @@
 // Package switchlogger provides different implementations of database switching log
 package switchlogger
 
+import (
+	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
+)
+
 // SwitchLogger is the interface for database switching log
 type SwitchLogger[T any] interface {
 	// Open initialize the resource for logging
@@ -34,3 +38,21 @@ type SwitchLogger[T any] interface {
 	// Append append a log record. Make sure this method is thread-safe
 	Append(record T) error
 }
+
+type DbSwitchLogger SwitchLogger[*hamodel.DbSwitchingLog]
+
+type SwitchLogLevel string
+
+// switch log level
+const (
+	// those log levels are used for switching steps
+
+	SwitchInfo  SwitchLogLevel = "info"
+	SwitchWarn  SwitchLogLevel = "warn"
+	SwitchError SwitchLogLevel = "error"
+
+	// those log levels are used for switching results
+
+	SwitchFail    SwitchLogLevel = "fail"
+	SwitchSuccess SwitchLogLevel = "success"
+)

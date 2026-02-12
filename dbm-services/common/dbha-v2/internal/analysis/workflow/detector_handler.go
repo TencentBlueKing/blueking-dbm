@@ -170,6 +170,9 @@ func (h *DetectorHandler) LivenessDoubleCheck(missedInsts []detector.DoubleCheck
 		logger.Debug("trigger switching by strategy %s, dbType: %s, cloudId: %d, instances: %d",
 			strategy.Name, group.DbType, group.BkCloudID, len(group.Instances))
 
+		// TODO: set the action scope and swicth ID of the switch request properly
+		req.ActionScope = hamodel.ActionScopeTypeHost
+		req.SwitchID = "test_switch_id"
 		h.switchExecutor.TriggerSwitching(group.DbType, req)
 	}
 }

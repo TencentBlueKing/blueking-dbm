@@ -57,8 +57,6 @@ type LogToDbHandler struct {
 	writeTimeout time.Duration
 }
 
-type DbSwitchLogger SwitchLogger[*hamodel.DbSwitchingLog]
-
 // NewLogToDbHandler creates a LogToDbHandler by the connection information
 func NewLogToDbHandler(proto string, ip string, port int, user string, passwd string) *LogToDbHandler {
 	return &LogToDbHandler{

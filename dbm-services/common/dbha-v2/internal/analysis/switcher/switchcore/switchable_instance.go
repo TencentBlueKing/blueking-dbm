@@ -22,10 +22,11 @@
  * SOFTWARE.
  */
 
-package switcher
+package switchcore
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -33,9 +34,22 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchmutex"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 )
 
 type SwitchCheckCode int
+type MetadataKey string
+type ClusterKey string
+type HostKey struct {
+	BkCloudID int
+	IP        string
+}
+
+func (hostKey HostKey) String() string {
+	return fmt.Sprintf("%d:%s", hostKey.BkCloudID, hostKey.IP)
+}
+
+type InstMetadataMap map[MetadataKey]*dbm.DbInstMetadata
 
 const (
 	// SwitchRequired indicates that switching is required
@@ -45,6 +59,8 @@ const (
 	// SwitchCheckUnpass indicates that the switch check unpass
 	SwitchCheckUnpass
 )
+
+const defaultClusterLockTimeout = 10 * time.Second
 
 // SwitchableInstance defines the interface for database instances that support switching operations.
 // It provides a standardized set of methods for handling instance failover and switchover procedures.
@@ -67,6 +83,9 @@ type SwitchableInstance interface {
 	// GetCluster returns the cluster name of the instance
 	GetCluster() string
 
+	// GetClusterID returns the cluster ID of the instance
+	GetClusterID() int
+
 	// GetIP returns the instance IP
 	GetIP() string
 
@@ -77,7 +96,7 @@ type SwitchableInstance interface {
 	GetStatus() dbm.DbmMetadataStatus
 
 	// ReportLogf records switch operation logs at specified level
-	ReportLogf(level SwitchLogLevel, format string, args ...any) bool
+	ReportLogf(level switchlogger.SwitchLogLevel, format string, args ...any) bool
 
 	// RollBack reverts any changes made during a failed switch attempt
 	RollBack() error
@@ -90,26 +109,63 @@ type SwitchableInstance interface {
 
 	// UpdateMetaInfo updates instance metadata after successful switch
 	UpdateMetaInfo() error
+
+	// SetSwitchID sets the switch request ID
+	SetSwitchID(switchID string)
+
+	// SetActionScope sets the action scope of the switch task
+	SetActionScope(actionScope hamodel.ActionScopeType)
 }
 
-const defaultClusterLockTimeout = 10 * time.Second
+// GenerateMetadataKey generates a unique key for instance metadata
+func GenerateMetadataKey(bkCloudId int, ip string, port int) MetadataKey {
+	return MetadataKey(fmt.Sprintf("%d:%s:%d", bkCloudId, ip, port))
+}
+
+// ExtractMetadataKeys extracts the keys of the instance data map as a slice of strings.
+func ExtractMetadataKeys[T any](instDataMap map[MetadataKey]T) []string {
+	keys := make([]string, 0, len(instDataMap))
+
+	for instKey := range instDataMap {
+		keys = append(keys, string(instKey))
+	}
+
+	return keys
+}
+
+// GenerateClusterKey generates a unique key for cluster-level lock.
+func GenerateClusterKey(bkCloudId int, clusterId int) ClusterKey {
+	return ClusterKey(fmt.Sprintf("%d:%d", bkCloudId, clusterId))
+}
+
+// GenerateHostKey generates a unique key for host-level grouping.
+func GenerateHostKey(bkCloudId int, ip string) HostKey {
+	return HostKey{
+		BkCloudID: bkCloudId,
+		IP:        ip,
+	}
+}
+
+func ParseHostKey(hostKey HostKey) (bkCloudId int, ip string) {
+	return hostKey.BkCloudID, hostKey.IP
+}
 
 func lockClusterWithTimeout(ins SwitchableInstance, clusterKey ClusterKey, timeout time.Duration) (func(), error) {
 	if clusterKey == "" {
 		return nil, gerrors.New(gerrors.Failure, "cluster key is empty")
 	}
 
-	ins.ReportLogf(SwitchInfo, "try to acquire cluster lock: %s, timeout: %s", clusterKey, timeout)
+	ins.ReportLogf(switchlogger.SwitchInfo, "try to acquire cluster lock: %s, timeout: %s", clusterKey, timeout)
 	mutex := switchmutex.Get(string(clusterKey))
 	if !mutex.TryLock(timeout) {
-		ins.ReportLogf(SwitchWarn, "timeout to acquire cluster lock: %s", clusterKey)
+		ins.ReportLogf(switchlogger.SwitchError, "timeout to acquire cluster lock: %s", clusterKey)
 		return nil, gerrors.Newf(gerrors.Failure, "timeout to acquire cluster lock: %s", clusterKey)
 	}
 
-	ins.ReportLogf(SwitchInfo, "successfully acquired cluster lock: %s", clusterKey)
+	ins.ReportLogf(switchlogger.SwitchInfo, "successfully acquired cluster lock: %s", clusterKey)
 	return func() {
 		mutex.Unlock()
-		ins.ReportLogf(SwitchInfo, "released cluster lock: %s", clusterKey)
+		ins.ReportLogf(switchlogger.SwitchInfo, "released cluster lock: %s", clusterKey)
 	}, nil
 }
 
@@ -118,10 +174,10 @@ func checkBeforeSwitch(ins SwitchableInstance) (checkResult SwitchCheckCode, ret
 
 	switch checkRes {
 	case SwitchRequired:
-		ins.ReportLogf(SwitchInfo, "check result before switch: switch required")
+		ins.ReportLogf(switchlogger.SwitchInfo, "check result before switch: switch required")
 
 	case SwitchNotNeeded:
-		ins.ReportLogf(SwitchInfo, "check result before switch: no need to switch")
+		ins.ReportLogf(switchlogger.SwitchInfo, "check result before switch: no need to switch")
 
 	default:
 		errMsg := "check result before switch: check unpass"
@@ -129,7 +185,7 @@ func checkBeforeSwitch(ins SwitchableInstance) (checkResult SwitchCheckCode, ret
 			errMsg += fmt.Sprintf(", errmsg: %s", checkErr.Error())
 		}
 
-		ins.ReportLogf(SwitchFail, "%s", errMsg)
+		ins.ReportLogf(switchlogger.SwitchError, "%s", errMsg)
 		retErr = gerrors.Newf(gerrors.Failure, "%s", errMsg)
 	}
 
@@ -138,18 +194,18 @@ func checkBeforeSwitch(ins SwitchableInstance) (checkResult SwitchCheckCode, ret
 
 // SwitchSingleInstance executes the standardized switching procedure for a single database instance.
 func SwitchSingleInstance(ins SwitchableInstance) (switchSuccess bool, retErr error) {
-	ins.ReportLogf(SwitchInfo, "start to switch single instance: %s", ins.GetInstanceInfo())
+	ins.ReportLogf(switchlogger.SwitchInfo, "start to switch single instance: %s", ins.GetInstanceInfo())
 
 	// rollback when error occurs
 	defer func() {
 		if switchSuccess {
-			ins.ReportLogf(SwitchSuccess, "successfully switch single instance: %s", ins.GetInstanceInfo())
+			ins.ReportLogf(switchlogger.SwitchInfo, "successfully switch single instance: %s", ins.GetInstanceInfo())
 			return
 		}
-		ins.ReportLogf(SwitchFail, "failed to switch single instance: %s", ins.GetInstanceInfo())
+		ins.ReportLogf(switchlogger.SwitchError, "failed to switch single instance: %s", ins.GetInstanceInfo())
 
 		if rollbackErr := ins.RollBack(); rollbackErr != nil {
-			ins.ReportLogf(SwitchFail, "failed to rollback switch: %s", rollbackErr.Error())
+			ins.ReportLogf(switchlogger.SwitchError, "failed to rollback switch: %s", rollbackErr.Error())
 			retErr = gerrors.Newf(gerrors.Failure, "switch errmsg: %s, rollback errmsg: %s",
 				retErr.Error(), rollbackErr.Error())
 		}
@@ -157,20 +213,20 @@ func SwitchSingleInstance(ins SwitchableInstance) (switchSuccess bool, retErr er
 
 	if (ins.GetStatus() != dbm.Running) && (ins.GetStatus() != dbm.Available) {
 		retErr = gerrors.Newf(gerrors.Failure, "pre-status check unpass for wrong status:%s", ins.GetStatus())
-		ins.ReportLogf(SwitchFail, "%s", retErr.Error())
+		ins.ReportLogf(switchlogger.SwitchError, "%s", retErr.Error())
 		return false, retErr
 	}
-	ins.ReportLogf(SwitchInfo, "pre-status check pass with status:%s", ins.GetStatus())
+	ins.ReportLogf(switchlogger.SwitchInfo, "pre-status check pass with status:%s", ins.GetStatus())
 
 	if err := ins.SetInstanceUnavailable(); err != nil {
 		retErr = gerrors.Newf(gerrors.Failure, "failed to set instance unavailable: %s", err.Error())
-		ins.ReportLogf(SwitchFail, "%s", retErr.Error())
+		ins.ReportLogf(switchlogger.SwitchError, "%s", retErr.Error())
 		return false, retErr
 	}
-	ins.ReportLogf(SwitchInfo, "successfully set instance unavailable")
+	ins.ReportLogf(switchlogger.SwitchInfo, "successfully set instance unavailable")
 
 	// lock the cluster that the instance belongs to
-	clusterKey := GenerateClusterKey(ins.GetBkCloudID(), ins.GetCluster())
+	clusterKey := GenerateClusterKey(ins.GetBkCloudID(), ins.GetClusterID())
 	unlock, lockErr := lockClusterWithTimeout(ins, clusterKey, defaultClusterLockTimeout)
 	if lockErr != nil {
 		retErr = lockErr
@@ -189,24 +245,24 @@ func SwitchSingleInstance(ins SwitchableInstance) (switchSuccess bool, retErr er
 
 	if err := ins.DoSwitch(); err != nil {
 		retErr = gerrors.Newf(gerrors.Failure, "failed to do switch: %s", err.Error())
-		ins.ReportLogf(SwitchFail, "%s", retErr.Error())
+		ins.ReportLogf(switchlogger.SwitchError, "%s", retErr.Error())
 		return false, retErr
 	}
-	ins.ReportLogf(SwitchInfo, "successfully do switch")
+	ins.ReportLogf(switchlogger.SwitchInfo, "successfully do switch")
 
 	if err := ins.UpdateMetaInfo(); err != nil {
 		retErr = gerrors.Newf(gerrors.Failure, "failed to update meta info: %s", err.Error())
-		ins.ReportLogf(SwitchFail, "%s", retErr.Error())
+		ins.ReportLogf(switchlogger.SwitchError, "%s", retErr.Error())
 		return false, retErr
 	}
-	ins.ReportLogf(SwitchInfo, "successfully update meta info")
+	ins.ReportLogf(switchlogger.SwitchInfo, "successfully update meta info")
 
 	if err := ins.DoFinal(); err != nil {
 		retErr = gerrors.Newf(gerrors.Failure, "failed to do final step: %s", err.Error())
-		ins.ReportLogf(SwitchFail, "%s", retErr.Error())
+		ins.ReportLogf(switchlogger.SwitchError, "%s", retErr.Error())
 		return false, retErr
 	}
-	ins.ReportLogf(SwitchInfo, "successfully do final step")
+	ins.ReportLogf(switchlogger.SwitchInfo, "successfully do final step")
 
 	return true, nil
 }
@@ -215,20 +271,20 @@ func SwitchSingleInstance(ins SwitchableInstance) (switchSuccess bool, retErr er
 func prepareForHostSwitch(ins SwitchableInstance) (needDoSwitch bool, retErr error) {
 	if (ins.GetStatus() != dbm.Running) && (ins.GetStatus() != dbm.Available) {
 		retErr = gerrors.Newf(gerrors.Failure, "pre-status check unpass for wrong status:%s", ins.GetStatus())
-		ins.ReportLogf(SwitchFail, "%s", retErr.Error())
+		ins.ReportLogf(switchlogger.SwitchError, "%s", retErr.Error())
 		return false, retErr
 	}
-	ins.ReportLogf(SwitchInfo, "pre-status check pass with status:%s", ins.GetStatus())
+	ins.ReportLogf(switchlogger.SwitchInfo, "pre-status check pass with status:%s", ins.GetStatus())
 
 	if err := ins.SetInstanceUnavailable(); err != nil {
 		retErr = gerrors.Newf(gerrors.Failure, "failed to set instance unavailable: %s", err.Error())
-		ins.ReportLogf(SwitchFail, "%s", retErr.Error())
+		ins.ReportLogf(switchlogger.SwitchError, "%s", retErr.Error())
 		return false, retErr
 	}
-	ins.ReportLogf(SwitchInfo, "successfully set instance unavailable")
+	ins.ReportLogf(switchlogger.SwitchInfo, "successfully set instance unavailable")
 
 	// lock cluster before check node status
-	clusterKey := GenerateClusterKey(ins.GetBkCloudID(), ins.GetCluster())
+	clusterKey := GenerateClusterKey(ins.GetBkCloudID(), ins.GetClusterID())
 	unlock, err := lockClusterWithTimeout(ins, clusterKey, defaultClusterLockTimeout)
 	if err != nil {
 		return false, err
@@ -247,7 +303,7 @@ func prepareForHostSwitch(ins SwitchableInstance) (needDoSwitch bool, retErr err
 // processForHostSwitch routine function that does switch processing work for one instance on the same host
 func processForHostSwitch(ins SwitchableInstance) (processErr error) {
 	// lock cluster before do switch
-	clusterKey := GenerateClusterKey(ins.GetBkCloudID(), ins.GetCluster())
+	clusterKey := GenerateClusterKey(ins.GetBkCloudID(), ins.GetClusterID())
 	unlock, err := lockClusterWithTimeout(ins, clusterKey, defaultClusterLockTimeout)
 	if err != nil {
 		return err
@@ -256,81 +312,98 @@ func processForHostSwitch(ins SwitchableInstance) (processErr error) {
 
 	if err := ins.DoSwitch(); err != nil {
 		processErr = gerrors.Newf(gerrors.Failure, "failed to do switch: %s", err.Error())
-		ins.ReportLogf(SwitchFail, "%s", processErr.Error())
+		ins.ReportLogf(switchlogger.SwitchError, "%s", processErr.Error())
 		return processErr
 	}
-	ins.ReportLogf(SwitchInfo, "successfully do switch")
+	ins.ReportLogf(switchlogger.SwitchInfo, "successfully do switch")
 
 	if err := ins.UpdateMetaInfo(); err != nil {
 		processErr = gerrors.Newf(gerrors.Failure, "failed to update meta info: %s", err.Error())
-		ins.ReportLogf(SwitchFail, "%s", processErr.Error())
+		ins.ReportLogf(switchlogger.SwitchError, "%s", processErr.Error())
 		return processErr
 	}
-	ins.ReportLogf(SwitchInfo, "successfully update meta info")
+	ins.ReportLogf(switchlogger.SwitchInfo, "successfully update meta info")
 
 	if err := ins.DoFinal(); err != nil {
 		processErr = gerrors.Newf(gerrors.Failure, "failed to do final step: %s", err.Error())
-		ins.ReportLogf(SwitchFail, "%s", processErr.Error())
+		ins.ReportLogf(switchlogger.SwitchError, "%s", processErr.Error())
 		return processErr
 	}
-	ins.ReportLogf(SwitchInfo, "successfully do final step")
+	ins.ReportLogf(switchlogger.SwitchInfo, "successfully do final step")
 
 	return nil
 }
 
-// SwitchSameHostInstances switches instances on the same host
-func SwitchSameHostInstances(instances []SwitchableInstance) (switchSuccess bool, errMap map[MetadataKey]error) {
-	switchRequiredInstances := make([]SwitchableInstance, 0)
+// SwitchSameHostInstances switches instances on the same host.
+// It returns true if all instances are switched successfully, otherwise returns false.
+// The errMap is a map of instance key to error, only contains the errors of instances that failed to switch.
+func SwitchSameHostInstances(swInstMap map[MetadataKey]SwitchableInstance) (switchSuccess bool, errMap map[MetadataKey]error) {
+	prepareFailedInsts := make([]string, 0)
+	switchNotRequiredInsts := map[MetadataKey]struct{}{}
 	errMap = make(map[MetadataKey]error)
 
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 
-	putErr := func(ins SwitchableInstance, err error) {
-		mu.Lock()
-		errMap[GenerateMetadataKey(ins.GetBkCloudID(), ins.GetIP(), ins.GetPort())] = err
-		mu.Unlock()
-	}
-
 	// do switch preparation work for all instances on the same host concurrently
-	for _, ins := range instances {
+	for instKey, ins := range swInstMap {
 		wg.Add(1)
-		go func(ins SwitchableInstance) {
+
+		go func(instKey MetadataKey, ins SwitchableInstance) {
 			defer wg.Done()
 
 			needDoSwitch, err := prepareForHostSwitch(ins)
 			if err != nil {
-				putErr(ins, err)
+				mu.Lock()
+				prepareFailedInsts = append(prepareFailedInsts, string(instKey))
+				mu.Unlock()
 				return
 			}
 
 			if needDoSwitch {
-				mu.Lock()
-				switchRequiredInstances = append(switchRequiredInstances, ins)
-				mu.Unlock()
+				return
 			}
-		}(ins)
+
+			mu.Lock()
+			switchNotRequiredInsts[instKey] = struct{}{}
+			mu.Unlock()
+		}(instKey, ins)
 	}
 
 	wg.Wait()
 
 	// Once there is an instance preparation failed, terminate the switch process of all instances on the same host
-	if len(errMap) > 0 {
+	if len(prepareFailedInsts) > 0 {
+		err := gerrors.Newf(gerrors.Failure, "failed to do switch preparation for some instances on the same host, "+
+			"failed instances: [%s]", strings.Join(prepareFailedInsts, ", "))
+
+		for instKey := range swInstMap {
+			if _, exists := switchNotRequiredInsts[instKey]; exists {
+				continue
+			}
+			errMap[instKey] = err
+		}
+
 		return false, errMap
 	}
 
 	// do switch for all instances on the same host concurrently
-	for _, ins := range switchRequiredInstances {
+	for instKey, swInst := range swInstMap {
+		if _, exists := switchNotRequiredInsts[instKey]; exists {
+			continue
+		}
+
 		wg.Add(1)
-		go func(ins SwitchableInstance) {
+
+		go func(instKey MetadataKey, ins SwitchableInstance) {
 			defer wg.Done()
 
-			err := processForHostSwitch(ins)
-			if err != nil {
-				putErr(ins, err)
-				return
+			if err := processForHostSwitch(ins); err != nil {
+				mu.Lock()
+				errMap[instKey] = err
+				mu.Unlock()
 			}
-		}(ins)
+		}(instKey, swInst)
 	}
 
 	wg.Wait()
