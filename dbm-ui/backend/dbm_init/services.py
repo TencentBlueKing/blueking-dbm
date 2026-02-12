@@ -23,7 +23,7 @@ from django.utils import timezone
 
 from backend import env
 from backend.bk_dataview.grafana.views import SwitchOrgView
-from backend.components import BKMonitorV3Api, CCApi, ItsmApi
+from backend.components import BKMonitorV3Api, CCApi, ItsmApi, JobApi
 from backend.components.constants import SSL_KEY
 from backend.components.dbconfig.sync_dbconfig import sync_dbconfig
 from backend.configuration.constants import DBM_REPORT_INITIAL_VALUE, SystemSettingsEnum
@@ -453,3 +453,24 @@ class Services:
             logger.info("dbm同步dbconfig成功")
         except Exception as e:
             logger.info("dbm同步dbconfig异常: %s" % str(e))
+
+    @classmethod
+    def auto_create_job_user(cls, account_list: list):
+        """自动创建job用户"""
+        for account in account_list:
+            try:
+                payload = {
+                    "bk_scope_type": "biz_set",
+                    "bk_scope_id": str(env.JOB_BLUEKING_BIZ_ID),
+                    "account": account,
+                    "type": 1,
+                    "category": 1,
+                }
+                job_counter = JobApi.get_account_list(payload)
+                if job_counter.get("total") > 0:
+                    logger.info("job用户 : {} 已存在".format(account))
+                else:
+                    job_user = JobApi.create_account(payload)
+                    logger.info("dbm创建job用户成功 : {}".format(job_user.get("account")))
+            except Exception as e:
+                logger.info("dbm创建job用户: {} 异常: {}".format(account, str(e)))
