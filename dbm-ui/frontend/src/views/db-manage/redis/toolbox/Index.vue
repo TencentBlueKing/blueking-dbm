@@ -187,6 +187,12 @@
           parentId: 'cluster-manage',
         },
         {
+          dbConsoleValue: 'redis.toolbox.proxyFastFix',
+          id: TicketTypes.REDIS_PROXY_FAST_FIX,
+          name: t('Proxy 剔除和修复'),
+          parentId: 'common-manage',
+        },
+        {
           dbConsoleValue: 'redis.toolbox.capacityChange',
           id: TicketTypes.REDIS_SCALE_UPDOWN,
           name: t('集群容量变更'),
