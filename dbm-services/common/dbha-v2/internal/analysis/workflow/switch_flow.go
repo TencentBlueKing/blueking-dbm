@@ -34,6 +34,7 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
+	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchcore"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/monitor"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
@@ -82,7 +83,7 @@ func (e *SwitchExecutor) CreateRequestWithGroup(group *FailureGroup) *switcher.R
 			continue
 		}
 
-		req.AddDbInstMetadata((*switcher.MysqlInstanceMetadata)(meta))
+		req.AddDbInstMetadata(meta)
 	}
 
 	if skippedCount > 0 {
@@ -174,7 +175,7 @@ func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.R
 
 	// post the success alarm
 	for _, inst := range req.GetDbInstMetadata() {
-		instKey := switcher.GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
+		instKey := switchcore.GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
 
 		if _, exists := rsp.MySqlFailureInsts[instKey]; exists {
 			continue

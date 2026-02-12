@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package switcher
+package switchcore
 
 import (
 	"fmt"
@@ -41,19 +41,15 @@ const (
 	InstanceRoleNotAvailable string = "N/A"
 )
 
-type SwitchLogLevel string
-
-// switch log level
-const (
-	SwitchInfo    SwitchLogLevel = "info"
-	SwitchWarn    SwitchLogLevel = "warn"
-	SwitchFail    SwitchLogLevel = "fail"
-	SwitchSuccess SwitchLogLevel = "success"
-)
-
 // BaseSwitchInstance provides base functionality for database instance switching operations
 // It contains instance metadata and common switching methods used across different database types
 type BaseSwitchInstance struct {
+	// The switch ID corresponds to a switch request
+	SwitchID string
+
+	// The action scope of the switch task
+	ActionScope hamodel.ActionScopeType
+
 	// The following are instance metadata information from DBM
 	IP           string
 	Port         int
@@ -68,7 +64,7 @@ type BaseSwitchInstance struct {
 	InstanceRole dbm.DbmMetadataInstanceRole
 
 	// Http client for DBM
-	dbmClient *dbm.Client
+	DbmClient *dbm.Client
 	// loggers for recording switch operation
 	switchLoggers []switchlogger.DbSwitchLogger
 }
@@ -107,6 +103,11 @@ func (sw *BaseSwitchInstance) GetCluster() string {
 	return sw.Cluster
 }
 
+// GetClusterID returns the cluster ID of the instance.
+func (sw *BaseSwitchInstance) GetClusterID() int {
+	return sw.ClusterID
+}
+
 // GetIP returns the instance IP.
 func (sw *BaseSwitchInstance) GetIP() string {
 	return sw.IP
@@ -117,32 +118,42 @@ func (sw *BaseSwitchInstance) GetPort() int {
 	return sw.Port
 }
 
+// SetSwitchID sets the switch request ID.
+func (sw *BaseSwitchInstance) SetSwitchID(switchID string) {
+	sw.SwitchID = switchID
+}
+
+// SetActionScope sets the action scope of the switch task.
+func (sw *BaseSwitchInstance) SetActionScope(actionScope hamodel.ActionScopeType) {
+	sw.ActionScope = actionScope
+}
+
 // SetInstanceUnavailable marks the instance as unavailable
 func (sw *BaseSwitchInstance) SetInstanceUnavailable() error {
-	err := sw.dbmClient.UpdateInstanceStatus(sw.BkCloudID, sw.IP, sw.Port, dbm.Unavailable)
+	err := sw.DbmClient.UpdateInstanceStatus(sw.BkCloudID, sw.IP, sw.Port, dbm.Unavailable)
 	return err
 }
 
 func (sw *BaseSwitchInstance) releaseDNSEntry(dnsEntries []dbm.BindEntryDnsInfo) bool {
 	allSuccess := true
-	if dnsEntries == nil {
-		sw.ReportLog(SwitchInfo, "no dns entry to release")
+	if len(dnsEntries) == 0 {
+		sw.ReportLog(switchlogger.SwitchInfo, "no dns entry to release")
 		return allSuccess
 	}
 
 	for _, dns := range dnsEntries {
 		if (sw.MachineType == haprobe.DbmMetadataMachineTypeProxy) ||
 			(sw.MachineType == haprobe.DbmMetadataMachineTypeSpider) {
-			addressNum, err := sw.dbmClient.GetAddressNumberOfDomain(sw.BkCloudID, dns.DomainName)
+			addressNum, err := sw.DbmClient.GetAddressNumberOfDomain(sw.BkCloudID, dns.DomainName)
 			if err != nil {
-				sw.ReportLogf(SwitchWarn, "failed to get address number of domain (%s): %s",
+				sw.ReportLogf(switchlogger.SwitchWarn, "failed to get address number of domain (%s): %s",
 					dns.DomainName, err.Error())
 				allSuccess = false
 				continue
 			}
-			sw.ReportLogf(SwitchInfo, "found %d addresses in domain (%s)", addressNum, dns.DomainName)
+			sw.ReportLogf(switchlogger.SwitchInfo, "found %d addresses in domain (%s)", addressNum, dns.DomainName)
 			if addressNum <= 1 {
-				sw.ReportLogf(SwitchWarn, "only single address in domain (%s), skip this release", dns.DomainName)
+				sw.ReportLogf(switchlogger.SwitchWarn, "only single address in domain (%s), skip this release", dns.DomainName)
 				continue
 			}
 		}
@@ -153,14 +164,14 @@ func (sw *BaseSwitchInstance) releaseDNSEntry(dnsEntries []dbm.BindEntryDnsInfo)
 			}
 
 			ins := fmt.Sprintf("%s#%d", ip, dns.BindPort)
-			err := sw.dbmClient.DeleteFromDomain(sw.BkCloudID, dns.DomainName, ins, sw.GetApp())
+			err := sw.DbmClient.DeleteFromDomain(sw.BkCloudID, dns.DomainName, ins, sw.GetApp())
 			if err == nil {
-				sw.ReportLogf(SwitchInfo, "successfully delete this instance(%s) from domain(%s)",
+				sw.ReportLogf(switchlogger.SwitchInfo, "successfully delete this instance(%s) from domain(%s)",
 					ins, dns.DomainName)
 				break
 			}
 
-			sw.ReportLogf(SwitchWarn, "failed to delete this instance(%s) from domain(%s): %s",
+			sw.ReportLogf(switchlogger.SwitchWarn, "failed to delete this instance(%s) from domain(%s): %s",
 				ins, dns.DomainName, err.Error())
 			allSuccess = false
 			break
@@ -168,7 +179,7 @@ func (sw *BaseSwitchInstance) releaseDNSEntry(dnsEntries []dbm.BindEntryDnsInfo)
 	}
 
 	if allSuccess {
-		sw.ReportLog(SwitchInfo, "successfully release this instance from all dns entries")
+		sw.ReportLog(switchlogger.SwitchInfo, "successfully release this instance from all dns entries")
 	}
 
 	return allSuccess
@@ -177,7 +188,7 @@ func (sw *BaseSwitchInstance) releaseDNSEntry(dnsEntries []dbm.BindEntryDnsInfo)
 func (sw *BaseSwitchInstance) releaseCLBEntry(clbEntries []dbm.BindEntryClbInfo) bool {
 	allSuccess := true
 	if clbEntries == nil {
-		sw.ReportLog(SwitchInfo, "no clb entry to release")
+		sw.ReportLog(switchlogger.SwitchInfo, "no clb entry to release")
 		return allSuccess
 	}
 
@@ -188,16 +199,16 @@ func (sw *BaseSwitchInstance) releaseCLBEntry(clbEntries []dbm.BindEntryClbInfo)
 			}
 
 			ins := fmt.Sprintf("%s:%d", ip, clb.BindPort)
-			err := sw.dbmClient.DeleteFromCLB(
+			err := sw.DbmClient.DeleteFromCLB(
 				sw.BkCloudID, clb.Region, clb.LoadBalanceId, clb.ListenId, ins,
 			)
 			if err == nil {
-				sw.ReportLogf(SwitchInfo, "successfully delete %s from clb(%s:%s:%s)",
+				sw.ReportLogf(switchlogger.SwitchInfo, "successfully delete %s from clb(%s:%s:%s)",
 					ins, clb.Region, clb.LoadBalanceId, clb.ListenId)
 				break
 			}
 
-			sw.ReportLogf(SwitchWarn, "failed to delete %s from clb(%s:%s:%s): %s",
+			sw.ReportLogf(switchlogger.SwitchWarn, "failed to delete %s from clb(%s:%s:%s): %s",
 				ins, clb.Region, clb.LoadBalanceId, clb.ListenId, err.Error())
 			allSuccess = false
 			break
@@ -205,7 +216,7 @@ func (sw *BaseSwitchInstance) releaseCLBEntry(clbEntries []dbm.BindEntryClbInfo)
 	}
 
 	if allSuccess {
-		sw.ReportLog(SwitchInfo, "successfully release this instance from all clb entries")
+		sw.ReportLog(switchlogger.SwitchInfo, "successfully release this instance from all clb entries")
 	}
 
 	return allSuccess
@@ -214,7 +225,7 @@ func (sw *BaseSwitchInstance) releaseCLBEntry(clbEntries []dbm.BindEntryClbInfo)
 func (sw *BaseSwitchInstance) releasePolarisEntry(polarisEntries []dbm.BindEntryPolarisInfo) bool {
 	allSuccess := true
 	if polarisEntries == nil {
-		sw.ReportLog(SwitchInfo, "no polaris entry to release")
+		sw.ReportLog(switchlogger.SwitchInfo, "no polaris entry to release")
 		return allSuccess
 	}
 
@@ -225,16 +236,16 @@ func (sw *BaseSwitchInstance) releasePolarisEntry(polarisEntries []dbm.BindEntry
 			}
 
 			ins := fmt.Sprintf("%s:%d", ip, pinfo.BindPort)
-			err := sw.dbmClient.DeleteFromPolaris(
+			err := sw.DbmClient.DeleteFromPolaris(
 				sw.BkCloudID, pinfo.Service, pinfo.Token, ins,
 			)
 			if err == nil {
-				sw.ReportLogf(SwitchInfo, "successfully delete (%s) from polaris %s:%s",
+				sw.ReportLogf(switchlogger.SwitchInfo, "successfully delete (%s) from polaris %s:%s",
 					ins, pinfo.Service, pinfo.Token)
 				break
 			}
 
-			sw.ReportLogf(SwitchWarn, "failed to delete (%s) from polaris %s:%s: %s",
+			sw.ReportLogf(switchlogger.SwitchWarn, "failed to delete (%s) from polaris %s:%s: %s",
 				ins, pinfo.Service, pinfo.Token, err.Error())
 			allSuccess = false
 			break
@@ -242,7 +253,7 @@ func (sw *BaseSwitchInstance) releasePolarisEntry(polarisEntries []dbm.BindEntry
 	}
 
 	if allSuccess {
-		sw.ReportLog(SwitchInfo, "successfully release this instance from all polaris entries")
+		sw.ReportLog(switchlogger.SwitchInfo, "successfully release this instance from all polaris entries")
 	}
 
 	return allSuccess
@@ -259,7 +270,7 @@ func (sw *BaseSwitchInstance) DeleteNameService(entry dbm.DbmMetadataBindEntry) 
 		return gerrors.New(gerrors.Failure, "failed to release this instance from all entries")
 	}
 
-	sw.ReportLog(SwitchInfo, "successfully release this instance from all entries")
+	sw.ReportLog(switchlogger.SwitchInfo, "successfully release this instance from all entries")
 	return nil
 }
 
@@ -289,13 +300,16 @@ func (sw *BaseSwitchInstance) SetSwitchLogger(loggers []switchlogger.DbSwitchLog
 }
 
 // ReportLog records switching operation logs with specified level
-func (sw *BaseSwitchInstance) ReportLog(level SwitchLogLevel, message string) bool {
+func (sw *BaseSwitchInstance) ReportLog(level switchlogger.SwitchLogLevel, message string) bool {
 	logTime := time.Now()
 	logRecord := hamodel.DbSwitchingLog{
+		SwitchID:    sw.SwitchID,
+		ActionScope: string(sw.ActionScope),
 		BkBizID:     sw.BkBizID,
 		BkCloudID:   sw.BkCloudID,
 		DbIP:        sw.IP,
 		DbPort:      sw.Port,
+		ClusterID:   sw.ClusterID,
 		ClusterName: sw.Cluster,
 		DbTypeName:  string(sw.MachineType),
 		Level:       string(level),
@@ -312,14 +326,14 @@ func (sw *BaseSwitchInstance) ReportLog(level SwitchLogLevel, message string) bo
 
 	for _, swlogger := range sw.switchLoggers {
 		if logErr := swlogger.Append(&logRecord); logErr != nil {
-			logger.Warn("failed to append switch log record, inst: %s:%d, err: %s",
-				sw.IP, sw.Port, logErr.Error())
+			logger.Warn("failed to append switch log record, inst: %d:%s:%d, err: %s",
+				sw.BkCloudID, sw.IP, sw.Port, logErr.Error())
 		}
 	}
 	return true
 }
 
 // ReportLogf records formatted switching operation logs
-func (sw *BaseSwitchInstance) ReportLogf(level SwitchLogLevel, format string, args ...any) bool {
+func (sw *BaseSwitchInstance) ReportLogf(level switchlogger.SwitchLogLevel, format string, args ...any) bool {
 	return sw.ReportLog(level, fmt.Sprintf(format, args...))
 }
