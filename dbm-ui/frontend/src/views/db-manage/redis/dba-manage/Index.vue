@@ -32,6 +32,11 @@
       name: t('整机替换'),
     },
     {
+      dbConsoleValue: 'dbaManage.redis.proxyFastFix',
+      id: `DBA_${TicketTypes.REDIS_PROXY_FAST_FIX}`,
+      name: t('Proxy 剔除和修复'),
+    },
+    {
       dbConsoleValue: 'dbaManage.redis.clusterReinstallDbmon',
       id: `DBA_${TicketTypes.REDIS_CLUSTER_REINSTALL_DBMON}`,
       name: t('集群标准化'),
