@@ -13,7 +13,7 @@
 
 import { MachineEvents } from '@common/const/machineEvents';
 
-import { bytePretty, utcDisplayTime } from '@utils';
+import { utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
@@ -83,7 +83,8 @@ export default class FaultOrRecycleMachine {
   }
 
   get bkMemText() {
-    return bytePretty(this.bk_mem * 1024 * 1024);
+    // return bytePretty(this.bk_mem * 1024 * 1024);
+    return (this.bk_mem / 1024).toFixed(2);
   }
 
   get poolDispaly() {
