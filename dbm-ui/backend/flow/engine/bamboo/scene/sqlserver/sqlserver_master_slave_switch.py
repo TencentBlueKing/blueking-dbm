@@ -75,12 +75,18 @@ class SqlserverSwitchFlow(BaseFlow):
             sub_flow_context.update(info)
             sub_pipeline = SubBuilder(root_id=self.root_id, data=sub_flow_context)
 
+            # 这里做一个判断，优化下发执行器的逻辑，如果是主从互切，master和slave都下发执行器，如果是主故障切换，只下发slave
+            if self.data["force"]:
+                target_hosts = [Host(**info["slave"])]
+            else:
+                target_hosts = [Host(**info["master"]), Host(**info["slave"])]
+
             sub_pipeline.add_act(
                 act_name=_("下发执行器"),
                 act_component_code=TransFileInWindowsComponent.code,
                 kwargs=asdict(
                     DownloadMediaKwargs(
-                        target_hosts=[Host(**info["slave"])],
+                        target_hosts=target_hosts,
                         file_list=GetFileList(db_type=DBType.Sqlserver).get_db_actuator_package(),
                     ),
                 ),

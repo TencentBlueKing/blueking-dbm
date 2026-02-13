@@ -171,6 +171,10 @@ IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[BACKU
 DROP TABLE [dbo].[BACKUP_FILTER]
 GO
 
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[DBM_NGINX_PROXY]') AND type in (N'U'))
+DROP TABLE [dbo].[DBM_NGINX_PROXY]
+GO
+
 IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[BACKUP_COMMON_TABLE]') AND type in (N'U'))
 DROP TABLE [dbo].[BACKUP_COMMON_TABLE]
 GO
@@ -296,6 +300,22 @@ CREATE TABLE [dbo].[BACKUP_FILTER](
 ) ON [PRIMARY]
 
 GO
+
+/****** Object:  Table [dbo].[DBM_NGINX_PROXY]    Script Date: 2024/4/7 16:15:50 ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[DBM_NGINX_PROXY](
+	[IP] [varchar](100) NOT NULL,
+	[PORT] [int] NOT NULL,
+	[BK_CLOUD_ID] [int] NOT NULL
+) ON [PRIMARY]
+
+GO
+
 
 /****** Object:  Table [dbo].[BACKUP_TRACE]    Script Date: 2024/4/7 16:15:50 ******/
 SET ANSI_NULLS ON
@@ -2987,7 +3007,6 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 
-
 CREATE PROCEDURE [dbo].[TOOL_BACKUP_DATABASE]
 	@TYPE [int] = 1,
 	@BACKUP_ID varchar(100) = '',
@@ -3416,6 +3435,14 @@ BEGIN
 		ELSE
 			SET @TASK_ID='0'
 		
+		-- Determine cluster_type based on role
+		DECLARE @CLUSTER_TYPE_VAL VARCHAR(50)
+		SET @CLUSTER_TYPE_VAL = CASE WHEN @ROLE = 'orphan' THEN 'sqlserver_single' ELSE 'sqlserver_ha' END
+
+		-- Determine event_type based on backup type
+		DECLARE @EVENT_TYPE_VAL VARCHAR(50)
+		SET @EVENT_TYPE_VAL = CASE WHEN @TYPE = 1 THEN 'sqlserver_dbbackup_result' ELSE 'sqlserver_binlog_result' END
+
 		IF @TYPE=1
 		BEGIN
 			SET @BACKUP_STR='{"cluster_id":'+@CLUSTER_ID+',"cluster_address":"'+@CLUSTER_DOMAIN+'","backup_host":"'+@IP+'","backup_port":'+@PORT+',"master_ip":"'+@MASTER_IP+'","master_port":'+@MASTER_PORT+',"role":"'+@ROLE+'","backup_type":"'+@BACKUP_TYPE+'","bill_id":"","bk_biz_id":'+@BK_BIZ_ID+',"bk_cloud_id":'+@BK_CLOUD_ID+',"charset":"'+@CHARSET+'","time_zone":"'+@TIME_ZONE+'","version":"'+@VERSION+'","data_schema_grant":"'+@DATA_SCHEMA_GRANT+'","is_full_backup":'+(case when @TYPE=1  then 'true' else 'false' end) +',"backup_id":"'+@BACKUP_ID+'","firstlsn":'+convert(varchar,@FirstLSN)+',"lastlsn":'+convert(varchar,@LastLSN)+',"checkpointlsn":'+convert(varchar,@CheckpointLSN)+',"databasebackuplsn":'+convert(varchar,@DataBaseBackupLSN)+',"backup_task_start_time":"'+replace(@BACKUP_TASK_START_TIME,' ' ,'T')+@TIME_ZONE+'","backup_task_end_time":"'+replace(@BACKUP_TASK_END_TIME,' ' ,'T')+@TIME_ZONE+'","db_list":"'+@DBLIST+'","file_cnt":'+convert(varchar,@FILECNT)+',"task_id":"'+@TASK_ID+'","dbname":"'+@DBNAME+'","backup_begin_time":"'+replace(CONVERT(varchar,@BackupStartDate,120),' ' ,'T')+@TIME_ZONE+'","backup_end_time":"'+replace(CONVERT(varchar,@BackupFinishDate,120),' ' ,'T')+@TIME_ZONE+'","file_name":"'+@FILENAME+'","file_size_kb":'+convert(varchar,@FILESIZE)+',"db_size_kb":'+convert(varchar,@DBSIZE)+',"compatibility_level":'+convert(varchar,@DBLEVEL)+',"local_path":"'+replace(@BACKUP_PATH,'\','\\')+'"}'
@@ -3426,8 +3453,34 @@ BEGIN
 			SET @BACKUP_STR='{"cluster_id":'+@CLUSTER_ID+',"cluster_domain":"'+@CLUSTER_DOMAIN+'","db_role":"'+@ROLE+'","host":"'+@IP+'","port":'+@PORT+',"bk_biz_id":'+@BK_BIZ_ID+',"bk_cloud_id":'+@BK_CLOUD_ID+',"backup_id":"'+@BACKUP_ID+'","firstlsn":'+convert(varchar,@FirstLSN)+',"lastlsn":'+convert(varchar,@LastLSN)+',"checkpointlsn":'+convert(varchar,@CheckpointLSN)+',"databasebackuplsn":'+convert(varchar,@DataBaseBackupLSN)+',"file_name":"'+@FILENAME+'","size":'+convert(varchar,@FILESIZE)+',"backup_task_start_time":"'+replace(@BACKUP_TASK_START_TIME,' ' ,'T')+@TIME_ZONE+'","backup_task_end_time":"'+replace(@BACKUP_TASK_END_TIME,' ' ,'T')+@TIME_ZONE+'","backup_begin_time":"'+replace(CONVERT(varchar,@BackupStartDate,120),' ' ,'T')+@TIME_ZONE+'","backup_end_time":"'+replace(CONVERT(varchar,@BackupFinishDate,120),' ' ,'T')+@TIME_ZONE+'","backup_status":4,"backup_status_info":"","task_id":"'+@TASK_ID+'","dbname":"'+@DBNAME+'","file_cnt":'+convert(varchar,@FILECNT)+',"local_path":"'+replace(@BACKUP_PATH,'\','\\')+'"}'
 			SET @CMD = 'echo '+@BACKUP_STR+'>>D:\dbbak\binlog_result.log' 
 		END
+		-- Write backup result to log file
 		PRINT @CMD
 		EXEC XP_CMDSHELL @CMD
+
+		-- Build REPORT_JSON independently (not referencing @BACKUP_STR), with LSN fields as string type
+		DECLARE @REPORT_JSON NVARCHAR(MAX)
+		IF @TYPE=1
+		BEGIN
+			SET @REPORT_JSON='[{"cluster_id":'+@CLUSTER_ID+',"cluster_domain":"'+@CLUSTER_DOMAIN+'","backup_host":"'+@IP+'","backup_port":'+@PORT+',"master_ip":"'+@MASTER_IP+'","master_port":'+@MASTER_PORT+',"role":"'+@ROLE+'","backup_type":"'+@BACKUP_TYPE+'","bill_id":"","bk_biz_id":'+@BK_BIZ_ID+',"bk_cloud_id":'+@BK_CLOUD_ID+',"charset":"'+@CHARSET+'","time_zone":"'+@TIME_ZONE+'","version":"'+@VERSION+'","data_schema_grant":"'+@DATA_SCHEMA_GRANT+'","is_full_backup":'+(case when @TYPE=1 then 'true' else 'false' end)+',"backup_id":"'+@BACKUP_ID+'","firstlsn":"'+convert(varchar,@FirstLSN)+'","lastlsn":"'+convert(varchar,@LastLSN)+'","checkpointlsn":"'+convert(varchar,@CheckpointLSN)+'","databasebackuplsn":"'+convert(varchar,@DataBaseBackupLSN)+'","backup_task_start_time":"'+replace(@BACKUP_TASK_START_TIME,' ','T')+@TIME_ZONE+'","backup_task_end_time":"'+replace(@BACKUP_TASK_END_TIME,' ','T')+@TIME_ZONE+'","db_list":"'+@DBLIST+'","file_cnt":'+convert(varchar,@FILECNT)+',"task_id":"'+@TASK_ID+'","dbname":"'+@DBNAME+'","backup_begin_time":"'+replace(CONVERT(varchar,@BackupStartDate,120),' ','T')+@TIME_ZONE+'","backup_end_time":"'+replace(CONVERT(varchar,@BackupFinishDate,120),' ','T')+@TIME_ZONE+'","file_name":"'+@FILENAME+'","file_size_kb":'+convert(varchar,@FILESIZE)+',"db_size_kb":'+convert(varchar,@DBSIZE)+',"compatibility_level":'+convert(varchar,@DBLEVEL)+',"local_path":"'+replace(@BACKUP_PATH,'\','\\')+'","cluster_type":"'+@CLUSTER_TYPE_VAL+'","event_type":"'+@EVENT_TYPE_VAL+'"}]'
+		END
+		ELSE
+		BEGIN
+			SET @REPORT_JSON='[{"cluster_id":'+@CLUSTER_ID+',"cluster_domain":"'+@CLUSTER_DOMAIN+'","db_role":"'+@ROLE+'","host":"'+@IP+'","port":'+@PORT+',"bk_biz_id":'+@BK_BIZ_ID+',"bk_cloud_id":'+@BK_CLOUD_ID+',"backup_id":"'+@BACKUP_ID+'","firstlsn":"'+convert(varchar,@FirstLSN)+'","lastlsn":"'+convert(varchar,@LastLSN)+'","checkpointlsn":"'+convert(varchar,@CheckpointLSN)+'","databasebackuplsn":"'+convert(varchar,@DataBaseBackupLSN)+'","file_name":"'+@FILENAME+'","size":'+convert(varchar,@FILESIZE)+',"backup_task_start_time":"'+replace(@BACKUP_TASK_START_TIME,' ','T')+@TIME_ZONE+'","backup_task_end_time":"'+replace(@BACKUP_TASK_END_TIME,' ','T')+@TIME_ZONE+'","backup_begin_time":"'+replace(CONVERT(varchar,@BackupStartDate,120),' ','T')+@TIME_ZONE+'","backup_end_time":"'+replace(CONVERT(varchar,@BackupFinishDate,120),' ','T')+@TIME_ZONE+'","backup_status":4,"backup_status_info":"","task_id":"'+@TASK_ID+'","dbname":"'+@DBNAME+'","file_cnt":'+convert(varchar,@FILECNT)+',"local_path":"'+replace(@BACKUP_PATH,'\','\\')+'","cluster_type":"'+@CLUSTER_TYPE_VAL+'","event_type":"'+@EVENT_TYPE_VAL+'"}]'
+		END
+
+		-- Report backup result via HTTP API
+		PRINT 'Reporting backup result via API: ' + @REPORT_JSON
+		BEGIN TRY
+			EXEC [Monitor].[dbo].[USP_REPORT_BACKUP_RESULT] @JsonBody = @REPORT_JSON
+		END TRY
+		BEGIN CATCH
+			SET @ERROR_MESSAGE = 'Failed to report backup result for database [' + @DBNAME + ']: ' + ERROR_MESSAGE()
+			PRINT @ERROR_MESSAGE
+			CLOSE dblist_cur;
+			DEALLOCATE dblist_cur;
+			RAISERROR(@ERROR_MESSAGE, 16, 1)
+			RETURN
+		END CATCH
 
 		FETCH NEXT FROM dblist_cur INTO @DBNAME,@PATH,@FILENAME,@STARTTIME,@ENDTIME;
 	END
@@ -4218,3 +4271,252 @@ GO
 
 /****** Object: init mssql_data_read_drs account ******/
 insert into [Monitor].[dbo].[AUTO_GRANT] ([ACCOUNT], [GRANT_DB], [GRANT_TYPE], [UPDATE_TIME]) values('mssql_data_read_drs', '%', 'db_datareader', GETDATE())
+
+
+
+/*
+    Stored Procedure: USP_REPORT_BACKUP_RESULT
+    Description: Report backup result to DBM platform via nginx proxy.
+    
+    This procedure:
+    1. Reads nginx proxy info from DBM_NGINX_PROXY table
+    2. Sends HTTP POST request via xp_cmdshell + PowerShell with the provided JSON body
+    
+    Usage: EXEC [dbo].[USP_REPORT_BACKUP_RESULT] @JsonBody = '[{"cluster_type":"sqlserver_ha",...}]'
+    
+    Note: Requires xp_cmdshell to be enabled:
+    sp_configure 'show advanced options', 1;
+    RECONFIGURE;
+    sp_configure 'xp_cmdshell', 1;
+    RECONFIGURE;
+*/
+
+USE [Monitor]
+GO
+
+IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[USP_REPORT_BACKUP_RESULT]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[USP_REPORT_BACKUP_RESULT]
+GO
+
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE PROCEDURE [dbo].[USP_REPORT_BACKUP_RESULT]
+    @JsonBody NVARCHAR(MAX)  -- JSON body to be sent, passed in as parameter
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Declare variables for nginx proxy
+    DECLARE @NginxIP VARCHAR(100)
+    DECLARE @NginxPort INT
+    DECLARE @NginxBkCloudId INT
+    DECLARE @CurrentNodeIndex INT = 0
+    DECLARE @MaxRetryCount INT = 2  -- Max retry count per node (initial attempt + 1 retry)
+    DECLARE @TotalNodes INT = 0
+    
+    -- Declare variables for HTTP request
+    DECLARE @Url VARCHAR(2000)
+    DECLARE @Cmd VARCHAR(8000)
+    DECLARE @CompactJson NVARCHAR(MAX)
+    DECLARE @JsonBin VARBINARY(MAX)
+    DECLARE @Base64Body VARCHAR(MAX)
+    
+    -- Declare table to capture xp_cmdshell output
+    DECLARE @CmdOutput TABLE (OutputLine NVARCHAR(4000))
+    DECLARE @NginxNodes TABLE (
+        NodeIndex INT IDENTITY(1,1),
+        IP VARCHAR(100),
+        Port INT,
+        BkCloudId INT
+    )
+    
+    -- Validate input parameter
+    IF @JsonBody IS NULL OR LEN(@JsonBody) = 0
+    BEGIN
+        RAISERROR('JsonBody parameter is required and cannot be empty.', 16, 1)
+        RETURN
+    END
+    
+    PRINT 'Input JSON Body: ' + @JsonBody
+    
+    -- Step 1: Read all nginx proxy configurations from DBM_NGINX_PROXY table with deduplication
+    INSERT INTO @NginxNodes (IP, Port, BkCloudId)
+    SELECT DISTINCT [IP], [PORT], [BK_CLOUD_ID]
+    FROM [Monitor].[dbo].[DBM_NGINX_PROXY]
+    ORDER BY [IP]  -- Consistent ordering for predictable behavior
+    
+    SELECT @TotalNodes = COUNT(*) FROM @NginxNodes
+    
+    IF @TotalNodes = 0
+    BEGIN
+        RAISERROR('No nginx proxy configuration found in DBM_NGINX_PROXY table.', 16, 1)
+        RETURN
+    END
+    
+    PRINT 'Found ' + CAST(@TotalNodes AS VARCHAR(10)) + ' nginx proxy nodes'
+    
+    -- Step 2: Prepare JSON - compress to single line
+    SET @CompactJson = @JsonBody
+    SET @CompactJson = REPLACE(@CompactJson, CHAR(13), '')
+    SET @CompactJson = REPLACE(@CompactJson, CHAR(10), '')
+    SET @CompactJson = REPLACE(@CompactJson, CHAR(9), '')
+    WHILE CHARINDEX('  ', @CompactJson) > 0
+        SET @CompactJson = REPLACE(@CompactJson, '  ', ' ')
+    
+    PRINT 'Compact JSON: ' + @CompactJson
+    
+    -- Step 3: Try each node with retry logic
+    DECLARE @Success BIT = 0
+    DECLARE @RetryCount INT
+    DECLARE @Response NVARCHAR(4000)
+    DECLARE @OutputCount INT
+    DECLARE @ApiResponse NVARCHAR(4000)
+    DECLARE @ApiMessage NVARCHAR(2000)
+    DECLARE @MsgStart INT
+    DECLARE @MsgEnd INT
+    
+    WHILE @CurrentNodeIndex < @TotalNodes AND @Success = 0
+    BEGIN
+        SET @CurrentNodeIndex = @CurrentNodeIndex + 1
+        SET @RetryCount = 0
+        
+        -- Get current node info
+        SELECT 
+            @NginxIP = IP,
+            @NginxPort = Port,
+            @NginxBkCloudId = BkCloudId
+        FROM @NginxNodes 
+        WHERE NodeIndex = @CurrentNodeIndex
+        
+        PRINT 'Trying node ' + CAST(@CurrentNodeIndex AS VARCHAR(10)) + '/' + CAST(@TotalNodes AS VARCHAR(10)) + 
+              ' - IP: ' + @NginxIP + ', Port: ' + CAST(@NginxPort AS VARCHAR(10))
+        
+        -- Build the URL
+        SET @Url = 'http://' + @NginxIP + ':' + CAST(@NginxPort AS VARCHAR(10)) + 
+                   '/apis/proxypass/reverse_api/common/sync_report/?bk_cloud_id=' + CAST(@NginxBkCloudId AS VARCHAR(10))
+        
+        PRINT 'Request URL: ' + @Url
+        
+        WHILE @RetryCount < @MaxRetryCount AND @Success = 0
+        BEGIN
+            SET @RetryCount = @RetryCount + 1
+            
+            PRINT 'Attempt ' + CAST(@RetryCount AS VARCHAR(10)) + '/' + CAST(@MaxRetryCount AS VARCHAR(10))
+            
+            -- Encode the JSON body as Base64 so it passes safely through cmd.exe
+            -- CAST(NVARCHAR AS VARBINARY) produces UTF-16LE bytes in SQL Server
+            -- PowerShell decodes with [Text.Encoding]::Unicode (UTF-16LE) to match
+            SET @JsonBin = CAST(@CompactJson AS VARBINARY(MAX))
+            SET @Base64Body = CAST(N'' AS XML).value('xs:base64Binary(sql:variable("@JsonBin"))', 'VARCHAR(MAX)')
+            
+            -- Build PowerShell command: decode Base64 (UTF-16LE) to get original JSON, then POST it
+            -- The Base64 string is pure alphanumeric+/= so cmd.exe won't corrupt it
+            SET @Cmd = 'powershell.exe -NoProfile -Command "try { ' +
+                '$b = [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String(''' + @Base64Body + ''')); ' +
+                '$r = Invoke-RestMethod -Uri ''' + @Url + ''' -Method Post -ContentType ''application/json'' -Body ([Text.Encoding]::UTF8.GetBytes($b)) -TimeoutSec 5; ' +
+                'Write-Output (''SUCCESS: '' + ($r | ConvertTo-Json -Compress)); ' +
+                '} catch { ' +
+                'Write-Output (''ERROR: '' + $_.Exception.Message); ' +
+                '}"'
+            
+            -- Clear previous output
+            DELETE FROM @CmdOutput
+            
+            -- Execute the command via xp_cmdshell
+            PRINT 'Executing PowerShell with Base64-encoded JSON body...'
+            INSERT INTO @CmdOutput (OutputLine)
+            EXEC xp_cmdshell @Cmd
+            
+            -- Check if xp_cmdshell executed successfully
+            IF NOT EXISTS (SELECT 1 FROM @CmdOutput WHERE OutputLine IS NOT NULL)
+            BEGIN
+                PRINT 'xp_cmdshell returned no output - command may have failed to execute'
+            END
+            
+            -- Check the response
+            SELECT TOP 1 @Response = OutputLine FROM @CmdOutput WHERE OutputLine IS NOT NULL
+            PRINT 'PowerShell response: ' + ISNULL(@Response, 'No response')
+            
+            IF @Response LIKE 'SUCCESS:%'
+            BEGIN
+                -- Extract the JSON part after "SUCCESS: "
+                SET @ApiResponse = LTRIM(SUBSTRING(@Response, 10, LEN(@Response) - 9))
+                
+                -- Check if the API returned result:true
+                IF @ApiResponse LIKE '%"result":true%' OR @ApiResponse LIKE '%"result": true%'
+                BEGIN
+                    SET @Success = 1
+                    PRINT 'Report uploaded successfully. API response: ' + @ApiResponse
+                END
+                ELSE
+                BEGIN
+                    -- API returned result:false, extract error message for logging
+                    SET @ApiMessage = ''
+                    
+                    SET @MsgStart = CHARINDEX('"message":', @ApiResponse)
+                    IF @MsgStart > 0
+                    BEGIN
+                        SET @MsgStart = CHARINDEX('"', @ApiResponse, @MsgStart + 10) + 1
+                        SET @MsgEnd = CHARINDEX('"', @ApiResponse, @MsgStart)
+                        IF @MsgEnd > @MsgStart
+                            SET @ApiMessage = SUBSTRING(@ApiResponse, @MsgStart, @MsgEnd - @MsgStart)
+                    END
+                    
+                    PRINT 'API returned failure (result=false). Message: ' + ISNULL(@ApiMessage, 'N/A')
+                    PRINT 'Full API response: ' + @ApiResponse
+                    
+                    IF @RetryCount = @MaxRetryCount
+                    BEGIN
+                        PRINT 'Max retries reached for node ' + @NginxIP + ', trying next node...'
+                    END
+                END
+            END
+            ELSE IF @Response LIKE 'ERROR:%'
+            BEGIN
+                PRINT 'Request failed: ' + @Response
+                
+                IF @RetryCount = @MaxRetryCount
+                BEGIN
+                    PRINT 'Max retries reached for node ' + @NginxIP + ', trying next node...'
+                END
+            END
+            ELSE
+            BEGIN
+                PRINT 'Unexpected response from PowerShell command'
+                SELECT @OutputCount = COUNT(*) FROM @CmdOutput
+                PRINT 'Raw output lines: ' + CAST(@OutputCount AS VARCHAR(10))
+                -- Print all output lines for debugging
+                DECLARE @DebugLine NVARCHAR(4000)
+                DECLARE debug_cur CURSOR LOCAL FAST_FORWARD FOR
+                    SELECT OutputLine FROM @CmdOutput WHERE OutputLine IS NOT NULL
+                OPEN debug_cur
+                FETCH NEXT FROM debug_cur INTO @DebugLine
+                WHILE @@FETCH_STATUS = 0
+                BEGIN
+                    PRINT 'Output: ' + @DebugLine
+                    FETCH NEXT FROM debug_cur INTO @DebugLine
+                END
+                CLOSE debug_cur
+                DEALLOCATE debug_cur
+            END
+        END
+    END
+    
+    IF @Success = 1
+    BEGIN
+        PRINT 'Report backup result completed successfully.'
+    END
+    ELSE
+    BEGIN
+        RAISERROR('All nginx proxy nodes failed after retries. Unable to report backup result.', 16, 1)
+    END
+    
+END
+GO
+
+PRINT 'Stored procedure [dbo].[USP_REPORT_BACKUP_RESULT] created successfully.'
+GO
