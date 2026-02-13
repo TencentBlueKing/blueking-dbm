@@ -31,6 +31,7 @@ from backend.flow.consts import (
 )
 from backend.flow.utils.mysql.db_table_filter import DbTableFilter
 from backend.flow.utils.mysql.get_mysql_sys_user import generate_mysql_tmp_user
+from backend.flow.utils.sqlserver.sqlserver_act_dataclass import NginxInfo
 from backend.flow.utils.sqlserver.sqlserver_host import Host
 
 logger = logging.getLogger("flow")
@@ -1164,4 +1165,35 @@ def remove_mirroring_config(target_instances: List[str], bk_cloud_id: int):
     )
 
     if ret[0]["error_msg"]:
-        raise Exception(f"remove_mirroring_configfailed: {ret[0]['error_msg']}")
+        raise Exception(f"remove_mirroring_config failed: {ret[0]['error_msg']}")
+
+
+def init_dbm_nginx_proxy_config(nginx_list: List[NginxInfo], bk_cloud_id: int, target_instances: List[str]):
+    drop_sql = f"use {SQLSERVER_CUSTOM_SYS_DB}; truncate table [{SQLSERVER_CUSTOM_SYS_DB}].[dbo].[DBM_NGINX_PROXY]"
+    sqls = [
+        f"""INSERT INTO [{SQLSERVER_CUSTOM_SYS_DB}].[dbo].[DBM_NGINX_PROXY](
+[IP],
+[PORT],
+[BK_CLOUD_ID]
+) values(
+'{i.nginx_proxy_ip}',
+{i.nginx_proxy_port},
+{i.bk_cloud_id})
+"""
+        for i in nginx_list
+    ]
+    # list.insert() 原地修改列表，返回 None，不能直接作为参数传递
+    sqls.insert(0, drop_sql)
+    ret = DRSApi.sqlserver_rpc(
+        {
+            "bk_cloud_id": bk_cloud_id,
+            "addresses": target_instances,
+            "cmds": sqls,
+            "force": False,
+        }
+    )
+
+    if not ret:
+        raise Exception("init_dbm_nginx_proxy_config: DRS returned empty result, target_instances may be empty")
+    if ret[0]["error_msg"]:
+        raise Exception(f"init_dbm_nginx_proxy_config failed: {ret[0]['error_msg']}")

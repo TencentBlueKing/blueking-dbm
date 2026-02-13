@@ -21,3 +21,5 @@ class ReverseReportEventTypeEnum(StrStructuredEnum):
     RedisFullBackupResult = EnumField("redis_backup_result", _("redis_backup_result"))
     RedisBinlogBackResult = EnumField("redis_binlog_result", _("redis_binlog_result"))
     RedisBackupProgress = EnumField("redis_backup_progress", _("redis_backup_progress"))
+    SQLServerBinlogResult = EnumField("sqlserver_binlog_result", _("sqlserver_binlog_result"))
+    SQLServerDbbackupResult = EnumField("sqlserver_dbbackup_result", _("sqlserver_dbbackup_result"))
