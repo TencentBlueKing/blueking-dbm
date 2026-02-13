@@ -49,7 +49,7 @@ type DbSwitchingLog struct {
 	SwitchID    string    `gorm:"column:switch_id;index:idx_switch_id"              json:"switch_id"`
 	ActionScope string    `gorm:"column:action_scope;index:idx_scope"               json:"action_scope"`
 	BkBizID     int       `gorm:"column:bk_biz_id;index:idx_biz"                    json:"bk_biz_id"`
-	BkCloudID   int       `gorm:"column:bk_cloud_id;"                               json:"bk_cloud_id"`
+	BkCloudID   int       `gorm:"column:bk_cloud_id"                                json:"bk_cloud_id"`
 	DbIP        string    `gorm:"column:db_ip;index:idx_ip_port"                    json:"db_ip"`
 	DbPort      int       `gorm:"column:db_port;index:idx_ip_port"                  json:"db_port"`
 	ClusterID   int       `gorm:"column:cluster_id;index:idx_cluster_id"            json:"cluster_id"`
