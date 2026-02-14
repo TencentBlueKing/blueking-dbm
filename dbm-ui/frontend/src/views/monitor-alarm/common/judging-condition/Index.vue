@@ -166,7 +166,7 @@
         :label="t('生效时间段')"
         property="detectsConfig.trigger_config.uptime.time_ranges"
         :rules="rules.timeRanges">
-        <MultipleTimePicker
+        <TimeRangePicker
           v-model="modelValue.detectsConfig.trigger_config.uptime.time_ranges"
           :disabled="disabled" />
       </BkFormItem>
@@ -183,7 +183,7 @@
   import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
   import { searchAlarmStrategy } from '@services/source/monitor';
 
-  import MultipleTimePicker from './MultipleTimePicker.vue';
+  import TimeRangePicker from './components/TimeRangePicker.vue';
 
   interface Props {
     disabled?: boolean;
