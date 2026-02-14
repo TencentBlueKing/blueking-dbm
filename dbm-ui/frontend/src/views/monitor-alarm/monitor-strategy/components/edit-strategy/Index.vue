@@ -216,7 +216,7 @@
 
   import RuleCheck from '@components/monitor-rule-check/index.vue';
 
-  import JudgingCondition from '@views/monitor-alarm/common/JudgingCondition.vue';
+  import JudgingCondition from '@views/monitor-alarm/common/judging-condition/Index.vue';
 
   import { messageSuccess } from '@utils';
 
