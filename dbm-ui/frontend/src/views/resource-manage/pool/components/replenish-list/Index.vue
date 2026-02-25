@@ -34,7 +34,7 @@
             :disabled="isSubmitting || Boolean(runningReplenishRecord)"
             :loading="isSubmitting"
             theme="primary"
-            @click="handleReplenish">
+            @click="() => handleReplenish()">
             <span v-if="!runningReplenishRecord">{{ t('一键补货') }}</span>
             <template v-else>
               <DbIcon
@@ -400,9 +400,8 @@
 <style lang="less">
   .resource-pool-replenish-list {
     padding: 16px 24px;
-    font-family: MicrosoftYaHei;
     background: #fff;
-    box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
+    box-shadow: 0 2px 4px 0 rgb(25 25 41 / 5%);
 
     .top-operation {
       display: flex;
@@ -411,12 +410,11 @@
     }
 
     .bold-number {
-      font-family: MicrosoftYaHei-Bold;
-      font-weight: 700;
       font-size: 12px;
-      color: #4d4f56;
-      letter-spacing: 0;
+      font-weight: 700;
       line-height: 20px;
+      letter-spacing: 0;
+      color: #4d4f56;
     }
 
     .blue-number {
@@ -449,13 +447,13 @@
   }
 
   .replenish-confirm-tip {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 14px;
+    line-height: 22px;
+    letter-spacing: 0;
+    color: #4d4f56;
     background: #f5f7fa;
     border-radius: 2px;
-    font-size: 14px;
-    color: #4d4f56;
-    letter-spacing: 0;
-    width: 100%;
-    line-height: 22px;
-    padding: 12px 16px;
   }
 </style>
