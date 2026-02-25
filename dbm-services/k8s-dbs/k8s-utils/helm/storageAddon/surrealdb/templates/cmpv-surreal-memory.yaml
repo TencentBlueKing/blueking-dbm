@@ -5,6 +5,7 @@ metadata:
 spec:
   compatibilityRules:
     - releases:
+        - surreal-3.0.1
         - surreal-2.4.0
         - surreal-2.3.7
         - surreal-2.3.2
@@ -13,6 +14,10 @@ spec:
       compDefs:
         - surreal-memory-{{ .Chart.Version}}
   releases:
+    - name: surreal-3.0.1
+      serviceVersion: 3.0.1
+      images:
+        surreal: docker.io/surrealdb/surrealdb:v3.0.1
     - name: surreal-2.4.0
       serviceVersion: 2.4.0
       images:
