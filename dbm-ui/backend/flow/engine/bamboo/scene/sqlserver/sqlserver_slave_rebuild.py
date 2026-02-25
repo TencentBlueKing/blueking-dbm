@@ -156,7 +156,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
             )
 
             source_act = sub_pipeline.add_act(
-                act_name=_("检测带重建slave状态[{}]".format(rebuild_slave.ip_port)),
+                act_name=_("检测带重建slave状态[{}]").format(rebuild_slave.ip_port),
                 act_component_code=CheckSlaveSyncStatusComponent.code,
                 kwargs=asdict(
                     CheckSlaveSyncStatusKwargs(cluster_id=cluster.id, fix_slave_host=info["slave_host"]["ip"]),
@@ -214,7 +214,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
             sub_pipeline.add_conditional_subs(
                 source_act=source_act,
                 conditions=conditions,
-                name=_("判断待修复slave[{}]的状态".format(rebuild_slave.ip_port)),
+                name=_("判断待修复slave[{}]的状态").format(rebuild_slave.ip_port),
                 conditions_param=SqlserverRebuildSlaveContext.conditions_var_name(),
             )
 
@@ -293,7 +293,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
 
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(
-                    sub_name=_("{}集群slave[{}:{}]原地重建".format(cluster.name, info["slave_host"]["ip"], info["port"]))
+                    sub_name=_("{}集群slave[{}:{}]原地重建").format(cluster.name, info["slave_host"]["ip"], info["port"])
                 )
             )
 
@@ -440,7 +440,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                         act_component_code=AddAlarmShieldComponent.code,
                         kwargs=asdict(
                             AddAlarmShieldComponent.kwargs(
-                                description=_("执行集群新机重建单据，单据号:{}".format(self.data.get("uid"))),
+                                description=_("执行集群新机重建单据，单据号:{}").format(self.data.get("uid")),
                                 duration_seconds=86400,
                                 category=MonitorShieldType.STRATEGY,
                                 strategy_id=[
@@ -558,7 +558,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                 )
 
                 cluster_flows.append(
-                    cluster_sub_pipeline.build_sub_process(sub_name=_("[{}]集群与新slave建立关系".format(cluster.name)))
+                    cluster_sub_pipeline.build_sub_process(sub_name=_("[{}]集群与新slave建立关系").format(cluster.name))
                 )
 
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=cluster_flows)
@@ -589,7 +589,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
 
             # 下架机器环节
             sub_pipeline.add_act(
-                act_name=_("人工确认[{}]".format(info["old_slave_host"]["ip"])),
+                act_name=_("人工确认[{}]").format(info["old_slave_host"]["ip"]),
                 act_component_code=PauseComponent.code,
                 kwargs={},
             )
@@ -599,7 +599,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
             for cluster_info in clusters:
                 acts_list.append(
                     {
-                        "act_name": _("删除注册CC系统的服务实例[{}:{}]".format(info["old_slave_host"]["ip"], cluster_info.port)),
+                        "act_name": _("删除注册CC系统的服务实例[{}:{}]").format(info["old_slave_host"]["ip"], cluster_info.port),
                         "act_component_code": DelCCServiceInstComponent.code,
                         "kwargs": asdict(
                             DelServiceInstKwargs(
@@ -613,7 +613,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
 
             # 给旧slave下发执行器
             sub_pipeline.add_act(
-                act_name=_("下发执行器在旧slave[{}]".format(info["old_slave_host"]["ip"])),
+                act_name=_("下发执行器在旧slave[{}]").format(info["old_slave_host"]["ip"]),
                 act_component_code=TransFileInWindowsComponent.code,
                 kwargs=asdict(
                     DownloadMediaKwargs(
@@ -625,7 +625,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
 
             # 卸载实例
             sub_pipeline.add_act(
-                act_name=_("卸载实例[{}]".format(info["old_slave_host"]["ip"])),
+                act_name=_("卸载实例[{}]").format(info["old_slave_host"]["ip"]),
                 act_component_code=SqlserverActuatorScriptComponent.code,
                 kwargs=asdict(
                     ExecActuatorKwargs(
@@ -649,7 +649,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
 
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(
-                    sub_name=_("{}->{}新机重建".format(info["old_slave_host"]["ip"], info["new_slave_host"]["ip"]))
+                    sub_name=_("{}->{}新机重建").format(info["old_slave_host"]["ip"], info["new_slave_host"]["ip"])
                 )
             )
 
@@ -681,7 +681,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
         is_new_slave_exist = False
         acts_list = [
             {
-                "act_name": _("回收master[{}]的域名映射".format(master_instance.host)),
+                "act_name": _("回收master[{}]的域名映射").format(master_instance.host),
                 "act_component_code": MySQLDnsManageComponent.code,
                 "kwargs": asdict(
                     IpDnsRecordRecycleKwargs(
@@ -695,7 +695,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
         if old_slave_instance:
             acts_list.append(
                 {
-                    "act_name": _("回收slave[{}]的域名映射".format(old_slave_instance.host)),
+                    "act_name": _("回收slave[{}]的域名映射").format(old_slave_instance.host),
                     "act_component_code": MySQLDnsManageComponent.code,
                     "kwargs": asdict(
                         IpDnsRecordRecycleKwargs(
@@ -717,7 +717,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
         if not is_new_slave_exist:
             acts_list.append(
                 {
-                    "act_name": _("添加slave[{}]的域名映射".format(new_slave_instance.host)),
+                    "act_name": _("添加slave[{}]的域名映射").format(new_slave_instance.host),
                     "act_component_code": MySQLDnsManageComponent.code,
                     "kwargs": asdict(
                         CreateDnsKwargs(
@@ -736,7 +736,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
         sub_pipeline = SubBuilder(root_id=root_id, data={"bk_biz_id": bk_biz_id, "uid": uid})
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
-        return sub_pipeline.build_sub_process(sub_name=_("处理[{}]的域名关系".format(domain_name)))
+        return sub_pipeline.build_sub_process(sub_name=_("处理[{}]的域名关系").format(domain_name))
 
     @classmethod
     def remote_slave_in_cluster(
@@ -766,7 +766,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
         for instance in old_slave_instances:
             acts_list.append(
                 {
-                    "act_name": _("[{}]禁用业务账号".format(instance.ip_port)),
+                    "act_name": _("[{}]禁用业务账号").format(instance.ip_port),
                     "act_component_code": ExecSqlserverLoginComponent.code,
                     "kwargs": asdict(
                         ExecLoginKwargs(
@@ -794,7 +794,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                 )
             ),
         )
-        return sub_pipeline.build_sub_process(sub_name=_("移除可用组[{}]".format(cluster.immute_domain)))
+        return sub_pipeline.build_sub_process(sub_name=_("移除可用组[{}]").format(cluster.immute_domain))
 
     def _create_always_on_fix_sub_flow(
         self, sub_flow_context: dict, master: StorageInstance, rebuild_slave: StorageInstance, cluster: Cluster
@@ -849,7 +849,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
             )
         )
 
-        return sub_pipeline.build_sub_process(sub_name=_("集群[{}]添加可用组修复流程".format(cluster.name)))
+        return sub_pipeline.build_sub_process(sub_name=_("集群[{}]添加可用组修复流程").format(cluster.name))
 
     def _fix_always_on_status_sub_flow(
         self, sub_flow_context: dict, master: StorageInstance, rebuild_slave: StorageInstance, cluster: Cluster
@@ -861,7 +861,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
 
         sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
         sub_pipeline.add_act(
-            act_name=_("[{}]重建可用组".format(rebuild_slave.ip_port)),
+            act_name=_("[{}]重建可用组").format(rebuild_slave.ip_port),
             act_component_code=SqlserverActuatorScriptComponent.code,
             kwargs=asdict(
                 ExecActuatorKwargs(
@@ -901,7 +901,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
             )
         )
 
-        return sub_pipeline.build_sub_process(sub_name=_("slave[{}]重建可用组修复流程".format(rebuild_slave.ip_port)))
+        return sub_pipeline.build_sub_process(sub_name=_("slave[{}]重建可用组修复流程").format(rebuild_slave.ip_port))
 
     def _fix_database_sync_sub_flow(
         self, sub_flow_context: dict, master: StorageInstance, rebuild_slave: StorageInstance, cluster: Cluster
@@ -932,4 +932,4 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
             )
         )
 
-        return sub_pipeline.build_sub_process(sub_name=_("slave[{}]同步数据修复流程".format(rebuild_slave.ip_port)))
+        return sub_pipeline.build_sub_process(sub_name=_("slave[{}]同步数据修复流程").format(rebuild_slave.ip_port))

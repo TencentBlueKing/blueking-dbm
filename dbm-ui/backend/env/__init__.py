@@ -141,6 +141,8 @@ ADMIN_USERS = [u.strip() for u in get_type_env(key="ADMIN_USERS", default="admin
 # 标准运维
 # 标准运维SA 空闲检查任务模版ID
 SA_CHECK_TEMPLATE_ID = get_type_env(key="SA_CHECK_TEMPLATE_ID", _type=int)
+# 主机回收空闲检查任务模版ID 更严格
+SA_RECYCLE_IDLE_CHECK_TEMPLATE_ID = get_type_env(key="SA_RECYCLE_IDLE_CHECK_TEMPLATE_ID", _type=int)
 # 标准运维SA 初始化任务模版ID
 SA_INIT_TEMPLATE_ID = get_type_env(key="SA_INIT_TEMPLATE_ID", _type=int)
 # 标准运维SA 安装L5Agent的模板ID

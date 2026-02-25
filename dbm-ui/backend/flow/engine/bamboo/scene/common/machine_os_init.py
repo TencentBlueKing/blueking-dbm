@@ -132,13 +132,16 @@ class ImportResourceInitStepFlow(object):
             account_name = LINUX_ADMIN_USER_FOR_CHECK
 
         # 先执行空闲检查
-        if env.SA_CHECK_TEMPLATE_ID:
+        if env.SA_RECYCLE_IDLE_CHECK_TEMPLATE_ID or env.SA_CHECK_TEMPLATE_ID:
             p.add_act(
-                act_name=_("执行sa空闲检查"),
+                act_name=_("执行sa空闲检查(严格)") if env.SA_RECYCLE_IDLE_CHECK_TEMPLATE_ID else _("执行sa空闲检查"),
                 act_component_code=CheckMachineIdleComponent.code,
                 kwargs=asdict(
                     InitCheckForResourceKwargs(
-                        ips=[host["ip"] for host in host_list], bk_biz_id=bk_biz_id, account_name=account_name
+                        ips=[host["ip"] for host in host_list],
+                        bk_biz_id=bk_biz_id,
+                        account_name=account_name,
+                        strict_idle_check=bool(env.SA_RECYCLE_IDLE_CHECK_TEMPLATE_ID),
                     )
                 ),
             )
