@@ -413,7 +413,7 @@
     },
     {
       field: 'bk_cpu',
-      label: t('CPU(核)'),
+      label: t('CPU（核）'),
     },
     {
       field: 'bkMemText',
