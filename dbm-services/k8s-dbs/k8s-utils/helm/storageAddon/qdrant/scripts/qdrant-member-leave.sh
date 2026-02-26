@@ -1,5 +1,8 @@
 #!/usr/bin/env sh
 
+# Add qdrant tools (curl, jq) to PATH
+export PATH="/qdrant/tools:$PATH"
+
 # shellcheck disable=SC2034
 ut_mode="false"
 test || __() {
@@ -8,7 +11,24 @@ test || __() {
 }
 
 init_cluster_info() {
-  leave_peer_uri="http://${KB_LEAVE_MEMBER_POD_FQDN}:6333"
+  # KB_LEAVE_MEMBER_POD_FQDN is not a standard KubeBlocks env var in 0.9.x
+  # Fall back to KB_LEAVE_MEMBER_POD_IP (standard), or construct FQDN from KB_LEAVE_MEMBER_POD_NAME
+  if [ -n "${KB_LEAVE_MEMBER_POD_FQDN}" ]; then
+    leave_peer_uri="http://${KB_LEAVE_MEMBER_POD_FQDN}:6333"
+  elif [ -n "${KB_LEAVE_MEMBER_POD_IP}" ]; then
+    leave_peer_uri="http://${KB_LEAVE_MEMBER_POD_IP}:6333"
+  elif [ -n "${KB_LEAVE_MEMBER_POD_NAME}" ]; then
+    # Construct FQDN: <pod-name>.<headless-svc>.<namespace>.svc.cluster.local
+    headless_svc=$(echo "${KB_LEAVE_MEMBER_POD_NAME}" | sed 's/-[0-9]*$//')-headless
+    namespace=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace 2>/dev/null || echo "default")
+    leave_peer_uri="http://${KB_LEAVE_MEMBER_POD_NAME}.${headless_svc}.${namespace}.svc.cluster.local:6333"
+  else
+    echo "ERROR: no leave member pod info available. KB_LEAVE_MEMBER_POD_FQDN, KB_LEAVE_MEMBER_POD_IP, KB_LEAVE_MEMBER_POD_NAME are all empty"
+    echo "Available KB_ env vars:"
+    env | grep -i "^KB_" || echo "(none)"
+    exit 1
+  fi
+  echo "leave_peer_uri: ${leave_peer_uri}"
   cluster_info=$(curl -s "${leave_peer_uri}/cluster")
   leave_peer_id=$(echo "${cluster_info}" | jq -r .result.peer_id)
   leader_peer_id=$(echo "${cluster_info}" | jq -r .result.raft_info.leader)
