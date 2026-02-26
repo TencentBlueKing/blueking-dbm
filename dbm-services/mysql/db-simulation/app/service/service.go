@@ -20,7 +20,8 @@ type SpiderVersionConfig struct {
 // SpiderSimulationExecParam tendbcluster request param
 type SpiderSimulationExecParam struct {
 	BaseParam
-	SpiderVersions []SpiderVersionConfig `json:"spider_versions" binding:"required,gt=0,dive"` // 多个 Spider 版本配置
+	TdbctlStartConfigs map[string]string     `json:"tdbctl_start_configs"`
+	SpiderVersions     []SpiderVersionConfig `json:"spider_versions" binding:"required,gt=0,dive"` // 多个 Spider 版本配置
 }
 
 // ExecuteSQLFileObj execution object of a single file

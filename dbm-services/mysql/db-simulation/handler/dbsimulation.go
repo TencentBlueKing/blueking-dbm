@@ -215,7 +215,7 @@ func (s *SimulationHandler) extractClusterConfig(body map[string]interface{}) (*
 	}
 
 	// 提取 Backend 启动参数
-	if backendArgs, ok := body["mysql_start_configs"].(map[string]interface{}); ok {
+	if backendArgs, ok := body["mysql_start_config"].(map[string]interface{}); ok {
 		config.BackendStartArgs = convertToStringMap(backendArgs)
 	} else {
 		config.BackendStartArgs = make(map[string]string)
@@ -467,6 +467,7 @@ func (s *SimulationHandler) TendbClusterSimulation(r *gin.Context) {
 		Charset: param.MySQLCharSet,
 	}
 	tsk.BackendStartArgs = param.MySQLStartConfigs
+	tsk.TdbCtlStartArgs = param.TdbctlStartConfigs
 	service.SpiderTaskChan <- tsk
 	s.SendResponse(r, nil, "request successful")
 }
