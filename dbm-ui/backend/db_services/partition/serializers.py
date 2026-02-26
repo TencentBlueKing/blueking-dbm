@@ -14,6 +14,7 @@ from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, Cluster
+from backend.ticket.builders.mysql.mysql_partition_v2 import PartitionV2ConfObjectSerializer
 
 from ...ticket.builders.common.field import DBTimezoneField
 from ...ticket.builders.mysql.base import DBTableField
@@ -259,3 +260,63 @@ class PartitionExportResponseSerializer(serializers.Serializer):
 
     class Meta:
         swagger_schema_fields = {"description": _("分区策略导出结果")}
+
+
+# 分区v2执行接口
+# 支持批量
+class PartitionExecuteV2Serializer(serializers.Serializer):
+    class PartitionInfoSerializer(serializers.Serializer):
+        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        configs = serializers.ListField(help_text=_("分区配置列表"), child=PartitionV2ConfObjectSerializer())
+        force = serializers.BooleanField(help_text=_("是否强制执行"), required=False, default=False)
+
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    partition_infos = serializers.ListField(help_text=_("分区信息列表"), child=PartitionInfoSerializer())
+
+
+class PartitionExecuteV2ResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": mock.PARTITION_EXECUTE_V2_DATA}
+
+
+# 分区v2查询分区执行日志
+class PartitionLogV2Serializer(serializers.Serializer):
+    config_id = serializers.IntegerField(help_text=_("分区策略ID"))
+
+
+class PartitionLogV2ResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": mock.PARTITION_LOG_V2_DATA}
+
+
+# 分区v2查询分区字段类型
+class PartitionFieldTypeV2Serializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    dblikes = serializers.ListField(help_text=_("匹配库列表(支持通配)"), child=DBTableField(db_field=True))
+    tblikes = serializers.ListField(help_text=_("匹配表列表(不支持通配)"), child=DBTableField())
+    partition_column = serializers.CharField(help_text=_("分区字段"))
+
+
+class PartitionFieldTypeV2ResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": mock.PARTITION_FIELD_TYPE_V2_DATA}
+
+
+class SaveAndExecuteV2Serializer(PartitionCreateSerializer):
+    # 当前支持DictField+child为serializers.ListSerializer 或 serializers.ListField
+    # 直接使用PartitionCreateSerializer导致swagger无法解析
+    force = serializers.BooleanField(help_text=_("是否强制执行"), required=False, default=False)
+
+
+class SaveAndExecuteV2ResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": mock.PARTITION_EXECUTE_V2_DATA}
+
+
+class QueryConfByStatusSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
+    status = serializers.CharField(help_text=_("执行状态(如 SUCCEEDED / FAILED / WARNING)"))
+    limit = serializers.IntegerField(required=False, default=10)
+    offset = serializers.IntegerField(required=False, default=0)

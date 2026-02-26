@@ -77,6 +77,7 @@ class MySQLBaseOperateDetailSerializer(
         TicketType.MYSQL_HA_TRUNCATE_DATA.value,
         TicketType.MYSQL_PARTITION.value,
         TicketType.MYSQL_PARTITION_CRON.value,
+        TicketType.MYSQL_PARTITION_V2.value,
         TicketType.MYSQL_CHECKSUM.value,
     ]
     MASTER_UNAVAILABLE_WHITELIST = [
