@@ -47,7 +47,8 @@ class WriteBandwidthFileScriptService(BkJobService):
         script_content = f'echo "{bandwidth}" > /etc/dbm_bandwidth'
 
         body = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": "DBM write bandwidth file",
             "script_content": base64_encode(script_content),
             "script_language": 1,

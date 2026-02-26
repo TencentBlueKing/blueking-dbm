@@ -141,7 +141,8 @@ class RedisRoleCheckScriptService(BaseService):
         target_ip_info = [{"bk_cloud_id": bk_cloud_id, "ip": exec_ip}]
 
         body = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": f"DBM_{flow_id}_{node_name}_cluster_{cluster_id}",
             "script_content": base64_encode(script_content),
             "script_language": 1,  # shell
@@ -357,7 +358,8 @@ class RedisRoleCheckReportService(BaseService):
             Tuple of (status, step_instance_id) where status is "completed", "failed", or "running"
         """
         payload = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "job_instance_id": job_instance_id,
             "return_ip_result": True,
         }
@@ -399,7 +401,8 @@ class RedisRoleCheckReportService(BaseService):
         # Get job log
         ip_dict = {"bk_cloud_id": bk_cloud_id, "ip": exec_ip}
         payload = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "job_instance_id": job_instance_id,
             "step_instance_id": step_instance_id,
         }

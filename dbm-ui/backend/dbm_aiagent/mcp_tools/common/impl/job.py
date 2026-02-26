@@ -22,8 +22,9 @@ from backend.utils.string import base64_encode
 def exec_cluster_query_net_tcp_cmd(target_ips: List) -> dict:
     cmds = """head -n 30000 /proc/net/tcp;"""
     body = {
+        "bk_scope_type": "biz_set",
+        "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
         "account_alias": DBA_ROOT_USER,
-        "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
         "task_name": _("查询集群接入层tcp的连接信息"),
         "script_content": base64_encode(cmds),
         "script_language": 1,
@@ -36,7 +37,12 @@ def exec_cluster_query_net_tcp_cmd(target_ips: List) -> dict:
 
 
 def get_job_exec_status(job_instance_id: str):
-    payload = {"bk_biz_id": env.JOB_BLUEKING_BIZ_ID, "job_instance_id": job_instance_id, "return_ip_result": True}
+    payload = {
+        "bk_scope_type": "biz_set",
+        "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
+        "job_instance_id": job_instance_id,
+        "return_ip_result": True,
+    }
     resp = JobApi.get_job_instance_status(payload, use_admin=True)
 
     # job 未完成
@@ -50,7 +56,8 @@ def get_job_exec_status(job_instance_id: str):
     bk_host_ids = [result["bk_host_id"] for result in resp["step_instance_list"][0]["step_ip_result_list"]]
     resp = JobApi.batch_get_job_instance_ip_log(
         {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "job_instance_id": job_instance_id,
             "step_instance_id": step_instance_id,
             "host_id_list": bk_host_ids,

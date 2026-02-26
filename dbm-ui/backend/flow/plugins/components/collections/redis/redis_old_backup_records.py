@@ -102,7 +102,8 @@ EOF
     """
 
         body = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": f"DBM_{node_name}_{node_id}",
             "script_content": base64_encode(shell_command),
             "script_language": 1,

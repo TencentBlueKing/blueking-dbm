@@ -106,7 +106,8 @@ class OracleExecuteDBActuatorJobService(BkJobService):
         elif kwargs.get("create_dir", False):
             template = jinja_env.from_string(oracle_create_actuator_dir_template)
         body = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": f"DBM_{node_name}_{node_id}",
             "script_content": str(base64.b64encode(template.render(db_act_template).encode("utf-8")), "utf-8"),
             "script_language": 1,

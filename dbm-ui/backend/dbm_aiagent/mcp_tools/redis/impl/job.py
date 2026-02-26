@@ -26,8 +26,9 @@ def exec_redis_capture_tool_cmd(target_ips: List, timeout, port, grep_cmd) -> di
             /home/mysql/dbtools/myRedisCapture -d ${{iface}} -i ${{ip}} -p {port} -t {timeout} | {grep_cmd}
         """
     body = {
+        "bk_scope_type": "biz_set",
+        "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
         "account_alias": DBA_ROOT_USER,
-        "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
         "task_name": _("执行redis抓请求工具"),
         "script_content": base64_encode(cmds),
         "script_language": 1,
