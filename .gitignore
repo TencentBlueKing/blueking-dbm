@@ -26,3 +26,5 @@ package-lock.json
 .history/
 dbm-services/.history/
 dbm-ui/.history/
+# trellis
+.trellis
