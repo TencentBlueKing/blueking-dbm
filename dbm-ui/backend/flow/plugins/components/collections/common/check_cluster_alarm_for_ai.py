@@ -95,7 +95,7 @@ class CheckClusterAlarmForAIService(SidecarServiceABC):
         root_id = global_data["job_root_id"]
         flow_tree = FlowTree.objects.get(root_id=root_id)
         flow_start_time = flow_tree.created_at
-        ticket_id = int(flow_tree.uid)
+        ticket_id = int(flow_tree.uid or 0)
         now_time = timezone.now()
 
         clusters = Cluster.objects.filter(id__in=cluster_ids)
