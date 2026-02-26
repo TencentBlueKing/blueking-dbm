@@ -134,7 +134,7 @@
       </TableColumn>
       <TableColumn
         col-key="bk_cpu"
-        :title="t('CPU(核)')">
+        :title="t('CPU（核）')">
         <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
           {{ row.bk_cpu || '--' }}
         </template>

@@ -58,7 +58,7 @@ export default {
   },
   cpu: {
     component: 'cpu',
-    label: t('CPU(核)'),
+    label: t('CPU（核）'),
     type: 'rang',
     validator: (value: undefined | [number, number]) => {
       if (!value || value.length < 1) {
@@ -78,7 +78,7 @@ export default {
   },
   disk: {
     component: 'disk',
-    label: t('数据盘(G)'),
+    label: t('数据盘（G）'),
     type: 'rang',
     validator: (value: undefined | [number, number]) => {
       if (!value || value.length < 1) {
@@ -131,7 +131,7 @@ export default {
   },
   mem: {
     component: 'mem',
-    label: t('内存(G)'),
+    label: t('内存（G）'),
     type: 'rang',
     validator: (value: undefined | [number, number]) => {
       if (!value || value.length < 1) {
