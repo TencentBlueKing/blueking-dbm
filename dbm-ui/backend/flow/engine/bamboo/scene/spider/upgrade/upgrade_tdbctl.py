@@ -40,6 +40,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     ExecActuatorKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext
 from backend.flow.utils.mysql.mysql_version_parse import get_online_mysql_version, tdbctl_version_parse
 
 logger = logging.getLogger("flow")
@@ -454,26 +455,58 @@ def _add_upgrade_status_update_act(
 
 
 def _add_pre_upgrade_check(
-    sub_pipeline: SubBuilder, primary_ip: Optional[str], primary_port: Optional[int], bk_cloud_id: int
+    sub_pipeline: SubBuilder,
+    primary_ip: Optional[str],
+    primary_port: Optional[int],
+    bk_cloud_id: int,
+    slave_instances: List[Dict] = None,
 ):
     """
-    添加升级前检查步骤
+    添加升级前检查步骤（并行执行主节点健康检查和 slave 主从同步检查）
 
     @param sub_pipeline: 子流程构建器
-    @param primary_ip: 主节点IP
+    @param primary_ip: 主节点IP（同时也是 slave 复制检查的 master 地址）
     @param primary_port: 主节点端口
     @param bk_cloud_id: 云区域ID
+    @param slave_instances: slave 实例列表（可选）
     """
+    acts_list = []
+
     if primary_ip and primary_port:
-        sub_pipeline.add_act(
-            act_name=_("升级前检查[{}:{}]").format(primary_ip, primary_port),
-            act_component_code=TdbctlPreUpgradeCheckComponent.code,
-            kwargs={
-                "ip": primary_ip,
-                "port": primary_port,
-                "bk_cloud_id": bk_cloud_id,
-            },
+        acts_list.append(
+            {
+                "act_name": _("升级前检查[{}:{}]").format(primary_ip, primary_port),
+                "act_component_code": TdbctlPreUpgradeCheckComponent.code,
+                "kwargs": {
+                    "ip": primary_ip,
+                    "port": primary_port,
+                    "bk_cloud_id": bk_cloud_id,
+                },
+            }
         )
+
+    if slave_instances and primary_ip and primary_port:
+        for slave_instance in slave_instances:
+            acts_list.append(
+                {
+                    "act_name": _("升级前检查tdbctl slave复制状态[{}:{}]").format(slave_instance["ip"], slave_instance["port"]),
+                    "act_component_code": MySQLCheckSlaveDelayComponent.code,
+                    "kwargs": asdict(
+                        CheckSlaveStatusKwargs(
+                            bk_cloud_id=bk_cloud_id,
+                            instance_ip=slave_instance["ip"],
+                            instance_port=slave_instance["port"],
+                            master_ip=primary_ip,
+                            master_port=primary_port,
+                            slave_delay_threshold=360,
+                            rounds=12,
+                        )
+                    ),
+                }
+            )
+
+    if acts_list:
+        sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
 
 def _add_slave_upgrade_steps(
@@ -809,17 +842,22 @@ def tdbctl_upgrade_subflow(
         current_versions=current_versions,
     )
 
-    # ============ 步骤1: 升级前检查（在主节点上执行） ============
-    # master_instances 一定存在（前面已校验），可以直接获取主节点地址
-    primary_ip, primary_port = _get_primary_address(master_instances, cluster, fallback_to_cluster=False)
-    _add_pre_upgrade_check(sub_pipeline, primary_ip, primary_port, bk_cloud_id)
+    # 获取 master 地址，供升级前检查和升级步骤共用（master_instances 一定存在，前面已校验）
+    master_ip, master_port = _get_primary_address(master_instances, cluster, fallback_to_cluster=False)
+
+    # ============ 步骤1: 升级前检查（并行执行主节点健康检查和 slave 主从同步检查） ============
+    _add_pre_upgrade_check(
+        sub_pipeline,
+        master_ip,
+        master_port,
+        bk_cloud_id,
+        slave_instances=slave_instances,
+    )
 
     # ============ 步骤2: 统一下发介质到所有主机 ============
     _add_tdbctl_media_download(sub_pipeline, all_upgrade_instances, pkg_id, bk_cloud_id)
 
     # ============ 步骤3: 并行升级所有 slave tdbctl ============
-    # 获取 master 地址用于检查复制状态（master_instances 一定存在，前面已校验）
-    master_ip, master_port = _get_primary_address(master_instances, cluster, fallback_to_cluster=False)
     _add_slave_upgrade_steps(
         sub_pipeline, root_id, parent_global_data, bk_cloud_id, slave_instances, master_ip, master_port, pkg_id
     )
@@ -1010,4 +1048,7 @@ class UpgradeTdbctlFlow(object):
 
         # 运行流程
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        pipeline.run_pipeline()
+        pipeline.run_pipeline_with_sidecar(
+            check_ai_monitor_cluster_list=[int(info["cluster_id"]) for info in upgrade_infos],
+            init_trans_data_class=SystemInfoContext(),
+        )

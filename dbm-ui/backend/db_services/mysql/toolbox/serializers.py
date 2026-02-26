@@ -319,10 +319,6 @@ class TdbctlUpgradeSerializer(serializers.Serializer):
 
                 raise serializers.ValidationError(_("所有集群版本已是最新或无法升级，无需升级。跳过的集群: {}").format(skipped_info))
 
-            # 5. 将校验结果保存到 attrs 中，供后续使用
-            attrs["_validated_clusters"] = upgraded_clusters
-            attrs["_skipped_clusters"] = skipped_clusters
-
         except ValueError as e:
             # TdbctlUpgradeHandler 抛出的参数错误
             raise serializers.ValidationError(str(e))
@@ -379,9 +375,6 @@ class TdbctlUpgradeFlowParamBuilder(builders.FlowParamBuilder):
         else:
             # 全量升级时，使用默认云区域
             self.ticket_data["bk_cloud_id"] = 0
-
-        # 4. uid 已由 add_common_params() 添加，但需要覆盖为操作人
-        self.ticket_data["uid"] = self.ticket.creator
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_TDBCTL_UPGRADE)
