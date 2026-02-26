@@ -139,18 +139,25 @@ class EnumField(EnumFieldBase):
 
     :param real_value: the real value of enum member
     :param label: the label text of current enum value
+    :param description: the description text of current enum value
     :param is_reserved: if current member was reserved, it will not be included in choices
     """
 
-    def __init__(self, real_value: Any, label: Optional[Union[str | Promise]] = None, is_reserved: bool = False):
+    def __init__(self, real_value: Any, label: Optional[Union[str | Promise]] = None, description: Optional[Union[str | Promise]] = None, is_reserved: bool = False):
         self.real_value = real_value
         self.label = label
+        self.description = description
         self.is_reserved = is_reserved
 
     def set_label_if_empty(self, key: str):
         """Set field's label if not provided"""
         if not self.label:
             self.label = key.lower().replace("_", " ").capitalize()
+
+    def set_description_if_empty(self, key: str):
+        """Set field's description if not provided"""
+        if not self.description:
+            self.description = key.lower().replace("_", " ").capitalize()
 
 
 class StructuredEnumMeta(EnumMeta):
@@ -184,6 +191,7 @@ class StructuredEnumMeta(EnumMeta):
                 continue
 
             member.set_label_if_empty(key)
+            member.set_description_if_empty(key)
             fields[key] = member
             # Use dict's setitem method because setting value with `classdict[key]` is forbidden
             dict.__setitem__(classdict, key, member.real_value)
@@ -215,9 +223,28 @@ class StructuredEnum(OrigEnum, metaclass=StructuredEnumMeta):
         return value
 
     @classmethod
+    def get_choice_description(cls, value: Any) -> str:
+        """Get the description of field member by value"""
+        if isinstance(value, cls):
+            value = value.value
+
+        members = cls.get_field_members()
+        for field in members.values():
+            if value == field.real_value:
+                return field.description or field.label
+
+        return value
+
+    @classmethod
     def get_labels(cls) -> List[str]:
         """Get the label list for all field members."""
         return [item[1] for item in cls.get_choices()]
+
+    @classmethod
+    def get_descriptions(cls) -> List[str]:
+        """Get the description list for all field members."""
+        members = cls.get_field_members()
+        return [field.description or field.label for field in members.values()]
 
     @classmethod
     def get_values(cls) -> List[Any]:
@@ -229,6 +256,12 @@ class StructuredEnum(OrigEnum, metaclass=StructuredEnumMeta):
         """Get Choices for all field members."""
         members = cls.get_field_members()
         return [(field.real_value, field.label) for field in members.values()]
+
+    @classmethod
+    def get_choices_with_description(cls) -> List[Tuple[Any, str, str]]:
+        """Get Choices with description for all field members."""
+        members = cls.get_field_members()
+        return [(field.real_value, field.label, field.description or field.label) for field in members.values()]
 
 
 try:

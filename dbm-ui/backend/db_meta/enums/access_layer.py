@@ -14,6 +14,6 @@ from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
 class AccessLayer(StrStructuredEnum):
-    PROXY = EnumField("proxy", _("proxy"))
-    STORAGE = EnumField("storage", _("storage"))
-    CONFIG = EnumField("config", _("config"))
+    PROXY = EnumField("proxy", _("proxy"), _("代理层，负责接收和转发数据库请求"))
+    STORAGE = EnumField("storage", _("storage"), _("存储层，负责数据存储和读写操作"))
+    CONFIG = EnumField("config", _("config"), _("配置层，负责数据库配置管理"))

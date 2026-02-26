@@ -284,3 +284,10 @@ def machine_type_to_cluster_type(machine_type: MachineType) -> ClusterType:
     for cluster_type in ClusterTypeMachineTypeDefine:
         if machine_type in ClusterTypeMachineTypeDefine[cluster_type]:
             return cluster_type
+    return None
+
+def instance_role_to_machine_type(instance_role: InstanceRole) -> MachineType:
+    for machine_type in MachineTypeInstanceRoleMap:
+        if instance_role in MachineTypeInstanceRoleMap[machine_type]:
+            return machine_type
+    return None
