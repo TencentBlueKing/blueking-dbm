@@ -37,9 +37,9 @@ func (m MeasureRange) Legal() bool {
 	return true
 }
 
-// MatchTotalStorageSize match total disk capacity
-func (m *MeasureRange) MatchTotalStorageSize(db *gorm.DB) {
-	m.MatchRange(db, "total_storage_cap")
+// MatchTotalDataStorageSize match total data disk capacity
+func (m *MeasureRange) MatchTotalDataStorageSize(db *gorm.DB) {
+	m.MatchRange(db, "total_data_storage_cap")
 }
 
 // MatchMem match memory size range
