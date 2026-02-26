@@ -29,16 +29,24 @@ from backend.db_services.partition.serializers import (
     PartitionDryRunResponseSerializer,
     PartitionDryRunSerializer,
     PartitionEnableSerializer,
+    PartitionExecuteV2Serializer,
     PartitionExportResponseSerializer,
     PartitionExportSerializer,
+    PartitionFieldTypeV2ResponseSerializer,
+    PartitionFieldTypeV2Serializer,
     PartitionImportResultSerializer,
     PartitionImportSerializer,
     PartitionListResponseSerializer,
     PartitionListSerializer,
     PartitionLogResponseSerializer,
     PartitionLogSerializer,
+    PartitionLogV2ResponseSerializer,
+    PartitionLogV2Serializer,
     PartitionRunSerializer,
     PartitionUpdateSerializer,
+    QueryConfByStatusSerializer,
+    SaveAndExecuteV2ResponseSerializer,
+    SaveAndExecuteV2Serializer,
 )
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
@@ -68,6 +76,17 @@ class DBPartitionViewSet(viewsets.SystemViewSet):
             info["status"] = info["status"] if info["status"] in TicketStatus.get_values() else TicketStatus.PENDING
         return log_list
 
+    @staticmethod
+    def _update_log_status_v2(log_list):
+        # 更新分区日志的状态
+        for info in log_list:
+            log_detail = PartitionHandler.query_status_v2(config_id=info["id"]) or {}
+            # 如果查询结果中没有 status 字段，则默认为 WARNING；否则转换为大写
+            status_value = log_detail.get("status") or "WARNING"
+            info["status"] = status_value.upper()
+            info["execute_time"] = log_detail.get("create_time") or ""
+        return log_list
+
     @common_swagger_auto_schema(
         operation_summary=_("获取分区策略列表"),
         query_serializer=PartitionListSerializer(),
@@ -95,8 +114,8 @@ class DBPartitionViewSet(viewsets.SystemViewSet):
     )
     def list(self, request, *args, **kwargs):
         validated_data = self.params_validate(PartitionListSerializer)
-        partition_data = DBPartitionApi.query_conf(params=validated_data)
-        partition_list = self._update_log_status(partition_data["items"])
+        partition_data = DBPartitionApi.query_conf_v2(params=validated_data)
+        partition_list = self._update_log_status_v2(partition_data["items"])
         return Response({"count": partition_data["count"], "results": partition_list})
 
     @common_swagger_auto_schema(
@@ -107,7 +126,7 @@ class DBPartitionViewSet(viewsets.SystemViewSet):
     def update(self, request, *args, **kwargs):
         validated_data = self.params_validate(PartitionUpdateSerializer)
         validated_data.update(id=kwargs["pk"])
-        return Response(DBPartitionApi.update_conf(params=validated_data))
+        return Response(DBPartitionApi.update_conf_v2(params=validated_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("增加分区策略"),
@@ -117,7 +136,7 @@ class DBPartitionViewSet(viewsets.SystemViewSet):
     )
     def create(self, request, *args, **kwargs):
         validated_data = self.params_validate(PartitionCreateSerializer)
-        return Response(PartitionHandler.create_and_dry_run_partition(request.user.username, validated_data))
+        return Response(PartitionHandler.create_and_run_partition_v2(request.user.username, validated_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("批量删除分区策略"),
@@ -248,3 +267,69 @@ class DBPartitionViewSet(viewsets.SystemViewSet):
         bk_biz_id = validated_data.get("bk_biz_id")
         # 调用导出处理逻辑
         return PartitionHandler.export_partitions(export_type, bk_biz_id, selected_ids, cluster_type)
+
+    # 分区v2接口
+    @common_swagger_auto_schema(
+        operation_summary=_("执行分区策略"),
+        request_body=PartitionExecuteV2Serializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=PartitionExecuteV2Serializer)
+    def execute_partition_v2(self, request, *args, **kwargs):
+        """
+        执行分区策略
+        @param request: 请求参数
+        @param args: 位置参数
+        @param kwargs: 关键字参数
+        @return: 响应数据
+        单独的执行接口，根据force标志来判断是否强制执行
+        强制执行会触发重新初始化分区表，非强制执行会触发增量执行
+        """
+        validated_data = self.params_validate(PartitionExecuteV2Serializer, representation=True)
+        return Response(PartitionHandler.execute_partition_v2(user=request.user.username, **validated_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("分区v2查询分区执行日志"),
+        query_serializer=PartitionLogV2Serializer(),
+        responses={status.HTTP_200_OK: PartitionLogV2ResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=PartitionLogV2Serializer)
+    def query_log_v2(self, request, *args, **kwargs):
+        validated_data = self.params_validate(PartitionLogV2Serializer, representation=True)
+        return Response(PartitionHandler.query_log_v2(**validated_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("分区v2查询分区字段类型"),
+        query_serializer=PartitionFieldTypeV2Serializer(),
+        responses={status.HTTP_200_OK: PartitionFieldTypeV2ResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=PartitionFieldTypeV2Serializer)
+    def query_field_type_v2(self, request, *args, **kwargs):
+        validated_data = self.params_validate(PartitionFieldTypeV2Serializer, representation=True)
+        return Response(PartitionHandler.query_field_type_v2(**validated_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("分区v2查询分区字段类型"),
+        query_serializer=SaveAndExecuteV2Serializer(),
+        responses={status.HTTP_200_OK: SaveAndExecuteV2ResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=SaveAndExecuteV2Serializer)
+    def save_and_execute_v2(self, request, *args, **kwargs):
+        validated_data = self.params_validate(SaveAndExecuteV2Serializer)
+        return Response(
+            PartitionHandler.save_and_execute_v2(user=request.user.username, partition_object=validated_data)
+        )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据执行状态过滤分区配置"),
+        request_body=QueryConfByStatusSerializer(),
+        responses={status.HTTP_200_OK: PartitionListResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=QueryConfByStatusSerializer)
+    def query_conf_by_status(self, request, *args, **kwargs):
+        validated_data = self.params_validate(QueryConfByStatusSerializer)
+        return Response(PartitionHandler.query_conf_by_status(**validated_data))
