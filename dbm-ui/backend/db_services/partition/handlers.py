@@ -22,8 +22,10 @@ from backend.db_meta.api.cluster.base.handler import ClusterHandler
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.enums.instance_inner_role import InstanceInnerRole
 from backend.db_meta.models import Cluster
+from backend.db_report.models.mysql_partiton_resuly import MysqlPartitionResult
 from backend.db_services.partition.constants import (
     QUERY_DATABASE_FIELD_TYPE,
+    QUERY_PARTITION_FIELD_TYPE,
     QUERY_UNIQUE_FIELDS_SQL,
     Query_partition_info_SQL,
     Query_shard_info_SQL,
@@ -272,6 +274,286 @@ class PartitionHandler(object):
             return _("表没有主键或者唯一键，将表改造为分区表的过程中会锁表，会阻塞查询、删除、修改、添加、表结构变更等语句")
 
     @classmethod
+    def query_log_v2(cls, config_id: int = None, **kwargs):
+        """
+        查询分区v2执行日志
+        @param config_id: 配置id
+        @return: 分区执行日志
+        根据分区配置id获取执行最近一条执行日志
+        """
+
+        if not config_id:
+            raise DBPartitionInternalServerError(_("config_id不能为空"))
+
+        # tb_mysql_partition_result 中不直接存 cluster_id，这里按 config_id 维度查询最近一条记录，
+        log_obj = MysqlPartitionResult.objects.filter(config_id=config_id).order_by("-create_time").first()
+
+        if not log_obj:
+            return {"message": _("未查询到分区执行日志")}
+
+        # 将模型对象转换为字典返回，便于前端直接展示字段
+        log_data = model_to_dict(log_obj)
+        return log_data
+
+    @classmethod
+    def query_status_v2(cls, config_id: int = None, **kwargs):
+        """
+        查询分区v2执行状态
+        @param config_id: 配置id
+        @return: 分区执行状态
+        根据分区配置id获取执行最近一条执行日志
+        """
+
+        if not config_id:
+            raise DBPartitionInternalServerError(_("config_id不能为空"))
+
+        # tb_mysql_partition_result 中不直接存 cluster_id，这里按 config_id 维度查询最近一条记录
+        log_obj = (
+            MysqlPartitionResult.objects.filter(config_id=config_id)
+            .only("status", "create_time")
+            .order_by("-create_time")
+            .first()
+        )
+
+        if not log_obj:
+            return {"message": _("未查询到分区执行日志")}
+
+        # 将模型对象转换为字典返回，便于前端直接展示字段
+        log_data = model_to_dict(log_obj)
+        return log_data
+
+    @classmethod
+    def query_conf_by_status(cls, bk_biz_id: int, cluster_type: str, status: str, limit: int = 10, offset: int = 0):
+        """
+        根据执行状态过滤分区配置
+        @param bk_biz_id: 业务ID
+        @param cluster_type: 集群类型
+        @param status: 执行状态过滤值（如 SUCCEEDED / FAILED / WARNING）
+        @param limit: 分页大小
+        @param offset: 分页偏移
+        """
+
+        # log_obj = MysqlPartitionResult.objects.filter().only("status", "create_time").order_by("-create_time").first()
+
+        partition_data = DBPartitionApi.query_conf_v2(
+            params={"bk_biz_id": bk_biz_id, "cluster_type": cluster_type, "limit": 0, "offset": 0}
+        )
+
+        status_upper = status.upper()
+        filtered = []
+        for item in partition_data.get("items", []):
+            log_detail = cls.query_status_v2(config_id=item["id"]) or {}
+            item_status = (log_detail.get("status") or "WARNING").upper()
+            if item_status == status_upper:
+                item["status"] = item_status
+                item["execute_time"] = log_detail.get("create_time") or ""
+                filtered.append(item)
+
+        total = len(filtered)
+        paged = filtered[offset : offset + limit] if limit else filtered
+        return {"count": total, "results": paged}
+
+    @classmethod
+    def create_and_run_partition_v2(cls, user: str, create_data: Dict):
+        """
+        创建并执行分区策略v2
+        @param user: 操作者
+        @param create_data: 分区策略数据
+        """
+        # 针对直接调用接口做规则检查
+        # 不符合规则的抛出异常，配置不会写入分区配置表
+        cls.verify_partition_field(
+            bk_biz_id=create_data["bk_biz_id"],
+            cluster_id=create_data["cluster_id"],
+            dblikes=create_data["dblikes"],
+            tblikes=create_data["tblikes"],
+            partition_column=create_data["partition_column"],
+            partition_column_type=create_data["partition_column_type"],
+        )
+        # 创建分区策略
+        cluster = Cluster.objects.get(id=create_data["cluster_id"])
+        create_data["bk_cloud_id"] = cluster.bk_cloud_id
+
+        try:
+            resp = DBPartitionApi.create_conf_v2(params=create_data, raw=True)
+        except (ApiRequestError, ApiResultError) as e:
+            raise DBPartitionCreateException(_("分区管理创建失败，创建参数:{}, 错误信息: {}").format(create_data, e))
+
+        if resp["code"] != 0:
+            raise DBPartitionInternalServerError(_("分区配置创建失败：{}").format(resp["message"]))
+
+        # 配置创建成功后立即执行
+        partition_items = resp["data"]["items"]
+
+        for partition_item in partition_items:
+            partition_item["config_id"] = partition_item.pop("id")
+
+        partition_execute_objects = {
+            "bk_biz_id": create_data["bk_biz_id"],
+            "partition_infos": [
+                {
+                    "cluster_id": create_data["cluster_id"],
+                    "configs": partition_items,
+                    "force": False,
+                }
+            ],
+        }
+        return cls.execute_partition_v2(user, **partition_execute_objects)
+
+    @classmethod
+    def execute_partition_v2(cls, user: str, **partition_objects: Dict[str, Any]):
+        """
+        执行分区策略
+        @param user: 创建者
+        @param cluster_id: 集群ID
+        @param partition_objects: 分区信息列表
+        """
+
+        ticket_list: List[Dict] = []
+        for info in partition_objects["partition_infos"]:
+            cluster_id = info["cluster_id"]
+            configs = info["configs"]
+            # 获取分区单据的类型
+            cluster = Cluster.objects.get(id=cluster_id)
+            if cluster.cluster_type == ClusterType.TenDBCluster:
+                partition_ticket_type = TicketType.TENDBCLUSTER_PARTITION_V2
+            else:
+                partition_ticket_type = TicketType.MYSQL_PARTITION_V2
+
+            partition_data = {
+                "cluster_type": cluster.cluster_type,
+                "cluster_id": cluster_id,
+                "configs": configs,
+                "force": info.get("force", False),
+            }
+            ticket = Ticket.create_ticket(
+                ticket_type=partition_ticket_type,
+                creator=user,
+                bk_biz_id=cluster.bk_biz_id,
+                remark=_("分区v2单据执行"),
+                details=partition_data,
+                auto_execute=True,
+            )
+            ticket_list.append(model_to_dict(ticket))
+
+        return ticket_list
+
+    @classmethod
+    def query_field_type_v2(
+        cls, bk_biz_id: int, cluster_id: int, dblikes: List[str], tblikes: List[str], partition_column: str
+    ):
+        """
+        查询分区字段类型
+        @param bk_biz_id: 业务ID
+        @param cluster_id: 集群ID
+        @param dblikes: 校验库名列表
+        @param tblikes: 校验表面列表
+        @param partition_column: 分区字段
+        """
+        # 获取集群的DRS查询地址，格式化库表过滤条件
+        cluster = Cluster.objects.get(id=cluster_id)
+        address = ClusterHandler.get_exact_handler(bk_biz_id=bk_biz_id, cluster_id=cluster_id).get_remote_address()
+
+        # 库名支持模糊匹配，表名需要是实际表名
+        table_sts = "(" + " or ".join([f"table_name = '{table}'" for table in tblikes]) + ")"
+        db_sts = "(" + " or ".join([f"table_schema like '{db}'" for db in dblikes]) + ")"
+        field_sts = "column_name = '{}'".format(partition_column)
+        fields_type_sql = QUERY_PARTITION_FIELD_TYPE.format(table_sts=table_sts, db_sts=db_sts, field_sts=field_sts)
+
+        # 查询涉及的所有库表索引信息和字段类型信息
+        rpc_results = DRSApi.rpc(
+            {"bk_cloud_id": cluster.bk_cloud_id, "addresses": [address], "cmds": [fields_type_sql]}
+        )
+        # 结构与内容健壮性校验，保证后续取值一定安全且有意义
+        if not rpc_results or not isinstance(rpc_results, list):
+            raise DBPartitionInternalServerError(_("字段信息查询错误：DRS 返回为空"))
+
+        first_result = rpc_results[0]
+        cmd_results = first_result.get("cmd_results")
+        if not cmd_results:
+            raise DBPartitionInternalServerError(_("字段信息查询错误：{}").format(first_result.get("error_msg") or _("结果集为空")))
+
+        first_cmd = cmd_results[0]
+        table_data = first_cmd.get("table_data") or []
+        if not table_data:
+            # DRS 调用成功但没有返回任何行，认为分区字段不存在或不合法
+            raise DBPartitionInvalidFieldException(_("分区字段【{}】不存在或库表信息错误，请检查库表/字段配置是否正确").format(partition_column))
+
+        # table_data 可能包含多个表的同名字段，这里对每一行做字段完整性校验
+        required_keys = ["column_name", "data_type", "table_name", "table_schema"]
+        checked_rows: List[Dict[str, Any]] = []
+        for row in table_data:
+            # 校验必须字段是否存在且有值
+            missing_keys = [k for k in required_keys if not row.get(k)]
+            if missing_keys:
+                raise DBPartitionInternalServerError(_("字段信息查询错误：返回结果缺少字段 {}").format(",".join(missing_keys)))
+            checked_rows.append(row)
+        # 1. 校验字段类型是否合法：仅允许 int/bigint/datetime/timestamp
+        allow_types = {"int", "bigint", "datetime", "timestamp"}
+        invalid_type_rows = [r for r in checked_rows if str(r["data_type"]).lower() not in allow_types]
+        if invalid_type_rows:
+            detail_str = "; ".join(
+                f"{r['table_schema']}.{r['table_name']}.{r['column_name']}({r['data_type']})"
+                for r in invalid_type_rows
+            )
+            raise DBPartitionInvalidFieldException(
+                _("分区字段类型仅支持 int/bigint/datetime/timestamp，实际结果：{}").format(detail_str)
+            )
+
+        # 2. 聚合校验：所有行的 column_name 和 data_type 必须一致
+        # 其实 int 和 bigint 可以互转，但这里不校验，仍然当做错误报出来，用户单独处理
+        first_col = checked_rows[0]["column_name"]
+        first_type = str(checked_rows[0]["data_type"]).lower()
+        has_inconsistent = any(
+            r["column_name"] != first_col or str(r["data_type"]).lower() != first_type for r in checked_rows
+        )
+        if has_inconsistent:
+            # 将所有查询到的库表+字段类型返回到错误信息中，便于前端展示
+            all_rows_str = "; ".join(
+                f"{r['table_schema']}.{r['table_name']}.{r['column_name']}({r['data_type']})" for r in checked_rows
+            )
+            raise DBPartitionInvalidFieldException(_("分区字段查询结果不一致，所有库表的字段名与类型必须一致，实际结果：{}").format(all_rows_str))
+
+        # 校验通过后，仅返回公共的 data_type 字段值
+        return first_type
+
+    @classmethod
+    def save_and_execute_v2(cls, user: str, partition_object: Dict[str, Any]):
+        """
+        保存并执行分区策略
+        @param user: 创建者
+        @param partition_info: 分区信息
+        先更新分区配置
+        再执行分区策略
+        """
+
+        try:
+            resp = DBPartitionApi.update_conf_v2(params=partition_object, raw=True)
+        except (ApiRequestError, ApiResultError) as e:
+            raise DBPartitionInternalServerError(_("分区配置更新失败：{}").format(e))
+
+        if resp["code"] != 0:
+            raise DBPartitionInternalServerError(_("分区配置更新失败：{}").format(resp["message"]))
+            # 配置创建成功后立即执行
+
+        partition_items = resp["data"]["items"]
+        for partition_item in partition_items:
+            partition_item["config_id"] = partition_item.pop("id")
+
+        partition_execute_object = {
+            "bk_biz_id": partition_object["bk_biz_id"],
+            "partition_infos": [
+                {
+                    "cluster_id": partition_object["cluster_id"],
+                    "configs": partition_items,
+                    "force": partition_object.get("force", False),
+                }
+            ],
+        }
+
+        return cls.execute_partition_v2(user, **partition_execute_object)
+
+    @classmethod
     def check_partition_info(cls, cluster_id: int, config_id: int):
         """
         针对已有的分区配置，检查表的分区执行情况
@@ -295,7 +577,7 @@ class PartitionHandler(object):
             raise DBPartitionInternalServerError(_("集群类型不支持：{}").format(cluster.cluster_type))
 
         # 获取分区配置
-        partition_confs = cls.__get_partition_conf_by_config_id(cluster_id, config_id, cluster.cluster_type)
+        partition_confs = cls._get_partition_conf_by_config_id(cluster_id, config_id, cluster.cluster_type)
         partition_conf = partition_confs["configs"][0]
         dblike = partition_conf["dblike"]
         tblike = partition_conf["tblike"]
@@ -305,11 +587,11 @@ class PartitionHandler(object):
         # partition_type = partition_conf["partition_type"]
         # expire_time = partition_conf["expire_time"]
 
-        table_info = cls.__check_table_info(address, cluster.bk_cloud_id, cluster.cluster_type, dblike, tblike)
+        table_info = cls._check_table_info(address, cluster.bk_cloud_id, cluster.cluster_type, dblike, tblike)
         return table_info
 
     @classmethod
-    def __get_partition_conf_by_config_id(cls, cluster_id: int, config_id: int, cluster_type: str):
+    def _get_partition_conf_by_config_id(cls, cluster_id: int, config_id: int, cluster_type: str):
         """
         根据配置id获取分区配置
         @param cluster_id: 集群id
@@ -332,7 +614,7 @@ class PartitionHandler(object):
         return partition_conf
 
     @classmethod
-    def __check_table_info(cls, address: str, bk_cloud_id: int, cluster_type: str, dblike: str, tblike: str):
+    def _check_table_info(cls, address: str, bk_cloud_id: int, cluster_type: str, dblike: str, tblike: str):
         """
         检查表信息
         @param address: 地址
@@ -344,13 +626,13 @@ class PartitionHandler(object):
         """
 
         if cluster_type == ClusterType.TenDBCluster:
-            table_info = cls.__check_tendbcluster_table_info(address, bk_cloud_id, dblike, tblike)
+            table_info = cls._check_tendbcluster_table_info(address, bk_cloud_id, dblike, tblike)
         else:
             pass
         return table_info
 
     @classmethod
-    def __get_is_partitiond_query_sql(cls, dblike: str, tblike: str):
+    def _get_is_partitiond_query_sql(cls, dblike: str, tblike: str):
         """
         获取查询语句
         @param dblike: 库名
@@ -376,7 +658,7 @@ class PartitionHandler(object):
         return query_sql
 
     @classmethod
-    def __check_tendbcluster_table_info(cls, address: str, bk_cloud_id: int, dblike: str, tblike: str) -> List:
+    def _check_tendbcluster_table_info(cls, address: str, bk_cloud_id: int, dblike: str, tblike: str) -> List:
         """
         查询tendbcluster表信息
         @param address: 地址
@@ -416,7 +698,7 @@ class PartitionHandler(object):
             db_address = "{}{}{}".format(shard_info["Host"], IP_PORT_DIVIDER, shard_info["Port"])
             shard_id = shard_info["Server_name"].split("SPT")[1]
             new_dblike = "{}_{}".format(dblike, shard_id)
-            partitiond_query_sql = cls.__get_is_partitiond_query_sql(new_dblike, tblike)
+            partitiond_query_sql = cls._get_is_partitiond_query_sql(new_dblike, tblike)
             partition_info_query_sql = Query_partition_info_SQL.format(dbname=new_dblike, tb=tblike)
 
             try:

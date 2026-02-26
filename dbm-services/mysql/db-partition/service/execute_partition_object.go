@@ -17,7 +17,7 @@ type PartitionConfig struct {
 	ClusterId           int    `json:"cluster_id" gorm:"column:cluster_id"`
 	DbLike              string `json:"dblike" gorm:"column:dblike"`
 	TbLike              string `json:"tblike" gorm:"column:tblike"`
-	PartitionColumn     string `json:"partition_columns" gorm:"column:partition_column"`
+	PartitionColumn     string `json:"partition_column" gorm:"column:partition_column"`
 	PartitionColumnType string `json:"partition_column_type" gorm:"column:partition_column_type"`
 	// 保留的分区个数 ReservedPartition := ExpireTime / PartitionTimeInterval
 	ReservedPartition int `json:"reserved_partition" gorm:"column:reserved_partition"`
