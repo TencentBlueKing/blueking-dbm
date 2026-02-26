@@ -4,8 +4,6 @@ from django.db import migrations, models
 
 import backend.flow.consts
 
-import backend.flow.consts
-
 
 class Migration(migrations.Migration):
 
