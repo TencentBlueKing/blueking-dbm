@@ -30,6 +30,13 @@ QUERY_DATABASE_FIELD_TYPE = (
     "from information_schema.columns where {table_sts} and {db_sts}"
 )
 
+# 查询分区字段类型
+QUERY_PARTITION_FIELD_TYPE = (
+    "select table_schema as table_schema, table_name as table_name, "
+    "column_name as column_name, data_type as data_type "
+    "from information_schema.columns where {table_sts} and {db_sts} and {field_sts}"
+)
+
 # 查询表信息 是否已经是分区表
 Query_Tables_info_SQL = (
     "select TABLE_SCHEMA, TABLE_NAME, CREATE_OPTIONS " "from information_schema.tables where {condition_sts}"

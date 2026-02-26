@@ -122,3 +122,45 @@ PARTITION_FIELD_VERIFY_DATA = {
     "message": "【kio123】【kio1】xxxxxx（8710002500）",
     "errors": None,
 }
+
+PARTITION_EXECUTE_V2_DATA = {
+    "result": True,
+    "code": 0,
+    "data": None,
+    "message": "success",
+    "errors": None,
+}
+
+PARTITION_LOG_V2_DATA = {
+    "result": True,
+    "code": 0,
+    "data": {
+        "id": 1,
+        "created_at": "2025-01-01T00:00:00+08:00",
+        "updated_at": "2025-01-01T00:00:00+08:00",
+        "event_create_timestamp": 1760000000000000,
+        "event_report_timestamp": 1760000000001000,
+        "event_receive_timestamp": 1760000000002000,
+        "event_source_ip": "127.0.0.1",
+        "event_bk_cloud_id": 0,
+        "event_bk_biz_id": 0,
+        "event_uuid": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        "bk_cloud_id": 0,
+        "bk_biz_id": 1,
+        "cluster_type": "tendbcluster",
+        "config_id": 10001,
+        "create_time": "2025-01-01T00:00:00+08:00",
+        "status": "SUCCESS",
+        "exec_log": "",
+    },
+    "message": "OK",
+    "errors": None,
+}
+
+PARTITION_FIELD_TYPE_V2_DATA = {
+    "result": True,
+    "code": 0,
+    "data": "int/bigint/datetime/timestamp",
+    "message": "success",
+    "errors": None,
+}

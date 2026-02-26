@@ -276,7 +276,7 @@ class TicketType(StrStructuredEnum):
     MYSQL_CHECKSUM_CRON = TicketEnumField("MYSQL_CHECKSUM_CRON", _("MySQL 数据校验定时任务"), register_iam=False)
     MYSQL_PARTITION = TicketEnumField("MYSQL_PARTITION", _("MySQL 分区"), _("分区管理"))
     MYSQL_PARTITION_CRON = TicketEnumField("MYSQL_PARTITION_CRON", _("MySQL 分区定时任务"), register_iam=False)  # noqa
-    MYSQL_PARTITION_V2 = TicketEnumField("MYSQL_PARTITION_V2", _("MySQL 分区v2"), _("分区管理v2"))
+    MYSQL_PARTITION_V2 = TicketEnumField("MYSQL_PARTITION_V2", _("MySQL 分区v2"), _("分区管理v2"), register_iam=False)
     MYSQL_DATA_REPAIR = TicketEnumField("MYSQL_DATA_REPAIR", _("MySQL 数据修复"), register_iam=False)
     MYSQL_FLASHBACK = TicketEnumField("MYSQL_FLASHBACK", _("MySQL 闪回"), _("回档"))
     MYSQL_ROLLBACK_CLUSTER = TicketEnumField("MYSQL_ROLLBACK_CLUSTER", _("MySQL 定点构造"), _("回档"))
@@ -335,6 +335,7 @@ class TicketType(StrStructuredEnum):
     TENDBCLUSTER_DATA_REPAIR = TicketEnumField("TENDBCLUSTER_DATA_REPAIR", _("TenDB Cluster 数据修复"),
                                                register_iam=False)  # noqa
     TENDBCLUSTER_PARTITION = TicketEnumField("TENDBCLUSTER_PARTITION", _("TenDB Cluster 分区管理"), _("分区管理"))
+    TENDBCLUSTER_PARTITION_V2 = TicketEnumField("TENDBCLUSTER_PARTITION_V2", _("TenDB Cluster 分区管理v2"), _("分区管理v2"))
     TENDBCLUSTER_PARTITION_CRON = TicketEnumField("TENDBCLUSTER_PARTITION_CRON", _("TenDB Cluster 分区定时任务"),
                                                   register_iam=False)  # noqa
     TENDBCLUSTER_DB_TABLE_BACKUP = TicketEnumField("TENDBCLUSTER_DB_TABLE_BACKUP", _("TenDB Cluster 库表备份"),
