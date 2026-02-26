@@ -20,6 +20,7 @@ from django.core.files.storage import Storage
 from django.utils.crypto import get_random_string
 from django.utils.translation import gettext_lazy as _
 
+from backend import env
 from backend.components import JobApi
 
 from . import constants, exceptions, models
@@ -192,7 +193,8 @@ class BkJobMixin:
 
         base_transfer_file_params = deepcopy(
             {
-                "bk_biz_id": bk_biz_id,
+                "bk_scope_type": "biz_set",
+                "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
                 "task_name": task_name,
                 "timeout": timeout,
                 "account_alias": account_alias,

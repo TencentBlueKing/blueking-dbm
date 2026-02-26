@@ -49,7 +49,7 @@ class JobApiMock(object):
     @classmethod
     def fast_transfer_file(cls, payload, raw=True):
         data = {
-            "job_instance_name": f"API Quick Distribution{payload['bk_biz_id']}",
+            "job_instance_name": f"API Quick Distribution{payload['bk_scope_id']}",
             "job_instance_id": JOB_INSTANCE_ID,
             "step_instance_id": STEP_INSTANCE_ID,
         }
@@ -61,14 +61,14 @@ class JobApiMock(object):
             "finished": True,
             "job_instance": {
                 "job_instance_id": JOB_INSTANCE_ID,
-                "bk_biz_id": payload["bk_biz_id"],
-                "name": f"API Quick Distribution{payload['bk_biz_id']}",
+                "bk_biz_id": payload["bk_scope_id"],
+                "name": f"API Quick Distribution{payload['bk_scope_id']}",
                 "status": JOB_SUCCESS_STATUS,
             },
             "step_instance_list": [
                 {
                     "status": JOB_SUCCESS_STATUS,
-                    "name": f"API Quick Distribution{payload['bk_biz_id']}",
+                    "name": f"API Quick Distribution{payload['bk_scope_id']}",
                     "step_instance_id": STEP_INSTANCE_ID,
                 }
             ],
@@ -78,7 +78,7 @@ class JobApiMock(object):
     @classmethod
     def fast_execute_script(cls, payload, raw=True):
         data = {
-            "job_instance_name": f"API Quick execution script{payload['bk_biz_id']}",
+            "job_instance_name": f"API Quick execution script{payload['bk_scope_id']}",
             "job_instance_id": JOB_INSTANCE_ID,
             "step_instance_id": STEP_INSTANCE_ID,
         }

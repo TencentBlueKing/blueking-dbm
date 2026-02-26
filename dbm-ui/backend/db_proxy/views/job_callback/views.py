@@ -70,7 +70,8 @@ class JobCallBackViewSet(BaseProxyPassViewSet):
 
         # 重启nginx进程
         job_payload = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": "restart_nginx",
             "script_content": base64_encode(restart_nginx_tpl),
             "script_language": 1,

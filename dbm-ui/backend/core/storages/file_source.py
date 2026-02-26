@@ -81,7 +81,8 @@ class BkJobFileCredentialManager:
 
         # 交给作业平台执行参数校验，无需冗余校验
         create_credential_query_params = {
-            "bk_biz_id": bk_biz_id,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "type": credential_type,
             "name": name,
             "description": description,
@@ -189,8 +190,9 @@ class BkJobFileSourceManager:
         alias = cls.gen_file_source_alias(bk_biz_id=credential.bk_biz_id, storage_type=credential.storage_type)
 
         create_file_source_query_params = {
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "type": credential.storage_type,
-            "bk_biz_id": credential.bk_biz_id,
             "credential_id": credential.credential_id,
             "code": code,
             "alias": alias,

@@ -97,10 +97,11 @@ class SqlserverActuatorScriptService(BkJobService):
         template = jinja_env.from_string(sqlserver_actuator_template)
 
         body = {
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "timeout": kwargs.get("job_timeout", 3600),
             "account_alias": WINDOW_SYSTEM_JOB_USER,
             "is_param_sensitive": 1,
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": f"DBM_{node_name}_{node_id}",
             "script_content": base64_encode(template.render(asdict(db_act_template))),
             "script_language": 5,

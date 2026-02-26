@@ -248,7 +248,8 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         获取任务状态
         """
         payload = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "job_instance_id": instance_id,
             "return_ip_result": True,
         }
@@ -265,7 +266,8 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         获取任务日志
         """
         payload = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "job_instance_id": job_instance_id,
             "step_instance_id": step_instance_id,
         }
@@ -328,7 +330,8 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         针对一个任务进行失败IP重试
         """
         params = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "job_instance_id": job_instance_id,
             "step_instance_id": step_instance_id,
             "operation_code": JobOperationCode.FAILED_IP_RETRY.value,
