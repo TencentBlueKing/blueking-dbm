@@ -220,7 +220,16 @@ func (s *SimulationHandler) extractClusterConfig(body map[string]interface{}) (*
 	} else {
 		config.BackendStartArgs = make(map[string]string)
 	}
-
+	copeBackendKeys := []string{
+		"innodb_file_per_table",
+		"innodb_large_prefix",
+		"innodb_default_row_format",
+		"innodb_strict_mode"}
+	for _, key := range copeBackendKeys {
+		if val, ok := config.BackendStartArgs[key]; ok {
+			config.TdbCtlStartArgs[key] = val
+		}
+	}
 	return config, nil
 }
 
