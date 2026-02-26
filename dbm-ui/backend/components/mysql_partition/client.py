@@ -91,28 +91,36 @@ class _PartitionApi(BaseApi):
             method="Post", url="/partition/partition_conf_query", description=_("分区配置查询")
         )
 
-        self.query_log_v2 = self.generate_data_api(
+        # v2 分区配置相关接口
+        self.query_conf_v2 = self.generate_data_api(
             method="POST",
-            url="partition/query_log_v2",
-            description=_("查询分区日志V2"),
+            url="partition/v2/query_conf",
+            description=_("查询分区配置v2"),
         )
-
-        self.execute_partition_v2 = self.generate_data_api(
+        self.create_conf_v2 = self.generate_data_api(
             method="POST",
-            url="partition/execute_partition_v2",
-            description=_("执行分区_v2"),
+            url="partition/v2/create_conf",
+            description=_("添加分区配置v2"),
         )
-
-        self.validate_field_type_v2 = self.generate_data_api(
+        self.update_conf_v2 = self.generate_data_api(
             method="POST",
-            url="partition/validate_field_type_v2",
-            description=_("校验字段类型"),
+            url="partition/v2/update_conf",
+            description=_("修改分区配置v2"),
         )
-
-        self.save_and_execute_v2 = self.generate_data_api(
+        self.del_conf_v2 = self.generate_data_api(
             method="POST",
-            url="partition/save_and_execute_v2",
-            description=_("保存并执行(重新初始化)分区_v2"),
+            url="partition/v2/del_conf",
+            description=_("删除分区配置v2"),
+        )
+        self.enable_partition_v2 = self.generate_data_api(
+            method="POST",
+            url="partition/v2/enable_partition",
+            description=_("启用分区v2"),
+        )
+        self.disable_partition_v2 = self.generate_data_api(
+            method="POST",
+            url="partition/v2/disable_partition",
+            description=_("禁用分区v2"),
         )
 
 
