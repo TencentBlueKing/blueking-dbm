@@ -199,9 +199,9 @@ func (m *DBLoader) Start() error {
 	if err != nil {
 		return err
 	}
+	_ = cmutil.ChownNotUsingExec(fileLock.GetContextFilePath(), "mysql", "mysql")
 	logger.Info("using lock file %s", fileLock.GetContextFilePath())
-
-	if err := fileLock.Add(1); err != nil {
+	if err := fileLock.Incr(1); err != nil {
 		return errors.WithMessage(err, "file lock incr failed")
 	}
 	defer fileLock.Done()

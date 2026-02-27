@@ -30,6 +30,10 @@ type messageWrapper struct {
 
 // QueryKafkaMetaWithBkDataId query data_id from bklog api metadata_get_data_id
 func QueryKafkaMetaWithBkDataId(sinker *Sinker, bkdata *config.BkmApiInfo) error {
+	if bkdata == nil {
+		slog.Error("bkm_api_info config for bklog is nil", slog.Any("table", sinker.RuntimeConfig.ModelTable))
+		return errors.New("bkm_api_info config for bklog is nil")
+	}
 	params := url.Values{}
 	params.Add("bk_data_id", strconv.Itoa(sinker.RuntimeConfig.BkDataId))
 
