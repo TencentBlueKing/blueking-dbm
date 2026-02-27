@@ -83,6 +83,12 @@ class PolicyStatus(StrStructuredEnum):
     TARGET_INVALID = EnumField("target_invalid", _("监控目标已失效"))
 
 
+class PolicyType(StrStructuredEnum):
+    SINGLE = EnumField("single", _("单指标"))
+    MULTI = EnumField("multi", _("多指标"))
+    PROMQL = EnumField("PromQL", _("PromQL"))
+
+
 class OperatorEnum(StrStructuredEnum):
     """比较操作符"""
 

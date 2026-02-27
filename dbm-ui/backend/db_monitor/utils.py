@@ -107,6 +107,38 @@ def render_promql_sql(prom_sql, wheres):
     return prom_sql
 
 
+def render_promql_sql_new(prom_sql, wheres):
+    """
+    渲染promql语句，通过正则替换
+        prom_sql (str): The original PromQL query.
+        wheres (list): [{"key": "appid", "value": ["2", "3"], "method": "=~"}]
+    """
+    for rule in wheres:
+        label, value, method = rule["key"], rule["value"], rule["method"]
+        # If the value is a list, convert it to a regex alternation pattern
+        value = value[0] if isinstance(value, list) and len(value) == 1 else value
+
+        # skip empty list
+        if not value:
+            continue
+
+        if isinstance(value, list):
+            value = f'"({"|".join(map(str, value))})"'
+        else:
+            value = f'"{value}"'
+
+        pattern = rf'{label}\s*(?:=|!=|=~|!~)\s*"[^"]*"'
+
+        if re.search(pattern, prom_sql):
+            # If label exists with any operator, replace it
+            prom_sql = re.sub(pattern, rf"{label}{method}{value}", prom_sql)
+        else:
+            # If label does not exist, add before the closing '}'
+            prom_sql = re.sub(r"}", f", {label}{method}{value}}}", prom_sql)
+
+    return prom_sql
+
+
 def get_dbm_autofix_action_id() -> int:
     """获取 dbm 故障自愈套餐 id"""
     actions = BKMonitorV3Api.search_action_config({"bk_biz_id": env.DBA_APP_BK_BIZ_ID})["data"]
@@ -238,3 +270,11 @@ def parse_shield_description_biz(description=""):
     p = r"\[dbm:appid=(\d+)\]"
     match = re.search(p, description)
     return int(match.group(1)) if match else env.DBA_APP_BK_BIZ_ID
+
+
+def flatten_policy_results(data):
+    result = []
+    for d in data["results"]:
+        result.append(d)
+        result.extend(d.get("child", []))
+    return result

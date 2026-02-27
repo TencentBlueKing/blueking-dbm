@@ -41,6 +41,7 @@ from backend.db_monitor.constants import (
     AlertSourceEnum,
     DutyRuleCategory,
     PolicyStatus,
+    PolicyType,
     TargetLevel,
     TargetPriority,
 )
@@ -55,7 +56,7 @@ from backend.db_monitor.utils import (
     bkm_delete_alarm_strategy,
     bkm_save_alarm_strategy,
     get_dbm_autofix_action_id,
-    render_promql_sql,
+    render_promql_sql_new,
 )
 from backend.db_services.cmdb.biz import list_cc_obj_user
 from backend.exceptions import ApiError
@@ -600,6 +601,7 @@ class MonitorPolicy(AuditedModel):
     KEEPED_FIELDS = [*AuditedModel.AUDITED_FIELDS, "id", "is_enabled", "monitor_policy_id", "policy_status"]
 
     parent_id = models.IntegerField(verbose_name=_("父级策略ID，0代表父级"), default=0)
+    # TODO: 设计上是保存最初版本的快照信息用于恢复策略，现在暂时没用到
     parent_details = models.JSONField(verbose_name=_("父级策略模板详情，可用于还原"), default=dict)
 
     name = models.CharField(verbose_name=_("策略名称，全局唯一"), max_length=LEN_MIDDLE, unique=True)
@@ -646,7 +648,7 @@ class MonitorPolicy(AuditedModel):
     #         },
     #     ]
     # }
-    # [{"level": platform, "rule":{"key": "appid/db_module/cluster_domain", "value": ["aa", "bb"]}}]
+    # [{"level": platform, "rule":{"key": "appid/db_module/cluster_domain", "method": "eq", "value": ["aa", "bb"]}}]
     targets = models.JSONField(verbose_name=_("监控目标"), default=list)
     target_level = models.CharField(
         verbose_name=_("监控目标级别，跟随targets调整"),
@@ -687,6 +689,7 @@ class MonitorPolicy(AuditedModel):
     notify_groups = models.JSONField(verbose_name=_("通知组"), default=list)
     # .notice.options.assign_mode = ["by_rule", "only_notice"]
     # assign_mode = models.JSONField(verbose_name=_("通知模式-分派|直接通知"), default=list)
+    notify_config = models.JSONField(verbose_name=_("通知间隔"), default=dict)
 
     # 判断条件配置
     detects_config = models.JSONField(verbose_name=_("触发配置"), default=dict)
@@ -705,6 +708,15 @@ class MonitorPolicy(AuditedModel):
         max_length=LEN_NORMAL,
         default=PolicyStatus.VALID.value,
     )
+    agg_info = models.JSONField(verbose_name=_("汇聚方式和周期配置"), default=list)
+
+    policy_type = models.CharField(
+        verbose_name=_("策略类型"),
+        choices=PolicyType.get_choices(),
+        max_length=LEN_NORMAL,
+        default="",
+    )
+    expression = models.CharField(verbose_name=_("多指标表达式"), max_length=LEN_MIDDLE, default="")
 
     monitor_policy_id = models.BigIntegerField(verbose_name=_("蓝鲸监控策略ID"), default=0)
 
@@ -738,18 +750,30 @@ class MonitorPolicy(AuditedModel):
         else:
             target_level = TargetLevel.PLATFORM.value
 
+        # 当有自定义条件的时候，看下自定义条件是否有值，有值则应该target_level为custom
+        if self.custom_conditions:
+            for condition in self.custom_conditions:
+                if condition["value"]:
+                    target_level = TargetLevel.CUSTOM.value
+                    break
+
         self.target_level = target_level
         self.target_priority = TARGET_LEVEL_TO_PRIORITY.get(target_level).value
 
         # 生成监控目标检索冗余字段
         db_module_map = DBModule.db_module_map()
-        self.target_keyword = ",".join(
-            [
-                db_module_map.get(int(value), value) if t["rule"]["key"] == TargetLevel.MODULE.value else value
-                for t in self.targets
-                for value in t["rule"]["value"]
-            ]
-        )
+
+        # 监控目标的值聚合， 方便搜索
+        target_keyword_list = [
+            db_module_map.get(int(value), value) if t["rule"]["key"] == TargetLevel.MODULE.value else value
+            for t in self.targets
+            for value in t["rule"]["value"]
+        ]
+
+        for custom in self.custom_conditions:
+            target_keyword_list.extend(custom["value"])
+
+        self.target_keyword = ",".join(target_keyword_list)
 
         # 平台策略首次生成分组key，所有子策略继承同一个key
         if not self.parent_id and not self.priority_group_key:
@@ -836,7 +860,7 @@ class MonitorPolicy(AuditedModel):
                     "key": target_rule["key"],
                     "dimension_name": TargetLevel.get_choice_label(target_rule["key"]),
                     "value": target_rule["value"],
-                    "method": "eq",
+                    "method": target_rule["method"],
                     "condition": "and",
                 }
             )
@@ -859,16 +883,17 @@ class MonitorPolicy(AuditedModel):
                     # overwrite agg_condition
                     query_config["agg_condition"] = query_config_agg_condition
                 else:
-                    key_values = {}
+                    key_values = []
                     for target in self.targets:
                         if target["level"] == TargetLevel.PLATFORM.value:
                             continue
 
                         target_rule = target["rule"]
-                        key, values = target_rule["key"], target_rule["value"]
-                        key_values[key] = values
+                        key_values.append(target_rule)
+                        # key, values = target_rule["key"], target_rule["value"]
+                        # key_values[key] = values
 
-                    query_config["promql"] = render_promql_sql(query_config["promql"], key_values)
+                    query_config["promql"] = render_promql_sql_new(query_config["promql"], key_values)
                     logger.info("query_config.promql: %s", query_config["promql"])
 
         return details
@@ -900,6 +925,29 @@ class MonitorPolicy(AuditedModel):
 
         return details
 
+    def patch_agg_info(self, details):
+        agg_info = self.agg_info
+        id_agg_info_map = {info["metric_id"]: info for info in agg_info}
+        promql_map = {}
+        if not id_agg_info_map:
+            return details
+        for item in details["items"]:
+            for query_config in item["query_configs"]:
+
+                metric_id = query_config["metric_id"]
+                if "agg_condition" in query_config:
+                    # 非promsql的才有汇聚方式
+                    query_config["agg_method"] = id_agg_info_map[metric_id].get("agg_method")
+                query_config["agg_interval"] = id_agg_info_map[metric_id].get("agg_interval")
+                if query_config.get("promql"):
+                    promql_map[metric_id] = query_config.get("promql")
+        if promql_map:
+            for info in agg_info:
+                info["promql"] = promql_map[info["metric_id"]]
+            self.agg_info = agg_info
+
+        return details
+
     def patch_notice(self, details):
         """通知规则和通知对象"""
         # notify_rules -> notice.signal
@@ -912,7 +960,24 @@ class MonitorPolicy(AuditedModel):
         # notice_groups -> notice.user_groups
         details["notice"]["user_groups"] = NoticeGroup.get_monitor_groups(group_ids=self.notify_groups)
 
+        # notify_config -> notice.config.interval_notify_mode  notice.config. notify_interval
+        # increasing or standard
+        details["notice"]["config"]["interval_notify_mode"] = self.notify_config.get("interval_notify_mode")
+        details["notice"]["config"]["notify_interval"] = self.notify_config.get("notify_interval")
+
         return details
+
+    def get_policy_type(self, items):
+        if not items:
+            return ""
+        self.expression = items[0]["expression"]
+        query_configs = items[0]["query_configs"]
+        if query_configs[0].get("data_source_label") == "prometheus":
+            return PolicyType.PROMQL
+        elif len(query_configs) >= 2:
+            return PolicyType.MULTI
+        else:
+            return PolicyType.SINGLE
 
     def local_save(self, *args, **kwargs):
         """仅保存到本地，不同步到监控"""
@@ -934,6 +999,9 @@ class MonitorPolicy(AuditedModel):
         # model.notify_xxx -> notice
         details = self.patch_notice(details)
 
+        #
+        details = self.patch_agg_info(details)
+
         # other
         details = self.patch_bk_biz_id(details)
         details = self.patch_target_and_metric_id(details, self.db_type)
@@ -954,6 +1022,7 @@ class MonitorPolicy(AuditedModel):
         self.details = res
         self.monitor_policy_id = self.details["id"]
         self.sync_at = datetime.datetime.now(timezone.utc)
+        self.policy_type = self.get_policy_type(self.details.get("items"))
 
         # 平台内置策略支持保存初始版本，用于恢复默认设置
         if self.pk is None and self.bk_biz_id == env.DBA_APP_BK_BIZ_ID:
@@ -1034,7 +1103,16 @@ class MonitorPolicy(AuditedModel):
     def update(self, params, username="system") -> dict:
         """更新：patch -> update"""
 
-        update_fields = ["targets", "test_rules", "notify_rules", "notify_groups", "detects_config", "no_data_config"]
+        update_fields = [
+            "targets",
+            "test_rules",
+            "notify_rules",
+            "notify_groups",
+            "detects_config",
+            "no_data_config",
+            "notify_config",
+            "agg_info",
+        ]
 
         # param -> model
         for key in update_fields:
@@ -1055,7 +1133,7 @@ class MonitorPolicy(AuditedModel):
         """从模板反向提取部分参数"""
 
         details = details or self.details
-        result = defaultdict(list)
+        result = defaultdict()
 
         result["test_rules"] = [
             {
@@ -1068,7 +1146,17 @@ class MonitorPolicy(AuditedModel):
             for alg in details["items"][0]["algorithms"]
         ]
 
-        first_query_config = details["items"][0]["query_configs"][0]
+        query_configs = details["items"][0]["query_configs"]
+        policy_type = ""
+        if query_configs[0].get("data_source_label") == "prometheus":
+            policy_type = "PromQL"
+        elif len(query_configs) >= 2:
+            policy_type = "multi"
+        elif len(query_configs) == 1:
+            policy_type = "single"
+        result["policy_type"] = policy_type
+
+        first_query_config = query_configs[0]
         target_conditions = (
             list(filter(lambda cond: cond["key"] in TargetLevel.get_values(), first_query_config["agg_condition"]))
             if "agg_condition" in first_query_config
@@ -1076,14 +1164,24 @@ class MonitorPolicy(AuditedModel):
         )
 
         result["targets"] = [
-            {"level": condition["key"], "rule": {"key": condition["key"], "value": condition["value"]}}
+            {
+                "level": condition["key"],
+                "rule": {"key": condition["key"], "value": condition["value"], "method": condition["method"]},
+            }
             for condition in target_conditions
         ]
 
         # 默认填充平台级目标
         if not result["targets"]:
             result["targets"].append(
-                {"level": TargetLevel.PLATFORM.value, "rule": {"key": TargetLevel.PLATFORM.value, "value": []}}
+                {
+                    "level": TargetLevel.PLATFORM.value,
+                    "rule": {
+                        "key": TargetLevel.PLATFORM.value,
+                        "method": "==" if policy_type == "PromQL" else "eq",
+                        "value": [],
+                    },
+                }
             )
 
         result["notify_rules"] = details["notice"]["signal"]
@@ -1092,6 +1190,33 @@ class MonitorPolicy(AuditedModel):
             .values_list("id", flat=True)
             .distinct()
         )
+
+        result["detects_config"] = {
+            "trigger_config": details["detects"][0]["trigger_config"],
+            "recovery_config": details["detects"][0]["recovery_config"],
+        }
+
+        result["no_data_config"] = details["items"][0]["no_data_config"]
+
+        result["notify_config"] = {
+            "interval_notify_mode": details["notice"]["config"]["interval_notify_mode"],
+            "notify_interval": details["notice"]["config"]["notify_interval"],
+        }
+
+        agg_info = []
+        for query_config in details["items"][0]["query_configs"]:
+            agg_info.append(
+                {
+                    "metric_id": query_config["metric_id"],
+                    "agg_interval": query_config.get("agg_interval"),
+                    "agg_method": query_config.get("agg_method"),
+                    "metric_field": query_config.get("metric_field"),
+                    "promql": query_config.get("promql"),
+                }
+            )
+        result["agg_info"] = agg_info
+
+        result["expression"] = details["items"][0]["expression"]
 
         return result
 
@@ -1138,7 +1263,7 @@ class MonitorPolicy(AuditedModel):
         )
 
     @classmethod
-    def sync_plat_monitor_policy(cls, action_id=None, db_type=None, force=False):
+    def sync_plat_monitor_policy(cls, action_id=None, db_type=None, force=False, specified_name=None):
         if action_id is None:
             action_id = get_dbm_autofix_action_id()
         skip_dir = "v1"
@@ -1166,6 +1291,9 @@ class MonitorPolicy(AuditedModel):
 
                     # 如指定db_type，只同步指定db_type的策略(跳过非指定db_type的策略)
                     if db_type is not None and template_dict.get("db_type") != db_type:
+                        continue
+
+                    if specified_name is not None and policy_name != specified_name:
                         continue
 
                     deleted = template_dict.pop("deleted", False)
