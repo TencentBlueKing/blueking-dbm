@@ -2385,7 +2385,7 @@
   },
   {
     "conf_name": "mysqld.log_error_verbosity",
-    "value_default": "2",
+    "value_default": "3",
     "value_allowed": "1 | 2 | 3",
     "value_type": "INT",
     "value_type_sub": "ENUM",

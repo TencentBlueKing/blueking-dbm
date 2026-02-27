@@ -58,7 +58,6 @@ class MysqlSlowSqlTunerCommand(CommandHandler):
         {{sql_text}}
         {% endif %}
 
-        业务ID bk_biz_id: {{bk_biz_id}}
         db集群 cluster_domain: {{cluster_domain}}
         db 名 db_name: {{db_name}} (如果有)
         """

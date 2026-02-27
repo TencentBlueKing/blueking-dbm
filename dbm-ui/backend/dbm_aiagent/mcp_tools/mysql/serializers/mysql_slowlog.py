@@ -50,7 +50,7 @@ class MysqlSlowTunerInputSerializer(serializers.Serializer):
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     query_digest_md5 = serializers.CharField(help_text=_("慢日志摘要"))
     sql_text = serializers.CharField(help_text=_("SQL 文本"))
-    db_name = serializers.CharField(help_text=_("database name"))
+    db_name = serializers.CharField(help_text=_("database name, 如果这条 sql 上下文没有找到 db_name, 则为空字符串"))
 
 
 class MysqlSlowTunerOutputSerializer(serializers.Serializer):
