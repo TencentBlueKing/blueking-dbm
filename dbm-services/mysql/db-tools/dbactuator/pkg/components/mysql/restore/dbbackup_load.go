@@ -193,6 +193,19 @@ func (m *DBLoader) Start() error {
 		cmutil.ExecCommand(false, "", "chown", "-R", "mysql:mysql", m.taskDir)
 	}()
 
+	// 做并发约束判断
+	restoreDataLockFile, maxProcessNum := m.getConcurrencyInfo()
+	fileLock, err := filecontext.NewIncrFile(restoreDataLockFile, maxProcessNum, 20*time.Second)
+	if err != nil {
+		return err
+	}
+	logger.Info("using lock file %s", fileLock.GetContextFilePath())
+
+	if err := fileLock.Add(1); err != nil {
+		return errors.WithMessage(err, "file lock incr failed")
+	}
+	defer fileLock.Done()
+
 	logger.Info("开始解压 untarDir=%s", m.untarDir)
 	if err := m.BackupInfo.indexObj.UntarFiles(m.untarDir, SContext); err != nil {
 		return err
@@ -212,6 +225,7 @@ func (m *DBLoader) Start() error {
 	if err := m.dbLoader.PostLoad(); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -419,4 +433,29 @@ func (m *DBLoader) getChangeMasterPos(masterInst native.Instance) (*mysqlutil.Ch
 		MasterPort:      masterInst.Port,
 	}
 	return cm, nil
+}
+
+func (m *DBLoader) getConcurrencyInfo() (string, int) {
+	restoreDataLockFile := "/tmp/mysql_restore_data.lock.yaml"
+	threadsForOneInstance := 16 // cpu cores?
+
+	cpuCores := 8
+	if cpus, err := cmutil.GetCPUInfo(); err == nil {
+		cpuCores = cpus.CoresLogical
+	} else {
+		logger.Warn("fail loader get cpu cores(use 8): ", err.Error())
+	}
+	if m.TotalThreads == 0 {
+		m.TotalThreads = cpuCores
+	}
+	if cpuCores < threadsForOneInstance {
+		// 避免低核机器 cpu 占用太高
+		threadsForOneInstance = cpuCores
+	} else if cpuCores >= 64 {
+		// 这里影响的就是单机单实例的恢复速度，因为实例本身并不知道还有没有其他恢复进程。这里意思一下，单实例加大到 32
+		threadsForOneInstance = 32
+	}
+
+	maxProcessNum := m.TotalThreads/threadsForOneInstance + 1
+	return restoreDataLockFile, maxProcessNum
 }

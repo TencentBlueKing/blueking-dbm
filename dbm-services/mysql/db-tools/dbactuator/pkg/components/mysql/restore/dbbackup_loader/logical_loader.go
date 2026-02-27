@@ -29,7 +29,7 @@ func (l *LogicalLoader) CreateConfigFile() error {
 	if cpus, err := cmutil.GetCPUInfo(); err == nil {
 		cpuCores = cpus.CoresLogical
 	} else {
-		logger.Warn("fail loader get cpu cores: ", err.Error())
+		logger.Warn("fail loader get cpu cores(use 8): ", err.Error())
 	}
 	p := l.LoaderUtil
 	if l.myloaderRegex == "" {

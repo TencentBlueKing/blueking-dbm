@@ -119,10 +119,14 @@ func initBackupConfig(confFile string, cnf *config.BackupConfig, log *logrus.Log
 	}
 	// 如果本机是 master 且设置了 master 限速，则覆盖默认限速
 	if cnf.Public.IOLimitMasterFactor > 0.0001 && cnf.Public.MysqlRole == cst.RoleMaster {
-		cnf.Public.IOLimitMBPerSec = int(math.Max(10,
-			cnf.Public.IOLimitMasterFactor*float64(cnf.Public.IOLimitMBPerSec)))
-		cnf.PhysicalBackup.Throttle = int(math.Max(1,
-			cnf.Public.IOLimitMasterFactor*float64(cnf.PhysicalBackup.Throttle)))
+		if cnf.Public.IOLimitMBPerSec > 0 {
+			cnf.Public.IOLimitMBPerSec = int(math.Max(100,
+				cnf.Public.IOLimitMasterFactor*float64(cnf.Public.IOLimitMBPerSec)))
+		}
+		if cnf.PhysicalBackup.Throttle > 0 {
+			cnf.PhysicalBackup.Throttle = int(math.Max(10,
+				cnf.Public.IOLimitMasterFactor*float64(cnf.PhysicalBackup.Throttle)))
+		}
 	}
 	if cnf.LogicalBackup.TrxConsistencyOnly == nil {
 		cnf.LogicalBackup.TrxConsistencyOnly = &config.TruePtr
@@ -162,10 +166,14 @@ func initConfig(confFile string, cnf *config.BackupConfig, log *logrus.Logger) e
 	}
 	// 如果本机是 master 且设置了 master 限速，则覆盖默认限速
 	if cnf.Public.IOLimitMasterFactor > 0.0001 && cnf.Public.MysqlRole == cst.RoleMaster {
-		cnf.Public.IOLimitMBPerSec = int(math.Max(10,
-			cnf.Public.IOLimitMasterFactor*float64(cnf.Public.IOLimitMBPerSec)))
-		cnf.PhysicalBackup.Throttle = int(math.Max(1,
-			cnf.Public.IOLimitMasterFactor*float64(cnf.PhysicalBackup.Throttle)))
+		if cnf.Public.IOLimitMBPerSec > 0 {
+			cnf.Public.IOLimitMBPerSec = int(math.Max(100,
+				cnf.Public.IOLimitMasterFactor*float64(cnf.Public.IOLimitMBPerSec)))
+		}
+		if cnf.PhysicalBackup.Throttle > 0 {
+			cnf.PhysicalBackup.Throttle = int(math.Max(10,
+				cnf.Public.IOLimitMasterFactor*float64(cnf.PhysicalBackup.Throttle)))
+		}
 	}
 	if cnf.LogicalBackup.TrxConsistencyOnly == nil {
 		cnf.LogicalBackup.TrxConsistencyOnly = &config.TruePtr
