@@ -47,6 +47,8 @@ type RestoreParam struct {
 	// 恢复选项，比如恢复库表、是否导入binlog等。目前只对逻辑恢复有效
 	// 重建 slave时，这里可不传
 	RestoreOpt *RestoreOpt `json:"restore_opts"`
+	// TotalThreads 机器级别的并发度，默认是当前机器逻辑 cpu 核数。当机器上存在多个实例同时恢复时控制并发
+	TotalThreads int `json:"total_threads"`
 
 	ShareContext *filecontext.FileContext `json:"-"`
 }
