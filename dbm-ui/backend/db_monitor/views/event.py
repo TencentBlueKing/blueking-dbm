@@ -124,6 +124,8 @@ class AlertView(SystemViewSet):
                 "id": policy.id,
                 "parent_id": policy.parent_id,
                 "db_type": policy.db_type,
+                "target_level": policy.target_level,
+                "bk_biz_id": policy.bk_biz_id,
             }
             for policy in monitor_policies
         }
