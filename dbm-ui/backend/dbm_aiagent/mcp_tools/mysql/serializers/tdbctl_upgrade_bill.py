@@ -14,14 +14,15 @@ from rest_framework import serializers
 
 class SubmitBillTdbctlUpgradeInputSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
-    cluster_domain = serializers.CharField(
-        help_text=_("集群域名（可选，与 cluster_id 二选一）"),
+    cluster_domains = serializers.ListField(
+        child=serializers.CharField(allow_blank=False),
+        help_text=_("集群域名列表（可选，与 cluster_ids 二选一）"),
         required=False,
         allow_null=True,
-        allow_blank=True,
     )
-    cluster_id = serializers.IntegerField(
-        help_text=_("集群ID（可选，与 cluster_id 二选一）"),
+    cluster_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        help_text=_("集群ID列表（可选，与 cluster_domains 二选一）"),
         required=False,
         allow_null=True,
     )

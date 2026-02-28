@@ -16,19 +16,18 @@ from backend.db_meta.models import Cluster
 def auth_parse_mysql_tdbctl_upgrade_ticket(request, *args, **kwargs):
     data = request.query_params if request.method == "GET" else request.data
     bk_biz_id = data.get("bk_biz_id")
-    cluster_domain = data.get("cluster_domain")
-    cluster_id = data.get("cluster_id")
+    cluster_domains = data.get("cluster_domains") or []
+    cluster_ids = data.get("cluster_ids") or []
 
     clusters = None
-    if cluster_domain:
-        clusters = Cluster.objects.filter(immute_domain=cluster_domain, cluster_type=ClusterType.TenDBCluster)
-    elif cluster_id:
-        clusters = Cluster.objects.filter(id=cluster_id, cluster_type=ClusterType.TenDBCluster)
+    if cluster_domains:
+        clusters = Cluster.objects.filter(immute_domain__in=cluster_domains, cluster_type=ClusterType.TenDBCluster)
+    elif cluster_ids:
+        clusters = Cluster.objects.filter(id__in=cluster_ids, cluster_type=ClusterType.TenDBCluster)
     elif bk_biz_id:
         clusters = Cluster.objects.filter(bk_biz_id=bk_biz_id, cluster_type=ClusterType.TenDBCluster)
 
     if not clusters or not clusters.exists():
         raise ValueError("No clusters found for the given params")
 
-    cluster_ids = list(clusters.values_list("id", flat=True))
-    return cluster_ids
+    return list(clusters.values_list("id", flat=True))
