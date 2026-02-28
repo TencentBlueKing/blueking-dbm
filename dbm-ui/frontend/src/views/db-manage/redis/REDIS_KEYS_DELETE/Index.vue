@@ -25,9 +25,13 @@
             </BkRadioButton>
           </BkRadioGroup>
         </BkFormItem>
+        <BatchInput
+          :config="batchInputConfig"
+          @change="handleBatchInput" />
         <EditableTable
+          :key="tableKey"
           ref="editableTable"
-          class="mb-24"
+          class="mt-16 mb-24"
           :model="formData.tableData">
           <EditableRow
             v-for="(rowData, index) in formData.tableData"
@@ -100,11 +104,14 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import KeyOperationAlert from '@views/db-manage/redis/common/toolbox-common/key-operation-alert/Index.vue';
   import KeyOperationColumn from '@views/db-manage/redis/common/toolbox-field/key-operation-column/Index.vue';
+
+  import { random } from '@utils';
 
   import ClusterColumn from './components/ClusterColumn.vue';
   import DeleteRateColumn from './components/DeleteRateColumn.vue';
@@ -134,7 +141,7 @@
       },
       values.cluster,
     ),
-    delete_rate: '' as number | string,
+    delete_rate: values.delete_rate || '',
     white_regex: values.white_regex || '',
   });
 
@@ -187,6 +194,7 @@
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('editableTable');
 
+  const tableKey = ref(random());
   const formData = reactive(createDefaultFormData());
 
   // 集群列表跳转
@@ -208,6 +216,48 @@
     formData.tableData.filter((item) => item.cluster.master_domain).map((item) => item.cluster),
   );
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
+
+  const batchInputConfig = [
+    {
+      case: 'redis.test.dba.db',
+      key: 'domain',
+      label: t('集群域名'),
+    },
+    {
+      case: 'key1\\nkey2',
+      key: 'white_regex',
+      label: t('包含 Key'),
+    },
+    {
+      case: 'key1\\nkey2',
+      key: 'black_regex',
+      label: t('排除 Key'),
+    },
+    {
+      case: '5000',
+      key: 'delete_rate',
+      label: t('每秒删除 Key 个数'),
+    },
+  ];
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createRowData({
+        black_regex: item.black_regex?.replaceAll('\\n', '\n') || '',
+        cluster: {
+          master_domain: item.domain || '',
+        } as IDataRow['cluster'],
+        delete_rate: item?.delete_rate ? Number(item.delete_rate) : '',
+        white_regex: item.white_regex?.replaceAll('\\n', '\n') || '',
+      }),
+    );
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...formData.tableData, ...dataList];
+    }
+  };
 
   const handleClusterBatchEdit = (clusterList: RedisModel[]) => {
     const newList: IDataRow[] = [];

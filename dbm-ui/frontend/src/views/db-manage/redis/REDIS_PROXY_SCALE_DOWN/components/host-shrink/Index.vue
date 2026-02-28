@@ -12,8 +12,12 @@
 -->
 
 <template>
+  <BatchInput
+    class="mb-16"
+    :config="batchInputConfig"
+    @change="handleBatchInput" />
   <EditableTable
-    :key="tableData.length"
+    :key="tableKey"
     ref="table"
     class="mb-20"
     :model="tableData">
@@ -52,6 +56,10 @@
 
   import type { Redis } from '@services/model/ticket/ticket';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+
+  import { random } from '@utils';
+
   import OnlineSwitchTypeColumn, { ONLINE_SWITCH_TYPE } from '../OnlineSwitchTypeColumn.vue';
 
   import HostColumn, { type SelectorHost } from './components/HostColumn.vue';
@@ -62,7 +70,7 @@
   }
 
   interface Props {
-    ticketDetails?: Redis.ResourcePool.ProxyScaleDown;
+    ticketDetails?: Redis.ProxyScaleDown;
   }
 
   interface Exposes {
@@ -87,6 +95,22 @@
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
+
+  const tableKey = ref(random());
+
+  const batchInputConfig = [
+    {
+      case: '127.0.0.1',
+      key: 'ip',
+      label: t('Proxy主机'),
+    },
+    {
+      case: t('需人工确认'),
+      key: 'online_switch_type',
+      label: t('切换方式'),
+      values: [t('需人工确认'), t('无需确认')],
+    },
+  ];
 
   const createTableRow = (data = {} as DeepPartial<RowData>) => ({
     online_switch_type: data.online_switch_type || ONLINE_SWITCH_TYPE.USER_CONFIRM,
@@ -169,6 +193,23 @@
         online_switch_type: value,
       });
     });
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createTableRow({
+        online_switch_type: item.online_switch_type,
+        proxy_reduced_host: {
+          ip: item.ip,
+        },
+      }),
+    );
+    if (isClear) {
+      tableKey.value = random();
+      tableData.value = [...dataList];
+    } else {
+      tableData.value = [...tableData.value, ...dataList];
+    }
   };
 
   defineExpose<Exposes>({

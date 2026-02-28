@@ -37,7 +37,12 @@
           </BkRadioButton>
         </BkRadioGroup>
       </BkFormItem>
+      <BatchInput
+        class="mb-20"
+        :config="batchInputConfig"
+        @change="handleBatchInput" />
       <EditableTable
+        :key="tableKey"
         ref="table"
         class="mb-20"
         :model="formData.tableData">
@@ -126,10 +131,13 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import DbNameColumn from '@views/db-manage/sqlserver/common/toolbox-field/db-name-column/Index.vue';
+
+  import { random } from '@utils';
 
   import DstClusterColumn from './components/DstClusterColumn.vue';
   import RenameColumn from './components/RenameColumn.vue';
@@ -167,12 +175,15 @@
     dbName: data.dbName || ['*'],
     dstCluster: data.dstCluster || [],
     renameInfoList: data.renameInfoList || [],
-    srcCluster: data.srcCluster || {
-      cluster_type: ClusterTypes.SQLSERVER_HA,
-      id: 0,
-      major_version: '',
-      master_domain: '',
-    },
+    srcCluster: Object.assign(
+      {
+        cluster_type: ClusterTypes.SQLSERVER_HA,
+        id: 0,
+        major_version: '',
+        master_domain: '',
+      },
+      data.srcCluster,
+    ),
   });
 
   const defaultData = () => ({
@@ -183,12 +194,36 @@
   });
 
   const formData = reactive(defaultData());
+  const tableKey = ref(random());
   const selected = computed(() =>
     formData.tableData.filter((item) => item.srcCluster.id).map((item) => item.srcCluster),
   );
   const selectedMap = computed(() =>
     Object.fromEntries(formData.tableData.map((cur) => [cur.srcCluster.master_domain, true])),
   );
+
+  const batchInputConfig = [
+    {
+      case: 'sqlserver.test.dba.db',
+      key: 'src_domain',
+      label: t('源集群'),
+    },
+    {
+      case: 'sqlserver.test1.dba.db\\nsqlserver.test2.dba.db',
+      key: 'dst_domain',
+      label: t('目标集群'),
+    },
+    {
+      case: 'db1,db2',
+      key: 'db_list',
+      label: t('迁移 DB 名'),
+    },
+    {
+      case: 'ignore_db1,ignore_db2',
+      key: 'ignore_db_list',
+      label: t('忽略 DB 名'),
+    },
+  ];
 
   useTicketDetail<Sqlserver.DataMigrate>(TicketTypes.SQLSERVER_FULL_MIGRATE, {
     onSuccess(ticketDetail) {
@@ -302,6 +337,31 @@
         [field as keyof RowData]: value,
       });
     });
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createTableRow({
+        dbIgnoreName: item.ignore_db_list ? item.ignore_db_list.split(',') : [],
+        dbName: item.db_list ? item.db_list.split(',') : ['*'],
+        dstCluster: (item.dst_domain?.split('\\n') || '').map((item: string) => ({
+          cluster_type: ClusterTypes.SQLSERVER_HA,
+          id: 0,
+          major_version: '',
+          master_domain: item,
+        })),
+        srcCluster: {
+          master_domain: item.src_domain,
+        } as RowData['srcCluster'],
+      }),
+    );
+
+    tableKey.value = random();
+    if (isClear) {
+      formData.tableData = dataList;
+    } else {
+      formData.tableData = [...(formData.tableData[0].srcCluster.master_domain ? formData.tableData : []), ...dataList];
+    }
   };
 </script>
 

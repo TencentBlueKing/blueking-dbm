@@ -12,7 +12,12 @@
 -->
 
 <template>
+  <BatchInput
+    class="mb-16"
+    :config="batchInputConfig"
+    @change="handleBatchInput" />
   <EditableTable
+    :key="tableKey"
     ref="editableTable"
     :model="tableData">
     <EditableRow
@@ -67,8 +72,11 @@
 
   import { type TabConfig } from '@components/cluster-selector/Index.vue';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import ClusterColumn from '@views/db-manage/redis/common/toolbox-field/cluster-column/Index.vue';
   import RegexKeysColumn from '@views/db-manage/redis/common/toolbox-field/regex-keys-column/Index.vue';
+
+  import { random } from '@utils';
 
   import RenderTargetCluster from '../common/TargetClusterColumn.vue';
 
@@ -88,7 +96,7 @@
 
   interface IDataRow {
     cluster: {
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       cluster_type_name: string;
       id: number;
       master_domain: string;
@@ -116,6 +124,31 @@
   const { t } = useI18n();
 
   const editableTableRef = useTemplateRef('editableTable');
+
+  const tableKey = ref(random());
+
+  const batchInputConfig = [
+    {
+      case: 'redis.test.dba.db',
+      key: 'src_cluster',
+      label: t('源集群'),
+    },
+    {
+      case: 'redis.test.dba.db',
+      key: 'dst_cluster',
+      label: t('目标集群'),
+    },
+    {
+      case: 'key1\\nkey2',
+      key: 'white_regex',
+      label: t('包含 Key'),
+    },
+    {
+      case: 'key1\\nkey2',
+      key: 'black_regex',
+      label: t('排除 Key'),
+    },
+  ];
 
   const tabListConfig = {
     [ClusterTypes.REDIS]: {
@@ -160,6 +193,25 @@
     tableData.value.forEach((item) => {
       Object.assign(item, { [field]: value });
     });
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createRowData({
+        cluster: {
+          master_domain: item.src_cluster || '',
+        } as IDataRow['cluster'],
+        dst_cluster: item.dst_cluster,
+        key_black_regex: item.black_regex?.split('\\n') || [],
+        key_white_regex: item.white_regex?.split('\\n') || [],
+      }),
+    );
+    if (isClear) {
+      tableKey.value = random();
+      tableData.value = [...dataList];
+    } else {
+      tableData.value = [...tableData.value, ...dataList];
+    }
   };
 
   defineExpose<Exposes>({

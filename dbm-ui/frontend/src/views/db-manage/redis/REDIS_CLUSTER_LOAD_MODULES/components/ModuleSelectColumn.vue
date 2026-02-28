@@ -74,6 +74,11 @@
         label: key,
         value: key,
       }));
+      if (moduleValue.value.length > 0) {
+        moduleValue.value = moduleValue.value.filter(
+          (item) => Object.prototype.hasOwnProperty.call(results, item) && !results[item],
+        );
+      }
     },
   });
 

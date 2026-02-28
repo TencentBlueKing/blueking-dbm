@@ -12,71 +12,73 @@
 -->
 
 <template>
-  <BkButton
-    v-bk-tooltips="{
-      content: tooltipsContent,
-      disabled: !disabled,
-      placement: 'top',
-    }"
-    class="checksum-batch"
-    :disabled="disabled"
-    @click="() => (isShow = true)">
-    <i class="bk-dbm-icon db-icon-add" />
-    {{ t('批量录入') }}
-  </BkButton>
-  <BkDialog
-    :is-show="isShow"
-    :quick-close="false"
-    :title="t('xx_批量录入', { title: route.meta.navName })"
-    :width="1200"
-    @closed="handleClose">
-    <div class="batch-input">
-      <div class="batch-input-format">
-        <div
-          v-for="(item, index) in props.config"
-          :key="index"
-          class="batch-input-format-item">
-          <strong>
-            {{ item.label }}
-          </strong>
-          <p class="pt-8">
-            {{ item.case }}
-            <span v-if="item.values?.length">
-              {{ t('(可填示例：xx)', [item.values.join('/')]) }}
-            </span>
-          </p>
+  <div>
+    <BkButton
+      v-bk-tooltips="{
+        content: tooltipsContent,
+        disabled: !disabled,
+        placement: 'top',
+      }"
+      class="checksum-batch"
+      :disabled="disabled"
+      @click="() => (isShow = true)">
+      <i class="bk-dbm-icon db-icon-add" />
+      {{ t('批量录入') }}
+    </BkButton>
+    <BkDialog
+      :is-show="isShow"
+      :quick-close="false"
+      :title="t('xx_批量录入', { title: route.meta.navName })"
+      :width="1200"
+      @closed="handleClose">
+      <div class="batch-input">
+        <div class="batch-input-format">
+          <div
+            v-for="(item, index) in props.config"
+            :key="index"
+            class="batch-input-format-item">
+            <strong>
+              {{ item.label }}
+            </strong>
+            <p class="pt-8">
+              {{ item.case }}
+              <span v-if="item.values?.length">
+                {{ t('(可填示例：xx)', [item.values.join('/')]) }}
+              </span>
+            </p>
+          </div>
+          <DbIcon
+            v-bk-tooltips="t('复制格式')"
+            class="batch-input-copy"
+            type="copy"
+            @click="handleCopy" />
         </div>
-        <DbIcon
-          v-bk-tooltips="t('复制格式')"
-          class="batch-input-copy"
-          type="copy"
-          @click="handleCopy" />
+        <BkInput
+          v-model="inputValue"
+          class="batch-input-textarea"
+          :placeholder="
+            t(
+              '1. 多个字段以空白符（空格、制表符）分割_2. 列留空，请输入 NULL_3. 日期时间使用T分割。如：2025-03-11T10:26:13_4. 单元格内换行，用\\n 分割。如：我是第一行\\n我是第二行_5. 枚举类型，请输入选项值',
+            )
+          "
+          type="textarea" />
+        <BkCheckbox v-model="isClear">{{ t('覆盖表格已有数据') }}</BkCheckbox>
       </div>
-      <BkInput
-        v-model="inputValue"
-        class="batch-input-textarea"
-        :placeholder="
-          t(
-            '1. 多个字段以空白符（空格、制表符）分割_2. 列留空，请输入 NULL_3. 日期时间使用T分割。如：2025-03-11T10:26:13_4. 单元格内换行，用\\n 分割。如：我是第一行\\n我是第二行_5. 枚举类型，请输入选项值',
-          )
-        "
-        type="textarea" />
-      <BkCheckbox v-model="isClear">{{ t('覆盖表格已有数据') }}</BkCheckbox>
-    </div>
-    <template #footer>
-      <BkButton
-        class="mr-8 w-88"
-        theme="primary"
-        @click="handleConfirm">
-        {{ t('确定') }}
-      </BkButton>
-      <BkButton
-        class="w-88"
-        @click="handleClose">
-        {{ t('取消') }}
-      </BkButton>
-    </template>
-  </BkDialog>
+      <template #footer>
+        <BkButton
+          class="mr-8 w-88"
+          theme="primary"
+          @click="handleConfirm">
+          {{ t('确定') }}
+        </BkButton>
+        <BkButton
+          class="w-88"
+          @click="handleClose">
+          {{ t('取消') }}
+        </BkButton>
+      </template>
+    </BkDialog>
+  </div>
 </template>
 
 <script setup lang="ts">
