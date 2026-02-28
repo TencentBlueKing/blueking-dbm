@@ -37,6 +37,9 @@ from backend.flow.plugins.components.collections.spider.check_tdbctl_secondary_h
 )
 from backend.flow.plugins.components.collections.spider.ctl_switch_to_slave import CtlSwitchToSlaveComponent
 from backend.flow.plugins.components.collections.spider.drop_spider_ronting import DropSpiderRoutingComponent
+from backend.flow.plugins.components.collections.spider.install_spider_with_copy_config import (
+    InstallSpiderWithCopyConfigComponent,
+)
 from backend.flow.plugins.components.collections.spider.remote_migrate_cut_over import RemoteMigrateCutOverComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.base.base_dataclass import Instance
@@ -182,15 +185,16 @@ def add_spider_slaves_sub_flow(
     for spider in add_spider_slaves:
         exec_act_kwargs.exec_ip = spider["ip"]
         exec_act_kwargs.cluster = {
+            "cluster_id": cluster.id,
             "immutable_domain": cluster.immute_domain,
             "auto_incr_value": 1,  # spider slave 对这个值不敏感，所有统一设计为1
             "pkg_id": global_pkg_id if global_pkg_id else spider["pkg_id"],
+            "install_spider_role": TenDBClusterSpiderRole.SPIDER_SLAVE.value,
         }
-        exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_slave_spider_payload.__name__
         acts_list.append(
             {
                 "act_name": _("安装Spider_slave实例"),
-                "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                "act_component_code": InstallSpiderWithCopyConfigComponent.code,
                 "kwargs": asdict(exec_act_kwargs),
             }
         )
@@ -387,15 +391,16 @@ def add_spider_masters_sub_flow(
     for spider in get_spider_master_incr(cluster, add_spider_masters):
         exec_act_kwargs.exec_ip = spider["ip"]
         exec_act_kwargs.cluster = {
+            "cluster_id": cluster.id,
             "immutable_domain": cluster.immute_domain,
             "auto_incr_value": spider["incr_number"],
             "pkg_id": global_pkg_id if global_pkg_id else spider["pkg_id"],
+            "install_spider_role": role,
         }
-        exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_spider_payload.__name__
         acts_list.append(
             {
                 "act_name": _("安装Spider实例"),
-                "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                "act_component_code": InstallSpiderWithCopyConfigComponent.code,
                 "kwargs": asdict(exec_act_kwargs),
             }
         )
