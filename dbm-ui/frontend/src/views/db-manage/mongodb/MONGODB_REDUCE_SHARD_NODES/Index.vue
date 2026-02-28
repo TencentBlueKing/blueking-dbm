@@ -18,12 +18,17 @@
         closable
         theme="info"
         :title="t('缩容 Shard 节点数：提供减少副本集对应的member功能，目标节点数建议为3,5,7..奇数')" />
+      <BatchInput
+        class="mt-16"
+        :config="batchInputConfig"
+        @change="handleBatchInput" />
       <DbForm
         ref="form"
         class="toolbox-form mt-16"
         form-type="vertical"
         :model="formData">
         <EditableTable
+          :key="tableKey"
           ref="editableTable"
           class="mt-16 mb-16"
           :model="formData.tableData">
@@ -105,10 +110,13 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterWithRelatedClustersColumn from '@views/db-manage/mongodb/common/toolbox-field/cluster-with-related-clusters-column/Index.vue';
+
+  import { random } from '@utils';
 
   import TargetNumColumn from './components/TargetNumColumn.vue';
 
@@ -195,7 +203,22 @@
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('editableTable');
 
+  const tableKey = ref(random());
+
   const formData = reactive(createDefaultFormData());
+
+  const batchInputConfig = [
+    {
+      case: 'mongodb.test.dba.db',
+      key: 'domain',
+      label: t('集群域名'),
+    },
+    {
+      case: '3',
+      key: 'target_num',
+      label: t('缩容至（节点数）'),
+    },
+  ];
 
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
@@ -221,6 +244,28 @@
       }
     });
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createRowData({
+        cluster: {
+          master_domain: item.domain,
+        } as IDataRow['cluster'],
+        target_num: item.target_num || '',
+      }),
+    );
+
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+    }
+
+    setTimeout(() => {
+      editableTableRef.value!.validate();
+    }, 200);
   };
 
   const handleBatchEdit = (value: string | string[], field: string) => {

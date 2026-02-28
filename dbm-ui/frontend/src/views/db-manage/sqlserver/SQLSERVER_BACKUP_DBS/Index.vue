@@ -5,6 +5,10 @@
         closable
         theme="info"
         :title="t('数据库备份：指定DB备份，支持模糊匹配')" />
+      <BatchInput
+        class="mt-16"
+        :config="batchInputConfig"
+        @change="handleBatchInput" />
       <DbForm
         ref="form"
         class="mt-16 mb-24 toolbox-form"
@@ -128,11 +132,14 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/sqlserver/common/toolbox-field/cluster-column/Index.vue';
   import DbNameColumn from '@views/db-manage/sqlserver/common/toolbox-field/db-name-column/Index.vue';
+
+  import { random } from '@utils';
 
   import FinalDbColumn from './components/FinalDbColumn.vue';
 
@@ -209,6 +216,7 @@
 
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('editableTable');
+  const tableKey = ref(random());
 
   const rules = {
     'cluster.master_domain': [
@@ -268,6 +276,24 @@
     });
   };
 
+  const batchInputConfig = [
+    {
+      case: 'sqlserver.test.dba.db',
+      key: 'domain',
+      label: t('集群域名'),
+    },
+    {
+      case: 'db1,db2',
+      key: 'db_list',
+      label: t('备份 DB 名'),
+    },
+    {
+      case: 'ignore_db1,ignore_db2',
+      key: 'ignore_db_list',
+      label: t('忽略 DB 名'),
+    },
+  ];
+
   const handleClusterBatchEdit = (data: SqlserverHaModel[]) => {
     const dataList = data.reduce<IDataRow[]>((acc, item) => {
       if (!clusterMemo.value[item.master_domain]) {
@@ -291,6 +317,25 @@
     formData.tableData.forEach((item) => {
       Object.assign(item, { [field]: value });
     });
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createRowData({
+        cluster: {
+          master_domain: item.domain,
+        } as IDataRow['cluster'],
+        db_list: item.db_list ? item.db_list.split(',') : [],
+        ignore_db_list: item.ignore_db_list ? item.ignore_db_list.split(',') : [],
+      }),
+    );
+
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = dataList;
+    } else {
+      formData.tableData = [...(formData.tableData[0].cluster.master_domain ? formData.tableData : []), ...dataList];
+    }
   };
 
   const handleSubmit = async () => {

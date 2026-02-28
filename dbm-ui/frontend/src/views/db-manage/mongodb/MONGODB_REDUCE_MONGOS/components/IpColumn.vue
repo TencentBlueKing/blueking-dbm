@@ -39,6 +39,7 @@
   </EditableColumn>
 </template>
 <script lang="ts" setup>
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import MongoDBModel from '@services/model/mongodb/mongodb';
@@ -92,6 +93,30 @@
       });
       return item;
     });
+  });
+
+  watch(ipSelectList, () => {
+    if (ipSelectList.value.length > 0 && modelValue.value.length > 0) {
+      const ipMap = ipSelectList.value.reduce(
+        (prev, item) => {
+          if (!item.disabled) {
+            return Object.assign(prev, { [item.ip]: item });
+          }
+          return prev;
+        },
+        {} as Record<string, Props['cluster']['mongos'][number]>,
+      );
+      modelValue.value = modelValue.value.reduce<UnwrapRef<typeof modelValue>>((prev, item) => {
+        if (ipMap[item.ip]) {
+          return prev.concat({
+            bk_cloud_id: item.bk_cloud_id,
+            bk_host_id: item.bk_host_id,
+            ip: item.ip,
+          });
+        }
+        return prev;
+      }, []);
+    }
   });
 
   const handleChange = (value: string[]) => {

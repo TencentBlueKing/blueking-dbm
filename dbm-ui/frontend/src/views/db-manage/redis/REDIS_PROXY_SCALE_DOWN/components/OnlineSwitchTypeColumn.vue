@@ -41,21 +41,22 @@
 </template>
 
 <script lang="ts">
+  interface Props {
+    rowspan: number;
+  }
+
   export const ONLINE_SWITCH_TYPE = {
     NO_CONFIRM: 'no_confirm',
     USER_CONFIRM: 'user_confirm',
   };
 </script>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { Column as EditableColumn, Select as EditableSelect } from '@components/editable-table/Index.vue';
 
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
-
-  interface Props {
-    rowspan: number;
-  }
 
   type Emits = (e: 'batch-edit', value: string, field: string) => void;
 
@@ -79,6 +80,21 @@
       value: ONLINE_SWITCH_TYPE.NO_CONFIRM,
     },
   ];
+
+  const optionValues = list.map((item) => item.value) as string[];
+  const optionMap = Object.fromEntries(list.map((item) => [item.label, item.value]));
+
+  watch(
+    modelValue,
+    () => {
+      if (modelValue.value && _.isString(modelValue.value) && !optionValues.includes(modelValue.value)) {
+        modelValue.value = optionMap[modelValue.value];
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const isShowBatchEdit = ref(false);
 

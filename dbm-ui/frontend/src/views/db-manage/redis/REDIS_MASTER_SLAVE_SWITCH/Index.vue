@@ -27,7 +27,11 @@
         class="toolbox-form mt-16"
         form-type="vertical"
         :model="formData">
+        <BatchInput
+          :config="batchInputConfig"
+          @change="handleBatchInput" />
         <EditableTable
+          :key="tableKey"
           ref="editableTable"
           class="mt-16 mb-16"
           :model="formData.tableData">
@@ -107,10 +111,13 @@
 
   import { type IValue } from '@components/instance-selector/Index.vue';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import HostColumn from '@views/db-manage/redis/common/toolbox-field/host-column/Index.vue';
+
+  import { random } from '@utils';
 
   import MasterSlaveInfoColumn from './components/MasterSlaveInfoColumn.vue';
   import OnlineSwitchTypeColumn from './components/OnlineSwitchTypeColumn.vue';
@@ -186,10 +193,42 @@
 
   const editableTableRef = useTemplateRef('editableTable');
 
+  const tableKey = ref(random());
   const formData = reactive(createDefaultFormData());
 
   const selected = computed(() => formData.tableData.filter((item) => item.host.bk_host_id).map((item) => item.host));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
+
+  const batchInputConfig = [
+    {
+      case: '192.168.10.2',
+      key: 'ip',
+      label: t('主库主机'),
+    },
+    {
+      case: t('需人工确认'),
+      key: 'online_switch_type',
+      label: t('切换模式'),
+      values: [t('需人工确认'), t('无需确认')],
+    },
+  ];
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createRowData({
+        host: {
+          ip: item.ip || '',
+        } as IDataRow['host'],
+        online_switch_type: item.online_switch_type || '',
+      }),
+    );
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...formData.tableData, ...dataList];
+    }
+  };
 
   // 批量选择
   const handleHostBatchEdit = (list: IValue[]) => {
