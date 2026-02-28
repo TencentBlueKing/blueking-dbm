@@ -242,7 +242,7 @@ def generate_single_autofix_ticket(cluster: RedisAutofixCore):
             create_ticket(cluster, cluster_ids, redis_proxies, [], InstanceRole.REDIS_PROXY.value)
     except Exception as e:
         logger.error("create autofix ticket for cluster {} , failed : {}".format(cluster.immute_domain, e))
-        cluster.status_version = "create ticket failed by : {}".format(e)
+        cluster.status_version = "create ticket failed by : {}".format(str(e)[:30])
         cluster.update_at = datetime2str(datetime.datetime.now(timezone.utc))
         cluster.deal_status = AutofixStatus.AF_FAIL.value
         cluster.save(update_fields=["status_version", "deal_status", "update_at"])
@@ -289,6 +289,7 @@ def create_ticket(
         # 如果不存在，则取默认值
         redisDBA = DBAdministrator.objects.get(bk_biz_id=0, db_type=DBType.Redis.value)
 
+    cluster.update_at = datetime2str(datetime.datetime.now(timezone.utc))
     # 初始化builder类
     try:
         ticket = Ticket.create_ticket(
@@ -311,15 +312,14 @@ def create_ticket(
         msgs[_("集群类型")] = cluster.cluster_type
         msgs[_("故障机S")] = json.dumps(ips)
         send_msg_2_qywx(title, msgs)
+        cluster.save(update_fields=["ticket_id", "status_version", "deal_status", "update_at"])
+        logger.info("create ticket for cluster {}, details : {}".format(cluster.immute_domain, details))
     except Exception as e:
         cluster.deal_status = AutofixStatus.AF_FAIL.value
-        cluster.status_version = str(e)
+        cluster.status_version = str(e)[:50]
+        cluster.save(update_fields=["status_version", "deal_status", "update_at"])
         logger.error(
             "create ticket for cluster {} failed, details : {}::{}".format(
                 cluster.immute_domain, details, traceback.format_exc()
             )
         )
-
-    logger.info("create ticket for cluster {} failed, details : {}".format(cluster.immute_domain, details))
-    cluster.update_at = datetime2str(datetime.datetime.now(timezone.utc))
-    cluster.save(update_fields=["ticket_id", "status_version", "deal_status", "update_at"])
