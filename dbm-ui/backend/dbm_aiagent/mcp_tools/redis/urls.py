@@ -16,12 +16,13 @@ from backend.dbm_aiagent.mcp_tools.redis.views.query_log import RedisQueryLogMcp
 from backend.dbm_aiagent.mcp_tools.redis.views.query_meta import RedisQueryMetaMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.redis.views.query_status import RedisQueryStatusMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.redis.views.redis_bill_mcp import RedisBillMcpToolsViewSet
+from backend.dbm_aiagent.mcp_tools.redis.views.reports import RedisReportsMcpToolsViewSet
 
 routers = DefaultRouter(trailing_slash=True)
 
 # 与 元数据相关的 query
 routers.register(r"", RedisQueryMetaMcpToolsViewSet, basename="mcp-redis-query-meta")
-# 与 实力状态相关的 query ； 需要登陆实例才能获取的信息
+# 与 实例状态相关的 query ； 需要登陆实例才能获取的信息
 routers.register(r"", RedisQueryStatusMcpToolsViewSet, basename="mcp-redis-query-status")
 # 与 dbm 交互 创建单据类的 操作
 routers.register(r"", RedisBillMcpToolsViewSet, basename="mcp-redis-bill")
@@ -34,6 +35,8 @@ routers.register(r"", RedisQueryLogMcpToolsViewSet, basename="mcp-redis-query-lo
 routers.register(r"", RedisQueryALARMMcpToolsViewSet, basename="mcp-redis-query-alrams")
 # # 与 metric相关的 ； exporter 上报的数据
 routers.register(r"", RedisMetricsMcpToolsViewSet, basename="mcp-redis-query-metric")
+# 与 db_report 中 Redis 巡检报告相关的查询
+routers.register(r"", RedisReportsMcpToolsViewSet, basename="mcp-redis-reports")
 
 # 与 告警 相关的 2do
 # 与 其他组件----

@@ -88,7 +88,9 @@ def query_redis_metrics(
               "median": float,   # Median value (less affected by outliers)
               "p95": float,      # 95th percentile (typical worst case)
               "cv": float,       # Coefficient of variation (%) - normalized variability
-              "trend": float     # Linear trend slope (positive=increasing, negative=decreasing)
+              "trend": float,    # Linear trend slope normalized to (metric unit)/minute
+              "trend_unit": str, # Unit of trend, e.g. "qps/min", "%/min", "connections/min"
+              "latest": float    # Maximum among all series at the last datapoint
             }
           * When group_by is set: Per-key statistics matching series structure
             {
@@ -115,7 +117,9 @@ def query_redis_metrics(
             - median: median(values) from stats_series_by_key[cluster_domain][MetricsAggFunction.AVG]
             - p95: 95th percentile(values) from stats_series_by_key[cluster_domain][MetricsAggFunction.AVG]
             - cv: (stddev/avg)*100 where stddev from stats_series_by_key[cluster_domain][MetricsAggFunction.STDDEV]
-            - trend: linear regression slope from stats_series_by_key[cluster_domain][MetricsAggFunction.AVG]
+            - trend: linear regression slope normalized to (metric unit)/minute
+            - trend_unit: unit string for trend (e.g. "qps/min", "%/min")
+            - latest: maximum among all series at the last datapoint
           * Computed from raw_series per key (when group_by is set):
             - Each key's statistics computed from its individual time series
 

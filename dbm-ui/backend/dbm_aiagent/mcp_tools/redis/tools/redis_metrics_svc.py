@@ -16,7 +16,7 @@ from typing import Dict, List, Optional, Tuple, Union
 from backend import env
 from backend.components import BKMonitorV3Api
 from backend.db_meta.models import Cluster
-from backend.dbm_aiagent.mcp_tools.redis.constants import METRIC_REGISTRY, UNIFY_QUERY_PARAMS
+from backend.dbm_aiagent.mcp_tools.redis.constants import METRIC_REGISTRY, TREND_UNIT_BY_METRIC_KEY, UNIFY_QUERY_PARAMS
 from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsAggFunction as AggFunction
 from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsAggregationLevel as AggregationLevel
 from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsGroupBy
@@ -430,7 +430,11 @@ class RedisMetricsQueryService:
 
         return AggregationLevel.CLUSTER
 
-    def _calculate_trend(self, data: Union[List[List[float]], List[float]]) -> float:
+    def _calculate_trend(
+        self,
+        data: Union[List[List[float]], List[float]],
+        interval_sec: Optional[int] = None,
+    ) -> float:
         """
         Calculate linear trend (slope) from time series data.
 
@@ -439,9 +443,12 @@ class RedisMetricsQueryService:
 
         Args:
             data: Time series data [[value, timestamp], ...] or [value, ...] (values only)
+            interval_sec: If provided, normalize slope to (metric unit)/minute by dividing
+                by (interval_sec/60) i.e. slope * 60 / interval_sec
 
         Returns:
-            Slope value (trend direction and magnitude)
+            Slope value (trend direction and magnitude).
+            When interval_sec is provided, returns slope * 60 / interval_sec so unit is (metric)/min.
         """
         # Handle both List[List[float]] and List[float] for backward compatibility
         if not data or len(data) < 2:
@@ -470,6 +477,9 @@ class RedisMetricsQueryService:
             return 0.0
 
         slope = (n * sum_xy - sum_x * sum_y) / denominator
+
+        if interval_sec and interval_sec > 0:
+            return slope * 60 / interval_sec
         return slope
 
     def _calculate_median(self, data: Union[List[List[float]], List[float]]) -> float:
@@ -730,24 +740,37 @@ class RedisMetricsQueryService:
 
         return dict(series_by_cluster)
 
-    def _compute_scalar_stats_from_values(self, values: List[float]) -> dict:
-        """Compute min, max, avg, median, p95, cv, trend from a list of values (no stddev in output)."""
+    def _compute_scalar_stats_from_values(
+        self,
+        values: List[float],
+        interval_sec: Optional[int] = None,
+        trend_unit: str = "",
+    ) -> dict:
+        """Compute min, max, avg, median, p95, cv, trend, latest from a list of values (no stddev in output)."""
         stats = {
             "min": min(values),
             "max": max(values),
             "avg": sum(values) / len(values),
             "median": self._calculate_median(values),
             "p95": self._calculate_p95(values),
-            "trend": self._calculate_trend(values),
+            "latest": values[-1],
+            "trend": self._calculate_trend(values, interval_sec=interval_sec),
         }
+        if trend_unit:
+            stats["trend_unit"] = trend_unit
         stddev = self._calculate_stddev(values)
         stats["cv"] = (stddev / stats["avg"]) * 100 if stats["avg"] != 0 else 0.0
         return stats
 
-    def _compute_stats_from_agg_series(self, stats_series_dict: dict) -> dict:
+    def _compute_stats_from_agg_series(
+        self,
+        stats_series_dict: dict,
+        interval_sec: Optional[int] = None,
+        trend_unit: str = "",
+    ) -> dict:
         """
         Compute stats dict from stats_series_by_key entry (MIN/MAX/AVG/STDDEV series).
-        Returns dict with min, max, avg, median, p95, trend, cv (stddev dropped).
+        Returns dict with min, max, avg, median, p95, trend, trend_unit, cv (stddev dropped).
         """
         stats = {}
         if AggFunction.MIN in stats_series_dict:
@@ -758,13 +781,16 @@ class RedisMetricsQueryService:
             max_values = [p[0] for p in stats_series_dict[AggFunction.MAX] if p[0] is not None]
             if max_values:
                 stats["max"] = max(max_values)
+                stats["latest"] = max_values[-1]
         if AggFunction.AVG in stats_series_dict:
             avg_values = [p[0] for p in stats_series_dict[AggFunction.AVG] if p[0] is not None]
             if avg_values:
                 stats["avg"] = sum(avg_values) / len(avg_values)
                 stats["median"] = self._calculate_median(avg_values)
                 stats["p95"] = self._calculate_p95(avg_values)
-                stats["trend"] = self._calculate_trend(avg_values)
+                stats["trend"] = self._calculate_trend(avg_values, interval_sec=interval_sec)
+                if trend_unit:
+                    stats["trend_unit"] = trend_unit
         if AggFunction.STDDEV in stats_series_dict:
             stddev_values = [p[0] for p in stats_series_dict[AggFunction.STDDEV] if p[0] is not None]
             if stddev_values:
@@ -778,6 +804,8 @@ class RedisMetricsQueryService:
         self,
         metric_series: MetricSeries,
         metric_config: dict,
+        time_window: int = 60,
+        metric_key: Optional[str] = None,
     ) -> None:
         """
         Calculate scalar statistics from parsed time series data.
@@ -789,31 +817,53 @@ class RedisMetricsQueryService:
             metric_series: MetricSeries object with parsed datapoints
                 Note: stats_series_by_key uses AggFunction enum values as keys (e.g., AggFunction.MIN, AggFunction.MAX)
             metric_config: Metric configuration dict from METRIC_REGISTRY
+            time_window: Time between consecutive data points (seconds), used to normalize trend to per-minute
+            metric_key: Key from METRIC_REGISTRY, used to resolve trend_unit for output
         """
         if metric_series.statistics is None:
             metric_series.statistics = {}
 
-        if "buckets" in metric_config:
-            self._calculate_stats_for_bucket_metric(metric_series)
-        else:
-            self._calculate_stats_for_simple_metric(metric_series)
+        trend_unit = TREND_UNIT_BY_METRIC_KEY.get(metric_key, "") if metric_key else ""
 
-    def _calculate_stats_for_bucket_metric(self, metric_series: MetricSeries) -> None:
+        if "buckets" in metric_config:
+            self._calculate_stats_for_bucket_metric(metric_series, interval_sec=time_window, trend_unit=trend_unit)
+        else:
+            self._calculate_stats_for_simple_metric(metric_series, interval_sec=time_window, trend_unit=trend_unit)
+
+    def _calculate_stats_for_bucket_metric(
+        self,
+        metric_series: MetricSeries,
+        interval_sec: Optional[int] = None,
+        trend_unit: str = "",
+    ) -> None:
         """Calculate stats from raw_series for bucket metrics."""
         if not metric_series.raw_series:
             return
+        last_values = []
         for key_value, datapoints in metric_series.raw_series.items():
             values = [point[0] for point in datapoints if point[0] is not None]
             if not values:
                 continue
-            metric_series.statistics[key_value] = self._compute_scalar_stats_from_values(values)
+            metric_series.statistics[key_value] = self._compute_scalar_stats_from_values(
+                values, interval_sec=interval_sec, trend_unit=trend_unit
+            )
+            last_values.append(values[-1])
+        if last_values:
+            metric_series.statistics["latest"] = max(last_values)
 
-    def _calculate_stats_for_simple_metric(self, metric_series: MetricSeries) -> None:
+    def _calculate_stats_for_simple_metric(
+        self,
+        metric_series: MetricSeries,
+        interval_sec: Optional[int] = None,
+        trend_unit: str = "",
+    ) -> None:
         """Calculate stats from stats_series_by_key for simple metrics."""
         if not metric_series.stats_series_by_key:
             return
         for key_value, stats_series_dict in metric_series.stats_series_by_key.items():
-            stats = self._compute_stats_from_agg_series(stats_series_dict)
+            stats = self._compute_stats_from_agg_series(
+                stats_series_dict, interval_sec=interval_sec, trend_unit=trend_unit
+            )
             if stats:
                 metric_series.statistics[key_value] = stats
 
@@ -907,7 +957,7 @@ class RedisMetricsQueryService:
 
         # Calculate statistics from parsed datapoints
         if series:
-            self._calculate_stats(series, metric_config)
+            self._calculate_stats(series, metric_config, time_window=time_window, metric_key=metric_key)
 
         import json
 

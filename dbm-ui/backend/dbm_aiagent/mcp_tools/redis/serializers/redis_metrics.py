@@ -138,7 +138,8 @@ class RedisMetricsOutputSerializer(serializers.Serializer):
     statistics = serializers.JSONField(
         required=False,
         help_text=_(
-            "Statistics (mode='stats' or 'both'). Scalar or per-key: min, max, avg, median, p95, cv, trend. "
+            "Statistics (mode='stats' or 'both'). Scalar or per-key: min, max, avg, median, p95, cv, trend, "
+            "trend_unit, latest (max among series at last datapoint). "
             "Keys: cluster_domain (no group_by) or ip/instance/cmd/bucket when group_by set."
         ),
     )

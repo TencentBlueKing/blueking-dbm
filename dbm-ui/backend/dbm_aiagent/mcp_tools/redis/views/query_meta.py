@@ -71,7 +71,6 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
         name_prefix="redis_query_meta",
     )
     def list_my_bizs(self, request, *args, **kwargs):
-        # print("===>>> 我的id: {}".format(request.user))
         return Response(list_my_redis_bizs(username=request.user.username))
 
     @mcp_tools_api_decorator(

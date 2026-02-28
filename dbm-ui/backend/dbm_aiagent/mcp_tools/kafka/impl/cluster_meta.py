@@ -11,31 +11,20 @@ specific language governing permissions and limitations under the License.
 from collections import defaultdict
 from typing import Dict, List
 
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
-from backend.db_meta.models import AppCache, Cluster, ClusterEntry, StorageInstance
+from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
+from backend.dbm_aiagent.mcp_tools.common.impl.biz_helpers import get_biz_by_abbr, get_managed_biz
 
 
 def list_my_kafka_bizs(userID: str) -> List:
     """查询用户负责的Kafka业务列表"""
-    from backend.configuration.constants import DBType
-    from backend.configuration.models import DBAdministrator
-
-    res = []
-    for app in AppCache.objects.all():
-        bk_biz_id = app.bk_biz_id
-
-        if DBAdministrator.objects.filter(bk_biz_id=bk_biz_id, users__0=userID, db_type=DBType.Kafka.value):
-            res.append({"bk_biz_id": bk_biz_id, "app_name": app.bk_biz_name, "abbr": app.db_app_abbr})
-    return res
+    return get_managed_biz(userID, DBType.Kafka, detailed=True)
 
 
 def list_biz_by_name(biz_name: str) -> List:
     """根据业务英文名查询业务详情"""
-    res = []
-    for app in AppCache.objects.all():
-        if app.db_app_abbr.__contains__(biz_name.lower()):
-            res.append({"bk_biz_id": app.bk_biz_id, "app_name": app.bk_biz_name, "abbr": app.db_app_abbr})
-    return res
+    return get_biz_by_abbr(biz_name, detailed=True)
 
 
 def kafka_list_clusters(bk_biz_id: int) -> List:
