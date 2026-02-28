@@ -11,7 +11,9 @@ specific language governing permissions and limitations under the License.
 from django.db.models import Q
 from django.http import HttpRequest
 
+from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
+from backend.dbm_aiagent.mcp_tools.common.impl.biz_helpers import get_biz_by_abbr, get_managed_biz
 from backend.dbm_aiagent.mcp_tools.typing import BizIdList, ClusterIdList
 
 
@@ -24,12 +26,32 @@ def auth_parse_bizs(request: HttpRequest, *args, **kwargs) -> BizIdList:
     """
     解析业务列表 - 获取业务列表鉴权
     request 接收params:
-    - bk_biz_id: 业务ID
+    - bk_biz_id: 业务ID 或 业务ID列表 (optional)
+    - bk_biz_abbr: 业务英文名(db_app_abbr)，通过 AppCache 模糊匹配 (optional)
+    需要至少提供 bk_biz_id 或 bk_biz_abbr 其中一个
     """
     data = request.query_params if request.method == "GET" else request.data
-    if "bk_biz_id" not in data:
-        raise ValueError("bk_biz_id is required")
-    return [data["bk_biz_id"]]
+    if "bk_biz_id" in data:
+        val = data["bk_biz_id"]
+        ids = [val] if isinstance(val, (int, str)) else list(val)
+        return [int(x) for x in ids]
+    if "bk_biz_abbr" in data and data["bk_biz_abbr"]:
+        apps = get_biz_by_abbr(data["bk_biz_abbr"])
+        if not apps:
+            raise ValueError("parse error, no biz found for the given bk_biz_abbr")
+        return apps
+    raise ValueError("bk_biz_id or bk_biz_abbr is required")
+
+
+def auth_parse_my_bizs(request: HttpRequest, *args, db_type: DBType, **kwargs) -> BizIdList:
+    """
+    Auth adapter – resolves managed biz IDs for the permission layer.
+    无需 request params；使用username获取管理业务列表
+    """
+    username = getattr(request.user, "username", None)
+    if not username:
+        raise ValueError("user must be authenticated")
+    return get_managed_biz(username, db_type)
 
 
 def auth_parse_clusters(request: HttpRequest, *args, **kwargs) -> ClusterIdList:
@@ -114,6 +136,27 @@ def auth_parse_ticket_biz(request: HttpRequest, *args, **kwargs) -> BizIdList:
     if not biz_ids:
         raise ValueError("parse error, no tickets found for the given params")
 
+    return biz_ids
+
+
+def auth_parse_cluster_biz(request: HttpRequest, *args, **kwargs) -> BizIdList:
+    """
+    解析集群所属业务鉴权
+    request 接收params:
+    - cluster_domain: 集群域名
+    - cluster_domains: 集群域名列表
+    """
+    from backend.db_meta.models import Cluster
+
+    data = request.query_params if request.method == "GET" else request.data
+
+    if "cluster_domain" not in data and "cluster_domains" not in data:
+        raise ValueError("cluster_domain is required")
+    data = data.get("cluster_domain") or data.get("cluster_domains")
+    data = data if isinstance(data, list) else [data]
+    biz_ids = list(Cluster.objects.filter(immute_domain__in=data).values_list("bk_biz_id", flat=True).distinct())
+    if not biz_ids:
+        raise ValueError("parse error, no clusters found for the given params")
     return biz_ids
 
 

@@ -902,6 +902,15 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "tools": [],
     },
     {
+        "name": "redis-reports",
+        "description": """Redis reports query tools""",
+        "target_app_codes": [APP_CODE],
+        "labels": ["redis-reports"],
+        "status": 1,
+        "is_public": False,
+        "tools": [],
+    },
+    {
         "name": "alarm-query",
         "description": """收集DBM集群的告警记录""",
         # 主动授权 app_code

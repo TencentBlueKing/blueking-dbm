@@ -18,7 +18,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import DBType
 from backend.db_report import mock_data
 from backend.db_report.enums import SWAGGER_TAG, ReportFieldFormat, ReportType
-from backend.db_report.enums.redis_sub_type import RedisExporterCheckSubType
+from backend.db_report.enums.redis_sub_type import RedisCheckSubType
 from backend.db_report.models.redis_check_report import RedisCheckReport
 from backend.db_report.register import register_report
 from backend.db_report.report_baseview import ReportBaseViewSet
@@ -102,12 +102,27 @@ class RedisExporterCheckReportBaseViewSet(ReportBaseViewSet):
 
 @register_report(DBType.Redis)
 class RedisExporterCheckReportViewSet(RedisExporterCheckReportBaseViewSet):
-    queryset = RedisCheckReport.objects.filter(subtype=RedisExporterCheckSubType.Exporter.value)
+    queryset = RedisCheckReport.objects.filter(subtype=RedisCheckSubType.Exporter.value)
     serializer_class = RedisExporterCheckReportSerializer
     report_type = ReportType.EXPORTER_CHECK
 
     @common_swagger_auto_schema(
         operation_summary=_("Redis Exporter检查报告"),
+        responses={status.HTTP_200_OK: RedisExporterCheckReportSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+
+@register_report(DBType.Redis)
+class RedisAgentUniversalCheckReportViewSet(RedisExporterCheckReportBaseViewSet):
+    queryset = RedisCheckReport.objects.filter(subtype=RedisCheckSubType.AgentUniversal.value)
+    serializer_class = RedisExporterCheckReportSerializer
+    report_type = ReportType.AGENT_UNIVERSAL_CHECK
+
+    @common_swagger_auto_schema(
+        operation_summary=_("Agent通用检查报告"),
         responses={status.HTTP_200_OK: RedisExporterCheckReportSerializer()},
         tags=[SWAGGER_TAG],
     )

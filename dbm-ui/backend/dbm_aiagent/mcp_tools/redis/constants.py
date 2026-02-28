@@ -8,8 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from backend.db_report.enums import MetaCheckSubType
+from backend.db_report.enums.redis_sub_type import RedisCheckSubType
+from backend.db_report.models import MetaCheckReport, RedisCheckReport
 from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsAggFunction as AggFunction
-from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsGroupBy
+from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsGroupBy, RedisReportSubtype
 
 # Default query parameters for BKMonitor unify_query API
 UNIFY_QUERY_PARAMS = {
@@ -45,6 +48,40 @@ LATENCY_DISTRIBUTION_BUCKETS = [
     {"le_upper": "8000", "le_lower": "4000", "label": "(4ms,8ms]"},
     {"le_upper": "4000", "le_lower": "", "label": "0ms,4ms]"},  # '(' causes promql parsing error, said bkmonitor api
 ]
+
+# Trend unit per metric key: slope is normalized to (metric unit)/minute
+# Used to clarify what "trend" means in statistics output
+TREND_UNIT_BY_METRIC_KEY = {
+    # Redis backend metrics
+    "redis_cpu_usage": "%/min",
+    "redis_memory_usage": "%/min",
+    "redis_connections": "connections/min",
+    "redis_qps": "qps/min",
+    "redis_io_usage": "%/min",
+    "redis_disk_usage": "%/min",
+    "redis_host_latency": "μs/min",
+    "redis_command_latency": "μs/min",
+    # Predixy proxy metrics
+    "predixy_cpu_usage": "%/min",
+    "predixy_memory_usage": "%/min",
+    "predixy_connections": "connections/min",
+    "predixy_qps": "qps/min",
+    "predixy_io_usage": "%/min",
+    "predixy_disk_usage": "%/min",
+    "predixy_host_latency": "μs/min",
+    "predixy_command_latency": "μs/min",
+    "predixy_latency_distribution": "requests/min",
+    # Twemproxy proxy metrics
+    "twemproxy_cpu_usage": "%/min",
+    "twemproxy_memory_usage": "%/min",
+    "twemproxy_connections": "connections/min",
+    "twemproxy_qps": "qps/min",
+    "twemproxy_io_usage": "%/min",
+    "twemproxy_disk_usage": "%/min",
+    "twemproxy_host_latency": "μs/min",
+    "twemproxy_command_latency": "μs/min",
+    "twemproxy_latency_distribution": "requests/min",
+}
 
 # Unified Metric Registry
 # Format: "{component}_{metric_name}"
@@ -629,3 +666,36 @@ METRIC_REGISTRY = {
         "required_dimensions": ["ip"],  # Inner query needs ip dimension for per-IP bucket counts
     },
 }
+
+
+REPORT_SUBTYPE_MAP = {
+    RedisReportSubtype.EXPORTER: RedisCheckSubType.Exporter,
+    RedisReportSubtype.AGENT_UNIVERSAL: RedisCheckSubType.AgentUniversal,
+    RedisReportSubtype.AFFINITY_VIOLATION: MetaCheckSubType.AffinityViolation,
+    RedisReportSubtype.ISOLATED_INSTANCE: MetaCheckSubType.AloneInstance,
+    RedisReportSubtype.STATUS_ABNORMAL: MetaCheckSubType.StatusAbnormal,
+    RedisReportSubtype.ROLE_MISMATCH: MetaCheckSubType.RoleMismatch,
+    RedisReportSubtype.ENTRY_INCONSISTENT: MetaCheckSubType.EntryInconsistent,
+}
+
+REPORT_MODEL_MAP = {
+    RedisReportSubtype.EXPORTER: RedisCheckReport,
+    RedisReportSubtype.AGENT_UNIVERSAL: RedisCheckReport,
+    RedisReportSubtype.AFFINITY_VIOLATION: MetaCheckReport,
+    RedisReportSubtype.ISOLATED_INSTANCE: MetaCheckReport,
+    RedisReportSubtype.STATUS_ABNORMAL: MetaCheckReport,
+    RedisReportSubtype.ROLE_MISMATCH: MetaCheckReport,
+    RedisReportSubtype.ENTRY_INCONSISTENT: MetaCheckReport,
+}
+
+# Subtypes that the MCP agent is allowed to create via add_report_record.
+CREATABLE_REPORT_SUBTYPES = frozenset(
+    {
+        RedisReportSubtype.AGENT_UNIVERSAL,
+    }
+)
+
+
+def get_creatable_subtype_choices():
+    """Choices for add_report_record subtype field."""
+    return [(st.value, RedisReportSubtype.get_choice_label(st)) for st in CREATABLE_REPORT_SUBTYPES]
