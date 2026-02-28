@@ -219,13 +219,13 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
 
 参数说明：
 - bk_biz_id: 业务ID（必填）
-- cluster_domain: 集群域名（可选，与 cluster_id 二选一）
-- cluster_id: 集群ID（可选，与 cluster_domain 二选一）
+- cluster_domains: 集群域名列表（可选，与 cluster_ids 二选一）
+- cluster_ids: 集群ID列表（可选，与 cluster_domains 二选一）
 - version: 升级版本号（可选，如 2.4.13，不传则使用最新创建的 tdbctl 包）
 
 使用场景：
 1. 只传 bk_biz_id: 升级该业务下所有 TenDBCluster 集群
-2. 传 bk_biz_id + cluster_domain/cluster_id: 升级指定集群
+2. 传 bk_biz_id + cluster_domains/cluster_ids: 升级指定集群（支持多个）
         """
             )
         ),
@@ -239,8 +239,8 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
     )
     def submit_bill_tdbctl_upgrade(self, request, *args, **kwargs):
         bk_biz_id = self.get_param("bk_biz_id")
-        cluster_domain = self.get_param("cluster_domain", None)
-        cluster_id = self.get_param("cluster_id", None)
+        cluster_domains = self.get_param("cluster_domains", None)
+        cluster_ids = self.get_param("cluster_ids", None)
         version = self.get_param("version", None)
 
         username = request.user.username
@@ -251,8 +251,8 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
             bill_tdbctl_upgrade(
                 bk_biz_id=bk_biz_id,
                 username=username,
-                cluster_domain=cluster_domain,
-                cluster_id=cluster_id,
+                cluster_domains=cluster_domains,
+                cluster_ids=cluster_ids,
                 version=version,
             )
         )

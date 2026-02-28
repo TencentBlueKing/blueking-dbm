@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import List, Optional
+
 from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import ClusterType
@@ -24,9 +26,9 @@ from backend.ticket.models import Ticket
 def bill_tdbctl_upgrade(
     bk_biz_id: int,
     username: str,
-    cluster_domain: str = None,
-    cluster_id: int = None,
-    version: str = None,
+    cluster_domains: Optional[List[str]] = None,
+    cluster_ids: Optional[List[int]] = None,
+    version: Optional[str] = None,
 ) -> Ticket:
     """
     创建 TenDBCluster 中控（tdbctl）升级单据
@@ -34,8 +36,8 @@ def bill_tdbctl_upgrade(
     参数：
         bk_biz_id: 业务ID
         username: 创建人用户名
-        cluster_domain: 集群域名（可选）
-        cluster_id: 集群ID（可选）
+        cluster_domains: 集群域名列表（可选，与 cluster_ids 二选一）
+        cluster_ids: 集群ID列表（可选，与 cluster_domains 二选一）
         version: 升级版本号（可选）
     """
     # 1. 查询升级包（只查询 id 和 name 字段）
@@ -60,25 +62,34 @@ def bill_tdbctl_upgrade(
             raise Exception(_("未找到 tdbctl 升级包"))
 
     # 2. 查询集群并构建单据参数
-    if cluster_domain or cluster_id:
-        # 升级指定集群
-        if cluster_domain:
-            try:
-                cluster = Cluster.objects.get(
-                    bk_biz_id=bk_biz_id, immute_domain=cluster_domain, cluster_type=ClusterType.TenDBCluster
-                )
-            except Cluster.DoesNotExist:
-                raise Exception(_("集群 {} 不存在或不是 TenDBCluster 类型，请检查集群域名和业务ID").format(cluster_domain))
-        else:
-            try:
-                cluster = Cluster.objects.get(
-                    id=cluster_id, bk_biz_id=bk_biz_id, cluster_type=ClusterType.TenDBCluster
-                )
-            except Cluster.DoesNotExist:
-                raise Exception(_("集群ID {} 不存在或不属于业务 {}，请检查集群ID和业务ID").format(cluster_id, bk_biz_id))
+    # 空列表视为未传；去重避免重复升级
+    cluster_domains = list(dict.fromkeys(cluster_domains)) if cluster_domains else None
+    cluster_ids = list(dict.fromkeys(cluster_ids)) if cluster_ids else None
+    has_domains = cluster_domains and len(cluster_domains) > 0
+    has_ids = cluster_ids and len(cluster_ids) > 0
+    if has_domains and has_ids:
+        raise Exception(_("cluster_domains 与 cluster_ids 只能二选一，不能同时传入"))
 
-        clusters = [cluster]
-        cluster_ids = [cluster.id]
+    if has_domains or has_ids:
+        # 升级指定集群（支持多个）
+        clusters = []
+        if has_domains:
+            for domain in cluster_domains:
+                try:
+                    cluster = Cluster.objects.get(
+                        bk_biz_id=bk_biz_id, immute_domain=domain, cluster_type=ClusterType.TenDBCluster
+                    )
+                    clusters.append(cluster)
+                except Cluster.DoesNotExist:
+                    raise Exception(_("集群 {} 不存在或不是 TenDBCluster 类型，请检查集群域名和业务ID").format(domain))
+        else:
+            for cid in cluster_ids:
+                try:
+                    cluster = Cluster.objects.get(id=cid, bk_biz_id=bk_biz_id, cluster_type=ClusterType.TenDBCluster)
+                    clusters.append(cluster)
+                except Cluster.DoesNotExist:
+                    raise Exception(_("集群ID {} 不存在或不属于业务 {}，请检查集群ID和业务ID").format(cid, bk_biz_id))
+        cluster_ids = [c.id for c in clusters]
     else:
         # 升级业务下所有集群：查询所有 TenDBCluster 集群
         clusters = list(Cluster.objects.filter(bk_biz_id=bk_biz_id, cluster_type=ClusterType.TenDBCluster))
