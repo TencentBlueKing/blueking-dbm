@@ -146,7 +146,7 @@ class TenDBClusterAddNodesFlow(object):
         is_check_disaster_tolerance_level: bool = True,
     ):
         """
-        定义添加节点的子流程
+        定义添加spider节点的通用子流程
         """
 
         # 获取对应集群相关对象
