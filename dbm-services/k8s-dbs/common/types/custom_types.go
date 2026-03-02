@@ -38,7 +38,11 @@ func initLocation() {
 // MarshalJSON 自定义 JSONDatetime JSON 序列化逻辑
 func (j JSONDatetime) MarshalJSON() ([]byte, error) {
 	once.Do(initLocation)
-	locTime := time.Time(j).In(location)
+	t := time.Time(j)
+	if t.IsZero() {
+		return []byte("null"), nil
+	}
+	locTime := t.In(location)
 	return []byte(fmt.Sprintf("\"%s\"", locTime.Format(time.DateTime))), nil
 }
 
