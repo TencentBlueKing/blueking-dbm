@@ -63,4 +63,4 @@ class CheckDBExistResponseSerializer(serializers.Serializer):
 
 
 class GETIGNOREDBSerializer(serializers.Serializer):
-    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    cluster_ids = serializers.ListField(child=serializers.IntegerField(), help_text=_("集群ID"))
