@@ -206,7 +206,7 @@ export SASL_ENABLED=true
 	}
 
 	// 创建 java 软链接到 /usr/bin/java，解决 crontab 拉起 supervisord 时找不到 java 的问题
-	extraCmd = "[ ! -e /usr/bin/java ] && ln -sf $JAVA_HOME/bin/java /usr/bin/java || true"
+	extraCmd = ". /etc/profile; [ ! -e /usr/bin/java ] && ln -sf $JAVA_HOME/bin/java /usr/bin/java || true"
 	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("创建java软链接失败: %s", err.Error())
 		return err

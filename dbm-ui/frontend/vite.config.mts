@@ -51,6 +51,7 @@ export default defineConfig(({ mode }) => {
       extensions: ['.tsx', '.ts', '.js', '.mjs'],
     },
     css: {
+      preprocessorMaxWorkers: true,
       preprocessorOptions: {
         less: {
           javascriptEnabled: true,
