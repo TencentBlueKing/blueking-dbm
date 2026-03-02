@@ -165,12 +165,13 @@ class TenDBClusterDBTableBackupFlow(object):
             ),
         )
 
-        return on_ctl_sub_pipe.build_sub_process(sub_name=_("spider/ctl备份库表结构"))
+        return on_ctl_sub_pipe.build_sub_process(sub_name=_("{} spider/ctl备份库表结构".format(ctl_primary_ip)))
 
     def backup_on_remote(self, backup_id: uuid.UUID, job: dict, cluster_obj: Cluster) -> List[SubProcess]:
         # 在 所有 is_stand_by slave 上备份数据
         # slave 上的备份同机器串行
         on_slave_pipes = []
+        # 这是按 ip 聚合的 dtls
         stand_by_slaves = defaultdict(list)
         for tp in StorageInstanceTuple.objects.filter(
             ejector__cluster=cluster_obj,
@@ -188,21 +189,45 @@ class TenDBClusterDBTableBackupFlow(object):
             )
 
         for ip, dtls in stand_by_slaves.items():
+            on_this_ip_flow = SubBuilder(
+                root_id=self.root_id,
+                data={
+                    **job,
+                    "uid": self.data["uid"],
+                    "created_by": self.data["created_by"],
+                    "bk_biz_id": self.data["bk_biz_id"],
+                    "ticket_type": self.data["ticket_type"],
+                    "backup_id": backup_id,
+                },
+            )
+
+            on_this_ip_flow.add_act(
+                act_name=_("下发actuator介质"),
+                act_component_code=TransFileComponent.code,
+                kwargs=asdict(
+                    DownloadMediaKwargs(
+                        bk_cloud_id=cluster_obj.bk_cloud_id,
+                        exec_ip=ip,
+                        file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                    )
+                ),
+            )
+
             for dtl in dtls:
-                on_slave_job = copy.deepcopy(job)
-                on_slave_job["db_patterns"] = [
+                on_this_slave_instance_job = copy.deepcopy(job)
+                on_this_slave_instance_job["db_patterns"] = [
                     ele if ele.endswith("%") or ele == "*" else "{}_{}".format(ele, dtl["shard_id"])
-                    for ele in on_slave_job["db_patterns"]
+                    for ele in on_this_slave_instance_job["db_patterns"]
                 ]
-                on_slave_job["ignore_dbs"] = [
+                on_this_slave_instance_job["ignore_dbs"] = [
                     ele if ele.endswith("%") or ele == "*" else "{}_{}".format(ele, dtl["shard_id"])
-                    for ele in on_slave_job["ignore_dbs"]
+                    for ele in on_this_slave_instance_job["ignore_dbs"]
                 ]
 
-                on_slave_pipe = SubBuilder(
+                on_this_slave_instance_pipe = SubBuilder(
                     root_id=self.root_id,
                     data={
-                        **on_slave_job,
+                        **on_this_slave_instance_job,
                         "uid": self.data["uid"],
                         "created_by": self.data["created_by"],
                         "bk_biz_id": self.data["bk_biz_id"],
@@ -218,25 +243,13 @@ class TenDBClusterDBTableBackupFlow(object):
                     },
                 )
 
-                on_slave_pipe.add_act(
+                on_this_slave_instance_pipe.add_act(
                     act_name=_("构造remote mydumper正则"),
                     act_component_code=DatabaseTableFilterRegexBuilderComponent.code,
                     kwargs={},
                 )
 
-                on_slave_pipe.add_act(
-                    act_name=_("下发actuator介质"),
-                    act_component_code=TransFileComponent.code,
-                    kwargs=asdict(
-                        DownloadMediaKwargs(
-                            bk_cloud_id=cluster_obj.bk_cloud_id,
-                            exec_ip=ip,
-                            file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-                        )
-                    ),
-                )
-
-                on_slave_pipe.add_act(
+                on_this_slave_instance_pipe.add_act(
                     act_name=_("remote 执行库表备份"),
                     act_component_code=ExecuteDBActuatorScriptComponent.code,
                     kwargs=asdict(
@@ -250,7 +263,13 @@ class TenDBClusterDBTableBackupFlow(object):
                     ),
                 )
 
-                on_slave_pipes.append(on_slave_pipe.build_sub_process(sub_name=_("remote 备份库表")))
+                on_this_ip_flow.add_sub_pipeline(
+                    on_this_slave_instance_pipe.build_sub_process(
+                        sub_name=_("{}:{} remote 备份库表".format(ip, dtl["port"]))
+                    )
+                )
+
+            on_slave_pipes.append(on_this_ip_flow.build_sub_process(sub_name=_("{} remote 备份库表".format(ip))))
         return on_slave_pipes
 
     def backup_on_spider_mnt(self, backup_id: uuid.UUID, job: dict, cluster_obj: Cluster) -> SubProcess:
@@ -346,7 +365,7 @@ class TenDBClusterDBTableBackupFlow(object):
                     )
                 )
             job_flow.add_act(
-                act_name=_("关联备份id"),
+                act_name=_("关联备份id: {}".format(backup_id)),
                 act_component_code=MySQLLinkBackupIdBillIdComponent.code,
                 kwargs={},
             )
