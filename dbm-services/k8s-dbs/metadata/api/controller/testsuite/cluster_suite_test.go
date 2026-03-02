@@ -75,6 +75,7 @@ func (suite *ClusterControllerTestSuite) SetupSuite() {
 	clusterTagDbAccess := dbaccess.GetClusterTagDbAccess(db)
 	k8sConfigDbAccess := dbaccess.GetK8sClusterConfigDbAccess(db)
 	addonTopologyDbAccess := dbaccess.GetAddonTopologyDbAccess(db)
+	addonTypeDbAccess := dbaccess.GetAddonTypeDbAccess(db)
 
 	builder := &provider.K8sCrdClusterProviderBuilder{}
 	clusterProvider := provider.GetK8sCrdClusterProvider(
@@ -83,10 +84,8 @@ func (suite *ClusterControllerTestSuite) SetupSuite() {
 		builder.WithClusterTagDbAccess(clusterTagDbAccess),
 		builder.WithK8sClusterConfigDbAccess(k8sConfigDbAccess),
 		builder.WithAddonTopologyDbAccess(addonTopologyDbAccess),
+		builder.WithAddonTypeDbAccess(addonTypeDbAccess),
 	)
-	if err != nil {
-		log.Fatal(err)
-	}
 	clusterController := controller.NewClusterController(clusterProvider)
 	suite.clusterController = clusterController
 	gin.SetMode(gin.TestMode)
@@ -107,6 +106,7 @@ func (suite *ClusterControllerTestSuite) TearDownSuite() {
 }
 
 func (suite *ClusterControllerTestSuite) SetupTest() {
+	testhelper.InitTestTable(suite.mySQLContainer.ConnStr, constant.TbAddonType, &model.AddonTypeModel{})
 	testhelper.InitTestTable(suite.mySQLContainer.ConnStr, constant.TbK8sCrdCluster, &model.K8sCrdClusterModel{})
 	testhelper.InitTestTable(suite.mySQLContainer.ConnStr, constant.TbK8sCrdStorageAddon, &model.K8sCrdStorageAddonModel{})
 	testhelper.InitTestTable(suite.mySQLContainer.ConnStr, constant.TbK8sClusterConfig, &model.K8sClusterConfigModel{})

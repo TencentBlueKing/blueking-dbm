@@ -120,6 +120,7 @@ func (suite *ClusterProviderTestSuite) SetupSuite() {
 	clusterTagDbAccess := dbaccess.GetClusterTagDbAccess(db)
 	k8sClusterConfigDbAccess := dbaccess.GetK8sClusterConfigDbAccess(db)
 	clusterTopologyDbAccess := dbaccess.GetAddonTopologyDbAccess(db)
+	addonTypeDbAccess := dbaccess.GetAddonTypeDbAccess(db)
 	clusterProviderBuilder := metaprovider.K8sCrdClusterProviderBuilder{}
 	suite.clusterProvider = provider.GetK8sCrdClusterProvider(
 		clusterProviderBuilder.WithClusterDbAccess(clusterDbAccess),
@@ -127,6 +128,7 @@ func (suite *ClusterProviderTestSuite) SetupSuite() {
 		clusterProviderBuilder.WithK8sClusterConfigDbAccess(k8sClusterConfigDbAccess),
 		clusterProviderBuilder.WithClusterTagDbAccess(clusterTagDbAccess),
 		clusterProviderBuilder.WithAddonTopologyDbAccess(clusterTopologyDbAccess),
+		clusterProviderBuilder.WithAddonTypeDbAccess(addonTypeDbAccess),
 	)
 	suite.addonStorageProvider = provider.GetK8sCrdStorageAddonProvider(addonMetaDbAccess)
 	suite.clusterConfigProvider = provider.GetK8sClusterConfigProvider(k8sClusterConfigDbAccess)
@@ -139,6 +141,7 @@ func (suite *ClusterProviderTestSuite) TearDownSuite() {
 }
 
 func (suite *ClusterProviderTestSuite) SetupTest() {
+	testhelper.InitTestTable(suite.mySqlContainer.ConnStr, constant.TbAddonType, &model.AddonTypeModel{})
 	testhelper.InitTestTable(suite.mySqlContainer.ConnStr, constant.TbK8sCrdCluster, &model.K8sCrdClusterModel{})
 	testhelper.InitTestTable(suite.mySqlContainer.ConnStr, constant.TbK8sCrdStorageAddon, &model.K8sCrdStorageAddonModel{})
 	testhelper.InitTestTable(suite.mySqlContainer.ConnStr, constant.TbK8sCrdClusterTag, &model.K8sCrdClusterTagModel{}) // todo
@@ -259,6 +262,20 @@ func (suite *ClusterProviderTestSuite) TestFindByParams() {
 
 func (suite *ClusterProviderTestSuite) TestListClusters() {
 	t := suite.T()
+	// 插入 AddonType 记录，类型名需与 k8sCrdStorageAddonEntityList 中的 AddonType 字段匹配
+	db, _ := testhelper.InitDBConnection(suite.mySqlContainer.ConnStr)
+	addonTypeDbAccess := dbaccess.GetAddonTypeDbAccess(db)
+	for _, typeName := range []string{"addon_type_01", "addon_type_02"} {
+		_, err := addonTypeDbAccess.Create(&model.AddonTypeModel{
+			TypeName:  typeName,
+			TypeAlias: typeName,
+			Active:    true,
+			CreatedBy: "admin",
+			UpdatedBy: "admin",
+		})
+		assert.NoError(t, err)
+	}
+
 	for _, entity := range K8sCrdClusterEntityList {
 		result, err := suite.clusterProvider.CreateCluster(entity)
 		assert.NoError(t, err)
