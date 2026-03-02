@@ -14,6 +14,7 @@ specific language governing permissions and limitations under the License.
 from aidev_agent.services.command_handler import CommandProcessor as BaseCommandProcessor
 
 from .commands import *
+from .redis_commands import *
 from .register import command, register_command
 
 CommandProcessor = BaseCommandProcessor()

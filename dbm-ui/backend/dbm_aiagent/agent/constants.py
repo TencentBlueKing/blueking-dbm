@@ -24,3 +24,8 @@ class DBMAgentCode(StrStructuredEnum):
     MYSQL_TASK_GUARDIAN = EnumField("ai-mysql-taskgd", _("MySQL单据值守智能体"))
     SQLSERVER_TASK_GUARDIAN = EnumField("ai-sqlsvr-tgd", _("SQLServer单据值守智能体"))
     REDIS_MEMORY_ANALYSIS = EnumField("ai-redis-memchk", _("Redis内存增长分析智能体"))
+    REDIS_HELPER = EnumField("ai-tendis-agent", _("Redis智能助手"))
+    REDIS_TASK_GUARDIAN = EnumField("ai-redis-taskgd", _("Redis单据值守"))
+    REDIS_LOG_ANA = EnumField("ai-redis-logana", _("Redis日志解析"))
+    REDIS_TOOLS = EnumField("ai-redis-wb", _("Redis工具箱"))
+    REDIS_METRICS = EnumField("ai-tendismetrics", _("Redis指标助手"))

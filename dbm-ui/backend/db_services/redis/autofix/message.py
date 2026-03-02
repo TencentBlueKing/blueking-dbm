@@ -19,6 +19,8 @@ from backend.configuration.models.dba import DBAdministrator
 from backend.core.notify.handlers import CmsiHandler
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache
+from backend.dbm_aiagent.agent.constants import DBMAgentCode
+from backend.dbm_aiagent.agent.handlers import AgentHandler
 from backend.utils.time import date2str
 
 from .enums import AutofixItem
@@ -55,7 +57,12 @@ def send_msg_2_qywx(sub_title: str, msgs):
             content += _("业务DBA : {}(@{})\n".format(redis_DBA[0], redis_DBA[0]))
         else:
             content += _("{} : {}\n".format(k, v))
+    if db_type == DBType.Redis.value:
+        content = _("""查询这个{}集群最新的qps和CPU情况""".format("-".join(sub_title.split("-")[:-1])))
+        rest = AgentHandler.ask_agent_with_content(DBMAgentCode.REDIS_TASK_GUARDIAN.value, "", redis_DBA)
+        content += _("当前负载 : {}\n".format(rest))
     content += _("消息时间 : {}\n".format(date2str(datetime.datetime.now(), "%Y-%m-%d %H:%M:%S")))
+
     CmsiHandler(_("Tendis自愈"), content, msg_ids).send_wecom_robot()
 
 
