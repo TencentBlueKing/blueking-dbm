@@ -65,7 +65,11 @@ func Name(pid int32) (string, error) {
 }
 
 // SavePid is used to save the process pid into a file.
+// When DBHA_UNDER_GUARD is set (child running under guard), skip writing to avoid overwriting guard's pid file.
 func SavePid(filename string) error {
+	if os.Getenv(EnvUnderGuard) != "" {
+		return nil
+	}
 	if filename == "" {
 		return ErrInvalidFile
 	}

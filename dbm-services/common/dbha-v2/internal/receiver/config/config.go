@@ -28,6 +28,8 @@ import (
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/logger"
+
+	"github.com/spf13/viper"
 )
 
 var Cfg = Configuration{
@@ -101,4 +103,21 @@ type Configuration struct {
 	Apm       ApmConfig       `yaml:"apm"       mapstructure:"apm"`
 	Service   ServiceConfig   `yaml:"service"   mapstructure:"service"`
 	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
+}
+
+// Load loads receiver configuration from file
+func Load(configFilePath string) error {
+	viper.SetConfigName("receiver")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("./etc")
+
+	if configFilePath != "" {
+		viper.SetConfigFile(configFilePath)
+	}
+
+	if err := viper.ReadInConfig(); err != nil {
+		return err
+	}
+
+	return viper.Unmarshal(&Cfg)
 }

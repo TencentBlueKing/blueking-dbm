@@ -44,6 +44,7 @@ func main() {
 	rootCmd.AddCommand(receiver.VersionCmd)
 	rootCmd.AddCommand(receiver.HealthCmd)
 	rootCmd.AddCommand(receiver.StartCmd)
+	rootCmd.AddCommand(receiver.DaemonStartCmd)
 	rootCmd.AddCommand(receiver.StopCmd)
 	rootCmd.AddCommand(receiver.RestartCmd)
 	rootCmd.AddCommand(receiver.ReloadCmd)

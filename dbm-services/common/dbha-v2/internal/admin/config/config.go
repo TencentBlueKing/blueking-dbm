@@ -29,6 +29,8 @@ import (
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/logger"
+
+	"github.com/spf13/viper"
 )
 
 var Cfg = Configuration{
@@ -106,4 +108,21 @@ type Configuration struct {
 	DbmApis    []DbmApi        `yaml:"dbmApi"     mapstructure:"dbmApi"`
 	Storage    StorageConfig   `yaml:"storage"    mapstructure:"storage"`
 	Log        LogConfig       `yaml:"log"        mapstructure:"log"`
+}
+
+// Load loads admin configuration from file
+func Load(configFilePath string) error {
+	viper.SetConfigName("admin")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("./etc")
+
+	if configFilePath != "" {
+		viper.SetConfigFile(configFilePath)
+	}
+
+	if err := viper.ReadInConfig(); err != nil {
+		return err
+	}
+
+	return viper.Unmarshal(&Cfg)
 }

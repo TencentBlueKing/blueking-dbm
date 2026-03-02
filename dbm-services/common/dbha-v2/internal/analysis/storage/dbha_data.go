@@ -44,6 +44,7 @@ type DbhaData struct {
 	DB *hamysql.GormDB
 }
 
+// GetBizIDs returns all distinct business IDs from DBM metadata.
 func (ha *DbhaData) GetBizIDs() ([]int, error) {
 	bkBizIDs := []int{}
 
@@ -58,6 +59,7 @@ func (ha *DbhaData) GetBizIDs() ([]int, error) {
 	return bkBizIDs, nil
 }
 
+// ReadMetadataCacheWithBizID reads metadata cache in batches for the given bizID.
 func (ha *DbhaData) ReadMetadataCacheWithBizID(bizID int, batchCnt int,
 	offsetDuration time.Duration) (metaData []*hamodel.DbmMetadata, err error) {
 
@@ -164,6 +166,7 @@ func (ha *DbhaData) SaveSwitchingLog(ctx context.Context, records ...*hamodel.Db
 	return err
 }
 
+// ReadSwitchingStrategyWithBkBizId returns switching strategies for the given business ID.
 func (ha *DbhaData) ReadSwitchingStrategyWithBkBizId(bkBizId int) ([]*hamodel.DbSwitchingStrategy, error) {
 	var strategies []*hamodel.DbSwitchingStrategy
 

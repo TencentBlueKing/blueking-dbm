@@ -56,6 +56,14 @@ func ReloadCmdRunE(cmd *cobra.Command, args []string) error {
 	return process.ReloadCmdRunE(cmd, args, config.Cfg.PidFile, process.NameReceiver, StopTimeout, ForceStop)
 }
 
+func DaemonStartCmdRunE(cmd *cobra.Command, args []string) error {
+	configPath, _ := cmd.Root().PersistentFlags().GetString("config")
+	if err := config.Load(configPath); err != nil {
+		return err
+	}
+	return process.DaemonStartCmdRunE(cmd, args, config.Cfg.PidFile, process.NameReceiver, process.DefaultGuardRestartDelay)
+}
+
 func HealthCmdRunE(cmd *cobra.Command, _ []string) error {
 	baseHealth := process.GetBaseHealthInfo(config.Cfg.PidFile, process.NameReceiver)
 

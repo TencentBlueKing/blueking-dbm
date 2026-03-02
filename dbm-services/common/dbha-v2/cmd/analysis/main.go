@@ -45,6 +45,7 @@ func main() {
 	rootCmd.AddCommand(analysis.VersionCmd)
 	rootCmd.AddCommand(analysis.HealthCmd)
 	rootCmd.AddCommand(analysis.StartCmd)
+	rootCmd.AddCommand(analysis.DaemonStartCmd)
 	rootCmd.AddCommand(analysis.StopCmd)
 	rootCmd.AddCommand(analysis.RestartCmd)
 	rootCmd.AddCommand(analysis.ReloadCmd)

@@ -46,6 +46,7 @@ func main() {
 	rootCmd.AddCommand(probe.VersionCmd)
 	rootCmd.AddCommand(probe.HealthCmd)
 	rootCmd.AddCommand(probe.StartCmd)
+	rootCmd.AddCommand(probe.DaemonStartCmd)
 	rootCmd.AddCommand(probe.StopCmd)
 	rootCmd.AddCommand(probe.RestartCmd)
 	rootCmd.AddCommand(probe.ReloadCmd)
