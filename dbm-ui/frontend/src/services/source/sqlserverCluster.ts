@@ -66,8 +66,8 @@ export function getIntersectedSlaveMachinesFromClusters(params: {
 /**
  * 获取集群的忽略库配置
  */
-export function getIgnoreDbs() {
-  return http.get<{
+export function getIgnoreDbs(params: { cluster_ids: number[] }) {
+  return http.post<{
     [clusterId: string]: string[];
-  }>(`${getRootPath()}/get_ignore_dbs/`);
+  }>(`${getRootPath()}/get_ignore_dbs/`, params);
 }
