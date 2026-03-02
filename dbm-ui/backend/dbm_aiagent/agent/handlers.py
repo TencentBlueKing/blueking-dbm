@@ -55,10 +55,12 @@ class AgentHandler:
         return result
 
     @classmethod
-    def ask_agent_with_content(cls, agent_code: DBMAgentCode, content: str, username=DEFAULT_USERNAME):
+    def ask_agent_with_content(
+        cls, agent_code: DBMAgentCode, content: str, username=DEFAULT_USERNAME, session_code=None
+    ):
         """根据agent直接内容询问agent"""
         # 创建临时会话
-        session_code = cls.create_temporary_session(username)
+        session_code = session_code or cls.create_temporary_session(username)
 
         # 创建会话内容
         # 主智能体直接询问，子智能体走快捷指令切换询问
@@ -72,6 +74,15 @@ class AgentHandler:
         session_content_id = resp["data"]["id"]
         ai_response = cls.create_chat_completion(session_code, session_content_id)
         return ai_response["choices"][0]["delta"]["content"]
+
+    @classmethod
+    def ask_agent_with_content_in_session(
+        cls, agent_code: DBMAgentCode, content: str, username=DEFAULT_USERNAME, session_code=None
+    ):
+        """根据agent直接内容询问agent, 连续对话"""
+        session_code = session_code or cls.create_temporary_session(username)
+        ai_response = cls.ask_agent_with_content(agent_code, content, username, session_code)
+        return ai_response, session_code
 
     @classmethod
     def ask_agent_with_command(cls, command: str, command_params: dict, username=DEFAULT_USERNAME):
