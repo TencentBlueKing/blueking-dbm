@@ -23,3 +23,4 @@ class DBMAgentCode(StrStructuredEnum):
     TASK_GUARDIAN = EnumField("ai-task-guardian", _("单据值守智能体"))
     MYSQL_TASK_GUARDIAN = EnumField("ai-mysql-taskgd", _("MySQL单据值守智能体"))
     SQLSERVER_TASK_GUARDIAN = EnumField("ai-sqlsvr-tgd", _("SQLServer单据值守智能体"))
+    REDIS_MEMORY_ANALYSIS = EnumField("ai-redis-memchk", _("Redis内存增长分析智能体"))

@@ -15,10 +15,10 @@ from backend.configuration.models import DBAdministrator
 from backend.db_meta.models import AppCache
 
 
-def get_biz_by_abbr(biz_abbr: str, detailed: bool = False) -> Union[List[int], List[dict]]:
-    """Return biz IDs or rich dicts matching `biz_abbr` via db_app_abbr substring."""
-    biz_abbr = biz_abbr.strip().lower()
-    queryset = AppCache.objects.filter(db_app_abbr__icontains=biz_abbr)
+def get_biz_by_abbr(app_abbr: str, detailed: bool = False) -> Union[List[int], List[dict]]:
+    """Return biz IDs or rich dicts matching `app_abbr` via db_app_abbr substring."""
+    app_abbr = app_abbr.strip().lower()
+    queryset = AppCache.objects.filter(db_app_abbr__icontains=app_abbr)
     if detailed:
         rows = queryset.values_list("bk_biz_id", "bk_biz_name", "db_app_abbr")
         return [{"bk_biz_id": bid, "app_name": name, "abbr": abbr} for bid, name, abbr in rows]

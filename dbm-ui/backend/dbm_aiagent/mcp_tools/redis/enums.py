@@ -82,5 +82,5 @@ class RedisReportSubtype(StrStructuredEnum):
     ENTRY_INCONSISTENT = EnumField("entry_inconsistent", "Entry inconsistent")
     EXPORTER = EnumField("exporter", "Exporter")
 
-    # Agent check subtype
-    AGENT_UNIVERSAL = EnumField("agent_universal", "Agent universal")
+    # Agent check subtypes
+    CLUSTER_MEMORY_GROWTH = EnumField("cluster_memory_growth", "Cluster memory growth")

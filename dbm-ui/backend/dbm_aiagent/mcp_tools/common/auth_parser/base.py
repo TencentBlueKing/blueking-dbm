@@ -27,20 +27,20 @@ def auth_parse_bizs(request: HttpRequest, *args, **kwargs) -> BizIdList:
     解析业务列表 - 获取业务列表鉴权
     request 接收params:
     - bk_biz_id: 业务ID 或 业务ID列表 (optional)
-    - bk_biz_abbr: 业务英文名(db_app_abbr)，通过 AppCache 模糊匹配 (optional)
-    需要至少提供 bk_biz_id 或 bk_biz_abbr 其中一个
+    - app_abbr: 业务英文名(db_app_abbr)，通过 AppCache 模糊匹配 (optional)
+    需要至少提供 bk_biz_id 或 app_abbr 其中一个
     """
     data = request.query_params if request.method == "GET" else request.data
     if "bk_biz_id" in data:
         val = data["bk_biz_id"]
         ids = [val] if isinstance(val, (int, str)) else list(val)
         return [int(x) for x in ids]
-    if "bk_biz_abbr" in data and data["bk_biz_abbr"]:
-        apps = get_biz_by_abbr(data["bk_biz_abbr"])
+    if "app_abbr" in data and data["app_abbr"]:
+        apps = get_biz_by_abbr(data["app_abbr"])
         if not apps:
-            raise ValueError("parse error, no biz found for the given bk_biz_abbr")
+            raise ValueError("parse error, no biz found for the given app_abbr")
         return apps
-    raise ValueError("bk_biz_id or bk_biz_abbr is required")
+    raise ValueError("bk_biz_id or app_abbr is required")
 
 
 def auth_parse_my_bizs(request: HttpRequest, *args, db_type: DBType, **kwargs) -> BizIdList:

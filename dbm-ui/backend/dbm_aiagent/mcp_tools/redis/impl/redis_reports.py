@@ -38,12 +38,12 @@ COMMON_OUTPUT_FIELDS = (
 )
 
 
-def resolve_biz_ids_for_query(bk_biz_id: Optional[int] = None, bk_biz_abbr: Optional[str] = None) -> List[int]:
+def resolve_biz_ids_for_query(bk_biz_id: Optional[int] = None, app_abbr: Optional[str] = None) -> List[int]:
     """Resolve bk_biz_id or bk_biz_abbr to a biz ID list."""
     if bk_biz_id is not None:
         return [bk_biz_id]
-    if bk_biz_abbr:
-        return get_biz_by_abbr(bk_biz_abbr)
+    if app_abbr:
+        return get_biz_by_abbr(app_abbr)
     return []
 
 
@@ -94,6 +94,22 @@ def _normalize_meta_check_row(row: dict) -> dict:
     return out
 
 
+def _deduplicate_latest_per_group(rows: List[dict]) -> List[dict]:
+    """Keep only the latest record for each (subtype, cluster) pair.
+
+    Assumes rows are already sorted by create_at descending so the first
+    occurrence of each key is guaranteed to be the most recent one.
+    """
+    seen: set = set()
+    result = []
+    for row in rows:
+        key = (row["subtype"], row["cluster"])
+        if key not in seen:
+            seen.add(key)
+            result.append(row)
+    return result
+
+
 def _query_single_model(
     model,
     subtype_values: List[str],
@@ -104,7 +120,11 @@ def _query_single_model(
     end_time: Optional[datetime] = None,
     limit: int = 100,
 ) -> List[dict]:
-    """Query one report model and return normalized rows."""
+    """Query one report model and return normalized rows.
+
+    Returns at most one record per (subtype, cluster) pair — the latest one.
+    The caller's *limit* is enforced after deduplication by _merge_and_limit.
+    """
     queryset = model.objects.all()
     if bk_biz_ids:
         queryset = queryset.filter(bk_biz_id__in=bk_biz_ids)
@@ -118,12 +138,12 @@ def _query_single_model(
         queryset = queryset.filter(create_at__gte=start_time)
     if end_time:
         queryset = queryset.filter(create_at__lte=end_time)
-    queryset = queryset.order_by("-create_at")[:limit]
+    queryset = queryset.order_by("-create_at")
 
     if model is RedisCheckReport:
-        return list(queryset.values(*COMMON_OUTPUT_FIELDS))
-    if model is MetaCheckReport:
-        rows = list(
+        rows = list(queryset.values(*COMMON_OUTPUT_FIELDS))
+    elif model is MetaCheckReport:
+        raw_rows = list(
             queryset.values(
                 "bk_biz_id",
                 "cluster",
@@ -137,8 +157,11 @@ def _query_single_model(
                 "state",
             )
         )
-        return [_normalize_meta_check_row(r) for r in rows]
-    return list(queryset.values(*COMMON_OUTPUT_FIELDS))
+        rows = [_normalize_meta_check_row(r) for r in raw_rows]
+    else:
+        rows = list(queryset.values(*COMMON_OUTPUT_FIELDS))
+
+    return _deduplicate_latest_per_group(rows)
 
 
 def _merge_and_limit(
