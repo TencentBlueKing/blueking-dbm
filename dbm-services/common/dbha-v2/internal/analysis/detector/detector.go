@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+// Package detector provides probe health detection and target selection for DBHA analysis.
 package detector
 
 import (
