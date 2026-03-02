@@ -2,11 +2,11 @@
   <div class="sqlserver-db-backup-page">
     <SmartAction>
       <BkAlert
+        class="mb-16"
         closable
         theme="info"
         :title="t('数据库备份：指定DB备份，支持模糊匹配')" />
       <BatchInput
-        class="mt-16"
         :config="batchInputConfig"
         @change="handleBatchInput" />
       <DbForm
