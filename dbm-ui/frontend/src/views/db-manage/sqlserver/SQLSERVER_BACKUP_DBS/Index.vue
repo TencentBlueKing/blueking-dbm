@@ -122,7 +122,6 @@
 <script setup lang="ts">
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import SqlserverHaModel from '@services/model/sqlserver/sqlserver-ha';
   import { type Sqlserver } from '@services/model/ticket/ticket';
@@ -212,8 +211,6 @@
     }[];
   }>(TicketTypes.SQLSERVER_BACKUP_DBS);
 
-  const { data: ingoreDbsMap } = useRequest(getIgnoreDbs);
-
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('editableTable');
   const tableKey = ref(random());
@@ -270,9 +267,12 @@
 
   const isBackupTypeFull = computed(() => formData.backup_type === 'full_backup');
 
-  const handleClusterRequestSuccess = (rowData: IDataRow) => {
+  const handleClusterRequestSuccess = async (rowData: IDataRow) => {
+    const ingoreDbsMap = await getIgnoreDbs({
+      cluster_ids: [rowData.cluster.id],
+    });
     Object.assign(rowData, {
-      ignore_db_list: ingoreDbsMap.value?.[rowData.cluster.id] || [],
+      ignore_db_list: ingoreDbsMap?.[rowData.cluster.id] || [],
     });
   };
 
@@ -294,7 +294,10 @@
     },
   ];
 
-  const handleClusterBatchEdit = (data: SqlserverHaModel[]) => {
+  const handleClusterBatchEdit = async (data: SqlserverHaModel[]) => {
+    const ingoreDbsMap = await getIgnoreDbs({
+      cluster_ids: data.map((item) => item.id),
+    });
     const dataList = data.reduce<IDataRow[]>((acc, item) => {
       if (!clusterMemo.value[item.master_domain]) {
         acc.push(
@@ -304,7 +307,7 @@
               id: item.id,
               master_domain: item.master_domain,
             },
-            ignore_db_list: ingoreDbsMap.value?.[item.id] || [],
+            ignore_db_list: ingoreDbsMap?.[item.id] || [],
           }),
         );
       }
