@@ -107,7 +107,8 @@ class ClusterViewSet(BaseClusterViewSet):
         operation_summary=_("获取集群的忽略库配置"),
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["GET"], detail=False, serializer_class=GETIGNOREDBSerializer)
+    @action(methods=["POST"], detail=False, serializer_class=GETIGNOREDBSerializer)
     def get_ignore_dbs(self, request, bk_biz_id):
         validated_data = self.params_validate(self.get_serializer_class())
-        return Response(get_backup_filter_dbs(validated_data["cluster_id"]))
+        ignore_infos = {cluster_id: get_backup_filter_dbs(cluster_id) for cluster_id in validated_data["cluster_ids"]}
+        return Response(ignore_infos)
