@@ -211,8 +211,8 @@ def redis_migrate_slots_4_contraction(root_id: str, flow_data: dict, act_kwargs:
             if st_m_ip in to_shutdown_master_ips:
                 continue
             to_retain_master_ips.append(st_m_ip)
-            sorted(ports)
-            for st_m_port in ports[retain_inst_num:]:
+            sorted_port = sorted(ports)
+            for st_m_port in sorted_port[retain_inst_num:]:
                 st_m_inst = f"{st_m_ip}:{st_m_port}"
                 to_shutdown_master_inst.append(st_m_inst)
 
