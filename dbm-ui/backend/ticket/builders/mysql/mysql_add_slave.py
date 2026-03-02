@@ -19,11 +19,15 @@ from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer, fetch_cluster_ids
 from backend.ticket.builders.common.constants import MySQLBackupSource
-from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.mysql.base import (
+    BaseMySQLHATicketFlowBuilder,
+    MySQLBaseOperateDetailSerializer,
+    RelatedClusterAutoCalculateMixin,
+)
 from backend.ticket.constants import TicketType
 
 
-class MysqlAddSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
+class MysqlAddSlaveDetailSerializer(RelatedClusterAutoCalculateMixin, MySQLBaseOperateDetailSerializer):
     class AddSlaveInfoSerializer(serializers.Serializer):
         new_slave = serializers.ListField(help_text=_("新从库机器信息列表"), child=HostInfoSerializer(), required=False)
         cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
@@ -43,6 +47,9 @@ class MysqlAddSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
     def validate(self, attrs):
         attrs = super().validate(attrs)
         super().validated_cluster_type(attrs, ClusterType.TenDBHA)
+
+        # 自动计算关联集群（后端自动扩展cluster_ids）
+        attrs = self.auto_calculate_related_clusters(attrs, role=InstanceInnerRole.MASTER)
 
         if attrs["ip_source"] == IpSource.RESOURCE_POOL:
             return attrs
