@@ -131,8 +131,8 @@ class AddReportRecordInputSerializer(serializers.Serializer):
 
     subtype = serializers.ChoiceField(
         choices=get_creatable_subtype_choices(),
-        default=RedisReportSubtype.AGENT_UNIVERSAL.value,
-        help_text=_("Report subtype (must be in CREATABLE_REPORT_SUBTYPES)"),
+        help_text=_("Report subtype"),
+        required=True,
     )
     cluster_domain = serializers.CharField(help_text=_("Cluster domain"), required=True)
     msg = serializers.CharField(help_text=_("Report message"), required=True)

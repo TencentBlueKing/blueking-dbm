@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from celery.schedules import crontab
 
+from backend.db_periodic_task.local_tasks.redis_tasks.check_cluster_memory_growth import CheckClusterMemoryGrowthTask
 from backend.db_periodic_task.local_tasks.redis_tasks.check_exporter import CheckRedisUpMetricTask
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_report.repo.task_record_repo import TaskRecordRepo
@@ -19,6 +20,12 @@ from backend.db_report.repo.task_record_repo import TaskRecordRepo
     1. 通过装饰器注册周期任务
     2. import到 ../__init__.py
 """
+
+
+@register_periodic_task(run_every=crontab(minute="*/10"))
+def redis_cluster_memory_growth_check_task():
+    """Redis cluster memory growth check (LLM agent). Runs every 10 minutes."""
+    CheckClusterMemoryGrowthTask().start()
 
 
 @register_periodic_task(run_every=crontab(minute=1, hour=8))

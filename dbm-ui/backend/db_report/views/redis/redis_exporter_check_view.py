@@ -117,7 +117,7 @@ class RedisExporterCheckReportViewSet(RedisExporterCheckReportBaseViewSet):
 
 @register_report(DBType.Redis)
 class RedisAgentUniversalCheckReportViewSet(RedisExporterCheckReportBaseViewSet):
-    queryset = RedisCheckReport.objects.filter(subtype=RedisCheckSubType.AgentUniversal.value)
+    queryset = RedisCheckReport.objects.filter(subtype__in=RedisCheckSubType.get_agent_check_subtypes())
     serializer_class = RedisExporterCheckReportSerializer
     report_type = ReportType.AGENT_UNIVERSAL_CHECK
 

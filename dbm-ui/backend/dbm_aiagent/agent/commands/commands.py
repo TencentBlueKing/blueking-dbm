@@ -94,3 +94,15 @@ class CheckSQLServerClusterCommand(CommandHandler):
         查询起始时间点：{{ start_time }}
         查询截止时间点：{{ end_time }}
         """
+
+
+@command
+class RedisMemoryGrowthAnalysisCommand(CommandHandler):
+    name = _("Redis集群内存增长分析")
+    command = "ClusterMemoryGrowthAnalysis"
+    agent_code = DBMAgentCode.REDIS_MEMORY_ANALYSIS
+
+    def get_template(self) -> str:
+        return """
+        cluster_domain: {{ cluster_domain }}
+        """

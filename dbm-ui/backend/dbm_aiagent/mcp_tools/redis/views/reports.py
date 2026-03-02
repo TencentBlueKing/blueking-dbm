@@ -60,8 +60,8 @@ class RedisReportsMcpToolsViewSet(McpToolsViewSet):
     )
     def query_reports_by_biz(self, request, *args, **kwargs):
         bk_biz_id = self.get_param("bk_biz_id")
-        bk_biz_abbr = self.get_param("bk_biz_abbr")
-        bk_biz_ids = resolve_biz_ids_for_query(bk_biz_id=bk_biz_id, bk_biz_abbr=bk_biz_abbr)
+        app_abbr = self.get_param("app_abbr")
+        bk_biz_ids = resolve_biz_ids_for_query(bk_biz_id=bk_biz_id, app_abbr=app_abbr)
         subtypes = self.get_param("subtypes")
         states = self.get_param("states")
         start_time = self.get_param("start_time")

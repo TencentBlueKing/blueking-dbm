@@ -670,7 +670,7 @@ METRIC_REGISTRY = {
 
 REPORT_SUBTYPE_MAP = {
     RedisReportSubtype.EXPORTER: RedisCheckSubType.Exporter,
-    RedisReportSubtype.AGENT_UNIVERSAL: RedisCheckSubType.AgentUniversal,
+    RedisReportSubtype.CLUSTER_MEMORY_GROWTH: RedisCheckSubType.ClusterMemoryGrowth,
     RedisReportSubtype.AFFINITY_VIOLATION: MetaCheckSubType.AffinityViolation,
     RedisReportSubtype.ISOLATED_INSTANCE: MetaCheckSubType.AloneInstance,
     RedisReportSubtype.STATUS_ABNORMAL: MetaCheckSubType.StatusAbnormal,
@@ -678,9 +678,10 @@ REPORT_SUBTYPE_MAP = {
     RedisReportSubtype.ENTRY_INCONSISTENT: MetaCheckSubType.EntryInconsistent,
 }
 
+# Different report types may use different models
 REPORT_MODEL_MAP = {
     RedisReportSubtype.EXPORTER: RedisCheckReport,
-    RedisReportSubtype.AGENT_UNIVERSAL: RedisCheckReport,
+    RedisReportSubtype.CLUSTER_MEMORY_GROWTH: RedisCheckReport,
     RedisReportSubtype.AFFINITY_VIOLATION: MetaCheckReport,
     RedisReportSubtype.ISOLATED_INSTANCE: MetaCheckReport,
     RedisReportSubtype.STATUS_ABNORMAL: MetaCheckReport,
@@ -691,7 +692,7 @@ REPORT_MODEL_MAP = {
 # Subtypes that the MCP agent is allowed to create via add_report_record.
 CREATABLE_REPORT_SUBTYPES = frozenset(
     {
-        RedisReportSubtype.AGENT_UNIVERSAL,
+        RedisReportSubtype.CLUSTER_MEMORY_GROWTH,
     }
 )
 
