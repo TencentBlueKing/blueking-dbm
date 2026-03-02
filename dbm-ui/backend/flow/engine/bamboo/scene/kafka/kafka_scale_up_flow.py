@@ -242,7 +242,7 @@ class KafkaScaleUpFlow(object):
         ]
         details = {
             "cluster_id": self.data["cluster_id"],
-            "throttle_rate": 50000000,
+            "throttle_rate": 100000000,
             "topics": ["*"],
             "instance_list": instance_list,
         }
