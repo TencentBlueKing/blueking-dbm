@@ -5,7 +5,6 @@ import (
 	"dbm-services/common/reverseapi/define/mysql"
 	acst "dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -144,6 +143,9 @@ func (c *Checker) updateConfigFile(sii *mysql.StorageInstanceInfo) (err error) {
 		slog.Error(name, slog.String("err", err.Error()))
 		return err
 	}
+	defer func() {
+		_ = cf.Close()
+	}()
 
 	_, err = cf.WriteString(string(b) + "\n")
 	if err != nil {
@@ -152,13 +154,13 @@ func (c *Checker) updateConfigFile(sii *mysql.StorageInstanceInfo) (err error) {
 	}
 	slog.Info(name, slog.String("config", string(b)))
 
-	configFileDir, configFileName := filepath.Split(configFilePath)
-	err = utils.Reschedule(configFileDir, configFileName, "monitor")
-
-	if err != nil {
-		slog.Error(name, slog.String("err", err.Error()))
-		return err
-	}
+	//configFileDir, configFileName := filepath.Split(configFilePath)
+	//err = utils.Reschedule(configFileDir, configFileName, "monitor")
+	//
+	//if err != nil {
+	//	slog.Error(name, slog.String("err", err.Error()))
+	//	return err
+	//}
 
 	return nil
 }

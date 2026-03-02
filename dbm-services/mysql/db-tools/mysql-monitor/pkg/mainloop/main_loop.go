@@ -115,6 +115,22 @@ func itemsRun(iNames []string, cc *monitoriteminterface.ConnectionCollect) error
 		itemLogger = itemLogger.With("current item", iName)
 		slog.SetDefault(itemLogger)
 
+		idx := slices.IndexFunc(
+			config.ItemsConfig, func(item *config.MonitorItem) bool {
+				return item.Name == iName
+			},
+		)
+		if idx < 0 {
+			err := fmt.Errorf("item %s not found in items config", iName)
+			slog.Error("run monitor item", slog.String("error", err.Error()))
+			return err
+		}
+		itemConfig := config.ItemsConfig[idx]
+		if !itemConfig.IsMatchRole() {
+			slog.Info("run monitor item role not match, skipped")
+			continue
+		}
+
 		if constructor, ok := itemscollect.RegisteredItemConstructor()[iName]; ok {
 			msg, err := constructor(cc).Run()
 			if err != nil {
