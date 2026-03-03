@@ -8,14 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.urls import include, path
+from backend.dbm_aiagent.mcp_tools.redis.impl.get_source_access_impl import generate_cluster_query_report
 
-# common mcp tools
-urlpatterns = [
-    path("common/", include("backend.dbm_aiagent.mcp_tools.common.urls")),
-    path("mysql/", include("backend.dbm_aiagent.mcp_tools.mysql.urls")),
-    path("sqlserver/", include("backend.dbm_aiagent.mcp_tools.sqlserver.urls")),
-    path("redis/", include("backend.dbm_aiagent.mcp_tools.redis.urls")),
-    path("mongodb/", include("backend.dbm_aiagent.mcp_tools.mongodb.urls")),
-    path("kafka/", include("backend.dbm_aiagent.mcp_tools.kafka.urls")),
-]
+
+def generate_mongodb_cluster_query_report(job_log_resp, cluster_domain: str, cluster_all_ips: list):
+    """复用 Redis 访问来源报告生成逻辑（StorageInstance/ProxyInstance 通用）"""
+    tcp_report = generate_cluster_query_report(job_log_resp, cluster_domain, cluster_all_ips)
+    return tcp_report
