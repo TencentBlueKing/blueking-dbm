@@ -69,8 +69,15 @@ class RedisProxyFastRecoverFlowParamBuilder(builders.FlowParamBuilder):
                     proxy["immute_domains"] = immute_domains
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_PROXY_FAST_FIX)
-class RedisProxyFastRecoverFlowBuilder(BaseRedisTicketFlowBuilder):
+@builders.BuilderFactory.register(TicketType.REDIS_PROXY_KICKOFF)
+class RedisProxyKickoffFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisProxyFastRecoverDetailSerializer
     inner_flow_builder = RedisProxyFastRecoverFlowParamBuilder
-    inner_flow_name = _("Redis Proxy剔除和修复")
+    inner_flow_name = _("Redis Proxy剔除")
+
+
+@builders.BuilderFactory.register(TicketType.REDIS_PROXY_FIX)
+class RedisProxyFixFlowBuilder(BaseRedisTicketFlowBuilder):
+    serializer = RedisProxyFastRecoverDetailSerializer
+    inner_flow_builder = RedisProxyFastRecoverFlowParamBuilder
+    inner_flow_name = _("Redis Proxy修复")
