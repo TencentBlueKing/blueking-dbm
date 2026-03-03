@@ -29,6 +29,7 @@ stages:
     mcp_servers:
       {% for mcp_server in settings.BK_APIGW_STAGE_MCP_SERVERS %}
       - name: "{{ mcp_server.name }}"
+        title: "{{ mcp_server.title }}"
         description: "{{ mcp_server.description }}"
         {% if mcp_server.labels %}
         labels:

@@ -112,6 +112,7 @@ def mcp_tools_api_decorator(
             operation_id = f"mcp_{agent_type}_{mcp_type}_{func.__name__}"
         else:
             operation_id = f"{name_prefix}_{func.__name__}"
+        operation_id = operation_id.replace("-", "_")
 
         # 注册 operation_id 到 MCP 工具的映射（按 MCP 工具分组存储）
         for mcp_tool in mcp or []:

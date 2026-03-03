@@ -139,9 +139,7 @@ class RedisReportsMcpToolsViewSet(McpToolsViewSet):
         )
 
     @mcp_tools_api_decorator(
-        description=str(
-            _('Query Redis inspection reports across user\'s managed bizs (non-normal: states=["warning","abnormal"])')
-        ),
+        description="""Query Redis inspection reports across user's managed bizs (non-normal:states=[warning,abnormal])""",  # noqa: E501
         request_slz=RedisReportsByMyBizsInputSerializer,
         response_slz=RedisReportsOutputSerializer,
         permission_classes=[McpDBManagePermission],

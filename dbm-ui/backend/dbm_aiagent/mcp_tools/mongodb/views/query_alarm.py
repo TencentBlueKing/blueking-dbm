@@ -32,7 +32,7 @@ class MongoAlarmMcpToolsViewSet(McpToolsViewSet):
         response_slz=MongoClusterAlarmOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MONGODB_ALARM],
-        name_prefix=DBMMcpTools.MONGODB_ALARM.replace("_", "-"),
+        name_prefix=DBMMcpTools.MONGODB_ALARM.replace("-", "_"),
     )
     def fetch_cluster_alarms(self, request, *args, **kwargs):
         start_time = self.get_param("start_time")
@@ -46,7 +46,7 @@ class MongoAlarmMcpToolsViewSet(McpToolsViewSet):
         response_slz=MongoAppAlarmOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MONGODB_ALARM],
-        name_prefix=DBMMcpTools.MONGODB_ALARM.replace("_", "-"),
+        name_prefix=DBMMcpTools.MONGODB_ALARM.replace("-", "_"),
     )
     def fetch_app_alarms(self, request, *args, **kwargs):
         start_time = self.get_param("start_time")
