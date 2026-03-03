@@ -295,24 +295,23 @@
   ];
 
   const handleClusterBatchEdit = async (data: SqlserverHaModel[]) => {
-    const ingoreDbsMap = await getIgnoreDbs({
-      cluster_ids: data.map((item) => item.id),
-    });
-    const dataList = data.reduce<IDataRow[]>((acc, item) => {
-      if (!clusterMemo.value[item.master_domain]) {
-        acc.push(
-          createRowData({
-            cluster: {
-              cluster_type: item.cluster_type,
-              id: item.id,
-              master_domain: item.master_domain,
-            },
-            ignore_db_list: ingoreDbsMap?.[item.id] || [],
-          }),
-        );
-      }
-      return acc;
-    }, []);
+    // 过滤出未选择的集群
+    const newClusters = data.filter((item) => !clusterMemo.value[item.master_domain]);
+    if (newClusters.length === 0) return;
+
+    const clusterIds = newClusters.map((item) => item.id);
+    const ingoreDbsMap = await getIgnoreDbs({ cluster_ids: clusterIds });
+
+    const dataList = newClusters.map((item) =>
+      createRowData({
+        cluster: {
+          cluster_type: item.cluster_type,
+          id: item.id,
+          master_domain: item.master_domain,
+        },
+        ignore_db_list: ingoreDbsMap?.[item.id] || [],
+      }),
+    );
     formData.tableData = [...(formData.tableData[0].cluster.master_domain ? formData.tableData : []), ...dataList];
   };
 
