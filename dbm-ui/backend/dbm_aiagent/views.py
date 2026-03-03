@@ -10,43 +10,51 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import json
+import logging
+import os
 
 import jsonref
 import yaml
 from blueapps.account.decorators import login_exempt
+from django.conf import settings
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+
+logger = logging.getLogger("root")
 
 
 @login_exempt
 @csrf_exempt
 def mcp_discovery(request):
     res = __mcp_discovery()
-    # res = []
-    return JsonResponse(res, safe=False)
+    return JsonResponse(res if res is not None else [], safe=False)
 
 
 def __mcp_discovery():
     res = []
-    with open("backend/dbm_init/apigw/mcp_resources.yaml", "r") as file:
-        content_str = json.dumps(yaml.safe_load(file))
-        mcp_schema = copy.deepcopy(jsonref.loads(content_str))
-        for tool_path, tool_info in mcp_schema["paths"].items():
-            tool_schema = tool_info["post"]
+    try:
+        yaml_path = os.path.join(settings.BASE_DIR, "backend", "dbm_init", "apigw", "mcp_resources.yaml")
+        with open(yaml_path, "r", encoding="utf-8") as file:
+            content_str = json.dumps(yaml.safe_load(file))
+            mcp_schema = copy.deepcopy(jsonref.loads(content_str))
+            for tool_path, tool_info in mcp_schema["paths"].items():
+                tool_schema = tool_info["post"]
 
-            tool_operation_id = tool_schema["operationId"]
-            tool_description = tool_schema["description"]
-            request_schema = tool_schema["requestBody"]["content"]["application/json"]["schema"]
-            response_schema = tool_schema["responses"]["200"]["content"]["application/json"]["schema"]
+                tool_operation_id = tool_schema["operationId"]
+                tool_description = tool_schema["description"]
+                request_schema = tool_schema["requestBody"]["content"]["application/json"]["schema"]
+                response_schema = tool_schema["responses"]["200"]["content"]["application/json"]["schema"]
 
-            res.append(
-                {
-                    "path": tool_path,
-                    "description": tool_description,
-                    "operation_id": tool_operation_id,
-                    "request_schema": request_schema,
-                    "response_schema": response_schema,
-                }
-            )
-
+                res.append(
+                    {
+                        "path": tool_path,
+                        "description": tool_description,
+                        "operation_id": tool_operation_id,
+                        "request_schema": request_schema,
+                        "response_schema": response_schema,
+                    }
+                )
+    except Exception as e:
+        logger.warning("mcp_discovery load mcp_resources.yaml failed: %s", e)
+        res = []
     return res

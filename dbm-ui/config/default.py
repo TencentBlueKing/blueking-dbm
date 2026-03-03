@@ -966,6 +966,43 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         # 自动发现并填充该 MCP 服务器对应的工具
         "tools": [],
     },
+    # MongoDB MCP servers（与 mcp_tools/mongodb 及 constants.DBMMcpTools 对应）
+    {
+        "name": "mongodb-meta",
+        "description": """MongoDB cluster meta query: biz list, cluster list, topo, mongos/shard nodes, list by hosts""",
+        "target_app_codes": [APP_CODE],
+        "labels": ["mongodb-meta"],
+        "status": 1,
+        "is_public": False,
+        "tools": [],
+    },
+    {
+        "name": "mongodb-metrics",
+        "description": """MongoDB metrics: QPS, connections, global_lock current_queue, host CPU usage""",
+        "target_app_codes": [APP_CODE],
+        "labels": ["mongodb-metrics"],
+        "status": 1,
+        "is_public": False,
+        "tools": [],
+    },
+    {
+        "name": "mongodb-log",
+        "description": """MongoDB slow log query: slow log list and detail""",
+        "target_app_codes": [APP_CODE],
+        "labels": ["mongodb-log"],
+        "status": 1,
+        "is_public": False,
+        "tools": [],
+    },
+    {
+        "name": "mongodb-alarm",
+        "description": """MongoDB alarm query: cluster alarms in time range, app alarms by biz""",
+        "target_app_codes": [APP_CODE],
+        "labels": ["mongodb-alarm"],
+        "status": 1,
+        "is_public": False,
+        "tools": [],
+    },
 ]
 
 # 智能体配置

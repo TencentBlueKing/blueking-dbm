@@ -77,6 +77,7 @@ def mcp_tools_api_decorator(
     match_subpath: bool = False,
     user_verified_required: bool = False,
     app_verified_required: bool = True,
+    none_schema: bool = False,
 ):
     """
     MCP 工具 API 装饰器
@@ -96,6 +97,7 @@ def mcp_tools_api_decorator(
     @params match_subpath: 匹配所有子路径
     @params user_verified_required: 是否校验用户身份(考虑 mcp 也有后台调用，默认都已应用态接口开放)
     @params app_verified_required: 是否校验应用身份
+    @params none_schema: 无请求体时设为 True，供 generate_resources_yaml 的 MCP 校验通过
     @returns 装饰器函数
     """
 
@@ -115,8 +117,10 @@ def mcp_tools_api_decorator(
         for mcp_tool in mcp or []:
             MCP_TOOLS_REGISTRY[mcp_tool].append(operation_id)
 
-        # 自动添加 mcp-tools tag
-        tags.append("mcp-tools")
+        # 自动添加 mcp-tools tag（使用副本避免共用 _META_DECORATOR 的视图重复 append 导致 YAML 中 tags 重复）
+        tags_final = list(tags) if tags else []
+        if "mcp-tools" not in tags_final:
+            tags_final.append("mcp-tools")
         # 创建 extend_schema 装饰器
         schema_decorator = extend_schema(
             operation_id=operation_id,
@@ -125,10 +129,11 @@ def mcp_tools_api_decorator(
             request=request_slz,
             responses={200: response_slz} if response_slz else None,
             methods=methods,
-            tags=tags,
+            tags=tags_final,
             exclude=False,
             extensions=gen_apigateway_resource_config(
                 enable_mcp=True,  # 固定为 True
+                none_schema=none_schema,
                 is_public=is_public,
                 allow_apply_permission=allow_apply_permission,
                 user_verified_required=user_verified_required,
@@ -137,7 +142,7 @@ def mcp_tools_api_decorator(
                 description_en=description,
                 match_subpath=match_subpath,
                 plugin_configs=[
-                    build_bk_header_rewrite(set={"X-Bkdbm-Mcp-Tag": ",".join(tags)}, remove=[]),
+                    build_bk_header_rewrite(set={"X-Bkdbm-Mcp-Tag": ",".join(tags_final)}, remove=[]),
                 ],
             ),
         )
