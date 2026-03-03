@@ -210,20 +210,12 @@ class DBMetaUpdateMcpToolsViewSet(McpToolsViewSet):
     @mcp_tools_api_decorator(
         description=str(
             _(
-                "Update machine spec configuration in batch. "
-                "批量更新机器规格配置。\n\n"
-                "**Use Cases / 使用场景:**\n"
-                "- Assign spec to newly added machines / 为新增机器分配规格\n"
-                "- Correct spec mismatch after migration / 迁移后修正规格不匹配\n"
-                "- Batch update spec for capacity planning / 容量规划时批量更新规格\n\n"
-                "**Constraints / 约束条件:**\n"
-                "- All IPs must have same cluster_type and machine_type / 所有 IP 必须是相同集群类型和机器类型\n"
-                "- Spec must match machine's cluster_type (as DBType) and machine_type / "
-                "规格必须匹配机器的集群类型和机器类型\n"
-                "- Machine's device class (bk_svr_device_cls_name) must be in spec's device_class list / "
-                "机器的机型必须在规格的允许机型列表中\n"
-                "- By default, only empty spec machines can be updated (use force=True to override) / "
-                "默认只能更新空规格机器（使用 force=True 强制覆盖）"
+                "批量更新机器规格配置。Batch update machine spec. "
+                "场景：为新增机器分配规格、迁移后修正、容量规划。"
+                "约束：所有 IP 需相同 cluster_type/machine_type，规格需匹配，"
+                "机型需在 device_class 中。默认仅更新空规格机器，force=True 可强制覆盖。"
+                "Use cases: assign spec, fix after migration, capacity planning. "
+                "Constraints: same cluster/machine type, spec match, device_class. force=True to override."
             )
         ),
         request_slz=UpdateMachineSpecInputSerializer,
@@ -350,19 +342,10 @@ class DBMetaUpdateMcpToolsViewSet(McpToolsViewSet):
     @mcp_tools_api_decorator(
         description=str(
             gettext_lazy(
-                "根据主机信息推荐合适的规格。\n\n"
-                "**功能说明 / Function:**\n"
-                "- 根据主机的集群类型、机器类型和机型推荐匹配的规格\n"
-                "- Recommend specs based on host's cluster type, machine type and device class\n\n"
-                "**推荐规则 / Recommendation Rules:**\n"
-                "1. spec_cluster_type 必须匹配主机的 cluster_type\n"
-                "2. spec_machine_type 必须匹配主机的 machine_type\n"
-                "3. 主机的机型（bk_svr_device_cls_name）必须在规格的 device_class 列表中\n"
-                "4. 规格的 device_class 不能为空列表\n"
-                "5. 规格名称（spec_name）模糊匹配关键字（默认：标准、推荐、standard）\n\n"
-                "**输出格式 / Output Format:**\n"
-                "- 按 spec_id 聚合，相同规格的主机 IP 合并到 matched_hosts 列表中\n"
-                "- Grouped by spec_id, host IPs with same spec are merged into matched_hosts list"
+                "根据主机信息推荐合适的规格。根据集群类型、机器类型和机型推荐匹配规格。"
+                "规则：spec_cluster_type/spec_machine_type 匹配，机型在 device_class 中，"
+                "spec_name 模糊匹配（默认：标准、推荐、standard）。输出按 spec_id 聚合。"
+                "Recommend specs by cluster/machine type and device class. Output grouped by spec_id."
             )
         ),
         request_slz=RecommendSpecInputSerializer,
