@@ -35,9 +35,7 @@ class MySQLConfigUpdateMcpToolsViewSet(McpToolsViewSet):
 - backup: 备份配置，conf_file 可选值为 binlog_rotate.yaml / dbbackup.ini / dbbackup.options
   - 修改备份开始时间: conf_file=dbbackup.options, conf_name=CrontabTime, conf_value="3 5 * * *"
   - 修改备份类型: conf_file=dbbackup.ini, conf_name=Public.BackupType, conf_value=logical (physical)
-  - 修改 binlog 保留阈值: conf_file=binlog_rotate.yaml, conf_name=public.max_disk_used_pct, conf_value=80 (表示 80% 开启清理)
 - mysql_monitor: 监控配置，conf_file 固定为 items-config.yaml
-  - 关闭主从心跳: conf_file=items-config.yaml, conf_name=master-slave-heartbeat, conf_value='{"enable":false}',
 - checksum: 校验配置，conf_file 固定为 checksum.yaml
   - 关闭数据校验: conf_file=checksum.yaml, conf_name=enable, conf_value=false
 仅支持修改集群级别（cluster）的配置
