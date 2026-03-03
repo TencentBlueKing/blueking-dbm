@@ -31,11 +31,13 @@ import (
 	"sync"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/analysis/apm"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
 	"dbm-services/common/dbha-v2/pkg/discovery"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
@@ -210,6 +212,8 @@ func (w *Workflow) CheckBusinessWithBizID(ctx context.Context, bizId int) error 
 // ScanBusinesses fetches business IDs, filters by instance sharding,
 // and runs CheckBusinessWithBizID for each (with concurrency limit).
 func (w *Workflow) ScanBusinesses(ctx context.Context) {
+	start := time.Now()
+
 	bizIDs, err := w.hadata.GetBizIDs()
 	if err != nil {
 		logger.Warn("failed to get business IDs, errmsg: %s", err)
@@ -240,6 +244,22 @@ func (w *Workflow) ScanBusinesses(ctx context.Context) {
 	}
 
 	wg.Wait()
+
+	// report the scan business time consuming
+	if err := apm.ScanBusinessTimeConsumingMs.UpdateLabel(map[string]string{
+		haapm.MetricLabelServiceID:   w.myServiceID,
+		haapm.MetricLabelServiceName: "analysis",
+	}).Observe(float64(time.Since(start).Milliseconds())); err != nil {
+		logger.Warn("failed to report the scan business time consuming, errmsg: %s", err)
+	}
+
+	// report the scan business total
+	if err := apm.ScanBusinessTotal.UpdateLabel(map[string]string{
+		haapm.MetricLabelServiceID:   w.myServiceID,
+		haapm.MetricLabelServiceName: "analysis",
+	}).Add(float64(len(assigned))); err != nil {
+		logger.Warn("failed to report the scan business total, errmsg: %s", err)
+	}
 }
 
 // instanceKey builds a unique instance identifier from cloud id, IP and port.
