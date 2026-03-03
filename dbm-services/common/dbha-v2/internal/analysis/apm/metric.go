@@ -29,8 +29,116 @@ import (
 	"dbm-services/common/go-pubpkg/apm/metric"
 )
 
-var Metrics []*metric.Metric
+const (
+	MetricLabelSwitchID    = "switch_id"
+	MetricLabelActionScope = "action_scope"
+	MetricLabelDbType      = "db_type"
+)
 
+var (
+	Metrics []*metric.Metric
+
+	ScanBusinessTotal                     *haapm.HaCounter
+	ScanBusinessTimeConsumingMs           *haapm.HaHistogram
+	SwitchingTimeConsumingMs              *haapm.HaHistogram
+	MysqlClusterSwitchingTimeConsumingMs  *haapm.HaHistogram
+	MysqlHostSwitchingTimeConsumingMs     *haapm.HaHistogram
+	MysqlInstanceSwitchingTimeConsumingMs *haapm.HaHistogram
+	SwitchingSuccessTotal                 *haapm.HaCounter
+	SwitchingErrorTotal                   *haapm.HaCounter
+	MysqlSwitchingSuccessTotal            *haapm.HaCounter
+	MysqlSwitchingErrorTotal              *haapm.HaCounter
+	RedisSwitchingSuccessTotal            *haapm.HaCounter
+	RedisSwitchingErrorTotal              *haapm.HaCounter
+)
+
+// Default histogram buckets for latency (milliseconds)
+var defaultLatencyBuckets = []float64{1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000}
+
+func init() {
+	// Scan business total counter
+	ScanBusinessTotal = haapm.NewHaCounter(
+		"scan_business_total",
+		"Total number of scan business",
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
+	)
+
+	// Scan business time consuming histogram
+	ScanBusinessTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
+		"scan_business_time_consuming_ms",
+		"Time consuming of scan business in milliseconds",
+		defaultLatencyBuckets,
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
+	)
+
+	// Switching time consuming histogram
+	SwitchingTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
+		"switching_time_consuming_ms",
+		"Time consuming of switching in milliseconds",
+		defaultLatencyBuckets,
+		MetricLabelDbType,
+	)
+
+	// Mysql cluster switching time consuming histogram
+	MysqlClusterSwitchingTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
+		"mysql_cluster_switching_time_consuming_ms",
+		"Time consuming of MySQL cluster switching in milliseconds",
+		defaultLatencyBuckets,
+		MetricLabelSwitchID, MetricLabelActionScope, MetricLabelDbType,
+	)
+
+	// Mysql host switching time consuming histogram
+	MysqlHostSwitchingTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
+		"mysql_host_switching_time_consuming_ms",
+		"Time consuming of MySQL host switching in milliseconds",
+		defaultLatencyBuckets,
+		MetricLabelSwitchID, MetricLabelActionScope, MetricLabelDbType,
+	)
+
+	// Mysql instance switching time consuming histogram
+	MysqlInstanceSwitchingTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
+		"mysql_instance_switching_time_consuming_ms",
+		"Time consuming of MySQL instance switching in milliseconds",
+		defaultLatencyBuckets,
+		MetricLabelSwitchID, MetricLabelActionScope, MetricLabelDbType,
+	)
+
+	// Switching success total counter
+	SwitchingSuccessTotal = haapm.NewHaCounter("switching_success_total", "Total number of switching success")
+
+	// Switching error total counter
+	SwitchingErrorTotal = haapm.NewHaCounter("switching_error_total", "Total number of switching error")
+
+	// Mysql switching success total counter
+	MysqlSwitchingSuccessTotal = haapm.NewHaCounter(
+		"mysql_switching_success_total",
+		"Total number of MySQL switching success",
+		MetricLabelActionScope, MetricLabelDbType,
+	)
+
+	// Mysql switching error total counter
+	MysqlSwitchingErrorTotal = haapm.NewHaCounter(
+		"mysql_switching_error_total",
+		"Total number of MySQL switching error",
+		MetricLabelActionScope, MetricLabelDbType,
+	)
+
+	// Redis switching success total counter
+	RedisSwitchingSuccessTotal = haapm.NewHaCounter(
+		"redis_switching_success_total",
+		"Total number of Redis switching success",
+		MetricLabelActionScope, MetricLabelDbType,
+	)
+
+	// Redis switching error total counter
+	RedisSwitchingErrorTotal = haapm.NewHaCounter(
+		"redis_switching_error_total",
+		"Total number of Redis switching error",
+		MetricLabelActionScope, MetricLabelDbType,
+	)
+}
+
+// InitAPM init apm
 func InitAPM(serviceID, serviceName string) {
 	haapm.AppStartupMetric.UpdateLabel(map[string]string{
 		haapm.MetricLabelServiceID:   serviceID,
@@ -38,4 +146,28 @@ func InitAPM(serviceID, serviceName string) {
 	})
 
 	Metrics = append(Metrics, haapm.AppStartupMetric.ToMetric())
+
+	// Scan business total counter
+	Metrics = append(Metrics, ScanBusinessTotal.ToMetric())
+	Metrics = append(Metrics, ScanBusinessTimeConsumingMs.ToMetric())
+
+	// Switching total counter
+	Metrics = append(Metrics, SwitchingSuccessTotal.ToMetric())
+	Metrics = append(Metrics, SwitchingErrorTotal.ToMetric())
+
+	// Switching time consuming histogram
+	Metrics = append(Metrics, SwitchingTimeConsumingMs.ToMetric())
+
+	// Mysql switching time consuming histogram
+	Metrics = append(Metrics, MysqlClusterSwitchingTimeConsumingMs.ToMetric())
+	Metrics = append(Metrics, MysqlHostSwitchingTimeConsumingMs.ToMetric())
+	Metrics = append(Metrics, MysqlInstanceSwitchingTimeConsumingMs.ToMetric())
+
+	// Mysql switching total counter
+	Metrics = append(Metrics, MysqlSwitchingSuccessTotal.ToMetric())
+	Metrics = append(Metrics, MysqlSwitchingErrorTotal.ToMetric())
+
+	// Redis switching total counter
+	Metrics = append(Metrics, RedisSwitchingSuccessTotal.ToMetric())
+	Metrics = append(Metrics, RedisSwitchingErrorTotal.ToMetric())
 }

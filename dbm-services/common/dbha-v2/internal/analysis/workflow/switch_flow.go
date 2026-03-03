@@ -30,6 +30,7 @@ import (
 	"sort"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/analysis/apm"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
@@ -168,9 +169,28 @@ func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.R
 		return
 	}
 
+	start := time.Now()
+
 	rsp := sw.Switch(context.Background(), req)
 	if rsp.Err == nil {
 		logger.Info("switching success for the database type: %s", dbType)
+	}
+
+	// report the switching time consuming
+	if err := apm.SwitchingTimeConsumingMs.UpdateLabel(map[string]string{
+		apm.MetricLabelDbType: dbType.String(),
+	}).Observe(float64(time.Since(start).Milliseconds())); err != nil {
+		logger.Warn("failed to update switching time consuming metric, errmsg: %s", err)
+	}
+
+	// report the switching success total
+	if err := apm.SwitchingSuccessTotal.Add(float64(len(req.MySqlInstData) - len(rsp.MySqlFailureInsts))); err != nil {
+		logger.Error("failed to update switching success total metric: %s", err.Error())
+	}
+
+	// report the switching error total
+	if err := apm.SwitchingErrorTotal.Add(float64(len(rsp.MySqlFailureInsts))); err != nil {
+		logger.Error("failed to update switching error total metric: %s", err.Error())
 	}
 
 	// post the success alarm

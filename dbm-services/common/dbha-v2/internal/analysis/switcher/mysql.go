@@ -28,12 +28,15 @@ import (
 	"context"
 	"strings"
 	"sync"
+	"time"
 
+	"dbm-services/common/dbha-v2/internal/analysis/apm"
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/mysql"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchcore"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
@@ -113,6 +116,8 @@ func (m *Mysql) NewSwitchLogger() ([]switchlogger.DbSwitchLogger, error) {
 
 // InstanceLevelSwitch handles MySQL instance switching operations
 func (m *Mysql) InstanceLevelSwitch(ctx context.Context, switchLoggers []switchlogger.DbSwitchLogger, req *Request) *Response {
+	start := time.Now()
+
 	rsp := &Response{
 		MySqlFailureInsts: map[switchcore.MetadataKey]*dbm.DbInstMetadata{},
 	}
@@ -168,6 +173,8 @@ func (m *Mysql) InstanceLevelSwitch(ctx context.Context, switchLoggers []switchl
 	}
 
 	wg.Wait()
+
+	m.reportMysqlSwitchingMetrics(apm.MysqlInstanceSwitchingTimeConsumingMs, start, req, rsp)
 
 	if len(rsp.MySqlFailureInsts) == 0 {
 		return rsp
@@ -253,6 +260,8 @@ func (m *Mysql) checkHostInstanceCompleteness(ctx context.Context, host switchco
 
 // HostLevelSwitch handles MySQL host switching operations
 func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogger.DbSwitchLogger, req *Request) *Response {
+	start := time.Now()
+
 	rsp := &Response{
 		MySqlFailureInsts: map[switchcore.MetadataKey]*dbm.DbInstMetadata{},
 	}
@@ -318,11 +327,42 @@ func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogge
 
 	wg.Wait()
 
+	m.reportMysqlSwitchingMetrics(apm.MysqlHostSwitchingTimeConsumingMs, start, req, rsp)
+
 	if len(rsp.MySqlFailureInsts) > 0 {
 		rsp.Err = ErrSwitchPartialSuccess
 	}
 
 	return rsp
+}
+
+// reportMysqlSwitchingMetrics reports the switching time consuming, success total and error total metrics
+func (m *Mysql) reportMysqlSwitchingMetrics(timeConsumingMetric *haapm.HaHistogram, start time.Time, req *Request, rsp *Response) {
+
+	// report the mysql switching time consuming
+	if err := timeConsumingMetric.UpdateLabel(map[string]string{
+		apm.MetricLabelSwitchID:    req.SwitchID,
+		apm.MetricLabelActionScope: string(req.ActionScope),
+		apm.MetricLabelDbType:      string(m.DbTypeName()),
+	}).Observe(float64(time.Since(start).Milliseconds())); err != nil {
+		logger.Error("failed to update mysql switching time consuming metric, errmsg: %s", err.Error())
+	}
+
+	// report the mysql switching success total
+	if err := apm.MysqlSwitchingSuccessTotal.UpdateLabel(map[string]string{
+		apm.MetricLabelActionScope: string(req.ActionScope),
+		apm.MetricLabelDbType:      string(m.DbTypeName()),
+	}).Add(float64(len(req.MySqlInstData) - len(rsp.MySqlFailureInsts))); err != nil {
+		logger.Error("failed to update mysql switching success total metric, errmsg: %s", err.Error())
+	}
+
+	// report the mysql switching error total
+	if err := apm.MysqlSwitchingErrorTotal.UpdateLabel(map[string]string{
+		apm.MetricLabelActionScope: string(req.ActionScope),
+		apm.MetricLabelDbType:      string(m.DbTypeName()),
+	}).Add(float64(len(rsp.MySqlFailureInsts))); err != nil {
+		logger.Error("failed to update mysql switching error total metric, errmsg: %s", err.Error())
+	}
 }
 
 // Switch handles MySQL switching operations on different levels
