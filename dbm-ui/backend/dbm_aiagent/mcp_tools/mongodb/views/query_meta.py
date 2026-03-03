@@ -47,7 +47,7 @@ class _MetaDecoratorKwargs(TypedDict):
 _META_DECORATOR: _MetaDecoratorKwargs = {
     "tags": [DBMMCPTags.READ],
     "mcp": [DBMMcpTools.MONGODB_META],
-    "name_prefix": DBMMcpTools.MONGODB_META.replace("_", "-"),
+    "name_prefix": DBMMcpTools.MONGODB_META.replace("-", "_"),
 }
 
 

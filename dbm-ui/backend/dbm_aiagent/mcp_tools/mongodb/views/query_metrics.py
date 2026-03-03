@@ -25,14 +25,13 @@ from backend.dbm_aiagent.mcp_tools.mongodb.serializers.cluster_meta import (
     MongoMetaInfoOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.mongodb.serializers.query_metrics import (
-    MongoMetricsInputSerializer,
-    MongoMetricsOutputSerializer,
     ConvertTimestampInputSerializer,
     ConvertTimestampOutputSerializer,
     CurrentTimeOutputSerializer,
+    MongoMetricsInputSerializer,
+    MongoMetricsOutputSerializer,
     MongoTimeEmptyInputSerializer,
 )
-
 from backend.dbm_aiagent.mcp_tools.mongodb.tools.comm_tools import estimate_token_count
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
@@ -56,7 +55,7 @@ def _metrics_common_slz():
         "response_slz": MongoMetricsOutputSerializer,
         "tags": [DBMMCPTags.READ],
         "mcp": [DBMMcpTools.MONGODB_METRICS],
-        "name_prefix": DBMMcpTools.MONGODB_METRICS.replace("_", "-"),
+        "name_prefix": DBMMcpTools.MONGODB_METRICS.replace("-", "_"),
     }
 
 
@@ -69,7 +68,7 @@ class MongoMetricsMcpToolsViewSet(McpToolsViewSet):
         response_slz=CurrentTimeOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MONGODB_METRICS],
-        name_prefix=DBMMcpTools.MONGODB_METRICS.replace("_", "-"),
+        name_prefix=DBMMcpTools.MONGODB_METRICS.replace("-", "_"),
     )
     def get_current_time(self, request, *args, **kwargs):
         return Response({"current_time": datetime2str(timezone.now())})
@@ -80,7 +79,7 @@ class MongoMetricsMcpToolsViewSet(McpToolsViewSet):
         response_slz=ConvertTimestampOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MONGODB_METRICS],
-        name_prefix=DBMMcpTools.MONGODB_METRICS.replace("_", "-"),
+        name_prefix=DBMMcpTools.MONGODB_METRICS.replace("-", "_"),
     )
     def convert_timestamp_to_str(self, request, *args, **kwargs):
         timestamps = self.get_param("timestamps")
@@ -93,7 +92,7 @@ class MongoMetricsMcpToolsViewSet(McpToolsViewSet):
         response_slz=MongoMetaInfoOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MONGODB_METRICS],
-        name_prefix=DBMMcpTools.MONGODB_METRICS.replace("_", "-"),
+        name_prefix=DBMMcpTools.MONGODB_METRICS.replace("-", "_"),
     )
     def get_meta_info(self, request, *args, **kwargs):
         return Response(meta_info(self.get_param("value")))

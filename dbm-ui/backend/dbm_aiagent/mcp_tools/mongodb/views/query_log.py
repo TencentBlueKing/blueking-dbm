@@ -42,7 +42,7 @@ class MongoLogMcpToolsViewSet(McpToolsViewSet):
         response_slz=MongoSlowlogOverviewResponseSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MONGODB_LOG],
-        name_prefix=DBMMcpTools.MONGODB_LOG.replace("_", "-"),
+        name_prefix=DBMMcpTools.MONGODB_LOG.replace("-", "_"),
     )
     def get_mongodb_slowlog_overview(self, request, *args, **kwargs):
         cluster_domain = self.get_param("cluster_domain") or None
@@ -68,7 +68,7 @@ class MongoLogMcpToolsViewSet(McpToolsViewSet):
         response_slz=MongoSlowlogResponseSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MONGODB_LOG],
-        name_prefix=DBMMcpTools.MONGODB_LOG.replace("_", "-"),
+        name_prefix=DBMMcpTools.MONGODB_LOG.replace("-", "_"),
     )
     def get_mongodb_slowlog_list(self, request, *args, **kwargs):
         cluster_domain = self.get_param("cluster_domain") or None
