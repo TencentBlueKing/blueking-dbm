@@ -11,11 +11,11 @@
  * the specific language governing permissions and limitations under the License.
 -->
 <template>
-  <InfoList>
+  <!-- <InfoList>
     <InfoItem :label="t('操作类型')">
-      {{ infos[0].operate_type === 'PROXY_ENTRY_KICKOFF' ? t('Proxy 剔除') : t('Proxy 修复') }}
+      {{ t('Proxy 剔除') }}
     </InfoItem>
-  </InfoList>
+  </InfoList> -->
   <TicketInfoTable
     :data="tableData"
     row-key="ip">
@@ -48,14 +48,14 @@
 
   import { TicketTypes } from '@common/const';
 
-  import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  // import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
 
   interface Props {
-    ticketDetails: TicketModel<Redis.ProxyFastFix>;
+    ticketDetails: TicketModel<Redis.ProxyKickoff>;
   }
 
   defineOptions({
-    name: TicketTypes.REDIS_PROXY_FAST_FIX,
+    name: TicketTypes.REDIS_PROXY_KICKOFF,
   });
 
   const props = defineProps<Props>();

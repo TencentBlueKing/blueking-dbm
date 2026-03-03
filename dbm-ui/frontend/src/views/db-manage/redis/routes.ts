@@ -30,7 +30,8 @@ const redisInstallModuleRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_LOAD_M
 const redisCapacityChangeRoute = createRouteItem(TicketTypes.REDIS_SCALE_UPDOWN, t('集群容量变更'));
 const redisProxyScaleUpRoute = createRouteItem(TicketTypes.REDIS_PROXY_SCALE_UP, t('扩容接入层'));
 const redisProxyScaleDownRoute = createRouteItem(TicketTypes.REDIS_PROXY_SCALE_DOWN, t('缩容接入层'));
-const redisProxyFastFixRoute = createRouteItem(TicketTypes.REDIS_PROXY_FAST_FIX, t('Proxy 剔除和修复'));
+const redisProxyFixRoute = createRouteItem(TicketTypes.REDIS_PROXY_FIX, t('Proxy 修复'));
+const redisProxyKickoffRoute = createRouteItem(TicketTypes.REDIS_PROXY_KICKOFF, t('Proxy 剔除'));
 const redisDBCreateSlaveRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_ADD_SLAVE, t('重建从库'));
 const redisMasterFailoverRoute = createRouteItem(TicketTypes.REDIS_MASTER_SLAVE_SWITCH, t('主从切换'));
 const redisDBReplaceRoute = createRouteItem(TicketTypes.REDIS_CLUSTER_CUTOFF, t('整机替换'));
@@ -129,7 +130,8 @@ const toolboxDbConsoleRouteMap = {
   'redis.toolbox.masterSlaveSwap': redisMasterFailoverRoute,
   'redis.toolbox.memoryAnalysis': redisMemoryAnalysisRoute,
   'redis.toolbox.memoryAnalysisList': redisMemoryAnalysisListRoute,
-  'redis.toolbox.proxyFastFix': redisProxyFastFixRoute,
+  'redis.toolbox.proxyFix': redisProxyFixRoute,
+  'redis.toolbox.proxyKickoff': redisProxyKickoffRoute,
   'redis.toolbox.proxyScaleDown': redisProxyScaleDownRoute,
   'redis.toolbox.proxyScaleUp': redisProxyScaleUpRoute,
   'redis.toolbox.purge': redisPurgeRoute,

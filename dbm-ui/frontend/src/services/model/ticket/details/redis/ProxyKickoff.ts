@@ -1,10 +1,10 @@
 import type { DetailBase, DetailClusters } from '../common';
 
-export interface ProxyFastFix extends DetailBase {
+export interface ProxyKickoff extends DetailBase {
   clusters: DetailClusters;
   infos: {
     cluster_id: number;
-    operate_type: 'PROXY_ENTRY_KICKOFF' | 'PROXY_ENTRY_FIX';
+    operate_type: 'PROXY_ENTRY_KICKOFF';
     proxy: {
       bk_cloud_id: number;
       bk_host_id: number;
