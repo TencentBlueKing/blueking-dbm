@@ -187,8 +187,9 @@
           parentId: 'cluster-manage',
         },
         {
-          dbConsoleValue: 'redis.toolbox.proxyFastFix',
-          id: TicketTypes.REDIS_PROXY_FAST_FIX,
+          bind: [TicketTypes.REDIS_PROXY_KICKOFF, TicketTypes.REDIS_PROXY_FIX],
+          dbConsoleValue: 'redis.toolbox.proxyKickoff',
+          id: TicketTypes.REDIS_PROXY_KICKOFF,
           name: t('Proxy 剔除和修复'),
           parentId: 'common-manage',
         },

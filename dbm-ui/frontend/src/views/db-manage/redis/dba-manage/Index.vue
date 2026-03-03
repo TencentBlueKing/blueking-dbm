@@ -32,8 +32,9 @@
       name: t('整机替换'),
     },
     {
-      dbConsoleValue: 'dbaManage.redis.proxyFastFix',
-      id: `DBA_${TicketTypes.REDIS_PROXY_FAST_FIX}`,
+      bind: [`DBA_${TicketTypes.REDIS_PROXY_KICKOFF}`, `DBA_${TicketTypes.REDIS_PROXY_FIX}`],
+      dbConsoleValue: 'dbaManage.redis.proxyFix',
+      id: `DBA_${TicketTypes.REDIS_PROXY_KICKOFF}`,
       name: t('Proxy 剔除和修复'),
     },
     {

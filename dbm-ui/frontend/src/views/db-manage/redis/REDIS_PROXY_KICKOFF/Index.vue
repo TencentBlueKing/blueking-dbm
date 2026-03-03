@@ -23,21 +23,21 @@
       :model="formData">
       <DbFormItem
         :label="t('操作类型')"
-        property="operateType"
+        property="ticketType"
         required>
         <CardCheckbox
-          v-model="formData.operateType"
+          v-model="formData.ticketType"
           :desc="t('将 Proxy 从集群中剔除，该 Proxy 不再提供服务')"
           icon="minus-fill"
           :title="t('Proxy 剔除')"
-          true-value="PROXY_ENTRY_KICKOFF" />
+          :true-value="TicketTypes.REDIS_PROXY_KICKOFF" />
         <CardCheckbox
-          v-model="formData.operateType"
+          v-model="formData.ticketType"
           class="ml-8"
           :desc="t('将剔除的 Proxy 重新加回集群，该 Proxy 恢复提供服务')"
           icon="plus-fill"
           :title="t('Proxy 修复')"
-          true-value="PROXY_ENTRY_FIX" />
+          :true-value="TicketTypes.REDIS_PROXY_FIX" />
       </DbFormItem>
       <BatchInput
         :config="batchInputConfig"
@@ -110,7 +110,6 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import type { ProxyFastFix } from '@services/model/ticket/details/redis';
   import type { Redis } from '@services/model/ticket/ticket';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
@@ -132,6 +131,7 @@
   }
 
   const { t } = useI18n();
+  const router = useRouter();
 
   const batchInputConfig = [
     {
@@ -141,12 +141,11 @@
     },
   ];
 
-  useTicketDetail<Redis.ProxyFastFix>(TicketTypes.REDIS_PROXY_FAST_FIX, {
+  useTicketDetail<Redis.ProxyKickoff>(TicketTypes.REDIS_PROXY_KICKOFF, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { infos } = details;
       Object.assign(formData, {
-        operateType: infos[0].operate_type,
         payload: createTickePayload(ticketDetail),
         tableData: infos.flatMap((infoItem) =>
           infoItem.proxy.map((item) =>
@@ -162,8 +161,8 @@
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
-    infos: ProxyFastFix['infos'];
-  }>(TicketTypes.REDIS_PROXY_FAST_FIX);
+    infos: Redis.ProxyKickoff['infos'];
+  }>(TicketTypes.REDIS_PROXY_KICKOFF);
 
   const createTableRow = (values: DeepPartial<IDataRow> = {}) => ({
     proxy: Object.assign(
@@ -183,9 +182,9 @@
   });
 
   const defaultData = () => ({
-    operateType: 'PROXY_ENTRY_KICKOFF' as ProxyFastFix['infos'][number]['operate_type'],
     payload: createTickePayload(),
     tableData: [createTableRow()],
+    ticketType: TicketTypes.REDIS_PROXY_KICKOFF,
   });
 
   const tableRef = useTemplateRef('table');
@@ -193,6 +192,16 @@
 
   const selected = computed(() => formData.tableData.filter((item) => item.proxy.bk_host_id).map((item) => item.proxy));
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.ip, true])));
+
+  watch(
+    () => formData.ticketType,
+    () => {
+      if (formData.ticketType === TicketTypes.REDIS_PROXY_FIX)
+        router.push({
+          name: TicketTypes.REDIS_PROXY_FIX,
+        });
+    },
+  );
 
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
@@ -212,7 +221,7 @@
       }));
       return {
         cluster_id: sameRows[0].proxy.cluster_id,
-        operate_type: formData.operateType,
+        operate_type: 'PROXY_ENTRY_KICKOFF' as const,
         proxy,
         restart_proxy: false,
       };
