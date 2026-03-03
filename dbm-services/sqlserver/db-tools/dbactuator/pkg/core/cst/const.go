@@ -234,7 +234,7 @@ var (
 	set @sql ='
 	use master
 	IF SUSER_SID('''+@username+''') IS NOT NULL
-	DROP LOGIN ' +@username+ '''
+	DROP LOGIN ' +@username+ '
 	CREATE LOGIN ['+@username+'] WITH PASSWORD = N'''+@pwd+''', DEFAULT_DATABASE = [master], CHECK_POLICY = OFF;'
 	IF @role <> 'public'
 	set @sql = @sql + '
