@@ -35,17 +35,10 @@ class SqlSyntaxCheckMcpViewSet(McpToolsViewSet):
     @mcp_tools_api_decorator(
         description=str(
             _(
-                "Check SQL syntax for TenDBHA/TenDBCluster against multiple MySQL versions. "
-                "This tool validates SQL statements for syntax errors and DBM platform constraints "
-                "(including banned commands and high-risk operations). "
-                "根据SQL语句对TenDBHA/TenDBCluster的不同版本进行语法检查和DBM平台约束检查"
-                "（包括禁用命令和高风险操作）。\n\n"
-                "Use Cases: "
-                "1. Validate SQL before execution to prevent syntax errors. "
-                "2. Check SQL compatibility across MySQL 5.5/5.6/5.7/8.0 versions. "
-                "3. Detect banned commands (e.g., TRUNCATE) and high-risk operations (e.g., DROP DATABASE). "
-                "使用场景：1. 执行前验证SQL防止语法错误；2. 检查SQL在不同MySQL版本的兼容性；"
-                "3. 检测禁用命令和高风险操作。"
+                "Check SQL syntax for TenDBHA/TenDBCluster against MySQL 5.5/5.6/5.7/8.0. "
+                "Validates syntax errors and DBM constraints (banned commands, high-risk ops). "
+                "根据SQL对TenDBHA/TenDBCluster进行语法和平台约束检查（禁用命令、高风险操作）。"
+                "Use cases: pre-execution validation, cross-version compatibility, detect TRUNCATE/DROP DATABASE."
             )
         ),
         request_slz=SqlSyntaxCheckInputSerializer,
@@ -88,19 +81,10 @@ class SqlSyntaxCheckMcpViewSet(McpToolsViewSet):
     @mcp_tools_api_decorator(
         description=str(
             _(
-                "Check SQL file syntax for TenDBHA/TenDBCluster against multiple MySQL versions. "
-                "This tool validates SQL files on the server for syntax errors and DBM platform constraints "
-                "(including banned commands and high-risk operations). "
-                "根据服务器上的SQL文件对TenDBHA/TenDBCluster的不同版本进行语法检查和DBM平台约束检查"
-                "（包括禁用命令和高风险操作）。\n\n"
-                "Use Cases: "
-                "1. Batch validate multiple SQL files before deployment. "
-                "2. Check SQL file compatibility across MySQL 5.5/5.6/5.7/8.0 versions. "
-                "3. Detect banned commands and high-risk operations in SQL files. "
-                "使用场景：1. 部署前批量验证多个SQL文件；2. 检查SQL文件在不同MySQL版本的兼容性；"
-                "3. 检测SQL文件中的禁用命令和高风险操作。\n\n"
-                "Note: The 'path' parameter specifies the directory, and 'file_list' contains filenames. "
-                "注意：path参数指定目录路径，file_list包含文件名列表。"
+                "Check SQL file syntax for TenDBHA/TenDBCluster against MySQL 5.5/5.6/5.7/8.0. "
+                "Validates server-side SQL files for syntax errors and DBM constraints (banned commands, high-risk ops). "
+                "根据服务器SQL文件进行语法和平台约束检查（禁用命令、高风险操作）。"
+                "Use cases: batch validate before deployment, cross-version compatibility. path=目录, file_list=文件名列表."
             )
         ),
         request_slz=SqlFileSyntaxCheckInputSerializer,
