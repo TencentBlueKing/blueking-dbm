@@ -45,7 +45,7 @@ data:
         password: "{{ $reportDB.password }}"
         database: "{{ $reportDB.name }}"
         charset: utf8
-    - name: prod_bk_dbm_report2
+    - name: prod_bk_dbm_report_raw
       type: mysql_raw
       dsn:
         address: "{{ $reportDB.host }}:{{ $reportDB.port }}"

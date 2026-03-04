@@ -41,18 +41,26 @@ db-event-consumer -c config.yaml
 
 ### 2. 非严格 schema
 自动根据 kafka 消息的内容，使用 `map[string]interface{}` 来反序列化，然后直接生成 insert 语句。
+这种方式不需要在 db-event-consumer 里定义 model 的代码，直接启动时拉起配置即可。
 
-这种方式需要提前在目标 datasource 创建好表结构，如果表结构字段缺少，会导致入库失败。
+这种方式需要提前在目标 datasource 创建好表结构，或者在其他地方有 migrate 来维护表结构和索引约束。
+如果表结构字段缺少，会导致入库失败。
 
 ```
 - topic: "mysql_binlog_result"
   model_table: "tb_mysql_binlog_result"
   strict_schema: false
-  datasource: "prod_bk_dbm_report"
+  skip_migrate_schema: true
+  write_mode: upsert
+  datasource: "prod_bk_dbm_report_raw"
+  omit_fields: []
 ```
-`strict_schema=false` 时，model_table 的值用于拼成 insert table name.
 
-非严格 schema 方式可以快速验证入库效果，不用代码定义 model 。但不方便在各个环境环境移植，不推荐。
+- `strict_schema=false` 时，model_table 的值用于拼成 insert table name.
+- `write_mode=upsert`, 当遇到冲突时，使用何种处理方式，`replace`,`upsert`,`insert_ignore`, `insert`
+- `omit_fields`, 忽略哪些字段，不拼在 insert values 里
+
+非严格 schema 方式可以快速验证入库效果，不用代码定义 model。如果你需要对上报的内容做重组，二次加工后再入库，则不适合这个方式。
 
 ## 自定义入库方式
 可以自定义 schema migrate 方式和数据入库方式，可以参考 `MysqlBackupResultModel`
