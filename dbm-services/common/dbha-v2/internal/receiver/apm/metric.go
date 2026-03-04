@@ -26,12 +26,9 @@ package apm
 
 import (
 	"dbm-services/common/dbha-v2/pkg/haapm"
-	"dbm-services/common/go-pubpkg/apm/metric"
 )
 
 var (
-	Metrics []*metric.Metric
-
 	KafkaReadMessagesTotal *haapm.HaCounter
 	KafkaReadBytesTotal    *haapm.HaCounter
 	KafkaWriteErrorsTotal  *haapm.HaCounter
@@ -89,24 +86,23 @@ func init() {
 	)
 }
 
-// InitAPM init apm
+// InitAPM sets service labels for startup metric and registers all metrics to haapm (Option 2).
+// Must be called before haapm.Serve so metrics are collected automatically.
 func InitAPM(serviceID, serviceName string) {
 	haapm.AppStartupMetric.UpdateLabel(map[string]string{
 		haapm.MetricLabelServiceID:   serviceID,
 		haapm.MetricLabelServiceName: serviceName,
 	})
 
-	Metrics = append(Metrics, haapm.AppStartupMetric.ToMetric())
-
-	// Kafka
-	Metrics = append(Metrics, KafkaReadMessagesTotal.ToMetric())
-	Metrics = append(Metrics, KafkaReadBytesTotal.ToMetric())
-	Metrics = append(Metrics, KafkaWriteErrorsTotal.ToMetric())
-
-	// mysql
-	Metrics = append(Metrics, MySqlWriteLatencyMs.ToMetric())
-	Metrics = append(Metrics, MySqlWriteMessagesTotal.ToMetric())
-	Metrics = append(Metrics, MySqlWriteBytesTotal.ToMetric())
-	Metrics = append(Metrics, MySqlReadErrorsTotal.ToMetric())
-	Metrics = append(Metrics, MySqlWriteErrorsTotal.ToMetric())
+	haapm.MustRegister(
+		haapm.AppStartupMetric,
+		KafkaReadMessagesTotal,
+		KafkaReadBytesTotal,
+		KafkaWriteErrorsTotal,
+		MySqlWriteLatencyMs,
+		MySqlWriteMessagesTotal,
+		MySqlWriteBytesTotal,
+		MySqlReadErrorsTotal,
+		MySqlWriteErrorsTotal,
+	)
 }

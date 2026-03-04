@@ -66,55 +66,36 @@ func MetricMiddleware() gin.HandlerFunc {
 
 		c.Next()
 
-		// Calculate metrics after request processing
-		latency := float64(time.Since(start).Milliseconds())
+		latencyMs := float64(time.Since(start).Milliseconds())
 		status := strconv.Itoa(c.Writer.Status())
 		respSize := float64(c.Writer.Size())
 		if respSize < 0 {
 			respSize = 0
 		}
+		recordAPIMetrics(method, path, status, latencyMs, reqSize, respSize, c.Writer.Status() >= 400)
+	}
+}
 
-		// Record request total
-		if err := APIRequestsTotal.UpdateLabel(map[string]string{
-			MetricLabelMethod: method,
-			MetricLabelPath:   path,
-			MetricLabelStatus: status,
-		}).Inc(); err != nil {
-			logger.Warn("failed to record api_requests_total metric, errmsg: %s", err)
-		}
+// recordAPIMetrics records all API metrics for one request with the same method/path/status.
+func recordAPIMetrics(method, path, status string, latencyMs float64, reqSize int, respSize float64, isError bool) {
+	l := map[string]string{MetricLabelMethod: method, MetricLabelPath: path}
+	lWithStatus := map[string]string{MetricLabelMethod: method, MetricLabelPath: path, MetricLabelStatus: status}
 
-		// Record request latency
-		if err := APIRequestLatencyMs.UpdateLabel(map[string]string{
-			MetricLabelMethod: method,
-			MetricLabelPath:   path,
-		}).Observe(latency); err != nil {
-			logger.Warn("failed to record api_request_latency_ms metric, errmsg: %s", err)
-		}
-
-		// Record request size
-		if err := APIRequestSizeBytes.UpdateLabel(map[string]string{
-			MetricLabelMethod: method,
-			MetricLabelPath:   path,
-		}).Observe(float64(reqSize)); err != nil {
-			logger.Warn("failed to record api_request_size_bytes metric, errmsg: %s", err)
-		}
-
-		// Record response size
-		if err := APIResponseSizeBytes.UpdateLabel(map[string]string{
-			MetricLabelMethod: method,
-			MetricLabelPath:   path,
-		}).Observe(respSize); err != nil {
-			logger.Warn("failed to record api_response_size_bytes metric, errmsg: %s", err)
-		}
-
-		// Record errors (status >= 400)
-		if c.Writer.Status() >= 400 {
-			if err := APIRequestErrorsTotal.UpdateLabel(map[string]string{
-				MetricLabelMethod: method,
-				MetricLabelPath:   path,
-			}).Inc(); err != nil {
-				logger.Warn("failed to record api_request_errors_total metric, errmsg: %s", err)
-			}
+	if err := APIRequestsTotal.UpdateLabel(lWithStatus).Inc(); err != nil {
+		logger.Warn("failed to record api_requests_total, errmsg: %s", err)
+	}
+	if err := APIRequestLatencyMs.UpdateLabel(l).Observe(latencyMs); err != nil {
+		logger.Warn("failed to record api_request_latency_ms, errmsg: %s", err)
+	}
+	if err := APIRequestSizeBytes.UpdateLabel(l).Observe(float64(reqSize)); err != nil {
+		logger.Warn("failed to record api_request_size_bytes, errmsg: %s", err)
+	}
+	if err := APIResponseSizeBytes.UpdateLabel(l).Observe(respSize); err != nil {
+		logger.Warn("failed to record api_response_size_bytes, errmsg: %s", err)
+	}
+	if isError {
+		if err := APIRequestErrorsTotal.UpdateLabel(l).Inc(); err != nil {
+			logger.Warn("failed to record api_request_errors_total, errmsg: %s", err)
 		}
 	}
 }

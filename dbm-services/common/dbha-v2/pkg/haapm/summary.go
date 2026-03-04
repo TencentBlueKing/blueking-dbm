@@ -26,7 +26,6 @@ package haapm
 
 import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"dbm-services/common/go-pubpkg/apm/metric"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -52,13 +51,19 @@ import (
 type HaSummary struct {
 	Error error
 
-	metric      *metric.Metric
+	metric      *Metric
 	labelNames  []string
 	labelValues map[string]string
 }
 
-func (m *HaSummary) ToMetric() *metric.Metric {
-	return (*metric.Metric)(m.metric)
+func (m *HaSummary) ToMetric() *Metric {
+	return m.metric
+}
+
+// WithLabels returns a BoundSummary with fixed labels. For static resources, create once
+// and use the bound in business code so only Observe() is needed.
+func (m *HaSummary) WithLabels(labels map[string]string) *BoundSummary {
+	return &BoundSummary{summary: m, labels: copyLabels(labels)}
 }
 
 func (m *HaSummary) UpdateLabel(lvs map[string]string) *HaSummary {
@@ -118,8 +123,7 @@ func (m *HaSummary) reset() {
 
 func NewHaSummary(name, help string, labelNames ...string) *HaSummary {
 	summary := &HaSummary{}
-	summary.metric = &metric.Metric{
-		ID:          name,
+	summary.metric = &Metric{
 		Name:        name,
 		Description: help,
 	}

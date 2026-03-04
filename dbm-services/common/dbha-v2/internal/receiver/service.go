@@ -27,7 +27,6 @@ package receiver
 import (
 	"context"
 	"encoding/json"
-	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -42,13 +41,10 @@ import (
 	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/machine"
-	"dbm-services/common/go-pubpkg/apm/metric"
 	"dbm-services/common/go-pubpkg/apm/trace"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/hako/durafmt"
-	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.uber.org/zap"
 )
 
@@ -60,8 +56,7 @@ const (
 type Service struct {
 	quit         chan struct{}
 	info         discovery.ServiceInfo
-	engine       *gin.Engine
-	httpApmSvr   *http.Server
+	apmSvr       *haapm.Server
 	discoveryCli *discovery.Client
 	regCli       *discovery.Registry
 	sources      []source.Inputter
@@ -131,8 +126,12 @@ func (s *Service) Run(ctx context.Context) error {
 
 // Close close receiver service
 func (s *Service) Close() {
-	wg := sync.WaitGroup{}
+	if s.apmSvr != nil {
+		_ = s.apmSvr.Stop()
+		s.apmSvr = nil
+	}
 
+	wg := sync.WaitGroup{}
 	for _, inputter := range s.sources {
 		wg.Add(1)
 		go func(in source.Inputter) {
@@ -243,33 +242,17 @@ func (s *Service) createSinkers() error {
 
 func (s *Service) createApmServer() error {
 	trace.Setup()
-
-	if s.engine == nil {
-		gin.SetMode(gin.ReleaseMode)
-		s.engine = gin.Default()
-		s.engine.Use(otelgin.Middleware("dbha-v2-receiver"))
-	}
-
-	if s.httpApmSvr == nil {
-		s.httpApmSvr = &http.Server{
-			Handler:      s.engine,
-			Addr:         config.Cfg.Apm.ListenAddress,
-			ReadTimeout:  config.Cfg.Apm.ReadTimeout,
-			WriteTimeout: config.Cfg.Apm.WriteTimeout,
-		}
-	}
-
 	apm.InitAPM(s.info.ID, s.info.Name)
-	metric.NewPrometheus("dbha-v2-receiver", apm.Metrics).Use(s.engine)
 
-	s.wg.Add(1)
-	go func() {
-		s.wg.Done()
-		if err := s.httpApmSvr.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatal("failed to run apm server, errmsg: %s", err)
-		}
-		logger.Info("exited from the apm server")
-	}()
-
+	var err error
+	s.apmSvr, err = haapm.Serve(haapm.ServerConfig{
+		Addr:         config.Cfg.Apm.ListenAddress,
+		Subsystem:    "dbha-v2-receiver",
+		ReadTimeout:  config.Cfg.Apm.ReadTimeout,
+		WriteTimeout: config.Cfg.Apm.WriteTimeout,
+	})
+	if err != nil {
+		return err
+	}
 	return nil
 }

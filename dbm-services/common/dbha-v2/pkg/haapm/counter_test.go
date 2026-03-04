@@ -27,17 +27,13 @@ package haapm
 import (
 	"testing"
 
-	"dbm-services/common/go-pubpkg/apm/metric"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createTestCounter(name, help string, labelNames ...string) *HaCounter {
 	counter := NewHaCounter(name, help, labelNames...)
-
-	metricDef := counter.ToMetric()
-	counter.metric.Collector = metric.NewMetric(metricDef, "dbha-v2-test")
+	counter.metric.Collector = newCollector(counter.ToMetric(), "dbha-v2-test")
 	return counter
 }
 
@@ -327,4 +323,17 @@ func TestHaCounter_Reset(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "", counter.labelValues["topic"])
 	})
+}
+
+func TestHaCounter_WithLabels(t *testing.T) {
+	counter := createTestCounter("test_bound_counter", "help", "method", "path")
+	bound := counter.WithLabels(map[string]string{"method": "GET", "path": "/api"})
+	require.NotNil(t, bound)
+	require.NoError(t, bound.Inc())
+	require.NoError(t, bound.Inc())
+	require.NoError(t, bound.Add(3))
+	// Bound with nil labels (no-label counter) just forwards to counter
+	noLabelCounter := createTestCounter("test_no_label", "help")
+	boundNoLabel := noLabelCounter.WithLabels(nil)
+	require.NoError(t, boundNoLabel.Inc())
 }

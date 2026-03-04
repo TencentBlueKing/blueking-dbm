@@ -26,7 +26,6 @@ package apm
 
 import (
 	"dbm-services/common/dbha-v2/pkg/haapm"
-	"dbm-services/common/go-pubpkg/apm/metric"
 )
 
 const (
@@ -36,20 +35,25 @@ const (
 )
 
 var (
-	Metrics []*metric.Metric
-
-	ScanBusinessTotal                     *haapm.HaCounter
-	ScanBusinessTimeConsumingMs           *haapm.HaHistogram
-	SwitchingTimeConsumingMs              *haapm.HaHistogram
+	// Mysql*
 	MysqlClusterSwitchingTimeConsumingMs  *haapm.HaHistogram
 	MysqlHostSwitchingTimeConsumingMs     *haapm.HaHistogram
 	MysqlInstanceSwitchingTimeConsumingMs *haapm.HaHistogram
-	SwitchingSuccessTotal                 *haapm.HaCounter
-	SwitchingErrorTotal                   *haapm.HaCounter
-	MysqlSwitchingSuccessTotal            *haapm.HaCounter
 	MysqlSwitchingErrorTotal              *haapm.HaCounter
-	RedisSwitchingSuccessTotal            *haapm.HaCounter
-	RedisSwitchingErrorTotal              *haapm.HaCounter
+	MysqlSwitchingSuccessTotal            *haapm.HaCounter
+
+	// Redis*
+	RedisSwitchingErrorTotal   *haapm.HaCounter
+	RedisSwitchingSuccessTotal *haapm.HaCounter
+
+	// Scan*
+	ScanBusinessTimeConsumingMs *haapm.HaHistogram
+	ScanBusinessTotal           *haapm.HaCounter
+
+	// Switching*
+	SwitchingErrorTotal      *haapm.HaCounter
+	SwitchingSuccessTotal    *haapm.HaCounter
+	SwitchingTimeConsumingMs *haapm.HaHistogram
 )
 
 // Default histogram buckets for latency (milliseconds)
@@ -138,36 +142,27 @@ func init() {
 	)
 }
 
-// InitAPM init apm
+// InitAPM sets service labels for startup metric and registers all metrics to haapm (Option 2).
+// Must be called before haapm.Serve so metrics are collected automatically.
 func InitAPM(serviceID, serviceName string) {
 	haapm.AppStartupMetric.UpdateLabel(map[string]string{
 		haapm.MetricLabelServiceID:   serviceID,
 		haapm.MetricLabelServiceName: serviceName,
 	})
 
-	Metrics = append(Metrics, haapm.AppStartupMetric.ToMetric())
-
-	// Scan business total counter
-	Metrics = append(Metrics, ScanBusinessTotal.ToMetric())
-	Metrics = append(Metrics, ScanBusinessTimeConsumingMs.ToMetric())
-
-	// Switching total counter
-	Metrics = append(Metrics, SwitchingSuccessTotal.ToMetric())
-	Metrics = append(Metrics, SwitchingErrorTotal.ToMetric())
-
-	// Switching time consuming histogram
-	Metrics = append(Metrics, SwitchingTimeConsumingMs.ToMetric())
-
-	// Mysql switching time consuming histogram
-	Metrics = append(Metrics, MysqlClusterSwitchingTimeConsumingMs.ToMetric())
-	Metrics = append(Metrics, MysqlHostSwitchingTimeConsumingMs.ToMetric())
-	Metrics = append(Metrics, MysqlInstanceSwitchingTimeConsumingMs.ToMetric())
-
-	// Mysql switching total counter
-	Metrics = append(Metrics, MysqlSwitchingSuccessTotal.ToMetric())
-	Metrics = append(Metrics, MysqlSwitchingErrorTotal.ToMetric())
-
-	// Redis switching total counter
-	Metrics = append(Metrics, RedisSwitchingSuccessTotal.ToMetric())
-	Metrics = append(Metrics, RedisSwitchingErrorTotal.ToMetric())
+	haapm.MustRegister(
+		haapm.AppStartupMetric,
+		MysqlClusterSwitchingTimeConsumingMs,
+		MysqlHostSwitchingTimeConsumingMs,
+		MysqlInstanceSwitchingTimeConsumingMs,
+		MysqlSwitchingErrorTotal,
+		MysqlSwitchingSuccessTotal,
+		RedisSwitchingErrorTotal,
+		RedisSwitchingSuccessTotal,
+		ScanBusinessTimeConsumingMs,
+		ScanBusinessTotal,
+		SwitchingErrorTotal,
+		SwitchingSuccessTotal,
+		SwitchingTimeConsumingMs,
+	)
 }

@@ -27,17 +27,13 @@ package haapm
 import (
 	"testing"
 
-	"dbm-services/common/go-pubpkg/apm/metric"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createTestSummary(name, help string, labelNames ...string) *HaSummary {
 	summary := NewHaSummary(name, help, labelNames...)
-
-	metricDef := summary.ToMetric()
-	summary.metric.Collector = metric.NewMetric(metricDef, "dbha-v2-test")
+	summary.metric.Collector = newCollector(summary.ToMetric(), "dbha-v2-test")
 	return summary
 }
 

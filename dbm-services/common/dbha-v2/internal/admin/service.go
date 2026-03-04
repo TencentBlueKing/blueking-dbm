@@ -29,7 +29,6 @@ import (
 	"encoding/json"
 	"io"
 	"net"
-	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -49,7 +48,6 @@ import (
 	"dbm-services/common/dbha-v2/pkg/proto"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
-	"dbm-services/common/go-pubpkg/apm/metric"
 	"dbm-services/common/go-pubpkg/apm/trace"
 
 	"github.com/gin-gonic/gin"
@@ -57,7 +55,6 @@ import (
 	"github.com/hako/durafmt"
 	"github.com/swaggest/swgui"
 	"github.com/swaggest/swgui/v5emb"
-	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
@@ -73,8 +70,7 @@ type Service struct {
 
 	quit         chan struct{}
 	info         discovery.ServiceInfo
-	engine       *gin.Engine
-	httpApmSvr   *http.Server
+	apmSvr       *haapm.Server
 	discoveryCli *discovery.Client
 	regCli       *discovery.Registry
 	wg           sync.WaitGroup
@@ -193,6 +189,11 @@ func (s *Service) Close() {
 		s.svr = nil
 	}
 
+	if s.apmSvr != nil {
+		_ = s.apmSvr.Stop()
+		s.apmSvr = nil
+	}
+
 	s.wg.Wait()
 }
 
@@ -275,35 +276,19 @@ func (s *Service) createGrpcServer() error {
 
 func (s *Service) createApmServer() error {
 	trace.Setup()
-
-	if s.engine == nil {
-		gin.SetMode(gin.ReleaseMode)
-		s.engine = gin.Default()
-		s.engine.Use(otelgin.Middleware("dbha-v2-admin"))
-	}
-
-	if s.httpApmSvr == nil {
-		s.httpApmSvr = &http.Server{
-			Handler:      s.engine,
-			Addr:         config.Cfg.Apm.ListenAddress,
-			ReadTimeout:  config.Cfg.Apm.ReadTimeout,
-			WriteTimeout: config.Cfg.Apm.WriteTimeout,
-		}
-	}
-
 	apm.InitAPM(s.info.ID, s.info.Name)
-	metric.NewPrometheus("dbha-v2-admin", apm.Metrics).Use(s.engine)
 
-	s.wg.Add(1)
-	go func() {
-		defer s.wg.Done()
-		if err := s.httpApmSvr.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatal("failed to run apm server, errmsg: %s", err)
-		}
+	var err error
+	s.apmSvr, err = haapm.Serve(haapm.ServerConfig{
+		Addr:         config.Cfg.Apm.ListenAddress,
+		Subsystem:    "dbha-v2-admin",
+		ReadTimeout:  config.Cfg.Apm.ReadTimeout,
+		WriteTimeout: config.Cfg.Apm.WriteTimeout,
+	})
 
-		logger.Info("exited from the apm server")
-	}()
-
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

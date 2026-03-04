@@ -26,7 +26,6 @@ package apm
 
 import (
 	"dbm-services/common/dbha-v2/pkg/haapm"
-	"dbm-services/common/go-pubpkg/apm/metric"
 )
 
 const (
@@ -36,8 +35,6 @@ const (
 )
 
 var (
-	Metrics []*metric.Metric
-
 	APIRequestsTotal      *haapm.HaCounter
 	APIRequestLatencyMs   *haapm.HaHistogram
 	APIRequestSizeBytes   *haapm.HaHistogram
@@ -91,19 +88,21 @@ func init() {
 	)
 }
 
-// InitAPM init apm
+// InitAPM sets service labels for startup metric and registers all metrics to haapm (Option 2).
+// Must be called before haapm.Serve so metrics are collected automatically.
 func InitAPM(serviceID, serviceName string) {
+
 	haapm.AppStartupMetric.UpdateLabel(map[string]string{
 		haapm.MetricLabelServiceID:   serviceID,
 		haapm.MetricLabelServiceName: serviceName,
 	})
 
-	Metrics = append(Metrics, haapm.AppStartupMetric.ToMetric())
-
-	// API metrics
-	Metrics = append(Metrics, APIRequestsTotal.ToMetric())
-	Metrics = append(Metrics, APIRequestLatencyMs.ToMetric())
-	Metrics = append(Metrics, APIRequestSizeBytes.ToMetric())
-	Metrics = append(Metrics, APIResponseSizeBytes.ToMetric())
-	Metrics = append(Metrics, APIRequestErrorsTotal.ToMetric())
+	haapm.MustRegister(
+		haapm.AppStartupMetric,
+		APIRequestsTotal,
+		APIRequestLatencyMs,
+		APIRequestSizeBytes,
+		APIResponseSizeBytes,
+		APIRequestErrorsTotal,
+	)
 }
