@@ -25,6 +25,7 @@ from backend.dbm_aiagent.mcp_tools.exceptions import (
 )
 from backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_topo import mysql_cluster_topo
 from backend.dbm_aiagent.mcp_tools.mysql.impl.explain_sql import explain_sql
+from backend.dbm_aiagent.mcp_tools.mysql.impl.query_cluster_by_ip import query_cluster_by_ip
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_create_table import show_create_table
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_priv_template import show_biz_mysql_privilege_template
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_processlist import show_cluster_processlist_summary
@@ -37,6 +38,10 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.cluster_topo import (
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.explain_sql import (
     ExplainSQLInputSerializer,
     ExplainSQLOutputSerializer,
+)
+from backend.dbm_aiagent.mcp_tools.mysql.serializers.query_cluster_by_ip import (
+    QueryClusterByIpInputSerializer,
+    QueryClusterByIpOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_create_table import (
     ShowCreateTableInputSerializer,
@@ -62,7 +67,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_variables import (
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import MySQLProcessListInstanceGroupType
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
-from backend.iam_app.handlers.drf_perm.mcp import McpClusterManagePermission
+from backend.iam_app.handlers.drf_perm.mcp import McpClusterManagePermission, McpIsDbaPermission
 
 logger = logging.getLogger("root")
 
@@ -274,6 +279,21 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
                 ),
             }
         )
+
+    @mcp_tools_api_decorator(
+        description=str(_("根据 IP 列表查询所属集群信息，返回集群域名、集群ID和主机DB类型，仅 DBA 可调用")),
+        request_slz=QueryClusterByIpInputSerializer,
+        response_slz=QueryClusterByIpOutputSerializer,
+        permission_classes=[McpIsDbaPermission],
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.MYSQL_QUERY],
+        name_prefix="mysql_query",
+    )
+    def query_cluster_by_ip(self, request, *args, **kwargs):
+        ip_list = self.get_param("ip_list")
+        bk_cloud_id = self.get_param("bk_cloud_id")
+
+        return Response({"clusters": query_cluster_by_ip(ip_list=ip_list, bk_cloud_id=bk_cloud_id)})
 
 
 def _validate_and_get_machine(bk_cloud_id: int | None, address: str) -> Machine:
