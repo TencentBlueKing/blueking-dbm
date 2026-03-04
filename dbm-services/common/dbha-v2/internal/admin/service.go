@@ -60,9 +60,10 @@ import (
 	"google.golang.org/grpc/keepalive"
 )
 
-const (
-	Name = "admin"
-)
+// Name returns the process name from the current executable (same as Makefile binary name).
+func Name() string {
+	return "admin"
+}
 
 // Service is the admin service
 type Service struct {
@@ -129,7 +130,7 @@ func (s *Service) Run(ctx context.Context) error {
 		return err
 	}
 
-	s.info.Name = Name
+	s.info.Name = Name()
 	s.info.ID = uuid.New().String()
 	s.info.StartTime = time.Now().Local()
 	s.info.IPs = ips

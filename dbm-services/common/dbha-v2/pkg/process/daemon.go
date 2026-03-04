@@ -83,10 +83,12 @@ func RunWithGuard(opt GuardOptions) error {
 	if err := SavePid(opt.PidFile); err != nil {
 		return err
 	}
-	defer func() { _ = os.Remove(opt.PidFile) }()
+	defer func() {
+		_ = os.Remove(opt.PidFile)
+	}()
 
 	sigC := make(chan os.Signal, 1)
-	signal.Notify(sigC, syscall.SIGTERM, syscall.SIGINT)
+	signal.Notify(sigC, syscall.SIGTERM, syscall.SIGINT, syscall.SIGHUP)
 
 	var childProc *os.Process
 	restartCount := 0
@@ -113,29 +115,40 @@ func RunWithGuard(opt GuardOptions) error {
 
 		var state *os.ProcessState
 		var waitErr error
-		select {
-		case result := <-waitDone:
-			state = result.state
-			waitErr = result.err
-		case <-sigC:
-			// Kill child and wait for it
-			_ = childProc.Signal(syscall.SIGTERM)
-			<-waitDone // drain Wait
-
-			// Ensure child is gone
-			for i := 0; i < 15; i++ {
-				alive, _ := IsAlive(int32(childProc.Pid))
-				if !alive {
-					break
+	waitLoop:
+		for {
+			select {
+			case result := <-waitDone:
+				state = result.state
+				waitErr = result.err
+				break waitLoop
+			case sig := <-sigC:
+				if sig == syscall.SIGHUP {
+					// Forward SIGHUP to child for config reload; keep waiting
+					if childProc != nil {
+						_ = childProc.Signal(syscall.SIGHUP)
+					}
+					continue
 				}
-				time.Sleep(200 * time.Millisecond)
-			}
+				// SIGTERM or SIGINT: kill child and exit
+				_ = childProc.Signal(syscall.SIGTERM)
+				<-waitDone // drain Wait
 
-			alive, _ := IsAlive(int32(childProc.Pid))
-			if alive {
-				_ = childProc.Signal(syscall.SIGKILL)
+				// Ensure child is gone
+				for i := 0; i < 15; i++ {
+					alive, _ := IsAlive(int32(childProc.Pid))
+					if !alive {
+						break
+					}
+					time.Sleep(200 * time.Millisecond)
+				}
+
+				alive, _ := IsAlive(int32(childProc.Pid))
+				if alive {
+					_ = childProc.Signal(syscall.SIGKILL)
+				}
+				return nil
 			}
-			return nil
 		}
 
 		exitCode := -1

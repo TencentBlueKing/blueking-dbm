@@ -27,6 +27,7 @@ package cmds
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/pkg/process"
@@ -47,6 +48,13 @@ type ProbeHealthInfo struct {
 	DbTypes []haprobe.DbType `json:"db_types,omitempty"`
 }
 
+func procName() string {
+	if n := process.BinaryName(); n != "" {
+		return n
+	}
+	return process.NameProbe
+}
+
 func getConfiguredDbTypes() []haprobe.DbType {
 	var dbTypes []haprobe.DbType
 	if config.Cfg.Harvester.MySql != nil && len(config.Cfg.Harvester.MySql.Endpoints) > 0 {
@@ -59,19 +67,33 @@ func getConfiguredDbTypes() []haprobe.DbType {
 }
 
 func StartCmdRunE(cmd *cobra.Command, args []string) error {
-	return process.StartCmdRunE(cmd, args, config.Cfg.PidFile, process.NameProbe)
+	return process.StartCmdRunE(cmd, args, config.Cfg.PidFile, procName())
 }
 
 func StopCmdRunE(cmd *cobra.Command, args []string) error {
-	return process.StopCmdRunE(cmd, args, config.Cfg.PidFile, process.NameProbe, StopTimeout, ForceStop)
+	return process.StopCmdRunE(cmd, args, config.Cfg.PidFile, procName(), StopTimeout, ForceStop)
 }
 
 func RestartCmdRunE(cmd *cobra.Command, args []string) error {
-	return process.RestartCmdRunE(cmd, args, config.Cfg.PidFile, process.NameProbe, StopTimeout, ForceStop)
+	configPath, _ := cmd.Root().PersistentFlags().GetString("config")
+	if err := config.Load(configPath); err != nil {
+		return err
+	}
+	useDaemonStart, _ := process.WasRunningWithDaemonStart(config.Cfg.PidFile, procName())
+	if err := process.StopCmdRunE(cmd, args, config.Cfg.PidFile, procName(), StopTimeout, ForceStop); err != nil {
+		return err
+	}
+	if err := process.WaitForProcessExit(config.Cfg.PidFile, procName(), time.Duration(StopTimeout)*time.Second); err != nil {
+		return err
+	}
+	if useDaemonStart {
+		return DaemonStartCmdRunE(cmd, args)
+	}
+	return StartCmdRunE(cmd, args)
 }
 
 func ReloadCmdRunE(cmd *cobra.Command, args []string) error {
-	return process.ReloadCmdRunE(cmd, args, config.Cfg.PidFile, process.NameProbe, StopTimeout, ForceStop)
+	return process.ReloadCmdRunE(cmd, args, config.Cfg.PidFile, procName(), StopTimeout, ForceStop)
 }
 
 func DaemonStartCmdRunE(cmd *cobra.Command, args []string) error {
@@ -79,12 +101,12 @@ func DaemonStartCmdRunE(cmd *cobra.Command, args []string) error {
 	if err := config.Load(configPath); err != nil {
 		return err
 	}
-	return process.DaemonStartCmdRunE(cmd, args, config.Cfg.PidFile, process.NameProbe, process.DefaultGuardRestartDelay)
+	return process.DaemonStartCmdRunE(cmd, args, config.Cfg.PidFile, procName(), process.DefaultGuardRestartDelay)
 }
 
 func HealthCmdRunE(cmd *cobra.Command, _ []string) error {
 	if err := config.Load(ConfigFilePath); err != nil {
-		baseHealth := process.GetBaseHealthInfo(config.Cfg.PidFile, process.NameProbe)
+		baseHealth := process.GetBaseHealthInfo(config.Cfg.PidFile, procName())
 		if !JsonFormatter {
 			process.PrintBaseHealth(cmd.OutOrStdout(), baseHealth)
 			return nil
@@ -94,7 +116,7 @@ func HealthCmdRunE(cmd *cobra.Command, _ []string) error {
 		return nil
 	}
 
-	baseHealth := process.GetBaseHealthInfo(config.Cfg.PidFile, process.NameProbe)
+	baseHealth := process.GetBaseHealthInfo(config.Cfg.PidFile, procName())
 
 	probeHealth := &ProbeHealthInfo{
 		HealthInfo: baseHealth,

@@ -51,9 +51,11 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	Name = "analysis"
-)
+// Name returns the process name from the current executable (same as Makefile binary name).
+// When Makefile BIN_PREFIX or service name changes, this automatically reflects it.
+func Name() string {
+	return "analysis"
+}
 
 type Service struct {
 	quit         chan struct{}
@@ -75,7 +77,7 @@ func (s *Service) Run(ctx context.Context) error {
 		return err
 	}
 
-	s.info.Name = Name
+	s.info.Name = Name()
 	s.info.ID = uuid.New().String()
 	s.info.StartTime = time.Now().Local()
 	s.info.IPs = ips

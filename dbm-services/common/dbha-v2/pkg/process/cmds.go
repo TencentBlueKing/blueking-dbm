@@ -117,11 +117,8 @@ func DaemonStartCmdRunE(cmd *cobra.Command, _ []string, pidFile, procName string
 	}
 
 	var guardArgs []string
-	subcmd := "daemon-start"
-	if cmd != nil && cmd.Name() != "" {
-		subcmd = cmd.Name()
-	}
-	guardArgs = append(guardArgs, subcmd)
+	// Always use "daemon-start" so the forked guard runs RunWithGuard (e.g. when called from restart).
+	guardArgs = append(guardArgs, "daemon-start")
 	if configPath != "" {
 		guardArgs = append(guardArgs, "-c", configPath)
 	}
@@ -200,11 +197,17 @@ func RestartCmdRunE(cmd *cobra.Command, args []string, pidFile, procName string,
 	}
 
 	// Wait for process to fully terminate
-	if err := waitForProcessExit(pidFile, procName, time.Duration(timeout)*time.Second); err != nil {
+	if err := WaitForProcessExit(pidFile, procName, time.Duration(timeout)*time.Second); err != nil {
 		return err
 	}
 
 	return StartCmdRunE(cmd, args, pidFile, procName)
+}
+
+// WaitForProcessExit waits until the process identified by pid file exits or timeout.
+// Used by RestartCmdRunE and by callers that need to wait before re-starting by mode.
+func WaitForProcessExit(pidFile, procName string, timeout time.Duration) error {
+	return waitForProcessExit(pidFile, procName, timeout)
 }
 
 // ReloadCmdRunE handles the reload command.
