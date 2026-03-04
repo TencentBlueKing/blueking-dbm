@@ -22,9 +22,11 @@ package-lock.json
 .cursorrules
 .cursor/
 # Claude
+CLAUDE.md
 .claude/
 .history/
 dbm-services/.history/
 dbm-ui/.history/
 # trellis
 .trellis
+
