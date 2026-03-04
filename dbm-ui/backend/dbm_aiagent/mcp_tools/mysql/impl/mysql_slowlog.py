@@ -16,7 +16,7 @@ from django.utils import timezone
 from backend import env
 from backend.components import BKLogApi
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
-from backend.utils.time import datetime2str, timezone2timestamp
+from backend.utils.time import timezone2timestamp
 
 from . import config
 
@@ -74,6 +74,7 @@ def query_slow_logs_by_metric(
     role_cond = {"field_name": "__ext.instance_role", "op": "eq", "value": [instance_role]}
     query_param["conditions"]["field_list"].append(cluster_cond)
     query_param["conditions"]["field_list"].append(role_cond)
+    # query_param["conditions"]["field_list"].append(common_cond)
     query_param["conditions"]["condition_list"].append("and")
 
     if metric_name == "query_time" or metric_name == "":
@@ -144,13 +145,13 @@ def query_slow_logs(
                         item[log_label] = value
                     continue
                 item[log_label] = value
+            if not item.get("query_digest_md5"):
+                continue
             item["values"] = row["values"][-1]  # row["values"]
             item[metric_param["field_name"]] = row["values"][-1]
 
             # query one sample detail
-            item["sample"] = query_slow_log_detail(
-                item.get("cluster_domain"), item.get("query_digest_md5"), start_time, end_time
-            )
+            item["sample"] = query_slow_log_detail(cluster_domain, item.get("query_digest_md5"), start_time, end_time)
             slog_logs.append(item)
 
     except Exception as e:
@@ -170,8 +171,8 @@ def query_slow_log_detail(
 ) -> Dict:
     query_params = {
         "indices": f"{env.DBA_APP_BK_BIZ_ID}_bklog.mysql_slowlog",
-        "start_time": datetime2str(start_time),
-        "end_time": datetime2str(end_time),
+        "start_time": str(timezone2timestamp(start_time)),
+        "end_time": str(timezone2timestamp(end_time)),
         # 这里需要精确查询集群域名，所以可以通过log: "key: \"value\""的格式查询
         "query_string": f'slow_query.query_digest_md5:"{query_digest_md5}" AND __ext.cluster_domain: "{cluster_domain}"',
         "start": 0,
