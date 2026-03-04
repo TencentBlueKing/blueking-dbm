@@ -61,6 +61,21 @@ class CreateModuleSLZ(serializers.Serializer):
         return attrs
 
 
+class CheckDbModuleUniqueSLZ(serializers.Serializer):
+    db_module_name = serializers.CharField(help_text=_("DB模块名"))
+    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
+
+    def validate(self, attrs):
+        if len(attrs["db_module_name"]) > MAX_DB_MODULE_LIMIT:
+            raise serializers.ValidationError(_("请确保模块名称的长度不超过: {}").format(MAX_DB_MODULE_LIMIT))
+
+        return attrs
+
+
+class CheckDbModuleUniqueResponseSLZ(serializers.Serializer):
+    is_unique = serializers.BooleanField(help_text=_("是否唯一(同业务+集群类型下不存在同名模块)"))
+
+
 class SetBkAppAbbrSLZ(serializers.Serializer):
     db_app_abbr = serializers.CharField(help_text=_("英文缩写"))
 

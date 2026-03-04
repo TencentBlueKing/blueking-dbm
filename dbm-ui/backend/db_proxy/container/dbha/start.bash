@@ -1,4 +1,5 @@
 # 写入dbha记录
+# city_id: -1 表示探测所有实例
 data=$(
 curl -XPOST "$BK_DBM_URL/apis/proxypass/cloud/insert/" \
   --header "Content-Type: application/json" \

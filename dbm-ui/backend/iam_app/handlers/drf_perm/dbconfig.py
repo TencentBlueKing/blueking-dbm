@@ -22,6 +22,17 @@ from backend.iam_app.handlers.drf_perm.base import (
 )
 
 
+def meta_cluster_type_to_db_type(meta_cluster_type: str) -> str:
+    """
+    dbconfig 场景下将 meta_cluster_type/namespace 映射为 db_type
+    通用配置(meta_cluster_type=common)无法映射到真实 db_type，使用 common 特殊实例兜底
+    """
+    try:
+        return ClusterType.cluster_type_to_db_type(meta_cluster_type)
+    except ValueError:
+        return "common"
+
+
 class BizDBConfigPermission(BizDBTypeResourceActionPermission):
     """
     业务下数据库配置相关动作鉴权
@@ -42,7 +53,8 @@ class BizDBConfigPermission(BizDBTypeResourceActionPermission):
     @staticmethod
     def instance_dbtype_getter(request, view):
         cluster_type = get_request_key_id(request, key="meta_cluster_type")
-        return [ClusterType.cluster_type_to_db_type(cluster_type)]
+        namespace = cluster_type or get_request_key_id(request, key="namespace")
+        return [meta_cluster_type_to_db_type(namespace)]
 
 
 class GlobalConfigPermission(ResourceActionPermission):
@@ -55,6 +67,30 @@ class GlobalConfigPermission(ResourceActionPermission):
     @staticmethod
     def instance_dbtype_getter(request, view):
         return BizDBConfigPermission.instance_dbtype_getter(request, view)
+
+
+class ClusterLevelConfigPermission(ResourceActionPermission):
+    """
+    集群层级(level_name=cluster)配置鉴权:
+    - 查看复用各组件的 {dbtype}_view
+    - 编辑使用各组件的 {dbtype}_dbconfig_edit
+    资源均为集群实例，集群通过 level_value(immute_domain) 反查得到
+    """
+
+    def __init__(self, is_edit: bool):
+        self.is_edit = is_edit
+        super().__init__(actions=None, resource_meta=None, instance_ids_getter=self.instance_cluster_getter)
+
+    def instance_cluster_getter(self, request, view):
+        from backend.db_meta.models import Cluster
+
+        immute_domain = get_request_key_id(request, key="level_value")
+        cluster = Cluster.objects.get(immute_domain=immute_domain)
+        db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
+        action_id = f"{db_type.upper()}_DBCONFIG_EDIT" if self.is_edit else f"{db_type.upper()}_VIEW"
+        self.actions = [getattr(ActionEnum, action_id)]
+        self.resource_meta = ResourceEnum.cluster_type_to_resource_meta(cluster.cluster_type)
+        return [cluster.id]
 
 
 class BizSettingsPermission(ResourceActionPermission):

@@ -15,8 +15,9 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.components.dbconfig.constants import ConfType, LevelName
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import DBModule
+from backend.db_meta.models import Cluster, DBModule
 from backend.db_services.dbconfig import serializers
 from backend.db_services.dbconfig.dataclass import (
     DBBaseConfig,
@@ -25,43 +26,112 @@ from backend.db_services.dbconfig.dataclass import (
     UpsertConfigData,
 )
 from backend.db_services.dbconfig.handlers import DBConfigHandler
+from backend.db_services.dbconfig.serializers import (
+    ChangeConfNameSerializer,
+    CloneModuleQuerySerializer,
+    DeleteConfFileLevelSerializer,
+    DeleteModuleConfigSerializer,
+    ListConfFilesSerializer,
+    ListConfItemChangesSerializer,
+    ListConfNameChangesSerializer,
+    ListConfTypesSerializer,
+    ListCosConfigsSerializer,
+    ListLevelValuesSerializer,
+    RecoverDefaultConfItemSerializer,
+    ValidateConfItemSerializer,
+)
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
-from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
-from backend.iam_app.handlers.drf_perm.dbconfig import BizDBConfigPermission, GlobalConfigPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission, ResourceActionPermission, get_request_key_id
+from backend.iam_app.handlers.drf_perm.dbconfig import (
+    BizDBConfigPermission,
+    ClusterLevelConfigPermission,
+    GlobalConfigPermission,
+    meta_cluster_type_to_db_type,
+)
 from backend.iam_app.handlers.permission import Permission
 
 SWAGGER_TAG = "config"
 
 
+def _get_level_config_perm_action(kwargs):
+    """get_level_config 编辑权限的动作随 level_name 变化：集群级使用 {dbtype}_dbconfig_edit，其余使用 dbconfig_edit"""
+    if kwargs.get("level_name") == LevelName.CLUSTER:
+        cluster = Cluster.objects.get(immute_domain=kwargs["level_value"])
+        db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
+        return [getattr(ActionEnum, f"{db_type.upper()}_DBCONFIG_EDIT")]
+    return [ActionEnum.DBCONFIG_EDIT]
+
+
+def _get_level_config_perm_resource(kwargs):
+    """get_level_config 编辑权限的资源随 level_name 变化：集群级为集群实例，其余为 dbtype + 业务"""
+    if kwargs.get("level_name") == LevelName.CLUSTER:
+        cluster = Cluster.objects.get(immute_domain=kwargs["level_value"])
+        return cluster.id
+    return {
+        ResourceEnum.DBTYPE.id: meta_cluster_type_to_db_type(kwargs["meta_cluster_type"]),
+        ResourceEnum.BUSINESS.id: kwargs["bk_biz_id"],
+    }
+
+
 class ConfigViewSet(viewsets.SystemViewSet):
+    # 层级感知查看：app/module 级用 db_manage，cluster 级用 {dbtype}_view
+    LEVEL_VIEW_ACTIONS = ("get_level_config", "list_confitem_changes")
+    # 层级感知编辑：app/module 级用 dbconfig_edit，cluster 级用 {dbtype}_dbconfig_edit
+    LEVEL_EDIT_ACTIONS = ("upsert_level_config", "recover_default_conf_item")
+
     action_permission_map = {
+        # 业务级查看：复用 db_manage（业务访问）
         (
             "list_biz_configs",
-            "get_level_config",
+            "list_cluster_module_conf_files",
+            "get_common_level_config",
+            "list_level_values",
+            "list_cos_configs",
             "get_config_version_detail",
-        ): [BizDBConfigPermission([ActionEnum.DBCONFIG_VIEW])],
+        ): [DBManagePermission([ActionEnum.DB_MANAGE])],
+        # 业务/模块级编辑：dbconfig_edit（dbtype 由 meta_cluster_type 推导，通用配置用 common 兜底）
         (
-            "upsert_level_config",
             "save_module_deploy_info",
+            "delete_module_config",
+            "delete_level_value",
+            "upsert_common_level_config",
         ): [BizDBConfigPermission([ActionEnum.DBCONFIG_EDIT])],
         (
             "list_platform_configs",
             "get_platform_config",
+            "list_confname_changes",
         ): [GlobalConfigPermission([ActionEnum.GLOBAL_DBCONFIG_VIEW])],
-        ("create_platform_config",): [GlobalConfigPermission([ActionEnum.GLOBAL_DBCONFIG_CREATE])],
-        ("upsert_platform_config",): [GlobalConfigPermission([ActionEnum.GLOBAL_DBCONFIG_EDIT])],
-        ("list_config_names",): [],
+        (
+            "create_platform_config",
+            "upsert_platform_config",
+            "change_conf_names",
+        ): [GlobalConfigPermission([ActionEnum.GLOBAL_DBCONFIG_EDIT])],
+        (
+            "get_module_by_id",
+            "module_clone_query",
+            "list_config_names",
+            "check_conf_name_exists",
+            "list_conf_name_types",
+            "validate_conf_items",
+            "list_config_version_history",
+            "list_conf_types",
+        ): [],
     }
     default_permission_class = [ResourceActionPermission([ActionEnum.GLOBAL_MANAGE])]
 
     def _get_custom_permissions(self):
-        # list_config_version_history需要根据业务ID来判断是业务配置还是平台配置
-        if self.action == "list_config_version_history":
-            if int(self.request.query_params.get("bk_biz_id", 0)):
-                return [BizDBConfigPermission([ActionEnum.DBCONFIG_VIEW])]
+        # 层级感知：业务/模块级与集群级使用不同鉴权
+        if self.action in [*self.LEVEL_VIEW_ACTIONS, *self.LEVEL_EDIT_ACTIONS]:
+            is_edit = self.action in self.LEVEL_EDIT_ACTIONS
+            level_name = get_request_key_id(self.request, key="level_name")
+            if level_name == LevelName.CLUSTER:
+                return [ClusterLevelConfigPermission(is_edit=is_edit)]
+            if is_edit:
+                return [BizDBConfigPermission([ActionEnum.DBCONFIG_EDIT])]
             else:
-                return [GlobalConfigPermission([ActionEnum.GLOBAL_DBCONFIG_VIEW])]
+                return [DBManagePermission([ActionEnum.DB_MANAGE])]
+
         return super()._get_custom_permissions()
 
     @common_swagger_auto_schema(
@@ -77,13 +147,56 @@ class ConfigViewSet(viewsets.SystemViewSet):
         return Response(DBConfigHandler(base_conf).list_config_names(version))
 
     @common_swagger_auto_schema(
+        operation_summary=_("检查配置项是否存在"),
+        query_serializer=serializers.ConfNameExistsSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=serializers.ConfNameExistsSerializer)
+    def check_conf_name_exists(self, request):
+        data = self.params_validate(self.get_serializer_class())
+        base_conf = DBBaseConfig.from_dict(data)
+        return Response(
+            DBConfigHandler(base_conf).check_conf_name_exists(conf_file=data["conf_file"], conf_name=data["conf_name"])
+        )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询配置值类型与子类型定义"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False)
+    def list_conf_name_types(self, request):
+        return Response(DBConfigHandler.list_conf_name_types())
+
+    @common_swagger_auto_schema(
+        operation_summary=_("配置项定义和值合法性校验"),
+        request_body=ValidateConfItemSerializer(many=True),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=serializers.ValidateConfItemSerializer)
+    def validate_conf_items(self, request):
+        slz = ValidateConfItemSerializer(data=request.data, many=True)
+        slz.is_valid(raise_exception=True)
+        return Response(DBConfigHandler.validate_conf_items(slz.validated_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("修改/新增/删除平台配置项定义"),
+        request_body=ChangeConfNameSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=ChangeConfNameSerializer)
+    def change_conf_names(self, request):
+        params = self.params_validate(self.get_serializer_class())
+        base_conf = DBBaseConfig(meta_cluster_type=params["meta_cluster_type"], conf_type=params["conf_type"])
+        return Response(DBConfigHandler(base_conf).change_conf_names(params))
+
+    @common_swagger_auto_schema(
         operation_summary=_("查询平台配置列表"),
         query_serializer=serializers.ListPublicConfigRequestSerializer(),
         responses={status.HTTP_200_OK: serializers.ListPublicConfigResponseSerializer(many=True)},
         tags=[SWAGGER_TAG],
     )
     @Permission.decorator_external_permission_field(
-        param_field=lambda d: ClusterType.cluster_type_to_db_type(d["meta_cluster_type"]),
+        param_field=lambda d: meta_cluster_type_to_db_type(d["meta_cluster_type"]),
         actions=[ActionEnum.GLOBAL_DBCONFIG_EDIT],
         resource_meta=ResourceEnum.DBTYPE,
     )
@@ -91,7 +204,8 @@ class ConfigViewSet(viewsets.SystemViewSet):
     def list_platform_configs(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
         base_conf = DBBaseConfig.from_dict(validated_data)
-        return Response(DBConfigHandler(base_conf).list_platform_configs())
+        conf_file = validated_data.get("conf_file", "")
+        return Response(DBConfigHandler(base_conf).list_platform_configs(conf_file))
 
     @common_swagger_auto_schema(
         operation_summary=_("新建平台配置"),
@@ -126,6 +240,11 @@ class ConfigViewSet(viewsets.SystemViewSet):
         query_serializer=serializers.GetPublicConfigDetailSerializer(),
         tags=[SWAGGER_TAG],
     )
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: meta_cluster_type_to_db_type(d["meta_cluster_type"]),
+        actions=[ActionEnum.GLOBAL_DBCONFIG_EDIT],
+        resource_meta=ResourceEnum.DBTYPE,
+    )
     @action(methods=["GET"], detail=False, serializer_class=serializers.GetPublicConfigDetailSerializer)
     def get_platform_config(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
@@ -141,7 +260,7 @@ class ConfigViewSet(viewsets.SystemViewSet):
     )
     @Permission.decorator_external_permission_field(
         param_field=lambda d: {
-            ResourceEnum.DBTYPE.id: ClusterType.cluster_type_to_db_type(d["meta_cluster_type"]),
+            ResourceEnum.DBTYPE.id: meta_cluster_type_to_db_type(d["meta_cluster_type"]),
             ResourceEnum.BUSINESS.id: d["bk_biz_id"],
         },
         actions=[ActionEnum.DBCONFIG_EDIT],
@@ -152,7 +271,8 @@ class ConfigViewSet(viewsets.SystemViewSet):
         validated_data = self.params_validate(self.get_serializer_class())
         base_conf = DBBaseConfig.from_dict(validated_data)
         bk_biz_id = validated_data["bk_biz_id"]
-        return Response(DBConfigHandler(base_conf).list_biz_configs(bk_biz_id=bk_biz_id))
+        conf_file = validated_data.get("conf_file", "")
+        return Response(DBConfigHandler(base_conf).list_biz_configs(bk_biz_id=bk_biz_id, conf_file=conf_file))
 
     @common_swagger_auto_schema(
         operation_summary=_("编辑层级（业务、模块、集群）配置"),
@@ -166,6 +286,15 @@ class ConfigViewSet(viewsets.SystemViewSet):
         dbconfig_level_data = DBConfigLevelData.from_dict(validated_data)
         upsert_config_data = UpsertConfigData.from_dict(validated_data)
         return Response(DBConfigHandler(base_conf).upsert_level_config(dbconfig_level_data, upsert_config_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("编辑层级（业务、模块、集群）配置"),
+        request_body=serializers.UpsertLevelConfigSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=serializers.UpsertLevelConfigSerializer)
+    def upsert_common_level_config(self, request):
+        return self.upsert_level_config(request)
 
     @common_swagger_auto_schema(
         operation_summary=_("保存模块部署配置"),
@@ -188,12 +317,25 @@ class ConfigViewSet(viewsets.SystemViewSet):
         request_body=serializers.GetLevelConfigDetailSerializer(),
         tags=[SWAGGER_TAG],
     )
+    @Permission.decorator_external_permission_field(
+        action_filed=_get_level_config_perm_action,
+        param_field=_get_level_config_perm_resource,
+    )
     @action(methods=["POST"], detail=False, serializer_class=serializers.GetLevelConfigDetailSerializer)
     def get_level_config(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
         base_conf = DBBaseConfig.from_dict(validated_data)
         dbconfig_level_data = DBConfigLevelData.from_dict(validated_data)
         return Response(DBConfigHandler(base_conf, True).get_level_config(dbconfig_level_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询通用层级配置详情"),
+        request_body=serializers.GetLevelConfigDetailSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=serializers.GetLevelConfigDetailSerializer)
+    def get_common_level_config(self, request):
+        return self.get_level_config(request)
 
     @common_swagger_auto_schema(
         operation_summary=_("查询模块配置详情"),
@@ -211,11 +353,21 @@ class ConfigViewSet(viewsets.SystemViewSet):
             dbmodule_obj = DBModule.objects.get(db_module_id=module_id)
         except DBModule.DoesNotExist:
             raise Exception("DBModule {} does not exist".format(module_id))
+        # 查询模块配置详情
         base_conf = DBBaseConfig.from_dict({"meta_cluster_type": dbmodule_obj.cluster_type, "conf_type": "deploy"})
         deconfig_deploy_data = DBConfigDeployData.from_dict(
             {"bk_biz_id": dbmodule_obj.bk_biz_id, "module_id": module_id}
         )
-        return Response(DBConfigHandler(base_conf).get_module_by_id(deconfig_deploy_data))
+        data = DBConfigHandler(base_conf).get_module_by_id(deconfig_deploy_data)
+        # 更新模块名称信息
+        data.update(
+            {
+                "db_module_id": dbmodule_obj.db_module_id,
+                "db_module_name": dbmodule_obj.db_module_name,
+                "alias_name": dbmodule_obj.alias_name,
+            }
+        )
+        return Response(data)
 
     @common_swagger_auto_schema(
         operation_summary=_("查询配置发布历史记录"),
@@ -241,3 +393,133 @@ class ConfigViewSet(viewsets.SystemViewSet):
         dbconfig_level_data = DBConfigLevelData.from_dict(validated_data)
         revision = validated_data["revision"]
         return Response(DBConfigHandler(base_conf).get_config_version_detail(dbconfig_level_data, revision))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("[平台配置]查询配置项定义的变更历史"),
+        query_serializer=ListConfNameChangesSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=ListConfNameChangesSerializer)
+    def list_confname_changes(self, request):
+        data = self.params_validate(self.get_serializer_class())
+        base_conf = DBBaseConfig(meta_cluster_type=data["namespace"], conf_type=data.get("conf_type", ""))
+        return Response(DBConfigHandler(base_conf).list_confname_changes(data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("[业务集群配置]查询配置的变更历史"),
+        query_serializer=ListConfItemChangesSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=ListConfItemChangesSerializer)
+    def list_confitem_changes(self, request):
+        data = self.params_validate(self.get_serializer_class())
+        base_conf = DBBaseConfig(meta_cluster_type=data["namespace"], conf_type=data.get("conf_type", ""))
+        return Response(DBConfigHandler(base_conf).list_confitem_changes(data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询配置类型列表"),
+        query_serializer=ListConfTypesSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=ListConfTypesSerializer)
+    def list_conf_types(self, request):
+        data = self.params_validate(self.get_serializer_class())
+        base_conf = DBBaseConfig(meta_cluster_type=data["meta_cluster_type"], conf_type="")
+        return Response(DBConfigHandler(base_conf).list_conf_types())
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询集群模块支持的配置文件列表"),
+        query_serializer=ListConfFilesSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=ListConfFilesSerializer)
+    def list_cluster_module_conf_files(self, request):
+        data = self.params_validate(self.get_serializer_class())
+        base_conf = DBBaseConfig(meta_cluster_type=data["meta_cluster_type"], conf_type="")
+        res = DBConfigHandler(base_conf).list_cluster_module_conf_files(
+            bk_biz_id=data["bk_biz_id"],
+            db_module_id=data.get("db_module_id"),
+            cluster_id=data.get("cluster_id"),
+            deploy_versions=data.get("deploy_versions"),
+        )
+        return Response(res)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("删除模块配置"),
+        request_body=DeleteModuleConfigSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=DeleteModuleConfigSerializer)
+    def delete_module_config(self, request):
+        data = self.params_validate(self.get_serializer_class())
+        base_conf = DBBaseConfig(meta_cluster_type=data["meta_cluster_type"], conf_type="")
+        return Response(DBConfigHandler(base_conf).delete_module_config(data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("恢复默认值"),
+        request_body=RecoverDefaultConfItemSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=RecoverDefaultConfItemSerializer)
+    def recover_default_conf_item(self, request):
+        data = self.params_validate(self.get_serializer_class())
+        base_conf = DBBaseConfig.from_dict(data)
+        return Response(DBConfigHandler(base_conf).recover_default_conf_item(data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询COS配置列表"),
+        query_serializer=ListCosConfigsSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @Permission.decorator_external_permission_field(
+        actions=[ActionEnum.DBCONFIG_EDIT],
+        param_field=lambda d: {
+            ResourceEnum.DBTYPE.id: "common",
+            ResourceEnum.BUSINESS.id: d["bk_biz_id"],
+        },
+        resource_meta=[ResourceEnum.DBTYPE, ResourceEnum.BUSINESS],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=ListCosConfigsSerializer)
+    def list_cos_configs(self, request):
+        data = self.params_validate(self.get_serializer_class())
+        base_conf = DBBaseConfig(meta_cluster_type="common", conf_type=ConfType.BACKUP_CLIENT)
+        return Response(DBConfigHandler(base_conf).list_cos_configs(bk_biz_id=data["bk_biz_id"]))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询配置文件的级别值列表"),
+        query_serializer=ListLevelValuesSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=ListLevelValuesSerializer)
+    def list_level_values(self, request):
+        data = self.params_validate(self.get_serializer_class())
+        base_conf = DBBaseConfig(meta_cluster_type=data["meta_cluster_type"], conf_type=data["conf_type"])
+        return Response(
+            DBConfigHandler(base_conf).list_level_values(
+                bk_biz_id=data["bk_biz_id"],
+                conf_file=data["conf_file"],
+                level_name=data["level_name"],
+            )
+        )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("删除某个级别的配置文件"),
+        request_body=DeleteConfFileLevelSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=DeleteConfFileLevelSerializer)
+    def delete_level_value(self, request):
+        data = self.params_validate(self.get_serializer_class())
+        base_conf = DBBaseConfig(meta_cluster_type=data["meta_cluster_type"], conf_type=data["conf_type"])
+        return Response(DBConfigHandler(base_conf).delete_level_value(data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("克隆模块配置的查询对比结果"),
+        request_body=CloneModuleQuerySerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=CloneModuleQuerySerializer)
+    def module_clone_query(self, request):
+        data = self.params_validate(self.get_serializer_class())
+        base_conf = DBBaseConfig(meta_cluster_type=data["meta_cluster_type"], conf_type=data["conf_type"])
+        return Response(DBConfigHandler(base_conf).module_clone_query(data))

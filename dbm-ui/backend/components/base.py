@@ -561,7 +561,7 @@ class DataAPI(object):
         non_file_data = {}
 
         if not isinstance(data, dict):
-            return file_data, non_file_data
+            return data, file_data
 
         for key, value in list(data.items()):
             if isinstance(value, WSGIRequest):

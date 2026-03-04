@@ -15,7 +15,9 @@ import attr
 
 @attr.s(auto_attribs=True)
 class DBBaseConfig:
+    # 元集群类型/dbconf 命名空间
     meta_cluster_type: str
+    # 配置类型
     conf_type: str
 
     @classmethod
@@ -26,9 +28,14 @@ class DBBaseConfig:
 @attr.s(auto_attribs=True)
 class DBConfigLevelData:
     bk_biz_id: str
+    # 层级类型
     level_name: str
+    # 层级值
     level_value: str
+    # level_info 是上层配置信息，目前只有在请求 cluster 配置是需要传他的模块信息
+    # 因为 dbconfig 没有跟 dbmeta 通信，他要继承上层配置，不知道 module 信息，需要传递进来
     level_info: Dict[str, str]
+    # 版本号 --> conf_file
     version: str
 
     def __attrs_post_init__(self):
@@ -48,6 +55,7 @@ class DBConfigLevelData:
 
 @attr.s(auto_attribs=True)
 class UpsertConfigData:
+    # 配置参数列表
     conf_items: List[Dict[str, str]]
     description: str
     publish_description: str
