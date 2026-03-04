@@ -79,8 +79,10 @@ func (w *MysqlRawWriter) WriteBatch(table interface{}, models interface{}) error
 	}
 	if w.writeMode == cst.ModeUpsert || w.writeMode == cst.ModeReplace {
 		_, err = w.session.Replace()
-	} else {
+	} else if w.writeMode == cst.ModeInsertIgnore {
 		_, err = w.session.InsertIgnore()
+	} else {
+		_, err = w.session.Insert()
 	}
 	return err
 }
