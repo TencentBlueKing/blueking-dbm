@@ -26,7 +26,6 @@ package haapm
 
 import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"dbm-services/common/go-pubpkg/apm/metric"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -43,13 +42,19 @@ import (
 type HaCounter struct {
 	Error error
 
-	metric      *metric.Metric
+	metric      *Metric
 	labelNames  []string
 	labelValues map[string]string
 }
 
-func (m *HaCounter) ToMetric() *metric.Metric {
-	return (*metric.Metric)(m.metric)
+func (m *HaCounter) ToMetric() *Metric {
+	return m.metric
+}
+
+// WithLabels returns a BoundCounter with fixed labels. For static resources, create once
+// and use the bound in business code so only Inc() or Add() is needed.
+func (m *HaCounter) WithLabels(labels map[string]string) *BoundCounter {
+	return &BoundCounter{counter: m, labels: copyLabels(labels)}
 }
 
 func (m *HaCounter) UpdateLabel(lvs map[string]string) *HaCounter {
@@ -129,8 +134,7 @@ func (m *HaCounter) reset() {
 
 func NewHaCounter(name, help string, labelNames ...string) *HaCounter {
 	counter := &HaCounter{}
-	counter.metric = &metric.Metric{
-		ID:          name,
+	counter.metric = &Metric{
 		Name:        name,
 		Description: help,
 	}

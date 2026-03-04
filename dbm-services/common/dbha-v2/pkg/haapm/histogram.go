@@ -26,7 +26,6 @@ package haapm
 
 import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"dbm-services/common/go-pubpkg/apm/metric"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -43,13 +42,19 @@ import (
 type HaHistogram struct {
 	Error error
 
-	metric      *metric.Metric
+	metric      *Metric
 	labelNames  []string
 	labelValues map[string]string
 }
 
-func (m *HaHistogram) ToMetric() *metric.Metric {
-	return (*metric.Metric)(m.metric)
+func (m *HaHistogram) ToMetric() *Metric {
+	return m.metric
+}
+
+// WithLabels returns a BoundHistogram with fixed labels. For static resources, create once
+// and use the bound in business code so only Observe() is needed.
+func (m *HaHistogram) WithLabels(labels map[string]string) *BoundHistogram {
+	return &BoundHistogram{histogram: m, labels: copyLabels(labels)}
 }
 
 func (m *HaHistogram) UpdateLabel(lvs map[string]string) *HaHistogram {
@@ -108,8 +113,7 @@ func (m *HaHistogram) reset() {
 
 func NewHaHistogram(name, help string, labelNames ...string) *HaHistogram {
 	histogram := &HaHistogram{}
-	histogram.metric = &metric.Metric{
-		ID:          name,
+	histogram.metric = &Metric{
 		Name:        name,
 		Description: help,
 	}
@@ -129,8 +133,7 @@ func NewHaHistogram(name, help string, labelNames ...string) *HaHistogram {
 
 func NewHaHistogramWithBuckets(name, help string, buckets []float64, labelNames ...string) *HaHistogram {
 	histogram := &HaHistogram{}
-	histogram.metric = &metric.Metric{
-		ID:          name,
+	histogram.metric = &Metric{
 		Name:        name,
 		Description: help,
 	}

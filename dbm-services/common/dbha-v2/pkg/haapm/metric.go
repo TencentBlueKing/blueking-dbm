@@ -24,6 +24,28 @@
 
 package haapm
 
+import (
+	"github.com/prometheus/client_golang/prometheus"
+)
+
+// Metric holds the definition and the Prometheus collector for a metric.
+// Collector is set by the Server when it registers the metric.
+type Metric struct {
+	Collector   prometheus.Collector
+	Name        string
+	Description string
+	Type        string
+	Labels      []string
+	Buckets     []float64
+	Objectives  map[float64]float64
+}
+
+// MetricGetter is implemented by all haapm metric types (HaCounter, HaGauge, HaHistogram, HaSummary).
+// It is used by Server.Register and MustRegister to collect metrics for Prometheus.
+type MetricGetter interface {
+	ToMetric() *Metric
+}
+
 type MetricType string
 
 func (m MetricType) String() string {

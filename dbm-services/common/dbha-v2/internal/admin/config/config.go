@@ -65,10 +65,10 @@ type GrpcConfig struct {
 
 // WebConfig web configuration
 type WebConfig struct {
-	Host         string        `yaml:"host" 		 mapstructure:"host"`
-	Port         int           `yaml:"port" 		 mapstructure:"port"`
-	ReadTimeout  time.Duration `yaml:"readTimeout"   mapstructure:"readTimeout"`
-	WriteTimeout time.Duration `yaml:"writeTimeout"  mapstructure:"writeTimeout"`
+	Host         string        `yaml:"host"         mapstructure:"host"`
+	Port         int           `yaml:"port"         mapstructure:"port"`
+	ReadTimeout  time.Duration `yaml:"readTimeout"  mapstructure:"readTimeout"`
+	WriteTimeout time.Duration `yaml:"writeTimeout" mapstructure:"writeTimeout"`
 }
 
 // DbmApi the API config of the DBM metadata
