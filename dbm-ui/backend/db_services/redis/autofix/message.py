@@ -21,6 +21,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache
 from backend.dbm_aiagent.agent.constants import DBMAgentCode
 from backend.dbm_aiagent.agent.handlers import AgentHandler
+from backend.utils.redis import RedisConn
 from backend.utils.time import date2str
 
 from .enums import AutofixItem
@@ -30,7 +31,8 @@ logger = logging.getLogger("root")
 
 
 def send_msg_2_qywx(sub_title: str, msgs):
-    msg_ids = []
+    msg_ids, immute_doamin = [], "-".join(sub_title.split("-")[:-1])
+    session_code_key = "ai|session|{}".format(immute_doamin)
     try:
         msg_item = RedisAutofixCtl.objects.filter(ctl_name=AutofixItem.CHAT_IDS.value).get()
         if msg_item:
@@ -58,12 +60,24 @@ def send_msg_2_qywx(sub_title: str, msgs):
         else:
             content += _("{} : {}\n".format(k, v))
     if db_type == DBType.Redis.value:
-        content = _("""查询这个{}集群最新的qps和CPU情况""".format("-".join(sub_title.split("-")[:-1])))
-        rest = AgentHandler.ask_agent_with_content(DBMAgentCode.REDIS_TASK_GUARDIAN.value, "", redis_DBA)
-        content += _("当前负载 : {}\n".format(rest))
+        session_code = RedisConn.get(session_code_key)
+        ask_content = _(
+            """查询这个{}集群最近10分钟的qps,mode=overall,对比看看qps是否有明显波动,只需给出简要的结论（再加上一个点的qps数据）""".format(immute_doamin)
+        )
+        rest, session_code = AgentHandler.ask_agent_with_content_in_session(
+            agent_code=DBMAgentCode.REDIS_TASK_GUARDIAN.value,
+            content=ask_content,
+            username=redis_DBA[0],
+            session_code=session_code,
+        )
+        RedisConn.set(session_code_key, session_code)
+        content += _("QPS汇报 : {}\n".format(rest[:100]))
     content += _("消息时间 : {}\n".format(date2str(datetime.datetime.now(), "%Y-%m-%d %H:%M:%S")))
 
     CmsiHandler(_("Tendis自愈"), content, msg_ids).send_wecom_robot()
+
+    if not content.__contains__(_("发起")):
+        RedisConn.delete(session_code_key)
 
 
 # 自愈单据级的Helpers
