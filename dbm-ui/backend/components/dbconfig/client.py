@@ -41,10 +41,20 @@ class _DBConfigApi(BaseApi):
             url="bkconfig/v1/conffile/query",
             description=_("查询公共配置项列表"),
         )
+        self.check_conf_name_exists = self.generate_data_api(
+            method="GET",
+            url="bkconfig/v1/confname/exists",
+            description=_("检查配置项是否存在"),
+        )
         self.list_conf_name = self.generate_data_api(
             method="GET",
             url="bkconfig/v1/confname/list",
             description=_("查询定义的配置名列表"),
+        )
+        self.list_conf_name_types = self.generate_data_api(
+            method="GET",
+            url="bkconfig/v1/confname/types",
+            description=_("查询配置值类型与子类型定义"),
         )
         self.query_conf_item = self.generate_data_api(
             method="POST",
@@ -52,6 +62,11 @@ class _DBConfigApi(BaseApi):
             description=_("查询配置项列表"),
             # 这里保证每个版本在统一层级只会有一份配置文件
             after_request=get_first_item_from_list,
+        )
+        self.validate_conf_item = self.generate_data_api(
+            method="POST",
+            url="bkconfig/v1/confitem/validate",
+            description=_("校验配置项定义和值是否合法"),
         )
         self.save_conf_item = self.generate_data_api(
             method="POST",
@@ -112,6 +127,41 @@ class _DBConfigApi(BaseApi):
             method="POST",
             url="bkconfig/v1/confitem/clonecluster",
             description=_("克隆集群配置"),
+        )
+        self.list_confname_changes = self.generate_data_api(
+            method="GET",
+            url="bkconfig/v1/confname/changes",
+            description=_("[平台配置]查询配置项定义的变更历史"),
+        )
+        self.list_confitem_changes = self.generate_data_api(
+            method="GET",
+            url="bkconfig/v1/confitem/changes",
+            description=_("[业务集群配置]查询配置的变更历史"),
+        )
+        self.delete_module_config = self.generate_data_api(
+            method="POST",
+            url="bkconfig/v1/module/delete",
+            description=_("删除模块配置"),
+        )
+        self.recover_default_conf_item = self.generate_data_api(
+            method="POST",
+            url="bkconfig/v1/confitem/recoverdefault",
+            description=_("恢复默认值"),
+        )
+        self.list_level_values = self.generate_data_api(
+            method="GET",
+            url="bkconfig/v1/conffile/list_level_value",
+            description=_("查询配置文件的级别值列表"),
+        )
+        self.delete_level_value = self.generate_data_api(
+            method="POST",
+            url="bkconfig/v1/conffile/delete_level_value",
+            description=_("删除某个级别的配置文件"),
+        )
+        self.module_clone_query = self.generate_data_api(
+            method="POST",
+            url="bkconfig/v1/module/clonequery",
+            description=_("克隆模块配置的查询对比结果"),
         )
 
 

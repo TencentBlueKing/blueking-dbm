@@ -30,6 +30,8 @@ class ActionMeta(Action):
     id: str  # 动作ID
     name: str = ""  # 动作名称
     name_en: str = ""  # 动作英文名称
+    description: str = ""  # 动作描述
+    description_en: str = ""  # 动作英文描述
     type: str = "execute"  # 动作类型
     related_resource_types: List[ResourceMeta] = None  # 关联资源类型
     related_actions: List = None  # 关联动作
@@ -75,8 +77,8 @@ class ActionMeta(Action):
         content.pop("common_labels")
         content.update(
             {
-                "description": self.name,
-                "description_en": self.name_en,
+                "description": self.description or self.name,
+                "description_en": self.description_en or self.description or self.name_en,
                 "related_actions": [action for action in self.related_actions],
                 "version": 1,
             }
@@ -337,14 +339,13 @@ class ActionEnum:
         type="view",
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
-        group=_("业务配置"),
-        subgroup=_("数据库配置"),
+        group=_("已废弃"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
 
     DBCONFIG_EDIT = ActionMeta(
         id="dbconfig_edit",
-        name=_("数据库配置编辑"),
+        name=_("业务参数配置编辑"),
         name_en="dbconfig_edit",
         type="manage",
         related_actions=[],
@@ -354,12 +355,180 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    MYSQL_DBCONFIG_EDIT = ActionMeta(
+        id="mysql_dbconfig_edit",
+        name=_("MySQL 集群参数配置编辑"),
+        name_en="mysql_dbconfig_edit",
+        type="manage",
+        related_actions=["mysql_view"],
+        related_resource_types=[ResourceEnum.MYSQL],
+        group=_("MySQL"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    TENDBCLUSTER_DBCONFIG_EDIT = ActionMeta(
+        id="tendbcluster_dbconfig_edit",
+        name=_("TenDBCluster 集群参数配置编辑"),
+        name_en="tendbcluster_dbconfig_edit",
+        type="manage",
+        related_actions=["tendbcluster_view"],
+        related_resource_types=[ResourceEnum.TENDBCLUSTER],
+        group=_("TenDBCluster"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    REDIS_DBCONFIG_EDIT = ActionMeta(
+        id="redis_dbconfig_edit",
+        name=_("Redis 集群参数配置编辑"),
+        name_en="redis_dbconfig_edit",
+        type="manage",
+        related_actions=["redis_view"],
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("Redis"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    MONGODB_DBCONFIG_EDIT = ActionMeta(
+        id="mongodb_dbconfig_edit",
+        name=_("MongoDB 集群参数配置编辑"),
+        name_en="mongodb_dbconfig_edit",
+        type="manage",
+        related_actions=["mongodb_view"],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("MongoDB"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    SQLSERVER_DBCONFIG_EDIT = ActionMeta(
+        id="sqlserver_dbconfig_edit",
+        name=_("SQLServer 集群参数配置编辑"),
+        name_en="sqlserver_dbconfig_edit",
+        type="manage",
+        related_actions=["sqlserver_view"],
+        related_resource_types=[ResourceEnum.SQLSERVER],
+        group=_("SQLServer"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    ES_DBCONFIG_EDIT = ActionMeta(
+        id="es_dbconfig_edit",
+        name=_("ES 集群参数配置编辑"),
+        name_en="es_dbconfig_edit",
+        type="manage",
+        related_actions=["es_view"],
+        related_resource_types=[ResourceEnum.ES],
+        group=_("ElasticSearch"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    KAFKA_DBCONFIG_EDIT = ActionMeta(
+        id="kafka_dbconfig_edit",
+        name=_("Kafka 集群参数配置编辑"),
+        name_en="kafka_dbconfig_edit",
+        type="manage",
+        related_actions=["kafka_view"],
+        related_resource_types=[ResourceEnum.KAFKA],
+        group=_("Kafka"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    HDFS_DBCONFIG_EDIT = ActionMeta(
+        id="hdfs_dbconfig_edit",
+        name=_("HDFS 集群参数配置编辑"),
+        name_en="hdfs_dbconfig_edit",
+        type="manage",
+        related_actions=["hdfs_view"],
+        related_resource_types=[ResourceEnum.HDFS],
+        group=_("HDFS"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    PULSAR_DBCONFIG_EDIT = ActionMeta(
+        id="pulsar_dbconfig_edit",
+        name=_("Pulsar 集群参数配置编辑"),
+        name_en="pulsar_dbconfig_edit",
+        type="manage",
+        related_actions=["pulsar_view"],
+        related_resource_types=[ResourceEnum.PULSAR],
+        group=_("Pulsar"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    DORIS_DBCONFIG_EDIT = ActionMeta(
+        id="doris_dbconfig_edit",
+        name=_("Doris 集群参数配置编辑"),
+        name_en="doris_dbconfig_edit",
+        type="manage",
+        related_actions=["doris_view"],
+        related_resource_types=[ResourceEnum.DORIS],
+        group=_("Doris"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    RIAK_DBCONFIG_EDIT = ActionMeta(
+        id="riak_dbconfig_edit",
+        name=_("Riak 集群参数配置编辑"),
+        name_en="riak_dbconfig_edit",
+        type="manage",
+        related_actions=["riak_view"],
+        related_resource_types=[ResourceEnum.RIAK],
+        group=_("Riak"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    VM_DBCONFIG_EDIT = ActionMeta(
+        id="vm_dbconfig_edit",
+        name=_("VM 集群参数配置编辑"),
+        name_en="vm_dbconfig_edit",
+        type="manage",
+        related_actions=["vm_view"],
+        related_resource_types=[ResourceEnum.VM],
+        group=_("VM"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    ORACLE_DBCONFIG_EDIT = ActionMeta(
+        id="oracle_dbconfig_edit",
+        name=_("Oracle 集群参数配置编辑"),
+        name_en="oracle_dbconfig_edit",
+        type="manage",
+        related_actions=["oracle_view"],
+        related_resource_types=[ResourceEnum.ORACLE],
+        group=_("Oracle"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    GLOBAL_DBCONFIG_VIEW = ActionMeta(
+        id="global_dbconfig_view",
+        name=_("全局参数配置查看"),
+        name_en="global_dbconfig_view",
+        type="view",
+        related_actions=[GLOBAL_MANAGE.id],
+        related_resource_types=[ResourceEnum.DBTYPE],
+        group=_("全局设置"),
+        subgroup=_("数据库配置"),
+        hidden=True,
+    )
+
     GLOBAL_DBCONFIG_EDIT = ActionMeta(
         id="global_dbconfig_edit",
-        name=_("全局数据库配置编辑"),
+        name=_("全局参数配置编辑"),
         name_en="global_dbconfig_edit",
         type="manage",
-        related_actions=[GLOBAL_MANAGE.id],
+        related_actions=[GLOBAL_MANAGE.id, GLOBAL_DBCONFIG_VIEW.id],
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("全局设置"),
         subgroup=_("数据库配置"),
@@ -368,7 +537,7 @@ class ActionEnum:
 
     GLOBAL_DBCONFIG_CREATE = ActionMeta(
         id="global_dbconfig_create",
-        name=_("全局数据库配置新增"),
+        name=_("全局配置创建"),
         name_en="global_dbconfig_create",
         type="create",
         related_actions=[GLOBAL_MANAGE.id],
@@ -380,7 +549,7 @@ class ActionEnum:
 
     GLOBAL_DBCONFIG_DESTROY = ActionMeta(
         id="global_dbconfig_destroy",
-        name=_("全局数据库配置删除"),
+        name=_("全局配置删除"),
         name_en="global_dbconfig_destroy",
         type="delete",
         related_actions=[GLOBAL_MANAGE.id],
@@ -395,7 +564,7 @@ class ActionEnum:
         name=_("MySQL 部署"),
         name_en="MySQL Apply",
         type="execute",
-        related_actions=[DB_MANAGE.id, DBCONFIG_VIEW.id],
+        related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("MySQL"),
         subgroup=_("集群管理"),
@@ -421,9 +590,11 @@ class ActionEnum:
 
     MYSQL_EDIT = ActionMeta(
         id="mysql_edit",
-        name=_("MySQL 集群编辑"),
+        name=_("MySQL 集群元数据编辑"),
         name_en="MySQL Edit",
+        description=_("编辑集群的标签、别名、备注、容灾要求、地域信息等元数据"),
         type="edit",
+        hidden=True,
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),
@@ -865,9 +1036,11 @@ class ActionEnum:
 
     TENDBCLUSTER_EDIT = ActionMeta(
         id="tendbcluster_edit",
-        name=_("TenDB Cluster 集群编辑"),
+        name=_("TenDB Cluster 集群元数据编辑"),
         name_en="tendbcluster_edit",
+        description=_("编辑集群的标签、别名、备注、容灾要求、地域信息等元数据"),
         type="edit",
+        hidden=True,
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
         group=_("TenDBCluster"),
@@ -1172,7 +1345,7 @@ class ActionEnum:
 
     TENDBCLUSTER_APPLY = ActionMeta(
         id=TicketType.TENDBCLUSTER_APPLY.lower(),
-        related_actions=[DB_MANAGE.id, DBCONFIG_VIEW.id],
+        related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         subgroup=_("集群管理"),
         is_ticket_action=True,
@@ -1223,9 +1396,11 @@ class ActionEnum:
 
     REDIS_EDIT = ActionMeta(
         id="redis_edit",
-        name=_("Redis 集群编辑"),
+        name=_("Redis 集群元数据编辑"),
         name_en="redis_edit",
+        description=_("编辑集群的标签、别名、备注、容灾要求、地域信息等元数据"),
         type="edit",
+        hidden=True,
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.REDIS],
         group=_("Redis"),
@@ -1418,9 +1593,11 @@ class ActionEnum:
 
     ES_EDIT = ActionMeta(
         id="es_edit",
-        name=_("ES 集群编辑"),
+        name=_("ES 集群元数据编辑"),
         name_en="es_edit",
+        description=_("编辑集群的标签、别名、备注、容灾要求、地域信息等元数据"),
         type="edit",
+        hidden=True,
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.ES],
         group=_("ElasticSearch"),
@@ -1466,9 +1643,11 @@ class ActionEnum:
 
     VM_EDIT = ActionMeta(
         id="vm_edit",
-        name=_("VictoriaMetrics 集群编辑"),
+        name=_("VM 集群元数据编辑"),
         name_en="vm_edit",
+        description=_("编辑集群的标签、别名、备注、容灾要求、地域信息等元数据"),
         type="edit",
+        hidden=True,
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.VM],
         group=_("VM"),
@@ -1533,9 +1712,11 @@ class ActionEnum:
 
     DORIS_EDIT = ActionMeta(
         id="doris_edit",
-        name=_("Doris 集群编辑"),
+        name=_("Doris 集群元数据编辑"),
         name_en="doris_edit",
+        description=_("编辑集群的标签、别名、备注、容灾要求、地域信息等元数据"),
         type="edit",
+        hidden=True,
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.DORIS],
         group=_("Doris"),
@@ -1593,9 +1774,11 @@ class ActionEnum:
 
     KAFKA_EDIT = ActionMeta(
         id="kafka_edit",
-        name=_("Kafka 集群编辑"),
+        name=_("Kafka 集群元数据编辑"),
         name_en="kafka_edit",
+        description=_("编辑集群的标签、别名、备注、容灾要求、地域信息等元数据"),
         type="edit",
+        hidden=True,
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.KAFKA],
         group=_("Kafka"),
@@ -1669,9 +1852,11 @@ class ActionEnum:
 
     HDFS_EDIT = ActionMeta(
         id="hdfs_edit",
-        name=_("HDFS 集群编辑"),
+        name=_("HDFS 集群元数据编辑"),
         name_en="hdfs_edit",
+        description=_("编辑集群的标签、别名、备注、容灾要求、地域信息等元数据"),
         type="edit",
+        hidden=True,
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.HDFS],
         group=_("HDFS"),
@@ -1737,9 +1922,11 @@ class ActionEnum:
 
     PULSAR_EDIT = ActionMeta(
         id="pulsar_edit",
-        name=_("Pulsar 集群编辑"),
+        name=_("Pulsar 集群元数据编辑"),
         name_en="pulsar_edit",
+        description=_("编辑集群的标签、别名、备注、容灾要求、地域信息等元数据"),
         type="edit",
+        hidden=True,
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.PULSAR],
         group=_("Pulsar"),
@@ -1785,7 +1972,7 @@ class ActionEnum:
 
     RIAK_CLUSTER_APPLY = ActionMeta(
         id=TicketType.RIAK_CLUSTER_APPLY.lower(),
-        related_actions=[DB_MANAGE.id, DBCONFIG_VIEW.id],
+        related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         subgroup=_("集群管理"),
         is_ticket_action=True,
@@ -1806,9 +1993,11 @@ class ActionEnum:
 
     RIAK_EDIT = ActionMeta(
         id="riak_edit",
-        name=_("Riak 集群编辑"),
+        name=_("Riak 集群元数据编辑"),
         name_en="riak_edit",
+        description=_("编辑集群的标签、别名、备注、容灾要求、地域信息等元数据"),
         type="edit",
+        hidden=True,
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.RIAK],
         group=_("Riak"),
@@ -1854,9 +2043,11 @@ class ActionEnum:
 
     MONGODB_EDIT = ActionMeta(
         id="mongodb_edit",
-        name=_("Mongodb 集群编辑"),
+        name=_("Mongodb 集群元数据编辑"),
         name_en="mongodb_edit",
+        description=_("编辑集群的标签、别名、备注、容灾要求、地域信息等元数据"),
         type="edit",
+        hidden=True,
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MONGODB],
         group=_("MongoDB"),
@@ -2064,9 +2255,11 @@ class ActionEnum:
 
     SQLSERVER_EDIT = ActionMeta(
         id="sqlserver_edit",
-        name=_("SQLServer 集群编辑"),
+        name=_("SQLServer 集群元数据编辑"),
         name_en="sqlserver_edit",
+        description=_("编辑集群的标签、别名、备注、容灾要求、地域信息等元数据"),
         type="edit",
+        hidden=True,
         related_resource_types=[ResourceEnum.SQLSERVER],
         group=_("SQLServer"),
         subgroup=_("集群管理"),
@@ -2101,7 +2294,7 @@ class ActionEnum:
         name=_("SQLServer 部署"),
         name_en="sqlserver_apply",
         type="execute",
-        related_actions=[DB_MANAGE.id, DBCONFIG_VIEW.id],
+        related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("SQLServer"),
         subgroup=_("集群管理"),
@@ -2203,9 +2396,11 @@ class ActionEnum:
 
     ORACLE_EDIT = ActionMeta(
         id="oracle_edit",
-        name=_("Oracle 集群编辑"),
+        name=_("Oracle 集群元数据编辑"),
         name_en="oracle_edit",
+        description=_("编辑集群的标签、别名、备注、容灾要求、地域信息等元数据"),
         type="edit",
+        hidden=True,
         related_resource_types=[ResourceEnum.ORACLE],
         group=_("Oracle"),
         subgroup=_("集群管理"),
@@ -2508,18 +2703,6 @@ class ActionEnum:
         group=_("业务配置"),
         subgroup=_("风险备忘录"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
-    )
-
-    GLOBAL_DBCONFIG_VIEW = ActionMeta(
-        id="global_dbconfig_view",
-        name=_("全局数据库配置查看"),
-        name_en="global_dbconfig_view",
-        type="view",
-        related_actions=[GLOBAL_MANAGE.id],
-        related_resource_types=[ResourceEnum.DBTYPE],
-        group=_("全局设置"),
-        subgroup=_("数据库配置"),
-        hidden=True,
     )
 
     DBA_ADMINISTRATOR_EDIT = ActionMeta(

@@ -58,7 +58,6 @@ class PromQLQueryInputSerializer(serializers.Serializer):
     filters = PromQLFilterSerializer(
         many=True,
         required=False,
-        default=[],
         help_text=_("label 过滤条件"),
     )
     group_by = serializers.ListField(

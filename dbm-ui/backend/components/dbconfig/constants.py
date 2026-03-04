@@ -23,6 +23,7 @@ class LevelName(StrStructuredEnum):
     MODULE = EnumField("module", _("模块层级"))
     CLUSTER = EnumField("cluster", _("集群层级"))
     INSTANCE = EnumField("instance", _("实例层级"))
+    CLOUD = EnumField("bk_cloud_id", _("云区域层级"))
 
 
 class ConfType(StrStructuredEnum):
@@ -32,6 +33,11 @@ class ConfType(StrStructuredEnum):
     DBCONF = EnumField("dbconf", _("数据库配置"))
     BACKUP = EnumField("backup", _("备份配置"))
     PROXY = EnumField("proxyconf", _("Proxy配置"))
+    CONFIG = EnumField("config", _("公共配置"))
+    MYSQL_MONITOR = EnumField("mysql_monitor", _("MySQL监控配置"))
+    CHECKSUM = EnumField("checksum", _("Checksum配置"))
+    BACKUP_CLIENT = EnumField("backup_client", _("备份客户端配置"))
+    ALARM = EnumField("alarm", _("告警配置"))
 
 
 class OpType(StrStructuredEnum):
@@ -57,6 +63,46 @@ class FormatType(StrStructuredEnum):
     LIST = EnumField("list", _("列表"))
     MAP = EnumField("map", _("字典"))
     MAP_LEVEL = EnumField("map.", _("分级字典"))
+
+
+class ConfFile(StrStructuredEnum):
+    """配置文件枚举
+
+    MySQL:
+      存储层参数: conf_type=dbconf, conf_file=MySQL-XX (如 MySQL-5.7)
+      接入层参数: conf_type=dbconf, conf_file=Spider-xxx (仅 tendbcluster)
+    Redis:
+      存储层参数: conf_type=dbconf, conf_file=Redis-XX / TendisSSD-xxx / Tendisplus-xxx
+      代理参数: conf_type=proxyconf, conf_file=Twemproxy-latest / Predixy-latest
+    MongoDB:
+      集群参数: conf_type=dbconf, conf_file=Mongodb-X (大版本号, 如 Mongodb-6)
+    ES/Kafka/HDFS/Pulsar/Doris:
+      conf_type=dbconf, conf_file=x.x.x (版本号)
+    """
+
+    DEPLOY_INFO = EnumField("deploy_info", _("部署信息"))
+    # ----- MySQL -----
+    ITEMS_CONFIG = EnumField("items-config.yaml", _("本地监控配置"))
+    DBBACKUP_INI = EnumField("dbbackup.ini", _("全备配置选项"))
+    DBBACKUP_OPTIONS = EnumField("dbbackup.options", _("全备控制选项"))
+    BINLOG_ROTATE = EnumField("binlog_rotate.yaml", _("Binlog备份配置"))
+    CHECKSUM = EnumField("checksum.yaml", _("校验配置"))
+    COSINFO = EnumField("cosinfo.toml", _("备份远程存储配置"))
+
+    # ----- Redis -----
+    BACKUP = EnumField("backup", _("备份参数"))
+    FULLBACKUP = EnumField("fullbackup", _("全备参数"))
+    BINLOGBACKUP = EnumField("binlogbackup", _("Binlog备份参数"))
+    MONITOR = EnumField("monitor", _("监控参数"))
+    TWEMPROXY = EnumField("Twemproxy-latest", _("Twemproxy代理配置"))
+    PREDIXY = EnumField("Predixy-latest", _("Predixy代理配置"))
+
+    # ----- MongoDB -----
+    OSCONF = EnumField("osconf", _("OS公共配置"))
+
+    # ----- SQLServer -----
+    DBBACKUP_CONF = EnumField("dbbackup.conf", _("备份配置"))
+    ALARM_CONF = EnumField("alarm.conf", _("告警配置"))
 
 
 class MysqlDefaultDeployConfig:

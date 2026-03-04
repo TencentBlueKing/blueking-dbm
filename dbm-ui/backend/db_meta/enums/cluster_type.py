@@ -71,7 +71,7 @@ class ClusterType(StrStructuredEnum):
     K8sQdrantHa = EnumField("k8s_qdrant_ha", _("k8s Qdrant集群版"))
 
     @classmethod
-    def db_type_cluster_types_map(cls) -> Dict[str, List]:
+    def db_type_cluster_types_map(cls) -> Dict:
         """
         :return: key为数据库类型的字符串，value为群类型列表
         """

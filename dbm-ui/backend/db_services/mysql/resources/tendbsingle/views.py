@@ -98,6 +98,7 @@ class DBSingleViewSet(viewsets.ResourceViewSet):
         ActionEnum.MYSQL_DUMP_DATA,
         ActionEnum.MYSQL_WEBCONSOLE,
         ActionEnum.MYSQL_SUBSCRIBE_MONITOR,
+        ActionEnum.MYSQL_DBCONFIG_EDIT,
     ]
     list_instance_perm_actions = [ActionEnum.MYSQL_VIEW]
     list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]

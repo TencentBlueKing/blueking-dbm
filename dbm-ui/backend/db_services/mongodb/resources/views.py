@@ -115,6 +115,7 @@ class MongoDBViewSet(ResourceViewSet):
         ActionEnum.MONGODB_SOURCE_ACCESS_VIEW,
         ActionEnum.MONGODB_SUBSCRIBE_MONITOR,
         ActionEnum.MONGODB_ACCESS_ENTRY_VIEW,
+        ActionEnum.MONGODB_DBCONFIG_EDIT,
     ]
     list_instance_perm_actions = [ActionEnum.MONGODB_VIEW]
 

@@ -30,9 +30,27 @@ LIST_CONF_NAME_DATA = {
 }
 
 LIST_PLATFORM_CONFIGS = [
-    {"conf_file_lc": "5.7配置test", "conf_file": MYSQL_CONF_VERSION1, "updated_at": UPDATED_AT, "updated_by": OPERATOR},
-    {"conf_file_lc": "5.8配置test", "conf_file": MYSQL_CONF_VERSION2, "updated_at": UPDATED_AT, "updated_by": OPERATOR},
-    {"conf_file_lc": "5.9配置test", "conf_file": MYSQL_CONF_VERSION3, "updated_at": UPDATED_AT, "updated_by": OPERATOR},
+    {
+        "conf_file_lc": "5.7配置test",
+        "conf_file": MYSQL_CONF_VERSION1,
+        "updated_at": UPDATED_AT,
+        "updated_by": OPERATOR,
+        "description": "5.7配置test",
+    },
+    {
+        "conf_file_lc": "5.8配置test",
+        "conf_file": MYSQL_CONF_VERSION2,
+        "updated_at": UPDATED_AT,
+        "updated_by": OPERATOR,
+        "description": "5.8配置test",
+    },
+    {
+        "conf_file_lc": "5.9配置test",
+        "conf_file": MYSQL_CONF_VERSION3,
+        "updated_at": UPDATED_AT,
+        "updated_by": OPERATOR,
+        "description": "5.9配置test",
+    },
 ]
 
 CONF_FILE_DATA = {
@@ -133,6 +151,32 @@ class DBConfigApiMock(object):
         for config in data["conf_names"].values():
             config["info"] = f"{conf_type}-{namespace}-{conf_file}"
         return data
+
+    @classmethod
+    def list_conf_name_types(cls, *args, **kwargs):
+        return {
+            "BOOL": ["ENUM", ""],
+            "FLOAT": ["ENUM", "", "RANGE"],
+            "INT": ["ENUM", "", "RANGE"],
+            "NUMBER": ["ENUM", "", "RANGE"],
+            "STRING": [
+                "",
+                "STRING",
+                "ENUM",
+                "ENUMS",
+                "BYTES",
+                "DURATION",
+                "REGEX",
+                "JSON",
+                "MAP",
+                "LIST",
+                "GOVALIDATE",
+            ],
+        }
+
+    @classmethod
+    def validate_conf_item(cls, *args, **kwargs):
+        return {"valid": True}
 
     @classmethod
     def query_conf_item(cls, *args, **kwargs):

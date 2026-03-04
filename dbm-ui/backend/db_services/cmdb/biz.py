@@ -94,6 +94,16 @@ def list_modules_by_biz(bk_biz_id: int, cluster_type: str) -> List[Dict]:
     ]
 
 
+def is_db_module_unique(bk_biz_id: int, db_module_name: str, cluster_type: str) -> bool:
+    """
+    校验 (bk_biz_id, db_module_name, cluster_type) 三元组下是否唯一(尚未存在同名模块)
+    与 DBModule.Meta.unique_together 一致
+    """
+    return not DBModule.objects.filter(
+        bk_biz_id=bk_biz_id, db_module_name=db_module_name, cluster_type=cluster_type
+    ).exists()
+
+
 def set_db_app_abbr(bk_biz_id: int, db_app_abbr: str):
     # 此处使用管理员账户请求(use_admin=True)，不校验用户对CMDB是否有查询/修改权限，在view层校验用户是否有修改英文缩写权限即可
     # 检查英文缩写是否已存在
