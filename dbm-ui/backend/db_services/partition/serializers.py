@@ -17,7 +17,7 @@ from backend.db_meta.models import AppCache, Cluster
 
 from ...ticket.builders.common.field import DBTimezoneField
 from ...ticket.builders.mysql.base import DBTableField
-from ...ticket.builders.mysql.mysql_partition import PartitionV2ConfObjectSerializer
+from ...ticket.builders.mysql.mysql_partition import PartitionObjectSerializer
 from . import mock
 
 
@@ -106,20 +106,6 @@ class PartitionUpdateSerializer(PartitionCreateSerializer):
     pass
 
 
-class PartitionReinitializeSerializer(PartitionCreateSerializer):
-    cluster_id = serializers.IntegerField(help_text=_("云区域ID"))
-    dblikes = serializers.ListField(help_text=_("匹配库列表(支持通配)"), child=DBTableField(db_field=True))
-    tblikes = serializers.ListField(help_text=_("匹配表列表(不支持通配)"), child=DBTableField())
-    partition_column = serializers.CharField(help_text=_("分区字段"))
-    partition_column_type = serializers.CharField(help_text=_("分区字段类型"))
-    expire_time = serializers.IntegerField(help_text=_("过期时间"))
-    partition_time_interval = serializers.IntegerField(help_text=_("分区间隔"))
-    extra_partition = serializers.IntegerField(help_text=_("预留分区数"))
-    need_dry_run = serializers.BooleanField(help_text=_("是否需要获取分区执行数据"), required=False, default=True)
-    auto_commit = serializers.BooleanField(help_text=_("是否自动创建单据"), required=False, default=False)
-    force = serializers.BooleanField(help_text=_("否表示是否强制执行,True 表示重新初始化"), required=False, default=False)
-
-
 class PartitionDisableSerializer(serializers.Serializer):
     cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
@@ -188,9 +174,9 @@ class PartitionBatchDryRunResponseSerializer(serializers.Serializer):
 
 
 class PartitionRunSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
-    partition_infos = serializers.DictField(
-        help_text=_("分区信息列表"), child=serializers.ListSerializer(child=PartitionV2ConfObjectSerializer())
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    partition_objects = serializers.DictField(
+        help_text=_("分区执行对象列表"), child=serializers.ListSerializer(child=PartitionObjectSerializer())
     )
 
 
@@ -272,12 +258,3 @@ class PartitionExportResponseSerializer(serializers.Serializer):
 
     class Meta:
         swagger_schema_fields = {"description": _("分区策略导出结果")}
-
-
-class PartitionLogDetailSerializer(serializers.Serializer):
-    """分区日志详情序列化器"""
-
-    config_id = serializers.ListSerializer(child=serializers.IntegerField(), help_text=_("分区策略ID"))
-
-    class Meta:
-        swagger_schema_fields = {"description": _("分区执行失败日志详情")}
