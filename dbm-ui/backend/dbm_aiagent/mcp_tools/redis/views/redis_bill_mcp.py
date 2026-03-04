@@ -114,7 +114,7 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
     def submit_bill_redis_proxy_reduce(self, request, *args, **kwargs):
         bk_biz_id = self.get_param("bk_biz_id")
         cluster_domain = self.get_param("cluster_domain")
-        proxy_change_count = self.get_param("proxy_change_count")
+        proxy_change_count = abs(int(self.get_param("proxy_change_count")))
 
         return Response(redis_proxy_reduce(request, bk_biz_id, cluster_domain, proxy_change_count))
 
