@@ -69,7 +69,7 @@
     defaultParams: [
       {
         root_id: props.data.flow_obj_id,
-        status: props.data.status,
+        status: FlowMode.STATUS_FAILED,
       },
     ],
     manual: Boolean(props.data.err_msg),
