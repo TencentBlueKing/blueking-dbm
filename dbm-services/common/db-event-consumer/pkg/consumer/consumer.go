@@ -34,6 +34,7 @@ type AnySinker struct {
 	strictSchema bool
 }
 
+// Setup run default migrate or custom migrate
 func (s *AnySinker) Setup(sarama.ConsumerGroupSession) error {
 	var err error
 	if s.Sinker.RuntimeConfig.SkipMigrateSchema || !s.strictSchema {
