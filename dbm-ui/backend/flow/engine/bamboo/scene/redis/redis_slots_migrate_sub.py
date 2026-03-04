@@ -254,7 +254,7 @@ def redis_migrate_slots_4_contraction(root_id: str, flow_data: dict, act_kwargs:
     contraction_kwargs.file_list = trans_files.redis_dbmon()
     contraction_kwargs.exec_ip = src_first_machine
     sub_pipeline.add_act(
-        act_name=_("Redis-{}-下发工具包".format(to_shutdown_first_master_ip)),
+        act_name=_("Redis-{}-下发工具包".format(src_first_machine)),
         act_component_code=TransFileComponent.code,
         kwargs=asdict(contraction_kwargs),
     )
