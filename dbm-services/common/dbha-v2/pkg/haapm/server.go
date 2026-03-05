@@ -50,7 +50,7 @@ type ServerConfig struct {
 	ReadTimeout  time.Duration // Read timeout
 	WriteTimeout time.Duration // Write timeout
 	MetricsPath  string        // Path for Prometheus scrape; default "/metrics"
-	HealthPath   string        // Path for health check; default "/health", empty to disable
+	HealthPath   string        // Path for health check; default "/health"
 }
 
 // Server exposes Prometheus metrics over HTTP (service registration + port listening).
@@ -104,7 +104,7 @@ func (s *Server) Register(metrics ...interface{}) *Server {
 	}
 	for _, m := range metrics {
 		if err := s.registerMetric(m); err != nil {
-			logger.Warn("haapm Register skip metric: %s", err)
+			logger.Warn("haapm Register skip metric, errmsg: %s", err)
 		}
 	}
 	return s
