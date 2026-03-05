@@ -198,6 +198,8 @@ MIDDLEWARE = (
     # dbm登录中间件
     # "blueapps.account.middlewares.LoginRequiredMiddleware",
     "backend.bk_web.middleware.DBMLoginRequiredMiddleware",
+    # 多租户 cookie 中间件（仅运营租户生效，登录后种植租户cookie供接入层路由）
+    "backend.bk_web.middleware.TenantCookieMiddleware",
     # exception middleware
     "blueapps.core.exceptions.middleware.AppExceptionMiddleware",
     # django国际化中间件
