@@ -186,6 +186,7 @@ class PartitionColumnVerifySerializer(serializers.Serializer):
     dblikes = serializers.ListField(help_text=_("匹配库列表(支持通配)"), child=DBTableField(db_field=True))
     tblikes = serializers.ListField(help_text=_("匹配表列表(不支持通配)"), child=DBTableField())
     partition_column = serializers.CharField(help_text=_("分区字段"))
+    partition_column_type = serializers.CharField(help_text=_("分区字段类型"))
 
     def validate(self, attrs):
         return attrs
