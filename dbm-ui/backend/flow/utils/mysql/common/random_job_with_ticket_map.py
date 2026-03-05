@@ -61,6 +61,10 @@ random_job_with_ticket_map = {
     TicketType.TENDBCLUSTER_SEMANTIC_CHECK: RuleDict(is_tdbctl_primary_add=True),
     # tendb_cluster集群TDBCTL升级添加账号规则
     TicketType.TENDBCLUSTER_TDBCTL_UPGRADE: RuleDict(is_all_tdbctl_add=True),
+    # tendb_cluster集群表结构修复添加账号规则
+    TicketType.TENDBCLUSTER_SCHEMA_REPAIR: RuleDict(is_tdbctl_primary_add=True),
+    # tendb_cluster集群表结构校验添加账号规则
+    TicketType.TENDBCLUSTER_SCHEMA_CHECK: RuleDict(is_tdbctl_primary_add=True),
 }
 
 """

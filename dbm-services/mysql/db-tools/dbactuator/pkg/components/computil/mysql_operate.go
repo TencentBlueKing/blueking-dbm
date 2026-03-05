@@ -35,8 +35,8 @@ import (
 type StartMySQLParam struct {
 	MediaDir        string // /usr/local/mysql/bin MySQL安装目录
 	MyCnfName       string // 必须参数，需要指定启动配置文件
-	MySQLUser       string // use for check mysqld start successuly
-	MySQLPwd        string // use for check mysqld start successuly
+	MySQLUser       string // use for check mysqld start successfully
+	MySQLPwd        string // use for check mysqld start successfully
 	Socket          string // 如果socket参数存在，优先使用socket去连接mysql探测
 	Host            string // 如果socket参数不存在,则使用ip,port 方式去连接探测
 	Port            int    // 如果socket参数不存在,则使用ip,port 方式去连接探测
@@ -44,7 +44,7 @@ type StartMySQLParam struct {
 	SkipGrantTables bool   // --skip-grant-tables
 }
 
-// RestartMysqlInstanceNormal  nomarl restart  mysql instance
+// RestartMysqlInstanceNormal normal restart  mysql instance
 func RestartMysqlInstanceNormal(inst native.InsObject) error {
 	mycnf := util.GetMyCnfFileName(inst.Port)
 	startParam := StartMySQLParam{
@@ -297,7 +297,7 @@ func (param ShutdownMySQLParam) ForceShutDownMySQL() (err error) {
 		logger.Info("使用TCP连接关闭MySQL, host: %s, port: %d", param.Host, param.Port)
 	} else {
 		logger.Error("缺少必要的连接参数, socket: %s, host: %s, port: %d", param.Socket, param.Host, param.Port)
-		return errors.Errorf("no socket file givien")
+		return errors.Errorf("no socket file given")
 	}
 
 	// shellCMD := fmt.Sprintf("mysqladmin -u%s -p%s -S%s shutdown", param.MySQLUser, param.MySQLPwd, param.Socket)
@@ -393,22 +393,22 @@ func KillReMindMySQLClient(regexpStr string) error {
 	if strings.TrimSpace(regexpStr) == "" {
 		return errors.New("grep 参数为空，不允许！！！")
 	}
-	killComand := fmt.Sprintf(
+	killCommand := fmt.Sprintf(
 		"ps -efwww|grep ' %s '|grep -Ev mysqld|grep mysql|grep -Ev grep |awk '{print $2}'|xargs  kill -9", regexpStr,
 	)
-	logger.Info(" kill command is %s", killComand)
-	_, err = osutil.ExecShellCommand(false, killComand)
+	logger.Info(" kill command is %s", killCommand)
+	_, err = osutil.ExecShellCommand(false, killCommand)
 	if err != nil {
-		logger.Error("execute %s get an error:%s", killComand, err.Error())
+		logger.Error("execute %s get an error:%s", killCommand, err.Error())
 	}
-	killSocketComand := fmt.Sprintf(
+	killSocketCommand := fmt.Sprintf(
 		"ps -efwww|grep '%s'|grep -Ev 'mysqld |mysqld_safe'|grep mysql|grep mysql.sock|grep -Ev grep |awk '{print $2}'|xargs  kill -9",
 		regexpStr,
 	)
-	logger.Info(" kill command is %s", killSocketComand)
-	_, err = osutil.ExecShellCommand(false, killSocketComand)
+	logger.Info(" kill command is %s", killSocketCommand)
+	_, err = osutil.ExecShellCommand(false, killSocketCommand)
 	if err != nil {
-		logger.Error("execute %s get an error:%s", killComand, err.Error())
+		logger.Error("execute %s get an error:%s", killCommand, err.Error())
 	}
 	return err
 }

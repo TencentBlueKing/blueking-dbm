@@ -18,9 +18,9 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
-	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/computil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 )
@@ -145,7 +145,7 @@ func (r *TableSchemaCheckComp) checkAll() (err error) {
 		logger.Error("exec show database failed: %s", err.Error())
 		return err
 	}
-	for _, db := range util.FilterOutStringSlice(dbs, cmutil.GetMysqlSystemDatabases(r.version)) {
+	for _, db := range util.FilterOutStringSlice(dbs, computil.GetGcsSystemDatabases(r.version)) {
 		if err = r.atomUpdateDbTables(db); err != nil {
 			return err
 		}

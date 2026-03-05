@@ -2519,6 +2519,45 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
+    def get_spider_schema_check_payload(self, **kwargs) -> dict:
+        """
+        spider集群表结构检查
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.SpiderCtl.value,
+            "action": DBActuatorActionEnum.ClusterSchemaCheck.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "port": self.cluster["port"],
+                    "check_all": self.cluster.get("check_all", False),
+                    "inconsistency_throws_err": self.cluster.get("inconsistency_throws_err", False),
+                    "check_objects": self.cluster.get("check_objects", []),
+                },
+            },
+        }
+
+    def get_spider_schema_repair_payload(self, **kwargs) -> dict:
+        """
+        spider集群表结构修复
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.SpiderCtl.value,
+            "action": DBActuatorActionEnum.ClusterSchemaRepair.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "port": self.cluster["port"],
+                    "auto_fix": self.cluster.get("auto_fix", False),
+                    "db": self.cluster.get("db", ""),
+                    "tables": self.cluster.get("tables", []),
+                    "dry_run": self.cluster.get("dry_run", False),
+                },
+            },
+        }
+
     def get_partition_v2_payload(self, **kwargs) -> dict:
 
         force = self.ticket_data.get("force", False)
