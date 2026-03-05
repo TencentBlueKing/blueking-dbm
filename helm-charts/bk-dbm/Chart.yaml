@@ -100,6 +100,10 @@ dependencies:
     name: k8s-dbs
     repository: file://charts/k8s-dbs
     version: 2.1.7
+  - condition: tenant-router.enabled
+    name: tenant-router
+    repository: file://charts/tenant-router
+    version: 0.1.0
 description: A Helm chart for bk-dbm
 name: bk-dbm
 type: application

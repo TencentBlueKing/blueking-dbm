@@ -17,7 +17,7 @@ from blueapps.account.handlers.response import ResponseHandler
 from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.clickjacking import xframe_options_exempt
 from rest_framework.decorators import action
@@ -64,6 +64,12 @@ def ping(request):
     return HttpResponse("pong")
 
 
+def tenant_ping(request):
+    """多租户单域名模式下的「租户路由预热」接口。"""
+    tenant_id = getattr(getattr(request, "user", None), "tenant_id", "") or env.BK_TENANT_ID
+    return JsonResponse({"result": True, "code": 0, "data": {"tenant_id": tenant_id}, "message": ""})
+
+
 class LoginSuccessView(APIView):
     template_name = "login_success.html"
     renderer_classes = [TemplateHTMLRenderer]
@@ -84,8 +90,8 @@ class LogOutView(APIView):
         # 走401的logout，让前端拿到登录url
         handler = ResponseHandler(ConfFixture, settings)
         response = handler.build_401_response(request)
-        # 删除cookie
-        cookie_keys = ["bk_ticket", "bk_token", "bk_uid"]
+        # dbm_tenant_id 为多租户单域名路由 cookie，登出需清除，避免换账号/租户后被旧值误路由
+        cookie_keys = ["bk_ticket", "bk_token", "bk_uid", "dbm_tenant_id"]
         host = "".join(request.headers["Host"].split(":")[:1])
         domain = f'.{".".join(host.split(".")[1:])}'
         for _domain in [host, domain]:

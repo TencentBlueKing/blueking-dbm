@@ -21,6 +21,7 @@ from .tools import *  # pylint: disable=wildcard-import
 
 APP_CODE = get_type_env(key="APP_ID", default="bk-dbm", _type=str)
 SECRET_KEY = get_type_env(key="APP_TOKEN", default="xxxx", _type=str)
+# 蓝鲸API admin 用户定义
 DEFAULT_USERNAME = get_type_env(key="DEFAULT_USERNAME", default="admin", _type=str)
 # 环境允许跨域的域名
 CORS_ALLOWED_ORIGINS = get_type_env(key="CORS_ALLOWED_ORIGINS", default=[], _type=list)
@@ -34,6 +35,7 @@ REDIS_PORT = get_type_env(key="REDIS_PORT", _type=int, default=6379)
 REDIS_PASSWORD = get_type_env(key="REDIS_PASSWORD", _type=str, default="")
 REDIS_URL = f"redis://{f':{REDIS_PASSWORD}@' if REDIS_PASSWORD else ''}{REDIS_HOST}:{REDIS_PORT}/1"
 
+CACHE_URL = get_type_env(key="CACHE_URL", default=REDIS_URL, _type=str)
 BROKER_URL = get_type_env(key="BROKER_URL", default=REDIS_URL, _type=str)
 SESSION_COOKIE_DOMAIN = get_type_env(key="SESSION_COOKIE_DOMAIN", default="", _type=str)
 
@@ -43,6 +45,10 @@ ENABLE_BKBASE_INTERNAL_METRICS = get_type_env(key="ENABLE_BKBASE_INTERNAL_METRIC
 ENABLE_MULTI_TENANT_MODE = get_type_env(key="ENABLE_MULTI_TENANT_MODE", _type=bool, default=False)
 ENABLE_BKBASE_METRICS_REPORT = get_type_env(key="ENABLE_BKBASE_METRICS_REPORT", _type=bool, default=False)
 BK_TENANT_ID = get_type_env(key="BK_TENANT_ID", _type=str, default="")
+# 多租户服务域名模板，用于构建租户服务地址
+MULTI_TENANT_SERVICE_DOMAIN_TEMPLATE = get_type_env(
+    key="MULTI_TENANT_SERVICE_DOMAIN_TEMPLATE", _type=str, default="http://bk-dbm.{tenant_id}"
+)
 
 # CC业务模型中的英文业务简称
 BK_APP_ABBR = get_type_env(key="BK_APP_ABBR", _type=str, default="")

@@ -18,8 +18,8 @@ from rest_framework import permissions, views
 
 from backend import env
 from backend.bk_web.swagger import BothHttpAndHttpsSchemaGenerator
-from backend.bk_web.viewsets import ExternalProxyViewSet
-from backend.homepage.views import HomeView, LoginSuccessView, LogOutView, VersionView, ping
+from backend.bk_web.viewsets import ExternalProxyViewSet  # noqa
+from backend.homepage.views import HomeView, LoginSuccessView, LogOutView, VersionView, ping, tenant_ping
 from blueking.bkvision import urls as bkvision_urls
 
 schema_view = get_schema_view(
@@ -107,12 +107,12 @@ if env.ENABLE_EXTERNAL_PROXY or env.ENABLE_OPEN_EXTERNAL_PROXY:
         )
     )
 
-# 前端路由
 vue_patterns = [
     path("login_success.html", LoginSuccessView.as_view()),
     path("logout/", LogOutView.as_view()),
     re_path("^version/?$", VersionView.as_view()),
     re_path("^ping/?$", ping, name="ping"),
+    re_path("^tenant_ping/?$", tenant_ping, name="tenant_ping"),
     re_path("", HomeView.as_view()),
 ]
 urlpatterns += vue_patterns
