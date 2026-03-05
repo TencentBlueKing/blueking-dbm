@@ -366,6 +366,10 @@ class TicketType(StrStructuredEnum):
                                                    _("数据处理"), register_iam=False)  # noqa
     TENDBCLUSTER_SEMANTIC_CHECK = TicketEnumField("TENDBCLUSTER_SEMANTIC_CHECK", _("TenDB Cluster 模拟执行"),
                                                   register_iam=False)  # noqa
+    TENDBCLUSTER_SCHEMA_CHECK = TicketEnumField("TENDBCLUSTER_SCHEMA_CHECK", _("TenDB Cluster 表结构校验"),
+                                                _("表结构校验"), register_iam=False)  # noqa
+    TENDBCLUSTER_SCHEMA_REPAIR = TicketEnumField("TENDBCLUSTER_SCHEMA_REPAIR", _("TenDB Cluster 表结构修复"),
+                                                 _("表结构修复"), register_iam=False)  # noqa
     TENDBCLUSTER_SPIDER_ADD_NODES = TicketEnumField("TENDBCLUSTER_SPIDER_ADD_NODES", _("TenDB Cluster 扩容接入层"),
                                                     _("集群维护"))  # noqa
     TENDBCLUSTER_SPIDER_REDUCE_NODES = TicketEnumField("TENDBCLUSTER_SPIDER_REDUCE_NODES",

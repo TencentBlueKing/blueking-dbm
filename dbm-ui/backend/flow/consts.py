@@ -438,6 +438,8 @@ class DBActuatorActionEnum(StrStructuredEnum):
     ImportSchemaToTdbctl = EnumField("import-schema-to-tdbctl", _("import-schema-to-tdbctl"))
     CheckTdbctlWithSpiderSchema = EnumField("check-tdbctl-with-spider-schema", _("check-tdbctl-with-spider-schema"))
     CheckTdbctlWithSpiderRouter = EnumField("check-tdbctl-with-spider-router", _("check-tdbctl-with-spider-router"))
+    ClusterSchemaCheck = EnumField("schema-check", _("schema-check"))
+    ClusterSchemaRepair = EnumField("schema-repair", _("schema-repair"))
     GetBackupFile = EnumField("find-local-backup", _("find-local-backup"))
     RestoreSlave = EnumField("restore-dr", _("restore-dr"))
     StopMysqld = EnumField("stop-mysqld", _("stop-mysqld"))

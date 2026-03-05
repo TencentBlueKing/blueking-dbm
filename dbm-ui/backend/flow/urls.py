@@ -250,6 +250,8 @@ from backend.flow.views.spider_partition import SpiderPartitionSceneApiView
 from backend.flow.views.spider_partition_cron import SpiderPartitionCronSceneApiView
 from backend.flow.views.spider_reduce_mnt import ReduceSpiderMNTSceneApiView
 from backend.flow.views.spider_reduce_nodes import ReduceSpiderNodesSceneApiView
+from backend.flow.views.spider_schema_check import SpiderSchemaCheckSceneApiView
+from backend.flow.views.spider_schema_repair import SpiderSchemaRepairSceneApiView
 from backend.flow.views.spider_semantic_check import SpiderSemanticCheckSceneApiView
 from backend.flow.views.spider_slave_apply import InstallSpiderSlaveClusterSceneApiView
 from backend.flow.views.spider_slave_destroy import DestroySpiderSlaveClusterSceneApiView
@@ -526,6 +528,8 @@ urlpatterns = [
     url(r"^scene/install_tendb_cluster$", InstallSpiderClusterSceneApiView.as_view()),
     url(r"^scene/destroy_tendb_cluster$", DestroySpiderClusterSceneApiView.as_view()),
     url(r"^scene/spider_checksum$", SpiderChecksumSceneApiView.as_view()),
+    url(r"^scene/spider_schema_check$", SpiderSchemaCheckSceneApiView.as_view()),
+    url(r"^scene/spider_schema_repair$", SpiderSchemaRepairSceneApiView.as_view()),
     url(r"^scene/disable_spider_cluster$", DisableSpiderSceneApiView.as_view()),
     url(r"^scene/enable_spider_cluster$", EnableSpiderSceneApiView.as_view()),
     url(r"^scene/install_tendb_slave_cluster$", InstallSpiderSlaveClusterSceneApiView.as_view()),

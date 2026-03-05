@@ -39,6 +39,8 @@ from backend.flow.engine.bamboo.scene.spider.spider_remote_master_slave_migrate 
 from backend.flow.engine.bamboo.scene.spider.spider_remote_slave_recover import TenDBRemoteSlaveRecoverFlow
 from backend.flow.engine.bamboo.scene.spider.spider_remotedb_rebalance_flow import TenDBRemoteRebalanceFlow
 from backend.flow.engine.bamboo.scene.spider.spider_rename_database_flow import SpiderRenameDatabaseFlow
+from backend.flow.engine.bamboo.scene.spider.spider_schema_check import SpiderSchemaCheckFlow
+from backend.flow.engine.bamboo.scene.spider.spider_schema_repair import SpiderSchemaRepairFlow
 from backend.flow.engine.bamboo.scene.spider.spider_slave_cluster_deploy import TenDBSlaveClusterApplyFlow
 from backend.flow.engine.bamboo.scene.spider.spider_slave_cluster_destroy import TenDBSlaveClusterDestroyFlow
 from backend.flow.engine.bamboo.scene.spider.spider_switch_nodes import TenDBClusterSwitchNodesFlow
@@ -101,6 +103,20 @@ class SpiderController(BaseController):
         """
         flow = SpiderChecksumFlow(root_id=self.root_id, data=self.ticket_data)
         flow.spider_checksum_flow()
+
+    def spider_schema_check_scene(self):
+        """
+        spider 集群表结构校验场景
+        """
+        flow = SpiderSchemaCheckFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.spider_schema_check_flow()
+
+    def spider_schema_repair_scene(self):
+        """
+        spider 集群表结构修复场景
+        """
+        flow = SpiderSchemaRepairFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.spider_schema_repair_flow()
 
     def spider_partition(self):
         """
