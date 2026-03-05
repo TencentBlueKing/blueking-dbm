@@ -1,0 +1,85 @@
+{{/* 多租户接入层路由 nginx 配置。仅入口 release(tenant-router.enabled) + 多租户环境下渲染 */}}
+{{- if and .Values.global.enableMultiTenantMode (index .Values "tenant-router" "enabled") -}}
+{{- $tr := index .Values "tenant-router" -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bk-dbm-tenant-router-configmap
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+  annotations:
+    reloader.stakater.com/match: "true"
+data:
+  nginx.conf: |
+    worker_processes auto;
+    events {
+        worker_connections 10240;
+    }
+    http {
+        resolver {{ $tr.resolver }} valid=10s ipv6=off;
+
+        # websocket / SSE 连接升级
+        map $http_upgrade $connection_upgrade {
+            default upgrade;
+            ''      close;
+        }
+
+        # 路由键：API 请求带 X-Bk-Tenant-Id header（优先），用户请求带 dbm_tenant_id cookie（兜底）
+        map $http_x_bk_tenant_id $tenant_id {
+            default $cookie_dbm_tenant_id;
+            "~.+"   $http_x_bk_tenant_id;
+        }
+
+        # 租户ID -> 目标 namespace（无匹配则落引导 namespace 做登录引导）
+        map $tenant_id $tenant_ns {
+            default {{ $tr.bootstrapNamespace }};
+        {{- range $tr.tenants }}
+            {{ .id }} {{ .namespace }};
+        {{- end }}
+        }
+
+        # 入口域名 -> 目标服务：dbm-api 域名（云区域组件 dns/dbha 等 API，走专用 CLB）路由到各租户
+        # backend-api 分流实例；其余（前端 dbm 域名，cookie 用户）路由到 saas-api。
+        map $host $tenant_svc {
+            default {{ $tr.saasServiceName }};
+        {{- $backendApi := index $tr "ingressBackendApi" }}
+        {{- if and $backendApi $backendApi.enabled $backendApi.hostname }}
+            {{ $backendApi.hostname }} {{ $tr.backendApiServiceName }};
+        {{- end }}
+        }
+
+        server {
+            listen 80;
+            client_max_body_size {{ $tr.maxBodySize }};
+
+            set_real_ip_from 0.0.0.0/0;
+            real_ip_header X-Forwarded-For;
+            real_ip_recursive on;
+
+            location / {
+                # 目标 = 服务(按域名) . namespace(按租户)，两者正交组合
+                set $backend "$tenant_svc.$tenant_ns.svc.cluster.local";
+
+                proxy_http_version 1.1;
+                proxy_set_header Host               $host;
+                proxy_set_header X-Real-IP          $remote_addr;
+                proxy_set_header X-Forwarded-For    $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto  $scheme;
+                # 统一回填租户头，保证后端始终能拿到租户ID（cookie 场景补 header）
+                proxy_set_header X-Bk-Tenant-Id     $tenant_id;
+                proxy_set_header Upgrade            $http_upgrade;
+                proxy_set_header Connection         $connection_upgrade;
+
+                proxy_read_timeout  {{ $tr.proxyTimeout }}s;
+                proxy_send_timeout  {{ $tr.proxyTimeout }}s;
+                # 关闭缓冲，原生支持文件流/SSE/grafana 长连接
+                proxy_buffering     off;
+                proxy_request_buffering off;
+
+                proxy_pass http://$backend:{{ $tr.service.port }};
+            }
+        }
+    }
+{{- end }}

@@ -1,4 +1,5 @@
-{{- if .Values.ingress.enabled -}}
+{{/* 多租户环境(单域名)下流量统一走 tenant-router，不再暴露 dbm 自身对外 Ingress */}}
+{{- if and .Values.ingress.enabled (not .Values.global.enableMultiTenantMode) -}}
 {{- /* 子域名 / 子路径切换：总开关 dbm.subpath.enabled=false（默认）沿用原「子域名模式」（ingress 直接渲染，独立 host + 根路径）；
        =true 则切换到「子路径模式」。下方 else 分支为原渲染逻辑，保持不变 */ -}}
 {{- $master := .Values.subpath | default dict -}}
