@@ -1,5 +1,5 @@
 {{- if .Values.saas.backendApi.autoscaling.enabled }}
-apiVersion: autoscaling/v2beta1
+apiVersion: {{ include "dbm.capabilities.hpa.apiVersion" (dict "context" .) }}
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ include "dbm.backend-api.fullname" . }}
@@ -17,12 +17,24 @@ spec:
     - type: Resource
       resource:
         name: cpu
+        {{- if semverCompare "<1.23-0" .Capabilities.KubeVersion.GitVersion }}
         targetAverageUtilization: {{ .Values.saas.backendApi.autoscaling.targetCPUUtilizationPercentage }}
+        {{- else }}
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.saas.backendApi.autoscaling.targetCPUUtilizationPercentage }}
+        {{- end }}
     {{- end }}
     {{- if .Values.saas.backendApi.autoscaling.targetMemoryUtilizationPercentage }}
     - type: Resource
       resource:
         name: memory
+        {{- if semverCompare "<1.23-0" .Capabilities.KubeVersion.GitVersion }}
         targetAverageUtilization: {{ .Values.saas.backendApi.autoscaling.targetMemoryUtilizationPercentage }}
+        {{- else }}
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.saas.backendApi.autoscaling.targetMemoryUtilizationPercentage }}
+        {{- end }}
     {{- end }}
 {{- end }}

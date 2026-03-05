@@ -19,49 +19,49 @@ dependencies:
   version: 7.9.8
 - name: dbm
   repository: file://charts/dbm
-  version: 0.1.50
+  version: 0.1.51
 - name: dbconfig
   repository: file://charts/dbconfig
-  version: 0.1.13
+  version: 0.1.14
 - name: dbpriv
   repository: file://charts/dbpriv
-  version: 0.1.33
+  version: 0.1.34
 - name: dbpartition
   repository: file://charts/dbpartition
-  version: 0.1.16
+  version: 0.1.17
 - name: db-simulation
   repository: file://charts/db-simulation
-  version: 0.1.11
+  version: 0.1.12
 - name: db-dns-api
   repository: file://charts/db-dns-api
   version: 0.1.7
 - name: hadb-api
   repository: file://charts/hadb-api
-  version: 0.0.11
+  version: 0.0.12
 - name: db-resource
   repository: file://charts/db-resource
-  version: 0.0.11
+  version: 0.0.12
 - name: db-celery-service
   repository: file://charts/db-celery-service
-  version: 0.0.10
+  version: 0.0.11
 - name: slow-query-parser-service
   repository: file://charts/slow-query-parser-service
-  version: 0.0.4
+  version: 0.0.5
 - name: backup-server
   repository: file://charts/backup-server
-  version: 0.0.5
+  version: 0.0.6
 - name: backup-consumer
   repository: file://charts/backup-consumer
-  version: 0.0.4
+  version: 0.0.5
 - name: bkdata-kafka-consumer
   repository: file://charts/bkdata-kafka-consumer
-  version: 0.0.8
+  version: 0.0.9
 - name: db-event-consumer
   repository: file://charts/db-event-consumer
-  version: 0.0.13
+  version: 0.0.14
 - name: db-remote-service
   repository: file://charts/db-remote-service
-  version: 0.9.5
+  version: 0.9.6
 - name: db-dns
   repository: file://charts/db-dns
   version: 0.1.0
@@ -74,5 +74,5 @@ dependencies:
 - name: k8s-dbs
   repository: file://charts/k8s-dbs
   version: 2.1.7
-digest: sha256:bf6209440576cbe246eb7aabd8a458daef756198f207e54121b54b14cba36fa6
-generated: "2026-02-06T16:53:16.772127451+08:00"
+digest: sha256:ed857aae495777ef6c760f6d4734888f8aa3e3cde6338c4ff29d3773d36f047c
+generated: "2026-03-05T14:43:12.313338+08:00"

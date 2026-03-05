@@ -27,23 +27,23 @@ dependencies:
   - condition: dbm.enabled
     name: dbm
     repository: file://charts/dbm
-    version: 0.1.50
+    version: 0.1.51
   - condition: dbconfig.enabled
     name: dbconfig
     repository: file://charts/dbconfig
-    version: 0.1.13
+    version: 0.1.14
   - condition: dbpriv.enabled
     name: dbpriv
     repository: file://charts/dbpriv
-    version: 0.1.33
+    version: 0.1.34
   - condition: dbpartition.enabled
     name: dbpartition
     repository: file://charts/dbpartition
-    version: 0.1.16
+    version: 0.1.17
   - condition: db-simulation.enabled
     name: db-simulation
     repository: file://charts/db-simulation
-    version: 0.1.11
+    version: 0.1.12
   - condition: db-dns-api.enabled
     name: db-dns-api
     repository: file://charts/db-dns-api
@@ -51,39 +51,39 @@ dependencies:
   - condition: hadb-api.enabled
     name: hadb-api
     repository: file://charts/hadb-api
-    version: 0.0.11
+    version: 0.0.12
   - condition: db-resource.enabled
     name: db-resource
     repository: file://charts/db-resource
-    version: 0.0.11
+    version: 0.0.12
   - condition: db-celery-service.enabled
     name: db-celery-service
     repository: file://charts/db-celery-service
-    version: 0.0.10
+    version: 0.0.11
   - condition: slow-query-parser-service.enabled
     name: slow-query-parser-service
     repository: file://charts/slow-query-parser-service
-    version: 0.0.4
+    version: 0.0.5
   - condition: backup-server.enabled
     name: backup-server
     repository: file://charts/backup-server
-    version: 0.0.5
+    version: 0.0.6
   - condition: backup-consumer.enabled
     name: backup-consumer
     repository: file://charts/backup-consumer
-    version: 0.0.4
+    version: 0.0.5
   - condition: bkdata-kafka-consumer.enabled
     name: bkdata-kafka-consumer
     repository: file://charts/bkdata-kafka-consumer
-    version: 0.0.8
+    version: 0.0.9
   - condition: db-event-consumer.enabled
     name: db-event-consumer
     repository: file://charts/db-event-consumer
-    version: 0.0.13
+    version: 0.0.14
   - condition: global.cloudContainer
     name: db-remote-service
     repository: file://charts/db-remote-service
-    version: 0.9.5
+    version: 0.9.6
   - condition: global.cloudContainer
     name: db-dns
     repository: file://charts/db-dns
@@ -103,5 +103,5 @@ dependencies:
 description: A Helm chart for bk-dbm
 name: bk-dbm
 type: application
-version: 1.5.0-alpha.83
-appVersion: 1.5.0-alpha.83
+version: 1.5.0-tenant.11
+appVersion: 1.5.0-tenant.11
