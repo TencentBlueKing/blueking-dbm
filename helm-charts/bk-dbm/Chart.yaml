@@ -27,7 +27,7 @@ dependencies:
   - condition: dbm.enabled
     name: dbm
     repository: file://charts/dbm
-    version: 0.1.56
+    version: 0.1.57
   - condition: dbconfig.enabled
     name: dbconfig
     repository: file://charts/dbconfig
@@ -100,8 +100,12 @@ dependencies:
     name: k8s-dbs
     repository: file://charts/k8s-dbs
     version: 3.0.2
+  - condition: tenant-router.enabled
+    name: tenant-router
+    repository: file://charts/tenant-router
+    version: 0.1.0
 description: A Helm chart for bk-dbm
 name: bk-dbm
 type: application
-version: 1.5.0-alpha.100
-appVersion: 1.5.0-alpha.100
+version: 1.5.0-community-alpha.10
+appVersion: 1.5.0-community-alpha.10
