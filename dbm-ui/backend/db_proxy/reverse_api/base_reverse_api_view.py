@@ -37,8 +37,13 @@ class IPHasRegisteredPermission(permissions.BasePermission):
         try:
             bk_cloud_id = int(request.query_params.get("bk_cloud_id"))
 
-            # DEBUG或者代理跳过模式下，不校验nginx ip
-            if not env.DEBUG_REVERSE_API and not env.DOMAIN_SKIP_PROXY and not env.CLOUD_CONTAINER_ENABLE:
+            # DEBUG/代理跳过/多租户模式下，不校验nginx ip
+            if (
+                not env.DEBUG_REVERSE_API
+                and not env.DOMAIN_SKIP_PROXY
+                and not env.CLOUD_CONTAINER_ENABLE
+                and not env.ENABLE_MULTI_TENANT_MODE
+            ):
                 validate_nginx_ip(bk_cloud_id, request)
 
             validate_machine_ip(bk_cloud_id, request)
