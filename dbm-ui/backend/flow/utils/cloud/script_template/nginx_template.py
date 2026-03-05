@@ -141,6 +141,8 @@ http {
         # 不能启用 realip：\$remote_addr 必须是真实的 TCP 对端，不能被客户端的 XFF 改写
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$remote_addr;
+        # 非多租户时 tenant_id 为空，必须加引号，否则 nginx 配置校验失败；值为空时 nginx 不会透传该请求头
+        proxy_set_header X-Bk-Tenant-Id '{{tenant_id}}';
 
         location ^~ /apis/proxypass/reverse_api/ {
             set \$args \$args_with_ip;
