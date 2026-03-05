@@ -105,6 +105,7 @@ func RunWithGuard(opt GuardOptions) error {
 			state *os.ProcessState
 			err   error
 		}, 1)
+
 		go func() {
 			state, waitErr := proc.Wait()
 			waitDone <- struct {
@@ -115,6 +116,7 @@ func RunWithGuard(opt GuardOptions) error {
 
 		var state *os.ProcessState
 		var waitErr error
+
 	waitLoop:
 		for {
 			select {
@@ -122,6 +124,7 @@ func RunWithGuard(opt GuardOptions) error {
 				state = result.state
 				waitErr = result.err
 				break waitLoop
+
 			case sig := <-sigC:
 				if sig == syscall.SIGHUP {
 					// Forward SIGHUP to child for config reload; keep waiting
@@ -130,6 +133,7 @@ func RunWithGuard(opt GuardOptions) error {
 					}
 					continue
 				}
+
 				// SIGTERM or SIGINT: kill child and exit
 				_ = childProc.Signal(syscall.SIGTERM)
 				<-waitDone // drain Wait
@@ -140,6 +144,7 @@ func RunWithGuard(opt GuardOptions) error {
 					if !alive {
 						break
 					}
+
 					time.Sleep(200 * time.Millisecond)
 				}
 
