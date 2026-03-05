@@ -133,9 +133,10 @@ class _HCMApi(BaseApi):
         city: str,
         subzone: str,
         os_name: str,
-        device_type: str,
+        device_types: list,
         disk: list,
         count: int,
+        ticket_id: int = None,
     ):
         """
         HCM资源申请规则：
@@ -151,22 +152,15 @@ class _HCMApi(BaseApi):
         hcm_image_map = SystemSettings.get_setting_value(SystemSettingsEnum.HCM_OS_NAME_IMAGE_MAP, default={})
         hcm_image_map = {key.strip().lower(): value for key, value in hcm_image_map.items()}
 
-        # 查询cc的园区需要拿园区映射关系（HCM可能是虚拟园区，要拿映射的真实园区查询）
-        subzone_map = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_SUBZONE_MAP, {})
-        subzones = subzone_map.get(subzone) or [subzone]
-
-        # 根据操作系统名称获取镜像ID
-        image_id = hcm_image_map.get(os_name.strip().lower())
-        if not image_id:
-            raise DataAPIException(_("未找到操作系统{}对应的镜像ID").format(os_name))
-
-        # 查询业务下同地域同机型的任意一个机器云区域实例ID
+        # 查询cc的园区需要拿园区映射关系（HCM可能是虚拟园区，要拿映射的真实园区查询）TODO: 暂不需要约束CC园区
+        # subzone_map = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_SUBZONE_MAP, {})
+        # subzones = subzone_map.get(subzone) or [subzone]
+        # 查询业务下同地域同一批机型的任意一个机器云区域实例ID
         filters = {
             "condition": "AND",
             "rules": [
-                {"field": "bk_svr_device_cls_name", "operator": "equal", "value": device_type},
+                {"field": "bk_svr_device_cls_name", "operator": "in", "value": device_types},
                 {"field": "idc_city_name", "operator": "equal", "value": city},
-                {"field": "sub_zone", "operator": "in", "value": subzones},
             ],
         }
         params = {
@@ -185,6 +179,14 @@ class _HCMApi(BaseApi):
         except BKSubzone.DoesNotExist:
             raise DataAPIException(_("BKSubzone未找到可用区记录: {}").format(subzone))
 
+        # 申请的机型是给定机型列表的首位
+        apply_device_type = device_types[0]
+
+        # 根据操作系统名称获取镜像ID
+        image_id = hcm_image_map.get(os_name.strip().lower())
+        if not image_id:
+            raise DataAPIException(_("未找到操作系统{}对应的镜像ID").format(os_name))
+
         # 预期申请时间定位当前时间+3月(HCM规则?)
         expect_apply_time = str((datetime.now() + timedelta(days=91)).strftime("%Y-%m-%d %H:%M:%S"))
 
@@ -197,7 +199,7 @@ class _HCMApi(BaseApi):
                 "zone": bk_subzone.bk_cloud_zone,
                 # 按机型申请
                 "resource_mode": 0,
-                "device_type": device_type,
+                "device_type": apply_device_type,
                 "image_id": image_id,
                 # 操作系统盘默认高性能云盘-50G
                 "system_disk": {"disk_type": "CLOUD_PREMIUM", "disk_size": 50},
@@ -219,7 +221,7 @@ class _HCMApi(BaseApi):
             "require_type": 6,
             "expect_time": expect_apply_time,
             "suborders": [suborder_params],
-            "remark": _("DBM资源补货申请"),
+            "remark": _("DBM资源补货申请，来源单据ID: {}").format(ticket_id),
         }
         ticket_id = self.create_biz_apply(params=apply_params, use_admin=True)["order_id"]
         return ticket_id

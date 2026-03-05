@@ -15,6 +15,7 @@ from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.serializers import Serializer
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import SystemViewSet
@@ -98,6 +99,8 @@ from backend.iam_app.handlers.drf_perm.base import DBManagePermission
     ),
 )
 class MongoDBViewSet(ResourceViewSet):
+    # 为 schema 生成提供默认 serializer，避免 drf_yasg 调用 get_serializer 时触发断言
+    serializer_class = Serializer
     db_type = DBType.MongoDB
     query_class = MongoDBListRetrieveResource
     query_serializer_class = serializers.ListMongoDBResourceSLZ
@@ -119,7 +122,7 @@ class MongoDBViewSet(ResourceViewSet):
         operation_summary=_("获取实例的角色类型"),
         tags=[constants.RESOURCE_TAG],
     )
-    @action(methods=["GET"], detail=False, serializer_class=None)
+    @action(methods=["GET"], detail=False, serializer_class=Serializer)
     def get_instance_role(self, request, *args, **kwargs):
         storage_role_types = MachineTypeInstanceRoleMap[MachineType.MONGODB]
         proxy_role_types = [AccessLayer.PROXY]
@@ -129,7 +132,7 @@ class MongoDBViewSet(ResourceViewSet):
         operation_summary=_("获取集群访问密码"),
         tags=[constants.RESOURCE_TAG],
     )
-    @action(methods=["GET"], detail=True, url_path="get_password", serializer_class=None)
+    @action(methods=["GET"], detail=True, url_path="get_password", serializer_class=Serializer)
     def get_password(self, request, bk_biz_id: int, cluster_id: int):
         port = None
         domain = None

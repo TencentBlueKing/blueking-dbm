@@ -151,7 +151,7 @@ class TaskFlowHandler:
         获取特定状态节点ID列表
         """
         node_ids = []
-        tree_states = BambooEngine(root_id=self.root_id).get_pipeline_tree_states()
+        tree_states = BambooEngine(root_id=self.root_id).get_pipeline_tree_states() or {}
         activities = tree_states.get("activities", {})
 
         def recurse_activities(current_activities):
@@ -165,6 +165,30 @@ class TaskFlowHandler:
 
         recurse_activities(activities)
         return node_ids
+
+    def get_specific_nodes(self, status: StateType, with_node_name: bool = False) -> List[Dict[str, str]]:
+        """
+        获取特定状态节点详情（节点ID、版本ID、可选节点名称）
+        """
+        # 获取特定状态节点ID列表
+        node_ids = self.get_specific_node_ids(status=status)
+        if not node_ids:
+            return []
+
+        # 获取节点版本ID映射
+        nodes = FlowNode.objects.filter(root_id=self.root_id, node_id__in=node_ids)
+        version_map = {node.node_id: node.version_id for node in nodes}
+
+        # 获取节点名称映射
+        name_map = {}
+        if with_node_name:
+            engine = BambooEngine(root_id=self.root_id)
+            engine.recursion_activity_name(engine.get_pipeline_tree()["activities"], name_map)
+
+        return [
+            {"node_id": node_id, "version_id": version_map.get(node_id), "node_name": name_map.get(node_id, "")}
+            for node_id in node_ids
+        ]
 
     def get_node_histories(self, node_id: str) -> List[Dict[str, Any]]:
         """获取节点历史版本信息"""

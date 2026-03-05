@@ -668,6 +668,13 @@ class ListTicketApplyCountSerializer(serializers.Serializer):
     ticket_ids = serializers.CharField(help_text=_("单据ID(逗号分割)"))
 
 
+class ExportReplenishTicketSerializer(serializers.Serializer):
+    ticket_ids = serializers.ListField(help_text=_("单据ID列表"), child=serializers.IntegerField(), required=False)
+    replenish_record_ids = serializers.ListField(
+        help_text=_("补货记录ID列表"), child=serializers.IntegerField(), required=False
+    )
+
+
 class SetSpecReplenishRatioSerializer(serializers.Serializer):
     ratio_map = serializers.JSONField(help_text=_("补货比例映射"))
 
