@@ -16,7 +16,7 @@ from django_filters import rest_framework as filters
 
 from backend.db_meta.models import Cluster
 from backend.db_services.dbresource.models import ResourceReplenishRecord
-from backend.ticket.constants import TODO_RUNNING_STATUS, TicketStatus, TodoType
+from backend.ticket.constants import TODO_RUNNING_STATUS, TicketStatus, TicketType, TodoType
 from backend.ticket.models import ClusterOperateRecord, InstanceOperateRecord, Ticket, Todo
 
 
@@ -31,6 +31,9 @@ class TicketListFilter(filters.FilterSet):
     bk_biz_ids = filters.CharFilter(field_name="bk_biz_ids", method="filter_bk_biz_ids", label=_("业务ID列表(逗号分隔)"))
     db_type = filters.CharFilter(field_name="db_type", method="filter_db_type", label=_("db类型"))
     replenish = filters.CharFilter(field_name="replenish", method="filter_replenish", label=_("补货记录"))
+    replenish_db_type = filters.CharFilter(
+        field_name="replenish_db_type", method="filter_replenish_db_type", label=_("补货的组件类型")
+    )
 
     class Meta:
         model = Ticket
@@ -50,12 +53,6 @@ class TicketListFilter(filters.FilterSet):
     def filter_db_type(self, queryset, name, value):
         db_types = [db_type for db_type in value.split(",")]
         return queryset.filter(group__in=db_types)
-
-    def filter_replenish(self, queryset, name, value):
-        record_ids = value.split(",")
-        ticket_ids = ResourceReplenishRecord.objects.filter(id__in=record_ids).values_list("ticket_ids", flat=True)
-        ticket_ids = list(itertools.chain(*ticket_ids))
-        return queryset.filter(id__in=ticket_ids)
 
     def filter_ids(self, queryset, name, value):
         ids = list(map(int, value.split(",")))
@@ -107,6 +104,18 @@ class TicketListFilter(filters.FilterSet):
         # 将逗号分隔的字符串转换为整数列表
         biz_ids = [int(x.strip()) for x in value.split(",") if x.strip()]
         return queryset.filter(bk_biz_id__in=biz_ids)
+
+    def filter_replenish(self, queryset, name, value):
+        # 补货记录过滤
+        record_ids = value.split(",")
+        ticket_ids = ResourceReplenishRecord.objects.filter(id__in=record_ids).values_list("ticket_ids", flat=True)
+        ticket_ids = list(itertools.chain(*ticket_ids))
+        return queryset.filter(id__in=ticket_ids)
+
+    def filter_replenish_db_type(self, queryset, name, value):
+        # 补货类型存在details里面，json 过滤会有效率问题。不过考虑补货单数量级不大
+        db_types = value.split(",")
+        return queryset.filter(ticket_type=TicketType.RESOURCE_HCM_REPLENISH, details__db_type__in=db_types)
 
     def order_ticket(self, queryset, name, value):
         return queryset.order_by(value)

@@ -66,9 +66,10 @@ class HCMResourceReplenishService(BaseService):
                 city=city,
                 subzone=subzone,
                 os_name=os_name,
-                device_type=spec.device_class[0],
+                device_type=spec.device_class,
                 disk=[{"disk_type": s["type"], "disk_size": s["min"]} for s in spec.storage_spec if s.get("min")],
                 count=apply_count,
+                ticket_id=ticket.id,
             )
         else:
             # 先判断单据状态，如果已经非失败暂停，则不进行重试(可能是在海磊平台操作了)

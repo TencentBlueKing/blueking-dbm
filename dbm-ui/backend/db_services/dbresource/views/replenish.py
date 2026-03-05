@@ -8,7 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import itertools
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 
+from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -17,20 +21,25 @@ from rest_framework.serializers import Serializer
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.configuration.constants import DBType
+from backend.db_meta.enums.spec import SpecMachineType
 from backend.db_services.dbresource.constants import SWAGGER_TAG
 from backend.db_services.dbresource.filters import ReplenishRecordFilter
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.dbresource.models import ResourceReplenishRecord
 from backend.db_services.dbresource.serializers import (  # CheckFaultHostsSerializer,
     CreateResourceReplenishSerializer,
+    ExportReplenishTicketSerializer,
     ListTicketApplyCountSerializer,
     ReplenishRecordSerializer,
 )
+from backend.db_services.taskflow.handlers import TaskFlowHandler
 from backend.exceptions import ApiRequestError
+from backend.flow.consts import StateType
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
-from backend.ticket.constants import TicketType
-from backend.ticket.models import Ticket
+from backend.ticket.constants import TicketStatus
+from backend.utils.excel import ExcelHandler
 
 
 class DBReplenishViewSet(viewsets.AuditedModelViewSet):
@@ -82,24 +91,99 @@ class DBReplenishViewSet(viewsets.AuditedModelViewSet):
     @action(detail=False, methods=["GET"], serializer_class=ListTicketApplyCountSerializer, filter_class=None)
     def list_ticket_apply_info(self, request):
         data = self.params_validate(self.get_serializer_class())
-        # 获取单据和关联的流程信息
-        tickets = Ticket.objects.prefetch_related("flows").filter(
-            id__in=data["ticket_ids"].split(","), ticket_type=TicketType.RESOURCE_HCM_REPLENISH.value
-        )
-        # 获取补货记录和单据之间的关系
-        replenish_records = ResourceReplenishRecord.objects.all().values("ticket_ids", "id")
-        ticket_replenish_map = {tid: record["id"] for record in replenish_records for tid in record["ticket_ids"]}
-
-        ticket_apply_count_map = {}
-        for ticket in tickets:
-            inner_flow = list(ticket.flows.all())[-1]
-            # 申请数量从需求信息获取，交付数量从流程摘要获取
-            delivery_count = len(inner_flow.output_data[0]["values"]) if inner_flow.output_data else 0
-            ticket_apply_count_map[ticket.id] = {
-                "apply_count": ticket.details["count"],
-                "delivery_count": delivery_count,
-                "details": ticket.details,
-                "record_id": ticket_replenish_map.get(ticket.id, ""),
-            }
-
+        ticket_ids = [int(ticket_id) for ticket_id in data["ticket_ids"].split(",") if ticket_id.strip()]
+        ticket_apply_count_map = ResourceHandler.get_replenish_ticket_apply_info_map(ticket_ids)
         return Response(ticket_apply_count_map)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("导出补货单据Excel"),
+        request_body=ExportReplenishTicketSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(detail=False, methods=["POST"], serializer_class=ExportReplenishTicketSerializer, filter_class=None)
+    def export_replenish_tickets(self, request):
+        data = self.params_validate(self.get_serializer_class())
+        ticket_ids = data.get("ticket_ids", [])
+        records = ResourceReplenishRecord.objects.filter(id__in=data.get("replenish_record_ids", []))
+        ticket_ids.extend(itertools.chain(*list(records.values_list("ticket_ids", flat=True))))
+
+        if not ticket_ids:
+            raise ValueError(_("不存在需要导出的补货单据"))
+
+        ticket_apply_count_map = ResourceHandler.get_replenish_ticket_apply_info_map(ticket_ids, runtime_info=True)
+
+        rows = []
+        error_log_map = {}
+
+        def _query_ticket_error_log(ticket_id):
+            info = ticket_apply_count_map.get(ticket_id, {})
+            ticket = info.get("ticket")
+            inner_flow = info.get("inner_flow")
+            # 仅失败单据需要拉取节点错误日志
+            if not ticket or not inner_flow or ticket.status != TicketStatus.FAILED:
+                return ticket_id, ""
+
+            taskflow_handler = TaskFlowHandler(root_id=inner_flow.flow_obj_id)
+            failed_nodes = taskflow_handler.get_specific_nodes(status=StateType.FAILED)
+            # 流程树上没有失败节点时，回退使用流程级错误信息
+            if not failed_nodes:
+                return ticket_id, inner_flow.err_msg or ""
+
+            # failed_nodes 只会有一个错误节点
+            node_id = failed_nodes[0]["node_id"]
+            version_id = failed_nodes[0]["version_id"]
+            logs = taskflow_handler.get_version_logs(node_id, version_id)
+            err_log = "\n".join([log.get("message", "") for log in logs])
+            # 节点日志为空时，回退到流程错误信息兜底
+            if not err_log:
+                err_log = inner_flow.err_msg or ""
+            return ticket_id, err_log
+
+        # 并发粒度按 ticket 维度，避免逐单据串行拉日志导致导出耗时过长
+        with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as executor:
+            for ticket_id, error_log in executor.map(_query_ticket_error_log, ticket_ids):
+                error_log_map[ticket_id] = error_log
+
+        for ticket_id in ticket_ids:
+            if ticket_id not in ticket_apply_count_map:
+                continue
+            info = ticket_apply_count_map.get(ticket_id, {})
+            ticket = info["ticket"]
+            details = info["details"]
+            spec = details["spec"]
+            db_type = details["db_type"]
+            spec_type = spec["spec_machine_type"]
+            error_log = error_log_map.get(ticket_id, "")
+
+            rows.append(
+                {
+                    "ticket_id": ticket_id,
+                    "status": str(TicketStatus.get_choice_label(ticket.status)) if ticket else "",
+                    "db_type": str(DBType.get_choice_label(db_type)) if db_type else "",
+                    "spec_type": str(SpecMachineType.get_choice_label(spec_type)) if spec_type else "",
+                    "spec": spec.get("spec_name", details.get("spec_id", "")),
+                    "city": details.get("city", ""),
+                    "subzone": details.get("subzone", ""),
+                    "os_name": details.get("os_name", ""),
+                    "apply_count": info.get("apply_count", 0),
+                    "delivery_count": info.get("delivery_count", 0),
+                    "error_log": error_log,
+                }
+            )
+
+        headers = [
+            {"id": "ticket_id", "name": _("单号")},
+            {"id": "status", "name": _("状态")},
+            {"id": "db_type", "name": _("DB 类型")},
+            {"id": "spec_type", "name": _("规格类型")},
+            {"id": "spec", "name": _("规格")},
+            {"id": "city", "name": _("地域")},
+            {"id": "subzone", "name": _("园区")},
+            {"id": "os_name", "name": _("操作系统")},
+            {"id": "apply_count", "name": _("申请数量")},
+            {"id": "delivery_count", "name": _("已交付")},
+            {"id": "error_log", "name": _("错误日志")},
+        ]
+        wb = ExcelHandler.serialize(rows, headers=headers, match_header=True, sheet_name=_("补货单据导出"))
+        filename = f"replenish_tickets_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        return ExcelHandler.response(wb, filename)

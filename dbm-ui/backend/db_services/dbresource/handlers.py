@@ -668,6 +668,31 @@ class ResourceHandler(object):
         }
 
     @classmethod
+    def get_replenish_ticket_apply_info_map(cls, ticket_ids: List[int], runtime_info: bool = False) -> Dict[int, Dict]:
+        """获取补货单据申请/交付信息映射"""
+        tickets = Ticket.objects.prefetch_related("flows").filter(
+            id__in=ticket_ids, ticket_type=TicketType.RESOURCE_HCM_REPLENISH.value
+        )
+        replenish_records = ResourceReplenishRecord.objects.all().values("ticket_ids", "id")
+        ticket_replenish_map = {tid: record["id"] for record in replenish_records for tid in record["ticket_ids"]}
+
+        ticket_apply_count_map = {}
+        for ticket in tickets:
+            inner_flow = list(ticket.flows.all())[-1]
+            delivery_count = len(inner_flow.output_data[0]["values"]) if inner_flow and inner_flow.output_data else 0
+            info = {
+                "apply_count": ticket.details.get("count", 0),
+                "delivery_count": delivery_count,
+                "details": ticket.details,
+                "record_id": ticket_replenish_map.get(ticket.id, ""),
+            }
+            if runtime_info:
+                info.update({"ticket": ticket, "inner_flow": inner_flow})
+            ticket_apply_count_map[ticket.id] = info
+
+        return ticket_apply_count_map
+
+    @classmethod
     def get_evnet_info(cls, bk_host_ids, remark, host_id_ip_map):
         from backend.db_services.dbresource.constants import RESOURCE_UPDATE_REMARK
 
