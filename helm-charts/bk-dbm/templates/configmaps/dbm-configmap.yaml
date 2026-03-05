@@ -32,9 +32,12 @@ data:
   BK_DOMAIN: "{{ .Values.global.bkDomain }}"
   BK_SAAS_HOST: "{{ .Values.dbm.envs.bkSaasUrl }}"
   BROKER_URL: "{{ .Values.dbm.envs.brokerUrl }}"
+  # 缓存 redis 地址（多租户需与其它租户区分 db，避免组件缓存跨租户串号）。留空则后端回退到默认 REDIS_URL
+  CACHE_URL: "{{ .Values.dbm.envs.cacheUrl | default "" }}"
   DBA_APP_BK_BIZ_ID: "{{ .Values.dbm.envs.dbaAppBkBizId }}"
   CORS_ALLOWED_ORIGINS: "{{ .Values.dbm.envs.corsAllowedOrigins | default "" }}"
   WINDOW_SSH_PORT: "{{ .Values.dbm.envs.windowSSHPort | default 36000 }}"
+  DEFAULT_USERNAME: "{{ .Values.bk.bkAdminUser | default "admin"}}"
   # 云区域容器化
   CLOUD_CONTAINER_ENABLE: "{{ .Values.global.cloudContainer }}"
   # REDIS
@@ -51,7 +54,7 @@ data:
   BK_CMDB_URL: "{{ .Values.bk.bkCmdbUrl }}"
   CC_APIGW_DOMAIN: "{{ .Values.bk.bkCmdbApiUrl }}"
   # 蓝鲸作业平台
-  BK_JOB_URL: "{{ .Values.bk.bkJobUrl }}"
+  BK_JOB_HOST: "{{ .Values.bk.bkJobUrl }}"
   JOB_APIGW_DOMAIN: "{{ .Values.bk.bkJobApiUrl }}"
   JOB_BLUEKING_BIZ_ID: "{{ .Values.bk.bluekingBizId }}"
   # 蓝鲸节点管理
@@ -78,7 +81,6 @@ data:
   GRAFANA_URL: "{{ .Values.bk.grafanaUrl }}"
   BKMONITOR_URL: "{{ .Values.bk.bkMonitorUrl }}"
   BKMONITORV3_APIGW_DOMAIN: "{{ .Values.bk.bkMonitorApiUrl }}"
-  BKM_DBM_TOKEN: "{{ .Values.bk.bkmDbmToken }}"
   MYSQL_CROND_BEAT_PATH: "{{ .Values.bk.mysqlCrondBeatPath }}"
   MYSQL_CROND_AGENT_ADDRESS: "{{ .Values.bk.mysqlCrondAgentAddress }}"
   MYSQL_CROND_METRICS_DATA_TOKEN: "{{ .Values.bk.mysqlCrondMetricsDataToken }}"

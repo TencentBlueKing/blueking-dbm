@@ -94,6 +94,7 @@ class CloudServiceActPayload(object):
             "dbm_momain": env.DBM_EXTERNAL_ADDRESS.replace("https", "http"),
             "upstream_drs_server": format_nginx_drs_server,
             "nginx_child_conf": NGINX_PUSH_TARGET_PATH,
+            "tenant_id": env.BK_TENANT_ID if env.ENABLE_MULTI_TENANT_MODE else "",
         }
 
     def get_nginx_reduce_payload(self):

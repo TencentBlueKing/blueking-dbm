@@ -137,6 +137,7 @@ http {
         real_ip_recursive on;
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Bk-Tenant-Id {{tenant_id}};
 
         location /apis/proxypass/ {
             # 重写上传接口的uri
