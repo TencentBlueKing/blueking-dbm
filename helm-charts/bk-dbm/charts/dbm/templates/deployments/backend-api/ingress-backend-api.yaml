@@ -1,4 +1,5 @@
-{{- if .Values.ingressBackendApi.enabled -}}
+{{/* 多租户环境(单域名)下流量统一走 tenant-router，不再暴露 dbm 自身对外 Ingress */}}
+{{- if and .Values.ingressBackendApi.enabled (not .Values.global.enableMultiTenantMode) -}}
 {{- $fullName := ( include "dbm.backend-api.fullname" .) -}}
 {{- $svcPort := .Values.service.port -}}
 {{- if and .Values.ingressBackendApi.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
