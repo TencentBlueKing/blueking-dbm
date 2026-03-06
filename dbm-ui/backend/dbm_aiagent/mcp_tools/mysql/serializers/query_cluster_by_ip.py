@@ -27,6 +27,10 @@ class ClusterInfoByIpSerializer(serializers.Serializer):
     bk_sub_zone = serializers.CharField(help_text=_("子 Zone"), allow_null=True)
     bk_sub_zone_id = serializers.IntegerField(help_text=_("子 Zone ID"))
     bk_city = serializers.CharField(help_text=_("IDC 城市名"))
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
+    bk_svr_device_cls_name = serializers.CharField(help_text=_("标准设备类型"), allow_blank=True)
+    disaster_tolerance_level = serializers.CharField(help_text=_("亲和性（容灾级别）"), allow_blank=True)
+    ports = serializers.ListField(child=serializers.IntegerField(), help_text=_("关联实例端口列表"))
 
 
 class QueryClusterByIpOutputSerializer(serializers.Serializer):
