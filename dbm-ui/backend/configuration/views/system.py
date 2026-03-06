@@ -130,9 +130,10 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
         if not env.ENABLE_EXTERNAL_PROXY and not env.ENABLE_OPEN_EXTERNAL_PROXY:
             envs.update(
                 {
-                    "CC_IDLE_MODULE_ID": CcManage(env.DBA_APP_BK_BIZ_ID, "").get_biz_internal_module(
-                        env.DBA_APP_BK_BIZ_ID
-                    )[IDLE_HOST_MODULE]["bk_module_id"],
+                    "CC_IDLE_MODULE_ID": CcManage(env.DBA_APP_BK_BIZ_ID, "")
+                    .get_biz_internal_module(env.DBA_APP_BK_BIZ_ID)
+                    .get(IDLE_HOST_MODULE, {})
+                    .get("bk_module_id"),
                     "BK_COMPONENT_API_URL": env.BK_COMPONENT_API_URL,
                     "BK_CMDB_URL": env.BK_CMDB_URL,
                     "BK_NODEMAN_URL": env.BK_NODEMAN_URL,

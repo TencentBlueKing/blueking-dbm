@@ -134,7 +134,13 @@ class TestDataAPI:
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = {"result": False, "message": "error", "code": 1}
-        mock_session.return_value.request.return_value = mock_resp
+
+        # 设置完整的mock session
+        mock_session_instance = MagicMock()
+        mock_session_instance.request.return_value = mock_resp
+        mock_session_instance.headers = {}
+        mock_session_instance.cookies = {}
+        mock_session.return_value = mock_session_instance
 
         api = DataAPI(method="GET", base="http://test.com", url="/api/test", module="test")
         with pytest.raises(ApiResultError):

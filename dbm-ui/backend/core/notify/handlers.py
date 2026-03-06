@@ -180,18 +180,95 @@ class CmsiHandler(BaseNotifyHandler):
     def get_msg_type(cls):
         return [s["type"] for s in CmsiApi.get_msg_type()]
 
-    def _cmsi_send_msg(self, msg_type: str, **kwargs):
-        """
-        @param msg_type: 发送类型
-        @param kwargs: 额外参数
-        """
-        msg_info = {
-            "msg_type": msg_type,
-            "receiver__username": ",".join(self.receivers),
+    def _build_mail_params(self, **kwargs):
+        """构建邮件参数"""
+        params = {
+            "title": self.title,
+            "content": self.content.replace("\n", "<br>"),  # 邮件换行用<br>
+            "is_content_base64": False,
+        }
+        params.update(kwargs)  # 更新额外参数（sender, cc__username等）
+        return params
+
+    def _build_sms_params(self, **kwargs):
+        """构建短信参数"""
+        params = {
+            "content": f"{self.title}\n{self.content}",  # 短信合并标题和内容
+            "is_content_base64": False,
+        }
+        params.update(kwargs)
+        return params
+
+    def _build_voice_params(self, **kwargs):
+        """构建语音参数"""
+        params = {
+            "auto_read_message": f"{self.title}\n{self.content}",  # 语音播报内容
+        }
+        params.update(kwargs)
+        return params
+
+    def _build_weixin_params(self, **kwargs):
+        """构建微信参数"""
+        params = {
+            "message_data": {
+                "heading": self.title,
+                "message": self.content,
+                "is_message_base64": False,
+            }
+        }
+        params.update(kwargs)
+        return params
+
+    def _build_default_params(self, **kwargs):
+        """构建默认参数（保留 RTX、企微机器人等功能的参数）"""
+        params = {
             "title": self.title,
             "content": self.content,
         }
-        msg_info.update(kwargs)
+        params.update(kwargs)
+        return params
+
+    def _format_receivers(self, receivers):
+        """根据多租户模式格式化接收者参数"""
+        if CmsiApi.is_esb:
+            return ",".join(receivers)
+        return receivers
+
+    def _cmsi_send_msg(self, msg_type: str, receivers=None, **kwargs):
+        """
+        统一处理所有消息类型的发送逻辑
+        @param msg_type: 发送类型
+        @param receivers: 接收者列表，默认使用 self.receivers
+        @param kwargs: 额外参数
+        """
+        target_receivers = receivers or self.receivers
+        msg_info = {
+            "msg_type": msg_type,
+            "receiver__username": self._format_receivers(target_receivers),
+        }
+
+        if CmsiApi.is_esb:
+            msg_info.update(
+                {
+                    "title": self.title,
+                    "content": self.content,
+                }
+            )
+            msg_info.update(kwargs)
+        else:
+            # 策略映射：根据消息类型选择对应的参数构建方法
+            param_builders_map = {
+                MsgType.MAIL.value: self._build_mail_params,
+                MsgType.SMS.value: self._build_sms_params,
+                MsgType.VOICE.value: self._build_voice_params,
+                MsgType.WEIXIN.value: self._build_weixin_params,
+            }
+
+            # 获取对应的参数构建器，如果没有则使用默认构建器
+            builder = param_builders_map.get(msg_type, self._build_default_params)
+            msg_info.update(builder(**kwargs))
+
+        # 调用统一的send_msg接口
         CmsiApi.send_msg(msg_info)
 
     def send_mail(self, sender: str = None, cc: list = None):
@@ -201,12 +278,16 @@ class CmsiHandler(BaseNotifyHandler):
         """
         kwargs = {}
         if sender:
-            kwargs.update(sender=sender)
-        if cc:
-            kwargs.update(cc__username=",".join(cc))
-        # 邮件的换行要用<br>的html
-        self.content = self.content.replace("\n", "<br>")
-        self._cmsi_send_msg(MsgType.MAIL, **kwargs)
+            kwargs["sender"] = sender
+        if CmsiApi.is_esb:
+            if cc:
+                kwargs.update(cc__username=",".join(cc))
+            # 邮件换行使用 html，不修改 self.content，避免副作用
+            kwargs["content"] = self.content.replace("\n", "<br>")
+        else:
+            if cc:
+                kwargs["cc__username"] = cc
+        self._cmsi_send_msg(MsgType.MAIL.value, **kwargs)
 
     def send_voice(self):
         """发送语音消息"""
@@ -217,17 +298,21 @@ class CmsiHandler(BaseNotifyHandler):
         self._cmsi_send_msg(MsgType.WEIXIN.value)
 
     def send_rtx(self):
-        """发送企微消息"""
+        """
+        发送企微消息
+        rtx发送一般采用bkchat
+        """
         self._cmsi_send_msg(MsgType.RTX.value)
 
     def send_sms(self):
         """发送短信消息"""
-        # 短信消息没有标题参数，直接把标题和内容放在一起
-        self.content = f"{self.title}\n{self.content}"
         self._cmsi_send_msg(MsgType.SMS.value)
 
     def send_wecom_robot(self):
-        """企微机器人发送消息"""
+        """
+        企微机器人发送消息
+        robot发送一般采用bkchat
+        """
         wecom_robot = {
             "type": "text",
             "text": {"content": self.content},
