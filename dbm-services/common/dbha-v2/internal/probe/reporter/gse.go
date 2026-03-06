@@ -63,12 +63,11 @@ func NewGSEClient(cfg config.ReporterConfig, logger types.Logger) (Reporter, err
 
 		return nil, gerrors.Newf(gerrors.BkGseFailure, "do not connect with GSE agent, %v", err)
 	}
-	g := &gse{
+
+	return &gse{
 		cfg:      cfg,
 		agentCli: cli,
-	}
-
-	return g, nil
+	}, nil
 }
 
 // Name return reporter's name
@@ -86,6 +85,19 @@ func (g *gse) Post(ctx context.Context, content []byte) error {
 	}
 
 	return nil
+}
+
+func (g *gse) GetBaseInfo() BaseInfo {
+	agentInfo, err := g.agentCli.GetAgentInfo()
+	if err != nil {
+		logger.Errorf("failed to get agent info, errmsg: %s", err)
+		return BaseInfo{}
+	}
+
+	return BaseInfo{
+		AgentID:   agentInfo.AgentID,
+		BkCloudID: agentInfo.CloudID,
+	}
 }
 
 func (g *gse) Close() {
