@@ -719,12 +719,12 @@ uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
 name = "blueapps"
-version = "4.15.8"
+version = "4.16rc4"
 description = "development framework for blueking"
 optional = false
 python-versions = "*"
 files = [
-    {file = "blueapps-4.15.8.tar.gz", hash = "sha256:143495199e0d77e0e65e92119dc54234d44c863c763479c1d5d3d223e9ea9b57"},
+    {file = "blueapps-4.16rc4.tar.gz", hash = "sha256:0547054e65572e4667e26888cf219ff9fc8bfdfe28a9df001ac15152f0bc8616"},
 ]
 
 [package.dependencies]
@@ -752,7 +752,7 @@ pyCryptodome = ">=3.9.7"
 PyJWT = ">=1.6.1,<3.0"
 python-json-logger = ">=0.1.7"
 requests = ">=2.22.0,<3.0.0"
-Werkzeug = ">=1.0.0,<4"
+Werkzeug = ">=1.0.0,<4.0.0"
 whitenoise = ">=3.3.0,<7"
 
 [package.extras]
@@ -7189,4 +7189,4 @@ cffi = ["cffi (>=1.17,<2.0)", "cffi (>=2.0.0b)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11.10,<3.12"
-content-hash = "5a79d3ebf3293bfe288c42afdf7fb8cca362d8f0e4b09f6c3b96a865da5de7e2"
+content-hash = "0c82a6bcba3c408669dbdd561114d18193a15552dcc9fdf59b318ee8564f2c4f"

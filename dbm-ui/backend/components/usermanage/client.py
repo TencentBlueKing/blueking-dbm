@@ -20,16 +20,22 @@ class _UserManageApi(BaseApi):
     BASE = USER_MANAGE_APIGW_DOMAIN
 
     def __init__(self):
+        is_esb = self.is_esb()
         self.list_users = self.generate_data_api(
             method="GET",
-            url="list_users/",
+            url="list_users/" if is_esb else "tenant/users/",
             description=_("获取所有用户"),
             cache_time=300,
         )
         self.retrieve_user = self.generate_data_api(
             method="GET",
-            url="retrieve_user/",
+            url="retrieve_user/" if is_esb else "tenant/users/{bk_username}/",
             description=_("获取单个用户"),
+        )
+        self.batch_lookup_virtual_user = self.generate_data_api(
+            method="GET",
+            url="tenant/virtual-users/-/lookup/",
+            description=_("获取租户的管理员用户"),
         )
 
 
