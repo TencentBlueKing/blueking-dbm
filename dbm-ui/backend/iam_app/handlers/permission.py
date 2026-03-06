@@ -67,7 +67,7 @@ class Permission(object):
     @classmethod
     def get_iam_client(cls):
         tenant_id = getattr(env, "BK_TENANT_ID", "")
-        if settings.BK_IAM_SKIP:
+        if env.BK_IAM_SKIP:
             return DummyIAM(env.APP_CODE, env.SECRET_KEY, env.BK_IAM_APIGATEWAY, tenant_id)
         return IAM(env.APP_CODE, env.SECRET_KEY, env.BK_IAM_APIGATEWAY, tenant_id)
 
