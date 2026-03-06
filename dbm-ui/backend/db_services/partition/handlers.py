@@ -776,7 +776,7 @@ class PartitionHandler(object):
             for row_num, row_data in enumerate(excel_data, start=3):  # 从第3行开始（Excel行号）
                 try:
                     # 验证集群是否存在
-                    cluster = Cluster.objects.get(name=row_data[_("集群")])
+                    cluster = Cluster.objects.get(immute_domain=row_data[_("集群")])
                     # 构建分区策略参数
                     partition_data = {
                         "cluster_id": cluster.id,
