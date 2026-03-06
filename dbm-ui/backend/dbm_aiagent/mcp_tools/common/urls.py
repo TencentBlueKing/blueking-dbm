@@ -13,6 +13,7 @@ from rest_framework.routers import DefaultRouter
 from backend.dbm_aiagent.mcp_tools.common.views import (
     DBMetaQueryMcpToolsViewSet,
     DBMetaUpdateMcpToolsViewSet,
+    HostDecommissionQueryMcpToolsViewSet,
     ResourceParamQueryMcpToolsViewSet,
     TicketOperationMcpToolsViewSet,
 )
@@ -25,4 +26,5 @@ routers.register(r"", DBMetaUpdateMcpToolsViewSet, basename="mcp-dbmeta-update")
 routers.register(r"", TicketOperationMcpToolsViewSet, basename="mcp-ticket-query")
 routers.register(r"", ResourceParamQueryMcpToolsViewSet, basename="mcp-resource-query")
 routers.register(r"", MonitorQueryMcpToolsViewSet, basename="mcp-monitor-query")
+routers.register(r"", HostDecommissionQueryMcpToolsViewSet, basename="mcp-host-decommission-query")
 urlpatterns = routers.urls

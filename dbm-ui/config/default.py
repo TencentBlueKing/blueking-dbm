@@ -710,7 +710,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
     },
     {
         "name": "mysql-metrics",
-        "description": """query mysql metrics like cpu usage, qps summary, 
+        "description": """query mysql metrics like cpu usage, qps summary,
         slow queries count,connections,threads_running""",
         # 主动授权 app_code
         "target_app_codes": [APP_CODE],
@@ -999,6 +999,17 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "description": """MongoDB alarm query: cluster alarms in time range, app alarms by biz""",
         "target_app_codes": [APP_CODE],
         "labels": ["mongodb-alarm"],
+        "status": 1,
+        "is_public": False,
+        "tools": [],
+    },
+    {
+        "name": "host-decommission-query",
+        "description": """Cluster decommission information query services for DBA only.
+        根据单个 IP 查询主机所属集群的裁撤相关信息，仅 DBA 可调用。
+        """,
+        "target_app_codes": [APP_CODE],
+        "labels": ["host-decommission-query"],
         "status": 1,
         "is_public": False,
         "tools": [],

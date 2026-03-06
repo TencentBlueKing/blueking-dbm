@@ -13,7 +13,7 @@ from rest_framework import serializers
 
 
 class QueryClusterByIpInputSerializer(serializers.Serializer):
-    ip_list = serializers.ListField(child=serializers.CharField(), help_text=_("主机 IP 列表"))
+    ip = serializers.CharField(help_text=_("主机 IP"))
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"), required=False, default=0)
 
 
@@ -29,6 +29,7 @@ class ClusterInfoByIpSerializer(serializers.Serializer):
     bk_city = serializers.CharField(help_text=_("IDC 城市名"))
     bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     bk_svr_device_cls_name = serializers.CharField(help_text=_("标准设备类型"), allow_blank=True)
+    spec_id = serializers.IntegerField(help_text=_("虚拟规格 ID"))
     disaster_tolerance_level = serializers.CharField(help_text=_("亲和性（容灾级别）"), allow_blank=True)
     ports = serializers.ListField(child=serializers.IntegerField(), help_text=_("关联实例端口列表"))
 

@@ -11,5 +11,6 @@ specific language governing permissions and limitations under the License.
 from .alarm_query import MonitorQueryMcpToolsViewSet
 from .dbmeta_query import DBMetaQueryMcpToolsViewSet
 from .dbmeta_update import DBMetaUpdateMcpToolsViewSet
+from .host_decommission_query import HostDecommissionQueryMcpToolsViewSet
 from .resource_param_query import ResourceParamQueryMcpToolsViewSet
 from .ticket_operation import TicketOperationMcpToolsViewSet
