@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+// Package config provides probe configuration loading and structures.
 package config
 
 import (
@@ -95,13 +96,13 @@ type LogConfig struct {
 
 // Configuration receiver's configuration
 type Configuration struct {
-	Name      string           `yaml:"name"      mapstructure:"name"`
-	Version   string           `yaml:"version"   mapstructure:"version"`
-	ServiceID string           `yaml:"serviceID" mapstructure:"serviceID"`
-	PidFile   string           `yaml:"pidFile"   mapstructure:"pidFile"`
-	Reporters []ReporterConfig `yaml:"reporter"  mapstructure:"reporter"`
-	Harvester HarvesterConfig  `yaml:"harvester" mapstructure:"harvester"`
-	Log       LogConfig        `yaml:"log"       mapstructure:"log"`
+	Name      string          `yaml:"name"      mapstructure:"name"`
+	Version   string          `yaml:"version"   mapstructure:"version"`
+	ServiceID string          `yaml:"serviceID" mapstructure:"serviceID"`
+	PidFile   string          `yaml:"pidFile"   mapstructure:"pidFile"`
+	Reporter  *ReporterConfig `yaml:"reporter"  mapstructure:"reporter"`
+	Harvester HarvesterConfig `yaml:"harvester" mapstructure:"harvester"`
+	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
 }
 
 // Load loads probe configuration from file

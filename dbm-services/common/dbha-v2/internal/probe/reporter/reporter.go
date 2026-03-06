@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+// Package reporter provides reporter implementations for sending harvest data to backends (e.g. GSE).
 package reporter
 
 import (
@@ -33,9 +34,17 @@ import (
 	"dbm-services/common/dbha-v2/pkg/logger"
 )
 
+// BaseInfo holds agent identity info used by reporters.
+type BaseInfo struct {
+	AgentID   string
+	BkCloudID int
+}
+
+// Reporter sends harvested data to a backend and provides base info.
 type Reporter interface {
 	Name() string
 	Post(ctx context.Context, content []byte) error
+	GetBaseInfo() BaseInfo
 	Close()
 }
 
