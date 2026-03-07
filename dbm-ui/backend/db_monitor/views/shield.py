@@ -18,7 +18,7 @@ from backend.bk_web.viewsets import SystemViewSet
 from backend.components import BKMonitorV3Api
 from backend.db_monitor import serializers
 from backend.db_monitor.constants import SWAGGER_TAG
-from backend.db_monitor.utils import deformat_shield_description, format_shield_description
+from backend.db_monitor.utils import deformat_shield_description, format_shield_description, parse_shield_description_biz
 from backend.iam_app.dataclass import ActionEnum, ResourceEnum
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.iam_app.handlers.drf_perm.monitor import AlertShieldPermission
@@ -59,27 +59,65 @@ class AlarmShieldView(SystemViewSet):
     )
     def list(self, request):
         params = self.validated_data
+        bk_biz_id = params["bk_biz_id"]
         page_size = int(request.query_params.get("limit", 10))
         page = int(int(request.query_params.get("offset", 0)) / page_size) + 1
         if params.get("category"):
             params["categories"] = [params["category"]]
-        conditions = params.get("conditions", [])
-        conditions.append({"key": "description", "value": format_shield_description(params["bk_biz_id"])})
-        params.update(
+        base_conditions = params.get("conditions", [])
+
+        # 查询1：DBM 通过接口创建的屏蔽（description 含 [dbm:appid=xxx] 前缀）
+        dbm_conditions = list(base_conditions)
+        dbm_conditions.append({"key": "description", "value": format_shield_description(bk_biz_id)})
+        dbm_params = dict(params)
+        dbm_params.update(
             {
                 "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
                 "bk_biz_ids": [env.DBA_APP_BK_BIZ_ID],
-                "page": page,
-                "page_size": page_size,
-                "conditions": conditions,
+                "page": 1,
+                "page_size": 500,
+                "conditions": dbm_conditions,
             }
         )
-        data = BKMonitorV3Api.list_shield(params)
-        for index, shield in enumerate(data["shield_list"]):
-            data["shield_list"][index]["description"] = deformat_shield_description(
-                params["bk_biz_id"], shield["description"]
-            )
-        return Response(data)
+        dbm_data = BKMonitorV3Api.list_shield(dbm_params)
+
+        # 查询2：手机端直接在目标业务下创建的屏蔽（bk_biz_ids 包含目标业务 appid）
+        app_conditions = list(base_conditions)
+        app_params = dict(params)
+        app_params.update(
+            {
+                "bk_biz_id": bk_biz_id,
+                "bk_biz_ids": [bk_biz_id],
+                "page": 1,
+                "page_size": 500,
+                "conditions": app_conditions,
+            }
+        )
+        app_data = BKMonitorV3Api.list_shield(app_params)
+
+        # 合并去重（以 shield id 为唯一键），DBM 创建的优先（description 会被格式化）
+        seen_ids = set()
+        merged_shields = []
+
+        for shield in dbm_data.get("shield_list", []):
+            if shield["id"] not in seen_ids:
+                seen_ids.add(shield["id"])
+                shield["description"] = deformat_shield_description(bk_biz_id, shield["description"])
+                merged_shields.append(shield)
+
+        for shield in app_data.get("shield_list", []):
+            if shield["id"] not in seen_ids:
+                # 手机端创建的屏蔽，description 无 DBM 前缀，直接保留
+                seen_ids.add(shield["id"])
+                merged_shields.append(shield)
+
+        # 对合并结果做分页
+        total = len(merged_shields)
+        start = (page - 1) * page_size
+        end = start + page_size
+        paged_shields = merged_shields[start:end]
+
+        return Response({"count": total, "shield_list": paged_shields})
 
     @common_swagger_auto_schema(
         operation_summary=_("告警屏蔽详情"),
