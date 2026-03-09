@@ -21,7 +21,7 @@ class _UserManageApi(BaseApi):
 
     def __init__(self):
         is_esb = self.is_esb()
-        self.list_users = self.generate_data_api(
+        self.list_user = self.generate_data_api(
             method="GET",
             url="list_users/" if is_esb else "tenant/users/",
             description=_("获取所有用户"),
@@ -36,6 +36,11 @@ class _UserManageApi(BaseApi):
             method="GET",
             url="tenant/virtual-users/-/lookup/",
             description=_("获取租户的管理员用户"),
+        )
+        self.batch_query_user_display_info = self.generate_data_api(
+            method="POST",
+            url="tenant/users/-/display_info/",
+            description=_("批量查询用户展示信息"),
         )
 
 
