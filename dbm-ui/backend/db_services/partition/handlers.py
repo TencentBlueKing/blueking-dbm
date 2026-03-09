@@ -831,12 +831,12 @@ class PartitionHandler(object):
         # 获取分区策略数据
         if export_type == "all":
             # 获取所有策略
-            partition_data = DBPartitionApi.query_conf(
+            partition_data = DBPartitionApi.query_conf_v2(
                 params={"bk_biz_id": bk_biz_id, "cluster_type": cluster_type, "limit": 20, "offset": 0}
             )
         else:
             # 获取指定策略
-            partition_data = DBPartitionApi.query_conf(
+            partition_data = DBPartitionApi.query_conf_v2(
                 params={
                     "bk_biz_id": bk_biz_id,
                     "cluster_type": cluster_type,
