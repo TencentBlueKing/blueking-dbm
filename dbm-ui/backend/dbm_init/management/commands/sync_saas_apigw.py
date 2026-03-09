@@ -50,6 +50,13 @@ class Command(BaseCommand):
         parser.add_argument("--only_mcp_resource", action="store_true", help="生成 mcp 资源描述")
         parser.add_argument("--mcp_check", type=str, nargs="*", help="mcp 依赖检查", required=False, default=None)
         # default=list(DBMMcpTools.get_values()))
+        parser.add_argument(
+            "--mcp_servers",
+            type=str,
+            default=None,
+            help="仅导出指定 MCP Server 的 tools，多个用逗号分隔，例如：--mcp_servers=mysql-query,redis-bill。"
+            "默认为空，表示导出全部。可选值参考 DBMMcpTools。",
+        )
 
     @staticmethod
     def __preprocess_exclude_mcp_views(endpoints, **kwargs):
@@ -59,6 +66,54 @@ class Command(BaseCommand):
         """
         filtered = [endpoint for endpoint in endpoints if "/apis/ai/mcp_tools/" in endpoint[0]]
         return filtered
+
+    @staticmethod
+    def __build_preprocess_filter_by_mcp_servers(mcp_servers: list[str]):
+        """
+        根据指定的 mcp_servers 列表，构造一个预处理 hook，
+        只保留属于这些 server 的 operation_id 对应视图。
+        """
+        # 汇总所有指定 server 下的 operation_id 集合
+        allowed_operation_ids: set[str] = set()
+        for server_name in mcp_servers:
+            allowed_operation_ids.update(decorators.MCP_TOOLS_REGISTRY.get(server_name, []))
+
+        logger.info(
+            "mcp_servers filter: servers=%s, allowed_operation_ids=%s", mcp_servers, allowed_operation_ids
+        )
+
+        def _filter_hook(endpoints, **kwargs):
+            filtered = []
+            for endpoint in endpoints:
+                # endpoint 结构：(path, path_regex, method, callback)
+                callback = endpoint[3] if len(endpoint) > 3 else None
+                op_id = None
+                if callback is not None:
+                    # ViewSetMixin actions 挂在 initkwargs 或 cls 上；
+                    # drf-spectacular 会用 callback.initkwargs.get('kwargs') 等，
+                    # 这里直接从 callback 的 cls + action 重建 operation_id
+                    cls = getattr(callback, "cls", None)
+                    action_name = getattr(callback, "actions", {}).get(endpoint[2].lower())
+                    if cls and action_name:
+                        view_func = getattr(cls, action_name, None)
+                        if view_func:
+                            op_id = getattr(view_func, "kwargs", {}).get("operation_id") or getattr(
+                                view_func, "_spectacular_annotation", {}
+                            ).get("operation_id")
+                    # 兜底：直接从 callback 的 initkwargs 取
+                    if op_id is None:
+                        initkwargs = getattr(callback, "initkwargs", {})
+                        op_id = initkwargs.get("operation_id")
+
+                if op_id and op_id in allowed_operation_ids:
+                    filtered.append(endpoint)
+                elif op_id is None and "/apis/ai/mcp_tools/" in endpoint[0]:
+                    # 无法解析 operation_id 时，保守保留（让 drf-spectacular 正常扫描后再筛选）
+                    filtered.append(endpoint)
+
+            return filtered
+
+        return _filter_hook
 
     @staticmethod
     def __move_generated_resources_file(source_filename, target_file_path):
@@ -143,8 +198,13 @@ class Command(BaseCommand):
         resources_file_path = "backend/dbm_init/apigw/resources.yaml"
         self.sync_apigw(settings.BK_APIGW_NAME, definition_file_path, resources_file_path)
 
-    def sync_mcp_apigw(self, only_mcp_resource: bool = False):
-        """执行 MCP 同步逻辑"""
+    def sync_mcp_apigw(self, only_mcp_resource: bool = False, mcp_servers: list[str] = None):
+        """执行 MCP 同步逻辑
+
+        Args:
+            only_mcp_resource: 仅生成 mcp_resources.yaml，不同步网关
+            mcp_servers: 若指定，则只导出这些 server 下的 tools；为 None 时导出全部
+        """
         if not getattr(settings, "BK_APIGW_STAGE_ENABLE_MCP_SERVERS", None):
             return
 
@@ -155,16 +215,26 @@ class Command(BaseCommand):
         definition_file_path = "backend/dbm_init/apigw/mcp_definition.yaml"
         resources_file_path = "backend/dbm_init/apigw/mcp_resources.yaml"
 
+        # 构造 mcp_servers 过滤 hook（仅在指定了 mcp_servers 时启用）
+        mcp_servers_filter_hook = None
+        if mcp_servers:
+            logger.info("sync_mcp_apigw: filtering by mcp_servers=%s", mcp_servers)
+            mcp_servers_filter_hook = Command.__build_preprocess_filter_by_mcp_servers(mcp_servers)
+
         # 生成mcp资源文件
         try:
             # 添加预处理 hook，只扫描 MCP tools 相关的视图
             spectacular_settings.PREPROCESSING_HOOKS.append(Command.__preprocess_exclude_mcp_views)
+            if mcp_servers_filter_hook:
+                spectacular_settings.PREPROCESSING_HOOKS.append(mcp_servers_filter_hook)
             call_command("generate_resources_yaml")
             Command.__move_generated_resources_file("resources.yaml", resources_file_path)
         finally:
             # 清理预处理 hook，避免影响其他命令
             if Command.__preprocess_exclude_mcp_views in spectacular_settings.PREPROCESSING_HOOKS:
                 spectacular_settings.PREPROCESSING_HOOKS.remove(Command.__preprocess_exclude_mcp_views)
+            if mcp_servers_filter_hook and mcp_servers_filter_hook in spectacular_settings.PREPROCESSING_HOOKS:
+                spectacular_settings.PREPROCESSING_HOOKS.remove(mcp_servers_filter_hook)
 
         # 同步网关基本信息
         if not only_mcp_resource:
@@ -176,6 +246,14 @@ class Command(BaseCommand):
         all_mode = options.get("all", False)
         only_mcp_resource = options.get("only_mcp_resource", False)
         mcp_check = options.get("mcp_check")
+        mcp_servers_raw = options.get("mcp_servers")
+
+        # 解析 --mcp_servers=a,b,c → ['a', 'b', 'c']，去空格，过滤空串
+        mcp_servers: list[str] | None = None
+        if mcp_servers_raw:
+            mcp_servers = [s.strip() for s in mcp_servers_raw.split(",") if s.strip()]
+            if not mcp_servers:
+                mcp_servers = None
 
         if mcp_check is not None:
             only_mcp_resource = True
@@ -187,7 +265,7 @@ class Command(BaseCommand):
             self.sync_dbm_apigw()
 
         if mcp or all_mode or only_mcp_resource:
-            self.sync_mcp_apigw(only_mcp_resource)
+            self.sync_mcp_apigw(only_mcp_resource, mcp_servers=mcp_servers)
 
         if mcp_check:
             analyzer = SimpleMCPDependencyGraph()
