@@ -36,6 +36,7 @@ import (
 	"log/slog"
 	"os"
 	"sort"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -63,6 +64,7 @@ type ClusterProvider struct {
 	clusterMetaProvider     metaprovider.K8sCrdClusterProvider
 	componentMetaProvider   metaprovider.K8sCrdComponentProvider
 	clusterConfigProvider   metaprovider.K8sClusterConfigProvider
+	clusterServiceProvider  metaprovider.K8sClusterServiceProvider
 	reqRecordProvider       metaprovider.ClusterRequestRecordProvider
 	releaseMetaProvider     metaprovider.AddonClusterReleaseProvider
 	clusterHelmRepoProvider metaprovider.AddonClusterHelmRepoProvider
@@ -145,6 +147,15 @@ func (c *ClusterProviderBuilder) WithClusterTagsMeta(
 ) ClusterProviderOptions {
 	return func(c *ClusterProvider) {
 		c.ClusterTagProvider = p
+	}
+}
+
+// WithClusterServiceMeta 设置 ClusterServiceProvider
+func (c *ClusterProviderBuilder) WithClusterServiceMeta(
+	p metaprovider.K8sClusterServiceProvider,
+) ClusterProviderOptions {
+	return func(c *ClusterProvider) {
+		c.clusterServiceProvider = p
 	}
 }
 
@@ -281,6 +292,12 @@ func (c *ClusterProvider) CreateCluster(ctx *commentity.DbsContext, request *cor
 	// 保存集群 release 元数据
 	if err = c.saveClusterReleaseMeta(request, k8sClusterConfig, values); err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
+	}
+	// 同步集群服务信息到 tb_k8s_cluster_service
+	if err = c.syncClusterServiceMeta(clusterEntity, k8sClusterConfig); err != nil {
+		slog.Warn("failed to sync cluster service meta, will be synced later by informer",
+			"cluster", clusterEntity.ClusterName, "error", err)
+		// Non-fatal: ServiceInformer will catch up
 	}
 	// 检查环境变量ASYNC_TO_DBM，控制是否启用异步处理
 	asyncToDBM := os.Getenv(coreconst.AsyncToDBMEnv)
@@ -658,6 +675,12 @@ func (c *ClusterProvider) clearClusterCRMetaData(
 	if err != nil {
 		return dbserrors.NewK8sDbsError(dbserrors.DeleteClusterError, err)
 	}
+	// 清理 cluster service 元数据
+	if c.clusterServiceProvider != nil {
+		if _, err = c.clusterServiceProvider.DeleteByClusterID(clusterEntity.ID); err != nil {
+			slog.Warn("failed to delete cluster service meta", "error", err)
+		}
+	}
 	return nil
 }
 
@@ -668,6 +691,146 @@ func (c *ClusterProvider) DescribeCluster(request *coreentity.Request) (*coreent
 		return nil, err
 	}
 	return dataResponse, nil
+}
+
+// syncClusterServiceMeta 同步集群服务信息到 tb_k8s_cluster_service
+// 通过 ComponentProvider 获取 K8s Service 信息，并持久化到数据库
+func (c *ClusterProvider) syncClusterServiceMeta(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	k8sClusterConfig *metaentity.K8sClusterConfigEntity,
+) error {
+	if c.clusterServiceProvider == nil {
+		return nil
+	}
+
+	components, err := c.findTopoComponents(clusterEntity)
+	if err != nil {
+		return err
+	}
+	if len(components) == 0 {
+		slog.Warn("no components found for topo, skipping service sync",
+			"cluster", clusterEntity.ClusterName, "topo", clusterEntity.TopoName)
+		return nil
+	}
+
+	componentProvider := NewComponentProvider(c.clusterConfigProvider, c.clusterMetaProvider)
+	serviceEntities := c.collectServiceEntities(
+		componentProvider, clusterEntity, k8sClusterConfig, components)
+
+	return c.clusterServiceProvider.UpsertClusterServices(clusterEntity.ID, serviceEntities)
+}
+
+// findTopoComponents 从集群拓扑中解析出匹配的组件列表
+func (c *ClusterProvider) findTopoComponents(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+) ([]*metaentity.ClusterComponent, error) {
+	var clusterTopologies []*metaentity.ClusterTopology
+	if err := json.Unmarshal([]byte(clusterEntity.AddonInfo.Topologies), &clusterTopologies); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal topologies")
+	}
+
+	for _, topo := range clusterTopologies {
+		if topo.Name == clusterEntity.TopoName {
+			return topo.Components, nil
+		}
+	}
+	return nil, nil
+}
+
+// collectServiceEntities 收集所有组件的内部和外部服务信息
+func (c *ClusterProvider) collectServiceEntities(
+	componentProvider *ComponentProvider,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	k8sClusterConfig *metaentity.K8sClusterConfigEntity,
+	components []*metaentity.ClusterComponent,
+) []*metaentity.K8sClusterServiceEntity {
+	var serviceEntities []*metaentity.K8sClusterServiceEntity
+	for _, comp := range components {
+		svcEntity := &coreentity.K8sSvcEntity{
+			K8sClusterName: k8sClusterConfig.ClusterName,
+			Namespace:      clusterEntity.Namespace,
+			ClusterName:    clusterEntity.ClusterName,
+			ComponentName:  comp.Name,
+		}
+
+		serviceEntities = append(serviceEntities,
+			c.buildInternalServiceEntities(componentProvider, svcEntity, clusterEntity.ID, comp.Name)...)
+		serviceEntities = append(serviceEntities,
+			c.buildExternalServiceEntities(componentProvider, svcEntity, clusterEntity.ID, comp.Name)...)
+	}
+	return serviceEntities
+}
+
+// buildInternalServiceEntities 构建内部服务实体列表
+func (c *ClusterProvider) buildInternalServiceEntities(
+	componentProvider *ComponentProvider,
+	svcEntity *coreentity.K8sSvcEntity,
+	clusterID uint64,
+	componentName string,
+) []*metaentity.K8sClusterServiceEntity {
+	internalSvcs, err := componentProvider.GetComponentInternalSvc(svcEntity)
+	if err != nil {
+		slog.Warn("failed to get internal services for component",
+			"component", componentName, "error", err)
+		return nil
+	}
+	var entities []*metaentity.K8sClusterServiceEntity
+	for _, svc := range internalSvcs {
+		var addrs []string
+		for _, port := range svc.Ports {
+			addrs = append(addrs, port.FullAddr)
+		}
+		entities = append(entities, &metaentity.K8sClusterServiceEntity{
+			CrdClusterID:  clusterID,
+			ComponentName: componentName,
+			ServiceName:   svc.Name,
+			ServiceType:   string(corev1.ServiceTypeClusterIP),
+			InternalAddrs: strings.Join(addrs, ","),
+			CreatedBy:     coreconst.DefaultUserName,
+			UpdatedBy:     coreconst.DefaultUserName,
+		})
+	}
+	return entities
+}
+
+// buildExternalServiceEntities 构建外部服务实体列表
+func (c *ClusterProvider) buildExternalServiceEntities(
+	componentProvider *ComponentProvider,
+	svcEntity *coreentity.K8sSvcEntity,
+	clusterID uint64,
+	componentName string,
+) []*metaentity.K8sClusterServiceEntity {
+	externalSvcs, err := componentProvider.GetComponentExternalSvc(svcEntity)
+	if err != nil {
+		slog.Warn("failed to get external services for component",
+			"component", componentName, "error", err)
+		return nil
+	}
+	var entities []*metaentity.K8sClusterServiceEntity
+	for _, svc := range externalSvcs {
+		var addrs []string
+		for _, port := range svc.Ports {
+			addrs = append(addrs, port.FullAddr)
+		}
+		var annotationsStr string
+		if annotationsJSON, err := json.Marshal(svc.Annotations); err != nil {
+			slog.Warn("failed to marshal service annotations",
+				"service", svc.ServiceName, "error", err)
+		} else {
+			annotationsStr = string(annotationsJSON)
+		}
+		entities = append(entities, &metaentity.K8sClusterServiceEntity{
+			CrdClusterID:  clusterID,
+			ComponentName: componentName,
+			ServiceName:   svc.ServiceName,
+			ServiceType:   string(corev1.ServiceTypeLoadBalancer),
+			Annotations:   annotationsStr,
+			ExternalAddrs: strings.Join(addrs, ","),
+			CreatedBy:     coreconst.DefaultUserName,
+			UpdatedBy:     coreconst.DefaultUserName,
+		})
+	}
+	return entities
 }
 
 // GetClusterStatus 获取集群状态
