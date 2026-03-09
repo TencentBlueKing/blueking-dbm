@@ -150,3 +150,99 @@ func (suite *ClusterServiceDbAccessTestSuite) TestGetClusterService() {
 func TestClusterServiceDbAccess(t *testing.T) {
 	suite.Run(t, new(ClusterServiceDbAccessTestSuite))
 }
+
+func (suite *ClusterServiceDbAccessTestSuite) TestFindByClusterID() {
+	t := suite.T()
+	svc1 := &model.K8sClusterServiceModel{
+		CrdClusterID:  100,
+		ComponentName: "mysql-comp",
+		ServiceName:   "svc-1",
+		ServiceType:   "ClusterIP",
+	}
+	svc2 := &model.K8sClusterServiceModel{
+		CrdClusterID:  100,
+		ComponentName: "mysql-comp",
+		ServiceName:   "svc-2",
+		ServiceType:   "LoadBalancer",
+	}
+	svc3 := &model.K8sClusterServiceModel{
+		CrdClusterID:  200,
+		ComponentName: "redis-comp",
+		ServiceName:   "svc-3",
+		ServiceType:   "ClusterIP",
+	}
+	_, err := suite.dbAccess.Create(svc1)
+	assert.NoError(t, err)
+	_, err = suite.dbAccess.Create(svc2)
+	assert.NoError(t, err)
+	_, err = suite.dbAccess.Create(svc3)
+	assert.NoError(t, err)
+
+	services, err := suite.dbAccess.FindByClusterID(100)
+	assert.NoError(t, err)
+	assert.Len(t, services, 2)
+
+	serviceNames := map[string]bool{}
+	for _, s := range services {
+		serviceNames[s.ServiceName] = true
+	}
+	assert.True(t, serviceNames["svc-1"])
+	assert.True(t, serviceNames["svc-2"])
+}
+
+func (suite *ClusterServiceDbAccessTestSuite) TestDeleteByClusterID() {
+	t := suite.T()
+	svc1 := &model.K8sClusterServiceModel{
+		CrdClusterID:  100,
+		ComponentName: "mysql-comp",
+		ServiceName:   "svc-1",
+		ServiceType:   "ClusterIP",
+	}
+	svc2 := &model.K8sClusterServiceModel{
+		CrdClusterID:  100,
+		ComponentName: "mysql-comp",
+		ServiceName:   "svc-2",
+		ServiceType:   "LoadBalancer",
+	}
+	_, err := suite.dbAccess.Create(svc1)
+	assert.NoError(t, err)
+	_, err = suite.dbAccess.Create(svc2)
+	assert.NoError(t, err)
+
+	rows, err := suite.dbAccess.DeleteByClusterID(100)
+	assert.NoError(t, err)
+	assert.Equal(t, uint64(2), rows)
+
+	services, err := suite.dbAccess.FindByClusterID(100)
+	assert.NoError(t, err)
+	assert.Empty(t, services)
+}
+
+func (suite *ClusterServiceDbAccessTestSuite) TestDeleteByClusterIDAndServiceName() {
+	t := suite.T()
+	svc1 := &model.K8sClusterServiceModel{
+		CrdClusterID:  100,
+		ComponentName: "mysql-comp",
+		ServiceName:   "svc-1",
+		ServiceType:   "ClusterIP",
+	}
+	svc2 := &model.K8sClusterServiceModel{
+		CrdClusterID:  100,
+		ComponentName: "mysql-comp",
+		ServiceName:   "svc-2",
+		ServiceType:   "LoadBalancer",
+	}
+	_, err := suite.dbAccess.Create(svc1)
+	assert.NoError(t, err)
+	_, err = suite.dbAccess.Create(svc2)
+	assert.NoError(t, err)
+
+	rows, err := suite.dbAccess.DeleteByClusterIDAndServiceName(100, "svc-1")
+	assert.NoError(t, err)
+	assert.Equal(t, uint64(1), rows)
+
+	services, err := suite.dbAccess.FindByClusterID(100)
+	assert.NoError(t, err)
+	assert.Len(t, services, 1)
+	assert.Equal(t, "svc-2", services[0].ServiceName)
+}
