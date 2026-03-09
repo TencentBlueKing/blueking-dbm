@@ -30,4 +30,8 @@ dbm-ui/.history/
 # agents.md
 AGENTS.md
 CLAUDE.md
-.trellis/
+# trellis
+.trellis
+# Environment config
+.env
+
