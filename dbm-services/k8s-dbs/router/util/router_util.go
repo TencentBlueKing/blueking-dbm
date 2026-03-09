@@ -84,6 +84,8 @@ func BuildClusterProvider(db *gorm.DB) *coreprovider.ClusterProvider {
 		slog.Error("build common providers error", "error", err)
 		panic(err)
 	}
+	clusterServiceDbAccess := metadbaccess.GetClusterServiceDbAccess(db)
+	clusterServiceProvider := metaprovider.GetK8sClusterServiceProvider(clusterServiceDbAccess)
 	clusterProviderBuilder := coreprovider.ClusterProviderBuilder{}
 	clusterProvider, err := coreprovider.NewClusterProvider(
 		clusterProviderBuilder.WithClusterMeta(coreAPIProviders.ClusterMetaProvider),
@@ -95,6 +97,7 @@ func BuildClusterProvider(db *gorm.DB) *coreprovider.ClusterProvider {
 		clusterProviderBuilder.WithAddonMeta(coreAPIProviders.AddonMetaProvider),
 		clusterProviderBuilder.WithClusterTagsMeta(coreAPIProviders.ClusterTagProvider),
 		clusterProviderBuilder.WithDbmAPIService(coreAPIProviders.DbmAPIService),
+		clusterProviderBuilder.WithClusterServiceMeta(clusterServiceProvider),
 	)
 	if err != nil {
 		slog.Error("failed to build cluster provider", "error", err)
