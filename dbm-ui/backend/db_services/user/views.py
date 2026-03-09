@@ -31,5 +31,6 @@ class UserViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["GET"], detail=False, serializer_class=ListUsersSerializer)
     def list_users(self, request, *args, **kwargs):
+        # TODO: 接口后续废弃，前端采用新的组件接口
         data = self.params_validate(self.get_serializer_class())
-        return Response(UserManagerApi.list_users({"fields": "username,display_name", **data}))
+        return Response(UserManagerApi.list_user({"fields": "username,display_name", **data}))
