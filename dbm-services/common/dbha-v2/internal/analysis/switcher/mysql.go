@@ -95,6 +95,52 @@ func (m *Mysql) NewSwitchInstancesOnSameHost(instDataMap switchcore.InstMetadata
 	return swInstMap, nil
 }
 
+// NewSwitchCluster creates a MySQL switch cluster according to the provided metadata.
+func (m *Mysql) NewSwitchCluster(clusterKey switchcore.ClusterKey, instDataMap switchcore.InstMetadataMap,
+	switchID string) (switchcore.SwitchableCluster, error) {
+	if len(instDataMap) == 0 {
+		return nil, gerrors.Newf(gerrors.InvalidParameter, "empty cluster instances for key: %s", clusterKey)
+	}
+
+	metadata := make([]*dbm.DbInstMetadata, 0, len(instDataMap))
+	var clusterType haprobe.DbmMetadataClusterType
+	for _, inst := range instDataMap {
+		metadata = append(metadata, inst)
+		if clusterType == "" {
+			clusterType = inst.ClusterType
+			continue
+		}
+
+		if inst.ClusterType != clusterType {
+			return nil, gerrors.Newf(gerrors.InvalidParameter,
+				"found multiple cluster types for cluster key(%s): %s vs %s", clusterKey, clusterType, inst.ClusterType)
+		}
+	}
+
+	var (
+		swCluster switchcore.SwitchableCluster
+		retErr    error
+	)
+
+	switch clusterType {
+	case haprobe.DbmMetadataClusterTypeTendbha:
+		swCluster, retErr = mysql.NewMySQLSwitchCluster(clusterKey, metadata)
+
+	case haprobe.DbmMetadataClusterTypeTendbCluster:
+		retErr = gerrors.Newf(gerrors.Failure, "TendbCluster cluster type is not supported")
+
+	default:
+		retErr = gerrors.Newf(gerrors.Failure, "unsupported cluster type: %s", clusterType)
+	}
+
+	if retErr != nil {
+		return nil, retErr
+	}
+
+	swCluster.SetSwitchID(switchID)
+	return swCluster, nil
+}
+
 // NewSwitchLogger creates mysql switch logger set
 func (m *Mysql) NewSwitchLogger() ([]switchlogger.DbSwitchLogger, error) {
 	loggers := []switchlogger.DbSwitchLogger{
@@ -209,6 +255,33 @@ func (m *Mysql) buildIpGroup(req *Request) map[switchcore.HostKey]switchcore.Ins
 	}
 
 	return ipGroup
+}
+
+// buildClusterGroup builds a map of cluster to instance metadata
+func (m *Mysql) buildClusterGroup(req *Request) map[switchcore.ClusterKey]switchcore.InstMetadataMap {
+	clusterGroup := make(map[switchcore.ClusterKey]switchcore.InstMetadataMap)
+	for _, instData := range req.MySqlInstData {
+		if instData == nil {
+			logger.Warn("Mysql switcher get nil instance")
+			continue
+		}
+
+		clusterKey := switchcore.GenerateClusterKey(instData.BkCloudID, instData.ClusterID)
+		instKey := switchcore.GenerateMetadataKey(instData.BkCloudID, instData.IP, instData.Port)
+		insts, ok := clusterGroup[clusterKey]
+		if !ok {
+			insts = switchcore.InstMetadataMap{}
+			clusterGroup[clusterKey] = insts
+		}
+
+		if _, exists := insts[instKey]; exists {
+			logger.Warn("Mysql switcher got duplicate instance on same cluster, cluster: %s, inst: %s", clusterKey, instKey)
+			continue
+		}
+		insts[instKey] = instData
+	}
+
+	return clusterGroup
 }
 
 // checkHostInstanceCompleteness checks if there are extra or missing instances on the same host.
@@ -336,6 +409,63 @@ func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogge
 	return rsp
 }
 
+// ClusterLevelSwitch handles MySQL cluster switching operations
+func (m *Mysql) ClusterLevelSwitch(ctx context.Context, switchLoggers []switchlogger.DbSwitchLogger, req *Request) *Response {
+	rsp := &Response{
+		MySqlFailureInsts: map[switchcore.MetadataKey]*dbm.DbInstMetadata{},
+	}
+
+	addAllInstsAsFailure := func(instDataMap switchcore.InstMetadataMap) {
+		for instKey, inst := range instDataMap {
+			rsp.AddFailureInst(instKey, inst)
+		}
+	}
+
+	clusterGroup := m.buildClusterGroup(req)
+	var wg sync.WaitGroup
+
+	// parallelize the processing of the same cluster
+	for clusterKey, instDataMap := range clusterGroup {
+		wg.Add(1)
+
+		go func(clusterKey switchcore.ClusterKey, instDataMap switchcore.InstMetadataMap) {
+			defer wg.Done()
+
+			swReporter := NewSwitchReporter(switchLoggers, instDataMap, req.SwitchID, req.ActionScope)
+			swReporter.ReportSwitchLogf(switchlogger.SwitchInfo, "start to switch current instance in cluster level")
+
+			swCluster, newErr := m.NewSwitchCluster(clusterKey, instDataMap, req.SwitchID)
+			if newErr != nil {
+				swReporter.ReportSwitchLogf(switchlogger.SwitchFail, "failed to create mysql switch cluster, errmsg: %s",
+					newErr.Error())
+				addAllInstsAsFailure(instDataMap)
+				return
+			}
+
+			swCluster.SetSwitchLogger(switchLoggers)
+
+			switchSuccess, switchErr := switchcore.SwitchSameClusterInstances(swCluster)
+			if !switchSuccess {
+				swReporter.ReportSwitchLogf(switchlogger.SwitchFail,
+					"failed to switch current instance in cluster level, errmsg: %s",
+					switchErr.Error())
+				addAllInstsAsFailure(instDataMap)
+				return
+			}
+
+			swReporter.ReportSwitchLogf(switchlogger.SwitchSuccess, "successfully switched current instance in cluster level")
+		}(clusterKey, instDataMap)
+	}
+
+	wg.Wait()
+
+	if len(rsp.MySqlFailureInsts) > 0 {
+		rsp.Err = ErrSwitchPartialSuccess
+	}
+
+	return rsp
+}
+
 // reportMysqlSwitchingMetrics reports the switching time consuming, success total and error total metrics
 func (m *Mysql) reportMysqlSwitchingMetrics(timeConsumingMetric *haapm.HaHistogram, start time.Time, req *Request, rsp *Response) {
 
@@ -390,8 +520,7 @@ func (m *Mysql) Switch(ctx context.Context, req *Request) *Response {
 
 	switch req.ActionScope {
 	case hamodel.ActionScopeTypeCluster:
-		rsp.Err = gerrors.Newf(gerrors.Failure, "cluster action scope is not supported")
-		return rsp
+		return m.ClusterLevelSwitch(ctx, switchLoggers, req)
 
 	case hamodel.ActionScopeTypeHost:
 		return m.HostLevelSwitch(ctx, switchLoggers, req)
