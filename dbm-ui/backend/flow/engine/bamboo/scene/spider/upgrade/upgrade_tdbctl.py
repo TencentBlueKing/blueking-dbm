@@ -18,7 +18,6 @@ from backend.components.db_remote_service.client import DRSApi
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
-from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
 from backend.db_report.enums import TdbctlInstanceRole, TdbctlUpgradeStatus
@@ -813,10 +812,11 @@ def tdbctl_upgrade_subflow(
 
     # 检查是否存在 master 中控，如果没有则报错退出
     # 注意：必须存在 master tdbctl 实例才能进行升级，因为升级流程需要 master 进行各种检查和协调
-    if not master_instances:
-        error_msg = _("集群 {} 中不存在需要升级的 master tdbctl 实例，无法进行升级。tdbctl 升级流程必须存在 master 中控实例").format(cluster_id)
-        logger.error(error_msg)
-        raise DBMetaException(message=error_msg)
+    # 获取 primary 中控实例信息必须从当前集群需要升级的 master_instances 获取，不能因 primary 版本低而从集群/其他来源 fallback
+    # if not master_instances:
+    #     error_msg = _("集群 {} 中不存在需要升级的 master tdbctl 实例，无法进行升级。tdbctl 升级流程必须存在 master 中控实例").format(cluster_id)
+    #     logger.error(error_msg)
+    #     raise DBMetaException(message=error_msg)
 
     logger.info(
         _("集群 {} 需要升级的 tdbctl 实例: slave={}, master={}").format(cluster_id, len(slave_instances), len(master_instances))
@@ -842,8 +842,9 @@ def tdbctl_upgrade_subflow(
         current_versions=current_versions,
     )
 
-    # 获取 master 地址，供升级前检查和升级步骤共用（master_instances 一定存在，前面已校验）
-    master_ip, master_port = _get_primary_address(master_instances, cluster, fallback_to_cluster=False)
+    # 获取 master 地址，供升级前检查和 slave 复制检查共用
+    # 优先从 master_instances 获取；若 master 无需升级（master_instances 为空）则从集群元数据获取，以支持 slave 复制检查
+    master_ip, master_port = _get_primary_address(master_instances, cluster, fallback_to_cluster=True)
 
     # ============ 步骤1: 升级前检查（并行执行主节点健康检查和 slave 主从同步检查） ============
     _add_pre_upgrade_check(
@@ -877,7 +878,6 @@ def tdbctl_upgrade_subflow(
 
     # ============ 步骤5: 并行执行升级后检查 ============
     # 并行执行 master 升级后检查和 slave 复制状态检查，提高效率
-    # master_instances 一定存在（前面已校验）
     _add_post_upgrade_checks_parallel(sub_pipeline, cluster, slave_instances, master_ip, master_port, bk_cloud_id)
 
     # ============ 步骤6: 记录升级成功状态 ============
