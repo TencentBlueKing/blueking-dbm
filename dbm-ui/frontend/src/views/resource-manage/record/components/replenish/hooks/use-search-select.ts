@@ -1,8 +1,19 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+ */
 import dayjs from 'dayjs';
 import { computed, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import TicketModel from '@services/model/ticket/ticket';
 import { getUserList } from '@services/source/user';
 
 import { type Props } from '@components/db-quick-search/bk-quick-search/Index.vue';
@@ -17,31 +28,11 @@ export default (options = {} as { exclude: string[] }) => {
   const quickSearchData = computed(() => {
     const serachList: Props['data'] = [
       {
-        id: 'ids',
-        name: t('单号'),
-        type: 'multiple-input',
+        id: 'id',
+        name: 'ID',
+        type: 'input',
         validator: (value: string) => {
-          return !isNaN(Number(value)) ? true : t('单号只支持数字');
-        },
-      },
-      {
-        id: 'status',
-        list: Object.keys(TicketModel.statusTextMap).reduce<Record<'label' | 'value', string>[]>((acc, key) => {
-          acc.push({
-            label: TicketModel.statusTextMap[key as keyof typeof TicketModel.statusTextMap],
-            value: key,
-          });
-          return acc;
-        }, []),
-        name: t('单据状态'),
-        type: 'multiple',
-      },
-      {
-        id: 'replenish',
-        name: t('补货操作 ID'),
-        type: 'multiple-input',
-        validator: (value: string) => {
-          return !isNaN(Number(value)) ? true : t('只支持数字');
+          return !isNaN(Number(value)) ? true : t('ID 只支持数字');
         },
       },
       {
@@ -57,7 +48,7 @@ export default (options = {} as { exclude: string[] }) => {
         type: 'multiple',
       },
       {
-        id: 'creator__in',
+        id: 'creator',
         name: t('申请人'),
         remoteMethod: (params: { defaultValue?: string; keyword?: string }) => {
           const requestParams = {};

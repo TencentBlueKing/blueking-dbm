@@ -1,26 +1,37 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+ */
 import { reactive, ref } from 'vue';
 
 import { useUrlSearch } from '@hooks';
-import { useStorage } from '@vueuse/core';
-import { useRequest } from 'vue-request';
-import { getTickets } from '@services/source/ticket';
-import { TicketTypes } from '@common/const';
 import { transfromDataToQuery } from '@utils';
+import { useStorage } from '@vueuse/core';
+import { fetchReplenish } from '@services/source/dbresourceReplenish';
+import { useRequest } from 'vue-request';
+
+const URL_REPLENISH_MEMO_KEY = '__replenish_operation_view_payload__';
 
 export default () => {
   const route = useRoute();
-  const paginationLimitCache = useStorage('replenish_ticket_view_pagination', 20);
+  const paginationLimitCache = useStorage('replenish_operation_view_pagination', 20);
   const { getSearchParams, replaceSearchParams } = useUrlSearch();
   const searchParams = getSearchParams();
 
-  const URL_REPLENISH_MEMO_KEY = '__replenish_ticket_view_payload__';
-
-  const dataList = ref<ServiceReturnType<typeof getTickets>['results']>([]);
+  const tableData = ref<ServiceReturnType<typeof fetchReplenish>['results']>([]);
   const pagination = reactive({
     count: 0,
     current: 1,
     limit: paginationLimitCache.value,
-    limitList: [10, 20, 50, 100, 200, 500],
+    limitList: [10, 20, 50, 100],
     remote: true,
   });
 
@@ -29,10 +40,10 @@ export default () => {
     pagination.current = Number(searchParams.current);
   }
 
-  const { loading, run: dataSource } = useRequest(getTickets, {
+  const { loading, run: dataSource } = useRequest(fetchReplenish, {
     manual: true,
-    onSuccess: (data: ServiceReturnType<typeof getTickets>) => {
-      dataList.value = data.results;
+    onSuccess: (data: ServiceReturnType<typeof fetchReplenish>) => {
+      tableData.value = data.results;
       pagination.count = data.count;
       replaceSearchParams({
         ...searchParams,
@@ -44,7 +55,6 @@ export default () => {
 
   const fetchData = () => {
     dataSource({
-      ticket_type: TicketTypes.RESOURCE_HCM_REPLENISH,
       limit: pagination.limit,
       offset: (pagination.current - 1) * pagination.limit,
       ...transfromDataToQuery(JSON.parse(decodeURIComponent(String(route.query[URL_REPLENISH_MEMO_KEY] || '{}')))),
@@ -65,7 +75,7 @@ export default () => {
   };
 
   return {
-    dataList,
+    tableData,
     fetchData,
     loading,
     pagination,
