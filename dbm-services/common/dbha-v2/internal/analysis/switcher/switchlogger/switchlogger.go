@@ -56,3 +56,5 @@ const (
 	SwitchFail    SwitchLogLevel = "fail"
 	SwitchSuccess SwitchLogLevel = "success"
 )
+
+type SwitchLogFunc func(level SwitchLogLevel, format string, args ...any) bool

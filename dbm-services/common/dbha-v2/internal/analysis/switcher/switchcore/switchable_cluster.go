@@ -25,25 +25,11 @@
 package switchcore
 
 import (
-	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger"
-	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 )
 
-type SwitchCheckCode int
-
-const (
-	// SwitchRequired indicates that switching is required
-	SwitchRequired SwitchCheckCode = iota
-	// SwitchNotNeeded indicates that there is no need to switch
-	SwitchNotNeeded
-	// SwitchCheckUnpass indicates that the switch check unpass
-	SwitchCheckUnpass
-)
-
-// SwitchableInstance defines the interface for database instances that support switching operations.
-// It provides a standardized set of methods for handling instance failover and switchover procedures.
-type SwitchableInstance interface {
+// SwitchableCluster defines the interface for database clusters that support switching operations.
+type SwitchableCluster interface {
 	// CheckBeforeSwitch performs pre-switch validation and returns whether switching is needed
 	CheckBeforeSwitch() (SwitchCheckCode, error)
 
@@ -53,29 +39,29 @@ type SwitchableInstance interface {
 	// DoSwitch performs the actual instance switching logic
 	DoSwitch() error
 
-	// GetInstanceInfo returns descriptive information about the instance
-	GetInstanceInfo() string
+	// GetApp returns the business ID as string
+	GetApp() string
 
-	// GetBkCloudID returns the cloud ID of the instance
+	// GetBkCloudID returns the cloud ID of the cluster
 	GetBkCloudID() int
 
-	// GetCluster returns the cluster name of the instance
+	// GetCluster returns the cluster name of the cluster
 	GetCluster() string
 
-	// GetClusterID returns the cluster ID of the instance
+	// GetClusterID returns the cluster ID of the cluster
 	GetClusterID() int
 
-	// GetIP returns the instance IP
-	GetIP() string
+	// GetSwitchInstances returns the broken instances in the cluster
+	GetSwitchInstances() InstMetadataMap
 
-	// GetPort returns the instance port
-	GetPort() int
+	// GetClusterInfo returns formatted cluster information string
+	GetClusterInfo() string
 
-	// GetStatus retrieves the current status of the instance
-	GetStatus() dbm.DbmMetadataStatus
+	// ReportLogf records instance switching operation logs with specified level
+	ReportLogf(instKey MetadataKey, level switchlogger.SwitchLogLevel, format string, args ...any) bool
 
-	// ReportLogf records switch operation logs at specified level
-	ReportLogf(level switchlogger.SwitchLogLevel, format string, args ...any) bool
+	// ReportClusterLogf records cluster switching operation logs with specified level
+	ReportClusterLogf(level switchlogger.SwitchLogLevel, format string, args ...any) bool
 
 	// RollBack reverts any changes made during a failed switch attempt
 	RollBack() error
@@ -91,7 +77,4 @@ type SwitchableInstance interface {
 
 	// SetSwitchID sets the switch request ID
 	SetSwitchID(switchID string)
-
-	// SetActionScope sets the action scope of the switch task
-	SetActionScope(actionScope hamodel.ActionScopeType)
 }
