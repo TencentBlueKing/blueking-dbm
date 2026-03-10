@@ -15,10 +15,18 @@ from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 class RedisCheckSubType(StrStructuredEnum):
     Exporter = EnumField("redis_exporter", _("redis_exporter"))
-    ClusterMemoryGrowth = EnumField("cluster_memory_growth", _("Cluster memory growth"))
+
+    # Agent check subtypes
+    ClusterMemoryCapacityRisk = EnumField("cluster_memory_capacity_risk", _("Cluster memory capacity risk"))
+    BackendLoadSkew = EnumField("backend_load_skew", _("Backend load skew"))
+    BackendDataSkew = EnumField("backend_data_skew", _("Backend data skew"))
 
     @staticmethod
     def get_agent_check_subtypes():
+        """Agent check subtypes"""
+
         return [
-            RedisCheckSubType.ClusterMemoryGrowth,
+            RedisCheckSubType.ClusterMemoryCapacityRisk,
+            RedisCheckSubType.BackendLoadSkew,
+            RedisCheckSubType.BackendDataSkew,
         ]

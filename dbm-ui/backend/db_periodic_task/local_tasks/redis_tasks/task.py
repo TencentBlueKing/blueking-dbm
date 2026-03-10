@@ -10,7 +10,11 @@ specific language governing permissions and limitations under the License.
 """
 from celery.schedules import crontab
 
-from backend.db_periodic_task.local_tasks.redis_tasks.check_cluster_memory_growth import CheckClusterMemoryGrowthTask
+from backend.db_periodic_task.local_tasks.redis_tasks.agent_checks import (
+    CheckBackendDataSkewTask,
+    CheckBackendLoadSkewTask,
+    CheckClusterMemoryGrowthTask,
+)
 from backend.db_periodic_task.local_tasks.redis_tasks.check_exporter import CheckRedisUpMetricTask
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_report.repo.task_record_repo import TaskRecordRepo
@@ -26,6 +30,18 @@ from backend.db_report.repo.task_record_repo import TaskRecordRepo
 def redis_cluster_memory_growth_check_task():
     """Redis cluster memory growth check (LLM agent). Runs every 10 minutes."""
     CheckClusterMemoryGrowthTask().start()
+
+
+@register_periodic_task(run_every=crontab(minute="*/10"))
+def redis_backend_load_skew_check_task():
+    """Redis backend load skew check (LLM agent). Runs every 10 minutes."""
+    CheckBackendLoadSkewTask().start()
+
+
+@register_periodic_task(run_every=crontab(minute="*/10"))
+def redis_backend_data_skew_check_task():
+    """Redis backend data skew check (LLM agent). Runs every 10 minutes."""
+    CheckBackendDataSkewTask().start()
 
 
 @register_periodic_task(run_every=crontab(minute=1, hour=8))

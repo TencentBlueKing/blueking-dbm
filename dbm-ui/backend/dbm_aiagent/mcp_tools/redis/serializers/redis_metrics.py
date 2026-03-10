@@ -11,16 +11,11 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.dbm_aiagent.mcp_tools.redis.enums import (
-    MetricsGroupBy,
-    MetricsInstanceRole,
-    MetricsOutputMode,
-    MetricType,
-)
+from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsGroupBy, MetricsInstanceRole, MetricsStatsType, MetricType
 
 
-class RedisMetricsInputSerializer(serializers.Serializer):
-    """Input serializer for Redis metrics queries"""
+class RedisMetricsBaseInputSerializer(serializers.Serializer):
+    """Shared fields for all Redis metrics queries"""
 
     cluster_domain = serializers.CharField(
         help_text=_(
@@ -50,17 +45,6 @@ class RedisMetricsInputSerializer(serializers.Serializer):
         required=False,
         help_text=_("Optional: End time in ISO format (e.g., 2026-01-08T16:33:38+08:00). Defaults to now."),
     )
-    mode = serializers.ChoiceField(
-        choices=MetricsOutputMode.get_choices(),
-        default=MetricsOutputMode.STATS.value,
-        help_text=_(
-            "Output mode. Use 'stats' (default) for most analysis tasks. "
-            "'stats' returns only scalar statistics (min, max, avg, median, p95, cv, trend) - for summaries and comparisons. "
-            "'overall' returns only aggregated time series data - for charts/visualization. "
-            "'both' returns both series and statistics - when you need detailed analysis with time series. "
-            "If mode != 'stats', keep max_len_datapoints <= 15 to avoid context length issues."
-        ),
-    )
     group_by = serializers.ListField(
         child=serializers.ChoiceField(choices=[dim.value for dim in MetricsGroupBy]),
         required=False,
@@ -77,8 +61,7 @@ class RedisMetricsInputSerializer(serializers.Serializer):
             "Optional: Maximum number of data points in time series, default=100. "
             "**Important**: This determines the time window/interval for PromQL queries, not just result size. "
             "Larger values = shorter time windows (intervals) with more data points per unit time. "
-            "Smaller values = longer time windows (intervals) with fewer data points per unit time. "
-            "If mode != 'stats', keep this <= 15 to avoid context length issues."
+            "Smaller values = longer time windows (intervals) with fewer data points per unit time."
         ),
     )
     instance_role = serializers.ChoiceField(
@@ -112,10 +95,15 @@ class RedisMetricsInputSerializer(serializers.Serializer):
             "Never set port without ip."
         ),
     )
+
+
+class RedisMetricsSeriesInputSerializer(RedisMetricsBaseInputSerializer):
+    """Input serializer for Redis metrics series (time series) queries"""
+
     mermaid_format = serializers.BooleanField(
         default=False,
         help_text=_(
-            "When True and mode != 'stats', returns a 'mermaid_code' field with pre-formatted "
+            "When True, returns a 'mermaid_code' field with pre-formatted "
             "mermaid xychart-beta code for visualization. Only active when series data exists. "
             "Series data is removed from response when mermaid_code is generated. "
             "**IMPORTANT**: Output mermaid_code AS-IS without modification or regeneration."
@@ -123,24 +111,34 @@ class RedisMetricsInputSerializer(serializers.Serializer):
     )
 
 
-class RedisMetricsOutputSerializer(serializers.Serializer):
-    """Output serializer for Redis metrics queries"""
+class RedisMetricsStatsInputSerializer(RedisMetricsBaseInputSerializer):
+    """Input serializer for Redis metrics stats (scalar statistics) queries"""
+
+    stats_type = serializers.ChoiceField(
+        choices=MetricsStatsType.get_choices(),
+        default=MetricsStatsType.VERTICAL.value,
+        help_text=_(
+            "Type of statistical computation. "
+            "'vertical' (default): aggregate across instances first (e.g., SUM for QPS, MAX for CPU), "
+            "then compute temporal stats (min/max/avg/p95/trend over time). "
+            "Answers 'what was the cluster peak total QPS?'. "
+            "'horizontal': compute stats across instances at each time point "
+            "(e.g., min/max/avg instance QPS per timestamp), then summarize. "
+            "Answers 'what was the highest QPS any single instance had?'."
+        ),
+    )
+
+
+class RedisMetricsSeriesOutputSerializer(serializers.Serializer):
+    """Output serializer for Redis metrics series queries"""
 
     series = serializers.JSONField(
         required=False,
         help_text=_(
-            "Aggregated time series data (present when mode='overall' or mode='both'). "
+            "Aggregated time series data. "
             "Format depends on filtering scope and group_by: "
             "instance={'ip-port': [[value, timestamp], ...]}, machine={'ip:port1': [...], 'ip-port2': [...]}, "
             "cluster={'cluster_domain': [...]} or with group_by='ip': cluster={'ip1': [...], 'ip2': [...]}"
-        ),
-    )
-    statistics = serializers.JSONField(
-        required=False,
-        help_text=_(
-            "Statistics (mode='stats' or 'both'). Scalar or per-key: min, max, avg, median, p95, cv, trend, "
-            "trend_unit, latest (max among series at last datapoint). "
-            "Keys: cluster_domain (no group_by) or ip/instance/cmd/bucket when group_by set."
         ),
     )
     mermaid_code = serializers.CharField(
@@ -148,5 +146,25 @@ class RedisMetricsOutputSerializer(serializers.Serializer):
         help_text=_(
             "Pre-formatted mermaid xychart-beta code (present when mermaid_format=True and series data exists). "
             "This content must be outputted AS-IS."
+        ),
+    )
+
+
+class RedisMetricsStatsOutputSerializer(serializers.Serializer):
+    """Output serializer for Redis metrics stats queries"""
+
+    statistics = serializers.JSONField(
+        required=False,
+        help_text=_(
+            "Per-key statistics dict. Each key maps to a dict with: "
+            "min, max, avg, median, p95, cv (coefficient of variation %), "
+            "trend (slope per minute), trend_unit, latest (last datapoint value). "
+            "Keys depend on group_by: cluster_domain (no group_by), ip, instance, cmd, or bucket. "
+            "With stats_type='vertical': stats are temporal — the aggregated cluster series "
+            "(e.g., SUM of all instances' QPS) is computed first, then min/max/avg/p95/trend "
+            "are calculated over time. 'max' = peak total cluster value. "
+            "With stats_type='horizontal': stats are cross-instance — min/max/avg/stddev across "
+            "instances are computed at each time point, then summarized. "
+            "'max' = highest value any single instance had at any time point."
         ),
     )

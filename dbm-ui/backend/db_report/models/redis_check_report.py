@@ -13,6 +13,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
+from backend.db_report.enums import ReportStateType
 from backend.db_report.report_basemodel import BaseReportABS
 
 
@@ -36,6 +37,7 @@ class RedisCheckReport(BaseReportABS):
             models.Index(fields=["creator", "create_at"]),
             models.Index(fields=["cluster", "create_at"]),
             models.Index(fields=["subtype", "report_day", "cluster_id"]),
+            models.Index(fields=["subtype", "create_at", "cluster_id"]),
             models.Index(fields=["subtype", "bk_biz_id", "state", "create_at"]),
         ]
 
@@ -89,14 +91,14 @@ class RedisCheckReport(BaseReportABS):
             .first()
         )
         if existing:
+            old_failed_days = existing.failed_days
+            old_state = existing.state
             for key, value in defaults.items():
                 setattr(existing, key, value)
-            if state != "normal" and existing.state == "normal":
-                existing.failed_days = 0
-            elif state != "normal" and existing.state != "normal":
-                existing.failed_days += 1
+            if state != ReportStateType.NORMAL.value:
+                existing.failed_days = old_failed_days + 1 if old_state != ReportStateType.NORMAL.value else 1
             else:
-                existing.failed_days = 1
+                existing.failed_days = 0
             existing.save(update_fields=list(defaults.keys()))
             return existing
         return cls.objects.create(

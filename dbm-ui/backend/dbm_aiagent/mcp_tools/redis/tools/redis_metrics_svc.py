@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging
+import math
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -478,9 +479,16 @@ class RedisMetricsQueryService:
 
         slope = (n * sum_xy - sum_x * sum_y) / denominator
 
+        def _round_sig2(v: float) -> float:
+            if v == 0:
+                return 0.0
+            magnitude = math.floor(math.log10(abs(v)))
+            factor = 10 ** (magnitude - 1)
+            return round(v / factor) * factor
+
         if interval_sec and interval_sec > 0:
-            return slope * 60 / interval_sec
-        return slope
+            return _round_sig2(slope * 60 / interval_sec)
+        return _round_sig2(slope)
 
     def _calculate_median(self, data: Union[List[List[float]], List[float]]) -> float:
         """
@@ -806,12 +814,13 @@ class RedisMetricsQueryService:
         metric_config: dict,
         time_window: int = 60,
         metric_key: Optional[str] = None,
+        vertical_stats: bool = False,
     ) -> None:
         """
         Calculate scalar statistics from parsed time series data.
 
-        For simple metrics: Calculates stats from stats_series_by_key (min/max/avg/stddev series).
-        For bucket metrics: Calculates stats from raw_series (bucket time series).
+        For bucket metrics or vertical_stats: Calculates stats from raw_series (temporal stats).
+        For simple metrics (horizontal): Calculates stats from stats_series_by_key (cross-instance stats).
 
         Args:
             metric_series: MetricSeries object with parsed datapoints
@@ -819,27 +828,27 @@ class RedisMetricsQueryService:
             metric_config: Metric configuration dict from METRIC_REGISTRY
             time_window: Time between consecutive data points (seconds), used to normalize trend to per-minute
             metric_key: Key from METRIC_REGISTRY, used to resolve trend_unit for output
+            vertical_stats: When True, compute temporal stats from the aggregated raw_series
         """
         if metric_series.statistics is None:
             metric_series.statistics = {}
 
         trend_unit = TREND_UNIT_BY_METRIC_KEY.get(metric_key, "") if metric_key else ""
 
-        if "buckets" in metric_config:
-            self._calculate_stats_for_bucket_metric(metric_series, interval_sec=time_window, trend_unit=trend_unit)
+        if "buckets" in metric_config or vertical_stats:
+            self._calculate_stats_from_raw_series(metric_series, interval_sec=time_window, trend_unit=trend_unit)
         else:
             self._calculate_stats_for_simple_metric(metric_series, interval_sec=time_window, trend_unit=trend_unit)
 
-    def _calculate_stats_for_bucket_metric(
+    def _calculate_stats_from_raw_series(
         self,
         metric_series: MetricSeries,
         interval_sec: Optional[int] = None,
         trend_unit: str = "",
     ) -> None:
-        """Calculate stats from raw_series for bucket metrics."""
+        """Calculate stats from raw_series (used for bucket metrics and vertical stats)."""
         if not metric_series.raw_series:
             return
-        last_values = []
         for key_value, datapoints in metric_series.raw_series.items():
             values = [point[0] for point in datapoints if point[0] is not None]
             if not values:
@@ -847,9 +856,6 @@ class RedisMetricsQueryService:
             metric_series.statistics[key_value] = self._compute_scalar_stats_from_values(
                 values, interval_sec=interval_sec, trend_unit=trend_unit
             )
-            last_values.append(values[-1])
-        if last_values:
-            metric_series.statistics["latest"] = max(last_values)
 
     def _calculate_stats_for_simple_metric(
         self,
@@ -879,6 +885,7 @@ class RedisMetricsQueryService:
         ip: Optional[str] = None,
         port: Optional[int] = None,
         group_by: Optional[List[MetricsGroupBy]] = None,
+        vertical_stats: bool = False,
     ) -> Optional[MetricSeries]:
         """
         Query metrics for a single cluster, with optional filtering by machine/instance.
@@ -894,6 +901,7 @@ class RedisMetricsQueryService:
             ip: Optional IP address to filter for single machine query
             port: Optional port to filter for single instance query
             group_by: Optional list of dimensions for grouping results (e.g., [cluster_domain, ip], [instance])
+            vertical_stats: When True, compute temporal stats from the aggregated raw_series
 
         Returns:
             MetricSeries on success, or None if query fails
@@ -957,11 +965,8 @@ class RedisMetricsQueryService:
 
         # Calculate statistics from parsed datapoints
         if series:
-            self._calculate_stats(series, metric_config, time_window=time_window, metric_key=metric_key)
-
-        import json
-
-        sss = json.dumps(params, indent=2)
-        logger.debug(f"{sss}]")
+            self._calculate_stats(
+                series, metric_config, time_window=time_window, metric_key=metric_key, vertical_stats=vertical_stats
+            )
 
         return series
