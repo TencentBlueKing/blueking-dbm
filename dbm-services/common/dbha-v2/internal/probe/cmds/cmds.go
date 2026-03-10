@@ -138,3 +138,8 @@ func HealthCmdRunE(cmd *cobra.Command, _ []string) error {
 	fmt.Fprintln(cmd.OutOrStdout(), string(data))
 	return nil
 }
+
+// GenConfigCmdRunE generates probe configuration file (implementation left empty).
+func GenConfigCmdRunE(cmd *cobra.Command, args []string) error {
+	return nil
+}

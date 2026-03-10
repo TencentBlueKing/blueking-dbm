@@ -50,6 +50,7 @@ func main() {
 	rootCmd.AddCommand(probe.StopCmd)
 	rootCmd.AddCommand(probe.RestartCmd)
 	rootCmd.AddCommand(probe.ReloadCmd)
+	rootCmd.AddCommand(probe.GenConfigCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		logger.Error("failed to execute probe. errmsg(%s)", err.Error())

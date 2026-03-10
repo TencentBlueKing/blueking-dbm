@@ -81,3 +81,10 @@ var ReloadCmd = &cobra.Command{
 	Short: "Reload this process.",
 	RunE:  cmds.ReloadCmdRunE,
 }
+
+// GenConfigCmd is used to generate probe configuration file.
+var GenConfigCmd = &cobra.Command{
+	Use:   "gen-config",
+	Short: "Generate probe configuration file.",
+	RunE:  cmds.GenConfigCmdRunE,
+}
