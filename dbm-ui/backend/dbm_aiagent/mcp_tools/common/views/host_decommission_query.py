@@ -10,13 +10,20 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
+from backend.db_services.risk_memo.constants import Status
+from backend.db_services.risk_memo.models.risk_memo import RiskMemo
 from backend.dbm_aiagent.mcp_tools.common.impl.query_cluster_by_ip import query_cluster_by_ip
 from backend.dbm_aiagent.mcp_tools.common.serializers.query_cluster_by_ip import (
     QueryClusterByIpInputSerializer,
     QueryClusterByIpOutputSerializer,
+)
+from backend.dbm_aiagent.mcp_tools.common.serializers.query_risk_by_cluster import (
+    QueryRiskByClusterInputSerializer,
+    QueryRiskByClusterOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
@@ -57,3 +64,44 @@ class HostDecommissionQueryMcpToolsViewSet(McpToolsViewSet):
         bk_cloud_id = self.get_param("bk_cloud_id")
 
         return Response({"clusters": query_cluster_by_ip(ip=ip, bk_cloud_id=bk_cloud_id)})
+
+    @mcp_tools_api_decorator(
+        description="Query active risk memos by biz_id and cluster domain (DBA only). "
+        "Returns: id, name, bk_biz_id, level, status, db_type, description, biz_inpact, is_special, creator, create_at. "
+        "Excludes done/closed risks.",
+        request_slz=QueryRiskByClusterInputSerializer,
+        response_slz=QueryRiskByClusterOutputSerializer,
+        permission_classes=[McpIsDbaPermission],
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.HOST_DECOMMISSION_QUERY],
+        name_prefix="host_decommission_query",
+    )
+    def query_risk_by_cluster(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")
+        cluster_domain = self.get_param("cluster_domain")
+        # impact_cluster 存储逗号分隔多域名，需精确匹配，避免子串误命中
+        # 排除已结项（DONE）的风险备忘录
+        risks = (
+            RiskMemo.objects.filter(bk_biz_id=bk_biz_id)
+            .exclude(status=Status.DONE.value)
+            .filter(
+                Q(inpact_cluster=cluster_domain)
+                | Q(inpact_cluster__startswith=f"{cluster_domain},")
+                | Q(inpact_cluster__endswith=f",{cluster_domain}")
+                | Q(inpact_cluster__contains=f",{cluster_domain},")
+            )
+            .values(
+                "id",
+                "name",
+                "bk_biz_id",
+                "level",
+                "status",
+                "db_type",
+                "description",
+                "biz_inpact",
+                "is_special",
+                "creator",
+                "create_at",
+            )
+        )
+        return Response({"risks": list(risks)})
