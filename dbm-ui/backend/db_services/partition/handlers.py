@@ -21,7 +21,7 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.enums.instance_inner_role import InstanceInnerRole
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import AppCache, Cluster
 from backend.db_report.models.mysql_partiton_resuly import MysqlPartitionResult
 from backend.db_services.partition.constants import (
     QUERY_DATABASE_FIELD_TYPE,
@@ -777,10 +777,17 @@ class PartitionHandler(object):
                 try:
                     # 验证集群是否存在
                     cluster = Cluster.objects.get(immute_domain=row_data[_("集群")])
+                    app = AppCache.objects.get(bk_biz_id=cluster.bk_biz_id)
                     # 构建分区策略参数
                     partition_data = {
                         "cluster_id": cluster.id,
                         "bk_biz_id": cluster.bk_biz_id,
+                        "bk_biz_name": app.bk_biz_name,
+                        "db_app_abbr": app.db_app_abbr,
+                        "bk_cloud_id": cluster.bk_cloud_id,
+                        "cluster_type": cluster.cluster_type,
+                        "immute_domain": cluster.immute_domain,
+                        "port": cluster.get_partition_port(),
                         "dblikes": [row_data.get(_("DB名"), "")],
                         "tblikes": [row_data[_("表名")]],
                         "partition_column": row_data[_("分区字段")],
@@ -788,9 +795,19 @@ class PartitionHandler(object):
                         "partition_time_interval": int(row_data[_("分区间隔（天）")]),
                         "expire_time": int(row_data.get(_("数据过期时间（天）"), 720)),
                     }
+                    # 针对直接调用接口做规则检查
+                    # 不符合规则的抛出异常，配置不会写入分区配置表
+                    cls.verify_partition_field(
+                        bk_biz_id=partition_data["bk_biz_id"],
+                        cluster_id=partition_data["cluster_id"],
+                        dblikes=partition_data["dblikes"],
+                        tblikes=partition_data["tblikes"],
+                        partition_column=partition_data["partition_column"],
+                        partition_column_type=partition_data["partition_column_type"],
+                    )
 
                     # 调用API创建分区策略
-                    result = DBPartitionApi.create_conf(params=partition_data)
+                    result = DBPartitionApi.create_conf_v2(params=partition_data, raw=True)
 
                     if result.get("code") == 0:
                         success_count += 1
