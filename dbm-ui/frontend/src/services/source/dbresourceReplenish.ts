@@ -11,10 +11,11 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import http from '../http';
 import type { CreateReplenish } from '@services/model/db-resource/Replenish';
-import type { ListBase } from '../types';
 import type ReplenishModel from '@services/model/db-resource/Replenish';
+
+import http from '../http';
+import type { ListBase } from '../types';
 
 const path = '/apis/dbresource/replenish';
 
@@ -22,20 +23,20 @@ const path = '/apis/dbresource/replenish';
  * 查询资源补货记录
  */
 export function fetchReplenish(params: {
-  id?: number;
-  db_type?: string;
   creator?: string;
+  db_type?: string;
+  id?: number;
   limit?: number;
   offset?: number;
 }) {
   return http.get<
     ListBase<
       {
+        create_at: string;
+        creator: string;
+        details: Record<string, number>;
         id: number;
         status: string[];
-        creator: string;
-        create_at: string;
-        details: Record<string, number>;
         ticket_ids: number[];
       }[]
     >
@@ -45,14 +46,14 @@ export function fetchReplenish(params: {
 /**
  * 海磊资源池主机补货
  */
-export function createResourceReplenish(params: { infos: CreateReplenish[]; bk_biz_id: number; remark?: string }) {
+export function createResourceReplenish(params: { bk_biz_id: number; infos: CreateReplenish[]; remark?: string }) {
   return http.post(`${path}/create_resource_replenish/`, params);
 }
 
 /**
  * 获取资源池单据申请交付信息
  */
-export function listTicketApplyInfo(params: { ticket_ids: string; offset?: number; limit?: number }) {
+export function listTicketApplyInfo(params: { limit?: number; offset?: number; ticket_ids: string }) {
   return http.get<
     Record<
       number,
@@ -70,4 +71,11 @@ export function listTicketApplyInfo(params: { ticket_ids: string; offset?: numbe
  */
 export function getRunningReplenishRecord() {
   return http.get<number>(`${path}/get_running_replenish_record/`);
+}
+
+/**
+ * 导出补货单据Excel
+ */
+export function exportReplenishTickets(params: { replenish_record_ids: number[] }) {
+  return http.post<string>(`${path}/export_replenish_tickets/`, params, { responseType: 'blob' });
 }

@@ -41,11 +41,13 @@ export function getTickets(params: {
   create_at__lte?: string;
   creator?: string;
   id?: number;
+  ids?: string;
   is_assist?: boolean;
   limit?: number;
   offset?: number;
   ordering?: string;
   remark?: string;
+  replenish_db_type?: string;
   self_manage?: number;
   status?: string;
   ticket_type?: string;
