@@ -42,6 +42,7 @@ class DBMMcpTools(StrStructuredEnum):
     KAFKA_QUERY_META = EnumField("kafka-query-meta", "kafka-query-meta")
     KAFKA_BILL = EnumField("kafka-bill", "kafka-bill")
     HOST_DECOMMISSION_QUERY = EnumField("host-decommission-query", _("主机裁撤信息查询"))
+    TASKFLOW_QUERY = EnumField("taskflow-query", _("任务流查询"))
 
 
 class DBMMCPTags(StrStructuredEnum):
