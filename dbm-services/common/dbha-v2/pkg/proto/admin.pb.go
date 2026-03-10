@@ -360,10 +360,10 @@ const file_admin_proto_rawDesc = "" +
 	"\x13ProbeConfigResponse\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\x05R\x04code\x12\x16\n" +
 	"\x06errmsg\x18\x02 \x01(\tR\x06errmsg\x12\x18\n" +
-	"\apayload\x18\x03 \x01(\tR\apayload2\x84\x01\n" +
+	"\apayload\x18\x03 \x01(\tR\apayload2\x83\x01\n" +
 	"\fAdminService\x124\n" +
-	"\tHeartbeat\x12\x11.HeartbeatRequest\x1a\x12.HeartbeatResponse\"\x00\x12>\n" +
-	"\vWatchConfig\x12\x13.ProbeConfigRequest\x1a\x14.ProbeConfigResponse\"\x00(\x010\x01B\tZ\a.;protob\x06proto3"
+	"\tHeartbeat\x12\x11.HeartbeatRequest\x1a\x12.HeartbeatResponse\"\x00\x12=\n" +
+	"\x0eGetProbeConfig\x12\x13.ProbeConfigRequest\x1a\x14.ProbeConfigResponse\"\x00B\tZ\a.;protob\x06proto3"
 
 var (
 	file_admin_proto_rawDescOnce sync.Once
@@ -387,9 +387,9 @@ var file_admin_proto_goTypes = []any{
 }
 var file_admin_proto_depIdxs = []int32{
 	1, // 0: AdminService.Heartbeat:input_type -> HeartbeatRequest
-	3, // 1: AdminService.WatchConfig:input_type -> ProbeConfigRequest
+	3, // 1: AdminService.GetProbeConfig:input_type -> ProbeConfigRequest
 	2, // 2: AdminService.Heartbeat:output_type -> HeartbeatResponse
-	4, // 3: AdminService.WatchConfig:output_type -> ProbeConfigResponse
+	4, // 3: AdminService.GetProbeConfig:output_type -> ProbeConfigResponse
 	2, // [2:4] is the sub-list for method output_type
 	0, // [0:2] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name

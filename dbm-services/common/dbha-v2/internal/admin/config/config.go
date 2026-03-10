@@ -28,6 +28,7 @@ package config
 import (
 	"time"
 
+	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/logger"
 
 	"github.com/spf13/viper"
@@ -41,6 +42,15 @@ var Cfg = Configuration{
 		Level:     logger.InfoLevel.String(),
 		FileCount: 10,
 		FileSize:  100,
+	},
+
+	Grpc: GrpcConfig{
+		ServerPingTime:        constant.DefaultServerPingTime,
+		PingTimeout:           constant.DefaultPingTimeout,
+		KeepAliveMinTime:      constant.DefaultKeepAliveMiniTime,
+		PermitWithoutStream:   true,
+		MaxReceiveMessageSize: constant.DefaultMaxReceiveMessageSize,
+		MaxSendMessageSize:    constant.DefaultMaxSendMessageSize,
 	},
 }
 
@@ -60,7 +70,13 @@ type ApmConfig struct {
 
 // GrpcConfig grpc configuration
 type GrpcConfig struct {
-	ListenAddress string `yaml:"listenAddress" mapstructure:"listenAddress"`
+	ListenAddress         string        `yaml:"listenAddress"           mapstructure:"listenAddress"`
+	ServerPingTime        time.Duration `yaml:"serverPingTime"          mapstructure:"serverPingTime"`
+	PingTimeout           time.Duration `yaml:"pingTimeout"             mapstructure:"pingTimeout"`
+	KeepAliveMinTime      time.Duration `yaml:"keepAliveMinTime"        mapstructure:"keepAliveMinTime"`
+	PermitWithoutStream   bool          `yaml:"permitWithoutStream"     mapstructure:"permitWithoutStream"`
+	MaxReceiveMessageSize int           `yaml:"maxReceiveMessageSize"   mapstructure:"maxReceiveMessageSize"`
+	MaxSendMessageSize    int           `yaml:"maxSendMessageSize"      mapstructure:"maxSendMessageSize"`
 }
 
 // WebConfig web configuration
