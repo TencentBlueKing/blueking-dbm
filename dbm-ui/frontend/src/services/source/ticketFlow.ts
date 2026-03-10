@@ -25,7 +25,7 @@ export function getTicketFlows<D = unknown>(params: { id: number }) {
 }
 
 // 单据终止
-export function revokeTicket(params: { ticket_ids: number[] }) {
+export function revokeTicket(params: { remark?: string; ticket_ids: number[] }) {
   return http.post(`${path}/revoke_ticket/`, params);
 }
 
