@@ -1014,6 +1014,24 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "is_public": False,
         "tools": [],
     },
+    {
+        "name": "taskflow-query",
+        "description": """Task flow query services for DBM.
+
+        Features:
+        1. Query the last failed node's error logs by task flow root_id
+        2. List failed task flow root_ids by date range and ticket type
+
+        Use Cases:
+        - Diagnose task flow failures by retrieving error logs of the last failed node
+        - Batch query failed task flows within a specified time range for troubleshooting
+        """,
+        "target_app_codes": [APP_CODE],
+        "labels": ["taskflow-query"],
+        "status": 1,
+        "is_public": False,
+        "tools": [],
+    },
 ]
 
 # 智能体配置
