@@ -55,5 +55,5 @@ message ProbeConfigResponse {
 
 service AdminService {
     rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse) {};
-    rpc WatchConfig(stream ProbeConfigRequest) returns (stream ProbeConfigResponse) {};
+    rpc GetProbeConfig(ProbeConfigRequest) returns (ProbeConfigResponse) {};
 }

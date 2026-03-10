@@ -43,8 +43,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AdminService_Heartbeat_FullMethodName   = "/AdminService/Heartbeat"
-	AdminService_WatchConfig_FullMethodName = "/AdminService/WatchConfig"
+	AdminService_Heartbeat_FullMethodName      = "/AdminService/Heartbeat"
+	AdminService_GetProbeConfig_FullMethodName = "/AdminService/GetProbeConfig"
 )
 
 // AdminServiceClient is the client API for AdminService service.
@@ -52,7 +52,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AdminServiceClient interface {
 	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
-	WatchConfig(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ProbeConfigRequest, ProbeConfigResponse], error)
+	GetProbeConfig(ctx context.Context, in *ProbeConfigRequest, opts ...grpc.CallOption) (*ProbeConfigResponse, error)
 }
 
 type adminServiceClient struct {
@@ -73,25 +73,22 @@ func (c *adminServiceClient) Heartbeat(ctx context.Context, in *HeartbeatRequest
 	return out, nil
 }
 
-func (c *adminServiceClient) WatchConfig(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ProbeConfigRequest, ProbeConfigResponse], error) {
+func (c *adminServiceClient) GetProbeConfig(ctx context.Context, in *ProbeConfigRequest, opts ...grpc.CallOption) (*ProbeConfigResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &AdminService_ServiceDesc.Streams[0], AdminService_WatchConfig_FullMethodName, cOpts...)
+	out := new(ProbeConfigResponse)
+	err := c.cc.Invoke(ctx, AdminService_GetProbeConfig_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &grpc.GenericClientStream[ProbeConfigRequest, ProbeConfigResponse]{ClientStream: stream}
-	return x, nil
+	return out, nil
 }
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type AdminService_WatchConfigClient = grpc.BidiStreamingClient[ProbeConfigRequest, ProbeConfigResponse]
 
 // AdminServiceServer is the server API for AdminService service.
 // All implementations must embed UnimplementedAdminServiceServer
 // for forward compatibility.
 type AdminServiceServer interface {
 	Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error)
-	WatchConfig(grpc.BidiStreamingServer[ProbeConfigRequest, ProbeConfigResponse]) error
+	GetProbeConfig(context.Context, *ProbeConfigRequest) (*ProbeConfigResponse, error)
 	mustEmbedUnimplementedAdminServiceServer()
 }
 
@@ -105,8 +102,8 @@ type UnimplementedAdminServiceServer struct{}
 func (UnimplementedAdminServiceServer) Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Heartbeat not implemented")
 }
-func (UnimplementedAdminServiceServer) WatchConfig(grpc.BidiStreamingServer[ProbeConfigRequest, ProbeConfigResponse]) error {
-	return status.Errorf(codes.Unimplemented, "method WatchConfig not implemented")
+func (UnimplementedAdminServiceServer) GetProbeConfig(context.Context, *ProbeConfigRequest) (*ProbeConfigResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetProbeConfig not implemented")
 }
 func (UnimplementedAdminServiceServer) mustEmbedUnimplementedAdminServiceServer() {}
 func (UnimplementedAdminServiceServer) testEmbeddedByValue()                      {}
@@ -147,12 +144,23 @@ func _AdminService_Heartbeat_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AdminService_WatchConfig_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(AdminServiceServer).WatchConfig(&grpc.GenericServerStream[ProbeConfigRequest, ProbeConfigResponse]{ServerStream: stream})
+func _AdminService_GetProbeConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProbeConfigRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AdminServiceServer).GetProbeConfig(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AdminService_GetProbeConfig_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AdminServiceServer).GetProbeConfig(ctx, req.(*ProbeConfigRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type AdminService_WatchConfigServer = grpc.BidiStreamingServer[ProbeConfigRequest, ProbeConfigResponse]
 
 // AdminService_ServiceDesc is the grpc.ServiceDesc for AdminService service.
 // It's only intended for direct use with grpc.RegisterService,
@@ -165,14 +173,11 @@ var AdminService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "Heartbeat",
 			Handler:    _AdminService_Heartbeat_Handler,
 		},
-	},
-	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "WatchConfig",
-			Handler:       _AdminService_WatchConfig_Handler,
-			ServerStreams: true,
-			ClientStreams: true,
+			MethodName: "GetProbeConfig",
+			Handler:    _AdminService_GetProbeConfig_Handler,
 		},
 	},
+	Streams:  []grpc.StreamDesc{},
 	Metadata: "admin.proto",
 }

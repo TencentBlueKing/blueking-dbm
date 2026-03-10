@@ -17,6 +17,14 @@ apm:
 
 grpc:
   listenAddress: 127.0.0.1:50051
+  # optional: omit to use defaults (serverPingTime: 5m, pingTimeout: 10s, keepAliveMinTime: 5m,
+  # permitWithoutStream: true, maxReceiveMessageSize: 10485760, maxSendMessageSize: 10485760)
+  # serverPingTime: 5m
+  # pingTimeout: 10s
+  # keepAliveMinTime: 5m
+  # permitWithoutStream: true
+  # maxReceiveMessageSize: 10485760
+  # maxSendMessageSize: 10485760
 
 web:
   host: 127.0.0.1

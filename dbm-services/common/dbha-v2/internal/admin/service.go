@@ -27,7 +27,6 @@ package admin
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"net"
 	"strings"
 	"sync"
@@ -57,7 +56,6 @@ import (
 	"github.com/swaggest/swgui/v5emb"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/keepalive"
 )
 
 // Name returns the process name from the current executable (same as Makefile binary name).
@@ -65,10 +63,9 @@ func Name() string {
 	return "admin"
 }
 
-// Service is the admin service
+// Service is the admin service. It references AdminGrpcService and manages its lifecycle;
+// gRPC API is served by AdminGrpcService.
 type Service struct {
-	proto.UnimplementedAdminServiceServer
-
 	quit         chan struct{}
 	info         discovery.ServiceInfo
 	apmSvr       *haapm.Server
@@ -78,49 +75,10 @@ type Service struct {
 	db           *hamysql.GormDB
 	strategy     *strategy.Strategy
 	address      string
+	grpcSvc      *AdminGrpcService // gRPC API implementation, created and owned by Service
 	svr          *grpc.Server
-	logger       *zap.Logger // only for the gRPC
+	logger       *zap.Logger
 	gormLogger   logger.Logger
-}
-
-// Heartbeat admin server heartbeat
-func (a *Service) Heartbeat(ctx context.Context, req *proto.HeartbeatRequest) (*proto.HeartbeatResponse, error) {
-	logger.Info("admin server heartbeat request(%v)", req)
-	return &proto.HeartbeatResponse{Errmsg: "success"}, nil
-}
-
-// WatchConfig watch config
-func (a *Service) WatchConfig(stream proto.AdminService_WatchConfigServer) error {
-	ctx := stream.Context()
-
-	for {
-		select {
-		case <-ctx.Done():
-			logger.Error("admin server exited due to canceled context")
-			return nil
-
-		default:
-			req, err := stream.Recv()
-			if err == io.EOF {
-				logger.Error("admin server exited. recv return errmsg(%v)", err)
-				return nil
-			}
-
-			if err != nil {
-				logger.Error("admin server exited. recv return errmsg(%v)", err)
-				return nil
-			}
-
-			logger.Debug("request:%v", req)
-			// NOTE: only test
-			err = stream.Send(&proto.ProbeConfigResponse{
-				Payload: "config respond",
-			})
-			if err != nil {
-				logger.Error("respond config request failed, errmsg(%v)", err)
-			}
-		}
-	}
 }
 
 // Run run admin service
@@ -189,6 +147,7 @@ func (s *Service) Close() {
 		s.svr.Stop()
 		s.svr = nil
 	}
+	s.grpcSvc = nil
 
 	if s.apmSvr != nil {
 		_ = s.apmSvr.Stop()
@@ -237,25 +196,28 @@ func (s *Service) updateInfo() {
 	}
 }
 
+func (s *Service) createApmServer() error {
+	trace.Setup()
+	apm.InitAPM(s.info.ID, s.info.Name)
+
+	var err error
+	s.apmSvr, err = haapm.Serve(haapm.ServerConfig{
+		Addr:         config.Cfg.Apm.ListenAddress,
+		Subsystem:    "dbha-v2-admin",
+		ReadTimeout:  config.Cfg.Apm.ReadTimeout,
+		WriteTimeout: config.Cfg.Apm.WriteTimeout,
+	})
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *Service) createGrpcServer() error {
-	kasp := keepalive.ServerParameters{
-		Time:    constant.DefaultServerPingTime,
-		Timeout: constant.DefaultPingTimeout,
-	}
-
-	kacp := keepalive.EnforcementPolicy{
-		MinTime:             constant.DefaultKeepAliveMiniTime,
-		PermitWithoutStream: true,
-	}
-
-	svr := grpc.NewServer(
-		grpc.KeepaliveParams(kasp),
-		grpc.KeepaliveEnforcementPolicy(kacp),
-		grpc.MaxRecvMsgSize(constant.DefaultMaxReceiveMessageSize),
-		grpc.MaxSendMsgSize(constant.DefaultMaxSendMessageSize),
-	)
-
-	proto.RegisterAdminServiceServer(svr, s)
+	s.grpcSvc = NewAdminGrpcService(s)
+	svr := s.grpcSvc.NewServer()
+	proto.RegisterAdminServiceServer(svr, s.grpcSvc)
 	listen, err := net.Listen("tcp", config.Cfg.Grpc.ListenAddress)
 	if err != nil {
 		return gerrors.New(gerrors.NetException, err.Error())
@@ -272,24 +234,6 @@ func (s *Service) createGrpcServer() error {
 		logger.Info("exited from the grpc server")
 	}()
 
-	return nil
-}
-
-func (s *Service) createApmServer() error {
-	trace.Setup()
-	apm.InitAPM(s.info.ID, s.info.Name)
-
-	var err error
-	s.apmSvr, err = haapm.Serve(haapm.ServerConfig{
-		Addr:         config.Cfg.Apm.ListenAddress,
-		Subsystem:    "dbha-v2-admin",
-		ReadTimeout:  config.Cfg.Apm.ReadTimeout,
-		WriteTimeout: config.Cfg.Apm.WriteTimeout,
-	})
-
-	if err != nil {
-		return err
-	}
 	return nil
 }
 

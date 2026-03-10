@@ -25,11 +25,7 @@
 package reporter
 
 import (
-	"fmt"
-	"io"
-	"math/rand"
 	"sync"
-	"time"
 
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
@@ -38,28 +34,22 @@ import (
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 )
 
+// AdminClient is the gRPC client for the admin service, used by probe to report heartbeat and fetch config.
 type AdminClient struct {
-	conn                 *grpc.ClientConn
-	client               proto.AdminServiceClient
-	stream               proto.AdminService_WatchConfigClient
-	wg                   sync.WaitGroup
-	ctx                  context.Context
-	cancel               context.CancelFunc
-	clientId             string
-	closed               bool
-	reconnecting         bool
-	reconnectInterval    time.Duration
-	maxReconnectAttempts int
-	reconnectAttempts    int
-	respC                chan *proto.ProbeConfigResponse
-	mutex                sync.RWMutex
+	conn     *grpc.ClientConn
+	client   proto.AdminServiceClient
+	ctx      context.Context
+	cancel   context.CancelFunc
+	clientId string
+	closed   bool
+	mutex    sync.RWMutex
 }
 
+// NewAdminClient creates an AdminClient connected to the given admin endpoint.
 func NewAdminClient(ctx context.Context, endpoint string, clientId string) (*AdminClient, error) {
 	kacp := keepalive.ClientParameters{
 		Time:                constant.DefaultClientPingTime,
@@ -84,159 +74,17 @@ func NewAdminClient(ctx context.Context, endpoint string, clientId string) (*Adm
 	ctxBase, cancel := context.WithCancel(ctx)
 
 	r := &AdminClient{
-		conn:                 conn,
-		client:               proto.NewAdminServiceClient(conn),
-		ctx:                  ctxBase,
-		cancel:               cancel,
-		clientId:             clientId,
-		reconnectInterval:    constant.DefaultClientReconnectInterval,
-		maxReconnectAttempts: constant.DefaultClientMaxReconnectAttempts,
-		respC:                make(chan *proto.ProbeConfigResponse, constant.DefaultAdminBufferSize),
+		conn:     conn,
+		client:   proto.NewAdminServiceClient(conn),
+		ctx:      ctxBase,
+		cancel:   cancel,
+		clientId: clientId,
 	}
 
 	return r, nil
 }
 
-func (a *AdminClient) createStream() error {
-	a.mutex.RLock()
-	if a.closed {
-		a.mutex.RUnlock()
-		return gerrors.New(gerrors.Failure, "admin client is closed")
-	}
-	a.mutex.RUnlock()
-
-	stream, err := a.client.WatchConfig(a.ctx)
-	if err != nil {
-		return gerrors.New(gerrors.Failure, err.Error())
-	}
-
-	a.mutex.Lock()
-	a.stream = stream
-	a.reconnectAttempts = 0
-	a.mutex.Unlock()
-
-	a.wg.Add(1)
-	go a.monitorConnection()
-	a.wg.Add(1)
-	go a.receiveMessage()
-
-	return nil
-}
-
-func (a *AdminClient) handleDisconnect() {
-	defer a.wg.Done()
-
-	a.mutex.Lock()
-	if a.closed || a.reconnecting {
-		a.mutex.Unlock()
-		return
-	}
-
-	a.reconnecting = true
-	a.mutex.Unlock()
-
-	defer func() {
-		a.mutex.Lock()
-		a.reconnecting = false
-		a.mutex.Unlock()
-	}()
-
-	a.mutex.Lock()
-	a.reconnectAttempts++
-	reconnectAttempts := a.reconnectAttempts
-	maxAttempts := a.maxReconnectAttempts
-	a.mutex.Unlock()
-
-	if maxAttempts > 0 && reconnectAttempts > maxAttempts {
-		logger.Warn("admin client max reconnect attempts(%d) reached, giving up.", maxAttempts)
-		return
-	}
-
-	// THe exponential backoff algorithm calculates the reconnection interval.
-	backoffInterval := a.reconnectInterval * time.Duration(1<<uint(reconnectAttempts-1))
-	// Add some randomness to avoid the stampede effect.
-	backoffInterval = backoffInterval + time.Duration(rand.Int63n(int64(backoffInterval/2)))
-	logger.Info("reconnect attempt(%d) in (%d)", reconnectAttempts, backoffInterval)
-	time.Sleep(backoffInterval)
-
-	// retry
-	logger.Info("admin client attempting to reconnect...")
-	err := a.createStream()
-	if err != nil {
-		logger.Warn("admin client reconnect failed. errmsg(%v)", err)
-		a.wg.Add(1)
-		go a.handleDisconnect()
-		return
-	}
-
-	logger.Info("admin client reconnect successful")
-}
-
-func (a *AdminClient) receiveMessage() {
-	defer a.wg.Done()
-
-	for {
-		resp, err := a.stream.Recv()
-		if err == io.EOF {
-			logger.Error("admin client recv failed. errmsg(%v)", err)
-			return
-		}
-
-		if err != nil {
-			logger.Error("admin client recv failed. errmsg(%v)", err)
-			return
-		}
-
-		logger.Debug("admin client response(%v)", resp)
-		a.respC <- resp
-	}
-}
-
-func (a *AdminClient) getConnectionState() connectivity.State {
-	a.mutex.RLock()
-	defer a.mutex.RUnlock()
-
-	if a.conn == nil {
-		return connectivity.Shutdown
-	}
-
-	return a.conn.GetState()
-}
-
-func (a *AdminClient) monitorConnection() {
-	defer a.wg.Done()
-
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-a.ctx.Done():
-			logger.Info("admin client exited.")
-			a.mutex.Lock()
-			a.closed = true
-			a.mutex.Unlock()
-			return
-
-		case <-ticker.C:
-			a.mutex.RLock()
-			if a.closed {
-				a.mutex.RUnlock()
-				return
-			}
-			a.mutex.RUnlock()
-
-			state := a.getConnectionState()
-			if state == connectivity.TransientFailure || state == connectivity.Shutdown {
-				logger.Warn("connection state(%s), starting reconnectiong", state.String())
-				a.wg.Add(1)
-				go a.handleDisconnect()
-				return
-			}
-		}
-	}
-}
-
+// HeartbeatRequest sends heartbeat to admin.
 func (a *AdminClient) HeartbeatRequest(req *proto.HeartbeatRequest) (*proto.HeartbeatResponse, error) {
 	a.mutex.RLock()
 	defer a.mutex.RUnlock()
@@ -248,31 +96,21 @@ func (a *AdminClient) HeartbeatRequest(req *proto.HeartbeatRequest) (*proto.Hear
 	return a.client.Heartbeat(a.ctx, req)
 }
 
-func (a *AdminClient) WatchConfigRequest(req *proto.ProbeConfigRequest) (chan *proto.ProbeConfigResponse, error) {
+// GetProbeConfig fetches probe config from admin.
+func (a *AdminClient) GetProbeConfig(
+	ctx context.Context, req *proto.ProbeConfigRequest,
+) (*proto.ProbeConfigResponse, error) {
 	a.mutex.RLock()
+	defer a.mutex.RUnlock()
+
 	if a.closed {
-		a.mutex.RUnlock()
 		return nil, gerrors.New(gerrors.GrpcFailure, "admin client is closed")
 	}
 
-	if a.stream == nil {
-		a.mutex.RUnlock()
-		if err := a.createStream(); err != nil {
-			return nil, err
-		}
-		a.mutex.RLock()
-	}
-
-	defer a.mutex.RUnlock()
-	err := a.stream.Send(req)
-	if err != nil {
-		msg := fmt.Sprintf("admin client stream send request failed, errmsg(%v)", err)
-		return nil, gerrors.New(gerrors.Failure, msg)
-	}
-
-	return a.respC, nil
+	return a.client.GetProbeConfig(ctx, req)
 }
 
+// Close closes the admin client and connection.
 func (a *AdminClient) Close() {
 	a.mutex.Lock()
 	if a.closed {
@@ -282,25 +120,13 @@ func (a *AdminClient) Close() {
 	a.closed = true
 	a.mutex.Unlock()
 
-	// close stream
-	if a.stream != nil {
-		err := a.stream.CloseSend()
-		if err != nil {
-			logger.Error("admin client close send failed. errmsg(%v)", err)
-		}
-	}
-
-	// clsoe connection
 	if a.conn != nil {
 		a.conn.Close()
 		a.conn = nil
 	}
 
-	// exit goroutines
 	if a.cancel != nil {
 		a.cancel()
 		a.cancel = nil
 	}
-
-	a.wg.Wait()
 }
