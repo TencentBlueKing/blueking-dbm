@@ -2,7 +2,7 @@
   {
     "conf_name": "be.alter_index_worker_count",
     "value_default": "3",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -18,7 +18,7 @@
   {
     "conf_name": "be.alter_tablet_worker_count",
     "value_default": "3",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -34,7 +34,7 @@
   {
     "conf_name": "be.arrow_flight_sql_port",
     "value_default": "-1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -50,7 +50,7 @@
   {
     "conf_name": "be.aws_log_level",
     "value_default": "3",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -66,7 +66,7 @@
   {
     "conf_name": "be.base_compaction_min_data_ratio",
     "value_default": "0.3",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -82,7 +82,7 @@
   {
     "conf_name": "be.base_compaction_min_rowset_num",
     "value_default": "5",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -98,7 +98,7 @@
   {
     "conf_name": "be.base_compaction_trace_threshold",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -114,7 +114,7 @@
   {
     "conf_name": "be.be_port",
     "value_default": "9060",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -130,7 +130,7 @@
   {
     "conf_name": "be.be_service_threads",
     "value_default": "64",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -146,7 +146,7 @@
   {
     "conf_name": "be.big_column_size_buffer",
     "value_default": "65535",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -162,7 +162,7 @@
   {
     "conf_name": "be.brpc_max_body_size",
     "value_default": "3147483648",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -178,7 +178,7 @@
   {
     "conf_name": "be.brpc_num_threads",
     "value_default": "-1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -194,7 +194,7 @@
   {
     "conf_name": "be.brpc_port",
     "value_default": "8060",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -210,7 +210,7 @@
   {
     "conf_name": "be.brpc_socket_max_unwritten_bytes",
     "value_default": "1073741824",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -226,7 +226,7 @@
   {
     "conf_name": "be.brpc_streaming_client_batch_bytes",
     "value_default": "262144",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -242,7 +242,7 @@
   {
     "conf_name": "be.buffer_pool_clean_pages_limit",
     "value_default": "50%",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -258,7 +258,7 @@
   {
     "conf_name": "be.buffer_pool_limit",
     "value_default": "20%",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -274,7 +274,7 @@
   {
     "conf_name": "be.cache_clean_interval",
     "value_default": "1800",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -290,7 +290,7 @@
   {
     "conf_name": "be.check_consistency_worker_count",
     "value_default": "1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -306,7 +306,7 @@
   {
     "conf_name": "be.chunk_reserved_bytes_limit",
     "value_default": "20%",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -322,7 +322,7 @@
   {
     "conf_name": "be.clear_transaction_task_worker_count",
     "value_default": "1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -338,7 +338,7 @@
   {
     "conf_name": "be.clone_worker_count",
     "value_default": "3",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -354,7 +354,7 @@
   {
     "conf_name": "be.cluster_id",
     "value_default": "-1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -370,7 +370,7 @@
   {
     "conf_name": "be.compaction_min_size_mbytes",
     "value_default": "64",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -386,7 +386,7 @@
   {
     "conf_name": "be.compaction_promotion_min_size_mbytes",
     "value_default": "64",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -402,7 +402,7 @@
   {
     "conf_name": "be.compaction_promotion_ratio",
     "value_default": "0.05",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -418,7 +418,7 @@
   {
     "conf_name": "be.compaction_promotion_size_mbytes",
     "value_default": "1024",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -434,7 +434,7 @@
   {
     "conf_name": "be.compaction_task_num_per_disk",
     "value_default": "4",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -450,7 +450,7 @@
   {
     "conf_name": "be.compaction_task_num_per_fast_disk",
     "value_default": "8",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -466,7 +466,7 @@
   {
     "conf_name": "be.compress_rowbatches",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -482,7 +482,7 @@
   {
     "conf_name": "be.create_tablet_worker_count",
     "value_default": "3",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -498,7 +498,7 @@
   {
     "conf_name": "be.cumulative_compaction_max_deltas",
     "value_default": "1000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -514,7 +514,7 @@
   {
     "conf_name": "be.cumulative_compaction_min_deltas",
     "value_default": "5",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -530,7 +530,7 @@
   {
     "conf_name": "be.cumulative_compaction_policy",
     "value_default": "size_based",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -546,7 +546,7 @@
   {
     "conf_name": "be.cumulative_compaction_rounds_for_each_base_compaction_round",
     "value_default": "9",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -562,7 +562,7 @@
   {
     "conf_name": "be.cumulative_compaction_trace_threshold",
     "value_default": "2",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -594,7 +594,7 @@
   {
     "conf_name": "be.default_num_rows_per_column_file_block",
     "value_default": "1024",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -610,7 +610,7 @@
   {
     "conf_name": "be.default_rowset_type",
     "value_default": "BETA",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -626,7 +626,7 @@
   {
     "conf_name": "be.delete_worker_count",
     "value_default": "3",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -642,7 +642,7 @@
   {
     "conf_name": "be.disable_auto_compaction",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -658,7 +658,7 @@
   {
     "conf_name": "be.disable_compaction_trace_log",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -674,7 +674,7 @@
   {
     "conf_name": "be.disable_mem_pools",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -690,7 +690,7 @@
   {
     "conf_name": "be.disable_storage_page_cache",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "true | false",
     "value_type": "BOOL",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -706,7 +706,7 @@
   {
     "conf_name": "be.disk_stat_monitor_interval",
     "value_default": "5",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -722,7 +722,7 @@
   {
     "conf_name": "be.doris_cgroups",
     "value_default": "empty",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -738,7 +738,7 @@
   {
     "conf_name": "be.doris_max_pushdown_conjuncts_return_rate",
     "value_default": "90",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -754,7 +754,7 @@
   {
     "conf_name": "be.doris_max_remote_scanner_thread_pool_thread_num",
     "value_default": "512",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -770,7 +770,7 @@
   {
     "conf_name": "be.doris_max_scan_key_num",
     "value_default": "48",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -786,7 +786,7 @@
   {
     "conf_name": "be.doris_scanner_queue_size",
     "value_default": "1024",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -802,7 +802,7 @@
   {
     "conf_name": "be.doris_scanner_row_bytes",
     "value_default": "10485760",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -818,7 +818,7 @@
   {
     "conf_name": "be.doris_scanner_row_num",
     "value_default": "16384",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -834,7 +834,7 @@
   {
     "conf_name": "be.doris_scanner_thread_pool_queue_size",
     "value_default": "102400",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -850,7 +850,7 @@
   {
     "conf_name": "be.doris_scanner_thread_pool_thread_num",
     "value_default": "48",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -866,7 +866,7 @@
   {
     "conf_name": "be.doris_scan_range_max_mb",
     "value_default": "1024",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -882,7 +882,7 @@
   {
     "conf_name": "be.doris_scan_range_row_count",
     "value_default": "524288",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -898,7 +898,7 @@
   {
     "conf_name": "be.download_cache_buffer_size",
     "value_default": "10485760",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -914,7 +914,7 @@
   {
     "conf_name": "be.download_cache_thread_pool_queue_size",
     "value_default": "102400",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -930,7 +930,7 @@
   {
     "conf_name": "be.download_cache_thread_pool_thread_num",
     "value_default": "48",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -946,7 +946,7 @@
   {
     "conf_name": "be.download_low_speed_limit_kbps",
     "value_default": "50",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -962,7 +962,7 @@
   {
     "conf_name": "be.download_low_speed_time",
     "value_default": "300",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -978,7 +978,7 @@
   {
     "conf_name": "be.download_worker_count",
     "value_default": "1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -994,7 +994,7 @@
   {
     "conf_name": "be.drop_tablet_worker_count",
     "value_default": "3",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1010,7 +1010,7 @@
   {
     "conf_name": "be.enable_compaction_priority_scheduling",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "true | false",
     "value_type": "BOOL",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1026,7 +1026,7 @@
   {
     "conf_name": "be.enable_https",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1042,7 +1042,7 @@
   {
     "conf_name": "be.enable_inverted_index_cache_on_cooldown",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "true | false",
     "value_type": "BOOL",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1058,7 +1058,7 @@
   {
     "conf_name": "be.enable_java_support",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1074,7 +1074,7 @@
   {
     "conf_name": "be.enable_metric_calculator",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1090,7 +1090,7 @@
   {
     "conf_name": "be.enable_ordered_data_compaction",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "true | false",
     "value_type": "BOOL",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1106,7 +1106,7 @@
   {
     "conf_name": "be.enable_parse_multi_dimession_array",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1122,7 +1122,7 @@
   {
     "conf_name": "be.enable_prefetch",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1138,7 +1138,7 @@
   {
     "conf_name": "be.enable_quadratic_probing",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1154,7 +1154,7 @@
   {
     "conf_name": "be.enable_query_memory_overcommit",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1170,7 +1170,7 @@
   {
     "conf_name": "be.enable_segcompaction",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "true | false",
     "value_type": "BOOL",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1186,7 +1186,7 @@
   {
     "conf_name": "be.enable_simdjson_reader",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1202,7 +1202,7 @@
   {
     "conf_name": "be.enable_single_replica_load",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "true | false",
     "value_type": "BOOL",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1218,7 +1218,7 @@
   {
     "conf_name": "be.enable_stream_load_record",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1234,7 +1234,7 @@
   {
     "conf_name": "be.enable_system_metrics",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1250,7 +1250,7 @@
   {
     "conf_name": "be.enable_tcmalloc_hook",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1266,7 +1266,7 @@
   {
     "conf_name": "be.enable_token_check",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1282,7 +1282,7 @@
   {
     "conf_name": "be.enable_vertical_compaction",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1298,7 +1298,7 @@
   {
     "conf_name": "be.enable_write_index_searcher_cache",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "true | false",
     "value_type": "BOOL",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1314,7 +1314,7 @@
   {
     "conf_name": "be.es_http_timeout_ms",
     "value_default": "5000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1330,7 +1330,7 @@
   {
     "conf_name": "be.es_scroll_keepalive",
     "value_default": "5",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1346,7 +1346,7 @@
   {
     "conf_name": "be.exchg_node_buffer_size_bytes",
     "value_default": "10485760",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1362,7 +1362,7 @@
   {
     "conf_name": "be.external_table_connect_timeout_sec",
     "value_default": "5",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1378,7 +1378,7 @@
   {
     "conf_name": "be.file_cache_alive_time_sec",
     "value_default": "604800",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1394,7 +1394,7 @@
   {
     "conf_name": "be.file_cache_max_size_per_disk",
     "value_default": "0",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1410,7 +1410,7 @@
   {
     "conf_name": "be.flush_thread_num_per_store",
     "value_default": "6",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1426,7 +1426,7 @@
   {
     "conf_name": "be.fragment_pool_queue_size",
     "value_default": "4096",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1442,7 +1442,7 @@
   {
     "conf_name": "be.fragment_pool_thread_num_max",
     "value_default": "2048",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1458,7 +1458,7 @@
   {
     "conf_name": "be.fragment_pool_thread_num_min",
     "value_default": "64",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1474,7 +1474,7 @@
   {
     "conf_name": "be.generate_cache_cleaner_task_interval_sec",
     "value_default": "43200",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1490,7 +1490,7 @@
   {
     "conf_name": "be.generate_compaction_tasks_interval_ms",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1506,7 +1506,7 @@
   {
     "conf_name": "be.grace_shutdown_wait_seconds",
     "value_default": "120",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1522,7 +1522,7 @@
   {
     "conf_name": "be.heartbeat_service_port",
     "value_default": "9050",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1538,7 +1538,7 @@
   {
     "conf_name": "be.heartbeat_service_thread_count",
     "value_default": "1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1554,7 +1554,7 @@
   {
     "conf_name": "be.high_priority_flush_thread_num_per_store",
     "value_default": "1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1570,7 +1570,7 @@
   {
     "conf_name": "be.ignore_broken_disk",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1586,7 +1586,7 @@
   {
     "conf_name": "be.ignore_load_tablet_failure",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1602,7 +1602,7 @@
   {
     "conf_name": "be.ignore_rowset_stale_unconsistent_delete",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1618,7 +1618,7 @@
   {
     "conf_name": "be.index_cache_entry_stay_time_after_lookup_s",
     "value_default": "3600",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1634,7 +1634,7 @@
   {
     "conf_name": "be.index_page_cache_percentage",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1650,7 +1650,7 @@
   {
     "conf_name": "be.inverted_index_cache_stale_sweep_time_sec",
     "value_default": "3600",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1666,7 +1666,7 @@
   {
     "conf_name": "be.inverted_index_compaction_enable",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "true | false",
     "value_type": "BOOL",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1682,7 +1682,7 @@
   {
     "conf_name": "be.inverted_index_searcher_cache_limit",
     "value_default": "0.3",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "FLOAT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1698,7 +1698,7 @@
   {
     "conf_name": "be.JAVA_HOME",
     "value_default": "/data/dorisenv/java/jdk",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1714,7 +1714,7 @@
   {
     "conf_name": "be.jdbc_drivers_dir",
     "value_default": "${DORIS_HOME}/jdbc_drivers",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1730,7 +1730,7 @@
   {
     "conf_name": "be.jsonb_type_length_soft_limit_bytes",
     "value_default": "1048576",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1746,7 +1746,7 @@
   {
     "conf_name": "be.jvm_max_heap_size",
     "value_default": "1024M",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1762,7 +1762,7 @@
   {
     "conf_name": "be.kafka_api_version_request",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1778,7 +1778,7 @@
   {
     "conf_name": "be.kafka_broker_version_fallback",
     "value_default": "0.10.0",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1794,7 +1794,7 @@
   {
     "conf_name": "be.load_data_reserve_hours",
     "value_default": "4",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1810,7 +1810,7 @@
   {
     "conf_name": "be.load_error_log_reserve_hours",
     "value_default": "48",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1826,7 +1826,7 @@
   {
     "conf_name": "be.load_process_max_memory_limit_percent",
     "value_default": "50",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1842,7 +1842,7 @@
   {
     "conf_name": "be.load_process_soft_mem_limit_percent",
     "value_default": "50",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1858,7 +1858,7 @@
   {
     "conf_name": "be.load_task_high_priority_threshold_second",
     "value_default": "120",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1874,7 +1874,7 @@
   {
     "conf_name": "be.log_buffer_level",
     "value_default": "empty",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1890,7 +1890,7 @@
   {
     "conf_name": "be.madvise_huge_pages",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1906,7 +1906,7 @@
   {
     "conf_name": "be.make_snapshot_worker_count",
     "value_default": "5",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1922,7 +1922,7 @@
   {
     "conf_name": "be.max_base_compaction_threads",
     "value_default": "4",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1938,7 +1938,7 @@
   {
     "conf_name": "be.max_client_cache_size_per_host",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1954,7 +1954,7 @@
   {
     "conf_name": "be.max_consumer_num_per_group",
     "value_default": "3",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1970,7 +1970,7 @@
   {
     "conf_name": "be.max_cumu_compaction_threads",
     "value_default": "8",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -1986,7 +1986,7 @@
   {
     "conf_name": "be.max_download_speed_kbps",
     "value_default": "50000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2002,7 +2002,7 @@
   {
     "conf_name": "be.max_free_io_buffers",
     "value_default": "128",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2018,7 +2018,7 @@
   {
     "conf_name": "be.max_garbage_sweep_interval",
     "value_default": "3600",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2034,7 +2034,7 @@
   {
     "conf_name": "be.max_memory_sink_batch_count",
     "value_default": "20",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2050,7 +2050,7 @@
   {
     "conf_name": "be.max_percentage_of_error_disk",
     "value_default": "0",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2066,7 +2066,7 @@
   {
     "conf_name": "be.max_pushdown_conditions_per_column",
     "value_default": "1024",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2082,7 +2082,7 @@
   {
     "conf_name": "be.max_runnings_transactions_per_txn_map",
     "value_default": "2000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2098,7 +2098,7 @@
   {
     "conf_name": "be.max_segment_num_per_rowset",
     "value_default": "200",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2114,7 +2114,7 @@
   {
     "conf_name": "be.max_send_batch_parallelism_per_job",
     "value_default": "5",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2130,7 +2130,7 @@
   {
     "conf_name": "be.max_single_replica_compaction_threads",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2146,7 +2146,7 @@
   {
     "conf_name": "be.max_sub_cache_file_size",
     "value_default": "104857600",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2162,7 +2162,7 @@
   {
     "conf_name": "be.max_sys_mem_available_low_water_mark_bytes",
     "value_default": "1717986918",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2178,7 +2178,7 @@
   {
     "conf_name": "be.max_tablet_version_num",
     "value_default": "20000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2194,7 +2194,7 @@
   {
     "conf_name": "be.memory_limitation_per_thread_for_schema_change_bytes",
     "value_default": "2147483648",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2210,7 +2210,7 @@
   {
     "conf_name": "be.memory_max_alignment",
     "value_default": "16",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2226,7 +2226,7 @@
   {
     "conf_name": "be.memory_mode",
     "value_default": "performance",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2242,7 +2242,7 @@
   {
     "conf_name": "be.memtable_mem_tracker_refresh_interval_ms",
     "value_default": "100",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2258,7 +2258,7 @@
   {
     "conf_name": "be.mem_limit",
     "value_default": "80%",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2274,7 +2274,7 @@
   {
     "conf_name": "be.mem_tracker_consume_min_size_bytes",
     "value_default": "1048576",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2290,7 +2290,7 @@
   {
     "conf_name": "be.min_buffer_size",
     "value_default": "1024",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2306,7 +2306,7 @@
   {
     "conf_name": "be.min_garbage_sweep_interval",
     "value_default": "180",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2322,7 +2322,7 @@
   {
     "conf_name": "be.min_load_rpc_timeout_ms",
     "value_default": "20",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2338,7 +2338,7 @@
   {
     "conf_name": "be.mmap_buffers",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2354,7 +2354,7 @@
   {
     "conf_name": "be.mow_publish_max_discontinuous_version_num",
     "value_default": "80",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2370,7 +2370,7 @@
   {
     "conf_name": "be.multi_table_batch_plan_threshold",
     "value_default": "200",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2386,7 +2386,7 @@
   {
     "conf_name": "be.number_slave_replica_download_threads",
     "value_default": "64",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2402,7 +2402,7 @@
   {
     "conf_name": "be.number_tablet_writer_threads",
     "value_default": "16",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2418,7 +2418,7 @@
   {
     "conf_name": "be.num_threads_per_core",
     "value_default": "3",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2434,7 +2434,7 @@
   {
     "conf_name": "be.num_threads_per_disk",
     "value_default": "0",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2450,7 +2450,7 @@
   {
     "conf_name": "be.ordered_data_compaction_min_segment_size",
     "value_default": "10485760",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2466,7 +2466,7 @@
   {
     "conf_name": "be.path_gc_check",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2482,7 +2482,7 @@
   {
     "conf_name": "be.path_gc_check_interval_second",
     "value_default": "900",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2498,7 +2498,7 @@
   {
     "conf_name": "be.path_gc_check_step",
     "value_default": "1000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2514,7 +2514,7 @@
   {
     "conf_name": "be.path_gc_check_step_interval_ms",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2530,7 +2530,7 @@
   {
     "conf_name": "be.path_scan_interval_second",
     "value_default": "900",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2546,7 +2546,7 @@
   {
     "conf_name": "be.pending_data_expire_time_sec",
     "value_default": "1800",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2562,7 +2562,7 @@
   {
     "conf_name": "be.periodic_counter_update_period_ms",
     "value_default": "500",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2578,7 +2578,7 @@
   {
     "conf_name": "be.pick_rowset_to_compact_interval_sec",
     "value_default": "86400",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2594,7 +2594,7 @@
   {
     "conf_name": "be.pipeline_executor_size",
     "value_default": "24",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2610,7 +2610,7 @@
   {
     "conf_name": "be.priority_networks",
     "value_default": "blank",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2626,7 +2626,7 @@
   {
     "conf_name": "be.priority_queue_remaining_tasks_increased_frequency",
     "value_default": "512",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2642,7 +2642,7 @@
   {
     "conf_name": "be.publish_version_worker_count",
     "value_default": "16",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2658,7 +2658,7 @@
   {
     "conf_name": "be.push_worker_count_high_priority",
     "value_default": "3",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2674,7 +2674,7 @@
   {
     "conf_name": "be.push_worker_count_normal_priority",
     "value_default": "3",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2690,7 +2690,7 @@
   {
     "conf_name": "be.read_size",
     "value_default": "8388608",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2706,7 +2706,7 @@
   {
     "conf_name": "be.release_snapshot_worker_count",
     "value_default": "5",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2722,7 +2722,7 @@
   {
     "conf_name": "be.remote_storage_read_buffer_mb",
     "value_default": "16",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2738,7 +2738,7 @@
   {
     "conf_name": "be.report_disk_state_interval_seconds",
     "value_default": "60",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2754,7 +2754,7 @@
   {
     "conf_name": "be.report_tablet_interval_seconds",
     "value_default": "60",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2770,7 +2770,7 @@
   {
     "conf_name": "be.report_task_interval_seconds",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2786,7 +2786,7 @@
   {
     "conf_name": "be.result_buffer_cancelled_interval_time",
     "value_default": "300",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2802,7 +2802,7 @@
   {
     "conf_name": "be.routine_load_consumer_pool_size",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2818,7 +2818,7 @@
   {
     "conf_name": "be.routine_load_thread_pool_size",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2834,7 +2834,7 @@
   {
     "conf_name": "be.scan_context_gc_interval_min",
     "value_default": "5",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2850,7 +2850,7 @@
   {
     "conf_name": "be.segcompaction_batch_size",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2866,7 +2866,7 @@
   {
     "conf_name": "be.segcompaction_candidate_max_bytes",
     "value_default": "104857600",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2882,7 +2882,7 @@
   {
     "conf_name": "be.segcompaction_candidate_max_rows",
     "value_default": "1048576",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2898,7 +2898,7 @@
   {
     "conf_name": "be.segcompaction_num_threads",
     "value_default": "5",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2914,7 +2914,7 @@
   {
     "conf_name": "be.segcompaction_task_max_bytes",
     "value_default": "157286400",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2930,7 +2930,7 @@
   {
     "conf_name": "be.segcompaction_task_max_rows",
     "value_default": "1572864",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2946,7 +2946,7 @@
   {
     "conf_name": "be.segment_cache_capacity",
     "value_default": "20000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2962,7 +2962,7 @@
   {
     "conf_name": "be.send_batch_thread_pool_queue_size",
     "value_default": "102400",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2978,7 +2978,7 @@
   {
     "conf_name": "be.send_batch_thread_pool_thread_num",
     "value_default": "64",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -2994,7 +2994,7 @@
   {
     "conf_name": "be.single_replica_load_download_num_workers",
     "value_default": "64",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3010,7 +3010,7 @@
   {
     "conf_name": "be.slave_replica_writer_rpc_timeout_sec",
     "value_default": "60",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3026,7 +3026,7 @@
   {
     "conf_name": "be.small_column_size_buffer",
     "value_default": "100",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3042,7 +3042,7 @@
   {
     "conf_name": "be.snapshot_expire_time_sec",
     "value_default": "172800",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3058,7 +3058,7 @@
   {
     "conf_name": "be.status_report_interval",
     "value_default": "5",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3074,7 +3074,7 @@
   {
     "conf_name": "be.storage_flood_stage_left_capacity_bytes",
     "value_default": "1073741824",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3090,7 +3090,7 @@
   {
     "conf_name": "be.storage_flood_stage_usage_percent",
     "value_default": "90",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3106,7 +3106,7 @@
   {
     "conf_name": "be.storage_medium_migrate_count",
     "value_default": "1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3122,7 +3122,7 @@
   {
     "conf_name": "be.storage_page_cache_limit",
     "value_default": "20%",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3138,7 +3138,7 @@
   {
     "conf_name": "be.storage_page_cache_shard_size",
     "value_default": "16",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3154,7 +3154,7 @@
   {
     "conf_name": "be.storage_root_path",
     "value_default": "${DORIS_HOME}/storage",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3170,7 +3170,7 @@
   {
     "conf_name": "be.storage_strict_check_incompatible_old_format",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3186,7 +3186,7 @@
   {
     "conf_name": "be.streaming_load_json_max_mb",
     "value_default": "100",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3202,7 +3202,7 @@
   {
     "conf_name": "be.streaming_load_max_mb",
     "value_default": "10240",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3218,7 +3218,7 @@
   {
     "conf_name": "be.streaming_load_rpc_max_alive_time_sec",
     "value_default": "1200",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3234,7 +3234,7 @@
   {
     "conf_name": "be.string_type_length_soft_limit_bytes",
     "value_default": "10485760",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3250,7 +3250,7 @@
   {
     "conf_name": "be.sync_tablet_meta",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3266,7 +3266,7 @@
   {
     "conf_name": "be.sys_log_level",
     "value_default": "INFO",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3282,7 +3282,7 @@
   {
     "conf_name": "be.sys_log_roll_mode",
     "value_default": "SIZE-MB-1024",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3298,7 +3298,7 @@
   {
     "conf_name": "be.sys_log_roll_num",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3314,7 +3314,7 @@
   {
     "conf_name": "be.sys_log_verbose_level",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3330,7 +3330,7 @@
   {
     "conf_name": "be.sys_log_verbose_modules",
     "value_default": "empty",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3346,7 +3346,7 @@
   {
     "conf_name": "be.tablet_map_shard_size",
     "value_default": "4",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3362,7 +3362,7 @@
   {
     "conf_name": "be.tablet_meta_checkpoint_min_interval_secs",
     "value_default": "600",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3378,7 +3378,7 @@
   {
     "conf_name": "be.tablet_meta_checkpoint_min_new_rowsets_num",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3394,7 +3394,7 @@
   {
     "conf_name": "be.tablet_publish_txn_max_thread",
     "value_default": "64",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3410,7 +3410,7 @@
   {
     "conf_name": "be.tablet_rowset_stale_sweep_time_sec",
     "value_default": "300",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3426,7 +3426,7 @@
   {
     "conf_name": "be.tablet_schema_cache_recycle_interval",
     "value_default": "3600",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3442,7 +3442,7 @@
   {
     "conf_name": "be.tablet_stat_cache_update_interval_second",
     "value_default": "300",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3458,7 +3458,7 @@
   {
     "conf_name": "be.tablet_writer_ignore_eovercrowded",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3474,7 +3474,7 @@
   {
     "conf_name": "be.tablet_writer_open_rpc_timeout_sec",
     "value_default": "60",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3490,7 +3490,7 @@
   {
     "conf_name": "be.thrift_client_retry_interval_ms",
     "value_default": "1000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3506,7 +3506,7 @@
   {
     "conf_name": "be.thrift_connect_timeout_seconds",
     "value_default": "3",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3522,7 +3522,7 @@
   {
     "conf_name": "be.thrift_rpc_timeout_ms",
     "value_default": "60000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3538,7 +3538,7 @@
   {
     "conf_name": "be.thrift_server_type_of_fe",
     "value_default": "THREAD_POOL",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3554,7 +3554,7 @@
   {
     "conf_name": "be.total_permits_for_compaction_score",
     "value_default": "200000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3570,7 +3570,7 @@
   {
     "conf_name": "be.transfer_large_data_by_brpc",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3586,7 +3586,7 @@
   {
     "conf_name": "be.trash_file_expire_time_sec",
     "value_default": "300",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3602,7 +3602,7 @@
   {
     "conf_name": "be.txn_commit_rpc_timeout_ms",
     "value_default": "60000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3618,7 +3618,7 @@
   {
     "conf_name": "be.txn_map_shard_size",
     "value_default": "128",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3634,7 +3634,7 @@
   {
     "conf_name": "be.txn_shard_size",
     "value_default": "1024",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3650,7 +3650,7 @@
   {
     "conf_name": "be.unused_rowset_monitor_interval",
     "value_default": "30",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3666,7 +3666,7 @@
   {
     "conf_name": "be.update_replica_infos_interval_seconds",
     "value_default": "60",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3682,7 +3682,7 @@
   {
     "conf_name": "be.upload_worker_count",
     "value_default": "1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3698,7 +3698,7 @@
   {
     "conf_name": "be.user_files_secure_path",
     "value_default": "${DORIS_HOME}",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3714,7 +3714,7 @@
   {
     "conf_name": "be.user_function_dir",
     "value_default": "${DORIS_HOME}/lib/udf",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3730,7 +3730,7 @@
   {
     "conf_name": "be.vertical_compaction_max_row_source_memory_mb",
     "value_default": "200",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3746,7 +3746,7 @@
   {
     "conf_name": "be.vertical_compaction_max_segment_size",
     "value_default": "268435456",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3762,7 +3762,7 @@
   {
     "conf_name": "be.vertical_compaction_num_columns_per_group",
     "value_default": "5",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3778,7 +3778,7 @@
   {
     "conf_name": "be.webserver_num_workers",
     "value_default": "128",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3794,7 +3794,7 @@
   {
     "conf_name": "be.webserver_port",
     "value_default": "8040",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3810,7 +3810,7 @@
   {
     "conf_name": "be.write_buffer_size",
     "value_default": "1073741824",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3826,7 +3826,7 @@
   {
     "conf_name": "be.zone_map_row_num_threshold",
     "value_default": "20",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3842,7 +3842,7 @@
   {
     "conf_name": "fe. allow_replica_on_same_host",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3858,7 +3858,7 @@
   {
     "conf_name": "fe.#storage_flood_stage_left_capacity_bytes",
     "value_default": "1073741824",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3874,7 +3874,7 @@
   {
     "conf_name": "fe.agent_task_resend_wait_time_ms",
     "value_default": "5000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3890,7 +3890,7 @@
   {
     "conf_name": "fe.alter_table_timeout_second",
     "value_default": "2592000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3906,7 +3906,7 @@
   {
     "conf_name": "fe.arrow_flight_sql_port",
     "value_default": "-1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3922,7 +3922,7 @@
   {
     "conf_name": "fe.async_loading_load_task_pool_size",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3938,7 +3938,7 @@
   {
     "conf_name": "fe.async_load_task_pool_size",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3954,7 +3954,7 @@
   {
     "conf_name": "fe.async_pending_load_task_pool_size",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3970,7 +3970,7 @@
   {
     "conf_name": "fe.audit_log_delete_age",
     "value_default": "30d",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -3986,7 +3986,7 @@
   {
     "conf_name": "fe.audit_log_enable_compress",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4002,7 +4002,7 @@
   {
     "conf_name": "fe.audit_log_modules",
     "value_default": "{\"slow_query\",\"query\",\"load\",\"stream_load\"}",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4018,7 +4018,7 @@
   {
     "conf_name": "fe.audit_log_roll_interval",
     "value_default": "DAY",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4034,7 +4034,7 @@
   {
     "conf_name": "fe.audit_log_roll_num",
     "value_default": "90",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4050,7 +4050,7 @@
   {
     "conf_name": "fe.auth_token",
     "value_default": "empty",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4066,7 +4066,7 @@
   {
     "conf_name": "fe.backend_rpc_timeout_ms",
     "value_default": "60000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4082,7 +4082,7 @@
   {
     "conf_name": "fe.backup_job_default_timeout_ms",
     "value_default": "86400000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4098,7 +4098,7 @@
   {
     "conf_name": "fe.balance_load_score_threshold",
     "value_default": "0.1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4114,7 +4114,7 @@
   {
     "conf_name": "fe.balance_slot_num_per_path",
     "value_default": "1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4130,7 +4130,7 @@
   {
     "conf_name": "fe.bdbje_heartbeat_timeout_second",
     "value_default": "30",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4146,7 +4146,7 @@
   {
     "conf_name": "fe.bdbje_lock_timeout_second",
     "value_default": "5",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4162,7 +4162,7 @@
   {
     "conf_name": "fe.bdbje_replica_ack_timeout_second",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4178,7 +4178,7 @@
   {
     "conf_name": "fe.bdbje_reserved_disk_bytes",
     "value_default": "1073741824",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4194,7 +4194,7 @@
   {
     "conf_name": "fe.broker_load_default_timeout_second",
     "value_default": "14400",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4210,7 +4210,7 @@
   {
     "conf_name": "fe.broker_timeout_ms",
     "value_default": "10000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4226,7 +4226,7 @@
   {
     "conf_name": "fe.cache_enable_partition_mode",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4242,7 +4242,7 @@
   {
     "conf_name": "fe.cache_enable_sql_mode",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4258,7 +4258,7 @@
   {
     "conf_name": "fe.cache_last_version_interval_second",
     "value_default": "900",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4274,7 +4274,7 @@
   {
     "conf_name": "fe.cache_result_max_data_size",
     "value_default": "31457280",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4290,7 +4290,7 @@
   {
     "conf_name": "fe.cache_result_max_row_count",
     "value_default": "3000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4306,7 +4306,7 @@
   {
     "conf_name": "fe.capacity_used_percent_high_water",
     "value_default": "0.75",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4322,7 +4322,7 @@
   {
     "conf_name": "fe.catalog_trash_expire_second",
     "value_default": "86400",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4338,7 +4338,7 @@
   {
     "conf_name": "fe.catalog_try_lock_timeout_ms",
     "value_default": "5000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4354,7 +4354,7 @@
   {
     "conf_name": "fe.check_consistency_default_timeout_second",
     "value_default": "600",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4370,7 +4370,7 @@
   {
     "conf_name": "fe.check_java_version",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4386,7 +4386,7 @@
   {
     "conf_name": "fe.clone_capacity_balance_threshold",
     "value_default": "0.2",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4402,7 +4402,7 @@
   {
     "conf_name": "fe.clone_distribution_balance_threshold",
     "value_default": "0.2",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4418,7 +4418,7 @@
   {
     "conf_name": "fe.cluster_id",
     "value_default": "-1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4434,7 +4434,7 @@
   {
     "conf_name": "fe.colocate_group_relocate_delay_second",
     "value_default": "1800",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4450,7 +4450,7 @@
   {
     "conf_name": "fe.commit_timeout_second",
     "value_default": "30",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4466,7 +4466,7 @@
   {
     "conf_name": "fe.consistency_check_end_time",
     "value_default": "23",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4482,7 +4482,7 @@
   {
     "conf_name": "fe.consistency_check_start_time",
     "value_default": "23",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4498,7 +4498,7 @@
   {
     "conf_name": "fe.CUR_DATE",
     "value_default": "`date +%Y%m%d-%H%M%S`",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4514,7 +4514,7 @@
   {
     "conf_name": "fe.db_used_data_quota_update_interval_secs",
     "value_default": "300",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4530,7 +4530,7 @@
   {
     "conf_name": "fe.decommission_tablet_check_threshold",
     "value_default": "5000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4546,7 +4546,7 @@
   {
     "conf_name": "fe.default_db_max_running_txn_num",
     "value_default": "-1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4562,7 +4562,7 @@
   {
     "conf_name": "fe.default_db_replica_quota_size",
     "value_default": "1073741824",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4578,7 +4578,7 @@
   {
     "conf_name": "fe.default_load_parallelism",
     "value_default": "1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4594,7 +4594,7 @@
   {
     "conf_name": "fe.default_max_filter_ratio",
     "value_default": "0",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4610,7 +4610,7 @@
   {
     "conf_name": "fe.default_max_query_instances",
     "value_default": "-1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4626,7 +4626,7 @@
   {
     "conf_name": "fe.default_storage_medium",
     "value_default": "SSD",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4642,7 +4642,7 @@
   {
     "conf_name": "fe.desired_max_waiting_jobs",
     "value_default": "100",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4658,7 +4658,7 @@
   {
     "conf_name": "fe.disable_backend_black_list",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4674,7 +4674,7 @@
   {
     "conf_name": "fe.disable_balance",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4690,7 +4690,7 @@
   {
     "conf_name": "fe.disable_cluster_feature",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4706,7 +4706,7 @@
   {
     "conf_name": "fe.disable_colocate_balance",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4722,7 +4722,7 @@
   {
     "conf_name": "fe.disable_disk_balance",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4738,7 +4738,7 @@
   {
     "conf_name": "fe.disable_hadoop_load",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4754,7 +4754,7 @@
   {
     "conf_name": "fe.disable_iceberg_hudi_table",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4770,7 +4770,7 @@
   {
     "conf_name": "fe.disable_load_job",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4786,7 +4786,7 @@
   {
     "conf_name": "fe.disable_local_deploy_manager_drop_node",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4802,7 +4802,7 @@
   {
     "conf_name": "fe.disable_show_stream_load",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4818,7 +4818,7 @@
   {
     "conf_name": "fe.disable_storage_medium_check",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4834,7 +4834,7 @@
   {
     "conf_name": "fe.disable_tablet_scheduler",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4850,7 +4850,7 @@
   {
     "conf_name": "fe.div_precision_increment",
     "value_default": "4",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4866,7 +4866,7 @@
   {
     "conf_name": "fe.dpp_bytes_per_reduce",
     "value_default": "104857600",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4882,7 +4882,7 @@
   {
     "conf_name": "fe.dpp_default_cluster",
     "value_default": "palo-dpp",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4898,7 +4898,7 @@
   {
     "conf_name": "fe.dpp_hadoop_client_path",
     "value_default": "/lib/hadoop-client/hadoop/bin/hadoop",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4914,7 +4914,7 @@
   {
     "conf_name": "fe.drop_backend_after_decommission",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4930,7 +4930,7 @@
   {
     "conf_name": "fe.dynamic_partition_check_interval_seconds",
     "value_default": "600",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4946,7 +4946,7 @@
   {
     "conf_name": "fe.dynamic_partition_enable",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4962,7 +4962,7 @@
   {
     "conf_name": "fe.edit_log_port",
     "value_default": "9010",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4978,7 +4978,7 @@
   {
     "conf_name": "fe.edit_log_roll_num",
     "value_default": "50000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -4994,7 +4994,7 @@
   {
     "conf_name": "fe.edit_log_type",
     "value_default": "BDB",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5010,7 +5010,7 @@
   {
     "conf_name": "fe.enable_access_file_without_broker",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5026,7 +5026,7 @@
   {
     "conf_name": "fe.enable_batch_delete_by_default",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5042,7 +5042,7 @@
   {
     "conf_name": "fe.enable_bdbje_debug_mode",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5058,7 +5058,7 @@
   {
     "conf_name": "fe.enable_concurrent_update",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5074,7 +5074,7 @@
   {
     "conf_name": "fe.enable_convert_light_weight_schema_change",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5090,7 +5090,7 @@
   {
     "conf_name": "fe.enable_date_conversion",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5106,7 +5106,7 @@
   {
     "conf_name": "fe.enable_decimal_conversion",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5122,7 +5122,7 @@
   {
     "conf_name": "fe.enable_deploy_manager",
     "value_default": "disable",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5138,7 +5138,7 @@
   {
     "conf_name": "fe.enable_force_drop_redundant_replica",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5154,7 +5154,7 @@
   {
     "conf_name": "fe.enable_fqdn_mode",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5170,7 +5170,7 @@
   {
     "conf_name": "fe.enable_func_pushdown",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5186,7 +5186,7 @@
   {
     "conf_name": "fe.enable_https",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5202,7 +5202,7 @@
   {
     "conf_name": "fe.enable_http_server_v2",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5218,7 +5218,7 @@
   {
     "conf_name": "fe.enable_local_replica_selection",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5234,7 +5234,7 @@
   {
     "conf_name": "fe.enable_local_replica_selection_fallback",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5250,7 +5250,7 @@
   {
     "conf_name": "fe.enable_metric_calculator",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5266,7 +5266,7 @@
   {
     "conf_name": "fe.enable_multi_tags",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5282,7 +5282,7 @@
   {
     "conf_name": "fe.enable_new_load_scan_node",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5298,7 +5298,7 @@
   {
     "conf_name": "fe.enable_odbc_table",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5314,7 +5314,7 @@
   {
     "conf_name": "fe.enable_outfile_to_local",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5330,7 +5330,7 @@
   {
     "conf_name": "fe.enable_quantile_state_type",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5346,7 +5346,7 @@
   {
     "conf_name": "fe.enable_query_hit_stats",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5362,7 +5362,7 @@
   {
     "conf_name": "fe.enable_single_replica_load",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5378,7 +5378,7 @@
   {
     "conf_name": "fe.enable_spark_load",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5394,7 +5394,7 @@
   {
     "conf_name": "fe.enable_ssl",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5410,7 +5410,7 @@
   {
     "conf_name": "fe.enable_storage_policy",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5426,7 +5426,7 @@
   {
     "conf_name": "fe.enable_token_check",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5442,7 +5442,7 @@
   {
     "conf_name": "fe.enable_vectorized_load",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5458,7 +5458,7 @@
   {
     "conf_name": "fe.es_state_sync_interval_second",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5474,7 +5474,7 @@
   {
     "conf_name": "fe.export_checker_interval_second",
     "value_default": "5",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5490,7 +5490,7 @@
   {
     "conf_name": "fe.export_running_job_num_limit",
     "value_default": "5",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5506,7 +5506,7 @@
   {
     "conf_name": "fe.export_tablet_num_per_task",
     "value_default": "5",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5522,7 +5522,7 @@
   {
     "conf_name": "fe.export_task_default_timeout_second",
     "value_default": "7200",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5538,7 +5538,7 @@
   {
     "conf_name": "fe.expr_children_limit",
     "value_default": "10000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5554,7 +5554,7 @@
   {
     "conf_name": "fe.expr_depth_limit",
     "value_default": "3000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5570,7 +5570,7 @@
   {
     "conf_name": "fe.external_cache_expire_time_minutes_after_access",
     "value_default": "1440",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5586,7 +5586,7 @@
   {
     "conf_name": "fe.fetch_stream_load_record_interval_second",
     "value_default": "120",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5602,7 +5602,7 @@
   {
     "conf_name": "fe.file_scan_node_split_num",
     "value_default": "128",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5618,7 +5618,7 @@
   {
     "conf_name": "fe.file_scan_node_split_size",
     "value_default": "268435456",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5634,7 +5634,7 @@
   {
     "conf_name": "fe.force_do_metadata_checkpoint",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5650,7 +5650,7 @@
   {
     "conf_name": "fe.frontend_address",
     "value_default": "0.0.0.0",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5666,7 +5666,7 @@
   {
     "conf_name": "fe.grpc_max_message_size_bytes",
     "value_default": "1073741824",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5682,7 +5682,7 @@
   {
     "conf_name": "fe.grpc_threadmgr_threads_nums",
     "value_default": "4096",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5698,7 +5698,7 @@
   {
     "conf_name": "fe.hadoop_load_default_timeout_second",
     "value_default": "259200",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5714,7 +5714,7 @@
   {
     "conf_name": "fe.heartbeat_mgr_blocking_queue_size",
     "value_default": "1024",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5730,7 +5730,7 @@
   {
     "conf_name": "fe.heartbeat_mgr_threads_num",
     "value_default": "8",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5746,7 +5746,7 @@
   {
     "conf_name": "fe.history_job_keep_max_second",
     "value_default": "604800",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5762,7 +5762,7 @@
   {
     "conf_name": "fe.hive_metastore_client_timeout_second",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5778,7 +5778,7 @@
   {
     "conf_name": "fe.https_port",
     "value_default": "8050",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5794,7 +5794,7 @@
   {
     "conf_name": "fe.http_load_submitter_max_worker_threads",
     "value_default": "2",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5810,7 +5810,7 @@
   {
     "conf_name": "fe.http_port",
     "value_default": "8030",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5826,7 +5826,7 @@
   {
     "conf_name": "fe.http_sql_submitter_max_worker_threads",
     "value_default": "2",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5842,7 +5842,7 @@
   {
     "conf_name": "fe.iceberg_table_creation_interval_second",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5858,7 +5858,7 @@
   {
     "conf_name": "fe.iceberg_table_creation_strict_mode",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5874,7 +5874,7 @@
   {
     "conf_name": "fe.ignore_meta_check",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5890,7 +5890,7 @@
   {
     "conf_name": "fe.infodb_support_ext_catalog",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5906,7 +5906,7 @@
   {
     "conf_name": "fe.initial_root_password",
     "value_default": "emptystring",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5922,7 +5922,7 @@
   {
     "conf_name": "fe.insert_load_default_timeout_second",
     "value_default": "3600",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5938,7 +5938,7 @@
   {
     "conf_name": "fe.JAVA_OPTS",
     "value_default": "-Dfile.encoding=UTF-8 -Djavax.security.auth.useSubjectCredsOnly=false -Xss4m -Xmx%dm -XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+PrintGCDateStamps -XX:+PrintGCDetails -XX:+PrintClassHistogramAfterFullGC -Xloggc:$LOG_DIR/log/fe.gc.log.$CUR_DATE -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=50M -Dlog4j2.formatMsgNoLookups=true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5954,7 +5954,7 @@
   {
     "conf_name": "fe.JAVA_OPTS_FOR_JDK_17",
     "value_default": "-Dfile.encoding=UTF-8 -Djavax.security.auth.useSubjectCredsOnly=false -Xmx%dm -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$LOG_DIR -Xlog:gc*,classhisto*=trace:$LOG_DIR/fe.gc.log.$CUR_DATE:time,uptime:filecount=10,filesize=50M --add-opens=java.base/java.nio=ALL-UNNAMED --add-opens java.base/jdk.internal.ref=ALL-UNNAMED",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5970,7 +5970,7 @@
   {
     "conf_name": "fe.jdbc_drivers_dir",
     "value_default": "${DORIS_HOME}/jdbc_drivers",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -5986,7 +5986,7 @@
   {
     "conf_name": "fe.jetty_server_acceptors",
     "value_default": "2",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6002,7 +6002,7 @@
   {
     "conf_name": "fe.jetty_server_max_http_header_size",
     "value_default": "1048576",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6018,7 +6018,7 @@
   {
     "conf_name": "fe.jetty_server_max_http_post_size",
     "value_default": "104857600",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6034,7 +6034,7 @@
   {
     "conf_name": "fe.jetty_server_selectors",
     "value_default": "4",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6050,7 +6050,7 @@
   {
     "conf_name": "fe.jetty_server_workers",
     "value_default": "0",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6066,7 +6066,7 @@
   {
     "conf_name": "fe.label_clean_interval_second",
     "value_default": "3600",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6082,7 +6082,7 @@
   {
     "conf_name": "fe.label_keep_max_second",
     "value_default": "259200",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6098,7 +6098,7 @@
   {
     "conf_name": "fe.load_checker_interval_second",
     "value_default": "5",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6114,7 +6114,7 @@
   {
     "conf_name": "fe.load_etl_thread_num_high_priority",
     "value_default": "3",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6130,7 +6130,7 @@
   {
     "conf_name": "fe.load_etl_thread_num_normal_priority",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6146,7 +6146,7 @@
   {
     "conf_name": "fe.load_input_size_limit_gb",
     "value_default": "0",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6162,7 +6162,7 @@
   {
     "conf_name": "fe.load_pending_thread_num_high_priority",
     "value_default": "3",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6178,7 +6178,7 @@
   {
     "conf_name": "fe.load_pending_thread_num_normal_priority",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6194,7 +6194,7 @@
   {
     "conf_name": "fe.load_running_job_num_limit",
     "value_default": "0",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6210,7 +6210,7 @@
   {
     "conf_name": "fe.load_straggler_wait_second",
     "value_default": "300",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6226,7 +6226,7 @@
   {
     "conf_name": "fe.LOG_DIR",
     "value_default": "${DORIS_HOME}/log",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6242,7 +6242,7 @@
   {
     "conf_name": "fe.log_roll_size_mb",
     "value_default": "1024",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6258,7 +6258,7 @@
   {
     "conf_name": "fe.lower_case_table_names",
     "value_default": "0",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6274,7 +6274,7 @@
   {
     "conf_name": "fe.master_sync_policy",
     "value_default": "SYNC",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6290,7 +6290,7 @@
   {
     "conf_name": "fe.max_agent_task_threads_num",
     "value_default": "4096",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6306,7 +6306,7 @@
   {
     "conf_name": "fe.max_allowed_in_element_num_of_delete",
     "value_default": "1024",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6322,7 +6322,7 @@
   {
     "conf_name": "fe.max_auto_partition_num",
     "value_default": "2000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6338,7 +6338,7 @@
   {
     "conf_name": "fe.max_backend_down_time_second",
     "value_default": "3600",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6354,7 +6354,7 @@
   {
     "conf_name": "fe.max_backend_heartbeat_failure_tolerance_count",
     "value_default": "1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6370,7 +6370,7 @@
   {
     "conf_name": "fe.max_backup_restore_job_num_per_db",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6386,7 +6386,7 @@
   {
     "conf_name": "fe.max_balancing_tablets",
     "value_default": "100",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6402,7 +6402,7 @@
   {
     "conf_name": "fe.max_bdbje_clock_delta_ms",
     "value_default": "5000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6418,7 +6418,7 @@
   {
     "conf_name": "fe.max_broker_concurrency",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6434,7 +6434,7 @@
   {
     "conf_name": "fe.max_bytes_per_broker_scanner",
     "value_default": "536870912000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6450,7 +6450,7 @@
   {
     "conf_name": "fe.max_bytes_sync_commit",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6466,7 +6466,7 @@
   {
     "conf_name": "fe.max_create_table_timeout_second",
     "value_default": "60",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6482,7 +6482,7 @@
   {
     "conf_name": "fe.max_distribution_pruner_recursion_depth",
     "value_default": "100",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6498,7 +6498,7 @@
   {
     "conf_name": "fe.max_dynamic_partition_num",
     "value_default": "500",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6514,7 +6514,7 @@
   {
     "conf_name": "fe.max_error_tablet_of_broker_load",
     "value_default": "3",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6530,7 +6530,7 @@
   {
     "conf_name": "fe.max_external_cache_loader_thread_pool_size",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6546,7 +6546,7 @@
   {
     "conf_name": "fe.max_external_file_cache_num",
     "value_default": "100000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6562,7 +6562,7 @@
   {
     "conf_name": "fe.max_external_schema_cache_num",
     "value_default": "10000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6578,7 +6578,7 @@
   {
     "conf_name": "fe.max_hive_partition_cache_num",
     "value_default": "100000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6594,7 +6594,7 @@
   {
     "conf_name": "fe.max_iceberg_table_creation_record_size",
     "value_default": "2000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6610,7 +6610,7 @@
   {
     "conf_name": "fe.max_load_timeout_second",
     "value_default": "259200",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6626,7 +6626,7 @@
   {
     "conf_name": "fe.max_multi_partition_num",
     "value_default": "4096",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6642,7 +6642,7 @@
   {
     "conf_name": "fe.max_mysql_service_task_threads_num",
     "value_default": "4096",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6658,7 +6658,7 @@
   {
     "conf_name": "fe.max_query_profile_num",
     "value_default": "100",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6674,7 +6674,7 @@
   {
     "conf_name": "fe.max_query_retry_time",
     "value_default": "1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6690,7 +6690,7 @@
   {
     "conf_name": "fe.max_replication_num_per_tablet",
     "value_default": "32767",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6706,7 +6706,7 @@
   {
     "conf_name": "fe.max_replica_count_when_schema_change",
     "value_default": "100000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6722,7 +6722,7 @@
   {
     "conf_name": "fe.max_routine_load_job_num",
     "value_default": "100",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6738,7 +6738,7 @@
   {
     "conf_name": "fe.max_routine_load_task_concurrent_num",
     "value_default": "5",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6754,7 +6754,7 @@
   {
     "conf_name": "fe.max_routine_load_task_num_per_be",
     "value_default": "5",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6770,7 +6770,7 @@
   {
     "conf_name": "fe.max_running_rollup_job_num_per_table",
     "value_default": "1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6786,7 +6786,7 @@
   {
     "conf_name": "fe.max_running_txn_num_per_db",
     "value_default": "1000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6802,7 +6802,7 @@
   {
     "conf_name": "fe.max_same_name_catalog_trash_num",
     "value_default": "3",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6818,7 +6818,7 @@
   {
     "conf_name": "fe.max_scheduling_tablets",
     "value_default": "2000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6834,7 +6834,7 @@
   {
     "conf_name": "fe.max_small_file_number",
     "value_default": "100",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6850,7 +6850,7 @@
   {
     "conf_name": "fe.max_small_file_size_bytes",
     "value_default": "1048576",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6866,7 +6866,7 @@
   {
     "conf_name": "fe.max_stream_load_record_size",
     "value_default": "5000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6882,7 +6882,7 @@
   {
     "conf_name": "fe.max_stream_load_timeout_second",
     "value_default": "259200",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6898,7 +6898,7 @@
   {
     "conf_name": "fe.max_sync_task_threads_num",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6914,7 +6914,7 @@
   {
     "conf_name": "fe.max_tolerable_backend_down_num",
     "value_default": "0",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6930,7 +6930,7 @@
   {
     "conf_name": "fe.max_unfinished_load_job",
     "value_default": "1000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6946,7 +6946,7 @@
   {
     "conf_name": "fe.metadata_checkpoint_memory_threshold",
     "value_default": "60",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6962,7 +6962,7 @@
   {
     "conf_name": "fe.metadata_failure_recovery",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6978,7 +6978,7 @@
   {
     "conf_name": "fe.meta_delay_toleration_second",
     "value_default": "300",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -6994,7 +6994,7 @@
   {
     "conf_name": "fe.meta_dir",
     "value_default": "/data/dorisdata",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7010,7 +7010,7 @@
   {
     "conf_name": "fe.mini_load_default_timeout_second",
     "value_default": "3600",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7026,7 +7026,7 @@
   {
     "conf_name": "fe.min_backend_num_for_external_table",
     "value_default": "3",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7042,7 +7042,7 @@
   {
     "conf_name": "fe.min_bytes_indicate_replica_too_large",
     "value_default": "2147483648",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7058,7 +7058,7 @@
   {
     "conf_name": "fe.min_bytes_per_broker_scanner",
     "value_default": "67108864",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7074,7 +7074,7 @@
   {
     "conf_name": "fe.min_bytes_sync_commit",
     "value_default": "15728640",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7090,7 +7090,7 @@
   {
     "conf_name": "fe.min_load_timeout_second",
     "value_default": "1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7106,7 +7106,7 @@
   {
     "conf_name": "fe.min_replication_num_per_tablet",
     "value_default": "1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7122,7 +7122,7 @@
   {
     "conf_name": "fe.min_sync_commit_size",
     "value_default": "10000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7138,7 +7138,7 @@
   {
     "conf_name": "fe.min_version_count_indicate_replica_compaction_too_slow",
     "value_default": "200",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7154,7 +7154,7 @@
   {
     "conf_name": "fe.multi_partition_name_prefix",
     "value_default": "p_",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7170,7 +7170,7 @@
   {
     "conf_name": "fe.mysqldb_replace_name",
     "value_default": "mysql",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7186,7 +7186,7 @@
   {
     "conf_name": "fe.mysql_nio_backlog_num",
     "value_default": "1024",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7202,7 +7202,7 @@
   {
     "conf_name": "fe.mysql_service_io_threads_num",
     "value_default": "4",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7218,7 +7218,7 @@
   {
     "conf_name": "fe.partition_in_memory_update_interval_secs",
     "value_default": "300",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7234,7 +7234,7 @@
   {
     "conf_name": "fe.partition_rebalance_max_moves_num_per_selection",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7250,7 +7250,7 @@
   {
     "conf_name": "fe.partition_rebalance_move_expire_after_access",
     "value_default": "600",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7266,7 +7266,7 @@
   {
     "conf_name": "fe.period_of_auto_resume_min",
     "value_default": "5",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7282,7 +7282,7 @@
   {
     "conf_name": "fe.plugin_enable",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7298,7 +7298,7 @@
   {
     "conf_name": "fe.prefer_compute_node_for_external_table",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7314,7 +7314,7 @@
   {
     "conf_name": "fe.priority_networks",
     "value_default": "{{cidr}}",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7330,7 +7330,7 @@
   {
     "conf_name": "fe.proxy_auth_enable",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7346,7 +7346,7 @@
   {
     "conf_name": "fe.proxy_auth_magic_prefix",
     "value_default": "x@8",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7362,7 +7362,7 @@
   {
     "conf_name": "fe.publish_version_interval_ms",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7378,7 +7378,7 @@
   {
     "conf_name": "fe.publish_version_timeout_second",
     "value_default": "30",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7394,7 +7394,7 @@
   {
     "conf_name": "fe.qe_max_connection",
     "value_default": "1024",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7410,7 +7410,7 @@
   {
     "conf_name": "fe.qe_slow_log_ms",
     "value_default": "5000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7426,7 +7426,7 @@
   {
     "conf_name": "fe.query_colocate_join_memory_limit_penalty_factor",
     "value_default": "1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7442,7 +7442,7 @@
   {
     "conf_name": "fe.query_port",
     "value_default": "9030",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7458,7 +7458,7 @@
   {
     "conf_name": "fe.recover_with_empty_tablet",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7474,7 +7474,7 @@
   {
     "conf_name": "fe.remote_fragment_exec_timeout_ms",
     "value_default": "30000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7490,7 +7490,7 @@
   {
     "conf_name": "fe.repair_slow_replica",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7506,7 +7506,7 @@
   {
     "conf_name": "fe.replica_ack_policy",
     "value_default": "SIMPLE_MAJORITY",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7522,7 +7522,7 @@
   {
     "conf_name": "fe.replica_delay_recovery_second",
     "value_default": "0",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7538,7 +7538,7 @@
   {
     "conf_name": "fe.replica_sync_policy",
     "value_default": "SYNC",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7554,7 +7554,7 @@
   {
     "conf_name": "fe.report_queue_size",
     "value_default": "100",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7570,7 +7570,7 @@
   {
     "conf_name": "fe.rewrite_count_distinct_to_bitmap_hll",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7586,7 +7586,7 @@
   {
     "conf_name": "fe.rpc_port",
     "value_default": "9020",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7602,7 +7602,7 @@
   {
     "conf_name": "fe.schedule_slot_num_per_path",
     "value_default": "2",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7618,7 +7618,7 @@
   {
     "conf_name": "fe.skip_compaction_slower_replica",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7634,7 +7634,7 @@
   {
     "conf_name": "fe.spark_dpp_version",
     "value_default": "1.0.0",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7650,7 +7650,7 @@
   {
     "conf_name": "fe.spark_load_checker_interval_second",
     "value_default": "60",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7666,7 +7666,7 @@
   {
     "conf_name": "fe.spark_load_default_timeout_second",
     "value_default": "86400",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7682,7 +7682,7 @@
   {
     "conf_name": "fe.spark_resource_path",
     "value_default": "none",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7698,7 +7698,7 @@
   {
     "conf_name": "fe.storage_cooldown_second",
     "value_default": "2592000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7714,7 +7714,7 @@
   {
     "conf_name": "fe.storage_flood_stage_usage_percent",
     "value_default": "95",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7730,7 +7730,7 @@
   {
     "conf_name": "fe.storage_high_watermark_usage_percent",
     "value_default": "85",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7746,7 +7746,7 @@
   {
     "conf_name": "fe.storage_min_left_capacity_bytes",
     "value_default": "2147483648",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7762,7 +7762,7 @@
   {
     "conf_name": "fe.streaming_label_keep_max_second",
     "value_default": "43200",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7778,7 +7778,7 @@
   {
     "conf_name": "fe.stream_load_default_precommit_timeout_second",
     "value_default": "3600",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7794,7 +7794,7 @@
   {
     "conf_name": "fe.stream_load_default_timeout_second",
     "value_default": "259200",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7810,7 +7810,7 @@
   {
     "conf_name": "fe.sync_checker_interval_second",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7826,7 +7826,7 @@
   {
     "conf_name": "fe.sync_commit_interval_second",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7842,7 +7842,7 @@
   {
     "conf_name": "fe.sys_log_delete_age",
     "value_default": "7d",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7858,7 +7858,7 @@
   {
     "conf_name": "fe.sys_log_enable_compress",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7874,7 +7874,7 @@
   {
     "conf_name": "fe.sys_log_level",
     "value_default": "INFO",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7890,7 +7890,7 @@
   {
     "conf_name": "fe.sys_log_roll_interval",
     "value_default": "DAY",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7906,7 +7906,7 @@
   {
     "conf_name": "fe.sys_log_roll_mode",
     "value_default": "SIZE-MB-1024",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7922,7 +7922,7 @@
   {
     "conf_name": "fe.sys_log_roll_num",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7938,7 +7938,7 @@
   {
     "conf_name": "fe.sys_log_verbose_modules",
     "value_default": "{}",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7954,7 +7954,7 @@
   {
     "conf_name": "fe.tablet_create_timeout_second",
     "value_default": "1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7970,7 +7970,7 @@
   {
     "conf_name": "fe.tablet_delete_timeout_second",
     "value_default": "2",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -7986,7 +7986,7 @@
   {
     "conf_name": "fe.tablet_rebalancer_type",
     "value_default": "BeLoad",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -8002,7 +8002,7 @@
   {
     "conf_name": "fe.tablet_repair_delay_factor_second",
     "value_default": "60",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -8018,7 +8018,7 @@
   {
     "conf_name": "fe.tablet_stat_update_interval_second",
     "value_default": "300",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -8034,7 +8034,7 @@
   {
     "conf_name": "fe.table_name_length_limit",
     "value_default": "128",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -8050,7 +8050,7 @@
   {
     "conf_name": "fe.thrift_backlog_num",
     "value_default": "1024",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -8066,7 +8066,7 @@
   {
     "conf_name": "fe.thrift_client_timeout_ms",
     "value_default": "0",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -8082,7 +8082,7 @@
   {
     "conf_name": "fe.thrift_server_max_worker_threads",
     "value_default": "4096",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -8098,7 +8098,7 @@
   {
     "conf_name": "fe.thrift_server_type",
     "value_default": "THREAD_POOL",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -8114,7 +8114,7 @@
   {
     "conf_name": "fe.transaction_clean_interval_second",
     "value_default": "30",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -8130,7 +8130,7 @@
   {
     "conf_name": "fe.txn_rollback_limit",
     "value_default": "100",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -8146,7 +8146,7 @@
   {
     "conf_name": "fe.use_compact_thrift_rpc",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -8162,7 +8162,7 @@
   {
     "conf_name": "fe.using_old_load_usage_pattern",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -8178,7 +8178,7 @@
   {
     "conf_name": "fe.valid_version_count_delta_ratio_between_replicas",
     "value_default": "0.5",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -8194,7 +8194,7 @@
   {
     "conf_name": "fe.with_k8s_certs",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",

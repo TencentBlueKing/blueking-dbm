@@ -2,7 +2,7 @@
   {
     "conf_name": "commit_model",
     "value_default": "ASYN",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -18,7 +18,7 @@
   {
     "conf_name": "init_sql",
     "value_default": "",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",

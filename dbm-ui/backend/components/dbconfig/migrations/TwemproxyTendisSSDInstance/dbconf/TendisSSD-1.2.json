@@ -402,7 +402,7 @@
   {
     "conf_name": "log-keep-count",
     "value_default": "20000000",
-    "value_allowed": "[2000,2000000]",
+    "value_allowed": "[2000, 20000000]",
     "value_type": "INT",
     "value_type_sub": "RANGE",
     "conf_name_lc": "",
@@ -499,7 +499,7 @@
     "conf_name": "maxmemory",
     "value_default": "{{maxmemory}}",
     "value_allowed": "[0,137438953472]",
-    "value_type": "STRING",
+    "value_type": "INT",
     "value_type_sub": "RANGE",
     "conf_name_lc": "",
     "description": "",

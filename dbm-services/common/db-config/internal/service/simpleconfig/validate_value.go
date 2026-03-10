@@ -2,6 +2,7 @@ package simpleconfig
 
 import (
 	"errors"
+	"fmt"
 
 	"bk-dbconfig/internal/api"
 	"bk-dbconfig/internal/repository/model"
@@ -28,8 +29,9 @@ func ValidateValueForClient(items []*api.UpsertConfNames, checkReadonly bool) er
 			continue
 		}
 
+		fmt.Println("xxxx", c.ValueDefault, c.ValueType, c.ValueTypeSub, c.ValueAllowed)
 		if err = validatestruct.ValidateConfValue(c.ValueDefault, c.ValueType, c.ValueTypeSub, c.ValueAllowed); err != nil {
-			errs = errors.Join(errs, err)
+			errs = errors.Join(errs, errors2.WithMessagef(err, c.ConfName))
 		}
 	}
 	return errs

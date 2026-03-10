@@ -34,7 +34,7 @@
   {
     "conf_name": "default_storage_type",
     "value_default": "",
-    "value_allowed": "hdfs | cos | bkrepo |",
+    "value_allowed": "hdfs | cos | bkrepo | ",
     "value_type": "STRING",
     "value_type_sub": "ENUM",
     "conf_name_lc": "",

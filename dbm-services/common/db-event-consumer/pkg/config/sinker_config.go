@@ -36,6 +36,8 @@ type SinkerConfig struct {
 	// WriteMode default is upsert, allowed: insert_ignore, insert, upsert
 	WriteMode  string `yaml:"write_mode"`
 	Datasource string `yaml:"datasource"`
+	// Enable 是否启用。默认是启用 true
+	Enable *bool `yaml:"enable"`
 }
 
 type KafkaMeta struct {

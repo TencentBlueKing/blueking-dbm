@@ -62,6 +62,10 @@ var rootCmd = &cobra.Command{
 		wg := &sync.WaitGroup{}
 
 		for _, sink := range config.SinkerConfigs {
+			if sink.Enable != nil && *sink.Enable == false {
+				slog.Info("skip sink", slog.String("table", sink.ModelTable))
+				continue
+			}
 			// 每一个 sinker 都有自己的 writer 实体
 			dsWriter, err := sinker.GetDSWriter(sinker.DatasourceMap[sink.Datasource])
 			if err != nil {

@@ -12,6 +12,7 @@ package validatestruct
 
 import (
 	"encoding/json"
+	errors2 "errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -74,10 +75,11 @@ func ParseFloat32ExprRange(rangeValue string) ([]string, []float32, error) {
 	}
 	leftVal, err1 := strconv.ParseFloat(vals[0], 32)
 	rightVal, err2 := strconv.ParseFloat(vals[1], 32)
+	fmt.Println("xxxxx", leftVal, rightVal)
 	if err1 != nil || err2 != nil {
-		return nil, nil, err
+		return nil, nil, errors2.Join(err1, err2)
 	} else if leftVal > rightVal {
-		return nil, nil, err
+		return nil, nil, errors.Errorf("left %f should be less than right %f", leftVal, rightVal)
 	}
 	return bound, []float32{float32(leftVal), float32(rightVal)}, nil
 }
@@ -314,6 +316,9 @@ func ValidateConfValue(confValue, valueType, valueTypeSub, valueAllowed string) 
 	if valueType == "" && valueTypeSub == "" && valueAllowed == "" {
 		return nil
 	}
+	if strings.HasPrefix(confValue, "{{") && strings.HasSuffix(confValue, "}}") {
+		return nil
+	}
 	if err := CheckDataType(valueType, confValue); err != nil {
 		return err
 	} else if err = CheckDataTypeSub(valueType, valueTypeSub); err != nil {
@@ -336,10 +341,13 @@ func ValidateConfValue(confValue, valueType, valueTypeSub, valueAllowed string) 
 }
 
 func validateValueNumber(valueType, valueTypeSub, confValue, valueAllowed string) error {
+	if valueAllowed == "" {
+		return nil
+	}
 	if valueTypeSub == "" {
 		valueTypeSub = AutoDetectTypeSub(valueAllowed)
 		if valueTypeSub == "" {
-			return errors.Errorf("cannot detect value_type_sub for %s", valueAllowed)
+			return errors.Errorf("cannot detect value_type_sub for valueAllowed: '%s'", valueAllowed)
 		}
 	}
 	switch valueTypeSub {
@@ -394,7 +402,7 @@ func validateValueString(valueType, valueTypeSub, confValue, valueAllowed string
 		if valueAllowed != "" {
 			// value_allowed !='' and value_type_sub=''，要求 conf_value 只能一个值即 value_allowed
 			if confValue != valueAllowed {
-				return errors.Errorf("value must equal value_allowed:%s", valueAllowed)
+				return errors.Errorf("value must match value_allowed:%s", valueAllowed)
 			}
 			return nil
 		}

@@ -2,7 +2,7 @@
   {
     "conf_name": "vmauth.auth.config",
     "value_default": "{{.AuthConfig}}",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -18,7 +18,7 @@
   {
     "conf_name": "vmauth.httpListenAddr",
     "value_default": "{{.HTTPListenAddr}}",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -66,7 +66,7 @@
   {
     "conf_name": "vminsert.storageNode",
     "value_default": "{{.StorageNode}}",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",

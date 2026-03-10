@@ -146,7 +146,7 @@
   {
     "conf_name": "jmx_port",
     "value_default": "9999",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "NULL",

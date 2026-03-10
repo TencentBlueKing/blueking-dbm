@@ -34,6 +34,7 @@ func init() {
 	_ = sinker.RegisterModelSinker(&model.MysqlBackupStatusModel{})
 	_ = sinker.RegisterModelSinker(&model.MysqlPartitionResultModel{})
 	_ = sinker.RegisterModelSinker(&model.MysqlTableSize{})
+	_ = sinker.RegisterModelSinker(&model.MysqlSlowLogModel{})
 
 	_ = sinker.RegisterModelSinker(&model.RedisBackupResultModel{})
 	_ = sinker.RegisterModelSinker(&model.RedisBinlogFileModel{})
