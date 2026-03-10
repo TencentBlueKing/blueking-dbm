@@ -8,9 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .task import (  # noqa: F401
-    redis_backend_data_skew_check_task,
-    redis_backend_load_skew_check_task,
-    redis_cluster_memory_growth_check_task,
-    redis_exporter_check_task,
-)
+from .base import DEFAULT_LOOKBACK_DAYS, BaseCheckConfig, BaseRedisAgentCheckTask  # noqa: F401
+from .check_backend_data_skew import CheckBackendDataSkewTask  # noqa: F401
+from .check_backend_load_skew import CheckBackendLoadSkewTask  # noqa: F401
+from .check_cluster_memory_growth import CheckClusterMemoryGrowthTask  # noqa: F401

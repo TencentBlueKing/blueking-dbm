@@ -1,0 +1,96 @@
+# -*- coding: utf-8 -*-
+"""
+TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+You may obtain a copy of the License at https://opensource.org/licenses/MIT
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+"""
+import logging
+from dataclasses import dataclass
+from typing import Callable
+
+from blueapps.core.celery.celery import app
+
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models import SystemSettings
+from backend.db_meta.models import Cluster
+from backend.db_periodic_task.local_tasks.redis_tasks.agent_checks.base import (
+    DEFAULT_LOOKBACK_DAYS,
+    BaseCheckConfig,
+    BaseRedisAgentCheckTask,
+)
+from backend.db_report.enums.redis_sub_type import RedisCheckSubType
+from backend.dbm_aiagent.agent.constants import DBMAgentCode
+
+logger = logging.getLogger("root")
+
+
+@dataclass
+class ClusterMemoryGrowthCheckConfig(BaseCheckConfig):
+    @classmethod
+    def from_settings(cls) -> "ClusterMemoryGrowthCheckConfig":
+        raw = SystemSettings.get_setting_value(SystemSettingsEnum.REDIS_CLUSTER_MEMORY_GROWTH_CHECK.value, default={})
+        if not isinstance(raw, dict):
+            return cls()
+        return cls(
+            enabled=raw.get("enabled", False),
+            batch_size=raw.get("batch_size", 80),
+            lookback_days=raw.get("lookback_days", DEFAULT_LOOKBACK_DAYS),
+            ignore_cluster_domains=raw.get("ignore_cluster_domains", []),
+        )
+
+
+class CheckClusterMemoryGrowthTask(BaseRedisAgentCheckTask):
+    """Dispatcher for the Redis cluster memory growth LLM check."""
+
+    subtype = RedisCheckSubType.ClusterMemoryCapacityRisk
+    agent_code = DBMAgentCode.REDIS_MEMORY_GROWTH_ANALYSIS
+    prompt_template = "cluster_domain: {cluster_domain}"
+
+    def load_config(self) -> ClusterMemoryGrowthCheckConfig:
+        return ClusterMemoryGrowthCheckConfig.from_settings()
+
+    def get_celery_task(self) -> Callable:
+        return check_cluster_memory_growth_task
+
+
+@app.task(rate_limit="20/m")
+def check_cluster_memory_growth_task(cluster_id: int):
+    """
+    Check a single Redis cluster's memory growth using LLM agent.
+
+    The agent (ai-redis-memchk) queries metrics via MCP tools and creates the report.
+    """
+    try:
+        cluster = Cluster.objects.filter(id=cluster_id).first()
+        if not cluster:
+            logger.warning("check_cluster_memory_growth_task: cluster_id=%s not found", cluster_id)
+            return
+
+        checker = CheckClusterMemoryGrowthTask()
+        skipped, reason = checker.should_skip(cluster)
+        if skipped:
+            logger.debug(
+                "check_cluster_memory_growth_task: cluster_id=%s skipped: %s",
+                cluster_id,
+                reason,
+            )
+            return
+
+        from backend.dbm_aiagent.agent.handlers import AgentHandler
+
+        AgentHandler.ask_agent_with_content(
+            agent_code=checker.agent_code,
+            content=checker.build_content(cluster),
+        )
+        logger.info("check_cluster_memory_growth_task: cluster_id=%s done", cluster_id)
+
+    except Exception as e:
+        logger.exception(
+            "check_cluster_memory_growth_task: cluster_id=%s failed: %s",
+            cluster_id,
+            e,
+        )

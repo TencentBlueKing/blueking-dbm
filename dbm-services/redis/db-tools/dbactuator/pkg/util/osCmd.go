@@ -119,6 +119,12 @@ func (safeCmd *SafeOsCmd) SetPKey(passwordKey string) *SafeOsCmd {
 	return safeCmd
 }
 
+// ShellQuote wraps s in single quotes for safe interpolation into a shell command,
+// escaping any embedded single quotes.
+func ShellQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+}
+
 func (safeCmd *SafeOsCmd) RunBashCmd() (retStr string, err error) {
 	safeCmd.SetOpts([]string{"-c", safeCmd.cmd})
 	safeCmd.SetCmd("bash")

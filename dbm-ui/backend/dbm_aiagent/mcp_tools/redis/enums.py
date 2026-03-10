@@ -36,12 +36,11 @@ class MetricsInstanceRole(StrStructuredEnum):
     SLAVE = EnumField("redis_slave", "Redis slave")
 
 
-class MetricsOutputMode(StrStructuredEnum):
-    """Output modes for metric query results."""
+class MetricsStatsType(StrStructuredEnum):
+    """Type of statistical computation for metric results."""
 
-    OVERALL = EnumField("overall", "Overall (aggregated time series only)")
-    STATS = EnumField("stats", "Stats (scalar statistics only)")
-    BOTH = EnumField("both", "Both (series and statistics)")
+    VERTICAL = EnumField("vertical", "Vertical (temporal stats on aggregated series)")
+    HORIZONTAL = EnumField("horizontal", "Horizontal (stats across instances per time point)")
 
 
 class MetricsAggregationLevel(StrStructuredEnum):
@@ -83,4 +82,6 @@ class RedisReportSubtype(StrStructuredEnum):
     EXPORTER = EnumField("exporter", "Exporter")
 
     # Agent check subtypes
-    CLUSTER_MEMORY_GROWTH = EnumField("cluster_memory_growth", "Cluster memory growth")
+    CLUSTER_MEMORY_CAPACITY_RISK = EnumField("cluster_memory_capacity_risk", "Cluster memory capacity risk")
+    BACKEND_LOAD_SKEW = EnumField("backend_load_skew", "Backend load skew")
+    BACKEND_DATA_SKEW = EnumField("backend_data_skew", "Backend data skew")

@@ -670,7 +670,9 @@ METRIC_REGISTRY = {
 
 REPORT_SUBTYPE_MAP = {
     RedisReportSubtype.EXPORTER: RedisCheckSubType.Exporter,
-    RedisReportSubtype.CLUSTER_MEMORY_GROWTH: RedisCheckSubType.ClusterMemoryGrowth,
+    RedisReportSubtype.CLUSTER_MEMORY_CAPACITY_RISK: RedisCheckSubType.ClusterMemoryCapacityRisk,
+    RedisReportSubtype.BACKEND_LOAD_SKEW: RedisCheckSubType.BackendLoadSkew,
+    RedisReportSubtype.BACKEND_DATA_SKEW: RedisCheckSubType.BackendDataSkew,
     RedisReportSubtype.AFFINITY_VIOLATION: MetaCheckSubType.AffinityViolation,
     RedisReportSubtype.ISOLATED_INSTANCE: MetaCheckSubType.AloneInstance,
     RedisReportSubtype.STATUS_ABNORMAL: MetaCheckSubType.StatusAbnormal,
@@ -681,7 +683,9 @@ REPORT_SUBTYPE_MAP = {
 # Different report types may use different models
 REPORT_MODEL_MAP = {
     RedisReportSubtype.EXPORTER: RedisCheckReport,
-    RedisReportSubtype.CLUSTER_MEMORY_GROWTH: RedisCheckReport,
+    RedisReportSubtype.CLUSTER_MEMORY_CAPACITY_RISK: RedisCheckReport,
+    RedisReportSubtype.BACKEND_LOAD_SKEW: RedisCheckReport,
+    RedisReportSubtype.BACKEND_DATA_SKEW: RedisCheckReport,
     RedisReportSubtype.AFFINITY_VIOLATION: MetaCheckReport,
     RedisReportSubtype.ISOLATED_INSTANCE: MetaCheckReport,
     RedisReportSubtype.STATUS_ABNORMAL: MetaCheckReport,
@@ -692,7 +696,9 @@ REPORT_MODEL_MAP = {
 # Subtypes that the MCP agent is allowed to create via add_report_record.
 CREATABLE_REPORT_SUBTYPES = frozenset(
     {
-        RedisReportSubtype.CLUSTER_MEMORY_GROWTH,
+        RedisReportSubtype.CLUSTER_MEMORY_CAPACITY_RISK,
+        RedisReportSubtype.BACKEND_LOAD_SKEW,
+        RedisReportSubtype.BACKEND_DATA_SKEW,
     }
 )
 
