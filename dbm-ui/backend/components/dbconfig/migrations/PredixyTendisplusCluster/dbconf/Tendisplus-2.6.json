@@ -483,7 +483,7 @@
     "conf_name": "rocks.blockcachemb",
     "value_default": "{{rocks_blockcachemb}}",
     "value_allowed": "[32,262144]",
-    "value_type": "STRING",
+    "value_type": "INT",
     "value_type_sub": "RANGE",
     "conf_name_lc": "",
     "description": "",
@@ -626,7 +626,7 @@
   {
     "conf_name": "truncateBinlogNum",
     "value_default": "10000",
-    "value_allowed": "[50000,2000000]",
+    "value_allowed": "[10000, 2000000]",
     "value_type": "INT",
     "value_type_sub": "RANGE",
     "conf_name_lc": "",

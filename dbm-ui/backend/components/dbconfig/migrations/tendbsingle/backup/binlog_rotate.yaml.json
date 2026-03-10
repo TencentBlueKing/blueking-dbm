@@ -308,7 +308,7 @@
     "value_default": "30",
     "value_allowed": "[1, 60]",
     "value_type": "INT",
-    "value_type_sub": "ENUM",
+    "value_type_sub": "RANGE",
     "conf_name_lc": "",
     "description": "Controls whether to produce additional warning messages.",
     "need_restart": 0,

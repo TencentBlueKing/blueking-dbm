@@ -2,7 +2,7 @@
   {
     "conf_name": "core-site.fs.defaultFS",
     "value_default": "hdfs://{{cluster_name}}",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -18,7 +18,7 @@
   {
     "conf_name": "core-site.fs.trash.interval",
     "value_default": "1440",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -34,7 +34,7 @@
   {
     "conf_name": "core-site.io.file.buffer.size",
     "value_default": "131072",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -50,7 +50,7 @@
   {
     "conf_name": "core-site.net.topology.script.file.name",
     "value_default": "/data/hadoopenv/hadoop/etc/hadoop/rack-aware.sh",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -66,7 +66,7 @@
   {
     "conf_name": "hdfs-site.dfs.balancer.dispatcherThreads",
     "value_default": "200",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -82,7 +82,7 @@
   {
     "conf_name": "hdfs-site.dfs.balancer.moverThreads",
     "value_default": "1000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -98,7 +98,7 @@
   {
     "conf_name": "hdfs-site.dfs.blockreport.intervalMsec",
     "value_default": "43200000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -114,7 +114,7 @@
   {
     "conf_name": "hdfs-site.dfs.blocksize",
     "value_default": "134217728",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -130,7 +130,7 @@
   {
     "conf_name": "hdfs-site.dfs.client.failover.proxy.provider.{{cluster_name}}",
     "value_default": "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -146,7 +146,7 @@
   {
     "conf_name": "hdfs-site.dfs.datanode.address",
     "value_default": "{{dn_host}}:50010",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -162,7 +162,7 @@
   {
     "conf_name": "hdfs-site.dfs.datanode.available-space-volume-choosing-policy.balanced-space-threshold",
     "value_default": "10737418240",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -178,7 +178,7 @@
   {
     "conf_name": "hdfs-site.dfs.datanode.balance.bandwidthPerSec",
     "value_default": "150000000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -194,7 +194,7 @@
   {
     "conf_name": "hdfs-site.dfs.datanode.balance.max.concurrent.moves",
     "value_default": "50",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -210,7 +210,7 @@
   {
     "conf_name": "hdfs-site.dfs.datanode.data.dir",
     "value_default": "file:///data/hadoopdata/data",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -226,7 +226,7 @@
   {
     "conf_name": "hdfs-site.dfs.datanode.directoryscan.interval",
     "value_default": "43200",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -242,7 +242,7 @@
   {
     "conf_name": "hdfs-site.dfs.datanode.du.reserved",
     "value_default": "{{reserved}}",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -258,7 +258,7 @@
   {
     "conf_name": "hdfs-site.dfs.datanode.failed.volumes.tolerated",
     "value_default": "{{tolerated_failed_disk_num}}",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -274,7 +274,7 @@
   {
     "conf_name": "hdfs-site.dfs.datanode.fsdataset.volume.choosing.policy",
     "value_default": "org.apache.hadoop.hdfs.server.datanode.fsdataset.AvailableSpaceVolumeChoosingPolicy",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -290,7 +290,7 @@
   {
     "conf_name": "hdfs-site.dfs.datanode.handler.count",
     "value_default": "128",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -322,7 +322,7 @@
   {
     "conf_name": "hdfs-site.dfs.datanode.http.address",
     "value_default": "{{dn_host}}:50075",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -338,7 +338,7 @@
   {
     "conf_name": "hdfs-site.dfs.datanode.max.transfer.threads",
     "value_default": "4096",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -354,7 +354,7 @@
   {
     "conf_name": "hdfs-site.dfs.datanode.scan.period.hours",
     "value_default": "168",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -370,7 +370,7 @@
   {
     "conf_name": "hdfs-site.dfs.datanode.socket.write.timeout",
     "value_default": "480000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -386,7 +386,7 @@
   {
     "conf_name": "hdfs-site.dfs.datanode.xceiver.stop.timeout.millis",
     "value_default": "30000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -402,7 +402,7 @@
   {
     "conf_name": "hdfs-site.dfs.ha.automatic-failover.enabled",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -418,7 +418,7 @@
   {
     "conf_name": "hdfs-site.dfs.ha.fencing.methods",
     "value_default": "shell(/bin/true)",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -434,7 +434,7 @@
   {
     "conf_name": "hdfs-site.dfs.ha.namenodes.{{cluster_name}}",
     "value_default": "nn1,nn2",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -450,7 +450,7 @@
   {
     "conf_name": "hdfs-site.dfs.hosts",
     "value_default": "/data/hadoopenv/hadoop/etc/hadoop/dfs.include",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -466,7 +466,7 @@
   {
     "conf_name": "hdfs-site.dfs.hosts.exclude",
     "value_default": "/data/hadoopenv/hadoop/etc/hadoop/dfs.exclude",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -482,7 +482,7 @@
   {
     "conf_name": "hdfs-site.dfs.journalnode.edits.dir",
     "value_default": "/data/hadoopdata/jn",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -498,7 +498,7 @@
   {
     "conf_name": "hdfs-site.dfs.namenode.avoid.read.stale.datanode",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -514,7 +514,7 @@
   {
     "conf_name": "hdfs-site.dfs.namenode.avoid.write.stale.datanode",
     "value_default": "true",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -530,7 +530,7 @@
   {
     "conf_name": "hdfs-site.dfs.namenode.checkpoint.period",
     "value_default": "3600",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -546,7 +546,7 @@
   {
     "conf_name": "hdfs-site.dfs.namenode.checkpoint.txns",
     "value_default": "2000000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -562,7 +562,7 @@
   {
     "conf_name": "hdfs-site.dfs.namenode.datanode.registration.ip-hostname-check",
     "value_default": "false",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -578,7 +578,7 @@
   {
     "conf_name": "hdfs-site.dfs.namenode.handler.count",
     "value_default": "128",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -594,7 +594,7 @@
   {
     "conf_name": "hdfs-site.dfs.namenode.heartbeat.recheck-interval",
     "value_default": "300000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -610,7 +610,7 @@
   {
     "conf_name": "hdfs-site.dfs.namenode.http-address.{{cluster_name}}.nn1",
     "value_default": "{{nn1_host}}:{{http_port}}",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -626,7 +626,7 @@
   {
     "conf_name": "hdfs-site.dfs.namenode.http-address.{{cluster_name}}.nn2",
     "value_default": "{{nn2_host}}:{{http_port}}",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -642,7 +642,7 @@
   {
     "conf_name": "hdfs-site.dfs.namenode.name.dir",
     "value_default": "file:///data/hadoopdata/name",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -658,7 +658,7 @@
   {
     "conf_name": "hdfs-site.dfs.namenode.replication.max-streams",
     "value_default": "20",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -674,7 +674,7 @@
   {
     "conf_name": "hdfs-site.dfs.namenode.replication.max-streams-hard-limit",
     "value_default": "40",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -690,7 +690,7 @@
   {
     "conf_name": "hdfs-site.dfs.namenode.replication.work.multiplier.per.iteration",
     "value_default": "10",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -706,7 +706,7 @@
   {
     "conf_name": "hdfs-site.dfs.namenode.rpc-address.{{cluster_name}}.nn1",
     "value_default": "{{nn1_host}}:{{rpc_port}}",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -722,7 +722,7 @@
   {
     "conf_name": "hdfs-site.dfs.namenode.rpc-address.{{cluster_name}}.nn2",
     "value_default": "{{nn2_host}}:{{rpc_port}}",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -738,7 +738,7 @@
   {
     "conf_name": "hdfs-site.dfs.namenode.service.handler.count",
     "value_default": "64",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -754,7 +754,7 @@
   {
     "conf_name": "hdfs-site.dfs.namenode.servicerpc-address.{{cluster_name}}.nn1",
     "value_default": "{{nn1_host}}:53310",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -770,7 +770,7 @@
   {
     "conf_name": "hdfs-site.dfs.namenode.servicerpc-address.{{cluster_name}}.nn2",
     "value_default": "{{nn2_host}}:53310",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -786,7 +786,7 @@
   {
     "conf_name": "hdfs-site.dfs.namenode.shared.edits.dir",
     "value_default": "qjournal://{{jn0_host}}:8485;{{jn1_host}}:8485;{{jn2_host}}:8485;/{{cluster_name}}",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -802,7 +802,7 @@
   {
     "conf_name": "hdfs-site.dfs.namenode.stale.datanode.interval",
     "value_default": "30000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -818,7 +818,7 @@
   {
     "conf_name": "hdfs-site.dfs.namenode.write.stale.datanode.ratio",
     "value_default": "0.3f",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -850,7 +850,7 @@
   {
     "conf_name": "hdfs-site.dfs.replication",
     "value_default": "2",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -866,7 +866,7 @@
   {
     "conf_name": "hdfs-site.ha.failover-controller.cli-check.rpc-timeout.ms",
     "value_default": "60000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -882,7 +882,7 @@
   {
     "conf_name": "hdfs-site.ha.zookeeper.quorum",
     "value_default": "{{zk0_ip}}:2181,{{zk1_ip}}:2181,{{zk2_ip}}:2181",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -898,7 +898,7 @@
   {
     "conf_name": "hdfs-site.ha.zookeeper.session-timeout.ms",
     "value_default": "5000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",

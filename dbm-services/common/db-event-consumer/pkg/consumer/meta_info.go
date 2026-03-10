@@ -22,12 +22,6 @@ import (
 	"dbm-services/common/db-event-consumer/pkg/config"
 )
 
-type messageWrapper struct {
-	Items []struct {
-		Data json.RawMessage `json:"data"`
-	} `json:"items"`
-}
-
 // QueryKafkaMetaWithBkDataId query data_id from bklog api metadata_get_data_id
 func QueryKafkaMetaWithBkDataId(sinker *Sinker, bkdata *config.BkmApiInfo) error {
 	if bkdata == nil {

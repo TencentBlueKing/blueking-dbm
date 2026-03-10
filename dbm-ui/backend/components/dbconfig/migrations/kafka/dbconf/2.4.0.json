@@ -2,7 +2,7 @@
   {
     "conf_name": "adminUser",
     "value_default": "kafka",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -82,7 +82,7 @@
   {
     "conf_name": "connections.max.idle.ms",
     "value_default": "600000",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -130,7 +130,7 @@
   {
     "conf_name": "factor",
     "value_default": "3",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -274,7 +274,7 @@
   {
     "conf_name": "log.message.timestamp.type",
     "value_default": "CreateTime",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -386,7 +386,7 @@
   {
     "conf_name": "no_security",
     "value_default": "0",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -482,8 +482,8 @@
   {
     "conf_name": "offsets.retention.minutes",
     "value_default": "10080",
-    "value_allowed": "NULL",
-    "value_type": "STRING\n",
+    "value_allowed": "",
+    "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
     "description": "Kafka configuration for offsets.retention.minutes",
@@ -514,7 +514,7 @@
   {
     "conf_name": "partition_num",
     "value_default": "1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -530,7 +530,7 @@
   {
     "conf_name": "port",
     "value_default": "9092",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -562,7 +562,7 @@
   {
     "conf_name": "replication_num",
     "value_default": "1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -578,7 +578,7 @@
   {
     "conf_name": "retention_hours",
     "value_default": "1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -738,7 +738,7 @@
   {
     "conf_name": "username",
     "value_default": "kafka",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",
@@ -786,7 +786,7 @@
   {
     "conf_name": "zookeeper_conf",
     "value_default": "1",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "NULL",

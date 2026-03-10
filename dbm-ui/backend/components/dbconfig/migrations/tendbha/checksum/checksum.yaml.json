@@ -4,7 +4,7 @@
     "value_default": "true",
     "value_allowed": "true | false",
     "value_type": "BOOL",
-    "value_type_sub": "BOOL",
+    "value_type_sub": "",
     "conf_name_lc": "",
     "description": "Controls whether to produce additional warning messages.",
     "need_restart": 0,

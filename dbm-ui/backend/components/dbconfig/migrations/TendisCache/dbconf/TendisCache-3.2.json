@@ -1,8 +1,8 @@
 [
   {
     "conf_name": "appendfilename",
-    "value_default": "\"appendonly.aof\"",
-    "value_allowed": "[0, 999999]",
+    "value_default": "appendonly.aof",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",

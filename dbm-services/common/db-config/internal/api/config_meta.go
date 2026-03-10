@@ -38,9 +38,9 @@ type ConfNameDef struct {
 	// 配置项中文名，可不填
 	ConfNameLC string `json:"conf_name_lc" form:"conf_name_lc"`
 	// 配置项的值类型，如 `STRING`,`INT`,`FLOAT`,`NUMBER`
-	ValueType string `json:"value_type" form:"value_type" validate:"required,enums" enums:"STRING,INT,FLOAT,NUMBER" example:"STRING"`
+	ValueType string `json:"value_type" form:"value_type" validate:"required,enums" enums:"STRING,INT,FLOAT,NUMBER,BOOL" example:"STRING"`
 	// value_type 的子类型，如果设置则用于校验 value_type 的具体类型，或者返回用于告知前端控件类型，例如 ENUM,RANGE
-	ValueTypeSub string `json:"value_type_sub" form:"value_type_sub" validate:"enums" enums:",STRING,ENUM,ENUMS,RANGE,BYTES,REGEX,JSON,COMPLEX" example:"ENUM"`
+	ValueTypeSub string `json:"value_type_sub" form:"value_type_sub" enums:",STRING,ENUM,ENUMS,RANGE,BYTES,REGEX,JSON,COMPLEX" example:"ENUM"`
 	// 允许设定值，如枚举/范围等，为空时表示不限制范围
 	// 当 value_type_sub=ENUM 时，value_allowed 格式 0|1 或者 ON|OFF 或者 aaa|bbb|ccc ， 会校验value的合法性
 	// 当 value_type_sub=REGEX 时，会根据 value_allowed 进行正则校验
