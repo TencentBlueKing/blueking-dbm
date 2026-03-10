@@ -17,16 +17,22 @@ import jsonref
 import yaml
 from blueapps.account.decorators import login_exempt
 from django.conf import settings
+from django.core.cache import cache
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 logger = logging.getLogger("root")
+MCP_DISCOVERY_CACHE_KEY = "dbm_aiagent:mcp_discovery"
+MCP_DISCOVERY_CACHE_TIMEOUT = 30
 
 
 @login_exempt
 @csrf_exempt
 def mcp_discovery(request):
-    res = __mcp_discovery()
+    res = cache.get(MCP_DISCOVERY_CACHE_KEY)
+    if res is None:
+        res = __mcp_discovery()
+        cache.set(MCP_DISCOVERY_CACHE_KEY, res, timeout=MCP_DISCOVERY_CACHE_TIMEOUT)
     return JsonResponse(res if res is not None else [], safe=False)
 
 

@@ -16,6 +16,7 @@ import os
 import shutil
 import time
 
+import yaml
 from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
@@ -49,6 +50,7 @@ class Command(BaseCommand):
         )
         parser.add_argument("--only_mcp_resource", action="store_true", help="生成 mcp 资源描述")
         parser.add_argument("--mcp_check", type=str, nargs="*", help="mcp 依赖检查", required=False, default=None)
+        parser.add_argument("--mcp_servers", type=str, required=False, default=None, help="指定mcp导出tools, 逗号分隔")
         # default=list(DBMMcpTools.get_values()))
 
     @staticmethod
@@ -79,6 +81,51 @@ class Command(BaseCommand):
             logger.info(f"Resources file moved from {source_file} to {target_file}")
         else:
             logger.warning(f"Generated resources file not found at {source_file}")
+
+    @staticmethod
+    def __get_tools_by_server_names(server_names):
+        """根据 server 名称获取对应 operation_id 列表。"""
+        if not server_names:
+            return set()
+
+        selected_tools = set()
+        for server_name in server_names:
+            operation_ids = decorators.MCP_TOOLS_REGISTRY.get(server_name, [])
+            selected_tools.update(operation_ids)
+        return selected_tools
+
+    @staticmethod
+    def __filter_mcp_resources_by_servers(resources_file_path, server_names):
+        """根据指定 server 过滤 mcp_resources.yaml 中的 paths。"""
+        tools = Command.__get_tools_by_server_names(server_names)
+        if not tools:
+            logger.warning(
+                "No MCP tools matched for mcp_servers=%s, all MCP paths will be removed.", ",".join(server_names)
+            )
+
+        resource_file = os.path.join(settings.BASE_DIR, resources_file_path)
+        with open(resource_file, "r", encoding="utf-8") as f:
+            spec = yaml.safe_load(f) or {}
+
+        filtered_paths = {}
+        for path, path_item in (spec.get("paths", {}) or {}).items():
+            keep_path = False
+            for operation in (path_item or {}).values():
+                if isinstance(operation, dict) and operation.get("operationId") in tools:
+                    keep_path = True
+                    break
+            if keep_path:
+                filtered_paths[path] = path_item
+
+        spec["paths"] = filtered_paths
+        with open(resource_file, "w", encoding="utf-8") as f:
+            yaml.safe_dump(spec, f, allow_unicode=True, sort_keys=False)
+
+        logger.info(
+            "Filtered MCP resources by mcp_servers=%s, kept paths=%s",
+            ",".join(server_names),
+            len(filtered_paths),
+        )
 
     @staticmethod
     def sync_apigw(gateway_name, definition_file_path, resources_file_path):
@@ -143,14 +190,19 @@ class Command(BaseCommand):
         resources_file_path = "backend/dbm_init/apigw/resources.yaml"
         self.sync_apigw(settings.BK_APIGW_NAME, definition_file_path, resources_file_path)
 
-    def sync_mcp_apigw(self, only_mcp_resource: bool = False):
+    def sync_mcp_apigw(self, only_mcp_resource: bool = False, mcp_servers=None):
         """执行 MCP 同步逻辑"""
         if not getattr(settings, "BK_APIGW_STAGE_ENABLE_MCP_SERVERS", None):
             return
 
+        selected_servers = set(mcp_servers) if mcp_servers is not None else None
+
         # 修改settings的BK_APIGW_STAGE_MCP_SERVERS，是的包含tools
         for server in settings.BK_APIGW_STAGE_MCP_SERVERS:
-            server["tools"] = decorators.MCP_TOOLS_REGISTRY.get(server["name"], [])
+            if selected_servers is None or server["name"] in selected_servers:
+                server["tools"] = decorators.MCP_TOOLS_REGISTRY.get(server["name"], [])
+            else:
+                server["tools"] = []
 
         definition_file_path = "backend/dbm_init/apigw/mcp_definition.yaml"
         resources_file_path = "backend/dbm_init/apigw/mcp_resources.yaml"
@@ -161,6 +213,9 @@ class Command(BaseCommand):
             spectacular_settings.PREPROCESSING_HOOKS.append(Command.__preprocess_exclude_mcp_views)
             call_command("generate_resources_yaml")
             Command.__move_generated_resources_file("resources.yaml", resources_file_path)
+            # 过滤mcp资源文件
+            if selected_servers is not None:
+                Command.__filter_mcp_resources_by_servers(resources_file_path, selected_servers)
         finally:
             # 清理预处理 hook，避免影响其他命令
             if Command.__preprocess_exclude_mcp_views in spectacular_settings.PREPROCESSING_HOOKS:
@@ -176,6 +231,8 @@ class Command(BaseCommand):
         all_mode = options.get("all", False)
         only_mcp_resource = options.get("only_mcp_resource", False)
         mcp_check = options.get("mcp_check")
+        mcp_servers_option = options.get("mcp_servers")
+        mcp_servers = mcp_servers_option.split(",") if mcp_servers_option else None
 
         if mcp_check is not None:
             only_mcp_resource = True
@@ -187,7 +244,7 @@ class Command(BaseCommand):
             self.sync_dbm_apigw()
 
         if mcp or all_mode or only_mcp_resource:
-            self.sync_mcp_apigw(only_mcp_resource)
+            self.sync_mcp_apigw(only_mcp_resource, mcp_servers=mcp_servers)
 
         if mcp_check:
             analyzer = SimpleMCPDependencyGraph()
