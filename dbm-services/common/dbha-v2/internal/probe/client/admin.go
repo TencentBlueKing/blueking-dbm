@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package reporter
+package client
 
 import (
 	"sync"

@@ -22,8 +22,8 @@
  * SOFTWARE.
  */
 
-// Package reporter provides reporter implementations for sending harvest data to backends (e.g. GSE).
-package reporter
+// Package client provides client implementations for sending harvest data to backends (e.g. GSE).
+package client
 
 import (
 	"context"
@@ -34,7 +34,7 @@ import (
 	"dbm-services/common/dbha-v2/pkg/logger"
 )
 
-// BaseInfo holds agent identity info used by reporters.
+// BaseInfo holds agent identity info used by clients.
 type BaseInfo struct {
 	AgentID   string
 	BkCloudID int
@@ -48,7 +48,7 @@ type Reporter interface {
 	Close()
 }
 
-// NewReporter create new reporter
+// NewReporter creates a new reporter for the given config.
 func NewReporter(cfg config.ReporterConfig) (Reporter, error) {
 	switch strings.ToLower(cfg.Name) {
 	case strings.ToLower(NameGSE):

@@ -31,10 +31,10 @@ import (
 	"sync"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/probe/client"
 	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/internal/probe/harvester"
 	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
-	"dbm-services/common/dbha-v2/internal/probe/reporter"
 	"dbm-services/common/dbha-v2/pkg/logger"
 )
 
@@ -43,7 +43,7 @@ type Probe struct {
 	clientID  string
 	machineID string
 	serviceID string
-	reporter  reporter.Reporter
+	reporter  client.Reporter
 	plugins   []plugin.Plugin
 	quit      chan struct{}
 	wg        sync.WaitGroup
@@ -152,7 +152,7 @@ func (p *Probe) createReporter() {
 				return
 
 			default:
-				r, err := reporter.NewReporter(cfg)
+				r, err := client.NewReporter(cfg)
 				if err != nil {
 					logger.Warn("create new reporter failed, reporter(%s), %v", cfg.Name, err)
 					time.Sleep(100 * time.Millisecond)

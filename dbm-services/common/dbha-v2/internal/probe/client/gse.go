@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package reporter
+package client
 
 import (
 	"context"
@@ -42,7 +42,7 @@ type gse struct {
 	agentCli agentreport.Client
 }
 
-// NewGSEClient new GSE client
+// NewGSEClient creates a new GSE client.
 func NewGSEClient(cfg config.ReporterConfig, logger types.Logger) (Reporter, error) {
 	cli, err := agentreport.New(
 		agentreport.WithDomainSocketPath(cfg.Endpoint),
@@ -70,12 +70,12 @@ func NewGSEClient(cfg config.ReporterConfig, logger types.Logger) (Reporter, err
 	}, nil
 }
 
-// Name return reporter's name
+// Name returns the client name.
 func (g *gse) Name() string {
 	return NameGSE
 }
 
-// Post post the content to server by GSE
+// Post posts the content to server by GSE.
 func (g *gse) Post(ctx context.Context, content []byte) error {
 	ctxTimeout, cancel := context.WithTimeout(ctx, g.cfg.ConnTimeout)
 	defer cancel()

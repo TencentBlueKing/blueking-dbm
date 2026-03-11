@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package reporter
+package client
 
 import (
 	"io"
@@ -42,6 +42,7 @@ import (
 	"google.golang.org/grpc/keepalive"
 )
 
+// ReceiverClient is the gRPC client for the receiver service.
 type ReceiverClient struct {
 	conn                 *grpc.ClientConn
 	client               proto.ReceiverServiceClient
@@ -58,6 +59,7 @@ type ReceiverClient struct {
 	mutex                sync.RWMutex
 }
 
+// NewReceiverClient creates a ReceiverClient connected to the given endpoints.
 func NewReceiverClient(ctx context.Context, endpoints string, clientId string) (*ReceiverClient, error) {
 	kacp := keepalive.ClientParameters{
 		Time:                constant.DefaultClientPingTime,
@@ -252,6 +254,7 @@ func (r *ReceiverClient) register() error {
 	return nil
 }
 
+// SendMessage sends content to the receiver.
 func (r *ReceiverClient) SendMessage(content []byte) error {
 	r.mutex.RLock()
 	if r.closed {
@@ -275,6 +278,7 @@ func (r *ReceiverClient) SendMessage(content []byte) error {
 	return r.stream.Send(msg)
 }
 
+// Close closes the receiver client and connection.
 func (r *ReceiverClient) Close() {
 	r.mutex.Lock()
 	if r.closed {
