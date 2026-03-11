@@ -101,48 +101,62 @@ def check_cluster_checksum(index: int, cluster_id: int, now: Optional[datetime] 
         # 按 master_ip:master_port 聚合不一致的 slave 实例
         master_to_slaves = defaultdict(set)
         for fail in fail_list:
-            master_key = f"{fail.master_ip}:{fail.master_port}"
-            master_to_slaves[master_key].add(f"{fail.ip}:{fail.port}")
+            if fail.details:
+                logger.info("instance %s:%s has details: %s", fail.ip, fail.port, fail.details)
+                master_key = f"{fail.master_ip}:{fail.master_port}"
+                master_to_slaves[master_key].add(f"{fail.ip}:{fail.port}")
+            else:
+                logger.info("instance %s:%s has no details", fail.ip, fail.port)
 
-        ticket_details = {
-            # "非innodb表是否修复"这个参数与校验保持一致，默认为false
-            "is_sync_non_innodb": False,
-            "is_ticket_consistent": False,
-            "checksum_table": MYSQL_CHECKSUM_TABLE,
-            "trigger_type": MySQLDataRepairTriggerMode.ROUTINE.value,
-            # 为了兼容时区问题, 修复范围扩大一天
-            "start_time": date2str(now - timedelta(hours=24)),
-            "end_time": date2str(now + timedelta(hours=24)),
-            "infos": [
-                {
-                    "cluster_id": cluster_id,
-                    "master": _ip_port_to_repair_instance_info(cluster_obj, master),
-                    "slaves": [
-                        {
-                            **_ip_port_to_repair_instance_info(cluster_obj, slave),
-                            "is_consistent": False,
-                        }
-                        for slave in slaves
-                    ],
-                }
-                for master, slaves in master_to_slaves.items()
-            ],
-        }
-        ticket_type = getattr(TicketType, f"{db_type.upper()}_DATA_REPAIR")
-
-        _create_ticket.apply_async(
-            kwargs={
-                "ticket_type": ticket_type,
-                "creator": dba[0],
-                "bk_biz_id": cluster_obj.bk_biz_id,
-                "remark": _("集群存在数据不一致，自动创建的数据修复单据"),
-                "details": ticket_details,
-                "helpers": [*second_dba, *other_dba],
+        if master_to_slaves:
+            # 创建数据修复单据
+            ticket_details = {
+                # "非innodb表是否修复"这个参数与校验保持一致，默认为false
+                "is_sync_non_innodb": False,
+                "is_ticket_consistent": False,
+                "checksum_table": MYSQL_CHECKSUM_TABLE,
+                "trigger_type": MySQLDataRepairTriggerMode.ROUTINE.value,
+                # 为了兼容时区问题, 修复范围扩大一天
+                "start_time": date2str(now - timedelta(hours=24)),
+                "end_time": date2str(now + timedelta(hours=24)),
+                "infos": [
+                    {
+                        "cluster_id": cluster_id,
+                        "master": _ip_port_to_repair_instance_info(cluster_obj, master),
+                        "slaves": [
+                            {
+                                **_ip_port_to_repair_instance_info(cluster_obj, slave),
+                                "is_consistent": False,
+                            }
+                            for slave in slaves
+                        ],
+                    }
+                    for master, slaves in master_to_slaves.items()
+                ],
             }
-        )
+            logger.info(
+                "begin create data repair ticket for cluster %s with details: %s",
+                cluster_obj.immute_domain,
+                ticket_details,
+            )
+
+            ticket_type = getattr(TicketType, f"{db_type.upper()}_DATA_REPAIR")
+
+            _create_ticket.apply_async(
+                kwargs={
+                    "ticket_type": ticket_type,
+                    "creator": dba[0],
+                    "bk_biz_id": cluster_obj.bk_biz_id,
+                    "remark": _("集群存在数据不一致，自动创建的数据修复单据"),
+                    "details": ticket_details,
+                    "helpers": [*second_dba, *other_dba],
+                }
+            )
+        else:
+            logger.info("no master-slave pair found for cluster %s", cluster_obj.immute_domain)
 
     except Exception:  # noqa
-        logger.exception("failed to create data repair ticket for cluster %s", cluster_obj.immute_domain)
+        logger.exception("no data need be repaired for cluster %s", cluster_obj.immute_domain)
 
 
 @shared_task
