@@ -149,9 +149,13 @@ class RedisRollbackExerciseFlow(object):
                     "description": _("主机 {} Redis回档演练操作").format(resource_applied[0]["ip"]),
                     "dimensions": [
                         {
+                            "name": "appid",
+                            "values": [str(cluster.bk_biz_id)],
+                        },
+                        {
                             "name": "bk_target_ip",
                             "values": [resource_applied[0]["ip"]],
-                        }
+                        },
                     ],
                 },
             )
