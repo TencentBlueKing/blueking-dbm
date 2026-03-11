@@ -32,6 +32,7 @@ from backend.db_meta.models import (
 )
 from backend.db_meta.models.city_map import BKSubzone
 from backend.db_services.dbbase.instances.handlers import InstanceHandler
+from backend.db_services.dbbase.resources.constants import DEFAULT_CLUSTER_DATA
 from backend.db_services.dbbase.resources.query_base import (
     build_q_for_cluster_name_or_alias,
     build_q_for_domain_by_cluster,
@@ -692,20 +693,27 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
                 ):
                     dns_to_clb = True
 
-            cluster_info = cls._to_cluster_representation(
-                cluster=cluster,
-                cluster_entry=cluster_entry,
-                db_module_names_map=db_module_names_map,
-                cluster_entry_map=cluster_entry_map,
-                cluster_operate_records_map=cluster_operate_records_map,
-                cloud_info=cloud_info,
-                biz_info=biz_info,
-                cluster_stats_map=cluster_stats_map,
-                dns_to_clb=dns_to_clb,
-                cluster_zone_map=cluster_zone_map,
-                **kwargs,
-            )
-            clusters.append(cluster_info)
+            try:
+                cluster_info = cls._to_cluster_representation(
+                    cluster=cluster,
+                    cluster_entry=cluster_entry,
+                    db_module_names_map=db_module_names_map,
+                    cluster_entry_map=cluster_entry_map,
+                    cluster_operate_records_map=cluster_operate_records_map,
+                    cloud_info=cloud_info,
+                    biz_info=biz_info,
+                    cluster_stats_map=cluster_stats_map,
+                    dns_to_clb=dns_to_clb,
+                    cluster_zone_map=cluster_zone_map,
+                    **kwargs,
+                )
+                clusters.append(cluster_info)
+            except Exception as e:
+                error_cluster = DEFAULT_CLUSTER_DATA.copy()
+                error_cluster["id"] = cluster.id
+                error_cluster["master_domain"] = cluster.immute_domain
+                error_cluster["error"] = str(e)
+                clusters.append(error_cluster)
 
         return ResourceList(count=count, data=clusters)
 

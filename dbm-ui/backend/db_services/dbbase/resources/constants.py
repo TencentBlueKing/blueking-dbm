@@ -19,3 +19,43 @@ class ResourceNodeType(StrStructuredEnum):
     BIZ = EnumField("biz", _("业务"))
     CLUSTER = EnumField("cluster", _("集群"))
     MODULE = EnumField("module", _("模块"))
+
+
+DEFAULT_CLUSTER_DATA = {
+    "id": 0,
+    "db_type": "",
+    "phase": "",
+    "phase_name": "",
+    "status": "",
+    "operations": [],
+    "dns_to_clb": False,
+    "cluster_time_zone": "",
+    "cluster_name": "",
+    "cluster_alias": "",
+    "cluster_access_port": 0,
+    "cluster_stats": {},
+    "cluster_type": "",
+    "cluster_type_name": "",
+    "cluster_subzones": [],
+    "cluster_subzone_ids": [],
+    "disaster_tolerance_level": "",
+    "master_domain": "",
+    "slave_domain": "",
+    "cluster_entry": [],
+    "bk_biz_id": 0,
+    "bk_biz_name": "",
+    "bk_cloud_id": 0,
+    "bk_cloud_name": "",
+    "major_version": "",
+    "region": "",
+    "city": "",
+    "db_module_name": "",
+    "db_module_id": 0,
+    "creator": "",
+    "updater": "",
+    "create_at": "",
+    "update_at": "",
+    "cluster_spec": {},
+    "tags": [],
+    "zone_list": [],
+}
