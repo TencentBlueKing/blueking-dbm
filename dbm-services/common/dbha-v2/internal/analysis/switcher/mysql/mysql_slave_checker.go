@@ -78,6 +78,15 @@ const (
 	`
 )
 
+var systemDbs = map[string]struct{}{
+	"mysql":              {},
+	"information_schema": {},
+	"performance_schema": {},
+	"test":               {},
+	"infodba_schema":     {},
+	"sys":                {},
+}
+
 // SlaveStatusPartialInfo contains partial slave status information for switching
 type SlaveStatusPartialInfo struct {
 	MasterHost              string
@@ -432,15 +441,6 @@ func HasUserCreatedDatabase(db *hamysql.GormDB, reportLogf switchlogger.SwitchLo
 	ip := db.Host()
 	port := db.Port()
 
-	var systemDbs = map[string]bool{
-		"mysql":              true,
-		"information_schema": true,
-		"performance_schema": true,
-		"test":               true,
-		"infodba_schema":     true,
-		"sys":                true,
-	}
-
 	var databases []string
 	err := db.DB().Raw("show databases").Scan(&databases).Error
 	if err != nil {
@@ -449,12 +449,14 @@ func HasUserCreatedDatabase(db *hamysql.GormDB, reportLogf switchlogger.SwitchLo
 	}
 
 	for _, database := range databases {
-		if _, exists := systemDbs[database]; !exists {
-			if reportLogf != nil {
-				reportLogf(switchlogger.SwitchInfo, "found user-created database on node(%s:%d): %s", ip, port, database)
-			}
-			return true, nil
+		if _, exists := systemDbs[database]; exists {
+			continue
 		}
+
+		if reportLogf != nil {
+			reportLogf(switchlogger.SwitchInfo, "found user-created database on node(%s:%d): %s", ip, port, database)
+		}
+		return true, nil
 	}
 
 	if reportLogf != nil {
