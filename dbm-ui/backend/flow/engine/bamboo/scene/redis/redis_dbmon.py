@@ -177,6 +177,17 @@ class RedisDbmonSceneFlow(object):
                     kwargs=asdict(act_kwargs),
                 )
 
+            act_kwargs.cluster = {
+                "meta_func_name": RedisDBMeta.trigger_operate_collector_reinstall.__name__,
+                "cluster_id": cluster.id,
+                "immute_domain": cluster.immute_domain,
+            }
+            sub_pipeline.add_act(
+                act_name=_("重新加载触发器配置"),
+                act_component_code=RedisDBMetaComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(sub_name=_("集群架构-{}-重新标准化").format(cluster.immute_domain))
             )

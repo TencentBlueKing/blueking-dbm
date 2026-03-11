@@ -873,6 +873,29 @@ class RedisDBMeta(object):
         )
         return True
 
+    # 刷新bkcc 服务实例，触发gse 重新下发GSE，插件配置
+    def trigger_operate_collector_reinstall(self) -> bool:
+        from backend.flow.utils.cc_manage import trigger_operate_collector
+
+        # 查询BACKEND,下发的实例
+        instance_model = StorageInstance  # if role == "backend" else ProxyInstance
+        instances = instance_model.objects.filter(cluster=self.cluster["cluster_id"])
+        machine_type = instances.first().machine.machine_type
+        bk_instance_ids = list(instances.values_list("bk_instance_id", flat=True))
+
+        # 触发采集器下发，异步任务，1min后生效
+        trigger_operate_collector("redis", machine_type, bk_instance_ids, "INSTALL")
+
+        # 查询PROXY,下发的实例
+        instance_model = ProxyInstance
+        instances = instance_model.objects.filter(cluster=self.cluster["cluster_id"])
+        machine_type = instances.first().machine.machine_type
+        bk_instance_ids = list(instances.values_list("bk_instance_id", flat=True))
+
+        # 触发采集器下发，异步任务，1min后生效
+        trigger_operate_collector("redis", machine_type, bk_instance_ids, "INSTALL")
+        return True
+
     def redis_role_swap_4_scene(self) -> bool:
         """
         主从互切 [仅RedisCluster 类型]
