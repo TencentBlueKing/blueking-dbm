@@ -26,8 +26,9 @@ package admin
 
 import (
 	"context"
+	"errors"
 
-	"dbm-services/common/dbha-v2/internal/admin/config"
+	adminconfig "dbm-services/common/dbha-v2/internal/admin/config"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/proto"
 
@@ -49,12 +50,13 @@ func NewAdminGrpcService(s *Service) *AdminGrpcService {
 
 // NewServer creates a gRPC server with keepalive and message size options from config (defaults set in Cfg).
 func (g *AdminGrpcService) NewServer() *grpc.Server {
-	cfg := config.Cfg.Grpc
+	cfg := adminconfig.Cfg.Grpc
 
 	kasp := keepalive.ServerParameters{
 		Time:    cfg.ServerPingTime,
 		Timeout: cfg.PingTimeout,
 	}
+
 	kacp := keepalive.EnforcementPolicy{
 		MinTime:             cfg.KeepAliveMinTime,
 		PermitWithoutStream: cfg.PermitWithoutStream,
@@ -76,17 +78,35 @@ func (g *AdminGrpcService) Heartbeat(
 	return &proto.HeartbeatResponse{Errmsg: "success"}, nil
 }
 
-// GetProbeConfig returns probe config for the given client.
+// GetProbeConfig returns probe config for the given client (by cloudid + ip).
 func (g *AdminGrpcService) GetProbeConfig(
 	ctx context.Context, req *proto.ProbeConfigRequest,
 ) (*proto.ProbeConfigResponse, error) {
-	logger.Debug("admin server GetProbeConfig request: clientID=%s, version=%s",
-		req.GetClientID(), req.GetVersion())
-	// TODO: load config from g.srv.strategy/storage by clientID, compare version/updatedTime and return payload
-	resp := &proto.ProbeConfigResponse{
-		Code:    0,
-		Errmsg:  "success",
-		Payload: "",
+	logger.Debug("probe config request, bk_cloud_id: %d, ip: %s, client_id: %s, version: %s, updated_time: %d",
+		req.GetBkCloudId(), req.GetIp(), req.GetClientID(), req.GetVersion(), req.GetUpdatedTime())
+
+	payload, err := adminconfig.GenProbeConfig(ctx, g.srv.db, int(req.GetBkCloudId()), req.GetIp())
+	if err != nil {
+		if errors.Is(err, adminconfig.ErrNoData) {
+			return &proto.ProbeConfigResponse{
+				Code:    proto.ProbeConfigCode_PROBE_CONFIG_NO_DATA,
+				Errmsg:  err.Error(),
+				Payload: "",
+			}, nil
+		}
+
+		logger.Warn("failed to generate probe config, errmsg: %s", err)
+
+		return &proto.ProbeConfigResponse{
+			Code:    proto.ProbeConfigCode_PROBE_CONFIG_FAIL,
+			Errmsg:  err.Error(),
+			Payload: "",
+		}, nil
 	}
-	return resp, nil
+
+	return &proto.ProbeConfigResponse{
+		Code:    proto.ProbeConfigCode_PROBE_CONFIG_SUCCESS,
+		Errmsg:  "success",
+		Payload: payload,
+	}, nil
 }

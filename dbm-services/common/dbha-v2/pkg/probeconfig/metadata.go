@@ -22,28 +22,16 @@
  * SOFTWARE.
  */
 
-// Package constant defines shared constants for dbha-v2 (delimiters, defaults, timeouts, etc.).
-package constant
+// Package probeconfig defines shared types for probe config generation (e.g. metadata from admin to probe).
+package probeconfig
 
-import "time"
-
-const (
-	Delimiter                         = ";"
-	DbmApiNameMetadata                = "metadata"
-	DefaultLocalIPInterface           = "eth1"
-	DefaultClientPingTime             = 5 * time.Second
-	DefaultServerPingTime             = 5 * time.Minute
-	DefaultPingTimeout                = 10 * time.Second
-	DefaultKeepAliveMiniTime          = 5 * time.Minute
-	DefaultMaxReceiveMessageSize      = 1024 * 1024 * 10
-	DefaultMaxSendMessageSize         = 1024 * 1024 * 10
-	DefaultClientReconnectInterval    = 5 * time.Second
-	DefaultClientMaxReconnectAttempts = 10
-	DefaultReceiverBufferSize         = 1024
-	DefaultAdminBufferSize            = 1024
-)
-
-const (
-	DirModePermission  = 0755
-	FileModePermission = 0644
-)
+// ProbeMetadataItem is a single instance metadata entry for probe config generation (ip, port, cluster type, etc.).
+// Admin returns a JSON array of these; probe uses them to build the final probe YAML.
+type ProbeMetadataItem struct {
+	IP          string `json:"ip"`
+	Port        int    `json:"port"`
+	AdminPort   int    `json:"admin_port"`
+	ClusterType string `json:"cluster_type"`
+	MachineType string `json:"machine_type"`
+	AccessLayer string `json:"access_layer"`
+}

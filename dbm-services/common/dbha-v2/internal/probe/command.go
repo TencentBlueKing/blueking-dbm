@@ -82,9 +82,17 @@ var ReloadCmd = &cobra.Command{
 	RunE:  cmds.ReloadCmdRunE,
 }
 
-// GenConfigCmd is used to generate probe configuration file.
+// GenConfigCmd is used to generate probe configuration file from admin server.
 var GenConfigCmd = &cobra.Command{
 	Use:   "gen-config",
-	Short: "Generate probe configuration file.",
+	Short: "Generate probe configuration file from admin server.",
 	RunE:  cmds.GenConfigCmdRunE,
+}
+
+func init() {
+	GenConfigCmd.Flags().String("admin-endpoints", "",
+		"Admin service endpoints, separated by ; (e.g. host1:port1;host2:port2)")
+	GenConfigCmd.Flags().Uint64("cloud-id", 0, "Cloud ID (bk_cloud_id)")
+	GenConfigCmd.Flags().String("local-ip", "", "Probe local IP address")
+	GenConfigCmd.Flags().StringP("output", "o", "", "Output config file path (default: stdout)")
 }

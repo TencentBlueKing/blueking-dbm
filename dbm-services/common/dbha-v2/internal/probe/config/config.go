@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-// Package config provides probe configuration loading and structures.
+// Package config provides probe configuration loading, structures, and generation from metadata.
 package config
 
 import (
