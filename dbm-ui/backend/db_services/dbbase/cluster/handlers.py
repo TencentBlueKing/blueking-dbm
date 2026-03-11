@@ -822,13 +822,16 @@ class ClusterServiceHandler:
 
 def get_cluster_service_handler(bk_biz_id: int, db_type: str = "dbbase"):
     """根据集群类型获取对应的集群查询handler"""
+    if db_type not in DBType.get_values() + ["dbbase"]:
+        raise ValueError(f"Can't import cluster handler, Invalid db_type: {db_type}")
+
     if db_type == DBType.TenDBCluster.value:
         db_type = DBType.MySQL.value
     handler_import_path = f"backend.db_services.{db_type}.cluster.handlers"
     try:
         handler_class = getattr(importlib.import_module(handler_import_path), "ClusterServiceHandler")
         handler = handler_class(bk_biz_id)
-    except (ModuleNotFoundError, AttributeError):
+    except (ModuleNotFoundError, AttributeError, ImportError):
         handler = ClusterServiceHandler(bk_biz_id)
 
     return handler

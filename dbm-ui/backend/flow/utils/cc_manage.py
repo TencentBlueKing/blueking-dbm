@@ -631,7 +631,7 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, instance_
     scope = {"bk_biz_id": bk_biz_id, "object_type": "SERVICE", "node_type": "INSTANCE", "nodes": nodes}
     # 获取主机下发nodes
     bk_host_ids = list(set([node["bk_host_id"] for node in nodes if node["bk_host_id"]]))
-    host_nodes = [{"bk_host_id": bk_host_id, "bk_biz_id": bk_biz_id} for bk_host_id in bk_host_ids]
+    host_nodes = [{"bk_host_id": bk_host_id, "bk_biz_id": bk_biz_id} for bk_host_id in bk_host_ids]  # noqa
 
     # --- 下发监控采集器 ---
     plugin_id = INSTANCE_MONITOR_PLUGINS[db_type][machine_type]["plugin_id"]
@@ -664,10 +664,12 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, instance_
         # 忽略不存在的采集项
         if not collect:
             continue
-        # 如果是主机维度的采集项，则维度为HOST
         bklog_scope = copy.deepcopy(scope)
+        # 如果是主机维度的采集项，则维度为HOST
+        # TODO: 主机维度的采集在实例卸载的时候也会触发卸载，暂时屏蔽
         if plugin_id not in SERVICE_INSTANCE_BKLOG_PLUGINS:
-            bklog_scope.update(object_type="HOST", nodes=host_nodes)
+            # bklog_scope.update(object_type="HOST", nodes=host_nodes)
+            continue
         # 下发采集器
         collect_id = collect["collector_config_id"]
         try:
