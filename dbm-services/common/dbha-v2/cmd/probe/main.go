@@ -25,8 +25,9 @@
 package main
 
 import (
+	"fmt"
+
 	"dbm-services/common/dbha-v2/internal/probe"
-	"dbm-services/common/dbha-v2/pkg/logger"
 
 	"github.com/spf13/cobra"
 )
@@ -53,7 +54,7 @@ func main() {
 	rootCmd.AddCommand(probe.GenConfigCmd)
 
 	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed to execute probe. errmsg(%s)", err.Error())
+		fmt.Println("failed to execute probe. errmsg: %s", err.Error())
 		return
 	}
 
