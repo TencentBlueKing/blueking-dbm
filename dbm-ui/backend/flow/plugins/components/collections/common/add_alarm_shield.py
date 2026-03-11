@@ -132,12 +132,7 @@ class AddAlarmShieldService(BaseService):
             "shield_notice": False,
             "notice_config": {},
             "description": kwargs["description"],
-            # 维度配置：默认以 appid（用户业务ID）作为基础维度条件
-            "dimension_config": {
-                "dimension_conditions": [
-                    {"condition": "and", "key": "appid", "method": "eq", "value": [f"{bk_biz_id}"], "name": "appid"},
-                ]
-            },
+            "dimension_config": {"dimension_conditions": []},
         }
 
         # ============ 第三步：根据屏蔽类型补充策略相关参数 ============
@@ -150,6 +145,7 @@ class AddAlarmShieldService(BaseService):
         # ============ 第四步：追加用户自定义的维度条件 ============
         # dimensions 示例: [{"name": "instance", "values": ["127.0.0.1:3306"]}]
         dimensions = kwargs["dimensions"]
+        caller_keys = {dim["name"] for dim in dimensions}
         for dim in dimensions:
             shield_param["dimension_config"]["dimension_conditions"].append(
                 {
@@ -159,6 +155,12 @@ class AddAlarmShieldService(BaseService):
                     "value": dim["values"],
                     "name": dim["name"],
                 }
+            )
+
+        # 默认以 appid（用户业务ID）作为基础维度条件，除非调用方已显式提供
+        if "appid" not in caller_keys:
+            shield_param["dimension_config"]["dimension_conditions"].insert(
+                0, {"condition": "and", "key": "appid", "method": "eq", "value": [f"{bk_biz_id}"], "name": "appid"}
             )
 
         # ============ 第五步：格式化描述信息并调用蓝鲸监控 API 创建屏蔽 ============
