@@ -626,7 +626,7 @@ class RedisRollbackExercise:
                 break
 
             try:
-                cluster_id = eval(candidate_data)
+                cluster_id = int(candidate_data)
                 cluster = Cluster.objects.get(id=cluster_id)
                 if cluster.phase != ClusterPhase.ONLINE.value:
                     skip_msg = _("Cluster {} is offline (phase: {})").format(cluster.immute_domain, cluster.phase)
