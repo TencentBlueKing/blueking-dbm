@@ -20,6 +20,7 @@ limitations under the License.
 package provider
 
 import (
+	"encoding/json"
 	"fmt"
 	commentity "k8s-dbs/common/entity"
 	commutil "k8s-dbs/common/util"
@@ -47,6 +48,8 @@ import (
 
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
 	opv1 "github.com/apecloud/kubeblocks/apis/operations/v1alpha1"
+
+	corev1 "k8s.io/api/core/v1"
 
 	addonopschecker "k8s-dbs/core/checker/addonoperation"
 )
@@ -848,6 +851,13 @@ func (o *OpsRequestProvider) doExposeCluster(
 
 	if err = coreutil.CreateCRD(k8sClient, expose); err != nil {
 		return nil, errors.Wrapf(err, "下发服务暴露任务失败")
+	}
+
+	// 缓存 expose service 配置，供 ServiceInformer 写入 extra 字段
+	if request.Service.ServiceType == corev1.ServiceTypeLoadBalancer {
+		if serviceJSON, marshalErr := json.Marshal(request.Service); marshalErr == nil {
+			coreutil.StoreExposeExtra(request.Namespace, request.ClusterName, string(serviceJSON))
+		}
 	}
 
 	responseData, err := coreentity.GetOpsRequestData(expose.ResourceObject)
