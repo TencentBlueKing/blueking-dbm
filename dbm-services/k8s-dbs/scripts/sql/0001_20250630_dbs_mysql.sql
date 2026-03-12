@@ -90,6 +90,7 @@ CREATE TABLE IF NOT EXISTS tb_k8s_cluster_service (
     internal_addrs varchar(255) COMMENT '内部访问地址。如果有多个端口，用分号隔开，比如 xx.xx.xx.xx:8081;xx.xx.xx:8082',
     external_addrs varchar(255) COMMENT '外部访问地址。如果有多个端口，用分号隔开，比如 xx.xx.xx.xx:8081;xx.xx.xx:8082',
     domains varchar(255) COMMENT '域名信息。如果有多个域名，用分号隔开，比如 domain_name_1;domain_name_2',
+    extra text COMMENT '扩展信息, JSON 格式, 记录 expose 请求中 service 的原始配置',
     active tinyint(1) NOT NULL DEFAULT 1 COMMENT '0:无效，1:有效',
     description varchar(100) COMMENT '服务描述',
     created_by varchar(50) NOT NULL COMMENT '创建者',

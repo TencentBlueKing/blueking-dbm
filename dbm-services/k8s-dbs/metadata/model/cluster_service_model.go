@@ -35,6 +35,7 @@ type K8sClusterServiceModel struct {
 	InternalAddrs string                 `gorm:"type:varchar(255);column:internal_addrs" json:"internalAddrs"`
 	ExternalAddrs string                 `gorm:"type:varchar(255);column:external_addrs" json:"externalAddrs"`
 	Domains       string                 `gorm:"type:varchar(255);column:domains" json:"domains"`
+	Extra         string                 `gorm:"type:text;column:extra" json:"extra"`
 	Description   string                 `gorm:"size:100;column:description" json:"description"`
 	CreatedBy     string                 `gorm:"size:50;not null;column:created_by" json:"createdBy"`
 	CreatedAt     commtypes.JSONDatetime `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP;column:created_at" json:"createdAt"` //nolint:lll
