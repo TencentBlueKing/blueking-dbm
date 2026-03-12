@@ -155,25 +155,55 @@ func (k *K8sClusterServiceDbAccessImpl) FindByClusterID(crdClusterID uint64) ([]
 }
 
 // UpsertByClusterIDAndServiceName 原子性地更新或插入单个 service 记录
-// 在事务中根据 (crd_cluster_id, service_name) 先删除再创建
+// 先查询是否存在：不存在则 INSERT；存在且数据有变化则 UPDATE；无变化则跳过
 func (k *K8sClusterServiceDbAccessImpl) UpsertByClusterIDAndServiceName(
 	model *models.K8sClusterServiceModel,
 ) error {
 	return k.db.Transaction(func(tx *gorm.DB) error {
-		result := tx.Where("crd_cluster_id = ? AND service_name = ?", model.CrdClusterID, model.ServiceName).
-			Delete(&models.K8sClusterServiceModel{})
-		if result.Error != nil {
-			return errors.Wrapf(result.Error,
-				"failed to delete old service for upsert: cluster_id=%d, service=%s",
+		var existing models.K8sClusterServiceModel
+		err := tx.Where("crd_cluster_id = ? AND service_name = ?", model.CrdClusterID, model.ServiceName).
+			First(&existing).Error
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.Wrapf(err,
+				"failed to query existing service: cluster_id=%d, service=%s",
 				model.CrdClusterID, model.ServiceName)
 		}
-		if err := tx.Create(model).Error; err != nil {
-			return errors.Wrapf(err,
-				"failed to create service for upsert: cluster_id=%d, service=%s",
+
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// 记录不存在，插入新记录
+			if createErr := tx.Create(model).Error; createErr != nil {
+				return errors.Wrapf(createErr,
+					"failed to create service for upsert: cluster_id=%d, service=%s",
+					model.CrdClusterID, model.ServiceName)
+			}
+			return nil
+		}
+
+		// 记录已存在，检查数据是否有变化
+		if serviceDataEqual(&existing, model) {
+			return nil
+		}
+
+		// 数据有变化，更新记录，保留 created_at 和 created_by
+		model.ID = existing.ID
+		if updateErr := tx.Omit("CreatedAt", "CreatedBy").Save(model).Error; updateErr != nil {
+			return errors.Wrapf(updateErr,
+				"failed to update service for upsert: cluster_id=%d, service=%s",
 				model.CrdClusterID, model.ServiceName)
 		}
 		return nil
 	})
+}
+
+// serviceDataEqual 比较两条 service 记录的业务字段是否一致
+func serviceDataEqual(a, b *models.K8sClusterServiceModel) bool {
+	return a.ComponentName == b.ComponentName &&
+		a.ServiceType == b.ServiceType &&
+		a.Annotations == b.Annotations &&
+		a.InternalAddrs == b.InternalAddrs &&
+		a.ExternalAddrs == b.ExternalAddrs &&
+		a.Domains == b.Domains &&
+		a.Description == b.Description
 }
 
 // ListByPage 分页查询元数据接口实现
