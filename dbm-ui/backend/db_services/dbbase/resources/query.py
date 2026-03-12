@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import abc
+import copy
 from collections import defaultdict
 from typing import Any, Callable, Dict, List, Tuple
 
@@ -59,6 +60,63 @@ CLUSTER_STATUS_MAP = {
     "abnormal": _("异常"),
     "temporary": _("temporary"),
 }
+
+
+DEFAULT_CLUSTER_DATA = {
+    "id": 0,
+    "db_type": "",
+    "phase": "",
+    "phase_name": "",
+    "status": "",
+    "operations": [],
+    "dns_to_clb": False,
+    "cluster_time_zone": "",
+    "cluster_name": "",
+    "cluster_alias": "",
+    "cluster_access_port": 0,
+    "cluster_stats": {},
+    "cluster_type": "",
+    "cluster_type_name": "",
+    "cluster_subzones": [],
+    "cluster_subzone_ids": [],
+    "disaster_tolerance_level": "",
+    "master_domain": "",
+    "slave_domain": "",
+    "cluster_entry": [],
+    "bk_biz_id": 0,
+    "bk_biz_name": "",
+    "bk_cloud_id": 0,
+    "bk_cloud_name": "",
+    "major_version": "",
+    "region": "",
+    "city": "",
+    "db_module_name": "",
+    "db_module_id": 0,
+    "creator": "",
+    "updater": "",
+    "create_at": "",
+    "update_at": "",
+    "cluster_spec": {},
+    "tags": [],
+    "zone_list": [],
+}
+
+VALID_FIELDS = [
+    "id",
+    "name",
+    "alias",
+    "cluster_type",
+    "major_version",
+    "region",
+    "bk_cloud_id",
+    "creator",
+    "create_at",
+    "update_at",
+    "status",
+    "db_module_id",
+    "disaster_tolerance_level",
+    "time_zone",
+]
 
 
 class CommonExportQueryResourceMixin:
@@ -590,9 +648,24 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
                     query_params, cluster_queryset, proxy_queryset, storage_queryset
                 )
 
-        #  部署时间表头排序
-        if query_params.get("ordering"):
-            cluster_queryset = cluster_queryset.order_by(query_params.get("ordering"))
+        # 自定义排序处理
+        ordering = query_params.get("ordering", "")
+        if ordering:
+            # 支持多字段排序，用逗号分隔
+            order_fields = [f.strip() for f in ordering.split(",") if f.strip()]
+
+            # 验证排序字段是否有效，避免SQL注入风险
+            filtered_order_fields = []
+            for field in order_fields:
+                field_name = field.lstrip("-")
+                if field_name in VALID_FIELDS:
+                    filtered_order_fields.append(field)
+
+            if filtered_order_fields:
+                cluster_queryset = cluster_queryset.order_by(*filtered_order_fields)
+            else:
+                # 如果没有有效的排序字段，使用默认排序（按创建时间降序）
+                cluster_queryset = cluster_queryset.order_by("-create_at")
 
         cluster_infos = cls._filter_cluster_hook(
             bk_biz_id, cluster_queryset, proxy_queryset, storage_queryset, limit, offset
@@ -693,20 +766,27 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
                 ):
                     dns_to_clb = True
 
-            cluster_info = cls._to_cluster_representation(
-                cluster=cluster,
-                cluster_entry=cluster_entry,
-                db_module_names_map=db_module_names_map,
-                cluster_entry_map=cluster_entry_map,
-                cluster_operate_records_map=cluster_operate_records_map,
-                cloud_info=cloud_info,
-                biz_info=biz_info,
-                cluster_stats_map=cluster_stats_map,
-                dns_to_clb=dns_to_clb,
-                cluster_zone_map=cluster_zone_map,
-                **kwargs,
-            )
-            clusters.append(cluster_info)
+            try:
+                cluster_info = cls._to_cluster_representation(
+                    cluster=cluster,
+                    cluster_entry=cluster_entry,
+                    db_module_names_map=db_module_names_map,
+                    cluster_entry_map=cluster_entry_map,
+                    cluster_operate_records_map=cluster_operate_records_map,
+                    cloud_info=cloud_info,
+                    biz_info=biz_info,
+                    cluster_stats_map=cluster_stats_map,
+                    dns_to_clb=dns_to_clb,
+                    cluster_zone_map=cluster_zone_map,
+                    **kwargs,
+                )
+                clusters.append(cluster_info)
+            except Exception as e:
+                error_cluster = copy.deepcopy(DEFAULT_CLUSTER_DATA)
+                error_cluster["id"] = cluster.id
+                error_cluster["master_domain"] = cluster.immute_domain
+                error_cluster["error"] = str(e)
+                clusters.append(error_cluster)
 
         return ResourceList(count=count, data=clusters)
 
