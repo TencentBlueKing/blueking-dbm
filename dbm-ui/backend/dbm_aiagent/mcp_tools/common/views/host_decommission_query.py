@@ -49,7 +49,8 @@ class HostDecommissionQueryMcpToolsViewSet(McpToolsViewSet):
 * 主机机型(bk_svr_device_cls_name)、机器类型、规格ID(spec_id)
 * 子Zone、城市
 * 亲和性(disaster_tolerance_level)
-* 关联实例端口列表"""
+* 关联实例端口列表
+* 关联实例角色列表(instance_inner_roles)"""
             )
         ),
         request_slz=QueryClusterByIpInputSerializer,

@@ -30,8 +30,10 @@ class ClusterInfoByIpSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     bk_svr_device_cls_name = serializers.CharField(help_text=_("标准设备类型"), allow_blank=True)
     spec_id = serializers.IntegerField(help_text=_("虚拟规格 ID"))
+    spec_name = serializers.CharField(help_text=_("虚拟规格名称"), allow_blank=True)
     disaster_tolerance_level = serializers.CharField(help_text=_("亲和性（容灾级别）"), allow_blank=True)
     ports = serializers.ListField(child=serializers.IntegerField(), help_text=_("关联实例端口列表"))
+    instance_inner_roles = serializers.ListField(child=serializers.CharField(), help_text=_("关联实例角色列表"))
 
 
 class QueryClusterByIpOutputSerializer(serializers.Serializer):

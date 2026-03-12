@@ -25,10 +25,13 @@ def query_cluster_by_ip(ip: str, bk_cloud_id: int = 0) -> List[dict]:
     cluster_map: dict = {}
     # key: cluster.id -> set of ports
     ports_map: defaultdict = defaultdict(set)
+    # key: cluster.id -> set of instance_inner_role（仅 StorageInstance 有此字段）
+    inner_roles_map: defaultdict = defaultdict(set)
 
     for inst in StorageInstance.objects.filter(machine=machine).prefetch_related("cluster"):
         for cluster in inst.cluster.all():
             ports_map[cluster.id].add(inst.port)
+            inner_roles_map[cluster.id].add(inst.instance_inner_role)
             if cluster.id not in cluster_map:
                 cluster_map[cluster.id] = {
                     "ip": ip,
@@ -43,6 +46,7 @@ def query_cluster_by_ip(ip: str, bk_cloud_id: int = 0) -> List[dict]:
                     "bk_city": machine.bk_city.bk_idc_city_name,
                     "bk_svr_device_cls_name": machine.bk_svr_device_cls_name or "",
                     "spec_id": machine.spec_id,
+                    "spec_name": machine.spec_config.get("name", ""),
                     "disaster_tolerance_level": cluster.disaster_tolerance_level,
                 }
 
@@ -63,7 +67,15 @@ def query_cluster_by_ip(ip: str, bk_cloud_id: int = 0) -> List[dict]:
                     "bk_city": machine.bk_city.bk_idc_city_name,
                     "bk_svr_device_cls_name": machine.bk_svr_device_cls_name or "",
                     "spec_id": machine.spec_id,
+                    "spec_name": machine.spec_config.get("name", ""),
                     "disaster_tolerance_level": cluster.disaster_tolerance_level,
                 }
 
-    return [{**info, "ports": sorted(ports_map[cluster_id])} for cluster_id, info in cluster_map.items()]
+    return [
+        {
+            **info,
+            "ports": sorted(ports_map[cluster_id]),
+            "instance_inner_roles": sorted(inner_roles_map[cluster_id]),
+        }
+        for cluster_id, info in cluster_map.items()
+    ]
