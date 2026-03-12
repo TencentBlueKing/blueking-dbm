@@ -966,6 +966,19 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         # 自动发现并填充该 MCP 服务器对应的工具
         "tools": [],
     },
+    {
+        "name": "kafka-metrics",
+        "description": """Kafka cluster monitoring metrics query services""",
+        # 主动授权 app_code
+        "target_app_codes": [APP_CODE],
+        "labels": ["kafka-metrics"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
     # MongoDB MCP servers（与 mcp_tools/mongodb 及 constants.DBMMcpTools 对应）
     {
         "name": "mongodb-meta",
@@ -1030,6 +1043,20 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "labels": ["taskflow-query"],
         "status": 1,
         "is_public": False,
+        "tools": [],
+    },
+    {
+        "name": "kafka-toolbox",
+        "description": """Kafka toolbox services for executing Kafka CLI commands on broker nodes,
+        including topic/consumer-group inspection and topic config management""",
+        # 主动授权 app_code
+        "target_app_codes": [APP_CODE],
+        "labels": ["kafka-toolbox"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
         "tools": [],
     },
 ]
