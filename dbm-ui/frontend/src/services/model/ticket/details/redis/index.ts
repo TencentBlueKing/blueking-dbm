@@ -26,6 +26,8 @@ export * from './pluginDeletePolaris';
 export * from './pluginDnsBindClb';
 export * from './pluginDnsUnbindClb';
 export * from './proxyClose';
+export * from './proxyFix';
+export * from './ProxyKickoff';
 export * from './proxyOpen';
 export * from './proxyScaleDown';
 export * from './purge';

@@ -187,6 +187,13 @@
           parentId: 'cluster-manage',
         },
         {
+          bind: [TicketTypes.REDIS_PROXY_KICKOFF, TicketTypes.REDIS_PROXY_FIX],
+          dbConsoleValue: 'redis.toolbox.proxyKickoff',
+          id: TicketTypes.REDIS_PROXY_KICKOFF,
+          name: t('Proxy 剔除和修复'),
+          parentId: 'common-manage',
+        },
+        {
           dbConsoleValue: 'redis.toolbox.capacityChange',
           id: TicketTypes.REDIS_SCALE_UPDOWN,
           name: t('集群容量变更'),
