@@ -590,9 +590,49 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
                     query_params, cluster_queryset, proxy_queryset, storage_queryset
                 )
 
-        #  部署时间表头排序
-        if query_params.get("ordering"):
-            cluster_queryset = cluster_queryset.order_by(query_params.get("ordering"))
+        # 自定义排序处理
+        ordering = query_params.get("ordering", "")
+        if ordering:
+            # 支持多字段排序，用逗号分隔
+            order_fields = []
+            for field in ordering.split(","):
+                field = field.strip()
+                if field.startswith("-"):
+                    # 降序排序
+                    order_fields.append(f"-{field[1:]}")
+                else:
+                    # 升序排序
+                    order_fields.append(field)
+
+            # 验证排序字段是否有效，避免SQL注入风险
+            valid_fields = [
+                "id",
+                "name",
+                "alias",
+                "cluster_type",
+                "major_version",
+                "region",
+                "bk_cloud_id",
+                "creator",
+                "create_at",
+                "update_at",
+                "status",
+                "db_module_id",
+                "disaster_tolerance_level",
+                "time_zone",
+            ]
+
+            filtered_order_fields = []
+            for field in order_fields:
+                field_name = field.lstrip("-")
+                if field_name in valid_fields:
+                    filtered_order_fields.append(field)
+
+            if filtered_order_fields:
+                cluster_queryset = cluster_queryset.order_by(*filtered_order_fields)
+            else:
+                # 如果没有有效的排序字段，使用默认排序（按创建时间降序）
+                cluster_queryset = cluster_queryset.order_by("-create_at")
 
         cluster_infos = cls._filter_cluster_hook(
             bk_biz_id, cluster_queryset, proxy_queryset, storage_queryset, limit, offset
