@@ -11,6 +11,8 @@ specific language governing permissions and limitations under the License.
 from rest_framework.routers import DefaultRouter
 
 from backend.dbm_aiagent.mcp_tools.kafka.views.kafka_bill_mcp import KafkaBillMcpToolsViewSet
+from backend.dbm_aiagent.mcp_tools.kafka.views.kafka_metrics_mcp import KafkaMetricsMcpToolsViewSet
+from backend.dbm_aiagent.mcp_tools.kafka.views.kafka_toolbox_mcp import KafkaToolboxMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.kafka.views.query_meta import KafkaQueryMetaMcpToolsViewSet
 
 routers = DefaultRouter(trailing_slash=True)
@@ -19,5 +21,9 @@ routers = DefaultRouter(trailing_slash=True)
 routers.register(r"", KafkaQueryMetaMcpToolsViewSet, basename="mcp-kafka-query-meta")
 # 与 dbm 交互 创建单据类的 操作
 routers.register(r"", KafkaBillMcpToolsViewSet, basename="mcp-kafka-bill")
+# 监控指标查询
+routers.register(r"", KafkaMetricsMcpToolsViewSet, basename="mcp-kafka-metrics")
+# Kafka 工具箱：远程执行 Kafka CLI 命令
+routers.register(r"", KafkaToolboxMcpToolsViewSet, basename="mcp-kafka-toolbox")
 
 urlpatterns = routers.urls
