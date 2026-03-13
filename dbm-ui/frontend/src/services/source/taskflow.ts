@@ -188,7 +188,7 @@ export function getRetryNodeHistories(params: { node_id: string; root_id: string
 /**
  * 节点日志
  */
-export function getNodeLog(params: { node_id: string; root_id: string; version_id: string }) {
+export function getNodeLog(params: { labels?: string; node_id: string; root_id: string; version_id: string }) {
   return http.get<
     {
       levelname: string;

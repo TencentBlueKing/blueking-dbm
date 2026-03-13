@@ -74,7 +74,7 @@
     rootId?: string;
   }
 
-  type Emits = (e: 'logChange', content: string) => void;
+  type Emits = (e: 'versionChange', version: string) => void;
 
   const props = withDefaults(defineProps<Props>(), {
     node: () => ({}) as NonNullable<Props['node']>,
@@ -102,9 +102,6 @@
       .then((data) => {
         logState.data = data;
         dbLogRef.value!.setLog(data);
-        setTimeout(() => {
-          emits('logChange', getLogContent());
-        });
       })
       .finally(() => {
         logState.loading = false;
@@ -227,6 +224,7 @@
 
   const handleChangeDate = (data: ServiceReturnType<typeof getRetryNodeHistories>[number]) => {
     currentData.value = data;
+    emits('versionChange', data.version);
     pause();
     setTimeout(() => {
       getNodeLogRequest(true);
