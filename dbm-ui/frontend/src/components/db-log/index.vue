@@ -96,14 +96,12 @@
         background: '#1A1A1A', // 背景色
         foreground: '#C4C6CC', // 默认字体颜色
       },
-      windowsMode: false,
     });
     fitAddon = new FitAddon();
     const linkAddon = new WebLinksAddon();
     terminal.loadAddon(fitAddon);
     terminal.loadAddon(linkAddon);
     terminal.open(document.getElementById('nodeLogTermContent')!);
-    const viewport = terminal.element!.querySelector('.xterm-viewport')!;
     lastScrollPosition = terminal.buffer.active.viewportY;
 
     const originalWrite = terminal.writeln;
@@ -137,8 +135,9 @@
       return true;
     });
 
-    terminal.element!.querySelector('.xterm-viewport')!.addEventListener('scroll', () => {
-      isAutoScrollEnabled = viewport.scrollTop >= viewport.scrollHeight - viewport.clientHeight;
+    terminal.onScroll(() => {
+      const buffer = terminal?.buffer.active;
+      isAutoScrollEnabled = (buffer?.viewportY || 0) + (terminal?.rows || 0) >= (buffer?.length || 0);
       updateLineNumbers();
       checkTermScroll();
     });
@@ -176,11 +175,8 @@
     for (let i = 0; i < visibleRows; i++) {
       const lineIndex = scrollTop + i;
       isSameLine = logicalLineNumbers[lineIndex] === logicalLineNumbers[lineIndex - 1];
-      const logicalLine = !isSameLine ? logicalLineNumbers[lineIndex] : '';
-      const lineText = activeBuffer?.getLine(lineIndex)?.translateToString().trim();
-      if (lineText) {
-        numbersHtml += `<div class="line-num">${logicalLine}</div>`;
-      }
+      const logicalLine = !isSameLine ? (logicalLineNumbers[lineIndex] ?? '') : '';
+      numbersHtml += `<div class="line-num">${logicalLine}</div>`;
     }
     lineNumbers.innerHTML = numbersHtml;
   };

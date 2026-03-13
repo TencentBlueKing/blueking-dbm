@@ -355,7 +355,7 @@
 
   .task-history-flow-operation-main {
     width: 280px;
-    padding: 12px 0 8px;
+    padding: 12px 8px;
     color: @default-color;
 
     .title {
