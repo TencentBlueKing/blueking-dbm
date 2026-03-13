@@ -99,10 +99,12 @@ class MySQLMigrateSingleFlow(object):
             TendbSingleRestoreType.RESTORE_WITH_STRUCT,
         ]:
             cluster_ids = None
+        else:
+            cluster_ids = list(set(cluster_ids))
         tendb_migrate_pipeline_all = Builder(
             root_id=self.root_id,
             data=copy.deepcopy(self.ticket_data),
-            need_random_pass_cluster_ids=list(set(cluster_ids)),
+            need_random_pass_cluster_ids=cluster_ids,
         )
 
         tendb_migrate_pipeline_list = []
