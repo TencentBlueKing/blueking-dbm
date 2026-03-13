@@ -35,6 +35,7 @@ func NewIncrFile(contextFile string, max int, retryInterval time.Duration) (*Inc
 	keyCurr := "current"
 	keyMax := "max"
 	fc := NewFileContext(contextFile)
+
 	if fi, err := os.Stat(fc.contextFile); err == nil && fi != nil {
 		if time.Now().Sub(fi.ModTime()).Seconds() > 60*60*24*7 {
 			logger.Info("remove expired context file %s", fc.contextFile)
@@ -47,12 +48,14 @@ func NewIncrFile(contextFile string, max int, retryInterval time.Duration) (*Inc
 	if maxVal, err := fc.GetInt(keyMax); err != nil || maxVal == 0 {
 		fc.Set(keyMax, max, false)
 	}
+
 	if _, err := fc.GetInt("current"); err != nil {
 		fc.Set(keyCurr, 0, false)
 	}
 	if err := fc.Save(); err != nil {
 		return nil, err
 	}
+
 	incrLockFile.FileContext = fc
 	return &incrLockFile, nil
 }

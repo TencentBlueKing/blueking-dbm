@@ -1,7 +1,3 @@
-ALTER TABLE tb_config_name_def
-    DROP COLUMN `flag_visible`,
-    DROP COLUMN `flag_readonly`;
-
 DROP VIEW IF EXISTS `v_tb_config_node_plat`;
 
 CREATE ALGORITHM = UNDEFINED SQL SECURITY DEFINER VIEW `v_tb_config_node_plat` AS

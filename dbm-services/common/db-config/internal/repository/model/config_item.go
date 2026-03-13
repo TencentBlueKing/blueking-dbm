@@ -175,123 +175,16 @@ func CreateBatch(db *gorm.DB, configs []*ConfigModel) error {
 // 批量根据 id 删除配置项
 func DeleteBatch(db *gorm.DB, configs []*ConfigModel) error {
 	var sqlRes *gorm.DB
-	var ids []uint64
-	for _, c := range configs {
-		ids = append(ids, c.ID)
-	}
-	sqlRes = db.Delete(&configs, ids)
-	if err := sqlRes.Error; err != nil {
-		logger.Errorf("delete config items fail:%+v, err:%s", configs, err.Error())
-		return err
-	}
-	return nil
-}
 
-// UpsertBatchConfigs TODO
-// strict = true
-//
-//	如果 id=0, insert 出现唯一建重复, 会报错
-//	如果 id!=0, update 不存在的记录, 会报错
-//
-// strict = false
-//
-//	如果 id=0, insert 出现唯一建重复时, 会更新
-//	如果 id!=0, update 不存在的记录, 会忽略
-func UpsertBatchConfigs(db *gorm.DB, configs []*ConfigModel, strict bool) (err error) {
-	configsAdd := make([]*ConfigModel, 0)
-	configsUpt := make([]*ConfigModel, 0)
-	for _, c := range configs {
-		if configID, err := c.CheckRecordExists(db); err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				if c.ID != 0 {
-					return err
-				}
-				// c.ID = 0
-				configsAdd = append(configsAdd, c)
-			} else {
+	del := sqlRes.Transaction(func(tx *gorm.DB) error {
+		for _, c := range configs {
+			if err := DeleteByUnique(db, c.TableName(), c.UniqueWhere()); err != nil {
 				return err
 			}
-		} else {
-			c.ID = configID
-			configsUpt = append(configsUpt, c)
 		}
-	}
-	logger.Infof("UpsertBatchConfigs strict=%t, configsAdd:%#v, configsUpt:%+v", strict, configsAdd, configsUpt)
-	if len(configsAdd) != 0 {
-		if err = CreateBatch(db, configsAdd); err != nil {
-			return err
-		}
-	}
-	if len(configsUpt) != 0 {
-		if err = UpdateBatch(db, configsUpt, strict); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// UpsertBatchConfigsByID TODO
-func UpsertBatchConfigsByID(configs []*ConfigModel) (err error) {
-	configsAdd := make([]*ConfigModel, 0)
-	configsUpt := make([]*ConfigModel, 0)
-	for _, c := range configs {
-		if c.ID == 0 {
-			configsAdd = append(configsAdd, c)
-		} else {
-			configsUpt = append(configsUpt, c)
-		}
-	}
-	logger.Infof("CreateOrUpdateConfigs2 configsAdd:%#v, configsUpt:%+v", configsAdd, configsUpt)
-	if len(configsAdd) != 0 {
-		if err = CreateBatch(DB.Self, configsAdd); err != nil {
-			return err
-		}
-	}
-	if len(configsUpt) != 0 {
-		if err = UpdateBatch(DB.Self, configsUpt, true); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// CheckConfigInherit TODO
-// inheritFrom = 0 表示继承自plat
-func CheckConfigInherit(confType, confName, namespace string, inheritFrom string) error {
-	type RowCount struct {
-		Count int64 `json:"cnt" gorm:"column:cnt"`
-	}
-	Cnt := make([]*RowCount, 0)
-	queryStr := "SELECT count(*) cnt FROM tb_config_node WHERE 1=1"
-	queryStr += fmt.Sprintf(" AND bk_biz_id = '%s' and level_name = '%s' and level_value = '%s'",
-		constvar.BKBizIDForPlat, constvar.LevelPlat, inheritFrom)
-	if confName != "" {
-		// queryStr += fmt.Sprintf(" AND conf_name = '%s'", conf_name)
-
-		confNameList := strings.Split(confName, ",")
-		nameIn := strings.Join(confNameList, "','")
-		queryStr += fmt.Sprintf(" AND conf_name in ('%s')", nameIn)
-	}
-	if confType != "" {
-		queryStr += fmt.Sprintf(" AND conf_type = '%s'", confType)
-	}
-	if namespace != "" {
-		queryStr += fmt.Sprintf(" AND namespace = '%s'", namespace)
-	}
-	logger.Warnf("CheckConfigInherit sql: %v", queryStr)
-
-	if err := DB.Self.Raw(queryStr).Scan(&Cnt).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			// return configs, nil  // return empty slice
-			return errors.New("no inherit config items found")
-		}
-		return err
-	} else if Cnt[0].Count == 0 {
-		logger.Warnf("CheckConfigInherit sql result: %+v, len:%d", Cnt[0], len(Cnt))
-		// return errors.New("0 inherit config items found")
-	}
-
-	return nil
+		return nil
+	}, nil)
+	return del
 }
 
 // CheckUniqueKeyProvided TODO
@@ -372,7 +265,7 @@ func GetUpLevelInfo(r *api.BaseConfigNode, up *api.UpLevelInfo) (*api.UpLevelInf
 // GetSimpleConfig godoc
 // todo 目前函数不用于获取平台配置
 // todo 查询之前判断是否有足够的 up level_info, 比如 mysql 需要 module=xxx 而 redis 不需要 (model.CacheGetConfigFile vs up_info)
-func GetSimpleConfig(db *gorm.DB, r *api.BaseConfigNode, up *api.UpLevelInfo,
+func GetSimpleConfig2(db *gorm.DB, r *api.BaseConfigNode, up *api.UpLevelInfo,
 	o *api.QueryConfigOptions) ([]*ConfigModel, error) {
 	var err error
 	defer util.LoggerErrorStack(logger.Error, err)

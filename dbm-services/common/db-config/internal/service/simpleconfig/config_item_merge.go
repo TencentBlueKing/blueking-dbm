@@ -1,14 +1,15 @@
 package simpleconfig
 
 import (
+	"fmt"
+	"strings"
+
 	"bk-dbconfig/internal/pkg/cst"
 	"bk-dbconfig/internal/pkg/errno"
 	"bk-dbconfig/internal/repository/model"
 	"bk-dbconfig/pkg/constvar"
 	"bk-dbconfig/pkg/core/logger"
 	"bk-dbconfig/pkg/util"
-	"fmt"
-	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -152,6 +153,9 @@ func ProcessConfig(configs []*model.ConfigModel) []*model.ConfigModel {
 			userList := util.SplitAnyRune(util.ReplaceBlank(c.ConfValue), ",;")
 			userListUnique := util.SliceUniqMap(userList) // keep original order
 			c.ConfValue = strings.Join(userListUnique, ",")
+		}
+		if c.FlagDisable == 1 {
+			// 不显示
 		}
 	}
 	return configs
