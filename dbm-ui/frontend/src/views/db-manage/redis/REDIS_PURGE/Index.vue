@@ -1,6 +1,11 @@
 <template>
   <div class="sqlserver-db-backup-page">
     <SmartAction>
+      <BkAlert
+        class="mb-16"
+        closable
+        theme="info"
+        :title="t('清档：将目标集群中的数据进行清空，支持清档前进行备份。')" />
       <DbForm
         ref="form"
         class="mt-16 mb-24 toolbox-form"
@@ -213,7 +218,7 @@
       tableKey.value = random();
       formData.tableData = [...dataList];
     } else {
-      formData.tableData = [...formData.tableData, ...dataList];
+      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
     }
   };
 
