@@ -1175,7 +1175,7 @@ func (full *TendisFullBackPull) RestoreBackup(dstTendisIP string, dstTendisPort 
 		consts.TendisplusRediscli, dstTendisIP, dstTendisPort, full.ResultFullbackup[0].ClusterMeataDir)
 	mylog.Logger.Info("开始恢复全备,恢复命令:%s", logCmd)
 
-	ret01, err := util.RunLocalCmd("bash", []string{"-c", restoreCmd}, "", nil, 600*time.Second)
+	ret01, err := util.RunLocalCmd("bash", []string{"-c", restoreCmd}, "", nil, time.Hour)
 	mylog.Logger.Info("恢复全备执行结果:%v", ret01)
 	if err != nil {
 		mylog.Logger.Error(fmt.Sprintf("恢复全备失败,详情:%v", err))

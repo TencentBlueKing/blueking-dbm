@@ -17,11 +17,7 @@ from blueapps.core.celery.celery import app
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.db_meta.models import Cluster
-from backend.db_periodic_task.local_tasks.redis_tasks.agent_checks.base import (
-    DEFAULT_LOOKBACK_DAYS,
-    BaseCheckConfig,
-    BaseRedisAgentCheckTask,
-)
+from backend.db_periodic_task.local_tasks.redis_tasks.agent_checks.base import BaseCheckConfig, BaseRedisAgentCheckTask
 from backend.db_report.enums.redis_sub_type import RedisCheckSubType
 from backend.dbm_aiagent.agent.constants import DBMAgentCode
 
@@ -35,12 +31,7 @@ class BackendDataSkewCheckConfig(BaseCheckConfig):
         raw = SystemSettings.get_setting_value(SystemSettingsEnum.REDIS_BACKEND_DATA_SKEW_CHECK.value, default={})
         if not isinstance(raw, dict):
             return cls()
-        return cls(
-            enabled=raw.get("enabled", False),
-            batch_size=raw.get("batch_size", 80),
-            lookback_days=raw.get("lookback_days", DEFAULT_LOOKBACK_DAYS),
-            ignore_cluster_domains=raw.get("ignore_cluster_domains", []),
-        )
+        return cls.from_raw(raw)
 
 
 class CheckBackendDataSkewTask(BaseRedisAgentCheckTask):
@@ -57,7 +48,7 @@ class CheckBackendDataSkewTask(BaseRedisAgentCheckTask):
         return check_backend_data_skew_task
 
 
-@app.task(rate_limit="20/m")
+@app.task(rate_limit="10/m")
 def check_backend_data_skew_task(cluster_id: int):
     """
     Check a single Redis cluster's backend data skew using LLM agent.
