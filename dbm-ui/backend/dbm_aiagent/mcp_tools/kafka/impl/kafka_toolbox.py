@@ -97,7 +97,6 @@ def build_kafka_cli_script(connection_info: Dict, kafka_bin: str, cli_args: str)
     broker_port = connection_info["broker_port"]
 
     script = f"""#!/bin/bash
-set -e
 
 export JAVA_HOME={KAFKA_JAVA_HOME}
 export PATH=$JAVA_HOME/bin:$PATH
@@ -121,14 +120,15 @@ else
     CONNECTION_ARG="--bootstrap-server $BOOTSTRAP_SERVER"
 fi
 
-# SCRAM 认证仅在 bootstrap-server 模式下需要，zookeeper 模式不需要
+# 检测是否启用 SASL 认证（从 server.properties 的 listeners 配置判断）
+# SASL 认证仅在 bootstrap-server 模式下需要，zookeeper 模式不需要
 AUTH_ARG=""
-if [ "$USE_ZK" -eq 0 ] && [ -f "{KAFKA_SCRAM_JAAS_CONF}" ]; then
+if [ "$USE_ZK" -eq 0 ] && grep -q 'SASL_PLAINTEXT' {KAFKA_SERVER_PROPERTIES} 2>/dev/null; then
     AUTH_ARG="--command-config {KAFKA_CLIENT_PROPERTIES}"
 fi
 
 # 执行 kafka CLI 命令（过滤已知噪音，保留真实错误信息）
-$KAFKA_BIN $CONNECTION_ARG {cli_args} $AUTH_ARG 2>&1 | grep -v "^SLF4J" | grep -v "^egrep:" | grep -v "stray"
+$KAFKA_BIN $CONNECTION_ARG {cli_args} $AUTH_ARG 2>&1 | {{ grep -v "^SLF4J" | grep -v "^egrep:" | grep -v "stray" || true; }}
 """
     return script
 
@@ -268,7 +268,6 @@ def cluster_health_check(immute_domain: str) -> Dict:
     broker_port = connection_info["broker_port"]
 
     script = f"""#!/bin/bash
-set -e
 
 export JAVA_HOME={KAFKA_JAVA_HOME}
 export PATH=$JAVA_HOME/bin:$PATH
@@ -290,19 +289,34 @@ else
     CONNECTION_ARG="--bootstrap-server $BOOTSTRAP_SERVER"
 fi
 
+# 检测是否启用 SASL 认证（从 server.properties 的 listeners 配置判断）
+USE_SASL=0
+if grep -q 'SASL_PLAINTEXT' {KAFKA_SERVER_PROPERTIES} 2>/dev/null; then
+    USE_SASL=1
+fi
+
+# kafka-topics.sh 的认证参数：ZK 模式不需要，bootstrap-server + SASL 时需要
 AUTH_ARG=""
-if [ "$USE_ZK" -eq 0 ] && [ -f "{KAFKA_SCRAM_JAAS_CONF}" ]; then
+if [ "$USE_ZK" -eq 0 ] && [ "$USE_SASL" -eq 1 ]; then
     AUTH_ARG="--command-config {KAFKA_CLIENT_PROPERTIES}"
 fi
 
+# kafka-broker-api-versions.sh 只走 bootstrap-server，独立判断认证
+BROKER_AUTH_ARG=""
+if [ "$USE_SASL" -eq 1 ]; then
+    BROKER_AUTH_ARG="--command-config {KAFKA_CLIENT_PROPERTIES}"
+fi
+
+FILTER='grep -v "^egrep:" | grep -v "^SLF4J" | grep -v "stray"'
+
 echo "===BROKERS==="
-{KAFKA_BIN_DIR}/kafka-broker-api-versions.sh --bootstrap-server $BOOTSTRAP_SERVER $AUTH_ARG 2>/dev/null || true
+{KAFKA_BIN_DIR}/kafka-broker-api-versions.sh --bootstrap-server $BOOTSTRAP_SERVER $BROKER_AUTH_ARG 2>&1 | eval $FILTER || true
 
 echo "===UNDER_REPLICATED==="
-{KAFKA_BIN_DIR}/kafka-topics.sh $CONNECTION_ARG --describe --under-replicated-partitions $AUTH_ARG 2>/dev/null || true
+{KAFKA_BIN_DIR}/kafka-topics.sh $CONNECTION_ARG --describe --under-replicated-partitions $AUTH_ARG 2>&1 | eval $FILTER || true
 
 echo "===UNAVAILABLE==="
-{KAFKA_BIN_DIR}/kafka-topics.sh $CONNECTION_ARG --describe --unavailable-partitions $AUTH_ARG 2>/dev/null || true
+{KAFKA_BIN_DIR}/kafka-topics.sh $CONNECTION_ARG --describe --unavailable-partitions $AUTH_ARG 2>&1 | eval $FILTER || true
 """
 
     target_ips = [{"ip": connection_info["broker_ip"], "bk_cloud_id": connection_info["bk_cloud_id"]}]
@@ -369,7 +383,6 @@ def consume_topic_sample(
 
     # kafka-console-consumer.sh 的认证参数是 --consumer.config 而不是 --command-config
     script = f"""#!/bin/bash
-set -e
 
 export JAVA_HOME={KAFKA_JAVA_HOME}
 export PATH=$JAVA_HOME/bin:$PATH
@@ -377,16 +390,16 @@ export PATH=$JAVA_HOME/bin:$PATH
 KAFKA_BIN="{KAFKA_BIN_DIR}/kafka-console-consumer.sh"
 BOOTSTRAP_SERVER="{broker_ip}:{broker_port}"
 
-# SCRAM 认证
+# 检测是否启用 SASL 认证（console-consumer 用 --consumer.config）
 AUTH_ARG=""
-if [ -f "{KAFKA_SCRAM_JAAS_CONF}" ]; then
+if grep -q 'SASL_PLAINTEXT' {KAFKA_SERVER_PROPERTIES} 2>/dev/null; then
     AUTH_ARG="--consumer.config {KAFKA_CLIENT_PROPERTIES}"
 fi
 
 $KAFKA_BIN --bootstrap-server $BOOTSTRAP_SERVER --topic {topic} \
     --max-messages {max_messages} --timeout-ms {timeout_ms} \
     {"--from-beginning" if from_beginning else ""} \
-    $AUTH_ARG 2>/dev/null
+    $AUTH_ARG 2>&1 | {{ grep -v "^SLF4J" | grep -v "^egrep:" | grep -v "stray" || true; }}
 """
 
     target_ips = [{"ip": connection_info["broker_ip"], "bk_cloud_id": connection_info["bk_cloud_id"]}]
