@@ -273,10 +273,10 @@
           getTopoList: listClustersCreateSlaveProxy,
           topoAlertContent: (
             <bk-alert
+              closable
               style='margin-bottom: 12px;'
               theme='info'
               title={t('仅支持从库有故障的集群新建从库')}
-              closable
             />
           ),
           totalCountFunc: (list: RedisModel[]) =>

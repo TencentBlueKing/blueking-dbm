@@ -210,7 +210,7 @@
       tableKey.value = random();
       tableData.value = [...dataList];
     } else {
-      tableData.value = [...tableData.value, ...dataList];
+      tableData.value = [...(tableData.value[0].cluster.id ? tableData.value : []), ...dataList];
     }
   };
 

@@ -208,7 +208,7 @@
       tableKey.value = random();
       tableData.value = [...dataList];
     } else {
-      tableData.value = [...tableData.value, ...dataList];
+      tableData.value = [...(tableData.value[0].proxy_reduced_host.bk_host_id ? tableData.value : []), ...dataList];
     }
   };
 
