@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from datetime import timedelta
 from typing import Callable
 
@@ -49,9 +49,15 @@ DEFAULT_LOOKBACK_DAYS = 7
 @dataclass
 class BaseCheckConfig:
     enabled: bool = False
-    batch_size: int = 80
+    batch_size: int = 40
     lookback_days: int = DEFAULT_LOOKBACK_DAYS
     ignore_cluster_domains: list = field(default_factory=list)
+    cluster_types: list = field(default_factory=list)
+
+    @classmethod
+    def from_raw(cls, raw: dict):
+        valid_keys = {f.name for f in fields(cls)}
+        return cls(**{k: v for k, v in raw.items() if k in valid_keys})
 
 
 class BaseRedisAgentCheckTask(ABC):
@@ -126,20 +132,24 @@ class BaseRedisAgentCheckTask(ABC):
         """Fetch a batch of Redis clusters that have not been checked today for this subtype."""
         now = timezone.now()
         lookback_cutoff = now - timedelta(days=self.config.lookback_days)
-        redis_cluster_types = ClusterType.redis_cluster_types()
+        cluster_types = self.config.cluster_types or ClusterType.redis_cluster_types()
 
-        recently_checked_sq = RedisCheckReport.objects.filter(
-            subtype=self.subtype.value,
-            create_at__gte=now - timedelta(hours=24),
-        ).values("cluster_id")
+        # recently_checked_ids uses a Python set instead of a subquery because
+        # RedisCheckReport and Cluster are on different databases.
+        recently_checked_ids = set(
+            RedisCheckReport.objects.filter(
+                subtype=self.subtype.value,
+                create_at__gte=now - timedelta(hours=24),
+            ).values_list("cluster_id", flat=True)
+        )
 
         cluster_qs = (
             Cluster.objects.filter(
-                cluster_type__in=redis_cluster_types,
+                cluster_type__in=cluster_types,
                 create_at__lte=lookback_cutoff,
             )
             .exclude(phase=ClusterPhase.OFFLINE.value)
-            .exclude(id__in=recently_checked_sq)
+            .exclude(id__in=recently_checked_ids)
         )
         if self.config.ignore_cluster_domains:
             cluster_qs = cluster_qs.exclude(immute_domain__in=self.config.ignore_cluster_domains)

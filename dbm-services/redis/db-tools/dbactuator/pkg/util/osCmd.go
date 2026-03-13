@@ -165,7 +165,18 @@ func (safeCmd *SafeOsCmd) RunLocalCmd() (retStr string, err error) {
 	if err = cmdCtx.Wait(); err != nil {
 		mylog.Logger.Error("RunLocalCmd cmd wait fail,err:%v,errBuffer:%s,retBuffer:%s,cmd:%s,opts:%+v", err,
 			errBuffer.String(), retBuffer.String(), safeCmd.cmd, safeCmd.logOpts)
-		return "", fmt.Errorf("RunLocalCmd cmd wait fail,err:%v,detail:%s", err, errBuffer.String())
+		stderrText := strings.TrimSpace(errBuffer.String())
+		stdoutText := strings.TrimSpace(retBuffer.String())
+		ctxErr := ctx.Err()
+		detail := stderrText
+		if detail == "" {
+			detail = stdoutText
+		}
+		if detail == "" && ctxErr != nil {
+			detail = ctxErr.Error()
+		}
+		return "", fmt.Errorf("RunLocalCmd cmd wait fail,err:%v,ctxErr:%v,stderr:%s,stdout:%s,detail:%s",
+			err, ctxErr, stderrText, stdoutText, detail)
 	}
 	retStr = retBuffer.String()
 
