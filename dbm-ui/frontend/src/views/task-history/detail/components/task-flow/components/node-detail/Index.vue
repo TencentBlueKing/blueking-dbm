@@ -95,7 +95,8 @@
           <BkButton
             v-if="isAiLogAnalysisOpen"
             class="ai-blueking-btn"
-            :disabled="!logContent"
+            :disabled="!logVersion"
+            :loading="aiLogAnalysisLoading"
             @click="handleAiLogAnalysis">
             <img
               class="mr-5"
@@ -169,7 +170,7 @@
             :is-show="isShow"
             :node="node"
             :root-id="rootId"
-            @log-change="handleLogChange" />
+            @version-change="handleVersionChange" />
         </BkTabPanel>
         <BkTabPanel
           v-if="userProfileStore.isSuperuser"
@@ -195,7 +196,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { forceFailflowNode, retryTaskflowNode, skipTaskflowNode } from '@services/source/taskflow';
+  import { forceFailflowNode, getNodeLog, retryTaskflowNode, skipTaskflowNode } from '@services/source/taskflow';
   import { ticketBatchProcessTodo } from '@services/source/ticket';
 
   import { useSystemEnviron, useUserProfile } from '@stores';
@@ -203,6 +204,7 @@
   import { useState as useAiBluekingState } from '@components/ai-blueking/hooks/useState';
   import CostTimer from '@components/cost-timer/CostTimer.vue';
   import DbLog from '@components/db-log/index.vue';
+  import { formatLogData } from '@components/db-log/utils';
 
   import { messageSuccess } from '@utils';
 
@@ -259,7 +261,8 @@
   const dbLogRef = ref<InstanceType<typeof DbLog>>();
   const activePanelId = ref('log');
   const todoLoading = ref(false);
-  const logContent = ref('');
+  const aiLogAnalysisLoading = ref(false);
+  const logVersion = ref('');
 
   const nodeData = computed(() => props.node || {});
   const STATUS_RUNNING = computed(() => nodeData.value.status === 'RUNNING');
@@ -316,6 +319,24 @@
     },
   });
 
+  watch(
+    () => [props.autoOpenAiLog, logVersion.value],
+    () => {
+      if (props.autoOpenAiLog && logVersion.value) {
+        setTimeout(() => {
+          handleAiLogAnalysis();
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  const handleVersionChange = (version: string) => {
+    logVersion.value = version;
+  };
+
   const handleOperateSuccess = () => {
     messageSuccess(t('操作成功'));
     emits('refresh');
@@ -366,16 +387,21 @@
     activePanelId.value = 'log';
   };
 
-  const handleLogChange = async (log: string) => {
-    logContent.value = log;
-    if (props.autoOpenAiLog) {
-      await handleAiLogAnalysis();
-    }
-  };
-
   const handleAiLogAnalysis = async () => {
-    await show();
-    await sendMessage(props.flowData?.flow_info.ticket_type_display || '', logContent.value);
+    aiLogAnalysisLoading.value = true;
+    try {
+      const logList = await getNodeLog({
+        labels: 'not_for_ai',
+        node_id: props.node.id,
+        root_id: props.rootId,
+        version_id: logVersion.value,
+      });
+      const logContent = formatLogData(logList).join('\n');
+      await show();
+      await sendMessage(props.flowData?.flow_info.ticket_type_display || '', logContent);
+    } finally {
+      aiLogAnalysisLoading.value = false;
+    }
   };
 </script>
 

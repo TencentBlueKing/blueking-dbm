@@ -92,3 +92,8 @@ export function updateSessionInfo(params: { session_code: string; session_name: 
 export function getFlowLogAnnlysis(params: { flow_id: string; ticket_id: number }) {
   return http.post(`${path}/agent/log/get_flow_log_analysis/`, params);
 }
+
+// 获取 agent 不同场景下的配置
+export function getAgentScene() {
+  return http.get<Record<string, Record<string, string>>>(`${path}/agent/agent/agent_scene/`);
+}
