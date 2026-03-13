@@ -268,6 +268,72 @@ class RedisMetricsQueryService:
 
         return query_configs, None
 
+    def _build_capacity_queries(self, params: MetricsQueryParams) -> Tuple[List[dict], Optional[str]]:
+        """
+        Build queries for capacity metrics (used/total/available).
+
+        Capacity metrics produce 3 sub-metric series, each labeled with a capacity_type
+        dimension (used/total/available). Available is computed as total - used in PromQL.
+        """
+        inner_dims, outer_dims, filters_str, cluster_regex, overall_agg, stats_aggs = self._prepare_query_context(
+            params
+        )
+
+        sub_metrics = params.metric_config.get("sub_metrics", {})
+        used_template = sub_metrics.get("used", "")
+        total_template = sub_metrics.get("total", "")
+
+        if not used_template or not total_template:
+            logger.error(f"Capacity metric config missing sub_metrics: {params.metric_config}")
+            return [], None
+
+        used_base = used_template.format(cluster_domains=cluster_regex, filters=filters_str)
+        total_base = total_template.format(cluster_domains=cluster_regex, filters=filters_str)
+
+        used_inner = f"{overall_agg.value} by ({inner_dims}) ({used_base})"
+        total_inner = f"{overall_agg.value} by ({inner_dims}) ({total_base})"
+        avail_inner = f"clamp_min(({total_inner}) - ({used_inner}), 0)"
+
+        sub_metric_queries = {
+            "used": used_inner,
+            "total": total_inner,
+            "available": avail_inner,
+        }
+
+        query_configs = []
+
+        for cap_type, inner_promql in sub_metric_queries.items():
+            if params.need_stats and stats_aggs:
+                for stat_agg in stats_aggs:
+                    outer_promql = f"{stat_agg.value} by ({outer_dims}) ({inner_promql})"
+                    outer_promql = f'label_replace({outer_promql}, "capacity_type", "{cap_type}", "", "")'
+                    outer_promql = f'label_replace({outer_promql}, "query_type", "{stat_agg.value}", "", "")'
+                    query_configs.append(
+                        {
+                            "data_source_label": "prometheus",
+                            "data_type_label": "time_series",
+                            "promql": outer_promql,
+                            "interval": params.time_window,
+                            "alias": f"{cap_type}_{stat_agg.value}",
+                        }
+                    )
+
+            if params.need_overall:
+                outer_promql = f"{overall_agg.value} by ({outer_dims}) ({inner_promql})"
+                outer_promql = f'label_replace({outer_promql}, "capacity_type", "{cap_type}", "", "")'
+                outer_promql = f'label_replace({outer_promql}, "query_type", "overall", "", "")'
+                query_configs.append(
+                    {
+                        "data_source_label": "prometheus",
+                        "data_type_label": "time_series",
+                        "promql": outer_promql,
+                        "interval": params.time_window,
+                        "alias": cap_type,
+                    }
+                )
+
+        return query_configs, None
+
     def _build_queries(self, params: MetricsQueryParams) -> Tuple[List[dict], Optional[str]]:
         """
         Build PromQL queries from metric config using two-level aggregation approach.
@@ -282,7 +348,10 @@ class RedisMetricsQueryService:
         Returns:
             Tuple of (List of query configs, None - expressions are integrated into PromQL)
         """
-        # Step 1: Check if this is a bucket-based metric
+        # Step 1: Check for special metric types
+        if params.metric_config.get("is_capacity"):
+            return self._build_capacity_queries(params)
+
         buckets = params.metric_config.get("buckets")
         if buckets:
             return self._build_bucket_queries(params, buckets)
@@ -618,7 +687,7 @@ class RedisMetricsQueryService:
         """
         # Define dimension priority order and excluded dimensions
         dimension_priority = ["bucket_label", "cmd"]
-        excluded = {"cluster_domain", "ip", "instance_port", "instance_port", "query_type"}
+        excluded = {"cluster_domain", "ip", "instance_port", "query_type"}
 
         key_parts = []
 
@@ -900,7 +969,8 @@ class RedisMetricsQueryService:
             instance_role: Role of instances to query (InstanceRole enum)
             ip: Optional IP address to filter for single machine query
             port: Optional port to filter for single instance query
-            group_by: Optional list of dimensions for grouping results (e.g., [cluster_domain, ip], [instance])
+            group_by: Optional list of dimensions for grouping results (e.g., [cluster_domain, ip], [instance]).
+                Note: For COMMAND_LATENCY, CMD is always auto-injected regardless of group_by value.
             vertical_stats: When True, compute temporal stats from the aggregated raw_series
 
         Returns:
@@ -910,6 +980,13 @@ class RedisMetricsQueryService:
         # This hides the restriction from users - they can pass any instance_role
         if metric_type == MetricType.LATENCY_DISTRIBUTION:
             instance_role = InstanceRole.PROXY
+
+        # Auto-inject CMD dimension for command_latency so users see per-command results by default
+        if metric_type == MetricType.COMMAND_LATENCY:
+            if group_by is None:
+                group_by = [MetricsGroupBy.CMD]
+            elif MetricsGroupBy.CMD not in group_by:
+                group_by = list(group_by) + [MetricsGroupBy.CMD]
 
         # Resolve metric key from registry
         metric_key = resolve_metric_key(cluster.cluster_type, metric_type, instance_role)

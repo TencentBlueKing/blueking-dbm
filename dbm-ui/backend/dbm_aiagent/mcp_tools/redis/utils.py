@@ -13,7 +13,13 @@ import math
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
-from backend.db_services.redis.util import is_predixy_proxy_type, is_twemproxy_proxy_type
+from backend.db_services.redis.util import (
+    is_predixy_proxy_type,
+    is_redis_instance_type,
+    is_tendisplus_instance_type,
+    is_tendisssd_instance_type,
+    is_twemproxy_proxy_type,
+)
 from backend.dbm_aiagent.mcp_tools.redis.constants import METRIC_REGISTRY
 from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsInstanceRole as InstanceRole
 from backend.dbm_aiagent.mcp_tools.redis.enums import MetricType
@@ -42,6 +48,17 @@ def resolve_metric_key(
     Returns:
         Metric key from METRIC_REGISTRY or None if not found
     """
+    # Capacity metric uses cluster-type-based routing instead of component-based
+    if metric_type == MetricType.CAPACITY:
+        if is_redis_instance_type(cluster_type):
+            metric_key = "capacity_memory"
+        elif is_tendisssd_instance_type(cluster_type) or is_tendisplus_instance_type(cluster_type):
+            metric_key = "capacity_disk"
+        else:
+            logger.warning(f"Cannot determine capacity type for cluster_type: {cluster_type}")
+            return None
+        return metric_key
+
     if instance_role == InstanceRole.PROXY:
         if is_twemproxy_proxy_type(cluster_type):
             component = "twemproxy"

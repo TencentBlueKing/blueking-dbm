@@ -26,6 +26,7 @@ class MetricType(StrStructuredEnum):
     HOST_LATENCY = EnumField("host_latency", "Host latency")
     COMMAND_LATENCY = EnumField("command_latency", "Command latency")
     LATENCY_DISTRIBUTION = EnumField("latency_distribution", "Latency distribution (proxy only)")
+    CAPACITY = EnumField("capacity", "Capacity (used/available/total)")
 
 
 class MetricsInstanceRole(StrStructuredEnum):
