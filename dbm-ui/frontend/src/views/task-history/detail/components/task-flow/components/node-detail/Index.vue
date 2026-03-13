@@ -89,7 +89,7 @@
             <BkButton :loading="skipLoading">
               <DbIcon
                 class="mr-5"
-                type="tiaoguo" />{{ t('跳过') }}
+                type="tiaoguo-2" />{{ t('跳过') }}
             </BkButton>
           </BkPopConfirm>
           <BkButton

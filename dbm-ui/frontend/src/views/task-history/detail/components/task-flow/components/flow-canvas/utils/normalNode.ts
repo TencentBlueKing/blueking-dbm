@@ -251,40 +251,6 @@ export class NormalNode extends Rect {
 
     const { retryable, skippable, status, todoId } = this.data;
     if (status === 'FAILED') {
-      if (skippable) {
-        // 跳过
-        const skipWraperStyle = {
-          fill: attributes.skipOptFill,
-          height: 24,
-          radius: 2,
-          width: 56,
-          x: -width / 2 + 4,
-          y: 34,
-        };
-        this.upsert('skipWraper', GRect, skipWraperStyle, container);
-        const {
-          attributes: { x: swX, y: swY },
-        } = this.getShape('skipWraper');
-        const skipIconStyle = {
-          height: 12,
-          src: SkipImage,
-          width: 12,
-          x: swX + 4,
-          y: swY + 5,
-        };
-        this.upsert('skipIcon', GImage, skipIconStyle, container);
-        const {
-          attributes: { x: siX, y: siY },
-        } = this.getShape('skipIcon');
-        const skipTextStyle = {
-          fill: '#4D4F56',
-          fontSize: 12,
-          text: '跳过',
-          x: siX + 18,
-          y: siY + 15,
-        };
-        this.upsert('skipText', GText, skipTextStyle, container);
-      }
       if (retryable) {
         // 失败重试
         const retryWraperStyle = {
@@ -292,7 +258,7 @@ export class NormalNode extends Rect {
           height: 24,
           radius: 2,
           width: 56,
-          x: skippable ? -width / 2 + 68 : -width / 2 + 4,
+          x: -width / 2 + 4,
           y: 34,
         };
         this.upsert('retryWraper', GRect, retryWraperStyle, container);
@@ -318,6 +284,40 @@ export class NormalNode extends Rect {
           y: riY + 14,
         };
         this.upsert('retryText', GText, retryTextStyle, container);
+      }
+      if (skippable) {
+        // 跳过
+        const skipWraperStyle = {
+          fill: attributes.skipOptFill,
+          height: 24,
+          radius: 2,
+          width: 56,
+          x: retryable ? -width / 2 + 68 : -width / 2 + 4,
+          y: 34,
+        };
+        this.upsert('skipWraper', GRect, skipWraperStyle, container);
+        const {
+          attributes: { x: swX, y: swY },
+        } = this.getShape('skipWraper');
+        const skipIconStyle = {
+          height: 12,
+          src: SkipImage,
+          width: 12,
+          x: swX + 4,
+          y: swY + 5,
+        };
+        this.upsert('skipIcon', GImage, skipIconStyle, container);
+        const {
+          attributes: { x: siX, y: siY },
+        } = this.getShape('skipIcon');
+        const skipTextStyle = {
+          fill: '#4D4F56',
+          fontSize: 12,
+          text: '跳过',
+          x: siX + 18,
+          y: siY + 15,
+        };
+        this.upsert('skipText', GText, skipTextStyle, container);
       }
       // ai日志分析
       if (window.PROJECT_CONFIG.AI_LOG_ANALYSIS_OPEN) {
