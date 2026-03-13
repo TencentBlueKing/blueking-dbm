@@ -105,6 +105,7 @@ def query_redis_metrics_series(
             MetricType.HOST_LATENCY: "Latency (μs)",
             MetricType.COMMAND_LATENCY: "Latency (μs)",
             MetricType.LATENCY_DISTRIBUTION: "Requests",
+            MetricType.CAPACITY: "Bytes",
         }
 
         title = f"{cluster_domain} {metric_type.value.upper()}"

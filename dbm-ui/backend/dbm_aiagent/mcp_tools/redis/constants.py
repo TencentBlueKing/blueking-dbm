@@ -81,6 +81,9 @@ TREND_UNIT_BY_METRIC_KEY = {
     "twemproxy_host_latency": "μs/min",
     "twemproxy_command_latency": "μs/min",
     "twemproxy_latency_distribution": "requests/min",
+    # Capacity metrics
+    "capacity_memory": "bytes/min",
+    "capacity_disk": "bytes/min",
 }
 
 # Unified Metric Registry
@@ -275,6 +278,52 @@ METRIC_REGISTRY = {
             MetricsGroupBy.CMD,
         ],
         "required_dimensions": ["ip", "instance_port", "cmd"],
+    },
+    "capacity_memory": {
+        "is_capacity": True,
+        "sub_metrics": {
+            "used": (
+                "bkmonitor:exporter_dbm_redis_exporter:redis_memory_used_bytes{{"
+                'cluster_domain=~"{cluster_domains}"'
+                "{filters}"
+                "}}"
+            ),
+            "total": (
+                "bkmonitor:exporter_dbm_redis_exporter:redis_config_maxmemory{{"
+                'cluster_domain=~"{cluster_domains}"'
+                "{filters}"
+                "}}"
+            ),
+        },
+        "aggregation": {
+            "overall": AggFunction.SUM,
+            "stats": [AggFunction.MIN, AggFunction.MAX, AggFunction.AVG, AggFunction.STDDEV],
+        },
+        "supported_group_by": [MetricsGroupBy.CLUSTER_DOMAIN, MetricsGroupBy.IP],
+        "required_dimensions": ["ip"],
+    },
+    "capacity_disk": {
+        "is_capacity": True,
+        "sub_metrics": {
+            "used": (
+                "bkmonitor:exporter_dbm_redis_exporter:redis_datadir_df_used_mb{{"
+                'cluster_domain=~"{cluster_domains}"'
+                "{filters}"
+                "}} * 1024 * 1024"
+            ),
+            "total": (
+                "bkmonitor:exporter_dbm_redis_exporter:redis_datadir_df_total_mb{{"
+                'cluster_domain=~"{cluster_domains}"'
+                "{filters}"
+                "}} * 1024 * 1024"
+            ),
+        },
+        "aggregation": {
+            "overall": AggFunction.SUM,
+            "stats": [AggFunction.MIN, AggFunction.MAX, AggFunction.AVG, AggFunction.STDDEV],
+        },
+        "supported_group_by": [MetricsGroupBy.CLUSTER_DOMAIN, MetricsGroupBy.IP],
+        "required_dimensions": ["ip"],
     },
     # Predixy proxy metrics
     "predixy_cpu_usage": {
