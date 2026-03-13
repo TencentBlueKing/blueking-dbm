@@ -176,6 +176,8 @@ class ResetConsumerGroupOffsetInputSerializer(KafkaToolboxBaseInputSerializer):
     strategy_value = serializers.CharField(
         help_text=_("策略参数值。to-offset时为offset数值，to-datetime时为'YYYY-MM-DDTHH:mm:ss.000'格式时间"),
         required=False,
+        allow_blank=True,
+        allow_null=True,
         default="",
     )
 

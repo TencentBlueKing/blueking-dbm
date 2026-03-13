@@ -84,10 +84,6 @@ class MysqlSingleApplyDetailSerializer(TicketBaseValidateSerializerMixin, serial
         clouds = ResourceQueryHelper.search_cc_cloud(get_cache=True)
         return clouds[str(obj["bk_cloud_id"])]["bk_cloud_name"]
 
-    disaster_tolerance_level = serializers.ChoiceField(
-        help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
-    )
-
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         self._format_domains(representation["domains"], instance)
