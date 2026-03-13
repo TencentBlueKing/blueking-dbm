@@ -14,7 +14,7 @@ import (
 )
 
 // ConfigNamesBatchUpsert TODO
-func ConfigNamesBatchUpsert(db *gorm.DB, cf api.BaseConfFileDef, confNames []*api.UpsertConfNames) error {
+func ConfigNamesBatchUpsert(db *gorm.DB, cf api.BaseConfFileDef, confNames []*api.UpsertConfNames, opUser string) error {
 	adds := make([]*model.ConfigNameDefModel, 0)
 	updates := make([]*model.ConfigNameDefModel, 0)
 	deletes := make([]*model.ConfigNameDefModel, 0)
@@ -53,22 +53,22 @@ func ConfigNamesBatchUpsert(db *gorm.DB, cf api.BaseConfFileDef, confNames []*ap
 	}
 	err := db.Transaction(func(tx *gorm.DB) error {
 		if len(adds) > 0 {
-			if err := model.ConfigNamesBatchCreate(tx, adds); err != nil {
+			if err := model.ConfigNamesBatchCreate(tx, adds, opUser); err != nil {
 				return err
 			}
 		}
 		if len(updates) > 0 {
-			if err := model.ConfigNamesBatchUpdate(tx, updates); err != nil {
+			if err := model.ConfigNamesBatchUpdate(tx, updates, opUser); err != nil {
 				return err
 			}
 		}
 		if len(deletes) > 0 {
-			if err := model.ConfigNamesBatchDelete(tx, deletes); err != nil {
+			if err := model.ConfigNamesBatchDelete(tx, deletes, opUser); err != nil {
 				return err
 			}
 		}
 		if len(upserts) > 0 {
-			if err := model.ConfigNamesBatchSave(tx, upserts); err != nil {
+			if err := model.ConfigNamesBatchSave(tx, upserts, opUser); err != nil {
 				return err
 			}
 		}
@@ -139,7 +139,7 @@ func UpsertConfigFilePlat(r *api.UpsertConfFilePlatReq, clientOPType, opUser str
 			if len(configs) == 0 { // 如果 items 为空，只修改 conf_file 信息
 				return nil
 			}
-			if err := ConfigNamesBatchUpsert(tx, fileDef, r.ConfNames); err != nil {
+			if err := ConfigNamesBatchUpsert(tx, fileDef, r.ConfNames, opUser); err != nil {
 				return err
 			}
 			resp.IsPublished = 0

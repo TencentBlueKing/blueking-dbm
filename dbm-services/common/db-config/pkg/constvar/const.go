@@ -7,11 +7,6 @@ const (
 	Test = "test"
 )
 
-// RequestType
-const (
-	MethodSaveOnly       = "SaveOnly"       // save only
-	MethodSaveAndPublish = "SaveAndPublish" // snapshot version
-)
 const (
 	// OPTypeAdd TODO
 	OPTypeAdd = "add"
@@ -31,11 +26,14 @@ const (
 )
 
 // config file version generate method
+// RequestType
 const (
-	MethodGenerateOnly  = "GenerateOnly"       // generate only
-	MethodGenAndSave    = "GenerateAndSave"    // snapshot
-	MethodGenAndPublish = "GenerateAndPublish" // release
-	MethodSave          = "Save"               // 只用于保存 无版本概念 的配置类型 no-versioned
+	MethodGenerateOnly   = "GenerateOnly"       // generate only
+	MethodGenAndSave     = "GenerateAndSave"    // snapshot
+	MethodGenAndPublish  = "GenerateAndPublish" // release
+	MethodSave           = "Save"               // 只用于保存 无版本概念 的配置类型 no-versioned
+	MethodSaveOnly       = "SaveOnly"           // save only
+	MethodSaveAndPublish = "SaveAndPublish"     // snapshot version
 )
 
 // BKBizIDForPlat TODO

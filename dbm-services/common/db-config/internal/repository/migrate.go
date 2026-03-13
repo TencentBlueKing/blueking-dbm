@@ -2,10 +2,8 @@ package repository
 
 import (
 	"fmt"
-	"time"
 
 	"bk-dbconfig/assets"
-	"bk-dbconfig/internal/repository/migratespec"
 	"bk-dbconfig/internal/repository/model"
 	"bk-dbconfig/pkg/core/config"
 	"bk-dbconfig/pkg/core/logger"
@@ -23,9 +21,6 @@ func DoMigrateFromEmbed() error {
 	// from embed
 	d, err := iofs.New(assets.Migrations, "migrations")
 	if err != nil {
-		return err
-	}
-	if err = reMigrateConfigPlat(); err != nil {
 		return err
 	}
 	dbURL := fmt.Sprintf(
@@ -50,43 +45,12 @@ func DoMigrateFromEmbed() error {
 	}
 	logger.Info("current migrate version: %d", versionLast)
 
-	db := model.InitSelfDB("")
-	defer func() {
-		dbc, _ := db.DB()
-		dbc.Close()
-	}()
-
-	if versionLast < migratespec.SensitiveMigVer-1 {
-		if err = mig.Migrate(migratespec.SensitiveMigVer - 1); err == nil || err == migrate.ErrNoChange {
-			logger.Info("migrate schema success with %v", err)
-			err = db.Exec("ALTER TABLE tb_config_node ADD INDEX idx_1(namespace,conf_file,conf_name), " +
-				"ADD INDEX idx_2(level_value,conf_name);").Error
-			//logger.Warn("migrate index for tb_config_node with %v", err)
-		} else {
-			return errors.WithMessage(err, "migrate schema")
-		}
-	}
 	// migrate 到最新
 	if err = mig.Up(); err == nil || err == migrate.ErrNoChange {
 		logger.Info("migrate data from embed success with %v", err)
-
-		if versionLast < migratespec.SensitiveMigVer {
-			logger.Info("migrate sensitive info for the first time")
-
-			if err = migratespec.MigrateSensitive(db); err != nil {
-				logger.Errorf("fail to migrate sensitive: %s", err.Error())
-				return mig.Migrate(migratespec.SensitiveMigVer - 1)
-				//return errors.WithMessage(err, "migrate sensitive")
-			}
-			logger.Info("migrate sensitive success with %v", err)
-		}
-
 		return nil
 	} else {
 		logger.Errorf("migrate data from embed failed: %s", err.Error())
-		logger.Warn("sleep 120s to return. " +
-			"you may need ./bkconfigsvr --migrate --migrate-force=VersionNo after you fix it")
-		time.Sleep(120 * time.Second)
 		return err
 	}
 }
@@ -117,40 +81,4 @@ func DoMigrateFromSource() error {
 		}
 		return mig.Up()
 	}
-}
-
-// reMigrateConfigPlat 重新初始化 平台级默认 配置数据
-func reMigrateConfigPlat() error {
-	db, err := model.InitSelfDB("multiStatements=true&interpolateParams=true").DB()
-	if err != nil {
-		return errors.WithMessage(err, "reMigrate connect failed")
-	}
-	defer db.Close()
-
-	sqlStrs := []string{
-		fmt.Sprintf("update schema_migrations set version=%d,dirty=0 where version >%d",
-			migratespec.SensitiveMigVer, migratespec.SensitiveMigVer), // step 8 is sensitive mig
-		"delete from tb_config_file_def",
-		"delete from tb_config_name_def where flag_encrypt!=1 or value_default like '{{%'",
-	}
-
-	for i, sql := range sqlStrs {
-		if i == 0 {
-			if ret, err := db.Exec(sql); err != nil {
-				// 更新 migrate 元数据失败，退出，同时忽略本次 reMigrate 动作
-				return nil
-			} else {
-				if cnt, _ := ret.RowsAffected(); cnt == 0 { // reset
-					//_, _ = db.Exec("drop table if exists schema_migrations")
-					return nil
-				}
-			}
-			logger.Warnf("reset migrate to %d", migratespec.SensitiveMigVer)
-		} else {
-			if _, err = db.Exec(sql); err != nil {
-				return errors.WithMessage(err, "reMigrate failed")
-			}
-		}
-	}
-	return nil
 }

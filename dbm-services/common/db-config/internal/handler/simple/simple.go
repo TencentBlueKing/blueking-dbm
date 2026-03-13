@@ -47,11 +47,13 @@ func (cf *Config) Routes() []*gin.RouteInfo {
 		{Method: http.MethodPost, Path: "/confitem/validate", HandlerFunc: cf.ValidateValueForClient},
 		{Method: http.MethodPost, Path: "/confitem/clonemodule", HandlerFunc: cf.CloneModuleConfig},
 		{Method: http.MethodPost, Path: "/confitem/clonecluster", HandlerFunc: cf.CloneClusterConfig},
+		{Method: http.MethodGet, Path: "/confitem/changes", HandlerFunc: cf.QueryConfItemChanges},
 
 		// config_meta
 		{Method: http.MethodGet, Path: "/conftype/query", HandlerFunc: cf.QueryConfigTypeInfo},
 		{Method: http.MethodGet, Path: "/confname/list", HandlerFunc: cf.QueryConfigTypeNames},
 		{Method: http.MethodPost, Path: "/confname/change", HandlerFunc: cf.ChangeConfNameDef},
 		{Method: http.MethodGet, Path: "/confname/types", HandlerFunc: cf.ListDataTypes},
+		{Method: http.MethodGet, Path: "/confname/changes", HandlerFunc: cf.QueryConfNameChanges},
 	}
 }

@@ -31,8 +31,26 @@ func (t DBTime) Value() (driver.Value, error) {
 
 // Scan TODO
 func (t *DBTime) Scan(v interface{}) error {
-	if val, ok := v.(time.Time); ok {
+	if v == nil {
+		return nil
+	}
+	switch val := v.(type) {
+	case time.Time:
 		*t = DBTime{Time: val}
+		return nil
+	case []byte:
+		parsed, err := time.ParseInLocation(DBTimeFormat, string(val), time.Local)
+		if err != nil {
+			return fmt.Errorf("error when converting %q to datetime: %w", string(val), err)
+		}
+		*t = DBTime{Time: parsed}
+		return nil
+	case string:
+		parsed, err := time.ParseInLocation(DBTimeFormat, val, time.Local)
+		if err != nil {
+			return fmt.Errorf("error when converting %q to datetime: %w", val, err)
+		}
+		*t = DBTime{Time: parsed}
 		return nil
 	}
 	return fmt.Errorf("error when converting %v to datetime", v)

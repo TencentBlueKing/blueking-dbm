@@ -17,9 +17,17 @@ import (
 
 // ConfigNamesBatchUpdate TODO
 // update 逐个进行，开启事务
-func ConfigNamesBatchUpdate(db *gorm.DB, confNames []*ConfigNameDefModel) error {
+func ConfigNamesBatchUpdate(db *gorm.DB, confNames []*ConfigNameDefModel, opUser string) error {
 	return db.Transaction(func(tx *gorm.DB) error {
+		changes := make([]*ConfNameChangesModel, 0, len(confNames))
 		for _, c := range confNames {
+			// 查询变更前的快照
+			var before ConfigNameDefModel
+			beforeImage := ConfName{}
+			if err := tx.Where(c.UniqueWhere()).First(&before).Error; err == nil {
+				beforeImage = NewConfNameFromDef(&before)
+			}
+
 			cnDef, err := CacheGetConfigNameDef(c.Namespace, c.ConfType, c.ConfFile, c.ConfName)
 			if err == nil && cnDef.FlagEncrypt == 1 {
 				key := fmt.Sprintf("%s%s", config.GetString("encrypt.keyPrefix"), constvar.BKBizIDForPlat)
@@ -33,8 +41,19 @@ func ConfigNamesBatchUpdate(db *gorm.DB, confNames []*ConfigNameDefModel) error 
 				Where(c.UniqueWhere()).Updates(c).Error; err1 != nil {
 				return errors.WithMessage(err1, c.ConfName)
 			}
+
+			changes = append(changes, &ConfNameChangesModel{
+				Namespace:   c.Namespace,
+				ConfType:    c.ConfType,
+				ConfFile:    c.ConfFile,
+				ConfName:    c.ConfName,
+				BeforeImage: beforeImage,
+				AfterImage:  NewConfNameFromDef(c),
+				OpUser:      opUser,
+				OpType:      constvar.OPTypeUpdate,
+			})
 		}
-		return nil
+		return ConfNameChangesCreate(tx, changes)
 	})
 }
 
@@ -45,33 +64,52 @@ func ConfigNamesBatchUpdate(db *gorm.DB, confNames []*ConfigNameDefModel) error 
 //	   只修改 namestatus
 //	2. 从 conf_name 表删除
 //	   delete 根据主键id删除，或者使用唯一键. 这个操作目前没有对外 @todo
-func ConfigNamesBatchDelete(db *gorm.DB, confNames []*ConfigNameDefModel) error {
+func ConfigNamesBatchDelete(db *gorm.DB, confNames []*ConfigNameDefModel, opUser string) error {
 	return db.Transaction(func(tx *gorm.DB) error {
 		nodes := []*ConfigModel{}
+		changes := make([]*ConfNameChangesModel, 0, len(confNames))
 		for _, c := range confNames {
-			err := DB.Self.Debug().Model(ConfigModel{}).
+			err := tx.Debug().Model(ConfigModel{}).
 				Where("namespace = ? and conf_type = ? and conf_name = ?",
 					c.Namespace, c.ConfType, c.ConfName).Find(&nodes).Error
 			if err != nil {
 				return err
 			}
-			if len(nodes) > 0 {
+			if len(nodes) > 0 { // 下级存在引用，不能删除
 				return errors.Errorf("conf_name=%s is used by app::%s", c.ConfName,
 					strings.Join(lo.Map(nodes, func(node *ConfigModel, _ int) string {
 						return fmt.Sprintf("bk_biz_id=%s(%s=%s)", node.BKBizID, node.LevelName, node.LevelValue)
 					}), ", "))
 			}
 
+			// 查询变更前的快照
+			var before ConfigNameDefModel
+			beforeImage := ConfName{}
+			if err := tx.Where(c.UniqueWhere()).First(&before).Error; err == nil {
+				beforeImage = NewConfNameFromDef(&before)
+			}
+
 			if err := DeleteByUnique(tx, c.TableName(), c.UniqueWhere()); err != nil {
 				return errors.WithMessage(err, c.ConfName)
 			}
+
+			changes = append(changes, &ConfNameChangesModel{
+				Namespace:   c.Namespace,
+				ConfType:    c.ConfType,
+				ConfFile:    c.ConfFile,
+				ConfName:    c.ConfName,
+				BeforeImage: beforeImage,
+				AfterImage:  ConfName{},
+				OpUser:      opUser,
+				OpType:      constvar.OPTypeRemove,
+			})
 		}
-		return nil
+		return ConfNameChangesCreate(tx, changes)
 	})
 }
 
 // ConfigNamesBatchCreate TODO
-func ConfigNamesBatchCreate(db *gorm.DB, confNames []*ConfigNameDefModel) error {
+func ConfigNamesBatchCreate(db *gorm.DB, confNames []*ConfigNameDefModel, opUser string) error {
 	var sqlRes *gorm.DB
 	// handle encrypt like update?
 	sqlRes = db.Omit("time_created", "time_updated").Create(&confNames)
@@ -80,15 +118,38 @@ func ConfigNamesBatchCreate(db *gorm.DB, confNames []*ConfigNameDefModel) error 
 		logger.Errorf("add conf_names :%+v, err:%s", confNames, err.Error())
 		return err
 	}
-	return nil
+	changes := make([]*ConfNameChangesModel, 0, len(confNames))
+	for _, c := range confNames {
+		changes = append(changes, &ConfNameChangesModel{
+			Namespace:   c.Namespace,
+			ConfType:    c.ConfType,
+			ConfFile:    c.ConfFile,
+			ConfName:    c.ConfName,
+			BeforeImage: ConfName{},
+			AfterImage:  NewConfNameFromDef(c),
+			OpUser:      opUser,
+			OpType:      constvar.OPTypeAdd,
+		})
+	}
+	return ConfNameChangesCreate(db, changes)
 }
 
 // ConfigNamesBatchSave upsert
 // 聚合 create 和 update 的操作，通过唯一键来判断是否是一条记录
 // 先执行 create，当报 duplicate key 时，根据唯一键来执行 update 其它非唯一键字段
-func ConfigNamesBatchSave(db *gorm.DB, confNames []*ConfigNameDefModel) error {
+func ConfigNamesBatchSave(db *gorm.DB, confNames []*ConfigNameDefModel, opUser string) error {
 	return db.Transaction(func(tx *gorm.DB) error {
+		changes := make([]*ConfNameChangesModel, 0, len(confNames))
 		for _, c := range confNames {
+			// 查询变更前的快照
+			var before ConfigNameDefModel
+			beforeImage := ConfName{}
+			opType := constvar.OPTypeAdd
+			if err := tx.Where(c.UniqueWhere()).First(&before).Error; err == nil {
+				beforeImage = NewConfNameFromDef(&before)
+				opType = constvar.OPTypeUpdate
+			}
+
 			if err := tx.Debug().Omit("time_created", "time_updated").Create(c).Error; err != nil {
 				fmt.Println(err)
 				fmt.Println(gorm.ErrDuplicatedKey)
@@ -104,7 +165,18 @@ func ConfigNamesBatchSave(db *gorm.DB, confNames []*ConfigNameDefModel) error {
 			} else {
 				fmt.Println("create ok")
 			}
+
+			changes = append(changes, &ConfNameChangesModel{
+				Namespace:   c.Namespace,
+				ConfType:    c.ConfType,
+				ConfFile:    c.ConfFile,
+				ConfName:    c.ConfName,
+				BeforeImage: beforeImage,
+				AfterImage:  NewConfNameFromDef(c),
+				OpUser:      opUser,
+				OpType:      opType,
+			})
 		}
-		return nil
+		return ConfNameChangesCreate(tx, changes)
 	})
 }

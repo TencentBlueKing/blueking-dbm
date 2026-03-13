@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 	_ "net/http/pprof"
-	"os"
+	"time"
 
 	"bk-dbconfig/internal/repository"
 	"bk-dbconfig/internal/repository/model"
@@ -12,13 +12,14 @@ import (
 	"bk-dbconfig/pkg/core/logger"
 	"bk-dbconfig/pkg/middleware"
 
+	"github.com/golang-migrate/migrate/v4"
+
 	"dbm-services/common/go-pubpkg/apm/metric"
 	"dbm-services/common/go-pubpkg/apm/trace"
 
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
 	"github.com/gin-gonic/gin"
-	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -49,18 +50,8 @@ func main() {
 
 	// process db migrate
 	pflag.Parse()
-	if config.GetBool("skip-migrate") {
-		logger.Info("do not run migrations")
-	} else { // if config.GetBool("migrate") || config.GetBool("migrate.enable") || true
-		logger.Info("run db migrations...")
-		if err := dbMigrate(); err != nil && err != migrate.ErrNoChange {
-			log.Fatal(err)
-		}
-		// 命令行指定了 --migrate 时，执行完退出
-		// 配置文件指定了 --migrate.enable 时，执行完继续执行主进程
-		if config.GetBool("migrate") {
-			os.Exit(0)
-		}
+	if err := dbMigrate(); err != nil && err != migrate.ErrNoChange {
+		log.Fatal(err)
 	}
 
 	model.LoadCache()
@@ -110,9 +101,13 @@ func init() {
 }
 
 func dbMigrate() error {
+	logger.Info("run db migrations...")
 	if err := repository.DoMigrateFromEmbed(); err == nil {
 		return nil
 	} else {
+		logger.Warn("sleep 60s to return. " +
+			"you may need ./bkconfigsvr --migrate --migrate-force=VersionNo after you fix it")
+		time.Sleep(60 * time.Second)
 		return err
 	}
 	// logger.Info("try to run migrations with migrate.source")

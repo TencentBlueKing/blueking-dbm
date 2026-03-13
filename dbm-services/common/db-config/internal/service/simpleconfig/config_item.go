@@ -51,7 +51,8 @@ func UpsertConfigByUnique(configModels []*model.ConfigModel) error {
 // 操作 config node，已明确操作类型
 // 会首先根据唯一建，获得 id
 // @todo 返回影响行数
-func UpsertConfigItems(db *gorm.DB, configsOp []*model.ConfigModelOp, revision string) ([]*model.ConfigModel, error) {
+func UpsertConfigItems(db *gorm.DB, configsOp []*model.ConfigModelOp, revision string,
+	opUser string, upLevel *api.UpLevelInfo) ([]*model.ConfigModel, error) {
 	configsLocked := make([]*model.ConfigModel, 0)
 	if configsOp == nil || len(configsOp) == 0 {
 		return configsLocked, nil
@@ -59,6 +60,8 @@ func UpsertConfigItems(db *gorm.DB, configsOp []*model.ConfigModelOp, revision s
 	configsAdd := make([]*model.ConfigModel, 0)
 	configsUpt := make([]*model.ConfigModel, 0)
 	configsDel := make([]*model.ConfigModel, 0)
+	// 记录 update/delete 操作的 before_image，需要在实际操作前查询
+	beforeImages := make(map[string]model.ConfItem, 0)
 	for _, c := range configsOp {
 		if c.OPType == constvar.OPTypeRemoveRef || c.OPType == constvar.OPTypeRemove {
 			// remove 不检验 平台值是否存在
@@ -68,6 +71,38 @@ func UpsertConfigItems(db *gorm.DB, configsOp []*model.ConfigModelOp, revision s
 			}
 		} else {
 			c.Config.ID = id
+		}
+		// 对 update/remove 操作，提前查询 before_image
+		if c.OPType == constvar.OPTypeUpdate || c.OPType == constvar.OPTypeRemove || c.OPType == constvar.OPTypeRemoveRef {
+			var before model.ConfigModel
+			baseInfo := api.BaseConfigNode{
+				BKBizIDDef: api.BKBizIDDef{BKBizID: c.Config.BKBizID},
+				BaseConfFileDef: api.BaseConfFileDef{
+					Namespace: c.Config.Namespace,
+					ConfType:  c.Config.ConfType,
+					ConfFile:  c.Config.ConfFile,
+				},
+				BaseLevelDef: api.BaseLevelDef{
+					LevelName:  c.Config.LevelName,
+					LevelValue: c.Config.LevelValue,
+				},
+			}
+			baseOptions := api.QueryConfigOptions{
+				ConfName: c.Config.ConfName,
+				View:     "merge",
+			}
+			beforeModels, err := GetMergedConfig(db, &baseInfo, upLevel, &baseOptions)
+			if err != nil {
+				return nil, err
+			}
+			if len(beforeModels) > 1 {
+				return nil, fmt.Errorf("beforeModels len:%d != 1: %+v", len(beforeModels), beforeModels)
+			} else if len(beforeModels) == 0 {
+				beforeImages[c.Config.ConfName] = model.ConfItem{}
+			} else {
+				before = *beforeModels[0]
+				beforeImages[c.Config.ConfName] = model.NewConfItemFromModel(&before)
+			}
 		}
 		c.Config.UpdatedRevision = revision
 		c.Config.Stage = 1
@@ -104,85 +139,36 @@ func UpsertConfigItems(db *gorm.DB, configsOp []*model.ConfigModelOp, revision s
 			return nil, err
 		}
 	}
+	// 记录变更历史
+	changes := make([]*model.ConfItemChangesModel, 0, len(configsOp))
+	for _, c := range configsOp {
+		if c.OPType == constvar.OPTypeRemoveRef {
+			// remove_ref 是关联删除，不单独记录
+			continue
+		}
+		beforeImage := beforeImages[c.Config.ConfName]
+		afterImage := model.ConfItem{}
+		if c.OPType != constvar.OPTypeRemove {
+			afterImage = model.NewConfItemFromModel(c.Config)
+		}
+		changes = append(changes, &model.ConfItemChangesModel{
+			BKBizID:     c.Config.BKBizID,
+			Namespace:   c.Config.Namespace,
+			ConfType:    c.Config.ConfType,
+			ConfFile:    c.Config.ConfFile,
+			ConfName:    c.Config.ConfName,
+			LevelName:   c.Config.LevelName,
+			LevelValue:  c.Config.LevelValue,
+			BeforeImage: beforeImage,
+			AfterImage:  afterImage,
+			OpUser:      opUser,
+			OpType:      c.OPType,
+		})
+	}
+	if err := model.ConfItemChangesCreate(db, changes); err != nil {
+		return nil, err
+	}
 	return configsLocked, nil
-}
-
-// UpsertConfig TODO
-// update: 如果是update模式，当没找到对应id的记录时会报错；update=false 记录不存在则忽略
-// isOverride: 如果是override模式，记录已经存在则根据id update覆盖；false 依然是insert，会报错
-func UpsertConfig(configModels []*model.ConfigModel, update, isOverride bool) error {
-	configsID0 := make([]*model.ConfigModel, 0)
-	configsIDn := make([]*model.ConfigModel, 0)
-	for _, c := range configModels {
-		if c.ID == 0 {
-			configsID0 = append(configsID0, c)
-		} else {
-			configsIDn = append(configsIDn, c)
-		}
-	}
-	logger.Infof("UpsertConfig configsID0:%#v, configsIDn:%+v", configsID0, configsIDn)
-	configsAdd := make([]*model.ConfigModel, 0)
-	configsUpt := make([]*model.ConfigModel, 0)
-	configsDel := make([]*model.ConfigModel, 0)
-	for _, c := range configsID0 {
-		if configID, err := c.CheckRecordExists(model.DB.Self); err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				configsAdd = append(configsAdd, c)
-			} else {
-				return err
-			}
-		} else {
-			c.ID = configID
-			if update || isOverride {
-				// update: by unique key
-				configsUpt = append(configsUpt, c)
-			} else {
-				// insert: ErrDuplicateKey
-				configsAdd = append(configsAdd, c) // will return err
-			}
-		}
-	}
-	for _, c := range configsIDn {
-		if _, err := c.CheckRecordExists(model.DB.Self); err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				if update {
-					return fmt.Errorf("ErrNotFound id=%d", c.ID)
-				} else {
-					return fmt.Errorf("ErrInsertWithID id=%d", c.ID)
-				}
-			} else {
-				return err
-			}
-		} else {
-			// c.ID = configID
-			if c.FlagDisable == -1 {
-				configsDel = append(configsDel, c)
-			} else {
-				configsUpt = append(configsUpt, c)
-			}
-		}
-	}
-	logger.Infof("UpsertConfig configsAdd:%#v, configsUpt:%+v, configsDel:%+v",
-		configsAdd, configsUpt, configsDel)
-	if len(configsAdd) != 0 {
-		configsAdd = ProcessConfig(configsAdd)
-		if err := model.CreateBatch(model.DB.Self, configsAdd); err != nil {
-			return err
-		}
-	}
-	if len(configsUpt) != 0 {
-		configsUpt = ProcessConfig(configsUpt)
-		// 这里应该是一定存在(已经CheckRecordExists)且能update，如果不存在抛出错误
-		if err := model.UpdateBatch(model.DB.Self, configsUpt, true); err != nil {
-			return err
-		}
-	}
-	if len(configsDel) != 0 {
-		if err := model.DeleteBatch(model.DB.Self, configsDel); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // GetMergedConfig TODO
@@ -208,7 +194,6 @@ func GetMergedConfig(db *gorm.DB, s *api.BaseConfigNode, upLevelInfo *api.UpLeve
 			}
 		}
 	}
-
 	configs, err := model.GetSimpleConfig(db, s, upLevelInfo, options)
 	if err != nil {
 		return nil, err
@@ -370,7 +355,7 @@ func UpdateConfigFileItems(r *api.UpsertConfItemsReq, opUser string) (*api.Upser
 				resp.Revision = v.Revision
 				resp.IsPublished = 0
 			}
-		} else if r.ReqType == constvar.MethodSaveAndPublish {
+		} else if r.ReqType == constvar.MethodSaveAndPublish || r.ReqType == constvar.MethodGenAndPublish {
 			if !checkVersionable(r.ConfFileInfo.Namespace, r.ConfFileInfo.ConfType) {
 				return errors.WithMessagef(errno.ErrUnversionable, "%s,%s", fileDef.Namespace, fileDef.ConfType)
 			}
@@ -392,7 +377,7 @@ func UpdateConfigFileItems(r *api.UpsertConfItemsReq, opUser string) (*api.Upser
 			if checkVersionable(r.ConfFileInfo.Namespace, r.ConfFileInfo.ConfType) {
 				return errno.ErrVersionable
 			}
-			if _, err := UpsertConfigItems(tx, configsDiff, ""); err != nil {
+			if _, err := UpsertConfigItems(tx, configsDiff, "", opUser, &r.UpLevelInfo); err != nil {
 				return err
 			}
 			resp.IsPublished = 1
@@ -634,7 +619,7 @@ func GenerateAndPublish(db *gorm.DB, r *api.BaseConfigNode, o *api.QueryConfigOp
 	// copier.Copy(&m, o)
 	txErr := db.Transaction(func(tx *gorm.DB) error { // new transaction
 		// 回写 tb_config_node 保存到层级树
-		configsLocked, err := UpsertConfigItems(tx, configsDiff, revision)
+		configsLocked, err := UpsertConfigItems(tx, configsDiff, revision, o.CreatedBy, up)
 		if err != nil {
 			return err
 		}

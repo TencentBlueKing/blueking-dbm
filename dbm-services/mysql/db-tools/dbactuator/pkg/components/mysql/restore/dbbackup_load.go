@@ -199,7 +199,8 @@ func (m *DBLoader) Start() error {
 	if err != nil {
 		return err
 	}
-	_ = cmutil.ChownNotUsingExec(fileLock.GetContextFilePath(), "mysql", "mysql")
+	// 未解之谜：在 tlinux4 上这个打开，会导致 permission denied
+	//_ = cmutil.ChownNotUsingExec(fileLock.GetContextFilePath(), "mysql", "mysql")
 	logger.Info("using lock file %s", fileLock.GetContextFilePath())
 	if err := fileLock.Incr(1); err != nil {
 		return errors.WithMessage(err, "file lock incr failed")

@@ -75,7 +75,6 @@ func ParseFloat32ExprRange(rangeValue string) ([]string, []float32, error) {
 	}
 	leftVal, err1 := strconv.ParseFloat(vals[0], 32)
 	rightVal, err2 := strconv.ParseFloat(vals[1], 32)
-	fmt.Println("xxxxx", leftVal, rightVal)
 	if err1 != nil || err2 != nil {
 		return nil, nil, errors2.Join(err1, err2)
 	} else if leftVal > rightVal {

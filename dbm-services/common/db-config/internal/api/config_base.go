@@ -16,7 +16,7 @@ type BKBizIDDef struct {
 // RequestType TODO
 type RequestType struct {
 	// 配置文件修改动作的请求类型，`SaveOnly`: 仅保存, `SaveAndPublish`保存并发布
-	ReqType string `json:"req_type" form:"req_type" validate:"enums" enums:"SaveOnly,SaveAndPublish"`
+	ReqType string `json:"req_type" form:"req_type" validate:"enums" enums:",SaveOnly,SaveAndPublish"`
 }
 
 // OperationType TODO

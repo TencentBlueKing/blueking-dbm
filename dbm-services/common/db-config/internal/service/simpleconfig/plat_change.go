@@ -35,7 +35,7 @@ func ChangeConfNameDef(r *api.ChangeConfNameDefReq, opUser string) (*api.UpsertC
 
 			// 保存到 tb_config_name_def
 			// @todo 这里保存到 tb_config_name_def 就意味着发布了，与 tb_config_versioned 不一致
-			if err := ConfigNamesBatchUpsert(tx, r.BaseConfFileDef, r.ConfNames); err != nil {
+			if err := ConfigNamesBatchUpsert(tx, r.BaseConfFileDef, r.ConfNames, opUser); err != nil {
 				return err
 			}
 			resp.IsPublished = 0

@@ -1,8 +1,9 @@
 package router
 
 import (
-	"bk-dbconfig/docs"
 	"net/http"
+
+	"bk-dbconfig/docs"
 
 	"github.com/gin-gonic/gin"
 )
@@ -10,7 +11,7 @@ import (
 // RegisterRoutesSwagger TODO
 func RegisterRoutesSwagger(r *gin.Engine) {
 	r.StaticFS("/docs", http.FS(docs.SwaggerDocs)) // embed
-	// r.Static("/swagger", "./assets/swagger-ui")    // not embed
+	r.Static("/swagger", "./assets/swagger-ui")    // not embed
 }
 
 // RegisterRoutes TODO
