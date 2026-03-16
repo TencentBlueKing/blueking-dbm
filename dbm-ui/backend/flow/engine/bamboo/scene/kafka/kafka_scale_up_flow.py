@@ -257,4 +257,4 @@ class KafkaScaleUpFlow(object):
             },
         )
 
-        kafka_pipeline.run_pipeline()
+        kafka_pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=[self.data["cluster_id"]])
