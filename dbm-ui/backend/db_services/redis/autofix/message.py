@@ -49,7 +49,7 @@ def send_msg_2_qywx(sub_title: str, msgs):
 
     bk_biz_id = msgs["BKID"]
     db_type = DBType.Redis.value
-    if msgs[_("集群类型")] in [ClusterType.MongoShardedCluster.value, ClusterType.MongoReplicaSet.value]:
+    if msgs.get(_("集群类型"), None) in [ClusterType.MongoShardedCluster.value, ClusterType.MongoReplicaSet.value]:
         db_type = DBType.MongoDB.value
     redis_DBA = DBAdministrator.get_biz_db_type_admins(bk_biz_id=bk_biz_id, db_type=db_type)
     app_info = AppCache.objects.get(bk_biz_id=bk_biz_id)
@@ -63,15 +63,15 @@ def send_msg_2_qywx(sub_title: str, msgs):
             content += _("{} : {}\n".format(k, v))
     if env.ENABLE_DBM_AI and db_type == DBType.Redis.value:
         session_code = RedisConn.get(session_code_key)
-        ask_content = _("""查询这个{}集群最近10分钟的qps,对比看看qps是否有明显波动,只需给出简要的结论（再加上一个点的qps数据）""".format(immute_doamin))
+        ask_content = _("""查询这个{}集群最近10分钟的性能波动情况,只需给出简要的结论（再加上一个点的数据）""".format(immute_doamin))
         rest, session_code = AgentHandler.ask_agent_with_content_in_session(
-            agent_code=DBMAgentCode.REDIS_TASK_GUARDIAN.value,
+            agent_code=DBMAgentCode.REDIS_REPORT.value,
             content=ask_content,
             username=redis_DBA[0],
             session_code=session_code,
         )
         RedisConn.set(session_code_key, session_code)
-        content += _("{}\n".format(rest[:200]))
+        content += _("{}\n".format(rest[:300]))
     content += _("消息时间 : {}\n".format(date2str(datetime.datetime.now(), "%Y-%m-%d %H:%M:%S")))
 
     CmsiHandler(_("Tendis自愈"), content, msg_ids).send_wecom_robot()
