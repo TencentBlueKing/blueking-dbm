@@ -32,6 +32,8 @@ ASK_AI_COMMAND_MAP = {
     DBType.TenDBCluster: commands.CheckMysqlClusterCommand,
     DBType.Sqlserver: commands.CheckSQLServerClusterCommand,
     DBType.Redis: commands.CheckRedisClusterCommand,
+    DBType.Kafka: commands.CheckKafkaClusterCommand,
+    DBType.Es: commands.CheckEsClusterCommand,
 }
 
 
