@@ -163,7 +163,7 @@ class MonitorPolicyListSerializer(MonitorPolicySerializer):
 
     class Meta:
         model = MonitorPolicy
-        exclude = ["details", "parent_details"]
+        exclude = ["parent_details"]
 
 
 class MonitorPolicyUpdateSerializer(AuditedSerializer, serializers.ModelSerializer):
