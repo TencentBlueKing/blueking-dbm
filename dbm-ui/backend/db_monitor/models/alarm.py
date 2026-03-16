@@ -41,7 +41,6 @@ from backend.db_monitor.constants import (
     AlertSourceEnum,
     DutyRuleCategory,
     PolicyStatus,
-    PolicyType,
     TargetLevel,
     TargetPriority,
 )
@@ -710,14 +709,6 @@ class MonitorPolicy(AuditedModel):
     )
     agg_info = models.JSONField(verbose_name=_("汇聚方式和周期配置"), default=list)
 
-    policy_type = models.CharField(
-        verbose_name=_("策略类型"),
-        choices=PolicyType.get_choices(),
-        max_length=LEN_NORMAL,
-        default="",
-    )
-    expression = models.CharField(verbose_name=_("多指标表达式"), max_length=LEN_MIDDLE, default="")
-
     monitor_policy_id = models.BigIntegerField(verbose_name=_("蓝鲸监控策略ID"), default=0)
 
     # 支持版本管理
@@ -750,30 +741,18 @@ class MonitorPolicy(AuditedModel):
         else:
             target_level = TargetLevel.PLATFORM.value
 
-        # 当有自定义条件的时候，看下自定义条件是否有值，有值则应该target_level为custom
-        if self.custom_conditions:
-            for condition in self.custom_conditions:
-                if condition["value"]:
-                    target_level = TargetLevel.CUSTOM.value
-                    break
-
         self.target_level = target_level
         self.target_priority = TARGET_LEVEL_TO_PRIORITY.get(target_level).value
 
         # 生成监控目标检索冗余字段
         db_module_map = DBModule.db_module_map()
-
-        # 监控目标的值聚合， 方便搜索
-        target_keyword_list = [
-            db_module_map.get(int(value), value) if t["rule"]["key"] == TargetLevel.MODULE.value else value
-            for t in self.targets
-            for value in t["rule"]["value"]
-        ]
-
-        for custom in self.custom_conditions:
-            target_keyword_list.extend(custom["value"])
-
-        self.target_keyword = ",".join(target_keyword_list)
+        self.target_keyword = ",".join(
+            [
+                db_module_map.get(int(value), value) if t["rule"]["key"] == TargetLevel.MODULE.value else value
+                for t in self.targets
+                for value in t["rule"]["value"]
+            ]
+        )
 
         # 平台策略首次生成分组key，所有子策略继承同一个key
         if not self.parent_id and not self.priority_group_key:
@@ -878,7 +857,9 @@ class MonitorPolicy(AuditedModel):
                         filter(lambda cond: cond["key"] not in exclude_keys, query_config["agg_condition"])
                     )
                     query_config_agg_condition.extend(agg_conditions)
-                    query_config_agg_condition.extend(self.custom_conditions)
+                    # 平台或者业务策略才需要加入自定义的信息
+                    if self.target_level in [TargetLevel.PLATFORM, TargetLevel.APP]:
+                        query_config_agg_condition.extend(self.custom_conditions)
 
                     # overwrite agg_condition
                     query_config["agg_condition"] = query_config_agg_condition
@@ -967,18 +948,6 @@ class MonitorPolicy(AuditedModel):
 
         return details
 
-    def get_policy_type(self, items):
-        if not items:
-            return ""
-        self.expression = items[0]["expression"]
-        query_configs = items[0]["query_configs"]
-        if query_configs[0].get("data_source_label") == "prometheus":
-            return PolicyType.PROMQL
-        elif len(query_configs) >= 2:
-            return PolicyType.MULTI
-        else:
-            return PolicyType.SINGLE
-
     def local_save(self, *args, **kwargs):
         """仅保存到本地，不同步到监控"""
         super().save(*args, **kwargs)
@@ -1022,7 +991,6 @@ class MonitorPolicy(AuditedModel):
         self.details = res
         self.monitor_policy_id = self.details["id"]
         self.sync_at = datetime.datetime.now(timezone.utc)
-        self.policy_type = self.get_policy_type(self.details.get("items"))
 
         # 平台内置策略支持保存初始版本，用于恢复默认设置
         if self.pk is None and self.bk_biz_id == env.DBA_APP_BK_BIZ_ID:
@@ -1147,14 +1115,6 @@ class MonitorPolicy(AuditedModel):
         ]
 
         query_configs = details["items"][0]["query_configs"]
-        policy_type = ""
-        if query_configs[0].get("data_source_label") == "prometheus":
-            policy_type = "PromQL"
-        elif len(query_configs) >= 2:
-            policy_type = "multi"
-        elif len(query_configs) == 1:
-            policy_type = "single"
-        result["policy_type"] = policy_type
 
         first_query_config = query_configs[0]
         target_conditions = (
@@ -1173,12 +1133,13 @@ class MonitorPolicy(AuditedModel):
 
         # 默认填充平台级目标
         if not result["targets"]:
+            data_source_label = first_query_config.get("data_source_label")
             result["targets"].append(
                 {
                     "level": TargetLevel.PLATFORM.value,
                     "rule": {
                         "key": TargetLevel.PLATFORM.value,
-                        "method": "==" if policy_type == "PromQL" else "eq",
+                        "method": "==" if data_source_label == "prometheus" else "eq",
                         "value": [],
                     },
                 }
@@ -1215,8 +1176,6 @@ class MonitorPolicy(AuditedModel):
                 }
             )
         result["agg_info"] = agg_info
-
-        result["expression"] = details["items"][0]["expression"]
 
         return result
 

@@ -76,6 +76,7 @@ def bkm_delete_alarm_strategy(monitor_policy_id):
 
 def render_promql_sql(prom_sql, wheres):
     """
+    TODO: 后续新方法稳定之后删除
     渲染promql语句，通过正则替换
         prom_sql (str): The original PromQL query.
         wheres (dict): A dictionary of conditions to add or replace in the form {label: value or list of values}.
