@@ -96,18 +96,31 @@
         </TableColumn>
         <TableColumn
           col-key="status"
-          :min-width="300"
+          :min-width="200"
           :title="t('关联单据状态')">
           <template #default="{ row }: { row: IRowData }">
-            <div class="ticket-status-summary">
-              <span
-                v-for="item in generateStatusCount(row.status)"
-                :key="item.text"
-                class="ticket-status-item"
-                :class="`ts-${item.statusKey}`">
-                <span class="ts-dot" />
-                {{ item.text }} {{ item.count }}
-              </span>
+            <div class="ticket-status">
+              <div
+                v-bk-tooltips="{
+                  content: generateStatusCount(row.status)
+                    .map((item) => `${item.text} ${item.count}`)
+                    .join('，'),
+                  placement: 'top',
+                  disabled: generateStatusCount(row.status).length <= MAX_DISPLAY_NUM,
+                }"
+                class="ticket-status-list">
+                <span
+                  v-for="(item, index) in generateStatusCount(row.status)"
+                  :key="item.text">
+                  {{ item.text }}
+                  <span
+                    class="bold-number"
+                    :style="{ color: item.color }">
+                    {{ item.count }}
+                  </span>
+                  <span v-if="index < generateStatusCount(row.status).length - 1">，</span>
+                </span>
+              </div>
             </div>
           </template>
         </TableColumn>
@@ -189,27 +202,27 @@
   const isShowDetails = ref(false);
   const detailsId = ref<number>(0);
 
-  const statusKeyMap: Record<string, string> = {
-    [TicketModel.STATUS_APPROVE]: 'running',
-    [TicketModel.STATUS_FAILED]: 'failed',
-    [TicketModel.STATUS_INNER_TODO]: 'pending',
-    [TicketModel.STATUS_RESOURCE_REPLENISH]: 'pending',
-    [TicketModel.STATUS_RUNNING]: 'running',
-    [TicketModel.STATUS_SUCCEEDED]: 'success',
-    [TicketModel.STATUS_TERMINATED]: 'terminated',
-    [TicketModel.STATUS_TIMER]: 'pending',
-    [TicketModel.STATUS_TODO]: 'pending',
+  const colorMap = {
+    [TicketModel.STATUS_APPROVE]: '#267BCF',
+    [TicketModel.STATUS_FAILED]: '#EA3636',
+    [TicketModel.STATUS_INNER_TODO]: '#E38B02',
+    [TicketModel.STATUS_RESOURCE_REPLENISH]: '#F59500',
+    [TicketModel.STATUS_RUNNING]: '#3A84FF',
+    [TicketModel.STATUS_SUCCEEDED]: '#2CAF5E',
+    [TicketModel.STATUS_TERMINATED]: '#E71818',
+    [TicketModel.STATUS_TIMER]: '#3F726F',
+    [TicketModel.STATUS_TODO]: '#4D4F56',
   };
 
   const generateStatusCount = (status: string[]) => {
-    return status.reduce<Array<{ count: number; statusKey: string; text: string }>>((acc, curr) => {
+    return status.reduce<Array<{ color: string; count: number; text: string }>>((acc, curr) => {
       const text = TicketModel.statusTextMap[curr as keyof typeof TicketModel.statusTextMap] || '--';
-      const statusKey = statusKeyMap[curr] || 'pending';
-      const existing = acc.find((item) => item.statusKey === statusKey);
+      const color = colorMap[curr] || '#63656e';
+      const existing = acc.find((item) => item.color === color);
       if (existing) {
         existing.count += 1;
       } else {
-        acc.push({ count: 1, statusKey, text });
+        acc.push({ color, count: 1, text });
       }
       return acc;
     }, []);
@@ -289,7 +302,6 @@
     }
 
     .jump-link {
-      margin-left: auto;
       font-size: 13px;
       color: #3a84ff;
       cursor: pointer;

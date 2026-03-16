@@ -15,10 +15,10 @@
   <BkSideslider
     v-model:is-show="isShow"
     class="replenish-record-details-slider"
-    width="75%">
+    width="65%">
     <template #header>
-      <span>{{ t('操作详情') }}</span>
-      <span class="header-desc">ID: {{ id }}</span>
+      <span>{{ t('记录明细详情') }}</span>
+      <span class="header-desc">ID：{{ id }}</span>
     </template>
     <div class="replenish-record-details">
       <BkLoading :loading="isLoading">
@@ -27,20 +27,19 @@
           <div class="summary-item">
             <span class="summary-label">{{ t('补货数量') }}：</span>
             <span class="summary-value">
-              <span
+              <template
                 v-for="(value, db) in summaryInfo.details"
-                :key="db"
-                class="db-count">
-                {{ dbNameMap[db] }}: {{ value }}
-              </span>
+                :key="db">
+                <span class="db-count">
+                  {{ dbNameMap[db] }}：<span class="db-count-value">{{ value }}</span>
+                </span>
+              </template>
             </span>
           </div>
-          <div class="summary-divider" />
           <div class="summary-item">
             <span class="summary-label">{{ t('申请人') }}：</span>
             <span class="summary-value">{{ summaryInfo.creator || '--' }}</span>
           </div>
-          <div class="summary-divider" />
           <div class="summary-item">
             <span class="summary-label">{{ t('申请时间') }}：</span>
             <span class="summary-value">{{
@@ -49,47 +48,33 @@
           </div>
         </div>
 
+        <!-- 关联单据标题 -->
+        <div class="related-tickets-title">{{ t('关联单据') }}</div>
+
         <!-- 工具栏：状态Tab + 批量终止 + 导出 + 搜索 -->
         <div class="slide-toolbar">
-          <div class="status-tab-group">
-            <div
+          <BkRadioGroup
+            v-model="activeStatusTab"
+            type="capsule"
+            @change="handleStatusTabChange">
+            <BkRadioButton
               v-for="tab in statusTabs"
               :key="tab.key"
-              class="slide-status-tab"
-              :class="{ active: activeStatusTab === tab.key }"
-              @click="handleStatusTabChange(tab.key)">
-              {{ tab.label }}
-              <span
-                class="tab-count"
-                :class="{ active: activeStatusTab === tab.key }">
-                {{ statusCountMap[tab.key] || 0 }}
-              </span>
-            </div>
-          </div>
+              :label="tab.key">
+              {{ tab.label }} ( {{ statusCountMap[tab.key] || 0 }} )
+            </BkRadioButton>
+          </BkRadioGroup>
 
           <BkButton
-            v-if="activeStatusTab === 'all' || activeStatusTab === 'FAILED'"
             class="batch-terminate-btn"
             :disabled="selectedRows.length === 0"
-            outline
-            theme="danger"
+            :loading="isTerminating"
             @click="handleBatchTerminate">
+            <DbIcon
+              class="mr-4"
+              type="bk-dbm-icon db-icon-stop" />
             {{ t('批量终止') }}
           </BkButton>
-
-          <span
-            v-if="selectedRows.length > 0"
-            class="batch-info">
-            {{ t('已选') }}
-            <span class="batch-count">{{ selectedRows.length }}</span>
-            {{ t('条') }}
-            <BkButton
-              text
-              theme="primary"
-              @click="handleClearSelection">
-              {{ t('取消选择') }}
-            </BkButton>
-          </span>
 
           <BkButton
             v-bk-tooltips="t('导出该补货操作关联的所有单据明细，不受当前筛选条件影响')"
@@ -97,7 +82,7 @@
             @click="handleExportAll">
             <DbIcon
               class="mr-4"
-              type="bk-dbm-icon db-icon-import" />
+              type="bk-dbm-icon db-icon-daochu-2" />
             {{ t('导出全部') }}
           </BkButton>
 
@@ -105,7 +90,7 @@
             <DbQuickSearch
               v-model="quickSearchValue"
               :data="slideQuickSearchData"
-              :placeholder="t('单号 / DB类型')"
+              :placeholder="t('搜索单号、DB 类型')"
               style="width: 100%" />
           </div>
         </div>
@@ -116,13 +101,10 @@
           border
           :columns="tableColumns"
           :data="filteredTableData"
+          :is-row-select-enable="isRowSelectEnable"
           :max-height="tableMaxHeight"
-          @selection-change="handleSelectionChange" />
-
-        <!-- 底部 -->
-        <div class="slide-footer">
-          <span class="footer-total">{{ t('共 n 条单据', { n: tableData.length }) }}</span>
-        </div>
+          @checkbox-all="handleCheckboxAll"
+          @checkbox-change="handleCheckboxChange" />
       </BkLoading>
     </div>
 
@@ -161,6 +143,7 @@
       </BkForm>
       <template #footer>
         <BkButton
+          class="mr-8"
           :loading="isTerminating"
           theme="primary"
           @click="handleConfirmTerminate">
@@ -180,13 +163,9 @@
   import TicketModel from '@services/model/ticket/ticket';
   import { exportReplenishTickets, fetchReplenish, listTicketApplyInfo } from '@services/source/dbresourceReplenish';
   import { getTickets } from '@services/source/ticket';
-  import { batchProcessTicket, getInnerFlowInfo } from '@services/source/ticketFlow';
-
-  import { useSystemEnviron } from '@stores';
+  import { batchProcessTicket } from '@services/source/ticketFlow';
 
   import { DBTypeInfos, TicketTypes } from '@common/const';
-
-  import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
 
   import { messageSuccess, utcDisplayTime } from '@utils';
 
@@ -226,7 +205,6 @@
 
   const { t } = useI18n();
   const router = useRouter();
-  const systemEnvironStore = useSystemEnviron();
 
   const tableRef = ref();
   const tableData = shallowRef<RowData[]>([]);
@@ -238,7 +216,6 @@
   const isShowTerminateDialog = ref(false);
   const isTerminating = ref(false);
   const terminateFormRef = ref();
-  const ticketInnerFlowInfo = shallowRef<ServiceReturnType<typeof getInnerFlowInfo>>({});
 
   const summaryInfo = ref({
     create_at: '',
@@ -274,6 +251,21 @@
     { key: 'SUCCEEDED' as const, label: t('已完成') },
     { key: 'TERMINATED' as const, label: t('已终止') },
   ];
+
+  // 状态图标映射
+  const statusIconMap: Record<string, string> = {
+    [TicketModel.STATUS_APPROVE]: 'sync-default',
+    [TicketModel.STATUS_FAILED]: 'sync-failed',
+    [TicketModel.STATUS_INNER_TODO]: 'sync-default',
+    [TicketModel.STATUS_PENDING]: 'sync-default',
+    [TicketModel.STATUS_RESOURCE_REPLENISH]: 'sync-default',
+    [TicketModel.STATUS_REVOKED]: 'sync-failed',
+    [TicketModel.STATUS_RUNNING]: 'sync-pending',
+    [TicketModel.STATUS_SUCCEEDED]: 'sync-success',
+    [TicketModel.STATUS_TERMINATED]: 'sync-failed',
+    [TicketModel.STATUS_TIMER]: 'sync-pending',
+    [TicketModel.STATUS_TODO]: 'sync-default',
+  };
 
   const slideQuickSearchData = computed(() => [
     {
@@ -357,117 +349,38 @@
 
   // 表格列配置
   const tableColumns = computed(() => {
-    const showStatusColumn = activeStatusTab.value === 'all';
-    const showCheckboxColumn = activeStatusTab.value === 'all' || activeStatusTab.value === 'FAILED';
-
     const columns: any[] = [];
 
-    if (showCheckboxColumn) {
-      columns.push({
-        fixed: 'left',
-        selectable: (row: RowData) => row.status === TicketModel.STATUS_FAILED,
-        type: 'selection',
-        width: 50,
-      });
-    }
+    columns.push({
+      fixed: 'left',
+      type: 'checkbox',
+      width: 50,
+    });
 
     columns.push(
       {
-        field: 'id',
-        fixed: 'left',
-        label: t('单号'),
-        render: ({ data }: { data: RowData }) => (
-          <bk-button
-            onClick={() => handleOpenTicketDetail(data)}
-            text
-            theme='primary'>
-            {data.id}
-          </bk-button>
-        ),
-        width: 80,
-      },
-      {
-        field: 'inner_flow',
-        label: t('子任务'),
-        render: ({ data }: { data: RowData }) => {
-          const flowInfo = ticketInnerFlowInfo.value[data.id];
-          if (!flowInfo) {
-            return (
-              <div
-                class='rotate-loading'
-                style='display: inline-block'>
-                <db-icon
-                  svg
-                  type='sync-pending'
-                />
-              </div>
-            );
-          }
-          if (flowInfo.length < 1) {
-            return '--';
-          }
-          return flowInfo.map((flowItem, index) => (
-            <div
-              key={index}
-              style='line-height: 26px'>
-              <bk-button
-                onClick={() => handleGoTaskHistoryDetail(data, flowItem)}
-                text
-                theme='primary'>
-                {flowItem.flow_alias}
-              </bk-button>
-            </div>
-          ));
-        },
-        width: 150,
-      },
-    );
-
-    if (showStatusColumn) {
-      columns.push({
-        field: 'status',
-        label: t('状态'),
-        render: ({ data }: { data: RowData }) => (
-          <TicketStatusTag
-            data={{
-              status: data.status,
-              statusText: data.status_display,
-            }}
-          />
-        ),
-        width: 120,
-      });
-    }
-
-    columns.push(
-      {
-        field: 'db_type',
-        label: t('DB 类型'),
-        render: ({ data }: { data: RowData }) => dbNameMap[data.db_type] || '--',
-        width: 120,
-      },
-      {
-        field: 'spec.spec_machine_type',
-        label: t('规格类型'),
-        render: ({ data }: { data: RowData }) => machineTypeMap[data.spec?.spec_machine_type] || '--',
-        width: 120,
-      },
-      {
-        field: 'spec.spec_name',
+        field: 'spec',
         label: t('规格'),
-        render: ({ data }: { data: RowData }) => data.spec?.spec_name || '--',
-        width: 180,
-      },
-      {
-        field: 'city',
-        label: t('地域'),
-        render: ({ data }: { data: RowData }) => data.city || '--',
-        width: 100,
+        minWidth: 280,
+        render: ({ data }: { data: RowData }) => {
+          const dbName = dbNameMap[data.db_type] || '--';
+          const machineType = machineTypeMap[data.spec?.spec_machine_type] || '--';
+          const specName = data.spec?.spec_name || '--';
+          return (
+            <span class='spec-cell'>
+              {dbName} / {machineType} / {specName}
+            </span>
+          );
+        },
       },
       {
         field: 'subzone',
         label: t('园区'),
-        render: ({ data }: { data: RowData }) => data.subzone || '--',
+        render: ({ data }: { data: RowData }) => {
+          const city = data.city || '';
+          const subzone = data.subzone || '';
+          return city && subzone ? `${city}-${subzone}` : city || subzone || '--';
+        },
         width: 120,
       },
       {
@@ -478,33 +391,51 @@
       },
       {
         field: 'count',
-        label: t('申请数量'),
+        label: t('补充数量'),
         render: ({ data }: { data: RowData }) => <span class='bold-number'>{data.count || 0}</span>,
         width: 100,
       },
       {
-        field: 'delivery_count',
-        label: t('已交付'),
+        field: 'id',
+        label: t('关联补货单'),
+        render: ({ data }: { data: RowData }) => (
+          <bk-button
+            onClick={() => handleOpenTicketDetail(data)}
+            text
+            theme='primary'>
+            {data.id}
+          </bk-button>
+        ),
+        width: 120,
+      },
+      {
+        field: 'status',
+        label: t('操作结果'),
         render: ({ data }: { data: RowData }) => {
-          const isSuccess = data.delivery_count === data.count;
-          const isFailed = data.delivery_count < data.count;
+          const iconType = statusIconMap[data.status] || 'sync-default';
+          const isRunning = iconType === 'sync-pending';
           return (
-            <span
-              class={{
-                'bold-number': true,
-                'green-number': isSuccess,
-                'red-number': isFailed,
-              }}>
-              {data.delivery_count || 0}
+            <span class='status-cell'>
+              <db-icon
+                class={{ 'rotate-loading': isRunning }}
+                svg
+                type={iconType}
+              />
+              <span class='ml-4'>{data.status_display}</span>
             </span>
           );
         },
-        width: 100,
+        width: 120,
       },
     );
 
     return columns;
   });
+
+  // 判断行是否可选（只有失败状态的行可选）
+  const isRowSelectEnable = ({ row }: { row: RowData }) => {
+    return row.status === TicketModel.STATUS_FAILED;
+  };
 
   const handleStatusTabChange = (key: StatusKey) => {
     activeStatusTab.value = key;
@@ -512,22 +443,25 @@
     tableRef.value?.clearSelection();
   };
 
-  const handleSelectionChange = ({ checked, isAll, row }: { checked: boolean; isAll: boolean; row: RowData }) => {
-    if (isAll) {
-      // 全选/取消全选
-      if (checked) {
-        // 只选中失败状态的行
-        selectedRows.value = filteredTableData.value.filter((item) => item.status === TicketModel.STATUS_FAILED);
-      } else {
-        selectedRows.value = [];
+  // 全选/取消全选
+  const handleCheckboxAll = ({ checked }: { checked: boolean }) => {
+    if (checked) {
+      // 只选中失败状态的行
+      selectedRows.value = filteredTableData.value.filter((item) => item.status === TicketModel.STATUS_FAILED);
+    } else {
+      selectedRows.value = [];
+    }
+  };
+
+  // 单行选择
+  const handleCheckboxChange = ({ checked, row }: { checked: boolean; row: RowData }) => {
+    if (checked) {
+      const index = selectedRows.value.findIndex((item) => item.id === row.id);
+      if (index === -1) {
+        selectedRows.value.push(row);
       }
     } else {
-      // 单行选择
-      if (checked) {
-        selectedRows.value.push(row);
-      } else {
-        selectedRows.value = selectedRows.value.filter((item) => item.id !== row.id);
-      }
+      selectedRows.value = selectedRows.value.filter((item) => item.id !== row.id);
     }
   };
 
@@ -588,21 +522,6 @@
     window.open(href, '_blank');
   };
 
-  const handleGoTaskHistoryDetail = (
-    _ticketData: RowData,
-    data: ServiceReturnType<typeof getInnerFlowInfo>[number][number],
-  ) => {
-    const { href } = router.resolve({
-      name: 'taskHistoryDetail',
-      params: {
-        root_id: data.flow_id,
-      },
-    });
-
-    const path = href.replace(/^\/(\d+)/, `${systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ}`);
-    window.open(`${window.location.origin}/${path}`, '_blank');
-  };
-
   const fetchData = async () => {
     if (!props.id) return;
 
@@ -645,13 +564,10 @@
 
           // 获取单据详情（使用批量接口）
           const ticketIdsStr = ticketIds.join(',');
-          const [ticketsRes, innerFlowInfo, applyInfo] = await Promise.all([
+          const [ticketsRes, applyInfo] = await Promise.all([
             getTickets(searchParams),
-            getInnerFlowInfo({ ticket_ids: ticketIdsStr }),
             listTicketApplyInfo({ ticket_ids: ticketIdsStr }),
           ]);
-
-          ticketInnerFlowInfo.value = innerFlowInfo;
 
           tableData.value = ticketsRes.results.map((item) => {
             const applyInfoItem = applyInfo[item.id] || {};
@@ -672,6 +588,7 @@
     isShow,
     () => {
       if (isShow.value && props.id) {
+        selectedRows.value = [];
         fetchData();
       }
     },
@@ -728,18 +645,17 @@
     .slide-summary {
       display: flex;
       align-items: center;
-      gap: 24px;
+      gap: 32px;
       padding: 12px 16px;
-      background: #f5f7fa;
-      border-radius: 4px;
-      margin-bottom: 16px;
+      margin-bottom: 24px;
       flex-wrap: wrap;
+      background: #f5f7fa;
+      border-radius: 2px;
 
       .summary-item {
         display: flex;
         align-items: center;
-        gap: 6px;
-        font-size: 13px;
+        font-size: 12px;
         color: #63656e;
         white-space: nowrap;
       }
@@ -750,21 +666,27 @@
 
       .summary-value {
         color: #313238;
-        font-weight: 500;
 
         .db-count {
           display: inline-flex;
           align-items: center;
-          gap: 2px;
-          margin-right: 8px;
+          margin-right: 12px;
+          color: #63656e;
+
+          .db-count-value {
+            font-weight: 700;
+            color: #313238;
+            margin-left: 2px;
+          }
         }
       }
+    }
 
-      .summary-divider {
-        width: 1px;
-        height: 16px;
-        background: #dcdee5;
-      }
+    .related-tickets-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #313238;
+      margin-bottom: 16px;
     }
 
     .slide-toolbar {
@@ -773,94 +695,12 @@
       gap: 8px;
       margin-bottom: 12px;
 
-      .status-tab-group {
-        display: inline-flex;
-        align-items: center;
-        flex-shrink: 0;
-      }
-
-      .slide-status-tab {
-        padding: 4px 12px;
-        font-size: 13px;
-        color: #63656e;
-        cursor: pointer;
-        border: 1px solid #dcdee5;
-        transition: all 0.15s;
-        white-space: nowrap;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        background: #fff;
-        margin-right: -1px;
-        height: 32px;
-        box-sizing: border-box;
-
-        &:first-child {
-          border-radius: 2px 0 0 2px;
-        }
-
-        &:last-child {
-          border-radius: 0 2px 2px 0;
-          margin-right: 0;
-        }
-
-        &:hover {
-          color: #3a84ff;
-          border-color: #3a84ff;
-          z-index: 1;
-          position: relative;
-        }
-
-        &.active {
-          color: #3a84ff;
-          border-color: #3a84ff;
-          background: #e1ecff;
-          font-weight: 500;
-          z-index: 1;
-          position: relative;
-        }
-
-        .tab-count {
-          display: inline-block;
-          min-width: 16px;
-          height: 16px;
-          padding: 0 4px;
-          border-radius: 8px;
-          font-size: 11px;
-          font-weight: 500;
-          background: #f0f1f5;
-          color: #979ba5;
-          line-height: 16px;
-          text-align: center;
-          box-sizing: border-box;
-          vertical-align: middle;
-
-          &.active {
-            background: #3a84ff;
-            color: #fff;
-          }
-        }
-      }
-
       .batch-terminate-btn {
-        margin-left: 12px;
+        margin-left: 8px;
 
         &:disabled {
           opacity: 0.4;
           cursor: not-allowed;
-        }
-      }
-
-      .batch-info {
-        font-size: 12px;
-        color: #63656e;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-
-        .batch-count {
-          color: #3a84ff;
-          font-weight: 500;
         }
       }
 
@@ -871,30 +711,35 @@
       }
     }
 
-    .slide-footer {
-      padding: 12px 0;
-      border-top: 1px solid #f0f1f5;
-      margin-top: 12px;
-
-      .footer-total {
-        font-size: 12px;
-        color: #979ba5;
-      }
-    }
-
     .bold-number {
       font-family: MicrosoftYaHei-Bold;
       font-weight: 700;
       font-size: 12px;
-      color: #4d4f56;
+      color: #313238;
     }
 
-    .green-number {
-      color: #2caf5e;
+    .spec-cell {
+      color: #313238;
     }
 
-    .red-number {
-      color: #ea3636;
+    .status-cell {
+      display: inline-flex;
+      align-items: center;
+      vertical-align: middle;
+
+      .rotate-loading {
+        animation: rotate-loading 1s linear infinite;
+      }
+    }
+
+    @keyframes rotate-loading {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
     }
 
     // 表格内单元格间距优化
