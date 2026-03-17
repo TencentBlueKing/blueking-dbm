@@ -648,6 +648,7 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, instance_
                 {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "id": collect_ins.collect_id, "scope": scope, "action": action},
                 use_admin=True,
             )
+            logger.info(f"[monitor] id:{collect_ins.collect_id} success, scope: {scope}")
         except ApiError as err:
             logger.error(f"[monitor] id:{collect_ins.collect_id} error: {err}")
 
@@ -682,6 +683,7 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, instance_
                 },
                 use_admin=True,
             )
+            logger.info(f"[bklog] id:{collect_id} success, scope: {bklog_scope}")
         except ApiError as err:
             logger.error(f"[bklog] id:{collect_id} error: {err}")
 
