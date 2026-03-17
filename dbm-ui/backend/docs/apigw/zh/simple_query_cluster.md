@@ -47,7 +47,7 @@
 ```json
 {
     "bk_biz_id"： 3,
-    "immute_domain": "kafka.adminxxx.dba.db",
+    "immute_domain": "xxxxx",
 }
 ```
 
@@ -57,10 +57,10 @@
 [
     {
       "id": 29,
-      "name": "admin",
+      "name": "xxxxx",
       "bk_biz_id": 3,
       "cluster_type": "kafka",
-      "immute_domain": "kafka.admin.dba.db",
+      "immute_domain": "xxxxxx",
       "major_version": "2.4.0",
       "bk_cloud_id": 0,
       "region": ""

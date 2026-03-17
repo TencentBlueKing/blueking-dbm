@@ -23,9 +23,11 @@ from django.core.management.base import BaseCommand
 from drf_spectacular.settings import spectacular_settings
 
 from backend import env
-from backend.dbm_aiagent.mcp_tools import decorators
-from backend.dbm_aiagent.mcp_tools.constants import DBMMcpTools
-from backend.dbm_init.management.commands.mcp_checker import SimpleMCPDependencyGraph
+
+if env.ENABLE_DBM_AI:
+    from backend.dbm_aiagent.mcp_tools import decorators
+    from backend.dbm_aiagent.mcp_tools.constants import DBMMcpTools
+    from backend.dbm_init.management.commands.mcp_checker import SimpleMCPDependencyGraph
 
 logger = logging.getLogger("root")
 
@@ -243,7 +245,7 @@ class Command(BaseCommand):
         if apigw or all_mode:
             self.sync_dbm_apigw()
 
-        if mcp or all_mode or only_mcp_resource:
+        if (mcp or all_mode or only_mcp_resource) and env.ENABLE_DBM_AI:
             self.sync_mcp_apigw(only_mcp_resource, mcp_servers=mcp_servers)
 
         if mcp_check:

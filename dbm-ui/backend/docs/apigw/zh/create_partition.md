@@ -119,7 +119,7 @@
                 "message": ""
             },
             {
-                "ip": "127.0.0.1",
+                "ip": "0.0.0.0",
                 "port": 26000,
                 "shard_name": "TDBCTL0",
                 "execute_objects": [
@@ -187,8 +187,8 @@
 [
     {
         "id": 74667,
-        "creator": "admin",
-        "updater": "admin",
+        "creator": "xxxx",
+        "updater": "xxxx",
         "bk_biz_id": 5005578,
         "ticket_type": "MYSQL_PARTITION",
         "group": "mysql",

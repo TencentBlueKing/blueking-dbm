@@ -20,9 +20,9 @@
         "results": [
             {
                 "id": 5,
-                "creator": "admin",
+                "creator": "xxxx",
                 "create_at": "2024-01-18T15:58:50+08:00",
-                "updater": "admin",
+                "updater": "xxxx",
                 "update_at": "2024-01-18T16:19:24+08:00",
                 "config_rules": [
                     {
