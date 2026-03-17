@@ -129,4 +129,8 @@ class MySQLFullBackupFlow(object):
 
         backup_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipes)
         logger.info(_("构建全库备份流程成功"))
-        backup_pipeline.run_pipeline(init_trans_data_class=MySQLBackupDemandContext())
+        # 启动接入单据值守监听
+        backup_pipeline.run_pipeline_with_sidecar(
+            init_trans_data_class=MySQLBackupDemandContext(),
+            check_ai_monitor_cluster_list=[i["cluster_id"] for i in self.data["infos"]],
+        )

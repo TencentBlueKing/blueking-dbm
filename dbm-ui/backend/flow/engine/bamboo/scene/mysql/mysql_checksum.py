@@ -256,4 +256,10 @@ class MysqlChecksumFlow(object):
             )
         checksum_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         logger.info(_("构建checksum流程成功"))
-        checksum_pipeline.run_pipeline(init_trans_data_class=MysqlChecksumContext(), is_drop_random_user=True)
+        # checksum_pipeline.run_pipeline(init_trans_data_class=MysqlChecksumContext(), is_drop_random_user=True)
+        # 启动接入单据值守监听
+        checksum_pipeline.run_pipeline_with_sidecar(
+            init_trans_data_class=MysqlChecksumContext(),
+            is_drop_random_user=True,
+            check_ai_monitor_cluster_list=list(set(cluster_ids)),
+        )

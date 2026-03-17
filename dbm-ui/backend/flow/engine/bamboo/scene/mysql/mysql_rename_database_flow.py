@@ -165,4 +165,9 @@ class MySQLRenameDatabaseFlow(object):
 
         pipeline.add_sub_pipeline(sub_flow=rename_pipeline.build_sub_process(sub_name=_("DB重命名")))
         logger.info(_("构建重命名数据库流程成功"))
-        pipeline.run_pipeline(init_trans_data_class=MySQLTruncateDataContext(), is_drop_random_user=True)
+        # 启动接入单据值守监听
+        pipeline.run_pipeline_with_sidecar(
+            init_trans_data_class=MySQLTruncateDataContext(),
+            is_drop_random_user=True,
+            check_ai_monitor_cluster_list=list(set(cluster_ids)),
+        )

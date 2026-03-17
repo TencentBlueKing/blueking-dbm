@@ -525,7 +525,13 @@ class TendbClusterMigrateRemoteFlow(object):
             raise Exception(_("没有生成集群迁移流程"))
         tendb_migrate_pipeline_all.add_parallel_sub_pipeline(tendb_migrate_pipeline_all_list)
         # 执行主流程
-        tendb_migrate_pipeline_all.run_pipeline(
+        # tendb_migrate_pipeline_all.run_pipeline(
+        #     init_trans_data_class=ClusterInfoContext(),
+        #     is_drop_random_user=True,
+        # )
+        # 启动接入单据值守监听
+        tendb_migrate_pipeline_all.run_pipeline_with_sidecar(
             init_trans_data_class=ClusterInfoContext(),
             is_drop_random_user=True,
+            check_ai_monitor_cluster_list=list(set(cluster_ids)),
         )
