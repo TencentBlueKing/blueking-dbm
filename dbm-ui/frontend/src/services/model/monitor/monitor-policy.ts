@@ -12,10 +12,43 @@
  */
 import dayjs from 'dayjs';
 
+import { MonitorTargetLevel } from '@common/const';
+
 import { utcDisplayTime } from '@utils';
 
+import { t } from '@locales/index';
+
 export default class MonitorPolicy {
+  static MULTI = 'multi';
+  static PROMQL = 'PromQL';
+  static SINGLE = 'single';
+
+  static PolicyType = {
+    MULTI: MonitorPolicy.MULTI,
+    PROMQL: MonitorPolicy.PROMQL,
+    SINGLE: MonitorPolicy.SINGLE,
+  };
+
+  static PolicyTypeTextMap = {
+    [MonitorPolicy.MULTI]: t('多指标'),
+    [MonitorPolicy.PROMQL]: 'PromQL',
+    [MonitorPolicy.SINGLE]: t('单指标'),
+  };
+
+  static PolicyTypeList = Object.values(MonitorPolicy.PolicyType).map((item) => ({
+    label: MonitorPolicy.PolicyTypeTextMap[item],
+    value: item,
+  }));
+
+  agg_info: {
+    agg_interval: number;
+    agg_method: string;
+    metric_field: string;
+    metric_id: string;
+    promql: string;
+  }[];
   bk_biz_id: number; // 所属业务，等于0则属于平台策略
+  child: MonitorPolicy[];
   create_at: string;
   creator: string;
   custom_conditions: {
@@ -26,6 +59,14 @@ export default class MonitorPolicy {
     value: string[];
   }[];
   db_type: string; // 所属db组件
+  details: {
+    items: {
+      expression: string;
+      query_configs: {
+        data_source_label: string;
+      }[];
+    }[];
+  };
   detects_config: {
     recovery_config: {
       check_window: number;
@@ -60,6 +101,10 @@ export default class MonitorPolicy {
     is_enabled: boolean;
     level: number;
   };
+  notify_config: {
+    interval_notify_mode: string;
+    notify_interval: number; // 单位秒
+  };
   notify_groups: number[]; // 告警组ID列表
   notify_rules: string[];
   parent_id: number;
@@ -76,13 +121,14 @@ export default class MonitorPolicy {
   policy_status: string; // 策略状态：valid(正常)|invalid（异常）
   sync_at: string;
   target_keyword: string;
-  target_level: string;
+  target_level: MonitorTargetLevel;
   target_priority: number;
   targets: {
-    level: string; // 业务级
+    level: string;
     rule: {
-      key: string; // 业务
-      value: string[]; // 业务列表
+      key: string;
+      method: string;
+      value: string[];
     };
   }[];
   // 检测规则
@@ -100,10 +146,13 @@ export default class MonitorPolicy {
   updater: string;
 
   constructor(payload = {} as MonitorPolicy) {
+    this.agg_info = payload.agg_info;
     this.bk_biz_id = payload.bk_biz_id;
     this.creator = payload.creator;
+    this.child = payload.child || [];
     this.create_at = payload.create_at;
     this.custom_conditions = payload.custom_conditions;
+    this.details = payload.details;
     this.dispatch_group_id = payload.dispatch_group_id;
     this.db_type = payload.db_type;
     this.detects_config = payload.detects_config;
@@ -116,6 +165,7 @@ export default class MonitorPolicy {
     this.monitor_policy_id = payload.monitor_policy_id;
     this.monitor_indicator = payload.monitor_indicator;
     this.name = payload.name;
+    this.notify_config = payload.notify_config;
     this.no_data_config = payload.no_data_config;
     this.notify_rules = payload.notify_rules;
     this.notify_groups = payload.notify_groups;
@@ -132,12 +182,85 @@ export default class MonitorPolicy {
     this.update_at = payload.update_at;
   }
 
+  get expression() {
+    return this.details.items[0].expression;
+  }
+
+  get isChild() {
+    return this.bk_biz_id !== 0 && ![MonitorTargetLevel.BIZ, MonitorTargetLevel.PLATFORM].includes(this.target_level);
+  }
+
+  get isCustom() {
+    return this.bk_biz_id !== 0 && this.target_level === MonitorTargetLevel.BIZ;
+  }
+
   get isInner() {
-    return this.bk_biz_id === 0;
+    return this.bk_biz_id === 0 && this.target_level === MonitorTargetLevel.PLATFORM;
   }
 
   get isNewCreated() {
     return dayjs().isBefore(dayjs(this.create_at).add(24, 'hour'));
+  }
+
+  get isPolicyTypeMulti() {
+    return this.policyType === MonitorPolicy.MULTI;
+  }
+
+  get isPolicyTypePromQL() {
+    return this.policyType === MonitorPolicy.PROMQL;
+  }
+
+  get nameDisplay() {
+    if (this.isCustom) {
+      return this.name.split(' - ')[0];
+    }
+    return this.name;
+  }
+
+  get policyType() {
+    if (this.details.items[0].query_configs[0].data_source_label === 'prometheus') {
+      return MonitorPolicy.PROMQL;
+    }
+    if (this.details.items[0].query_configs.length >= 2) {
+      return MonitorPolicy.MULTI;
+    }
+    return MonitorPolicy.SINGLE;
+  }
+
+  get timeRangesDisplay() {
+    const timeRanges = this.detects_config.trigger_config.uptime.time_ranges;
+    if (timeRanges.length === 0) {
+      return;
+    }
+
+    const parseTimeToMinutes = (time: string) => {
+      if (time === '24:00') {
+        return 1440;
+      }
+      const [hour, minutes] = time.split(':').map(Number);
+      return hour * 60 + minutes;
+    };
+
+    const calcCoveredMinutes = () => {
+      const minutes = Array.from({ length: 24 * 60 }, () => false);
+      timeRanges.forEach((range) => {
+        const start = parseTimeToMinutes(range.start);
+        let end = parseTimeToMinutes(range.end);
+        if (range.end === '23:59') {
+          end = 1440;
+        }
+        for (let i = start; i < end; i++) {
+          minutes[i] = true;
+        }
+      });
+      return minutes.filter(Boolean).length;
+    };
+
+    const totalMinutes = calcCoveredMinutes();
+    if (totalMinutes >= 1440) {
+      return [];
+    }
+    return timeRanges.map((item) => `${item.start} - ${item.end}`);
   }
 
   get updateAtDisplay() {

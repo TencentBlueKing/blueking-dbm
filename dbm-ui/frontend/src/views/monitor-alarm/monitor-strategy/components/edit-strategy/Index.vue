@@ -14,13 +14,13 @@
 <template>
   <DbSideslider
     :is-show="isShow"
-    :show-footer="!isReadonlyPage"
     :width="1110"
     @closed="handleClose">
     <template #header>
       <div class="header-main">
         {{ titleMap[pageStatus] }}
-        【<span class="name">{{ data.name }}</span>
+        【
+        <span class="name">{{ data.nameDisplay }}</span>
         】
         <BkTag theme="info">
           {{ t('业务') }}
@@ -28,170 +28,168 @@
       </div>
     </template>
     <div class="monitor-strategy-box">
-      <BkForm
+      <DbForm
         ref="formRef"
         class="edit-form"
         form-type="vertical"
         :model="formModel"
         :rules="formRules">
-        <BkFormItem
-          :label="t('策略名称')"
-          property="strategyName"
-          required>
-          <BkInput
-            v-model="formModel.strategyName"
-            :disabled="isEditPage || isReadonlyPage" />
-        </BkFormItem>
-        <BkFormItem
-          :label="t('监控目标')"
-          required>
+        <BkCard
+          is-collapse
+          :title="t('基本信息')">
+          <DbFormItem
+            :label="t('策略名称')"
+            property="strategyName"
+            required>
+            <BkInput
+              v-model="formModel.strategyName"
+              :disabled="pageStatus === 'edit'" />
+          </DbFormItem>
+          <DbFormItem
+            :label="t('是否启用')"
+            required>
+            <BkPopConfirm
+              :content="t('停用后，所有的业务将会停用该策略，请谨慎操作！')"
+              :is-show="showSwitchEnableTip"
+              placement="bottom"
+              :popover-options="{
+                disabled: data.isInner || !formModel.isEnabled,
+              }"
+              :title="t('确认停用该策略？')"
+              trigger="click"
+              width="320"
+              @cancel="() => handleSwitchEnableCancelConfirm()"
+              @confirm="() => handleSwitchEnableClickConfirm()">
+              <AuthSwitcher
+                v-model="formModel.isEnabled"
+                action-id="global_monitor_policy_start_stop"
+                :disabled="data.isInner"
+                :permission="data.permission.global_monitor_policy_start_stop"
+                :resource="data.id"
+                size="small"
+                theme="primary"
+                @change="() => handleChangeSwitch()" />
+            </BkPopConfirm>
+          </DbFormItem>
+        </BkCard>
+        <BkCard
+          class="mt-16"
+          is-collapse
+          :title="t('监控数据')">
+          <PromQL
+            v-if="data.isPolicyTypePromQL"
+            ref="promqlRef"
+            :data="data.agg_info" />
+          <template v-else>
+            <BkAlert
+              :title="
+                t(
+                  '指标由平台预置，不可增删或修改指标名。单指标策略允许修改汇聚方法和汇聚周期；多指标策略仅允许修改汇聚周期。',
+                )
+              " />
+            <AggInfo
+              ref="aggInfo"
+              class="mt-16"
+              :data="data.agg_info"
+              :expression="data.expression"
+              :is-multiple="data.isPolicyTypeMulti"
+              :monitor-policy-id="data.monitor_policy_id" />
+          </template>
           <MonitorTarget
+            v-if="isMonitorTargetsShow"
             ref="monitorTargetRef"
-            :bizs-map="bizsMap"
             :cluster-list="clusterList"
             :customs="data.custom_conditions"
-            :db-type="dbType"
-            :disabled="isReadonlyPage"
-            :module-list="moduleList"
+            :is-new="props.pageStatus === 'new'"
+            :is-promql="props.data.isPolicyTypePromQL"
             :targets="data.targets" />
-        </BkFormItem>
-        <BkFormItem
-          :label="t('检测规则')"
-          required>
-          <div class="check-rules">
-            <RuleCheck
-              v-if="infoRule"
-              ref="infoValueRef"
-              :data="infoRule"
-              :disabled="isReadonlyPage"
-              :indicator="data.monitor_indicator"
-              :title="t('提醒')">
-              <DbIcon
-                class="title-icon"
-                type="attention-fill" />
-            </RuleCheck>
-            <RuleCheck
-              v-if="warnRule"
-              ref="warnValueRef"
-              :data="warnRule"
-              :disabled="isReadonlyPage"
-              :indicator="data.monitor_indicator"
-              :title="t('预警')">
-              <DbIcon
-                class="title-icon icon-warn"
-                type="attention-fill" />
-            </RuleCheck>
-            <RuleCheck
-              v-if="dangerRule"
-              ref="dangerValueRef"
-              :data="dangerRule"
-              :disabled="isReadonlyPage"
-              :indicator="data.monitor_indicator"
-              :title="t('致命')">
-              <DbIcon
-                class="title-icon icon-dander"
-                type="alert" />
-            </RuleCheck>
-          </div>
-        </BkFormItem>
+        </BkCard>
+        <TestRules
+          ref="testRule"
+          class="mt-16"
+          :rules="formModel.testRules" />
         <JudgingCondition
           v-model="formModel"
-          :disabled="isReadonlyPage"
+          class="mt-16"
           :monitor-policy-id="data.monitor_policy_id" />
-        <BkFormItem
-          :label="t('告警通知')"
-          property="notifyRules"
-          required>
-          <BkCheckboxGroup
-            v-model="formModel.notifyRules"
-            :disabled="isReadonlyPage">
-            <BkCheckbox
-              v-for="item in notifyTypes"
-              :key="item.label"
-              :label="item.value">
-              {{ item.label }}
-            </BkCheckbox>
-          </BkCheckboxGroup>
-        </BkFormItem>
-        <BkFormItem
-          :label="t('告警组')"
-          property="notifyTarget"
-          required>
-          <BkSelect
-            v-if="!isReadonlyPage"
-            v-model="formModel.notifyTarget"
-            class="notify-select"
-            collapse-tags
-            :disabled="isReadonlyPage"
-            filterable
-            multiple
-            multiple-mode="tag">
-            <template #tag="{ selected }">
-              <BkTag
-                v-for="item in selected"
-                :key="item"
-                closable
-                @close="() => handleDeleteNotifyTargetItem(item.value)">
-                <template #icon>
-                  <DbIcon
-                    class="alarm-icon"
-                    type="yonghuzu" />
-                </template>
-                {{ alarmGroupNameMap[item.value] }}
-              </BkTag>
-            </template>
-            <BkOption
-              v-for="item in alarmGroupList"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value" />
-          </BkSelect>
-          <BkSelect
-            v-else
-            v-model="innerNotifyTarget"
-            disabled
-            multiple
-            multiple-mode="tag">
-            <template #tag="{ selected }">
-              <BkTag
-                v-for="item in selected"
-                :key="item">
-                <template #icon>
-                  <DbIcon
-                    class="alarm-icon"
-                    type="yonghuzu" />
-                </template>
-                {{ `${DBTypeInfos[props.dbType].name}_DBA` }}
-              </BkTag>
-            </template>
-            <BkOption
-              :label="`${DBTypeInfos[props.dbType].name}_DBA`"
-              :value="dbType" />
-          </BkSelect>
-        </BkFormItem>
-      </BkForm>
+        <BkCard
+          class="mt-16"
+          is-collapse
+          :title="t('通知设置')">
+          <DbFormItem
+            :label="t('告警通知')"
+            property="notifyRules"
+            required>
+            <BkCheckboxGroup v-model="formModel.notifyRules">
+              <BkCheckbox
+                v-for="item in notifyTypes"
+                :key="item.label"
+                :label="item.value">
+                {{ item.label }}
+              </BkCheckbox>
+            </BkCheckboxGroup>
+          </DbFormItem>
+          <DbFormItem
+            :label="t('告警组')"
+            property="notifyTarget"
+            required>
+            <BkSelect
+              v-model="formModel.notifyTarget"
+              class="notify-select"
+              collapse-tags
+              filterable
+              multiple
+              multiple-mode="tag">
+              <template #tag="{ selected }">
+                <BkTag
+                  v-for="item in selected"
+                  :key="item"
+                  closable
+                  @close="() => handleDeleteNotifyTargetItem(item.value)">
+                  <template #icon>
+                    <DbIcon
+                      class="alarm-icon"
+                      type="yonghuzu" />
+                  </template>
+                  {{ alarmGroupNameMap[item.value] }}
+                </BkTag>
+              </template>
+              <BkOption
+                v-for="item in alarmGroupList"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value" />
+            </BkSelect>
+          </DbFormItem>
+          <DbFormItem
+            :label="t('通知间隔')"
+            required>
+            <NoticeInterval
+              ref="noticeInterval"
+              :data="data.notify_config" />
+          </DbFormItem>
+        </BkCard>
+      </DbForm>
     </div>
     <template #footer>
       <BkButton
-        class="mr-8"
         :loading="isLoading"
         theme="primary"
         @click="handleConfirm">
         {{ t('确定') }}
       </BkButton>
-      <BkPopConfirm
-        :content="t('将会覆盖当前填写的内容，并恢复默认')"
-        placement="top"
-        trigger="click"
-        width="280"
-        @confirm="handleClickConfirmRecoverDefault">
-        <BkButton
-          class="mr-8"
-          :disabled="isLoading">
-          {{ t('恢复默认') }}
-        </BkButton>
-      </BkPopConfirm>
+      <AuthButton
+        v-if="data.isCustom"
+        action-id="monitor_policy_edit"
+        class="ml-8"
+        :permission="data.permission.monitor_policy_edit"
+        :resource="data.id"
+        theme="primary"
+        @click="() => handleResetToDefault()">
+        {{ t('恢复默认') }}
+      </AuthButton>
       <BkButton
+        class="ml-8"
         :disabled="isLoading"
         @click="handleClose">
         {{ t('取消') }}
@@ -201,6 +199,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { InfoBox } from 'bkui-vue';
   import _ from 'lodash';
   import { computed, type UnwrapRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
@@ -208,30 +207,35 @@
   import { useRequest } from 'vue-request';
 
   import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
-  import { clonePolicy, updatePolicy } from '@services/source/monitor';
+  import { clonePolicy, deletePolicy, updatePolicy } from '@services/source/monitor';
 
   import { useGlobalBizs } from '@stores';
 
-  import { DBTypeInfos, DBTypes } from '@common/const';
-
-  import RuleCheck from '@components/monitor-rule-check/index.vue';
+  import { MonitorTargetLevel } from '@common/const';
 
   import JudgingCondition from '@views/monitor-alarm/common/judging-condition/Index.vue';
+  import AggInfo from '@views/monitor-alarm/common/monitor-data/AggInfo.vue';
+  import PromQL from '@views/monitor-alarm/common/monitor-data/PromQL.vue';
+  import NoticeInterval from '@views/monitor-alarm/common/notice-interval/Index.vue';
+  import TestRules from '@views/monitor-alarm/common/test-rules/Index.vue';
 
   import { messageSuccess } from '@utils';
 
-  import MonitorTarget from './monitor-target/Index.vue';
+  import MonitorTarget from './monitor-target-new/Index.vue';
 
   interface Props {
     alarmGroupList: SelectItem<string>[];
     alarmGroupNameMap: Record<string, string>;
-    bizsMap: Record<string, string>;
     clusterList: SelectItem<string>[];
     data: MonitorPolicyModel;
-    dbType: DBTypes;
     existedNames?: string[];
-    moduleList: SelectItem<string>[];
-    pageStatus?: string;
+    // 内置 编辑 -》 clone
+    // 内置 新建子策略 -》 new
+    // 自定义 编辑 -》 edit
+    // 自定义 新建子策略 -》 new
+    // 子策略 编辑 -》 edit
+    // 子策略 克隆 -》 clone
+    pageStatus: 'edit' | 'clone' | 'new';
   }
 
   interface Emits {
@@ -241,7 +245,6 @@
 
   const props = withDefaults(defineProps<Props>(), {
     existedNames: () => [],
-    pageStatus: 'edit',
   });
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>({
@@ -250,41 +253,38 @@
 
   let rawFormData = '';
 
-  const generateRule = (data: MonitorPolicyModel, level: number) => {
-    const arr = data.test_rules.filter((item) => item.level === level);
-    return arr.length > 0 ? arr[0] : undefined;
-  };
-
   const { t } = useI18n();
   const { currentBizId, currentBizInfo } = useGlobalBizs();
 
-  const monitorTargetRef = ref();
-  const infoValueRef = ref();
-  const warnValueRef = ref();
-  const dangerValueRef = ref();
+  const aggInfoRef = useTemplateRef('aggInfo');
+  const promqlRef = useTemplateRef('promqlRef');
+  const testRuleRef = useTemplateRef('testRule');
+  const noticeIntervalRef = useTemplateRef('noticeInterval');
+
   const formRef = ref();
-  const innerNotifyTarget = ref([props.dbType]);
+  const monitorTargetRef = ref();
+  // const innerNotifyTarget = ref([props.dbType]);
+  const showSwitchEnableTip = ref(false);
 
   const formModel = reactive({
     detectsConfig: {} as ComponentProps<typeof JudgingCondition>['modelValue']['detectsConfig'],
+    isEnabled: false,
     noDataConfig: {} as ComponentProps<typeof JudgingCondition>['modelValue']['noDataConfig'],
     notifyRules: [] as string[],
     notifyTarget: [] as number[],
     strategyName: '',
+    testRules: [] as ComponentProps<typeof TestRules>['rules'],
   });
 
-  const isEditPage = computed(() => props.pageStatus === 'edit');
-  const isReadonlyPage = computed(() => props.pageStatus === 'read');
-  const dangerRule = computed(() => generateRule(props.data, 1));
-  const warnRule = computed(() => generateRule(props.data, 2));
-  const infoRule = computed(() => generateRule(props.data, 3));
   const isLoading = computed(() => updateLoading.value || cloneLoading.value);
+  const isCloneStratgy = computed(() => ['clone', 'new'].includes(props.pageStatus));
+  const isMonitorTargetsShow = computed(() => props.data.isChild || props.pageStatus === 'new');
 
-  const titleMap = {
-    clone: t('克隆策略'),
+  const titleMap = computed<Record<Props['pageStatus'], string>>(() => ({
+    clone: props.data.isChild ? t('克隆策略') : t('编辑策略'),
     edit: t('编辑策略'),
-    read: t('策略'),
-  } as Record<string, string>;
+    new: t('新建子策略'),
+  }));
 
   const notifyTypes = [
     {
@@ -326,21 +326,21 @@
         message: t('策略名称与原策略名称相同'),
         trigger: 'blur',
         validator: (value: string) => {
-          if (!isEditPage.value) {
-            return value !== props.data.name;
+          if (props.pageStatus === 'edit') {
+            return true;
           }
-          return true;
+          return value !== props.data.name;
         },
       },
       {
         message: t('策略名称重复'),
         trigger: 'blur',
         validator: async (value: string) => {
-          if (!isEditPage.value) {
-            // TODO: 以后看情况是否增加接口支持，暂时先用当前页做冲突检测
-            return props.existedNames.every((item) => item !== value);
+          if (props.pageStatus === 'edit') {
+            return true;
           }
-          return true;
+          // TODO: 以后看情况是否增加接口支持，暂时先用当前页做冲突检测
+          return props.existedNames.every((item) => item !== value);
         },
       },
     ],
@@ -368,12 +368,18 @@
     },
   });
 
+  const { run: runDeletePolicy } = useRequest(deletePolicy, {
+    manual: true,
+    onSuccess: (isDeleted) => {
+      if (isDeleted === null) {
+        messageSuccess(t('删除成功'));
+      }
+    },
+  });
+
   watch(
     formModel,
     () => {
-      if (isReadonlyPage.value) {
-        return;
-      }
       if (rawFormData === '' && formModel.notifyRules !== undefined) {
         rawFormData = JSON.stringify(formModel);
         return;
@@ -391,6 +397,8 @@
     () => props.data,
     (data) => {
       if (data.id) {
+        formModel.isEnabled = data.is_enabled;
+        formModel.testRules = _.cloneDeep(data.test_rules);
         formModel.strategyName = getStrategyName();
         formModel.notifyRules = _.cloneDeep(data.notify_rules);
         formModel.notifyTarget = data.notify_groups.filter((id) => id in props.alarmGroupNameMap);
@@ -413,45 +421,70 @@
   };
 
   const getStrategyName = () =>
-    props.data.isInner && props.pageStatus === 'clone'
-      ? `${props.data.name} - ${currentBizInfo?.name}`
-      : props.data.name;
+    isCloneStratgy.value ? `${props.data.name} - ${currentBizInfo?.name}` : props.data.name;
 
-  const handleClickConfirmRecoverDefault = () => {
-    formModel.strategyName = getStrategyName();
-    formModel.notifyRules = _.cloneDeep(props.data.notify_rules);
-    formModel.notifyTarget = _.cloneDeep(props.data.notify_groups);
-    formModel.noDataConfig = _.cloneDeep(props.data.no_data_config);
+  const handleSwitchEnableClickConfirm = () => {
+    formModel.isEnabled = false;
+    showSwitchEnableTip.value = false;
+  };
 
-    const detectsConfig = _.cloneDeep(props.data.detects_config) as unknown as UnwrapRef<
-      typeof formModel
-    >['detectsConfig'];
-    detectsConfig.trigger_config.uptime.time_ranges = _.cloneDeep(
-      props.data.detects_config.trigger_config.uptime.time_ranges,
-    ).map((item) => [item.start, item.end] as [string, string]);
-    formModel.detectsConfig = detectsConfig;
+  const handleSwitchEnableCancelConfirm = () => {
+    showSwitchEnableTip.value = false;
+  };
 
-    monitorTargetRef.value.resetValue();
-    if (infoValueRef.value) {
-      infoValueRef.value.resetValue();
+  const handleChangeSwitch = () => {
+    if (!formModel.isEnabled) {
+      showSwitchEnableTip.value = true;
+      formModel.isEnabled = !formModel.isEnabled;
     }
-    if (warnValueRef.value) {
-      warnValueRef.value.resetValue();
-    }
-    if (dangerValueRef.value) {
-      dangerValueRef.value.resetValue();
-    }
+  };
+
+  const handleResetToDefault = () => {
+    InfoBox({
+      cancelText: t('取消'),
+      confirmText: t('确定恢复'),
+      contentAlign: 'left',
+      infoType: 'warning',
+      onConfirm: () => {
+        runDeletePolicy({ id: props.data.id });
+      },
+      subTitle: (
+        <>
+          <div class='mb-16'>
+            {t('策略名称：')}
+            {props.data.name}
+          </div>
+          <div style='padding: 12px 16px; background: #F5F7FA; color: #4D4F56'>
+            {t('恢复默认将覆盖当前所有自定义修改，恢复为全局策略配置。此操作不可撤销。')}
+          </div>
+        </>
+      ),
+      title: t('确认恢复为默认？'),
+    });
   };
 
   // 点击确定
   const handleConfirm = async () => {
     await formRef.value.validate();
-    const testRules = [
-      infoRule.value ? infoValueRef.value.getValue() : undefined,
-      warnRule.value ? warnValueRef.value.getValue() : undefined,
-      dangerRule.value ? dangerValueRef.value.getValue() : undefined,
-    ];
-    const { custom_conditions, targets } = monitorTargetRef.value.getValue();
+
+    const aggInfo = props.data.isPolicyTypePromQL ? promqlRef.value!.getValue() : aggInfoRef.value!.getValue();
+    const testRules = testRuleRef.value!.getValue();
+    const notifyConfig = noticeIntervalRef.value!.getValue();
+    const { custom_conditions, targets } = isMonitorTargetsShow.value
+      ? monitorTargetRef.value.getValue()
+      : {
+          custom_conditions: [],
+          targets: [
+            {
+              level: MonitorTargetLevel.BIZ,
+              rule: {
+                key: MonitorTargetLevel.BIZ,
+                method: props.data.isPolicyTypePromQL ? '=' : 'eq',
+                value: [currentBizId],
+              },
+            },
+          ],
+        };
     const detectsConfig = _.cloneDeep(formModel.detectsConfig) as unknown as MonitorPolicyModel['detects_config'];
     detectsConfig.trigger_config.uptime.time_ranges = formModel.detectsConfig.trigger_config.uptime.time_ranges.map(
       (item) => ({
@@ -459,20 +492,25 @@
         start: item[0],
       }),
     );
+
     const reqParams = {
+      agg_info: aggInfo,
       custom_conditions,
       detects_config: detectsConfig,
+      is_enabled: formModel.isEnabled,
       no_data_config: formModel.noDataConfig,
+      notify_config: notifyConfig,
       notify_groups: formModel.notifyTarget,
       notify_rules: formModel.notifyRules,
       targets,
       test_rules: testRules.filter((item) => item && item.config.length !== 0),
     };
-    if (!isEditPage.value) {
+
+    if (isCloneStratgy.value) {
       // 克隆额外参数
       const params = {
         ...reqParams,
-        bk_biz_id: currentBizId,
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         name: formModel.strategyName,
         // parent_id优先取克隆策略的parent_id，如果parent_id为空证明该策略是一条平台策略，就取策略id
         parent_id: props.data.parent_id ? props.data.parent_id : props.data.id,
@@ -510,6 +548,10 @@
     width: 100%;
     padding: 24px 40px;
     flex-direction: column;
+
+    :deep(.bk-card-body) {
+      padding: 16px 24px;
+    }
 
     .edit-form {
       :deep(.bk-form-label) {

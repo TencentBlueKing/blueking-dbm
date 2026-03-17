@@ -34,117 +34,164 @@
         ref="formRef"
         form-type="vertical"
         :model="formModel">
-        <BkFormItem
-          :label="t('策略名称')"
-          required>
-          <BkInput
-            disabled
-            :value="data.name" />
-        </BkFormItem>
-        <BkFormItem
-          :label="t('监控目标')"
-          required>
-          <BkSelect
-            v-model="monitorTarget"
-            disabled />
-        </BkFormItem>
-        <BkFormItem
-          :label="t('检测规则')"
-          required>
-          <div class="check-rules">
-            <RuleCheck
-              v-if="infoRule"
-              ref="infoValueRef"
-              :data="infoRule"
-              :indicator="data.monitor_indicator"
-              :title="t('提醒')">
-              <DbIcon
-                class="title-icon"
-                type="attention-fill" />
-            </RuleCheck>
-            <RuleCheck
-              v-if="warnRule"
-              ref="warnValueRef"
-              :data="warnRule"
-              :indicator="data.monitor_indicator"
-              :title="t('预警')">
-              <DbIcon
-                class="title-icon icon-warn"
-                type="attention-fill" />
-            </RuleCheck>
-            <RuleCheck
-              v-if="dangerRule"
-              ref="dangerValueRef"
-              :data="dangerRule"
-              :indicator="data.monitor_indicator"
-              :title="t('致命')">
-              <DbIcon
-                class="title-icon icon-dander"
-                type="alert" />
-            </RuleCheck>
-          </div>
-        </BkFormItem>
+        <BkCard
+          is-collapse
+          :title="t('基本信息')">
+          <BkFormItem
+            :label="t('策略名称')"
+            required>
+            <BkInput
+              disabled
+              :value="data.name" />
+          </BkFormItem>
+          <BkFormItem
+            :label="t('是否启用')"
+            required>
+            <BkPopConfirm
+              :content="t('停用后，所有的业务将会停用该策略，请谨慎操作！')"
+              :is-show="showSwitchEnableTip"
+              placement="bottom"
+              :popover-options="{
+                disabled: !formModel.isEnabled,
+              }"
+              :title="t('确认停用该策略？')"
+              trigger="click"
+              width="320"
+              @cancel="() => handleSwitchEnableCancelConfirm()"
+              @confirm="() => handleSwitchEnableClickConfirm()">
+              <AuthSwitcher
+                v-model="formModel.isEnabled"
+                action-id="global_monitor_policy_start_stop"
+                :permission="data.permission.global_monitor_policy_start_stop"
+                :resource="data.id"
+                size="small"
+                theme="primary"
+                @change="() => handleChangeSwitch()" />
+            </BkPopConfirm>
+            <!-- <BkPopConfirm
+              :content="t('停用后，所有的业务将会停用该策略，请谨慎操作！')"
+              :is-show="enablePopfirmShow"
+              placement="bottom"
+              :popover-options="{
+                disabled: !data.is_enabled,
+              }"
+              :title="t('确认停用该策略？')"
+              trigger="click"
+              width="320"
+              @cancel="() => (enablePopfirmShow = false)"
+              @confirm="() => (enablePopfirmShow = false)">
+              <AuthSwitcher
+                v-model="formModel.isEnabled"
+                action-id="global_monitor_policy_start_stop"
+                :permission="data.permission.global_monitor_policy_start_stop"
+                :resource="data.id"
+                size="small"
+                theme="primary" />
+            </BkPopConfirm> -->
+          </BkFormItem>
+        </BkCard>
+        <BkCard
+          class="mt-16"
+          is-collapse
+          :title="t('监控数据')">
+          <PromQL
+            v-if="data.isPolicyTypePromQL"
+            ref="promqlRef"
+            :data="data.agg_info" />
+          <template v-else>
+            <BkAlert
+              :title="
+                t(
+                  '指标由平台预置，不可增删或修改指标名。单指标策略允许修改汇聚方法和汇聚周期；多指标策略仅允许修改汇聚周期。',
+                )
+              " />
+            <AggInfo
+              ref="aggInfo"
+              class="mt-16"
+              :data="data.agg_info"
+              :expression="data.expression"
+              :is-multiple="data.isPolicyTypeMulti"
+              :monitor-policy-id="data.monitor_policy_id" />
+          </template>
+        </BkCard>
+        <TestRules
+          ref="testRule"
+          class="mt-16"
+          :rules="formModel.testRules" />
         <JudgingCondition
           v-model="formModel"
+          class="mt-16"
           :monitor-policy-id="data.monitor_policy_id" />
-        <BkFormItem
-          :label="t('告警通知')"
-          property="notifyRules"
-          required>
-          <BkCheckboxGroup v-model="formModel.notifyRules">
-            <BkCheckbox
-              v-for="item in notifyTypes"
-              :key="item.label"
-              :label="item.value">
-              {{ item.label }}
-            </BkCheckbox>
-          </BkCheckboxGroup>
-        </BkFormItem>
-        <BkFormItem
-          :label="t('默认通知对象')"
-          required>
-          <BkSelect
-            v-model="nofityTarget"
-            class="notify-select"
-            disabled
-            multiple-mode="tag">
-            <template #tag>
-              <div class="notify-tag-box">
-                <DbIcon
-                  style="font-size: 16px"
-                  type="auth" />
-                <span class="dba">{{ nofityTarget }}</span>
-                <DbIcon
-                  class="close-icon"
-                  type="close" />
-              </div>
-            </template>
-          </BkSelect>
-        </BkFormItem>
+        <BkCard
+          class="mt-16"
+          is-collapse
+          :title="t('通知设置')">
+          <BkFormItem
+            :label="t('告警通知')"
+            property="notifyRules"
+            required>
+            <BkCheckboxGroup v-model="formModel.notifyRules">
+              <BkCheckbox
+                v-for="item in notifyTypes"
+                :key="item.label"
+                :label="item.value">
+                {{ item.label }}
+              </BkCheckbox>
+            </BkCheckboxGroup>
+          </BkFormItem>
+          <BkFormItem
+            :label="t('默认通知对象')"
+            required>
+            <BkSelect
+              v-model="nofityTarget"
+              class="notify-select"
+              disabled
+              multiple-mode="tag">
+              <template #tag>
+                <div class="notify-tag-box">
+                  <DbIcon
+                    style="font-size: 16px"
+                    type="auth" />
+                  <span class="dba">{{ nofityTarget }}</span>
+                  <DbIcon
+                    class="close-icon"
+                    type="close" />
+                </div>
+              </template>
+            </BkSelect>
+          </BkFormItem>
+          <BkFormItem
+            :label="t('通知间隔')"
+            required>
+            <NoticeInterval
+              ref="noticeInterval"
+              :data="data.notify_config" />
+          </BkFormItem>
+        </BkCard>
       </BkForm>
     </div>
     <template #footer>
       <BkButton
-        class="mr-8"
+        :disabled="resetLoading"
         :loading="updateLoading"
         theme="primary"
         @click="handleConfirm">
         {{ t('确定') }}
       </BkButton>
-      <BkPopConfirm
-        :content="t('将会覆盖当前填写的内容，并恢复默认')"
-        placement="top"
-        trigger="click"
-        width="280"
-        @confirm="handleClickConfirmRecoverDefault">
-        <BkButton
-          class="mr-8"
-          :disabled="updateLoading">
-          {{ t('恢复默认') }}
-        </BkButton>
-      </BkPopConfirm>
-      <BkButton
+      <AuthButton
+        action-id="global_monitor_policy_edit"
+        class="ml-8"
         :disabled="updateLoading"
+        :loading="resetLoading"
+        :permission="data.permission.global_monitor_policy_edit"
+        :resource="data.id"
+        theme="primary"
+        @click="() => handleResetClickConfirm()">
+        {{ t('恢复初始值') }}
+      </AuthButton>
+      <BkButton
+        class="ml-8"
+        :disabled="updateLoading || resetLoading"
         @click="handleClose">
         {{ t('取消') }}
       </BkButton>
@@ -153,22 +200,25 @@
 </template>
 
 <script setup lang="tsx">
+  import { InfoBox } from 'bkui-vue';
   import _ from 'lodash';
-  import { computed, type UnwrapRef } from 'vue';
+  import { type UnwrapRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
-  import { updatePolicy } from '@services/source/monitor';
+  import { resetGlobalStrategy, updatePolicy } from '@services/source/monitor';
 
   import { useBeforeClose } from '@hooks';
 
   import { DBTypeInfos, DBTypes } from '@common/const';
 
-  import RuleCheck from '@components/monitor-rule-check/index.vue';
-
   import JudgingCondition from '@views/monitor-alarm/common/judging-condition/Index.vue';
+  import AggInfo from '@views/monitor-alarm/common/monitor-data/AggInfo.vue';
+  import PromQL from '@views/monitor-alarm/common/monitor-data/PromQL.vue';
+  import NoticeInterval from '@views/monitor-alarm/common/notice-interval/Index.vue';
+  import TestRules from '@views/monitor-alarm/common/test-rules/Index.vue';
 
   import { messageSuccess } from '@utils';
 
@@ -183,29 +233,26 @@
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>();
 
-  const generateRule = (data: MonitorPolicyModel, level: number) => {
-    const arr = data.test_rules.filter((item) => item.level === level);
-    return arr.length > 0 ? arr[0] : undefined;
-  };
-
   const { t } = useI18n();
   const handleBeforeClose = useBeforeClose();
 
-  const infoValueRef = ref();
-  const warnValueRef = ref();
-  const dangerValueRef = ref();
-  const monitorTarget = ref(t('全部业务'));
-  const nofityTarget = ref(`{${DBTypeInfos[props.dbType].name}_DBA}`);
+  const aggInfoRef = useTemplateRef('aggInfo');
+  const promqlRef = useTemplateRef('promqlRef');
+  const testRuleRef = useTemplateRef('testRule');
+  const noticeIntervalRef = useTemplateRef('noticeInterval');
+
+  // const monitorTarget = ref(t('全部业务'));
   const formRef = ref();
+  const nofityTarget = ref(`{${DBTypeInfos[props.dbType].name}_DBA}`);
+  const showSwitchEnableTip = ref(false);
+
   const formModel = reactive({
     detectsConfig: {} as ComponentProps<typeof JudgingCondition>['modelValue']['detectsConfig'],
+    isEnabled: false,
     noDataConfig: {} as ComponentProps<typeof JudgingCondition>['modelValue']['noDataConfig'],
     notifyRules: [] as string[],
+    testRules: [] as ComponentProps<typeof TestRules>['rules'],
   });
-
-  const dangerRule = computed(() => generateRule(props.data, 1));
-  const warnRule = computed(() => generateRule(props.data, 2));
-  const infoRule = computed(() => generateRule(props.data, 3));
 
   const notifyTypes = [
     {
@@ -237,10 +284,21 @@
     },
   });
 
+  const { loading: resetLoading, run: runResetGlobalStrategy } = useRequest(resetGlobalStrategy, {
+    manual: true,
+    onSuccess: () => {
+      emits('success');
+      isShow.value = false;
+      messageSuccess(t('恢复初始值成功'));
+    },
+  });
+
   watch(
     () => props.data,
     (data) => {
       if (data.id) {
+        formModel.isEnabled = data.is_enabled;
+        formModel.testRules = _.cloneDeep(data.test_rules);
         formModel.notifyRules = _.cloneDeep(data.notify_rules);
         formModel.noDataConfig = _.cloneDeep(data.no_data_config);
 
@@ -258,31 +316,29 @@
     },
   );
 
-  const handleClickConfirmRecoverDefault = () => {
-    formModel.notifyRules = _.cloneDeep(props.data.notify_rules);
-    formModel.noDataConfig = _.cloneDeep(props.data.no_data_config);
+  const handleSwitchEnableClickConfirm = () => {
+    formModel.isEnabled = false;
+    showSwitchEnableTip.value = false;
+  };
 
-    const detectsConfig = _.cloneDeep(props.data.detects_config) as unknown as UnwrapRef<
-      typeof formModel
-    >['detectsConfig'];
-    detectsConfig.trigger_config.uptime.time_ranges = props.data.detects_config.trigger_config.uptime.time_ranges.map(
-      (item) => [item.start, item.end] as [string, string],
-    );
-    formModel.detectsConfig = detectsConfig;
+  const handleSwitchEnableCancelConfirm = () => {
+    showSwitchEnableTip.value = false;
+  };
 
-    infoValueRef.value.resetValue();
-    warnValueRef.value.resetValue();
-    dangerValueRef.value.resetValue();
+  const handleChangeSwitch = () => {
+    if (!formModel.isEnabled) {
+      showSwitchEnableTip.value = true;
+      formModel.isEnabled = !formModel.isEnabled;
+    }
   };
 
   // 点击确定
   const handleConfirm = async () => {
     await formRef.value.validate();
-    const testRules = [
-      infoRule.value ? infoValueRef.value.getValue() : undefined,
-      warnRule.value ? warnValueRef.value.getValue() : undefined,
-      dangerRule.value ? dangerValueRef.value.getValue() : undefined,
-    ];
+
+    const aggInfo = props.data.isPolicyTypePromQL ? promqlRef.value!.getValue() : aggInfoRef.value!.getValue();
+    const testRules = testRuleRef.value!.getValue();
+    const notifyConfig = noticeIntervalRef.value!.getValue();
     const detectsConfig = _.cloneDeep(formModel.detectsConfig) as unknown as MonitorPolicyModel['detects_config'];
     detectsConfig.trigger_config.uptime.time_ranges = formModel.detectsConfig.trigger_config.uptime.time_ranges.map(
       (item) => ({
@@ -290,16 +346,38 @@
         start: item[0],
       }),
     );
+
     const reqParams = {
+      agg_info: aggInfo,
       custom_conditions: props.data.custom_conditions,
       detects_config: detectsConfig,
+      is_enabled: formModel.isEnabled,
       no_data_config: formModel.noDataConfig,
+      notify_config: notifyConfig,
       notify_groups: props.data.notify_groups,
       notify_rules: formModel.notifyRules,
       targets: props.data.targets,
       test_rules: testRules.filter((item) => item && item.config.length !== 0),
     };
     runUpdatePolicy(props.data.id, reqParams);
+  };
+
+  const handleResetClickConfirm = () => {
+    InfoBox({
+      cancelText: t('取消'),
+      confirmText: t('确定恢复'),
+      contentAlign: 'left',
+      infoType: 'warning',
+      onConfirm: () => {
+        runResetGlobalStrategy({ policy_id: props.data.id });
+      },
+      subTitle: (
+        <div style='padding: 12px 16px; background: #F5F7FA; color: #4D4F56'>
+          {t('恢复初始值将覆盖当前所有修改，恢复为平台预设的初始配置。此操作不可撤销，确定继续吗?')}
+        </div>
+      ),
+      title: t('确认恢复初始值？'),
+    });
   };
 
   async function handleClose() {
@@ -334,6 +412,10 @@
     width: 100%;
     padding: 24px 40px;
     flex-direction: column;
+
+    :deep(.bk-card-body) {
+      padding: 16px 24px;
+    }
 
     :deep(.bk-form-label) {
       font-weight: bolder;

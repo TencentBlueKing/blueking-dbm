@@ -151,6 +151,7 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { MonitorTargetLevel } from '@common/const';
   import { batchSplitRegex } from '@common/regex';
 
   import { signMap } from '@components/monitor-rule-check/index.vue';
@@ -161,7 +162,7 @@
   type FlowListType = {
     activeAdd: boolean;
     activeMinus: boolean;
-    id: TargetType;
+    id: MonitorTargetLevel;
     isCustom: boolean;
     isSelect: boolean;
     method: string;
@@ -200,10 +201,10 @@
   let titleListRaw: FlowListType[number]['titleList'] = [];
 
   const initFlowList = () => {
-    const titles = [TargetType.CLUSTER, TargetType.MODULE] as string[];
+    const titles = [MonitorTargetLevel.CLUSTER, MonitorTargetLevel.MODULE] as string[];
     let selectCounts = 0;
     const targets = _.cloneDeep(props.targets).reduce((results, item) => {
-      if (!([TargetType.BIZ, TargetType.PLATFORM] as string[]).includes(item.level)) {
+      if (!([MonitorTargetLevel.BIZ, MonitorTargetLevel.PLATFORM] as string[]).includes(item.level)) {
         if (titles.includes(item.level)) {
           selectCounts = selectCounts + 1;
         }
@@ -217,7 +218,7 @@
       if (isCustom) {
         title = item.level;
       } else {
-        title = item.level === TargetType.CLUSTER ? '1' : '0';
+        title = item.level === MonitorTargetLevel.CLUSTER ? '1' : '0';
       }
       let titleList = [] as SelectItem<string>[];
       let selectList = [] as SelectItem<number>[] | SelectItem<string>[];
@@ -286,7 +287,7 @@
     const item = {
       activeAdd: true,
       activeMinus: true,
-      id: TargetType.MODULE,
+      id: MonitorTargetLevel.MODULE,
       isCustom: false,
       isSelect: true,
       selectList: [],
@@ -297,17 +298,17 @@
 
     if (!isMySql.value) {
       // 非 mysql
-      item.id = TargetType.CLUSTER;
+      item.id = MonitorTargetLevel.CLUSTER;
       item.title = '1';
     }
 
     if (flowList.value.length > 0) {
-      if (flowList.value[0].id === TargetType.MODULE) {
+      if (flowList.value[0].id === MonitorTargetLevel.MODULE) {
         // 已经有 模块栏
         Object.assign(item, {
           activeAdd: false,
           activeMinus: true,
-          id: TargetType.CLUSTER,
+          id: MonitorTargetLevel.CLUSTER,
           selectList: props.clusterList,
           title: '1',
           titleList: [
@@ -329,22 +330,19 @@
     return item;
   };
 
-  const enum TargetType {
-    BIZ = 'appid',
-    CLUSTER = 'cluster_domain',
-    MODULE = 'db_module',
-    PLATFORM = 'platform',
-  }
-
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
-  const isPlatform = computed(() => props.targets.filter((item) => item.level === TargetType.PLATFORM).length > 0);
+  const isPlatform = computed(
+    () => props.targets.filter((item) => item.level === MonitorTargetLevel.PLATFORM).length > 0,
+  );
 
   const isMySql = computed(() => props.dbType === 'mysql');
 
   const bizId = computed(() =>
-    isPlatform.value ? currentBizId : props.targets.find((item) => item.level === TargetType.BIZ)!.rule.value[0],
+    isPlatform.value
+      ? currentBizId
+      : props.targets.find((item) => item.level === MonitorTargetLevel.BIZ)!.rule.value[0],
   );
 
   const bizObj = computed(() => {
@@ -420,7 +418,7 @@
 
   const handleTitleChange = (index: number, value: string) => {
     const isModule = value === '0';
-    flowList.value[index].id = isModule ? TargetType.MODULE : TargetType.CLUSTER;
+    flowList.value[index].id = isModule ? MonitorTargetLevel.MODULE : MonitorTargetLevel.CLUSTER;
     flowList.value[index].selectList = isModule ? props.moduleList : props.clusterList;
     flowList.value[index].value = [];
   };
@@ -440,7 +438,7 @@
       const selectCount = flowList.value.filter((item) => item.isSelect).length;
       if (selectCount === 1) {
         const newItem = generateFlowSelectItem();
-        if (newItem.id === TargetType.MODULE) {
+        if (newItem.id === MonitorTargetLevel.MODULE) {
           flowList.value.splice(0, 0, newItem);
         } else {
           flowList.value.splice(1, 0, newItem);
@@ -453,7 +451,7 @@
     } else {
       // 点击 集群栏或者模块栏
       const newItem = generateFlowSelectItem();
-      if (newItem.id === TargetType.MODULE) {
+      if (newItem.id === MonitorTargetLevel.MODULE) {
         flowList.value.splice(index, 0, newItem);
       } else {
         flowList.value.splice(index + 1, 0, newItem);
@@ -474,9 +472,9 @@
   defineExpose<Exposes>({
     getValue() {
       const defalutObj = {
-        level: TargetType.BIZ,
+        level: MonitorTargetLevel.BIZ,
         rule: {
-          key: TargetType.BIZ,
+          key: MonitorTargetLevel.BIZ,
           value: [bizId.value],
         },
       };
@@ -697,18 +695,18 @@
       .custom {
         .title-box {
           width: auto;
-          min-width: 80px;
           max-width: 300px;
+          min-width: 80px;
           padding: 0 8px;
           background: #f5f7fa;
           border: none;
           justify-content: center;
 
           .title-txt {
-            font-size: 12px;
             overflow: hidden;
-            white-space: nowrap;
+            font-size: 12px;
             text-overflow: ellipsis;
+            white-space: nowrap;
           }
         }
       }
