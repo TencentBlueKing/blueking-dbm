@@ -96,8 +96,13 @@ class DBType(StrStructuredEnum):
     Doris = EnumField("doris", _("Doris"))
     Vm = EnumField("vm", _("Vm"))
     Oracle = EnumField("oracle", _("Oracle"))
-    # 先将容器化集群统一归为K8s
-    K8s = EnumField("k8s", _("K8s"))
+    # K8s 容器化集群：与 mysql、es 等同级，一种集群类型对应一个 DBType（值与 ClusterType 一致）
+    K8sSurrealdb = EnumField("k8s_surrealdb", _("K8s SurrealDB"))
+    K8sVictoriametrics = EnumField("k8s_victoriametrics", _("K8s VictoriaMetrics"))
+    K8sRisingwave = EnumField("k8s_risingwave", _("K8s Risingwave"))
+    K8sMilvus = EnumField("k8s_milvus", _("K8s Milvus"))
+    K8sQdrant = EnumField("k8s_qdrant", _("K8s Qdrant"))
+    K8sGreptimedb = EnumField("k8s_greptimedb", _("K8s GreptimeDB"))
 
     # 不属于DB类型，仅用于云区域组件的单据部署的分组
     Cloud = EnumField("cloud", _("Cloud"))

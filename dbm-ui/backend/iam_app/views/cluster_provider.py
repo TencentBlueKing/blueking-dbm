@@ -162,3 +162,33 @@ class OracleClusterResourceProvider(ClusterResourceProvider):
     def _list_instance(self, data_source: models.Model, condition: Dict, value_list: List[str], page):
         cluster_type__label = {ClusterType.OracleSingleNone: _("单节点"), ClusterType.OraclePrimaryStandby: _("主从")}
         return super()._list_instance_with_cluster_type(data_source, condition, value_list, page, cluster_type__label)
+
+
+class K8sSurrealClusterResourceProvider(ClusterResourceProvider):
+    resource_meta: ResourceMeta = ResourceEnum.K8S_SURREALDB
+    cluster_types: ClusterType = [ClusterType.K8sSurrealdb]
+
+
+class K8sVictoriametricsClusterResourceProvider(ClusterResourceProvider):
+    resource_meta: ResourceMeta = ResourceEnum.K8S_VICTORIAMETRICS
+    cluster_types: ClusterType = [ClusterType.K8sVictoriametrics]
+
+
+class K8sRisingwaveClusterResourceProvider(ClusterResourceProvider):
+    resource_meta: ResourceMeta = ResourceEnum.K8S_RISINGWAVE
+    cluster_types: ClusterType = [ClusterType.K8sRisingwave]
+
+
+class K8sMilvusClusterResourceProvider(ClusterResourceProvider):
+    resource_meta: ResourceMeta = ResourceEnum.K8S_MILVUS
+    cluster_types: ClusterType = [ClusterType.K8sMilvus]
+
+
+class K8sQdrantClusterResourceProvider(ClusterResourceProvider):
+    resource_meta: ResourceMeta = ResourceEnum.K8S_QDRANT
+    cluster_types: ClusterType = [ClusterType.K8sQdrant]
+
+
+class K8sGreptimedbClusterResourceProvider(ClusterResourceProvider):
+    resource_meta: ResourceMeta = ResourceEnum.K8S_GREPTIMEDB
+    cluster_types: ClusterType = [ClusterType.K8sGreptimedb]

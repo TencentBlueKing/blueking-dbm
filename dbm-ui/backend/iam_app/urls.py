@@ -27,6 +27,12 @@ from backend.iam_app.views.cluster_provider import (
     DorisClusterResourceProvider,
     EsClusterResourceProvider,
     HdfsClusterResourceProvider,
+    K8sGreptimedbClusterResourceProvider,
+    K8sMilvusClusterResourceProvider,
+    K8sQdrantClusterResourceProvider,
+    K8sRisingwaveClusterResourceProvider,
+    K8sSurrealClusterResourceProvider,
+    K8sVictoriametricsClusterResourceProvider,
     KafkaClusterResourceProvider,
     MongoDBClusterResourceProvider,
     MySQLResourceProvider,
@@ -77,6 +83,13 @@ dispatcher.register(r"mongodb_account", MongoDBAccountResourceProvider())
 
 dispatcher.register(r"monitor_policy", MonitorPolicyResourceProvider())
 dispatcher.register(r"notify_group", NotifyGroupResourceProvider())
+
+dispatcher.register(r"k8s_surrealdb", K8sSurrealClusterResourceProvider())
+dispatcher.register(r"k8s_victoriametrics", K8sVictoriametricsClusterResourceProvider())
+dispatcher.register(r"k8s_risingwave", K8sRisingwaveClusterResourceProvider())
+dispatcher.register(r"k8s_milvus", K8sMilvusClusterResourceProvider())
+dispatcher.register(r"k8s_qdrant", K8sQdrantClusterResourceProvider())
+dispatcher.register(r"k8s_greptimedb", K8sGreptimedbClusterResourceProvider())
 
 
 urlpatterns = [url(r"^", include(router.urls)), url(r"^resource/$", dispatcher.as_view([login_exempt]))]
