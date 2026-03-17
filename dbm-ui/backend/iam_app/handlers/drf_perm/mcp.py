@@ -129,3 +129,15 @@ class McpIsDbaPermission(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         username = request.user.username
         return DBAdministrator.is_dba(username)
+
+
+class McpSkipPermission(permissions.BasePermission):
+    """
+    跳过权限校验
+    """
+
+    def has_permission(self, request, view):
+        return True
+
+    def has_object_permission(self, request, view, obj):
+        return True
