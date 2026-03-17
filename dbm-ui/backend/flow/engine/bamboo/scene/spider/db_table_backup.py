@@ -87,7 +87,12 @@ class TenDBClusterDBTableBackupFlow(object):
 
         backup_pipeline.add_parallel_sub_pipeline(sub_flow_list=cluster_flow)
         logger.info(_("构造库表备份流程成功"))
-        backup_pipeline.run_pipeline(init_trans_data_class=MySQLBackupDemandContext(), is_drop_random_user=True)
+        # 启动接入单据值守监听
+        backup_pipeline.run_pipeline_with_sidecar(
+            init_trans_data_class=MySQLBackupDemandContext(),
+            is_drop_random_user=True,
+            check_ai_monitor_cluster_list=[i["cluster_id"] for i in self.data["infos"]],
+        )
 
     def backup_on_spider_ctl(self, backup_id: uuid.UUID, job: dict, cluster_obj: Cluster) -> SubProcess:
         # 在 ctl_primary 上备份 spider 表结构和中控表结构

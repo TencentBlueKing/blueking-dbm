@@ -116,7 +116,11 @@ class TenDBClusterFullBackupFlow(object):
 
         backup_pipeline.add_parallel_sub_pipeline(sub_flow_list=cluster_pipes)
         logger.info(_("构造全库备份流程成功"))
-        backup_pipeline.run_pipeline(init_trans_data_class=MySQLBackupDemandContext())
+        # 启动接入单据值守监听
+        backup_pipeline.run_pipeline_with_sidecar(
+            check_ai_monitor_cluster_list=[i["cluster_id"] for i in self.data["infos"]],
+            init_trans_data_class=MySQLBackupDemandContext(),
+        )
 
     def backup_on_spider_ctl(self, backup_id: uuid.UUID, cluster_obj: Cluster) -> SubProcess:
         ctl_primary_address = cluster_obj.tendbcluster_ctl_primary_address()
