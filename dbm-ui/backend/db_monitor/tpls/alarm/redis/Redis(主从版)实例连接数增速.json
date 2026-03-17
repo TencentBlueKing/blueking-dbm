@@ -1,16 +1,16 @@
 {
   "bk_biz_id": 0,
-  "name": "Redis(TendisSSD)Proxy主机单核CPU使用率",
+  "name": "Redis(主从版)实例连接数增速",
   "db_type": "redis",
   "details": {
     "bk_biz_id": "",
-    "name": "Redis(TendisSSD)Proxy主机单核CPU使用率",
+    "name": "Redis(主从版)实例连接数增速",
     "source": "dbm",
-    "scenario": "os",
+    "scenario": "component",
     "type": "monitor",
     "items": [
       {
-        "name": "[TendisSSD]Proxy主机单核CPU使用率",
+        "name": "[主从版]实例连接数增速",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
@@ -20,7 +20,7 @@
         "target": [],
         "expression": "a",
         "functions": [],
-        "origin_sql": "max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_type=\"TwemproxyTendisSSDInstance\",instance_role=\"proxy\"}[1m]))",
+        "origin_sql": "max by (app,cluster_domain,instance_role,cluster_type,bk_target_cloud_id,appid) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_connections_received_total{cluster_type=\"RedisInstance\"}[2m]))",
         "query_configs": [
           {
             "data_source_label": "prometheus",
@@ -28,7 +28,7 @@
             "alias": "a",
             "metric_id": "",
             "functions": [],
-            "promql": "max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (max_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_type=\"TwemproxyTendisSSDInstance\",instance_role=\"proxy\"}[1m]))",
+            "promql": "max by (app,cluster_domain,instance_role,cluster_type,bk_target_cloud_id,appid) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_connections_received_total{cluster_type=\"RedisInstance\"}[2m]))",
             "agg_interval": 60,
             "name": ""
           }
@@ -41,7 +41,7 @@
               [
                 {
                   "method": "gte",
-                  "threshold": 90
+                  "threshold": "1000"
                 }
               ]
             ],
@@ -54,7 +54,7 @@
               [
                 {
                   "method": "gte",
-                  "threshold": 80
+                  "threshold": 800
                 }
               ]
             ],
@@ -269,7 +269,7 @@
     "is_enabled": false
   },
   "is_enabled": false,
-  "monitor_indicator": "Redis(TendisSSD)Proxy主机单核CPU使用率",
+  "monitor_indicator": "Redis(主从版)实例连接数增速",
   "version": 6,
   "alert_source": "time_series",
   "custom_conditions": [],
