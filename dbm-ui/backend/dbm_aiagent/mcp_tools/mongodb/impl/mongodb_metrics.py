@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import datetime
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -56,7 +57,7 @@ PAST_RANGE_HINT_DAYS = 7
 
 def _extract_series_stats(datapoints: List[List]) -> Dict[str, Any]:
     """
-    从 datapoints [[value, timestamp], ...] 计算 min, max, avg, peak_time, null_count。
+    从 datapoints [[value, timestamp], ...] 计算 min, max, avg, max_time, null_count。
     value 可为 int/float 或 None。
     """
     values_ts: List[Tuple[float, float]] = []
@@ -80,7 +81,7 @@ def _extract_series_stats(datapoints: List[List]) -> Dict[str, Any]:
             "min": None,
             "max": None,
             "avg": None,
-            "peak_time": None,
+            "max_time": None,
             "null_count": null_count,
         }
 
@@ -88,13 +89,13 @@ def _extract_series_stats(datapoints: List[List]) -> Dict[str, Any]:
     min_val = min(values)
     max_val = max(values)
     avg_val = sum(values) / len(values)
-    # peak_time: timestamp at which max value occurs (first occurrence)
-    peak_time = next(ts for v, ts in values_ts if v == max_val)
+    # max_time: timestamp at which max value occurs (first occurrence)
+    max_time = next(ts for v, ts in values_ts if v == max_val)
     return {
         "min": min_val,
         "max": max_val,
         "avg": round(avg_val, 6),
-        "peak_time": peak_time,
+        "max_time": max_time,
         "null_count": null_count,
     }
 
@@ -106,7 +107,7 @@ def _add_total_series_and_stats(
     end_time: Any = None,
 ) -> Tuple[List[Dict[str, Any]], Optional[str]]:
     """
-    为每个 series 增加 min/max/avg/peak_time/null_count，并追加一个 total 系列（所有 series 按时间戳求和）。
+    为每个 series 增加 min/max/avg/max_time/null_count，并追加一个 total 系列（所有 series 按时间戳求和）。
     若所有 series 的 datapoints 总数超过 n（默认 6400），返回的 reminder 为提醒文案，否则为 None。
     """
     if not series:
@@ -155,6 +156,119 @@ def _add_total_series_and_stats(
             reminder = f"数据量过大({total_count} 条)，请缩小时间范围以减少数据量"
         return out, reminder
     return out, None
+
+
+# 毫秒时间戳下界
+_MS_TS_THRESHOLD = 10**12
+
+
+def _fmt_num(v: Any) -> str:
+    """将数值格式化为紧凑字符串，整数不显示小数点。"""
+    if v is None:
+        return "-"
+    try:
+        f = float(v)
+        if f == int(f) and abs(f) < 1e15:
+            return str(int(f))
+        return f"{f:.4g}"
+    except (TypeError, ValueError):
+        return str(v)
+
+
+def _fmt_ts(ts: Any) -> str:
+    """将 Unix 时间戳（秒或毫秒）格式化为紧凑 UTC 字符串 MM-DD HH:MM。"""
+    if ts is None:
+        return "-"
+    try:
+        t = float(ts)
+        if t >= _MS_TS_THRESHOLD:
+            t /= 1000
+        dt = datetime.datetime.utcfromtimestamp(t)
+        return dt.strftime("%m-%d %H:%M")
+    except (TypeError, ValueError, OSError):
+        return str(ts)
+
+
+def _make_md_table(headers: List[str], rows: List[List[str]]) -> str:
+    """将表头和行列表拼装为 Markdown 表格字符串。"""
+    sep = "|" + "|".join("---" for _ in headers) + "|"
+    lines = ["|" + "|".join(headers) + "|", sep]
+    for row in rows:
+        lines.append("|" + "|".join(str(c) for c in row) + "|")
+    return "\n".join(lines)
+
+
+def _series_to_markdown(series: List[Dict[str, Any]]) -> str:
+    """将 series 列表转换为 Markdown 表格字符串，以减少 token 占用。
+
+    输出逻辑：
+    - 始终输出统计汇总表（维度列 + min/max/avg/max_time）。
+    - 若总数据点 ≤ 120 且存在 datapoints，则在汇总表后追加每个 series 的详细数据点表。
+    - instant 查询（每 series ≤1 个数据点）改为输出 value/time 表。
+    """
+    if not series:
+        return "无数据"
+
+    # 收集所有维度键（保序、去重）
+    dim_keys: List[str] = []
+    dim_keys_set: set = set()
+    for s in series:
+        for k in (s.get("dimensions") or {}).keys():
+            if k not in dim_keys_set:
+                dim_keys.append(k)
+                dim_keys_set.add(k)
+
+    has_datapoints = any(s.get("datapoints") for s in series)
+
+    # instant 查询（每 series ≤1 个点）→ 简洁 value/time 表
+    if has_datapoints and all(len(s.get("datapoints") or []) <= 1 for s in series):
+        headers = dim_keys + ["value", "time"]
+        rows = []
+        for s in series:
+            dims = s.get("dimensions") or {}
+            row = [str(dims.get(k, "")) for k in dim_keys]
+            dp = (s.get("datapoints") or [[None, None]])[0]
+            val = dp[0] if dp else None
+            ts = dp[1] if len(dp) > 1 else None
+            row += [_fmt_num(val), _fmt_ts(ts)]
+            rows.append(row)
+        return _make_md_table(headers, rows)
+
+    # 统计汇总表
+    stat_headers = dim_keys + ["min", "max", "avg", "max_time"]
+    stat_rows = []
+    for s in series:
+        dims = s.get("dimensions") or {}
+        row = [str(dims.get(k, "")) for k in dim_keys]
+        row += [
+            _fmt_num(s.get("min")),
+            _fmt_num(s.get("max")),
+            _fmt_num(s.get("avg")),
+            _fmt_ts(s.get("max_time")),
+        ]
+        stat_rows.append(row)
+    stats_md = _make_md_table(stat_headers, stat_rows)
+
+    if not has_datapoints:
+        return stats_md
+
+    # 数据点详情（仅在总点数 ≤ 120 时追加）
+    total_dp = sum(len(s.get("datapoints") or []) for s in series)
+    if total_dp > 120:
+        return stats_md
+
+    dp_parts = []
+    for s in series:
+        dims = s.get("dimensions") or {}
+        dim_label = " ".join(f"{k}={v}" for k, v in dims.items() if v)
+        datapoints = s.get("datapoints") or []
+        dp_rows = [[_fmt_ts(pt[1]), _fmt_num(pt[0])] for pt in datapoints if len(pt) >= 2 and pt[0] is not None]
+        if dp_rows:
+            dp_parts.append(f"**{dim_label}**\n" + _make_md_table(["t", "v"], dp_rows))
+
+    if dp_parts:
+        return stats_md + "\n\n" + "\n\n".join(dp_parts)
+    return stats_md
 
 
 def _query_mongodb_metrics(
@@ -223,9 +337,8 @@ def get_mongodb_qps(
     )
     result = _query_mongodb_metrics(cluster_domain, start_time, end_time, promql)
     if "error" in result:
-        out_err = {"cluster_domain": cluster_domain, "metric_type": "qps", "series": [], "error": result["error"]}
-        return out_err
-    out = {"cluster_domain": cluster_domain, "metric_type": "qps", "series": result["series"]}
+        return {"cluster_domain": cluster_domain, "metric_type": "qps", "table": "无数据", "error": result["error"]}
+    out = {"cluster_domain": cluster_domain, "metric_type": "qps", "table": _series_to_markdown(result["series"])}
     if result.get("reminder"):
         out["reminder"] = result["reminder"]
     return out
@@ -252,14 +365,17 @@ def get_mongodb_connections(
     )
     result = _query_mongodb_metrics(cluster_domain, start_time, end_time, promql)
     if "error" in result:
-        out_err = {
+        return {
             "cluster_domain": cluster_domain,
             "metric_type": "connections",
-            "series": [],
+            "table": "无数据",
             "error": result["error"],
         }
-        return out_err
-    out = {"cluster_domain": cluster_domain, "metric_type": "connections", "series": result["series"]}
+    out = {
+        "cluster_domain": cluster_domain,
+        "metric_type": "connections",
+        "table": _series_to_markdown(result["series"]),
+    }
     if result.get("reminder"):
         out["reminder"] = result["reminder"]
     return out
@@ -284,9 +400,8 @@ def get_mongodb_locks(
     )
     result = _query_mongodb_metrics(cluster_domain, start_time, end_time, promql)
     if "error" in result:
-        out_err = {"cluster_domain": cluster_domain, "metric_type": "locks", "series": [], "error": result["error"]}
-        return out_err
-    out = {"cluster_domain": cluster_domain, "metric_type": "locks", "series": result["series"]}
+        return {"cluster_domain": cluster_domain, "metric_type": "locks", "table": "无数据", "error": result["error"]}
+    out = {"cluster_domain": cluster_domain, "metric_type": "locks", "table": _series_to_markdown(result["series"])}
     if result.get("reminder"):
         out["reminder"] = result["reminder"]
     return out
@@ -309,14 +424,17 @@ def get_mongodb_cpu_usage(
     )
     result = _query_mongodb_metrics(cluster_domain, start_time, end_time, promql)
     if "error" in result:
-        out_err = {
+        return {
             "cluster_domain": cluster_domain,
             "metric_type": "cpu_usage",
-            "series": [],
+            "table": "无数据",
             "error": result["error"],
         }
-        return out_err
-    out = {"cluster_domain": cluster_domain, "metric_type": "cpu_usage", "series": result["series"]}
+    out = {
+        "cluster_domain": cluster_domain,
+        "metric_type": "cpu_usage",
+        "table": _series_to_markdown(result["series"]),
+    }
     if result.get("reminder"):
         out["reminder"] = result["reminder"]
     return out
