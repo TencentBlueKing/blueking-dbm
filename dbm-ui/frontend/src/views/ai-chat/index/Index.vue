@@ -2,23 +2,22 @@
   <div
     v-bk-loading="{ loading: isAgentPingLoading }"
     class="db-ai-chat-page">
-    <BkResizeLayout
-      v-if="!isAgentPingLoading && !isAgentPingError"
-      collapsible
-      :initial-divide="300"
-      style="height: 100%">
-      <template #aside>
-        <ChatHistoryList
-          v-model="currentSessionCode"
-          :add-new-session="addNewSession"
-          :get-session-list="getSessionList" />
-      </template>
-      <template #main>
-        <AiBlueking
-          ref="aiBlueking"
-          :session-code="currentSessionCode" />
-      </template>
-    </BkResizeLayout>
+    <template v-if="!isAgentPingLoading && !isAgentPingError">
+      <BkResizeLayout
+        collapsible
+        :initial-divide="300"
+        style="height: 100%">
+        <template #aside>
+          <AgentList v-model="currentAgentCode" />
+        </template>
+        <template #main>
+          <AiBlueking
+            :key="currentAgentCode"
+            ref="aiBlueking"
+            :agent-code="currentAgentCode" />
+        </template>
+      </BkResizeLayout>
+    </template>
     <BkException
       v-if="isAgentPingError"
       style="margin-top: 100px"
@@ -42,8 +41,8 @@
 
   import { getAgentPing } from '@services/source/ai';
 
+  import AgentList from './components/agent-list.vue';
   import AiBlueking from './components/ai-blueking.vue';
-  import ChatHistoryList from './components/chat-history-list.vue';
 
   const { t } = useI18n();
 
@@ -55,15 +54,7 @@
     },
   });
 
-  const currentSessionCode = ref<string>('');
-  const aiBluekingRef = useTemplateRef<InstanceType<typeof AiBlueking>>('aiBlueking');
-
-  const addNewSession = (sessionCode?: string) => {
-    return aiBluekingRef.value!.addNewSession(sessionCode);
-  };
-  const getSessionList = () => {
-    return aiBluekingRef.value!.getSessionList();
-  };
+  const currentAgentCode = ref('');
 
   const handleRetry = () => {
     runAgentPing();
@@ -71,6 +62,8 @@
 </script>
 <style lang="postcss">
   .db-ai-chat-page {
+    position: relative;
+    z-index: 1;
     display: block;
     height: calc(100vh - var(--notice-height) - 105px);
   }

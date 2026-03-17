@@ -5,26 +5,41 @@
       ref="aiBlueking"
       :draggable="false"
       :hide-nimbus="false"
+      :request-options="{
+        beforeRequest: (requestData: any) => {
+          return {
+            ...requestData,
+            headers: {
+              'X-CSRFToken': CSRFToken,
+            },
+            data: {
+              ...(requestData.data || {}),
+              agent_code: agentCode,
+            },
+            params: {
+              ...(requestData.params || {}),
+              agent_code: agentCode,
+            },
+          };
+        },
+      }"
       teleport-to="#dbmAiChatContent"
       :url="url" />
   </div>
 </template>
 <script setup lang="ts">
+  import Cookie from 'js-cookie';
   import urlJoin from 'url-join';
-  import { type ComponentExposed } from 'vue-component-type-helpers';
 
   import AIBlueking from '@blueking/ai-blueking';
 
   interface Props {
-    sessionCode?: string;
+    agentCode: string;
   }
 
-  interface Exposes {
-    addNewSession: ComponentExposed<typeof AIBlueking>['addNewSession'];
-    getSessionList: ComponentExposed<typeof AIBlueking>['getSessionList'];
-  }
+  defineProps<Props>();
 
-  const props = defineProps<Props>();
+  const CSRFToken = Cookie.get('dbm_csrftoken');
 
   const isMounted = ref(false);
 
@@ -32,29 +47,11 @@
 
   const aiBluekingRef = useTemplateRef<InstanceType<typeof AIBlueking>>('aiBlueking');
 
-  watch(
-    () => props.sessionCode,
-    () => {
-      if (props.sessionCode) {
-        aiBluekingRef.value?.switchToSession(props.sessionCode);
-      }
-    },
-  );
-
   onMounted(() => {
     isMounted.value = true;
-    nextTick(() => {
+    setTimeout(() => {
       aiBluekingRef.value?.handleShow();
-    });
-  });
-
-  defineExpose<Exposes>({
-    addNewSession: (sessionCode?: string) => {
-      return aiBluekingRef.value!.addNewSession(sessionCode);
-    },
-    getSessionList: () => {
-      return aiBluekingRef.value!.getSessionList();
-    },
+    }, 20);
   });
 </script>
 <style lang="postcss">

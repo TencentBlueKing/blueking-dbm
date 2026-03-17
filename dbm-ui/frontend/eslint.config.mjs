@@ -106,8 +106,8 @@ export default defineConfigWithVueTs(
             'SLOT',
             'TWO_WAY_BINDING',
             'OTHER_DIRECTIVES',
-            'callback',
             'unknown',
+            'callback',
           ],
           customGroups: [
             {
