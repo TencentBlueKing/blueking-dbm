@@ -173,7 +173,7 @@ class MonitorPolicyUpdateSerializer(AuditedSerializer, serializers.ModelSerializ
         """
 
         class TargetRuleSerializer(serializers.Serializer):
-            key = serializers.ChoiceField(choices=TargetLevel.get_choices())
+            key = serializers.CharField(help_text=_("指标名"))
             value = serializers.ListSerializer(child=serializers.CharField(), allow_empty=True)
             method = serializers.CharField(help_text=_("条件符号"))
 
