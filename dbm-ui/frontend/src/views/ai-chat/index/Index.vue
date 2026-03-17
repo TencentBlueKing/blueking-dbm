@@ -2,23 +2,23 @@
   <div
     v-bk-loading="{ loading: isAgentPingLoading }"
     class="db-ai-chat-page">
-    <BkResizeLayout
-      v-if="!isAgentPingLoading && !isAgentPingError"
-      collapsible
-      :initial-divide="300"
-      style="height: 100%">
-      <template #aside>
-        <ChatHistoryList
-          v-model="currentSessionCode"
-          :add-new-session="addNewSession"
-          :get-session-list="getSessionList" />
-      </template>
-      <template #main>
-        <AiBlueking
-          ref="aiBlueking"
-          :session-code="currentSessionCode" />
-      </template>
-    </BkResizeLayout>
+    <template v-if="!isAgentPingLoading && !isAgentPingError">
+      <BkResizeLayout
+        collapsible
+        :initial-divide="300"
+        style="height: 100%">
+        <template #aside>
+          <AgentList v-model="currentAgent" />
+        </template>
+        <template #main>
+          <AiBlueking
+            v-if="currentAgent"
+            :key="currentAgent.id"
+            ref="aiBlueking"
+            :agent-info="currentAgent" />
+        </template>
+      </BkResizeLayout>
+    </template>
     <BkException
       v-if="isAgentPingError"
       style="margin-top: 100px"
@@ -40,10 +40,10 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getAgentPing } from '@services/source/ai';
+  import { getAgentPing, getAgentScene } from '@services/source/ai';
 
+  import AgentList from './components/agent-list.vue';
   import AiBlueking from './components/ai-blueking.vue';
-  import ChatHistoryList from './components/chat-history-list.vue';
 
   const { t } = useI18n();
 
@@ -53,17 +53,12 @@
     onError: () => {
       isAgentPingError.value = true;
     },
+    onSuccess: () => {
+      isAgentPingError.value = false;
+    },
   });
 
-  const currentSessionCode = ref<string>('');
-  const aiBluekingRef = useTemplateRef<InstanceType<typeof AiBlueking>>('aiBlueking');
-
-  const addNewSession = (sessionCode?: string) => {
-    return aiBluekingRef.value!.addNewSession(sessionCode);
-  };
-  const getSessionList = () => {
-    return aiBluekingRef.value!.getSessionList();
-  };
+  const currentAgent = ref<{ group: string } & ServiceReturnType<typeof getAgentScene>['workbench'][string][number]>();
 
   const handleRetry = () => {
     runAgentPing();
@@ -71,7 +66,8 @@
 </script>
 <style lang="postcss">
   .db-ai-chat-page {
-    display: block;
-    height: calc(100vh - var(--notice-height) - 105px);
+    position: relative;
+    z-index: 1;
+    height: 100%;
   }
 </style>
