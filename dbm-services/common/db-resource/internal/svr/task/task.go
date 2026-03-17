@@ -162,7 +162,7 @@ func UpdateResourceGseAgentStatus(bkHostIds ...int) (err error) {
 	}
 	var unUsedRsList []model.TbRpDetail
 	db := model.DB.Self.Table(model.TbRpDetailName()).Where(
-		"status = ? and agent_status_update_time > date_sub(now(),INTERVAL 30 MINUTE)", model.Unused)
+		"status = ? and agent_status_update_time < date_sub(now(),INTERVAL 30 MINUTE)", model.Unused)
 	if len(bkHostIds) > 0 {
 		db.Where("bk_host_id in (?)", bkHostIds)
 	}
