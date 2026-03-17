@@ -17,7 +17,7 @@
     class="replenish-record-details-slider"
     width="65%">
     <template #header>
-      <span>{{ t('记录明细详情') }}</span>
+      <span>{{ t('补货详情') }}</span>
       <span class="header-desc">ID：{{ id }}</span>
     </template>
     <div class="replenish-record-details">
@@ -66,7 +66,7 @@
           </BkRadioGroup>
 
           <BkButton
-            class="batch-terminate-btn"
+            v-if="showBatchOperation"
             :disabled="selectedRows.length === 0"
             :loading="isTerminating"
             @click="handleBatchTerminate">
@@ -96,60 +96,213 @@
         </div>
 
         <!-- 表格 -->
-        <BkTable
-          ref="tableRef"
-          border
-          :columns="tableColumns"
+        <PrimaryTable
           :data="filteredTableData"
-          :is-row-select-enable="isRowSelectEnable"
           :max-height="tableMaxHeight"
-          @checkbox-all="handleCheckboxAll"
-          @checkbox-change="handleCheckboxChange" />
+          resizable
+          row-key="id"
+          title-ellipsis>
+          <!-- 勾选列：仅在全部和已失败 tab 下展示 -->
+          <TableColumn
+            v-if="showBatchOperation"
+            align="center"
+            col-key="row-select"
+            fixed="left"
+            :width="50">
+            <template #title>
+              <BkCheckbox
+                :model-value="isPageAllSelected"
+                @change="handleTogglePageSelect" />
+            </template>
+            <template #default="{ row }: { row: RowData }">
+              <BkCheckbox
+                :disabled="row.status !== TicketModel.STATUS_FAILED"
+                :model-value="Boolean(selectedRowMap[row.id])"
+                @change="() => handleRowSelect(row)" />
+            </template>
+          </TableColumn>
+          <!-- 单号 -->
+          <TableColumn
+            col-key="id"
+            fixed="left"
+            title="单号"
+            :width="100">
+            <template #default="{ row }: { row: RowData }">
+              <BkButton
+                text
+                theme="primary"
+                @click="handleOpenTicketDetail(row)">
+                {{ row.id }}
+              </BkButton>
+            </template>
+          </TableColumn>
+          <!-- 子任务 -->
+          <TableColumn
+            col-key="inner_flow"
+            :title="t('子任务')"
+            :width="150">
+            <template #default="{ row }: { row: RowData }">
+              <template v-if="ticketInnerFlowInfo[row.id]">
+                <div
+                  v-for="(flowItem, index) in ticketInnerFlowInfo[row.id]"
+                  :key="index"
+                  style="line-height: 26px">
+                  <BkButton
+                    text
+                    theme="primary"
+                    @click="handleGoTaskHistoryDetail(row, flowItem)">
+                    {{ flowItem.flow_alias }}
+                  </BkButton>
+                </div>
+                <span v-if="ticketInnerFlowInfo[row.id]!.length < 1">--</span>
+              </template>
+              <div
+                v-else
+                class="rotate-loading"
+                style="display: inline-block">
+                <DbIcon
+                  svg
+                  type="sync-pending" />
+              </div>
+            </template>
+          </TableColumn>
+          <!-- 状态列：仅在全部 tab 下展示 -->
+          <TableColumn
+            v-if="activeStatusTab === 'all'"
+            col-key="status"
+            :title="t('状态')"
+            :width="120">
+            <template #default="{ row }: { row: RowData }">
+              <TicketStatusTag
+                :data="{
+                  status: row.status,
+                  statusText: row.status_display,
+                }" />
+            </template>
+          </TableColumn>
+          <!-- DB 类型 -->
+          <TableColumn
+            col-key="db_type"
+            :title="t('DB 类型')"
+            :width="120">
+            <template #default="{ row }: { row: RowData }">
+              {{ dbNameMap[row.db_type] || '--' }}
+            </template>
+          </TableColumn>
+          <!-- 规格类型 -->
+          <TableColumn
+            col-key="spec_machine_type"
+            :min-width="150"
+            :title="t('规格类型')">
+            <template #default="{ row }: { row: RowData }">
+              {{ machineTypeMap[row.spec?.spec_machine_type] || '--' }}
+            </template>
+          </TableColumn>
+          <!-- 规格 -->
+          <TableColumn
+            col-key="spec_name"
+            :min-width="180"
+            :title="t('规格')">
+            <template #default="{ row }: { row: RowData }">
+              {{ row.spec?.spec_name || '--' }}
+            </template>
+          </TableColumn>
+          <!-- 地域 -->
+          <TableColumn
+            col-key="city"
+            :title="t('地域')"
+            :width="100">
+            <template #default="{ row }: { row: RowData }">
+              {{ row.city || '--' }}
+            </template>
+          </TableColumn>
+          <!-- 园区 -->
+          <TableColumn
+            col-key="subzone"
+            :title="t('园区')"
+            :width="120">
+            <template #default="{ row }: { row: RowData }">
+              {{ row.subzone || '--' }}
+            </template>
+          </TableColumn>
+          <!-- 操作系统 -->
+          <TableColumn
+            col-key="os_name"
+            :title="t('操作系统')"
+            :width="100">
+            <template #default="{ row }: { row: RowData }">
+              {{ row.os_name || '--' }}
+            </template>
+          </TableColumn>
+          <!-- 申请数量 -->
+          <TableColumn
+            col-key="count"
+            :title="t('申请数量')"
+            :width="100">
+            <template #default="{ row }: { row: RowData }">
+              <span class="bold-number">{{ row.count || 0 }}</span>
+            </template>
+          </TableColumn>
+          <!-- 已交付 -->
+          <TableColumn
+            col-key="delivery_count"
+            :title="t('已交付')"
+            :width="100">
+            <template #default="{ row }: { row: RowData }">
+              <span
+                class="bold-number"
+                :class="{
+                  'green-number': row.delivery_count === row.count,
+                  'red-number': row.delivery_count < row.count,
+                }">
+                {{ row.delivery_count || 0 }}
+              </span>
+            </template>
+          </TableColumn>
+        </PrimaryTable>
       </BkLoading>
     </div>
 
     <!-- 批量终止弹窗 -->
     <BkDialog
       v-model:is-show="isShowTerminateDialog"
+      class="replenish-batch-terminate-dialog"
       :title="t('批量终止')"
       :width="480">
       <BkForm
         ref="terminateFormRef"
+        form-type="vertical"
         :model="terminateForm"
         :rules="terminateFormRules">
         <BkFormItem
-          :label="t('操作')"
+          :label="t('操作意见')"
           property="action"
           required>
-          <BkRadioGroup v-model="terminateForm.action">
-            <BkRadio label="terminate">
-              <BkTag theme="warning">{{ t('终止单据') }}</BkTag>
-              {{ t('终止后，单据将作废处理') }}
-            </BkRadio>
-          </BkRadioGroup>
+          <StatusFailedAction v-model="terminateForm.action" />
         </BkFormItem>
         <BkFormItem
-          :label="t('备注')"
+          :label="t('意见')"
           property="remark"
           required>
           <BkInput
             v-model="terminateForm.remark"
             :maxlength="100"
             :placeholder="t('请输入')"
-            :rows="4"
-            show-word-limit
+            :rows="3"
             type="textarea" />
         </BkFormItem>
       </BkForm>
       <template #footer>
         <BkButton
-          class="mr-8"
           :loading="isTerminating"
           theme="primary"
           @click="handleConfirmTerminate">
           {{ t('确定') }}
         </BkButton>
-        <BkButton @click="isShowTerminateDialog = false">
+        <BkButton
+          class="ml-8"
+          :disabled="isTerminating"
+          @click="isShowTerminateDialog = false">
           {{ t('取消') }}
         </BkButton>
       </template>
@@ -163,13 +316,19 @@
   import TicketModel from '@services/model/ticket/ticket';
   import { exportReplenishTickets, fetchReplenish, listTicketApplyInfo } from '@services/source/dbresourceReplenish';
   import { getTickets } from '@services/source/ticket';
-  import { batchProcessTicket } from '@services/source/ticketFlow';
+  import { batchProcessTicket, getInnerFlowInfo } from '@services/source/ticketFlow';
+
+  import { useSystemEnviron } from '@stores';
 
   import { DBTypeInfos, TicketTypes } from '@common/const';
 
+  import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
+
+  import StatusFailedAction from '@views/ticket-center/ticket-self-todo/components/batch-operation/StatusFailedAction.vue';
+
   import { messageSuccess, utcDisplayTime } from '@utils';
 
-  type StatusKey = 'all' | 'FAILED' | 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'TERMINATED';
+  type StatusKey = 'all' | 'FAILED' | 'RUNNING' | 'SUCCEEDED' | 'TERMINATED';
 
   type RowData = {
     apply_count: number;
@@ -189,6 +348,7 @@
     status: string;
     statusIcon: string;
     statusText: string;
+    sub_ticket_id: number;
     subzone: string;
     ticket_id: number;
   } & TicketModel;
@@ -205,17 +365,17 @@
 
   const { t } = useI18n();
   const router = useRouter();
+  const systemEnvironStore = useSystemEnviron();
 
-  const tableRef = ref();
   const tableData = shallowRef<RowData[]>([]);
   const isLoading = shallowRef(false);
   const isExporting = ref(false);
   const activeStatusTab = ref<StatusKey>('all');
-  const selectedRows = ref<RowData[]>([]);
   const quickSearchValue = ref<Record<string, any>>({});
   const isShowTerminateDialog = ref(false);
   const isTerminating = ref(false);
   const terminateFormRef = ref();
+  const ticketInnerFlowInfo = shallowRef<ServiceReturnType<typeof getInnerFlowInfo>>({});
 
   const summaryInfo = ref({
     create_at: '',
@@ -224,12 +384,12 @@
   });
 
   const terminateForm = reactive({
-    action: 'terminate',
+    action: 'TERMINATE',
     remark: '',
   });
 
   const terminateFormRules = {
-    remark: [{ message: t('备注不能为空'), required: true, trigger: 'blur' }],
+    remark: [{ message: t('意见不能为空'), required: true, trigger: 'blur' }],
   };
 
   const tableMaxHeight = computed(() => window.innerHeight - 320);
@@ -245,27 +405,11 @@
 
   const statusTabs = [
     { key: 'all' as const, label: t('全部') },
-    { key: 'FAILED' as const, label: t('已失败') },
-    { key: 'PENDING' as const, label: t('待确认') },
-    { key: 'RUNNING' as const, label: t('执行中') },
-    { key: 'SUCCEEDED' as const, label: t('已完成') },
-    { key: 'TERMINATED' as const, label: t('已终止') },
+    { key: TicketModel.STATUS_FAILED, label: t('已失败') },
+    { key: TicketModel.STATUS_RUNNING, label: t('执行中') },
+    { key: TicketModel.STATUS_SUCCEEDED, label: t('已完成') },
+    { key: TicketModel.STATUS_TERMINATED, label: t('已终止') },
   ];
-
-  // 状态图标映射
-  const statusIconMap: Record<string, string> = {
-    [TicketModel.STATUS_APPROVE]: 'sync-default',
-    [TicketModel.STATUS_FAILED]: 'sync-failed',
-    [TicketModel.STATUS_INNER_TODO]: 'sync-default',
-    [TicketModel.STATUS_PENDING]: 'sync-default',
-    [TicketModel.STATUS_RESOURCE_REPLENISH]: 'sync-default',
-    [TicketModel.STATUS_REVOKED]: 'sync-failed',
-    [TicketModel.STATUS_RUNNING]: 'sync-pending',
-    [TicketModel.STATUS_SUCCEEDED]: 'sync-success',
-    [TicketModel.STATUS_TERMINATED]: 'sync-failed',
-    [TicketModel.STATUS_TIMER]: 'sync-pending',
-    [TicketModel.STATUS_TODO]: 'sync-default',
-  };
 
   const slideQuickSearchData = computed(() => [
     {
@@ -291,25 +435,15 @@
   const statusCountMap = computed(() => {
     const map: Record<string, number> = {
       all: tableData.value.length,
-      FAILED: 0,
-      PENDING: 0,
-      RUNNING: 0,
-      SUCCEEDED: 0,
-      TERMINATED: 0,
+      [TicketModel.STATUS_FAILED]: 0,
+      [TicketModel.STATUS_RUNNING]: 0,
+      [TicketModel.STATUS_SUCCEEDED]: 0,
+      [TicketModel.STATUS_TERMINATED]: 0,
     };
     tableData.value.forEach((item) => {
-      // 将 TODO、INNER_TODO、RESOURCE_REPLENISH、TIMER 状态统一映射为 PENDING
-      const pendingStatuses = [
-        TicketModel.STATUS_TODO,
-        TicketModel.STATUS_INNER_TODO,
-        TicketModel.STATUS_RESOURCE_REPLENISH,
-        TicketModel.STATUS_TIMER,
-      ];
       // 将 APPROVE 状态映射为 RUNNING
       if (item.status === TicketModel.STATUS_APPROVE) {
         map.RUNNING++;
-      } else if (pendingStatuses.includes(item.status)) {
-        map.PENDING++;
       } else if (map[item.status] !== undefined) {
         map[item.status]++;
       }
@@ -323,16 +457,7 @@
 
     // 状态筛选
     if (activeStatusTab.value !== 'all') {
-      // 待确认状态需要匹配多个原始状态
-      if (activeStatusTab.value === 'PENDING') {
-        const pendingStatuses = [
-          TicketModel.STATUS_TODO,
-          TicketModel.STATUS_INNER_TODO,
-          TicketModel.STATUS_RESOURCE_REPLENISH,
-          TicketModel.STATUS_TIMER,
-        ];
-        data = data.filter((item) => pendingStatuses.includes(item.status));
-      } else if (activeStatusTab.value === 'RUNNING') {
+      if (activeStatusTab.value === 'RUNNING') {
         // 执行中需要匹配 RUNNING 和 APPROVE 状态
         data = data.filter(
           (item) => item.status === TicketModel.STATUS_RUNNING || item.status === TicketModel.STATUS_APPROVE,
@@ -347,127 +472,56 @@
     return data;
   });
 
-  // 表格列配置
-  const tableColumns = computed(() => {
-    const columns: any[] = [];
+  // 是否展示批量操作（仅全部和已失败 tab）
+  const showBatchOperation = computed(
+    () => activeStatusTab.value === 'all' || activeStatusTab.value === TicketModel.STATUS_FAILED,
+  );
 
-    columns.push({
-      fixed: 'left',
-      type: 'checkbox',
-      width: 50,
-    });
+  // 选中行 Map（key 为行 id）
+  const selectedRowMap = ref<Record<number, RowData>>({});
 
-    columns.push(
-      {
-        field: 'spec',
-        label: t('规格'),
-        minWidth: 280,
-        render: ({ data }: { data: RowData }) => {
-          const dbName = dbNameMap[data.db_type] || '--';
-          const machineType = machineTypeMap[data.spec?.spec_machine_type] || '--';
-          const specName = data.spec?.spec_name || '--';
-          return (
-            <span class='spec-cell'>
-              {dbName} / {machineType} / {specName}
-            </span>
-          );
-        },
-      },
-      {
-        field: 'subzone',
-        label: t('园区'),
-        render: ({ data }: { data: RowData }) => {
-          const city = data.city || '';
-          const subzone = data.subzone || '';
-          return city && subzone ? `${city}-${subzone}` : city || subzone || '--';
-        },
-        width: 120,
-      },
-      {
-        field: 'os_name',
-        label: t('操作系统'),
-        render: ({ data }: { data: RowData }) => data.os_name || '--',
-        width: 120,
-      },
-      {
-        field: 'count',
-        label: t('补充数量'),
-        render: ({ data }: { data: RowData }) => <span class='bold-number'>{data.count || 0}</span>,
-        width: 100,
-      },
-      {
-        field: 'id',
-        label: t('关联补货单'),
-        render: ({ data }: { data: RowData }) => (
-          <bk-button
-            onClick={() => handleOpenTicketDetail(data)}
-            text
-            theme='primary'>
-            {data.id}
-          </bk-button>
-        ),
-        width: 120,
-      },
-      {
-        field: 'status',
-        label: t('操作结果'),
-        render: ({ data }: { data: RowData }) => {
-          const iconType = statusIconMap[data.status] || 'sync-default';
-          const isRunning = iconType === 'sync-pending';
-          return (
-            <span class='status-cell'>
-              <db-icon
-                class={{ 'rotate-loading': isRunning }}
-                svg
-                type={iconType}
-              />
-              <span class='ml-4'>{data.status_display}</span>
-            </span>
-          );
-        },
-        width: 120,
-      },
-    );
+  // 选中行列表
+  const selectedRows = computed(() => Object.values(selectedRowMap.value));
 
-    return columns;
+  // 本页是否全选（仅统计可选行，即失败状态的行）
+  const isPageAllSelected = computed(() => {
+    const selectableRows = filteredTableData.value.filter((item) => item.status === TicketModel.STATUS_FAILED);
+    if (selectableRows.length < 1) return false;
+    return selectableRows.every((row) => Boolean(selectedRowMap.value[row.id]));
   });
 
-  // 判断行是否可选（只有失败状态的行可选）
-  const isRowSelectEnable = ({ row }: { row: RowData }) => {
-    return row.status === TicketModel.STATUS_FAILED;
+  // 全选/取消全选（仅选中失败状态的行）
+  const handleTogglePageSelect = (checked: boolean) => {
+    const map = { ...selectedRowMap.value };
+    filteredTableData.value.forEach((row) => {
+      if (row.status !== TicketModel.STATUS_FAILED) return;
+      if (checked) {
+        map[row.id] = row;
+      } else {
+        delete map[row.id];
+      }
+    });
+    selectedRowMap.value = map;
+  };
+
+  // 单行勾选/取消勾选
+  const handleRowSelect = (row: RowData) => {
+    const map = { ...selectedRowMap.value };
+    if (map[row.id]) {
+      delete map[row.id];
+    } else {
+      map[row.id] = row;
+    }
+    selectedRowMap.value = map;
   };
 
   const handleStatusTabChange = (key: StatusKey) => {
     activeStatusTab.value = key;
-    selectedRows.value = [];
-    tableRef.value?.clearSelection();
-  };
-
-  // 全选/取消全选
-  const handleCheckboxAll = ({ checked }: { checked: boolean }) => {
-    if (checked) {
-      // 只选中失败状态的行
-      selectedRows.value = filteredTableData.value.filter((item) => item.status === TicketModel.STATUS_FAILED);
-    } else {
-      selectedRows.value = [];
-    }
-  };
-
-  // 单行选择
-  const handleCheckboxChange = ({ checked, row }: { checked: boolean; row: RowData }) => {
-    if (checked) {
-      const index = selectedRows.value.findIndex((item) => item.id === row.id);
-      if (index === -1) {
-        selectedRows.value.push(row);
-      }
-    } else {
-      selectedRows.value = selectedRows.value.filter((item) => item.id !== row.id);
-    }
+    selectedRowMap.value = {};
   };
 
   const handleClearSelection = () => {
-    selectedRows.value = [];
-    tableRef.value?.clearSelection();
+    selectedRowMap.value = {};
   };
 
   const handleBatchTerminate = () => {
@@ -522,6 +576,21 @@
     window.open(href, '_blank');
   };
 
+  const handleGoTaskHistoryDetail = (
+    _ticketData: RowData,
+    data: ServiceReturnType<typeof getInnerFlowInfo>[number][number],
+  ) => {
+    const { href } = router.resolve({
+      name: 'taskHistoryDetail',
+      params: {
+        root_id: data.flow_id,
+      },
+    });
+
+    const path = href.replace(/^\/(\d+)/, `${systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ}`);
+    window.open(`${window.location.origin}/${path}`, '_blank');
+  };
+
   const fetchData = async () => {
     if (!props.id) return;
 
@@ -564,10 +633,13 @@
 
           // 获取单据详情（使用批量接口）
           const ticketIdsStr = ticketIds.join(',');
-          const [ticketsRes, applyInfo] = await Promise.all([
+          const [ticketsRes, innerFlowInfo, applyInfo] = await Promise.all([
             getTickets(searchParams),
+            getInnerFlowInfo({ ticket_ids: ticketIdsStr }),
             listTicketApplyInfo({ ticket_ids: ticketIdsStr }),
           ]);
+
+          ticketInnerFlowInfo.value = innerFlowInfo;
 
           tableData.value = ticketsRes.results.map((item) => {
             const applyInfoItem = applyInfo[item.id] || {};
@@ -588,7 +660,7 @@
     isShow,
     () => {
       if (isShow.value && props.id) {
-        selectedRows.value = [];
+        selectedRowMap.value = {};
         fetchData();
       }
     },
@@ -612,6 +684,12 @@
 </script>
 
 <style lang="less">
+  .replenish-batch-terminate-dialog {
+    .bk-form-label {
+      color: #63656e;
+    }
+  }
+
   .replenish-record-details-slider {
     .header-desc {
       position: relative;
@@ -695,15 +773,6 @@
       gap: 8px;
       margin-bottom: 12px;
 
-      .batch-terminate-btn {
-        margin-left: 8px;
-
-        &:disabled {
-          opacity: 0.4;
-          cursor: not-allowed;
-        }
-      }
-
       .slide-search-select {
         width: 400px;
         min-width: 200px;
@@ -716,6 +785,21 @@
       font-weight: 700;
       font-size: 12px;
       color: #313238;
+
+      &.red-number {
+        color: #ea3636;
+      }
+
+      &.green-number {
+        color: #2dcb56;
+      }
+    }
+
+    .delivery-number {
+      font-family: MicrosoftYaHei-Bold;
+      font-weight: 700;
+      font-size: 12px;
+      color: #ea3636;
     }
 
     .spec-cell {
