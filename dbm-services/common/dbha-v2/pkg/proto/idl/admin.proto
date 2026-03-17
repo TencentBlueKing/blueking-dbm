@@ -49,11 +49,11 @@ message ProbeConfigRequest {
     uint64 updatedTime = 5;
 }
 
-// ProbeConfigCode result code for GetProbeConfig: 成功/失败/无数据
+// ProbeConfigCode result code for GetProbeConfig: success / failure / no data
 enum ProbeConfigCode {
-    PROBE_CONFIG_SUCCESS = 0;  // 成功
-    PROBE_CONFIG_FAIL    = 1;  // 失败
-    PROBE_CONFIG_NO_DATA = 2;  // 无数据
+    PROBE_CONFIG_SUCCESS = 0;  // success
+    PROBE_CONFIG_FAIL    = 1;  // failure
+    PROBE_CONFIG_NO_DATA = 2;  // no data
 }
 
 message ProbeConfigResponse {
