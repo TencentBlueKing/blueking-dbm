@@ -2,6 +2,13 @@
 
 更新分区配置
 
+### headers 
+| 参数名称     | 参数类型     | 必选   | 描述             |
+| ------------ | ------------ | ------ | ---------------- |
+| Content-Type         | string       | 是     | application/json     |
+|X-Bkapi-Authorization | dict | 是 | 包含bk_app_code，bk_app_secret，bk_username|
+
+
 ### 请求参数
 | 参数名称     | 参数类型     | 必选   | 描述             |
 | ------------ | ------------ | ------ | ---------------- |

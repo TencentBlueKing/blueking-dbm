@@ -28,7 +28,6 @@
 目前动作类型支持三种：
 * APPROVE: 确认执行
 * TERMINATE: 终止单据
-* RESOURCE_REAPPLY: 资源重新申请
 
 ### 请求参数示例
 
@@ -82,3 +81,56 @@
 | done_at | string | 是 | 代办完成时间       |
 | flow | int    | 是 | 流程ID         |
 | ticket | int    | 是 | 单据ID         |
+
+### 人工确认示例
+
+1. 首先通过 `list_ticket_flow` 查询单据的flows，找到flow_type为 `pause` 的flow，这个flow就是人工确认节点。
+
+```json
+{
+    "id": 8449,
+    "status": "RUNNING",
+    "todos": [
+        {
+            "id": 1589,
+            "operators": [
+                "admin"
+            ],
+            "cost_time": 15785,
+            "name": "【SQLServer 库表备份】流程待确认，是否继续？",
+            "type": "APPROVE",
+            "context": {
+                "flow_id": 8449,
+                "ticket_id": 3250
+            },
+            "status": "TODO",
+            "done_by": "",
+            "done_at": null,
+            "flow": 8449,
+            "ticket": 3250
+        }
+    ],
+    "url": null,
+    "start_time": "2024-08-13T15:50:01+08:00",
+    "end_time": "2024-08-13T15:50:10+08:00",
+    "cost_time": 15794,
+    "flow_type_display": "SQLServer 库表备份",
+    "summary": "暂停状态执行中",
+    "flow_output": {},
+    "create_at": "2024-08-13T15:50:01+08:00",
+    "update_at": "2024-08-13T15:50:10+08:00",
+    "flow_type": "PAUSE",
+    "flow_alias": "人工确认",
+    "flow_obj_id": "pause_aa6910d0594811efae5b5e5314251c78",
+    "details": {},
+    "err_msg": null,
+    "err_code": null,
+    "retry_type": null,
+    "context": {},
+    "ticket": 3250
+},
+```
+
+2. 在flow找到 `todos`, 因为是人工确认，所以数组中只会有一个元素，获取这个todo id。注意，此时要判断流程status为RUNNING，表示流程在这个节点运行
+
+3. 调用此接口，便可以进行人工确认
