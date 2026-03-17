@@ -24,20 +24,72 @@
  * SOFTWARE.
  */
 
-package discovery_test
+package discovery
 
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
-	"dbm-services/common/dbha-v2/pkg/discovery"
-
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
+
+var (
+	benchClient     *Client
+	benchEtcdClient *clientv3.Client
+	benchReg        *Registry
+	benchDis        *Discovery
+	benchSetupOnce  sync.Once
+)
+
+func ensureBenchSetup() {
+	benchSetupOnce.Do(func() {
+		endpoints := os.Getenv("DBHA_ETCD_ENDPOINTS")
+		user := os.Getenv("DBHA_ETCD_USER")
+		password := os.Getenv("DBHA_ETCD_PASSWORD")
+
+		log.Println("endpoints:", endpoints)
+		log.Println("user:", user)
+		log.Println("password:", password)
+
+		if endpoints == "" {
+			log.Fatal("endpoints is required")
+		}
+
+		opts := []Option{
+			OptionEndpoints(strings.Split(endpoints, ";")),
+		}
+		if user != "" && password != "" {
+			opts = append(opts, OptionUser(user), OptionPassword(password))
+		}
+
+		cli, err := NewClientWithOptions(opts...)
+		if err != nil {
+			log.Fatalf("failed to create etcd client. errmsg: %s", err.Error())
+		}
+		benchClient = cli
+		benchEtcdClient, err = cli.OriginClient()
+		if err != nil {
+			log.Fatalf("failed to create etcd client, errmsg: %s", err)
+		}
+		benchReg = cli.CreateRegistry()
+		d, err := cli.CreateDiscovery()
+		if err != nil {
+			log.Fatalf("failed to create discovery. errmsg: %s", err.Error())
+		}
+		err = benchReg.SetService(context.Background(), "")
+		if err != nil {
+			log.Fatalf("failed to set service. errmsg: %s", err.Error())
+		}
+		benchDis = d
+	})
+}
 
 // ============================================================================
 // Watch capability tests
@@ -45,13 +97,14 @@ import (
 
 // TestWatchSingleKey tests single key watch capability
 func TestWatchSingleKey(t *testing.T) {
+	ensureBenchSetup()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	testKey := "/benchmark/watch/single/key"
 	eventCount := 100
 
-	watchChan, err := dis.Watch(ctx, testKey)
+	watchChan, err := benchDis.Watch(ctx, testKey)
 	if err != nil {
 		t.Fatalf("failed to start watch, errmsg: %v", err)
 	}
@@ -61,7 +114,7 @@ func TestWatchSingleKey(t *testing.T) {
 
 	go func() {
 		for event := range watchChan {
-			if event.EventType == discovery.WatchedEventPut {
+			if event.EventType == WatchedEventPut {
 				atomic.AddInt32(&received, 1)
 				if atomic.LoadInt32(&received) >= int32(eventCount) {
 					close(done)
@@ -73,7 +126,7 @@ func TestWatchSingleKey(t *testing.T) {
 
 	// Send events
 	for i := 0; i < eventCount; i++ {
-		_, err := etcdClient.Put(ctx, testKey, fmt.Sprintf("value-%d", i))
+		_, err := benchEtcdClient.Put(ctx, testKey, fmt.Sprintf("value-%d", i))
 		if err != nil {
 			t.Errorf("failed to put value, i: %d, errmsg: %v", i, err)
 		}
@@ -87,11 +140,12 @@ func TestWatchSingleKey(t *testing.T) {
 	}
 
 	// cleanup
-	etcdClient.Delete(ctx, testKey)
+	benchEtcdClient.Delete(ctx, testKey)
 }
 
 // TestWatchWithPrefixMultipleKeys tests prefix watch with multiple keys
 func TestWatchWithPrefixMultipleKeys(t *testing.T) {
+	ensureBenchSetup()
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
@@ -100,7 +154,7 @@ func TestWatchWithPrefixMultipleKeys(t *testing.T) {
 	eventPerKey := 20
 	totalEvents := keyCount * eventPerKey
 
-	watchChan, err := dis.WatchWithPrefix(ctx, prefix)
+	watchChan, err := benchDis.WatchWithPrefix(ctx, prefix)
 	if err != nil {
 		t.Fatalf("failed to start watch with prefix, errmsg: %v", err)
 	}
@@ -125,7 +179,7 @@ func TestWatchWithPrefixMultipleKeys(t *testing.T) {
 			defer wg.Done()
 			key := fmt.Sprintf("%s/key-%d", prefix, keyIdx)
 			for j := 0; j < eventPerKey; j++ {
-				_, err := etcdClient.Put(ctx, key, fmt.Sprintf("value-%d-%d", keyIdx, j))
+				_, err := benchEtcdClient.Put(ctx, key, fmt.Sprintf("value-%d-%d", keyIdx, j))
 				if err != nil {
 					t.Errorf("failed to put, key: %s, errmsg: %v", key, err)
 				}
@@ -142,11 +196,12 @@ func TestWatchWithPrefixMultipleKeys(t *testing.T) {
 	}
 
 	// cleanup
-	etcdClient.Delete(ctx, prefix, clientv3.WithPrefix())
+	benchEtcdClient.Delete(ctx, prefix, clientv3.WithPrefix())
 }
 
 // TestMultipleWatchers tests multiple watchers concurrent capability
 func TestMultipleWatchers(t *testing.T) {
+	ensureBenchSetup()
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
@@ -154,12 +209,12 @@ func TestMultipleWatchers(t *testing.T) {
 	watcherCount := 50
 	eventCount := 100
 
-	var watchers []<-chan *discovery.WatchEvent
+	var watchers []<-chan *WatchEvent
 	var receivedCounts []int32 = make([]int32, watcherCount)
 
 	// Create multiple watchers
 	for i := 0; i < watcherCount; i++ {
-		newDis, err := client.CreateDiscovery()
+		newDis, err := benchClient.CreateDiscovery()
 		if err != nil {
 			t.Fatalf("failed to create discovery, i: %d, errmsg: %v", i, err)
 		}
@@ -176,7 +231,7 @@ func TestMultipleWatchers(t *testing.T) {
 	var wg sync.WaitGroup
 	for i := 0; i < watcherCount; i++ {
 		wg.Add(1)
-		go func(idx int, ch <-chan *discovery.WatchEvent) {
+		go func(idx int, ch <-chan *WatchEvent) {
 			defer wg.Done()
 			for range ch {
 				atomic.AddInt32(&receivedCounts[idx], 1)
@@ -186,7 +241,7 @@ func TestMultipleWatchers(t *testing.T) {
 
 	// Send events
 	for i := 0; i < eventCount; i++ {
-		_, err := etcdClient.Put(ctx, testKey, fmt.Sprintf("value-%d", i))
+		_, err := benchEtcdClient.Put(ctx, testKey, fmt.Sprintf("value-%d", i))
 		if err != nil {
 			t.Errorf("failed to put, i: %d, errmsg: %v", i, err)
 		}
@@ -218,18 +273,19 @@ func TestMultipleWatchers(t *testing.T) {
 	}
 
 	// cleanup
-	etcdClient.Delete(ctx, testKey)
+	benchEtcdClient.Delete(ctx, testKey)
 }
 
 // TestWatchEventOrder tests watch event order
 func TestWatchEventOrder(t *testing.T) {
+	ensureBenchSetup()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	testKey := "/benchmark/watch/order/key"
 	eventCount := 100
 
-	watchChan, err := dis.Watch(ctx, testKey)
+	watchChan, err := benchDis.Watch(ctx, testKey)
 	if err != nil {
 		t.Fatalf("failed to start watch, errmsg: %v", err)
 	}
@@ -239,7 +295,7 @@ func TestWatchEventOrder(t *testing.T) {
 
 	go func() {
 		for event := range watchChan {
-			if event.EventType == discovery.WatchedEventPut {
+			if event.EventType == WatchedEventPut {
 				receivedValues = append(receivedValues, string(event.Value))
 				if len(receivedValues) >= eventCount {
 					close(done)
@@ -251,7 +307,7 @@ func TestWatchEventOrder(t *testing.T) {
 
 	// Sequential send
 	for i := 0; i < eventCount; i++ {
-		_, err := etcdClient.Put(ctx, testKey, fmt.Sprintf("%d", i))
+		_, err := benchEtcdClient.Put(ctx, testKey, fmt.Sprintf("%d", i))
 		if err != nil {
 			t.Errorf("failed to put, i: %d, errmsg: %v", i, err)
 		}
@@ -278,11 +334,12 @@ func TestWatchEventOrder(t *testing.T) {
 	}
 
 	// cleanup
-	etcdClient.Delete(ctx, testKey)
+	benchEtcdClient.Delete(ctx, testKey)
 }
 
 // TestWatchDeleteEvents tests delete events
 func TestWatchDeleteEvents(t *testing.T) {
+	ensureBenchSetup()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -292,13 +349,13 @@ func TestWatchDeleteEvents(t *testing.T) {
 	// Create keys first
 	for i := 0; i < keyCount; i++ {
 		key := fmt.Sprintf("%s/key-%d", prefix, i)
-		_, err := etcdClient.Put(ctx, key, fmt.Sprintf("value-%d", i))
+		_, err := benchEtcdClient.Put(ctx, key, fmt.Sprintf("value-%d", i))
 		if err != nil {
 			t.Fatalf("failed to put initial value, errmsg: %v", err)
 		}
 	}
 
-	watchChan, err := dis.WatchWithPrefix(ctx, prefix)
+	watchChan, err := benchDis.WatchWithPrefix(ctx, prefix)
 	if err != nil {
 		t.Fatalf("failed to start watch, errmsg: %v", err)
 	}
@@ -309,9 +366,9 @@ func TestWatchDeleteEvents(t *testing.T) {
 	go func() {
 		for event := range watchChan {
 			switch event.EventType {
-			case discovery.WatchedEventPut:
+			case WatchedEventPut:
 				atomic.AddInt32(&putCount, 1)
-			case discovery.WatchedEventDelete:
+			case WatchedEventDelete:
 				if atomic.AddInt32(&deleteCount, 1) >= int32(keyCount) {
 					close(done)
 					return
@@ -323,7 +380,7 @@ func TestWatchDeleteEvents(t *testing.T) {
 	// Delete all keys
 	for i := 0; i < keyCount; i++ {
 		key := fmt.Sprintf("%s/key-%d", prefix, i)
-		_, err := etcdClient.Delete(ctx, key)
+		_, err := benchEtcdClient.Delete(ctx, key)
 		if err != nil {
 			t.Errorf("failed to delete, key: %s, errmsg: %v", key, err)
 		}
@@ -344,6 +401,7 @@ func TestWatchDeleteEvents(t *testing.T) {
 
 // TestReadQPS tests read QPS
 func TestReadQPS(t *testing.T) {
+	ensureBenchSetup()
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
@@ -351,14 +409,14 @@ func TestReadQPS(t *testing.T) {
 	testValue := "benchmark-read-value"
 
 	// Prepare data
-	_, err := etcdClient.Put(ctx, testKey, testValue)
+	_, err := benchEtcdClient.Put(ctx, testKey, testValue)
 	if err != nil {
 		t.Fatalf("failed to prepare test data, errmsg: %v", err)
 	}
-	defer etcdClient.Delete(ctx, testKey)
+	defer benchEtcdClient.Delete(ctx, testKey)
 
 	// Warm up: initialize discovery client through Watch
-	watchChan, err := dis.Watch(ctx, testKey)
+	watchChan, err := benchDis.Watch(ctx, testKey)
 	if err != nil {
 		t.Fatalf("failed to warm up discovery, errmsg: %v", err)
 	}
@@ -387,7 +445,7 @@ func TestReadQPS(t *testing.T) {
 					case <-done:
 						return
 					default:
-						_, err := dis.Get(ctx, testKey)
+						_, err := benchDis.Get(ctx, testKey)
 						if err != nil {
 							atomic.AddInt64(&errors, 1)
 						} else {
@@ -411,11 +469,12 @@ func TestReadQPS(t *testing.T) {
 
 // TestWriteQPS tests write QPS
 func TestWriteQPS(t *testing.T) {
+	ensureBenchSetup()
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
 	prefix := "/benchmark/qps/write"
-	defer etcdClient.Delete(ctx, prefix, clientv3.WithPrefix())
+	defer benchEtcdClient.Delete(ctx, prefix, clientv3.WithPrefix())
 
 	concurrency := []int{1, 10, 50, 100}
 	duration := 5 * time.Second
@@ -438,7 +497,7 @@ func TestWriteQPS(t *testing.T) {
 						return
 					default:
 						key := fmt.Sprintf("%s/worker-%d/key-%d", prefix, workerID, counter)
-						err := reg.Set(ctx, key, fmt.Sprintf("value-%d", counter))
+						err := benchReg.Set(ctx, key, fmt.Sprintf("value-%d", counter))
 						if err != nil {
 							atomic.AddInt64(&errors, 1)
 						} else {
@@ -463,6 +522,7 @@ func TestWriteQPS(t *testing.T) {
 
 // TestMixedReadWriteQPS tests mixed read/write QPS
 func TestMixedReadWriteQPS(t *testing.T) {
+	ensureBenchSetup()
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
@@ -472,12 +532,12 @@ func TestMixedReadWriteQPS(t *testing.T) {
 	// Prepare data
 	for i := 0; i < keyCount; i++ {
 		key := fmt.Sprintf("%s/key-%d", prefix, i)
-		_, err := etcdClient.Put(ctx, key, fmt.Sprintf("value-%d", i))
+		_, err := benchEtcdClient.Put(ctx, key, fmt.Sprintf("value-%d", i))
 		if err != nil {
 			t.Fatalf("failed to prepare test data, errmsg: %v", err)
 		}
 	}
-	defer etcdClient.Delete(ctx, prefix, clientv3.WithPrefix())
+	defer benchEtcdClient.Delete(ctx, prefix, clientv3.WithPrefix())
 
 	concurrency := 50
 	duration := 10 * time.Second
@@ -502,7 +562,7 @@ func TestMixedReadWriteQPS(t *testing.T) {
 					if float64(counter%100)/100 < readRatio {
 						// Read operation
 						key := fmt.Sprintf("%s/key-%d", prefix, counter%keyCount)
-						_, err := dis.Get(ctx, key)
+						_, err := benchDis.Get(ctx, key)
 						if err != nil {
 							atomic.AddInt64(&readErrors, 1)
 						} else {
@@ -511,7 +571,7 @@ func TestMixedReadWriteQPS(t *testing.T) {
 					} else {
 						// Write operation
 						key := fmt.Sprintf("%s/key-%d", prefix, counter%keyCount)
-						err := reg.Set(ctx, key, fmt.Sprintf("updated-%d-%d", workerID, counter))
+						err := benchReg.Set(ctx, key, fmt.Sprintf("updated-%d-%d", workerID, counter))
 						if err != nil {
 							atomic.AddInt64(&writeErrors, 1)
 						} else {
@@ -546,20 +606,21 @@ func TestMixedReadWriteQPS(t *testing.T) {
 
 // TestWatchChannelBufferLimit tests watch channel buffer limit
 func TestWatchChannelBufferLimit(t *testing.T) {
+	ensureBenchSetup()
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
 	testKey := "/benchmark/watch/buffer/key"
 	burstCount := 1000 // Burst write count
 
-	watchChan, err := dis.Watch(ctx, testKey)
+	watchChan, err := benchDis.Watch(ctx, testKey)
 	if err != nil {
 		t.Fatalf("failed to start watch, errmsg: %v", err)
 	}
 
 	// Fast burst write without consuming
 	for i := 0; i < burstCount; i++ {
-		_, err := etcdClient.Put(ctx, testKey, fmt.Sprintf("burst-value-%d", i))
+		_, err := benchEtcdClient.Put(ctx, testKey, fmt.Sprintf("burst-value-%d", i))
 		if err != nil {
 			t.Errorf("failed to put burst value, i: %d, errmsg: %v", i, err)
 			break
@@ -590,24 +651,25 @@ consumeLoop:
 		burstCount, received, float64(burstCount-int(received))/float64(burstCount)*100)
 
 	// cleanup
-	etcdClient.Delete(ctx, testKey)
+	benchEtcdClient.Delete(ctx, testKey)
 }
 
 // TestMaxWatchersPerKey tests maximum watcher count per key
 func TestMaxWatchersPerKey(t *testing.T) {
+	ensureBenchSetup()
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
 	testKey := "/benchmark/watch/max-watchers/key"
 	maxWatchers := 200
 
-	var discoveries []*discovery.Discovery
-	var watchChans []<-chan *discovery.WatchEvent
+	var discoveries []*Discovery
+	var watchChans []<-chan *WatchEvent
 	var createErrors int
 
 	// Create large number of watchers
 	for i := 0; i < maxWatchers; i++ {
-		newDis, err := client.CreateDiscovery()
+		newDis, err := benchClient.CreateDiscovery()
 		if err != nil {
 			createErrors++
 			t.Logf("failed to create discovery at %d, errmsg: %v", i, err)
@@ -628,7 +690,7 @@ func TestMaxWatchersPerKey(t *testing.T) {
 		maxWatchers, len(watchChans), createErrors)
 
 	// Send one event to verify all watchers can receive
-	_, err := etcdClient.Put(ctx, testKey, "test-value")
+	_, err := benchEtcdClient.Put(ctx, testKey, "test-value")
 	if err != nil {
 		t.Errorf("failed to put test value, errmsg: %v", err)
 	}
@@ -650,5 +712,5 @@ func TestMaxWatchersPerKey(t *testing.T) {
 	for _, d := range discoveries {
 		d.Close()
 	}
-	etcdClient.Delete(ctx, testKey)
+	benchEtcdClient.Delete(ctx, testKey)
 }
