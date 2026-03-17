@@ -527,6 +527,54 @@ class VmResourceMeta(ClusterResourceMeta):
 
 
 @dataclass
+class K8sSurrealResourceMeta(ClusterResourceMeta):
+    """k8s SurrealDB 集群 resource 属性定义"""
+
+    id: str = "k8s_surrealdb"
+    name: str = _("K8s SurrealDB集群")
+
+
+@dataclass
+class K8sVictoriametricsResourceMeta(ClusterResourceMeta):
+    """k8s VictoriaMetrics 集群 resource 属性定义"""
+
+    id: str = "k8s_victoriametrics"
+    name: str = _("K8s VictoriaMetrics集群")
+
+
+@dataclass
+class K8sRisingwaveResourceMeta(ClusterResourceMeta):
+    """k8s Risingwave 集群 resource 属性定义"""
+
+    id: str = "k8s_risingwave"
+    name: str = _("K8s Risingwave集群")
+
+
+@dataclass
+class K8sMilvusResourceMeta(ClusterResourceMeta):
+    """k8s Milvus 集群 resource 属性定义"""
+
+    id: str = "k8s_milvus"
+    name: str = _("K8s Milvus集群")
+
+
+@dataclass
+class K8sQdrantResourceMeta(ClusterResourceMeta):
+    """k8s Qdrant 集群 resource 属性定义"""
+
+    id: str = "k8s_qdrant"
+    name: str = _("K8s Qdrant集群")
+
+
+@dataclass
+class K8sGreptimedbResourceMeta(ClusterResourceMeta):
+    """k8s GreptimeDB 集群 resource 属性定义"""
+
+    id: str = "k8s_greptimedb"
+    name: str = _("K8s GreptimeDB集群")
+
+
+@dataclass
 class MonitorPolicyResourceMeta(ResourceMeta):
     """监控策略实例resource 属性定义"""
 
@@ -721,6 +769,12 @@ class ResourceEnum:
     MONGODB_ACCOUNT = MongoDBAccountResourceMeta()
     TENDBCLUSTER_ACCOUNT = TendbClusterAccountResourceMeta()
     VM = VmResourceMeta()
+    K8S_SURREALDB = K8sSurrealResourceMeta()
+    K8S_VICTORIAMETRICS = K8sVictoriametricsResourceMeta()
+    K8S_RISINGWAVE = K8sRisingwaveResourceMeta()
+    K8S_MILVUS = K8sMilvusResourceMeta()
+    K8S_QDRANT = K8sQdrantResourceMeta()
+    K8S_GREPTIMEDB = K8sGreptimedbResourceMeta()
 
     @classmethod
     def get_resource_by_id(cls, resource_id: Union[ResourceMeta, str]):
@@ -734,7 +788,10 @@ class ResourceEnum:
     @classmethod
     def cluster_type_to_resource_meta(cls, cluster_type):
         """集群类型与资源的映射"""
-        db_type = ClusterType.cluster_type_to_db_type(cluster_type)
+        try:
+            db_type = ClusterType.cluster_type_to_db_type(cluster_type)
+        except ValueError:
+            return None
         return getattr(cls, db_type.upper(), None)
 
     @classmethod

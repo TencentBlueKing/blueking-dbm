@@ -16,8 +16,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from backend import env
-from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterType, MachineType
+from backend.db_meta.enums import MachineType
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_monitor.models import MonitorPolicy, NoticeGroup
 from backend.db_services.dbpermission.db_account.signals import create_account_signal
@@ -70,10 +69,9 @@ def post_save_ticket(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=Cluster)
 def post_save_cluster(sender, instance, created, **kwargs):
-    # TODO: 暂时排除k8s集群，后续补充iam鉴权
-    if instance.cluster_type in ClusterType.db_type_to_cluster_types(DBType.K8s):
-        return
     resource_meta = ResourceEnum.cluster_type_to_resource_meta(instance.cluster_type)
+    if resource_meta is None:
+        return
     post_save_grant_iam(resource_meta, Cluster, instance, instance.creator, created)
 
 

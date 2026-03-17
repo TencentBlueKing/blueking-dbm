@@ -61,10 +61,12 @@ class ClusterType(StrStructuredEnum):
     OracleSingleNone = EnumField("oracle_single_none", _("oracle单节点版"))
 
     # k8s集群
-    K8sSurreal = EnumField("k8s_surreal", _("k8s surrealdb集群"))
-    K8sVM = EnumField("k8s_vm", _("k8s Victoria metrics集群"))
-    K8sRW = EnumField("k8s_rw", _("k8s Risingwave集群"))
-    K8sMV = EnumField("k8s_mv", _("k8s Milvus集群"))
+    K8sSurrealdb = EnumField("k8s_surrealdb", _("k8s SurrealDB集群"))
+    K8sVictoriametrics = EnumField("k8s_victoriametrics", _("k8s VictoriaMetrics集群"))
+    K8sRisingwave = EnumField("k8s_risingwave", _("k8s Risingwave集群"))
+    K8sMilvus = EnumField("k8s_milvus", _("k8s Milvus集群"))
+    K8sQdrant = EnumField("k8s_qdrant", _("k8s Qdrant集群"))
+    K8sGreptimedb = EnumField("k8s_greptimedb", _("k8s GreptimeDB集群"))
 
     @classmethod
     def db_type_cluster_types_map(cls) -> Dict[str, List]:
@@ -101,7 +103,12 @@ class ClusterType(StrStructuredEnum):
             DBType.Doris.value: [cls.Doris],
             DBType.Vm.value: [cls.Vm],
             DBType.Oracle.value: [cls.OraclePrimaryStandby, cls.OracleSingleNone],
-            DBType.K8s.value: [cls.K8sSurreal, cls.K8sVM, cls.K8sRW, cls.K8sMV],
+            DBType.K8sSurrealdb.value: [cls.K8sSurrealdb],
+            DBType.K8sVictoriametrics.value: [cls.K8sVictoriametrics],
+            DBType.K8sRisingwave.value: [cls.K8sRisingwave],
+            DBType.K8sMilvus.value: [cls.K8sMilvus],
+            DBType.K8sQdrant.value: [cls.K8sQdrant],
+            DBType.K8sGreptimedb.value: [cls.K8sGreptimedb],
         }
 
     @classmethod
@@ -111,6 +118,21 @@ class ClusterType(StrStructuredEnum):
         """
         db_type_cluster_types_map = cls.db_type_cluster_types_map()
         return db_type_cluster_types_map.get(db_type)
+
+    @classmethod
+    def k8s_container_cluster_type_values(cls) -> frozenset:
+        """K8s 容器类集群的 cluster_type 取值（与扁平化后的 DBType 一一对应）。"""
+        return frozenset(
+            t.value
+            for t in (
+                cls.K8sSurrealdb,
+                cls.K8sVictoriametrics,
+                cls.K8sRisingwave,
+                cls.K8sMilvus,
+                cls.K8sQdrant,
+                cls.K8sGreptimedb,
+            )
+        )
 
     @classmethod
     def cluster_type_to_db_type(cls, cluster_type):
