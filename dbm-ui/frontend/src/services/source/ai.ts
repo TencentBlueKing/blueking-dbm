@@ -93,7 +93,18 @@ export function getFlowLogAnnlysis(params: { flow_id: string; ticket_id: number 
   return http.post(`${path}/agent/log/get_flow_log_analysis/`, params);
 }
 
-// 获取 agent 不同场景下的配置
 export function getAgentScene() {
-  return http.get<Record<string, Record<string, string>>>(`${path}/agent/agent/agent_scene/`);
+  return http.get<{
+    log_analysis: {
+      default: string;
+    };
+    workbench: Record<
+      string,
+      {
+        description: string;
+        id: string;
+        name: string;
+      }[]
+    >;
+  }>(`${path}/agent/agent/agent_scene/`);
 }

@@ -10,7 +10,7 @@
       <LocaleSwitch />
       <BkPopover
         placement="bottom"
-        :popover-delay="[200, 0]"
+        :popover-delay="[200, 100]"
         theme="light top-action-menu-theme"
         @after-hidden="isShowHelp = false"
         @after-show="isShowHelp = true">
@@ -32,7 +32,7 @@
       </BkPopover>
       <BkPopover
         placement="bottom"
-        :popover-delay="[200, 0]"
+        :popover-delay="[200, 100]"
         theme="light top-action-menu-theme"
         @after-hidden="isShowLogout = false"
         @after-show="isShowLogout = true">
@@ -192,6 +192,7 @@
 
     .username-text {
       padding-right: 4px;
+      line-height: 32px;
     }
 
     .user-info-arrow {
