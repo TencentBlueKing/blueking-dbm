@@ -14,7 +14,7 @@ export const redis: DbInfoType = {
         value: MachineTypes.REDIS_PROXY,
       },
       {
-        label: t('TendisCache/RedisCluster/Redis主从 后端存储'),
+        label: t('TendisCache集群'),
         value: MachineTypes.REDIS_TENDIS_CACHE,
       },
       {
