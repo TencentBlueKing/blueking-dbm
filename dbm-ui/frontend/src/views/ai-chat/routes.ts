@@ -19,19 +19,19 @@ export default function getRoutes() {
   registerModule([
     {
       path: 'ai-chat',
-      name: 'AiChat',
+      name: 'AgentChat',
       meta: {
         aiBlueking: false,
         navName: t('DBA 智能助手'),
       },
       redirect: {
-        name: 'AiChatIndex',
+        name: 'AgentChatIndex',
       },
       component: () => import('@views/ai-chat/Index.vue'),
       children: [
         {
-          path: 'index',
-          name: 'AiChatIndex',
+          path: 'index/:agentId?',
+          name: 'AgentChatIndex',
           meta: {
             fullscreen: true,
             navName: t('DBA 智能助手'),
