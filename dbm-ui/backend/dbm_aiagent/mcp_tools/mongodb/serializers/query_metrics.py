@@ -30,25 +30,19 @@ class MongoMetricsInputSerializer(serializers.Serializer):
         return attrs
 
 
-class MongoMetricsSeriesItemSerializer(serializers.Serializer):
-    """单条时序：维度 + 数据点"""
-
-    dimensions = serializers.DictField(help_text=_("维度（如 instance, instance_role, bk_target_ip 等）"))
-    datapoints = serializers.ListField(
-        child=serializers.ListField(child=serializers.FloatField(), min_length=2, max_length=2),
-        help_text=_("数据点 [[value, timestamp], ...]"),
-    )
-
-
 class MongoMetricsOutputSerializer(serializers.Serializer):
-    """MongoDB 指标查询通用输出：监控返回的 series 列表"""
+    """MongoDB 指标查询通用输出：Markdown 表格形式的指标数据"""
 
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     metric_type = serializers.CharField(help_text=_("指标类型：qps/connections/locks/cpu_usage"))
-    series = serializers.ListField(
-        child=MongoMetricsSeriesItemSerializer(),
-        help_text=_("时序列表"),
+    table = serializers.CharField(
+        help_text=_(
+            "Markdown 表格：统计汇总（维度 + min/max/avg/max_time）；"
+            "instant 查询时为 value/time 表；"
+            "数据点 ≤ 120 时在汇总表后追加每个 series 的详细数据点表"
+        )
     )
+    reminder = serializers.CharField(required=False, allow_blank=True, help_text=_("数据量过大或时间范围过早等提示信息"))
     error = serializers.CharField(required=False, allow_blank=True, help_text=_("错误信息（仅失败时返回）"))
     token_count = serializers.IntegerField(
         required=False,
