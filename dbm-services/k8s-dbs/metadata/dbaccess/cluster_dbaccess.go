@@ -41,6 +41,9 @@ type K8sCrdClusterDbAccess interface {
 		[]*models.K8sCrdClusterModel, uint64, error)
 	ListActiveByPage(params *metaentity.ClusterQueryParams, pagination *entity.Pagination) (
 		[]*models.K8sCrdClusterModel, uint64, error)
+	ListByDbmClusterIDZero() ([]*models.K8sCrdClusterModel, error)
+	ListUnSyncedByFilters(k8sClusterConfigID uint64, namespace string, clusterNames []string) (
+		[]*models.K8sCrdClusterModel, error)
 }
 
 // K8sCrdClusterDbAccessImpl K8sCrdClusterDbAccess 的具体实现
@@ -109,6 +112,15 @@ func (k *K8sCrdClusterDbAccessImpl) FindByParams(params *metaentity.ClusterQuery
 	}
 	if params.ClusterName != "" {
 		query = query.Where("cluster_name = ?", params.ClusterName)
+	}
+	if len(params.BkBizIDs) > 0 {
+		query = query.Where("bk_biz_id in (?)", params.BkBizIDs)
+	}
+	if len(params.AddonTypes) > 0 {
+		subQuery := k.db.Model(&models.K8sCrdStorageAddonModel{}).
+			Select("id").
+			Where("addon_type in (?)", params.AddonTypes)
+		query = query.Where("addon_id in (?)", subQuery)
 	}
 	result := query.First(&cluster)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -179,6 +191,38 @@ func (k *K8sCrdClusterDbAccessImpl) ListByPage(
 	}
 
 	return clusterModels, uint64(count), nil
+}
+
+// ListByDbmClusterIDZero 查询所有 dbm_cluster_id 为 0 或 NULL 的集群（未同步到 DBM 的存量集群）
+func (k *K8sCrdClusterDbAccessImpl) ListByDbmClusterIDZero() ([]*models.K8sCrdClusterModel, error) {
+	var clusterModels []*models.K8sCrdClusterModel
+	result := k.db.Where("dbm_cluster_id = 0 OR dbm_cluster_id IS NULL").Find(&clusterModels)
+	if result.Error != nil {
+		return nil, errors.Wrap(result.Error, "failed to list clusters with dbm_cluster_id = 0")
+	}
+	return clusterModels, nil
+}
+
+// ListUnSyncedByFilters 查询未同步到 DBM 的集群，支持按 K8s 集群、namespace、集群名过滤
+func (k *K8sCrdClusterDbAccessImpl) ListUnSyncedByFilters(
+	k8sClusterConfigID uint64, namespace string, clusterNames []string,
+) ([]*models.K8sCrdClusterModel, error) {
+	var clusterModels []*models.K8sCrdClusterModel
+	query := k.db.Where("dbm_cluster_id = 0 OR dbm_cluster_id IS NULL")
+	if k8sClusterConfigID > 0 {
+		query = query.Where("k8s_cluster_config_id = ?", k8sClusterConfigID)
+	}
+	if namespace != "" {
+		query = query.Where("namespace = ?", namespace)
+	}
+	if len(clusterNames) > 0 {
+		query = query.Where("cluster_name IN (?)", clusterNames)
+	}
+	result := query.Find(&clusterModels)
+	if result.Error != nil {
+		return nil, errors.Wrap(result.Error, "failed to list unsynced clusters by filters")
+	}
+	return clusterModels, nil
 }
 
 // ListActiveByPage 查找激活状态的集群列表

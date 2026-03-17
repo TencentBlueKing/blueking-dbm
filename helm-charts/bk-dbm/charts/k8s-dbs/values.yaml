@@ -42,10 +42,13 @@ containerPorts:
 # @section dbs 服务配置
 server:
   dbmConfig:
-    asyncToDbm: "false"
-    dbmApiUrl: ""
-    dbmBkAppCode: ""
-    dbmBkAppSecret: ""
+    asyncToDbm: "true"
+    syncDataApiUrl: ""          # 内部直连地址（同步用）
+    dbmAuthApiUrl: ""           # 鉴权地址（host:port/path 格式，合并原 gateway + IAM base path）
+    bkbaseBizApiUrl: ""            # bkbase网关获取业务列表地址
+    innerBkAppCode: ""           # 统一凭据 app_code（同步 + 鉴权）
+    innerBkAppSecret: ""         # 统一凭据 app_secret（同步 + 鉴权）
+    bkbaseBkBizId: "0"          # BKBase 业务 ID，部署时必须配置为真实值
   log:
     log_level: "info"
     max_size_mb: "10"

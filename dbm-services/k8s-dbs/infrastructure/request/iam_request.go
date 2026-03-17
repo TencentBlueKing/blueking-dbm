@@ -17,10 +17,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package config
+package request
 
-// ThirdAPIConfig third api config
-type ThirdAPIConfig struct {
-	SyncDataAPIURL string `env:"DBM_SYNCDATA_API_URL"`
-	DbmAuthAPIURL  string `env:"DBM_AUTH_API_URL"`
+// SimpleCheckAllowedRequest 对应 DBM /iam/simple_check_allowed/ 的请求体
+// 用户身份通过 X-Bkapi-Authorization 请求头传递
+type SimpleCheckAllowedRequest struct {
+	ActionID         string `json:"action_id"`
+	BkBizID          int    `json:"bk_biz_id,omitempty"`
+	ResourceID       string `json:"resource_id"`
+	IsRaiseException bool   `json:"is_raise_exception"`
 }

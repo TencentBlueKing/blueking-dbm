@@ -17,10 +17,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package config
+package response
 
-// ThirdAPIConfig third api config
-type ThirdAPIConfig struct {
-	SyncDataAPIURL string `env:"DBM_SYNCDATA_API_URL"`
-	DbmAuthAPIURL  string `env:"DBM_AUTH_API_URL"`
+// BkbaseBizResponse bk-base 网关 /v4/meta/bizs/ 接口响应
+type BkbaseBizResponse struct {
+	Result  bool            `json:"result"`
+	Code    string          `json:"code"` // bk-base 返回字符串，如 "00"
+	Data    []BkbaseBizItem `json:"data"`
+	Message *string         `json:"message"` // 可能为 null
+	Errors  interface{}     `json:"errors"`
+}
+
+// BkbaseBizItem 业务条目，仅提取 bk_biz_id 用于校验
+type BkbaseBizItem struct {
+	BkBizID uint64 `json:"bk_biz_id"`
 }

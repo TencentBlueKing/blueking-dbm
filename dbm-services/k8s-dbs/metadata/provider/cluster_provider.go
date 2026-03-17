@@ -51,6 +51,9 @@ type K8sCrdClusterProvider interface {
 		pagination *entity.Pagination,
 	) ([]*metaentity.K8sCrdClusterEntity, uint64, error)
 	FindClusterTopology(id uint64) (*metaentity.ClusterTopologyEntity, error)
+	ListUnSyncedClusters() ([]*metaentity.K8sCrdClusterEntity, error)
+	ListUnSyncedClustersByFilters(k8sClusterConfigID uint64, namespace string, clusterNames []string) (
+		[]*metaentity.K8sCrdClusterEntity, error)
 }
 
 // K8sCrdClusterProviderImpl K8sCrlClusterProvider 具体实现
@@ -393,6 +396,59 @@ func (k *K8sCrdClusterProviderImpl) ListClusters(
 		clusterEntity.Status = string(clusterResource.ClusterStatus.Phase)
 	}
 	return clusterEntities, count, nil
+}
+
+// buildClusterEntitiesWithAddon 将 cluster model 列表转换为带 AddonInfo 的 entity 列表。
+// 转换失败或 addon 查询失败的条目会被跳过并记录警告日志。
+func (k *K8sCrdClusterProviderImpl) buildClusterEntitiesWithAddon(
+	clusterModels []*models.K8sCrdClusterModel,
+) []*metaentity.K8sCrdClusterEntity {
+	var clusterEntities []*metaentity.K8sCrdClusterEntity
+	for _, clusterModel := range clusterModels {
+		clusterEntity := &metaentity.K8sCrdClusterEntity{}
+		if err := copier.Copy(clusterEntity, clusterModel); err != nil {
+			slog.Warn("Failed to copy cluster model to entity", "cluster_id", clusterModel.ID, "error", err)
+			continue
+		}
+
+		// 加载 AddonInfo（同步到 DBM 需要 AddonType 来映射 cluster type）
+		addonModel, err := k.addonDbAccess.FindByID(clusterModel.AddonID)
+		if err != nil {
+			slog.Warn("Failed to find addon for cluster",
+				"cluster_id", clusterModel.ID,
+				"addon_id", clusterModel.AddonID,
+				"error", err)
+			continue
+		}
+		addonEntity := &metaentity.K8sCrdStorageAddonEntity{}
+		if err := copier.Copy(addonEntity, addonModel); err != nil {
+			slog.Warn("Failed to copy addon model to entity", "addon_id", clusterModel.AddonID, "error", err)
+			continue
+		}
+		clusterEntity.AddonInfo = addonEntity
+		clusterEntities = append(clusterEntities, clusterEntity)
+	}
+	return clusterEntities
+}
+
+// ListUnSyncedClusters 查询所有 dbm_cluster_id 为 0 或 NULL 的存量集群，并加载 AddonInfo
+func (k *K8sCrdClusterProviderImpl) ListUnSyncedClusters() ([]*metaentity.K8sCrdClusterEntity, error) {
+	clusterModels, err := k.clusterDbAccess.ListByDbmClusterIDZero()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to list unsynced clusters")
+	}
+	return k.buildClusterEntitiesWithAddon(clusterModels), nil
+}
+
+// ListUnSyncedClustersByFilters 按过滤条件查询未同步集群，并加载 AddonInfo
+func (k *K8sCrdClusterProviderImpl) ListUnSyncedClustersByFilters(
+	k8sClusterConfigID uint64, namespace string, clusterNames []string,
+) ([]*metaentity.K8sCrdClusterEntity, error) {
+	clusterModels, err := k.clusterDbAccess.ListUnSyncedByFilters(k8sClusterConfigID, namespace, clusterNames)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to list unsynced clusters by filters")
+	}
+	return k.buildClusterEntitiesWithAddon(clusterModels), nil
 }
 
 // getClusterResource 获取 cluster 资源对象
