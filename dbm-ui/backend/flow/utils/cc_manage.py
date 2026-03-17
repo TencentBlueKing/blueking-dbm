@@ -598,6 +598,26 @@ def format_operate_collector_cache_key(bk_biz_id, db_type, machine_type, action)
     return cache_key
 
 
+def format_operate_retry_monitor_collector_cache_key(bk_biz_id, action, collect_id) -> str:
+    """
+    生成重试操作监控采集器缓存key
+    按照 管控业务-动作-实例数据库id 进行聚合
+    """
+    op = "____"
+    cache_key = f"OperateRetryMonitorCollectorV2{op}{bk_biz_id}{op}{action}{op}{collect_id}"
+    return cache_key
+
+
+def format_operate_retry_bk_log_collector_cache_key(bk_biz_id, action, plugin_id, collect_id) -> str:
+    """
+    生成重试操作日志采集器缓存key
+    按照 管控业务-动作-插件id-实例id 进行聚合
+    """
+    op = "____"
+    cache_key = f"OperateRetryBkLogCollectorV2{op}{bk_biz_id}{op}{action}{op}{plugin_id}{op}{collect_id}"
+    return cache_key
+
+
 def parser_operate_collector_cache_key(cache_key: str):
     """
     解析操作采集器缓存key
@@ -605,6 +625,24 @@ def parser_operate_collector_cache_key(cache_key: str):
     op = "____"
     prefix, bk_biz_id, db_type, machine_type, action = cache_key.split(op)
     return bk_biz_id, db_type, machine_type, action
+
+
+def parser_operate_retry_monitor_collector_cache_key(cache_key: str):
+    """
+    解析重试操作监控采集器缓存key
+    """
+    op = "____"
+    prefix, bk_biz_id, action, collect_id = cache_key.split(op)
+    return bk_biz_id, action, collect_id
+
+
+def parser_operate_retry_bk_log_collector_cache_key(cache_key: str):
+    """
+    解析重试操作日志采集器缓存key
+    """
+    op = "____"
+    prefix, bk_biz_id, action, plugin_id, collect_id = cache_key.split(op)
+    return bk_biz_id, action, plugin_id, collect_id
 
 
 @app.task
@@ -644,12 +682,28 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, instance_
             continue
         # 下发采集器
         try:
-            BKMonitorV3Api.run_collect_config(
+            result = BKMonitorV3Api.run_collect_config(
                 {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "id": collect_ins.collect_id, "scope": scope, "action": action},
                 use_admin=True,
             )
+            if result != "success":
+                # 按照管控业务发起任务下发
+                retry_monitor_cache_key = format_operate_retry_monitor_collector_cache_key(
+                    bk_biz_id, action, collect_ins.id
+                )
+
+                # 这里先推入下发任务，再将任务加入任务列表，保证执行一致性
+                RedisConn.sadd(retry_monitor_cache_key, *instance_id_to_host_id)
+                RedisConn.sadd("retry_monitor_operate_collector", retry_monitor_cache_key)
         except ApiError as err:
             logger.error(f"[monitor] id:{collect_ins.collect_id} error: {err}")
+            retry_monitor_cache_key = format_operate_retry_monitor_collector_cache_key(
+                bk_biz_id, action, collect_ins.id
+            )
+
+            # 这里先推入下发任务，再将任务加入任务列表，保证执行一致性
+            RedisConn.sadd(retry_monitor_cache_key, *instance_id_to_host_id)
+            RedisConn.sadd("retry_monitor_operate_collector", retry_monitor_cache_key)
 
     # --- 下发日志采集器 ---
     if db_type not in INSTANCE_BKLOG_PLUGINS or machine_type not in INSTANCE_BKLOG_PLUGINS[db_type]:
@@ -673,7 +727,7 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, instance_
         # 下发采集器
         collect_id = collect["collector_config_id"]
         try:
-            BKLogApi.run_databus_collectors(
+            result = BKLogApi.run_databus_collectors(
                 {
                     "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
                     "collector_config_id": collect_id,
@@ -681,9 +735,101 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, instance_
                     "action": action,
                 },
                 use_admin=True,
+                raw=True,
             )
+            if result.get("result") is False:
+                retry_monitor_cache_key = format_operate_retry_bk_log_collector_cache_key(
+                    bk_biz_id, action, plugin_id, collect_id
+                )
+
+                # 这里先推入下发任务，再将任务加入任务列表，保证执行一致性
+                RedisConn.sadd(retry_monitor_cache_key, *instance_id_to_host_id)
+                RedisConn.sadd("retry_bk_log_operate_collector", retry_monitor_cache_key)
         except ApiError as err:
             logger.error(f"[bklog] id:{collect_id} error: {err}")
+            retry_monitor_cache_key = format_operate_retry_bk_log_collector_cache_key(
+                bk_biz_id, action, plugin_id, collect_id
+            )
+
+            # 这里先推入下发任务，再将任务加入任务列表，保证执行一致性
+            RedisConn.sadd(retry_monitor_cache_key, *instance_id_to_host_id)
+            RedisConn.sadd("retry_bk_log_operate_collector", retry_monitor_cache_key)
+
+
+@app.task
+def retry_monitor_operate_collector(bk_biz_id: int, instance_id_to_host_id: list, action: str, collect_id: int):
+    """
+    重试操作下发监控采集器
+    调用监控 API，针对本次变更的范围进行下发
+    """
+
+    logger.info(
+        "retry_monitor_operate_collector: {bk_instance_ids} {action}".format(
+            bk_instance_ids=instance_id_to_host_id, action=action
+        )
+    )
+    # 获取下发的实例和采集范围
+    nodes = [
+        {"id": int(parts[0]), "bk_biz_id": bk_biz_id, "bk_host_id": int(parts[1]) if len(parts) > 1 else None}
+        for id_str in instance_id_to_host_id
+        for parts in [id_str.split("-", maxsplit=1)]
+    ]
+    scope = {"bk_biz_id": bk_biz_id, "object_type": "SERVICE", "node_type": "INSTANCE", "nodes": nodes}
+
+    # --- 下发监控采集器 ---
+    collect_instances = CollectInstance.objects.filter(id=collect_id).first()
+    # 下发采集器
+    try:
+        result = BKMonitorV3Api.run_collect_config(
+            {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "id": collect_instances.collect_id, "scope": scope, "action": action},
+            use_admin=True,
+        )
+        if result != "success":
+            return False
+        return True
+    except ApiError as err:
+        logger.error(f"retry [monitor] id:{collect_instances.collect_id} error: {err}")
+        return False
+
+
+@app.task
+def retry_bk_log_operate_collector(
+    bk_biz_id: int, instance_id_to_host_id: list, action: str, plugin_id: int, collect_id: int
+):
+    # 获取下发的实例和采集范围
+    nodes = [
+        {"id": int(parts[0]), "bk_biz_id": bk_biz_id, "bk_host_id": int(parts[1]) if len(parts) > 1 else None}
+        for id_str in instance_id_to_host_id
+        for parts in [id_str.split("-", maxsplit=1)]
+    ]
+    scope = {"bk_biz_id": bk_biz_id, "object_type": "SERVICE", "node_type": "INSTANCE", "nodes": nodes}
+
+    # 获取主机下发nodes
+    bk_host_ids = list(set([node["bk_host_id"] for node in nodes if node["bk_host_id"]]))
+    host_nodes = [{"bk_host_id": bk_host_id, "bk_biz_id": bk_biz_id} for bk_host_id in bk_host_ids]
+
+    # 如果是主机维度的采集项，则维度为HOST
+    bklog_scope = copy.deepcopy(scope)
+    if plugin_id not in SERVICE_INSTANCE_BKLOG_PLUGINS:
+        bklog_scope.update(object_type="HOST", nodes=host_nodes)
+    # 下发采集器
+    try:
+        result = BKLogApi.run_databus_collectors(
+            {
+                "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+                "collector_config_id": collect_id,
+                "scope": bklog_scope,
+                "action": action,
+            },
+            use_admin=True,
+            raw=True,
+        )
+        if result.get("result") is False:
+            return False
+        return True
+    except ApiError as err:
+        logger.error(f"retry [bklog] id:{collect_id} error: {err}")
+        return False
 
 
 def trigger_operate_collector(
