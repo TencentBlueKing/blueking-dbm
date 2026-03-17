@@ -38,6 +38,7 @@ const (
 	Risingwave      StorageAddonType = "risingwave"
 	Greptimedb      StorageAddonType = "greptimedb"
 	Milvus          StorageAddonType = "milvus"
+	Qdrant          StorageAddonType = "qdrant"
 )
 
 // addonAbbrMap 存储插件类型到简称的映射

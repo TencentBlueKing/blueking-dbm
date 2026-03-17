@@ -27,7 +27,7 @@ CLAUDE.md
 .history/
 dbm-services/.history/
 dbm-ui/.history/
-# trellis
-.trellis
 # agents.md
 AGENTS.md
+CLAUDE.md
+.trellis/

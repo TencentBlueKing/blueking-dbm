@@ -22,43 +22,58 @@ package util
 import (
 	"context"
 	"fmt"
-	coreconst "k8s-dbs/core/constant"
-	infreq "k8s-dbs/infrastructure/request"
-	infresp "k8s-dbs/infrastructure/response"
-	"k8s-dbs/infrastructure/thirdapi"
-	metaentity "k8s-dbs/metadata/entity"
 	"log/slog"
 	"time"
 
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
+
+	commconst "k8s-dbs/common/constant"
+	coreconst "k8s-dbs/core/constant"
+	infreq "k8s-dbs/infrastructure/request"
+	infresp "k8s-dbs/infrastructure/response"
+	"k8s-dbs/infrastructure/thirdapi"
+	metaentity "k8s-dbs/metadata/entity"
 )
 
-// clusterTypeMap 存储插件类型到DBM集群类型的映射表
-var clusterTypeMap = map[string]string{
-	string(coreconst.Victoriametrics): "k8s_vm",
-	string(coreconst.Greptimedb):      "k8s_gt",
-	string(coreconst.Surreal):         "k8s_surreal",
-	string(coreconst.Risingwave):      "k8s_rw",
-	string(coreconst.Milvus):          "k8s_mv",
-}
-
-// GetDbmClusterType 获取对应的 dbm cluster type
+// GetDbmClusterType 获取 addon 类型对应的 DBM cluster type。
+// 复用 addon_registry.go 中的 AddonTypeToIAMClusterType 映射，
 func GetDbmClusterType(storageAddonType string) (string, error) {
-	if clusterType, exists := clusterTypeMap[storageAddonType]; exists {
+	if clusterType, exists := commconst.AddonTypeToIAMClusterType[storageAddonType]; exists {
 		return clusterType, nil
 	}
-
 	return "", fmt.Errorf("不支持的存储插件类型: %s", storageAddonType)
 }
 
-// AsyncClusterCreated 同步集群创建信息到DBM
+// AsyncClusterCreated 同步集群创建信息到 DBM。
+// onIDReceived 为可选回调，DBM 创建成功后将返回的 cluster id 通知调用方。
 func AsyncClusterCreated(
 	clusterEntity *metaentity.K8sCrdClusterEntity,
 	dbmAPIService *thirdapi.DbmAPIService,
+	onIDReceived func(dbmClusterID uint64),
 ) {
 	slog.Info("开始同步集群创建信息", "cluster_name", clusterEntity.ClusterName)
-	asyncClusterOperation(clusterEntity, coreconst.OperationCreate, dbmAPIService, syncClusterCreatedWithCtx)
+	syncFunc := func(ctx context.Context, entity *metaentity.K8sCrdClusterEntity, svc *thirdapi.DbmAPIService) error {
+		if err := checkContextCancelled(ctx); err != nil {
+			return err
+		}
+		dbmClusterType, err := GetDbmClusterType(entity.AddonInfo.AddonType)
+		if err != nil {
+			return fmt.Errorf("未找到对应的 dbm cluster type: %w", err)
+		}
+		syncRequest := BuildCreateRequest(entity, dbmClusterType)
+		dbmClusterID, err := svc.SyncClusterCreated(syncRequest)
+		if err != nil {
+			return err
+		}
+		slog.Info("DBM API 返回同步成功", "operation", "创建",
+			"cluster_name", entity.ClusterName, "dbm_cluster_id", dbmClusterID)
+		if onIDReceived != nil {
+			onIDReceived(dbmClusterID)
+		}
+		return nil
+	}
+	asyncClusterOperation(clusterEntity, coreconst.OperationCreate, dbmAPIService, syncFunc)
 }
 
 // AsyncClusterUpdated 同步集群更新信息到DBM
@@ -299,15 +314,6 @@ func syncClusterDeletedWithCtx(
 	return syncClusterWithCtx(ctx, clusterEntity, dbmAPIService, coreconst.OperationDelete)
 }
 
-// syncClusterCreatedWithCtx 带context的同步集群创建信息到DBM
-func syncClusterCreatedWithCtx(
-	ctx context.Context,
-	clusterEntity *metaentity.K8sCrdClusterEntity,
-	dbmAPIService *thirdapi.DbmAPIService,
-) error {
-	return syncClusterWithCtx(ctx, clusterEntity, dbmAPIService, coreconst.OperationCreate)
-}
-
 // syncClusterWithCtx 统一的带context的同步集群操作函数
 func syncClusterWithCtx(
 	ctx context.Context,
@@ -328,8 +334,6 @@ func syncClusterWithCtx(
 	switch operation {
 	case coreconst.OperationDelete:
 		return syncClusterDelete(clusterEntity, dbmAPIService, dbmClusterType)
-	case coreconst.OperationCreate:
-		return syncClusterCreate(clusterEntity, dbmAPIService, dbmClusterType)
 	case
 		coreconst.OperationExpose,
 		coreconst.OperationStop,
@@ -383,17 +387,6 @@ func syncClusterDelete(
 	return handleSyncResponse(err, response, "删除", clusterEntity.ClusterName)
 }
 
-// syncClusterCreate 同步集群创建操作
-func syncClusterCreate(
-	clusterEntity *metaentity.K8sCrdClusterEntity,
-	dbmAPIService *thirdapi.DbmAPIService,
-	dbmClusterType string,
-) error {
-	syncRequest := buildCreateRequest(clusterEntity, dbmClusterType)
-	response, err := dbmAPIService.SyncClusterCreated(syncRequest)
-	return handleSyncResponse(err, response, "创建", clusterEntity.ClusterName)
-}
-
 // syncClusterUpdate 同步集群更新操作
 func syncClusterUpdate(
 	clusterEntity *metaentity.K8sCrdClusterEntity,
@@ -420,14 +413,18 @@ func buildDeleteRequest(
 	}
 }
 
-// buildCreateRequest 构建创建请求
-func buildCreateRequest(
+// BuildCreateRequest 构建创建请求
+func BuildCreateRequest(
 	clusterEntity *metaentity.K8sCrdClusterEntity,
 	dbmClusterType string,
 ) *infreq.CreateClusterRequest {
+	alias := clusterEntity.ClusterAlias
+	if alias == "" {
+		alias = clusterEntity.ClusterName
+	}
 	return &infreq.CreateClusterRequest{
 		Name:         clusterEntity.ClusterName,
-		Alias:        clusterEntity.ClusterAlias,
+		Alias:        alias,
 		BkBizID:      clusterEntity.BkBizID,
 		ClusterType:  dbmClusterType,
 		ImmuteDomain: fmt.Sprintf("%d_%s_%s", clusterEntity.BkBizID, dbmClusterType, clusterEntity.ClusterName),
@@ -450,9 +447,13 @@ func buildUpdateRequest(
 	if domain == "" {
 		domain = fmt.Sprintf("%d_%s_%s", clusterEntity.BkBizID, dbmClusterType, clusterEntity.ClusterName)
 	}
+	alias := clusterEntity.ClusterAlias
+	if alias == "" {
+		alias = clusterEntity.ClusterName
+	}
 	return &infreq.UpdateClusterRequest{
 		Name:             clusterEntity.ClusterName,
-		Alias:            clusterEntity.ClusterAlias,
+		Alias:            alias,
 		BkBizID:          clusterEntity.BkBizID,
 		ClusterType:      dbmClusterType,
 		ImmuteDomain:     domain,
