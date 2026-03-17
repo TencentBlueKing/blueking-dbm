@@ -45,3 +45,4 @@ cypress/screenshots
 runner-results/
 cypress.env.json
 multi-reporter-config.json
+!.codebuddy/

@@ -13,7 +13,14 @@
 
 <template>
   <ApplyPermissionCatch>
-    <div class="monitor-strategy-type-content">
+    <BkAlert
+      closable
+      :title="
+        t(
+          '业务告警策略初始配置继承自全局告警策略，全局策略更新时将自动同步至业务。如需调整，可直接编辑修改，修改后策略将转为「自定义」状态，不再跟随全局策略更新。如需回退，可通过操作列的「恢复默认」将策略还原为全局配置。',
+        )
+      " />
+    <div class="monitor-strategy-type-content mt-16">
       <div class="content-head mb-16">
         <BkButton
           :disabled="!selected.length"
@@ -21,40 +28,323 @@
           @click="batchEditNoticeGroup">
           {{ t('批量设置告警组') }}
         </BkButton>
-        <DbSearchSelect
+        <BkButton
+          v-bk-tooltips="{
+            content: t('请选择至少一条自定义父策略'),
+            disabled: !batchResetToDefaultDisabled,
+          }"
+          class="ml-8"
+          :disabled="batchResetToDefaultDisabled"
+          theme="primary"
+          @click="batchResetToDefault">
+          {{ t('批量恢复默认') }}
+        </BkButton>
+        <DbQuickSearch
           v-model="searchValue"
-          class="input-box"
-          :data="searchSelectList"
-          :placeholder="t('请选择条件搜索')"
-          unique-select
-          value-split-code="+"
-          @search="fetchData" />
+          :data="quickSearchData"
+          parse-url
+          :placeholder="t('请输入或选择条件搜索')"
+          style="width: 500px; margin-left: auto"
+          @change="handleQuickSearchChange" />
       </div>
-      <DbTable
-        ref="table"
-        class="table-box"
-        :columns="columns"
-        :data-source="dataSource"
-        :disable-select-method="disableSelectMethod"
-        releate-url-query
-        :row-class="updateRowClass"
-        selectable
-        :show-overflow="false"
-        :show-settings="false"
-        @clear-search="handleClearSearch"
-        @selection="handleSelection" />
+      <div
+        ref="tableWrapper"
+        class="table-box">
+        <BkLoading :loading="loading">
+          <PrimaryTable
+            ref="table"
+            :data="tableDisplayData"
+            :max-height="tableMaxHeight"
+            resizable
+            row-key="id"
+            @select-change="handleSelectChange">
+            <template #default>
+              <TableColumn
+                col-key="row-expand"
+                fixed="left"
+                :width="30">
+                <template #default="{ row }: { row: MonitorPolicyModel }">
+                  <DbIcon
+                    v-if="!row.isChild && row.child.length > 0"
+                    class="row-expand-icon"
+                    :class="{ 'row-expand-icon-expanded': expandedRowMap[row.id] }"
+                    type="right-shape"
+                    @click="() => handleExpandChange(row.id)" />
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="row-select"
+                fixed="left"
+                type="multiple"
+                :width="40" />
+              <TableColumn
+                col-key="name"
+                fixed="left"
+                :title="t('策略名称')"
+                :width="300">
+                <!-- <template #title>
+                  <div style="display: flex; align-items: center">
+                    <BkCheckbox
+                      v-model="isCheckAll"
+                      @change="handleCheckAllChange" />
+                    <div class="ml-26">{{ t('策略名称') }}</div>
+                  </div>
+                </template> -->
+                <template #default="{ row, rowIndex }: { row: MonitorPolicyModel, rowIndex: number }">
+                  <div style="display: flex">
+                    <div
+                      v-if="row.isChild"
+                      class="name-prepend">
+                      <div
+                        class="name-prepend-inner"
+                        :style="{
+                          height: getChildHeight(row, rowIndex),
+                        }" />
+                    </div>
+                    <TextOverflowLayout>
+                      <template #prepend>
+                        <!-- <BkCheckbox
+                          v-model="selectedRowMap[row.id]"
+                          @change="() => handleCheckRowChange(row.id)" /> -->
+                        <div></div>
+                      </template>
+                      <AuthButton
+                        :action-id="row.isInner ? 'monitor_policy_clone' : 'monitor_policy_edit'"
+                        :disabled="!row.is_enabled"
+                        :permission="
+                          row.isInner ? row.permission.monitor_policy_clone : row.permission.monitor_policy_edit
+                        "
+                        :resource="row.id"
+                        text
+                        theme="primary"
+                        @click="() => handleOpenSlider(row, row.isInner ? 'clone' : 'edit')">
+                        {{ row.nameDisplay }}
+                      </AuthButton>
+                      <template #append>
+                        <div class="ml-4" />
+                        <BkTag
+                          v-if="row.event_count > 0"
+                          v-bk-tooltips="{
+                            content: t('当前有n个未恢复事件', { n: row.event_count }),
+                          }"
+                          size="small"
+                          style="cursor: pointer"
+                          theme="danger"
+                          @click="() => handleGoMonitorPage(row.event_url)">
+                          <DbIcon type="alert" />
+                          {{ row.event_count }}
+                        </BkTag>
+                        <BkTag
+                          v-if="row.isInner"
+                          size="small">
+                          {{ t('内置') }}
+                        </BkTag>
+                        <BkTag
+                          v-if="row.isCustom"
+                          size="small"
+                          theme="warning">
+                          {{ t('自定义') }}
+                        </BkTag>
+                        <BkTag
+                          v-if="row.isPolicyTypePromQL"
+                          size="small"
+                          style="color: #531dab; background: #f9f0ff">
+                          PromQL
+                        </BkTag>
+                        <BkTag
+                          v-if="row.isPolicyTypeMulti"
+                          size="small"
+                          theme="success">
+                          {{ t('多指标') }}
+                        </BkTag>
+                        <BkTag
+                          v-if="!row.is_enabled"
+                          class="ml-4"
+                          size="small">
+                          {{ t('已停用') }}
+                        </BkTag>
+                      </template>
+                    </TextOverflowLayout>
+                  </div>
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="id"
+                title="ID"
+                :width="130">
+              </TableColumn>
+              <TableColumn
+                col-key="targets"
+                :title="t('监控目标')"
+                :width="200">
+                <template #default="{ row }: { row: MonitorPolicyModel }">
+                  <Targets :row="row" />
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="is_enabled"
+                :title="t('启停')"
+                :width="120">
+                <template #default="{ row }: { row: MonitorPolicyModel }">
+                  <BkPopConfirm
+                    :content="t('停用后所有监控动作将会停止，请谨慎操作！')"
+                    :is-show="showTipMap[row.id]"
+                    placement="bottom"
+                    :popover-options="{
+                      disabled: row.isInner || !row.is_enabled,
+                    }"
+                    :title="t('确认停用该策略？')"
+                    trigger="click"
+                    :width="320"
+                    @cancel="() => handleCancelConfirm(row)"
+                    @confirm="() => handleClickConfirm(row)">
+                    <AuthSwitcher
+                      v-model="row.is_enabled"
+                      action-id="monitor_policy_start_stop"
+                      :disabled="row.isInner"
+                      :permission="row.permission.monitor_policy_start_stop"
+                      :resource="row.id"
+                      size="small"
+                      theme="primary"
+                      @change="() => handleChangeSwitch(row)" />
+                  </BkPopConfirm>
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="test_rules"
+                :title="t('阈值')"
+                :width="220">
+                <template #default="{ row }: { row: MonitorPolicyModel }">
+                  <TestRules :test-rules="row.test_rules" />
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="trigger_config"
+                :title="t('触发条件')"
+                :width="100">
+                <template #default="{ row }: { row: MonitorPolicyModel }">
+                  {{ row.detects_config.trigger_config.count }}/{{ row.detects_config.trigger_config.check_window }}
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="time_ranges"
+                :title="t('生效时间段')"
+                :width="220">
+                <template #default="{ row }: { row: MonitorPolicyModel }">
+                  <template v-if="row.timeRangesDisplay">
+                    <BkTag
+                      v-if="row.timeRangesDisplay.length === 0"
+                      theme="info">
+                      {{ t('全天') }}
+                    </BkTag>
+                    <TagBlock
+                      v-else
+                      :data="row.timeRangesDisplay" />
+                  </template>
+                  <span v-else>--</span>
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="notify_groups"
+                :title="t('告警组')"
+                :width="180">
+                <template #default="{ row }: { row: MonitorPolicyModel }">
+                  <RenderNotifyGroup :data="getNoticeGroupDisplay(row)" />
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="updater"
+                :title="t('更新人')"
+                :width="150">
+                <template #default="{ row }: { row: MonitorPolicyModel }">
+                  {{ row.updater || '--' }}
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="update_at"
+                sorter
+                :title="t('更新时间')"
+                :width="220">
+                <template #default="{ row }: { row: MonitorPolicyModel }">
+                  {{ row.updateAtDisplay }}
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="oprations"
+                fixed="right"
+                :title="t('操作')"
+                :width="180">
+                <template #default="{ row }: { row: MonitorPolicyModel }">
+                  <AuthButton
+                    :action-id="row.isInner ? 'monitor_policy_clone' : 'monitor_policy_edit'"
+                    :permission="row.isInner ? row.permission.monitor_policy_clone : row.permission.monitor_policy_edit"
+                    :resource="row.id"
+                    text
+                    theme="primary"
+                    @click="() => handleOpenSlider(row, row.isInner ? 'clone' : 'edit')">
+                    {{ t('编辑') }}
+                  </AuthButton>
+                  <AuthButton
+                    v-if="!row.isChild"
+                    action-id="monitor_policy_clone"
+                    class="ml-8"
+                    :permission="row.permission.monitor_policy_clone"
+                    :resource="dbType"
+                    text
+                    theme="primary"
+                    @click="() => handleOpenSlider(row, 'new')">
+                    {{ t('新建子策略') }}
+                  </AuthButton>
+                  <AuthButton
+                    v-if="row.isChild"
+                    action-id="monitor_policy_clone"
+                    class="ml-8"
+                    :permission="row.permission.monitor_policy_clone"
+                    :resource="dbType"
+                    text
+                    theme="primary"
+                    @click="() => handleOpenSlider(row, 'clone')">
+                    {{ t('克隆') }}
+                  </AuthButton>
+                  <AuthButton
+                    v-if="row.isCustom"
+                    action-id="monitor_policy_edit"
+                    class="ml-8"
+                    :permission="row.permission.monitor_policy_edit"
+                    :resource="row.id"
+                    text
+                    theme="primary"
+                    @click="() => handleResetToDefault(row)">
+                    {{ t('恢复默认') }}
+                  </AuthButton>
+                  <AuthButton
+                    v-if="row.isChild"
+                    action-id="monitor_policy_delete"
+                    class="ml-8"
+                    :permission="row.permission.monitor_policy_delete"
+                    :resource="row.id"
+                    :results="row.permission.monitor_policy_delete"
+                    text
+                    theme="primary"
+                    @click="() => handleClickDelete(row)">
+                    {{ t('删除') }}
+                  </AuthButton>
+                </template>
+              </TableColumn>
+            </template>
+          </PrimaryTable>
+        </BkLoading>
+      </div>
     </div>
     <EditStrategy
       v-model="isShowEditStrrategySideSilder"
       :alarm-group-list="alarmGroupList"
       :alarm-group-name-map="alarmGroupNameMap"
-      :bizs-map="bizsMap"
       :cluster-list="clusterList"
       :data="currentChoosedRow"
       :db-type="dbType"
       :existed-names="existedNames"
-      :module-list="moduleList"
-      :page-status="sliderPageType"
+      :page-status="pageStatus"
       @success="handleUpdatePolicySuccess" />
     <BatchEditNoticeGroupDialog
       v-model="batchEditNoticeGroupDialogShow"
@@ -62,13 +352,19 @@
       :alarm-group-name-map="alarmGroupNameMap"
       :selected="selected"
       @suceess="handleBatchEditNoticeGroupSuceess" />
+    <BatchResetToDefaultDialog
+      v-model="batchResetToDefalutDialogShow"
+      :selected="selected"
+      @suceess="handleBatchResetToDefaultSuceess" />
   </ApplyPermissionCatch>
 </template>
 <script setup lang="tsx">
-  import { Button, InfoBox } from 'bkui-vue';
+  import { InfoBox } from 'bkui-vue';
+  import _ from 'lodash';
+  import { type UnwrapRef } from 'vue';
+  import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import { useRoute } from 'vue-router';
 
   import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
   import {
@@ -76,380 +372,86 @@
     disablePolicy,
     enablePolicy,
     getClusterList,
-    getDbModuleList,
     queryMonitorPolicyList,
   } from '@services/source/monitor';
   import { getSimpleList } from '@services/source/monitorNoticeGroup';
 
+  import { useUrlSearch } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
-  import { DBTypeInfos, DBTypes } from '@common/const';
+  import { DBTypeInfos, DBTypes, MonitorTargetLevel } from '@common/const';
 
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import AuthButton from '@components/auth-component/button.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import { messageSuccess } from '@utils';
+  import TestRules from '@views/monitor-alarm/common/table/TestRules.vue';
+  import { useStrategyQuickSearch } from '@views/monitor-alarm/common/useStrategyQuickSearch';
+
+  import { getOffset, messageSuccess } from '@utils';
+
+  import DbIcon from '@/components/db-icon';
 
   import EditStrategy from '../edit-strategy/Index.vue';
 
   import BatchEditNoticeGroupDialog from './components/BatchEditNoticeGroupDialog.vue';
+  import BatchResetToDefaultDialog from './components/BatchResetToDefaultDialog.vue';
   import RenderNotifyGroup from './components/RenderNotifyGroup.vue';
-  import RenderTargetItem from './components/RenderTargetItem.vue';
-
-  export type RowData = ServiceReturnType<typeof queryMonitorPolicyList>['results'][0];
+  import Targets from './components/table/Targets.vue';
 
   interface Props {
     dbType: DBTypes;
   }
 
-  interface SearchSelectItem {
-    id: string;
-    name: string;
-  }
-
   const props = defineProps<Props>();
 
-  const { t } = useI18n();
-  const { bizs, currentBizId } = useGlobalBizs();
-  const { notifyGroupId } = useRoute().query as { notifyGroupId: string };
-  const tableRef = useTemplateRef('table');
+  enum EditType {
+    CHILD_EDIT = 'child_edit',
+    PARENT_EDIT = 'parent_edit',
+    PARENT_NEW = 'parent_new',
+  }
 
-  const dataSource = (params: ServiceParameters<typeof queryMonitorPolicyList>) =>
-    queryMonitorPolicyList(
-      Object.assign(params, {
-        db_type: props.dbType,
-      }),
-      {
-        permission: 'catch',
-      },
-    );
+  const route = useRoute();
+  const router = useRouter();
+  const { t } = useI18n();
+  const { currentBizId } = useGlobalBizs();
+  const { getSearchParams, replaceSearchParams } = useUrlSearch();
+  const { handleFilterList, handleMergeSearchParams, isSearching, quickSearchData, searchValue } =
+    useStrategyQuickSearch(false, props.dbType);
+
+  const rootRef = useTemplateRef('tableWrapper');
+
+  let editType = route.query.edit_type || '';
 
   const isShowEditStrrategySideSilder = ref(false);
   const currentChoosedRow = ref({} as MonitorPolicyModel);
-  const searchValue = ref<Array<{ values: SearchSelectItem[] } & SearchSelectItem>>([]);
   const alarmGroupList = ref<SelectItem<string>[]>([]);
-  const sliderPageType = ref('edit');
-  const moduleList = ref<SelectItem<string>[]>([]);
+  const pageStatus = ref<ComponentProps<typeof EditStrategy>['pageStatus']>('edit');
   const clusterList = ref<SelectItem<string>[]>([]);
-  const isTableLoading = ref(false);
   const existedNames = ref<string[]>([]);
   const showTipMap = ref<Record<string, boolean>>({});
   const batchEditNoticeGroupDialogShow = ref(false);
+  const batchResetToDefalutDialogShow = ref(false);
+  const tableMaxHeight = ref<number | 'auto'>('auto');
+  const selectedRowKeys = ref<number[]>([]);
 
   const selected = shallowRef<MonitorPolicyModel[]>([]);
+  const tableFilterData = ref<MonitorPolicyModel[]>([]);
+  const expandedRowMap = shallowRef({} as Record<number, boolean>);
 
-  async function fetchData() {
-    isTableLoading.value = true;
-    try {
-      await tableRef.value!.fetchData(
-        { ...reqParams.value },
-        {
-          bk_biz_id: currentBizId,
-          db_type: props.dbType,
-        },
-      );
-    } finally {
-      isTableLoading.value = false;
-    }
-  }
+  const batchResetToDefaultDisabled = computed(() => selected.value.filter((item) => item.isCustom).length === 0);
 
-  const bizsMap = computed(() =>
-    bizs.reduce(
-      (results, item) => {
-        // eslint-disable-next-line no-param-reassign
-        results[item.bk_biz_id] = item.name;
-        return results;
-      },
-      {} as Record<string, string>,
-    ),
+  const tableDisplayData = computed(() =>
+    tableFilterData.value.flatMap((item) => {
+      if (expandedRowMap.value[item.id]) {
+        return [item].concat(item.child);
+      }
+      return item;
+    }),
   );
 
-  const searchSelectList = computed(() => [
-    {
-      id: 'id',
-      name: 'ID',
-    },
-    {
-      id: 'name',
-      name: t('策略名称'),
-    },
-    {
-      id: 'target_keyword',
-      name: t('监控目标'),
-    },
-    {
-      children: alarmGroupList.value.map((item) => ({
-        id: String(item.value),
-        name: item.label,
-      })) as SearchSelectItem[],
-      id: 'notify_groups',
-      multiple: true,
-      name: t('告警组'),
-    },
-    {
-      id: 'updater',
-      name: t('更新人'),
-    },
-  ]);
-
-  const reqParams = computed(() => {
-    const searchParams = searchValue.value.reduce(
-      (obj, item) => {
-        Object.assign(obj, {
-          [item.id]: item.values.map((data) => data.id).join(','),
-        });
-        return obj;
-      },
-      {} as Record<string, string>,
-    );
-    return {
-      ...searchParams,
-    };
-  });
-
   const alarmGroupNameMap: Record<string, string> = {};
-  const dbModuleMap: Record<string, string> = {};
-  const columns = [
-    {
-      field: 'name',
-      fixed: 'left',
-      label: t('策略名称'),
-      minWidth: 150,
-      render: ({ data }: { data: MonitorPolicyModel }) => {
-        const isDanger = data.event_count > 0;
-        const pageType = data.isInner ? 'read' : 'edit';
-        const ButtonCom = data.isInner ? Button : AuthButton;
-        return (
-          <TextOverflowLayout>
-            {{
-              append: () => (
-                <>
-                  {data.isInner && (
-                    <bk-tag
-                      class='ml-4'
-                      size='small'>
-                      {t('内置')}
-                    </bk-tag>
-                  )}
-                  {!data.is_enabled && (
-                    <bk-tag
-                      class='ml-4'
-                      size='small'>
-                      {t('已停用')}
-                    </bk-tag>
-                  )}
-                  {isDanger && (
-                    <bk-tag
-                      v-bk-tooltips={{
-                        content: t('当前有n个未恢复事件', { n: data.event_count }),
-                      }}
-                      onclick={() => handleGoMonitorPage(data.event_url)}
-                      class='ml-4'
-                      size='small'
-                      style='cursor: pointer;'
-                      theme='danger'>
-                      <db-icon type='alert' />
-                      {data.event_count}
-                    </bk-tag>
-                  )}
-                  {data.isNewCreated && (
-                    <bk-tag
-                      class='ml-4'
-                      size='small'
-                      theme='success'>
-                      NEW
-                    </bk-tag>
-                  )}
-                </>
-              ),
-              default: () => (
-                <ButtonCom
-                  onClick={() => handleOpenSlider(data, pageType)}
-                  actionId='monitor_policy_edit'
-                  disabled={!data.is_enabled}
-                  permission={data.permission.monitor_policy_edit}
-                  resource={data.id}
-                  text
-                  theme='primary'>
-                  {data.name}
-                </ButtonCom>
-              ),
-            }}
-          </TextOverflowLayout>
-        );
-      },
-      width: 280,
-    },
-    {
-      field: 'targets',
-      label: t('监控目标'),
-      minWidth: 180,
-      render: ({ data }: { data: MonitorPolicyModel }) => {
-        if (data.targets.length < 1) {
-          return '--';
-        }
-        return data.targets.map((item, index) => {
-          const { level } = item;
-          let list = item.rule.value;
-          if (level === 'appid') {
-            // 业务级
-            list = [bizsMap.value[list[0]]];
-          }
-          if (level === 'db_module') {
-            // 模块
-            list = item.rule.value.map((item) => dbModuleMap[item]);
-          }
-          return (
-            <RenderTargetItem
-              key={index}
-              data-test={level}
-              list={list}
-              title={level}
-            />
-          );
-        });
-      },
-      showOverflow: false,
-    },
-    {
-      field: 'notify_groups',
-      label: t('告警组'),
-      minWidth: 180,
-      render: ({ data }: { data: MonitorPolicyModel }) => {
-        if (data.notify_groups.length === 0) {
-          return (
-            <RenderNotifyGroup
-              data={[
-                {
-                  displayName: `${DBTypeInfos[props.dbType].name}_DBA`,
-                  id: props.dbType,
-                },
-              ]}
-            />
-          );
-        }
-
-        const dataList: {
-          displayName: string;
-          id: string;
-        }[] = [];
-        data.notify_groups.forEach((id) => {
-          if (id in alarmGroupNameMap) {
-            dataList.push({
-              displayName: alarmGroupNameMap[id],
-              id: `${id}`,
-            });
-          }
-        });
-        return <RenderNotifyGroup data={dataList} />;
-      },
-    },
-    {
-      field: 'is_enabled',
-      label: t('启停'),
-      minWidth: 60,
-      render: ({ data }: { data: MonitorPolicyModel }) => {
-        if (data.isInner) {
-          return (
-            <bk-switcher
-              disabled={true}
-              model-value={data.is_enabled}
-              size='small'
-              theme='primary'
-            />
-          );
-        }
-        return (
-          <bk-pop-confirm
-            onCancel={() => handleCancelConfirm(data)}
-            onConfirm={() => handleClickConfirm(data)}
-            content={t('停用后所有监控动作将会停止，请谨慎操作！')}
-            disabled={data.isInner}
-            is-show={showTipMap.value[data.id]}
-            placement='bottom'
-            title={t('确认停用该策略？')}
-            trigger='manual'
-            width='320'>
-            <auth-switcher
-              v-model={data.is_enabled}
-              onChange={() => handleChangeSwitch(data)}
-              action-id='monitor_policy_start_stop'
-              disabled={data.isInner}
-              permission={data.permission.monitor_policy_start_stop}
-              resource={data.id}
-              size='small'
-              theme='primary'
-            />
-          </bk-pop-confirm>
-        );
-      },
-      showOverflowTooltip: true,
-    },
-    {
-      field: 'update_at',
-      label: t('更新时间'),
-      minWidth: 160,
-      render: ({ data }: { data: RowData }) => <span>{data.updateAtDisplay}</span>,
-      sort: true,
-    },
-    {
-      field: 'updater',
-      label: t('更新人'),
-      minWidth: 100,
-      render: ({ data }: { data: RowData }) => <span>{data.updater || '--'}</span>,
-    },
-    {
-      field: '',
-      fixed: 'right',
-      label: t('操作'),
-      render: ({ data }: { data: MonitorPolicyModel }) => (
-        <div class='operate-box'>
-          {!data.isInner && (
-            <auth-button
-              onClick={() => handleOpenSlider(data, 'edit')}
-              action-id='monitor_policy_edit'
-              permission={data.permission.monitor_policy_edit}
-              resource={data.id}
-              text
-              theme='primary'>
-              {t('编辑')}
-            </auth-button>
-          )}
-          <auth-button
-            onClick={() => handleOpenSlider(data, 'clone')}
-            action-id='monitor_policy_clone'
-            permission={data.permission.monitor_policy_clone}
-            resource={props.dbType}
-            text
-            theme='primary'>
-            {t('克隆')}
-          </auth-button>
-          {/* <bk-button
-            onClick={() => handleOpenMonitorAlarmPage(data.event_url)}
-            text
-            theme='primary'>
-            {t('监控告警')}
-          </bk-button> */}
-          {!data.isInner && (
-            <auth-button
-              onClick={() => handleClickDelete(data)}
-              action-id='monitor_policy_delete'
-              permission={data.permission.monitor_policy_delete}
-              resource={data.id}
-              results={data.permission.monitor_policy_delete}
-              text
-              theme='primary'>
-              {t('删除')}
-            </auth-button>
-          )}
-        </div>
-      ),
-      showOverflow: false,
-      width: 120,
-    },
-  ];
-
   const { run: fetchAlarmGroupList } = useRequest(getSimpleList, {
     manual: true,
     onSuccess: (res) => {
@@ -462,19 +464,54 @@
         alarmGroupNameMap[item.id] = item.name;
       });
       alarmGroupList.value = groupList;
-      if (notifyGroupId !== undefined) {
-        searchValue.value = [
-          {
-            id: 'notify_groups',
-            name: t('告警组'),
-            values: [
-              {
-                id: notifyGroupId,
-                name: alarmGroupNameMap[notifyGroupId],
-              },
-            ],
-          },
-        ];
+      // if (notifyGroupId !== undefined) {
+      //   searchValue.value = [
+      //     {
+      //       id: 'notify_groups',
+      //       name: t('告警组'),
+      //       values: [
+      //         {
+      //           id: notifyGroupId,
+      //           name: alarmGroupNameMap[notifyGroupId],
+      //         },
+      //       ],
+      //     },
+      //   ];
+      // }
+    },
+  });
+
+  const {
+    data: tableOriginalData,
+    loading,
+    run: runQueryMonitorPolicyList,
+  } = useRequest(queryMonitorPolicyList, {
+    manual: true,
+    onSuccess: (result, params) => {
+      if (editType && route.query.id) {
+        const row = result.results
+          .flatMap((item) => [item].concat(item.child))
+          .find((item) => item.id === Number(route.query.id));
+        if (row && result) {
+          const typeMap: Record<EditType, UnwrapRef<typeof pageStatus>> = {
+            [EditType.CHILD_EDIT]: 'edit',
+            [EditType.PARENT_EDIT]: 'edit',
+            [EditType.PARENT_NEW]: 'new',
+          };
+          const type = editType === EditType.PARENT_EDIT && row.isInner ? 'clone' : typeMap[editType as EditType];
+          handleOpenSlider(row, type);
+        }
+        editType = '';
+      }
+      router.replace({
+        query: replaceSearchParams(params[0], false),
+      });
+      expandedRowMap.value = Object.fromEntries(result.results.map((item) => [item.id, true]));
+      if (isSearching.value) {
+        const filterList = handleFilterList(tableOriginalData.value?.results || []);
+        tableFilterData.value = handleFormatTableList(filterList, result.results);
+      } else {
+        tableFilterData.value = handleFormatTableList(result.results, result.results);
       }
     },
   });
@@ -486,19 +523,6 @@
         label: item,
         value: item,
       }));
-    },
-  });
-
-  const { run: fetchDbModuleList } = useRequest(getDbModuleList, {
-    manual: true,
-    onSuccess: (res) => {
-      moduleList.value = res.map((item) => {
-        dbModuleMap[item.db_module_id] = item.db_module_name;
-        return {
-          label: item.db_module_name,
-          value: String(item.db_module_id),
-        };
-      });
     },
   });
 
@@ -535,21 +559,6 @@
   });
 
   watch(
-    reqParams,
-    () => {
-      setTimeout(() => {
-        if (tableRef.value) {
-          fetchData();
-        }
-      });
-    },
-    {
-      deep: true,
-      immediate: true,
-    },
-  );
-
-  watch(
     () => props.dbType,
     (type) => {
       if (type) {
@@ -561,10 +570,6 @@
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           db_type: type,
         });
-        fetchDbModuleList({
-          bk_biz_id: currentBizId,
-          dbtype: type,
-        });
       }
     },
     {
@@ -572,35 +577,233 @@
     },
   );
 
-  const disableSelectMethod = (data: MonitorPolicyModel) => data.isInner;
+  const handleFormatTableList = (filterData: MonitorPolicyModel[], allData: MonitorPolicyModel[]) => {
+    // 父类id既全局策略id
+    const parentIds = new Set<number>();
+    // 业务策略id
+    const appIds = new Set<number>();
+    // 除业务和全局策略之外的id
+    const childIds: number[] = [];
+    // 全局策略和业务策略的映射
+    const parentAppMap = new Map<number, number[]>();
+    // 全局策略和子策略的映射
+    const parentChildMap = new Map<number, number[]>();
+    // 最后的父策略和子策略的映射
+    const lastParentChildMap = new Map<number, number[]>();
 
-  const handleSelection = (key: number[], list: MonitorPolicyModel[]) => {
-    selected.value = list;
+    for (const res of filterData) {
+      const { id, parent_id, target_level } = res;
+      parentIds.add(parent_id === 0 ? id : parent_id);
+
+      // 全局策略可以跳过，不需要记录父策略和子策略的关系
+      if (parent_id === 0) {
+        continue;
+      }
+
+      if (target_level === MonitorTargetLevel.BIZ) {
+        appIds.add(id);
+        if (!parentAppMap.has(parent_id)) {
+          parentAppMap.set(parent_id, []);
+        }
+        parentAppMap.get(parent_id)!.push(id);
+      } else if (target_level !== MonitorTargetLevel.PLATFORM) {
+        childIds.push(id);
+        if (!parentChildMap.has(parent_id)) {
+          parentChildMap.set(parent_id, []);
+        }
+        parentChildMap.get(parent_id)!.push(id);
+      }
+    }
+
+    // 拿到未查到的业务策略，用来覆盖全局策略
+    const missingParentIds = Array.from(parentChildMap.keys()).filter((pid) => !parentAppMap.has(pid));
+
+    const bizPolicies = allData
+      .filter(
+        (item) =>
+          item.bk_biz_id === currentBizId &&
+          missingParentIds.includes(item.parent_id) &&
+          item.target_level === MonitorTargetLevel.BIZ,
+      )
+      .map((item) => ({
+        id: item.id,
+        parent_id: item.parent_id,
+      }));
+
+    const bizPolicyMap = new Map<number, number>();
+    bizPolicies.forEach((p: any) => {
+      bizPolicyMap.set(p.parent_id, p.id);
+    });
+
+    for (const parentId of Array.from(parentChildMap.keys())) {
+      // 当又有全局策略又有业务策略时，不返回全局策略
+      if (parentAppMap.has(parentId)) {
+        // 可能会存在一个全局策略有多个业务策略的非标行为，所以取第一个就行
+        const lastParentId = parentAppMap.get(parentId)![0];
+        lastParentChildMap.set(lastParentId, parentChildMap.get(parentId)!);
+        appIds.delete(lastParentId);
+      }
+      // 如果没拿到对应的业务策略则需要获取全局策略对应的业务策略
+      else if (bizPolicyMap.has(parentId)) {
+        lastParentChildMap.set(bizPolicyMap.get(parentId)!, parentChildMap.get(parentId)!);
+      } else {
+        lastParentChildMap.set(parentId, parentChildMap.get(parentId)!);
+      }
+      parentIds.delete(parentId);
+    }
+
+    // 最后再把存在业务策略的全局策略去掉
+    for (const parentId of Array.from(parentAppMap.keys())) {
+      if (parentIds.has(parentId)) {
+        parentIds.delete(parentId);
+      }
+    }
+
+    const firstLevelIds = [...Array.from(parentIds), ...Array.from(appIds), ...Array.from(lastParentChildMap.keys())];
+
+    // 拿到所有的需要查询的策略的id
+    const needIds = [...firstLevelIds, ...childIds];
+    const resData = allData.filter((item) => needIds.includes(item.id));
+    const results: any[] = [];
+
+    const getChildData = (allData: any[], ids: number[]) => {
+      return allData.filter((data) => ids.includes(data.id));
+    };
+
+    for (const res of resData) {
+      if (firstLevelIds.includes(res.id)) {
+        res.child = lastParentChildMap.has(res.id) ? getChildData(resData, lastParentChildMap.get(res.id)!) : [];
+        results.push(res);
+      }
+    }
+
+    return results;
+  };
+
+  const fetchData = () => {
+    runQueryMonitorPolicyList(
+      {
+        bk_biz_id: currentBizId,
+        db_type: props.dbType,
+        is_cover: true,
+        limit: -1,
+        offset: 0,
+      },
+      {
+        permission: 'catch',
+      },
+    );
+  };
+
+  const handleQuickSearchChange = () => {
+    const filterList = handleFilterList(tableOriginalData.value?.results || []);
+    router.replace({
+      query: replaceSearchParams(handleMergeSearchParams(getSearchParams()), false),
+    });
+    tableFilterData.value = handleFormatTableList(filterList, tableOriginalData.value?.results || []);
+  };
+
+  const handleExpandChange = (id: number) => {
+    const isExpended = expandedRowMap.value[id];
+    expandedRowMap.value = { ...expandedRowMap.value, [id]: !isExpended };
+  };
+
+  const getChildHeight = (row: MonitorPolicyModel, rowIndex: number) => {
+    const parentRow = _.findLast(tableDisplayData.value, (item) => item.child.length > 0, rowIndex);
+    if (!parentRow) {
+      return 'calc(100% - 10px)';
+    }
+    const childIndex = parentRow.child.findIndex((item) => item.id === row.id);
+    return childIndex === 0 ? 'calc(100% - 10px)' : '100%';
+  };
+
+  const getNoticeGroupDisplay = (row: MonitorPolicyModel) => {
+    if (row.notify_groups.length === 0) {
+      return [
+        {
+          displayName: `${DBTypeInfos[props.dbType].name}_DBA`,
+          id: props.dbType,
+        },
+      ];
+    }
+
+    const dataList: {
+      displayName: string;
+      id: string;
+    }[] = [];
+    row.notify_groups.forEach((id) => {
+      if (id in alarmGroupNameMap) {
+        dataList.push({
+          displayName: alarmGroupNameMap[id],
+          id: `${id}`,
+        });
+      }
+    });
+    return dataList;
+  };
+
+  const handleSelectChange = (value: (string | number)[], { selectedRowData }: { selectedRowData: unknown[] }) => {
+    selectedRowKeys.value = value as number[];
+    selected.value = selectedRowData as MonitorPolicyModel[];
   };
 
   const batchEditNoticeGroup = () => {
     batchEditNoticeGroupDialogShow.value = true;
   };
 
-  const handleClearSearch = () => {
-    searchValue.value = [];
+  const batchResetToDefault = () => {
+    batchResetToDefalutDialogShow.value = true;
   };
 
   const handleGoMonitorPage = (url: string) => {
     window.open(url);
   };
 
-  const updateRowClass = (row: MonitorPolicyModel) => (row.isNewCreated ? 'is-new' : '');
-
-  const handleClickDelete = (data: MonitorPolicyModel) => {
+  const handleClickDelete = (row: MonitorPolicyModel) => {
     InfoBox({
+      cancelText: t('取消'),
+      confirmText: t('确定删除'),
+      contentAlign: 'left',
+      infoType: 'danger',
+      onConfirm: () => {
+        runDeletePolicy({ id: row.id });
+      },
+      subTitle: (
+        <>
+          <div class='mb-16'>
+            {t('策略名称：')}
+            {row.nameDisplay}
+          </div>
+          <div style='padding: 12px 16px; background: #F5F7FA; color: #4D4F56'>
+            {t('删除子策略后，原先匹配该子策略条件的对象将回退到父策略的告警配置.')}
+          </div>
+        </>
+      ),
+      title: t('确认删除子策略？'),
+    });
+  };
+
+  const handleResetToDefault = (row: MonitorPolicyModel) => {
+    InfoBox({
+      cancelText: t('取消'),
+      confirmText: t('确定恢复'),
+      contentAlign: 'left',
       infoType: 'warning',
       onConfirm: () => {
-        runDeletePolicy({ id: data.id });
+        runDeletePolicy({ id: row.id });
       },
-      subTitle: t('将会删除所有内容，请谨慎操作！'),
-      title: t('确认删除该策略？'),
-      width: 400,
+      subTitle: (
+        <>
+          <div class='mb-16'>
+            {t('策略名称：')}
+            {row.nameDisplay}
+          </div>
+          <div style='padding: 12px 16px; background: #F5F7FA; color: #4D4F56'>
+            {t('恢复默认将覆盖当前所有自定义修改，恢复为全局策略配置。此操作不可撤销。')}
+          </div>
+        </>
+      ),
+      title: t('确认恢复为默认？'),
     });
   };
 
@@ -625,27 +828,40 @@
     showTipMap.value[row.id] = false;
   };
 
-  const handleOpenSlider = (row: MonitorPolicyModel, type: string) => {
-    existedNames.value = tableRef.value!.getData<MonitorPolicyModel>().map((item) => item.name);
-    sliderPageType.value = type;
+  const handleOpenSlider = (row: MonitorPolicyModel, type: UnwrapRef<typeof pageStatus>) => {
+    existedNames.value = tableOriginalData.value!.results.flatMap((item) =>
+      [item.name].concat(item.child.map((childItem) => childItem.name)),
+    );
+    pageStatus.value = type;
     currentChoosedRow.value = row;
     isShowEditStrrategySideSilder.value = true;
   };
-
-  // const handleOpenMonitorAlarmPage = (url: string) => {
-  //   window.open(url, '_blank');
-  // };
 
   const handleUpdatePolicySuccess = () => {
     fetchData();
   };
 
   const handleBatchEditNoticeGroupSuceess = () => {
-    tableRef.value!.clearSelected();
+    selectedRowKeys.value = [];
+    selected.value = [];
     fetchData();
   };
+
+  const handleBatchResetToDefaultSuceess = () => {
+    selectedRowKeys.value = [];
+    selected.value = [];
+    fetchData();
+  };
+
+  onMounted(() => {
+    fetchData();
+
+    setTimeout(() => {
+      tableMaxHeight.value = window.innerHeight - getOffset(rootRef.value as HTMLElement).top - 16;
+    });
+  });
 </script>
-<style lang="less" scoped>
+<style lang="less">
   .monitor-strategy-type-content {
     display: flex;
     flex-direction: column;
@@ -660,26 +876,30 @@
       }
     }
 
-    :deep(.table-box) {
-      .operate-box {
-        display: flex;
-        gap: 15px;
-        // justify-content: flex-end;
-        align-items: center;
-        padding-right: 15px;
-
-        .operations-more {
-          .icon {
-            font-size: 18px;
-            color: #63656e;
-            cursor: pointer;
-          }
-        }
+    .table-box {
+      .row-expand-icon {
+        display: inline-block;
+        font-size: 16px;
+        color: #c4c6cc;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.38, 0, 0.24, 1) 0s;
       }
 
-      .is-new {
-        td {
-          background-color: #f3fcf5 !important;
+      .row-expand-icon-expanded {
+        transform: rotate(90deg);
+      }
+
+      .name-prepend {
+        width: 11px;
+        margin-right: 12px;
+
+        .name-prepend-inner {
+          position: absolute;
+          bottom: 50%;
+          left: 16px;
+          width: 11px;
+          border-bottom: 1px dashed #dcdee5;
+          border-left: 1px dashed #dcdee5;
         }
       }
     }
