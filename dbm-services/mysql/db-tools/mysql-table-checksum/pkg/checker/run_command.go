@@ -121,9 +121,10 @@ func (r *Checker) preRunGeneral() error {
 
 func (r *Checker) runGeneral() error {
 	var cleanUpErr error
+	var retryTime uint = 2
 
 	err := retry.New(
-		retry.Attempts(2),
+		retry.Attempts(retryTime),
 		retry.Delay(2*time.Second),
 		retry.RetryIf(
 			func(err error) bool {
@@ -141,21 +142,19 @@ func (r *Checker) runGeneral() error {
 			},
 		),
 		retry.OnRetry(
-			func(_ uint, _ error) {
-				// 查询MySQL版本，5.7版本使用DELETE，其他版本使用TRUNCATE TABLE
-				var version string
-				if err := r.db.QueryRow("SELECT VERSION()").Scan(&version); err != nil {
-					slog.Error("query mysql version", slog.String("error", err.Error()))
-					cleanUpErr = err
-					return
-				}
+			func(n uint, e error) {
+				slog.Info("retry run checksum", slog.Int("retry", int(n)), slog.Any("error", e))
 
+				/*
+					replace into infodba_schema.checksum
+					values('0.0.0.0','3306', 'test', 'test', 0, NULL, NULL, '1=1', '1=1', '0', 0, '0', 0, now());
+					这一行是新部署的 mysql 都有的, 清理的时候保留下来兼容刚部署 db 跑校验
+				*/
 				var cleanUpSQL string
-				if strings.HasPrefix(version, "5.7") {
-					cleanUpSQL = fmt.Sprintf("DELETE FROM `%s`.`%s`", r.resultDB, r.resultTbl)
-				} else {
-					cleanUpSQL = fmt.Sprintf("TRUNCATE TABLE `%s`.`%s`", r.resultDB, r.resultTbl)
-				}
+				cleanUpSQL = fmt.Sprintf(
+					"DELETE FROM `%s`.`%s` WHERE NOT (master_ip = '0.0.0.0' AND port = 3306 AND db = 'test' AND tbl = 'test' AND lower_boundary = '1=1' AND upper_boundary = '1=1' AND this_crc = '0' AND this_cnt = 0 AND master_crc = '0' AND master_cnt = 0)",
+					r.resultDB, r.resultTbl,
+				)
 
 				_, cleanUpErr = r.db.Exec(cleanUpSQL)
 				if cleanUpErr != nil {
@@ -163,6 +162,7 @@ func (r *Checker) runGeneral() error {
 					return
 				}
 				slog.Info("clean up retry run checksum success", slog.String("sql", cleanUpSQL))
+
 			},
 		),
 	).Do(
@@ -172,6 +172,8 @@ func (r *Checker) runGeneral() error {
 				slog.Error("run checksum", slog.String("error", err.Error()))
 				return err
 			}
+			slog.Info("run checksum", slog.Bool("isEmptyResultTbl", isEmptyResultTbl))
+
 			if isEmptyResultTbl {
 				err := r.writeFakeResult(roundStartStr, roundStartStr, false)
 				if err != nil {
@@ -274,10 +276,16 @@ func (r *Checker) writeFakeResult(fakeDB string, fakeTbl string, demand bool) er
 		0, 0, 0, 0, ts,
 	)
 	if err != nil {
-		slog.Error("write fake result row", slog.String("error", err.Error()))
+		slog.Error(
+			"write fake result row", slog.String("fake db", fakeDB), slog.String("fake tbl", fakeTbl),
+			slog.Bool("demand", demand), slog.String("error", err.Error()), slog.String("ts", ts),
+		)
 		return err
 	}
-	slog.Info("write fake result success")
+	slog.Info(
+		"write fake result row", slog.String("fake db", fakeDB), slog.String("fake tbl", fakeTbl),
+		slog.Bool("demand", demand), slog.String("ts", ts),
+	)
 
 	return nil
 }
