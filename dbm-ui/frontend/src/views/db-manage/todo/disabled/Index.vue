@@ -37,19 +37,20 @@
       :label-config="labelConfig" />
     <div class="content-wrapper">
       <div class="header-action">
-        <!-- <span
-          v-bk-tooltips="{
-            content: t('请选择集群'),
-            disabled: isSelected,
-          }"
+        <span
+          v-bk-tooltips="tooltips"
           class="inline-block">
           <BkButton
-            :disabled="!isSelected"
+            :disabled="!tooltips.disabled"
+            theme="primary"
             @click="handleBatchDelete">
-            {{ t('批量删除') }}
+            <DbIcon
+              class="mr-4"
+              type="delete" />
+            {{ t('批量下架') }}
           </BkButton>
         </span>
-        <span
+        <!-- <span
           v-bk-tooltips="{
             content: t('请选择集群'),
             disabled: isSelected,
@@ -66,16 +67,19 @@
           :data="quickSearchData"
           parse-url
           :placeholder="t('请输入或选择条件搜索')"
-          style="width: 500px"
+          style="width: 500px; margin-left: auto"
           @change="handleQuickSearchChange" />
       </div>
       <DbTable
         ref="table"
         :data-source="ticketClusterDisableTodo"
+        :disable-select-method="disableSelectMethod"
         :filter-value="quickSearchValue"
-        ignore-biz
         row-key="id"
-        @filter-change="handleFilterChange">
+        :selectable="selectable"
+        :selected="selectedList"
+        @filter-change="handleFilterChange"
+        @selection="handleSelection">
         <TableColumn
           col-key="immute_domain"
           :filter="columnFilter?.immute_domain"
@@ -100,6 +104,27 @@
           :width="200">
           <template #default="{ row }: { row: TicketClusterDisableTodoModel }">
             {{ row.id }}
+          </template>
+        </TableColumn>
+        <TableColumn
+          v-if="showClusterTypeColumn"
+          col-key="cluster_type"
+          :title="t('架构类型')"
+          :width="200">
+          <template #default="{ row }: { row: TicketClusterDisableTodoModel }">
+            <BkTag
+              :theme="
+                [
+                  ClusterTypes.TENDBSINGLE,
+                  ClusterTypes.REDIS_INSTANCE,
+                  ClusterTypes.MONGO_REPLICA_SET,
+                  ClusterTypes.SQLSERVER_SINGLE,
+                ].includes(row.cluster_type)
+                  ? 'success'
+                  : 'info'
+              ">
+              {{ row.clusterTypesDisplay }}
+            </BkTag>
           </template>
         </TableColumn>
         <TableColumn
@@ -139,7 +164,7 @@
               text
               theme="primary"
               @click="() => handleDelete(row)">
-              {{ t('删除') }}
+              {{ t('下架') }}
             </BkButton>
             <BkButton
               class="ml-8"
@@ -152,6 +177,11 @@
         </TableColumn>
       </DbTable>
     </div>
+    <BatchDeleteDialog
+      v-model="isBatchDeleteDialogShow"
+      :db-type="dbType"
+      :selected="selectedList"
+      @suceess="handleBatchDeleteSuccess" />
   </div>
 </template>
 
@@ -165,7 +195,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { DBTypeInfos, DBTypes } from '@common/const';
+  import { ClusterTypes, DBTypeInfos, DBTypes } from '@common/const';
 
   import DbTab from '@components/db-tab/Index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
@@ -173,11 +203,12 @@
 
   import { URL_CLUSTER_DETAIL_MEMO_KEY } from '@views/db-manage/common/cluster-details';
   import { clusterTypeListPageMap } from '@views/db-manage/const/clusterTypeListPageMap';
+  import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
 
   import { getBusinessHref } from '@utils';
 
-  // import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
   import AssistTab from './components/AssistTab.vue';
+  import BatchDeleteDialog from './components/BatchDeleteDialog.vue';
   import { useColumnFilter } from './useColumnFilter';
   import { useOperateClusterBasic } from './useOperateClusterBasic';
   import { useQuickSearch } from './useQuickSearch';
@@ -187,7 +218,7 @@
   const { t } = useI18n();
   const globalBizStore = useGlobalBizs();
 
-  // const { handleSelection, isSelected, selectedList } = useClusterTableSelect<TicketClusterDisableTodoModel>();
+  const { handleSelection, isSelected, selectedList } = useClusterTableSelect<TicketClusterDisableTodoModel>();
   const { quickSearchData, quickSearchValue } = useQuickSearch();
   const { data: columnFilter } = useColumnFilter();
   const { data: clusterDisableCountData, toAssistCount, todoCount } = useClusterDisableCount();
@@ -201,6 +232,7 @@
 
   const isAssist = ref(Number(route.params.assist));
   const dbType = ref((route.params.dbType || '') as DBTypes);
+  const isBatchDeleteDialogShow = ref(false);
 
   const labelConfig = computed(() => {
     if (clusterDisableCountData && clusterDisableCountData.value) {
@@ -217,6 +249,29 @@
     return;
   });
 
+  const showClusterTypeColumn = computed(() =>
+    [DBTypes.MONGODB, DBTypes.MYSQL, DBTypes.REDIS, DBTypes.SQLSERVER].includes(dbType.value),
+  );
+  const selectable = computed(() =>
+    [DBTypes.MONGODB, DBTypes.MYSQL, DBTypes.REDIS, DBTypes.SQLSERVER, DBTypes.TENDBCLUSTER].includes(dbType.value),
+  );
+  const tooltips = computed(() => {
+    if (selectable.value) {
+      return {
+        content: t('请选择集群'),
+        disabled: isSelected.value,
+      };
+    }
+    return {
+      content: t('该数据库类型暂不支持批量下架'),
+      disabled: false,
+    };
+  });
+
+  watch(isAssist, () => {
+    tableRef.value!.clearSelected();
+  });
+
   watch(dbType, () => {
     fetchData();
     router.replace({
@@ -224,6 +279,7 @@
         dbType: dbType.value,
       },
     });
+    tableRef.value!.clearSelected();
   });
 
   const fetchData = () => {
@@ -247,6 +303,20 @@
     fetchData();
   };
 
+  const disableSelectMethod = (row: TicketClusterDisableTodoModel) => {
+    if (
+      [
+        ClusterTypes.PREDIXY_REDIS_CLUSTER,
+        ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+        ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+        ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+      ].includes(row.cluster_type)
+    ) {
+      return t('该架构类型暂不支持批量下架');
+    }
+    return false;
+  };
+
   const handleToClusterDetail = (row: TicketClusterDisableTodoModel) => {
     const routeInfo = router.resolve({
       name: clusterTypeListPageMap[row.cluster_type],
@@ -267,6 +337,14 @@
 
   const handleEnable = (row: TicketClusterDisableTodoModel) => {
     handleEnableCluster(row.cluster_type, [row]);
+  };
+
+  const handleBatchDelete = () => {
+    isBatchDeleteDialogShow.value = true;
+  };
+
+  const handleBatchDeleteSuccess = () => {
+    tableRef.value!.clearSelected();
   };
 </script>
 
