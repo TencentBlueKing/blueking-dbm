@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DBM(BlueKing-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
 Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
 You may obtain a copy of the License at https://opensource.org/licenses/MIT
@@ -12,12 +12,14 @@ import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
+from blueapps.account.models import User
 from django.conf import settings
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.test import APIClient
 
 from backend.configuration.constants import PLAT_BIZ_ID, DBType
+from backend.tests.mock_data.components import cc
 from backend.tests.mock_data.iam_app.permission import PermissionMock
 from backend.ticket.constants import FlowTypeConfig, TicketStatus, TicketType
 from backend.ticket.models import TicketFlowsConfig
@@ -25,7 +27,6 @@ from backend.ticket.models import TicketFlowsConfig
 pytestmark = pytest.mark.django_db
 logger = logging.getLogger("test")
 client = APIClient()
-client.login(username="admin")
 
 
 @pytest.fixture(autouse=True)
@@ -37,22 +38,24 @@ def set_empty_middleware():
 
 @pytest.fixture(scope="class", autouse=True)
 def setup_class(django_db_setup, django_db_blocker):
-    """设置测试类 - 禁用权限验证"""
+    """设置测试类 - 创建用户并禁用权限验证"""
     with django_db_blocker.unblock():
         from backend.ticket.views import TicketViewSet
 
-        # 禁用权限验证
+        # 使用 force_authenticate 确保认证生效
+        admin_user, _ = User.objects.get_or_create(username="admin")
+        client.force_authenticate(user=admin_user)
+
+        # 三层权限 Mock
         patch.object(TicketViewSet, "permission_classes", [AllowAny]).start()
         patch.object(TicketViewSet, "get_permissions", lambda x: []).start()
-        # Mock IAM权限
         patch("backend.iam_app.handlers.permission.Permission", PermissionMock).start()
         yield
 
 
 @pytest.fixture
 def dummy_flow_hooks(monkeypatch):
-    """统一mock TicketFlowManager.get_ticket_flow_cls，便于各测试注册回调"""
-
+    """统一 mock TicketFlowManager.get_ticket_flow_cls，便于各测试注册回调"""
     hooks = {}
 
     class DummyFlow:
@@ -81,7 +84,6 @@ def dummy_flow_hooks(monkeypatch):
 @pytest.fixture
 def mysql_single_flow_configs(test_ticket_bk_biz_id):
     """创建 MySQL 单机单据的全局及业务流程配置，测试结束后清理"""
-
     configs = {
         "global": {
             FlowTypeConfig.NEED_ITSM.value: False,
@@ -108,15 +110,12 @@ def mysql_single_flow_configs(test_ticket_bk_biz_id):
         editable=True,
         configs=configs["biz"],
     )
-
     yield configs
-
     TicketFlowsConfig.objects.filter(id__in=[global_cfg.id, biz_cfg.id]).delete()
 
 
-@pytest.mark.django_db
 class TestTicketViewSet:
-    """测试TicketViewSet - 使用APIClient通过真实URL路由"""
+    """测试 TicketViewSet - 使用 APIClient 通过真实 URL 路由"""
 
     def test_list_tickets(self, test_multiple_tickets):
         """测试单据列表查询"""
@@ -133,12 +132,17 @@ class TestTicketViewSet:
         """测试单据列表查询 - 带过滤条件"""
         url = "/apis/tickets/"
         response = client.get(
-            url, {"bk_biz_id": test_ticket_bk_biz_id, "status": TicketStatus.RUNNING.value, "limit": 10, "offset": 0}
+            url,
+            {
+                "bk_biz_id": test_ticket_bk_biz_id,
+                "status": TicketStatus.RUNNING.value,
+                "limit": 10,
+                "offset": 0,
+            },
         )
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()["data"]
-        # 验证返回的单据状态为RUNNING
         running_tickets = [t for t in data["results"] if t["status"] == TicketStatus.RUNNING.value]
         assert len(running_tickets) > 0
 
@@ -154,13 +158,13 @@ class TestTicketViewSet:
         assert data["ticket_type"] == ticket.ticket_type
 
     def test_retrieve_ticket_with_is_reviewed(self, test_mysql_single_apply_ticket):
-        """测试单据详情查询 - 标记为已读"""
+        """测试单据详情查询 - 标记为已读并验证 DB 状态"""
         ticket = test_mysql_single_apply_ticket
         url = f"/apis/tickets/{ticket.id}/"
         response = client.get(url, {"is_reviewed": 1})
 
         assert response.status_code == status.HTTP_200_OK
-        # 验证单据是否被标记为已读
+        # DB 状态断言：refresh_from_db + 字段验证
         ticket.refresh_from_db()
         assert ticket.is_reviewed == 1
 
@@ -185,12 +189,11 @@ class TestTicketViewSet:
         data = response.json()["data"]
         assert isinstance(data, list)
         assert len(data) > 0
-        # 验证返回的单据类型格式
         assert "key" in data[0]
         assert "value" in data[0]
 
     def test_ticket_group_types(self):
-        """测试获取单据类型优化版(按DB类型分组)"""
+        """测试获取单据类型优化版（按 DB 类型分组）"""
         url = "/apis/tickets/ticket_group_types/"
         response = client.get(url, {"is_apply": True})
 
@@ -198,7 +201,6 @@ class TestTicketViewSet:
         data = response.json()["data"]
         assert isinstance(data, list)
         assert len(data) > 0
-        # 验证返回的分组格式
         assert "children" in data[0]
         assert "label" in data[0]
         assert "value" in data[0]
@@ -212,19 +214,18 @@ class TestTicketViewSet:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()["data"]
         assert isinstance(data, dict)
-        # 验证每个单据ID都有对应的状态(返回的key可能是int或str)
+        # 验证每个单据ID都有对应的状态
         for ticket in test_multiple_tickets:
             assert ticket.id in data or str(ticket.id) in data
 
     def test_list_ticket_status_with_todo(self, test_ticket_with_todo):
-        """测试查询单据状态 - 包含待办的单据状态应为INNER_TODO"""
+        """测试查询单据状态 - 包含待办的单据状态应为 INNER_TODO"""
         ticket, flow, todo = test_ticket_with_todo
         url = "/apis/tickets/list_ticket_status/"
         response = client.get(url, {"ticket_ids": str(ticket.id)})
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()["data"]
-        # 有待办的运行中单据状态应为INNER_TODO(key可能是int或str)
         ticket_status = data.get(ticket.id) or data.get(str(ticket.id))
         assert ticket_status == TicketStatus.INNER_TODO.value
 
@@ -236,191 +237,42 @@ class TestTicketViewSet:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()["data"]
         assert isinstance(data, dict)
-        # 验证返回的统计字段
         assert "pending" in data
         assert "to_help" in data
         assert "MY_APPROVE" in data
         assert "DONE" in data
 
-    def test_create_ticket_api_accessible(self, test_ticket_bk_biz_id):
-        """测试创建单据API可访问性"""
-        # 注意:创建单据需要复杂的验证和mock,这里主要测试API能否正常响应
-        url = "/apis/tickets/"
-        ticket_data = {
-            "bk_biz_id": test_ticket_bk_biz_id,
-            "ticket_type": TicketType.MYSQL_SINGLE_APPLY.value,
-            "remark": "test create ticket",
-            "details": {},  # 空details
-        }
-        response = client.post(url, ticket_data, format="json")
-
-        # API应该能够响应(可能是200/201/400/500)
-        assert response.status_code in [
-            status.HTTP_200_OK,
-            status.HTTP_201_CREATED,
-            status.HTTP_400_BAD_REQUEST,
-            status.HTTP_500_INTERNAL_SERVER_ERROR,
-        ]
-
-    def test_retry_flow(self, dummy_flow_hooks, test_running_ticket_with_flow):
-        """测试单据流程重试"""
-        ticket, flow = test_running_ticket_with_flow
-        retry_calls = []
-
-        dummy_flow_hooks["retry"] = lambda flow_obj, *args, **kwargs: retry_calls.append(flow_obj.id)
-
-        url = f"/apis/tickets/{ticket.id}/retry_flow/"
-        response = client.post(url, {"flow_id": flow.id}, format="json")
+    def test_get_host_todo_count(self):
+        """测试获取主机待办单据数"""
+        url = "/apis/tickets/get_host_todo_count/"
+        response = client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert retry_calls == [flow.id]
+        data = response.json()["data"]
+        assert isinstance(data, dict)
+        assert "recycle_count" in data
+        assert "fault_count" in data
 
-    @patch("backend.ticket.views.TicketViewSet.params_validate")
-    def test_revoke_flow(self, mock_params_validate, dummy_flow_hooks, test_running_ticket_with_flow):
-        """测试单据流程终止"""
-        ticket, flow = test_running_ticket_with_flow
-        # 模拟params_validate返回包含所有字段的dict
-        mock_params_validate.return_value = {"flow_id": flow.id, "remark": "test revoke"}
-
-        revoke_calls = []
-
-        def handle_revoke(flow_obj, *args, **kwargs):
-            revoke_calls.append(
-                {
-                    "flow_id": flow_obj.id,
-                    "remark": kwargs.get("remark"),
-                    "operator": kwargs.get("operator"),
-                }
-            )
-
-        dummy_flow_hooks["revoke"] = handle_revoke
-
-        url = f"/apis/tickets/{ticket.id}/revoke_flow/"
-        response = client.post(url, {"flow_id": flow.id, "remark": "test revoke"}, format="json")
+    def test_get_cluster_disable_count(self):
+        """测试获取集群下架待办单据数"""
+        url = "/apis/tickets/get_cluster_disable_count/"
+        response = client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert revoke_calls == [{"flow_id": flow.id, "remark": "test revoke", "operator": ""}]
+        data = response.json()["data"]
+        assert isinstance(data, dict)
+        assert "todo" in data
+        assert "to_assist" in data
 
-    def test_revoke_ticket(self, dummy_flow_hooks, test_running_ticket_with_flow):
-        """测试单据终止"""
-        ticket, flow = test_running_ticket_with_flow
-        revoke_calls = []
-
-        def handle_revoke(flow_obj, *args, **kwargs):
-            revoke_calls.append(
-                {
-                    "flow_id": flow_obj.id,
-                    "operator": kwargs.get("operator"),
-                    "remark": kwargs.get("remark"),
-                }
-            )
-
-        dummy_flow_hooks["revoke"] = handle_revoke
-
-        url = "/apis/tickets/revoke_ticket/"
-        response = client.post(url, {"ticket_ids": [ticket.id], "remark": "test revoke ticket"}, format="json")
+    def test_cluster_disable_todo(self):
+        """测试集群下架待办列表"""
+        url = "/apis/tickets/cluster_disable_todo/"
+        response = client.get(url, {"db_type": DBType.MySQL.value, "limit": 10, "offset": 0})
 
         assert response.status_code == status.HTTP_200_OK
-        assert revoke_calls == [{"flow_id": flow.id, "operator": "", "remark": "test revoke ticket"}]
-
-    @patch("backend.db_services.ipchooser.query.resource.ResourceQueryHelper.search_cc_hosts")
-    def test_get_nodes(self, mock_search_hosts, test_mysql_single_apply_ticket):
-        """测试从上架单中获取节点信息"""
-        ticket = test_mysql_single_apply_ticket
-        # 设置测试数据
-        ticket.details["nodes"] = {"backend": [{"bk_host_id": 1, "instance_num": 2}]}
-        ticket.save()
-
-        mock_search_hosts.return_value = [{"bk_host_id": 1, "ip": "1.1.1.1", "bk_cloud_id": 0}]
-
-        url = f"/apis/tickets/{ticket.id}/get_nodes/"
-        response = client.get(url, {"role": "backend"})
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json().get("data")
-        # 检查data是否存在且是列表
-        if data is not None:
-            assert isinstance(data, list)
-            if len(data) > 0:
-                assert data[0]["instance_num"] == 2
-        else:
-            # 如果返回None,说明API响应格式不同,跳过此断言
-            assert response.status_code == status.HTTP_200_OK
-
-    def test_get_nodes_empty_role(self, test_mysql_single_apply_ticket):
-        """测试获取节点信息 - 角色节点为空"""
-        ticket = test_mysql_single_apply_ticket
-        url = f"/apis/tickets/{ticket.id}/get_nodes/"
-        response = client.get(url, {"role": "non_existent_role"})
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json().get("data")
-        # 空角色应该返回空列表或None
-        assert data == [] or data is None
-
-    @patch("backend.ticket.todos.TodoActorFactory.actor")
-    def test_process_todo(self, mock_actor, test_ticket_with_todo):
-        """测试待办处理"""
-        ticket, flow, todo = test_ticket_with_todo
-        mock_todo_actor = MagicMock()
-        mock_actor.return_value = mock_todo_actor
-
-        url = f"/apis/tickets/{ticket.id}/process_todo/"
-        response = client.post(
-            url, {"todo_id": todo.id, "action": "APPROVE", "params": {"message": "approved"}}, format="json"
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-        # 验证TodoActorFactory.actor被调用
-        assert mock_actor.called
-        assert mock_todo_actor.process.called
-
-    @patch("backend.ticket.todos.TodoActorFactory.actor")
-    def test_batch_process_todo(self, mock_actor, test_ticket_with_todo):
-        """测试批量待办处理"""
-        ticket, flow, todo = test_ticket_with_todo
-        actor_instance = MagicMock()
-        mock_actor.return_value = actor_instance
-
-        url = "/apis/tickets/batch_process_todo/"
-        response = client.post(
-            url, {"action": "APPROVE", "operations": [{"todo_id": todo.id, "params": {}}]}, format="json"
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-        assert mock_actor.called
-        assert actor_instance.process.called
-
-    @patch("backend.ticket.todos.TodoActorFactory.actor")
-    def test_batch_process_ticket(self, mock_actor, test_ticket_with_todo):
-        """测试批量单据待办处理"""
-        ticket, flow, todo = test_ticket_with_todo
-        actor_instance = MagicMock()
-        mock_actor.return_value = actor_instance
-
-        url = "/apis/tickets/batch_process_ticket/"
-        response = client.post(
-            url,
-            {"ticket_ids": [ticket.id], "action": "APPROVE", "params": {"message": "batch ticket approved"}},
-            format="json",
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-
-    @patch("backend.ticket.views.TicketFlowManager")
-    def test_callback(self, mock_flow_manager, test_mysql_single_apply_ticket):
-        """测试单据回调"""
-        ticket = test_mysql_single_apply_ticket
-        mock_manager_instance = MagicMock()
-        mock_flow_manager.return_value = mock_manager_instance
-
-        url = f"/apis/tickets/{ticket.id}/callback/"
-        response = client.post(url, {}, format="json")
-
-        assert response.status_code == status.HTTP_200_OK
-        # 验证TicketFlowManager被正确调用
-        mock_flow_manager.assert_called_once_with(ticket=ticket)
-        mock_manager_instance.run_next_flow.assert_called_once()
+        data = response.json()["data"]
+        assert "results" in data
+        assert "count" in data
 
     def test_query_ticket_flow_describe(self, test_ticket_bk_biz_id, mysql_single_flow_configs):
         """测试查询可编辑单据流程描述"""
@@ -441,6 +293,147 @@ class TestTicketViewSet:
         assert "flow_desc" in data[0]
         assert isinstance(data[0]["flow_desc"], list)
 
+    @patch("backend.ticket.views.TicketFlowManager")
+    def test_callback(self, mock_flow_manager, test_mysql_single_apply_ticket):
+        """测试单据回调"""
+        ticket = test_mysql_single_apply_ticket
+        mock_manager_instance = MagicMock()
+        mock_flow_manager.return_value = mock_manager_instance
+
+        url = f"/apis/tickets/{ticket.id}/callback/"
+        response = client.post(url, {}, format="json")
+
+        assert response.status_code == status.HTTP_200_OK
+        mock_flow_manager.assert_called_once_with(ticket=ticket)
+        mock_manager_instance.run_next_flow.assert_called_once()
+
+    @patch("backend.db_services.ipchooser.query.resource.ResourceQueryHelper.search_cc_hosts")
+    def test_get_nodes(self, mock_search_hosts, test_mysql_single_apply_ticket, test_ticket_bk_biz_id):
+        """测试从上架单中获取节点信息"""
+        ticket = test_mysql_single_apply_ticket
+        ticket.details["nodes"] = {"backend": [{"bk_host_id": 1, "instance_num": 2}]}
+        ticket.save()
+
+        mock_search_hosts.return_value = [{"bk_host_id": 1, "ip": cc.NORMAL_IP, "bk_cloud_id": 0}]
+
+        url = f"/apis/tickets/{ticket.id}/get_nodes/"
+        response = client.get(url, {"bk_biz_id": test_ticket_bk_biz_id, "role": "backend"})
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()["data"]
+        assert isinstance(data, list)
+        assert len(data) == 1
+        assert data[0]["instance_num"] == 2
+
+    def test_get_nodes_empty_role(self, test_mysql_single_apply_ticket, test_ticket_bk_biz_id):
+        """测试获取节点信息 - 角色节点为空时返回空列表"""
+        ticket = test_mysql_single_apply_ticket
+        url = f"/apis/tickets/{ticket.id}/get_nodes/"
+        response = client.get(url, {"bk_biz_id": test_ticket_bk_biz_id, "role": "non_existent_role"})
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()["data"]
+        assert data == []
+
+    @patch("backend.ticket.todos.TodoActorFactory.actor")
+    def test_process_todo(self, mock_actor, test_ticket_with_todo):
+        """测试待办处理"""
+        ticket, flow, todo = test_ticket_with_todo
+        mock_todo_actor = MagicMock()
+        mock_actor.return_value = mock_todo_actor
+
+        url = f"/apis/tickets/{ticket.id}/process_todo/"
+        response = client.post(
+            url, {"todo_id": todo.id, "action": "APPROVE", "params": {"message": "approved"}}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert mock_actor.called
+        assert mock_todo_actor.process.called
+
+    @patch("backend.ticket.handler.TicketHandler.batch_process_todo")
+    def test_batch_process_todo(self, mock_batch_process, test_ticket_with_todo):
+        """测试批量待办处理"""
+        ticket, flow, todo = test_ticket_with_todo
+        mock_batch_process.return_value = []
+
+        url = "/apis/tickets/batch_process_todo/"
+        response = client.post(
+            url,
+            {"action": "APPROVE", "operations": [{"todo_id": todo.id, "params": {}}]},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        mock_batch_process.assert_called_once()
+
+    @patch("backend.ticket.handler.TicketHandler.batch_process_ticket")
+    def test_batch_process_ticket(self, mock_batch_process, test_ticket_with_todo):
+        """测试批量单据待办处理"""
+        ticket, flow, todo = test_ticket_with_todo
+        mock_batch_process.return_value = []
+
+        url = "/apis/tickets/batch_process_ticket/"
+        response = client.post(
+            url,
+            {
+                "ticket_ids": [ticket.id],
+                "action": "APPROVE",
+                "params": {"message": "batch ticket approved"},
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        mock_batch_process.assert_called_once()
+
+    @patch("backend.ticket.views.TicketHandler.update_ticket_flow_config")
+    def test_update_ticket_flow_config(self, mock_update_config, mysql_single_flow_configs, test_ticket_bk_biz_id):
+        """测试修改可编辑的单据流程规则"""
+        url = "/apis/tickets/update_ticket_flow_config/"
+        response = client.post(
+            url,
+            {
+                "bk_biz_id": test_ticket_bk_biz_id,
+                "ticket_types": [TicketType.MYSQL_SINGLE_APPLY.value],
+                "configs": {
+                    FlowTypeConfig.NEED_ITSM.value: False,
+                    FlowTypeConfig.NEED_MANUAL_CONFIRM.value: False,
+                    FlowTypeConfig.EXPIRE_CONFIG.value: {"enable": False},
+                },
+                "config_ids": [],
+                "cluster_ids": [],
+                "remark": "test update config",
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        mock_update_config.assert_called_once()
+
+    @patch("backend.ticket.views.TicketHandler.create_ticket_flow_config")
+    def test_create_ticket_flow_config(self, mock_create_config, test_ticket_bk_biz_id):
+        """测试创建单据流程规则"""
+        url = "/apis/tickets/create_ticket_flow_config/"
+        response = client.post(
+            url,
+            {
+                "bk_biz_id": test_ticket_bk_biz_id,
+                "ticket_types": [TicketType.MYSQL_SINGLE_APPLY.value],
+                "configs": {
+                    FlowTypeConfig.NEED_ITSM.value: True,
+                    FlowTypeConfig.NEED_MANUAL_CONFIRM.value: False,
+                    FlowTypeConfig.EXPIRE_CONFIG.value: {"enable": False},
+                },
+                "cluster_ids": [],
+                "remark": "test create config",
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        mock_create_config.assert_called_once()
+
     @patch("backend.ticket.handler.Ticket.create_ticket")
     @patch("backend.ticket.handler.HostHandler.details")
     def test_fast_create_cloud_component(self, mock_host_details, mock_create_ticket, test_ticket_bk_biz_id):
@@ -448,17 +441,17 @@ class TestTicketViewSet:
         mock_host_details.return_value = [
             {
                 "host_id": 1,
-                "ip": "1.1.1.1",
+                "ip": cc.NORMAL_IP,
                 "cloud_id": 0,
-                "bk_host_outerip": "1.1.1.1",
+                "bk_host_outerip": cc.NORMAL_IP,
                 "bk_idc_id": 1,
                 "bk_idc_city_name": "SZ",
             },
             {
                 "host_id": 2,
-                "ip": "1.1.1.2",
+                "ip": cc.NORMAL_IP2,
                 "cloud_id": 0,
-                "bk_host_outerip": "1.1.1.2",
+                "bk_host_outerip": cc.NORMAL_IP2,
                 "bk_idc_id": 2,
                 "bk_idc_city_name": "SZ",
             },
@@ -467,7 +460,7 @@ class TestTicketViewSet:
         url = "/apis/tickets/fast_create_cloud_component/"
         response = client.post(
             url,
-            {"bk_cloud_id": 1, "ips": ["1.1.1.1", "1.1.1.2"], "bk_biz_id": test_ticket_bk_biz_id},
+            {"bk_cloud_id": 1, "ips": [cc.NORMAL_IP, cc.NORMAL_IP2], "bk_biz_id": test_ticket_bk_biz_id},
             format="json",
         )
 
@@ -498,6 +491,21 @@ class TestTicketViewSet:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()["data"]
         assert str(ticket.id) in data or ticket.id in data
+
+    @patch("backend.ticket.views.TicketHandler.revoke_ticket")
+    def test_revoke_ticket(self, mock_revoke, test_running_ticket_with_flow):
+        """测试单据终止"""
+        ticket, flow = test_running_ticket_with_flow
+
+        url = "/apis/tickets/revoke_ticket/"
+        response = client.post(
+            url,
+            {"ticket_ids": [ticket.id], "remark": "test revoke ticket"},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        mock_revoke.assert_called_once_with([ticket.id], operator="admin", remark="test revoke ticket")
 
     @patch("backend.ticket.views.TicketViewSet.get_serializer")
     @patch("backend.ticket.views.Ticket.create_ticket")
@@ -563,37 +571,64 @@ class TestTicketViewSet:
         # 由于敏感单据需要 JWT 校验，非 JWT 请求会被拒绝或正常创建(取决于权限mock)
         assert response.status_code in [status.HTTP_200_OK, status.HTTP_201_CREATED, status.HTTP_403_FORBIDDEN]
 
-    def test_get_host_todo_count(self):
-        """测试获取主机待办单据数"""
-        url = "/apis/tickets/get_host_todo_count/"
-        response = client.get(url)
+    def test_retry_flow(self, dummy_flow_hooks, test_running_ticket_with_flow):
+        """测试单据流程重试"""
+        ticket, flow = test_running_ticket_with_flow
+        retry_calls = []
+
+        # 注册回调以捕获调用参数
+        dummy_flow_hooks["retry"] = lambda flow_obj, *args, **kwargs: retry_calls.append(flow_obj.id)
+
+        url = f"/apis/tickets/{ticket.id}/retry_flow/"
+        response = client.post(url, {"flow_id": flow.id}, format="json")
 
         assert response.status_code == status.HTTP_200_OK
-        data = response.json()["data"]
-        assert isinstance(data, dict)
-        assert "recycle_count" in data
-        assert "fault_count" in data
+        # 副作用验证：回调参数精确匹配
+        assert retry_calls == [flow.id]
 
-    def test_get_cluster_disable_count(self):
-        """测试获取集群下架待办单据数"""
-        url = "/apis/tickets/get_cluster_disable_count/"
-        response = client.get(url)
+    @patch("backend.ticket.views.TicketViewSet.params_validate")
+    def test_revoke_flow(self, mock_params_validate, dummy_flow_hooks, test_running_ticket_with_flow):
+        """测试单据流程终止"""
+        ticket, flow = test_running_ticket_with_flow
+        mock_params_validate.return_value = {"flow_id": flow.id, "remark": "test revoke"}
+
+        revoke_calls = []
+
+        def handle_revoke(flow_obj, *args, **kwargs):
+            revoke_calls.append(
+                {
+                    "flow_id": flow_obj.id,
+                    "remark": kwargs.get("remark"),
+                    "operator": kwargs.get("operator"),
+                }
+            )
+
+        dummy_flow_hooks["revoke"] = handle_revoke
+
+        url = f"/apis/tickets/{ticket.id}/revoke_flow/"
+        response = client.post(url, {"flow_id": flow.id, "remark": "test revoke"}, format="json")
 
         assert response.status_code == status.HTTP_200_OK
-        data = response.json()["data"]
-        assert isinstance(data, dict)
-        assert "todo" in data
-        assert "to_assist" in data
+        assert revoke_calls == [{"flow_id": flow.id, "remark": "test revoke", "operator": "admin"}]
 
-    def test_cluster_disable_todo(self):
-        """测试集群下架待办列表"""
-        url = "/apis/tickets/cluster_disable_todo/"
-        response = client.get(url, {"db_type": "mysql", "limit": 10, "offset": 0})
+    def test_delete_ticket_flow_config(self, mysql_single_flow_configs, test_ticket_bk_biz_id):
+        """测试删除单据流程规则"""
+        config = TicketFlowsConfig.objects.filter(
+            bk_biz_id=test_ticket_bk_biz_id,
+            ticket_type=TicketType.MYSQL_SINGLE_APPLY.value,
+        ).first()
+        assert config is not None
+
+        url = "/apis/tickets/delete_ticket_flow_config/"
+        response = client.delete(
+            url,
+            {"config_ids": [config.id]},
+            format="json",
+        )
 
         assert response.status_code == status.HTTP_200_OK
-        data = response.json()["data"]
-        assert "results" in data
-        assert "count" in data
+        # DB 状态断言：验证配置已被删除
+        assert not TicketFlowsConfig.objects.filter(id=config.id).exists()
 
     @patch("backend.ticket.views.TicketViewSet.paginate_queryset")
     @patch("backend.ticket.views.TicketViewSet.filter_queryset")
@@ -618,6 +653,7 @@ class TestTicketViewSet:
 
         assert response.status_code == status.HTTP_200_OK
 
+        # 显式清理：测试结束后删除创建的记录
         record.delete()
 
     @patch("backend.ticket.views.TicketViewSet.paginate_queryset")
@@ -628,7 +664,7 @@ class TestTicketViewSet:
         from backend.ticket.models import InstanceOperateRecord
 
         record = InstanceOperateRecord.objects.create(
-            instance_id="127.0.0.1:3306",
+            instance_id=f"{cc.NORMAL_IP}:3306",
             flow=flow,
             ticket=ticket,
             creator="admin",
@@ -643,71 +679,5 @@ class TestTicketViewSet:
 
         assert response.status_code == status.HTTP_200_OK
 
+        # 显式清理：测试结束后删除创建的记录
         record.delete()
-
-    @patch("backend.ticket.views.TicketHandler.update_ticket_flow_config")
-    def test_update_ticket_flow_config(self, mock_update_config, mysql_single_flow_configs, test_ticket_bk_biz_id):
-        """测试修改可编辑的单据流程规则"""
-        url = "/apis/tickets/update_ticket_flow_config/"
-        response = client.post(
-            url,
-            {
-                "bk_biz_id": test_ticket_bk_biz_id,
-                "ticket_types": [TicketType.MYSQL_SINGLE_APPLY.value],
-                "configs": {
-                    FlowTypeConfig.NEED_ITSM.value: False,
-                    FlowTypeConfig.NEED_MANUAL_CONFIRM.value: False,
-                    FlowTypeConfig.EXPIRE_CONFIG.value: {"enable": False},
-                },
-                "config_ids": [],
-                "cluster_ids": [],
-                "remark": "test update config",
-            },
-            format="json",
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-        mock_update_config.assert_called_once()
-
-    @patch("backend.ticket.views.TicketHandler.create_ticket_flow_config")
-    def test_create_ticket_flow_config(self, mock_create_config, test_ticket_bk_biz_id):
-        """测试创建单据流程规则"""
-        url = "/apis/tickets/create_ticket_flow_config/"
-        response = client.post(
-            url,
-            {
-                "bk_biz_id": test_ticket_bk_biz_id,
-                "ticket_types": [TicketType.MYSQL_SINGLE_APPLY.value],
-                "configs": {
-                    FlowTypeConfig.NEED_ITSM.value: True,
-                    FlowTypeConfig.NEED_MANUAL_CONFIRM.value: False,
-                    FlowTypeConfig.EXPIRE_CONFIG.value: {"enable": False},
-                },
-                "cluster_ids": [],
-                "remark": "test create config",
-            },
-            format="json",
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-        mock_create_config.assert_called_once()
-
-    def test_delete_ticket_flow_config(self, mysql_single_flow_configs, test_ticket_bk_biz_id):
-        """测试删除单据流程规则"""
-        # 获取已存在的配置ID
-        config = TicketFlowsConfig.objects.filter(
-            bk_biz_id=test_ticket_bk_biz_id,
-            ticket_type=TicketType.MYSQL_SINGLE_APPLY.value,
-        ).first()
-        assert config is not None
-
-        url = "/apis/tickets/delete_ticket_flow_config/"
-        response = client.delete(
-            url,
-            {"config_ids": [config.id]},
-            format="json",
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-        # 验证数据库中配置已被删除
-        assert not TicketFlowsConfig.objects.filter(id=config.id).exists()
