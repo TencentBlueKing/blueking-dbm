@@ -121,7 +121,7 @@ func (s *Service) Run(ctx context.Context) error {
 		s.quit = make(chan struct{})
 	}
 
-	timerTimeout := 3 * time.Second
+	timerTimeout := constant.DefaultServiceTimerInterval
 	timer := time.NewTimer(timerTimeout)
 	defer timer.Stop()
 
@@ -158,15 +158,26 @@ func (s *Service) Close() {
 }
 
 func (s *Service) createDiscovery() error {
-	cli, err := discovery.NewClientWithOptions(
+	opts := []discovery.Option{
 		discovery.OptionEndpoints(strings.Split(config.Cfg.Discovery.Endpoint, constant.Delimiter)),
 		discovery.OptionUser(config.Cfg.Discovery.User),
 		discovery.OptionPassword(config.Cfg.Discovery.Password),
 		discovery.OptionServiceName(s.info.Name),
 		discovery.OptionServiceID(s.info.ID),
 		discovery.OptionLogger(s.logger),
-	)
+	}
 
+	if config.Cfg.Discovery.CertFile != "" {
+		opts = append(opts, discovery.OptionCertFile(config.Cfg.Discovery.CertFile))
+	}
+	if config.Cfg.Discovery.KeyFile != "" {
+		opts = append(opts, discovery.OptionKeyFile(config.Cfg.Discovery.KeyFile))
+	}
+	if config.Cfg.Discovery.TrustedCAFile != "" {
+		opts = append(opts, discovery.OptionTrustedCAFile(config.Cfg.Discovery.TrustedCAFile))
+	}
+
+	cli, err := discovery.NewClientWithOptions(opts...)
 	if err != nil {
 		return err
 	}
@@ -188,7 +199,7 @@ func (s *Service) updateInfo() {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), constant.DefaultServiceUpdateTimeout)
 	defer cancel()
 
 	if err = s.regCli.SetService(ctx, string(data)); err != nil {

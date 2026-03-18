@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+// Package config provides configuration management for the DBHA v2 receiver module.
 package config
 
 import (
@@ -45,9 +46,12 @@ var Cfg = Configuration{
 
 // DiscoveryConfig discovery configuration
 type DiscoveryConfig struct {
-	Endpoint string `yaml:"endpoint" mapstructure:"endpoint"`
-	User     string `yaml:"user"     mapstructure:"user"`
-	Password string `yaml:"password" mapstructure:"password"`
+	Endpoint      string `yaml:"endpoint"      mapstructure:"endpoint"`
+	User          string `yaml:"user"          mapstructure:"user"`
+	Password      string `yaml:"password"      mapstructure:"password"`
+	CertFile      string `yaml:"certFile"      mapstructure:"certFile"`
+	KeyFile       string `yaml:"keyFile"       mapstructure:"keyFile"`
+	TrustedCAFile string `yaml:"trustedCAFile" mapstructure:"trustedCAFile"`
 }
 
 // ApmConfig apm's configuration
