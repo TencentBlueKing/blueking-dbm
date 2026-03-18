@@ -34,12 +34,14 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 )
 
+// DbInstance represents a database instance identified by cloud ID, IP, and port.
 type DbInstance struct {
 	BkCloudID int
 	IP        string
 	Port      int
 }
 
+// DbhaData provides data access methods for DBHA analysis, backed by a GORM database connection.
 type DbhaData struct {
 	DB *hamysql.GormDB
 }
@@ -170,17 +172,20 @@ func (ha *DbhaData) SaveSwitchingLog(ctx context.Context, records ...*hamodel.Db
 func (ha *DbhaData) ReadSwitchingStrategyWithBkBizId(bkBizId int) ([]*hamodel.DbSwitchingStrategy, error) {
 	var strategies []*hamodel.DbSwitchingStrategy
 
-	cond := fmt.Sprintf("%s = ? or %s = 0 ", hamodel.DbSwitchingStrategyFieldBkBizID,
-		hamodel.DbSwitchingStrategyFieldBkBizID)
+	cond := fmt.Sprintf("(%s = ? or %s = 0) and %s = ?",
+		hamodel.DbSwitchingStrategyFieldBkBizID,
+		hamodel.DbSwitchingStrategyFieldBkBizID,
+		hamodel.DbSwitchingStrategyFieldStatus)
 
 	query := ha.DB.DB().Model(&hamodel.DbSwitchingStrategy{})
-	if e := query.Where(cond, bkBizId).Find(&strategies).Error; e != nil {
+	if e := query.Where(cond, bkBizId, hamodel.StatusTypeEnabled).Find(&strategies).Error; e != nil {
 		return nil, gerrors.NewE(gerrors.MysqlFailure, e)
 	}
 
 	return strategies, nil
 }
 
+// ReadSkipDbInstancesWithBkBizId returns skip db instances for the given business ID.
 func (ha *DbhaData) ReadSkipDbInstancesWithBkBizId(bkBizId int) ([]*hamodel.SkipDbInstance, error) {
 	var skipDbInstances []*hamodel.SkipDbInstance
 

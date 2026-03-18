@@ -34,22 +34,25 @@ import (
 
 // FailureInstanceInfo represents one instance that detector marked as failure (needs switching).
 type FailureInstanceInfo struct {
-	BkCloudID int
-	IP        string
-	Port      int
-	BkBizID   int
-	Cluster   string
-	ClusterID int
-	DbType    haprobe.DbType
+	BkCloudID       int
+	IP              string
+	Port            int
+	BkBizID         int
+	Cluster         string
+	ClusterID       int
+	DbType          haprobe.DbType
+	EventName       haprobe.DbEventName            // failure event name for each instance
+	EventNameReason haprobe.DbEventNameReason      // event reason, for logging only, not used in strategy matching
+	ClusterType     haprobe.DbmMetadataClusterType // cluster type (needed for special strategy matching)
+	MachineType     haprobe.DbmMetadataMachineType // machine type (needed for special strategy matching)
+	InstanceRole    string                         // instance role, e.g. remote_master
 }
 
 // FailureGroup groups failure instances by (BkCloudID, DbType) for batch switching.
 type FailureGroup struct {
-	BkCloudID       int
-	DbType          haprobe.DbType
-	Instances       []FailureInstanceInfo
-	EventName       haprobe.DbEventName       // event type that led to this failure (for strategy matching)
-	EventNameReason haprobe.DbEventNameReason // event reason (for strategy matching)
+	BkCloudID int
+	DbType    haprobe.DbType
+	Instances []FailureInstanceInfo
 }
 
 // IPs returns the list of IPs for building switcher request (deduplicated).
@@ -81,13 +84,18 @@ func (c *FailureCollector) Add(resp *detector.Response) {
 	meta := resp.Meta
 	key := fmt.Sprintf("%d:%s", meta.BkCloudID, resp.DbType)
 	info := FailureInstanceInfo{
-		BkCloudID: meta.BkCloudID,
-		IP:        meta.IP,
-		Port:      meta.Port,
-		BkBizID:   meta.BkBizID,
-		Cluster:   meta.Cluster,
-		ClusterID: meta.ClusterID,
-		DbType:    resp.DbType,
+		BkCloudID:       meta.BkCloudID,
+		IP:              meta.IP,
+		Port:            meta.Port,
+		BkBizID:         meta.BkBizID,
+		Cluster:         meta.Cluster,
+		ClusterID:       meta.ClusterID,
+		DbType:          resp.DbType,
+		EventName:       resp.DbEventName,
+		EventNameReason: resp.DbEventNameReason,
+		ClusterType:     meta.ClusterType,
+		MachineType:     meta.MachineType,
+		InstanceRole:    meta.InstanceRole,
 	}
 
 	if g, ok := c.groups[key]; ok {
@@ -96,11 +104,9 @@ func (c *FailureCollector) Add(resp *detector.Response) {
 	}
 
 	c.groups[key] = &FailureGroup{
-		BkCloudID:       meta.BkCloudID,
-		DbType:          resp.DbType,
-		Instances:       []FailureInstanceInfo{info},
-		EventName:       resp.DbEventName,
-		EventNameReason: resp.DbEventNameReason,
+		BkCloudID: meta.BkCloudID,
+		DbType:    resp.DbType,
+		Instances: []FailureInstanceInfo{info},
 	}
 }
 

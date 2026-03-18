@@ -156,8 +156,8 @@ func (h *DetectorHandler) LivenessDoubleCheck(missedInsts []detector.DoubleCheck
 
 		matched, strategy := h.switchExecutor.MatchStrategyForGroup(group)
 		if !matched {
-			logger.Info("no matching switching strategy, skip switching, cloudId: %d, dbType: %s, event: %s, reason: %s",
-				group.BkCloudID, group.DbType, group.EventName, group.EventNameReason.Str())
+			logger.Info("no matching switching strategy, skip switching, cloudId: %d, dbType: %s, instances: %d, events: [%s]",
+				group.BkCloudID, group.DbType, len(group.Instances), FormatInstanceEventSummary(group.Instances))
 			continue
 		}
 
@@ -170,8 +170,8 @@ func (h *DetectorHandler) LivenessDoubleCheck(missedInsts []detector.DoubleCheck
 		logger.Debug("trigger switching by strategy %s, dbType: %s, cloudId: %d, instances: %d",
 			strategy.Name, group.DbType, group.BkCloudID, len(group.Instances))
 
-		// TODO: set the action scope and swicth ID of the switch request properly
-		req.ActionScope = hamodel.ActionScopeTypeHost
+		// TODO: set the switch ID of the switch request properly
+		req.ActionScope = strategy.Scope
 		req.SwitchID = "test_switch_id"
 		h.switchExecutor.TriggerSwitching(group.DbType, req)
 	}
