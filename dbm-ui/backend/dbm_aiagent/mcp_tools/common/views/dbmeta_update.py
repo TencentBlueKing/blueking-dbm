@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
+from blueapps.account.models import User
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from rest_framework.response import Response
@@ -35,6 +36,7 @@ from backend.dbm_aiagent.mcp_tools.exceptions import (
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.drf_perm.mcp import McpIsDbaPermission
 
 logger = logging.getLogger("root")
 
@@ -221,6 +223,7 @@ class DBMetaUpdateMcpToolsViewSet(McpToolsViewSet):
         request_slz=UpdateMachineSpecInputSerializer,
         response_slz=UpdateMachineSpecOutputSerializer,
         tags=[DBMMCPTags.WRITE],
+        permission_classes=[McpIsDbaPermission],
         mcp=[DBMMcpTools.DBMETA_UPDATE],
         name_prefix="dba_tool",
     )
@@ -278,12 +281,16 @@ class DBMetaUpdateMcpToolsViewSet(McpToolsViewSet):
         machine_cluster_type, machine_machine_type = self._validate_machines_consistency(machines, failed_list)
         if machine_cluster_type is None:
             return Response({"success_count": 0, "failed_list": failed_list})
-
-        # 4. 校验用户是否为业务 DBA 负责人
-        db_type = self._validate_business_dba_permission(machines, username, machine_cluster_type, failed_list)
+        # 判断用户是否为超级管理员
+        is_superuser = User.objects.filter(is_superuser=True, username=username).exists()
+        if not is_superuser:
+            # 4. 校验用户是否为业务 DBA 负责人
+            db_type = self._validate_business_dba_permission(machines, username, machine_cluster_type, failed_list)
+        else:
+            db_type = ClusterType.cluster_type_to_db_type(machine_cluster_type)
+        # 判断 db_type 是否为空
         if db_type is None:
             return Response({"success_count": 0, "failed_list": failed_list})
-
         # 5. 校验规格与机器类型匹配
         if not self._validate_spec_match(spec, db_type, machine_machine_type, machines, failed_list):
             return Response({"success_count": 0, "failed_list": failed_list})
