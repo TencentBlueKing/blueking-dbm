@@ -17,5 +17,5 @@ from . import models
 
 @admin.register(models.AsymmetricCipherKey)
 class AsymmetricCipherKeyAdmin(admin.ModelAdmin):
-    list_display = ["type", "algorithm"]
+    list_display = ["type", "algorithm", "description"]
     search_fields = ["name", "type", "algorithm", "description"]
