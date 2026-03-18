@@ -63,6 +63,13 @@ type BaseParam struct {
 	ExecuteObjects    []ExecuteSQLFileObjV2 `json:"execute_objects"  binding:"gt=0,dive,required"`
 }
 
+func (b BaseParam) GetMySQLEngine() string {
+	if val, ok := b.MySQLStartConfigs["default_storage_engine"]; ok {
+		return strings.ToLower(strings.TrimSpace(val))
+	}
+	return ""
+}
+
 // BuildTendbPodName build tendb pod name
 func (b BaseParam) BuildTendbPodName() string {
 	podName := fmt.Sprintf("tendb-%s-%s", strings.ToLower(b.MySQLVersion),
@@ -318,6 +325,7 @@ func (r ReloadParam) BuildTsk(requestId string) (tsk SimulationTask) {
 		RootPwd: r.TaskId[0:4],
 		Args:    r.BuildStartArgs(),
 		Charset: r.MySQLCharSet,
+		Engine:  r.BaseParam.GetMySQLEngine(),
 	}
 	return tsk
 }
@@ -607,7 +615,8 @@ func (t *SimulationTask) executeMultiFilesObject(e ExecuteSQLFileObjV2, containe
 
 // GetImgFromMySQLVersion 根据版本获取模拟执行运行的镜像配置
 func GetImgFromMySQLVersion(version string) (img string, err error) {
-	img, errx := model.GetImageName("mysql", version)
+	componentType := "mysql"
+	img, errx := model.GetImageName(componentType, version)
 	if errx == nil {
 		logger.Info("get image from db img config: %s", img)
 		return img, nil
