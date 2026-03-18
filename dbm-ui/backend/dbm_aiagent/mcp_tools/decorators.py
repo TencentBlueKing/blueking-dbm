@@ -60,7 +60,7 @@ def _extract_agent_type_and_mcp_type(func: Callable) -> tuple[str, str]:
         raise ValueError(_("无法从函数路径中提取 agent_type 和 mcp_type: {}").format(func_file)) from e
 
 
-def mcp_tools_api_decorator(
+def mcp_tools_api_decorator(  # noqa: C901
     description: str,
     request_slz: Type[serializers.Serializer],
     response_slz: Type[serializers.Serializer],
@@ -78,6 +78,7 @@ def mcp_tools_api_decorator(
     user_verified_required: bool = False,
     app_verified_required: bool = True,
     none_schema: bool = False,
+    enable: bool = True,
 ):
     """
     MCP 工具 API 装饰器
@@ -98,10 +99,14 @@ def mcp_tools_api_decorator(
     @params user_verified_required: 是否校验用户身份(考虑 mcp 也有后台调用，默认都已应用态接口开放)
     @params app_verified_required: 是否校验应用身份
     @params none_schema: 无请求体时设为 True，供 generate_resources_yaml 的 MCP 校验通过
+    @params enable: 是否启用该 mcp tool
     @returns 装饰器函数
     """
 
     def decorator(func: Callable) -> Callable:
+        if not enable:
+            return func
+
         setattr(func, "is_mcp_tool", True)
         # 先用 rest-action 装饰
         func = action(methods=methods, detail=False, serializer_class=request_slz)(func)

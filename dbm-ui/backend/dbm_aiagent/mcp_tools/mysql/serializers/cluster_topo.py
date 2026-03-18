@@ -20,6 +20,12 @@ class MySQLBaseInstanceSerializer(serializers.Serializer):
     address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
     status = serializers.CharField(help_text=_("实例状态"))
     machine_type = serializers.CharField(help_text=_("实例机器类型"))
+    bk_idc_id = serializers.IntegerField(help_text=_("机房ID"))
+    bk_idc_name = serializers.CharField(help_text=_("机房名称"))
+    bk_idc_area_id = serializers.IntegerField(help_text=_("机房区域ID"))
+    bk_idc_area = serializers.CharField(help_text=_("机房区域名称"))
+    bk_sub_zone_id = serializers.IntegerField(help_text=_("子ZoneID"))
+    bk_sub_zone = serializers.CharField(help_text=_("子Zone名称"))
 
 
 #

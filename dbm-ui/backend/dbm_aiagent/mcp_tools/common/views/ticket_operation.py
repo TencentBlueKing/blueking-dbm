@@ -14,6 +14,7 @@ import time
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
+from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_bizs, auth_parse_ticket_biz
 from backend.dbm_aiagent.mcp_tools.common.impl.ticket_list import ticket_list
 from backend.dbm_aiagent.mcp_tools.common.serializers.ticket_list import (
     TicketListInputSerializer,
@@ -28,6 +29,7 @@ from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBadTicketStatusException
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.drf_perm.mcp import McpDBManagePermission
 from backend.ticket.constants import TicketStatus
 from backend.ticket.handler import TicketHandler
 from backend.ticket.models import Ticket
@@ -44,7 +46,9 @@ class TicketOperationMcpToolsViewSet(McpToolsViewSet):
         request_slz=TicketListInputSerializer,
         response_slz=TicketListOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.TICKET_OP],
+        permission_classes=[McpDBManagePermission],
+        mcp_auth_parser=auth_parse_bizs,
+        mcp=[DBMMcpTools.TICKET_OP, DBMMcpTools.TICKET_OP_MARKET],
         name_prefix="ticket_op",
     )
     def ticket_list(self, request, *args, **kwargs):
@@ -55,9 +59,10 @@ class TicketOperationMcpToolsViewSet(McpToolsViewSet):
         statuses = self.get_param("statuses")
         time_duration = self.get_param("time_duration")
 
-        username = request.user.username
+        # username = request.user.username
 
-        res = ticket_list(username, bk_biz_id, ticket_ids, cluster_domains, statuses, time_duration)
+        res = ticket_list(bk_biz_id, ticket_ids, cluster_domains, statuses, time_duration)
+        # res = ticket_list(username, bk_biz_id, ticket_ids, cluster_domains, statuses, time_duration)
         return Response({"ticket_infos": res})
 
     @mcp_tools_api_decorator(
@@ -66,15 +71,19 @@ class TicketOperationMcpToolsViewSet(McpToolsViewSet):
         response_slz=TicketManipulateOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.TICKET_OP],
+        mcp_auth_parser=auth_parse_ticket_biz,
         name_prefix="ticket_op",
     )
     def ticket_execute(self, request, *args, **kwargs):
-        bk_biz_id = self.get_param("bk_biz_id")
+        # bk_biz_id = self.get_param("bk_biz_id")
         ticket_id = self.get_param("ticket_id")
 
         username = request.user.username
 
-        tk = Ticket.objects.get(bk_biz_id=bk_biz_id, pk=ticket_id)
+        tk = Ticket.objects.get(pk=ticket_id)
+        if not (username == tk.creator or username in tk.helpers):
+            raise DBMMcpBadTicketStatusException(msg=f"用户 {username} 无权限操作该单据")
+
         if tk.status != TicketStatus.TODO:
             raise DBMMcpBadTicketStatusException(msg=f"{tk.status} 不支持当前操作")
 
@@ -84,7 +93,7 @@ class TicketOperationMcpToolsViewSet(McpToolsViewSet):
 
         time.sleep(5)  # 这里 sleep 是为了能返回一个正常点的状态
 
-        return Response({"status": Ticket.objects.get(bk_biz_id=bk_biz_id, pk=ticket_id).status})
+        return Response({"status": Ticket.objects.get(pk=ticket_id).status})
 
     @mcp_tools_api_decorator(
         description=str(_("终止单据")),
@@ -92,14 +101,18 @@ class TicketOperationMcpToolsViewSet(McpToolsViewSet):
         response_slz=TicketManipulateOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.TICKET_OP],
+        mcp_auth_parser=auth_parse_ticket_biz,
         name_prefix="ticket_op",
     )
     def ticket_terminate(self, request, *args, **kwargs):
-        bk_biz_id = self.get_param("bk_biz_id")
+        # bk_biz_id = self.get_param("bk_biz_id")
         ticket_id = self.get_param("ticket_id")
         username = request.user.username
 
-        tk = Ticket.objects.get(bk_biz_id=bk_biz_id, pk=ticket_id)
+        tk = Ticket.objects.get(pk=ticket_id)
+        if not (username == tk.creator or username in tk.helpers):
+            raise DBMMcpBadTicketStatusException(msg=f"用户 {username} 无权限操作该单据")
+
         if tk.status in [TicketStatus.RUNNING, TicketStatus.TERMINATED, TicketStatus.INNER_TODO]:
             raise DBMMcpBadTicketStatusException(msg=f"{tk.status} 不支持当前操作")
 
@@ -109,4 +122,4 @@ class TicketOperationMcpToolsViewSet(McpToolsViewSet):
 
         time.sleep(5)  # 这里 sleep 是为了能返回一个正常点的状态
 
-        return Response({"status": Ticket.objects.get(bk_biz_id=bk_biz_id, pk=ticket_id).status})
+        return Response({"status": Ticket.objects.get(pk=ticket_id).status})

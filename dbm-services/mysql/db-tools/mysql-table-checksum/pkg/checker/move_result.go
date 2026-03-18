@@ -35,34 +35,6 @@ func (r *Checker) moveResult() error {
 		columns = append(columns, col)
 	}
 
-	//err = r.validateHistoryTable()
-	//if err != nil {
-	//	slog.Error("move result validate history table again", slog.String("error", err.Error()))
-	//	return err
-	//}
-	//slog.Info("move result validate history table success")
-
-	//conn, err := r.db.Conn(context.Background())
-	//if err != nil {
-	//	slog.Error("get connect", slog.String("error", err.Error()))
-	//	return err
-	//}
-	//defer func() {
-	//	_ = conn.Close()
-	//}()
-	//
-	//_, err = conn.ExecContext(context.Background(), `SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;`)
-	//if err != nil {
-	//	slog.Error("set iso level", slog.String("error", err.Error()))
-	//	return err
-	//}
-	//
-	//_, err = conn.ExecContext(context.Background(), `SET BINLOG_FORMAT = 'STATEMENT'`)
-	//if err != nil {
-	//	slog.Error("set binlog_format = 'statement'", slog.String("error", err.Error()))
-	//	return err
-	//}
-
 	slog.Info("move result", slog.Time("from", r.startTS))
 
 	columnsStr := strings.Join(columns, ",")

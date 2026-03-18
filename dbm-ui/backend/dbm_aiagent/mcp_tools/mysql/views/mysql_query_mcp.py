@@ -16,7 +16,11 @@ from rest_framework.response import Response
 
 from backend.db_meta.enums import ClusterType, MachineType
 from backend.db_meta.models import Cluster, Machine
-from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clusters
+from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import (
+    auth_parse_bizs,
+    auth_parse_clusters,
+    auth_parse_instances,
+)
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.exceptions import (
@@ -128,6 +132,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=MySQLClusterTopoOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
+        mcp_auth_parser=auth_parse_clusters,
         name_prefix="mysql_query",
     )
     def mysql_cluster_topo(self, request, *args, **kwargs):
@@ -161,6 +166,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=ShowClusterProcessListSummaryOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
+        mcp_auth_parser=auth_parse_clusters,
         name_prefix="mysql_query",
     )
     def show_cluster_processlist_summary(self, request, *args, **kwargs):
@@ -189,6 +195,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=ShowMySQLVariablesOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
+        mcp_auth_parser=auth_parse_instances,
         name_prefix="mysql_query",
     )
     def show_mysql_popular_runtime_variables(self, request, *args, **kwargs):
@@ -215,6 +222,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=ShowInstanceStatuesOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
+        mcp_auth_parser=auth_parse_instances,
         name_prefix="mysql_query",
     )
     def show_instance_popular_runtime_status(self, request, *args, **kwargs):
@@ -241,6 +249,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=ShowInstanceStatuesOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
+        mcp_auth_parser=auth_parse_instances,
         name_prefix="mysql_query",
     )
     def show_instance_slave_status(self, request, *args, **kwargs):
@@ -261,6 +270,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=ShowBizMySQLPrivilegeTemplateOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
+        mcp_auth_parser=auth_parse_bizs,
         name_prefix="mysql_query",
     )
     def show_biz_mysql_privilege_template(self, request, *args, **kwargs):

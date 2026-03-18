@@ -38,6 +38,13 @@ def __tendbsingle_topo(cluster_obj: Cluster) -> Dict:
                     "instance_role": storage_instance.instance_role,
                     "instance_inner_role": storage_instance.instance_inner_role,
                     "is_stand_by": storage_instance.is_stand_by,
+                    # "bk_cloud_id": storage_instance.machine.bk_cloud_id,
+                    "bk_idc_id": storage_instance.machine.bk_idc_id,
+                    "bk_idc_name": storage_instance.machine.bk_idc_name,
+                    "bk_idc_area_id": storage_instance.machine.bk_idc_area_id,
+                    "bk_idc_area": storage_instance.machine.bk_idc_area,
+                    "bk_sub_zone_id": storage_instance.machine.bk_sub_zone_id,
+                    "bk_sub_zone": storage_instance.machine.bk_sub_zone,
                 }
             }
         ],
@@ -56,6 +63,13 @@ def __tendbha_topo(cluster_obj: Cluster) -> Dict:
                     "instance_role": tp.ejector.instance_role,
                     "instance_inner_role": tp.ejector.instance_inner_role,
                     "is_stand_by": tp.ejector.is_stand_by,
+                    # "bk_cloud_id": tp.ejector.machine.bk_cloud_id,
+                    "bk_idc_id": tp.ejector.machine.bk_idc_id,
+                    "bk_idc_name": tp.ejector.machine.bk_idc_name,
+                    "bk_idc_area_id": tp.ejector.machine.bk_idc_area_id,
+                    "bk_idc_area": tp.ejector.machine.bk_idc_area,
+                    "bk_sub_zone_id": tp.ejector.machine.bk_sub_zone_id,
+                    "bk_sub_zone": tp.ejector.machine.bk_sub_zone,
                 },
                 "slave_instances": [
                     {
@@ -65,6 +79,13 @@ def __tendbha_topo(cluster_obj: Cluster) -> Dict:
                         "instance_role": tp.receiver.instance_role,
                         "instance_inner_role": tp.receiver.instance_inner_role,
                         "is_stand_by": tp.receiver.is_stand_by,
+                        # "bk_cloud_id": tp.receiver.machine.bk_cloud_id,
+                        "bk_idc_id": tp.receiver.machine.bk_idc_id,
+                        "bk_idc_name": tp.receiver.machine.bk_idc_name,
+                        "bk_idc_area_id": tp.receiver.machine.bk_idc_area_id,
+                        "bk_idc_area": tp.receiver.machine.bk_idc_area,
+                        "bk_sub_zone_id": tp.receiver.machine.bk_sub_zone_id,
+                        "bk_sub_zone": tp.receiver.machine.bk_sub_zone,
                     }
                 ],
             }
@@ -74,7 +95,18 @@ def __tendbha_topo(cluster_obj: Cluster) -> Dict:
         "cluster_type": ClusterType.TenDBHA.value,
         # "cluster_domain": cluster_obj.immute_domain,
         "proxy_instances": [
-            {"address": p.ip_port, "status": p.status, "machine_type": p.machine_type}
+            {
+                "address": p.ip_port,
+                "status": p.status,
+                "machine_type": p.machine_type,
+                # "bk_cloud_id": p.machine.bk_cloud_id,
+                "bk_idc_id": p.machine.bk_idc_id,
+                "bk_idc_name": p.machine.bk_idc_name,
+                "bk_idc_area_id": p.machine.bk_idc_area_id,
+                "bk_idc_area": p.machine.bk_idc_area,
+                "bk_sub_zone_id": p.machine.bk_sub_zone_id,
+                "bk_sub_zone": p.machine.bk_sub_zone,
+            }
             for p in cluster_obj.proxyinstance_set.all()
         ],
         "storage_instance_replicate_sets": storage_instance_replicate_sets,
@@ -94,6 +126,13 @@ def __tendbcluster_topo(cluster_obj: Cluster) -> Dict:
                     "instance_role": tp.ejector.instance_role,
                     "instance_inner_role": tp.ejector.instance_inner_role,
                     "is_stand_by": tp.ejector.is_stand_by,
+                    # "bk_cloud_id": tp.ejector.machine.bk_cloud_id,
+                    "bk_idc_id": tp.ejector.machine.bk_idc_id,
+                    "bk_idc_name": tp.ejector.machine.bk_idc_name,
+                    "bk_idc_area_id": tp.ejector.machine.bk_idc_area_id,
+                    "bk_idc_area": tp.ejector.machine.bk_idc_area,
+                    "bk_sub_zone_id": tp.ejector.machine.bk_sub_zone_id,
+                    "bk_sub_zone": tp.ejector.machine.bk_sub_zone,
                 },
                 "slave_instances": [
                     {
@@ -103,6 +142,13 @@ def __tendbcluster_topo(cluster_obj: Cluster) -> Dict:
                         "instance_role": tp.receiver.instance_role,
                         "instance_inner_role": tp.receiver.instance_inner_role,
                         "is_stand_by": tp.receiver.is_stand_by,
+                        # "bk_cloud_id": tp.receiver.machine.bk_cloud_id,
+                        "bk_idc_id": tp.receiver.machine.bk_idc_id,
+                        "bk_idc_name": tp.receiver.machine.bk_idc_name,
+                        "bk_idc_area_id": tp.receiver.machine.bk_idc_area_id,
+                        "bk_idc_area": tp.receiver.machine.bk_idc_area,
+                        "bk_sub_zone_id": tp.receiver.machine.bk_sub_zone_id,
+                        "bk_sub_zone": tp.receiver.machine.bk_sub_zone,
                     }
                 ],
             }
@@ -112,7 +158,18 @@ def __tendbcluster_topo(cluster_obj: Cluster) -> Dict:
         "cluster_type": ClusterType.TenDBCluster.value,
         # "cluster_domain": cluster_obj.immute_domain,
         "proxy_instances": [
-            {"address": p.ip_port, "status": p.status, "machine_type": p.machine_type}
+            {
+                "address": p.ip_port,
+                "status": p.status,
+                "machine_type": p.machine_type,
+                # "bk_cloud_id": p.machine.bk_cloud_id,
+                "bk_idc_id": p.machine.bk_idc_id,
+                "bk_idc_name": p.machine.bk_idc_name,
+                "bk_idc_area_id": p.machine.bk_idc_area_id,
+                "bk_idc_area": p.machine.bk_idc_area,
+                "bk_sub_zone_id": p.machine.bk_sub_zone_id,
+                "bk_sub_zone": p.machine.bk_sub_zone,
+            }
             for p in cluster_obj.proxyinstance_set.all()
         ],
         "storage_instance_replicate_sets": storage_instance_replicate_sets,

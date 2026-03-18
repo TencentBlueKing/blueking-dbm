@@ -45,6 +45,8 @@ class DBMMcpTools(StrStructuredEnum):
     HOST_DECOMMISSION_QUERY = EnumField("host-decommission-query", _("主机裁撤信息查询"))
     TASKFLOW_QUERY = EnumField("taskflow-query", _("任务流查询"))
     KAFKA_TOOLBOX = EnumField("kafka-toolbox", "kafka-toolbox")
+    # MARKET
+    TICKET_OP_MARKET = EnumField("ticket-op-market", _("工单操作"))
 
 
 class DBMMCPTags(StrStructuredEnum):
