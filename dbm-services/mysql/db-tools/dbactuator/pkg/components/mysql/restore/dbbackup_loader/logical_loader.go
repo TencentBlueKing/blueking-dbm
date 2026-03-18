@@ -173,7 +173,7 @@ func (l *LogicalLoader) buildFilter() error {
 			l.ExcludeDatabases = opt.IgnoreDatabases
 			l.ExcludeTables = opt.IgnoreTables
 		}
-		// 如果是库表备份(部分备份)，不能清理 infodba_schema
+		// 如果是库表备份(部分备份)，或者 spider 节点，不能清理 infodba_schema
 		// 还有一种情况是，把另外一个实例的全部数据(全备)，导入到已有实例(有其它库)。这种情况也会恢复 infodba_schema，所以不会有问题
 		if strings.Contains(l.IndexObj.BackupMethod, "partial") ||
 			!slices.Contains(l.IndexObj.DatabaseList, cst.INFODBA_SCHEMA) {
@@ -189,9 +189,9 @@ func (l *LogicalLoader) buildFilter() error {
 	// build regex
 	ignoreDbs := l.ExcludeDatabases
 	if l.doDr {
-		ignoreDbs = slices.DeleteFunc(native.DBSys, func(s string) bool {
-			return s == "infodba_schema"
-		})
+		ignoreDbs = cmutil.StringsRemove(native.DBSys, cst.INFODBA_SCHEMA)
+	} else {
+		ignoreDbs = append(ignoreDbs, native.INFODBA_SCHEMA)
 	}
 
 	if filter, err := db_table_filter.NewFilter(
