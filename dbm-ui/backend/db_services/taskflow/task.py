@@ -44,7 +44,9 @@ logger = logging.getLogger("flow")
 
 
 @shared_task
-def retry_node(root_id: str, flow_node: FlowNode, retry_times: int) -> Union[EngineAPIResult, Any]:
+def retry_node(
+    root_id: str, flow_node: FlowNode, retry_times: int, is_force: bool = False
+) -> Union[EngineAPIResult, Any]:
     """重试flow任务节点"""
 
     def send_flow_state(state, _root_id, _node_id, _version_id):
@@ -70,7 +72,7 @@ def retry_node(root_id: str, flow_node: FlowNode, retry_times: int) -> Union[Eng
         return EngineAPIResult(result=False, message=error_msg)
 
     # 进行重试操作
-    result = BambooEngine(root_id=root_id).retry_node(node_id=flow_node.node_id)
+    result = BambooEngine(root_id=root_id).retry_node(node_id=flow_node.node_id, is_force=is_force)
     if not result.result:
         raise RetryNodeException(str(result.exc.args))
 

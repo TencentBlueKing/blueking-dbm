@@ -81,6 +81,8 @@ class FlowTaskSerializer(serializers.ModelSerializer):
 
 class NodeSerializer(serializers.Serializer):
     node_id = serializers.CharField(help_text=_("节点ID"))
+    is_force = serializers.BooleanField(help_text=_("是否强制"), default=False, required=False)
+    remark = serializers.CharField(help_text=_("备注"), required=False, default="")
 
 
 class NodeRecordSerializer(serializers.Serializer):
@@ -89,6 +91,8 @@ class NodeRecordSerializer(serializers.Serializer):
 
 class BatchNodesSerializer(serializers.Serializer):
     nodes = serializers.ListField(help_text=_("指定节点"), child=serializers.CharField(), required=False, default=[])
+    is_force = serializers.BooleanField(help_text=_("是否强制"), default=False, required=False)
+    remark = serializers.CharField(help_text=_("备注"), required=False, default="")
 
 
 class CallbackNodeSerializer(NodeSerializer):

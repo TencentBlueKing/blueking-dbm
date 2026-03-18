@@ -78,16 +78,18 @@ class TaskFlowHandler:
 
         return result
 
-    def retry_node(self, node_id: str, operator: str):
+    def retry_node(self, node_id: str, operator: str, remark: str = "", is_force: bool = False):
         """重试节点"""
-        flow = FlowNodeOperateRecord.insert_record(node_id, operator, FlowNodeOperateType.RETRY, root_id=self.root_id)
-        return task.retry_node(root_id=self.root_id, flow_node=flow, retry_times=1)
+        operate_type = FlowNodeOperateType.FORCE_RETRY if is_force else FlowNodeOperateType.RETRY
+        flow = FlowNodeOperateRecord.insert_record(node_id, operator, operate_type, remark, root_id=self.root_id)
+        return task.retry_node(root_id=self.root_id, flow_node=flow, retry_times=1, is_force=is_force)
 
-    def skip_node(self, node_id: str, operator: str):
+    def skip_node(self, node_id: str, operator: str, remark: str = "", is_force: bool = False):
         """跳过节点"""
-        FlowNodeOperateRecord.insert_record(node_id, operator, FlowNodeOperateType.SKIP, root_id=self.root_id)
+        operate_type = FlowNodeOperateType.FORCE_SKIP if is_force else FlowNodeOperateType.SKIP
+        FlowNodeOperateRecord.insert_record(node_id, operator, operate_type, remark, root_id=self.root_id)
 
-        result = BambooEngine(root_id=self.root_id).skip_node(node_id=node_id)
+        result = BambooEngine(root_id=self.root_id).skip_node(node_id=node_id, is_force=is_force)
         if not result.result:
             raise SkipNodeException(",".join(result.exc.args))
 
@@ -103,7 +105,15 @@ class TaskFlowHandler:
 
         return result
 
-    def batch_operate_nodes(self, func: Callable, node_status: StateType, operator: str, some_nodes: List[str] = None):
+    def batch_operate_nodes(
+        self,
+        func: Callable,
+        node_status: StateType,
+        operator: str,
+        some_nodes: List[str] = None,
+        is_force: bool = False,
+        remark: str = "",
+    ):
         """批量操作节点"""
         node_ids = self.get_specific_node_ids(status=node_status)
         # 支持部分节点重试
@@ -113,7 +123,10 @@ class TaskFlowHandler:
         errors = []
         for node_id in node_ids:
             try:
-                func(node_id, operator)
+                if is_force:
+                    func(node_id, operator, is_force=is_force, remark=remark)
+                else:
+                    func(node_id, operator)
             except Exception as err:
                 errors.append(f"{node_id} operate failed, err is {err}")
 
@@ -121,17 +134,17 @@ class TaskFlowHandler:
             success, fail = len(node_ids) - len(errors), len(errors)
             raise OperateNodeException(_("成功{}个节点, 失败{}个节点, 错误信息:{}").format(success, fail, errors))
 
-    def batch_retry_nodes(self, operator: str, some_nodes: List[str] = None):
+    def batch_retry_nodes(self, operator: str, some_nodes: List[str] = None, is_force: bool = False, remark: str = ""):
         """批量重试节点"""
-        self.batch_operate_nodes(self.retry_node, StateType.FAILED, operator, some_nodes)
+        self.batch_operate_nodes(self.retry_node, StateType.FAILED, operator, some_nodes, is_force, remark)
 
     def batch_force_fail_nodes(self, operator: str, some_nodes: List[str] = None):
         """批量强制失败节点"""
         self.batch_operate_nodes(self.force_fail_node, StateType.RUNNING, operator, some_nodes)
 
-    def batch_skip_nodes(self, operator: str, some_nodes: List[str] = None):
+    def batch_skip_nodes(self, operator: str, some_nodes: List[str] = None, is_force: bool = False, remark: str = ""):
         """批量强制失败节点"""
-        self.batch_operate_nodes(self.skip_node, StateType.FAILED, operator, some_nodes)
+        self.batch_operate_nodes(self.skip_node, StateType.FAILED, operator, some_nodes, is_force, remark)
 
     def callback_node(self, node_id: str, desc: Optional[Any]):
         """回调节点"""
