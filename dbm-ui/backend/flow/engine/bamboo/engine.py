@@ -21,6 +21,7 @@ from django.utils.translation import gettext as _
 from pipeline.eri.models import State
 from pipeline.eri.runtime import BambooDjangoRuntime
 
+from backend.db_services.taskflow.utils import force_skip_and_retry_decorator
 from backend.flow.engine.bamboo.builder import Builder
 from backend.flow.engine.exceptions import PipelineError
 from backend.flow.models import FlowNode, FlowTree, StateType
@@ -85,11 +86,13 @@ class BambooEngine:
         result = api.forced_fail_activity(runtime=BambooDjangoRuntime(), node_id=node_id, ex_data="force failed")
         return result
 
-    def retry_node(self, node_id: str, data: Optional[dict] = None) -> EngineAPIResult:
+    @force_skip_and_retry_decorator("can_retry")
+    def retry_node(self, node_id: str, data: Optional[dict] = None, is_force: bool = False) -> EngineAPIResult:
         result = api.retry_node(runtime=BambooDjangoRuntime(), node_id=node_id, data=data)
         return result
 
-    def skip_node(self, node_id: str) -> EngineAPIResult:
+    @force_skip_and_retry_decorator("can_skip")
+    def skip_node(self, node_id: str, is_force: bool = False) -> EngineAPIResult:
         result = api.skip_node(runtime=BambooDjangoRuntime(), node_id=node_id)
         return result
 

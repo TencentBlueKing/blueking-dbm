@@ -245,6 +245,8 @@ class OperateCollectorActionEnum(StrStructuredEnum):
 class FlowNodeOperateType(StrStructuredEnum):
     RETRY = EnumField("retry", _("重试"))
     SKIP = EnumField("skip", _("跳过"))
+    FORCE_RETRY = EnumField("force_retry", _("强制重试"))
+    FORCE_SKIP = EnumField("force_skip", _("强制跳过"))
     FORCE_FAIL = EnumField("force_fail", _("强制失败"))
     CONFIRM = EnumField("confirm", _("确认继续"))
     PIPELINE_TERMINATE = EnumField("pipeline_terminate", _("流程终止"))

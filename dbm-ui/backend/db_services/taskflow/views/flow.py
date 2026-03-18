@@ -20,6 +20,7 @@ from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.dbbase.constants import IpSource
+from backend.db_services.taskflow.exceptions import OperateNodeException
 from backend.db_services.taskflow.handlers import TaskFlowHandler
 from backend.db_services.taskflow.serializers import (
     BatchNodesSerializer,
@@ -144,7 +145,18 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
         user = requests.user.username
         root_id = kwargs["root_id"]
         validated_data = self.params_validate(self.get_serializer_class())
-        return Response(TaskFlowHandler(root_id=root_id).retry_node(validated_data["node_id"], operator=user).result)
+        if validated_data["is_force"] and not requests.user.is_superuser:
+            raise OperateNodeException(_("非超级用户，不能强制重试"))
+        return Response(
+            TaskFlowHandler(root_id=root_id)
+            .retry_node(
+                validated_data["node_id"],
+                operator=user,
+                remark=validated_data["remark"],
+                is_force=validated_data["is_force"],
+            )
+            .result
+        )
 
     @common_swagger_auto_schema(
         operation_summary=_("跳过节点"),
@@ -155,7 +167,18 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
         user = requests.user.username
         root_id = kwargs["root_id"]
         validated_data = self.params_validate(self.get_serializer_class())
-        return Response(TaskFlowHandler(root_id=root_id).skip_node(validated_data["node_id"], operator=user).result)
+        if validated_data["is_force"] and not requests.user.is_superuser:
+            raise OperateNodeException(_("非超级用户，不能强制跳过"))
+        return Response(
+            TaskFlowHandler(root_id=root_id)
+            .skip_node(
+                validated_data["node_id"],
+                operator=user,
+                remark=validated_data["remark"],
+                is_force=validated_data["is_force"],
+            )
+            .result
+        )
 
     @common_swagger_auto_schema(
         operation_summary=_("强制失败节点"),
@@ -179,8 +202,15 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
     def batch_retry_nodes(self, requests, *args, **kwargs):
         user = requests.user.username
         validated_data = self.params_validate(self.get_serializer_class())
-        root_id, nodes = kwargs["root_id"], validated_data["nodes"]
-        return Response(TaskFlowHandler(root_id=root_id).batch_retry_nodes(user, nodes))
+        root_id, nodes, is_force, remark = (
+            kwargs["root_id"],
+            validated_data["nodes"],
+            validated_data["is_force"],
+            validated_data["remark"],
+        )
+        return Response(
+            TaskFlowHandler(root_id=root_id).batch_retry_nodes(user, nodes, is_force=is_force, remark=remark)
+        )
 
     @common_swagger_auto_schema(
         operation_summary=_("批量强制失败节点"),
@@ -203,8 +233,15 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
     def batch_skip_nodes(self, requests, *args, **kwargs):
         user = requests.user.username
         validated_data = self.params_validate(self.get_serializer_class())
-        root_id, nodes = kwargs["root_id"], validated_data["nodes"]
-        return Response(TaskFlowHandler(root_id=root_id).batch_skip_nodes(user, nodes))
+        root_id, nodes, is_force, remark = (
+            kwargs["root_id"],
+            validated_data["nodes"],
+            validated_data["is_force"],
+            validated_data["remark"],
+        )
+        return Response(
+            TaskFlowHandler(root_id=root_id).batch_skip_nodes(user, nodes, is_force=is_force, remark=remark)
+        )
 
     @common_swagger_auto_schema(
         operation_summary=_("获取特定状态节点"),
