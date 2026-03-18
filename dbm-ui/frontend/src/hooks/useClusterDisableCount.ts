@@ -18,7 +18,11 @@ import { getClusterDisableCount } from '@services/source/ticket';
  * 集群下架待办列表统计数据
  */
 export const useClusterDisableCount = () => {
-  const { data, run: runTicketClusterDisableTodoCount } = useRequest(getClusterDisableCount, {
+  const {
+    data,
+    loading,
+    run: runTicketClusterDisableTodoCount,
+  } = useRequest(getClusterDisableCount, {
     manual: true,
   });
 
@@ -33,6 +37,7 @@ export const useClusterDisableCount = () => {
 
   return {
     data,
+    loading,
     toAssistCount,
     todoCount,
   };
