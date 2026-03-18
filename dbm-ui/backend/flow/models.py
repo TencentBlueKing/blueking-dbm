@@ -66,6 +66,7 @@ class FlowNodeOperateRecord(models.Model):
     operator = models.CharField(_("操作人"), max_length=128)
     operate_type = models.CharField(_("操作类型"), choices=FlowNodeOperateType.get_choices(), max_length=64)
     operate_date = models.DateTimeField(_("操作时间"), auto_now_add=True)
+    remark = models.CharField(_("备注"), max_length=128, blank=True, null=True)
 
     class Meta:
         indexes = [
@@ -75,7 +76,7 @@ class FlowNodeOperateRecord(models.Model):
         db_table = "flow_node_operate_record"
 
     @classmethod
-    def insert_record(cls, flow: Union[str, FlowNode], operator: str, operate_type: str, **options):
+    def insert_record(cls, flow: Union[str, FlowNode], operator: str, operate_type: str, remark: str = "", **options):
         # 如果这里传入的flow只是node_id，请务必在options至少传入root_id，否则查询会很慢
         if isinstance(flow, str):
             node_filter = {"node_id": flow}
@@ -92,6 +93,7 @@ class FlowNodeOperateRecord(models.Model):
             version_id=flow.version_id,
             operator=operator,
             operate_type=operate_type,
+            remark=remark,
         )
         return flow
 
