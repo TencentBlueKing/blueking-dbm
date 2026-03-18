@@ -27,7 +27,6 @@ package workflow
 import (
 	"context"
 	"errors"
-	"sort"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/apm"
@@ -95,20 +94,11 @@ func (e *SwitchExecutor) CreateRequestWithGroup(group *FailureGroup) *switcher.R
 	return req
 }
 
-// MatchStrategyForGroup loads strategies for the group's biz, matches by event name/reason and trigger count,
-// and returns the highest-priority (smallest Priority value) enabled strategy, or (false, nil) if none match.
+// MatchStrategyForGroup loads biz-level and global strategies, iterates each strategy for matching
+// (normal strategies count instances by event name, special strategies invoke registered match functions),
+// adds strategies meeting the triggerCount threshold to the candidate list, and returns the highest
+// priority strategy after sorting (biz-level first > lower priority value first).
 func (e *SwitchExecutor) MatchStrategyForGroup(group *FailureGroup) (matched bool, strategy *hamodel.DbSwitchingStrategy) {
-
-	// TODO: only use to test, should remove later
-	strategy = &hamodel.DbSwitchingStrategy{
-		TriggerEventName:       group.EventName,
-		TriggerEventNameReason: group.EventNameReason,
-		TriggerCount:           0,
-		Priority:               0,
-		Scope:                  hamodel.ActionScopeTypeDbInstance,
-		Action:                 hamodel.ActionTypeSwitch,
-	}
-
 	if len(group.Instances) == 0 {
 		return false, nil
 	}
@@ -120,38 +110,34 @@ func (e *SwitchExecutor) MatchStrategyForGroup(group *FailureGroup) (matched boo
 		return false, nil
 	}
 
-	instanceCount := len(group.Instances)
 	var candidates []*hamodel.DbSwitchingStrategy
 	for _, s := range strategies {
-		if s.Status != hamodel.StatusTypeEnabled {
-			continue
-		}
-
-		if s.TriggerEventName != group.EventName || s.TriggerEventNameReason != group.EventNameReason {
-			continue
-		}
-
 		threshold := s.TriggerCount
 		if threshold <= 0 {
 			threshold = 1
 		}
 
-		if instanceCount < threshold {
-			continue
+		var count int
+
+		// check if this is a special strategy, invoke the corresponding match function
+		if matchFunc := GetSpecialMatchFunc(s.TriggerEventName); matchFunc != nil {
+			count = matchFunc(group.Instances)
+		} else {
+			// normal strategy: count instances matching the event name in the group
+			count = CountInstancesByEventName(group.Instances, s.TriggerEventName)
 		}
 
-		candidates = append(candidates, s)
+		if count >= threshold {
+			candidates = append(candidates, s)
+		}
 	}
 
 	if len(candidates) == 0 {
-		// TODO: only use to test, should remove later
-		return true, strategy
-		//return false, nil
+		return false, nil
 	}
 
-	sort.Slice(candidates, func(i, j int) bool {
-		return candidates[i].Priority < candidates[j].Priority
-	})
+	// sort by priority: biz-level first > lower priority value first
+	SortCandidates(candidates)
 
 	return true, candidates[0]
 }

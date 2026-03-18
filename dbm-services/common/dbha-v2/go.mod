@@ -35,6 +35,7 @@ require (
 	github.com/swaggest/swgui v1.8.5
 	github.com/swaggo/swag/v2 v2.0.0-rc5
 	golang.org/x/time v0.14.0
+	gorm.io/driver/sqlite v1.6.0
 )
 
 require (

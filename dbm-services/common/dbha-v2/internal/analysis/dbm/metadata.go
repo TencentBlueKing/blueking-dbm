@@ -49,6 +49,11 @@ const (
 	TenDBClusterProxySlave    DbmMetadataInstanceRole = "spider_slave"
 )
 
+// String returns the string representation of DbmMetadataInstanceRole.
+func (d DbmMetadataInstanceRole) String() string {
+	return string(d)
+}
+
 // the "spider_role" in metadata.
 type DbmMetadataSpiderRole string
 

@@ -64,22 +64,27 @@ const (
 	DbEventNameApiFailureV1             DbEventName = "dbha_call_api_fail"
 
 	// V2
-	DbEventNameDetectFailure    DbEventName = "dbha_detect_db_failure"
-	DbEventNameDetectSSHFailure DbEventName = "dbha_detect_ssh_failure"
-	DbEventNameProbeOffline     DbEventName = "dbha_probe_offline"
+	DbEventNameDetectFailure                   DbEventName = "dbha_detect_db_failure"
+	DbEventNameProbeOffline                    DbEventName = "dbha_probe_offline"
+	DbEventNameTendbhaProxyBackendFailure      DbEventName = "dbha_tendbha_proxy_backend_failure"
+	DbEventNameTendbclusterSpiderRemoteFailure DbEventName = "dbha_tendbcluster_spider_remote_failure"
 )
 
 // DbEventNameMap db event name map
 var DbEventNameMap = map[DbEventName]DbEventName{
-	DbEventNameDetectFailure:    DbEventNameDetectFailure,
-	DbEventNameDetectSSHFailure: DbEventNameDetectSSHFailure,
-	DbEventNameProbeOffline:     DbEventNameProbeOffline,
+	DbEventNameDetectFailure:                   DbEventNameDetectFailure,
+	DbEventNameDoubleCheckSshFailureV1:         DbEventNameDoubleCheckSshFailureV1,
+	DbEventNameTendbhaProxyBackendFailure:      DbEventNameTendbhaProxyBackendFailure,
+	DbEventNameTendbclusterSpiderRemoteFailure: DbEventNameTendbclusterSpiderRemoteFailure,
+	DbEventNameProbeOffline:                    DbEventNameProbeOffline,
 }
 
 // DbEventNameList db event name list
 var DbEventNameList = []DbEventName{
 	DbEventNameDetectFailure,
-	DbEventNameDetectSSHFailure,
+	DbEventNameDoubleCheckSshFailureV1,
+	DbEventNameTendbhaProxyBackendFailure,
+	DbEventNameTendbclusterSpiderRemoteFailure,
 	DbEventNameProbeOffline,
 }
 
