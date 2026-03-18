@@ -51,8 +51,10 @@ func GetSpecialMatchFunc(eventName haprobe.DbEventName) SpecialMatchFunc {
 	return specialStrategyRegistry[eventName]
 }
 
-// MatchProxyBackendSimultaneous matches cases where proxy and backend fail simultaneously
-// within the same cluster (BkCloudID:ClusterID). Returns the count of matched clusters.
+// MatchProxyBackendSimultaneous matches cases where proxy and backend master fail simultaneously
+// within the same cluster (BkCloudID:ClusterID).
+// A backend master must satisfy both MachineType == backend and InstanceRole == MySQLStorageMaster.
+// Returns the count of matched clusters.
 func MatchProxyBackendSimultaneous(instances []FailureInstanceInfo) int {
 	// sub-group by BkCloudID:ClusterID, reusing switchcore.GenerateClusterKey
 	clusterGroups := make(map[switchcore.ClusterKey][]FailureInstanceInfo)
@@ -64,19 +66,20 @@ func MatchProxyBackendSimultaneous(instances []FailureInstanceInfo) int {
 	count := 0
 	for _, group := range clusterGroups {
 		hasProxy := false
-		hasBackend := false
+		hasBackendMaster := false
 		for _, inst := range group {
 			if inst.MachineType == haprobe.DbmMetadataMachineTypeProxy {
 				hasProxy = true
 			}
-			if inst.MachineType == haprobe.DbmMetadataMachineTypeBackend {
-				hasBackend = true
+			if inst.MachineType == haprobe.DbmMetadataMachineTypeBackend &&
+				inst.InstanceRole == dbm.MySQLStorageMaster.String() {
+				hasBackendMaster = true
 			}
-			if hasProxy && hasBackend {
+			if hasProxy && hasBackendMaster {
 				break
 			}
 		}
-		if hasProxy && hasBackend {
+		if hasProxy && hasBackendMaster {
 			count++
 		}
 	}

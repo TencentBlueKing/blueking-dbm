@@ -95,7 +95,7 @@ func TestMatchProxyBackendSimultaneous_EmptyInstances(t *testing.T) {
 func TestMatchProxyBackendSimultaneous_SingleClusterBothTypes(t *testing.T) {
 	instances := []FailureInstanceInfo{
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeProxy},
-		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeBackend},
+		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: dbm.MySQLStorageMaster.String()},
 	}
 	count := MatchProxyBackendSimultaneous(instances)
 	if count != 1 {
@@ -116,7 +116,19 @@ func TestMatchProxyBackendSimultaneous_SingleClusterOnlyProxy(t *testing.T) {
 
 func TestMatchProxyBackendSimultaneous_SingleClusterOnlyBackend(t *testing.T) {
 	instances := []FailureInstanceInfo{
-		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeBackend},
+		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: dbm.MySQLStorageMaster.String()},
+	}
+	count := MatchProxyBackendSimultaneous(instances)
+	if count != 0 {
+		t.Errorf("expected 0, got %d", count)
+	}
+}
+
+func TestMatchProxyBackendSimultaneous_BackendButNotMaster(t *testing.T) {
+	// proxy + backend (but InstanceRole is not backend_master) => not matched
+	instances := []FailureInstanceInfo{
+		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeProxy},
+		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: dbm.MySQLStorageSlave.String()},
 	}
 	count := MatchProxyBackendSimultaneous(instances)
 	if count != 0 {
@@ -126,14 +138,14 @@ func TestMatchProxyBackendSimultaneous_SingleClusterOnlyBackend(t *testing.T) {
 
 func TestMatchProxyBackendSimultaneous_MultipleClustersPartialMatch(t *testing.T) {
 	instances := []FailureInstanceInfo{
-		// cluster 100: proxy + backend => matched
+		// cluster 100: proxy + backend master => matched
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeProxy},
-		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeBackend},
+		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: dbm.MySQLStorageMaster.String()},
 		// cluster 200: only proxy => not matched
 		{BkCloudID: 1, ClusterID: 200, MachineType: haprobe.DbmMetadataMachineTypeProxy},
-		// cluster 300: proxy + backend => matched
+		// cluster 300: proxy + backend master => matched
 		{BkCloudID: 1, ClusterID: 300, MachineType: haprobe.DbmMetadataMachineTypeProxy},
-		{BkCloudID: 1, ClusterID: 300, MachineType: haprobe.DbmMetadataMachineTypeBackend},
+		{BkCloudID: 1, ClusterID: 300, MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: dbm.MySQLStorageMaster.String()},
 	}
 	count := MatchProxyBackendSimultaneous(instances)
 	if count != 2 {
@@ -145,7 +157,7 @@ func TestMatchProxyBackendSimultaneous_DifferentCloudsSameCluster(t *testing.T) 
 	// different BkCloudID with same ClusterID should not be merged into the same cluster
 	instances := []FailureInstanceInfo{
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeProxy},
-		{BkCloudID: 2, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeBackend},
+		{BkCloudID: 2, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: dbm.MySQLStorageMaster.String()},
 	}
 	count := MatchProxyBackendSimultaneous(instances)
 	if count != 0 {
@@ -158,9 +170,9 @@ func TestMatchProxyBackendSimultaneous_MultipleProxiesAndBackends(t *testing.T) 
 	instances := []FailureInstanceInfo{
 		{BkCloudID: 1, ClusterID: 100, IP: "1.1.1.1", MachineType: haprobe.DbmMetadataMachineTypeProxy},
 		{BkCloudID: 1, ClusterID: 100, IP: "1.1.1.2", MachineType: haprobe.DbmMetadataMachineTypeProxy},
-		{BkCloudID: 1, ClusterID: 100, IP: "1.1.1.3", MachineType: haprobe.DbmMetadataMachineTypeBackend},
-		{BkCloudID: 1, ClusterID: 100, IP: "1.1.1.4", MachineType: haprobe.DbmMetadataMachineTypeBackend},
-		{BkCloudID: 1, ClusterID: 100, IP: "1.1.1.5", MachineType: haprobe.DbmMetadataMachineTypeBackend},
+		{BkCloudID: 1, ClusterID: 100, IP: "1.1.1.3", MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: dbm.MySQLStorageMaster.String()},
+		{BkCloudID: 1, ClusterID: 100, IP: "1.1.1.4", MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: dbm.MySQLStorageMaster.String()},
+		{BkCloudID: 1, ClusterID: 100, IP: "1.1.1.5", MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: dbm.MySQLStorageMaster.String()},
 	}
 	count := MatchProxyBackendSimultaneous(instances)
 	if count != 1 {
