@@ -1,8 +1,10 @@
 import dayjs from 'dayjs';
 
-import type { ClusterTypes } from '@common/const';
+import { ClusterTypes } from '@common/const';
 
 import { getCostTimeDisplay, utcDisplayTime } from '@utils';
+
+import { t } from '@/locales';
 
 export default class TicketClusterDisableTodo {
   bk_biz_id: number;
@@ -27,6 +29,30 @@ export default class TicketClusterDisableTodo {
     this.id = payload.id;
     this.name = payload.name;
     this.region = payload.region;
+  }
+
+  get clusterTypesDisplay() {
+    if (
+      [
+        ClusterTypes.PREDIXY_REDIS_CLUSTER,
+        ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+        ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+        ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+      ].includes(this.cluster_type)
+    ) {
+      return t('集群');
+    }
+    const textMap = {
+      [ClusterTypes.MONGO_REPLICA_SET]: t('副本集'),
+      [ClusterTypes.MONGO_SHARED_CLUSTER]: t('分片集群'),
+      [ClusterTypes.REDIS_INSTANCE]: t('主从'),
+      [ClusterTypes.SQLSERVER_HA]: t('主从'),
+      [ClusterTypes.SQLSERVER_SINGLE]: t('单节点'),
+      [ClusterTypes.TENDBHA]: t('主从'),
+      [ClusterTypes.TENDBSINGLE]: t('单节点'),
+    };
+
+    return textMap[this.cluster_type as keyof typeof textMap] || '';
   }
 
   get disableSecondsDisplay() {
