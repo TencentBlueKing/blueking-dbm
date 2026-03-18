@@ -27,6 +27,7 @@ package workflow
 import (
 	"testing"
 
+	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/testutil"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
@@ -182,7 +183,7 @@ func TestMatchStrategyForGroup_SpecialStrategyMatched(t *testing.T) {
 	group := &FailureGroup{
 		Instances: []FailureInstanceInfo{
 			{BkBizID: 100, BkCloudID: 1, ClusterID: 10, MachineType: haprobe.DbmMetadataMachineTypeProxy},
-			{BkBizID: 100, BkCloudID: 1, ClusterID: 10, MachineType: haprobe.DbmMetadataMachineTypeBackend},
+			{BkBizID: 100, BkCloudID: 1, ClusterID: 10, MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: dbm.MySQLStorageMaster.String()},
 		},
 	}
 
