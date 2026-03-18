@@ -68,6 +68,7 @@ type KubeClientSets struct {
 // MySQLPodBaseInfo mysql pod base info
 type MySQLPodBaseInfo struct {
 	PodName string
+	Engine  string
 	Labels  map[string]string
 	Args    []string
 	RootPwd string
@@ -148,11 +149,8 @@ func (k *DbPodSets) getClusterPodContainerSpec() []v1.Container {
 
 	containers := []v1.Container{
 		{
-			Name: "backend",
-			Env: []v1.EnvVar{{
-				Name:  "MYSQL_ROOT_PASSWORD",
-				Value: k.BaseInfo.RootPwd,
-			}},
+			Name:            "backend",
+			Env:             k.getBackendEnv(),
 			Resources:       k.getResourceLimit(),
 			ImagePullPolicy: v1.PullIfNotPresent,
 			Image:           k.DbImage,
@@ -455,15 +453,21 @@ func (k *DbPodSets) createPod(pod *v1.Pod, probePort int, xlogger *logger.Logger
 	if err = cmutil.Retry(cmutil.RetryConfig{Times: 60, DelayTime: 1 * time.Second}, fnc); err == nil {
 		model.UpdateTbContainerRecord(k.BaseInfo.PodName)
 	}
-	_, errx := k.DbWork.Db.Exec("create user ADMIN@localhost;")
-	if errx != nil {
-		logger.Error("create user ADMIN@localhost failed %s", errx.Error())
-	}
-	_, errx = k.DbWork.Db.Exec("grant all on *.* to ADMIN@localhost;")
-	if errx != nil {
-		logger.Error("grants user failed %s", errx.Error())
-	}
+	k.doAfterPodCreate()
 	return err
+}
+
+func (k *DbPodSets) doAfterPodCreate() {
+	// Fix: Do not warn if user already exists or grant fails due to already existing privilege
+	_, userErr := k.DbWork.Db.Exec("create user if not exists ADMIN@localhost;")
+	if userErr != nil {
+		logger.Warn("create user ADMIN@localhost failed: %s", userErr.Error())
+	}
+	_, grantErr := k.DbWork.Db.Exec("grant all privileges on *.* to ADMIN@localhost;")
+	if grantErr != nil {
+		logger.Warn("grant privileges to user ADMIN@localhost failed: %s", grantErr.Error())
+	}
+	return
 }
 
 // getContainerLogs 使用 k8s 原生接口获取容器日志
@@ -853,6 +857,20 @@ func (k *DbPodSets) deleteClusterConfigMap() error {
 	return nil
 }
 
+func (k *DbPodSets) getBackendEnv() []v1.EnvVar {
+	envs := []v1.EnvVar{{
+		Name:  "MYSQL_ROOT_PASSWORD",
+		Value: k.BaseInfo.RootPwd,
+	}}
+	if strings.ToLower(k.BaseInfo.Engine) == app.TokudbEngine {
+		envs = append(envs, v1.EnvVar{
+			Name:  "INIT_TOKUDB",
+			Value: "1",
+		})
+	}
+	return envs
+}
+
 // CreateMySQLPod create mysql pod
 func (k *DbPodSets) CreateMySQLPod(mysqlVersion string, xlogger *logger.Logger) (err error) {
 	// 创建 ConfigMap 存储 my.cnf 配置
@@ -899,10 +917,7 @@ func (k *DbPodSets) CreateMySQLPod(mysqlVersion string, xlogger *logger.Logger) 
 			Containers: []v1.Container{{
 				Resources: k.getResourceLimit(),
 				Name:      app.MySQL,
-				Env: []v1.EnvVar{{
-					Name:  "MYSQL_ROOT_PASSWORD",
-					Value: k.BaseInfo.RootPwd,
-				}},
+				Env:       k.getBackendEnv(),
 				Ports: []v1.ContainerPort{
 					{ContainerPort: 3306},
 				},

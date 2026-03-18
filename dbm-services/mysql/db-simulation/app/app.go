@@ -12,3 +12,9 @@ const (
 	// TendbCluster TODO
 	TendbCluster = "tendbcluster"
 )
+
+const (
+	TokudbEngine  = "tokudb"
+	RocksdbEngine = "rocksdb"
+	InnodbEngine  = "innodb"
+)
