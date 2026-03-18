@@ -59,8 +59,33 @@ func NewClientWithOptions(opts ...Option) (*Client, error) {
 		cli.opts.registryRootKeyPrefix += "/" + cli.opts.serviceName
 	}
 
+	hasCert := cli.opts.certFile != ""
+	hasKey := cli.opts.keyFile != ""
+	hasCA := cli.opts.trustedCAFile != ""
+
+	if hasCert != hasKey {
+		return nil, gerrors.New(gerrors.InvalidParameter, "certFile and keyFile must be configured together")
+	}
+
+	if hasCA && !hasCert {
+		return nil, gerrors.New(gerrors.InvalidParameter, "trustedCAFile requires certFile and keyFile")
+	}
+
+	if hasCert && hasKey {
+		tlsCfg, err := buildTLSConfig(cli.opts.certFile, cli.opts.keyFile, cli.opts.trustedCAFile)
+		if err != nil {
+			return nil, err
+		}
+		cli.opts.tlsConfig = tlsCfg
+	}
+
 	cli.createEtcdClient = func() (*clientv3.Client, error) {
-		etcdCli, err := clientv3.New(cli.opts.Config())
+		cfg, err := cli.opts.Config()
+		if err != nil {
+			return nil, err
+		}
+
+		etcdCli, err := clientv3.New(cfg)
 		if err != nil {
 			return nil, gerrors.Newf(gerrors.EtcdFailure, "%v", err)
 		}

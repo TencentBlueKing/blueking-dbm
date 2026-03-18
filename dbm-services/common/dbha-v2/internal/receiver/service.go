@@ -107,7 +107,7 @@ func (s *Service) Run(ctx context.Context) error {
 		s.quit = make(chan struct{})
 	}
 
-	timerTimeout := 3 * time.Second
+	timerTimeout := constant.DefaultServiceTimerInterval
 	timer := time.NewTimer(timerTimeout)
 	defer timer.Stop()
 
@@ -156,15 +156,26 @@ func (s *Service) Close() {
 }
 
 func (s *Service) createDiscovery() error {
-	cli, err := discovery.NewClientWithOptions(
+	opts := []discovery.Option{
 		discovery.OptionEndpoints(strings.Split(config.Cfg.Discovery.Endpoint, constant.Delimiter)),
 		discovery.OptionUser(config.Cfg.Discovery.User),
 		discovery.OptionPassword(config.Cfg.Discovery.Password),
 		discovery.OptionServiceName(s.info.Name),
 		discovery.OptionServiceID(s.info.ID),
 		discovery.OptionLogger(s.etcdLogger),
-	)
+	}
 
+	if config.Cfg.Discovery.CertFile != "" {
+		opts = append(opts, discovery.OptionCertFile(config.Cfg.Discovery.CertFile))
+	}
+	if config.Cfg.Discovery.KeyFile != "" {
+		opts = append(opts, discovery.OptionKeyFile(config.Cfg.Discovery.KeyFile))
+	}
+	if config.Cfg.Discovery.TrustedCAFile != "" {
+		opts = append(opts, discovery.OptionTrustedCAFile(config.Cfg.Discovery.TrustedCAFile))
+	}
+
+	cli, err := discovery.NewClientWithOptions(opts...)
 	if err != nil {
 		return err
 	}
@@ -181,12 +192,15 @@ func (s *Service) updateInfo() {
 
 	data, err := json.Marshal(s.info)
 	if err != nil {
-		logger.Warn("failed to marshal service info to json, errmsg: %v", err)
+		logger.Warn("failed to marshal service info to json, errmsg: %s", err)
 		return
 	}
 
-	if err = s.regCli.SetService(context.Background(), string(data)); err != nil {
-		logger.Warn("failed to udpate the service info in the registry, errmsg: %v", err)
+	ctx, cancel := context.WithTimeout(context.Background(), constant.DefaultServiceUpdateTimeout)
+	defer cancel()
+
+	if err = s.regCli.SetService(ctx, string(data)); err != nil {
+		logger.Warn("failed to update the service info in the registry, errmsg: %s", err)
 	}
 }
 

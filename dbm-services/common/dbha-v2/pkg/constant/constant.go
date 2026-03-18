@@ -41,6 +41,8 @@ const (
 	DefaultClientMaxReconnectAttempts = 10
 	DefaultReceiverBufferSize         = 1024
 	DefaultAdminBufferSize            = 1024
+	DefaultServiceTimerInterval       = 3 * time.Second
+	DefaultServiceUpdateTimeout       = 3 * time.Second
 )
 
 const (
