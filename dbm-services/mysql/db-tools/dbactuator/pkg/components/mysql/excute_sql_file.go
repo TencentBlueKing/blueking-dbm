@@ -85,14 +85,23 @@ type SpiderMntInstance struct {
 	Port int    `json:"port"`
 }
 
+// SQLFileExecResult 单个文件执行耗时记录
+type SQLFileExecResult struct {
+	Port     int    `json:"-"`
+	SQLFile  string `json:"sql_file"`
+	Duration int    `json:"duration"` // 单位：秒（整数）
+	Success  bool   `json:"success"`
+}
+
 // ExecuteSQLFileRunTimeCtx 运行时上下文
 type ExecuteSQLFileRunTimeCtx struct {
-	ports      []int
-	dbConns    map[Port]*native.DbWorker
-	vermap     map[Port]string // 当前实例的数据版本
-	charsetmap map[Port]string // 当前实例的字符集
-	socketmap  map[Port]string // 当前实例的socket value
-	taskdir    string
+	ports       []int
+	dbConns     map[Port]*native.DbWorker
+	vermap      map[Port]string // 当前实例的数据版本
+	charsetmap  map[Port]string // 当前实例的字符集
+	socketmap   map[Port]string // 当前实例的socket value
+	taskdir     string
+	execResults []SQLFileExecResult // 执行耗时记录
 }
 
 // Example TODO
@@ -597,6 +606,15 @@ func (e *ExecuteSQLFileComp) Init() (err error) {
 	return nil
 }
 
+// OutputCtx 输出执行耗时结果，按端口分组
+func (e *ExecuteSQLFileComp) OutputCtx() error {
+	result := make(map[int][]SQLFileExecResult)
+	for _, r := range e.execResults {
+		result[r.Port] = append(result[r.Port], r)
+	}
+	return components.PrintOutputCtx(result)
+}
+
 // Execute execute
 func (e *ExecuteSQLFileComp) Execute() (err error) {
 	defer e.closeDb()
@@ -668,6 +686,7 @@ func (e *ExecuteSQLFileComp) executeOne(port int) (err error) {
 		}
 		logger.Info("will real excute on %v", realexcutedbs)
 		for _, sqlFile := range f.SQLFiles {
+			start := time.Now()
 			err = mysqlutil.ExecuteSqlAtLocal{
 				IsForce:          e.Params.Force,
 				Charset:          e.charsetmap[port],
@@ -679,6 +698,12 @@ func (e *ExecuteSQLFileComp) executeOne(port int) (err error) {
 				User:             e.GeneralParam.RuntimeAccountParam.AdminUser,
 				Password:         e.GeneralParam.RuntimeAccountParam.AdminPwd,
 			}.ExecuteSqlByMySQLClient(sqlFile, realexcutedbs)
+			e.execResults = append(e.execResults, SQLFileExecResult{
+				Port:     port,
+				SQLFile:  sqlFile,
+				Duration: int(time.Since(start).Seconds()),
+				Success:  err == nil,
+			})
 			if err != nil {
 				logger.Error("执行%s文件失败:%s", sqlFile, err.Error())
 				return err

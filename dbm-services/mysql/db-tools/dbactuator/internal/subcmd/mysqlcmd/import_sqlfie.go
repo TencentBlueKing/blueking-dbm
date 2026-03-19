@@ -62,6 +62,13 @@ func (d *ExecSQLFileAct) Init() (err error) {
 
 // Run TODO
 func (d *ExecSQLFileAct) Run() (err error) {
+	if !d.Payload.Params.JustCheckDDLBlock {
+		defer func() {
+			if outputErr := d.Payload.OutputCtx(); outputErr != nil {
+				logger.Error("OutputCtx failed: %s", outputErr.Error())
+			}
+		}()
+	}
 	steps := subcmd.Steps{
 		{
 			FunName: "Init",

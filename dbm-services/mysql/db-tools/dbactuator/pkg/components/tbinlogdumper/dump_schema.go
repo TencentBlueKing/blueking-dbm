@@ -100,7 +100,7 @@ func (c *DumpSchemaComp) Init() (err error) {
 		finaldbs = append(finaldbs, db)
 	}
 	if len(finaldbs) == 0 {
-		return fmt.Errorf("变更实例排除系统库后，再也没有可以变更的库")
+		return fmt.Errorf("变更对象库不存在，请检查变更对象是否正确")
 	}
 	c.dbs = finaldbs
 	c.charset = c.Params.CharSet
