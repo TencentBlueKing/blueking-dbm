@@ -30,7 +30,7 @@ def dev_debug(msg: str):
     """
     if dev_env != "":
         # Only log in dev environment
-        logger.debug("env:{} msg:{}".format(dev_env, msg))
+        logger.info("env:{} msg:{}".format(dev_env, msg))
 
 
 def addr(node: MongoNode) -> str:
