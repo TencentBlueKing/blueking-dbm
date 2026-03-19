@@ -54,7 +54,7 @@ func main() {
 	rootCmd.AddCommand(probe.GenConfigCmd)
 
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println("failed to execute probe. errmsg: %s", err.Error())
+		fmt.Println("failed to execute probe. errmsg:", err.Error())
 		return
 	}
 

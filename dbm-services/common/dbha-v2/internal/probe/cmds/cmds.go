@@ -241,7 +241,7 @@ func getProbeConfigPayload(ctx context.Context, endpoints []string, req *proto.P
 			continue
 		}
 		if resp.GetCode() != proto.ProbeConfigCode_PROBE_CONFIG_SUCCESS {
-			lastErr = fmt.Errorf("admin %s returned code:%d, errmsg:%s",
+			lastErr = fmt.Errorf("admin %s returned code:%s, errmsg:%s",
 				endpoint, resp.GetCode().String(), resp.GetErrmsg())
 
 			continue
