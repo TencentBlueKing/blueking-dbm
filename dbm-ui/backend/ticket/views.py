@@ -275,6 +275,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         tags=[TICKET_TAG],
     )
     @action(methods=["POST"], detail=False)
+    @transaction.atomic
     def batch_create_ticket(self, request, *args, **kwargs):
         tickets = request.data.get("tickets", [])
 
