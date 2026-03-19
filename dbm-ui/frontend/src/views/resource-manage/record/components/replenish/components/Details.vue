@@ -316,7 +316,7 @@
   import TicketModel from '@services/model/ticket/ticket';
   import { exportReplenishTickets, fetchReplenish, listTicketApplyInfo } from '@services/source/dbresourceReplenish';
   import { getTickets } from '@services/source/ticket';
-  import { batchProcessTicket, getInnerFlowInfo } from '@services/source/ticketFlow';
+  import { getInnerFlowInfo, revokeTicket } from '@services/source/ticketFlow';
 
   import { useSystemEnviron } from '@stores';
 
@@ -535,11 +535,8 @@
       await terminateFormRef.value?.validate();
       isTerminating.value = true;
 
-      await batchProcessTicket({
-        action: 'TERMINATE',
-        params: {
-          remark: terminateForm.remark,
-        },
+      await revokeTicket({
+        remark: terminateForm.remark,
         ticket_ids: selectedRows.value.map((item) => item.id),
       });
 
