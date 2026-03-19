@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from functools import partial
+
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
@@ -143,7 +145,7 @@ class RedisReportsMcpToolsViewSet(McpToolsViewSet):
         request_slz=RedisReportsByMyBizsInputSerializer,
         response_slz=RedisReportsOutputSerializer,
         permission_classes=[McpDBManagePermission],
-        mcp_auth_parser=auth_parse_my_bizs,
+        mcp_auth_parser=partial(auth_parse_my_bizs, db_type=DBType.Redis),
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_REPORTS],
         name_prefix="redis_reports",

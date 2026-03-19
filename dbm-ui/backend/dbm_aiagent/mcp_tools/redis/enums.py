@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import List, Tuple
+
 from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
@@ -27,6 +29,25 @@ class MetricType(StrStructuredEnum):
     COMMAND_LATENCY = EnumField("command_latency", "Command latency")
     LATENCY_DISTRIBUTION = EnumField("latency_distribution", "Latency distribution (proxy only)")
     CAPACITY = EnumField("capacity", "Capacity (used/available/total)")
+
+    @classmethod
+    def get_proxy_cluster_api_choices(cls) -> List[Tuple]:
+        """Choices for cluster-level proxy MCP APIs (capacity is backend-only)."""
+
+        return [c for c in cls.get_choices() if c[0] != cls.CAPACITY.value]
+
+    @classmethod
+    def get_backend_cluster_api_choices(cls) -> List[Tuple]:
+        """Choices for cluster-level master/slave MCP APIs (latency_distribution is proxy-only)."""
+
+        return [c for c in cls.get_choices() if c[0] != cls.LATENCY_DISTRIBUTION.value]
+
+    @classmethod
+    def get_instance_api_choices(cls) -> List[Tuple]:
+        """Choices for instance-scoped MCP APIs (host resource metrics unavailable at ip:port scope)."""
+
+        host_level = {cls.CPU_USAGE.value, cls.MEMORY_USAGE.value, cls.IO_USAGE.value, cls.DISK_USAGE.value}
+        return [c for c in cls.get_choices() if c[0] not in host_level]
 
 
 class MetricsInstanceRole(StrStructuredEnum):
@@ -70,6 +91,24 @@ class MetricsGroupBy(StrStructuredEnum):
     CMD = EnumField("cmd", "Command")
     CLUSTER_DOMAIN = EnumField("cluster_domain", "Cluster domain")
     BUCKET = EnumField("bucket", "Latency bucket (distribution metrics only)")
+
+    @classmethod
+    def get_cluster_api_choices(cls) -> List[str]:
+        """User-visible group_by values for cluster-level Redis metrics MCP APIs (CMD is service-injected)."""
+
+        return [cls.IP.value, cls.INSTANCE.value, cls.BUCKET.value, cls.CLUSTER_DOMAIN.value]
+
+    @classmethod
+    def get_machine_api_choices(cls) -> List[str]:
+        """User-visible group_by values for machine-level APIs; cluster_domain omitted (scope fixes cluster)."""
+
+        return [cls.IP.value, cls.INSTANCE.value, cls.BUCKET.value]
+
+    @classmethod
+    def get_instance_api_choices(cls) -> List[str]:
+        """User-visible group_by values for instance-level APIs; cluster_domain and ip omitted."""
+
+        return [cls.INSTANCE.value, cls.BUCKET.value]
 
 
 class RedisReportSubtype(StrStructuredEnum):

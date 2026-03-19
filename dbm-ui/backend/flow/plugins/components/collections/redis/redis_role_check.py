@@ -26,7 +26,7 @@ from backend.db_report.enums import MetaCheckSubType, ReportStateType
 from backend.flow.consts import SUCCESS_LIST
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.redis.redis_context_dataclass import RedisRoleCheckContext
-from backend.flow.utils.redis.redis_meta_report import create_meta_check_report
+from backend.flow.utils.redis.redis_report_utils import RedisReportWriter
 from backend.flow.utils.redis.redis_script_template import (
     build_redis_role_check_script,
     redis_fast_execute_script_common_kwargs,
@@ -317,13 +317,15 @@ class RedisRoleCheckReportService(BaseService):
         # All jobs completed or failed - process results
         self.log_info(f"[{node_name}] All jobs finished. Completed: {len(completed_jobs)}, Failed: {len(failed_jobs)}")
 
+        writer = RedisReportWriter()
+
         # Process completed jobs - get logs and parse results
         success_count = 0
         fail_count = 0
 
         with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
             future_to_job = {
-                executor.submit(self._process_completed_job, job_info, creator): job_info
+                executor.submit(self._process_completed_job, job_info, creator, writer): job_info
                 for job_info in completed_jobs
             }
 
@@ -341,7 +343,7 @@ class RedisRoleCheckReportService(BaseService):
 
         # Handle failed/timeout jobs - write failure reports
         for job_info in failed_jobs:
-            self._write_failure_report(job_info, creator)
+            self._write_failure_report(job_info, creator, writer)
             fail_count += 1
 
         self.log_info(f"[{node_name}] Role check complete: {success_count} succeeded, {fail_count} failed")
@@ -381,7 +383,7 @@ class RedisRoleCheckReportService(BaseService):
         else:
             return "failed", step_instance_id
 
-    def _process_completed_job(self, job_info: Dict, creator: str) -> bool:
+    def _process_completed_job(self, job_info: Dict, creator: str, writer: RedisReportWriter) -> bool:
         """
         Process a completed job - get log, parse results, write reports.
 
@@ -422,7 +424,7 @@ class RedisRoleCheckReportService(BaseService):
                 return False
 
             # Write reports
-            self._write_reports(cluster_id, check_results, creator, job_instance_id)
+            self._write_reports(cluster_id, check_results, creator, job_instance_id, writer)
             return True
 
         except Exception as e:
@@ -442,8 +444,10 @@ class RedisRoleCheckReportService(BaseService):
         except json.JSONDecodeError:
             return None
 
-    def _write_reports(self, cluster_id: int, check_results: List[Dict], creator: str, job_instance_id: int):
-        """Write check results to MetaCheckReport using existing utility function."""
+    def _write_reports(
+        self, cluster_id: int, check_results: List[Dict], creator: str, job_instance_id: int, writer: RedisReportWriter
+    ):
+        """Write check results to MetaCheckReport."""
         try:
             cluster = Cluster.objects.get(id=cluster_id)
         except Cluster.DoesNotExist:
@@ -468,7 +472,7 @@ class RedisRoleCheckReportService(BaseService):
                 else:
                     msg = f"Role mismatch: meta={meta_role}, actual={actual_role} (job_instance_id={job_instance_id})"
 
-            create_meta_check_report(
+            writer.write_meta_report(
                 cluster=cluster,
                 ip=ip,
                 port=port,
@@ -478,7 +482,7 @@ class RedisRoleCheckReportService(BaseService):
                 creator=creator,
             )
 
-    def _write_failure_report(self, job_info: Dict, creator: str):
+    def _write_failure_report(self, job_info: Dict, creator: str, writer: RedisReportWriter):
         """Write failure report for a failed/timeout job."""
         cluster_id = job_info["cluster_id"]
         job_instance_id = job_info.get("job_instance_id", "")
@@ -493,7 +497,7 @@ class RedisRoleCheckReportService(BaseService):
         msg = f"Role check failed: job execution failed or timed out (job_instance_id={job_instance_id})"
 
         for inst in instances:
-            create_meta_check_report(
+            writer.write_meta_report(
                 cluster=cluster,
                 ip=inst.get("ip", ""),
                 port=inst.get("port", 0),

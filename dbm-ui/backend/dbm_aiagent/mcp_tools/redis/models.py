@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
+from backend.db_meta.models import Cluster
 from backend.dbm_aiagent.mcp_tools.redis.enums import (
     MetricsAggregationLevel,
     MetricsGroupBy,
@@ -20,10 +21,36 @@ from backend.dbm_aiagent.mcp_tools.redis.enums import (
 
 
 @dataclass
-class MetricsQueryParams:
-    """Parameters for building metrics queries"""
+class InstanceFilter:
+    ip: str
+    port: int
 
-    cluster_domains: List[str]  # List of cluster domain names to query
+
+@dataclass
+class MetricsQueryBatch:
+    """Caller/impl-layer batch: groups resolved clusters by instance_role for iterative querying.
+
+    Each batch carries the cluster objects, their shared role, and optional scope filters
+    (ip_filters for machine-level, instance_filters for instance-level).  entity_meta is
+    populated during resolution so the caller can optionally include it in the API response.
+    """
+
+    clusters: List[Cluster]
+    instance_role: MetricsInstanceRole
+    ip_filters: Optional[List[str]] = None
+    instance_filters: Optional[List[InstanceFilter]] = None
+    entity_meta: Optional[Dict[str, dict]] = None
+
+
+@dataclass
+class MetricsQueryParams:
+    """Service-layer params: fully-resolved inputs for building PromQL queries.
+
+    Constructed inside RedisMetricsQueryService.query_metrics() from caller-supplied
+    arguments plus internally resolved values (metric_config, aggregation_level).
+    """
+
+    cluster_domains: Optional[List[str]]  # Optional list of cluster domain names to query
     metric_type: MetricType  # Type of metric being queried (CPU, MEMORY, etc.)
     metric_config: dict  # Configuration dict with template-based PromQL config
     aggregation_level: MetricsAggregationLevel  # Level of aggregation (CLUSTER, MACHINE, or INSTANCE)
@@ -31,8 +58,8 @@ class MetricsQueryParams:
 
     # Filtering options
     instance_role: Optional[MetricsInstanceRole] = None  # Role of instances to query
-    ip_filter: Optional[str] = None  # Optional IP address to filter for single machine query
-    port_filter: Optional[int] = None  # Optional port to filter for single instance query
+    ip_filters: Optional[List[str]] = None  # Optional IP list filter (machine scope)
+    instance_filters: Optional[List[InstanceFilter]] = None  # Optional ip:port pair filter (instance scope)
 
     # Output options
     need_stats: bool = True  # Whether to include statistical queries

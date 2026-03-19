@@ -176,6 +176,7 @@ class SystemSettingsEnum(StrStructuredEnum):
     REDIS_CLUSTER_MEMORY_GROWTH_CHECK = EnumField("REDIS_CLUSTER_MEMORY_GROWTH_CHECK", _("Redis集群内存增长检查配置"))
     REDIS_BACKEND_LOAD_SKEW_CHECK = EnumField("REDIS_BACKEND_LOAD_SKEW_CHECK", _("Redis后端负载倾斜检查配置"))
     REDIS_BACKEND_DATA_SKEW_CHECK = EnumField("REDIS_BACKEND_DATA_SKEW_CHECK", _("Redis后端数据倾斜检查配置"))
+    REDIS_REPORT_ADDING_MODE = EnumField("REDIS_REPORT_ADDING_MODE", _("Redis报告写入模式配置"))
     # 补货相关配置(内部独有)
     HCM_APPLY_RESOURCE_BIZ = EnumField("HCM_APPLY_RESOURCE_BIZ", _("HCM申请资源业务"))
     HCM_OS_NAME_IMAGE_MAP = EnumField("HCM_OS_NAME_IMAGE_MAP", _("HCM操作系统与镜像ID映射"))

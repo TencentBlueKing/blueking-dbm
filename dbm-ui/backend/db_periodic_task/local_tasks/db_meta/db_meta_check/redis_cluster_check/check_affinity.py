@@ -22,8 +22,8 @@ from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterPhase, ClusterType, InstanceRole, MachineType
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_report.enums import MetaCheckSubType, ReportStateType
-from backend.flow.utils.redis.redis_meta_report import (
-    create_meta_check_report,
+from backend.flow.utils.redis.redis_report_utils import (
+    RedisReportWriter,
     delete_old_meta_check_reports,
     is_cluster_labeled_with,
 )
@@ -93,6 +93,7 @@ class RedisAffinityChecker:
 
     def __init__(self):
         """Initialize the affinity checker"""
+        self._writer = RedisReportWriter()
         # ClusterTypes that need to check
         self._supported_cluster_types = [
             ClusterType.TendisTwemproxyRedisInstance.value,  # TendisCache 集群
@@ -121,7 +122,11 @@ class RedisAffinityChecker:
         """
         Check affinity for all Redis clusters
         """
-        delete_old_meta_check_reports(MetaCheckSubType.AffinityViolation, self._supported_cluster_types, 30)
+        delete_old_meta_check_reports(
+            MetaCheckSubType.AffinityViolation,
+            self._supported_cluster_types,
+            self._writer.retention_days,
+        )
         for cluster in Cluster.objects.filter(Q(cluster_type__in=self._supported_cluster_types)):
             try:
                 self._check_cluster_affinity(cluster)
@@ -144,7 +149,7 @@ class RedisAffinityChecker:
                 "Cannot perform affinity check: Unsupported affinity level '{}' for Redis. " "Supported levels are: {}"
             ).format(affinity_level, supported_levels_str)
             logger.warning(f"affinity_check: {msg}")
-            create_meta_check_report(
+            self._writer.write_meta_report(
                 cluster=cluster,
                 ip="none",
                 port=None,
@@ -182,7 +187,6 @@ class RedisAffinityChecker:
             result["identifier"] = identifier
             check_results.append(result)
 
-        # Create reports based on results
         self._create_affinity_reports(
             cluster=cluster,
             affinity_level=affinity_level,
@@ -485,9 +489,8 @@ class RedisAffinityChecker:
             ).format(master_obj.machine.ip, slave_obj.machine.ip)
         return None
 
-    @classmethod
     def _create_affinity_reports(
-        cls,
+        self,
         cluster: Cluster,
         affinity_level: str,
         check_results: list[Dict],
@@ -511,11 +514,9 @@ class RedisAffinityChecker:
                 - machine_type: MachineType (optional, depends on result_type)
                 - proxy_count: int (only for proxy_distribution)
         """
-        # Count failed checks
         failed_checks = [result for result in check_results if result["state"] != ReportStateType.NORMAL.value]
         has_violations = len(failed_checks) > 0
 
-        # Calculate total machines for success message
         total_machines = 0
         backend_pair_count = 0
         for result in check_results:
@@ -523,7 +524,7 @@ class RedisAffinityChecker:
                 total_machines += result.get("proxy_count", 0)
             elif result["result_type"] == RedisAffinityChecker.BACKEND_PAIRS_CHECK:
                 backend_pair_count += 1
-        total_machines += backend_pair_count * 2  # Each backend pair has 2 machines
+        total_machines += backend_pair_count * 2
 
         if not has_violations:
             msg = _("Affinity check passed: All {} machines comply with " "affinity level '{}'").format(
@@ -531,9 +532,9 @@ class RedisAffinityChecker:
             )
             logger.info(f"affinity_check: cluster {cluster.immute_domain} passed affinity check")
 
-            create_meta_check_report(
+            self._writer.write_meta_report(
                 cluster=cluster,
-                ip="all",  # Cluster-level report
+                ip="all",
                 port=None,
                 subtype=MetaCheckSubType.AffinityViolation,
                 msg=msg,
@@ -549,9 +550,8 @@ class RedisAffinityChecker:
                 f"affinity violations and {total_warnings} warnings"
             )
 
-            # Create individual report for each failed check
             for result in failed_checks:
-                create_meta_check_report(
+                self._writer.write_meta_report(
                     cluster=cluster,
                     ip=result["identifier"],
                     port=None,

@@ -21,8 +21,8 @@ from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterPhase, ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_report.enums import MetaCheckSubType, ReportStateType
-from backend.flow.utils.redis.redis_meta_report import (
-    create_meta_check_report,
+from backend.flow.utils.redis.redis_report_utils import (
+    RedisReportWriter,
     delete_old_meta_check_reports,
     is_cluster_labeled_with,
 )
@@ -58,9 +58,14 @@ def check_redis_instance():
      REDIS_INSTANCE_DESTROY = TicketEnumField("REDIS_INSTANCE_DESTROY", _("Redis 主从集群删除"), _("集群管理"))
     """
     cluster_types = get_supported_clusters()
+    writer = RedisReportWriter()
 
-    delete_old_meta_check_reports(MetaCheckSubType.AloneInstance, cluster_types=cluster_types, days=30)
-    delete_old_meta_check_reports(MetaCheckSubType.StatusAbnormal, cluster_types=cluster_types, days=30)
+    delete_old_meta_check_reports(
+        MetaCheckSubType.AloneInstance, cluster_types=cluster_types, days=writer.retention_days
+    )
+    delete_old_meta_check_reports(
+        MetaCheckSubType.StatusAbnormal, cluster_types=cluster_types, days=writer.retention_days
+    )
 
     # 遍历集群
     query = Q(cluster_type__in=cluster_types)
@@ -83,7 +88,7 @@ def check_redis_instance():
         if not skip_proxy_count_check and c.proxyinstance_set.count() < 2:
             cluster_has_lonely_issue = True
             msg = _("cluster:{} now had proxies[{}] < 2").format(c.immute_domain, c.proxyinstance_set.count())
-            create_meta_check_report(
+            writer.write_meta_report(
                 cluster=c,
                 ip="none",
                 port=None,
@@ -110,7 +115,7 @@ def check_redis_instance():
                         "Warning: cluster {} master {} has no slave configured".format(c.immute_domain, master_obj)
                     )
                     msg = _("集群{}的master：{} 获取slave失败").format(c.immute_domain, master_obj)
-                    create_single_node_record(c, master_obj, msg, creator)
+                    create_single_node_record(c, master_obj, msg, creator, writer)
                     continue
 
                 slave_objs = [tuple_obj.receiver for tuple_obj in slave_tuples]
@@ -123,7 +128,7 @@ def check_redis_instance():
                         cluster_has_lonely_issue = True
                         all_slaves_valid = False
                         msg = _("集群{}的master实例：{} 的slave {} 端口不匹配").format(c.immute_domain, master_obj, slave_obj)
-                        create_single_node_record(c, master_obj, msg, creator)
+                        create_single_node_record(c, master_obj, msg, creator, writer)
 
                 # Log the result
                 if all_slaves_valid:
@@ -142,7 +147,7 @@ def check_redis_instance():
                     )
                 )
                 msg = _("集群{}的master实例：{} 检查时发生异常: {}").format(c.immute_domain, master_obj, str(e))
-                create_single_node_record(c, master_obj, msg, creator)
+                create_single_node_record(c, master_obj, msg, creator, writer)
                 continue
 
         # 检查slave对应的master是否缺失
@@ -156,7 +161,7 @@ def check_redis_instance():
                         "Warning: cluster {} slave {} failed to get master_obj".format(c.immute_domain, slave_obj)
                     )
                     msg = _("集群{}的slave：{} 获取master失败").format(c.immute_domain, slave_obj)
-                    create_single_node_record(c, slave_obj, msg, creator)
+                    create_single_node_record(c, slave_obj, msg, creator, writer)
                     continue
 
                 # 不支持一从多主
@@ -171,7 +176,7 @@ def check_redis_instance():
                     msg = _(
                         "unsupport mutil master with cluster {} 4:{}".format(c.immute_domain, slave_obj.machine.ip)
                     )
-                    create_single_node_record(c, slave_obj, msg, creator)
+                    create_single_node_record(c, slave_obj, msg, creator, writer)
                     continue
 
                 else:
@@ -180,7 +185,7 @@ def check_redis_instance():
                 if slave_obj.port != master_obj.port:
                     cluster_has_lonely_issue = True
                     msg = _("集群{}的slave实例：{} 没有master").format(c.immute_domain, slave_obj)
-                    create_single_node_record(c, slave_obj, msg, creator)
+                    create_single_node_record(c, slave_obj, msg, creator, writer)
                 else:
                     logger.info(_("集群{}的slave实例：{} master关系正常").format(c.immute_domain, slave_obj))
             except Exception as e:
@@ -191,27 +196,27 @@ def check_redis_instance():
                     )
                 )
                 msg = _("集群{}的slave实例：{} 检查时发生异常: {}").format(c.immute_domain, slave_obj, str(e))
-                create_single_node_record(c, slave_obj, msg, creator)
+                create_single_node_record(c, slave_obj, msg, creator, writer)
                 continue
 
         # Check instance status abnormality
-        cluster_has_status_issue = check_cluster_instance_status(c, creator)
+        cluster_has_status_issue = check_cluster_instance_status(c, creator, writer)
 
         if not cluster_has_lonely_issue:
-            create_cluster_normal_report(c, MetaCheckSubType.AloneInstance.value, creator)
+            create_cluster_normal_report(c, MetaCheckSubType.AloneInstance.value, creator, writer)
 
         if not cluster_has_status_issue:
-            create_cluster_normal_report(c, MetaCheckSubType.StatusAbnormal.value, creator)
+            create_cluster_normal_report(c, MetaCheckSubType.StatusAbnormal.value, creator, writer)
 
 
-def check_cluster_instance_status(cluster: Cluster, creator: str = "admin") -> bool:
+def check_cluster_instance_status(cluster: Cluster, creator: str = "admin", writer: RedisReportWriter = None) -> bool:
     """Check all instances (storage and proxy) status in the cluster"""
     cluster_has_status_issue = False
 
     # Check storage instance status
     for instance_obj in cluster.storageinstance_set.filter():
         try:
-            if not check_status_create_abnormal(cluster, instance_obj, creator):
+            if not check_status_create_abnormal(cluster, instance_obj, creator, writer):
                 cluster_has_status_issue = True
         except Exception as e:
             cluster_has_status_issue = True
@@ -224,7 +229,7 @@ def check_cluster_instance_status(cluster: Cluster, creator: str = "admin") -> b
     # Check proxy instance status
     for instance_obj in cluster.proxyinstance_set.filter():
         try:
-            if not check_status_create_abnormal(cluster, instance_obj, creator):
+            if not check_status_create_abnormal(cluster, instance_obj, creator, writer):
                 cluster_has_status_issue = True
         except Exception as e:
             cluster_has_status_issue = True
@@ -260,7 +265,7 @@ def check_ignore(cluster) -> bool:
     return False
 
 
-def check_status_create_abnormal(c, instance_obj, creator="admin"):
+def check_status_create_abnormal(c, instance_obj, creator="admin", writer: RedisReportWriter = None):
     """
     实例状态检查并插入异常报告
     Returns:
@@ -268,7 +273,8 @@ def check_status_create_abnormal(c, instance_obj, creator="admin"):
     """
     if instance_obj.status != InstanceStatus.RUNNING:
         msg = _("集群{}的实例:{}实例状态异常:{}").format(c.immute_domain, instance_obj.ip_port, instance_obj.status)
-        create_meta_check_report(
+        _write = writer.write_meta_report if writer else RedisReportWriter().write_meta_report
+        _write(
             cluster=c,
             ip=instance_obj.machine.ip,
             port=instance_obj.port,
@@ -282,11 +288,12 @@ def check_status_create_abnormal(c, instance_obj, creator="admin"):
     return True
 
 
-def create_single_node_record(c, instance_obj, msg, creator="admin"):
+def create_single_node_record(c, instance_obj, msg, creator="admin", writer: RedisReportWriter = None):
     """
     孤立实例写入表中
     """
-    create_meta_check_report(
+    _write = writer.write_meta_report if writer else RedisReportWriter().write_meta_report
+    _write(
         cluster=c,
         ip=instance_obj.machine.ip,
         port=instance_obj.port,
@@ -298,13 +305,14 @@ def create_single_node_record(c, instance_obj, msg, creator="admin"):
     )
 
 
-def create_cluster_normal_report(c, report_type, creator="admin"):
+def create_cluster_normal_report(c, report_type, creator="admin", writer: RedisReportWriter = None):
     """
     集群级别正常检查报告
     当集群下所有实例检查都通过时，创建集群级别的正常报告
     """
     msg = _("集群{}所有实例检查通过").format(c.immute_domain)
-    create_meta_check_report(
+    _write = writer.write_meta_report if writer else RedisReportWriter().write_meta_report
+    _write(
         cluster=c,
         ip="all",
         port=None,

@@ -11,19 +11,28 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging
 import math
+import time
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple, Union
 
 from backend import env
 from backend.components import BKMonitorV3Api
 from backend.db_meta.models import Cluster
-from backend.dbm_aiagent.mcp_tools.redis.constants import METRIC_REGISTRY, TREND_UNIT_BY_METRIC_KEY, UNIFY_QUERY_PARAMS
+from backend.dbm_aiagent.mcp_tools.redis.constants import (
+    METRIC_REGISTRY,
+    METRICS_END_TIME_MAX_FUTURE_SKEW_SECONDS,
+    METRICS_MAX_QUERY_RANGE_SECONDS,
+    METRICS_QUERY_MAX_ATTEMPTS,
+    METRICS_QUERY_RETRY_DELAY_SEC,
+    TREND_UNIT_BY_METRIC_KEY,
+    UNIFY_QUERY_PARAMS,
+)
 from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsAggFunction as AggFunction
 from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsAggregationLevel as AggregationLevel
 from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsGroupBy
 from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsInstanceRole as InstanceRole
 from backend.dbm_aiagent.mcp_tools.redis.enums import MetricType
-from backend.dbm_aiagent.mcp_tools.redis.models import MetricSeries, MetricsQueryParams
+from backend.dbm_aiagent.mcp_tools.redis.models import InstanceFilter, MetricSeries, MetricsQueryParams
 from backend.dbm_aiagent.mcp_tools.redis.utils import resolve_metric_key
 
 logger = logging.getLogger("root")
@@ -43,34 +52,96 @@ class RedisMetricsQueryService:
         """Initialize the metrics service"""
         pass
 
+    @staticmethod
+    def _escape_promql_regex_literal(value: str) -> str:
+        """
+        Escape regex metacharacters for PromQL regex string literals without backslashes.
+
+        PromQL parser may reject escapes like '\\.' in string literals. We encode metacharacters
+        as single-character character classes (e.g. '.' -> '[.]') to preserve literal matching.
+        """
+        meta_map = {
+            ".": "[.]",
+            "-": "[-]",
+            "+": "[+]",
+            "*": "[*]",
+            "?": "[?]",
+            "(": "[(]",
+            ")": "[)]",
+            "[": "[[]",
+            "]": "[]]",
+            "{": "[{]",
+            "}": "[}]",
+            "^": "[^]",
+            "$": "[$]",
+            "|": "[|]",
+            "\\": "[\\\\]",
+        }
+        return "".join(meta_map.get(ch, ch) for ch in value)
+
+    @staticmethod
+    def _build_label_matcher(label: str, values: Optional[List[Union[str, int]]]) -> Optional[str]:
+        if not values:
+            return None
+        normalized = [str(value) for value in values if value is not None and str(value) != ""]
+        if not normalized:
+            return None
+        if len(normalized) == 1:
+            return f'{label}="{normalized[0]}"'
+        escaped = "|".join(RedisMetricsQueryService._escape_promql_regex_literal(value) for value in normalized)
+        return f'{label}=~"{escaped}"'
+
     def _build_filters_string(self, params: MetricsQueryParams) -> str:
         """Build filter string for PromQL queries"""
         filters = []
+        if params.cluster_domains:
+            escaped_domains = "|".join(
+                self._escape_promql_regex_literal(str(domain)) for domain in params.cluster_domains if domain
+            )
+            if escaped_domains:
+                filters.append(f'cluster_domain=~"{escaped_domains}"')
         if params.instance_role:
             filters.append(f'instance_role="{params.instance_role.value}"')
-        if params.ip_filter:
-            filters.append(f'ip="{params.ip_filter}"')
-        if params.port_filter:
-            filters.append(f'instance_port="{params.port_filter}"')
-        return "," + ",".join(filters) if filters else ""
+        if params.instance_filters:
+            if len(params.instance_filters) != 1:
+                raise ValueError("instance_filters must contain exactly one pair when building a single PromQL")
+            pair = params.instance_filters[0]
+            filter_mode = params.metric_config.get("instance_filter_mode", "ip_port")
+            if filter_mode == "instance_label":
+                filters.append(f'instance="{pair.ip}:{pair.port}"')
+            else:
+                filters.append(f'ip="{pair.ip}"')
+                filters.append(f'instance_port="{pair.port}"')
+        ip_matcher = self._build_label_matcher("ip", params.ip_filters)
+        if ip_matcher:
+            filters.append(ip_matcher)
+        return ",".join(filters)
 
     def _resolve_inner_dimensions(self, params: MetricsQueryParams) -> str:
         """
         Resolve dimensions for the inner/base PromQL query.
 
-        The inner query always includes cluster_domain + required_dimensions.
-        This ensures the base query has the necessary granularity.
+        Base dimensions are scope-aware:
+        - cluster scope: cluster_domain
+        - machine scope: ip
+        - instance scope: ip,instance_port
+
+        Metric-required dimensions are then merged on top.
 
         Args:
             params: MetricsQueryParams object
 
         Returns:
-            Comma-separated dimensions string for inner query (e.g., "cluster_domain,ip")
+            Comma-separated dimensions string for inner query
         """
         required_dimensions = params.metric_config.get("required_dimensions", [])
 
-        # Start with cluster_domain (always present)
-        dimensions = ["cluster_domain"]
+        if params.aggregation_level == AggregationLevel.MACHINE:
+            dimensions = ["ip"]
+        elif params.aggregation_level == AggregationLevel.INSTANCE:
+            dimensions = ["ip", "instance_port"]
+        else:
+            dimensions = ["cluster_domain"]
 
         # Add required dimensions from metric config
         for req_dim in required_dimensions:
@@ -98,12 +169,16 @@ class RedisMetricsQueryService:
         group_by_list = params.group_by
         supported_group_by = params.metric_config.get("supported_group_by", [])
 
-        # Start with cluster_domain (always present)
-        dimensions = ["cluster_domain"]
-
-        # If no group_by specified, return just cluster_domain
+        # Scope-first defaults when group_by is omitted
         if not group_by_list:
-            return ",".join(dimensions)
+            if params.aggregation_level == AggregationLevel.MACHINE:
+                return "ip"
+            if params.aggregation_level == AggregationLevel.INSTANCE:
+                return "ip,instance_port"
+            return "cluster_domain"
+
+        # Start with cluster_domain for explicit group_by behavior
+        dimensions = ["cluster_domain"]
 
         # Validate and add each group_by dimension
         for group_by in group_by_list:
@@ -145,27 +220,25 @@ class RedisMetricsQueryService:
 
     def _prepare_query_context(
         self, params: MetricsQueryParams
-    ) -> Tuple[str, str, str, str, AggFunction, List[AggFunction]]:
+    ) -> Tuple[str, str, str, AggFunction, List[AggFunction]]:
         """
         Prepare shared query context used across query builders.
 
         Returns:
-            Tuple of (inner_dims, outer_dims, filters_str, cluster_regex, overall_agg, stats_aggs)
+            Tuple of (inner_dims, outer_dims, filters_str, overall_agg, stats_aggs)
             - inner_dims: Comma-separated dimensions for inner query
             - outer_dims: Comma-separated dimensions for outer aggregation
             - filters_str: Filter string for PromQL queries
-            - cluster_regex: Regex pattern for cluster domains
             - overall_agg: AggFunction enum value for overall aggregation (e.g., AggFunction.MAX, AggFunction.SUM)
             - stats_aggs: List of AggFunction enum values for stats aggregation (e.g., [AggFunction.MIN, AggFunction.MAX])
         """
         inner_dims = self._resolve_inner_dimensions(params)
         outer_dims = self._resolve_outer_dimensions(params)
         filters_str = self._build_filters_string(params)
-        cluster_regex = "|".join(params.cluster_domains)
         aggregation = params.metric_config.get("aggregation", {})
         overall_agg = aggregation.get("overall", AggFunction.SUM)
         stats_aggs = aggregation.get("stats", [])
-        return inner_dims, outer_dims, filters_str, cluster_regex, overall_agg, stats_aggs
+        return inner_dims, outer_dims, filters_str, overall_agg, stats_aggs
 
     def _build_bucket_queries(
         self, params: MetricsQueryParams, buckets: List[dict]
@@ -185,9 +258,7 @@ class RedisMetricsQueryService:
             Tuple of (List of query configs, None)
         """
         query_configs = []
-        inner_dims, outer_dims, filters_str, cluster_regex, overall_agg, stats_aggs = self._prepare_query_context(
-            params
-        )
+        inner_dims, outer_dims, filters_str, overall_agg, stats_aggs = self._prepare_query_context(params)
 
         promql_parts = params.metric_config.get("promql_parts", {})
         if not promql_parts:
@@ -211,7 +282,6 @@ class RedisMetricsQueryService:
             # Build inner queries with inner dimensions
             upper_inner = upper_template.format(
                 group_by=inner_dims,
-                cluster_domains=cluster_regex,
                 filters=filters_str,
                 time_window=params.time_window,
                 le_upper=le_upper,
@@ -221,7 +291,6 @@ class RedisMetricsQueryService:
             if le_lower:
                 lower_inner = lower_template.format(
                     group_by=inner_dims,
-                    cluster_domains=cluster_regex,
                     filters=filters_str,
                     time_window=params.time_window,
                     le_lower=le_lower,
@@ -275,9 +344,7 @@ class RedisMetricsQueryService:
         Capacity metrics produce 3 sub-metric series, each labeled with a capacity_type
         dimension (used/total/available). Available is computed as total - used in PromQL.
         """
-        inner_dims, outer_dims, filters_str, cluster_regex, overall_agg, stats_aggs = self._prepare_query_context(
-            params
-        )
+        inner_dims, outer_dims, filters_str, overall_agg, stats_aggs = self._prepare_query_context(params)
 
         sub_metrics = params.metric_config.get("sub_metrics", {})
         used_template = sub_metrics.get("used", "")
@@ -287,8 +354,8 @@ class RedisMetricsQueryService:
             logger.error(f"Capacity metric config missing sub_metrics: {params.metric_config}")
             return [], None
 
-        used_base = used_template.format(cluster_domains=cluster_regex, filters=filters_str)
-        total_base = total_template.format(cluster_domains=cluster_regex, filters=filters_str)
+        used_base = used_template.format(filters=filters_str)
+        total_base = total_template.format(filters=filters_str)
 
         used_inner = f"{overall_agg.value} by ({inner_dims}) ({used_base})"
         total_inner = f"{overall_agg.value} by ({inner_dims}) ({total_base})"
@@ -357,9 +424,7 @@ class RedisMetricsQueryService:
             return self._build_bucket_queries(params, buckets)
 
         # Step 2: Resolve dimensions for inner and outer queries
-        inner_dims, outer_dims, filters_str, cluster_regex, overall_agg, stats_aggs = self._prepare_query_context(
-            params
-        )
+        inner_dims, outer_dims, filters_str, overall_agg, stats_aggs = self._prepare_query_context(params)
 
         query_configs = []
 
@@ -379,13 +444,11 @@ class RedisMetricsQueryService:
 
             # Build part a and b base queries (no aggregation params for composite metrics)
             part_a_base = part_a_template.format(
-                cluster_domains=cluster_regex,
                 filters=filters_str,
                 time_window=params.time_window,
             )
 
             part_b_base = part_b_template.format(
-                cluster_domains=cluster_regex,
                 filters=filters_str,
                 time_window=params.time_window,
             )
@@ -409,7 +472,6 @@ class RedisMetricsQueryService:
             inner_promql = promql_template.format(
                 overall_agg=overall_agg.value,
                 group_by=inner_dims,
-                cluster_domains=cluster_regex,
                 filters=filters_str,
                 time_window=params.time_window,
             )
@@ -449,6 +511,28 @@ class RedisMetricsQueryService:
 
         return query_configs, None
 
+    @staticmethod
+    def _validate_time_range(time_range: Tuple[int, int]) -> Optional[dict]:
+        """Return an error dict if time_range is unsafe for BKMonitor, else None."""
+        if not time_range or len(time_range) != 2:
+            return {"error": "invalid_time_range", "detail": "time_range must be (start, end) unix timestamps"}
+        start_ts, end_ts = int(time_range[0]), int(time_range[1])
+        if end_ts <= start_ts:
+            return {"error": "invalid_time_range", "detail": "end must be greater than start"}
+        now_ts = int(time.time())
+        if end_ts > now_ts + METRICS_END_TIME_MAX_FUTURE_SKEW_SECONDS:
+            return {
+                "error": "invalid_time_range",
+                "detail": f"end cannot be more than {METRICS_END_TIME_MAX_FUTURE_SKEW_SECONDS}s ahead of server time",
+            }
+        span = end_ts - start_ts
+        if span > METRICS_MAX_QUERY_RANGE_SECONDS:
+            return {
+                "error": "invalid_time_range",
+                "detail": f"range cannot exceed {METRICS_MAX_QUERY_RANGE_SECONDS} seconds",
+            }
+        return None
+
     def _build_query_params(
         self,
         query_configs: List[dict],
@@ -480,22 +564,24 @@ class RedisMetricsQueryService:
 
     def _determine_aggregation_level(
         self,
-        ip: Optional[str] = None,
-        port: Optional[int] = None,
+        ip_filters: Optional[List[str]] = None,
+        instance_filters: Optional[List[InstanceFilter]] = None,
     ) -> AggregationLevel:
         """
         Determine the aggregation level based on provided filters.
 
         Args:
-            ip: Optional IP address filter
-            port: Optional port filter
+            ip_filters: Optional IP address filters
+            instance_filters: Optional ip:port pair filters
 
         Returns:
             AggregationLevel enum value
         """
-        if ip and port:
+        has_ip = bool(ip_filters)
+        has_instance = bool(instance_filters)
+        if has_instance:
             return AggregationLevel.INSTANCE
-        elif ip:
+        elif has_ip:
             return AggregationLevel.MACHINE
 
         return AggregationLevel.CLUSTER
@@ -671,7 +757,7 @@ class RedisMetricsQueryService:
         return datapoints
 
     @staticmethod
-    def _build_stats_key(dimensions: dict, cluster_domain: str) -> str:
+    def _build_stats_key(dimensions: dict, cluster_domain: str, aggregation_level: AggregationLevel) -> str:
         """
         Build a key for storing statistics series based on dimensions.
 
@@ -699,22 +785,51 @@ class RedisMetricsQueryService:
         # Handle ip:port combination (special case - combine ip and port)
         ip = dimensions.get("ip")
         port = dimensions.get("instance_port")
-        if ip and port:
+        instance = dimensions.get("instance")
+        if instance and (not ip or not port) and ":" in instance:
+            parsed_ip, parsed_port = instance.rsplit(":", 1)
+            ip = ip or parsed_ip
+            port = port or parsed_port
+        if aggregation_level == AggregationLevel.CLUSTER:
+            if ip and port:
+                key_parts.append(f"{ip}:{port}")
+            elif ip:
+                key_parts.append(ip)
+        elif aggregation_level == AggregationLevel.MACHINE and ip and port:
             key_parts.append(f"{ip}:{port}")
-        elif ip:
-            key_parts.append(ip)
 
         # Process remaining dimensions (excluding already processed and excluded ones)
         for dim_name, dim_value in dimensions.items():
             if dim_name not in excluded and dim_name not in dimension_priority and dim_value:
                 key_parts.append(dim_value)
 
-        # Fallback to cluster_domain if no other dimensions
+        # Fallback to scope key if no other dimensions
         if not key_parts:
+            if aggregation_level == AggregationLevel.MACHINE:
+                return dimensions.get("ip") or cluster_domain
+            if aggregation_level == AggregationLevel.INSTANCE:
+                if dimensions.get("ip") and dimensions.get("instance_port"):
+                    return f'{dimensions["ip"]}:{dimensions["instance_port"]}'
+                return dimensions.get("ip") or cluster_domain
             return cluster_domain
 
         # Join parts with "@" separator
         return "@".join(key_parts)
+
+    @staticmethod
+    def _extract_scope_dimensions(dimensions: dict) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+        """Extract cluster/ip/port with fallback from instance label (ip:port)."""
+        cluster_domain = dimensions.get("cluster_domain")
+        ip = dimensions.get("ip")
+        port = dimensions.get("instance_port")
+        instance = dimensions.get("instance")
+
+        if instance and (not ip or not port) and ":" in instance:
+            parsed_ip, parsed_port = instance.rsplit(":", 1)
+            ip = ip or parsed_ip
+            port = port or parsed_port
+
+        return cluster_domain, ip, port
 
     def _parse_response(
         self,
@@ -733,7 +848,7 @@ class RedisMetricsQueryService:
             aggregation_level: The level of aggregation being performed
 
         Returns:
-            Dict mapping cluster_domain to MetricSeries
+            Dict mapping entity key to MetricSeries
             Note: stats_series_by_key uses AggFunction enum values as keys (e.g., AggFunction.MIN, AggFunction.MAX)
         """
         series_by_cluster = defaultdict(lambda: MetricSeries(aggregation_level=aggregation_level))
@@ -741,7 +856,13 @@ class RedisMetricsQueryService:
 
         for series in series_list:
             dimensions = series["dimensions"]
-            cluster_domain = dimensions["cluster_domain"]
+            # cluster_domain/ip/instance_port may be absent depending on metric label schema
+            cluster_domain, ip, port = self._extract_scope_dimensions(dimensions)
+            entity_key = cluster_domain or ip or (f"{ip}:{port}" if ip and port else "unknown")
+            if aggregation_level == AggregationLevel.MACHINE:
+                entity_key = ip or cluster_domain or "unknown"
+            elif aggregation_level == AggregationLevel.INSTANCE:
+                entity_key = f"{ip}:{port}" if ip and port else (ip or cluster_domain or "unknown")
             datapoints = series["datapoints"]
 
             self.normalize_timestamps(datapoints)
@@ -764,54 +885,47 @@ class RedisMetricsQueryService:
                     continue
 
                 # Initialize stats_series_by_key if needed
-                if series_by_cluster[cluster_domain].stats_series_by_key is None:
-                    series_by_cluster[cluster_domain].stats_series_by_key = {}
+                if series_by_cluster[entity_key].stats_series_by_key is None:
+                    series_by_cluster[entity_key].stats_series_by_key = {}
 
                 # Build key for this stats series
-                key_value = self._build_stats_key(dimensions, cluster_domain)
+                key_value = self._build_stats_key(dimensions, cluster_domain or "unknown", aggregation_level)
 
                 # Initialize dict for this key if not exists
-                if key_value not in series_by_cluster[cluster_domain].stats_series_by_key:
-                    series_by_cluster[cluster_domain].stats_series_by_key[key_value] = {}
+                if key_value not in series_by_cluster[entity_key].stats_series_by_key:
+                    series_by_cluster[entity_key].stats_series_by_key[key_value] = {}
 
                 # Store the datapoints for this query_type (use enum as key)
-                series_by_cluster[cluster_domain].stats_series_by_key[key_value][query_type_enum] = datapoints
+                series_by_cluster[entity_key].stats_series_by_key[key_value][query_type_enum] = datapoints
 
             elif query_type_str == "overall":
                 # Build key based on aggregation level and available dimensions
-                if not series_by_cluster[cluster_domain].raw_series:
-                    series_by_cluster[cluster_domain].raw_series = {}
+                if not series_by_cluster[entity_key].raw_series:
+                    series_by_cluster[entity_key].raw_series = {}
 
                 # Check if this is a latency distribution bucket (has bucket_label)
                 bucket_label = dimensions.get("bucket_label")
                 if bucket_label:
-                    # For latency distribution, build key with bucket_label and group_by dimensions
-                    # Check if there are group_by dimensions (ip, port, cmd) beyond bucket_label
-                    ip = dimensions.get("ip")
-                    port = dimensions.get("port") or dimensions.get("instance_port")
+                    _, ip, port = self._extract_scope_dimensions(dimensions)
+                    port = dimensions.get("port") or port
                     cmd = dimensions.get("cmd")
 
-                    # Build composite key if group_by dimensions are present
+                    parts = [bucket_label]
                     if cmd:
-                        if port and ip:
-                            key_value = f"{bucket_label}@{cmd}@{ip}:{port}"
+                        parts.append(cmd)
+                    if aggregation_level == AggregationLevel.CLUSTER:
+                        if ip and port:
+                            parts.append(f"{ip}:{port}")
                         elif ip:
-                            key_value = f"{bucket_label}@{cmd}@{ip}"
-                        else:
-                            key_value = f"{bucket_label}@{cmd}"
-                    elif ip:
-                        if port:
-                            key_value = f"{bucket_label}@{ip}:{port}"
-                        else:
-                            key_value = f"{bucket_label}@{ip}"
-                    else:
-                        # No group_by dimensions, just use bucket_label
-                        key_value = bucket_label
+                            parts.append(ip)
+                    elif aggregation_level == AggregationLevel.MACHINE and ip and port:
+                        parts.append(f"{ip}:{port}")
+                    key_value = "@".join(parts)
                 else:
                     # Use the same key-building logic as stats series
-                    key_value = self._build_stats_key(dimensions, cluster_domain)
+                    key_value = self._build_stats_key(dimensions, cluster_domain or "unknown", aggregation_level)
 
-                series_by_cluster[cluster_domain].raw_series[key_value] = datapoints
+                series_by_cluster[entity_key].raw_series[key_value] = datapoints
             else:
                 logger.warning(f"Unknown query_type: {query_type_str}")
 
@@ -942,50 +1056,38 @@ class RedisMetricsQueryService:
             if stats:
                 metric_series.statistics[key_value] = stats
 
-    def query_cluster_metrics(
+    def _query_metrics_single_type(
         self,
-        cluster: Cluster,
+        clusters: List[Cluster],
         metric_type: MetricType,
         time_range: Tuple[int, int],
         need_stats: bool,
         need_overall: bool,
         time_window: int = 60,
         instance_role: InstanceRole = InstanceRole.MASTER,
-        ip: Optional[str] = None,
-        port: Optional[int] = None,
+        ip_filters: Optional[List[str]] = None,
+        instance_filters: Optional[List[InstanceFilter]] = None,
         group_by: Optional[List[MetricsGroupBy]] = None,
         vertical_stats: bool = False,
-    ) -> Optional[MetricSeries]:
-        """
-        Query metrics for a single cluster, with optional filtering by machine/instance.
+    ) -> Tuple[Optional[Dict[str, MetricSeries]], Optional[dict]]:
+        if not clusters:
+            logger.error("No clusters provided for metrics query")
+            return None, {"error": "No clusters provided for metrics query"}
+        cluster = clusters[0]
 
-        Args:
-            cluster: Cluster object
-            metric_type: Type of metric (MetricType enum)
-            time_range: Tuple of (start_time, end_time) in Unix timestamp
-            need_stats: Whether to include statistical queries (min/max/avg/stddev)
-            need_overall: Whether to include overall time series queries
-            time_window: Time window in seconds
-            instance_role: Role of instances to query (InstanceRole enum)
-            ip: Optional IP address to filter for single machine query
-            port: Optional port to filter for single instance query
-            group_by: Optional list of dimensions for grouping results (e.g., [cluster_domain, ip], [instance]).
-                Note: For COMMAND_LATENCY, CMD is always auto-injected regardless of group_by value.
-            vertical_stats: When True, compute temporal stats from the aggregated raw_series
-
-        Returns:
-            MetricSeries on success, or None if query fails
-        """
         # Auto-convert instance_role to PROXY for latency_distribution metric
         # This hides the restriction from users - they can pass any instance_role
         if metric_type == MetricType.LATENCY_DISTRIBUTION:
             instance_role = InstanceRole.PROXY
 
+        aggregation_level = self._determine_aggregation_level(ip_filters, instance_filters)
+
+        if group_by is None:
+            group_by = []
+
         # Auto-inject CMD dimension for command_latency so users see per-command results by default
         if metric_type == MetricType.COMMAND_LATENCY:
-            if group_by is None:
-                group_by = [MetricsGroupBy.CMD]
-            elif MetricsGroupBy.CMD not in group_by:
+            if MetricsGroupBy.CMD not in group_by:
                 group_by = list(group_by) + [MetricsGroupBy.CMD]
 
         # Resolve metric key from registry
@@ -995,55 +1097,215 @@ class RedisMetricsQueryService:
                 f"No metric mapping found for cluster_type={cluster.cluster_type}, "
                 f"metric_type={metric_type.value}, instance_role={instance_role.value}"
             )
-            return None
+            return None, {"error": "No metric mapping found", "metric_type": metric_type.value}
 
         metric_config = METRIC_REGISTRY.get(metric_key)
         if not metric_config:
             logger.error(f"No metric config found for metric_key={metric_key}")
-            return None
-
-        aggregation_level = self._determine_aggregation_level(ip, port)
+            return None, {"error": "No metric config found", "metric_key": metric_key}
 
         # Build query parameters object
         query_params = MetricsQueryParams(
-            cluster_domains=[cluster.immute_domain],
+            cluster_domains=[current_cluster.immute_domain for current_cluster in clusters],
             metric_type=metric_type,
             metric_config=metric_config,
             aggregation_level=aggregation_level,
             time_window=time_window,
             instance_role=instance_role,
-            ip_filter=ip,
-            port_filter=port,
+            ip_filters=ip_filters,
+            instance_filters=instance_filters,
             need_stats=need_stats,
             need_overall=need_overall,
             group_by=group_by,
         )
 
         # Build all query configs
-        query_configs, expression = self._build_queries(query_params)
+        expression = None
+        if instance_filters:
+            dedup_pairs = []
+            pair_seen = set()
+            for pair in instance_filters:
+                key = (pair.ip, pair.port)
+                if key in pair_seen:
+                    continue
+                pair_seen.add(key)
+                dedup_pairs.append(pair)
+
+            query_configs = []
+            for pair in dedup_pairs:
+                pair_query_params = MetricsQueryParams(
+                    cluster_domains=query_params.cluster_domains,
+                    metric_type=query_params.metric_type,
+                    metric_config=query_params.metric_config,
+                    aggregation_level=query_params.aggregation_level,
+                    time_window=query_params.time_window,
+                    instance_role=query_params.instance_role,
+                    ip_filters=None,
+                    instance_filters=[pair],
+                    need_stats=query_params.need_stats,
+                    need_overall=query_params.need_overall,
+                    group_by=query_params.group_by,
+                )
+                pair_query_configs, _ = self._build_queries(pair_query_params)
+                for query_config in pair_query_configs:
+                    query_config["alias"] = f'{query_config["alias"]}_{pair.ip}:{pair.port}'
+                query_configs.extend(pair_query_configs)
+        else:
+            query_configs, expression = self._build_queries(query_params)
         params = self._build_query_params(query_configs, time_range, expression)
+        entity_count = max(len(clusters), len(ip_filters or []), len(instance_filters or []), 1)
+        params["slimit"] = min(max(params.get("slimit", 500), entity_count * 200), 2000)
 
         logger.info(
-            f"Querying {metric_type} metrics for cluster {cluster.immute_domain} "
-            f"(role={instance_role}, ip={ip}, port={port}, group_by={group_by}) "
+            f"Querying {metric_type} metrics for clusters {[c.immute_domain for c in clusters]} "
+            f"(role={instance_role}, ip_filters={ip_filters}, instance_filters={instance_filters}, group_by={group_by}) "
             f"with {len(query_configs)} query configs"
         )
-
+        t0 = time.perf_counter()
         try:
             response = BKMonitorV3Api.unify_query(params)
         except Exception as e:
-            logger.error(f"Failed to query metrics for {cluster.immute_domain}: {e}")
-            return None
+            elapsed = time.perf_counter() - t0
+            logger.error(
+                f"Failed to query metrics for clusters {[c.immute_domain for c in clusters]}: {e} "
+                f"(unify_query duration_sec={elapsed:.3f})"
+            )
+            return None, {"error": str(e), "metric_key": metric_key, "retryable": True}
+        elapsed = time.perf_counter() - t0
+        logger.info(f"BKMonitor unify_query completed in {elapsed:.3f}s for metric_key={metric_key}")
 
-        # Parse response with aggregation level
-        # Note: has_multiple_promql_ops is no longer needed with template-based approach
+        empty_series_error = {
+            "error": "empty_series",
+            "metric_key": metric_key,
+            "aggregation_level": aggregation_level.value,
+            "cluster_type": str(cluster.cluster_type),
+            "filters": {
+                "cluster_domains": query_params.cluster_domains,
+                "instance_role": instance_role.value,
+                "ip_filters": ip_filters or [],
+                "instance_filters": [f"{pair.ip}:{pair.port}" for pair in (instance_filters or [])],
+            },
+            "promql": [qc.get("promql", "") for qc in query_configs],
+        }
+
+        if not response.get("series"):
+            return None, empty_series_error
+
         series_by_cluster = self._parse_response(response, aggregation_level)
-        series = series_by_cluster.get(cluster.immute_domain)
-
-        # Calculate statistics from parsed datapoints
-        if series:
+        if not series_by_cluster:
+            return None, empty_series_error
+        for series in series_by_cluster.values():
             self._calculate_stats(
                 series, metric_config, time_window=time_window, metric_key=metric_key, vertical_stats=vertical_stats
             )
 
-        return series
+        return series_by_cluster, None
+
+    def query_metrics(
+        self,
+        clusters: List[Cluster],
+        metric_type: MetricType,
+        time_range: Tuple[int, int],
+        need_stats: bool,
+        need_overall: bool,
+        time_window: int = 60,
+        instance_role: InstanceRole = InstanceRole.MASTER,
+        ip_filters: Optional[List[str]] = None,
+        instance_filters: Optional[List[InstanceFilter]] = None,
+        group_by: Optional[List[MetricsGroupBy]] = None,
+        vertical_stats: bool = False,
+    ) -> Tuple[Dict[str, MetricSeries], List[dict]]:
+        """
+        Query metrics for one or more clusters, with optional filtering by machine/instance.
+
+        Args:
+            clusters: Cluster objects
+            metric_type: Type of metric (MetricType enum)
+            time_range: Tuple of (start_time, end_time) in Unix timestamp
+            need_stats: Whether to include statistical queries (min/max/avg/stddev)
+            need_overall: Whether to include overall time series queries
+            time_window: Time window in seconds
+            instance_role: Role of instances to query (InstanceRole enum)
+            ip_filters: Optional IP filters
+            instance_filters: Optional ip:port pair filters
+            group_by: Optional list of dimensions for grouping results (e.g., [cluster_domain, ip], [instance]).
+                Note: For COMMAND_LATENCY, CMD is always auto-injected regardless of group_by value.
+            vertical_stats: When True, compute temporal stats from the aggregated raw_series
+
+        Returns:
+            Tuple of (merged MetricSeries dict, partial errors)
+        """
+        if not clusters:
+            logger.error("No clusters provided for metrics query")
+            return {}, [{"error": "No clusters provided for metrics query"}]
+
+        time_err = self._validate_time_range(time_range)
+        if time_err:
+            return {}, [time_err]
+
+        clusters_by_type: Dict[str, List[Cluster]] = defaultdict(list)
+        for cluster in clusters:
+            clusters_by_type[str(cluster.cluster_type)].append(cluster)
+
+        merged_series: Dict[str, MetricSeries] = {}
+        partial_errors: List[dict] = []
+
+        for cluster_type, type_clusters in clusters_by_type.items():
+            attempts = 0
+            batch_result: Optional[Dict[str, MetricSeries]] = None
+            batch_error: Optional[dict] = None
+            while attempts < METRICS_QUERY_MAX_ATTEMPTS:
+                attempts += 1
+                batch_result, batch_error = self._query_metrics_single_type(
+                    clusters=type_clusters,
+                    metric_type=metric_type,
+                    time_range=time_range,
+                    need_stats=need_stats,
+                    need_overall=need_overall,
+                    time_window=time_window,
+                    instance_role=instance_role,
+                    ip_filters=ip_filters,
+                    instance_filters=instance_filters,
+                    group_by=group_by,
+                    vertical_stats=vertical_stats,
+                )
+                if batch_result is not None:
+                    break
+                if not batch_error or not batch_error.get("retryable"):
+                    break
+                if attempts < METRICS_QUERY_MAX_ATTEMPTS:
+                    time.sleep(METRICS_QUERY_RETRY_DELAY_SEC)
+
+            if batch_result is None:
+                partial_errors.append(
+                    {
+                        "cluster_type": cluster_type,
+                        "attempt_count": attempts,
+                        "error": f"Failed to query metrics for cluster_type={cluster_type}",
+                        "detail": batch_error or {},
+                    }
+                )
+                continue
+
+            for key, series in batch_result.items():
+                if key in merged_series:
+                    partial_errors.append(
+                        {
+                            "cluster_type": cluster_type,
+                            "attempt_count": attempts,
+                            "error": f"Duplicate merged key detected: {key}",
+                        }
+                    )
+                    continue
+                merged_series[key] = series
+
+        if not merged_series and partial_errors:
+            partial_errors.append(
+                {
+                    "error": "No successful metric batches",
+                    "metric_type": metric_type.value,
+                    "aggregation_level": self._determine_aggregation_level(ip_filters, instance_filters).value,
+                }
+            )
+
+        return merged_series, partial_errors

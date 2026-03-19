@@ -21,7 +21,7 @@ from backend.configuration.constants import SystemSettingsEnum
 from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_report.enums import MetaCheckSubType
-from backend.flow.utils.redis.redis_meta_report import delete_old_meta_check_reports
+from backend.flow.utils.redis.redis_report_utils import RedisReportWriter, delete_old_meta_check_reports
 from backend.ticket.models import SystemSettings, TicketType
 from backend.utils.basic import generate_root_id
 from backend.utils.redis import RedisConn
@@ -194,6 +194,11 @@ def check_redis_instance_role():
     except Exception as e:
         logger.exception(_("Failed to start Redis role check flow: {}").format(str(e)))
 
-    delete_old_meta_check_reports(MetaCheckSubType.RoleMismatch, config.cluster_types, days=30)
+    writer = RedisReportWriter()
+    delete_old_meta_check_reports(
+        MetaCheckSubType.RoleMismatch,
+        config.cluster_types,
+        days=writer.retention_days,
+    )
 
     logger.info(_("Redis instance role check completed"))

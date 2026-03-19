@@ -24,7 +24,7 @@ from backend.flow.plugins.components.collections.common.base_service import Base
 from backend.flow.utils import dns_manage
 from backend.flow.utils.clb_manage import get_clb_by_ip
 from backend.flow.utils.polaris_manage import GetPolarisManageByName
-from backend.flow.utils.redis.redis_meta_report import create_meta_check_report
+from backend.flow.utils.redis.redis_report_utils import RedisReportWriter
 from backend.utils.redis import RedisConn
 
 # Default batch size and interval for scheduled processing
@@ -287,17 +287,17 @@ class RedisEntryCheckService(BaseService):
 
         return None
 
-    def _create_cluster_report(self, cluster: Cluster, all_error_details: list):
+    def _create_cluster_report(self, cluster: Cluster, all_error_details: list, writer: RedisReportWriter):
         """
         Create a single meta check report for all entry inconsistencies in a cluster
 
         Args:
             cluster: Cluster object
             all_error_details: List of error detail dicts from all entries
+            writer: ReportWriter instance for writing reports
         """
         if not all_error_details:
-            # No inconsistencies, create a NORMAL report
-            create_meta_check_report(
+            writer.write_meta_report(
                 cluster=cluster,
                 ip=None,
                 port=None,
@@ -313,7 +313,6 @@ class RedisEntryCheckService(BaseService):
             entry_type = error_detail["entry_type"]
             entry_name = error_detail["entry_name"]
 
-            # Check if this is a fetch error
             if "error" in error_detail:
                 description_parts.append(_("{}  ({}): {}").format(entry_type, entry_name, error_detail["error"]))
                 continue
@@ -332,7 +331,7 @@ class RedisEntryCheckService(BaseService):
 
         description = "; ".join(description_parts)
 
-        create_meta_check_report(
+        writer.write_meta_report(
             cluster=cluster,
             ip=None,
             port=None,
@@ -344,7 +343,7 @@ class RedisEntryCheckService(BaseService):
             _("Entry inconsistencies detected for cluster {}: {}").format(cluster.immute_domain, description)
         )
 
-    def _check_single_cluster(self, cluster_id: int) -> Dict:
+    def _check_single_cluster(self, cluster_id: int, writer: RedisReportWriter) -> Dict:
         """
         Check entries for a single cluster
 
@@ -371,7 +370,7 @@ class RedisEntryCheckService(BaseService):
                     all_error_details.append(error_detail)
 
             # Create a single report for the cluster (success or failure)
-            self._create_cluster_report(cluster, all_error_details)
+            self._create_cluster_report(cluster, all_error_details, writer)
 
             inconsistent_count = len(all_error_details)
             return {"cluster_id": cluster_id, "checked": checked_count, "inconsistent": inconsistent_count}
@@ -515,6 +514,7 @@ class RedisEntryCheckService(BaseService):
         )
 
         # Process this batch
+        writer = RedisReportWriter()
         batch_checked = 0
         batch_inconsistent = 0
 
@@ -522,7 +522,8 @@ class RedisEntryCheckService(BaseService):
         max_workers = min(15, len(batch_cluster_ids))
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_cluster = {
-                executor.submit(self._check_single_cluster, cluster_id): cluster_id for cluster_id in batch_cluster_ids
+                executor.submit(self._check_single_cluster, cluster_id, writer): cluster_id
+                for cluster_id in batch_cluster_ids
             }
 
             for future in as_completed(future_to_cluster):

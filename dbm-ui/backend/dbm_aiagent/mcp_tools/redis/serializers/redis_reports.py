@@ -67,8 +67,8 @@ class RedisReportsByClusterInputSerializer(serializers.Serializer):
             'Filter by report state(s), e.g. ["warning","abnormal"] for non-normal, default is ["warning","abnormal"]'
         ),
     )
-    start_time = serializers.DateTimeField(help_text=_("Start time"), default=None)
-    end_time = serializers.DateTimeField(help_text=_("End time"), default=None)
+    start_time = serializers.DateTimeField(help_text=_("Start of the time range, default is 24h ago"), default=None)
+    end_time = serializers.DateTimeField(help_text=_("End of the time range, default is now"), default=None)
     limit = serializers.IntegerField(help_text=_("Result limit"), min_value=1, max_value=200, default=100)
 
     def validate(self, attrs):

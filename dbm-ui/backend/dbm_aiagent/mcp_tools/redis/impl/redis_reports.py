@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations of the License.
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 from backend.db_meta.enums import ClusterType
@@ -21,6 +21,7 @@ from backend.dbm_aiagent.mcp_tools.redis.constants import (
     REPORT_SUBTYPE_MAP,
 )
 from backend.dbm_aiagent.mcp_tools.redis.enums import RedisReportSubtype
+from backend.flow.utils.redis.redis_report_utils import RedisReportWriter
 
 REDIS_CLUSTER_TYPE_VALUES = [ct.value for ct in ClusterType.redis_cluster_types()]
 
@@ -134,11 +135,13 @@ def _query_single_model(
     queryset = queryset.filter(cluster_type__in=REDIS_CLUSTER_TYPE_VALUES)
     if states:
         queryset = queryset.filter(state__in=states)
+    if not start_time and not end_time:
+        start_time = datetime.now() - timedelta(hours=24)
     if start_time:
         queryset = queryset.filter(create_at__gte=start_time)
     if end_time:
         queryset = queryset.filter(create_at__lte=end_time)
-    queryset = queryset.order_by("-create_at")
+    queryset = queryset.order_by("-create_at")[:limit]
 
     if model is RedisCheckReport:
         rows = list(queryset.values(*COMMON_OUTPUT_FIELDS))
@@ -246,7 +249,7 @@ def create_report_record(
     model = REPORT_MODEL_MAP[st]
     if model is not RedisCheckReport:
         raise ValueError(f"subtype {subtype!r} maps to {model.__name__}, only RedisCheckReport is supported")
-    record = RedisCheckReport.upsert_by_cluster_subtype(
+    record = RedisReportWriter().write_redis_report(
         cluster_id=cluster_info["id"],
         subtype=db_subtype_value,
         cluster=cluster_info["immute_domain"],
