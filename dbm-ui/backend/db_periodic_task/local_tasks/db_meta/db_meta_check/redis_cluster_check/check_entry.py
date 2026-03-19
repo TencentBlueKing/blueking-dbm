@@ -19,7 +19,7 @@ from backend.configuration.constants import SystemSettingsEnum
 from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_report.enums import MetaCheckSubType
-from backend.flow.utils.redis.redis_meta_report import delete_old_meta_check_reports
+from backend.flow.utils.redis.redis_report_utils import RedisReportWriter, delete_old_meta_check_reports
 from backend.ticket.constants import TICKET_RUNNING_STATUS_SET, TicketType
 from backend.ticket.models import ClusterOperateRecord, SystemSettings
 from backend.utils.basic import generate_root_id
@@ -183,6 +183,11 @@ def check_redis_entry_consistency():
     except Exception as e:
         logger.exception(_("Failed to start Redis entry check flow: {}").format(str(e)))
 
-    delete_old_meta_check_reports(MetaCheckSubType.EntryInconsistent, config.cluster_types, days=30)
+    writer = RedisReportWriter()
+    delete_old_meta_check_reports(
+        MetaCheckSubType.EntryInconsistent,
+        config.cluster_types,
+        days=writer.retention_days,
+    )
 
     logger.info(_("Redis entry consistency triggered."))

@@ -42,6 +42,97 @@ class RedisCheckReport(BaseReportABS):
         ]
 
     @classmethod
+    def _build_defaults(
+        cls,
+        *,
+        cluster: str,
+        cluster_type: str,
+        bk_biz_id: int,
+        bk_cloud_id: int,
+        report_day: int,
+        creator: str,
+        state: str,
+        msg: str,
+        shard: str = "",
+        instance: str = "",
+    ) -> dict:
+        now = timezone.now()
+        return {
+            "report_day": report_day,
+            "cluster": cluster,
+            "cluster_type": cluster_type,
+            "bk_biz_id": bk_biz_id,
+            "bk_cloud_id": bk_cloud_id,
+            "shard": shard,
+            "instance": instance,
+            "state": state,
+            "msg": msg,
+            "creator": creator,
+            "updater": creator,
+            "failed_days": 0 if state == ReportStateType.NORMAL.value else 1,
+            "update_at": now,
+            "create_at": now,
+        }
+
+    @classmethod
+    def _get_latest_row_for_mode_window(cls, *, cluster_id: int, subtype: str, window_hours: int = 36):
+        cutoff = timezone.now() - timedelta(hours=window_hours)
+        return (
+            cls.objects.filter(
+                cluster_id=cluster_id,
+                subtype=subtype,
+                create_at__gte=cutoff,
+            )
+            .order_by("-create_at")
+            .first()
+        )
+
+    @classmethod
+    def _resolve_failed_days(cls, *, state: str, existing: "RedisCheckReport" = None) -> int:
+        if state == ReportStateType.NORMAL.value:
+            return 0
+        if existing and existing.state != ReportStateType.NORMAL.value:
+            return existing.failed_days + 1
+        return 1
+
+    @classmethod
+    def create_by_cluster_subtype(
+        cls,
+        *,
+        cluster_id: int,
+        subtype: str,
+        cluster: str,
+        cluster_type: str,
+        bk_biz_id: int,
+        bk_cloud_id: int,
+        report_day: int,
+        creator: str,
+        state: str,
+        msg: str,
+        shard: str = "",
+        instance: str = "",
+    ) -> "RedisCheckReport":
+        defaults = cls._build_defaults(
+            cluster=cluster,
+            cluster_type=cluster_type,
+            bk_biz_id=bk_biz_id,
+            bk_cloud_id=bk_cloud_id,
+            report_day=report_day,
+            creator=creator,
+            state=state,
+            msg=msg,
+            shard=shard,
+            instance=instance,
+        )
+        existing = cls._get_latest_row_for_mode_window(cluster_id=cluster_id, subtype=subtype)
+        defaults["failed_days"] = cls._resolve_failed_days(state=state, existing=existing)
+        return cls.objects.create(
+            cluster_id=cluster_id,
+            subtype=subtype,
+            **defaults,
+        )
+
+    @classmethod
     def upsert_by_cluster_subtype(
         cls,
         *,
@@ -62,43 +153,29 @@ class RedisCheckReport(BaseReportABS):
         When multiple rows match, updates only the latest one (by create_at).
         Only updates if that record was modified within the last 36 hours; otherwise creates new.
         """
-        UPSERT_WINDOW = timedelta(hours=36)
-        now = timezone.now()
-        cutoff = now - UPSERT_WINDOW
-        defaults = {
-            "report_day": report_day,
-            "cluster": cluster,
-            "cluster_type": cluster_type,
-            "bk_biz_id": bk_biz_id,
-            "bk_cloud_id": bk_cloud_id,
-            "shard": shard,
-            "instance": instance,
-            "state": state,
-            "msg": msg,
-            "creator": creator,
-            "updater": creator,
-            "failed_days": 0 if state == "normal" else 1,
-            "update_at": now,
-            "create_at": now,
-        }
-        existing = (
-            cls.objects.filter(
-                cluster_id=cluster_id,
-                subtype=subtype,
-                create_at__gte=cutoff,
-            )
-            .order_by("-create_at")
-            .first()
+        defaults = cls._build_defaults(
+            cluster=cluster,
+            cluster_type=cluster_type,
+            bk_biz_id=bk_biz_id,
+            bk_cloud_id=bk_cloud_id,
+            report_day=report_day,
+            creator=creator,
+            state=state,
+            msg=msg,
+            shard=shard,
+            instance=instance,
         )
+        existing = cls._get_latest_row_for_mode_window(cluster_id=cluster_id, subtype=subtype)
         if existing:
-            old_failed_days = existing.failed_days
             old_state = existing.state
+            old_failed_days = existing.failed_days
             for key, value in defaults.items():
                 setattr(existing, key, value)
-            if state != ReportStateType.NORMAL.value:
-                existing.failed_days = old_failed_days + 1 if old_state != ReportStateType.NORMAL.value else 1
-            else:
-                existing.failed_days = 0
+            existing.failed_days = (
+                old_failed_days + 1
+                if state != ReportStateType.NORMAL.value and old_state != ReportStateType.NORMAL.value
+                else (0 if state == ReportStateType.NORMAL.value else 1)
+            )
             existing.save(update_fields=list(defaults.keys()))
             return existing
         return cls.objects.create(

@@ -20,7 +20,12 @@ from backend.db_services.redis.util import (
     is_tendisssd_instance_type,
     is_twemproxy_proxy_type,
 )
-from backend.dbm_aiagent.mcp_tools.redis.constants import METRIC_REGISTRY
+from backend.dbm_aiagent.mcp_tools.redis.constants import (
+    METRIC_REGISTRY,
+    METRICS_END_TIME_MAX_FUTURE_SKEW_SECONDS,
+    METRICS_MAX_DATAPOINTS_LIMIT,
+    METRICS_MAX_QUERY_RANGE_SECONDS,
+)
 from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsInstanceRole as InstanceRole
 from backend.dbm_aiagent.mcp_tools.redis.enums import MetricType
 
@@ -214,14 +219,23 @@ def calculate_time_range_window(
     Calculate time range and window for metric queries.
 
     Args:
-        max_len_datapoints: Maximum number of data points to return
+        max_len_datapoints: Maximum number of data points to return (0 = use default window only)
         start_time: Optional start time
         end_time: Optional end time
 
     Returns:
         Tuple of ((start_timestamp, end_timestamp), time_window_seconds)
+
+    Raises:
+        ValueError: If bounds are invalid, range exceeds METRICS_MAX_QUERY_RANGE_SECONDS, end is too far
+        in the future, or max_len_datapoints is out of range.
     """
     time_window = 60  # Default interval in seconds
+
+    if max_len_datapoints < 0:
+        raise ValueError("max_len_datapoints must be non-negative")
+    if max_len_datapoints > METRICS_MAX_DATAPOINTS_LIMIT:
+        raise ValueError(f"max_len_datapoints cannot exceed {METRICS_MAX_DATAPOINTS_LIMIT}")
 
     def prepare_timestamp(is_start_time: bool, t: Optional[datetime]) -> int:
         if t:
@@ -236,8 +250,20 @@ def calculate_time_range_window(
     if end_ts <= start_ts:
         raise ValueError("End time must be greater than start time")
 
-    time_range = (start_ts, end_ts)
+    now_ts = int(datetime.now().timestamp())
+    if end_ts > now_ts + METRICS_END_TIME_MAX_FUTURE_SKEW_SECONDS:
+        raise ValueError(
+            f"End time cannot be more than {METRICS_END_TIME_MAX_FUTURE_SKEW_SECONDS} seconds ahead of server time"
+        )
+
     time_range_diff_sec = end_ts - start_ts
+    if time_range_diff_sec > METRICS_MAX_QUERY_RANGE_SECONDS:
+        raise ValueError(
+            f"Query time range cannot exceed {METRICS_MAX_QUERY_RANGE_SECONDS // 86400} days "
+            f"({METRICS_MAX_QUERY_RANGE_SECONDS} seconds)"
+        )
+
+    time_range = (start_ts, end_ts)
 
     if max_len_datapoints > 0:
         time_window = max(time_window, math.ceil(time_range_diff_sec / max_len_datapoints))

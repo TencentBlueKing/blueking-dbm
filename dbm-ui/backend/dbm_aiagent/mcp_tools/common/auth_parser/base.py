@@ -46,6 +46,7 @@ def auth_parse_bizs(request: HttpRequest, *args, **kwargs) -> BizIdList:
 def auth_parse_my_bizs(request: HttpRequest, *args, db_type: DBType, **kwargs) -> BizIdList:
     """
     Auth adapter – resolves managed biz IDs for the permission layer.
+    注意需要指定db_type
     无需 request params；使用username获取管理业务列表
     """
     username = getattr(request.user, "username", None)

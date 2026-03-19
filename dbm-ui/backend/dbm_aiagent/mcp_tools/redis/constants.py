@@ -35,6 +35,13 @@ UNIFY_QUERY_PARAMS = {
     "type": "range",
 }
 
+# Redis metrics: BKMonitor query guards and retry behavior
+METRICS_MAX_QUERY_RANGE_SECONDS = 30 * 24 * 60 * 60
+METRICS_END_TIME_MAX_FUTURE_SKEW_SECONDS = 300
+METRICS_MAX_DATAPOINTS_LIMIT = 86400
+METRICS_QUERY_MAX_ATTEMPTS = 3
+METRICS_QUERY_RETRY_DELAY_SEC = 0.5
+
 LATENCY_DISTRIBUTION_BUCKETS = [
     {"le_upper": "+Inf", "le_lower": "2.048e+06", "label": "(2s,+Inf]"},
     {"le_upper": "2.048e+06", "le_lower": "1.024e+06", "label": "(1s,2s]"},
@@ -93,8 +100,7 @@ TREND_UNIT_BY_METRIC_KEY = {
 #
 # Template placeholders:
 # - {group_by}: Comma-separated dimensions for INNER query (cluster_domain + required_dimensions)
-# - {cluster_domains}: Regex pattern for cluster domains (e.g., "cluster1|cluster2")
-# - {filters}: Additional label filters (e.g., ',instance_role="redis_master",ip="1.2.3.4"')
+# - {filters}: Full label filters (e.g., 'cluster_domain=~"cluster1|cluster2",instance_role="redis_master",ip="1.2.3.4"')
 # - {time_window}: Time window in seconds (e.g., "60")
 # - {overall_agg}: Aggregation function for overall mode (e.g., "max", "sum")
 #   Stats queries use min/max/avg/stddev from the aggregation.stats list; no template placeholder.
@@ -122,7 +128,6 @@ METRIC_REGISTRY = {
             "max by ({group_by}) ("
             "max_over_time("
             "bkmonitor:dbm_system:cpu_summary:usage{{"
-            'cluster_domain=~"{cluster_domains}"'
             "{filters}"
             "}}[{time_window}s]"
             "))"
@@ -139,7 +144,6 @@ METRIC_REGISTRY = {
             "max by ({group_by}) ("
             "max_over_time("
             "bkmonitor:dbm_system:mem:pct_used{{"
-            'cluster_domain=~"{cluster_domains}"'
             "{filters}"
             "}}[{time_window}s]"
             "))"
@@ -156,7 +160,6 @@ METRIC_REGISTRY = {
             "max by ({group_by}) ("
             "max_over_time("
             "bkmonitor:exporter_dbm_redis_exporter:redis_connected_clients{{"
-            'cluster_domain=~"{cluster_domains}"'
             "{filters}"
             "}}[{time_window}s]"
             "))"
@@ -173,7 +176,6 @@ METRIC_REGISTRY = {
             "sum by ({group_by}) ("
             "rate("
             "bkmonitor:exporter_dbm_redis_exporter:redis_commands_total{{"
-            'cluster_domain=~"{cluster_domains}"'
             "{filters}"
             "}}[{time_window}s]"
             "))"
@@ -190,7 +192,6 @@ METRIC_REGISTRY = {
             "max by ({group_by}) ("
             "max_over_time("
             "bkmonitor:dbm_system:io:util{{"
-            'cluster_domain=~"{cluster_domains}"'
             "{filters}"
             "}}[{time_window}s]"
             "))"
@@ -207,7 +208,6 @@ METRIC_REGISTRY = {
             "max by ({group_by}) ("
             "max_over_time("
             "bkmonitor:dbm_system:disk:in_use{{"
-            'cluster_domain=~"{cluster_domains}"'
             "{filters}"
             "}}[{time_window}s]"
             "))"
@@ -226,7 +226,6 @@ METRIC_REGISTRY = {
             "a": (
                 "rate("
                 "bkmonitor:exporter_dbm_redis_exporter:redis_commands_duration_seconds_total{{"
-                'cluster_domain=~"{cluster_domains}"'
                 "{filters}"
                 "}}[{time_window}s]"
                 ")"
@@ -234,7 +233,6 @@ METRIC_REGISTRY = {
             "b": (
                 "rate("
                 "bkmonitor:exporter_dbm_redis_exporter:redis_commands_total{{"
-                'cluster_domain=~"{cluster_domains}"'
                 "{filters}"
                 "}}[{time_window}s]"
                 ")"
@@ -253,7 +251,6 @@ METRIC_REGISTRY = {
             "a": (
                 "rate("
                 "bkmonitor:exporter_dbm_redis_exporter:redis_commands_duration_seconds_total{{"
-                'cluster_domain=~"{cluster_domains}"'
                 "{filters}"
                 "}}[{time_window}s]"
                 ")"
@@ -261,7 +258,6 @@ METRIC_REGISTRY = {
             "b": (
                 "rate("
                 "bkmonitor:exporter_dbm_redis_exporter:redis_commands_total{{"
-                'cluster_domain=~"{cluster_domains}"'
                 "{filters}"
                 "}}[{time_window}s]"
                 ")"
@@ -282,18 +278,8 @@ METRIC_REGISTRY = {
     "capacity_memory": {
         "is_capacity": True,
         "sub_metrics": {
-            "used": (
-                "bkmonitor:exporter_dbm_redis_exporter:redis_memory_used_bytes{{"
-                'cluster_domain=~"{cluster_domains}"'
-                "{filters}"
-                "}}"
-            ),
-            "total": (
-                "bkmonitor:exporter_dbm_redis_exporter:redis_config_maxmemory{{"
-                'cluster_domain=~"{cluster_domains}"'
-                "{filters}"
-                "}}"
-            ),
+            "used": "bkmonitor:exporter_dbm_redis_exporter:redis_memory_used_bytes{{{filters}}}",
+            "total": "bkmonitor:exporter_dbm_redis_exporter:redis_config_maxmemory{{{filters}}}",
         },
         "aggregation": {
             "overall": AggFunction.SUM,
@@ -305,18 +291,8 @@ METRIC_REGISTRY = {
     "capacity_disk": {
         "is_capacity": True,
         "sub_metrics": {
-            "used": (
-                "bkmonitor:exporter_dbm_redis_exporter:redis_datadir_df_used_mb{{"
-                'cluster_domain=~"{cluster_domains}"'
-                "{filters}"
-                "}} * 1024 * 1024"
-            ),
-            "total": (
-                "bkmonitor:exporter_dbm_redis_exporter:redis_datadir_df_total_mb{{"
-                'cluster_domain=~"{cluster_domains}"'
-                "{filters}"
-                "}} * 1024 * 1024"
-            ),
+            "used": "bkmonitor:exporter_dbm_redis_exporter:redis_datadir_df_used_mb{{{filters}}} * 1024 * 1024",
+            "total": "bkmonitor:exporter_dbm_redis_exporter:redis_datadir_df_total_mb{{{filters}}} * 1024 * 1024",
         },
         "aggregation": {
             "overall": AggFunction.SUM,
@@ -331,7 +307,6 @@ METRIC_REGISTRY = {
             "max by ({group_by}) ("
             "max_over_time("
             "bkmonitor:dbm_system:cpu_summary:usage{{"
-            'cluster_domain=~"{cluster_domains}"'
             "{filters}"
             "}}[{time_window}s]"
             "))"
@@ -348,7 +323,6 @@ METRIC_REGISTRY = {
             "max by ({group_by}) ("
             "max_over_time("
             "bkmonitor:dbm_system:mem:pct_used{{"
-            'cluster_domain=~"{cluster_domains}"'
             "{filters}"
             "}}[{time_window}s]"
             "))"
@@ -365,7 +339,6 @@ METRIC_REGISTRY = {
             "max by ({group_by}) ("
             "max_over_time("
             "bkmonitor:exporter_dbm_predixy_exporter:predixy_cluster_connections{{"
-            'cluster_domain=~"{cluster_domains}"'
             "{filters}"
             "}}[{time_window}s]"
             "))"
@@ -382,7 +355,6 @@ METRIC_REGISTRY = {
             "sum by ({group_by}) ("
             "rate("
             "bkmonitor:exporter_dbm_predixy_exporter:predixy_cluster_total_requests{{"
-            'cluster_domain=~"{cluster_domains}"'
             "{filters}"
             "}}[{time_window}s]"
             "))"
@@ -399,7 +371,6 @@ METRIC_REGISTRY = {
             "max by ({group_by}) ("
             "max_over_time("
             "bkmonitor:dbm_system:io:util{{"
-            'cluster_domain=~"{cluster_domains}"'
             "{filters}"
             "}}[{time_window}s]"
             "))"
@@ -416,7 +387,6 @@ METRIC_REGISTRY = {
             "max by ({group_by}) ("
             "max_over_time("
             "bkmonitor:dbm_system:disk:in_use{{"
-            'cluster_domain=~"{cluster_domains}"'
             "{filters}"
             "}}[{time_window}s]"
             "))"
@@ -434,7 +404,6 @@ METRIC_REGISTRY = {
             "a": (
                 "rate("
                 "bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_usec_total{{"
-                'cluster_domain=~"{cluster_domains}"'
                 "{filters}"
                 "}}[{time_window}s]"
                 ")"
@@ -442,7 +411,6 @@ METRIC_REGISTRY = {
             "b": (
                 "rate("
                 "bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_calls_total{{"
-                'cluster_domain=~"{cluster_domains}"'
                 "{filters}"
                 "}}[{time_window}s]"
                 ")"
@@ -454,6 +422,7 @@ METRIC_REGISTRY = {
         },
         "supported_group_by": [MetricsGroupBy.CLUSTER_DOMAIN, MetricsGroupBy.IP, MetricsGroupBy.INSTANCE],
         "required_dimensions": ["ip", "instance_port"],
+        "instance_filter_mode": "instance_label",
     },
     "predixy_command_latency": {
         "promql_template": "{a} / {b}",
@@ -461,7 +430,6 @@ METRIC_REGISTRY = {
             "a": (
                 "rate("
                 "bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_usec_total{{"
-                'cluster_domain=~"{cluster_domains}"'
                 "{filters}"
                 "}}[{time_window}s]"
                 ")"
@@ -469,7 +437,6 @@ METRIC_REGISTRY = {
             "b": (
                 "rate("
                 "bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_calls_total{{"
-                'cluster_domain=~"{cluster_domains}"'
                 "{filters}"
                 "}}[{time_window}s]"
                 ")"
@@ -486,6 +453,7 @@ METRIC_REGISTRY = {
             MetricsGroupBy.CMD,
         ],
         "required_dimensions": ["ip", "instance_port", "cmd"],
+        "instance_filter_mode": "instance_label",
     },
     "predixy_latency_distribution": {
         # Bucket-based latency distribution
@@ -496,7 +464,6 @@ METRIC_REGISTRY = {
                 "sum by ({group_by}) ("
                 "rate("
                 "bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{{"
-                'cluster_domain=~"{cluster_domains}"'
                 "{filters}"
                 ',le="{le_upper}"'
                 "}}[{time_window}s]"
@@ -506,7 +473,6 @@ METRIC_REGISTRY = {
                 "sum by ({group_by}) ("
                 "rate("
                 "bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{{"
-                'cluster_domain=~"{cluster_domains}"'
                 "{filters}"
                 ',le="{le_lower}"'
                 "}}[{time_window}s]"
@@ -526,7 +492,6 @@ METRIC_REGISTRY = {
             "max by ({group_by}) ("
             "max_over_time("
             "bkmonitor:dbm_system:cpu_detail:usage{{"
-            'cluster_domain=~"{cluster_domains}"'
             "{filters}"
             "}}[{time_window}s]"
             "))"
@@ -543,7 +508,6 @@ METRIC_REGISTRY = {
             "max by ({group_by}) ("
             "max_over_time("
             "bkmonitor:dbm_system:mem:pct_used{{"
-            'cluster_domain=~"{cluster_domains}"'
             "{filters}"
             "}}[{time_window}s]"
             "))"
@@ -559,8 +523,7 @@ METRIC_REGISTRY = {
         "promql_template": (
             "max by ({group_by}) ("
             "max_over_time("
-            "bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_connections_curr{{"
-            'cluster_domain=~"{cluster_domains}"'
+            "bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_client_connections{{"
             "{filters}"
             "}}[{time_window}s]"
             "))"
@@ -577,7 +540,6 @@ METRIC_REGISTRY = {
             "sum by ({group_by}) ("
             "rate("
             "bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_calls_total{{"
-            'cluster_domain=~"{cluster_domains}"'
             "{filters}"
             "}}[{time_window}s]"
             "))"
@@ -594,7 +556,6 @@ METRIC_REGISTRY = {
             "max by ({group_by}) ("
             "max_over_time("
             "bkmonitor:dbm_system:io:util{{"
-            'cluster_domain=~"{cluster_domains}"'
             "{filters}"
             "}}[{time_window}s]"
             "))"
@@ -611,7 +572,6 @@ METRIC_REGISTRY = {
             "max by ({group_by}) ("
             "max_over_time("
             "bkmonitor:dbm_system:disk:in_use{{"
-            'cluster_domain=~"{cluster_domains}"'
             "{filters}"
             "}}[{time_window}s]"
             "))"
@@ -629,7 +589,6 @@ METRIC_REGISTRY = {
             "a": (
                 "rate("
                 "bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_usec_total{{"
-                'cluster_domain=~"{cluster_domains}"'
                 "{filters}"
                 "}}[{time_window}s]"
                 ")"
@@ -637,7 +596,6 @@ METRIC_REGISTRY = {
             "b": (
                 "rate("
                 "bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_calls_total{{"
-                'cluster_domain=~"{cluster_domains}"'
                 "{filters}"
                 "}}[{time_window}s]"
                 ")"
@@ -649,6 +607,7 @@ METRIC_REGISTRY = {
         },
         "supported_group_by": [MetricsGroupBy.CLUSTER_DOMAIN, MetricsGroupBy.IP, MetricsGroupBy.INSTANCE],
         "required_dimensions": ["ip", "instance_port"],
+        "instance_filter_mode": "instance_label",
     },
     "twemproxy_command_latency": {
         "promql_template": "{a} / {b}",
@@ -656,7 +615,6 @@ METRIC_REGISTRY = {
             "a": (
                 "rate("
                 "bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_usec_total{{"
-                'cluster_domain=~"{cluster_domains}"'
                 "{filters}"
                 "}}[{time_window}s]"
                 ")"
@@ -664,7 +622,6 @@ METRIC_REGISTRY = {
             "b": (
                 "rate("
                 "bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_calls_total{{"
-                'cluster_domain=~"{cluster_domains}"'
                 "{filters}"
                 "}}[{time_window}s]"
                 ")"
@@ -681,6 +638,7 @@ METRIC_REGISTRY = {
             MetricsGroupBy.CMD,
         ],
         "required_dimensions": ["ip", "instance_port", "cmd"],
+        "instance_filter_mode": "instance_label",
     },
     "twemproxy_latency_distribution": {
         "buckets": LATENCY_DISTRIBUTION_BUCKETS,
@@ -690,7 +648,6 @@ METRIC_REGISTRY = {
                 "sum by ({group_by}) ("
                 "rate("
                 "bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_response_latency_bucket{{"
-                'cluster_domain=~"{cluster_domains}"'
                 "{filters}"
                 ',le="{le_upper}"'
                 "}}[{time_window}s]"
@@ -700,7 +657,6 @@ METRIC_REGISTRY = {
                 "sum by ({group_by}) ("
                 "rate("
                 "bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_response_latency_bucket{{"
-                'cluster_domain=~"{cluster_domains}"'
                 "{filters}"
                 ',le="{le_lower}"'
                 "}}[{time_window}s]"
