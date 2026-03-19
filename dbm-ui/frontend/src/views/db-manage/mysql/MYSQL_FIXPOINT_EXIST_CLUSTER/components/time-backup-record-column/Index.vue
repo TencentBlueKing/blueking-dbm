@@ -167,6 +167,10 @@
 
   type Emits = (e: 'change') => void;
 
+  interface Exposes {
+    flush: () => void;
+  }
+
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
@@ -272,6 +276,37 @@
 
   watch(backupTime, () => {
     emits('change');
+  });
+
+  defineExpose<Exposes>({
+    flush() {
+      setTimeout(() => {
+        // 需要更新的行索引
+        const targetRow: number[] = [];
+        const taskList: Promise<BackupLogRecordModel>[] = [];
+        tableData.value.forEach((rowData, rowIndex) => {
+          if (rowData.cluster.id) {
+            targetRow.push(rowIndex);
+            taskList.push(
+              queryLatestTimeBackupLog({
+                backup_source: props.backupSource,
+                bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+                cluster_id: rowData.cluster.id,
+                is_full_backup: true,
+                latest_time: formatDateToUTC(rowData.backupTime),
+              }),
+            );
+          }
+        });
+
+        Promise.all(taskList).then((res) => {
+          res.forEach((data, index) => {
+            tableData.value[targetRow[index]].backupRecord = data;
+            tableData.value[targetRow[index]].backupTime = data.backup_time;
+          });
+        });
+      }, 1000);
+    },
   });
 </script>
 <style lang="less" scoped>
