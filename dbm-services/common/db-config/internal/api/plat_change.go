@@ -12,6 +12,8 @@ import (
 type ChangeConfNameDefReq struct {
 	BaseConfFileDef
 	ConfNames []*UpsertConfNames `json:"conf_names" form:"conf_names"`
+	// OpUser, if empty, use system,get it from Header
+	OpUser string `json:"op_user" form:"op_user"`
 }
 
 // Validate validate

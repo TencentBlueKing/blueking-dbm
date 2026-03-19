@@ -43,26 +43,30 @@ func (cf *Config) ChangeConfNameDef(ctx *gin.Context) {
 		handler.SendResponse(ctx, err, nil)
 		return
 	}
-
 	if err = simpleconfig.ValidateValueForClient(r.ConfNames, false); err != nil {
 		handler.SendResponse(ctx, err, nil)
 		return
 	}
-
-	opUser := api.GetHeaderUsername(ctx.GetHeader(constvar.BKApiAuthorization))
+	if r.OpUser == "" {
+		r.OpUser = api.GetHeaderUsername(ctx.GetHeader(constvar.BKApiAuthorization))
+	}
 
 	confFile := api.BaseConfFileDef{
 		Namespace: r.Namespace,
 		ConfType:  r.ConfType,
 		ConfFile:  r.ConfFile,
 	}
-	if err := simpleconfig.ConfigNamesBatchUpsert(model.DB.Self, confFile, r.ConfNames, opUser); err != nil {
+	if err := simpleconfig.ConfigNamesBatchUpsert(model.DB.Self, confFile, r.ConfNames, r.OpUser); err != nil {
 		handler.SendResponse(ctx, err, nil)
 		return
 	} else {
 		handler.SendResponse(ctx, nil, "ok")
 		return
 	}
+}
+
+func (cf *Config) InitializeConfNameDef(ctx *gin.Context) {
+	cf.ChangeConfNameDef(ctx)
 }
 
 // QueryConfNameChanges godoc
