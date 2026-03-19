@@ -98,7 +98,7 @@ func convertFromDBHA(list []*hamodel.DbmMetadata) []probeconfig.ProbeMetadataIte
 			AdminPort:   m.AdminPort,
 			ClusterType: string(m.ClusterType),
 			MachineType: string(m.MachineType),
-			AccessLayer: "",
+			AccessLayer: string(m.AccessLayer),
 		})
 	}
 	return out
