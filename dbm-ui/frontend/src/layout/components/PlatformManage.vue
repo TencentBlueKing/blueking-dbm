@@ -24,7 +24,7 @@
       :name="t('DBA 工具箱')">
       <BkMenuItem
         v-if="ENABLE_DBM_AI"
-        key="AiChat">
+        key="AgentChat">
         <template #icon>
           <DbIcon type="mysql" />
         </template>
