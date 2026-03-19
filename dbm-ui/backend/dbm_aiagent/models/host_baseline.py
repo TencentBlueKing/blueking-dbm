@@ -58,9 +58,7 @@ class BaselineHost(AuditedModel):
     network_pps_w = models.IntegerField(
         _("网络收发包(万pps)"), null=True, blank=True, help_text=_("网络每秒收发包数量，单位万pps，如 130 (表示130万pps)")
     )
-    intranet_bandwidth_gbps = models.IntegerField(
-        _("内网带宽能力(Gbps)"), null=True, blank=True, help_text=_("内网带宽能力，单位Gbps")
-    )
+    intranet_bandwidth_gbps = models.FloatField(_("内网带宽能力(Gbps)"), null=True, blank=True, help_text=_("内网带宽能力，单位Gbps"))
     queue_count = models.IntegerField(_("队列数"), null=True, blank=True, help_text=_("主机硬件队列数量"))
     remarks = models.TextField(_("备注"), blank=True, null=True, help_text=_("其他非结构化的备注信息"))
 
