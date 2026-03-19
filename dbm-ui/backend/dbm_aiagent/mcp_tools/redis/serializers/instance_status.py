@@ -10,7 +10,12 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+
 # ==================== 输入序列化器 ====================
+class RedisClusterInputSerializer(serializers.Serializer):
+    """Redis集群输入序列化器"""
+
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
 
 
 class RedisInstanceInputSerializer(serializers.Serializer):
@@ -80,6 +85,39 @@ class RedisCommandStatsResponseSerializer(serializers.Serializer):
     total_commands = serializers.IntegerField(help_text=_("命令种类总数"))
     total_calls_per_sec = serializers.IntegerField(help_text=_("每秒总调用次数"))
     commands = RedisCommandStatsDeltaSerializer(many=True, help_text=_("命令统计列表"))
+
+
+class MetricDataSerializer(serializers.Serializer):
+    """单个指标的数据结构，包含各 IP 的指标值和整体状态"""
+
+    status = serializers.CharField(required=False, help_text="指标状态，如 'low', 'high' 等")
+    ip_values = serializers.DictField(
+        child=serializers.FloatField(), required=False, help_text="各 IP 对应的指标数值，key 为 IP 地址，value 为数值"
+    )
+
+
+class MachineMetricsSerializer(serializers.Serializer):
+    """单个机器类型下的所有指标"""
+
+    cpu = MetricDataSerializer(required=False, help_text="CPU 指标数据")
+    mem = MetricDataSerializer(required=False, help_text="内存指标数据")
+    connections = MetricDataSerializer(required=False, help_text="连接数指标数据")
+
+
+class MachineTypeMetricsSerializer(serializers.Serializer):
+    """最终的输入序列化器 — 按机器类型组织"""
+
+    redis = MachineMetricsSerializer(required=False, help_text="Redis 机器类型指标")
+    tendiscache = MachineMetricsSerializer(required=False, help_text="tendiscache 机器类型指标")
+    tendisssd = MachineMetricsSerializer(required=False, help_text="tendisssd 机器类型指标")
+    tendisplus = MachineMetricsSerializer(required=False, help_text="tendisplus 机器类型指标")
+    predixy = MachineMetricsSerializer(required=False, help_text="predixy 机器类型指标")
+    twemproxy = MachineMetricsSerializer(required=False, help_text="Twemproxy 机器类型指标")
+
+
+class RedisClusterLoadSerializer(serializers.Serializer):
+    load_tag = serializers.CharField(help_text=_("负载标签"))
+    load_metrics = MachineTypeMetricsSerializer(help_text=_("各维度的负载指标"))
 
 
 class RedisServerInfoSerializer(serializers.Serializer):

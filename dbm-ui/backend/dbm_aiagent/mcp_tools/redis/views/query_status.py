@@ -16,6 +16,7 @@ from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.redis.impl.redis_status import (
     get_redis_client_list,
     get_redis_clients_info,
+    get_redis_cluster_load_tag,
     get_redis_command_stats_delta,
     get_redis_cpu_info,
     get_redis_keyspace_info,
@@ -28,6 +29,8 @@ from backend.dbm_aiagent.mcp_tools.redis.impl.redis_status import (
 from backend.dbm_aiagent.mcp_tools.redis.serializers.instance_status import (
     RedisClientListResponseSerializer,
     RedisClientsInfoSerializer,
+    RedisClusterInputSerializer,
+    RedisClusterLoadSerializer,
     RedisCommandStatsResponseSerializer,
     RedisCPUInfoSerializer,
     RedisInstanceInputSerializer,
@@ -45,6 +48,21 @@ from backend.iam_app.handlers.drf_perm.mcp import McpClusterManagePermission
 
 class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
     default_permission_class = [DBManagePermission()]
+
+    @mcp_tools_api_decorator(
+        description=str(_("查询Redis的负载标签")),
+        request_slz=RedisClusterInputSerializer,
+        response_slz=RedisClusterLoadSerializer,
+        permission_classes=[McpClusterManagePermission],
+        mcp_auth_parser=auth_parse_clusters,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
+        name_prefix="redis_query_status",
+    )
+    def get_cluster_load_summary(self, request, *args, **kwargs):
+        """查询Redis的负载概要"""
+        immute_domain = self.get_param("cluster_domain")
+        return Response(get_redis_cluster_load_tag(immute_domain=immute_domain))
 
     @mcp_tools_api_decorator(
         description=str(_("查询Redis服务器基本信息，包括版本、运行模式、操作系统、进程ID、端口、运行时长等, 实例级别，仅用于要求查询某个实例时候调用")),
