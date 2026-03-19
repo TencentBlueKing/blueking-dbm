@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"strconv"
 	"sync"
@@ -231,23 +232,72 @@ func (task *RedisDataStructure) CheckRecoverDir() (err error) {
 	return nil
 }
 
+// getDecompressedName derives the expected decompressed name from an archive file name.
+// For full backups (isFullBackup=true), this is the directory name created after extraction.
+// For binlog files (isFullBackup=false), this is the decompressed file name.
+func getDecompressedName(fileName string, isFullBackup bool) string {
+	if isFullBackup {
+		if strings.Contains(fileName, ".split.") {
+			return strings.Split(fileName, ".split")[0]
+		}
+		suffixes := []string{".aof.zst", ".aof.gz", ".aof.lzo", ".tar", ".rdb"}
+		for _, suffix := range suffixes {
+			if strings.HasSuffix(fileName, suffix) {
+				return strings.TrimSuffix(fileName, suffix)
+			}
+		}
+		return ""
+	}
+	if strings.HasSuffix(fileName, ".tar.gz") {
+		return strings.TrimSuffix(fileName, ".tar.gz")
+	}
+	extensions := []string{".tar", ".tgz", ".gz", ".zip", ".lzo", ".zst"}
+	for _, ext := range extensions {
+		if strings.HasSuffix(fileName, ext) {
+			return strings.TrimSuffix(fileName, ext)
+		}
+	}
+	return ""
+}
+
+// isFileReadyOnDisk checks if a backup file is ready on disk, either as a raw archive
+// or as already-extracted content (from a previous run that extracted then deleted the archive).
+func isFileReadyOnDisk(recoverDir, fileName string, isFullBackup bool) bool {
+	archivePath := filepath.Join(recoverDir, fileName)
+	if _, err := os.Stat(archivePath); err == nil {
+		return true
+	}
+	decompName := getDecompressedName(fileName, isFullBackup)
+	if decompName == "" {
+		return false
+	}
+	decompPath := filepath.Join(recoverDir, decompName)
+	info, err := os.Stat(decompPath)
+	if err != nil {
+		return false
+	}
+	if isFullBackup {
+		return info.IsDir()
+	}
+	return !info.IsDir()
+}
+
 // CheckFileList 检查需要的全备和增备是否都拉取齐全，避免出现缺失一个无法重试的情况
+// 支持重试场景：如果原始压缩包已被解压后删除，但解压内容仍存在，则视为文件就绪
 func (task *RedisDataStructure) CheckFileList() error {
-	var filePath, msg string
+	var msg string
 	fileAllOk := true
 	for _, file := range task.params.FullFileList {
-		filePath = filepath.Join(task.RecoverDir, file.FileName)
-		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		if !isFileReadyOnDisk(task.RecoverDir, file.FileName, true) {
 			fileAllOk = false
-			msg = fmt.Sprintf("全备文件:%s 不存在", filePath)
+			msg = fmt.Sprintf("全备文件:%s 不存在且未找到已解压内容", filepath.Join(task.RecoverDir, file.FileName))
 			task.runtime.Logger.Info(msg)
 		}
 	}
 	for _, file := range task.params.BinlogFileList {
-		filePath = filepath.Join(task.RecoverDir, file.FileName)
-		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		if !isFileReadyOnDisk(task.RecoverDir, file.FileName, false) {
 			fileAllOk = false
-			msg = fmt.Sprintf("增备文件:%s 不存在", filePath)
+			msg = fmt.Sprintf("增备文件:%s 不存在且未找到已解压内容", filepath.Join(task.RecoverDir, file.FileName))
 			task.runtime.Logger.Info(msg)
 		}
 	}
