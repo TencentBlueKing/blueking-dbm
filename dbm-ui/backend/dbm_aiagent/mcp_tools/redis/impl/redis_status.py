@@ -9,6 +9,8 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Dict, List
 
+from backend.db_meta.models import Cluster
+from backend.db_monitor.tasks import query_cluster_load
 from backend.dbm_aiagent.mcp_tools.redis.tools.cluster_topo_srv import RedisClusterTopologyService
 from backend.dbm_aiagent.mcp_tools.redis.tools.redis_client_srv import RedisClientListService
 from backend.dbm_aiagent.mcp_tools.redis.tools.redis_info_srv import RedisInfoService
@@ -101,3 +103,21 @@ def get_redis_cluster_topology_text(immute_domain: str) -> Dict:
             "total_qps": topology["total_qps"],
         },
     }
+
+
+def get_redis_cluster_load_tag(immute_domain: str) -> Dict:
+    cluster_obj = Cluster.objects.get(immute_domain=immute_domain)
+
+    try:
+        load_status_map, cluster_load_map = query_cluster_load(
+            cluster_obj.cluster_type.value, clusters=[cluster_obj.immute_domain]
+        )
+        cluster_status = load_status_map.get(immute_domain, {})
+        if not cluster_status:
+            return {"load_tag": "unknown", "load_metrics": {}}
+        return {
+            "load_tag": cluster_status.get("status", ""),
+            "load_metrics": cluster_load_map.get(immute_domain, {}),
+        }
+    except Exception as e:
+        return {"load_tag": "unsupported.{}".format(e), "load_metrics": {}}
