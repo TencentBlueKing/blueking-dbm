@@ -15,6 +15,7 @@ from backend.db_report.repo.task_record_repo import TaskRecordRepo
 
 from .check_backup import CheckMongoBackupRecordTask
 from .check_exporter import CheckMongodbUpMetricTask
+from .sync_instance_status import SyncStorageInstanceStatusTask
 
 """
     register_periodic_task 注册新的周期任务注意
@@ -49,3 +50,11 @@ def mongodb_metric_check_task():
         task_type="exporter",
         check_task_instance=CheckMongodbUpMetricTask(),
     )
+
+
+@register_periodic_task(run_every=crontab(minute=1, hour="*/1"))
+def mongodb_sync_instance_status_task():
+    """
+    mongodb 实例状态同步
+    """
+    SyncStorageInstanceStatusTask().start()
