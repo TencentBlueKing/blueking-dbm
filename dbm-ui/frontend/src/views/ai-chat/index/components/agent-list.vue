@@ -30,8 +30,8 @@
               v-for="agent in agents"
               :key="agent.id"
               class="agent-item"
-              :class="{ 'is-active': modelValue === agent.id }"
-              @click="handleSelect(agent)">
+              :class="{ 'is-active': modelValue?.id === agent.id }"
+              @click="handleSelect(agent, group)">
               <div class="agent-item-name">{{ agent.name }}</div>
               <div class="agent-item-desc">{{ agent.description }}</div>
             </div>
@@ -59,6 +59,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
+  import { useRoute, useRouter } from 'vue-router';
 
   import { getAgentScene } from '@services/source/ai';
 
@@ -66,18 +67,32 @@
     name: 'AgentList',
   });
 
-  const modelValue = defineModel<string>();
+  const modelValue = defineModel<{ group: string } & AgentItem>();
 
-  type AgentItem = { description: string; id: string; name: string };
+  type AgentItem = ServiceReturnType<typeof getAgentScene>['workbench'][string][number];
 
   const { t } = useI18n();
+  const route = useRoute();
+  const router = useRouter();
 
   const searchKeyword = ref('');
   const collapsedGroups = ref<Record<string, boolean>>({});
 
   const { data: agentScene, loading } = useRequest(getAgentScene, {
     onSuccess: (data) => {
-      modelValue.value = Object.values(data.workbench)[0][0]?.id || '';
+      const { agentId } = route.params;
+      if (agentId) {
+        for (const [group, agents] of Object.entries(data.workbench)) {
+          const matched = agents.find((a) => String(a.id) === String(agentId));
+          if (matched) {
+            modelValue.value = { ...matched, group };
+            return;
+          }
+        }
+      }
+      const [group, agents] = Object.entries(data.workbench)[0];
+      modelValue.value = { ...agents[0], group };
+      replaceAgentId(agents[0].id);
     },
   });
 
@@ -106,8 +121,21 @@
     collapsedGroups.value[group] = !collapsedGroups.value[group];
   };
 
-  const handleSelect = (agent: AgentItem) => {
-    modelValue.value = agent.id;
+  const replaceAgentId = (agentId: AgentItem['id']) => {
+    router.replace({
+      name: route.name!,
+      params: { agentId },
+    });
+  };
+
+  const handleSelect = (agent: AgentItem, group: string) => {
+    modelValue.value = {
+      description: agent.description,
+      group,
+      id: agent.id,
+      name: agent.name,
+    };
+    replaceAgentId(agent.id);
   };
   const handleClearSearch = () => {
     searchKeyword.value = '';

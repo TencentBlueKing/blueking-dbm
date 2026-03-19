@@ -8,13 +8,14 @@
         :initial-divide="300"
         style="height: 100%">
         <template #aside>
-          <AgentList v-model="currentAgentCode" />
+          <AgentList v-model="currentAgent" />
         </template>
         <template #main>
           <AiBlueking
-            :key="currentAgentCode"
+            v-if="currentAgent"
+            :key="currentAgent.id"
             ref="aiBlueking"
-            :agent-code="currentAgentCode" />
+            :agent-info="currentAgent" />
         </template>
       </BkResizeLayout>
     </template>
@@ -39,7 +40,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getAgentPing } from '@services/source/ai';
+  import { getAgentPing, getAgentScene } from '@services/source/ai';
 
   import AgentList from './components/agent-list.vue';
   import AiBlueking from './components/ai-blueking.vue';
@@ -54,7 +55,7 @@
     },
   });
 
-  const currentAgentCode = ref('');
+  const currentAgent = ref<{ group: string } & ServiceReturnType<typeof getAgentScene>['workbench'][string][number]>();
 
   const handleRetry = () => {
     runAgentPing();
@@ -64,7 +65,6 @@
   .db-ai-chat-page {
     position: relative;
     z-index: 1;
-    display: block;
-    height: calc(100vh - var(--notice-height) - 105px);
+    height: 100%;
   }
 </style>

@@ -182,8 +182,8 @@
 
     & > .scroll-faker-content {
       height: 100%;
-      max-width: 100%;
-      max-height: 100%;
+      max-width: inherit;
+      max-height: inherit;
       overflow: scroll;
 
       &::-webkit-scrollbar {
