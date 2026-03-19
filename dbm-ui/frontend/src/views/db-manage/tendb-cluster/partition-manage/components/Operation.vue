@@ -176,6 +176,7 @@
         @cancel="handleResetCancel"
         @confirm="handleResetConfirm">
         <BkButton
+          v-if="isEditMode"
           class="ml-8"
           :disabled="isDisabledResetButton"
           :loading="resetLoading"
@@ -197,7 +198,7 @@
 
   import type PartitionModel from '@services/model/partition/partition';
   import { queryAllTypeCluster } from '@services/source/dbbase';
-  import { queryFieldType, saveAndExecute } from '@services/source/partitionManage';
+  import { create as createPartition, queryFieldType, saveAndExecute } from '@services/source/partitionManage';
 
   import { useTicketMessage } from '@hooks';
 
@@ -434,23 +435,25 @@
     warnConfirming.value = false;
   };
 
-  const submitPartition = () => {
+  const submitPartition = async () => {
     confirmLoading.value = true;
-    saveAndExecute({
-      ...formData,
-    })
-      .then((data) => {
-        ticketMessage(data[0].id);
-        handleCancel();
-        if (isEditMode.value) {
-          emits('editSuccess');
-        } else {
-          emits('createSuccess');
-        }
-      })
-      .finally(() => {
-        confirmLoading.value = false;
-      });
+
+    const apiFn = isEditMode.value ? saveAndExecute : createPartition;
+
+    try {
+      const data = await apiFn({ ...formData });
+
+      ticketMessage(data[0].id);
+      handleCancel();
+
+      if (isEditMode.value) {
+        emits('editSuccess');
+      } else {
+        emits('createSuccess');
+      }
+    } finally {
+      confirmLoading.value = false;
+    }
   };
 
   const handleVerifyConfirm = () => {
@@ -479,11 +482,7 @@
       .then((data) => {
         ticketMessage(data[0].id);
         handleCancel();
-        if (isEditMode.value) {
-          emits('editSuccess');
-        } else {
-          emits('createSuccess');
-        }
+        emits('editSuccess');
       })
       .finally(() => {
         resetLoading.value = false;

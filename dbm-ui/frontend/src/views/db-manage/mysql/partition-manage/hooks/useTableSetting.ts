@@ -28,7 +28,7 @@ export default function () {
       'immute_domain',
       'dblike',
       'tblike',
-      'partition_columns',
+      'partition_column',
       'partition_column_type',
       'partition_time_interval',
       'expire_time',
@@ -56,7 +56,7 @@ export default function () {
         label: t('表名'),
       },
       {
-        field: 'partition_columns',
+        field: 'partition_column',
         label: t('分区字段'),
       },
       {
