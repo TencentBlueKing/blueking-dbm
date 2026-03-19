@@ -99,121 +99,130 @@ class RedisDataStructureTaskDeleteFlow(object):
          2、proxy下架
         """
         redis_pipeline_all = Builder(root_id=self.root_id, data=self.data)
-        trans_files = GetFileList(db_type=DBType.Redis)
         sub_pipelines_multi_cluster = []
+        for info in self.data["infos"]:
+            sub_pipelines_multi_cluster.append(self.build_cluster_task_delete(info))
+        redis_pipeline_all.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines_multi_cluster)
+        redis_pipeline_all.run_pipeline()
 
+    def build_cluster_task_delete(self, info: dict, tasks_info: dict = None):
+        """Build a SubProcess for a single cluster's cleanup/delete steps.
+
+        Can be embedded into another pipeline (e.g. rollback exercise)
+        without spawning a separate FlowTree.
+
+        Args:
+            info: Cluster info dict from ticket data.
+            tasks_info: Pre-computed task info dict. If None, queries TbTendisRollbackTasks.
+        """
         ticket_bk_biz_id = self.data["bk_biz_id"]
 
-        for info in self.data["infos"]:
+        if tasks_info is None:
             tasks_info = self.__get_cluster_info(
                 bk_biz_id=ticket_bk_biz_id,
                 related_rollback_bill_id=info["related_rollback_bill_id"],
                 prod_cluster=info["prod_cluster"],
             )
 
-            logger.info("redis_rollback_task_delete_flow tasks_info:{}".format(tasks_info))
-            redis_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
-            act_kwargs = ActKwargs()
-            act_kwargs.set_trans_data_dataclass = CommonContext.__name__
-            act_kwargs.file_list = trans_files.redis_base()
-            act_kwargs.is_update_trans_data = True
-            act_kwargs.cluster = {
-                **tasks_info,
-                "operate": self.data["ticket_type"],
-            }
-            act_kwargs.cluster["cluster_type"] = act_kwargs.cluster["temp_cluster_type"]
+        logger.info("redis_rollback_task_delete_flow tasks_info:{}".format(tasks_info))
+        redis_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
+        trans_files = GetFileList(db_type=DBType.Redis)
+        act_kwargs = ActKwargs()
+        act_kwargs.set_trans_data_dataclass = CommonContext.__name__
+        act_kwargs.file_list = trans_files.redis_base()
+        act_kwargs.is_update_trans_data = True
+        act_kwargs.cluster = {
+            **tasks_info,
+            "operate": self.data["ticket_type"],
+        }
+        act_kwargs.cluster["cluster_type"] = act_kwargs.cluster["temp_cluster_type"]
 
-            cluster_kwargs = deepcopy(act_kwargs)
-            cluster_kwargs.cluster = {
-                "related_rollback_bill_id": info["related_rollback_bill_id"],
-                "bk_biz_id": ticket_bk_biz_id,
-                "prod_cluster": info["prod_cluster"],
-                "meta_func_name": RedisDBMeta.update_rollback_task_status.__name__,
-                "cluster_type": cluster_kwargs.cluster["cluster_type"],
-                "destroyed_status": DestroyedStatus.DESTROYING,
-            }
-            redis_pipeline.add_act(
-                act_name=_("更新构造记录为销毁中"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(cluster_kwargs)
-            )
-            # 初始化
-            redis_pipeline.add_act(
-                act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
-            )
+        cluster_kwargs = deepcopy(act_kwargs)
+        cluster_kwargs.cluster = {
+            "related_rollback_bill_id": info["related_rollback_bill_id"],
+            "bk_biz_id": ticket_bk_biz_id,
+            "prod_cluster": info["prod_cluster"],
+            "meta_func_name": RedisDBMeta.update_rollback_task_status.__name__,
+            "cluster_type": cluster_kwargs.cluster["cluster_type"],
+            "destroyed_status": DestroyedStatus.DESTROYING,
+        }
+        redis_pipeline.add_act(
+            act_name=_("更新构造记录为销毁中"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(cluster_kwargs)
+        )
+        # 初始化
+        redis_pipeline.add_act(
+            act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
+        )
 
-            master_ports = {}
-            for instance in act_kwargs.cluster["temp_instance_range"]:
-                ip, port = instance.split(":")
-                if ip in master_ports:
-                    master_ports[ip].append(int(port))
-                else:
-                    master_ports[ip] = [int(port)]
-            act_kwargs.cluster["master_ports"] = master_ports
+        master_ports = {}
+        for instance in act_kwargs.cluster["temp_instance_range"]:
+            ip, port = instance.split(":")
+            if ip in master_ports:
+                master_ports[ip].append(int(port))
+            else:
+                master_ports[ip] = [int(port)]
+        act_kwargs.cluster["master_ports"] = master_ports
 
-            # ### 下发工具包############################################################
-            # 这里构造销毁的时候，如果缺失actuator，那么dbtools，dbmon估计也是没有了的，构造销毁需要一起下发
-            acts_lists = []
-            first_act_kwargs = deepcopy(act_kwargs)
-            for ip_address, ports in master_ports.items():
-                trans_files = GetFileList(db_type=DBType.Redis)
-                first_act_kwargs.file_list = trans_files.redis_dbmon()
-                first_act_kwargs.exec_ip = ip_address
-                acts_lists.append(
-                    {
-                        "act_name": _("Redis-{}-下发工具包").format(ip_address),
-                        "act_component_code": TransFileComponent.code,
-                        "kwargs": asdict(first_act_kwargs),
-                    }
-                )
-            redis_pipeline.add_parallel_acts(acts_list=acts_lists)
-            # ### 下发工具包完成############################################################
-
-            # #### 下架旧redis实例 #############################################################################
-            sub_pipelines = []
-            for ip_address, ports in master_ports.items():
-                params = {
-                    "ip": ip_address,
-                    "ports": ports,
-                    "skip_connections_check": self.data.get("skip_connections_check", False),
+        # ### 下发工具包############################################################
+        # 这里构造销毁的时候，如果缺失actuator，那么dbtools，dbmon估计也是没有了的，构造销毁需要一起下发
+        acts_lists = []
+        first_act_kwargs = deepcopy(act_kwargs)
+        for ip_address, ports in master_ports.items():
+            trans_files = GetFileList(db_type=DBType.Redis)
+            first_act_kwargs.file_list = trans_files.redis_dbmon()
+            first_act_kwargs.exec_ip = ip_address
+            acts_lists.append(
+                {
+                    "act_name": _("Redis-{}-下发工具包").format(ip_address),
+                    "act_component_code": TransFileComponent.code,
+                    "kwargs": asdict(first_act_kwargs),
                 }
-                sub_builder = RedisBatchShutdownAtomJob(self.root_id, self.data, act_kwargs, params)
-                sub_pipelines.append(sub_builder)
-            redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+            )
+        redis_pipeline.add_parallel_acts(acts_list=acts_lists)
+        # ### 下发工具包完成############################################################
 
-            # #### 下架旧proxy实例 #############################################################################
-            # 重新赋值，因为下架redis时cluster会被赋值
-            # act_kwargs.cluster = {**tasks_info}
-            act_kwargs.cluster["cluster_type"] = act_kwargs.cluster["temp_cluster_type"]
-            if is_have_proxy(act_kwargs.cluster["cluster_type"]):
-                act_kwargs.cluster["operate"] = (
-                    DBActuatorTypeEnum.Proxy.value + "_" + RedisActuatorActionEnum.Shutdown.value
-                )
-                proxy_ip, proxy_port = act_kwargs.cluster["temp_cluster_proxy"].split(":")
-                act_kwargs.cluster["proxy_ip"] = proxy_ip
-                act_kwargs.cluster["proxy_port"] = int(proxy_port)
-
-                act_kwargs.exec_ip = act_kwargs.cluster["proxy_ip"]
-                act_kwargs.get_redis_payload_func = RedisActPayload.proxy_shutdown_payload.__name__
-                redis_pipeline.add_act(
-                    act_name=_("{}下架proxy实例").format(act_kwargs.cluster["proxy_ip"]),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(act_kwargs),
-                )
-            # #### 下架旧实例完成 #############################################################################
-            act_kwargs.cluster = {
-                "related_rollback_bill_id": info["related_rollback_bill_id"],
-                "bk_biz_id": ticket_bk_biz_id,
-                "prod_cluster": info["prod_cluster"],
-                "meta_func_name": RedisDBMeta.update_rollback_task_status.__name__,
-                "cluster_type": act_kwargs.cluster["cluster_type"],
-                "destroyed_status": DestroyedStatus.DESTROYED,
+        # #### 下架旧redis实例 #############################################################################
+        sub_pipelines = []
+        for ip_address, ports in master_ports.items():
+            params = {
+                "ip": ip_address,
+                "ports": ports,
+                "skip_connections_check": self.data.get("skip_connections_check", False),
             }
+            sub_builder = RedisBatchShutdownAtomJob(self.root_id, self.data, act_kwargs, params)
+            sub_pipelines.append(sub_builder)
+        redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+
+        # #### 下架旧proxy实例 #############################################################################
+        # 重新赋值，因为下架redis时cluster会被赋值
+        # act_kwargs.cluster = {**tasks_info}
+        act_kwargs.cluster["cluster_type"] = act_kwargs.cluster["temp_cluster_type"]
+        if is_have_proxy(act_kwargs.cluster["cluster_type"]):
+            act_kwargs.cluster["operate"] = (
+                DBActuatorTypeEnum.Proxy.value + "_" + RedisActuatorActionEnum.Shutdown.value
+            )
+            proxy_ip, proxy_port = act_kwargs.cluster["temp_cluster_proxy"].split(":")
+            act_kwargs.cluster["proxy_ip"] = proxy_ip
+            act_kwargs.cluster["proxy_port"] = int(proxy_port)
+
+            act_kwargs.exec_ip = act_kwargs.cluster["proxy_ip"]
+            act_kwargs.get_redis_payload_func = RedisActPayload.proxy_shutdown_payload.__name__
             redis_pipeline.add_act(
-                act_name=_("更新构造记录为已销毁"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
+                act_name=_("{}下架proxy实例").format(act_kwargs.cluster["proxy_ip"]),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(act_kwargs),
             )
+        # #### 下架旧实例完成 #############################################################################
+        act_kwargs.cluster = {
+            "related_rollback_bill_id": info["related_rollback_bill_id"],
+            "bk_biz_id": ticket_bk_biz_id,
+            "prod_cluster": info["prod_cluster"],
+            "meta_func_name": RedisDBMeta.update_rollback_task_status.__name__,
+            "cluster_type": act_kwargs.cluster["cluster_type"],
+            "destroyed_status": DestroyedStatus.DESTROYED,
+        }
+        redis_pipeline.add_act(
+            act_name=_("更新构造记录为已销毁"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
+        )
 
-            sub_pipelines_multi_cluster.append(
-                redis_pipeline.build_sub_process(sub_name=_("集群[{}]数据构造销毁").format(info["prod_cluster"]))
-            )
-
-        redis_pipeline_all.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines_multi_cluster)
-        redis_pipeline_all.run_pipeline()
+        return redis_pipeline.build_sub_process(sub_name=_("集群[{}]数据构造销毁").format(info["prod_cluster"]))

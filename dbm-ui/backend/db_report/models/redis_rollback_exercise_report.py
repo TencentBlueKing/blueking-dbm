@@ -124,65 +124,69 @@ class RedisRollbackExerciseReport(BaseReportABS):
 
         return set(cluster_ids) - set(recently_exercised), recently_exercised
 
-    def mark(self, stage: TaskStage, task_message: str = None):
+    def mark(self, stage: TaskStage = None, task_message: str = None, **kwargs):
         """
-        Mark the task with a new state and optionally update task message.
+        Mark the task with a new state and optionally update task message and extra fields.
         Automatically updates relevant timestamp fields based on state transitions.
 
+        When ``stage`` is None the stage is left unchanged -- useful for
+        backfilling ``task_message`` or other fields on an already-terminal report.
+
         Args:
-            state: The new task execution stage
+            stage: The new task execution stage (None to keep current stage).
             task_message: Optional message about the task execution.
+            **kwargs: Additional model fields to set (e.g. rollback_flow_obj_id).
         """
-        update_fields = ["update_at", "task_stage"]
-        self.task_stage = stage
+        update_fields = ["update_at"]
 
-        # Update timestamps based on state transitions
-        match stage:
-            case (
-                TaskStage.SKIPPED
-                | TaskStage.TICKET_GEN_FAILED
-                | TaskStage.RESOURCE_APPLI_FAILED
-                | TaskStage.ROLLBACK_FLOW_GEN_FAILED
-                | TaskStage.DELETE_FLOW_GEN_FAILED
-                | TaskStage.DELETE_FAILED
-                | TaskStage.DONE
-            ):
-                # Task ended (either skipped, failed, or completed)
-                new_state = ReportStateType.ABNORMAL
-                if stage == TaskStage.DONE:
-                    new_state = ReportStateType.NORMAL
-                elif stage == TaskStage.SKIPPED:
-                    new_state = ReportStateType.WARNING
+        if stage is not None:
+            self.task_stage = stage
+            update_fields.append("task_stage")
 
-                self.task_end_time = timezone.now()
-                self.state = new_state
-                update_fields.extend(["task_end_time", "state"])
+            match stage:
+                case (
+                    TaskStage.SKIPPED
+                    | TaskStage.TICKET_GEN_FAILED
+                    | TaskStage.RESOURCE_APPLI_FAILED
+                    | TaskStage.CLEANUP_FAILED
+                    | TaskStage.DONE
+                ):
+                    new_state = ReportStateType.ABNORMAL
+                    if stage == TaskStage.DONE:
+                        new_state = ReportStateType.NORMAL
+                    elif stage == TaskStage.SKIPPED:
+                        new_state = ReportStateType.WARNING
 
-            case TaskStage.TICKET_GENERATED:
-                update_fields.append("ticket_id")
+                    self.task_end_time = timezone.now()
+                    self.state = new_state
+                    update_fields.extend(["task_end_time", "state"])
 
-            case TaskStage.ROLLBACK_FLOW_GENERATED:
-                self.recover_start_time = timezone.now()
-                update_fields.extend(["recover_start_time", "rollback_flow_obj_id"])
+                case TaskStage.TICKET_GENERATED:
+                    update_fields.append("ticket_id")
 
-            case TaskStage.ROLLBACK_FAILED:
-                self.recover_end_time = timezone.now()
-                self.task_end_time = timezone.now()
-                self.state = ReportStateType.ABNORMAL
-                update_fields.extend(["recover_end_time", "task_end_time", "state"])
+                case TaskStage.ROLLBACK_STARTED:
+                    self.recover_start_time = timezone.now()
+                    update_fields.append("recover_start_time")
 
-            case TaskStage.ROLLBACK_SUCCEEDED:
-                self.recover_end_time = timezone.now()
-                update_fields.append("recover_end_time")
+                case TaskStage.ROLLBACK_FAILED:
+                    self.recover_end_time = timezone.now()
+                    self.task_end_time = timezone.now()
+                    self.state = ReportStateType.ABNORMAL
+                    update_fields.extend(["recover_end_time", "task_end_time", "state"])
 
-            case TaskStage.DELETE_FLOW_GENERATED:
-                update_fields.append("delete_flow_obj_id")
+                case TaskStage.ROLLBACK_SUCCEEDED:
+                    self.recover_end_time = timezone.now()
+                    update_fields.append("recover_end_time")
 
-            case (TaskStage.RESOURCE_APPLI_SUCCEEDED | TaskStage.DELETE_SUCCEEDED):
-                pass
+                case TaskStage.RESOURCE_APPLI_SUCCEEDED:
+                    pass
 
-        if task_message:  # task_message is overwritten each time, so use with caution
+        if task_message:
             update_fields.append("task_message")
             self.task_message = task_message
+
+        for field_name, value in kwargs.items():
+            setattr(self, field_name, value)
+            update_fields.append(field_name)
 
         self.save(update_fields=update_fields)

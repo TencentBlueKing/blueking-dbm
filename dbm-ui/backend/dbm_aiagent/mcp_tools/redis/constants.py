@@ -299,8 +299,8 @@ METRIC_REGISTRY = {
             "overall": AggFunction.SUM,
             "stats": [AggFunction.MIN, AggFunction.MAX, AggFunction.AVG, AggFunction.STDDEV],
         },
-        "supported_group_by": [MetricsGroupBy.CLUSTER_DOMAIN, MetricsGroupBy.IP],
-        "required_dimensions": ["ip"],
+        "supported_group_by": [MetricsGroupBy.CLUSTER_DOMAIN, MetricsGroupBy.IP, MetricsGroupBy.INSTANCE],
+        "required_dimensions": ["ip", "instance_port"],
     },
     "capacity_disk": {
         "is_capacity": True,
@@ -322,8 +322,8 @@ METRIC_REGISTRY = {
             "overall": AggFunction.SUM,
             "stats": [AggFunction.MIN, AggFunction.MAX, AggFunction.AVG, AggFunction.STDDEV],
         },
-        "supported_group_by": [MetricsGroupBy.CLUSTER_DOMAIN, MetricsGroupBy.IP],
-        "required_dimensions": ["ip"],
+        "supported_group_by": [MetricsGroupBy.CLUSTER_DOMAIN, MetricsGroupBy.IP, MetricsGroupBy.INSTANCE],
+        "required_dimensions": ["ip", "instance_port"],
     },
     # Predixy proxy metrics
     "predixy_cpu_usage": {

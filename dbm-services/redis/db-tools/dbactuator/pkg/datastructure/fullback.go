@@ -1040,10 +1040,12 @@ func (full *TendisFullBackPull) PullFullbackDecompressed() {
 		return
 	}
 	mylog.Logger.Info("localBkIsExists:%v,localBkIsCompelete:%v ", localBkIsExists, localBkIsCompelete)
-	// 这里解压 ，不然会走到 else if localBkIsExists == true && decpDirIsExists == true 那里才是第一次解压
-	full.Decompressed()
-	if full.Err != nil {
-		return
+	// 仅当压缩包存在时才尝试解压，避免重试场景下压缩包已被解压删除后解压命令失败
+	if localBkIsExists {
+		full.Decompressed()
+		if full.Err != nil {
+			return
+		}
 	}
 	// 已解压的备份文件
 	decpDirIsExists, decpIsCompelete, _ := full.CheckDecompressedDirIsOK()
