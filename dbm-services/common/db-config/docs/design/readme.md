@@ -35,6 +35,8 @@ mysql $DBAUTH_NEW $DBNAME_NEW < dbconfig_biz_data_full.sql
 
 ### 对某个业务单独导出导入
 
+可以重复执行，面对有增量的情况
+
 按业务导出:
 ```
 DBAUTH="-uxxx -pxxx -h1.2.3.4 -P3306"  # db连接信息
