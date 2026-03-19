@@ -44,6 +44,7 @@
             @change="() => handleChangeRowData(item)" />
           <TimeBackupRecordColumn
             v-if="formData.rollbackMethod === 'TIME'"
+            ref="timeBackupRecordColumnRef"
             v-model:backup-record="item.backupRecord"
             v-model:backup-time="item.backupTime"
             v-model:table-data="formData.tableData"
@@ -54,17 +55,17 @@
           <DbNameColumn
             v-model="item.databases"
             :cluster-id="item.cluster?.id"
-            :readonly="diabledEdit(item)"
             field="databases"
             :label="t('源 DB')"
+            :readonly="diabledEdit(item)"
             required
             @batch-edit="handleBatchEdit" />
           <TableNameColumn
             v-model="item.tables"
             :cluster-id="item.cluster?.id"
-            :readonly="diabledEdit(item)"
             field="tables"
             :label="t('源表')"
+            :readonly="diabledEdit(item)"
             required
             @batch-edit="handleBatchEdit" />
           <TargetClusterColumn
@@ -209,6 +210,8 @@
   });
 
   const editableTableRef = useTemplateRef('editableTableRef');
+  const timeBackupRecordColumnRef =
+    useTemplateRef<InstanceType<typeof TimeBackupRecordColumn>[]>('timeBackupRecordColumnRef');
 
   const defaultData = () => ({
     backupSource: BackupSourceType.REMOTE,
@@ -238,18 +241,21 @@
       nextTick(() => {
         formData.tableData = infos.map((item) =>
           createTableRow({
-            backupRecord: item.backupinfo,
+            // 指定时间回档时，需要将backupinfo置空，调接口查询最新匹配到的备份记录
+            backupRecord: item.rollback_time ? {} : item.backupinfo,
             backupTime: item.rollback_time,
             cluster: {
               master_domain: clusters[item.cluster_id]?.immute_domain || '',
             },
-            databases: item.databases,
-            tables: item.tables,
+            databases: item.rollback_time ? [] : item.databases,
+            tables: item.rollback_time ? [] : item.tables,
             targetCluster: {
               master_domain: clusters[item.target_cluster_id]?.immute_domain || '',
             },
           }),
         );
+      }).then(() => {
+        timeBackupRecordColumnRef.value?.[0]?.flush();
       });
     },
   });

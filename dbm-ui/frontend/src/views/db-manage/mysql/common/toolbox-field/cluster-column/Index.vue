@@ -13,6 +13,7 @@
 
 <template>
   <EditableColumn
+    ref="editableColumnRef"
     :append-rules="rules"
     :field="field"
     fixed="left"
@@ -107,6 +108,8 @@
     required: true,
   });
 
+  const editableColumnRef = useTemplateRef('editableColumnRef');
+
   const showSelector = ref(false);
   const selectedClusters = computed(() => ({
     [ClusterTypes.TENDBHA]: props.selected.filter(
@@ -146,6 +149,9 @@
       const [currentCluster] = data;
       if (currentCluster) {
         modelValue.value = currentCluster;
+      } else {
+        // 集群不存在，触发校验
+        editableColumnRef.value?.validate();
       }
     },
   });
