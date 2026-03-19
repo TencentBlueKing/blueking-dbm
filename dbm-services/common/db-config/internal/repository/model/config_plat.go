@@ -53,6 +53,9 @@ func ConfigNamesBatchUpdate(db *gorm.DB, confNames []*ConfigNameDefModel, opUser
 				OpType:      constvar.OPTypeUpdate,
 			})
 		}
+		if opUser == "system" {
+			return nil
+		}
 		return ConfNameChangesCreate(tx, changes)
 	})
 }
@@ -104,34 +107,41 @@ func ConfigNamesBatchDelete(db *gorm.DB, confNames []*ConfigNameDefModel, opUser
 				OpType:      constvar.OPTypeRemove,
 			})
 		}
+		if opUser == "system" {
+			return nil
+		}
 		return ConfNameChangesCreate(tx, changes)
 	})
 }
 
 // ConfigNamesBatchCreate TODO
 func ConfigNamesBatchCreate(db *gorm.DB, confNames []*ConfigNameDefModel, opUser string) error {
-	var sqlRes *gorm.DB
-	// handle encrypt like update?
-	sqlRes = db.Omit("time_created", "time_updated").Create(&confNames)
-	// sqlRes = DB.Self.Omit("time_created", "time_updated").Save(&confNames)
-	if err := sqlRes.Error; err != nil {
-		logger.Errorf("add conf_names :%+v, err:%s", confNames, err.Error())
-		return err
-	}
-	changes := make([]*ConfNameChangesModel, 0, len(confNames))
-	for _, c := range confNames {
-		changes = append(changes, &ConfNameChangesModel{
-			Namespace:   c.Namespace,
-			ConfType:    c.ConfType,
-			ConfFile:    c.ConfFile,
-			ConfName:    c.ConfName,
-			BeforeImage: ConfName{},
-			AfterImage:  NewConfNameFromDef(c),
-			OpUser:      opUser,
-			OpType:      constvar.OPTypeAdd,
-		})
-	}
-	return ConfNameChangesCreate(db, changes)
+	return db.Transaction(func(tx *gorm.DB) error {
+		// handle encrypt like update?
+		sqlRes := tx.Omit("time_created", "time_updated").Create(&confNames)
+		// sqlRes = DB.Self.Omit("time_created", "time_updated").Save(&confNames)
+		if err := sqlRes.Error; err != nil {
+			logger.Errorf("add conf_names :%+v, err:%s", confNames, err.Error())
+			return err
+		}
+		changes := make([]*ConfNameChangesModel, 0, len(confNames))
+		for _, c := range confNames {
+			changes = append(changes, &ConfNameChangesModel{
+				Namespace:   c.Namespace,
+				ConfType:    c.ConfType,
+				ConfFile:    c.ConfFile,
+				ConfName:    c.ConfName,
+				BeforeImage: ConfName{},
+				AfterImage:  NewConfNameFromDef(c),
+				OpUser:      opUser,
+				OpType:      constvar.OPTypeAdd,
+			})
+		}
+		if opUser == "system" {
+			return nil
+		}
+		return ConfNameChangesCreate(tx, changes)
+	})
 }
 
 // ConfigNamesBatchSave upsert
@@ -176,6 +186,9 @@ func ConfigNamesBatchSave(db *gorm.DB, confNames []*ConfigNameDefModel, opUser s
 				OpUser:      opUser,
 				OpType:      opType,
 			})
+		}
+		if opUser == "system" {
+			return nil
 		}
 		return ConfNameChangesCreate(tx, changes)
 	})
