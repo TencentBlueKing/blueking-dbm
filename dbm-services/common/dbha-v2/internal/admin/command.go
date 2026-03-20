@@ -45,7 +45,11 @@ var VersionCmd = &cobra.Command{
 
 var MigrateCmd = &cobra.Command{
 	Use:   "migrate",
-	Short: "migrate all databases",
+	Short: "migrate databases schema and default global strategies",
+	Long: `Migrate command supports the following types:
+  			--type schema    : only migrate table schema
+  			--type strategy  : only create default global strategies
+  			--type all       : migrate schema and create strategies (default)`,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		viper.SetConfigName("admin")
@@ -59,18 +63,34 @@ var MigrateCmd = &cobra.Command{
 		}
 
 		if err := viper.ReadInConfig(); err != nil {
-			logger.Error("read admin configuration failed, %v", err)
+			logger.Error("read admin configuration failed, errmsg: %s", err)
 			return
 		}
 
 		if err := viper.Unmarshal(&config.Cfg); err != nil {
-			logger.Error("unmarshal admin configuration failed, %v", err)
+			logger.Error("unmarshal admin configuration failed, errmsg: %s", err)
 			return
 		}
 
 		mig := &migrator.Migrator{}
-		if err := mig.InitDbhaData(); err != nil {
-			logger.Error("migrate dbhadata failed, %v", err)
+		switch MigrateType {
+		case migrator.MigrateTypeSchema:
+			logger.Info("migrate type: schema")
+			if err := mig.MigrateSchema(); err != nil {
+				logger.Error("migrate schema failed, errmsg: %s", err)
+			}
+		case migrator.MigrateTypeStrategy:
+			logger.Info("migrate type: strategy")
+			if err := mig.MigrateStrategy(); err != nil {
+				logger.Error("migrate strategy failed, errmsg: %s", err)
+			}
+		case migrator.MigrateTypeAll:
+			logger.Info("migrate type: all")
+			if err := mig.MigrateAll(); err != nil {
+				logger.Error("migrate all failed, errmsg: %s", err)
+			}
+		default:
+			logger.Error("unknown migrate type: %s, supported types: schema, strategy, all", MigrateType)
 		}
 	},
 }
