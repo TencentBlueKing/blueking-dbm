@@ -31,11 +31,11 @@ def show_instance_processlist_summary(cluster_obj: Cluster, instance: str, aggre
     bk_cloud_id = cluster_obj.bk_cloud_id
     instance_host, instance_port = instance.split(":")
 
-    storage_instances = StorageInstance.objects.filter(machine__in=instance_host, port=instance_port)
+    storage_instances = StorageInstance.objects.filter(machine__ip=instance_host, port=instance_port)
     proxy_instances = []
     if not storage_instances or cluster_type == ClusterType.TenDBHA:
         # if instance is not storage, we query from proxy instances
-        proxy_instances = ProxyInstance.objects.filter(machine__in=instance_host, port=instance_port)
+        proxy_instances = ProxyInstance.objects.filter(machine__ip=instance_host, port=instance_port)
 
     if cluster_type == ClusterType.TenDBSingle:
         proxy_processlist_detail = []

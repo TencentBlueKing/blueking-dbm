@@ -148,7 +148,7 @@ def query_slow_logs(
             if not item.get("query_digest_md5"):
                 continue
             item["values"] = row["values"][-1]  # row["values"]
-            item[metric_param["field_name"]] = row["values"][-1]
+            item[metric_param["field_name"]] = row["values"][-1][1]  # [ts, value]
 
             # query one sample detail
             item["sample"] = query_slow_log_detail(cluster_domain, item.get("query_digest_md5"), start_time, end_time)
