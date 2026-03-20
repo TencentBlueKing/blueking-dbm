@@ -7,8 +7,6 @@ interface OriginBackupLogRecord {
   backup_host: string;
   backup_id: string;
   backup_meta_file: string;
-  backup_port: string;
-  backup_status: string;
   /**
    * backup_method
     - full_by_ticket: 全库备份（单据）
@@ -17,7 +15,10 @@ interface OriginBackupLogRecord {
     - non_full_by_regular: 非全库备份（例行）
    */
   backup_method: string;
+  backup_port: string;
+  backup_status: string;
   backup_time: string;
+  backup_tool: string;
   backup_type: string;
   bill_id: string;
   binlog_info: {
@@ -39,8 +40,8 @@ interface OriginBackupLogRecord {
   bk_biz_id: string;
   cluster_address: string;
   cluster_id: string;
-  database_list: string[];
   data_schema_grant: string;
+  database_list: string[];
   extra_fields: {
     backup_charset: string;
     bk_cloud_id: number;
@@ -49,8 +50,6 @@ interface OriginBackupLogRecord {
     time_zone: string;
     total_size_kb_uncompress: number;
   };
-  total_filesize: number;
-  backup_tool: string;
   file_list: {
     contain_files: null;
     contain_tables: null;
@@ -69,28 +68,29 @@ interface OriginBackupLogRecord {
   mysql_version: string;
   server_id: string;
   shard_value: string;
+  total_filesize: number;
 }
 
 export default class BackupLogRecord {
-  cluster_id: number;
-  bk_cloud_id: number;
-  bk_biz_id: number;
-  bill_id: string;
-  cluster_address: string;
-  database_list: string[];
-  backup_method_list: string[];
-  backup_tool_list: string[];
-  backup_type_list: string[];
-  total_filesize: number;
-  backup_method: string;
-  spider_node: OriginBackupLogRecord;
-  tdbctl_node: OriginBackupLogRecord;
-  remote_node: OriginBackupLogRecord;
   backup_consistent_time: string;
   backup_id: string;
-  shard_list: string[];
-  backup_type: string;
+  backup_method: string;
+  backup_method_list: string[];
   backup_tool: string;
+  backup_tool_list: string[];
+  backup_type: string;
+  backup_type_list: string[];
+  bill_id: string;
+  bk_biz_id: number;
+  bk_cloud_id: number;
+  cluster_address: string;
+  cluster_id: number;
+  database_list: string[];
+  remote_node: OriginBackupLogRecord;
+  shard_list: string[];
+  spider_node: OriginBackupLogRecord;
+  tdbctl_node: OriginBackupLogRecord;
+  total_filesize: number;
 
   constructor(payload = {} as BackupLogRecord) {
     this.cluster_id = payload.cluster_id || 0;

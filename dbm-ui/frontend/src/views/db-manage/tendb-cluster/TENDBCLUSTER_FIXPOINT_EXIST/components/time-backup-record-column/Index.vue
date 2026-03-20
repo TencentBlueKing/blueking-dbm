@@ -271,7 +271,7 @@
     ).then((res) => {
       res.forEach((data, index) => {
         tableData.value[index].backupRecord = data;
-        tableData.value[index].backupTime = data.backup_consistent_time;
+        tableData.value[index].backupTime = data?.backup_consistent_time;
       });
     });
   };
@@ -304,7 +304,7 @@
         Promise.all(taskList).then((res) => {
           res.forEach((data, index) => {
             tableData.value[targetRow[index]].backupRecord = data;
-            tableData.value[targetRow[index]].backupTime = data.backup_consistent_time;
+            tableData.value[targetRow[index]].backupTime = data?.backup_consistent_time;
           });
         });
       }, 1000);
