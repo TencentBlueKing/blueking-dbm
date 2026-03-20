@@ -56,5 +56,5 @@ DBAUTH_NEW=""  # 新 db 的连接信息
 DBNAME_NEW=""  # 导入到新的 db 名，取决于租户配置
 BK_BIZ_ID=1234  # 要迁移的 bk_biz_id
 
-mysql $DBAUTH $DBNAME < dbconfig_biz_data_${BK_BIZ_ID}.sql
+mysql $DBAUTH_NEW $DBNAME_NEW < dbconfig_biz_data_${BK_BIZ_ID}.sql
 ```
