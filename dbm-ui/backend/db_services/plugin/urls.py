@@ -14,6 +14,7 @@ from backend.db_services.plugin.redis.capacity_evaluate.views import CapacityEva
 
 from .bf.views import BFPluginViewSet
 from .cluster.views import OpenClusterViewSet
+from .cmdb.view import CMDBApiGwViewSet
 from .db_dirty.views import DBDirtyMachineViewSet
 from .monitor.views import MonitorPluginViewSet
 from .mysql.apply.views import ApplyPluginViewSet
@@ -33,4 +34,5 @@ routers.register("ticket", TicketViewSet, basename="ticket")
 
 routers.register("db_dirty", DBDirtyMachineViewSet, basename="db_dirty")
 routers.register("redis/capacity_evaluate", CapacityEvaluateViewSet, basename="capacity_evaluate")
+routers.register("cmdb", CMDBApiGwViewSet, basename="cmdb")
 urlpatterns = routers.urls
