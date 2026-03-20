@@ -223,5 +223,5 @@ export const exportPartitions = function (params: {
     file_content: string;
     file_name: string;
     total_count: number;
-  }>('/apis/partition/export_partitions/', params);
+  }>('/apis/partition/export_partitions/', params, { responseType: 'blob' });
 };

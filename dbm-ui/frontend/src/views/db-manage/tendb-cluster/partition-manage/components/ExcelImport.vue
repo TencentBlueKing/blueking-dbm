@@ -147,7 +147,7 @@
 
   const apiInfo = {
     downloadTemplatePath: `${window.PROJECT_ENV.VITE_PUBLIC_PATH || '/'}cluster-partition-template.xlsx`,
-    uploadLink: `${window.PROJECT_ENV.VITE_AJAX_URL_PREFIX}/apis/partition/import_from_excel/`,
+    uploadLink: `${window.PROJECT_ENV.VITE_AJAX_URL_PREFIX || '/'}apis/partition/import_from_excel/`,
   };
 
   const handleInitExcelData = () => {
