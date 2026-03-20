@@ -14,16 +14,13 @@
       filterable
       :input-search="false"
       :loading="moduleLoading"
+      :no-data-text="t('当前业务下暂无可用模块，请联系 DBA 创建')"
       style="display: inline-block">
-      <AuthOption
-        v-for="item in moduleList"
+      <BkOption
+        v-for="item in sortedModuleList"
         :id="item.db_module_id"
         :key="item.db_module_id"
-        action-id="dbconfig_view"
-        :biz-id="bizId"
-        :name="item.alias_name"
-        :permission="item.permission.dbconfig_view"
-        :resource="dbType">
+        :name="item.alias_name">
         <div class="apply-module-item-moudle-option">
           <span class="moudle-option-label">
             <BkOverflowTitle type="tips">{{ item.alias_name }}</BkOverflowTitle>
@@ -32,9 +29,9 @@
             {{ getBaseInfo(item) }}
           </span>
         </div>
-      </AuthOption>
+      </BkOption>
       <template
-        v-if="bizId && clusterType !== ClusterTypes.RIAK"
+        v-if="hasEditPermission && bizId && clusterType !== ClusterTypes.RIAK"
         #extension>
         <div
           :key="bizId"
@@ -43,19 +40,16 @@
             disabled: !!bizId,
           }"
           style="padding: 0 12px">
-          <AuthButton
-            action-id="dbconfig_edit"
-            :biz-id="bizId"
+          <BkButton
             class="create-module"
             :disabled="!bizId"
-            :resource="dbType"
             text
             @click="handleCreateModule">
             <DbIcon
               class="mr-4"
               type="plus-circle" />
             {{ t('新建模块') }}
-          </AuthButton>
+          </BkButton>
         </div>
       </template>
     </BkSelect>
@@ -100,7 +94,7 @@
 
 <script setup lang="ts">
   import { Form } from 'bkui-vue';
-  import type { UnwrapRef } from 'vue';
+  import { computed, type UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -108,6 +102,8 @@
   import { getLevelConfig } from '@services/source/configs';
 
   import { clusterTypeInfos, ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+
+  import useBase from '@components/auth-component/use-base';
 
   interface Props {
     bizId: number | '';
@@ -131,6 +127,13 @@
   const { t } = useI18n();
 
   const { dbType } = clusterTypeInfos[props.clusterType];
+
+  // 判断是否有 dbconfig_edit 权限（使用与 AuthButton 相同的逻辑）
+  const { isShowRaw: hasEditPermission } = useBase({
+    actionId: 'dbconfig_edit',
+    permission: 'normal',
+    resource: dbType,
+  });
 
   const rules = [
     {
@@ -157,6 +160,16 @@
 
   const moduleRef = ref<InstanceType<typeof Form.FormItem>>();
   const isBindModule = ref(false);
+
+  /**
+   * 自然序排序比较函数（将字符串中的数字按数值比较）
+   */
+  const naturalSort = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true });
+
+  const sortedModuleList = computed(() => {
+    const list = moduleList.value || [];
+    return [...list].sort((a, b) => naturalSort(a.alias_name, b.alias_name));
+  });
 
   const configItemList = computed(() => {
     const confItems = levelConfigData.value?.conf_items || [];
@@ -328,39 +341,11 @@
   };
 
   const handleCreateModule = () => {
-    const routeNameMap: Record<string, string> = {
-      [DBTypes.MYSQL]: 'SelfServiceCreateDbModule',
-      [DBTypes.SQLSERVER]: 'SqlServerCreateDbModule',
-      [DBTypes.TENDBCLUSTER]: 'createSpiderModule',
-    };
-
-    const getParams = () => {
-      if (dbType === DBTypes.MYSQL) {
-        return {
-          bk_biz_id: props.bizId,
-          type:
-            props.clusterType === ClusterTypes.TENDBSINGLE
-              ? TicketTypes.MYSQL_SINGLE_APPLY
-              : TicketTypes.MYSQL_HA_APPLY,
-        };
-      }
-      if (dbType === DBTypes.TENDBCLUSTER) {
-        return {
-          bizId: props.bizId,
-        };
-      }
-      return {
-        bizId: props.bizId,
-        ticketType:
-          props.clusterType === ClusterTypes.SQLSERVER_SINGLE
-            ? TicketTypes.SQLSERVER_SINGLE_APPLY
-            : TicketTypes.SQLSERVER_HA_APPLY,
-      };
-    };
-
     const url = router.resolve({
-      name: routeNameMap[dbType],
-      params: getParams(),
+      name: 'DbConfigureCreateModule',
+      params: {
+        clusterType: props.clusterType,
+      },
       query: {
         from: route.name as string,
       },
