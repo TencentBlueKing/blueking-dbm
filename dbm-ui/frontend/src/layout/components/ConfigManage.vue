@@ -41,7 +41,7 @@
             </span>
           </BkMenuItem>
         </BkMenuGroup>
-        <BkMenuGroup :name="t('业务配置')">
+        <BkMenuGroup :name="t('参数配置')">
           <BkMenuItem
             key="DbConfigure"
             v-db-console="'bizConfigManage.dbConfigure'">

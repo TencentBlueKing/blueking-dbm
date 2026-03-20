@@ -109,7 +109,10 @@
     bkUiSettings?: ComponentProps<typeof PrimaryTable>['bkUiSettings'];
     // 没提供默认使用浏览器窗口的高度 window.innerHeight
     containerHeight?: number;
+    // 自定义排序方法
+    customSortMethod?: (sort: TableSort) => any;
     dataSource: (params: any, payload?: IRequestPayload) => Promise<any>;
+    defaultLimit?: number;
     disableSelectMethod?: (data: any) => boolean | string;
     filterValue?: Record<string, string>;
     // 固定分页，不通过容器高度自动计算
@@ -160,6 +163,8 @@
   const props = withDefaults(defineProps<Props & TableProps>(), {
     bkUiSettings: undefined,
     containerHeight: undefined,
+    customSortMethod: undefined,
+    defaultLimit: undefined,
     disableSelectMethod: () => false,
     filterValue: undefined,
     fixedPagination: false,
@@ -222,6 +227,7 @@
       isPaginationChangeFetch = true;
       fetchListData();
     },
+    defaultLimit: props.defaultLimit,
   });
 
   const { handleClearWholeSelect, isWholeChecked, selectColumn, selectedRowMap } = useSelect(
@@ -389,6 +395,9 @@
   };
 
   const handleSortChange = (payload: TableSort) => {
+    if (props.customSortMethod) {
+      return props.customSortMethod(payload);
+    }
     if (Array.isArray(payload)) {
       return;
     }
@@ -468,8 +477,16 @@
     },
   });
 </script>
-<style lang="less">
+<style lang="less" scoped>
   .db-table {
+    :deep(.t-table__th-cell-inner) {
+      display: flex !important;
+    }
+
+    :deep(.t-checkbox) {
+      display: flex !important;
+    }
+
     .table-footer {
       position: relative;
       z-index: 1;

@@ -73,6 +73,16 @@
             </slot>
           </BkTabPanel>
         </slot>
+        <slot name="paramConfig">
+          <BkTabPanel
+            :key="clusterData.id"
+            :label="t('参数配置')"
+            name="paramConfig">
+            <ParamConfig
+              v-if="activePanel === 'paramConfig' && clusterData.id"
+              :cluster="clusterData" />
+          </BkTabPanel>
+        </slot>
         <template v-if="monitorPanelList && monitorPanelList.urls.length > 0">
           <BkTabPanel
             v-for="monirotItem in monitorPanelList.urls"
@@ -102,13 +112,23 @@
         <slot name="record">
           <BkTabPanel
             :key="clusterData.id"
-            :label="t('单据记录')"
+            :label="t('操作记录')"
             name="record">
-            <OperationRecord
-              v-if="visitedPanels.has('record')"
-              v-show="activePanel === 'record'"
-              :id="clusterData.id"
-              :key="clusterData.id" />
+            <div
+              v-if="activePanel === 'record'"
+              class="conf-tab-wrapper mt-16">
+              <BkTab
+                v-model:active="recordSubTab"
+                type="unborder-card">
+                <BkTabPanel
+                  :label="t('单据记录')"
+                  name="ticketRecord">
+                  <OperationRecord
+                    :id="clusterData.id"
+                    :key="clusterData.id" />
+                </BkTabPanel>
+              </BkTab>
+            </div>
           </BkTabPanel>
         </slot>
       </BkTab>
@@ -151,6 +171,7 @@
   import Instancelist from './components/InstanceList.vue';
   import MonitorDashboard from './components/MonitorDashboard.vue';
   import OperationRecord from './components/OperationRecord.vue';
+  import ParamConfig from './components/ParamConfig.vue';
   import {
     URL_CLUSTER_DETAIL_MEMO_KEY,
     URL_HOST_MEMO_KEY,
@@ -172,6 +193,7 @@
     infoContent: () => VNode;
     instance: () => VNode;
     instanceContent: () => VNode;
+    paramConfig: () => VNode;
     record: () => VNode;
     topo: () => VNode;
   }
@@ -202,7 +224,7 @@
     [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: RedisModel;
   }
 
-  const fixedTabList = ['topo', 'info', 'instance', 'host', 'record', 'alarmSubscription'];
+  const fixedTabList = ['topo', 'info', 'instance', 'host', 'paramConfig', 'record', 'alarmSubscription'];
 </script>
 <script setup lang="ts" generic="T extends keyof ClusterTypeRelateClusterModel">
   const props = defineProps<Props<T>>();
@@ -215,6 +237,7 @@
   const { metricsMap } = useAlarmSubscribe();
 
   const isFixedTab = ref(false);
+  const recordSubTab = ref('ticketRecord');
 
   const rootRef = useTemplateRef('root');
   const activePanel = ref(String(route.query[URL_CLUSTER_DETAIL_MEMO_KEY]) || '');
@@ -307,7 +330,7 @@
     min-height: 350px;
 
     .bk-tab-panel {
-      padding: 0 20px;
+      padding: 0 24px;
     }
 
     .bk-tab-content {

@@ -72,6 +72,17 @@ const withBizActionList = [
   'doris_apply',
   'biz_assistance_vars_config',
   'biz_notify_config',
+  'mysql_dbconfig_edit',
+  'redis_dbconfig_edit',
+  'mongodb_dbconfig_edit',
+  'sqlserver_dbconfig_edit',
+  'tendbcluster_dbconfig_edit',
+  'doris_dbconfig_edit',
+  'es_dbconfig_edit',
+  'kafka_dbconfig_edit',
+  'hdfs_dbconfig_edit',
+  'pulsar_dbconfig_edit',
+  'influxdb_dbconfig_edit',
 ];
 
 export default function (props: Props) {
