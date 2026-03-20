@@ -167,10 +167,3 @@
     fetchData();
   });
 </script>
-
-<style lang="less">
-  .cluster-detail-event-change {
-    height: 100%;
-    padding: 18px 0;
-  }
-</style>
