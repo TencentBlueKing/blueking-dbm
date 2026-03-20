@@ -54,7 +54,8 @@ def _metrics_common_slz():
         "request_slz": MongoMetricsInputSerializer,
         "response_slz": MongoMetricsOutputSerializer,
         "tags": [DBMMCPTags.READ],
-        "mcp": [DBMMcpTools.MONGODB_METRICS],
+        # 仅聚合到 mongodb-mcp server
+        "mcp": [DBMMcpTools.MONGODB_MCP],
         "name_prefix": DBMMcpTools.MONGODB_METRICS.replace("-", "_"),
     }
 
@@ -67,7 +68,7 @@ class MongoMetricsMcpToolsViewSet(McpToolsViewSet):
         request_slz=MongoTimeEmptyInputSerializer,
         response_slz=CurrentTimeOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.MONGODB_METRICS],
+        mcp=[DBMMcpTools.MONGODB_MCP],
         name_prefix=DBMMcpTools.MONGODB_METRICS.replace("-", "_"),
     )
     def get_current_time(self, request, *args, **kwargs):
@@ -78,7 +79,7 @@ class MongoMetricsMcpToolsViewSet(McpToolsViewSet):
         request_slz=ConvertTimestampInputSerializer,
         response_slz=ConvertTimestampOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.MONGODB_METRICS],
+        mcp=[DBMMcpTools.MONGODB_MCP],
         name_prefix=DBMMcpTools.MONGODB_METRICS.replace("-", "_"),
     )
     def convert_timestamp_to_str(self, request, *args, **kwargs):
@@ -91,7 +92,7 @@ class MongoMetricsMcpToolsViewSet(McpToolsViewSet):
         request_slz=MongoMetaInfoInputSerializer,
         response_slz=MongoMetaInfoOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.MONGODB_METRICS],
+        mcp=[DBMMcpTools.MONGODB_MCP],
         name_prefix=DBMMcpTools.MONGODB_METRICS.replace("-", "_"),
     )
     def get_meta_info(self, request, *args, **kwargs):

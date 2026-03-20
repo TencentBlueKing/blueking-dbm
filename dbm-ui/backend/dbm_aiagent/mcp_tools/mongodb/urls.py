@@ -16,9 +16,10 @@ from backend.dbm_aiagent.mcp_tools.mongodb.views.query_metrics import MongoMetri
 
 routers = DefaultRouter(trailing_slash=True)
 
-routers.register(r"", MongoMetaMcpToolsViewSet, basename="mcp-mongodb-meta")
-routers.register(r"", MongoLogMcpToolsViewSet, basename="mcp-mongodb-log")
-routers.register(r"", MongoAlarmMcpToolsViewSet, basename="mcp-mongodb-alarm")
-routers.register(r"", MongoMetricsMcpToolsViewSet, basename="mcp-mongodb-metrics")
+# 把 MongoDB 的 4 类 MCP 接口统一聚合到 mongodb-mcp 前缀下
+routers.register(r"mongodb-mcp", MongoMetaMcpToolsViewSet, basename="mcp-mongodb-meta")
+routers.register(r"mongodb-mcp", MongoLogMcpToolsViewSet, basename="mcp-mongodb-log")
+routers.register(r"mongodb-mcp", MongoAlarmMcpToolsViewSet, basename="mcp-mongodb-alarm")
+routers.register(r"mongodb-mcp", MongoMetricsMcpToolsViewSet, basename="mcp-mongodb-metrics")
 
 urlpatterns = routers.urls
