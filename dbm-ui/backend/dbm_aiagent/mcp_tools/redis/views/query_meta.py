@@ -21,16 +21,19 @@ from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.redis.impl.cluster_meta import (
     cluster_basic_overview,
-    cluster_masters,
     cluster_proxies,
     cluster_proxy_overview,
     cluster_storage_overiew,
+    get_cluster_storage_tuples,
+    instance_detail,
     list_biz_by_name,
     list_clusters_by_hosts,
     list_my_redis_bizs,
     redis_list_clusters,
 )
 from backend.dbm_aiagent.mcp_tools.redis.serializers.cluster_meta import (
+    ClusterInstancesDetailSerializer,
+    ClusterStorageTuplesSerializer,
     RedisBizInputSerializer,
     RedisBizNameInputSerializer,
     RedisBizsListSerializer,
@@ -40,9 +43,10 @@ from backend.dbm_aiagent.mcp_tools.redis.serializers.cluster_meta import (
     RedisEmptyInputSerializer,
     RedisHostClusterOutputSerializer,
     RedisHostInputSerializer,
+    RedisInstancesInputSerializer,
     RedisInstancesTopoSerializer,
     RedisListInstsTopoInputSerializer,
-    RedisMastersSummarySerializer,
+    RedisListStorageInstsInputSerializer,
     RedisProxiesSummarySerializer,
     RedisTopoInputSerializer,
 )
@@ -156,22 +160,23 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
     )
     def list_cluster_proxies(self, request, *args, **kwargs):
         immute_domain = self.get_param("cluster_domain")
-        hosts = self.get_param("ips", default=None)  # 获取可选的 hosts 参数
+        hosts = self.get_param("ips", default=[])  # 获取可选的 hosts 参数
         return Response(cluster_proxies(immute_domain=immute_domain, hosts=hosts))
 
     @mcp_tools_api_decorator(
-        description=str(_("查询 Redis 集群的Master节点详细列表")),
-        request_slz=RedisTopoInputSerializer,
-        response_slz=RedisMastersSummarySerializer,
+        description=str(_("查询 Redis 集群的存储节点实例列表")),
+        request_slz=RedisListStorageInstsInputSerializer,
+        response_slz=ClusterStorageTuplesSerializer,
         permission_classes=[McpClusterManagePermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_QUERY_META],
         name_prefix="redis_query_meta",
     )
-    def list_cluster_masters(self, request, *args, **kwargs):
+    def list_cluster_storageinstances(self, request, *args, **kwargs):
+        addrs = self.get_param("addrs", default=[])  # 获取可选的 hosts 参数
         immute_domain = self.get_param("cluster_domain")
-        return Response(cluster_masters(immute_domain=immute_domain))
+        return Response(get_cluster_storage_tuples(immute_domain=immute_domain, instance_addresses=addrs))
 
     @mcp_tools_api_decorator(
         description=str(_("根据输入的IP列表;查询Redis集群列表")),
@@ -186,3 +191,18 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
     def list_clusters_by_hosts(self, request, *args, **kwargs):
         hosts = self.get_param("ips")
         return Response(list_clusters_by_hosts(hosts=hosts))
+
+    @mcp_tools_api_decorator(
+        description=str(_("根据输入的实例列表;查询实例基本信息")),
+        request_slz=RedisInstancesInputSerializer,
+        response_slz=ClusterInstancesDetailSerializer,
+        permission_classes=[McpClusterManagePermission],
+        mcp_auth_parser=auth_parse_clusters,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.REDIS_QUERY_META],
+        name_prefix="redis_query_meta",
+    )
+    def list_instances_basicinfo(self, request, *args, **kwargs):
+        addrs = self.get_param("addrs")
+        immute_domain = self.get_param("cluster_domain")
+        return Response(instance_detail(immute_domain=immute_domain, addrs=addrs))

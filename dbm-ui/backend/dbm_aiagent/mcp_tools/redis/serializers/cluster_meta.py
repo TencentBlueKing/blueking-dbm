@@ -49,6 +49,13 @@ class RedisListInstsTopoInputSerializer(serializers.Serializer):
     )
 
 
+class RedisListStorageInstsInputSerializer(serializers.Serializer):
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    addrs = serializers.ListSerializer(
+        child=RedisAddrSerializer, required=False, allow_null=True, help_text="可选的实例列表 "
+    )
+
+
 class RedisTopoInputSerializer(serializers.Serializer):
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
 
@@ -90,19 +97,21 @@ class RedisProxiesOutputSerializer(serializers.Serializer):
     version = serializers.CharField(help_text=_("实例版本"))
 
 
-class RedisMastersOutputSerializer(serializers.Serializer):
-    sub_zone = serializers.CharField(help_text=_("地域-园区"))
-    cls_name = serializers.CharField(help_text=_("设备名称"))
-    ip = serializers.CharField(help_text=_("主机IP"))
-    ports = serializers.ListSerializer(child=InstancePortSerializer(), help_text=_("实例端口"))
-
-
-class RedisMastersSummarySerializer(serializers.Serializer):
-    masters = serializers.ListSerializer(child=RedisMastersOutputSerializer(), help_text=_("存储层实例汇总"))
-
-
 class RedisProxiesSummarySerializer(serializers.Serializer):
     proxies = serializers.ListSerializer(child=RedisProxiesOutputSerializer(), help_text=_("接入层实例信息"))
+
+
+class StorageTupleSerializer(serializers.Serializer):
+    """存储实例主从关系"""
+
+    redis_master = serializers.CharField(help_text=_("主节点地址（IP:Port）"))
+    redis_slave = serializers.CharField(help_text=_("从节点地址（IP:Port）"))
+
+
+class ClusterStorageTuplesSerializer(serializers.Serializer):
+    """集群存储节点主从关系响应"""
+
+    tuples = StorageTupleSerializer(many=True, help_text=_("主从关系列表"))
 
 
 class ClusterEntrySerializer(serializers.Serializer):
@@ -178,3 +187,37 @@ class RedisTupleInfoSerializer(serializers.Serializer):
 class RedisInstanceTupleSerializer(serializers.Serializer):
     immute_domain = serializers.CharField(help_text=_("集群域名"))
     instances = serializers.ListSerializer(child=RedisTupleInfoSerializer(), help_text=_("实例关系对"))
+
+
+class RedisInstancesInputSerializer(serializers.Serializer):
+    """Redis实例列表序列化器"""
+
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    addrs = serializers.ListField(help_text=_("实例地址列表"), required=True)
+
+
+class BindEntrySerializer(serializers.Serializer):
+    """绑定入口条目"""
+
+    id = serializers.IntegerField(help_text=_("入口ID"))
+    entry = serializers.CharField(help_text=_("入口域名"))
+
+
+class InstanceDetailSerializer(serializers.Serializer):
+    """实例详细信息"""
+
+    address = serializers.CharField(help_text=_("实例地址（IP:Port）"))
+    version = serializers.CharField(help_text=_("版本号"))
+    status = serializers.CharField(help_text=_("运行状态"))
+    instance_role = serializers.CharField(help_text=_("实例角色（如 redis_slave、twemproxy）"))
+    machine_type = serializers.CharField(help_text=_("机器类型（如 tendiscache、proxy）"))
+    cluster_type = serializers.CharField(help_text=_("集群类型（如 TwemproxyRedisInstance）"))
+    sub_zone = serializers.CharField(help_text=_("子区域（如 上海-松江）"))
+    cls_name = serializers.CharField(help_text=_("规格名称（如 SA3.4XLARGE64）"))
+    bind_entries = BindEntrySerializer(many=True, help_text=_("绑定的入口列表"))
+
+
+class ClusterInstancesDetailSerializer(serializers.Serializer):
+    """集群实例详情响应"""
+
+    instances = InstanceDetailSerializer(many=True, help_text=_("实例列表"))
