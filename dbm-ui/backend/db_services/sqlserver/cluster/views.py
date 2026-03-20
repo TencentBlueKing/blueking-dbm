@@ -14,8 +14,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.db_meta.enums import ClusterType, InstanceInnerRole
-from backend.db_meta.models import Cluster
+from backend.db_meta.enums import InstanceInnerRole
 from backend.db_services.dbbase.cluster.views import ClusterViewSet as BaseClusterViewSet
 from backend.db_services.mysql.cluster.serializers import (
     GetIntersectedSlavaMachinesResponseSerializer,

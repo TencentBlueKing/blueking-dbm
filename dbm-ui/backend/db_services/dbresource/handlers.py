@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 import itertools
 import math
-import time
 from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List
