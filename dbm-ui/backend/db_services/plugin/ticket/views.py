@@ -25,14 +25,21 @@ from backend.db_services.plugin.ticket.serializers import (
 from backend.db_services.plugin.view import BaseOpenAPIViewSet
 from backend.ticket.constants import TodoStatus, TodoType
 from backend.ticket.exceptions import TodoDuplicateProcessException
-from backend.ticket.handler import TicketHandler
 from backend.ticket.models import Todo
+from backend.ticket.serializers import TicketSerializer
 from backend.ticket.todos import TodoActorFactory
+from backend.ticket.views import TicketViewSet
 
 logger = logging.getLogger("root")
 
 
-class TicketViewSet(BaseOpenAPIViewSet):
+class TicketApiGwViewSet(BaseOpenAPIViewSet, TicketViewSet):
+    def get_permissions(self):
+        # bkchat_process_todo 是 bkchat 机器人回调接口，无需鉴权
+        if self.action == "bkchat_process_todo":
+            return []
+        return super().get_permissions()
+
     @swagger_auto_schema(
         operation_summary=_("批量单据待办处理"),
         request_body=OpenAPIBatchTicketOperateSerializer(),
@@ -40,8 +47,7 @@ class TicketViewSet(BaseOpenAPIViewSet):
     )
     @action(methods=["POST"], detail=False, serializer_class=OpenAPIBatchTicketOperateSerializer)
     def batch_process_ticket(self, request, *args, **kwargs):
-        params = self.params_validate(self.get_serializer_class())
-        return Response(TicketHandler.batch_process_ticket(**params))
+        return super().batch_process_ticket(request, *args, **kwargs)
 
     @swagger_auto_schema(
         operation_summary=_("待办处理(bkchat专属)"),
@@ -72,3 +78,11 @@ class TicketViewSet(BaseOpenAPIViewSet):
             return Response({"response_msg": _("{} 已终止").format(todo.done_by), "response_color": "red"})
         elif todo.status == TodoStatus.DONE_SUCCESS:
             return Response({"response_msg": _("{} 已确认").format(todo.done_by), "response_color": "green"})
+
+    @swagger_auto_schema(
+        operation_summary=_("创建单据"),
+        responses={status.HTTP_200_OK: TicketSerializer(label=_("创建单据"))},
+        tags=[SWAGGER_TAG],
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
