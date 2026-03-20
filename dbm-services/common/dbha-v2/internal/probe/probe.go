@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+// Package probe implements the probe main framework for harvesting and reporting DB instance data.
 package probe
 
 import (
@@ -30,10 +31,10 @@ import (
 	"sync"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/probe/client"
 	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/internal/probe/harvester"
 	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
-	"dbm-services/common/dbha-v2/internal/probe/reporter"
 	"dbm-services/common/dbha-v2/pkg/logger"
 )
 
@@ -42,7 +43,7 @@ type Probe struct {
 	clientID  string
 	machineID string
 	serviceID string
-	reporters []reporter.Reporter
+	reporter  client.Reporter
 	plugins   []plugin.Plugin
 	quit      chan struct{}
 	wg        sync.WaitGroup
@@ -77,6 +78,10 @@ func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin) {
 				return
 			}
 
+			baseInfo := p.reporter.GetBaseInfo()
+
+			data.AgentID = baseInfo.AgentID
+			data.BkCloudID = baseInfo.BkCloudID
 			data.DbTypeName = data.Value.GetDbType()
 
 			dataEncoded, err := json.Marshal(data)
@@ -87,14 +92,10 @@ func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin) {
 
 			logger.Debug("harvester reported data: %s", string(dataEncoded))
 
-			for _, r := range p.reporters {
-				err := r.Post(ctx, dataEncoded)
-				if err == nil {
-					// NOTE: Just one reporter sending the data is sufficient.
-					break
+			if p.reporter != nil {
+				if err := p.reporter.Post(ctx, dataEncoded); err != nil {
+					logger.Warn("post data to receiver failed, plugin(%s), reporter(%s), %v", name, p.reporter.Name(), err)
 				}
-
-				logger.Warn("post data to receiver failed, plugin(%s), reporter(%s), %v", name, r.Name(), err)
 			}
 		}
 	}
@@ -136,8 +137,11 @@ func (p *Probe) createReporter() {
 	// Once the reporter is created successfully, the network abnormalities of the reporter itself
 	// need to be maintained by the reporter itself.
 
-	cfgs := config.Cfg.Reporters
+	if config.Cfg.Reporter == nil {
+		return
+	}
 
+	cfg := *config.Cfg.Reporter
 	p.wg.Add(1)
 	go func() {
 		defer p.wg.Done()
@@ -148,34 +152,22 @@ func (p *Probe) createReporter() {
 				return
 
 			default:
-
-				var failedCfgs []config.ReporterConfig
-
-				for _, cfg := range cfgs {
-					r, err := reporter.NewReporter(cfg)
-					if err != nil {
-						logger.Warn("create new reporter failed, reporter(%s), %v", cfg.Name, err)
-						failedCfgs = append(failedCfgs, cfg)
-						continue
-					}
-
-					p.reporters = append(p.reporters, r)
+				r, err := client.NewReporter(cfg)
+				if err != nil {
+					logger.Warn("create new reporter failed, reporter(%s), %v", cfg.Name, err)
+					time.Sleep(100 * time.Millisecond)
+					continue
 				}
 
-				if len(failedCfgs) == 0 {
-					logger.Info("created all reporter successfully, reporter count(%d)", len(p.reporters))
-					return
-				}
-
-				cfgs = failedCfgs
-				failedCfgs = make([]config.ReporterConfig, 0)
-
-				time.Sleep(100 * time.Millisecond)
+				p.reporter = r
+				logger.Info("created reporter successfully, reporter(%s)", cfg.Name)
+				return
 			}
 		}
 	}()
 }
 
+// Run starts the probe: loads plugins, creates the reporter, and runs the event loop until quit.
 func (p *Probe) Run(ctx context.Context) error {
 	p.quit = make(chan struct{})
 
@@ -198,6 +190,7 @@ func (p *Probe) Run(ctx context.Context) error {
 	}
 }
 
+// Close signals the probe to stop and waits for goroutines to exit.
 func (p *Probe) Close() {
 	if p.quit != nil {
 		close(p.quit) // Notify all goroutines exited.

@@ -1,1 +1,0 @@
-set names utf8mb4;

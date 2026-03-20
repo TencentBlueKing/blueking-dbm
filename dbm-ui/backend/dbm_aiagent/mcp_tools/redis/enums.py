@@ -8,66 +8,81 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from enum import Enum
+from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
-class MetricType(str, Enum):
-    """Metric types supported by Redis monitoring"""
+class MetricType(StrStructuredEnum):
+    """Metric types supported by Redis monitoring.
 
-    CPU = "cpu"
-    MEMORY = "memory"
-    CONNECTIONS = "connections"
-    QPS = "qps"
+    Used as the suffix of metric key in METRIC_REGISTRY.
+    """
 
-    @staticmethod
-    def get_choices() -> list:
-        """Get list of valid metric type values for serializer choices"""
-        return [metric.value for metric in MetricType]
-
-
-class MetricsInstanceRole(str, Enum):
-    """Defines the roles of machine instances"""
-
-    PROXY = "proxy"
-    MASTER = "redis_master"
-    SLAVE = "redis_slave"
-
-    @staticmethod
-    def get_choices() -> list:
-        """Get list of valid instance role values for serializer choices"""
-        return [role.value for role in MetricsInstanceRole]
+    CPU_USAGE = EnumField("cpu_usage", "CPU usage")
+    MEMORY_USAGE = EnumField("memory_usage", "Memory usage")
+    CONNECTIONS = EnumField("connections", "Connections")
+    QPS = EnumField("qps", "QPS")
+    IO_USAGE = EnumField("io_usage", "IO usage")
+    DISK_USAGE = EnumField("disk_usage", "Disk usage")
+    HOST_LATENCY = EnumField("host_latency", "Host latency")
+    COMMAND_LATENCY = EnumField("command_latency", "Command latency")
+    LATENCY_DISTRIBUTION = EnumField("latency_distribution", "Latency distribution (proxy only)")
+    CAPACITY = EnumField("capacity", "Capacity (used/available/total)")
 
 
-class MetricsOutputMode(str, Enum):
-    """Output modes for metric query results"""
+class MetricsInstanceRole(StrStructuredEnum):
+    """Roles of machine instances."""
 
-    OVERALL = "overall"  # Returns only aggregated time series data
-    STATS = "stats"  # Returns only scalar statistics
-    BOTH = "both"  # Returns both series and statistics
-
-    @staticmethod
-    def get_choices() -> list:
-        """Get list of valid output mode values for serializer choices"""
-        return [mode.value for mode in MetricsOutputMode]
+    PROXY = EnumField("proxy", "Proxy")
+    MASTER = EnumField("redis_master", "Redis master")
+    SLAVE = EnumField("redis_slave", "Redis slave")
 
 
-class MetricsAggregationLevel(str, Enum):
-    """Defines the level at which metrics are aggregated"""
+class MetricsStatsType(StrStructuredEnum):
+    """Type of statistical computation for metric results."""
 
-    INSTANCE = "instance"  # ip:port level - single Redis instance
-    MACHINE = "machine"  # ip level - all instances on one machine
-    CLUSTER = "cluster"  # cluster-wide - all machines in cluster
+    VERTICAL = EnumField("vertical", "Vertical (temporal stats on aggregated series)")
+    HORIZONTAL = EnumField("horizontal", "Horizontal (stats across instances per time point)")
 
 
-class MetricsAggFunction(str, Enum):
-    """Aggregation functions used"""
+class MetricsAggregationLevel(StrStructuredEnum):
+    """Level at which metrics are aggregated."""
 
-    MIN = "min"
-    MAX = "max"
-    AVG = "avg"
-    SUM = "sum"
-    STDDEV = "stddev"
+    INSTANCE = EnumField("instance", "Instance (ip:port)")
+    MACHINE = EnumField("machine", "Machine (ip)")
+    CLUSTER = EnumField("cluster", "Cluster (all machines)")
 
-    @staticmethod
-    def get_choices() -> list:
-        return [func.value for func in MetricsAggFunction]
+
+class MetricsAggFunction(StrStructuredEnum):
+    """Aggregation functions used in metric queries."""
+
+    MIN = EnumField("min", "Min")
+    MAX = EnumField("max", "Max")
+    AVG = EnumField("avg", "Avg")
+    SUM = EnumField("sum", "Sum")
+    STDDEV = EnumField("stddev", "Stddev")
+
+
+class MetricsGroupBy(StrStructuredEnum):
+    """Dimension for grouping metric results."""
+
+    IP = EnumField("ip", "IP address")
+    INSTANCE = EnumField("instance", "Instance (ip:port)")
+    CMD = EnumField("cmd", "Command")
+    CLUSTER_DOMAIN = EnumField("cluster_domain", "Cluster domain")
+    BUCKET = EnumField("bucket", "Latency bucket (distribution metrics only)")
+
+
+class RedisReportSubtype(StrStructuredEnum):
+    """Redis check report subtype choices used by MCP report tools."""
+
+    AFFINITY_VIOLATION = EnumField("affinity_violation", "Affinity violation")
+    ISOLATED_INSTANCE = EnumField("isolated_instance", "Isolated instance")
+    STATUS_ABNORMAL = EnumField("status_abnormal", "Status abnormal")
+    ROLE_MISMATCH = EnumField("role_mismatch", "Role mismatch")
+    ENTRY_INCONSISTENT = EnumField("entry_inconsistent", "Entry inconsistent")
+    EXPORTER = EnumField("exporter", "Exporter")
+
+    # Agent check subtypes
+    CLUSTER_MEMORY_CAPACITY_RISK = EnumField("cluster_memory_capacity_risk", "Cluster memory capacity risk")
+    BACKEND_LOAD_SKEW = EnumField("backend_load_skew", "Backend load skew")
+    BACKEND_DATA_SKEW = EnumField("backend_data_skew", "Backend data skew")

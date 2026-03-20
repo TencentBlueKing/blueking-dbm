@@ -73,11 +73,11 @@ func main() {
 	srv := &http.Server{
 		Addr:              config.AppConfig.ListenAddress,
 		Handler:           app,
-		ReadHeaderTimeout: 2 * time.Second,  // 防止Slowloris攻击
-		ReadTimeout:       30 * time.Second, // 完整请求读取超时
-		WriteTimeout:      60 * time.Second, // 响应写入超时
-		IdleTimeout:       60 * time.Second, // 空闲连接超时
-		MaxHeaderBytes:    1 << 20,          // 1MB头部大小限制
+		ReadHeaderTimeout: 2 * time.Second,            // 防止Slowloris攻击
+		ReadTimeout:       30 * time.Second,           // 完整请求读取超时
+		WriteTimeout:      agent.LLMHTTPClientTimeout, // 响应写入超时，以支持 LLM 长时间分析
+		IdleTimeout:       60 * time.Second,           // 空闲连接超时
+		MaxHeaderBytes:    1 << 20,                    // 1MB头部大小限制
 	}
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {

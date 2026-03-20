@@ -3,6 +3,8 @@ package api
 import (
 	"bk-dbconfig/pkg/validatestruct"
 
+	"github.com/pkg/errors"
+
 	"dbm-services/common/go-pubpkg/validate"
 )
 
@@ -10,6 +12,8 @@ import (
 type ChangeConfNameDefReq struct {
 	BaseConfFileDef
 	ConfNames []*UpsertConfNames `json:"conf_names" form:"conf_names"`
+	// OpUser, if empty, use system,get it from Header
+	OpUser string `json:"op_user" form:"op_user"`
 }
 
 // Validate validate
@@ -23,7 +27,7 @@ func (f *ChangeConfNameDefReq) Validate() error {
 		}
 		valueTypeSub := validatestruct.ValueTypeDef{ValueType: c.ValueType, ValueTypeSub: c.ValueTypeSub}
 		if err := valueTypeSub.Validate(); err != nil {
-			return err
+			return errors.WithMessagef(err, c.ConfName)
 		}
 	}
 	return nil

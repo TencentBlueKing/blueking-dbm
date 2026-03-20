@@ -33,9 +33,11 @@ type SinkerConfig struct {
 	FetchMinBytes int32 `yaml:"fetch_min_bytes"`
 	// SinkBatchSize 一次 fetch 可能有多条记录，sink_batch_size 控制多少次 fetch 合并成一次 sink. default 1
 	SinkBatchSize int `yaml:"sink_batch_size"`
-	// WriteMode default is insert_ignore, allowed: insert_ignore, insert, upsert
+	// WriteMode default is upsert, allowed: insert_ignore, insert, upsert
 	WriteMode  string `yaml:"write_mode"`
 	Datasource string `yaml:"datasource"`
+	// Enable 是否启用。默认是启用 true
+	Enable *bool `yaml:"enable"`
 }
 
 type KafkaMeta struct {

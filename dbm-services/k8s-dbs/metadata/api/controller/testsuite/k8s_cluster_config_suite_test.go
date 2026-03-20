@@ -42,6 +42,7 @@ import (
 
 var k8sClusterConfigRequest = vo.K8sClusterConfigRequest{
 	ClusterName:  "test-k8s-cluster",
+	ClusterAlias: "test-k8s-cluster-alias",
 	APIServerURL: "https://www.example.com",
 	CACert:       "test-ca-cert",
 	ClientCert:   "test-client-cert",
@@ -202,18 +203,19 @@ func (suite *K8sClusterConfigControllerTestSuite) TestGetRegionsByVisibility() {
 	  "code": 200,
 	  "data": [
 		{
-		  "clusterName": "test-k8s-cluster",
-		  "isPublic": true,
-		  "provider": "test-provider",
+		  "regionName": "test-region",
 		  "regionCode": "test-region-code",
-		  "regionName": "test-region"
-		},
-		{
-		  "clusterName": "test-k8s-cluster",
-		  "isPublic": true,
 		  "provider": "test-provider",
-		  "regionCode": "test-region-code",
-		  "regionName": "test-region"
+		  "k8sClusterList": [
+			{
+			  "clusterName": "test-k8s-cluster",
+			  "clusterAlias": ""
+			},
+			{
+			  "clusterName": "test-k8s-cluster",
+			  "clusterAlias": ""
+			}
+		  ]
 		}
 	  ],
 	  "error": null,

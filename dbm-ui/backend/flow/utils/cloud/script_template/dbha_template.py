@@ -15,8 +15,8 @@ log_conf:
   log_path: "./logs/log"
   log_level: "LOG_DEBUG"
   log_maxsize: 512
-  log_maxbackups: 1000
-  log_maxage: 30
+  log_maxbackups: 500
+  log_maxage: 7
   log_compress: true
 agent_conf:
   active_db_type: [
@@ -143,7 +143,7 @@ monitor:
   local_ip: "{{local_ip}}"
 ssh:
   max_uptime: 300
-  port: 36000
+  port: {{ssh_port}}
   user: "mysql"
   pass: "{{mysql_os_password}}"
   sqlserver_ssh_user: "{{sqlserver_os_user}}"
@@ -157,8 +157,8 @@ log_conf:
   log_path: "./logs/log"
   log_level: "LOG_DEBUG"
   log_maxsize: 512
-  log_maxbackups: 1000
-  log_maxage: 30
+  log_maxbackups: 500
+  log_maxage: 7
   log_compress: true
 agent_conf:
   active_db_type: [
@@ -281,7 +281,7 @@ monitor:
   local_ip: "{{local_ip}}"
 ssh:
   max_uptime: 300
-  port: 36000
+  port: {{ssh_port}}
   user: "mysql"
   pass: "{{mysql_os_password}}"
   sqlserver_ssh_user: "{{sqlserver_os_user}}"

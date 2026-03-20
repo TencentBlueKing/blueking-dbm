@@ -27,25 +27,19 @@ package haapm
 import (
 	"testing"
 
-	"dbm-services/common/go-pubpkg/apm/metric"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createTestHistogram(name, help string, labelNames ...string) *HaHistogram {
 	histogram := NewHaHistogram(name, help, labelNames...)
-
-	metricDef := histogram.ToMetric()
-	histogram.metric.Collector = metric.NewMetric(metricDef, "dbha-v2-test")
+	histogram.metric.Collector = newCollector(histogram.ToMetric(), "dbha-v2-test")
 	return histogram
 }
 
 func createTestHistogramWithBuckets(name, help string, buckets []float64, labelNames ...string) *HaHistogram {
 	histogram := NewHaHistogramWithBuckets(name, help, buckets, labelNames...)
-
-	metricDef := histogram.ToMetric()
-	histogram.metric.Collector = metric.NewMetric(metricDef, "dbha-v2-receiver-test")
+	histogram.metric.Collector = newCollector(histogram.ToMetric(), "dbha-v2-receiver-test")
 	return histogram
 }
 

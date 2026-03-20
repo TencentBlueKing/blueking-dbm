@@ -24,7 +24,7 @@ logger = logging.getLogger("root")
 
 
 def ticket_list(
-    username: str,
+    # username: str,
     bk_biz_id: int,
     ticket_ids: List[int],
     want_cluster_domains: List[str],
@@ -47,8 +47,8 @@ def ticket_list(
     for t in Ticket.objects.filter(q):
         creator = t.creator
         helpers = t.helpers
-        if not (username == creator or username in helpers):
-            continue
+        # if not (username == creator or username in helpers):
+        #     continue
 
         msgs = [""]
         if t.status == TicketStatus.SUCCEEDED:

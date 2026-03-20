@@ -131,6 +131,7 @@ class TenDBClusterAddNodesFlow(object):
 
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         # pipeline.run_pipeline(init_trans_data_class=SystemInfoContext())
+        # 启动接入单据值守监听
         pipeline.run_pipeline_with_sidecar(
             check_ai_monitor_cluster_list=[int(info["cluster_id"]) for info in self.data["infos"]],
             init_trans_data_class=SystemInfoContext(),
@@ -146,7 +147,7 @@ class TenDBClusterAddNodesFlow(object):
         is_check_disaster_tolerance_level: bool = True,
     ):
         """
-        定义添加节点的子流程
+        定义添加spider节点的通用子流程
         """
 
         # 获取对应集群相关对象

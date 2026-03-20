@@ -10,9 +10,7 @@
     </template>
     <template #content>
       <slot name="content">
-        <!-- 海磊补货不展示处理人 -->
         <I18nT
-          v-if="ticketDetail.ticket_type !== TicketTypes.RESOURCE_HCM_REPLENISH"
           keypath="m_处理人_p"
           scope="global">
           <span style="color: #ea3636">{{ t('执行失败') }}</span>
@@ -44,6 +42,7 @@
       <RenderErrorMessage
         :data="data"
         :ticket-detail="ticketDetail" />
+      <Abstract :data="data" />
       <div
         v-if="isCanOperation && isNeedOperation"
         class="mt-12">
@@ -67,7 +66,6 @@
           {{ utcDisplayTime(data.update_at) }}
         </div>
       </template>
-      <Abstract :data="data" />
     </template>
     <template #desc>
       {{ utcDisplayTime(data.update_at) }}
@@ -89,8 +87,6 @@
   import ProcessRetry from '@views/ticket-center/common/action-confirm/ProcessRetry.vue';
 
   import { utcDisplayTime, utcTimeToSeconds } from '@utils';
-
-  import { TicketTypes } from '@/common/const';
 
   import DbTimeLineItem from '../time-line/TimeLineItem.vue';
 

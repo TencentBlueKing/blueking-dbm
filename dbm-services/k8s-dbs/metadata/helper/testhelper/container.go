@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"os"
 
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/mysql"
@@ -38,8 +39,33 @@ type MySQLContainerWrapper struct {
 	ConnStr string
 }
 
+// Terminate 安全地终止容器（本地模式下 MySQLContainer 为 nil，直接跳过）
+func (w *MySQLContainerWrapper) Terminate(ctx context.Context) error {
+	if w.MySQLContainer == nil {
+		return nil
+	}
+	return w.MySQLContainer.Terminate(ctx)
+}
+
 // NewMySQLContainerWrapper 构建 MySQLContainerWrapper
+// 优先使用本地已有的 MySQL（通过环境变量 USE_LOCAL_MYSQL=true 或 MYSQL_SOCKET 指定）
 func NewMySQLContainerWrapper(ctx context.Context) (*MySQLContainerWrapper, error) {
+	// 若设置了 USE_LOCAL_MYSQL=true，直接复用本地 MySQL，跳过容器启动
+	if os.Getenv("USE_LOCAL_MYSQL") == "true" {
+		socket := os.Getenv("MYSQL_SOCKET")
+		var connStr string
+		if socket != "" {
+			connStr = fmt.Sprintf("root:TestPwd123@unix(%s)/bkbase_dbs?charset=utf8mb4&parseTime=True&loc=Local", socket)
+		} else {
+			connStr = "root:TestPwd123@tcp(127.0.0.1:3306)/bkbase_dbs?charset=utf8mb4&parseTime=True&loc=Local"
+		}
+		slog.Info("Using local MySQL", "connStr", connStr)
+		return &MySQLContainerWrapper{
+			MySQLContainer: nil,
+			ConnStr:        connStr,
+		}, nil
+	}
+
 	mySQLContainer, err := mysql.Run(ctx,
 		"mysql:8.0.36",
 		mysql.WithDatabase("bkbase_dbs"),

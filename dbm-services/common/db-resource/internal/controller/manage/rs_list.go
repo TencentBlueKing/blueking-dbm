@@ -157,7 +157,7 @@ func (c *MachineResourceGetterInputParam) matchStorageSpecs(db *gorm.DB) {
 		} else if cmutil.IsNotEmpty(c.DiskType) {
 			db.Where(model.JSONQuery("storage_device").SubValContains(c.DiskType, "disk_type"))
 		}
-		c.Disk.MatchTotalStorageSize(db)
+		c.Disk.MatchTotalDataStorageSize(db)
 	}
 }
 

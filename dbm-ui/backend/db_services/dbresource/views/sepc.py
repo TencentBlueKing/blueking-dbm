@@ -158,6 +158,10 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
                     raise SpecOperateException(_("规格: {}已经被引用，无法修改磁盘信息").format(spec.spec_name))
 
                 for mount_point in new_storage_spec:
+                    # 防止出现min和size不统一的情况
+                    new_storage_spec[mount_point]["size"] = new_storage_spec[mount_point]["min"]
+                    old_storage_spec[mount_point]["size"] = old_storage_spec[mount_point]["min"]
+
                     if new_storage_spec[mount_point] != old_storage_spec[mount_point]:
                         raise SpecOperateException(_("规格: {}已经被引用，无法修改磁盘信息").format(spec.spec_name))
             # 对正在被引用的规格的配置字段更改，抛出异常

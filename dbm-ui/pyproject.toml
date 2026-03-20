@@ -50,7 +50,7 @@ blueapps = { version = "4.15.8", extras = ["opentelemetry"]}
 pyinstrument = "3.4.2"
 mistune = "0.8.4"
 bkoauth = "0.1.0"
-apigw-manager = {version = "4.2.0", extras = ["cryptography", "drf"]}
+apigw-manager = {version = "4.2.3", extras = ["cryptography", "drf"]}
 bk-audit = "1.1.0rc0"
 bk-crypto-python-sdk = "2.0.0"
 django-environ = "^0.11.2"
@@ -86,6 +86,7 @@ pandas = "^3.0.0"
 numpy = "^2.4.1"
 simpleeval = "^1.0.3"
 aiohttp = "3.13.3"
+tiktoken = ">=0.7.0,<1.0.0"
 wheel = "0.46.2"
 
 [tool.poetry.dev-dependencies]

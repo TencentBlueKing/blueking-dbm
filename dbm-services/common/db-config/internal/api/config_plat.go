@@ -3,6 +3,8 @@ package api
 import (
 	"bk-dbconfig/pkg/validatestruct"
 
+	"github.com/pkg/errors"
+
 	"dbm-services/common/go-pubpkg/validate"
 )
 
@@ -58,7 +60,7 @@ func (f *UpsertConfFilePlatReq) Validate() error {
 		}
 		valueTypeSub := validatestruct.ValueTypeDef{ValueType: c.ValueType, ValueTypeSub: c.ValueTypeSub}
 		if err := valueTypeSub.Validate(); err != nil {
-			return err
+			return errors.WithMessagef(err, c.ConfName)
 		}
 	}
 	return nil

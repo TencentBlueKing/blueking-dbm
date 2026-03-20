@@ -73,4 +73,5 @@ class MysqlHaApplyQuickMinorPassSerializer(serializers.Serializer):
         attrs["details"]["ip_source"] = "resource_pool"
         attrs["details"]["domains"] = [{"key": attrs["details"].pop("domain_key")}]
         attrs["details"]["resource_spec"] = resource_spec
+        attrs["details"]["disaster_tolerance_level"] = resource_spec["backend_group"]["affinity"]
         return self.get_exact_serializer(ticket_type).validate(attrs["details"])

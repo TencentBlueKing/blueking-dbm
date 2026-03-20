@@ -13,35 +13,19 @@ from typing import Dict, List, Optional
 from django.db.models import F
 
 from backend.configuration.constants import DBType
-from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterType, InstanceRole
-from backend.db_meta.models import (
-    AppCache,
-    Cluster,
-    ClusterEntry,
-    Machine,
-    ProxyInstance,
-    StorageInstance,
-    StorageInstanceTuple,
-)
+from backend.db_meta.models import Cluster, ClusterEntry, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
+from backend.dbm_aiagent.mcp_tools.common.impl.biz_helpers import get_biz_by_abbr, get_managed_biz
 
 
-def list_my_redis_bizs(username: str) -> List:
-    res = []
-    for app in AppCache.objects.all():
-        bk_biz_id = app.bk_biz_id
-
-        if DBAdministrator.objects.filter(bk_biz_id=bk_biz_id, users__0=username, db_type=DBType.Redis.value):
-            res.append({"bk_biz_id": bk_biz_id, "app_name": app.bk_biz_name, "abbr": app.db_app_abbr})
-    return res
+def list_my_redis_bizs(username: str) -> List[dict]:
+    """List Redis bizs managed by the user (manage-only semantics)."""
+    return get_managed_biz(username, DBType.Redis, detailed=True)
 
 
-def list_biz_by_name(biz_name: str) -> List:
-    res = []
-    for app in AppCache.objects.all():
-        if app.db_app_abbr.__contains__(biz_name.lower()):
-            res.append({"bk_biz_id": app.bk_biz_id, "app_name": app.bk_biz_name, "abbr": app.db_app_abbr})
-    return res
+def list_biz_by_name(biz_name: str) -> List[dict]:
+    """List bizs matching name via db_app_abbr (case-insensitive substring)."""
+    return get_biz_by_abbr(biz_name, detailed=True)
 
 
 def redis_list_clusters(bk_biz_id: int) -> List:

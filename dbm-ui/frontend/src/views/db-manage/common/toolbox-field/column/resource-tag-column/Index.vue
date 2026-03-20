@@ -203,6 +203,10 @@
   };
 
   const updateModel = (data: UnwrapRef<typeof modelValue>) => {
+    const [firstItem] = data;
+    if (firstItem?.id === DEFAULT_TAG_ID) {
+      return;
+    }
     const list = data.reduce<IValue[]>((acc, item: { id: number; value: string }) => {
       const tagInfo = Object.assign(item, tagMap.value[item?.value || item?.id]);
       if (tagInfo.id && tagInfo.value) {
@@ -217,12 +221,15 @@
     tagTheme.value = ids.value[0] === DEFAULT_TAG_ID ? 'success' : '';
   };
 
+  watch(modelValue, () => {
+    updateModel(modelValue.value);
+  });
+
   watch(
     tagList,
     () => {
-      if (modelValue.value.length) {
-        updateModel(modelValue.value);
-      } else {
+      const [firstItem] = modelValue.value;
+      if (!firstItem?.value) {
         // 如果没有传入值，则默认设置为通用无标签
         modelValue.value = [
           {

@@ -1,13 +1,14 @@
 package simple
 
 import (
+	"fmt"
+
 	"bk-dbconfig/internal/api"
 	"bk-dbconfig/internal/handler"
 	"bk-dbconfig/internal/service/simpleconfig"
 	"bk-dbconfig/pkg/constvar"
 	"bk-dbconfig/pkg/core/logger"
 	"bk-dbconfig/pkg/util"
-	"fmt"
 
 	"github.com/gin-gonic/gin"
 )
@@ -156,10 +157,20 @@ func (cf *Config) UpdateConfigFileItems(ctx *gin.Context) {
 		handler.SendResponse(ctx, err, nil)
 		return
 	}
-	if err = simpleconfig.CheckValidConfType(r.ConfFileInfo.Namespace, r.ConfFileInfo.ConfType,
-		r.ConfFileInfo.ConfFile, r.LevelName, 1); err != nil {
+	if versioned, err := simpleconfig.CheckValidConfFile(r.ConfFileInfo.Namespace, r.ConfFileInfo.ConfType,
+		r.ConfFileInfo.ConfFile, r.LevelName); err != nil {
 		handler.SendResponse(ctx, err, nil)
 		return
+	} else if versioned != "" {
+		r = api.UpsertConfItemsReq{
+			RequestType:      api.RequestType{ReqType: constvar.MethodGenAndPublish},
+			SaveConfItemsReq: r.SaveConfItemsReq,
+		}
+	} else {
+		r = api.UpsertConfItemsReq{
+			RequestType:      api.RequestType{ReqType: constvar.MethodSave},
+			SaveConfItemsReq: r.SaveConfItemsReq,
+		}
 	}
 	opUser := api.GetHeaderUsername(ctx.GetHeader(constvar.BKApiAuthorization))
 	if resp, err = simpleconfig.UpdateConfigFileItems(&r, opUser); err != nil {
@@ -184,33 +195,5 @@ func (cf *Config) UpdateConfigFileItems(ctx *gin.Context) {
 // @Failure      400  {object}  api.HTTPClientErrResp
 // @Router       /bkconfig/v1/confitem/save [post]
 func (cf *Config) SaveConfigFileItems(ctx *gin.Context) {
-	var r api.SaveConfItemsReq
-	var resp *api.UpsertConfItemsResp
-	var err error
-	defer util.LoggerErrorStack(logger.Error, err)
-
-	if err = ctx.BindJSON(&r); err != nil {
-		handler.SendResponse(ctx, err, nil)
-		return
-	}
-	if err = r.Validate(); err != nil {
-		handler.SendResponse(ctx, err, nil)
-		return
-	}
-	if err = simpleconfig.CheckValidConfType(r.ConfFileInfo.Namespace, r.ConfFileInfo.ConfType,
-		r.ConfFileInfo.ConfFile, r.LevelName, 0); err != nil {
-		handler.SendResponse(ctx, err, nil)
-		return
-	}
-	r2 := api.UpsertConfItemsReq{
-		RequestType:      api.RequestType{ReqType: constvar.MethodSave},
-		SaveConfItemsReq: r,
-	}
-	opUser := api.GetHeaderUsername(ctx.GetHeader(constvar.BKApiAuthorization))
-	if resp, err = simpleconfig.UpdateConfigFileItems(&r2, opUser); err != nil {
-		handler.SendResponse(ctx, err, nil)
-		return
-	} else {
-		handler.SendResponse(ctx, nil, resp)
-	}
+	cf.UpdateConfigFileItems(ctx)
 }

@@ -22,14 +22,12 @@ import (
 	"dbm-services/common/db-event-consumer/pkg/config"
 )
 
-type messageWrapper struct {
-	Items []struct {
-		Data json.RawMessage `json:"data"`
-	} `json:"items"`
-}
-
 // QueryKafkaMetaWithBkDataId query data_id from bklog api metadata_get_data_id
 func QueryKafkaMetaWithBkDataId(sinker *Sinker, bkdata *config.BkmApiInfo) error {
+	if bkdata == nil {
+		slog.Error("bkm_api_info config for bklog is nil", slog.Any("table", sinker.RuntimeConfig.ModelTable))
+		return errors.New("bkm_api_info config for bklog is nil")
+	}
 	params := url.Values{}
 	params.Add("bk_data_id", strconv.Itoa(sinker.RuntimeConfig.BkDataId))
 
@@ -122,6 +120,7 @@ func QueryKafkaMetaWithBkDataId(sinker *Sinker, bkdata *config.BkmApiInfo) error
 	sinker.RuntimeConfig.Topic = res.Data.MqConfig.StorageConfig.Topic
 
 	slog.Info("get meta info",
+		slog.Any("table", sinker.RuntimeConfig.ModelTable),
 		slog.Any("bk_data_id", sinker.RuntimeConfig.BkDataId),
 		slog.Any("topic", sinker.RuntimeConfig.Topic),
 		slog.Any("meta", sinker.MetaInfo))

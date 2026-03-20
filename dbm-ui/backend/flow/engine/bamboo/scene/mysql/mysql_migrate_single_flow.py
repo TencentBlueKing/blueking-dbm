@@ -99,10 +99,12 @@ class MySQLMigrateSingleFlow(object):
             TendbSingleRestoreType.RESTORE_WITH_STRUCT,
         ]:
             cluster_ids = None
+        else:
+            cluster_ids = list(set(cluster_ids))
         tendb_migrate_pipeline_all = Builder(
             root_id=self.root_id,
             data=copy.deepcopy(self.ticket_data),
-            need_random_pass_cluster_ids=list(set(cluster_ids)),
+            need_random_pass_cluster_ids=cluster_ids,
         )
 
         tendb_migrate_pipeline_list = []
@@ -577,7 +579,16 @@ class MySQLMigrateSingleFlow(object):
             )
         # 运行流程
         tendb_migrate_pipeline_all.add_parallel_sub_pipeline(tendb_migrate_pipeline_list)
-        tendb_migrate_pipeline_all.run_pipeline(
-            init_trans_data_class=ClusterInfoContext(),
-            is_drop_random_user=True,
-        )
+        # 启动接入单据值守监听，但故障替换不做监听行为
+        if cluster_ids:
+            tendb_migrate_pipeline_all.run_pipeline_with_sidecar(
+                init_trans_data_class=ClusterInfoContext(),
+                is_drop_random_user=True,
+                check_ai_monitor_cluster_list=cluster_ids,
+            )
+        else:
+            # 故障替换通道
+            tendb_migrate_pipeline_all.run_pipeline(
+                init_trans_data_class=ClusterInfoContext(),
+                is_drop_random_user=True,
+            )

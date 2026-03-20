@@ -21,6 +21,7 @@ from .instance import ProxyInstance, StorageInstance
 from .machine import Machine
 from .proxy_instance_ext import TenDBClusterSpiderExt
 from .spec import SnapshotSpec, Spec
+from .storage_instance_ext import MongoDBStorageInstanceExt
 from .storage_instance_tuple import StorageInstanceTuple
 from .storage_set_dtl import NosqlStorageSetDtl, TenDBClusterStorageSet
 from .tag import Tag

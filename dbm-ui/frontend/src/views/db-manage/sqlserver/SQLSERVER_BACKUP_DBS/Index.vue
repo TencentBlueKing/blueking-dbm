@@ -2,9 +2,13 @@
   <div class="sqlserver-db-backup-page">
     <SmartAction>
       <BkAlert
+        class="mb-16"
         closable
         theme="info"
         :title="t('数据库备份：指定DB备份，支持模糊匹配')" />
+      <BatchInput
+        :config="batchInputConfig"
+        @change="handleBatchInput" />
       <DbForm
         ref="form"
         class="mt-16 mb-24 toolbox-form"
@@ -21,7 +25,8 @@
               v-model="rowData.cluster"
               :cluster-types="[ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE]"
               :selected="selected"
-              @batch-edit="handleClusterBatchEdit" />
+              @batch-edit="handleClusterBatchEdit"
+              @request-success="() => handleClusterRequestSuccess(rowData)" />
             <DbNameColumn
               v-model="rowData.db_list"
               check-not-exist
@@ -120,23 +125,27 @@
 
   import SqlserverHaModel from '@services/model/sqlserver/sqlserver-ha';
   import { type Sqlserver } from '@services/model/ticket/ticket';
+  import { getIgnoreDbs } from '@services/source/sqlserverCluster';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/sqlserver/common/toolbox-field/cluster-column/Index.vue';
   import DbNameColumn from '@views/db-manage/sqlserver/common/toolbox-field/db-name-column/Index.vue';
 
+  import { random } from '@utils';
+
   import FinalDbColumn from './components/FinalDbColumn.vue';
 
   interface IDataRow {
     backup_dbs: string[];
     cluster: {
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       id: number;
       master_domain: string;
     };
@@ -204,6 +213,7 @@
 
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('editableTable');
+  const tableKey = ref(random());
 
   const rules = {
     'cluster.master_domain': [
@@ -257,28 +267,77 @@
 
   const isBackupTypeFull = computed(() => formData.backup_type === 'full_backup');
 
-  const handleClusterBatchEdit = (clusterList: SqlserverHaModel[]) => {
-    const newList: IDataRow[] = [];
-    clusterList.forEach((item) => {
-      if (!clusterMemo.value[item.master_domain]) {
-        newList.push(
-          createRowData({
-            cluster: {
-              cluster_type: item.cluster_type,
-              id: item.id,
-              master_domain: item.master_domain,
-            },
-          }),
-        );
-      }
+  const handleClusterRequestSuccess = async (rowData: IDataRow) => {
+    const ingoreDbsMap = await getIgnoreDbs({
+      cluster_ids: [rowData.cluster.id],
     });
-    formData.tableData = [...(formData.tableData[0].cluster.master_domain ? formData.tableData : []), ...newList];
+    Object.assign(rowData, {
+      ignore_db_list: ingoreDbsMap?.[rowData.cluster.id] || [],
+    });
+  };
+
+  const batchInputConfig = [
+    {
+      case: 'sqlserver.test.dba.db',
+      key: 'domain',
+      label: t('集群域名'),
+    },
+    {
+      case: 'db1,db2',
+      key: 'db_list',
+      label: t('备份 DB 名'),
+    },
+    {
+      case: 'ignore_db1,ignore_db2',
+      key: 'ignore_db_list',
+      label: t('忽略 DB 名'),
+    },
+  ];
+
+  const handleClusterBatchEdit = async (data: SqlserverHaModel[]) => {
+    // 过滤出未选择的集群
+    const newClusters = data.filter((item) => !clusterMemo.value[item.master_domain]);
+    if (newClusters.length === 0) return;
+
+    const clusterIds = newClusters.map((item) => item.id);
+    const ingoreDbsMap = await getIgnoreDbs({ cluster_ids: clusterIds });
+
+    const dataList = newClusters.map((item) =>
+      createRowData({
+        cluster: {
+          cluster_type: item.cluster_type,
+          id: item.id,
+          master_domain: item.master_domain,
+        },
+        ignore_db_list: ingoreDbsMap?.[item.id] || [],
+      }),
+    );
+    formData.tableData = [...(formData.tableData[0].cluster.master_domain ? formData.tableData : []), ...dataList];
   };
 
   const handleDbTableBatchEdit = (value: string[], field: string) => {
     formData.tableData.forEach((item) => {
       Object.assign(item, { [field]: value });
     });
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createRowData({
+        cluster: {
+          master_domain: item.domain,
+        } as IDataRow['cluster'],
+        db_list: item.db_list ? item.db_list.split(',') : [],
+        ignore_db_list: item.ignore_db_list ? item.ignore_db_list.split(',') : [],
+      }),
+    );
+
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = dataList;
+    } else {
+      formData.tableData = [...(formData.tableData[0].cluster.master_domain ? formData.tableData : []), ...dataList];
+    }
   };
 
   const handleSubmit = async () => {

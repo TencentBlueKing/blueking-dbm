@@ -33,9 +33,14 @@ import (
 type K8sClusterServiceDbAccess interface {
 	Create(model *models.K8sClusterServiceModel) (*models.K8sClusterServiceModel, error)
 	DeleteByID(id uint64) (uint64, error)
+	DeleteByClusterID(crdClusterID uint64) (uint64, error)
+	DeleteByClusterIDAndServiceName(crdClusterID uint64, serviceName string) (uint64, error)
 	FindByID(id uint64) (*models.K8sClusterServiceModel, error)
+	FindByClusterID(crdClusterID uint64) ([]models.K8sClusterServiceModel, error)
 	Update(model *models.K8sClusterServiceModel) (uint64, error)
 	ListByPage(pagination entity.Pagination) ([]models.K8sClusterServiceModel, int64, error)
+	ReplaceAllByClusterID(crdClusterID uint64, serviceModels []*models.K8sClusterServiceModel) error
+	UpsertByClusterIDAndServiceName(model *models.K8sClusterServiceModel) error
 }
 
 // K8sClusterServiceDbAccessImpl K8sClusterServiceDbAccess 的具体实现
@@ -95,6 +100,80 @@ func (k *K8sClusterServiceDbAccessImpl) Update(model *models.K8sClusterServiceMo
 		return 0, errors.Wrapf(result.Error, "failed to update cluster service with model: %+v", model)
 	}
 	return uint64(result.RowsAffected), nil
+}
+
+// ReplaceAllByClusterID 原子性地替换指定集群的所有 service 记录
+// 在事务中先删除旧记录，再批量插入新记录
+func (k *K8sClusterServiceDbAccessImpl) ReplaceAllByClusterID(
+	crdClusterID uint64, serviceModels []*models.K8sClusterServiceModel,
+) error {
+	return k.db.Transaction(func(tx *gorm.DB) error {
+		result := tx.Where("crd_cluster_id = ?", crdClusterID).Delete(&models.K8sClusterServiceModel{})
+		if result.Error != nil {
+			return errors.Wrapf(result.Error, "failed to delete old cluster services for cluster id %d", crdClusterID)
+		}
+		if len(serviceModels) == 0 {
+			return nil
+		}
+		if err := tx.Create(serviceModels).Error; err != nil {
+			return errors.Wrapf(err, "failed to batch create cluster services for cluster id %d", crdClusterID)
+		}
+		return nil
+	})
+}
+
+// DeleteByClusterID 根据 crd_cluster_id 删除所有关联的 cluster service 记录
+func (k *K8sClusterServiceDbAccessImpl) DeleteByClusterID(crdClusterID uint64) (uint64, error) {
+	result := k.db.Where("crd_cluster_id = ?", crdClusterID).Delete(&models.K8sClusterServiceModel{})
+	if result.Error != nil {
+		return 0, errors.Wrapf(result.Error, "failed to delete cluster services by cluster id %d", crdClusterID)
+	}
+	return uint64(result.RowsAffected), nil
+}
+
+// DeleteByClusterIDAndServiceName 根据 crd_cluster_id 和 service_name 删除特定 cluster service 记录
+func (k *K8sClusterServiceDbAccessImpl) DeleteByClusterIDAndServiceName(
+	crdClusterID uint64, serviceName string,
+) (uint64, error) {
+	result := k.db.Where("crd_cluster_id = ? AND service_name = ?", crdClusterID, serviceName).
+		Delete(&models.K8sClusterServiceModel{})
+	if result.Error != nil {
+		return 0, errors.Wrapf(result.Error,
+			"failed to delete cluster service by cluster id %d and service name %s", crdClusterID, serviceName)
+	}
+	return uint64(result.RowsAffected), nil
+}
+
+// FindByClusterID 根据 crd_cluster_id 查询所有关联的 cluster service 记录
+func (k *K8sClusterServiceDbAccessImpl) FindByClusterID(crdClusterID uint64) ([]models.K8sClusterServiceModel, error) {
+	var services []models.K8sClusterServiceModel
+	result := k.db.Where("crd_cluster_id = ?", crdClusterID).Find(&services)
+	if result.Error != nil {
+		return nil, errors.Wrapf(result.Error, "failed to find cluster services by cluster id %d", crdClusterID)
+	}
+	return services, nil
+}
+
+// UpsertByClusterIDAndServiceName 原子性地更新或插入单个 service 记录
+// 在事务中根据 (crd_cluster_id, service_name) 先删除再创建
+func (k *K8sClusterServiceDbAccessImpl) UpsertByClusterIDAndServiceName(
+	model *models.K8sClusterServiceModel,
+) error {
+	return k.db.Transaction(func(tx *gorm.DB) error {
+		result := tx.Where("crd_cluster_id = ? AND service_name = ?", model.CrdClusterID, model.ServiceName).
+			Delete(&models.K8sClusterServiceModel{})
+		if result.Error != nil {
+			return errors.Wrapf(result.Error,
+				"failed to delete old service for upsert: cluster_id=%d, service=%s",
+				model.CrdClusterID, model.ServiceName)
+		}
+		if err := tx.Create(model).Error; err != nil {
+			return errors.Wrapf(err,
+				"failed to create service for upsert: cluster_id=%d, service=%s",
+				model.CrdClusterID, model.ServiceName)
+		}
+		return nil
+	})
 }
 
 // ListByPage 分页查询元数据接口实现

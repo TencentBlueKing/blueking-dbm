@@ -710,11 +710,24 @@ BK_APIGW_STAGE_MCP_SERVERS = [
     },
     {
         "name": "mysql-metrics",
-        "description": """query mysql metrics like cpu usage, qps summary, 
+        "description": """query mysql metrics like cpu usage, qps summary,
         slow queries count,connections,threads_running""",
         # 主动授权 app_code
         "target_app_codes": [APP_CODE],
         "labels": ["mysql-metrics"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
+    {
+        "name": "mysql-config",
+        "description": """query or update mysql tools's config, like backup,mysql_monitor,checksum""",
+        # 主动授权 app_code
+        "target_app_codes": [APP_CODE],
+        "labels": ["mysql-config"],
         # 是否启用：1-启用，0-停止
         "status": 1,
         # 是否公开
@@ -889,6 +902,15 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "tools": [],
     },
     {
+        "name": "redis-reports",
+        "description": """Redis reports query tools""",
+        "target_app_codes": [APP_CODE],
+        "labels": ["redis-reports"],
+        "status": 1,
+        "is_public": False,
+        "tools": [],
+    },
+    {
         "name": "alarm-query",
         "description": """收集DBM集群的告警记录""",
         # 主动授权 app_code
@@ -937,6 +959,122 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         # 主动授权 app_code
         "target_app_codes": [APP_CODE],
         "labels": ["kafka-bill"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
+    {
+        "name": "kafka-metrics",
+        "description": """Kafka cluster monitoring metrics query services""",
+        # 主动授权 app_code
+        "target_app_codes": [APP_CODE],
+        "labels": ["kafka-metrics"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
+    # MongoDB MCP servers（与 mcp_tools/mongodb 及 constants.DBMMcpTools 对应）
+    {
+        "name": "mongodb-meta",
+        "description": """MongoDB cluster meta query: biz list, cluster list, topo, mongos/shard nodes, list by hosts""",
+        "target_app_codes": [APP_CODE],
+        "labels": ["mongodb-meta"],
+        "status": 1,
+        "is_public": False,
+        "tools": [],
+    },
+    {
+        "name": "mongodb-metrics",
+        "description": """MongoDB metrics: QPS, connections, global_lock current_queue, host CPU usage""",
+        "target_app_codes": [APP_CODE],
+        "labels": ["mongodb-metrics"],
+        "status": 1,
+        "is_public": False,
+        "tools": [],
+    },
+    {
+        "name": "mongodb-log",
+        "description": """MongoDB slow log query: slow log list and detail""",
+        "target_app_codes": [APP_CODE],
+        "labels": ["mongodb-log"],
+        "status": 1,
+        "is_public": False,
+        "tools": [],
+    },
+    {
+        "name": "mongodb-alarm",
+        "description": """MongoDB alarm query: cluster alarms in time range, app alarms by biz""",
+        "target_app_codes": [APP_CODE],
+        "labels": ["mongodb-alarm"],
+        "status": 1,
+        "is_public": False,
+        "tools": [],
+    },
+    {
+        "name": "mongodb-mcp",
+        "description": """Aggregated MongoDB MCP server: include mongodb-meta/mongodb-log/mongodb-metrics/mongodb-alarm tools""",
+        "target_app_codes": [APP_CODE],
+        "labels": ["mongodb-mcp"],
+        "status": 1,
+        "is_public": False,
+        "tools": [],
+    },
+    {
+        "name": "host-decommission-query",
+        "description": """Cluster decommission information query services for DBA only.
+        根据单个 IP 查询主机所属集群的裁撤相关信息，仅 DBA 可调用。
+        """,
+        "target_app_codes": [APP_CODE],
+        "labels": ["host-decommission-query"],
+        "status": 1,
+        "is_public": False,
+        "tools": [],
+    },
+    {
+        "name": "taskflow-query",
+        "description": """Task flow query services for DBM.
+
+        Features:
+        1. Query the last failed node's error logs by task flow root_id
+        2. List failed task flow root_ids by date range and ticket type
+
+        Use Cases:
+        - Diagnose task flow failures by retrieving error logs of the last failed node
+        - Batch query failed task flows within a specified time range for troubleshooting
+        """,
+        "target_app_codes": [APP_CODE],
+        "labels": ["taskflow-query"],
+        "status": 1,
+        "is_public": False,
+        "tools": [],
+    },
+    {
+        "name": "kafka-toolbox",
+        "description": """Kafka toolbox services for executing Kafka CLI commands on broker nodes,
+        including topic/consumer-group inspection and topic config management""",
+        # 主动授权 app_code
+        "target_app_codes": [APP_CODE],
+        "labels": ["kafka-toolbox"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
+    {
+        "title": "[DBM] 单据操作",
+        "name": "ticket-op-market",
+        "description": """dbm 单据通用操作""",
+        # 主动授权 app_code
+        "target_app_codes": [APP_CODE],
+        "labels": ["ticket-op-market"],
         # 是否启用：1-启用，0-停止
         "status": 1,
         # 是否公开

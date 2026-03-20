@@ -295,7 +295,7 @@ func (r *RecoverBinlog) Init() error {
 	}
 	if r.RecoverOpt.StartTime != "" {
 		if t, err := time.ParseInLocation(time.DateTime, r.RecoverOpt.StartTime, time.Local); err == nil {
-			r.RecoverOpt.StartTime = t.Format(time.RFC3339)
+			r.RecoverOpt.StartTime = t.Local().Format(time.RFC3339)
 		} else if _, err := time.ParseInLocation(time.RFC3339, r.RecoverOpt.StartTime, time.Local); err == nil {
 			// keep
 		} else {
@@ -306,7 +306,7 @@ func (r *RecoverBinlog) Init() error {
 	if r.RecoverOpt.StopTime != "" {
 		var stopTime time.Time
 		if t, err := time.ParseInLocation(time.DateTime, r.RecoverOpt.StopTime, time.Local); err == nil {
-			r.RecoverOpt.StopTime = t.Format(time.RFC3339)
+			r.RecoverOpt.StopTime = t.Local().Format(time.RFC3339)
 		} else if _, err := time.ParseInLocation(time.RFC3339, r.RecoverOpt.StopTime, time.Local); err == nil {
 			// keep
 		} else {

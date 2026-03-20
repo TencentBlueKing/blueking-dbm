@@ -21,7 +21,7 @@ from backend.flow.consts import (
     SqlserverRestoreDBStatus,
     SqlserverRestoreMode,
 )
-from backend.flow.utils.base.validate_handler import ValidateHandler
+from backend.flow.utils.base.validate_handler import ValidateHandler, validate_int, validate_port, validate_string
 from backend.flow.utils.sqlserver.sqlserver_host import Host
 from backend.flow.utils.sqlserver.validate import validate_get_dbmeta_func, validate_get_payload_func, validate_hosts
 
@@ -297,6 +297,7 @@ class SqlserverRebuildSlaveContext:
     clean_dbs: list = field(default_factory=list)
     full_backup_id: dict = field(default_factory=dict)
     log_backup_id: dict = field(default_factory=dict)
+    alarm_shield_id: int = None
 
     @staticmethod
     def sync_dbs_var_name() -> str:
@@ -366,3 +367,14 @@ class RemoveMirroringConfigKwargs(ValidateHandler):
 
     cluster_id: int
     target_hosts: List[Host]
+
+
+@dataclass()
+class NginxInfo(ValidateHandler):
+    """
+    定义插入到sqlserver实例的Nginx信息
+    """
+
+    bk_cloud_id: int = field(metadata={"validate": validate_int})  # 操作的云区域id
+    nginx_proxy_ip: str = field(metadata={"validate": validate_string})  # nginx的ip
+    nginx_proxy_port: int = field(metadata={"validate": validate_port})  # nginx的端口

@@ -337,6 +337,10 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             )
             spider_auto_incr_mode_map[port] = self.cluster["auto_incr_value"]
 
+            # 如果有传入需要克隆的参数，则变更
+            if self.cluster.get("spider_copy_config"):
+                spider_config[port]["mysqld"].update(self.cluster["spider_copy_config"][port])
+
         drs_account, dbha_account = self.get_super_account()
 
         return {

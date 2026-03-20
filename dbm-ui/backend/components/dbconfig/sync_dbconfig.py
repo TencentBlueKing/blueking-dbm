@@ -111,6 +111,7 @@ def _sync_config_items(namespace: str, conf_type: str, conf_file: str, conf_name
         "namespace": namespace,
         "conf_type": conf_type,
         "conf_file": conf_file,
+        "op_user": "system",  # 后台会把 system 不记录操作记录
         "conf_names": conf_names,
     }
 

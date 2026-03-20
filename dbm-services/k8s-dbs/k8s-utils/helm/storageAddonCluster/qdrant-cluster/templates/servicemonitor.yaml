@@ -1,5 +1,5 @@
 {{- if .Values.observeConfig.svcMonitor.enabled }}
-
+{{- $apiKey := include "qdrant.apiKey" . | trim }}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -15,7 +15,12 @@ spec:
     - interval: {{ .Values.observeConfig.svcMonitor.interval }}
       params: {}
       path: /metrics
-      port: tcp-metrics
+      port: tcp-qdrant
+      {{- if $apiKey }}
+      bearerTokenSecret:
+        name: {{ .Release.Name }}-apikey
+        key: api-key
+      {{- end }}
   namespaceSelector:
     matchNames:
       - {{ .Release.Namespace }}

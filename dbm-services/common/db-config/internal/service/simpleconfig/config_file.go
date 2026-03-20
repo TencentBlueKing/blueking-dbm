@@ -75,24 +75,6 @@ func NewConfigModels(r *api.UpsertConfFilePlatReq) ([]*model.ConfigModel, []*mod
 	return configs, configsDiff
 }
 
-// ProcessOPConfig TODO
-func ProcessOPConfig(opConfigs map[string]*ConfigModelRef) error {
-	for _, opConfig := range opConfigs {
-		for optype, configs := range *opConfig {
-			if optype == constvar.OPTypeRemoveRef {
-				if err := UpsertConfig(configs, false, false); err != nil {
-					// model.UpsertBatchConfigs(configs, false); err != nil {
-				}
-			} else if optype == constvar.OPTypeNotified {
-				// 值有变化，红点通知同步
-			} else { // locked
-				// 暂不处理
-			}
-		}
-	}
-	return nil
-}
-
 // ListConfigFiles godoc
 // 查询平台配置文件列表 和 业务配置文件列表
 func ListConfigFiles(r *api.ListConfFileReq) ([]*api.ListConfFileResp, error) {

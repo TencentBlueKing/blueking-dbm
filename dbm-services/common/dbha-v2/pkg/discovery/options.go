@@ -25,6 +25,10 @@
 package discovery
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"os"
+	"path/filepath"
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
@@ -44,6 +48,31 @@ const (
 	defaultRegistryRootKeyPrefix = "/dbha/registry"
 )
 
+var (
+	// ErrNoValidCACerts is returned when trustedCAFile contains no valid CA certificates.
+	ErrNoValidCACerts = gerrors.New(gerrors.InvalidParameter, "no valid CA certs in trustedCAFile")
+
+	// ErrServiceIDRequired indicates service-id is required.
+	ErrServiceIDRequired = gerrors.New(gerrors.InvalidParameter, "service-id is required")
+
+	// ErrCertFileEmpty indicates certFile cannot be empty.
+	ErrCertFileEmpty = gerrors.New(gerrors.InvalidParameter, "certFile cannot be empty")
+	// ErrCertFileNotAbsolutePath indicates certFile must be an absolute path.
+	ErrCertFileNotAbsolutePath = gerrors.New(gerrors.InvalidParameter, "certFile must be absolute path")
+
+	// ErrKeyFileEmpty indicates keyFile cannot be empty.
+	ErrKeyFileEmpty = gerrors.New(gerrors.InvalidParameter, "keyFile cannot be empty")
+	// ErrKeyFileNotAbsolutePath indicates keyFile must be an absolute path.
+	ErrKeyFileNotAbsolutePath = gerrors.New(gerrors.InvalidParameter, "keyFile must be absolute path")
+
+	// ErrTrustedCAFileNotAbsolutePath indicates trustedCAFile must be an absolute path when set.
+	ErrTrustedCAFileNotAbsolutePath = gerrors.New(
+		gerrors.InvalidParameter,
+		"trustedCAFile must be absolute path when set",
+	)
+)
+
+// Option applies custom settings to discovery client options.
 type Option interface {
 	apply(*options) error
 }
@@ -74,10 +103,16 @@ type options struct {
 	registryRootKeyPrefix string
 	maxUnaryRetries       uint
 	Logger                *zap.Logger
+
+	// TLS: when certFile and keyFile are both set, use TLS for etcd connection.
+	certFile      string
+	keyFile       string
+	trustedCAFile string
+	tlsConfig     *tls.Config
 }
 
-func (o options) Config() clientv3.Config {
-	return clientv3.Config{
+func (o options) Config() (clientv3.Config, error) {
+	cfg := clientv3.Config{
 		Username:  o.user,
 		Password:  o.password,
 		Endpoints: o.endpoints,
@@ -98,11 +133,52 @@ func (o options) Config() clientv3.Config {
 		DialKeepAliveTimeout: o.keepAliveTimeout,
 
 		// MaxUnaryRetries is the maximum number of retries for unary RPCs.
-		MaxUnaryRetries: 5,
+		MaxUnaryRetries: o.maxUnaryRetries,
 
 		// Logger export the gRPC log into the custom.
 		Logger: o.Logger,
 	}
+
+	if o.certFile != "" && o.keyFile != "" {
+		if o.tlsConfig != nil {
+			cfg.TLS = o.tlsConfig
+		} else {
+			tlsCfg, err := buildTLSConfig(o.certFile, o.keyFile, o.trustedCAFile)
+			if err != nil {
+				return clientv3.Config{}, err
+			}
+			cfg.TLS = tlsCfg
+		}
+	}
+
+	return cfg, nil
+}
+
+// buildTLSConfig builds *tls.Config from cert/key and optional CA file.
+func buildTLSConfig(certFile, keyFile, trustedCAFile string) (*tls.Config, error) {
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		MinVersion:   tls.VersionTLS12,
+	}
+
+	if trustedCAFile != "" {
+		data, err := os.ReadFile(trustedCAFile)
+		if err != nil {
+			return nil, err
+		}
+		pool := x509.NewCertPool()
+		if !pool.AppendCertsFromPEM(data) {
+			return nil, ErrNoValidCACerts
+		}
+		cfg.RootCAs = pool
+	}
+
+	return cfg, nil
 }
 
 type funcOptions struct {
@@ -113,6 +189,7 @@ func (fdo *funcOptions) apply(opt *options) error {
 	return fdo.f(opt)
 }
 
+// OptionUser sets etcd username for authentication.
 func OptionUser(val string) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -122,6 +199,7 @@ func OptionUser(val string) *funcOptions {
 	}
 }
 
+// OptionPassword sets etcd password for authentication.
 func OptionPassword(val string) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -131,6 +209,7 @@ func OptionPassword(val string) *funcOptions {
 	}
 }
 
+// OptionBufferMaxSize sets the max buffered event size for watchers.
 func OptionBufferMaxSize(val int) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -140,6 +219,7 @@ func OptionBufferMaxSize(val int) *funcOptions {
 	}
 }
 
+// OptionTTL sets service registration TTL; values below defaultTTL fallback to defaultTTL.
 func OptionTTL(val int) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -154,12 +234,13 @@ func OptionTTL(val int) *funcOptions {
 	}
 }
 
+// OptionServiceID sets the unique service ID used by registry and election keys.
 func OptionServiceID(val string) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
 			opt.serviceID = val
 			if opt.serviceID == "" {
-				return gerrors.New(gerrors.InvalidParameter, "service-id is required")
+				return ErrServiceIDRequired
 			}
 
 			return nil
@@ -167,6 +248,7 @@ func OptionServiceID(val string) *funcOptions {
 	}
 }
 
+// OptionServiceName sets service name and affects the registry root path.
 func OptionServiceName(val string) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -176,6 +258,7 @@ func OptionServiceName(val string) *funcOptions {
 	}
 }
 
+// OptionEndpoints appends etcd endpoints for client connections.
 func OptionEndpoints(epoints []string) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -185,6 +268,7 @@ func OptionEndpoints(epoints []string) *funcOptions {
 	}
 }
 
+// OptionDialTimeout sets the etcd dial timeout.
 func OptionDialTimeout(val time.Duration) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -194,6 +278,7 @@ func OptionDialTimeout(val time.Duration) *funcOptions {
 	}
 }
 
+// OptionAutoSyncInterval sets the endpoint auto-sync interval.
 func OptionAutoSyncInterval(val time.Duration) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -203,6 +288,7 @@ func OptionAutoSyncInterval(val time.Duration) *funcOptions {
 	}
 }
 
+// OptionKeepAliveTime sets gRPC keepalive ping interval.
 func OptionKeepAliveTime(val time.Duration) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -212,6 +298,7 @@ func OptionKeepAliveTime(val time.Duration) *funcOptions {
 	}
 }
 
+// OptionKeepAliveTimeout sets keepalive response timeout.
 func OptionKeepAliveTimeout(val time.Duration) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -221,6 +308,7 @@ func OptionKeepAliveTimeout(val time.Duration) *funcOptions {
 	}
 }
 
+// OptionRegistryRootKeyPrefix sets the etcd root key prefix for registry-related keys.
 func OptionRegistryRootKeyPrefix(val string) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -230,6 +318,7 @@ func OptionRegistryRootKeyPrefix(val string) *funcOptions {
 	}
 }
 
+// OptionMaxUnaryRetries sets the maximum retries for unary RPC requests.
 func OptionMaxUnaryRetries(val uint) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -239,10 +328,59 @@ func OptionMaxUnaryRetries(val uint) *funcOptions {
 	}
 }
 
+// OptionLogger sets the custom logger used by etcd client.
 func OptionLogger(val *zap.Logger) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
 			opt.Logger = val
+			return nil
+		},
+	}
+}
+
+// OptionCertFile sets the client certificate file path for TLS. Used together with OptionKeyFile.
+// Path must be non-empty and absolute.
+func OptionCertFile(path string) *funcOptions {
+	return &funcOptions{
+		f: func(opt *options) error {
+			if path == "" {
+				return ErrCertFileEmpty
+			}
+			if !filepath.IsAbs(path) {
+				return ErrCertFileNotAbsolutePath
+			}
+			opt.certFile = path
+			return nil
+		},
+	}
+}
+
+// OptionKeyFile sets the client private key file path for TLS. Used together with OptionCertFile.
+// Path must be non-empty and absolute.
+func OptionKeyFile(path string) *funcOptions {
+	return &funcOptions{
+		f: func(opt *options) error {
+			if path == "" {
+				return ErrKeyFileEmpty
+			}
+			if !filepath.IsAbs(path) {
+				return ErrKeyFileNotAbsolutePath
+			}
+			opt.keyFile = path
+			return nil
+		},
+	}
+}
+
+// OptionTrustedCAFile sets the trusted CA certificate file for TLS (optional).
+// If non-empty, path must be absolute.
+func OptionTrustedCAFile(path string) *funcOptions {
+	return &funcOptions{
+		f: func(opt *options) error {
+			if path != "" && !filepath.IsAbs(path) {
+				return ErrTrustedCAFileNotAbsolutePath
+			}
+			opt.trustedCAFile = path
 			return nil
 		},
 	}

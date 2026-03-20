@@ -59,6 +59,17 @@ type ProcessInfo struct {
 	LoginTime   sql.NullString `db:"login_time"`
 }
 
+func (p ProcessInfo) String() string {
+	return fmt.Sprintf("spid=%d, db=%s, cmd=%s, status=%s, program=%s, host=%s, login_time=%s",
+		p.Spid,
+		osutil.NullStringValue(p.DbName),
+		osutil.NullStringValue(p.Cmd),
+		osutil.NullStringValue(p.Status),
+		osutil.NullStringValue(p.ProgramName),
+		osutil.NullStringValue(p.Hostname),
+		osutil.NullStringValue(p.LoginTime))
+}
+
 type DefaultPathInfo struct {
 	DefaultDataPath string `db:"Default_Data_Path"`
 	DefaultLogPath  string `db:"Default_Log_Path"`
@@ -224,10 +235,19 @@ func (h *DbWorker) ExportToCSVWithSelect(query string) (string, error) {
 	return h.ExportToCSVFile(results, options)
 }
 
-// ShowDatabases 执行show database 获取所有的dbName
+// ShowDatabases 执行show database 获取所有的dbName, 不包括系统数据库、异常的库、以及快照库
 // 正常情况值遍历可读写以及状态为running 的 业务数据库列表
 func (h *DbWorker) ShowDatabases() (databases []string, err error) {
 	cmd := "select name from sys.databases where is_read_only=0 and state=0 " +
+		"and name not in ('msdb', 'master', 'model', 'tempdb', 'Monitor');"
+	err = h.Queryx(&databases, cmd)
+	return
+}
+
+// ShowDatabases 执行show database 获取所有的dbName, 不包括系统数据库、异常的库
+// 正常情况值遍历可读写以及状态为running 的 业务数据库列表
+func (h *DbWorker) ShowDatabasesIncludeSnapshots() (databases []string, err error) {
+	cmd := "select name from sys.databases where state=0 " +
 		"and name not in ('msdb', 'master', 'model', 'tempdb', 'Monitor');"
 	err = h.Queryx(&databases, cmd)
 	return
@@ -274,6 +294,20 @@ func (h *DbWorker) GetLogBackupPath() (getpath sql.NullString, err error) {
 	return
 }
 
+// GetClusterDomain 获取实例所在的集群域名
+func (h *DbWorker) GetClusterDomain() (cluster_domain sql.NullString, err error) {
+	cmd := "select [CLUSTER_DOMAIN] from [Monitor].[dbo].[APP_SETTING]"
+	err = h.Queryxs(&cluster_domain, cmd)
+	return
+}
+
+// GetInstanceRole 获取实例在DBM的角色信息
+func (h *DbWorker) GetInstanceRole() (role sql.NullString, err error) {
+	cmd := "select [ROLE] from [Monitor].[dbo].[APP_SETTING]"
+	err = h.Queryxs(&role, cmd)
+	return
+}
+
 // CheckDBProcessExist 判断db是否存在相关请求
 // 这里会顺便kill掉ssms的连接
 func (h *DbWorker) CheckDBProcessExist(dbName string) bool {
@@ -294,11 +328,11 @@ func (h *DbWorker) CheckDBProcessExist(dbName string) bool {
 	// 异常退出
 	for _, info := range procinfos {
 		if strings.Contains(info.ProgramName.String, "Microsoft SQL Server Management Studio") {
-			logger.Warn("process:[%+v], kill this", info)
+			logger.Warn("process:[%s], kill this", info.String())
 			killCmd = append(killCmd, fmt.Sprintf("kill %d", info.Spid))
 		} else {
 			isNoErr = false
-			logger.Error("process:[%+v]", info)
+			logger.Error("process:[%s]", info.String())
 		}
 	}
 	if !isNoErr {
@@ -639,7 +673,16 @@ func ExecLocalSQLFile(sqlVersion string, dbName string, charsetNO int, filenames
 }
 
 // ExecLocalSQLFileForDataExport 执行本地sql脚本，导出数据
-func ExecLocalSQLFileForDataExport(sqlVersion string, dbName string, filenames []string, port int, userName string, pwd string) ([]string, error) {
+func ExecLocalSQLFileForDataExport(
+	cluster_domain string,
+	sqlVersion string,
+	dbName string,
+	filenames []string,
+	port int,
+	userName string,
+	pwd string,
+) ([]string, error) {
+
 	var cmdSql string
 	var outPutFiles []string
 	cmdSql, err := GetCmdSql(sqlVersion)
@@ -649,7 +692,7 @@ func ExecLocalSQLFileForDataExport(sqlVersion string, dbName string, filenames [
 	for _, filename := range filenames {
 		var ret string
 		var err error
-		outPutFile := strings.Replace(filename, ".sql", fmt.Sprintf("_%d_%s.csv", port, dbName), -1)
+		outPutFile := strings.Replace(filename, ".sql", fmt.Sprintf("_%s_%d_%s.csv", cluster_domain, port, dbName), -1)
 		outPutFiles = append(outPutFiles, outPutFile)
 		cmd := fmt.Sprintf(
 			"& '%s' -S '127.0.0.1,%d' -C -I -d %s -f %d -b -i %s -U '%s' -P '%s' -s ',' -W | Out-File -FilePath '%s' -Encoding UTF8",

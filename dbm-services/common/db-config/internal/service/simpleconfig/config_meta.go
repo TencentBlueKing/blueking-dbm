@@ -149,6 +149,23 @@ func QueryConfigTypeInfo(r *api.QueryConfigTypeReq) (*api.QueryConfigTypeResp, e
 	return resp, nil
 }
 
+func CheckValidConfFile(namespace, confType, confFile, levelName string) (string, error) {
+	msg := fmt.Sprintf("namespace=%s, conf_type=%s, conf_file=%s", namespace, confType, confFile)
+	fd := api.BaseConfFileDef{Namespace: namespace, ConfType: confType, ConfFile: confFile}
+	if f, e := model.CacheGetConfigFile(fd); e != nil {
+		return "", errors.Wrapf(errno.ErrConfFile, "ErrFound:%s for %s", e.Error(), msg)
+	} else if f == nil {
+		return "", errors.Wrapf(errno.ErrNamespaceType, msg)
+	} else {
+		if levelName != "" {
+			if !util.StringsHas(f.LevelNameList, levelName) {
+				return "", errors.Wrapf(errno.ErrLevelName, "allowed [%s] but given %s", f.LevelNames, levelName)
+			}
+		}
+		return f.LevelVersioned, nil
+	}
+}
+
 // CheckValidConfType 检查 namespace, conf_type, conf_file, level_name 的合法性
 // 如果 level_name = "" 不检查 level_name
 // 如果 needVersioned >=2 不做版本化相关检查

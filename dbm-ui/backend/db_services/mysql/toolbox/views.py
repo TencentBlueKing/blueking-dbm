@@ -628,12 +628,11 @@ class TdbctlUpgradeViewSet(viewsets.SystemViewSet):
             # 验证参数
             TdbctlUpgradeSerializer(data=data).is_valid(raise_exception=True)
 
-            # 创建单据
             ticket = Ticket.create_ticket(
                 ticket_type=TicketType.TENDBCLUSTER_TDBCTL_UPGRADE.value,
                 creator=request.user.username,
                 bk_biz_id=data["bk_biz_id"],
-                remark=_("TdbCtl 升级"),
+                remark=str(_("TdbCtl 升级")),
                 details=data,
             )
 

@@ -94,6 +94,7 @@ func (suite *OpsRequestControllerTestSuite) TestGetOpsRequest() {
 	{
 	  "code": 200,
 	  "data": {
+		"completedAt": null,
 		"crdClusterId": 1,
 		"createdBy": "admin",
 		"description": "Test opsrequest",

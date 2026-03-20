@@ -39,12 +39,19 @@ class ChecksumResult:
 class ChecksumService:
     def __init__(self, cluster_id: int):
         self.cluster = Cluster.objects.get(id=cluster_id)
+        self.instances = []
         inner_role_filter = [InstanceInnerRole.SLAVE.value, InstanceInnerRole.REPEATER.value]
-        self.instances = list(
-            self.cluster.storageinstance_set.filter(instance_inner_role__in=inner_role_filter).exclude(
-                status=InstanceStatus.UNAVAILABLE
-            )
-        )
+
+        # 只获取 standby master 的下级实例
+        i_set = set()
+        for ins in self.cluster.storageinstance_set.filter(instance_inner_role__in=inner_role_filter).exclude(
+            status=InstanceStatus.UNAVAILABLE
+        ):
+            if StorageInstanceTuple.objects.filter(
+                receiver=ins, ejector__instance_inner_role=InstanceInnerRole.MASTER
+            ).exists():
+                i_set.add(ins)
+        self.instances = list(i_set)
         machines = [inst.machine.ip for inst in self.instances]
         self.slaves = list(dict.fromkeys(machines))
 

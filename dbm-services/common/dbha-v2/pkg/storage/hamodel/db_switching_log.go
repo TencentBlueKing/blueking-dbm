@@ -46,10 +46,13 @@ const (
 // DbSwitchingLog defines the log of database switching.
 type DbSwitchingLog struct {
 	ID          uint      `gorm:"column:id;primaryKey;autoIncrement"                json:"id"`
+	SwitchID    string    `gorm:"column:switch_id;index:idx_switch_id"              json:"switch_id"`
+	ActionScope string    `gorm:"column:action_scope;index:idx_scope"               json:"action_scope"`
 	BkBizID     int       `gorm:"column:bk_biz_id;index:idx_biz"                    json:"bk_biz_id"`
 	BkCloudID   int       `gorm:"column:bk_cloud_id"                                json:"bk_cloud_id"`
 	DbIP        string    `gorm:"column:db_ip;index:idx_ip_port"                    json:"db_ip"`
 	DbPort      int       `gorm:"column:db_port;index:idx_ip_port"                  json:"db_port"`
+	ClusterID   int       `gorm:"column:cluster_id;index:idx_cluster_id"            json:"cluster_id"`
 	ClusterName string    `gorm:"column:cluster_name;index:idx_cluster"             json:"cluster_name"`
 	DbTypeName  string    `gorm:"column:db_type_name;index:idx_dbtype"              json:"db_type_name"`
 	Level       string    `gorm:"column:level;index:idx_level"                      json:"level"`

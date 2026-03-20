@@ -97,13 +97,17 @@ func (s *SimulationHandler) CreateClusterByRequestId(r *gin.Context) {
 		s.SendResponse(r, errors.Wrap(err, "提取集群配置失败"), nil)
 		return
 	}
-
+	var engine string = ""
+	if v, ok := config.BackendStartArgs["default_storage_engine"]; ok {
+		engine = v
+	}
 	// 创建 Pod 配置
 	ps := service.NewDbPodSets()
 	ps.BaseInfo = &service.MySQLPodBaseInfo{
 		PodName: param.Name,
 		RootPwd: param.RandomString,
 		Charset: config.Charset,
+		Engine:  engine,
 	}
 	ps.DbImage, err = service.GetImgFromMySQLVersion(config.MySQLVersion)
 	if err != nil {
@@ -215,7 +219,7 @@ func (s *SimulationHandler) extractClusterConfig(body map[string]interface{}) (*
 	}
 
 	// 提取 Backend 启动参数
-	if backendArgs, ok := body["mysql_start_configs"].(map[string]interface{}); ok {
+	if backendArgs, ok := body["mysql_start_config"].(map[string]interface{}); ok {
 		config.BackendStartArgs = convertToStringMap(backendArgs)
 	} else {
 		config.BackendStartArgs = make(map[string]string)
@@ -244,6 +248,7 @@ type CreateClusterParam struct {
 	SpiderVersions []service.SpiderVersionConfig `json:"spider_versions" binding:"required,gt=0,dive"` // 多个 Spider 版本配置
 	BackendVersion string                        `json:"backend_version"`
 	Charset        string                        `json:"charset"`
+	BackendEngine  string                        `json:"backend_engine"`
 }
 
 // CreateTmpSpiderPodCluster 创建临时的spider的集群,多用于测试，debug
@@ -261,6 +266,7 @@ func (s *SimulationHandler) CreateTmpSpiderPodCluster(r *gin.Context) {
 		PodName: param.PodName,
 		RootPwd: param.RandomString,
 		Charset: param.Charset,
+		Engine:  param.BackendEngine,
 	}
 	var err error
 	ps.DbImage, err = service.GetImgFromMySQLVersion(param.BackendVersion)
@@ -407,6 +413,7 @@ func (s *SimulationHandler) TendbSimulation(r *gin.Context) {
 		RootPwd: param.TaskId,
 		Args:    param.BuildStartArgs(),
 		Charset: param.MySQLCharSet,
+		Engine:  param.GetMySQLEngine(),
 	}
 	tsk.BackendStartArgs = param.MySQLStartConfigs
 	service.TaskChan <- tsk
@@ -465,8 +472,10 @@ func (s *SimulationHandler) TendbClusterSimulation(r *gin.Context) {
 			"request_id": s.RequestId},
 		RootPwd: rootPwd,
 		Charset: param.MySQLCharSet,
+		Engine:  param.BaseParam.GetMySQLEngine(),
 	}
 	tsk.BackendStartArgs = param.MySQLStartConfigs
+	tsk.TdbCtlStartArgs = param.TdbctlStartConfigs
 	service.SpiderTaskChan <- tsk
 	s.SendResponse(r, nil, "request successful")
 }

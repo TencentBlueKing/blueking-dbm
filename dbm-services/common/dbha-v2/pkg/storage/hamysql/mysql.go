@@ -34,6 +34,7 @@ import (
 	gormlogger "gorm.io/gorm/logger"
 )
 
+// DBType is a type constraint for supported database types (gorm.DB or sqlx.DB).
 type DBType interface {
 	gorm.DB | sqlx.DB
 }
@@ -45,14 +46,17 @@ type Base[T DBType] struct {
 	close func()
 }
 
+// GormDB wraps a GORM database connection with common base options.
 type GormDB struct {
 	Base[gorm.DB]
 }
 
+// SqlxDB wraps a sqlx database connection with common base options.
 type SqlxDB struct {
 	Base[sqlx.DB]
 }
 
+// NewGormDB creates a new GormDB instance with the given options.
 func NewGormDB(opts ...Option) (*GormDB, error) {
 	db := &GormDB{
 		Base: Base[gorm.DB]{
@@ -98,6 +102,7 @@ func NewGormDB(opts ...Option) (*GormDB, error) {
 	return db, nil
 }
 
+// NewSqlxDB creates a new SqlxDB instance with the given options.
 func NewSqlxDB(opts ...Option) (*SqlxDB, error) {
 	db := &SqlxDB{
 		Base: Base[sqlx.DB]{
@@ -147,4 +152,13 @@ func (db Base[T]) Close() {
 	}
 
 	db.close()
+}
+
+// NewGormDBForTest is only used in unit test scenarios, allowing injection of *gorm.DB to construct a GormDB instance.
+func NewGormDBForTest(gormDB *gorm.DB) *GormDB {
+	return &GormDB{
+		Base: Base[gorm.DB]{
+			db: gormDB,
+		},
+	}
 }

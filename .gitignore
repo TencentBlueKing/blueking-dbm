@@ -8,7 +8,7 @@
 pre-*-bkcodeai
 .vscode
 .python-version
-
+**/CODE_REVIEW_SUGGESTIONS.md
 bkcodeai.json
 package-lock.json
 *.swp
@@ -22,7 +22,11 @@ package-lock.json
 .cursorrules
 .cursor/
 # Claude
+CLAUDE.md
 .claude/
 .history/
 dbm-services/.history/
 dbm-ui/.history/
+# trellis
+.trellis
+

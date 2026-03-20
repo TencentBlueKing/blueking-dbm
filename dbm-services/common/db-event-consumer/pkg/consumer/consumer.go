@@ -34,6 +34,7 @@ type AnySinker struct {
 	strictSchema bool
 }
 
+// Setup run default migrate or custom migrate
 func (s *AnySinker) Setup(sarama.ConsumerGroupSession) error {
 	var err error
 	if s.Sinker.RuntimeConfig.SkipMigrateSchema || !s.strictSchema {
@@ -95,6 +96,10 @@ func (s *AnySinker) ConsumeClaim(session sarama.ConsumerGroupSession, claim sara
 				msgs = msgs[:0]
 			}
 		case message := <-claim.Messages():
+			if message == nil {
+				// channel 已关闭，应该退出或跳过
+				continue
+			}
 			msgs = append(msgs, message)
 			if len(msgs) >= BatchSize {
 				if err := s.HandleMessageTryBatch(msgs, s.Sinker); err != nil {
@@ -242,8 +247,8 @@ func (s *AnySinker) HandleMessagesBklog(msgs []*sarama.ConsumerMessage, sk *Sink
 	}
 	var objs []base.ModelSinker
 	for _, message := range msgs {
-		slog.Debug("process message", slog.String("Value", string(message.Value)))
-		var msg messageWrapper
+		// slog.Debug("process message", slog.String("Value", string(message.Value)))
+		var msg base.MessageWrapper
 		err := json.Unmarshal(message.Value, &msg)
 		if err != nil {
 			slog.Error("unmarshal message", err)
@@ -284,30 +289,44 @@ func (s *AnySinker) HandleMessagesBklogGorm(msgs []*sarama.ConsumerMessage, sk *
 	sliceType := reflect.SliceOf(s.modelType)
 	result := reflect.MakeSlice(sliceType, 0, 0)
 	for _, message := range msgs {
-		slog.Debug("process message", slog.String("Value", string(message.Value)))
-		var msg messageWrapper
+		// slog.Debug("process message", slog.String("Value", string(message.Value)))
+		var msg base.MessageWrapper
+
 		err := json.Unmarshal(message.Value, &msg)
 		if err != nil {
 			slog.Error("unmarshal message", err)
 			continue
 		}
+
 		for _, item := range msg.Items {
-			unquoteData, err := strconv.Unquote(string(item.Data))
-			if err != nil {
-				slog.Error("unquote message payload", err)
-				continue
-			}
 			objValue := reflect.New(s.modelType)
 			obj := objValue.Interface()
 
-			err = json.Unmarshal([]byte(unquoteData), &obj)
-			if err != nil {
-				slog.Error("unmarshal task object", err, slog.Any("msg", unquoteData))
-				return err
-			}
+			if bklogItem, ok := obj.(base.BklogUnmarshalItem); ok {
+				err = bklogItem.UnmarshalItem(item.Data, msg)
+				if err != nil {
+					// slog.Error("unmarshal bklog item", err)
+					continue
+				}
+				result = reflect.Append(result, objValue.Elem())
+			} else { // json
+				unquoteData, err := strconv.Unquote(string(item.Data))
+				if err != nil {
+					slog.Error("unquote message payload", err)
+					continue
+				}
 
-			result = reflect.Append(result, objValue.Elem())
+				err = json.Unmarshal([]byte(unquoteData), &obj)
+				if err != nil {
+					slog.Error("unmarshal task object", err, slog.Any("msg", unquoteData))
+					return err
+				}
+				result = reflect.Append(result, objValue.Elem())
+			}
 		}
+	}
+	if result.Len() == 0 {
+		return nil
 	}
 	var err error
 	if creator, ok := s.modelObject.(base.CustomCreator); ok {
@@ -326,7 +345,7 @@ func (s *AnySinker) HandleMessagesBklogMapper(msgs []*sarama.ConsumerMessage, sk
 	var objs []map[string]interface{}
 	for _, message := range msgs {
 		slog.Debug("process message", slog.String("Value", string(message.Value)))
-		var msg messageWrapper
+		var msg base.MessageWrapper
 		err := json.Unmarshal(message.Value, &msg)
 		if err != nil {
 			slog.Error("unmarshal message", err)

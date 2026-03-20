@@ -165,3 +165,137 @@ func (suite *ClusterServiceProviderTestSuite) TestUpdateClusterService() {
 	assert.NoError(t, err)
 	assert.Equal(t, uint64(1), rows)
 }
+
+func (suite *ClusterServiceProviderTestSuite) TestFindByClusterID() {
+	t := suite.T()
+	svc1 := &metaenitty.K8sClusterServiceEntity{
+		CrdClusterID:  uint64(300),
+		ComponentName: "comp-a",
+		ServiceName:   "svc-a",
+		ServiceType:   "ClusterIP",
+	}
+	svc2 := &metaenitty.K8sClusterServiceEntity{
+		CrdClusterID:  uint64(300),
+		ComponentName: "comp-a",
+		ServiceName:   "svc-b",
+		ServiceType:   "LoadBalancer",
+	}
+	_, err := suite.clusterProvider.CreateClusterService(svc1)
+	assert.NoError(t, err)
+	_, err = suite.clusterProvider.CreateClusterService(svc2)
+	assert.NoError(t, err)
+
+	services, err := suite.clusterProvider.FindByClusterID(300)
+	assert.NoError(t, err)
+	assert.Len(t, services, 2)
+
+	names := map[string]bool{}
+	for _, s := range services {
+		names[s.ServiceName] = true
+	}
+	assert.True(t, names["svc-a"])
+	assert.True(t, names["svc-b"])
+}
+
+func (suite *ClusterServiceProviderTestSuite) TestDeleteByClusterID() {
+	t := suite.T()
+	svc1 := &metaenitty.K8sClusterServiceEntity{
+		CrdClusterID:  uint64(400),
+		ComponentName: "comp-a",
+		ServiceName:   "svc-a",
+		ServiceType:   "ClusterIP",
+	}
+	svc2 := &metaenitty.K8sClusterServiceEntity{
+		CrdClusterID:  uint64(400),
+		ComponentName: "comp-a",
+		ServiceName:   "svc-b",
+		ServiceType:   "LoadBalancer",
+	}
+	_, err := suite.clusterProvider.CreateClusterService(svc1)
+	assert.NoError(t, err)
+	_, err = suite.clusterProvider.CreateClusterService(svc2)
+	assert.NoError(t, err)
+
+	rows, err := suite.clusterProvider.DeleteByClusterID(400)
+	assert.NoError(t, err)
+	assert.Equal(t, uint64(2), rows)
+
+	services, err := suite.clusterProvider.FindByClusterID(400)
+	assert.NoError(t, err)
+	assert.Empty(t, services)
+}
+
+func (suite *ClusterServiceProviderTestSuite) TestDeleteByClusterIDAndServiceName() {
+	t := suite.T()
+	svc1 := &metaenitty.K8sClusterServiceEntity{
+		CrdClusterID:  uint64(500),
+		ComponentName: "comp-a",
+		ServiceName:   "svc-a",
+		ServiceType:   "ClusterIP",
+	}
+	svc2 := &metaenitty.K8sClusterServiceEntity{
+		CrdClusterID:  uint64(500),
+		ComponentName: "comp-a",
+		ServiceName:   "svc-b",
+		ServiceType:   "LoadBalancer",
+	}
+	_, err := suite.clusterProvider.CreateClusterService(svc1)
+	assert.NoError(t, err)
+	_, err = suite.clusterProvider.CreateClusterService(svc2)
+	assert.NoError(t, err)
+
+	rows, err := suite.clusterProvider.DeleteByClusterIDAndServiceName(500, "svc-a")
+	assert.NoError(t, err)
+	assert.Equal(t, uint64(1), rows)
+
+	services, err := suite.clusterProvider.FindByClusterID(500)
+	assert.NoError(t, err)
+	assert.Len(t, services, 1)
+	assert.Equal(t, "svc-b", services[0].ServiceName)
+}
+
+func (suite *ClusterServiceProviderTestSuite) TestUpsertClusterServices() {
+	t := suite.T()
+	// First upsert: insert 2 services
+	entities1 := []*metaenitty.K8sClusterServiceEntity{
+		{
+			CrdClusterID:  uint64(600),
+			ComponentName: "comp-a",
+			ServiceName:   "svc-a",
+			ServiceType:   "ClusterIP",
+			InternalAddrs: "svc-a.ns.svc.cluster.local:3306",
+		},
+		{
+			CrdClusterID:  uint64(600),
+			ComponentName: "comp-a",
+			ServiceName:   "svc-b",
+			ServiceType:   "LoadBalancer",
+			ExternalAddrs: "svc-b.ns.svc.external:3306",
+		},
+	}
+	err := suite.clusterProvider.UpsertClusterServices(600, entities1)
+	assert.NoError(t, err)
+
+	services, err := suite.clusterProvider.FindByClusterID(600)
+	assert.NoError(t, err)
+	assert.Len(t, services, 2)
+
+	// Second upsert: replace with different data
+	entities2 := []*metaenitty.K8sClusterServiceEntity{
+		{
+			CrdClusterID:  uint64(600),
+			ComponentName: "comp-b",
+			ServiceName:   "svc-c",
+			ServiceType:   "NodePort",
+			InternalAddrs: "svc-c.ns.svc.cluster.local:6379",
+		},
+	}
+	err = suite.clusterProvider.UpsertClusterServices(600, entities2)
+	assert.NoError(t, err)
+
+	services, err = suite.clusterProvider.FindByClusterID(600)
+	assert.NoError(t, err)
+	assert.Len(t, services, 1)
+	assert.Equal(t, "svc-c", services[0].ServiceName)
+	assert.Equal(t, "comp-b", services[0].ComponentName)
+}

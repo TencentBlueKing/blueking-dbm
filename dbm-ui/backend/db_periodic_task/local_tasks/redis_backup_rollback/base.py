@@ -91,6 +91,9 @@ class RedisRollbackExerciseConfig:
     weight_multiplier_not_exercised: float = 2.0  # 2x more likely for clusters not exercised recently
     not_exercised_days_threshold: int = 180  # Days threshold for "not exercised" status
 
+    # Error handling
+    error_ignorable: bool = True  # Continue exercising other clusters when one rollback fails
+
     # Extra
     max_instances: int = 10  # Each round
     rollback_days: List[int] = field(default_factory=lambda: [7, 5, 3, 2, 1])
@@ -391,6 +394,7 @@ class RedisRollbackExercise:
                     "drill_config": {
                         "polling_interval": self.config.polling_interval,
                         "polling_timeout": self.config.polling_timeout,
+                        "error_ignorable": self.config.error_ignorable,
                     },
                     "ip_source": IpSource.RESOURCE_POOL.value,
                 },
@@ -626,7 +630,7 @@ class RedisRollbackExercise:
                 break
 
             try:
-                cluster_id = eval(candidate_data)
+                cluster_id = int(candidate_data)
                 cluster = Cluster.objects.get(id=cluster_id)
                 if cluster.phase != ClusterPhase.ONLINE.value:
                     skip_msg = _("Cluster {} is offline (phase: {})").format(cluster.immute_domain, cluster.phase)

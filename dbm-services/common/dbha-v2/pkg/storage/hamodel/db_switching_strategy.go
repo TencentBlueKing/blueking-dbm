@@ -51,8 +51,9 @@ var ActionTypeMap = map[ActionType]ActionType{
 type ActionScopeType string
 
 const (
-	ActionScopeTypeCluster ActionScopeType = "cluster"
-	ActionScopeTypeHost    ActionScopeType = "host"
+	ActionScopeTypeCluster    ActionScopeType = "cluster"
+	ActionScopeTypeHost       ActionScopeType = "host"
+	ActionScopeTypeDbInstance ActionScopeType = "db_instance"
 )
 
 func (a ActionScopeType) String() string {
@@ -60,8 +61,9 @@ func (a ActionScopeType) String() string {
 }
 
 var ActionScopeTypeMap = map[ActionScopeType]ActionScopeType{
-	ActionScopeTypeCluster: ActionScopeTypeCluster,
-	ActionScopeTypeHost:    ActionScopeTypeHost,
+	ActionScopeTypeCluster:    ActionScopeTypeCluster,
+	ActionScopeTypeHost:       ActionScopeTypeHost,
+	ActionScopeTypeDbInstance: ActionScopeTypeDbInstance,
 }
 
 // StatusType enabled, disabled, deleted.

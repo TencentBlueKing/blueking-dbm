@@ -10,12 +10,14 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
+from blueapps.account.models import User
 from django.utils.translation import gettext as _
 from django.utils.translation import gettext_lazy
 from rest_framework.response import Response
 
 from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums.spec import machine_type_to_spec_machine_type
 from backend.db_meta.models import Machine, Spec
 from backend.dbm_aiagent.mcp_tools.common.impl.recommend_host_spec import recommend_specs_for_hosts
 from backend.dbm_aiagent.mcp_tools.common.serializers.recommend_spec import (
@@ -34,6 +36,7 @@ from backend.dbm_aiagent.mcp_tools.exceptions import (
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.drf_perm.mcp import McpIsDbaPermission
 
 logger = logging.getLogger("root")
 
@@ -165,10 +168,24 @@ class DBMetaUpdateMcpToolsViewSet(McpToolsViewSet):
                 )
             return False
 
-        if spec.spec_machine_type != machine_machine_type:
+        # 将 MachineType 转换为对应的 SpecMachineType 进行比较
+        try:
+            expected_spec_machine_type = machine_type_to_spec_machine_type(machine_machine_type)
+        except ValueError as e:
+            logger.warning(_("无法转换 machine_type ({}): {}").format(machine_machine_type, str(e)))
+            for machine in machines:
+                failed_list.append(
+                    {
+                        "ip": machine.ip,
+                        "reason": _("无法转换机器类型 ({}) 为规格类型: {}").format(machine_machine_type, str(e)),
+                    }
+                )
+            return False
+
+        if spec.spec_machine_type != expected_spec_machine_type:
             logger.warning(
-                _("规格的 spec_machine_type ({}) 与机器的 machine_type ({}) 不匹配").format(
-                    spec.spec_machine_type, machine_machine_type
+                _("规格的 spec_machine_type ({}) 与机器的 machine_type ({}) 转换后的规格类型 ({}) 不匹配").format(
+                    spec.spec_machine_type, machine_machine_type, expected_spec_machine_type
                 )
             )
             for machine in machines:
@@ -176,10 +193,15 @@ class DBMetaUpdateMcpToolsViewSet(McpToolsViewSet):
                     {
                         "ip": machine.ip,
                         "reason": _(
-                            "Spec machine_type ({}) does not match machine type ({}). "
-                            "规格的 machine_type ({}) 与机器类型 ({}) 不匹配。"
+                            "Spec machine_type ({}) does not match machine type ({}) converted spec type ({}). "
+                            "规格的 machine_type ({}) 与机器类型 ({}) 转换后的规格类型 ({}) 不匹配。"
                         ).format(
-                            spec.spec_machine_type, machine_machine_type, spec.spec_machine_type, machine_machine_type
+                            spec.spec_machine_type,
+                            machine_machine_type,
+                            expected_spec_machine_type,
+                            spec.spec_machine_type,
+                            machine_machine_type,
+                            expected_spec_machine_type,
                         ),
                     }
                 )
@@ -190,25 +212,18 @@ class DBMetaUpdateMcpToolsViewSet(McpToolsViewSet):
     @mcp_tools_api_decorator(
         description=str(
             _(
-                "Update machine spec configuration in batch. "
-                "批量更新机器规格配置。\n\n"
-                "**Use Cases / 使用场景:**\n"
-                "- Assign spec to newly added machines / 为新增机器分配规格\n"
-                "- Correct spec mismatch after migration / 迁移后修正规格不匹配\n"
-                "- Batch update spec for capacity planning / 容量规划时批量更新规格\n\n"
-                "**Constraints / 约束条件:**\n"
-                "- All IPs must have same cluster_type and machine_type / 所有 IP 必须是相同集群类型和机器类型\n"
-                "- Spec must match machine's cluster_type (as DBType) and machine_type / "
-                "规格必须匹配机器的集群类型和机器类型\n"
-                "- Machine's device class (bk_svr_device_cls_name) must be in spec's device_class list / "
-                "机器的机型必须在规格的允许机型列表中\n"
-                "- By default, only empty spec machines can be updated (use force=True to override) / "
-                "默认只能更新空规格机器（使用 force=True 强制覆盖）"
+                "批量更新机器规格配置。Batch update machine spec. "
+                "场景：为新增机器分配规格、迁移后修正、容量规划。"
+                "约束：所有 IP 需相同 cluster_type/machine_type，规格需匹配，"
+                "机型需在 device_class 中。默认仅更新空规格机器，force=True 可强制覆盖。"
+                "Use cases: assign spec, fix after migration, capacity planning. "
+                "Constraints: same cluster/machine type, spec match, device_class. force=True to override."
             )
         ),
         request_slz=UpdateMachineSpecInputSerializer,
         response_slz=UpdateMachineSpecOutputSerializer,
         tags=[DBMMCPTags.WRITE],
+        permission_classes=[McpIsDbaPermission],
         mcp=[DBMMcpTools.DBMETA_UPDATE],
         name_prefix="dba_tool",
     )
@@ -266,12 +281,16 @@ class DBMetaUpdateMcpToolsViewSet(McpToolsViewSet):
         machine_cluster_type, machine_machine_type = self._validate_machines_consistency(machines, failed_list)
         if machine_cluster_type is None:
             return Response({"success_count": 0, "failed_list": failed_list})
-
-        # 4. 校验用户是否为业务 DBA 负责人
-        db_type = self._validate_business_dba_permission(machines, username, machine_cluster_type, failed_list)
+        # 判断用户是否为超级管理员
+        is_superuser = User.objects.filter(is_superuser=True, username=username).exists()
+        if not is_superuser:
+            # 4. 校验用户是否为业务 DBA 负责人
+            db_type = self._validate_business_dba_permission(machines, username, machine_cluster_type, failed_list)
+        else:
+            db_type = ClusterType.cluster_type_to_db_type(machine_cluster_type)
+        # 判断 db_type 是否为空
         if db_type is None:
             return Response({"success_count": 0, "failed_list": failed_list})
-
         # 5. 校验规格与机器类型匹配
         if not self._validate_spec_match(spec, db_type, machine_machine_type, machines, failed_list):
             return Response({"success_count": 0, "failed_list": failed_list})
@@ -330,19 +349,10 @@ class DBMetaUpdateMcpToolsViewSet(McpToolsViewSet):
     @mcp_tools_api_decorator(
         description=str(
             gettext_lazy(
-                "根据主机信息推荐合适的规格。\n\n"
-                "**功能说明 / Function:**\n"
-                "- 根据主机的集群类型、机器类型和机型推荐匹配的规格\n"
-                "- Recommend specs based on host's cluster type, machine type and device class\n\n"
-                "**推荐规则 / Recommendation Rules:**\n"
-                "1. spec_cluster_type 必须匹配主机的 cluster_type\n"
-                "2. spec_machine_type 必须匹配主机的 machine_type\n"
-                "3. 主机的机型（bk_svr_device_cls_name）必须在规格的 device_class 列表中\n"
-                "4. 规格的 device_class 不能为空列表\n"
-                "5. 规格名称（spec_name）模糊匹配关键字（默认：标准、推荐、standard）\n\n"
-                "**输出格式 / Output Format:**\n"
-                "- 按 spec_id 聚合，相同规格的主机 IP 合并到 matched_hosts 列表中\n"
-                "- Grouped by spec_id, host IPs with same spec are merged into matched_hosts list"
+                "根据主机信息推荐合适的规格。根据集群类型、机器类型和机型推荐匹配规格。"
+                "规则：spec_cluster_type/spec_machine_type 匹配，机型在 device_class 中，"
+                "spec_name 模糊匹配（默认：标准、推荐、standard）。输出按 spec_id 聚合。"
+                "Recommend specs by cluster/machine type and device class. Output grouped by spec_id."
             )
         ),
         request_slz=RecommendSpecInputSerializer,

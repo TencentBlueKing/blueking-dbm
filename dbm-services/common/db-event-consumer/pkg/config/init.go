@@ -34,6 +34,7 @@ func init() {
 	_ = sinker.RegisterModelSinker(&model.MysqlBackupStatusModel{})
 	_ = sinker.RegisterModelSinker(&model.MysqlPartitionResultModel{})
 	_ = sinker.RegisterModelSinker(&model.MysqlTableSize{})
+	_ = sinker.RegisterModelSinker(&model.MysqlSlowLogModel{})
 
 	_ = sinker.RegisterModelSinker(&model.RedisBackupResultModel{})
 	_ = sinker.RegisterModelSinker(&model.RedisBinlogFileModel{})
@@ -119,9 +120,9 @@ func InitSinkerConfig(mainConfFile string) ([]*SinkerConfig, error) {
 			checkDup[name] = struct{}{}
 
 			if s.WriteMode == "" {
-				s.WriteMode = cst.ModeUpsert
+				s.WriteMode = cst.ModeReplace
 			}
-			if !lo.Contains([]string{cst.ModeInsertIgnore, cst.ModeInsert, cst.ModeUpsert}, s.WriteMode) {
+			if !lo.Contains([]string{cst.ModeInsertIgnore, cst.ModeInsert, cst.ModeUpsert, cst.ModeReplace}, s.WriteMode) {
 				return nil, fmt.Errorf("invalid write_mode: %s", s.WriteMode)
 			}
 			if s.Topic == "" && s.BkDataId == 0 {

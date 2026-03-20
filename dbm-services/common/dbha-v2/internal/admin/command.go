@@ -89,6 +89,13 @@ var StartCmd = &cobra.Command{
 	RunE:  cmds.StartCmdRunE,
 }
 
+// DaemonStartCmd is used to start this process with a guard that restarts it on abnormal exit.
+var DaemonStartCmd = &cobra.Command{
+	Use:   "daemon-start",
+	Short: "Start this process with guard (auto-restart on crash).",
+	RunE:  cmds.DaemonStartCmdRunE,
+}
+
 // StopCmd is used to stop this process.
 var StopCmd = &cobra.Command{
 	Use:   "stop",

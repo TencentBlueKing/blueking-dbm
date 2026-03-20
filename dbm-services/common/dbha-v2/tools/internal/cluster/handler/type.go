@@ -109,12 +109,48 @@ type ClusterProxyRoutingInfo struct {
 	Proxies []ProxyRoutingEntry `json:"proxies"`
 }
 
-// printJSON prints data in JSON format
+// ShowResponse represents the standard response format for show commands
+type ShowResponse struct {
+	Result bool        `json:"result"`
+	Errmsg string      `json:"errmsg"`
+	Data   interface{} `json:"data"`
+}
+
+// printJSON prints data in JSON format with result and errmsg fields
 func printJSON(data interface{}) error {
-	jsonData, err := json.MarshalIndent(data, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal JSON, errmsg: %s", err.Error())
+	return printShowResponse(true, "", data)
+}
+
+// printShowResponse prints response with result, errmsg and data
+func printShowResponse(result bool, errmsg string, data interface{}) error {
+	response := ShowResponse{
+		Result: result,
+		Errmsg: errmsg,
+		Data:   data,
 	}
+
+	jsonData, err := json.MarshalIndent(response, "", "  ")
+	if err != nil {
+		errResponse := ShowResponse{
+			Result: false,
+			Errmsg: fmt.Sprintf("failed to marshal JSON, errmsg: %s", err.Error()),
+			Data:   nil,
+		}
+		errJsonData, _ := json.MarshalIndent(errResponse, "", "  ")
+		fmt.Println(string(errJsonData))
+		return nil
+	}
+
 	fmt.Println(string(jsonData))
 	return nil
+}
+
+// printErrorResponse prints error response and returns nil (no error)
+func printErrorResponse(errmsg string) error {
+	return printShowResponse(false, errmsg, nil)
+}
+
+// printErrorResponsef prints formatted error response and returns nil (no error)
+func printErrorResponsef(format string, args ...interface{}) error {
+	return printShowResponse(false, fmt.Sprintf(format, args...), nil)
 }

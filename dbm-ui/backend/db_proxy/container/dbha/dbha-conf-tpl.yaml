@@ -116,7 +116,7 @@ monitor:
   agent_address: "$MYSQL_CROND_AGENT_ADDRESS"
   local_ip: "$NODE_IP"
 ssh:
-  port: 36000
+  port: "$DBHA_SSH_PORT"
   user: "mysql"
   pass: "$MYSQL_OS_PASSWORD"
   dest: "agent"

@@ -11,112 +11,175 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.dbm_aiagent.mcp_tools.redis.impl.redis_metrics import MetricsInstanceRole, MetricsOutputMode
+from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsGroupBy, MetricsInstanceRole, MetricsStatsType, MetricType
 
 
-class RedisMetricsInputSerializer(serializers.Serializer):
-    """Input serializer for Redis metrics queries"""
+class RedisMetricsBaseInputSerializer(serializers.Serializer):
+    """Shared fields for all Redis metrics queries"""
 
-    cluster_domain = serializers.CharField(help_text=_("Redis cluster domain name"))
+    cluster_domain = serializers.CharField(
+        help_text=_(
+            "Redis cluster domain name (e.g. 'cache.myapp.bizname.db'). "
+            "If unknown, call redis_query_meta_list_redis_clusters with bk_biz_id or biz_name to look it up."
+        )
+    )
+    metric_type = serializers.ChoiceField(
+        choices=MetricType.get_choices(),
+        help_text=_(
+            "Metric to query. Choose by category: "
+            "[Resource] cpu_usage (CPU %), memory_usage (Memory %), io_usage (IO %), disk_usage (Disk %). "
+            "[Throughput] connections (connection count), qps (operations/s) "
+            "-- NOTE: prefer instance_role='proxy' for connections and qps to measure client-facing traffic. "
+            "[Latency] host_latency (average latency in μs), "
+            "command_latency (per-command latency in μs; group_by=['cmd'] is auto-added), "
+            "latency_distribution (latency bucket breakdown; group_by=['bucket'] and instance_role='proxy' "
+            "are auto-set). "
+            "[Capacity] capacity (used/available/total memory in bytes)."
+        ),
+    )
     start_time = serializers.DateTimeField(
         required=False,
         help_text=_(
-            "Optional: Start time in ISO format (e.g., 2026-01-08T16:33:38+08:00). Defaults to 30 minutes ago."
+            "Start of the query time range in ISO 8601 format (e.g. '2026-01-08T16:33:38+08:00'). "
+            "Default: 30 minutes ago."
         ),
     )
     end_time = serializers.DateTimeField(
         required=False,
-        help_text=_("Optional: End time in ISO format (e.g., 2026-01-08T16:33:38+08:00). Defaults to now."),
-    )
-    mode = serializers.ChoiceField(
-        choices=MetricsOutputMode.get_choices(),
-        default=MetricsOutputMode.STATS.value,
         help_text=_(
-            "Output mode: 'overall' returns only aggregated time series data, 'stats' returns only scalar statistics, "
-            "'both' returns both series and statistics. Use stats as possible, unless the user ask for the raw/graph."
+            "End of the query time range in ISO 8601 format (e.g. '2026-01-08T16:33:38+08:00'). " "Default: now."
         ),
     )
-    detailed = serializers.BooleanField(
-        default=False,
+    group_by = serializers.ListField(
+        child=serializers.ChoiceField(choices=[dim.value for dim in MetricsGroupBy]),
+        required=False,
+        allow_null=True,
         help_text=_(
-            "When True, downgrades aggregation dimensions by one level. "
-            "E.g., if aggregation_level is Cluster, dimensions become 'cluster_domain,ip' instead of 'cluster_domain'. "
-            "If Machine level, dimensions become 'cluster_domain,ip,port' instead of 'cluster_domain,ip'. "
-            "Has no effect at Instance level. If user ask for comparison between IPs, then you should turn this on."
-            "CRITICAL: Some clusters may have lots of IPs, keep max_len_datapoints <= 15!"
+            "Dimensions to break results down by. Omit (or null) for cluster-level aggregate. "
+            "Valid choices: "
+            "'ip' -- one series per host machine; "
+            "'instance' -- one series per ip:port; "
+            "'bucket' -- one series per latency bucket (only for metric_type='latency_distribution'); "
+            "'cluster_domain' -- one series per cluster (rarely needed). "
+            "NOTE: do NOT pass 'cmd'; it is automatically included when metric_type='command_latency'. "
+            "group_by is independent of ip/port filters -- you can filter by ip while grouping by instance."
         ),
     )
     max_len_datapoints = serializers.IntegerField(
         default=100,
         help_text=_(
-            "Optional: max length of series, default=100, this would determine the interval/time window of PromQL query. "
-            'If `mode!="stats"`, this should keep <=15 considering the LLM context length.'
+            "Maximum number of data points returned per series. Default: 100. "
+            "Also controls the sampling interval: larger value = finer time granularity, "
+            "smaller value = coarser granularity with fewer points."
         ),
     )
     instance_role = serializers.ChoiceField(
         choices=MetricsInstanceRole.get_choices(),
         default=MetricsInstanceRole.MASTER.value,
-        help_text=_("Role of instances to query: redis_master (default), proxy, or redis_slave"),
+        help_text=_(
+            "Which instance role to query. Values: 'redis_master', 'redis_slave', 'proxy'. "
+            "Recommendations: "
+            "connections / qps -- use 'proxy' (measures client-facing traffic). "
+            "cpu_usage / memory_usage / io_usage / disk_usage / capacity -- use 'redis_master' (default) "
+            "or 'proxy'. "
+            "host_latency / command_latency -- use 'redis_master' (default) or 'proxy'. "
+            "latency_distribution -- always uses 'proxy' (auto-set; this field is ignored)."
+        ),
     )
     ip = serializers.CharField(
         required=False,
         allow_null=True,
-        help_text=_("Optional: Filter by specific IP address for single machine query"),
+        help_text=_(
+            "Filter by a specific IP address. "
+            "ip alone: queries all instances on that machine (MACHINE-level aggregation). "
+            "ip + port: queries a single instance (INSTANCE-level aggregation). "
+            "Independent of group_by -- you can filter by ip while still grouping results by instance."
+        ),
     )
     port = serializers.IntegerField(
         required=False,
         allow_null=True,
-        help_text=_("Optional: Filter by specific port for single instance query (requires ip)"),
+        help_text=_(
+            "Filter by a specific port to target a single instance. "
+            "CONSTRAINT: must be used together with ip. Never set port without ip."
+        ),
     )
+
+
+class RedisMetricsSeriesInputSerializer(RedisMetricsBaseInputSerializer):
+    """Input serializer for Redis metrics series (time series) queries"""
+
     mermaid_format = serializers.BooleanField(
         default=False,
         help_text=_(
-            "When True and mode != 'stats', returns a 'mermaid_code' field with pre-formatted "
-            "mermaid xychart-beta code for visualization. Only active when series data is returned."
+            "Set True to receive a pre-rendered mermaid xychart-beta chart in the 'mermaid_code' response field. "
+            "When mermaid_code is generated, the raw series data is omitted from the response. "
+            "IMPORTANT: output the returned mermaid_code verbatim -- do NOT modify or regenerate it."
         ),
     )
 
 
-class RedisMetricsOutputSerializer(serializers.Serializer):
-    """Output serializer for Redis metrics queries"""
+class RedisMetricsStatsInputSerializer(RedisMetricsBaseInputSerializer):
+    """Input serializer for Redis metrics stats (scalar statistics) queries"""
 
-    query_params = serializers.JSONField(
+    stats_type = serializers.ChoiceField(
+        choices=MetricsStatsType.get_choices(),
+        default=MetricsStatsType.VERTICAL.value,
         help_text=_(
-            "Query parameters used for this request, useful for LLM to reference and understand the query context"
-        )
+            "How to compute statistics. "
+            "'vertical' (default): aggregates all instances into one cluster-wide series first, "
+            "then computes min/max/avg/p95/trend over time. "
+            "Use when asking 'what was the cluster-wide peak total QPS?' "
+            "'horizontal': computes stats across instances at each time point, then summarizes. "
+            "Use when asking 'which instance had the highest QPS?'"
+        ),
     )
+
+
+class RedisMetricsSeriesOutputSerializer(serializers.Serializer):
+    """Output serializer for Redis metrics series queries"""
+
     series = serializers.JSONField(
         required=False,
         help_text=_(
-            "Aggregated time series data (present when mode='overall' or mode='both'). "
-            "Format depends on aggregation_level and detailed flag: "
-            "instance={'ip:port': [[value, timestamp], ...]}, machine={'ip:port1': [...], 'ip:port2': [...]}, "
-            "cluster={'cluster_domain': [...]} or with detailed=True: cluster={'ip1': [...], 'ip2': [...]}"
-        ),
-    )
-    statistics = serializers.JSONField(
-        required=False,
-        help_text=_(
-            "Statistics (present when mode='stats' or mode='both'). "
-            "When detailed=False: Aggregated cluster-level scalar statistics: "
-            "{'min': float, 'max': float, 'avg': float, 'median': float, 'p95': float, 'cv': float, 'trend': float}. "
-            "When detailed=True: Per-key statistics matching series structure: "
-            "{'ip1': {'min': float, 'max': float, ...}, 'ip2': {...}, ...} or "
-            "{'ip:port1': {'min': float, ...}, 'ip:port2': {...}, ...}. "
-            "Statistics computed: "
-            "- min: minimum value, "
-            "- max: maximum value, "
-            "- avg: average value, "
-            "- median: median value (less affected by outliers), "
-            "- p95: 95th percentile (typical worst case performance), "
-            "- cv: coefficient of variation across time, not across <ip> (%) - normalized variability measure, "
-            "- trend: linear trend slope (positive=increasing, negative=decreasing)"
+            "Time series data as {key: [[value, unix_timestamp], ...]}. "
+            "The key depends on scope: "
+            "ip+port filter -> key is 'ip:port'; "
+            "ip-only filter -> one key per instance on that machine ('ip:port1', 'ip:port2', ...); "
+            "no filter -> key is cluster_domain, or group_by dimension values (ip, instance, bucket). "
+            "Value units match the metric_type: % for usage metrics, count for connections, "
+            "ops/s for qps, μs for latency, bytes for capacity."
         ),
     )
     mermaid_code = serializers.CharField(
         required=False,
         help_text=_(
-            "Pre-formatted mermaid xychart-beta code (present when mermaid_format=True and series data exists). "
-            "This content must keep AS-IS and outputted for user."
+            "Pre-rendered mermaid xychart-beta chart code. Present only when mermaid_format=True "
+            "and series data exists. Render this directly in a mermaid code block -- do NOT modify it."
+        ),
+    )
+
+
+class RedisMetricsStatsOutputSerializer(serializers.Serializer):
+    """Output serializer for Redis metrics stats queries"""
+
+    statistics = serializers.JSONField(
+        required=False,
+        help_text=_(
+            "Dict keyed by group dimension (cluster_domain when no group_by, otherwise ip / instance / "
+            "cmd / bucket). Each value is a dict containing: "
+            "min -- minimum observed value; "
+            "max -- maximum observed value; "
+            "avg -- arithmetic mean; "
+            "median -- 50th percentile; "
+            "p95 -- 95th percentile; "
+            "cv -- coefficient of variation in % (higher = more volatile); "
+            "trend -- slope per minute (positive = increasing, negative = decreasing); "
+            "trend_unit -- unit string for the trend value; "
+            "latest -- most recent data point value of the series. "
+            "With stats_type='vertical': these stats describe the aggregated cluster-wide series over time "
+            "(e.g. max = peak total cluster QPS). "
+            "With stats_type='horizontal': these stats describe the spread across instances "
+            "(e.g. max = highest value any single instance reached)."
         ),
     )

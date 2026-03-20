@@ -31,6 +31,12 @@ import (
 	"go.etcd.io/etcd/client/v3/concurrency"
 )
 
+const (
+	etcdKeySegmentSelf     = "self"
+	etcdKeySegmentMutex    = "mutex"
+	etcdKeySegmentElection = "election/leader"
+)
+
 // Client etcd client
 type Client struct {
 	opts             options
@@ -53,8 +59,33 @@ func NewClientWithOptions(opts ...Option) (*Client, error) {
 		cli.opts.registryRootKeyPrefix += "/" + cli.opts.serviceName
 	}
 
+	hasCert := cli.opts.certFile != ""
+	hasKey := cli.opts.keyFile != ""
+	hasCA := cli.opts.trustedCAFile != ""
+
+	if hasCert != hasKey {
+		return nil, gerrors.New(gerrors.InvalidParameter, "certFile and keyFile must be configured together")
+	}
+
+	if hasCA && !hasCert {
+		return nil, gerrors.New(gerrors.InvalidParameter, "trustedCAFile requires certFile and keyFile")
+	}
+
+	if hasCert && hasKey {
+		tlsCfg, err := buildTLSConfig(cli.opts.certFile, cli.opts.keyFile, cli.opts.trustedCAFile)
+		if err != nil {
+			return nil, err
+		}
+		cli.opts.tlsConfig = tlsCfg
+	}
+
 	cli.createEtcdClient = func() (*clientv3.Client, error) {
-		etcdCli, err := clientv3.New(cli.opts.Config())
+		cfg, err := cli.opts.Config()
+		if err != nil {
+			return nil, err
+		}
+
+		etcdCli, err := clientv3.New(cfg)
 		if err != nil {
 			return nil, gerrors.Newf(gerrors.EtcdFailure, "%v", err)
 		}
@@ -70,11 +101,31 @@ func (c Client) OriginClient() (*clientv3.Client, error) {
 	return c.createEtcdClient()
 }
 
+// GetRegistryPrefix returns the etcd key prefix under which same-module instances register.
+// Use with Discovery.GetWithPrefix / WatchWithPrefix to list or watch analysis instances.
+func (c Client) GetRegistryPrefix() string {
+	return c.opts.registryRootKeyPrefix
+}
+
+// GetSelfPrefix returns the etcd key prefix under which same-module instances register (self nodes).
+// Full key for one instance is GetSelfPrefix() + "/" + serviceID.
+// Use with GetWithPrefix to list all instances.
+func (c Client) GetSelfPrefix() string {
+	return c.opts.registryRootKeyPrefix + "/" + etcdKeySegmentSelf
+}
+
+// GetElectionPrefix returns the etcd key prefix for leader election.
+//
+//	Full key for one election is GetElectionPrefix() + "/" + name.
+func (c Client) GetElectionPrefix() string {
+	return c.opts.registryRootKeyPrefix + "/" + etcdKeySegmentElection
+}
+
 // CreateRegistry create new etcd registry
 func (c Client) CreateRegistry() *Registry {
 	rootKey := c.opts.registryRootKeyPrefix
 	if c.opts.serviceID != "" {
-		rootKey += "/" + c.opts.serviceID
+		rootKey += "/" + etcdKeySegmentSelf + "/" + c.opts.serviceID
 	}
 
 	registry := &Registry{
@@ -109,7 +160,7 @@ func (c Client) CreateMutex(key string) (ConcurrencyMutex, error) {
 		return nil, gerrors.NewE(gerrors.EtcdFailure, err)
 	}
 
-	muKey := c.opts.registryRootKeyPrefix + "/mutex/" + key
+	muKey := c.opts.registryRootKeyPrefix + "/" + etcdKeySegmentMutex + "/" + key
 	mu := &concurrencyMutex{
 		etcdCli: etcdCli,
 		session: session,
@@ -132,7 +183,7 @@ func (c Client) CreateElection(name string) (ConcurrencyElection, error) {
 		return nil, gerrors.NewE(gerrors.EtcdFailure, err)
 	}
 
-	electionKey := c.opts.registryRootKeyPrefix + "/election/leader/" + name
+	electionKey := c.opts.registryRootKeyPrefix + "/" + etcdKeySegmentElection + "/" + name
 
 	election := &concurrencyElection{
 		etcdCli:  etcdCli,

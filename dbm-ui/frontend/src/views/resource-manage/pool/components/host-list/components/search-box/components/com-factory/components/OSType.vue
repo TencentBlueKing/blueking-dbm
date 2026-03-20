@@ -36,9 +36,11 @@
     defaultValue?: string;
   }
 
-  interface Emits {
-    (e: 'change', value: string): void;
-  }
+  type Emits = (e: 'change', value: string) => void;
+
+  defineOptions({
+    inheritAttrs: false,
+  });
 
   withDefaults(defineProps<Props>(), {
     defaultValue: () => '',
@@ -46,17 +48,13 @@
 
   const emits = defineEmits<Emits>();
 
-  defineOptions({
-    inheritAttrs: false,
-  });
-
   const { t } = useI18n();
 
   const { data, loading } = useRequest(getOsTypeList, {
     defaultParams: [
       {
-        offset: 0,
         limit: -1,
+        offset: 0,
       },
     ],
     initialData: [],

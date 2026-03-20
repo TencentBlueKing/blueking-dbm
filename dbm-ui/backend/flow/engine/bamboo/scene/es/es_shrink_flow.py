@@ -194,4 +194,4 @@ class EsShrinkFlow(EsFlow):
         # 清理DBMeta
         es_pipeline.add_act(act_name=_("清理DBMeta"), act_component_code=EsMetaComponent.code, kwargs=asdict(act_kwargs))
 
-        es_pipeline.run_pipeline()
+        es_pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=[self.cluster_id])

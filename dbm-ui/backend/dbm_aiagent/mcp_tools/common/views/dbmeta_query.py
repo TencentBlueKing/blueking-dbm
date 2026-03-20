@@ -18,6 +18,7 @@ from backend.configuration.constants import DEFAULT_DB_ADMINISTRATORS, DBType
 from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, Cluster
+from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_bizs
 from backend.dbm_aiagent.mcp_tools.common.impl.list_biz_dbmodules import list_biz_dbmodules
 from backend.dbm_aiagent.mcp_tools.common.serializers.empty import EmptyInputSerializer
 from backend.dbm_aiagent.mcp_tools.common.serializers.list_bizs import (
@@ -51,6 +52,7 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.DBMETA_QUERY],
         name_prefix="dbmeta_query",
+        enable=False,
     )
     def list_supported_cluster_type(self, request, *args, **kwargs):
         res = {
@@ -71,7 +73,9 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=ListDBModulesOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.DBMETA_QUERY],
+        mcp_auth_parser=auth_parse_bizs,
         name_prefix="dbmeta_query",
+        enable=False,
     )
     def list_biz_dbmodules(self, request, *args, **kwargs):
         bk_biz_id = self.get_param("bk_biz_id")
@@ -94,19 +98,33 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=ListBizClustersOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.DBMETA_QUERY],
+        mcp_auth_parser=auth_parse_bizs,
         name_prefix="dbmeta_query",
     )
     def list_biz_clusters(self, request, *args, **kwargs):
         bk_biz_id = self.get_param("bk_biz_id")
-        cluster_type = self.get_param("cluster_type")
+        # cluster_type = self.get_param("cluster_type")
         cluster_domain = self.get_param("cluster_domain")
+        ips = self.get_param("ips")
+        instances = self.get_param("instances")
 
-        q = Q(**{"bk_biz_id": bk_biz_id})
+        if not (ips or instances or cluster_domain):
+            raise Exception("ips, instances, cluster_domain at least one")
 
+        q = Q()
+
+        if ips:
+            q |= Q(**{"storageinstance__machine__ip__in": ips})
+        if instances:
+            for instance in instances:
+                ip, port = instance.split(":")
+                q |= Q(**{"storageinstance__machine__ip": ip, "storageinstance__port": port})
         if cluster_domain:
-            q &= Q(**{"immute_domain": cluster_domain})
-        if cluster_type:
-            q &= Q(**{"cluster_type": cluster_type})
+            q |= Q(**{"immute_domain": cluster_domain})
+
+        q &= Q(**{"bk_biz_id": bk_biz_id})
+        # if cluster_type:
+        #     q &= Q(**{"cluster_type": cluster_type})
 
         res = [
             {

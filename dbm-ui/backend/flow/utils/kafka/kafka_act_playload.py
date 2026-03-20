@@ -214,7 +214,7 @@ class KafkaActPayload(object):
                     "zookeeper_ip": zookeeper_ip,
                     "exclude_brokers": host,
                     "new_brokers": new_host,
-                    "throttle_rate": self.ticket_data.get("throttle_rate", 20000000),
+                    "throttle_rate": self.ticket_data.get("throttle_rate", 100000000),
                     "topics": self.ticket_data.get("topics", ["*"]),
                 },
             },
@@ -246,7 +246,7 @@ class KafkaActPayload(object):
                 "general": {},
                 "extend": {
                     "brokers": host,
-                    "throttle_rate": self.ticket_data.get("throttle_rate", 20000000),
+                    "throttle_rate": self.ticket_data.get("throttle_rate", 100000000),
                     "topics": self.ticket_data.get("topics", ["*"]),
                 },
             },

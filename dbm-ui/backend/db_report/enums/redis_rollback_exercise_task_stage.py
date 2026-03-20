@@ -27,15 +27,12 @@ class RedisRollbackExerciseTaskStage(StrStructuredEnum):
     RESOURCE_APPLI_FAILED = EnumField("resource_appli_failed", _("资源申请失败"))
     RESOURCE_APPLI_SUCCEEDED = EnumField("resource_appli_succeeded", _("资源申请成功"))
 
-    ROLLBACK_FLOW_GEN_FAILED = EnumField("rollback_flow_gen_failed", _("回档流程生成失败"))
-    ROLLBACK_FLOW_GENERATED = EnumField("rollback_flow_generated", _("回档流程已生成"))
+    # --- Flow stages ---
+    ROLLBACK_STARTED = EnumField("rollback_started", _("回档开始"))
     ROLLBACK_FAILED = EnumField("rollback_failed", _("回档失败"))
     ROLLBACK_SUCCEEDED = EnumField("rollback_succeeded", _("回档成功"))
 
-    DELETE_FLOW_GEN_FAILED = EnumField("delete_flow_gen_failed", _("删除流程生成失败"))
-    DELETE_FLOW_GENERATED = EnumField("delete_flow_generated", _("删除流程已生成"))
-    DELETE_FAILED = EnumField("delete_failed", _("删除失败"))
-    DELETE_SUCCEEDED = EnumField("delete_succeeded", _("删除成功"))
+    CLEANUP_FAILED = EnumField("cleanup_failed", _("清理失败"))
 
     DONE = EnumField("done", _("已完成"))
 
@@ -43,8 +40,6 @@ class RedisRollbackExerciseTaskStage(StrStructuredEnum):
 FAILED_STAGES = [
     RedisRollbackExerciseTaskStage.TICKET_GEN_FAILED,
     RedisRollbackExerciseTaskStage.RESOURCE_APPLI_FAILED,
-    RedisRollbackExerciseTaskStage.ROLLBACK_FLOW_GEN_FAILED,
     RedisRollbackExerciseTaskStage.ROLLBACK_FAILED,
-    RedisRollbackExerciseTaskStage.DELETE_FLOW_GEN_FAILED,
-    RedisRollbackExerciseTaskStage.DELETE_FAILED,
+    RedisRollbackExerciseTaskStage.CLEANUP_FAILED,
 ]

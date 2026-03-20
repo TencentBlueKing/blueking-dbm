@@ -45,12 +45,12 @@ spec:
           podFQDNs: Required
   lifecycleActions:
     memberLeave:
-      exec:
-        image: {{ .Values.image.registry | default "docker.io" }}/{{ .Values.image.tools.repository }}:{{ .Values.image.tools.tag | default "latest" }}
-        command:
-          - /bin/sh
-          - -c
-          - /qdrant/scripts/member-leave.sh
+      customHandler:
+        exec:
+          command:
+            - /bin/sh
+            - -c
+            - /qdrant/scripts/member-leave.sh
         targetPodSelector: Any
         container: qdrant
   runtime:
@@ -90,7 +90,11 @@ spec:
           - /bin/sh
           - -c
           - |
-            consensus_status=`/qdrant/tools/curl -s -H "api-key: ${QDRANT__SERVICE__API_KEY}" http://localhost:6333/cluster | /qdrant/tools/jq -r .result.consensus_thread_status.consensus_thread_status`
+            if [ -n "${QDRANT__SERVICE__API_KEY}" ]; then
+              consensus_status=`/qdrant/tools/curl -s -H "api-key: ${QDRANT__SERVICE__API_KEY}" http://localhost:6333/cluster | /qdrant/tools/jq -r .result.consensus_thread_status.consensus_thread_status`
+            else
+              consensus_status=`/qdrant/tools/curl -s http://localhost:6333/cluster | /qdrant/tools/jq -r .result.consensus_thread_status.consensus_thread_status`
+            fi
             if [ "$consensus_status" != "working" ]; then
               echo "consensus stopped"
               exit 1
@@ -125,13 +129,13 @@ spec:
         containerPort: 6333
       - name: grpc-qdrant
         containerPort: 6334
-      - name: tcp-metrics
-        containerPort: 9091
       - name: p2p
         containerPort: 6335
       command: ["/bin/sh", "-c"]
       args: ["/qdrant/scripts/setup.sh"]
       env:
+      - name: QDRANT__SERVICE__METRICS_PREFIX
+        value: "qdrant_"
       - name: QDRANT__TELEMETRY_DISABLED
         value: "true"
       - name: SERVICE_PORT

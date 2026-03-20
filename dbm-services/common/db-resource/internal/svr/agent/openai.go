@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/go-pubpkg/logger"
@@ -48,11 +49,20 @@ func NewBkAiDevProvider(appCode, appSecret string) *OpenAIProvider {
 	}
 	authHeaderJSON, _ := json.Marshal(authHeader)
 
+	// #region agent log - 假设 A: 记录 HTTP Client 超时配置
+	// 使用较长的超时时间以支持 LLM 思考型模型（dsv32-thinking 等）
+	// 这些模型可能需要数分钟才能返回结果
+	httpTimeout := LLMHTTPClientTimeout
+	logger.Info("[DEBUG-A] Creating BkAiDevProvider - httpTimeout: %.2fs, baseURL: %s",
+		httpTimeout.Seconds(), config.AppConfig.LLM.BkAi.BaseURL)
+	// #endregion
+
 	// 创建配置
 	aiConfig := openai.DefaultConfig("empty")
 	aiConfig.BaseURL = config.AppConfig.LLM.BkAi.BaseURL
 	// 设置自定义 HTTP 客户端以添加 headers
 	aiConfig.HTTPClient = &http.Client{
+		Timeout: httpTimeout,
 		Transport: &customTransport{
 			headers: map[string]string{
 				"X-Bkapi-Authorization": string(authHeaderJSON),
@@ -139,6 +149,19 @@ func (p *OpenAIProvider) Name() string {
 
 // Chat 发送聊天请求
 func (p *OpenAIProvider) Chat(ctx context.Context, req *ChatRequest) (*ChatResponse, error) {
+	// #region agent log - 假设 A/B/F/G: 记录请求开始时间和 context deadline
+	startTime := time.Now()
+	deadline, hasDeadline := ctx.Deadline()
+	timeoutDuration := time.Duration(0)
+	if hasDeadline {
+		timeoutDuration = time.Until(deadline)
+	}
+	// 检查 context 是否已经被取消
+	ctxErr := ctx.Err()
+	logger.Info("[DEBUG-A/B/F/G] Chat request started - model: %s, messages: %d, tools: %d, hasDeadline: %v, timeoutDuration: %.2fs, ctxErr: %v",
+		p.model, len(req.Messages), len(req.Tools), hasDeadline, timeoutDuration.Seconds(), ctxErr)
+	// #endregion
+
 	// 转换消息格式
 	messages := make([]openai.ChatCompletionMessage, 0, len(req.Messages))
 	for _, msg := range req.Messages {
@@ -194,15 +217,35 @@ func (p *OpenAIProvider) Chat(ctx context.Context, req *ChatRequest) (*ChatRespo
 		Messages:    messages,
 		MaxTokens:   p.maxTokens,
 		Temperature: p.temperature,
+		TopP:        0.9,
 	}
 
 	if len(tools) > 0 {
 		chatReq.Tools = tools
 	}
 
+	// #region agent log - 假设 C/D: 记录请求发送时间点
+	beforeAPICall := time.Now()
+	logger.Info("[DEBUG-C/D] Calling LLM API - elapsed: %.2fs, model: %s, maxTokens: %d",
+		beforeAPICall.Sub(startTime).Seconds(), p.model, p.maxTokens)
+	// #endregion
+
 	// 发送请求
 	resp, err := p.client.CreateChatCompletion(ctx, chatReq)
+
+	// #region agent log - 假设 A/B/C/D/F/G/H: 记录响应时间和错误
+	apiDuration := time.Since(beforeAPICall)
+	totalDuration := time.Since(startTime)
 	if err != nil {
+		// 检查是否是 context 取消导致的
+		ctxErr := ctx.Err()
+		deadline, hasDeadline := ctx.Deadline()
+		remainingTime := time.Duration(0)
+		if hasDeadline {
+			remainingTime = time.Until(deadline)
+		}
+		logger.Error("[DEBUG-A/B/C/D/F/G/H] LLM API failed - apiDuration: %.2fs, totalDuration: %.2fs, ctxErr: %v, hasDeadline: %v, remainingTime: %.2fs, error: %s",
+			apiDuration.Seconds(), totalDuration.Seconds(), ctxErr, hasDeadline, remainingTime.Seconds(), err.Error())
 		logger.Error("failed to create chat completion: %s, chatReq: %+v", err.Error(), chatReq)
 		return nil, &ProviderError{
 			Provider: p.Name(),
@@ -210,6 +253,9 @@ func (p *OpenAIProvider) Chat(ctx context.Context, req *ChatRequest) (*ChatRespo
 			Err:      err,
 		}
 	}
+	logger.Info("[DEBUG-A/B/C/D/F/G/H] LLM API succeeded - apiDuration: %.2fs, totalDuration: %.2fs, choices: %d",
+		apiDuration.Seconds(), totalDuration.Seconds(), len(resp.Choices))
+	// #endregion
 
 	if len(resp.Choices) == 0 {
 		return nil, &ProviderError{

@@ -262,4 +262,8 @@ class MySQLProxyClusterReduceFlow(object):
             )
 
         mysql_proxy_cluster_reduce_pipeline.add_parallel_sub_pipeline(sub_flow_list=main_sub_pipelines)
-        mysql_proxy_cluster_reduce_pipeline.run_pipeline()
+        # mysql_proxy_cluster_reduce_pipeline.run_pipeline()
+        # 启动接入单据值守监听
+        mysql_proxy_cluster_reduce_pipeline.run_pipeline_with_sidecar(
+            check_ai_monitor_cluster_list=list({cid for info in self.data["infos"] for cid in info["cluster_ids"]})
+        )

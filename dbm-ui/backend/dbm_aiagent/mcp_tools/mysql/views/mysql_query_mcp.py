@@ -16,7 +16,11 @@ from rest_framework.response import Response
 
 from backend.db_meta.enums import ClusterType, MachineType
 from backend.db_meta.models import Cluster, Machine
-from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clusters
+from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import (
+    auth_parse_bizs,
+    auth_parse_clusters,
+    auth_parse_instances,
+)
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.exceptions import (
@@ -77,7 +81,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         permission_classes=[McpClusterManagePermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.MYSQL_QUERY],
+        mcp=[DBMMcpTools.MYSQL_QUERY, DBMMcpTools.MYSQL_SLOWLOG],
         name_prefix="mysql_query",
     )
     def show_create_table(self, request, *args, **kwargs):
@@ -103,7 +107,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         permission_classes=[McpClusterManagePermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.MYSQL_QUERY],
+        mcp=[DBMMcpTools.MYSQL_QUERY, DBMMcpTools.MYSQL_SLOWLOG],
         name_prefix="mysql_query",
     )
     def explain_sql(self, request, *args, **kwargs):
@@ -128,6 +132,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=MySQLClusterTopoOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
+        mcp_auth_parser=auth_parse_clusters,
         name_prefix="mysql_query",
     )
     def mysql_cluster_topo(self, request, *args, **kwargs):
@@ -161,6 +166,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=ShowClusterProcessListSummaryOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
+        mcp_auth_parser=auth_parse_clusters,
         name_prefix="mysql_query",
     )
     def show_cluster_processlist_summary(self, request, *args, **kwargs):
@@ -184,11 +190,12 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         return Response(summary)
 
     @mcp_tools_api_decorator(
-        description=str(_("""查询 MySQL 常见运行时参数""")),
+        description=str(_("""查询 MySQL 常见运行时参数, 执行 show global variables""")),
         request_slz=ShowMySQLVariablesInputSerializer,
         response_slz=ShowMySQLVariablesOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
+        mcp_auth_parser=auth_parse_instances,
         name_prefix="mysql_query",
     )
     def show_mysql_popular_runtime_variables(self, request, *args, **kwargs):
@@ -210,11 +217,12 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         )
 
     @mcp_tools_api_decorator(
-        description=str(_("""查询实例常见运行时状态""")),
+        description=str(_("""查询实例常见运行时状态, 执行 show global status""")),
         request_slz=ShowInstanceStatusesInputSerializer,
         response_slz=ShowInstanceStatuesOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
+        mcp_auth_parser=auth_parse_instances,
         name_prefix="mysql_query",
     )
     def show_instance_popular_runtime_status(self, request, *args, **kwargs):
@@ -236,11 +244,12 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         )
 
     @mcp_tools_api_decorator(
-        description=str(_("""查询实例同步状态状态""")),
+        description=str(_("""查询实例主从同步状态, 执行 show slave status""")),
         request_slz=ShowInstanceSlaveStatusInputSerializer,
         response_slz=ShowInstanceStatuesOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
+        mcp_auth_parser=auth_parse_instances,
         name_prefix="mysql_query",
     )
     def show_instance_slave_status(self, request, *args, **kwargs):
@@ -261,6 +270,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=ShowBizMySQLPrivilegeTemplateOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
+        mcp_auth_parser=auth_parse_bizs,
         name_prefix="mysql_query",
     )
     def show_biz_mysql_privilege_template(self, request, *args, **kwargs):

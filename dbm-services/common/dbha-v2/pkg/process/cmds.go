@@ -37,6 +37,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// DefaultGuardRestartDelay is the default delay before restarting a crashed child.
+const DefaultGuardRestartDelay = 3 * time.Second
+
 // StartCmdRunE handles the start command.
 func StartCmdRunE(cmd *cobra.Command, _ []string, pidFile, procName string) error {
 	pid, err := ReadPid(pidFile)
@@ -74,6 +77,76 @@ func StartCmdRunE(cmd *cobra.Command, _ []string, pidFile, procName string) erro
 	_, err = StartDaemon(DaemonOptions{
 		Executable: exePath,
 		Args:       childArgs,
+	})
+	return err
+}
+
+// DaemonStartCmdRunE handles the daemon-start command. It forks a guard process that launches the target
+// via StartDaemon, monitors it, and restarts on abnormal exit. The launcher returns immediately; the guard runs in background.
+func DaemonStartCmdRunE(cmd *cobra.Command, _ []string, pidFile, procName string, restartDelay time.Duration) error {
+	pid, err := ReadPid(pidFile)
+	if err != nil {
+		if !errors.Is(err, ErrPidFileNotExist) && !errors.Is(err, ErrInvalidFile) {
+			return err
+		}
+	} else {
+		alive, aliveErr := IsAliveWithProcessName(pid, procName)
+		if aliveErr != nil {
+			return aliveErr
+		}
+		if alive {
+			fmt.Fprintf(cmd.OutOrStdout(), "%s is already running (guard mode), pid:%d\n", procName, pid)
+			return nil
+		}
+	}
+
+	exePath, err := os.Executable()
+	if err != nil {
+		return err
+	}
+
+	rootCmd := cmd.Root()
+	configPath, err := rootCmd.PersistentFlags().GetString("config")
+	if err != nil {
+		return err
+	}
+
+	var serviceArgs []string
+	if configPath != "" {
+		serviceArgs = append(serviceArgs, "-c", configPath)
+	}
+
+	var guardArgs []string
+	// Always use "daemon-start" so the forked guard runs RunWithGuard (e.g. when called from restart).
+	guardArgs = append(guardArgs, "daemon-start")
+	if configPath != "" {
+		guardArgs = append(guardArgs, "-c", configPath)
+	}
+
+	if restartDelay <= 0 {
+		restartDelay = DefaultGuardRestartDelay
+	}
+
+	guardOpt := GuardOptions{
+		DaemonOptions: DaemonOptions{
+			Executable: exePath,
+			Args:       serviceArgs, // child of guard runs the service (e.g. ./probe -c config)
+		},
+		PidFile:      pidFile,
+		ProcName:     procName,
+		RestartDelay: restartDelay,
+	}
+
+	// If we're the forked guard process, run directly without forking again
+	if os.Getenv(EnvGuardProcess) == "1" {
+		return RunWithGuard(guardOpt)
+	}
+
+	// Fork guard process and return immediately (parent exits)
+	_, err = StartDaemon(DaemonOptions{
+		Executable: exePath,
+		Args:       guardArgs, // guard runs daemon-start (e.g. ./probe daemon-start -c config)
+		Env:        []string{EnvGuardProcess + "=1"},
 	})
 	return err
 }
@@ -124,41 +197,17 @@ func RestartCmdRunE(cmd *cobra.Command, args []string, pidFile, procName string,
 	}
 
 	// Wait for process to fully terminate
-	if err := waitForProcessExit(pidFile, procName, time.Duration(timeout)*time.Second); err != nil {
+	if err := WaitForProcessExit(pidFile, procName, time.Duration(timeout)*time.Second); err != nil {
 		return err
 	}
 
 	return StartCmdRunE(cmd, args, pidFile, procName)
 }
 
-func waitForProcessExit(pidFile, procName string, timeout time.Duration) error {
-	ticker := time.NewTicker(100 * time.Millisecond)
-	defer ticker.Stop()
-
-	timeoutCh := time.After(timeout)
-	for {
-		select {
-		case <-timeoutCh:
-			return gerrors.Newf(gerrors.Failure, "timeout waiting for %s to exit", procName)
-		case <-ticker.C:
-		}
-
-		pid, err := ReadPid(pidFile)
-		if errors.Is(err, ErrPidFileNotExist) || errors.Is(err, ErrInvalidFile) {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-
-		alive, aliveErr := IsAliveWithProcessName(pid, procName)
-		if aliveErr != nil {
-			return aliveErr
-		}
-		if !alive {
-			return nil
-		}
-	}
+// WaitForProcessExit waits until the process identified by pid file exits or timeout.
+// Used by RestartCmdRunE and by callers that need to wait before re-starting by mode.
+func WaitForProcessExit(pidFile, procName string, timeout time.Duration) error {
+	return waitForProcessExit(pidFile, procName, timeout)
 }
 
 // ReloadCmdRunE handles the reload command.
@@ -236,4 +285,34 @@ func PrintBaseHealth(w io.Writer, health *HealthInfo) {
 	fmt.Fprintln(w, "ProcName:", health.ProcName)
 	fmt.Fprintln(w, "Status:", health.Status)
 	fmt.Fprintln(w, "ErrMsg:", health.ErrMsg)
+}
+
+func waitForProcessExit(pidFile, procName string, timeout time.Duration) error {
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	timeoutCh := time.After(timeout)
+	for {
+		select {
+		case <-timeoutCh:
+			return gerrors.Newf(gerrors.Failure, "timeout waiting for %s to exit", procName)
+		case <-ticker.C:
+		}
+
+		pid, err := ReadPid(pidFile)
+		if errors.Is(err, ErrPidFileNotExist) || errors.Is(err, ErrInvalidFile) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		alive, aliveErr := IsAliveWithProcessName(pid, procName)
+		if aliveErr != nil {
+			return aliveErr
+		}
+		if !alive {
+			return nil
+		}
+	}
 }

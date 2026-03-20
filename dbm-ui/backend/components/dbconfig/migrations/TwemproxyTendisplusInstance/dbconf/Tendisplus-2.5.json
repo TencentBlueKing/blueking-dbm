@@ -658,9 +658,9 @@
   {
     "conf_name": "truncateBinlogNum",
     "value_default": "10000",
-    "value_allowed": "",
+    "value_allowed": "[10000, 2000000]",
     "value_type": "INT",
-    "value_type_sub": "",
+    "value_type_sub": "RANGE",
     "conf_name_lc": "",
     "description": "",
     "need_restart": 0,

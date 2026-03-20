@@ -55,10 +55,12 @@ class AgentHandler:
         return result
 
     @classmethod
-    def ask_agent_with_content(cls, agent_code: DBMAgentCode, content: str, username=DEFAULT_USERNAME):
+    def ask_agent_with_content(
+        cls, agent_code: DBMAgentCode, content: str, username=DEFAULT_USERNAME, session_code=None
+    ):
         """根据agent直接内容询问agent"""
         # 创建临时会话
-        session_code = cls.create_temporary_session(username)
+        session_code = session_code or cls.create_temporary_session(username)
 
         # 创建会话内容
         # 主智能体直接询问，子智能体走快捷指令切换询问
@@ -74,6 +76,15 @@ class AgentHandler:
         return ai_response["choices"][0]["delta"]["content"]
 
     @classmethod
+    def ask_agent_with_content_in_session(
+        cls, agent_code: DBMAgentCode, content: str, username=DEFAULT_USERNAME, session_code=None
+    ):
+        """根据agent直接内容询问agent, 连续对话"""
+        session_code = session_code or cls.create_temporary_session(username)
+        ai_response = cls.ask_agent_with_content(agent_code, content, username, session_code)
+        return ai_response, session_code
+
+    @classmethod
     def ask_agent_with_command(cls, command: str, command_params: dict, username=DEFAULT_USERNAME):
         """根据快捷指令询问agent"""
         if command not in CommandProcessor._handlers:
@@ -87,7 +98,8 @@ class AgentHandler:
         context = [{"__key": key, "__value": value, "context_type": "text"} for key, value in command_params.items()]
         command_data = {"command": command, "context": context}
         rendered_content = CommandProcessor.process_command(command_data)
-        # 创建会话内容
+        # 创建会话内容。特殊：为了统计工时，这里加上command名称
+        rendered_content = f"comment：{command}\n" + rendered_content
         content_property = {"extra": {"command": command, "rendered_content": rendered_content, "context": context}}
         content_params = {
             "session_code": session_code,

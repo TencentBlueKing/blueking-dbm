@@ -45,6 +45,56 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// ProbeConfigCode result code for GetProbeConfig: 成功/失败/无数据
+type ProbeConfigCode int32
+
+const (
+	ProbeConfigCode_PROBE_CONFIG_SUCCESS ProbeConfigCode = 0 // 成功
+	ProbeConfigCode_PROBE_CONFIG_FAIL    ProbeConfigCode = 1 // 失败
+	ProbeConfigCode_PROBE_CONFIG_NO_DATA ProbeConfigCode = 2 // 无数据
+)
+
+// Enum value maps for ProbeConfigCode.
+var (
+	ProbeConfigCode_name = map[int32]string{
+		0: "PROBE_CONFIG_SUCCESS",
+		1: "PROBE_CONFIG_FAIL",
+		2: "PROBE_CONFIG_NO_DATA",
+	}
+	ProbeConfigCode_value = map[string]int32{
+		"PROBE_CONFIG_SUCCESS": 0,
+		"PROBE_CONFIG_FAIL":    1,
+		"PROBE_CONFIG_NO_DATA": 2,
+	}
+)
+
+func (x ProbeConfigCode) Enum() *ProbeConfigCode {
+	p := new(ProbeConfigCode)
+	*p = x
+	return p
+}
+
+func (x ProbeConfigCode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ProbeConfigCode) Descriptor() protoreflect.EnumDescriptor {
+	return file_admin_proto_enumTypes[0].Descriptor()
+}
+
+func (ProbeConfigCode) Type() protoreflect.EnumType {
+	return &file_admin_proto_enumTypes[0]
+}
+
+func (x ProbeConfigCode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ProbeConfigCode.Descriptor instead.
+func (ProbeConfigCode) EnumDescriptor() ([]byte, []int) {
+	return file_admin_proto_rawDescGZIP(), []int{0}
+}
+
 type Uptime struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -219,9 +269,11 @@ func (x *HeartbeatResponse) GetErrmsg() string {
 
 type ProbeConfigRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	ClientID      string                 `protobuf:"bytes,1,opt,name=clientID,proto3" json:"clientID,omitempty"`
-	Version       string                 `protobuf:"bytes,2,opt,name=version,proto3" json:"version,omitempty"`
-	UpdatedTime   uint64                 `protobuf:"varint,3,opt,name=updatedTime,proto3" json:"updatedTime,omitempty"`
+	BkCloudId     uint64                 `protobuf:"varint,1,opt,name=bkCloudId,proto3" json:"bkCloudId,omitempty"`
+	Ip            string                 `protobuf:"bytes,2,opt,name=ip,proto3" json:"ip,omitempty"`
+	ClientID      string                 `protobuf:"bytes,3,opt,name=clientID,proto3" json:"clientID,omitempty"`
+	Version       string                 `protobuf:"bytes,4,opt,name=version,proto3" json:"version,omitempty"`
+	UpdatedTime   uint64                 `protobuf:"varint,5,opt,name=updatedTime,proto3" json:"updatedTime,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -256,6 +308,20 @@ func (*ProbeConfigRequest) Descriptor() ([]byte, []int) {
 	return file_admin_proto_rawDescGZIP(), []int{3}
 }
 
+func (x *ProbeConfigRequest) GetBkCloudId() uint64 {
+	if x != nil {
+		return x.BkCloudId
+	}
+	return 0
+}
+
+func (x *ProbeConfigRequest) GetIp() string {
+	if x != nil {
+		return x.Ip
+	}
+	return ""
+}
+
 func (x *ProbeConfigRequest) GetClientID() string {
 	if x != nil {
 		return x.ClientID
@@ -279,7 +345,7 @@ func (x *ProbeConfigRequest) GetUpdatedTime() uint64 {
 
 type ProbeConfigResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Code          int32                  `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
+	Code          ProbeConfigCode        `protobuf:"varint,1,opt,name=code,proto3,enum=ProbeConfigCode" json:"code,omitempty"`
 	Errmsg        string                 `protobuf:"bytes,2,opt,name=errmsg,proto3" json:"errmsg,omitempty"`
 	Payload       string                 `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -316,11 +382,11 @@ func (*ProbeConfigResponse) Descriptor() ([]byte, []int) {
 	return file_admin_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *ProbeConfigResponse) GetCode() int32 {
+func (x *ProbeConfigResponse) GetCode() ProbeConfigCode {
 	if x != nil {
 		return x.Code
 	}
-	return 0
+	return ProbeConfigCode_PROBE_CONFIG_SUCCESS
 }
 
 func (x *ProbeConfigResponse) GetErrmsg() string {
@@ -352,18 +418,24 @@ const file_admin_proto_rawDesc = "" +
 	"\x17receiverLastConnectTime\x18\x06 \x01(\tR\x17receiverLastConnectTime\"?\n" +
 	"\x11HeartbeatResponse\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\x05R\x04code\x12\x16\n" +
-	"\x06errmsg\x18\x02 \x01(\tR\x06errmsg\"l\n" +
-	"\x12ProbeConfigRequest\x12\x1a\n" +
-	"\bclientID\x18\x01 \x01(\tR\bclientID\x12\x18\n" +
-	"\aversion\x18\x02 \x01(\tR\aversion\x12 \n" +
-	"\vupdatedTime\x18\x03 \x01(\x04R\vupdatedTime\"[\n" +
-	"\x13ProbeConfigResponse\x12\x12\n" +
-	"\x04code\x18\x01 \x01(\x05R\x04code\x12\x16\n" +
+	"\x06errmsg\x18\x02 \x01(\tR\x06errmsg\"\x9a\x01\n" +
+	"\x12ProbeConfigRequest\x12\x1c\n" +
+	"\tbkCloudId\x18\x01 \x01(\x04R\tbkCloudId\x12\x0e\n" +
+	"\x02ip\x18\x02 \x01(\tR\x02ip\x12\x1a\n" +
+	"\bclientID\x18\x03 \x01(\tR\bclientID\x12\x18\n" +
+	"\aversion\x18\x04 \x01(\tR\aversion\x12 \n" +
+	"\vupdatedTime\x18\x05 \x01(\x04R\vupdatedTime\"m\n" +
+	"\x13ProbeConfigResponse\x12$\n" +
+	"\x04code\x18\x01 \x01(\x0e2\x10.ProbeConfigCodeR\x04code\x12\x16\n" +
 	"\x06errmsg\x18\x02 \x01(\tR\x06errmsg\x12\x18\n" +
-	"\apayload\x18\x03 \x01(\tR\apayload2\x84\x01\n" +
+	"\apayload\x18\x03 \x01(\tR\apayload*\\\n" +
+	"\x0fProbeConfigCode\x12\x18\n" +
+	"\x14PROBE_CONFIG_SUCCESS\x10\x00\x12\x15\n" +
+	"\x11PROBE_CONFIG_FAIL\x10\x01\x12\x18\n" +
+	"\x14PROBE_CONFIG_NO_DATA\x10\x022\x83\x01\n" +
 	"\fAdminService\x124\n" +
-	"\tHeartbeat\x12\x11.HeartbeatRequest\x1a\x12.HeartbeatResponse\"\x00\x12>\n" +
-	"\vWatchConfig\x12\x13.ProbeConfigRequest\x1a\x14.ProbeConfigResponse\"\x00(\x010\x01B\tZ\a.;protob\x06proto3"
+	"\tHeartbeat\x12\x11.HeartbeatRequest\x1a\x12.HeartbeatResponse\"\x00\x12=\n" +
+	"\x0eGetProbeConfig\x12\x13.ProbeConfigRequest\x1a\x14.ProbeConfigResponse\"\x00B\tZ\a.;protob\x06proto3"
 
 var (
 	file_admin_proto_rawDescOnce sync.Once
@@ -377,24 +449,27 @@ func file_admin_proto_rawDescGZIP() []byte {
 	return file_admin_proto_rawDescData
 }
 
+var file_admin_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_admin_proto_goTypes = []any{
-	(*Uptime)(nil),              // 0: Uptime
-	(*HeartbeatRequest)(nil),    // 1: HeartbeatRequest
-	(*HeartbeatResponse)(nil),   // 2: HeartbeatResponse
-	(*ProbeConfigRequest)(nil),  // 3: ProbeConfigRequest
-	(*ProbeConfigResponse)(nil), // 4: ProbeConfigResponse
+	(ProbeConfigCode)(0),        // 0: ProbeConfigCode
+	(*Uptime)(nil),              // 1: Uptime
+	(*HeartbeatRequest)(nil),    // 2: HeartbeatRequest
+	(*HeartbeatResponse)(nil),   // 3: HeartbeatResponse
+	(*ProbeConfigRequest)(nil),  // 4: ProbeConfigRequest
+	(*ProbeConfigResponse)(nil), // 5: ProbeConfigResponse
 }
 var file_admin_proto_depIdxs = []int32{
-	1, // 0: AdminService.Heartbeat:input_type -> HeartbeatRequest
-	3, // 1: AdminService.WatchConfig:input_type -> ProbeConfigRequest
-	2, // 2: AdminService.Heartbeat:output_type -> HeartbeatResponse
-	4, // 3: AdminService.WatchConfig:output_type -> ProbeConfigResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0, // 0: ProbeConfigResponse.code:type_name -> ProbeConfigCode
+	2, // 1: AdminService.Heartbeat:input_type -> HeartbeatRequest
+	4, // 2: AdminService.GetProbeConfig:input_type -> ProbeConfigRequest
+	3, // 3: AdminService.Heartbeat:output_type -> HeartbeatResponse
+	5, // 4: AdminService.GetProbeConfig:output_type -> ProbeConfigResponse
+	3, // [3:5] is the sub-list for method output_type
+	1, // [1:3] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_admin_proto_init() }
@@ -407,13 +482,14 @@ func file_admin_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_admin_proto_rawDesc), len(file_admin_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_admin_proto_goTypes,
 		DependencyIndexes: file_admin_proto_depIdxs,
+		EnumInfos:         file_admin_proto_enumTypes,
 		MessageInfos:      file_admin_proto_msgTypes,
 	}.Build()
 	File_admin_proto = out.File

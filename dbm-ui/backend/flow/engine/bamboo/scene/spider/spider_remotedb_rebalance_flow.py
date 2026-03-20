@@ -349,6 +349,7 @@ class TenDBRemoteRebalanceFlow(object):
                     )
                 ),
             )
+            #  todo 注销旧实例cc
             switch_sub_pipeline_list.append(switch_sub_pipeline.build_sub_process(sub_name=_("切换remote node 节点")))
 
             # 阶段5: 主机级别卸载实例,卸载指定ip下的所有实例
@@ -513,4 +514,10 @@ class TenDBRemoteRebalanceFlow(object):
             raise Exception(_("没有生成集群迁移流程"))
         tendb_migrate_pipeline_all.add_parallel_sub_pipeline(tendb_migrate_pipeline_all_list)
         # 执行主流程
-        tendb_migrate_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)
+        # 启动接入单据值守监听
+        # tendb_migrate_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)
+        tendb_migrate_pipeline_all.run_pipeline_with_sidecar(
+            init_trans_data_class=ClusterInfoContext(),
+            is_drop_random_user=True,
+            check_ai_monitor_cluster_list=list(set(cluster_ids)),
+        )

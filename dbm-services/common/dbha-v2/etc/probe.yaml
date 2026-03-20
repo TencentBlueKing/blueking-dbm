@@ -4,10 +4,10 @@ version: v2.0.0
 pidFile: ./pids/probe.pid
 
 reporter:
-  - name: gse
-    endpoint: ""
-    dataID: 0
-    connTimeout: 5s
+  name: gse
+  endpoint: ""
+  dataID: 0
+  connTimeout: 5s
 
 harvester:
   mysql:

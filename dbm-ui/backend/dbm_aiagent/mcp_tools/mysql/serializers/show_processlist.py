@@ -14,6 +14,7 @@ from rest_framework import serializers
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import (
     MySQLProcessListFilterFieldType,
     MySQLProcessListFilterOpType,
+    processlist_group_by_choices,
 )
 
 
@@ -63,4 +64,21 @@ class ProcessListSummarySerializer(serializers.Serializer):
 class ShowClusterProcessListSummaryOutputSerializer(serializers.Serializer):
     proxy_processlist_summary = ProcessListSummarySerializer(help_text=_("接入层连接摘要"))
     storage_processlist_summary = ProcessListSummarySerializer(help_text=_("存储层连接摘要"))
+    message = serializers.CharField(help_text=_("附加说明信息"))
+
+
+class ShowInstanceProcessListSummaryInputSerializer(serializers.Serializer):
+    # bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    instance = serializers.CharField(help_text=_("实例，ip:port 格式"))
+    aggregate_type = serializers.ChoiceField(
+        choices=processlist_group_by_choices,
+        help_text=_("用户连接会话 processlist 的聚合方式，例如 query_time,slow_count,rows_scan"),
+    )
+
+
+class ShowInstanceProcessListSummaryOutputSerializer(serializers.Serializer):
+    processlist_summary = ProcessListSummarySerializer(help_text=_("processlist 聚合结果"))
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    # aggregate_type = serializers.CharField(help_text=_("processlist 聚合方式"))
     message = serializers.CharField(help_text=_("附加说明信息"))

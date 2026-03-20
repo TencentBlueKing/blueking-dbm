@@ -31,6 +31,9 @@ ASK_AI_COMMAND_MAP = {
     DBType.MySQL: commands.CheckMysqlClusterCommand,
     DBType.TenDBCluster: commands.CheckMysqlClusterCommand,
     DBType.Sqlserver: commands.CheckSQLServerClusterCommand,
+    DBType.Redis: commands.CheckRedisClusterCommand,
+    DBType.Kafka: commands.CheckKafkaClusterCommand,
+    DBType.Es: commands.CheckEsClusterCommand,
 }
 
 
@@ -95,13 +98,14 @@ class CheckClusterAlarmForAIService(SidecarServiceABC):
         root_id = global_data["job_root_id"]
         flow_tree = FlowTree.objects.get(root_id=root_id)
         flow_start_time = flow_tree.created_at
-        ticket_id = int(flow_tree.uid)
+        ticket_id = int(flow_tree.uid or 0)
         now_time = timezone.now()
 
         clusters = Cluster.objects.filter(id__in=cluster_ids)
         if not clusters:
+            # 打印异常日志，但是不报错
             self.log_error(_("查询集群元数据为空，请检查传入的cluster_ids列表是否有问题:{}".format(cluster_ids)))
-            return False
+            return True
         cluster_domains = [c.immute_domain for c in clusters]
         self.log_info(_("-------------------分割线-------------------"))
         self.log_info(_("监听集群有：{}".format(cluster_domains)))

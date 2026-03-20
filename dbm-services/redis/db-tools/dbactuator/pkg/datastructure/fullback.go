@@ -1040,10 +1040,12 @@ func (full *TendisFullBackPull) PullFullbackDecompressed() {
 		return
 	}
 	mylog.Logger.Info("localBkIsExists:%v,localBkIsCompelete:%v ", localBkIsExists, localBkIsCompelete)
-	// 这里解压 ，不然会走到 else if localBkIsExists == true && decpDirIsExists == true 那里才是第一次解压
-	full.Decompressed()
-	if full.Err != nil {
-		return
+	// 仅当压缩包存在时才尝试解压，避免重试场景下压缩包已被解压删除后解压命令失败
+	if localBkIsExists {
+		full.Decompressed()
+		if full.Err != nil {
+			return
+		}
 	}
 	// 已解压的备份文件
 	decpDirIsExists, decpIsCompelete, _ := full.CheckDecompressedDirIsOK()
@@ -1175,7 +1177,7 @@ func (full *TendisFullBackPull) RestoreBackup(dstTendisIP string, dstTendisPort 
 		consts.TendisplusRediscli, dstTendisIP, dstTendisPort, full.ResultFullbackup[0].ClusterMeataDir)
 	mylog.Logger.Info("开始恢复全备,恢复命令:%s", logCmd)
 
-	ret01, err := util.RunLocalCmd("bash", []string{"-c", restoreCmd}, "", nil, 600*time.Second)
+	ret01, err := util.RunLocalCmd("bash", []string{"-c", restoreCmd}, "", nil, time.Hour)
 	mylog.Logger.Info("恢复全备执行结果:%v", ret01)
 	if err != nil {
 		mylog.Logger.Error(fmt.Sprintf("恢复全备失败,详情:%v", err))

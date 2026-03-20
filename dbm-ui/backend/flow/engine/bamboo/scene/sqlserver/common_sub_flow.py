@@ -47,6 +47,9 @@ from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script 
 from backend.flow.plugins.components.collections.sqlserver.exec_sqlserver_backup_job import (
     ExecSqlserverBackupJobComponent,
 )
+from backend.flow.plugins.components.collections.sqlserver.init_dbm_nginx_proxy import (
+    InitDBMNginxForSQLServerComponent,
+)
 from backend.flow.plugins.components.collections.sqlserver.insert_app_setting import InsertAppSettingComponent
 from backend.flow.plugins.components.collections.sqlserver.restore_for_do_dr import RestoreForDoDrComponent
 from backend.flow.plugins.components.collections.sqlserver.sqlserver_download_backup_file import (
@@ -855,6 +858,7 @@ def install_surrounding_apps_sub_flow(
     cluster_domain_list: list,
     is_install_backup_client: bool = True,
     is_init_app_setting: bool = True,
+    is_init_nginx: bool = True,
     is_get_old_backup_config: bool = False,
 ):
     """
@@ -868,6 +872,7 @@ def install_surrounding_apps_sub_flow(
     @param master_host: 主实例列表
     @param is_install_backup_client 是不是安装backup_client
     @param is_init_app_setting 是否初始化app_setting表
+    @param is_init_nginx 是否初始化nginx配置
     @param is_get_old_backup_config 是否获取旧备份配置，内部导入标准化专属
     """
     # 构建子流程global_data
@@ -879,6 +884,9 @@ def install_surrounding_apps_sub_flow(
     # 声明子流程
     sub_pipeline = SubBuilder(root_id=root_id, data=global_data)
 
+    # 提取所有主从实例的去重 IP 列表（过滤空值）
+    unique_ips = list({host.ip for host in master_host + slave_host if host.ip})
+
     acts_list = []
     if is_install_backup_client:
         acts_list.append(
@@ -889,11 +897,7 @@ def install_surrounding_apps_sub_flow(
                     DownloadBackupClientKwargs(
                         bk_cloud_id=bk_cloud_id,
                         bk_biz_id=bk_biz_id,
-                        download_host_list=list(
-                            filter(
-                                None, list(set([host.ip for host in master_host] + [host.ip for host in slave_host]))
-                            )
-                        ),
+                        download_host_list=unique_ips,
                     )
                 ),
             }
@@ -907,18 +911,23 @@ def install_surrounding_apps_sub_flow(
                     "kwargs": asdict(
                         InsertAppSettingKwargs(
                             cluster_domain=cluster_domain,
-                            ips=list(
-                                filter(
-                                    None,
-                                    list(set([host.ip for host in master_host] + [host.ip for host in slave_host])),
-                                ),
-                            ),
+                            ips=unique_ips,
                             is_get_old_backup_config=is_get_old_backup_config,
                         )
                     ),
                 }
             )
-    if len(acts_list) == 0:
+    # 对dbm的nginx初始化
+    if is_init_nginx:
+        for cluster_domain in cluster_domain_list:
+            acts_list.append(
+                {
+                    "act_name": _("集群[{}]初始化nginx配置".format(cluster_domain)),
+                    "act_component_code": InitDBMNginxForSQLServerComponent.code,
+                    "kwargs": asdict(InitDBMNginxForSQLServerComponent.kwargs(cluster_domain=cluster_domain)),
+                }
+            )
+    if not acts_list:
         raise Exception(_("install_surrounding_apps_sub_flow的子流程列表为空"))
 
     sub_pipeline.add_parallel_acts(acts_list=acts_list)

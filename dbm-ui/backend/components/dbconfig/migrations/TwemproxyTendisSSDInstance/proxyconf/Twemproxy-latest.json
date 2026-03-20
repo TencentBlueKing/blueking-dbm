@@ -18,9 +18,9 @@
   {
     "conf_name": "backlog",
     "value_default": "512",
-    "value_allowed": "nullNULL",
+    "value_allowed": "[1, 1024]",
     "value_type": "INT",
-    "value_type_sub": "nullNULL",
+    "value_type_sub": "RANGE",
     "conf_name_lc": "",
     "description": "",
     "need_restart": 1,

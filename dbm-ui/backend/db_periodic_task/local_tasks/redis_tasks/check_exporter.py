@@ -27,7 +27,7 @@ from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.db_meta.constants import UNIFY_QUERY_PARAMS
 from backend.db_periodic_task.local_tasks.redis_tasks.report_op import RedisCheckReportBatchOps, RedisClusterReport
 from backend.db_report.enums import ReportStateType
-from backend.db_report.enums.redis_sub_type import RedisExporterCheckSubType
+from backend.db_report.enums.redis_sub_type import RedisCheckSubType
 from backend.db_report.repo.task_record_repo import get_report_day_from_time
 
 logger = logging.getLogger("root")
@@ -57,7 +57,7 @@ class CheckRedisUpMetricTask:
     check_type: str
 
     def __init__(self):
-        self.check_type = RedisExporterCheckSubType.Exporter.value
+        self.check_type = RedisCheckSubType.Exporter.value
 
     def start(self, report_day: int = None, batch_size: int = 20) -> tuple[int, int, int, int]:
         """

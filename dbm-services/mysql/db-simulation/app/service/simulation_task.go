@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"runtime/debug"
 	"slices"
 	"strings"
 	"time"
@@ -60,6 +61,13 @@ type BaseParam struct {
 	Path              string                `json:"path"  binding:"required"`
 	SchemaSQLFile     string                `json:"schema_sql_file"  binding:"required"`
 	ExecuteObjects    []ExecuteSQLFileObjV2 `json:"execute_objects"  binding:"gt=0,dive,required"`
+}
+
+func (b BaseParam) GetMySQLEngine() string {
+	if val, ok := b.MySQLStartConfigs["default_storage_engine"]; ok {
+		return strings.ToLower(strings.TrimSpace(val))
+	}
+	return ""
 }
 
 // BuildTendbPodName build tendb pod name
@@ -317,6 +325,7 @@ func (r ReloadParam) BuildTsk(requestId string) (tsk SimulationTask) {
 		RootPwd: r.TaskId[0:4],
 		Args:    r.BuildStartArgs(),
 		Charset: r.MySQLCharSet,
+		Engine:  r.BaseParam.GetMySQLEngine(),
 	}
 	return tsk
 }
@@ -327,6 +336,11 @@ func run(task SimulationTask, tkType string) {
 	ctrlChan <- struct{}{}
 	defer func() {
 		<-ctrlChan
+		// 捕获 panic，确保任务状态被正确更新为失败
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic occurred: %v\nstack trace:\n%s", r, string(debug.Stack()))
+			logger.Error("simulation task panic: %v", err)
+		}
 		var status string
 		var errMsg string
 		status = model.TaskSuccess
@@ -517,23 +531,36 @@ func (t *SimulationTask) executeOneObject(e ExecuteSQLFileObj, containerName str
 	if len(realexcutedbs) == 0 {
 		return "", "", fmt.Errorf("需要执行的db:%v,需要忽略的db:%v,查询线上存在的db,计算后没有找到任何变更的目标db,请检查你的输入是否正确", e.DbNames, e.IgnoreDbNames)
 	}
-	for idx, cmd := range t.getLoadSQLCmd(t.Path, e.SQLFile, realexcutedbs) {
-		sstdout += util.RemovePassword(cmd) + "\n"
-		stdout, stderr, err := t.DbPodSets.executeInPod(cmd, containerName, t.getExtmap(e.SQLFile), false)
-		sstdout += stdout.String() + "\n"
-		sstderr += stderr.String() + "\n"
-		if err != nil {
-			if idx == 0 {
-				xlogger.Error("download file failed:%s", err.Error())
-				return sstdout, sstderr, fmt.Errorf("download file %s failed:%s", e.SQLFile, err.Error())
+
+	// 第一步：下载 SQL 文件
+	downloadCmd := t.DbPodSets.getDownloadSqlCmd(t.Path, e.SQLFile)
+	sstdout += util.RemovePassword(downloadCmd) + "\n"
+	stdout, stderr, err := t.DbPodSets.executeInPod(downloadCmd, containerName, t.getExtmap(e.SQLFile), false)
+	sstdout += stdout.String() + "\n"
+	sstderr += stderr.String() + "\n"
+	if err != nil {
+		xlogger.Error("download file failed:%s", err.Error())
+		return sstdout, sstderr, fmt.Errorf("download file %s failed:%s", e.SQLFile, err.Error())
+	}
+	xlogger.Info("download file success: %s \n %s", stdout.String(), stderr.String())
+
+	// 第二步：对每个数据库执行 SQL
+	for _, db := range realexcutedbs {
+		dbCmds := t.DbPodSets.getExecuteSQLCmds(e.SQLFile, db)
+		for _, cmd := range dbCmds {
+			sstdout += util.RemovePassword(cmd) + "\n"
+			stdout, stderr, err := t.DbPodSets.executeInPod(cmd, containerName, t.getExtmap(e.SQLFile), false)
+			sstdout += stdout.String() + "\n"
+			sstderr += stderr.String() + "\n"
+			if err != nil {
+				xlogger.Error("when execute %s at %s, failed  %s\n", e.SQLFile, db, err.Error())
+				xlogger.Error("stderr:\n	%s", stderr.String())
+				xlogger.Error("stdout:\n	%s", stdout.String())
+				return sstdout, sstderr, fmt.Errorf("\nexec %s in %s failed:%s\n %s", e.SQLFile, db,
+					err.Error(), stderr.String())
 			}
-			xlogger.Error("when execute %s at %s, failed  %s\n", e.SQLFile, realexcutedbs[idx-1], err.Error())
-			xlogger.Error("stderr:\n	%s", stderr.String())
-			xlogger.Error("stdout:\n	%s", stdout.String())
-			return sstdout, sstderr, fmt.Errorf("\nexec %s in %s failed:%s\n %s", e.SQLFile, realexcutedbs[idx-1],
-				err.Error(), stderr.String())
+			xlogger.Info("%s \n %s", stdout.String(), stderr.String())
 		}
-		xlogger.Info("%s \n %s", stdout.String(), stderr.String())
 	}
 	xlogger.Info("[end]-%s", e.SQLFile)
 	return sstdout, sstderr, nil
@@ -588,7 +615,8 @@ func (t *SimulationTask) executeMultiFilesObject(e ExecuteSQLFileObjV2, containe
 
 // GetImgFromMySQLVersion 根据版本获取模拟执行运行的镜像配置
 func GetImgFromMySQLVersion(version string) (img string, err error) {
-	img, errx := model.GetImageName("mysql", version)
+	componentType := "mysql"
+	img, errx := model.GetImageName(componentType, version)
 	if errx == nil {
 		logger.Info("get image from db img config: %s", img)
 		return img, nil

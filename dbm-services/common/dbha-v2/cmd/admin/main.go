@@ -46,6 +46,7 @@ func main() {
 	rootCmd.AddCommand(admin.MigrateCmd)
 	rootCmd.AddCommand(admin.HealthCmd)
 	rootCmd.AddCommand(admin.StartCmd)
+	rootCmd.AddCommand(admin.DaemonStartCmd)
 	rootCmd.AddCommand(admin.StopCmd)
 	rootCmd.AddCommand(admin.RestartCmd)
 	rootCmd.AddCommand(admin.ReloadCmd)

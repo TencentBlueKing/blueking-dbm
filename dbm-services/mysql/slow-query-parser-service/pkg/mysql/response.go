@@ -8,9 +8,19 @@ type Response struct {
 	QueryDigestMd5  string      `json:"query_digest_md5"`
 	DbName          string      `json:"db_name"`
 	TableName       string      `json:"table_name"`
-	TableReferences []*TableRef `json:"-"`
+	TableReferences QueryTables `json:"-"`
 	HasSubquery     bool        `json:"has_subquery"`
 	QueryLength     int         `json:"query_length"`
+}
+
+type QueryTables []*TableRef
+
+func (q *QueryTables) String() string {
+	var result string
+	for _, t := range *q {
+		result += t.String() + ","
+	}
+	return result
 }
 
 type TableRef struct {

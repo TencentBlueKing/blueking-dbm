@@ -135,6 +135,10 @@ func (job *PredixyConfServersRewrite) IsSupportedConfigRewriteCmd(password strin
 
 // ConfigRewriteConfig 高版本开始支持config rewrite命令
 func (job *PredixyConfServersRewrite) ConfigRewriteConfig() (err error) {
+	// 先sleep 100s,便于后端集群通信，统一元数据
+	job.runtime.Logger.Info("sleep 100s for proxy mark certain Redis nodes as failed")
+	time.Sleep(100 * time.Second)
+
 	_, err = job.predixyConn.ConfigRewrite()
 	if err != nil {
 		return

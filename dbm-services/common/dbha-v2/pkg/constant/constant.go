@@ -22,12 +22,15 @@
  * SOFTWARE.
  */
 
+// Package constant defines shared constants for dbha-v2 (delimiters, defaults, timeouts, etc.).
 package constant
 
 import "time"
 
 const (
 	Delimiter                         = ";"
+	DbmApiNameMetadata                = "metadata"
+	DefaultLocalIPInterface           = "eth1"
 	DefaultClientPingTime             = 5 * time.Second
 	DefaultServerPingTime             = 5 * time.Minute
 	DefaultPingTimeout                = 10 * time.Second
@@ -38,6 +41,8 @@ const (
 	DefaultClientMaxReconnectAttempts = 10
 	DefaultReceiverBufferSize         = 1024
 	DefaultAdminBufferSize            = 1024
+	DefaultServiceTimerInterval       = 3 * time.Second
+	DefaultServiceUpdateTimeout       = 3 * time.Second
 )
 
 const (

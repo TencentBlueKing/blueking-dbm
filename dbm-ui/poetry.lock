@@ -309,12 +309,12 @@ trio = ["trio (>=0.31.0)", "trio (>=0.32.0)"]
 
 [[package]]
 name = "apigw-manager"
-version = "4.2.0"
+version = "4.2.3"
 description = "The SDK for managing blueking gateway resource."
 optional = false
 python-versions = "<3.13,>=3.8"
 files = [
-    {file = "apigw_manager-4.2.0-py3-none-any.whl", hash = "sha256:f4e6b0a3fa14d23414fa45f76fd3bc98f63c9f70224dd050989b6c7452a2dddb"},
+    {file = "apigw_manager-4.2.3-py3-none-any.whl", hash = "sha256:ecc531a17fbd1c52e903583ca4abb2fc1c3c7d37954e56df691c3e93577754da"},
 ]
 
 [package.dependencies]
@@ -6603,4 +6603,4 @@ cffi = ["cffi (>=1.17,<2.0)", "cffi (>=2.0.0b)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11.10,<3.12"
-content-hash = "5d1818a377b542fdbd701d3faaa1251db26203db86289b32e4ff0defe92a2b80"
+content-hash = "9d329bef7f96fb55e2c1b160a311ed495652de82ef8be352fdeb0741c6add32b"

@@ -51,18 +51,20 @@
         col-key="operation"
         :title="t('操作')"
         :width="120">
-        <template #default="{ row }: { row: IDataRow }">
+        <template #default="{ row, rowIndex }: { row: IDataRow; rowIndex: number }">
           <BkButton
+            :loading="downloadLoadings[rowIndex]"
             text
             theme="primary"
-            @click="handleDownload(row.file_path)">
+            @click="handleDownload(row.file_path, rowIndex)">
             {{ t('下载') }}
           </BkButton>
           <BkButton
             class="ml-8"
+            :loading="fileLoadings[rowIndex]"
             text
             theme="primary"
-            @click="handleCopyUrl(row.file_path)">
+            @click="handleCopyUrl(row.file_path, rowIndex)">
             {{ t('复制链接') }}
           </BkButton>
         </template>
@@ -77,7 +79,7 @@
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
-  import { batchDownloadDirs, createBkrepoAccessToken } from '@services/source/storage';
+  import { batchCreateBkrepoAccessToken, createBkrepoAccessToken } from '@services/source/storage';
 
   import { bytePretty, downloadUrl, execCopy, generateBkRepoDownloadUrl } from '@utils';
 
@@ -93,6 +95,8 @@
 
   const isShow = ref(false);
   const isBatchDownloading = ref(false);
+  const downloadLoadings = ref<boolean[]>([]);
+  const fileLoadings = ref<boolean[]>([]);
   const selectedRowKeys = ref<number[]>([]);
   const selected = shallowRef<IDataRow[]>([]);
 
@@ -107,6 +111,8 @@
 
   const handleClose = () => {
     isShow.value = false;
+    selectedRowKeys.value = [];
+    selected.value = [];
   };
 
   const handleSelectChange = (value: (string | number)[], { selectedRowData }: { selectedRowData: unknown[] }) => {
@@ -114,10 +120,15 @@
     selected.value = selectedRowData as IDataRow[];
   };
 
-  const handleDownload = async (filePath: string) => {
-    const tokenResult = await createBkrepoAccessToken({ file_path: filePath });
-    const url = generateBkRepoDownloadUrl(tokenResult);
-    downloadUrl(url);
+  const handleDownload = async (filePath: string, index: number) => {
+    downloadLoadings.value[index] = true;
+    try {
+      const tokenResult = await createBkrepoAccessToken({ file_path: filePath });
+      const url = generateBkRepoDownloadUrl(tokenResult);
+      downloadUrl(url);
+    } finally {
+      downloadLoadings.value[index] = false;
+    }
   };
 
   const handleBatchDownload = () => {
@@ -126,12 +137,12 @@
     }
     isBatchDownloading.value = true;
     const paths = selected.value.map((item) => item.file_path);
-    batchDownloadDirs({ file_path_list: paths })
-      .then((result) => {
+    batchCreateBkrepoAccessToken({ file_path_list: paths })
+      .then((tokenResultList) => {
         selectedRowKeys.value = [];
         selected.value = [];
 
-        const urls = Object.values(result);
+        const urls = tokenResultList.map((item) => generateBkRepoDownloadUrl(item));
         let index = 0;
         const downloadNext = () => {
           if (index < urls.length) {
@@ -147,11 +158,15 @@
       });
   };
 
-  const handleCopyUrl = (filePath?: string) => {
-    const filePathList = filePath ? [filePath] : dataList.map((item) => item.file_path);
-    batchDownloadDirs({ file_path_list: filePathList }).then((result) => {
-      const realUrls = Object.values(result);
-      execCopy(realUrls.join('\n'), t('复制成功，共n条', { n: realUrls.length }));
-    });
+  const handleCopyUrl = (filePath: string, index: number) => {
+    fileLoadings.value[index] = true;
+    createBkrepoAccessToken({ file_path: filePath })
+      .then((tokenResult) => {
+        const url = generateBkRepoDownloadUrl(tokenResult);
+        execCopy(url, t('复制成功，共n条', { n: 1 }));
+      })
+      .finally(() => {
+        fileLoadings.value[index] = false;
+      });
   };
 </script>

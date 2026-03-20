@@ -60,7 +60,7 @@ def _extract_agent_type_and_mcp_type(func: Callable) -> tuple[str, str]:
         raise ValueError(_("无法从函数路径中提取 agent_type 和 mcp_type: {}").format(func_file)) from e
 
 
-def mcp_tools_api_decorator(
+def mcp_tools_api_decorator(  # noqa: C901
     description: str,
     request_slz: Type[serializers.Serializer],
     response_slz: Type[serializers.Serializer],
@@ -77,6 +77,8 @@ def mcp_tools_api_decorator(
     match_subpath: bool = False,
     user_verified_required: bool = False,
     app_verified_required: bool = True,
+    none_schema: bool = False,
+    enable: bool = True,
 ):
     """
     MCP 工具 API 装饰器
@@ -96,10 +98,15 @@ def mcp_tools_api_decorator(
     @params match_subpath: 匹配所有子路径
     @params user_verified_required: 是否校验用户身份(考虑 mcp 也有后台调用，默认都已应用态接口开放)
     @params app_verified_required: 是否校验应用身份
+    @params none_schema: 无请求体时设为 True，供 generate_resources_yaml 的 MCP 校验通过
+    @params enable: 是否启用该 mcp tool
     @returns 装饰器函数
     """
 
     def decorator(func: Callable) -> Callable:
+        if not enable:
+            return func
+
         setattr(func, "is_mcp_tool", True)
         # 先用 rest-action 装饰
         func = action(methods=methods, detail=False, serializer_class=request_slz)(func)
@@ -110,13 +117,16 @@ def mcp_tools_api_decorator(
             operation_id = f"mcp_{agent_type}_{mcp_type}_{func.__name__}"
         else:
             operation_id = f"{name_prefix}_{func.__name__}"
+        operation_id = operation_id.replace("-", "_")
 
         # 注册 operation_id 到 MCP 工具的映射（按 MCP 工具分组存储）
         for mcp_tool in mcp or []:
             MCP_TOOLS_REGISTRY[mcp_tool].append(operation_id)
 
-        # 自动添加 mcp-tools tag
-        tags.append("mcp-tools")
+        # 自动添加 mcp-tools tag（使用副本避免共用 _META_DECORATOR 的视图重复 append 导致 YAML 中 tags 重复）
+        tags_final = list(tags) if tags else []
+        if "mcp-tools" not in tags_final:
+            tags_final.append("mcp-tools")
         # 创建 extend_schema 装饰器
         schema_decorator = extend_schema(
             operation_id=operation_id,
@@ -125,10 +135,11 @@ def mcp_tools_api_decorator(
             request=request_slz,
             responses={200: response_slz} if response_slz else None,
             methods=methods,
-            tags=tags,
+            tags=tags_final,
             exclude=False,
             extensions=gen_apigateway_resource_config(
                 enable_mcp=True,  # 固定为 True
+                none_schema=none_schema,
                 is_public=is_public,
                 allow_apply_permission=allow_apply_permission,
                 user_verified_required=user_verified_required,
@@ -137,7 +148,7 @@ def mcp_tools_api_decorator(
                 description_en=description,
                 match_subpath=match_subpath,
                 plugin_configs=[
-                    build_bk_header_rewrite(set={"X-Bkdbm-Mcp-Tag": ",".join(tags)}, remove=[]),
+                    build_bk_header_rewrite(set={"X-Bkdbm-Mcp-Tag": ",".join(tags_final)}, remove=[]),
                 ],
             ),
         )

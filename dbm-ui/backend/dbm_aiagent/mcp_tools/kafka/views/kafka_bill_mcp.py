@@ -113,22 +113,11 @@ class KafkaBillMcpToolsViewSet(McpToolsViewSet):
     @mcp_tools_api_decorator(
         description=str(
             _(
-                "Kafka集群替换单据。支持资源池和手工输入两种方式。"
-                "参数说明："
-                "1. bk_biz_id：必填，业务ID"
-                "2. cluster_domain：必填，集群域名"
-                "3. old_nodes：必填，待替换节点信息 {'broker': [{'ip': 'xxx', 'bk_host_id': xxx, 'bk_cloud_id': xxx}]}"
-                "4. ip_source：必填，主机来源(resource_pool资源池 或 manual_input手工_input)，默认resource_pool"
-                "5. new_nodes：手工输入时必填，新节点信息"
-                "6. resource_spec：资源池方式时可选，指定新节点规格 {'broker': {'spec_id': xxx}}"
-                ""
+                "Kafka集群替换单据，支持资源池和手工输入。"
                 "重要规则："
-                "- 当用户指定规格名称（如'IT5_16核_64G_3.5TB'）时："
-                "  1. 必须先调用search_specs_by_name接口查询该规格名称对应的spec_id"
-                "  2. 然后传入resource_spec={'broker': {'spec_id': 查询到的spec_id}}，否则系统将使用原节点规格"
-                "- 当用户不指定规格时：使用原节点规格，无需提供resource_spec"
-                "- 当用户指定手动输入(ip_source=manual_input)时：必须提供new_nodes"
-                "- old_nodes必须包含bk_host_id和bk_cloud_id，仅IP不够时调用cluster_overview获取完整信息"
+                "1.用户指定规格名称时，须先调用search_specs_by_name获取spec_id再传入resource_spec，不指定则使用原节点规格；"
+                "2.ip_source=manual_input时必须提供new_nodes；"
+                "3.old_nodes须含bk_host_id和bk_cloud_id，仅有IP时先调cluster_overview获取。"
             )
         ),
         request_slz=SubmitBillKafkaReplaceInputSerializer,
@@ -160,24 +149,10 @@ class KafkaBillMcpToolsViewSet(McpToolsViewSet):
     @mcp_tools_api_decorator(
         description=str(
             _(
-                "Kafka集群Topic均衡单据。"
-                "用途：对指定topic进行数据分区重均衡，平衡各个broker之间的数据负载。"
-                "参数说明："
-                "1. bk_biz_id：必填，业务ID"
-                "2. cluster_domain：必填，集群域名"
-                "3. topics：可选，需要均衡的topic列表，不传则均衡所有topic"
-                "4. throttle_rate：可选，均衡速率(字节/秒)。系统默认为80MB/s。"
-                "5. target_ips：可选，目标broker IP列表。指定将数据均衡到这些IP所在的broker节点，不传则均衡到所有broker。"
-                ""
+                "Kafka集群Topic均衡单据，对指定topic进行分区重均衡以平衡broker负载。"
                 "重要规则："
-                "- 当用户需要将数据均衡到指定的broker时（如'均衡到IP为x.x.x.x的broker'），"
-                "  1. 必须先调用cluster_overview接口获取集群中所有broker节点的IP信息"
-                "  2. 然后传入target_ips=['x.x.x.x', ...]，只对指定IP的broker进行均衡"
-                "- 当用户没有指定目标broker时，省略target_ips参数，系统会均衡到所有broker"
-                ""
-                "重要：当用户当前请求中没有提及速率相关词汇（如'速率xx MB/s'、'每秒xx字节'、'throttle_rate'等）时，"
-                "必须省略throttle_rate参数，不要从历史对话或上下文中获取任何速率值。"
-                "只有用户在当前请求中明确指定了速率时，才需要传递此参数"
+                "1.指定目标broker时，须先调cluster_overview获取IP，再传入target_ips；"
+                "2.用户当前请求未提及速率时，必须省略throttle_rate，不要从历史对话获取速率值。"
             )
         ),
         request_slz=SubmitBillKafkaRebalanceInputSerializer,
@@ -324,28 +299,12 @@ class KafkaBillMcpToolsViewSet(McpToolsViewSet):
     @mcp_tools_api_decorator(
         description=str(
             _(
-                "Kafka集群部署单据。支持资源池和手工输入两种方式。"
-                "用途：部署一个新的Kafka集群，包含zookeeper和broker组件。"
-                "参数说明："
-                "1. bk_biz_id：必填，业务ID"
-                "2. cluster_name：必填，集群名称"
-                "3. ip_source：主机来源(资源池resource_pool或手工输入manual_input)，默认资源池"
-                "4. nodes：手工输入时必填，格式{'zookeeper': [...], 'broker': [...]}。zookeeper必须正好3个节点"
-                "5. resource_spec：资源池时必填，格式{'zookeeper': {'count': 3, 'spec_id': xxx}, 'broker': {...}}"
-                "6. db_app_abbr：必填，业务缩写，用于生成域名(kafka.{cluster_name}.{db_app_abbr}.db)"
-                "7. city_code：必填，城市名称。用户说'随机'或不指定城市时，使用'default'；其他情况使用实际城市名称"
-                "8. timezone：可选，时区，默认Asia/Shanghai"
-                "9. region：可选，区域，默认default"
-                "10. disaster_tolerance_level：可选，容灾级别，默认MAX_EACH_ZONE_EQUAL(各机房均衡)"
-                "11. replication_num：可选，副本数，默认2，必须小于等于broker节点数量"
-                "12. version：可选，Kafka版本，默认2.4.0"
-                ""
-                "注意事项："
-                "1. zookeeper节点固定为3个，不可更改"
-                "2. broker节点至少需要1个"
-                "3. 副本数不能超过broker节点数量"
-                "4. 系统自动生成用户名和密码，返回在结果中"
-                "5. 当用户只提供IP地址时，必须先调用cluster_overview接口获取完整的节点信息(bk_host_id, bk_cloud_id)"
+                "Kafka集群部署单据，支持资源池和手工输入，部署包含zookeeper和broker的新集群。"
+                "重要规则："
+                "1.zookeeper固定3个节点，broker至少1个，副本数不能超过broker数量；"
+                "2.city_code：用户说'随机'或不指定时用'default'，否则用实际城市名称；"
+                "3.域名格式：kafka.{cluster_name}.{db_app_abbr}.db；"
+                "4.仅有IP时须先调cluster_overview获取bk_host_id和bk_cloud_id。"
             )
         ),
         request_slz=SubmitBillKafkaApplyInputSerializer,

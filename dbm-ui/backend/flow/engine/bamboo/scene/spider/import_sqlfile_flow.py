@@ -230,7 +230,10 @@ class ImportSQLFlow(object):
         start_mysqld_configs = self.__get_instance_start_config(
             ip=remotedb_ip, port=remotedb_port, bk_cloud_id=cluster["bk_cloud_id"]
         )
-
+        # 获取 tdbctl 的启动配置
+        tdbctl_start_configs = self.__get_instance_start_config(
+            ip=cluster["master_ctl_ip"], port=cluster["port"], bk_cloud_id=cluster["bk_cloud_id"]
+        )
         # 添加单据信息回显节点
         semantic_check_pipeline.add_act(
             act_name=_("回显SQL语义检测单据信息"),
@@ -286,6 +289,7 @@ class ImportSQLFlow(object):
                     "schema_sql_file": self.semantic_dump_schema_file_name,
                     "execute_objects": self.data["execute_objects"],
                     "mysql_start_config": start_mysqld_configs,
+                    "tdbctl_start_configs": tdbctl_start_configs,
                 },
             },
         )
@@ -307,7 +311,7 @@ class ImportSQLFlow(object):
 
     def __get_master_ctl_info(self, cluster_id: int) -> dict:
         cluster = Cluster.objects.get(id=cluster_id)
-        logger.info("get ")
+        logger.info("get master ctl info: {}".format(cluster))
         master_ctl_addr = cluster.tendbcluster_ctl_primary_address()
         master_ctl_ip = master_ctl_addr.split(IP_PORT_DIVIDER)[0]
         master_ctl_port = master_ctl_addr.split(IP_PORT_DIVIDER)[1]

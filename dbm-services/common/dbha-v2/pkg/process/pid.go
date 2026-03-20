@@ -30,6 +30,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/converter"
@@ -46,6 +47,8 @@ const (
 	NameAdmin    = "admin"
 )
 
+const daemonStartArg = "daemon-start"
+
 var (
 	ErrIsDir           = gerrors.Newf(gerrors.Failure, "the input PID file is a directory, not a file")
 	ErrPidFileNotExist = gerrors.Newf(gerrors.NotExist, "the PID file is not exist")
@@ -53,6 +56,63 @@ var (
 	ErrInvalidPid      = gerrors.Newf(gerrors.InvalidParameter, "the PID is invalid")
 	ErrInvalidProcName = gerrors.Newf(gerrors.InvalidParameter, "the process name is invalid")
 )
+
+// IsDaemonStartGuard reports whether the process with the given PID is a guard process
+// (started via daemon-start). It checks the process command line for the "daemon-start" argument.
+func IsDaemonStartGuard(pid int32) (bool, error) {
+	proc, err := process.NewProcess(pid)
+	if err != nil {
+		if errors.Is(err, process.ErrorProcessNotRunning) {
+			return false, nil
+		}
+		return false, gerrors.NewE(gerrors.Failure, err)
+	}
+	cmdline, err := proc.Cmdline()
+	if err != nil {
+		if errors.Is(err, process.ErrorProcessNotRunning) {
+			return false, nil
+		}
+		return false, gerrors.NewE(gerrors.Failure, err)
+	}
+	// Cmdline may be space or null separated; normalize to spaces then split.
+	cmdline = strings.ReplaceAll(cmdline, "\x00", " ")
+	for _, tok := range strings.Fields(cmdline) {
+		if tok == daemonStartArg {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// WasRunningWithDaemonStart returns true if the process identified by pidFile and procName
+// is currently running and is a daemon-start guard. Used before restart to decide whether
+// to re-launch with daemon-start. Returns false when pid file is missing, process is
+// not alive, or process is not the guard (e.g. plain start).
+func WasRunningWithDaemonStart(pidFile, procName string) (bool, error) {
+	pid, err := ReadPid(pidFile)
+	if err != nil {
+		if errors.Is(err, ErrPidFileNotExist) || errors.Is(err, ErrInvalidFile) {
+			return false, nil
+		}
+		return false, err
+	}
+	alive, err := IsAliveWithProcessName(pid, procName)
+	if err != nil || !alive {
+		return false, err
+	}
+	return IsDaemonStartGuard(pid)
+}
+
+// BinaryName returns the base name of the current executable (e.g. dbha-admin).
+// Use this for start/stop/daemon/health so the process name matches the running binary;
+// when started via daemon-start, the guard process has this name.
+func BinaryName() string {
+	exe, err := os.Executable()
+	if err != nil {
+		return ""
+	}
+	return filepath.Base(exe)
+}
 
 // Name is used to obtain the process name.
 func Name(pid int32) (string, error) {
@@ -65,7 +125,11 @@ func Name(pid int32) (string, error) {
 }
 
 // SavePid is used to save the process pid into a file.
+// When DBHA_UNDER_GUARD is set (child running under guard), skip writing to avoid overwriting guard's pid file.
 func SavePid(filename string) error {
+	if os.Getenv(EnvUnderGuard) != "" {
+		return nil
+	}
 	if filename == "" {
 		return ErrInvalidFile
 	}

@@ -11,8 +11,11 @@ topoName: cluster
 addonVersion: "1.0.0"
 componentList:
   - componentName: qdrant
+    componentDef: qdrant
     serviceVersion: "1.16.3"
     env:
+      # Uncomment to enable API key authentication for Qdrant
+      # QDRANT__SERVICE__API_KEY: "your-secret-api-key-here"
     replicas: 1
     resources:
       requests:
@@ -29,10 +32,10 @@ componentList:
 
 observeConfig:
   bkLogConfig:
-    enabled: false
+    enabled: true
     labels: {}
     dataId:
   svcMonitor:
-    enabled: false
+    enabled: true
     labels: {}
     interval: "15s"

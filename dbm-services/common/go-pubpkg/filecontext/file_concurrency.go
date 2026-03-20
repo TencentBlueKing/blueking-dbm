@@ -35,8 +35,9 @@ func NewIncrFile(contextFile string, max int, retryInterval time.Duration) (*Inc
 	keyCurr := "current"
 	keyMax := "max"
 	fc := NewFileContext(contextFile)
+
 	if fi, err := os.Stat(fc.contextFile); err == nil && fi != nil {
-		if time.Now().Sub(fi.ModTime()).Seconds() > 60*60*24 {
+		if time.Now().Sub(fi.ModTime()).Seconds() > 60*60*24*7 {
 			logger.Info("remove expired context file %s", fc.contextFile)
 			err = os.Remove(fc.contextFile)
 			if err != nil {
@@ -47,12 +48,14 @@ func NewIncrFile(contextFile string, max int, retryInterval time.Duration) (*Inc
 	if maxVal, err := fc.GetInt(keyMax); err != nil || maxVal == 0 {
 		fc.Set(keyMax, max, false)
 	}
+
 	if _, err := fc.GetInt("current"); err != nil {
 		fc.Set(keyCurr, 0, false)
 	}
 	if err := fc.Save(); err != nil {
 		return nil, err
 	}
+
 	incrLockFile.FileContext = fc
 	return &incrLockFile, nil
 }
@@ -60,7 +63,13 @@ func NewIncrFile(contextFile string, max int, retryInterval time.Duration) (*Inc
 // Add increments the value of the given key in the FileContext.
 // Blocking if incr full
 func (c *IncrFileContext) Add(incr int) error {
-	return c.IncrWithRetries(incr, 0)
+	return c.IncrWithRetries(incr, -1)
+}
+
+// Incr increments the value of the given key in the FileContext.
+// Blocking if incr full
+func (c *IncrFileContext) Incr(incr int) error {
+	return c.IncrWithRetries(incr, -1)
 }
 
 // Done increments -1 given key in the FileContext.
@@ -73,12 +82,6 @@ func (c *IncrFileContext) Done() error {
 // None blocking if incr full
 func (c *IncrFileContext) TryIncr(incr int) error {
 	return c.IncrWithRetries(incr, 0)
-}
-
-// Incr increments the value of the given key in the FileContext.
-// Blocking if incr full
-func (c *IncrFileContext) Incr(incr int) error {
-	return c.IncrWithRetries(incr, -1)
 }
 
 // IncrWithRetries increments the value of the given key in the FileContext.
@@ -133,7 +136,7 @@ func (c *IncrFileContext) IncrWithRetries(incr int, maxRetries int) error {
 		}
 		if maxRetries > 1 || maxRetries < 0 {
 			c.fl.Unlock() // 在进入递归之前释放锁
-			logger.Info("lock full: incr %s (%d+%d) > max %d, sleep %v secs",
+			logger.Info("lock full(waiting): incr %s (%d+%d) > max %d, sleep %v secs",
 				c.contextFile, curVal, incr, maxVal, c.retryInterval)
 			time.Sleep(c.retryInterval)
 			return c.IncrWithRetries(incr, maxRetries)
@@ -230,7 +233,7 @@ func (c *IncrFileContext) IncrWithKey(incr int, maxRetries int) error {
 		}
 		if maxRetries > 1 || maxRetries < 0 {
 			c.fl.Unlock() // 在进入递归之前释放锁
-			logger.Info("lock full(%s:%s): incr current %d > max %d, sleep %v secs",
+			logger.Info("lock full(waiting): incr %s:%s current %d > max %d, sleep %v secs",
 				c.contextFile, c.key, conc.Current-1, conc.Max, c.retryInterval)
 			time.Sleep(c.retryInterval)
 			return c.IncrWithKey(incr, maxRetries)

@@ -305,7 +305,7 @@ def backup_and_restore_serial(
 
     # 只有同步类型是mms/sms，并且link len 至少为2 这个优化才有意义
     link_len = len(params["ins_link"])
-    if params["sync_type"] in [SyncType.SYNC_MMS, SyncType.SYNC_SMS] and link_len > 1:
+    if params["sync_type"] in [SyncType.SYNC_MMS, SyncType.SYNC_SMS]:
         data_from_new = "sync_dst1"
         data_to_new = "sync_dst2"
         logger.info(

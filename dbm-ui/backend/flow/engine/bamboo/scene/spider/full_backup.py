@@ -107,7 +107,7 @@ class TenDBClusterFullBackupFlow(object):
                 raise MySQLBackupLocalException(msg=_("不支持的备份位置 {}".format(backup_local)))
 
             cluster_pipe.add_act(
-                act_name=_("关联备份id"),
+                act_name=_("关联备份id: {}".format(backup_id)),
                 act_component_code=MySQLLinkBackupIdBillIdComponent.code,
                 kwargs={},
             )
@@ -116,7 +116,11 @@ class TenDBClusterFullBackupFlow(object):
 
         backup_pipeline.add_parallel_sub_pipeline(sub_flow_list=cluster_pipes)
         logger.info(_("构造全库备份流程成功"))
-        backup_pipeline.run_pipeline(init_trans_data_class=MySQLBackupDemandContext())
+        # 启动接入单据值守监听
+        backup_pipeline.run_pipeline_with_sidecar(
+            check_ai_monitor_cluster_list=[i["cluster_id"] for i in self.data["infos"]],
+            init_trans_data_class=MySQLBackupDemandContext(),
+        )
 
     def backup_on_spider_ctl(self, backup_id: uuid.UUID, cluster_obj: Cluster) -> SubProcess:
         ctl_primary_address = cluster_obj.tendbcluster_ctl_primary_address()
@@ -180,15 +184,41 @@ class TenDBClusterFullBackupFlow(object):
             ),
         )
 
-        return on_ctl_sub_pipe.build_sub_process(sub_name=_("spider/ctl备份库表结构"))
+        return on_ctl_sub_pipe.build_sub_process(sub_name=_("{} spider/ctl备份库表结构".format(ctl_primary_ip)))
 
     def __backup_on_remote(
         self, backup_id: uuid.UUID, bk_cloud_id: int, machine_instance_dict: Dict
     ) -> List[SubProcess]:
         on_remote_pipes = []
         for ip, dtls in machine_instance_dict.items():
+            on_this_ip_flow = SubBuilder(
+                root_id=self.root_id,
+                data={
+                    "uid": self.data["uid"],
+                    "created_by": self.data["created_by"],
+                    "bk_biz_id": self.data["bk_biz_id"],
+                    "ticket_type": self.data["ticket_type"],
+                    "backup_id": backup_id,
+                    "file_tag": self.data["file_tag"],
+                    "backup_type": self.data["backup_type"],
+                    "ip": ip,
+                    "backup_gsd": ["all"],
+                },
+            )
+            on_this_ip_flow.add_act(
+                act_name=_("下发actuator介质"),
+                act_component_code=TransFileComponent.code,
+                kwargs=asdict(
+                    DownloadMediaKwargs(
+                        bk_cloud_id=bk_cloud_id,
+                        exec_ip=ip,
+                        file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                    )
+                ),
+            )
+
             for dtl in dtls:
-                on_remote_pipe = SubBuilder(
+                on_this_remote_instance_pipe = SubBuilder(
                     root_id=self.root_id,
                     data={
                         "uid": self.data["uid"],
@@ -205,19 +235,8 @@ class TenDBClusterFullBackupFlow(object):
                         "shard_id": dtl["shard_id"],
                     },
                 )
-                on_remote_pipe.add_act(
-                    act_name=_("下发actuator介质"),
-                    act_component_code=TransFileComponent.code,
-                    kwargs=asdict(
-                        DownloadMediaKwargs(
-                            bk_cloud_id=bk_cloud_id,
-                            exec_ip=ip,
-                            file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-                        )
-                    ),
-                )
 
-                on_remote_pipe.add_act(
+                on_this_remote_instance_pipe.add_act(
                     act_name=_("remote 执行全库备份"),
                     act_component_code=ExecuteDBActuatorScriptComponent.code,
                     kwargs=asdict(
@@ -231,7 +250,13 @@ class TenDBClusterFullBackupFlow(object):
                     ),
                 )
 
-                on_remote_pipes.append(on_remote_pipe.build_sub_process(sub_name=_("remote 全库备份")))
+                on_this_ip_flow.add_sub_pipeline(
+                    on_this_remote_instance_pipe.build_sub_process(
+                        sub_name=_("{}:{} remote 全库备份".format(ip, dtl["port"]))
+                    )
+                )
+
+            on_remote_pipes.append(on_this_ip_flow.build_sub_process(sub_name=_("{} remote 全库备份".format(ip))))
         return on_remote_pipes
 
     def backup_on_remote_master(self, backup_id: uuid.UUID, cluster_obj: Cluster) -> List[SubProcess]:

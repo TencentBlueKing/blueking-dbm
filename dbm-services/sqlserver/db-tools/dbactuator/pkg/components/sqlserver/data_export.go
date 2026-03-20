@@ -33,11 +33,13 @@ type DataExportComp struct {
 
 // DataExportParam TODO
 type DataExportParam struct {
-	Host          string                   `json:"host"  validate:"required,ip"`        // 当前实例的主机地址
-	Ports         []int                    `json:"ports" validate:"required,gt=0,dive"` // 被监控机器的上所有需要监控的端口
-	FilePath      string                   `json:"file_path" validate:"required"`       // 文件路径
-	ZipFileName   string                   `json:"zip_file_name" validate:"required"`   // 压缩文件名称
-	ExcuteObjects []DataExportObj          `json:"execute_objects" validate:"required"` // 变更需求列表
+	Host          string                   `json:"host"  validate:"required,ip"`                                // 当前实例的主机地址
+	Ports         []int                    `json:"ports" validate:"required,gt=0,dive"`                         // 被监控机器的上所有需要监控的端口
+	ClusterDomain string                   `json:"cluster_domain" validate:"required"`                          // 实例所在集群域名
+	InstanceRole  string                   `json:"instance_role" validate:"required,oneof=master slave orphan"` // 实例的角色
+	FilePath      string                   `json:"file_path" validate:"required"`                               // 文件路径
+	ZipFileName   string                   `json:"zip_file_name" validate:"required"`                           // 压缩文件名称
+	ExcuteObjects []DataExportObj          `json:"execute_objects" validate:"required"`                         // 变更需求列表
 	UploadDetail  osutil.UploadBkRepoParam `json:"upload_detail"`
 }
 
@@ -120,8 +122,21 @@ func (d *DataExportComp) PreCheck() (err error) {
 // 根据不同的端口导出数据
 func (d *DataExportComp) DataExportForPort(port int) (err error) {
 	logger.Info("execute sql files in the port [%d]", port)
+	var getdbs []string
 	var realexcutedbs []string
-	alldbs, err := d.DbConns[port].ShowDatabases()
+	switch d.Params.InstanceRole {
+	case "master":
+		// 主库
+		getdbs, err = d.DbConns[port].ShowDatabases()
+	case "slave":
+		// 从库
+		getdbs, err = d.DbConns[port].ShowDatabasesIncludeSnapshots()
+	case "orphan":
+		// 孤立库
+		getdbs, err = d.DbConns[port].ShowDatabases()
+	default:
+		return fmt.Errorf("不支持的实例角色:%s", d.Params.InstanceRole)
+	}
 	if err != nil {
 		logger.Error("获取实例db list失败:%s", err.Error())
 		return err
@@ -134,12 +149,12 @@ func (d *DataExportComp) DataExportForPort(port int) (err error) {
 			realexcutedbs = []string{"master"}
 		} else {
 			// 获取业务目标库
-			intentionDbs, err := util.DbMatch(alldbs, util.ChangeToMatch(object.DbNames))
+			intentionDbs, err := util.DbMatch(getdbs, util.ChangeToMatch(object.DbNames))
 			if err != nil {
 				return err
 			}
 			// 获取业务忽略库
-			ignoreDbs, err := util.DbMatch(alldbs, util.ChangeToMatch(object.IgnoreDbNames))
+			ignoreDbs, err := util.DbMatch(getdbs, util.ChangeToMatch(object.IgnoreDbNames))
 			if err != nil {
 				return err
 			}
@@ -160,6 +175,7 @@ func (d *DataExportComp) DataExportForPort(port int) (err error) {
 			for _, dbNames := range realexcutedbs {
 				var outFiles []string
 				if outFiles, err = sqlserver.ExecLocalSQLFileForDataExport(
+					d.Params.ClusterDomain,
 					d.SQLVersions[port],
 					dbNames,
 					files,

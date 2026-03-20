@@ -29,6 +29,8 @@ import (
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/logger"
+
+	"github.com/spf13/viper"
 )
 
 var Cfg = Configuration{
@@ -59,9 +61,12 @@ var Cfg = Configuration{
 
 // DiscoveryConfig discovery configuration
 type DiscoveryConfig struct {
-	Endpoint string `yaml:"endpoint" mapstructure:"endpoint"`
-	User     string `yaml:"user"     mapstructure:"user"`
-	Password string `yaml:"password" mapstructure:"password"`
+	Endpoint      string `yaml:"endpoint"      mapstructure:"endpoint"`
+	User          string `yaml:"user"          mapstructure:"user"`
+	Password      string `yaml:"password"      mapstructure:"password"`
+	CertFile      string `yaml:"certFile"      mapstructure:"certFile"`
+	KeyFile       string `yaml:"keyFile"       mapstructure:"keyFile"`
+	TrustedCAFile string `yaml:"trustedCAFile" mapstructure:"trustedCAFile"`
 }
 
 // DbmApi the API config of the DBM metadata
@@ -160,6 +165,23 @@ type Configuration struct {
 	Monitor   MonitorConfig   `yaml:"monitor"   mapstructure:"monitor"`
 	Storage   StorageConfig   `yaml:"storage"   mapstructure:"storage"`
 	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
+}
+
+// Load loads analysis configuration from file
+func Load(configFilePath string) error {
+	viper.SetConfigName("analysis")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("./etc")
+
+	if configFilePath != "" {
+		viper.SetConfigFile(configFilePath)
+	}
+
+	if err := viper.ReadInConfig(); err != nil {
+		return err
+	}
+
+	return viper.Unmarshal(&Cfg)
 }
 
 func init() {

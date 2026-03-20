@@ -11,13 +11,13 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import ClusterType
-
 
 class ListBizClustersInputSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"), default=None)
-    cluster_type = serializers.ChoiceField(choices=ClusterType.get_choices(), help_text=_("集群类型"), default=None)
+    ips = serializers.ListField(child=serializers.CharField(), help_text=_("IP 列表"), default=None)
+    instances = serializers.ListField(child=serializers.CharField(), help_text=_("ip:port 形式的实例列表"), default=None)
+    # cluster_type = serializers.ChoiceField(choices=ClusterType.get_choices(), help_text=_("集群类型"), default=None)
 
 
 class ClusterBaseInfoSerializer(serializers.Serializer):

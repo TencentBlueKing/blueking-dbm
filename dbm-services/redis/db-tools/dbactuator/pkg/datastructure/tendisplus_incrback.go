@@ -1100,7 +1100,7 @@ func (incr *TplusRocksDBIncrBack) ImportOneBinlogToTplus(tplusIP string, tplusPo
 	incrBackFile := filepath.Join(incr.SaveMyDir, bkItem.DecompressedFile)
 	importCmd := fmt.Sprintf(
 		"binlog_tool --logfile=%s --mode=base64 --start-position=%d --end-datetime=%d|%s -h %s -p %d -a %s --no-auth-warning",
-		incrBackFile, incr.StartPos, incr.EndTime.Unix()*1000, consts.TendisplusRediscli, tplusIP, tplusPort, tplusPasswd)
+		incrBackFile, incr.StartPos, incr.EndTime.Unix()*1000, consts.TendisplusRediscli, tplusIP, tplusPort, util.ShellQuote(tplusPasswd))
 	logCmd := fmt.Sprintf(
 		"binlog_tool --logfile=%s --mode=base64 --start-position=%d --end-datetime=%d|%s -h %s -p %d -a x --no-auth-warning",
 		incrBackFile, incr.StartPos, incr.EndTime.Unix()*1000, consts.TendisplusRediscli, tplusIP, tplusPort)

@@ -141,6 +141,8 @@ ADMIN_USERS = [u.strip() for u in get_type_env(key="ADMIN_USERS", default="admin
 # 标准运维
 # 标准运维SA 空闲检查任务模版ID
 SA_CHECK_TEMPLATE_ID = get_type_env(key="SA_CHECK_TEMPLATE_ID", _type=int)
+# 主机回收空闲检查任务模版ID 更严格
+SA_RECYCLE_IDLE_CHECK_TEMPLATE_ID = get_type_env(key="SA_RECYCLE_IDLE_CHECK_TEMPLATE_ID", _type=int)
 # 标准运维SA 初始化任务模版ID
 SA_INIT_TEMPLATE_ID = get_type_env(key="SA_INIT_TEMPLATE_ID", _type=int)
 # 标准运维SA 安装L5Agent的模板ID
@@ -240,6 +242,8 @@ DEBUG_TOOL_BAR = get_type_env(key="DEBUG_TOOL_BAR", _type=bool, default=False)
 
 # window ssh服务远程端口
 WINDOW_SSH_PORT = get_type_env(key="WINDOW_SSH_PORT", _type=int, default=22)
+# dbha ssh服务远程端口
+DBHA_SSH_PORT = get_type_env(key="DBHA_SSH_PORT", _type=int, default=36000)
 # 本地测试人员优先使用的版本
 REPO_VERSION_FOR_DEV = get_type_env(key="REPO_VERSION_FOR_DEV", _type=str, default="")
 # 机器主动下载文件

@@ -27,17 +27,13 @@ package haapm
 import (
 	"testing"
 
-	"dbm-services/common/go-pubpkg/apm/metric"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createTestGauge(name, help string, labelNames ...string) *HaGauge {
 	gauge := NewHaGauge(name, help, labelNames...)
-
-	metricDef := gauge.ToMetric()
-	gauge.metric.Collector = metric.NewMetric(metricDef, "dbha-v2-test")
+	gauge.metric.Collector = newCollector(gauge.ToMetric(), "dbha-v2-test")
 	return gauge
 }
 

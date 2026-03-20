@@ -290,7 +290,7 @@
   {
     "conf_name": "INSTANCEID",
     "value_default": "{{.InstanceID}}",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",
@@ -434,7 +434,7 @@
   {
     "conf_name": "SQLCOLLATION",
     "value_default": "{{.Charset}}",
-    "value_allowed": "NULL",
+    "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
     "conf_name_lc": "",

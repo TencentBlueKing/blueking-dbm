@@ -393,6 +393,25 @@ func createMoreClusterRequest(mySQLContainer *testhelper.MySQLContainerWrapper, 
 }
 
 func createMoreCluster(mySQLContainer *testhelper.MySQLContainerWrapper, count int) {
+	// 初始化 AddonType（只插入一次，供 ListActiveByPage JOIN 使用）
+	{
+		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
+		addonTypeDbAccess := dbaccess.GetAddonTypeDbAccess(db)
+		addonType := &model.AddonTypeModel{
+			TypeName:    "storage",
+			TypeAlias:   "storage",
+			Active:      true,
+			Description: "storage addon type",
+			CreatedBy:   "admin",
+			UpdatedBy:   "admin",
+		}
+		addedAddonType, err := addonTypeDbAccess.Create(addonType)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Printf("Add Sample addon type %v\n", addedAddonType)
+	}
+
 	for i := 0; i < count; i++ {
 		db, _ := testhelper.InitDBConnection(mySQLContainer.ConnStr)
 		clusterDbAccess := dbaccess.GetClusterDbAccess(db)

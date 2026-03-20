@@ -514,4 +514,4 @@ class KafkaReplaceFlow(object):
             )
             kafka_pipeline.add_sub_pipeline(sub_flow=sub_pipeline.build_sub_process(sub_name=_("缩容DBMeta")))
 
-        kafka_pipeline.run_pipeline()
+        kafka_pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=[self.data["cluster_id"]])

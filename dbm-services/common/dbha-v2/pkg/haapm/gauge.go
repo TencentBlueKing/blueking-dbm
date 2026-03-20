@@ -26,7 +26,6 @@ package haapm
 
 import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"dbm-services/common/go-pubpkg/apm/metric"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -42,13 +41,19 @@ import (
 type HaGauge struct {
 	Error error
 
-	metric      *metric.Metric
+	metric      *Metric
 	labelNames  []string
 	labelValues map[string]string
 }
 
-func (m *HaGauge) ToMetric() *metric.Metric {
-	return (*metric.Metric)(m.metric)
+func (m *HaGauge) ToMetric() *Metric {
+	return m.metric
+}
+
+// WithLabels returns a BoundGauge with fixed labels. For static resources, create once
+// and use the bound in business code so only Set/Inc/Dec/Add/Sub is needed.
+func (m *HaGauge) WithLabels(labels map[string]string) *BoundGauge {
+	return &BoundGauge{gauge: m, labels: copyLabels(labels)}
 }
 
 func (m *HaGauge) UpdateLabel(lvs map[string]string) *HaGauge {
@@ -187,8 +192,7 @@ func (m *HaGauge) reset() {
 func NewHaGauge(name, help string, labelNames ...string) *HaGauge {
 	gauge := &HaGauge{}
 
-	gauge.metric = &metric.Metric{
-		ID:          name,
+	gauge.metric = &Metric{
 		Name:        name,
 		Description: help,
 	}
@@ -202,8 +206,8 @@ func NewHaGauge(name, help string, labelNames ...string) *HaGauge {
 	gauge.labelNames = append(gauge.labelNames, labelNames...)
 	gauge.metric.Labels = gauge.labelNames
 	gauge.labelValues = map[string]string{}
-	for _, name := range gauge.labelNames {
-		gauge.labelValues[name] = "" // set default label value
+	for _, n := range gauge.labelNames {
+		gauge.labelValues[n] = "" // set default label value
 	}
 
 	gauge.reset()

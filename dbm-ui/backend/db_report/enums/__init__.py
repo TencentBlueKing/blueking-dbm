@@ -59,6 +59,7 @@ class ReportType(StrStructuredEnum):
     REDIS_DBMON_HEARTBEAT_CHECK = EnumField("dbmon_heartbeat_check", _("dbmon心跳超时检查"))
 
     EXPORTER_CHECK = EnumField("exporter_check", _("exporter监控上报检查"))
+    AGENT_UNIVERSAL_CHECK = EnumField("agent_universal_check", _("Agent通用检查"))
 
     # SQLSERVER
     SQLSERVER_FULL_BACKUP_CHECK = EnumField("sqlserver_full_backup_check", _("全量备份文件异常报告"))

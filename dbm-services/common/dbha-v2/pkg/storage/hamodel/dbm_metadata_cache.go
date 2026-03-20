@@ -49,6 +49,7 @@ const (
 	DbmMetadataFieldClusterID        = "cluster_id"
 	DbmMetadataFieldClusterType      = "cluster_type"
 	DbmMetadataFieldMachineType      = "machine_type"
+	DbmMetadataFieldAccessLayer      = "access_layer"
 	DbmMetadataFieldStatus           = "status"
 	DbmMetadataFieldInstanceRole     = "instance_role"
 	DbmMetadataFieldReceiver         = "receiver"
@@ -102,30 +103,32 @@ func (be BindEntryType) Value() (driver.Value, error) {
 
 // DbmMetadata is a model for the t_dbm_metadata table.
 type DbmMetadata struct {
-	BkCloudID        int                            `gorm:"column:bk_cloud_id;primaryKey"`
-	IP               string                         `gorm:"column:ip;primaryKey"`
-	Port             int                            `gorm:"column:port;primaryKey"`
-	AdminPort        int                            `gorm:"column:admin_port"`
-	BkIdcCityID      int                            `gorm:"column:bk_idc_city_id"`
-	BkBizID          int                            `gorm:"column:bk_biz_id"`
-	LogicalCityID    int                            `gorm:"column:logical_city_id"`
-	LogicalCityName  string                         `gorm:"column:logcial_city_name"`
-	Cluster          string                         `gorm:"column:cluster"`
-	ClusterID        int                            `gorm:"column:cluster_id"`
-	ClusterType      haprobe.DbmMetadataClusterType `gorm:"column:cluster_type"`
-	MachineType      haprobe.DbmMetadataMachineType `gorm:"column:machine_type"`
-	Status           string                         `gorm:"column:status"`
-	InstanceRole     string                         `gorm:"column:instance_role"`
-	Receiver         string                         `gorm:"column:receiver;type:mediumtext"`
-	BindEntry        string                         `gorm:"column:bind_entry;type:mediumtext"`
-	ProxyInstanceSet string                         `gorm:"column:proxy_insts;type:mediumtext"`
-	BinlogDumperSet  string                         `gorm:"column:binlog_dumpers;type:mediumtext"`
-	CreatedAt        time.Time                      `gorm:"column:created_at;autoCreateTime"`
-	UpdatedAt        time.Time                      `gorm:"column:updated_at;autoUpdateTime"`
-	DeletedAt        time.Time                      `gorm:"column:deleted_at;index"`
-	SyncDuration     time.Duration                  `gorm:"column:sync_duration;type:bigint"`
+	BkCloudID        int                                `gorm:"column:bk_cloud_id;primaryKey"`
+	IP               string                             `gorm:"column:ip;primaryKey"`
+	Port             int                                `gorm:"column:port;primaryKey"`
+	AdminPort        int                                `gorm:"column:admin_port"`
+	BkIdcCityID      int                                `gorm:"column:bk_idc_city_id"`
+	BkBizID          int                                `gorm:"column:bk_biz_id"`
+	LogicalCityID    int                                `gorm:"column:logical_city_id"`
+	LogicalCityName  string                             `gorm:"column:logcial_city_name"`
+	Cluster          string                             `gorm:"column:cluster"`
+	ClusterID        int                                `gorm:"column:cluster_id"`
+	ClusterType      haprobe.DbmMetadataClusterType     `gorm:"column:cluster_type"`
+	MachineType      haprobe.DbmMetadataMachineType     `gorm:"column:machine_type"`
+	AccessLayer      haprobe.DbmMetadataAccessLayerType `gorm:"column:access_layer"`
+	Status           string                             `gorm:"column:status"`
+	InstanceRole     string                             `gorm:"column:instance_role"`
+	Receiver         string                             `gorm:"column:receiver;type:mediumtext"`
+	BindEntry        string                             `gorm:"column:bind_entry;type:mediumtext"`
+	ProxyInstanceSet string                             `gorm:"column:proxy_insts;type:mediumtext"`
+	BinlogDumperSet  string                             `gorm:"column:binlog_dumpers;type:mediumtext"`
+	CreatedAt        time.Time                          `gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt        time.Time                          `gorm:"column:updated_at;autoUpdateTime"`
+	DeletedAt        time.Time                          `gorm:"column:deleted_at;index"`
+	SyncDuration     time.Duration                      `gorm:"column:sync_duration;type:bigint"`
 }
 
+// GetDbType returns the database type derived from the cluster type.
 func (t DbmMetadata) GetDbType() haprobe.DbType {
 	if t.ClusterType == haprobe.DbmMetadataClusterTypeTendbha ||
 		t.ClusterType == haprobe.DbmMetadataClusterTypeTendbCluster {

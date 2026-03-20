@@ -382,8 +382,8 @@ class CloudDBHATypeEnum(StrStructuredEnum):
 
 
 CLOUD_SSL_PATH = "cloud/ssl"
-CLOUD_NGINX_DBM_DEFAULT_PORT = 80
-CLOUD_NGINX_MANAGE_DEFAULT_HOST = 8080
+CLOUD_NGINX_DBM_DEFAULT_PORT = env.DBM_PORT
+CLOUD_NGINX_MANAGE_DEFAULT_HOST = env.MANAGE_PORT
 
 
 class CloudServiceModuleName(StrStructuredEnum):
@@ -1187,6 +1187,8 @@ class RedisCapacityUpdateType(StrStructuredEnum):
     KEEP_CURRENT_MACHINES = EnumField("keep_current_machines", _("原地变更"))
     ALL_MACHINES_REPLACE = EnumField("all_machines_replace", _("全部机器替换"))
     SLOT_MIGRATE = EnumField("slot_migrate", _("slot搬迁"))
+    SLOT_MIGRATE_UP = EnumField("slot_migrate_up", _("slot搬迁方式扩容"))
+    SLOT_MIGRATE_DOWN = EnumField("slot_migrate_down", _("slot搬迁方式缩容"))
 
 
 class RedisMaxmemoryConfigType(StrStructuredEnum):

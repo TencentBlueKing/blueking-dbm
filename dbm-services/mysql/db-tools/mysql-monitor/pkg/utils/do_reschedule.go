@@ -49,7 +49,8 @@ func Reschedule(configFileDir, configFileName, staff string) error {
 			continue
 		}
 
-		if ele.IsEnable() && ele.IsMatchMachineType() && ele.IsMatchRole() {
+		// 改成角色无差别的注册
+		if ele.IsEnable() && ele.IsMatchMachineType() { //&& ele.IsMatchRole() {
 			var key string
 
 			if ele.Schedule == nil {

@@ -47,6 +47,7 @@ const (
 	electionName    = "sync-dbm-metadata"
 )
 
+// Synchronizer periodically syncs DBM metadata into the local database cache.
 type Synchronizer struct {
 	db           *hamysql.GormDB
 	cli          *dbm.Client
@@ -54,6 +55,7 @@ type Synchronizer struct {
 	discoveryCli *discovery.Client
 }
 
+// Run starts the metadata synchronization loop.
 func (s *Synchronizer) Run(ctx context.Context) error {
 	if s.cli == nil {
 		s.cli = &dbm.Client{}
@@ -66,8 +68,17 @@ func (s *Synchronizer) Run(ctx context.Context) error {
 	return nil
 }
 
+// Close waits for all background goroutines to finish.
 func (s *Synchronizer) Close() {
 	s.wg.Wait()
+}
+
+// QueryMetadataFromDbm queries metadata from DBM for the given cloud and IPs.
+func (s *Synchronizer) QueryMetadataFromDbm(ctx context.Context, bkCloudID int, ips []string) ([]*dbm.DbInstMetadata, error) {
+	if s.cli == nil {
+		return nil, errors.New("dbm client not initialized")
+	}
+	return s.cli.QueryMetadataFromDbm(ctx, bkCloudID, ips)
 }
 
 func (s *Synchronizer) saveRespond(resp *dbm.Response) error {
@@ -86,6 +97,7 @@ func (s *Synchronizer) saveRespond(resp *dbm.Response) error {
 			ClusterID:       rsp.ClusterID,
 			ClusterType:     rsp.ClusterType,
 			MachineType:     rsp.MachineType,
+			AccessLayer:     rsp.AccessLayer,
 			Status:          string(rsp.Status),
 			InstanceRole:    string(rsp.InstanceRole),
 		}

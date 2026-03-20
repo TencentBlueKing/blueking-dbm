@@ -28,7 +28,10 @@ package config
 import (
 	"time"
 
+	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/logger"
+
+	"github.com/spf13/viper"
 )
 
 var Cfg = Configuration{
@@ -40,13 +43,25 @@ var Cfg = Configuration{
 		FileCount: 10,
 		FileSize:  100,
 	},
+
+	Grpc: GrpcConfig{
+		ServerPingTime:        constant.DefaultServerPingTime,
+		PingTimeout:           constant.DefaultPingTimeout,
+		KeepAliveMinTime:      constant.DefaultKeepAliveMiniTime,
+		PermitWithoutStream:   true,
+		MaxReceiveMessageSize: constant.DefaultMaxReceiveMessageSize,
+		MaxSendMessageSize:    constant.DefaultMaxSendMessageSize,
+	},
 }
 
 // DiscoveryConfig discovery configuration
 type DiscoveryConfig struct {
-	Endpoint string `yaml:"endpoint" mapstructure:"endpoint"`
-	User     string `yaml:"user"     mapstructure:"user"`
-	Password string `yaml:"password" mapstructure:"password"`
+	Endpoint      string `yaml:"endpoint"      mapstructure:"endpoint"`
+	User          string `yaml:"user"          mapstructure:"user"`
+	Password      string `yaml:"password"      mapstructure:"password"`
+	CertFile      string `yaml:"certFile"      mapstructure:"certFile"`
+	KeyFile       string `yaml:"keyFile"       mapstructure:"keyFile"`
+	TrustedCAFile string `yaml:"trustedCAFile" mapstructure:"trustedCAFile"`
 }
 
 // ApmConfig apm's configuration
@@ -58,15 +73,21 @@ type ApmConfig struct {
 
 // GrpcConfig grpc configuration
 type GrpcConfig struct {
-	ListenAddress string `yaml:"listenAddress" mapstructure:"listenAddress"`
+	ListenAddress         string        `yaml:"listenAddress"           mapstructure:"listenAddress"`
+	ServerPingTime        time.Duration `yaml:"serverPingTime"          mapstructure:"serverPingTime"`
+	PingTimeout           time.Duration `yaml:"pingTimeout"             mapstructure:"pingTimeout"`
+	KeepAliveMinTime      time.Duration `yaml:"keepAliveMinTime"        mapstructure:"keepAliveMinTime"`
+	PermitWithoutStream   bool          `yaml:"permitWithoutStream"     mapstructure:"permitWithoutStream"`
+	MaxReceiveMessageSize int           `yaml:"maxReceiveMessageSize"   mapstructure:"maxReceiveMessageSize"`
+	MaxSendMessageSize    int           `yaml:"maxSendMessageSize"      mapstructure:"maxSendMessageSize"`
 }
 
 // WebConfig web configuration
 type WebConfig struct {
-	Host         string        `yaml:"host" 		 mapstructure:"host"`
-	Port         int           `yaml:"port" 		 mapstructure:"port"`
-	ReadTimeout  time.Duration `yaml:"readTimeout"   mapstructure:"readTimeout"`
-	WriteTimeout time.Duration `yaml:"writeTimeout"  mapstructure:"writeTimeout"`
+	Host         string        `yaml:"host"         mapstructure:"host"`
+	Port         int           `yaml:"port"         mapstructure:"port"`
+	ReadTimeout  time.Duration `yaml:"readTimeout"  mapstructure:"readTimeout"`
+	WriteTimeout time.Duration `yaml:"writeTimeout" mapstructure:"writeTimeout"`
 }
 
 // DbmApi the API config of the DBM metadata
@@ -106,4 +127,21 @@ type Configuration struct {
 	DbmApis    []DbmApi        `yaml:"dbmApi"     mapstructure:"dbmApi"`
 	Storage    StorageConfig   `yaml:"storage"    mapstructure:"storage"`
 	Log        LogConfig       `yaml:"log"        mapstructure:"log"`
+}
+
+// Load loads admin configuration from file
+func Load(configFilePath string) error {
+	viper.SetConfigName("admin")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("./etc")
+
+	if configFilePath != "" {
+		viper.SetConfigFile(configFilePath)
+	}
+
+	if err := viper.ReadInConfig(); err != nil {
+		return err
+	}
+
+	return viper.Unmarshal(&Cfg)
 }

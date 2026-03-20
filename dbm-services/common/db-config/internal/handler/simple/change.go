@@ -5,6 +5,7 @@ import (
 	"bk-dbconfig/internal/handler"
 	"bk-dbconfig/internal/repository/model"
 	"bk-dbconfig/internal/service/simpleconfig"
+	"bk-dbconfig/pkg/constvar"
 	"bk-dbconfig/pkg/core/logger"
 	"bk-dbconfig/pkg/util"
 	"bk-dbconfig/pkg/validatestruct"
@@ -42,20 +43,20 @@ func (cf *Config) ChangeConfNameDef(ctx *gin.Context) {
 		handler.SendResponse(ctx, err, nil)
 		return
 	}
-
 	if err = simpleconfig.ValidateValueForClient(r.ConfNames, false); err != nil {
 		handler.SendResponse(ctx, err, nil)
 		return
 	}
-
-	//opUser := api.GetHeaderUsername(ctx.GetHeader(constvar.BKApiAuthorization))
+	if r.OpUser == "" {
+		r.OpUser = api.GetHeaderUsername(ctx.GetHeader(constvar.BKApiAuthorization))
+	}
 
 	confFile := api.BaseConfFileDef{
 		Namespace: r.Namespace,
 		ConfType:  r.ConfType,
 		ConfFile:  r.ConfFile,
 	}
-	if err := simpleconfig.ConfigNamesBatchUpsert(model.DB.Self, confFile, r.ConfNames); err != nil {
+	if err := simpleconfig.ConfigNamesBatchUpsert(model.DB.Self, confFile, r.ConfNames, r.OpUser); err != nil {
 		handler.SendResponse(ctx, err, nil)
 		return
 	} else {
@@ -64,13 +65,82 @@ func (cf *Config) ChangeConfNameDef(ctx *gin.Context) {
 	}
 }
 
+func (cf *Config) InitializeConfNameDef(ctx *gin.Context) {
+	cf.ChangeConfNameDef(ctx)
+}
+
+// QueryConfNameChanges godoc
+//
+// @Summary      查询配置项定义的变更历史
+// @Description  查询 conf_name_def 的操作历史记录，namespace 必填，conf_type/conf_file/conf_name 可选
+// @Tags         config_meta
+// @Accept       json
+// @Produce      json
+// @Param        namespace  query  string  true   "命名空间"
+// @Param        conf_type  query  string  false  "配置类型"
+// @Param        conf_file  query  string  false  "配置文件"
+// @Param        conf_name  query  string  false  "配置项名称"
+// @Success      200  {object}  []model.ConfNameChangesModel
+// @Failure      400  {object}  api.HTTPClientErrResp
+// @Router       /bkconfig/v1/confname/changes [get]
+func (cf *Config) QueryConfNameChanges(ctx *gin.Context) {
+	var req model.ConfNameChangesQueryReq
+	var err error
+	defer util.LoggerErrorStack(logger.Error, err)
+
+	if err = ctx.ShouldBindQuery(&req); err != nil {
+		handler.SendResponse(ctx, err, nil)
+		return
+	}
+	changes, err := model.QueryConfNameChanges(model.DB.Self, &req)
+	if err != nil {
+		handler.SendResponse(ctx, err, nil)
+		return
+	}
+	handler.SendResponse(ctx, nil, changes)
+}
+
+// QueryConfItemChanges godoc
+//
+// @Summary      查询配置的变更历史
+// @Description  查询集群/业务配置项的操作历史记录，bk_biz_id 和 namespace 必填，conf_type/conf_file/conf_name/level_name/level_value 可选
+// @Tags         config_item
+// @Accept       json
+// @Produce      json
+// @Param        bk_biz_id   query  string  true   "业务ID"
+// @Param        namespace   query  string  true   "命名空间"
+// @Param        conf_type   query  string  false  "配置类型"
+// @Param        conf_file   query  string  false  "配置文件"
+// @Param        conf_name   query  string  false  "配置项名称"
+// @Param        level_name  query  string  false  "层级名称，如 app、cluster"
+// @Param        level_value query  string  false  "层级值，如 app123、aa.bb.cc.db"
+// @Success      200  {object}  []model.ConfItemChangesModel
+// @Failure      400  {object}  api.HTTPClientErrResp
+// @Router       /bkconfig/v1/confitem/changes [get]
+func (cf *Config) QueryConfItemChanges(ctx *gin.Context) {
+	var req model.ConfItemChangesQueryReq
+	var err error
+	defer util.LoggerErrorStack(logger.Error, err)
+
+	if err = ctx.ShouldBindQuery(&req); err != nil {
+		handler.SendResponse(ctx, err, nil)
+		return
+	}
+	changes, err := model.QueryConfItemChanges(model.DB.Self, &req)
+	if err != nil {
+		handler.SendResponse(ctx, err, nil)
+		return
+	}
+	handler.SendResponse(ctx, nil, changes)
+}
+
 // ListDataTypes godoc
 //
 // @Summary      返回所有 value_type
 // @Description  查询 dbconfig 支持的 value_type
 // @Tags         config_meta
 // @Produce      json
-// @Param        body query     map[string][]string  true  "query"
+// @Param        body query     string  true  "query"
 // @Success      200  {object}  []api.ListConfFileResp
 // @Router       /bkconfig/v1/confname/types [get]
 func (cf *Config) ListDataTypes(ctx *gin.Context) {
