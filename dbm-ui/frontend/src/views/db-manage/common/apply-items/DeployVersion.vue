@@ -78,7 +78,7 @@
     display: inline-block;
 
     .item-input {
-      width: 435px;
+      width: 522px;
     }
   }
 </style>

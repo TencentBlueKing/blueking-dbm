@@ -152,3 +152,16 @@ export const getBizModuleTopoTree = (params: {
       }[];
     }[]
   >(`${path}/list_biz_module_trees/`, params);
+
+/**
+ * 校验 DB 模块名是否唯一
+ */
+export function checkDbModuleUnique(params: {
+  bk_biz_id: string | number;
+  cluster_type: string;
+  db_module_name: string;
+}) {
+  return http.get<{
+    is_unique: boolean;
+  }>(`${path}/${params.bk_biz_id}/check_db_module_unique/`, params);
+}
