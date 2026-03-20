@@ -11,6 +11,9 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import ConfigItemChangeModel from '@services/model/config/config-item-change';
+import ConfigNameChangeModel from '@services/model/config/config-name-change';
+
 import http, { type IRequestPayload } from '../http';
 
 const path = '/apis/configs';
@@ -140,8 +143,11 @@ export function getConfigBaseDetails(
 export function getBusinessConfigList(
   params: {
     bk_biz_id: number;
+    conf_file?: string;
     conf_type: string;
+    limit?: number;
     meta_cluster_type: string;
+    offset?: number;
   },
   payload = {} as IRequestPayload,
 ) {
@@ -299,14 +305,99 @@ export function updatePlatformConfig(params: {
   }>(`${path}/upsert_platform_config/`, params);
 }
 
-// 更具模块 id 获取模块信息
+// 获取模块信息
 export function getModuleDetail(params: { module_id: number }) {
   return http.post<{
+    alias_name: string;
     buffer_percent: string;
     charset: string;
+    db_module_id: number;
+    db_module_name: string;
     db_version: string;
     max_remain_mem_gb: string;
     sync_type: string;
     system_version: string;
   }>(`${path}/get_module_by_id/`, params);
+}
+
+/**
+ * 查询平台配置变更记录（操作记录）
+ */
+export function getConfigNameChanges(params: {
+  conf_file?: string;
+  conf_name?: string;
+  conf_type?: string;
+  limit?: number;
+  namespace: string;
+  offset?: number;
+}) {
+  return http.get<ConfigNameChangeModel[]>(`${path}/list_confname_changes/`, params).then((data) => ({
+    ...data,
+    results: data.map((item) => new ConfigNameChangeModel(item)),
+  }));
+}
+
+/**
+ * 查询业务配置名称变更记录（操作记录）
+ */
+export function getConfigItemChanges(params: {
+  bk_biz_id: number;
+  conf_file?: string;
+  conf_name?: string;
+  conf_type?: string;
+  limit?: number;
+  namespace: string;
+  offset?: number;
+}) {
+  return http.get<ConfigItemChangeModel[]>(`${path}/list_confitem_changes/`, params).then((data) => ({
+    ...data,
+    results: data.map((item) => new ConfigItemChangeModel(item)),
+  }));
+}
+
+// 查询配置类型列表
+export function getListConfTypes(params: { limit?: number; meta_cluster_type: string; offset?: number }) {
+  return http.get<
+    {
+      conf_type: string;
+      name: string;
+    }[]
+  >(`${path}/list_conf_types/`, params);
+}
+
+// 查询集群模块支持的配置文件列表
+export function getListClusterModuleConfFiles(params: {
+  bk_biz_id: number;
+  cluster_id?: number;
+  db_module_id?: number;
+  deploy_versions?: string; // json
+  limit?: number;
+  meta_cluster_type: string;
+  offset?: number;
+}) {
+  return http.get<
+    {
+      conf_file: string;
+      conf_type: string;
+      name: string;
+    }[]
+  >(`${path}/list_cluster_module_conf_files/`, params);
+}
+
+// 删除模块配置
+export function deleteModuleConfig(params: { bk_biz_id: number; db_module_id: number; meta_cluster_type: string }) {
+  return http.post(`${path}/delete_module_config/`, params);
+}
+
+// 恢复默认值
+export function recoverDefaultConfigItem(params: {
+  bk_biz_id: number;
+  conf_file: string;
+  conf_names: string[];
+  conf_type: string;
+  level_name: string;
+  level_value: string;
+  meta_cluster_type: string;
+}) {
+  return http.post(`${path}/recover_default_conf_item/`, params);
 }
