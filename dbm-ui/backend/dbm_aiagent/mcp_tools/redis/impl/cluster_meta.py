@@ -13,7 +13,7 @@ from typing import Dict, List, Optional
 from django.db.models import F
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterType, InstanceRole
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, ClusterEntry, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.dbm_aiagent.mcp_tools.common.impl.biz_helpers import get_biz_by_abbr, get_managed_biz
 
@@ -226,24 +226,146 @@ def cluster_proxies(immute_domain: str, hosts: Optional[List[str]] = None) -> Li
     ]
 
 
-def cluster_masters(immute_domain: str) -> List:
-    """集群 master节点 列表"""
-    c_obj = Cluster.objects.get(immute_domain=immute_domain)
-    master_objs = c_obj.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)
+def instance_detail(immute_domain: str, addrs: Optional[List[str]] = None) -> List:
+    try:
+        c_obj = Cluster.objects.get(immute_domain=immute_domain)
+    except Cluster.DoesNotExist:
+        raise ValueError(f"集群 {immute_domain} 不存在")
 
-    master_hosts, master_infos = {}, []
-    for ins_obj in master_objs:
-        if not master_hosts.get(ins_obj.machine.ip):
-            master_hosts[ins_obj.machine.ip] = []
-        master_hosts[ins_obj.machine.ip].append(ins_obj.port)
+    # 解析地址列表为 (ip, port) 元组
+    def parse_addresses(addresses: List[str]) -> List[tuple]:
+        parsed = []
+        for addr in addresses:
+            parts = addr.strip().split(":")
+            if len(parts) != 2:
+                raise ValueError(f"无效的实例地址格式: {addr}，应为 'ip:port'")
+            ip, port = parts[0], int(parts[1])
+            parsed.append((ip, port))
+        return parsed
 
-    for ip, ports in master_hosts.items():
-        m_obj = Machine.objects.get(ip=ip, bk_cloud_id=c_obj.bk_cloud_id, bk_biz_id=c_obj.bk_biz_id)
-        master_infos.append(
-            {"ip": ip, "ports": ports, "sub_zone": m_obj.bk_sub_zone, "cls_name": m_obj.bk_svr_device_cls_name}
+    address_filter = None
+    if addrs:
+        address_filter = parse_addresses(addrs)
+
+    storage_qs = (
+        StorageInstance.objects.filter(cluster=c_obj)
+        .select_related("machine", "db_package")
+        .prefetch_related("bind_entry")
+    )
+    if address_filter:
+        from django.db.models import Q
+
+        q = Q()
+        for ip, port in address_filter:
+            q |= Q(machine__ip=ip, port=port)
+        storage_qs = storage_qs.filter(q)
+
+    storage_instances = []
+    for inst in storage_qs:
+        storage_instances.append(
+            {
+                "address": f"{inst.machine.ip}:{inst.port}",
+                "version": inst.version,
+                "status": inst.status,
+                "instance_role": inst.instance_role,
+                "machine_type": inst.machine_type,
+                "cluster_type": inst.cluster_type,
+                "sub_zone": inst.machine.bk_sub_zone,
+                "cls_name": inst.machine.bk_svr_device_cls_name,
+                "bind_entries": [{"id": entry.id, "entry": entry.entry} for entry in inst.bind_entry.all()],
+            }
         )
 
-    return master_infos
+    proxy_instances = []
+    proxy_qs = (
+        ProxyInstance.objects.filter(cluster=c_obj)
+        .select_related("machine", "db_package")
+        .prefetch_related("bind_entry", "storageinstance", "storageinstance__machine")
+    )
+    if address_filter:
+        from django.db.models import Q
+
+        q = Q()
+        for ip, port in address_filter:
+            q |= Q(machine__ip=ip, port=port)
+        proxy_qs = proxy_qs.filter(q)
+    for inst in proxy_qs:
+        proxy_instances.append(
+            {
+                "address": f"{inst.machine.ip}:{inst.port}",
+                "version": inst.version,
+                "status": inst.status,
+                "instance_role": inst.machine_type,
+                "machine_type": inst.access_layer,
+                "cluster_type": inst.cluster_type,
+                "sub_zone": inst.machine.bk_sub_zone,
+                "cls_name": inst.machine.bk_svr_device_cls_name,
+                "bind_entries": [{"id": entry.id, "entry": entry.entry} for entry in inst.bind_entry.all()],
+            }
+        )
+
+    return storage_instances + proxy_instances
+
+
+def get_cluster_storage_tuples(
+    immute_domain: str,
+    instance_addresses: Optional[List[str]] = None,
+) -> Dict[str, list]:
+    """查询集群的存储节点主从关系信息"""
+
+    # 解析实例地址为 (ip, port) 集合，用于后续过滤
+    addr_set = set()
+    if instance_addresses:
+        for addr in instance_addresses:
+            try:
+                ip, port = addr.split(":")
+                addr_set.add((ip, int(port)))
+            except (ValueError, IndexError):
+                continue
+
+    # 基于集群域名查询所有主从关系
+    base_qs = (
+        StorageInstanceTuple.objects.filter(ejector__cluster__immute_domain=immute_domain)
+        .select_related("ejector__machine", "receiver__machine")
+        .values(
+            "ejector__machine__ip",
+            "ejector__port",
+            "receiver__machine__ip",
+            "receiver__port",
+        )
+        .distinct()
+    )
+
+    tuples = []
+    seen = set()
+    for data in base_qs:
+        master_ip = data["ejector__machine__ip"]
+        master_port = data["ejector__port"]
+        slave_ip = data["receiver__machine__ip"]
+        slave_port = data["receiver__port"]
+
+        # 如果指定了实例地址，则仅保留与指定地址相关的主从对
+        if addr_set:
+            if (master_ip, master_port) not in addr_set and (slave_ip, slave_port) not in addr_set:
+                continue
+
+        master_addr = f"{master_ip}:{master_port}"
+        slave_addr = f"{slave_ip}:{slave_port}"
+
+        # 去重
+        pair_key = (master_addr, slave_addr)
+        if pair_key in seen:
+            continue
+        seen.add(pair_key)
+
+        tuples.append(
+            {
+                "redis_master": master_addr,
+                "redis_slave": slave_addr,
+            }
+        )
+
+    return {"tuples": tuples}
 
 
 def list_clusters_by_hosts(hosts: List) -> List[Dict]:
@@ -283,73 +405,3 @@ def list_clusters_by_hosts(hosts: List) -> List[Dict]:
             unique_results.append(item)
 
     return unique_results
-
-
-def instance_tuple(addr: str) -> List:
-    """查找实例的 主从 信息
-    1. 可以是主节点, 查slave
-    2. 也可以是从节点, 查master"""
-    try:
-        ip, port = addr.split(":")
-        port = int(port)
-    except (ValueError, IndexError):
-        return {}
-
-    instance_tuples = defaultdict(list)
-
-    # 查询Proxy实例
-    proxy_data = (
-        ProxyInstance.objects.filter(machine__ip=ip).values("machine__ip", "port", "cluster__immute_domain").distinct()
-    )
-
-    for data in proxy_data:
-        if data["cluster__immute_domain"]:
-            instance_tuples[data["cluster__immute_domain"]].append({"proxy": f"{data['machine__ip']}:{data['port']}"})
-
-    # 查询Storage实例作为主节点
-    master_data = (
-        StorageInstanceTuple.objects.filter(ejector__machine__ip=ip, ejector__port=port)
-        .select_related("ejector__machine", "receiver__machine", "ejector__cluster")
-        .values(
-            "ejector__machine__ip",
-            "ejector__port",
-            "receiver__machine__ip",
-            "receiver__port",
-            "ejector__cluster__immute_domain",
-        )
-        .distinct()
-    )
-
-    for data in master_data:
-        if data["ejector__cluster__immute_domain"]:
-            instance_tuples[data["ejector__cluster__immute_domain"]].append(
-                {
-                    "master": f"{data['ejector__machine__ip']}:{data['ejector__port']}",
-                    "slave": f"{data['receiver__machine__ip']}:{data['receiver__port']}",
-                }
-            )
-
-    # 查询Storage实例作为从节点
-    slave_data = (
-        StorageInstanceTuple.objects.filter(receiver__machine__ip=ip, receiver__port=port)
-        .select_related("ejector__machine", "receiver__machine", "receiver__cluster")
-        .values(
-            "ejector__machine__ip",
-            "ejector__port",
-            "receiver__machine__ip",
-            "receiver__port",
-            "receiver__cluster__immute_domain",
-        )
-        .distinct()
-    )
-
-    for data in slave_data:
-        if data["receiver__cluster__immute_domain"]:
-            instance_tuples[data["receiver__cluster__immute_domain"]].append(
-                {
-                    "master": f"{data['ejector__machine__ip']}:{data['ejector__port']}",
-                    "slave": f"{data['receiver__machine__ip']}:{data['receiver__port']}",
-                }
-            )
-
-    return dict(instance_tuples)
