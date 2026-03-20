@@ -41,7 +41,8 @@ class MongoLogMcpToolsViewSet(McpToolsViewSet):
         request_slz=MongoSlowlogOverviewInputSerializer,
         response_slz=MongoSlowlogOverviewResponseSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.MONGODB_LOG],
+        # 仅聚合到 mongodb-mcp server
+        mcp=[DBMMcpTools.MONGODB_MCP],
         name_prefix=DBMMcpTools.MONGODB_LOG.replace("-", "_"),
     )
     def get_mongodb_slowlog_overview(self, request, *args, **kwargs):
@@ -67,7 +68,8 @@ class MongoLogMcpToolsViewSet(McpToolsViewSet):
         request_slz=MongoSlowlogListInputSerializer,
         response_slz=MongoSlowlogResponseSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.MONGODB_LOG],
+        # 仅聚合到 mongodb-mcp server
+        mcp=[DBMMcpTools.MONGODB_MCP],
         name_prefix=DBMMcpTools.MONGODB_LOG.replace("-", "_"),
     )
     def get_mongodb_slowlog_list(self, request, *args, **kwargs):

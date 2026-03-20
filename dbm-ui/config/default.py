@@ -1017,6 +1017,15 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "tools": [],
     },
     {
+        "name": "mongodb-mcp",
+        "description": """Aggregated MongoDB MCP server: include mongodb-meta/mongodb-log/mongodb-metrics/mongodb-alarm tools""",
+        "target_app_codes": [APP_CODE],
+        "labels": ["mongodb-mcp"],
+        "status": 1,
+        "is_public": False,
+        "tools": [],
+    },
+    {
         "name": "host-decommission-query",
         "description": """Cluster decommission information query services for DBA only.
         根据单个 IP 查询主机所属集群的裁撤相关信息，仅 DBA 可调用。

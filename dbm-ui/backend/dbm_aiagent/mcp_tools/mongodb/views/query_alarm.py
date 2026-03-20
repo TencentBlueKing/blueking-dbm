@@ -31,7 +31,8 @@ class MongoAlarmMcpToolsViewSet(McpToolsViewSet):
         request_slz=MongoClusterAlarmInputSerializer,
         response_slz=MongoClusterAlarmOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.MONGODB_ALARM],
+        # 仅聚合到 mongodb-mcp server
+        mcp=[DBMMcpTools.MONGODB_MCP],
         name_prefix=DBMMcpTools.MONGODB_ALARM.replace("-", "_"),
     )
     def fetch_cluster_alarms(self, request, *args, **kwargs):
@@ -45,7 +46,8 @@ class MongoAlarmMcpToolsViewSet(McpToolsViewSet):
         request_slz=MongoAppAlarmInputSerializer,
         response_slz=MongoAppAlarmOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.MONGODB_ALARM],
+        # 仅聚合到 mongodb-mcp server
+        mcp=[DBMMcpTools.MONGODB_MCP],
         name_prefix=DBMMcpTools.MONGODB_ALARM.replace("-", "_"),
     )
     def fetch_app_alarms(self, request, *args, **kwargs):

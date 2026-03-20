@@ -39,6 +39,8 @@ class DBMMcpTools(StrStructuredEnum):
     MONGODB_METRICS = EnumField("mongodb-metrics", "mongodb-metrics")
     MONGODB_LOG = EnumField("mongodb-log", "mongodb-log")
     MONGODB_ALARM = EnumField("mongodb-alarm", "mongodb-alarm")
+    # 聚合型 MCP server：同时包含 mongodb-meta/mongodb-log/mongodb-metrics/mongodb-alarm 的 tools
+    MONGODB_MCP = EnumField("mongodb-mcp", "mongodb-mcp")
     KAFKA_QUERY_META = EnumField("kafka-query-meta", "kafka-query-meta")
     KAFKA_BILL = EnumField("kafka-bill", "kafka-bill")
     KAFKA_METRICS = EnumField("kafka-metrics", "kafka-metrics")
