@@ -114,7 +114,6 @@ def _sync_config_items(namespace: str, conf_type: str, conf_file: str, conf_name
         "op_user": "system",  # 后台会把 system 不记录操作记录
         "conf_names": conf_names,
     }
-
     # 调用 API
     result = DBConfigApi.change_plat_config(params=params, raw=True)
 
