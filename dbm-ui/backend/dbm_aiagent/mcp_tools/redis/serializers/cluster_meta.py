@@ -45,14 +45,14 @@ class RedisEntrySerializer(RedisBaseInstanceSerializer):
 class RedisListInstsTopoInputSerializer(serializers.Serializer):
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     ips = serializers.ListField(
-        child=serializers.CharField(), required=False, allow_null=True, help_text="可选的主机列表，支持 IP "
+        child=serializers.CharField(), required=False, allow_null=True, default=[], help_text="可选的主机列表，支持 IP "
     )
 
 
 class RedisListStorageInstsInputSerializer(serializers.Serializer):
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     addrs = serializers.ListSerializer(
-        child=RedisAddrSerializer, required=False, allow_null=True, help_text="可选的实例列表 "
+        child=RedisAddrSerializer, required=False, allow_null=True, default=[], help_text="可选的实例列表 "
     )
 
 
