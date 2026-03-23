@@ -9,6 +9,7 @@ import (
 	"bk-dbconfig/pkg/constvar"
 	"bk-dbconfig/pkg/core/logger"
 
+	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 )
@@ -22,22 +23,11 @@ func ConfigNamesBatchUpsert(db *gorm.DB, cf api.BaseConfFileDef, confNames []*ap
 
 	// 目前只允许 update 这几个属性 "value_default", "value_allowed", "flag_status", "flag_locked"，见 ConfigNamesBatchUpdate
 	for _, cn := range confNames {
-		confName := &model.ConfigNameDefModel{
-			Namespace:    cf.Namespace,
-			ConfType:     cf.ConfType,
-			ConfFile:     cf.ConfFile,
-			ConfName:     cn.ConfName,
-			ConfNameLC:   cn.ConfNameLC,
-			ValueAllowed: cn.ValueAllowed,
-			ValueDefault: cn.ValueDefault,
-			ValueType:    cn.ValueType,
-			NeedRestart:  cn.NeedRestart,
-			Description:  cn.Description,
-			FlagVisible:  cn.FlagVisible,
-			FlagReadonly: cn.FlagReadonly,
-			FlagLocked:   cn.FlagLocked,
-			FlagStatus:   cn.FlagStatus, // 废弃，只读属性，允许 api去修改，不允许页面修改
-		}
+		confName := &model.ConfigNameDefModel{}
+		_ = copier.Copy(confName, cn.ConfNameDef)
+		confName.Namespace = cf.Namespace
+		confName.ConfType = cf.ConfType
+		confName.ConfFile = cf.ConfFile
 
 		if cn.OPType == constvar.OPTypeAdd {
 			adds = append(adds, confName)
