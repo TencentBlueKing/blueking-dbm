@@ -18,7 +18,7 @@
     row-key="cluster_id">
     <TicketInfoTableColumn
       col-key="cluster_id"
-      :get-copy-value="(row: RowData) => row.spider_old_ip_list[0].ip"
+      :get-copy-value="(row: RowData) => row.spider_old_ip_list.map((item) => item.ip)"
       :min-width="150"
       :title="t('目标主机')">
       <template #default="{ row: data }: { row: RowData }">
