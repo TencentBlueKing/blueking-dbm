@@ -10,12 +10,24 @@ specific language governing permissions and limitations under the License.
 from collections import defaultdict
 from typing import Dict, List, Optional
 
-from django.db.models import F
+from django.db.models import F, Q
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, ClusterEntry, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.dbm_aiagent.mcp_tools.common.impl.biz_helpers import get_biz_by_abbr, get_managed_biz
+
+
+# 解析地址列表为 (ip, port) 元组
+def parse_addresses(addresses: List[str]) -> List[tuple]:
+    parsed = []
+    for addr in addresses:
+        parts = addr.strip().split(":")
+        if len(parts) != 2:
+            raise ValueError(f"无效的实例地址格式: {addr}，应为 'ip:port'")
+        ip, port = parts[0], int(parts[1])
+        parsed.append((ip, port))
+    return parsed
 
 
 def list_my_redis_bizs(username: str) -> List[dict]:
@@ -232,17 +244,6 @@ def instance_detail(immute_domain: str, addrs: Optional[List[str]] = None) -> Li
     except Cluster.DoesNotExist:
         raise ValueError(f"集群 {immute_domain} 不存在")
 
-    # 解析地址列表为 (ip, port) 元组
-    def parse_addresses(addresses: List[str]) -> List[tuple]:
-        parsed = []
-        for addr in addresses:
-            parts = addr.strip().split(":")
-            if len(parts) != 2:
-                raise ValueError(f"无效的实例地址格式: {addr}，应为 'ip:port'")
-            ip, port = parts[0], int(parts[1])
-            parsed.append((ip, port))
-        return parsed
-
     address_filter = None
     if addrs:
         address_filter = parse_addresses(addrs)
@@ -253,8 +254,6 @@ def instance_detail(immute_domain: str, addrs: Optional[List[str]] = None) -> Li
         .prefetch_related("bind_entry")
     )
     if address_filter:
-        from django.db.models import Q
-
         q = Q()
         for ip, port in address_filter:
             q |= Q(machine__ip=ip, port=port)
@@ -283,7 +282,6 @@ def instance_detail(immute_domain: str, addrs: Optional[List[str]] = None) -> Li
         .prefetch_related("bind_entry", "storageinstance", "storageinstance__machine")
     )
     if address_filter:
-        from django.db.models import Q
 
         q = Q()
         for ip, port in address_filter:
