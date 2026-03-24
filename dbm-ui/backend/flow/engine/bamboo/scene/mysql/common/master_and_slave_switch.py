@@ -15,7 +15,7 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import gettext as _
 
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterEntryType, InstanceInnerRole
+from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.flow.consts import ACCOUNT_PREFIX, AUTH_ADDRESS_DIVIDER, InstanceStatus
@@ -236,29 +236,13 @@ def master_and_slave_switch_v2(
     cluster_switch_sub_pipeline.add_conditional_subs(
         source_act=source_act, conditions=conditions, name=_("判断切换状态"), conditions_param="switch_code"
     )
-
-    # 更改旧slave 和 新slave 的域名映射关系，并发执行
-    acts_list = [
-        {
-            "act_name": _("回收旧slave的域名映射"),
-            "act_component_code": MySQLDnsManageComponent.code,
-            "kwargs": asdict(
-                RecycleDnsRecordKwargs(
-                    dns_op_exec_port=cluster_info["mysql_port"],
-                    exec_ip=cluster_info["old_slave_ip"],
-                    bk_cloud_id=cluster_info["bk_cloud_id"],
-                )
-            ),
-        }
-    ]
-    old_slave = cluster.storageinstance_set.get(machine__ip=cluster_info["old_slave_ip"])
-    slave_dns_list = old_slave.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
-    cluster_info["slave_dns_list"] = [i.entry for i in slave_dns_list]
-    #  todo 域名映射应该映射老ip对应的所有域名
+    # 先添加新从上域名,从domain_map会包含残留在主库的从域名.
+    acts_list = []
+    cluster_info["slave_dns_list"] = domain_map[cluster_info["old_slave_ip"]]
     for slave_domain in cluster_info["slave_dns_list"]:
         acts_list.append(
             {
-                "act_name": _("对新slave添加域名映射"),
+                "act_name": _("新从上添加域名 {}".format(cluster_info["new_slave_ip"])),
                 "act_component_code": MySQLDnsManageComponent.code,
                 "kwargs": asdict(
                     CreateDnsKwargs(
@@ -270,6 +254,38 @@ def master_and_slave_switch_v2(
                 ),
             }
         )
+    slave_storage = cluster.storageinstance_set.get(machine__ip=cluster_info["old_slave_ip"])
+    # 如果旧从未非standby(一般成对迁移旧从是standby)，则主库上残留的从域名不可以转移到新从上。这里转移至新主。
+    if not slave_storage.is_stand_by and domain_map["master_has_slave_domain"]:
+        for slave_domain in domain_map["master_has_slave_domain"]:
+            acts_list.append(
+                {
+                    "act_name": _("旧主上的Dr域名转至新主(因为旧从不是standby) {}".format(slave_domain)),
+                    "act_component_code": MySQLDnsManageComponent.code,
+                    "kwargs": asdict(
+                        CreateDnsKwargs(
+                            bk_cloud_id=cluster_info["bk_cloud_id"],
+                            dns_op_exec_port=cluster_info["mysql_port"],
+                            exec_ip=cluster_info["new_master_ip"],
+                            add_domain_name=slave_domain,
+                        )
+                    ),
+                }
+            )
+    if len(acts_list) > 0:
+        cluster_switch_sub_pipeline.add_parallel_acts(acts_list=acts_list)
+    # 再删除旧主从上的域名
+    cluster_switch_sub_pipeline.add_act(
+        act_name=_("回收旧主从机器上的域名"),
+        act_component_code=MySQLDnsManageComponent.code,
+        kwargs=asdict(
+            RecycleDnsRecordKwargs(
+                dns_op_exec_port=cluster_info["mysql_port"],
+                exec_ip=[cluster_info["old_slave_ip"], cluster_info["old_master_ip"]],
+                bk_cloud_id=cluster_info["bk_cloud_id"],
+            )
+        ),
+    )
     cluster_switch_sub_pipeline.add_act(
         act_name=DisableAlarmShieldComponent.node_name, act_component_code=DisableAlarmShieldComponent.code, kwargs={}
     )
@@ -286,8 +302,6 @@ def master_and_slave_switch_v2(
                 )
             ),
         )
-
-    cluster_switch_sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     return cluster_switch_sub_pipeline.build_sub_process(sub_name=_("{}集群执行成对切换").format(cluster_info["cluster_id"]))
 
