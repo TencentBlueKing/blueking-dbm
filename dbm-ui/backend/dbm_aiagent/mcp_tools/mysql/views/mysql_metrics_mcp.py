@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
@@ -142,11 +143,16 @@ class MySQLMetricsMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_query",
     )
     def show_instance_processlist_summary(self, request, *args, **kwargs):
-        cluster_domain = self.get_param("cluster_domain")
         instance = self.get_param("instance")
         aggregate_type = self.get_param("aggregate_type")
-
-        cluster_obj = Cluster.objects.get(immute_domain=cluster_domain)
+        # 根据 instance(ip:port) 反查集群，instance 可能是存储层实例，也可能是接入层实例
+        ip, port = instance.split(":")
+        cluster_obj = Cluster.objects.filter(
+            Q(storageinstance__machine__ip=ip, storageinstance__port=int(port))
+            | Q(proxyinstance__machine__ip=ip, proxyinstance__port=int(port))
+        ).first()
+        if not cluster_obj:
+            raise ValueError(f"No cluster found for instance {instance}")
         if cluster_obj.cluster_type not in [ClusterType.TenDBSingle, ClusterType.TenDBHA, ClusterType.TenDBCluster]:
             raise DBMMcpNotSupportClusterTypeException(cluster_type=cluster_obj.cluster_type)
 

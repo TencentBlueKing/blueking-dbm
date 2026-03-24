@@ -68,12 +68,11 @@ class ShowClusterProcessListSummaryOutputSerializer(serializers.Serializer):
 
 
 class ShowInstanceProcessListSummaryInputSerializer(serializers.Serializer):
-    # bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
-    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    # 需要使用 auth_parse_instances 鉴权，不要求输入 bk_biz_id / cluster_domain
     instance = serializers.CharField(help_text=_("实例，ip:port 格式"))
     aggregate_type = serializers.ChoiceField(
         choices=processlist_group_by_choices,
-        help_text=_("用户连接会话 processlist 的聚合方式，例如 query_time,slow_count,rows_scan"),
+        help_text=_("用户连接会话 processlist 的聚合方式，默认是使用 group_by_fingerprint"),
     )
 
 
