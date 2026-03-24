@@ -160,7 +160,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
     )
     def list_cluster_proxies(self, request, *args, **kwargs):
         immute_domain = self.get_param("cluster_domain")
-        hosts = self.get_param("ips", default=[])  # 获取可选的 hosts 参数
+        hosts = self.get_param("ips", default_value=[])  # 获取可选的 hosts 参数
         return Response(cluster_proxies(immute_domain=immute_domain, hosts=hosts))
 
     @mcp_tools_api_decorator(
@@ -174,7 +174,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
         name_prefix="redis_query_meta",
     )
     def list_cluster_storageinstances(self, request, *args, **kwargs):
-        addrs = self.get_param("addrs", default=[])  # 获取可选的 hosts 参数
+        addrs = self.get_param("addrs", default_value=[])  # 获取可选的 hosts 参数
         immute_domain = self.get_param("cluster_domain")
         return Response(get_cluster_storage_tuples(immute_domain=immute_domain, instance_addresses=addrs))
 

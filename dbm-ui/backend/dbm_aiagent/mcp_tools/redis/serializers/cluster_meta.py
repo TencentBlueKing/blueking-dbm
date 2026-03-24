@@ -52,7 +52,7 @@ class RedisListInstsTopoInputSerializer(serializers.Serializer):
 class RedisListStorageInstsInputSerializer(serializers.Serializer):
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     addrs = serializers.ListSerializer(
-        child=RedisAddrSerializer, required=False, allow_null=True, default=[], help_text="可选的实例列表 "
+        child=RedisAddrSerializer(), required=False, allow_null=True, default=[], help_text="可选的实例列表 "
     )
 
 
