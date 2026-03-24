@@ -116,16 +116,17 @@ class Builder(object):
         """
         self.sidecar_acts.extend(sidecar_acts)
 
-    def default_sidecar_act(self, check_cluster_ids: List[int]):
+    def default_sidecar_act(self, check_cluster_ids: List[int], enable_converge: bool = True):
         """
         流程默认单据值守节点列表的活动节点
         @param check_cluster_ids：需要监听的集群列表
+        @param enable_converge：是否启用消息推送收敛，默认为True
         """
         self.sidecar_acts.append(
             {
                 "act_name": _("分析运行期间的集群风险"),
                 "act_component_code": CheckClusterAlarmForAIComponent.code,
-                "kwargs": {"cluster_ids": check_cluster_ids},
+                "kwargs": {"cluster_ids": check_cluster_ids, "enable_converge": enable_converge},
             },
         )
 
@@ -338,6 +339,7 @@ class Builder(object):
         check_ai_monitor_cluster_list: List[int] = None,
         init_trans_data_class: Optional[Any] = None,
         is_drop_random_user: bool = True,
+        enable_converge: bool = True,
     ):
         """
         定义已注册单据值守的形态，运行pipeline
@@ -345,6 +347,7 @@ class Builder(object):
         @param check_ai_monitor_cluster_list 传入需要AI智能体监控的集群Id列表，只有环境开启AI才能操作。默认是空
         @param init_trans_data_class: trans_data变量上下文初始化的值，默认""
         @param is_drop_random_user: 控制是否最后回收临时账号，需要跟need_random_pass_cluster_ids不为空才能操作，针对集群下架场景
+        @param enable_converge: 是否启用AI值守消息推送收敛，默认为True。设为False则每次检测到风险都推送
         """
         if ENABLE_DBM_AI:
             # 需要判断系统环境是否开启AI
