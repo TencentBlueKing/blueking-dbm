@@ -115,6 +115,12 @@ func (ins *MySQLSwitch) doMasterSwitch() error {
 	proxyPass := ins.Config.DBConf.MySQL.ProxyPass
 	ins.ReportLogs(constvar.InfoResult, "one phase:update all proxy's backend to 1.1.1.1 first")
 	for _, proxyIns := range ins.Proxy {
+		// proxy已经是unavailable状态，说明proxy自身已无法连接，跳过切换
+		if proxyIns.Status == constvar.UNAVAILABLE {
+			ins.ReportLogs(constvar.WarnResult, fmt.Sprintf("proxy[%s:%d] status is unavailable, skip switch",
+				proxyIns.Ip, proxyIns.Port))
+			continue
+		}
 		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to flush proxy:[%s:%d]'s backends to 1.1.1.1",
 			proxyIns.Ip, proxyIns.Port))
 		err := SwitchProxyBackendAddress(proxyIns.Ip, proxyIns.AdminPort, proxyUser,
@@ -141,6 +147,12 @@ func (ins *MySQLSwitch) doMasterSwitch() error {
 
 	ins.ReportLogs(constvar.InfoResult, "two phase: update all proxy's backend to new master")
 	for _, proxyIns := range ins.Proxy {
+		// proxy已经是unavailable状态，说明proxy自身已无法连接，跳过切换
+		if proxyIns.Status == constvar.UNAVAILABLE {
+			ins.ReportLogs(constvar.WarnResult, fmt.Sprintf("proxy[%s:%d] status is unavailable, skip switch",
+				proxyIns.Ip, proxyIns.Port))
+			continue
+		}
 		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("try to flush proxy[%s:%d]'s backend to [%s:%d]",
 			proxyIns.Ip, proxyIns.Port, ins.StandBySlave.Ip, ins.StandBySlave.Port))
 		err = SwitchProxyBackendAddress(proxyIns.Ip, proxyIns.AdminPort, proxyUser,
