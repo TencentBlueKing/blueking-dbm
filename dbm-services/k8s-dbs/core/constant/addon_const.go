@@ -48,6 +48,7 @@ var addonAbbrMap = map[StorageAddonType]string{
 	Risingwave:      "rw",
 	Greptimedb:      "gt",
 	Milvus:          "mv",
+	Qdrant:          "qd",
 }
 
 // GetStorageAddonAbbr 根据存储插件类型获取简称
