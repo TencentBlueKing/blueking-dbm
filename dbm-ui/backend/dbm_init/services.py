@@ -446,10 +446,10 @@ class Services:
             logger.info("dbm生成iam模型异常: %s" % str(e))
 
     @classmethod
-    def auto_sync_dbconfig(cls, namespace, conf_type, conf_file):
+    def auto_sync_dbconfig(cls, namespace, conf_type, conf_file, max_workers=1):
         """自动同步dbconfig"""
         try:
-            sync_dbconfig(namespace=namespace, conf_type=conf_type, conf_file=conf_file)
+            sync_dbconfig(namespace=namespace, conf_type=conf_type, conf_file=conf_file, max_workers=max_workers)
             logger.info("dbm同步dbconfig成功")
         except Exception as e:
             logger.info("dbm同步dbconfig异常: %s" % str(e))
