@@ -16,6 +16,7 @@ from aidev_agent.services.command_handler import CommandProcessor as BaseCommand
 from .commands import *
 from .es_commands import *
 from .kafka_commands import *
+from .mongodb_commands import *
 from .redis_commands import *
 from .register import command, register_command
 

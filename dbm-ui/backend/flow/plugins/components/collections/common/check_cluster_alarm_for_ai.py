@@ -34,6 +34,7 @@ ASK_AI_COMMAND_MAP = {
     DBType.Redis: commands.CheckRedisClusterCommand,
     DBType.Kafka: commands.CheckKafkaClusterCommand,
     DBType.Es: commands.CheckEsClusterCommand,
+    DBType.MongoDB: commands.CheckMongoDBClusterCommand,
 }
 
 
