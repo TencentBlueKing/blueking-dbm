@@ -136,7 +136,9 @@ export const queryFieldType = function (params: {
   partition_column: string;
   tblikes: string[];
 }) {
-  return http.post<string | null>('/apis/partition/query_field_type_v2/', params);
+  return http.post<string | null>('/apis/partition/query_field_type_v2/', params, {
+    catchError: true,
+  });
 };
 
 // 修改分区策略

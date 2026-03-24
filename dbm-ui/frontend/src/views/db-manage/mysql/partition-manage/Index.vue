@@ -6,7 +6,7 @@
         class="w-88"
         theme="primary"
         @click="handleCreate">
-        {{ t('添加策略') }}
+        {{ t('新建策略') }}
       </AuthButton>
       <AuthButton
         action-id="mysql_partition_create"

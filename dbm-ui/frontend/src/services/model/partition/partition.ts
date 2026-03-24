@@ -14,9 +14,11 @@ import { isRecentDays, utcDisplayTime } from '@utils';
 
 const STATUS_FAILED = 'FAILED';
 const STATUS_SUCCEEDED = 'SUCCEEDED';
+const STATUS_NO_EXECUTION_RECORD = 'NO_EXECUTION_RECORD';
 
 export default class Partition {
   static STATUS_FAILED = STATUS_FAILED;
+  static STATUS_NO_EXECUTION_RECORD = STATUS_NO_EXECUTION_RECORD;
   static STATUS_SUCCEEDED = STATUS_SUCCEEDED;
 
   bk_biz_id: number;
@@ -115,17 +117,19 @@ export default class Partition {
   get statusIcon() {
     const iconMap = {
       [Partition.STATUS_FAILED]: 'sync-failed',
+      [Partition.STATUS_NO_EXECUTION_RECORD]: 'sync-default',
       [Partition.STATUS_SUCCEEDED]: 'sync-success',
     };
 
-    return iconMap[this.status] || 'sync-default';
+    return iconMap[this.status] || '';
   }
 
   get statusText() {
     const statusMap = {
       [Partition.STATUS_FAILED]: '执行失败',
+      [Partition.STATUS_NO_EXECUTION_RECORD]: '无执行记录',
       [Partition.STATUS_SUCCEEDED]: '执行成功',
     };
-    return statusMap[this.status] || '等待执行';
+    return statusMap[this.status] || '--';
   }
 }

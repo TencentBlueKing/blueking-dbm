@@ -114,6 +114,7 @@
         </DbFormItem>
       </DbForm>
       <BkAlert
+        v-if="isEditMode"
         class="mt-24"
         theme="warning">
         <div style="font-weight: 600">{{ t('操作说明：') }}</div>
@@ -150,40 +151,57 @@
       </BkAlert>
     </div>
     <template #footer>
-      <BkPopConfirm
-        :is-show="warnConfirming"
-        :title="data && data.id ? t('确定提交？') : t('确定保存并执行？')"
-        trigger="manual"
-        width="350"
-        @cancel="handleVerifyCancel"
-        @confirm="handleVerifyConfirm">
-        <BkButton
-          :loading="confirmLoading"
-          style="width: 100px"
-          theme="primary"
-          @click="handleSubmit">
-          {{ data && data.id ? t('提交') : t('保存并执行') }}
-        </BkButton>
-      </BkPopConfirm>
-      <BkPopConfirm
-        :confirm-config="{ theme: 'danger' }"
-        :confirm-text="t('确认初始化')"
-        :content="t('重新初始化会立刻对当前表结构进行变更，请谨慎操作')"
-        :is-show="warnResetConfirming"
-        :title="t('确认重新初始化？')"
-        trigger="manual"
-        width="350"
-        @cancel="handleResetCancel"
-        @confirm="handleResetConfirm">
-        <BkButton
-          v-if="isEditMode"
-          class="ml-8"
-          :disabled="isDisabledResetButton"
-          :loading="resetLoading"
-          @click="handleResetSubmit">
-          {{ t('保存并重新初始化') }}
-        </BkButton>
-      </BkPopConfirm>
+      <template v-if="isEditMode">
+        <BkPopConfirm
+          :is-show="warnConfirming"
+          :title="t('确定保存并执行？')"
+          trigger="manual"
+          width="350"
+          @cancel="handleVerifyCancel"
+          @confirm="handleVerifyConfirm">
+          <BkButton
+            :loading="confirmLoading"
+            style="width: 100px"
+            theme="primary"
+            @click="handleSubmit">
+            {{ t('保存并执行') }}
+          </BkButton>
+        </BkPopConfirm>
+        <BkPopConfirm
+          :confirm-config="{ theme: 'danger' }"
+          :confirm-text="t('确认初始化')"
+          :content="t('重新初始化会立刻对当前表结构进行变更，请谨慎操作')"
+          :is-show="warnResetConfirming"
+          :title="t('确认重新初始化？')"
+          trigger="manual"
+          width="350"
+          @cancel="handleResetCancel"
+          @confirm="handleResetConfirm">
+          <BkButton
+            class="ml-8"
+            :disabled="isDisabledResetButton"
+            :loading="resetLoading"
+            @click="handleResetSubmit">
+            {{ t('保存并重新初始化') }}
+          </BkButton>
+        </BkPopConfirm>
+      </template>
+      <template v-else>
+        <BkPopConfirm
+          :is-show="warnConfirming"
+          :title="t('确定提交？')"
+          trigger="manual"
+          width="350"
+          @cancel="handleVerifyCancel"
+          @confirm="handleVerifyConfirm">
+          <BkButton
+            :loading="confirmLoading"
+            theme="primary"
+            @click="handleSubmit">
+            {{ t('提交') }}
+          </BkButton>
+        </BkPopConfirm>
+      </template>
       <BkButton
         class="ml-8"
         @click="handleCancel">
