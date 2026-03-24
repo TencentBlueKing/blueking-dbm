@@ -1078,7 +1078,7 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         # 是否启用：1-启用，0-停止
         "status": 1,
         # 是否公开
-        "is_public": False,
+        "is_public": True,
         # 自动发现并填充该 MCP 服务器对应的工具
         "tools": [],
     },
