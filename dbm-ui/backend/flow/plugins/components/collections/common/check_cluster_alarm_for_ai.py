@@ -22,11 +22,11 @@ from backend.configuration.constants import DBType
 from backend.core import notify
 from backend.db_meta.models import Cluster
 from backend.dbm_aiagent.agent.handlers import AgentHandler
-from backend.flow.models import FlowTree
+from backend.flow.models import FlowTree, FlowWithAITaskGuardianReport
 from backend.flow.plugins.components.collections.common.sidecar_service_abc import SidecarServiceABC
 from backend.utils.time import datetime2str
 
-cpl = re.compile(r"\[ai_result](?P<context>.+?)\[ai_result]")
+cpl = re.compile(r"\[ai_result]\s*(?P<context>.+?)\s*\[ai_result]", re.DOTALL)
 
 # 定义不同DB组件调用对应的智能体快捷指令的MAP
 ASK_AI_COMMAND_MAP = {
@@ -43,8 +43,15 @@ ASK_AI_COMMAND_MAP = {
 class CheckClusterAlarmForAIService(SidecarServiceABC):
     """
     定义单据值守通用的component
-    检查单据运行期间， 通过AI方式计算出对应集群信息，所产生的告警记录
+    检查单据运行期间，通过AI方式计算出对应集群信息，所产生的告警记录
     收集到告警记录，推送给DBA+提单者
+
+    支持消息推送收敛：
+        - 指数退避：推送频率递减，避免持续问题造成消息轰炸
+        - 风险等级升级打破沉默：风险加剧时立即推送
+        - AI语义比对打破沉默：通过智能体比对前后两次风险报告，出现新风险点时立即推送
+        - 风险恢复重置：连续无风险后重置退避计数器
+        - 收敛开关：支持按单据维度关闭收敛
 
     Attributes:
         interval: 轮询间隔时间生成器，每30秒执行一次检查
@@ -52,101 +59,341 @@ class CheckClusterAlarmForAIService(SidecarServiceABC):
 
     interval = StaticIntervalGenerator(30)
 
-    def sidecar_func(self, data, parent_data) -> bool:
+    @staticmethod
+    def _get_or_create_report(root_id: str, uid: str, enable_converge: bool) -> FlowWithAITaskGuardianReport:
         """
-        侧车服务核心函数：监控集群告警并通过AI分析风险
-
-        该方法会定期检查单据执行期间相关集群的告警信息，通过AI智能体分析风险等级，
-        并在检测到高风险时自动推送通知给DBA和提单者。
-
-        工作流程:
-            1. 获取单据关联的集群ID列表和全局数据
-            2. 查询集群元数据信息（域名等）
-            3. 调用AI智能体分析集群在单据执行期间的告警情况
-            4. 解析AI分析结果，判断是否需要推送通知
-            5. 如果存在高风险，通过机器人推送消息给相关人员
+        获取或创建推送收敛记录
 
         Args:
-            data: Pipeline数据对象，包含以下输入参数:
-                - kwargs (dict): 关键字参数，必须包含:
-                    - cluster_ids (list): 需要监控的集群ID列表
-                - global_data (dict): 全局数据，必须包含:
-                    - job_root_id (str): 任务根ID，用于查询FlowTree
-            parent_data: Pipeline父节点数据对象（本方法中未使用）
+            root_id: 流程ID
+            uid: 单据ID
+            enable_converge: 是否启用收敛
 
         Returns:
-            bool: 执行结果
-                - True: 执行成功（包括AI调用失败或推送失败的情况，这些被视为非致命错误）
-                - False: 执行失败（仅在集群元数据查询为空时返回）
+            FlowWithAITaskGuardianReport 实例
+        """
+        report, created = FlowWithAITaskGuardianReport.objects.get_or_create(
+            root_id=root_id,
+            uid=uid,
+            defaults={"enable_converge": enable_converge},
+        )
+        # 如果记录已存在但收敛开关状态有变化，则更新
+        if not created and report.enable_converge != enable_converge:
+            report.enable_converge = enable_converge
+            report.save(update_fields=["enable_converge"])
+        return report
 
-        Raises:
-            不会主动抛出异常，所有异常都会被捕获并记录日志
+    @staticmethod
+    def _extract_risk_level(ai_result_info: dict) -> str:
+        """
+        从AI返回的结构化结果中提取风险等级，兼容字段缺失
 
-        Note:
-            - AI调用失败或消息推送失败不会导致方法返回False，而是记录错误日志后返回True
-            - 这样设计是为了避免AI服务异常影响主流程的执行
-            - AI返回结果中需要包含特定格式的标记: [ai_result]{"is_send_user": true/false}[ai_result]
+        Args:
+            ai_result_info: AI返回的结构化结果字典
 
-        Example:
-            AI返回结果格式示例:
-            ```
-            分析结果：集群存在高风险告警...
-            [ai_result]{"is_send_user": true}[ai_result]
-            ```
+        Returns:
+            风险等级字符串，未返回则为空字符串
+        """
+        return ai_result_info.get("risk_level", "")
+
+    @staticmethod
+    def _clean_ai_result_tags(ai_result: str) -> str:
+        """
+        清理AI返回文本中的 [ai_result]...[ai_result] 标签，只保留分析报告正文
+
+        Args:
+            ai_result: AI原始返回文本
+
+        Returns:
+            清理后的纯文本
+        """
+        return re.sub(r"\[ai_result]\s*\{.*?}\s*\[ai_result]", "", ai_result, flags=re.DOTALL).strip()
+
+    @staticmethod
+    def _compare_reports_with_ai(last_report: str, current_report: str) -> bool:
+        """
+        调用智能体语义比对两份风险报告，判断是否为同一风险
+
+        相比 MD5 指纹方案，AI 语义比对能正确处理：
+            - "CPU高" vs "CPU很高" → 同一风险 ✅
+            - "CPU负载高" vs "磁盘空间不足" → 不同风险 ✅
+
+        Args:
+            last_report: 上一次推送的风险报告内容
+            current_report: 本次的风险报告内容
+
+        Returns:
+            bool: True=同一风险（应收敛），False=不同风险（应推送）
+                  比对失败时返回 False（保守策略，允许推送）
+        """
+        # 如果上次报告为空，无法比对，视为不同风险
+        if not last_report:
+            return False
+
+        result = AgentHandler.compare_risk_reports(
+            last_report=last_report,
+            current_report=current_report,
+        )
+        return result.get("is_same_risk", False) if result else False
+
+    def _prepare_context(self, data, parent_data) -> dict | None:
+        """
+        准备sidecar执行所需的上下文数据
+
+        Args:
+            data: Pipeline数据对象
+            parent_data: Pipeline父节点数据对象
+
+        Returns:
+            dict: 包含所有上下文信息的字典，如果集群为空则返回 None
         """
         kwargs = data.get_one_of_inputs("kwargs")
         global_data = data.get_one_of_inputs("global_data")
 
         cluster_ids = kwargs["cluster_ids"]
+        enable_converge = kwargs.get("enable_converge", True)
         root_id = global_data["job_root_id"]
         flow_tree = FlowTree.objects.get(root_id=root_id)
-        flow_start_time = flow_tree.created_at
-        ticket_id = int(flow_tree.uid or 0)
         now_time = timezone.now()
+
+        # 判断uid的变量正确性
+        try:
+            ticket_id = int(flow_tree.uid)
+        except (TypeError, ValueError):
+            self.log_error(_("查询到flow对应的单据ID不合法，请检查flow的单据信息。uid：{}".format(flow_tree.uid)))
+            return None
 
         clusters = Cluster.objects.filter(id__in=cluster_ids)
         if not clusters:
-            # 打印异常日志，但是不报错
             self.log_error(_("查询集群元数据为空，请检查传入的cluster_ids列表是否有问题:{}".format(cluster_ids)))
-            return True
+            return None
+
         cluster_domains = [c.immute_domain for c in clusters]
         self.log_info(_("-------------------分割线-------------------"))
         self.log_info(_("监听集群有：{}".format(cluster_domains)))
-        self.log_info(_("监听的时间区间是：{}-{}".format(datetime2str(flow_start_time), datetime2str(now_time))))
+        self.log_info(_("监听的时间区间是：{}-{}".format(datetime2str(flow_tree.created_at), datetime2str(now_time))))
+        self.log_info(_("消息收敛开关：{}".format("启用" if enable_converge else "关闭")))
+
+        return {
+            "enable_converge": enable_converge,
+            "root_id": root_id,
+            "flow_tree": flow_tree,
+            "ticket_id": ticket_id,
+            "clusters": clusters,
+            "cluster_domains": cluster_domains,
+            "flow_start_time": flow_tree.created_at,
+            "now_time": now_time,
+        }
+
+    def _call_ai_agent(self, ctx: dict) -> str | None:
+        """
+        调用AI智能体分析集群告警
+
+        Args:
+            ctx: 上下文字典
+
+        Returns:
+            str: AI智能体的返回文本，调用失败返回 None
+        """
         try:
+            db_type = DBType(ctx["flow_tree"].db_type)
+            if db_type not in ASK_AI_COMMAND_MAP:
+                self.log_warning(_("当前组件类型 {} 暂不支持AI值守，跳过".format(db_type)))
+                return None
+
             # 随机random等待0-30秒， 避免并发调用
             time.sleep(random.randint(0, 30))
             ai_result = AgentHandler.ask_agent_with_command(
-                command=ASK_AI_COMMAND_MAP[DBType(flow_tree.db_type)].command,
+                command=ASK_AI_COMMAND_MAP[DBType(ctx["flow_tree"].db_type)].command,
                 command_params={
-                    "bk_biz_id": clusters[0].bk_biz_id,
-                    "cluster_domains": cluster_domains,
-                    "start_time": datetime2str(flow_start_time),
-                    "end_time": datetime2str(now_time),
+                    "bk_biz_id": ctx["clusters"][0].bk_biz_id,
+                    "cluster_domains": ctx["cluster_domains"],
+                    "start_time": datetime2str(ctx["flow_start_time"]),
+                    "end_time": datetime2str(ctx["now_time"]),
                 },
             )
         except Exception as err:
-            # 消息推送出现失败，正常输出错误日志，不触发异常
             self.log_error(_("调用智能体分析失败，失败原因：{}".format(err)))
-            return True
+            return None
 
         self.log_info(_("智能体输出的结果：{}".format(ai_result)))
+        return ai_result
 
+    def _handle_no_risk(self, report: FlowWithAITaskGuardianReport):
+        """
+        处理AI判断无风险的情况，记录无风险状态
+
+        Args:
+            report: 收敛记录实例
+        """
         try:
-            # 根据ai的分析结果，捕捉是否推送的用户的关键信息
-            is_send_info = json.loads(re.search(cpl, ai_result).group("context"))
-            if is_send_info and is_send_info.get("is_send_user"):
-                # 从智能体根据结果分析来看， 结果为高风险，需要推送给提单者
-                # 通过机器人给相关人员推送信息
-                # 过滤无效信息
-                self.log_info(_("正在把AI分析结果推送给提单者..."))
-                send_result = ai_result.replace('[ai_result]{"is_send_user": true}[ai_result]', "")
-                notify.send_msg_for_ai_task_guardian(ticket_id=ticket_id, ai_result=send_result)
-                self.log_info(_("推送完成"))
-
+            report.record_no_risk()
+            self.log_info(_("AI分析结果为无风险，记录无风险检测（连续无风险次数：{}）".format(report.no_risk_streak)))
         except Exception as err:
-            # 消息推送出现失败，正常输出错误日志，不触发异常
-            self.log_error(_("推送AI分析结果失败，失败原因：{}".format(err)))
+            self.log_error(_("记录无风险状态失败，失败原因：{}".format(err)))
+
+    def _evaluate_converge(
+        self,
+        report: FlowWithAITaskGuardianReport,
+        enable_converge: bool,
+        current_risk_level: str,
+        clean_report_text: str,
+    ) -> bool:
+        """
+        评估是否应该推送（收敛判断核心逻辑）
+
+        包含AI语义比对和退避窗口判断。
+
+        Args:
+            report: 收敛记录实例
+            enable_converge: 是否启用收敛
+            current_risk_level: 当前风险等级
+            clean_report_text: 清理标签后的报告文本
+
+        Returns:
+            bool: True=应推送，False=应抑制
+        """
+        # --- AI语义比对（判断是否为同一风险） ---
+        is_same_risk = None
+        need_compare = (
+            enable_converge
+            and report.send_count > 0
+            and report.last_send_time is not None
+            and not report.is_risk_level_upgraded(current_risk_level)
+            and report.last_report_content
+        )
+
+        if need_compare:
+            try:
+                self.log_info(_("正在调用智能体比对本次报告与上次报告的风险内容..."))
+                is_same_risk = self._compare_reports_with_ai(
+                    last_report=report.last_report_content,
+                    current_report=clean_report_text,
+                )
+                self.log_info(_("AI比对结果：{}".format("同一风险（收敛）" if is_same_risk else "不同风险（推送）")))
+            except Exception as err:
+                self.log_error(_("AI语义比对失败（降级为允许推送），失败原因：{}".format(err)))
+                is_same_risk = False
+
+        # --- 执行收敛判断 ---
+        try:
+            should_send, reason = report.should_send(
+                current_risk_level=current_risk_level,
+                is_same_risk=is_same_risk,
+            )
+            self.log_info(_("收敛判断：{}，原因：{}".format("允许推送" if should_send else "抑制推送", reason)))
+        except Exception as err:
+            self.log_error(_("执行收敛判断失败（降级为允许推送），失败原因：{}".format(err)))
+            should_send = True
+
+        return should_send
+
+    def _execute_send(
+        self,
+        report: FlowWithAITaskGuardianReport,
+        ticket_id: int,
+        current_risk_level: str,
+        clean_report_text: str,
+    ):
+        """
+        执行消息推送并更新收敛记录
+
+        Args:
+            report: 收敛记录实例
+            ticket_id: 单据ID
+            current_risk_level: 当前风险等级
+            clean_report_text: 清理标签后的报告文本
+        """
+        # --- 执行消息推送 ---
+        try:
+            self.log_info(_("正在把AI分析结果推送给提单者..."))
+            notify.send_msg_for_ai_task_guardian(ticket_id=ticket_id, ai_result=clean_report_text)
+        except Exception as err:
+            self.log_error(_("推送AI分析结果给用户失败，失败原因：{}".format(err)))
+            return
+
+        # --- 更新收敛记录（存储本次报告作为下次比对的"记忆"） ---
+        try:
+            report.record_send(risk_level=current_risk_level, report_content=clean_report_text)
+            self.log_info(_("推送完成，累计推送次数：{}，报告已存储用于下次比对".format(report.send_count)))
+        except Exception as err:
+            self.log_error(_("更新收敛记录失败（推送已成功但收敛状态未更新），失败原因：{}".format(err)))
+
+    def sidecar_func(self, data, parent_data) -> bool:
+        """
+        旁路服务核心函数：监控集群告警并通过AI分析风险（含消息收敛）
+
+        工作流程:
+            1. 准备上下文数据（集群信息、流程信息等）
+            2. 调用AI智能体分析集群告警
+            3. 解析AI结构化结果
+            4. 无风险则记录无风险状态
+            5. 有风险则执行收敛判断，通过后推送消息
+
+        Args:
+            data: Pipeline数据对象
+            parent_data: Pipeline父节点数据对象
+
+        Returns:
+            bool: 执行结果，True表示成功
+        """
+        # 阶段1：准备上下文
+        ctx = self._prepare_context(data, parent_data)
+        if ctx is None:
+            return True
+
+        # 阶段2：调用AI智能体
+        ai_result = self._call_ai_agent(ctx)
+        if ai_result is None:
+            return True
+
+        # 阶段3：解析AI返回的结构化结果
+        try:
+            is_send_info = json.loads(re.search(cpl, ai_result).group("context"))
+        except Exception as err:
+            self.log_error(_("解析AI返回的结构化结果失败（ai_result标签解析异常），失败原因：{}".format(err)))
+            return True
+
+        # 阶段4：获取或创建收敛记录
+        try:
+            report = self._get_or_create_report(
+                root_id=ctx["root_id"], uid=str(ctx["ticket_id"]), enable_converge=ctx["enable_converge"]
+            )
+        except Exception as err:
+            self.log_error(_("获取或创建收敛记录失败，失败原因：{}".format(err)))
+            return True
+
+        # 阶段5：无风险处理
+        if not (is_send_info and is_send_info.get("is_send_user")):
+            self._handle_no_risk(report)
+            return True
+
+        # === AI判断有风险，开始收敛判断 ===
+        clean_report_text = self._clean_ai_result_tags(ai_result)
+        current_risk_level = self._extract_risk_level(is_send_info)
+        if current_risk_level:
+            self.log_info(_("AI风险等级：{}".format(current_risk_level)))
+        else:
+            self.log_info(_("AI未返回risk_level，收敛降级为仅基于时间窗口+AI语义比对判断"))
+
+        # 阶段6：收敛评估
+        should_send = self._evaluate_converge(
+            report=report,
+            enable_converge=ctx["enable_converge"],
+            current_risk_level=current_risk_level,
+            clean_report_text=clean_report_text,
+        )
+        if not should_send:
+            self.log_info(_("本次推送被收敛策略抑制，跳过推送"))
+            return True
+
+        # 阶段7：执行推送并更新记录
+        self._execute_send(
+            report=report,
+            ticket_id=ctx["ticket_id"],
+            current_risk_level=current_risk_level,
+            clean_report_text=clean_report_text,
+        )
 
         return True
 
