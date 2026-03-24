@@ -29,6 +29,15 @@ def sync_policy_field():
                 continue
             update_data = dict()
 
+            if policy.target_level == "platform":
+                policy_tag = "inner"
+            elif policy.target_level == "appid":
+                policy_tag = "custom"
+            else:
+                policy_tag = "subord"
+
+            update_data["policy_tag"] = policy_tag
+
             update_data["notify_config"] = {
                 "interval_notify_mode": policy.details["notice"]["config"]["interval_notify_mode"],
                 "notify_interval": policy.details["notice"]["config"]["notify_interval"],
@@ -46,8 +55,6 @@ def sync_policy_field():
                 })
             update_data["agg_info"] = agg_info
 
-            update_data["expression"] = policy.details["items"][0]["expression"]
-
             query_configs = policy.details["items"][0]["query_configs"]
             policy_type = ""
             if query_configs[0].get("data_source_label") == "prometheus":
@@ -56,7 +63,7 @@ def sync_policy_field():
                 policy_type = "multi"
             elif len(query_configs) == 1:
                 policy_type = "single"
-            update_data["policy_type"] = policy_type
+
             old_targets = policy.targets
             for target in old_targets:
                 if policy_type == "PromQL":
