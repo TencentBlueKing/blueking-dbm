@@ -171,6 +171,7 @@ func GetPodResourceUsage(
 			Namespace:      pod.Namespace,
 			PodName:        pod.Name,
 			JobName:        jobName,
+			K8sClient:      k8sClient,
 		}
 		storageGB, err = dbsmetric.FetcherFactory.GetStorageUsage(&params)
 		if err != nil {
