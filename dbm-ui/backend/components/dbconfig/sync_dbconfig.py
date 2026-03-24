@@ -8,8 +8,10 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import List, Optional
+from threading import Event
+from typing import List, Optional, Tuple
 
 from backend.components import DBConfigApi
 
@@ -131,20 +133,23 @@ def _sync_config_items(namespace: str, conf_type: str, conf_file: str, conf_name
 
 def _process_config_file(
     namespace: str, conf_type: str, conf_file_path: Path, target_conf_file: Optional[str] = None
-) -> None:
-    """处理单个配置文件
+) -> Optional[Tuple[str, str, str, List[dict]]]:
+    """处理单个配置文件，返回待同步的任务元组，如果不需要同步则返回 None
 
     Args:
         namespace: 命名空间
         conf_type: 配置类型
         conf_file_path: 配置文件路径
         target_conf_file: 指定要同步的配置文件名，为空则处理所有
+
+    Returns:
+        (namespace, conf_type, conf_file, conf_items) 或 None
     """
     current_conf_file = conf_file_path.stem  # 移除 .json 后缀
 
     # 如果指定了 conf_file，则只处理匹配的 conf_file
     if target_conf_file and current_conf_file != target_conf_file:
-        return
+        return None
 
     try:
         # 读取 JSON 文件内容
@@ -154,19 +159,14 @@ def _process_config_file(
         # 跳过非列表格式
         if not isinstance(conf_items, list):
             print(f"Skip non-list format file: {conf_file_path}")
-            return
+            return None
 
         # 为每个配置项添加 op_type 字段
         for item in conf_items:
             if "op_type" not in item:
                 item["op_type"] = "upsert"
 
-        # 一次性同步所有配置项
-        try:
-            _sync_config_items(namespace, conf_type, current_conf_file, conf_items)
-        except Exception as e:
-            print(f"Sync failed: {namespace}/{conf_type}/{current_conf_file}: {str(e)}")
-            raise
+        return (namespace, conf_type, current_conf_file, conf_items)
 
     except json.JSONDecodeError as e:
         print(f"JSON parse failed: {conf_file_path}: {str(e)}")
@@ -176,74 +176,94 @@ def _process_config_file(
         raise
 
 
-def _process_conf_type_dir(
-    namespace: str, conf_type_dir: Path, target_conf_type: Optional[str] = None, target_conf_file: Optional[str] = None
-) -> None:
-    """处理 conf_type 目录
-
-    Args:
-        namespace: 命名空间
-        conf_type_dir: conf_type 目录路径
-        target_conf_type: 指定要同步的配置类型，为空则处理所有
-        target_conf_file: 指定要同步的配置文件名，为空则处理所有
-    """
-    if not conf_type_dir.is_dir() or conf_type_dir.name.startswith("_"):
-        return
-
-    current_conf_type = conf_type_dir.name
-
-    # 如果指定了 conf_type，则只处理匹配的 conf_type
-    if target_conf_type and current_conf_type != target_conf_type:
-        return
-
-    # 遍历 conf_type 下的所有 JSON 配置文件
-    for conf_file_path in conf_type_dir.glob("*.json"):
-        _process_config_file(namespace, current_conf_type, conf_file_path, target_conf_file)
-
-
-def _process_namespace_dir(
-    namespace_dir: Path,
+def _collect_sync_tasks(
+    migrations_dir: Path,
     target_namespace: Optional[str] = None,
     target_conf_type: Optional[str] = None,
     target_conf_file: Optional[str] = None,
-) -> None:
-    """处理 namespace 目录
+) -> List[Tuple[str, str, str, List[dict]]]:
+    """收集所有待同步的配置项任务
+
+    第一阶段：串行遍历 migrations 目录，注册配置文件定义，并收集所有需要同步的配置项任务。
 
     Args:
-        namespace_dir: namespace 目录路径
+        migrations_dir: migrations 目录路径
         target_namespace: 指定要同步的命名空间，为空则处理所有
         target_conf_type: 指定要同步的配置类型，为空则处理所有
         target_conf_file: 指定要同步的配置文件名，为空则处理所有
+
+    Returns:
+        待同步任务列表，每项为 (namespace, conf_type, conf_file, conf_items)
     """
-    if not namespace_dir.is_dir() or namespace_dir.name.startswith("_"):
-        return
+    tasks: List[Tuple[str, str, str, List[dict]]] = []
 
-    current_namespace = namespace_dir.name
+    for namespace_dir in migrations_dir.iterdir():
+        if not namespace_dir.is_dir() or namespace_dir.name.startswith("_"):
+            continue
 
-    # 如果指定了 namespace，则只处理匹配的 namespace
-    if target_namespace and current_namespace != target_namespace:
-        return
+        current_namespace = namespace_dir.name
+        if target_namespace and current_namespace != target_namespace:
+            continue
 
-    # 首先处理 {namespace}.json 文件，注册配置文件定义
-    _process_namespace_config_file(current_namespace, namespace_dir)
+        # 首先处理 {namespace}.json 文件，注册配置文件定义（串行，作为前置依赖）
+        _process_namespace_config_file(current_namespace, namespace_dir)
 
-    # 遍历 namespace 下的所有 conf_type 目录
-    for conf_type_dir in namespace_dir.iterdir():
-        _process_conf_type_dir(current_namespace, conf_type_dir, target_conf_type, target_conf_file)
+        # 遍历 namespace 下的所有 conf_type 目录，收集同步任务
+        for conf_type_dir in namespace_dir.iterdir():
+            if not conf_type_dir.is_dir() or conf_type_dir.name.startswith("_"):
+                continue
+
+            current_conf_type = conf_type_dir.name
+            if target_conf_type and current_conf_type != target_conf_type:
+                continue
+
+            for conf_file_path in conf_type_dir.glob("*.json"):
+                task = _process_config_file(current_namespace, current_conf_type, conf_file_path, target_conf_file)
+                if task is not None:
+                    tasks.append(task)
+
+    return tasks
+
+
+def _execute_sync_task(task: Tuple[str, str, str, List[dict]], cancel_event: Event) -> None:
+    """执行单个同步任务，执行前检查是否已被取消
+
+    Args:
+        task: (namespace, conf_type, conf_file, conf_items)
+        cancel_event: 取消事件，当其他任务失败时会被 set
+
+    Raises:
+        Exception: 任务被取消或同步失败时抛出异常
+    """
+    namespace, conf_type, conf_file, conf_items = task
+
+    # 执行前检查是否已被取消
+    if cancel_event.is_set():
+        raise Exception(f"Task cancelled: {namespace}/{conf_type}/{conf_file}")
+
+    _sync_config_items(namespace, conf_type, conf_file, conf_items)
 
 
 def sync_dbconfig(
-    namespace: Optional[str] = None, conf_type: Optional[str] = None, conf_file: Optional[str] = None
+    namespace: Optional[str] = None,
+    conf_type: Optional[str] = None,
+    conf_file: Optional[str] = None,
+    max_workers: int = 1,
 ) -> None:
     """同步 DBConfig 配置
 
     遍历 migrations 目录下的所有配置文件，批量调用 DBConfigApi 写入到 dbconfig。
     目录结构: migrations/{namespace}/{conf_type}/{conf_file}.json
 
+    分为两个阶段：
+    1. 串行阶段：遍历目录，注册配置文件定义，收集所有待同步的配置项任务
+    2. 并发阶段：使用线程池并发执行配置项同步，任一失败则立即终止所有其他任务
+
     Args:
         namespace: 指定要同步的 namespace，为空则同步所有 namespace
         conf_type: 指定要同步的 conf_type，为空则同步所有 conf_type
         conf_file: 指定要同步的 conf_file，为空则同步所有 conf_file
+        max_workers: 并发线程数，默认为 1（即串行执行）
 
     API 请求格式示例:
     {
@@ -275,6 +295,37 @@ def sync_dbconfig(
         print(f"Migrations directory does not exist: {migrations_dir}")
         return
 
-    # 遍历所有 namespace 目录
-    for namespace_dir in migrations_dir.iterdir():
-        _process_namespace_dir(namespace_dir, namespace, conf_type, conf_file)
+    # 第一阶段：串行收集所有待同步任务（包括注册配置文件定义）
+    tasks = _collect_sync_tasks(migrations_dir, namespace, conf_type, conf_file)
+    if not tasks:
+        print("No sync tasks found")
+        return
+
+    print(f"Collected {len(tasks)} sync tasks, executing with max_workers={max_workers}")
+
+    # 第二阶段：使用线程池并发执行同步任务
+    cancel_event = Event()
+    first_error = None
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_task = {executor.submit(_execute_sync_task, task, cancel_event): task for task in tasks}
+
+        for future in as_completed(future_to_task):
+            task = future_to_task[future]
+            task_name = f"{task[0]}/{task[1]}/{task[2]}"
+            try:
+                future.result()
+            except Exception as e:
+                if not cancel_event.is_set():
+                    # 第一个失败的任务，设置取消事件，通知其他任务停止
+                    cancel_event.set()
+                    first_error = e
+                    print(f"Task failed, cancelling remaining tasks: {task_name}: {str(e)}")
+                    # 取消所有尚未开始的任务
+                    for f in future_to_task:
+                        f.cancel()
+
+    if first_error:
+        raise first_error
+
+    print(f"All {len(tasks)} sync tasks completed successfully")

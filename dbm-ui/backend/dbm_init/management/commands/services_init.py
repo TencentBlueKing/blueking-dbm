@@ -53,6 +53,13 @@ class Command(BaseCommand):
         parser.add_argument("--conf_type", type=str, required=False, help="Type of configuration")
         parser.add_argument("--conf_file", type=str, required=False, help="Path to configuration file")
         parser.add_argument("--account_list", type=str, required=False, help="account list, e.g. 'mysql,mysql_test'")
+        parser.add_argument(
+            "--max_workers",
+            type=int,
+            required=False,
+            default=1,
+            help="Max concurrent workers for sync_dbconfig (default: 1)",
+        )
 
     def handle(self, *args, **options):
         srv_type = options["srv_type"]
@@ -91,7 +98,8 @@ class Command(BaseCommand):
             namespace = options["namespace"]
             conf_type = options["conf_type"]
             conf_file = options["conf_file"]
-            Services.auto_sync_dbconfig(namespace, conf_type, conf_file)
+            max_workers = options["max_workers"]
+            Services.auto_sync_dbconfig(namespace, conf_type, conf_file, max_workers)
 
         if srv_type == "all" or srv_type == "create_job_user":
             account_list_str = options["account_list"]

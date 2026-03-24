@@ -143,12 +143,16 @@ func (c *ConfigModel) Update(db *gorm.DB, ifNotFoundErr bool) error {
 // UpdateBatch TODO
 // allow update and create
 func UpdateBatch(db *gorm.DB, configs []*ConfigModel, ifNotFoundErr bool) error {
-	for _, c := range configs {
-		if err := c.Update(db, ifNotFoundErr); err != nil {
-			return err
+	upt := db.Transaction(func(tx *gorm.DB) error {
+		for _, c := range configs {
+			if err := c.Update(tx, ifNotFoundErr); err != nil {
+				return err
+			}
 		}
-	}
-	return nil
+		return nil
+	})
+
+	return upt
 }
 
 // CreateBatch TODO
@@ -174,11 +178,9 @@ func CreateBatch(db *gorm.DB, configs []*ConfigModel) error {
 // DeleteBatch TODO
 // 批量根据 id 删除配置项
 func DeleteBatch(db *gorm.DB, configs []*ConfigModel) error {
-	var sqlRes *gorm.DB
-
-	del := sqlRes.Transaction(func(tx *gorm.DB) error {
+	del := db.Transaction(func(tx *gorm.DB) error {
 		for _, c := range configs {
-			if err := DeleteByUnique(db, c.TableName(), c.UniqueWhere()); err != nil {
+			if err := DeleteByUnique(tx, c.TableName(), c.UniqueWhere()); err != nil {
 				return err
 			}
 		}
