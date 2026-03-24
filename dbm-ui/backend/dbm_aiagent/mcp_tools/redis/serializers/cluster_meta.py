@@ -47,12 +47,20 @@ class RedisListInstsTopoInputSerializer(serializers.Serializer):
     ips = serializers.ListField(
         child=serializers.CharField(), required=False, allow_null=True, default=[], help_text="可选的主机列表，支持 IP "
     )
+    page = serializers.IntegerField(help_text=_("页码，从1开始"), required=False, default=1, min_value=1)
+    page_size = serializers.IntegerField(
+        help_text=_("每页数量，默认80，最大150"), required=False, default=80, min_value=1, max_value=150
+    )
 
 
 class RedisListStorageInstsInputSerializer(serializers.Serializer):
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     addrs = serializers.ListSerializer(
         child=RedisAddrSerializer(), required=False, allow_null=True, default=[], help_text="可选的实例列表 "
+    )
+    page = serializers.IntegerField(help_text=_("页码，从1开始"), required=False, default=1, min_value=1)
+    page_size = serializers.IntegerField(
+        help_text=_("每页数量，默认80，最大150"), required=False, default=80, min_value=1, max_value=150
     )
 
 
@@ -98,6 +106,9 @@ class RedisProxiesOutputSerializer(serializers.Serializer):
 
 
 class RedisProxiesSummarySerializer(serializers.Serializer):
+    total = serializers.IntegerField(help_text=_("Proxy节点总数"))
+    page = serializers.IntegerField(help_text=_("当前页码"))
+    page_size = serializers.IntegerField(help_text=_("每页数量"))
     proxies = serializers.ListSerializer(child=RedisProxiesOutputSerializer(), help_text=_("接入层实例信息"))
 
 
@@ -111,6 +122,9 @@ class StorageTupleSerializer(serializers.Serializer):
 class ClusterStorageTuplesSerializer(serializers.Serializer):
     """集群存储节点主从关系响应"""
 
+    total = serializers.IntegerField(help_text=_("主从关系对总数"))
+    page = serializers.IntegerField(help_text=_("当前页码"))
+    page_size = serializers.IntegerField(help_text=_("每页数量"))
     tuples = StorageTupleSerializer(many=True, help_text=_("主从关系列表"))
 
 
@@ -155,6 +169,10 @@ class RedisClusterStorageDepOutputSerializer(serializers.Serializer):
 
 class RedisBizInputSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    page = serializers.IntegerField(help_text=_("页码，从1开始"), required=False, default=1, min_value=1)
+    page_size = serializers.IntegerField(
+        help_text=_("每页数量，默认80，最大150"), required=False, default=80, min_value=1, max_value=150
+    )
 
 
 class RedisBizNameInputSerializer(serializers.Serializer):
@@ -165,16 +183,18 @@ class RedisEmptyInputSerializer(serializers.Serializer):
     userid = serializers.CharField(help_text=_("占位符"))
 
 
-class RedisClustersOutputSerializer(serializers.Serializer):
-    # bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+class RedisSingleClusterSerializer(serializers.Serializer):
     cluster_type = serializers.CharField(help_text=_("集群类型"))
-    # cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     immute_domain = serializers.CharField(help_text=_("集群域名"))
     alias = serializers.CharField(help_text=_("集群别名"))
-    # redis_version = serializers.CharField(help_text=_("Redis版本"))
     region = serializers.CharField(help_text=_("地域"))
-    # proxy_count = serializers.IntegerField(help_text=_("proxy节点数"))
-    # master_count = serializers.IntegerField(help_text=_("master节点数"))
+
+
+class RedisClustersOutputSerializer(serializers.Serializer):
+    total = serializers.IntegerField(help_text=_("集群总数"))
+    page = serializers.IntegerField(help_text=_("当前页码"))
+    page_size = serializers.IntegerField(help_text=_("每页数量"))
+    clusters = serializers.ListSerializer(child=RedisSingleClusterSerializer(), help_text=_("集群列表"))
 
 
 class RedisTupleInfoSerializer(serializers.Serializer):
