@@ -34,3 +34,4 @@ class DBMAgentCode(StrStructuredEnum):
     REDIS_BACKEND_DATA_SKEW_CHECK = EnumField("ai-rds-dataskew", _("Redis后端数据倾斜检查智能体"))
     KAFKA_TASK_GUARDIAN = EnumField("ai-kafka-taskgd", _("Kafka单据值守"))
     ES_TASK_GUARDIAN = EnumField("ai-es-taskgd", _("ES单据值守"))
+    MONGO_TASK_GUARDIAN = EnumField("ai-mongo-taskgd", _("MongoDB单据值守"))
