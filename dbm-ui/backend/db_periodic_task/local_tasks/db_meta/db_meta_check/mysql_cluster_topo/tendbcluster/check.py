@@ -17,6 +17,7 @@ from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_to
     _cluster_spider_access_remote,
 )
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbcluster.entry_bind import (
+    _cluster_clb_exists_and_rs_match,
     _cluster_entry_on_spider,
     _cluster_entry_on_storage,
 )
@@ -57,6 +58,7 @@ def health_check(cluster_id: int) -> List[CheckResponse]:
     每个 master 实例唯一 standby slave
     standby slave 状态正常
     主/从入口 bind 的 spider 必须和正常 spider 数量一致
+    若存在 CLB 入口：名字服务可查询且后端 RS 与元数据一致
     master spider 只能访问 remote master
     slave spider 只能访问 remote slave
     mnt master spider 只能访问 remote master
@@ -67,6 +69,8 @@ def health_check(cluster_id: int) -> List[CheckResponse]:
     """
     qs = Cluster.objects.filter(cluster_type=ClusterType.TenDBCluster).prefetch_related(
         "clusterentry_set__proxyinstance_set",
+        "clusterentry_set__proxyinstance_set__machine",
+        "clusterentry_set__clbentrydetail_set",
         "clusterentry_set__storageinstance_set",
         "proxyinstance_set__storageinstance",
         "storageinstance_set__as_receiver__ejector__cluster",
@@ -91,6 +95,7 @@ def health_check(cluster_id: int) -> List[CheckResponse]:
     # bind
     res.extend(_cluster_entry_on_spider(cluster_obj))
     res.extend(_cluster_entry_on_storage(cluster_obj))
+    res.extend(_cluster_clb_exists_and_rs_match(cluster_obj))
     # access relate
     res.extend(_cluster_spider_access_remote(cluster_obj))
     # replicate

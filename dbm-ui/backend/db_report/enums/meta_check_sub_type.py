@@ -42,6 +42,9 @@ class MetaCheckSubType(StrStructuredEnum):
         "standby_slave_bad_status", _("standby slave status, phase, standby 状态异常")
     )
     TenDBHAMultiClusterBelong = EnumField("multi_cluster_belong", _("实例属于多个集群"))
+    TenDBHACLBMetaIncomplete = EnumField("clb_meta_incomplete", _("CLB 元数据不完整"))
+    TenDBHACLBQueryFailed = EnumField("clb_query_failed", _("CLB 名字服务查询失败"))
+    TenDBHACLBRSNotMatchMeta = EnumField("clb_rs_not_match_meta", _("CLB 后端与元数据不一致"))
     # tendbcluster
     TenDBClusterSpiderBindWrongRole = EnumField("spider_bind_wrong_role", _("spider 访问错误 remote 角色"))
     TenDBClusterRemoteCountNotMatch = EnumField(
@@ -56,5 +59,8 @@ class MetaCheckSubType(StrStructuredEnum):
     TenDBClusterRoutingSpiderNotMatch = EnumField("routing_spider_not_match", _("spider 节点在路由中不存在或多余"))
     TenDBClusterRoutingShardNotMatch = EnumField("routing_shard_not_match", _("后端分片序号不一致"))
     TenDBClusterRoutingTdbctlNotMatch = EnumField("routing_tdbctl_not_match", _("中控节点与元数据不一致"))
+    TenDBClusterCLBMetaIncomplete = EnumField("tendbcluster_clb_meta_incomplete", _("TenDBCluster CLB 元数据不完整"))
+    TenDBClusterCLBQueryFailed = EnumField("tendbcluster_clb_query_failed", _("TenDBCluster CLB 名字服务查询失败"))
+    TenDBClusterCLBRSNotMatchMeta = EnumField("tendbcluster_clb_rs_not_match_meta", _("TenDBCluster CLB 后端与元数据不一致"))
     MachineSpectEmpty = EnumField("machine_spec_empty", _("机器规格为空"))
     MultiSpecInGroup = EnumField("multi_spec_in_group", _("同组机器存在多个规格"))

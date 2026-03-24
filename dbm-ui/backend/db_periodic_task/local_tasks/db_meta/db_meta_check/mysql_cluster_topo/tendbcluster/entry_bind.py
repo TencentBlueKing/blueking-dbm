@@ -21,6 +21,10 @@ from backend.db_meta.enums import (
 )
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.check_response import CheckResponse
+from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.clb_entry_bind_check import (
+    TENDBCLUSTER_CLB_SUBTYPES,
+    collect_clb_entry_check_results,
+)
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.decorator import checker_wrapper
 from backend.db_report.enums import MetaCheckSubType
 
@@ -56,6 +60,18 @@ def _cluster_entry_on_spider(c: Cluster) -> List[CheckResponse]:
             )
 
     return bad
+
+
+@checker_wrapper
+def _cluster_clb_exists_and_rs_match(c: Cluster) -> List[CheckResponse]:
+    """
+    存在 CLB 入口时：校验名字服务可查询该 CLB，且后端 RS 与当前 CLB entry 的 proxy 元数据一致。
+
+    主/从若各一条 CLB：Master 入口 CLB 只绑 Spider Master 代理，Slave 入口 CLB 只绑 Spider Slave；
+    元数据上体现为各自 ClusterEntry.proxyinstance_set，与 db_meta CLB create_by_role 写入一致。
+    RS 对比与名字服务返回的私网 IP 列表对齐（按 IP 集合比较，非 ip:port 字符串）。
+    """
+    return collect_clb_entry_check_results(c, TENDBCLUSTER_CLB_SUBTYPES)
 
 
 @checker_wrapper
