@@ -41,6 +41,7 @@ from backend.db_monitor.constants import (
     AlertSourceEnum,
     DutyRuleCategory,
     PolicyStatus,
+    PolicyTag,
     TargetLevel,
     TargetPriority,
 )
@@ -720,6 +721,12 @@ class MonitorPolicy(AuditedModel):
         choices=AlertSourceEnum.get_choices(),
         default=AlertSourceEnum.TIME_SERIES,
     )
+    policy_tag = models.CharField(
+        verbose_name=_("策略类型"),
+        choices=PolicyTag.get_choices(),
+        max_length=LEN_NORMAL,
+        default="",
+    )
 
     class Meta:
         verbose_name = _("告警策略(MonitorPolicy)")
@@ -939,7 +946,15 @@ class MonitorPolicy(AuditedModel):
             details["notice"]["options"]["assign_mode"] = ["only_notice"]
 
         # notice_groups -> notice.user_groups
-        details["notice"]["user_groups"] = NoticeGroup.get_monitor_groups(group_ids=self.notify_groups)
+        # 如果没传告警组默认获取当前业务的内置告警组，当前业务没有则获取平台业务的
+        if self.parent_id and not self.notify_groups:
+            expected_groups = NoticeGroup.get_groups(bk_biz_id=self.bk_biz_id)
+            if not expected_groups.get(self.db_type):
+                expected_groups = NoticeGroup.get_groups(bk_biz_id=PLAT_BIZ_ID)
+            monitor_group_id = expected_groups.get(self.db_type)
+            details["notice"]["user_groups"] = [monitor_group_id]
+        else:
+            details["notice"]["user_groups"] = NoticeGroup.get_monitor_groups(group_ids=self.notify_groups)
 
         # notify_config -> notice.config.interval_notify_mode  notice.config. notify_interval
         # increasing or standard
@@ -947,6 +962,23 @@ class MonitorPolicy(AuditedModel):
         details["notice"]["config"]["notify_interval"] = self.notify_config.get("notify_interval")
 
         return details
+
+    def cover_agg_info(self, items):
+        if not items:
+            return self.agg_info
+
+        agg_info = []
+        for query_config in items[0]["query_configs"]:
+            agg_info.append(
+                {
+                    "metric_id": query_config["metric_id"],
+                    "agg_interval": query_config.get("agg_interval"),
+                    "agg_method": query_config.get("agg_method"),
+                    "metric_field": query_config.get("metric_field"),
+                    "promql": query_config.get("promql"),
+                }
+            )
+        return agg_info
 
     def local_save(self, *args, **kwargs):
         """仅保存到本地，不同步到监控"""
@@ -992,6 +1024,9 @@ class MonitorPolicy(AuditedModel):
         self.monitor_policy_id = self.details["id"]
         self.sync_at = datetime.datetime.now(timezone.utc)
 
+        # 重新覆盖agg_info, 自定义事件的metric_id会变化
+        self.agg_info = self.cover_agg_info(self.details.get("items"))
+
         # 平台内置策略支持保存初始版本，用于恢复默认设置
         if self.pk is None and self.bk_biz_id == env.DBA_APP_BK_BIZ_ID:
             self.parent_details = self.details
@@ -1009,6 +1044,10 @@ class MonitorPolicy(AuditedModel):
         """删除策略的同时，同步删除监控策略"""
         if self.monitor_policy_id:
             bkm_delete_alarm_strategy(self.monitor_policy_id)
+
+        # 当业务策略恢复默认的时候， 更新一下父类的更新时间
+        if self.parent_id and self.target_level == TargetLevel.APP:
+            MonitorPolicy.objects.filter(id=self.parent_id).update(update_at=timezone.now())
 
         super().delete(using, keep_parents)
 
@@ -1056,7 +1095,7 @@ class MonitorPolicy(AuditedModel):
 
         policy.details = copy.deepcopy(parent.details)
         policy.details.pop("id", None)
-        policy.details.update(name=policy.name, is_enabled=True)
+        policy.details.update(name=policy.name, is_enabled=policy.is_enabled)
 
         policy.creator = policy.updater = username
         policy.id = None
@@ -1072,6 +1111,8 @@ class MonitorPolicy(AuditedModel):
         """更新：patch -> update"""
 
         update_fields = [
+            "is_enabled",
+            "policy_tag",
             "targets",
             "test_rules",
             "notify_rules",
@@ -1091,7 +1132,12 @@ class MonitorPolicy(AuditedModel):
         if "custom_conditions" in params:
             self.custom_conditions = params["custom_conditions"]
 
+        if "name" in params:
+            self.name = params["name"]
+            self.details.update(name=params["name"])
+
         # update -> overwrite details
+        self.details.update(is_enabled=params["is_enabled"])
         self.creator = self.updater = username
         self.save()
 
