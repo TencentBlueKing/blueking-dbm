@@ -21,6 +21,8 @@ from backend.db_meta import api
 from backend.db_meta.api.cluster.tendbha.handler import TenDBHAClusterHandler
 from backend.db_meta.api.cluster.tendbsingle.handler import TenDBSingleClusterHandler
 from backend.db_meta.enums import (
+    ClusterEntryRole,
+    ClusterEntryType,
     ClusterPhase,
     ClusterType,
     InstanceInnerRole,
@@ -960,6 +962,19 @@ class MySQLDBMeta(object):
         storage.status = self.cluster["storage_status"]
         storage.phase = self.cluster["phase"]
         storage.save()
+
+        # 针对tendbHa主从切换后的is standby slave节点直接原地重建，修复域名的映射关系
+        cluster_id = self.cluster.get("cluster_id", None)
+        if cluster_id is not None:
+            cluster = Cluster.objects.get(id=cluster_id)
+            if cluster.cluster_type == ClusterType.TenDBHA.value and storage.is_stand_by:
+                master_storage = cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+                for be in master_storage.bind_entry.filter(
+                    cluster_entry_type=ClusterEntryType.DNS.value, role=ClusterEntryRole.SLAVE_ENTRY.value
+                ):
+                    be.storageinstance_set.remove(master_storage)
+                    be.storageinstance_set.add(storage)
+                    be.save()
 
     def migrate_cluster_add_instance(self):
         """
