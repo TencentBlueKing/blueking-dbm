@@ -50,7 +50,7 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
     default_permission_class = [DBManagePermission()]
 
     @mcp_tools_api_decorator(
-        description=str(_("查询Redis的负载标签")),
+        description=str(_("查询指定 Redis 集群的整体负载标签（如高负载/低负载），用于快速判断集群当前压力水平。")),
         request_slz=RedisClusterInputSerializer,
         response_slz=RedisClusterLoadSerializer,
         permission_classes=[McpClusterManagePermission],
@@ -65,7 +65,7 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
         return Response(get_redis_cluster_load_tag(immute_domain=immute_domain))
 
     @mcp_tools_api_decorator(
-        description=str(_("查询Redis服务器基本信息，包括版本、运行模式、操作系统、进程ID、端口、运行时长等, 实例级别，仅用于要求查询某个实例时候调用")),
+        description=str(_("查询指定 Redis 实例的服务器基本信息，此为实例级别接口，仅在用户明确要求查询某个具体实例时调用。")),
         request_slz=RedisInstanceInputSerializer,
         response_slz=RedisServerInfoSerializer,
         permission_classes=[McpClusterManagePermission],
@@ -81,7 +81,7 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
         return Response(get_redis_server_info(redis_addr=redis_addr, immute_domain=immute_domain))
 
     @mcp_tools_api_decorator(
-        description=str(_("查询Redis客户端连接信息，包括已连接客户端数、阻塞客户端数、缓冲区使用情况等, 实例级别，仅用于要求查询某个实例时候调用")),
+        description=str(_("查询指定 Redis 实例的客户端连接概要信息，此为实例级别接口，仅在用户明确要求查询某个具体实例时调用")),
         request_slz=RedisInstanceInputSerializer,
         response_slz=RedisClientsInfoSerializer,
         permission_classes=[McpClusterManagePermission],
@@ -97,7 +97,7 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
         return Response(get_redis_clients_info(redis_addr=redis_addr, immute_domain=immute_domain))
 
     @mcp_tools_api_decorator(
-        description=str(_("查询Redis内存使用信息，包括已使用内存、RSS内存、内存峰值、内存碎片率、淘汰策略等, 实例级别，仅用于要求查询某个实例时候调用")),
+        description=str(_("查询指定 Redis 实例的内存使用详情，此为实例级别接口，仅在用户明确要求查询某个具体实例时调用。")),
         request_slz=RedisInstanceInputSerializer,
         response_slz=RedisMemoryInfoSerializer,
         permission_classes=[McpClusterManagePermission],
@@ -113,7 +113,7 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
         return Response(get_redis_memory_info(redis_addr=redis_addr, immute_domain=immute_domain))
 
     @mcp_tools_api_decorator(
-        description=str(_("查询Redis持久化信息，包括RDB和AOF的状态、上次保存时间、保存耗时等, 实例级别，仅用于要求查询某个实例时候调用")),
+        description=str(_("查询指定 Redis 实例的持久化状态，此为实例级别接口，仅在用户明确要求查询某个具体实例时调用。")),
         request_slz=RedisInstanceInputSerializer,
         response_slz=RedisPersistenceInfoSerializer,
         permission_classes=[McpClusterManagePermission],
@@ -129,7 +129,7 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
         return Response(get_redis_persistence_info(redis_addr=redis_addr, immute_domain=immute_domain))
 
     @mcp_tools_api_decorator(
-        description=str(_("查询Redis统计信息，包括总连接数、命令处理数、QPS、网络IO、键过期淘汰、命中率等, 实例级别，仅用于要求查询某个实例时候调用")),
+        description=str(_("查询指定 Redis 实例的运行统计信息，此为实例级别接口，仅在用户明确要求查询某个具体实例时调用。")),
         request_slz=RedisInstanceInputSerializer,
         response_slz=RedisStatsInfoSerializer,
         permission_classes=[McpClusterManagePermission],
@@ -145,7 +145,7 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
         return Response(get_redis_stats_info(redis_addr=redis_addr, immute_domain=immute_domain))
 
     @mcp_tools_api_decorator(
-        description=str(_("查询Redis复制信息，包括主从角色、复制偏移量、从节点数量、复制积压缓冲区状态等, 实例级别，仅用于要求查询某个实例时候调用")),
+        description=str(_("查询指定 Redis 实例的主从复制状态，此为实例级别接口，仅在用户明确要求查询某个具体实例时调用。")),
         request_slz=RedisInstanceInputSerializer,
         response_slz=RedisReplicationInfoSerializer,
         permission_classes=[McpClusterManagePermission],
@@ -161,7 +161,7 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
         return Response(get_redis_replication_info(redis_addr=redis_addr, immute_domain=immute_domain))
 
     @mcp_tools_api_decorator(
-        description=str(_("查询Redis CPU使用信息，包括系统CPU和用户CPU的使用时间, 实例级别，仅用于要求查询某个实例时候调用")),
+        description=str(_("查询指定 Redis 实例的 CPU 使用情况，此为实例级别接口，仅在用户明确要求查询某个具体实例时调用。")),
         request_slz=RedisInstanceInputSerializer,
         response_slz=RedisCPUInfoSerializer,
         permission_classes=[McpClusterManagePermission],
@@ -177,7 +177,7 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
         return Response(get_redis_cpu_info(redis_addr=redis_addr, immute_domain=immute_domain))
 
     @mcp_tools_api_decorator(
-        description=str(_("查询Redis键空间信息,包括各个数据库的键数量、过期键数量、平均TTL等, 实例级别，仅用于要求查询某个实例时候调用")),
+        description=str(_("查询指定 Redis 实例的键空间（Keyspace）信息，此为实例级别接口，仅在用户明确要求查询某个具体实例时调用。")),
         request_slz=RedisInstanceInputSerializer,
         response_slz=RedisKeyspaceInfoSerializer(many=True),
         permission_classes=[McpClusterManagePermission],
@@ -194,7 +194,7 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
 
     # ## Redis客户端和命令统计 ###
     @mcp_tools_api_decorator(
-        description=str(_("查询Redis所有已连接客户端的详细信息列表，包括客户端地址、连接时长、空闲时间、执行的命令等, 实例级别，仅用于要求查询某个实例时候调用")),
+        description=str(_("查询指定 Redis 实例当前所有已连接客户端的详细列表，此为实例级别接口，仅在用户明确要求查询某个具体实例时调用；")),
         request_slz=RedisInstanceInputSerializer,
         response_slz=RedisClientListResponseSerializer,
         permission_classes=[McpClusterManagePermission],
@@ -210,7 +210,7 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
         return Response(get_redis_client_list(redis_addr=redis_addr, immute_domain=immute_domain))
 
     @mcp_tools_api_decorator(
-        description=str(_("查询Redis命令统计信息（间隔1秒采样），返回每个命令在1秒内的调用次数、耗时等增量数据, 实例级别，仅用于要求查询某个实例时候调用")),
+        description=str(_("查询指定 Redis 实例的命令调用统计信息（采用间隔 1 秒采样方式），返回每种命令在 1 秒内的调用次数和总耗时，此为实例级别接口，仅在用户明确要求查询时调用。")),
         request_slz=RedisInstanceInputSerializer,
         response_slz=RedisCommandStatsResponseSerializer,
         permission_classes=[McpClusterManagePermission],

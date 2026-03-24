@@ -40,8 +40,8 @@ def list_biz_by_name(biz_name: str) -> List[dict]:
     return get_biz_by_abbr(biz_name, detailed=True)
 
 
-def redis_list_clusters(bk_biz_id: int) -> List:
-    clusters = Cluster.objects.filter(
+def redis_list_clusters(bk_biz_id: int, page: int = 1, page_size: int = 30) -> dict:
+    qs = Cluster.objects.filter(
         bk_biz_id=bk_biz_id,
         cluster_type__in=[
             ClusterType.TendisPredixyRedisCluster,
@@ -50,17 +50,26 @@ def redis_list_clusters(bk_biz_id: int) -> List:
             ClusterType.TendisTwemproxyRedisInstance,
             ClusterType.RedisInstance,
         ],
-    )
+    ).order_by("id")
 
-    return [
-        {
-            "immute_domain": c.immute_domain,
-            "cluster_type": c.cluster_type,
-            "alias": c.alias,
-            "region": c.region,
-        }
-        for c in clusters
-    ]
+    total = qs.count()
+    offset = (page - 1) * page_size
+    clusters = qs[offset : offset + page_size]
+
+    return {
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "clusters": [
+            {
+                "immute_domain": c.immute_domain,
+                "cluster_type": c.cluster_type,
+                "alias": c.alias,
+                "region": c.region,
+            }
+            for c in clusters
+        ],
+    }
 
 
 def get_machine_stats(all_machine_ids) -> Dict:
@@ -203,39 +212,45 @@ def cluster_storage_overiew(immute_domain: str) -> Dict:
     return {"redis_master": masters, "redis_slave": slaves}
 
 
-def cluster_proxies(immute_domain: str, hosts: Optional[List[str]] = None) -> List:
+def cluster_proxies(immute_domain: str, hosts: Optional[List[str]] = None, page: int = 1, page_size: int = 20) -> dict:
     """
     集群proxy列表
 
     Args:
         immute_domain: 集群域名
         hosts: 可选的主机IP列表，用于过滤特定实例。格式: ["ip1", "ip2"]
+        page: 页码，从1开始
+        page_size: 每页数量
 
     Returns:
-        proxy实例信息列表
+        分页的proxy实例信息
     """
     c_obj = Cluster.objects.get(immute_domain=immute_domain)
-    proxy_instances = c_obj.proxyinstance_set.all()
+    proxy_instances = list(c_obj.proxyinstance_set.select_related("machine").order_by("id"))
 
     # 如果指定了hosts参数，进行过滤
     if hosts:
-        filtered_instances = []
-        for s in proxy_instances:
-            if s.machine.ip in hosts:
-                filtered_instances.append(s)
+        proxy_instances = [s for s in proxy_instances if s.machine.ip in hosts]
 
-        proxy_instances = filtered_instances
+    total = len(proxy_instances)
+    offset = (page - 1) * page_size
+    paged = proxy_instances[offset : offset + page_size]
 
-    return [
-        {
-            "address": f"{s.machine.ip}:{s.port}",
-            "status": s.status,
-            "version": s.version,
-            "sub_zone": s.machine.bk_sub_zone,
-            "cls_name": s.machine.bk_svr_device_cls_name,
-        }
-        for s in proxy_instances
-    ]
+    return {
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "proxies": [
+            {
+                "address": f"{s.machine.ip}:{s.port}",
+                "status": s.status,
+                "version": s.version,
+                "sub_zone": s.machine.bk_sub_zone,
+                "cls_name": s.machine.bk_svr_device_cls_name,
+            }
+            for s in paged
+        ],
+    }
 
 
 def instance_detail(immute_domain: str, addrs: Optional[List[str]] = None) -> List:
@@ -308,6 +323,8 @@ def instance_detail(immute_domain: str, addrs: Optional[List[str]] = None) -> Li
 def get_cluster_storage_tuples(
     immute_domain: str,
     instance_addresses: Optional[List[str]] = None,
+    page: int = 1,
+    page_size: int = 20,
 ) -> Dict[str, list]:
     """查询集群的存储节点主从关系信息"""
 
@@ -332,6 +349,7 @@ def get_cluster_storage_tuples(
             "receiver__port",
         )
         .distinct()
+        .order_by("ejector__machine__ip", "ejector__port")
     )
 
     tuples = []
@@ -363,7 +381,11 @@ def get_cluster_storage_tuples(
             }
         )
 
-    return {"tuples": tuples}
+    total = len(tuples)
+    offset = (page - 1) * page_size
+    paged = tuples[offset : offset + page_size]
+
+    return {"total": total, "page": page, "page_size": page_size, "tuples": paged}
 
 
 def list_clusters_by_hosts(hosts: List) -> List[Dict]:

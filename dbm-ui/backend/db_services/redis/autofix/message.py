@@ -64,14 +64,17 @@ def send_msg_2_qywx(sub_title: str, msgs):
     if env.ENABLE_DBM_AI and db_type == DBType.Redis.value:
         session_code = RedisConn.get(session_code_key)
         ask_content = _("""查询这个{}集群最近10分钟的性能波动情况,只需给出简要的结论（再加上一个点的数据）""".format(immute_doamin))
-        rest, session_code = AgentHandler.ask_agent_with_content_in_session(
-            agent_code=DBMAgentCode.REDIS_REPORT.value,
-            content=ask_content,
-            username=redis_DBA[0],
-            session_code=session_code,
-        )
-        RedisConn.set(session_code_key, session_code)
-        content += _("{}\n".format(rest[:300]))
+        try:
+            rest, session_code = AgentHandler.ask_agent_with_content_in_session(
+                agent_code=DBMAgentCode.REDIS_REPORT.value,
+                content=ask_content,
+                username=redis_DBA[0],
+                session_code=session_code,
+            )
+            RedisConn.set(session_code_key, session_code)
+            content += _("{}\n".format(rest[:300]))
+        except Exception as e:
+            logger.exception("AI agent query failed for cluster %s: %s", immute_doamin, e)
     content += _("消息时间 : {}\n".format(date2str(datetime.datetime.now(), "%Y-%m-%d %H:%M:%S")))
 
     CmsiHandler(_("Tendis自愈"), content, msg_ids).send_wecom_robot()

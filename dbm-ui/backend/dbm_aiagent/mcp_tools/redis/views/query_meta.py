@@ -65,7 +65,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
     default_permission_class = [DBManagePermission()]
 
     @mcp_tools_api_decorator(
-        description=str(_("查询我负责的Redis业务列表")),
+        description=str(_("查询当前用户负责管理的所有 Redis 业务列表，当用户未提供 bk_biz_id 时，应先调用此接口获取可用业务列表。")),
         request_slz=RedisEmptyInputSerializer,
         response_slz=RedisBizsListSerializer,
         permission_classes=[],
@@ -78,7 +78,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
         return Response(list_my_redis_bizs(username=request.user.username))
 
     @mcp_tools_api_decorator(
-        description=str(_("通过业务名查询bk_biz_id")),
+        description=str(_("通过业务英文名（模糊匹配）查询业务信息，当用户提供了业务名称但未提供 bk_biz_id 时，应先调用此接口将名称转换为 bk_biz_id")),
         request_slz=RedisBizNameInputSerializer,
         response_slz=RedisBizsListSerializer,
         permission_classes=[],
@@ -92,7 +92,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
         return Response(list_biz_by_name(biz_name=biz_name))
 
     @mcp_tools_api_decorator(
-        description=str(_("查询业务下的Redis集群列表")),
+        description=str(_("查询指定业务（bk_biz_id）下的所有 Redis 集群列表，支持分页")),
         request_slz=RedisBizInputSerializer,
         response_slz=RedisClustersOutputSerializer,
         permission_classes=[McpDBManagePermission],
@@ -103,11 +103,13 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
     )
     def list_redis_clusters(self, request, *args, **kwargs):
         bk_biz_id = self.get_param("bk_biz_id")
+        page = self.get_param("page", default_value=1)
+        page_size = self.get_param("page_size", default_value=80)
 
-        return Response(redis_list_clusters(bk_biz_id=bk_biz_id))
+        return Response(redis_list_clusters(bk_biz_id=bk_biz_id, page=page, page_size=page_size))
 
     @mcp_tools_api_decorator(
-        description=str(_("""查询指定Redis集群的基本信息""")),
+        description=str(_("查询指定 Redis 集群的基本概览信息，需要提供集群域名（cluster_domain）。")),
         request_slz=RedisTopoInputSerializer,
         response_slz=RedisClusterBasicOutputSerializer,
         permission_classes=[McpClusterManagePermission],
@@ -121,7 +123,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
         return Response(cluster_basic_overview(immute_domain=immute_domain))
 
     @mcp_tools_api_decorator(
-        description=str(_("""查询指定Redis集群的代理层实例统计""")),
+        description=str(_("查询指定 Redis 集群的 Proxy（代理层）实例统计摘要。适合快速了解集群代理层整体健康状况，不返回具体实例列表。")),
         request_slz=RedisTopoInputSerializer,
         response_slz=RedisInstancesTopoSerializer,
         permission_classes=[McpClusterManagePermission],
@@ -135,7 +137,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
         return Response(cluster_proxy_overview(immute_domain=immute_domain))
 
     @mcp_tools_api_decorator(
-        description=str(_("""查询指定Redis集群的存储实例统计""")),
+        description=str(_("查询指定 Redis 集群的存储层（redis_master 和 redis_slave）实例统计摘要，适合快速了解集群存储层整体规模和健康状况，不返回具体实例列表。")),
         request_slz=RedisTopoInputSerializer,
         response_slz=RedisClusterStorageDepOutputSerializer,
         permission_classes=[McpClusterManagePermission],
@@ -149,7 +151,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
         return Response(cluster_storage_overiew(immute_domain=immute_domain))
 
     @mcp_tools_api_decorator(
-        description=str(_("查询 Redis 集群的Proxy节点详细列表")),
+        description=str(_("查询指定 Redis 集群的 Proxy 节点详细列表，支持通过 ips 参数过滤特定主机，支持分页参数")),
         request_slz=RedisListInstsTopoInputSerializer,
         response_slz=RedisProxiesSummarySerializer,
         permission_classes=[McpClusterManagePermission],
@@ -161,10 +163,12 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
     def list_cluster_proxies(self, request, *args, **kwargs):
         immute_domain = self.get_param("cluster_domain")
         hosts = self.get_param("ips", default_value=[])  # 获取可选的 hosts 参数
-        return Response(cluster_proxies(immute_domain=immute_domain, hosts=hosts))
+        page = self.get_param("page", default_value=1)
+        page_size = self.get_param("page_size", default_value=80)
+        return Response(cluster_proxies(immute_domain=immute_domain, hosts=hosts, page=page, page_size=page_size))
 
     @mcp_tools_api_decorator(
-        description=str(_("查询 Redis 集群的存储节点实例列表")),
+        description=str(_("查询指定 Redis 集群的存储节点主从关系对列表，支持通过 addrs 参数过滤与特定实例相关的主从对，支持分页。适合排查主从关系、定位某个实例的对端节点。")),
         request_slz=RedisListStorageInstsInputSerializer,
         response_slz=ClusterStorageTuplesSerializer,
         permission_classes=[McpClusterManagePermission],
@@ -176,10 +180,16 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
     def list_cluster_storageinstances(self, request, *args, **kwargs):
         addrs = self.get_param("addrs", default_value=[])  # 获取可选的 hosts 参数
         immute_domain = self.get_param("cluster_domain")
-        return Response(get_cluster_storage_tuples(immute_domain=immute_domain, instance_addresses=addrs))
+        page = self.get_param("page", default_value=1)
+        page_size = self.get_param("page_size", default_value=80)
+        return Response(
+            get_cluster_storage_tuples(
+                immute_domain=immute_domain, instance_addresses=addrs, page=page, page_size=page_size
+            )
+        )
 
     @mcp_tools_api_decorator(
-        description=str(_("根据输入的IP列表;查询Redis集群列表")),
+        description=str(_("根据输入的主机 IP 列表，反查这些主机所属的 Redis 集群信息。")),
         request_slz=RedisHostInputSerializer,
         response_slz=RedisHostClusterOutputSerializer,
         permission_classes=[McpClusterManagePermission],
@@ -193,7 +203,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
         return Response(list_clusters_by_hosts(hosts=hosts))
 
     @mcp_tools_api_decorator(
-        description=str(_("根据输入的实例列表;查询实例基本信息")),
+        description=str(_("查询指定集群内特定实例的详细信息，适合深入排查某个具体实例的配置和状态。")),
         request_slz=RedisInstancesInputSerializer,
         response_slz=ClusterInstancesDetailSerializer,
         permission_classes=[McpClusterManagePermission],
