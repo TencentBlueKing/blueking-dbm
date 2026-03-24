@@ -224,20 +224,7 @@ func (sw *MySQLBaseSwitchInstance) StopSlave(slaveDB *hamysql.GormDB) error {
 
 // StartSlave starts slave replication
 func (sw *MySQLBaseSwitchInstance) StartSlave(slaveDB *hamysql.GormDB) error {
-	if slaveDB == nil {
-		return gerrors.New(gerrors.InvalidParameter, "get nil mysql connection when trying to start slave")
-	}
-	slaveIp := slaveDB.Host()
-	slavePort := slaveDB.Port()
-	startSlaveSQL := "START SLAVE"
-
-	err := slaveDB.DB().Exec(startSlaveSQL).Error
-	if err != nil {
-		return gerrors.Newf(gerrors.Failure,
-			"failed to execute '%s' on slave(%s:%d), errmsg: %s", startSlaveSQL, slaveIp, slavePort, err.Error())
-	}
-	sw.ReportLogf(switchlogger.SwitchInfo, "successfully execute '%s' on slave(%s:%d)", startSlaveSQL, slaveIp, slavePort)
-	return nil
+	return DoStartSlave(slaveDB, sw.ReportLogf)
 }
 
 // ShowMasterStatus retrieves master status information
@@ -262,54 +249,7 @@ func (sw *MySQLBaseSwitchInstance) ResetSlaveWithBinlogPos(slaveIp string, slave
 
 // ChangeMasterAuto automatically changes master configuration
 func (sw *MySQLBaseSwitchInstance) ChangeMasterAuto(slaveIp string, slavePort int, changeMasterSQL string) error {
-	slaveDB, err := hamysql.NewGormDB(
-		hamysql.OptionProto(DefaultMySQLProtocol),
-		hamysql.OptionIP(slaveIp),
-		hamysql.OptionPort(slavePort),
-		hamysql.OptionUser(config.Cfg.Database.Mysql.User),
-		hamysql.OptionPassword(config.Cfg.Database.Mysql.Password),
-	)
-	if err != nil {
-		return gerrors.Newf(gerrors.Failure,
-			"failed to connect mysql slave(%s:%d) when changing master: %s", slaveIp, slavePort, err.Error())
-	}
-
-	defer func() {
-		con, _ := slaveDB.DB().DB()
-		if err = con.Close(); err != nil {
-			sw.ReportLogf(switchlogger.SwitchWarn,
-				"failed to close slave DB connect(%s:%d) after changing master: %s", slaveIp, slavePort, err.Error())
-		}
-	}()
-
-	err = sw.StopSlave(slaveDB)
-	if err != nil {
-		return err
-	}
-
-	slaveStatus, err := sw.ShowSlaveStatus(slaveDB)
-	if err != nil {
-		return err
-	}
-
-	sw.ReportLogf(switchlogger.SwitchInfo, "before switching to the new master node, "+
-		"the actual synchronization position of the slave node(%s:%d) is: [binlog_file:%s, binlog_pos:%d]",
-		slaveIp, slavePort, slaveStatus.RelayMasterLogFile, slaveStatus.ExecMasterLogPos)
-
-	err = slaveDB.DB().Exec(changeMasterSQL).Error
-	if err != nil {
-		return gerrors.Newf(gerrors.Failure, "failed to execute '%s' on node(%s:%d), errmsg: %s",
-			changeMasterSQL, slaveIp, slavePort, err.Error())
-	}
-	sw.ReportLogf(switchlogger.SwitchInfo, "successfully execute '%s' on node(%s:%d)", changeMasterSQL, slaveIp, slavePort)
-
-	err = sw.StartSlave(slaveDB)
-	if err != nil {
-		return err
-	}
-
-	sw.ReportLogf(switchlogger.SwitchInfo, "successfully changed master for the slave node(%s:%d)", slaveIp, slavePort)
-	return nil
+	return DoChangeMasterSteps(slaveIp, slavePort, changeMasterSQL, sw.ReportLogf)
 }
 
 // MySQLStorageSwitchInstance handles MySQL storage node switching
@@ -391,10 +331,43 @@ func (sw *MySQLStorageSwitchInstance) CheckBeforeSwitch() (switchcore.SwitchChec
 	}
 }
 
-// SwitchProxyBackendAddress switches proxy backend to new address
-func (sw *MySQLStorageSwitchInstance) SwitchProxyBackendAddress(proxyIp string, proxyAdminPort int,
-	proxyUser string, proxyPasswd string, slaveIp string, slavePort int) error {
-	return ProxyRefreshBackends(proxyIp, proxyAdminPort, proxyUser, proxyPasswd, slaveIp, slavePort, sw.ReportLogf)
+// BatchRefreshProxiesBackends refreshes all available proxies' backends to the given address.
+// Unavailable proxies are skipped with a warning log.
+func (sw *MySQLStorageSwitchInstance) BatchRefreshProxiesBackends(
+	backendIp string, backendPort int,
+) error {
+	proxyUser := config.Cfg.Database.Mysql.ProxyUser
+	proxyPasswd := config.Cfg.Database.Mysql.ProxyPassword
+
+	hasAvailableProxy := false
+	for _, proxyIns := range sw.ProxyInstanceSet {
+		if proxyIns.Status == dbm.Unavailable {
+			sw.ReportLogf(switchlogger.SwitchWarn,
+				"the proxy(%s:%d) is unavailable, skip updating its backends",
+				proxyIns.Ip, proxyIns.AdminPort)
+			continue
+		}
+
+		hasAvailableProxy = true
+
+		if err := ProxyRefreshBackends(
+			proxyIns.Ip, proxyIns.AdminPort, proxyUser, proxyPasswd,
+			backendIp, backendPort, sw.ReportLogf,
+		); err != nil {
+			return gerrors.Newf(gerrors.Failure,
+				"failed to refresh backends to (%s:%d) for the proxy(%s:%d), errmsg: %s",
+				backendIp, backendPort, proxyIns.Ip, proxyIns.AdminPort, err.Error())
+		}
+	}
+
+	if !hasAvailableProxy {
+		return gerrors.Newf(gerrors.Failure, "no available proxies to update backends")
+	}
+
+	sw.ReportLogf(switchlogger.SwitchInfo,
+		"successfully refreshed all available proxies' backends to (%s:%d)",
+		backendIp, backendPort)
+	return nil
 }
 
 // DoMasterSwitch performs the actual MySQL storage master switch
@@ -403,22 +376,10 @@ func (sw *MySQLStorageSwitchInstance) SwitchProxyBackendAddress(proxyIp string, 
 //     consistent synchronization position(binlog file and binlog position)
 //  3. refresh all proxies' backends to the alive mysql(standby slave)
 func (sw *MySQLStorageSwitchInstance) DoMasterSwitch() error {
-	proxyUser := config.Cfg.Database.Mysql.ProxyUser
-	proxyPasswd := config.Cfg.Database.Mysql.ProxyPassword
-
 	sw.ReportLog(switchlogger.SwitchInfo, "switch step 1: update all proxies' backends to 1.1.1.1 first")
-	for _, proxyIns := range sw.ProxyInstanceSet {
-		err := sw.SwitchProxyBackendAddress(proxyIns.Ip, proxyIns.AdminPort, proxyUser, proxyPasswd,
-			"1.1.1.1", 3306)
-		if err != nil {
-			err = gerrors.Newf(gerrors.Failure,
-				"failed to refresh backends to 1.1.1.1 for the proxy(%s:%d), errmsg: %s",
-				proxyIns.Ip, proxyIns.AdminPort, err.Error())
-			sw.ReportLog(switchlogger.SwitchWarn, err.Error())
-			return err
-		}
+	if err := sw.BatchRefreshProxiesBackends("1.1.1.1", 3306); err != nil {
+		return err
 	}
-	sw.ReportLog(switchlogger.SwitchInfo, "successfully update all proxies' backends to 1.1.1.1")
 
 	sw.ReportLog(switchlogger.SwitchInfo, "switch step 2: reset slave status for the standby slave")
 	binlogFile, binlogPosition, err := sw.ResetSlaveWithBinlogPos(sw.StandBySlave.Ip, sw.StandBySlave.Port)
@@ -433,17 +394,9 @@ func (sw *MySQLStorageSwitchInstance) DoMasterSwitch() error {
 	sw.NewMasterBinlogPos = binlogPosition
 
 	sw.ReportLog(switchlogger.SwitchInfo, "switch step 3: update all proxies' backends to the new master")
-	for _, proxyIns := range sw.ProxyInstanceSet {
-		err = sw.SwitchProxyBackendAddress(proxyIns.Ip, proxyIns.AdminPort, proxyUser,
-			proxyPasswd, sw.StandBySlave.Ip, sw.StandBySlave.Port)
-		if err != nil {
-			err = gerrors.Newf(gerrors.Failure,
-				"failed to refresh backends to (%s:%d) for the proxy(%s:%d), errmsg: %s",
-				sw.StandBySlave.Ip, sw.StandBySlave.Port, proxyIns.Ip, proxyIns.AdminPort, err.Error())
-			sw.ReportLog(switchlogger.SwitchWarn, err.Error())
-		}
+	if err := sw.BatchRefreshProxiesBackends(sw.StandBySlave.Ip, sw.StandBySlave.Port); err != nil {
+		return err
 	}
-	sw.ReportLog(switchlogger.SwitchInfo, "successfully update all proxies' backends to the new master")
 
 	return nil
 }
@@ -729,6 +682,89 @@ func DoResetSlaveWithBinlogPos(
 	}
 
 	return masterStatus.File, masterStatus.Position, nil
+}
+
+// DoStartSlave starts slave replication
+func DoStartSlave(slaveDB *hamysql.GormDB, reportLogf switchlogger.SwitchLogFunc) error {
+	if slaveDB == nil {
+		return gerrors.New(gerrors.InvalidParameter,
+			"get nil mysql connection when trying to start slave")
+	}
+	slaveIp := slaveDB.Host()
+	slavePort := slaveDB.Port()
+	startSlaveSQL := "START SLAVE"
+
+	err := slaveDB.DB().Exec(startSlaveSQL).Error
+	if err != nil {
+		return gerrors.Newf(gerrors.Failure,
+			"failed to execute '%s' on slave(%s:%d), errmsg: %s",
+			startSlaveSQL, slaveIp, slavePort, err.Error())
+	}
+	if reportLogf != nil {
+		reportLogf(switchlogger.SwitchInfo,
+			"successfully execute '%s' on slave(%s:%d)",
+			startSlaveSQL, slaveIp, slavePort)
+	}
+	return nil
+}
+
+// DoChangeMasterSteps connects to the slave and performs stop slave, change master, start slave
+func DoChangeMasterSteps(
+	slaveIp string, slavePort int,
+	changeMasterSQL string,
+	reportLogf switchlogger.SwitchLogFunc,
+) error {
+	slaveDB, err := hamysql.NewGormDB(
+		hamysql.OptionProto(DefaultMySQLProtocol),
+		hamysql.OptionIP(slaveIp),
+		hamysql.OptionPort(slavePort),
+		hamysql.OptionUser(config.Cfg.Database.Mysql.User),
+		hamysql.OptionPassword(config.Cfg.Database.Mysql.Password),
+	)
+	if err != nil {
+		return gerrors.Newf(gerrors.Failure,
+			"failed to connect mysql slave(%s:%d) when changing master: %s",
+			slaveIp, slavePort, err.Error())
+	}
+	defer slaveDB.Close()
+
+	if err = DoStopSlave(slaveDB, reportLogf); err != nil {
+		return err
+	}
+
+	slaveStatus, err := DoShowSlaveStatus(slaveDB, reportLogf)
+	if err != nil {
+		return err
+	}
+
+	if reportLogf != nil {
+		reportLogf(switchlogger.SwitchInfo,
+			"before switching to the new master node, "+
+				"the actual synchronization position of the slave node(%s:%d) is: [binlog_file:%s, binlog_pos:%d]",
+			slaveIp, slavePort, slaveStatus.RelayMasterLogFile, slaveStatus.ExecMasterLogPos)
+	}
+
+	if err = slaveDB.DB().Exec(changeMasterSQL).Error; err != nil {
+		return gerrors.Newf(gerrors.Failure,
+			"failed to execute '%s' on node(%s:%d), errmsg: %s",
+			changeMasterSQL, slaveIp, slavePort, err.Error())
+	}
+	if reportLogf != nil {
+		reportLogf(switchlogger.SwitchInfo,
+			"successfully execute '%s' on node(%s:%d)",
+			changeMasterSQL, slaveIp, slavePort)
+	}
+
+	if err = DoStartSlave(slaveDB, reportLogf); err != nil {
+		return err
+	}
+
+	if reportLogf != nil {
+		reportLogf(switchlogger.SwitchInfo,
+			"successfully changed master for the slave node(%s:%d)",
+			slaveIp, slavePort)
+	}
+	return nil
 }
 
 // GetBinlogDumperInfo returns binlog dumper information as string

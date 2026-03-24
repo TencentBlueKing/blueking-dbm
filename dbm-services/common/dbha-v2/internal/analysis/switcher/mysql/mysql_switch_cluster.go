@@ -271,7 +271,7 @@ func (cluster *MySQLSwitchCluster) CheckBeforeSwitch() (switchcore.SwitchCheckCo
 
 	if len(checkUnpassKeyList) > 0 {
 		return switchcore.SwitchCheckUnpass, gerrors.Newf(gerrors.Failure,
-			"some instances unpass the check before switch: %s", switchcore.JoinMetadataKeys(checkUnpassKeyList, ", "))
+			"some instances unpass the check before switch: [%s]", switchcore.JoinMetadataKeys(checkUnpassKeyList, ", "))
 	}
 
 	if !cluster.HasSwitchRequiredNode() {
@@ -279,8 +279,11 @@ func (cluster *MySQLSwitchCluster) CheckBeforeSwitch() (switchcore.SwitchCheckCo
 		return switchcore.SwitchNotNeeded, nil
 	}
 
-	cluster.ReportClusterLogf(switchlogger.SwitchInfo, "After checking, those nodes are required to be switched: [%s]",
-		switchcore.JoinMetadataKeys(cluster.SwitchRequiredNodes(), ", "))
+	cluster.ReportClusterLogf(switchlogger.SwitchInfo, "after checking, those nodes are required to be switched: "+
+		"backend master: [%s], backend slave: [%s], proxy: [%s]",
+		switchcore.JoinMetadataKeys(cluster.BackendMasterKeyList, ", "),
+		switchcore.JoinMetadataKeys(cluster.BackendSlaveKeyList, ", "),
+		switchcore.JoinMetadataKeys(cluster.ProxyKeyList, ", "))
 
 	return switchcore.SwitchRequired, nil
 }
