@@ -240,10 +240,14 @@ class MonitorPolicyUpdateSerializer(AuditedSerializer, serializers.ModelSerializ
         child=serializers.ChoiceField(choices=NoticeSignalEnum.get_choices()), allow_empty=False
     )
     notify_groups = serializers.ListField(child=serializers.IntegerField(), allow_empty=True)
+    name = serializers.CharField(help_text=_("策略名称"), required=False)
 
     class Meta:
         model = MonitorPolicy
         fields = [
+            "name",
+            "is_enabled",
+            "policy_tag",
             "targets",
             "test_rules",
             "notify_rules",
@@ -286,6 +290,8 @@ class MonitorPolicyCloneSerializer(MonitorPolicyUpdateSerializer):
         model = MonitorPolicy
         fields = [
             "name",
+            "is_enabled",
+            "policy_tag",
             "bk_biz_id",
             "parent_id",
             "targets",

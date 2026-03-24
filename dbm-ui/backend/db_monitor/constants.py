@@ -83,6 +83,12 @@ class PolicyStatus(StrStructuredEnum):
     TARGET_INVALID = EnumField("target_invalid", _("监控目标已失效"))
 
 
+class PolicyTag(StrStructuredEnum):
+    INNER = EnumField("inner", _("内置"))
+    CUSTOM = EnumField("custom", _("自定义"))
+    SUBORD = EnumField("subord", _("子策略"))
+
+
 class OperatorEnum(StrStructuredEnum):
     """比较操作符"""
 
