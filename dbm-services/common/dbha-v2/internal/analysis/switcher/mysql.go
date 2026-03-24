@@ -127,7 +127,7 @@ func (m *Mysql) NewSwitchCluster(clusterKey switchcore.ClusterKey, instDataMap s
 		swCluster, retErr = mysql.NewMySQLSwitchCluster(clusterKey, metadata)
 
 	case haprobe.DbmMetadataClusterTypeTendbCluster:
-		retErr = gerrors.Newf(gerrors.Failure, "TendbCluster cluster type is not supported")
+		swCluster, retErr = mysql.NewTenDBClusterSwitchCluster(clusterKey, metadata)
 
 	default:
 		retErr = gerrors.Newf(gerrors.Failure, "unsupported cluster type: %s", clusterType)
