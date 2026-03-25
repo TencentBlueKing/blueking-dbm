@@ -305,7 +305,7 @@ class RedisRollbackExerciseFlow(object):
         )
 
         delete_failure_act = success_branch.add_act(
-            act_name=_("清理失败(最佳尝试清理兜底)"),
+            act_name=_("标记清理失败 (最佳尝试清理兜底)"),
             act_component_code=RedisExerciseReportUpdateComponent.code,
             kwargs={
                 "set_trans_data_dataclass": RedisRollbackExerciseContext.__name__,
