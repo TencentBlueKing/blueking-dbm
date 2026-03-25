@@ -1,10 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 cd "$(dirname "$0")" || exit 1
 
 ETC_DIR="./etc"
-VERSION="v2.0.0"
+VERSION="__VERSION__"
 COMMON_DONE=0
 
 #---------------------------------------------------------------
@@ -14,7 +14,7 @@ prompt() {
     local var_name="$1" prompt_msg="$2" default="$3"
     local input
     read -rp "  ${prompt_msg} [${default}]: " input
-    eval "${var_name}=\"${input:-$default}\""
+    printf -v "${var_name}" '%s' "${input:-$default}"
 }
 
 prompt_secret() {
@@ -22,7 +22,7 @@ prompt_secret() {
     local input
     read -rsp "  ${prompt_msg} [${default}]: " input
     echo
-    eval "${var_name}=\"${input:-$default}\""
+    printf -v "${var_name}" '%s' "${input:-$default}"
 }
 
 section() {
@@ -53,6 +53,8 @@ show_menu() {
 #---------------------------------------------------------------
 collect_common() {
     section "Common Settings"
+    prompt VERSION        "Version" \
+        "${VERSION}"
     prompt LOCAL_IP       "Local IP address" \
         "${LOCAL_IP:-127.0.0.1}"
     prompt LOG_LEVEL      "Log level (debug/info/warn/error)" \
@@ -259,7 +261,7 @@ generate_receiver() {
     local topics_yaml=""
     for t in "${_TOPICS[@]}"; do
         t="$(echo "$t" | xargs)"
-        topics_yaml="${topics_yaml}, ${t}"
+        topics_yaml="${topics_yaml}, \"${t}\""
     done
     topics_yaml="[${topics_yaml#, }]"
 
