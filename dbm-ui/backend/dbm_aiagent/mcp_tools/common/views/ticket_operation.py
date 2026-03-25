@@ -48,7 +48,7 @@ class TicketOperationMcpToolsViewSet(McpToolsViewSet):
         tags=[DBMMCPTags.READ],
         permission_classes=[McpDBManagePermission],
         mcp_auth_parser=auth_parse_bizs,
-        mcp=[DBMMcpTools.TICKET_OP, DBMMcpTools.TICKET_OP_MARKET],
+        mcp=[DBMMcpTools.TICKET_OP, DBMMcpTools.DBM_PUBLIC_MARKET],
         name_prefix="ticket_op",
     )
     def ticket_list(self, request, *args, **kwargs):

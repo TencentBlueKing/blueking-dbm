@@ -1032,12 +1032,12 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "tools": [],
     },
     {
-        "title": "[DBM] 单据操作",
-        "name": "ticket-op-market",
-        "description": """dbm 单据通用操作""",
+        "title": "[DBM] 公共服务",
+        "name": "dbm-public-market",
+        "description": """dbm 公共服务""",
         # 主动授权 app_code
         "target_app_codes": [APP_CODE],
-        "labels": ["ticket-op-market"],
+        "labels": ["dbm-public-market"],
         # 是否启用：1-启用，0-停止
         "status": 1,
         # 是否公开
