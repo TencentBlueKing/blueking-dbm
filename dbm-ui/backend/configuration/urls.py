@@ -17,6 +17,7 @@ from backend.configuration.views.ip_whitelist import IPWhitelistViewSet
 from backend.configuration.views.password_policy import PasswordPolicyViewSet
 from backend.configuration.views.profile import ProfileViewSet
 from backend.configuration.views.system import BizSettingsViewSet, SystemSettingsViewSet
+from backend.configuration.views.todo_remind import TodoRemindViewSet
 
 routers = DefaultRouter(trailing_slash=True)
 
@@ -27,5 +28,6 @@ routers.register(r"profile", ProfileViewSet, basename="profile")
 routers.register(r"password_policy", PasswordPolicyViewSet, basename="password_policy")
 routers.register(r"ip_whitelist", IPWhitelistViewSet, basename="ip_whitelist")
 routers.register(r"function_controller", FunctionControllerViewSet, basename="function_controller")
+routers.register(r"todo_remind", TodoRemindViewSet, basename="todo_remind")
 
 urlpatterns = routers.urls

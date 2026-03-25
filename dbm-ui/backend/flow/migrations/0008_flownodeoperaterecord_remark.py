@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("flow", "0005_auto_20250624_2036"),
+        ("flow", "0007_alter_flowwithaitaskguardianreport_uid"),
     ]
 
     operations = [
