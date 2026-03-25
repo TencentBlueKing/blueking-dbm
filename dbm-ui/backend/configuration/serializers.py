@@ -77,6 +77,16 @@ class ProfileSerializer(serializers.Serializer):
     values = serializers.JSONField()
 
 
+class TodoRemindSerializer(serializers.Serializer):
+    class CrontabSerializer(serializers.Serializer):
+        minute = serializers.CharField(help_text=_("分钟"))
+        hour = serializers.CharField(help_text=_("小时"))
+
+    is_enable = serializers.BooleanField(help_text=_("是否开启"), default=True)
+    remind_time = CrontabSerializer(help_text=_("通知周期"))
+    notice = serializers.ListSerializer(child=serializers.JSONField(), help_text=_("通知渠道"))
+
+
 class ProfileSqlSerializer(serializers.Serializer):
     class SqlSelfSerializer(serializers.Serializer):
         name = serializers.CharField(help_text=_("sql名称"))
