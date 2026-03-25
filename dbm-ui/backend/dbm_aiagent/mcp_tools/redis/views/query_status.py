@@ -27,19 +27,10 @@ from backend.dbm_aiagent.mcp_tools.redis.impl.redis_status import (
     get_redis_stats_info,
 )
 from backend.dbm_aiagent.mcp_tools.redis.serializers.instance_status import (
-    RedisClientListResponseSerializer,
-    RedisClientsInfoSerializer,
     RedisClusterInputSerializer,
     RedisClusterLoadSerializer,
-    RedisCommandStatsResponseSerializer,
-    RedisCPUInfoSerializer,
-    RedisInstanceInputSerializer,
-    RedisKeyspaceInfoSerializer,
-    RedisMemoryInfoSerializer,
-    RedisPersistenceInfoSerializer,
-    RedisReplicationInfoSerializer,
-    RedisServerInfoSerializer,
-    RedisStatsInfoSerializer,
+    RedisInstanceInfoInputSerializer,
+    RedisInstanceInfoResponseSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
@@ -65,165 +56,46 @@ class RedisQueryStatusMcpToolsViewSet(McpToolsViewSet):
         return Response(get_redis_cluster_load_tag(immute_domain=immute_domain))
 
     @mcp_tools_api_decorator(
-        description=str(_("查询指定 Redis 实例的服务器基本信息，此为实例级别接口，仅在用户明确要求查询某个具体实例时调用。")),
-        request_slz=RedisInstanceInputSerializer,
-        response_slz=RedisServerInfoSerializer,
+        description=str(
+            _("查询指定 Redis 实例的详细状态信息，支持通过 sections 参数按需选择模块，避免一次性返回过多数据。" "此为实例级别接口，需提供具体的实例地址（redis_addr）。")
+        ),
+        request_slz=RedisInstanceInfoInputSerializer,
+        response_slz=RedisInstanceInfoResponseSerializer,
         permission_classes=[McpClusterManagePermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
         name_prefix="redis_query_status",
     )
-    def get_server_info(self, request, *args, **kwargs):
-        """获取Redis服务器基本信息"""
+    def get_instance_info(self, request, *args, **kwargs):
+        """查询Redis实例综合状态信息（支持按模块按需查询）"""
         redis_addr = self.get_param("redis_addr")
         immute_domain = self.get_param("cluster_domain")
-        return Response(get_redis_server_info(redis_addr=redis_addr, immute_domain=immute_domain))
+        sections = self.get_param("sections") or []
 
-    @mcp_tools_api_decorator(
-        description=str(_("查询指定 Redis 实例的客户端连接概要信息，此为实例级别接口，仅在用户明确要求查询某个具体实例时调用")),
-        request_slz=RedisInstanceInputSerializer,
-        response_slz=RedisClientsInfoSerializer,
-        permission_classes=[McpClusterManagePermission],
-        mcp_auth_parser=auth_parse_clusters,
-        tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
-        name_prefix="redis_query_status",
-    )
-    def get_clients_info(self, request, *args, **kwargs):
-        """获取Redis客户端连接信息"""
-        redis_addr = self.get_param("redis_addr")
-        immute_domain = self.get_param("cluster_domain")
-        return Response(get_redis_clients_info(redis_addr=redis_addr, immute_domain=immute_domain))
+        # 各模块查询函数映射
+        section_handlers = {
+            "server": lambda: get_redis_server_info(redis_addr=redis_addr, immute_domain=immute_domain),
+            "clients": lambda: get_redis_clients_info(redis_addr=redis_addr, immute_domain=immute_domain),
+            "memory": lambda: get_redis_memory_info(redis_addr=redis_addr, immute_domain=immute_domain),
+            "persistence": lambda: get_redis_persistence_info(redis_addr=redis_addr, immute_domain=immute_domain),
+            "stats": lambda: get_redis_stats_info(redis_addr=redis_addr, immute_domain=immute_domain),
+            "replication": lambda: get_redis_replication_info(redis_addr=redis_addr, immute_domain=immute_domain),
+            "cpu": lambda: get_redis_cpu_info(redis_addr=redis_addr, immute_domain=immute_domain),
+            "keyspace": lambda: get_redis_keyspace_info(redis_addr=redis_addr, immute_domain=immute_domain),
+            "client_list": lambda: get_redis_client_list(redis_addr=redis_addr, immute_domain=immute_domain),
+            "command_stats": lambda: get_redis_command_stats_delta(redis_addr=redis_addr, immute_domain=immute_domain),
+        }
 
-    @mcp_tools_api_decorator(
-        description=str(_("查询指定 Redis 实例的内存使用详情，此为实例级别接口，仅在用户明确要求查询某个具体实例时调用。")),
-        request_slz=RedisInstanceInputSerializer,
-        response_slz=RedisMemoryInfoSerializer,
-        permission_classes=[McpClusterManagePermission],
-        mcp_auth_parser=auth_parse_clusters,
-        tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
-        name_prefix="redis_query_status",
-    )
-    def get_memory_info(self, request, *args, **kwargs):
-        """获取Redis内存使用信息"""
-        redis_addr = self.get_param("redis_addr")
-        immute_domain = self.get_param("cluster_domain")
-        return Response(get_redis_memory_info(redis_addr=redis_addr, immute_domain=immute_domain))
+        # 未指定 sections 则查询全部
+        query_sections = sections if sections else list(section_handlers.keys())
 
-    @mcp_tools_api_decorator(
-        description=str(_("查询指定 Redis 实例的持久化状态，此为实例级别接口，仅在用户明确要求查询某个具体实例时调用。")),
-        request_slz=RedisInstanceInputSerializer,
-        response_slz=RedisPersistenceInfoSerializer,
-        permission_classes=[McpClusterManagePermission],
-        mcp_auth_parser=auth_parse_clusters,
-        tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
-        name_prefix="redis_query_status",
-    )
-    def get_persistence_info(self, request, *args, **kwargs):
-        """获取Redis持久化信息"""
-        redis_addr = self.get_param("redis_addr")
-        immute_domain = self.get_param("cluster_domain")
-        return Response(get_redis_persistence_info(redis_addr=redis_addr, immute_domain=immute_domain))
+        result = {}
+        for section in query_sections:
+            if section in section_handlers:
+                result[section] = section_handlers[section]()
 
-    @mcp_tools_api_decorator(
-        description=str(_("查询指定 Redis 实例的运行统计信息，此为实例级别接口，仅在用户明确要求查询某个具体实例时调用。")),
-        request_slz=RedisInstanceInputSerializer,
-        response_slz=RedisStatsInfoSerializer,
-        permission_classes=[McpClusterManagePermission],
-        mcp_auth_parser=auth_parse_clusters,
-        tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
-        name_prefix="redis_query_status",
-    )
-    def get_stats_info(self, request, *args, **kwargs):
-        """获取Redis统计信息"""
-        redis_addr = self.get_param("redis_addr")
-        immute_domain = self.get_param("cluster_domain")
-        return Response(get_redis_stats_info(redis_addr=redis_addr, immute_domain=immute_domain))
-
-    @mcp_tools_api_decorator(
-        description=str(_("查询指定 Redis 实例的主从复制状态，此为实例级别接口，仅在用户明确要求查询某个具体实例时调用。")),
-        request_slz=RedisInstanceInputSerializer,
-        response_slz=RedisReplicationInfoSerializer,
-        permission_classes=[McpClusterManagePermission],
-        mcp_auth_parser=auth_parse_clusters,
-        tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
-        name_prefix="redis_query_status",
-    )
-    def get_replication_info(self, request, *args, **kwargs):
-        """获取Redis复制信息"""
-        redis_addr = self.get_param("redis_addr")
-        immute_domain = self.get_param("cluster_domain")
-        return Response(get_redis_replication_info(redis_addr=redis_addr, immute_domain=immute_domain))
-
-    @mcp_tools_api_decorator(
-        description=str(_("查询指定 Redis 实例的 CPU 使用情况，此为实例级别接口，仅在用户明确要求查询某个具体实例时调用。")),
-        request_slz=RedisInstanceInputSerializer,
-        response_slz=RedisCPUInfoSerializer,
-        permission_classes=[McpClusterManagePermission],
-        mcp_auth_parser=auth_parse_clusters,
-        tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
-        name_prefix="redis_query_status",
-    )
-    def get_cpu_info(self, request, *args, **kwargs):
-        """获取Redis CPU使用信息"""
-        redis_addr = self.get_param("redis_addr")
-        immute_domain = self.get_param("cluster_domain")
-        return Response(get_redis_cpu_info(redis_addr=redis_addr, immute_domain=immute_domain))
-
-    @mcp_tools_api_decorator(
-        description=str(_("查询指定 Redis 实例的键空间（Keyspace）信息，此为实例级别接口，仅在用户明确要求查询某个具体实例时调用。")),
-        request_slz=RedisInstanceInputSerializer,
-        response_slz=RedisKeyspaceInfoSerializer(many=True),
-        permission_classes=[McpClusterManagePermission],
-        mcp_auth_parser=auth_parse_clusters,
-        tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
-        name_prefix="redis_query_status",
-    )
-    def get_keyspace_info(self, request, *args, **kwargs):
-        """获取Redis键空间信息"""
-        redis_addr = self.get_param("redis_addr")
-        immute_domain = self.get_param("cluster_domain")
-        return Response(get_redis_keyspace_info(redis_addr=redis_addr, immute_domain=immute_domain))
-
-    # ## Redis客户端和命令统计 ###
-    @mcp_tools_api_decorator(
-        description=str(_("查询指定 Redis 实例当前所有已连接客户端的详细列表，此为实例级别接口，仅在用户明确要求查询某个具体实例时调用；")),
-        request_slz=RedisInstanceInputSerializer,
-        response_slz=RedisClientListResponseSerializer,
-        permission_classes=[McpClusterManagePermission],
-        mcp_auth_parser=auth_parse_clusters,
-        tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
-        name_prefix="redis_query_status",
-    )
-    def get_client_list(self, request, *args, **kwargs):
-        """获取Redis客户端列表"""
-        redis_addr = self.get_param("redis_addr")
-        immute_domain = self.get_param("cluster_domain")
-        return Response(get_redis_client_list(redis_addr=redis_addr, immute_domain=immute_domain))
-
-    @mcp_tools_api_decorator(
-        description=str(_("查询指定 Redis 实例的命令调用统计信息（采用间隔 1 秒采样方式），返回每种命令在 1 秒内的调用次数和总耗时，此为实例级别接口，仅在用户明确要求查询时调用。")),
-        request_slz=RedisInstanceInputSerializer,
-        response_slz=RedisCommandStatsResponseSerializer,
-        permission_classes=[McpClusterManagePermission],
-        mcp_auth_parser=auth_parse_clusters,
-        tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.REDIS_QUERY_STATUS],
-        name_prefix="redis_query_status",
-    )
-    def get_command_stats(self, request, *args, **kwargs):
-        """获取Redis命令统计信息（1秒间隔采样）"""
-        redis_addr = self.get_param("redis_addr")
-        immute_domain = self.get_param("cluster_domain")
-        return Response(get_redis_command_stats_delta(redis_addr=redis_addr, immute_domain=immute_domain))
+        return Response(result)
 
     # @mcp_tools_api_decorator(
     #     description=str(

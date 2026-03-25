@@ -252,3 +252,60 @@ class RedisKeyspaceInfoSerializer(serializers.Serializer):
     keys = serializers.IntegerField(help_text=_("键数量"))
     expires = serializers.IntegerField(help_text=_("设置了过期时间的键数量"))
     avg_ttl = serializers.IntegerField(help_text=_("平均TTL（毫秒）"))
+
+
+# ==================== 合并查询序列化器 ====================
+
+REDIS_INSTANCE_INFO_SECTIONS = [
+    "server",
+    "clients",
+    "memory",
+    "persistence",
+    "stats",
+    "replication",
+    "cpu",
+    "keyspace",
+    "client_list",
+    "command_stats",
+]
+
+
+class RedisInstanceInfoInputSerializer(serializers.Serializer):
+    """Redis实例综合信息查询输入序列化器"""
+
+    redis_addr = serializers.CharField(help_text=_("实例地址，格式为 IP:Port，例如 1.2.3.4:6379"))
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    sections = serializers.ListField(
+        child=serializers.ChoiceField(choices=REDIS_INSTANCE_INFO_SECTIONS),
+        help_text=_(
+            "要查询的信息模块列表，可选值：\n"
+            "- server: 服务器基本信息（版本、运行时长等）\n"
+            "- clients: 客户端连接概要（连接数、阻塞数等）\n"
+            "- memory: 内存使用详情（used_memory、碎片率等）\n"
+            "- persistence: 持久化状态（RDB/AOF）\n"
+            "- stats: 运行统计（OPS、命中率、过期键等）\n"
+            "- replication: 主从复制状态（角色、偏移量、从节点列表）\n"
+            "- cpu: CPU使用情况\n"
+            "- keyspace: 键空间信息（各DB的键数量、TTL）\n"
+            "- client_list: 当前所有已连接客户端详细列表\n"
+            "- command_stats: 命令调用统计（1秒采样，每秒调用次数和耗时）\n"
+            "不传则返回所有模块。"
+        ),
+        required=False,
+        default=list,
+    )
+
+
+class RedisInstanceInfoResponseSerializer(serializers.Serializer):
+    """Redis实例综合信息响应序列化器"""
+
+    server = RedisServerInfoSerializer(required=False, help_text=_("服务器基本信息"))
+    clients = RedisClientsInfoSerializer(required=False, help_text=_("客户端连接概要"))
+    memory = RedisMemoryInfoSerializer(required=False, help_text=_("内存使用详情"))
+    persistence = RedisPersistenceInfoSerializer(required=False, help_text=_("持久化状态"))
+    stats = RedisStatsInfoSerializer(required=False, help_text=_("运行统计信息"))
+    replication = RedisReplicationInfoSerializer(required=False, help_text=_("主从复制状态"))
+    cpu = RedisCPUInfoSerializer(required=False, help_text=_("CPU使用情况"))
+    keyspace = RedisKeyspaceInfoSerializer(many=True, required=False, help_text=_("键空间信息"))
+    client_list = RedisClientListResponseSerializer(required=False, help_text=_("已连接客户端详细列表"))
+    command_stats = RedisCommandStatsResponseSerializer(required=False, help_text=_("命令调用统计（1秒采样）"))
