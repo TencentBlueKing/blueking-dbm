@@ -43,33 +43,25 @@
             required>
             <BkInput
               v-model="formModel.strategyName"
-              :disabled="pageStatus === 'edit'" />
+              :disabled="isNameDisabled" />
           </DbFormItem>
           <DbFormItem
             :label="t('是否启用')"
             required>
-            <BkPopConfirm
-              :content="t('停用后，所有的业务将会停用该策略，请谨慎操作！')"
-              :is-show="showSwitchEnableTip"
-              placement="bottom"
-              :popover-options="{
-                disabled: data.isInner || !formModel.isEnabled,
+            <AuthSwitcher
+              v-model="formModel.isEnabled"
+              v-bk-tooltips="{
+                disabled: !enableButtonDisabled,
+                content: data.isCustom
+                  ? t('父策略为告警兜底，需保持启用以确保告警覆盖')
+                  : t('继承自全局策略，启停与全局保持一致'),
               }"
-              :title="t('确认停用该策略？')"
-              trigger="click"
-              width="320"
-              @cancel="() => handleSwitchEnableCancelConfirm()"
-              @confirm="() => handleSwitchEnableClickConfirm()">
-              <AuthSwitcher
-                v-model="formModel.isEnabled"
-                action-id="global_monitor_policy_start_stop"
-                :disabled="data.isInner"
-                :permission="data.permission.global_monitor_policy_start_stop"
-                :resource="data.id"
-                size="small"
-                theme="primary"
-                @change="() => handleChangeSwitch()" />
-            </BkPopConfirm>
+              action-id="global_monitor_policy_start_stop"
+              :disabled="enableButtonDisabled"
+              :permission="data.permission.global_monitor_policy_start_stop"
+              :resource="data.id"
+              size="small"
+              theme="primary" />
           </DbFormItem>
         </BkCard>
         <BkCard
@@ -79,7 +71,8 @@
           <PromQL
             v-if="data.isPolicyTypePromQL"
             ref="promqlRef"
-            :data="data.agg_info" />
+            :data="data.agg_info"
+            @change="handleDataChange" />
           <template v-else>
             <BkAlert
               :title="
@@ -93,21 +86,24 @@
               :data="data.agg_info"
               :expression="data.expression"
               :is-multiple="data.isPolicyTypeMulti"
-              :monitor-policy-id="data.monitor_policy_id" />
+              :monitor-policy-id="data.monitor_policy_id"
+              @change="handleDataChange" />
           </template>
           <MonitorTarget
             v-if="isMonitorTargetsShow"
             ref="monitorTargetRef"
             :cluster-list="clusterList"
             :customs="data.custom_conditions"
-            :is-new="props.pageStatus === 'new'"
+            :is-new="isChildNew"
             :is-promql="props.data.isPolicyTypePromQL"
-            :targets="data.targets" />
+            :targets="data.targets"
+            @change="handleDataChange" />
         </BkCard>
         <TestRules
           ref="testRule"
           class="mt-16"
-          :rules="formModel.testRules" />
+          :rules="formModel.testRules"
+          @change="handleDataChange" />
         <JudgingCondition
           v-model="formModel"
           class="mt-16"
@@ -166,13 +162,29 @@
             required>
             <NoticeInterval
               ref="noticeInterval"
-              :data="data.notify_config" />
+              :data="data.notify_config"
+              @change="handleDataChange" />
           </DbFormItem>
         </BkCard>
       </DbForm>
     </div>
     <template #footer>
+      <BkPopConfirm
+        v-if="popConfirmInfo.content"
+        :content="popConfirmInfo.content"
+        placement="bottom"
+        :title="popConfirmInfo.title"
+        trigger="click"
+        :width="320"
+        @confirm="() => handleConfirm()">
+        <BkButton
+          :loading="isLoading"
+          theme="primary">
+          {{ t('确定') }}
+        </BkButton>
+      </BkPopConfirm>
       <BkButton
+        v-else
         :loading="isLoading"
         theme="primary"
         @click="handleConfirm">
@@ -182,6 +194,7 @@
         v-if="data.isCustom"
         action-id="monitor_policy_edit"
         class="ml-8"
+        outline
         :permission="data.permission.monitor_policy_edit"
         :resource="data.id"
         theme="primary"
@@ -211,7 +224,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { MonitorTargetLevel } from '@common/const';
+  import { DBTypeInfos, DBTypes, MonitorTargetLevel } from '@common/const';
 
   import JudgingCondition from '@views/monitor-alarm/common/judging-condition/Index.vue';
   import AggInfo from '@views/monitor-alarm/common/monitor-data/AggInfo.vue';
@@ -221,16 +234,20 @@
 
   import { messageSuccess } from '@utils';
 
-  import MonitorTarget from './monitor-target-new/Index.vue';
+  import MonitorTarget from './monitor-target/Index.vue';
 
   interface Props {
     alarmGroupList: SelectItem<string>[];
     alarmGroupNameMap: Record<string, string>;
+    appParentInfoMap: Record<number, MonitorPolicyModel>;
     clusterList: SelectItem<string>[];
     data: MonitorPolicyModel;
+    dbType: DBTypes;
     existedNames?: string[];
-    // 内置 编辑 -》 clone
-    // 内置 新建子策略 -》 new
+    // 真内置 编辑 -》 clone
+    // 真内置 新建子策略 -》 new
+    // 假内置 编辑 -》 edit
+    // 假内置 新建子策略 -》 new
     // 自定义 编辑 -》 edit
     // 自定义 新建子策略 -》 new
     // 子策略 编辑 -》 edit
@@ -264,7 +281,9 @@
   const formRef = ref();
   const monitorTargetRef = ref();
   // const innerNotifyTarget = ref([props.dbType]);
-  const showSwitchEnableTip = ref(false);
+  // const showSwitchEnableTip = ref(false);
+  const isNotifyInfoChanged = ref(false);
+  const isOtherChanged = ref(false);
 
   const formModel = reactive({
     detectsConfig: {} as ComponentProps<typeof JudgingCondition>['modelValue']['detectsConfig'],
@@ -277,14 +296,76 @@
   });
 
   const isLoading = computed(() => updateLoading.value || cloneLoading.value);
-  const isCloneStratgy = computed(() => ['clone', 'new'].includes(props.pageStatus));
-  const isMonitorTargetsShow = computed(() => props.data.isChild || props.pageStatus === 'new');
+  const isMonitorTargetsShow = computed(() => props.data.isChild || isChildNew.value);
+  const isInnerClone = computed(() => props.data.isInnerReal && props.pageStatus === 'clone');
+  const isInnerEdit = computed(() => props.data.isInnerFake && props.pageStatus === 'edit');
+  const isCustomEdit = computed(() => props.data.isCustom && props.pageStatus === 'edit');
+  const isChildClone = computed(() => props.data.isChild && props.pageStatus === 'clone');
+  const isChildNew = computed(() => props.pageStatus === 'new');
+  const isNameDisabled = computed(() => isInnerClone.value || isInnerEdit.value || isCustomEdit.value);
+  const isEnableChanged = computed(() => props.data.is_enabled !== formModel.isEnabled);
+
+  // 全局启用，启停按钮禁用
+  const enableButtonDisabled = computed(() => {
+    return (
+      (props.data.isInnerReal && props.data.is_enabled) ||
+      ((props.data.isInnerFake || props.data.isCustom) && props.appParentInfoMap[props.data.id].is_enabled)
+    );
+  });
 
   const titleMap = computed<Record<Props['pageStatus'], string>>(() => ({
-    clone: props.data.isChild ? t('克隆策略') : t('编辑策略'),
-    edit: t('编辑策略'),
+    clone: props.data.isChild ? t('克隆子策略') : t('编辑策略'),
+    edit: props.data.isChild ? t('编辑子策略') : t('编辑策略'),
     new: t('新建子策略'),
   }));
+
+  const popConfirmInfo = computed(() => {
+    if (isInnerClone.value || isInnerEdit.value) {
+      // 修改检测参数（当前为继承状态，修改后转为自定义）
+      if (!isNotifyInfoChanged.value && isOtherChanged.value) {
+        return {
+          content: t('修改后将转为自定义管理，不再跟随全局策略更新。'),
+          title: t('确认修改该策略？'),
+        };
+      }
+
+      // 同时修改告警规则并启用策略（当前为继承状态）
+      if (isNotifyInfoChanged.value && isEnableChanged.value) {
+        return {
+          content: t('修改告警规则并启用后，该策略将转为自定义管理，不再跟随全局策略更新。'),
+          title: t('确认修改并启用该策略？'),
+        };
+      }
+
+      // 全局已禁用，启用当前策略（从继承变为自定义）
+      if (
+        ((props.data.isInnerReal && !props.data.is_enabled) ||
+          (props.data.isInnerFake && !props.appParentInfoMap[props.data.id].is_enabled)) &&
+        formModel.isEnabled
+      ) {
+        return {
+          content: t('启用后，该策略将转为自定义管理，不再跟随全局策略更新。'),
+          title: t('确认启用该策略？'),
+        };
+      }
+    }
+
+    if (isCustomEdit.value) {
+      // 全局已禁用，停用当前策略（已是自定义）
+      const globalData = props.appParentInfoMap[props.data.id];
+      if (!globalData.is_enabled && !formModel.isEnabled) {
+        return {
+          content: t('停用后，不匹配子策略的对象将失去该告警覆盖。'),
+          title: t('确认停用该策略？'),
+        };
+      }
+    }
+
+    return {
+      content: '',
+      title: '',
+    };
+  });
 
   const notifyTypes = [
     {
@@ -323,24 +404,14 @@
         },
       },
       {
-        message: t('策略名称与原策略名称相同'),
-        trigger: 'blur',
-        validator: (value: string) => {
-          if (props.pageStatus === 'edit') {
-            return true;
-          }
-          return value !== props.data.name;
-        },
-      },
-      {
         message: t('策略名称重复'),
         trigger: 'blur',
         validator: async (value: string) => {
-          if (props.pageStatus === 'edit') {
-            return true;
+          if (isChildNew.value || isChildClone.value) {
+            // TODO: 以后看情况是否增加接口支持，暂时先用当前页做冲突检测
+            return props.existedNames.every((item) => item !== value);
           }
-          // TODO: 以后看情况是否增加接口支持，暂时先用当前页做冲突检测
-          return props.existedNames.every((item) => item !== value);
+          return true;
         },
       },
     ],
@@ -350,7 +421,7 @@
     manual: true,
     onSuccess: (cloneResponse) => {
       if (cloneResponse.bkm_id) {
-        messageSuccess(t('克隆成功'));
+        messageSuccess(t('操作成功'));
         emits('success');
         isShow.value = false;
       }
@@ -361,7 +432,7 @@
     manual: true,
     onSuccess: (updateResponse) => {
       if (updateResponse.bkm_id) {
-        messageSuccess(t('保存成功'));
+        messageSuccess(t('操作成功'));
         emits('success');
         isShow.value = false;
       }
@@ -372,14 +443,42 @@
     manual: true,
     onSuccess: (isDeleted) => {
       if (isDeleted === null) {
-        messageSuccess(t('删除成功'));
+        messageSuccess(t('操作成功'));
       }
     },
   });
 
+  const setChangedInfo = () => {
+    setTimeout(() => {
+      const { aggInfo, detectsConfig, notifyConfig, testRules } = getConfirmValue();
+
+      isNotifyInfoChanged.value = !_.isEqual(_.pick(props.data, ['notify_config', 'notify_groups', 'notify_rules']), {
+        notify_config: notifyConfig,
+        notify_groups:
+          isInnerClone.value && _.isEqual(formModel.notifyTarget, getBizDefaultGroupIds())
+            ? []
+            : formModel.notifyTarget, // 真内置编辑默认是内置告警组，此时不判定为修改
+        notify_rules: formModel.notifyRules,
+      });
+      isOtherChanged.value = !_.isEqual(
+        _.pick(props.data, ['agg_info', 'detects_config', 'no_data_config', 'test_rules']),
+        {
+          agg_info: aggInfo,
+          detects_config: detectsConfig,
+          no_data_config: formModel.noDataConfig,
+          test_rules: testRules,
+        },
+      );
+    });
+  };
+
+  const setChangedInfoDebounce = _.debounce(setChangedInfo);
+
   watch(
     formModel,
     () => {
+      setChangedInfoDebounce();
+
       if (rawFormData === '' && formModel.notifyRules !== undefined) {
         rawFormData = JSON.stringify(formModel);
         return;
@@ -401,7 +500,10 @@
         formModel.testRules = _.cloneDeep(data.test_rules);
         formModel.strategyName = getStrategyName();
         formModel.notifyRules = _.cloneDeep(data.notify_rules);
-        formModel.notifyTarget = data.notify_groups.filter((id) => id in props.alarmGroupNameMap);
+        formModel.notifyTarget =
+          isInnerClone.value || isChildNew.value
+            ? getBizDefaultGroupIds()
+            : data.notify_groups.filter((id) => id in props.alarmGroupNameMap);
         formModel.noDataConfig = _.cloneDeep(data.no_data_config);
 
         const detectsConfig = _.cloneDeep(data.detects_config) as unknown as UnwrapRef<
@@ -420,23 +522,33 @@
     formModel.notifyTarget.splice(index, 1);
   };
 
-  const getStrategyName = () =>
-    isCloneStratgy.value ? `${props.data.name} - ${currentBizInfo?.name}` : props.data.name;
-
-  const handleSwitchEnableClickConfirm = () => {
-    formModel.isEnabled = false;
-    showSwitchEnableTip.value = false;
+  const getStrategyNameWithBizName = () => {
+    return `${props.data.name} - ${currentBizInfo?.name}`;
   };
 
-  const handleSwitchEnableCancelConfirm = () => {
-    showSwitchEnableTip.value = false;
-  };
-
-  const handleChangeSwitch = () => {
-    if (!formModel.isEnabled) {
-      showSwitchEnableTip.value = true;
-      formModel.isEnabled = !formModel.isEnabled;
+  const getStrategyName = () => {
+    // 真内置编辑时，显示为原名称，但提交时需要改为固定格式
+    if (isInnerClone.value) {
+      return props.data.name;
     }
+    // 假内置和自定义策略编辑时，显示为固定格式，但提交时需要改为原名称
+    if (isInnerEdit.value || isCustomEdit.value) {
+      return props.data.nameDisplay;
+    }
+    // 新建子策略， 策略名默认为父策略名称 + 数字，依次递增
+    if (isChildNew.value) {
+      return `${props.data.name} - ${t('子策略')}${props.data.child.length + 1}`;
+    }
+    // 克隆子策略
+    if (isChildClone.value) {
+      return `${props.data.name} - ${t('克隆')}`;
+    }
+    return props.data.name;
+  };
+
+  const getBizDefaultGroupIds = () => {
+    const groupItem = props.alarmGroupList.find((item) => item.label === `${DBTypeInfos[props.dbType].name}_DBA`);
+    return groupItem ? [Number(groupItem.value)] : [];
   };
 
   const handleResetToDefault = () => {
@@ -463,13 +575,35 @@
     });
   };
 
+  const handleDataChange = () => {
+    setChangedInfoDebounce();
+  };
+
+  const getConfirmValue = () => {
+    const notifyConfig = noticeIntervalRef.value!.getValue();
+    const aggInfo = props.data.isPolicyTypePromQL ? promqlRef.value!.getValue() : aggInfoRef.value!.getValue();
+    const detectsConfig = _.cloneDeep(formModel.detectsConfig) as unknown as MonitorPolicyModel['detects_config'];
+    detectsConfig.trigger_config.uptime.time_ranges = formModel.detectsConfig.trigger_config.uptime.time_ranges.map(
+      (item) => ({
+        end: item[1],
+        start: item[0],
+      }),
+    );
+    const testRules = testRuleRef.value!.getValue();
+
+    return {
+      aggInfo,
+      detectsConfig,
+      notifyConfig,
+      testRules,
+    };
+  };
+
   // 点击确定
   const handleConfirm = async () => {
     await formRef.value.validate();
 
-    const aggInfo = props.data.isPolicyTypePromQL ? promqlRef.value!.getValue() : aggInfoRef.value!.getValue();
-    const testRules = testRuleRef.value!.getValue();
-    const notifyConfig = noticeIntervalRef.value!.getValue();
+    const { aggInfo, detectsConfig, notifyConfig, testRules } = getConfirmValue();
     const { custom_conditions, targets } = isMonitorTargetsShow.value
       ? monitorTargetRef.value.getValue()
       : {
@@ -485,33 +619,62 @@
             },
           ],
         };
-    const detectsConfig = _.cloneDeep(formModel.detectsConfig) as unknown as MonitorPolicyModel['detects_config'];
-    detectsConfig.trigger_config.uptime.time_ranges = formModel.detectsConfig.trigger_config.uptime.time_ranges.map(
-      (item) => ({
-        end: item[1],
-        start: item[0],
-      }),
-    );
+
+    const getParamsName = () => {
+      // 真内置编辑时，提交时需要改为固定格式
+      if (isInnerClone.value) {
+        return getStrategyNameWithBizName();
+      }
+      // 假内置和自定义策略编辑时，提交时需要改为原名称
+      if (isInnerEdit.value || isCustomEdit.value) {
+        return props.data.name;
+      }
+      return formModel.strategyName;
+    };
+
+    const getPolicyTag = (): MonitorPolicyModel['policy_tag'] => {
+      // 继承时
+      if (isInnerClone.value || isInnerEdit.value) {
+        // 转为自定义，判断同 popConfirmInfo
+        if (
+          (!isNotifyInfoChanged.value && isOtherChanged.value) ||
+          (isNotifyInfoChanged.value && isEnableChanged.value) ||
+          (((props.data.isInnerReal && !props.data.is_enabled) ||
+            (props.data.isInnerFake && !props.appParentInfoMap[props.data.id].is_enabled)) &&
+            formModel.isEnabled)
+        ) {
+          return 'custom';
+        } else {
+          return 'inner';
+        }
+      }
+      // 自定义时
+      if (isCustomEdit.value) {
+        return 'custom';
+      }
+      return 'subord';
+    };
 
     const reqParams = {
       agg_info: aggInfo,
       custom_conditions,
       detects_config: detectsConfig,
       is_enabled: formModel.isEnabled,
+      name: getParamsName(),
       no_data_config: formModel.noDataConfig,
       notify_config: notifyConfig,
       notify_groups: formModel.notifyTarget,
       notify_rules: formModel.notifyRules,
+      policy_tag: getPolicyTag(),
       targets,
-      test_rules: testRules.filter((item) => item && item.config.length !== 0),
+      test_rules: testRules,
     };
 
-    if (isCloneStratgy.value) {
+    if (['clone', 'new'].includes(props.pageStatus)) {
       // 克隆额外参数
       const params = {
         ...reqParams,
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        name: formModel.strategyName,
         // parent_id优先取克隆策略的parent_id，如果parent_id为空证明该策略是一条平台策略，就取策略id
         parent_id: props.data.parent_id ? props.data.parent_id : props.data.id,
       };

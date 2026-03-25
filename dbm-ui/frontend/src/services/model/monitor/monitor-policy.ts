@@ -119,6 +119,7 @@ export default class MonitorPolicy {
     monitor_policy_start_stop: boolean;
   };
   policy_status: string; // 策略状态：valid(正常)|invalid（异常）
+  policy_tag: 'inner' | 'custom' | 'subord'; // 内置、自定义、子策略
   sync_at: string;
   target_keyword: string;
   target_level: MonitorTargetLevel;
@@ -170,6 +171,7 @@ export default class MonitorPolicy {
     this.notify_rules = payload.notify_rules;
     this.notify_groups = payload.notify_groups;
     this.policy_status = payload.policy_status;
+    this.policy_tag = payload.policy_tag;
     this.parent_id = payload.parent_id;
     this.permission = payload.permission || {};
     this.sync_at = payload.sync_at;
@@ -181,21 +183,29 @@ export default class MonitorPolicy {
     this.updater = payload.updater;
     this.update_at = payload.update_at;
   }
-
   get expression() {
     return this.details.items[0].expression;
   }
 
   get isChild() {
-    return this.bk_biz_id !== 0 && ![MonitorTargetLevel.BIZ, MonitorTargetLevel.PLATFORM].includes(this.target_level);
+    // return this.bk_biz_id !== 0 && ![MonitorTargetLevel.BIZ, MonitorTargetLevel.PLATFORM].includes(this.target_level);
+    return (
+      ![MonitorTargetLevel.BIZ, MonitorTargetLevel.PLATFORM].includes(this.target_level) && this.policy_tag === 'subord'
+    );
   }
 
   get isCustom() {
-    return this.bk_biz_id !== 0 && this.target_level === MonitorTargetLevel.BIZ;
+    // return this.bk_biz_id !== 0 && this.target_level === MonitorTargetLevel.BIZ;
+    return this.target_level === MonitorTargetLevel.BIZ && this.policy_tag === 'custom';
   }
 
-  get isInner() {
-    return this.bk_biz_id === 0 && this.target_level === MonitorTargetLevel.PLATFORM;
+  get isInnerFake() {
+    return this.target_level === MonitorTargetLevel.BIZ && this.policy_tag === 'inner';
+  }
+
+  get isInnerReal() {
+    // return this.bk_biz_id === 0 && this.target_level === MonitorTargetLevel.PLATFORM;
+    return this.target_level === MonitorTargetLevel.PLATFORM && this.policy_tag === 'inner';
   }
 
   get isNewCreated() {
@@ -211,7 +221,7 @@ export default class MonitorPolicy {
   }
 
   get nameDisplay() {
-    if (this.isCustom) {
+    if (this.isInnerFake || this.isCustom) {
       return this.name.split(' - ')[0];
     }
     return this.name;

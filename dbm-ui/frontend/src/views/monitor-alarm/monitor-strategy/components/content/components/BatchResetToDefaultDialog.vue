@@ -3,30 +3,28 @@
     v-model:is-show="moduleValue"
     class="batch-reset-to-default-dialog"
     quick-close
-    :title="t('批量恢复默认')"
+    :title="t('确定批量恢复 n 个自定义策略的默认配置？', { n: validCount })"
     :width="500">
-    <!-- <template #header>
-      <span class="main-title">{{ t('批量恢复默认') }}</span>
-      <span class="sub-title">{{ t('生效 n 条策略', { n: validCount }) }}</span>
-    </template> -->
     <div class="text-box">
-      <I18nT
-        class="valid-confirm"
-        keypath="确认将选中的 n 条自定义策略恢复为全局策略的默认配置？"
-        scope="global"
-        tag="span">
-        <template #n>
-          <span class="valid-count">{{ validCount }}</span>
-        </template>
-      </I18nT>
-      <div class="valid-info mt-8">
-        {{ t('恢复后，这些策略的自定义修改将被覆盖，重新跟随全局策略更新。此操作不可撤销。') }}
-      </div>
       <BkAlert
         v-if="invalidCount"
         class="mt-8"
         theme="warning"
         :title="t('已自动过滤 n 条不适用的策略（内置策略或子策略），不受本次操作影响。', { n: invalidCount })" />
+      <div class="valid-info mt-8">
+        {{ t('恢复后，这些策略的自定义修改将被覆盖，重新跟随全局策略更新。此操作不可撤销。') }}
+      </div>
+      <div class="list-box mt-16">
+        <div class="list-title">{{ t('已选择以下 n 个自定义策略', { n: validCount }) }}</div>
+        <div class="list-content">
+          <div
+            v-for="item in validList"
+            :key="item.id"
+            class="list-item">
+            {{ item.nameDisplay }}
+          </div>
+        </div>
+      </div>
     </div>
     <template #footer>
       <BkButton
@@ -113,6 +111,35 @@
         padding: 12px 16px;
         color: #4d4f56;
         background-color: #f5f7fa;
+      }
+
+      .list-box {
+        font-size: 12px;
+        border: 1px solid #eaebf0;
+        border-radius: 2px;
+
+        .list-title {
+          height: 32px;
+          padding: 0 16px;
+          line-height: 32px;
+          color: #313238;
+          background-color: #eaebf0;
+        }
+
+        .list-content {
+          max-height: 200px;
+          overflow: auto;
+
+          .list-item {
+            height: 32px;
+            padding: 0 16px;
+            line-height: 32px;
+
+            &:nth-child(even) {
+              background-color: #fafbfd;
+            }
+          }
+        }
       }
     }
   }

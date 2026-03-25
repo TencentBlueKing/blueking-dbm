@@ -37,6 +37,7 @@
           :all-rules="localRules"
           :data="rule"
           :index="index"
+          @change="handleRuleChange"
           @delete="removeRule" />
       </div>
       <BkButton
@@ -68,6 +69,8 @@
     rules?: MonitorPolicyModel['test_rules'];
   }
 
+  type Emits = (e: 'change') => void;
+
   interface Exposes {
     getValue: () => MonitorPolicyModel['test_rules'];
   }
@@ -75,6 +78,7 @@
   const props = withDefaults(defineProps<Props>(), {
     rules: () => [],
   });
+  const emits = defineEmits<Emits>();
 
   // const modelValue = defineModel<string>('connector', { required: true });
 
@@ -205,12 +209,21 @@
     }
     localRules.value.splice(index, 1);
     ruleCardRefs.value.splice(index, 1);
+    emits('change');
+  };
+
+  const handleRuleChange = () => {
+    emits('change');
+  };
+
+  const getFinalValue = () => {
+    const rules = ruleCardRefs.value.map((ref) => ref.getValue()).filter(Boolean);
+    return convertToExternalFormat(rules).filter((item) => item && item.config.length !== 0);
   };
 
   defineExpose<Exposes>({
     getValue() {
-      const rules = ruleCardRefs.value.map((ref) => ref.getValue()).filter(Boolean);
-      return convertToExternalFormat(rules);
+      return getFinalValue();
     },
   });
 </script>

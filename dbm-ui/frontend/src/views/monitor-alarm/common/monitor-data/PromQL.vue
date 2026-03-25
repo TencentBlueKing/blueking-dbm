@@ -17,7 +17,7 @@
     <div
       ref="editorRef"
       class="mt-8"
-      style="height: 100px" />
+      style="height: 200px" />
     <div class="step-box mt-8">
       <span class="mr-4">Step</span>
       <!-- <DbIcon
@@ -29,7 +29,8 @@
         v-model="step"
         :min="1"
         style="width: 100px"
-        type="number">
+        type="number"
+        @change="handleChange">
       </BkInput>
       <span class="ml-4">{{ t('秒') }}</span>
     </div>
@@ -46,11 +47,14 @@
     data: MonitorPolicyModel['agg_info'];
   }
 
+  type Emits = (e: 'change') => void;
+
   interface Exposes {
     getValue: () => Props['data'];
   }
 
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
@@ -71,6 +75,10 @@
       immediate: true,
     },
   );
+
+  const handleChange = () => {
+    emits('change');
+  };
 
   onMounted(() => {
     monaco.languages.register({ id: 'promql' });

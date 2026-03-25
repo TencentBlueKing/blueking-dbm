@@ -56,6 +56,7 @@
       }));
       return targetItems
         .concat(customItems)
+        .filter((item) => item.value.length > 0)
         .map((item) => `${item.title} ${optionMap[item.method]} ${item.value.join(',')}`);
     }
     return [];
