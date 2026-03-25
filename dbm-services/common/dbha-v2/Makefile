@@ -63,29 +63,29 @@ define GO_BUILD
 				-o $(BUILD_DIR)/$(BIN_PREFIX)$(1) cmd/$(1)/main.go
 endef
 
-.PHONY: all proto $(SERVICES) clean format test package help
+.PHONY: all proto $(SERVICES) doc toolkits cluster clean format test package help
 
 # package
 PKG_DIR   = $(BUILD_DIR)/$(PROJECT)
-PKG_NAME  = $(PROJECT).tar.gz
+PKG_NAME  = $(PROJECT)-$(VERSION).tar.gz
 
 # build target
 
 all: proto admin analysis receiver probe toolkits
 
 proto: $(GO_GEN_FILES)
-	@goimports -w .
+	@goimports -w $(GEN_DIR)/*.go
 
-admin:
+admin: proto
 	$(call GO_BUILD,$@)
 
-analysis:
+analysis: proto
 	$(call GO_BUILD,$@)
 
-receiver:
+receiver: proto
 	$(call GO_BUILD,$@)
 
-probe:
+probe: proto
 	$(call GO_BUILD,$@)
 
 # generate swagger api doc with swag
@@ -120,9 +120,11 @@ test:
 package: $(SERVICES) toolkits
 	@echo "Packaging $(PKG_NAME)..."
 	@rm -rf $(PKG_DIR)
-	@mkdir -p $(PKG_DIR)/etc $(PKG_DIR)/logs $(PKG_DIR)/pids $(PKG_DIR)/toolkits
-	@cp $(addprefix $(BUILD_DIR)/,$(BINARIES)) $(PKG_DIR)/
+	@mkdir -p $(PKG_DIR)/bin $(PKG_DIR)/etc $(PKG_DIR)/logs $(PKG_DIR)/pids $(PKG_DIR)/toolkits
+	@cp $(addprefix $(BUILD_DIR)/,$(BINARIES)) $(PKG_DIR)/bin/
 	@cp $(BUILD_DIR)/$(BIN_PREFIX)cluster $(PKG_DIR)/toolkits/
+	@cp scripts/setup.sh scripts/start-server.sh scripts/stop-server.sh \
+		scripts/start-probe.sh scripts/stop-probe.sh $(PKG_DIR)/
 	@-cp etc/*.yaml $(PKG_DIR)/etc/ 2>/dev/null || true
 	@cd $(BUILD_DIR) && tar -czvf $(PKG_NAME) $(PROJECT)
 	@rm -rf $(PKG_DIR)
@@ -143,7 +145,7 @@ help:
 	@echo "  receiver   - Build receiver service"
 	@echo "  probe      - Build probe service"
 	@echo "  toolkits   - Build toolkit binaries"
-	@echo "  package    - Create release package ($(PKG_NAME))"
+	@echo "  package    - Create release package (VERSION=x.y.z)"
 	@echo "  format     - Format code and tidy modules"
 	@echo "  test       - Run tests"
 	@echo "  clean      - Clean build artifacts"
