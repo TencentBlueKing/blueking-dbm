@@ -63,7 +63,7 @@ class RiskMemoListFilter(filters.FilterSet):
             return queryset.none()
 
         for assist in assists:
-            qs |= Q(bk_biz_id=assist["bk_biz_id"], db_type=assist["db_type"], creator__in=assist["users"])
+            qs |= Q(bk_biz_id=assist["bk_biz_id"], db_type=assist["db_type"])
         return queryset.filter(qs)
 
 
