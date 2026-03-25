@@ -42,6 +42,7 @@ type StartMySQLParam struct {
 	Port            int    // 如果socket参数不存在,则使用ip,port 方式去连接探测
 	SkipSlaveFlag   bool   // --skip-slave-start
 	SkipGrantTables bool   // --skip-grant-tables
+
 }
 
 // RestartMysqlInstanceNormal normal restart  mysql instance
@@ -95,7 +96,7 @@ func (p *StartMySQLParam) RestartMysqlInstance() (pid int, err error) {
 
 	logger.Info("正在强制关闭MySQL实例")
 	if err := ForceShutDownMySQL(p.MySQLUser, p.MySQLPwd, p.Socket); err != nil {
-		logger.Error("强制关闭MySQL实例失败", "error", err)
+		logger.Error("强制关闭MySQL实例失败, error: %s", err.Error())
 		return 0, err
 	}
 	logger.Info("MySQL实例已成功关闭")
@@ -103,11 +104,11 @@ func (p *StartMySQLParam) RestartMysqlInstance() (pid int, err error) {
 	logger.Info("开始启动MySQL实例")
 	pid, startErr := p.StartMysqlInstance()
 	if startErr != nil {
-		logger.Error("启动MySQL实例失败", "error", startErr)
+		logger.Error("启动MySQL实例失败, error: %s", startErr.Error())
 		return 0, startErr
 	}
 
-	logger.Info("MySQL实例重启成功", "pid", pid)
+	logger.Info("MySQL实例重启成功,pid is %d", pid)
 	return pid, nil
 }
 
@@ -144,11 +145,12 @@ cd %s && %s ./bin/mysqld_safe --defaults-file=%s --user=mysql `, mediaDir, numaS
 		return 0, errors.New("current user is not mysql or root")
 	}
 	if err != nil {
-		return
+		return 0, err
 	}
+	// 实际上最多重试120次，每次5秒 + 连接超时10s (可能)，总等待上限约 600s
 	return pid, util.Retry(
 		util.RetryConfig{
-			Times:     40,
+			Times:     120,
 			DelayTime: 5 * time.Second,
 		}, func() error { return p.CheckMysqlProcess() },
 	)
@@ -200,15 +202,15 @@ func (p *StartMySQLParam) CheckMysqlProcess() (err error) {
 	checkMysqldCmd := fmt.Sprintf("ps -efwww | grep %s|grep 'mysqld_safe '| grep -v grep", p.MyCnfName)
 	out, err := osutil.ExecShellCommand(false, checkMysqldCmd)
 	if err != nil {
-		// 如果是 shell 错误，不必等待 retry? 暂时保持 retry
 		errStr := fmt.Sprintf("exec shell error %s", checkMysqldCmd)
 		err = errors.WithMessage(err, errStr)
 		logger.Error(err.Error())
-		return err
+		// 如果是 shell 错误，不必等待 retry
+		return util.StopRetry(err)
 	}
-	regStr := fmt.Sprintf("mysqld_safe\\s+--defaults-file=%s", p.MyCnfName)
-	if !regexp.MustCompile(regStr).MatchString(out) {
-		logger.Info("regStr[%s] not match result[%s] ", regStr, out)
+	if !regexp.MustCompile(fmt.Sprintf("mysqld_safe\\s+--defaults-file=%s", p.MyCnfName)).MatchString(out) {
+		logger.Info("mysqld_safe --defaults-file=%s not match result[%s]", p.MyCnfName, out)
+		//nolint:misspell // cspell:ignore Messagef
 		return errors.WithMessagef(cst.MysqldIsNotRunning, "ps grep %s 不到相关进程，可能没有完全启动请稍等", p.MyCnfName)
 	}
 
@@ -331,9 +333,8 @@ func (param ShutdownMySQLParam) ForceShutDownMySQL() (err error) {
 
 // JudgeMysqldShutDown  err == nil 表示 ps aux 没有发现 mysqld
 func JudgeMysqldShutDown(prefix string) (err error) {
-	logger.Info("开始检查MySQL进程是否完全关闭", "prefix", prefix, "timeout", "120秒")
+	logger.Info("开始检查MySQL进程是否完全关闭", "prefix", prefix, "timeout", "300秒")
 
-	// 120秒超时
 	ot := time.NewTimer(time.Second * 300)
 	defer ot.Stop()
 	tk := time.NewTicker(2 * time.Second)
@@ -343,7 +344,7 @@ func JudgeMysqldShutDown(prefix string) (err error) {
 	for {
 		select {
 		case <-ot.C:
-			logger.Error("MySQL进程关闭超时, prefix: %s, timeout: 120秒, check_count: %d", prefix, checkCount)
+			logger.Error("MySQL进程关闭超时, prefix: %s, timeout: 300秒, check_count: %d", prefix, checkCount)
 			return fmt.Errorf("stop mysqld timeout:%s", prefix)
 		case <-tk.C:
 			checkCount++
@@ -408,7 +409,7 @@ func KillReMindMySQLClient(regexpStr string) error {
 	logger.Info(" kill command is %s", killSocketCommand)
 	_, err = osutil.ExecShellCommand(false, killSocketCommand)
 	if err != nil {
-		logger.Error("execute %s get an error:%s", killCommand, err.Error())
+		logger.Error("execute %s get an error:%s", killSocketCommand, err.Error())
 	}
 	return err
 }
