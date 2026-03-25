@@ -146,13 +146,13 @@
     index: number;
   }
 
-  interface Exposes {
-    getValue: () => RuleData;
-  }
-
   interface Emits {
     (e: 'delete', index: number): void;
     (e: 'change'): void;
+  }
+
+  interface Exposes {
+    getValue: () => RuleData;
   }
 
   const props = defineProps<Props>();

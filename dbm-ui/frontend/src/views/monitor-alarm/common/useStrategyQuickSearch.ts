@@ -6,10 +6,14 @@ import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
 import { getSimpleList } from '@services/source/monitorNoticeGroup';
 import { getUserList } from '@services/source/user';
 
-import { DBTypes, MonitorTargetLevel } from '@common/const';
+import { DBTypes } from '@common/const';
 
 import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
+enum TargetLevelFilter {
+  CUSTOM = 'custom',
+  INNER = 'inner',
+}
 export const useStrategyQuickSearch = (isPlatform: boolean, dbType?: DBTypes) => {
   const { t } = useI18n();
 
@@ -55,13 +59,11 @@ export const useStrategyQuickSearch = (isPlatform: boolean, dbType?: DBTypes) =>
         list: [
           {
             label: t('内置'),
-            value: MonitorTargetLevel.PLATFORM,
+            value: TargetLevelFilter.INNER,
           },
           {
             label: t('自定义'),
-            value: Object.values(MonitorTargetLevel)
-              .filter((item) => item !== MonitorTargetLevel.PLATFORM)
-              .join(','),
+            value: TargetLevelFilter.CUSTOM,
           },
         ],
         name: t('策略来源'),
@@ -172,13 +174,13 @@ export const useStrategyQuickSearch = (isPlatform: boolean, dbType?: DBTypes) =>
           return false;
         }
         if (Object.prototype.hasOwnProperty.call(localSearchValue, 'target_level')) {
-          const targetLevels = localSearchValue.target_level
-            .split(',')
-            .flatMap((levelItem) =>
-              levelItem === MonitorTargetLevel.PLATFORM ? MonitorTargetLevel.PLATFORM : levelItem.split(','),
-            );
+          const targetLevels = localSearchValue.target_level.split(',') as TargetLevelFilter[];
+          const fileterMethodMap = {
+            [TargetLevelFilter.CUSTOM]: (item: MonitorPolicyModel) => item.isCustom,
+            [TargetLevelFilter.INNER]: (item: MonitorPolicyModel) => item.isInnerReal || item.isInnerFake,
+          };
 
-          if (!targetLevels.includes(tableOriginalDataItem.target_level)) {
+          if (targetLevels.every((targetLevel) => !fileterMethodMap[targetLevel](tableOriginalDataItem))) {
             return false;
           }
         }

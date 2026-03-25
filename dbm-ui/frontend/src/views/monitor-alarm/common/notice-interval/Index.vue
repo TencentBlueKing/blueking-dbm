@@ -5,7 +5,8 @@
         v-model="mode"
         behavior="simplicity"
         class="interval-select"
-        :clearable="false">
+        :clearable="false"
+        @change="handleChange">
         <BkOption
           key="standard"
           label="固定"
@@ -21,7 +22,8 @@
         behavior="simplicity"
         class="interval-input"
         :min="1"
-        type="number" />
+        type="number"
+        @change="handleChange" />
       <span class="interval-text">{{ t('分钟再进行告警') }}</span>
       <BkPopover placement="top">
         <DbIcon type="attention" />
@@ -48,11 +50,14 @@
     data: MonitorPolicyModel['notify_config'];
   }
 
+  type Emits = (e: 'change') => void;
+
   interface Exposes {
     getValue: () => Props['data'];
   }
 
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
@@ -87,6 +92,10 @@
       m4: m * 4,
     });
   });
+
+  const handleChange = () => {
+    emits('change');
+  };
 
   defineExpose<Exposes>({
     getValue() {

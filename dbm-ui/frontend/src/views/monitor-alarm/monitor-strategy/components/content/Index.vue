@@ -50,26 +50,52 @@
       <div
         ref="tableWrapper"
         class="table-box">
-        <BkLoading :loading="loading">
+        <BkLoading :loading="isLoading">
           <PrimaryTable
             ref="table"
+            :bk-ui-settings="settings"
             :data="tableDisplayData"
             :max-height="tableMaxHeight"
             resizable
+            :row-class-name="rowClassName"
             row-key="id"
+            @bk-ui-settings-change="updateTableSettings"
             @select-change="handleSelectChange">
             <template #default>
               <TableColumn
                 col-key="row-expand"
                 fixed="left"
-                :width="30">
-                <template #default="{ row }: { row: MonitorPolicyModel }">
-                  <DbIcon
-                    v-if="!row.isChild && row.child.length > 0"
-                    class="row-expand-icon"
-                    :class="{ 'row-expand-icon-expanded': expandedRowMap[row.id] }"
-                    type="right-shape"
-                    @click="() => handleExpandChange(row.id)" />
+                :width="40">
+                <template #default="{ row, rowIndex }: { row: MonitorPolicyModel, rowIndex: number}">
+                  <div class="row-expand-content-box">
+                    <DbIcon
+                      v-if="!row.isChild && row.child.length > 0"
+                      class="row-expand-icon"
+                      :class="{ 'row-expand-icon-expanded': expandedRowMap[row.id] }"
+                      type="right-shape"
+                      @click="() => handleExpandChange(row.id)" />
+                    <BkTag
+                      v-if="row.isChild"
+                      size="small"
+                      style="font-weight: bolder"
+                      theme="warning">
+                      {{ t('子') }}
+                    </BkTag>
+                  </div>
+                  <div class="row-expand-line-box">
+                    <div
+                      v-if="row.isChild"
+                      class="dashed-line-horizontal" />
+                    <div
+                      v-if="!row.isChild && row.child.length > 0 && expandedRowMap[row.id]"
+                      class="dashed-line-vertical-parent" />
+                    <div
+                      v-if="row.isChild && !isLastChild(row, rowIndex)"
+                      class="dashed-line-vertical-child-common" />
+                    <div
+                      v-if="row.isChild && isLastChild(row, rowIndex)"
+                      class="dashed-line-vertical-child-last" />
+                  </div>
                 </template>
               </TableColumn>
               <TableColumn
@@ -82,42 +108,18 @@
                 fixed="left"
                 :title="t('策略名称')"
                 :width="300">
-                <!-- <template #title>
-                  <div style="display: flex; align-items: center">
-                    <BkCheckbox
-                      v-model="isCheckAll"
-                      @change="handleCheckAllChange" />
-                    <div class="ml-26">{{ t('策略名称') }}</div>
-                  </div>
-                </template> -->
-                <template #default="{ row, rowIndex }: { row: MonitorPolicyModel, rowIndex: number }">
+                <template #default="{ row }: { row: MonitorPolicyModel }">
                   <div style="display: flex">
-                    <div
-                      v-if="row.isChild"
-                      class="name-prepend">
-                      <div
-                        class="name-prepend-inner"
-                        :style="{
-                          height: getChildHeight(row, rowIndex),
-                        }" />
-                    </div>
                     <TextOverflowLayout>
-                      <template #prepend>
-                        <!-- <BkCheckbox
-                          v-model="selectedRowMap[row.id]"
-                          @change="() => handleCheckRowChange(row.id)" /> -->
-                        <div></div>
-                      </template>
                       <AuthButton
-                        :action-id="row.isInner ? 'monitor_policy_clone' : 'monitor_policy_edit'"
-                        :disabled="!row.is_enabled"
+                        :action-id="row.isInnerReal ? 'monitor_policy_clone' : 'monitor_policy_edit'"
                         :permission="
-                          row.isInner ? row.permission.monitor_policy_clone : row.permission.monitor_policy_edit
+                          row.isInnerReal ? row.permission.monitor_policy_clone : row.permission.monitor_policy_edit
                         "
                         :resource="row.id"
                         text
                         theme="primary"
-                        @click="() => handleOpenSlider(row, row.isInner ? 'clone' : 'edit')">
+                        @click="() => handleOpenSlider(row, row.isInnerReal ? 'clone' : 'edit')">
                         {{ row.nameDisplay }}
                       </AuthButton>
                       <template #append>
@@ -134,29 +136,29 @@
                           <DbIcon type="alert" />
                           {{ row.event_count }}
                         </BkTag>
-                        <BkTag
+                        <!-- <BkTag
                           v-if="row.isInner"
                           size="small">
                           {{ t('内置') }}
-                        </BkTag>
+                        </BkTag> -->
                         <BkTag
                           v-if="row.isCustom"
                           size="small"
                           theme="warning">
                           {{ t('自定义') }}
                         </BkTag>
-                        <BkTag
+                        <!-- <BkTag
                           v-if="row.isPolicyTypePromQL"
                           size="small"
                           style="color: #531dab; background: #f9f0ff">
                           PromQL
-                        </BkTag>
-                        <BkTag
+                        </BkTag> -->
+                        <!-- <BkTag
                           v-if="row.isPolicyTypeMulti"
                           size="small"
                           theme="success">
                           {{ t('多指标') }}
-                        </BkTag>
+                        </BkTag> -->
                         <BkTag
                           v-if="!row.is_enabled"
                           class="ml-4"
@@ -175,8 +177,8 @@
               </TableColumn>
               <TableColumn
                 col-key="targets"
-                :title="t('监控目标')"
-                :width="200">
+                :min-width="300"
+                :title="t('监控目标')">
                 <template #default="{ row }: { row: MonitorPolicyModel }">
                   <Targets :row="row" />
                 </template>
@@ -184,16 +186,26 @@
               <TableColumn
                 col-key="is_enabled"
                 :title="t('启停')"
-                :width="120">
+                :width="60">
                 <template #default="{ row }: { row: MonitorPolicyModel }">
+                  <BkSwitcher
+                    v-if="enableButtonDisabled(row)"
+                    v-bk-tooltips="{
+                      disabled: !enableButtonDisabled(row),
+                      content: row.isCustom
+                        ? t('父策略为告警兜底，需保持启用以确保告警覆盖')
+                        : t('继承自全局策略，启停与全局保持一致'),
+                    }"
+                    disabled
+                    :model-value="row.is_enabled"
+                    size="small"
+                    theme="primary" />
                   <BkPopConfirm
-                    :content="t('停用后所有监控动作将会停止，请谨慎操作！')"
+                    v-else-if="getEnablePopConfirmInfo(row).content"
+                    :content="getEnablePopConfirmInfo(row).content"
                     :is-show="showTipMap[row.id]"
                     placement="bottom"
-                    :popover-options="{
-                      disabled: row.isInner || !row.is_enabled,
-                    }"
-                    :title="t('确认停用该策略？')"
+                    :title="getEnablePopConfirmInfo(row).title"
                     trigger="click"
                     :width="320"
                     @cancel="() => handleCancelConfirm(row)"
@@ -201,13 +213,21 @@
                     <AuthSwitcher
                       v-model="row.is_enabled"
                       action-id="monitor_policy_start_stop"
-                      :disabled="row.isInner"
                       :permission="row.permission.monitor_policy_start_stop"
                       :resource="row.id"
                       size="small"
                       theme="primary"
-                      @change="() => handleChangeSwitch(row)" />
+                      @change="() => handleChangeSwitchPopConfirm(row)" />
                   </BkPopConfirm>
+                  <AuthSwitcher
+                    v-else
+                    v-model="row.is_enabled"
+                    action-id="monitor_policy_start_stop"
+                    :permission="row.permission.monitor_policy_start_stop"
+                    :resource="row.id"
+                    size="small"
+                    theme="primary"
+                    @change="() => handleChangeSwitchCommon(row)" />
                 </template>
               </TableColumn>
               <TableColumn
@@ -247,7 +267,7 @@
               <TableColumn
                 col-key="notify_groups"
                 :title="t('告警组')"
-                :width="180">
+                :width="240">
                 <template #default="{ row }: { row: MonitorPolicyModel }">
                   <RenderNotifyGroup :data="getNoticeGroupDisplay(row)" />
                 </template>
@@ -276,12 +296,14 @@
                 :width="180">
                 <template #default="{ row }: { row: MonitorPolicyModel }">
                   <AuthButton
-                    :action-id="row.isInner ? 'monitor_policy_clone' : 'monitor_policy_edit'"
-                    :permission="row.isInner ? row.permission.monitor_policy_clone : row.permission.monitor_policy_edit"
+                    :action-id="row.isInnerReal ? 'monitor_policy_clone' : 'monitor_policy_edit'"
+                    :permission="
+                      row.isInnerReal ? row.permission.monitor_policy_clone : row.permission.monitor_policy_edit
+                    "
                     :resource="row.id"
                     text
                     theme="primary"
-                    @click="() => handleOpenSlider(row, row.isInner ? 'clone' : 'edit')">
+                    @click="() => handleOpenSlider(row, row.isInnerReal ? 'clone' : 'edit')">
                     {{ t('编辑') }}
                   </AuthButton>
                   <AuthButton
@@ -340,6 +362,7 @@
       v-model="isShowEditStrrategySideSilder"
       :alarm-group-list="alarmGroupList"
       :alarm-group-name-map="alarmGroupNameMap"
+      :app-parent-info-map="appParentInfoMap"
       :cluster-list="clusterList"
       :data="currentChoosedRow"
       :db-type="dbType"
@@ -360,6 +383,7 @@
 </template>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
+  import dayjs from 'dayjs';
   import _ from 'lodash';
   import { type UnwrapRef } from 'vue';
   import { type ComponentProps } from 'vue-component-type-helpers';
@@ -368,22 +392,25 @@
 
   import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
   import {
+    clonePolicy,
     deletePolicy,
     disablePolicy,
     enablePolicy,
     getClusterList,
     queryMonitorPolicyList,
+    updatePolicy,
   } from '@services/source/monitor';
   import { getSimpleList } from '@services/source/monitorNoticeGroup';
 
-  import { useUrlSearch } from '@hooks';
+  import { useTableSettings, useUrlSearch } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import { DBTypeInfos, DBTypes, MonitorTargetLevel } from '@common/const';
+  import { DBTypeInfos, DBTypes, MonitorTargetLevel, UserPersonalSettings } from '@common/const';
 
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import AuthButton from '@components/auth-component/button.vue';
+  import TagBlock from '@components/tag-block/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import TestRules from '@views/monitor-alarm/common/table/TestRules.vue';
@@ -414,11 +441,14 @@
 
   const route = useRoute();
   const router = useRouter();
-  const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
+  const { locale, t } = useI18n();
+  const { currentBizId, currentBizInfo } = useGlobalBizs();
   const { getSearchParams, replaceSearchParams } = useUrlSearch();
   const { handleFilterList, handleMergeSearchParams, isSearching, quickSearchData, searchValue } =
     useStrategyQuickSearch(false, props.dbType);
+  const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.MONITOR_STRATEGY_BIZ_SETTINGS, {
+    disabled: ['row-expand', 'name'],
+  });
 
   const rootRef = useTemplateRef('tableWrapper');
 
@@ -439,8 +469,18 @@
   const selected = shallowRef<MonitorPolicyModel[]>([]);
   const tableFilterData = ref<MonitorPolicyModel[]>([]);
   const expandedRowMap = shallowRef({} as Record<number, boolean>);
+  const appParentInfoMap = shallowRef({} as Record<number, MonitorPolicyModel>); // 全局策略和业务策略的映射
 
   const batchResetToDefaultDisabled = computed(() => selected.value.filter((item) => item.isCustom).length === 0);
+  const isLoading = computed(
+    () =>
+      isTableLoading.value ||
+      isEnableLoading.value ||
+      isDisableLoading.value ||
+      isDeleteLoading.value ||
+      isCloneLoading.value ||
+      isUpdateLoading.value,
+  );
 
   const tableDisplayData = computed(() =>
     tableFilterData.value.flatMap((item) => {
@@ -464,26 +504,12 @@
         alarmGroupNameMap[item.id] = item.name;
       });
       alarmGroupList.value = groupList;
-      // if (notifyGroupId !== undefined) {
-      //   searchValue.value = [
-      //     {
-      //       id: 'notify_groups',
-      //       name: t('告警组'),
-      //       values: [
-      //         {
-      //           id: notifyGroupId,
-      //           name: alarmGroupNameMap[notifyGroupId],
-      //         },
-      //       ],
-      //     },
-      //   ];
-      // }
     },
   });
 
   const {
     data: tableOriginalData,
-    loading,
+    loading: isTableLoading,
     run: runQueryMonitorPolicyList,
   } = useRequest(queryMonitorPolicyList, {
     manual: true,
@@ -498,7 +524,7 @@
             [EditType.PARENT_EDIT]: 'edit',
             [EditType.PARENT_NEW]: 'new',
           };
-          const type = editType === EditType.PARENT_EDIT && row.isInner ? 'clone' : typeMap[editType as EditType];
+          const type = editType === EditType.PARENT_EDIT && row.isInnerReal ? 'clone' : typeMap[editType as EditType];
           handleOpenSlider(row, type);
         }
         editType = '';
@@ -507,6 +533,31 @@
         query: replaceSearchParams(params[0], false),
       });
       expandedRowMap.value = Object.fromEntries(result.results.map((item) => [item.id, true]));
+
+      const globalMap = new Map<number, MonitorPolicyModel>();
+      const globalBizMap = new Map<number, MonitorPolicyModel[]>();
+      const localAppParentInfoMap = {} as UnwrapRef<typeof appParentInfoMap>;
+
+      for (const res of result.results) {
+        const { id, parent_id, target_level } = res;
+
+        if (target_level === MonitorTargetLevel.BIZ) {
+          if (!globalBizMap.has(parent_id)) {
+            globalBizMap.set(parent_id, []);
+          }
+          globalBizMap.get(parent_id)!.push(res);
+        } else if (target_level === MonitorTargetLevel.PLATFORM) {
+          globalMap.set(id, res);
+        }
+      }
+      for (const [parentId, bizMonitorPolicyList] of globalBizMap) {
+        bizMonitorPolicyList.forEach((policyItem) => {
+          localAppParentInfoMap[policyItem.id] = globalMap.get(parentId)!;
+        });
+      }
+
+      appParentInfoMap.value = localAppParentInfoMap;
+
       if (isSearching.value) {
         const filterList = handleFilterList(tableOriginalData.value?.results || []);
         tableFilterData.value = handleFormatTableList(filterList, result.results);
@@ -526,7 +577,7 @@
     },
   });
 
-  const { run: runEnablePolicy } = useRequest(enablePolicy, {
+  const { loading: isEnableLoading, run: runEnablePolicy } = useRequest(enablePolicy, {
     manual: true,
     onSuccess: (isEnabled) => {
       if (isEnabled) {
@@ -536,7 +587,7 @@
     },
   });
 
-  const { run: runDisablePolicy } = useRequest(disablePolicy, {
+  const { loading: isDisableLoading, run: runDisablePolicy } = useRequest(disablePolicy, {
     manual: true,
     onSuccess: (isEnabled) => {
       if (!isEnabled) {
@@ -547,12 +598,32 @@
     },
   });
 
-  const { run: runDeletePolicy } = useRequest(deletePolicy, {
+  const { loading: isDeleteLoading, run: runDeletePolicy } = useRequest(deletePolicy, {
     manual: true,
     onSuccess: (isDeleted) => {
       if (isDeleted === null) {
         // 停用成功
-        messageSuccess(t('删除成功'));
+        messageSuccess(t('操作成功'));
+        fetchData();
+      }
+    },
+  });
+
+  const { loading: isCloneLoading, run: runClonePolicy } = useRequest(clonePolicy, {
+    manual: true,
+    onSuccess: (cloneResponse) => {
+      if (cloneResponse.bkm_id) {
+        messageSuccess(t('启用成功'));
+        fetchData();
+      }
+    },
+  });
+
+  const { loading: isUpdateLoading, run: runUpdatePolicy } = useRequest(updatePolicy, {
+    manual: true,
+    onSuccess: (updateResponse) => {
+      if (updateResponse.bkm_id) {
+        messageSuccess(t('启用成功'));
         fetchData();
       }
     },
@@ -576,6 +647,35 @@
       immediate: true,
     },
   );
+
+  // 全局启用，启停按钮禁用
+  const enableButtonDisabled = (row: MonitorPolicyModel) => {
+    return (
+      (row.isInnerReal && row.is_enabled) ||
+      ((row.isInnerFake || row.isCustom) && appParentInfoMap.value[row.id].is_enabled)
+    );
+  };
+
+  const getEnablePopConfirmInfo = (row: MonitorPolicyModel) => {
+    // 全局已禁用，启用当前策略（从继承变为自定义）
+    if ((row.isInnerReal && !row.is_enabled) || (row.isInnerFake && !appParentInfoMap.value[row.id].is_enabled)) {
+      return {
+        content: t('启用后，该策略将转为自定义管理，不再跟随全局策略更新。'),
+        title: t('确认启用该策略？'),
+      };
+    }
+    // 全局已禁用，停用当前策略（已是自定义）
+    if (row.isCustom && !appParentInfoMap.value[row.id].is_enabled && row.is_enabled) {
+      return {
+        content: t('停用后，不匹配子策略的对象将失去该告警覆盖。'),
+        title: t('确认停用该策略？'),
+      };
+    }
+    return {
+      content: '',
+      title: '',
+    };
+  };
 
   const handleFormatTableList = (filterData: MonitorPolicyModel[], allData: MonitorPolicyModel[]) => {
     // 父类id既全局策略id
@@ -664,7 +764,7 @@
     // 拿到所有的需要查询的策略的id
     const needIds = [...firstLevelIds, ...childIds];
     const resData = allData.filter((item) => needIds.includes(item.id));
-    const results: any[] = [];
+    const results: MonitorPolicyModel[] = [];
 
     const getChildData = (allData: any[], ids: number[]) => {
       return allData.filter((data) => ids.includes(data.id));
@@ -677,7 +777,23 @@
       }
     }
 
-    return results;
+    // TODO 后续改为自然排序
+    const sortedResults = [...results].sort((a, b) => {
+      return a.nameDisplay.localeCompare(b.nameDisplay, locale.value, {
+        numeric: true,
+        sensitivity: 'base',
+      });
+    });
+
+    sortedResults.forEach((parent: MonitorPolicyModel) => {
+      if (parent.child && parent.child.length > 0) {
+        parent.child.sort((a: MonitorPolicyModel, b: MonitorPolicyModel) => {
+          return dayjs(a.create_at).valueOf() - dayjs(b.create_at).valueOf();
+        });
+      }
+    });
+
+    return sortedResults;
   };
 
   const fetchData = () => {
@@ -685,7 +801,6 @@
       {
         bk_biz_id: currentBizId,
         db_type: props.dbType,
-        is_cover: true,
         limit: -1,
         offset: 0,
       },
@@ -708,13 +823,24 @@
     expandedRowMap.value = { ...expandedRowMap.value, [id]: !isExpended };
   };
 
-  const getChildHeight = (row: MonitorPolicyModel, rowIndex: number) => {
-    const parentRow = _.findLast(tableDisplayData.value, (item) => item.child.length > 0, rowIndex);
-    if (!parentRow) {
-      return 'calc(100% - 10px)';
-    }
+  const isLastChild = (row: MonitorPolicyModel, rowIndex: number) => {
+    const parentRow = _.findLast(tableDisplayData.value, (item) => item.child.length > 0, rowIndex)!;
     const childIndex = parentRow.child.findIndex((item) => item.id === row.id);
-    return childIndex === 0 ? 'calc(100% - 10px)' : '100%';
+    return childIndex === parentRow.child.length - 1;
+  };
+
+  const rowClassName = ({ row, rowIndex }: { row: MonitorPolicyModel; rowIndex: number }) => {
+    const classList: string[] = [];
+    if (
+      (!row.isChild && row.child.length > 0 && expandedRowMap.value[row.id]) ||
+      (row.isChild && !isLastChild(row, rowIndex))
+    ) {
+      classList.push('expanded-row');
+    }
+    if (row.isChild) {
+      classList.push('child-row');
+    }
+    return classList.join(' ');
   };
 
   const getNoticeGroupDisplay = (row: MonitorPolicyModel) => {
@@ -807,25 +933,83 @@
     });
   };
 
-  const handleChangeSwitch = (row: MonitorPolicyModel) => {
-    if (!row.is_enabled) {
-      showTipMap.value[row.id] = true;
-      Object.assign(row, {
-        is_enabled: !row.is_enabled,
-      });
-    } else {
-      // 启用
-      runEnablePolicy({ id: row.id });
-    }
+  // getEnablePopConfirmInfo 中的 case
+  const handleChangeSwitchPopConfirm = (row: MonitorPolicyModel) => {
+    showTipMap.value[row.id] = true;
+    Object.assign(row, {
+      is_enabled: !row.is_enabled,
+    });
   };
 
+  // 根据 getEnablePopConfirmInfo 中的 case 来判断
   const handleClickConfirm = (row: MonitorPolicyModel) => {
-    runDisablePolicy({ id: row.id });
+    const getBizDefaultGroupIds = () => {
+      const groupItem = alarmGroupList.value.find((item) => item.label === `${DBTypeInfos[props.dbType].name}_DBA`);
+      return groupItem ? [Number(groupItem.value)] : [];
+    };
+
+    if (row.isInnerReal || row.isInnerFake) {
+      // 全局已禁用，启用当前策略（从继承变为自定义）
+      if (row.isInnerFake) {
+        runUpdatePolicy(row.id, {
+          agg_info: row.agg_info,
+          custom_conditions: row.custom_conditions,
+          detects_config: row.detects_config,
+          is_enabled: true,
+          no_data_config: row.no_data_config,
+          notify_config: row.notify_config,
+          notify_groups: row.notify_groups,
+          notify_rules: row.notify_rules,
+          policy_tag: 'custom' as const,
+          targets: row.targets,
+          test_rules: row.test_rules,
+        });
+      } else {
+        // 真内置转为自定义，需要克隆
+        runClonePolicy({
+          agg_info: row.agg_info,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          custom_conditions: row.custom_conditions,
+          detects_config: row.detects_config,
+          is_enabled: true,
+          name: `${row.name} - ${currentBizInfo?.name}`,
+          no_data_config: row.no_data_config,
+          notify_config: row.notify_config,
+          notify_groups: getBizDefaultGroupIds(),
+          notify_rules: row.notify_rules,
+          parent_id: row.id,
+          policy_tag: 'custom' as const,
+          targets: [
+            {
+              level: MonitorTargetLevel.BIZ,
+              rule: {
+                key: MonitorTargetLevel.BIZ,
+                method: row.isPolicyTypePromQL ? '=' : 'eq',
+                value: [`${currentBizId}`],
+              },
+            },
+          ],
+          test_rules: row.test_rules,
+        });
+      }
+    } else if (row.isCustom) {
+      // 全局已禁用，停用当前策略（已是自定义）
+      runDisablePolicy({ id: row.id });
+    }
     showTipMap.value[row.id] = false;
   };
 
   const handleCancelConfirm = (row: MonitorPolicyModel) => {
     showTipMap.value[row.id] = false;
+  };
+
+  // 自定义（已停用）或 子策略
+  const handleChangeSwitchCommon = (row: MonitorPolicyModel) => {
+    if (row.is_enabled) {
+      runEnablePolicy({ id: row.id });
+    } else {
+      runDisablePolicy({ id: row.id });
+    }
   };
 
   const handleOpenSlider = (row: MonitorPolicyModel, type: UnwrapRef<typeof pageStatus>) => {
@@ -877,29 +1061,82 @@
     }
 
     .table-box {
-      .row-expand-icon {
-        display: inline-block;
-        font-size: 16px;
-        color: #c4c6cc;
-        cursor: pointer;
-        transition: all 0.2s cubic-bezier(0.38, 0, 0.24, 1) 0s;
+      .expanded-row {
+        .t-table__td-first-col {
+          border-bottom: none;
+        }
       }
 
-      .row-expand-icon-expanded {
-        transform: rotate(90deg);
+      .child-row {
+        .t-table__cell-check {
+          &::before {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            z-index: -1;
+            width: 11px;
+            border-top: 1px dashed #dcdee5;
+            content: '';
+            transform: translateY(-50%);
+          }
+        }
       }
 
-      .name-prepend {
-        width: 11px;
-        margin-right: 12px;
+      .row-expand-content-box {
+        text-align: center;
 
-        .name-prepend-inner {
+        .row-expand-icon {
+          display: inline-block;
+          font-size: 16px;
+          color: #c4c6cc;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.38, 0, 0.24, 1) 0s;
+        }
+
+        .row-expand-icon-expanded {
+          transform: rotate(90deg);
+        }
+      }
+
+      .row-expand-line-box {
+        .dashed-line-horizontal {
           position: absolute;
-          bottom: 50%;
-          left: 16px;
+          top: 50%;
+          right: 0;
+          z-index: -1;
           width: 11px;
-          border-bottom: 1px dashed #dcdee5;
+          border-top: 1px dashed #dcdee5;
+          transform: translateY(-50%);
+        }
+
+        .dashed-line-vertical-parent {
+          position: absolute;
+          bottom: 0;
+          left: 50%;
+          z-index: -1;
+          height: 50%;
           border-left: 1px dashed #dcdee5;
+          transform: translateX(-50%);
+        }
+
+        .dashed-line-vertical-child-common {
+          position: absolute;
+          top: 0;
+          left: 50%;
+          z-index: -1;
+          height: 100%;
+          border-left: 1px dashed #dcdee5;
+          transform: translateX(-50%);
+        }
+
+        .dashed-line-vertical-child-last {
+          position: absolute;
+          top: 0;
+          left: 50%;
+          z-index: -1;
+          height: 50%;
+          border-left: 1px dashed #dcdee5;
+          transform: translateX(-50%);
         }
       }
     }

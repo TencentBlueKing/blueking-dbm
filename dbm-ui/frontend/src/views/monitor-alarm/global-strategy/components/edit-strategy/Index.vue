@@ -47,47 +47,13 @@
           <BkFormItem
             :label="t('是否启用')"
             required>
-            <BkPopConfirm
-              :content="t('停用后，所有的业务将会停用该策略，请谨慎操作！')"
-              :is-show="showSwitchEnableTip"
-              placement="bottom"
-              :popover-options="{
-                disabled: !formModel.isEnabled,
-              }"
-              :title="t('确认停用该策略？')"
-              trigger="click"
-              width="320"
-              @cancel="() => handleSwitchEnableCancelConfirm()"
-              @confirm="() => handleSwitchEnableClickConfirm()">
-              <AuthSwitcher
-                v-model="formModel.isEnabled"
-                action-id="global_monitor_policy_start_stop"
-                :permission="data.permission.global_monitor_policy_start_stop"
-                :resource="data.id"
-                size="small"
-                theme="primary"
-                @change="() => handleChangeSwitch()" />
-            </BkPopConfirm>
-            <!-- <BkPopConfirm
-              :content="t('停用后，所有的业务将会停用该策略，请谨慎操作！')"
-              :is-show="enablePopfirmShow"
-              placement="bottom"
-              :popover-options="{
-                disabled: !data.is_enabled,
-              }"
-              :title="t('确认停用该策略？')"
-              trigger="click"
-              width="320"
-              @cancel="() => (enablePopfirmShow = false)"
-              @confirm="() => (enablePopfirmShow = false)">
-              <AuthSwitcher
-                v-model="formModel.isEnabled"
-                action-id="global_monitor_policy_start_stop"
-                :permission="data.permission.global_monitor_policy_start_stop"
-                :resource="data.id"
-                size="small"
-                theme="primary" />
-            </BkPopConfirm> -->
+            <AuthSwitcher
+              v-model="formModel.isEnabled"
+              action-id="global_monitor_policy_start_stop"
+              :permission="data.permission.global_monitor_policy_start_stop"
+              :resource="data.id"
+              size="small"
+              theme="primary" />
           </BkFormItem>
         </BkCard>
         <BkCard
@@ -183,6 +149,7 @@
         class="ml-8"
         :disabled="updateLoading"
         :loading="resetLoading"
+        outline
         :permission="data.permission.global_monitor_policy_edit"
         :resource="data.id"
         theme="primary"
@@ -244,7 +211,7 @@
   // const monitorTarget = ref(t('全部业务'));
   const formRef = ref();
   const nofityTarget = ref(`{${DBTypeInfos[props.dbType].name}_DBA}`);
-  const showSwitchEnableTip = ref(false);
+  // const showSwitchEnableTip = ref(false);
 
   const formModel = reactive({
     detectsConfig: {} as ComponentProps<typeof JudgingCondition>['modelValue']['detectsConfig'],
@@ -316,21 +283,21 @@
     },
   );
 
-  const handleSwitchEnableClickConfirm = () => {
-    formModel.isEnabled = false;
-    showSwitchEnableTip.value = false;
-  };
+  // const handleSwitchEnableClickConfirm = () => {
+  //   formModel.isEnabled = false;
+  //   showSwitchEnableTip.value = false;
+  // };
 
-  const handleSwitchEnableCancelConfirm = () => {
-    showSwitchEnableTip.value = false;
-  };
+  // const handleSwitchEnableCancelConfirm = () => {
+  //   showSwitchEnableTip.value = false;
+  // };
 
-  const handleChangeSwitch = () => {
-    if (!formModel.isEnabled) {
-      showSwitchEnableTip.value = true;
-      formModel.isEnabled = !formModel.isEnabled;
-    }
-  };
+  // const handleChangeSwitch = () => {
+  //   if (!formModel.isEnabled) {
+  //     showSwitchEnableTip.value = true;
+  //     formModel.isEnabled = !formModel.isEnabled;
+  //   }
+  // };
 
   // 点击确定
   const handleConfirm = async () => {
@@ -356,6 +323,7 @@
       notify_config: notifyConfig,
       notify_groups: props.data.notify_groups,
       notify_rules: formModel.notifyRules,
+      policy_tag: 'inner' as const,
       targets: props.data.targets,
       test_rules: testRules.filter((item) => item && item.config.length !== 0),
     };

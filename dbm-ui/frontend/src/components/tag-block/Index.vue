@@ -8,7 +8,9 @@
         :key="item"
         :size="size"
         :theme="theme">
-        {{ item }}
+        <BkOverflowTitle type="tips">
+          {{ item }}
+        </BkOverflowTitle>
       </BkTag>
       <BkTag
         v-if="moreTagCount > 0"

@@ -25,13 +25,15 @@
       <div
         ref="tableWrapper"
         class="table-box">
-        <BkLoading :loading="loading">
+        <BkLoading :loading="isLoading">
           <PrimaryTable
             ref="table"
+            :bk-ui-settings="settings"
             :data="tableDisplayData"
             :max-height="tableMaxHeight"
             resizable
-            row-key="id">
+            row-key="id"
+            @bk-ui-settings-change="updateTableSettings">
             <TableColumn
               col-key="name"
               fixed="left"
@@ -49,7 +51,7 @@
                     @click="() => handleEdit(row)">
                     {{ row.name }}
                   </AuthButton>
-                  <template #append>
+                  <!-- <template #append>
                     <div class="ml-4"></div>
                     <BkTag
                       v-if="row.isPolicyTypePromQL"
@@ -63,7 +65,7 @@
                       theme="success">
                       {{ t('多指标') }}
                     </BkTag>
-                  </template>
+                  </template> -->
                 </TextOverflowLayout>
               </template>
             </TableColumn>
@@ -180,7 +182,7 @@
                 </AuthButton>
                 <AuthButton
                   action-id="global_monitor_policy_edit"
-                  class="ml-16"
+                  class="ml-8"
                   :permission="row.permission.global_monitor_policy_edit"
                   :resource="row.id"
                   text
@@ -188,13 +190,6 @@
                   @click="() => handleResetClickConfirm(row)">
                   {{ t('恢复初始值') }}
                 </AuthButton>
-                <!-- <BkPopConfirm
-         :content="t('恢复初始值将覆盖当前所有修改，恢复为平台预设的初始配置。此操作不可撤销，确定继续吗？')"
-         placement="bottom"
-         :title="t('确认恢复初始值？')"
-         trigger="click"
-         width="320">
-       </BkPopConfirm> -->
               </template>
             </TableColumn>
           </PrimaryTable>
@@ -216,9 +211,9 @@
   import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
   import { disablePolicy, enablePolicy, queryMonitorPolicyList, resetGlobalStrategy } from '@services/source/monitor';
 
-  import { useUrlSearch } from '@hooks';
+  import { useTableSettings, useUrlSearch } from '@hooks';
 
-  import { DBTypeInfos, DBTypes } from '@common/const';
+  import { DBTypeInfos, DBTypes, UserPersonalSettings } from '@common/const';
 
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import TagBlock from '@components/tag-block/Index.vue';
@@ -237,10 +232,13 @@
 
   const props = defineProps<Props>();
 
-  const { t } = useI18n();
   const router = useRouter();
+  const { locale, t } = useI18n();
   const { getSearchParams, replaceSearchParams } = useUrlSearch();
   const { handleFilterList, handleMergeSearchParams, quickSearchData, searchValue } = useStrategyQuickSearch(true);
+  const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.MONITOR_STRATEGY_GLOBAL_SETTINGS, {
+    disabled: ['name'],
+  });
 
   const rootRef = useTemplateRef('tableWrapper');
 
@@ -251,9 +249,13 @@
 
   const tableDisplayData = shallowRef<MonitorPolicyModel[]>();
 
+  const isLoading = computed(
+    () => isTableLoading.value || isEnableLoading.value || isDisableLoading.value || isResetLoading.value,
+  );
+
   const {
     data: tableOriginalData,
-    loading,
+    loading: isTableLoading,
     run: runQueryMonitorPolicyList,
   } = useRequest(queryMonitorPolicyList, {
     manual: true,
@@ -261,12 +263,11 @@
       router.replace({
         query: replaceSearchParams(params[0], false),
       });
-      console.log('onSuccess', params[0]);
-      tableDisplayData.value = data.results;
+      tableDisplayData.value = sortList(data.results);
     },
   });
 
-  const { run: runEnablePolicy } = useRequest(enablePolicy, {
+  const { loading: isEnableLoading, run: runEnablePolicy } = useRequest(enablePolicy, {
     manual: true,
     onSuccess: (isEnabled) => {
       if (isEnabled) {
@@ -276,7 +277,7 @@
     },
   });
 
-  const { run: runDisablePolicy } = useRequest(disablePolicy, {
+  const { loading: isDisableLoading, run: runDisablePolicy } = useRequest(disablePolicy, {
     manual: true,
     onSuccess: (isEnabled) => {
       if (!isEnabled) {
@@ -287,7 +288,7 @@
     },
   });
 
-  const { run: runResetGlobalStrategy } = useRequest(resetGlobalStrategy, {
+  const { loading: isResetLoading, run: runResetGlobalStrategy } = useRequest(resetGlobalStrategy, {
     manual: true,
     onSuccess: () => {
       messageSuccess(t('恢复初始值成功'));
@@ -295,9 +296,21 @@
     },
   });
 
+  const sortList = (results: MonitorPolicyModel[]) => {
+    // TODO 后续改为自然排序
+    const sortedResults = [...results].sort((a, b) => {
+      return a.name.localeCompare(b.name, locale.value, {
+        numeric: true,
+        sensitivity: 'base',
+      });
+    });
+    return sortedResults;
+  };
+
   const handleQuickSearchChange = () => {
-    tableDisplayData.value = handleFilterList(tableOriginalData.value?.results || []);
-    console.log('handleQuickSearchChange', handleMergeSearchParams(getSearchParams()));
+    const results = handleFilterList(tableOriginalData.value?.results || []);
+    tableDisplayData.value = sortList(results);
+
     router.replace({
       query: replaceSearchParams(handleMergeSearchParams(getSearchParams()), false),
     });

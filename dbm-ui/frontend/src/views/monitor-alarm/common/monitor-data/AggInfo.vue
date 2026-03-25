@@ -84,11 +84,14 @@
     monitorPolicyId: number;
   }
 
+  type Emits = (e: 'change') => void;
+
   interface Exposes {
     getValue: () => Props['data'];
   }
 
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
@@ -154,6 +157,18 @@
   );
 
   watch(
+    localValue,
+    () => {
+      if (_.isEqual(getFinalValue(), props.data)) {
+        emits('change');
+      }
+    },
+    {
+      deep: true,
+    },
+  );
+
+  watch(
     () => [props.monitorPolicyId],
     () => {
       runSearchAlarmStrategy({
@@ -169,9 +184,13 @@
     return String.fromCharCode('a'.charCodeAt(0) + num);
   };
 
+  const getFinalValue = () => {
+    return localValue.value.map((item) => _.omit(Object.assign(item, { agg_interval: item.interval }), 'interval'));
+  };
+
   defineExpose<Exposes>({
     getValue() {
-      return localValue.value.map((item) => _.omit(Object.assign(item, { agg_interval: item.interval }), 'interval'));
+      return getFinalValue();
     },
   });
 </script>

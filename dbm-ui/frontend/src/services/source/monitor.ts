@@ -28,6 +28,7 @@ interface UpdatePolicyParams {
   notify_config: MonitorPolicyModel['notify_config'];
   notify_groups: number[];
   notify_rules: string[];
+  policy_tag: MonitorPolicyModel['policy_tag'];
   targets: MonitorPolicyModel['targets'];
   test_rules: MonitorPolicyModel['test_rules'];
 }
@@ -93,7 +94,6 @@ export const queryMonitorPolicyList = (
   params: {
     bk_biz_id?: number;
     db_type?: string;
-    is_cover?: boolean; // 业务下列表传true
     limit?: number;
     name?: string;
     notify_groups?: string;
@@ -116,7 +116,7 @@ export const queryMonitorPolicyList = (
   }));
 
 // 更新策略
-export const updatePolicy = (id: number, params: UpdatePolicyParams) =>
+export const updatePolicy = (id: number, params: { name?: string } & UpdatePolicyParams) =>
   http.post<{
     bkm_id: number;
     local_id: number;
