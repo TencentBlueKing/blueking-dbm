@@ -96,7 +96,7 @@ def _normalize_meta_check_row(row: dict) -> dict:
 
 
 def _deduplicate_latest_per_group(rows: List[dict]) -> List[dict]:
-    """Keep only the latest record for each (subtype, cluster) pair.
+    """Keep only the latest record for each (subtype, cluster, instance) group.
 
     Assumes rows are already sorted by create_at descending so the first
     occurrence of each key is guaranteed to be the most recent one.
@@ -104,7 +104,7 @@ def _deduplicate_latest_per_group(rows: List[dict]) -> List[dict]:
     seen: set = set()
     result = []
     for row in rows:
-        key = (row["subtype"], row["cluster"])
+        key = (row["subtype"], row["cluster"], row.get("instance", ""))
         if key not in seen:
             seen.add(key)
             result.append(row)
@@ -123,7 +123,7 @@ def _query_single_model(
 ) -> List[dict]:
     """Query one report model and return normalized rows.
 
-    Returns at most one record per (subtype, cluster) pair — the latest one.
+    Returns at most one record per (subtype, cluster, instance) group — the latest one.
     The caller's *limit* is enforced after deduplication by _merge_and_limit.
     """
     queryset = model.objects.all()

@@ -13,6 +13,14 @@ from rest_framework import serializers
 
 from backend.dbm_aiagent.mcp_tools.redis.enums import MetricsGroupBy, MetricsStatsType, MetricType
 
+# Shown on metric_type where capacity is allowed, and on capacity-related response fields.
+_CAPACITY_METRIC_USER_GUIDANCE = _(
+    "For metric_type=capacity: total bytes are normally stable within a single query window; "
+    "when describing current state, lean on `latest` together with used/available. "
+    "If total (or its min/max over the window) differs from that steady baseline across the period, "
+    "it usually reflects scale-out, scale-in, or topology changes rather than continuous drift."
+)
+
 
 class RedisMetricsTimeWindowSerializer(serializers.Serializer):
     """start/end window and datapoint cap — shared by all Redis metrics query scopes."""
@@ -102,8 +110,9 @@ class RedisMetricsClusterBackendInputSerializer(ClusterDomainsFieldMixin, RedisM
             "[Resource] cpu_usage, memory_usage, io_usage, disk_usage. "
             "[Throughput] connections, qps. "
             "[Latency] host_latency, command_latency (group_by cmd is auto-added). "
-            "[Capacity] capacity (used/available/total memory in bytes)."
-        ),
+            "[Capacity] capacity (used/available/total memory in bytes). "
+        )
+        + _CAPACITY_METRIC_USER_GUIDANCE,
     )
     group_by = serializers.ListField(
         child=serializers.ChoiceField(choices=MetricsGroupBy.get_cluster_api_choices()),
@@ -137,8 +146,9 @@ class RedisMetricsMachineInputSerializer(RedisMetricsTimeWindowSerializer):
             "[Resource] cpu_usage, memory_usage, io_usage, disk_usage. "
             "[Throughput] connections, qps. "
             "[Latency] host_latency, command_latency (group_by cmd is auto-added), latency_distribution. "
-            "[Capacity] capacity."
-        ),
+            "[Capacity] capacity. "
+        )
+        + _CAPACITY_METRIC_USER_GUIDANCE,
     )
     group_by = serializers.ListField(
         child=serializers.ChoiceField(choices=MetricsGroupBy.get_machine_api_choices()),
@@ -176,8 +186,9 @@ class RedisMetricsInstanceInputSerializer(RedisMetricsTimeWindowSerializer):
             "latency_distribution is proxy-only; capacity is backend-only. "
             "[Throughput] connections, qps. "
             "[Latency] host_latency, command_latency (group_by cmd is auto-added), latency_distribution. "
-            "[Capacity] capacity."
-        ),
+            "[Capacity] capacity. "
+        )
+        + _CAPACITY_METRIC_USER_GUIDANCE,
     )
     group_by = serializers.ListField(
         child=serializers.ChoiceField(choices=MetricsGroupBy.get_instance_api_choices()),
@@ -286,8 +297,10 @@ class RedisMetricsSeriesOutputSerializer(serializers.Serializer):
             "machine scope -> one key per instance on that machine ('ip:port1', 'ip:port2', ...); "
             "cluster scope -> key is cluster_domain, or group_by dimension values (ip, instance, bucket). "
             "Value units match the metric_type: % for usage metrics, count for connections, "
-            "ops/s for qps, μs for latency, bytes for capacity."
-        ),
+            "ops/s for qps, μs for latency, bytes for capacity. "
+            "For capacity, separate series correspond to used, available, and total. "
+        )
+        + _CAPACITY_METRIC_USER_GUIDANCE,
     )
     mermaid_code = serializers.CharField(
         required=False,
@@ -322,8 +335,10 @@ class RedisMetricsStatsOutputSerializer(serializers.Serializer):
             "With stats_type='vertical': these stats describe the aggregated cluster-wide series over time "
             "(e.g. max = peak total cluster QPS). "
             "With stats_type='horizontal': these stats describe the spread across instances "
-            "(e.g. max = highest value any single instance reached)."
-        ),
+            "(e.g. max = highest value any single instance reached). "
+            "For metric_type=capacity, keys distinguish used, available, and total. "
+        )
+        + _CAPACITY_METRIC_USER_GUIDANCE,
     )
     partial_errors = serializers.JSONField(
         required=False,

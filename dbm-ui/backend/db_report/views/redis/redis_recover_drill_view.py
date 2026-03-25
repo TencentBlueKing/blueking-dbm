@@ -49,17 +49,15 @@ class RedisRecoverDrillTaskSerializer(serializers.ModelSerializer, ReportCommonF
 
     def get_rollback_flow_link(self, obj):
         """Generate rollback flow link"""
-        if not obj.rollback_flow_obj_id:
+        if not obj.rollback_flow_obj_id or not obj.bk_biz_id:
             return None
-        biz_id = self._get_biz_id()
-        return f"{BK_SAAS_HOST}/{biz_id}/task-history/detail/{obj.rollback_flow_obj_id}?from=taskHistoryList"
+        return f"{BK_SAAS_HOST}/{obj.bk_biz_id}/task-history/detail/{obj.rollback_flow_obj_id}?from=taskHistoryList"
 
     def get_delete_flow_link(self, obj):
         """Generate delete flow link"""
-        if not obj.delete_flow_obj_id:
+        if not obj.delete_flow_obj_id or not obj.bk_biz_id:
             return None
-        biz_id = self._get_biz_id()
-        return f"{BK_SAAS_HOST}/{biz_id}/task-history/detail/{obj.delete_flow_obj_id}?from=taskHistoryList"
+        return f"{BK_SAAS_HOST}/{obj.bk_biz_id}/task-history/detail/{obj.delete_flow_obj_id}?from=taskHistoryList"
 
     def get_ticket_link(self, obj):
         """Generate ticket link"""

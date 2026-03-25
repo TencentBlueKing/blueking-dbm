@@ -52,7 +52,11 @@ class RedisLogCapturingService(BaseService):
         trans_data: RedisRollbackExerciseContext = data.get_one_of_inputs("trans_data")
         if trans_data is None or trans_data == "${trans_data}":
             cls_name = kwargs.get("set_trans_data_dataclass", RedisRollbackExerciseContext.__name__)
-            trans_data = getattr(flow_context, cls_name)()
+            try:
+                trans_data = getattr(flow_context, cls_name)()
+            except AttributeError:
+                logger.error("trans_data_dataclass '%s' not found on flow_context, using default", cls_name)
+                trans_data = RedisRollbackExerciseContext()
         self.trans_data = trans_data
 
     def _append_to_task_info(self, msg: str, log_level: str):
@@ -91,12 +95,14 @@ class RedisLogCapturingService(BaseService):
 
     def _execute(self, data, parent_data) -> bool:
         self.init_trans_data(data)
+        data.inputs.trans_data = self.trans_data
         result = self._execute_inner_captured(data, parent_data)
         data.outputs["trans_data"] = self.trans_data
         return result
 
     def _schedule(self, data, parent_data, callback_data=None) -> bool:
         self.init_trans_data(data)
+        data.inputs.trans_data = self.trans_data
         result = self._schedule_inner_captured(data, parent_data, callback_data)
         data.outputs["trans_data"] = self.trans_data
         return result
@@ -317,6 +323,7 @@ class RedisExerciseBestEffortCleanupService(RedisLogCapturingService, BkJobServi
         global_data = data.get_one_of_inputs("global_data")
         infos = global_data.get("infos", [])
 
+        self.log_info(_("Step 1/4: Collecting cleanup targets from StorageInstance metadata"))
         cleanup_hosts = []
         for info in infos:
             resource_applied = info.get("redis", [])
@@ -328,7 +335,12 @@ class RedisExerciseBestEffortCleanupService(RedisLogCapturingService, BkJobServi
 
             instances = StorageInstance.objects.filter(machine__ip=temp_host_ip, machine__bk_cloud_id=bk_cloud_id)
             if not instances.exists():
-                self.log_info(_("No StorageInstance on {}, skipping").format(temp_host_ip))
+                cleanup_hosts.append({"ip": temp_host_ip, "bk_cloud_id": bk_cloud_id, "ports": []})
+                self.log_warning(
+                    _("No StorageInstance on {}, but will still send kill job in case processes are running").format(
+                        temp_host_ip
+                    )
+                )
                 continue
 
             has_cluster_binding = False
@@ -366,7 +378,7 @@ class RedisExerciseBestEffortCleanupService(RedisLogCapturingService, BkJobServi
             "target_server": {"ip_list": target_ips},
         }
 
-        self.log_info(_("Submitting kill job for {} host(s)").format(len(cleanup_hosts)))
+        self.log_info(_("Step 2/4: Submitting kill job for {} host(s)").format(len(cleanup_hosts)))
         resp = JobApi.fast_execute_script({**copy.deepcopy(redis_fast_execute_script_common_kwargs), **body}, raw=True)
 
         data.outputs.ext_result = resp
@@ -384,13 +396,18 @@ class RedisExerciseBestEffortCleanupService(RedisLogCapturingService, BkJobServi
         ticket_id = global_data.get("uid")
         cleanup_hosts = data.get_one_of_outputs("cleanup_hosts") or []
 
+        self.log_info(_("Step 3/4: Decommissioning StorageInstance metadata"))
         for host in cleanup_hosts:
+            if not host["ports"]:
+                self.log_info(_("No metadata to decommission on {}").format(host["ip"]))
+                continue
             try:
                 decommission_instances(ip=host["ip"], bk_cloud_id=host["bk_cloud_id"], ports=host["ports"])
                 self.log_info(_("Decommissioned instances on {} ports {}").format(host["ip"], host["ports"]))
             except Exception as e:
                 self.log_error(_("Failed to decommission instances on {}: {}").format(host["ip"], e))
 
+        self.log_info(_("Step 4/4: Cleaning up rollback tasks and reconciling reports"))
         if ticket_id:
             try:
                 deleted, _detailed = TbTendisRollbackTasks.objects.filter(related_rollback_bill_id=ticket_id).delete()

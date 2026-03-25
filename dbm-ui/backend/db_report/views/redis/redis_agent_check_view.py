@@ -13,7 +13,7 @@ from rest_framework import status
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import DBType
-from backend.db_report.enums import SWAGGER_TAG, ReportType
+from backend.db_report.enums import SWAGGER_TAG, ReportFieldFormat, ReportType
 from backend.db_report.enums.redis_sub_type import RedisCheckSubType
 from backend.db_report.models.redis_check_report import RedisCheckReport
 from backend.db_report.register import register_report
@@ -21,13 +21,24 @@ from backend.db_report.views.redis.base import RedisCheckReportBaseViewSet, Redi
 
 
 @register_report(DBType.Redis)
-class RedisExporterCheckReportViewSet(RedisCheckReportBaseViewSet):
-    queryset = RedisCheckReport.objects.filter(subtype=RedisCheckSubType.Exporter.value)
+class RedisAgentUniversalCheckReportViewSet(RedisCheckReportBaseViewSet):
+    queryset = RedisCheckReport.objects.filter(subtype__in=RedisCheckSubType.get_agent_check_subtypes())
     serializer_class = RedisCheckReportSerializer
-    report_type = ReportType.EXPORTER_CHECK
+    report_type = ReportType.AGENT_UNIVERSAL_CHECK
+    report_title = [
+        {"name": "bk_biz_id", "display_name": _("业务"), "format": ReportFieldFormat.TEXT.value},
+        {"name": "cluster", "display_name": _("集群域名"), "format": ReportFieldFormat.TEXT.value},
+        {"name": "cluster_type", "display_name": _("集群类型"), "format": ReportFieldFormat.TEXT.value},
+        {"name": "state", "display_name": _("检查结果"), "format": ReportFieldFormat.STATUS.value},
+        {"name": "subtype", "display_name": _("检查子项"), "format": ReportFieldFormat.TEXT.value},
+        {"name": "instance", "display_name": _("实例节点"), "format": ReportFieldFormat.TEXT.value},
+        {"name": "msg", "display_name": _("详情"), "format": ReportFieldFormat.TEXT.value},
+        {"name": "create_at", "display_name": _("巡检时间"), "format": ReportFieldFormat.TEXT.value},
+        {"name": "failed_days", "display_name": _("持续天数"), "format": ReportFieldFormat.TEXT.value},
+    ]
 
     @common_swagger_auto_schema(
-        operation_summary=_("Redis Exporter检查报告"),
+        operation_summary=_("Agent通用检查报告"),
         responses={status.HTTP_200_OK: RedisCheckReportSerializer()},
         tags=[SWAGGER_TAG],
     )

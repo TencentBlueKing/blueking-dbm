@@ -39,6 +39,7 @@ class RedisCheckReport(BaseReportABS):
             models.Index(fields=["subtype", "report_day", "cluster_id"]),
             models.Index(fields=["subtype", "create_at", "cluster_id"]),
             models.Index(fields=["subtype", "bk_biz_id", "state", "create_at"]),
+            models.Index(fields=["subtype", "cluster", "instance"]),
         ]
 
     @classmethod
