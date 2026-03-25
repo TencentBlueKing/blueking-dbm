@@ -66,7 +66,7 @@ class HCMResourceReplenishService(BaseService):
                 city=city,
                 subzone=subzone,
                 os_name=os_name,
-                device_type=spec.device_class,
+                device_types=spec.device_class,
                 disk=[{"disk_type": s["type"], "disk_size": s["min"]} for s in spec.storage_spec if s.get("min")],
                 count=apply_count,
                 ticket_id=ticket.id,

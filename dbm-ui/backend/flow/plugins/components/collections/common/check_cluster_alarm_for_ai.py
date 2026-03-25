@@ -8,7 +8,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import json
+import random
 import re
+import time
 
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -112,6 +114,8 @@ class CheckClusterAlarmForAIService(SidecarServiceABC):
         self.log_info(_("监听集群有：{}".format(cluster_domains)))
         self.log_info(_("监听的时间区间是：{}-{}".format(datetime2str(flow_start_time), datetime2str(now_time))))
         try:
+            # 随机random等待0-30秒， 避免并发调用
+            time.sleep(random.randint(0, 30))
             ai_result = AgentHandler.ask_agent_with_command(
                 command=ASK_AI_COMMAND_MAP[DBType(flow_tree.db_type)].command,
                 command_params={
