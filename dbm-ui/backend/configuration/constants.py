@@ -189,6 +189,10 @@ class SystemSettingsEnum(StrStructuredEnum):
     WINDOWS_HOST_TO_RECYCLE_SWITCH = EnumField("WINDOWS_HOST_TO_RECYCLE_SWITCH", _("判断windows主机开关"))
     # AIDEV相关配置
     AI_CODE_SCENE_MAP = EnumField("AI_CODE_SCENE_MAP", _("智能体code场景映射关系表"))
+    # 每日代办提醒配置
+    DBM_DAILY_TODO_REMIND = EnumField("DBM_DAILY_TODO_REMIND", _("每日代办提醒配置"))
+    # 代办类型和用户映射信息
+    DBM_USER_TODO_TYPE_MAP = EnumField("DBM_USER_TODO_TYPE_MAP", _("代办类型和用户映射信息"))
 
 
 class BizSettingsEnum(StrStructuredEnum):
@@ -395,4 +399,26 @@ ACCOUNT_RULES_MAP = {
         "gcs_spider",
         "sync",
     ],
+}
+
+DAILY_TODO_REMIND_DEFAULT = {
+    "is_enable": False,
+    "remind_time": {
+        "minute": "0",
+        "hour": "9",
+    },
+    "notice": [],
+}
+
+DBM_USER_TODO_TYPE_MAP_DEFAULT = {
+    "types": {
+        "ticket_todo": _("单据代办"),
+        "inspect_todo": _("巡检代办"),
+        "cluster_disable_todo": _("集群下架代办"),
+        "host_todo": _("主机处理待办"),
+        "alarm_todo": _("告警事件待办"),
+        "risk_memo_todo": _("风险备忘录"),
+    },
+    "ordinary": ["ticket_todo", "cluster_disable_todo"],
+    "dba": ["ticket_todo", "inspect_todo", "cluster_disable_todo", "host_todo", "alarm_todo", "risk_memo_todo"],
 }
