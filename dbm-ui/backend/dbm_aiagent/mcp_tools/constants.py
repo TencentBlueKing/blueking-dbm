@@ -48,7 +48,7 @@ class DBMMcpTools(StrStructuredEnum):
     TASKFLOW_QUERY = EnumField("taskflow-query", _("任务流查询"))
     KAFKA_TOOLBOX = EnumField("kafka-toolbox", "kafka-toolbox")
     # MARKET
-    TICKET_OP_MARKET = EnumField("ticket-op-market", _("工单操作"))
+    DBM_PUBLIC_MARKET = EnumField("dbm-public-market", _("DBM公共服务"))
 
 
 class DBMMCPTags(StrStructuredEnum):
