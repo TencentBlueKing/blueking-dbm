@@ -67,7 +67,7 @@ endef
 
 # package
 PKG_DIR   = $(BUILD_DIR)/$(PROJECT)
-PKG_NAME  = $(PROJECT)-$(VERSION).tar.gz
+PKG_NAME  = $(VERSION).tar.gz
 
 # build target
 
