@@ -535,7 +535,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                 ):
                     cluster_sub_pipeline.add_sub_pipeline(
                         sub_flow=self.remote_slave_in_cluster(
-                            root_id=self.data["root_id"],
+                            root_id=self.root_id,
                             bk_biz_id=self.data["bk_biz_id"],
                             uid=self.data["uid"],
                             cluster=cluster,
