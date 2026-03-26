@@ -11,73 +11,104 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import (
-    MySQLProcessListFilterFieldType,
-    MySQLProcessListFilterOpType,
-    processlist_group_by_choices,
-)
+# class ShowProcessListFilter(serializers.Serializer):
+#     filter_field = serializers.ChoiceField(choices=MySQLProcessListFilterFieldType.get_choices(), help_text=_("过滤字段"))
+#     filter_op = serializers.ChoiceField(choices=MySQLProcessListFilterOpType.get_choices(), help_text=_("过滤操作"))
+#     filter_values = serializers.ListField(child=serializers.CharField(), help_text=_("过滤值"))
 
 
-class ShowProcessListFilter(serializers.Serializer):
-    filter_field = serializers.ChoiceField(choices=MySQLProcessListFilterFieldType.get_choices(), help_text=_("过滤字段"))
-    filter_op = serializers.ChoiceField(choices=MySQLProcessListFilterOpType.get_choices(), help_text=_("过滤操作"))
-    filter_values = serializers.ListField(child=serializers.CharField(), help_text=_("过滤值"))
+# class ShowClusterProcessListSummaryInputSerializer(serializers.Serializer):
+#     # bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
+#     cluster_domain = serializers.CharField(help_text=_("集群域名"))
+#     # instance_group = serializers.ChoiceField(
+#     #     choices=MySQLProcessListInstanceGroupType.get_choices(),
+#     #     help_text=_("实例分组"),
+#     #     default=MySQLProcessListInstanceGroupType.MasterGroup,
+#     # )
+#     # detail = serializers.BooleanField(help_text=_("显示连接详情"), required=False, default=False)
+#     # processlist_filters = serializers.ListField(
+#     #     child=ShowProcessListFilter(), help_text=_("连接信息过滤器"), required=False, default=[]
+#     # )
 
 
-class ShowClusterProcessListSummaryInputSerializer(serializers.Serializer):
-    # bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
-    cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    # instance_group = serializers.ChoiceField(
-    #     choices=MySQLProcessListInstanceGroupType.get_choices(),
-    #     help_text=_("实例分组"),
-    #     default=MySQLProcessListInstanceGroupType.MasterGroup,
-    # )
-    # detail = serializers.BooleanField(help_text=_("显示连接详情"), required=False, default=False)
-    # processlist_filters = serializers.ListField(
-    #     child=ShowProcessListFilter(), help_text=_("连接信息过滤器"), required=False, default=[]
-    # )
+# class ProcessListRowSerializer(serializers.Serializer):
+#     id = serializers.IntegerField(help_text=_("连接 ID"))
+#     access_source_address = serializers.CharField(help_text=_("ip:port 形式的来源地址"))
+#     proxy_address = serializers.CharField(help_text=_("ip:port 形式的接入层地址"))
+#     mysql_address = serializers.CharField(help_text=_("ip:port 形式的 mysql 地址"))
+#     command = serializers.CharField(help_text=_("正在执行的命令操作"))
+#     user = serializers.CharField(help_text=_("连接用户名"))
+#     db = serializers.CharField(help_text=_("正在访问的 db 名"))
+#     time = serializers.IntegerField(help_text=_("活跃时间, 单位是秒"))
+#     state = serializers.CharField(help_text=_("连接状态"))
 
 
-class ProcessListRowSerializer(serializers.Serializer):
+# class ProcessListSummarySerializer(serializers.Serializer):
+#     total_count = serializers.Serializer(serializers.IntegerField(), help_text=_("总连接数"))
+#     group_by_access_source_address = serializers.JSONField(help_text=_("按访问来源聚合计数结果"))
+#     group_by_user = serializers.JSONField(help_text=_("按连接账号名聚合计数结果"))
+#     group_by_db = serializers.JSONField(help_text=_("按访问数据库名聚合计数结果"))
+#     group_by_command = serializers.JSONField(help_text=_("按当前执行命令聚合计数结果"))
+#     group_by_state = serializers.JSONField(help_text=_("按连接状态聚合计数结果"))
+#     group_by_instance_address = serializers.JSONField(help_text=_("按 DB 实例聚合计数结果"))
+#     time_histogram = serializers.JSONField(help_text=_("连接时间划分结果"))
+
+
+# class ShowClusterProcessListSummaryOutputSerializer(serializers.Serializer):
+#     proxy_processlist_summary = ProcessListSummarySerializer(help_text=_("接入层连接摘要"))
+#     storage_processlist_summary = ProcessListSummarySerializer(help_text=_("存储层连接摘要"))
+#     message = serializers.CharField(help_text=_("附加说明信息"))
+
+
+# class ShowInstanceProcessListSummaryInputSerializer(serializers.Serializer):
+#     # 需要使用 auth_parse_instances 鉴权，不要求输入 bk_biz_id / cluster_domain
+#     instance = serializers.CharField(help_text=_("实例，ip:port 格式"))
+#     aggregate_type = serializers.ChoiceField(
+#         choices=processlist_group_by_choices,
+#         help_text=_("用户连接会话 processlist 的聚合方式，默认是使用 group_by_fingerprint"),
+#     )
+
+
+# class ShowInstanceProcessListSummaryOutputSerializer(serializers.Serializer):
+#     processlist_summary = ProcessListSummarySerializer(help_text=_("processlist 聚合结果"))
+#     cluster_domain = serializers.CharField(help_text=_("集群域名"))
+#     # aggregate_type = serializers.CharField(help_text=_("processlist 聚合方式"))
+#     message = serializers.CharField(help_text=_("附加说明信息"))
+
+
+class ShowInstanceProcessListInputSerializer(serializers.Serializer):
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"))
+    address = serializers.CharField(help_text=_("实例地址, ip:port 格式"))
+
+
+class MySQLProcessListRowSerializer(serializers.Serializer):
     id = serializers.IntegerField(help_text=_("连接 ID"))
-    access_source_address = serializers.CharField(help_text=_("ip:port 形式的来源地址"))
-    proxy_address = serializers.CharField(help_text=_("ip:port 形式的接入层地址"))
-    mysql_address = serializers.CharField(help_text=_("ip:port 形式的 mysql 地址"))
+    source_host = serializers.CharField(help_text=_("来源地址"))
     command = serializers.CharField(help_text=_("正在执行的命令操作"))
     user = serializers.CharField(help_text=_("连接用户名"))
     db = serializers.CharField(help_text=_("正在访问的 db 名"))
     time = serializers.IntegerField(help_text=_("活跃时间, 单位是秒"))
     state = serializers.CharField(help_text=_("连接状态"))
+    info = serializers.CharField(help_text=_("正在执行的 SQL 语句"), allow_null=True)
+    tables = serializers.ListField(child=serializers.CharField(), help_text=_("SQL 涉及的表"))
+    fingerprint = serializers.CharField(help_text=_("SQL 指纹"))
+    fingerprint_md5 = serializers.CharField(help_text=_("SQL 指纹 MD5"))
+    query_len = serializers.IntegerField(help_text=_("SQL 长度"))
 
 
-class ProcessListSummarySerializer(serializers.Serializer):
-    total_count = serializers.Serializer(serializers.IntegerField(), help_text=_("总连接数"))
-    group_by_access_source_address = serializers.JSONField(help_text=_("按访问来源聚合计数结果"))
-    group_by_user = serializers.JSONField(help_text=_("按连接账号名聚合计数结果"))
-    group_by_db = serializers.JSONField(help_text=_("按访问数据库名聚合计数结果"))
-    group_by_command = serializers.JSONField(help_text=_("按当前执行命令聚合计数结果"))
-    group_by_state = serializers.JSONField(help_text=_("按连接状态聚合计数结果"))
-    group_by_instance_address = serializers.JSONField(help_text=_("按 DB 实例聚合计数结果"))
-    time_histogram = serializers.JSONField(help_text=_("连接时间划分结果"))
+class ShowMySQLInstanceProcessListOutputSerializer(serializers.Serializer):
+    processlist = MySQLProcessListRowSerializer(many=True, help_text=_("MySQL 实例进程列表"))
 
 
-class ShowClusterProcessListSummaryOutputSerializer(serializers.Serializer):
-    proxy_processlist_summary = ProcessListSummarySerializer(help_text=_("接入层连接摘要"))
-    storage_processlist_summary = ProcessListSummarySerializer(help_text=_("存储层连接摘要"))
-    message = serializers.CharField(help_text=_("附加说明信息"))
+class ProxyProcessListRowSerializer(serializers.Serializer):
+    id = serializers.IntegerField(help_text=_("连接 ID"))
+    source_host = serializers.CharField(help_text=_("来源地址"))
+    user = serializers.CharField(help_text=_("连接用户名"))
+    destination_host = serializers.CharField(help_text=_("目标后端地址"))
+    state = serializers.CharField(help_text=_("连接状态"))
+    db = serializers.CharField(help_text=_("正在访问的 db 名"))
+    time = serializers.IntegerField(help_text=_("活跃时间, 单位是秒"))
 
 
-class ShowInstanceProcessListSummaryInputSerializer(serializers.Serializer):
-    # 需要使用 auth_parse_instances 鉴权，不要求输入 bk_biz_id / cluster_domain
-    instance = serializers.CharField(help_text=_("实例，ip:port 格式"))
-    aggregate_type = serializers.ChoiceField(
-        choices=processlist_group_by_choices,
-        help_text=_("用户连接会话 processlist 的聚合方式，默认是使用 group_by_fingerprint"),
-    )
-
-
-class ShowInstanceProcessListSummaryOutputSerializer(serializers.Serializer):
-    processlist_summary = ProcessListSummarySerializer(help_text=_("processlist 聚合结果"))
-    cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    # aggregate_type = serializers.CharField(help_text=_("processlist 聚合方式"))
-    message = serializers.CharField(help_text=_("附加说明信息"))
+class ShowProxyProcessListOutputSerializer(serializers.Serializer):
+    processlist = ProxyProcessListRowSerializer(many=True, help_text=_("Proxy 进程列表"))
