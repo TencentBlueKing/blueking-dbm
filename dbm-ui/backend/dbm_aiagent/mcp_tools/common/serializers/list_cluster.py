@@ -13,20 +13,35 @@ from rest_framework import serializers
 
 
 class ListBizClustersInputSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
-    cluster_domain = serializers.CharField(help_text=_("集群域名"), default=None)
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"), default=None)
+    cluster_domains = serializers.ListField(child=serializers.CharField(), help_text=_("集群域名列表"), default=None)
     ips = serializers.ListField(child=serializers.CharField(), help_text=_("IP 列表"), default=None)
     instances = serializers.ListField(child=serializers.CharField(), help_text=_("ip:port 形式的实例列表"), default=None)
-    # cluster_type = serializers.ChoiceField(choices=ClusterType.get_choices(), help_text=_("集群类型"), default=None)
 
 
 class ClusterBaseInfoSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     cluster_type = serializers.CharField(help_text=_("集群类型"))
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"))
     region = serializers.CharField(help_text=_("所在地域, 城市, city"))
     affinity = serializers.CharField(help_text=_("亲和性"))
     status = serializers.CharField(help_text=_("集群状态"))
+    creator = serializers.CharField(help_text=_("集群创建人"))
+    dbas = serializers.ListField(child=serializers.CharField(), help_text=_("集群 DBA 列表"))
+    # 集群标签以 tag_<key> 形式作为动态顶级字段返回，每个字段的值为 List[str]
+
+    class Meta:
+        # 允许动态字段透传
+        pass
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        # 将 tag_ 开头的动态字段透传到输出中
+        for key, value in instance.items():
+            if key.startswith("tag_") and key not in ret:
+                ret[key] = value
+        return ret
 
 
 class ListBizClustersOutputSerializer(serializers.Serializer):

@@ -10,16 +10,14 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
-from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
-from backend.configuration.constants import DEFAULT_DB_ADMINISTRATORS, DBType
-from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import AppCache, Cluster
 from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_bizs
+from backend.dbm_aiagent.mcp_tools.common.impl.list_biz_clusters import list_biz_clusters
 from backend.dbm_aiagent.mcp_tools.common.impl.list_biz_dbmodules import list_biz_dbmodules
+from backend.dbm_aiagent.mcp_tools.common.impl.list_bizs_base_info import list_bizs_base_info
 from backend.dbm_aiagent.mcp_tools.common.serializers.empty import EmptyInputSerializer
 from backend.dbm_aiagent.mcp_tools.common.serializers.list_bizs import (
     ListBizsInputSerializer,
@@ -83,61 +81,30 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
         return Response({"dbmodules": list_biz_dbmodules(bk_biz_id)})
 
     @mcp_tools_api_decorator(
-        description=str(
-            _(
-                """获取业务集群基本信息, 包括
-                * 云区域信息
-                * 集群域名
-                * 集群类型
-                * 地理信息
-                * 容灾级别
-                * 状态"""
-            )
-        ),
+        description=str(_("""查询域名, 机器, 实例所属集群基本信息""")),
         request_slz=ListBizClustersInputSerializer,
         response_slz=ListBizClustersOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.DBMETA_QUERY],
-        mcp_auth_parser=auth_parse_bizs,
+        mcp=[DBMMcpTools.DBMETA_QUERY, DBMMcpTools.DBM_PUBLIC_MARKET],
+        permission_classes=[],
+        mcp_auth_parser=None,
         name_prefix="dbmeta_query",
     )
-    def list_biz_clusters(self, request, *args, **kwargs):
+    def list_clusters_base_info(self, request, *args, **kwargs):
         bk_biz_id = self.get_param("bk_biz_id")
-        # cluster_type = self.get_param("cluster_type")
-        cluster_domain = self.get_param("cluster_domain")
+        cluster_domains = self.get_param("cluster_domains")
         ips = self.get_param("ips")
         instances = self.get_param("instances")
 
-        if not (ips or instances or cluster_domain):
-            raise Exception("ips, instances, cluster_domain at least one")
+        if not (ips or instances or cluster_domains):
+            raise Exception("ips, instances, cluster_domains at least one")
 
-        q = Q()
-
-        if ips:
-            q |= Q(**{"storageinstance__machine__ip__in": ips})
-        if instances:
-            for instance in instances:
-                ip, port = instance.split(":")
-                q |= Q(**{"storageinstance__machine__ip": ip, "storageinstance__port": port})
-        if cluster_domain:
-            q |= Q(**{"immute_domain": cluster_domain})
-
-        q &= Q(**{"bk_biz_id": bk_biz_id})
-        # if cluster_type:
-        #     q &= Q(**{"cluster_type": cluster_type})
-
-        res = [
-            {
-                # "bk_biz_id": cluster_obj.bk_biz_id,
-                "bk_cloud_id": cluster_obj.bk_cloud_id,
-                "cluster_type": cluster_obj.cluster_type,
-                "cluster_domain": cluster_obj.immute_domain,
-                "region": cluster_obj.region,
-                "affinity": cluster_obj.disaster_tolerance_level,
-                "status": cluster_obj.status,
-            }
-            for cluster_obj in Cluster.objects.filter(q)
-        ]
+        res = list_biz_clusters(
+            ips=ips,
+            instances=instances,
+            cluster_domains=cluster_domains,
+            bk_biz_id=bk_biz_id,
+        )
 
         return Response({"clusters": res})
 
@@ -146,47 +113,18 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=ListBizsInputSerializer,
         response_slz=ListBizsOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.DBMETA_QUERY],
+        mcp=[DBMMcpTools.DBMETA_QUERY, DBMMcpTools.DBM_PUBLIC_MARKET],
         name_prefix="dbmeta_query",
+        permission_classes=[],
+        mcp_auth_parser=None,
     )
     def list_bizs_base_info(self, request, *args, **kwargs):
         bk_biz_ids = self.get_param("bk_biz_ids")
         app_abbrs = self.get_param("app_abbrs")
 
-        apps = AppCache.objects.all()
+        if not (bk_biz_ids or app_abbrs):
+            raise Exception("bk_biz_ids, app_abbrs at least one")
 
-        if bk_biz_ids or app_abbrs:
-            q = Q()
-            if bk_biz_ids:
-                q |= Q(**{"bk_biz_id__in": bk_biz_ids})
-            if app_abbrs:
-                q |= Q(**{"db_app_abbr__in": app_abbrs})
-
-            apps = apps.filter(q)
-
-        res = []
-        for app in apps:
-            bk_biz_id = app.bk_biz_id
-            abbr = app.db_app_abbr
-
-            comp_infos = []
-            for db_type in DBType.get_values():
-                biz_db_admin = DBAdministrator.objects.filter(bk_biz_id=bk_biz_id, db_type=db_type)
-                if biz_db_admin.exists():
-                    admins = [u for u in biz_db_admin.first().users if u != DEFAULT_DB_ADMINISTRATORS]
-                else:
-                    admins = DEFAULT_DB_ADMINISTRATORS
-
-                if db_type == DBType.MySQL:
-                    comp_infos.append(
-                        {"db_type": DBType.MySQL, "cluster_type": ClusterType.TenDBSingle, "dbas": admins[0:2]}
-                    )
-                    comp_infos.append(
-                        {"db_type": DBType.MySQL, "cluster_type": ClusterType.TenDBHA, "dbas": admins[0:2]}
-                    )
-                else:
-                    comp_infos.append({"db_type": db_type, "cluster_type": db_type, "dbas": admins[0:2]})
-
-            res.append({"bk_biz_id": bk_biz_id, "abbr": abbr, "db_components": comp_infos})
+        res = list_bizs_base_info(bk_biz_ids=bk_biz_ids, app_abbrs=app_abbrs)
 
         return Response({"bizs": res})
