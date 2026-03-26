@@ -75,6 +75,15 @@
   const route = useRoute();
   const router = useRouter();
 
+  const replaceAgentId = (agentId: AgentItem['id']) => {
+    router.replace({
+      name: route.name!,
+      params: {
+        agentId,
+      },
+    });
+  };
+
   const searchKeyword = ref('');
   const collapsedGroups = ref<Record<string, boolean>>({});
 
@@ -119,13 +128,6 @@
 
   const handleToggleGroup = (group: string) => {
     collapsedGroups.value[group] = !collapsedGroups.value[group];
-  };
-
-  const replaceAgentId = (agentId: AgentItem['id']) => {
-    router.replace({
-      name: route.name!,
-      params: { agentId },
-    });
   };
 
   const handleSelect = (agent: AgentItem, group: string) => {

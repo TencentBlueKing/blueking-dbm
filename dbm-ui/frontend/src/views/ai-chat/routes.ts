@@ -30,7 +30,7 @@ export default function getRoutes() {
       component: () => import('@views/ai-chat/Index.vue'),
       children: [
         {
-          path: 'index/:agentId?/:sessionCode?',
+          path: 'index/:agentId?',
           name: 'AgentChatIndex',
           meta: {
             fullscreen: true,
