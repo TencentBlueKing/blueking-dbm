@@ -80,6 +80,27 @@ class GenericMixin:
             serializer = self.get_serializer_class()
         return self.params_validate(serializer, data)
 
+    def replace_empty_value(self, value):
+        if value == "__empty__":
+            return ""
+
+        if isinstance(value, QueryDict):
+            qd = value.copy()  # 可变副本
+            for k, vals in qd.lists():
+                qd.setlist(k, [self.replace_empty_value(v) for v in vals])
+            return qd
+
+        if isinstance(value, dict):
+            return {k: self.replace_empty_value(v) for k, v in value.items()}
+
+        if isinstance(value, list):
+            return [self.replace_empty_value(item) for item in value]
+
+        if isinstance(value, tuple):
+            return tuple(self.replace_empty_value(item) for item in value)
+
+        return value
+
     def params_validate(self, slz_cls, context: Optional[Dict] = None, init_params: Optional[Dict] = None, **kwargs):
         """
         检查参数是够符合序列化器定义的通用逻辑
@@ -101,6 +122,8 @@ class GenericMixin:
 
         if kwargs:
             req_data.update(kwargs)
+
+        req_data = self.replace_empty_value(req_data)
 
         # 增加slz的上下文
         slz_context = {"request": self.request, "view": self}

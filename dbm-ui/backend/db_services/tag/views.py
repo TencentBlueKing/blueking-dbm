@@ -73,6 +73,7 @@ class TagViewSet(AuditedModelViewSet):
         """
         查询标签列表
         """
+        request._request.GET = self.replace_empty_value(request.query_params)
         return super().list(request, *args, **kwargs)
 
     @common_swagger_auto_schema(

@@ -241,6 +241,7 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
         resource_meta=ResourceEnum.DBTYPE,
     )
     def list(self, request, *args, **kwargs):
+        request._request.GET = self.replace_empty_value(request.query_params)
         resp = super().list(request, *args, **kwargs)
         spec_ids = [spec["spec_id"] for spec in resp.data["results"]]
         # 为规格添加是否引用字段
