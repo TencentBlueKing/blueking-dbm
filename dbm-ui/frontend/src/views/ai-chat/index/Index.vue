@@ -53,6 +53,9 @@
     onError: () => {
       isAgentPingError.value = true;
     },
+    onSuccess: () => {
+      isAgentPingError.value = false;
+    },
   });
 
   const currentAgent = ref<{ group: string } & ServiceReturnType<typeof getAgentScene>['workbench'][string][number]>();

@@ -1,6 +1,9 @@
 <template>
   <BkDropdown
     class="ml-8"
+    :popover-options="{
+      clickContentAutoHide: true,
+    }"
     trigger="click"
     @hide="handleHide"
     @show="handleShow">

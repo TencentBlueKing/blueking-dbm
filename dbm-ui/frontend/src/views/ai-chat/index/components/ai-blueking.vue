@@ -16,14 +16,13 @@
               type="add" />
             {{ t('新建会话') }}
           </BkButton>
-          <ChatHistoryDropdown
+          <ChatHistorySelect
             :active-session-code="activeSessionCode"
             :is-loading="isSessionListLoading"
             :session-list="sessionList"
             @select="handleSelectSession" />
         </div>
       </div>
-
       <AIBlueking
         v-if="isMounted"
         ref="aiBlueking"
@@ -62,24 +61,13 @@
 
   import { getAgentScene } from '@services/source/ai';
 
-  import ChatHistoryDropdown from './chat-history-dropdown.vue';
+  import ChatHistorySelect from './chat-history-select.vue';
   import { uuid } from './utils';
 
   interface Props {
     agentInfo: { group: string } & ServiceReturnType<typeof getAgentScene>['workbench'][string][number];
   }
 
-  const props = defineProps<Props>();
-
-  const CSRFToken = Cookie.get('dbm_csrftoken');
-  const { t } = useI18n();
-  const route = useRoute();
-  const router = useRouter();
-
-  const isMounted = ref(false);
-  const isCreatingSession = ref(false);
-  const isSessionListLoading = ref(false);
-  const activeSessionCode = ref((route.params.sessionCode as string) || '');
   interface SessionItem {
     created_at: string;
     created_by: string;
@@ -108,6 +96,18 @@
     updated_by: string;
   }
 
+  const props = defineProps<Props>();
+
+  const CSRFToken = Cookie.get('dbm_csrftoken');
+  const { t } = useI18n();
+  const route = useRoute();
+  const router = useRouter();
+
+  const isMounted = ref(false);
+  const isCreatingSession = ref(false);
+  const isSessionListLoading = ref(false);
+  const activeSessionCode = ref('');
+
   const sessionList = ref<
     {
       sessionCode: string;
@@ -121,17 +121,16 @@
   const aiBluekingRef = useTemplateRef<InstanceType<typeof AIBlueking>>('aiBlueking');
   const isSwitchingSessionLoading = ref(false);
 
-  const agentPrefix = computed(() => `#${props.agentInfo.id}#`);
+  const agentPrefix = computed(() => `[${props.agentInfo.id}]`);
 
   const switchToSession = (sessionCode: string) => {
     isSwitchingSessionLoading.value = true;
     aiBluekingRef.value?.switchToSession(sessionCode).finally(() => {
       activeSessionCode.value = sessionCode;
       router.replace({
-        name: 'AgentChatIndex',
+        name: route.name!,
         params: {
           agentId: props.agentInfo.id,
-          sessionCode,
         },
       });
       setTimeout(() => {
@@ -140,35 +139,35 @@
     });
   };
 
+  const fetchSessionList = async () => {
+    isSessionListLoading.value = true;
+    try {
+      const dataList: {
+        sessionCode: string;
+        sessionName: string;
+        updatedAt: string;
+      }[] = await aiBluekingRef.value?.getSessionList();
+
+      sessionList.value = dataList.filter(
+        (item) => item.sessionCode.startsWith(agentPrefix.value) && item.sessionName !== 'temporary_session',
+      );
+    } finally {
+      setTimeout(() => {
+        isSessionListLoading.value = false;
+      }, 300);
+    }
+  };
+
   const handleNewChat = () => {
     isCreatingSession.value = true;
     aiBluekingRef.value
       ?.addNewSession(`${agentPrefix.value}${uuid()}`)
       .then((data: SessionItem) => {
-        fetchSessionList(true);
+        fetchSessionList();
         switchToSession(data.session_code);
       })
       .finally(() => {
         isCreatingSession.value = false;
-      });
-  };
-
-  const fetchSessionList = (autoSwitch = false) => {
-    isSessionListLoading.value = true;
-    aiBluekingRef.value
-      ?.getSessionList()
-      .then((data: { sessionCode: string; sessionName: string; updatedAt: string }[]) => {
-        sessionList.value = data.filter(
-          (item) => item.sessionCode.startsWith(agentPrefix.value) && item.sessionName !== 'temporary_session',
-        );
-        if (autoSwitch && sessionList.value.length > 0) {
-          switchToSession(sessionList.value[0].sessionCode);
-        }
-      })
-      .finally(() => {
-        setTimeout(() => {
-          isSessionListLoading.value = false;
-        }, 200);
       });
   };
 
@@ -178,10 +177,16 @@
 
   onMounted(() => {
     isMounted.value = true;
-    setTimeout(() => {
-      aiBluekingRef.value?.handleShow();
-      fetchSessionList(true);
-    }, 20);
+    isSwitchingSessionLoading.value = true;
+    setTimeout(async () => {
+      await aiBluekingRef.value?.handleShow();
+      await fetchSessionList();
+      if (sessionList.value.length > 0) {
+        switchToSession(sessionList.value[0].sessionCode);
+      } else {
+        handleNewChat();
+      }
+    });
   });
 </script>
 <style lang="postcss">
