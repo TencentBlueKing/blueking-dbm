@@ -314,7 +314,42 @@ class RedisActPayload(object):
         return resp
 
     @staticmethod
-    def redis_conf_names_by_cluster_type(cluster_type: str, cluster_version: str) -> list:
+    def redis_conf_names_by_cluster_type(
+        cluster_type: str,
+        cluster_version: str,
+        target_cluster_type: str = None,
+        target_version: str = None,
+    ) -> list[str] | None:
+        """
+        fix:
+            1、如果类型变更，ssd->cache，只继承特地item
+            2、如果类型不变，且为版本降级，只继承特地item
+            3、如果类型不变，且为版本升级，需要继承低版本所有item
+
+        Args:
+            cluster_type: 源集群类型
+            cluster_version: 源集群版本
+            target_cluster_type: 目标集群类型（可选，用于判断类型是否变更）
+            target_version: 目标版本（可选，用于判断版本升级/降级）
+
+        Returns:
+            配置项名称列表。如果返回 None，表示需要继承所有配置项（版本升级场景）
+        """
+        from backend.flow.utils.redis.redis_util import version_ge
+
+        # 判断是否为版本升级场景
+        is_version_upgrade = False
+        if target_version and target_version != cluster_version:
+            is_version_upgrade = version_ge(target_version, cluster_version)
+
+        # 判断类型是否变更
+        type_changed = target_cluster_type and target_cluster_type != cluster_type
+
+        # 场景3：类型不变且版本升级，返回None表示需要继承所有配置项
+        if not type_changed and is_version_upgrade:
+            return None
+
+        # 场景1和2：类型变更或版本降级，只继承特定配置项
         conf_names: list = []
         if (
             is_redis_instance_type(cluster_type) and cluster_version != RedisVersion.Redis20
@@ -350,8 +385,14 @@ class RedisActPayload(object):
         )
 
         src_conf_names = self.redis_conf_names_by_cluster_type(
-            cluster_map["src_cluster_type"], cluster_map["src_cluster_version"]
+            cluster_map["src_cluster_type"],
+            cluster_map["src_cluster_version"],
+            target_cluster_type=cluster_map["dst_cluster_type"],
+            target_version=cluster_map["dst_cluster_version"],
         )
+        # 如果返回None，表示需要继承所有配置项
+        if src_conf_names is None:
+            src_conf_names = list(src_resp["content"].keys())
         src_conf_items = []
         for conf_name in src_conf_names:
             if conf_name in src_resp["content"]:
@@ -374,8 +415,14 @@ class RedisActPayload(object):
         )
 
         dst_conf_names = self.redis_conf_names_by_cluster_type(
-            cluster_map["dst_cluster_type"], cluster_map["dst_cluster_version"]
+            cluster_map["dst_cluster_type"],
+            cluster_map["dst_cluster_version"],
+            target_cluster_type=cluster_map["src_cluster_type"],
+            target_version=cluster_map["src_cluster_version"],
         )
+        # 如果返回None，表示需要继承所有配置项
+        if dst_conf_names is None:
+            dst_conf_names = list(dst_resp["content"].keys())
         dst_conf_items = []
         for conf_name in dst_conf_names:
             if conf_name in dst_resp["content"]:
@@ -2167,7 +2214,15 @@ class RedisActPayload(object):
                 "format": FormatType.MAP,
             }
         )
-        conf_names = self.redis_conf_names_by_cluster_type(cluster_map["cluster_type"], cluster_map["current_version"])
+        conf_names = self.redis_conf_names_by_cluster_type(
+            cluster_map["cluster_type"],
+            cluster_map["current_version"],
+            target_cluster_type=cluster_map["cluster_type"],
+            target_version=cluster_map["target_version"],
+        )
+        # 如果返回None，表示需要继承所有配置项（版本升级场景）
+        if conf_names is None:
+            conf_names = list(src_resp["content"].keys())
         conf_items = []
         for conf_name in conf_names:
             if conf_name in src_resp["content"]:
@@ -2532,6 +2587,9 @@ class RedisActPayload(object):
             data_type=data_type,
         )
         conf_names = self.redis_conf_names_by_cluster_type(cluster.cluster_type, cluster.major_version)
+        # 处理返回值为None的情况（虽然域名重命名场景不应该返回None，但为了健壮性）
+        if conf_names is None:
+            conf_names = list(old_dbconfig_data["content"].keys())
         update_conf_items = []
         for conf_name in conf_names:
             if conf_name in old_dbconfig_data["content"]:
