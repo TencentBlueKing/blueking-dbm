@@ -110,7 +110,7 @@ def get_redis_cluster_load_tag(immute_domain: str) -> Dict:
 
     try:
         load_status_map, cluster_load_map = query_cluster_load(
-            cluster_obj.cluster_type.value, clusters=[cluster_obj.immute_domain]
+            cluster_obj.cluster_type, clusters=[cluster_obj.immute_domain]
         )
         cluster_status = load_status_map.get(immute_domain, {})
         if not cluster_status:
