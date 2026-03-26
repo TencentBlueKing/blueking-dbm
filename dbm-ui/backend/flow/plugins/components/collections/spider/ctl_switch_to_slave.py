@@ -138,7 +138,7 @@ class CtlSwitchToSlaveService(BaseService):
         检测待回收的primary是否存在running状态的线程
         """
         check_sql = (
-            f"select * from information_schema.TDBCTL_CLUSTER_PROCESSLIST where user = '{TDBCTL_USER}'"
+            f"select * from information_schema.PROCESSLIST where user = '{TDBCTL_USER}'"
             + " and command != 'Sleep' and info not like '%INFORMATION_SCHEMA.PROCESSLIST';"
         )
         res = DRSApi.rpc(
