@@ -221,8 +221,14 @@ export default class MonitorPolicy {
   }
 
   get nameDisplay() {
+    // 策略名 - 业务名：存量父策略格式
+    // 策略名 - 【业务名】：新父策略格式
     if (this.isInnerFake || this.isCustom) {
-      return this.name.split(' - ')[0];
+      // 获取分隔符" - "之前的策略名部分
+      const separatorIndex = this.name.indexOf(' - ');
+      if (separatorIndex !== -1) {
+        return this.name.substring(0, separatorIndex);
+      }
     }
     return this.name;
   }

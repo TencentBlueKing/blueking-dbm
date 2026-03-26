@@ -159,7 +159,7 @@
   watch(
     localValue,
     () => {
-      if (_.isEqual(getFinalValue(), props.data)) {
+      if (!_.isEqual(getFinalValue(), props.data)) {
         emits('change');
       }
     },

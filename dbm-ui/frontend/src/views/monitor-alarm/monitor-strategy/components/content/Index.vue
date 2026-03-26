@@ -972,7 +972,7 @@
           custom_conditions: row.custom_conditions,
           detects_config: row.detects_config,
           is_enabled: true,
-          name: `${row.name} - ${currentBizInfo?.name}`,
+          name: `${row.name} - 【${currentBizInfo?.name}】`,
           no_data_config: row.no_data_config,
           notify_config: row.notify_config,
           notify_groups: getBizDefaultGroupIds(),
