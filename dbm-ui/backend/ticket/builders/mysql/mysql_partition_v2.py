@@ -35,7 +35,7 @@ class PartitionV2ConfObjectSerializer(serializers.Serializer):
     partition_time_interval = serializers.IntegerField(help_text=_("分区间隔"))
     extra_partition = serializers.IntegerField(help_text=_("预留分区数"), required=False, default=15)
     partition_type = serializers.IntegerField(help_text=_("分区类型"))
-    time_zone = serializers.CharField(help_text=_("时区"))
+    time_zone = serializers.CharField(help_text=_("时区"), allow_blank=True, allow_null=True)
     phase = serializers.CharField(help_text=_("是否禁用分区"))
 
 
