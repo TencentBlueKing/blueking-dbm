@@ -305,8 +305,11 @@
   const isNameDisabled = computed(() => isInnerClone.value || isInnerEdit.value || isCustomEdit.value);
   const isEnableChanged = computed(() => props.data.is_enabled !== formModel.isEnabled);
 
-  // 全局启用，启停按钮禁用
+  // 全局启用，启停按钮禁用，需排除新建子策略的case
   const enableButtonDisabled = computed(() => {
+    if (isChildNew.value) {
+      return false;
+    }
     return (
       (props.data.isInnerReal && props.data.is_enabled) ||
       ((props.data.isInnerFake || props.data.isCustom) && props.appParentInfoMap[props.data.id].is_enabled)
@@ -493,24 +496,24 @@
   );
 
   watch(
-    () => props.data,
-    (data) => {
-      if (data.id) {
-        formModel.isEnabled = data.is_enabled;
-        formModel.testRules = _.cloneDeep(data.test_rules);
+    () => [isShow.value, props.data],
+    () => {
+      if (isShow.value && props.data.id) {
+        formModel.isEnabled = props.data.is_enabled;
+        formModel.testRules = _.cloneDeep(props.data.test_rules);
         formModel.strategyName = getStrategyName();
-        formModel.notifyRules = _.cloneDeep(data.notify_rules);
+        formModel.notifyRules = _.cloneDeep(props.data.notify_rules);
         formModel.notifyTarget =
           isInnerClone.value || isChildNew.value
             ? getBizDefaultGroupIds()
-            : data.notify_groups.filter((id) => id in props.alarmGroupNameMap);
-        formModel.noDataConfig = _.cloneDeep(data.no_data_config);
+            : props.data.notify_groups.filter((id) => id in props.alarmGroupNameMap);
+        formModel.noDataConfig = _.cloneDeep(props.data.no_data_config);
 
-        const detectsConfig = _.cloneDeep(data.detects_config) as unknown as UnwrapRef<
+        const detectsConfig = _.cloneDeep(props.data.detects_config) as unknown as UnwrapRef<
           typeof formModel
         >['detectsConfig'];
         detectsConfig.trigger_config.uptime.time_ranges = _.cloneDeep(
-          data.detects_config.trigger_config.uptime.time_ranges,
+          props.data.detects_config.trigger_config.uptime.time_ranges,
         ).map((item) => [item.start, item.end] as [string, string]);
         formModel.detectsConfig = detectsConfig;
       }
@@ -523,7 +526,7 @@
   };
 
   const getStrategyNameWithBizName = () => {
-    return `${props.data.name} - ${currentBizInfo?.name}`;
+    return `${props.data.name} - 【${currentBizInfo?.name}】`;
   };
 
   const getStrategyName = () => {
