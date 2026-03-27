@@ -197,10 +197,8 @@ func (p *PhysicalRocksdbDumper) Execute(ctx context.Context) error {
 
 // PrepareBackupMetaInfo generate the metadata of database backup
 func (p *PhysicalRocksdbDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent) error {
-	metaInfo.BackupMetaFileBase = dbareport.BackupMetaFileBase{
-		BackupBeginTime: p.backupStartTime,
-		BackupEndTime:   p.backupEndTime,
-	}
+	metaInfo.BackupBeginTime = p.backupStartTime
+	metaInfo.BackupEndTime = p.backupEndTime
 	backupTargetDir := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName())
 	xtrabackupBinlogInfoFileName := filepath.Join(backupTargetDir, "xtrabackup_binlog_info")
 	xtrabackupSlaveInfoFileName := filepath.Join(backupTargetDir, "xtrabackup_slave_info")

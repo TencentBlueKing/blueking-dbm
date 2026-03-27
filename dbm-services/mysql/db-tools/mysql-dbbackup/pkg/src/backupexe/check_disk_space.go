@@ -57,15 +57,18 @@ func DeleteOldBackup(cnf *config.Public, expireDays int) error {
 		logger.Log.Error("failed to read backupdir, err :", err)
 		return err
 	}
+	hostEscaped := regexp.QuoteMeta(cnf.MysqlHost)
+	matchHost := fmt.Sprintf("_%s_", hostEscaped)
+	matchInstance := fmt.Sprintf("%s_%d", hostEscaped, cnf.MysqlPort)
+	reHost := regexp.MustCompile(matchHost)
+	reInstance := regexp.MustCompile(matchInstance)
+	// backup file format: 123_21001308_1.2.3.4_3306_20260324092001_XX
+	reBakFile := regexp.MustCompile(fmt.Sprintf(`\d+_\d+_%s_`, matchInstance))
 	indexFiles := map[string]time.Time{}
 	bakFiles := map[string]int64{}
 	for _, fi := range dir {
-		// backup file format: 123_21001308_30.41.100.21_3306_20260324092001_XX
-		hostport := fmt.Sprintf("%s_%d", cnf.MysqlHost, cnf.MysqlPort)
-		reBakFile := regexp.MustCompile(fmt.Sprintf(`_\d+_\d+_%s_`, hostport))
 		if reBakFile.MatchString(fi.Name()) {
 			bakFiles[fi.Name()] = fi.Size()
-
 			if strings.HasSuffix(fi.Name(), cst.SuffixIndex) {
 				indexFiles[fi.Name()] = fi.ModTime()
 			}
@@ -73,13 +76,11 @@ func DeleteOldBackup(cnf *config.Public, expireDays int) error {
 	}
 	indexFilesKeep := []string{}
 	for indexFile, modTime := range indexFiles {
-		fileMatchHost := fmt.Sprintf("_%s_", cnf.MysqlHost)
-		fileMatchPort := fmt.Sprintf("_%s_%d_", cnf.MysqlHost, cnf.MysqlPort)
 		canRemove := false
-		if strings.Contains(indexFile, fileMatchPort) && expireTime.Compare(modTime) > 0 {
+		if reInstance.MatchString(indexFile) && expireTime.Compare(modTime) > 0 {
 			// 本实例的备份，指定时间(可能是 now)之前的全部删掉
 			canRemove = true
-		} else if strings.Contains(indexFile, fileMatchHost) && !strings.Contains(indexFile, fileMatchPort) {
+		} else if reHost.MatchString(indexFile) && !reInstance.MatchString(indexFile) {
 			// 其它实例的备份，如果要全部清理，也要限制只能删除 12h 之前的
 			if expireDays > 0 && expireTime.Compare(modTime) > 0 {
 				canRemove = true
@@ -104,11 +105,16 @@ func DeleteOldBackup(cnf *config.Public, expireDays int) error {
 		if bakFileSize == -1 { // deleted already
 			continue
 		}
+		belongsToKeep := false
 		for _, indexFile := range indexFilesKeep {
 			indexFilePrefix := strings.TrimSuffix(indexFile, cst.SuffixIndex)
-			if !strings.Contains(bakFileName, indexFilePrefix) {
-				err = errors.Join(err, removeFile(cnf, bakFileName, bakFileSize))
+			if strings.HasPrefix(bakFileName, indexFilePrefix) {
+				belongsToKeep = true
+				break
 			}
+		}
+		if !belongsToKeep {
+			err = errors.Join(err, removeFile(cnf, bakFileName, bakFileSize))
 		}
 	}
 	return err

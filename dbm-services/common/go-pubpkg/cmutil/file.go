@@ -57,6 +57,16 @@ func IsDirectory(path string) bool {
 	return fileInfo.IsDir()
 }
 
+// IsNormalFile 检查本机路径是否是普通文件
+// 如果目录不存在，则返回 false，如果是软连，则返回 false
+func IsNormalFile(path string) bool {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return fileInfo.Mode().IsRegular()
+}
+
 // IsSymLinkFile 文件是否是软连
 func IsSymLinkFile(path string) (bool, error) {
 	info, err := os.Lstat(path)
@@ -137,4 +147,12 @@ func RemoveFileMatch(filePattern string, force bool) error {
 		}
 	}
 	return nil
+}
+
+func CreateEmptyFile(path string, perm os.FileMode) error {
+	f, e := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, perm)
+	if e != nil {
+		return e
+	}
+	return f.Close()
 }
