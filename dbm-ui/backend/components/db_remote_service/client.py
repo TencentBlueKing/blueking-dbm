@@ -159,6 +159,7 @@ class _DRSApi(object):
             module=self.MODULE,
             ssl=ssl_flag,
             description=_("mysql rpc 复杂接口"),
+            default_timeout=60 * 3,
         )
 
         self.mongodb_rpc = ProxyAPI(

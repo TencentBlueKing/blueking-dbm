@@ -165,6 +165,10 @@ class AddTempUserForClusterService(BaseService):
         """
         # 获取每套集群的所有需要添加临时的账号
         instance_list = get_instance_with_random_job(cluster=cluster, ticket_type=ticket_type)
+        if not instance_list:
+            self.log_error(_("当前集群没有查询到需要添加临时账号的实例：集群域名：{}, 单据类型：{}".format(cluster.immute_domain, ticket_type)))
+            return False
+
         # 标记位
         is_add_success = True
 
