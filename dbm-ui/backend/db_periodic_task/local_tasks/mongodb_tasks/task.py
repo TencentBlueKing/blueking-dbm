@@ -52,7 +52,7 @@ def mongodb_metric_check_task():
     )
 
 
-@register_periodic_task(run_every=crontab(minute=1, hour="*/1"))
+@register_periodic_task(run_every=crontab(minute="*/2"))
 def mongodb_sync_instance_status_task():
     """
     mongodb 实例状态同步

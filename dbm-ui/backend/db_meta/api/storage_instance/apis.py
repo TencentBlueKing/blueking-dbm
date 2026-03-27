@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from typing import Dict, List
 
 from django.db import transaction
+from django.utils import timezone
 
 from backend.constants import DEFAULT_TIME_ZONE
 from backend.db_meta import request_validator
@@ -20,10 +21,35 @@ from backend.db_meta.enums import (
     InstancePhase,
     InstanceRoleInstanceInnerRoleMap,
     InstanceStatus,
+    MachineType,
     MachineTypeInstanceRoleMap,
 )
-from backend.db_meta.models import Machine, StorageInstance
+from backend.db_meta.models import Machine, MongoDBStorageInstanceExt, StorageInstance
+from backend.db_meta.enums.instance_status import MongoDBStorageInstanceStatus
 from backend.flow.utils.cc_manage import CcManage
+
+
+# 判断是否是MongoDB存储实例. 不能是mongos
+def _is_mongo_storage_instance(storage: StorageInstance) -> bool:
+    # NOTE: `MONOG_CONFIG` is a historical enum member name and is kept for compatibility.
+    return storage.machine_type in [MachineType.MONGODB.value, MachineType.MONOG_CONFIG.value]
+
+
+def _ensure_mongo_ext(storage: StorageInstance):
+    if not _is_mongo_storage_instance(storage):
+        return
+
+    MongoDBStorageInstanceExt.objects.get_or_create(
+        instance=storage,
+        defaults={
+            "priority": -1,  # unknown / uninitialized priority
+            "hidden": 0,  # IntegerField: 0-visible, 1-hidden
+            "update_at": timezone.now(),
+            "state": MongoDBStorageInstanceStatus.NOT_INITIALIZED.name,
+            "state_code": MongoDBStorageInstanceStatus.NOT_INITIALIZED.value,
+            "shard_name": "",
+        },
+    )
 
 
 @transaction.atomic
@@ -55,28 +81,28 @@ def create(
             )
 
         instance_role = ins["instance_role"]
-        storage_objs.append(
-            StorageInstance.objects.create(
-                port=port,
-                machine=machine_obj,
-                db_module_id=machine_obj.db_module_id,
-                bk_biz_id=machine_obj.bk_biz_id,
-                # cluster 留空
-                access_layer=machine_obj.access_layer,
-                machine_type=machine_obj.machine_type,
-                instance_role=instance_role,
-                instance_inner_role=InstanceRoleInstanceInnerRoleMap[instance_role],
-                cluster_type=machine_obj.cluster_type,
-                status=status,
-                # bind entry 留空
-                creator=creator,
-                name=name,
-                time_zone=time_zone,
-                version=version,
-                is_stand_by=is_stand_by,
-                phase=phase,
-            )
+        storage_obj = StorageInstance.objects.create(
+            port=port,
+            machine=machine_obj,
+            db_module_id=machine_obj.db_module_id,
+            bk_biz_id=machine_obj.bk_biz_id,
+            # cluster 留空
+            access_layer=machine_obj.access_layer,
+            machine_type=machine_obj.machine_type,
+            instance_role=instance_role,
+            instance_inner_role=InstanceRoleInstanceInnerRoleMap[instance_role],
+            cluster_type=machine_obj.cluster_type,
+            status=status,
+            # bind entry 留空
+            creator=creator,
+            name=name,
+            time_zone=time_zone,
+            version=version,
+            is_stand_by=is_stand_by,
+            phase=phase,
         )
+        _ensure_mongo_ext(storage_obj)
+        storage_objs.append(storage_obj)
     return storage_objs
 
 
@@ -102,6 +128,7 @@ def update(instances):
         ins_obj.save()
 
 
+@transaction.atomic
 def delete(instances):
     """
     根据ip端口删除实例
@@ -124,6 +151,7 @@ def remove_storage_instances(bk_biz_id: int, cluster_type: ClusterType, instance
             machine__bk_cloud_id=ins["bk_cloud_id"], machine__ip=ins["ip"], port=ins["port"]
         )
         cc_manage.delete_service_instance(bk_instance_ids=[storage.bk_instance_id])
+        # MongoDBStorageInstanceExt.instance uses CASCADE; deleting storage will remove ext automatically.
         storage.delete(keep_parents=True)
 
         # 查询实例对应的机器是否存在其他的实例(当前读)，如果不存在，则删除machine表

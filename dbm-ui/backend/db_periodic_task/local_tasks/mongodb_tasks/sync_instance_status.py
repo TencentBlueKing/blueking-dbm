@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import datetime
 import logging
+import re
 import time
 import traceback
 import uuid
@@ -37,6 +38,7 @@ logger = logging.getLogger("root")
 # Redis 锁：防止定时任务重复执行
 SYNC_INSTANCE_STATUS_LOCK_KEY = "SyncStorageInstanceStatusTask:lock"
 SYNC_INSTANCE_STATUS_LOCK_TIMEOUT = 300  # 5 分钟
+SYNC_INSTANCE_STATUS_INIT_EXT_TABLE_FLAG_KEY = "SyncStorageInstanceStatusTask:init_ext_table:done"
 
 # Lua: 仅当 value 匹配时续期，避免误续其他实例的锁
 REDIS_LOCK_RENEW_LUA = """
@@ -122,8 +124,15 @@ class SyncStorageInstanceStatusTask:
             logger.warning("SyncStorageInstanceStatusTask: failed to acquire lock, skip this round")
             return
         try:
-            # step1: 填充Ext表
-            self.fill_ext_table()
+            # step0: 初始化Ext表
+            if RedisConn.exists(SYNC_INSTANCE_STATUS_INIT_EXT_TABLE_FLAG_KEY):
+                logger.info("SyncStorageInstanceStatusTask init_ext_table already done, skip")
+            else:
+                logger.info("SyncStorageInstanceStatusTask init_ext_table")
+                self.init_ext_table()
+                # 设置标志位，防止重复初始化. 初始化操作只需要执行一次. 不需要设置过期时间.
+                # 如果有特殊情况需要重新初始化，可以手动删除标志位
+                RedisConn.set(SYNC_INSTANCE_STATUS_INIT_EXT_TABLE_FLAG_KEY, "1")
 
             if report_day is None:
                 report_day = get_report_day_from_time(timezone.now())
@@ -332,9 +341,9 @@ class SyncStorageInstanceStatusTask:
         logger.info(f"SyncStorageInstanceStatusTask changed_instance_list: {changed_instance_list}")
         return changed_instance_list
 
-    def fill_ext_table(self):
+    def init_ext_table(self):
         """
-        填充Ext表
+        初始化Ext表
         """
         # fetch all instance from db_meta.StorageInstance and without ext
         instance_qs = StorageInstance.objects.filter(
@@ -431,11 +440,22 @@ def _instant_fetch_metric(condition: dict, retry_times: int = 3, sleep_time: int
             raise ValueError(f"condition {cond_key} is invalid")
         condition_str = ""
         v = condition[cond_key]
+        if cond_key == "instance":
+            if isinstance(v, list):
+                v = [instance.replace(":", "-") if isinstance(instance, str) else instance for instance in v]
+            elif isinstance(v, str):
+                v = v.replace(":", "-")
+
         if isinstance(v, list):
+            if cond_key == "instance":
+                # instance is queried with regex selector, escape all regex metacharacters to avoid over-matching.
+                # NOTE: PromQL label value is a quoted string. Backslashes for regex must be double-escaped.
+                v = [re.escape(item).replace("\\", "\\\\") if isinstance(item, str) else item for item in v]
             v = "^(" + "|".join(v) + ")$"
             condition_str = f'{cond_key}=~"{v}"'
         else:
             condition_str = f'{cond_key}="{v}"'
+
         condition_strs.append(condition_str)
 
     condition_str_all = "{" + ",".join(condition_strs) + "}"
