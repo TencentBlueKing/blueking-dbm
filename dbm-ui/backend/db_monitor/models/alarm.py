@@ -1136,8 +1136,11 @@ class MonitorPolicy(AuditedModel):
             self.name = params["name"]
             self.details.update(name=params["name"])
 
+        if "is_enabled" in params:
+            self.is_enabled = params["is_enabled"]
+            self.details.update(is_enabled=params["is_enabled"])
+
         # update -> overwrite details
-        self.details.update(is_enabled=params["is_enabled"])
         self.creator = self.updater = username
         self.save()
 
