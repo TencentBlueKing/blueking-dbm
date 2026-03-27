@@ -14,7 +14,8 @@ import pytest
 from rest_framework.exceptions import ValidationError
 
 from backend.db_meta import api, models
-from backend.db_meta.enums import AccessLayer, InstanceRole, InstanceStatus, MachineType
+from backend.db_meta.enums import AccessLayer, ClusterType, InstanceRole, InstanceStatus, MachineType
+from backend.db_meta.enums.instance_status import MongoDBStorageInstanceStatus
 from backend.tests.mock_data import constant
 from backend.tests.mock_data.components import cc
 
@@ -35,6 +36,21 @@ def init_storage_machine():
         bk_city=bk_city,
         access_layer=AccessLayer.STORAGE,
         bk_host_id=int(ipaddress.IPv4Address(cc.NORMAL_IP)),
+    )
+    return machine
+
+
+@pytest.fixture
+def init_mongo_storage_machine():
+    bk_city = models.BKCity.objects.first()
+    machine = models.Machine.objects.create(
+        ip=cc.NORMAL_IP2,
+        bk_biz_id=constant.BK_BIZ_ID,
+        machine_type=MachineType.MONGODB.value,
+        cluster_type=ClusterType.MongoReplicaSet.value,
+        bk_city=bk_city,
+        access_layer=AccessLayer.STORAGE,
+        bk_host_id=int(ipaddress.IPv4Address(cc.NORMAL_IP2)),
     )
     return machine
 
@@ -143,3 +159,46 @@ class TestStorageInstance:
                 "status": InstanceStatus.RUNNING.value,
             }
         ).exists()
+
+    def test_create_mongo_storage_sync_ext_success(self, init_mongo_storage_machine):
+        api.storage_instance.create(
+            [{"ip": cc.NORMAL_IP2, "port": TEST_STORAGE_PORT1, "instance_role": InstanceRole.MONGO_M1.value}]
+        )
+        storage = models.StorageInstance.objects.get(
+            bk_biz_id=constant.BK_BIZ_ID, machine__ip=cc.NORMAL_IP2, port=TEST_STORAGE_PORT1
+        )
+        ext = models.MongoDBStorageInstanceExt.objects.get(instance=storage)
+        assert ext.priority == -1
+        assert ext.hidden == 0
+        assert ext.state == MongoDBStorageInstanceStatus.NOT_INITIALIZED.name
+        assert ext.state_code == MongoDBStorageInstanceStatus.NOT_INITIALIZED.value
+        assert ext.update_at is not None
+
+    def test_delete_mongo_storage_sync_ext_success(self, init_mongo_storage_machine):
+        api.storage_instance.create(
+            [{"ip": cc.NORMAL_IP2, "port": TEST_STORAGE_PORT1, "instance_role": InstanceRole.MONGO_M1.value}]
+        )
+        storage = models.StorageInstance.objects.get(
+            bk_biz_id=constant.BK_BIZ_ID, machine__ip=cc.NORMAL_IP2, port=TEST_STORAGE_PORT1
+        )
+        assert models.MongoDBStorageInstanceExt.objects.filter(instance=storage).exists()
+
+        api.storage_instance.delete(
+            [{"ip": cc.NORMAL_IP2, "port": TEST_STORAGE_PORT1, "bk_cloud_id": storage.machine.bk_cloud_id}]
+        )
+        assert not models.StorageInstance.objects.filter(id=storage.id).exists()
+        assert not models.MongoDBStorageInstanceExt.objects.filter(instance_id=storage.id).exists()
+
+    def test_delete_mongo_storage_when_ext_missing(self, init_mongo_storage_machine):
+        api.storage_instance.create(
+            [{"ip": cc.NORMAL_IP2, "port": TEST_STORAGE_PORT1, "instance_role": InstanceRole.MONGO_M1.value}]
+        )
+        storage = models.StorageInstance.objects.get(
+            bk_biz_id=constant.BK_BIZ_ID, machine__ip=cc.NORMAL_IP2, port=TEST_STORAGE_PORT1
+        )
+        models.MongoDBStorageInstanceExt.objects.filter(instance=storage).delete()
+
+        api.storage_instance.delete(
+            [{"ip": cc.NORMAL_IP2, "port": TEST_STORAGE_PORT1, "bk_cloud_id": storage.machine.bk_cloud_id}]
+        )
+        assert not models.StorageInstance.objects.filter(id=storage.id).exists()

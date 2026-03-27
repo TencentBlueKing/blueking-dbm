@@ -30,7 +30,7 @@ from backend.db_meta.models import StorageInstance
 
 
 class MongoDBStorageInstanceExt(models.Model):
-    instance = models.OneToOneField(StorageInstance, on_delete=models.PROTECT)
+    instance = models.OneToOneField(StorageInstance, on_delete=models.CASCADE)
     state = models.CharField(max_length=64, help_text=_("实例状态"), default=MongoDBStorageInstanceStatus.UNKNOWN.name)
     state_code = models.IntegerField(help_text=_("实例状态码"), default=-1)
     priority = models.IntegerField(help_text=_("优先级"), default=-1)
