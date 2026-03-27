@@ -351,8 +351,11 @@ class TestCommonQueryResourceMixin:
 
         ClusterOperateRecord.objects.filter(cluster_id=cluster.id).delete()
 
-        with pytest.raises(AttributeError):
-            CommonQueryResourceMixin.get_temporary_cluster_info(cluster, [TicketType.MYSQL_ROLLBACK_CLUSTER.value])
+        result = CommonQueryResourceMixin.get_temporary_cluster_info(
+            cluster, [TicketType.MYSQL_ROLLBACK_CLUSTER.value]
+        )
+        assert "source_cluster" in result
+        assert result["ticket_id"] is None
 
 
 class TestCommonQueryResourceMixinExport:

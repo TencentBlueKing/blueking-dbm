@@ -157,6 +157,8 @@ func LoadRankReport(rankReportFile string) (rankKeyReportRow map[string]RankKeyR
 			// 将KeyName长度控制在250个字符
 			if len(item.KeyName) > 255 {
 				rankKeyReportRow[t].KeyList[i].KeyName = item.KeyName[:240] + "...(truncated)"
+			} else if len(item.KeyName) == 0 {
+				rankKeyReportRow[t].KeyList[i].KeyName = "<empty_key:key_length_0>"
 			}
 		}
 	}

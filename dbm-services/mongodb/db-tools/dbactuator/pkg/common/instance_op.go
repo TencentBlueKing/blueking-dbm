@@ -102,9 +102,7 @@ func NewInstanceOp(ip string, port int, user, pass string, logger *logger.Logger
 
 // DoStop 停止mongod/mongos
 func (inst *InstanceOp) DoStop() error {
-	// 连接数据库
 	using, err := checkPortInUse(inst.Port)
-
 	if err != nil {
 		return errors.Wrap(err, "checkPortInUse "+strconv.Itoa(inst.Port))
 	}
@@ -120,17 +118,52 @@ func (inst *InstanceOp) DoStop() error {
 		if err != nil {
 			return errors.Wrap(err, "getPidByPort "+strconv.Itoa(inst.Port))
 		} else if pid == 0 {
-			return nil
+			return inst.waitPortRelease(maxRetry, 10*time.Second)
 		} else if pid > 0 {
-			inst.logger.Info("kill pid %d", pid)
-			err = syscall.Kill(pid, 2)
+			processName, err := os.ReadFile(fmt.Sprintf("/proc/%d/comm", pid))
 			if err != nil {
-				return errors.Wrap(err, "kill pid "+strconv.Itoa(pid))
+				return errors.Wrap(err, "read process name from /proc/"+strconv.Itoa(pid)+"/comm")
+			}
+			processNameStr := strings.TrimSpace(string(processName))
+			inst.logger.Info("process name: %s, pid: %d", processNameStr, pid)
+			if strings.Contains(processNameStr, "mongod") || strings.Contains(processNameStr, "mongos") {
+				inst.logger.Info("kill pid %d (process name: %s) by signal 2", pid, processNameStr)
+				err = syscall.Kill(pid, 2)
+				if err != nil {
+					return errors.Wrap(err, "kill pid "+strconv.Itoa(pid))
+				}
+				inst.logger.Info("kill pid %d (process name: %s) successfully", pid, processNameStr)
+			} else {
+				return fmt.Errorf("port %d is occupied by non-mongo process %q (pid=%d), stop aborted", inst.Port, processNameStr, pid)
 			}
 		}
 		time.Sleep(5 * time.Second)
 	}
-	return nil
+
+	// Extra wait: process may need longer than maxRetry*5s to release the port from /proc/net/tcp.
+	if err := inst.waitPortRelease(24, 5*time.Second); err == nil {
+		inst.logger.Info("port %d released after extended wait following stop retries", inst.Port)
+		return nil
+	}
+	return fmt.Errorf("port %d still in use after %d retries, stop failed", inst.Port, maxRetry)
+}
+
+// waitPortRelease waits until checkPortInUse reports the port is fully released
+// from /proc/net/tcp (including TIME_WAIT/CLOSE_WAIT), aligning with IsRunning().
+func (inst *InstanceOp) waitPortRelease(maxRetry int, waitTime time.Duration) error {
+	for i := 0; i < maxRetry; i++ {
+		using, err := checkPortInUse(inst.Port)
+		if err != nil {
+			return errors.Wrap(err, "checkPortInUse after stop")
+		}
+		if !using {
+			inst.logger.Info("port %d fully released", inst.Port)
+			return nil
+		}
+		inst.logger.Info("port %d still in /proc/net/tcp (attempt %d/%d), waiting...", inst.Port, i+1, maxRetry)
+		time.Sleep(waitTime)
+	}
+	return fmt.Errorf("port %d still in /proc/net/tcp after process stopped, waited %d retries", inst.Port, maxRetry)
 }
 
 const startMongoScript = "/usr/local/mongodb/bin/start_mongo.sh"
@@ -158,6 +191,23 @@ func (inst *InstanceOp) DoStartAsStandAlone() error {
 		return err
 	}
 	return startMongoWithConfigFile(inst.Port, standaloneConfigFilePath)
+}
+
+// GetDBPathFromConfig 从实例配置中提取存储路径
+func (inst *InstanceOp) GetDBPathFromConfig() (string, error) {
+	dataDir := consts.GetMongoDataDir(strconv.Itoa(inst.Port))
+	if dataDir == "" {
+		return "", errors.New("can not find data dir for port " + strconv.Itoa(inst.Port))
+	}
+	confFile := filepath.Join(dataDir, "mongodata", strconv.Itoa(inst.Port), "mongo.conf")
+	conf, err := LoadMongoDBConfFromFile(confFile)
+	if err != nil {
+		return "", errors.Wrap(err, "load mongo.conf from "+confFile)
+	}
+	if conf.Storage.DbPath == "" {
+		return "", errors.New("dbPath is empty in " + confFile)
+	}
+	return conf.Storage.DbPath, nil
 }
 
 // buildStandaloneConfigFile 构建单节点的配置文件. standalone.conf
@@ -313,6 +363,7 @@ func (inst *InstanceOp) DoServiceStatusCheck(logger *logger.Logger) error {
 	}
 	isMongos := isMasterResult.Msg == "isdbgrid"
 	logger.Info("%s isMongos: %t", inst.Addr(), isMongos)
+	logger.Info("%s isMasterResult: %+v", inst.Addr(), isMasterResult)
 
 	if isMongos {
 		dbList, err := client.ListDatabaseNames(context.TODO(), bson.M{})
@@ -325,14 +376,19 @@ func (inst *InstanceOp) DoServiceStatusCheck(logger *logger.Logger) error {
 		logger.Info("%s found admin, config database, seems ok", inst.Addr())
 		return nil
 	} else {
-		if isMasterResult.Primary == "" {
-			return errors.New("no primary found")
-		} else if !isMasterResult.Secondary && !isMasterResult.IsMaster { // primary or secondary is ok
-			return nil
-		} else {
-			return errors.New("is not primary or secondary")
-		}
+		return replicaSetServiceCheckRoleOK(isMasterResult)
 	}
+}
+
+// replicaSetServiceCheckRoleOK returns nil when the connected member reports PRIMARY or SECONDARY (replica set data-bearing).
+func replicaSetServiceCheckRoleOK(isMasterResult *mymongo.IsMasterResult) error {
+	if isMasterResult.Primary == "" {
+		return errors.New("no primary found")
+	}
+	if isMasterResult.Secondary || isMasterResult.IsMaster {
+		return nil
+	}
+	return errors.New("is not primary or secondary")
 }
 
 func checkPortInUse(port int) (bool, error) {

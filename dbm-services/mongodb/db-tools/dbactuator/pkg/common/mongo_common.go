@@ -668,24 +668,6 @@ func SetProfilingLevel(mongoBin string, ip string, port int, username string, pa
 	return nil
 }
 
-// GetFCV 获取FCV
-func GetFCV(mongoBin string, ip string, port int, username string, password string) (string, error) {
-	cmd := fmt.Sprintf(
-		"%s  -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval \"db.adminCommand( { getParameter: 1, featureCompatibilityVersion: 1 } )\" admin",
-		mongoBin, username, password, ip, port)
-	fcvInfo, err := util.RunBashCmd(
-		cmd,
-		"", nil,
-		60*time.Second)
-	if err != nil {
-		return "", err
-	}
-	fcvInfo = strings.TrimSpace(fcvInfo)
-	fcv := GetFcv{}
-	_ = json.Unmarshal([]byte(fcvInfo), &fcv)
-	return fcv.FeatureCompatibilityVersion, nil
-}
-
 // GetShardInfo 获取shard信息
 func GetShardInfo(mongoBin string, ip string, port int, username string, password string) (string, error) {
 	cmd := fmt.Sprintf(

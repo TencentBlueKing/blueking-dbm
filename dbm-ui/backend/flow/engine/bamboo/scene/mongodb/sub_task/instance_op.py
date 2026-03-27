@@ -55,6 +55,41 @@ class InstanceOpSubTask(BaseSubTask):
         }
 
     @classmethod
+    def make_replace_package_kwargs(
+        cls,
+        file_path,
+        exec_node: MongoNode,
+        current_version: str,
+        dest_version: str,
+        instance_type: str,
+        pkg: str,
+        pkg_md5: str,
+    ) -> dict:
+        return {
+            "set_trans_data_dataclass": CommonContext.__name__,
+            "get_trans_data_ip_var": None,
+            "bk_cloud_id": exec_node.bk_cloud_id,
+            "exec_ip": exec_node.ip,
+            "db_act_template": {
+                "action": "replace_package",
+                "file_path": file_path,
+                "exec_account": "root",
+                "sudo_account": "root",
+                "payload": {
+                    "mediapkg": {
+                        "pkg": pkg,
+                        "pkg_md5": pkg_md5,
+                    },
+                    "ip": exec_node.ip,
+                    "port": int(exec_node.port),
+                    "currentVersion": current_version,
+                    "destVersion": dest_version,
+                    "instanceType": instance_type,
+                },
+            },
+        }
+
+    @classmethod
     def make_node_kwargs(cls, file_path, ip: str, bk_cloud_id: int, op: str) -> dict:
         # 按IP为单位执行任务 stop_dbmon/start_dbmon
         return {
