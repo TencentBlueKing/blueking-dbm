@@ -114,6 +114,7 @@ from backend.flow.views.mongodb_scene import (
     MongoPitrRestoreApiView,
     MongoRemoveNsApiView,
     MongoRestoreApiView,
+    MongoUpgradeVersionApiView,
     MultiReplicasetInstallApiView,
 )
 from backend.flow.views.mysql import MysqlMachineClearApiView
@@ -376,6 +377,7 @@ urlpatterns = [
     url(r"^scene/mongo_data_export$", MongoDataExportApiView.as_view()),
     url(r"^scene/mongo_restore$", MongoRestoreApiView.as_view()),
     url(r"^scene/mongo_pitr_restore$", MongoPitrRestoreApiView.as_view()),
+    url(r"^scene/mongo_upgrade_version$", MongoUpgradeVersionApiView.as_view()),
     url(r"^scene/mongo_remove_ns$", MongoRemoveNsApiView.as_view()),
     url(r"^scene/mongo_install_dbmon$", MongoInstallDbmonApiView.as_view()),
     url(r"^scene/install_rs_fake$", MongoFakeInstallApiView.as_view()),

@@ -38,4 +38,9 @@ local:clean
 build:clean
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build $(TRIMPATH) -v $(BUILD_FLAG) -o ./build/$(SRV_NAME) -v main.go
 
-.PHONY: init clean build
+# -vet=off: module currently has legacy printf/vet issues in non-test code; tests still run.
+# Optional integration/smoke env vars: see TEST_ENV.md in this directory.
+test:
+	go test -vet=off ./...
+
+.PHONY: init clean build test

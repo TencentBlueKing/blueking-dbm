@@ -24,8 +24,8 @@ from backend.db_meta.enums import (
     MachineType,
     MachineTypeInstanceRoleMap,
 )
-from backend.db_meta.models import Machine, MongoDBStorageInstanceExt, StorageInstance
 from backend.db_meta.enums.instance_status import MongoDBStorageInstanceStatus
+from backend.db_meta.models import Machine, MongoDBStorageInstanceExt, StorageInstance
 from backend.flow.utils.cc_manage import CcManage
 
 

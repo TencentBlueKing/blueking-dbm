@@ -357,7 +357,7 @@ class CommonQueryResourceMixin(abc.ABC):
         except Cluster.DoesNotExist:
             domain = ""
 
-        temporary_info = {"source_cluster": domain, "ticket_id": record.ticket_id}
+        temporary_info = {"source_cluster": domain, "ticket_id": record.ticket_id if record else None}
         return temporary_info
 
 
