@@ -208,7 +208,7 @@ func (s *SpiderClusterBackendMigrateCutoverComp) Init() (err error) {
 		return err
 	}
 	// connect spider
-	s.spidersConn, s.spidersLockConn, err = connSpiders(servers)
+	s.spidersConn, s.masterSpidersLockConn, err = connSpiders(servers)
 	if err != nil {
 		return err
 	}
@@ -430,7 +430,20 @@ func (s *SpiderClusterBackendMigrateCutoverComp) CutOver() (err error) {
 			return
 		}
 	}()
-	var tdbctlFlushed bool
+	// 切换前从中控查询路由快照，切换成功后做真实对比
+	svrNamesToTrack := make([]string, 0, len(s.cutOverPairs)*2)
+	for _, pair := range s.cutOverPairs {
+		svrNamesToTrack = append(svrNamesToTrack, pair.MasterSvr.ServerName)
+		if s.existRemoteSlave {
+			svrNamesToTrack = append(svrNamesToTrack, pair.SlaveSvr.ServerName)
+		}
+	}
+	beforeSnapshot, snapErr := s.selectServersByNames(svrNamesToTrack)
+	if snapErr != nil {
+		logger.Warn("切换前路由快照查询失败，切换完成后将无法输出对比信息: %v", snapErr)
+	}
+
+	var tdbctlNotFlushed bool
 	// change the central control route
 	// release the lock until after performing the rollback routing
 	defer func() {
@@ -441,43 +454,56 @@ func (s *SpiderClusterBackendMigrateCutoverComp) CutOver() (err error) {
 				return
 			}
 		} else if err != nil && len(rollbackSqls) > 0 {
+			for _, sql := range rollbackSqls {
+				logger.Info("执行路由回滚SQL(WITH SYNC): %s", mysqlcomm.CleanSvrPassword(sql))
+			}
 			_, xerr := s.tdbCtlConn.ExecMore(rollbackSqls)
 			if xerr != nil {
-				logger.Error("rollbackup tdbctl router failed %s", xerr.Error())
-				err = fmt.Errorf("%w,rollbackup err:%w", err, xerr)
+				logger.Error("[不可重试] 路由回滚SQL执行失败，mysql.servers 状态不确定，请人工介入: %v", xerr)
+				err = fmt.Errorf("%w,rollback err:%w", err, xerr)
 				return
 			}
-			logger.Info("rollback route successfully~")
-			if tdbctlFlushed {
+			logger.Info("路由回滚成功")
+			if tdbctlNotFlushed {
+				// 存路由缓存尚未刷新（flushRoutingCache 未执行）
+				// 回滚 SQL 已通过 WITH SYNC 恢复，跳过 FLUSH ROUTING CACHE
+				logger.Info("内存路由缓存未刷新，回滚 SQL 已通过 WITH SYNC 同步至各 spider 节点 mysql.servers，跳过 FLUSH ROUTING CACHE")
 				return
 			}
-			if ferr := s.flushrouting(); ferr != nil {
+			if ferr := s.flushRoutingCache(); ferr != nil {
+				logger.Error("[不可重试] 路由回滚后刷新缓存失败，mysql.servers 已回滚但 spider 内存路由可能未更新，请手动执行 TDBCTL FLUSH ROUTING CACHE: %v", ferr)
 				err = fmt.Errorf("%w,flush rollback route err:%w", err, ferr)
 				return
 			}
-			logger.Info("rollback route successfully~")
+			logger.Info("路由回滚并刷新缓存成功")
+			// 校验各节点路由与 tdbctl 主节点是否一致
+			if _, cerr := s.tdbCtlConn.Exec("TDBCTL CHECK ROUTING;"); cerr != nil {
+				logger.Error("[不可重试] 路由回滚后校验失败，各节点路由与 tdbctl 主节点不一致: %v", cerr)
+			} else {
+				logger.Info("路由回滚校验通过，各节点路由与 tdbctl 主节点一致")
+			}
 		}
 	}()
 
-	if err = s.flushTablesAtEverySpiderNode(); err != nil {
-		return fmt.Errorf("[未切换]: flush tables failed:%w", err)
-	}
+	tdbctlNotFlushed = true
 
+	if err = s.flushTablesAtEverySpiderNode(); err != nil {
+		logger.Error("[未切换，可重试]: flush tables failed: %v", err)
+		return fmt.Errorf("[未切换，可重试]: flush tables failed:%w", err)
+	}
 	logger.Info("start refreshing the primary spt route")
 	if err = s.switchSpt(); err != nil {
-		tdbctlFlushed = true
 		return err
 	}
 
 	logger.Info("update tdbctl mysql.servers successfully")
 	// lock all spider write
-	defer s.Unlock()
-	logger.Info("start locking the spider")
-	if err = s.lockaAllSpidersWrite(); err != nil {
+	defer s.UnlockMasterSpiders()
+	logger.Info("start locking master spiders")
+	if err = s.lockMasterSpidersWrite(); err != nil {
 		return err
 	}
-
-	logger.Info("lock all spider successfully,record the location of each instance binlog")
+	logger.Info("lock master spiders successfully,record the location of each instance binlog")
 	// check the master slave synchronization status again
 	if err = checkReplicationStatus(s.destMasterConn); err != nil {
 		return err
@@ -488,10 +514,25 @@ func (s *SpiderClusterBackendMigrateCutoverComp) CutOver() (err error) {
 		return err
 	}
 	logger.Info("doing tdbctl flush routing cache ... ")
-	return s.flushrouting()
+	if err = s.flushRoutingCache(); err != nil {
+		logger.Error("flush routing cache failed %v,flush routing 刷新次序是：spider-master、spider_slave,"+
+			"即使这里失败也可能spider-master 的路由生效，要确认 spider-master 的路由是否生效，如果生效了，就不能回滚了", err)
+		return err
+	}
+	tdbctlNotFlushed = false
+	// 切换成功后校验各节点路由与 tdbctl 主节点一致
+	if _, cerr := s.tdbCtlConn.Exec("TDBCTL CHECK ROUTING;"); cerr != nil {
+		logger.Warn("[切换完成] 路由校验失败，各节点路由与 tdbctl 主节点可能不一致，请手动执行 TDBCTL CHECK ROUTING 确认: %v", cerr)
+	} else {
+		logger.Info("[切换完成] 路由校验通过，各节点路由与 tdbctl 主节点一致")
+	}
+	if snapErr == nil {
+		s.logRoutingChanges(beforeSnapshot, svrNamesToTrack)
+	}
+	return nil
 }
 
-// StopRepl TODO
+// StopRepl 停止复制
 func (s *SpiderClusterBackendMigrateCutoverComp) StopRepl() (err error) {
 	for hostPort, destMasterConn := range s.destMasterConn {
 		logger.Info("%s: execute stop slave,reset slave", hostPort)
@@ -502,7 +543,7 @@ func (s *SpiderClusterBackendMigrateCutoverComp) StopRepl() (err error) {
 	return nil
 }
 
-// RecordBinlogPos TODO
+// RecordBinlogPos 记录binlog位点信息
 func (s *SpiderClusterBackendMigrateCutoverComp) RecordBinlogPos() (err error) {
 	for hostPort, destMasterConn := range s.destMasterConn {
 		logger.Info("record %s master status", hostPort)
@@ -511,13 +552,15 @@ func (s *SpiderClusterBackendMigrateCutoverComp) RecordBinlogPos() (err error) {
 			logger.Warn("%s show master status failed %s", hostPort, err.Error())
 			return nil
 		}
-		logger.Info("%s,current pos is  binlog_file:%s,binlog_pos:%d,gitid_sets:%s", hostPort, pos.File,
+		logger.Info("%s,current pos is  binlog_file:%s,binlog_pos:%d,gtid_executed:%s", hostPort, pos.File,
 			pos.Position,
 			pos.ExecutedGtidSet)
 	}
 	return nil
 }
 
+// switchSpt 切换主分片 with sync
+// 切换主分片SQL 会同步写入 tdbctl 和各 spider 节点的 mysql.servers 但是并不会立即生效，需要执行 flush routing cache 后才会生效
 func (s *SpiderClusterBackendMigrateCutoverComp) switchSpt() (err error) {
 	logger.Info("start switch master spt ...")
 	var alterSqls []string
