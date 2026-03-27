@@ -45,7 +45,10 @@ func (cf *Config) Routes() []*gin.RouteInfo {
 		{Method: http.MethodPost, Path: "/confitem/save", HandlerFunc: cf.SaveConfigFileItems},
 		{Method: http.MethodPost, Path: "/confitem/batchget", HandlerFunc: cf.BatchGetConfigOneItem},
 		{Method: http.MethodPost, Path: "/confitem/validate", HandlerFunc: cf.ValidateValueForClient},
+		{Method: http.MethodPost, Path: "/confitem/recoverdefault", HandlerFunc: cf.RecoverDefaultConfigItems},
 		{Method: http.MethodPost, Path: "/confitem/clonemodule", HandlerFunc: cf.CloneModuleConfig},
+		{Method: http.MethodPost, Path: "/module/clone", HandlerFunc: cf.CloneModuleConfig},
+		{Method: http.MethodPost, Path: "/module/delete", HandlerFunc: cf.DeleteModuleConfig},
 		{Method: http.MethodPost, Path: "/confitem/clonecluster", HandlerFunc: cf.CloneClusterConfig},
 		{Method: http.MethodGet, Path: "/confitem/changes", HandlerFunc: cf.QueryConfItemChanges},
 

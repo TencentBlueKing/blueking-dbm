@@ -17,3 +17,10 @@ type CloneClusterConfigReq struct {
 	CloneModuleConfigReq
 	ClusterDomains []string `json:"cluster_domains" binding:"required"`
 }
+
+// DeleteModuleConfigReq delete module config
+type DeleteModuleConfigReq struct {
+	DbModuleId string `json:"db_module_id" binding:"required"`
+	BkBizID    string `json:"bk_biz_id" binding:"required"`
+	Namespace  string `json:"namespace" binding:"required"`
+}

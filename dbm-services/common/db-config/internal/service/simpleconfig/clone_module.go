@@ -35,6 +35,26 @@ func CloneModuleConfig(r *api.CloneModuleConfigReq, opUser string, db *gorm.DB) 
 	return db.Exec(sql, args...).Error
 }
 
+// DeleteModuleConfig 删除模块所有配置
+func DeleteModuleConfig(r *api.DeleteModuleConfigReq, opUser string, db *gorm.DB) error {
+	/*
+		sb := sqlbuilder.MySQL.NewDeleteBuilder()
+		sb.DeleteFrom((&model.ConfigModel{}).TableName()).
+			Where(fmt.Sprintf("level_name='module' and namespace = '%s' and conf_type = '%s'",
+				r.Namespace, r.ConfType))
+		sql, args := sb.Build()
+	*/
+	//logger.Infof("delete module config sql: %v, %v", sql, args)
+	deleteWhere := map[string]string{
+		"namespace":   r.Namespace,
+		"bk_biz_id":   r.BkBizID,
+		"level_value": r.DbModuleId,
+		"level_name":  "module",
+	}
+	res := db.Debug().Where(deleteWhere).Delete(&model.ConfigModel{})
+	return res.Error
+}
+
 func CloneClusterConfig(r *api.CloneClusterConfigReq, opUser string, db *gorm.DB) error {
 	txErr := model.DB.Self.Transaction(func(tx *gorm.DB) error {
 		// module

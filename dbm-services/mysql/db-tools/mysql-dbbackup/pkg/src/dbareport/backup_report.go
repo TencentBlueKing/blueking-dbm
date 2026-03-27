@@ -93,11 +93,11 @@ func GenerateUUid() (string, error) {
 
 // GetFileType get the type of backup file
 func GetFileType(fileName string) (fileType string) {
-	if strings.HasSuffix(fileName, ".tar") {
+	if strings.HasSuffix(fileName, cst.SuffixTar) {
 		fileType = "tar"
-	} else if strings.HasSuffix(fileName, ".priv") {
+	} else if strings.HasSuffix(fileName, cst.SuffixPriv) {
 		fileType = "priv"
-	} else if strings.HasSuffix(fileName, ".index") {
+	} else if strings.HasSuffix(fileName, cst.SuffixIndex) {
 		fileType = "index"
 	} else {
 		fileType = "other"
@@ -422,7 +422,7 @@ func (r *BackupLogReport) ReportBackupResult(indexFilePath string, index, upload
 		}
 	}
 
-	privFile := strings.Replace(indexFilePath, ".index", ".priv", 1)
+	privFile := strings.Replace(indexFilePath, cst.SuffixIndex, cst.SuffixPriv, 1)
 	if cmutil.FileExists(privFile) {
 		_ = reportGrants(privFile, r.cfg.Public.ReportPath, metaInfo.BackupPort)
 	}

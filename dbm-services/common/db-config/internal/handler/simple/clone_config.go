@@ -42,6 +42,36 @@ func (cf *Config) CloneModuleConfig(ctx *gin.Context) {
 	return
 }
 
+// DeleteModuleConfig godoc
+//
+// @Summary      删除模块配置
+// @Description  删除模块的所有配置项
+// @Tags         config_item
+// @Accept       json
+// @Produce      json
+// @Param        body body     api.DeleteModuleConfigReq true  "delete module config"
+// @Failure      400  {object}  api.HTTPClientErrResp
+// @Router       /bkconfig/v1/module/delete [post]
+func (cf *Config) DeleteModuleConfig(ctx *gin.Context) {
+	var r api.DeleteModuleConfigReq
+	var err error
+	if err = ctx.BindJSON(&r); err != nil {
+		handler.SendResponse(ctx, err, nil)
+		return
+	}
+	if err := validate.GoValidateStruct(r, false); err != nil {
+		handler.SendResponse(ctx, err, nil)
+		return
+	}
+	txErr := simpleconfig.DeleteModuleConfig(&r, "", model.DB.Self)
+	if txErr != nil {
+		handler.SendResponse(ctx, txErr, nil)
+		return
+	}
+	handler.SendResponse(ctx, nil, nil)
+	return
+}
+
 // CloneClusterConfig godoc
 //
 // @Summary      修改集群的业务和模块

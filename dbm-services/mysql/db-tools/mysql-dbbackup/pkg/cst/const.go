@@ -119,6 +119,10 @@ const (
 	// FileDirectory 未打包的目录
 	FileDirectory = "dir"
 	FileIndex     = "index"
+
+	SuffixIndex = ".index"
+	SuffixPriv  = ".priv"
+	SuffixTar   = ".tar"
 )
 
 const DBAReportBase = "/home/mysql/dbareport"

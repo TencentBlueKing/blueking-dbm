@@ -1,6 +1,8 @@
 package model
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // ConfigModel TODO
 // tb_config_node
@@ -21,6 +23,8 @@ type ConfigModel struct {
 	// 是哪个发布版本进行的修改
 	UpdatedRevision string `json:"updated_revision" gorm:"column:updated_revision;type:varchar(120)"`
 	Stage           int8   `json:"stage" gorm:"column:stage;type:tinyint"`
+
+	UpLevelValue map[string]string `json:"up_level_value" gorm:"-"`
 	BaseDatetime
 }
 

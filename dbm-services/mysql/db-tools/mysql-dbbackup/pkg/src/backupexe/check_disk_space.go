@@ -14,17 +14,19 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/huandu/go-sqlbuilder"
 	"github.com/jmoiron/sqlx"
-	"github.com/pkg/errors"
+	errs "github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"dbm-services/common/go-pubpkg/cmutil"
@@ -55,43 +57,86 @@ func DeleteOldBackup(cnf *config.Public, expireDays int) error {
 		logger.Log.Error("failed to read backupdir, err :", err)
 		return err
 	}
+	indexFiles := map[string]time.Time{}
+	bakFiles := map[string]int64{}
 	for _, fi := range dir {
+		// backup file format: 123_21001308_30.41.100.21_3306_20260324092001_XX
+		hostport := fmt.Sprintf("%s_%d", cnf.MysqlHost, cnf.MysqlPort)
+		reBakFile := regexp.MustCompile(fmt.Sprintf(`_\d+_\d+_%s_`, hostport))
+		if reBakFile.MatchString(fi.Name()) {
+			bakFiles[fi.Name()] = fi.Size()
+
+			if strings.HasSuffix(fi.Name(), cst.SuffixIndex) {
+				indexFiles[fi.Name()] = fi.ModTime()
+			}
+		}
+	}
+	indexFilesKeep := []string{}
+	for indexFile, modTime := range indexFiles {
 		fileMatchHost := fmt.Sprintf("_%s_", cnf.MysqlHost)
 		fileMatchPort := fmt.Sprintf("_%s_%d_", cnf.MysqlHost, cnf.MysqlPort)
-		// 按照实例端口来删除，指定时间(可能是 now)之前的全部删掉
-		// 按照主机来删除，可能会删除别的端口备份，限制只能删除 12h 之前的
 		canRemove := false
-		if strings.Contains(fi.Name(), fileMatchPort) && expireTime.Compare(fi.ModTime()) > 0 {
+		if strings.Contains(indexFile, fileMatchPort) && expireTime.Compare(modTime) > 0 {
+			// 本实例的备份，指定时间(可能是 now)之前的全部删掉
 			canRemove = true
-		} else if strings.Contains(fi.Name(), fileMatchHost) && !strings.Contains(fi.Name(), fileMatchPort) {
-			if expireDays > 0 && expireTime.Compare(fi.ModTime()) > 0 {
+		} else if strings.Contains(indexFile, fileMatchHost) && !strings.Contains(indexFile, fileMatchPort) {
+			// 其它实例的备份，如果要全部清理，也要限制只能删除 12h 之前的
+			if expireDays > 0 && expireTime.Compare(modTime) > 0 {
 				canRemove = true
-			} else if expireDays <= 0 && time.Now().Sub(fi.ModTime()).Hours() > 12 {
+			} else if expireDays <= 0 && time.Now().Sub(modTime).Hours() > 12 {
 				canRemove = true
 			}
 		}
-		if !canRemove {
-			continue
-		}
-		fileName := filepath.Join(cnf.BackupDir, fi.Name())
-		if fi.Size() > 4*1024*1024*1024 {
-			// remove 速度适度放大一点
-			removeLimit := cnf.IOLimitMBPerSec + 300
-			logger.Log.Infof("remove old backup file %s limit %dMB/s ", fileName, removeLimit)
-			if err2 := cmutil.TruncateFile(fileName, removeLimit); err2 != nil {
-				// 尽可能清理，记录最后一个错误
-				err = err2
-				continue
+		if canRemove {
+			for bakFileName, bakFileSize := range bakFiles {
+				indexFilePrefix := strings.TrimSuffix(indexFile, cst.SuffixIndex)
+				if strings.HasPrefix(bakFileName, indexFilePrefix) {
+					err = errors.Join(err, removeFile(cnf, bakFileName, bakFileSize))
+					bakFiles[bakFileName] = -1 // mark element deleted
+				}
 			}
 		} else {
-			logger.Log.Info("remove old backup file ", fileName)
-			if err2 := os.RemoveAll(fileName); err2 != nil {
-				err = err2
-				continue
+			indexFilesKeep = append(indexFilesKeep, indexFile)
+		}
+	}
+	// 还有一类是脏数据，已经没有 .index 了，但备份文件还在，也需要清理
+	for bakFileName, bakFileSize := range bakFiles {
+		if bakFileSize == -1 { // deleted already
+			continue
+		}
+		for _, indexFile := range indexFilesKeep {
+			indexFilePrefix := strings.TrimSuffix(indexFile, cst.SuffixIndex)
+			if !strings.Contains(bakFileName, indexFilePrefix) {
+				err = errors.Join(err, removeFile(cnf, bakFileName, bakFileSize))
 			}
 		}
 	}
 	return err
+}
+
+func removeFile(cnf *config.Public, fileName string, fileSize int64) error {
+	if fileName == "" || fileSize == -1 {
+		return nil
+	} else if fileName[0] != '/' {
+		fileName = filepath.Join(cnf.BackupDir, fileName)
+	}
+	if fileSize > 4*1024*1024*1024 {
+		// remove 速度适度放大一点
+		removeLimit := cnf.IOLimitMBPerSec + 300
+		logger.Log.Infof("remove old backup file %s limit %dMB/s ", fileName, removeLimit)
+		if err := cmutil.TruncateFile(fileName, removeLimit); err != nil {
+			logger.Log.Warnf("remove %s got error:%s", fileName, err.Error())
+			// 尽可能清理，记录最后一个错误
+			return err
+		}
+	} else {
+		logger.Log.Info("remove old backup file ", fileName)
+		if err := os.RemoveAll(fileName); err != nil {
+			logger.Log.Warnf("remove %s got error:%s", fileName, err.Error())
+			return err
+		}
+	}
+	return nil
 }
 
 // cleanLocalBackupReport 维持 local_backup_report 表里面的记录状态
@@ -122,7 +167,7 @@ func cleanLocalBackupReport(host string, port int, db *sqlx.DB, l *logrus.Logger
 		return err
 	}
 	if _, err = session.ExecContext(ctx, "set sql_log_bin=0;"); err != nil {
-		l.Error("failed to set sql_log_bin=0, err:", errors.WithMessage(err, "update local_backup_report"))
+		l.Error("failed to set sql_log_bin=0, err:", errs.WithMessage(err, "update local_backup_report"))
 		// 必须关闭 binlog，不然可能会出现主从复制报错
 		return err
 	}
@@ -230,7 +275,7 @@ func GetLastBackupSize(cnf *config.Public, db *sql.DB) (uint64, error) {
 	res := db.QueryRow(sqlStr)
 	var backupId, backupTime, extraFieldsStr string
 	if err = res.Scan(&backupId, &backupTime, &extraFieldsStr); err != nil {
-		return 0, errors.WithMessagef(err, "query the last full backup size for %d", cnf.MysqlPort)
+		return 0, errs.WithMessagef(err, "query the last full backup size for %d", cnf.MysqlPort)
 	}
 	extraFields := dbareport.ExtraFields{}
 	if err = json.Unmarshal([]byte(extraFieldsStr), &extraFields); err != nil {
