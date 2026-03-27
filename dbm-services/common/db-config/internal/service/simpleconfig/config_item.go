@@ -272,11 +272,16 @@ func GetMergedConfig(db *gorm.DB, s *api.BaseConfigNode, upLevelInfo *api.UpLeve
 	}
 	for _, cg := range configs {
 		if cg.LevelName == s.LevelName { // 是自定义的配置，返回它的上级配置
-			cg.UpLevelValue = map[string]string{
-				//confMap[cg.ConfName].LevelName: confMap[cg.ConfName].LevelValue,
-				"level_name":  confMap[cg.ConfName].LevelName,
-				"level_value": confMap[cg.ConfName].LevelValue,
-				"conf_value":  confMap[cg.ConfName].ConfValue,
+			if upConfig, ok := confMap[cg.ConfName]; ok {
+				cg.UpLevelValue = map[string]string{
+					"level_name":  upConfig.LevelName,
+					"level_value": upConfig.LevelValue,
+					"conf_value":  upConfig.ConfValue,
+				}
+			} else {
+				logger.Error("NO UP LEVEL FOUND: conf_name=%s (%s=%s)",
+					cg.ConfName, cg.LevelName, cg.LevelValue)
+				cg.UpLevelValue = make(map[string]string)
 			}
 		}
 	}

@@ -17,7 +17,6 @@ import (
 // ConfigLevelCompare TODO
 func ConfigLevelCompare(a, b *model.ConfigModel) (int, error) {
 	ConfigLevelMap := cst.GetConfigLevelMap("")
-	logger.Info("ConfigLevelCompare LevelName=%s", b.LevelName)
 	if aLevel, ok := ConfigLevelMap[a.LevelName]; ok {
 		if bLevel, ok := ConfigLevelMap[b.LevelName]; ok {
 			if aLevel > bLevel {
