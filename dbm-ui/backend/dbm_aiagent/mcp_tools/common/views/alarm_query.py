@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
+from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clusters
 from backend.dbm_aiagent.mcp_tools.common.impl.query_monitor_alarm_info import QueryMonitorAlarm
 from backend.dbm_aiagent.mcp_tools.common.serializers.alarm_query import (
     SearchAlertInputSerializer,
@@ -19,6 +20,7 @@ from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
+from backend.iam_app.handlers.drf_perm.mcp import McpClusterManagePermission
 
 
 class MonitorQueryMcpToolsViewSet(McpToolsViewSet):
@@ -29,7 +31,9 @@ class MonitorQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=SearchAlertInputSerializer,
         response_slz=SearchAlertOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.ALARM_QUERY],
+        permission_classes=[McpClusterManagePermission],
+        mcp_auth_parser=auth_parse_clusters,
+        mcp=[DBMMcpTools.ALARM_QUERY, DBMMcpTools.DBM_PUBLIC_MARKET],
         name_prefix="alarm_query",
     )
     def query_monitor_alarm_info(self, request, *args, **kwargs):
