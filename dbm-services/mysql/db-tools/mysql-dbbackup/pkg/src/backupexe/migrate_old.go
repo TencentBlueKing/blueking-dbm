@@ -19,6 +19,7 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
 )
@@ -81,7 +82,7 @@ func MigrateInstanceBackupInfo(infoFilePath string, cnf *config.BackupConfig) (s
 			fileType := ""
 			if strings.HasSuffix(fName, ".info") {
 				// info: index
-			} else if strings.HasSuffix(fName, ".priv") {
+			} else if strings.HasSuffix(fName, cst.SuffixPriv) {
 				fileType = "priv"
 			} else {
 				fileType = "tar"
@@ -181,7 +182,7 @@ func MigrateInstanceBackupInfo(infoFilePath string, cnf *config.BackupConfig) (s
 		cnf.Public.BkBizId, cnf.Public.ClusterId, cnf.Public.MysqlHost, cnf.Public.MysqlPort,
 		beginTime.Format("20060102150405"), backupTool)
 	cnf.Public.SetTargetName(newTargetName)
-	indexFilePath := filepath.Join(cnf.Public.BackupDir, newTargetName+".index")
+	indexFilePath := filepath.Join(cnf.Public.BackupDir, newTargetName+cst.SuffixIndex)
 	err = indexObj.SaveIndexContent(indexFilePath)
 	if err != nil {
 		return "", nil, err

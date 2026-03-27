@@ -370,7 +370,7 @@ func (t *backupTask) run(ctx context.Context, cnf *config.BackupConfig) (err err
 		return exeErr
 	}
 
-	indexFilePath := path.Join(cnf.Public.BackupDir, cnf.Public.TargetName()+".index")
+	indexFilePath := path.Join(cnf.Public.BackupDir, cnf.Public.TargetName()+cst.SuffixIndex)
 	err = metaInfo.SaveIndexContent(indexFilePath)
 	if err != nil {
 		return err
@@ -542,7 +542,7 @@ func (t *backupTask) runBackupToRemote(cnf *config.BackupConfig, indexFilePath s
 		return err
 	}
 
-	privFilePath := path.Join(cnf.Public.BackupDir, cnf.Public.TargetName()+".priv")
+	privFilePath := path.Join(cnf.Public.BackupDir, cnf.Public.TargetName()+cst.SuffixPriv)
 	if cmutil.FileExists(privFilePath) {
 		remotePrivFile := filepath.Join(cnf.BackupToRemote.SaveDir, filepath.Base(privFilePath))
 		if err = sshClient.Upload(privFilePath, remotePrivFile); err != nil {
@@ -608,7 +608,7 @@ func backupTarAndUpload(
 			return errors.WithMessagef(err, "unmarshal metaInfo %s", indexFilePath)
 		}
 	}
-	targetDirName := strings.TrimSuffix(filepath.Base(indexFilePath), ".index")
+	targetDirName := strings.TrimSuffix(filepath.Base(indexFilePath), cst.SuffixIndex)
 	targetDir := path.Join(cnf.Public.BackupDir, targetDirName)
 	cnf.Public.SetTargetName(targetDirName)
 	cnf.Public.BackupDir = filepath.Dir(indexFilePath)

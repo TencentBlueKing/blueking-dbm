@@ -32,7 +32,7 @@ func GetChildLevelStraight(namespace, confType, confFile, curLevelName string) s
 
 // GetConfigLevelsUp 获取指定 level 的上级，如果 straight=true，只返回直接上级
 // priority 越大，优先级越高，level 越低(plat, app, module, cluster, instance)
-func GetConfigLevelsUp(levelName string, names []string, straight bool) []string {
+func GetConfigLevelsUp(levelName string, namesFilter []string, straight bool) []string {
 	configLevelMap := cst.GetConfigLevelMap("")
 	levelPriority, _ := configLevelMap[levelName]
 
@@ -40,7 +40,7 @@ func GetConfigLevelsUp(levelName string, names []string, straight bool) []string
 	maxLevelName := ""
 	maxLevelPrio := 0
 	for k, v := range configLevelMap {
-		if !util.StringsHas(names, k) {
+		if !util.StringsHas(namesFilter, k) {
 			continue
 		}
 		if v < levelPriority {

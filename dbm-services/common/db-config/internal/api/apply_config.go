@@ -72,7 +72,8 @@ func (a *ApplyConfigInfoReq) Validate() error {
 
 // VersionStatReq godoc
 type VersionStatReq struct {
-	BKBizIDDef
+	// 业务ID，必选项
+	BKBizID string `json:"bk_biz_id" form:"bk_biz_id" validate:"required" example:"testapp"`
 	BaseConfFileDef
 	BaseLevelsDef
 }
@@ -144,24 +145,27 @@ func (a *VersionApplyReq) Validate() error {
 // BaseConfigNode godoc
 // bk_biz_id, namespace, conf_type, conf_file, level_name, level_value => config node_id
 type BaseConfigNode struct {
-	BKBizIDDef
+	// 业务ID，必选项
+	BKBizID string `json:"bk_biz_id" form:"bk_biz_id" validate:"required" example:"testapp"`
 	BaseConfFileDef
 	BaseLevelDef
 }
 
 // QueryConfigOptions TODO
 type QueryConfigOptions struct {
-	InheritFrom           string `json:"inherit_from"`
-	Module                string `json:"module" form:"module"`
-	Cluster               string `json:"cluster" form:"cluster"`
-	ConfName              string `json:"conf_name" form:"conf_name"`
-	ConfValue             string `json:"conf_value" form:"conf_value"`
-	Generate              bool
-	Decrypt               bool
-	Format                string `json:"format"`
-	View                  string `json:"view"`
-	Description           string `json:"description"`
-	CreatedBy             string `json:"createdBy"`
+	InheritFrom string `json:"inherit_from"`
+	Module      string `json:"module" form:"module"`
+	Cluster     string `json:"cluster" form:"cluster"`
+	ConfName    string `json:"conf_name" form:"conf_name"`
+	ConfValue   string `json:"conf_value" form:"conf_value"`
+	Generate    bool
+	Decrypt     bool
+	Format      string `json:"format"`
+	View        string `json:"view"`
+	Description string `json:"description"`
+	CreatedBy   string `json:"createdBy"`
+	// QueryUpDefault 是否查询上级的值
+	QueryUpDefault        bool
 	RowsAffected          int
 	FromNodeConfigApplied bool // 请求是否来自 level_config 的应用
 }

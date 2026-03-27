@@ -189,7 +189,7 @@ func (cf *Config) PublishConfigFile(ctx *gin.Context) {
 		Patch:         r.Patch,
 		ConfigsLocked: nil,
 		LevelNode: api.BaseConfigNode{
-			BKBizIDDef: api.BKBizIDDef{BKBizID: r.BKBizID},
+			BKBizID: r.BKBizID,
 			BaseConfFileDef: api.BaseConfFileDef{
 				Namespace: r.Namespace,
 				ConfType:  r.ConfType,

@@ -79,6 +79,50 @@ func MergeConfig(configs []*model.ConfigModel, view string) ([]*model.ConfigMode
 	return configItems, nil
 }
 
+func MergeConfig2(configs []*model.ConfigModel, levelExclude string, view string) ([]*model.ConfigModel, error) {
+	// ConfigLevelKeys := ConfigLevelMap
+	// ConfigUniqueKeys := []string{"bk_biz_id", "conf_type", "conf_name", "namespace"}
+	// viewTmp := strings.Split(view, ".")
+	configMergeMap := make(map[string]*model.ConfigModel)
+	for _, config := range configs {
+		if config.LevelName == levelExclude {
+			continue
+		}
+		configKey := ""
+
+		if view == constvar.ViewRaw {
+			configKey = fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s",
+				config.BKBizID, config.Namespace, config.ConfType, config.ConfFile,
+				config.ConfName, config.LevelName, config.LevelValue)
+		} else if strings.HasPrefix(view, constvar.ViewMerge) {
+			configKey = fmt.Sprintf("%s|%s|%s|%s",
+				config.Namespace, config.ConfType, config.ConfFile, config.ConfName)
+		} else {
+			return nil, errors.New("no view given")
+		}
+		logger.Debugf("service.MergeConfig merge: %s", configKey)
+		if _, ok := configMergeMap[configKey]; !ok {
+			configMergeMap[configKey] = config
+		} else {
+			if r, e := ConfigLevelCompare(config, configMergeMap[configKey]); e == nil {
+				if r > 0 {
+					logger.Warnf("service.MergeConfig replace: %+v", config)
+					configMergeMap[configKey] = config
+				}
+			} else {
+				return nil, e
+			}
+		}
+	}
+	// convert configMergeMap values to slice
+	logger.Debugf("service.GetConfig configMergeMap: %+v", configMergeMap)
+	configItems := make([]*model.ConfigModel, 0)
+	for _, config := range configMergeMap {
+		configItems = append(configItems, config)
+	}
+	return configItems, nil
+}
+
 // MergeConfigView TODO
 func MergeConfigView(configs []*model.ConfigModelView, view string) ([]*model.ConfigModelView, error) {
 	configMergeMap := make(map[string]*model.ConfigModelView)

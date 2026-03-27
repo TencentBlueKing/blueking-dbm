@@ -196,7 +196,7 @@ func (p *PublishConfig) ApplyVersionLevelNode(db *gorm.DB, req *api.VersionApply
 		return err
 	}
 	levelNode := api.BaseConfigNode{
-		BKBizIDDef: api.BKBizIDDef{BKBizID: req.BKBizID},
+		BKBizID: req.BKBizID,
 		BaseConfFileDef: api.BaseConfFileDef{
 			Namespace: req.Namespace,
 			ConfType:  req.ConfType,

@@ -80,7 +80,8 @@ type ConfTypeDef struct {
 // UpsertConfNames TODO
 type UpsertConfNames struct {
 	ConfNameDef
-	OperationType
+	// 配置项修改动作，需提供操作类型字段，允许值 `add`,`update`,`remove`,`upsert`
+	OPType string `json:"op_type" form:"op_type" validate:"required,enums" enums:"add,update,remove,upsert"`
 }
 
 // QueryConfigNamesReq TODO

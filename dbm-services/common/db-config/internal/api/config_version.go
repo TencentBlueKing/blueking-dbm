@@ -2,7 +2,8 @@ package api
 
 // GetVersionedDetailReq TODO
 type GetVersionedDetailReq struct {
-	BKBizIDDef
+	// 业务ID，必选项
+	BKBizID string `json:"bk_biz_id" form:"bk_biz_id" validate:"required" example:"testapp"`
 	BaseConfFileDef
 	BaseLevelDef
 	// 当 revision = "v_latest" 时，会返回当前最新的版本
@@ -44,7 +45,8 @@ type PublishConfigFileReq struct {
 
 // ListConfigVersionsReq list config file versions
 type ListConfigVersionsReq struct {
-	BKBizIDDef
+	// 业务ID，必选项
+	BKBizID string `json:"bk_biz_id" form:"bk_biz_id" validate:"required" example:"testapp"`
 	BaseConfFileDef
 	BaseLevelDef
 } // @name ListConfigVersionsReq
@@ -63,7 +65,8 @@ type ListConfigVersionsResp struct {
 
 // ChangeBkBizIdReq change bk_biz_id request body
 type ChangeBkBizIdReq struct {
-	BKBizIDDef
+	// 业务ID，必选项
+	BKBizID        string   `json:"bk_biz_id" form:"bk_biz_id" validate:"required" example:"testapp"`
 	NewBKBizID     string   `json:"new_bk_biz_id" form:"new_bk_biz_id" validate:"required" example:"2345"`
 	ClusterDomains []string `json:"cluster_domains" form:"cluster_domains" validate:"required"`
 }
