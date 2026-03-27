@@ -13,13 +13,13 @@
 import { isRecentDays, utcDisplayTime } from '@utils';
 
 const STATUS_FAILED = 'FAILED';
-const STATUS_SUCCEEDED = 'SUCCEEDED';
+const STATUS_SUCCESS = 'SUCCESS';
 const STATUS_NO_EXECUTION_RECORD = 'NO_EXECUTION_RECORD';
 
 export default class Partition {
   static STATUS_FAILED = STATUS_FAILED;
   static STATUS_NO_EXECUTION_RECORD = STATUS_NO_EXECUTION_RECORD;
-  static STATUS_SUCCEEDED = STATUS_SUCCEEDED;
+  static STATUS_SUCCESS = STATUS_SUCCESS;
 
   bk_biz_id: number;
   bk_cloud_id: number;
@@ -99,7 +99,7 @@ export default class Partition {
   }
 
   get isFinished() {
-    return this.status === Partition.STATUS_SUCCEEDED;
+    return this.status === Partition.STATUS_SUCCESS;
   }
 
   get isNew() {
@@ -118,7 +118,7 @@ export default class Partition {
     const iconMap = {
       [Partition.STATUS_FAILED]: 'sync-failed',
       [Partition.STATUS_NO_EXECUTION_RECORD]: 'sync-default',
-      [Partition.STATUS_SUCCEEDED]: 'sync-success',
+      [Partition.STATUS_SUCCESS]: 'sync-success',
     };
 
     return iconMap[this.status] || '';
@@ -128,7 +128,7 @@ export default class Partition {
     const statusMap = {
       [Partition.STATUS_FAILED]: '执行失败',
       [Partition.STATUS_NO_EXECUTION_RECORD]: '无执行记录',
-      [Partition.STATUS_SUCCEEDED]: '执行成功',
+      [Partition.STATUS_SUCCESS]: '执行成功',
     };
     return statusMap[this.status] || '--';
   }
