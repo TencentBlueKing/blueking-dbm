@@ -397,7 +397,7 @@
         },
         {
           label: t('执行成功'),
-          value: PartitionModel.STATUS_SUCCEEDED,
+          value: PartitionModel.STATUS_SUCCESS,
         },
       ],
       name: t('最近执行状态'),
@@ -628,7 +628,11 @@
         });
         if (result) {
           fetchData();
-          messageSuccess(t('执行成功'));
+          result.forEach((ticket, index) => {
+            setTimeout(() => {
+              ticketMessage(ticket.id);
+            }, index * 100);
+          });
           return true;
         }
         return false;
