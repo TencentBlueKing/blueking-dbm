@@ -191,7 +191,7 @@
         {{ t('确定') }}
       </BkButton>
       <AuthButton
-        v-if="data.isCustom"
+        v-if="data.isCustom && isCustomEdit"
         action-id="monitor_policy_edit"
         class="ml-8"
         outline
@@ -540,7 +540,7 @@
     }
     // 新建子策略， 策略名默认为父策略名称 + 数字，依次递增
     if (isChildNew.value) {
-      return `${props.data.name} - ${t('子策略')}${props.data.child.length + 1}`;
+      return `${props.data.nameDisplay} - ${t('子策略')}${props.data.child.length + 1}`;
     }
     // 克隆子策略
     if (isChildClone.value) {
