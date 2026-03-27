@@ -473,7 +473,12 @@ class TicketFlowsConfig(AuditedModel):
 class ClusterOperateRecordManager(models.Manager):
     def filter_actives(self, cluster_id, *args, **kwargs):
         """获得集群正在运行的单据记录"""
-        return self.filter(cluster_id=cluster_id, ticket__status=TicketStatus.RUNNING, *args, **kwargs)
+        return self.filter(
+            cluster_id=cluster_id,
+            ticket__status__in=[TicketStatus.RUNNING, TicketStatus.INNER_TODO, TicketStatus.FAILED],
+            *args,
+            **kwargs,
+        )
 
     def filter_inner_actives(self, cluster_id, *args, **kwargs):
         """
