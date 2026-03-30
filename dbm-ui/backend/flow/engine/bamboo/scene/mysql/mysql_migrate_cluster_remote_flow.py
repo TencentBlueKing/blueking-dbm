@@ -292,7 +292,8 @@ class MySQLMigrateClusterRemoteFlow(object):
                 cluster["change_master_force"] = False
                 cluster["change_master"] = False
                 cluster["restore_privilege"] = True
-                cluster["privilege_ips"] = [self.data["master_ip"], self.data["slave_ip"]]
+                # cluster["privilege_ips"] = [self.data["master_ip"], self.data["slave_ip"]]
+                cluster["privilege_ips"] = [self.data["slave_ip"]]
                 cluster["charset"] = self.data["charset"]
                 cluster["backup_source"] = self.ticket_data["backup_source"]
 

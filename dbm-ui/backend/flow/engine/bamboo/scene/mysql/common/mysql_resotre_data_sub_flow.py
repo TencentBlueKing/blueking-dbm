@@ -470,7 +470,8 @@ def mysql_restore_master_slave_sub_flow(
             root_id=root_id,
             ticket_data=ticket_data,
             cluster_model=cluster_model,
-            ips=[cluster["new_slave_ip"], cluster["new_master_ip"]],
+            # ips=[cluster["new_slave_ip"], cluster["new_master_ip"]],
+            ips=[cluster["new_slave_ip"]],
             privilege_ips=privilege_ips,
         )
         if restore_priv_sub_pipeline is not None:
@@ -500,16 +501,16 @@ def priv_recover_sub_flow(
     if backup_info is None:
         logger.error("cluster {} backup info not exists".format(cluster_model.id))
         return None
-
-    storages = cluster_model.storageinstance_set.filter(machine__ip__in=ips)
+    # 这里流程是提前生成的，这里新的ip还查询不到。所以只能通过指定ip
+    master = cluster_model.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
     priv_sub_pipeline_list = []
-    for storage in storages:
+    for restore_ip in ips:
         priv_sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
         cluster = {
             "cluster_id": cluster_model.id,
-            "file_target_path": f"/data/dbbak/{root_id}/{storage.port}/restore_priv",
+            "file_target_path": f"/data/dbbak/{root_id}/{master.port}/restore_priv",
             "sql_files": backup_info["priv_files"],
-            "port": storage.port,
+            "port": master.port,
             "force": False,
         }
 
@@ -520,7 +521,7 @@ def priv_recover_sub_flow(
                 bk_cloud_id=cluster_model.bk_cloud_id,
                 file_target_path=cluster["file_target_path"],
                 task_ids=backup_info["task_ids"],
-                dest_ips=[storage.machine.ip],
+                dest_ips=[restore_ip],
                 source_ip=None,
             )
         )
@@ -530,16 +531,14 @@ def priv_recover_sub_flow(
             cluster=copy.deepcopy(cluster),
             job_timeout=MYSQL_USUAL_JOB_TIME,
             get_mysql_payload_func=MysqlActPayload.tendb_restore_priv_payload.__name__,
-            exec_ip=storage.machine.ip,
+            exec_ip=restore_ip,
         )
         priv_sub_pipeline.add_act(
-            act_name=_("{}权限恢复,权限backup_ids: {}".format(storage.ip_port, backup_info["backup_ids"])),
+            act_name=_("{}:{}权限恢复,权限backup_ids: {}".format(restore_ip, master.port, backup_info["backup_ids"])),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(exec_act_kwargs),
         )
-        priv_sub_pipeline_list.append(
-            priv_sub_pipeline.build_sub_process(sub_name=_(_("{}权限恢复").format(storage.ip_port)))
-        )
+        priv_sub_pipeline_list.append(priv_sub_pipeline.build_sub_process(sub_name=_(_("{}权限恢复").format(restore_ip))))
 
     if len(priv_sub_pipeline_list) > 0:
         sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=priv_sub_pipeline_list)
