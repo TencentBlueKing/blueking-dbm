@@ -31,6 +31,27 @@ import (
 // R TODO
 var R *Rules
 
+// BanCategory Ban 警告的类别
+type BanCategory string
+
+const (
+	// PlatformBan 平台限制，平台规则不允许的操作
+	PlatformBan BanCategory = "platform"
+	// SyntaxBan 语法不支持，数据库本身语法层面不支持
+	SyntaxBan BanCategory = "syntax"
+)
+
+// Label 返回用于消息前缀的中文标签
+// 零值（未配置 category 字段）默认视为平台限制（PlatformBan）
+func (b BanCategory) Label() string {
+	switch b {
+	case SyntaxBan:
+		return "【语法不支持】"
+	default:
+		return "【平台限制】"
+	}
+}
+
 // Checker TODO
 type Checker interface {
 	Checker(mysqlVersion string) *CheckerResult
@@ -40,6 +61,7 @@ type Checker interface {
 type CheckerResult struct {
 	ObjName   string
 	IsSpFunc  bool
+	IsDbName  bool
 	IsSQLText bool
 	BanWarns  []string
 	RiskWarns []string
@@ -132,13 +154,18 @@ func (c CheckerResult) IsPass() bool {
 	return len(c.BanWarns) == 0 && len(c.RiskWarns) == 0
 }
 
+// addBan 统一写入 BanWarns，自动拼接分类前缀
+func (c *CheckerResult) addBan(msg string, category BanCategory) {
+	c.BanWarns = append(c.BanWarns, fmt.Sprintf("%s：%s", category.Label(), msg))
+}
+
 // Parse do parse
 func (c *CheckerResult) Parse(rule *RuleItem, val interface{}, additionalMsg string) {
 	matched, err := rule.CheckItem(val)
 	if matched {
 		msg := strings.TrimSpace(fmt.Sprintf("%s %s\n%s\n%s", c.buildObjName(), err.Error(), additionalMsg, rule.Suggestion))
 		if rule.Ban {
-			c.BanWarns = append(c.BanWarns, msg)
+			c.addBan(msg, rule.Category)
 		} else {
 			c.RiskWarns = append(c.RiskWarns, msg)
 		}
@@ -153,14 +180,17 @@ func (c *CheckerResult) Trigger(rule *BoolRuleItem, additionalMsg string) {
 	}
 	msg := strings.TrimSpace(fmt.Sprintf("%s %s:%s\n%s", c.buildObjName(), rule.Desc, additionalMsg, rule.Suggestion))
 	if rule.Ban {
-		c.BanWarns = append(c.BanWarns, msg)
+		c.addBan(msg, rule.Category)
 	} else {
 		c.RiskWarns = append(c.RiskWarns, msg)
 	}
 }
 func (c *CheckerResult) buildObjName() string {
 	if c.IsSpFunc {
-		return fmt.Sprintf("sp_name: %s ", c.ObjName)
+		return fmt.Sprintf("sp_name --> [%s]", c.ObjName)
+	}
+	if c.IsDbName {
+		return fmt.Sprintf("db_name --> [%s]", c.ObjName)
 	}
 	if c.IsSQLText {
 		return ""
@@ -168,14 +198,22 @@ func (c *CheckerResult) buildObjName() string {
 	if c.ObjName == "" {
 		return ""
 	}
-	return fmt.Sprintf("table_name: %s ", c.ObjName)
+	return fmt.Sprintf("table_name:[%s]", c.ObjName)
 }
 
-// ParseBuiltinBan parse builtin ban
+// ParseBuiltinBan 平台限制场景，命中时写入带【平台限制】前缀的 BanWarns
 func (c *CheckerResult) ParseBuiltinBan(f func() (bool, string)) {
 	matched, msg := f()
 	if matched {
-		c.BanWarns = append(c.BanWarns, fmt.Sprintf("%s  %s", c.buildObjName(), msg))
+		c.addBan(fmt.Sprintf("%s  %s", c.buildObjName(), msg), PlatformBan)
+	}
+}
+
+// ParseBuiltinSyntaxBan 语法本身不支持的场景，命中时写入带【语法不支持】前缀的 BanWarns
+func (c *CheckerResult) ParseBuiltinSyntaxBan(f func() (bool, string)) {
+	matched, msg := f()
+	if matched {
+		c.addBan(fmt.Sprintf("%s  %s", c.buildObjName(), msg), SyntaxBan)
 	}
 }
 
@@ -192,18 +230,20 @@ type RuleItem struct {
 	Item        interface{} `yaml:"item"`
 	Val         interface{}
 	ruleProgram *vm.Program
-	Expr        string `yaml:"expr"`
-	Desc        string `yaml:"desc"`
-	Ban         bool   `yaml:"ban"`
-	Suggestion  string `yaml:"suggestion"`
+	Expr        string      `yaml:"expr"`
+	Desc        string      `yaml:"desc"`
+	Ban         bool        `yaml:"ban"`
+	Suggestion  string      `yaml:"suggestion"`
+	Category    BanCategory `yaml:"category"`
 }
 
 // BoolRuleItem 开关型规则，只需配置开启或者关闭即可
 type BoolRuleItem struct {
-	Desc       string `yaml:"desc"`
-	Ban        bool   `yaml:"ban"`
-	TurnOn     bool   `yaml:"turnOn"`
-	Suggestion string `yaml:"suggestion"`
+	Desc       string      `yaml:"desc"`
+	Ban        bool        `yaml:"ban"`
+	TurnOn     bool        `yaml:"turnOn"`
+	Suggestion string      `yaml:"suggestion"`
+	Category   BanCategory `yaml:"category"`
 }
 
 // Rules TODO

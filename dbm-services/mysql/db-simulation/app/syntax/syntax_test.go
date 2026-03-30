@@ -1058,3 +1058,96 @@ func TestTmysqlParseFile_Do_InvalidJsonFormat(t *testing.T) {
 	// 但至少应该有语法错误或警告
 	t.Logf("Has JSON-related issue: %v", hasJsonRelatedIssue)
 }
+
+// ---------- BanCategory 分类前缀单元测试 ----------
+
+// TestBanCategoryLabel 验证 Label() 返回正确的中文标签
+func TestBanCategoryLabel(t *testing.T) {
+	assert.Equal(t, "【平台限制】", syntax.PlatformBan.Label())
+	assert.Equal(t, "【语法不支持】", syntax.SyntaxBan.Label())
+	// 零值（空字符串）默认走平台限制
+	assert.Equal(t, "【平台限制】", syntax.BanCategory("").Label())
+}
+
+// TestCheckerResult_ParseBuiltinBan_Prefix 验证 ParseBuiltinBan 写入消息带【平台限制】前缀
+func TestCheckerResult_ParseBuiltinBan_Prefix(t *testing.T) {
+	r := &syntax.CheckerResult{}
+	r.ParseBuiltinBan(func() (bool, string) {
+		return true, "命名不合法"
+	})
+	require.Len(t, r.BanWarns, 1)
+	assert.True(t, strings.HasPrefix(r.BanWarns[0], "【平台限制】："),
+		"expected prefix 【平台限制】：, got: %s", r.BanWarns[0])
+}
+
+// TestCheckerResult_ParseBuiltinSyntaxBan_Prefix 验证 ParseBuiltinSyntaxBan 写入消息带【语法不支持】前缀
+func TestCheckerResult_ParseBuiltinSyntaxBan_Prefix(t *testing.T) {
+	r := &syntax.CheckerResult{}
+	r.ParseBuiltinSyntaxBan(func() (bool, string) {
+		return true, "CREATE TABLE ... SELECT 不支持"
+	})
+	require.Len(t, r.BanWarns, 1)
+	assert.True(t, strings.HasPrefix(r.BanWarns[0], "【语法不支持】："),
+		"expected prefix 【语法不支持】：, got: %s", r.BanWarns[0])
+}
+
+// TestCheckerResult_ParseBuiltinBan_NoMatch 验证未命中时 BanWarns 不增加条目
+func TestCheckerResult_ParseBuiltinBan_NoMatch(t *testing.T) {
+	r := &syntax.CheckerResult{}
+	r.ParseBuiltinBan(func() (bool, string) { return false, "" })
+	assert.Empty(t, r.BanWarns)
+}
+
+// TestCheckerResult_ParseBuiltinSyntaxBan_NoMatch 验证未命中时 BanWarns 不增加条目
+func TestCheckerResult_ParseBuiltinSyntaxBan_NoMatch(t *testing.T) {
+	r := &syntax.CheckerResult{}
+	r.ParseBuiltinSyntaxBan(func() (bool, string) { return false, "" })
+	assert.Empty(t, r.BanWarns)
+}
+
+// TestCheckerResult_Trigger_CategoryPrefix 验证 Trigger 在 Ban 规则下写入正确的分类前缀
+func TestCheckerResult_Trigger_CategoryPrefix(t *testing.T) {
+	platformRule := &syntax.BoolRuleItem{
+		Ban:      true,
+		TurnOn:   true,
+		Desc:     "平台规则",
+		Category: syntax.PlatformBan,
+	}
+	syntaxRule := &syntax.BoolRuleItem{
+		Ban:      true,
+		TurnOn:   true,
+		Desc:     "语法规则",
+		Category: syntax.SyntaxBan,
+	}
+	defaultRule := &syntax.BoolRuleItem{
+		Ban:    true,
+		TurnOn: true,
+		Desc:   "默认规则",
+	}
+
+	rp := &syntax.CheckerResult{}
+	rp.Trigger(platformRule, "detail")
+	require.Len(t, rp.BanWarns, 1)
+	assert.True(t, strings.HasPrefix(rp.BanWarns[0], "【平台限制】："),
+		"expected prefix 【平台限制】：, got: %s", rp.BanWarns[0])
+
+	rs := &syntax.CheckerResult{}
+	rs.Trigger(syntaxRule, "detail")
+	require.Len(t, rs.BanWarns, 1)
+	assert.True(t, strings.HasPrefix(rs.BanWarns[0], "【语法不支持】："),
+		"expected prefix 【语法不支持】：, got: %s", rs.BanWarns[0])
+
+	rd := &syntax.CheckerResult{}
+	rd.Trigger(defaultRule, "detail")
+	require.Len(t, rd.BanWarns, 1)
+	assert.True(t, strings.HasPrefix(rd.BanWarns[0], "【平台限制】："),
+		"zero-value Category should default to 【平台限制】：, got: %s", rd.BanWarns[0])
+}
+
+// TestCheckerResult_Trigger_TurnOff 验证 TurnOn=false 时不写入 BanWarns
+func TestCheckerResult_Trigger_TurnOff(t *testing.T) {
+	rule := &syntax.BoolRuleItem{Ban: true, TurnOn: false, Desc: "关闭的规则"}
+	r := &syntax.CheckerResult{}
+	r.Trigger(rule, "")
+	assert.Empty(t, r.BanWarns)
+}
