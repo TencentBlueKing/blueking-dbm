@@ -36,9 +36,13 @@ UNIFY_QUERY_PARAMS = {
 }
 
 # Redis metrics: BKMonitor query guards and retry behavior
-METRICS_MAX_QUERY_RANGE_SECONDS = 30 * 24 * 60 * 60
+METRICS_MAX_QUERY_RANGE_SECONDS = 6 * 30 * 24 * 60 * 60
 METRICS_END_TIME_MAX_FUTURE_SKEW_SECONDS = 300
-METRICS_MAX_DATAPOINTS_LIMIT = 86400
+# Caps per-query datapoints for LLM-driven analysis; the query engine auto-adjusts
+# time_window to fit.  At max range (6 months) this yields ~1 point per 8.6 hours,
+# sufficient for trend detection.  Callers needing denser resolution should query
+# shorter time ranges rather than raising this global cap.
+METRICS_MAX_DATAPOINTS_LIMIT = 500
 METRICS_QUERY_MAX_ATTEMPTS = 3
 METRICS_QUERY_RETRY_DELAY_SEC = 0.5
 
