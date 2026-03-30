@@ -46,19 +46,19 @@ KAFKA_METRICS_PROMQL = {
     "producer_traffic": {
         "desc": "生产流量(字节/秒)",
         "promql": """sum by (cluster_domain) (
-            rate(kafka_server_brokertopicmetrics_bytesin_total{cluster_domain="%s"}[5m])
+            rate(kafka_server_brokertopicmetrics_bytesin_total{cluster_domain="%s",topic!=""}[5m])
         )""",
     },
     "consumer_traffic": {
         "desc": "消费流量(字节/秒)",
         "promql": """sum by (cluster_domain) (
-            rate(kafka_server_brokertopicmetrics_bytesout_total{cluster_domain="%s"}[5m])
+            rate(kafka_server_brokertopicmetrics_bytesout_total{cluster_domain="%s",topic!=""}[5m])
         )""",
     },
     "producer_msg_rate": {
         "desc": "生产消息速率(条/秒)",
         "promql": """sum by (cluster_domain) (
-            rate(kafka_server_brokertopicmetrics_messagesin_total{cluster_domain="%s"}[5m])
+            rate(kafka_server_brokertopicmetrics_messagesin_total{cluster_domain="%s",topic!=""}[5m])
         )""",
     },
     # 2. CPU 指标
@@ -206,25 +206,25 @@ KAFKA_METRICS_PROMQL = {
     "produce_request_rate": {
         "desc": "生产请求速率(次/秒)",
         "promql": """sum by (cluster_domain) (
-            rate(kafka_server_brokertopicmetrics_totalproducerequests_total{cluster_domain="%s"}[5m])
+            rate(kafka_server_brokertopicmetrics_totalproducerequests_total{cluster_domain="%s",topic!=""}[5m])
         )""",
     },
     "fetch_request_rate": {
         "desc": "消费请求速率(次/秒)",
         "promql": """sum by (cluster_domain) (
-            rate(kafka_server_brokertopicmetrics_totalfetchrequests_total{cluster_domain="%s"}[5m])
+            rate(kafka_server_brokertopicmetrics_totalfetchrequests_total{cluster_domain="%s",topic!=""}[5m])
         )""",
     },
     "failed_produce_request_rate": {
         "desc": "生产请求失败速率(次/秒)",
         "promql": """sum by (cluster_domain) (
-            rate(kafka_server_brokertopicmetrics_failedproducerequests_total{cluster_domain="%s"}[5m])
+            rate(kafka_server_brokertopicmetrics_failedproducerequests_total{cluster_domain="%s",topic!=""}[5m])
         )""",
     },
     "failed_fetch_request_rate": {
         "desc": "消费请求失败速率(次/秒)",
         "promql": """sum by (cluster_domain) (
-            rate(kafka_server_brokertopicmetrics_failedfetchrequests_total{cluster_domain="%s"}[5m])
+            rate(kafka_server_brokertopicmetrics_failedfetchrequests_total{cluster_domain="%s",topic!=""}[5m])
         )""",
     },
     # 11. 连接与负载指标
@@ -319,7 +319,7 @@ KAFKA_DETAIL_METRICS_PROMQL = {
         "dimension": "broker",
         "label_key": "instance",
         "promql": """sum by (instance) (
-            rate(kafka_server_brokertopicmetrics_totalproducerequests_total{{cluster_domain="{cluster_domain}"}}[5m])
+            rate(kafka_server_brokertopicmetrics_totalproducerequests_total{{cluster_domain="{cluster_domain}",topic!=""}}[5m])
         )""",
     },
     "broker_fetch_request_rate": {
@@ -327,7 +327,7 @@ KAFKA_DETAIL_METRICS_PROMQL = {
         "dimension": "broker",
         "label_key": "instance",
         "promql": """sum by (instance) (
-            rate(kafka_server_brokertopicmetrics_totalfetchrequests_total{{cluster_domain="{cluster_domain}"}}[5m])
+            rate(kafka_server_brokertopicmetrics_totalfetchrequests_total{{cluster_domain="{cluster_domain}",topic!=""}}[5m])
         )""",
     },
     "broker_cpu_usage": {
