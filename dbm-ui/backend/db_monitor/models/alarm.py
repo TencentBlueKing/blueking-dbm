@@ -1207,13 +1207,6 @@ class MonitorPolicy(AuditedModel):
 
         result["no_data_config"] = details["items"][0]["no_data_config"]
 
-        result["detects_config"] = {
-            "trigger_config": details["detects"][0]["trigger_config"],
-            "recovery_config": details["detects"][0]["recovery_config"],
-        }
-
-        result["no_data_config"] = details["items"][0]["no_data_config"]
-
         result["notify_config"] = {
             "interval_notify_mode": details["notice"]["config"]["interval_notify_mode"],
             "notify_interval": details["notice"]["config"]["notify_interval"],
