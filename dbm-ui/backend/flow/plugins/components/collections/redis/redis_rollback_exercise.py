@@ -435,7 +435,8 @@ class RedisExerciseBestEffortCleanupService(RedisLogCapturingService, BkJobServi
         except Report.DoesNotExist:
             return
 
-        task_msg = "\n".join(self.trans_data.task_msg) if self.trans_data and self.trans_data.task_msg else ""
+        cleanup_msg = "\n".join(self.trans_data.task_msg) if self.trans_data and self.trans_data.task_msg else ""
+        merged_msg = self._merge_task_message(report.task_message, cleanup_msg)
 
         terminal_stages = {
             TaskStage.DONE,
@@ -444,11 +445,32 @@ class RedisExerciseBestEffortCleanupService(RedisLogCapturingService, BkJobServi
             TaskStage.CLEANUP_FAILED,
         }
         if report.task_stage in {s.value for s in terminal_stages}:
-            if task_msg:
-                report.mark(task_message=task_msg)
+            if merged_msg != (report.task_message or ""):
+                report.mark(task_message=merged_msg)
             return
-        report.mark(TaskStage.CLEANUP_FAILED, task_message=task_msg)
+        report.mark(TaskStage.CLEANUP_FAILED, task_message=merged_msg)
         self.log_info(_("Report {} marked CLEANUP_FAILED by best-effort cleanup").format(report_id))
+
+    @staticmethod
+    def _merge_task_message(existing_msg: str, appended_msg: str) -> str:
+        """
+        Merge report task logs without clobbering historical content.
+
+        Rules:
+        1. Keep existing logs first.
+        2. Append new block only when non-empty.
+        3. Deduplicate when the existing message already ends with the same block.
+        """
+        existing = (existing_msg or "").strip()
+        appended = (appended_msg or "").strip()
+
+        if not existing:
+            return appended
+        if not appended:
+            return existing
+        if existing.endswith(appended):
+            return existing
+        return "{}\n{}".format(existing, appended)
 
 
 class RedisExerciseBestEffortCleanupComponent(Component):

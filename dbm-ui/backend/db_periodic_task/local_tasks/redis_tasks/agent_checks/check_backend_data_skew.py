@@ -10,14 +10,16 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable, ClassVar
 
 from blueapps.core.celery.celery import app
 
 from backend.configuration.constants import SystemSettingsEnum
-from backend.configuration.models import SystemSettings
-from backend.db_meta.models import Cluster
-from backend.db_periodic_task.local_tasks.redis_tasks.agent_checks.base import BaseCheckConfig, BaseRedisAgentCheckTask
+from backend.db_periodic_task.local_tasks.redis_tasks.agent_checks.base import (
+    BaseCheckConfig,
+    BaseRedisAgentCheckTask,
+    execute_agent_check,
+)
 from backend.db_report.enums.redis_sub_type import RedisCheckSubType
 from backend.dbm_aiagent.agent.constants import DBMAgentCode
 
@@ -26,12 +28,7 @@ logger = logging.getLogger("root")
 
 @dataclass
 class BackendDataSkewCheckConfig(BaseCheckConfig):
-    @classmethod
-    def from_settings(cls) -> "BackendDataSkewCheckConfig":
-        raw = SystemSettings.get_setting_value(SystemSettingsEnum.REDIS_BACKEND_DATA_SKEW_CHECK.value, default={})
-        if not isinstance(raw, dict):
-            return cls()
-        return cls.from_raw(raw)
+    setting_key: ClassVar[str] = SystemSettingsEnum.REDIS_BACKEND_DATA_SKEW_CHECK.value
 
 
 class CheckBackendDataSkewTask(BaseRedisAgentCheckTask):
@@ -48,40 +45,14 @@ class CheckBackendDataSkewTask(BaseRedisAgentCheckTask):
         return check_backend_data_skew_task
 
 
-@app.task(rate_limit="10/m")
-def check_backend_data_skew_task(cluster_id: int):
-    """
-    Check a single Redis cluster's backend data skew using LLM agent.
-
-    The agent queries metrics via MCP tools and creates the report.
-    """
-    try:
-        cluster = Cluster.objects.filter(id=cluster_id).first()
-        if not cluster:
-            logger.warning("check_backend_data_skew_task: cluster_id=%s not found", cluster_id)
-            return
-
-        checker = CheckBackendDataSkewTask()
-        skipped, reason = checker.should_skip(cluster)
-        if skipped:
-            logger.debug(
-                "check_backend_data_skew_task: cluster_id=%s skipped: %s",
-                cluster_id,
-                reason,
-            )
-            return
-
-        from backend.dbm_aiagent.agent.handlers import AgentHandler
-
-        AgentHandler.ask_agent_with_content(
-            agent_code=checker.agent_code,
-            content=checker.build_content(cluster),
-        )
-        logger.info("check_backend_data_skew_task: cluster_id=%s done", cluster_id)
-
-    except Exception as e:
-        logger.exception(
-            "check_backend_data_skew_task: cluster_id=%s failed: %s",
-            cluster_id,
-            e,
-        )
+@app.task(bind=True, rate_limit="5/m")
+def check_backend_data_skew_task(self, cluster_id: int, config_dict: dict):
+    """Check a single Redis cluster's backend data skew using LLM agent."""
+    config = BackendDataSkewCheckConfig.from_raw(config_dict)
+    execute_agent_check(
+        agent_code=CheckBackendDataSkewTask.agent_code,
+        prompt_template=CheckBackendDataSkewTask.prompt_template,
+        config=config,
+        cluster_id=cluster_id,
+        celery_task=self,
+    )
