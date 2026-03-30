@@ -50,6 +50,10 @@ var (
 	ScanBusinessTimeConsumingMs *haapm.HaHistogram
 	ScanBusinessTotal           *haapm.HaCounter
 
+	// PopSwitch*
+	PopSwitchTimeConsumingMs *haapm.HaHistogram
+	PopSwitchBusinessTotal   *haapm.HaCounter
+
 	// Switching*
 	SwitchingErrorTotal      *haapm.HaCounter
 	SwitchingSuccessTotal    *haapm.HaCounter
@@ -60,6 +64,14 @@ var (
 var defaultLatencyBuckets = []float64{1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000}
 
 func init() {
+	initScanMetrics()
+	initPopSwitchMetrics()
+	initSwitchingMetrics()
+	initMySQLMetrics()
+	initRedisMetrics()
+}
+
+func initScanMetrics() {
 	// Scan business total counter
 	ScanBusinessTotal = haapm.NewHaCounter(
 		"scan_business_total",
@@ -74,7 +86,26 @@ func init() {
 		defaultLatencyBuckets,
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
 	)
+}
 
+func initPopSwitchMetrics() {
+	// Pop-switch business total counter
+	PopSwitchBusinessTotal = haapm.NewHaCounter(
+		"pop_switch_business_total",
+		"Total number of pop-switch business",
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
+	)
+
+	// Pop-switch business time consuming histogram
+	PopSwitchTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
+		"pop_switch_time_consuming_ms",
+		"Time consuming of pop-switch business in milliseconds",
+		defaultLatencyBuckets,
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
+	)
+}
+
+func initSwitchingMetrics() {
 	// Switching time consuming histogram
 	SwitchingTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
 		"switching_time_consuming_ms",
@@ -83,6 +114,14 @@ func init() {
 		MetricLabelDbType,
 	)
 
+	// Switching success total counter
+	SwitchingSuccessTotal = haapm.NewHaCounter("switching_success_total", "Total number of switching success")
+
+	// Switching error total counter
+	SwitchingErrorTotal = haapm.NewHaCounter("switching_error_total", "Total number of switching error")
+}
+
+func initMySQLMetrics() {
 	// Mysql cluster switching time consuming histogram
 	MysqlClusterSwitchingTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
 		"mysql_cluster_switching_time_consuming_ms",
@@ -107,12 +146,6 @@ func init() {
 		MetricLabelSwitchID, MetricLabelActionScope, MetricLabelDbType,
 	)
 
-	// Switching success total counter
-	SwitchingSuccessTotal = haapm.NewHaCounter("switching_success_total", "Total number of switching success")
-
-	// Switching error total counter
-	SwitchingErrorTotal = haapm.NewHaCounter("switching_error_total", "Total number of switching error")
-
 	// Mysql switching success total counter
 	MysqlSwitchingSuccessTotal = haapm.NewHaCounter(
 		"mysql_switching_success_total",
@@ -126,7 +159,9 @@ func init() {
 		"Total number of MySQL switching error",
 		MetricLabelActionScope, MetricLabelDbType,
 	)
+}
 
+func initRedisMetrics() {
 	// Redis switching success total counter
 	RedisSwitchingSuccessTotal = haapm.NewHaCounter(
 		"redis_switching_success_total",
@@ -159,6 +194,8 @@ func InitAPM(serviceID, serviceName string) {
 		MysqlSwitchingSuccessTotal,
 		RedisSwitchingErrorTotal,
 		RedisSwitchingSuccessTotal,
+		PopSwitchBusinessTotal,
+		PopSwitchTimeConsumingMs,
 		ScanBusinessTimeConsumingMs,
 		ScanBusinessTotal,
 		SwitchingErrorTotal,

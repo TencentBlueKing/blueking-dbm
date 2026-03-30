@@ -25,10 +25,6 @@
 package workflow
 
 import (
-	"fmt"
-	"sort"
-
-	"dbm-services/common/dbha-v2/internal/analysis/detector"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
@@ -67,67 +63,4 @@ func (g *FailureGroup) IPs() []string {
 		ips = append(ips, inst.IP)
 	}
 	return ips
-}
-
-// FailureCollector collects detector failure responses and groups them by (BkCloudID, DbType).
-type FailureCollector struct {
-	groups map[string]*FailureGroup // key: "bkCloudId:dbType"
-}
-
-// NewFailureCollector creates a new FailureCollector.
-func NewFailureCollector() *FailureCollector {
-	return &FailureCollector{groups: make(map[string]*FailureGroup)}
-}
-
-// Add adds a detector failure response into the collector.
-func (c *FailureCollector) Add(resp *detector.Response) {
-	meta := resp.Meta
-	key := fmt.Sprintf("%d:%s", meta.BkCloudID, resp.DbType)
-	info := FailureInstanceInfo{
-		BkCloudID:       meta.BkCloudID,
-		IP:              meta.IP,
-		Port:            meta.Port,
-		BkBizID:         meta.BkBizID,
-		Cluster:         meta.Cluster,
-		ClusterID:       meta.ClusterID,
-		DbType:          resp.DbType,
-		EventName:       resp.DbEventName,
-		EventNameReason: resp.DbEventNameReason,
-		ClusterType:     meta.ClusterType,
-		MachineType:     meta.MachineType,
-		InstanceRole:    meta.InstanceRole,
-	}
-
-	if g, ok := c.groups[key]; ok {
-		g.Instances = append(g.Instances, info)
-		return
-	}
-
-	c.groups[key] = &FailureGroup{
-		BkCloudID: meta.BkCloudID,
-		DbType:    resp.DbType,
-		Instances: []FailureInstanceInfo{info},
-	}
-}
-
-// Empty returns true if no failure group was collected.
-func (c *FailureCollector) Empty() bool {
-	return len(c.groups) == 0
-}
-
-// Groups returns all failure groups in deterministic order (by BkCloudID, then DbType).
-func (c *FailureCollector) Groups() []*FailureGroup {
-	if len(c.groups) == 0 {
-		return nil
-	}
-	keys := make([]string, 0, len(c.groups))
-	for k := range c.groups {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	out := make([]*FailureGroup, 0, len(keys))
-	for _, k := range keys {
-		out = append(out, c.groups[k])
-	}
-	return out
 }

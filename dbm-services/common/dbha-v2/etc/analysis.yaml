@@ -22,6 +22,10 @@ workflow:
   readDbMetricOffsetDuration: -60s
   readDbEventOffsetDuration: -10m
   enableSwitching: true
+  popInterval: 5s
+  windowDuration: 10s
+  inflightTTL: 30s
+  switchTimeout: 1m
 
   dbmApiMetadata:
     api: http://127.0.0.1:80/apis/proxypass/dbmeta/dbha/instances
@@ -74,6 +78,7 @@ database:
     password: "xxx"
     proxyUser: "proxy"
     proxyPassword: "xxx"
+    timeout: 10s
 
 detector:
   ssh:
@@ -93,6 +98,7 @@ storage:
   endpoint: tcp://127.0.0.1:3306
   user: root
   password: 123456
+  timeout: 10s
 
 log:
   path: ./logs/analysis.log

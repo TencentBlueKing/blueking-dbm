@@ -45,6 +45,10 @@ var Cfg = Configuration{
 		ReadDbMetaOffsetDuration:   -24 * time.Hour,
 		ReadDbMetricOffsetDuration: -60 * time.Second,
 		ReadDbEventOffsetDuration:  -10 * time.Minute,
+		PopInterval:                5 * time.Second,
+		WindowDuration:             10 * time.Second,
+		InflightTTL:                30 * time.Second,
+		SwitchTimeout:              1 * time.Minute,
 	},
 
 	Monitor: MonitorConfig{
@@ -87,6 +91,10 @@ type WorkflowConfig struct {
 	ReadDbMetricOffsetDuration time.Duration `yaml:"readDbMetricOffsetDuration" mapstructure:"readDbMetricOffsetDuration"`
 	ReadDbEventOffsetDuration  time.Duration `yaml:"readDbEventOffsetDuration"  mapstructure:"readDbEventOffsetDuration"`
 	EnableSwitching            bool          `yaml:"enableSwitching"            mapstructure:"enableSwitching"`
+	WindowDuration             time.Duration `yaml:"windowDuration"             mapstructure:"windowDuration"`
+	PopInterval                time.Duration `yaml:"popInterval"                mapstructure:"popInterval"`
+	InflightTTL                time.Duration `yaml:"inflightTTL"                mapstructure:"inflightTTL"`
+	SwitchTimeout              time.Duration `yaml:"switchTimeout"              mapstructure:"switchTimeout"`
 	DbmApiMetadata             DbmApi        `yaml:"dbmApiMetadata"             mapstructure:"dbmApiMetadata"`
 	DbmApiUpdateStatus         DbmApi        `yaml:"dbmApiUpdateStatus"         mapstructure:"dbmApiUpdateStatus"`
 	DbmApiSwapMysqlRole        DbmApi        `yaml:"dbmApiSwapMysqlRole"        mapstructure:"dbmApiSwapMysqlRole"`
@@ -100,10 +108,11 @@ type WorkflowConfig struct {
 
 // MysqlDatabaseConfig mysql's configuration
 type MysqlDatabaseConfig struct {
-	User          string `yaml:"user"          mapstructure:"user"`
-	Password      string `yaml:"password"      mapstructure:"password"`
-	ProxyUser     string `yaml:"proxyUser"     mapstructure:"proxyUser"`
-	ProxyPassword string `yaml:"proxyPassword" mapstructure:"proxyPassword"`
+	User          string        `yaml:"user"          mapstructure:"user"`
+	Password      string        `yaml:"password"      mapstructure:"password"`
+	ProxyUser     string        `yaml:"proxyUser"     mapstructure:"proxyUser"`
+	ProxyPassword string        `yaml:"proxyPassword" mapstructure:"proxyPassword"`
+	Timeout       time.Duration `yaml:"timeout"       mapstructure:"timeout"`
 }
 
 // DatabaseConfig database's configuration
@@ -132,9 +141,10 @@ type MonitorConfig struct {
 
 // StorageConfig storage's configuration
 type StorageConfig struct {
-	Endpoint string `yaml:"endpoint"  mapstructure:"endpoint"`
-	User     string `yaml:"user"      mapstructure:"user"`
-	Password string `yaml:"password"  mapstructure:"password"`
+	Endpoint string        `yaml:"endpoint"  mapstructure:"endpoint"`
+	User     string        `yaml:"user"      mapstructure:"user"`
+	Password string        `yaml:"password"  mapstructure:"password"`
+	Timeout  time.Duration `yaml:"timeout"   mapstructure:"timeout"`
 }
 
 // ApmConfig Apm's configuration
@@ -188,4 +198,6 @@ func init() {
 	Cfg.Detector.Ssh.Port = 22
 	Cfg.Detector.Ssh.User = "root"
 	Cfg.Detector.Ssh.Timeout = 10 * time.Second
+	Cfg.Database.Mysql.Timeout = 10 * time.Second
+	Cfg.Storage.Timeout = 10 * time.Second
 }

@@ -25,6 +25,7 @@
 package storage
 
 import (
+	"context"
 	"testing"
 
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
@@ -102,7 +103,7 @@ func TestReadSwitchingStrategy_OnlyReturnsEnabled(t *testing.T) {
 		},
 	)
 
-	strategies, err := ha.ReadSwitchingStrategyWithBkBizId(100)
+	strategies, err := ha.ReadSwitchingStrategyWithBkBizId(context.Background(), 100)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -139,7 +140,7 @@ func TestReadSwitchingStrategy_BizAndGlobalReturned(t *testing.T) {
 		},
 	)
 
-	strategies, err := ha.ReadSwitchingStrategyWithBkBizId(100)
+	strategies, err := ha.ReadSwitchingStrategyWithBkBizId(context.Background(), 100)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -172,7 +173,7 @@ func TestReadSwitchingStrategy_OtherBizNotReturned(t *testing.T) {
 		},
 	)
 
-	strategies, err := ha.ReadSwitchingStrategyWithBkBizId(100)
+	strategies, err := ha.ReadSwitchingStrategyWithBkBizId(context.Background(), 100)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -185,7 +186,7 @@ func TestReadSwitchingStrategy_OtherBizNotReturned(t *testing.T) {
 func TestReadSwitchingStrategy_EmptyTable(t *testing.T) {
 	ha := newTestDbhaData(t)
 
-	strategies, err := ha.ReadSwitchingStrategyWithBkBizId(100)
+	strategies, err := ha.ReadSwitchingStrategyWithBkBizId(context.Background(), 100)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

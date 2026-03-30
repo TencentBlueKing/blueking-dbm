@@ -26,7 +26,7 @@ package workflow
 
 import (
 	"context"
-	"strconv"
+	"fmt"
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
@@ -97,24 +97,39 @@ func (r *MetadataReader) ReadBusinessSkipInstances(bizId int) (map[string]*hamod
 	return skipInsts, nil
 }
 
-// AcquireBusinessLock acquires and locks the mutex for a business.
-// It returns the mutex and a cleanup function that should be deferred.
-func (r *MetadataReader) AcquireBusinessLock(ctx context.Context, bizId int) (discovery.ConcurrencyMutex, func(), error) {
-	mu, err := r.discoveryCli.CreateMutex(strconv.Itoa(bizId))
+// AcquireScanLock acquires the scan lock for a business.
+// It prevents multiple AM instances from scanning the same business simultaneously.
+// Returns the mutex and a cleanup function that should be deferred.
+func (r *MetadataReader) AcquireScanLock(ctx context.Context, bizId int) (discovery.ConcurrencyMutex, func(), error) {
+	return r.acquireLock(ctx, "scan", bizId)
+}
+
+// AcquireSwitchLock acquires the switch lock for a business.
+// It prevents multiple AM instances from executing switching for the same business simultaneously.
+// SwitchLock is independent of ScanLock — scanning and switching do not block each other.
+// Returns the mutex and a cleanup function that should be deferred.
+func (r *MetadataReader) AcquireSwitchLock(ctx context.Context, bizId int) (discovery.ConcurrencyMutex, func(), error) {
+	return r.acquireLock(ctx, "switch", bizId)
+}
+
+// acquireLock acquires a distributed lock with the given prefix and business ID.
+func (r *MetadataReader) acquireLock(ctx context.Context, prefix string, bizId int) (discovery.ConcurrencyMutex, func(), error) {
+	key := fmt.Sprintf("%s:%d", prefix, bizId)
+	mu, err := r.discoveryCli.CreateMutex(key)
 	if err != nil {
-		logger.Warn("failed to acquire the mutex lock for the business, bizId: %d, errmsg: %s", bizId, err)
+		logger.Warn("failed to create %s mutex for the business, bizId: %d, errmsg: %s", prefix, bizId, err)
 		return nil, nil, ErrAcquireLockFailure
 	}
 
 	if err := mu.TryLock(ctx); err != nil {
 		mu.Close()
-		logger.Warn("failed to lock the business, bizId: %d, errmsg: %s", bizId, err)
+		logger.Warn("failed to acquire %s lock for the business, bizId: %d, errmsg: %s", prefix, bizId, err)
 		return nil, nil, err
 	}
 
 	cleanup := func() {
 		if err := mu.Unlock(ctx); err != nil {
-			logger.Warn("failed to unlock the biz: %d, errmsg: %v", bizId, err)
+			logger.Warn("failed to unlock %s lock for biz: %d, errmsg: %v", prefix, bizId, err)
 		}
 		mu.Close()
 	}
