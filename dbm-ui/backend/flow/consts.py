@@ -521,6 +521,14 @@ class DBActuatorActionEnum(StrStructuredEnum):
     DeployPeripheralToolsBinary = EnumField("prepare-peripheraltools-binary", _("prepare-peripheraltools-binary"))
     InitCommonConfig = EnumField("init-common-config", _("初始化公共配置"))
     MysqlPartitionV2 = EnumField("partition-execute-v2", _("mysql分区执行V2"))
+    # clone 权限 v2
+    CloneGrantsDumpPriv = EnumField("clone-grants-dump-priv", _("导出权限"))
+    CloneGrantsParseFile = EnumField("clone-grants-parse-file", _("处理权限文件"))
+    CloneGrantsPrecheckCreate = EnumField("clone-grants-precheck-create", _("账号预检查"))
+    CloneGrantsImportCreate = EnumField("clone-grants-import-create", _("恢复账号"))
+    CloneGrantsImportGrant = EnumField("clone-grants-import-grant", _("恢复权限"))
+    CloneGrantsVerifyCreate = EnumField("clone-grants-verify-create", _("验证账号"))
+    CloneGrantsVerifyGrant = EnumField("clone-grants-verify-grant", _("验证权限"))
 
 
 class RedisActuatorActionEnum(StrStructuredEnum):
