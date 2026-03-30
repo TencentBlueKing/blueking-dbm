@@ -32,22 +32,20 @@ export const useTicketMessage = (
     const ticketRoute = {
       name: 'bizTicketManage',
     };
-    if (typeof ticketIds === 'number') {
+    const isArray = Array.isArray(ticketIds);
+    const ids = isArray ? ticketIds : [ticketIds];
+    const count = ids.length;
+
+    if (count === 1) {
       Object.assign(ticketRoute, {
         params: {
-          ticketId: ticketIds,
-        },
-      });
-    } else if (ticketIds.length === 1) {
-      Object.assign(ticketRoute, {
-        params: {
-          ticketId: ticketIds[0],
+          ticketId: ids[0],
         },
       });
     } else {
       Object.assign(ticketRoute, {
         query: {
-          ids: ticketIds.join(','),
+          ids: ids.join(','),
         },
       });
     }
@@ -57,20 +55,23 @@ export const useTicketMessage = (
       ? routeInfo.href
       : getBusinessHref(routeInfo.href, systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ);
 
+    const messageText = count === 1
+      ? t('操作提交成功')
+      : t('操作提交成功，已生成 {n} 个单据', { n: count });
+
     Message({
       delay: 6000,
       dismissable: false,
-      message: h('p', {}, [
-        t('任务提交成功_具体结果可前往'),
+      message: h('div', { style: 'width: 100%; display: flex; justify-content: space-between;' }, [
+        h('span', {}, messageText),
         h(
           'a',
           {
             href: routeInfoHref,
             target: '_blank',
           },
-          ` "${t('单据')}" `,
+          t('查看详情'),
         ),
-        t('查看'),
       ]),
       theme: 'success',
     });
