@@ -292,7 +292,7 @@ func (c *Component) DoBackup() error {
 	return nil
 }
 
-func (c *Component) generateReport() (report *Report, indexFile string, err error) {
+func (c *Component) GenerateReport() (report *Report, indexFile string, err error) {
 	report = &Report{}
 
 	indexFileSearch := filepath.Join(c.backupDir, "*.index")
@@ -326,7 +326,7 @@ func (c *Component) generateReport() (report *Report, indexFile string, err erro
 }
 
 func (c *Component) OutPut() error {
-	report, _, err := c.generateReport()
+	report, _, err := c.GenerateReport()
 	if err != nil {
 		return err
 	}
@@ -357,7 +357,7 @@ func (c *Component) Example() interface{} {
 // OutPutForTBinlogDumper 增加为tbinlogdumper做库表备份的日志输出，保存流程上下文
 func (c *Component) OutPutForTBinlogDumper() error {
 	ret := make(map[string]interface{})
-	report, indexFile, err := c.generateReport()
+	report, indexFile, err := c.GenerateReport()
 	if err != nil {
 		return err
 	}

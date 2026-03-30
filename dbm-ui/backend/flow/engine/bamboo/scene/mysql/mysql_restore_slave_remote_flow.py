@@ -25,6 +25,7 @@ from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.mysql.clone_grants_from_file.subflow import clone_grants_from_file_subflow
 from backend.flow.engine.bamboo.scene.mysql.common.cluster_entrys import get_tendb_ha_entry
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import install_mysql_in_cluster_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
@@ -45,7 +46,6 @@ from backend.flow.plugins.components.collections.common.disable_alarm_shield imp
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
-from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_binlog_dump import MySQLCheckBinlogDumpComponent
@@ -69,7 +69,6 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     DownloadMediaKwargs,
     ExecActuatorKwargs,
     ExecuteRdsKwargs,
-    InstanceUserCloneKwargs,
     IpDnsRecordRecycleKwargs,
     RecycleDnsRecordKwargs,
 )
@@ -742,19 +741,17 @@ class MySQLRestoreSlaveRemoteFlow(object):
                         )
                     ),
                 )
-            # is_stand_by可以克隆主库权限
+            #  克隆权限
             if master.is_stand_by:
-                clone_data = [
-                    {
-                        "source": old_master,
-                        "target": new_slave,
-                        "bk_cloud_id": cluster_model.bk_cloud_id,
-                    }
-                ]
-                tendb_migrate_pipeline.add_act(
-                    act_name=_("克隆权限"),
-                    act_component_code=CloneUserComponent.code,
-                    kwargs=asdict(InstanceUserCloneKwargs(clone_data=clone_data)),
+                tendb_migrate_pipeline.add_sub_pipeline(
+                    sub_flow=clone_grants_from_file_subflow(
+                        root_id=self.root_id,
+                        data=copy.deepcopy(self.data),
+                        bk_cloud_id=cluster_model.bk_cloud_id,
+                        bk_biz_id=cluster_model.bk_biz_id,
+                        source_address=old_master,
+                        dest_addresses=[new_slave],
+                    )
                 )
 
             domain_map = get_tendb_ha_entry(cluster_model.id)
