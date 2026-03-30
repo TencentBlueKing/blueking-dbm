@@ -14,7 +14,7 @@ package syntax
 func (c CreateDBResult) Checker(mysqlVersion string) (r *CheckerResult) {
 	r = &CheckerResult{
 		ObjName:  c.DbName,
-		IsSpFunc: true,
+		IsDbName: true,
 	}
 	// 检查库名规范
 	if R.BuiltInRule.SchemaNameSpecification.KeyWord {

@@ -38,6 +38,7 @@ CommandRule:
     expr: " Val in Item "
     desc: "禁用命令"
     ban: true
+    category: platform
     item:
       [
         "alter_tablespace",
@@ -90,6 +91,7 @@ CreateTableRule:
     expr: " Val not in Item "
     desc: "definer必须指定成专用账户ADMIN@localhost"
     ban: true
+    category: platform
     item: ["ADMIN@localhost"]
     suggestion: "请在创建视图、存储过程等对象时显式指定 definer 为专用账户 ADMIN@localhost，例如：CREATE DEFINER=ADMIN@localhost VIEW v AS SELECT 1，或 CREATE DEFINER=ADMIN@localhost PROCEDURE sp() BEGIN SELECT 1; END;"
 

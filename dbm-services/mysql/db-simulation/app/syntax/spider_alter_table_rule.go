@@ -33,7 +33,7 @@ func (c AlterTableResult) SpiderChecker(mysqlVersion string) (r *CheckerResult) 
 func (c AlterTableResult) NotAllowedDefaultValCol() (bool, string) {
 	for _, alt := range c.AlterCommands {
 		if alt.ColDef.IsNotAllowDefaultValCol() {
-			return true, fmt.Sprintf("col:%s,类型:%s 不允许存在默认值的字段", alt.ColDef.ColName, alt.ColDef.DataType)
+			return true, fmt.Sprintf("字段 '%s'（类型: %s）不允许设置默认值", alt.ColDef.ColName, alt.ColDef.DataType)
 		}
 	}
 	return false, ""
