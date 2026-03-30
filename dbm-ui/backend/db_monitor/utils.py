@@ -124,7 +124,17 @@ def render_promql_sql_new(prom_sql, wheres):
             continue
 
         if isinstance(value, list):
-            value = f'"({"|".join(map(str, value))})"'
+
+            # 如果是 in 的情况 则需要把 = 改成 =~
+            if method == "=":
+                method = "=~"
+                value = f'"^({"|".join(map(str, value))})$"'
+            # 如果是 not in 的情况， 则需要把 != 改成 !~
+            elif method == "!=":
+                method = "!~"
+                value = f'"^({"|".join(map(str, value))})$"'
+            else:
+                value = f'"({"|".join(map(str, value))})"'
         else:
             value = f'"{value}"'
 
