@@ -47,10 +47,10 @@ type DbhaData struct {
 }
 
 // GetBizIDs returns all distinct business IDs from DBM metadata.
-func (ha *DbhaData) GetBizIDs() ([]int, error) {
+func (ha *DbhaData) GetBizIDs(ctx context.Context) ([]int, error) {
 	bkBizIDs := []int{}
 
-	err := ha.DB.DB().Model(&hamodel.DbmMetadata{}).
+	err := ha.DB.DB().WithContext(ctx).Model(&hamodel.DbmMetadata{}).
 		Select(hamodel.DbmMetadataFieldBkBizID).
 		Group(hamodel.DbmMetadataFieldBkBizID).Find(&bkBizIDs).Error
 
@@ -169,7 +169,7 @@ func (ha *DbhaData) SaveSwitchingLog(ctx context.Context, records ...*hamodel.Db
 }
 
 // ReadSwitchingStrategyWithBkBizId returns switching strategies for the given business ID.
-func (ha *DbhaData) ReadSwitchingStrategyWithBkBizId(bkBizId int) ([]*hamodel.DbSwitchingStrategy, error) {
+func (ha *DbhaData) ReadSwitchingStrategyWithBkBizId(ctx context.Context, bkBizId int) ([]*hamodel.DbSwitchingStrategy, error) {
 	var strategies []*hamodel.DbSwitchingStrategy
 
 	cond := fmt.Sprintf("(%s = ? or %s = 0) and %s = ?",
@@ -177,7 +177,7 @@ func (ha *DbhaData) ReadSwitchingStrategyWithBkBizId(bkBizId int) ([]*hamodel.Db
 		hamodel.DbSwitchingStrategyFieldBkBizID,
 		hamodel.DbSwitchingStrategyFieldStatus)
 
-	query := ha.DB.DB().Model(&hamodel.DbSwitchingStrategy{})
+	query := ha.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingStrategy{})
 	if e := query.Where(cond, bkBizId, hamodel.StatusTypeEnabled).Find(&strategies).Error; e != nil {
 		return nil, gerrors.NewE(gerrors.MysqlFailure, e)
 	}

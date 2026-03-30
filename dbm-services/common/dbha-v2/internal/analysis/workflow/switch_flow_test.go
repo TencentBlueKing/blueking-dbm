@@ -25,6 +25,7 @@
 package workflow
 
 import (
+	"context"
 	"testing"
 
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
@@ -49,7 +50,7 @@ func TestMatchStrategyForGroup_EmptyGroup(t *testing.T) {
 	executor, _ := newTestSwitchExecutor(t)
 	group := &FailureGroup{Instances: nil}
 
-	matched, strategy := executor.MatchStrategyForGroup(group)
+	matched, strategy := executor.MatchStrategyForGroup(context.Background(), group)
 	if matched {
 		t.Error("expected matched=false for empty group")
 	}
@@ -66,7 +67,7 @@ func TestMatchStrategyForGroup_NoStrategies(t *testing.T) {
 		},
 	}
 
-	matched, strategy := executor.MatchStrategyForGroup(group)
+	matched, strategy := executor.MatchStrategyForGroup(context.Background(), group)
 	if matched {
 		t.Error("expected matched=false when no strategies exist")
 	}
@@ -98,7 +99,7 @@ func TestMatchStrategyForGroup_NormalStrategyMatched(t *testing.T) {
 		},
 	}
 
-	matched, strategy := executor.MatchStrategyForGroup(group)
+	matched, strategy := executor.MatchStrategyForGroup(context.Background(), group)
 	if !matched {
 		t.Fatal("expected matched=true")
 	}
@@ -130,7 +131,7 @@ func TestMatchStrategyForGroup_NormalStrategyBelowThreshold(t *testing.T) {
 		},
 	}
 
-	matched, _ := executor.MatchStrategyForGroup(group)
+	matched, _ := executor.MatchStrategyForGroup(context.Background(), group)
 	if matched {
 		t.Error("expected matched=false when count < triggerCount")
 	}
@@ -157,7 +158,7 @@ func TestMatchStrategyForGroup_TriggerCountZeroDefaultsToOne(t *testing.T) {
 		},
 	}
 
-	matched, strategy := executor.MatchStrategyForGroup(group)
+	matched, strategy := executor.MatchStrategyForGroup(context.Background(), group)
 	if !matched {
 		t.Fatal("expected matched=true when triggerCount<=0 defaults to 1")
 	}
@@ -187,7 +188,7 @@ func TestMatchStrategyForGroup_SpecialStrategyMatched(t *testing.T) {
 		},
 	}
 
-	matched, strategy := executor.MatchStrategyForGroup(group)
+	matched, strategy := executor.MatchStrategyForGroup(context.Background(), group)
 	if !matched {
 		t.Fatal("expected matched=true for special strategy")
 	}
@@ -217,7 +218,7 @@ func TestMatchStrategyForGroup_SpecialStrategyBelowThreshold(t *testing.T) {
 		},
 	}
 
-	matched, _ := executor.MatchStrategyForGroup(group)
+	matched, _ := executor.MatchStrategyForGroup(context.Background(), group)
 	if matched {
 		t.Error("expected matched=false when special strategy condition not met")
 	}
@@ -253,7 +254,7 @@ func TestMatchStrategyForGroup_BizStrategyPrioritized(t *testing.T) {
 		},
 	}
 
-	matched, strategy := executor.MatchStrategyForGroup(group)
+	matched, strategy := executor.MatchStrategyForGroup(context.Background(), group)
 	if !matched {
 		t.Fatal("expected matched=true")
 	}
@@ -284,7 +285,7 @@ func TestMatchStrategyForGroup_EventNameMismatch(t *testing.T) {
 		},
 	}
 
-	matched, _ := executor.MatchStrategyForGroup(group)
+	matched, _ := executor.MatchStrategyForGroup(context.Background(), group)
 	if matched {
 		t.Error("expected matched=false when event name does not match")
 	}

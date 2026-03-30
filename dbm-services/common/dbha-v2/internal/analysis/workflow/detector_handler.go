@@ -27,26 +27,26 @@ package workflow
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/detector"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/process"
-	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
 // DetectorHandler processes detector responses and runs liveness double-check,
-// then triggers switching via SwitchExecutor.
+// then pushes confirmed failure instances into the sliding window for subsequent pop-switch.
 type DetectorHandler struct {
-	alarm          *AlarmNotifier
-	switchExecutor *SwitchExecutor
+	alarm     *AlarmNotifier
+	windowMgr *BizWindowManager
 }
 
 // NewDetectorHandler creates a DetectorHandler.
-func NewDetectorHandler(alarm *AlarmNotifier, switchExecutor *SwitchExecutor) *DetectorHandler {
-	return &DetectorHandler{alarm: alarm, switchExecutor: switchExecutor}
+func NewDetectorHandler(alarm *AlarmNotifier, windowMgr *BizWindowManager) *DetectorHandler {
+	return &DetectorHandler{alarm: alarm, windowMgr: windowMgr}
 }
 
 // ProcessResponse handles a single detector response: alarms and returns ErrDetectorFailure if switching is needed.
@@ -106,8 +106,10 @@ func (h *DetectorHandler) ProcessResponse(resp *detector.Response) error {
 	return nil
 }
 
-// LivenessDoubleCheck runs remote detection on missed instances, collects failures, and triggers switching per group.
-func (h *DetectorHandler) LivenessDoubleCheck(missedInsts []detector.DoubleCheckTask) {
+// LivenessDoubleCheck runs remote detection on missed instances, collects failures,
+// and pushes confirmed failure instances into the sliding window.
+// Strategy matching and switching are handled asynchronously by the PopAndSwitch loop.
+func (h *DetectorHandler) LivenessDoubleCheck(bizId int, missedInsts []detector.DoubleCheckTask) {
 	remoteDetector := detector.Detector{}
 
 	if err := remoteDetector.Detect(missedInsts); err != nil {
@@ -117,7 +119,8 @@ func (h *DetectorHandler) LivenessDoubleCheck(missedInsts []detector.DoubleCheck
 
 	resps := remoteDetector.WaitResponses()
 
-	collector := NewFailureCollector()
+	now := time.Now()
+	pushCount := 0
 
 	for idx, resp := range resps {
 		logger.Debug("idx: %d host: %s:%d resp: %p", idx, resp.Meta.IP, resp.Meta.Port, resp)
@@ -132,47 +135,28 @@ func (h *DetectorHandler) LivenessDoubleCheck(missedInsts []detector.DoubleCheck
 			continue
 		}
 
-		collector.Add(resp)
+		// Build failure instance info and push into the sliding window
+		inst := &FailureInstanceInfo{
+			BkCloudID:       resp.Meta.BkCloudID,
+			IP:              resp.Meta.IP,
+			Port:            resp.Meta.Port,
+			BkBizID:         resp.Meta.BkBizID,
+			Cluster:         resp.Meta.Cluster,
+			ClusterID:       resp.Meta.ClusterID,
+			DbType:          resp.DbType,
+			EventName:       resp.DbEventName,
+			EventNameReason: resp.DbEventNameReason,
+			ClusterType:     resp.Meta.ClusterType,
+			MachineType:     resp.Meta.MachineType,
+			InstanceRole:    resp.Meta.InstanceRole,
+		}
+
+		if h.windowMgr.Push(bizId, inst, now) {
+			pushCount++
+		}
 	}
 
-	if collector.Empty() {
-		return
-	}
-
-	for _, group := range collector.Groups() {
-		logger.Debug("cloudId: %d, dbType: %s, instances: %d, ips: %v",
-			group.BkCloudID, group.DbType, len(group.Instances), group.IPs())
-
-		req := h.switchExecutor.CreateRequestWithGroup(group)
-		if req == nil {
-			continue
-		}
-
-		if !req.HasDbInstMetadata() {
-			logger.Warn("no db inst metadata, dbType: %s, cloudId: %d, instances: %d",
-				group.DbType, group.BkCloudID, len(group.Instances))
-			continue
-		}
-
-		matched, strategy := h.switchExecutor.MatchStrategyForGroup(group)
-		if !matched {
-			logger.Info("no matching switching strategy, skip switching, cloudId: %d, dbType: %s, instances: %d, events: [%s]",
-				group.BkCloudID, group.DbType, len(group.Instances), FormatInstanceEventSummary(group.Instances))
-			continue
-		}
-
-		if strategy.Action != hamodel.ActionTypeSwitch {
-			logger.Info("strategy action is %s, skip switching, strategy: %s, cloudId: %d, dbType: %s",
-				strategy.Action, strategy.Name, group.BkCloudID, group.DbType)
-			continue
-		}
-
-		logger.Debug("trigger switching by strategy %s, dbType: %s, cloudId: %d, instances: %d",
-			strategy.Name, group.DbType, group.BkCloudID, len(group.Instances))
-
-		// TODO: set the switch ID of the switch request properly
-		req.ActionScope = strategy.Scope
-		req.SwitchID = "test_switch_id"
-		h.switchExecutor.TriggerSwitching(group.DbType, req)
+	if pushCount > 0 {
+		logger.Info("pushed %d failure instances into the window, bizId: %d", pushCount, bizId)
 	}
 }

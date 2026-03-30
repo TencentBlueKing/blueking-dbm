@@ -57,11 +57,14 @@ type Ssh struct {
 	timeout  time.Duration
 }
 
+// Id returns the detector identifier for the SSH target.
 func (s *Ssh) Id() string {
 	return fmt.Sprintf("ssh-id:%s@%d:%s", s.ip, s.port, s.user)
 }
 
 // Run runs cmd on the remote host and returns it's combined standard output and standard error.
+// Dial and command execution are each bounded by s.timeout independently,
+// so the total elapsed time may reach up to 2× s.timeout in the worst case.
 func (s *Ssh) Run(cmd string) (*SshResponse, error) {
 	conf := &ssh.ClientConfig{
 		Timeout:         s.timeout,
@@ -101,24 +104,57 @@ func (s *Ssh) Run(cmd string) (*SshResponse, error) {
 	}()
 
 	resp := &SshResponse{Id: s.Id()}
-
-	data, err := session.CombinedOutput(cmd)
-	resp.Data = string(data)
-
-	if err != nil {
-		if exitErr, ok := err.(*ssh.ExitError); ok {
-			resp.ExitCode = exitErr.ExitStatus()
-			resp.ErrMsg = exitErr.Error()
-			return resp, nil
-		}
-
+	data, cmdErr, timedOut := s.runCombinedOutputWithTimeout(session, cmd)
+	if timedOut {
+		logger.Error("SSH command execution timed out, host: %s, timeout: %v, cmd: %s", addr, s.timeout, cmd)
 		resp.ExitCode = gerrors.Failure.Int()
-		resp.ErrMsg = err.Error()
+		resp.ErrMsg = fmt.Sprintf("SSH command execution timed out after %v", s.timeout)
 		return resp, nil
 	}
 
-	logger.Debug("shell command response: %s, cmd: %s", string(data), cmd)
+	s.fillResponse(resp, data, cmdErr, cmd)
 	return resp, nil
+}
+
+func (s *Ssh) runCombinedOutputWithTimeout(session *ssh.Session, cmd string) ([]byte, error, bool) {
+	doneCh := make(chan struct{})
+	var data []byte
+	var cmdErr error
+
+	go func() {
+		defer close(doneCh)
+		data, cmdErr = session.CombinedOutput(cmd)
+	}()
+
+	timer := time.NewTimer(s.timeout)
+	defer timer.Stop()
+
+	select {
+	case <-doneCh:
+		return data, cmdErr, false
+	case <-timer.C:
+		_ = session.Close()
+		<-doneCh
+		return data, cmdErr, true
+	}
+}
+
+func (s *Ssh) fillResponse(resp *SshResponse, data []byte, cmdErr error, cmd string) {
+	resp.Data = string(data)
+
+	if cmdErr != nil {
+		if exitErr, ok := cmdErr.(*ssh.ExitError); ok {
+			resp.ExitCode = exitErr.ExitStatus()
+			resp.ErrMsg = exitErr.Error()
+			return
+		}
+
+		resp.ExitCode = gerrors.Failure.Int()
+		resp.ErrMsg = cmdErr.Error()
+		return
+	}
+
+	logger.Debug("shell command response: %s, cmd: %s", string(data), cmd)
 }
 
 func (s *Ssh) keyboardInteractive() ssh.KeyboardInteractiveChallenge {
