@@ -738,19 +738,20 @@ class MySQLRestoreSlaveRemoteFlow(object):
                         )
                     ),
                 )
-            #  克隆权限
-            clone_data = [
-                {
-                    "source": old_master,
-                    "target": new_slave,
-                    "bk_cloud_id": cluster_model.bk_cloud_id,
-                }
-            ]
-            tendb_migrate_pipeline.add_act(
-                act_name=_("克隆权限"),
-                act_component_code=CloneUserComponent.code,
-                kwargs=asdict(InstanceUserCloneKwargs(clone_data=clone_data)),
-            )
+            # is_stand_by可以克隆主库权限
+            if master.is_stand_by:
+                clone_data = [
+                    {
+                        "source": old_master,
+                        "target": new_slave,
+                        "bk_cloud_id": cluster_model.bk_cloud_id,
+                    }
+                ]
+                tendb_migrate_pipeline.add_act(
+                    act_name=_("克隆权限"),
+                    act_component_code=CloneUserComponent.code,
+                    kwargs=asdict(InstanceUserCloneKwargs(clone_data=clone_data)),
+                )
 
             domain_map = get_tendb_ha_entry(cluster_model.id)
             domain_add_list = []
