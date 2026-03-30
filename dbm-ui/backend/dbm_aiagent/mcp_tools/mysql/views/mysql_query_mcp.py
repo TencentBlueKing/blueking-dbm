@@ -259,7 +259,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
 
         return Response(
             {
-                "runtime_status": mysql_show_slave_status(bk_cloud_id=machine_obj.bk_cloud_id, address=address),
+                "runtime_statuses": mysql_show_slave_status(bk_cloud_id=machine_obj.bk_cloud_id, address=address),
             }
         )
 
@@ -346,7 +346,7 @@ def _validate_and_get_machine(bk_cloud_id: int | None, address: str) -> Machine:
         raise ObjectDoesNotExist(f"机器{ip}不存在")
 
     if machine_q.count() > 1:
-        if not bk_cloud_id:
+        if bk_cloud_id is None:
             raise ValueError("机器IP不唯一, 请指定 bk_cloud_id")
         machine_q = machine_q.filter(bk_cloud_id=bk_cloud_id)
 
