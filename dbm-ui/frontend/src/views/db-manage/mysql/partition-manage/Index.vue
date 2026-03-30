@@ -628,11 +628,7 @@
         });
         if (result) {
           fetchData();
-          result.forEach((ticket, index) => {
-            setTimeout(() => {
-              ticketMessage(ticket.id);
-            }, index * 100);
-          });
+          ticketMessage(result.map((ticket) => ticket.id));
           return true;
         }
         return false;

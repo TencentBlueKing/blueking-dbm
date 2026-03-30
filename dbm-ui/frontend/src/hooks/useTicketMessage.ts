@@ -15,16 +15,47 @@ import { Message } from 'bkui-vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
-export const useTicketMessage = () => {
+import { useSystemEnviron } from '@stores';
+
+import { getBusinessHref } from '@utils';
+
+export const useTicketMessage = (
+  params: {
+    isCurrentBiz?: boolean;
+  } = {},
+) => {
   const { t } = useI18n();
   const router = useRouter();
-  return (id: number | string) => {
-    const route = router.resolve({
+  const systemEnvironStore = useSystemEnviron();
+
+  return (ticketIds: number | number[]) => {
+    const ticketRoute = {
       name: 'bizTicketManage',
-      params: {
-        ticketId: id,
-      },
-    });
+    };
+    if (typeof ticketIds === 'number') {
+      Object.assign(ticketRoute, {
+        params: {
+          ticketId: ticketIds,
+        },
+      });
+    } else if (ticketIds.length === 1) {
+      Object.assign(ticketRoute, {
+        params: {
+          ticketId: ticketIds[0],
+        },
+      });
+    } else {
+      Object.assign(ticketRoute, {
+        query: {
+          ids: ticketIds.join(','),
+        },
+      });
+    }
+
+    const routeInfo = router.resolve(ticketRoute);
+    const routeInfoHref = params.isCurrentBiz
+      ? routeInfo.href
+      : getBusinessHref(routeInfo.href, systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ);
 
     Message({
       delay: 6000,
@@ -34,7 +65,7 @@ export const useTicketMessage = () => {
         h(
           'a',
           {
-            href: route.href,
+            href: routeInfoHref,
             target: '_blank',
           },
           ` "${t('单据')}" `,
