@@ -45,6 +45,7 @@ export class FlowGraph {
   focusNodeId = '';
   graph: Graph | null = null;
   hoverNodeId = '';
+  isSuperUserMode = false;
   // isInit = false;
   nodesMap: Record<string, Node> = {};
   oldviewCenterPointer = [0, 0] as [number, number];
@@ -104,12 +105,13 @@ export class FlowGraph {
     return this.graph!.getSize();
   }
 
-  async initGraph(data?: FlowDetail) {
+  async initGraph(data?: FlowDetail, isSuperUserMode?: boolean) {
     if (!data) {
       return;
     }
 
     this.data = data;
+    this.isSuperUserMode = !!isSuperUserMode;
     const commonData = generateCommonData(data);
     const edgesData = generateEdges(
       data,
@@ -141,6 +143,7 @@ export class FlowGraph {
         },
         type: 'custom-edge',
       },
+      flowGraphInstance: this,
       node: {
         state: {
           aiLogHover: {
@@ -397,6 +400,12 @@ export class FlowGraph {
 
   updateNodeData(data: any) {
     this.graph?.updateNodeData(data);
+  }
+
+  updateSuperUserMode(isSuperUserMode: boolean) {
+    this.isSuperUserMode = isSuperUserMode;
+    this.renderNodes();
+    this.render();
   }
 
   zoomTo(zoom: number, animate?: any) {
