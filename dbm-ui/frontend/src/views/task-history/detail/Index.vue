@@ -13,6 +13,7 @@
 
 <template>
   <RouteHeader
+    v-model:is-super-user-mode="isSuperUserMode"
     :data="currentTaskflowDetail"
     :root-id="rootId"
     @refresh="fetchTaskflowDetails" />
@@ -93,6 +94,7 @@
           name="task_flow">
           <TaskFlow
             ref="taskFlowRef"
+            v-model:is-super-user-mode="isSuperUserMode"
             :data="currentTaskflowDetail"
             @canvas-ready="handleCanvasReady"
             @refresh="handleRefresh" />
@@ -159,6 +161,7 @@
   const currentTaskflowDetail = ref<FlowDetail>();
   const taskFlowRef = ref<InstanceType<typeof TaskFlow>>();
   const operationHistoryRef = ref<InstanceType<typeof OperationHistory>>();
+  const isSuperUserMode = ref(false);
 
   const baseInfo = computed(() => currentTaskflowDetail.value?.flow_info || ({} as FlowDetail['flow_info']));
   const rootId = computed(() => route.params.root_id as string);

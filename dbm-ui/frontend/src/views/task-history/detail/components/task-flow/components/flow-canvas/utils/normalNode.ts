@@ -7,6 +7,8 @@ import SuccessImage from '@images/check-line.png';
 import FailImage from '@images/close.png';
 import FileImage from '@images/file.png';
 import forceFailImage from '@images/force-fail.png';
+import ForceRetryImage from '@images/force-retry.png';
+import ForceSkipWarningImage from '@images/force-skip-warning.png';
 // import MinusImage from '@images/minus.png';
 import MinusImage from '@images/minus-fill.png';
 import PlusImage from '@images/plus-fill.png';
@@ -95,6 +97,10 @@ export class NormalNode extends Rect {
 
   get isSubProcess() {
     return !!this.data.pipeline;
+  }
+
+  get isSuperUserMode() {
+    return (this.context.options as any).flowGraphInstance?.isSuperUserMode || false;
   }
 
   get isWaitToRun() {
@@ -251,23 +257,23 @@ export class NormalNode extends Rect {
 
     const { retryable, skippable, status, todoId } = this.data;
     if (status === 'FAILED') {
-      if (retryable) {
-        // 失败重试
-        const retryWraperStyle = {
-          fill: attributes.retryOptFill,
+      if (this.isSuperUserMode) {
+        // 强制重试
+        const forceRetryWraperStyle = {
+          fill: '#F59500',
           height: 24,
           radius: 2,
-          width: 56,
+          width: 80,
           x: -width / 2 + 4,
           y: 34,
         };
-        this.upsert('retryWraper', GRect, retryWraperStyle, container);
+        this.upsert('forceRetryWraper', GRect, forceRetryWraperStyle, container);
         const {
           attributes: { x: rwX, y: rwY },
-        } = this.getShape('retryWraper');
+        } = this.getShape('forceRetryWraper');
         const retryIconStyle = {
           height: 12,
-          src: RetryImage,
+          src: ForceRetryImage,
           width: 12,
           x: rwX + 5,
           y: rwY + 6,
@@ -276,32 +282,31 @@ export class NormalNode extends Rect {
         const {
           attributes: { x: riX, y: riY },
         } = this.getShape('retryIcon');
-        const retryTextStyle = {
-          fill: '#4D4F56',
+        const forceRetryTextStyle = {
+          fill: '#FFFFFF',
           fontSize: 12,
-          text: '重试',
-          x: riX + 17,
+          text: '强制重试',
+          x: riX + 16,
           y: riY + 14,
         };
-        this.upsert('retryText', GText, retryTextStyle, container);
-      }
-      if (skippable) {
-        // 跳过
-        const skipWraperStyle = {
-          fill: attributes.skipOptFill,
+        this.upsert('forceRetryText', GText, forceRetryTextStyle, container);
+
+        // 强制跳过
+        const forceSkipWraperStyle = {
+          fill: '#FDEED8',
           height: 24,
           radius: 2,
-          width: 56,
-          x: retryable ? -width / 2 + 68 : -width / 2 + 4,
+          width: 80,
+          x: -width / 2 + 92,
           y: 34,
         };
-        this.upsert('skipWraper', GRect, skipWraperStyle, container);
+        this.upsert('forceSkipWraper', GRect, forceSkipWraperStyle, container);
         const {
           attributes: { x: swX, y: swY },
-        } = this.getShape('skipWraper');
+        } = this.getShape('forceSkipWraper');
         const skipIconStyle = {
           height: 12,
-          src: SkipImage,
+          src: ForceSkipWarningImage,
           width: 12,
           x: swX + 4,
           y: swY + 5,
@@ -310,14 +315,83 @@ export class NormalNode extends Rect {
         const {
           attributes: { x: siX, y: siY },
         } = this.getShape('skipIcon');
-        const skipTextStyle = {
-          fill: '#4D4F56',
+        const forceSkipTextStyle = {
+          fill: '#E38B02',
           fontSize: 12,
-          text: '跳过',
-          x: siX + 18,
+          text: '强制跳过',
+          x: siX + 16,
           y: siY + 15,
         };
-        this.upsert('skipText', GText, skipTextStyle, container);
+        this.upsert('forceSkipText', GText, forceSkipTextStyle, container);
+      } else {
+        if (retryable) {
+          // 失败重试
+          const retryWraperStyle = {
+            fill: attributes.retryOptFill,
+            height: 24,
+            radius: 2,
+            width: 56,
+            x: -width / 2 + 4,
+            y: 34,
+          };
+          this.upsert('retryWraper', GRect, retryWraperStyle, container);
+          const {
+            attributes: { x: rwX, y: rwY },
+          } = this.getShape('retryWraper');
+          const retryIconStyle = {
+            height: 12,
+            src: RetryImage,
+            width: 12,
+            x: rwX + 5,
+            y: rwY + 6,
+          };
+          this.upsert('retryIcon', GImage, retryIconStyle, container);
+          const {
+            attributes: { x: riX, y: riY },
+          } = this.getShape('retryIcon');
+          const retryTextStyle = {
+            fill: '#4D4F56',
+            fontSize: 12,
+            text: '重试',
+            x: riX + 17,
+            y: riY + 14,
+          };
+          this.upsert('retryText', GText, retryTextStyle, container);
+        }
+        if (skippable) {
+          // 跳过
+          const skipWraperStyle = {
+            fill: attributes.skipOptFill,
+            height: 24,
+            radius: 2,
+            width: 56,
+            x: retryable ? -width / 2 + 68 : -width / 2 + 4,
+            y: 34,
+          };
+          this.upsert('skipWraper', GRect, skipWraperStyle, container);
+          const {
+            attributes: { x: swX, y: swY },
+          } = this.getShape('skipWraper');
+          const skipIconStyle = {
+            height: 12,
+            src: SkipImage,
+            width: 12,
+            x: swX + 4,
+            y: swY + 5,
+          };
+          this.upsert('skipIcon', GImage, skipIconStyle, container);
+          const {
+            attributes: { x: siX, y: siY },
+          } = this.getShape('skipIcon');
+          const skipTextStyle = {
+            fill: '#4D4F56',
+            fontSize: 12,
+            text: '跳过',
+            x: siX + 18,
+            y: siY + 15,
+          };
+          this.upsert('skipText', GText, skipTextStyle, container);
+        }
       }
       // ai日志分析
       if (window.PROJECT_CONFIG.AI_LOG_ANALYSIS_OPEN) {
@@ -326,7 +400,7 @@ export class NormalNode extends Rect {
           height: 24,
           radius: 2,
           width: 76,
-          x: skippable && skippable ? -width / 2 + 132 : -width / 2 + 68,
+          x: this.isSuperUserMode ? -width / 2 + 180 : retryable && skippable ? -width / 2 + 132 : -width / 2 + 68,
           y: 34,
         };
         this.upsert('aiLogAnalysisWraper', GRect, aiLogAnalysisWraperStyle, container);
