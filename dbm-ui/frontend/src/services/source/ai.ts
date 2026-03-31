@@ -108,3 +108,7 @@ export function getAgentScene() {
     >;
   }>(`${path}/agent/agent/agent_scene/`);
 }
+
+export function getResouceLackLogAnalysis(params: { flow_id: string; ticket_id: number }) {
+  return http.post(`${path}/agent/log/get_resource_lack_log_analysis/`, params);
+}
