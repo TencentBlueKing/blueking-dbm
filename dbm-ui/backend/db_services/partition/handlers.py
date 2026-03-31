@@ -740,7 +740,7 @@ class PartitionHandler(object):
         return sorted_table_infos
 
     @classmethod
-    def import_from_excel(cls, excel_file) -> dict:
+    def import_from_excel(cls, user, excel_file) -> dict:
         """
         从Excel文件导入分区策略
 
@@ -814,6 +814,21 @@ class PartitionHandler(object):
                     result = DBPartitionApi.create_conf_v2(params=partition_data, raw=True)
 
                     if result.get("code") == 0:
+                        partition_items = result["data"]["items"]
+                        for partition_item in partition_items:
+                            partition_item["config_id"] = partition_item.pop("id")
+
+                        partition_execute_objects = {
+                            "bk_biz_id": partition_data["bk_biz_id"],
+                            "partition_infos": [
+                                {
+                                    "cluster_id": partition_data["cluster_id"],
+                                    "configs": partition_items,
+                                    "force": False,
+                                }
+                            ],
+                        }
+                        cls.execute_partition_v2(user, **partition_execute_objects)
                         success_count += 1
                     else:
                         failed_count += 1
