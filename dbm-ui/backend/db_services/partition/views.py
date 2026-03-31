@@ -274,7 +274,7 @@ class DBPartitionViewSet(viewsets.SystemViewSet):
         validated_data = self.params_validate(PartitionImportSerializer)
         excel_file = validated_data["file"]
         # 调用导入处理逻辑
-        import_result = PartitionHandler.import_from_excel(excel_file)
+        import_result = PartitionHandler.import_from_excel(request.user.username, excel_file)
         return Response(import_result)
 
     @common_swagger_auto_schema(
