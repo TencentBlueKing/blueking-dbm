@@ -25,6 +25,8 @@ global:
 
 # bk public
 bk:
+  # 蓝鲸环境admin用户
+  bkAdminUser: "admin"
   # 蓝鲸PaaS平台
   bkPaasUrl: "https://example.com"
   bkComponentApiUrl: "https://bkapi.example.com"

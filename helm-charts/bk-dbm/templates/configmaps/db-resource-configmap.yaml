@@ -34,7 +34,7 @@ data:
     bkSecretConfig:
       bk_app_code: {{ .Values.dbm.envs.bkAppCode }}
       bk_app_secret: {{ .Values.dbm.envs.bkAppToken }}
-      bk_username:  "admin"
+      bk_username:  "{{ .Values.bk.bkAdminUser | default "admin"}}"
       bk_base_url: {{ .Values.bk.bkComponentApiUrl }}
     cloudCertificate:
       cloud_vendor: "{{ index .Values "db-resource" "envs" "cloudVendor" }}"
