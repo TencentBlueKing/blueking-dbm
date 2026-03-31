@@ -32,12 +32,18 @@
     @close="(refresh) => handleCancelOperation('forceFail', refresh)" />
 </template>
 <script setup lang="tsx">
+  import BkAlert from 'bkui-vue/lib/alert';
+  import BkForm, { BkFormItem } from 'bkui-vue/lib/form';
+  import InfoBox from 'bkui-vue/lib/info-box';
+  import BkInput from 'bkui-vue/lib/input';
   import type { Instance } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
-  import { FlowTypes } from '@services/source/taskflow';
+  import { FlowTypes, retryTaskflowNode, skipTaskflowNode } from '@services/source/taskflow';
 
   import { dbTippy } from '@common/tippy';
+
+  import { messageSuccess } from '@utils';
 
   import { CanvasEvent, GraphEvent, NodeEvent } from '@antv/g6';
   import { useFullscreen } from '@vueuse/core';
@@ -84,11 +90,13 @@
     rootId: '',
   });
   const emits = defineEmits<Emits>();
+  const isSuperUserMode = defineModel<boolean>('isSuperUserMode', { required: true });
 
   let flowGraphInstance: FlowGraph;
 
   const { t } = useI18n();
 
+  const formRef = ref<InstanceType<typeof BkForm>>();
   const toolsRef = ref<InstanceType<typeof Tools>>();
   const flowCanvasContainerRef = ref<HTMLDivElement | null>(null);
   const skipTemplateRef = ref<InstanceType<typeof NodeSkip>>();
@@ -133,6 +141,10 @@
     log: {
       isShow: false,
     },
+  });
+
+  const formData = reactive({
+    remark: '',
   });
 
   const initEvent = () => {
@@ -192,19 +204,26 @@
       flowGraphInstance = new FlowGraph('flowCanvasContainer');
       initEvent();
     }
-    await flowGraphInstance.initGraph(data);
+    await flowGraphInstance.initGraph(data, isSuperUserMode.value);
     flowGraphInstance.on(NodeEvent.CLICK, async (e: any) => {
       const { originalTarget, target } = e;
       // 所有画布的点击事件都在这里统一处理，提升性能
       const { className } = originalTarget;
       console.warn('node id: ', target.data.id);
+
+      const { id, name } = target.data;
+      const params = {
+        id,
+        name,
+      };
+
       if (className.startsWith('manualConfirm')) {
         // 跳过
         handleOperationShowTip('continue', e);
         return;
       }
       if (className.startsWith('forceFail')) {
-        // 跳过
+        // 强制失败
         handleOperationShowTip('forceFail', e);
         return;
       }
@@ -213,9 +232,23 @@
         handleOperationShowTip('skip', e);
         return;
       }
+      if (className.startsWith('forceSkip')) {
+        // 强制跳过
+        handleForceSkipOrRetry('forceSkip', params);
+        return;
+      }
       if (className.startsWith('retry')) {
         // 失败重试
-        handleOperationShowTip('retry', e);
+        if (isSuperUserMode.value) {
+          handleForceSkipOrRetry('forceRetry', params);
+        } else {
+          handleOperationShowTip('retry', e);
+        }
+        return;
+      }
+      if (className.startsWith('forceRetry')) {
+        // 强制失败重试
+        handleForceSkipOrRetry('forceRetry', params);
         return;
       }
       if (className.startsWith('aiLogAnalysis')) {
@@ -306,6 +339,16 @@
       immediate: true,
     },
   );
+
+  watch(isSuperUserMode, () => {
+    initGraph().then(() => {
+      if (isSuperUserMode.value) {
+        flowGraphInstance.graph?.translateBy([0, 32]);
+      } else {
+        flowGraphInstance.graph?.translateBy([0, -32]);
+      }
+    });
+  });
 
   const handleShowTooltip = (type: TooltipKey, e: any) => {
     const { target } = e;
@@ -420,6 +463,88 @@
     }
   };
 
+  const handleForceSkipOrRetry = (
+    type: 'forceSkip' | 'forceRetry',
+    params: {
+      id: string;
+      name: string;
+    },
+  ) => {
+    const typeInfo = {
+      forceRetry: {
+        api: retryTaskflowNode,
+        confirmText: t('确认强制重试'),
+        subtitle: t('强制重试将重新执行当前失败节点，执行成功后继续执行后续节点'),
+        title: t('确认强制重试该节点？'),
+      },
+      forceSkip: {
+        api: skipTaskflowNode,
+        confirmText: t('确认强制跳过'),
+        subtitle: t('强制跳过将忽略当前节点的失败状态，直接执行后续节点。当前节点将标记为 失败手动跳过'),
+        title: t('确认强制跳过该节点？'),
+      },
+    };
+
+    InfoBox({
+      cancelText: t('取消'),
+      confirmButtonTheme: 'danger',
+      confirmText: typeInfo[type].confirmText,
+      content: () => (
+        <>
+          <BkAlert
+            theme='warning'
+            title={t('此操作将绕过系统预设的流程控制，请确认已知晓风险')}
+          />
+          <div class='mission-flows-retry-and-skip-info mt-12'>
+            <div class='name-box'>
+              <span class='name-label'>{t('节点名称')}：</span>
+              <span>{params.name}</span>
+            </div>
+            <div>{typeInfo[type].subtitle}</div>
+          </div>
+          <BkForm
+            ref={formRef}
+            class='mt-20'
+            form-type='vertical'
+            model={formData}>
+            <BkFormItem
+              label={t('操作原因')}
+              property='remark'
+              required>
+              <BkInput
+                v-model={formData.remark}
+                class='mt-6'
+                placeholder={t('请输入操作原因')}
+                type='textarea'
+              />
+            </BkFormItem>
+          </BkForm>
+        </>
+      ),
+      infoType: 'warning',
+      onConfirm: async function () {
+        await formRef.value!.validate();
+
+        typeInfo[type]
+          .api({
+            is_force: true,
+            node_id: params.id,
+            remark: formData.remark,
+            root_id: props.rootId,
+          })
+          .then(() => {
+            // isSuperUserMode.value = false;
+            Object.assign(formData, { remark: '' });
+            messageSuccess(t('操作成功'));
+            emits('refresh');
+            return true;
+          });
+      },
+      theme: 'danger',
+      title: typeInfo[type].title,
+    });
+  };
+
   const handleZoomChange = (zoom: number) => {
     flowGraphInstance.zoomTo(zoom / 100, {
       duration: 500,
@@ -448,6 +573,16 @@
     flowGraphInstance.translateTo([0, 100]);
   };
 
+  const checkContainerCanvas = async () => {
+    const { width } = flowCanvasContainerRef.value!.getBoundingClientRect();
+    const [canvasWidth] = flowGraphInstance.getSize();
+    if (width > canvasWidth) {
+      await initGraph();
+      // flowGraphInstance.isInit = true;
+    }
+    flowGraphInstance.graph?.translateTo([0, 100]);
+  };
+
   onMounted(() => {
     window.addEventListener('resize', handleInitGraph);
   });
@@ -458,14 +593,8 @@
   });
 
   defineExpose<Exposes>({
-    checkContainerInitCanvas: async () => {
-      const { width } = flowCanvasContainerRef.value!.getBoundingClientRect();
-      const [canvasWidth] = flowGraphInstance.getSize();
-      if (width > canvasWidth) {
-        await initGraph();
-        // flowGraphInstance.isInit = true;
-      }
-      flowGraphInstance.graph?.translateTo([0, 100]);
+    checkContainerInitCanvas: () => {
+      checkContainerCanvas();
     },
     getGraph: () => flowGraphInstance,
     getShareData: () => ({
@@ -487,6 +616,21 @@
     &.is-fullscreen {
       width: 100% !important;
       height: 100vh !important;
+    }
+  }
+
+  .mission-flows-retry-and-skip-info {
+    padding: 12px 16px;
+    line-height: 22px;
+    color: #4d4f56;
+    text-align: left;
+    background: #f5f6fa;
+    border-radius: 2px;
+
+    .name-box {
+      .name-label {
+        color: #979ba5;
+      }
     }
   }
 </style>
