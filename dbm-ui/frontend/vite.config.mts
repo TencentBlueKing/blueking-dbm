@@ -91,6 +91,54 @@ export default defineConfig(({ mode }) => {
       }),
       monacoEditorPlugin.default({}),
     ].concat(isHttps ? [basicSsl()] : []),
+    build: {
+      target: 'es2020',
+      sourcemap: false,
+      reportCompressedSize: false,
+      chunkSizeWarningLimit: 2000,
+      minify: 'esbuild',
+      cssCodeSplit: true,
+      cssMinify: 'esbuild',
+      assetsInlineLimit: 0,
+      modulePreload: { polyfill: false },
+      esbuild: {
+        legalComments: 'none',
+        lineLimit: 200,
+      },
+      rollupOptions: {
+        maxParallelFileOps: 5,
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) {
+              return undefined;
+            }
+
+            // 独立重型库（无循环依赖风险，与 vue 生态无交叉引用）
+            if (id.includes('monaco-editor')) return 'vendor-monaco';
+            if (id.includes('echarts')) return 'vendor-echarts';
+            if (id.includes('@antv')) return 'vendor-antv';
+            if (id.includes('@wangeditor')) return 'vendor-wangeditor';
+            if (id.includes('@xterm')) return 'vendor-xterm';
+            if (id.includes('xlsx')) return 'vendor-xlsx';
+            if (id.includes('sql-formatter')) return 'vendor-sql-formatter';
+
+            // 独立 UI 库
+            if (id.includes('element-plus')) return 'vendor-element-plus';
+
+            // @blueking 系列按包拆分
+            if (id.includes('@blueking/ai-blueking')) return 'vendor-bk-ai';
+            if (id.includes('@blueking/ip-selector')) return 'vendor-bk-ip-selector';
+            if (id.includes('@blueking/tdesign-ui')) return 'vendor-bk-tdesign';
+            if (id.includes('@blueking/table')) return 'vendor-bk-table';
+            if (id.includes('@blueking/sub-saas')) return 'vendor-bk-sub-saas';
+            if (id.includes('@blueking')) return 'vendor-bk-others';
+
+            // vue + bkui-vue + lodash + 其余小型依赖合并为 core 层，消除循环依赖
+            return 'vendor-core';
+          },
+        },
+      },
+    },
     server: {
       strictPort: true,
       host: '127.0.0.1',
