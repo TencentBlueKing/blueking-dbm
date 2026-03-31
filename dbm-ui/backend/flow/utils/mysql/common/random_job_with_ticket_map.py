@@ -168,12 +168,14 @@ def get_instance_with_random_job(cluster: Cluster, ticket_type: TicketType):
         if rule_dict.is_only_tdbctl_primary_add:
             # 注意：tendbcluster_ctl_primary_address() 内部已过滤 status=RUNNING 的 spider 来获取 primary 地址，
             # 因此间接保证了 tdbctl primary 的可用性，无需额外做 unavailable 过滤
-            return {
-                "instance": cluster.tendbcluster_ctl_primary_address(),
-                "priv_role": PrivRole.TDBCTL.value,
-                # tdbctl 不是独立的 CMDB 模型实例，无法直接查询真实状态，此处硬编码为 RUNNING
-                "cmdb_status": InstanceStatus.RUNNING.value,
-            }
+            return [
+                {
+                    "instance": cluster.tendbcluster_ctl_primary_address(),
+                    "priv_role": PrivRole.TDBCTL.value,
+                    # tdbctl 不是独立的 CMDB 模型实例，无法直接查询真实状态，此处硬编码为 RUNNING
+                    "cmdb_status": InstanceStatus.RUNNING.value,
+                }
+            ]
 
         # 所有 tdbctl 节点添加账号
         # 架构约定：tdbctl 与 spider_master 部署在同一机器上，端口 = spider.port + 1000
