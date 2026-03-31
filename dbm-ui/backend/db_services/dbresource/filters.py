@@ -17,14 +17,19 @@ from django_filters import rest_framework as filters
 
 from backend.db_meta.models.machine import DeviceClass
 from backend.db_meta.models.spec import Spec
+from backend.db_services.dbbase.resources.query_base import build_empty_and_in_q
 from backend.db_services.dbresource.models import ResourceReplenishRecord
 
 
 class SpecListFilter(filters.FilterSet):
     spec_name = filters.CharFilter(field_name="spec_name", lookup_expr="icontains", label=_("规格名称"))
     desc = filters.CharFilter(field_name="desc", lookup_expr="icontains", label=_("描述"))
-    spec_cluster_type = filters.CharFilter(field_name="spec_cluster_type", lookup_expr="exact", label=_("规格集群类型"))
-    spec_machine_type = filters.CharFilter(field_name="spec_machine_type", lookup_expr="exact", label=_("规格机器类型"))
+    spec_cluster_type = filters.CharFilter(
+        field_name="spec_cluster_type", method="filter_spec_cluster_type", lookup_expr="exact", label=_("规格集群类型")
+    )
+    spec_machine_type = filters.CharFilter(
+        field_name="spec_machine_type", method="filter_spec_machine_type", lookup_expr="exact", label=_("规格机器类型")
+    )
     spec_db_type = filters.CharFilter(field_name="spec_db_type", method="filter_spec_db_type", label=_("规格组件类型"))
     spec_ids = filters.CharFilter(field_name="spec_ids", method="filter_spec_ids", label=_("ID过滤(逗号分隔)"))
     update_at = filters.BooleanFilter(field_name="update_at", method="filter_update_at", label=_("根据时间正序/逆序"))
@@ -60,6 +65,12 @@ class SpecListFilter(filters.FilterSet):
         elif value == "bizs":
             return queryset.exclude(Q(biz_scope=[]) | Q(biz_scope__isnull=True))
 
+    def filter_spec_cluster_type(self, queryset, name, value):
+        return queryset.filter(build_empty_and_in_q("spec_cluster_type", value, "exact"))
+
+    def filter_spec_machine_type(self, queryset, name, value):
+        return queryset.filter(build_empty_and_in_q("spec_machine_type", value, "exact"))
+
     class Meta:
         model = Spec
         fields = [
@@ -75,11 +86,16 @@ class SpecListFilter(filters.FilterSet):
 
 
 class DeviceClassFilter(filters.FilterSet):
-    device_type = filters.CharFilter(field_name="device_type", lookup_expr="icontains", label=_("机型名称"))
+    device_type = filters.CharFilter(
+        field_name="device_type", method="filter_device_type", lookup_expr="icontains", label=_("机型名称")
+    )
 
     class Meta:
         model = DeviceClass
         fields = ["device_type"]
+
+    def filter_device_type(self, queryset, name, value):
+        return queryset.filter(build_empty_and_in_q("device_type", value, "icontains"))
 
 
 class ReplenishRecordFilter(filters.FilterSet):

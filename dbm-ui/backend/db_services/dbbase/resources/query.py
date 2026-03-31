@@ -33,6 +33,7 @@ from backend.db_meta.models import (
 from backend.db_meta.models.city_map import BKSubzone
 from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.db_services.dbbase.resources.query_base import (
+    build_empty_and_in_q,
     build_q_for_cluster_name_or_alias,
     build_q_for_domain_by_cluster,
     build_q_for_domain_by_instance,
@@ -813,8 +814,8 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
         inner_filter_params_map = {
             "ip": Q(machine__ip__in=query_params.get("ip", "").split(",")),
             "id": Q(id__in=query_params.get("id", "").split(",")),
-            "bk_sub_zone": Q(machine__bk_sub_zone__in=query_params.get("bk_sub_zone", "").split(",")),
-            "bk_os_name": Q(machine__bk_os_name__in=query_params.get("bk_os_name", "").split(",")),
+            "bk_sub_zone": build_empty_and_in_q("machine__bk_sub_zone", query_params.get("bk_sub_zone", "")),
+            "bk_os_name": build_empty_and_in_q("machine__bk_os_name", query_params.get("bk_os_name", "")),
             "cluster_name": Q(cluster__name__in=query_params.get("cluster_name", "").split(",")),
             "create_at__gte": Q(create_at__gte=query_params.get("create_at__gte", "")),
             "create_at__lte": Q(create_at__lte=query_params.get("create_at__lte", "")),
@@ -825,11 +826,11 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             # 所属DB模块
             "db_module_id": Q(db_module_id__in=query_params.get("db_module_id", "").split(",")),
             "region": Q(region=query_params.get("region")),
-            "role": Q(role__in=query_params.get("role", "").split(",")),
+            "role": build_empty_and_in_q("role", query_params.get("role", "")),
             "name": Q(cluster__name__in=query_params.get("name", "").split(",")),
             "domain": build_q_for_domain_by_instance(query_params),
             "instance": build_q_for_instance_filter(query_params),
-            "version": Q(version__in=query_params.get("version", "").split(",")),
+            "version": build_empty_and_in_q("version", query_params.get("version", "")),
         }
 
         filter_params_map = filter_params_map or {}
@@ -1035,13 +1036,13 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             ),
             "bk_city_id": Q(bk_city__bk_idc_city_id__in=query_params.get("bk_city_id", "").split(",")),
             # 操作系统
-            "bk_os_name": Q(bk_os_name__in=query_params.get("bk_os_name", "").split(",")),
+            "bk_os_name": build_empty_and_in_q("bk_os_name", query_params.get("bk_os_name", "")),
             "bk_cloud_id": Q(bk_cloud_id=query_params.get("bk_cloud_id")),
             "bk_agent_id": Q(bk_agent_id=query_params.get("bk_agent_id")),
             "cluster_type": Q(cluster_type=query_params.get("cluster_type")),
             "instance_role": (
-                Q(storageinstance__instance_role__in=query_params.get("instance_role", "").split(","))
-                | Q(proxyinstance__access_layer__in=query_params.get("instance_role", "").split(","))
+                build_empty_and_in_q("storageinstance__instance_role", query_params.get("instance_role", ""))
+                | build_empty_and_in_q("proxyinstance__access_layer", query_params.get("instance_role", ""))
             ),
             "instance_status": (
                 Q(storageinstance__status=query_params.get("instance_status"))
@@ -1065,10 +1066,10 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             # 园区id过滤
             "bk_sub_zone_id": Q(bk_sub_zone_id__in=query_params.get("bk_sub_zone_id", "").split(",")),
             # 园区名称过滤
-            "bk_sub_zone": Q(bk_sub_zone__in=query_params.get("bk_sub_zone", "").split(",")),
+            "bk_sub_zone": build_empty_and_in_q("bk_sub_zone", query_params.get("bk_sub_zone", "")),
             # 机型
-            "bk_svr_device_cls_name": Q(
-                bk_svr_device_cls_name__in=query_params.get("bk_svr_device_cls_name", "").split(",")
+            "bk_svr_device_cls_name": build_empty_and_in_q(
+                "bk_svr_device_cls_name", query_params.get("bk_svr_device_cls_name", "")
             ),
         }
         filter_params_map = {**inner_filter_params_map, **filter_params_map}
