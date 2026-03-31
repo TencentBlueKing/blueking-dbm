@@ -1,0 +1,127 @@
+# 简体中文翻译
+# 格式: message_key: { other: "消息文本" }
+
+# 系统错误
+error.auth:
+  other: "权限不足，请联系管理员"
+error.server:
+  other: "内部服务器出现错误"
+error.engine_type:
+  other: "数据库引擎类型有误"
+error.authorization:
+  other: "签名信息有误"
+error.third_api:
+  other: "调用第三方 API 接口失败"
+error.resubmit:
+  other: "请勿重复提交"
+error.login:
+  other: "登录失败"
+error.logout:
+  other: "注销失败"
+error.create_metadata:
+  other: "创建元数据失败"
+error.update_metadata:
+  other: "更新元数据失败"
+error.get_metadata:
+  other: "获取元数据失败"
+error.delete_metadata:
+  other: "删除元数据失败"
+error.parameter_invalid:
+  other: "参数校验失败"
+error.parameter_type:
+  other: "参数类型校验失败"
+error.parameter_value:
+  other: "参数值校验失败"
+error.operation_forbidden:
+  other: "禁止执行该操作"
+error.not_permission:
+  other: "权限不足"
+
+# 集群操作
+error.cluster.describe:
+  other: "查询集群失败"
+error.cluster.create:
+  other: "创建集群失败"
+error.cluster.get:
+  other: "获取集群失败"
+error.cluster.delete:
+  other: "删除集群失败"
+error.cluster.get_status:
+  other: "查询集群状态失败"
+error.cluster.get_event:
+  other: "查询集群事件失败"
+error.cluster.vertical_scaling:
+  other: "集群垂直扩缩容失败"
+error.cluster.horizontal_scaling:
+  other: "集群水平扩缩容失败"
+error.cluster.start:
+  other: "集群启动失败"
+error.cluster.stop:
+  other: "集群停止失败"
+error.cluster.restart:
+  other: "集群重启失败"
+error.cluster.upgrade:
+  other: "集群升级失败"
+error.cluster.volume_expansion:
+  other: "集群磁盘扩缩容失败"
+error.cluster.expose:
+  other: "集群暴露服务失败"
+error.cluster.describe_ops:
+  other: "查询操作请求失败"
+error.cluster.get_ops_status:
+  other: "查询操作请求状态失败"
+error.cluster.update:
+  other: "更新集群失败"
+error.cluster.partial_update:
+  other: "局部更新集群失败"
+error.cluster.get_svc:
+  other: "获取集群连接失败"
+
+# Kubernetes 操作
+error.k8s.create_ns:
+  other: "创建命名空间失败"
+error.k8s.delete_ns:
+  other: "删除命名空间失败"
+error.k8s.get_pod_log:
+  other: "获取 Pod 日志失败"
+error.k8s.api_timeout:
+  other: "K8s API Server 请求超时"
+error.k8s.get_pod_detail:
+  other: "获取 Pod 详情失败"
+error.k8s.create_client:
+  other: "获取 K8s Client 失败"
+error.k8s.delete_pod:
+  other: "删除实例节点失败"
+error.k8s.install_helm:
+  other: "安装 Helm chart 失败"
+
+# 插件操作
+error.addon.install:
+  other: "插件安装失败"
+error.addon.uninstall:
+  other: "插件卸载失败"
+error.addon.upgrade:
+  other: "插件更新失败"
+
+# 组件操作
+error.component.describe:
+  other: "查询组件失败"
+error.component.get_svc:
+  other: "查询组件服务信息失败"
+error.component.get_pods:
+  other: "查询组件实例列表失败"
+
+# 验证消息
+validation.required:
+  other: "{{.Field}} 为必填项"
+validation.invalid:
+  other: "{{.Field}} 无效"
+validation.min_length:
+  other: "{{.Field}} 至少需要 {{.Min}} 个字符"
+validation.max_length:
+  other: "{{.Field}} 最多允许 {{.Max}} 个字符"
+
+# 格式化
+format.separator:
+  other: "。"
+

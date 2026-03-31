@@ -26,6 +26,7 @@ import (
 	"k8s-dbs/core"
 	_ "k8s-dbs/core/checker/addonoperation"
 	"k8s-dbs/core/util"
+	"k8s-dbs/i18n"
 	dbsinformer "k8s-dbs/informers"
 	"k8s-dbs/router"
 	_ "k8s-dbs/router/core"
@@ -57,6 +58,12 @@ func main() {
 		log.Fatalf("Failed to initialize core: %v", err)
 	}
 	slog.Info("Finish initial configuration...")
+
+	// 初始化 i18n 国际化
+	if err := i18n.Init(); err != nil {
+		log.Fatalf("Failed to initialize i18n: %v", err)
+	}
+	slog.Info("Finish initial i18n...")
 
 	engine := gin.Default()
 	// 注册中间件

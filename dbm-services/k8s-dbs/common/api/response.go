@@ -24,6 +24,8 @@ import (
 	"fmt"
 	commvalidator "k8s-dbs/common/validator"
 	dbserrors "k8s-dbs/errors"
+	"k8s-dbs/i18n"
+	i18nctx "k8s-dbs/i18n/context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -62,19 +64,33 @@ func ErrorResponse(ctx *gin.Context, err error) {
 	var code ResponseCode
 	var dbsError = new(dbserrors.K8sDbsError)
 	var message string
+	var errorDetail string
+
+	// 获取 localizer
+	localizer := i18nctx.GetLanguage(ctx)
+
 	if errors.As(err, &dbsError) {
-		code = ResponseCode(dbsError.Code)
-		message = dbsError.Message
+		// 本地化错误消息
+		localizedErr := dbsError.Localize(localizer)
+
+		code = ResponseCode(localizedErr.Code)
+		message = localizedErr.Message
+		errorDetail = localizedErr.ErrorDetail
 	} else {
 		code = ResponseCode(500)
 		message = err.Error()
+		errorDetail = err.Error()
 	}
+
+	// 使用 i18n 翻译分隔符
+	separator := i18n.Translate(localizer, i18n.MsgSeparator)
+
 	resp := &Response{
 		Result:  false,
 		Code:    code,
 		Data:    nil,
-		Message: fmt.Sprintf("%s。%s", message, dbsError.ErrorDetail),
-		Error:   dbsError.ErrorDetail,
+		Message: fmt.Sprintf("%s%s%s", message, separator, errorDetail),
+		Error:   errorDetail,
 	}
 	ctx.JSON(http.StatusOK, resp)
 	response, _ := json.Marshal(resp)

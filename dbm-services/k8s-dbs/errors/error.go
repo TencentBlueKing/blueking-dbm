@@ -19,16 +19,36 @@ limitations under the License.
 
 package errors
 
+import (
+	"k8s-dbs/i18n"
+
+	goi18n "github.com/nicksnyder/go-i18n/v2/i18n"
+)
+
 // K8sDbsError Error
 type K8sDbsError struct {
-	Code        ErrorCode `json:"code"`    // Service Code
-	Message     string    `json:"message"` // Text information corresponding to the src code
-	ErrorDetail string    `json:"errorDetail"`
+	Code        ErrorCode `json:"code"`        // Service Code
+	MessageKey  string    `json:"-"`           // i18n message key (not serialized)
+	Message     string    `json:"message"`     // Text information corresponding to the src code
+	ErrorDetail string    `json:"errorDetail"` // Detailed error message
 }
 
 // Error string of error
 func (e *K8sDbsError) Error() string {
 	return e.ErrorDetail
+}
+
+// Localize 使用 localizer 本地化错误消息
+func (e *K8sDbsError) Localize(localizer *goi18n.Localizer) *K8sDbsError {
+	if localizer == nil || e.MessageKey == "" {
+		return e
+	}
+	return &K8sDbsError{
+		Code:        e.Code,
+		MessageKey:  e.MessageKey,
+		Message:     i18n.Translate(localizer, e.MessageKey),
+		ErrorDetail: e.ErrorDetail,
+	}
 }
 
 type ErrorCode int
@@ -103,81 +123,126 @@ const (
 	UpgradeAddonError
 )
 
-// 定义错误码对于的message
-var codeTag = map[ErrorCode]string{
+// errorCodeInfo 错误码信息结构体
+type errorCodeInfo struct {
+	MessageKey     string // i18n 消息 key
+	DefaultMessage string // 默认消息（中文）
+}
+
+// codeInfoMap 错误码到 i18n key 和默认消息的映射
+var codeInfoMap = map[ErrorCode]errorCodeInfo{
 	// 纳管系统内置异常
-	AuthError:             "权限不足，请联系管理员",
-	ServerError:           "内部服务器出现错误",
-	EngineTypeError:       "数据库引擎类型有误",
-	AuthorizationError:    "签名信息有误",
-	ThirdAPIError:         "调用第三方 API 接口失败",
-	ResubmitError:         "请勿重复提交",
-	LoginError:            "登录失败",
-	LogoutError:           "注销失败",
-	CreateMetaDataError:   "创建元数据失败",
-	UpdateMetaDataError:   "更新元数据失败",
-	GetMetaDataError:      "获取元数据失败",
-	DeleteMetaDataError:   "删除元数据失败",
-	ParameterInvalidError: "参数校验失败",
-	ParameterTypeError:    "参数类型校验失败",
-	ParameterValueError:   "参数值校验失败",
-	OperationForbidden:    "禁止执行该操作",
+	AuthError:             {i18n.MsgErrAuth, "权限不足，请联系管理员"},
+	ServerError:           {i18n.MsgErrServer, "内部服务器出现错误"},
+	EngineTypeError:       {i18n.MsgErrEngineType, "数据库引擎类型有误"},
+	AuthorizationError:    {i18n.MsgErrAuthorization, "签名信息有误"},
+	ThirdAPIError:         {i18n.MsgErrThirdAPI, "调用第三方 API 接口失败"},
+	ResubmitError:         {i18n.MsgErrResubmit, "请勿重复提交"},
+	LoginError:            {i18n.MsgErrLogin, "登录失败"},
+	LogoutError:           {i18n.MsgErrLogout, "注销失败"},
+	CreateMetaDataError:   {i18n.MsgErrCreateMetadata, "创建元数据失败"},
+	UpdateMetaDataError:   {i18n.MsgErrUpdateMetadata, "更新元数据失败"},
+	GetMetaDataError:      {i18n.MsgErrGetMetadata, "获取元数据失败"},
+	DeleteMetaDataError:   {i18n.MsgErrDeleteMetadata, "删除元数据失败"},
+	ParameterInvalidError: {i18n.MsgErrParameterInvalid, "参数校验失败"},
+	ParameterTypeError:    {i18n.MsgErrParameterType, "参数类型校验失败"},
+	ParameterValueError:   {i18n.MsgErrParameterValue, "参数值校验失败"},
+	OperationForbidden:    {i18n.MsgErrOperationForbid, "禁止执行该操作"},
+	NotPermissionError:    {i18n.MsgErrNotPermission, "权限不足"},
 
 	// 存储集群操作异常
-	DescribeClusterError:      "查询集群失败",
-	CreateClusterError:        "创建集群失败",
-	GetClusterError:           "获取集群失败",
-	DeleteClusterError:        "删除集群失败",
-	GetClusterStatusError:     "查询集群状态失败",
-	GetClusterEventError:      "查询集群事件失败",
-	VerticalScalingError:      "集群垂直扩缩容失败",
-	HorizontalScalingError:    "集群水平扩缩容失败",
-	StartClusterError:         "集群启动失败",
-	StopClusterError:          "集群停止失败",
-	RestartClusterError:       "集群重启失败",
-	UpgradeClusterError:       "集群升级失败",
-	VolumeExpansionError:      "集群磁盘扩缩容失败",
-	ExposeClusterError:        "集群暴露服务失败",
-	DescribeOpsRequestError:   "查询操作请求失败",
-	GetOpsRequestStatusError:  "查询操作请求状态失败",
-	UpdateClusterError:        "更新集群失败",
-	PartialUpdateClusterError: "局部更新集群失败",
-	GetClusterSvcError:        "获取集群连接失败",
+	DescribeClusterError:      {i18n.MsgErrClusterDescribe, "查询集群失败"},
+	CreateClusterError:        {i18n.MsgErrClusterCreate, "创建集群失败"},
+	GetClusterError:           {i18n.MsgErrClusterGet, "获取集群失败"},
+	DeleteClusterError:        {i18n.MsgErrClusterDelete, "删除集群失败"},
+	GetClusterStatusError:     {i18n.MsgErrClusterGetStatus, "查询集群状态失败"},
+	GetClusterEventError:      {i18n.MsgErrClusterGetEvent, "查询集群事件失败"},
+	VerticalScalingError:      {i18n.MsgErrClusterVerticalScale, "集群垂直扩缩容失败"},
+	HorizontalScalingError:    {i18n.MsgErrClusterHorizScale, "集群水平扩缩容失败"},
+	StartClusterError:         {i18n.MsgErrClusterStart, "集群启动失败"},
+	StopClusterError:          {i18n.MsgErrClusterStop, "集群停止失败"},
+	RestartClusterError:       {i18n.MsgErrClusterRestart, "集群重启失败"},
+	UpgradeClusterError:       {i18n.MsgErrClusterUpgrade, "集群升级失败"},
+	VolumeExpansionError:      {i18n.MsgErrClusterVolumeExpand, "集群磁盘扩缩容失败"},
+	ExposeClusterError:        {i18n.MsgErrClusterExpose, "集群暴露服务失败"},
+	DescribeOpsRequestError:   {i18n.MsgErrClusterDescribeOps, "查询操作请求失败"},
+	GetOpsRequestStatusError:  {i18n.MsgErrClusterGetOpsStatus, "查询操作请求状态失败"},
+	UpdateClusterError:        {i18n.MsgErrClusterUpdate, "更新集群失败"},
+	PartialUpdateClusterError: {i18n.MsgErrClusterPartialUpdate, "局部更新集群失败"},
+	GetClusterSvcError:        {i18n.MsgErrClusterGetSvc, "获取集群连接失败"},
 
 	// k8s api server 调用异常
-	CreateK8sNsError:         "创建命名空间失败",
-	DeleteK8sNsError:         "删除命名空间失败",
-	GetPodLogError:           "获取 Pod 日志失败",
-	K8sAPIServerTimeoutError: "K8s API Server 请求超时",
-	GetPodDetailError:        "获取 Pod 详情失败",
-	CreateK8sClientError:     "获取 K8s Client 失败",
-	DeleteK8sPodError:        "删除实例节点失败",
-	InstallHelmChartErr:      "安装 Helm chart 失败",
+	CreateK8sNsError:         {i18n.MsgErrK8sCreateNs, "创建命名空间失败"},
+	DeleteK8sNsError:         {i18n.MsgErrK8sDeleteNs, "删除命名空间失败"},
+	GetPodLogError:           {i18n.MsgErrK8sGetPodLog, "获取 Pod 日志失败"},
+	K8sAPIServerTimeoutError: {i18n.MsgErrK8sAPITimeout, "K8s API Server 请求超时"},
+	GetPodDetailError:        {i18n.MsgErrK8sGetPodDetail, "获取 Pod 详情失败"},
+	CreateK8sClientError:     {i18n.MsgErrK8sCreateClient, "获取 K8s Client 失败"},
+	DeleteK8sPodError:        {i18n.MsgErrK8sDeletePod, "删除实例节点失败"},
+	InstallHelmChartErr:      {i18n.MsgErrK8sInstallHelm, "安装 Helm chart 失败"},
 
 	// 存储插件部署操作异常
-	InstallAddonError:   "插件安装失败",
-	UninstallAddonError: "插件卸载失败",
-	UpgradeAddonError:   "插件更新失败",
+	InstallAddonError:   {i18n.MsgErrAddonInstall, "插件安装失败"},
+	UninstallAddonError: {i18n.MsgErrAddonUninstall, "插件卸载失败"},
+	UpgradeAddonError:   {i18n.MsgErrAddonUpgrade, "插件更新失败"},
 
 	// 组件操作异常
-	DescribeComponentError: "查询组件失败",
-	GetComponentSvcError:   "查询组件服务信息失败",
-	GetComponentPodsError:  "查询组件实例列表失败",
+	DescribeComponentError: {i18n.MsgErrComponentDescribe, "查询组件失败"},
+	GetComponentSvcError:   {i18n.MsgErrComponentGetSvc, "查询组件服务信息失败"},
+	GetComponentPodsError:  {i18n.MsgErrComponentGetPods, "查询组件实例列表失败"},
+}
 
-	// 权限异常
-	NotPermissionError: "权限不足",
+// getCodeInfo 根据错误码获取错误信息
+func getCodeInfo(code ErrorCode) errorCodeInfo {
+	if info, ok := codeInfoMap[code]; ok {
+		return info
+	}
+	return errorCodeInfo{MessageKey: "", DefaultMessage: "未知错误"}
 }
 
 // NewK8sDbsError 自定义错误
 func NewK8sDbsError(code ErrorCode, err error) error {
-	errorDetail := codeTag[code]
+	info := getCodeInfo(code)
+	errorDetail := info.DefaultMessage
 	if err != nil {
 		errorDetail = err.Error()
 	}
 
 	return &K8sDbsError{
 		Code:        code,
-		Message:     codeTag[code],
+		MessageKey:  info.MessageKey,
+		Message:     info.DefaultMessage,
 		ErrorDetail: errorDetail,
 	}
+}
+
+// NewK8sDbsErrorWithLocalizer 创建支持 i18n 的错误
+func NewK8sDbsErrorWithLocalizer(code ErrorCode, err error, localizer *goi18n.Localizer) error {
+	info := getCodeInfo(code)
+	errorDetail := info.DefaultMessage
+	if err != nil {
+		errorDetail = err.Error()
+	}
+
+	message := info.DefaultMessage
+	if localizer != nil && info.MessageKey != "" {
+		message = i18n.Translate(localizer, info.MessageKey)
+	}
+
+	return &K8sDbsError{
+		Code:        code,
+		MessageKey:  info.MessageKey,
+		Message:     message,
+		ErrorDetail: errorDetail,
+	}
+}
+
+// GetMessageKey 获取错误码对应的 i18n 消息 Key
+func GetMessageKey(code ErrorCode) string {
+	return getCodeInfo(code).MessageKey
+}
+
+// GetDefaultMessage 获取错误码对应的默认消息
+func GetDefaultMessage(code ErrorCode) string {
+	return getCodeInfo(code).DefaultMessage
 }
