@@ -30,6 +30,18 @@
             {{ t('强制失败') }}
           </BkTag>
           <BkTag
+            v-else-if="data.operate_type === 'force_retry'"
+            theme="warning"
+            type="stroke">
+            {{ t('强制重试') }}
+          </BkTag>
+          <BkTag
+            v-else-if="data.operate_type === 'force_skip'"
+            theme="warning"
+            type="stroke">
+            {{ t('强制跳过') }}
+          </BkTag>
+          <BkTag
             v-else
             theme="warning"
             type="stroke">
@@ -47,6 +59,14 @@
         :min-width="120">
         <template #default="{ data }: { data: RowData }">
           {{ utcDisplayTime(data.operate_date) }}
+        </template>
+      </BkTableColumn>
+      <BkTableColumn
+        field="remark"
+        :label="t('操作原因')"
+        :min-width="120">
+        <template #default="{ data }: { data: RowData }">
+          <span>{{ data.remark || '--' }}</span>
         </template>
       </BkTableColumn>
     </DbTable>

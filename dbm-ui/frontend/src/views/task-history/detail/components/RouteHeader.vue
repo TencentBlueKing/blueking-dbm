@@ -54,6 +54,19 @@
         </BkButton>
       </BkPopConfirm>
     </div>
+    <div
+      v-if="isSuperuserSwitchShow"
+      class="mission-detail-super-user-box">
+      <BkSwitcher
+        v-model="isSuperUserMode"
+        size="small"
+        theme="primary" />
+      <div
+        v-bk-tooltips="t('专家模式：可对所有失败节点执行强制操作。强制操作将绕过系统预设的流程控制，请谨慎操作！')"
+        class="box-text ml-4">
+        {{ t('开启专家模式') }}
+      </div>
+    </div>
   </Teleport>
 </template>
 <script setup lang="tsx">
@@ -61,6 +74,8 @@
   import { useRequest } from 'vue-request';
 
   import { revokePipeline } from '@services/source/taskflow';
+
+  import { useUserProfile } from '@stores';
 
   import { messageSuccess } from '@utils';
 
@@ -80,15 +95,20 @@
     rootId: '',
   });
   const emits = defineEmits<Emits>();
+  const isSuperUserMode = defineModel<boolean>('isSuperUserMode', { required: true });
 
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
+  const { isSuperuser } = useUserProfile();
 
   const taskFlowRef = ref<InstanceType<typeof TaskFlow>>();
 
   const baseInfo = computed(() => props.data?.flow_info || ({} as FlowDetail['flow_info']));
   const isTaskFailed = computed(() => props.data?.flow_info.status === 'FAILED');
+  const isSuperuserSwitchShow = computed(
+    () => isSuperuser && props.data?.flow_info && !['FINISHED', 'REVOKED'].includes(props.data.flow_info.status),
+  );
 
   const statusText = computed(() => {
     if (isTaskFailed.value) {
@@ -261,6 +281,18 @@
       i {
         font-size: 14px;
       }
+    }
+  }
+
+  .mission-detail-super-user-box {
+    display: flex;
+    margin-left: auto;
+    align-items: center;
+
+    .box-text {
+      font-size: 12px;
+      color: #4d4f56;
+      border-bottom: 1px dashed #979ba5;
     }
   }
 </style>

@@ -13,9 +13,15 @@
 
 <template>
   <div class="flow-operation-main">
+    <BkAlert
+      v-if="isSuperUserMode"
+      class="mb-16 ml-12"
+      theme="warning"
+      :title="t('已进入专家模式，当前可对所有失败节点执行强制操作。强制操作将绕过系统预设的流程控制，请谨慎操作。')" />
     <BkResizeLayout
       :border="false"
       class="resize-layout-main"
+      :class="{ 'resize-layout-main-super-user': isSuperUserMode }"
       collapsible
       :initial-divide="330"
       :is-collapsed="isCollapsed"
@@ -26,6 +32,7 @@
       <template #aside>
         <SearchTree
           ref="searchTreeRef"
+          v-model:is-super-user-mode="isSuperUserMode"
           :data="treeData"
           :root-id="rootId"
           @node-click="handleNodeClick"
@@ -38,6 +45,7 @@
       <template #main>
         <FlowCanvas
           ref="flowCanvasRef"
+          v-model:is-super-user-mode="isSuperUserMode"
           :data="data"
           :root-id="rootId"
           @click-single-node="handleShowLog"
@@ -57,6 +65,8 @@
     @refresh="handleRefresh" />
 </template>
 <script setup lang="tsx">
+  import { useI18n } from 'vue-i18n';
+
   import FlowCanvas from './components/flow-canvas/Index.vue';
   import { type FlowDetail, generateTreeData, type Node, type TreeNode } from './components/flow-canvas/utils';
   import NodeDetail from './components/node-detail/Index.vue';
@@ -85,8 +95,10 @@
     data: undefined,
   });
   const emits = defineEmits<Emits>();
+  const isSuperUserMode = defineModel<boolean>('isSuperUserMode', { required: true });
 
   const route = useRoute();
+  const { t } = useI18n();
 
   const treeData = ref<TreeNode[]>([]);
   const isCollapsed = ref(false);
@@ -217,7 +229,7 @@
 </script>
 <style lang="less">
   .flow-operation-main {
-    display: flex;
+    // display: flex;
     width: 100%;
     height: 100%;
     padding-right: 12px;
@@ -225,6 +237,10 @@
     .resize-layout-main {
       width: 100%;
       height: 100%;
+    }
+
+    .resize-layout-main-super-user {
+      height: calc(100% - 48px);
     }
 
     .bk-resize-layout-aside {
