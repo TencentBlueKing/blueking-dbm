@@ -24,7 +24,6 @@ import vueJsx from '@vitejs/plugin-vue-jsx';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd());
   const isHttps = mode === 'https';
-
   console.log('env === ', mode);
 
   return {
@@ -54,7 +53,7 @@ export default defineConfig(({ mode }) => {
       preprocessorOptions: {
         less: {
           javascriptEnabled: true,
-          additionalData: '@import "@styles/variables";', // 全局导入变量
+          additionalData: '@import "@styles/variables";',
         },
         css: {
           javascriptEnabled: true,
@@ -69,13 +68,12 @@ export default defineConfig(({ mode }) => {
         },
       }),
       AutoImport({
-        // 生成自动引入 eslintrc 配置
         eslintrc: {
           enabled: false,
           filepath: './src/types/.eslintrc-auto-import.json',
         },
-        imports: ['vue', 'vue-router'], // 自动导入 vue、vue-router
-        dts: './src/types/auto-imports.d.ts', // 自动导出 ts types
+        imports: ['vue', 'vue-router'],
+        dts: './src/types/auto-imports.d.ts',
       }),
       viteStaticCopy({
         targets: [
@@ -89,8 +87,64 @@ export default defineConfig(({ mode }) => {
           },
         ],
       }),
-      monacoEditorPlugin.default({}),
+      monacoEditorPlugin.default({
+        languageWorkers: ['editorWorkerService', 'json', 'typescript'],
+      } as Parameters<typeof monacoEditorPlugin.default>[0]),
     ].concat(isHttps ? [basicSsl()] : []),
+    build: {
+      target: 'es2020',
+      sourcemap: false,
+      reportCompressedSize: false,
+      chunkSizeWarningLimit: 2000,
+      minify: 'esbuild',
+      cssCodeSplit: true,
+      cssMinify: 'esbuild',
+      assetsInlineLimit: 0,
+      modulePreload: { polyfill: false },
+      esbuild: {
+        legalComments: 'none',
+        lineLimit: 200,
+      },
+      rollupOptions: {
+        maxParallelFileOps: 5,
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) {
+              return undefined;
+            }
+
+            if (id.includes('monaco-editor') || id.includes('monaco-promql')) return 'vendor-monaco';
+            if (id.includes('echarts')) return 'vendor-echarts';
+            if (id.includes('@antv')) return 'vendor-antv';
+            if (id.includes('@wangeditor')) return 'vendor-wangeditor';
+            if (id.includes('@xterm')) return 'vendor-xterm';
+            if (id.includes('xlsx')) return 'vendor-xlsx';
+            if (id.includes('sql-formatter')) return 'vendor-sql-formatter';
+            if (id.includes('element-plus')) return 'vendor-element-plus';
+
+            // ai-blueking 及其专属提升依赖归为同一 chunk，避免与 vendor-core 循环
+            if (
+              id.includes('@blueking/ai-blueking') ||
+              id.includes('x-mavon-editor') ||
+              id.includes('mermaid') ||
+              id.includes('highlight.js') ||
+              id.includes('motion-v') ||
+              id.includes('vue-draggable-resizable')
+            ) {
+              return 'vendor-bk-ai';
+            }
+
+            if (id.includes('@blueking/ip-selector')) return 'vendor-bk-ip-selector';
+            if (id.includes('@blueking/tdesign-ui')) return 'vendor-bk-tdesign';
+            if (id.includes('@blueking/table')) return 'vendor-bk-table';
+            if (id.includes('@blueking/sub-saas')) return 'vendor-bk-sub-saas';
+            if (id.includes('@blueking')) return 'vendor-bk-others';
+
+            return 'vendor-core';
+          },
+        },
+      },
+    },
     server: {
       strictPort: true,
       host: '127.0.0.1',
