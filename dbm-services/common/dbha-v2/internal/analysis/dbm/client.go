@@ -62,10 +62,7 @@ func (c *Client) getHttpClient() *hanet.HttpClient {
 }
 
 func (c *Client) getRequestClientWithTimeout(timeout time.Duration) *hanet.HttpClient {
-	baseCli := c.getHttpClient()
-	reqCli := *baseCli
-	reqCli.SetTimeout(timeout)
-	return &reqCli
+	return c.getHttpClient().Clone().SetTimeout(timeout)
 }
 
 // SendRequest sends HTTP request to DBM API with specified method and timeout

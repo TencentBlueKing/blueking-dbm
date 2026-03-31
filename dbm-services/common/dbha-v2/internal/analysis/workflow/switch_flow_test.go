@@ -26,8 +26,11 @@ package workflow
 
 import (
 	"context"
+	"net/http"
 	"testing"
+	"time"
 
+	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/testutil"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
@@ -288,5 +291,216 @@ func TestMatchStrategyForGroup_EventNameMismatch(t *testing.T) {
 	matched, _ := executor.MatchStrategyForGroup(context.Background(), group)
 	if matched {
 		t.Error("expected matched=false when event name does not match")
+	}
+}
+
+func setupDbmMetadataAPIForSwitchFlowTest(t *testing.T, serverURL string) {
+	t.Helper()
+	old := config.Cfg.Workflow.DbmApiMetadata
+	config.Cfg.Workflow.DbmApiMetadata.Api = serverURL
+	config.Cfg.Workflow.DbmApiMetadata.Token = "test-token"
+	config.Cfg.Workflow.DbmApiMetadata.Timeout = time.Second
+	t.Cleanup(func() {
+		config.Cfg.Workflow.DbmApiMetadata = old
+	})
+}
+
+func newSwitchExecutorForCreateRequestTests(t *testing.T) *SwitchExecutor {
+	t.Helper()
+	td := testutil.NewTestDbhaData(t)
+	return &SwitchExecutor{
+		hadata: td.DbhaData,
+		dbmSync: &Synchronizer{
+			cli: &dbm.Client{},
+		},
+	}
+}
+
+func TestCreateRequestWithGroup_EmptyIPs(t *testing.T) {
+	executor := newSwitchExecutorForCreateRequestTests(t)
+	group := &FailureGroup{BkCloudID: 1, DbType: haprobe.DbTypeMySql}
+
+	req := executor.CreateRequestWithGroup(context.Background(), group)
+	if req != nil {
+		t.Fatal("expected nil request for empty ips")
+	}
+}
+
+func TestCreateRequestWithGroup_DbmErrNoResponse(t *testing.T) {
+	server := testutil.NewDbmMetadataTestServer(t, http.StatusOK, nil)
+	setupDbmMetadataAPIForSwitchFlowTest(t, server.URL)
+
+	executor := newSwitchExecutorForCreateRequestTests(t)
+	group := &FailureGroup{
+		BkCloudID: 1,
+		DbType:    haprobe.DbTypeMySql,
+		Instances: []FailureInstanceInfo{
+			{IP: "127.0.0.1", DbType: haprobe.DbTypeMySql},
+		},
+	}
+
+	req := executor.CreateRequestWithGroup(context.Background(), group)
+	if req != nil {
+		t.Fatal("expected nil request when dbm returns no response")
+	}
+}
+
+func TestCreateRequestWithGroup_DbmGeneralError(t *testing.T) {
+	server := testutil.NewDbmMetadataTestServer(t, http.StatusInternalServerError, nil)
+	setupDbmMetadataAPIForSwitchFlowTest(t, server.URL)
+
+	executor := newSwitchExecutorForCreateRequestTests(t)
+	group := &FailureGroup{
+		BkCloudID: 1,
+		DbType:    haprobe.DbTypeMySql,
+		Instances: []FailureInstanceInfo{
+			{IP: "127.0.0.2", DbType: haprobe.DbTypeMySql},
+		},
+	}
+
+	req := executor.CreateRequestWithGroup(context.Background(), group)
+	if req != nil {
+		t.Fatal("expected nil request when dbm responds with http error")
+	}
+}
+
+func TestCreateRequestWithGroup_FilterUnavailableAndKeepAvailable(t *testing.T) {
+	server := testutil.NewDbmMetadataTestServer(t, http.StatusOK, []*dbm.DbInstMetadata{
+		{BkCloudID: 1, IP: "127.0.0.3", Port: 3306, Status: dbm.Unavailable},
+		{BkCloudID: 1, IP: "127.0.0.4", Port: 3307, Status: dbm.Available},
+	})
+	setupDbmMetadataAPIForSwitchFlowTest(t, server.URL)
+
+	executor := newSwitchExecutorForCreateRequestTests(t)
+	group := &FailureGroup{
+		BkCloudID: 1,
+		DbType:    haprobe.DbTypeMySql,
+		Instances: []FailureInstanceInfo{
+			{IP: "127.0.0.3", DbType: haprobe.DbTypeMySql},
+			{IP: "127.0.0.4", DbType: haprobe.DbTypeMySql},
+		},
+	}
+
+	req := executor.CreateRequestWithGroup(context.Background(), group)
+	if req == nil {
+		t.Fatal("expected non-nil request")
+	}
+	if !req.HasDbInstMetadata() {
+		t.Fatal("expected request has metadata after filtering")
+	}
+
+	metas := req.GetDbInstMetadata()
+	if len(metas) != 1 {
+		t.Fatalf("expected 1 available metadata, got %d", len(metas))
+	}
+	if metas[0].IP != "127.0.0.4" {
+		t.Fatalf("expected only available ip=127.0.0.4, got %s", metas[0].IP)
+	}
+}
+
+func TestMatchStrategyForGroup_TriggerCountNegativeDefaultsToOne(t *testing.T) {
+	executor, td := newTestSwitchExecutor(t)
+	testutil.InsertStrategies(t, td.DbhaData,
+		&hamodel.DbSwitchingStrategy{
+			Name:             "neg-count",
+			BkBizID:          100,
+			Status:           hamodel.StatusTypeEnabled,
+			TriggerEventName: haprobe.DbEventNameDetectFailure,
+			TriggerCount:     -3,
+			Priority:         1,
+		},
+	)
+
+	group := &FailureGroup{
+		Instances: []FailureInstanceInfo{{BkBizID: 100, EventName: haprobe.DbEventNameDetectFailure}},
+	}
+
+	matched, strategy := executor.MatchStrategyForGroup(context.Background(), group)
+	if !matched {
+		t.Fatal("expected matched when triggerCount is negative and defaults to 1")
+	}
+	if strategy == nil || strategy.Name != "neg-count" {
+		t.Fatalf("expected strategy neg-count, got %+v", strategy)
+	}
+}
+
+func TestMatchStrategyForGroup_DisabledStrategyIgnored(t *testing.T) {
+	executor, td := newTestSwitchExecutor(t)
+	testutil.InsertStrategies(t, td.DbhaData,
+		&hamodel.DbSwitchingStrategy{
+			Name:             "disabled-strategy",
+			BkBizID:          100,
+			Status:           hamodel.StatusTypeDisabled,
+			TriggerEventName: haprobe.DbEventNameDetectFailure,
+			TriggerCount:     1,
+			Priority:         1,
+		},
+	)
+
+	group := &FailureGroup{
+		Instances: []FailureInstanceInfo{{BkBizID: 100, EventName: haprobe.DbEventNameDetectFailure}},
+	}
+
+	matched, strategy := executor.MatchStrategyForGroup(context.Background(), group)
+	if matched {
+		t.Fatal("expected not matched when only disabled strategy exists")
+	}
+	if strategy != nil {
+		t.Fatalf("expected nil strategy, got %+v", strategy)
+	}
+}
+
+func TestMatchStrategyForGroup_NormalAndSpecialBothMatchedChooseHigherPriority(t *testing.T) {
+	executor, td := newTestSwitchExecutor(t)
+	testutil.InsertStrategies(t, td.DbhaData,
+		&hamodel.DbSwitchingStrategy{
+			Name:             "normal-p2",
+			BkBizID:          100,
+			Status:           hamodel.StatusTypeEnabled,
+			TriggerEventName: haprobe.DbEventNameDetectFailure,
+			TriggerCount:     1,
+			Priority:         2,
+		},
+		&hamodel.DbSwitchingStrategy{
+			Name:             "special-p1",
+			BkBizID:          100,
+			Status:           hamodel.StatusTypeEnabled,
+			TriggerEventName: haprobe.DbEventNameTendbhaProxyBackendFailure,
+			TriggerCount:     1,
+			Priority:         1,
+		},
+	)
+
+	group := &FailureGroup{
+		Instances: []FailureInstanceInfo{
+			{BkBizID: 100, EventName: haprobe.DbEventNameDetectFailure},
+			{
+				BkBizID:      100,
+				BkCloudID:    1,
+				ClusterID:    10,
+				MachineType:  haprobe.DbmMetadataMachineTypeProxy,
+				EventName:    haprobe.DbEventNameDetectFailure,
+				InstanceRole: "",
+			},
+			{
+				BkBizID:      100,
+				BkCloudID:    1,
+				ClusterID:    10,
+				MachineType:  haprobe.DbmMetadataMachineTypeBackend,
+				InstanceRole: dbm.MySQLStorageMaster.String(),
+				EventName:    haprobe.DbEventNameDetectFailure,
+			},
+		},
+	}
+
+	matched, strategy := executor.MatchStrategyForGroup(context.Background(), group)
+	if !matched {
+		t.Fatal("expected matched=true when normal and special strategies both match")
+	}
+	if strategy == nil {
+		t.Fatal("expected non-nil strategy")
+	}
+	if strategy.Name != "special-p1" {
+		t.Fatalf("expected special-p1 due to higher priority, got %s", strategy.Name)
 	}
 }

@@ -28,6 +28,7 @@ package workflow
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
 	"sort"
 	"sync"
 	"time"
@@ -469,6 +470,13 @@ func (w *Workflow) handleStrategySwitch(strategy *hamodel.DbSwitchingStrategy, g
 	go func(keys []string, dbType haprobe.DbType, switchReq *switcher.Request) {
 		defer wg.Done()
 		defer w.markDoneAll(keys)
+		defer func() {
+			if r := recover(); r != nil {
+				logger.Error("panic occurred during trigger switching, strategy: %s, dbType: %s, cloudId: %d, panic: %v, stack: %s",
+					strategy.Name, dbType, group.BkCloudID, r, string(debug.Stack()))
+			}
+		}()
+
 		w.switchExecutor.TriggerSwitching(dbType, switchReq)
 	}(groupInstKeys, group.DbType, req)
 
