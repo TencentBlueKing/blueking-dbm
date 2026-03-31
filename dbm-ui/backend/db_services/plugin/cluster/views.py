@@ -13,8 +13,9 @@ from django.utils.translation import gettext as _
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.bk_web.swagger import ResponseSwaggerAutoSchema, common_swagger_auto_schema
 from backend.db_proxy.models import ClusterExtension
+from backend.db_services.dbbase.serializers import ClusterFilterSerializer
 from backend.db_services.dbbase.views import DBBaseViewSet
 from backend.db_services.plugin.cluster.serializers import (
     DeleteClusterExtensionSerializer,
@@ -47,3 +48,13 @@ class OpenClusterViewSet(BaseOpenAPIViewSet, DBBaseViewSet):
             bk_biz_id=params["bk_biz_id"], cluster_name=params["cluster_name"], is_deleted=True
         ).delete()
         return Response()
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据过滤条件查询业务下集群详细信息"),
+        auto_schema=ResponseSwaggerAutoSchema,
+        query_serializer=ClusterFilterSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=ClusterFilterSerializer, pagination_class=None)
+    def filter_clusters(self, request, *args, **kwargs):
+        return super().filter_clusters(request, *args, **kwargs)
