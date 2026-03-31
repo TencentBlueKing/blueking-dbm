@@ -15,6 +15,7 @@ from django_filters.filters import BaseInFilter, NumberFilter
 
 from backend.db_dirty.models import DirtyMachine, MachineEvent
 from backend.db_meta.models import Cluster
+from backend.db_services.dbbase.resources.query_base import build_empty_and_in_q
 from backend.ticket.constants import TodoStatus
 from backend.ticket.models import Todo
 
@@ -79,19 +80,19 @@ class DirtyMachinePoolFilter(filters.FilterSet):
         return queryset.filter(pool__in=value.split(","))
 
     def filter_city(self, queryset, name, value):
-        return queryset.filter(city__in=value.split(","))
+        return queryset.filter(build_empty_and_in_q("city", value, "exact"))
 
     def filter_sub_zone(self, queryset, name, value):
-        return queryset.filter(sub_zone__in=value.split(","))
+        return queryset.filter(build_empty_and_in_q("sub_zone", value, "exact"))
 
     def filter_rack_id(self, queryset, name, value):
         return queryset.filter(rack_id__in=value.split(","))
 
     def filter_device_class(self, queryset, name, value):
-        return queryset.filter(device_class__in=value.split(","))
+        return queryset.filter(build_empty_and_in_q("device_class", value, "exact"))
 
     def filter_os_name(self, queryset, name, value):
-        return queryset.filter(os_name__in=value.split(","))
+        return queryset.filter(build_empty_and_in_q("os_name", value, "exact"))
 
     def filter_updater(self, queryset, name, value):
         return queryset.filter(updater__in=value.split(","))
