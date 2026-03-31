@@ -27,10 +27,11 @@
 
   import FlowMode from '@services/model/ticket/flow';
   import TicketModel from '@services/model/ticket/ticket';
-  import { getFlowLogAnnlysis } from '@services/source/ai';
+  import { getFlowLogAnnlysis, getResouceLackLogAnalysis } from '@services/source/ai';
 
   interface Props {
     data: FlowMode<unknown, any>;
+    flowType?: string;
     ticketDetail: TicketModel<unknown>;
   }
 
@@ -41,14 +42,25 @@
   const { t } = useI18n();
 
   const rootRef = useTemplateRef<HTMLDivElement>('root');
-  const { data: logContent, loading: isLoading } = useRequest(getFlowLogAnnlysis, {
-    defaultParams: [
-      {
-        flow_id: props.data.flow_obj_id,
-        ticket_id: props.ticketDetail.id,
-      },
-    ],
-  });
+
+  const { data: logContent, loading: isLoading } = useRequest(
+    (params: { flow_id: string; ticket_id: number }) => {
+      // 资源不足的日志分析
+      if (props.flowType === FlowMode.TYPE_RESOURCE_APPLY) {
+        return getResouceLackLogAnalysis(params);
+      }
+      // 通用类型的日志分析
+      return getFlowLogAnnlysis(params);
+    },
+    {
+      defaultParams: [
+        {
+          flow_id: props.data.flow_obj_id,
+          ticket_id: props.ticketDetail.id,
+        },
+      ],
+    },
+  );
 
   const renderLogContent = computed(() => {
     if (!logContent.value) {
