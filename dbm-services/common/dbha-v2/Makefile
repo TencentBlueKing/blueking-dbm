@@ -124,7 +124,7 @@ package: $(SERVICES) toolkits
 	@cp $(addprefix $(BUILD_DIR)/,$(BINARIES)) $(PKG_DIR)/bin/
 	@cp $(BUILD_DIR)/$(BIN_PREFIX)cluster $(PKG_DIR)/toolkits/
 	@cp scripts/setup.sh scripts/start-server.sh scripts/stop-server.sh \
-		scripts/start-probe.sh scripts/stop-probe.sh $(PKG_DIR)/
+		scripts/start-probe.sh scripts/stop-probe.sh scripts/deploy.sh $(PKG_DIR)/
 	@sed -i 's/__VERSION__/$(VERSION)/g' $(PKG_DIR)/setup.sh
 	@-cp etc/*.yaml $(PKG_DIR)/etc/ 2>/dev/null || true
 	@cd $(BUILD_DIR) && tar -czvf $(PKG_NAME) $(PROJECT)
