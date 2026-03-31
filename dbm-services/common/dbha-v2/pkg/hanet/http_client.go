@@ -103,6 +103,30 @@ func (c *HttpClient) SetTimeout(timeout time.Duration) *HttpClient {
 	return c
 }
 
+// Clone returns a new HttpClient with copied mutable fields.
+func (c *HttpClient) Clone() *HttpClient {
+	if c == nil {
+		return nil
+	}
+
+	cloned := &HttpClient{
+		timeout: c.timeout,
+		cli:     c.cli,
+	}
+
+	if c.headers == nil {
+		cloned.headers = map[string]string{}
+		return cloned
+	}
+
+	cloned.headers = make(map[string]string, len(c.headers))
+	for key, val := range c.headers {
+		cloned.headers[key] = val
+	}
+
+	return cloned
+}
+
 func (c HttpClient) verifyMethod(method HttpMethod) error {
 	if _, exists := supportedHttpMethods[method]; exists {
 		return nil

@@ -104,7 +104,7 @@ func (s *Ssh) Run(cmd string) (*SshResponse, error) {
 	}()
 
 	resp := &SshResponse{Id: s.Id()}
-	data, cmdErr, timedOut := s.runCombinedOutputWithTimeout(session, cmd)
+	data, timedOut, cmdErr := s.runCombinedOutputWithTimeout(session, cmd)
 	if timedOut {
 		logger.Error("SSH command execution timed out, host: %s, timeout: %v, cmd: %s", addr, s.timeout, cmd)
 		resp.ExitCode = gerrors.Failure.Int()
@@ -112,11 +112,11 @@ func (s *Ssh) Run(cmd string) (*SshResponse, error) {
 		return resp, nil
 	}
 
-	s.fillResponse(resp, data, cmdErr, cmd)
+	s.fillResponse(resp, data, cmd, cmdErr)
 	return resp, nil
 }
 
-func (s *Ssh) runCombinedOutputWithTimeout(session *ssh.Session, cmd string) ([]byte, error, bool) {
+func (s *Ssh) runCombinedOutputWithTimeout(session *ssh.Session, cmd string) ([]byte, bool, error) {
 	doneCh := make(chan struct{})
 	var data []byte
 	var cmdErr error
@@ -131,15 +131,15 @@ func (s *Ssh) runCombinedOutputWithTimeout(session *ssh.Session, cmd string) ([]
 
 	select {
 	case <-doneCh:
-		return data, cmdErr, false
+		return data, false, cmdErr
 	case <-timer.C:
 		_ = session.Close()
 		<-doneCh
-		return data, cmdErr, true
+		return data, true, cmdErr
 	}
 }
 
-func (s *Ssh) fillResponse(resp *SshResponse, data []byte, cmdErr error, cmd string) {
+func (s *Ssh) fillResponse(resp *SshResponse, data []byte, cmd string, cmdErr error) {
 	resp.Data = string(data)
 
 	if cmdErr != nil {

@@ -25,8 +25,12 @@
 package testutil
 
 import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
@@ -77,4 +81,35 @@ func InsertStrategies(t *testing.T, hadata *storage.DbhaData, strategies ...*ham
 			t.Fatalf("failed to insert strategy: %v", err)
 		}
 	}
+}
+
+// NewDbmMetadataTestServer creates a dbm metadata api test server.
+func NewDbmMetadataTestServer(t *testing.T, statusCode int, data []*dbm.DbInstMetadata) *httptest.Server {
+	t.Helper()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Errorf("unexpected method: %s", r.Method)
+		}
+
+		w.WriteHeader(statusCode)
+		if statusCode != http.StatusOK {
+			return
+		}
+
+		resp := &dbm.Response{
+			ResponseCommonInfo: dbm.ResponseCommonInfo{
+				Result:    true,
+				Code:      0,
+				Message:   "ok",
+				RequestID: "rid",
+			},
+			Data: data,
+		}
+
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			t.Errorf("failed to encode response: %v", err)
+		}
+	}))
+	t.Cleanup(server.Close)
+	return server
 }
