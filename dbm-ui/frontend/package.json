@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev-https": "vite --mode https",
-    "build": "cross-env NODE_OPTIONS=--max-old-space-size=8192 run-p build-only",
+    "build": "cross-env NODE_OPTIONS='--max-old-space-size=8192 --max-semi-space-size=128' run-p build-only",
     "preview": "vite preview",
     "prepare": "npx simple-git-hooks",
     "build-only": "vite build",
