@@ -34,6 +34,7 @@
       <component
         :is="renderContent"
         :data="data"
+        :flow-type="flowType"
         :ticket-detail="ticketDetail"
         @element-height-change="handleElementHeightChange" />
     </div>
@@ -56,6 +57,7 @@
 
   interface Props {
     data: FlowMode<unknown, any>;
+    flowType?: string;
     ticketDetail: TicketModel<unknown>;
   }
   const props = defineProps<Props>();
