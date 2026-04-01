@@ -26,9 +26,9 @@
             "data_source_label": "custom",
             "data_type_label": "event",
             "alias": "a",
-            "metric_id": "custom.event.bkmonitor_event_1572877.redis_capacity_surge",
+            "metric_id": "custom.event.bkmonitor_event_{event_data_id}.redis_capacity_surge",
             "functions": [],
-            "result_table_id": "bkmonitor_event_1572877",
+            "result_table_id": "bkmonitor_event_{event_data_id}",
             "agg_method": "COUNT",
             "agg_interval": 60,
             "agg_dimension": [
@@ -273,7 +273,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(redis_capacity_surge-dbm_report_channel)",
-  "version": 6,
+  "version": 7,
   "alert_source": "event",
   "custom_conditions": [],
   "export_at": "2026-03-30T12:33:18+08:00"
