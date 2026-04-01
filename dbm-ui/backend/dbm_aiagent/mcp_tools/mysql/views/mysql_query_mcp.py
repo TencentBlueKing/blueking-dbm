@@ -286,7 +286,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         )
 
     @mcp_tools_api_decorator(
-        description=str(_("查询 MySQL 实例进程列表")),
+        description=str(_("查询 MySQL 实例进程列表，返回原始 processlist 信息.")),
         request_slz=ShowInstanceProcessListInputSerializer,
         response_slz=ShowMySQLInstanceProcessListOutputSerializer,
         tags=[DBMMCPTags.READ],
@@ -312,7 +312,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         )
 
     @mcp_tools_api_decorator(
-        description=str(_("查询 Proxy 进程列表")),
+        description=str(_("查询 mysql-proxy 即 Proxy 进程列表，返回原始 processlist 信息")),
         request_slz=ShowInstanceProcessListInputSerializer,
         response_slz=ShowProxyProcessListOutputSerializer,
         tags=[DBMMCPTags.READ],
