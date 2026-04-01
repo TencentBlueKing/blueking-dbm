@@ -168,6 +168,10 @@ class ResourceListSerializer(serializers.Serializer):
 
     @staticmethod
     def format_fields(attrs, fields):
+        for key, item in attrs.items():
+            if isinstance(item, str):
+                attrs[key] = item.replace("__empty__", "")
+
         # 用逗号方便前端URL渲染，这里统一转换为数组 or obj
         for field in fields:
             divider = "-" if field in ["cpu", "mem", "disk"] else ","
