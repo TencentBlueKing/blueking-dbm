@@ -365,7 +365,7 @@ class TestTaskFlowHandler:
 
     @patch("backend.db_services.taskflow.handlers.TaskFlowHandler.bklog_esquery_search")
     @patch("backend.db_services.taskflow.handlers.TaskFlowHandler.get_node_histories")
-    def test_get_version_error_logs(self, mock_get_histories, mock_esquery, test_flow_node):
+    def test_get_version_error_logs_for_dbactuator(self, mock_get_histories, mock_esquery, test_flow_node):
         """测试获取节点错误日志"""
         now = timezone.now()
         mock_get_histories.return_value = [
@@ -390,7 +390,7 @@ class TestTaskFlowHandler:
         ]
 
         handler = TaskFlowHandler(root_id=taskflow.ROOT_ID)
-        logs = handler.get_version_error_logs(node_id=taskflow.NODE_ID, version_id=taskflow.VERSION_ID)
+        logs = handler.get_version_error_logs_for_dbactuator(node_id=taskflow.NODE_ID, version_id=taskflow.VERSION_ID)
 
         assert len(logs) >= 1
 
