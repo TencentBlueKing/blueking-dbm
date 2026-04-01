@@ -185,7 +185,7 @@ func (c HttpClient) Request(ctx context.Context, url string,
 	}
 
 	if errReq != nil {
-		err = gerrors.NewE(gerrors.HttpRequestFailure, err)
+		err = gerrors.NewE(gerrors.HttpRequestFailure, errReq)
 		return
 	}
 
