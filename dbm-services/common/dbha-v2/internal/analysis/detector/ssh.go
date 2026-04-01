@@ -117,25 +117,26 @@ func (s *Ssh) Run(cmd string) (*SshResponse, error) {
 }
 
 func (s *Ssh) runCombinedOutputWithTimeout(session *ssh.Session, cmd string) ([]byte, bool, error) {
-	doneCh := make(chan struct{})
-	var data []byte
-	var cmdErr error
+	type cmdResult struct {
+		data []byte
+		err  error
+	}
 
+	resultCh := make(chan cmdResult, 1)
 	go func() {
-		defer close(doneCh)
-		data, cmdErr = session.CombinedOutput(cmd)
+		data, cmdErr := session.CombinedOutput(cmd)
+		resultCh <- cmdResult{data: data, err: cmdErr}
 	}()
 
 	timer := time.NewTimer(s.timeout)
 	defer timer.Stop()
 
 	select {
-	case <-doneCh:
-		return data, false, cmdErr
+	case result := <-resultCh:
+		return result.data, false, result.err
 	case <-timer.C:
 		_ = session.Close()
-		<-doneCh
-		return data, true, cmdErr
+		return nil, true, nil
 	}
 }
 
