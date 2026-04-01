@@ -44,20 +44,12 @@ def _is_blank_str(value: str) -> bool:
     return not (value or "").strip()
 
 
-def _expected_clb_rs_ip_set(clb_entry) -> Set[str]:
-    """
-    与名字服务 clb_get_target_private_ips 返回的 data.ips（私网 IP 列表）对齐，只比较 IP。
-    """
-    return {proxy.machine.ip for proxy in clb_entry.proxyinstance_set.all()}
-
-
-def _meta_endpoints_ip_port_for_ips(clb_entry, ips: Set[str]) -> Set[str]:
-    """将属于给定 IP 集合的本 entry 代理格式化为 ip:port，用于与 CLB 对比时的 DBM 侧展示。"""
-    labels = set()
+def _expected_clb_rs_endpoint_set(clb_entry) -> Set[str]:
+    """本条 entry 下代理的 ip:port 字符串，格式与名字服务 data.ips 单项一致（DBM 侧按 machine.ip 与 port 拼接）。"""
+    endpoints = set()
     for proxy in clb_entry.proxyinstance_set.all():
-        if proxy.machine.ip in ips:
-            labels.add("{}:{}".format(proxy.machine.ip, proxy.port))
-    return labels
+        endpoints.add("{}:{}".format(proxy.machine.ip, proxy.port))
+    return endpoints
 
 
 def _summarize_rs_targets(targets: Set[str]) -> str:
@@ -84,7 +76,7 @@ def _clb_query_failure_hint(res) -> str:
 
 
 def _check_one_clb_entry(ce, cluster_domain: str, subtypes: ClbEntryCheckSubtypes) -> List[CheckResponse]:
-    """单条 CLB ClusterEntry：元数据、名字服务查询、RS 集合（期望来自 entry.proxyinstance_set）。"""
+    """单条 CLB ClusterEntry：元数据、名字服务查询、RS 与 entry.proxyinstance_set 的 ip:port 一致。"""
     bad = []
     entry_label = ce.entry
     detail = ce.clbentrydetail_set.first()
@@ -145,28 +137,28 @@ def _check_one_clb_entry(ce, cluster_domain: str, subtypes: ClbEntryCheckSubtype
     data_block = res.get("data")
     if not isinstance(data_block, dict):
         data_block = {}
-    raw_ips = data_block.get("ips")
-    if raw_ips is None:
-        actual_ips = set()
+    # 接口响应里字段名仍为 ips，元素语义是 CLB 后端 RS，值为 ip:port 字符串列表
+    api_rs_items = data_block.get("ips")
+    if api_rs_items is None:
+        actual_endpoints: Set[str] = set()
     else:
-        actual_ips = {str(x).strip() for x in raw_ips if str(x).strip()}
-    expected_ips = _expected_clb_rs_ip_set(ce)
-    if expected_ips != actual_ips:
-        missing_on_clb_ips = expected_ips - actual_ips
-        extra_on_clb_ips = actual_ips - expected_ips
-        only_meta_display = _meta_endpoints_ip_port_for_ips(ce, missing_on_clb_ips)
+        actual_endpoints = {str(x).strip() for x in api_rs_items if str(x).strip()}
+    expected_endpoints = _expected_clb_rs_endpoint_set(ce)
+    if expected_endpoints != actual_endpoints:
+        only_meta_endpoints = expected_endpoints - actual_endpoints
+        only_clb_endpoints = actual_endpoints - expected_endpoints
         bad.append(
             CheckResponse(
                 msg=_(
                     "CLB 后端与 DBM 元数据不一致。集群「{}」，CLB 入口「{}」。"
-                    "名字服务返回后端私网 IP；与 DBM 对比时使用 IP 集合。"
-                    "仅在 DBM 本条入口登记的代理（ip:port）：{}。"
-                    "仅在 CLB 已绑定、本条入口元数据未包含的 IP：{}。"
+                    "与名字服务 data.ips 返回项（strip 后）及 DBM 拼接的 ip:port 做字符串集合对比。"
+                    "仅在 DBM 本条入口登记的 RS（ip:port）：{}。"
+                    "仅在 CLB 已绑定、本条入口元数据未登记的 RS（ip:port）：{}。"
                 ).format(
                     cluster_domain,
                     entry_label,
-                    _summarize_rs_targets(only_meta_display),
-                    _summarize_rs_targets(extra_on_clb_ips),
+                    _summarize_rs_targets(only_meta_endpoints),
+                    _summarize_rs_targets(only_clb_endpoints),
                 ),
                 check_subtype=subtypes.rs_not_match,
             )
@@ -180,7 +172,7 @@ def collect_clb_entry_check_results(c: Cluster, subtypes: ClbEntryCheckSubtypes)
 
     TenDBCluster 若存在 Spider 主/从两套 CLB，则为两条 ClusterEntry；每条仅关联本入口的
     proxyinstance_set（与 CLB 注册 create_by_role 一致），须逐条比对，不可用 cluster.proxyinstance_set
-    混算。名字服务接口返回私网 IP 列表，与元数据侧按 IP 集合对比。
+    混算。data.ips 与元数据侧均为 strip 后的字符串集合对比，不做额外改写。
     """
     bad = []
     cluster_domain = c.immute_domain

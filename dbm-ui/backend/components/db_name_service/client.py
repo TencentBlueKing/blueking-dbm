@@ -44,7 +44,7 @@ class _NameServiceApi(BaseApi):
         self.clb_get_target_private_ips = self.generate_data_api(
             method="POST",
             url="/api/nameservice/clb/get_target_private_ips",
-            description=_("获取已绑定clb的后端主机私网IP"),
+            description=_("获取已绑定 clb 的后端 RS 列表（data.ips 为 ip:port 字符串列表）"),
             default_timeout=600,
             max_retry_times=1,
         )
