@@ -91,56 +91,41 @@ export default defineConfig(({ mode }) => {
         languageWorkers: ['editorWorkerService', 'json', 'typescript'],
       } as Parameters<typeof monacoEditorPlugin.default>[0]),
     ].concat(isHttps ? [basicSsl()] : []),
+    optimizeDeps: {
+      include: ['lodash-es', 'element-plus'],
+    },
     build: {
       target: 'es2020',
       sourcemap: false,
       reportCompressedSize: false,
       chunkSizeWarningLimit: 2000,
-      minify: 'esbuild',
       cssCodeSplit: true,
       cssMinify: 'esbuild',
       assetsInlineLimit: 0,
       modulePreload: { polyfill: false },
-      esbuild: {
-        legalComments: 'none',
-        lineLimit: 200,
-      },
-      rollupOptions: {
-        maxParallelFileOps: 5,
+      rolldownOptions: {
         output: {
-          manualChunks(id) {
-            if (!id.includes('node_modules')) {
-              return undefined;
-            }
-
-            if (id.includes('monaco-editor') || id.includes('monaco-promql')) return 'vendor-monaco';
-            if (id.includes('echarts')) return 'vendor-echarts';
-            if (id.includes('@antv')) return 'vendor-antv';
-            if (id.includes('@wangeditor')) return 'vendor-wangeditor';
-            if (id.includes('@xterm')) return 'vendor-xterm';
-            if (id.includes('xlsx')) return 'vendor-xlsx';
-            if (id.includes('sql-formatter')) return 'vendor-sql-formatter';
-            if (id.includes('element-plus')) return 'vendor-element-plus';
-
-            // ai-blueking 及其专属提升依赖归为同一 chunk，避免与 vendor-core 循环
-            if (
-              id.includes('@blueking/ai-blueking') ||
-              id.includes('x-mavon-editor') ||
-              id.includes('mermaid') ||
-              id.includes('highlight.js') ||
-              id.includes('motion-v') ||
-              id.includes('vue-draggable-resizable')
-            ) {
-              return 'vendor-bk-ai';
-            }
-
-            if (id.includes('@blueking/ip-selector')) return 'vendor-bk-ip-selector';
-            if (id.includes('@blueking/tdesign-ui')) return 'vendor-bk-tdesign';
-            if (id.includes('@blueking/table')) return 'vendor-bk-table';
-            if (id.includes('@blueking/sub-saas')) return 'vendor-bk-sub-saas';
-            if (id.includes('@blueking')) return 'vendor-bk-others';
-
-            return 'vendor-core';
+          codeSplitting: {
+            groups: [
+              { name: 'vendor-monaco', test: /node_modules\/(monaco-editor|monaco-promql)/ },
+              { name: 'vendor-echarts', test: /node_modules\/echarts/ },
+              { name: 'vendor-antv', test: /node_modules\/@antv/ },
+              { name: 'vendor-wangeditor', test: /node_modules\/@wangeditor/ },
+              { name: 'vendor-xterm', test: /node_modules\/@xterm/ },
+              { name: 'vendor-xlsx', test: /node_modules\/xlsx/ },
+              { name: 'vendor-sql-formatter', test: /node_modules\/sql-formatter/ },
+              { name: 'vendor-element-plus', test: /node_modules\/element-plus/ },
+              {
+                name: 'vendor-bk-ai',
+                test: /node_modules\/(@blueking\/ai-blueking|x-mavon-editor|mermaid|highlight\.js|motion-v|vue-draggable-resizable)/,
+              },
+              { name: 'vendor-bk-ip-selector', test: /node_modules\/@blueking\/ip-selector/ },
+              { name: 'vendor-bk-tdesign', test: /node_modules\/@blueking\/tdesign-ui/ },
+              { name: 'vendor-bk-table', test: /node_modules\/@blueking\/table/ },
+              { name: 'vendor-bk-sub-saas', test: /node_modules\/@blueking\/sub-saas/ },
+              { name: 'vendor-bk-others', test: /node_modules\/@blueking/ },
+              { name: 'vendor-core', test: /node_modules/ },
+            ],
           },
         },
       },
@@ -149,6 +134,7 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       host: '127.0.0.1',
       allowedHosts: true,
+      forwardConsole: false,
       hrm: true,
       watch: {
         usePolling: true,
