@@ -638,6 +638,10 @@ def operate_collector(bk_biz_id: int, db_type: str, machine_type: str, instance_
     # mysql 和 tendbcluster 共用的mysql采集项
     collect_db_type = DBType.MySQL if db_type == DBType.TenDBCluster else db_type
     collect_instances = CollectInstance.objects.filter(db_type=collect_db_type, plugin_id=plugin_id)
+
+    logger.info(f"collect info is {collect_instances.values('name', 'collect_id', 'plugin_id', 'machine_types')}")
+    logger.info(f"collect count is {collect_instances.count()}")
+
     for collect_ins in collect_instances:
         # 当前采集绑定机器类型，且下发的实例不属于绑定范围，则跳过
         if collect_ins.machine_types and machine_type not in collect_ins.machine_types:
