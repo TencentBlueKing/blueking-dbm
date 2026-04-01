@@ -245,6 +245,7 @@ def SingleClusterDbmonInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs
                     "meta_func_name": RedisDBMeta.flush_ges_exporter_config.__name__,
                     "cluster_id": c["cluster_id"],
                     "immute_domain": c["immute_domain"],
+                    "bk_cloud_id": act_kwargs.bk_cloud_id,
                 }
                 acts_list.append(
                     {
@@ -254,15 +255,17 @@ def SingleClusterDbmonInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs
                     }
                 )
 
-                act_kwargs.cluster = {
+                sub_kwargs2 = deepcopy(act_kwargs)
+                sub_kwargs2.cluster = {
                     "meta_func_name": RedisDBMeta.trigger_operate_collector_reinstall.__name__,
                     "cluster_id": c["cluster_id"],
                     "immute_domain": c["immute_domain"],
+                    "bk_cloud_id": act_kwargs.bk_cloud_id,
                 }
                 sub_pipeline.add_act(
                     act_name=_("重新加载触发器配置"),
                     act_component_code=RedisDBMetaComponent.code,
-                    kwargs=asdict(act_kwargs),
+                    kwargs=asdict(sub_kwargs2),
                 )
 
         sub_pipeline.add_parallel_acts(acts_list=acts_list)

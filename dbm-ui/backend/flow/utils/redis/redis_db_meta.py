@@ -880,20 +880,22 @@ class RedisDBMeta(object):
         # 查询BACKEND,下发的实例
         instance_model = StorageInstance  # if role == "backend" else ProxyInstance
         instances = instance_model.objects.filter(cluster=self.cluster["cluster_id"])
-        machine_type = instances.first().machine.machine_type
-        bk_instance_ids = list(instances.values_list("bk_instance_id", flat=True))
-
-        # 触发采集器下发，异步任务，1min后生效
-        trigger_operate_collector("redis", machine_type, bk_instance_ids, "INSTALL")
+        first_instance = instances.first()
+        if first_instance:
+            machine_type = first_instance.machine.machine_type
+            bk_instance_ids = list(instances.values_list("bk_instance_id", flat=True))
+            # 触发采集器下发，异步任务，1min后生效
+            trigger_operate_collector("redis", machine_type, bk_instance_ids, "INSTALL")
 
         # 查询PROXY,下发的实例
         instance_model = ProxyInstance
         instances = instance_model.objects.filter(cluster=self.cluster["cluster_id"])
-        machine_type = instances.first().machine.machine_type
-        bk_instance_ids = list(instances.values_list("bk_instance_id", flat=True))
-
-        # 触发采集器下发，异步任务，1min后生效
-        trigger_operate_collector("redis", machine_type, bk_instance_ids, "INSTALL")
+        first_instance = instances.first()
+        if first_instance:
+            machine_type = first_instance.machine.machine_type
+            bk_instance_ids = list(instances.values_list("bk_instance_id", flat=True))
+            # 触发采集器下发，异步任务，1min后生效
+            trigger_operate_collector("redis", machine_type, bk_instance_ids, "INSTALL")
         return True
 
     def redis_role_swap_4_scene(self) -> bool:
