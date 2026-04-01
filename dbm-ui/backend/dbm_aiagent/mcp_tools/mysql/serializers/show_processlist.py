@@ -60,22 +60,6 @@ from rest_framework import serializers
 #     message = serializers.CharField(help_text=_("附加说明信息"))
 
 
-# class ShowInstanceProcessListSummaryInputSerializer(serializers.Serializer):
-#     # 需要使用 auth_parse_instances 鉴权，不要求输入 bk_biz_id / cluster_domain
-#     instance = serializers.CharField(help_text=_("实例，ip:port 格式"))
-#     aggregate_type = serializers.ChoiceField(
-#         choices=processlist_group_by_choices,
-#         help_text=_("用户连接会话 processlist 的聚合方式，默认是使用 group_by_fingerprint"),
-#     )
-
-
-# class ShowInstanceProcessListSummaryOutputSerializer(serializers.Serializer):
-#     processlist_summary = ProcessListSummarySerializer(help_text=_("processlist 聚合结果"))
-#     cluster_domain = serializers.CharField(help_text=_("集群域名"))
-#     # aggregate_type = serializers.CharField(help_text=_("processlist 聚合方式"))
-#     message = serializers.CharField(help_text=_("附加说明信息"))
-
-
 class ShowInstanceProcessListInputSerializer(serializers.Serializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"))
     address = serializers.CharField(help_text=_("实例地址, ip:port 格式"))
