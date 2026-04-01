@@ -56,10 +56,12 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_status import (
     ShowInstanceSlaveStatusInputSerializer,
     ShowInstanceStatuesOutputSerializer,
     ShowInstanceStatusesInputSerializer,
+    ShowStatusNamesInputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_variables import (
     ShowMySQLVariablesInputSerializer,
     ShowMySQLVariablesOutputSerializer,
+    ShowVariablesNamesInputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
@@ -190,7 +192,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
     #         return Response(summary)
 
     @mcp_tools_api_decorator(
-        description=str(_("""查询 MySQL 运行时参数, 执行 show global variables""")),
+        description=str(_("""查询所有 MySQL 运行时参数, 执行 show global variables，返回所有变量""")),
         request_slz=ShowMySQLVariablesInputSerializer,
         response_slz=ShowMySQLVariablesOutputSerializer,
         tags=[DBMMCPTags.READ],
@@ -211,12 +213,13 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
                     bk_cloud_id=machine_obj.bk_cloud_id,
                     address=address,
                     machine_type=machine_obj.machine_type,
+                    names=[],
                 ),
             }
         )
 
     @mcp_tools_api_decorator(
-        description=str(_("""查询实例运行时状态, 执行 show global status""")),
+        description=str(_("""查询实例运行时状态, 执行 show global status，返回所有值""")),
         request_slz=ShowInstanceStatusesInputSerializer,
         response_slz=ShowInstanceStatuesOutputSerializer,
         tags=[DBMMCPTags.READ],
@@ -237,6 +240,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
                     bk_cloud_id=machine_obj.bk_cloud_id,
                     address=address,
                     machine_type=machine_obj.machine_type,
+                    names=[],
                 ),
             }
         )
@@ -332,6 +336,62 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
                 "processlist": show_proxy_processlist(
                     bk_cloud_id=machine_obj.bk_cloud_id,
                     address=address,
+                ),
+            }
+        )
+
+    @mcp_tools_api_decorator(
+        description=str(_("""查询指定的 MySQL 参数, 执行 show global variables where Variable_name in""")),
+        request_slz=ShowVariablesNamesInputSerializer,
+        response_slz=ShowMySQLVariablesOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.MYSQL_QUERY],
+        permission_classes=[McpClusterManagePermission],
+        mcp_auth_parser=auth_parse_instances,
+        name_prefix="mysql_query",
+    )
+    def show_global_variables_with_names(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        address = self.get_param("address")
+        names = self.get_param("variable_names")
+
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+
+        return Response(
+            {
+                **show_mysql_variables(
+                    bk_cloud_id=machine_obj.bk_cloud_id,
+                    address=address,
+                    machine_type=machine_obj.machine_type,
+                    names=names,
+                ),
+            }
+        )
+
+    @mcp_tools_api_decorator(
+        description=str(_("""查询指定名字 mysql 实例状态值, 执行 show global status where Variable_name in""")),
+        request_slz=ShowStatusNamesInputSerializer,
+        response_slz=ShowInstanceStatuesOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.MYSQL_QUERY],
+        permission_classes=[McpClusterManagePermission],
+        mcp_auth_parser=auth_parse_instances,
+        name_prefix="mysql_query",
+    )
+    def show_global_status_with_names(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        address = self.get_param("address")
+        names = self.get_param("status_names")
+
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+
+        return Response(
+            {
+                **show_instance_status(
+                    bk_cloud_id=machine_obj.bk_cloud_id,
+                    address=address,
+                    machine_type=machine_obj.machine_type,
+                    names=names,
                 ),
             }
         )

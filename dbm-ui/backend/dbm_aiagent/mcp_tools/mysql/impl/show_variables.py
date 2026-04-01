@@ -13,13 +13,20 @@ from typing import Dict
 from backend.components import DRSApi
 from backend.db_meta.enums import MachineType
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException, DBMMcpNotSupportMachineTypeException
+from backend.dbm_aiagent.mcp_tools.mysql.helpers.get_slave_address_and_dbname import safe_sql_in_string
 
 
-def show_mysql_variables(bk_cloud_id: int, address: str, machine_type: MachineType) -> Dict:
+def show_mysql_variables(bk_cloud_id: int, address: str, machine_type: MachineType, names: list[str]) -> Dict:
     if machine_type not in [MachineType.SINGLE, MachineType.BACKEND, MachineType.REMOTE, MachineType.SPIDER]:
         raise DBMMcpNotSupportMachineTypeException(machine_type=machine_type)
+    cmd = "SHOW GLOBAL VARIABLES"
+    if names:
+        # show global variables  where Variable_name in ('wait_timeout', 'version');
+        # 因为是使用输入的 names，担心有注入，限制只能是 a-zA-Z_
+        in_clause = safe_sql_in_string(names)
+        cmd = f"{cmd} WHERE Variable_name IN {in_clause}"
 
-    raw_drs_res = DRSApi.rpc({"addresses": [address], "cmds": ["SHOW VARIABLES"], "bk_cloud_id": bk_cloud_id})
+    raw_drs_res = DRSApi.rpc({"addresses": [address], "cmds": [cmd], "bk_cloud_id": bk_cloud_id})
 
     address_res = raw_drs_res[0]
     if address_res["error_msg"]:
