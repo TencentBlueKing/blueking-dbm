@@ -371,7 +371,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             for attr in machines.values(*data["machine_attrs"]):
                 for key, value in attr.items():
                     # 保留bk_cloud_id有等于0的情况
-                    if value is not None and value not in existing_values[key]:
+                    if value not in existing_values[key]:
                         existing_values[key].add(value)
                         machine_attrs[key].append(
                             {
@@ -466,7 +466,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             for attr in machines.values(*data["machine_attrs"]):
                 for key, value in attr.items():
                     # 保留bk_cloud_id有等于0的情况
-                    if value is not None and value not in existing_values[key]:
+                    if value not in existing_values[key]:
                         existing_values[key].add(value)
                         machine_attrs[key].append(
                             {
