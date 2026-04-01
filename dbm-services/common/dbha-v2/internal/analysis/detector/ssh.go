@@ -104,19 +104,12 @@ func (s *Ssh) Run(cmd string) (*SshResponse, error) {
 	}()
 
 	resp := &SshResponse{Id: s.Id()}
-	data, timedOut, cmdErr := s.runCombinedOutputWithTimeout(session, cmd)
-	if timedOut {
-		logger.Error("SSH command execution timed out, host: %s, timeout: %v, cmd: %s", addr, s.timeout, cmd)
-		resp.ExitCode = gerrors.Failure.Int()
-		resp.ErrMsg = fmt.Sprintf("SSH command execution timed out after %v", s.timeout)
-		return resp, nil
-	}
+	resp = s.runCombinedOutputWithTimeout(resp, session, cmd)
 
-	s.fillResponse(resp, data, cmd, cmdErr)
 	return resp, nil
 }
 
-func (s *Ssh) runCombinedOutputWithTimeout(session *ssh.Session, cmd string) ([]byte, bool, error) {
+func (s *Ssh) runCombinedOutputWithTimeout(resp *SshResponse, session *ssh.Session, cmd string) *SshResponse {
 	type cmdResult struct {
 		data []byte
 		err  error
@@ -133,29 +126,31 @@ func (s *Ssh) runCombinedOutputWithTimeout(session *ssh.Session, cmd string) ([]
 
 	select {
 	case result := <-resultCh:
-		return result.data, false, result.err
-	case <-timer.C:
-		_ = session.Close()
-		return nil, true, nil
-	}
-}
+		resp.Data = string(result.data)
 
-func (s *Ssh) fillResponse(resp *SshResponse, data []byte, cmd string, cmdErr error) {
-	resp.Data = string(data)
+		if result.err == nil {
+			logger.Debug("shell command response: %s, cmd: %s", string(result.data), cmd)
+			return resp
+		}
 
-	if cmdErr != nil {
-		if exitErr, ok := cmdErr.(*ssh.ExitError); ok {
+		if exitErr, ok := result.err.(*ssh.ExitError); ok {
 			resp.ExitCode = exitErr.ExitStatus()
 			resp.ErrMsg = exitErr.Error()
-			return
+			return resp
 		}
 
 		resp.ExitCode = gerrors.Failure.Int()
-		resp.ErrMsg = cmdErr.Error()
-		return
-	}
+		resp.ErrMsg = result.err.Error()
+		return resp
+	case <-timer.C:
+		_ = session.Close()
 
-	logger.Debug("shell command response: %s, cmd: %s", string(data), cmd)
+		resp.ExitCode = gerrors.Failure.Int()
+		resp.ErrMsg = fmt.Sprintf("SSH command execution timed out after %v, cmd: %s", s.timeout, cmd)
+		logger.Error("SSH command execution timed out, host: %s, timeout: %v, cmd: %s",
+			fmt.Sprintf("%s:%d", s.ip, s.port), s.timeout, cmd)
+		return resp
+	}
 }
 
 func (s *Ssh) keyboardInteractive() ssh.KeyboardInteractiveChallenge {
