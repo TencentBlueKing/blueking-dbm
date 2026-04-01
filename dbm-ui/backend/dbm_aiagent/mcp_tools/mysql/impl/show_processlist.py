@@ -301,9 +301,7 @@ def show_mysql_processlist(bk_cloud_id: int, address: str):
     processlist_detail = drs_raw_res[0]["cmd_results"][0]["table_data"]
     res = []
     for item in processlist_detail:
-        if item["User"] == "system user" or item["User"] == "repl":
-            continue
-
+        # 不过滤任何东西
         digest_info = {}
         if item["Info"]:
             digest_info = digest.generate_sql_fingerprint(item["Info"], item["db"])

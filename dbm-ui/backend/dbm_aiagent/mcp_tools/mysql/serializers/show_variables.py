@@ -24,3 +24,9 @@ class MySQLRuntimeVariableSerializer(serializers.Serializer):
 
 class ShowMySQLVariablesOutputSerializer(serializers.Serializer):
     runtime_variables = serializers.ListField(child=MySQLRuntimeVariableSerializer(), help_text=_("MySQL 运行时参数列表"))
+
+
+class ShowVariablesNamesInputSerializer(serializers.Serializer):
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"), default=None)
+    address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
+    variable_names = serializers.ListField(child=serializers.CharField(), help_text=_("要查询的变量列表"))
