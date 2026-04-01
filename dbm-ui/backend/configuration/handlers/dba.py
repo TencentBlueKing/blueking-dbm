@@ -75,3 +75,16 @@ class DBAdministratorHandler(object):
                     ],
                     need_monitor=True,
                 )
+
+    @staticmethod
+    def get_dba_component_info(username: str, bk_biz_id: int, db_type: str):
+        if bk_biz_id and db_type:
+            if DBAdministrator.objects.filter(bk_biz_id=bk_biz_id, db_type=db_type, users__contains=username).exists():
+                return {"is_biz_dba": True}
+            else:
+                return {"is_biz_dba": False}
+        else:
+            db_types = (
+                DBAdministrator.objects.filter(users__contains=username).values_list("db_type", flat=True).distinct()
+            )
+            return {"component": list(db_types)}
