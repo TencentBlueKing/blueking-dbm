@@ -100,6 +100,11 @@ class UpsertDBAdminSerializer(serializers.Serializer):
     db_admins = serializers.ListSerializer(child=DBAdminSerializer())
 
 
+class DBAComponentSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
+    db_type = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices(), required=False)
+
+
 class ModifyMySQLPasswordRandomCycleSerializer(serializers.Serializer):
     class CrontabSerializer(serializers.Serializer):
         minute = serializers.CharField(help_text=_("分钟"))
