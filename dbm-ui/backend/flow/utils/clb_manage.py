@@ -109,7 +109,7 @@ class CLBManage(object):
 
     def get_clb_rs(self) -> list:
         """
-        获取clb后端的rs记录
+        获取 clb 后端的 RS 列表；名字服务返回 data.ips 元素为 ip:port 字符串。
         """
         res = NameServiceApi.clb_get_target_private_ips(
             {

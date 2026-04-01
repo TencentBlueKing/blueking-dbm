@@ -69,7 +69,7 @@ def _cluster_clb_exists_and_rs_match(c: Cluster) -> List[CheckResponse]:
 
     主/从若各一条 CLB：Master 入口 CLB 只绑 Spider Master 代理，Slave 入口 CLB 只绑 Spider Slave；
     元数据上体现为各自 ClusterEntry.proxyinstance_set，与 db_meta CLB create_by_role 写入一致。
-    RS 对比与名字服务返回的私网 IP 列表对齐（按 IP 集合比较，非 ip:port 字符串）。
+    RS 与名字服务 data.ips 返回字符串集合及本条 entry 代理 ip:port 拼接字符串集合对比（strip 后）。
     """
     return collect_clb_entry_check_results(c, TENDBCLUSTER_CLB_SUBTYPES)
 
