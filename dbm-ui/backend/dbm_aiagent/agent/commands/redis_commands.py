@@ -42,3 +42,39 @@ class GenRedisUpdReporterCommand(CommandHandler):
 
     def get_report(self) -> str:
         return "再次查询{{ cluster_domain }}集群部署情况，并与上一次查询结果进行对比，生成变更报告"
+
+
+@command
+class CheckRedisIpCommand(CommandHandler):
+    name = _("Redis IP快捷查询")
+    command = "query_redis_host_info"
+    agent_code = DBMAgentCode.REDIS_HELPER
+
+    def get_template(self) -> str:
+        return """
+        查询这批{{ ips }}机器的所属集群、角色，并看下所属集群的 Proxy层的QPS、Proxy层连接数情况
+        """
+
+
+@command
+class RedisBackendLoadSkewCheck(CommandHandler):
+    name = _("Redis后端负载倾斜检查")
+    command = "RedisBackendLoadSkewCheck"
+    agent_code = DBMAgentCode.REDIS_METRICS
+
+    def get_template(self) -> str:
+        return """
+        cluster_domains: [{{ cluster_domain }}]
+        """
+
+
+@command
+class RedisClusterMemoryGrowthAnalysis(CommandHandler):
+    name = _("Redis集群内存增长分析")
+    command = "RedisClusterMemoryGrowthAnalysis"
+    agent_code = DBMAgentCode.REDIS_METRICS
+
+    def get_template(self) -> str:
+        return """
+        cluster_domains: [{{ cluster_domain }}]
+        """

@@ -84,12 +84,13 @@ class AIChatSessionContentViewSet(ChatSessionContentViewSet):
             return
         rendered_content = CommandProcessor.process_command(command_data)
         command_data.update(rendered_content=rendered_content)
+        return rendered_content
 
     def create(self, request):
         """创建聊天内容"""
         # 渲染快捷指令内容
         if request.data["property"]["extra"].get("command"):
-            self.__render_command(request.data["property"]["extra"])
+            request.data["content"] = self.__render_command(request.data["property"]["extra"])
 
         # 如果前端指定了agent_code，则利用快捷指令模式强制切换
         if request.data.get("agent_code") and request.data["role"] == "user":
