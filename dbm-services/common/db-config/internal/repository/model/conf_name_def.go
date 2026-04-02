@@ -1,5 +1,7 @@
 package model
 
+import "bk-dbconfig/pkg/util"
+
 // ConfigNameDefModel TODO
 // tb_config_name_def
 type ConfigNameDefModel struct {
@@ -29,7 +31,7 @@ type ConfigNameDefModel struct {
 	SinceVersion string `json:"since_version" gorm:"column:since_version;type:varchar(120)"`
 	Description  string `json:"description" gorm:"column:description;type:text"`
 	Stage        int8   `json:"stage" gorm:"column:stage;type:tinyint"`
-	BaseDatetime
+	util.BaseDatetime
 }
 
 // BaseAutoTimeModel TODO

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"bk-dbconfig/internal/api"
 	"bk-dbconfig/pkg/core/config"
 
 	"github.com/pkg/errors"
@@ -23,7 +24,7 @@ func ConfigNamesBatchUpdate(db *gorm.DB, confNames []*ConfigNameDefModel, opUser
 		for _, c := range confNames {
 			// 查询变更前的快照
 			var before ConfigNameDefModel
-			beforeImage := ConfName{}
+			beforeImage := api.ConfName{}
 			if err := tx.Where(c.UniqueWhere()).First(&before).Error; err == nil {
 				beforeImage = NewConfNameFromDef(&before)
 			}
@@ -87,7 +88,7 @@ func ConfigNamesBatchDelete(db *gorm.DB, confNames []*ConfigNameDefModel, opUser
 
 			// 查询变更前的快照
 			var before ConfigNameDefModel
-			beforeImage := ConfName{}
+			beforeImage := api.ConfName{}
 			if err := tx.Where(c.UniqueWhere()).First(&before).Error; err == nil {
 				beforeImage = NewConfNameFromDef(&before)
 			}
@@ -102,7 +103,7 @@ func ConfigNamesBatchDelete(db *gorm.DB, confNames []*ConfigNameDefModel, opUser
 				ConfFile:    c.ConfFile,
 				ConfName:    c.ConfName,
 				BeforeImage: beforeImage,
-				AfterImage:  ConfName{},
+				AfterImage:  api.ConfName{},
 				OpUser:      opUser,
 				OpType:      constvar.OPTypeRemove,
 			})
@@ -131,7 +132,7 @@ func ConfigNamesBatchCreate(db *gorm.DB, confNames []*ConfigNameDefModel, opUser
 				ConfType:    c.ConfType,
 				ConfFile:    c.ConfFile,
 				ConfName:    c.ConfName,
-				BeforeImage: ConfName{},
+				BeforeImage: api.ConfName{},
 				AfterImage:  NewConfNameFromDef(c),
 				OpUser:      opUser,
 				OpType:      constvar.OPTypeAdd,
@@ -153,7 +154,7 @@ func ConfigNamesBatchSave(db *gorm.DB, confNames []*ConfigNameDefModel, opUser s
 		for _, c := range confNames {
 			// 查询变更前的快照
 			var before ConfigNameDefModel
-			beforeImage := ConfName{}
+			beforeImage := api.ConfName{}
 			opType := constvar.OPTypeAdd
 			if err := tx.Where(c.UniqueWhere()).First(&before).Error; err == nil {
 				beforeImage = NewConfNameFromDef(&before)

@@ -1,9 +1,8 @@
 package model
 
 import (
-	"database/sql/driver"
-	"encoding/json"
-	"fmt"
+	"bk-dbconfig/internal/api"
+	"bk-dbconfig/pkg/util"
 
 	"gorm.io/gorm"
 )
@@ -20,12 +19,13 @@ type ConfItemChangesModel struct {
 	LevelName  string `json:"level_name" gorm:"column:level_name;type:varchar(120);not null"`
 	LevelValue string `json:"level_value" gorm:"column:level_value;type:varchar(120)"`
 
-	BeforeImage ConfItem `json:"before_image" gorm:"column:before_image;type:varchar(255)"`
-	AfterImage  ConfItem `json:"after_image" gorm:"column:after_image;type:varchar(255)"`
+	BeforeImage api.ConfItem `json:"before_image" gorm:"column:before_image;type:text"`
+	AfterImage  api.ConfItem `json:"after_image" gorm:"column:after_image;type:text"`
 
-	OpUser string `json:"op_user" gorm:"column:op_user;type:varchar(120)"`
-	OpType string `json:"op_type" gorm:"column:op_type;type:varchar(60)"`
-	BaseDatetime
+	OpUser    string      `json:"op_user" gorm:"column:op_user;type:varchar(120)"`
+	OpType    string      `json:"op_type" gorm:"column:op_type;type:varchar(60)"`
+	CreatedAt util.DBTime `json:"created_at" gorm:"->;column:created_at;type:varchar(30)"`
+	UpdatedAt util.DBTime `json:"updated_at" gorm:"->;column:updated_at;type:varchar(30)"`
 }
 
 // TableName TODO
@@ -33,46 +33,9 @@ func (c *ConfItemChangesModel) TableName() string {
 	return "tb_conf_item_changes"
 }
 
-// ConfItem 一个配置项的可修改内容
-// 总体与 ConfigModel 对齐
-type ConfItem struct {
-	ConfValue   string `json:"conf_value"`
-	Description string `json:"description"`
-	FlagDisable int8   `json:"flag_disable"`
-	FlagLocked  int8   `json:"flag_locked"`
-	// LevelFrom  配置项来源于哪一个层级. 用在记录 before_image
-	LevelFrom string `json:"level_from"`
-}
-
-// Value 实现 driver.Valuer 接口，将 ConfItem 序列化为 JSON 字符串存入数据库
-func (c ConfItem) Value() (driver.Value, error) {
-	b, err := json.Marshal(c)
-	if err != nil {
-		return nil, err
-	}
-	return string(b), nil
-}
-
-// Scan 实现 sql.Scanner 接口，从数据库读取 JSON 字符串反序列化为 ConfItem
-func (c *ConfItem) Scan(value interface{}) error {
-	if value == nil {
-		return nil
-	}
-	var b []byte
-	switch v := value.(type) {
-	case []byte:
-		b = v
-	case string:
-		b = []byte(v)
-	default:
-		return fmt.Errorf("ConfItem.Scan: unsupported type %T", value)
-	}
-	return json.Unmarshal(b, c)
-}
-
 // NewConfItemFromModel 从 ConfigModel 构建 ConfItem 快照
-func NewConfItemFromModel(c *ConfigModel) ConfItem {
-	return ConfItem{
+func NewConfItemFromModel(c *ConfigModel) api.ConfItem {
+	return api.ConfItem{
 		ConfValue:   c.ConfValue,
 		Description: c.Description,
 		FlagDisable: c.FlagDisable,
@@ -89,18 +52,8 @@ func ConfItemChangesCreate(db *gorm.DB, changes []*ConfItemChangesModel) error {
 	return db.Omit("created_at", "updated_at").Create(&changes).Error
 }
 
-// ConfItemChangesQueryReq 查询 conf_item 变更历史的请求参数
-type ConfItemChangesQueryReq struct {
-	BKBizID    string `json:"bk_biz_id" form:"bk_biz_id" binding:"required"`
-	Namespace  string `json:"namespace" form:"namespace" binding:"required"`
-	ConfType   string `json:"conf_type" form:"conf_type"`
-	ConfFile   string `json:"conf_file" form:"conf_file"`
-	LevelName  string `json:"level_name" form:"level_name"`
-	LevelValue string `json:"level_value" form:"level_value"`
-}
-
 // QueryConfItemChanges 查询 conf_item 变更历史
-func QueryConfItemChanges(db *gorm.DB, req *ConfItemChangesQueryReq) ([]*ConfItemChangesModel, error) {
+func QueryConfItemChanges(db *gorm.DB, req *api.ConfItemChangesQueryReq) ([]*ConfItemChangesModel, error) {
 	var changes []*ConfItemChangesModel
 	query := db.Where("bk_biz_id = ? AND namespace = ?", req.BKBizID, req.Namespace)
 	if req.ConfType != "" {

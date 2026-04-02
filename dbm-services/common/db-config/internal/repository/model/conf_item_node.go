@@ -2,6 +2,8 @@ package model
 
 import (
 	"fmt"
+
+	"bk-dbconfig/pkg/util"
 )
 
 // ConfigModel TODO
@@ -25,7 +27,7 @@ type ConfigModel struct {
 	Stage           int8   `json:"stage" gorm:"column:stage;type:tinyint"`
 
 	UpLevelValue map[string]string `json:"up_level_value" gorm:"-"`
-	BaseDatetime
+	util.BaseDatetime
 }
 
 // TableName TODO
