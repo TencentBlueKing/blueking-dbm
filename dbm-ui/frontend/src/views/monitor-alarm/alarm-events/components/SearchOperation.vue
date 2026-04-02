@@ -5,15 +5,16 @@
       class="db-select"
       collapse-tags
       filterable
+      :loading="isUserDbaComponentsLoading"
       multiple
       multiple-mode="tag"
       :placeholder="t('请选择DB类型')"
       @change="handleDbSelectChange">
       <BkOption
         v-for="(item, index) in dbList"
-        :id="item.id"
+        :id="item.db_type"
         :key="index"
-        :name="item.name" />
+        :name="item.db_type_display" />
     </BkSelect>
     <ShieldDateTimePicker
       class="shield-date-picker"
@@ -36,10 +37,13 @@
   import dayjs from 'dayjs';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
+  import { getUserDbaComponents } from '@services/source/dbadmin';
 
   import { useGlobalBizs } from '@stores';
 
-  import { DBTypeInfos } from '@common/const';
+  import { DBTypeInfos, DBTypes } from '@common/const';
   import { batchSplitRegex } from '@common/regex';
 
   import ShieldDateTimePicker from '@views/monitor-alarm/common/ShieldDateTimePicker.vue';
@@ -153,7 +157,6 @@
     },
   ];
 
-  const dbList = Object.values(DBTypeInfos);
   const dateFormatStr = 'YYYY-MM-DD HH:mm:ss';
   const startTime = dayjs().subtract(7, 'day').format(dateFormatStr);
   const endTime = dayjs().format(dateFormatStr);
@@ -230,6 +233,12 @@
     }
     return baseSelect as ISearchItem[];
   });
+
+  const dbList = computed(() =>
+    (userDbaComponents.value?.component || []).filter((item) => DBTypeInfos[item.db_type as DBTypes]),
+  );
+
+  const { data: userDbaComponents, loading: isUserDbaComponentsLoading } = useRequest(getUserDbaComponents, {});
 
   watch(
     filterData,
