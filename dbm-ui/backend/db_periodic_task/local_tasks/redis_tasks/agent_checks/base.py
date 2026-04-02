@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import dataclasses
 import logging
 import re
+import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, fields
 from datetime import timedelta
@@ -20,6 +21,8 @@ from django.core.cache import cache
 from django.db.models import Q
 from django.utils import timezone
 
+from backend import env
+from backend.components import BKMonitorV3Api
 from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.utils import calculate_countdown
@@ -32,12 +35,12 @@ from backend.ticket.models import ClusterOperateRecord
 
 logger = logging.getLogger("root")
 
-# Redis ticket types that affect cluster stability (capacity/autofix/migrate)
+# Redis ticket types that block agent checks due to active cluster instability.
+# Intentionally excludes REDIS_SCALE_UPDOWN, REDIS_CLUSTER_AUTOFIX,
+# REDIS_CLUSTER_INS_MIGRATE and REDIS_SINGLE_INS_MIGRATE: these operations
+# complete quickly enough that they do not invalidate metric-based analysis,
+# and excluding them avoids unnecessarily delaying checks on busy clusters.
 REDIS_EXCLUSIVE_TICKET_TYPES = [
-    TicketType.REDIS_SCALE_UPDOWN.value,
-    TicketType.REDIS_CLUSTER_AUTOFIX.value,
-    TicketType.REDIS_CLUSTER_INS_MIGRATE.value,
-    TicketType.REDIS_SINGLE_INS_MIGRATE.value,
     TicketType.REDIS_DTS_ONLINE_SWITCH.value,
     TicketType.REDIS_MASTER_SLAVE_SWITCH.value,
     TicketType.REDIS_CLUSTER_CUTOFF.value,
@@ -55,6 +58,10 @@ DISPATCH_EXPIRE_BUFFER_SECONDS = 60
 DISPATCH_SPREAD_SECONDS = DISPATCH_INTERVAL_SECONDS - DISPATCH_EXPIRE_BUFFER_SECONDS
 DISPATCH_RATE_LIMIT_COOLDOWN_SECONDS = 60
 DEFAULT_MAX_RATE_LIMIT_RETRIES = 3
+PRIORITY_ALARM_DAILY_DOMAIN_CACHE_KEY_PREFIX = "redis_agent_check_priority_alarm_domains"
+PRIORITY_ALARM_DAILY_DOMAIN_CACHE_LOCK_KEY_PREFIX = "redis_agent_check_priority_alarm_domains_lock"
+PRIORITY_ALARM_DAILY_CONSUME_LOCK_TTL_SECONDS = 15
+PRIORITY_ALARM_MAX_PAGES = 50  # 50 * 200 = 10,000 alerts
 
 _RATE_LIMIT_PATTERN = re.compile(r"429|rate.?limit", re.IGNORECASE)
 
@@ -70,8 +77,8 @@ def _should_skip(config: "BaseCheckConfig", cluster: Cluster) -> tuple[bool, str
     if cluster.create_at > now - timedelta(days=config.lookback_days):
         return True, f"skipped: cluster younger than {config.lookback_days} days"
 
-    if cluster.phase == ClusterPhase.OFFLINE.value:
-        return True, "skipped: cluster offline"
+    if cluster.phase != ClusterPhase.ONLINE.value:
+        return True, f"skipped: cluster phase={cluster.phase} is not online"
 
     if cluster.immute_domain in config.ignore_cluster_domains:
         return True, "skipped: cluster in ignore list"
@@ -169,6 +176,15 @@ class BaseCheckConfig:
     inflight_lock_ttl_seconds: int = DISPATCH_INTERVAL_SECONDS
     rate_limit_cooldown_seconds: int = DISPATCH_RATE_LIMIT_COOLDOWN_SECONDS
     max_rate_limit_retries: int = DEFAULT_MAX_RATE_LIMIT_RETRIES
+    # Names are matched against the alert's strategy_name (the clean policy name),
+    # not alert_name (which carries dynamic business-name suffixes at runtime).
+    priority_alarm_names: list = field(default_factory=list)
+    # API time-window width; should be wide enough to capture all active alerts.
+    priority_alarm_lookback_hours: int = 24 * 30
+    # Optional coarse request-side alert_name narrowing in query_string.
+    # Kept off by default because client-side matching uses strategy_name, and
+    # the API query_string does not support strategy_name filtering.
+    priority_alarm_request_name_filter: bool = False
 
     @classmethod
     def from_raw(cls, raw: dict):
@@ -207,7 +223,7 @@ class BaseRedisAgentCheckTask(ABC):
     # Subclasses must declare these:
     subtype: RedisCheckSubType
     agent_code: DBMAgentCode
-    prompt_template: str  # plain Python format string, e.g. "cluster_domain: {cluster_domain}"
+    prompt_template: str  # plain Python format string, e.g. "cluster_domains: [{cluster_domain}]"
 
     def __init__(self):
         self.config = self.load_config()
@@ -267,6 +283,183 @@ class BaseRedisAgentCheckTask(ABC):
     def _build_inflight_dedupe_key(self, cluster_id: int) -> str:
         return f"redis_agent_check_dispatch_lock:{self.subtype.value}:{cluster_id}"
 
+    def _build_priority_alarm_daily_domain_cache_key(self) -> str:
+        return f"{PRIORITY_ALARM_DAILY_DOMAIN_CACHE_KEY_PREFIX}:{self.subtype.value}"
+
+    def _build_priority_alarm_daily_domain_cache_lock_key(self) -> str:
+        return f"{PRIORITY_ALARM_DAILY_DOMAIN_CACHE_LOCK_KEY_PREFIX}:{self.subtype.value}"
+
+    @staticmethod
+    def _cache_release_lock(lock_key: str, owner: str):
+        """Release a cache lock only if it is still owned by *owner*.
+
+        Prevents a slow holder whose TTL has already expired from deleting
+        a lock that was since re-acquired by another worker.
+        """
+
+        if cache.get(lock_key) == owner:
+            cache.delete(lock_key)
+
+    @staticmethod
+    def _extract_cluster_domain_from_alert_tags(tags) -> str:
+        if isinstance(tags, dict):
+            return tags.get("cluster_domain", "")
+        if isinstance(tags, list):
+            for tag in tags:
+                if isinstance(tag, dict) and tag.get("key") == "cluster_domain":
+                    return tag.get("value", "")
+        return ""
+
+    def _build_alarm_query_string(self, alarm_name_set: set[str]) -> str:
+        base_query = 'labels: "DBM_REDIS"'
+        if not self.config.priority_alarm_request_name_filter:
+            return base_query
+        if not alarm_name_set:
+            return base_query
+
+        name_filter = " OR ".join(f'alert_name: "{name}"' for name in sorted(alarm_name_set))
+        return f"{base_query} AND ({name_filter})"
+
+    def _pull_priority_alarm_cluster_domains(self, now) -> list:
+        alarm_name_set = {
+            name.strip() for name in self.config.priority_alarm_names if isinstance(name, str) and name.strip()
+        }
+        if not alarm_name_set:
+            return []
+
+        lookback_hours = max(1, int(self.config.priority_alarm_lookback_hours))
+        start_time = now - timedelta(hours=lookback_hours)
+        query_param = {
+            "bk_biz_ids": [],
+            "start_time": int(start_time.timestamp()),
+            "end_time": int(now.timestamp()),
+            "page": 1,
+            "page_size": 200,
+            "status": ["ABNORMAL"],
+            "show_aggs": False,
+            "show_overview": False,
+            "query_string": self._build_alarm_query_string(alarm_name_set),
+        }
+
+        query_param["bk_biz_ids"] = [env.DBA_APP_BK_BIZ_ID]
+
+        alerts = []
+        fetched = 0
+        while True:
+            data = BKMonitorV3Api.search_alert(query_param)
+            page_alerts = data.get("alerts", [])
+            if not page_alerts:
+                break
+            alerts.extend(page_alerts)
+            fetched += len(page_alerts)
+            total = int(data.get("total", 0))
+            if fetched >= total:
+                break
+            query_param["page"] += 1
+            if query_param["page"] > PRIORITY_ALARM_MAX_PAGES:
+                logger.warning(
+                    "%s: alarm pagination exceeded %d pages, truncating results (fetched=%d, total=%d)",
+                    type(self).__name__,
+                    PRIORITY_ALARM_MAX_PAGES,
+                    fetched,
+                    total,
+                )
+                break
+
+        ordered_domains = []
+        seen_domains = set()
+        for alert in alerts:
+            if alert.get("is_shielded"):
+                continue
+            strategy_name = (alert.get("strategy_name") or "").strip()
+            if strategy_name not in alarm_name_set:
+                continue
+            domain = self._extract_cluster_domain_from_alert_tags(alert.get("tags"))
+            if not domain or domain in seen_domains:
+                continue
+            seen_domains.add(domain)
+            ordered_domains.append(domain)
+
+        return ordered_domains
+
+    def build_daily_alarm_priority_domain_cache(self, now=None) -> list:
+        if not self.config.priority_alarm_names:
+            return []
+
+        now = now or timezone.now()
+        alarm_name_set = sorted(
+            {name.strip() for name in self.config.priority_alarm_names if isinstance(name, str) and name.strip()}
+        )
+        if not alarm_name_set:
+            return []
+
+        try:
+            ordered_domains = self._pull_priority_alarm_cluster_domains(now=now)
+        except Exception as err:
+            logger.warning("%s: daily priority alarm query failed: %s", type(self).__name__, err)
+            return []
+
+        lock_key = self._build_priority_alarm_daily_domain_cache_lock_key()
+        owner = uuid.uuid4().hex
+        if not cache.add(lock_key, owner, timeout=PRIORITY_ALARM_DAILY_CONSUME_LOCK_TTL_SECONDS):
+            logger.warning(
+                "%s: daily priority domain cache build skipped due to lock contention",
+                type(self).__name__,
+            )
+            return []
+
+        try:
+            cache.set(
+                self._build_priority_alarm_daily_domain_cache_key(),
+                {
+                    "remaining_domains": ordered_domains,
+                    "total_domains": len(ordered_domains),
+                    "alarm_names": alarm_name_set,
+                    "refreshed_at": int(now.timestamp()),
+                },
+                timeout=24 * 60 * 60,
+            )
+        finally:
+            self._cache_release_lock(lock_key, owner)
+
+        logger.info(
+            "%s: built_daily_priority_domain_cache total_domains=%d alarm_names=%s",
+            type(self).__name__,
+            len(ordered_domains),
+            alarm_name_set,
+        )
+        return ordered_domains
+
+    def _consume_daily_priority_domains(self, now, consume_limit: int) -> list:
+        if not self.config.priority_alarm_names:
+            return []
+        if consume_limit <= 0:
+            return []
+
+        cache_key = self._build_priority_alarm_daily_domain_cache_key()
+        lock_key = self._build_priority_alarm_daily_domain_cache_lock_key()
+        owner = uuid.uuid4().hex
+        if not cache.add(lock_key, owner, timeout=PRIORITY_ALARM_DAILY_CONSUME_LOCK_TTL_SECONDS):
+            logger.info("%s: daily priority domain cache lock contention, skip consume", type(self).__name__)
+            return []
+
+        try:
+            payload = cache.get(cache_key)
+            if not isinstance(payload, dict):
+                return []
+
+            remaining_domains = payload.get("remaining_domains")
+            if not isinstance(remaining_domains, list) or not remaining_domains:
+                return []
+
+            picked_domains = remaining_domains[:consume_limit]
+            payload["remaining_domains"] = remaining_domains[consume_limit:]
+            payload["consumed_count"] = payload.get("total_domains", 0) - len(payload["remaining_domains"])
+            cache.set(cache_key, payload, timeout=24 * 60 * 60)
+            return picked_domains
+        finally:
+            self._cache_release_lock(lock_key, owner)
+
     def get_clusters_to_check(self) -> list:
         """Fetch a batch of Redis clusters for this subtype."""
         now = timezone.now()
@@ -291,14 +484,11 @@ class BaseRedisAgentCheckTask(ABC):
         )
 
         skip_ids = recently_checked_ids | recently_normal_ids
-        cluster_qs = (
-            Cluster.objects.filter(
-                cluster_type__in=cluster_types,
-                create_at__lte=lookback_cutoff,
-            )
-            .exclude(phase=ClusterPhase.OFFLINE.value)
-            .exclude(id__in=skip_ids)
-        )
+        cluster_qs = Cluster.objects.filter(
+            cluster_type__in=cluster_types,
+            create_at__lte=lookback_cutoff,
+            phase=ClusterPhase.ONLINE.value,
+        ).exclude(id__in=skip_ids)
         if self.config.ignore_cluster_domains:
             cluster_qs = cluster_qs.exclude(immute_domain__in=self.config.ignore_cluster_domains)
 
@@ -307,8 +497,25 @@ class BaseRedisAgentCheckTask(ABC):
         page_size = max(1, self.config.candidate_page_size)
         strategy = self._resolve_selection_strategy()
 
+        consumed_domains = self._consume_daily_priority_domains(now=now, consume_limit=batch_size)
+        dropped_domains = []
+        priority_ids = []
+        if consumed_domains:
+            domain_to_id = dict(
+                cluster_qs.filter(immute_domain__in=consumed_domains).values_list("immute_domain", "id")
+            )
+            priority_ids = [domain_to_id[domain] for domain in consumed_domains if domain in domain_to_id]
+            dropped_domains = [domain for domain in consumed_domains if domain not in domain_to_id]
+            if dropped_domains:
+                logger.warning(
+                    "%s: dropped priority domains not eligible in current candidate set " "(count=%d, sample=%s)",
+                    type(self).__name__,
+                    len(dropped_domains),
+                    dropped_domains[:5],
+                )
+
         base_candidate_ids = list(cluster_qs.order_by("id").values_list("id", flat=True)[:max_scan])
-        if not base_candidate_ids:
+        if not base_candidate_ids and not priority_ids:
             return []
 
         if strategy == "rotating" and len(base_candidate_ids) > 1:
@@ -316,6 +523,12 @@ class BaseRedisAgentCheckTask(ABC):
             candidate_ids = base_candidate_ids[pivot:] + base_candidate_ids[:pivot]
         else:
             candidate_ids = base_candidate_ids
+
+        if priority_ids:
+            priority_id_set = set(priority_ids)
+            candidate_ids = priority_ids + [
+                cluster_id for cluster_id in candidate_ids if cluster_id not in priority_id_set
+            ]
 
         result = []
         scanned = 0
@@ -348,12 +561,18 @@ class BaseRedisAgentCheckTask(ABC):
                     break
 
         logger.info(
-            "%s: selected=%d requested=%d scanned=%d busy_hits=%d strategy=%s stop=%s",
+            "%s: selected=%d requested=%d scanned=%d busy_hits=%d "
+            "priority_hits=%d priority_consumed=%d "
+            "priority_dropped=%d priority_dropped_domains=%s strategy=%s stop=%s",
             type(self).__name__,
             len(result),
             batch_size,
             scanned,
             busy_hits,
+            len(priority_ids),
+            len(consumed_domains),
+            len(dropped_domains),
+            dropped_domains,
             strategy,
             early_stop_reason,
         )

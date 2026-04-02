@@ -51,7 +51,7 @@ class DBMAgentCode(StrStructuredEnum):
     REDIS_LOG_ANA = EnumField("ai-redis-logana", _("Redis日志解析"))
     REDIS_TOOLS = EnumField("ai-redis-wb", _("Redis工具箱"))
     REDIS_METRICS = EnumField("ai-tendismetrics", _("Redis指标助手"))
-    REDIS_MEMORY_GROWTH_ANALYSIS = EnumField("ai-redis-memchk", _("Redis内存增长分析智能体"))
+    REDIS_CLUSTER_CAPACITY_GROWTH_CHECK = EnumField("ai-rds-capchk", _("Redis集群容量增长检查智能体"))
     REDIS_BACKEND_LOAD_SKEW_CHECK = EnumField("ai-rds-loadskew", _("Redis后端负载倾斜检查智能体"))
     REDIS_BACKEND_DATA_SKEW_CHECK = EnumField("ai-rds-dataskew", _("Redis后端数据倾斜检查智能体"))
     KAFKA_TASK_GUARDIAN = EnumField("ai-kafka-taskgd", _("Kafka单据值守"))

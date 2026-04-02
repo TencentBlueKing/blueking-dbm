@@ -162,6 +162,7 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
             self.get_param("max_len_datapoints"),
             self.get_param("start_time"),
             self.get_param("end_time"),
+            enforce_max_datapoints_limit=False,
         )
         if resolution.error:
             return Response(resolution.error)
@@ -223,6 +224,7 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
             self.get_param("max_len_datapoints"),
             self.get_param("start_time"),
             self.get_param("end_time"),
+            enforce_max_datapoints_limit=False,
         )
         if resolution.error:
             return Response(resolution.error)
@@ -284,6 +286,7 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
             self.get_param("max_len_datapoints"),
             self.get_param("start_time"),
             self.get_param("end_time"),
+            enforce_max_datapoints_limit=False,
         )
         if resolution.error:
             return Response(resolution.error)
@@ -345,6 +348,7 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
             self.get_param("max_len_datapoints"),
             self.get_param("start_time"),
             self.get_param("end_time"),
+            enforce_max_datapoints_limit=False,
         )
         if resolution.error:
             return Response(resolution.error)
@@ -410,6 +414,7 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
             self.get_param("max_len_datapoints"),
             self.get_param("start_time"),
             self.get_param("end_time"),
+            enforce_max_datapoints_limit=False,
         )
         if resolution.error:
             return Response(resolution.error)

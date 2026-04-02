@@ -173,7 +173,7 @@ class SystemSettingsEnum(StrStructuredEnum):
     # Redis 巡检相关配置
     REDIS_ROLE_CHECK = EnumField("REDIS_ROLE_CHECK", _("Redis实例角色校验配置"))
     REDIS_ENTRY_CHECK = EnumField("REDIS_ENTRY_CHECK", _("Redis访问入口一致性校验配置"))
-    REDIS_CLUSTER_MEMORY_GROWTH_CHECK = EnumField("REDIS_CLUSTER_MEMORY_GROWTH_CHECK", _("Redis集群内存增长检查配置"))
+    REDIS_CLUSTER_CAPACITY_GROWTH_CHECK = EnumField("REDIS_CLUSTER_CAPACITY_GROWTH_CHECK", _("Redis集群容量增长检查配置"))
     REDIS_BACKEND_LOAD_SKEW_CHECK = EnumField("REDIS_BACKEND_LOAD_SKEW_CHECK", _("Redis后端负载倾斜检查配置"))
     REDIS_BACKEND_DATA_SKEW_CHECK = EnumField("REDIS_BACKEND_DATA_SKEW_CHECK", _("Redis后端数据倾斜检查配置"))
     REDIS_REPORT_ADDING_MODE = EnumField("REDIS_REPORT_ADDING_MODE", _("Redis报告写入模式配置"))

@@ -27,31 +27,31 @@ logger = logging.getLogger("root")
 
 
 @dataclass
-class ClusterMemoryGrowthCheckConfig(BaseCheckConfig):
-    setting_key: ClassVar[str] = SystemSettingsEnum.REDIS_CLUSTER_MEMORY_GROWTH_CHECK.value
+class ClusterCapacityGrowthCheckConfig(BaseCheckConfig):
+    setting_key: ClassVar[str] = SystemSettingsEnum.REDIS_CLUSTER_CAPACITY_GROWTH_CHECK.value
 
 
-class CheckClusterMemoryGrowthTask(BaseRedisAgentCheckTask):
-    """Dispatcher for the Redis cluster memory growth LLM check."""
+class CheckClusterCapacityGrowthTask(BaseRedisAgentCheckTask):
+    """Dispatcher for the Redis cluster capacity growth LLM check."""
 
-    subtype = RedisCheckSubType.ClusterMemoryCapacityRisk
-    agent_code = DBMAgentCode.REDIS_MEMORY_GROWTH_ANALYSIS
-    prompt_template = "cluster_domain: {cluster_domain}"
+    subtype = RedisCheckSubType.ClusterCapacityGrowthRisk
+    agent_code = DBMAgentCode.REDIS_CLUSTER_CAPACITY_GROWTH_CHECK
+    prompt_template = "cluster_domains: [{cluster_domain}]"
 
-    def load_config(self) -> ClusterMemoryGrowthCheckConfig:
-        return ClusterMemoryGrowthCheckConfig.from_settings()
+    def load_config(self) -> ClusterCapacityGrowthCheckConfig:
+        return ClusterCapacityGrowthCheckConfig.from_settings()
 
     def get_celery_task(self) -> Callable:
-        return check_cluster_memory_growth_task
+        return check_cluster_capacity_growth_task
 
 
 @app.task(bind=True, rate_limit="5/m")
-def check_cluster_memory_growth_task(self, cluster_id: int, config_dict: dict):
-    """Check a single Redis cluster's memory growth using LLM agent."""
-    config = ClusterMemoryGrowthCheckConfig.from_raw(config_dict)
+def check_cluster_capacity_growth_task(self, cluster_id: int, config_dict: dict):
+    """Check a single Redis cluster's capacity growth using LLM agent."""
+    config = ClusterCapacityGrowthCheckConfig.from_raw(config_dict)
     execute_agent_check(
-        agent_code=CheckClusterMemoryGrowthTask.agent_code,
-        prompt_template=CheckClusterMemoryGrowthTask.prompt_template,
+        agent_code=CheckClusterCapacityGrowthTask.agent_code,
+        prompt_template=CheckClusterCapacityGrowthTask.prompt_template,
         config=config,
         cluster_id=cluster_id,
         celery_task=self,
