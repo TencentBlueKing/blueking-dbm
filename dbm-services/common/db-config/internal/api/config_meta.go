@@ -10,6 +10,13 @@ type BaseConfFileDef struct {
 	ConfFile string `json:"conf_file" form:"conf_file" validate:"required" example:"MySQL-5.7"`
 }
 
+type ConfigFileDesc struct {
+	// 配置类型中文名
+	ConfTypeLC string `json:"conf_type_lc" form:"conf_type_lc" example:"DB参数配置"`
+	// 配置文件中文名，也可以是其它 locale 语言类型
+	ConfFileLC string `json:"conf_file_lc" form:"conf_file_lc" example:"5.7_参数配置"`
+}
+
 // ConfFileDef TODO
 type ConfFileDef struct {
 	BaseConfFileDef

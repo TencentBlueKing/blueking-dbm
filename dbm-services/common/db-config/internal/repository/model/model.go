@@ -80,7 +80,7 @@ type ConfigVersionedModel struct {
 	Cluster        string `json:"cluster" gorm:"column:cluster;type varchar(120)"`
 	Description    string `json:"description" gorm:"column:description;type:varchar(255)"`
 	CreatedBy      string `json:"created_by" gorm:"column:created_by;type:varchar(120)"`
-	BaseDatetime
+	util.BaseDatetime
 }
 
 // TableName TODO
@@ -208,7 +208,7 @@ type ConfigFileDefModel struct {
 	ConfNameOrder   int8   `json:"conf_name_order" gorm:"column:conf_name_order;type:tinyint;not null"`
 	Description     string `json:"description" gorm:"column:description;type:varchar(255)"`
 	UpdatedBy       string `json:"updated_by" gorm:"column:updated_by;type:varchar(120)"`
-	BaseDatetime
+	util.BaseDatetime
 
 	LevelNameList []string `json:"level_name_list" gorm:"-"`
 }
@@ -276,7 +276,7 @@ type ConfigFileNodeModel struct {
 	ConfFileLC  string `json:"conf_file_lc" gorm:"column:conf_file_lc;type:varchar(120)"`
 	Description string `json:"description" gorm:"column:description;type:varchar(255)"`
 	UpdatedBy   string `json:"updated_by" gorm:"column:updated_by;type:varchar(120)"`
-	BaseDatetime
+	util.BaseDatetime
 }
 
 // TableName TODO
