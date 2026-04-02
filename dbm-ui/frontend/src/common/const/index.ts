@@ -14,7 +14,6 @@ export * from './hostHandleTodoType';
 export * from './machineEvents';
 export * from './machineTypes';
 export * from './messageTypes';
-export * from './monitorTargetLevel';
 export * from './occupiedInnerHeight';
 export * from './osTypes';
 export * from './pipelineStatus';
