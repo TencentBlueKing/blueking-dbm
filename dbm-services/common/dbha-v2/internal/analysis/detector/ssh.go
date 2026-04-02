@@ -145,7 +145,7 @@ func (s *Ssh) runCombinedOutputWithTimeout(resp *SshResponse, session *ssh.Sessi
 	case <-timer.C:
 		_ = session.Close()
 
-		resp.ExitCode = gerrors.Failure.Int()
+		resp.ExitCode = gerrors.Timeout.Int()
 		resp.ErrMsg = fmt.Sprintf("SSH command execution timed out after %v, cmd: %s", s.timeout, cmd)
 		logger.Error("SSH command execution timed out, host: %s, timeout: %v, cmd: %s",
 			fmt.Sprintf("%s:%d", s.ip, s.port), s.timeout, cmd)

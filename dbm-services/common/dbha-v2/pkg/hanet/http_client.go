@@ -105,10 +105,6 @@ func (c *HttpClient) SetTimeout(timeout time.Duration) *HttpClient {
 
 // Clone returns a new HttpClient with copied mutable fields.
 func (c *HttpClient) Clone() *HttpClient {
-	if c == nil {
-		return nil
-	}
-
 	cloned := &HttpClient{
 		timeout: c.timeout,
 		cli:     c.cli,
