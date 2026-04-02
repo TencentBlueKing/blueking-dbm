@@ -41,6 +41,7 @@ func (c Code) Int() int {
 const (
 	Unknown Code = iota - 2
 	Failure
+	Success
 	Timeout
 	Exited
 
