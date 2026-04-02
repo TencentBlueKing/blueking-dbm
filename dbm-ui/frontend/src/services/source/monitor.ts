@@ -20,35 +20,17 @@ import type { ListBase } from '@services/types';
 import type { DBTypes } from '@common/const';
 
 interface UpdatePolicyParams {
-  custom_conditions: {
-    condition: string;
-    dimension_name: string;
-    key: string;
-    method: string;
-    value: string[];
-  }[];
+  agg_info: MonitorPolicyModel['agg_info'];
+  custom_conditions: MonitorPolicyModel['custom_conditions'];
   detects_config: MonitorPolicyModel['detects_config'];
+  is_enabled: boolean;
   no_data_config: MonitorPolicyModel['no_data_config'];
+  notify_config: MonitorPolicyModel['notify_config'];
   notify_groups: number[];
   notify_rules: string[];
-  targets: {
-    level: string;
-    rule: {
-      key: string;
-      value: string[];
-    };
-  }[];
-  test_rules: {
-    config: [
-      {
-        method: string;
-        threshold: number;
-      },
-    ][];
-    level: number;
-    type: string;
-    unit_prefix: string;
-  }[];
+  policy_tag: MonitorPolicyModel['policy_tag'];
+  targets: MonitorPolicyModel['targets'];
+  test_rules: MonitorPolicyModel['test_rules'];
 }
 
 interface CreateCycleDutyRuleParams {
@@ -134,7 +116,7 @@ export const queryMonitorPolicyList = (
   }));
 
 // 更新策略
-export const updatePolicy = (id: number, params: UpdatePolicyParams) =>
+export const updatePolicy = (id: number, params: { name?: string } & UpdatePolicyParams) =>
   http.post<{
     bkm_id: number;
     local_id: number;
@@ -173,6 +155,9 @@ export const resetPolicy = (params: { id: number }) => http.post<void>(`${path}/
 // 删除策略
 export const deletePolicy = (params: { id: number }) =>
   http.delete<null | Record<string, any>>(`${path}/policy/${params.id}/`);
+
+// 批量删除策略
+export const patchDeletePolicy = (params: { ids: number[] }) => http.post(`${path}/policy/patch_destroy/`, params);
 
 // 根据db类型查询集群列表
 export const getClusterList = (params: { bk_biz_id: number; dbtype?: string }) =>
@@ -462,3 +447,6 @@ export const searchAlarmStrategy = (params: { monitor_policy_id: number }) =>
       use_frequency: number;
     }[];
   }>(`${path}/policy/search_alarm_strategy/`, params);
+
+// 全局策略恢复初始值
+export const resetGlobalStrategy = (params: { policy_id: number }) => http.post(`${path}/policy/reset/`, params);
