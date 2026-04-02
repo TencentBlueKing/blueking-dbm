@@ -60,7 +60,7 @@
       <template #default="{ row: data }: { row: RowData }">
         <template v-if="data.resource_spec[data.switch_spider_role]?.label_names?.length">
           <BkTag
-            v-for="item in data.resource_spec.new_slave.label_names"
+            v-for="item in data.resource_spec[data.switch_spider_role]?.label_names"
             :key="item">
             {{ item }}
           </BkTag>
