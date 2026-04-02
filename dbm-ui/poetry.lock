@@ -2,13 +2,13 @@
 
 [[package]]
 name = "aidev-agent"
-version = "1.0.9.post4"
+version = "1.0.10rc2"
 description = "bkaidev agent builder"
 optional = false
 python-versions = "<4.0,>=3.10.5"
 files = [
-    {file = "aidev_agent-1.0.9.post4-py3-none-any.whl", hash = "sha256:7e6a96112f0a86a4616b4d44039bef3821b158d66bab7498304825c594030c22"},
-    {file = "aidev_agent-1.0.9.post4.tar.gz", hash = "sha256:98ee12779759604c2eeb2a87e045bfdd83033381652544f2e7559f926b906ffc"},
+    {file = "aidev_agent-1.0.10rc2-py3-none-any.whl", hash = "sha256:68914807f052e0ecc3d056831271e11ed9dbf89593a703d4c8d64da07d6305f8"},
+    {file = "aidev_agent-1.0.10rc2.tar.gz", hash = "sha256:a486b692fb4cd27e369637ff75e6feb5119011a1b4aaf830c31c746b6d49a905"},
 ]
 
 [package.dependencies]
@@ -29,11 +29,6 @@ pyro4 = ">=4.82,<5.0"
 pytz = ">=2025.2,<2026.0"
 urllib3 = ">=2.6.0"
 werkzeug = ">=3.1.3,<4.0.0"
-
-[package.source]
-type = "legacy"
-url = "https://mirrors.tencent.com/repository/pypi/tencent_pypi/simple"
-reference = "tencent"
 
 [[package]]
 name = "aidev-bkplugin"
@@ -6608,4 +6603,4 @@ cffi = ["cffi (>=1.17,<2.0)", "cffi (>=2.0.0b)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11.10,<3.12"
-content-hash = "28a0b734413b24d01a313dffcf86a3d2cff0e70bcc0f7779338b14bcbafc32fc"
+content-hash = "2096c142c13cb295243488dcaf7bac73e122b572afdbb4c9ef723be0b370d6bf"

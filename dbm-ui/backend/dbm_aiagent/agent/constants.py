@@ -14,6 +14,8 @@ from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 FLOW_LOG_AI_ANALYSIS_KEY = "flow_log_ai_analysis"
 
+DEFAULT_AGENT_CHAT_TIMEOUT = 600
+
 # 风险报告语义比对的 prompt 模板
 RISK_COMPARE_PROMPT = _(
     """你现在是一个风险报告比对分析师。请判断以下两份风险报告是否描述的是**同一个风险问题**。
