@@ -791,6 +791,8 @@ func (r *SpiderClusterBackendSwitchComp) cutOverNormal(tdbctlNotFlushed *bool, f
 	defer func() {
 		if uerr := r.UnlockMasterSpiders(); uerr != nil {
 			logger.Error("unlock failed: %v", uerr)
+		} else {
+			logger.Info("unlock master spiders successfully")
 		}
 	}()
 	logger.Info("Spider节点锁定成功，开始检查复制状态")
@@ -1164,6 +1166,7 @@ func (c *CutOverCtx) UnlockMasterSpiders() (err error) {
 				return ierr
 			}
 			// 归还连接到连接池
+			logger.Info("unlock lock tables at %s successfully", addr)
 			lockConn.Close()
 			return nil
 		})
