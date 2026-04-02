@@ -1171,7 +1171,7 @@ func (c *CutOverCtx) UnlockMasterSpiders() (err error) {
 			return nil
 		})
 		if err != nil {
-			return fmt.Errorf("addr:%s,err:%w", addr, err)
+			return fmt.Errorf("unlock lock tables at %s failed,err:%w", addr, err)
 		}
 	}
 	return
