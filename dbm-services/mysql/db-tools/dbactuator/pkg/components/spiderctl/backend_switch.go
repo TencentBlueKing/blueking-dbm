@@ -619,6 +619,7 @@ func (r *SpiderClusterBackendSwitchComp) connTdbctl() (err error) {
 // CutOver cut over
 func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 	var tdbctlNotFlushed bool
+	var flushRoutingFailed bool
 	// get file lock
 	if err = r.CutOverCtx.GetFileLock(); err != nil {
 		logger.Error("get file lock failed %s", err.Error())
@@ -633,6 +634,11 @@ func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 	logger.Info("the switching operation will be performed")
 	// 注册路由回滚逻辑：切换失败时自动回滚
 	defer func() {
+		if flushRoutingFailed {
+			logger.Error("[不可重试] FLUSH ROUTING 执行失败，部分节点内存路由状态不确定，" +
+				"自动回滚已跳过，请人工确认各节点路由状态后执行 TDBCTL CHECK ROUTING 并手动处理")
+			return
+		}
 		if err != nil && len(r.primaryShardrollbackSqls) > 0 {
 			for _, sql := range r.primaryShardrollbackSqls {
 				logger.Info("执行路由回滚SQL(WITH SYNC): %s", mysqlcomm.CleanSvrPassword(sql))
@@ -673,9 +679,9 @@ func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 	}
 
 	if r.Params.Force {
-		err = r.cutOverForce(&tdbctlNotFlushed)
+		err = r.cutOverForce(&tdbctlNotFlushed, &flushRoutingFailed)
 	} else {
-		err = r.cutOverNormal(&tdbctlNotFlushed)
+		err = r.cutOverNormal(&tdbctlNotFlushed, &flushRoutingFailed)
 	}
 	if err != nil {
 		return err
@@ -694,7 +700,7 @@ func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 }
 
 // cutOverForce 强制切换模式：跳过 flush tables、锁定Spider、复制状态检查
-func (r *SpiderClusterBackendSwitchComp) cutOverForce(tdbctlNotFlushed *bool) (err error) {
+func (r *SpiderClusterBackendSwitchComp) cutOverForce(tdbctlNotFlushed *bool, flushRoutingFailed *bool) (err error) {
 	logger.Info("force switch mode: skip flush tables, lock spider and replication check")
 
 	*tdbctlNotFlushed = true
@@ -713,9 +719,11 @@ func (r *SpiderClusterBackendSwitchComp) cutOverForce(tdbctlNotFlushed *bool) (e
 	logger.Info("execute:tdbctl flush routing force")
 	err = r.flushRoutingForce()
 	if err != nil {
+		*flushRoutingFailed = true
 		return err
 	}
 	*tdbctlNotFlushed = false
+	*flushRoutingFailed = false
 	return nil
 }
 
@@ -760,7 +768,7 @@ func (c *CutOverCtx) logRoutingChanges(beforeSnapshot map[string]native.Server, 
 }
 
 // cutOverNormal 正常切换模式：完整的安全检查流程
-func (r *SpiderClusterBackendSwitchComp) cutOverNormal(tdbctlNotFlushed *bool) (err error) {
+func (r *SpiderClusterBackendSwitchComp) cutOverNormal(tdbctlNotFlushed *bool, flushRoutingFailed *bool) (err error) {
 	*tdbctlNotFlushed = true
 	// Step 1: 在每个Spider节点执行 flush tables
 	if err = r.flushTablesAtEverySpiderNode(); err != nil {
@@ -798,12 +806,24 @@ func (r *SpiderClusterBackendSwitchComp) cutOverNormal(tdbctlNotFlushed *bool) (
 
 	// Step 5: flush 到中控生效
 	logger.Info("执行 TDBCTL FLUSH ROUTING CACHE，刷新各节点内存路由缓存使切换生效...")
-	err = r.flushRoutingCache()
+	if err = r.flushRoutingCache(); err == nil {
+		logger.Info("flush routing cache successfully")
+		*tdbctlNotFlushed = false
+		return nil
+	}
+	// flushRoutingCache 失败：FLUSH ROUTING 按 spider_master→spider_slave 串行执行，
+	// 部分节点内存路由可能已生效，立即标记不可回滚，避免 defer 误触发自动回滚
+	*flushRoutingFailed = true
+	logger.Warn("flush routing cache failed %v，部分节点路由可能已生效，尝试 flush routing force 补救...", err)
+	logger.Info("执行 TDBCTL FLUSH ROUTING FORCE，刷新各节点内存路由缓存使切换生效...")
+	err = r.flushRoutingForce()
 	if err != nil {
-		logger.Error("flush routing cache failed %v,flush routing 刷新次序是：spider-master、spider_slave,"+
+		logger.Error("flush routing force failed %v,flush routing 刷新次序是：spider-master、spider_slave,"+
 			"即使这里失败也可能spider-master 的路由生效，要确认 spider-master 的路由是否生效，如果生效了，就不能回滚了", err)
 		return err
 	}
+	// flushRoutingForce 成功补救：所有节点路由已全部刷新，状态确定，恢复可回滚标志
+	*flushRoutingFailed = false
 	*tdbctlNotFlushed = false
 	return nil
 }

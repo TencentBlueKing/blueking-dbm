@@ -444,9 +444,15 @@ func (s *SpiderClusterBackendMigrateCutoverComp) CutOver() (err error) {
 	}
 
 	var tdbctlNotFlushed bool
+	var flushRoutingFailed bool
 	// change the central control route
 	// release the lock until after performing the rollback routing
 	defer func() {
+		if flushRoutingFailed {
+			logger.Error("[不可重试] FLUSH ROUTING 执行失败，部分节点内存路由状态不确定，" +
+				"自动回滚已跳过，请人工确认各节点路由状态后执行 TDBCTL CHECK ROUTING 并手动处理")
+			return
+		}
 		rollbackSqls := slices.Concat(s.primaryShardrollbackSqls, s.slaveShardrollbackSqls)
 		if err == nil {
 			if uerr := s.fdLock.Unlock(); uerr != nil {
@@ -515,6 +521,7 @@ func (s *SpiderClusterBackendMigrateCutoverComp) CutOver() (err error) {
 	}
 	logger.Info("doing tdbctl flush routing cache ... ")
 	if err = s.flushRoutingCache(); err != nil {
+		flushRoutingFailed = true
 		logger.Error("flush routing cache failed %v,flush routing 刷新次序是：spider-master、spider_slave,"+
 			"即使这里失败也可能spider-master 的路由生效，要确认 spider-master 的路由是否生效，如果生效了，就不能回滚了", err)
 		return err
