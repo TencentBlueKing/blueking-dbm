@@ -12,7 +12,7 @@
  */
 import dayjs from 'dayjs';
 
-import { DBTypes } from '@common/const';
+import { DBTypes, MonitorTargetLevel } from '@common/const';
 
 import { utcDisplayTime } from '@utils';
 
@@ -40,10 +40,12 @@ export default class AlarmEvent {
   data_type: string;
   dbm_event: boolean;
   dbm_policy: {
+    bk_biz_id: number;
     db_type: DBTypes;
     id: number;
     name: string;
     parent_id: number;
+    target_level: MonitorTargetLevel;
   };
   dedupe_keys: string[];
   dedupe_md5: string;
