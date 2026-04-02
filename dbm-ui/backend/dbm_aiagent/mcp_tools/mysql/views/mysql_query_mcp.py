@@ -341,7 +341,13 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         )
 
     @mcp_tools_api_decorator(
-        description=str(_("""查询指定的 MySQL 参数, 执行 show global variables where Variable_name in""")),
+        description=str(
+            _(
+                """查询指定的 MySQL 参数,
+        执行 show global variables where Variable_name in.
+        variable_names 参数值大小写敏感, 不会对 variable_names 存在性校验, 非法值不会返回对应的结果"""
+            )
+        ),
         request_slz=ShowVariablesNamesInputSerializer,
         response_slz=ShowMySQLVariablesOutputSerializer,
         tags=[DBMMCPTags.READ],
@@ -369,7 +375,13 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         )
 
     @mcp_tools_api_decorator(
-        description=str(_("""查询指定名字 mysql 实例状态值, 执行 show global status where Variable_name in""")),
+        description=str(
+            _(
+                """查询指定名字 mysql 实例状态值,
+        执行 show global status where Variable_name in.
+        status_names 参数值大小写敏感, 不会对 status_names 存在性校验, 非法值不会返回对应的结果"""
+            )
+        ),
         request_slz=ShowStatusNamesInputSerializer,
         response_slz=ShowInstanceStatuesOutputSerializer,
         tags=[DBMMCPTags.READ],
