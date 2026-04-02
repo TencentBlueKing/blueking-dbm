@@ -130,11 +130,21 @@
         show-overflow="tooltip"
         :width="240">
         <template #default="{ data }: { data: RowData }">
-          <ToAlarmPolicy
-            v-if="data.dbm_policy.id"
-            :data="data.dbm_policy"
-            :is-platform="isTodoPage || isGlobalPage" />
-          <span v-else>--</span>
+          <TextOverflowLayout>
+            <RouterLink
+              v-if="data.dbm_policy.name"
+              target="_blank"
+              :to="{
+                name: isGlobalPage || isTodoPage ? 'PlatGlobalStrategy' : 'monitorStrategy',
+                query: {
+                  id: data.dbm_policy.id,
+                  db_type: data.dbm_policy.db_type,
+                },
+              }">
+              {{ data.dbm_policy.name }}
+            </RouterLink>
+            <span v-else>--</span>
+          </TextOverflowLayout>
         </template>
       </BkTableColumn>
       <BkTableColumn
@@ -242,12 +252,12 @@
   import { useGlobalBizs, useSystemEnviron } from '@stores';
 
   import DbTable from '@components/db-table/index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { exportExcelFile } from '@utils';
 
   import SearchOperation from './components/SearchOperation.vue';
   import ShieldAlarms from './components/ShieldAlarms.vue';
-  import ToAlarmPolicy from './components/ToAlarmPolicy.vue';
 
   export type RowData = ServiceReturnType<typeof getAlarmEventsList>['results'][number];
 
