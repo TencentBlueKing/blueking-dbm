@@ -1,16 +1,9 @@
 <template>
-  <BkCard
-    class="judging-condition"
-    is-collapse>
-    <template #header>
-      <span style="font-weight: 600">{{ t('判断条件') }}</span>
-      <span style="margin-left: 4px; font-size: 12px; color: #979ba5"> （{{ t('判断最终是否要产生告警') }}） </span>
-    </template>
-    <!-- <div >
+  <div class="judging-condition">
     <div class="judging-condition-label">
       <span class="label-content">{{ t('判断条件') }}</span>
       <span class="label-append ml-16">({{ t('判断最终是否要产生告警') }})</span>
-    </div> -->
+    </div>
     <div class="judging-condition-wrapper mt-12">
       <BkFormItem
         item-type="default"
@@ -178,7 +171,7 @@
           :disabled="disabled" />
       </BkFormItem>
     </div>
-  </BkCard>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -345,7 +338,8 @@
 
 <style lang="less">
   .judging-condition {
-    // margin-bottom: 24px;
+    margin-bottom: 24px;
+    font-size: 12px;
 
     .judging-condition-label {
       .label-content {
@@ -368,17 +362,16 @@
     }
 
     .judging-condition-wrapper {
-      // padding: 12px 24px 0 0;
-      // border: 1px solid #dcdee5;
-      // border-radius: 2px;
-      font-size: 12px;
+      padding: 12px 24px 0 0;
+      border: 1px solid #dcdee5;
+      border-radius: 2px;
 
       .bk-form-item {
         margin-bottom: 12px;
       }
 
       .bk-form-label {
-        width: 82px;
+        width: 100px;
       }
 
       .bk-form-error {
