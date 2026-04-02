@@ -36,7 +36,7 @@ class CheckBackendLoadSkewTask(BaseRedisAgentCheckTask):
 
     subtype = RedisCheckSubType.BackendLoadSkew
     agent_code = DBMAgentCode.REDIS_BACKEND_LOAD_SKEW_CHECK
-    prompt_template = "cluster_domain: {cluster_domain}"
+    prompt_template = "cluster_domains: [{cluster_domain}]"
 
     def load_config(self) -> BackendLoadSkewCheckConfig:
         return BackendLoadSkewCheckConfig.from_settings()

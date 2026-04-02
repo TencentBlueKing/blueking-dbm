@@ -112,7 +112,7 @@ class MetricsGroupBy(StrStructuredEnum):
 
 
 class RedisReportSubtype(StrStructuredEnum):
-    """Redis check report subtype choices used by MCP report tools."""
+    """Redis check report subtype choices used by MCP report tools. For mapping into db_report.SubType."""
 
     AFFINITY_VIOLATION = EnumField("affinity_violation", "Affinity violation")
     ISOLATED_INSTANCE = EnumField("isolated_instance", "Isolated instance")
@@ -122,6 +122,6 @@ class RedisReportSubtype(StrStructuredEnum):
     EXPORTER = EnumField("exporter", "Exporter")
 
     # Agent check subtypes
-    CLUSTER_MEMORY_CAPACITY_RISK = EnumField("cluster_memory_capacity_risk", "Cluster memory capacity risk")
+    CLUSTER_CAPACITY_GROWTH_RISK = EnumField("cluster_capacity_growth_risk", "Cluster capacity growth risk")
     BACKEND_LOAD_SKEW = EnumField("backend_load_skew", "Backend load skew")
     BACKEND_DATA_SKEW = EnumField("backend_data_skew", "Backend data skew")

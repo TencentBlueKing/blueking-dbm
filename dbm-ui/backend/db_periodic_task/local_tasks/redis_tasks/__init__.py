@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from .task import (  # noqa: F401
+    redis_agent_alarm_daily_domain_cache_build_task,
     redis_backend_data_skew_check_task,
     redis_backend_load_skew_check_task,
     redis_cluster_memory_growth_check_task,

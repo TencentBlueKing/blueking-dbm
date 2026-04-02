@@ -214,6 +214,7 @@ def calculate_time_range_window(
     max_len_datapoints: int,
     start_time: Optional[datetime] = None,
     end_time: Optional[datetime] = None,
+    enforce_max_datapoints_limit: bool = True,
 ) -> Tuple[tuple, int]:
     """
     Calculate time range and window for metric queries.
@@ -222,6 +223,9 @@ def calculate_time_range_window(
         max_len_datapoints: Maximum number of data points to return (0 = use default window only)
         start_time: Optional start time
         end_time: Optional end time
+        enforce_max_datapoints_limit: When True (default), reject values above
+            METRICS_MAX_DATAPOINTS_LIMIT.  Set to False for stats queries where
+            denser resolution improves accuracy without inflating response size.
 
     Returns:
         Tuple of ((start_timestamp, end_timestamp), time_window_seconds)
@@ -234,7 +238,7 @@ def calculate_time_range_window(
 
     if max_len_datapoints < 0:
         raise ValueError("max_len_datapoints must be non-negative")
-    if max_len_datapoints > METRICS_MAX_DATAPOINTS_LIMIT:
+    if enforce_max_datapoints_limit and max_len_datapoints > METRICS_MAX_DATAPOINTS_LIMIT:
         raise ValueError(f"max_len_datapoints cannot exceed {METRICS_MAX_DATAPOINTS_LIMIT}")
 
     def prepare_timestamp(is_start_time: bool, t: Optional[datetime]) -> int:

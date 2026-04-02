@@ -8,16 +8,20 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
+
 from celery.schedules import crontab
 
 from backend.db_periodic_task.local_tasks.redis_tasks.agent_checks import (
     CheckBackendDataSkewTask,
     CheckBackendLoadSkewTask,
-    CheckClusterMemoryGrowthTask,
+    CheckClusterCapacityGrowthTask,
 )
 from backend.db_periodic_task.local_tasks.redis_tasks.check_exporter import CheckRedisUpMetricTask
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_report.repo.task_record_repo import TaskRecordRepo
+
+logger = logging.getLogger("celery")
 
 """
     register_periodic_task 注册新的周期任务注意
@@ -29,7 +33,7 @@ from backend.db_report.repo.task_record_repo import TaskRecordRepo
 @register_periodic_task(run_every=crontab(minute="*/10"))
 def redis_cluster_memory_growth_check_task():
     """Redis cluster memory growth check (LLM agent). Runs every 10 minutes."""
-    CheckClusterMemoryGrowthTask().start()
+    CheckClusterCapacityGrowthTask().start()
 
 
 @register_periodic_task(run_every=crontab(minute="*/10"))
@@ -42,6 +46,25 @@ def redis_backend_load_skew_check_task():
 def redis_backend_data_skew_check_task():
     """Redis backend data skew check (LLM agent). Runs every 10 minutes."""
     CheckBackendDataSkewTask().start()
+
+
+@register_periodic_task(run_every=crontab(minute=5, hour=0))
+def redis_agent_alarm_daily_domain_cache_build_task():
+    """Build daily alert-domain cache for Redis agent checks. Runs once a day."""
+    check_tasks = [CheckClusterCapacityGrowthTask, CheckBackendLoadSkewTask, CheckBackendDataSkewTask]
+    for task_cls in check_tasks:
+        task_instance = task_cls()
+        config = task_instance.config
+        if not config.enabled or not config.priority_alarm_names:
+            continue
+
+        try:
+            refreshed = task_instance.build_daily_alarm_priority_domain_cache()
+            logger.info("%s: built daily priority domain cache=%d", task_cls.__name__, len(refreshed))
+        except Exception as err:
+            logger.warning(
+                "%s: failed to build daily priority domain cache: %s", task_cls.__name__, err, exc_info=True
+            )
 
 
 @register_periodic_task(run_every=crontab(minute=1, hour=8))
