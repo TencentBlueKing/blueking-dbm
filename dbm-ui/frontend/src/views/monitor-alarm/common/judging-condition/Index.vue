@@ -231,8 +231,8 @@
         message: t('周期数不得小于5且不得大于60'),
         trigger: 'blur',
         validator: () => {
-          const { continuous } = modelValue.value.noDataConfig;
-          if (nodataConfigDisabled.value) {
+          const { continuous, is_enabled: isEnabled } = modelValue.value.noDataConfig;
+          if (nodataConfigDisabled.value || (!nodataConfigDisabled.value && !isEnabled)) {
             return true;
           }
           return _.isNumber(continuous) && continuous >= 5 && continuous <= 60;
