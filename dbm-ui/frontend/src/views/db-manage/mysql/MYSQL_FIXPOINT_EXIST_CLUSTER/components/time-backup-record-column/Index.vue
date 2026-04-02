@@ -278,6 +278,15 @@
     emits('change');
   });
 
+  watch(
+    () => props.cluster.id,
+    () => {
+      if (props.cluster.id && backupTime.value) {
+        handleDateChange(backupTime.value);
+      }
+    },
+  );
+
   defineExpose<Exposes>({
     flush() {
       setTimeout(() => {
