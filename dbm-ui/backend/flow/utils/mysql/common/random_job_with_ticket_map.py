@@ -101,12 +101,14 @@ def get_instance_with_random_job(cluster: Cluster, ticket_type: TicketType):
     proxy_instances = []
     storage_instances = []
     rule_dict = random_job_with_ticket_map.get(ticket_type, None)
+    # 只有 TenDBCluster 集群类型才需要处理 proxy 和 tdbctl 节点
+    is_tendb_cluster = cluster.cluster_type == ClusterType.TenDBCluster
 
     if not rule_dict:
         # 未命中任何规则，默认返回集群所有实例（storage + proxy + tdbctl primary）
         # 注意：只有 TenDBCluster 集群类型才会额外添加 proxy 和 tdbctl primary 节点
         storage_instances = cluster.storageinstance_set.all()
-        if cluster.cluster_type == ClusterType.TenDBCluster:
+        if is_tendb_cluster:
             proxy_instances = cluster.proxyinstance_set.all()
             tdbctl_list.append(
                 {
@@ -160,8 +162,8 @@ def get_instance_with_random_job(cluster: Cluster, ticket_type: TicketType):
         # storage_need_query 为 True 表示至少有一个 storage 相关的规则被设置
         if storage_need_query:
             storage_instances = cluster.storageinstance_set.filter(storage_filter_query).exclude(storage_exclude_query)
-        # 执行 proxy 查询（同上）
-        if proxy_need_query:
+        # 执行 proxy 查询：仅 TenDBCluster 集群类型才需要查询 proxy 实例
+        if proxy_need_query and is_tendb_cluster:
             proxy_instances = cluster.proxyinstance_set.filter(proxy_filter_query).exclude(proxy_exclude_query)
 
         # tdbctl primary 节点添加账号
