@@ -19,7 +19,7 @@ from .db_dirty.views import DBDirtyMachineViewSet
 from .monitor.views import MonitorPluginViewSet
 from .mysql.apply.views import ApplyPluginViewSet
 from .mysql.authorize.views import AuthorizePluginViewSet
-from .ticket.views import TicketViewSet
+from .ticket.views import TicketApiGwViewSet
 
 routers = DefaultRouter(trailing_slash=True)
 
@@ -30,7 +30,7 @@ routers.register("mysql/apply", ApplyPluginViewSet, basename="apply")
 
 routers.register("bf", BFPluginViewSet, basename="bfplugin")
 
-routers.register("ticket", TicketViewSet, basename="ticket")
+routers.register("ticket", TicketApiGwViewSet, basename="ticket")
 
 routers.register("db_dirty", DBDirtyMachineViewSet, basename="db_dirty")
 routers.register("redis/capacity_evaluate", CapacityEvaluateViewSet, basename="capacity_evaluate")
