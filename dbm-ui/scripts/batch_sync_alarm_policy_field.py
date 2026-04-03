@@ -10,6 +10,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
 import os
 import django
 
@@ -17,6 +18,16 @@ from django.db import transaction
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', "config.prod")
 django.setup()  # 关键：加载应用注册表
+
+
+def compare_complex_lists(list1, list2):
+    def normalize(d):
+        return json.dumps(d, sort_keys=True, separators=(',', ':'))
+
+    sorted_list1 = sorted([normalize(item) for item in list1])
+    sorted_list2 = sorted([normalize(item) for item in list2])
+
+    return sorted_list1 == sorted_list2
 
 
 def sync_policy_field():
@@ -32,7 +43,34 @@ def sync_policy_field():
             if policy.target_level == "platform":
                 policy_tag = "inner"
             elif policy.target_level == "appid":
-                policy_tag = "custom"
+                if policy.parent_id:
+                    parent_policy = MonitorPolicy.objects.get(id=policy.parent_id)
+                    agg_interval_map = {info["metric_id"]: info["agg_interval"] for info in parent_policy.agg_info}
+
+                    test_rules_is_eq = compare_complex_lists(policy.test_rules, parent_policy.test_rules)
+                    detects_config_is_eq = policy.detects_config == parent_policy.detects_config
+                    no_data_config_is_eq = policy.no_data_config == parent_policy.no_data_config
+                    parent_notify_rules = parent_policy.notify_rules
+                    sub_notify_rules = policy.notify_rules
+                    if "no_data" in parent_notify_rules:
+                        parent_notify_rules.remove("no_data")
+                    if "no_data" in sub_notify_rules:
+                        sub_notify_rules.remove("no_data")
+                    notify_rules_is_eq = parent_notify_rules == sub_notify_rules
+                    notify_config_is_eq = policy.notify_config == parent_policy.notify_config
+                    agg_interval_is_eq = True
+                    for info in policy.agg_info:
+                        if info["agg_interval"] != agg_interval_map[info["metric_id"]]:
+                            agg_interval_is_eq = False
+
+                    if (
+                            test_rules_is_eq and detects_config_is_eq and no_data_config_is_eq and
+                            notify_rules_is_eq and notify_config_is_eq and agg_interval_is_eq
+                    ):
+                        policy_tag = "inner"
+                    else:
+                        policy_tag = "custom"
+
             else:
                 policy_tag = "subord"
 
