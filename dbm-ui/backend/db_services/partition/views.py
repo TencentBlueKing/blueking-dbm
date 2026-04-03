@@ -34,6 +34,8 @@ from backend.db_services.partition.serializers import (
     PartitionExportSerializer,
     PartitionFieldTypeV2ResponseSerializer,
     PartitionFieldTypeV2Serializer,
+    PartitionImportFileUploadResponseSerializer,
+    PartitionImportFileUploadSerializer,
     PartitionImportResultSerializer,
     PartitionImportSerializer,
     PartitionListResponseSerializer,
@@ -272,9 +274,8 @@ class DBPartitionViewSet(viewsets.SystemViewSet):
     def import_from_excel(self, request, *args, **kwargs):
         """通过Excel文件导入分区v2策略"""
         validated_data = self.params_validate(PartitionImportSerializer)
-        excel_file = validated_data["file"]
         # 调用导入处理逻辑
-        import_result = PartitionHandler.import_from_excel(request.user.username, excel_file)
+        import_result = PartitionHandler.import_from_excel(request.user.username, validated_data["file_path"])
         return Response(import_result)
 
     @common_swagger_auto_schema(
@@ -374,3 +375,19 @@ class DBPartitionViewSet(viewsets.SystemViewSet):
     # def query_conf_by_status_v2(self, request, *args, **kwargs):
     #     validated_data = self.params_validate(QueryConfByStatusSerializer)
     #     return Response(PartitionHandler.query_conf_by_status_v2(**validated_data))
+    @common_swagger_auto_schema(
+        operation_summary=_("上传分区导入文件到制品库v2"),
+        request_body=PartitionImportFileUploadSerializer(),
+        responses={status.HTTP_200_OK: PartitionImportFileUploadResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=PartitionImportFileUploadSerializer)
+    def upload_import_file(self, request, *args, **kwargs):
+        """
+        上传分区导入文件到制品库
+        用于前端上传分区策略导入文件，保存到制品库后返回文件路径等信息
+        """
+        validated_data = self.params_validate(PartitionImportFileUploadSerializer)
+        bk_biz_id = validated_data["bk_biz_id"]
+        upload_file = validated_data["file"]
+        return Response(PartitionHandler.upload_import_file(bk_biz_id, upload_file))

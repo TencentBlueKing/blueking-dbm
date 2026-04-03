@@ -201,7 +201,7 @@ class PartitionColumnVerifyResponseSerializer(serializers.Serializer):
 class PartitionImportSerializer(serializers.Serializer):
     """Excel导入分区策略序列化器"""
 
-    file = serializers.FileField(help_text=_("Excel文件"))
+    file_path = serializers.CharField(help_text=_("文件路径"))
 
     class Meta:
         swagger_schema_fields = {"description": _("通过Excel文件导入分区策略")}
@@ -320,3 +320,24 @@ class QueryConfByStatusSerializer(serializers.Serializer):
     status = serializers.CharField(help_text=_("执行状态(如 SUCCEEDED / FAILED / WARNING)"))
     limit = serializers.IntegerField(required=False, default=10)
     offset = serializers.IntegerField(required=False, default=0)
+
+
+class PartitionImportFileUploadSerializer(serializers.Serializer):
+    """分区导入文件上传到制品库序列化器"""
+
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    file = serializers.FileField(help_text=_("导入文件"))
+
+    class Meta:
+        swagger_schema_fields = {"description": _("分区导入文件上传到制品库")}
+
+
+class PartitionImportFileUploadResponseSerializer(serializers.Serializer):
+    """分区导入文件上传响应序列化器"""
+
+    file_path = serializers.CharField(help_text=_("文件在制品库的路径"))
+    file_content = serializers.CharField(help_text=_("文件内容（小文件预览用）"))
+    raw_file_name = serializers.CharField(help_text=_("原始文件名"))
+
+    class Meta:
+        swagger_schema_fields = {"description": _("分区导入文件上传结果")}

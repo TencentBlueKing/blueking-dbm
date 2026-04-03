@@ -61,3 +61,7 @@ class PartitionTypeEnum(StrStructuredEnum):
     INT = EnumField("int", _("整型"))
     DATETIME = EnumField("datetime", _("日期类型"))
     TIMESTAMP = EnumField("timestamp", _("时间戳类型"))
+
+
+# 分区管理导入文件在制品库的存储路径
+BKREPO_PARTITION_IMPORT_FILE_PATH = "partition/import/{biz}"
