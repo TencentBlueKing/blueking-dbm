@@ -47,17 +47,16 @@
     if (props.row.isChild) {
       const targetItems = props.row.targets
         .filter((item) => item.level === MonitorTargetLevel.CLUSTER)
-        .map((item) => Object.assign(item.rule, { title: t('集群域名') }));
+        .map((item) => item.rule);
       const customItems = props.row.custom_conditions.map((item) => ({
-        key: item.dimension_name,
+        key: item.key,
         method: item.method,
-        title: item.dimension_name,
         value: item.value,
       }));
       return targetItems
         .concat(customItems)
         .filter((item) => item.value.length > 0)
-        .map((item) => `${item.title} ${optionMap[item.method]} ${item.value.join(',')}`);
+        .map((item) => `${item.key} ${optionMap[item.method]} ${item.value.join(',')}`);
     }
     return [];
   });

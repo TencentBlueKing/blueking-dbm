@@ -160,6 +160,11 @@
   const promqlOriginOptionMap = Object.fromEntries(promqlOptions.map((item) => [item.id, item.name]));
   const promqlDisplayOptionMap = Object.fromEntries(promqlOptions.map((item) => [`${item.id}-${item.name}`, item.id]));
 
+  const customTitleMap: Record<string, string> = {
+    consumergroup: t('消费组'),
+    topic: 'Topic',
+  };
+
   const isFuzzyInput = (method: string) =>
     ['!~-not like', '!~-nregex', `=~-like`, '=~-regex', 'exclude', 'include', 'nreg', 'reg'].includes(method);
 
@@ -208,19 +213,19 @@
           },
         ];
 
-    const customeList = props.customs.map((item) => ({
+    const customList = props.customs.map((item) => ({
       id: item.key as MonitorTargetLevel,
       isCustom: true,
       isSelect: false,
       // isShow: true,
       method: getMethod(item.method),
       selectList: [],
-      title: item.dimension_name,
+      title: customTitleMap[item.dimension_name],
       value: isFuzzyInput(item.method) && item.value.length > 0 ? item.value[0] : '',
       valueList: isFuzzyInput(item.method) ? [] : item.value,
     }));
     // return [...targetList, ...customeList].map((item, index) => Object.assign({}, item, { realIndex: index }));
-    return [...targetList, ...customeList];
+    return [...targetList, ...customList];
   };
 
   const rules = [

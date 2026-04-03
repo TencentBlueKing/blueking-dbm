@@ -137,13 +137,23 @@
       </BkForm>
     </div>
     <template #footer>
-      <BkButton
-        :disabled="resetLoading"
-        :loading="updateLoading"
-        theme="primary"
-        @click="handleConfirm">
-        {{ t('确定') }}
-      </BkButton>
+      <BkPopConfirm
+        :content="t('修改后将自动同步至所有业务（已自定义的业务策略不受影响）。')"
+        placement="bottom"
+        :title="t('确认修改该策略？')"
+        trigger="click"
+        :width="320"
+        @confirm="() => handleConfirm()">
+        <AuthButton
+          action-id="global_monitor_policy_edit"
+          :disabled="resetLoading"
+          :loading="updateLoading"
+          :permission="data.permission.global_monitor_policy_edit"
+          :resource="data.id"
+          theme="primary">
+          {{ t('确定') }}
+        </AuthButton>
+      </BkPopConfirm>
       <AuthButton
         action-id="global_monitor_policy_edit"
         class="ml-8"
@@ -341,7 +351,7 @@
       },
       subTitle: (
         <div style='padding: 12px 16px; background: #F5F7FA; color: #4D4F56'>
-          {t('恢复初始值将覆盖当前所有修改，恢复为平台预设的初始配置。此操作不可撤销，确定继续吗?')}
+          {t('恢复后将还原为平台预设的初始配置，并自动同步至所有业务（已自定义的业务策略不受影响）。')}
         </div>
       ),
       title: t('确认恢复初始值？'),
