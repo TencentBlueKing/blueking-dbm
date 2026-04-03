@@ -116,7 +116,9 @@
             :label="t('告警通知')"
             property="notifyRules"
             required>
-            <BkCheckboxGroup v-model="formModel.notifyRules">
+            <BkCheckboxGroup
+              v-model="formModel.notifyRules"
+              @change="handleDataChange">
               <BkCheckbox
                 v-for="item in notifyTypes"
                 :key="item.label"
@@ -282,7 +284,7 @@
   const monitorTargetRef = ref();
   // const innerNotifyTarget = ref([props.dbType]);
   // const showSwitchEnableTip = ref(false);
-  const isNotifyInfoChanged = ref(false);
+  const isNotifyGroupChanged = ref(false);
   const isOtherChanged = ref(false);
 
   const formModel = reactive({
@@ -324,20 +326,20 @@
 
   const popConfirmInfo = computed(() => {
     if (isInnerClone.value || isInnerEdit.value) {
-      // 修改检测参数（当前为继承状态，修改后转为自定义）
-      if (!isNotifyInfoChanged.value && isOtherChanged.value) {
-        return {
-          content: t('修改后将转为自定义管理，不再跟随全局策略更新。'),
-          title: t('确认修改该策略？'),
-        };
-      }
-
-      // 同时修改告警规则并启用策略（当前为继承状态）
-      if (isNotifyInfoChanged.value && isEnableChanged.value) {
-        return {
-          content: t('修改告警规则并启用后，该策略将转为自定义管理，不再跟随全局策略更新。'),
-          title: t('确认修改并启用该策略？'),
-        };
+      if (isOtherChanged.value && !isNotifyGroupChanged.value) {
+        if (isEnableChanged.value) {
+          // 同时修改并启用策略（当前为继承状态）
+          return {
+            content: t('修改并启用后，该策略将转为自定义管理，不再跟随全局策略更新。'),
+            title: t('确认修改并启用该策略？'),
+          };
+        } else {
+          // 修改检测参数（当前为继承状态，修改后转为自定义）
+          return {
+            content: t('修改后将转为自定义管理，不再跟随全局策略更新。'),
+            title: t('确认修改该策略？'),
+          };
+        }
       }
 
       // 全局已禁用，启用当前策略（从继承变为自定义）
@@ -447,6 +449,8 @@
     onSuccess: (isDeleted) => {
       if (isDeleted === null) {
         messageSuccess(t('操作成功'));
+        emits('success');
+        isShow.value = false;
       }
     },
   });
@@ -455,20 +459,25 @@
     setTimeout(() => {
       const { aggInfo, detectsConfig, notifyConfig, testRules } = getConfirmValue();
 
-      isNotifyInfoChanged.value = !_.isEqual(_.pick(props.data, ['notify_config', 'notify_groups', 'notify_rules']), {
-        notify_config: notifyConfig,
-        notify_groups:
-          isInnerClone.value && _.isEqual(formModel.notifyTarget, getBizDefaultGroupIds())
-            ? []
-            : formModel.notifyTarget, // 真内置编辑默认是内置告警组，此时不判定为修改
-        notify_rules: formModel.notifyRules,
-      });
+      isNotifyGroupChanged.value = !_.isEqual(
+        props.data.notify_groups,
+        isInnerClone.value && _.isEqual(formModel.notifyTarget, getBizDefaultGroupIds()) ? [] : formModel.notifyTarget, // 真内置编辑默认是内置告警组，此时不判定为修改
+      );
       isOtherChanged.value = !_.isEqual(
-        _.pick(props.data, ['agg_info', 'detects_config', 'no_data_config', 'test_rules']),
+        _.pick(props.data, [
+          'notify_config',
+          'agg_info',
+          'detects_config',
+          'no_data_config',
+          'test_rules',
+          'notify_rules',
+        ]),
         {
           agg_info: aggInfo,
           detects_config: detectsConfig,
           no_data_config: formModel.noDataConfig,
+          notify_config: notifyConfig,
+          notify_rules: formModel.notifyRules,
           test_rules: testRules,
         },
       );
@@ -567,7 +576,7 @@
         <>
           <div class='mb-16'>
             {t('策略名称：')}
-            {props.data.name}
+            {props.data.nameDisplay}
           </div>
           <div style='padding: 12px 16px; background: #F5F7FA; color: #4D4F56'>
             {t('恢复默认将覆盖当前所有自定义修改，恢复为全局策略配置。此操作不可撤销。')}
@@ -610,7 +619,7 @@
     const { custom_conditions, targets } = isMonitorTargetsShow.value
       ? monitorTargetRef.value.getValue()
       : {
-          custom_conditions: [],
+          custom_conditions: props.data.custom_conditions,
           targets: [
             {
               level: MonitorTargetLevel.BIZ,
@@ -640,8 +649,7 @@
       if (isInnerClone.value || isInnerEdit.value) {
         // 转为自定义，判断同 popConfirmInfo
         if (
-          (!isNotifyInfoChanged.value && isOtherChanged.value) ||
-          (isNotifyInfoChanged.value && isEnableChanged.value) ||
+          (isOtherChanged.value && !isNotifyGroupChanged.value) ||
           (((props.data.isInnerReal && !props.data.is_enabled) ||
             (props.data.isInnerFake && !props.appParentInfoMap[props.data.id].is_enabled)) &&
             formModel.isEnabled)

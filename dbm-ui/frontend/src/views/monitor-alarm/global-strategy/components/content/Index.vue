@@ -14,6 +14,10 @@
 <template>
   <ApplyPermissionCatch>
     <div class="global-strategy-type-content">
+      <BkAlert
+        class="mb-16"
+        closable
+        :title="t('修改全局策略将自动同步至所有业务（已自定义的业务策略不受影响）。')" />
       <DbQuickSearch
         v-model="searchValue"
         class="mb-16"
@@ -362,7 +366,7 @@
       },
       subTitle: (
         <div style='padding: 12px 16px; background: #F5F7FA; color: #4D4F56'>
-          {t('恢复初始值将覆盖当前所有修改，恢复为平台预设的初始配置。此操作不可撤销，确定继续吗?')}
+          {t('恢复后将还原为平台预设的初始配置，并自动同步至所有业务（已自定义的业务策略不受影响）。')}
         </div>
       ),
       title: t('确认恢复初始值？'),
@@ -383,7 +387,7 @@
     fetchData();
 
     setTimeout(() => {
-      tableMaxHeight.value = window.innerHeight - getOffset(rootRef.value as HTMLElement).top - 16;
+      tableMaxHeight.value = window.innerHeight - getOffset(rootRef.value as HTMLElement).top - 24;
     });
   });
 </script>

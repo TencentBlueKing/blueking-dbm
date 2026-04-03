@@ -26,7 +26,8 @@
             behavior="simplicity"
             class="sf-select"
             :clearable="false"
-            :disabled="isMultiple">
+            :disabled="isMultiple"
+            @change="handleChange">
             <BkOption
               v-for="methodItem in METHOD_LIST"
               :key="methodItem.id"
@@ -39,7 +40,8 @@
             v-model="item.interval"
             behavior="simplicity"
             class="sf-select"
-            :clearable="false">
+            :clearable="false"
+            @change="handleChange">
             <BkOption
               v-for="timeItem in timeList"
               :key="timeItem.seconds"
@@ -157,18 +159,6 @@
   );
 
   watch(
-    localValue,
-    () => {
-      if (!_.isEqual(getFinalValue(), props.data)) {
-        emits('change');
-      }
-    },
-    {
-      deep: true,
-    },
-  );
-
-  watch(
     () => [props.monitorPolicyId],
     () => {
       runSearchAlarmStrategy({
@@ -180,17 +170,17 @@
     },
   );
 
+  const handleChange = () => {
+    emits('change');
+  };
+
   const numberToLetter = (num: number): string => {
     return String.fromCharCode('a'.charCodeAt(0) + num);
   };
 
-  const getFinalValue = () => {
-    return localValue.value.map((item) => _.omit(Object.assign(item, { agg_interval: item.interval }), 'interval'));
-  };
-
   defineExpose<Exposes>({
     getValue() {
-      return getFinalValue();
+      return localValue.value.map((item) => _.omit(Object.assign(item, { agg_interval: item.interval }), 'interval'));
     },
   });
 </script>

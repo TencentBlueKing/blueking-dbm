@@ -17,7 +17,7 @@
       closable
       :title="
         t(
-          '业务告警策略初始配置继承自全局告警策略，全局策略更新时将自动同步至业务。如需调整，可直接编辑修改，修改后策略将转为「自定义」状态，不再跟随全局策略更新。如需回退，可通过操作列的「恢复默认」将策略还原为全局配置。',
+          '业务策略默认与全局策略保持同步。编辑告警规则后将转为「自定义」，不再跟随全局更新；修改告警组不影响同步关系。如需回退，可通过「恢复默认」还原。',
         )
       " />
     <div class="monitor-strategy-type-content mt-16">
@@ -788,7 +788,7 @@
     sortedResults.forEach((parent: MonitorPolicyModel) => {
       if (parent.child && parent.child.length > 0) {
         parent.child.sort((a: MonitorPolicyModel, b: MonitorPolicyModel) => {
-          return dayjs(a.create_at).valueOf() - dayjs(b.create_at).valueOf();
+          return dayjs(b.create_at).valueOf() - dayjs(a.create_at).valueOf();
         });
       }
     });
