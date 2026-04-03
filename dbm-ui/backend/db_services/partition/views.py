@@ -30,6 +30,7 @@ from backend.db_services.partition.serializers import (
     PartitionDryRunSerializer,
     PartitionEnableSerializer,
     PartitionExecuteV2Serializer,
+    PartitionExportImportFailedSerializer,
     PartitionExportResponseSerializer,
     PartitionExportSerializer,
     PartitionFieldTypeV2ResponseSerializer,
@@ -391,3 +392,14 @@ class DBPartitionViewSet(viewsets.SystemViewSet):
         bk_biz_id = validated_data["bk_biz_id"]
         upload_file = validated_data["file"]
         return Response(PartitionHandler.upload_import_file(bk_biz_id, upload_file))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("下载分区导入失败详情"),
+        request_body=PartitionExportImportFailedSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=PartitionExportImportFailedSerializer)
+    def export_import_failed(self, request, *args, **kwargs):
+        "将导入失败详情导出为 Excel 文件供用户下载"
+        validated_data = self.params_validate(PartitionExportImportFailedSerializer)
+        return PartitionHandler.export_import_failed(validated_data["failed_items"])
