@@ -202,13 +202,15 @@ export const queryLog = function (params: { config_id: number }) {
 };
 
 // Excel导入分区策略
-export const importFromExcel = function (params: { file: File }) {
+export const importFromExcel = function (params: { file_path: string }) {
   return http.post<{
     failed_count: number;
     failed_items: {
-      additionalProp1: string;
-      additionalProp2: string;
-      additionalProp3: string;
+      cluster: string;
+      dblikes: string;
+      error: string;
+      row: number;
+      tblikes: string;
     }[];
     success_count: number;
   }>('/apis/partition/import_from_excel/', params);
@@ -226,4 +228,17 @@ export const exportPartitions = function (params: {
     file_name: string;
     total_count: number;
   }>('/apis/partition/export_partitions/', params, { responseType: 'blob' });
+};
+
+// 导出导入失败详情
+export const exportImportFailed = function (params: {
+  failed_items: {
+    cluster: string;
+    dblikes: string;
+    error: string;
+    row: number;
+    tblikes: string;
+  }[];
+}) {
+  return http.post('/apis/partition/export_import_failed/', params, { responseType: 'blob' });
 };

@@ -14,6 +14,43 @@
         @click="handleShowExcelImport">
         {{ t('导入策略') }}
       </AuthButton>
+      <!-- 导出下拉 -->
+      <BkDropdown
+        class="batch-operation ml-8"
+        :popover-options="{
+          renderDirective: 'show',
+          hideIgnoreReference: true,
+        }">
+        <template #default="{ popoverShow }">
+          <BkButton>
+            {{ t('导出') }}
+            <DbIcon
+              class="batch-operation-icon ml-4"
+              :class="[{ 'batch-operation-icon-active': popoverShow }]"
+              type="up-big " />
+          </BkButton>
+        </template>
+        <template #content>
+          <BkDropdownMenu>
+            <BkDropdownItem>
+              <BkButton
+                text
+                @click="handleExportAll">
+                {{ t('导出所有') }}
+              </BkButton>
+            </BkDropdownItem>
+            <BkDropdownItem>
+              <BkButton
+                :disabled="disabled"
+                text
+                @click="handleExportSelected">
+                {{ t('导出已选') }}
+              </BkButton>
+            </BkDropdownItem>
+          </BkDropdownMenu>
+        </template>
+      </BkDropdown>
+      <!-- 批量操作下拉 -->
       <BkDropdown
         v-bk-tooltips="{
           disabled: !disabled,
@@ -38,7 +75,7 @@
           <BkDropdownMenu>
             <BkDropdownItem>
               <BkButton
-                :disabled="disabled"
+                :disabled="allDisabledSelected"
                 text
                 @click="handleBatchExecute">
                 {{ t('批量执行') }}
@@ -46,15 +83,7 @@
             </BkDropdownItem>
             <BkDropdownItem>
               <BkButton
-                :disabled="disabled"
-                text
-                @click="handleBatchExport">
-                {{ t('批量导出') }}
-              </BkButton>
-            </BkDropdownItem>
-            <BkDropdownItem>
-              <BkButton
-                :disabled="disabled"
+                :disabled="allEnabledSelected"
                 text
                 @click="handleBatchEnable">
                 {{ t('批量启用') }}
@@ -62,7 +91,7 @@
             </BkDropdownItem>
             <BkDropdownItem>
               <BkButton
-                :disabled="disabled"
+                :disabled="allDisabledSelected"
                 text
                 @click="handleBatchDisable">
                 {{ t('批量禁用') }}
@@ -70,8 +99,8 @@
             </BkDropdownItem>
             <BkDropdownItem>
               <BkButton
-                :disabled="disabled"
                 text
+                theme="danger"
                 @click="handleBatchRemove">
                 {{ t('批量删除') }}
               </BkButton>
@@ -218,11 +247,12 @@
         col-key="operation"
         fixed="right"
         :title="t('操作')"
-        :width="140">
+        :width="200">
         <template #default="{ row }: { row: PartitionModel }">
           <!-- 执行按钮 -->
           <AuthButton
             action-id="mysql_partition"
+            :disabled="row.isOffline"
             :loading="executeLoadingMap[row.id]"
             :permission="row.permission.mysql_partition"
             :resource="row.cluster_id"
@@ -234,7 +264,7 @@
           <!-- 编辑按钮 -->
           <AuthButton
             action-id="mysql_partition_update"
-            class="ml-8 mr-8"
+            class="ml-8"
             :permission="row.permission.mysql_partition_update"
             :resource="row.cluster_id"
             text
@@ -242,37 +272,39 @@
             @click="handleEdit(row)">
             {{ t('编辑') }}
           </AuthButton>
-          <!-- 克隆按钮 -->
+          <!-- 禁用/启用按钮 -->
           <AuthButton
-            action-id="mysql_partition_create"
-            class="mr-8"
-            :permission="row.permission.mysql_partition_create"
+            v-if="row.isOnline"
+            action-id="mysql_partition_enable_disable"
+            class="ml-8"
+            :permission="row.permission.mysql_partition_enable_disable"
+            :resource="row.cluster_id"
             text
             theme="primary"
-            @click="handleClone(row)">
-            {{ t('克隆') }}
+            @click="handleDisable(row)">
+            {{ t('禁用') }}
           </AuthButton>
-          <!-- 更多操作 -->
+          <AuthButton
+            v-else
+            action-id="mysql_partition_enable_disable"
+            class="ml-8"
+            :permission="row.permission.mysql_partition_enable_disable"
+            :resource="row.cluster_id"
+            text
+            theme="primary"
+            @click="handleEnable(row)">
+            {{ t('启用') }}
+          </AuthButton>
+          <!-- 更多操作（克隆、删除） -->
           <MoreActionExtend>
             <template #default>
-              <div v-if="row.isOnline">
+              <div>
                 <AuthButton
-                  action-id="mysql_partition_enable_disable"
-                  :permission="row.permission.mysql_partition_enable_disable"
-                  :resource="row.cluster_id"
+                  action-id="mysql_partition_create"
+                  :permission="row.permission.mysql_partition_create"
                   text
-                  @click="handleDisable(row)">
-                  {{ t('禁用') }}
-                </AuthButton>
-              </div>
-              <div v-else>
-                <AuthButton
-                  action-id="mysql_partition_enable_disable"
-                  :permission="row.permission.mysql_partition_enable_disable"
-                  :resource="row.cluster_id"
-                  text
-                  @click="handleEnable(row)">
-                  {{ t('启用') }}
+                  @click="handleClone(row)">
+                  {{ t('克隆') }}
                 </AuthButton>
               </div>
               <div>
@@ -340,7 +372,7 @@
 
   import { messageSuccess, utcDisplayTime } from '@utils';
 
-  import ExcelImport from './components/ExcelImport.vue';
+  import ExcelImport from './components/excel-import/Index.vue';
   import FailLog from './components/fail-log/Index.vue';
   import PartitionOperation from './components/Operation.vue';
   import useTableSetting from './hooks/useTableSetting';
@@ -358,8 +390,21 @@
 
   const operationData = shallowRef<PartitionModel>();
   const selectionList = shallowRef<number[]>([]);
+  const selectionRowList = shallowRef<PartitionModel[]>([]);
 
   const disabled = computed(() => selectionList.value.length === 0);
+
+  // 勾选的策略是否全部为已禁用状态
+  const allDisabledSelected = computed(() => {
+    if (selectionRowList.value.length === 0) return true;
+    return selectionRowList.value.every((row) => row.isOffline);
+  });
+
+  // 勾选的策略是否全部为已启用状态
+  const allEnabledSelected = computed(() => {
+    if (selectionRowList.value.length === 0) return true;
+    return selectionRowList.value.every((row) => row.isOnline);
+  });
 
   const serachData = [
     {
@@ -420,13 +465,13 @@
     return classList.join(' ');
   };
 
-  const dataSource = () =>
-    getList(
-      Object.assign(searchValue.value, {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        cluster_type: ClusterTypes.TENDBHA,
-      }),
-    );
+  const dataSource = (params: Record<string, any>) =>
+    getList({
+      ...params,
+      ...searchValue.value,
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      cluster_type: ClusterTypes.TENDBHA,
+    });
 
   const fetchData = () => {
     tableRef.value?.fetchData(searchValue.value, {
@@ -440,36 +485,95 @@
     isShowOperation.value = true;
   };
 
-  // 批量启用
-  const handleBatchEnable = () => {
+  interface BatchConfirmOptions {
+    confirmButtonTheme?: 'danger' | 'primary';
+    description?: string;
+    descriptionStyle?: string;
+    filterFn?: (row: PartitionModel) => boolean;
+    filterTip?: string;
+    onConfirm: (validRows: PartitionModel[]) => Promise<boolean>;
+    title: (count: number) => string;
+  }
+
+  /**
+   * 通用批量操作确认弹窗
+   * 支持过滤不符合条件的行、混合状态提示、自定义描述和操作
+   */
+  const showBatchConfirmBox = (options: BatchConfirmOptions) => {
     operationData.value = undefined;
+    const rows = selectionRowList.value;
+    const validRows = options.filterFn ? rows.filter(options.filterFn) : rows;
+    const filteredCount = rows.length - validRows.length;
+
     InfoBox({
       cancelText: t('取消'),
-      confirmButtonTheme: 'primary',
-      confirmText: t('启用'),
-      content: () => {
-        const tableData = selectionList.value.map((id) => ({ id }));
-        return (
-          <>
-            <BkTable
-              border='outer'
-              data={tableData}>
-              <BkTableColumn
-                align='left'
-                field='id'
-                label={t('已选择以下 n 个策略', { n: selectionList.value.length })}
-                minWidth={100}
-              />
-            </BkTable>
-          </>
-        );
-      },
+      confirmButtonTheme: options.confirmButtonTheme ?? 'primary',
+      confirmText: t('确定'),
+      content: () => (
+        <>
+          {filteredCount > 0 && options.filterTip && (
+            <div style='margin-bottom:16px;padding: 12px 16px;display: flex;align-items: center;background: #FFF3E1;border-radius: 2px;font-size: 12px;color: #63656E;'>
+              {t(options.filterTip, { n: filteredCount })}
+            </div>
+          )}
+          {options.description && (
+            <div style={options.descriptionStyle ?? 'margin-bottom:16px;font-size: 12px;color: #63656E;'}>
+              {t(options.description)}
+            </div>
+          )}
+          <BkTable
+            border='outer'
+            data={validRows.map((row) => ({
+              dblike: row.dblike,
+              id: row.id,
+              immute_domain: row.immute_domain,
+              tblike: row.tblike,
+            }))}>
+            <BkTableColumn
+              align='left'
+              field='id'
+              label={t('策略ID')}
+              minWidth={80}
+            />
+            <BkTableColumn
+              align='left'
+              field='immute_domain'
+              label={t('集群')}
+              minWidth={120}
+              showOverflowTooltip
+            />
+            <BkTableColumn
+              align='left'
+              field='dblike'
+              label={t('DB名')}
+              minWidth={80}
+            />
+            <BkTableColumn
+              align='left'
+              field='tblike'
+              label={t('表名')}
+              minWidth={80}
+            />
+          </BkTable>
+        </>
+      ),
       footerAlign: 'center',
       headerAlign: 'center',
-      onConfirm: async () => {
+      onConfirm: () => options.onConfirm(validRows),
+      title: options.title(validRows.length),
+      width: 560,
+    });
+  };
+
+  // 批量启用
+  const handleBatchEnable = () => {
+    showBatchConfirmBox({
+      filterFn: (row) => row.isOffline,
+      filterTip: '已自动过滤 n 条已启用策略，不受本次操作影响。',
+      onConfirm: async (validRows) => {
         const result = await enablePartition({
           cluster_type: ClusterTypes.TENDBHA,
-          ids: selectionList.value,
+          ids: validRows.map((row) => row.id),
         });
         if (result) {
           fetchData();
@@ -478,43 +582,19 @@
         }
         return false;
       },
-      title: t('确定启用 n 个策略？', { n: selectionList.value.length }),
+      title: (n) => t('确定批量启用 n 条分区策略？', { n }),
     });
   };
 
   // 批量禁用
   const handleBatchDisable = () => {
-    operationData.value = undefined;
-    InfoBox({
-      cancelText: t('取消'),
-      confirmButtonTheme: 'danger',
-      confirmText: t('禁用'),
-      content: () => {
-        const tableData = selectionList.value.map((id) => ({ id }));
-        return (
-          <>
-            <div style='margin-bottom:16px;padding: 12px 16px;display: flex;background: #F5F7FA;'>
-              {t('停用后，策略将立即失效，请谨慎操作！')}
-            </div>
-            <BkTable
-              border='outer'
-              data={tableData}>
-              <BkTableColumn
-                align='left'
-                field='id'
-                label={t('已选择以下 n 个策略', { n: selectionList.value.length })}
-                minWidth={100}
-              />
-            </BkTable>
-          </>
-        );
-      },
-      footerAlign: 'center',
-      headerAlign: 'center',
-      onConfirm: async () => {
+    showBatchConfirmBox({
+      filterFn: (row) => row.isOnline,
+      filterTip: '已自动过滤 n 条已禁用策略，不受本次操作影响。',
+      onConfirm: async (validRows) => {
         const result = await disablePartition({
           cluster_type: ClusterTypes.TENDBHA,
-          ids: selectionList.value,
+          ids: validRows.map((row) => row.id),
         });
         if (result) {
           fetchData();
@@ -523,39 +603,16 @@
         }
         return false;
       },
-      title: t('确定禁用 n 个策略？', { n: selectionList.value.length }),
+      title: (n) => t('确定批量禁用 n 条分区策略？', { n }),
     });
   };
 
   // 批量删除
   const handleBatchRemove = () => {
-    operationData.value = undefined;
-    InfoBox({
-      cancelText: t('取消'),
+    showBatchConfirmBox({
       confirmButtonTheme: 'danger',
-      confirmText: t('删除'),
-      content: () => {
-        const tableData = selectionList.value.map((id) => ({ id }));
-        return (
-          <>
-            <div style='margin-bottom:16px;padding: 12px 16px;display: flex;background: #F5F7FA;'>
-              {t('删除策略后无法恢复，请谨慎操作！')}
-            </div>
-            <BkTable
-              border='outer'
-              data={tableData}>
-              <BkTableColumn
-                align='left'
-                field='id'
-                label={t('已选择以下 n 个策略', { n: selectionList.value.length })}
-                minWidth={100}
-              />
-            </BkTable>
-          </>
-        );
-      },
-      footerAlign: 'center',
-      headerAlign: 'center',
+      description: '删除后不可恢复。',
+      descriptionStyle: 'margin-bottom:16px;font-size: 12px;color: #EA3636;',
       onConfirm: async () => {
         const result = await batchRemove({
           cluster_type: ClusterTypes.TENDBHA,
@@ -567,46 +624,26 @@
             tableRef.value.removeSelectByKey(hostId);
           });
           selectionList.value = [];
+          selectionRowList.value = [];
           messageSuccess(t('删除成功'));
           return true;
         }
         return false;
       },
-      title: t('确定删除 n 个策略？', { n: selectionList.value.length }),
+      title: (n) => t('确定批量删除 n 条分区策略？', { n }),
     });
   };
 
+  // 批量执行
   const handleBatchExecute = () => {
-    operationData.value = undefined;
-    InfoBox({
-      cancelText: t('取消'),
-      confirmButtonTheme: 'primary',
-      confirmText: t('执行'),
-      content: () => {
-        const tableData = selectionList.value.map((id) => ({ id }));
-        return (
-          <>
-            <BkTable
-              border='outer'
-              data={tableData}>
-              <BkTableColumn
-                align='left'
-                field='id'
-                label={t('已选择以下 n 个策略', { n: selectionList.value.length })}
-                minWidth={100}
-              />
-            </BkTable>
-          </>
-        );
-      },
-      footerAlign: 'center',
-      headerAlign: 'center',
-      onConfirm: async () => {
-        const tableData = tableRef.value?.getData() || [];
-        const selectionRows = tableData.filter((data: PartitionModel) => selectionList.value.includes(data.id));
+    showBatchConfirmBox({
+      description: '执行后，将按当前配置对所选策略立即执行一次分区管理。',
+      filterFn: (row) => row.isOnline,
+      filterTip: '已自动过滤 n 条已禁用策略，不受本次操作影响。',
+      onConfirm: async (validRows) => {
         const result = await execute({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          partition_infos: selectionRows.map((data: PartitionModel) => ({
+          partition_infos: validRows.map((data: PartitionModel) => ({
             cluster_id: data.cluster_id,
             configs: [
               {
@@ -633,45 +670,26 @@
         }
         return false;
       },
-      title: t('确定执行 n 个策略？', { n: selectionList.value.length }),
+      title: (n) => t('确定批量执行 n 条分区策略？', { n }),
     });
   };
 
-  const handleBatchExport = () => {
-    operationData.value = undefined;
-    InfoBox({
-      cancelText: t('取消'),
-      confirmButtonTheme: 'primary',
-      confirmText: t('导出'),
-      content: () => {
-        const tableData = selectionList.value.map((id) => ({ id }));
-        return (
-          <>
-            <BkTable
-              border='outer'
-              data={tableData}>
-              <BkTableColumn
-                align='left'
-                field='id'
-                label={t('已选择以下 n 个策略', { n: selectionList.value.length })}
-                minWidth={100}
-              />
-            </BkTable>
-          </>
-        );
-      },
-      footerAlign: 'center',
-      headerAlign: 'center',
-      onConfirm: async () => {
-        await exportPartitions({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type: ClusterTypes.TENDBHA,
-          export_type: selectionList.value.length > 0 ? 'selected' : 'all',
-          selected_ids: selectionList.value,
-        });
-        return true;
-      },
-      title: t('确定导出 n 个策略？', { n: selectionList.value.length }),
+  // 导出所有
+  const handleExportAll = () => {
+    exportPartitions({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      cluster_type: ClusterTypes.TENDBHA,
+      export_type: 'all',
+    });
+  };
+
+  // 导出已选
+  const handleExportSelected = () => {
+    exportPartitions({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      cluster_type: ClusterTypes.TENDBHA,
+      export_type: 'selected',
+      selected_ids: selectionList.value,
     });
   };
 
@@ -682,6 +700,8 @@
 
   const handleTableSelection = (payload: string[]) => {
     selectionList.value = payload.map((item) => Number(item));
+    const tableData = tableRef.value?.getData() || [];
+    selectionRowList.value = tableData.filter((data: PartitionModel) => selectionList.value.includes(data.id));
   };
 
   // 清空搜索
