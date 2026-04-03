@@ -18,7 +18,7 @@ from django.forms import model_to_dict
 from django.http.response import HttpResponse
 from django.utils.translation import gettext as _
 
-from backend.components import CCApi, DRSApi
+from backend.components import DRSApi
 from backend.components.mysql_partition.client import DBPartitionApi
 from backend.constants import IP_PORT_DIVIDER
 from backend.core.storages.storage import get_storage
@@ -934,27 +934,50 @@ class PartitionHandler(object):
             data_dict__list=data_dict_list, headers=headers, match_header=True, sheet_name=_("分区策略列表")
         )
 
-        # 获取业务信息
-        biz_infos = CCApi.search_business(
-            {
-                "fields": ["bk_biz_id", "bk_biz_name"],
-                "biz_property_filter": {
-                    "condition": "AND",
-                    "rules": [{"field": "bk_biz_id", "operator": "equal", "value": bk_biz_id}],
-                },
-            },
-            use_admin=True,
-        ).get("info", [])
         # 生成文件名
         from datetime import datetime
 
-        try:
-            biz_name = biz_infos[0].get("bk_biz_name", _("未知业务"))
-        except (IndexError, AttributeError):
-            biz_name = _("未知业务")
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        file_name = f"{timestamp}_{biz_name}({bk_biz_id})mysql_partition.xlsx"
+        file_name = _("partition_strategy_{timestamp}.xlsx").format(timestamp=timestamp)
 
+        return ExcelHandler.response(workbook, file_name)
+
+    @classmethod
+    def export_import_failed(cls, failed_items: List[Dict]) -> HttpResponse:
+        """
+        将导入失败详情导出为 Excel 文件
+
+        Args:
+            failed_items: 导入失败详情列表，每项包含 row/cluster/dblikes/tblikes/error
+
+        Returns:
+            HttpResponse: Excel 文件响应
+        """
+        headers = [
+            {"id": _("行号"), "name": _("行号")},
+            {"id": _("集群"), "name": _("集群")},
+            {"id": _("DB名"), "name": _("DB名")},
+            {"id": _("表名"), "name": _("表名")},
+            {"id": _("失败原因"), "name": _("失败原因")},
+        ]
+
+        data_dict_list = [
+            {
+                _("行号"): item.get("row", ""),
+                _("集群"): item.get("cluster", ""),
+                _("DB名"): item.get("dblikes", ""),
+                _("表名"): item.get("tblikes", ""),
+                _("失败原因"): item.get("error", ""),
+            }
+            for item in failed_items
+        ]
+
+        workbook = ExcelHandler.serialize(
+            data_dict__list=data_dict_list, headers=headers, match_header=True, sheet_name=_("导入失败详情")
+        )
+
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        file_name = _("partition_strategy_import_failures{timestamp}.xlsx").format(timestamp=timestamp)
         return ExcelHandler.response(workbook, file_name)
 
     @classmethod
