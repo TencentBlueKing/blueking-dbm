@@ -1037,7 +1037,18 @@ class MonitorPolicy(AuditedModel):
         # 父策略有变更时，把子策略也刷新一遍
         # 以保证子策略的配置与父策略的分组、指标、维度、周期一致，
         if self.parent_id == 0:
+            agg_interval_map = {info["metric_id"]: info["agg_interval"] for info in self.agg_info}
             for sub_policy in MonitorPolicy.objects.filter(parent_id=self.id):
+                if sub_policy.policy_tag == PolicyTag.INNER and sub_policy.target_level == TargetLevel.APP:
+                    sub_policy.test_rules = self.test_rules
+                    sub_policy.no_data_config = self.no_data_config
+                    sub_policy.detects_config = self.detects_config
+                    sub_policy.notify_rules = self.notify_rules
+                    sub_policy.notify_config = self.notify_config
+                    old_agg_info = sub_policy.agg_info
+                    for info in old_agg_info:
+                        info["agg_interval"] = agg_interval_map[info["metric_id"]]
+                    sub_policy.agg_info = old_agg_info
                 sub_policy.save()
 
     def delete(self, using=None, keep_parents=False):
