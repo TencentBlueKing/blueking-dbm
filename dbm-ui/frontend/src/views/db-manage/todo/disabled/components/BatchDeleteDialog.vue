@@ -179,7 +179,7 @@
         delay: 6000,
         dismissable: false,
         message: h('div', { style: 'width: 100%; display: flex; justify-content: space-between;' }, [
-          h('span', {}, t('单据提交成功！已成功提交 n 个下架单据', { n: res.length })),
+          h('span', {}, res.length === 1 ? t('操作提交成功') : t('操作提交成功，已生成 {n} 个单据', { n: res.length })),
           h(
             'a',
             {
