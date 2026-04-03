@@ -342,7 +342,7 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
             """找到集群和存量机型的映射"""
 
             # 存量主机的通用过滤
-            common_filters = Q(machine__machine_type=remain_machine_type, cluster__in=cluster_ids) & ~Q(
+            common_filters = Q(machine__machine_type=remain_machine_type, cluster=cluster) & ~Q(
                 machine__bk_host_id__in=off_host_ids
             )
 
@@ -375,17 +375,17 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
         cluster_map = Cluster.objects.in_bulk(cluster_ids)
         tolerance = tolerance or 0
 
-        cluster__remain_hosts_map = defaultdict(list)
-        off_host_ids = []
-        # 如果有replace_key，则说明是替换单据，找到替换的机器
-        if replace_key:
-            off_host_ids = [host["bk_host_id"] for info in infos for host in info["old_nodes"][replace_key]]
-        # 考虑存量机型
-        if remain_machine_type:
-            cluster__remain_hosts_map = __get_exclusive_hosts()
-
         for info in infos:
             cluster = cluster_map[fetch_cluster_ids(info)[0]]
+            cluster__remain_hosts_map = defaultdict(list)
+            off_host_ids = []
+            # 如果有replace_key，则说明是替换单据，找到替换的机器
+            if replace_key:
+                off_host_ids = [host["bk_host_id"] for host in info["old_nodes"][replace_key]]
+            # 考虑存量机型
+            if remain_machine_type:
+                cluster__remain_hosts_map = __get_exclusive_hosts()
+
             cluster_tolerance = (
                 tolerance(cluster.disaster_tolerance_level, tolerance_type)
                 if isinstance(tolerance, Callable)
