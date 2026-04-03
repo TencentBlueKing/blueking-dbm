@@ -7,6 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import os
 from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Union
@@ -20,12 +21,14 @@ from django.utils.translation import gettext as _
 from backend.components import CCApi, DRSApi
 from backend.components.mysql_partition.client import DBPartitionApi
 from backend.constants import IP_PORT_DIVIDER
+from backend.core.storages.storage import get_storage
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.enums.instance_inner_role import InstanceInnerRole
 from backend.db_meta.models import AppCache, Cluster
 from backend.db_report.models.mysql_partiton_resuly import MysqlPartitionResult
 from backend.db_services.partition.constants import (
+    BKREPO_PARTITION_IMPORT_FILE_PATH,
     QUERY_DATABASE_FIELD_TYPE,
     QUERY_PARTITION_FIELD_TYPE,
     QUERY_UNIQUE_FIELDS_SQL,
@@ -739,21 +742,37 @@ class PartitionHandler(object):
 
         return sorted_table_infos
 
+    @staticmethod
+    def _build_item(row_num: int, row_data: dict, error: str) -> dict:
+        """导入构建返回item"""
+        return {
+            "row": row_num,
+            "cluster": row_data.get(_("集群"), ""),
+            "dblikes": row_data.get(_("DB名"), ""),
+            "tblikes": row_data.get(_("表名"), ""),
+            "error": error,
+        }
+
     @classmethod
-    def import_from_excel(cls, user, excel_file) -> dict:
+    def import_from_excel(cls, user, file_path) -> dict:
         """
         从Excel文件导入分区策略
 
         Args:
-            excel_file: Excel文件对象
+            file_path: Excel文件路径
 
         Returns:
             dict: 导入结果
         """
         try:
-            # 使用ExcelHandler解析Excel文件，表头在第2行（索引为1）
-            excel_data = ExcelHandler.paser(excel_file, header_row=1)
+            storage = get_storage(file_overwrite=False)
 
+            with storage.open(file_path, "rb") as f:
+                content = f.read()
+            # 使用ExcelHandler解析Excel文件，表头在第2行（索引为1）
+            from io import BytesIO
+
+            excel_data = ExcelHandler.paser(BytesIO(content), header_row=1)
             if not excel_data:
                 return {
                     "success_count": 0,
@@ -769,7 +788,7 @@ class PartitionHandler(object):
                 return {
                     "success_count": 0,
                     "failed_count": len(excel_data),
-                    "failed_items": [{"row": 0, "error": _("Excel文件缺少必要列: {}").format(", ".join(missing_columns))}],
+                    "failed_items": [cls._build_item(0, {}, _("Excel文件缺少必要列: {}").format(", ".join(missing_columns)))],
                 }
 
             success_count = 0
@@ -832,20 +851,20 @@ class PartitionHandler(object):
                         success_count += 1
                     else:
                         failed_count += 1
-                        failed_items.append({"row": row_num, "error": result.get("message", _("未知错误"))})
+                        failed_items.append(cls._build_item(row_num, row_data, result.get("message")))
                 except ObjectDoesNotExist:
                     failed_count += 1
-                    failed_items.append({"row": row_num, "error": _("集群 {} 不存在").format(row_data[_("集群")])})
+                    failed_items.append(cls._build_item(row_num, row_data, _("集群 {} 不存在").format(row_data[_("集群")])))
                 except Exception as e:
                     failed_count += 1
-                    failed_items.append({"row": row_num, "error": str(e)})
+                    failed_items.append(cls._build_item(row_num, row_data, str(e)))
 
             return {"success_count": success_count, "failed_count": failed_count, "failed_items": failed_items}
         except Exception as e:
             return {
                 "success_count": 0,
                 "failed_count": 0,
-                "failed_items": [{"row": 0, "error": _("Excel文件解析失败: {}").format(str(e))}],
+                "failed_items": [cls._build_item(0, {}, _("Excel文件解析失败: {}").format(str(e)))],
             }
 
     @classmethod
@@ -1078,3 +1097,37 @@ class PartitionHandler(object):
             partition_data = DBPartitionApi.query_conf_v2(params=query_params)
             partition_list = cls.update_log_status_v2(partition_data["items"], status=query_params.get("status"))
             return {"count": partition_data["count"], "results": partition_list}
+
+    @classmethod
+    def upload_import_file(cls, bk_biz_id: int, upload_file) -> Dict[str, Any]:
+        """
+        上传分区导入文件到制品库
+        @param bk_biz_id: 业务ID
+        @param upload_file: 上传的文件对象
+        @return: 文件信息字典，包含file_path, file_content, raw_file_name
+        """
+        import uuid
+
+        storage = get_storage(file_overwrite=False)
+
+        # 构建存储路径
+        upload_path = BKREPO_PARTITION_IMPORT_FILE_PATH.format(biz=bk_biz_id)
+
+        # 生成随机文件名，保留原始扩展名，防止重复
+        _, ext = os.path.splitext(upload_file.name)
+        random_file_name = f"{uuid.uuid4().hex}{ext}"
+
+        # 上传文件到制品库
+        file_path = storage.save(name=os.path.join(upload_path, random_file_name), content=upload_file)
+
+        # 恢复文件指针为文件头，读取文件内容
+        upload_file.seek(0)
+        content_bytes = upload_file.read()
+        # 使用utf-8编码读取文件内容，用于预览
+        file_content = content_bytes.decode("utf-8", errors="replace")
+
+        return {
+            "file_path": file_path,
+            "file_content": file_content,
+            "raw_file_name": upload_file.name,
+        }
