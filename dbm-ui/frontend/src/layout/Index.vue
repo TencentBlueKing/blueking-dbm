@@ -177,6 +177,7 @@
       'PlatformWhitelist',
       'PlatGlobalStrategy',
       'dutyRuleManange',
+      'TodoRemind',
       'PlatformNotificationSetting',
       'passwordManage',
       'PlatformTicketFlowSetting',

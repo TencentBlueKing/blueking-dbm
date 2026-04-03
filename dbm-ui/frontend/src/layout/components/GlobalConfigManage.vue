@@ -165,6 +165,18 @@
               {{ t('单据流程设置') }}
             </span>
           </BkMenuItem>
+          <BkMenuItem
+            key="TodoRemind"
+            v-db-console="'globalConfigManage.todoRemind'">
+            <template #icon>
+              <DbIcon type="note" />
+            </template>
+            <span
+              v-overflow-tips.right
+              class="text-overflow">
+              {{ t('每日待办提醒') }}
+            </span>
+          </BkMenuItem>
           <BkSubmenu
             key="platform-mysql"
             v-db-console="'globalConfigManage.whitelistManage'"
