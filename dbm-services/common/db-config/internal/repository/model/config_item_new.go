@@ -2,6 +2,7 @@ package model
 
 import (
 	"bk-dbconfig/internal/api"
+	"bk-dbconfig/pkg/constvar"
 
 	sqlbuilder "github.com/huandu/go-sqlbuilder"
 	"gorm.io/gorm"
@@ -113,6 +114,9 @@ func GetSimpleConfig(db *gorm.DB, r *api.BaseConfigNode, up *api.UpLevelInfo,
 
 	tx := db.Transaction(func(tx *gorm.DB) error {
 		for levelName, levelValue := range upLevel.LevelInfo {
+			if levelName == constvar.LevelPlat {
+				continue
+			}
 			whereLevel := map[string]interface{}{
 				"namespace":   r.Namespace,
 				"conf_type":   r.ConfType,

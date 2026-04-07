@@ -5,9 +5,9 @@
     "conf_name_validate": 1,
     "conf_value_validate": 1,
     "value_type_strict": 1,
-    "description": "binlog_rotate.yaml",
-    "conf_type_lc": "binlog滚动与备份选项",
-    "conf_file_lc": "binlog_rotate.yaml",
+    "description": "binlog滚动与备份选项",
+    "conf_type_lc": "binlog备份配置",
+    "conf_file_lc": "binlog备份配置",
     "level_names": "plat,app,module,cluster",
     "level_versioned": ""
   },
@@ -163,7 +163,7 @@
     "value_type_strict": 1,
     "description": "",
     "conf_type_lc": "监控配置",
-    "conf_file_lc": "",
+    "conf_file_lc": "mysql-monitor监控项",
     "level_names": "plat,app,module,cluster",
     "level_versioned": ""
   }

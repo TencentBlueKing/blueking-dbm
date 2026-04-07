@@ -175,7 +175,7 @@ func queryEncryptConfNames(decrypt bool, keyPrefix string, db *gorm.DB) ([]*Conf
 	for _, cn := range confNames {
 		decryptValue := ""
 		if decrypt {
-			key := fmt.Sprintf("%s%s", keyPrefix, constvar.BKBizIDForPlat)
+			key := keyPrefix
 			decryptValue, err = crypt.DecryptString(cn.ValueDefault, key, constvar.EncryptEnableZip)
 			if err != nil {
 				fmt.Printf("error %s: %+v\n", err.Error(), cn)
@@ -239,7 +239,7 @@ func queryEncryptConfValues(decrypt bool, keyPrefix string, db *gorm.DB) ([]*Con
 	for _, cn := range confItems {
 		decryptValue := ""
 		if decrypt {
-			key := fmt.Sprintf("%s%s", keyPrefix, cn.LevelValue)
+			key := keyPrefix
 			decryptValue, err = crypt.DecryptString(cn.ConfValue, key, constvar.EncryptEnableZip)
 			if err != nil {
 				fmt.Printf("error %s: %+v\n", err.Error(), cn)

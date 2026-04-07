@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 
 import logging
 
+from django.utils.translation import gettext_lazy as _
 from pipeline.component_framework.component import Component
 
 from backend.components import DBConfigApi
@@ -41,9 +42,9 @@ class DownloadBackupClientService(BaseService):
                 "bk_biz_id": str(bk_biz_id),
                 "level_name": "bk_cloud_id",
                 "level_value": str(bk_cloud_id),
-                "conf_file": "backup_client",
-                "conf_type": "backup",
-                "namespace": "tendbcomm",
+                "conf_file": "cosinfo.toml",
+                "conf_type": "backup_client",
+                "namespace": "common",
                 "format": FormatType.MAP_LEVEL,
             }
         )["content"]
@@ -52,15 +53,14 @@ class DownloadBackupClientService(BaseService):
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        backup_config = self._get_download_config(
-            bk_cloud_id=int(kwargs["bk_cloud_id"]), bk_biz_id=int(kwargs["bk_biz_id"])
-        )
+        bk_biz_id = int(kwargs["bk_biz_id"])
+        bk_cloud_id = int(kwargs["bk_cloud_id"])
+        backup_config = self._get_download_config(bk_cloud_id=bk_cloud_id, bk_biz_id=bk_biz_id)
 
         self.log_info("download and install backup_client receive ips: {}".format(kwargs["download_host_list"]))
         params = {
             "host_list": [
-                {"bk_cloud_id": int(kwargs["bk_cloud_id"]), "bk_biz_id": int(kwargs["bk_biz_id"]), "ip": ip}
-                for ip in kwargs["download_host_list"]
+                {"bk_cloud_id": bk_cloud_id, "bk_biz_id": bk_biz_id, "ip": ip} for ip in kwargs["download_host_list"]
             ],
             "file_tag": "",  # not set tag by client
             "cos_info_render": {
@@ -68,8 +68,19 @@ class DownloadBackupClientService(BaseService):
                 "os_user": kwargs["backup_os_user"],
                 "auth_path_overwrite": True,
             },
-            "default_storage_type": backup_config["default_storage_type"],
         }
+        bucket_name = backup_config["cos_auth"].bucket_name
+        if backup_config["cos_auth"].storage_type in ["cos", "s3", "bkrepo"]:
+            if bucket_name == "" or "{{" in bucket_name:
+                err_msg = _("请先为 bk_biz_id={bk_biz_id},bk_cloud_id={bk_cloud_id} 设置备份 bucket 信息").format(
+                    bk_biz_id=bk_biz_id, bk_cloud_id=bk_cloud_id
+                )
+                self.log_error(err_msg)
+                raise Exception(err_msg)
+            params["cos_info"] = {
+                "cos_auth": backup_config["cos_auth"],
+                "app_attr": {"bk_biz_id": bk_biz_id, "bk_cloud_id": bk_cloud_id},
+            }
 
         MysqlBackupApi.download_backup_client(params=params)
         self.log_info(f"Download and install backup_client successfully {params['host_list']}")

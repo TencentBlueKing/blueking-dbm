@@ -264,24 +264,25 @@ func GetMergedConfig(db *gorm.DB, s *api.BaseConfigNode, upLevelInfo *api.UpLeve
 	if err != nil {
 		return nil, err
 	}
-
-	upConfigs, _ := MergeConfig2(configs, s.LevelName, options.View)
-	confMap := make(map[string]*model.ConfigModel)
-	for _, cg := range upConfigs {
-		confMap[cg.ConfName] = cg
-	}
-	for _, cg := range configs {
-		if cg.LevelName == s.LevelName { // 是自定义的配置，返回它的上级配置
-			if upConfig, ok := confMap[cg.ConfName]; ok {
-				cg.UpLevelValue = map[string]string{
-					"level_name":  upConfig.LevelName,
-					"level_value": upConfig.LevelValue,
-					"conf_value":  upConfig.ConfValue,
+	if s.LevelName != constvar.LevelPlat {
+		upConfigs, _ := MergeConfig2(configs, s.LevelName, options.View)
+		confMap := make(map[string]*model.ConfigModel)
+		for _, cg := range upConfigs {
+			confMap[cg.ConfName] = cg
+		}
+		for _, cg := range configs {
+			if cg.LevelName == s.LevelName { // 是自定义的配置，返回它的上级配置
+				if upConfig, ok := confMap[cg.ConfName]; ok {
+					cg.UpLevelValue = map[string]string{
+						"level_name":  upConfig.LevelName,
+						"level_value": upConfig.LevelValue,
+						"conf_value":  upConfig.ConfValue,
+					}
+				} else {
+					logger.Error("NO UP LEVEL FOUND: conf_name=%s (%s=%s)",
+						cg.ConfName, cg.LevelName, cg.LevelValue)
+					cg.UpLevelValue = make(map[string]string)
 				}
-			} else {
-				logger.Error("NO UP LEVEL FOUND: conf_name=%s (%s=%s)",
-					cg.ConfName, cg.LevelName, cg.LevelValue)
-				cg.UpLevelValue = make(map[string]string)
 			}
 		}
 	}

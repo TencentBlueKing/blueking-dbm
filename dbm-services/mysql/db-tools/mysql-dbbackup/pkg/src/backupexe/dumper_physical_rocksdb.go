@@ -56,7 +56,7 @@ func (p *PhysicalRocksdbDumper) buildArgs() []string {
 
 	args := []string{
 		fmt.Sprintf("--user=%s", p.cnf.Public.MysqlUser),
-		fmt.Sprintf("--password=%s", p.cnf.Public.MysqlPasswd),
+		fmt.Sprintf("--password='%s'", p.cnf.Public.MysqlPasswd),
 		fmt.Sprintf("--host=%s", p.cnf.Public.MysqlHost),
 		fmt.Sprintf("--port=%d", p.cnf.Public.MysqlPort),
 		fmt.Sprintf("--checkpoint_dir=%s", p.checkpointDir),
