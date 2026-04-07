@@ -297,10 +297,13 @@
 
   // 对比字段定义
   const compareFields = [
-    { key: 'conf_name_lc', label: t('参数名') },
+    { key: 'conf_name', label: t('参数名') },
+    { key: 'conf_name_lc', label: t('参数显示名') },
     { key: 'value_type', label: t('数据类型') },
+    { key: 'value_type_sub', label: t('约束类型') },
     { key: 'value_allowed', label: t('允许值') },
     { key: 'value_default', label: t('默认值') },
+    { key: 'description', label: t('描述') },
   ];
 
   const onlyShowChanged = ref(true);
@@ -452,6 +455,10 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
+    }
+
+    :deep(.bk-checkbox ~ .bk-checkbox) {
+      margin-left: 0;
     }
   }
 </style>

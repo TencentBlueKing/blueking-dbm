@@ -53,7 +53,7 @@
         <div class="param-operations mb-16">
           <BkButton
             theme="primary"
-            @click="isShowAddParam = true">
+            @click="handleAddParam">
             {{ t('新增参数') }}
           </BkButton>
         </div>
@@ -62,52 +62,163 @@
             ref="paramTableRef"
             :data-source="paramDataSource"
             fixed-pagination
-            row-key="conf_name">
+            row-key="conf_name"
+            @filter-change="handleFilterChange">
             <TableColumn
               col-key="conf_name"
               :title="t('参数名')"
-              :width="200" />
+              :width="160" />
             <TableColumn
-              col-key="value_default"
-              :title="t('默认值')"
-              :width="150">
+              col-key="conf_name_lc"
+              :title="t('参数显示名')"
+              :width="140">
               <template #default="{ row }">
-                {{ row.value_default ?? '--' }}
+                {{ row.conf_name_lc || '--' }}
               </template>
             </TableColumn>
             <TableColumn
-              col-key="conf_value"
-              :title="t('当前值')"
-              :width="200">
+              col-key="value_type"
+              :filter="valueTypeFilter"
+              :title="t('数据类型')"
+              :width="100">
               <template #default="{ row }">
-                {{ row.conf_value ?? '--' }}
+                <BkTag v-if="row.value_type">
+                  {{ row.value_type }}
+                </BkTag>
+                <span v-else>--</span>
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="value_type_sub"
+              :filter="valueTypeSubFilter"
+              :title="t('约束类型')"
+              :width="100">
+              <template #default="{ row }">
+                <BkTag
+                  v-if="row.value_type_sub"
+                  :theme="valueTypeSubThemeMap[row.value_type_sub] || 'info'">
+                  {{ row.value_type_sub }}
+                </BkTag>
+                <span v-else>--</span>
               </template>
             </TableColumn>
             <TableColumn
               col-key="value_allowed"
               :title="t('约束值')"
-              :width="150">
+              :width="140">
               <template #default="{ row }">
                 {{ row.value_allowed || '--' }}
               </template>
             </TableColumn>
             <TableColumn
-              col-key="description"
-              ellipsis
-              :title="t('描述')"
-              :width="200">
+              col-key="flag_locked"
+              :filter="boolFilter"
+              :width="120">
+              <template #title>
+                <span
+                  v-bk-tooltips="t('生成配置是否将参数写入到配置文件')"
+                  class="column-title-tips">
+                  {{ t('写入配置文件') }}
+                </span>
+              </template>
               <template #default="{ row }">
-                {{ row.description || '--' }}
+                <span :class="row.flag_locked === 1 ? 'bool-icon-yes' : 'bool-icon-no'">
+                  <DbIcon :type="row.flag_locked === 1 ? 'check-line' : 'close'" />
+                </span>
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="flag_disable"
+              :filter="boolFilter"
+              :width="120">
+              <template #title>
+                <span
+                  v-bk-tooltips="t('在业务空间下是否可调整参数值')"
+                  class="column-title-tips">
+                  {{ t('业务可修改') }}
+                </span>
+              </template>
+              <template #default="{ row }">
+                <span :class="row.flag_disable === 0 ? 'bool-icon-yes' : 'bool-icon-no'">
+                  <DbIcon :type="row.flag_disable === 0 ? 'check-line' : 'close'" />
+                </span>
               </template>
             </TableColumn>
             <TableColumn
               col-key="need_restart"
-              :title="t('重启生效')"
+              :filter="boolFilter"
               :width="100">
+              <template #title>
+                <span
+                  v-bk-tooltips="t('修改参数值后是否需要重启进程')"
+                  class="column-title-tips">
+                  {{ t('重启生效') }}
+                </span>
+              </template>
               <template #default="{ row }">
-                <span :class="row.need_restart === 1 ? 'restart-icon-yes' : 'restart-icon-no'">
+                <span :class="row.need_restart === 1 ? 'bool-icon-yes' : 'bool-icon-no'">
                   <DbIcon :type="row.need_restart === 1 ? 'check-line' : 'close'" />
                 </span>
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="extra_info"
+              :filter="boolFilter"
+              :width="80">
+              <template #title>
+                <span
+                  v-bk-tooltips="t('参数值显示为*号')"
+                  class="column-title-tips">
+                  {{ t('值加密') }}
+                </span>
+              </template>
+              <template #default="{ row }">
+                <span :class="row.extra_info === 'encrypt' ? 'bool-icon-yes' : 'bool-icon-no'">
+                  <DbIcon :type="row.extra_info === 'encrypt' ? 'check-line' : 'close'" />
+                </span>
+              </template>
+            </TableColumn>
+            <TableColumn
+              col-key="operation"
+              fixed="right"
+              :title="t('操作')"
+              :width="120">
+              <template #default="{ row }">
+                <BkButton
+                  class="mr-8"
+                  text
+                  theme="primary"
+                  @click="handleEditParam(row)">
+                  {{ t('编辑') }}
+                </BkButton>
+                <BkPopConfirm
+                  :cancel-text="t('取消')"
+                  :confirm-config="{ theme: 'danger' }"
+                  :confirm-text="t('删除')"
+                  :title="t('确认删除该参数？')"
+                  trigger="click"
+                  :width="275"
+                  @confirm="handleDeleteParam(row)">
+                  <template #content>
+                    <div
+                      class="mb-16"
+                      style="line-height: 20px">
+                      <p class="mb-6">
+                        {{ t('参数名称_:_name', { name: row.conf_name }) }}
+                      </p>
+                      <p>
+                        {{ t('删除后，将不可恢复，请谨慎操作！') }}
+                      </p>
+                    </div>
+                  </template>
+                  <span @click.stop>
+                    <BkButton
+                      text
+                      theme="primary">
+                      {{ t('删除') }}
+                    </BkButton>
+                  </span>
+                </BkPopConfirm>
               </template>
             </TableColumn>
           </DbTable>
@@ -115,46 +226,139 @@
       </DbCard>
     </div>
 
-    <!-- 新增参数侧滑 -->
+    <!-- 新增/编辑参数侧滑 -->
     <BkSideslider
       :is-show="isShowAddParam"
       quick-close
-      :title="t('新增参数')"
-      :width="640"
-      @closed="isShowAddParam = false">
+      width="60%"
+      @closed="handleCloseSideslider">
+      <template #header>
+        <span>{{ isEditMode ? t('编辑参数') : t('新建参数') }}</span>
+        <span
+          v-if="isEditMode"
+          class="sideslider-sub-title">
+          {{ addParamForm.conf_name }}
+        </span>
+      </template>
       <div class="add-param-content">
         <BkForm
           ref="addFormRef"
           form-type="vertical"
           :model="addParamForm">
+          <!-- 参数名 + 参数显示名 -->
+          <div class="form-row">
+            <BkFormItem
+              :label="t('参数名')"
+              property="conf_name"
+              required>
+              <BkInput
+                v-model="addParamForm.conf_name"
+                :disabled="isEditMode"
+                :placeholder="t('支持字母、数字及常用符号，不允许使用「`」，最大100字符')" />
+            </BkFormItem>
+            <BkFormItem
+              :label="t('参数显示名')"
+              property="conf_name_lc"
+              required>
+              <BkInput
+                v-model="addParamForm.conf_name_lc"
+                :placeholder="t('请输入显示名')" />
+            </BkFormItem>
+          </div>
+          <!-- 数据类型 + 约束类型 -->
+          <div class="form-row">
+            <BkFormItem
+              :label="t('数据类型')"
+              property="value_type"
+              required>
+              <BkSelect
+                v-model="addParamForm.value_type"
+                :clearable="false"
+                :placeholder="t('请选择')">
+                <BkOption
+                  label="STRING"
+                  value="STRING" />
+                <BkOption
+                  label="INT"
+                  value="INT" />
+                <BkOption
+                  label="FLOAT"
+                  value="FLOAT" />
+              </BkSelect>
+            </BkFormItem>
+            <BkFormItem
+              :label="t('约束类型')"
+              property="value_type_sub"
+              required>
+              <BkSelect
+                v-model="addParamForm.value_type_sub"
+                :clearable="false"
+                :placeholder="t('请选择')">
+                <BkOption
+                  label="RANGE"
+                  value="RANGE" />
+                <BkOption
+                  label="ENUM"
+                  value="ENUM" />
+                <BkOption
+                  label="ENUMS"
+                  value="ENUMS" />
+                <BkOption
+                  label="REGEX"
+                  value="REGEX" />
+                <BkOption
+                  label="JSON"
+                  value="JSON" />
+              </BkSelect>
+            </BkFormItem>
+          </div>
+          <!-- 允许值 -->
           <BkFormItem
-            :label="t('参数名')"
-            property="conf_name"
-            required>
-            <BkSelect
-              v-model="addParamForm.conf_name"
-              :clearable="false"
-              filterable
-              :placeholder="t('请选择参数')">
-              <BkOption
-                v-for="param of availableParams"
-                :key="param.conf_name"
-                :label="param.conf_name"
-                :value="param.conf_name" />
-            </BkSelect>
-          </BkFormItem>
-          <BkFormItem
-            :label="t('参数值')"
-            property="conf_value"
+            :label="t('允许值')"
+            property="value_allowed"
             required>
             <BkInput
-              v-model="addParamForm.conf_value"
-              :placeholder="t('请输入参数值')" />
+              v-model="addParamForm.value_allowed"
+              :placeholder="t('请输入')" />
+            <p class="form-item-tips">{{ t('填写示例') }}：{{ valueAllowedExample }}</p>
           </BkFormItem>
+          <!-- 默认值 -->
+          <BkFormItem
+            :label="t('默认值')"
+            property="value_default"
+            required>
+            <BkInput
+              v-model="addParamForm.value_default"
+              :placeholder="t('请输入')" />
+          </BkFormItem>
+          <!-- 复选框 -->
+          <BkCheckboxGroup
+            :model-value="checkboxGroupValue"
+            @change="handleCheckboxGroupChange">
+            <BkCheckbox label="flag_locked">
+              {{ t('写入配置文件') }}
+              <span class="checkbox-desc">（{{ t('生成配置是否将参数写入到配置文件') }}）</span>
+            </BkCheckbox>
+            <BkCheckbox label="flag_disable_inverse">
+              {{ t('业务可修改') }}
+              <span class="checkbox-desc">（{{ t('在业务空间下是否可调整参数值') }}）</span>
+            </BkCheckbox>
+            <BkCheckbox label="need_restart">
+              {{ t('重启生效') }}
+              <span class="checkbox-desc">（{{ t('修改参数值后是否需要重启进程') }}）</span>
+            </BkCheckbox>
+            <BkCheckbox label="value_encrypt">
+              {{ t('值加密') }}
+              <span class="checkbox-desc">（{{ t('参数值显示为*号') }}）</span>
+            </BkCheckbox>
+          </BkCheckboxGroup>
+          <!-- 描述 -->
           <BkFormItem :label="t('描述')">
             <BkInput
               v-model="addParamForm.description"
-              :placeholder="t('请输入描述')"
+              :maxlength="100"
+              :placeholder="t('请输入参数描述')"
+              show-word-limit
               type="textarea" />
           </BkFormItem>
         </BkForm>
@@ -196,6 +400,8 @@
   } from '@services/source/configs';
 
   import DbTable from '@components/db-table/IndexNew.vue';
+
+  import { messageSuccess } from '@utils';
 
   const route = useRoute();
   const router = useRouter();
@@ -242,9 +448,30 @@
   });
 
   const paramLoading = ref(false);
+  const filterValues = ref<Record<string, string[]>>({});
 
   const paramDataSource = (params: { limit: number; offset: number }) => {
-    const data = allConfItems.value;
+    let data = allConfItems.value;
+
+    // 应用过滤
+    Object.entries(filterValues.value).forEach(([key, values]) => {
+      if (!values || values.length === 0) return;
+      data = data.filter((item: Record<string, any>) => {
+        if (key === 'flag_disable') {
+          // 业务可修改：0=是，1=否
+          return values.includes(item.flag_disable === 0 ? '1' : '0');
+        }
+        if (key === 'extra_info') {
+          // 值加密
+          return values.includes(item.extra_info === 'encrypt' ? '1' : '0');
+        }
+        if (['flag_locked', 'need_restart'].includes(key)) {
+          return values.includes(String(item[key]));
+        }
+        return values.includes(item[key] || '');
+      });
+    });
+
     const start = params.offset;
     const end = start + params.limit;
     return Promise.resolve({
@@ -253,13 +480,94 @@
     });
   };
 
+  // 约束类型 Tag 主题映射
+  type TagTheme = '' | 'danger' | 'info' | 'success' | 'warning';
+  const valueTypeSubThemeMap: Record<string, TagTheme> = {
+    ENUM: 'warning',
+    ENUMS: 'danger',
+    RANGE: 'success',
+    REGEX: 'info',
+  };
+
+  // 数据类型过滤选项
+  const valueTypeFilter = computed(() => ({
+    props: {
+      list: [...new Set(allConfItems.value.map((item) => item.value_type).filter(Boolean))].map((v) => ({
+        label: v!,
+        value: v!,
+      })),
+    },
+    showConfirmAndReset: true,
+    type: 'multiple' as const,
+  }));
+
+  // 约束类型过滤选项
+  const valueTypeSubFilter = computed(() => ({
+    props: {
+      list: [...new Set(allConfItems.value.map((item) => item.value_type_sub).filter(Boolean))].map((v) => ({
+        label: v!,
+        value: v!,
+      })),
+    },
+    showConfirmAndReset: true,
+    type: 'multiple' as const,
+  }));
+
+  // 布尔型过滤选项（是/否）
+  const boolFilter = {
+    props: {
+      list: [
+        { label: t('是'), value: '1' },
+        { label: t('否'), value: '0' },
+      ],
+    },
+    showConfirmAndReset: true,
+    type: 'multiple' as const,
+  };
+
+  const handleFilterChange = (filters: Record<string, string[]>) => {
+    filterValues.value = filters;
+    nextTick(() => paramTableRef.value?.fetchData({}, true));
+  };
+
   // 新增参数
   const isShowAddParam = ref(false);
+  const isEditMode = ref(false);
   const submitLoading = ref(false);
   const addParamForm = reactive({
     conf_name: '',
-    conf_value: '',
+    conf_name_lc: '',
     description: '',
+    flag_disable_inverse: true, // UI 展示反转：勾选=业务可修改 → flag_disable=0
+    flag_locked: false,
+    need_restart: false,
+    value_allowed: '',
+    value_default: '',
+    value_encrypt: false,
+    value_type: '',
+    value_type_sub: '',
+  });
+
+  // CheckboxGroup 双向绑定
+  const checkboxKeys = ['flag_locked', 'flag_disable_inverse', 'need_restart', 'value_encrypt'] as const;
+
+  const checkboxGroupValue = computed(() => checkboxKeys.filter((key) => addParamForm[key]));
+
+  const handleCheckboxGroupChange = (values: string[]) => {
+    checkboxKeys.forEach((key) => {
+      addParamForm[key] = values.includes(key) as never;
+    });
+  };
+
+  // 允许值填写示例
+  const valueAllowedExample = computed(() => {
+    const exampleMap: Record<string, string> = {
+      ENUM: 'ON| OFF',
+      ENUMS: 'TABLE_SCAN,INDEX_SCAN',
+      RANGE: '[1, 1000]',
+      REGEX: '.*',
+    };
+    return exampleMap[addParamForm.value_type_sub] || '--';
   });
   const availableParams = ref<ServiceReturnType<typeof getConfigNames>>([]);
 
@@ -277,6 +585,31 @@
     },
   });
 
+  // 新增参数
+  const handleAddParam = () => {
+    isEditMode.value = false;
+    Object.assign(addParamForm, {
+      conf_name: '',
+      conf_name_lc: '',
+      description: '',
+      flag_disable_inverse: true,
+      flag_locked: false,
+      need_restart: false,
+      value_allowed: '',
+      value_default: '',
+      value_encrypt: false,
+      value_type: '',
+      value_type_sub: '',
+    });
+    isShowAddParam.value = true;
+  };
+
+  // 关闭侧栏
+  const handleCloseSideslider = () => {
+    isShowAddParam.value = false;
+    isEditMode.value = false;
+  };
+
   const handleAddParamConfirm = async () => {
     try {
       await addFormRef.value?.validate();
@@ -289,11 +622,18 @@
       await updatePlatformConfig({
         conf_items: [
           {
-            ...addParamForm,
             conf_name: addParamForm.conf_name,
-            conf_value: addParamForm.conf_value,
+            conf_name_lc: addParamForm.conf_name_lc,
             description: addParamForm.description,
-            op_type: 'add',
+            extra_info: addParamForm.value_encrypt ? 'encrypt' : '',
+            flag_disable: addParamForm.flag_disable_inverse ? 0 : 1,
+            flag_locked: addParamForm.flag_locked ? 1 : 0,
+            need_restart: addParamForm.need_restart ? 1 : 0,
+            op_type: isEditMode.value ? 'update' : 'add',
+            value_allowed: addParamForm.value_allowed,
+            value_default: addParamForm.value_default,
+            value_type: addParamForm.value_type,
+            value_type_sub: addParamForm.value_type_sub,
           } as any,
         ],
         conf_type: confType,
@@ -304,9 +644,8 @@
         version: version,
       });
       isShowAddParam.value = false;
-      addParamForm.conf_name = '';
-      addParamForm.conf_value = '';
-      addParamForm.description = '';
+      messageSuccess(isEditMode.value ? t('编辑成功') : t('新增成功'));
+      isEditMode.value = false;
       fetchDetail({
         conf_type: confType,
         meta_cluster_type: clusterType,
@@ -315,6 +654,51 @@
     } finally {
       submitLoading.value = false;
     }
+  };
+
+  // 编辑参数
+  const handleEditParam = (row: DetailResult['conf_items'][number]) => {
+    isEditMode.value = true;
+    Object.assign(addParamForm, {
+      conf_name: row.conf_name,
+      conf_name_lc: row.conf_name_lc ?? '',
+      description: row.description,
+      flag_disable_inverse: row.flag_disable === 0,
+      flag_locked: row.flag_locked === 1,
+      need_restart: row.need_restart === 1,
+      value_allowed: row.value_allowed ?? '',
+      value_default: row.value_default ?? '',
+      value_encrypt: row.extra_info === 'encrypt',
+      value_type: row.value_type ?? '',
+      value_type_sub: row.value_type_sub ?? '',
+    });
+    isShowAddParam.value = true;
+  };
+
+  // 删除参数
+  const handleDeleteParam = async (row: DetailResult['conf_items'][number]) => {
+    await updatePlatformConfig({
+      conf_items: [
+        {
+          conf_name: row.conf_name,
+          conf_value: row.conf_value ?? '',
+          description: row.description,
+          op_type: 'remove',
+        } as any,
+      ],
+      conf_type: confType,
+      confirm: 0,
+      description: '',
+      meta_cluster_type: clusterType,
+      name: detailData.value.name || '',
+      version: version,
+    });
+    messageSuccess(t('删除成功'));
+    fetchDetail({
+      conf_type: confType,
+      meta_cluster_type: clusterType,
+      version: version,
+    });
   };
 
   defineExpose({
@@ -383,12 +767,69 @@
     gap: 8px;
   }
 
-  .add-param-content {
-    padding: 24px;
+  .column-title-tips {
+    cursor: help;
+    border-bottom: 1px dashed #979ba5;
   }
 
-  .restart-icon-yes,
-  .restart-icon-no {
+  .add-param-content {
+    padding: 24px;
+
+    .form-row {
+      display: flex;
+      gap: 16px;
+
+      :deep(.bk-form-item) {
+        flex: 1;
+      }
+    }
+
+    .form-item-tips {
+      margin-top: 4px;
+      font-size: 12px;
+      line-height: 20px;
+      color: #979ba5;
+    }
+
+    :deep(.bk-checkbox-group) {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    :deep(.bk-checkbox ~ .bk-checkbox) {
+      margin-left: 0;
+    }
+
+    .checkbox-desc {
+      font-size: 12px;
+      color: #979ba5;
+    }
+  }
+
+  .sideslider-sub-title {
+    position: relative;
+    padding-left: 8px;
+    margin-left: 8px;
+    font-size: 12px;
+    font-weight: normal;
+    color: #979ba5;
+
+    &::before {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 1px;
+      height: 14px;
+      content: '';
+      background: #dcdee5;
+      transform: translateY(-50%);
+    }
+  }
+
+  .bool-icon-yes,
+  .bool-icon-no {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -397,13 +838,13 @@
     border-radius: 50%;
   }
 
-  .restart-icon-yes {
+  .bool-icon-yes {
     font-size: 12px;
     color: #65c389;
     background: #ebfaf0;
   }
 
-  .restart-icon-no {
+  .bool-icon-no {
     font-size: 16px;
     color: #ff5656;
     background: #ffebeb;
