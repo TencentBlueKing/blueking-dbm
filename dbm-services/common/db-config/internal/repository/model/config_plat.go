@@ -31,7 +31,7 @@ func ConfigNamesBatchUpdate(db *gorm.DB, confNames []*ConfigNameDefModel, opUser
 
 			cnDef, err := CacheGetConfigNameDef(c.Namespace, c.ConfType, c.ConfFile, c.ConfName)
 			if err == nil && cnDef.FlagEncrypt == 1 {
-				key := fmt.Sprintf("%s%s", config.GetString("encrypt.keyPrefix"), constvar.BKBizIDForPlat)
+				key := config.GetString("encrypt.keyPrefix")
 				c.ValueDefault, _ = crypt.EncryptString(c.ValueDefault, key, constvar.EncryptEnableZip)
 			}
 			if err1 := tx.Debug().Select(

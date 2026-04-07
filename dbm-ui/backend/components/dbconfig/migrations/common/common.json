@@ -18,9 +18,9 @@
     "conf_value_validate": 1,
     "value_type_strict": 1,
     "description": "备份客户端",
-    "conf_type_lc": "",
-    "conf_file_lc": "backup base config",
-    "level_names": "plat,app",
+    "conf_type_lc": "backup_client配置",
+    "conf_file_lc": "backup_client配置",
+    "level_names": "plat,app,bk_cloud_id",
     "level_versioned": ""
   },
   {
@@ -30,9 +30,9 @@
     "conf_value_validate": 1,
     "value_type_strict": 1,
     "description": "备份客户端",
-    "conf_type_lc": "",
-    "conf_file_lc": "backup auth config",
-    "level_names": "plat,app",
+    "conf_type_lc": "backup_client配置",
+    "conf_file_lc": "backup_client配置",
+    "level_names": "plat,app,bk_cloud_id",
     "level_versioned": ""
   },
   {

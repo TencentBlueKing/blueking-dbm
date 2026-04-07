@@ -73,7 +73,7 @@ func (c *ConfigModel) HandleFlagEncrypt() error {
 	}
 	nameDef, err := CacheGetConfigNameDef(c.Namespace, c.ConfType, c.ConfFile, c.ConfName)
 	if err == nil && nameDef.FlagEncrypt == 1 {
-		key := fmt.Sprintf("%s%s", config.GetString("encrypt.keyPrefix"), c.LevelValue)
+		key := config.GetString("encrypt.keyPrefix")
 		c.ConfValue, err = crypt.EncryptString(c.ConfValue, key, constvar.EncryptEnableZip)
 		if err != nil {
 			logger.Errorf("HandleFlagEncrypt %+v. Error: %w", c, err)
@@ -92,7 +92,7 @@ func (c *ConfigModel) MayDecrypt() error {
 	}
 	var err error
 	// 确实是已加密字符串，可以不用去 tb_config_name_def 里面获取 flag_encrypt
-	key := fmt.Sprintf("%s%s", config.GetString("encrypt.keyPrefix"), c.LevelValue)
+	key := config.GetString("encrypt.keyPrefix")
 	c.ConfValue, err = crypt.DecryptString(c.ConfValue, key, constvar.EncryptEnableZip)
 	if err != nil {
 		logger.Errorf("MayDecrypt %+v. Error: %w", c, err)

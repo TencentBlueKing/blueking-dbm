@@ -54,7 +54,7 @@ func (p *PhysicalTokudbDumper) buildArgs() []string {
 	// p.backupTargetPath is initialized in initConfig
 	args := []string{
 		fmt.Sprintf("-u%s", p.cnf.Public.MysqlUser),
-		fmt.Sprintf("-p%s", p.cnf.Public.MysqlPasswd),
+		fmt.Sprintf("-p'%s'", p.cnf.Public.MysqlPasswd),
 		fmt.Sprintf("-h%s", p.cnf.Public.MysqlHost),
 		fmt.Sprintf("-P%d", p.cnf.Public.MysqlPort),
 		fmt.Sprintf("--flush-wait-timeout=%d", p.flushWaitTimeout),

@@ -21,7 +21,7 @@ func QueryConfItemChanges(req *api.ConfItemChangesQueryReq) (resp []*api.ConfIte
 			ConfType:  change.ConfType,
 			ConfFile:  change.ConfFile,
 		}
-		if fileModel, err := model.CacheGetConfigFile(baseFile); err == nil {
+		if fileModel, err := model.CacheGetConfigFile(baseFile); err == nil && fileModel != nil {
 			baseFileDesc = api.ConfigFileDesc{
 				ConfFileLC: fileModel.ConfFileLC,
 				ConfTypeLC: fileModel.ConfTypeLC,

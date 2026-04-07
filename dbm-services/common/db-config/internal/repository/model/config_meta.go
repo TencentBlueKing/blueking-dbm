@@ -1,8 +1,6 @@
 package model
 
 import (
-	"fmt"
-
 	"bk-dbconfig/pkg/core/config"
 	"bk-dbconfig/pkg/util"
 
@@ -35,7 +33,7 @@ func QueryConfigNames(namespace, confType, confFile, confName string) ([]*Config
 			return nil, err
 		}
 	}
-	key := fmt.Sprintf("%s%s", config.GetString("encrypt.keyPrefix"), constvar.BKBizIDForPlat)
+	key := config.GetString("encrypt.keyPrefix")
 	for _, cn := range confNames {
 		cn.ValueDefault, err = crypt.DecryptString(cn.ValueDefault, key, constvar.EncryptEnableZip)
 		if err != nil {
@@ -70,7 +68,7 @@ func QueryConfigNamesPlat(namespace, confType, confFile, confName string) ([]*Co
 			return nil, err
 		}
 	}
-	key := fmt.Sprintf("%s%s", config.GetString("encrypt.keyPrefix"), constvar.BKBizIDForPlat)
+	key := config.GetString("encrypt.keyPrefix")
 	for _, cn := range confNames {
 		cn.ValueDefault, err = crypt.DecryptString(cn.ValueDefault, key, constvar.EncryptEnableZip)
 		if err != nil {
