@@ -180,14 +180,16 @@
         :width="320"
         @confirm="() => handleConfirm()">
         <BkButton
-          :loading="isLoading"
+          :disabled="isdeleteLoading"
+          :loading="isConfirmLoading"
           theme="primary">
           {{ t('确定') }}
         </BkButton>
       </BkPopConfirm>
       <BkButton
         v-else
-        :loading="isLoading"
+        :disabled="isdeleteLoading"
+        :loading="isConfirmLoading"
         theme="primary"
         @click="handleConfirm">
         {{ t('确定') }}
@@ -196,6 +198,8 @@
         v-if="data.isCustom && isCustomEdit"
         action-id="monitor_policy_edit"
         class="ml-8"
+        :disabled="isConfirmLoading"
+        :loading="isdeleteLoading"
         outline
         :permission="data.permission.monitor_policy_edit"
         :resource="data.id"
@@ -205,7 +209,7 @@
       </AuthButton>
       <BkButton
         class="ml-8"
-        :disabled="isLoading"
+        :disabled="isConfirmLoading || isdeleteLoading"
         @click="handleClose">
         {{ t('取消') }}
       </BkButton>
@@ -215,6 +219,7 @@
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
+  import dayjs from 'dayjs';
   import _ from 'lodash';
   import { computed, type UnwrapRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
@@ -222,7 +227,7 @@
   import { useRequest } from 'vue-request';
 
   import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
-  import { clonePolicy, deletePolicy, updatePolicy } from '@services/source/monitor';
+  import { clonePolicy, deletePolicy, queryMonitorPolicyList, updatePolicy } from '@services/source/monitor';
 
   import { useGlobalBizs } from '@stores';
 
@@ -297,7 +302,7 @@
     testRules: [] as ComponentProps<typeof TestRules>['rules'],
   });
 
-  const isLoading = computed(() => updateLoading.value || cloneLoading.value);
+  const isConfirmLoading = computed(() => updateLoading.value || cloneLoading.value || isPrecheckLoading.value);
   const isMonitorTargetsShow = computed(() => props.data.isChild || isChildNew.value);
   const isInnerClone = computed(() => props.data.isInnerReal && props.pageStatus === 'clone');
   const isInnerEdit = computed(() => props.data.isInnerFake && props.pageStatus === 'edit');
@@ -422,6 +427,10 @@
     ],
   };
 
+  const { loading: isPrecheckLoading, runAsync: runQueryGlobalMonitorPolicy } = useRequest(queryMonitorPolicyList, {
+    manual: true,
+  });
+
   const { loading: cloneLoading, run: runClonePolicy } = useRequest(clonePolicy, {
     manual: true,
     onSuccess: (cloneResponse) => {
@@ -444,7 +453,7 @@
     },
   });
 
-  const { run: runDeletePolicy } = useRequest(deletePolicy, {
+  const { loading: isdeleteLoading, run: runDeletePolicy } = useRequest(deletePolicy, {
     manual: true,
     onSuccess: (isDeleted) => {
       if (isDeleted === null) {
@@ -613,6 +622,35 @@
 
   // 点击确定
   const handleConfirm = async () => {
+    // 预检测对应全局策略的最新数据，对比更新时间
+    const globalRes = await runQueryGlobalMonitorPolicy({
+      bk_biz_id: 0,
+      db_type: props.dbType,
+      id: props.data.isInnerReal ? props.data.id : props.data.parent_id,
+      limit: -1,
+      offset: 0,
+    });
+
+    const getGlobalPolicyList = globalRes.results;
+    if (getGlobalPolicyList.length > 0) {
+      const [globalPolicy] = getGlobalPolicyList;
+      const updateAt = dayjs(
+        props.data.isInnerReal ? props.data.update_at : props.appParentInfoMap[props.data.id].update_at,
+      );
+      if (dayjs(globalPolicy.update_at).isAfter(updateAt)) {
+        InfoBox({
+          confirmText: t('刷新页面'),
+          infoType: 'warning',
+          onConfirm: () => {
+            window.location.reload();
+          },
+          subTitle: t('全局策略已变更，当前页面数据已过期，请刷新后重试。'),
+          title: '',
+        });
+        return;
+      }
+    }
+
     await formRef.value.validate();
 
     const { aggInfo, detectsConfig, notifyConfig, testRules } = getConfirmValue();
@@ -680,6 +718,16 @@
       targets,
       test_rules: testRules,
     };
+
+    if (props.data.isInnerReal) {
+      Object.assign(reqParams, {
+        get_data_time: props.data.update_at,
+      });
+    } else if (props.data.isInnerFake || isCustomEdit.value) {
+      Object.assign(reqParams, {
+        get_data_time: props.appParentInfoMap[props.data.id].update_at,
+      });
+    }
 
     if (['clone', 'new'].includes(props.pageStatus)) {
       // 克隆额外参数

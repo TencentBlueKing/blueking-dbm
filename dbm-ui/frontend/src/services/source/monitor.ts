@@ -23,6 +23,7 @@ interface UpdatePolicyParams {
   agg_info: MonitorPolicyModel['agg_info'];
   custom_conditions: MonitorPolicyModel['custom_conditions'];
   detects_config: MonitorPolicyModel['detects_config'];
+  get_data_time?: string;
   is_enabled: boolean;
   no_data_config: MonitorPolicyModel['no_data_config'];
   notify_config: MonitorPolicyModel['notify_config'];
@@ -94,6 +95,7 @@ export const queryMonitorPolicyList = (
   params: {
     bk_biz_id?: number;
     db_type?: string;
+    id?: number;
     limit?: number;
     name?: string;
     notify_groups?: string;
@@ -147,7 +149,8 @@ export const clonePolicy = (
 export const enablePolicy = (params: { id: number }) => http.post<boolean>(`${path}/policy/${params.id}/enable/`);
 
 // 停用策略
-export const disablePolicy = (params: { id: number }) => http.post<boolean>(`${path}/policy/${params.id}/disable/`);
+export const disablePolicy = (params: { get_data_time?: string; id: number }) =>
+  http.post<boolean>(`${path}/policy/${params.id}/disable/`);
 
 // 恢复默认策略
 export const resetPolicy = (params: { id: number }) => http.post<void>(`${path}/policy/${params.id}/reset`);
