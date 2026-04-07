@@ -206,7 +206,7 @@
                     :is-show="showTipMap[row.id]"
                     placement="bottom"
                     :title="getEnablePopConfirmInfo(row).title"
-                    trigger="click"
+                    trigger="manual"
                     :width="320"
                     @cancel="() => handleCancelConfirm(row)"
                     @confirm="() => handleClickConfirm(row)">
@@ -577,6 +577,13 @@
     },
   });
 
+  const { loading: isGlobalMonitorPolicyLoading, runAsync: runGetGlobalMonitorPolicy } = useRequest(
+    queryMonitorPolicyList,
+    {
+      manual: true,
+    },
+  );
+
   const { loading: isEnableLoading, run: runEnablePolicy } = useRequest(enablePolicy, {
     manual: true,
     onSuccess: (isEnabled) => {
@@ -935,9 +942,41 @@
 
   // getEnablePopConfirmInfo 中的 case
   const handleChangeSwitchPopConfirm = (row: MonitorPolicyModel) => {
-    showTipMap.value[row.id] = true;
     Object.assign(row, {
       is_enabled: !row.is_enabled,
+    });
+
+    if (isGlobalMonitorPolicyLoading.value) {
+      return;
+    }
+
+    // 预检测对应全局策略的最新数据，对比更新时间
+    runGetGlobalMonitorPolicy({
+      bk_biz_id: 0,
+      db_type: props.dbType,
+      id: row.isInnerReal ? row.id : row.parent_id,
+      limit: -1,
+      offset: 0,
+    }).then((res) => {
+      const getGlobalPolicyList = res.results;
+      if (getGlobalPolicyList.length > 0) {
+        const [globalPolicy] = getGlobalPolicyList;
+        const updateAt = dayjs(row.isInnerReal ? row.update_at : appParentInfoMap.value[row.id].update_at);
+        if (dayjs(globalPolicy.update_at).isAfter(updateAt)) {
+          InfoBox({
+            confirmText: t('刷新页面'),
+            infoType: 'warning',
+            onConfirm: () => {
+              window.location.reload();
+            },
+            subTitle: t('全局策略已变更，当前页面数据已过期，请刷新后重试。'),
+            title: '',
+          });
+          return;
+        }
+      }
+
+      showTipMap.value[row.id] = true;
     });
   };
 
@@ -955,6 +994,7 @@
           agg_info: row.agg_info,
           custom_conditions: row.custom_conditions,
           detects_config: row.detects_config,
+          get_data_time: appParentInfoMap.value[row.id].update_at,
           is_enabled: true,
           no_data_config: row.no_data_config,
           notify_config: row.notify_config,
@@ -971,6 +1011,7 @@
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           custom_conditions: row.custom_conditions,
           detects_config: row.detects_config,
+          get_data_time: row.update_at,
           is_enabled: true,
           name: `${row.name} - 【${currentBizInfo?.name}】`,
           no_data_config: row.no_data_config,
@@ -994,7 +1035,7 @@
       }
     } else if (row.isCustom) {
       // 全局已禁用，停用当前策略（已是自定义）
-      runDisablePolicy({ id: row.id });
+      runDisablePolicy({ get_data_time: appParentInfoMap.value[row.id].update_at, id: row.id });
     }
     showTipMap.value[row.id] = false;
   };
@@ -1012,13 +1053,52 @@
     }
   };
 
-  const handleOpenSlider = (row: MonitorPolicyModel, type: UnwrapRef<typeof pageStatus>) => {
+  const handleOpenSliderCallback = (row: MonitorPolicyModel, type: UnwrapRef<typeof pageStatus>) => {
     existedNames.value = tableOriginalData.value!.results.flatMap((item) =>
       [item.name].concat(item.child.map((childItem) => childItem.name)),
     );
     pageStatus.value = type;
     currentChoosedRow.value = row;
     isShowEditStrrategySideSilder.value = true;
+  };
+
+  const handleOpenSlider = (row: MonitorPolicyModel, type: UnwrapRef<typeof pageStatus>) => {
+    if (isGlobalMonitorPolicyLoading.value) {
+      return;
+    }
+
+    if (row.isInnerReal || row.isInnerFake || (row.isCustom && type === 'edit')) {
+      // 预检测对应全局策略的最新数据，对比更新时间
+      runGetGlobalMonitorPolicy({
+        bk_biz_id: 0,
+        db_type: props.dbType,
+        id: row.isInnerReal ? row.id : row.parent_id,
+        limit: -1,
+        offset: 0,
+      }).then((res) => {
+        const getGlobalPolicyList = res.results;
+        if (getGlobalPolicyList.length > 0) {
+          const [globalPolicy] = getGlobalPolicyList;
+          const updateAt = dayjs(row.isInnerReal ? row.update_at : appParentInfoMap.value[row.id].update_at);
+          if (dayjs(globalPolicy.update_at).isAfter(updateAt)) {
+            InfoBox({
+              confirmText: t('刷新页面'),
+              infoType: 'warning',
+              onConfirm: () => {
+                window.location.reload();
+              },
+              subTitle: t('全局策略已变更，当前页面数据已过期，请刷新后重试。'),
+              title: '',
+            });
+            return;
+          }
+        }
+
+        handleOpenSliderCallback(row, type);
+      });
+    } else {
+      handleOpenSliderCallback(row, type);
+    }
   };
 
   const handleUpdatePolicySuccess = () => {
