@@ -352,10 +352,10 @@
                 </div>
                 {props.type !== ResourcePool.public && (
                   <auth-button
-                    onClick={() => handleEdit(data)}
                     action-id='resource_pool_manage'
                     permission={data.permission.resource_pool_manage}
-                    text>
+                    text
+                    onClick={() => handleEdit(data)}>
                     <DbIcon
                       class='operation-icon'
                       type='edit'
@@ -435,7 +435,7 @@
       width: 120,
     },
     {
-      field: 'updateAtDisplay',
+      field: 'createTimeDisplay',
       label: t('转入时间'),
       width: 180,
     },
