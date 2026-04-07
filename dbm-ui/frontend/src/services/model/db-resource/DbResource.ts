@@ -116,6 +116,10 @@ export default class DbResource {
     return (this.bk_mem / 1024).toFixed(2);
   }
 
+  get createTimeDisplay() {
+    return utcDisplayTime(this.create_time) || '--';
+  }
+
   get forBizDisplay() {
     if (this.for_biz.bk_biz_id === 0 || !this.for_biz.bk_biz_name) {
       return t('公共资源池');
