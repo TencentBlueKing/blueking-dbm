@@ -1014,7 +1014,7 @@ class MonitorPolicy(AuditedModel):
 
         # step1. sync to model
         # 启停操作(["is_enabled"]) -> 跳过重复的patch
-        details = self.details if update_fields == ["is_enabled"] else self.patch_all()
+        details = self.details if update_fields == ["is_enabled", "update_at"] else self.patch_all()
 
         # step2. sync to bkm
         res = bkm_save_alarm_strategy(details)
@@ -1045,6 +1045,8 @@ class MonitorPolicy(AuditedModel):
                     sub_policy.detects_config = self.detects_config
                     sub_policy.notify_rules = self.notify_rules
                     sub_policy.notify_config = self.notify_config
+                    sub_policy.is_enabled = self.is_enabled
+                    sub_policy.details.update(is_enabled=self.is_enabled)
                     old_agg_info = sub_policy.agg_info
                     for info in old_agg_info:
                         info["agg_interval"] = agg_interval_map[info["metric_id"]]
@@ -1078,7 +1080,7 @@ class MonitorPolicy(AuditedModel):
         """
         self.is_enabled = True
         self.details.update(is_enabled=self.is_enabled)
-        self.save(update_fields=["is_enabled"])
+        self.save(update_fields=["is_enabled", "update_at"])
 
         return self.is_enabled
 
@@ -1086,7 +1088,7 @@ class MonitorPolicy(AuditedModel):
         """禁用：is_enabled:false -> save"""
         self.is_enabled = False
         self.details.update(is_enabled=self.is_enabled)
-        self.save(update_fields=["is_enabled"])
+        self.save(update_fields=["is_enabled", "update_at"])
 
         return self.is_enabled
 
@@ -1094,11 +1096,15 @@ class MonitorPolicy(AuditedModel):
     def clone(cls, params, username="system") -> dict:
         """克隆：patch -> create"""
 
+        get_data_time = params.pop("get_data_time", None)
         # params -> model
         policy = cls(**params)
 
         # transfer details from parent to self
         parent = cls.objects.get(id=policy.parent_id)
+        if get_data_time:
+            if parent.update_at.replace(microsecond=0) > get_data_time.replace(microsecond=0):
+                raise ApiError(_("全局策略已变更，当前页面数据已过期，请刷新后重试"))
 
         policy.parent_details = copy.deepcopy(parent.details)
         policy.db_type = parent.db_type
@@ -1150,6 +1156,11 @@ class MonitorPolicy(AuditedModel):
         if "is_enabled" in params:
             self.is_enabled = params["is_enabled"]
             self.details.update(is_enabled=params["is_enabled"])
+
+        if "get_data_time" in params:
+            parent = MonitorPolicy.objects.get(id=self.parent_id)
+            if parent.update_at.replace(microsecond=0) > params["get_data_time"].replace(microsecond=0):
+                raise ApiError(_("全局策略已变更，当前页面数据已过期，请刷新后重试"))
 
         # update -> overwrite details
         self.creator = self.updater = username

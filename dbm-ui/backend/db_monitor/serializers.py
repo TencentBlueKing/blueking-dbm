@@ -241,6 +241,7 @@ class MonitorPolicyUpdateSerializer(AuditedSerializer, serializers.ModelSerializ
     )
     notify_groups = serializers.ListField(child=serializers.IntegerField(), allow_empty=True)
     name = serializers.CharField(help_text=_("策略名称"), required=False)
+    get_data_time = serializers.DateTimeField(help_text=_("获取到数据的时间"), required=False)
 
     class Meta:
         model = MonitorPolicy
@@ -257,6 +258,7 @@ class MonitorPolicyUpdateSerializer(AuditedSerializer, serializers.ModelSerializ
             "no_data_config",
             "notify_config",
             "agg_info",
+            "get_data_time",
         ]
 
 
@@ -303,6 +305,7 @@ class MonitorPolicyCloneSerializer(MonitorPolicyUpdateSerializer):
             "no_data_config",
             "notify_config",
             "agg_info",
+            "get_data_time",
         ]
 
 
