@@ -8,14 +8,18 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
 import logging
+import os
+from datetime import datetime
 
+from django.db import transaction
 from django.utils.translation import gettext as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
-from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceInnerRole
-from backend.db_meta.models import Cluster
+from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, ClusterType, InstanceInnerRole
+from backend.db_meta.models import Cluster, ClusterEntry
 from backend.db_meta.models.cluster_entry import CLBEntryDetail, PolarisEntryDetail
 from backend.db_meta.models.storage_set_dtl import NosqlStorageSetDtl
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum
@@ -23,20 +27,30 @@ from backend.flow.utils.base.payload_handler import PayloadHandler
 
 logger = logging.getLogger("root")
 
+# 支持的集群类型集合
+_TWEMPROXY_CLUSTER_TYPES = (
+    ClusterType.TendisTwemproxyRedisInstance.value,
+    ClusterType.TwemproxyTendisSSDInstance.value,
+)
+_TENDISPLUS_CLUSTER_TYPES = (ClusterType.TendisPredixyTendisplusCluster.value,)
+_ALL_SUPPORTED_CLUSTER_TYPES = _TWEMPROXY_CLUSTER_TYPES + _TENDISPLUS_CLUSTER_TYPES
 
-def export_twemproxy_cluster(cluster_id: int) -> dict:
+
+def export_redis_cluster(cluster_id: int, slim: bool = False) -> dict:
     """
-    导出 TendisTwemproxyRedisInstance / TwemproxyTendisSSDInstance 集群元数据。
+    导出 Redis 系列集群（Twemproxy / Tendisplus）元数据，自动根据集群类型处理差异。
 
-    返回格式示例:
+    支持的集群类型：
+      - TendisTwemproxyRedisInstance
+      - TwemproxyTendisSSDInstance
+      - TendisPredixyTendisplusCluster
+
+    返回格式示例（Twemproxy 系列）:
     {
-      "proxies": [
-        {"spec_id": 78, "ip": "1.2.3.4", "port": 50000},
-        ...
-      ],
+      "proxies": [{"spec_id": 78, "ip": "1.2.3.4", "port": 50000}, ...],
       "backends": [
         {
-          "shard": "0-52499",
+          "shard": "0-52499",          # Tendisplus 集群无此字段
           "nodes": {
             "master": {"spec_id": 77, "ip": "1.1.1.1", "port": 30000},
             "slave":  {"spec_id": 77, "ip": "1.1.1.2", "port": 30000}
@@ -44,17 +58,19 @@ def export_twemproxy_cluster(cluster_id: int) -> dict:
         },
         ...
       ],
-      "entry": {
-        "clb": {},
-        "polairs": {}
+      "entry": {"clb": {}, "polairs": {}},
+      "passwords": {                   # slim=True 时存在，包含密码信息
+        "redis_password": "xxx",
+        "redis_proxy_password": "xxx",
+        "redis_proxy_admin_password": "xxx"
       },
-      "proxy_config":  {},
-      "redis_config":  {},
-      "backup_config": {},
+      "proxy_config":  {},             # slim=True 时不存在
+      "redis_config":  {},             # slim=True 时不存在
+      "backup_config": {},             # slim=True 时不存在
       "clusterinfo": {
         "name":          "xxx",
         "immute_domain": "xxx.db",
-        "nodes_domain":  "",
+        "nodes_domain":  "",           # Tendisplus 集群为 "nodes.xxx.db"
         "alias":         "xxx",
         "cluster_type":  "TwemproxyRedisInstance",
         "db_version":    "Redis-2",
@@ -64,39 +80,45 @@ def export_twemproxy_cluster(cluster_id: int) -> dict:
         "create_at":     "2014-03-26T10:34:21+08:00"
       }
     }
+
+    :param cluster_id: 集群 ID
+    :param slim:       精简模式，True 时去掉 proxy_config/redis_config/backup_config，
+                       密码单独放到顶层 passwords 字段
     """
     cluster = Cluster.objects.get(id=cluster_id)
+    logger.info(_("export_redis_cluster: 开始导出集群 {} (id={})").format(cluster.immute_domain, cluster_id))
 
-    # 仅支持 Twemproxy 系列集群
-    if cluster.cluster_type not in (
-        ClusterType.TendisTwemproxyRedisInstance.value,
-        ClusterType.TwemproxyTendisSSDInstance.value,
-    ):
+    if cluster.cluster_type not in _ALL_SUPPORTED_CLUSTER_TYPES:
         raise ValueError(
-            _(
-                "export_twemproxy_cluster 仅支持 TendisTwemproxyRedisInstance / TwemproxyTendisSSDInstance，" "当前集群类型: {}"
-            ).format(cluster.cluster_type)
+            _("export_redis_cluster 不支持当前集群类型: {}，仅支持: {}").format(
+                cluster.cluster_type, ", ".join(_ALL_SUPPORTED_CLUSTER_TYPES)
+            )
         )
+
+    is_tendisplus = cluster.cluster_type in _TENDISPLUS_CLUSTER_TYPES
 
     # ── 1. 导出 proxies ──────────────────────────────────────────────────────
-    proxies = []
-    for proxy in cluster.proxyinstance_set.select_related("machine").order_by("machine__ip", "port"):
-        proxies.append(
-            {
-                "spec_id": proxy.machine.spec_id,
-                "ip": proxy.machine.ip,
-                "port": proxy.port,
-            }
-        )
+    proxies = [
+        {
+            "spec_id": proxy.machine.spec_id,
+            "spec_config": proxy.machine.spec_config,
+            "ip": proxy.machine.ip,
+            "port": proxy.port,
+        }
+        for proxy in cluster.proxyinstance_set.select_related("machine").order_by("machine__ip", "port")
+    ]
 
-    # ── 2. 导出 backends（按分片规则组织 master/slave 对）────────────────────
-    # 从 NosqlStorageSetDtl 获取 master 实例与分片范围的映射
-    shard_dtl_map = {
-        dtl.instance_id: dtl.seg_range
-        for dtl in NosqlStorageSetDtl.objects.filter(cluster=cluster).select_related("instance")
-    }
+    # ── 2. 导出 backends ─────────────────────────────────────────────────────
+    # Twemproxy 系列：从 NosqlStorageSetDtl 获取分片范围
+    # Tendisplus 系列：直接按 master/slave 角色遍历，无分片范围
+    if is_tendisplus:
+        shard_dtl_map = {}
+    else:
+        shard_dtl_map = {
+            dtl.instance_id: dtl.seg_range
+            for dtl in NosqlStorageSetDtl.objects.filter(cluster=cluster).select_related("instance")
+        }
 
-    # 获取集群内所有 master 实例
     master_instances = (
         cluster.storageinstance_set.select_related("machine")
         .filter(instance_inner_role=InstanceInnerRole.MASTER.value)
@@ -105,32 +127,32 @@ def export_twemproxy_cluster(cluster_id: int) -> dict:
 
     backends = []
     for master in master_instances:
-        seg_range = shard_dtl_map.get(master.id, "")
-
-        # 通过主从关系表找到对应的 slave
         slave_tuple = master.as_ejector.select_related("receiver__machine").first()
         if slave_tuple is None:
-            logger.warning("master {}:{} 没有对应的 slave，跳过".format(master.machine.ip, master.port))
+            logger.warning(_("master {}:{} 没有对应的 slave，跳过").format(master.machine.ip, master.port))
             continue
 
         slave = slave_tuple.receiver
-        backends.append(
-            {
-                "shard": seg_range,
-                "nodes": {
-                    "master": {
-                        "spec_id": master.machine.spec_id,
-                        "ip": master.machine.ip,
-                        "port": master.port,
-                    },
-                    "slave": {
-                        "spec_id": slave.machine.spec_id,
-                        "ip": slave.machine.ip,
-                        "port": slave.port,
-                    },
+        backend = {
+            "nodes": {
+                "master": {
+                    "spec_id": master.machine.spec_id,
+                    "spec_config": master.machine.spec_config,
+                    "ip": master.machine.ip,
+                    "port": master.port,
+                },
+                "slave": {
+                    "spec_id": slave.machine.spec_id,
+                    "spec_config": slave.machine.spec_config,
+                    "ip": slave.machine.ip,
+                    "port": slave.port,
                 },
             }
-        )
+        }
+        # Twemproxy 系列补充分片范围
+        if not is_tendisplus:
+            backend["shard"] = shard_dtl_map.get(master.id, "")
+        backends.append(backend)
 
     # ── 3. 导出访问入口（CLB / Polaris）────────────────────────────────────
     clb_info = {}
@@ -140,10 +162,7 @@ def export_twemproxy_cluster(cluster_id: int) -> dict:
         if cluster_entry.cluster_entry_type == ClusterEntryType.CLB.value:
             detail_obj = CLBEntryDetail.objects.filter(entry=cluster_entry).first()
             if detail_obj:
-                # 查找关联的 CLB DNS 入口
-                from backend.db_meta.models import ClusterEntry as CE
-
-                clb_dns = CE.objects.filter(
+                clb_dns = ClusterEntry.objects.filter(
                     forward_to=cluster_entry,
                     cluster_entry_type=ClusterEntryType.CLBDNS.value,
                 ).first()
@@ -170,12 +189,14 @@ def export_twemproxy_cluster(cluster_id: int) -> dict:
 
     entry = {"clb": clb_info, "polairs": polaris_info}
 
-    # ── 4. 导出 proxy_config（Twemproxy 代理配置 + 密码）────────────────────
-    # namespace 与集群类型保持一致（TwemproxyRedisInstance / TwemproxyTendisSSDInstance）
+    # ── 4. 导出 proxy_config（代理配置 + 密码）──────────────────────────────
+    # Twemproxy 系列使用 ConfigFileEnum.Twemproxy，Tendisplus 使用 ConfigFileEnum.Predixy
     namespace = cluster.cluster_type
+    proxy_conf_file = ConfigFileEnum.Predixy.value if is_tendisplus else ConfigFileEnum.Twemproxy.value
+
     proxy_config = {}
     redis_config = {}
-    backup_config = {}
+    passwd_ret = {}
     try:
         passwd_ret = PayloadHandler.redis_get_password_by_domain(cluster.immute_domain)
         proxy_resp = DBConfigApi.query_conf_item(
@@ -184,22 +205,27 @@ def export_twemproxy_cluster(cluster_id: int) -> dict:
                 "level_name": LevelName.CLUSTER.value,
                 "level_value": cluster.immute_domain,
                 "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
-                "conf_file": ConfigFileEnum.Twemproxy.value,
+                "conf_file": proxy_conf_file,
                 "conf_type": ConfigTypeEnum.ProxyConf.value,
                 "namespace": namespace,
                 "format": FormatType.MAP.value,
             }
         )
         proxy_config_rsp = proxy_resp.get("content", {})
-        # 补充密码字段
-        proxy_config["mbuf-size"] = proxy_config_rsp.get("mbuf-size", "")
-        proxy_config["hash_tag"] = proxy_config_rsp.get("hash_tag", "")
         proxy_config["password"] = passwd_ret.get("redis_proxy_password", "")
         proxy_config["redis_password"] = passwd_ret.get("redis_password", "")
-    except Exception:
-        logger.warning("获取集群 {} proxy_config 失败".format(cluster.immute_domain))
+        if is_tendisplus:
+            proxy_config["redis_proxy_admin_password"] = passwd_ret.get("redis_proxy_admin_password", "")
+            proxy_config["slowloglogslowerthan"] = proxy_config_rsp.get("slowloglogslowerthan", "")
+        else:
+            # Twemproxy：仅取关键字段
+            proxy_config["mbuf-size"] = proxy_config_rsp.get("mbuf-size", "")
+            proxy_config["hash_tag"] = proxy_config_rsp.get("hash_tag", "")
+    except Exception as e:
+        logger.error(_("获取集群 {} 密码失败: {}，密码将为空").format(cluster.immute_domain, e))
+        logger.warning(_("获取集群 {} proxy_config 失败").format(cluster.immute_domain, e))
 
-    # ── 5. 导出 redis_config（Redis 实例配置 + 密码）────────────────────────
+    # ── 5. 导出 redis_config（实例配置 + 密码）──────────────────────────────
     try:
         redis_resp = DBConfigApi.query_conf_item(
             params={
@@ -214,39 +240,31 @@ def export_twemproxy_cluster(cluster_id: int) -> dict:
             }
         )
         redis_config_resp = redis_resp.get("content", {})
-        # 补充 requirepass
         redis_config["requirepass"] = passwd_ret.get("redis_password", "")
-        redis_config["databases"] = redis_config_resp.get("databases", "2")
+        if is_tendisplus:
+            redis_config["kvstorecount"] = redis_config_resp.get("kvstorecount", "10")
+        else:
+            redis_config["databases"] = redis_config_resp.get("databases", "2")
     except Exception:
-        logger.warning("获取集群 {} redis_config 失败".format(cluster.immute_domain))
+        logger.warning(_("获取集群 {} redis_config 失败").format(cluster.immute_domain))
 
-    # ── 6. 导出 backup_config（全备配置）────────────────────────────────────
-    try:
-        backup_resp = DBConfigApi.query_conf_item(
-            params={
-                "bk_biz_id": str(cluster.bk_biz_id),
-                "level_name": LevelName.CLUSTER.value,
-                "level_value": cluster.immute_domain,
-                "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
-                "conf_file": ConfigFileEnum.FullBackup.value,
-                "conf_type": ConfigTypeEnum.Config.value,
-                "namespace": namespace,
-                "format": FormatType.MAP.value,
-            }
-        )
-        backup_config = backup_resp.get("content", {})
-    except Exception:
-        logger.warning("获取集群 {} backup_config 失败".format(cluster.immute_domain))
+    # ── 7. 获取 nodes_domain（仅 Tendisplus 集群有）─────────────────────────
+    nodes_domain = ""
+    if is_tendisplus:
+        nodes_entry = cluster.clusterentry_set.filter(
+            cluster_entry_type=ClusterEntryType.DNS.value,
+            role=ClusterEntryRole.NODE_ENTRY.value,
+        ).first()
+        if nodes_entry:
+            nodes_domain = nodes_entry.entry
 
-    # ── 7. 集群基本信息 ───────────────────────────────────────────────────────
-    create_at = ""
-    if cluster.create_at:
-        create_at = cluster.create_at.isoformat()
+    # ── 8. 集群基本信息 ───────────────────────────────────────────────────────
+    create_at = cluster.create_at.isoformat() if cluster.create_at else ""
 
     clusterinfo = {
         "name": cluster.name,
         "immute_domain": cluster.immute_domain,
-        "nodes_domain": "",
+        "nodes_domain": nodes_domain,
         "alias": cluster.alias,
         "cluster_type": cluster.cluster_type,
         "db_version": cluster.major_version,
@@ -256,12 +274,246 @@ def export_twemproxy_cluster(cluster_id: int) -> dict:
         "create_at": create_at,
     }
 
+    if slim:
+        # 精简模式：去掉三个 config，密码单独放到 passwords
+        passwords = {
+            "redis_password": passwd_ret.get("redis_password", ""),
+            "redis_proxy_password": passwd_ret.get("redis_proxy_password", ""),
+            "redis_proxy_admin_password": passwd_ret.get("redis_proxy_admin_password", ""),
+        }
+        logger.info(_("export_redis_cluster: 导出集群 {} 完成 (slim)").format(cluster.immute_domain))
+        return {
+            "proxies": proxies,
+            "backends": backends,
+            "entry": entry,
+            "passwords": passwords,
+            "clusterinfo": clusterinfo,
+        }
+
+    logger.info(_("export_redis_cluster: 导出集群 {} 完成").format(cluster.immute_domain))
     return {
         "proxies": proxies,
         "backends": backends,
         "entry": entry,
         "proxy_config": proxy_config,
         "redis_config": redis_config,
-        "backup_config": backup_config,
         "clusterinfo": clusterinfo,
     }
+
+
+def export_biz_redis_clusters(bk_biz_id: int, output_dir: str = "/tmp") -> str:
+    """
+    导出指定业务下所有 Redis 集群（Twemproxy / Tendisplus）的元数据到 JSON 文件。
+
+    去掉 proxy_config / redis_config / backup_config，密码单独保留在 passwords 字段。
+
+    :param bk_biz_id:   业务 ID
+    :param output_dir:  输出目录，默认 /tmp
+    :return:            输出文件的完整路径
+    """
+    cluster_list_qs = list(
+        Cluster.objects.filter(
+            bk_biz_id=bk_biz_id,
+            cluster_type__in=_ALL_SUPPORTED_CLUSTER_TYPES,
+        )
+    )
+
+    # 取第一个集群的 db_module_id / bk_cloud_id 作为文件级元数据（同业务下通常一致）
+    first_cluster = cluster_list_qs[0] if cluster_list_qs else None
+    file_db_module_id = first_cluster.db_module_id if first_cluster else DEFAULT_DB_MODULE_ID
+    file_bk_cloud_id = first_cluster.bk_cloud_id if first_cluster else 0
+
+    cluster_list = []
+    for cluster in cluster_list_qs:
+        try:
+            data = export_redis_cluster(cluster.id, slim=True)
+            cluster_list.append(data)
+            logger.info(_("export_biz_redis_clusters: 导出集群 {} 成功").format(cluster.immute_domain))
+        except Exception as e:
+            logger.warning(_("export_biz_redis_clusters: 导出集群 {} 失败: {}").format(cluster.immute_domain, e))
+
+    # 文件顶层写入元数据，供导入时直接读取
+    output_data = {
+        "meta": {
+            "bk_biz_id": bk_biz_id,
+            "db_module_id": file_db_module_id,
+            "bk_cloud_id": file_bk_cloud_id,
+        },
+        "clusters": cluster_list,
+    }
+
+    os.makedirs(output_dir, exist_ok=True)
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_file = os.path.join(output_dir, "redis_clusters_{}_{}.json".format(bk_biz_id, ts))
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(output_data, f, ensure_ascii=False, indent=2)
+
+    logger.info(_("export_biz_redis_clusters: 共导出 {} 个集群到 {}").format(len(cluster_list), output_file))
+    return output_file
+
+
+@transaction.atomic
+def import_redis_cluster(
+    bk_biz_id: int,
+    db_module_id: int,
+    cluster_data: dict,
+    creator: str = "",
+    bk_cloud_id: int = 0,
+):
+    """
+    将 export_redis_cluster 导出的元数据重新写回，创建集群及其配置。
+
+    machine_specs 自动从 cluster_data 中的 proxies/backends 的 spec_id 字段提取，无需额外传入。
+    密码优先从 cluster_data["passwords"] 取（slim 模式导出），其次从 proxy_config 取（完整模式导出）。
+
+    **幂等性说明**：本函数不具备幂等性。若目标集群的 immute_domain 在数据库中已存在，
+    内部的 before_create_domain_precheck 会抛出异常，整个事务回滚。
+    在批量导入场景（import_biz_redis_clusters）中，该异常会被捕获并记录到 failed 列表，
+    不影响其他集群的导入。若需重新导入某个集群，请先手动删除已有的集群元数据。
+
+    :param bk_biz_id:      业务 ID
+    :param db_module_id:   DB 模块 ID
+    :param cluster_data:   export_redis_cluster 返回的完整 dict
+    :param creator:        操作人，默认取 clusterinfo.creater
+    :param bk_cloud_id:    云区域 ID，默认取 0
+    """
+    from backend.db_meta.api.cluster.nosqlcomm.create_cluster import (
+        pkg_create_tendisplus_cluster,
+        pkg_create_twemproxy_cluster,
+    )
+
+    clusterinfo = cluster_data["clusterinfo"]
+    proxies = cluster_data["proxies"]
+    backends = cluster_data["backends"]
+    # 兼容 slim 模式（passwords）和完整模式（proxy_config）
+    passwords = cluster_data.get("passwords", {})
+    proxy_config = cluster_data.get("proxy_config", {})
+
+    cluster_type = clusterinfo["cluster_type"]
+    immute_domain = clusterinfo["immute_domain"]
+    name = clusterinfo["name"]
+    alias = clusterinfo.get("alias", "")
+    major_version = clusterinfo["db_version"]
+    region = clusterinfo.get("region", "")
+    creator = creator or clusterinfo.get("creater", "")
+
+    is_tendisplus = cluster_type in _TENDISPLUS_CLUSTER_TYPES
+    is_twemproxy = cluster_type in _TWEMPROXY_CLUSTER_TYPES
+
+    if not is_tendisplus and not is_twemproxy:
+        raise ValueError(
+            _("import_redis_cluster 不支持当前集群类型: {}，仅支持: {}").format(
+                cluster_type, ", ".join(_ALL_SUPPORTED_CLUSTER_TYPES)
+            )
+        )
+
+    # ── 1. 从导出数据中提取 machine_specs ────────────────────────────────────
+    proxy_spec_id = proxies[0].get("spec_id", 0) if proxies else 0
+    proxy_spec_config = proxies[0].get("spec_config", {}) if proxies else {}
+    redis_spec_id = 0
+    redis_spec_config = {}
+    if backends:
+        master_node = backends[0].get("nodes", {}).get("master", {})
+        redis_spec_id = master_node.get("spec_id", 0)
+        redis_spec_config = master_node.get("spec_config", {})
+    machine_specs = {
+        "proxy": {"spec_id": proxy_spec_id, "spec_config": proxy_spec_config},
+        "redis": {"spec_id": redis_spec_id, "spec_config": redis_spec_config},
+    }
+
+    # ── 2. 提取密码（slim 模式优先，兼容完整模式）────────────────────────────
+    redis_password = passwords.get("redis_password") or proxy_config.get("redis_password", "")
+    redis_proxy_password = passwords.get("redis_proxy_password") or proxy_config.get("password", "")
+    redis_proxy_admin_password = passwords.get("redis_proxy_admin_password") or proxy_config.get(
+        "redis_proxy_admin_password", ""
+    )
+
+    # ── 3. 创建集群元数据 ─────────────────────────────────────────────────────
+    logger.info(_("import_redis_cluster: 开始导入集群 {}").format(immute_domain))
+    if is_twemproxy:
+        pkg_create_twemproxy_cluster(
+            bk_biz_id=bk_biz_id,
+            name=name,
+            immute_domain=immute_domain,
+            db_module_id=db_module_id,
+            alias=alias,
+            major_version=major_version,
+            proxies=proxies,
+            storages=backends,
+            creator=creator,
+            bk_cloud_id=bk_cloud_id,
+            region=region,
+            cluster_type=cluster_type,
+            machine_specs=machine_specs,
+            redis_password=redis_password,
+            redis_proxy_password=redis_proxy_password,
+        )
+    else:
+        pkg_create_tendisplus_cluster(
+            bk_biz_id=bk_biz_id,
+            name=name,
+            immute_domain=immute_domain,
+            db_module_id=db_module_id,
+            alias=alias,
+            major_version=major_version,
+            proxies=proxies,
+            storages=backends,
+            creator=creator,
+            bk_cloud_id=bk_cloud_id,
+            region=region,
+            machine_specs=machine_specs,
+            redis_password=redis_password,
+            redis_proxy_password=redis_proxy_password,
+            redis_proxy_admin_password=redis_proxy_admin_password,
+        )
+
+    logger.info(_("import_redis_cluster: 导入集群 {} 完成").format(immute_domain))
+
+
+def import_biz_redis_clusters(
+    json_file: str,
+    creator: str = "",
+) -> dict:
+    """
+    从 export_biz_redis_clusters 生成的 JSON 文件批量导入 Redis 集群元数据。
+
+    bk_biz_id / db_module_id / bk_cloud_id 均从文件顶层 meta 字段自动读取，无需手动传入。
+
+    :param json_file: JSON 文件路径（由 export_biz_redis_clusters 生成）
+    :param creator:   操作人
+    :return:          {"success": [...域名], "failed": [...域名]}
+    """
+    with open(json_file, "r", encoding="utf-8") as f:
+        file_data = json.load(f)
+
+    meta = file_data.get("meta", {})
+    bk_biz_id = meta.get("bk_biz_id", 0)
+    db_module_id = meta.get("db_module_id", DEFAULT_DB_MODULE_ID)
+    bk_cloud_id = meta.get("bk_cloud_id", 0)
+    clusters = file_data.get("clusters", [])
+
+    logger.info(
+        _("import_biz_redis_clusters: 读取文件 {}，bk_biz_id={}, db_module_id={}, bk_cloud_id={}, 共 {} 个集群").format(
+            json_file, bk_biz_id, db_module_id, bk_cloud_id, len(clusters)
+        )
+    )
+
+    success, failed = [], []
+    for cluster_data in clusters:
+        immute_domain = cluster_data.get("clusterinfo", {}).get("immute_domain", "unknown")
+        try:
+            import_redis_cluster(
+                bk_biz_id=bk_biz_id,
+                db_module_id=db_module_id,
+                cluster_data=cluster_data,
+                creator=creator,
+                bk_cloud_id=bk_cloud_id,
+            )
+            success.append(immute_domain)
+            logger.info(_("import_biz_redis_clusters: 导入集群 {} 成功").format(immute_domain))
+        except Exception as e:
+            failed.append(immute_domain)
+            logger.error(_("import_biz_redis_clusters: 导入集群 {} 失败: {}").format(immute_domain, e))
+
+    logger.info(_("import_biz_redis_clusters: 共 {} 个集群，成功 {}，失败 {}").format(len(clusters), len(success), len(failed)))
+    return {"success": success, "failed": failed}

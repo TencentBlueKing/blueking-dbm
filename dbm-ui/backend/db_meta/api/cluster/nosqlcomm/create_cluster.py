@@ -164,6 +164,8 @@ def pkg_create_twemproxy_cluster(
     region: str = "",
     cluster_type=ClusterType.TendisTwemproxyRedisInstance.value,
     machine_specs: Optional[Dict] = None,
+    redis_password: str = "",
+    redis_proxy_password: str = "",
 ):
     """
     这里打包从头开始创建一个 MongoSet
@@ -227,6 +229,109 @@ def pkg_create_twemproxy_cluster(
         bk_cloud_id=bk_cloud_id,
         region=region,
         cluster_type=cluster_type,
+    )
+
+    # 写入集群密码
+    from backend.flow.utils.base.payload_handler import PayloadHandler
+
+    PayloadHandler.redis_save_password_by_domain(
+        immute_domain=immute_domain,
+        redis_password=redis_password,
+        redis_proxy_password=redis_proxy_password,
+    )
+
+
+@transaction.atomic
+def pkg_create_tendisplus_cluster(
+    bk_biz_id: int,
+    name: str,
+    immute_domain: str,
+    db_module_id: int,
+    alias: str = "",
+    major_version: str = "",
+    proxies: Optional[List] = None,
+    storages: Optional[List] = None,
+    creator: str = "",
+    bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
+    region: str = "",
+    machine_specs: Optional[Dict] = None,
+    disaster_tolerance_level: str = "",
+    zone_list: list = None,
+    redis_password: str = "",
+    redis_proxy_password: str = "",
+    redis_proxy_admin_password: str = "",
+):
+    """
+    打包从头开始创建一个 Tendisplus（Predixy）集群
+    包括 machine、storage、cluster、cluster_entry 等
+
+    proxies  [{"ip":,"port":},{}]
+    storages [{"nodes":{"master":{"ip":"","port":},"slave":{"ip":"","port":}}}, ...]
+    machine_specs {"proxy":{"spec_id":0,"spec_config":""},"redis":{"spec_id":0,"spec_config":""}}
+    """
+    from backend.db_meta.api.cluster.tendispluscluster.create import create as create_tendisplus_cluster
+
+    bk_biz_id = request_validator.validated_integer(bk_biz_id)
+    immute_domain = request_validator.validated_domain(immute_domain)
+    nodes_domain = "nodes." + immute_domain
+    db_module_id = request_validator.validated_integer(db_module_id)
+    proxies = request_validator.validated_proxy_list(proxies, allow_empty=False, allow_null=False)
+
+    all_instances = []
+    storage_instances = []
+    for storage in storages:
+        shard = storage["nodes"]
+        all_instances.append(shard["master"])
+        all_instances.append(shard["slave"])
+        storage_instances.append({"ip": shard["master"]["ip"], "port": shard["master"]["port"]})
+    request_validator.validated_storage_list(all_instances, allow_empty=False, allow_null=False)
+
+    before_create_domain_precheck([immute_domain, nodes_domain])
+    before_create_proxy_precheck(proxies)
+    before_create_storage_precheck(all_instances)
+
+    machine_specs = machine_specs or {}
+    spec_id, spec_config = 0, ""
+    if machine_specs.get("proxy"):
+        spec_id, spec_config = machine_specs["proxy"]["spec_id"], machine_specs["proxy"]["spec_config"]
+    create_proxies(
+        bk_biz_id=bk_biz_id,
+        bk_cloud_id=bk_cloud_id,
+        machine_type=MachineType.PREDIXY.value,
+        proxies=proxies,
+        spec_id=spec_id,
+        spec_config=spec_config,
+    )
+
+    spec_id, spec_config = 0, ""
+    if machine_specs.get("redis"):
+        spec_id, spec_config = machine_specs["redis"]["spec_id"], machine_specs["redis"]["spec_config"]
+    create_tendis_instances(bk_biz_id, bk_cloud_id, MachineType.TENDISPLUS.value, storages, spec_id, spec_config)
+
+    create_tendisplus_cluster(
+        bk_biz_id=bk_biz_id,
+        name=name,
+        immute_domain=immute_domain,
+        db_module_id=db_module_id,
+        alias=alias,
+        major_version=major_version,
+        proxies=proxies,
+        storages=storage_instances,
+        creator=creator,
+        bk_cloud_id=bk_cloud_id,
+        region=region,
+        disaster_tolerance_level=disaster_tolerance_level,
+        zone_list=zone_list,
+    )
+
+    # 写入集群密码
+    from backend.flow.utils.base.payload_handler import PayloadHandler
+
+    PayloadHandler.redis_save_password_by_domain(
+        immute_domain=immute_domain,
+        redis_password=redis_password,
+        redis_proxy_password=redis_proxy_password,
+        redis_proxy_admin_password=redis_proxy_admin_password,
     )
 
 
