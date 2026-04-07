@@ -12,11 +12,14 @@ import logging
 import logging.config
 import traceback
 
+from django.db import transaction
+
 from backend.db_meta.models import Cluster, StorageInstance
 
 logger = logging.getLogger("root")
 
 
+@transaction.atomic
 def oracle_delete_cluster(bk_biz_id: int, cluster_id: int):
     """oracle删除集群元数据"""
 
