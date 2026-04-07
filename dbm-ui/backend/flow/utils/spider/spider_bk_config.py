@@ -10,10 +10,11 @@ specific language governing permissions and limitations under the License.
 from typing import Any
 
 from backend.components import DBConfigApi
-from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
+from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.enums import ClusterType
 from backend.flow.consts import ConfigTypeEnum
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import NormalSpiderFlowException
+from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
 
 def get_spider_version_and_charset(bk_biz_id, db_module_id) -> Any:
@@ -51,24 +52,18 @@ def calc_spider_max_count(bk_biz_id, db_module_id, db_version, immute_domain: st
     @param db_version: spider版本
     @param immute_domain: 域名信息
     """
+    config = MysqlActPayload.get_mysql_config(
+        bk_biz_id=bk_biz_id,
+        db_module_id=db_module_id,
+        cluster_type=ClusterType.TenDBCluster,
+        immutable_domain=immute_domain,
+        db_version=db_version,
+        conf_type=ConfigTypeEnum.ProxyConf,
+    )
 
-    config = DBConfigApi.get_or_generate_instance_config(
-        {
-            "bk_biz_id": str(bk_biz_id),
-            "level_name": LevelName.CLUSTER,
-            "level_value": immute_domain,
-            "level_info": {"module": str(db_module_id)},
-            "conf_file": db_version,
-            "conf_type": ConfigTypeEnum.DBConf,
-            "namespace": ClusterType.TenDBCluster,
-            "format": FormatType.MAP_LEVEL,
-            "method": ReqType.GENERATE_AND_PUBLISH,
-        }
-    )["content"]["mysqld"]
-
-    if int(config["spider_auto_increment_mode_switch"]):
+    if int(config["mysqld"]["spider_auto_increment_mode_switch"]):
         # spider_auto_increment_step 值作为集群理论上限
-        return "ON", int(config["spider_auto_increment_step"])
+        return "ON", int(config["mysqld"]["spider_auto_increment_step"])
 
     # 没有开启全局自增，返回硬上限
-    return "OFF", int(config["spider_auto_increment_step"])
+    return "OFF", int(config["mysqld"]["spider_auto_increment_step"])
