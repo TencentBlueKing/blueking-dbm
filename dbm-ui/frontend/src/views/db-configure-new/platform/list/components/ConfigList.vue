@@ -147,7 +147,7 @@
 
   const handleToDetail = (row: ConfigItem) => {
     router.push({
-      name: 'PlatformConfigureDetail',
+      name: 'PlatformDbConfigureDetail',
       params: {
         clusterType: props.clusterType,
         confType: props.confType,

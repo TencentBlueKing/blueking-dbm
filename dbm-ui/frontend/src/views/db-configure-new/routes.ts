@@ -71,25 +71,6 @@ const routes: RouteRecordRaw[] = [
         },
         component: () => import('@views/db-configure-new/business/create-module/SqlServer.vue'),
       },
-      {
-        path: 'platform',
-        name: 'PlatformConfigureList',
-        meta: {
-          fullscreen: true,
-          navName: t('数据库配置定义'),
-        },
-        component: () => import('@views/db-configure-new/platform/list/Index.vue'),
-      },
-      {
-        path: 'platform/detail/:clusterType/:version/:confType',
-        name: 'PlatformConfigureDetail',
-        meta: {
-          fullscreen: true,
-          navName: '',
-        },
-        props: true,
-        component: () => import('@views/db-configure-new/platform/detail/Index.vue'),
-      },
     ],
   },
 ];

@@ -186,7 +186,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import { useRoute, useRouter } from 'vue-router';
+  import { useRouter } from 'vue-router';
 
   import {
     getConfigBaseDetails,
@@ -197,14 +197,6 @@
 
   import DbTable from '@components/db-table/IndexNew.vue';
 
-  interface Props {
-    clusterType: string;
-    confType: string;
-    version: string;
-  }
-
-  const props = defineProps<Props>();
-
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
@@ -214,12 +206,18 @@
 
   const configTypeName = ref('');
 
+  const { clusterType, confType, version } = route.params as {
+    clusterType: string;
+    confType: string;
+    version: string;
+  };
+
   // 获取 confType 对应的显示名称
   useRequest(getListConfTypes, {
-    defaultParams: [{ meta_cluster_type: props.clusterType }],
+    defaultParams: [{ meta_cluster_type: clusterType }],
     onSuccess(res) {
-      const matched = res.find((item) => item.conf_type === props.confType);
-      configTypeName.value = matched?.name || props.confType;
+      const matched = res.find((item) => item.conf_type === confType);
+      configTypeName.value = matched?.name || confType;
     },
   });
 
@@ -231,9 +229,9 @@
   const { loading, run: fetchDetail } = useRequest(getConfigBaseDetails, {
     defaultParams: [
       {
-        conf_type: props.confType,
-        meta_cluster_type: props.clusterType,
-        version: props.version,
+        conf_type: confType,
+        meta_cluster_type: clusterType,
+        version: version,
       },
     ],
     onSuccess(res) {
@@ -269,9 +267,9 @@
   useRequest(getConfigNames, {
     defaultParams: [
       {
-        conf_type: props.confType,
-        meta_cluster_type: props.clusterType,
-        version: props.version,
+        conf_type: confType,
+        meta_cluster_type: clusterType,
+        version: version,
       },
     ],
     onSuccess(res) {
@@ -298,21 +296,21 @@
             op_type: 'add',
           } as any,
         ],
-        conf_type: props.confType,
+        conf_type: confType,
         confirm: 0,
         description: '',
-        meta_cluster_type: props.clusterType,
+        meta_cluster_type: clusterType,
         name: detailData.value.name || '',
-        version: props.version,
+        version: version,
       });
       isShowAddParam.value = false;
       addParamForm.conf_name = '';
       addParamForm.conf_value = '';
       addParamForm.description = '';
       fetchDetail({
-        conf_type: props.confType,
-        meta_cluster_type: props.clusterType,
-        version: props.version,
+        conf_type: confType,
+        meta_cluster_type: clusterType,
+        version: version,
       });
     } finally {
       submitLoading.value = false;
@@ -322,7 +320,7 @@
   defineExpose({
     routerBack() {
       router.push({
-        name: 'PlatformConfigureList',
+        name: 'PlatformDbConfigureList',
       });
     },
   });
