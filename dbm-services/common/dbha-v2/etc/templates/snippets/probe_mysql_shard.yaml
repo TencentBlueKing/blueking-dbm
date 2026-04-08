@@ -1,0 +1,17 @@
+  mysql:
+    user: "{{PROBE_MYSQL_USER}}"
+    password: "{{PROBE_MYSQL_PASSWORD}}"
+    # The time interval for each data collection from MySQL.
+    interval: {{PROBE_MYSQL_INTERVAL}}
+
+    endpoints:
+      # If this 'proto' is not set, the default value is 'tcp'.
+      - proto: {{PROBE_MYSQL_EP_PROTO}}
+        clusterType: "{{PROBE_MYSQL_EP_CLUSTER_TYPE}}"
+        machineType: "{{PROBE_MYSQL_EP_MACHINE_TYPE}}"
+        accessLayer: "{{PROBE_MYSQL_EP_ACCESS_LAYER}}"
+        ip: {{PROBE_MYSQL_EP_IP}}
+
+        # Ports: comma-separated entries; ranges use '-' (e.g. a-b). Probed ports satisfy begin <= port <= end for ranges.
+        ports: {{PROBE_MYSQL_EP_PORTS}}
+        adminPorts: {{PROBE_MYSQL_EP_ADMIN_PORTS}}

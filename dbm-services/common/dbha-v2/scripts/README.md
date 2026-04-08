@@ -5,6 +5,7 @@
 ## 目录说明
 
 - `deploy.sh`: 部署与更新脚本（支持按模块安装）
+- `render_configs.py`: 用 `etc/dbha-v2.rc` 与 `etc/templates/*.yaml` 渲染 `etc/*.yaml`
 - `setup.sh`: 交互式配置生成脚本（仅 server 侧使用）
 - `start-server.sh`: 启动 server 侧服务（admin/receiver/analysis）
 - `stop-server.sh`: 停止 server 侧服务（admin/receiver/analysis）
@@ -12,6 +13,36 @@
 - `stop-probe.sh`: 停止 probe 服务
 - `install-libs.sh`: 安装构建依赖（abseil/protobuf/protoc 插件）
 - `devenv.rc`: 本地开发环境变量示例
+
+## render_configs.py
+
+根据占位符模板生成运行用的配置文件（默认覆盖 `etc/*.yaml`）。
+
+```bash
+# 在 dbha-v2 根目录执行；先复制并编辑 rc
+cp etc/dbha-v2.rc.example etc/dbha-v2.rc
+python3 render_configs.py --ip-detect-udp-connect-host 127.0.0.1
+# 或指定路径（--ip-detect-udp-connect-host 为必填：用于 UDP connect 探测本机主 IPv4 的对端地址，可按环境选可达的 DNS/网关等）
+python3 render_configs.py --ip-detect-udp-connect-host 127.0.0.1 \
+  --rc /path/to/dbha-v2.rc \
+  --template-dir /path/to/etc/templates --out-dir /path/to/etc
+```
+
+- 模板语法：`{{VAR_NAME}}`；可为空字符串的字段在模板中使用 `"{{VAR_NAME}}"`，避免渲染成 YAML null。
+- **公共键 `COMMON_*`**：多份配置里相同的项（etcd 用户名、TLS 证书路径、receiver/analysis 共用的 etcd 地址与 HTTP APM、admin/analysis 共用的 dbm 前四条 API 与 storage 的 tcp 地址/用户等）在 `dbha-v2.rc` 里只写一处；各服务差异项仍用 `RECEIVER_*` / `ADMIN_*` / `ANALYSIS_*` 等（见 `dbha-v2.rc.example` 顶部注释）。
+- **无脚本内建默认值**：所有 `{{PLACEHOLDER}}` 必须在 `dbha-v2.rc` 中赋值；可参考 `dbha-v2.rc.example`。
+  - **例外**（下列键未设置或留空时由脚本推断；均在 stderr 提示）：
+    1. `COMMON_APM_LISTEN_ADDRESS` → `http://<本机检测 IPv4>:50050`（失败则为 `http://127.0.0.1:50050`）。
+    2. `RECEIVER_SOURCE_PROBE_ENDPOINT` → `<本机检测 IPv4>:50051`（失败则为 `127.0.0.1:50051`）。
+    3. `ADMIN_GRPC_LISTEN_ADDRESS` → `<本机检测 IPv4>:50051`；若仅为 `:<端口>` 则补全主机段。
+    4. `ADMIN_WEB_HOST` → `<本机检测 IPv4>`（失败则为 `127.0.0.1`）；`ADMIN_WEB_PORT` → `50060`。
+  - 「本机检测 IPv4」依赖必填参数 `--ip-detect-udp-connect-host`（UDP connect 对端；与上列 (1)–(4) 同一策略）。
+- **receiver `service.source` 分片**：`RECEIVER_SOURCE_PROBE_SHARD_FILE` / `RECEIVER_SOURCE_KAFKA_SHARD_FILE` 各对应一类 source 列表项（默认见 `templates/snippets/receiver_source_probe.yaml`、`receiver_source_kafka.yaml`），占位符与 rc 中 `RECEIVER_SOURCE_PROBE_*` / `RECEIVER_SOURCE_KAFKA_*` 一致。
+- **receiver `service.sink` mysql 分片**：`RECEIVER_SINK_MYSQL_SHARD_FILE`（默认 `templates/snippets/receiver_sink_mysql.yaml`），占位符为 `RECEIVER_SINK_MYSQL_*`。
+- **probe 分片**：`PROBE_MYSQL_SHARD_FILE` / `PROBE_REDIS_SHARD_FILE` 分别描述 `harvester.mysql` / `harvester.redis`（默认见 `templates/snippets/`）。MySQL / Redis 的 `endpoints[0]` 字段通过 `PROBE_MYSQL_EP_*` / `PROBE_REDIS_EP_*` 在 rc 中配置并由分片模板渲染；`PROBE_REDIS_SHARD_ENABLED=0` 时不生成 `redis:` 段。
+- 若已安装 PyYAML，渲染后会做语法校验；可用 `--no-validate-yaml` 跳过。
+
+发布包中已包含 `render_configs.py`、`etc/templates/`，以及 rc 模版 `dbha-v2.rc.example`（包根目录与 `etc/` 各一份，内容相同）。
 
 ## deploy.sh
 

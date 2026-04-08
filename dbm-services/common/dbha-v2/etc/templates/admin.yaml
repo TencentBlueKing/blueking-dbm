@@ -1,0 +1,72 @@
+name: {{ADMIN_NAME}}
+version: {{COMMON_VERSION}}
+
+pidFile: "{{ADMIN_PID_FILE}}"
+
+docFileDir: "{{ADMIN_DOC_FILE_DIR}}"
+
+discovery:
+  endpoint: "{{COMMON_DISCOVERY_ENDPOINT}}"
+  user: "{{COMMON_DISCOVERY_USER}}"
+  password: "{{COMMON_DISCOVERY_PASSWORD}}"
+  # optional TLS for etcd: use absolute paths;
+  # certFile and keyFile are both required when enabling mTLS
+  certFile: "{{COMMON_DISCOVERY_TLS_CERT_FILE}}"
+  keyFile: "{{COMMON_DISCOVERY_TLS_KEY_FILE}}"
+  trustedCAFile: "{{COMMON_DISCOVERY_TLS_TRUSTED_CA_FILE}}"
+
+apm:
+  readTimeout: {{COMMON_APM_READ_TIMEOUT}}
+  writeTimeout: {{COMMON_APM_WRITE_TIMEOUT}}
+  listenAddress: "{{COMMON_APM_LISTEN_ADDRESS}}"
+
+grpc:
+  listenAddress: "{{ADMIN_GRPC_LISTEN_ADDRESS}}"
+  serverPingTime: {{ADMIN_GRPC_SERVER_PING_TIME}}
+  pingTimeout: {{ADMIN_GRPC_PING_TIMEOUT}}
+  keepAliveMinTime: {{ADMIN_GRPC_KEEP_ALIVE_MIN_TIME}}
+  permitWithoutStream: {{ADMIN_GRPC_PERMIT_WITHOUT_STREAM}}
+  maxReceiveMessageSize: {{ADMIN_GRPC_MAX_RECEIVE_MESSAGE_SIZE}}
+  maxSendMessageSize: {{ADMIN_GRPC_MAX_SEND_MESSAGE_SIZE}}
+
+web:
+  host: "{{ADMIN_WEB_HOST}}"
+  port: {{ADMIN_WEB_PORT}}
+  readTimeout: {{ADMIN_WEB_READ_TIMEOUT}}
+  writeTimeout: {{ADMIN_WEB_WRITE_TIMEOUT}}
+
+dbmApi:
+  - name: metadata
+    api: "{{COMMON_DBM_API_METADATA_API}}"
+    method: {{COMMON_DBM_API_HTTP_METHOD}}
+    timeout: {{COMMON_DBM_API_TIMEOUT}}
+    token: "{{COMMON_DBM_API_METADATA_TOKEN}}"
+
+  - name: updateStatus
+    api: "{{COMMON_DBM_API_UPDATE_STATUS_API}}"
+    method: {{COMMON_DBM_API_HTTP_METHOD}}
+    timeout: {{COMMON_DBM_API_TIMEOUT}}
+    token: "{{COMMON_DBM_API_UPDATE_STATUS_TOKEN}}"
+
+  - name: swapMySQLRole
+    api: "{{COMMON_DBM_API_SWAP_MYSQL_ROLE_API}}"
+    method: {{COMMON_DBM_API_HTTP_METHOD}}
+    timeout: {{COMMON_DBM_API_TIMEOUT}}
+    token: "{{COMMON_DBM_API_SWAP_MYSQL_ROLE_TOKEN}}"
+
+  - name: swapTendisCluster
+    api: "{{COMMON_DBM_API_SWAP_TENDIS_CLUSTER_API}}"
+    method: {{COMMON_DBM_API_HTTP_METHOD}}
+    timeout: {{COMMON_DBM_API_TIMEOUT}}
+    token: "{{COMMON_DBM_API_SWAP_TENDIS_CLUSTER_TOKEN}}"
+
+storage:
+  endpoint: "{{COMMON_STORAGE_TCP_ENDPOINT}}"
+  user: "{{COMMON_STORAGE_USER}}"
+  password: "{{COMMON_STORAGE_PASSWORD}}"
+
+log:
+  path: "{{ADMIN_LOG_PATH}}"
+  level: {{COMMON_LOG_LEVEL}}
+  fileCount: {{COMMON_LOG_FILE_COUNT}}
+  fileSize: {{COMMON_LOG_FILE_SIZE}}

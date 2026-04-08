@@ -1,0 +1,12 @@
+  redis:
+    password: "{{PROBE_REDIS_PASSWORD}}"
+    interval: {{PROBE_REDIS_INTERVAL}}
+    timeout: {{PROBE_REDIS_TIMEOUT}}
+    endpoints:
+      - proto: {{PROBE_REDIS_EP_PROTO}}
+        clusterType: "{{PROBE_REDIS_EP_CLUSTER_TYPE}}"
+        machineType: "{{PROBE_REDIS_EP_MACHINE_TYPE}}"
+        accessLayer: "{{PROBE_REDIS_EP_ACCESS_LAYER}}"
+        ip: {{PROBE_REDIS_EP_IP}}
+        ports: {{PROBE_REDIS_EP_PORTS}}
+        adminPorts: {{PROBE_REDIS_EP_ADMIN_PORTS}}
