@@ -40,7 +40,6 @@ func GetPartitionsConfig(input *service.QueryParititionsInput) ([]*service.Parti
 	conds := []condition{
 		{input.BkBizId > 0, "bk_biz_id = ?", []interface{}{input.BkBizId}},
 		{len(input.Ids) != 0, "id IN ?", []interface{}{input.Ids}},
-		{len(input.ImmuteDomains) != 0, "immute_domain IN ?", []interface{}{input.ImmuteDomains}},
 		{len(input.DbLikes) != 0, "dblike IN ?", []interface{}{input.DbLikes}},
 		{len(input.TbLikes) != 0, "tblike IN ?", []interface{}{input.TbLikes}},
 		{input.DomainName != "", "immute_domain LIKE ?", []interface{}{fmt.Sprintf("%%%s%%", input.DomainName)}},
@@ -51,6 +50,9 @@ func GetPartitionsConfig(input *service.QueryParititionsInput) ([]*service.Parti
 			tx = tx.Where(c.query, c.args...)
 		}
 	}
+
+	// immute_domains：多个值按 OR + LIKE %keyword% 模糊匹配（v2 语义）
+	tx = applyOrLikeFuzzy(tx, "immute_domain", input.ImmuteDomains)
 
 	// 统计总数
 	var total int64
@@ -75,4 +77,24 @@ func GetPartitionsConfig(input *service.QueryParititionsInput) ([]*service.Parti
 		return nil, 0, result.Error
 	}
 	return allResults, total, nil
+}
+
+// applyOrLikeFuzzy 多个非空值按 (col LIKE ? OR col LIKE ? ...) 模糊匹配
+func applyOrLikeFuzzy(tx *gorm.DB, column string, values []string) *gorm.DB {
+	if len(values) == 0 {
+		return tx
+	}
+	var likeParts []string
+	var likeArgs []interface{}
+	for _, v := range values {
+		if strings.TrimSpace(v) == "" {
+			continue
+		}
+		likeParts = append(likeParts, column+" LIKE ?")
+		likeArgs = append(likeArgs, fmt.Sprintf("%%%s%%", v))
+	}
+	if len(likeParts) == 0 {
+		return tx
+	}
+	return tx.Where("("+strings.Join(likeParts, " OR ")+")", likeArgs...)
 }
