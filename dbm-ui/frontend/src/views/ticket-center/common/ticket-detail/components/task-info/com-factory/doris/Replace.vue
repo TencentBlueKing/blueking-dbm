@@ -20,7 +20,7 @@
       ellipsis
       :title="t('集群ID')">
       <template #default="{ row }: { row: RowData }">
-        <span class="details-replace__cell">{{ row.cluster_id || '--' }}</span>
+        <span class="details-replace-cell">{{ row.cluster_id || '--' }}</span>
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
@@ -35,7 +35,7 @@
       ellipsis
       :title="t('集群类型')">
       <template #default="{ row }: { row: RowData }">
-        <span class="details-replace__cell">
+        <span class="details-replace-cell">
           {{ row.cluster_type_name || '--' }}
         </span>
       </template>
@@ -47,7 +47,7 @@
         <p
           v-for="(item, index) in row.new_nodes"
           :key="index"
-          class="details-replace__cell"
+          class="details-replace-cell"
           :style="{ lineHeight: item.value.length * 30 + 'px' }">
           {{ item.key }}
         </p>
@@ -60,11 +60,11 @@
         <div
           v-for="(item, index) in row.new_nodes"
           :key="index"
-          class="details-replace__cell">
+          class="details-replace-cell">
           <p
             v-for="(ip, ipIndex) in item.value"
             :key="ipIndex"
-            class="details-replace__ip">
+            class="details-replace-ip">
             {{ ip }}
             <i
               v-if="ipIndex === 0"
@@ -82,11 +82,11 @@
         <div
           v-for="(item, index) in row.old_nodes"
           :key="index"
-          class="details-replace__cell">
+          class="details-replace-cell">
           <p
             v-for="(ip, ipIndex) in item.value"
             :key="ipIndex"
-            class="details-replace__ip">
+            class="details-replace-ip">
             {{ ip }}
             <i
               v-if="ipIndex === 0"

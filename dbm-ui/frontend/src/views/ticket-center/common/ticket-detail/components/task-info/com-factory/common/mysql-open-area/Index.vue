@@ -146,16 +146,16 @@
   .openarea-card {
     padding: 0 24px 24px;
 
-    :deep(.db-card__desc) {
+    :deep(.db-card-desc) {
       color: #313238;
     }
 
-    :deep(.db-card__icon) {
+    :deep(.db-card-icon) {
       transform: rotate(-90deg);
     }
 
     &[is-active='true'] {
-      :deep(.db-card__icon) {
+      :deep(.db-card-icon) {
         transform: rotate(0);
       }
     }

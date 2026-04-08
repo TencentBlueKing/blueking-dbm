@@ -13,7 +13,6 @@
 
 <template>
   <TicketInfoTable
-    class="details-reboot__table"
     :data="dataList"
     row-key="cluster_id">
     <TicketInfoTableColumn

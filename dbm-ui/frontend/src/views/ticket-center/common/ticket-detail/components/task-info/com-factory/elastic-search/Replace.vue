@@ -20,7 +20,7 @@
       col-key="cluster_id"
       :title="t('集群ID')">
       <template #default="{ row }">
-        <span class="details-replace__cell">{{ row.cluster_id || '--' }}</span>
+        <span class="details-replace-cell">{{ row.cluster_id || '--' }}</span>
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
@@ -35,7 +35,7 @@
       col-key="cluster_type_name"
       :title="t('集群类型')">
       <template #default="{ row }">
-        <span class="details-replace__cell">{{ row.cluster_type_name || '--' }}</span>
+        <span class="details-replace-cell">{{ row.cluster_type_name || '--' }}</span>
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
@@ -45,7 +45,7 @@
         <p
           v-for="(item, index) in row.new_nodes"
           :key="index"
-          class="details-replace__cell"
+          class="details-replace-cell"
           :style="{ lineHeight: item.value.length * 30 + 'px' }">
           {{ item.key }}
         </p>
@@ -58,11 +58,11 @@
         <div
           v-for="(item, index) in row.new_nodes"
           :key="index"
-          class="details-replace__cell">
+          class="details-replace-cell">
           <p
             v-for="(ip, ipIndex) in item.value"
             :key="ipIndex"
-            class="details-replace__ip">
+            class="details-replace-ip">
             {{ ip }}
             <i
               v-if="ipIndex === 0"
@@ -80,11 +80,11 @@
         <div
           v-for="(item, index) in row.old_nodes"
           :key="index"
-          class="details-replace__cell">
+          class="details-replace-cell">
           <p
             v-for="(ip, ipIndex) in item.value"
             :key="ipIndex"
-            class="details-replace__ip">
+            class="details-replace-ip">
             {{ ip }}
             <i
               v-if="ipIndex === 0"

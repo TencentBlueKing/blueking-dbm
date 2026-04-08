@@ -88,9 +88,9 @@
           render: () => {
             const hosts = props.nodes.backend;
             return hosts.map((item) => (
-              <div class='host-list__item'>
-                <strong class='host-list__tag host-list__tag--master'>M</strong>
-                <span class='host-list__ip'>{item.ip}</span>
+              <div class='host-list-item'>
+                <strong class='host-list-tag host-list-tag--master'>M</strong>
+                <span class='host-list-ip'>{item.ip}</span>
               </div>
             ));
           },
@@ -140,13 +140,13 @@
           field: 'proxy',
           label: 'Proxy IP',
           render: () => {
-            const hosts = props.nodes.proxy;
+            const hosts = props.nodes.proxy || [];
             return getRenderHosts(hosts).map((group) => (
-              <div class='host-list__group'>
+              <div class='host-list-group'>
                 {group.map((item) => (
-                  <div class='host-list__item'>
-                    <strong class='host-list__tag host-list__tag--proxy'>P</strong>
-                    <span class='host-list__ip'>{item.ip}</span>
+                  <div class='host-list-item'>
+                    <strong class='host-list-tag host-list-tag--proxy'>P</strong>
+                    <span class='host-list-ip'>{item.ip}</span>
                   </div>
                 ))}
               </div>
@@ -161,15 +161,13 @@
           render: () => {
             const hosts = props.nodes.backend;
             return getRenderHosts(hosts).map((group) => (
-              <div class='host-list__group'>
+              <div class='host-list-group'>
                 {group.map((item, index) => {
                   const tag = index === 0 ? 'master' : 'slave';
                   return (
-                    <div class='host-list__item'>
-                      <strong class={`host-list__tag ${`host-list__tag--${tag}`}`}>
-                        {tag.charAt(0).toUpperCase()}
-                      </strong>
-                      <span class='host-list__ip'>{item.ip}</span>
+                    <div class='host-list-item'>
+                      <strong class={`host-list-tag ${`host-list-tag--${tag}`}`}>{tag.charAt(0).toUpperCase()}</strong>
+                      <span class='host-list-ip'>{item.ip}</span>
                     </div>
                   );
                 })}
@@ -222,26 +220,26 @@
         height: 100%;
         text-align: center;
 
-        &__wrapper {
+        .host-list-wrapper {
           position: relative;
           top: 50%;
           display: inline-block;
           transform: translateY(-50%);
         }
 
-        &__group {
+        .host-list-group {
           display: flex;
           align-items: center;
         }
 
-        &__item {
+        .host-list-item {
           display: flex;
           align-items: center;
           min-width: 130px;
           line-height: 32px;
         }
 
-        &__tag {
+        .host-list-tag {
           width: 16px;
           height: 16px;
           margin-right: 4px;
@@ -249,17 +247,17 @@
           line-height: 16px;
           text-align: center;
 
-          &--proxy {
+          &.host-list-tag--proxy {
             color: #ff9c01;
             background-color: #ffe8c3;
           }
 
-          &--master {
+          &.host-list-tag--master {
             color: @primary-color;
             background-color: #cad7eb;
           }
 
-          &--slave {
+          &.host-list-tag--slave {
             color: #2dcb56;
             background-color: #c8e5cd;
           }

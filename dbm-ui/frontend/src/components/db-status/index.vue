@@ -23,7 +23,7 @@
       theme="primary" />
     <span
       v-else
-      class="db-status__dot" />
+      class="db-status-dot" />
     <slot />
   </span>
 </template>
@@ -56,62 +56,62 @@
     align-items: center;
     vertical-align: middle;
 
-    .db-status__dot {
+    .db-status-dot {
       margin-right: 8px;
       border-radius: 50%;
       flex-shrink: 0;
     }
 
-    &-fill {
-      .db-status__dot {
+    &.db-status-fill {
+      .db-status-dot {
         width: 12px;
         height: 12px;
         background-color: @bg-default;
         border: 3px solid @border-disable;
       }
 
-      &--warning .db-status__dot {
+      &.db-status-fill--warning .db-status-dot {
         background-color: @bg-warning;
         border-color: #ffe8c3;
       }
 
-      &--success .db-status__dot {
+      &.db-status-fill--success .db-status-dot {
         background-color: @bg-success;
         border-color: #dcffe2;
       }
 
-      &--danger .db-status__dot {
+      &.db-status-fill--danger .db-status-dot {
         background-color: @bg-danger;
         border-color: #fdd;
       }
     }
 
-    &-linear {
-      .db-status__dot {
+    &.db-status-linear {
+      .db-status-dot {
         width: 8px;
         height: 8px;
         background-color: @bg-dark-gray;
         border: 1px solid @border-light-gray;
       }
 
-      &--warning .db-status__dot {
+      &.db-status-linear--warning .db-status-dot {
         background-color: #ffe8c3;
         border-color: @border-warning;
       }
 
-      &--success .db-status__dot {
+      &.db-status-linear--success .db-status-dot {
         background-color: #e5f6ea;
         border-color: @border-success;
       }
 
-      &--danger .db-status__dot {
+      &.db-status-linear--danger .db-status-dot {
         background-color: #fdd;
         border-color: @border-danger;
       }
     }
 
-    &-fill--loading,
-    &-linear--loading {
+    &.db-status-fill--loading,
+    &.db-status-linear--loading {
       background-color: transparent;
       border: none;
 

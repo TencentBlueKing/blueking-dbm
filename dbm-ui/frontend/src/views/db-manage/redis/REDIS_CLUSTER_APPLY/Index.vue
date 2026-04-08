@@ -250,7 +250,7 @@
                 </div>
                 <p
                   v-if="isManualInput"
-                  class="apply-form__tips">
+                  class="apply-form-tips">
                   {{ t('单实例容量x分片数_根据选择的主机自动计算所有的组合') }}
                 </p>
               </BkFormItem>

@@ -13,32 +13,36 @@
 
 <template>
   <div class="db-empty">
-    <div class="db-empty__content">
+    <div class="db-empty-content">
       <img
         src="@images/empty.png"
         :width="width" />
-      <p class="db-empty__text">
-        {{ text || $t('暂无数据') }}
+      <p class="db-empty-text">
+        {{ text || t('暂无数据') }}
       </p>
     </div>
   </div>
 </template>
 <script lang="ts">
+  import { useI18n } from 'vue-i18n';
+
+  interface Props {
+    text?: string;
+    width?: number;
+  }
+
   export default {
     name: 'DbEmpty',
   };
 </script>
 
 <script setup lang="ts">
-  interface Props {
-    text?: string;
-    width?: number;
-  }
-
   withDefaults(defineProps<Props>(), {
     text: '',
     width: 200,
   });
+
+  const { t } = useI18n();
 </script>
 
 <style lang="less">
@@ -48,7 +52,7 @@
     height: 100%;
     text-align: center;
 
-    &__content {
+    .db-empty-content {
       position: absolute;
       top: 20%;
       left: 50%;
