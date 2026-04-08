@@ -22,7 +22,7 @@ dependencies:
   version: 0.1.50
 - name: dbconfig
   repository: file://charts/dbconfig
-  version: 0.1.13
+  version: 0.1.14
 - name: dbpriv
   repository: file://charts/dbpriv
   version: 0.1.33
@@ -74,5 +74,5 @@ dependencies:
 - name: k8s-dbs
   repository: file://charts/k8s-dbs
   version: 2.1.7
-digest: sha256:deed6ca1e3a7e17cbe9bef70dec717dedf8570de819022b5eff8ab945e13c644
-generated: "2026-04-01T16:38:55.26513115+08:00"
+digest: sha256:c60856c729d4b917a61a1c10296348755b699e7d265090687959d8815c896fac
+generated: "2026-04-08T14:55:57.714395+08:00"
