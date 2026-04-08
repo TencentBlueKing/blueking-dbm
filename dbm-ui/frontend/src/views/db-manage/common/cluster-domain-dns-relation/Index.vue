@@ -14,7 +14,7 @@
 <template>
   <span v-db-console="accessEntryDbConsole">
     <BkButton
-      v-if="userProfileStore.isDba"
+      v-if="isBizComponentDba"
       :disabled="data.isOffline"
       text
       @click="() => (isShow = true)">
@@ -126,7 +126,7 @@
   import ClusterEntryDetailModel, { type DnsTargetDetails } from '@services/model/cluster-entry/cluster-entry-details';
   import { getClusterEntries } from '@services/source/clusterEntry';
 
-  import { useUserProfile } from '@stores';
+  import { useBizComponentDba } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
 
@@ -173,7 +173,7 @@
   });
 
   const { t } = useI18n();
-  const userProfileStore = useUserProfile();
+  const { isDba: isBizComponentDba } = useBizComponentDba(window.PROJECT_CONFIG.BIZ_ID, props.data.db_type);
 
   const generateCellClass = (cell: { field: string }) => (cell.field === 'ips' ? 'entry-config-ips-column' : '');
 

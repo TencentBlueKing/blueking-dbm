@@ -4,15 +4,15 @@
       v-show="!isEmptyShow"
       class="page-content">
       <BkLoading :loading="overviewLoading">
-        <DbTabForBiz
-          v-if="isInspectionReport"
+        <DbaDbTab
+          v-if="isTodoPage"
           v-model="tabType"
-          v-model:is-show="isTabShow"
-          :exclude="excludeDbs"
-          :label-config="labelConfig" />
-        <DbTab
+          :count-config="dbCountConfig"
+          :include="availableDbs" />
+        <DbTabForBiz
           v-else
           v-model="tabType"
+          v-model:is-show="isTabShow"
           :exclude="excludeDbs"
           :label-config="labelConfig" />
       </BkLoading>
@@ -47,9 +47,9 @@
     <BkException
       v-show="isEmptyShow"
       class="empty-exception"
-      :description="t('暂无数据')"
-      scene="part"
-      type="empty" />
+      :description="t('暂无巡检待办')"
+      scene="page"
+      type="search-empty" />
   </div>
 </template>
 <script setup lang="ts">
@@ -65,8 +65,8 @@
 
   import { DBTypeInfos, DBTypes } from '@common/const';
 
-  import DbTab from '@components/db-tab/Index.vue';
   import DbTabForBiz from '@components/db-tab-for-biz/Index.vue';
+  import DbaDbTab from '@components/dba-db-tab/Index.vue';
 
   import RenderDynamicTable from './components/render-dynamic-table/Index.vue';
   import SearchBox from './components/SearchBox.vue';
@@ -80,6 +80,7 @@
   const tabType = ref((route.query.tabType as DBTypes) || DBTypes.MYSQL);
   const searchParams = ref<Record<string, any>>({});
   const excludeDbs = ref<DBTypes[]>([]);
+  const availableDbs = ref<DBTypes[]>([]);
   const dynamicTablesRef = ref<InstanceType<typeof RenderDynamicTable>[]>([]);
   const isTabShow = ref(true);
   const isOnlyAbnormal = ref(false);
@@ -89,6 +90,21 @@
   const isInspectionReport = computed(() => route.name === 'inspectionReport');
   const isTodoPage = computed(() => route.name === 'inspectionTodosGlobal');
   const isEmptyShow = computed(() => isInspectionReport.value && !isTabShow.value);
+
+  // 为 DbaDbTab 提供计数配置，内部自动选中第一个计数 > 0 的 Tab
+  // 待我处理取 manageCount，待我协助取 assistCount
+  const dbCountConfig = computed(() => {
+    if (!dbReportCountMap.value || !Object.keys(dbReportCountMap.value).length) {
+      return undefined;
+    }
+    return Object.entries(dbReportCountMap.value).reduce(
+      (result, [key, val]) => {
+        Object.assign(result, { [key]: isTodoAssist.value ? val.assistCount || 0 : val.manageCount || 0 });
+        return result;
+      },
+      {} as Record<string, number>,
+    );
+  });
 
   const serviceList = computed(() => {
     if (!dbOverviewConfig.value?.[tabType.value]) {
@@ -122,9 +138,10 @@
 
   const { data: dbOverviewConfig, loading: overviewLoading } = useRequest(getReportOverview, {
     onSuccess: (data) => {
-      const availableDbs = Object.keys(data);
+      const dbs = Object.keys(data) as DBTypes[];
       const totalDbs = Object.keys(DBTypeInfos);
-      excludeDbs.value = _.difference(totalDbs, availableDbs) as DBTypes[];
+      availableDbs.value = dbs;
+      excludeDbs.value = _.difference(totalDbs, dbs) as DBTypes[];
     },
   });
 
