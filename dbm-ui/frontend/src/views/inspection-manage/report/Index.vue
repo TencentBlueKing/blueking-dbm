@@ -4,15 +4,14 @@
       v-show="!isEmptyShow"
       class="page-content">
       <BkLoading :loading="overviewLoading">
-        <DbTabForBiz
-          v-if="isInspectionReport"
+        <DbaDbTab
+          v-if="isTodoPage"
           v-model="tabType"
-          v-model:is-show="isTabShow"
-          :exclude="excludeDbs"
-          :label-config="labelConfig" />
-        <DbTab
+          :count-config="dbCountConfig" />
+        <DbTabForBiz
           v-else
           v-model="tabType"
+          v-model:is-show="isTabShow"
           :exclude="excludeDbs"
           :label-config="labelConfig" />
       </BkLoading>
@@ -65,8 +64,8 @@
 
   import { DBTypeInfos, DBTypes } from '@common/const';
 
-  import DbTab from '@components/db-tab/Index.vue';
   import DbTabForBiz from '@components/db-tab-for-biz/Index.vue';
+  import DbaDbTab from '@components/dba-db-tab/Index.vue';
 
   import RenderDynamicTable from './components/render-dynamic-table/Index.vue';
   import SearchBox from './components/SearchBox.vue';
@@ -89,6 +88,20 @@
   const isInspectionReport = computed(() => route.name === 'inspectionReport');
   const isTodoPage = computed(() => route.name === 'inspectionTodosGlobal');
   const isEmptyShow = computed(() => isInspectionReport.value && !isTabShow.value);
+
+  // 为 DbaDbTab 提供计数配置，内部自动选中第一个计数 > 0 的 Tab
+  const dbCountConfig = computed(() => {
+    if (!dbReportCountMap.value || !Object.keys(dbReportCountMap.value).length) {
+      return undefined;
+    }
+    return Object.entries(dbReportCountMap.value).reduce(
+      (result, [key, val]) => {
+        Object.assign(result, { [key]: val.manageCount || 0 });
+        return result;
+      },
+      {} as Record<string, number>,
+    );
+  });
 
   const serviceList = computed(() => {
     if (!dbOverviewConfig.value?.[tabType.value]) {
