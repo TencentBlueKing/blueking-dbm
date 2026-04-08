@@ -14,13 +14,22 @@ import logging
 from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
+from backend import env
 from backend.components import DRSApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.base.flow_output import BaseFlowOutputSerializer, FlowOutputHandler
 
 logger = logging.getLogger("flow")
 
 DISPLAY_LIMIT = 1000
 QUERY_LIMIT = DISPLAY_LIMIT + 1  # 多查一条用于判断是否超限
+
+
+class SpiderSchemaCheckSerializer(BaseFlowOutputSerializer):
+    hidden = True
+    table_name = "spider_schema_check"
+    dynamic_key = "schema_check_rows"
+    schema_check_rows = BaseFlowOutputSerializer.DynamicField(help_text=_("表结构检查结果"))
 
 
 class SpiderSchemaCheckResultService(BaseService):
@@ -31,6 +40,7 @@ class SpiderSchemaCheckResultService(BaseService):
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
+        global_data = data.get_one_of_inputs("global_data")
         ip = kwargs["ip"]
         port = kwargs["port"]
         bk_cloud_id = kwargs["bk_cloud_id"]
@@ -72,6 +82,22 @@ class SpiderSchemaCheckResultService(BaseService):
         display_rows = rows[:DISPLAY_LIMIT]
 
         self._print_results(display_rows, truncated)
+
+        try:
+            excel_rows = self._collect_excel_rows(rows)
+            if excel_rows:
+                FlowOutputHandler(SpiderSchemaCheckSerializer).insert_data(
+                    global_data["job_root_id"], {"schema_check_rows": excel_rows}
+                )
+                self.log_warning(
+                    _(
+                        "发现不一致记录共 {} 行，详情请下载excel:"
+                        "<a href='{}/apis/taskflow/excel_download/?root_id={}'>excel 下载</a>"
+                    ).format(len(excel_rows), env.BK_SAAS_HOST, global_data["job_root_id"])
+                )
+        except Exception as e:
+            self.log_warning(_("写入 Excel 结果失败: {}，跳过").format(str(e)))
+
         return True
 
     def _print_results(self, rows, truncated):
@@ -105,6 +131,61 @@ class SpiderSchemaCheckResultService(BaseService):
                 self._print_checksum_result(checksum_result_raw)
 
         self.log_info("=" * 60)
+
+    def _collect_excel_rows(self, rows):
+        """将不一致行展开 checksum_result，返回用于 Excel 的扁平列表。
+
+        每个 checksum_result 条目对应 Excel 的一行；若 checksum_result 为空，
+        则只输出外层字段（checksum_* 列置空），确保不一致记录不被遗漏。
+        """
+        excel_rows = []
+        for r in rows:
+            if r.get("status") == "ok":
+                continue
+            base = {
+                "db": r.get("db", ""),
+                "tbl": r.get("tbl", ""),
+                "status": r.get("status", ""),
+                "update_time": str(r.get("update_time", "")),
+            }
+            checksum_result_raw = r.get("checksum_result")
+            items = []
+            if checksum_result_raw:
+                try:
+                    parsed = (
+                        json.loads(checksum_result_raw)
+                        if isinstance(checksum_result_raw, str)
+                        else checksum_result_raw
+                    )
+                    if isinstance(parsed, list):
+                        items = parsed
+                except (json.JSONDecodeError, TypeError):
+                    pass
+
+            if items:
+                for item in items:
+                    excel_rows.append(
+                        {
+                            **base,
+                            "checksum_db": item.get("Db", ""),
+                            "checksum_tbl": item.get("Table", ""),
+                            "checksum_status": item.get("Status", ""),
+                            "server_name": item.get("Server_name", ""),
+                            "message": item.get("Message", ""),
+                        }
+                    )
+            else:
+                excel_rows.append(
+                    {
+                        **base,
+                        "checksum_db": "",
+                        "checksum_tbl": "",
+                        "checksum_status": "",
+                        "server_name": "",
+                        "message": "",
+                    }
+                )
+        return excel_rows
 
     def _print_checksum_result(self, checksum_result_raw):
         """格式化输出 checksum_result JSON 字段"""
