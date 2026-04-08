@@ -13,7 +13,6 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Union
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Max
 from django.forms import model_to_dict
 from django.http.response import HttpResponse
 from django.utils.translation import gettext as _
@@ -291,7 +290,7 @@ class PartitionHandler(object):
             raise DBPartitionInternalServerError(_("config_id不能为空"))
 
         # tb_mysql_partition_result 中不直接存 cluster_id，这里按 config_id 维度查询最近一条记录，
-        log_obj = MysqlPartitionResult.objects.filter(config_id=config_id).order_by("-create_time").first()
+        log_obj = MysqlPartitionResult.objects.filter(config_id=config_id).order_by("-id").first()
 
         if not log_obj:
             return {"message": _("未查询到分区执行日志")}
@@ -314,51 +313,15 @@ class PartitionHandler(object):
 
         # tb_mysql_partition_result 中不直接存 cluster_id，这里按 config_id 维度查询最近一条记录
         filters = {"config_id": config_id}
-        if status:
-            filters["status"] = status
-        log_obj = (
-            MysqlPartitionResult.objects.filter(**filters)
-            .only("status", "create_time")
-            .order_by("-create_time")
-            .first()
-        )
+        # if status:
+        #     filters["status"] = status
+        log_obj = MysqlPartitionResult.objects.filter(**filters).only("status", "create_time").order_by("-id").first()
         if not log_obj:
             return {"message": _("未查询到分区执行日志")}
 
         # 将模型对象转换为字典返回，便于前端直接展示字段
         log_data = model_to_dict(log_obj)
         return log_data
-
-    # @classmethod
-    # def query_conf_by_status_v2(cls, bk_biz_id: int, cluster_type: str, status: str, limit: int = 10, offset: int = 0):
-    #     """
-    #     根据执行状态过滤分区配置
-    #     @param bk_biz_id: 业务ID
-    #     @param cluster_type: 集群类型
-    #     @param status: 执行状态过滤值 success / failed
-    #     @param limit: 分页大小
-    #     @param offset: 分页偏移
-    #     """
-
-    #     # log_obj = MysqlPartitionResult.objects.filter().only("status", "create_time").order_by("-create_time").first()
-
-    #     partition_data = DBPartitionApi.query_conf_v2(
-    #         params={"bk_biz_id": bk_biz_id, "cluster_type": cluster_type, "limit": 0, "offset": 0}
-    #     )
-
-    #     status_upper = status.upper()
-    #     filtered = []
-    #     for item in partition_data.get("items", []):
-    #         log_detail = cls.query_status_v2(config_id=item["id"]) or {}
-    #         item_status = (log_detail.get("status") or "WARNING").upper()
-    #         if item_status == status_upper:
-    #             item["status"] = item_status
-    #             item["execute_time"] = log_detail.get("create_time") or ""
-    #             filtered.append(item)
-
-    #     total = len(filtered)
-    #     paged = filtered[offset : offset + limit] if limit else filtered
-    #     return {"count": total, "results": paged}
 
     @classmethod
     def create_and_run_partition_v2(cls, user: str, create_data: Dict):
@@ -1029,97 +992,27 @@ class PartitionHandler(object):
 
     @classmethod
     def update_log_status_v2(cls, log_list, status: str = None):
-        # 更新分区日志的状态
+        """补充每条分区配置的最新执行状态，若指定 status 则只保留匹配项"""
         for info in log_list:
             log_detail = cls.query_status_v2(config_id=info["id"], status=status) or {}
-            # 如果查询结果中没有 status 字段，则默认为 FAILED；否则转换为大写
-
-            status_value = log_detail.get("status") or "NO_EXECUTION_RECORD"
-            info["status"] = status_value.upper()
+            info["status"] = (log_detail.get("status") or "NO_EXECUTION_RECORD").upper()
             info["execute_time"] = log_detail.get("create_time") or datetime(1970, 1, 1, tzinfo=timezone.utc)
-        return log_list
+
+        if not status:
+            return log_list
+
+        target = status.upper()
+        return [info for info in log_list if info["status"] == target]
 
     @classmethod
     def query_conf_v2(cls, query_params: Dict):
         """
         查询分区v2配置
         @param query_params: 查询参数
-
-        分支逻辑交叉表（过滤字段：immute_domains/dblikes/tblikes/domain_name/ids）：
-        +----------------+----------------+----------+
-        |                | status 有值    | status 空 |
-        +----------------+----------------+----------+
-        | 过滤字段全空   | 逻辑1          | 逻辑2    |
-        | 过滤字段有值   | 逻辑2          | 逻辑2    |
-        +----------------+----------------+----------+
         """
-        filter_fields = ["immute_domains", "dblikes", "tblikes", "domain_name", "ids"]
-        all_filter_empty = not any(query_params.get(field) for field in filter_fields)
-        has_status = bool(query_params.get("status"))
-        if all_filter_empty and has_status:
-            # 逻辑1：过滤字段全为空且 status 不为空，按 status 过滤并补充执行状态
-            # 先根据状态去结果表中查询，再反查对应的分区配置
-            base_filter = dict(
-                bk_biz_id=query_params.get("bk_biz_id"),
-                cluster_type=query_params.get("cluster_type"),
-                status=query_params.get("status"),
-            )
-            limit = query_params.get("limit", 10)
-            offset = query_params.get("offset", 0)
-
-            # 非关联子查询：按 config_id 分组取 Max(id)，id 自增保证最大 id 即最新记录
-            latest_log_ids = (
-                MysqlPartitionResult.objects.filter(**base_filter)
-                .values("config_id")
-                .annotate(latest_id=Max("id"))
-                .values("latest_id")
-            )
-
-            log_qs = (
-                MysqlPartitionResult.objects.filter(id__in=latest_log_ids)
-                .only("config_id", "status", "create_time")
-                .order_by("-create_time")
-            )
-
-            total = log_qs.count()
-            paged_qs = log_qs[offset : offset + limit]
-
-            log_results = [
-                {
-                    "config_id": obj.config_id,
-                    "status": obj.status.upper(),
-                    "execute_time": obj.create_time,
-                }
-                for obj in paged_qs
-            ]
-
-            config_ids = [r["config_id"] for r in log_results]
-            log_map = {r["config_id"]: r for r in log_results}
-
-            if not config_ids:
-                return {"count": 0, "results": []}
-
-            cluster_type = query_params.get("cluster_type")
-            params = {"ids": config_ids, "cluster_type": cluster_type, "limit": len(config_ids), "offset": 0}
-            partition_data = DBPartitionApi.query_conf_v2(params=params)
-            conf_map = {item["id"]: item for item in partition_data["items"]}
-
-            partition_list = []
-            for config_id in config_ids:
-                item = conf_map.get(config_id)
-                if not item:
-                    continue
-                log = log_map[config_id]
-                item["status"] = log["status"]
-                item["execute_time"] = log["execute_time"]
-                partition_list.append(item)
-
-            return {"count": total, "results": partition_list}
-        else:
-            # 逻辑2：查询分区配置，并补充执行状态
-            partition_data = DBPartitionApi.query_conf_v2(params=query_params)
-            partition_list = cls.update_log_status_v2(partition_data["items"], status=query_params.get("status"))
-            return {"count": partition_data["count"], "results": partition_list}
+        partition_data = DBPartitionApi.query_conf_v2(params=query_params)
+        partition_list = cls.update_log_status_v2(partition_data["items"], status=query_params.get("status"))
+        return {"count": len(partition_list), "results": partition_list}
 
     @classmethod
     def upload_import_file(cls, bk_biz_id: int, upload_file) -> Dict[str, Any]:
