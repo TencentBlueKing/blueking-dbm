@@ -357,32 +357,47 @@ func compareWithSameArrayV2(m *service.CreatePartitionsInput) (warnings []string
 	return warnings, nil
 }
 
-// compareWithExistDBV2 复制 v1 中的已有库表冲突检测逻辑
+// compareWithExistDBV2 对齐 v1：先按本次配置查询已有规则，再进行冲突比对
 func compareWithExistDBV2(m *service.CreatePartitionsInput, tbName string) (warnings []string, err error) {
-	var configs []*service.PartitionConfig
-	result := model.DB.Self.Table(tbName).Find(&configs)
-	if result.Error != nil {
-		return warnings, result.Error
+	l := len(m.DbLikes)
+	existRules, err := checkExistRulesV2(m, tbName)
+	if err != nil {
+		return warnings, err
 	}
-	for _, cfg := range configs {
-		for _, dblike := range m.DbLikes {
-			for _, tblike := range m.TbLikes {
-				dbReg, err := regexp.Compile(strings.Replace(dblike+"$", "%", ".*", -1))
-				if err != nil {
-					return warnings, err
-				}
-				tbReg, err := regexp.Compile(strings.Replace(tblike+"$", "%", ".*", -1))
-				if err != nil {
-					return warnings, err
-				}
-				if dbReg.MatchString(cfg.DbLike) && tbReg.MatchString(cfg.TbLike) {
-					warning := fmt.Sprintf("与已有规则[%s.%s]存在冲突，请修改后再次提交！", cfg.DbLike, cfg.TbLike)
-					warnings = append(warnings, warning)
+
+	for i := 0; i < l; i++ {
+		db := m.DbLikes[i]
+		for _, existRule := range existRules {
+			dbReg, err := regexp.Compile(strings.Replace(db+"$", "%", ".*", -1))
+			if err != nil {
+				return warnings, err
+			}
+			dbExistReg, err := regexp.Compile(strings.Replace(existRule.DbLike+"$", "%", ".*", -1))
+			if err != nil {
+				return warnings, err
+			}
+			if dbReg.MatchString(existRule.DbLike) || dbExistReg.MatchString(db) {
+				for _, tb := range m.TbLikes {
+					if tb == existRule.TbLike {
+						warning := fmt.Sprintf("本次提交中，规则%s.%s与已有规则%s.%s存在冲突，请修改后再次提交！",
+							db, tb, existRule.DbLike, existRule.TbLike)
+						warnings = append(warnings, warning)
+					}
 				}
 			}
 		}
 	}
 	return warnings, nil
+}
+
+// checkExistRulesV2 对齐 v1：只查询同业务/同域名/同云区域的现有规则
+func checkExistRulesV2(m *service.CreatePartitionsInput, tbName string) (existRules []service.ExistRule, err error) {
+	condition := fmt.Sprintf("bk_biz_id=%d and immute_domain='%s' and bk_cloud_id=%d", m.BkBizId, m.ImmuteDomain, m.BkCloudId)
+	err = model.DB.Self.Table(tbName).Select("dblike", "tblike").Where(condition).Find(&existRules).Error
+	if err != nil {
+		return existRules, err
+	}
+	return existRules, nil
 }
 
 // Slice2MapV2 / ContainsMapV2 用于更新逻辑中的分区类型判断
