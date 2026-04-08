@@ -124,7 +124,12 @@ package: $(SERVICES) toolkits
 	@cp $(addprefix $(BUILD_DIR)/,$(BINARIES)) $(PKG_DIR)/bin/
 	@cp $(BUILD_DIR)/$(BIN_PREFIX)cluster $(PKG_DIR)/toolkits/
 	@cp scripts/setup.sh scripts/start-server.sh scripts/stop-server.sh \
-		scripts/start-probe.sh scripts/stop-probe.sh scripts/deploy.sh $(PKG_DIR)/
+		scripts/start-probe.sh scripts/stop-probe.sh scripts/deploy.sh \
+		scripts/render_configs.py $(PKG_DIR)/
+	@chmod +x $(PKG_DIR)/render_configs.py
+	@rm -rf $(PKG_DIR)/etc/templates
+	@cp -r etc/templates $(PKG_DIR)/etc/
+	@cp etc/dbha-v2.rc.example $(PKG_DIR)/etc/dbha-v2.rc.example
 	@sed -i 's/__VERSION__/$(VERSION)/g' $(PKG_DIR)/setup.sh
 	@-cp etc/*.yaml $(PKG_DIR)/etc/ 2>/dev/null || true
 	@cd $(BUILD_DIR) && tar -czvf $(PKG_NAME) $(PROJECT)
@@ -146,7 +151,7 @@ help:
 	@echo "  receiver   - Build receiver service"
 	@echo "  probe      - Build probe service"
 	@echo "  toolkits   - Build toolkit binaries"
-	@echo "  package    - Create release package (VERSION=x.y.z)"
+	@echo "  package    - Create release package (binaries, scripts incl. render_configs.py, etc/templates, rc template dbha-v2.rc.example)"
 	@echo "  format     - Format code and tidy modules"
 	@echo "  test       - Run tests"
 	@echo "  clean      - Clean build artifacts"

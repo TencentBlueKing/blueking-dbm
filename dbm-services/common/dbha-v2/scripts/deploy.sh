@@ -30,12 +30,14 @@ readonly SERVER_SCRIPT_FILES=(
     start-server.sh
     stop-server.sh
     deploy.sh
+    render_configs.py
 )
 
 readonly PROBE_SCRIPT_FILES=(
     start-probe.sh
     stop-probe.sh
     deploy.sh
+    render_configs.py
 )
 
 readonly SERVER_CONF_FILES=(
