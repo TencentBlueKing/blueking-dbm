@@ -168,10 +168,6 @@ class ResourceListSerializer(serializers.Serializer):
 
     @staticmethod
     def format_fields(attrs, fields):
-        for key, item in attrs.items():
-            if isinstance(item, str):
-                attrs[key] = item.replace("__empty__", "")
-
         # 用逗号方便前端URL渲染，这里统一转换为数组 or obj
         for field in fields:
             divider = "-" if field in ["cpu", "mem", "disk"] else ","
@@ -223,6 +219,19 @@ class ResourceListSerializer(serializers.Serializer):
                     "min": max(int(spec.mem["min"] * 1024 - spec_offset["mem"]), 0),
                     "max": int(spec.mem["max"] * 1024),
                 }
+
+        def replace_empty_value(value):
+            if value == "__empty__":
+                return ""
+            elif isinstance(value, dict):
+                for k in list(value.keys()):
+                    value[k] = replace_empty_value(value[k])
+                return value
+            elif isinstance(value, list):
+                return [replace_empty_value(item) for item in value]
+            return value
+
+        attrs = replace_empty_value(attrs)
 
         # 格式化agent参数
         attrs["gse_agent_alive"] = str(attrs.get("agent_status", "")).lower()
