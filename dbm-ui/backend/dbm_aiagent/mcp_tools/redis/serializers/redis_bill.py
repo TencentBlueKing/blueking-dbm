@@ -63,7 +63,7 @@ class SubmitBillRedisDeleteKeyInputSerializer(SubmitBillRedisExtractKeyInputSeri
 
 
 class SubmitBillRedisCutoffInputSerializer(SubmitBillRedisBaseInputSerializer):
-    cutoff_ips = serializers.ListField(help_text=_("需要整机替换的ip列表"))
+    cutoff_ips = serializers.ListField(child=serializers.CharField(), help_text=_("需要整机替换的ip列表"))
 
 
 class SubmitBillRedisClusterScaleInputSerializer(SubmitBillRedisBaseInputSerializer):
@@ -71,16 +71,18 @@ class SubmitBillRedisClusterScaleInputSerializer(SubmitBillRedisBaseInputSeriali
 
 
 class SubmitBillRedisLoadModulesInputSerializer(SubmitBillRedisBaseInputSerializer):
-    modules = serializers.ListField(help_text=_("需要安装的插件列表，目前只支持redisbloom、redisell、redisjson"))
+    modules = serializers.ListField(
+        child=serializers.CharField(), help_text=_("需要安装的插件列表，目前只支持redisbloom、redisell、redisjson")
+    )
 
 
 class SubmitBillRedisKeyStatInputSerializer(SubmitBillRedisBaseInputSerializer):
-    ins = serializers.ListField(help_text=_("需要分析的实例列表"))
+    ins = serializers.ListField(child=serializers.CharField(), help_text=_("需要分析的实例列表"))
 
 
 class SubmitBillRedisAnalysisHotkeyInputSerializer(SubmitBillRedisBaseInputSerializer):
     analysis_time = serializers.IntegerField(help_text=_("分析时长，单位为秒。只允许10、30、60"), default="10")
-    ins = serializers.ListField(help_text=_("需要分析的实例列表。默认只分析proxy角色，除非指定实例"))
+    ins = serializers.ListField(child=serializers.CharField(), help_text=_("需要分析的实例列表。默认只分析proxy角色，除非指定实例"))
 
 
 class SubmitBillRedisVersionUpdateInputSerializer(SubmitBillRedisBaseInputSerializer):
