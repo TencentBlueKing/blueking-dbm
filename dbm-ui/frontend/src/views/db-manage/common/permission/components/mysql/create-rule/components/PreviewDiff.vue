@@ -288,7 +288,7 @@
     }
 
     .privilege-card {
-      :deep(.db-card__title) {
+      :deep(.db-card-title) {
         display: none;
       }
     }
@@ -296,7 +296,7 @@
     :deep(.db-card) {
       padding: 0;
 
-      .db-card__header {
+      .db-card-header {
         height: 35px;
         padding: 24px 12px;
         background-color: #fafbfd;
@@ -305,7 +305,7 @@
         border-left: 1px solid var(--table-border-color);
       }
 
-      .db-card__content {
+      .db-card-content {
         padding-top: 0;
       }
 
@@ -345,7 +345,7 @@
     }
   }
 
-  :deep(.db-card[is-active='false'] .db-card__header) {
+  :deep(.db-card[is-active='false'] .db-card-header) {
     border: 1px solid var(--table-border-color);
   }
 </style>

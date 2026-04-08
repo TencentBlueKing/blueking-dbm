@@ -245,18 +245,18 @@
     }
   }
 
-  .mysql-table {
-    &__item {
-      display: flex;
-      margin-bottom: 20px;
-    }
+  // .mysql-table {
+  //   .mysql-table-item {
+  //     display: flex;
+  //     margin-bottom: 20px;
+  //   }
 
-    span {
-      display: inline;
-      min-width: 160px;
-      text-align: right;
-    }
-  }
+  //   span {
+  //     display: inline;
+  //     min-width: 160px;
+  //     text-align: right;
+  //   }
+  // }
 
   :deep(.bk-sideslider-content) {
     padding: 15px;

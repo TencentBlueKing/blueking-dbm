@@ -13,7 +13,6 @@
 
 <template>
   <TicketInfoTable
-    class="details-backup__table"
     :data="tableData"
     row-key="immute_domain">
     <TicketInfoTableColumn
@@ -39,7 +38,6 @@
       </div>
     </div>
     <TicketInfoTable
-      class="details-backup__table"
       :data="tableSettingData"
       row-key="db_patterns">
       <TicketInfoTableColumn

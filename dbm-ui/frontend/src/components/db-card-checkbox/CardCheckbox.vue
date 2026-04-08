@@ -20,22 +20,22 @@
     class="card-checkbox"
     :class="statusClass"
     @click="handleChange">
-    <div class="card-checkbox__icon">
+    <div class="card-checkbox-icon">
       <DbIcon :type="icon" />
     </div>
-    <div class="card-checkbox__content">
-      <strong class="card-checkbox__title">{{ title }}</strong>
+    <div class="card-checkbox-content">
+      <strong class="card-checkbox-title">{{ title }}</strong>
       <template v-if="descList.length">
         <p
           v-for="item in descList"
           :key="item"
-          class="card-checkbox__desc">
+          class="card-checkbox-desc">
           {{ item }}
         </p>
       </template>
       <p
         v-else
-        class="card-checkbox__desc">
+        class="card-checkbox-desc">
         {{ desc }}
       </p>
     </div>
@@ -99,7 +99,7 @@
     border: 1px solid #c4c6cc;
     border-radius: 2px;
 
-    &__icon {
+    .card-checkbox-icon {
       display: flex;
       width: 56px;
       font-size: 32px;
@@ -111,59 +111,59 @@
       justify-content: center;
     }
 
-    &__content {
+    .card-checkbox-content {
       padding: 8px 12px;
       font-size: @font-size-mini;
       line-height: 20px;
       border-left: 1px solid #c4c6cc;
     }
 
-    &__title {
+    .card-checkbox-title {
       display: inline-block;
       color: @title-color;
     }
 
-    &__desc {
+    .card-checkbox-desc {
       padding-top: 4px;
     }
 
-    &:not(&--disabled) {
+    &:not(&.card-checkbox--disabled) {
       cursor: pointer;
     }
 
-    &--disabled {
+    &.card-checkbox--disabled {
       color: @disable-color;
       cursor: not-allowed;
       border-color: @border-disable;
 
-      .card-checkbox__icon {
+      .card-checkbox-icon {
         background-color: #fafbfd;
       }
 
-      .card-checkbox__title {
+      .card-checkbox-title {
         color: @gray-color;
       }
 
-      .card-checkbox__content {
+      .card-checkbox-content {
         border-color: @border-disable;
       }
     }
 
-    &:hover:not(&--disabled),
-    &--selected {
+    &:hover:not(&.card-checkbox--disabled),
+    &.card-checkbox--selected {
       border-color: @border-primary;
 
-      .card-checkbox__icon {
+      .card-checkbox-icon {
         color: @primary-color;
         background-color: #e1ecff;
       }
 
-      .card-checkbox__content {
+      .card-checkbox-content {
         border-color: @border-primary;
       }
     }
 
-    &--selected {
+    &.card-checkbox--selected {
       &::before {
         position: absolute;
         top: 0;
