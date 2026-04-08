@@ -19,7 +19,7 @@
       col-key="cluster_id"
       :title="t('集群ID')">
       <template #default="{ row }">
-        <span class="details-replace__cell">{{ row.cluster_id || '--' }}</span>
+        <span class="details-replace-cell">{{ row.cluster_id || '--' }}</span>
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
@@ -35,10 +35,10 @@
             ${row.name ? `<p>${t('集群别名')}：${row.name}</p>` : ''}
           `,
           }"
-          class="details-replace__cell text-overflow">
+          class="details-replace-cell text-overflow">
           <span>{{ row.immute_domain }}</span>
           <br />
-          <span class="cluster-name__alias">{{ row.name }}</span>
+          <span class="cluster-name-alias">{{ row.name }}</span>
         </div>
       </template>
     </TicketInfoTableColumn>
@@ -46,7 +46,7 @@
       col-key="cluster_type_name"
       :title="t('集群类型')">
       <template #default="{ row }">
-        <span class="details-replace__cell">{{ row.cluster_type_name || '--' }}</span>
+        <span class="details-replace-cell">{{ row.cluster_type_name || '--' }}</span>
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
@@ -56,7 +56,7 @@
         <p
           v-for="(item, index) in row.new_nodes"
           :key="index"
-          class="details-replace__cell"
+          class="details-replace-cell"
           :style="{ lineHeight: item.value.length * 30 + 'px' }">
           {{ item.key }}
         </p>
@@ -69,11 +69,11 @@
         <div
           v-for="(item, itemIndex) in row.new_nodes"
           :key="itemIndex"
-          class="details-replace__cell">
+          class="details-replace-cell">
           <p
             v-for="(ip, ipIndex) in item.value"
             :key="ipIndex"
-            class="details-replace__ip">
+            class="details-replace-ip">
             {{ ip }}
             <i
               v-if="ipIndex === 0"
@@ -91,11 +91,11 @@
         <div
           v-for="(item, itemIndex) in row.old_nodes"
           :key="itemIndex"
-          class="details-replace__cell">
+          class="details-replace-cell">
           <p
             v-for="(ip, ipIndex) in item.value"
             :key="ipIndex"
-            class="details-replace__ip">
+            class="details-replace-ip">
             {{ ip }}
             <i
               v-if="ipIndex === 0"

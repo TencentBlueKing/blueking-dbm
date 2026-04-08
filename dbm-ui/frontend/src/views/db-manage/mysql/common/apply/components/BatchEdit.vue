@@ -15,51 +15,51 @@
   <BkPopover
     v-model:is-show="state.isShow"
     :boundary="body"
-    class="batch-edit"
+    ext-cls="mysql-apply-batch-edit"
     theme="light"
     trigger="manual"
     :width="540">
     <i
       v-bk-tooltips="t('快捷编辑_可通过换行分隔_快速编辑多个域名')"
-      class="db-icon-bulk-edit batch-edit__trigger"
+      class="db-icon-bulk-edit mysql-apply-batch-edit-trigger"
       @click="() => (state.isShow = true)" />
     <template #content>
-      <div class="batch-edit__content">
-        <p class="batch-edit__header">
-          {{ $t('快捷编辑') }}
-          <span>{{ $t('通过换行分隔_快速批量编辑多个域名') }}</span>
+      <div class="batch-edit-content">
+        <p class="batch-edit-header">
+          {{ t('快捷编辑') }}
+          <span>{{ t('通过换行分隔_快速批量编辑多个域名') }}</span>
         </p>
         <div
-          class="batch-edit__domain"
+          class="batch-edit-domain"
           :style="{ '--offset': `${state.offsetWidth}px` }">
-          <p class="batch-edit__domain-name">
+          <p class="batch-edit-domain-name">
             <span ref="moduleAliasNameRef">{{ moduleAliasName }}db.</span>
-            <span class="batch-edit__domain-underline" />.{{ appName }}.db
+            <span class="batch-edit-domain-underline" />.{{ appName }}.db
           </p>
           <BkInput
             v-model="state.value"
-            class="batch-edit__domain-input"
-            :placeholder="$t('以小写英文字母开头_且只能包含小写英文字母_数字_连字符_多个换行分隔')"
+            class="batch-edit-domain-input"
+            :placeholder="t('以小写英文字母开头_且只能包含小写英文字母_数字_连字符_多个换行分隔')"
             :rows="textareaRows"
             type="textarea" />
           <p
             v-if="validateState.isShow"
-            class="batch-edit__domain-error">
+            class="batch-edit-domain-error">
             {{ validateState.errorTxt }}
           </p>
         </div>
-        <div class="batch-edit__footer">
+        <div class="batch-edit-footer">
           <BkButton
             class="mr-8"
             size="small"
             theme="primary"
             @click="handleConfirm">
-            {{ $t('确定') }}
+            {{ t('确定') }}
           </BkButton>
           <BkButton
             size="small"
             @click="handleCancel">
-            {{ $t('取消') }}
+            {{ t('取消') }}
           </BkButton>
         </div>
       </div>
@@ -161,7 +161,9 @@
   watch(
     () => state.value,
     (value) => {
-      value && handleValidate();
+      if (value) {
+        handleValidate();
+      }
     },
   );
 
@@ -187,19 +189,19 @@
   };
 </script>
 
-<style lang="less" scoped>
-  .batch-edit {
-    &__trigger {
-      margin-left: 5px;
-      color: @primary-color;
-      cursor: pointer;
-    }
+<style lang="less">
+  .mysql-apply-batch-edit-trigger {
+    margin-left: 5px;
+    color: @primary-color;
+    cursor: pointer;
+  }
 
-    &__content {
+  .mysql-apply-batch-edit {
+    .batch-edit-content {
       padding: 9px 2px;
     }
 
-    &__header {
+    .batch-edit-header {
       padding-bottom: 16px;
       font-size: @font-size-large;
       color: @title-color;
@@ -210,15 +212,15 @@
       }
     }
 
-    &__domain {
+    .batch-edit-domain {
       position: relative;
       color: @default-color;
 
-      &-name {
-        word-wrap: break-word;
+      .batch-edit-domain-name {
+        overflow-wrap: break-word;
       }
 
-      &-underline {
+      .batch-edit-domain-underline {
         position: relative;
         display: inline-block;
         width: 54px;
@@ -243,7 +245,7 @@
         }
       }
 
-      &-input {
+      .batch-edit-domain-input {
         position: relative;
         margin: 12px 0 16px;
 
@@ -269,7 +271,7 @@
         }
       }
 
-      &-error {
+      .batch-edit-domain-error {
         position: absolute;
         bottom: -4px;
         left: 0;
@@ -278,7 +280,7 @@
       }
     }
 
-    &__footer {
+    .batch-edit-footer {
       text-align: right;
 
       .bk-button {
