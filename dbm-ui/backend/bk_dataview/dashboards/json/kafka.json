@@ -6247,7 +6247,7 @@
   ],
   "schemaVersion": 37,
   "style": "dark",
-  "tags": [],
+  "tags": ["kafka"],
   "templating": {
     "list": [
       {
