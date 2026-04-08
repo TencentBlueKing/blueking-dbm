@@ -34,7 +34,7 @@
         <template #empty>
           <slot name="empty">
             <BkException
-              :description="t('搜索结果为空')"
+              :description="t('暂无数据')"
               scene="part"
               type="empty" />
           </slot>

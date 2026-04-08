@@ -23,6 +23,7 @@ export * from './useClusterQuickSearch';
 export * from './useCopy';
 export * from './useCopyFromSelection';
 export * from './useCreateTicket';
+export * from './useDbaRole';
 export * from './useDebouncedRef';
 export * from './useDefaultPagination';
 export * from './useEventBus';
