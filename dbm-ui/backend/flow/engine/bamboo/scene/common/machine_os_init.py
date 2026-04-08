@@ -124,11 +124,13 @@ class ImportResourceInitStepFlow(object):
         bk_biz_id = data["bk_biz_id"]
 
         os_type = str(data.get("os_type", BkOsType.LINUX.value))
+        is_windows = False
         if os_type.isdigit():
             os_type = BK_OS_CODE__TYPE[os_type]
         if os_type == BkOsType.WINDOWS.value:
             # 如果是window类型机器，用administrator账号
             account_name = WINDOW_ADMIN_USER_FOR_CHECK
+            is_windows = True
         else:
             account_name = LINUX_ADMIN_USER_FOR_CHECK
 
@@ -165,7 +167,7 @@ class ImportResourceInitStepFlow(object):
         # 若该 key 未配置或值为空，则跳过此步骤；配置后可对所有新初始化机器生效
         # 典型场景：将某个内部服务域名与 IP 的映射写入 hosts，确保机器能正常解析该域名
         init_os_hosts: dict = SystemSettings.get_setting_value(key=SystemSettingsEnum.INIT_OS_HOSTS.value, default={})
-        if init_os_hosts:
+        if init_os_hosts and (not is_windows):
             # 将 {domain: ip} 转换为 [{"ip": ..., "domain": ...}] 传给 Component
             # Component 会对每条记录执行 grep 检查，仅追加缺失的条目（幂等）
             hosts_entries = [{"ip": ip, "domain": domain} for domain, ip in init_os_hosts.items()]
