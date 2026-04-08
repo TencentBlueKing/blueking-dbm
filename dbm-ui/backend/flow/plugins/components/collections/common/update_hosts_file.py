@@ -68,9 +68,24 @@ class AddHostsEntryService(BkJobService):
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
+        trans_data = data.get_one_of_inputs("trans_data")
 
         exec_targets = kwargs.get("exec_targets", [])
         hosts_entries = kwargs.get("hosts_entries", [])
+
+        # 从上下文中补充目标机器（HCM流程中主机在运行时动态申请，build时exec_targets为空）
+        if isinstance(trans_data, dict) and trans_data.get("hosts"):
+            trans_targets = [{"ip": h["ip"], "bk_cloud_id": h.get("bk_cloud_id", 0)} for h in trans_data["hosts"]]
+            exec_targets = trans_targets + exec_targets
+            # 按 (ip, bk_cloud_id) 去重，保留首次出现的条目
+            seen = set()
+            deduped = []
+            for t in exec_targets:
+                key = (t["ip"], t["bk_cloud_id"])
+                if key not in seen:
+                    seen.add(key)
+                    deduped.append(t)
+            exec_targets = deduped
 
         if not exec_targets:
             self.log_error(_("exec_targets 参数为空，无目标机器可执行"))
