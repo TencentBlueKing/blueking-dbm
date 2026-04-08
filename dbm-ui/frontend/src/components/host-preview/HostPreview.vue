@@ -15,25 +15,25 @@
   <BkDialog
     class="host-preview-dialog"
     :is-show="isShow"
-    :title="title || $t('主机预览')"
+    :title="title || t('主机预览')"
     :width="1100"
     @closed="handleClose">
     <div class="host-preview-content">
-      <div class="host-preview-content__operations mb-16">
+      <div class="host-preview-content-operations mb-16">
         <BkButton
           class="mr-8"
           @click="handleCopyAbnormalIps">
-          {{ $t('复制异常IP') }}
+          {{ t('复制异常IP') }}
         </BkButton>
         <BkButton
           class="mr-8"
           @click="handleCopyIps">
-          {{ $t('复制所有IP') }}
+          {{ t('复制所有IP') }}
         </BkButton>
         <BkInput
           v-model="state.keyword"
           clearable
-          :placeholder="$t('IP_主机名关键字')"
+          :placeholder="t('IP_主机名关键字')"
           type="search"
           @clear="handleChangePage(1)"
           @enter="handleChangePage(1)" />
@@ -54,7 +54,7 @@
     </div>
     <template #footer>
       <BkButton @click="handleClose">
-        {{ $t('关闭') }}
+        {{ t('关闭') }}
       </BkButton>
     </template>
   </BkDialog>
@@ -172,24 +172,24 @@
     }
   });
 
-  function handleCopyAbnormalIps() {
+  const handleCopyAbnormalIps = () => {
     const abnormalIps = state.data.filter((item) => item.status === 0).map((item) => item.bk_host_innerip);
     if (abnormalIps.length > 0) {
       execCopy(abnormalIps.join('\n'), t('复制成功，共n条', { n: abnormalIps.length }));
     }
-  }
+  };
 
-  function handleCopyIps() {
+  const handleCopyIps = () => {
     const ips = state.data.map((item) => item.bk_host_innerip);
     if (ips.length > 0) {
       execCopy(ips.join('\n'), t('复制成功，共n条', { n: ips.length }));
     }
-  }
+  };
 
   /**
    * 获取节点列表
    */
-  function fetchHostNodes() {
+  const fetchHostNodes = () => {
     state.isLoading = true;
     props
       .fetchNodes({
@@ -208,34 +208,34 @@
       .finally(() => {
         state.isLoading = false;
       });
-  }
+  };
 
   /**
    * change page
    */
-  function handleChangePage(value: number) {
+  const handleChangePage = (value: number) => {
     state.pagination.current = value;
     fetchHostNodes();
-  }
+  };
 
   /**
    * change limit
    */
-  function handeChangeLimit(value: number) {
+  const handeChangeLimit = (value: number) => {
     state.pagination.limit = value;
     handleChangePage(1);
-  }
+  };
 
-  function handleClearSearch() {
+  const handleClearSearch = () => {
     state.keyword = '';
     handleChangePage(1);
-  }
+  };
 
-  function handleClose() {
+  const handleClose = () => {
     isShow.value = false;
     state.keyword = '';
     state.pagination = useDefaultPagination();
-  }
+  };
 </script>
 
 <style lang="less" scoped>
@@ -250,7 +250,7 @@
   .host-preview-content {
     padding-bottom: 24px;
 
-    &__operations {
+    .base-info-operations {
       .flex-center();
     }
   }

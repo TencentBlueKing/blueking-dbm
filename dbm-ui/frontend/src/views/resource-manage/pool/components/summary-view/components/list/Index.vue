@@ -249,7 +249,7 @@
       cursor: pointer;
     }
 
-    .db-card__content {
+    .db-card-content {
       padding: 14px 22px;
     }
 

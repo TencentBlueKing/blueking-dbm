@@ -13,7 +13,7 @@
 
 <template>
   <div class="event-change db-scroll-y">
-    <div class="event-change__operations mb-16">
+    <div class="event-change-operations mb-16">
       <BkDatePicker
         v-model="daterange"
         append-to-body
@@ -102,13 +102,13 @@
       label: t('单据链接'),
       render: ({ data }: { data: IRowData }) => (
         <router-link
+          target='_blank'
           to={{
             name: 'bizTicketManage',
             params: {
               ticketId: data.ticket_id,
             },
-          }}
-          target='_blank'>
+          }}>
           {data.ticket_id}
         </router-link>
       ),

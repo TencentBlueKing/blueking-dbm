@@ -87,7 +87,7 @@
   .db-card {
     padding: 12px 24px;
 
-    :deep(.db-card__content) {
+    :deep(.db-card-content) {
       padding-top: 12px;
     }
   }

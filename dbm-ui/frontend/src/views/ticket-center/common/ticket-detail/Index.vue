@@ -146,7 +146,7 @@
       z-index: 0;
       box-shadow: unset;
 
-      .db-card__content {
+      .db-card-content {
         padding-left: 116px;
         overflow: hidden;
       }

@@ -106,9 +106,7 @@
               :min="1025"
               style="width: 185px"
               type="number" />
-            <span class="apply-form__tips ml-10">{{
-              t('按主机分配（集群实例），系统将从“起始端口”开始自动分配')
-            }}</span>
+            <span class="apply-form-tips ml-10">{{ t('按主机分配（集群实例），系统将从“起始端口”开始自动分配') }}</span>
           </BkFormItem>
           <BkFormItem
             :label="t('访问密码')"
