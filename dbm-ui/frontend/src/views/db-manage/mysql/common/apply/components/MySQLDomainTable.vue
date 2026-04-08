@@ -196,7 +196,7 @@
           <bk-form-item
             key={rowIndex}
             ref={setDomainRef}
-            class='domain-address__item'
+            class='domain-address-item'
             errorDisplayType='tooltips'
             label-width={0}
             property={`details.domains.${rowIndex}.key`}
@@ -215,7 +215,7 @@
             />
           </bk-form-item>
         ) : (
-          <span class='domain-address__placeholder'>{props.formdata.details.domains[rowIndex]?.key}</span>
+          <span class='domain-address-placeholder'>{props.formdata.details.domains[rowIndex]?.key}</span>
         )}
         <span>{`.${props.formdata.details.db_app_abbr}.db`}</span>
       </div>

@@ -264,31 +264,31 @@
         }
       }
 
-      .deploy-table {
-        margin-top: 12px;
+      // .deploy-table {
+      //   margin-top: 12px;
 
-        :deep(.cluster-name) {
-          padding: 8px 0;
-          line-height: 16px;
+      //   :deep(.cluster-name) {
+      //     padding: 8px 0;
+      //     line-height: 16px;
 
-          &__alias {
-            color: @light-gray;
-          }
-        }
+      //     .cluster-name-alias {
+      //       color: @light-gray;
+      //     }
+      //   }
 
-        :deep(.bk-form-label) {
-          display: none;
-        }
+      //   :deep(.bk-form-label) {
+      //     display: none;
+      //   }
 
-        :deep(.bk-form-error-tips) {
-          top: 50%;
-          transform: translateY(-50%);
-        }
+      //   :deep(.bk-form-error-tips) {
+      //     top: 50%;
+      //     transform: translateY(-50%);
+      //   }
 
-        :deep(.regex-input) {
-          margin: 8px 0;
-        }
-      }
+      //   :deep(.regex-input) {
+      //     margin: 8px 0;
+      //   }
+      // }
     }
   }
 </style>

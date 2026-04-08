@@ -407,13 +407,5 @@
         border: 1px solid @border-primary;
       }
     }
-
-    &__footer {
-      margin-left: 192px;
-
-      .bk-button {
-        width: 88px;
-      }
-    }
   }
 </style>

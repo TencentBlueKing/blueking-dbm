@@ -16,11 +16,11 @@
     class="db-collapse-table"
     :class="[{ 'db-collapse-table--collapse': state.collapse }]">
     <div
-      class="db-collapse-table__header"
+      class="db-collapse-table-header"
       @click="handleToggle">
-      <div class="db-collapse-table__left">
-        <i class="db-icon-down-shape db-collapse-table__icon" />
-        <div class="db-collapse-table__title">
+      <div class="db-collapse-table-left">
+        <i class="db-icon-down-shape db-collapse-table-icon" />
+        <div class="db-collapse-table-title">
           <slot name="title">
             <template v-if="title">
               <strong>【{{ title }}】</strong>
@@ -36,9 +36,9 @@
       </div>
       <BkDropdown
         v-if="showIcon"
-        class="db-collapse-table__dropdown"
+        class="db-collapse-table-dropdown"
         @click.stop>
-        <i class="db-icon-more db-collapse-table__trigger" />
+        <i class="db-icon-more db-collapse-table-trigger" />
         <template #content>
           <BkDropdownMenu>
             <BkDropdownItem
@@ -55,7 +55,7 @@
     <Transition mode="in-out">
       <DbOriginalTable
         v-show="state.collapse"
-        class="db-collapse-table__content"
+        class="db-collapse-table-content"
         v-bind="tableProps" />
     </Transition>
   </div>
@@ -124,7 +124,7 @@
     font-weight: normal;
     color: @default-color;
 
-    &__header {
+    .db-collapse-table-header {
       height: 42px;
       padding: 0 16px;
       font-size: @font-size-mini;
@@ -134,27 +134,27 @@
       .flex-center();
     }
 
-    &__left {
+    .db-collapse-table-left {
       .flex-center();
     }
 
-    &__icon {
+    .db-collapse-table-icon {
       transform: rotate(-90deg);
       transition: all 0.2s;
     }
 
-    &__title {
+    .db-collapse-table-title {
       .flex-center();
 
       padding-left: 4px;
     }
 
-    &__dropdown {
+    .db-collapse-table-dropdown {
       font-size: 0;
       line-height: 20px;
     }
 
-    &__trigger {
+    .db-collapse-table-trigger {
       display: block;
       font-size: 20px;
       cursor: pointer;
@@ -165,7 +165,7 @@
       }
     }
 
-    &__content {
+    .db-collapse-table-content {
       :deep(thead th),
       :deep(.table-head-settings) {
         background-color: #f5f7fa !important;
@@ -204,8 +204,8 @@
       }
     }
 
-    &--collapse {
-      .db-collapse-table__icon {
+    &.db-collapse-table--collapse {
+      .db-collapse-table-icon {
         transform: rotate(0);
       }
     }

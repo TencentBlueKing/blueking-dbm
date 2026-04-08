@@ -27,7 +27,7 @@
     @closed="handleClose">
     <BkLoading :loading="state.isLoading">
       <DbOriginalTable
-        class="result-files__table"
+        class="result-files-table"
         :data="state.data"
         :height="460"
         :is-anomalies="isAnomalies"
@@ -107,8 +107,10 @@
     selected: [] as KeyFileItem[],
   });
 
-  watch(isShow, (isShow) => {
-    isShow && fetchKeyFiles();
+  watch(isShow, () => {
+    if (isShow.value) {
+      fetchKeyFiles();
+    }
   });
 
   const handleShow = () => {
@@ -215,33 +217,13 @@
 
 <style lang="less" scoped>
   .result-files {
-    &__table {
+    .result-files-table {
       :deep(.cluster-name) {
         line-height: 16px;
 
-        &__alias {
+        .cluster-name-alias {
           color: @light-gray;
         }
-      }
-    }
-  }
-</style>
-
-<style lang="less">
-  .redis-delete-keys-confirm {
-    font-size: 20px;
-
-    .delete-confirm {
-      padding: 0 36px;
-      text-align: left;
-
-      &__item {
-        padding-bottom: 4px;
-        word-break: break-all;
-      }
-
-      &__desc {
-        color: @light-gray;
       }
     }
   }

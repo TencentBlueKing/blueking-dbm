@@ -22,8 +22,8 @@
         <li
           v-for="config of list"
           :key="config.key"
-          class="base-info__item">
-          <span class="base-info__label">
+          class="base-info-item">
+          <span class="base-info-label">
             <span
               v-overflow-tips
               class="text-overflow">
@@ -31,10 +31,10 @@
             </span>
             ：
           </span>
-          <div class="base-info__value-container">
+          <div class="base-info-value-container">
             <BkForm
               v-if="editState.key === config.key && !readonly"
-              class="base-info__edit"
+              class="base-info-edit"
               :model="editState">
               <BkFormItem
                 ref="editItemRef"
@@ -47,12 +47,12 @@
                   ref="editInputRef"
                   v-model="editState.value"
                   :disabled="loading"
-                  :placeholder="$t('请输入')"
+                  :placeholder="t('请输入')"
                   style="width: 240px"
                   @blur="handleSaveEdit"
                   @enter="handleSaveEdit" />
                 <BkLoading
-                  class="base-info__loading"
+                  class="base-info-loading"
                   :loading="loading"
                   mode="spin"
                   size="mini"
@@ -62,20 +62,20 @@
             <template v-else>
               <span
                 v-overflow-tips
-                class="base-info__value text-overflow">
+                class="base-info-value text-overflow">
                 <Component
                   :is="config.render"
                   v-if="config.render" />
                 <template v-else>{{ data[config.key] || '--' }}</template>
               </span>
-              <div class="base-info__icons">
+              <div class="base-info-icons">
                 <i
                   v-if="config.isEdit && !readonly"
-                  class="base-info__icon db-icon-edit"
+                  class="base-info-icon db-icon-edit"
                   @click.stop="handleEdit(config.key, data[config.key])" />
                 <i
                   v-if="config.isCopy"
-                  class="base-info__icon db-icon-copy"
+                  class="base-info-icon db-icon-copy"
                   @click.stop="execCopy(data[config.key], t('复制成功，共n条', { n: 1 }))" />
               </div>
             </template>
@@ -91,6 +91,15 @@
   import { execCopy, generateId } from '@utils';
 
   import { t } from '@locales/index';
+
+  interface Props {
+    columns?: Array<Array<InfoColumn>>;
+    data?: Record<string, any>;
+    readonly?: boolean;
+    width?: string;
+  }
+
+  type Emits = (e: 'save', value: EditEmitData) => void;
 
   export type InfoColumn = {
     isCopy?: boolean;
@@ -146,15 +155,6 @@
 </script>
 
 <script setup lang="tsx">
-  interface Props {
-    columns?: Array<Array<InfoColumn>>;
-    data?: Record<string, any>;
-    readonly?: boolean;
-    width?: string;
-  }
-
-  type Emits = (e: 'save', value: EditEmitData) => void;
-
   const props = withDefaults(defineProps<Props>(), {
     columns: () => getDefaultColumns(),
     data: () => ({}),
@@ -236,13 +236,13 @@
     flex: 0 1 var(--width);
     max-width: var(--width);
 
-    &__item {
+    .base-info-item {
       .flex-center();
 
       line-height: 32px;
     }
 
-    &__label {
+    .base-info-label {
       display: flex;
       min-width: 80px !important;
       padding-left: 10px;
@@ -251,7 +251,7 @@
       justify-content: flex-end;
     }
 
-    &__value-container {
+    .base-info-value-container {
       .flex-center();
 
       overflow: hidden;
@@ -259,24 +259,24 @@
       flex: 1;
     }
 
-    &__edit {
+    .base-info-edit {
       :deep(.bk-form-label) {
         padding-right: 0;
       }
     }
 
-    &__icons {
+    .base-info-icons {
       .flex-center();
     }
 
-    &__icon {
+    .base-info-icon {
       margin-left: 4px;
       font-size: @font-size-normal;
       color: @primary-color;
       cursor: pointer;
     }
 
-    &__loading {
+    .base-info-loading {
       position: absolute;
       top: 50%;
       right: 8px;

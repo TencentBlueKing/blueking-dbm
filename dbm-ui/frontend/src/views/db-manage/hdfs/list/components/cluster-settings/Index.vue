@@ -21,23 +21,23 @@
       <BkCollapsePanel :model-value="index === 0">
         <template #header>
           <div class="custom-collapse-header">
-            <div class="custom-collapse-header__left">
-              <DbIcon type="down-shape custom-collapse-header__icon" />
-              <strong class="custom-collapse-header__name">{{ xml.name }}</strong>
+            <div class="custom-collapse-header-left">
+              <DbIcon type="down-shape custom-collapse-header-icon" />
+              <strong class="custom-collapse-header-name">{{ xml.name }}</strong>
             </div>
-            <div class="custom-collapse-header__bar">
+            <div class="custom-collapse-header-bar">
               <BkButton
                 class="mr-8"
                 text
                 theme="primary"
                 @click.stop="execCopy(xml.value)">
-                {{ $t('复制') }}
+                {{ t('复制') }}
               </BkButton>
               <BkButton
                 text
                 theme="primary"
                 @click.stop="handleDownload(xml)">
-                {{ $t('下载') }}
+                {{ t('下载') }}
               </BkButton>
             </div>
           </div>
@@ -51,6 +51,8 @@
 </template>
 
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import ClusterConfigXmlsModel from '@services/model/hdfs/hdfs-cluster-config-xmls';
   import { getHdfsXmls } from '@services/source/hdfs';
 
@@ -68,6 +70,8 @@
   }
 
   const props = defineProps<Props>();
+
+  const { t } = useI18n();
 
   const isLoading = ref(false);
   const xmlKeys = ['hdfs-site.xml', 'core-site.xml'];
@@ -125,7 +129,7 @@
       color: @title-color;
       cursor: pointer;
 
-      &__icon {
+      .custom-collapse-header-icon {
         display: inline-block;
         font-size: 14px;
         color: @default-color;
@@ -133,7 +137,7 @@
         transition: all 0.2s;
       }
 
-      &__name {
+      .custom-collapse-header-name {
         margin: 0 4px 0 12px;
       }
     }
@@ -145,8 +149,8 @@
       border: 1px solid #dcdee5;
       border-radius: 2px;
 
-      &-active {
-        .custom-collapse-header__icon {
+      &.bk-collapse-item-active {
+        .custom-collapse-header-icon {
           transform: rotate(0);
         }
       }

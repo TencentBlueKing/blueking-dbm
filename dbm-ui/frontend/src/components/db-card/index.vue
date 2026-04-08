@@ -21,16 +21,16 @@
       },
     ]">
     <div
-      class="db-card__header"
+      class="db-card-header"
       @click="handleToggle">
       <i
         v-if="!isNormalMode"
-        class="db-card__icon db-icon-down-shape" />
-      <span class="db-card__title">{{ title }}</span>
-      <span class="db-card__desc">
+        class="db-card-icon db-icon-down-shape" />
+      <span class="db-card-title">{{ title }}</span>
+      <span class="db-card-desc">
         <slot name="desc">{{ desc }}</slot>
       </span>
-      <div class="db-card__header-right">
+      <div class="db-card-header-right">
         <slot name="header-right" />
       </div>
     </div>
@@ -38,7 +38,7 @@
     <Transition mode="in-out">
       <div
         v-show="localCollpase"
-        class="db-card__content">
+        class="db-card-content">
         <slot />
       </div>
     </Transition>
@@ -99,47 +99,47 @@
     background: #fff;
     box-shadow: 0 2px 4px 0 rgb(25 25 41 / 5%);
 
-    &__header {
+    .db-card-header {
       .flex-center();
     }
 
-    &__icon {
+    .db-card-icon {
       margin-right: 8px;
       font-size: @font-size-normal;
       transform: rotate(-90deg);
       transition: all 0.3s;
     }
 
-    &__header-right {
+    .db-card-header-right {
       align-self: flex-end;
     }
 
-    &__title {
+    .db-card-title {
       padding-right: 8px;
       font-weight: bold;
       color: @title-color;
       flex-shrink: 0;
     }
 
-    &__desc {
+    .db-card-desc {
       flex: 1;
       font-size: @font-size-mini;
       color: @gray-color;
     }
 
-    &__content {
+    .db-card-content {
       padding-top: 24px;
     }
 
-    &-collapse {
-      .db-card__header {
+    &.db-card-collapse {
+      .db-card-header {
         cursor: pointer;
       }
+    }
 
-      &--active {
-        .db-card__icon {
-          transform: rotate(0);
-        }
+    &.db-card-collapse--active {
+      .db-card-icon {
+        transform: rotate(0);
       }
     }
   }
