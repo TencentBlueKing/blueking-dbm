@@ -43,10 +43,14 @@ class DorisCCTopoOperator(CCTopoOperator):
         )
         if ins.instance_role in [InstanceRole.DORIS_OBSERVER, InstanceRole.DORIS_FOLLOWER]:
             metrics_port = str(data["content"][DorisConfigEnum.Frontend].get("http_port", DEFAULT_FE_WEB_PORT))
-        elif ins.instance_role in [InstanceRole.DORIS_BACKEND_HOT, InstanceRole.DORIS_BACKEND_COLD]:
+        elif ins.instance_role in [
+            InstanceRole.DORIS_BACKEND_HOT,
+            InstanceRole.DORIS_BACKEND_COLD,
+            InstanceRole.DORIS_BACKEND_WARM,
+        ]:
             metrics_port = str(DEFAULT_BE_WEB_PORT)
 
-        logger.info("metrics_port is %d", metrics_port)
+        logger.info("metrics_port is %s", metrics_port)
         return {
             "metrics_port": metrics_port,
         }
