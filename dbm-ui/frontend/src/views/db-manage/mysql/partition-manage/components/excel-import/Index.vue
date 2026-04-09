@@ -161,6 +161,7 @@
       isUploading.value = false;
       isImporting.value = false;
       resetResult();
+      nextTick(() => uploadRef.value?.reset());
     });
   };
 </script>
