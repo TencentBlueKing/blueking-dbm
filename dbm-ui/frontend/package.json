@@ -148,11 +148,13 @@
   "overrides": {
     "@rolldown/pluginutils": "1.0.0-beta.31",
     "oxlint-tsgolint": "0.0.0-10",
-    "lodash-es": "4.17.21"
+    "lodash-es": "4.17.21",
+    "tdesign-vue-next": "1.14.1"
   },
   "resolutions": {
     "@rolldown/pluginutils": "1.0.0-beta.31",
     "oxlint-tsgolint": "0.0.0-10",
-    "lodash-es": "4.17.21"
+    "lodash-es": "4.17.21",
+    "tdesign-vue-next": "1.14.1"
   }
 }
