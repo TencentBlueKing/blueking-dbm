@@ -75,6 +75,7 @@ from backend.flow.views.kafka_reboot import RebootKafkaSceneApiView
 from backend.flow.views.kafka_replace import ReplaceKafkaSceneApiView
 from backend.flow.views.kafka_scale_up import ScaleUpKafkaSceneApiView
 from backend.flow.views.kafka_shrink import ShrinkKafkaSceneApiView
+from backend.flow.views.migrate_views.doris_fake_apply import FakeInstallDorisSceneApiView
 from backend.flow.views.migrate_views.es_fake_apply import FakeInstallEsSceneApiView
 from backend.flow.views.migrate_views.hdfs_fake_apply import FakeInstallHdfsSceneApiView
 from backend.flow.views.migrate_views.influxdb_fake_apply import FakeInstallInfluxdbSceneApiView
@@ -614,6 +615,7 @@ urlpatterns = [
     url("^scene/download_dbactor$", DownloadDbactorApiView.as_view()),
     url("^scene/download_file$", DownloadFileApiView.as_view()),
     url("^scene/doris_machine_clear$", DorisMachineClearApiView.as_view()),
+    url(r"^scene/fake_install_doris$", FakeInstallDorisSceneApiView.as_view()),
     # vm
     url(r"^scene/install_vm$", InstallVmSceneApiView.as_view()),
     url(r"^scene/scale_up_vm$", ScaleUpVmSceneApiView.as_view()),
