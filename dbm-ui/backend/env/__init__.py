@@ -41,6 +41,7 @@ ENABLE_BKBASE_METRICS_REPORT = get_type_env(key="ENABLE_BKBASE_METRICS_REPORT", 
 ENABLE_BKBASE_INTERNAL_METRICS = get_type_env(key="ENABLE_BKBASE_INTERNAL_METRICS", _type=bool, default=False)
 # 租户配置
 ENABLE_MULTI_TENANT_MODE = get_type_env(key="ENABLE_MULTI_TENANT_MODE", _type=bool, default=False)
+ENABLE_BKBASE_METRICS_REPORT = get_type_env(key="ENABLE_BKBASE_METRICS_REPORT", _type=bool, default=False)
 BK_TENANT_ID = get_type_env(key="BK_TENANT_ID", _type=str, default="default")
 
 # CC业务模型中的英文业务简称
