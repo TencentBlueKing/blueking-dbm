@@ -26,9 +26,12 @@ import (
 	commutil "k8s-dbs/common/util"
 	coreconst "k8s-dbs/core/constant"
 	coreutil "k8s-dbs/core/util"
+	thirdapi "k8s-dbs/infrastructure/thirdapi"
+	infrautil "k8s-dbs/infrastructure/util"
 	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	"log/slog"
+	"os"
 	"strings"
 	"time"
 
@@ -45,6 +48,7 @@ type ServiceInformer struct {
 	k8sClusterConfig       *metaentity.K8sClusterConfigEntity
 	clusterMetaProvider    metaprovider.K8sCrdClusterProvider
 	clusterServiceProvider metaprovider.K8sClusterServiceProvider
+	asyncToDBM             bool
 }
 
 // NewServiceInformer 创建 ServiceInformer 实例
@@ -57,6 +61,7 @@ func NewServiceInformer(
 		k8sClusterConfig:       k8sClusterConfig,
 		clusterMetaProvider:    clusterMetaProvider,
 		clusterServiceProvider: clusterServiceProvider,
+		asyncToDBM:             os.Getenv(coreconst.AsyncToDBMEnv) == coreconst.AsyncToDBMEnabled,
 	}
 }
 
@@ -130,11 +135,85 @@ func (s *ServiceInformer) onAddOrUpdate(obj interface{}) {
 
 	entity := s.buildServiceEntity(service, clusterEntity.ID, componentName, clusterName)
 
-	// 使用事务性 per-service upsert: 原子性地删除旧记录并插入新记录
+	// 在 upsert 前查询该集群是否已有暴露 service（用于判断是否首次暴露）
+	var isFirstExpose bool
+	if len(entity.ExternalAddrs) > 0 && s.asyncToDBM {
+		count, countErr := s.clusterServiceProvider.CountExternalByClusterID(clusterEntity.ID)
+		if countErr != nil {
+			slog.Error("ServiceInformer: failed to count external services, skip domain create",
+				"cluster_id", clusterEntity.ID, "error", countErr)
+		} else {
+			isFirstExpose = count == 0
+		}
+	}
+
+	// 原子性地更新或插入单个 service 记录（存在则 UPDATE，不存在则 INSERT）
 	if err := s.clusterServiceProvider.UpsertSingleService(entity); err != nil {
 		slog.Error("ServiceInformer: failed to upsert service record",
 			"service", service.Name, "error", err)
 	}
+
+	// 首次暴露时异步创建域名到 DBM DNS 服务，成功后回写 domains 字段到本地 DB
+	if isFirstExpose {
+		infrautil.AsyncDomainCreate(
+			clusterEntity,
+			entity,
+			thirdapi.GetDbmAPIService(),
+			s.clusterServiceProvider,
+		)
+		return
+	}
+
+	// 非首次暴露：DBM 侧仅维护 domain -> ip 解析不感知端口，同集群的新 svc
+	// 复用已有 domain，因此不需要再调用 domain/create，但仍需将该 domain
+	// 回写到当前 svc 的 domains 字段，保证 service 维度的数据完整。
+	if len(entity.ExternalAddrs) > 0 && s.asyncToDBM {
+		s.inheritClusterDomain(clusterEntity.ID, entity)
+	}
+}
+
+// inheritClusterDomain 从同集群其它 svc 读取已有 domain，并回写到当前 svc 的 domains 字段。
+// 若暂未查询到（例如首次暴露的 AsyncDomainCreate 仍在异步处理中），本次跳过，
+// 等待后续 informer 事件或 resync 周期再次触发时完成回写。
+func (s *ServiceInformer) inheritClusterDomain(
+	crdClusterID uint64,
+	entity *metaentity.K8sClusterServiceEntity,
+) {
+	existing, err := s.clusterServiceProvider.FindByClusterID(crdClusterID)
+	if err != nil {
+		slog.Error("ServiceInformer: failed to query existing services for domain reuse",
+			"cluster_id", crdClusterID, "error", err)
+		return
+	}
+	var reuseDomain string
+	for _, svc := range existing {
+		if svc.ServiceName == entity.ServiceName {
+			continue
+		}
+		if svc.Domains != "" {
+			reuseDomain = svc.Domains
+			break
+		}
+	}
+	if reuseDomain == "" {
+		slog.Debug("ServiceInformer: no existing domain found to reuse, will retry on next event",
+			"cluster_id", crdClusterID, "service_name", entity.ServiceName)
+		return
+	}
+	if _, err := s.clusterServiceProvider.UpdateDomains(
+		crdClusterID, entity.ServiceName, reuseDomain,
+	); err != nil {
+		slog.Error("ServiceInformer: failed to write reused domain to service record",
+			"cluster_id", crdClusterID,
+			"service_name", entity.ServiceName,
+			"domain", reuseDomain,
+			"error", err)
+		return
+	}
+	slog.Info("ServiceInformer: reused existing cluster domain to service",
+		"cluster_id", crdClusterID,
+		"service_name", entity.ServiceName,
+		"domain", reuseDomain)
 }
 
 // onDelete 处理 Service 删除事件
@@ -164,11 +243,29 @@ func (s *ServiceInformer) onDelete(obj interface{}) {
 		return
 	}
 
-	if _, err := s.clusterServiceProvider.DeleteByClusterIDAndServiceName(
+	rows, err := s.clusterServiceProvider.DeleteByClusterIDAndServiceName(
 		clusterEntity.ID, service.Name,
-	); err != nil {
-		slog.Warn("ServiceInformer: failed to delete service record on service deletion",
+	)
+	if err != nil {
+		slog.Warn("ServiceInformer: failed to delete service record on service deletion, skip DNS delete",
 			"service", service.Name, "error", err)
+		return
+	}
+	if rows == 0 {
+		slog.Debug("ServiceInformer: no service row deleted, continue DNS cleanup check",
+			"cluster_id", clusterEntity.ID, "service", service.Name)
+	}
+
+	if s.asyncToDBM {
+		count, countErr := s.clusterServiceProvider.CountExternalByClusterID(clusterEntity.ID)
+		if countErr != nil {
+			slog.Error("ServiceInformer: failed to count external services",
+				"cluster_id", clusterEntity.ID, "error", countErr)
+			return
+		}
+		if count == 0 {
+			infrautil.AsyncDomainDelete(clusterEntity, thirdapi.GetDbmAPIService())
+		}
 	}
 }
 

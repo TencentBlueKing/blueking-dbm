@@ -257,9 +257,6 @@ func (c *ClusterProvider) CreateCluster(ctx *commentity.DbsContext, request *cor
 }
 
 // validateNoConflictCluster 校验集群不与已有集群冲突，并返回对应的 k8s 集群配置。
-// 两项校验：
-//  1. 同一 k8s 集群 + namespace 下不允许同名集群（本地幂等）
-//  2. 同一业务 + addon 类型下不允许同名集群（DBM 唯一约束：name+bk_biz_id+cluster_type）
 func (c *ClusterProvider) validateNoConflictCluster(
 	request *coreentity.Request,
 ) (*metaentity.K8sClusterConfigEntity, error) {
@@ -267,6 +264,7 @@ func (c *ClusterProvider) validateNoConflictCluster(
 	if err != nil {
 		return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
 	}
+	// 检查 1：同一 k8s 集群 + namespace 下不允许同名集群（本地幂等）
 	originClusterEntity, err := c.clusterMetaProvider.FindByParams(&metaentity.ClusterQueryParams{
 		K8sClusterConfigID: k8sClusterConfig.ID,
 		ClusterName:        request.ClusterName,
@@ -279,18 +277,17 @@ func (c *ClusterProvider) validateNoConflictCluster(
 		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
 			fmt.Errorf("集群 %s 已存在，请勿重复创建", request.ClusterName))
 	}
+
+	// 检查 2：全局范围内不允许同名集群
 	duplicateCluster, err := c.clusterMetaProvider.FindByParams(&metaentity.ClusterQueryParams{
 		ClusterName: request.ClusterName,
-		BkBizIDs:    []uint64{request.BkBizID},
-		AddonTypes:  []string{request.StorageAddonType},
 	})
 	if err != nil {
 		return nil, dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
 	}
 	if duplicateCluster != nil {
 		return nil, dbserrors.NewK8sDbsError(dbserrors.CreateClusterError,
-			fmt.Errorf("同一业务(bk_biz_id=%d)下已存在同类型(%s)的同名集群 %s，请使用其他名称",
-				request.BkBizID, request.StorageAddonType, request.ClusterName))
+			fmt.Errorf("集群名称 %s 已被使用，请使用其他名称", request.ClusterName))
 	}
 	return k8sClusterConfig, nil
 }
@@ -658,10 +655,10 @@ func (c *ClusterProvider) DeleteCluster(ctx *commentity.DbsContext, request *cor
 			fmt.Errorf("删除集群 release 失败: %w", err))
 	}
 
-	// 检查环境变量ASYNC_TO_DBM，控制是否启用异步处理
+	// 检查环境变量ASYNC_TO_DBM，控制是否启用异步处理。
 	asyncToDBM := os.Getenv(coreconst.AsyncToDBMEnv)
 	if asyncToDBM == coreconst.AsyncToDBMEnabled {
-		infrautil.AsyncClusterDeleted(clusterEntity, c.dbmAPIService)
+		infrautil.AsyncClusterTeardown(clusterEntity, c.dbmAPIService)
 	}
 
 	return nil
