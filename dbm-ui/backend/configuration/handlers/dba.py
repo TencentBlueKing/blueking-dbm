@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 from typing import Dict, List, Union
 
+from backend.configuration.constants import DBType
 from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Machine
@@ -87,4 +88,11 @@ class DBAdministratorHandler(object):
             db_types = (
                 DBAdministrator.objects.filter(users__contains=username).values_list("db_type", flat=True).distinct()
             )
-            return {"component": list(db_types)}
+            component = [
+                {
+                    "db_type": db_type,
+                    "db_type_display": DBType.get_choice_label(db_type),
+                }
+                for db_type in db_types
+            ]
+            return {"component": component}

@@ -864,9 +864,6 @@ class MonitorPolicy(AuditedModel):
                         filter(lambda cond: cond["key"] not in exclude_keys, query_config["agg_condition"])
                     )
                     query_config_agg_condition.extend(agg_conditions)
-                    # 平台或者业务策略才需要加入自定义的信息
-                    if self.target_level in [TargetLevel.PLATFORM, TargetLevel.APP]:
-                        query_config_agg_condition.extend(self.custom_conditions)
 
                     # overwrite agg_condition
                     query_config["agg_condition"] = query_config_agg_condition
@@ -925,8 +922,8 @@ class MonitorPolicy(AuditedModel):
                 metric_id = query_config["metric_id"]
                 if "agg_condition" in query_config:
                     # 非promsql的才有汇聚方式
-                    query_config["agg_method"] = id_agg_info_map[metric_id].get("agg_method")
-                query_config["agg_interval"] = id_agg_info_map[metric_id].get("agg_interval")
+                    query_config["agg_method"] = id_agg_info_map.get(metric_id, {}).get("agg_method")
+                query_config["agg_interval"] = id_agg_info_map.get(metric_id, {}).get("agg_interval")
                 if query_config.get("promql"):
                     promql_map[metric_id] = query_config.get("promql")
         if promql_map:
@@ -979,6 +976,25 @@ class MonitorPolicy(AuditedModel):
                 }
             )
         return agg_info
+
+    def sync_platform_policy(self):
+        """同步平台策略的属性"""
+
+        agg_interval_map = {info["metric_id"]: info["agg_interval"] for info in self.agg_info}
+        for sub_policy in MonitorPolicy.objects.filter(parent_id=self.id):
+            if sub_policy.policy_tag == PolicyTag.INNER and sub_policy.target_level == TargetLevel.APP:
+                sub_policy.test_rules = self.test_rules
+                sub_policy.no_data_config = self.no_data_config
+                sub_policy.detects_config = self.detects_config
+                sub_policy.notify_rules = self.notify_rules
+                sub_policy.notify_config = self.notify_config
+                sub_policy.is_enabled = self.is_enabled
+                sub_policy.details.update(is_enabled=self.is_enabled)
+                old_agg_info = sub_policy.agg_info
+                for info in old_agg_info:
+                    info["agg_interval"] = agg_interval_map[info["metric_id"]]
+                sub_policy.agg_info = old_agg_info
+            sub_policy.save()
 
     def local_save(self, *args, **kwargs):
         """仅保存到本地，不同步到监控"""
@@ -1037,21 +1053,7 @@ class MonitorPolicy(AuditedModel):
         # 父策略有变更时，把子策略也刷新一遍
         # 以保证子策略的配置与父策略的分组、指标、维度、周期一致，
         if self.parent_id == 0:
-            agg_interval_map = {info["metric_id"]: info["agg_interval"] for info in self.agg_info}
-            for sub_policy in MonitorPolicy.objects.filter(parent_id=self.id):
-                if sub_policy.policy_tag == PolicyTag.INNER and sub_policy.target_level == TargetLevel.APP:
-                    sub_policy.test_rules = self.test_rules
-                    sub_policy.no_data_config = self.no_data_config
-                    sub_policy.detects_config = self.detects_config
-                    sub_policy.notify_rules = self.notify_rules
-                    sub_policy.notify_config = self.notify_config
-                    sub_policy.is_enabled = self.is_enabled
-                    sub_policy.details.update(is_enabled=self.is_enabled)
-                    old_agg_info = sub_policy.agg_info
-                    for info in old_agg_info:
-                        info["agg_interval"] = agg_interval_map[info["metric_id"]]
-                    sub_policy.agg_info = old_agg_info
-                sub_policy.save()
+            self.sync_platform_policy()
 
     def delete(self, using=None, keep_parents=False):
         """删除策略的同时，同步删除监控策略"""
