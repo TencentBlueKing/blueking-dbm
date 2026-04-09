@@ -30,6 +30,7 @@ import (
 	"fmt"
 	"runtime/debug"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -44,6 +45,8 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -446,9 +449,11 @@ func (w *Workflow) handleStrategyNotify(strategy *hamodel.DbSwitchingStrategy, g
 		return false
 	}
 
-	logger.Info("strategy action is %s, execute notification, strategy: %s, cloudId: %d, dbType: %s",
+	log := fmt.Sprintf("strategy action is %s, execute notification, strategy: %s, cloudId: %d, dbType: %s",
 		strategy.Action, strategy.Name, group.BkCloudID, group.DbType)
-	// TODO: execute notification logic
+	logger.Info("%s", log)
+
+	w.alarm.TriggerWithBizId(group.Instances[0].BkBizID, log)
 	w.markDoneAll(groupInstKeys)
 	return true
 }
@@ -459,12 +464,11 @@ func (w *Workflow) handleStrategySwitch(strategy *hamodel.DbSwitchingStrategy, g
 		return false
 	}
 
-	logger.Info("trigger switching by strategy %s, dbType: %s, cloudId: %d, instances: %d",
-		strategy.Name, group.DbType, group.BkCloudID, len(group.Instances))
-
-	// TODO: set the switch ID of the switch request properly
 	req.ActionScope = strategy.Scope
-	req.SwitchID = "test_switch_id"
+	req.SwitchID = generateSwitchID()
+
+	logger.Info("trigger switching by strategy %s, switchId: %s, dbType: %s, cloudId: %d, instances: %d",
+		strategy.Name, req.SwitchID, group.DbType, group.BkCloudID, len(group.Instances))
 
 	wg.Add(1)
 	go func(keys []string, dbType haprobe.DbType, switchReq *switcher.Request) {
@@ -481,6 +485,11 @@ func (w *Workflow) handleStrategySwitch(strategy *hamodel.DbSwitchingStrategy, g
 	}(groupInstKeys, group.DbType, req)
 
 	return true
+}
+
+// generateSwitchID generates a unique switch ID.
+func generateSwitchID() string {
+	return fmt.Sprintf("%s-%s", config.SwitchIDVersion, strings.ReplaceAll(uuid.New().String(), "-", ""))
 }
 
 // markDoneAll releases inflight marks for all the given instance keys.

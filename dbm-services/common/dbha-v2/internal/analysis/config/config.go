@@ -194,6 +194,9 @@ func Load(configFilePath string) error {
 	return viper.Unmarshal(&Cfg)
 }
 
+// SwitchIDVersion is the version prefix for generated switch IDs
+const SwitchIDVersion = "00"
+
 func init() {
 	Cfg.Detector.Ssh.Port = 22
 	Cfg.Detector.Ssh.User = "root"

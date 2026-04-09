@@ -27,6 +27,7 @@ package workflow
 import (
 	"context"
 	"errors"
+	"sync"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/apm"
@@ -46,6 +47,7 @@ type SwitchExecutor struct {
 	hadata    *storage.DbhaData
 	dbmSync   *Synchronizer
 	switchers map[haprobe.DbType]switcher.Switcher
+	metricsMu sync.Mutex
 }
 
 // NewSwitchExecutor creates a SwitchExecutor.
@@ -174,6 +176,9 @@ func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.R
 
 func (e *SwitchExecutor) reportSwitchingMetrics(start time.Time, req *switcher.Request,
 	rsp *switcher.Response, dbType haprobe.DbType) {
+	e.metricsMu.Lock()
+	defer e.metricsMu.Unlock()
+
 	if err := apm.SwitchingTimeConsumingMs.UpdateLabel(map[string]string{
 		apm.MetricLabelDbType: dbType.String(),
 	}).Observe(float64(time.Since(start).Milliseconds())); err != nil {

@@ -68,6 +68,9 @@ func MatchProxyBackendSimultaneous(instances []FailureInstanceInfo) int {
 		hasProxy := false
 		hasBackendMaster := false
 		for _, inst := range group {
+			if inst.ClusterType != haprobe.DbmMetadataClusterTypeTendbha {
+				continue
+			}
 			if inst.MachineType == haprobe.DbmMetadataMachineTypeProxy {
 				hasProxy = true
 			}
@@ -104,6 +107,9 @@ func MatchSpiderRemoteMasterSimultaneous(instances []FailureInstanceInfo) int {
 		hasSpider := false
 		hasRemoteMaster := false
 		for _, inst := range group {
+			if inst.ClusterType != haprobe.DbmMetadataClusterTypeTendbCluster {
+				continue
+			}
 			if inst.MachineType == haprobe.DbmMetadataMachineTypeSpider {
 				hasSpider = true
 			}

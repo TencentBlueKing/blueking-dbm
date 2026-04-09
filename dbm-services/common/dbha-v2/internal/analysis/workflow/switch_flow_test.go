@@ -186,8 +186,21 @@ func TestMatchStrategyForGroup_SpecialStrategyMatched(t *testing.T) {
 
 	group := &FailureGroup{
 		Instances: []FailureInstanceInfo{
-			{BkBizID: 100, BkCloudID: 1, ClusterID: 10, MachineType: haprobe.DbmMetadataMachineTypeProxy},
-			{BkBizID: 100, BkCloudID: 1, ClusterID: 10, MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: dbm.MySQLStorageMaster.String()},
+			{
+				BkBizID:     100,
+				BkCloudID:   1,
+				ClusterID:   10,
+				ClusterType: haprobe.DbmMetadataClusterTypeTendbha,
+				MachineType: haprobe.DbmMetadataMachineTypeProxy,
+			},
+			{
+				BkBizID:      100,
+				BkCloudID:    1,
+				ClusterID:    10,
+				ClusterType:  haprobe.DbmMetadataClusterTypeTendbha,
+				MachineType:  haprobe.DbmMetadataMachineTypeBackend,
+				InstanceRole: dbm.MySQLStorageMaster.String(),
+			},
 		},
 	}
 
@@ -478,6 +491,7 @@ func TestMatchStrategyForGroup_NormalAndSpecialBothMatchedChooseHigherPriority(t
 				BkBizID:      100,
 				BkCloudID:    1,
 				ClusterID:    10,
+				ClusterType:  haprobe.DbmMetadataClusterTypeTendbha,
 				MachineType:  haprobe.DbmMetadataMachineTypeProxy,
 				EventName:    haprobe.DbEventNameDetectFailure,
 				InstanceRole: "",
@@ -486,6 +500,7 @@ func TestMatchStrategyForGroup_NormalAndSpecialBothMatchedChooseHigherPriority(t
 				BkBizID:      100,
 				BkCloudID:    1,
 				ClusterID:    10,
+				ClusterType:  haprobe.DbmMetadataClusterTypeTendbha,
 				MachineType:  haprobe.DbmMetadataMachineTypeBackend,
 				InstanceRole: dbm.MySQLStorageMaster.String(),
 				EventName:    haprobe.DbEventNameDetectFailure,
@@ -502,5 +517,348 @@ func TestMatchStrategyForGroup_NormalAndSpecialBothMatchedChooseHigherPriority(t
 	}
 	if strategy.Name != "special-p1" {
 		t.Fatalf("expected special-p1 due to higher priority, got %s", strategy.Name)
+	}
+}
+
+func TestMatchStrategyForGroup_DbEventNameDoubleCheckSshFailureV1(t *testing.T) {
+	executor, td := newTestSwitchExecutor(t)
+
+	// insert strategy
+	testutil.InsertStrategies(t, td.DbhaData,
+		&hamodel.DbSwitchingStrategy{ // target strategy
+			Name:             "target-ssh-failure",
+			BkBizID:          21,
+			Status:           hamodel.StatusTypeEnabled,
+			TriggerEventName: haprobe.DbEventNameDoubleCheckSshFailureV1,
+			TriggerCount:     3,
+			Priority:         2,
+			Action:           hamodel.ActionTypeSwitch,
+		},
+		&hamodel.DbSwitchingStrategy{ // global strategy
+			Name:             "global-ssh-failure",
+			BkBizID:          0, // bizID=0
+			Status:           hamodel.StatusTypeEnabled,
+			TriggerEventName: haprobe.DbEventNameDoubleCheckSshFailureV1,
+			TriggerCount:     2,
+			Priority:         1,
+			Action:           hamodel.ActionTypeSwitch,
+		},
+		&hamodel.DbSwitchingStrategy{ // different event name
+			Name:             "interference-diff-event",
+			BkBizID:          21,
+			Status:           hamodel.StatusTypeEnabled,
+			TriggerEventName: haprobe.DbEventNameProbeOffline,
+			TriggerCount:     3,
+			Priority:         1,
+			Action:           hamodel.ActionTypeSwitch,
+		},
+		&hamodel.DbSwitchingStrategy{ // different bizID
+			Name:             "interference-diff-biz",
+			BkBizID:          99,
+			Status:           hamodel.StatusTypeEnabled,
+			TriggerEventName: haprobe.DbEventNameDoubleCheckSshFailureV1,
+			TriggerCount:     3,
+			Priority:         1,
+			Action:           hamodel.ActionTypeSwitch,
+		},
+		&hamodel.DbSwitchingStrategy{ // disabled strategy
+			Name:             "interference-disabled",
+			BkBizID:          21,
+			Status:           hamodel.StatusTypeDisabled,
+			TriggerEventName: haprobe.DbEventNameDoubleCheckSshFailureV1,
+			TriggerCount:     3,
+			Priority:         1,
+			Action:           hamodel.ActionTypeSwitch,
+		},
+		&hamodel.DbSwitchingStrategy{ // deleted strategy
+			Name:             "interference-deleted",
+			BkBizID:          21,
+			Status:           hamodel.StatusTypeDeleted,
+			TriggerEventName: haprobe.DbEventNameDoubleCheckSshFailureV1,
+			TriggerCount:     3,
+			Priority:         1,
+			Action:           hamodel.ActionTypeSwitch,
+		},
+		&hamodel.DbSwitchingStrategy{ // lower priority
+			Name:             "interference-lower-priority",
+			BkBizID:          21,
+			Status:           hamodel.StatusTypeEnabled,
+			TriggerEventName: haprobe.DbEventNameDoubleCheckSshFailureV1,
+			TriggerCount:     1,
+			Priority:         5,
+			Action:           hamodel.ActionTypeSwitch,
+		},
+	)
+
+	group := &FailureGroup{
+		Instances: []FailureInstanceInfo{
+			{BkBizID: 21, EventName: haprobe.DbEventNameDoubleCheckSshFailureV1},
+			{BkBizID: 21, EventName: haprobe.DbEventNameDoubleCheckSshFailureV1},
+			{BkBizID: 21, EventName: haprobe.DbEventNameDoubleCheckSshFailureV1},
+			{BkBizID: 21, EventName: haprobe.DbEventNameDoubleCheckSshFailureV1},
+			{BkBizID: 21, EventName: haprobe.DbEventNameTendbhaProxyBackendFailure},
+			{BkBizID: 21, EventName: haprobe.DbEventNameTendbhaProxyBackendFailure},
+		},
+	}
+
+	matched, strategy := executor.MatchStrategyForGroup(context.Background(), group)
+	if !matched {
+		t.Fatal("expected matched=true")
+	}
+	if strategy == nil {
+		t.Fatal("expected non-nil strategy")
+	}
+	if strategy.Name != "target-ssh-failure" {
+		t.Errorf("expected strategy name 'target-ssh-failure', got %q", strategy.Name)
+	}
+}
+
+func TestMatchStrategyForGroup_DbEventNameTendbhaProxyBackendFailure(t *testing.T) {
+	executor, td := newTestSwitchExecutor(t)
+
+	// insert strategy
+	testutil.InsertStrategies(t, td.DbhaData,
+		&hamodel.DbSwitchingStrategy{ // target strategy
+			Name:             "target-tendbha-proxy-backend-failure",
+			BkBizID:          21,
+			Status:           hamodel.StatusTypeEnabled,
+			TriggerEventName: haprobe.DbEventNameTendbhaProxyBackendFailure,
+			TriggerCount:     2,
+			Priority:         2,
+			Action:           hamodel.ActionTypeSwitch,
+		},
+		&hamodel.DbSwitchingStrategy{ // global strategy
+			Name:             "global-tendbha-proxy-backend-failure",
+			BkBizID:          0, // bizID=0
+			Status:           hamodel.StatusTypeEnabled,
+			TriggerEventName: haprobe.DbEventNameTendbhaProxyBackendFailure,
+			TriggerCount:     2,
+			Priority:         1,
+			Action:           hamodel.ActionTypeSwitch,
+		},
+		&hamodel.DbSwitchingStrategy{ // different event name
+			Name:             "interference-diff-event",
+			BkBizID:          21,
+			Status:           hamodel.StatusTypeEnabled,
+			TriggerEventName: haprobe.DbEventNameProbeOffline,
+			TriggerCount:     2,
+			Priority:         1,
+			Action:           hamodel.ActionTypeSwitch,
+		},
+		&hamodel.DbSwitchingStrategy{ // different bizID
+			Name:             "interference-diff-biz",
+			BkBizID:          99,
+			Status:           hamodel.StatusTypeEnabled,
+			TriggerEventName: haprobe.DbEventNameTendbhaProxyBackendFailure,
+			TriggerCount:     2,
+			Priority:         1,
+			Action:           hamodel.ActionTypeSwitch,
+		},
+		&hamodel.DbSwitchingStrategy{ // disabled strategy
+			Name:             "interference-disabled",
+			BkBizID:          21,
+			Status:           hamodel.StatusTypeDisabled,
+			TriggerEventName: haprobe.DbEventNameTendbhaProxyBackendFailure,
+			TriggerCount:     2,
+			Priority:         1,
+			Action:           hamodel.ActionTypeSwitch,
+		},
+		&hamodel.DbSwitchingStrategy{ // deleted strategy
+			Name:             "interference-deleted",
+			BkBizID:          21,
+			Status:           hamodel.StatusTypeDeleted,
+			TriggerEventName: haprobe.DbEventNameTendbhaProxyBackendFailure,
+			TriggerCount:     2,
+			Priority:         1,
+			Action:           hamodel.ActionTypeSwitch,
+		},
+		&hamodel.DbSwitchingStrategy{ // lower priority
+			Name:             "interference-lower-priority",
+			BkBizID:          21,
+			Status:           hamodel.StatusTypeEnabled,
+			TriggerEventName: haprobe.DbEventNameTendbhaProxyBackendFailure,
+			TriggerCount:     2,
+			Priority:         5,
+			Action:           hamodel.ActionTypeSwitch,
+		},
+	)
+
+	group := &FailureGroup{
+		Instances: []FailureInstanceInfo{
+			{
+				BkBizID:     21,
+				BkCloudID:   1,
+				ClusterID:   10,
+				EventName:   haprobe.DbEventNameTendbhaProxyBackendFailure,
+				ClusterType: haprobe.DbmMetadataClusterTypeTendbha,
+				MachineType: haprobe.DbmMetadataMachineTypeProxy,
+			},
+			{
+				BkBizID:      21,
+				BkCloudID:    1,
+				ClusterID:    10,
+				EventName:    haprobe.DbEventNameTendbhaProxyBackendFailure,
+				ClusterType:  haprobe.DbmMetadataClusterTypeTendbha,
+				MachineType:  haprobe.DbmMetadataMachineTypeBackend,
+				InstanceRole: dbm.MySQLStorageMaster.String(),
+			},
+			{
+				BkBizID:     21,
+				BkCloudID:   2,
+				ClusterID:   11,
+				EventName:   haprobe.DbEventNameTendbhaProxyBackendFailure,
+				ClusterType: haprobe.DbmMetadataClusterTypeTendbha,
+				MachineType: haprobe.DbmMetadataMachineTypeProxy,
+			},
+			{
+				BkBizID:      21,
+				BkCloudID:    2,
+				ClusterID:    11,
+				EventName:    haprobe.DbEventNameTendbhaProxyBackendFailure,
+				ClusterType:  haprobe.DbmMetadataClusterTypeTendbha,
+				MachineType:  haprobe.DbmMetadataMachineTypeBackend,
+				InstanceRole: dbm.MySQLStorageMaster.String(),
+			},
+			{
+				BkBizID:     21,
+				BkCloudID:   3,
+				ClusterID:   12,
+				EventName:   haprobe.DbEventNameTendbhaProxyBackendFailure,
+				ClusterType: haprobe.DbmMetadataClusterTypeTendbha,
+				MachineType: haprobe.DbmMetadataMachineTypeProxy,
+			},
+		},
+	}
+
+	matched, strategy := executor.MatchStrategyForGroup(context.Background(), group)
+	if !matched {
+		t.Fatal("expected matched=true")
+	}
+	if strategy == nil {
+		t.Fatal("expected non-nil strategy")
+	}
+	if strategy.Name != "target-tendbha-proxy-backend-failure" {
+		t.Errorf("expected strategy name 'target-tendbha-proxy-backend-failure', got %q", strategy.Name)
+	}
+}
+
+func TestMatchStrategyForGroup_DbEventNameTendbclusterSpiderRemoteFailure(t *testing.T) {
+	executor, td := newTestSwitchExecutor(t)
+
+	// insert strategy
+	testutil.InsertStrategies(t, td.DbhaData,
+		&hamodel.DbSwitchingStrategy{ // target strategy
+			Name:             "target-tendbha-spider-remote-failure",
+			BkBizID:          21,
+			Status:           hamodel.StatusTypeEnabled,
+			TriggerEventName: haprobe.DbEventNameTendbclusterSpiderRemoteFailure,
+			TriggerCount:     2,
+			Priority:         2,
+			Action:           hamodel.ActionTypeSwitch,
+		},
+		&hamodel.DbSwitchingStrategy{ // global strategy
+			Name:             "global-tendbha-spider-remote-failure",
+			BkBizID:          0, // bizID=0
+			Status:           hamodel.StatusTypeEnabled,
+			TriggerEventName: haprobe.DbEventNameTendbclusterSpiderRemoteFailure,
+			TriggerCount:     2,
+			Priority:         1,
+			Action:           hamodel.ActionTypeSwitch,
+		},
+		&hamodel.DbSwitchingStrategy{ // different event name
+			Name:             "interference-diff-event",
+			BkBizID:          21,
+			Status:           hamodel.StatusTypeEnabled,
+			TriggerEventName: haprobe.DbEventNameProbeOffline,
+			TriggerCount:     2,
+			Priority:         1,
+			Action:           hamodel.ActionTypeSwitch,
+		},
+		&hamodel.DbSwitchingStrategy{ // different bizID
+			Name:             "interference-diff-biz",
+			BkBizID:          99,
+			Status:           hamodel.StatusTypeEnabled,
+			TriggerEventName: haprobe.DbEventNameTendbclusterSpiderRemoteFailure,
+			TriggerCount:     2,
+			Priority:         1,
+			Action:           hamodel.ActionTypeSwitch,
+		},
+		&hamodel.DbSwitchingStrategy{ // disabled strategy
+			Name:             "interference-disabled",
+			BkBizID:          21,
+			Status:           hamodel.StatusTypeDisabled,
+			TriggerEventName: haprobe.DbEventNameTendbclusterSpiderRemoteFailure,
+			TriggerCount:     2,
+			Priority:         1,
+			Action:           hamodel.ActionTypeSwitch,
+		},
+		&hamodel.DbSwitchingStrategy{ // deleted strategy
+			Name:             "interference-deleted",
+			BkBizID:          21,
+			Status:           hamodel.StatusTypeDeleted,
+			TriggerEventName: haprobe.DbEventNameTendbclusterSpiderRemoteFailure,
+			TriggerCount:     2,
+			Priority:         1,
+			Action:           hamodel.ActionTypeSwitch,
+		},
+		&hamodel.DbSwitchingStrategy{ // lower priority
+			Name:             "interference-lower-priority",
+			BkBizID:          21,
+			Status:           hamodel.StatusTypeEnabled,
+			TriggerEventName: haprobe.DbEventNameTendbclusterSpiderRemoteFailure,
+			TriggerCount:     2,
+			Priority:         5,
+			Action:           hamodel.ActionTypeSwitch,
+		},
+	)
+
+	group := &FailureGroup{
+		Instances: []FailureInstanceInfo{
+			{
+				BkBizID:     21,
+				BkCloudID:   1,
+				ClusterID:   10,
+				EventName:   haprobe.DbEventNameTendbclusterSpiderRemoteFailure,
+				ClusterType: haprobe.DbmMetadataClusterTypeTendbCluster,
+				MachineType: haprobe.DbmMetadataMachineTypeSpider,
+			},
+			{
+				BkBizID:      21,
+				BkCloudID:    1,
+				ClusterID:    10,
+				EventName:    haprobe.DbEventNameTendbclusterSpiderRemoteFailure,
+				ClusterType:  haprobe.DbmMetadataClusterTypeTendbCluster,
+				MachineType:  haprobe.DbmMetadataMachineTypeRemote,
+				InstanceRole: dbm.TenDBClusterStorageMaster.String(),
+			},
+			{
+				BkBizID:     21,
+				BkCloudID:   2,
+				ClusterID:   11,
+				EventName:   haprobe.DbEventNameTendbclusterSpiderRemoteFailure,
+				ClusterType: haprobe.DbmMetadataClusterTypeTendbCluster,
+				MachineType: haprobe.DbmMetadataMachineTypeSpider,
+			},
+			{
+				BkBizID:      21,
+				BkCloudID:    2,
+				ClusterID:    11,
+				EventName:    haprobe.DbEventNameTendbclusterSpiderRemoteFailure,
+				ClusterType:  haprobe.DbmMetadataClusterTypeTendbCluster,
+				MachineType:  haprobe.DbmMetadataMachineTypeRemote,
+				InstanceRole: dbm.TenDBClusterStorageMaster.String(),
+			},
+		},
+	}
+
+	matched, strategy := executor.MatchStrategyForGroup(context.Background(), group)
+	if !matched {
+		t.Fatal("expected matched=true")
+	}
+	if strategy == nil {
+		t.Fatal("expected non-nil strategy")
+	}
+	if strategy.Name != "target-tendbha-spider-remote-failure" {
+		t.Errorf("expected strategy name 'target-tendbha-spider-remote-failure', got %q", strategy.Name)
 	}
 }
