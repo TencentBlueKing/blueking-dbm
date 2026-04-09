@@ -53,8 +53,8 @@ func SaveCommonAuditV2(
 		RequestID:      commutil.RequestID(),
 		RequestType:    dbsCtx.RequestType,
 		RequestParams:  string(requestBytes),
-		CreatedBy:      dbsCtx.BkAuth.BkUserName,
-		UpdatedBy:      dbsCtx.BkAuth.BkUserName,
+		CreatedBy:      dbsCtx.BkAdditional.BkUserName,
+		UpdatedBy:      dbsCtx.BkAdditional.BkUserName,
 	}
 
 	addedRequestRecord, err := reqRecordProvider.CreateRequestRecord(requestRecord)
@@ -168,7 +168,7 @@ func UpdateClusterLastUpdatedV2(
 	if err != nil {
 		return err
 	}
-	clusterEntity.UpdatedBy = dbsCtx.BkAuth.BkUserName
+	clusterEntity.UpdatedBy = dbsCtx.BkAdditional.BkUserName
 	_, err = clusterMetaProvider.UpdateCluster(clusterEntity)
 	if err != nil {
 		return err

@@ -61,6 +61,8 @@ const (
 	APIClusterExpose        = "v4_dbs_cluster_expose"
 	APIClusterEventList     = "v4_dbs_cluster_event_list"
 	APIClusterServiceInfo   = "v4_dbs_cluster_service_info"
+	APIClusterBindDomain    = "v4_dbs_cluster_bind_domain"
+	APIClusterUnbindDomain  = "v4_dbs_cluster_unbind_domain"
 )
 
 // APIOpsRequestDesc 运维请求相关接口标识
@@ -273,6 +275,8 @@ func initClusterGroups(groups map[string]string) {
 		APIClusterExpose,
 		APIClusterEventList,
 		APIClusterServiceInfo,
+		APIClusterBindDomain,
+		APIClusterUnbindDomain,
 	)
 }
 

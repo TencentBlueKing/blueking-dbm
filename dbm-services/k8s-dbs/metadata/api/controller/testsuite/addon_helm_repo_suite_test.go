@@ -47,7 +47,7 @@ var addonHelmRepoRequest = vo.AddonHelmRepoRequest{
 	RepoPassword:   "repo_password_01",
 	ChartName:      "chart_name_01",
 	ChartVersion:   "chart_version_01",
-	BKAuth:         baseBKAuth,
+	BKAdditional:   baseBKAdditional,
 }
 
 type AddonHelmRepoControllerTestSuite struct {

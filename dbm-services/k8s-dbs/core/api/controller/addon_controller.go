@@ -53,7 +53,7 @@ func (a *AddonController) InstallAddon(ctx *gin.Context) {
 		return
 	}
 	dbsCtx := commentity.DbsContext{
-		BkAuth:           &request.BKAuth,
+		BkAdditional:     &request.BKAdditional,
 		K8sClusterName:   addonEntity.K8sClusterName,
 		RequestType:      string(coreapiconst.InstallAddonOP),
 		APIRequestParams: request,
@@ -82,7 +82,7 @@ func (a *AddonController) UninstallAddon(ctx *gin.Context) {
 		return
 	}
 	dbsCtx := commentity.DbsContext{
-		BkAuth:           &request.BKAuth,
+		BkAdditional:     &request.BKAdditional,
 		K8sClusterName:   addonEntity.K8sClusterName,
 		RequestType:      string(coreapiconst.UninstallAddonOP),
 		APIRequestParams: request,
@@ -109,7 +109,7 @@ func (a *AddonController) UpgradeAddon(ctx *gin.Context) {
 		return
 	}
 	dbsCtx := commentity.DbsContext{
-		BkAuth:           &request.BKAuth,
+		BkAdditional:     &request.BKAdditional,
 		K8sClusterName:   addonEntity.K8sClusterName,
 		RequestType:      string(coreapiconst.UpgradeAddonOP),
 		APIRequestParams: request,

@@ -25,11 +25,11 @@ import (
 
 // ComponentOperationRequest represents the ReqVo structure of component operation.
 type ComponentOperationRequest struct {
-	AddonType         string `json:"addonType" binding:"required"`
-	AddonVersion      string `json:"addonVersion" binding:"required"`
-	ComponentName     string `json:"componentName" binding:"required"`
-	ComponentVersion  string `json:"componentVersion" binding:"required"`
-	OperationID       uint64 `json:"operationId" binding:"required"`
-	Description       string `json:"description" binding:"required"`
-	commentity.BKAuth `json:",inline"`
+	AddonType               string `json:"addonType" binding:"required"`
+	AddonVersion            string `json:"addonVersion" binding:"required"`
+	ComponentName           string `json:"componentName" binding:"required"`
+	ComponentVersion        string `json:"componentVersion" binding:"required"`
+	OperationID             uint64 `json:"operationId" binding:"required"`
+	Description             string `json:"description" binding:"required"`
+	commentity.BKAdditional `json:",inline"`
 }

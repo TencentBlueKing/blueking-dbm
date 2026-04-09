@@ -43,6 +43,8 @@ func initURLToAPIName() map[string]string {
 		"/v4/dbs/cluster/partial_update": APIClusterPartialUpdate,
 		"/v4/dbs/cluster/service/info":   APIClusterServiceInfo,
 		"/v4/dbs/cluster/describe":       APIClusterDesc,
+		"/v4/dbs/cluster/bind-domain":    APIClusterBindDomain,
+		"/v4/dbs/cluster/unbind-domain":  APIClusterUnbindDomain,
 
 		"/v4/dbs/k8s_cluster/namespace":  APIK8sNsCreate,
 		"/v4/dbs/k8s_cluster/pod/delete": APIK8sPodDelete,

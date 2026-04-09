@@ -25,11 +25,11 @@ import (
 
 // AddonSpecPlanRequest 新增存储套餐配置请求结构体
 type AddonSpecPlanRequest struct {
-	AddonID           uint64 `json:"addonId"`
-	AddonTopology     string `json:"addonTopology"`
-	SpecLevel         string `json:"specLevel"`
-	SpecLevelAlias    string `json:"specLevelAlias"`
-	commentity.BKAuth `json:",inline"`
+	AddonID                 uint64 `json:"addonId"`
+	AddonTopology           string `json:"addonTopology"`
+	SpecLevel               string `json:"specLevel"`
+	SpecLevelAlias          string `json:"specLevelAlias"`
+	commentity.BKAdditional `json:",inline"`
 }
 
 // GetAddonSpecPlanRequest 获取存储套餐配置请求结构体

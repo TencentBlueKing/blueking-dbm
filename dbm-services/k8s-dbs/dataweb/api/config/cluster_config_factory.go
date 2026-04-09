@@ -166,7 +166,7 @@ func buildBasicClusterConfig(installRequest *webreq.ClusterInstallRequest, addon
 			TopoName:          installRequest.ResourceConfig.TopoName,
 			TerminationPolicy: installRequest.AdvancedSettings.TerminationPolicy,
 		},
-		BKAuth: installRequest.BKAuth,
+		BKAdditional: installRequest.BKAdditional,
 	}
 	return clusterConfig, nil
 }

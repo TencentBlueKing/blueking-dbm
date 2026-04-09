@@ -56,7 +56,7 @@ func (k *K8sController) CreateNamespace(ctx *gin.Context) {
 		return
 	}
 	dbsCtx := commentity.DbsContext{
-		BkAuth:           &reqVo.BKAuth,
+		BkAdditional:     &reqVo.BKAdditional,
 		K8sClusterName:   reqVo.K8sClusterName,
 		Namespace:        reqVo.Name,
 		RequestType:      coreconst.CreateK8sNs,
@@ -154,9 +154,9 @@ func (k *K8sController) DeletePod(ctx *gin.Context) {
 	auditParams.BkAppCode = ""
 	auditParams.BkAppSecret = ""
 	dbsCtx := commentity.DbsContext{
-		BkAuth:           &deleteRequest.BKAuth,
-		RequestType:      coreconst.DeleteK8sPod,
 		APIRequestParams: &auditParams,
+		BkAdditional:     &deleteRequest.BKAdditional,
+		RequestType:      coreconst.DeleteK8sPod,
 	}
 	err := k.k8sProvider.DeletePod(&dbsCtx, &podDeleteEntity)
 	if err != nil {

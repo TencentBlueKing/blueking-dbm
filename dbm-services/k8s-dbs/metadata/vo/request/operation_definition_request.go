@@ -25,8 +25,8 @@ import (
 
 // OperationDefinitionRequest represents the ReqVo structure of addon meta.
 type OperationDefinitionRequest struct {
-	OperationName     string `json:"operatioName" binding:"required"`
-	OperationTarget   string `json:"operationTarget" binding:"required"`
-	Description       string `json:"description" binding:"required"`
-	commentity.BKAuth `json:",inline"`
+	OperationName           string `json:"operatioName" binding:"required"`
+	OperationTarget         string `json:"operationTarget" binding:"required"`
+	Description             string `json:"description" binding:"required"`
+	commentity.BKAdditional `json:",inline"`
 }

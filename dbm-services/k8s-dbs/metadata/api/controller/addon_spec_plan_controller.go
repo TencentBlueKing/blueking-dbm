@@ -112,7 +112,7 @@ func (a *AddonSpecPlanController) CreateAddonSpecPlan(ctx *gin.Context) {
 		return
 	}
 	dbsCtx := commentity.DbsContext{
-		BkAuth: &req.BKAuth,
+		BkAdditional: &req.BKAdditional,
 	}
 	addedSpecPlan, err := a.addonSpecPlanProvider.CreateSpecPlan(&dbsCtx, &entity)
 	if err != nil {
@@ -147,7 +147,7 @@ func (a *AddonSpecPlanController) UpdateAddonSpecPlan(ctx *gin.Context) {
 		return
 	}
 	dbsCtx := commentity.DbsContext{
-		BkAuth: &req.BKAuth,
+		BkAdditional: &req.BKAdditional,
 	}
 	entity.ID = id
 	rows, err := a.addonSpecPlanProvider.UpdateSpecPlan(&dbsCtx, &entity)

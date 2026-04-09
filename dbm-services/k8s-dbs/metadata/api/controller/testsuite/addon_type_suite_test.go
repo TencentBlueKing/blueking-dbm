@@ -41,11 +41,11 @@ import (
 )
 
 var addonTypeRequest = vo.AddonTypeRequest{
-	CategoryID:  uint64(1),
-	TypeName:    "addon_type_name_01",
-	TypeAlias:   "addon_type_alias_01",
-	Description: "addon_type_description_01",
-	BKAuth:      baseBKAuth,
+	CategoryID:   uint64(1),
+	TypeName:     "addon_type_name_01",
+	TypeAlias:    "addon_type_alias_01",
+	Description:  "addon_type_description_01",
+	BKAdditional: baseBKAdditional,
 }
 
 type AddonTypeControllerTestSuite struct {

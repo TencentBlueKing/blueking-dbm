@@ -347,8 +347,8 @@ func (a *AddonProvider) createClusterAddon(
 	clusterAddon := metaentity.K8sClusterAddonsEntity{
 		K8sClusterName: entity.K8sClusterName,
 		AddonID:        storageAddon.ID,
-		CreatedBy:      dbsCtx.BkAuth.BkUserName,
-		UpdatedBy:      dbsCtx.BkAuth.BkUserName,
+		CreatedBy:      dbsCtx.BkAdditional.BkUserName,
+		UpdatedBy:      dbsCtx.BkAdditional.BkUserName,
 	}
 
 	addedClusterAddon, err := a.clusterAddonsMeta.CreateClusterAddon(&clusterAddon)
@@ -406,7 +406,7 @@ func (a *AddonProvider) updateClusterAddon(dbsCtx *commentity.DbsContext, entity
 	}
 	if len(clusterAddons) == 1 {
 		clusterAddon := &clusterAddons[0]
-		clusterAddon.UpdatedBy = dbsCtx.BkAuth.BkUserName
+		clusterAddon.UpdatedBy = dbsCtx.BkAdditional.BkUserName
 		_, err := a.clusterAddonsMeta.UpdateClusterAddon(clusterAddon)
 		if err != nil {
 			slog.Error("failed to update cluster addon record", "error", err, "addon_id", clusterAddons[0].ID)
