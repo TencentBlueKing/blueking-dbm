@@ -91,8 +91,15 @@ data:
   BK_APIGW_GRANT_APPS: "{{ .Values.bk.bkApigwGrantApps}}"
   BK_APIGW_RESOURCE_DOCS_ARCHIVE_FILE: "{{ .Values.bk.bkApigwResourceDocsArchiveFile }}"
   BK_APIGATEWAY_DOMAIN : "{{ .Values.bk.bkApigatewayDomain | default .Values.bk.bkComponentApiUrl }}"
+  #  TODO 这两个是重复的，后面移除
   DBM_STATSDB_URL: "{{ $dbmStatsDB.host }}:{{ $dbmStatsDB.port }}"
   DBM_STATSDB_USER: "{{ $dbmStatsDB.user }}"
   DBM_STATSDB_PASSWORD: "{{ $dbmStatsDB.password }}"
   DBM_STATSDB_NAME: "{{ $dbmStatsDB.name }}"
+  # stats_db / db_stats: 可以是 mysql 8.0 / doris，便于大数据量的聚合分析
+  STATS_DB_NAME: "{{ $dbmStatsDB.name }}"
+  STATS_DB_HOST: "{{ $dbmStatsDB.host }}"
+  STATS_DB_PORT: "{{ $dbmStatsDB.port }}"
+  STATS_DB_USER: "{{ $dbmStatsDB.user }}"
+  STATS_DB_PASSWORD: "{{ $dbmStatsDB.password }}"
 

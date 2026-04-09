@@ -71,8 +71,11 @@ class MySQLSlowLogCommand(CommandHandler):
 
     def get_template(self) -> str:
         return """
-        帮我查询集群 {{cluster_domain}} 的最近 2 小时的慢查询
-        如果集群类型是 tendbha，角色是 backend_master；如果集群类型是 tendbcluster，角色是 spider_master
+        帮我分析集群 {{cluster_domain}} 的慢查询
+        分析的时间窗口：'{{time_window_start}}' - '{{time_window_end}}'
+        最大查询条数：{{limit}}
+        instance_role: {{ instance_role}}
+        cluster_type: {{cluster_type}}
         """
 
 

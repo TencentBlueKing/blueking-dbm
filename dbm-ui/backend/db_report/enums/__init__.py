@@ -12,6 +12,7 @@ from django.utils.translation import gettext_lazy as _
 
 from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
+from .ai_analysis_sub_type import AiAnalysisSubType
 from .dbmon_heartbeat_report_sub_type import DbmonHeartbeatReportSubType
 from .kafka_affinity_check_sub_type import KafkaAffinityCheckSubType
 from .meta_check_sub_type import MetaCheckSubType
