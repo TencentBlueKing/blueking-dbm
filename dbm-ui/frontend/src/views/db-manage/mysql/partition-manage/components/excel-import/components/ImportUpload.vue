@@ -11,6 +11,7 @@
       theme="warning"
       :title="t('不存在的集群、DB、表在导入过程中将会被忽略，不执行导入')" />
     <BkUpload
+      :key="uploadKey"
       ref="uploadRef"
       accept=".xlsx,.xls"
       :before-upload="handleBeforeUpload"
@@ -91,6 +92,7 @@
 
   const uploadRef = ref();
   const filePath = ref('');
+  const uploadKey = ref(0);
 
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
   const uploadUrl = `${window.PROJECT_ENV.VITE_AJAX_URL_PREFIX}/apis/partition/upload_import_file/`;
@@ -107,12 +109,16 @@
       filePath.value = res.data?.file_path ?? '';
       return true;
     }
+    filePath.value = '';
     return false;
   };
 
   const handleUploadDone = () => {
-    emit('uploading', false);
-    emit('file-ready', filePath.value);
+    if (filePath.value) {
+      emit('file-ready', filePath.value);
+    } else {
+      emit('file-removed');
+    }
   };
 
   const handleDeleteFile = () => {
@@ -127,7 +133,8 @@
   };
 
   const reset = () => {
-    uploadRef.value?.handleRemoveAll?.();
+    filePath.value = '';
+    uploadKey.value += 1;
   };
 
   defineExpose({ reset });
