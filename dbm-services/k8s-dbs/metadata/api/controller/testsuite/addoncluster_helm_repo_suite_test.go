@@ -47,7 +47,7 @@ var addonClusterHelmRepoRequest = vo.AddonClusterHelmRepoRequest{
 	RepoPassword:   "repo_password_01",
 	ChartName:      "chart_name_01",
 	ChartVersion:   "chart_version_01",
-	BKAuth:         baseBKAuth,
+	BKAdditional:   baseBKAdditional,
 }
 
 var addonClusterHelmRepoParam = map[string]interface{}{

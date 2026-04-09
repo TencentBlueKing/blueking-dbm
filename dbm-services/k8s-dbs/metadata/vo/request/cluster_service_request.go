@@ -25,14 +25,14 @@ import (
 
 // K8sClusterServiceRequest represents the request data structure of cluster service meta.
 type K8sClusterServiceRequest struct {
-	CrdClusterID      uint64 `json:"crdClusterId" binding:"required"`
-	ComponentName     string `json:"componentName" binding:"required"`
-	ServiceName       string `json:"serviceName" binding:"required"`
-	ServiceType       string `json:"serviceType" binding:"required"`
-	Annotations       string `json:"annotations" binding:"required"`
-	InternalAddrs     string `json:"internalAddrs" binding:"required"`
-	ExternalAddrs     string `json:"externalAddrs" binding:"required"`
-	Domains           string `json:"domains" binding:"required"`
-	Description       string `json:"description" binding:"required"`
-	commentity.BKAuth `json:",inline"`
+	CrdClusterID            uint64 `json:"crdClusterId" binding:"required"`
+	ComponentName           string `json:"componentName" binding:"required"`
+	ServiceName             string `json:"serviceName" binding:"required"`
+	ServiceType             string `json:"serviceType" binding:"required"`
+	Annotations             string `json:"annotations" binding:"required"`
+	InternalAddrs           string `json:"internalAddrs" binding:"required"`
+	ExternalAddrs           string `json:"externalAddrs" binding:"required"`
+	Domains                 string `json:"domains" binding:"required"`
+	Description             string `json:"description" binding:"required"`
+	commentity.BKAdditional `json:",inline"`
 }

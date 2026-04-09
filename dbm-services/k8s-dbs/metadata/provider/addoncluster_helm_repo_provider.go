@@ -71,8 +71,8 @@ func (a *AddonClusterHelmRepoProviderImpl) CreateHelmRepo(
 	entity *metaentity.AddonClusterHelmRepoEntity,
 ) (*metaentity.AddonClusterHelmRepoEntity, error) {
 	model := metamodel.AddonClusterHelmRepoModel{}
-	entity.CreatedBy = dbsCtx.BkAuth.BkUserName
-	entity.UpdatedBy = dbsCtx.BkAuth.BkUserName
+	entity.CreatedBy = dbsCtx.BkAdditional.BkUserName
+	entity.UpdatedBy = dbsCtx.BkAdditional.BkUserName
 	if err := copier.Copy(&model, entity); err != nil {
 		return nil, errors.Wrap(err, "failed to copy")
 	}

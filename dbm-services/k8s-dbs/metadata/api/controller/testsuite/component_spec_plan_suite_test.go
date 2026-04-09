@@ -48,7 +48,7 @@ var componentSpecPlanVOCreate = &metareq.ComponentSpecPlanRequest{
 	CPUCores:        reqIntPtr(4),
 	MemoryGb:        reqIntPtr(8),
 	DiskSizeGb:      reqIntPtr(100),
-	BKAuth:          baseBKAuth,
+	BKAdditional:    baseBKAdditional,
 }
 
 func reqIntPtr(i int) *int {

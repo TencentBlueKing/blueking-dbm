@@ -23,18 +23,18 @@ import commentity "k8s-dbs/common/entity"
 
 // K8sPodDetailRequest 集群实例详情请求结构体
 type K8sPodDetailRequest struct {
-	K8sClusterName    string `json:"k8sClusterName" binding:"required"`
-	ClusterName       string `json:"clusterName" binding:"required"`
-	Namespace         string `json:"namespace" binding:"required"`
-	PodName           string `json:"podName" binding:"required"`
-	commentity.BKAuth `json:",inline"`
+	K8sClusterName          string `json:"k8sClusterName" binding:"required"`
+	ClusterName             string `json:"clusterName" binding:"required"`
+	Namespace               string `json:"namespace" binding:"required"`
+	PodName                 string `json:"podName" binding:"required"`
+	commentity.BKAdditional `json:",inline"`
 }
 
 // K8sPodOperationRequest 封装 pod 删除请求结构体
 type K8sPodOperationRequest struct {
-	K8sClusterName    string `json:"k8sClusterName"`
-	ClusterName       string `json:"clusterName"`
-	Namespace         string `json:"namespace"`
-	PodName           string `json:"podName"`
-	commentity.BKAuth `json:",inline"`
+	K8sClusterName          string `json:"k8sClusterName"`
+	ClusterName             string `json:"clusterName"`
+	Namespace               string `json:"namespace"`
+	PodName                 string `json:"podName"`
+	commentity.BKAdditional `json:",inline"`
 }

@@ -45,7 +45,7 @@ var addonSpecPlanEntitySample = &metaentity.AddonSpecPlanEntity{
 }
 
 var addonSpecPlanDbsContext = &commentity.DbsContext{
-	BkAuth: &commentity.BKAuth{
+	BkAdditional: &commentity.BKAdditional{
 		BkUserName:  "admin",
 		BkAppCode:   "bkappcode",
 		BkAppSecret: "bkappsecret",

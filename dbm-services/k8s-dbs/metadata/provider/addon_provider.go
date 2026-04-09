@@ -102,8 +102,8 @@ func (k *K8sCrdStorageAddonProviderImpl) CreateStorageAddon(
 	entity *metaentity.K8sCrdStorageAddonEntity,
 ) (*metaentity.K8sCrdStorageAddonEntity, error) {
 	storageAddonModel := metamodel.K8sCrdStorageAddonModel{}
-	entity.CreatedBy = dbsCtx.BkAuth.BkUserName
-	entity.UpdatedBy = dbsCtx.BkAuth.BkUserName
+	entity.CreatedBy = dbsCtx.BkAdditional.BkUserName
+	entity.UpdatedBy = dbsCtx.BkAdditional.BkUserName
 
 	if err := copier.Copy(&storageAddonModel, entity); err != nil {
 		return nil, errors.Wrapf(err, "failed to copy")
@@ -146,7 +146,7 @@ func (k *K8sCrdStorageAddonProviderImpl) UpdateStorageAddon(
 	entity *metaentity.K8sCrdStorageAddonEntity,
 ) (uint64, error) {
 	storageAddonModel := metamodel.K8sCrdStorageAddonModel{}
-	entity.UpdatedBy = dbsCtx.BkAuth.BkUserName
+	entity.UpdatedBy = dbsCtx.BkAdditional.BkUserName
 	if err := copier.Copy(&storageAddonModel, entity); err != nil {
 		return 0, errors.Wrapf(err, "failed to copy")
 	}

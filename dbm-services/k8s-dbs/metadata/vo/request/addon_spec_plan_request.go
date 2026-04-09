@@ -25,9 +25,9 @@ import (
 
 // AddonSpecPlanRequest represents the request data structure of addon spec plan.
 type AddonSpecPlanRequest struct {
-	AddonID           uint64 `json:"addonId"`
-	AddonTopology     string `json:"addonTopology"`
-	SpecLevel         string `json:"specLevel"`
-	SpecLevelAlias    string `json:"specLevelAlias"`
-	commentity.BKAuth `json:",inline"`
+	AddonID                 uint64 `json:"addonId"`
+	AddonTopology           string `json:"addonTopology"`
+	SpecLevel               string `json:"specLevel"`
+	SpecLevelAlias          string `json:"specLevelAlias"`
+	commentity.BKAdditional `json:",inline"`
 }

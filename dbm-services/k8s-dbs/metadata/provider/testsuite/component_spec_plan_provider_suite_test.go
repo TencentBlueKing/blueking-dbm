@@ -46,7 +46,7 @@ var componentSpecPlanEntitySample = &metaentity.ComponentSpecPlanEntity{
 }
 
 var componentSpecPlanDbsContext = &commentity.DbsContext{
-	BkAuth: &commentity.BKAuth{
+	BkAdditional: &commentity.BKAdditional{
 		BkUserName:  "admin",
 		BkAppCode:   "bkappcode",
 		BkAppSecret: "bkappsecret",
