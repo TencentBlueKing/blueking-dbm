@@ -69,8 +69,8 @@ class DownloadBackupClientService(BaseService):
                 "auth_path_overwrite": True,
             },
         }
-        bucket_name = backup_config["cos_auth"].bucket_name
-        if backup_config["cos_auth"].storage_type in ["cos", "s3", "bkrepo"]:
+        bucket_name = backup_config["cos_auth"]["bucket_name"]
+        if backup_config["cos_auth"]["storage_type"] in ["cos", "s3", "bkrepo"]:
             if bucket_name == "" or "{{" in bucket_name:
                 err_msg = _("请先为 bk_biz_id={bk_biz_id},bk_cloud_id={bk_cloud_id} 设置备份 bucket 信息").format(
                     bk_biz_id=bk_biz_id, bk_cloud_id=bk_cloud_id

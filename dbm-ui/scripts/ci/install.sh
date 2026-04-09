@@ -39,6 +39,11 @@ drop database if exists \`${REPORT_DB_NAME}\`;
 drop database if exists \`${REPORT_DB_NAME}_test\`;
 create database \`${REPORT_DB_NAME}\` default character set utf8mb4 collate utf8mb4_general_ci;
 SELECT schema_name, default_character_set_name FROM information_schema.SCHEMATA;
+
+drop database if exists \`${STATS_DB_NAME}\`;
+drop database if exists \`${STATS_DB_NAME}_test\`;
+create database \`${STATS_DB_NAME}\` default character set utf8mb4 collate utf8mb4_general_ci;
+
 "
 
 echo $CREATE_DB_SQL

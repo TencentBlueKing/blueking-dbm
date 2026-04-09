@@ -9,97 +9,136 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+from typing import List, Optional
 
 from backend.db_report.models import MysqlInspectIgnore
 
 logger = logging.getLogger("root")
 
+# policy 常量
+POLICY_INCLUDE = "include"
+# exclude 或空字符串都表示排除（忽略巡检）
+POLICY_EXCLUDE = "exclude"
+
+# 通配符常量
+CLUSTER_ALL = "*"
+BIZ_ALL = -1
+
 
 class CheckIgnore:
 
-    cluster_all = "__all__"
     cluster_type = ""
 
     def __init__(self, subtype: str):
         self.subtype = subtype
-        self.ignore_map = {}
+        # 缓存：按 cluster_type 分组的忽略配置列表
+        self._configs: List[MysqlInspectIgnore] = []
+        self._cached_cluster_type: Optional[str] = None
+
+    @staticmethod
+    def _is_exclude_policy(policy: str) -> bool:
+        """判断 policy 是否为排除策略（空或 'exclude' 都视为排除）"""
+        return policy in ("", POLICY_EXCLUDE)
+
+    def _load_configs(self, cluster_type: str):
+        """加载并缓存指定 cluster_type 的忽略配置"""
+        if self._cached_cluster_type == cluster_type and self._configs:
+            return
+
+        try:
+            qs = MysqlInspectIgnore.objects.filter(subtype=self.subtype, is_enabled=True)
+            if cluster_type:
+                qs = qs.filter(cluster_type=cluster_type)
+            self._configs = list(qs)
+            self._cached_cluster_type = cluster_type
+        except Exception as e:
+            logger.error(f"Error loading ignore configs for subtype {self.subtype}: {e}")
+            self._configs = []
+            self._cached_cluster_type = cluster_type
+
+    def _match_by_priority(self, bk_biz_id: int, cluster: str, cluster_type: str) -> Optional[MysqlInspectIgnore]:
+        """
+        按优先级从高到低匹配忽略配置，返回第一个匹配的配置。
+
+        优先级规则：
+          - 优先级 1（最高）：cluster 不为 '*' 且 bk_biz_id 不为 -1，精确匹配集群
+          - 优先级 3（中等）：cluster='*'，匹配业务下所有集群
+          - 优先级 5（最低）：bk_biz_id=-1，匹配所有业务
+        """
+        self._load_configs(cluster_type)
+
+        # 按优先级分桶
+        priority_1_matches: List[MysqlInspectIgnore] = []
+        priority_3_matches: List[MysqlInspectIgnore] = []
+        priority_5_matches: List[MysqlInspectIgnore] = []
+
+        for config in self._configs:
+            if config.bk_biz_id == BIZ_ALL:
+                # 优先级 5：bk_biz_id=-1，所有业务
+                priority_5_matches.append(config)
+            elif config.cluster == CLUSTER_ALL and config.bk_biz_id == bk_biz_id:
+                # 优先级 3：cluster='*'，匹配当前业务下所有集群
+                priority_3_matches.append(config)
+            elif config.cluster == cluster and config.bk_biz_id == bk_biz_id:
+                # 优先级 1：精确匹配集群和业务
+                priority_1_matches.append(config)
+
+        # 从高到低返回第一个匹配
+        for matches in [priority_1_matches, priority_3_matches, priority_5_matches]:
+            if matches:
+                return matches[0]
+
+        return None
 
     def should_ignore_check(self, bk_biz_id: int, cluster: str) -> bool:
         """
-        检查是否应该忽略某个集群的巡检, 不需要 cluster_type
+        检查是否应该忽略某个集群的巡检（不需要 cluster_type）。
 
         Args:
-            bk_biz_id: 业务ID, required
+            bk_biz_id: 业务ID
             cluster: 集群域名
-            subtype: 巡检类型
 
         Returns:
-            bool: True表示应该忽略，False表示不应该忽略
+            bool: True 表示应该忽略（跳过巡检），False 表示需要巡检
+        """
+        return self.should_ignore_check_cluster(bk_biz_id, cluster, cluster_type="")
+
+    def should_ignore_check_cluster(self, bk_biz_id: int, cluster: str, cluster_type: str) -> bool:
+        """
+        检查是否应该忽略某个集群的巡检。
+
+        匹配逻辑：
+          1. 按优先级从高到低匹配配置
+          2. 匹配到后根据 policy 决定：
+             - policy 为空或 'exclude'：返回 True（忽略巡检）
+             - policy 为 'include'：返回 False（需要巡检）
+          3. 没有匹配到任何规则：返回 False（需要巡检）
+
+        Args:
+            bk_biz_id: 业务ID
+            cluster: 集群域名
+            cluster_type: 集群类型
+
+        Returns:
+            bool: True 表示应该忽略（跳过巡检），False 表示需要巡检
         """
         try:
-            ignore_config = MysqlInspectIgnore.objects.filter(
-                bk_biz_id=bk_biz_id, subtype=self.subtype, is_enabled=True
-            )
-            clusters = [self.cluster_all]
-            if cluster != "":
-                clusters.append(cluster)
-            ignore_config = ignore_config.filter(cluster__in=clusters)
+            matched = self._match_by_priority(bk_biz_id, cluster, cluster_type)
+            if matched is None:
+                # 没有匹配到任何规则，需要巡检
+                return False
 
-            if ignore_config.first():
+            if self._is_exclude_policy(matched.policy):
+                # exclude 策略：忽略巡检
                 return True
-            return False
+            elif matched.policy == POLICY_INCLUDE:
+                # include 策略：需要巡检
+                return False
+            else:
+                # 未知 policy，按 exclude 处理
+                logger.warning(f"Unknown policy '{matched.policy}' for config {matched}, treating as exclude")
+                return True
         except Exception as e:
             logger.error(f"Error checking ignore config for cluster {cluster}: {e}")
             # 出错时不忽略，继续执行巡检
             return False
-
-    # get ignore configs by subtype
-    def __get_ignore_configs_by_type(self, cluster_type) -> list[MysqlInspectIgnore]:
-        """
-        根据巡检类型获取忽略配置列表
-
-        Args:
-            subtype: 巡检类型, required
-            cluster_type: 集群类型
-
-        Returns:
-            list: 忽略配置对象列表
-        """
-        try:
-            ignore_configs = MysqlInspectIgnore.objects.filter(subtype=self.subtype, is_enabled=True)
-            if cluster_type != "":
-                ignore_configs = ignore_configs.filter(cluster_type=cluster_type)
-
-            return list(ignore_configs.all())
-        except Exception as e:
-            logger.error(f"Error getting ignore configs by subtype {self.subtype}: {e}")
-            return []
-
-    def __build_ignore_config_map(self, ignores: list[MysqlInspectIgnore]) -> dict:
-        """
-        构建忽略配置映射 {c.bk_biz_id}-{c.cluster}-{c.subtype}
-        """
-        self.ignore_map = {"__fake__": True}
-        for ignore in ignores:
-            self.ignore_map[ignore.__str__()] = ignore.is_enabled
-        return self.ignore_map
-
-    def should_ignore_check_cluster(self, bk_biz_id: int, cluster: str, cluster_type: str) -> bool:
-        """
-        构建忽略配置映射 {c.bk_biz_id}-{c.cluster}-{c.subtype}
-        会缓存 ignore_map，避免重复查询
-        如果 cluster_type 为空，则会根据 subtype 查到所有的 ignore_configs
-        """
-        if cluster_type != self.cluster_type:
-            self.cluster_type = cluster_type
-            self.ignore_map = {}
-
-        if not self.ignore_map or cluster_type != self.cluster_type:
-            self.__build_ignore_config_map(self.__get_ignore_configs_by_type(cluster_type))
-
-        k1 = f"{bk_biz_id}-{cluster}-{self.subtype}"
-        k2 = f"{bk_biz_id}-{self.cluster_all}-{self.subtype}"
-        if self.ignore_map.get(k1, False):
-            return True
-        else:
-            return self.ignore_map.get(k2, False)

@@ -12,16 +12,15 @@ from pathlib import Path
 from typing import Dict
 
 import pymysql
+from backend import env
+from backend.core.encrypt.interceptors import SymmetricInterceptor
 from bkcrypto import constants
 from bkcrypto.asymmetric.options import RSAAsymmetricOptions, SM2AsymmetricOptions
 from bkcrypto.symmetric.options import AESSymmetricOptions, SM4SymmetricOptions
 from blueapps.conf.default_settings import *  # pylint: disable=wildcard-import
 from blueapps.core.celery.celery import app
-from django.db.backends.mysql.features import DatabaseFeatures
-
-from backend import env
-from backend.core.encrypt.interceptors import SymmetricInterceptor
 from blueking.mysql_patch import PatchFeatures
+from django.db.backends.mysql.features import DatabaseFeatures
 
 DatabaseFeatures.minimum_database_version = PatchFeatures.minimum_database_version
 
@@ -266,9 +265,30 @@ DATABASES = {
             "RECYCLE": 60 * 60,
         },
     },
+    "stats_db": {
+        "ENGINE": "dj_db_conn_pool.backends.mysql",
+        "NAME": os.environ.get("STATS_DB_NAME", APP_CODE),
+        "USER": os.environ.get("STATS_DB_USER", "root"),
+        "PASSWORD": os.environ.get("STATS_DB_PASSWORD", ""),
+        "HOST": os.environ.get("STATS_DB_HOST", "127.0.0.1"),
+        "PORT": os.environ.get("STATS_DB_PORT", "3306"),
+        "OPTIONS": {"init_command": """SET default_storage_engine=INNODB,time_zone='+00:00'""", "charset": "utf8mb4"},
+        "TEST": {
+            "CHARSET": "utf8",
+            "COLLATION": "utf8_general_ci",
+        },
+        "POOL_OPTIONS": {
+            "POOL_SIZE": int(os.environ.get("DB_POOL_SIZE", 5)),
+            "MAX_OVERFLOW": int(os.environ.get("DB_POOL_MAX_OVERFLOW", 10)),
+            "RECYCLE": 60 * 60,
+        },
+    },
 }
 
-DATABASE_ROUTERS = ["backend.db_report.database_router.ReportRouter"]
+DATABASE_ROUTERS = [
+    "backend.db_report.database_router.ReportRouter",
+    "backend.db_report.database_router.StatsRouter",
+]
 
 # Cache - 缓存后端采用redis
 # https://docs.djangoproject.com/en/3.2/ref/settings/#cache

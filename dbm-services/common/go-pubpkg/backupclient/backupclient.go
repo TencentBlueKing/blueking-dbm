@@ -44,7 +44,7 @@ type QueryResp struct {
 	StatusMsg string `json:"status_msg"`
 }
 
-var storageTypeAllowed = []string{"hdfs", "cos"}
+var storageTypeAllowed = []string{"hdfs", "cos", "s3", "bkrepo"}
 
 // New 初始一个 backup_client 命令
 // 默认使用 /usr/local/backup_client/bin/backup_client --auth-file $HOME/.cosinfo.toml

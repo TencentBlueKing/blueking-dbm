@@ -19,7 +19,7 @@ dependencies:
   version: 7.9.8
 - name: dbm
   repository: file://charts/dbm
-  version: 0.1.50
+  version: 0.1.51
 - name: dbconfig
   repository: file://charts/dbconfig
   version: 0.1.14
@@ -74,5 +74,5 @@ dependencies:
 - name: k8s-dbs
   repository: file://charts/k8s-dbs
   version: 2.1.7
-digest: sha256:c60856c729d4b917a61a1c10296348755b699e7d265090687959d8815c896fac
-generated: "2026-04-08T14:55:57.714395+08:00"
+digest: sha256:57da36701a5e0d81975a54408bf910c008afbee05fddcb7a62fff90d81fa906b
+generated: "2026-04-10T15:23:45.904761+08:00"

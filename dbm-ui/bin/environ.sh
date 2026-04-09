@@ -8,3 +8,4 @@ export BK_IAM_SKIP=true
 export DBA_APP_BK_BIZ_ID=0
 export DB_NAME="bk_dbm"
 export REPORT_DB_NAME="bk_dbm_report"
+export STATS_DB_NAME="bk_dbm_stats"

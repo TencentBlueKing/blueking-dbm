@@ -14,28 +14,27 @@ from django.utils.translation import gettext_lazy as _
 from backend.db_meta.enums import ClusterType
 
 
-class MysqlInspectIgnore(models.Model):
-    """MySQL备份巡检忽略配置表"""
+class MysqlSlowlogAiAnalysis(models.Model):
+    """MySQL慢日志AI分析结果表"""
 
     bk_biz_id = models.IntegerField(help_text=_("业务的id"))
     cluster_type = models.CharField(max_length=64, choices=ClusterType.get_choices(), default="")
-    cluster = models.CharField(max_length=255, help_text=_("集群域名"))
-    subtype = models.CharField(max_length=64, help_text=_("忽略的巡检类型"))
-    reason = models.TextField(default="", help_text=_("忽略原因"))
-    policy = models.CharField(
-        max_length=64, help_text=_("exclude or include. default empty means exclude"), default="exclude"
-    )
-    is_enabled = models.BooleanField(default=True, help_text=_("是否启用"))
+    cluster_domain = models.CharField(max_length=255, help_text=_("集群域名"))
+    instance_role = models.CharField(max_length=64, help_text=_("实例角色"))
+    time_window_start = models.DateTimeField(help_text=_("时间窗口开始时间"))
+    time_window_end = models.DateTimeField(help_text=_("时间窗口结束时间"))
+    instance = models.CharField(max_length=255, help_text=_("实例，为空表示按集群维度分析的"))
+
+    analyze_time = models.DateTimeField(help_text=_("分析时间"))
+    analyze_result = models.TextField(help_text=_("分析结果"))
 
     class Meta:
         managed = True
         app_label = "db_report"
-        db_table = "tb_mysql_inspect_ignore"
-        verbose_name = _("巡检忽略配置")
-        verbose_name_plural = _("巡检忽略配置")
-        # 添加唯一索引，确保同一个集群的同一个巡检类型只能有一条配置
-        unique_together = ["cluster", "bk_biz_id", "subtype"]
-        index_together = ["subtype", "cluster_type"]
+        db_table = "tb_mysql_slowlog_ai_analysis"
+        verbose_name = _("MySQL慢日志AI分析结果")
+        verbose_name_plural = _("MySQL慢日志AI分析结果")
+        index_together = ["cluster_domain", "analyze_time"]
 
     def __str__(self):
-        return f"{self.bk_biz_id}-{self.cluster}-{self.subtype}"
+        return f"{self.bk_biz_id}-{self.cluster_domain}-{self.analyze_time}"
