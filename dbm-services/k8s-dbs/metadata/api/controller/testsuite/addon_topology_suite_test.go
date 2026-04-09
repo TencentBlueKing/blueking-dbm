@@ -52,7 +52,7 @@ var addonTopologyRequest = vo.AddonTopologyRequest{
 	Relations:     "{\"relation1\": \"component1\", \"relation2\": \"component2\"}",
 	Active:        true,
 	Description:   "description_01",
-	BKAuth:        baseBKAuth,
+	BKAdditional:  baseBKAdditional,
 }
 
 type AddonTopologyControllerTestSuite struct {

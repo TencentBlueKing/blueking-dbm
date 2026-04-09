@@ -41,6 +41,8 @@ type K8sClusterServiceProvider interface {
 	UpsertClusterServices(crdClusterID uint64, entities []*metaentity.K8sClusterServiceEntity) error
 	UpsertSingleService(entity *metaentity.K8sClusterServiceEntity) error
 	UpdateClusterService(entity *metaentity.K8sClusterServiceEntity) (uint64, error)
+	UpdateDomains(crdClusterID uint64, serviceName, domains string) (uint64, error)
+	CountExternalByClusterID(crdClusterID uint64) (int64, error)
 }
 
 // K8sClusterServiceProviderImpl K8sClusterServiceProvider 具体实现
@@ -184,4 +186,16 @@ func (k *K8sClusterServiceProviderImpl) UpsertSingleService(
 		return errors.Wrap(err, "failed to copy entity to model")
 	}
 	return k.dbAccess.UpsertByClusterIDAndServiceName(m)
+}
+
+// CountExternalByClusterID 统计指定集群下拥有外部地址的 service 数量
+func (k *K8sClusterServiceProviderImpl) CountExternalByClusterID(crdClusterID uint64) (int64, error) {
+	return k.dbAccess.CountExternalByClusterID(crdClusterID)
+}
+
+// UpdateDomains 仅更新指定 service 的 domains 字段
+func (k *K8sClusterServiceProviderImpl) UpdateDomains(
+	crdClusterID uint64, serviceName, domains string,
+) (uint64, error) {
+	return k.dbAccess.UpdateDomainsByClusterIDAndServiceName(crdClusterID, serviceName, domains)
 }

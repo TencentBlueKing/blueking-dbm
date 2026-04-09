@@ -69,9 +69,9 @@ func mustQ(s string) resource.Quantity {
 // bindingRequest 模拟 K8sNamespaceRequest 的最小结构，
 // 用于验证 gin binding 会自动触发 ResourceQuota 的结构体级校验。
 type bindingRequest struct {
-	Name              string                    `json:"name" binding:"required"`
-	ResourceQuota     *coreentity.ResourceQuota `json:"resourceQuota,omitempty"`
-	commentity.BKAuth `json:",inline"`
+	Name                    string                    `json:"name" binding:"required"`
+	ResourceQuota           *coreentity.ResourceQuota `json:"resourceQuota,omitempty"`
+	commentity.BKAdditional `json:",inline"`
 }
 
 // setupBindingRouter 构造启用了 gin binding 的路由，复现 controller 的 ShouldBindJSON + ValidateError 链路

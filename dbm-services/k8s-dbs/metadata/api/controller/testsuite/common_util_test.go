@@ -30,7 +30,7 @@ import (
 	"time"
 )
 
-var baseBKAuth = entity.BKAuth{
+var baseBKAdditional = entity.BKAdditional{
 	BkAppCode:   "bk_app_code",
 	BkAppSecret: "bk_app_secret",
 	BkUserName:  "admin",

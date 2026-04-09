@@ -23,9 +23,7 @@ package informers
 import (
 	"context"
 	"fmt"
-	coreconst "k8s-dbs/core/constant"
 	infrautil "k8s-dbs/infrastructure/util"
-	"os"
 
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
 	"k8s.io/client-go/tools/cache"
@@ -129,16 +127,15 @@ func (o *ClusterInformer) OnUpdate(_, newObj interface{}) {
 	}
 
 	// 5. dbm 状态同步
-	if os.Getenv(coreconst.AsyncToDBMEnv) == coreconst.AsyncToDBMEnabled {
-		phase := cluster.Status.Phase
-		switch phase {
-		case appsv1.AbnormalClusterPhase,
-			appsv1.FailedClusterPhase:
-			infrautil.AsyncClusterAbnormal(entity, thirdapi.GetDbmAPIService())
-		case appsv1.RunningClusterPhase:
-			infrautil.AsyncClusterNormal(entity, thirdapi.GetDbmAPIService())
-		default:
-			slog.Warn("当前状态无需同步", "phase", phase)
-		}
+	// informer 状态同步不受参数控制，始终同步
+	phase := cluster.Status.Phase
+	switch phase {
+	case appsv1.AbnormalClusterPhase,
+		appsv1.FailedClusterPhase:
+		infrautil.AsyncClusterAbnormal(entity, thirdapi.GetDbmAPIService())
+	case appsv1.RunningClusterPhase:
+		infrautil.AsyncClusterNormal(entity, thirdapi.GetDbmAPIService())
+	default:
+		slog.Warn("当前状态无需同步", "phase", phase)
 	}
 }

@@ -47,7 +47,7 @@ var componentOperationRequest = vo.ComponentOperationRequest{
 	ComponentVersion: "8.0",
 	OperationID:      1,
 	Description:      "创建测试组件",
-	BKAuth:           baseBKAuth,
+	BKAdditional:     baseBKAdditional,
 }
 
 type ComponentOperationControllerTestSuite struct {

@@ -83,7 +83,7 @@ func (c *AddonHelmRepoController) CreateAddonHelmRepo(ctx *gin.Context) {
 		return
 	}
 	dbsCtx := commentity.DbsContext{
-		BkAuth: &reqVo.BKAuth,
+		BkAdditional: &reqVo.BKAdditional,
 	}
 	addedRepo, err := c.addonHelmRepoProvider.CreateHelmRepo(&dbsCtx, &repoEntity)
 	if err != nil {

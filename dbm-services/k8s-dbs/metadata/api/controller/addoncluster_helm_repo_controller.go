@@ -83,7 +83,7 @@ func (c *ClusterHelmRepoController) CreateClusterHelmRepo(ctx *gin.Context) {
 		return
 	}
 	dbsCtx := commentity.DbsContext{
-		BkAuth: &reqVo.BKAuth,
+		BkAdditional: &reqVo.BKAdditional,
 	}
 	addedRepo, err := c.clusterHelmRepoProvider.CreateHelmRepo(&dbsCtx, &repoEntity)
 	if err != nil {

@@ -83,7 +83,7 @@ var k8sCrdStorageAddonEntityList = []metaenitty.K8sCrdStorageAddonEntity{
 }
 
 var addonDbsContext = &commentity.DbsContext{
-	BkAuth: &commentity.BKAuth{
+	BkAdditional: &commentity.BKAdditional{
 		BkUserName:  "bkuser",
 		BkAppCode:   "bkappcode",
 		BkAppSecret: "bkappsecret",

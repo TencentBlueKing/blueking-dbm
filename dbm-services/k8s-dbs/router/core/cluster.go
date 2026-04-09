@@ -42,6 +42,8 @@ func BuildClusterRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 		clusterGroup.GET("/services", clusterController.GetClusterService)
 		clusterGroup.POST("/status", clusterController.GetClusterStatus)
 		clusterGroup.POST("/event", clusterController.GetClusterEvent)
+		clusterGroup.POST("/bind-domain", clusterController.BindDomain)
+		clusterGroup.POST("/unbind-domain", clusterController.UnbindDomain)
 
 	}
 }

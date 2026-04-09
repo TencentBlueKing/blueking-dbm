@@ -65,7 +65,7 @@ var addonHelmRepoEntityList = []metaenitty.AddonHelmRepoEntity{
 }
 
 var dbsCtx = &commentity.DbsContext{
-	BkAuth: &commentity.BKAuth{
+	BkAdditional: &commentity.BKAdditional{
 		BkUserName:  "bkuser",
 		BkAppCode:   "bkappcode",
 		BkAppSecret: "bkappsecret",

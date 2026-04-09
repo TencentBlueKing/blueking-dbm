@@ -26,12 +26,12 @@ import (
 
 // ClusterUpdatedRequest Receive request structure
 type ClusterUpdatedRequest struct {
-	K8sClusterName      string              `json:"k8sClusterName,omitempty" required:"true"`
-	ClusterName         string              `json:"clusterName,omitempty" binding:"k8sReleaseName" msg:"集群名称格式不合法，只能包含小写字母、数字和连字符(-)，可以用点(.)分隔,且要求长度小于 53"` //nolint:lll
-	Namespace           string              `json:"namespace,omitempty"`
-	StorageAddonType    string              `json:"storageAddonType,omitempty"`
-	ComponentList       []ComponentResource `json:"componentList,omitempty" binding:"dive"`
-	commonentity.BKAuth `json:",inline"`
+	K8sClusterName            string              `json:"k8sClusterName,omitempty" required:"true"`
+	ClusterName               string              `json:"clusterName,omitempty" binding:"k8sReleaseName" msg:"集群名称格式不合法，只能包含小写字母、数字和连字符(-)，可以用点(.)分隔,且要求长度小于 53"` //nolint:lll
+	Namespace                 string              `json:"namespace,omitempty"`
+	StorageAddonType          string              `json:"storageAddonType,omitempty"`
+	ComponentList             []ComponentResource `json:"componentList,omitempty" binding:"dive"`
+	commonentity.BKAdditional `json:",inline"`
 }
 
 // ComponentResource component info

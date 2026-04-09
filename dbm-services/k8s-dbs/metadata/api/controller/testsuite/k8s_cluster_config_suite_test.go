@@ -51,7 +51,7 @@ var k8sClusterConfigRequest = vo.K8sClusterConfigRequest{
 	Username:     "test-user",
 	Password:     "test-password",
 	Description:  "测试K8s集群配置",
-	BKAuth:       baseBKAuth,
+	BKAdditional: baseBKAdditional,
 }
 
 type K8sClusterConfigControllerTestSuite struct {

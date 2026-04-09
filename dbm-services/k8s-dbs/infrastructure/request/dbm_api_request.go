@@ -54,3 +54,35 @@ type DeleteClusterRequest struct {
 	BkBizID     uint64 `json:"bk_biz_id"`
 	ClusterType string `json:"cluster_type"`
 }
+
+// CreateDomainRequest 创建域名记录请求
+// 用于在 DBM DNS 服务中注册域名解析记录，同时在 ClusterEntry 表中创建对应的接入层条目
+type CreateDomainRequest struct {
+	BkCloudID   uint64   `json:"bk_cloud_id"`  // 云区域 ID
+	BkBizID     uint64   `json:"bk_biz_id"`    // 业务 ID
+	ClusterType string   `json:"cluster_type"` // 集群类型，如 k8s_vm、k8s_gt
+	Name        string   `json:"name"`         // 集群名称
+	Domain      string   `json:"domain"`       // 域名
+	Instances   []string `json:"instances"`    // 实例列表，格式：ip#port
+	Role        string   `json:"role"`         // 入口角色，默认 master_entry
+	Operator    string   `json:"operator"`     // 操作人
+}
+
+// GetDomainRequest 查询域名解析记录请求
+type GetDomainRequest struct {
+	BkCloudID   uint64 `json:"bk_cloud_id"`
+	BkBizID     uint64 `json:"bk_biz_id"`
+	ClusterType string `json:"cluster_type"`
+	Name        string `json:"name"`
+	Domain      string `json:"domain"`
+}
+
+// DeleteDomainRequest 删除域名解析记录请求
+type DeleteDomainRequest struct {
+	BkCloudID   uint64 `json:"bk_cloud_id"`
+	BkBizID     uint64 `json:"bk_biz_id"`
+	ClusterType string `json:"cluster_type"`
+	Name        string `json:"name"`
+	Domain      string `json:"domain"`
+	Operator    string `json:"operator"`
+}

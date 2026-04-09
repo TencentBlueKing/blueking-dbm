@@ -25,10 +25,10 @@ import (
 
 // ComponentSpecPlanRequest represents the request data structure of component spec plan.
 type ComponentSpecPlanRequest struct {
-	AddonSpecPlanID   uint64 `json:"addonSpecPlanId"`
-	ComponentName     string `json:"componentName"`
-	CPUCores          *int   `json:"cpuCores"`
-	MemoryGb          *int   `json:"memoryGb"`
-	DiskSizeGb        *int   `json:"diskSizeGb"`
-	commentity.BKAuth `json:",inline"`
+	AddonSpecPlanID         uint64 `json:"addonSpecPlanId"`
+	ComponentName           string `json:"componentName"`
+	CPUCores                *int   `json:"cpuCores"`
+	MemoryGb                *int   `json:"memoryGb"`
+	DiskSizeGb              *int   `json:"diskSizeGb"`
+	commentity.BKAdditional `json:",inline"`
 }

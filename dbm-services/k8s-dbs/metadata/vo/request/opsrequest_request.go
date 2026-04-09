@@ -25,13 +25,13 @@ import (
 
 // K8sCrdOpsRequest represents the request data structure of opsRequest meta.
 type K8sCrdOpsRequest struct {
-	CrdClusterID       uint64 `json:"crdClusterId" binding:"required"`
-	K8sClusterConfigID uint64 `json:"k8sClusterConfigId" binding:"required"`
-	RequestID          string `json:"requestId" binding:"required"`
-	OpsRequestName     string `json:"opsRequestName" binding:"required"`
-	OpsRequestType     string `json:"opsRequestType" binding:"required"`
-	Metadata           string `json:"metadata" binding:"required"`
-	Spec               string `json:"spec" binding:"required"`
-	Description        string `json:"description" binding:"required"`
-	commentity.BKAuth  `json:",inline"`
+	CrdClusterID            uint64 `json:"crdClusterId" binding:"required"`
+	K8sClusterConfigID      uint64 `json:"k8sClusterConfigId" binding:"required"`
+	RequestID               string `json:"requestId" binding:"required"`
+	OpsRequestName          string `json:"opsRequestName" binding:"required"`
+	OpsRequestType          string `json:"opsRequestType" binding:"required"`
+	Metadata                string `json:"metadata" binding:"required"`
+	Spec                    string `json:"spec" binding:"required"`
+	Description             string `json:"description" binding:"required"`
+	commentity.BKAdditional `json:",inline"`
 }

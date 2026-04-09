@@ -25,21 +25,21 @@ import (
 
 // K8sClusterConfigRequest represents the request data structure of k8sClusterConfig meta.
 type K8sClusterConfigRequest struct {
-	ClusterName       string `json:"clusterName" binding:"required"`
-	ClusterAlias      string `json:"clusterAlias" binding:"required"`
-	APIServerURL      string `json:"apiServerUrl" binding:"required"`
-	CACert            string `json:"caCert"`
-	ClientCert        string `json:"clientCert"`
-	ClientKey         string `json:"clientKey"`
-	Token             string `json:"token" binding:"required"`
-	Username          string `json:"username"`
-	Password          string `json:"password"`
-	IsPublic          bool   `json:"isPublic"`
-	RegionName        string `json:"regionName"`
-	RegionCode        string `json:"regionCode"`
-	VpcID             string `json:"vpcID"`
-	Provider          string `json:"provider"`
-	Active            bool   `json:"active"`
-	Description       string `json:"description" binding:"required"`
-	commentity.BKAuth `json:",inline"`
+	ClusterName             string `json:"clusterName" binding:"required"`
+	ClusterAlias            string `json:"clusterAlias" binding:"required"`
+	APIServerURL            string `json:"apiServerUrl" binding:"required"`
+	CACert                  string `json:"caCert"`
+	ClientCert              string `json:"clientCert"`
+	ClientKey               string `json:"clientKey"`
+	Token                   string `json:"token" binding:"required"`
+	Username                string `json:"username"`
+	Password                string `json:"password"`
+	IsPublic                bool   `json:"isPublic"`
+	RegionName              string `json:"regionName"`
+	RegionCode              string `json:"regionCode"`
+	VpcID                   string `json:"vpcID"`
+	Provider                string `json:"provider"`
+	Active                  bool   `json:"active"`
+	Description             string `json:"description" binding:"required"`
+	commentity.BKAdditional `json:",inline"`
 }

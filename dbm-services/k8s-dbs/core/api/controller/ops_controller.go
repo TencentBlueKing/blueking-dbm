@@ -68,8 +68,8 @@ func (c *OpsController) VerticalScaling(ctx *gin.Context) {
 		return
 	}
 	dbsCtx := &commentity.DbsContext{
-		BkAuth:      &request.BKAuth,
-		RequestType: coreconst.VScaling,
+		BkAdditional: &request.BKAdditional,
+		RequestType:  coreconst.VScaling,
 	}
 	responseData, err := c.opsRequestProvider.VerticalScaling(dbsCtx, request)
 	if err != nil {
@@ -88,8 +88,8 @@ func (c *OpsController) HorizontalScaling(ctx *gin.Context) {
 		return
 	}
 	dbsCtx := &commentity.DbsContext{
-		BkAuth:      &request.BKAuth,
-		RequestType: coreconst.HScaling,
+		BkAdditional: &request.BKAdditional,
+		RequestType:  coreconst.HScaling,
 	}
 	responseData, err := c.opsRequestProvider.HorizontalScaling(dbsCtx, request)
 	if err != nil {
@@ -112,8 +112,8 @@ func (c *OpsController) StartCluster(ctx *gin.Context) {
 		requestType = coreconst.StartComp
 	}
 	dbsCtx := &commentity.DbsContext{
-		BkAuth:      &request.BKAuth,
-		RequestType: requestType,
+		BkAdditional: &request.BKAdditional,
+		RequestType:  requestType,
 	}
 	responseData, err := c.opsRequestProvider.StartCluster(dbsCtx, request)
 	if err != nil {
@@ -136,8 +136,8 @@ func (c *OpsController) RestartCluster(ctx *gin.Context) {
 		requestType = coreconst.RestartComp
 	}
 	dbsCtx := &commentity.DbsContext{
-		BkAuth:      &request.BKAuth,
-		RequestType: requestType,
+		BkAdditional: &request.BKAdditional,
+		RequestType:  requestType,
 	}
 	responseData, err := c.opsRequestProvider.RestartCluster(dbsCtx, request)
 	if err != nil {
@@ -160,8 +160,8 @@ func (c *OpsController) StopCluster(ctx *gin.Context) {
 		requestType = coreconst.StopComp
 	}
 	dbsCtx := &commentity.DbsContext{
-		BkAuth:      &request.BKAuth,
-		RequestType: requestType,
+		BkAdditional: &request.BKAdditional,
+		RequestType:  requestType,
 	}
 	responseData, err := c.opsRequestProvider.StopCluster(dbsCtx, request)
 	if err != nil {
@@ -180,8 +180,8 @@ func (c *OpsController) UpgradeCluster(ctx *gin.Context) {
 		return
 	}
 	dbsCtx := &commentity.DbsContext{
-		BkAuth:      &request.BKAuth,
-		RequestType: coreconst.UpgradeComp,
+		BkAdditional: &request.BKAdditional,
+		RequestType:  coreconst.UpgradeComp,
 	}
 	responseData, err := c.opsRequestProvider.UpgradeCluster(dbsCtx, request)
 	if err != nil {
@@ -201,8 +201,8 @@ func (c *OpsController) VolumeExpansion(ctx *gin.Context) {
 		return
 	}
 	dbsCtx := &commentity.DbsContext{
-		BkAuth:      &request.BKAuth,
-		RequestType: coreconst.VExpansion,
+		BkAdditional: &request.BKAdditional,
+		RequestType:  coreconst.VExpansion,
 	}
 	responseData, err := c.opsRequestProvider.VolumeExpansion(dbsCtx, request)
 	if err != nil {
@@ -268,8 +268,8 @@ func (c *OpsController) ExposeCluster(ctx *gin.Context) {
 		return
 	}
 	dbsCtx := &commentity.DbsContext{
-		BkAuth:      &request.BKAuth,
-		RequestType: coreconst.ExposeService,
+		BkAdditional: &request.BKAdditional,
+		RequestType:  coreconst.ExposeService,
 	}
 	responseData, err := c.opsRequestProvider.ExposeCluster(dbsCtx, request)
 	if err != nil {

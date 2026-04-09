@@ -19,14 +19,6 @@ limitations under the License.
 
 package constant
 
-// DBM 相关环境变量常量定义
-const (
-	// AsyncToDBMEnv 控制是否启用异步同步到DBM的环境变量名
-	AsyncToDBMEnv = "ASYNC_TO_DBM"
-	// AsyncToDBMEnabled 表示启用异步同步的值
-	AsyncToDBMEnabled = "true"
-)
-
 // ClusterOperationType 集群操作类型
 // 定义集群同步操作的类型，确保类型安全
 type ClusterOperationType string

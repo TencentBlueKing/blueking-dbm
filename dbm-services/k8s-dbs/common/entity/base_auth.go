@@ -20,9 +20,18 @@ limitations under the License.
 // Package entity 定义 common 模块使用的通用实体类型
 package entity
 
-// BKAuth 封装认证授权
-type BKAuth struct {
+// BKAdditional 封装请求附加信息（认证授权 + 业务控制参数）
+type BKAdditional struct {
 	BkAppCode   string `json:"bk_app_code,omitempty"`
 	BkAppSecret string `json:"bk_app_secret,omitempty"`
 	BkUserName  string `json:"bk_username,omitempty" binding:"required" msg:"bk_username 字段不能为空"`
+	AsyncToDbm  *bool  `json:"async_to_dbm,omitempty"`
+}
+
+// ShouldAsyncToDBM 返回是否需要同步到 DBM；nil 视为 false（默认关闭）
+func (a *BKAdditional) ShouldAsyncToDBM() bool {
+	if a == nil || a.AsyncToDbm == nil {
+		return false
+	}
+	return *a.AsyncToDbm
 }
