@@ -13,6 +13,7 @@
 
 <template>
   <BkTab
+    :key="renderKey"
     v-model:active="moduleValue"
     class="db-tab"
     type="unborder-card">
@@ -32,14 +33,18 @@
 <script setup lang="ts">
   import { useUserDbaComponents } from '@hooks';
 
-  import { DBTypeInfos } from '@common/const';
+  import { DBTypes } from '@common/const';
 
   interface Props {
+    // tab 标签的计数配置
     countConfig?: Record<string, number>;
+    // 只展示指定的 dbType
+    include?: DBTypes[];
   }
 
   const props = withDefaults(defineProps<Props>(), {
     countConfig: () => ({}) as NonNullable<Props['countConfig']>,
+    include: () => [] as NonNullable<Props['include']>,
   });
 
   const moduleValue = defineModel<string>({
@@ -50,25 +55,29 @@
 
   defineExpose({ loading });
 
-  const dbaDbTypeMap = computed(
-    () => new Map(dbaComponents.value.map((item) => [item.db_type, item.db_type_display])),
-  );
+  // Tab 列表变化时重新渲染，避免样式异常
+  const renderKey = ref(0);
+
+  const includeSet = computed(() => new Set<string>(props.include));
 
   const renderTabs = computed(() =>
-    Object.values(DBTypeInfos)
-      .filter((item) => dbaDbTypeMap.value.has(item.id))
+    dbaComponents.value
+      .filter((item) => includeSet.value.has(item.db_type))
       .map((item) => ({
-        id: item.id,
-        name: dbaDbTypeMap.value.get(item.id) || item.name,
+        id: item.db_type,
+        name: item.db_type_display,
       })),
   );
 
-  // 接口返回后，如果当前 modelValue 不在列表中，自动选中第一个
+  // Tab 列表变化时递增 renderKey 重新渲染，并自动选中合适的 Tab
   watch(
     renderTabs,
     (tabs) => {
+      renderKey.value += 1;
       if (tabs.length > 0 && !tabs.some((tab) => tab.id === moduleValue.value)) {
-        moduleValue.value = tabs[0].id;
+        nextTick(() => {
+          moduleValue.value = tabs[0].id;
+        });
       }
     },
     { immediate: true },
@@ -77,10 +86,12 @@
   // 如果有 countConfig，自动选中第一个非 0 的 tab
   watch(
     () => props.countConfig,
-    () => {
-      const activeTab = Object.keys(props.countConfig).find((key) => props.countConfig[key] > 0) || '';
+    (countConfig) => {
+      const activeTab = Object.keys(countConfig).find((key) => countConfig[key] > 0);
       if (activeTab) {
-        moduleValue.value = activeTab;
+        nextTick(() => {
+          moduleValue.value = activeTab;
+        });
       }
     },
     { immediate: true },
