@@ -7,7 +7,8 @@
         <DbaDbTab
           v-if="isTodoPage"
           v-model="tabType"
-          :count-config="dbCountConfig" />
+          :count-config="dbCountConfig"
+          :include="availableDbs" />
         <DbTabForBiz
           v-else
           v-model="tabType"
@@ -79,6 +80,7 @@
   const tabType = ref((route.query.tabType as DBTypes) || DBTypes.MYSQL);
   const searchParams = ref<Record<string, any>>({});
   const excludeDbs = ref<DBTypes[]>([]);
+  const availableDbs = ref<DBTypes[]>([]);
   const dynamicTablesRef = ref<InstanceType<typeof RenderDynamicTable>[]>([]);
   const isTabShow = ref(true);
   const isOnlyAbnormal = ref(false);
@@ -90,13 +92,14 @@
   const isEmptyShow = computed(() => isInspectionReport.value && !isTabShow.value);
 
   // 为 DbaDbTab 提供计数配置，内部自动选中第一个计数 > 0 的 Tab
+  // 待我处理取 manageCount，待我协助取 assistCount
   const dbCountConfig = computed(() => {
     if (!dbReportCountMap.value || !Object.keys(dbReportCountMap.value).length) {
       return undefined;
     }
     return Object.entries(dbReportCountMap.value).reduce(
       (result, [key, val]) => {
-        Object.assign(result, { [key]: val.manageCount || 0 });
+        Object.assign(result, { [key]: isTodoAssist.value ? val.assistCount || 0 : val.manageCount || 0 });
         return result;
       },
       {} as Record<string, number>,
@@ -135,9 +138,10 @@
 
   const { data: dbOverviewConfig, loading: overviewLoading } = useRequest(getReportOverview, {
     onSuccess: (data) => {
-      const availableDbs = Object.keys(data);
+      const dbs = Object.keys(data) as DBTypes[];
       const totalDbs = Object.keys(DBTypeInfos);
-      excludeDbs.value = _.difference(totalDbs, availableDbs) as DBTypes[];
+      availableDbs.value = dbs;
+      excludeDbs.value = _.difference(totalDbs, dbs) as DBTypes[];
     },
   });
 
