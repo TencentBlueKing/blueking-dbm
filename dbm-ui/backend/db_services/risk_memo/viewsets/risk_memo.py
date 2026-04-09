@@ -210,7 +210,9 @@ class RiskMemoViewSet(viewsets.AuditedModelViewSet):
             url = storage.url(bkrepo_path)
             # 将 url 的域名和协议替换为 BKREPO_FRONTEND_URL
             bkrepo_frontend_url = urlparse(env.BKREPO_FRONTEND_URL)
-            url = urlunparse(urlparse(url)._replace(scheme=bkrepo_frontend_url.scheme, netloc=bkrepo_frontend_url.netloc))
+            url = urlunparse(
+                urlparse(url)._replace(scheme=bkrepo_frontend_url.scheme, netloc=bkrepo_frontend_url.netloc)
+            )
 
         except Exception as e:
             return JsonResponse({"msg": "{}".format(e), "code": 1, "data": ""})
