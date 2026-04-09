@@ -42,6 +42,8 @@ from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
     RedisMakeSyncAtomJob,
     StorageRepLink,
 )
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.redis.dns_manage import RedisDnsManageComponent
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.exec_shell_script import ExecuteShellReloadMetaComponent
@@ -396,6 +398,32 @@ class RedisClusterAutoFixSceneFlow(object):
     def slave_fix(self, flow_data, sub_kwargs, slave_fix_info):
         sub_pipeline = SubBuilder(root_id=self.root_id, data=flow_data)
         slave_fix_detail = slave_fix_info["redis_slave"]
+        immute_domain = sub_kwargs.cluster["immute_domain"]
+        # 特别需要屏蔽：Persist 异常 critical; 主机单核CPU使用率 , 但是需要 蓝鲸监控的策略 ID，运行时才有）
+        # 收集自愈涉及的 slave IP 和对应的 master IP
+        _fix_ips = set()
+        for fix_link in slave_fix_detail:
+            old_slave, new_slave = fix_link["ip"], fix_link["target"]["ip"]
+            _fix_ips.add(old_slave)
+            _fix_ips.add(new_slave)
+            master_ip = sub_kwargs.cluster["slave_master_map"].get(old_slave)
+            if master_ip:
+                _fix_ips.add(master_ip)
+        sub_pipeline.add_act(
+            act_name=_("屏蔽集群告警-{}".format(immute_domain)),
+            act_component_code=AddAlarmShieldComponent.code,
+            kwargs={
+                **asdict(sub_kwargs),
+                "description": _("Redis自愈-屏蔽告警-{}").format(immute_domain),
+                "dimensions": [
+                    {"name": "appid", "values": [sub_kwargs.cluster["bk_biz_id"]]},
+                    {"name": "cluster_domain", "values": [immute_domain]},
+                    {"name": "bk_target_ip", "values": list(_fix_ips)},
+                ],
+                "duration_seconds": 3 * 3600,
+            },
+        )
+
         newslave_to_master, replace_link_info = {}, {}
 
         for fix_link in slave_fix_detail:
@@ -650,6 +678,13 @@ class RedisClusterAutoFixSceneFlow(object):
                 }
             )
         # # #### 下架旧实例 ###################################################################### 完毕 ###
+
+        # slave 自愈完成后解除告警屏蔽
+        sub_pipeline.add_act(
+            act_name=_("解除集群告警屏蔽-{}".format(immute_domain)),
+            act_component_code=DisableAlarmShieldComponent.code,
+            kwargs=asdict(sub_kwargs),
+        )
 
         return sub_pipeline.build_sub_process(sub_name=_("Slave替换-{}").format(sub_kwargs.cluster["cluster_type"]))
 
