@@ -12,18 +12,18 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 
-class ShowMySQLVariablesInputSerializer(serializers.Serializer):
+class ShowInstanceVariablesInputSerializer(serializers.Serializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"), default=None)
     address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
 
 
-class MySQLRuntimeVariableSerializer(serializers.Serializer):
+class InstanceRuntimeVariableSerializer(serializers.Serializer):
     variable_name = serializers.CharField(help_text=_("运行时参数名"))
     variable_value = serializers.CharField(help_text=_("运行时参数值"))
 
 
-class ShowMySQLVariablesOutputSerializer(serializers.Serializer):
-    runtime_variables = serializers.ListField(child=MySQLRuntimeVariableSerializer(), help_text=_("MySQL 运行时参数列表"))
+class ShowInstanceVariablesOutputSerializer(serializers.Serializer):
+    runtime_variables = serializers.ListField(child=InstanceRuntimeVariableSerializer(), help_text=_("MySQL 运行时参数列表"))
 
 
 class ShowVariablesNamesInputSerializer(serializers.Serializer):
