@@ -76,6 +76,7 @@
 
 <script setup lang="ts">
   import Cookies from 'js-cookie';
+  import urlJoin from 'url-join';
   import { useI18n } from 'vue-i18n';
 
   defineProps<{
@@ -95,8 +96,8 @@
   const uploadKey = ref(0);
 
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
-  const uploadUrl = `${window.PROJECT_ENV.VITE_AJAX_URL_PREFIX}/apis/partition/upload_import_file/`;
-  const templatePath = `${window.PROJECT_ENV.VITE_PUBLIC_PATH}/cluster-partition-template.xlsx`;
+  const uploadUrl = urlJoin(window.PROJECT_ENV.VITE_AJAX_URL_PREFIX, `/apis/partition/upload_import_file/`);
+  const templatePath = `${window.PROJECT_ENV.VITE_PUBLIC_PATH}cluster-partition-template.xlsx`;
 
   const handleBeforeUpload = () => {
     emit('uploading', true);

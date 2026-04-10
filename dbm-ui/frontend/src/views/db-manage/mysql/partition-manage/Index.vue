@@ -465,13 +465,21 @@
     return classList.join(' ');
   };
 
-  const dataSource = (params: Record<string, any>) =>
-    getList({
+  const dataSource = async (params: Record<string, any>) => {
+    const result = await getList({
       ...params,
       ...searchValue.value,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_type: ClusterTypes.TENDBHA,
     });
+    // 失败状态排前面
+    result.results.sort((a: PartitionModel, b: PartitionModel) => {
+      if (a.status === PartitionModel.STATUS_FAILED && b.status !== PartitionModel.STATUS_FAILED) return -1;
+      if (a.status !== PartitionModel.STATUS_FAILED && b.status === PartitionModel.STATUS_FAILED) return 1;
+      return 0;
+    });
+    return result;
+  };
 
   const fetchData = () => {
     tableRef.value?.fetchData(searchValue.value, {
