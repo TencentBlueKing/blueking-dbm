@@ -37,6 +37,9 @@ class BIZSLZ(serializers.Serializer):
     name = serializers.CharField(help_text=_("业务名"))
     english_name = serializers.CharField(help_text=_("业务英文名"))
     permission = serializers.JSONField(help_text=_("业务权限列表"))
+    status = serializers.CharField(help_text=_("纳管状态"))
+    tags = serializers.ListField(help_text=_("标签列表"), child=serializers.JSONField(), allow_empty=True)
+    managed_time = serializers.DateTimeField(help_text=_("纳管时间"))
 
 
 class ModuleSLZ(serializers.Serializer):

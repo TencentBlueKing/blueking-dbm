@@ -23,9 +23,18 @@ from rest_framework import serializers
 
 from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, AffinityEnum
 from backend.constants import DOMAIN_PATTERN
+from backend.db_meta.constants import AppManagedStatus
 from backend.db_meta.enums import AccessLayer, ClusterPhase, ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.enums.comm import SystemTagEnum
-from backend.db_meta.models import Cluster, ExtraProcessInstance, Machine, ProxyInstance, Spec, StorageInstance
+from backend.db_meta.models import (
+    AppCache,
+    Cluster,
+    ExtraProcessInstance,
+    Machine,
+    ProxyInstance,
+    Spec,
+    StorageInstance,
+)
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
@@ -204,8 +213,20 @@ class TicketBaseValidateSerializerMixin(object):
             raise TicketParamsVerifyException(_("提单涉及的集群业务不匹配当前业务"))
         return attrs
 
+    # 检查部署类单据的业务是否已纳管
+    def validated_biz_managed(self, attrs):
+        ticket_type = self.context["ticket_type"]
+        if ticket_type in builders.BuilderFactory.apply_ticket_type:
+            if not self.context.get("bk_biz_id"):
+                return attrs
+            bk_biz_id = int(self.context["bk_biz_id"])
+            if not AppCache.objects.filter(bk_biz_id=bk_biz_id, status=AppManagedStatus.MANAGED).exists():
+                raise TicketParamsVerifyException(_("该业务尚未纳管，请先联系 DBA Leader 或平台管理员完成纳管"))
+        return attrs
+
     def validate(self, attrs):
         attrs = self.validated_biz(attrs)
+        attrs = self.validated_biz_managed(attrs)
         return attrs
 
 

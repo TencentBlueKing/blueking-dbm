@@ -21,7 +21,9 @@ from backend.configuration.mock_data import BIZ_SETTINGS_DATA, PASSWORD_POLICY, 
 from backend.configuration.models.function_controller import FunctionController
 from backend.configuration.models.ip_whitelist import IPWhitelist
 from backend.configuration.models.system import BizSettings, SystemSettings
+from backend.db_meta.constants import AppOperateType
 from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import AppOperate
 from backend.db_services.dbpermission.constants import AccountType
 from backend.ticket.builders.common.field import DBTimezoneField
 
@@ -97,8 +99,18 @@ class ProfileSqlSerializer(serializers.Serializer):
     sqls = serializers.ListSerializer(help_text=_("收藏sql列表"), child=SqlSelfSerializer())
 
 
+class OperateSerializer(serializers.Serializer):
+    type = serializers.ChoiceField(help_text=_("操作类型"), choices=AppOperateType.get_choices())
+    before = serializers.CharField(help_text=_("变更前"), allow_null=True, allow_blank=True)
+    after = serializers.CharField(help_text=_("变更后"), allow_null=True, allow_blank=True)
+    role = serializers.CharField(help_text=_("变更角色"), required=False)
+    db_type = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices(), required=False)
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
+
+
 class ListDBAdminSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
+    db_type = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices(), required=False)
 
 
 class DBAdminSerializer(serializers.Serializer):
@@ -109,11 +121,39 @@ class DBAdminSerializer(serializers.Serializer):
 class UpsertDBAdminSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     db_admins = serializers.ListSerializer(child=DBAdminSerializer())
+    operates = serializers.ListSerializer(child=OperateSerializer(), required=False)
 
 
 class DBAComponentSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
     db_type = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices(), required=False)
+
+
+class ManageBizSerializer(serializers.Serializer):
+    app_code = serializers.CharField(help_text=_("业务code"), required=False)
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    db_admins = serializers.ListSerializer(child=DBAdminSerializer(), allow_empty=True, required=False)
+
+
+class UpdateAppTagsSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    tags = serializers.ListField(child=serializers.IntegerField(), help_text=_("标签列表"))
+    operate = OperateSerializer()
+
+
+class BatchUpsertDBAdminSerializer(serializers.Serializer):
+    class UpdateDBASerializer(serializers.Serializer):
+        bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
+        db_admins = serializers.ListSerializer(child=DBAdminSerializer())
+
+    update_info = serializers.ListSerializer(child=UpdateDBASerializer())
+    operates = serializers.ListSerializer(child=OperateSerializer())
+
+
+class AppOperateLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AppOperate
+        fields = "__all__"
 
 
 class ModifyMySQLPasswordRandomCycleSerializer(serializers.Serializer):

@@ -29,7 +29,10 @@ from backend.iam_app.handlers.permission import Permission
 from backend.utils.batch_request import request_multi_thread
 
 logger = logging.getLogger("root")
-BIZModel = collections.namedtuple("BIZModel", ["bk_biz_id", "name", "english_name", "permission"])
+BIZModel = collections.namedtuple(
+    "BIZModel",
+    ["bk_biz_id", "name", "english_name", "permission", "status", "tags", "managed_time"],
+)
 
 
 def list_bizs(user: str = "", action: ActionEnum = None) -> List[BIZModel]:
@@ -42,9 +45,27 @@ def list_bizs(user: str = "", action: ActionEnum = None) -> List[BIZModel]:
         },
         use_admin=True,
     ).get("info", [])
-    biz_list = [
-        BIZModel(biz["bk_biz_id"], biz["bk_biz_name"], biz.get(CC_APP_ABBR_ATTR) or "", {}) for biz in biz_infos
-    ]
+    app_caches = AppCache.objects.prefetch_related("tags").all()
+    app_cache_map = {app.bk_biz_id: app for app in app_caches}
+    biz_list = []
+
+    for biz in biz_infos:
+        app_cache = app_cache_map.get(biz["bk_biz_id"], None)
+        if app_cache:
+            status = app_cache.status
+            tags = [tag.desc for tag in app_cache.tags.all()]
+            managed_time = app_cache.managed_time
+        else:
+            status = "unmanaged"
+            tags = []
+            managed_time = ""
+
+        biz_list.append(
+            BIZModel(
+                biz["bk_biz_id"], biz["bk_biz_name"], biz.get(CC_APP_ABBR_ATTR) or "", {}, status, tags, managed_time
+            )
+        )
+
     biz_ids = [biz.bk_biz_id for biz in biz_list]
 
     # 填充权限字段
