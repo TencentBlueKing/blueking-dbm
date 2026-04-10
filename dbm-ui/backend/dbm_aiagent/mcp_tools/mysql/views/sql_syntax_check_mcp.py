@@ -23,6 +23,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.sql_syntax_check import (
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
+from backend.iam_app.handlers.drf_perm.mcp import McpSkipPermission
 
 logger = logging.getLogger("root")
 
@@ -37,14 +38,14 @@ class SqlSyntaxCheckMcpViewSet(McpToolsViewSet):
             _(
                 "Check SQL syntax for TenDBHA/TenDBCluster against MySQL 5.5/5.6/5.7/8.0. "
                 "Validates syntax errors and DBM constraints (banned commands, high-risk ops). "
-                "根据SQL对TenDBHA/TenDBCluster进行语法和平台约束检查（禁用命令、高风险操作）。"
                 "Use cases: pre-execution validation, cross-version compatibility, detect TRUNCATE/DROP DATABASE."
             )
         ),
         request_slz=SqlSyntaxCheckInputSerializer,
         response_slz=SqlSyntaxCheckOutputSerializer,
+        permission_classes=[McpSkipPermission],
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.SQL_SYNTAX_CHECK],
+        mcp=[DBMMcpTools.SQL_SYNTAX_CHECK, DBMMcpTools.DBM_PUBLIC_MARKET],
         name_prefix="check_sql_syntax",
     )
     def check_sql_syntax(self, request, *args, **kwargs):
@@ -82,23 +83,29 @@ class SqlSyntaxCheckMcpViewSet(McpToolsViewSet):
         description=str(
             _(
                 "Check SQL file syntax for TenDBHA/TenDBCluster against MySQL 5.5/5.6/5.7/8.0. "
-                "Validates server-side SQL files for syntax errors and DBM constraints (banned commands, high-risk ops). "
-                "根据服务器SQL文件进行语法和平台约束检查（禁用命令、高风险操作）。"
-                "Use cases: batch validate before deployment, cross-version compatibility. path=目录, file_list=文件名列表."
+                "PREREQUISITE: SQL files must be uploaded to BKRepo before calling this tool. "
+                "This tool reads files from BKRepo only; it does NOT upload files. "
+                "Validates syntax errors and DBM constraints (banned commands, high-risk ops). "
+                "path=BKRepo dir (format: /{project}/{repo}/{dir}/), file_list=filenames only."
             )
         ),
         request_slz=SqlFileSyntaxCheckInputSerializer,
         response_slz=SqlSyntaxCheckOutputSerializer,
+        permission_classes=[McpSkipPermission],
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.SQL_SYNTAX_CHECK],
+        mcp=[DBMMcpTools.SQL_SYNTAX_CHECK, DBMMcpTools.DBM_PUBLIC_MARKET],
         name_prefix="check_sql_file_syntax",
     )
     def check_sql_file_syntax(self, request, *args, **kwargs):
         """
         SQL file grammar check endpoint.
 
-        This endpoint validates SQL files on the server against specified MySQL versions.
-        If versions are not provided, it defaults to checking against 5.5, 5.6, 5.7, and 8.0.
+        **Prerequisite**: SQL files MUST be uploaded to BKRepo (蓝鲸制品库) before calling this endpoint.
+        This endpoint only reads files that already exist in BKRepo; it does NOT upload files.
+
+        - path: BKRepo directory path where SQL files are stored, e.g. '/bkdbm/sqlfiles/20240101/'
+        - file_list: list of SQL filenames (not full paths) that exist in BKRepo under the given path
+        - versions: optional MySQL versions to check against; defaults to 5.5, 5.6, 5.7, 8.0
         The execute_objects parameter is automatically constructed by the backend.
         """
         cluster_type = self.get_param("cluster_type")
