@@ -17,7 +17,7 @@ export const downloadFile = (response: AxiosResponse): void => {
   const contentDisposition = response.headers['content-disposition'];
   const fileBasename = contentDisposition ? contentDisposition.split('=')[1] : 'download';
   const utcTimeStamp = dayjs().format('YYYYMMDDHHmmss');
-  const fileName = `${utcTimeStamp}_${fileBasename}`;
+  const fileName = `${fileBasename}_${utcTimeStamp}`;
   const url = window.URL.createObjectURL(new Blob([response.data]));
   const link = document.createElement('a');
   link.href = url;
