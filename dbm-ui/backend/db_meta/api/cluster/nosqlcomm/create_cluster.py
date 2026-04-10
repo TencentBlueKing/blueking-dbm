@@ -209,10 +209,18 @@ def pkg_create_twemproxy_cluster(
     spec_id, spec_config = 0, ""
     if machine_specs.get("redis"):
         spec_id, spec_config = machine_specs["redis"]["spec_id"], machine_specs["redis"]["spec_config"]
+    # create_tendis_instances 期望格式: [{"master": {...}, "slave": {...}}, ...]
+    # 而 storages 格式为: [{"shard": "", "nodes": {"master": {...}, "slave": {...}}}, ...]
+    # 需要将 nodes 层展开
+    flat_storages = [{"master": s["nodes"]["master"], "slave": s["nodes"]["slave"]} for s in storages]
     if cluster_type == ClusterType.TendisTwemproxyRedisInstance.value:
-        create_tendis_instances(bk_biz_id, bk_cloud_id, MachineType.TENDISCACHE.value, storages, spec_id, spec_config)
+        create_tendis_instances(
+            bk_biz_id, bk_cloud_id, MachineType.TENDISCACHE.value, flat_storages, spec_id, spec_config
+        )
     elif cluster_type == ClusterType.TwemproxyTendisSSDInstance.value:
-        create_tendis_instances(bk_biz_id, bk_cloud_id, MachineType.TENDISSSD.value, storages, spec_id, spec_config)
+        create_tendis_instances(
+            bk_biz_id, bk_cloud_id, MachineType.TENDISSSD.value, flat_storages, spec_id, spec_config
+        )
     else:
         raise Exception("unspourted cluster type : {}".format(cluster_type))
 
@@ -223,7 +231,7 @@ def pkg_create_twemproxy_cluster(
         db_module_id=db_module_id,
         alias=alias,
         major_version=major_version,
-        porxies=proxies,
+        proxies=proxies,
         storages=seg_instances,
         creator=creator,
         bk_cloud_id=bk_cloud_id,
@@ -306,7 +314,11 @@ def pkg_create_tendisplus_cluster(
     spec_id, spec_config = 0, ""
     if machine_specs.get("redis"):
         spec_id, spec_config = machine_specs["redis"]["spec_id"], machine_specs["redis"]["spec_config"]
-    create_tendis_instances(bk_biz_id, bk_cloud_id, MachineType.TENDISPLUS.value, storages, spec_id, spec_config)
+    # create_tendis_instances 期望格式: [{"master": {...}, "slave": {...}}, ...]
+    # 而 storages 格式为: [{"nodes": {"master": {...}, "slave": {...}}}, ...]
+    # 需要将 nodes 层展开
+    flat_storages = [{"master": s["nodes"]["master"], "slave": s["nodes"]["slave"]} for s in storages]
+    create_tendis_instances(bk_biz_id, bk_cloud_id, MachineType.TENDISPLUS.value, flat_storages, spec_id, spec_config)
 
     create_tendisplus_cluster(
         bk_biz_id=bk_biz_id,
