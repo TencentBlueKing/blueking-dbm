@@ -374,7 +374,12 @@ class RedisActPayload(object):
         from backend.flow.utils.redis.redis_util import version_ge
 
         # Redis 5.0+ 将 slave-* 配置项重命名为 replica-*
-        if target_version and version_ge(target_version, "5") and conf_name == "slave-lazy-flush":
+        if (
+            target_version
+            and target_version.startswith("Redis")
+            and version_ge(target_version, "5")
+            and conf_name == "slave-lazy-flush"
+        ):
             return "replica-lazy-flush"
         return conf_name
 
@@ -2252,12 +2257,14 @@ class RedisActPayload(object):
                 "format": FormatType.MAP,
             }
         )
-        conf_names = self.redis_conf_names_by_cluster_type(
+        conf_result = self.redis_conf_names_by_cluster_type(
             cluster_map["cluster_type"],
             cluster_map["current_version"],
             target_cluster_type=cluster_map["cluster_type"],
             target_version=cluster_map["target_version"],
         )
+        # 返回值为元组 (conf_names, target_version_for_rename)
+        conf_names, _ = conf_result if isinstance(conf_result, tuple) else (conf_result, None)
         # 如果返回None，表示需要继承所有配置项（版本升级场景）
         if conf_names is None:
             conf_names = list(src_resp["content"].keys())
