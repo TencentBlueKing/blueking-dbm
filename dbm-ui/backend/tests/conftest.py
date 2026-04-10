@@ -96,9 +96,7 @@ def __init_db_module(django_db_setup, django_db_blocker):
 def __init_app(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
         app = AppCache.objects.create(
-            bk_biz_id=constant.BK_BIZ_ID,
-            db_app_abbr="DBA",
-            bk_biz_name="dba",
+            bk_biz_id=constant.BK_BIZ_ID, db_app_abbr="DBA", bk_biz_name="dba", status="managed"
         )
         yield app
         app.delete()
