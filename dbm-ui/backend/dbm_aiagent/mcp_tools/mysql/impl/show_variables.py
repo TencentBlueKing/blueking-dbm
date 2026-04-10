@@ -16,7 +16,7 @@ from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException, DBMMcp
 from backend.dbm_aiagent.mcp_tools.mysql.helpers.get_slave_address_and_dbname import safe_sql_in_string
 
 
-def show_mysql_variables(bk_cloud_id: int, address: str, machine_type: MachineType, names: list[str]) -> Dict:
+def show_instance_variables(bk_cloud_id: int, address: str, machine_type: MachineType, names: list[str]) -> Dict:
     if machine_type not in [MachineType.SINGLE, MachineType.BACKEND, MachineType.REMOTE, MachineType.SPIDER]:
         raise DBMMcpNotSupportMachineTypeException(machine_type=machine_type)
     cmd = "SHOW GLOBAL VARIABLES"
