@@ -14,6 +14,7 @@ import json
 import os
 import django
 
+from copy import deepcopy
 from django.db import transaction
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', "config.prod")
@@ -30,11 +31,37 @@ def compare_complex_lists(list1, list2):
     return sorted_list1 == sorted_list2
 
 
-def sync_policy_field():
+def set_test_rules(test_rules):
+    for rule in test_rules:
+        rule["level"] = str(rule["level"])
+        for conf in rule["config"]:
+            for c in conf:
+                c["threshold"] = str(c["threshold"])
+    return test_rules
+
+
+def set_detects_config(detects_config):
+    detects_config["trigger_config"]["count"] = str(detects_config["trigger_config"]["count"])
+    detects_config["trigger_config"]["check_window"] = str(detects_config["trigger_config"]["check_window"])
+    detects_config["recovery_config"]["check_window"] = str(detects_config["recovery_config"]["check_window"])
+
+    return detects_config
+
+
+def set_no_data_config(no_data_config):
+    no_data_config["continuous"] = str(no_data_config["continuous"])
+    no_data_config["level"] = str(no_data_config["level"])
+    return no_data_config
+
+
+def sync_policy_field(policy_ids):
     from backend.db_monitor.models import MonitorPolicy
 
     with transaction.atomic():
-        all_policies = MonitorPolicy.objects.all()
+        if policy_ids:
+            all_policies = MonitorPolicy.objects.filter(id__in=policy_ids)
+        else:
+            all_policies = MonitorPolicy.objects.all()
         for policy in all_policies:
             if not policy.details:
                 continue
@@ -45,30 +72,33 @@ def sync_policy_field():
             elif policy.target_level == "appid":
                 if policy.parent_id:
                     parent_policy = MonitorPolicy.objects.get(id=policy.parent_id)
-                    agg_interval_map = {info["metric_id"]: info["agg_interval"] for info in parent_policy.agg_info}
+                    parent_test_rules = deepcopy(parent_policy.test_rules)
+                    sub_test_rules = deepcopy(policy.test_rules)
+                    test_rules_is_eq = compare_complex_lists(
+                        set_test_rules(sub_test_rules), set_test_rules(parent_test_rules)
+                    )
 
-                    test_rules_is_eq = compare_complex_lists(policy.test_rules, parent_policy.test_rules)
-                    detects_config_is_eq = policy.detects_config == parent_policy.detects_config
-                    no_data_config_is_eq = policy.no_data_config == parent_policy.no_data_config
-                    parent_notify_rules = parent_policy.notify_rules
-                    sub_notify_rules = policy.notify_rules
+                    parent_detects_config = set_detects_config(deepcopy(parent_policy.detects_config))
+                    sub_detects_config = set_detects_config(deepcopy(policy.detects_config))
+                    detects_config_is_eq = parent_detects_config == sub_detects_config
+
+                    parent_no_data_config = set_no_data_config(deepcopy(parent_policy.no_data_config))
+                    sub_no_data_config = set_no_data_config(deepcopy(policy.no_data_config))
+                    no_data_config_is_eq = parent_no_data_config == sub_no_data_config
+
+                    parent_notify_rules = parent_policy.notify_rules[:]
+                    sub_notify_rules = policy.notify_rules[:]
                     if "no_data" in parent_notify_rules:
                         parent_notify_rules.remove("no_data")
                     if "no_data" in sub_notify_rules:
                         sub_notify_rules.remove("no_data")
-                    notify_rules_is_eq = parent_notify_rules == sub_notify_rules
-                    notify_config_is_eq = policy.notify_config == parent_policy.notify_config
-                    agg_interval_is_eq = True
-                    for info in policy.agg_info:
-                        if info["agg_interval"] != agg_interval_map[info["metric_id"]]:
-                            agg_interval_is_eq = False
+                    notify_rules_is_eq = compare_complex_lists(parent_notify_rules, sub_notify_rules)
 
-                    if (
-                            test_rules_is_eq and detects_config_is_eq and no_data_config_is_eq and
-                            notify_rules_is_eq and notify_config_is_eq and agg_interval_is_eq
-                    ):
+                    if test_rules_is_eq and detects_config_is_eq and no_data_config_is_eq and notify_rules_is_eq:
                         policy_tag = "inner"
                     else:
+                        print(f"{policy.id}-{test_rules_is_eq}-{detects_config_is_eq}-"
+                              f"{no_data_config_is_eq}-{notify_rules_is_eq}")
                         policy_tag = "custom"
 
             else:
@@ -114,7 +144,3 @@ def sync_policy_field():
             update_data["targets"] = old_targets
             if update_data:
                 MonitorPolicy.objects.filter(pk=policy.pk).update(**update_data)
-
-
-if __name__ == '__main__':
-    sync_policy_field()
