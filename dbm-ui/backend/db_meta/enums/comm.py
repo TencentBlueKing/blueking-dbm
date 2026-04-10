@@ -37,6 +37,7 @@ class TagType(StrStructuredEnum):
 
     RESOURCE = EnumField("resource", _("资源标签"))
     CLUSTER = EnumField("cluster", _("集群标签"))
+    APP = EnumField("app", _("业务标签"))
 
 
 class SystemTagEnum(StrStructuredEnum):
