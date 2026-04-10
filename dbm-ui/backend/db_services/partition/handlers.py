@@ -898,10 +898,7 @@ class PartitionHandler(object):
         )
 
         # 生成文件名
-        from datetime import datetime
-
-        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        file_name = _("partition_strategy_{timestamp}.xlsx").format(timestamp=timestamp)
+        file_name = _("partition_strategy.xlsx")
 
         return ExcelHandler.response(workbook, file_name)
 
@@ -939,8 +936,7 @@ class PartitionHandler(object):
             data_dict__list=data_dict_list, headers=headers, match_header=True, sheet_name=_("导入失败详情")
         )
 
-        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        file_name = _("partition_strategy_import_failures{timestamp}.xlsx").format(timestamp=timestamp)
+        file_name = _("partition_strategy_import_failures.xlsx")
         return ExcelHandler.response(workbook, file_name)
 
     @classmethod
