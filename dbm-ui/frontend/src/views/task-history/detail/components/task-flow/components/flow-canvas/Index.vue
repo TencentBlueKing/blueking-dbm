@@ -529,7 +529,7 @@
                 root_id: props.rootId,
               })
               .then(() => {
-                isSuperUserMode.value = false;
+                // isSuperUserMode.value = false;
                 Object.assign(formData, { remark: '' });
                 emits('refresh');
                 return true;
