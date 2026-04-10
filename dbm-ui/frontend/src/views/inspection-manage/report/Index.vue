@@ -47,9 +47,9 @@
     <BkException
       v-show="isEmptyShow"
       class="empty-exception"
-      :description="t('暂无数据')"
-      scene="part"
-      type="empty" />
+      :description="t('暂无巡检待办')"
+      scene="page"
+      type="search-empty" />
   </div>
 </template>
 <script setup lang="ts">
