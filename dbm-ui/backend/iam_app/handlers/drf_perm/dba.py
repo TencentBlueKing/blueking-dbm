@@ -25,14 +25,14 @@ class BizDBAPermission(MoreResourceActionPermission):
         self.actions = actions
         super().__init__(
             actions=actions,
-            resource_metes=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
+            resource_metes=[ResourceEnum.BUSINESS],
             instance_ids_getters=self.instance_ids_getters,
         )
 
     @staticmethod
     def instance_ids_getters(request, view):
         data = request.data
-        biz__db_type_tuples = [(data["bk_biz_id"], item["db_type"]) for item in data.get("db_admins", [])]
+        biz__db_type_tuples = [(data["bk_biz_id"],)]
         return biz__db_type_tuples
 
 
@@ -43,11 +43,4 @@ class GlobalDBAPermission(ResourceActionPermission):
 
     def __init__(self, actions: List[ActionMeta] = None):
         self.actions = actions
-        super().__init__(
-            actions=actions, resource_meta=ResourceEnum.DBTYPE, instance_ids_getter=self.instance_dbtype_getter
-        )
-
-    @staticmethod
-    def instance_dbtype_getter(request, view):
-        db_type_list = [item["db_type"] for item in request.data.get("db_admins")]
-        return db_type_list
+        super().__init__(actions=actions)

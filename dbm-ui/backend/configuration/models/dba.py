@@ -13,7 +13,7 @@ from typing import Dict, List, Tuple, Union
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from backend.bk_web.constants import LEN_SHORT
+from backend.bk_web.constants import LEN_NORMAL, LEN_SHORT
 from backend.configuration.constants import DEFAULT_DB_ADMINISTRATORS, PLAT_BIZ_ID, DBType
 
 
@@ -21,6 +21,8 @@ class DBAdministrator(models.Model):
     bk_biz_id = models.IntegerField(_("业务ID"))
     db_type = models.CharField(_("数据库类型"), choices=DBType.get_choices(), max_length=LEN_SHORT)
     users = models.JSONField(_("人员列表"))
+    updater = models.CharField(_("修改人"), max_length=LEN_NORMAL, default="")
+    update_at = models.DateTimeField(_("更新时间"), auto_now=True)
 
     class Meta:
         verbose_name = verbose_name_plural = _("DBA人员设置(DBAdministrator)")

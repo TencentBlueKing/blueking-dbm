@@ -40,12 +40,12 @@ class IAMViewSet(viewsets.SystemViewSet):
         return Response(result)
 
     @common_swagger_auto_schema(
+        methods=["GET", "POST"],
         operation_summary=_("检查当前用户对该动作是否有权限"),
-        request_body=IamActionResourceRequestSerializer(),
         responses={status.HTTP_200_OK: CheckAllowedResSerializer()},
         tags=[SWAGGER_TAG],
     )
-    @action(detail=False, methods=["POST"], serializer_class=IamActionResourceRequestSerializer)
+    @action(detail=False, methods=["GET", "POST"], serializer_class=IamActionResourceRequestSerializer)
     def check_allowed(self, request, *args, **kwargs):
         action_ids = self.validated_data.get("action_ids", [])
         resources = self.validated_data.get("resources", [])
@@ -60,11 +60,11 @@ class IAMViewSet(viewsets.SystemViewSet):
         return Response(result)
 
     @common_swagger_auto_schema(
+        methods=["GET", "POST"],
         operation_summary=_("检查当前用户对该动作是否有权限(仅适用于鉴权业务下一个动作对应一种资源类型，如果是多种动作对应多种资源类型，请切换为check_allowed接口)"),
-        request_body=SimpleIamActionResourceRequestSerializer(),
         tags=[SWAGGER_TAG],
     )
-    @action(detail=False, methods=["POST"], serializer_class=SimpleIamActionResourceRequestSerializer)
+    @action(detail=False, methods=["GET", "POST"], serializer_class=SimpleIamActionResourceRequestSerializer)
     def simple_check_allowed(self, request, *args, **kwargs):
         data = self.validated_data
         client = Permission(username=request.user.username)
