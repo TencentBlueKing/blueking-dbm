@@ -70,6 +70,8 @@ class ReportType(StrStructuredEnum):
     SQLSERVER_JOB_SYNC_CHECK = EnumField("sqlserver_job_sync_check", _("业务Job的同步巡检"))
     SQLSERVER_LINK_SERVER_SYNC_CHECK = EnumField("sqlserver_link_server_sync_check", _("业务Linkserver的同步巡检"))
     SQLSERVER_USER_SYNC_CHECK = EnumField("sqlserver_user_sync_check", _("业务账号同步巡检"))
+    SQLSERVER_FULL_BACKUP_CHECK_BY_MODEL = EnumField("sqlserver_full_backup_check_by_model", _("全量备份文件异常报告(新)"))
+    SQLSERVER_LOG_BACKUP_CHECK_BY_MODEL = EnumField("sqlserver_log_backup_check_by_model", _("增量备份文件异常报告(新)"))
 
     FAIL_OVER_DRILL = EnumField("fail_over_drill", _("切换演练任务报告"))
     BACKUP_RECOVER_DRILL = EnumField("backup_recover_drill", _("回档演练任务报告"))
