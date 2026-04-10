@@ -325,7 +325,7 @@
               })
               .then(() => {
                 Object.assign(formData, { remark: '' });
-                isSuperUserMode.value = false;
+                // isSuperUserMode.value = false;
                 handleSuccess();
                 return true;
               });

@@ -55,7 +55,7 @@
       </BkPopConfirm>
     </div>
     <div
-      v-if="isSuperuser"
+      v-if="isSuperuserSwitchShow"
       class="mission-detail-super-user-box">
       <BkSwitcher
         v-model="isSuperUserMode"
@@ -104,6 +104,10 @@
 
   const taskFlowRef = ref<InstanceType<typeof TaskFlow>>();
 
+  const isTaskEnd = computed(() => {
+    return ['FINISHED', 'REVOKED'].includes(baseInfo.value.status);
+  });
+  const isSuperuserSwitchShow = computed(() => isSuperuser && !isTaskEnd.value);
   const baseInfo = computed(() => props.data?.flow_info || ({} as FlowDetail['flow_info']));
   const isTaskFailed = computed(() => props.data?.flow_info.status === 'FAILED');
 
@@ -207,6 +211,12 @@
       immediate: true,
     },
   );
+
+  watch(isTaskEnd, () => {
+    if (isTaskEnd.value) {
+      isSuperUserMode.value = false;
+    }
+  });
 
   const handleOperateSuccess = () => {
     emits('refresh');
