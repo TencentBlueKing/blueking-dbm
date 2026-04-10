@@ -30,6 +30,8 @@ class DBMMcpTools(StrStructuredEnum):
     REDIS_QUERY_META = EnumField("redis-query-meta", "redis-query-meta")
     REDIS_QUERY_STATUS = EnumField("redis-query-status", "redis-query-status")
     REDIS_QUERY_LOG = EnumField("redis-query-log", "redis-query-log")
+    REDIS_BIGKEY_LOG = EnumField("redis-bigkey-log", "redis-bigkey-log")
+    REDIS_SERVER_LOG = EnumField("redis-server-log", "redis-server-log")
     REDIS_METRICS = EnumField("redis-metrics", "redis-metrics")
     REDIS_REPORTS = EnumField("redis-reports", "redis-reports")
     REDIS_QUERY_ALARM = EnumField("redis-query-alarm", "redis-query-alarm")
