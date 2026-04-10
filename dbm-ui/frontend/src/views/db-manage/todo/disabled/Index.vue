@@ -186,9 +186,9 @@
       <BkException
         v-else
         class="empty-exception"
-        :description="t('暂无数据')"
-        scene="part"
-        type="empty" />
+        :description="t('暂无下架待办')"
+        scene="page"
+        type="search-empty" />
     </BkLoading>
     <BatchDeleteDialog
       v-model="isBatchDeleteDialogShow"
