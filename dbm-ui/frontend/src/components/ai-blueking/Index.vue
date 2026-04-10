@@ -32,7 +32,7 @@
 
   const { aiBluekingRef, apiUrl, hideNimbus, showHistoryIcon, showMoreIcon, showNewChatIcon } = useState();
 
-  const isShowAiBlueking = computed(() => route.meta.aiBlueking !== false && apiUrl.value && ENABLE_DBM_AI);
+  const isShowAiBlueking = computed(() => route.meta.aiBlueking !== false && apiUrl && ENABLE_DBM_AI);
 </script>
 <style lang="postcss">
   .dbm-ai-chat-dialog {
