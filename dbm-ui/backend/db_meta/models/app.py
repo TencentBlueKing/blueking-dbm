@@ -16,6 +16,9 @@ from django.utils.translation import gettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
 from backend.components import CCApi
+from backend.configuration.constants import DBType
+from backend.db_meta.constants import AppManagedStatus, AppOperateType
+from backend.db_meta.models.tag import Tag
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR
 
 logger = logging.getLogger("root")
@@ -30,6 +33,11 @@ class AppCache(AuditedModel):
     language = models.CharField(_("语言"), max_length=64, default="")
     time_zone = models.CharField(_("时区"), max_length=64, default="")
     bk_biz_maintainer = models.CharField(_("运维人员"), max_length=512, default="")
+    status = models.CharField(
+        _("纳管状态"), default=AppManagedStatus.UNMANAGED, choices=AppManagedStatus.get_choices(), max_length=20
+    )
+    managed_time = models.DateTimeField(_("纳管时间"), null=True)
+    tags = models.ManyToManyField(Tag, blank=True, help_text=_("标签（外键）"))
 
     class Meta:
         verbose_name = verbose_name_plural = _("CMDB业务信息缓存表(AppCache)")
@@ -111,3 +119,15 @@ class AppCache(AuditedModel):
             # 忽略出现的异常，此时可能因为表未初始化
             biz_choices = []
         return biz_choices
+
+
+class AppOperate(AuditedModel):
+    bk_biz_id = models.IntegerField(help_text=_("业务ID"))
+    operate_type = models.CharField(_("操作类型"), choices=AppOperateType.get_choices(), max_length=64, default="")
+    db_type = models.CharField(_("组件类型"), choices=DBType.get_choices(), max_length=64, default="")
+    role = models.CharField(_("变更角色"), max_length=64, default="")
+    change_before = models.CharField(_("变更前"), max_length=128, default="")
+    change_after = models.CharField(_("变更后"), max_length=128, default="")
+
+    class Meta:
+        verbose_name = verbose_name_plural = _("业务操作记录表(AppOperate)")
