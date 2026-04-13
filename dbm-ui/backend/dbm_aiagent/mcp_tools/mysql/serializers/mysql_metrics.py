@@ -18,10 +18,8 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import (
 
 
 class MysqlMetricsInputSerializer(serializers.Serializer):
-    # bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     cluster_type = serializers.ChoiceField(choices=mysql_cluster_type_choices, help_text=_("集群类型"))
-    # instance_role = serializers.ChoiceField(choices=mysql_instance_role_choices, help_text=_("db实例角色"))
     start_time = serializers.DateTimeField(help_text=_("开始时间, 时间格式 2026-01-08T16:33:38+08:00"))
     end_time = serializers.DateTimeField(help_text=_("结束时间, 时间格式 2026-01-08T16:33:38+08:00"))
     metric_name = serializers.ChoiceField(
@@ -32,3 +30,31 @@ class MysqlMetricsInputSerializer(serializers.Serializer):
 class MysqlMetricsOutputSerializer(serializers.Serializer):
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     datapoints = serializers.JSONField(help_text=_("时序指标结果"))
+
+
+class ShowInstanceProcessListAggregatedInputSerializer(serializers.Serializer):
+    # 需要使用 auth_parse_instances 鉴权，不要求输入 bk_biz_id / cluster_domain
+    processlist_group_by_choices = [
+        ("group_by_fingerprint", _("按 sql 类型聚合计数")),
+        ("longest_top_5", _("按连 sql 执行时长排序前 5")),
+        ("group_by_user", _("按连接账号名聚合计数")),
+        ("group_by_client_host", _("按访问来源ip聚合计数")),
+    ]
+
+    instance = serializers.CharField(help_text=_("实例，ip:port 格式"))
+    aggregate_type = serializers.MultipleChoiceField(
+        choices=processlist_group_by_choices,
+        help_text=_("用户连接会话 processlist 的聚合方式，可选多个"),
+        default=["group_by_fingerprint", "longest_top_5"],
+    )
+
+
+class ShowInstanceProcessListAggregatedRowSerializer(serializers.Serializer):
+    processlist_aggregated = serializers.CharField(help_text=_("processlist 聚合结果"))
+    aggregate_type = serializers.CharField(help_text=_("processlist 聚合方式"))
+    total_count = serializers.IntegerField(help_text=_("processlist 原始的总条数"))
+
+
+class ShowInstanceProcessListAggregatedOutputSerializer(serializers.Serializer):
+    processlist_summary = ShowInstanceProcessListAggregatedRowSerializer(many=True, help_text=_("processlist 多重聚合结果"))
+    instance_role = serializers.CharField(help_text=_("processlist 所属实例角色"))

@@ -461,6 +461,16 @@ def create_monitor_grafana(bk_biz_id, cluster_type):
                 # 存入缓存，时效7天
                 cache.set(file_name, data, 60 * 60 * 24 * 7)
 
+        # 排查日志平台的大盘
+        is_skip = False
+        for panel in data.get("panels", []):
+            if panel.get("datasource", {}).get("uid") == "${DS_日志平台}":
+                is_skip = True
+                break
+
+        if is_skip:
+            continue
+
         tags = data.get("tags", [])
         if cluster_type in tags:
             target_files[file_name] = data

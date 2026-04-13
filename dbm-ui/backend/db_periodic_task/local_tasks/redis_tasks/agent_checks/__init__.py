@@ -11,4 +11,4 @@ specific language governing permissions and limitations under the License.
 from .base import DEFAULT_LOOKBACK_DAYS, BaseCheckConfig, BaseRedisAgentCheckTask  # noqa: F401
 from .check_backend_data_skew import CheckBackendDataSkewTask  # noqa: F401
 from .check_backend_load_skew import CheckBackendLoadSkewTask  # noqa: F401
-from .check_cluster_memory_growth import CheckClusterMemoryGrowthTask  # noqa: F401
+from .check_cluster_capacity_growth import CheckClusterCapacityGrowthTask  # noqa: F401

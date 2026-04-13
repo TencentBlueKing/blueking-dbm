@@ -284,30 +284,6 @@ from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
 #     }
 
 
-# def __summary_processlist_by_type(processlist_detail: List, aggregate_type: str) -> Dict[str, str]:
-#     if not processlist_detail:
-#         return {}
-#
-#     df = pandas.DataFrame(processlist_detail)
-#     res = {
-#         "total_count": len(processlist_detail),
-#         "group_by_state": df.groupby("state").agg({"state": ["count"]}).to_json(),
-#     }
-#     if aggregate_type == "group_by_user":
-#         res["group_by_user"] = df.groupby("user").agg({"user": ["count"]}).to_json()
-#     elif aggregate_type == "group_by_client_host":
-#         res["group_by_client_host"] = df.groupby("access_source_address").agg({"access_source_address": ["count"]})
-#     elif aggregate_type == "longest_top_5":
-#         # 按 time 时长排序，且排除 Command 为 Sleep 的
-#         res["longest_top_5"] = (
-#             df[df["command"] != "Sleep"].nlargest(5, "time")[["user", "db", "fingerprint", "time"]].to_json()
-#         )
-#     else:
-#         # aggregate_type == "group_by_fingerprint":
-#         res["group_by_fingerprint"] = df.groupby("fingerprint").agg({"fingerprint": ["count"]}).to_json()
-#     return res
-
-
 def show_mysql_processlist(bk_cloud_id: int, address: str):
     drs_raw_res = DRSApi.rpc(
         {
@@ -325,9 +301,7 @@ def show_mysql_processlist(bk_cloud_id: int, address: str):
     processlist_detail = drs_raw_res[0]["cmd_results"][0]["table_data"]
     res = []
     for item in processlist_detail:
-        if item["User"] == "system user":
-            continue
-
+        # 不过滤任何东西
         digest_info = {}
         if item["Info"]:
             digest_info = digest.generate_sql_fingerprint(item["Info"], item["db"])

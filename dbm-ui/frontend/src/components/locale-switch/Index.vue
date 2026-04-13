@@ -14,6 +14,7 @@
 <template>
   <BkPopover
     placement="bottom"
+    :popover-delay="[200, 100]"
     theme="light local-switch-menu-theme"
     @after-hidden="isShow = false"
     @after-show="isShow = true">

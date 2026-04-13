@@ -48,7 +48,7 @@ spec:
               protocol: TCP
           env:
             - name: BK_TENANT_ID
-              value: "{{ .Values.global.tenantID }}"
+              value: "{{ .Values.global.tenantId }}"
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:

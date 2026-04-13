@@ -31,6 +31,7 @@ from backend.flow.engine.bamboo.scene.mongodb.mongodb_restore import MongoRestor
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_scale_node import MongoScaleNodeFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_scale_storage import MongoScaleFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_standardization import MongoInstallDBmonAndOperatorCCFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version import MongoUpgradeVersionFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_user import MongoUserFlow
 from backend.flow.engine.bamboo.scene.mongodb.validate.mongodb_instance_migrate_validate import (
     MongodbInstanceMigrateValidator,
@@ -70,6 +71,10 @@ class MongoDBController(BaseController):
     def mongo_pitr_restore(self):
         # 发起PITR恢复任务
         MongoPitrRestoreFlow(root_id=self.root_id, data=self.ticket_data).start()
+
+    def mongo_upgrade_version(self):
+        # 发起版本升级任务
+        MongoUpgradeVersionFlow(root_id=self.root_id, data=self.ticket_data).start()
 
     def install_dbmon(self):
         # 部署MongoDB bk-dbmon

@@ -27,6 +27,7 @@ package workflow
 import (
 	"context"
 	"errors"
+	"sync"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/apm"
@@ -46,6 +47,7 @@ type SwitchExecutor struct {
 	hadata    *storage.DbhaData
 	dbmSync   *Synchronizer
 	switchers map[haprobe.DbType]switcher.Switcher
+	metricsMu sync.Mutex
 }
 
 // NewSwitchExecutor creates a SwitchExecutor.
@@ -55,14 +57,14 @@ func NewSwitchExecutor(hadata *storage.DbhaData, dbmSync *Synchronizer, switcher
 
 // CreateRequestWithGroup creates a switcher request from a failure group.
 // It queries metadata from DBM for all instances in the group and filters out unavailable ones.
-func (e *SwitchExecutor) CreateRequestWithGroup(group *FailureGroup) *switcher.Request {
+func (e *SwitchExecutor) CreateRequestWithGroup(ctx context.Context, group *FailureGroup) *switcher.Request {
 	ips := group.IPs()
 	if len(ips) == 0 {
 		logger.Warn("empty IP list in failure group, cloudId: %d, dbType: %s", group.BkCloudID, group.DbType)
 		return nil
 	}
 
-	metadatas, err := e.dbmSync.QueryMetadataFromDbm(context.Background(), group.BkCloudID, ips)
+	metadatas, err := e.dbmSync.QueryMetadataFromDbm(ctx, group.BkCloudID, ips)
 	if err != nil {
 		if errors.Is(err, dbm.ErrNoResponse) {
 			return nil
@@ -98,13 +100,16 @@ func (e *SwitchExecutor) CreateRequestWithGroup(group *FailureGroup) *switcher.R
 // (normal strategies count instances by event name, special strategies invoke registered match functions),
 // adds strategies meeting the triggerCount threshold to the candidate list, and returns the highest
 // priority strategy after sorting (biz-level first > lower priority value first).
-func (e *SwitchExecutor) MatchStrategyForGroup(group *FailureGroup) (matched bool, strategy *hamodel.DbSwitchingStrategy) {
+func (e *SwitchExecutor) MatchStrategyForGroup(ctx context.Context, group *FailureGroup) (matched bool, strategy *hamodel.DbSwitchingStrategy) {
 	if len(group.Instances) == 0 {
 		return false, nil
 	}
 
 	bkBizID := group.Instances[0].BkBizID
-	strategies, err := e.hadata.ReadSwitchingStrategyWithBkBizId(bkBizID)
+	qCtx, cancel := context.WithTimeout(ctx, config.Cfg.Storage.Timeout)
+	defer cancel()
+
+	strategies, err := e.hadata.ReadSwitchingStrategyWithBkBizId(qCtx, bkBizID)
 	if err != nil {
 		logger.Warn("failed to read switching strategy, bkBizId: %d, errmsg: %s", bkBizID, err)
 		return false, nil
@@ -157,32 +162,43 @@ func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.R
 
 	start := time.Now()
 
+	// TODO: enable after evaluating actual switching latency,
+	// use config.Cfg.Workflow.SwitchTimeout to control switching timeout
 	rsp := sw.Switch(context.Background(), req)
 	if rsp.Err == nil {
 		logger.Info("switching success for the database type: %s", dbType)
 	}
 
-	// report the switching time consuming
+	e.reportSwitchingMetrics(start, req, rsp, dbType)
+	e.postSuccessAlarms(req, rsp, dbType)
+	e.postFailureAlarms(rsp, dbType)
+}
+
+func (e *SwitchExecutor) reportSwitchingMetrics(start time.Time, req *switcher.Request,
+	rsp *switcher.Response, dbType haprobe.DbType) {
+	e.metricsMu.Lock()
+	defer e.metricsMu.Unlock()
+
 	if err := apm.SwitchingTimeConsumingMs.UpdateLabel(map[string]string{
 		apm.MetricLabelDbType: dbType.String(),
 	}).Observe(float64(time.Since(start).Milliseconds())); err != nil {
 		logger.Warn("failed to update switching time consuming metric, errmsg: %s", err)
 	}
 
-	// report the switching success total
-	if err := apm.SwitchingSuccessTotal.Add(float64(len(req.MySqlInstData) - len(rsp.MySqlFailureInsts))); err != nil {
-		logger.Error("failed to update switching success total metric: %s", err.Error())
+	successCount := float64(len(req.MySqlInstData) - len(rsp.MySqlFailureInsts))
+	if err := apm.SwitchingSuccessTotal.Add(successCount); err != nil {
+		logger.Error("failed to update switching success total metric, errmsg: %s", err.Error())
 	}
 
-	// report the switching error total
 	if err := apm.SwitchingErrorTotal.Add(float64(len(rsp.MySqlFailureInsts))); err != nil {
-		logger.Error("failed to update switching error total metric: %s", err.Error())
+		logger.Error("failed to update switching error total metric, errmsg: %s", err.Error())
 	}
+}
 
-	// post the success alarm
+func (e *SwitchExecutor) postSuccessAlarms(req *switcher.Request, rsp *switcher.Response,
+	dbType haprobe.DbType) {
 	for _, inst := range req.GetDbInstMetadata() {
 		instKey := switchcore.GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
-
 		if _, exists := rsp.MySqlFailureInsts[instKey]; exists {
 			continue
 		}
@@ -201,11 +217,16 @@ func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.R
 		monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchSuccessV1
 
 		if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
-			logger.Warn("switching success, failed to post the alarm, inst: %s, errmsg: %s", instKey, err)
+			logger.Warn(
+				"switching success, failed to post the alarm, inst: %s, errmsg: %s",
+				instKey,
+				err,
+			)
 		}
 	}
+}
 
-	// post the failure alarm
+func (e *SwitchExecutor) postFailureAlarms(rsp *switcher.Response, dbType haprobe.DbType) {
 	for instKey, inst := range rsp.GetFailureInsts() {
 		monitorEvent := &monitor.EventData{
 			Name:      string(haprobe.DbEventNameMysqlSwitchFailureV1),

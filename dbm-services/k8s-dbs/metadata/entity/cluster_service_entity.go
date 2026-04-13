@@ -34,6 +34,7 @@ type K8sClusterServiceEntity struct {
 	InternalAddrs string                 `json:"internalAddrs"`
 	ExternalAddrs string                 `json:"externalAddrs"`
 	Domains       string                 `json:"domains"`
+	Extra         string                 `json:"extra"`
 	Description   string                 `json:"description"`
 	CreatedBy     string                 `json:"createdBy"`
 	CreatedAt     commtypes.JSONDatetime `json:"createdAt"`

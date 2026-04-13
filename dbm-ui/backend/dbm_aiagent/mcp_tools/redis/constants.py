@@ -36,9 +36,14 @@ UNIFY_QUERY_PARAMS = {
 }
 
 # Redis metrics: BKMonitor query guards and retry behavior
-METRICS_MAX_QUERY_RANGE_SECONDS = 30 * 24 * 60 * 60
+METRICS_MAX_QUERY_RANGE_SECONDS = 6 * 30 * 24 * 60 * 60
 METRICS_END_TIME_MAX_FUTURE_SKEW_SECONDS = 300
-METRICS_MAX_DATAPOINTS_LIMIT = 86400
+# Caps per-query datapoints for series queries only; stats queries are exempt because
+# denser resolution improves statistical accuracy without inflating response size.
+# The query engine auto-adjusts time_window to fit.  At max range (6 months) this
+# yields ~1 point per 8.6 hours, sufficient for trend detection.  Callers needing
+# denser resolution should query shorter time ranges rather than raising this cap.
+METRICS_MAX_DATAPOINTS_LIMIT = 500
 METRICS_QUERY_MAX_ATTEMPTS = 3
 METRICS_QUERY_RETRY_DELAY_SEC = 0.5
 
@@ -675,7 +680,7 @@ METRIC_REGISTRY = {
 
 REPORT_SUBTYPE_MAP = {
     RedisReportSubtype.EXPORTER: RedisCheckSubType.Exporter,
-    RedisReportSubtype.CLUSTER_MEMORY_CAPACITY_RISK: RedisCheckSubType.ClusterMemoryCapacityRisk,
+    RedisReportSubtype.CLUSTER_CAPACITY_GROWTH_RISK: RedisCheckSubType.ClusterCapacityGrowthRisk,
     RedisReportSubtype.BACKEND_LOAD_SKEW: RedisCheckSubType.BackendLoadSkew,
     RedisReportSubtype.BACKEND_DATA_SKEW: RedisCheckSubType.BackendDataSkew,
     RedisReportSubtype.AFFINITY_VIOLATION: MetaCheckSubType.AffinityViolation,
@@ -688,7 +693,7 @@ REPORT_SUBTYPE_MAP = {
 # Different report types may use different models
 REPORT_MODEL_MAP = {
     RedisReportSubtype.EXPORTER: RedisCheckReport,
-    RedisReportSubtype.CLUSTER_MEMORY_CAPACITY_RISK: RedisCheckReport,
+    RedisReportSubtype.CLUSTER_CAPACITY_GROWTH_RISK: RedisCheckReport,
     RedisReportSubtype.BACKEND_LOAD_SKEW: RedisCheckReport,
     RedisReportSubtype.BACKEND_DATA_SKEW: RedisCheckReport,
     RedisReportSubtype.AFFINITY_VIOLATION: MetaCheckReport,
@@ -701,7 +706,7 @@ REPORT_MODEL_MAP = {
 # Subtypes that the MCP agent is allowed to create via add_report_record.
 CREATABLE_REPORT_SUBTYPES = frozenset(
     {
-        RedisReportSubtype.CLUSTER_MEMORY_CAPACITY_RISK,
+        RedisReportSubtype.CLUSTER_CAPACITY_GROWTH_RISK,
         RedisReportSubtype.BACKEND_LOAD_SKEW,
         RedisReportSubtype.BACKEND_DATA_SKEW,
     }

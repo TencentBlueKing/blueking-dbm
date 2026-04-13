@@ -20,8 +20,6 @@ from backend.db_meta.models import Cluster
 from backend.db_report.enums import RedisRollbackExerciseTaskStage as TaskStage
 from backend.db_report.models import RedisRollbackExerciseReport as Report
 from backend.flow.engine.bamboo.scene.common.builder import Builder, Conditions, SubBuilder
-from backend.flow.engine.bamboo.scene.redis.redis_data_structure import RedisDataStructureFlow
-from backend.flow.engine.bamboo.scene.redis.redis_data_structure_task_delete import RedisDataStructureTaskDeleteFlow
 from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.redis.redis_rollback_exercise import (
     RedisExerciseBestEffortCleanupComponent,
@@ -107,12 +105,11 @@ class RedisRollbackExerciseFlow(object):
     # -------------------------------------------------------------------------
 
     def _build_exercise_sub_flow(self, info: dict):
-        """Build a single-cluster exercise sub-flow that reuses RedisDataStructureFlow
-        and RedisDataStructureTaskDeleteFlow, exercising the actual production code paths.
+        """Build a single-cluster exercise sub-flow.
 
-        When ``error_ignorable`` is True (from drill_config), the data-structure
-        step is wrapped in a polling runner act with ``error_ignorable=True``.
-        A conditional gateway then branches on the outcome:
+        The data-structure step is wrapped in a polling runner act with
+        ``error_ignorable=True``.  A conditional gateway then branches on
+        the outcome:
           - success  -> report_succeeded -> task_delete -> report_done
           - failure  -> report_rollback_failed
         This ensures the sub-flow never hard-fails, so the best-effort cleanup
@@ -170,7 +167,7 @@ class RedisRollbackExerciseFlow(object):
         )
 
         # ================================================================
-        # Data-structure & delete flow data (shared by both branches)
+        # Data-structure & delete flow data
         # ================================================================
         ds_data = {
             "bk_biz_id": self.ticket_data["bk_biz_id"],
@@ -204,28 +201,22 @@ class RedisRollbackExerciseFlow(object):
             "infos": [del_info],
         }
 
-        if error_ignorable:
-            self._build_error_ignorable_flow(
-                sub_flow,
-                ds_data,
-                del_data,
-                report_id,
-                polling_timeout,
-                polling_interval,
-                temp_host_ip,
-            )
-        else:
-            self._build_strict_flow(sub_flow, ds_data, del_data, del_info, report_id, temp_host_ip)
+        self._build_runner_flow(
+            sub_flow,
+            ds_data,
+            del_data,
+            report_id,
+            polling_timeout,
+            polling_interval,
+            temp_host_ip,
+            error_ignorable,
+        )
 
         return sub_flow.build_sub_process(
             sub_name=_("{} - {}:{}").format(cluster.immute_domain, instance_ip, instance_port)
         )
 
-    # -----------------------------------------------------------------
-    # error_ignorable=True: runner act + conditional branching
-    # -----------------------------------------------------------------
-
-    def _build_error_ignorable_flow(
+    def _build_runner_flow(
         self,
         sub_flow,
         ds_data,
@@ -234,20 +225,24 @@ class RedisRollbackExerciseFlow(object):
         polling_timeout,
         polling_interval,
         temp_host_ip,
+        error_ignorable,
     ):
-        """Build a flow where data-structure failure does not block the pipeline.
+        """Build runner acts with conditional branching on outcomes.
 
-        Uses ``RedisExerciseFlowRunnerComponent`` (with error_ignorable=True)
-        that launches child pipelines via Flow.flow() and polls FlowTree.status.
-        Conditional gateways branch on the outcome at each phase:
+        Uses ``RedisExerciseFlowRunnerComponent`` to launch child pipelines
+        via Flow.flow() and poll FlowTree.status.  Conditional gateways
+        branch on the outcome at each phase:
           - rollback success  -> report_succeeded -> delete runner -> conditional
           - rollback failure  -> report_rollback_failed
           - delete success    -> report_done
           - delete failure    -> no-op (best-effort cleanup reconciles)
+
+        ``error_ignorable`` on the runner act only matters if the runner component
+        itself raises an unexpected exception; in that case ``False`` will let the
+        sub-flow hard-fail while ``True`` will let it continue to cleanup.
         """
-        # ---- Data-structure runner (error_ignorable) ----
         rollback_runner_act = sub_flow.add_act(
-            act_name=_("数据构造(可忽略错误)"),
+            act_name=_("回档流程"),
             act_component_code=RedisExerciseFlowRunnerComponent.code,
             kwargs={
                 "set_trans_data_dataclass": RedisRollbackExerciseContext.__name__,
@@ -259,7 +254,7 @@ class RedisRollbackExerciseFlow(object):
                 "polling_interval": polling_interval,
                 "output_var": "rollback_code",
             },
-            error_ignorable=True,
+            error_ignorable=error_ignorable,
             extend=False,
         )
 
@@ -277,7 +272,7 @@ class RedisRollbackExerciseFlow(object):
         )
 
         delete_runner_act = success_branch.add_act(
-            act_name=_("清理临时实例(可忽略错误)"),
+            act_name=_("清理临时实例流程"),
             act_component_code=RedisExerciseFlowRunnerComponent.code,
             kwargs={
                 "set_trans_data_dataclass": RedisRollbackExerciseContext.__name__,
@@ -289,7 +284,7 @@ class RedisRollbackExerciseFlow(object):
                 "polling_interval": polling_interval,
                 "output_var": "delete_code",
             },
-            error_ignorable=True,
+            error_ignorable=error_ignorable,
             extend=False,
         )
 
@@ -351,51 +346,6 @@ class RedisRollbackExerciseFlow(object):
         )
 
         # ---- Disable alarm shield (always runs after conditional converge) ----
-        sub_flow.add_act(
-            act_name=_("15 分钟后解除主机 {} 告警屏蔽").format(temp_host_ip),
-            act_component_code=DisableAlarmShieldComponent.code,
-            kwargs={},
-        )
-
-    # -----------------------------------------------------------------
-    # error_ignorable=False: direct sub-pipeline (original behaviour)
-    # -----------------------------------------------------------------
-
-    def _build_strict_flow(self, sub_flow, ds_data, del_data, del_info, report_id, temp_host_ip):
-        """Build a flow where data-structure failure stops the sub-flow."""
-
-        # ---- Data-structure sub-pipeline (inline) ----
-        ds_flow = RedisDataStructureFlow(root_id=self.root_id, data=ds_data)
-        sub_flow.add_sub_pipeline(ds_flow.build_cluster_data_structure(ds_data["infos"][0]))
-
-        # ---- Report: ROLLBACK_SUCCEEDED ----
-        sub_flow.add_act(
-            act_name=_("标记回档成功"),
-            act_component_code=RedisExerciseReportUpdateComponent.code,
-            kwargs={
-                "set_trans_data_dataclass": RedisRollbackExerciseContext.__name__,
-                "report_id": report_id,
-                "stage": TaskStage.ROLLBACK_SUCCEEDED,
-            },
-        )
-
-        # ---- Task delete sub-pipeline ----
-        del_flow = RedisDataStructureTaskDeleteFlow(root_id=self.root_id, data=del_data)
-        del_sub = del_flow.build_cluster_task_delete(del_info)
-        sub_flow.add_sub_pipeline(del_sub)
-
-        # ---- Report: DONE ----
-        sub_flow.add_act(
-            act_name=_("标记演练完成"),
-            act_component_code=RedisExerciseReportUpdateComponent.code,
-            kwargs={
-                "set_trans_data_dataclass": RedisRollbackExerciseContext.__name__,
-                "report_id": report_id,
-                "stage": TaskStage.DONE,
-            },
-        )
-
-        # ---- Disable alarm shield ----
         sub_flow.add_act(
             act_name=_("15 分钟后解除主机 {} 告警屏蔽").format(temp_host_ip),
             act_component_code=DisableAlarmShieldComponent.code,

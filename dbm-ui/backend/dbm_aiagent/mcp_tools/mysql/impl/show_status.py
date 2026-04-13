@@ -13,9 +13,10 @@ from typing import Dict, List
 from backend.components import DRSApi
 from backend.db_meta.enums import MachineType
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException, DBMMcpNotSupportMachineTypeException
+from backend.dbm_aiagent.mcp_tools.mysql.helpers.get_slave_address_and_dbname import safe_sql_in_string
 
 
-def show_instance_status(bk_cloud_id: int, address: str, machine_type: MachineType) -> Dict:
+def show_instance_status(bk_cloud_id: int, address: str, machine_type: MachineType, names: list[str]) -> Dict:
     if machine_type not in [
         MachineType.SINGLE,
         MachineType.PROXY,
@@ -28,7 +29,7 @@ def show_instance_status(bk_cloud_id: int, address: str, machine_type: MachineTy
     if machine_type == MachineType.PROXY:
         return __show_proxy_status(bk_cloud_id=bk_cloud_id, address=address)
     else:
-        runtime_statuses = __mysql_show_status(bk_cloud_id=bk_cloud_id, address=address)
+        runtime_statuses = __mysql_show_status(bk_cloud_id=bk_cloud_id, address=address, names=names)
         return {
             "runtime_status": runtime_statuses,
         }
@@ -57,8 +58,14 @@ def __show_proxy_status(bk_cloud_id: int, address: str) -> Dict:
     }
 
 
-def __mysql_show_status(bk_cloud_id: int, address: str) -> List:
-    raw_drs_res = DRSApi.rpc({"addresses": [address], "cmds": ["SHOW GLOBAL STATUS"], "bk_cloud_id": bk_cloud_id})
+def __mysql_show_status(bk_cloud_id: int, address: str, names: list[str]) -> List:
+    cmd = "SHOW GLOBAL STATUS"
+    if names:
+        # show global variables  where Variable_name in ('wait_timeout', 'version');
+        # 因为是使用输入的 names，担心有注入，限制只能是 a-zA-Z_
+        in_clause = safe_sql_in_string(names)
+        cmd = f"{cmd} WHERE Variable_name IN {in_clause}"
+    raw_drs_res = DRSApi.rpc({"addresses": [address], "cmds": [cmd], "bk_cloud_id": bk_cloud_id})
 
     address_res = raw_drs_res[0]
     if address_res["error_msg"]:

@@ -14,9 +14,33 @@ from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 FLOW_LOG_AI_ANALYSIS_KEY = "flow_log_ai_analysis"
 
+DEFAULT_AGENT_CHAT_TIMEOUT = 600
+
+# 风险报告语义比对的 prompt 模板
+RISK_COMPARE_PROMPT = _(
+    """你现在是一个风险报告比对分析师。请判断以下两份风险报告是否描述的是**同一个风险问题**。
+
+## 判断标准
+- 如果两份报告的**核心风险点相同**（比如都在说CPU负载高、都在说磁盘空间不足），即使措辞不同、数值略有差异、时间区间不同，也视为**相同风险**。
+- 如果两份报告描述的是**不同类型的风险问题**（比如一个说CPU高、另一个说磁盘不足），则视为**不同风险**。
+- 如果某份报告包含了新的风险点（即使同时也包含旧的风险点），也视为**不同风险**。
+
+## 上一次风险报告
+{last_report}
+
+## 本次风险报告
+{current_report}
+
+## 输出要求
+只需要输出一个JSON，不要输出其他内容：
+- 相同风险：{{"is_same_risk": true, "reason": "简短说明原因"}}
+- 不同风险：{{"is_same_risk": false, "reason": "简短说明原因"}}
+"""
+)
+
 
 class DBMAgentCode(StrStructuredEnum):
-    DBM = EnumField("ai-am", _("DBM 主智能体"))
+    DBM = EnumField("ai-dbm", _("DBM 主智能体"))
     LOG_ANALYSIS = EnumField("ai-loganalysis", _("日志分析智能体"))
     MYSQL_SLOW_SQL_TUNER = EnumField("ai-sql-tune", _("MySQL 慢查询调优智能体"))
     MYSQL_SLOW_LOGS_QUERY = EnumField("ai-mysql-slowlog", _("MySQL慢日志分析智能体"))
@@ -29,7 +53,7 @@ class DBMAgentCode(StrStructuredEnum):
     REDIS_LOG_ANA = EnumField("ai-redis-logana", _("Redis日志解析"))
     REDIS_TOOLS = EnumField("ai-redis-wb", _("Redis工具箱"))
     REDIS_METRICS = EnumField("ai-tendismetrics", _("Redis指标助手"))
-    REDIS_MEMORY_GROWTH_ANALYSIS = EnumField("ai-redis-memchk", _("Redis内存增长分析智能体"))
+    REDIS_CLUSTER_CAPACITY_GROWTH_CHECK = EnumField("ai-rds-capchk", _("Redis集群容量增长检查智能体"))
     REDIS_BACKEND_LOAD_SKEW_CHECK = EnumField("ai-rds-loadskew", _("Redis后端负载倾斜检查智能体"))
     REDIS_BACKEND_DATA_SKEW_CHECK = EnumField("ai-rds-dataskew", _("Redis后端数据倾斜检查智能体"))
     KAFKA_TASK_GUARDIAN = EnumField("ai-kafka-taskgd", _("Kafka单据值守"))

@@ -52,6 +52,6 @@ def get_taskflow_error_logs(root_id: str) -> Dict:
         node_name = name_map.get(node_id, "")
 
     handler = TaskFlowHandler(root_id=root_id)
-    logs = handler.get_version_error_logs(node_id=node_id, version_id=version_id)
+    logs = handler.get_version_error_logs_for_dbactuator(node_id=node_id, version_id=version_id)
 
     return {"node_id": node_id, "node_name": node_name, "logs": logs}

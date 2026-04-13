@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import datetime
 import logging.config
 from collections import defaultdict
 from copy import deepcopy
@@ -22,6 +23,8 @@ from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import ProxyFaultShutdownAtomJob, RedisFaultShutdownAtomJob
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 
@@ -129,6 +132,32 @@ class RedisClusterInstanceShutdownSceneFlow(object):
     # 对每个集群操作
     def instance_shutdown(self, sub_kwargs, shutdown_params):
         sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
+        immute_domain = sub_kwargs.cluster["immute_domain"]
+
+        # 收集所有涉及的 IP（redis_slave + proxy）
+        _shutdown_ips = list(set(shutdown_params.get("redis_slave", []) + shutdown_params.get("proxy", [])))
+        # 计算屏蔽截止时间：第二天早上 10:00
+        _tomorrow_10am = (datetime.datetime.now() + datetime.timedelta(days=1)).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
+        _end_time = _tomorrow_10am.strftime("%Y-%m-%d %H:%M:%S")
+        _begin_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        sub_pipeline.add_act(
+            act_name=_("屏蔽实例告警-{}".format(immute_domain)),
+            act_component_code=AddAlarmShieldComponent.code,
+            kwargs={
+                **asdict(sub_kwargs),
+                "description": _("Redis实例下架-屏蔽告警-{}").format(immute_domain),
+                "dimensions": [
+                    {"name": "appid", "values": [sub_kwargs.cluster["bk_biz_id"]]},
+                    {"name": "cluster_domain", "values": [immute_domain]},
+                    {"name": "bk_target_ip", "values": _shutdown_ips},
+                ],
+                "begin_time": _begin_time,
+                "end_time": _end_time,
+            },
+        )
+
         # #### 下架旧实例 ############################################################################
         sub_pipelines = []
         for shutdown_ip in shutdown_params.get("redis_slave", {}):
@@ -165,5 +194,12 @@ class RedisClusterInstanceShutdownSceneFlow(object):
         if len(sub_pipelines) > 0:
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         # #### 下架旧实例 ###################################################################### 完毕 ###
+
+        # 流程结束后解除告警屏蔽
+        sub_pipeline.add_act(
+            act_name=_("解除实例告警屏蔽-{}".format(immute_domain)),
+            act_component_code=DisableAlarmShieldComponent.code,
+            kwargs=asdict(sub_kwargs),
+        )
 
         return sub_pipeline.build_sub_process(sub_name=_("实例下架-{}").format(sub_kwargs.cluster["immute_domain"]))

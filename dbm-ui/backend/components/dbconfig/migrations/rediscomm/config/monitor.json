@@ -17,7 +17,7 @@
   },
   {
     "conf_name": "bkmonitor_event_token",
-    "value_default": "8108b6fe1c8343ca8d6538652242d439",
+    "value_default": "",
     "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",
@@ -33,7 +33,7 @@
   },
   {
     "conf_name": "bkmonitor_metirc_token",
-    "value_default": "4301571541434e1091cb70af6164ee67",
+    "value_default": "",
     "value_allowed": "",
     "value_type": "STRING",
     "value_type_sub": "",

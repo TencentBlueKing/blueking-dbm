@@ -579,6 +579,7 @@ class RedisClusterDataCopyFlow(object):
                 act_component_code=NewDtsOnlineSwitchJobAndWatchStatusComponent.code,
                 kwargs=asdict(act_kwargs),
             )
+            redis_pipeline.add_act(act_name=_("migrate集群下架-人工确认"), act_component_code=PauseComponent.code, kwargs={})
             redis_pipeline.add_act(
                 act_name=_("集群:{}禁用任务并检测任务状态").format(dst_install_param["cluster_name"]),
                 act_component_code=NewDstClusterCloseJobAndWatchStatusComponent.code,

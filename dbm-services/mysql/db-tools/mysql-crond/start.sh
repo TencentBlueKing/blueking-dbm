@@ -5,10 +5,11 @@ killall mysql-monitor 2>/dev/null
 pgrep -x 'mysql-crond' && echo "mysql-crond process already running" && exit 1
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+START_ERR="$SCRIPT_DIR/start-crond.err"
 if [ $# -eq 0 ];then
-  START_CMD="$SCRIPT_DIR/mysql-crond -c $SCRIPT_DIR/runtime.yaml 1>/dev/null 2>start-crond.err"
+  START_CMD="$SCRIPT_DIR/mysql-crond -c $SCRIPT_DIR/runtime.yaml 1>/dev/null 2>$START_ERR"
 else
-  START_CMD="$SCRIPT_DIR/mysql-crond ${@:1} 1>/dev/null 2>start-crond.err"
+  START_CMD="$SCRIPT_DIR/mysql-crond ${@:1} 1>/dev/null 2>$START_ERR"
 fi
 
 
@@ -23,6 +24,6 @@ fi
 sleep 1
 pgrep -x 'mysql-crond' >mysql-crond.pid
 if [ $? -gt 0 ];then
-  cat start-crond.err
+  cat start-crond.err >&2
   exit 1
 fi

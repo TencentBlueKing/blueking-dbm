@@ -125,6 +125,7 @@ func (checker *MySQLSlaveChecker) Check() error {
 		hamysql.OptionPort(port),
 		hamysql.OptionUser(config.Cfg.Database.Mysql.User),
 		hamysql.OptionPassword(config.Cfg.Database.Mysql.Password),
+		//hamysql.OptionTimeout(config.Cfg.Database.Mysql.Timeout),	// TODO: set timeout
 	)
 
 	if err != nil {

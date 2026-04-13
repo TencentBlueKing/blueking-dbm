@@ -12,8 +12,8 @@
 {
   "ip":"1.1.1.1",
   "port":27021,
-  "oldFcv": "4.0",
-  "newFcv": "4.2",
+  "old_fcv": "4.0",
+  "new_fcv": "4.2",
   "instanceType": "mongod",
   "adminUsername":"xxx",
   "adminPassword":"xxxxxxx",

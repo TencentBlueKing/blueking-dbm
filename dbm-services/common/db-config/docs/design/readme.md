@@ -1,5 +1,5 @@
 
-## dbconfig 的环境相关数据迁移
+# dbconfig 的环境相关数据迁移
 tb_config_file_def, tb_config_name_def 由系统初始化数据，不要迁移
 
 需要迁移的是业务/集群的个性化配置，涉及以下 2 个表数据导出和导入
@@ -17,11 +17,11 @@ tb_config_versioned
 原 db 全量导出：
 ```
 DBAUTH="-uxxx -pxxx -h1.2.3.4 -P3306"  # db连接信息
-DBNAME="bk_dbconfig"
+DBNAME="bk_dbm_dbconfig"
 
 mysqldump $DBAUTH --default-character-set=utf8mb4 \
   --hex-blob --skip-opt --skip-lock-tables --skip-add-locks \
-  --extended-insert=false -n -t \
+  --extended-insert=false -n -t -q --set-gtid-purged=OFF \
   $DBNAME tb_config_node tb_config_versioned > dbconfig_biz_data_full.sql
 ```
 
@@ -40,12 +40,12 @@ mysql $DBAUTH_NEW $DBNAME_NEW < dbconfig_biz_data_full.sql
 按业务导出:
 ```
 DBAUTH="-uxxx -pxxx -h1.2.3.4 -P3306"  # db连接信息
-DBNAME="bk_dbconfig"
+DBNAME="bk_dbm_dbconfig"
 BK_BIZ_ID=1234  # 要迁移的 bk_biz_id
 
 mysqldump $DBAUTH --default-character-set=utf8mb4 \
   --hex-blob --skip-opt --skip-lock-tables --skip-add-locks \
-  --extended-insert=false -n -t \
+  --extended-insert=false -n -t -q --set-gtid-purged=OFF \
   --replace --where="bk_biz_id='${BK_BIZ_ID}'" \
   $DBNAME tb_config_node tb_config_versioned > dbconfig_biz_data_${BK_BIZ_ID}.sql
 ```

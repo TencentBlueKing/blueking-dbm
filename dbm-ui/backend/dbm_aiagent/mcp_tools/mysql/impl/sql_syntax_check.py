@@ -69,14 +69,20 @@ def check_sql_file_grammar(cluster_type: str, path: str, file_list: list, versio
     """
     Check SQL file grammar against multiple MySQL versions.
 
+    **Prerequisite**: All SQL files in file_list MUST have been uploaded to BKRepo (蓝鲸制品库)
+    before calling this function. This API does NOT upload files; it only reads files that
+    already exist in BKRepo at the specified path.
+
     This function calls the DBM grammar_check interface to validate SQL syntax
-    from files on the server. The execute_objects parameter is automatically
+    from files stored in BKRepo. The execute_objects parameter is automatically
     constructed based on the file_list.
 
     Args:
         cluster_type: Cluster type for the SQL check
-        path: Directory path where SQL files are located
-        file_list: List of SQL file names to check
+        path: BKRepo directory path where SQL files are stored (e.g. '/bkdbm/sqlfiles/20240101/').
+              Files must already be uploaded to BKRepo at this path before calling.
+        file_list: List of SQL file names (filenames only, not full paths) to check.
+                   Each file must exist in BKRepo under the given path.
         versions: List of MySQL versions to check against. Defaults to ["5.5", "5.6", "5.7", "8.0"]
 
     Returns:

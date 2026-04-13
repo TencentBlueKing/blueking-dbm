@@ -173,7 +173,7 @@ class SystemSettingsEnum(StrStructuredEnum):
     # Redis 巡检相关配置
     REDIS_ROLE_CHECK = EnumField("REDIS_ROLE_CHECK", _("Redis实例角色校验配置"))
     REDIS_ENTRY_CHECK = EnumField("REDIS_ENTRY_CHECK", _("Redis访问入口一致性校验配置"))
-    REDIS_CLUSTER_MEMORY_GROWTH_CHECK = EnumField("REDIS_CLUSTER_MEMORY_GROWTH_CHECK", _("Redis集群内存增长检查配置"))
+    REDIS_CLUSTER_CAPACITY_GROWTH_CHECK = EnumField("REDIS_CLUSTER_CAPACITY_GROWTH_CHECK", _("Redis集群容量增长检查配置"))
     REDIS_BACKEND_LOAD_SKEW_CHECK = EnumField("REDIS_BACKEND_LOAD_SKEW_CHECK", _("Redis后端负载倾斜检查配置"))
     REDIS_BACKEND_DATA_SKEW_CHECK = EnumField("REDIS_BACKEND_DATA_SKEW_CHECK", _("Redis后端数据倾斜检查配置"))
     REDIS_REPORT_ADDING_MODE = EnumField("REDIS_REPORT_ADDING_MODE", _("Redis报告写入模式配置"))
@@ -190,6 +190,9 @@ class SystemSettingsEnum(StrStructuredEnum):
     WINDOWS_HOST_TO_RECYCLE_SWITCH = EnumField("WINDOWS_HOST_TO_RECYCLE_SWITCH", _("判断windows主机开关"))
     # AIDEV相关配置
     AI_CODE_SCENE_MAP = EnumField("AI_CODE_SCENE_MAP", _("智能体code场景映射关系表"))
+    # 机器初始化时需要写入 /etc/hosts 的条目，格式：{domain: ip}
+    # 示例：{"example.internal.domain": "127.0.0.1"}
+    INIT_OS_HOSTS = EnumField("INIT_OS_HOSTS", _("机器初始化hosts配置"))
 
 
 class BizSettingsEnum(StrStructuredEnum):

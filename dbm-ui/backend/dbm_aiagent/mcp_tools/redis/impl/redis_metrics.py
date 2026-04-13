@@ -244,6 +244,7 @@ def resolve_cluster_from_domain(
     max_len_datapoints: int,
     start_time,
     end_time,
+    enforce_max_datapoints_limit: bool = True,
 ) -> ResolutionResult:
     """Resolve clusters by domain, build a single batch with the given role."""
     clusters = list(Cluster.objects.filter(immute_domain__in=cluster_domains))
@@ -252,7 +253,9 @@ def resolve_cluster_from_domain(
     if missing_domains:
         return _resolve_err(f"Cluster not found: {missing_domains}. Verify domains exist in db_meta and spelling.")
 
-    time_range, time_window = calculate_time_range_window(max_len_datapoints, start_time, end_time)
+    time_range, time_window = calculate_time_range_window(
+        max_len_datapoints, start_time, end_time, enforce_max_datapoints_limit=enforce_max_datapoints_limit
+    )
     entity_meta = {
         c.immute_domain: {"cluster_domain": c.immute_domain, "cluster_type": str(c.cluster_type)} for c in clusters
     }
@@ -260,7 +263,13 @@ def resolve_cluster_from_domain(
     return ResolutionResult(batches=batches, time_range=time_range, time_window=time_window)
 
 
-def resolve_cluster_from_ip(ips: List[str], max_len_datapoints: int, start_time, end_time) -> ResolutionResult:
+def resolve_cluster_from_ip(
+    ips: List[str],
+    max_len_datapoints: int,
+    start_time,
+    end_time,
+    enforce_max_datapoints_limit: bool = True,
+) -> ResolutionResult:
     """Resolve clusters and instance_role from IPs, auto-grouping by role."""
     resolved_by_ip = _batch_resolve(ips=ips)
     items = []
@@ -275,7 +284,9 @@ def resolve_cluster_from_ip(ips: List[str], max_len_datapoints: int, start_time,
     if not items:
         return _resolve_err(f"All IPs failed resolution: {[e['error'] for e in partial_errors]}")
 
-    time_range, time_window = calculate_time_range_window(max_len_datapoints, start_time, end_time)
+    time_range, time_window = calculate_time_range_window(
+        max_len_datapoints, start_time, end_time, enforce_max_datapoints_limit=enforce_max_datapoints_limit
+    )
     return ResolutionResult(
         batches=_build_node_batches(items),
         time_range=time_range,
@@ -285,7 +296,11 @@ def resolve_cluster_from_ip(ips: List[str], max_len_datapoints: int, start_time,
 
 
 def resolve_cluster_from_instances(
-    instances: List[dict], max_len_datapoints: int, start_time, end_time
+    instances: List[dict],
+    max_len_datapoints: int,
+    start_time,
+    end_time,
+    enforce_max_datapoints_limit: bool = True,
 ) -> ResolutionResult:
     """Resolve clusters and instance_role from explicit ip:port pairs, auto-grouping by role."""
     seen = set()
@@ -310,7 +325,9 @@ def resolve_cluster_from_instances(
     if not items:
         return _resolve_err(f"All instances failed resolution: {[e['error'] for e in partial_errors]}")
 
-    time_range, time_window = calculate_time_range_window(max_len_datapoints, start_time, end_time)
+    time_range, time_window = calculate_time_range_window(
+        max_len_datapoints, start_time, end_time, enforce_max_datapoints_limit=enforce_max_datapoints_limit
+    )
     return ResolutionResult(
         batches=_build_node_batches(items),
         time_range=time_range,

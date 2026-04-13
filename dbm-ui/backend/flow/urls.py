@@ -75,6 +75,7 @@ from backend.flow.views.kafka_reboot import RebootKafkaSceneApiView
 from backend.flow.views.kafka_replace import ReplaceKafkaSceneApiView
 from backend.flow.views.kafka_scale_up import ScaleUpKafkaSceneApiView
 from backend.flow.views.kafka_shrink import ShrinkKafkaSceneApiView
+from backend.flow.views.migrate_views.doris_fake_apply import FakeInstallDorisSceneApiView
 from backend.flow.views.migrate_views.es_fake_apply import FakeInstallEsSceneApiView
 from backend.flow.views.migrate_views.hdfs_fake_apply import FakeInstallHdfsSceneApiView
 from backend.flow.views.migrate_views.influxdb_fake_apply import FakeInstallInfluxdbSceneApiView
@@ -114,6 +115,7 @@ from backend.flow.views.mongodb_scene import (
     MongoPitrRestoreApiView,
     MongoRemoveNsApiView,
     MongoRestoreApiView,
+    MongoUpgradeVersionApiView,
     MultiReplicasetInstallApiView,
 )
 from backend.flow.views.mysql import MysqlMachineClearApiView
@@ -250,6 +252,8 @@ from backend.flow.views.spider_partition import SpiderPartitionSceneApiView
 from backend.flow.views.spider_partition_cron import SpiderPartitionCronSceneApiView
 from backend.flow.views.spider_reduce_mnt import ReduceSpiderMNTSceneApiView
 from backend.flow.views.spider_reduce_nodes import ReduceSpiderNodesSceneApiView
+from backend.flow.views.spider_schema_check import SpiderSchemaCheckSceneApiView
+from backend.flow.views.spider_schema_repair import SpiderSchemaRepairSceneApiView
 from backend.flow.views.spider_semantic_check import SpiderSemanticCheckSceneApiView
 from backend.flow.views.spider_slave_apply import InstallSpiderSlaveClusterSceneApiView
 from backend.flow.views.spider_slave_destroy import DestroySpiderSlaveClusterSceneApiView
@@ -374,6 +378,7 @@ urlpatterns = [
     url(r"^scene/mongo_data_export$", MongoDataExportApiView.as_view()),
     url(r"^scene/mongo_restore$", MongoRestoreApiView.as_view()),
     url(r"^scene/mongo_pitr_restore$", MongoPitrRestoreApiView.as_view()),
+    url(r"^scene/mongo_upgrade_version$", MongoUpgradeVersionApiView.as_view()),
     url(r"^scene/mongo_remove_ns$", MongoRemoveNsApiView.as_view()),
     url(r"^scene/mongo_install_dbmon$", MongoInstallDbmonApiView.as_view()),
     url(r"^scene/install_rs_fake$", MongoFakeInstallApiView.as_view()),
@@ -526,6 +531,8 @@ urlpatterns = [
     url(r"^scene/install_tendb_cluster$", InstallSpiderClusterSceneApiView.as_view()),
     url(r"^scene/destroy_tendb_cluster$", DestroySpiderClusterSceneApiView.as_view()),
     url(r"^scene/spider_checksum$", SpiderChecksumSceneApiView.as_view()),
+    url(r"^scene/spider_schema_check$", SpiderSchemaCheckSceneApiView.as_view()),
+    url(r"^scene/spider_schema_repair$", SpiderSchemaRepairSceneApiView.as_view()),
     url(r"^scene/disable_spider_cluster$", DisableSpiderSceneApiView.as_view()),
     url(r"^scene/enable_spider_cluster$", EnableSpiderSceneApiView.as_view()),
     url(r"^scene/install_tendb_slave_cluster$", InstallSpiderSlaveClusterSceneApiView.as_view()),
@@ -608,6 +615,7 @@ urlpatterns = [
     url("^scene/download_dbactor$", DownloadDbactorApiView.as_view()),
     url("^scene/download_file$", DownloadFileApiView.as_view()),
     url("^scene/doris_machine_clear$", DorisMachineClearApiView.as_view()),
+    url(r"^scene/fake_install_doris$", FakeInstallDorisSceneApiView.as_view()),
     # vm
     url(r"^scene/install_vm$", InstallVmSceneApiView.as_view()),
     url(r"^scene/scale_up_vm$", ScaleUpVmSceneApiView.as_view()),

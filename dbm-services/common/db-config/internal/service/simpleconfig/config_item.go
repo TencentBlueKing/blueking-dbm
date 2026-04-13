@@ -61,7 +61,7 @@ func UpsertConfigItems(db *gorm.DB, configsOp []*model.ConfigModelOp, revision s
 	configsUpt := make([]*model.ConfigModel, 0)
 	configsDel := make([]*model.ConfigModel, 0)
 	// 记录 update/delete 操作的 before_image，需要在实际操作前查询
-	beforeImages := make(map[string]model.ConfItem, 0)
+	beforeImages := make(map[string]api.ConfItem, 0)
 	for _, c := range configsOp {
 		if c.OPType == constvar.OPTypeRemoveRef || c.OPType == constvar.OPTypeRemove {
 			// remove 不检验 平台值是否存在
@@ -98,7 +98,7 @@ func UpsertConfigItems(db *gorm.DB, configsOp []*model.ConfigModelOp, revision s
 			if len(beforeModels) > 1 {
 				return nil, fmt.Errorf("beforeModels len:%d != 1: %+v", len(beforeModels), beforeModels)
 			} else if len(beforeModels) == 0 {
-				beforeImages[c.Config.ConfName] = model.ConfItem{}
+				beforeImages[c.Config.ConfName] = api.ConfItem{}
 			} else {
 				before = *beforeModels[0]
 				beforeImages[c.Config.ConfName] = model.NewConfItemFromModel(&before)
@@ -147,7 +147,7 @@ func UpsertConfigItems(db *gorm.DB, configsOp []*model.ConfigModelOp, revision s
 			continue
 		}
 		beforeImage := beforeImages[c.Config.ConfName]
-		afterImage := model.ConfItem{}
+		afterImage := api.ConfItem{}
 		if c.OPType != constvar.OPTypeRemove {
 			afterImage = model.NewConfItemFromModel(c.Config)
 		}
@@ -264,24 +264,25 @@ func GetMergedConfig(db *gorm.DB, s *api.BaseConfigNode, upLevelInfo *api.UpLeve
 	if err != nil {
 		return nil, err
 	}
-
-	upConfigs, _ := MergeConfig2(configs, s.LevelName, options.View)
-	confMap := make(map[string]*model.ConfigModel)
-	for _, cg := range upConfigs {
-		confMap[cg.ConfName] = cg
-	}
-	for _, cg := range configs {
-		if cg.LevelName == s.LevelName { // 是自定义的配置，返回它的上级配置
-			if upConfig, ok := confMap[cg.ConfName]; ok {
-				cg.UpLevelValue = map[string]string{
-					"level_name":  upConfig.LevelName,
-					"level_value": upConfig.LevelValue,
-					"conf_value":  upConfig.ConfValue,
+	if s.LevelName != constvar.LevelPlat {
+		upConfigs, _ := MergeConfig2(configs, s.LevelName, options.View)
+		confMap := make(map[string]*model.ConfigModel)
+		for _, cg := range upConfigs {
+			confMap[cg.ConfName] = cg
+		}
+		for _, cg := range configs {
+			if cg.LevelName == s.LevelName { // 是自定义的配置，返回它的上级配置
+				if upConfig, ok := confMap[cg.ConfName]; ok {
+					cg.UpLevelValue = map[string]string{
+						"level_name":  upConfig.LevelName,
+						"level_value": upConfig.LevelValue,
+						"conf_value":  upConfig.ConfValue,
+					}
+				} else {
+					logger.Error("NO UP LEVEL FOUND: conf_name=%s (%s=%s)",
+						cg.ConfName, cg.LevelName, cg.LevelValue)
+					cg.UpLevelValue = make(map[string]string)
 				}
-			} else {
-				logger.Error("NO UP LEVEL FOUND: conf_name=%s (%s=%s)",
-					cg.ConfName, cg.LevelName, cg.LevelValue)
-				cg.UpLevelValue = make(map[string]string)
 			}
 		}
 	}

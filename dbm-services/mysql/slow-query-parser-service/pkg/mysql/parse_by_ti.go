@@ -55,13 +55,31 @@ func AnalyzeSql(db, oneSql string) (*Response, error) {
 
 	tableNames := &tiparser.TableNameExtractor{TableNames: make(map[string]*ast.TableName)}
 	sqlCommands := &tiparser.SqlCommandVisitor{}
-	stmts[0].Accept(&tiparser.FingerprintVisitor{})
+	fpVisitor := &tiparser.FingerprintVisitor{}
+
+	// 先提取原始表名（在 fpVisitor 修改 AST 之前），因为 fpVisitor 会将分表后缀 _数字 替换为 _?
 	stmts[0].Accept(tableNames)
+	// 保存原始表名信息，避免后续 fpVisitor 修改指针指向的 Name.O
+	type tableRef struct {
+		schema string
+		name   string
+	}
+	originalTableRefs := make([]tableRef, 0, len(tableNames.TableNames))
+	for _, tn := range tableNames.TableNames {
+		originalTableRefs = append(originalTableRefs, tableRef{schema: tn.Schema.O, name: tn.Name.O})
+	}
+
+	stmts[0].Accept(fpVisitor)
 	stmts[0].Accept(sqlCommands)
 	fingerprint, err := tiparser.RestoreToSqlWithFlag(format.RestoreKeyWordUppercase|format.RestoreNameBackQuotes,
 		stmts[0])
 	if err != nil {
 		return nil, err
+	}
+
+	// 大 offset 查询追加 hint
+	if fpVisitor.HasLargeOffset {
+		fingerprint += " /* large offset */"
 	}
 
 	// 生成两个版本：一个带注释（用于显示），一个不带注释（用于计算MD5）
@@ -74,12 +92,12 @@ func AnalyzeSql(db, oneSql string) (*Response, error) {
 		QueryDigestText: fingerprintWithComment,                     // 使用带注释的版本
 		QueryDigestMd5:  strings.ToLower(pq.Id(fingerprintForHash)), // 使用不带注释的版本计算MD5
 	}
-	for _, tableName := range tableNames.TableNames {
-		tableRef := &TableRef{tableName.Schema.O, tableName.Name.O}
-		if tableRef.DbName == "" {
-			tableRef.DbName = db
+	for _, tr := range originalTableRefs {
+		ref := &TableRef{tr.schema, tr.name}
+		if ref.DbName == "" {
+			ref.DbName = db
 		}
-		resp.TableReferences = append(resp.TableReferences, tableRef)
+		resp.TableReferences = append(resp.TableReferences, ref)
 	}
 	resp.Command = strings.Join(sqlCommands.CommandName, ",")
 	// fmt.Println("xxxx", resp.Command, resp.TableReferences)

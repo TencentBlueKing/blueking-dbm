@@ -50,16 +50,29 @@ class MysqlSlowSqlTunerCommand(CommandHandler):
 
     def get_template(self) -> str:
         return """
-        {% if query_digest_md5 %}
+        {% if query_digest_md5 is defined and query_digest_md5 %}
         根据提供的 query_digest_md5 值，查询原始 sql_text 文本，然后根据表结构和执行计划，进行分析优化:
         query_digest_md5: {{query_digest_md5}}
         {% else %}
         帮根据表结构和执行计划，我对以下 sql 进行优化:
-        {{sql_text}}
+        {{sql_text | default('', true)}}
         {% endif %}
 
         db集群 cluster_domain: {{cluster_domain}}
-        db 名 db_name: {{db_name}} (如果有)
+        {% if db_name is defined and db_name %}db 名 db_name: {{db_name}}{% endif %}
+        """
+
+
+@command
+class MySQLSlowLogCommand(CommandHandler):
+    name = _("查询慢日志")
+    command = "query_slow_logs"
+    agent_code = DBMAgentCode.MYSQL_SLOW_LOGS_QUERY
+
+    def get_template(self) -> str:
+        return """
+        帮我查询集群 {{cluster_domain}} 的最近 2 小时的慢查询
+        如果集群类型是 tendbha，角色是 backend_master；如果集群类型是 tendbcluster，角色是 spider_master
         """
 
 

@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from urllib.parse import urlparse, urlunparse
+
 from bkstorages.backends.bkrepo import BKRepoStorage
 from django.db.models import OuterRef, Subquery
 from django.db.models.functions import Coalesce
@@ -17,6 +19,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import PaginatedResponseSwaggerAutoSchema, common_swagger_auto_schema
@@ -205,6 +208,11 @@ class RiskMemoViewSet(viewsets.AuditedModelViewSet):
             storage.save(name=bkrepo_path, content=file_obj)
 
             url = storage.url(bkrepo_path)
+            # 将 url 的域名和协议替换为 BKREPO_FRONTEND_URL
+            bkrepo_frontend_url = urlparse(env.BKREPO_FRONTEND_URL)
+            url = urlunparse(
+                urlparse(url)._replace(scheme=bkrepo_frontend_url.scheme, netloc=bkrepo_frontend_url.netloc)
+            )
 
         except Exception as e:
             return JsonResponse({"msg": "{}".format(e), "code": 1, "data": ""})

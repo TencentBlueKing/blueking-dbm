@@ -333,7 +333,7 @@ class TaskFlowHandler:
             return [self.generate_log_record(message=_("日志上报中，请稍后查看"))]
         return logs
 
-    def get_version_error_logs(self, node_id: str, version_id: str) -> List[Dict[str, Dict[str, str]]]:
+    def get_version_error_logs_for_dbactuator(self, node_id: str, version_id: str) -> List[Dict[str, Dict[str, str]]]:
         """仅获取指定节点版本的错误级别日志
 
         参考 get_version_logs 的实现，但仅查询 dbactuator 采集的日志，并增加 levelname:error 过滤。
@@ -381,18 +381,6 @@ class TaskFlowHandler:
                         timestamp=hit["_source"].get("time"), levelname=log["levelname"], message=log["log"]
                     )
                 )
-
-        if not logs:
-            # 兜底：拉取全部日志并基于level过滤，以兼容清洗差异
-            all_logs = self.get_version_logs(node_id, version_id)
-            error_only = [
-                rec
-                for rec in all_logs
-                if rec.get("levelname") and str(rec["levelname"]).upper() not in (LogLevelName.INFO.value, "DEBUG")
-            ]
-            if not error_only:
-                return [self.generate_log_record(message=_("暂无错误日志"))]
-            return error_only
         return logs
 
     @staticmethod

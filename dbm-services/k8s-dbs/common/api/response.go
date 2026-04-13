@@ -24,6 +24,7 @@ import (
 	"fmt"
 	commvalidator "k8s-dbs/common/validator"
 	dbserrors "k8s-dbs/errors"
+	infresp "k8s-dbs/infrastructure/response"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -51,34 +52,69 @@ func SuccessResponse(ctx *gin.Context, data interface{}, message string) {
 		Error:   nil,
 	}
 	ctx.JSON(http.StatusOK, resp)
-	response, _ := json.Marshal(resp)
-	ctx.Set("response", string(response))
+	if b, err := json.Marshal(resp); err == nil {
+		ctx.Set("response", string(b))
+	}
 }
 
 // ErrorResponse response after failed request execution
 func ErrorResponse(ctx *gin.Context, err error) {
-	// 判断错误类型
-	// As - 获取错误的具体实现
 	var code ResponseCode
 	var dbsError = new(dbserrors.K8sDbsError)
 	var message string
+	var errorDetail string
 	if errors.As(err, &dbsError) {
 		code = ResponseCode(dbsError.Code)
 		message = dbsError.Message
+		errorDetail = dbsError.ErrorDetail
 	} else {
 		code = ResponseCode(500)
 		message = err.Error()
+		errorDetail = ""
 	}
+
+	var displayMessage string
+	if errorDetail != "" {
+		displayMessage = fmt.Sprintf("%s。%s", message, errorDetail)
+	} else {
+		displayMessage = message
+	}
+
 	resp := &Response{
 		Result:  false,
 		Code:    code,
 		Data:    nil,
-		Message: fmt.Sprintf("%s。%s", message, dbsError.ErrorDetail),
-		Error:   dbsError.ErrorDetail,
+		Message: displayMessage,
+		Error:   errorDetail,
 	}
 	ctx.JSON(http.StatusOK, resp)
-	response, _ := json.Marshal(resp)
-	ctx.Set("response", string(response))
+	if b, marshalErr := json.Marshal(resp); marshalErr == nil {
+		ctx.Set("response", string(b))
+	}
+}
+
+// PermissionDeniedResponseBody 无权限响应结构，与 DBM 返回格式对齐
+type PermissionDeniedResponseBody struct {
+	Result  bool                `json:"result"`
+	Code    dbserrors.ErrorCode `json:"code"`
+	Data    *infresp.ApplyData  `json:"data"`
+	Message string              `json:"message"`
+}
+
+// PermissionDeniedResponse 返回无权限响应，附带权限申请数据和 URL。
+// 完整的 permission + apply_url 数据并触发权限申请弹窗。
+func PermissionDeniedResponse(ctx *gin.Context, applyData *infresp.ApplyData) {
+	resp := &PermissionDeniedResponseBody{
+		Result:  false,
+		Code:    dbserrors.OperationForbidden,
+		Data:    applyData,
+		Message: "禁止执行该操作(您没有当前操作的权限)",
+	}
+
+	ctx.JSON(http.StatusOK, resp)
+	if b, err := json.Marshal(resp); err == nil {
+		ctx.Set("response", string(b))
+	}
 }
 
 // HandleValidationError 封装校验错误处理逻辑

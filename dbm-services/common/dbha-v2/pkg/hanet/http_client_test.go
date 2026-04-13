@@ -89,6 +89,38 @@ func TestHttpClient_SetTimeout(t *testing.T) {
 	}
 }
 
+func TestHttpClient_Clone(t *testing.T) {
+	cli := NewHttpClient().
+		SetHeader("Authorization", "Bearer original").
+		SetTimeout(12 * time.Second)
+
+	cloned := cli.Clone()
+	if cloned == nil {
+		t.Fatal("Clone() returned nil")
+	}
+	if cloned == cli {
+		t.Fatal("Clone() should return a different instance")
+	}
+	if cloned.timeout != cli.timeout {
+		t.Fatalf("cloned timeout = %v, want %v", cloned.timeout, cli.timeout)
+	}
+	if cloned.cli != cli.cli {
+		t.Fatal("Clone() should share underlying http.Client")
+	}
+
+	cloned.SetHeader("Authorization", "Bearer cloned")
+	if cli.headers["Authorization"] != "Bearer original" {
+		t.Fatal("Clone() should deep copy headers map")
+	}
+}
+
+func TestHttpClient_CloneNil(t *testing.T) {
+	var cli *HttpClient
+	if cli.Clone() != nil {
+		t.Fatal("Clone() on nil receiver should return nil")
+	}
+}
+
 func TestHttpMethod_String(t *testing.T) {
 	tests := []struct {
 		method HttpMethod

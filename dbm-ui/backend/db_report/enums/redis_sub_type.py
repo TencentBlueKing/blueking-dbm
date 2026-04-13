@@ -17,7 +17,7 @@ class RedisCheckSubType(StrStructuredEnum):
     Exporter = EnumField("redis_exporter", _("redis_exporter"))
 
     # Agent check subtypes
-    ClusterMemoryCapacityRisk = EnumField("cluster_memory_capacity_risk", _("Cluster memory capacity risk"))
+    ClusterCapacityGrowthRisk = EnumField("cluster_capacity_growth_risk", _("Cluster capacity growth risk"))
     BackendLoadSkew = EnumField("backend_load_skew", _("Backend load skew"))
     BackendDataSkew = EnumField("backend_data_skew", _("Backend data skew"))
 
@@ -26,7 +26,7 @@ class RedisCheckSubType(StrStructuredEnum):
         """Agent check subtypes"""
 
         return [
-            RedisCheckSubType.ClusterMemoryCapacityRisk,
+            RedisCheckSubType.ClusterCapacityGrowthRisk,
             RedisCheckSubType.BackendLoadSkew,
             RedisCheckSubType.BackendDataSkew,
         ]

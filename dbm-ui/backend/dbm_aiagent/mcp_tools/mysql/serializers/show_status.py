@@ -29,3 +29,9 @@ class InstanceRuntimeStatusSerializer(serializers.Serializer):
 
 class ShowInstanceStatuesOutputSerializer(serializers.Serializer):
     runtime_statuses = serializers.ListField(child=InstanceRuntimeStatusSerializer(), help_text=_("实例运行时状态列表"))
+
+
+class ShowStatusNamesInputSerializer(serializers.Serializer):
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"), default=None)
+    address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
+    status_names = serializers.ListField(child=serializers.CharField(), help_text=_("状态名列表"))

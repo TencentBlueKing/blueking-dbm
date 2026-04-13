@@ -30,7 +30,7 @@ data:
       enableUI: true
 
     encrypt:
-      keyPrefix: "{{ .Values.dbconfig.envs.ENCRYPT_KEY_PREFIX }}"
+      keyPrefix: "{{ .Values.dbm.envs.bkAppToken }}"
 
     migrate:
       enable: true

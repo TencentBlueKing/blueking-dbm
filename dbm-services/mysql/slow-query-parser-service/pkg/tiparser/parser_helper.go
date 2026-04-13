@@ -585,7 +585,8 @@ func Fingerprint(oneSql string, isCaseSensitive bool) (fingerprint string, err e
 		return "", parser.ErrSyntax
 	}
 
-	stmts[0].Accept(&FingerprintVisitor{})
+	fpVisitor := &FingerprintVisitor{}
+	stmts[0].Accept(fpVisitor)
 	if !isCaseSensitive {
 		stmts[0].Accept(&CapitalizeProcessor{
 			capitalizeTableName:      true,
@@ -596,6 +597,10 @@ func Fingerprint(oneSql string, isCaseSensitive bool) (fingerprint string, err e
 	fingerprint, err = RestoreToSqlWithFlag(format.RestoreKeyWordUppercase|format.RestoreNameBackQuotes, stmts[0])
 	if err != nil {
 		return "", err
+	}
+	// 大 offset 查询追加 hint
+	if fpVisitor.HasLargeOffset {
+		fingerprint += " /* large offset */"
 	}
 	return
 }

@@ -162,9 +162,11 @@ class SqlFileSyntaxCheckInputSerializer(serializers.Serializer):
     )
     path = serializers.CharField(
         help_text=_(
-            "Directory path where SQL files are located on the server. "
-            "Example: '/data/sql_files/'. "
-            "SQL文件所在的服务器目录路径，如 '/data/sql_files/'。"
+            "BKRepo (蓝鲸制品库) directory path where SQL files are stored. "
+            "This is the BKRepo repository path, NOT a local filesystem path. "
+            "Format: '/{project}/{repo}/{dir}/', e.g. '/bkdbm/sqlfiles/20240101/'. "
+            "SQL文件所在的蓝鲸制品库（BKRepo）目录地址，格式为 '/{project}/{repo}/{dir}/'，"
+            "例如 '/bkdbm/sqlfiles/20240101/'。注意：这是BKRepo仓库路径，而非本地文件系统路径。"
         )
     )
     file_list = serializers.ListField(

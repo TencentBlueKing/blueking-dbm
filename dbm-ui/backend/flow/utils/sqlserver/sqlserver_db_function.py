@@ -1169,8 +1169,13 @@ def remove_mirroring_config(target_instances: List[str], bk_cloud_id: int):
 
 
 def init_dbm_nginx_proxy_config(nginx_list: List[NginxInfo], bk_cloud_id: int, target_instances: List[str]):
+    # 检查表是否存在的SQL
+    check_table_sql = (
+        f"SELECT COUNT(*) AS cnt FROM [{SQLSERVER_CUSTOM_SYS_DB}].INFORMATION_SCHEMA.TABLES "
+        f"WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'DBM_NGINX_PROXY'"
+    )
     drop_sql = f"use {SQLSERVER_CUSTOM_SYS_DB}; truncate table [{SQLSERVER_CUSTOM_SYS_DB}].[dbo].[DBM_NGINX_PROXY]"
-    sqls = [
+    insert_sqls = [
         f"""INSERT INTO [{SQLSERVER_CUSTOM_SYS_DB}].[dbo].[DBM_NGINX_PROXY](
 [IP],
 [PORT],
@@ -1182,18 +1187,39 @@ def init_dbm_nginx_proxy_config(nginx_list: List[NginxInfo], bk_cloud_id: int, t
 """
         for i in nginx_list
     ]
-    # list.insert() 原地修改列表，返回 None，不能直接作为参数传递
-    sqls.insert(0, drop_sql)
-    ret = DRSApi.sqlserver_rpc(
-        {
-            "bk_cloud_id": bk_cloud_id,
-            "addresses": target_instances,
-            "cmds": sqls,
-            "force": False,
-        }
-    )
 
-    if not ret:
-        raise Exception("init_dbm_nginx_proxy_config: DRS returned empty result, target_instances may be empty")
-    if ret[0]["error_msg"]:
-        raise Exception(f"init_dbm_nginx_proxy_config failed: {ret[0]['error_msg']}")
+    if not target_instances:
+        raise Exception("init_dbm_nginx_proxy_config: target_instances is empty")
+
+    for instance in target_instances:
+        # 先检查目标实例是否存在 DBM_NGINX_PROXY 表
+        check_ret = DRSApi.sqlserver_rpc(
+            {
+                "bk_cloud_id": bk_cloud_id,
+                "addresses": [instance],
+                "cmds": [check_table_sql],
+                "force": False,
+            }
+        )
+        if check_ret[0]["error_msg"]:
+            raise Exception(f"[{instance}] check DBM_NGINX_PROXY table failed: {check_ret[0]['error_msg']}")
+
+        table_count = int(check_ret[0]["cmd_results"][0]["table_data"][0]["cnt"])
+        if table_count == 0:
+            logger.warning(f"[{instance}] DBM_NGINX_PROXY table does not exist, skip init_dbm_nginx_proxy_config")
+            continue
+
+        # 表存在，执行 truncate + insert
+        exec_sqls = [drop_sql] + insert_sqls
+        ret = DRSApi.sqlserver_rpc(
+            {
+                "bk_cloud_id": bk_cloud_id,
+                "addresses": [instance],
+                "cmds": exec_sqls,
+                "force": False,
+            }
+        )
+        if ret[0]["error_msg"]:
+            raise Exception(f"[{instance}] init_dbm_nginx_proxy_config failed: {ret[0]['error_msg']}")
+
+        logger.info(f"[{instance}] init_dbm_nginx_proxy_config successfully")

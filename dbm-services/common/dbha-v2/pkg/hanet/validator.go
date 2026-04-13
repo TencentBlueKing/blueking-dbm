@@ -26,6 +26,7 @@ package hanet
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -115,7 +116,7 @@ func validateSlice(ctx context.Context, v reflect.Value, prefix string) error {
 		}
 	}
 	if len(allErrors) > 0 {
-		return fmt.Errorf(strings.Join(allErrors, "; "))
+		return errors.New(strings.Join(allErrors, "; "))
 	}
 	return nil
 }
@@ -157,7 +158,7 @@ func validateStructWithPrefix(ctx context.Context, s interface{}, prefix string)
 		errList = append(errList, nestedErr.Error())
 	}
 
-	return fmt.Errorf(strings.Join(errList, "; "))
+	return errors.New(strings.Join(errList, "; "))
 }
 
 // validateNestedSlices validate nested slice fields in struct
@@ -192,7 +193,7 @@ func validateNestedSlices(ctx context.Context, s interface{}, prefix string) err
 	}
 
 	if len(allErrors) > 0 {
-		return fmt.Errorf(strings.Join(allErrors, "; "))
+		return errors.New(strings.Join(allErrors, "; "))
 	}
 	return nil
 }

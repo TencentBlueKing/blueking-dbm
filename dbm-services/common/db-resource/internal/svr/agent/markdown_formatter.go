@@ -25,7 +25,7 @@ func FormatAnalysisResultToMarkdown(result *AnalysisResult) string {
 	builder.WriteString("# 资源申请分析报告\n\n")
 
 	// 分析概要
-	builder.WriteString("## 📋 分析概要\n\n")
+	builder.WriteString("## ★ 分析概要\n\n")
 	if result.Summary != "" {
 		builder.WriteString(result.Summary)
 		builder.WriteString("\n\n")
@@ -57,7 +57,7 @@ func FormatAnalysisResultToMarkdown(result *AnalysisResult) string {
 
 		// 高影响因素
 		if len(highImpact) > 0 {
-			builder.WriteString("### 🔴 高影响因素\n\n")
+			builder.WriteString("### ❗高影响因素\n\n")
 			for _, reason := range highImpact {
 				builder.WriteString(fmt.Sprintf("- **%s**: %s\n", getCategoryName(reason.Category), reason.Description))
 				if reason.Data != nil {
@@ -69,7 +69,7 @@ func FormatAnalysisResultToMarkdown(result *AnalysisResult) string {
 
 		// 中影响因素
 		if len(mediumImpact) > 0 {
-			builder.WriteString("### 🟡 中影响因素\n\n")
+			builder.WriteString("### ⚡中影响因素\n\n")
 			for _, reason := range mediumImpact {
 				builder.WriteString(fmt.Sprintf("- **%s**: %s\n", getCategoryName(reason.Category), reason.Description))
 				if reason.Data != nil {
@@ -81,7 +81,7 @@ func FormatAnalysisResultToMarkdown(result *AnalysisResult) string {
 
 		// 低影响因素
 		if len(lowImpact) > 0 {
-			builder.WriteString("### ⚪ 低影响因素\n\n")
+			builder.WriteString("### ○ 低影响因素\n\n")
 			for _, reason := range lowImpact {
 				builder.WriteString(fmt.Sprintf("- **%s**: %s\n", getCategoryName(reason.Category), reason.Description))
 				if reason.Data != nil {
@@ -94,7 +94,7 @@ func FormatAnalysisResultToMarkdown(result *AnalysisResult) string {
 
 	// 改进建议
 	if len(result.Suggestions) > 0 {
-		builder.WriteString("## 💡 改进建议\n\n")
+		builder.WriteString("## ★ 改进建议\n\n")
 
 		// 按优先级排序
 		sortedSuggestions := make([]Suggestion, len(result.Suggestions))
@@ -118,7 +118,7 @@ func FormatAnalysisResultToMarkdown(result *AnalysisResult) string {
 			builder.WriteString(fmt.Sprintf("%d. **%s**: %s\n", suggestionIndex, getSuggestionTypeName(suggestion.Type), suggestion.Description))
 
 			if suggestion.PredictedCount > 0 {
-				builder.WriteString(fmt.Sprintf("   - 📊 预计可用: %d 台\n", suggestion.PredictedCount))
+				builder.WriteString(fmt.Sprintf("   - ▷ 预计可用: %d 台\n", suggestion.PredictedCount))
 			}
 
 			if suggestion.Verified {
@@ -149,7 +149,7 @@ func FormatAnalysisResultToMarkdown(result *AnalysisResult) string {
 	// 分析耗时
 	if result.Duration != "" {
 		builder.WriteString("---\n")
-		builder.WriteString(fmt.Sprintf("*🕐 分析耗时: %s*\n", result.Duration))
+		builder.WriteString(fmt.Sprintf("*⏱ 分析耗时: %s*\n", result.Duration))
 	}
 
 	return builder.String()
@@ -194,15 +194,15 @@ func getSuggestionTypeName(suggestionType string) string {
 func getPriorityLabel(priority int) string {
 	switch priority {
 	case 1:
-		return "🔴 优先级 1（必须立即处理）"
+		return "❗优先级 1（必须立即处理）"
 	case 2:
-		return "🟡 优先级 2（建议尽快处理）"
+		return "⚡优先级 2（建议尽快处理）"
 	case 3:
-		return "🟢 优先级 3（可以稍后处理）"
+		return "✦ 优先级 3（可以稍后处理）"
 	case 4:
-		return "🔵 优先级 4（建议考虑）"
+		return "◆ 优先级 4（建议考虑）"
 	case 5:
-		return "⚪ 优先级 5（可选）"
+		return "○ 优先级 5（可选）"
 	default:
 		return fmt.Sprintf("优先级 %d", priority)
 	}

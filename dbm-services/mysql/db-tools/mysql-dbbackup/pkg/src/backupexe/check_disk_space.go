@@ -62,8 +62,8 @@ func DeleteOldBackup(cnf *config.Public, expireDays int) error {
 	matchInstance := fmt.Sprintf("%s_%d", hostEscaped, cnf.MysqlPort)
 	reHost := regexp.MustCompile(matchHost)
 	reInstance := regexp.MustCompile(matchInstance)
-	// backup file format: 123_21001308_1.2.3.4_3306_20260324092001_XX
-	reBakFile := regexp.MustCompile(fmt.Sprintf(`\d+_\d+_%s_`, matchInstance))
+	// backup file format: 123_1234567_1.2.3.4_3306_20260324092001_XX
+	reBakFile := regexp.MustCompile(fmt.Sprintf(`\d+_\d+_%s_`, hostEscaped))
 	indexFiles := map[string]time.Time{}
 	bakFiles := map[string]int64{}
 	for _, fi := range dir {
@@ -78,7 +78,7 @@ func DeleteOldBackup(cnf *config.Public, expireDays int) error {
 	for indexFile, modTime := range indexFiles {
 		canRemove := false
 		if reInstance.MatchString(indexFile) && expireTime.Compare(modTime) > 0 {
-			// 本实例的备份，指定时间(可能是 now)之前的全部删掉
+			// 本实例的备份，指定时间(可能是 now)之前的允许全部删掉
 			canRemove = true
 		} else if reHost.MatchString(indexFile) && !reInstance.MatchString(indexFile) {
 			// 其它实例的备份，如果要全部清理，也要限制只能删除 12h 之前的

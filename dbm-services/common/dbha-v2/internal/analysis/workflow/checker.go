@@ -34,7 +34,8 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
-// BusinessChecker runs event, host, status, and missed-probe checks for a business and triggers detector/switch via DetectorHandler.
+// BusinessChecker runs event, host, status, and missed-probe checks for a business.
+// It triggers detector/switch via DetectorHandler.
 type BusinessChecker struct {
 	parser   *StatusParser
 	detector *DetectorHandler
@@ -48,7 +49,6 @@ func NewBusinessChecker(parser *StatusParser, detector *DetectorHandler) *Busine
 // CheckEventWithBizId builds double-check tasks from dbEvents and runs liveness double-check.
 func (c *BusinessChecker) CheckEventWithBizId(bizId int, dbEvents []*haprobe.DbEvent,
 	skipDbInsts map[string]*hamodel.SkipDbInstance, metaInsts map[string]*hamodel.DbmMetadata) {
-	_ = bizId
 
 	badInsts := []detector.DoubleCheckTask{}
 
@@ -73,7 +73,7 @@ func (c *BusinessChecker) CheckEventWithBizId(bizId int, dbEvents []*haprobe.DbE
 		})
 	}
 
-	c.detector.LivenessDoubleCheck(badInsts)
+	c.detector.LivenessDoubleCheck(bizId, badInsts)
 }
 
 // CheckDbHosts parses host status and invokes checkDbEventsFunc with the resulting events.
@@ -104,7 +104,7 @@ func (c *BusinessChecker) CheckDbStatus(dbStatusVals []parser.DBTyperWrapper,
 }
 
 // CheckMissedProbe finds instances with no probe and runs liveness double check.
-func (c *BusinessChecker) CheckMissedProbe(dbStatus []*hamodel.DbhaDataStatus, skipDbInsts map[string]*hamodel.SkipDbInstance,
+func (c *BusinessChecker) CheckMissedProbe(bizId int, dbStatus []*hamodel.DbhaDataStatus, skipDbInsts map[string]*hamodel.SkipDbInstance,
 	metaInsts map[string]*hamodel.DbmMetadata) {
 	dbMetricKeys := map[string]struct{}{}
 	for _, dbStat := range dbStatus {
@@ -133,7 +133,7 @@ func (c *BusinessChecker) CheckMissedProbe(dbStatus []*hamodel.DbhaDataStatus, s
 		})
 	}
 
-	c.detector.LivenessDoubleCheck(missedProbeInsts)
+	c.detector.LivenessDoubleCheck(bizId, missedProbeInsts)
 }
 
 // RunBusinessChecks runs all check tasks concurrently for a business.
@@ -153,7 +153,7 @@ func (c *BusinessChecker) RunBusinessChecks(
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		c.CheckMissedProbe(dbStatus, skipInsts, metaInsts)
+		c.CheckMissedProbe(bizId, dbStatus, skipInsts, metaInsts)
 	}()
 
 	wg.Add(1)

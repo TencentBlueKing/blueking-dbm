@@ -2,7 +2,6 @@ package config
 
 import (
 	"bytes"
-	"dbm-services/mysql/db-tools/mysql-crond/pkg"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -11,6 +10,8 @@ import (
 	"path"
 	"slices"
 	"syscall"
+
+	"dbm-services/mysql/db-tools/mysql-crond/pkg"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/robfig/cron/v3"
@@ -171,7 +172,7 @@ func InitJobsConfig() error {
 	JobsConfig = &jobsConfig{}
 	err = yaml.Unmarshal(content, &JobsConfig)
 	if err != nil {
-		slog.Error("init jobs config", slog.String("error", err.Error()))
+		slog.Error("unmarshal jobs config", slog.String("error", err.Error()))
 		return err
 	}
 

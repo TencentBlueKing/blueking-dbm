@@ -13,6 +13,7 @@ import logging
 from datetime import datetime
 from typing import Optional
 
+from django.core.cache import cache
 from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import StaticIntervalGenerator
@@ -25,6 +26,7 @@ from backend.db_report.enums import RedisRollbackExerciseTaskStage as TaskStage
 from backend.db_report.models import RedisRollbackExerciseReport as Report
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.consts import StateType
+from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure import RedisDataStructureFlow
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure_task_delete import RedisDataStructureTaskDeleteFlow
 from backend.flow.models import FlowTree
@@ -166,6 +168,9 @@ class RedisExerciseReportUpdateComponent(Component):
     bound_service = RedisExerciseReportUpdateService
 
 
+CHILD2RUNNER_CACHE_PREFIX = "redis_rollback_drill:child2runner_node"
+
+
 FLOW_REGISTRY = {
     "redis_data_structure": (RedisDataStructureFlow, "redis_data_structure_flow"),
     "redis_data_structure_task_delete": (RedisDataStructureTaskDeleteFlow, "redis_rollback_task_delete_flow"),
@@ -202,6 +207,33 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
     def _set_result(self, data, code: int):
         output_var = data.get_one_of_outputs("output_var") or "rollback_code"
         setattr(data.outputs, output_var, code)
+
+    def _finish_by_child_state(self, data, child_root_id: str, child_state) -> bool:
+        if child_state == StateType.FINISHED:
+            self.log_info(_("Child pipeline {} finished successfully").format(child_root_id))
+            self._set_result(data, 0)
+            self.finish_schedule()
+            return True
+
+        if child_state in (StateType.FAILED, StateType.REVOKED):
+            self.log_error(_("Child pipeline {} ended with status {}").format(child_root_id, child_state))
+            self._set_result(data, 1)
+            self.finish_schedule()
+            return True
+
+        return False
+
+    def _terminate_child_pipeline(self, child_root_id: str):
+        try:
+            revoke_result = BambooEngine(root_id=child_root_id).revoke_pipeline()
+            if not revoke_result.result:
+                self.log_warning(
+                    _("Failed to revoke child pipeline {}: {}").format(child_root_id, revoke_result.message)
+                )
+            else:
+                self.log_info(_("Revoked child pipeline {}").format(child_root_id))
+        except Exception:
+            logger.warning(_("Exception while revoking child pipeline {}").format(child_root_id), exc_info=True)
 
     def _execute_inner_captured(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
@@ -244,6 +276,15 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
 
         self.log_info(_("Child pipeline {} ({}) submitted").format(child_root_id, flow_identifier))
         data.outputs.child_root_id = child_root_id
+
+        runner_node_id = self.runtime_attrs.get("id")
+        parent_root_id = self.runtime_attrs.get("root_pipeline_id")
+        if runner_node_id and parent_root_id:
+            cache.set(
+                f"{CHILD2RUNNER_CACHE_PREFIX}:{child_root_id}",
+                {"runner_node_id": runner_node_id, "parent_root_id": parent_root_id},
+                polling_timeout,
+            )
         data.outputs.start_time = datetime.now().isoformat()
         data.outputs.polling_timeout = polling_timeout
         return True
@@ -253,6 +294,23 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
         if not child_root_id:
             self.finish_schedule()
             return True
+
+        if callback_data:
+            callback_child_root_id = callback_data.get("child_root_id")
+            callback_child_state = callback_data.get("child_state")
+
+            if not callback_child_root_id:
+                self.log_warning("Received callback_data without child_root_id, ignoring fast-path")
+            elif callback_child_root_id != child_root_id:
+                self.log_warning(
+                    _("Callback child root id mismatch: expected {}, got {}").format(
+                        child_root_id, callback_child_root_id
+                    )
+                )
+            else:
+                # Callback comes from child terminal signal and can fast-path finish.
+                if self._finish_by_child_state(data, child_root_id, callback_child_state):
+                    return True
 
         raw_start_time = data.get_one_of_outputs("start_time")
         if not raw_start_time:
@@ -264,8 +322,10 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
         polling_timeout = data.get_one_of_outputs("polling_timeout") or 3600
 
         elapsed = (datetime.now() - start_time).total_seconds()
+
         if elapsed > polling_timeout:
             self.log_error(_("Child pipeline {} timed out after {:.0f}s").format(child_root_id, elapsed))
+            self._terminate_child_pipeline(child_root_id)
             self._set_result(data, 1)
             self.finish_schedule()
             return True
@@ -275,18 +335,7 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
         except FlowTree.DoesNotExist:
             return True
 
-        if flow_tree.status == StateType.FINISHED:
-            self.log_info(_("Child pipeline {} finished successfully").format(child_root_id))
-            self._set_result(data, 0)
-            self.finish_schedule()
-            return True
-        elif flow_tree.status in (StateType.FAILED, StateType.REVOKED):
-            self.log_error(_("Child pipeline {} ended with status {}").format(child_root_id, flow_tree.status))
-            self._set_result(data, 1)
-            self.finish_schedule()
-            return True
-
-        return True
+        return self._finish_by_child_state(data, child_root_id, flow_tree.status)
 
 
 class RedisExerciseFlowRunnerComponent(Component):
@@ -435,7 +484,8 @@ class RedisExerciseBestEffortCleanupService(RedisLogCapturingService, BkJobServi
         except Report.DoesNotExist:
             return
 
-        task_msg = "\n".join(self.trans_data.task_msg) if self.trans_data and self.trans_data.task_msg else ""
+        cleanup_msg = "\n".join(self.trans_data.task_msg) if self.trans_data and self.trans_data.task_msg else ""
+        merged_msg = self._merge_task_message(report.task_message, cleanup_msg)
 
         terminal_stages = {
             TaskStage.DONE,
@@ -444,11 +494,32 @@ class RedisExerciseBestEffortCleanupService(RedisLogCapturingService, BkJobServi
             TaskStage.CLEANUP_FAILED,
         }
         if report.task_stage in {s.value for s in terminal_stages}:
-            if task_msg:
-                report.mark(task_message=task_msg)
+            if merged_msg != (report.task_message or ""):
+                report.mark(task_message=merged_msg)
             return
-        report.mark(TaskStage.CLEANUP_FAILED, task_message=task_msg)
+        report.mark(TaskStage.CLEANUP_FAILED, task_message=merged_msg)
         self.log_info(_("Report {} marked CLEANUP_FAILED by best-effort cleanup").format(report_id))
+
+    @staticmethod
+    def _merge_task_message(existing_msg: str, appended_msg: str) -> str:
+        """
+        Merge report task logs without clobbering historical content.
+
+        Rules:
+        1. Keep existing logs first.
+        2. Append new block only when non-empty.
+        3. Deduplicate when the existing message already ends with the same block.
+        """
+        existing = (existing_msg or "").strip()
+        appended = (appended_msg or "").strip()
+
+        if not existing:
+            return appended
+        if not appended:
+            return existing
+        if existing.endswith(appended):
+            return existing
+        return "{}\n{}".format(existing, appended)
 
 
 class RedisExerciseBestEffortCleanupComponent(Component):

@@ -18,7 +18,6 @@ from backend.db_services.ipchooser.constants import BkOsTypeCode
 from backend.flow.engine.bamboo.scene.common.builder import Builder, Conditions, SubBuilder
 from backend.flow.engine.revoke.base import RevokeFlowBase
 from backend.flow.plugins.components.collections.common.exec_clear_machine import ClearMachineScriptComponent
-from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.revoke.check_tendb_ha_is_normal import (
@@ -126,8 +125,6 @@ class MySQLHAApplyRevokeFlow(RevokeFlowBase):
         }
 
         sub_pipeline = SubBuilder(root_id=self.root_id, data=global_data)
-
-        sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
         recycle_dns_acts_list = []
         for port in ports:

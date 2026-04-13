@@ -52,12 +52,14 @@ var supportedHttpMethods map[HttpMethod]struct{} = map[HttpMethod]struct{}{
 	HttpMethodDelete: {},
 }
 
+// HttpClient wraps http.Client with default headers and per-request timeout settings.
 type HttpClient struct {
 	headers map[string]string
 	timeout time.Duration
 	cli     *http.Client
 }
 
+// NewHttpClient creates an HttpClient with empty headers and a default timeout.
 func NewHttpClient() *HttpClient {
 	return &HttpClient{
 		headers: map[string]string{},
@@ -66,6 +68,7 @@ func NewHttpClient() *HttpClient {
 	}
 }
 
+// NewHttpClientWithHeaders creates an HttpClient initialized with the given headers.
 func NewHttpClientWithHeaders(headers map[string]string) *HttpClient {
 	cli := &HttpClient{
 		headers: map[string]string{},
@@ -84,6 +87,7 @@ func (h HttpMethod) String() string {
 	return string(h)
 }
 
+// SetHeader sets one header key-value and returns the client for chaining.
 func (c *HttpClient) SetHeader(key, value string) *HttpClient {
 	if c.headers == nil {
 		c.headers = map[string]string{}
@@ -93,9 +97,30 @@ func (c *HttpClient) SetHeader(key, value string) *HttpClient {
 	return c
 }
 
+// SetTimeout sets request timeout for this client and returns the client for chaining.
 func (c *HttpClient) SetTimeout(timeout time.Duration) *HttpClient {
 	c.timeout = timeout
 	return c
+}
+
+// Clone returns a new HttpClient with copied mutable fields.
+func (c *HttpClient) Clone() *HttpClient {
+	cloned := &HttpClient{
+		timeout: c.timeout,
+		cli:     c.cli,
+	}
+
+	if c.headers == nil {
+		cloned.headers = map[string]string{}
+		return cloned
+	}
+
+	cloned.headers = make(map[string]string, len(c.headers))
+	for key, val := range c.headers {
+		cloned.headers[key] = val
+	}
+
+	return cloned
 }
 
 func (c HttpClient) verifyMethod(method HttpMethod) error {
@@ -121,7 +146,7 @@ func (c HttpClient) Delete(ctx context.Context, url string, data []byte) (code i
 	return c.Request(ctx, url, HttpMethodDelete, data)
 }
 
-// Delete send a PUT request.
+// Put send a PUT request.
 func (c HttpClient) Put(ctx context.Context, url string, data []byte) (code int, resp []byte, err error) {
 	return c.Request(ctx, url, HttpMethodPut, data)
 }
@@ -139,6 +164,13 @@ func (c HttpClient) Request(ctx context.Context, url string,
 		return
 	}
 
+	// set timeout
+	if c.timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, c.timeout)
+		defer cancel()
+	}
+
 	var req *http.Request
 	var errReq error
 
@@ -149,7 +181,7 @@ func (c HttpClient) Request(ctx context.Context, url string,
 	}
 
 	if errReq != nil {
-		err = gerrors.NewE(gerrors.HttpRequestFailure, err)
+		err = gerrors.NewE(gerrors.HttpRequestFailure, errReq)
 		return
 	}
 

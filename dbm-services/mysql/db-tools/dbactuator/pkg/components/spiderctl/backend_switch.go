@@ -71,8 +71,8 @@ type SpiderRemotedbSwitchParam struct {
 type CutOverCtx struct {
 	tdbCtlConn  *native.TdbctlDbWork
 	spidersConn map[string]*native.DbWorker
-	// 加锁解锁只能在一个连接内
-	spidersLockConn          map[string]*sql.Conn
+	// 加锁解锁只能在一个连接内，仅包含 master spider 节点
+	masterSpidersLockConn    map[string]*sql.Conn
 	ipPortServersMap         map[IPPORT]native.Server
 	svrNameServersMap        map[SVRNAME]native.Server
 	newMasterPosInfos        map[string]native.MasterStatusResp
@@ -159,7 +159,7 @@ func (r *SpiderClusterBackendSwitchComp) Init() (err error) {
 
 	// connect spider
 	logger.Info("connecting all spider ...")
-	r.spidersConn, r.spidersLockConn, err = connSpiders(servers)
+	r.spidersConn, r.masterSpidersLockConn, err = connSpiders(servers)
 	if err != nil {
 		return err
 	}
@@ -222,7 +222,7 @@ func (r *SpiderClusterBackendSwitchComp) CommInit() (err error) {
 
 	// connect spider
 	logger.Info("connecting all spider ...")
-	r.spidersConn, r.spidersLockConn, err = connSpiders(servers)
+	r.spidersConn, r.masterSpidersLockConn, err = connSpiders(servers)
 	if err != nil {
 		return err
 	}
@@ -431,9 +431,9 @@ func connSpiders(servers []native.Server) (conns map[string]*native.DbWorker, lo
 	err error) {
 	conns = make(map[string]*native.DbWorker)
 	lockConns = make(map[string]*sql.Conn)
-	spider_regexp := regexp.MustCompile(native.SPIDER_PREFIX)
+	spiderPrefixReg := regexp.MustCompile(native.SPIDER_PREFIX)
 	for _, server := range servers {
-		if !spider_regexp.MatchString(server.ServerName) {
+		if !spiderPrefixReg.MatchString(server.ServerName) {
 			continue
 		}
 		conn, err := native.InsObject{
@@ -447,6 +447,10 @@ func connSpiders(servers []native.Server) (conns map[string]*native.DbWorker, lo
 		}
 		key := fmt.Sprintf("%s:%d", server.Host, server.Port)
 		conns[key] = conn
+		// SPIDER_SLAVE 节点不参与切换加锁，跳过
+		if native.SvrNameIsSlaveSpiderShard(server.ServerName) {
+			continue
+		}
 		sqlConn, err := conn.Db.Conn(context.Background())
 		if err != nil {
 			logger.Error("failed to get a persistent connection: %w", err.Error())
@@ -615,6 +619,7 @@ func (r *SpiderClusterBackendSwitchComp) connTdbctl() (err error) {
 // CutOver cut over
 func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 	var tdbctlNotFlushed bool
+	var flushRoutingFailed bool
 	// get file lock
 	if err = r.CutOverCtx.GetFileLock(); err != nil {
 		logger.Error("get file lock failed %s", err.Error())
@@ -629,39 +634,78 @@ func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 	logger.Info("the switching operation will be performed")
 	// 注册路由回滚逻辑：切换失败时自动回滚
 	defer func() {
+		if flushRoutingFailed {
+			logger.Error("[不可重试] FLUSH ROUTING 执行失败，部分节点内存路由状态不确定，" +
+				"自动回滚已跳过，请人工确认各节点路由状态后执行 TDBCTL CHECK ROUTING 并手动处理")
+			return
+		}
 		if err != nil && len(r.primaryShardrollbackSqls) > 0 {
-			logger.Info("start execute rollback router sql ... ")
+			for _, sql := range r.primaryShardrollbackSqls {
+				logger.Info("执行路由回滚SQL(WITH SYNC): %s", mysqlcomm.CleanSvrPassword(sql))
+			}
 			if _, rerr := r.tdbCtlConn.ExecMore(r.primaryShardrollbackSqls); rerr != nil {
-				logger.Error("failed to roll back tdbctl routing")
+				logger.Error("[不可重试] 路由回滚SQL执行失败，mysql.servers 状态不确定，请人工介入: %v", rerr)
 				return
 			}
-			logger.Info("rollback route successfully~")
+			logger.Info("路由回滚成功")
 			// 表示只是在tdbctl层面更改了,并没有刷新路由
 			// 只需回滚中控的路由即可
 			if tdbctlNotFlushed {
+				logger.Info("路由刷新操作未执行，不需要执行flush路由操作")
 				return
 			}
-			if ferr := r.flushrouting(); ferr != nil {
-				logger.Error("failed to flush rollback route")
+			if ferr := r.flushRoutingCache(); ferr != nil {
+				logger.Error("[不可重试] 路由回滚后刷新缓存失败，mysql.servers 已回滚但 spider 内存路由可能未更新，请手动执行 TDBCTL FLUSH ROUTING CACHE: %v", ferr)
 				return
 			}
 			logger.Info("flush rollback route successfully~")
+			// 校验各节点路由与 tdbctl 主节点是否一致
+			if _, cerr := r.tdbCtlConn.Exec("TDBCTL CHECK ROUTING;"); cerr != nil {
+				logger.Error("[不可重试] 路由回滚后校验失败，各节点路由与 tdbctl 主节点不一致: %v", cerr)
+			} else {
+				logger.Info("路由回滚校验通过，各节点路由与 tdbctl 主节点一致")
+			}
 		}
 	}()
 
-	if r.Params.Force {
-		return r.cutOverForce(&tdbctlNotFlushed)
+	// 切换前从中控查询路由快照，切换成功后做真实对比
+	svrNamesToTrack := make([]string, 0, len(r.realSwitchSvrPairs)*2)
+	for _, pair := range r.realSwitchSvrPairs {
+		svrNamesToTrack = append(svrNamesToTrack, pair.MptName, pair.SptName)
 	}
-	return r.cutOverNormal(&tdbctlNotFlushed)
+	beforeSnapshot, snapErr := r.selectServersByNames(svrNamesToTrack)
+	if snapErr != nil {
+		logger.Warn("切换前路由快照查询失败，切换完成后将无法输出对比信息: %v", snapErr)
+	}
+
+	if r.Params.Force {
+		err = r.cutOverForce(&tdbctlNotFlushed, &flushRoutingFailed)
+	} else {
+		err = r.cutOverNormal(&tdbctlNotFlushed, &flushRoutingFailed)
+	}
+	if err != nil {
+		return err
+	}
+	logger.Info("已经完成,已经刷新了路由")
+	// 切换成功后校验各节点路由与 tdbctl 主节点一致
+	if _, cerr := r.tdbCtlConn.Exec("TDBCTL CHECK ROUTING;"); cerr != nil {
+		logger.Warn("[切换完成] 路由校验失败，各节点路由与 tdbctl 主节点可能不一致，请先检查差异: %v", cerr)
+	} else {
+		logger.Info("[切换完成] 路由校验通过，各节点路由与 tdbctl 主节点一致")
+	}
+	if snapErr == nil {
+		r.logRoutingChanges(beforeSnapshot, svrNamesToTrack)
+	}
+	return err
 }
 
 // cutOverForce 强制切换模式：跳过 flush tables、锁定Spider、复制状态检查
-func (r *SpiderClusterBackendSwitchComp) cutOverForce(tdbctlNotFlushed *bool) (err error) {
+func (r *SpiderClusterBackendSwitchComp) cutOverForce(tdbctlNotFlushed *bool, flushRoutingFailed *bool) (err error) {
 	logger.Info("force switch mode: skip flush tables, lock spider and replication check")
 
+	*tdbctlNotFlushed = true
 	// 执行路由切换SQL
 	if _, err = r.tdbCtlConn.ExecMore(r.primaryShardSwitchSqls); err != nil {
-		*tdbctlNotFlushed = true
 		return err
 	}
 
@@ -673,33 +717,85 @@ func (r *SpiderClusterBackendSwitchComp) cutOverForce(tdbctlNotFlushed *bool) (e
 
 	// flush 到中控生效
 	logger.Info("execute:tdbctl flush routing force")
-	return r.flushRoutingForce()
+	err = r.flushRoutingForce()
+	if err != nil {
+		*flushRoutingFailed = true
+		return err
+	}
+	*tdbctlNotFlushed = false
+	*flushRoutingFailed = false
+	return nil
+}
+
+// selectServersByNames 从中控查询指定 ServerName 的路由快照，返回 map[ServerName]Server
+func (c *CutOverCtx) selectServersByNames(names []string) (map[string]native.Server, error) {
+	servers, err := c.tdbCtlConn.SelectServers()
+	if err != nil {
+		return nil, err
+	}
+	nameSet := make(map[string]struct{}, len(names))
+	for _, n := range names {
+		nameSet[n] = struct{}{}
+	}
+	result := make(map[string]native.Server, len(names))
+	for _, s := range servers {
+		if _, ok := nameSet[s.ServerName]; ok {
+			result[s.ServerName] = s
+		}
+	}
+	return result, nil
+}
+
+// logRoutingChanges 查询中控当前路由，与切换前快照对比后输出日志
+func (c *CutOverCtx) logRoutingChanges(beforeSnapshot map[string]native.Server, svrNames []string) {
+	afterSnapshot, err := c.selectServersByNames(svrNames)
+	if err != nil {
+		logger.Warn("[切换完成] 查询切换后路由失败，无法输出对比信息: %v", err)
+		return
+	}
+	logger.Info("[切换完成] 路由变更汇总（来自中控 mysql.servers），共 %d 个节点:", len(svrNames))
+	for _, name := range svrNames {
+		before, ok1 := beforeSnapshot[name]
+		after, ok2 := afterSnapshot[name]
+		if !ok1 || !ok2 {
+			logger.Warn("[切换完成] %s: 路由信息不完整，跳过", name)
+			continue
+		}
+		beforeEndpoint := fmt.Sprintf("%s:%d", before.Host, before.Port)
+		afterEndpoint := fmt.Sprintf("%s:%d", after.Host, after.Port)
+		logger.Info("[切换完成] %s: %s -> %s", name, beforeEndpoint, afterEndpoint)
+	}
 }
 
 // cutOverNormal 正常切换模式：完整的安全检查流程
-func (r *SpiderClusterBackendSwitchComp) cutOverNormal(tdbctlNotFlushed *bool) (err error) {
+func (r *SpiderClusterBackendSwitchComp) cutOverNormal(tdbctlNotFlushed *bool, flushRoutingFailed *bool) (err error) {
+	*tdbctlNotFlushed = true
 	// Step 1: 在每个Spider节点执行 flush tables
 	if err = r.flushTablesAtEverySpiderNode(); err != nil {
-		return fmt.Errorf("[未切换]: flush tables failed:%w", err)
-	}
-
-	// Step 2: 执行路由切换SQL
-	if _, err = r.tdbCtlConn.ExecMore(r.primaryShardSwitchSqls); err != nil {
-		*tdbctlNotFlushed = true
+		logger.Error("[未切换，可重试]: flush tables failed: %v", err)
 		return err
 	}
+	// Step 2: 执行路由切换SQL
+	logger.Info("执行 TDBCTL ALTER NODE WITH SYNC，路由变更将写入 tdbctl 及各 spider 节点 mysql.servers（内存路由缓存将在 Step 5 统一刷新）...")
+	if _, err = r.tdbCtlConn.ExecMore(r.primaryShardSwitchSqls); err != nil {
 
-	// Step 3: 锁定所有Spider写入并检查复制状态
-	logger.Info("start locking the spider node")
-	if err = r.lockaAllSpidersWrite(); err != nil {
+		return err
+	}
+	logger.Info("[已变更-自动保护] 路由切换SQL(WITH SYNC)执行成功，SPT路由已写入 tdbctl 及各 spider 节点 mysql.servers；若后续步骤失败将自动触发回滚")
+	// Step 3: 锁定所有 Master Spider 写入并检查复制状态
+	logger.Info("准备锁定所有 Master Spider 节点，开始锁定...")
+	if err = r.lockMasterSpidersWrite(); err != nil {
+		logger.Error("锁定所有 Master Spider 节点失败: %v", err)
 		return err
 	}
 	defer func() {
-		if uerr := r.Unlock(); uerr != nil {
+		if uerr := r.UnlockMasterSpiders(); uerr != nil {
 			logger.Error("unlock failed: %v", uerr)
+		} else {
+			logger.Info("unlock master spiders successfully")
 		}
 	}()
-
+	logger.Info("Spider节点锁定成功，开始检查复制状态")
 	if err = checkReplicationStatus(r.slavesConn); err != nil {
 		return err
 	}
@@ -711,8 +807,27 @@ func (r *SpiderClusterBackendSwitchComp) cutOverNormal(tdbctlNotFlushed *bool) (
 	}
 
 	// Step 5: flush 到中控生效
-	logger.Info("execute:tdbctl flush routing cache")
-	return r.flushrouting()
+	logger.Info("执行 TDBCTL FLUSH ROUTING CACHE，刷新各节点内存路由缓存使切换生效...")
+	if err = r.flushRoutingCache(); err == nil {
+		logger.Info("flush routing cache successfully")
+		*tdbctlNotFlushed = false
+		return nil
+	}
+	// flushRoutingCache 失败：FLUSH ROUTING 按 spider_master→spider_slave 串行执行，
+	// 部分节点内存路由可能已生效，立即标记不可回滚，避免 defer 误触发自动回滚
+	*flushRoutingFailed = true
+	logger.Warn("flush routing cache failed %v，部分节点路由可能已生效，尝试 flush routing force 补救...", err)
+	logger.Info("执行 TDBCTL FLUSH ROUTING FORCE，刷新各节点内存路由缓存使切换生效...")
+	err = r.flushRoutingForce()
+	if err != nil {
+		logger.Error("flush routing force failed %v,flush routing 刷新次序是：spider-master、spider_slave,"+
+			"即使这里失败也可能spider-master 的路由生效，要确认 spider-master 的路由是否生效，如果生效了，就不能回滚了", err)
+		return err
+	}
+	// flushRoutingForce 成功补救：所有节点路由已全部刷新，状态确定，恢复可回滚标志
+	*flushRoutingFailed = false
+	*tdbctlNotFlushed = false
+	return nil
 }
 
 // CutOverSlave TODO
@@ -742,8 +857,9 @@ func (r *SpiderClusterBackendSwitchComp) CutOverSlave() (err error) {
 	}
 	// flush 到中控生效
 	logger.Info("执行:tdbctl flush routing cache")
-	err = r.flushrouting()
+	err = r.flushRoutingCache()
 	if err == nil {
+		logger.Info("switch slave successfully,execute flush routing cache successfully")
 		return nil
 	}
 	logger.Warn("execute flush routing cache failed %s", err.Error())
@@ -755,8 +871,9 @@ func (r *SpiderClusterBackendSwitchComp) CutOverSlave() (err error) {
 func (r *SpiderClusterBackendSwitchComp) PersistenceRollbackFile() (err error) {
 	var masterRbSqls, slaveRbSqls, w []string
 	for _, ins_pair := range r.realSwitchSvrPairs {
-		masterRbSqls = append(masterRbSqls, ins_pair.Master.GetAlterNodeSql(ins_pair.MptName, false))
-		slaveRbSqls = append(slaveRbSqls, ins_pair.Slave.GetAlterNodeSql(ins_pair.SptName, false))
+		// 回滚时必须带 WITH SYNC，确保回滚路由同步写入各 spider 节点的 mysql.servers
+		masterRbSqls = append(masterRbSqls, ins_pair.Master.GetAlterNodeSql(ins_pair.MptName, true))
+		slaveRbSqls = append(slaveRbSqls, ins_pair.Slave.GetAlterNodeSql(ins_pair.SptName, true))
 	}
 	if err = r.initRollbackRouteFile(); err != nil {
 		return err
@@ -804,9 +921,8 @@ func (r *SpiderClusterBackendSwitchComp) PersistenceSwitchSlaveSptRtSQLFile(task
 	return nil
 }
 
-func buildSwitchSlaveSptRtSQLFileName(taskid string, batchid int) string {
-	return fmt.Sprintf(".%s_%d_switch_slave_spt.sql", taskid, batchid)
-
+func buildSwitchSlaveSptRtSQLFileName(taskId string, batchId int) string {
+	return fmt.Sprintf(".%s_%d_switch_slave_spt.sql", taskId, batchId)
 }
 
 // OutputBinLogPosCtx output the instance binlog position ctx
@@ -1001,8 +1117,8 @@ func (c *CutOverCtx) CheckSpiderAppProcesslist() (err error) {
 	return
 }
 
-func (c *CutOverCtx) lockaAllSpidersWrite() (err error) {
-	for addr, lockConn := range c.spidersLockConn {
+func (c *CutOverCtx) lockMasterSpidersWrite() (err error) {
+	for addr, lockConn := range c.masterSpidersLockConn {
 		_, err = lockConn.ExecContext(context.Background(), "set lock_wait_timeout = 10;")
 		if err != nil {
 			return fmt.Errorf("set lock_wait_timeout at %s failed,err:%w", addr, err)
@@ -1021,9 +1137,9 @@ func (c *CutOverCtx) lockaAllSpidersWrite() (err error) {
 	return
 }
 
-// flushTablesAtEverySpiderNode flush tables at every spider node
+// flushTablesAtEverySpiderNode flush tables at every master spider node
 func (c *CutOverCtx) flushTablesAtEverySpiderNode() (err error) {
-	for addr, lockConn := range c.spidersLockConn {
+	for addr, lockConn := range c.masterSpidersLockConn {
 		fn := func() (e error) {
 			_, e = lockConn.ExecContext(context.Background(), "FLUSH TABLES")
 			if e != nil {
@@ -1038,9 +1154,9 @@ func (c *CutOverCtx) flushTablesAtEverySpiderNode() (err error) {
 	return
 }
 
-// Unlock unlock
-func (c *CutOverCtx) Unlock() (err error) {
-	for addr, lockConn := range c.spidersLockConn {
+// UnlockMasterSpiders unlock master spider nodes
+func (c *CutOverCtx) UnlockMasterSpiders() (err error) {
+	for addr, lockConn := range c.masterSpidersLockConn {
 		err = cmutil.Retry(cmutil.RetryConfig{
 			Times:     3,
 			DelayTime: 1 * time.Second,
@@ -1050,11 +1166,12 @@ func (c *CutOverCtx) Unlock() (err error) {
 				return ierr
 			}
 			// 归还连接到连接池
+			logger.Info("unlock lock tables at %s successfully", addr)
 			lockConn.Close()
 			return nil
 		})
 		if err != nil {
-			return fmt.Errorf("addr:%s,err:%w", addr, err)
+			return fmt.Errorf("unlock lock tables at %s failed,err:%w", addr, err)
 		}
 	}
 	return
@@ -1070,7 +1187,7 @@ func (c *CutOverCtx) flushRoutingForce() (err error) {
 	return
 }
 
-func (c *CutOverCtx) flushrouting() (err error) {
+func (c *CutOverCtx) flushRoutingCache() (err error) {
 	if err = cmutil.Retry(cmutil.RetryConfig{Times: 3, DelayTime: 1 * time.Second}, func() error {
 		_, ferr := c.tdbCtlConn.Exec("TDBCTL FLUSH ROUTING CACHE;")
 		return ferr

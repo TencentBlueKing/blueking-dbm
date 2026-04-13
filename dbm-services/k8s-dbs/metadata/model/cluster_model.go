@@ -41,6 +41,7 @@ type K8sCrdClusterModel struct {
 	BkBizName           string                 `gorm:"size:128;not null;column:bk_biz_name" json:"bkBizName"`
 	BkAppAbbr           string                 `gorm:"size:128;not null;column:bk_app_abbr" json:"bkAppAbbr"`
 	BkAppCode           string                 `gorm:"size:128;not null;column:bk_app_code" json:"bkAppCode"`
+	DbmClusterID        uint64                 `gorm:"column:dbm_cluster_id;default:0" json:"dbmClusterId"`
 	Status              string                 `gorm:"size:32;column:status" json:"status"`
 	Description         string                 `gorm:"size:100;column:description" json:"description"`
 	CreatedBy           string                 `gorm:"size:50;not null;column:created_by" json:"createdBy"`

@@ -29,6 +29,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
@@ -44,19 +45,30 @@ var (
 // Client provides HTTP client for communicating with DBM API services
 // Handles database instance management operations including status updates, domain management, and role switching
 type Client struct {
-	cli *hanet.HttpClient
+	cli     *hanet.HttpClient
+	cliOnce sync.Once
+}
+
+func (c *Client) getHttpClient() *hanet.HttpClient {
+	c.cliOnce.Do(func() {
+		if c.cli == nil {
+			c.cli = hanet.NewHttpClientWithHeaders(map[string]string{
+				"Content-Type": "application/json",
+			})
+		}
+	})
+
+	return c.cli
+}
+
+func (c *Client) getRequestClientWithTimeout(timeout time.Duration) *hanet.HttpClient {
+	return c.getHttpClient().Clone().SetTimeout(timeout)
 }
 
 // SendRequest sends HTTP request to DBM API with specified method and timeout
 func (c *Client) SendRequest(url string, method hanet.HttpMethod, req any,
 	timeout time.Duration) ([]byte, error) {
-	if c.cli == nil {
-		c.cli = hanet.NewHttpClientWithHeaders(map[string]string{
-			"Content-Type": "application/json",
-		})
-	}
-
-	c.cli.SetTimeout(timeout)
+	cli := c.getRequestClientWithTimeout(timeout)
 
 	data, err := json.Marshal(&req)
 	if err != nil {
@@ -64,7 +76,7 @@ func (c *Client) SendRequest(url string, method hanet.HttpMethod, req any,
 		return nil, gerrors.NewE(gerrors.InvalidParameter, err)
 	}
 
-	code, resp, err := c.cli.Request(context.Background(), url, method, data)
+	code, resp, err := cli.Request(context.Background(), url, method, data)
 	if err != nil {
 		logger.Warn("failed to send http %s request to dbm, errmsg: %s", method, err)
 		return nil, err
@@ -86,13 +98,9 @@ func (c *Client) RequestMetadata(ctx context.Context, req *Request) (*Response, 
 		return nil, err
 	}
 
-	if c.cli == nil {
-		c.cli = hanet.NewHttpClientWithHeaders(map[string]string{
-			"Content-Type": "application/json",
-		})
-	}
+	cli := c.getRequestClientWithTimeout(config.Cfg.Workflow.DbmApiMetadata.Timeout)
 
-	code, resp, err := c.cli.Post(ctx, config.Cfg.Workflow.DbmApiMetadata.Api, data)
+	code, resp, err := cli.Post(ctx, config.Cfg.Workflow.DbmApiMetadata.Api, data)
 	if err != nil {
 		return nil, err
 	}

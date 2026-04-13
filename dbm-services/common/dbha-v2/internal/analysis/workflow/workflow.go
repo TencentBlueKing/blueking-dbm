@@ -28,6 +28,9 @@ package workflow
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -39,8 +42,11 @@ import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+
+	"github.com/google/uuid"
 )
 
 var (
@@ -55,10 +61,14 @@ var (
 
 const (
 	scanIntervalLimitMin = 5 * time.Second
+	popIntervalLimitMin  = 5 * time.Second
 	readBatchCount       = 1000
 )
 
-// Workflow represents the workflow engine for DBHA, composed of instance discovery, alarm, metadata, switch, detector, and checker.
+// Workflow represents the workflow engine for DBHA.
+// It is composed of instance discovery, alarm, metadata, switch, detector, and checker.
+// It manages two independent periodic loops: scan (detecting failures and pushing to windows)
+// and pop-switch (popping matured entries from windows and triggering switching).
 type Workflow struct {
 	StatusParser
 
@@ -77,6 +87,7 @@ type Workflow struct {
 	switchExecutor    *SwitchExecutor
 	detectorHandler   *DetectorHandler
 	businessChecker   *BusinessChecker
+	windowMgr         *BizWindowManager
 }
 
 // New creates a workflow instance. discovery and registryPrefix are used to list and watch
@@ -109,9 +120,10 @@ func New(cli *discovery.Client, db *hamysql.GormDB, disc *discovery.Discovery,
 	wflow.instanceDiscovery = NewInstanceDiscovery(wflow.discovery, wflow.registryPrefix,
 		wflow.myServiceID, wflow.quit)
 
+	wflow.windowMgr = NewBizWindowManager(config.Cfg.Workflow.WindowDuration, config.Cfg.Workflow.InflightTTL)
 	wflow.metadataReader = NewMetadataReader(wflow.hadata, wflow.discoveryCli)
 	wflow.switchExecutor = NewSwitchExecutor(wflow.hadata, wflow.dbmSync, wflow.switchers)
-	wflow.detectorHandler = NewDetectorHandler(wflow.alarm, wflow.switchExecutor)
+	wflow.detectorHandler = NewDetectorHandler(wflow.alarm, wflow.windowMgr)
 	wflow.businessChecker = NewBusinessChecker(&wflow.StatusParser, wflow.detectorHandler)
 
 	return wflow, nil
@@ -120,10 +132,17 @@ func New(cli *discovery.Client, db *hamysql.GormDB, disc *discovery.Discovery,
 // Run runs the workflow: starts dbm sync, instance watch, and the periodic business scan loop.
 func (w *Workflow) Run(ctx context.Context) error {
 	if config.Cfg.Workflow.ScanInterval < scanIntervalLimitMin {
-		logger.Warn("scan interval(%v) is too small,reset it to the default value(%v)",
+		logger.Warn("scan interval(%v) is too small, reset it to the default value(%v)",
 			config.Cfg.Workflow.ScanInterval, scanIntervalLimitMin)
 
 		config.Cfg.Workflow.ScanInterval = scanIntervalLimitMin
+	}
+
+	if config.Cfg.Workflow.PopInterval < popIntervalLimitMin {
+		logger.Warn("pop interval(%v) is too small, reset it to the default value(%v)",
+			config.Cfg.Workflow.PopInterval, popIntervalLimitMin)
+
+		config.Cfg.Workflow.PopInterval = popIntervalLimitMin
 	}
 
 	if err := w.dbmSync.Run(ctx); err != nil {
@@ -137,6 +156,7 @@ func (w *Workflow) Run(ctx context.Context) error {
 		w.instanceDiscovery.RunWatch(ctx)
 	}()
 
+	// Scan timer: periodically scan businesses, detect failures and push into sliding windows
 	w.wg.Add(1)
 	go func() {
 		defer w.wg.Done()
@@ -146,11 +166,11 @@ func (w *Workflow) Run(ctx context.Context) error {
 		for {
 			select {
 			case <-w.quit:
-				logger.Info("the workflow exited(quit)")
+				logger.Info("the scan loop exited(quit)")
 				return
 
 			case <-ctx.Done():
-				logger.Info("the workflow exited(ctx done)")
+				logger.Info("the scan loop exited(ctx done)")
 				return
 
 			case <-timer.C:
@@ -158,6 +178,32 @@ func (w *Workflow) Run(ctx context.Context) error {
 				w.ScanBusinesses(ctx)
 				logger.Debug("the workflow will scan the businesses, after: %v", config.Cfg.Workflow.ScanInterval)
 				timer.Reset(config.Cfg.Workflow.ScanInterval)
+			}
+		}
+	}()
+
+	// Switch timer: periodically pop matured entries from sliding windows, match strategies and trigger switching
+	w.wg.Add(1)
+	go func() {
+		defer w.wg.Done()
+		timer := time.NewTimer(config.Cfg.Workflow.PopInterval)
+		defer timer.Stop()
+
+		for {
+			select {
+			case <-w.quit:
+				logger.Info("the pop-switch loop exited(quit)")
+				return
+
+			case <-ctx.Done():
+				logger.Info("the pop-switch loop exited(ctx done)")
+				return
+
+			case <-timer.C:
+				logger.Debug("the workflow begins to pop and switch")
+				w.PopAndSwitch(ctx)
+				logger.Debug("the workflow will pop and switch, after: %v", config.Cfg.Workflow.PopInterval)
+				timer.Reset(config.Cfg.Workflow.PopInterval)
 			}
 		}
 	}()
@@ -175,11 +221,12 @@ func (w *Workflow) Close() {
 	w.quit = nil
 }
 
-// CheckBusinessWithBizID checks a business by its ID: acquires lock, reads metadata and status, runs checks via BusinessChecker.
+// CheckBusinessWithBizID checks a business by its ID.
+// It acquires scan lock, reads metadata and status, and runs checks via BusinessChecker.
 func (w *Workflow) CheckBusinessWithBizID(ctx context.Context, bizId int) error {
-	logger.Debug("check the business: %d", bizId)
+	logger.Debug("scan the business: %d", bizId)
 
-	_, unlock, err := w.metadataReader.AcquireBusinessLock(ctx, bizId)
+	_, unlock, err := w.metadataReader.AcquireScanLock(ctx, bizId)
 	if err != nil {
 		return err
 	}
@@ -190,7 +237,10 @@ func (w *Workflow) CheckBusinessWithBizID(ctx context.Context, bizId int) error 
 		return err
 	}
 
-	dbStatus, err := w.hadata.ReadDbStatusWithDbInstances(bizMeta.Conds, config.Cfg.Workflow.ReadDbMetricOffsetDuration)
+	dbStatus, err := w.hadata.ReadDbStatusWithDbInstances(
+		bizMeta.Conds,
+		config.Cfg.Workflow.ReadDbMetricOffsetDuration,
+	)
 	if err != nil {
 		logger.Warn("failed to read the DB status with the conditions: %v, bizId: %d, errmsg: %s", bizMeta.Conds, bizId, err)
 		return ErrReadDbMetricFailure
@@ -205,7 +255,7 @@ func (w *Workflow) CheckBusinessWithBizID(ctx context.Context, bizId int) error 
 
 	w.businessChecker.RunBusinessChecks(bizId, dbStatus, statusData, skipInsts, bizMeta.MetaInsts)
 
-	logger.Debug("finished checking the business: %d", bizId)
+	logger.Debug("finished scanning the business: %d", bizId)
 	return nil
 }
 
@@ -214,7 +264,9 @@ func (w *Workflow) CheckBusinessWithBizID(ctx context.Context, bizId int) error 
 func (w *Workflow) ScanBusinesses(ctx context.Context) {
 	start := time.Now()
 
-	bizIDs, err := w.hadata.GetBizIDs()
+	qCtx, cancel := context.WithTimeout(ctx, config.Cfg.Storage.Timeout)
+	bizIDs, err := w.hadata.GetBizIDs(qCtx)
+	cancel()
 	if err != nil {
 		logger.Warn("failed to get business IDs, errmsg: %s", err)
 		return
@@ -260,6 +312,221 @@ func (w *Workflow) ScanBusinesses(ctx context.Context) {
 	}).Add(float64(len(assigned))); err != nil {
 		logger.Warn("failed to report the scan business total, errmsg: %s", err)
 	}
+}
+
+// PopAndSwitch iterates over assigned business IDs, pops matured entries from sliding windows,
+// matches switching strategies, and triggers asynchronous switching for matched groups.
+// Each business acquires an independent SwitchLock to prevent multiple AM instances from
+// switching the same business simultaneously. SwitchLock is independent of ScanLock.
+func (w *Workflow) PopAndSwitch(ctx context.Context) {
+	start := time.Now()
+
+	qCtx, cancel := context.WithTimeout(ctx, config.Cfg.Storage.Timeout)
+	bizIDs, err := w.hadata.GetBizIDs(qCtx)
+	cancel()
+	if err != nil {
+		logger.Warn("failed to get business IDs for pop-switch, errmsg: %s", err)
+		return
+	}
+
+	assigned := w.instanceDiscovery.AssignedBizIDs(bizIDs)
+	wg := sync.WaitGroup{}
+	sem := make(chan struct{}, 10)
+
+	for _, bizID := range assigned {
+		sem <- struct{}{}
+		wg.Add(1)
+
+		go func(bizId int) {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			w.popAndSwitchForBiz(ctx, bizId)
+		}(bizID)
+	}
+
+	wg.Wait()
+
+	// report the pop-switch time consuming
+	if err := apm.PopSwitchTimeConsumingMs.UpdateLabel(map[string]string{
+		haapm.MetricLabelServiceID:   w.myServiceID,
+		haapm.MetricLabelServiceName: "analysis",
+	}).Observe(float64(time.Since(start).Milliseconds())); err != nil {
+		logger.Warn("failed to report the pop-switch time consuming, errmsg: %s", err)
+	}
+
+	// report the pop-switch business total
+	if err := apm.PopSwitchBusinessTotal.UpdateLabel(map[string]string{
+		haapm.MetricLabelServiceID:   w.myServiceID,
+		haapm.MetricLabelServiceName: "analysis",
+	}).Add(float64(len(assigned))); err != nil {
+		logger.Warn("failed to report the pop-switch business total, errmsg: %s", err)
+	}
+}
+
+// popAndSwitchForBiz performs pop-and-switch for a single business:
+// acquires SwitchLock, pops matured entries, marks all instances as inflight,
+// groups by (BkCloudID, DbType), matches strategies, and triggers switching or notification.
+func (w *Workflow) popAndSwitchForBiz(ctx context.Context, bizId int) {
+	_, unlock, err := w.metadataReader.AcquireSwitchLock(ctx, bizId)
+	if err != nil {
+		logger.Debug("skip pop-switch for biz %d, unable to acquire switch lock, errmsg: %s", bizId, err)
+		return
+	}
+	defer unlock()
+
+	entries := w.windowMgr.PopAndMarkStart(bizId, time.Now())
+	if len(entries) == 0 {
+		return
+	}
+
+	logger.Info("popped %d matured entries for biz %d", len(entries), bizId)
+	groups := groupEntriesByCloudAndDbType(entries)
+
+	var wg sync.WaitGroup
+	for _, group := range groups {
+		w.handleFailureGroup(ctx, group, &wg)
+	}
+
+	wg.Wait()
+}
+
+func (w *Workflow) handleFailureGroup(ctx context.Context, group *FailureGroup, wg *sync.WaitGroup) {
+	groupInstKeys := collectGroupInstanceKeys(group)
+	req := w.switchExecutor.CreateRequestWithGroup(ctx, group)
+
+	if req == nil {
+		w.markDoneAll(groupInstKeys)
+		return
+	}
+
+	if !req.HasDbInstMetadata() {
+		logger.Warn("no db inst metadata after query, dbType: %s, cloudId: %d, instances: %d",
+			group.DbType, group.BkCloudID, len(group.Instances))
+		w.markDoneAll(groupInstKeys)
+		return
+	}
+
+	matched, strategy := w.switchExecutor.MatchStrategyForGroup(ctx, group)
+	if !matched {
+		logger.Info(
+			"no matching switching strategy, skip, cloudId: %d, dbType: %s, instances: %d, events: [%s]",
+			group.BkCloudID,
+			group.DbType,
+			len(group.Instances),
+			FormatInstanceEventSummary(group.Instances),
+		)
+		w.markDoneAll(groupInstKeys)
+		return
+	}
+
+	if w.handleStrategyNotify(strategy, group, groupInstKeys) {
+		return
+	}
+
+	if w.handleStrategySwitch(strategy, group, groupInstKeys, req, wg) {
+		return
+	}
+
+	logger.Warn("unknown strategy action: %s, strategy: %s, cloudId: %d, dbType: %s",
+		strategy.Action, strategy.Name, group.BkCloudID, group.DbType)
+	w.markDoneAll(groupInstKeys)
+}
+
+func collectGroupInstanceKeys(group *FailureGroup) []string {
+	groupInstKeys := make([]string, 0, len(group.Instances))
+	for _, inst := range group.Instances {
+		groupInstKeys = append(groupInstKeys,
+			instanceWindowKey(inst.BkCloudID, inst.IP, inst.Port, inst.DbType))
+	}
+
+	return groupInstKeys
+}
+
+func (w *Workflow) handleStrategyNotify(strategy *hamodel.DbSwitchingStrategy, group *FailureGroup,
+	groupInstKeys []string) bool {
+	if strategy.Action != hamodel.ActionTypeNotify {
+		return false
+	}
+
+	log := fmt.Sprintf("strategy action is %s, execute notification, strategy: %s, cloudId: %d, dbType: %s",
+		strategy.Action, strategy.Name, group.BkCloudID, group.DbType)
+	logger.Info("%s", log)
+
+	w.alarm.TriggerWithBizId(group.Instances[0].BkBizID, log)
+	w.markDoneAll(groupInstKeys)
+	return true
+}
+
+func (w *Workflow) handleStrategySwitch(strategy *hamodel.DbSwitchingStrategy, group *FailureGroup,
+	groupInstKeys []string, req *switcher.Request, wg *sync.WaitGroup) bool {
+	if strategy.Action != hamodel.ActionTypeSwitch {
+		return false
+	}
+
+	req.ActionScope = strategy.Scope
+	req.SwitchID = generateSwitchID()
+
+	logger.Info("trigger switching by strategy %s, switchId: %s, dbType: %s, cloudId: %d, instances: %d",
+		strategy.Name, req.SwitchID, group.DbType, group.BkCloudID, len(group.Instances))
+
+	wg.Add(1)
+	go func(keys []string, dbType haprobe.DbType, switchReq *switcher.Request) {
+		defer wg.Done()
+		defer w.markDoneAll(keys)
+		defer func() {
+			if r := recover(); r != nil {
+				logger.Error("panic occurred during trigger switching, strategy: %s, dbType: %s, cloudId: %d, panic: %v, stack: %s",
+					strategy.Name, dbType, group.BkCloudID, r, string(debug.Stack()))
+			}
+		}()
+
+		w.switchExecutor.TriggerSwitching(dbType, switchReq)
+	}(groupInstKeys, group.DbType, req)
+
+	return true
+}
+
+// generateSwitchID generates a unique switch ID.
+func generateSwitchID() string {
+	return fmt.Sprintf("%s-%s", config.SwitchIDVersion, strings.ReplaceAll(uuid.New().String(), "-", ""))
+}
+
+// markDoneAll releases inflight marks for all the given instance keys.
+func (w *Workflow) markDoneAll(keys []string) {
+	for _, key := range keys {
+		w.windowMgr.MarkDone(key)
+	}
+}
+
+// groupEntriesByCloudAndDbType groups window entries by (BkCloudID, DbType) into FailureGroups
+// for batch strategy matching and switching.
+func groupEntriesByCloudAndDbType(entries []*FailureWindowEntry) []*FailureGroup {
+	groupMap := make(map[string]*FailureGroup)
+	var keys []string
+
+	for _, entry := range entries {
+		key := fmt.Sprintf("%d:%s", entry.BkCloudID, entry.DbType)
+		if g, ok := groupMap[key]; ok {
+			g.Instances = append(g.Instances, entry.FailureInstanceInfo)
+		} else {
+			groupMap[key] = &FailureGroup{
+				BkCloudID: entry.BkCloudID,
+				DbType:    entry.DbType,
+				Instances: []FailureInstanceInfo{entry.FailureInstanceInfo},
+			}
+			keys = append(keys, key)
+		}
+	}
+
+	// Maintain deterministic order
+	sort.Strings(keys)
+	groups := make([]*FailureGroup, 0, len(keys))
+	for _, k := range keys {
+		groups = append(groups, groupMap[k])
+	}
+
+	return groups
 }
 
 // instanceKey builds a unique instance identifier from cloud id, IP and port.

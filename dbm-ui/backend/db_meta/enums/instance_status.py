@@ -36,6 +36,7 @@ class MongoDBStorageInstanceStatus(IntStructuredEnum):
     ROLLBACK = EnumField(9, _("ROLLBACK"))
     REMOVED = EnumField(10, _("REMOVED"))
     # 其他状态，用于未知状态
+    NOT_INITIALIZED = EnumField(-1, _("NOT_INITIALIZED"))
     OTHER = EnumField(99, _("OTHER"))
 
     """

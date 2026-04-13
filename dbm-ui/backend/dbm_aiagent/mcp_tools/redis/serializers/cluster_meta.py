@@ -213,7 +213,7 @@ class RedisInstancesInputSerializer(serializers.Serializer):
     """Redis实例列表序列化器"""
 
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    addrs = serializers.ListField(help_text=_("实例地址列表"), required=True)
+    addrs = serializers.ListField(child=serializers.CharField(), help_text=_("实例地址列表"), required=True)
 
 
 class BindEntrySerializer(serializers.Serializer):

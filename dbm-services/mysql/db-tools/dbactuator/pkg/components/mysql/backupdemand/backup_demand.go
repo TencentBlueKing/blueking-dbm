@@ -49,9 +49,12 @@ type Param struct {
 	BackupType string   `json:"backup_type" validate:"required"`
 	BackupGSD  []string `json:"backup_gsd" validate:"required"` // [grant, schema, data]
 	// BackupFileTag file tag for backup system to file expires
-	BackupFileTag   string   `json:"backup_file_tag"`
-	BackupId        string   `json:"backup_id" validate:"required"`
-	BillId          string   `json:"bill_id" validate:"required"`
+	BackupFileTag string `json:"backup_file_tag"`
+	BackupId      string `json:"backup_id" validate:"required"`
+	BillId        string `json:"bill_id" validate:"required"`
+	// IsFullBackup 是否全量备份, yes,no,auto
+	// 在单节点值迁移表结构场景下，伪装表结构为全备，可用于全备恢复
+	IsFullBackup    string   `json:"is_full_backup"`
 	CustomBackupDir string   `json:"custom_backup_dir"`
 	DbPatterns      []string `json:"db_patterns"`
 	IgnoreDbs       []string `json:"ignore_dbs"`
@@ -155,6 +158,7 @@ func (c *Component) GenerateBackupConfig() error {
 	backupConfig.Public.BackupTimeOut = ""
 	backupConfig.Public.BillId = c.Params.BillId
 	backupConfig.Public.BackupId = c.Params.BackupId
+	backupConfig.Public.IsFullBackup = c.Params.IsFullBackup
 	backupConfig.Public.DataSchemaGrant = strings.Join(c.Params.BackupGSD, ",")
 	backupConfig.Public.ShardValue = c.Params.ShardID
 	if backupConfig.BackupClient.EnableBackupClient != "no" && c.Params.BackupFileTag != "" {

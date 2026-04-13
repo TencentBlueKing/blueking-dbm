@@ -24,9 +24,9 @@ import (
 	"dbm-services/common/go-pubpkg/apm/metric"
 	"dbm-services/common/go-pubpkg/apm/trace"
 	"io"
-	"k8s-dbs/core/util"
 	dbslogger "k8s-dbs/logger"
 	"log/slog"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
@@ -52,21 +52,27 @@ func RegisterMiddleWare(engine *gin.Engine) {
 	slog.Info("Finish initial metric...")
 
 	// 注册 auth 中间件
-	engine.Use(APIAuthMiddleware(util.Db.AuthGormDb))
+	engine.Use(APIAuthMiddleware())
 	slog.Info("Finish initial auth...")
 }
+
+const maxReqBodySize = 8 * 1024 * 1024 // 8 MB，防止超大请求体导致 OOM
 
 // ParseReqBody 获取请求消息体
 func ParseReqBody(c *gin.Context) []byte {
 	var reqBody []byte
 	if c.Request.Body != nil {
+		// 限制请求体大小，防止恶意/意外超大请求体耗尽内存
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxReqBodySize)
 		// 复制一份请求体，因为 c.Request.Body 只能读取一次
 		reqBodyBytes, err := io.ReadAll(c.Request.Body)
-		if err == nil {
-			reqBody = reqBodyBytes
-			// 恢复请求体，以便后续 handler 正常读取
-			c.Request.Body = io.NopCloser(bytes.NewBuffer(reqBodyBytes))
+		if err != nil {
+			slog.Warn("failed to read request body", "error", err)
+			return nil
 		}
+		reqBody = reqBodyBytes
+		// 恢复请求体，以便后续 handler 正常读取
+		c.Request.Body = io.NopCloser(bytes.NewBuffer(reqBodyBytes))
 	}
 	return reqBody
 }

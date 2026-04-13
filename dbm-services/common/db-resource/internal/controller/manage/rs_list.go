@@ -163,6 +163,9 @@ func (c *MachineResourceGetterInputParam) matchStorageSpecs(db *gorm.DB) {
 
 func (c *MachineResourceGetterInputParam) getRealCities() (realCities []string, err error) {
 	for _, logicCity := range c.City {
+		if cmutil.IsEmpty(logicCity) {
+			continue
+		}
 		real_cities, err := dbmapi.GetIdcCityByLogicCity(logicCity)
 		if err != nil {
 			logger.Error("from %s get real cites failed %s", logicCity, err.Error())
@@ -224,17 +227,17 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) (err error) {
 		if err != nil {
 			return err
 		}
-		db.Where(" city in (?) ", realCities)
+		if len(realCities) > 0 {
+			db.Where(" city in (?) ", realCities)
+		}
 	}
 	if len(c.SubZoneIds) > 0 {
 		db.Where(" sub_zone_id in (?) ", c.SubZoneIds)
 	}
 	if len(c.Labels) > 0 {
 		db.Where(model.JSONQuery("labels").JointOrContains(c.Labels))
-	} else {
-		if c.EmptyLabels {
-			db.Where(" JSON_TYPE(labels) = 'NULL' or JSON_TYPE(labels) is null OR JSON_LENGTH(labels) < 1 ")
-		}
+	} else if c.EmptyLabels {
+		db.Where(" JSON_TYPE(labels) = 'NULL' or JSON_TYPE(labels) is null OR JSON_LENGTH(labels) < 1 ")
 	}
 
 	if lo.IsNotEmpty(c.OsType) {

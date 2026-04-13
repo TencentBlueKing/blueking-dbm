@@ -501,7 +501,7 @@
 
   const operationColumnRef = ref<ComponentExposed<typeof OperationColumn>>();
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
-  const removeMNTInstanceIds = ref<number[]>([]);
+  const removeMNTInstances = ref<string[]>([]);
   const excelAuthorizeShow = ref(false);
   const clusterAuthorizeShow = ref(false);
   const showDataExportSlider = ref(false);
@@ -569,21 +569,21 @@
               {t('请勾选要下架的运维节点')}
             </p>
             <Checkbox.Group
-              v-model={removeMNTInstanceIds.value}
+              v-model={removeMNTInstances.value}
               class='mnt-checkbox-group'
               style='flex-wrap: wrap;'>
               {data.spider_mnt.map((item) => (
-                <Checkbox label={item.bk_instance_id}>{item.instance}</Checkbox>
+                <Checkbox label={item.instance}>{item.instance}</Checkbox>
               ))}
             </Checkbox.Group>
           </div>
         </>
       ),
       onCancel: () => {
-        removeMNTInstanceIds.value = [];
+        removeMNTInstances.value = [];
       },
       onConfirm: () => {
-        if (removeMNTInstanceIds.value.length === 0) {
+        if (removeMNTInstances.value.length === 0) {
           messageWarn(t('请勾选要下架的运维节点'));
           return false;
         }
@@ -595,7 +595,7 @@
                 cluster_id: data.id,
                 old_nodes: {
                   spider_ip_list: data.spider_mnt
-                    .filter((item) => removeMNTInstanceIds.value.includes(item.bk_instance_id))
+                    .filter((item) => removeMNTInstances.value.includes(item.instance))
                     .map((item) => ({
                       bk_cloud_id: item.bk_cloud_id,
                       bk_host_id: item.bk_host_id,
@@ -610,7 +610,7 @@
         })
           .then((res) => {
             ticketMessage(res.id);
-            removeMNTInstanceIds.value = [];
+            removeMNTInstances.value = [];
             return true;
           })
           .catch(() => false);

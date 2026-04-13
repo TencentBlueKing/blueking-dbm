@@ -21,7 +21,12 @@ from backend.flow.consts import (
     SqlserverRestoreDBStatus,
     SqlserverRestoreMode,
 )
-from backend.flow.utils.base.validate_handler import ValidateHandler, validate_int, validate_port, validate_string
+from backend.flow.utils.base.validate_handler import (
+    ValidateHandler,
+    validate_int,
+    validate_ip_or_domain,
+    validate_port,
+)
 from backend.flow.utils.sqlserver.sqlserver_host import Host
 from backend.flow.utils.sqlserver.validate import validate_get_dbmeta_func, validate_get_payload_func, validate_hosts
 
@@ -376,5 +381,5 @@ class NginxInfo(ValidateHandler):
     """
 
     bk_cloud_id: int = field(metadata={"validate": validate_int})  # 操作的云区域id
-    nginx_proxy_ip: str = field(metadata={"validate": validate_string})  # nginx的ip
+    nginx_proxy_ip: str = field(metadata={"validate": validate_ip_or_domain})  # nginx的ip或域名
     nginx_proxy_port: int = field(metadata={"validate": validate_port})  # nginx的端口
