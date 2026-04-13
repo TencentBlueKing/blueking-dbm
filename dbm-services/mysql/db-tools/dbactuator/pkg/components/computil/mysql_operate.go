@@ -341,10 +341,18 @@ func JudgeMysqldShutDown(prefix string) (err error) {
 	defer tk.Stop()
 
 	checkCount := 0
+	var lastPsGrepOut string // 超时前最后一次「仍匹配到 mysqld」的 ps|grep 输出，便于排查残留进程
 	for {
 		select {
 		case <-ot.C:
-			logger.Error("MySQL进程关闭超时, prefix: %s, timeout: 300秒, check_count: %d", prefix, checkCount)
+			if strings.TrimSpace(lastPsGrepOut) != "" {
+				logger.Error(
+					"MySQL进程关闭超时, prefix: %s, timeout: 300秒, check_count: %d, last_ps_grep_output:\n%s",
+					prefix, checkCount, lastPsGrepOut,
+				)
+			} else {
+				logger.Error("MySQL进程关闭超时, prefix: %s, timeout: 300秒, check_count: %d, last_ps_grep_output: (empty)", prefix, checkCount)
+			}
 			return fmt.Errorf("stop mysqld timeout:%s", prefix)
 		case <-tk.C:
 			checkCount++
@@ -379,6 +387,7 @@ func JudgeMysqldShutDown(prefix string) (err error) {
 				// 遇见过进程停掉之后，还往 data/xxx.err 写了条 mysqld_safe mysqld from pid file ....pid ended
 				return nil
 			}
+			lastPsGrepOut = strings.TrimSpace(out)
 			logger.Warn("MySQL进程仍在运行, prefix: %s, process_count: %d, check_count: %d", prefix, processCnt, checkCount)
 		}
 	}
