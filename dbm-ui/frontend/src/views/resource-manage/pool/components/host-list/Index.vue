@@ -141,18 +141,162 @@
         </AuthButton>
       </RouterLink>
     </div>
-    <RenderTable
+    <DbTable
       ref="tableRef"
-      :columns="tableColumn"
+      class="db-instance-table"
       :data-source="dataSource"
-      primary-key="bk_host_id"
       releate-url-query
-      row-cls="my-row-cls"
+      row-class-name="my-row-cls"
+      row-key="bk_host_id"
       selectable
-      :settings="tableSetting"
-      @clear-search="handleClearSearch"
-      @selection="handleSelection"
-      @setting-change="handleSettingChange" />
+      @selection="handleSelection">
+      <TableColumn
+        col-key="ip"
+        fixed="left"
+        :min-width="130"
+        title="IP" />
+      <TableColumn
+        col-key="bk_cloud_name"
+        :title="t('管控区域')"
+        :width="100" />
+      <TableColumn
+        col-key="agent_status"
+        :title="t('Agent 状态')"
+        :width="100">
+        <template #default="{ row }: { row: DbResourceModel }">
+          <HostAgentStatus :data="row.agent_status" />
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="resourceOwner"
+        :title="t('资源归属')"
+        :width="320">
+        <template #default="{ row }: { row: DbResourceModel }">
+          <BkPopover
+            disable-outside-click
+            placement="top"
+            :popover-delay="[300, 0]"
+            theme="light">
+            <template #content>
+              <div class="resource-owner-tips">
+                <strong>{{ t('所属业务') }}：</strong>
+                <div class="resource-owner-tips-values mb-10">
+                  <BkTag :theme="row.for_biz.bk_biz_id === 0 || !row.for_biz.bk_biz_name ? 'success' : ''">
+                    {{ row.forBizDisplay }}
+                  </BkTag>
+                </div>
+                <strong>{{ t('所属DB') }}</strong>
+                <div class="resource-owner-tips-values mb-10">
+                  <BkTag :theme="!row.resource_type || row.resource_type === 'PUBLIC' ? 'success' : ''">
+                    {{ row.resourceTypeDisplay }}
+                  </BkTag>
+                </div>
+                <template v-if="row.labels.length > 0">
+                  <strong>{{ t('资源标签') }}</strong>
+                  <div class="resource-owner-tips-values mb-10">
+                    <BkTag
+                      v-for="item in row.labels"
+                      :key="item.name">
+                      {{ item.name }}
+                    </BkTag>
+                  </div>
+                </template>
+              </div>
+            </template>
+            <div class="resource-owner-wrapper">
+              <div class="resource-owner">
+                <BkTag :theme="row.for_biz.bk_biz_id === 0 || !row.for_biz.bk_biz_name ? 'success' : ''">
+                  {{ t('所属业务') }} : {{ row.forBizDisplay }}
+                </BkTag>
+                <BkTag :theme="!row.resource_type || row.resource_type === 'PUBLIC' ? 'success' : ''">
+                  {{ t('所属DB') }} : {{ row.resourceTypeDisplay }}
+                </BkTag>
+                <BkTag
+                  v-for="item in row.labels"
+                  :key="item.name">
+                  {{ item.name }}
+                </BkTag>
+              </div>
+              <AuthButton
+                v-if="props.type !== ResourcePool.public"
+                action-id="resource_pool_manage"
+                :permission="row.permission.resource_pool_manage"
+                text
+                @click="() => handleEdit(row)">
+                <DbIcon
+                  class="operation-icon"
+                  type="edit" />
+              </AuthButton>
+            </div>
+          </BkPopover>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="city"
+        :title="t('地域')"
+        :width="80">
+        <template #default="{ row }: { row: DbResourceModel }">{{ row.city || '--' }}</template>
+      </TableColumn>
+      <TableColumn
+        col-key="sub_zone"
+        :title="t('园区')"
+        :width="90">
+        <template #default="{ row }: { row: DbResourceModel }">{{ row.sub_zone || '--' }}</template>
+      </TableColumn>
+      <TableColumn
+        col-key="rack_id"
+        :title="t('机架')"
+        :width="80">
+        <template #default="{ row }: { row: DbResourceModel }">{{ row.rack_id || '--' }}</template>
+      </TableColumn>
+      <TableColumn
+        col-key="os_type"
+        :title="t('操作系统类型')"
+        :width="120">
+        <template #default="{ row }: { row: DbResourceModel }">{{ row.os_type || '--' }}</template>
+      </TableColumn>
+      <TableColumn
+        col-key="os_name"
+        :title="t('操作系统名称')"
+        :width="150">
+        <template #default="{ row }: { row: DbResourceModel }">{{ row.os_name || '--' }}</template>
+      </TableColumn>
+      <TableColumn
+        col-key="device_class"
+        :min-width="130"
+        :title="t('机型')">
+        <template #default="{ row }: { row: DbResourceModel }">{{ row.device_class || '--' }}</template>
+      </TableColumn>
+      <TableColumn
+        col-key="bk_cpu"
+        :title="t('CPU（核）')" />
+      <TableColumn
+        col-key="bkMemText"
+        :min-width="90"
+        :title="t('内存（G）')" />
+      <TableColumn
+        col-key="total_data_storage_cap"
+        :title="t('数据盘容量（G）')"
+        :width="120">
+        <template #default="{ row }: { row: DbResourceModel }">
+          <DiskPopInfo
+            :data="row.storage_device"
+            trigger="click">
+            <span style="line-height: 40px; color: #3a84ff; cursor: pointer">
+              {{ row.total_data_storage_cap || 0 }}
+            </span>
+          </DiskPopInfo>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="createTimeDisplay"
+        :title="t('转入时间')"
+        :width="180" />
+      <TableColumn
+        col-key="operator"
+        :title="t('转入人')"
+        :width="120" />
+    </DbTable>
     <BatchSetting
       v-model:is-show="isShowBatchSetting"
       :selected="selectionList"
@@ -179,7 +323,7 @@
       @refresh="handleRefresh" />
     <BatchConvertToBusiness
       v-model:is-show="isShowBatchConvertToBusiness"
-      :biz-id="(currentBizId as number)"
+      :biz-id="currentBizId"
       :selected="selectionList"
       @refresh="handleRefresh" />
     <BatchAssign
@@ -188,12 +332,11 @@
       @refresh="handleRefresh" />
     <UpdateAssign
       v-model:is-show="isShowUpdateAssign"
-      :edit-data="(curEditData as DbResourceModel)"
+      :edit-data="curEditData"
       @refresh="handleRefresh" />
   </div>
 </template>
-<script setup lang="tsx">
-  import { ref } from 'vue';
+<script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import DbResourceModel from '@services/model/db-resource/DbResource';
@@ -204,6 +347,7 @@
   import { TicketTypes } from '@common/const';
 
   import DbIcon from '@components/db-icon';
+  import DbTable from '@components/db-table/IndexNew.vue';
   import DiskPopInfo from '@components/disk-pop-info/DiskPopInfo.vue';
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
 
@@ -219,11 +363,9 @@
   import BatchMoveToRecyclePool from './components/batch-move-to-recycle-pool/Index.vue';
   import BatchSetting from './components/batch-setting/Index.vue';
   import BatchUndoImport from './components/batch-undo-import/Index.vue';
-  import RenderTable from './components/RenderTable.vue';
   import { isValueEmpty } from './components/search-box/components/utils';
   import SearchBox from './components/search-box/Index.vue';
   import UpdateAssign from './components/update-assign/Index.vue';
-  import useTableSetting from './hooks/useTableSetting';
 
   interface Props {
     type?: ResourcePool;
@@ -235,8 +377,6 @@
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
-
-  const { handleChange: handleSettingChange, setting: tableSetting } = useTableSetting();
 
   const searchBoxRef = useTemplateRef('searchBoxRef');
   const tableRef = useTemplateRef('tableRef');
@@ -250,16 +390,16 @@
   const isShowBatchAssign = ref(false);
   const isShowUpdateAssign = ref(false);
   const isShowBatchAddTags = ref(false);
-  // 是否选中同一业务的主机
-  const isSelectedSameBiz = ref(false);
-  // 是否选中公共资源池主机
-  const isSelectedGlobalResource = ref(false);
 
   const selectionList = shallowRef<DbResourceModel[]>([]);
   const curEditData = shallowRef<DbResourceModel>({} as DbResourceModel);
   const searchParams = shallowRef<Record<string, any>>({});
 
   const selectionHostIdList = computed(() => selectionList.value.map((selectionItem) => selectionItem.bk_host_id));
+  const isSelectedSameBiz = computed(
+    () => new Set(selectionList.value.map((item) => item.for_biz.bk_biz_id)).size === 1,
+  );
+  const isSelectedGlobalResource = computed(() => selectionList.value.some((item) => item.for_biz.bk_biz_id === 0));
   const isFilter = computed(() => Object.values(searchParams.value).some((item) => !isValueEmpty(item)));
 
   const curBizId = computed(() => {
@@ -285,170 +425,8 @@
       ...params,
     });
 
-  const tableColumn = computed(() => [
-    {
-      field: 'ip',
-      fixed: 'left',
-      label: 'IP',
-      minWidth: 130,
-    },
-    {
-      field: 'bk_cloud_name',
-      label: t('管控区域'),
-      minWidth: 100,
-    },
-    {
-      field: 'agent_status',
-      label: t('Agent 状态'),
-      render: ({ data }: { data: DbResourceModel }) => <HostAgentStatus data={data.agent_status} />,
-      width: 100,
-    },
-    {
-      field: 'resourceOwner',
-      label: t('资源归属'),
-      render: ({ data }: { data: DbResourceModel }) => (
-        <bk-popover
-          disable-outside-click
-          placement='top'
-          popover-delay={[300, 0]}
-          theme='light'>
-          {{
-            content: () => (
-              <div class='resource-owner-tips'>
-                <strong>{t('所属业务')}：</strong>
-                <div class='resource-owner-tips-values mb-10'>
-                  <bk-tag theme={data.for_biz.bk_biz_id === 0 || !data.for_biz.bk_biz_name ? 'success' : ''}>
-                    {data.forBizDisplay}
-                  </bk-tag>
-                </div>
-                <strong>{t('所属DB')}</strong>
-                <div class='resource-owner-tips-values mb-10'>
-                  <bk-tag theme={!data.resource_type || data.resource_type === 'PUBLIC' ? 'success' : ''}>
-                    {data.resourceTypeDisplay}
-                  </bk-tag>
-                </div>
-                {!!data.labels.length && (
-                  <>
-                    <strong>{t('资源标签')}</strong>
-                    <div class='resource-owner-tips-values mb-10'>
-                      {data.labels.map((item) => (
-                        <bk-tag>{item.name}</bk-tag>
-                      ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            ),
-            default: () => (
-              <div class='resource-owner-wrapper'>
-                <div class='resource-owner'>
-                  <bk-tag theme={data.for_biz.bk_biz_id === 0 || !data.for_biz.bk_biz_name ? 'success' : ''}>
-                    {t('所属业务')} : {data.forBizDisplay}
-                  </bk-tag>
-                  <bk-tag theme={!data.resource_type || data.resource_type === 'PUBLIC' ? 'success' : ''}>
-                    {t('所属DB')} : {data.resourceTypeDisplay}
-                  </bk-tag>
-                  {data.labels && Array.isArray(data.labels) && data.labels.map((item) => <bk-tag>{item.name}</bk-tag>)}
-                </div>
-                {props.type !== ResourcePool.public && (
-                  <auth-button
-                    action-id='resource_pool_manage'
-                    permission={data.permission.resource_pool_manage}
-                    text
-                    onClick={() => handleEdit(data)}>
-                    <DbIcon
-                      class='operation-icon'
-                      type='edit'
-                    />
-                  </auth-button>
-                )}
-              </div>
-            ),
-          }}
-        </bk-popover>
-      ),
-      width: 320,
-    },
-    {
-      field: 'city',
-      label: t('地域'),
-      render: ({ data }: { data: DbResourceModel }) => data.city || '--',
-      showOverflow: true,
-      width: 80,
-    },
-    {
-      field: 'sub_zone',
-      label: t('园区'),
-      render: ({ data }: { data: DbResourceModel }) => data.sub_zone || '--',
-      showOverflow: true,
-      width: 90,
-    },
-    {
-      field: 'rack_id',
-      label: t('机架'),
-      render: ({ data }: { data: DbResourceModel }) => data.rack_id || '--',
-      showOverflow: true,
-      width: 80,
-    },
-    {
-      field: 'os_type',
-      label: t('操作系统类型'),
-      render: ({ data }: { data: DbResourceModel }) => data.os_type || '--',
-      showOverflow: true,
-      width: 120,
-    },
-    {
-      field: 'os_name',
-      label: t('操作系统名称'),
-      render: ({ data }: { data: DbResourceModel }) => data.os_name || '--',
-      showOverflow: true,
-      width: 150,
-    },
-    {
-      field: 'device_class',
-      label: t('机型'),
-      minWidth: 130,
-      render: ({ data }: { data: DbResourceModel }) => data.device_class || '--',
-      showOverflow: true,
-    },
-    {
-      field: 'bk_cpu',
-      label: t('CPU（核）'),
-    },
-    {
-      field: 'bkMemText',
-      label: t('内存（G）'),
-      minWidth: 90,
-      // render: ({ data }: { data: DbResourceModel }) => data.bkMemText || '0 M',
-      showOverflow: true,
-    },
-    {
-      field: 'total_data_storage_cap',
-      label: t('数据盘容量（G）'),
-      render: ({ data }: { data: DbResourceModel }) => (
-        <DiskPopInfo
-          data={data.storage_device}
-          trigger='click'>
-          <span style='line-height: 40px; color: #3a84ff;cursor: pointer'>{data.total_data_storage_cap || 0}</span>
-        </DiskPopInfo>
-      ),
-      width: 120,
-    },
-    {
-      field: 'createTimeDisplay',
-      label: t('转入时间'),
-      width: 180,
-    },
-    {
-      field: 'operator',
-      label: t('转入人'),
-      showOverflow: true,
-      width: 120,
-    },
-  ]);
-
   const fetchData = () => {
-    tableRef.value!.fetchData(searchParams.value, {});
+    tableRef.value!.fetchData(searchParams.value);
   };
 
   const handleSearch = (params: Record<string, any>) => {
@@ -530,14 +508,8 @@
     });
   };
 
-  const handleSelection = (list: number[], selectionListWholeData: DbResourceModel[]) => {
-    selectionList.value = selectionListWholeData;
-    isSelectedSameBiz.value = new Set(selectionListWholeData.map((item) => item.for_biz.bk_biz_id)).size === 1;
-    isSelectedGlobalResource.value = selectionListWholeData.some((item) => item.for_biz.bk_biz_id === 0);
-  };
-
-  const handleClearSearch = () => {
-    searchBoxRef.value!.clearValue();
+  const handleSelection = (_keys: string[], list: DbResourceModel[]) => {
+    selectionList.value = list;
   };
 
   const handleShowBatchCovertToPublic = () => {

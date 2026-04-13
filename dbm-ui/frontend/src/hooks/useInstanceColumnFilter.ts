@@ -4,7 +4,7 @@ import { useRequest } from 'vue-request';
 
 import { queryBizInstanceAttrs } from '@services/source/dbbase';
 
-import { clusterInstStatus, ClusterTypes } from '@common/const';
+import { clusterInstStatus, ClusterTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
 
 import DatetimeRange from '@components/db-table/components/DatetimeRange.vue';
 import MultipleInput from '@components/db-table/components/MultipleInput.vue';
@@ -128,6 +128,26 @@ export const useInstanceColumnFilter = <T extends readonly string[] = Array<keyo
     onSuccess(result) {
       data.value = Object.keys(result).reduce(
         (res, attr) => {
+          const getList = () => {
+            const formatList = result[attr].map((item) => ({
+              label: item.text,
+              value: item.value,
+            }));
+
+            if (['bk_os_name', 'bk_sub_zone', 'version'].includes(attr)) {
+              const filterList = formatList.filter((item) => item.value !== null && item.value !== '');
+              if (filterList.length !== formatList.length) {
+                return filterList.concat({
+                  label: specialOptionLabelMap[SpecialOptions.EMPTY],
+                  value: SpecialOptions.EMPTY,
+                });
+              }
+              return filterList;
+            }
+
+            return formatList;
+          };
+
           return Object.assign(res, {
             [attr]: {
               component: markRaw(MultipleSelect),
@@ -136,10 +156,7 @@ export const useInstanceColumnFilter = <T extends readonly string[] = Array<keyo
                 placement: 'bottom',
               },
               props: {
-                list: result[attr].map((item) => ({
-                  label: item.text,
-                  value: item.value,
-                })),
+                list: getList(),
               },
               showConfirmAndReset: true,
             },
