@@ -80,7 +80,8 @@ export const useState = () => {
         method: 'GET',
       });
       const infoData = (await response.json()) as { data: { conversation_settings: { commands: ShortCutInfo[] } } };
-      aiLogAnalysisShortCut = infoData.data.conversation_settings.commands[0];
+      aiLogAnalysisShortCut =
+        infoData.data.conversation_settings.commands.find((item) => item.id === 'LogAnalysis') ?? null;
     }
   });
 
