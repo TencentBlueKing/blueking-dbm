@@ -91,6 +91,7 @@ class TdbctlUpgradeHandler:
         upgraded_clusters = []
         skipped_clusters = []
 
+        # 按集群串行预检，避免对 DRS 叠加上层并发（与 tdbctl 分片批量 DRS 策略一致）
         for cluster in clusters:
             tdbctl_instances = _get_tdbctl_instances(cluster)
             if not tdbctl_instances:

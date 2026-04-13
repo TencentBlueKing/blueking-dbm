@@ -40,7 +40,11 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext
-from backend.flow.utils.mysql.mysql_version_parse import get_online_mysql_version, tdbctl_version_parse
+from backend.flow.utils.mysql.mysql_version_parse import (
+    ONLINE_MYSQL_VERSION_DRS_CHUNK_SIZE,
+    get_online_mysql_versions_batch,
+    tdbctl_version_parse,
+)
 
 logger = logging.getLogger("flow")
 
@@ -195,6 +199,70 @@ def _get_tdbctl_instances(cluster: Cluster) -> List[Dict]:
     return tdbctl_instances
 
 
+def _tdbctl_instance_address(instance: Dict) -> str:
+    """tdbctl 实例在 DRS 中使用的 ip:port 地址字符串"""
+    return "{}{}{}".format(instance["ip"], IP_PORT_DIVIDER, instance["port"])
+
+
+def _batch_check_tdbctl_is_primary(
+    addresses: List[str],
+    bk_cloud_id: int,
+    chunk_size: int = ONLINE_MYSQL_VERSION_DRS_CHUNK_SIZE,
+) -> Dict[str, bool]:
+    """
+    按分片串行调用 DRS short_rpc，批量检查 tdbctl primary。
+
+    @param addresses: 与 _tdbctl_instance_address 一致的地址列表
+    @param bk_cloud_id: 云区域 ID
+    @param chunk_size: 每片最大地址数
+    @return: address -> 是否 primary；失败或未返回的地址由调用方按 False 处理
+    """
+    primary_by_address: Dict[str, bool] = {}
+    if not addresses:
+        return primary_by_address
+
+    for start in range(0, len(addresses), chunk_size):
+        chunk = addresses[start : start + chunk_size]
+        try:
+            res = DRSApi.short_rpc(
+                {
+                    "addresses": chunk,
+                    "cmds": ["tdbctl get primary"],
+                    "force": False,
+                    "bk_cloud_id": bk_cloud_id,
+                }
+            )
+        except Exception as e:
+            logger.warning(_("批量检查 tdbctl primary 状态 DRS 调用异常，本分片 {} 个实例按 slave 处理: {}").format(len(chunk), str(e)))
+            for addr in chunk:
+                primary_by_address[addr] = False
+            continue
+
+        if not res:
+            for addr in chunk:
+                primary_by_address[addr] = False
+            continue
+
+        for item in res:
+            addr = item.get("address", "")
+            if item.get("error_msg"):
+                logger.error(_("执行 tdbctl get primary 失败，地址 {}: {}").format(addr, item["error_msg"]))
+                primary_by_address[addr] = False
+                continue
+            try:
+                primary_info_table_data = item["cmd_results"][0]["table_data"]
+                if primary_info_table_data:
+                    is_this_server = primary_info_table_data[0].get("IS_THIS_SERVER", "0")
+                    primary_by_address[addr] = is_this_server == "1"
+                else:
+                    primary_by_address[addr] = False
+            except (KeyError, IndexError, TypeError) as e:
+                logger.warning(_("解析地址 {} 的 tdbctl primary 结果失败: {}，按 slave 处理").format(addr, str(e)))
+                primary_by_address[addr] = False
+
+    return primary_by_address
+
+
 def _check_tdbctl_is_primary(ip: str, port: int, bk_cloud_id: int) -> bool:
     """
     检查 tdbctl 实例是否是 primary (master)
@@ -205,28 +273,7 @@ def _check_tdbctl_is_primary(ip: str, port: int, bk_cloud_id: int) -> bool:
     @return: True 表示是 primary，False 表示是 slave
     """
     ctl_address = "{}{}{}".format(ip, IP_PORT_DIVIDER, port)
-    try:
-        res = DRSApi.short_rpc(
-            {
-                "addresses": [ctl_address],
-                "cmds": ["tdbctl get primary"],
-                "force": False,
-                "bk_cloud_id": bk_cloud_id,
-            }
-        )
-        if res[0]["error_msg"]:
-            logger.error(_("执行 tdbctl get primary 失败: {}").format(res[0]["error_msg"]))
-            return False
-
-        primary_info_table_data = res[0]["cmd_results"][0]["table_data"]
-        if primary_info_table_data:
-            # IS_THIS_SERVER 字段为 "1" 表示当前实例是 primary
-            is_this_server = primary_info_table_data[0].get("IS_THIS_SERVER", "0")
-            return is_this_server == "1"
-        return False
-    except Exception as e:
-        logger.error(_("检查 tdbctl primary 状态失败: {}").format(str(e)))
-        return False
+    return _batch_check_tdbctl_is_primary([ctl_address], bk_cloud_id).get(ctl_address, False)
 
 
 def _filter_upgrade_instances(
@@ -252,72 +299,62 @@ def _filter_upgrade_instances(
         logger.error(_("获取升级包信息失败: {}").format(str(e)))
         raise
 
-    slave_instances = []
-    master_instances = []
-    skipped_instances = []
-    skipped_versions = []
+    slave_instances: List[Dict] = []
+    master_instances: List[Dict] = []
+    skipped_instances: List[Dict] = []
+    skipped_versions: List[str] = []
 
-    # 用于存储实例的当前版本和是否是 primary
-    instance_versions = {}
-    instance_is_primary = {}
+    addresses = [_tdbctl_instance_address(inst) for inst in tdbctl_instances]
+    version_by_addr = get_online_mysql_versions_batch(addresses, bk_cloud_id, ONLINE_MYSQL_VERSION_DRS_CHUNK_SIZE)
+
+    need_upgrade: List[Tuple[Dict, str]] = []
 
     for instance in tdbctl_instances:
         ip = instance["ip"]
         port = instance["port"]
-        instance_key = f"{ip}:{port}"
+        addr = _tdbctl_instance_address(instance)
 
-        # 查询当前版本
-        try:
-            current_version = get_online_mysql_version(ip, port, bk_cloud_id)
-            if not current_version:
-                logger.warning(_("tdbctl 实例 {}:{} 版本查询返回空，跳过").format(ip, port))
-                continue
-
-            # mock version for test
-            # current_version = "tdbctl-2.4.11"
-            instance_versions[instance_key] = current_version
-
-            # 使用 tdbctl_version_parse 解析版本（支持包文件名格式和在线版本格式）
-            current_version_num = tdbctl_version_parse(current_version)
-            if current_version_num == 0:
-                logger.warning(_("tdbctl 实例 {}:{} 版本解析失败: {}，跳过").format(ip, port, current_version))
-                continue
-
-            # 如果当前版本 >= 目标版本，跳过
-            if current_version_num >= target_version_num:
-                logger.info(
-                    _("tdbctl 实例 {}:{} 当前版本 {} >= 目标版本 {}，跳过升级").format(ip, port, current_version, target_version)
-                )
-                skipped_instances.append(instance)
-                skipped_versions.append(current_version)
-                continue
-
-            logger.info(_("tdbctl 实例 {}:{} 当前版本 {} < 目标版本 {}，需要升级").format(ip, port, current_version, target_version))
-
-            # 检查是否是 primary
-            try:
-                is_primary = _check_tdbctl_is_primary(ip, port, bk_cloud_id)
-                instance_is_primary[instance_key] = is_primary
-                instance["current_version"] = current_version
-                instance["is_primary"] = is_primary
-                if is_primary:
-                    master_instances.append(instance)
-                    logger.info(_("tdbctl 实例 {}:{} 是 primary (master)").format(ip, port))
-                else:
-                    slave_instances.append(instance)
-                    logger.info(_("tdbctl 实例 {}:{} 是 slave").format(ip, port))
-            except Exception as e:
-                logger.warning(_("检查 tdbctl 实例 {}:{} primary 状态失败: {}，默认作为 slave 处理").format(ip, port, str(e)))
-                # 如果无法判断，默认作为 slave 处理（更安全）
-                instance["current_version"] = current_version
-                instance["is_primary"] = False
-                instance_is_primary[instance_key] = False
-                slave_instances.append(instance)
-
-        except Exception as e:
-            logger.error(_("查询 tdbctl 实例 {}:{} 版本失败: {}").format(ip, port, str(e)))
-            # 如果查询版本失败，为了安全起见，跳过该实例
+        current_version = version_by_addr.get(addr) or ""
+        if not current_version:
+            logger.warning(_("tdbctl 实例 {}:{} 版本查询返回空，跳过").format(ip, port))
             continue
+
+        current_version_num = tdbctl_version_parse(current_version)
+        if current_version_num == 0:
+            logger.warning(_("tdbctl 实例 {}:{} 版本解析失败: {}，跳过").format(ip, port, current_version))
+            continue
+
+        if current_version_num >= target_version_num:
+            logger.info(_("tdbctl 实例 {}:{} 当前版本 {} >= 目标版本 {}，跳过升级").format(ip, port, current_version, target_version))
+            skipped_instances.append(instance)
+            skipped_versions.append(current_version)
+            continue
+
+        logger.info(_("tdbctl 实例 {}:{} 当前版本 {} < 目标版本 {}，需要升级").format(ip, port, current_version, target_version))
+        need_upgrade.append((instance, current_version))
+
+    primary_addresses = [_tdbctl_instance_address(inst) for inst, _ in need_upgrade]
+    primary_map = _batch_check_tdbctl_is_primary(primary_addresses, bk_cloud_id, ONLINE_MYSQL_VERSION_DRS_CHUNK_SIZE)
+
+    for instance, current_version in need_upgrade:
+        ip = instance["ip"]
+        port = instance["port"]
+        addr = _tdbctl_instance_address(instance)
+        try:
+            is_primary = primary_map.get(addr, False)
+            instance["current_version"] = current_version
+            instance["is_primary"] = is_primary
+            if is_primary:
+                master_instances.append(instance)
+                logger.info(_("tdbctl 实例 {}:{} 是 primary (master)").format(ip, port))
+            else:
+                slave_instances.append(instance)
+                logger.info(_("tdbctl 实例 {}:{} 是 slave").format(ip, port))
+        except Exception as e:
+            logger.warning(_("检查 tdbctl 实例 {}:{} primary 状态失败: {}，默认作为 slave 处理").format(ip, port, str(e)))
+            instance["current_version"] = current_version
+            instance["is_primary"] = False
+            slave_instances.append(instance)
 
     return slave_instances, master_instances, target_version, skipped_instances, skipped_versions
 
