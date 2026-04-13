@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import re
+from typing import Dict, List
 
 from django.utils.translation import gettext as _
 
@@ -272,6 +273,60 @@ def get_online_mysql_version(ip: str, port: int, bk_cloud_id: int):
     return resp[0]["cmd_results"][0]["table_data"][0].get("version")
     # mock data
     # return "5.6.24-tmysql-2.2.2"
+
+
+# 单次 DRS short_rpc 批量查询 @@version 时 addresses 数量上限，避免对 DRS 单次压力过大
+ONLINE_MYSQL_VERSION_DRS_CHUNK_SIZE = 20
+
+
+def get_online_mysql_versions_batch(
+    addresses: List[str], bk_cloud_id: int, chunk_size: int = ONLINE_MYSQL_VERSION_DRS_CHUNK_SIZE
+) -> Dict[str, str]:
+    """
+    按分片串行调用 DRS short_rpc，批量查询多个实例的 @@version。
+
+    @param addresses: DRS 地址列表，格式与单实例一致，如 ["127.0.0.1:3306", ...]
+    @param bk_cloud_id: 云区域 ID
+    @param chunk_size: 每片最大地址数，默认 20
+    @return: address -> 版本字符串；查询失败或空的地址不会出现在 dict 中
+    """
+    version_by_address: Dict[str, str] = {}
+    if not addresses:
+        return version_by_address
+
+    for start in range(0, len(addresses), chunk_size):
+        chunk = addresses[start : start + chunk_size]
+        body = {
+            "addresses": chunk,
+            "cmds": ["select @@version as version"],
+            "force": False,
+            "bk_cloud_id": bk_cloud_id,
+        }
+        try:
+            resp = DRSApi.short_rpc(body)
+        except Exception as e:
+            logger.error(_("批量查询 MySQL 版本 DRS 调用异常: {}").format(str(e)))
+            continue
+
+        if not resp:
+            continue
+
+        for res in resp:
+            addr = res.get("address", "")
+            if res.get("error_msg"):
+                logger.error(_("DRS 调用失败，地址 {} 错误信息: {}").format(addr, res["error_msg"]))
+                continue
+            try:
+                table_data = res["cmd_results"][0]["table_data"]
+                if not table_data:
+                    continue
+                version = table_data[0].get("version")
+                if version:
+                    version_by_address[addr] = version
+            except (KeyError, IndexError, TypeError) as e:
+                logger.warning(_("解析地址 {} 的版本结果失败: {}").format(addr, str(e)))
+
+    return version_by_address
 
 
 def spider_cross_major_version(current_version_num, refer_version_num) -> bool:
