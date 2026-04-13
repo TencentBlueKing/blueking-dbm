@@ -27,14 +27,6 @@
       row-key="id"
       @clear-search="handleQuickSearchChange">
       <TableColumn
-        col-key="op_user"
-        :title="t('操作人')"
-        :width="140">
-        <template #default="{ row }">
-          {{ row.op_user || '--' }}
-        </template>
-      </TableColumn>
-      <TableColumn
         col-key="updated_at"
         :title="t('操作时间')"
         :width="220">
@@ -43,17 +35,27 @@
         </template>
       </TableColumn>
       <TableColumn
-        col-key="conf_file_lc"
-        ellipsis
-        :title="t('配置文件')">
+        col-key="op_user"
+        :title="t('操作人')"
+        :width="140">
         <template #default="{ row }">
-          {{ row.conf_file_lc || '--' }}
+          {{ row.op_user || '--' }}
         </template>
       </TableColumn>
       <TableColumn
         col-key="conf_type_lc"
         :title="t('配置类型')"
         :width="120">
+        <template #default="{ row }">
+          <BkTag>
+            {{ row.conf_type_lc }}
+          </BkTag>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="conf_file_lc"
+        ellipsis
+        :title="t('配置文件')">
         <template #default="{ row }">
           <BkTag>
             {{ row.conf_type_lc }}
@@ -265,6 +267,13 @@
     });
 
     let filteredData = res.results || [];
+
+    // 默认按时间倒序
+    filteredData.sort((a, b) => {
+      const timeA = a.updated_at ? String(a.updated_at) : '';
+      const timeB = b.updated_at ? String(b.updated_at) : '';
+      return timeB.localeCompare(timeA);
+    });
     const filters = searchValue.value;
     if (Object.keys(filters).length > 0) {
       filteredData = filteredData.filter((item) =>

@@ -44,7 +44,7 @@
             <span
               v-overflow-tips.right
               class="text-overflow">
-              {{ t('数据库配置') }}
+              {{ t('数据库配置定义') }}
             </span>
           </BkMenuItem>
         </BkMenuGroup>

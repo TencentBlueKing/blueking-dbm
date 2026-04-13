@@ -355,6 +355,11 @@ export function getConfigItemChanges(params: {
   }));
 }
 
+// 查询配置名称类型（数据类型与约束类型联动）
+export function getListConfNameTypes(params: { limit?: number; offset?: number }) {
+  return http.get<Record<string, string[]>>(`${path}/list_conf_name_types/`, params);
+}
+
 // 查询配置类型列表
 export function getListConfTypes(params: { limit?: number; meta_cluster_type: string; offset?: number }) {
   return http.get<
@@ -400,4 +405,19 @@ export function recoverDefaultConfigItem(params: {
   meta_cluster_type: string;
 }) {
   return http.post(`${path}/recover_default_conf_item/`, params);
+}
+
+// 配置项定义和值合法性校验
+export function validateConfItems(
+  params: Array<{
+    conf_name: string;
+    flag_readonly?: number;
+    op_type: string;
+    value_allowed: string;
+    value_default: string;
+    value_type: string;
+    value_type_sub: string;
+  }>,
+) {
+  return http.post(`${path}/validate_conf_items/`, params, { responseType: 'json' });
 }
