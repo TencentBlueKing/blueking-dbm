@@ -12,6 +12,8 @@
  */
 import dayjs from 'dayjs';
 
+import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
+
 import { DBTypes, MonitorTargetLevel } from '@common/const';
 
 import { utcDisplayTime } from '@utils';
@@ -206,6 +208,21 @@ export default class AlarmEvent {
     }
 
     return portInfo ? `${hostInfo?.display_value || '--'}:${portInfo.display_value}` : hostInfo?.display_value || '--';
+  }
+
+  get policyNameDisplay() {
+    if (!this.dbm_policy.id) {
+      return '';
+    }
+
+    const { name, target_level: targetLevel } = this.dbm_policy;
+    if (![MonitorTargetLevel.MODULE, MonitorTargetLevel.PLATFORM].includes(targetLevel)) {
+      const match = MonitorPolicyModel.FormatDisplayName(this.dbm_policy.name);
+      if (match) {
+        return match;
+      }
+    }
+    return name;
   }
 
   get severityColor() {
