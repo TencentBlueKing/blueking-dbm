@@ -4,6 +4,8 @@ import { useRequest } from 'vue-request';
 
 import { queryDirtyMachineAttrs } from '@services/source/dbbase';
 
+import { specialOptionLabelMap, SpecialOptions } from '@common/const';
+
 import DatetimeRange from '@components/db-table/components/DatetimeRange.vue';
 import MultipleInput from '@components/db-table/components/MultipleInput.vue';
 import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
@@ -96,6 +98,26 @@ export const useColumnFilter = (pool: ComputedRef<ServiceParameters<typeof query
     onSuccess(result) {
       data.value = dirtyMachineAttrs.reduce(
         (res, attr) => {
+          const getList = () => {
+            const formatList = (result[attr] || []).map((item) => ({
+              label: item.text,
+              value: item.value,
+            }));
+
+            if (dirtyMachineAttrs.includes(attr)) {
+              const filterList = formatList.filter((item) => item.value !== null && item.value !== '');
+              if (filterList.length !== formatList.length) {
+                return filterList.concat({
+                  label: specialOptionLabelMap[SpecialOptions.EMPTY],
+                  value: SpecialOptions.EMPTY,
+                });
+              }
+              return filterList;
+            }
+
+            return formatList;
+          };
+
           return Object.assign(res, {
             [attr]: {
               component: markRaw(MultipleSelect),
@@ -104,10 +126,7 @@ export const useColumnFilter = (pool: ComputedRef<ServiceParameters<typeof query
                 placement: 'bottom',
               },
               props: {
-                list: (result[attr] || []).map((item) => ({
-                  label: item.text,
-                  value: item.value,
-                })),
+                list: getList(),
               },
               showConfirmAndReset: true,
             },

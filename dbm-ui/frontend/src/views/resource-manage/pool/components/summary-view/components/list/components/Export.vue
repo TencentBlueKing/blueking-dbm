@@ -40,7 +40,7 @@
       case 'spec':
         return props.data.map((item) => [
           item.for_biz_name,
-          item.city,
+          item.cityValue,
           item.specTypeDisplay,
           item.spec_name,
           item.subzoneDetailDisplay,
@@ -49,7 +49,7 @@
       case 'device_class':
         return props.data.map((item) => [
           item.for_biz_name,
-          item.city,
+          item.cityValue,
           item.deviceDisplay,
           item.cpu_mem_summary,
           item.subzoneDetailDisplay,

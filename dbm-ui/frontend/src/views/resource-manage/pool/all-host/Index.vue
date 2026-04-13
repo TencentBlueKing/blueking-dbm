@@ -77,6 +77,9 @@
         :filter="columnFilter?.os_name"
         :title="t('操作系统')"
         :width="180">
+        <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
+          {{ row.os_name || '--' }}
+        </template>
       </TableColumn>
       <TableColumn
         col-key="device_class"

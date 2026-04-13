@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { DBTypeInfos, DBTypes, MachineTypes } from '@common/const';
+import { DBTypeInfos, DBTypes, MachineTypes, SpecialOptions } from '@common/const';
 
 export default class Summary {
   city: string;
@@ -52,6 +52,10 @@ export default class Summary {
     this.cpu_mem_summary = payload.cpu_mem_summary;
     this.count = payload.count;
     this.sub_zone_detail = payload.sub_zone_detail || {};
+  }
+
+  get cityValue() {
+    return this.city === SpecialOptions.EMPTY ? '' : this.city;
   }
 
   get deviceDisplay() {

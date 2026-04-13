@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n';
 
 import { queryDirtyMachineAttrs } from '@services/source/dbbase';
 
+import { specialOptionLabelMap, SpecialOptions } from '@common/const';
 import { ipPort, ipv4 } from '@common/regex';
 
 import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
@@ -23,10 +24,23 @@ export const useQuickSearch = (
       machine_attrs: dirtyMachineAttrs.join(','),
       pool: pool.value,
     }).then((data) => {
-      return data[attr].map((item) => ({
+      const formatList = data[attr].map((item) => ({
         label: item.text,
         value: item.value,
       }));
+
+      if (dirtyMachineAttrs.includes(attr)) {
+        const filterList = formatList.filter((item) => item.value !== null && item.value !== '');
+        if (filterList.length !== formatList.length) {
+          return filterList.concat({
+            label: specialOptionLabelMap[SpecialOptions.EMPTY],
+            value: SpecialOptions.EMPTY,
+          });
+        }
+        return filterList;
+      }
+
+      return formatList;
     });
   };
 
