@@ -28,6 +28,8 @@
         <SearchOperation
           :key="route.name"
           ref="searchOperationRef"
+          :is-global-page="isGlobalPage"
+          :is-todo-page="isTodoPage"
           :show-bizs="isTodoPage || isGlobalPage"
           @search="handleSearchChange" />
       </div>
@@ -130,10 +132,13 @@
         show-overflow="tooltip"
         :width="240">
         <template #default="{ data }: { data: RowData }">
-          <ToAlarmPolicy
+          <BkButton
             v-if="data.dbm_policy.id"
-            :data="data.dbm_policy"
-            :is-platform="isTodoPage || isGlobalPage" />
+            text
+            theme="primary"
+            @click="() => handleToMonitorStrategy(data.dbm_policy)">
+            {{ data.policyNameDisplay }}
+          </BkButton>
           <span v-else>--</span>
         </template>
       </BkTableColumn>
@@ -175,7 +180,7 @@
       <BkTableColumn
         fixed="right"
         :label="t('操作')"
-        :min-width="120">
+        :width="160">
         <template #default="{ data }: { data: RowData }">
           <BkButton
             v-if="data.is_shielded"
@@ -199,6 +204,11 @@
             @click="() => handleOpenShieldAlarms(true, data)">
             {{ t('屏蔽告警') }}
           </AuthButton>
+          <ToAlarmPolicy
+            v-if="data.dbm_policy.id"
+            :data="data.dbm_policy"
+            :name="data.policyNameDisplay"
+            @confirm="(editType: string) => handleToMonitorStrategy(data.dbm_policy, editType)" />
           <BkButton
             class="ml-16"
             :disabled="!urls.BKMONITOR_URL"
@@ -243,7 +253,7 @@
 
   import DbTable from '@components/db-table/index.vue';
 
-  import { exportExcelFile } from '@utils';
+  import { exportExcelFile, getBusinessHref } from '@utils';
 
   import SearchOperation from './components/SearchOperation.vue';
   import ShieldAlarms from './components/ShieldAlarms.vue';
@@ -258,6 +268,7 @@
 
   const { t } = useI18n();
   const route = useRoute();
+  const router = useRouter();
   const globalBizStore = useGlobalBizs();
   const { urls } = useSystemEnviron();
 
@@ -544,6 +555,18 @@
 
   const handleShieldSuccess = () => {
     currentEvent.value!.is_shielded = true;
+  };
+
+  const handleToMonitorStrategy = (data: RowData['dbm_policy'], editType?: string) => {
+    const { href } = router.resolve({
+      name: 'monitorStrategy',
+      query: {
+        db_type: data.db_type,
+        edit_type: editType,
+        id: data.id,
+      },
+    });
+    window.open(isTodoPage || isGlobalPage ? getBusinessHref(href, data.bk_biz_id) : href, '_blank');
   };
 
   defineExpose<Exposes>({
