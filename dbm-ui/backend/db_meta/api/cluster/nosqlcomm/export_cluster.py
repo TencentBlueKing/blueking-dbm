@@ -470,6 +470,52 @@ def import_redis_cluster(
     logger.info(_("import_redis_cluster: 导入集群 {} 完成").format(immute_domain))
 
 
+def disable_redis_cluster(
+    cluster_id: int,
+) -> None:
+    """
+    禁用 Redis 集群并将其加入 DBHA 屏蔽切换列表。
+
+    操作步骤：
+      1. 将集群 phase 设置为 OFFLINE（禁用）
+      2. 向 ClusterDBHAExt 表写入记录，屏蔽截止时间设为永久（9999-12-31）
+
+    :param cluster_id:  集群 ID
+    :param operator:    操作人，用于日志记录
+    """
+    from datetime import timezone
+
+    from backend.db_meta.enums import ClusterPhase
+    from backend.db_meta.models.cluster import ClusterDBHAExt
+
+    cluster = Cluster.objects.get(id=cluster_id)
+
+    # ── 1. 设置集群状态为禁用（OFFLINE）────────────────────────────────────
+    old_phase = cluster.phase
+    cluster.phase = ClusterPhase.OFFLINE.value
+    cluster.alias = _("[已迁移-{}]{}".format(datetime.now().strftime("%Y%m%d"), cluster.alias))
+    cluster.save(update_fields=["phase"])
+    logger.info(
+        _("disable_redis_cluster: 集群 {} (id={}) phase {} -> {}").format(
+            cluster.immute_domain, cluster_id, old_phase, ClusterPhase.OFFLINE.value
+        )
+    )
+
+    # ── 2. 写入 ClusterDBHAExt 屏蔽记录（永久屏蔽）──────────────────────
+    now = datetime.now(timezone.utc)
+    shield_end_time = datetime(9999, 12, 31, 23, 59, 59, tzinfo=timezone.utc)
+    obj, created = ClusterDBHAExt.objects.update_or_create(
+        cluster=cluster,
+        defaults={"begin_time": now, "end_time": shield_end_time, "creator": "admin-disable"},
+    )
+    action = _("新建") if created else _("更新")
+    logger.info(
+        _("disable_redis_cluster: 集群 {} (id={}) DBHA 屏蔽记录已{}，截止 {}").format(
+            cluster.immute_domain, cluster_id, action, shield_end_time.isoformat()
+        )
+    )
+
+
 def import_biz_redis_clusters(
     json_file: str,
     creator: str = "",
@@ -517,3 +563,129 @@ def import_biz_redis_clusters(
 
     logger.info(_("import_biz_redis_clusters: 共 {} 个集群，成功 {}，失败 {}").format(len(clusters), len(success), len(failed)))
     return {"success": success, "failed": failed}
+
+
+@transaction.atomic
+def delete_redis_cluster_metadata(
+    bk_biz_id: int,
+    cluster_id: int,
+    immute_domain: str,
+) -> None:
+    """
+    删除 Redis 集群元数据（仅操作 DB 元数据，不涉及 CC/实例下架等操作）。
+
+    为防止误操作，调用方必须同时提供 bk_biz_id、cluster_id、immute_domain 三个参数，
+    三者必须与数据库中的记录完全一致，否则抛出异常并回滚。
+
+    删除顺序：
+      1. 清理 ClusterEntry 的 forward_to 自关联（避免外键约束）
+      2. 删除所有 ClusterEntry
+      3. 清理 ProxyInstance 与 StorageInstance 的关联关系（M2M）
+      4. 删除所有 ProxyInstance 及其 Machine（若 Machine 上无其他实例）
+      5. 删除所有 StorageInstance 及其 Machine（若 Machine 上无其他实例）
+      6. 删除 Cluster 记录本身
+
+    **注意**：本函数不会调用 CC 接口回收主机或删除服务实例，
+    如需完整下架请使用 decommission.decommission_cluster。
+
+    :param bk_biz_id:      业务 ID
+    :param cluster_id:     集群 ID
+    :param immute_domain:  集群不可变域名
+    :raises ValueError:    三个参数与数据库记录不一致时抛出
+    """
+    output_file = export_biz_redis_clusters(bk_biz_id=bk_biz_id, output_dir="/app")
+    logger.info(_("delete_redis_cluster_metadata: 集群元数据已备份到 {}").format(output_file))
+
+    from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
+
+    # ── 参数校验：三个字段必须同时匹配 ──────────────────────────────────────
+    try:
+        cluster = Cluster.objects.get(id=cluster_id)
+    except Cluster.DoesNotExist:
+        raise ValueError(_("delete_redis_cluster_metadata: 集群 id={} 不存在").format(cluster_id))
+
+    if cluster.bk_biz_id != bk_biz_id:
+        raise ValueError(
+            _("delete_redis_cluster_metadata: bk_biz_id 不匹配，期望 {}，实际 {}").format(cluster.bk_biz_id, bk_biz_id)
+        )
+    if cluster.immute_domain != immute_domain:
+        raise ValueError(
+            _("delete_redis_cluster_metadata: immute_domain 不匹配，期望 {}，实际 {}").format(
+                cluster.immute_domain, immute_domain
+            )
+        )
+    if cluster.cluster_type not in _ALL_SUPPORTED_CLUSTER_TYPES:
+        raise ValueError(
+            _("delete_redis_cluster_metadata 不支持当前集群类型: {}，仅支持: {}").format(
+                cluster.cluster_type, ", ".join(_ALL_SUPPORTED_CLUSTER_TYPES)
+            )
+        )
+
+    confirm = input(
+        _("已将业务 {} 下所有 Redis 集群元数据备份至 {}。" "确认继续删除集群 {} (id={}) 的元数据？[yes/no]: ").format(
+            bk_biz_id, output_file, immute_domain, cluster_id
+        )
+    )
+    if confirm.strip().lower() != "yes":
+        raise ValueError(_("delete_redis_cluster_metadata: 用户取消操作，集群 {} 元数据未删除").format(immute_domain))
+
+    logger.info(
+        _("delete_redis_cluster_metadata: 开始删除集群元数据 {} (id={}, bk_biz_id={})").format(
+            immute_domain, cluster_id, bk_biz_id
+        )
+    )
+
+    # ── 1. 清理 ClusterEntry 自关联（forward_to）────────────────────────────
+    for entry_obj in cluster.clusterentry_set.filter(forward_to_id__isnull=False).all():
+        entry_obj.forward_to_id = None
+        entry_obj.save(update_fields=["forward_to_id"])
+
+    # ── 2. 删除所有 ClusterEntry ─────────────────────────────────────────────
+    deleted_entries, _deleted_detail = cluster.clusterentry_set.all().delete()
+    logger.info(_("delete_redis_cluster_metadata: 删除 ClusterEntry {} 条").format(deleted_entries))
+
+    # ── 3. 清理 ProxyInstance 关联关系并删除实例 ─────────────────────────────
+    proxy_machines = set()
+    for proxy_obj in cluster.proxyinstance_set.all():
+        proxy_machines.add(proxy_obj.machine.ip)
+        cluster.proxyinstance_set.remove(proxy_obj)
+        proxy_obj.storageinstance.clear()
+        proxy_obj.bind_entry.clear()
+        proxy_obj.delete()
+        logger.info(
+            _("delete_redis_cluster_metadata: 删除 ProxyInstance {}:{}").format(proxy_obj.machine.ip, proxy_obj.port)
+        )
+
+    # 删除已无实例的 Proxy Machine
+    for machine_ip in proxy_machines:
+        if not ProxyInstance.objects.filter(machine__ip=machine_ip, machine__bk_cloud_id=cluster.bk_cloud_id).exists():
+            machine_obj = Machine.objects.filter(ip=machine_ip, bk_cloud_id=cluster.bk_cloud_id).first()
+            if machine_obj:
+                machine_obj.delete()
+                logger.info(_("delete_redis_cluster_metadata: 删除 Proxy Machine {}").format(machine_ip))
+
+    # ── 4. 清理 StorageInstance 关联关系并删除实例 ───────────────────────────
+    storage_machines = set()
+    for storage_obj in cluster.storageinstance_set.all():
+        storage_machines.add(storage_obj.machine.ip)
+        cluster.storageinstance_set.remove(storage_obj)
+        storage_obj.delete()
+        logger.info(
+            _("delete_redis_cluster_metadata: 删除 StorageInstance {}:{}").format(
+                storage_obj.machine.ip, storage_obj.port
+            )
+        )
+
+    # 删除已无实例的 Storage Machine
+    for machine_ip in storage_machines:
+        if not StorageInstance.objects.filter(
+            machine__ip=machine_ip, machine__bk_cloud_id=cluster.bk_cloud_id
+        ).exists():
+            machine_obj = Machine.objects.filter(ip=machine_ip, bk_cloud_id=cluster.bk_cloud_id).first()
+            if machine_obj:
+                machine_obj.delete()
+                logger.info(_("delete_redis_cluster_metadata: 删除 Storage Machine {}").format(machine_ip))
+
+    # ── 5. 删除 Cluster 记录 ─────────────────────────────────────────────────
+    cluster.delete()
+    logger.info(_("delete_redis_cluster_metadata: 集群元数据 {} (id={}) 删除完成").format(immute_domain, cluster_id))
