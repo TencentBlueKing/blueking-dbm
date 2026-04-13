@@ -305,6 +305,10 @@ def create_ticket(
         cluster.status_version = get_random_string(12)
         cluster.deal_status = AutofixStatus.AF_WFLOW.value
 
+        # 更新DB状态
+        cluster.save(update_fields=["ticket_id", "status_version", "deal_status", "update_at"])
+        logger.info("create ticket for cluster {}, details : {}".format(cluster.immute_domain, details))
+
         msgs, title = {}, _("{} - 发起自愈".format(cluster.immute_domain))
         msgs[_("BKID")] = cluster.bk_biz_id
         msgs[_("流程ID")] = ticket.id
@@ -312,8 +316,6 @@ def create_ticket(
         msgs[_("集群类型")] = cluster.cluster_type
         msgs[_("故障机S")] = json.dumps(ips)
         send_msg_2_qywx(title, msgs)
-        cluster.save(update_fields=["ticket_id", "status_version", "deal_status", "update_at"])
-        logger.info("create ticket for cluster {}, details : {}".format(cluster.immute_domain, details))
     except Exception as e:
         cluster.deal_status = AutofixStatus.AF_FAIL.value
         cluster.status_version = str(e)[:50]

@@ -10,6 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 import json
 import logging
+import random
+import time
 
 from celery.schedules import crontab
 from django.utils import timezone
@@ -79,7 +81,7 @@ def start_autofix_flow():
     if len(fixlists) == 0:
         logger.info("waiting request resource items ... ")
         return
-
+    time.sleep(random.randint(2, 12))
     generate_autofix_ticket(fixlists)
 
 
