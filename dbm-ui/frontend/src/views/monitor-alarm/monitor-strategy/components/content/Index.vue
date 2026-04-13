@@ -1013,7 +1013,7 @@
           detects_config: row.detects_config,
           get_data_time: row.update_at,
           is_enabled: true,
-          name: `${row.name} - 【${currentBizInfo?.name}】`,
+          name: MonitorPolicyModel.FormatFinalName(row.nameDisplay, currentBizInfo),
           no_data_config: row.no_data_config,
           notify_config: row.notify_config,
           notify_groups: getBizDefaultGroupIds(),
