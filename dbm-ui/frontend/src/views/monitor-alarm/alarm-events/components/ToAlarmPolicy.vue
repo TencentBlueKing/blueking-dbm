@@ -1,9 +1,10 @@
 <template>
   <BkButton
+    class="ml-16"
     text
     theme="primary"
     @click="() => (isShow = true)">
-    {{ data.name }}
+    {{ t('调整策略') }}
   </BkButton>
   <BkDialog
     v-model:is-show="isShow"
@@ -15,7 +16,7 @@
       <BkAlert
         class="mt-8"
         theme="info"
-        :title="t('当前告警基于业务级策略触发，如需调整触发规则，可选择:')" />
+        :title="t('当前告警由策略「name」触发，对业务下全部对象生效。如需调整，可选择：', { name: props.name })" />
       <BkRadioGroup
         v-model="type"
         class="radio-group">
@@ -64,17 +65,16 @@
 
   import { MonitorTargetLevel } from '@common/const';
 
-  import { getBusinessHref } from '@/utils';
-
   interface Props {
     data: AlarmEventModel['dbm_policy'];
-    isPlatform: boolean;
+    name: string;
   }
+  type Emits = (e: 'confirm', editType: string) => void;
 
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const router = useRouter();
 
   enum Type {
     CHILD_EDIT = 'child_edit',
@@ -102,15 +102,7 @@
   );
 
   const handleConfirm = () => {
-    const { href } = router.resolve({
-      name: 'monitorStrategy',
-      query: {
-        db_type: props.data.db_type,
-        edit_type: type.value,
-        id: props.data.id,
-      },
-    });
-    window.open(props.isPlatform ? getBusinessHref(href, props.data.bk_biz_id) : href, '_blank');
+    emits('confirm', type.value as string);
     isShow.value = false;
   };
 

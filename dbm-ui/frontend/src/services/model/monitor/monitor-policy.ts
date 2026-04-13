@@ -12,6 +12,8 @@
  */
 import dayjs from 'dayjs';
 
+import type { BizItem } from '@services/types';
+
 import { MonitorTargetLevel } from '@common/const';
 
 import { utcDisplayTime } from '@utils';
@@ -39,6 +41,26 @@ export default class MonitorPolicy {
     label: MonitorPolicy.PolicyTypeTextMap[item],
     value: item,
   }));
+
+  /**
+   * @param name - 策略名称
+   */
+  static FormatDisplayName(name: string) {
+    const match = name.match(/^DBM#([a-z0-9][a-z0-9-]*) (.+)$/);
+    if (match && match[2]) {
+      return match[2];
+    }
+    return;
+  }
+
+  /**
+   * @param code - 业务英文名或id
+   * @param name - 策略名称
+   */
+  static FormatFinalName(name: string, bizInfo?: BizItem) {
+    const code = bizInfo?.english_name || bizInfo?.bk_biz_id || '';
+    return `DBM#${code} ${name}`;
+  }
 
   agg_info: {
     agg_interval: number;
@@ -221,13 +243,10 @@ export default class MonitorPolicy {
   }
 
   get nameDisplay() {
-    // 策略名 - 业务名：存量父策略格式
-    // 策略名 - 【业务名】：新父策略格式
-    if (this.isInnerFake || this.isCustom) {
-      // 获取分隔符" - "之前的策略名部分
-      const separatorIndex = this.name.indexOf(' - ');
-      if (separatorIndex !== -1) {
-        return this.name.substring(0, separatorIndex);
+    if (!this.isInnerReal) {
+      const match = MonitorPolicy.FormatDisplayName(this.name);
+      if (match) {
+        return match;
       }
     }
     return this.name;
