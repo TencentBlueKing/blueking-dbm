@@ -39,7 +39,8 @@ class MySQLFakeSemanticCheck(object):
         """
         模拟执行SQL语义检查的任务编排
         """
-
+        a = 1
+        print(a)
         fake_semantic_check = Builder(root_id=self.root_id, data=self.data)
         fake_semantic_check.add_act(
             **{
