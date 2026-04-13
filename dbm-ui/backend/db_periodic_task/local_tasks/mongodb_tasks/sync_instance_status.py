@@ -288,10 +288,12 @@ class SyncStorageInstanceStatusTask:
 
         def flush_batch():
             nonlocal addr_list, current_state_code_dict
+            skipped_empty_shard = set()
             metric_val = _instant_fetch_metric(
                 {
                     "instance": addr_list,
-                }
+                },
+                collect_skipped_empty_shard=skipped_empty_shard,
             )
             if metric_val is None:
                 logger.error(f"fetch_metric error: metric_val is None for instance {addr_list}")
@@ -307,7 +309,7 @@ class SyncStorageInstanceStatusTask:
                             "old_state_code": current_state_code_dict[one_metric["instance"]],
                             "new_state_code": one_metric["value"],
                             "new_state": MongoDBStorageInstanceStatus.get_status_by_value(one_metric["value"]).name,
-                            "new_shard_name": one_metric.get("shard", ""),
+                            "new_shard_name": one_metric["shard"],
                         }
                     )
                 metric_val_dict[one_metric["instance"]] = one_metric["value"]
@@ -315,6 +317,12 @@ class SyncStorageInstanceStatusTask:
             # 如果某个instance返回的内容为空，则认为该instance已经宕机，需要更新状态为UNAVAILABLE
             for one_addr in current_state_code_dict.keys():
                 if one_addr not in metric_val_dict:
+                    if one_addr in skipped_empty_shard:
+                        logger.warning(
+                            f"fetch_metric: instance {one_addr} has empty shard in monitor series, "
+                            "skip UNKNOWN state update for this round"
+                        )
+                        continue
                     changed_instance_list.append(
                         {
                             "instance": one_addr,
@@ -407,30 +415,39 @@ class SyncStorageInstanceStatusTask:
             if value is None:
                 logger.warning(f"fetch_latest_changes: empty datapoints, skip item: {item.get('dimensions', {})}")
                 continue
-            instance = item["dimensions"]["instance"]
-            ip_port = item["dimensions"]["bk_target_ip"] + ":" + str(item["dimensions"]["instance_port"])
+            dims = item["dimensions"]
+            shard = (dims.get("shard") or "").strip()
+            if not shard:
+                logger.warning(f"fetch_latest_changes: missing or empty shard in dimensions, skip item: {dims}")
+                continue
+            instance = dims["instance"]
+            ip_port = dims["bk_target_ip"] + ":" + str(dims["instance_port"])
             new_row = {
                 "instance": instance,
                 "ip_port": ip_port,
-                "instance_role": item["dimensions"]["instance_role"],
-                "instance_port": item["dimensions"]["instance_port"],
-                "bk_target_ip": item["dimensions"]["bk_target_ip"],
-                "cluster_domain": item["dimensions"]["cluster_domain"],
-                "shard": item["dimensions"]["shard"],
+                "instance_role": dims["instance_role"],
+                "instance_port": dims["instance_port"],
+                "bk_target_ip": dims["bk_target_ip"],
+                "cluster_domain": dims["cluster_domain"],
+                "shard": shard,
                 "value": value,
             }
             instance_list.append(new_row)
         return instance_list
 
 
-def _instant_fetch_metric(condition: dict, retry_times: int = 3, sleep_time: int = 10):
+def _instant_fetch_metric(
+    condition: dict, retry_times: int = 3, sleep_time: int = 10, collect_skipped_empty_shard: set | None = None
+):
     """
     查询mongodb_replset_my_state metric, condition 支持 cluster_domain, shard, instance, instance_host
     return [] or None(error)
+    若某条 series 的 shard 缺失或为空则跳过该条；collect_skipped_empty_shard 若传入，会记录对应 instance（ip:port）。
     """
     logger.info("_instant_fetch_metric condition : {} ".format(condition))
     query_template = {
-        "replset_my_state": """avg by (cluster_domain,instance_port,instance_role,instance,bk_target_ip) (
+        # Include `shard` in `avg by` so BK-Monitor series dimensions still expose it (otherwise it is dropped).
+        "replset_my_state": """avg by (cluster_domain,shard,instance_port,instance_role,instance,bk_target_ip) (
             bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_my_state{condition_str_all}
             )""",
     }
@@ -493,16 +510,23 @@ def _instant_fetch_metric(condition: dict, retry_times: int = 3, sleep_time: int
             logger.warning(f"_instant_fetch_metric: empty datapoints, skip item: {item.get('dimensions', {})}")
             continue
         logger.info("item: {}".format(item))
-        ip_port = item["dimensions"]["bk_target_ip"] + ":" + str(item["dimensions"]["instance_port"])
+        dims = item["dimensions"]
+        ip_port = dims["bk_target_ip"] + ":" + str(dims["instance_port"])
+        shard = (dims.get("shard") or "").strip()
+        if not shard:
+            logger.warning(f"_instant_fetch_metric: missing or empty shard in dimensions, skip item: {dims}")
+            if collect_skipped_empty_shard is not None:
+                collect_skipped_empty_shard.add(ip_port)
+            continue
         logger.info("ip_port: {}".format(ip_port))
         metric_result.append(
             {
                 "instance": ip_port,
-                "instance_role": item["dimensions"]["instance_role"],
-                "instance_port": item["dimensions"]["instance_port"],
-                "bk_target_ip": item["dimensions"]["bk_target_ip"],
-                "cluster_domain": item["dimensions"]["cluster_domain"],
-                "shard": item["dimensions"]["shard"],
+                "instance_role": dims["instance_role"],
+                "instance_port": dims["instance_port"],
+                "bk_target_ip": dims["bk_target_ip"],
+                "cluster_domain": dims["cluster_domain"],
+                "shard": shard,
                 "value": value,
             }
         )
