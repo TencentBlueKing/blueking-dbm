@@ -2,7 +2,7 @@ import { useI18n } from 'vue-i18n';
 
 import { queryBizMachineAttrs } from '@services/source/dbbase';
 
-import { ClusterTypes } from '@common/const';
+import { ClusterTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
 
 import MultipleInput from '@components/db-table/components/MultipleInput.vue';
 import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
@@ -26,10 +26,23 @@ export const useHostListTableFilter = (clusterType: ClusterTypes, clusterId: num
       cluster_type: clusterType,
       machine_attrs: machineAttrs.join(','),
     }).then((data) => {
-      return data[attr].map((item) => ({
+      const formatList = data[attr].map((item) => ({
         label: attr === 'spec_id' ? `${item.text} [${item.value}]` : item.text,
         value: item.value,
       }));
+
+      if (['bk_city_id', 'bk_os_name', 'bk_sub_zone', 'bk_svr_device_cls_name'].includes(attr)) {
+        const filterList = formatList.filter((item) => item.value !== null && item.value !== '');
+        if (filterList.length !== formatList.length) {
+          return filterList.concat({
+            label: specialOptionLabelMap[SpecialOptions.EMPTY],
+            value: SpecialOptions.EMPTY,
+          });
+        }
+        return filterList;
+      }
+
+      return formatList;
     });
   };
 

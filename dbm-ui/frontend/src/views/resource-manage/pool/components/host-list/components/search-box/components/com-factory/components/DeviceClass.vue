@@ -16,7 +16,7 @@
     filterable
     :input-search="false"
     :loading="isLoading"
-    :model-value="defaultValue"
+    :model-value="modelValue"
     multiple
     :placeholder="t('请选择机型')"
     :remote-method="remoteMethod"
@@ -24,13 +24,20 @@
     :scroll-loading="scrollLoading"
     @change="handleChange"
     @scroll-end="handleScrollEnd">
-    <BkOption
-      v-for="(item, index) in deviceList"
-      :key="`${item}#${index}`"
-      :label="item"
-      :value="item">
-      {{ item }}
-    </BkOption>
+    <BkOptionGroup group-style="divider">
+      <BkOption
+        v-for="(item, index) in deviceList"
+        :key="`${item}#${index}`"
+        :label="item"
+        :value="item">
+        {{ item }}
+      </BkOption>
+    </BkOptionGroup>
+    <BkOptionGroup group-style="divider">
+      <BkOption
+        :label="specialOptionLabelMap[SpecialOptions.EMPTY]"
+        :value="SpecialOptions.EMPTY" />
+    </BkOptionGroup>
   </BkSelect>
 </template>
 <script setup lang="ts">
@@ -38,6 +45,8 @@
   import { useRequest } from 'vue-request';
 
   import { fetchDeviceClass } from '@services/source/dbresourceResource';
+
+  import { specialOptionLabelMap, SpecialOptions } from '@common/const';
 
   interface Props {
     defaultValue?: string;
@@ -49,12 +58,13 @@
     inheritAttrs: false,
   });
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
+  const modelValue = ref<string[]>([]);
   const deviceList = ref<string[]>([]);
   const scrollLoading = ref(false);
 
@@ -80,6 +90,16 @@
     },
   });
 
+  watch(
+    () => props.defaultValue,
+    () => {
+      modelValue.value = (props.defaultValue || '').split(',');
+    },
+    {
+      immediate: true,
+    },
+  );
+
   const handleScrollEnd = () => {
     scrollLoading.value = true;
     isAppend = true;
@@ -95,6 +115,6 @@
   };
 
   const handleChange = (value: string[]) => {
-    emits('change', value.join(','));
+    emits('change', value.filter((item) => item).join(','));
   };
 </script>

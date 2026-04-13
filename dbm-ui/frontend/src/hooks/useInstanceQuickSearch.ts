@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n';
 
 import { queryBizInstanceAttrs } from '@services/source/dbbase';
 
-import { clusterInstStatus, ClusterTypes } from '@common/const';
+import { clusterInstStatus, ClusterTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
 import { ipPort, ipv4 } from '@common/regex';
 
 import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
@@ -38,10 +38,23 @@ export const useInstanceQuickSearch = (params: {
       });
     }
     return queryBizInstanceAttrs(instanceParams).then((data) => {
-      return data[attr].map((item) => ({
+      const formatList = data[attr].map((item) => ({
         label: item.text,
         value: item.value,
       }));
+
+      if (['bk_os_name', 'bk_sub_zone', 'version'].includes(attr)) {
+        const filterList = formatList.filter((item) => item.value !== null && item.value !== '');
+        if (filterList.length !== formatList.length) {
+          return filterList.concat({
+            label: specialOptionLabelMap[SpecialOptions.EMPTY],
+            value: SpecialOptions.EMPTY,
+          });
+        }
+        return filterList;
+      }
+
+      return formatList;
     });
   };
 
