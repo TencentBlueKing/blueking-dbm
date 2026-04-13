@@ -303,6 +303,7 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
 
   import { type DiffItem, useDiff } from '@views/db-configure-new/hooks/useDiff';
@@ -380,6 +381,7 @@
   // 表格列筛选
   const filterValue = ref<Record<string, string>>({});
   const needRestartFilter = {
+    component: markRaw(MultipleSelect),
     name: t('重启生效'),
     props: {
       list: [
@@ -388,7 +390,6 @@
       ],
     },
     showConfirmAndReset: true,
-    type: 'multiple' as const,
   };
 
   // 新增行
