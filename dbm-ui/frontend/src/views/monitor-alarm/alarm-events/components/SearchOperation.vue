@@ -12,9 +12,9 @@
       @change="handleDbSelectChange">
       <BkOption
         v-for="(item, index) in dbList"
-        :id="item.db_type"
+        :id="item.id"
         :key="index"
-        :name="item.db_type_display" />
+        :name="item.name" />
     </BkSelect>
     <ShieldDateTimePicker
       class="shield-date-picker"
@@ -41,6 +41,8 @@
 
   import { getUserDbaComponents } from '@services/source/dbadmin';
 
+  import { useBizDbDisplay } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
   import { DBTypeInfos, DBTypes } from '@common/const';
@@ -55,6 +57,8 @@
   }
 
   interface Props {
+    isGlobalPage: boolean;
+    isTodoPage: boolean;
     showBizs?: boolean;
   }
 
@@ -64,9 +68,10 @@
 
   const emits = defineEmits<Emits>();
 
+  const route = useRoute();
   const { t } = useI18n();
   const { bizs } = useGlobalBizs();
-  const route = useRoute();
+  const { tabList } = useBizDbDisplay();
 
   const baseSelectList = [
     {
@@ -234,11 +239,38 @@
     return baseSelect as ISearchItem[];
   });
 
-  const dbList = computed(() =>
-    (userDbaComponents.value?.component || []).filter((item) => DBTypeInfos[item.db_type as DBTypes]),
-  );
+  const dbList = computed(() => {
+    if (props.isTodoPage) {
+      return (userDbaComponents.value?.component || [])
+        .filter((item) => DBTypeInfos[item.db_type as DBTypes])
+        .map((item) => ({
+          id: item.db_type,
+          name: item.db_type_display,
+        }));
+    }
+    if (props.isGlobalPage) {
+      return Object.values(DBTypeInfos);
+    }
+    return tabList.value;
+  });
 
-  const { data: userDbaComponents, loading: isUserDbaComponentsLoading } = useRequest(getUserDbaComponents, {});
+  const {
+    data: userDbaComponents,
+    loading: isUserDbaComponentsLoading,
+    run: runGetUserDbaComponents,
+  } = useRequest(getUserDbaComponents, {
+    manual: true,
+  });
+
+  watch(
+    () => props.isTodoPage,
+    () => {
+      if (props.isTodoPage) {
+        runGetUserDbaComponents();
+      }
+    },
+    { immediate: true },
+  );
 
   watch(
     filterData,

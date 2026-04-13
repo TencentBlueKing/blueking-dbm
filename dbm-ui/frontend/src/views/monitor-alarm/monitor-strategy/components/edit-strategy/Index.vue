@@ -276,6 +276,14 @@
   });
 
   let rawFormData = '';
+  let rawDeepCloneData = {} as {
+    agg_info: MonitorPolicyModel['agg_info'];
+    detects_config: MonitorPolicyModel['detects_config'];
+    no_data_config: MonitorPolicyModel['no_data_config'];
+    notify_config: MonitorPolicyModel['notify_config'];
+    notify_rules: MonitorPolicyModel['notify_rules'];
+    test_rules: MonitorPolicyModel['test_rules'];
+  };
 
   const { t } = useI18n();
   const { currentBizId, currentBizInfo } = useGlobalBizs();
@@ -307,6 +315,7 @@
   const isInnerClone = computed(() => props.data.isInnerReal && props.pageStatus === 'clone');
   const isInnerEdit = computed(() => props.data.isInnerFake && props.pageStatus === 'edit');
   const isCustomEdit = computed(() => props.data.isCustom && props.pageStatus === 'edit');
+  const isCustomNewChild = computed(() => props.data.isCustom && props.pageStatus === 'new');
   const isChildClone = computed(() => props.data.isChild && props.pageStatus === 'clone');
   const isChildNew = computed(() => props.pageStatus === 'new');
   const isNameDisabled = computed(() => isInnerClone.value || isInnerEdit.value || isCustomEdit.value);
@@ -464,6 +473,33 @@
     },
   });
 
+  const deepNumberToStringSafe = (data: unknown, seen = new WeakSet()): unknown => {
+    if (typeof data === 'number') {
+      return `${data}`;
+    }
+
+    if (data === null) {
+      return data;
+    }
+
+    if (Array.isArray(data)) {
+      return data.map((item) => deepNumberToStringSafe(item, seen));
+    }
+
+    if (typeof data === 'object') {
+      if (seen.has(data)) {
+        return data;
+      }
+      seen.add(data);
+      const result: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(data)) {
+        result[key] = deepNumberToStringSafe(value, seen);
+      }
+      return result;
+    }
+    return data;
+  };
+
   const setChangedInfo = () => {
     setTimeout(() => {
       const { aggInfo, detectsConfig, notifyConfig, testRules } = getConfirmValue();
@@ -472,24 +508,14 @@
         props.data.notify_groups,
         isInnerClone.value && _.isEqual(formModel.notifyTarget, getBizDefaultGroupIds()) ? [] : formModel.notifyTarget, // 真内置编辑默认是内置告警组，此时不判定为修改
       );
-      isOtherChanged.value = !_.isEqual(
-        _.pick(props.data, [
-          'notify_config',
-          'agg_info',
-          'detects_config',
-          'no_data_config',
-          'test_rules',
-          'notify_rules',
-        ]),
-        {
-          agg_info: aggInfo,
-          detects_config: detectsConfig,
-          no_data_config: formModel.noDataConfig,
-          notify_config: notifyConfig,
-          notify_rules: formModel.notifyRules,
-          test_rules: testRules,
-        },
-      );
+      isOtherChanged.value = !_.isEqual(rawDeepCloneData, {
+        agg_info: deepNumberToStringSafe(aggInfo),
+        detects_config: deepNumberToStringSafe(detectsConfig),
+        no_data_config: deepNumberToStringSafe(_.cloneDeep(formModel.noDataConfig)),
+        notify_config: deepNumberToStringSafe(notifyConfig),
+        notify_rules: deepNumberToStringSafe(_.cloneDeep(formModel.notifyRules)),
+        test_rules: deepNumberToStringSafe(testRules),
+      });
     });
   };
 
@@ -517,6 +543,23 @@
     () => [isShow.value, props.data],
     () => {
       if (isShow.value && props.data.id) {
+        rawDeepCloneData = {
+          agg_info: deepNumberToStringSafe(_.cloneDeep(props.data.agg_info)) as MonitorPolicyModel['agg_info'],
+          detects_config: deepNumberToStringSafe(
+            _.cloneDeep(props.data.detects_config),
+          ) as MonitorPolicyModel['detects_config'],
+          no_data_config: deepNumberToStringSafe(
+            _.cloneDeep(props.data.no_data_config),
+          ) as MonitorPolicyModel['no_data_config'],
+          notify_config: deepNumberToStringSafe(
+            _.cloneDeep(props.data.notify_config),
+          ) as MonitorPolicyModel['notify_config'],
+          notify_rules: deepNumberToStringSafe(
+            _.cloneDeep(props.data.notify_rules),
+          ) as MonitorPolicyModel['notify_rules'],
+          test_rules: deepNumberToStringSafe(_.cloneDeep(props.data.test_rules)) as MonitorPolicyModel['test_rules'],
+        };
+
         formModel.isEnabled = props.data.is_enabled;
         formModel.testRules = _.cloneDeep(props.data.test_rules);
         formModel.strategyName = getStrategyName();
@@ -543,28 +586,16 @@
     formModel.notifyTarget.splice(index, 1);
   };
 
-  const getStrategyNameWithBizName = () => {
-    return `${props.data.name} - 【${currentBizInfo?.name}】`;
-  };
-
   const getStrategyName = () => {
-    // 真内置编辑时，显示为原名称，但提交时需要改为固定格式
-    if (isInnerClone.value) {
-      return props.data.name;
-    }
-    // 假内置和自定义策略编辑时，显示为固定格式，但提交时需要改为原名称
-    if (isInnerEdit.value || isCustomEdit.value) {
-      return props.data.nameDisplay;
-    }
     // 新建子策略， 策略名默认为父策略名称 + 数字，依次递增
     if (isChildNew.value) {
       return `${props.data.nameDisplay} - ${t('子策略')}${props.data.child.length + 1}`;
     }
     // 克隆子策略
     if (isChildClone.value) {
-      return `${props.data.name} - ${t('克隆')}`;
+      return `${props.data.nameDisplay} - ${t('克隆')}`;
     }
-    return props.data.name;
+    return props.data.nameDisplay;
   };
 
   const getBizDefaultGroupIds = () => {
@@ -620,9 +651,7 @@
     };
   };
 
-  // 点击确定
-  const handleConfirm = async () => {
-    // 预检测对应全局策略的最新数据，对比更新时间
+  const checkUpdateAt = async () => {
     const globalRes = await runQueryGlobalMonitorPolicy({
       bk_biz_id: 0,
       db_type: props.dbType,
@@ -647,8 +676,20 @@
           subTitle: t('全局策略已变更，当前页面数据已过期，请刷新后重试。'),
           title: '',
         });
-        return;
+        return false;
       }
+    }
+    return true;
+  };
+
+  // 点击确定
+  const handleConfirm = async () => {
+    // 预检测对应全局策略的最新数据，对比更新时间
+    const isUpadteChecked = await (props.data.isChild || isCustomNewChild.value
+      ? Promise.resolve(true)
+      : checkUpdateAt());
+    if (!isUpadteChecked) {
+      return;
     }
 
     await formRef.value.validate();
@@ -669,18 +710,6 @@
             },
           ],
         };
-
-    const getParamsName = () => {
-      // 真内置编辑时，提交时需要改为固定格式
-      if (isInnerClone.value) {
-        return getStrategyNameWithBizName();
-      }
-      // 假内置和自定义策略编辑时，提交时需要改为原名称
-      if (isInnerEdit.value || isCustomEdit.value) {
-        return props.data.name;
-      }
-      return formModel.strategyName;
-    };
 
     const getPolicyTag = (): MonitorPolicyModel['policy_tag'] => {
       // 继承时
@@ -709,7 +738,7 @@
       custom_conditions,
       detects_config: detectsConfig,
       is_enabled: formModel.isEnabled,
-      name: getParamsName(),
+      name: MonitorPolicyModel.FormatFinalName(formModel.strategyName, currentBizInfo),
       no_data_config: formModel.noDataConfig,
       notify_config: notifyConfig,
       notify_groups: formModel.notifyTarget,
