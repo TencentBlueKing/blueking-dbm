@@ -78,6 +78,21 @@ def generate_autofix_ticket(fault_clusters: QuerySet):
             cluster.save(update_fields=["status_version", "deal_status", "update_at"])
             continue
 
+        # 如果已经创建了单据，则本次忽略，避免重复提单（实时从DB读取，避免内存缓存）
+        # 建议：select_for_update 强一致校验
+        from django.db import transaction
+
+        with transaction.atomic():
+            cluster_locked = RedisAutofixCore.objects.select_for_update().get(id=cluster.id)
+            if cluster_locked.ticket_id and cluster_locked.ticket_id > 0:
+                logger.info(
+                    "cluster_autofix skip duplicate, {} ticket_id={}".format(
+                        cluster.immute_domain, cluster_locked.ticket_id
+                    )
+                )
+                continue
+            # 在锁内创建单据
+
         generate_single_autofix_ticket(cluster)
 
 

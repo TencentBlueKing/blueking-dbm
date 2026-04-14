@@ -10,8 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import json
 import logging
-import random
-import time
+from datetime import timedelta
 
 from celery.schedules import crontab
 from django.utils import timezone
@@ -74,14 +73,31 @@ def start_autofix_flow():
     """请求自愈需要的资源"""
 
     try:
-        fixlists = RedisAutofixCore.objects.filter(deal_status=AutofixStatus.AF_TICKET.value)
+        ten_minutes_ago = datetime.datetime.now(timezone.utc) - timedelta(minutes=10)
+        fixlists = RedisAutofixCore.objects.filter(
+            deal_status=AutofixStatus.AF_TICKET.value
+        ) | RedisAutofixCore.objects.filter(
+            deal_status=AutofixStatus.AF_START.value,
+            update_at__lte=ten_minutes_ago,
+            ticket_id__lte=0,  # 未创建单据的才重试
+        )
     except RedisAutofixCore.DoesNotExist:
         logger.info("waiting request resource items ... ")
         return
     if len(fixlists) == 0:
         logger.info("waiting request resource items ... ")
         return
-    time.sleep(random.randint(2, 12))
+
+    # 拉到后先更新状态， 表示我这一批要处理的
+    # 推荐：原子批量更新，缩小竞态窗口
+    from django.db import transaction
+
+    with transaction.atomic():
+        ids = list(fixlists.values_list("id", flat=True))
+        if not ids:
+            return
+        RedisAutofixCore.objects.filter(id__in=ids).update(deal_status=AutofixStatus.AF_START.value)
+        fixlists = RedisAutofixCore.objects.filter(id__in=ids)
     generate_autofix_ticket(fixlists)
 
 
