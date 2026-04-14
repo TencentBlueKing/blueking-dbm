@@ -395,12 +395,16 @@ export class NormalNode extends Rect {
       }
       // ai日志分析
       if (window.PROJECT_CONFIG.AI_LOG_ANALYSIS_OPEN) {
+        const aiLogAnalysisWraperStyleX = () => {
+          const count = [retryable, skippable].filter(Boolean).length;
+          return -width / 2 + 64 * count + 4;
+        };
         const aiLogAnalysisWraperStyle = {
           fill: attributes.aiLogOptFill,
           height: 24,
           radius: 2,
           width: 76,
-          x: this.isSuperUserMode ? -width / 2 + 180 : retryable && skippable ? -width / 2 + 132 : -width / 2 + 68,
+          x: this.isSuperUserMode ? -width / 2 + 180 : aiLogAnalysisWraperStyleX(),
           y: 34,
         };
         this.upsert('aiLogAnalysisWraper', GRect, aiLogAnalysisWraperStyle, container);
