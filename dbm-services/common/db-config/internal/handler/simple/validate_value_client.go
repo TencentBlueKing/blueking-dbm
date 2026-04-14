@@ -8,6 +8,7 @@ import (
 	"bk-dbconfig/pkg/util"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 )
 
 // ValidateValueClient validate value
@@ -30,8 +31,14 @@ func (cf *Config) ValidateValueForClient(ctx *gin.Context) {
 	var r ValidateValueClient
 	defer util.LoggerErrorStack(logger.Error, err)
 
-	if err = ctx.BindJSON(&r); err != nil {
-		handler.SendResponse(ctx, err, nil)
+	/*
+		使用 ctx.ShouldBindBodyWith(&r, binding.JSON) 替代 ctx.ShouldBindJSON(&r)
+		ShouldBindBodyWith 会将请求体缓存到 gin 的 context 中，即使解析失败，body 内容也不会丢失
+		解析失败时 通过 ctx.GetRawData() 获取完整的原始请求参数，作为 data 返回给客户端
+	*/
+	if err = ctx.ShouldBindBodyWith(&r, binding.JSON); err != nil {
+		rawData, _ := ctx.GetRawData()
+		handler.SendResponse(ctx, err, string(rawData))
 		return
 	}
 	if err = simpleconfig.ValidateValueForClient(r, true); err != nil {

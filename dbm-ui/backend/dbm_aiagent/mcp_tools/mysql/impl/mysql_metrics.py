@@ -19,6 +19,7 @@ import pandas
 from backend import env
 from backend.components import BKMonitorV3Api
 from backend.db_meta.enums import ClusterType
+from backend.dbm_aiagent.mcp_tools.mysql.constants import METRIC_TYPES
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_processlist import show_mysql_processlist, show_proxy_processlist
 from backend.utils.time import timezone2timestamp
 
@@ -37,7 +38,7 @@ UNIFY_QUERY_PARAMS = {
         }
     ],
     "expression": "a",
-    "alias": "a",
+    "alias": "AA",
     # 单位：s
     "start_time": 1697100405,
     "end_time": 1697101305,
@@ -45,128 +46,6 @@ UNIFY_QUERY_PARAMS = {
     "down_sample_range": "1m",
     # 取最新的几个周期，可以加速查询（如果指标数据不连续，则查不出数据）
     "type": "range",
-}
-
-DISK_USAGE = {
-    ClusterType.TenDBSingle: {
-        "range": 129,
-        "used": """max by (cluster_domain, instance, mount_point) (
-                max_over_time(
-                    bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_used_mb{cluster_domain=~="%s",instance_role="orphan",%s}[5m]
-                ) * 1024 * 1024
-        )""",
-        "total": """max by (cluster_domain, instance, mount_point) (
-                max_over_time(
-                    bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_total_mb{cluster_domain=~="%s",instance_role="orphan",%s}[5m]
-                ) * 1024 * 1024
-        )""",
-    },
-    ClusterType.TenDBHA: {
-        "range": 129,
-        "used": """max by (cluster_domain, instance, mount_point) (
-            max_over_time(
-                bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_used_mb{cluster_domain=~="%s",instance_role="backend_master",%s}[124m]
-            ) * 1024 * 1024
-        )""",
-        "total": """max by (cluster_domain, instance, mount_point) (
-            max_over_time(
-                bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_total_mb{cluster_domain=~="%s",instance_role="backend_master",%s}[124m]
-            ) * 1024 * 1024
-        )""",
-    },
-    ClusterType.TenDBCluster: {
-        "range": 129,
-        "used": """sum by (cluster_domain) (
-        avg by (cluster_domain, instance, mount_point) (
-            avg_over_time(
-                bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_du_used_mb{cluster_domain=~="%s",instance_role="remote_master",%s}[124m]
-            ) * 1024 * 1024))""",
-        "total": """sum by (cluster_domain) (
-        avg by (cluster_domain, ip, mount_point) (
-            avg_over_time(
-                bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_total_mb{cluster_domain=~="%s",instance_role="remote_master",%s}[124m]
-            ) * 1024 * 1024))""",
-    },
-}
-
-CPU_SUMMARY = {
-    ClusterType.TenDBHA: {
-        "max": """max by (cluster_domain,instance_role) (
-    max_over_time(bkmonitor:dbm_system:cpu_summary:usage{cluster_domain=~"%s",instance_role=~"proxy|backend_master"}[1m]))
-    """
-    },
-    ClusterType.TenDBCluster: {
-        "max": """max by (cluster_domain,instance_role) (
-        max_over_time(bkmonitor:dbm_system:cpu_summary:usage{cluster_domain=~"%s",instance_role=~"spider_master|remote_master"}[1m]))
-        """
-    },
-}
-
-QPS_SUMMARY = {
-    ClusterType.TenDBHA: {
-        "max": """max by (instance_role) (
-        rate(bkmonitor:exporter_dbm_mysqld_exporter:mysql_global_status_questions{cluster_domain=~"%s",instance_role="backend_master"}[2m]))
-        """
-    },
-    ClusterType.TenDBCluster: {
-        "max": """sum by (instance_role) (
-        rate(bkmonitor:exporter_dbm_mysqld_exporter:mysql_global_status_questions{cluster_domain=~"%s",instance_role="spider_master"}[2m]))
-        """
-    },
-}
-
-SLOW_COUNT = {
-    ClusterType.TenDBHA: {
-        "sum": """sum(
-        increase(bkmonitor:exporter_dbm_mysqld_exporter:mysql_global_status_slow_queries{cluster_domain=~"%s",instance_role="backend_master"}[1m]))
-        by (instance_role)
-        """
-    },
-    ClusterType.TenDBCluster: {
-        "sum": """sum(
-        increase(bkmonitor:exporter_dbm_mysqld_exporter:mysql_global_status_slow_queries{cluster_domain=~"%s",instance_role=~"spider_master|remote_master"}[1m]))
-        by (instance_role)
-        """
-    },
-}
-
-THREADS_RUNNING = {
-    ClusterType.TenDBHA: {
-        "max": """max(
-        max_over_time(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_threads_running{cluster_domain=~"%s",instance_role=~"backend_master"}[1m]))
-        by (instance_role)
-    """
-    },
-    ClusterType.TenDBCluster: {
-        "max": """max(
-        max_over_time(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_threads_running{cluster_domain=~"%s",instance_role=~"spider_master|remote_master"}[1m]))
-        by (instance_role)
-    """
-    },
-}
-
-CONNECTIONS = {
-    ClusterType.TenDBHA: {
-        "max": """max(
-        max_over_time(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_threads_connected{cluster_domain=~"%s",instance_role=~"backend_master"}[1m]))
-        by (backend_master)
-    """
-    },
-    ClusterType.TenDBCluster: {
-        "max": """max(
-        max_over_time(bkmonitor:exporter_dbm_mysqld_exporter:__default__:mysql_global_status_threads_connected{cluster_domain=~"%s",instance_role=~"spider_master"}[1m]))
-        by (instance_role,instance)
-    """
-    },
-}
-
-METRIC_TYPES = {
-    "disk_usage": DISK_USAGE,
-    "cpu_summary": CPU_SUMMARY,
-    "qps_summary": QPS_SUMMARY,
-    "slow_count": SLOW_COUNT,
-    "connections": CONNECTIONS,
-    "threads_running": THREADS_RUNNING,
 }
 
 
@@ -224,6 +103,10 @@ def aggregate_processlist_by_type(processlist_detail: List, aggregate_type: str)
     res = {}
     if aggregate_type == "group_by_user":
         res["group_by_user_count"] = df["user"].value_counts().to_dict()
+    if aggregate_type == "group_by_state":
+        res["group_by_state_count"] = df["state"].value_counts().to_dict()
+    if aggregate_type == "group_by_command":
+        res["group_by_command_count"] = df["command"].value_counts().to_dict()
     elif aggregate_type == "group_by_client_host":
         res["group_by_client_host_count"] = df["access_source_address"].value_counts().to_dict()
     elif aggregate_type == "longest_top_5":

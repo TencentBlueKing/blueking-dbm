@@ -21,6 +21,7 @@ class DBMMcpTools(StrStructuredEnum):
     MYSQL_BILL = EnumField("mysql-bill", "mysql-bill")
     MYSQL_CONFIG = EnumField("mysql-config", "mysql-config")
     MYSQL_SLOWLOG = EnumField("mysql-slowlog", "mysql-slowlog")
+    MYSQL_CAPACITY = EnumField("mysql-capacity", "mysql-capacity")
     MYSQL_METRICS = EnumField("mysql-metrics", "mysql-metrics")
     SQLSERVER_QUERY = EnumField("sqlserver-query", "sqlserver-query")
     TICKET_OP = EnumField("ticket-op", "ticket-op")
@@ -49,6 +50,7 @@ class DBMMcpTools(StrStructuredEnum):
     HOST_DECOMMISSION_QUERY = EnumField("host-decommission-query", _("主机裁撤信息查询"))
     TASKFLOW_QUERY = EnumField("taskflow-query", _("任务流查询"))
     KAFKA_TOOLBOX = EnumField("kafka-toolbox", "kafka-toolbox")
+    PROMQL_QUERY = EnumField("promql-query", _("通用PromQL指标查询"))
     # MARKET
     DBM_PUBLIC_MARKET = EnumField("dbm-public-market", _("DBM公共服务"))
 

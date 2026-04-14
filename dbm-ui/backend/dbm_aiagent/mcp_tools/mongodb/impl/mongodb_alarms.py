@@ -41,7 +41,7 @@ def get_alarms_flat(
 ) -> Dict[str, List]:
     """获取告警列表，支持按业务或集群筛选。标签使用 DBM_MONGODB。"""
     if not appid and not immute_domain:
-        raise ValueError("必须指定 appid 或 immute_domain 中的至少一个")
+        raise ValueError("At least one of appid or immute_domain must be specified")
     if start_time is not None and end_time is not None:
         start_timestamp = parse_time2_long(start_time)
         end_timestamp = parse_time2_long(end_time)

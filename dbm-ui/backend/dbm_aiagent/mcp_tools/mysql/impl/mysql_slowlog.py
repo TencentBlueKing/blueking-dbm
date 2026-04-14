@@ -9,12 +9,14 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
-from typing import Dict
+from typing import Dict, List
 
+from django.db.models import CharField, Count, F, Func, IntegerField, Max, Min, Sum
 from django.utils import timezone
 
 from backend import env
 from backend.components import BKLogApi
+from backend.db_report.models import MysqlSlowlogDetail
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
 from backend.utils.time import timezone2timestamp
 
@@ -119,7 +121,7 @@ def query_slow_logs(
                 metric_param,
             ],
             "metric_merge": "a",
-            "order_by": ["time"],
+            "order_by": ["-_value"],
             "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
             "bk_app_code": env.APP_CODE,
             "bk_app_secret": env.SECRET_KEY,
@@ -159,7 +161,7 @@ def query_slow_logs(
 
     return {
         "cluster_domain": cluster_domain,
-        "slog_logs": slog_logs,
+        "slow_logs": slog_logs,
     }
 
 
@@ -213,3 +215,111 @@ def query_slow_log_detail(
             one_slow_log["sql_timestamp"] = source_log["sql_timestamp"]
         # 这里只返回一个
         return one_slow_log
+
+
+def query_slowlog_aggregated(
+    cluster_domain: str,
+    instance_role: str,
+    start_time: timezone.datetime,
+    end_time: timezone.datetime,
+    instance="",
+    order_by="query_time_max",
+    limit=10,
+):
+    """使用 Django ORM 实现慢日志聚合查询
+        SELECT cluster_domain, instance_role, query_digest_md5,
+        MIN(dteventtimestamp) AS time_window_min,
+        MAX(dteventtimestamp) AS time_window_max,
+        COUNT(*) AS count_star,
+        MAX(query_time) AS query_time_max,
+        SUM(query_time) AS query_time_sum,
+        MAX(rows_examined) AS rows_examined_max,
+        SUM(rows_examined) AS rows_examined_sum,
+        MAX(rows_sent) AS rows_sent_max,
+        SUM(rows_sent) AS rows_sent_sum,
+        ANY_VALUE(query_digest_text) AS query_digest_text,
+        ANY_VALUE(query_command) AS query_command,
+        ANY_VALUE(query_db_name) AS query_db_name,
+        ANY_VALUE(table_names) AS table_names,
+        ANY_VALUE(username) AS username
+    FROM {MysqlSlowlogDetail._meta.db_table}
+    WHERE cluster_domain = %s
+        AND instance_role = %s
+        AND dteventtimestamp > %s
+        AND dteventtimestamp <= %s
+    GROUP BY cluster_domain, instance_role, query_digest_md5
+    ORDER BY {order_by} DESC
+    LIMIT %s
+    """
+    # 自定义 ANY_VALUE 函数，Doris/MySQL 8.0 支持
+    class AnyValue(Func):
+        function = "ANY_VALUE"
+
+    # 允许排序的字段白名单
+    allowed_order_by = {
+        "count_star",
+        "query_time_max",
+        "query_time_sum",
+        "rows_examined_max",
+        "rows_examined_sum",
+        "rows_sent_max",
+        "rows_sent_sum",
+    }
+    if order_by not in allowed_order_by:
+        raise DBMMcpBaseException(msg=f"order_by field '{order_by}' is not allowed")
+
+    try:
+        qs = (
+            MysqlSlowlogDetail.objects.filter(
+                cluster_domain=cluster_domain,
+                instance_role=instance_role,
+                dteventtimestamp__gt=start_time,
+                dteventtimestamp__lte=end_time,
+            )
+            .values("cluster_domain", "instance_role", "query_digest_md5")
+            .annotate(
+                time_window_min=Min("dteventtimestamp"),
+                time_window_max=Max("dteventtimestamp"),
+                count_star=Count("*"),
+                query_time_max=Max("query_time"),
+                query_time_sum=Sum("query_time"),
+                rows_examined_max=Max("rows_examined"),
+                rows_examined_sum=Sum("rows_examined"),
+                rows_sent_max=Max("rows_sent"),
+                rows_sent_sum=Sum("rows_sent"),
+                query_digest_text=AnyValue(F("query_digest_text"), output_field=CharField()),
+                query_command=AnyValue(F("query_command"), output_field=CharField()),
+                query_db_name=AnyValue(F("query_db_name"), output_field=CharField()),
+                table_names=AnyValue(F("table_names"), output_field=CharField()),
+                username=AnyValue(F("username"), output_field=CharField()),
+                instance_host=AnyValue(F("instance_host"), output_field=CharField()),
+                instance_port=AnyValue(F("instance_port"), output_field=IntegerField()),
+            )
+            .order_by(f"-{order_by}")[:limit]
+        )
+        rows = list(qs)
+    except Exception as e:
+        raise DBMMcpBaseException(msg=f"query slowlog aggregated data failed: {e}")
+
+    result: List[Dict] = []
+    for item in rows:
+        # 将时间字段转为字符串，方便序列化
+        for time_field in ["time_window_min", "time_window_max"]:
+            if item.get(time_field) and hasattr(item[time_field], "strftime"):
+                item[time_field] = item[time_field].strftime("%Y-%m-%d %H:%M:%S")
+            elif item.get(time_field):
+                item[time_field] = str(item[time_field])
+        # 去除 query_digest_text 中的反引号，优化 markdown 展示
+        if item.get("query_digest_text"):
+            item["query_digest_text"] = item["query_digest_text"].replace("`", "")
+        # 删除不必要的返回字段
+        item.pop("cluster_domain", None)
+        item.pop("instance_role", None)
+        result.append(item)
+
+    return {
+        "cluster_domain": cluster_domain,
+        "instance_role": instance_role,
+        "metric_name": order_by,
+        "slow_logs": result,
+    }

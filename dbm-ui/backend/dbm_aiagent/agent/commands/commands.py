@@ -75,7 +75,7 @@ class MySQLSlowLogCommand(CommandHandler):
         分析的时间窗口：'{{time_window_start}}' - '{{time_window_end}}'
         最大查询条数：{{limit}}
         instance_role: {{ instance_role}}
-        cluster_type: {{cluster_type}}
+        cluster_type: {{ cluster_type }}
         """
 
 

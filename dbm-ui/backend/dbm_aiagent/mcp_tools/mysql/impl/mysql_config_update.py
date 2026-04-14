@@ -45,12 +45,14 @@ def update_mysql_config(
     cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
     namespace = cluster_obj.cluster_type
     if not cluster_obj:
-        raise ValueError(_("集群不存在: {}").format(cluster_domain))
+        raise ValueError(_("Cluster does not exist: {}").format(cluster_domain))
 
     # 校验 conf_type 并确定 conf_file
     if conf_type == "backup":
         if conf_file not in BACKUP_ALLOWED_CONF_FILES:
-            raise ValueError(_("backup 类型的 conf_file 必须是以下之一: {}").format(", ".join(BACKUP_ALLOWED_CONF_FILES)))
+            raise ValueError(
+                _("conf_file for backup type must be one of: {}").format(", ".join(BACKUP_ALLOWED_CONF_FILES))
+            )
     elif conf_type in CONF_TYPE_DEFAULT_CONF_FILE_MAP:
         # mysql_monitor / checksum 的 conf_file 固定
         conf_file = CONF_TYPE_DEFAULT_CONF_FILE_MAP[conf_type]
@@ -60,12 +62,12 @@ def update_mysql_config(
                 valid_json = dict(json.loads(conf_value))
                 conf_value = json.dumps(valid_json)
                 if valid_json.get("enable", None) is None:
-                    raise ValueError(_("mysql_monitor conf_value 配置必须包含 enable 字段"))
+                    raise ValueError(_("mysql_monitor conf_value must contain the 'enable' field"))
             except json.JSONDecodeError:
-                raise ValueError(_("mysql_monitor conf_value 必须是 JSON 字符串"))
+                raise ValueError(_("mysql_monitor conf_value must be a JSON string"))
 
     else:
-        raise ValueError(_("不支持的 conf_type: {}").format(conf_type))
+        raise ValueError(_("Unsupported conf_type: {}").format(conf_type))
 
     conf_items = [
         {"conf_name": conf_name, "conf_value": conf_value, "op_type": OpType.UPDATE, "description": "by ai agent"}

@@ -16,10 +16,12 @@ from rest_framework.response import Response
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
 from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clusters, auth_parse_instances
+from backend.dbm_aiagent.mcp_tools.common.views.promql_query import query_promql_metrics_with_roles
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpNotSupportClusterTypeException
 from backend.dbm_aiagent.mcp_tools.mysql.impl.mysql_metrics import (
+    METRIC_TYPES,
     aggregate_processlist_by_type,
     query_mysql_metrics,
     show_instance_processlist,
@@ -40,8 +42,51 @@ logger = logging.getLogger("root")
 class MySQLMetricsMcpToolsViewSet(McpToolsViewSet):
     default_permission_class = [DBManagePermission()]
 
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                "获取一段时间内某个 tendbha/tendbcluster 监控指标，"
+                "支持的指标类型有：disk_used、disk_usage、cpu_summary、qps_summary、memory_usage、"
+                "slow_count、connections、threads_running"
+            )
+        ),
+        request_slz=MysqlMetricsInputSerializer,
+        response_slz=MysqlMetricsOutputSerializer,
+        permission_classes=[McpClusterManagePermission],
+        mcp_auth_parser=auth_parse_clusters,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.MYSQL_METRICS],
+        name_prefix="mysql_metrics",
+    )
+    def query_by_metric_name(self, request, *args, **kwargs):
+        cluster_type = self.get_param("cluster_type")
+        cluster_domain = self.get_param("cluster_domain")
+        metric_name = self.get_param("metric_name")
+
+        promql_tmpl = METRIC_TYPES.get(metric_name, None)
+        if not promql_tmpl:
+            # 不支持查询 metric_name 类型的指标数据
+            raise DBMMcpNotSupportClusterTypeException()
+        query_builder = promql_tmpl.get(cluster_type, None)
+        if not query_builder:
+            query_builder = promql_tmpl.get("default", None)
+            if not query_builder:
+                # 集群类型 cluster_type 不支持查询 metric_name 类型的指标数据
+                raise DBMMcpNotSupportClusterTypeException()
+
+        query_builder.start_time = self.get_param("start_time")
+        query_builder.end_time = self.get_param("end_time")
+
+        # instance_role 条件在 promql_tmpl filter 中已定义
+        result = query_promql_metrics_with_roles(cluster_domain, "", query_builder)
+        result["aggregation"] = query_builder.get_aggregation()
+        if query_builder.metric_name:
+            result["metric_name"] = query_builder.metric_name
+        else:
+            result["metric_name"] = metric_name
+        return Response(result)
+
     def _query_metrics_by_type(self, request, metric_name, *args, **kwargs):
-        # bk_biz_id = self.get_param("bk_biz_id")
         cluster_type = self.get_param("cluster_type")
         cluster_domain = self.get_param("cluster_domain")
         start_time = self.get_param("start_time")
@@ -87,6 +132,19 @@ class MySQLMetricsMcpToolsViewSet(McpToolsViewSet):
     )
     def query_qps_summary(self, request, *args, **kwargs):
         return self._query_metrics_by_type(request, "qps_summary", *args, **kwargs)
+
+    @mcp_tools_api_decorator(
+        description=str(_("获取一段时间内某个 tendbha/tendbcluster 集群的 qps 请求量 指标信息")),
+        request_slz=MysqlMetricsInputSerializer,
+        response_slz=MysqlMetricsOutputSerializer,
+        permission_classes=[McpClusterManagePermission],
+        mcp_auth_parser=auth_parse_clusters,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.MYSQL_METRICS],
+        name_prefix="mysql_metrics",
+    )
+    def query_memory_usage(self, request, *args, **kwargs):
+        return self._query_metrics_by_type(request, "memory_usage", *args, **kwargs)
 
     @mcp_tools_api_decorator(
         description=str(_("获取一段时间内某个 tendbha/tendbcluster 集群的 slow_query 数量 指标信息")),

@@ -57,7 +57,7 @@ def _extract_agent_type_and_mcp_type(func: Callable) -> tuple[str, str]:
         mcp_type = path_parts[mcp_tools_idx + 2].split(".")[0]
         return agent_type, mcp_type
     except (ValueError, IndexError) as e:
-        raise ValueError(_("无法从函数路径中提取 agent_type 和 mcp_type: {}").format(func_file)) from e
+        raise ValueError(_("Cannot extract agent_type and mcp_type from function path: {}").format(func_file)) from e
 
 
 def mcp_tools_api_decorator(  # noqa: C901
@@ -161,7 +161,7 @@ def mcp_tools_api_decorator(  # noqa: C901
                 try:
                     return view_instance.get_permission_class_with_action(action_name)
                 except Exception:  # pylint: disable=broad-except
-                    raise ValueError(_("无法获取引用视图类权限类：{}").format(func.__name__))
+                    raise ValueError(_("Cannot get permission class for reference view: {}").format(func.__name__))
 
             return permission_classes
 
@@ -176,17 +176,27 @@ def mcp_tools_api_decorator(  # noqa: C901
         if reference_view:
             # 确保视图函数名称和原引用视图函数名称一致
             if func.__name__ != reference_view.__name__:
-                raise ValueError(_("视图函数名称 '{}' 必须与引用视图函数名称 '{}' 一致").format(func.__name__, reference_view.__name__))
+                raise ValueError(
+                    _("View function name '{}' must match reference view function name '{}'").format(
+                        func.__name__, reference_view.__name__
+                    )
+                )
 
             # 获取 reference_view 所属的视图类（都是未绑定方法，直接使用 __qualname__）
             reference_view_class = get_class_from_qualname(reference_view)
             if not reference_view_class:
-                raise ValueError(_("无法获取引用视图类：{} 请检查是否存在").format(reference_view.__name__))
+                raise ValueError(
+                    _("Cannot get reference view class: {}, please check if it exists").format(reference_view.__name__)
+                )
 
             @wraps(func)
             def wrapper(self, request, *args, **kwargs):
                 if self.action != reference_view.__name__:
-                    raise ValueError(_("视图函数:{}与引用视图函数{}不一致").format(self.action, reference_view.__name__))
+                    raise ValueError(
+                        _("View function: {} does not match reference view function: {}").format(
+                            self.action, reference_view.__name__
+                        )
+                    )
 
                 # 创建临时视图实例用于获取引用视图权限类
                 temp_view_instance = None

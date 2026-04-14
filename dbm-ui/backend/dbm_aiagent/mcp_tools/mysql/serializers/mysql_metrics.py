@@ -38,6 +38,8 @@ class ShowInstanceProcessListAggregatedInputSerializer(serializers.Serializer):
         ("group_by_fingerprint", _("按 sql 类型聚合计数")),
         ("longest_top_5", _("按连 sql 执行时长排序前 5")),
         ("group_by_user", _("按连接账号名聚合计数")),
+        ("group_by_state", _("按连接状态聚合计数")),
+        ("group_by_command", _("按连接命令聚合计数")),
         ("group_by_client_host", _("按访问来源ip聚合计数")),
     ]
 

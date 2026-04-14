@@ -10,8 +10,9 @@ package config
 
 // PhysicalBackup the config of physical backup
 type PhysicalBackup struct {
-	Threads      int    `ini:"Threads"`  // parallel to copy files
-	Throttle     int    `ini:"Throttle"` // limits the number of chunks copied per second. The chunk size is 10 MB, 0 means no limit
+	Threads int `ini:"Threads"` // parallel to copy files
+	// Throttle limits the number of chunks copied per second. The chunk size is 10 MB, 0 means no limit
+	Throttle     int    `ini:"Throttle"`
 	DefaultsFile string `ini:"DefaultsFile" validate:"required,file"`
 	ExtraOpt     string `ini:"ExtraOpt"` // other xtrabackup options string to be appended
 	// LockDDL 备份期间是否允许 ddl, >=5.7 参数有效

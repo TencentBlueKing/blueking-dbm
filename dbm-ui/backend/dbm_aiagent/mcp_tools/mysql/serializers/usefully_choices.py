@@ -64,9 +64,13 @@ mysql_instance_role_choices = [
 mysql_metric_name_choices = [
     ("cpu_summary", _("cpu 负载")),
     ("qps_summary", _("qps 请求量")),
+    ("memory_usage", _("memory 内存使用率")),
     ("slow_count", _("slowlog 慢日志数量")),
     ("threads_running", _("threads 线程数 趋势")),
     ("connections", _("连接数 趋势")),
+    ("disk_used", _("磁盘使用量")),
+    ("disk_total", _("磁盘总量")),
+    ("disk_usage", _("磁盘使用率")),
 ]
 
 
@@ -99,6 +103,16 @@ mysql_slowlog_metric_name_choices = [
     ("query_time", _("按查询执行时间排序聚合")),
     ("slow_count", _("按照慢查询数量排序聚合")),
     ("rows_scan", _("按照查询扫描行数排序聚合")),
+]
+
+mysql_slowlog_orderby_choices = [
+    ("count_star", _("按一类 sql (指纹)查询次数排序")),
+    ("query_time_max", _("单 sql 最大查询时间")),
+    ("query_time_sum", _("一类 sql 总查询时间")),
+    ("rows_examined_max", _("单 sql 最大扫描行数")),
+    ("rows_examined_sum", _("一类 sql 总扫描行数")),
+    ("rows_sent_max", _("单 sql 最大返回行数")),
+    ("rows_sent_sum", _("一类 sql 总返回行数")),
 ]
 
 mysql_config_update_allowed = [

@@ -48,7 +48,7 @@ def get_alarms_flat(
         limit: 返回结果数量限制，默认5000
     """
     if not appid and not immute_domain:
-        raise ValueError("必须指定appid或cluster_domain中的至少一个")
+        raise ValueError("At least one of appid or cluster_domain must be specified")
 
     # 处理时间参数
     if start_time is not None and end_time is not None:

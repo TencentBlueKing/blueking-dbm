@@ -24,7 +24,7 @@ def parse_addresses(addresses: List[str]) -> List[tuple]:
     for addr in addresses:
         parts = addr.strip().split(":")
         if len(parts) != 2:
-            raise ValueError(f"无效的实例地址格式: {addr}，应为 'ip:port'")
+            raise ValueError(f"Invalid instance address format: {addr}, expected 'ip:port'")
         ip, port = parts[0], int(parts[1])
         parsed.append((ip, port))
     return parsed
@@ -257,7 +257,7 @@ def instance_detail(immute_domain: str, addrs: Optional[List[str]] = None) -> Li
     try:
         c_obj = Cluster.objects.get(immute_domain=immute_domain)
     except Cluster.DoesNotExist:
-        raise ValueError(f"集群 {immute_domain} 不存在")
+        raise ValueError(f"Cluster {immute_domain} does not exist")
 
     address_filter = None
     if addrs:

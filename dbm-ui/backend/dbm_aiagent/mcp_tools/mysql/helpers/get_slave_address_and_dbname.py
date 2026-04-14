@@ -48,6 +48,6 @@ def safe_sql_in_string(names: list[str]) -> str:
     """
     for name in names:
         if not _SAFE_NAME_PATTERN.match(name):
-            raise DBMMcpBaseException(msg=f"不安全的变量名: '{name}'，只允许包含 a-zA-Z_ 字符")
+            raise DBMMcpBaseException(msg=f"unsafe variable name: '{name}', only a-zA-Z_ characters are allowed")
     quoted = ",".join(f"'{name}'" for name in names)
     return f"({quoted})"
