@@ -18,11 +18,18 @@
       clearable
       style="width: 100px"
       @change="handleCityChange">
-      <BkOption
-        v-for="item in citiyList"
-        :key="item.city_code"
-        :label="item.city_name"
-        :value="item.city_code" />
+      <BkOptionGroup group-style="divider">
+        <BkOption
+          v-for="item in citiyList"
+          :key="item.city_code"
+          :label="item.city_name"
+          :value="item.city_code" />
+      </BkOptionGroup>
+      <BkOptionGroup group-style="divider">
+        <BkOption
+          :label="specialOptionLabelMap[SpecialOptions.EMPTY]"
+          :value="SpecialOptions.EMPTY" />
+      </BkOptionGroup>
     </BkSelect>
     <BkSelect
       v-model="subzoneIds"
@@ -33,11 +40,20 @@
       multiple-mode="tag"
       show-select-all
       @change="handleChange">
-      <BkOption
-        v-for="item in filterSubzoneList"
-        :key="item.bk_sub_zone_id"
-        :label="item.bk_sub_zone"
-        :value="`${item.bk_sub_zone_id}`" />
+      <BkOptionGroup
+        v-if="filterSubzoneList.length > 0"
+        group-style="divider">
+        <BkOption
+          v-for="item in filterSubzoneList"
+          :key="item.value"
+          :label="item.label"
+          :value="item.value" />
+      </BkOptionGroup>
+      <BkOptionGroup group-style="divider">
+        <BkOption
+          :label="specialOptionLabelMap[SpecialOptions.EMPTY]"
+          :value="SpecialOptions.EMPTY" />
+      </BkOptionGroup>
     </BkSelect>
   </BkComposeFormItem>
 </template>
@@ -45,6 +61,8 @@
   import { useRequest } from 'vue-request';
 
   import { getCommonCities, getInfrasSubzonesByCity } from '@services/source/infras';
+
+  import { specialOptionLabelMap, SpecialOptions } from '@common/const';
 
   type CityItem = ServiceReturnType<typeof getCommonCities>['common'][number];
 
@@ -69,9 +87,14 @@
   const subzoneIds = ref<string[]>([]);
   const citiyList = ref<CityItem[]>([]);
 
-  const filterSubzoneList = computed(() =>
-    (subzoneList.value || []).filter((item) => item.bk_city_code === cityCode.value),
-  );
+  const filterSubzoneList = computed(() => {
+    return (subzoneList.value || [])
+      .filter((item) => item.bk_city_code === cityCode.value)
+      .map((item) => ({
+        label: item.bk_sub_zone,
+        value: `${item.bk_sub_zone_id}`,
+      }));
+  });
 
   useRequest(getCommonCities, {
     onSuccess(data) {
