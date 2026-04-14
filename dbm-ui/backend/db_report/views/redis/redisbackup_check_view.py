@@ -8,7 +8,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-
 import logging
 
 from django.utils.translation import gettext as _
@@ -21,24 +20,48 @@ from backend.db_report.enums import SWAGGER_TAG, RedisBackupCheckSubType, Report
 from backend.db_report.models import RedisBackupCheckReport
 from backend.db_report.register import register_report
 from backend.db_report.report_baseview import ReportBaseViewSet
+from backend.db_report.serializers import ReportCommonFieldSerializerMixin
 
 logger = logging.getLogger("root")
 
 
-class RedisBackupCheckReportSerializer(serializers.ModelSerializer):
+class RedisBackupCheckReportSerializer(serializers.ModelSerializer, ReportCommonFieldSerializerMixin):
     class Meta:
         model = RedisBackupCheckReport
-        fields = ("bk_biz_id", "cluster", "cluster_type", "instance", "status", "msg", "create_at")
+        fields = (
+            "bk_biz_id",
+            "dba",
+            "cluster",
+            "instance",
+            "cluster_type",
+            "state",
+            "failed_days",
+            "create_at",
+            "msg",
+        )
         swagger_schema_fields = {"example": mock_data.REDIS_BACKUP_CHECK_DATA}
 
 
 class RedisBackupCheckReportBaseViewSet(ReportBaseViewSet):
     queryset = RedisBackupCheckReport.objects.all()
     serializer_class = RedisBackupCheckReportSerializer
+    filter_fields = {
+        "bk_biz_id": ["exact"],
+        "cluster_type": ["exact", "in"],
+        "create_at": ["gte", "lte"],
+        "state": ["exact", "in"],
+        "failed_days": ["exact", "lte", "gte"],
+        "cluster": ["exact"],
+    }
     report_title = [
         {
             "name": "bk_biz_id",
             "display_name": _("业务"),
+            "format": ReportFieldFormat.TEXT.value,
+        },
+        {
+            "name": "dba",
+            "display_name": _("DBA"),
             "format": ReportFieldFormat.TEXT.value,
         },
         {
@@ -57,13 +80,13 @@ class RedisBackupCheckReportBaseViewSet(ReportBaseViewSet):
             "format": ReportFieldFormat.TEXT.value,
         },
         {
-            "name": "status",
-            "display_name": _("备份状态"),
+            "name": "state",
+            "display_name": _("巡检状态"),
             "format": ReportFieldFormat.STATUS.value,
         },
         {
-            "name": "msg",
-            "display_name": _("详情"),
+            "name": "failed_days",
+            "display_name": _("持续天数"),
             "format": ReportFieldFormat.TEXT.value,
         },
         {
@@ -72,8 +95,8 @@ class RedisBackupCheckReportBaseViewSet(ReportBaseViewSet):
             "format": ReportFieldFormat.TEXT.value,
         },
         {
-            "name": "failed_days",
-            "display_name": _("持续天数"),
+            "name": "msg",
+            "display_name": _("详情"),
             "format": ReportFieldFormat.TEXT.value,
         },
     ]
@@ -84,7 +107,6 @@ class RedisBackupCheckReportBaseViewSet(ReportBaseViewSet):
         tags=[SWAGGER_TAG],
     )
     def list(self, request, *args, **kwargs):
-        logger.info("list")
         return super().list(request, *args, **kwargs)
 
 

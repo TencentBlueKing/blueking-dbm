@@ -168,7 +168,7 @@ def test_flowtree_running_keeps_polling(mock_flowtree_get):
 
     result = service._schedule_inner_captured(data, parent_data=None)
 
-    assert result is False
+    assert result is True
     service.finish_schedule.assert_not_called()
 
 

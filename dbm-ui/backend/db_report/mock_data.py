@@ -81,20 +81,26 @@ REDIS_BACKUP_CHECK_DATA = {
     "results": [
         {
             "bk_biz_id": 3,
+            "dba": "admin",
             "cluster": "aa.bb.cc",
+            "instance": "1.1.1.1",
             "cluster_type": "TendisSSD",
-            "instance": "aa:bb",
-            "status": True,
-            "msg": "",
+            "state": "normal",
+            "failed_days": 0,
+            "create_at": "2026-04-10 00:00:00",
+            "msg": "3 instances checked, all normal",
         }
     ],
     "name": "redis备份检查",
     "title": [
         {"name": "bk_biz_id", "display_name": "业务", "format": "text"},
+        {"name": "dba", "display_name": "DBA", "format": "text"},
         {"name": "cluster", "display_name": "集群域名", "format": "text"},
-        {"name": "cluster_type", "display_name": "集群类型", "format": "text"},
-        {"name": "status", "display_name": "校验结果", "format": "status"},
         {"name": "instance", "display_name": "实例节点", "format": "text"},
+        {"name": "cluster_type", "display_name": "集群类型", "format": "text"},
+        {"name": "state", "display_name": "巡检状态", "format": "status"},
+        {"name": "failed_days", "display_name": "持续天数", "format": "text"},
+        {"name": "create_at", "display_name": "巡检时间", "format": "text"},
         {"name": "msg", "display_name": "详情", "format": "text"},
     ],
 }

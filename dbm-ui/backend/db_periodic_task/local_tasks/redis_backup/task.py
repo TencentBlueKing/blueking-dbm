@@ -12,18 +12,40 @@ import logging
 
 from celery.schedules import crontab
 
+from backend.db_periodic_task.local_tasks.redis_backup.check_binlog_backup import CheckBinlogBackupTask
+from backend.db_periodic_task.local_tasks.redis_backup.check_full_backup import CheckFullBackupTask
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
-
-from .check_binlog_backup import check_binlog_backup
-from .check_full_backup import check_full_backup
 
 logger = logging.getLogger("celery")
 
 
 @register_periodic_task(run_every=crontab(minute=0, hour=0))
-def redis_backup_check_task():
-    """
-    redis 备份巡检
-    """
-    check_full_backup()
-    check_binlog_backup()
+def redis_full_backup_check_task():
+    """Redis full backup check -- runs daily at 00:00."""
+    try:
+        total, normal, warning, abnormal = CheckFullBackupTask().start()
+        logger.info(
+            "redis_full_backup_check_task finished: total=%s normal=%s warning=%s abnormal=%s",
+            total,
+            normal,
+            warning,
+            abnormal,
+        )
+    except Exception:
+        logger.exception("redis_full_backup_check_task failed")
+
+
+@register_periodic_task(run_every=crontab(minute=30, hour=2))
+def redis_binlog_backup_check_task():
+    """Redis binlog backup check -- runs daily at 02:30."""
+    try:
+        total, normal, warning, abnormal = CheckBinlogBackupTask().start()
+        logger.info(
+            "redis_binlog_backup_check_task finished: total=%s normal=%s warning=%s abnormal=%s",
+            total,
+            normal,
+            warning,
+            abnormal,
+        )
+    except Exception:
+        logger.exception("redis_binlog_backup_check_task failed")

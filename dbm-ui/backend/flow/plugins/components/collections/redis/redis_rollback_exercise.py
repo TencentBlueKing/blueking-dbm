@@ -335,7 +335,8 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
         except FlowTree.DoesNotExist:
             return True
 
-        return self._finish_by_child_state(data, child_root_id, flow_tree.status)
+        self._finish_by_child_state(data, child_root_id, flow_tree.status)
+        return True
 
 
 class RedisExerciseFlowRunnerComponent(Component):
