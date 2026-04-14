@@ -383,18 +383,18 @@
   import { useRouter } from 'vue-router';
 
   import {
+    changeConfNames,
     getConfigBaseDetails,
     getConfigNames,
     getListConfNameTypes,
     getListConfTypes,
-    updatePlatformConfig,
     validateConfItems,
   } from '@services/source/configs';
 
   import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
 
-  import { messageError, messageSuccess } from '@utils';
+  import { messageSuccess } from '@utils';
 
   const route = useRoute();
   const router = useRouter();
@@ -629,7 +629,7 @@
 
     // 后端校验合法性（Body 直接传数组）
     try {
-      const validateRes = await validateConfItems([
+      await validateConfItems([
         {
           conf_name: addParamForm.conf_name,
           flag_readonly: 0,
@@ -640,40 +640,32 @@
           value_type_sub: addParamForm.value_type_sub === NO_CONSTRAINT ? '' : addParamForm.value_type_sub,
         },
       ]);
-      if (validateRes.code !== 0 && validateRes.message) {
-        messageError(validateRes.message);
-        return;
-      }
-    } catch (e: any) {
-      messageError(e?.message || e || t('校验失败'));
+    } catch {
       return;
     }
 
     submitLoading.value = true;
     try {
-      await updatePlatformConfig({
-        conf_items: [
+      await changeConfNames({
+        conf_file: detailData.value.version || version,
+        conf_names: [
           {
             conf_name: addParamForm.conf_name,
             conf_name_lc: addParamForm.conf_name_lc,
             description: addParamForm.description,
-            extra_info: addParamForm.value_encrypt ? 'encrypt' : '',
-            flag_disable: addParamForm.flag_disable_inverse ? 0 : 1,
             flag_locked: addParamForm.flag_locked ? 1 : 0,
+            flag_readonly: addParamForm.flag_disable_inverse ? 0 : 1,
+            flag_visible: 1,
             need_restart: addParamForm.need_restart ? 1 : 0,
             op_type: isEditMode.value ? 'update' : 'add',
             value_allowed: addParamForm.value_allowed,
             value_default: addParamForm.value_default,
             value_type: addParamForm.value_type,
             value_type_sub: addParamForm.value_type_sub === NO_CONSTRAINT ? '' : addParamForm.value_type_sub,
-          } as any,
+          },
         ],
         conf_type: confType,
-        confirm: 0,
-        description: '',
         meta_cluster_type: clusterType,
-        name: detailData.value.name || '',
-        version: version,
       });
       isShowAddParam.value = false;
       messageSuccess(isEditMode.value ? t('编辑成功') : t('新增成功'));
@@ -705,21 +697,26 @@
 
   // 删除参数
   const handleDeleteParam = async (row: DetailResult['conf_items'][number]) => {
-    await updatePlatformConfig({
-      conf_items: [
+    await changeConfNames({
+      conf_file: detailData.value.version || version,
+      conf_names: [
         {
           conf_name: row.conf_name,
-          conf_value: row.conf_value ?? '',
-          description: row.description,
+          conf_name_lc: row.conf_name_lc ?? '',
+          description: row.description || '',
+          flag_locked: 0,
+          flag_readonly: 0,
+          flag_visible: 1,
+          need_restart: 0,
           op_type: 'remove',
-        } as any,
+          value_allowed: '',
+          value_default: '',
+          value_type: '',
+          value_type_sub: '',
+        },
       ],
       conf_type: confType,
-      confirm: 0,
-      description: '',
       meta_cluster_type: clusterType,
-      name: detailData.value.name || '',
-      version: version,
     });
     messageSuccess(t('删除成功'));
     fetchDetail({ conf_type: confType, meta_cluster_type: clusterType, version: version });

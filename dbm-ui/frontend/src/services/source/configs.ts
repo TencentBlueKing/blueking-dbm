@@ -421,3 +421,26 @@ export function validateConfItems(
 ) {
   return http.post(`${path}/validate_conf_items/`, params, { responseType: 'json' });
 }
+
+// 修改/新增/删除平台配置项定义
+export function changeConfNames(params: {
+  conf_file: string;
+  conf_names: Array<{
+    conf_name: string;
+    conf_name_lc: string;
+    description: string;
+    flag_locked: number;
+    flag_readonly: number;
+    flag_visible: number;
+    need_restart: number;
+    op_type: string;
+    value_allowed: string;
+    value_default: string;
+    value_type: string;
+    value_type_sub: string;
+  }>;
+  conf_type: string;
+  meta_cluster_type: string;
+}) {
+  return http.post(`${path}/change_conf_names/`, params);
+}
