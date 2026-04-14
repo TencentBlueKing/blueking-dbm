@@ -203,12 +203,14 @@ def test_redis_sub_ticket_handlers_registered():
 # ==================== _handle_redis_sub_ticket_callback ====================
 
 
+@patch("backend.flow.signal.redis_rollback_exercise_handler.FlowTree.objects.get")
 @patch("backend.flow.signal.redis_rollback_exercise_handler.Ticket.objects.filter")
 @patch("backend.flow.signal.redis_rollback_exercise_handler.wakeup_redis_rollback_runner_by_child")
-def test_callback_handler_terminal_state_with_drill_ticket(mock_wakeup, mock_ticket_filter):
+def test_callback_handler_terminal_state_with_drill_ticket(mock_wakeup, mock_ticket_filter, mock_flowtree_get):
     mock_ticket_filter.return_value.only.return_value.first.return_value = MagicMock(
         ticket_type=TicketType.REDIS_ROLLBACK_EXERCISE
     )
+    mock_flowtree_get.return_value = MagicMock(status=StateType.FINISHED)
     redis_data_structure_callback_handler(
         node_id="node_id",
         root_id="child_root_id",
@@ -221,13 +223,17 @@ def test_callback_handler_terminal_state_with_drill_ticket(mock_wakeup, mock_tic
 
 
 @pytest.mark.parametrize("terminal_state", [StateType.FAILED, StateType.REVOKED])
+@patch("backend.flow.signal.redis_rollback_exercise_handler.FlowTree.objects.get")
 @patch("backend.flow.signal.redis_rollback_exercise_handler.Ticket.objects.filter")
 @patch("backend.flow.signal.redis_rollback_exercise_handler.wakeup_redis_rollback_runner_by_child")
-def test_callback_handler_failed_and_revoked_also_trigger_wakeup(mock_wakeup, mock_ticket_filter, terminal_state):
+def test_callback_handler_failed_and_revoked_also_trigger_wakeup(
+    mock_wakeup, mock_ticket_filter, mock_flowtree_get, terminal_state
+):
     """FAILED and REVOKED are also terminal states that should trigger wakeup."""
     mock_ticket_filter.return_value.only.return_value.first.return_value = MagicMock(
         ticket_type=TicketType.REDIS_ROLLBACK_EXERCISE
     )
+    mock_flowtree_get.return_value = MagicMock(status=terminal_state)
     redis_data_structure_callback_handler(
         node_id="node_id",
         root_id="child_root_id",

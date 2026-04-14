@@ -184,6 +184,7 @@ def test_periodic_repair_skips_report_without_child_root_id():
 
 def test_periodic_repair_flowtree_not_found_under_3_timeout_silently_continues():
     """When FlowTree doesn't exist and report is not yet 3*timeout overdue, silently continue."""
+    Report.objects.filter(task_stage__in=[TaskStage.ROLLBACK_STARTED, TaskStage.ROLLBACK_SUCCEEDED]).delete()
     report = _make_report(TaskStage.ROLLBACK_STARTED, rollback_child_root_id="missing_flow_child")
 
     with patch(
@@ -268,6 +269,7 @@ def test_periodic_repair_multiple_reports_accumulates_recovery():
 
 def test_periodic_repair_running_child_under_3_timeout_no_warning():
     """A running child that hasn't exceeded 3*timeout should be silently skipped."""
+    Report.objects.filter(task_stage__in=[TaskStage.ROLLBACK_STARTED, TaskStage.ROLLBACK_SUCCEEDED]).delete()
     report = _make_report(
         TaskStage.ROLLBACK_STARTED,
         rollback_child_root_id="running_child",

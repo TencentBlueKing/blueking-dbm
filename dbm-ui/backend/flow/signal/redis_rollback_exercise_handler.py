@@ -151,10 +151,20 @@ def _handle_redis_sub_ticket_callback(root_id: str, status: str, ticket_id: int)
         return
 
     if ticket.ticket_type != TicketType.REDIS_ROLLBACK_EXERCISE:
-        # Guard non-drill tickets: only rollback exercise should trigger wakeup.
         return
 
-    wakeup_redis_rollback_runner_by_child(child_root_id=root_id, child_state=status, trigger="post_set_state")
+    # `status` is the node-level state (fires for every node), not the pipeline state.
+    # Only wake up the runner when the pipeline itself reaches a terminal state.
+    try:
+        tree = FlowTree.objects.get(root_id=root_id)
+    except FlowTree.DoesNotExist:
+        logger.warning(_("Redis rollback drill sub-ticket callback tree not found, root_id={}").format(root_id))
+        return
+
+    if tree.status not in TERMINAL_STATES:
+        return
+
+    wakeup_redis_rollback_runner_by_child(child_root_id=root_id, child_state=tree.status, trigger="post_set_state")
 
 
 @create_ticket_handler(TicketType.REDIS_DATA_STRUCTURE)
