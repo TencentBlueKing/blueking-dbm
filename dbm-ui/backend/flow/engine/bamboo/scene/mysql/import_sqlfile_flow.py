@@ -20,6 +20,7 @@ from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
 from backend.core import consts
+from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, ClusterType
 from backend.db_meta.enums.instance_role import InstanceRole
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_services.mysql.sql_import.constants import BKREPO_SQLFILE_PATH
@@ -88,16 +89,17 @@ class ImportSQLFlow(object):
         sub_pipelines = []
         base_path = self.data["path"]
         sql_files = self.__get_sql_file_name_list()
-        clusters = Cluster.objects.filter(id__in=self.data["cluster_ids"])
+        clusters = Cluster.objects.filter(id__in=self.data["cluster_ids"]).prefetch_related(
+            "clusterentry_set__storageinstance_set__machine",
+            "storageinstance_set__machine",
+        )
 
         # 合并下发需要变更的文件，不同的bk_cloud_id需要分组处理
         act_lists = []
         cluster_bk_cloud_id_map_list = {}
         for cluster in clusters:
             cluster_bk_cloud_id_map_list.setdefault(cluster.bk_cloud_id, []).append(
-                cluster.storageinstance_set.get(
-                    instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
-                ).machine.ip
+                self._resolve_mysql_import_storage(cluster).machine.ip
             )
 
         for bk_cloud_id, ip_list in cluster_bk_cloud_id_map_list.items():
@@ -130,9 +132,7 @@ class ImportSQLFlow(object):
         for cluster_id in self.data["cluster_ids"]:
             # 这样获取顺便可以验证是否传入非法的集群id
             cluster = clusters.get(id=cluster_id)
-            master = cluster.storageinstance_set.get(
-                instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
-            )
+            master = self._resolve_mysql_import_storage(cluster)
 
             sub_pipeline = SubBuilder(self.root_id, self.data)
             sub_pipeline.add_act(
@@ -165,7 +165,10 @@ class ImportSQLFlow(object):
         if len(cluster_ids) <= 0:
             raise Exception(_("查询不到可执行的集群！！！"))
         templ_cluster_id = cluster_ids[0]
-        cluster = Cluster.objects.get(id=templ_cluster_id)
+        cluster = Cluster.objects.prefetch_related(
+            "clusterentry_set__storageinstance_set__machine",
+            "storageinstance_set__machine",
+        ).get(id=templ_cluster_id)
         template_cluster = self.__get_master_instance_info(cluster=cluster)
         cluster_type = template_cluster["cluster_type"]
         template_db_version = self.__get_version_and_charset(
@@ -205,7 +208,9 @@ class ImportSQLFlow(object):
         path = self.data["path"]
         resp = parse_db_from_sqlfile(path=path, files=list(sqlfile_list))
         if resp is None:
-            logger.warning("root id:[{}]parse db from sqlfile resp is None,set dump_all to True.".format(self.root_id))
+            logger.warning(
+                _("root id:[{}] parse db from sqlfile resp is None，已设置 dump_all 为 True。").format(self.root_id)
+            )
         else:
             template_cluster.update(merge_resp_to_cluster(resp))
         template_cluster["semantic_dump_schema_file_name_suffix"] = self.semantic_dump_schema_file_name_suffix
@@ -259,14 +264,65 @@ class ImportSQLFlow(object):
 
         semantic_check_pipeline.run_pipeline(is_drop_random_user=True)
 
-    def __get_master_instance_info(self, cluster: Cluster) -> dict:
-        backend_info = StorageInstance.objects.filter(
-            cluster=cluster,
-            instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER],
-        ).first()
-        if not backend_info:
+    @staticmethod
+    def _resolve_mysql_import_storage(cluster: Cluster) -> StorageInstance:
+        """
+        解析 SQL 导入应连接的存储实例。TenDBSingle 以主 DNS 入口绑定的实例为准；主 DNS 入口记录及
+        其绑定的存储实例均至多 1 条，否则抛错。其它类型见 cluster M2M 上按角色筛选。
+        """
+        if cluster.cluster_type == ClusterType.TenDBSingle.value:
+            entry_qs = cluster.clusterentry_set.filter(
+                cluster_entry_type=ClusterEntryType.DNS.value,
+                role=ClusterEntryRole.MASTER_ENTRY.value,
+            )
+            entry_count = entry_qs.count()
+            if entry_count > 1:
+                raise Exception(
+                    _("TenDBSingle 集群 {} 存在 {} 条主 DNS 入口记录，期望至多 1 条，请检查元数据").format(cluster.id, entry_count)
+                )
+            master_entry = entry_qs.first() if entry_count == 1 else None
+            if master_entry is not None:
+                bound_qs = master_entry.storageinstance_set.select_related("machine").order_by("id")
+                bound_count = bound_qs.count()
+                if bound_count > 1:
+                    raise Exception(
+                        _("TenDBSingle 集群 {} 主 DNS 入口绑定了 {} 个存储实例，期望至多 1 个，请检查元数据").format(cluster.id, bound_count)
+                    )
+                bound = bound_qs.first()
+                if bound is not None:
+                    return bound
+            logger.warning(_("TenDBSingle 集群 {} 未从主入口 DNS 解析到存储实例，使用兜底逻辑").format(cluster.id))
+            fallback = cluster.main_storage_instances().first()
+            if fallback is not None:
+                return fallback
+            storage = (
+                StorageInstance.objects.filter(
+                    cluster=cluster,
+                    instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER],
+                )
+                .select_related("machine")
+                .order_by("instance_role", "id")
+                .first()
+            )
+            if storage is not None:
+                return storage
             raise Exception(_("查询不到可执行的实例！！！"))
-        logger.info(f"get backend info: {backend_info}")
+
+        storage = (
+            cluster.storageinstance_set.filter(
+                instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER],
+            )
+            .select_related("machine")
+            .order_by("instance_role", "id")
+            .first()
+        )
+        if storage is None:
+            raise Exception(_("查询不到可执行的实例！！！"))
+        return storage
+
+    def __get_master_instance_info(self, cluster: Cluster) -> dict:
+        backend_info = self._resolve_mysql_import_storage(cluster)
+        logger.info("get backend info: {}".format(backend_info))
         return {
             "id": cluster.id,
             "bk_cloud_id": cluster.bk_cloud_id,
