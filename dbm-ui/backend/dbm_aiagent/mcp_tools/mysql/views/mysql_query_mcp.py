@@ -389,7 +389,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         engine = self.get_param("engine")
 
         machine_obj = _validate_and_get_machine(bk_cloud_id, address)
-        return Response(**show_engine_status(bk_cloud_id, address, engine, machine_obj.machine_type))
+        return Response(show_engine_status(bk_cloud_id, address, engine, machine_obj.machine_type))
 
 
 def _validate_and_get_machine(bk_cloud_id: int | None, address: str) -> Machine:
