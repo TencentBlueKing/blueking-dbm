@@ -369,8 +369,8 @@
   },
   {
     "conf_name": "PhysicalBackup.Throttle",
-    "value_default": "200",
-    "value_allowed": "[0, 500]",
+    "value_default": "0",
+    "value_allowed": "[0, 5000]",
     "value_type": "INT",
     "value_type_sub": "RANGE",
     "conf_name_lc": "",

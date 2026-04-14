@@ -35,5 +35,15 @@ class SearchAlertInputSerializer(serializers.Serializer):
     end_time = serializers.DateTimeField(help_text=_("查询的截止时间"))
 
 
+class QueryAlertInputSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务Id"))
+    cluster_domains = serializers.ListField(child=serializers.CharField(), help_text=_("待查询的集群域名列表"))
+    status = serializers.ChoiceField(
+        help_text=_("告警状态，查询所有状态的告警，可不传改 status 字段"), choices=AlertStatusEnum.get_choices()
+    )
+    start_time = serializers.DateTimeField(help_text=_("查询的起始时间"))
+    end_time = serializers.DateTimeField(help_text=_("查询的截止时间"))
+
+
 class SearchAlertOutputSerializer(serializers.Serializer):
     alert_infos = serializers.ListField(child=AlertInfoSerializer(), help_text=_("告警记录信息"))

@@ -26,6 +26,7 @@ from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpNotSupportMachineTypeException
 from backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_topo import mysql_cluster_topo
 from backend.dbm_aiagent.mcp_tools.mysql.impl.explain_sql import explain_sql
+from backend.dbm_aiagent.mcp_tools.mysql.impl.query_trx import query_long_running_trx
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_create_table import show_create_table
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_engine_status import show_engine_status
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_priv_template import show_biz_mysql_privilege_template
@@ -40,6 +41,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.explain_sql import (
     ExplainSQLInputSerializer,
     ExplainSQLOutputSerializer,
 )
+from backend.dbm_aiagent.mcp_tools.mysql.serializers.query_trx import QueryLongRunningTrxOutputSerializer
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_create_table import (
     ShowCreateTableInputSerializer,
     ShowCreateTableOutputSerializer,
@@ -306,6 +308,31 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         )
 
     @mcp_tools_api_decorator(
+        description=str(_("查询 mysql 长事务，事务未关闭，当前可能正在执行 SQL，也可能 Sleep 未提交")),
+        request_slz=ShowInstanceProcessListInputSerializer,
+        response_slz=QueryLongRunningTrxOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.MYSQL_QUERY],
+        permission_classes=[McpClusterManagePermission],
+        mcp_auth_parser=auth_parse_instances,
+        name_prefix="mysql_query",
+    )
+    def trx_long_running(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        address = self.get_param("address")
+
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+
+        return Response(
+            {
+                "long_running_trx": query_long_running_trx(
+                    bk_cloud_id=machine_obj.bk_cloud_id,
+                    address=address,
+                ),
+            }
+        )
+
+    @mcp_tools_api_decorator(
         description=str(
             _(
                 """查询指定的 MySQL 参数,
@@ -402,7 +429,7 @@ def _validate_and_get_machine(bk_cloud_id: int | None, address: str) -> Machine:
 
     if machine_q.count() > 1:
         if bk_cloud_id is None:
-            raise ValueError("机器IP不唯一, 请指定 bk_cloud_id")
+            raise ValueError("Machine IP is not unique, please specify bk_cloud_id")
         machine_q = machine_q.filter(bk_cloud_id=bk_cloud_id)
 
     machine_obj = machine_q.get()

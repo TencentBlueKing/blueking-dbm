@@ -14,6 +14,7 @@ from rest_framework import serializers
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import (
     mysql_instance_role_choices,
     mysql_slowlog_metric_name_choices,
+    mysql_slowlog_orderby_choices,
 )
 
 
@@ -37,6 +38,43 @@ class MysqlSlowlogOutputSerializer(serializers.Serializer):
             "query_digest_md5 是慢日志摘要字段的 MD5 值，也叫 digest 或者 query_digest"
         )
     )
+
+
+class SlowlogAggregatedInputSerializer(serializers.Serializer):
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    instance_role = serializers.ChoiceField(choices=mysql_instance_role_choices, help_text=_("db实例角色"))
+    metric_name = serializers.ChoiceField(choices=mysql_slowlog_orderby_choices, help_text=_("按照哪个指标来聚合排序"))
+    limit = serializers.IntegerField(help_text=_("查看 top N 慢日志种类"))
+    start_time = serializers.DateTimeField(help_text=_("开始时间"))
+    end_time = serializers.DateTimeField(help_text=_("结束时间"))
+
+
+class SlowlogAggregatedRowSerializer(serializers.Serializer):
+    query_digest_md5 = serializers.CharField(help_text=_("慢日志摘要字段的 MD5 值，也叫 digest 或者 query_digest"))
+    query_digest_text = serializers.CharField(help_text=_("慢日志摘要字段，也叫 digest_text 或者 fingerprint"))
+    time_window_min = serializers.DateTimeField(help_text=_("时间窗口开始"))
+    time_window_max = serializers.DateTimeField(help_text=_("时间窗口结束"))
+    count_star = serializers.IntegerField(help_text=_("慢日志数量"))
+    query_time_max = serializers.FloatField(help_text=_("最大查询时间"))
+    query_time_sum = serializers.FloatField(help_text=_("总查询时间"))
+    rows_examined_max = serializers.IntegerField(help_text=_("最大扫描行数"))
+    rows_examined_sum = serializers.IntegerField(help_text=_("总扫描行数"))
+    rows_sent_max = serializers.IntegerField(help_text=_("最大返回行数"))
+    rows_sent_sum = serializers.IntegerField(help_text=_("总返回行数"))
+    query_string = serializers.CharField(help_text=_("原始 sql 示例"))
+    query_command = serializers.CharField(help_text=_("sql 类型"))
+    query_db_name = serializers.CharField(help_text=_("数据库名"))
+    table_names = serializers.CharField(help_text=_("表名"))
+    username = serializers.CharField(help_text=_("用户名"))
+    instance_host = serializers.CharField(help_text=_("DB机器主机 ip 示例"))
+    instance_port = serializers.IntegerField(help_text=_("DB实例 port 示例"))
+
+
+class SlowlogAggregatedOutputSerializer(serializers.Serializer):
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    instance_role = serializers.CharField(help_text=_("实例角色"))
+    metric_name = serializers.CharField(help_text=_("返回的结果是按照哪种指标聚合排序的"))
+    slow_logs = SlowlogAggregatedRowSerializer(many=True, help_text=_("慢日志列表"))
 
 
 class MysqlOneSlowlogInputSerializer(serializers.Serializer):

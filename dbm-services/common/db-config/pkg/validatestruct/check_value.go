@@ -255,22 +255,22 @@ func CheckInBool(valueGiven, valueAllowed string) error {
 
 // CheckDataType 检验数据类型
 func CheckDataType(name, value string) error {
-	err2 := errors.Errorf("expect type %s but given value %s", name, value)
+	err2 := errors.Errorf("expect type %s but given value '%s'", name, value)
 	if name == DTypeInt {
 		if _, err := strconv.ParseInt(value, 10, 64); err != nil {
-			return errors.Wrap(err2, err.Error())
+			return err2
 		}
 	} else if name == DTypeFloat {
 		if _, err := strconv.ParseFloat(value, 32); err != nil {
-			return errors.Wrap(err2, err.Error())
+			return err2
 		}
 	} else if name == DTypeNumber {
 		if _, err := strconv.ParseFloat(value, 64); err != nil {
-			return errors.Wrap(err2, err.Error())
+			return err2
 		}
 	} else if name == DTypeBool {
 		if _, err := cmutil.ToBoolExtE(value); err != nil {
-			return errors.Wrap(err2, err.Error())
+			return err2
 		}
 	} else if name == "" {
 		// return errors.Errorf("empty value_type for value [%s]", value)
@@ -285,7 +285,7 @@ func CheckDataTypeSub(dataType, subType string) error {
 	}
 	if subs, ok := ValueTypeSubRef[dataType]; ok {
 		if !util.StringsHas(subs, subType) {
-			return errors.Errorf("value_type %s doesnot has sub type %s, allowed %s",
+			return errors.Errorf("value_type %s does not has sub type %s, allowed %s",
 				dataType, subType, subs)
 		}
 	} else {

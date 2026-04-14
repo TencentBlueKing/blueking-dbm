@@ -88,6 +88,7 @@ simpleeval = "^1.0.3"
 aiohttp = "3.13.3"
 tiktoken = ">=0.7.0,<1.0.0"
 wheel = "0.46.2"
+promql-builder = "^0.0.4"
 
 [tool.poetry.dev-dependencies]
 flake8 = "7.1.1"

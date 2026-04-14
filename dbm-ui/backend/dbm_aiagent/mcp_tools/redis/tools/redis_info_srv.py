@@ -343,7 +343,7 @@ class RedisInfoService:
         # 提取slave索引
         match = re.match(r"slave(\d+):(.*)", slave_string)
         if not match:
-            raise ValueError(_("无效的slave信息格式:{}".format(slave_string)))
+            raise ValueError(_("Invalid slave info format: {}".format(slave_string)))
 
         slave_index = int(match.group(1))
         info_part = match.group(2)

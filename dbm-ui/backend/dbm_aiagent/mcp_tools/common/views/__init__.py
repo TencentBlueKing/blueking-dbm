@@ -12,6 +12,7 @@ from .alarm_query import MonitorQueryMcpToolsViewSet
 from .dbmeta_query import DBMetaQueryMcpToolsViewSet
 from .dbmeta_update import DBMetaUpdateMcpToolsViewSet
 from .host_decommission_query import HostDecommissionQueryMcpToolsViewSet
+from .promql_query import PromQLQueryMcpToolsViewSet
 from .resource_param_query import ResourceParamQueryMcpToolsViewSet
 from .taskflow_query import TaskflowQueryMcpToolsViewSet
 from .ticket_operation import TicketOperationMcpToolsViewSet

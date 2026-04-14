@@ -14,6 +14,7 @@ from backend.dbm_aiagent.mcp_tools.common.views import (
     DBMetaQueryMcpToolsViewSet,
     DBMetaUpdateMcpToolsViewSet,
     HostDecommissionQueryMcpToolsViewSet,
+    PromQLQueryMcpToolsViewSet,
     ResourceParamQueryMcpToolsViewSet,
     TaskflowQueryMcpToolsViewSet,
     TicketOperationMcpToolsViewSet,
@@ -29,4 +30,5 @@ routers.register(r"", ResourceParamQueryMcpToolsViewSet, basename="mcp-resource-
 routers.register(r"", MonitorQueryMcpToolsViewSet, basename="mcp-monitor-query")
 routers.register(r"", HostDecommissionQueryMcpToolsViewSet, basename="mcp-host-decommission-query")
 routers.register(r"", TaskflowQueryMcpToolsViewSet, basename="mcp-taskflow-query")
+routers.register(r"", PromQLQueryMcpToolsViewSet, basename="mcp-promql-query")
 urlpatterns = routers.urls

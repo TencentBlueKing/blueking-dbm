@@ -123,6 +123,10 @@ func ConfigNamesBatchCreate(db *gorm.DB, confNames []*ConfigNameDefModel, opUser
 		// sqlRes = DB.Self.Omit("time_created", "time_updated").Save(&confNames)
 		if err := sqlRes.Error; err != nil {
 			logger.Errorf("add conf_names :%+v, err:%s", confNames, err.Error())
+			if errors.Is(err, gorm.ErrDuplicatedKey) {
+				// 目前页面修改，都是一个一个提交的
+				return errors.Errorf("conf_name:%s already exists", confNames[0].ConfName)
+			}
 			return err
 		}
 		changes := make([]*ConfNameChangesModel, 0, len(confNames))

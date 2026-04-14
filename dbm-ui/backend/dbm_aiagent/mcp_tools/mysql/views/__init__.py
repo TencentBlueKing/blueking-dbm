@@ -13,4 +13,5 @@ from .mysql_config_update import MySQLConfigUpdateMcpToolsViewSet
 from .mysql_metrics_mcp import MySQLMetricsMcpToolsViewSet
 from .mysql_query_mcp import MySQLQueryMcpToolsViewSet
 from .mysql_slowlog_mcp import MySQLSlowlogMcpToolsViewSet
+from .mysql_table_capacity_mcp import MySQLTableCapacityMcpToolsViewSet
 from .sql_syntax_check_mcp import SqlSyntaxCheckMcpViewSet

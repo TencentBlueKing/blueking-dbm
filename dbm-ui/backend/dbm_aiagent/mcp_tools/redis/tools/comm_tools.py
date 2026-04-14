@@ -45,7 +45,7 @@ def bytes_to_human(self, size: int, precision: int = 2) -> str:
     """
     # 处理负数
     if size < 0:
-        raise ValueError(_("size 不能为负数"))
+        raise ValueError(_("size must not be negative"))
 
     units = ["B", "KB", "MB", "GB", "TB", "PB"]
     index = 0
@@ -86,7 +86,7 @@ def parse_time2_long(time_input: Union[int, str, datetime]) -> int:
                 return int(dt.timestamp())
             except ValueError:
                 continue
-        raise ValueError(f"无法解析时间字符串: {time_input}，支持的格式: {formats}")
+        raise ValueError(f"Unable to parse time string: {time_input}, supported formats: {formats}")
     elif isinstance(time_input, datetime):
         # datetime对象
         return int(time_input.timestamp())

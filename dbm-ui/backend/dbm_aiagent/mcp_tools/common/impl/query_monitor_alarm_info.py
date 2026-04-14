@@ -46,13 +46,20 @@ class QueryMonitorAlarm(object):
 
     @staticmethod
     def query_alarm_for_cluster_ids(
-        bk_biz_id: int, cluster_domains: List[str], start_time: datetime, end_time: datetime
+        bk_biz_id: int,
+        cluster_domains: List[str],
+        start_time: datetime,
+        end_time: datetime,
+        is_shielded: bool = False,
+        is_only_abnormal: bool = False,
     ):
         """
         根据传入的时间范围，查询这段时间内的这批集群ID的告警信息
         @param cluster_domains: 查询的集群域名列表
         @param start_time: 查询的起始时间点
         @param end_time： 查询的截止时间点
+        @param is_shielded: 是否过滤掉已屏蔽的告警记录，默认为False， 表示不过滤
+        @param is_only_abnormal: 是否只过滤未恢复的告警记录，默认为False， 表示不过滤
         """
         query_param = {
             "bk_biz_ids": [env.DBA_APP_BK_BIZ_ID],

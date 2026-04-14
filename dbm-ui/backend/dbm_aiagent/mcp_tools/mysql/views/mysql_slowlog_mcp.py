@@ -18,13 +18,19 @@ from backend.dbm_aiagent.agent.handlers import AgentHandler
 from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clusters
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
-from backend.dbm_aiagent.mcp_tools.mysql.impl.mysql_slowlog import query_slow_log_detail, query_slow_logs_by_metric
+from backend.dbm_aiagent.mcp_tools.mysql.impl.mysql_slowlog import (
+    query_slow_log_detail,
+    query_slow_logs_by_metric,
+    query_slowlog_aggregated,
+)
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_slowlog import (
     MysqlOneSlowlogInputSerializer,
     MysqlSlowlogInputSerializer,
     MysqlSlowlogOutputSerializer,
     MysqlSlowTunerInputSerializer,
     MysqlSlowTunerOutputSerializer,
+    SlowlogAggregatedInputSerializer,
+    SlowlogAggregatedOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
@@ -56,8 +62,6 @@ class MySQLSlowlogMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_slowlog",
     )
     def query_slow_logs_aggregated(self, request, *args, **kwargs):
-        # bk_biz_id = self.get_param("bk_biz_id")  # noqa: F841
-        # cluster_type = self.get_param("cluster_type")
         cluster_domain = self.get_param("cluster_domain")
         instance_role = self.get_param("instance_role")
         metric_name = self.get_param("metric_name")
@@ -72,6 +76,35 @@ class MySQLSlowlogMcpToolsViewSet(McpToolsViewSet):
                 start_time=start_time,
                 end_time=end_time,
                 metric_name=metric_name,
+                limit=limit,
+            )
+        )
+
+    @mcp_tools_api_decorator(
+        description=str(_("获取 tendbsingle, tendbha, tendbcluster 集群的慢查询统计信息")),
+        request_slz=SlowlogAggregatedInputSerializer,
+        response_slz=SlowlogAggregatedOutputSerializer,
+        permission_classes=[McpClusterManagePermission],
+        mcp_auth_parser=auth_parse_clusters,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.MYSQL_SLOWLOG],
+        name_prefix="mysql_slowlog",
+    )
+    def query_aggregated(self, request, *args, **kwargs):
+        cluster_domain = self.get_param("cluster_domain")
+        instance_role = self.get_param("instance_role")
+        order_by = self.get_param("metric_name")
+        start_time = self.get_param("start_time")
+        end_time = self.get_param("end_time")
+        limit = self.get_param("limit")
+
+        return Response(
+            query_slowlog_aggregated(
+                cluster_domain=cluster_domain,
+                instance_role=instance_role,
+                start_time=start_time,
+                end_time=end_time,
+                order_by=order_by,
                 limit=limit,
             )
         )
