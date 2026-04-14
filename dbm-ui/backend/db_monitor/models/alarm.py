@@ -598,7 +598,7 @@ class DispatchGroup(AuditedModel):
 class MonitorPolicy(AuditedModel):
     """监控策略"""
 
-    KEEPED_FIELDS = [*AuditedModel.AUDITED_FIELDS, "id", "is_enabled", "monitor_policy_id", "policy_status"]
+    KEEPED_FIELDS = [*AuditedModel.AUDITED_FIELDS, "id", "monitor_policy_id", "policy_status"]
 
     parent_id = models.IntegerField(verbose_name=_("父级策略ID，0代表父级"), default=0)
     # TODO: 设计上是保存最初版本的快照信息用于恢复策略，现在暂时没用到
@@ -1340,6 +1340,7 @@ class MonitorPolicy(AuditedModel):
                         logger.error(("[sync_plat_monitor_policy] template %s has no details" % alarm_tpl))
                         continue
 
+                    template_dict["is_enabled"] = template_dict["details"]["is_enabled"]
                     # patch template
                     labels = list(set(template_dict["details"]["labels"]))
                     template_dict["details"]["labels"] = labels
