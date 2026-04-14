@@ -104,12 +104,9 @@
 
   const taskFlowRef = ref<InstanceType<typeof TaskFlow>>();
 
-  const isTaskEnd = computed(() => {
-    return ['FINISHED', 'REVOKED'].includes(baseInfo.value.status);
-  });
-  const isSuperuserSwitchShow = computed(() => isSuperuser && !isTaskEnd.value);
   const baseInfo = computed(() => props.data?.flow_info || ({} as FlowDetail['flow_info']));
   const isTaskFailed = computed(() => props.data?.flow_info.status === 'FAILED');
+  const isSuperuserSwitchShow = computed(() => isSuperuser && isTaskFailed.value);
 
   const statusText = computed(() => {
     if (isTaskFailed.value) {
@@ -211,12 +208,6 @@
       immediate: true,
     },
   );
-
-  watch(isTaskEnd, () => {
-    if (isTaskEnd.value) {
-      isSuperUserMode.value = false;
-    }
-  });
 
   const handleOperateSuccess = () => {
     emits('refresh');

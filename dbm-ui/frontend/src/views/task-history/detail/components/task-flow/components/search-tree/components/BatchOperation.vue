@@ -311,31 +311,26 @@
         </div>
       ),
       infoType: 'warning',
-      onConfirm: () => {
+      onConfirm: async function () {
         forceRetryAndSkipLoading.value = true;
-        return formRef
-          .value!.validate()
-          .then(() => {
-            typeInfo[type]
-              .api({
-                is_force: true,
-                nodes: props.data.map((item) => item.id),
-                remark: formData.remark,
-                root_id: props.rootId,
-              })
-              .then(() => {
-                Object.assign(formData, { remark: '' });
-                // isSuperUserMode.value = false;
-                handleSuccess();
-                return true;
-              });
-          })
-          .catch(() => {
-            return false;
-          })
-          .finally(() => {
-            forceRetryAndSkipLoading.value = false;
-          });
+        try {
+          await formRef.value!.validate();
+          typeInfo[type]
+            .api({
+              is_force: true,
+              nodes: props.data.map((item) => item.id),
+              remark: formData.remark,
+              root_id: props.rootId,
+            })
+            .then(() => {
+              Object.assign(formData, { remark: '' });
+              // isSuperUserMode.value = false;
+              handleSuccess();
+              return true;
+            });
+        } finally {
+          forceRetryAndSkipLoading.value = false;
+        }
       },
       theme: 'danger',
       title: typeInfo[type].title,

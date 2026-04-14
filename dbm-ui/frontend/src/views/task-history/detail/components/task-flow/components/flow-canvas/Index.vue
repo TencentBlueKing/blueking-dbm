@@ -324,6 +324,9 @@
     });
 
     await flowGraphInstance.render();
+    if (isSuperUserMode.value) {
+      checkContainerCanvas();
+    }
   };
 
   watch(
@@ -338,11 +341,8 @@
     },
   );
 
-  watch(isSuperUserMode, (newValue) => {
-    if (flowGraphInstance) {
-      flowGraphInstance.updateSuperUserMode(newValue);
-      initGraph();
-    }
+  watch(isSuperUserMode, () => {
+    initGraph();
   });
 
   const handleShowTooltip = (type: TooltipKey, e: any) => {
@@ -517,26 +517,21 @@
         </>
       ),
       infoType: 'warning',
-      onConfirm: () => {
-        return formRef
-          .value!.validate()
-          .then(() => {
-            typeInfo[type]
-              .api({
-                is_force: true,
-                node_id: params.id,
-                remark: formData.remark,
-                root_id: props.rootId,
-              })
-              .then(() => {
-                // isSuperUserMode.value = false;
-                Object.assign(formData, { remark: '' });
-                emits('refresh');
-                return true;
-              });
+      onConfirm: async function () {
+        await formRef.value!.validate();
+
+        typeInfo[type]
+          .api({
+            is_force: true,
+            node_id: params.id,
+            remark: formData.remark,
+            root_id: props.rootId,
           })
-          .catch(() => {
-            return false;
+          .then(() => {
+            // isSuperUserMode.value = false;
+            Object.assign(formData, { remark: '' });
+            emits('refresh');
+            return true;
           });
       },
       theme: 'danger',
@@ -572,6 +567,16 @@
     flowGraphInstance.translateTo([0, 100]);
   };
 
+  const checkContainerCanvas = async () => {
+    const { width } = flowCanvasContainerRef.value!.getBoundingClientRect();
+    const [canvasWidth] = flowGraphInstance.getSize();
+    if (width > canvasWidth) {
+      await initGraph();
+      // flowGraphInstance.isInit = true;
+    }
+    flowGraphInstance.graph?.translateTo([0, 100]);
+  };
+
   onMounted(() => {
     window.addEventListener('resize', handleInitGraph);
   });
@@ -582,14 +587,8 @@
   });
 
   defineExpose<Exposes>({
-    checkContainerInitCanvas: async () => {
-      const { width } = flowCanvasContainerRef.value!.getBoundingClientRect();
-      const [canvasWidth] = flowGraphInstance.getSize();
-      if (width > canvasWidth) {
-        await initGraph();
-        // flowGraphInstance.isInit = true;
-      }
-      flowGraphInstance.graph?.translateTo([0, 100]);
+    checkContainerInitCanvas: () => {
+      checkContainerCanvas();
     },
     getGraph: () => flowGraphInstance,
     getShareData: () => ({
