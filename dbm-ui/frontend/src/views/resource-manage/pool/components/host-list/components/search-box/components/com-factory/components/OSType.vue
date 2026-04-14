@@ -19,11 +19,18 @@
     :model-value="defaultValue"
     :placeholder="t('请选择操作系统类型')"
     @change="handleChange">
-    <BkOption
-      v-for="item in data"
-      :key="item"
-      :label="item"
-      :value="item" />
+    <BkOptionGroup group-style="divider">
+      <BkOption
+        v-for="item in data"
+        :key="item"
+        :label="item"
+        :value="item" />
+    </BkOptionGroup>
+    <BkOptionGroup group-style="divider">
+      <BkOption
+        :label="specialOptionLabelMap[SpecialOptions.EMPTY]"
+        :value="SpecialOptions.EMPTY" />
+    </BkOptionGroup>
   </BkSelect>
 </template>
 <script setup lang="ts">
@@ -31,6 +38,8 @@
   import { useRequest } from 'vue-request';
 
   import { getOsTypeList } from '@services/source/dbresourceResource';
+
+  import { specialOptionLabelMap, SpecialOptions } from '@common/const';
 
   interface Props {
     defaultValue?: string;

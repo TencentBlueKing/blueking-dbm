@@ -26,46 +26,42 @@
         class="mb-12"
         :ip-list="noSpecIpList" />
       <div ref="tableWrapper">
-        <BkTable
+        <PrimaryTable
           ref="tableRef"
           class="summary-view-table"
           :data="tableData"
-          :max-height="tableMaxHeight"
-          :pagination="pagination.count > 0 ? pagination : false"
-          @page-limit-change="handeChangeLimit"
-          @page-value-change="handleChangePage">
-          <BkTableColumn
-            field="city"
+          :max-height="tableMaxHeight">
+          <TableColumn
+            col-key="city"
             fixed="left"
-            :label="t('地域')"
-            :min-width="150">
+            :min-width="150"
+            :title="t('地域')">
             <template #default="{ row }">
-              {{ row.city || '--' }}
+              {{ row.cityValue || '--' }}
             </template>
-          </BkTableColumn>
+          </TableColumn>
           <template v-if="isSpec">
-            <BkTableColumn
-              field="specTypeDisplay"
-              :label="t('规格类型')"
-              :min-width="150" />
-            <BkTableColumn
-              field="spec_name"
-              :label="t('规格')"
+            <TableColumn
+              col-key="specTypeDisplay"
+              :min-width="150"
+              :title="t('规格类型')" />
+            <TableColumn
+              col-key="spec_name"
               :width="150" />
           </template>
           <template v-else>
-            <BkTableColumn
-              field="deviceDisplay"
-              :label="t('机型（硬盘）')"
-              :min-width="150" />
-            <BkTableColumn
-              field="cpu_mem_summary"
-              :label="t('CPU 内存')"
-              :min-width="150" />
+            <TableColumn
+              col-key="deviceDisplay"
+              :min-width="150"
+              :title="t('机型（硬盘）')" />
+            <TableColumn
+              col-key="cpu_mem_summary"
+              :min-width="150"
+              :title="t('CPU 内存')" />
           </template>
-          <BkTableColumn
-            field="sub_zone_detail"
-            :label="t('园区分布（台）')"
+          <TableColumn
+            col-key="sub_zone_detail"
+            :title="t('园区分布（台）')"
             :width="400">
             <template #default="{ row }: { row: SummaryModel }">
               <template v-if="Object.keys(row.sub_zone_detail).length > 0">
@@ -83,12 +79,12 @@
               </template>
               <span v-else>--</span>
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="count"
+          </TableColumn>
+          <TableColumn
+            col-key="count"
             fixed="right"
-            :label="t('总数（台）')"
             :min-width="100"
+            :title="t('总数（台）')"
             :width="100">
             <template #default="{ row }">
               <span
@@ -103,8 +99,15 @@
                 0
               </span>
             </template>
-          </BkTableColumn>
-        </BkTable>
+          </TableColumn>
+        </PrimaryTable>
+        <div class="table-footer">
+          <BkPagination
+            v-bind="pagination"
+            :layout="['total', 'limit', 'list']"
+            @change="handleChangePage"
+            @limit-change="handeChangeLimit" />
+        </div>
       </div>
     </BkLoading>
   </DbCard>
@@ -195,7 +198,7 @@
 
   const handleChangePage = (value: number) => {
     pagination.value.current = value;
-    tableRef.value!.getVxeTableInstance().scrollTo(0, 0);
+    tableRef.value!.scrollToElement({ index: 0, top: 44 });
   };
 
   const handeChangeLimit = (value: number) => {
@@ -205,7 +208,7 @@
 
   const handleClick = (row: SummaryModel, subzoneId?: number) => {
     const params = {
-      city: row.city,
+      city: row.cityValue,
       device_class: row.device_class,
       disk: row.disk_summary?.[0].size ? `${row.disk_summary?.[0].size}-` : '',
       disk_type: row.disk_summary?.[0].disk_type,
@@ -228,7 +231,7 @@
   };
 
   const setTableMaxHeight = () => {
-    tableMaxHeight.value = window.innerHeight - getOffset(rootRef.value as HTMLElement).top - 62;
+    tableMaxHeight.value = window.innerHeight - getOffset(rootRef.value as HTMLElement).top - 62 - 60;
   };
 
   onMounted(() => {
@@ -265,6 +268,26 @@
       .cell-num--zero {
         font-weight: bold;
         color: #000;
+      }
+    }
+
+    .table-footer {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      height: 60px;
+      padding: 0 16px;
+      margin-top: -1px;
+      background: #fff;
+      border-top: 1px solid var(--td-component-border);
+      align-items: center;
+
+      .bk-pagination {
+        width: 100%;
+
+        & > .is-last {
+          margin-left: auto;
+        }
       }
     }
   }
