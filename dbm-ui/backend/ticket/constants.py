@@ -388,6 +388,11 @@ class TicketType(StrStructuredEnum):
                                                         _("TenDB Cluster 只读接入层下架"), _("访问入口"))  # noqa
     TENDBCLUSTER_SPIDER_SWITCH_NODES = TicketEnumField("TENDBCLUSTER_SPIDER_SWITCH_NODES",
                                                        _("TenDB Cluster 替换接入层"), _("运维 Spider 管理"))  # noqa
+    TENDBCLUSTER_SPIDER_LAYER_DR = TicketEnumField(
+        "TENDBCLUSTER_SPIDER_LAYER_DR",
+        _("TenDB Cluster 接入层全毁灾难恢复"),
+        _("运维 Spider 管理"),
+    )  # noqa
     TENDBCLUSTER_SPIDER_CONF_UP_DOWN = TicketEnumField("TENDBCLUSTER_SPIDER_CONF_UP_DOWN",
                                                        _("TenDB Cluster 接入层升降配"), _("运维 Spider 管理"))  # noqa
     TENDBCLUSTER_RESTORE_SLAVE = TicketEnumField("TENDBCLUSTER_RESTORE_SLAVE", _("TenDB Cluster Slave重建"),
