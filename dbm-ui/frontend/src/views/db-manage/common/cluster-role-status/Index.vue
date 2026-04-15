@@ -3,7 +3,7 @@
     <BkPopover
       :max-width="500"
       placement="top"
-      :popover-delay="[300, 100]"
+      :popover-delay="[200, 100]"
       theme="light">
       <ClusterStatus :data="data.status" />
       <template #content>

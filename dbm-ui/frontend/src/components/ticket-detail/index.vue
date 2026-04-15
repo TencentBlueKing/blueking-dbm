@@ -12,7 +12,12 @@
             class="ml-8"
             :data="ticketData"
             small />
-          <BkDropdown placement="bottom-start">
+          <BkDropdown
+            placement="bottom-start"
+            :popover-options="{
+              clickContentAutoHide: true,
+            }"
+            trigger="click">
             <BkButton
               v-bk-tooltips="t('复制')"
               class="ml-8"

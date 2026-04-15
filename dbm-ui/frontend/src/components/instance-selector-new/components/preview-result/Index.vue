@@ -15,7 +15,12 @@
   <div class="instance-selector-preview-result">
     <div class="header">
       <span>{{ t('结果预览') }}</span>
-      <BkDropdown class="result-dropdown">
+      <BkDropdown
+        class="result-dropdown"
+        :popover-options="{
+          clickContentAutoHide: true,
+        }"
+        trigger="click">
         <i class="db-icon-more result-trigger" />
         <template #content>
           <BkDropdownMenu>

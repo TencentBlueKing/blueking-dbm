@@ -8,7 +8,7 @@
         disable-outside-click
         :max-width="600"
         placement="top"
-        :popover-delay="[300, 0]"
+        :popover-delay="[200, 100]"
         theme="light">
         <template #content>
           <div class="resource-machine-info-tips">

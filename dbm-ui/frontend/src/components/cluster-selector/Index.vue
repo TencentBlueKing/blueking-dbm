@@ -32,7 +32,12 @@
         <div class="cluster-selector-result">
           <div class="result-title">
             <span>{{ t('结果预览') }}</span>
-            <BkDropdown class="result-dropdown">
+            <BkDropdown
+              class="result-dropdown"
+              :popover-options="{
+                clickContentAutoHide: true,
+              }"
+              trigger="click">
               <i class="db-icon-more result-trigger" />
               <template #content>
                 <BkDropdownMenu>

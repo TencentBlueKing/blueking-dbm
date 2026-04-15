@@ -44,7 +44,12 @@
               :value="item.value" />
           </BkSelect>
         </div>
-        <BkDropdown :disabled="isFixed || disabled">
+        <BkDropdown
+          :disabled="isFixed || disabled"
+          :popover-options="{
+            clickContentAutoHide: true,
+          }"
+          trigger="click">
           <div
             class="operaion-sign"
             :class="{ 'operaion-sign-disabled': isFixed }">
