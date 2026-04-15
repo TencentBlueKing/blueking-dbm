@@ -55,13 +55,12 @@ def _payload():
         "created_by": "tester",
         "infos": [
             {
-                "cluster_id": 1,
+                "cluster_id_list": [1],
                 "current_version": "3.4.0",
                 "dest_version": "3.6.0",
                 "upgrade_type": "major",
                 "strategy": "rolling",
                 "bk_cloud_id": 0,
-                "dry_run": False,
             }
         ],
     }
@@ -130,9 +129,8 @@ def test_pipeline_contains_cluster_subflow(monkeypatch):
     flow.start()
     assert fake_builder.add_sub_pipeline.called
     assert fake_builder.add_parallel_acts.called
-    fake_builder.run_pipeline_with_sidecar.assert_called_once()
-    _, kwargs = fake_builder.run_pipeline_with_sidecar.call_args
-    assert kwargs["check_ai_monitor_cluster_list"] == [1]
+    fake_builder.run_pipeline.assert_called_once()
+    fake_builder.run_pipeline_with_sidecar.assert_not_called()
 
     acts = fake_builder.add_parallel_acts.call_args[0][0]
     assert len(acts) == 1
@@ -164,13 +162,12 @@ def test_reject_inconsistent_upgrade_path_across_clusters(monkeypatch):
     data = _payload()
     data["infos"].append(
         {
-            "cluster_id": 2,
+            "cluster_id_list": [2],
             "current_version": "4.4.0",
             "dest_version": "5.0.0",
             "upgrade_type": "major",
             "strategy": "rolling",
             "bk_cloud_id": 0,
-            "dry_run": False,
         }
     )
     monkeypatch.setattr(
@@ -241,7 +238,8 @@ def test_multi_hop_media_contains_intermediate_versions(monkeypatch):
 
     flow = MongoUpgradeVersionFlow(root_id="r1", data=data)
     flow.start()
-    assert fake_builder.add_sub_pipeline.call_count == 2
+    # Top-level pipeline: pre-upgrade disk check, then one sub-pipeline per hop (4.4->5.0, 5.0->6.0).
+    assert fake_builder.add_sub_pipeline.call_count == 3
     acts = fake_builder.add_parallel_acts.call_args[0][0]
     file_list = acts[0]["file_list"]
     assert "mongodb-5.0.tgz" in file_list
@@ -301,6 +299,7 @@ def test_get_target_package_fallback_match_mongodb_prefixed_version(monkeypatch)
 def test_normalize_mongodb_full_version():
     assert normalize_mongodb_full_version("5.0.14") == "mongodb-5.0.14"
     assert normalize_mongodb_full_version("mongodb-5.0.14") == "mongodb-5.0.14"
+    assert normalize_mongodb_full_version("MongoDB-5.0.14") == "mongodb-5.0.14"
     assert normalize_mongodb_full_version("5.0.14-rc1") == "mongodb-5.0.14-rc1"
     with pytest.raises(ValueError):
         normalize_mongodb_full_version("monogdb-5.0.14")

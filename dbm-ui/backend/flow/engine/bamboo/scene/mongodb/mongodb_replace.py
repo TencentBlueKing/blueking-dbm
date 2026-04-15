@@ -74,6 +74,10 @@ class MongoReplaceFlow(object):
             check_ai_monitor_cluster_list = [cluster["cluster_id"] for cluster in self.data["infos"]]
         elif self.data.get("ticket_type") == TicketType.MONGODB_REPLICASET_CUTOFF.value:
             for cluster_info in self.data["infos"]:
-                check_ai_monitor_cluster_list.extend(cluster_info["cluster_id"])
+                # cluster_info["cluster_id"] 有可能是int 和 list
+                if isinstance(cluster_info["cluster_id"], int):
+                    check_ai_monitor_cluster_list.append(cluster_info["cluster_id"])
+                elif isinstance(cluster_info["cluster_id"], list):
+                    check_ai_monitor_cluster_list.extend(cluster_info["cluster_id"])
 
         pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=check_ai_monitor_cluster_list)

@@ -379,10 +379,13 @@ func (s *instOpJob) doPrecheckDiskBeforeUpgrade() error {
 		ratio,
 	)
 	if ratio < minFreeDiskRatioForUpgradePrecheck {
+		// Use "%" as an argument instead of %% in the format string so fmt never mis-parses percent signs.
 		return fmt.Errorf(
-			"precheck_disk_upgrade: insufficient free space on data disk: need >= %.0f%% free, got %.2f%% (avail_GB=%.2f total_GB=%.2f)",
+			"precheck_disk_upgrade: insufficient free space on data disk: need >= %.0f%s free, got %.2f%s (avail_GB=%.2f total_GB=%.2f)",
 			minFreeDiskRatioForUpgradePrecheck*100,
+			"%",
 			ratio*100,
+			"%",
 			availGiB,
 			totalGiB,
 		)

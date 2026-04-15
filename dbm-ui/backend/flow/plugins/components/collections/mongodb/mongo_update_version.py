@@ -30,7 +30,14 @@ class MongoUpdateVersionService(BaseService):
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
         cluster_kwargs = kwargs["cluster"]
-        cluster = Cluster.objects.get(id=cluster_kwargs["cluster_id"], bk_biz_id=cluster_kwargs["bk_biz_id"])
+        cluster_id_list = cluster_kwargs["cluster_id_list"]
+        clusters = Cluster.objects.filter(id__in=cluster_id_list, bk_biz_id=cluster_kwargs["bk_biz_id"])
+        if not clusters.exists():
+            raise Cluster.DoesNotExist(
+                "no mongodb clusters found for ids {} in bk_biz_id {}".format(
+                    cluster_id_list, cluster_kwargs["bk_biz_id"]
+                )
+            )
 
         target_version = normalize_mongodb_full_version(cluster_kwargs["target_version"])
         # Defensive check: only persist metadata when package line exists.
@@ -48,14 +55,19 @@ class MongoUpdateVersionService(BaseService):
         if not package_exists:
             raise ValueError("no mongodb package found for target version {}".format(target_version))
 
-        storage_count = cluster.storageinstance_set.update(version=target_version)
-        proxy_count = cluster.proxyinstance_set.update(version=target_version)
-        cluster.major_version = target_version
-        cluster.save(update_fields=["major_version"])
+        storage_count = 0
+        proxy_count = 0
+        cluster_domains = []
+        for cluster in clusters:
+            storage_count += cluster.storageinstance_set.update(version=target_version)
+            proxy_count += cluster.proxyinstance_set.update(version=target_version)
+            cluster.major_version = target_version
+            cluster.save(update_fields=["major_version"])
+            cluster_domains.append(cluster.immute_domain)
 
         self.log_info(
-            "mongo cluster [{}] persist version [{}] done, storage={}, proxy={}".format(
-                cluster.immute_domain, target_version, storage_count, proxy_count
+            "mongo clusters [{}] persist version [{}] done, storage={}, proxy={}".format(
+                ",".join(cluster_domains), target_version, storage_count, proxy_count
             )
         )
         return True

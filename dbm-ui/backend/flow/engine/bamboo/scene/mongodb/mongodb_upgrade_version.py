@@ -20,7 +20,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstancePhase
 from backend.db_meta.models import ProxyInstance, StorageInstance
 from backend.db_package.models import Package
-from backend.flow.consts import MediumEnum
+from backend.flow.consts import MediumEnum, MongoDBClusterRole
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mongodb.base_flow import MongoBaseFlow
@@ -52,13 +52,12 @@ _UPGRADE_CHAIN_INDEX = {v: i for i, v in enumerate(MONGODB_MAJOR_MINOR_UPGRADE_C
 class MongoUpgradeVersionFlow(MongoBaseFlow):
     class Serializer(serializers.Serializer):
         class InfoRow(serializers.Serializer):
-            cluster_id = serializers.IntegerField()
+            cluster_id_list = serializers.ListField(child=serializers.IntegerField(min_value=1), allow_empty=False)
             current_version = serializers.CharField()
             dest_version = serializers.CharField()
             upgrade_type = serializers.ChoiceField(choices=["major", "minor"])
             strategy = serializers.ChoiceField(choices=["rolling", "full_stop"])
             bk_cloud_id = serializers.IntegerField()
-            dry_run = serializers.BooleanField(default=False)
 
             def validate(self, attrs):
                 if attrs["current_version"] == attrs["dest_version"]:
@@ -85,50 +84,54 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
         serializer.is_valid(raise_exception=True)
         payload = serializer.validated_data
 
-        cluster_id_list = [row["cluster_id"] for row in payload["infos"]]
+        cluster_id_list = []
+        for row in payload["infos"]:
+            cluster_id_list.extend(row["cluster_id_list"])
         self.check_cluster_id_list(cluster_id_list)
         clusters = MongoRepository.fetch_many_cluster_dict(id__in=cluster_id_list)
 
         for info in payload["infos"]:
-            cluster = clusters.get(info["cluster_id"])
-            self.check_cluster_valid(cluster, payload)
-            current_version_mm = self._version_major_minor(info["current_version"])
-            dest_version_mm = self._version_major_minor(info["dest_version"])
-            hops = self._expand_upgrade_hops(current_version_mm=current_version_mm, dest_version_mm=dest_version_mm)
-            hop_plans = []
-            for from_version_mm, to_version_mm in hops:
-                target_pkg = self._get_target_package(to_version_mm)
-                hop_plans.append(
+            for cluster_id in info["cluster_id_list"]:
+                cluster = clusters.get(cluster_id)
+                self.check_cluster_valid(cluster, payload)
+                current_version_mm = self._version_major_minor(info["current_version"])
+                dest_version_mm = self._version_major_minor(info["dest_version"])
+                hops = self._expand_upgrade_hops(
+                    current_version_mm=current_version_mm, dest_version_mm=dest_version_mm
+                )
+                hop_plans = []
+                for from_version_mm, to_version_mm in hops:
+                    target_pkg = self._get_target_package(to_version_mm)
+                    hop_plans.append(
+                        {
+                            "current_version": from_version_mm,
+                            "dest_version": to_version_mm,
+                            "display_current_version": info["current_version"],
+                            "display_dest_version": info["dest_version"],
+                            "target_pkg": target_pkg,
+                            "pkg_version": target_pkg.version,
+                            "persist_version": self._resolve_persist_version(
+                                target_pkg=target_pkg, dest_version=to_version_mm
+                            ),
+                        }
+                    )
+                hop_plan_map = {(p["current_version"], p["dest_version"]): p for p in hop_plans}
+                self.cluster_infos.append(
                     {
-                        "current_version": from_version_mm,
-                        "dest_version": to_version_mm,
-                        "display_current_version": info["current_version"],
-                        "display_dest_version": info["dest_version"],
-                        "target_pkg": target_pkg,
-                        "pkg_version": target_pkg.version,
-                        "persist_version": self._resolve_persist_version(
-                            target_pkg=target_pkg, dest_version=to_version_mm
-                        ),
+                        "cluster": cluster,
+                        "info": info,
+                        "exec_groups": self._build_exec_groups(cluster),
+                        "hop_plans": hop_plans,
+                        "hop_plan_map": hop_plan_map,
                     }
                 )
-            hop_plan_map = {(p["current_version"], p["dest_version"]): p for p in hop_plans}
-            self.cluster_infos.append(
-                {
-                    "cluster": cluster,
-                    "info": info,
-                    "exec_groups": self._build_exec_groups(cluster),
-                    "hop_plans": hop_plans,
-                    "hop_plan_map": hop_plan_map,
-                }
-            )
-        non_dry = [x for x in self.cluster_infos if not x["info"].get("dry_run")]
-        if non_dry:
+        if self.cluster_infos:
 
             def _hop_sequence(item: Dict) -> Tuple[Tuple[str, str], ...]:
                 return tuple((p["current_version"], p["dest_version"]) for p in item["hop_plans"])
 
-            first_seq = _hop_sequence(non_dry[0])
-            for item in non_dry[1:]:
+            first_seq = _hop_sequence(self.cluster_infos[0])
+            for item in self.cluster_infos[1:]:
                 if _hop_sequence(item) != first_seq:
                     # 与 global_hops barrier、同机多实例介质替换节奏一致；路径不同会导致 hop 对齐与运维风险。
                     raise serializers.ValidationError(
@@ -137,7 +140,7 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
             self.global_hops = list(first_seq)
             seen_nodes = set()
             self._unique_ticket_nodes = []
-            for item in non_dry:
+            for item in self.cluster_infos:
                 for node in self._collect_all_nodes(item["exec_groups"]):
                     key = (node.bk_cloud_id, node.ip, node.port)
                     if key not in seen_nodes:
@@ -165,8 +168,6 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
         """
         nodes = []
         for item in cluster_infos:
-            if item["info"].get("dry_run"):
-                continue
             nodes.extend(MongoUpgradeVersionFlow._collect_all_nodes(item["exec_groups"]))
         hosts = {(n.bk_cloud_id, n.ip) for n in nodes}
         for bk_cloud_id, ip in sorted(hosts):
@@ -278,10 +279,6 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
         get_file_list = GetFileList(db_type=DBType.MongoDB)
         for item in self.cluster_infos:
             cluster = item["cluster"]
-            info = item["info"]
-            if info["dry_run"]:
-                continue
-
             for hop_plan in item["hop_plans"]:
                 for pkg in get_file_list.mongodb_pkg(db_version=hop_plan["pkg_version"]):
                     for ip in cluster.get_iplist():
@@ -296,13 +293,13 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
                 file_target_path=actuator_workdir,
             )
             pipeline.add_parallel_acts([send_media_act])
+        if self._unique_ticket_nodes:
+            pre_upgrade_check_sf = self._build_pre_upgrade_check_sub_flow(file_path=actuator_workdir)
+            if pre_upgrade_check_sf:
+                pipeline.add_sub_pipeline(pre_upgrade_check_sf)
         for hop in self.global_hops:
             pipeline.add_sub_pipeline(self._build_hop_stage_sub_flow(hop=hop, file_path=actuator_workdir))
-        cluster_ids = [item["cluster"].cluster_id for item in self.cluster_infos if not item["info"].get("dry_run")]
-        if cluster_ids:
-            pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=cluster_ids)
-        else:
-            pipeline.run_pipeline()
+        pipeline.run_pipeline()
 
     @staticmethod
     def _collect_all_nodes(exec_groups: Dict) -> List[MongoNode]:
@@ -311,6 +308,69 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
             nodes.extend(rs_group["members"])
         nodes.extend(exec_groups.get("mongos", []))
         return nodes
+
+    @staticmethod
+    def _one_representative_node_per_host(nodes: List[MongoNode]) -> List[MongoNode]:
+        """Each (bk_cloud_id, ip) keeps the instance with the smallest port (stable representative for disk precheck)."""
+        groups: Dict[Tuple[int, str], List[MongoNode]] = {}
+        for n in nodes:
+            key = (n.bk_cloud_id, n.ip)
+            groups.setdefault(key, []).append(n)
+        reps = [min(members, key=lambda x: x.port) for members in groups.values()]
+        return sorted(reps, key=lambda n: (n.bk_cloud_id, n.ip))
+
+    def _build_pre_upgrade_check_sub_flow(self, file_path: str):
+        # mongos 不做升级前磁盘检查（无与 mongod 同级的数据目录备份诉求）
+        nodes_for_disk = [n for n in self._unique_ticket_nodes if n.role != MongoDBClusterRole.Mongos.value]
+        reps = self._one_representative_node_per_host(nodes_for_disk)
+        if not reps:
+            return None
+        sb = SubBuilder(root_id=self.root_id, data=self.payload)
+        sb.add_parallel_acts(
+            acts_list=[
+                MongoUpgradeVersionSubTask.precheck_disk_upgrade_act(
+                    file_path=file_path, exec_node=node, act_label=node.ip
+                )
+                for node in reps
+            ]
+        )
+        return sb.build_sub_process(_("升级前检查"))
+
+    def _build_hop_barrier_stage_sub_flow(self, hop: Tuple[str, str], file_path: str):
+        """
+        Barrier：各集群先各自 SubBuilder（内并行实例级 precheck），再外层 SubBuilder 并行挂接，
+        与原先「全工单节点一层并行」执行语义等价，便于流水线按集群展示阶段检查。
+        """
+        from_mm, to_mm = hop
+        is_last_hop = bool(self.global_hops) and hop == self.global_hops[-1]
+        barrier_act_prefix = _("最终检查") if is_last_hop else _("阶段检查")
+
+        cluster_barrier_pipes = []
+        for item in self.cluster_infos:
+            nodes = self._collect_all_nodes(item["exec_groups"])
+            if not nodes:
+                continue
+            cb_sb = SubBuilder(root_id=self.root_id, data=self.payload)
+            barrier_acts = [
+                MongoUpgradeVersionSubTask.precheck_upgrade_act(
+                    file_path=file_path,
+                    exec_node=node,
+                    current_version=to_mm,
+                    act_prefix=barrier_act_prefix,
+                )
+                for node in nodes
+            ]
+            cb_sb.add_parallel_acts(acts_list=barrier_acts)
+            cluster_barrier_pipes.append(
+                cb_sb.build_sub_process(_("{}-{}").format(barrier_act_prefix, item["cluster"].name))
+            )
+
+        if not cluster_barrier_pipes:
+            return None
+
+        barrier_sb = SubBuilder(root_id=self.root_id, data=self.payload)
+        barrier_sb.add_parallel_sub_pipeline(cluster_barrier_pipes)
+        return barrier_sb.build_sub_process(barrier_act_prefix)
 
     def _build_cluster_sub_flow(
         self,
@@ -389,23 +449,14 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
 
     def _build_hop_stage_sub_flow(self, hop: Tuple[str, str], file_path: str):
         """
-        单 hop：并行升级本工单内各集群，再对本工单涉及的全部实例做 barrier（precheck），
-        确保同机多实例均完成当前 hop 后再进入下一 hop。
+        单 hop：并行升级本工单内各集群，再执行 barrier 子流程（外层「阶段检查/最终检查」，
+        内层按集群 SubBuilder 并行实例级 precheck），确保同机多实例均完成当前 hop 后再进入下一 hop。
         """
         from_mm, to_mm = hop
         hop_sb = SubBuilder(root_id=self.root_id, data=self.payload)
         is_first_hop = bool(self.global_hops) and hop == self.global_hops[0]
-        if is_first_hop and self._unique_ticket_nodes:
-            hop_sb.add_parallel_acts(
-                acts_list=[
-                    MongoUpgradeVersionSubTask.precheck_disk_upgrade_act(file_path=file_path, exec_node=node)
-                    for node in self._unique_ticket_nodes
-                ]
-            )
         cluster_pipes = []
         for item in self.cluster_infos:
-            if item["info"].get("dry_run"):
-                continue
             plan = item["hop_plan_map"][hop]
             cluster_pipes.append(
                 self._build_cluster_sub_flow(
@@ -425,19 +476,9 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
             )
         if cluster_pipes:
             hop_sb.add_parallel_sub_pipeline(cluster_pipes)
-        if self._unique_ticket_nodes:
-            is_last_hop = bool(self.global_hops) and hop == self.global_hops[-1]
-            barrier_act_prefix = _("最终检查") if is_last_hop else _("阶段检查")
-            barrier_acts = [
-                MongoUpgradeVersionSubTask.precheck_upgrade_act(
-                    file_path=file_path,
-                    exec_node=node,
-                    current_version=to_mm,
-                    act_prefix=barrier_act_prefix,
-                )
-                for node in self._unique_ticket_nodes
-            ]
-            hop_sb.add_parallel_acts(acts_list=barrier_acts)
+        barrier_sf = self._build_hop_barrier_stage_sub_flow(hop=hop, file_path=file_path)
+        if barrier_sf:
+            hop_sb.add_sub_pipeline(sub_flow=barrier_sf)
         return hop_sb.build_sub_process(_("mongo_upgrade_hop_{}->{}".format(from_mm, to_mm)))
 
     def _build_member_sub_flow(
@@ -535,7 +576,7 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
             "act_component_code": MongoUpdateVersionComponent.code,
             "kwargs": {
                 "cluster": {
-                    "cluster_id": cluster.cluster_id,
+                    "cluster_id_list": [cluster.cluster_id],
                     "bk_biz_id": cluster.bk_biz_id,
                     "target_version": target_version,
                 }
