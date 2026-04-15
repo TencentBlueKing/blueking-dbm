@@ -27,9 +27,12 @@ package detector
 
 import (
 	"sync"
+	"time"
 
+	"dbm-services/common/dbha-v2/internal/analysis/apm"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
@@ -50,6 +53,7 @@ type DoubleCheckTask struct {
 	DbType haprobe.DbType
 }
 
+// Response represents the response of the detector.
 type Response struct {
 	Id                string
 	Meta              *hamodel.DbmMetadata
@@ -62,10 +66,12 @@ type Response struct {
 
 // Detector is used to detect whether the host or the probe is alive.
 type Detector struct {
-	wg    sync.WaitGroup
-	tasks map[string]*detectorTask
+	wg        sync.WaitGroup
+	tasks     map[string]*detectorTask
+	ServiceID string
 }
 
+// Detect detects the health of the host or the probe.
 func (d *Detector) Detect(dbInsts []DoubleCheckTask) error {
 	if len(dbInsts) == 0 {
 		return ErrDetectorNoTarget
@@ -75,8 +81,9 @@ func (d *Detector) Detect(dbInsts []DoubleCheckTask) error {
 
 	for _, inst := range dbInsts {
 		task := &detectorTask{
-			meta:   inst.Meta,
-			dbType: inst.DbType,
+			meta:      inst.Meta,
+			dbType:    inst.DbType,
+			serviceID: d.ServiceID,
 			sshCli: &Ssh{
 				ip:       inst.Meta.IP,
 				port:     config.Cfg.Detector.Ssh.Port,
@@ -106,6 +113,7 @@ func (d *Detector) Detect(dbInsts []DoubleCheckTask) error {
 	return nil
 }
 
+// WaitResponses waits for the responses of the detector.
 func (d *Detector) WaitResponses() []*Response {
 	d.wg.Wait()
 	resps := []*Response{}
@@ -123,10 +131,11 @@ func (d *Detector) WaitResponses() []*Response {
 }
 
 type detectorTask struct {
-	meta   *hamodel.DbmMetadata
-	dbType haprobe.DbType
-	resp   *Response
-	sshCli *Ssh
+	meta      *hamodel.DbmMetadata
+	dbType    haprobe.DbType
+	resp      *Response
+	sshCli    *Ssh
+	serviceID string
 }
 
 func (d *detectorTask) id() string {
@@ -142,8 +151,35 @@ func (d *detectorTask) run(cmd string) {
 		DbEventNameReason: haprobe.DbEventNameReasonMissedProbe,
 	}
 
+	start := time.Now()
 	sshResp, err := d.sshCli.Run(cmd)
 	resp.SshResp = sshResp
 	resp.Err = err
 	d.resp = resp
+
+	d.reportSshTime(start)
+
+	if err != nil {
+		d.reportSshError()
+	}
+}
+
+// reportSshTime reports SSH detection latency metric for a single connection.
+func (d *detectorTask) reportSshTime(start time.Time) {
+	if reportErr := apm.DetectorSshTimeConsumingMs.UpdateLabel(map[string]string{
+		haapm.MetricLabelServiceID:   d.serviceID,
+		haapm.MetricLabelServiceName: "analysis",
+	}).Observe(float64(time.Since(start).Milliseconds())); reportErr != nil {
+		logger.Warn("failed to report detector ssh time consuming metric, errmsg: %s", reportErr)
+	}
+}
+
+// reportSshError reports SSH detection error metric.
+func (d *detectorTask) reportSshError() {
+	if reportErr := apm.DetectorSshErrorTotal.UpdateLabel(map[string]string{
+		haapm.MetricLabelServiceID:   d.serviceID,
+		haapm.MetricLabelServiceName: "analysis",
+	}).Inc(); reportErr != nil {
+		logger.Warn("failed to report detector ssh error metric, errmsg: %s", reportErr)
+	}
 }

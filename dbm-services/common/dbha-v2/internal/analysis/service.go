@@ -99,13 +99,13 @@ func (s *Service) Run(ctx context.Context) error {
 		return err
 	}
 
-	// create workflow
-	if err := s.createWorkflow(ctx); err != nil {
+	// create apm server
+	if err := s.createApmServer(); err != nil {
 		return err
 	}
 
-	// create apm server
-	if err := s.createApmServer(); err != nil {
+	// create workflow
+	if err := s.createWorkflow(ctx); err != nil {
 		return err
 	}
 

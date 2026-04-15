@@ -103,6 +103,7 @@ func New(cli *discovery.Client, db *hamysql.GormDB, disc *discovery.Discovery,
 		dbmSync: &Synchronizer{
 			db:           db,
 			discoveryCli: cli,
+			myServiceID:  myServiceID,
 		},
 
 		switchers: map[haprobe.DbType]switcher.Switcher{
@@ -121,9 +122,9 @@ func New(cli *discovery.Client, db *hamysql.GormDB, disc *discovery.Discovery,
 		wflow.myServiceID, wflow.quit)
 
 	wflow.windowMgr = NewBizWindowManager(config.Cfg.Workflow.WindowDuration, config.Cfg.Workflow.InflightTTL)
-	wflow.metadataReader = NewMetadataReader(wflow.hadata, wflow.discoveryCli)
-	wflow.switchExecutor = NewSwitchExecutor(wflow.hadata, wflow.dbmSync, wflow.switchers)
-	wflow.detectorHandler = NewDetectorHandler(wflow.alarm, wflow.windowMgr)
+	wflow.metadataReader = NewMetadataReader(wflow.hadata, wflow.discoveryCli, myServiceID)
+	wflow.switchExecutor = NewSwitchExecutor(wflow.hadata, wflow.dbmSync, wflow.switchers, myServiceID)
+	wflow.detectorHandler = NewDetectorHandler(wflow.alarm, wflow.windowMgr, myServiceID)
 	wflow.businessChecker = NewBusinessChecker(&wflow.StatusParser, wflow.detectorHandler)
 
 	return wflow, nil
@@ -237,7 +238,7 @@ func (w *Workflow) CheckBusinessWithBizID(ctx context.Context, bizId int) error 
 		return err
 	}
 
-	dbStatus, err := w.hadata.ReadDbStatusWithDbInstances(
+	dbStatus, err := w.metadataReader.ReadDbStatusWithInstances(
 		bizMeta.Conds,
 		config.Cfg.Workflow.ReadDbMetricOffsetDuration,
 	)

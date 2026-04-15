@@ -25,6 +25,8 @@
 package haapm
 
 import (
+	"sync"
+
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -41,11 +43,13 @@ import (
 type HaGauge struct {
 	Error error
 
+	mu          sync.Mutex
 	metric      *Metric
 	labelNames  []string
 	labelValues map[string]string
 }
 
+// ToMetric returns the Metric.
 func (m *HaGauge) ToMetric() *Metric {
 	return m.metric
 }
@@ -56,7 +60,11 @@ func (m *HaGauge) WithLabels(labels map[string]string) *BoundGauge {
 	return &BoundGauge{gauge: m, labels: copyLabels(labels)}
 }
 
+// UpdateLabel updates the labels.
 func (m *HaGauge) UpdateLabel(lvs map[string]string) *HaGauge {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	if m.Error != nil {
 		return m
 	}
@@ -80,7 +88,10 @@ func (m *HaGauge) UpdateLabel(lvs map[string]string) *HaGauge {
 	return m
 }
 
+// Set sets the HaGauge to an arbitrary value.
 func (m *HaGauge) Set(val float64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	defer m.reset()
 
 	if m.Error != nil {
@@ -101,7 +112,10 @@ func (m *HaGauge) Set(val float64) error {
 	return m.Error
 }
 
+// Inc increments the HaGauge by 1.
 func (m *HaGauge) Inc() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	defer m.reset()
 
 	if m.Error != nil {
@@ -122,7 +136,10 @@ func (m *HaGauge) Inc() error {
 	return m.Error
 }
 
+// Dec decrements the HaGauge by 1.
 func (m *HaGauge) Dec() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	defer m.reset()
 
 	if m.Error != nil {
@@ -143,7 +160,10 @@ func (m *HaGauge) Dec() error {
 	return m.Error
 }
 
+// Add adds the given value to the HaGauge.
 func (m *HaGauge) Add(val float64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	defer m.reset()
 
 	if m.Error != nil {
@@ -164,7 +184,10 @@ func (m *HaGauge) Add(val float64) error {
 	return m.Error
 }
 
+// Sub subtracts the given value from the HaGauge.
 func (m *HaGauge) Sub(val float64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	defer m.reset()
 
 	if m.Error != nil {
@@ -189,6 +212,7 @@ func (m *HaGauge) reset() {
 	m.Error = nil
 }
 
+// NewHaGauge creates a new HaGauge.
 func NewHaGauge(name, help string, labelNames ...string) *HaGauge {
 	gauge := &HaGauge{}
 

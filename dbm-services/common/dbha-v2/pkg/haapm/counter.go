@@ -25,6 +25,8 @@
 package haapm
 
 import (
+	"sync"
+
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -42,11 +44,13 @@ import (
 type HaCounter struct {
 	Error error
 
+	mu          sync.Mutex
 	metric      *Metric
 	labelNames  []string
 	labelValues map[string]string
 }
 
+// ToMetric returns the Metric.
 func (m *HaCounter) ToMetric() *Metric {
 	return m.metric
 }
@@ -57,7 +61,11 @@ func (m *HaCounter) WithLabels(labels map[string]string) *BoundCounter {
 	return &BoundCounter{counter: m, labels: copyLabels(labels)}
 }
 
+// UpdateLabel updates the labels.
 func (m *HaCounter) UpdateLabel(lvs map[string]string) *HaCounter {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	if m.Error != nil {
 		return m
 	}
@@ -81,7 +89,10 @@ func (m *HaCounter) UpdateLabel(lvs map[string]string) *HaCounter {
 	return m
 }
 
+// Inc increments the counter by 1.
 func (m *HaCounter) Inc() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	defer m.reset()
 
 	if m.Error != nil {
@@ -102,7 +113,10 @@ func (m *HaCounter) Inc() error {
 	return m.Error
 }
 
+// Add adds the given value to the counter.
 func (m *HaCounter) Add(val float64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	defer m.reset()
 
 	if m.Error != nil {
@@ -123,6 +137,7 @@ func (m *HaCounter) Add(val float64) error {
 	return m.Error
 }
 
+// reset resets the labels.
 func (m *HaCounter) reset() {
 	m.labelValues = map[string]string{}
 	for _, name := range m.labelNames {
@@ -132,6 +147,7 @@ func (m *HaCounter) reset() {
 	m.Error = nil
 }
 
+// NewHaCounter creates a new HaCounter.
 func NewHaCounter(name, help string, labelNames ...string) *HaCounter {
 	counter := &HaCounter{}
 	counter.metric = &Metric{

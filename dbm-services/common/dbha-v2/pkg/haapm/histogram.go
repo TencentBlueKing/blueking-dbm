@@ -25,12 +25,14 @@
 package haapm
 
 import (
+	"sync"
+
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// A HaHistogram counts individual observations from an event or sample stream in
+// HaHistogram A HaHistogram counts individual observations from an event or sample stream in
 // configurable static buckets (or in dynamic sparse buckets as part of the
 // experimental Native Histograms, see below for more details). Similar to a
 // Summary, it also provides a sum of observations and an observation count.
@@ -42,11 +44,13 @@ import (
 type HaHistogram struct {
 	Error error
 
+	mu          sync.Mutex
 	metric      *Metric
 	labelNames  []string
 	labelValues map[string]string
 }
 
+// ToMetric returns the metric.
 func (m *HaHistogram) ToMetric() *Metric {
 	return m.metric
 }
@@ -57,7 +61,11 @@ func (m *HaHistogram) WithLabels(labels map[string]string) *BoundHistogram {
 	return &BoundHistogram{histogram: m, labels: copyLabels(labels)}
 }
 
+// UpdateLabel updates the label values.
 func (m *HaHistogram) UpdateLabel(lvs map[string]string) *HaHistogram {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	if m.Error != nil {
 		return m
 	}
@@ -81,7 +89,10 @@ func (m *HaHistogram) UpdateLabel(lvs map[string]string) *HaHistogram {
 	return m
 }
 
+// Observe adds a single observation to the histogram.
 func (m *HaHistogram) Observe(val float64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	defer m.reset()
 
 	if m.Error != nil {
@@ -102,6 +113,7 @@ func (m *HaHistogram) Observe(val float64) error {
 	return m.Error
 }
 
+// reset resets the label values.
 func (m *HaHistogram) reset() {
 	m.labelValues = map[string]string{}
 	for _, name := range m.labelNames {
@@ -111,6 +123,7 @@ func (m *HaHistogram) reset() {
 	m.Error = nil
 }
 
+// NewHaHistogram creates a new HaHistogram.
 func NewHaHistogram(name, help string, labelNames ...string) *HaHistogram {
 	histogram := &HaHistogram{}
 	histogram.metric = &Metric{
@@ -131,6 +144,7 @@ func NewHaHistogram(name, help string, labelNames ...string) *HaHistogram {
 	return histogram
 }
 
+// NewHaHistogramWithBuckets creates a new HaHistogram with buckets.
 func NewHaHistogramWithBuckets(name, help string, buckets []float64, labelNames ...string) *HaHistogram {
 	histogram := &HaHistogram{}
 	histogram.metric = &Metric{

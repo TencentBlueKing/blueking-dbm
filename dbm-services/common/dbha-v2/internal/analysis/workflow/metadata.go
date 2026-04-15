@@ -27,11 +27,14 @@ package workflow
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"dbm-services/common/dbha-v2/internal/analysis/apm"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
 	"dbm-services/common/dbha-v2/internal/analysis/workflow/parser"
 	"dbm-services/common/dbha-v2/pkg/discovery"
+	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
@@ -41,11 +44,12 @@ import (
 type MetadataReader struct {
 	hadata       *storage.DbhaData
 	discoveryCli *discovery.Client
+	myServiceID  string
 }
 
 // NewMetadataReader creates a MetadataReader.
-func NewMetadataReader(hadata *storage.DbhaData, discoveryCli *discovery.Client) *MetadataReader {
-	return &MetadataReader{hadata: hadata, discoveryCli: discoveryCli}
+func NewMetadataReader(hadata *storage.DbhaData, discoveryCli *discovery.Client, serviceID string) *MetadataReader {
+	return &MetadataReader{hadata: hadata, discoveryCli: discoveryCli, myServiceID: serviceID}
 }
 
 // BusinessMetadata contains metadata and conditions for a business.
@@ -56,12 +60,15 @@ type BusinessMetadata struct {
 
 // ReadBusinessMetadata reads all metadata for a business and builds the conditions.
 func (r *MetadataReader) ReadBusinessMetadata(bizId int) (*BusinessMetadata, error) {
+	start := time.Now()
 	metaData, err := r.hadata.ReadMetadataCacheWithBizID(bizId, readBatchCount,
 		config.Cfg.Workflow.ReadDbMetaOffsetDuration)
 	if err != nil {
 		logger.Warn("failed to read the DB metadata for the business, bizId: %d, errmsg: %s", bizId, err)
+		r.reportDbQueryError("read_metadata")
 		return nil, ErrReadMetadataFailure
 	}
+	r.reportDbQueryTime("read_metadata", start)
 
 	conds := make([]*storage.DbInstance, 0, len(metaData))
 	metaInsts := make(map[string]*hamodel.DbmMetadata, len(metaData))
@@ -83,11 +90,14 @@ func (r *MetadataReader) ReadBusinessMetadata(bizId int) (*BusinessMetadata, err
 
 // ReadBusinessSkipInstances reads skipped instances for a business.
 func (r *MetadataReader) ReadBusinessSkipInstances(bizId int) (map[string]*hamodel.SkipDbInstance, error) {
+	start := time.Now()
 	dbSkipInsts, err := r.hadata.ReadSkipDbInstancesWithBkBizId(bizId)
 	if err != nil {
 		logger.Warn("failed to read the skipped DB insts for the business: %d, errmsg: %s", bizId, err)
+		r.reportDbQueryError("read_skip_instances")
 		return nil, ErrReadSkipDbInstFailure
 	}
+	r.reportDbQueryTime("read_skip_instances", start)
 
 	skipInsts := make(map[string]*hamodel.SkipDbInstance, len(dbSkipInsts))
 	for _, skipInst := range dbSkipInsts {
@@ -95,6 +105,43 @@ func (r *MetadataReader) ReadBusinessSkipInstances(bizId int) (map[string]*hamod
 	}
 
 	return skipInsts, nil
+}
+
+// ReadDbStatusWithInstances reads DB status for the given instances and reports DB query metrics.
+func (r *MetadataReader) ReadDbStatusWithInstances(conds []*storage.DbInstance,
+	offsetDuration time.Duration) ([]*hamodel.DbhaDataStatus, error) {
+
+	start := time.Now()
+	dbStatus, err := r.hadata.ReadDbStatusWithDbInstances(conds, offsetDuration)
+	if err != nil {
+		r.reportDbQueryError("read_db_status")
+		return nil, err
+	}
+	r.reportDbQueryTime("read_db_status", start)
+
+	return dbStatus, nil
+}
+
+// reportDbQueryTime reports DB query time consuming metric.
+func (r *MetadataReader) reportDbQueryTime(queryType string, start time.Time) {
+	if reportErr := apm.DbQueryTimeConsumingMs.UpdateLabel(map[string]string{
+		apm.MetricLabelQueryType:     queryType,
+		haapm.MetricLabelServiceID:   r.myServiceID,
+		haapm.MetricLabelServiceName: "analysis",
+	}).Observe(float64(time.Since(start).Milliseconds())); reportErr != nil {
+		logger.Warn("failed to report db query time consuming metric, queryType: %s, errmsg: %s", queryType, reportErr)
+	}
+}
+
+// reportDbQueryError reports DB query error metric.
+func (r *MetadataReader) reportDbQueryError(queryType string) {
+	if reportErr := apm.DbQueryErrorTotal.UpdateLabel(map[string]string{
+		apm.MetricLabelQueryType:     queryType,
+		haapm.MetricLabelServiceID:   r.myServiceID,
+		haapm.MetricLabelServiceName: "analysis",
+	}).Inc(); reportErr != nil {
+		logger.Warn("failed to report db query error metric, queryType: %s, errmsg: %s", queryType, reportErr)
+	}
 }
 
 // AcquireScanLock acquires the scan lock for a business.

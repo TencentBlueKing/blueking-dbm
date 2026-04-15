@@ -40,13 +40,14 @@ import (
 // DetectorHandler processes detector responses and runs liveness double-check,
 // then pushes confirmed failure instances into the sliding window for subsequent pop-switch.
 type DetectorHandler struct {
-	alarm     *AlarmNotifier
-	windowMgr *BizWindowManager
+	alarm       *AlarmNotifier
+	windowMgr   *BizWindowManager
+	myServiceID string
 }
 
 // NewDetectorHandler creates a DetectorHandler.
-func NewDetectorHandler(alarm *AlarmNotifier, windowMgr *BizWindowManager) *DetectorHandler {
-	return &DetectorHandler{alarm: alarm, windowMgr: windowMgr}
+func NewDetectorHandler(alarm *AlarmNotifier, windowMgr *BizWindowManager, serviceID string) *DetectorHandler {
+	return &DetectorHandler{alarm: alarm, windowMgr: windowMgr, myServiceID: serviceID}
 }
 
 // ProcessResponse handles a single detector response: alarms and returns ErrDetectorFailure if switching is needed.
@@ -110,7 +111,7 @@ func (h *DetectorHandler) ProcessResponse(resp *detector.Response) error {
 // and pushes confirmed failure instances into the sliding window.
 // Strategy matching and switching are handled asynchronously by the PopAndSwitch loop.
 func (h *DetectorHandler) LivenessDoubleCheck(bizId int, missedInsts []detector.DoubleCheckTask) {
-	remoteDetector := detector.Detector{}
+	remoteDetector := detector.Detector{ServiceID: h.myServiceID}
 
 	if err := remoteDetector.Detect(missedInsts); err != nil {
 		logger.Warn("failed to detect remote db-insts, errmsg: %s", err)

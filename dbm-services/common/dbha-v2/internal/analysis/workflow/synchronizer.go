@@ -31,9 +31,11 @@ import (
 	"sync"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/analysis/apm"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/pkg/discovery"
+	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
@@ -53,6 +55,7 @@ type Synchronizer struct {
 	cli          *dbm.Client
 	wg           sync.WaitGroup
 	discoveryCli *discovery.Client
+	myServiceID  string
 }
 
 // Run starts the metadata synchronization loop.
@@ -143,11 +146,13 @@ func (s *Synchronizer) saveRespond(resp *dbm.Response) error {
 }
 
 func (s *Synchronizer) syncMetadataFromDbm(ctx context.Context) error {
+	start := time.Now()
 	req := dbm.DefaultRequest
 	req.HashCnt = maxCountPerPage
 	req.DbCloudToken = config.Cfg.Workflow.DbmApiMetadata.Token
 	req.Statuses = []string{string(dbm.Running), string(dbm.Available)}
 
+	var hasError bool
 	for idx := range maxCountPerPage {
 		req.HashValue = idx
 
@@ -160,11 +165,32 @@ func (s *Synchronizer) syncMetadataFromDbm(ctx context.Context) error {
 			logger.Warn("failed to request the metadata from DBM, API: %s, req: %v, errmsg: %s",
 				config.Cfg.Workflow.DbmApiMetadata.Api, req, err)
 
+			hasError = true
 			continue
 		}
 
 		if err := s.saveRespond(metaRsp); err != nil {
 			logger.Warn("failed to save the metadata: %v, errmsg: %v", metaRsp, err)
+		}
+	}
+
+	// Report DBM API sync metadata request latency
+	if reportErr := apm.DbmApiRequestTimeConsumingMs.UpdateLabel(map[string]string{
+		apm.MetricLabelApiName:       "sync_metadata",
+		haapm.MetricLabelServiceID:   s.myServiceID,
+		haapm.MetricLabelServiceName: "analysis",
+	}).Observe(float64(time.Since(start).Milliseconds())); reportErr != nil {
+		logger.Warn("failed to report dbm api request time consuming metric, errmsg: %s", reportErr)
+	}
+
+	// Report DBM API request error if any error occurred
+	if hasError {
+		if reportErr := apm.DbmApiRequestErrorTotal.UpdateLabel(map[string]string{
+			apm.MetricLabelApiName:       "sync_metadata",
+			haapm.MetricLabelServiceID:   s.myServiceID,
+			haapm.MetricLabelServiceName: "analysis",
+		}).Inc(); reportErr != nil {
+			logger.Warn("failed to report dbm api request error metric, errmsg: %s", reportErr)
 		}
 	}
 
