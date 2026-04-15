@@ -273,6 +273,57 @@ class MySQLBackupHandler:
             logger.info(backup_priv_info["message"])
         return backup_priv_info
 
+    def get_tendbcluster_spider_layer_grant_priv_backup_info(
+        self, spider_priv_backup_id: str = None, latest_time: datetime = None
+    ) -> Dict[str, Any]:
+        """
+        TenDBCluster：查询 Spider/tdbctl 独立 grant 备份（data_schema_grant=grant），用于接入层灾难恢复。
+        不依赖 storage 实例列表过滤；按 backup_consistent_time 降序取首条含 priv 文件的记录。
+        """
+        conditions = Q(cluster_id=self.cluster.id, cluster_address=self.cluster.immute_domain)
+        conditions &= Q(data_schema_grant__iexact="grant")
+        conditions &= Q(mysql_role__in=["spider_master", "TDBCTL"])
+        if spider_priv_backup_id:
+            conditions &= Q(backup_id=spider_priv_backup_id)
+        if self.deadlines_days > 0:
+            begin_time = datetime.now().astimezone(timezone.utc) - timedelta(days=self.deadlines_days)
+            conditions &= Q(backup_consistent_time__gte=begin_time)
+        if latest_time is not None:
+            latest_time = latest_time.astimezone(timezone.utc)
+            conditions &= Q(backup_consistent_time__lte=latest_time)
+
+        backup_infos = MysqlBackupResult.objects.filter(conditions).order_by("-backup_consistent_time")
+        self.query = str(backup_infos.query)
+        logger.info(self.query)
+
+        for backup_info in backup_infos:
+            backup_info.backup_consistent_time = backup_info.backup_consistent_time.isoformat()
+            backup_info.backup_begin_time = backup_info.backup_begin_time.isoformat()
+            backup_info.backup_end_time = backup_info.backup_end_time.isoformat()
+            backup_info_dict = model_to_dict(backup_info)
+            backup_info_dict["backup_source"] = MySQLBackupSource.REMOTE.value
+            formatted = self._backup_info_format(backup_info_dict)
+            if "priv" not in formatted:
+                continue
+            key_name = "{}{}{}".format(formatted["backup_host"], IP_PORT_DIVIDER, formatted["backup_port"])
+            mysql_role = backup_info_dict.get("mysql_role") or ""
+            return {
+                "cluster_id": self.cluster.id,
+                "cluster_address": self.cluster.immute_domain,
+                "bk_biz_id": self.cluster.bk_biz_id,
+                "bk_cloud_id": self.cluster.bk_cloud_id,
+                "file_list": {key_name: formatted["priv"]},
+                "task_ids": [formatted["priv"]["task_id"]],
+                "backup_ids": [formatted["backup_id"]],
+                "priv_files": [os.path.basename(formatted["priv"]["file_name"])],
+                "message": "",
+                "mysql_role": mysql_role,
+            }
+
+        self.errmsg = _("集群id {} 未找到 Spider/tdbctl grant 权限备份记录").format(self.cluster.id)
+        logger.error(self.errmsg)
+        return None
+
     def get_tendbha_rollback_backup_info(self, latest_time: datetime = None):
         """
         tendbha 获取指定集群的备份信息，根据备份时间排序
