@@ -252,6 +252,7 @@ from backend.flow.views.spider_cluster_flashback import TenDBClusterFlashbackVie
 from backend.flow.views.spider_cluster_full_backup import TenDBClusterFullBackupView
 from backend.flow.views.spider_cluster_rename_database import TenDBClusterRenameDatabaseView
 from backend.flow.views.spider_cluster_truncate_database import TenDBClusterTruncateDatabaseView
+from backend.flow.views.spider_layer_disaster_recover import SpiderLayerDisasterRecoverSceneApiView
 from backend.flow.views.spider_partition import SpiderPartitionSceneApiView
 from backend.flow.views.spider_partition_cron import SpiderPartitionCronSceneApiView
 from backend.flow.views.spider_reduce_mnt import ReduceSpiderMNTSceneApiView
@@ -561,6 +562,8 @@ urlpatterns = [
     url(r"^scene/tendbcluster_full_backup$", TenDBClusterFullBackupView.as_view()),
     # spider 减少
     url(r"^scene/reduce_spider_nodes$", ReduceSpiderNodesSceneApiView.as_view()),
+    # tendbcluster spider layer DR (debug; POST body same as ticket_data)
+    url(r"^scene/spider_layer_disaster_recover$", SpiderLayerDisasterRecoverSceneApiView.as_view()),
     # riak
     url(r"^scene/riak_cluster_apply$", RiakApplySceneApiView.as_view()),
     url(r"^scene/tendbcluster_flashback$", TenDBClusterFlashbackView.as_view()),
