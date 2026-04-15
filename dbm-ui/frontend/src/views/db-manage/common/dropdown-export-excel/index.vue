@@ -3,8 +3,8 @@
     <BkDropdown
       :popover-options="{
         clickContentAutoHide: true,
-        hideIgnoreReference: true,
-      }">
+      }"
+      trigger="click">
       <template #default="{ popoverShow }">
         <BkButton
           class="export-dropdown-button"

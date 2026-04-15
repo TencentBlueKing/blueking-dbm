@@ -28,11 +28,11 @@
           content: t('请选择规格'),
         }"
         class="batch-operation ml-8"
-        :disabled="disabled"
         :popover-options="{
+          clickContentAutoHide: true,
           renderDirective: 'show',
-          hideIgnoreReference: true,
-        }">
+        }"
+        trigger="click">
         <template #default="{ popoverShow }">
           <BkButton :disabled="disabled">
             {{ t('批量操作') }}

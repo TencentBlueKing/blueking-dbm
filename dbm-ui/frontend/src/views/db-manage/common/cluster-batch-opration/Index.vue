@@ -19,8 +19,8 @@
       content: t('请选择操作集群'),
     }"
     class="cluster-batch-operation"
-    :disabled="disabled"
-    :popover-options="popoverOptions">
+    :popover-options="popoverOptions"
+    trigger="click">
     <template #default="{ popoverShow }">
       <BkButton :disabled="disabled">
         {{ t('批量操作') }}
@@ -124,7 +124,6 @@
     boundary: 'body',
     clickContentAutoHide: true,
     disableOutsideClick: sideSliderShow.value,
-    hideIgnoreReference: true,
     renderDirective: 'show',
   }));
 

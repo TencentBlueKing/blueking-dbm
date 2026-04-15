@@ -50,7 +50,11 @@
           disabled: hasSelected,
         }"
         class="inline-block">
-        <BkDropdown :disabled="!hasSelected">
+        <BkDropdown
+          :popover-options="{
+            clickContentAutoHide: true,
+          }"
+          trigger="click">
           <BkButton
             class="dropdown-button"
             :disabled="!hasSelected">
@@ -314,16 +318,16 @@
       render: ({ data }: { data: DumperInstanceModel }) =>
         data.source_cluster ? (
           <auth-router-link
+            action-id='mysql_view'
+            permission={data.permission.mysql_view}
+            resource={data.source_cluster.id}
+            target='_blank'
             to={{
               name: 'DatabaseTendbha',
               query: {
                 id: data.id,
               },
-            }}
-            action-id='mysql_view'
-            permission={data.permission.mysql_view}
-            resource={data.source_cluster.id}
-            target='_blank'>
+            }}>
             {data.source_cluster.immute_domain}:{data.source_cluster.master_port}
           </auth-router-link>
         ) : (
@@ -378,8 +382,8 @@
                 disabled={data.isOperating}
                 permission={data.permission.tbinlogdumper_enable_disable}
                 resource={data.cluster_id}
-                theme='primary'
                 text
+                theme='primary'
                 onClick={() => handleOpenOrCloseInstance(data)}>
                 {data.isOnline ? t('禁用') : t('启用')}
               </auth-button>
@@ -396,8 +400,8 @@
                   disabled={data.isOperating}
                   permission={data.permission.tbinlogdumper_reduce_nodes}
                   resource={data.cluster_id}
-                  theme='primary'
                   text
+                  theme='primary'
                   onClick={() => handleDeleteInstance(data)}>
                   {t('删除')}
                 </auth-button>
@@ -414,8 +418,8 @@
                   disabled={data.isOperating}
                   permission={data.permission.tbinlogdumper_switch_nodes}
                   resource={data.cluster_id}
-                  theme='primary'
                   text
+                  theme='primary'
                   onClick={() => handleOpenManualMigration(data)}>
                   {t('手动迁移')}
                 </auth-button>

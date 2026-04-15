@@ -2,7 +2,11 @@
   <div class="result-preview-main">
     <div class="title-main">
       <div class="title">{{ t('已选集群') }}</div>
-      <BkDropdown>
+      <BkDropdown
+        :popover-options="{
+          clickContentAutoHide: true,
+        }"
+        trigger="click">
         <DbIcon
           class="more-trigger"
           type="more" />

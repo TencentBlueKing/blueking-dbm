@@ -35,6 +35,7 @@
         <BkPopover
           v-if="influxdbSpec"
           placement="top"
+          :popover-delay="[200, 100]"
           theme="light">
           <span
             class="pb-2"

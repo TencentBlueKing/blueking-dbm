@@ -2,6 +2,7 @@
   <BkPopover
     ext-cls="font-change-popover"
     placement="bottom"
+    :popover-delay="[200, 100]"
     theme="dark">
     <div
       v-bk-tooltips="t('字号调整')"
@@ -38,14 +39,14 @@
 
   const emits = defineEmits<Emits>();
 
-  const { t } = useI18n();
-
   const modelValue = defineModel<FontSetting>({
     default: {
       fontSize: '12px',
       lineHeight: '20px',
     },
   });
+
+  const { t } = useI18n();
 
   const fontSizeList = [
     {
