@@ -60,9 +60,10 @@
                 </template>
                 <BkPopover
                   :arrow="false"
+                  click-content-auto-hide
                   placement="bottom-start"
                   theme="light ticket-table-select-menu"
-                  trigger="hover">
+                  trigger="click">
                   <DbIcon
                     class="select-menu-flag"
                     type="down-big" />

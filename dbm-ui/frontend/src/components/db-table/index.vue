@@ -58,9 +58,10 @@
               <BkPopover
                 v-if="showSelectAllPage"
                 :arrow="false"
+                click-content-auto-hide
                 placement="bottom-start"
                 theme="light db-table-select-menu"
-                trigger="hover">
+                trigger="click">
                 <template #default>
                   <DbIcon
                     class="select-menu-flag"
@@ -237,17 +238,17 @@
         if (isWholeChecked.value) {
           return (
             <div
-              onClick={handleClearWholeSelect}
               class='db-table-whole-check'
+              onClick={handleClearWholeSelect}
             />
           );
         }
         if (isCurrentPageAllSelected.value) {
           return (
             <bk-checkbox
-              onChange={handleTogglePageSelect}
               label={true}
               modelValue={true}
+              onChange={handleTogglePageSelect}
             />
           );
         }
@@ -261,19 +262,19 @@
               content: () => (
                 <div class='db-table-select-plan'>
                   <div
-                    onClick={handlePageSelect}
                     class={{
                       'is-selected': isCurrentPageAllSelected.value,
                       'plan-item': true,
-                    }}>
+                    }}
+                    onClick={handlePageSelect}>
                     {t('本页全选')}
                   </div>
                   <div
-                    onClick={handleWholeSelect}
                     class={{
                       'is-selected': isWholeChecked.value,
                       'plan-item': true,
-                    }}>
+                    }}
+                    onClick={handleWholeSelect}>
                     {t('跨页全选')}
                   </div>
                 </div>
@@ -286,9 +287,10 @@
               ),
             }}
             arrow={false}
+            click-content-auto-hide={true}
             placement='bottom-start'
             theme='light db-table-select-menu'
-            trigger='hover'></bk-popover>
+            trigger='click'></bk-popover>
         </div>
       );
     },
@@ -301,10 +303,10 @@
       return (
         <span v-bk-tooltips={tips}>
           <bk-checkbox
-            onChange={() => handleSelecteRow(data)}
             disabled={Boolean(selectDisabled)}
             label={true}
             modelValue={Boolean(rowSelectMemo.value[_.get(data, props.primaryKey)])}
+            onChange={() => handleSelecteRow(data)}
           />
         </span>
       );

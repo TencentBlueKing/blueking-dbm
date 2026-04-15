@@ -38,6 +38,7 @@
           <BkPopover
             ext-cls="copy-popover"
             placement="top"
+            :popover-delay="[200, 100]"
             theme="light">
             <DbIcon type="copy" />
             <template #content>

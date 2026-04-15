@@ -41,7 +41,12 @@
           {{ t('批量删除') }}
         </AuthButton>
       </template>
-      <BkDropdown class="ml-8">
+      <BkDropdown
+        class="ml-8"
+        :popover-options="{
+          clickContentAutoHide: true,
+        }"
+        trigger="click">
         <BkButton>
           {{ t('复制') }}
           <DbIcon

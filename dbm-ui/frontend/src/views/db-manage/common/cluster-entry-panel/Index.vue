@@ -2,6 +2,7 @@
   <BkPopover
     ext-cls="cluster-entry-panel-popover"
     placement="top"
+    :popover-delay="[200, 100]"
     theme="light"
     :width="panelWidth"
     :z-index="999"

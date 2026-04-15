@@ -56,6 +56,10 @@
       </OperationBtnStatusTips>
       <BkDropdown
         class="ml-8"
+        :popover-options="{
+          clickContentAutoHide: true,
+        }"
+        trigger="click"
         @hide="() => (isCopyDropdown = false)"
         @show="() => (isCopyDropdown = true)">
         <BkButton>

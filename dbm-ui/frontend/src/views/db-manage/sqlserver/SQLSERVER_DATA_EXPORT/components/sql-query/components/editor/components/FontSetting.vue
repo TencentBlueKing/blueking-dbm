@@ -3,6 +3,7 @@
     ext-cls="font-change-popover"
     hide-ignore-reference
     placement="bottom"
+    :popover-delay="[200, 100]"
     theme="dark">
     <div
       v-bk-tooltips="t('字号调整')"

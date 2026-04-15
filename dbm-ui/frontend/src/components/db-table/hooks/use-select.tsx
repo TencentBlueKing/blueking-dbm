@@ -176,9 +176,10 @@ export const useSelect = (
                       ),
                     }}
                     arrow={false}
+                    click-content-auto-hide={true}
                     placement='bottom-start'
                     theme='light db-table-select-menu'
-                    trigger='hover'
+                    trigger='click'
                   />
                 </div>
               ),
