@@ -280,17 +280,9 @@
 
     settingList.forEach(([status, statusText]) => {
       const initSetting = _.cloneDeep(activeTypeMap);
-      if (isBizSettingEmpty || _.isEmpty(bizSetting.value![BizSettingKeys.NOTIFY_CONFIG][status])) {
-        DefaultMessageTypeList.forEach((type) => {
-          if (initSetting.checkbox[type] !== undefined) {
-            initSetting.checkbox[type] = true;
-          }
-        });
-      } else {
+      if (!isBizSettingEmpty && !_.isEmpty(bizSetting.value![BizSettingKeys.NOTIFY_CONFIG][status])) {
         // 若有新增状态，且存量设置不包含此状态，设初始值
-        const statusBizSetting =
-          bizSetting.value![BizSettingKeys.NOTIFY_CONFIG][status] ||
-          Object.fromEntries(DefaultMessageTypeList.map((defaultItem) => [defaultItem, true]));
+        const statusBizSetting = bizSetting.value![BizSettingKeys.NOTIFY_CONFIG][status] || {};
 
         Object.keys(initSetting.checkbox).forEach((initSettingKey) => {
           initSetting.checkbox[initSettingKey] = statusBizSetting[initSettingKey] || false;
