@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from typing import Optional
+
 from django.utils.translation import gettext as _
 
 from backend.flow.consts import MongoDBActuatorActionEnum, MongoDBManagerUser
@@ -99,9 +101,10 @@ class MongoUpgradeVersionSubTask:
         }
 
     @classmethod
-    def precheck_disk_upgrade_act(cls, file_path: str, exec_node: MongoNode) -> dict:
+    def precheck_disk_upgrade_act(cls, file_path: str, exec_node: MongoNode, act_label: Optional[str] = None) -> dict:
+        label = act_label if act_label is not None else "{}:{}".format(exec_node.ip, exec_node.port)
         return {
-            "act_name": _("MongoDB-升级前磁盘空间检查-{}:{}".format(exec_node.ip, exec_node.port)),
+            "act_name": _("MongoDB-升级前磁盘空间检查-{}".format(label)),
             "act_component_code": ExecJobComponent2.code,
             "kwargs": InstanceOpSubTask.make_kwargs(
                 file_path=file_path, exec_node=exec_node, op="precheck_disk_upgrade"

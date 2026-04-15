@@ -20,6 +20,7 @@ from backend.db_services.mongodb.toolbox.handlers import ToolboxHandler
 from backend.db_services.mongodb.toolbox.serializers import (
     GetMongoShardSerializer,
     GetMongoTcpResultSerializer,
+    ListAvailableVersionSerializer,
     MongoExecuteTcpCmdSerializer,
 )
 from backend.iam_app.dataclass import ActionEnum, ResourceEnum
@@ -78,3 +79,17 @@ class ToolboxViewSet(BaseClusterViewSet):
         if page is not None:
             return paginator.get_paginated_response(page)
         return Response(raw_data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询集群可用版本列表"),
+        query_serializer=ListAvailableVersionSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=ListAvailableVersionSerializer, pagination_class=None)
+    def list_available_versions(self, request, bk_biz_id, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        return Response(
+            ToolboxHandler(bk_biz_id).list_available_versions(
+                cluster_ids=data["cluster_ids"], upgrade_type=data["upgrade_type"]
+            )
+        )

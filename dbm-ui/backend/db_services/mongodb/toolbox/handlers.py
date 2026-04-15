@@ -8,12 +8,21 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.db.models import Q
+from typing import List
 
+from django.db.models import Q
+from django.utils.translation import gettext as _
+from rest_framework import serializers
+
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, MachineType, MachineTypeInstanceRoleMap
 from backend.db_meta.models import Cluster, NosqlStorageSetDtl
+from backend.db_package.models import Package
 from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler
 from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
+from backend.flow.consts import MediumEnum
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version import MONGODB_MAJOR_MINOR_UPGRADE_CHAIN
+from backend.flow.utils.mongodb.version_utils import normalize_mongodb_full_version
 
 
 class ToolboxHandler(ClusterServiceHandler):
@@ -21,6 +30,117 @@ class ToolboxHandler(ClusterServiceHandler):
 
     def __init__(self, bk_biz_id: int):
         super().__init__(bk_biz_id)
+
+    @staticmethod
+    def _extract_major_minor(version: str) -> str:
+        if not version:
+            raise serializers.ValidationError(_("当前集群版本为空"))
+        raw_version = version.strip()
+        if raw_version.lower().startswith("mongodb-"):
+            raw_version = raw_version.split("-", 1)[1]
+        parts = raw_version.split(".")
+        if len(parts) < 2:
+            raise serializers.ValidationError(_("不支持的当前版本：{}").format(version))
+        return "{}.{}".format(parts[0], parts[1])
+
+    @staticmethod
+    def _extract_major_minor_from_package(package_version: str) -> str:
+        normalized = normalize_mongodb_full_version(package_version)
+        return ".".join(normalized.removeprefix("mongodb-").split(".")[:2])
+
+    @classmethod
+    def _extract_full_version_tuple(cls, version: str):
+        normalized = normalize_mongodb_full_version(version)
+        numeric = normalized.removeprefix("mongodb-").split("-", 1)[0]
+        major, minor, patch = numeric.split(".")[:3]
+        return int(major), int(minor), int(patch)
+
+    @classmethod
+    def _list_major_upgrade_versions(cls, current_version_mm: str, packages):
+        chain_index = {v: i for i, v in enumerate(MONGODB_MAJOR_MINOR_UPGRADE_CHAIN)}
+        if current_version_mm not in chain_index:
+            raise serializers.ValidationError(_("不支持的当前版本：{}").format(current_version_mm))
+
+        available_versions = {}
+        for package in packages:
+            try:
+                normalized_version = normalize_mongodb_full_version(package.version)
+                package_mm = cls._extract_major_minor_from_package(package.version)
+            except ValueError:
+                continue
+
+            if package_mm not in chain_index:
+                continue
+            if chain_index[package_mm] <= chain_index[current_version_mm]:
+                continue
+            if package_mm not in available_versions:
+                available_versions[package_mm] = normalized_version
+
+        return [available_versions[key] for key in MONGODB_MAJOR_MINOR_UPGRADE_CHAIN if key in available_versions]
+
+    @classmethod
+    def _list_minor_upgrade_versions(cls, cluster_major_version: str, packages):
+        current_full = normalize_mongodb_full_version(cluster_major_version)
+        current_tuple = cls._extract_full_version_tuple(current_full)
+        current_mm = cls._extract_major_minor(current_full)
+
+        candidate_versions = set()
+        for package in packages:
+            try:
+                normalized_version = normalize_mongodb_full_version(package.version)
+                package_mm = cls._extract_major_minor_from_package(package.version)
+                package_tuple = cls._extract_full_version_tuple(package.version)
+            except ValueError:
+                continue
+            if package_mm != current_mm:
+                continue
+            if package_tuple <= current_tuple:
+                continue
+            candidate_versions.add(normalized_version)
+
+        return sorted(candidate_versions, key=cls._extract_full_version_tuple)
+
+    @classmethod
+    def list_available_versions(cls, cluster_ids: List[int], upgrade_type: str = "major"):
+        clusters = Cluster.objects.filter(id__in=cluster_ids)
+        cluster_map = {cluster.id: cluster for cluster in clusters}
+        missing_cluster_ids = sorted(set(cluster_ids) - set(cluster_map.keys()))
+        if missing_cluster_ids:
+            raise serializers.ValidationError(_("集群不存在：{}").format(",".join(map(str, missing_cluster_ids))))
+        packages = Package.objects.filter(
+            pkg_type=MediumEnum.MongoDB,
+            db_type=DBType.MongoDB,
+            enable=True,
+        ).order_by("-update_at")
+
+        intersection_versions = None
+        for cluster_id in cluster_ids:
+            cluster = cluster_map[cluster_id]
+            if upgrade_type == "minor":
+                cluster_versions = cls._list_minor_upgrade_versions(cluster.major_version, packages)
+            else:
+                current_version_mm = cls._extract_major_minor(cluster.major_version)
+                cluster_versions = cls._list_major_upgrade_versions(current_version_mm, packages)
+
+            cluster_versions_set = set(cluster_versions)
+            if intersection_versions is None:
+                intersection_versions = cluster_versions_set
+            else:
+                intersection_versions &= cluster_versions_set
+
+            if not intersection_versions:
+                return []
+
+        if intersection_versions is None:
+            return []
+
+        if upgrade_type == "minor":
+            return sorted(intersection_versions, key=cls._extract_full_version_tuple)
+
+        major_versions = {}
+        for version in intersection_versions:
+            major_versions[cls._extract_major_minor_from_package(version)] = version
+        return [major_versions[key] for key in MONGODB_MAJOR_MINOR_UPGRADE_CHAIN if key in major_versions]
 
     @classmethod
     def get_execute_net_tcp_cluster_hosts(cls, cluster):

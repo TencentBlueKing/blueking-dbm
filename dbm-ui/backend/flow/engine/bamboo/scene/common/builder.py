@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging
+import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Self
 
@@ -403,6 +404,7 @@ class Builder(object):
         @param init_trans_data_class: trans_data变量上下文初始化的值，默认""
         @param is_drop_random_user: 控制是否最后回收临时账号，需要跟need_random_pass_cluster_ids不为空才能操作，针对集群下架场景
         """
+        flow_generate_t0 = time.perf_counter()
 
         # 判断是否回收临时账号的流程逻辑
         if self.need_random_pass_cluster_ids and is_drop_random_user:
@@ -421,7 +423,9 @@ class Builder(object):
         self.pipe.extend(self.end_act)
 
         # 构建pipeline流程树
+        build_tree_t0 = time.perf_counter()
         pipeline = builder.build_tree(self.start_act, id=self.root_id, data=self.global_data)
+        build_tree_sec = time.perf_counter() - build_tree_t0
 
         # 传入参数进行脱敏
         pipeline_copy = copy.deepcopy(pipeline)
@@ -439,6 +443,14 @@ class Builder(object):
             status=StateType.CREATED,
             created_by=self.data["created_by"],
             db_type=TicketType.get_db_type_by_ticket(self.data["ticket_type"]),
+        )
+        flow_generate_sec = time.perf_counter() - flow_generate_t0
+        logger.info(
+            "flow generated root_id=%s ticket_type=%s build_tree_sec=%.4f flow_generate_sec=%.4f",
+            self.root_id,
+            self.data.get("ticket_type"),
+            build_tree_sec,
+            flow_generate_sec,
         )
         # 尝试运行流程
         result = api.run_pipeline(runtime=BambooDjangoRuntime(), pipeline=pipeline)

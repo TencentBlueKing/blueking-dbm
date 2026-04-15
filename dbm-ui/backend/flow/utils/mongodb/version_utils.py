@@ -12,6 +12,7 @@ import re
 
 _MAJOR_MINOR_RE = re.compile(r"^\d+\.\d+$")
 _FULL_VERSION_RE = re.compile(r"^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.\-]+)?$")
+_MONGODB_PREFIX = "mongodb-"
 
 
 def normalize_mongodb_full_version(version: str) -> str:
@@ -19,8 +20,9 @@ def normalize_mongodb_full_version(version: str) -> str:
     if not version:
         raise ValueError("version is empty")
     version = version.strip()
-    if version.startswith("mongodb-"):
-        raw = version.removeprefix("mongodb-")
+    # Cluster metadata may store "MongoDB-5.0.4"; strip prefix case-insensitively.
+    if version.lower().startswith(_MONGODB_PREFIX):
+        raw = version[len(_MONGODB_PREFIX) :]
     else:
         # Reject prefixed-but-not-mongodb values (e.g. percona-5.0.14), while
         # still allowing legal suffix forms like 5.0.14-rc1.
