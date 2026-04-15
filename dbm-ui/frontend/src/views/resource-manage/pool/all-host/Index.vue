@@ -5,7 +5,11 @@
       closable
       :title="t('外部主机导入资源池后将在此被记录。直至在待回收池完成删除操作，相关记录才会被删除')" />
     <div class="operation-wrapper">
-      <BkDropdown>
+      <BkDropdown
+        :popover-options="{
+          clickContentAutoHide: true,
+        }"
+        trigger="click">
         <BkButton>
           {{ t('复制') }}
           <DbIcon

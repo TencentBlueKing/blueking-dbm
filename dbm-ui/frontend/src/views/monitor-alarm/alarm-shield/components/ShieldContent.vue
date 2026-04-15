@@ -1,7 +1,7 @@
 <template>
   <BkPopover
     disabled
-    :popover-delay="[100, 0]"
+    :popover-delay="[200, 100]"
     width="430">
     <div class="shield-content-main">
       <div

@@ -46,6 +46,7 @@
               <BkPopover
                 :arrow="false"
                 placement="bottom-start"
+                :popover-delay="[200, 100]"
                 theme="light ticket-table-select-menu"
                 trigger="hover">
                 <DbIcon

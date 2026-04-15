@@ -59,6 +59,7 @@
                 v-if="showSelectAllPage"
                 :arrow="false"
                 placement="bottom-start"
+                :popover-delay="[200, 100]"
                 theme="light db-table-select-menu"
                 trigger="hover">
                 <template #default>

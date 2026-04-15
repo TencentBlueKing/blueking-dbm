@@ -29,11 +29,11 @@
       </template>
       <template v-else>
         <BkDropdown
-          :disabled="selectionHostIdList.length < 1"
           :popover-options="{
+            clickContentAutoHide: true,
             renderDirective: 'show',
-            hideIgnoreReference: true,
-          }">
+          }"
+          trigger="click">
           <BkButton :disabled="selectionHostIdList.length < 1">
             {{ t('批量操作') }}
             <DbIcon type="down-big" />
@@ -69,8 +69,9 @@
       </template>
       <BkDropdown
         :popover-options="{
-          hideIgnoreReference: true,
-        }">
+          clickContentAutoHide: true,
+        }"
+        trigger="click">
         <BkButton
           class="ml-8"
           style="width: 80px">
@@ -93,9 +94,10 @@
       </BkDropdown>
       <BkDropdown
         :popover-options="{
-          hideIgnoreReference: true,
+          clickContentAutoHide: true,
           renderDirective: 'show',
-        }">
+        }"
+        trigger="click">
         <BkButton
           class="ml-8"
           style="width: 80px">
