@@ -152,7 +152,7 @@ func (r *Checker) runGeneral() error {
 				*/
 				var cleanUpSQL string
 				cleanUpSQL = fmt.Sprintf(
-					"DELETE FROM `%s`.`%s` WHERE NOT (master_ip = '0.0.0.0' AND port = 3306 AND db = 'test' AND tbl = 'test' AND lower_boundary = '1=1' AND upper_boundary = '1=1' AND this_crc = '0' AND this_cnt = 0 AND master_crc = '0' AND master_cnt = 0)",
+					"DELETE FROM `%s`.`%s` WHERE NOT (master_ip = '0.0.0.0' AND master_port = 3306 AND db = 'test' AND tbl = 'test' AND lower_boundary = '1=1' AND upper_boundary = '1=1' AND this_crc = '0' AND this_cnt = 0 AND master_crc = '0' AND master_cnt = 0)",
 					r.resultDB, r.resultTbl,
 				)
 
