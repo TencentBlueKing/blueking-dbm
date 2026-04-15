@@ -174,9 +174,23 @@ class K8sClusterApiProxyPassViewSet(BaseProxyPassViewSet):
         cluster_type = params["cluster_type"]
         name = params["name"]
         domain = params["domain"]
+        instances = params.get("instances", [])  # 新增：获取要删除的实例列表
 
         cluster = Cluster.objects.get(name=name, cluster_type=cluster_type, bk_biz_id=bk_biz_id)
 
+        # 如果传入了要删除的实例列表，则只删除这些实例
+        if instances:
+            # 调用 DnsApi 删除特定实例
+            DnsApi.delete_domain(
+                {
+                    "app": str(bk_biz_id),
+                    "bk_cloud_id": bk_cloud_id,
+                    "domains": [{"domain_name": self._format_domain(domain), "instances": instances}],
+                }
+            )
+            return Response({"message": _("成功删除指定实例"), "deleted_instances": instances})
+
+        # 如果没有传入实例列表，则保持原来的行为：删除整个域名
         entry = ClusterEntry.objects.filter(
             cluster=cluster, cluster_entry_type=ClusterEntryType.DNS, entry=domain
         ).first()

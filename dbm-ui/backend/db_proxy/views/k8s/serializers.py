@@ -77,6 +77,12 @@ class DeleteDomainSerializer(BaseProxyPassSerializer):
     name = serializers.CharField(help_text=_("集群名称"))
     domain = serializers.CharField(help_text=_("待删除的域名"))
     operator = serializers.CharField(help_text=_("操作人"))
+    instances = serializers.ListField(
+        child=serializers.CharField(),
+        help_text=_("要删除的实例列表，格式：[ip#port, ...]，如果不传则删除整个域名"),
+        required=False,
+        default=[],
+    )
 
 
 class UpdateDomainSerializer(BaseProxyPassSerializer):
