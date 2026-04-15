@@ -32,6 +32,8 @@ const (
 	MetricLabelSwitchID    = "switch_id"
 	MetricLabelActionScope = "action_scope"
 	MetricLabelDbType      = "db_type"
+	MetricLabelQueryType   = "query_type"
+	MetricLabelApiName     = "api_name"
 )
 
 var (
@@ -58,6 +60,18 @@ var (
 	SwitchingErrorTotal      *haapm.HaCounter
 	SwitchingSuccessTotal    *haapm.HaCounter
 	SwitchingTimeConsumingMs *haapm.HaHistogram
+
+	// DB*
+	DbQueryTimeConsumingMs *haapm.HaHistogram
+	DbQueryErrorTotal      *haapm.HaCounter
+
+	// DBM API*
+	DbmApiRequestTimeConsumingMs *haapm.HaHistogram
+	DbmApiRequestErrorTotal      *haapm.HaCounter
+
+	// SSH Detector*
+	DetectorSshTimeConsumingMs *haapm.HaHistogram
+	DetectorSshErrorTotal      *haapm.HaCounter
 )
 
 // Default histogram buckets for latency (milliseconds)
@@ -69,6 +83,9 @@ func init() {
 	initSwitchingMetrics()
 	initMySQLMetrics()
 	initRedisMetrics()
+	initDBMetrics()
+	initDbmApiMetrics()
+	initDetectorMetrics()
 }
 
 func initScanMetrics() {
@@ -92,7 +109,7 @@ func initPopSwitchMetrics() {
 	// Pop-switch business total counter
 	PopSwitchBusinessTotal = haapm.NewHaCounter(
 		"pop_switch_business_total",
-		"Total number of pop-switch business",
+		"Total number of business IDs processed by pop-switch",
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
 	)
 
@@ -112,13 +129,22 @@ func initSwitchingMetrics() {
 		"Time consuming of switching in milliseconds",
 		defaultLatencyBuckets,
 		MetricLabelDbType,
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
 	)
 
 	// Switching success total counter
-	SwitchingSuccessTotal = haapm.NewHaCounter("switching_success_total", "Total number of switching success")
+	SwitchingSuccessTotal = haapm.NewHaCounter(
+		"switching_success_total",
+		"Total number of switching success",
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
+	)
 
 	// Switching error total counter
-	SwitchingErrorTotal = haapm.NewHaCounter("switching_error_total", "Total number of switching error")
+	SwitchingErrorTotal = haapm.NewHaCounter(
+		"switching_error_total",
+		"Total number of switching error",
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
+	)
 }
 
 func initMySQLMetrics() {
@@ -177,6 +203,61 @@ func initRedisMetrics() {
 	)
 }
 
+func initDBMetrics() {
+	// DB query time consuming histogram
+	DbQueryTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
+		"db_query_time_consuming_ms",
+		"Time consuming of database queries in milliseconds",
+		defaultLatencyBuckets,
+		MetricLabelQueryType,
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
+	)
+
+	// DB query error counter
+	DbQueryErrorTotal = haapm.NewHaCounter(
+		"db_query_error_total",
+		"Total number of database query errors",
+		MetricLabelQueryType,
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
+	)
+}
+
+func initDbmApiMetrics() {
+	// DBM API request time consuming histogram
+	DbmApiRequestTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
+		"dbm_api_request_time_consuming_ms",
+		"Time consuming of DBM API requests in milliseconds",
+		defaultLatencyBuckets,
+		MetricLabelApiName,
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
+	)
+
+	// DBM API request error counter
+	DbmApiRequestErrorTotal = haapm.NewHaCounter(
+		"dbm_api_request_error_total",
+		"Total number of DBM API request errors",
+		MetricLabelApiName,
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
+	)
+}
+
+func initDetectorMetrics() {
+	// SSH detector time consuming histogram
+	DetectorSshTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
+		"detector_ssh_time_consuming_ms",
+		"Time consuming of SSH detection in milliseconds",
+		defaultLatencyBuckets,
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
+	)
+
+	// SSH detector error counter
+	DetectorSshErrorTotal = haapm.NewHaCounter(
+		"detector_ssh_error_total",
+		"Total number of SSH detection errors",
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
+	)
+}
+
 // InitAPM sets service labels for startup metric and registers all metrics to haapm (Option 2).
 // Must be called before haapm.Serve so metrics are collected automatically.
 func InitAPM(serviceID, serviceName string) {
@@ -201,5 +282,11 @@ func InitAPM(serviceID, serviceName string) {
 		SwitchingErrorTotal,
 		SwitchingSuccessTotal,
 		SwitchingTimeConsumingMs,
+		DbQueryTimeConsumingMs,
+		DbQueryErrorTotal,
+		DbmApiRequestTimeConsumingMs,
+		DbmApiRequestErrorTotal,
+		DetectorSshTimeConsumingMs,
+		DetectorSshErrorTotal,
 	)
 }

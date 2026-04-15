@@ -411,6 +411,8 @@ func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogge
 
 // ClusterLevelSwitch handles MySQL cluster switching operations
 func (m *Mysql) ClusterLevelSwitch(ctx context.Context, switchLoggers []switchlogger.DbSwitchLogger, req *Request) *Response {
+	start := time.Now()
+
 	rsp := &Response{
 		MySqlFailureInsts: map[switchcore.MetadataKey]*dbm.DbInstMetadata{},
 	}
@@ -458,6 +460,8 @@ func (m *Mysql) ClusterLevelSwitch(ctx context.Context, switchLoggers []switchlo
 	}
 
 	wg.Wait()
+
+	m.reportMysqlSwitchingMetrics(apm.MysqlClusterSwitchingTimeConsumingMs, start, req, rsp)
 
 	if len(rsp.MySqlFailureInsts) > 0 {
 		rsp.Err = ErrSwitchPartialSuccess

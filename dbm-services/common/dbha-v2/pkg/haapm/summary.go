@@ -25,12 +25,14 @@
 package haapm
 
 import (
+	"sync"
+
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// A HaSummary captures individual observations from an event or sample stream and
+// HaSummary A HaSummary captures individual observations from an event or sample stream and
 // summarizes them in a manner similar to traditional summary statistics: 1. sum
 // of observations, 2. observation count, 3. rank estimations.
 //
@@ -51,11 +53,13 @@ import (
 type HaSummary struct {
 	Error error
 
+	mu          sync.Mutex
 	metric      *Metric
 	labelNames  []string
 	labelValues map[string]string
 }
 
+// ToMetric returns the metric.
 func (m *HaSummary) ToMetric() *Metric {
 	return m.metric
 }
@@ -66,7 +70,11 @@ func (m *HaSummary) WithLabels(labels map[string]string) *BoundSummary {
 	return &BoundSummary{summary: m, labels: copyLabels(labels)}
 }
 
+// UpdateLabel updates the labels.
 func (m *HaSummary) UpdateLabel(lvs map[string]string) *HaSummary {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	if m.Error != nil {
 		return m
 	}
@@ -91,7 +99,10 @@ func (m *HaSummary) UpdateLabel(lvs map[string]string) *HaSummary {
 	return m
 }
 
+// Observe adds a single observation to the summary.
 func (m *HaSummary) Observe(val float64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	defer m.reset()
 
 	if m.Error != nil {
@@ -112,6 +123,7 @@ func (m *HaSummary) Observe(val float64) error {
 	return m.Error
 }
 
+// reset resets the labels.
 func (m *HaSummary) reset() {
 	m.labelValues = map[string]string{}
 	for _, name := range m.labelNames {
@@ -121,6 +133,7 @@ func (m *HaSummary) reset() {
 	m.Error = nil
 }
 
+// NewHaSummary creates a new HaSummary.
 func NewHaSummary(name, help string, labelNames ...string) *HaSummary {
 	summary := &HaSummary{}
 	summary.metric = &Metric{
