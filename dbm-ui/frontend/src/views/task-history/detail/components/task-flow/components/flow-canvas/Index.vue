@@ -324,9 +324,6 @@
     });
 
     await flowGraphInstance.render();
-    if (isSuperUserMode.value) {
-      checkContainerCanvas();
-    }
   };
 
   watch(
@@ -342,7 +339,13 @@
   );
 
   watch(isSuperUserMode, () => {
-    initGraph();
+    initGraph().then(() => {
+      if (isSuperUserMode.value) {
+        flowGraphInstance.graph?.translateBy([0, 32]);
+      } else {
+        flowGraphInstance.graph?.translateBy([0, -32]);
+      }
+    });
   });
 
   const handleShowTooltip = (type: TooltipKey, e: any) => {
