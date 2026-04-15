@@ -26,6 +26,7 @@ from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.instance_stan
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.prepare_departs_binary import deploy_binary
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.push_config import gen_reload_departs_config
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.trans_files import trans_common_files
+from backend.utils.env import get_type_env
 
 
 def standardize_mysql_cluster_subflow(
@@ -52,6 +53,10 @@ def standardize_mysql_cluster_subflow(
     只要知道实例地址, 去机器上执行配置生成就行
     参数输入了 bk_cloud_id, 所以隐式的约束是 instances 都是这个 bk_cloud_id
     """
+
+    # 多租户环境临时默认做实例初始化
+    if not with_instance_standardize:
+        with_instance_standardize = get_type_env(key="ENABLE_MULTI_TENANT_MODE", _type=bool, default=False)
 
     # 强制下发actuator, 因为版本覆盖太烦了
     with_actuator = True
