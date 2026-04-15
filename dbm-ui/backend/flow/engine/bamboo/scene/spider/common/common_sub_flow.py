@@ -16,7 +16,7 @@ from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryRole, ClusterType, InstanceStatus, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, ProxyInstance
-from backend.flow.consts import AUTH_ADDRESS_DIVIDER, DnsOpType, PrivRole
+from backend.flow.consts import AUTH_ADDRESS_DIVIDER, TDBCTL_USER, DnsOpType, PrivRole
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.download_file import add_db_actuator_download_to_pipeline
 from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
@@ -157,6 +157,7 @@ def add_spider_slaves_sub_flow(
     global_pkg_id: int = 0,
     new_db_module_id: int = 0,
     is_rebuild: bool = False,
+    cold_disaster_recover: bool = False,
 ):
     """
     定义对原有的TenDB cluster集群添加spider slave节点的公共子流程
@@ -171,25 +172,35 @@ def add_spider_slaves_sub_flow(
     @param global_pkg_id 全局安装包的package ID，非必需参数，如果传入代表这批机器都以这个介质包来安装
     @param new_db_module_id 如果是做升级部署，需要传新的DB模块ID，默认为0，表示不升级部署
     @param is_rebuild: 是否是重建场景，默认是False，代表非重建场景，如果是True，代表是重建场景
+    @param cold_disaster_recover: 接入层全毁冷启动；需 parent_global_data 含 spider_port；强制 is_clone_user=False；
+                                  跳过 add_spider_slave_routing 节点（路由由上层统一登记）；
+                                  跳过 BuildEntrysManageSubflow / slave_domain（DNS 由上层处理）
     """
     tdbctl_pass = get_random_string(length=10)
 
-    # 获取到集群对应的spider端口，作为这次的安装
-    # 获取模板spider作为模板spider节点，从spider_slave列表中获取
-    # 部署只读集群的场景，可以用is_clone_user参数控制不做克隆
-    spiders = cluster.proxyinstance_set.filter(
-        status=InstanceStatus.RUNNING, tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE
-    )
-    if spiders:
-        tmp_spider = spiders[0]
-        spider_port = tmp_spider.port
-    else:
-        # 如果集群没有running同角色spider实例，会存在克隆权限的风险，这里先不退出，给tmp_spider属性设置None，到下层判断是否要做权限克隆
-        # spider_port 属性拿spider master角色，如果是第一次部署slave集群，则默认spider master端口和spider slave 是一致的
+    if cold_disaster_recover:
+        # 冷恢复：旧 spider_slave 全毁，集群无 RUNNING 同角色实例可参考；
+        # 端口从 parent_global_data 取（由上层从单据解析），强制不克隆权限
         tmp_spider = None
-        spider_port = cluster.proxyinstance_set.filter(
-            tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
-        )[0].port
+        spider_port = int(parent_global_data["spider_port"])
+        is_clone_user = False
+    else:
+        # 获取到集群对应的spider端口，作为这次的安装
+        # 获取模板spider作为模板spider节点，从spider_slave列表中获取
+        # 部署只读集群的场景，可以用is_clone_user参数控制不做克隆
+        spiders = cluster.proxyinstance_set.filter(
+            status=InstanceStatus.RUNNING, tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE
+        )
+        if spiders:
+            tmp_spider = spiders[0]
+            spider_port = tmp_spider.port
+        else:
+            # 如果集群没有running同角色spider实例，会存在克隆权限的风险，这里先不退出，给tmp_spider属性设置None，到下层判断是否要做权限克隆
+            # spider_port 属性拿spider master角色，如果是第一次部署slave集群，则默认spider master端口和spider slave 是一致的
+            tmp_spider = None
+            spider_port = cluster.proxyinstance_set.filter(
+                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
+            )[0].port
 
     parent_global_data["spider_ports"] = [spider_port]
     # 获取版本和字符集信息
@@ -284,18 +295,20 @@ def add_spider_slaves_sub_flow(
     sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     # 阶段5 添加 spider 内置账号 + 路由 (封装为公共子流程, 见 add_spider_routing_sub_flow)
-    sub_pipeline.add_sub_pipeline(
-        sub_flow=add_spider_routing_sub_flow(
-            root_id=root_id,
-            parent_global_data=parent_global_data,
-            param=AddSpiderRoutingSubFlowParam(
-                cluster=cluster,
-                add_spiders=add_spider_slaves,
-                add_spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE,
-                spider_pass=tdbctl_pass,
-            ),
+    # 冷恢复场景：路由由上层统一在主中控登记（add_spider_slave_routing_payload, is_init_slave_cluster=True），此处跳过
+    if not cold_disaster_recover:
+        sub_pipeline.add_sub_pipeline(
+            sub_flow=add_spider_routing_sub_flow(
+                root_id=root_id,
+                parent_global_data=parent_global_data,
+                param=AddSpiderRoutingSubFlowParam(
+                    cluster=cluster,
+                    add_spiders=add_spider_slaves,
+                    add_spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE,
+                    spider_pass=tdbctl_pass,
+                ),
+            )
         )
-    )
 
     if is_clone_user:
         # 阶段6 集群的业务账号信息克隆到新的spider实例上, 因为目前spider中控实例无法有克隆权限的操作，只能在这里做
@@ -333,34 +346,36 @@ def add_spider_slaves_sub_flow(
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     # 阶段7 添加从域名
-    if slave_domain:
-        # 这里针对spider_slave集群部署的场景，从域名是传进来的
-        sub_pipeline.add_act(
-            act_name=_("添加集群域名"),
-            act_component_code=MySQLDnsManageComponent.code,
-            kwargs=asdict(
-                CreateDnsKwargs(
-                    bk_cloud_id=cluster.bk_cloud_id,
-                    add_domain_name=slave_domain,
-                    dns_op_exec_port=spider_port,
-                    exec_ip=[ip_info["ip"] for ip_info in add_spider_slaves],
-                )
-            ),
-        )
-    else:
-        # 这里是针对扩容spider slave场景，所有的访问映射关系通过元数据获取
-        entry_sub_process = BuildEntrysManageSubflow(
-            root_id=root_id,
-            ticket_data=parent_global_data,
-            op_type=DnsOpType.CREATE,
-            param={
-                "cluster_id": cluster.id,
-                "port": spider_port,
-                "add_ips": [ip_info["ip"] for ip_info in add_spider_slaves],
-                "entry_role": [ClusterEntryRole.SLAVE_ENTRY.value],
-            },
-        )
-        sub_pipeline.add_sub_pipeline(sub_flow=entry_sub_process)
+    # 冷恢复场景：从域名摘除/重建由上层统一处理（Pre-Stage 摘除旧 IP；Stage 3 之后由元数据维护新映射），此处跳过
+    if not cold_disaster_recover:
+        if slave_domain:
+            # 这里针对spider_slave集群部署的场景，从域名是传进来的
+            sub_pipeline.add_act(
+                act_name=_("添加集群域名"),
+                act_component_code=MySQLDnsManageComponent.code,
+                kwargs=asdict(
+                    CreateDnsKwargs(
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        add_domain_name=slave_domain,
+                        dns_op_exec_port=spider_port,
+                        exec_ip=[ip_info["ip"] for ip_info in add_spider_slaves],
+                    )
+                ),
+            )
+        else:
+            # 这里是针对扩容spider slave场景，所有的访问映射关系通过元数据获取
+            entry_sub_process = BuildEntrysManageSubflow(
+                root_id=root_id,
+                ticket_data=parent_global_data,
+                op_type=DnsOpType.CREATE,
+                param={
+                    "cluster_id": cluster.id,
+                    "port": spider_port,
+                    "add_ips": [ip_info["ip"] for ip_info in add_spider_slaves],
+                    "entry_role": [ClusterEntryRole.SLAVE_ENTRY.value],
+                },
+            )
+            sub_pipeline.add_sub_pipeline(sub_flow=entry_sub_process)
 
     return sub_pipeline.build_sub_process(sub_name=_("集群[{}]添加spider slave节点".format(cluster.name)))
 
@@ -375,6 +390,7 @@ def add_spider_masters_sub_flow(
     global_pkg_id: int = 0,
     new_db_module_id: int = 0,
     is_rebuild: bool = False,
+    cold_disaster_recover: bool = False,
 ):
     """
     定义对原有的TenDB cluster集群添加spider master节点的公共子流程
@@ -389,13 +405,20 @@ def add_spider_masters_sub_flow(
     @param global_pkg_id 全局安装包的package ID，非必需参数，如果传入代表这批机器都以这个介质包来安装
     @param new_db_module_id 如果是做升级部署，需要传新的DB模块ID，默认为0，表示不升级部署
     @param is_rebuild: 是否是重建场景，默认是False，代表非重建场景，如果是True，代表是重建场景
+    @param cold_disaster_recover: 接入层全毁冷启动；需 parent_global_data 含 spider_port/ctl_port；跳过路由与权限克隆
     """
     tag = "mnt"
     tdbctl_pass = get_random_string(length=10)
+    parent_global_data["tdbctl_pass"] = tdbctl_pass
+    parent_global_data["tdbctl_user"] = TDBCTL_USER
 
     # 获取到集群对应的spider端口，作为这次的安装
-    parent_global_data["spider_ports"] = [cluster.proxyinstance_set.first().port]
-    parent_global_data["ctl_port"] = cluster.proxyinstance_set.first().admin_port
+    if cold_disaster_recover:
+        parent_global_data["spider_ports"] = [int(parent_global_data["spider_port"])]
+        parent_global_data["ctl_port"] = int(parent_global_data["ctl_port"])
+    else:
+        parent_global_data["spider_ports"] = [cluster.proxyinstance_set.first().port]
+        parent_global_data["ctl_port"] = cluster.proxyinstance_set.first().admin_port
 
     # 获取版本和字符集信息
     parent_global_data["db_module_id"] = new_db_module_id if new_db_module_id else cluster.db_module_id
@@ -473,7 +496,7 @@ def add_spider_masters_sub_flow(
 
     # 阶段4 安装spider-master实例，目前spider-master机器属于单机单实例部署方式，专属一套集群
     acts_list = []
-    for spider in get_spider_master_incr(cluster, add_spider_masters):
+    for spider in get_spider_master_incr(cluster, add_spider_masters, cold_disaster_recover=cold_disaster_recover):
         exec_act_kwargs.exec_ip = spider["ip"]
         exec_act_kwargs.cluster = {
             "cluster_id": cluster.id,
@@ -509,22 +532,27 @@ def add_spider_masters_sub_flow(
 
     # 阶段6 添加 spider 内置账号 + 路由 (封装为公共子流程, 见 add_spider_routing_sub_flow)
     # mysql.servers 兜底读出共享密码, 与 Python 旧版 _read_ctl_pass 等价。
-    sub_pipeline.add_sub_pipeline(
-        sub_flow=add_spider_routing_sub_flow(
-            root_id=root_id,
-            parent_global_data=parent_global_data,
-            param=AddSpiderRoutingSubFlowParam(
-                cluster=cluster,
-                add_spiders=add_spider_masters,
-                add_spider_role=role,
-                spider_pass=tdbctl_pass,
-            ),
+    # 冷启动灾难恢复时延后到独立阶段，此处跳过
+    if not cold_disaster_recover:
+        sub_pipeline.add_sub_pipeline(
+            sub_flow=add_spider_routing_sub_flow(
+                root_id=root_id,
+                parent_global_data=parent_global_data,
+                param=AddSpiderRoutingSubFlowParam(
+                    cluster=cluster,
+                    add_spiders=add_spider_masters,
+                    add_spider_role=role,
+                    spider_pass=tdbctl_pass,
+                ),
+            )
         )
-    )
 
     # 这里获取集群内running状态的spider节点作为这次克隆权限的依据
     spiders = cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING, tendbclusterspiderext__spider_role=role)
-    if not spiders and role == TenDBClusterSpiderRole.SPIDER_MNT.value:
+    if cold_disaster_recover:
+        is_clone_user = False
+        tmp_spider = None
+    elif not spiders and role == TenDBClusterSpiderRole.SPIDER_MNT.value:
         # 如果添加节点的角色是spider_mnt, 但是集群没有相应的角色，作为第一次添加，不做权限克隆
         is_clone_user = False
         tmp_spider = None
@@ -566,33 +594,56 @@ def add_spider_masters_sub_flow(
 
     if not is_add_spider_mnt:
         # 阶段8 待添加中控实例建立主从数据同步关系
-        ctl_master = cluster.tendbcluster_ctl_primary_address()
-        ctl_master_ip = ctl_master.split(IP_PORT_DIVIDER)[0]
-        ctl_master_port = ctl_master.split(IP_PORT_DIVIDER)[1]
-        sub_pipeline.add_act(
-            act_name=_("构建spider中控集群同步"),
-            act_component_code=SyncMasterComponent.code,
-            kwargs=asdict(
-                MysqlSyncMasterKwargs(
-                    bk_biz_id=cluster.bk_biz_id,
-                    bk_cloud_id=cluster.bk_cloud_id,
-                    priv_role=PrivRole.TDBCTL.value,
-                    master=Instance(host=ctl_master_ip, port=ctl_master_port),
-                    slaves=[Instance(host=s["ip"], port=ctl_master_port) for s in add_spider_masters],
-                    is_gtid=True,
-                    is_add_any=True,
-                    is_master_add_priv=False,
+        ctl_master_port_str = str(int(parent_global_data["ctl_port"]))
+        if cold_disaster_recover:
+            if len(add_spider_masters) > 1:
+                first_ctl = add_spider_masters[0]
+                rest_ctls = add_spider_masters[1:]
+                sub_pipeline.add_act(
+                    act_name=_("构建spider中控集群同步"),
+                    act_component_code=SyncMasterComponent.code,
+                    kwargs=asdict(
+                        MysqlSyncMasterKwargs(
+                            bk_biz_id=cluster.bk_biz_id,
+                            bk_cloud_id=cluster.bk_cloud_id,
+                            priv_role=PrivRole.TDBCTL.value,
+                            master=Instance(host=first_ctl["ip"], port=ctl_master_port_str),
+                            slaves=[Instance(host=s["ip"], port=ctl_master_port_str) for s in rest_ctls],
+                            is_gtid=True,
+                            is_add_any=True,
+                            is_master_add_priv=False,
+                        )
+                    ),
                 )
-            ),
-        )
+        else:
+            ctl_master = cluster.tendbcluster_ctl_primary_address()
+            ctl_master_ip = ctl_master.split(IP_PORT_DIVIDER)[0]
+            ctl_master_port = ctl_master.split(IP_PORT_DIVIDER)[1]
+            sub_pipeline.add_act(
+                act_name=_("构建spider中控集群同步"),
+                act_component_code=SyncMasterComponent.code,
+                kwargs=asdict(
+                    MysqlSyncMasterKwargs(
+                        bk_biz_id=cluster.bk_biz_id,
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        priv_role=PrivRole.TDBCTL.value,
+                        master=Instance(host=ctl_master_ip, port=ctl_master_port),
+                        slaves=[Instance(host=s["ip"], port=ctl_master_port) for s in add_spider_masters],
+                        is_gtid=True,
+                        is_add_any=True,
+                        is_master_add_priv=False,
+                    )
+                ),
+            )
 
+        dns_spider_port = int(parent_global_data["spider_port"]) if cold_disaster_recover else tmp_spider.port
         entrysub_process = BuildEntrysManageSubflow(
             root_id=root_id,
             ticket_data=parent_global_data,
             op_type=DnsOpType.CREATE,
             param={
                 "cluster_id": cluster.id,
-                "port": tmp_spider.port,
+                "port": dns_spider_port,
                 "add_ips": [ip_info["ip"] for ip_info in add_spider_masters],
             },
         )
