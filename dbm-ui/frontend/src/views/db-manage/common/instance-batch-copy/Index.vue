@@ -3,8 +3,8 @@
     class="instance-batch-copy"
     :popover-options="{
       clickContentAutoHide: true,
-      hideIgnoreReference: true,
-    }">
+    }"
+    trigger="click">
     <template #default="{ popoverShow }">
       <BkButton class="default-btn">
         {{ t('复制') }}{{ typeText }}

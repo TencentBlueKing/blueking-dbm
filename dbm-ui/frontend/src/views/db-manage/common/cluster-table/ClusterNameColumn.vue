@@ -12,7 +12,9 @@
           <template
             v-if="isToolsShow"
             #append>
-            <BkPopover v-if="row.temporary_info?.source_cluster">
+            <BkPopover
+              v-if="row.temporary_info?.source_cluster"
+              :popover-delay="[200, 100]">
               <span role="table-cell-operation">
                 <DbIcon
                   role="table-cell-operation"

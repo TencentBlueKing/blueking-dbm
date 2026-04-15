@@ -41,7 +41,11 @@
       <slot />
       <BkDropdown
         class="ml-4 mr-20"
-        placement="bottom-start">
+        placement="bottom-start"
+        :popover-options="{
+          clickContentAutoHide: true,
+        }"
+        trigger="click">
         <div
           v-bk-tooltips="t('复制')"
           style="font-size: 18px; color: #3a84ff">

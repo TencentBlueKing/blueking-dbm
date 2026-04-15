@@ -15,7 +15,7 @@
   <BkPopover
     :disabled="disabled"
     placement="top"
-    :popover-delay="[100, 200]"
+    :popover-delay="[200, 100]"
     theme="light">
     <slot />
     <template #content>

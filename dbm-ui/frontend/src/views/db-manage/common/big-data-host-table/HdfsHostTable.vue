@@ -35,7 +35,12 @@
             {{ $t('台') }}
           </span>
         </div>
-        <BkDropdown @click.stop>
+        <BkDropdown
+          :popover-options="{
+            clickContentAutoHide: true,
+          }"
+          trigger="click"
+          @click.stop>
           <div class="extends-action">
             <i class="db-icon-more" />
           </div>
@@ -218,8 +223,8 @@
       label: t('操作'),
       render: ({ index }: { index: number }) => (
         <bk-button
-          theme='primary'
           text
+          theme='primary'
           onClick={() => handleRemove(index)}>
           {t('删除')}
         </bk-button>

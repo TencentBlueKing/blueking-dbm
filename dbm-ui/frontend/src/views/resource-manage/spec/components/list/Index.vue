@@ -23,11 +23,11 @@
         {{ t('新建') }}
       </AuthButton>
       <BkDropdown
-        :disabled="selectedList.length === 0"
         :popover-options="{
+          clickContentAutoHide: true,
           renderDirective: 'show',
-          hideIgnoreReference: true,
-        }">
+        }"
+        trigger="click">
         <template #default="{ popoverShow }">
           <BkButton :disabled="selectedList.length === 0">
             {{ t('批量操作') }}

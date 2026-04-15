@@ -57,6 +57,7 @@
             <template #header>
               <BkPopover
                 ext-cls="mongo-config-spec-name-popover"
+                :popover-delay="[200, 100]"
                 theme="light">
                 <span class="spec-name-head">{{ t('资源规格') }}</span>
                 <template #content>

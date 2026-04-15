@@ -37,6 +37,10 @@
       <BkDropdown
         v-if="showIcon"
         class="db-collapse-table-dropdown"
+        :popover-options="{
+          clickContentAutoHide: true,
+        }"
+        trigger="click"
         @click.stop>
         <i class="db-icon-more db-collapse-table-trigger" />
         <template #content>

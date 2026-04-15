@@ -42,6 +42,10 @@
       </span>
       <BkDropdown
         :disabled="!hasSelectedInstances"
+        :popover-options="{
+          clickContentAutoHide: true,
+        }"
+        trigger="click"
         @hide="() => (isShowGroupMove = false)"
         @show="() => (isShowGroupMove = true)">
         <span
@@ -71,6 +75,10 @@
         </template>
       </BkDropdown>
       <BkDropdown
+        :popover-options="{
+          clickContentAutoHide: true,
+        }"
+        trigger="click"
         @hide="() => (isCopyDropdown = false)"
         @show="() => (isCopyDropdown = true)">
         <BkButton
@@ -324,6 +332,9 @@
               ),
               default: () => (
                 <auth-router-link
+                  action-id='influxdb_view'
+                  permission={data.permission.influxdb_view}
+                  resource={data.id}
                   to={{
                     name: 'InfluxDBInstDetails',
                     params: {
@@ -332,10 +343,7 @@
                     query: {
                       from: route.name as string,
                     },
-                  }}
-                  action-id='influxdb_view'
-                  permission={data.permission.influxdb_view}
-                  resource={data.id}>
+                  }}>
                   {data.instance_address}
                 </auth-router-link>
               ),
@@ -400,8 +408,8 @@
                     loading={tableDataActionLoadingMap.value[data?.id]}
                     permission={data.permission.influxdb_reboot}
                     resource={data.id}
-                    theme='primary'
                     text
+                    theme='primary'
                     onClick={() => handleRestart([data])}>
                     {t('重启')}
                   </auth-button>
@@ -414,8 +422,8 @@
                     loading={tableDataActionLoadingMap.value[data?.id]}
                     permission={data.permission.influxdb_enable_disable}
                     resource={data.id}
-                    theme='primary'
                     text
+                    theme='primary'
                     onClick={() => handlDisabled(data)}>
                     {t('禁用')}
                   </auth-button>
@@ -433,8 +441,8 @@
                   loading={tableDataActionLoadingMap.value[data?.id]}
                   permission={data.permission.influxdb_enable_disable}
                   resource={data.id}
-                  theme='primary'
                   text
+                  theme='primary'
                   onClick={() => handleEnable(data)}>
                   {t('启用')}
                 </auth-button>
@@ -447,8 +455,8 @@
                   loading={tableDataActionLoadingMap.value[data?.id]}
                   permission={data.permission.influxdb_destroy}
                   resource={data.id}
-                  theme='primary'
                   text
+                  theme='primary'
                   onClick={() => handlDelete(data)}>
                   {t('删除')}
                 </auth-button>
