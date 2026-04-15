@@ -27,7 +27,7 @@ class MonitorQueryMcpToolsViewSet(McpToolsViewSet):
     default_permission_class = [RejectPermission()]
 
     @mcp_tools_api_decorator(
-        description=str(_("""根据传入的某个时间区间和某批集群ID，查询出时间区间产生的，未恢复的，且不是已屏蔽的告警记录""")),
+        description=str(_("""根据传入的某个时间区间和某批集群域名列表，查询出时间区间产生的告警记录""")),
         request_slz=SearchAlertInputSerializer,
         response_slz=SearchAlertOutputSerializer,
         tags=[DBMMCPTags.READ],
