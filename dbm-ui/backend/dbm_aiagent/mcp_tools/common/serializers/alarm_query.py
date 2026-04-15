@@ -25,6 +25,7 @@ class AlertInfoSerializer(serializers.Serializer):
     alert_status = serializers.ChoiceField(help_text=_("告警记录状态"), choices=AlertStatusEnum.get_choices())
     alert_severity = serializers.ChoiceField(help_text=_("告警级别"), choices=AlertLevelEnum.get_choices())
     alert_create_time = serializers.IntegerField(help_text=_("告警记录创建时间戳"))
+    alert_shielded = serializers.CharField(help_text=_("告警记录是否屏蔽"))
     tags = serializers.ListField(child=AlertTagsSerializer(), help_text=_("告警记录的标签信息"))
 
 

@@ -14,7 +14,9 @@ from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components import BKMonitorV3Api
-from backend.db_monitor.constants import AlertLevelEnum, AlertStatusEnum
+from backend.db_monitor.constants import AlertLevelEnum, AlertStageEnum, AlertStatusEnum
+
+IS_NOT_SHIELDED = _("未屏蔽")
 
 
 class QueryMonitorAlarm(object):
@@ -23,7 +25,9 @@ class QueryMonitorAlarm(object):
     """
 
     @staticmethod
-    def filter_alarm_by_create_time(alerts: List[Dict], start_time: datetime, end_time: datetime):
+    def filter_alarm_by_create_time(
+        alerts: List[Dict], start_time: datetime, end_time: datetime, is_shielded: bool = False
+    ):
         """
         感觉蓝鲸监控返回的告警条数，在做二次过滤，过滤出某个时间范围中，生成的告警记录
         因为search_alert返回告警条目的时候，只要某类告警记录，它的未恢复的时间区间，和你传入的时间区间有交集，则也会返回过来
@@ -32,27 +36,35 @@ class QueryMonitorAlarm(object):
         @param alerts: 蓝鲸监控返回的告警记录列表
         @param start_time: 起始时间点
         @param end_time: 截止时间点
+        @param is_shielded: 是否过滤掉已屏蔽的告警记录，默认为False， 表示不过滤
         """
         filter_alerts = []
         for alert in alerts:
-            if (
-                int(start_time.timestamp()) <= alert["create_time"] <= int(end_time.timestamp())
-                and not alert["is_shielded"]
-            ):
-                # 精准匹配到过滤时间
-                # 同时处理阶段不属于“已屏蔽”
-                filter_alerts.append(alert)
+            # 精准匹配到过滤时间
+            if not (int(start_time.timestamp()) <= alert["create_time"] <= int(end_time.timestamp())):
+                continue
+            # 根据 is_shielded 参数决定是否过滤已屏蔽的告警记录
+            if is_shielded and alert["is_shielded"]:
+                continue
+            filter_alerts.append(alert)
         return filter_alerts
 
     @staticmethod
     def query_alarm_for_cluster_ids(
-        bk_biz_id: int, cluster_domains: List[str], start_time: datetime, end_time: datetime
+        bk_biz_id: int,
+        cluster_domains: List[str],
+        start_time: datetime,
+        end_time: datetime,
+        is_shielded: bool = False,
+        is_only_abnormal: bool = False,
     ):
         """
         根据传入的时间范围，查询这段时间内的这批集群ID的告警信息
         @param cluster_domains: 查询的集群域名列表
         @param start_time: 查询的起始时间点
         @param end_time： 查询的截止时间点
+        @param is_shielded: 是否过滤掉已屏蔽的告警记录，默认为False， 表示不过滤
+        @param is_only_abnormal: 是否只过滤未恢复的告警记录，默认为False， 表示不过滤
         """
         query_param = {
             "bk_biz_ids": [env.DBA_APP_BK_BIZ_ID],
@@ -60,11 +72,13 @@ class QueryMonitorAlarm(object):
             "end_time": int(end_time.timestamp()),
             "page": 1,
             "page_size": 10,
-            "status": ["ABNORMAL"],
             "show_aggs": False,
             "show_overview": False,
             "query_string": "",
         }
+        # 判断是否直接过滤
+        if is_only_abnormal:
+            query_param["status"] = ["ABNORMAL"]
         # 通用查询条件拼接 querystring
         # 过滤出对应的业务ID
         # 过滤出对应的集群域名的告警记录
@@ -101,7 +115,10 @@ class QueryMonitorAlarm(object):
                 "alert_status": AlertStatusEnum.get_choice_label(alert["status"]),
                 "alert_severity": AlertLevelEnum.get_choice_label(int(alert["severity"])),
                 "alert_create_time": int(alert["create_time"]),
+                "alert_shielded": AlertStageEnum.get_choice_label("is_shielded")
+                if alert["is_shielded"]
+                else IS_NOT_SHIELDED,
                 "tags": alert["tags"],
             }
-            for alert in QueryMonitorAlarm.filter_alarm_by_create_time(all_alerts, start_time, end_time)
+            for alert in QueryMonitorAlarm.filter_alarm_by_create_time(all_alerts, start_time, end_time, is_shielded)
         ]
