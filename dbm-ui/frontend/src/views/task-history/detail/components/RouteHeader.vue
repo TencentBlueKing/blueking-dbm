@@ -106,7 +106,9 @@
 
   const baseInfo = computed(() => props.data?.flow_info || ({} as FlowDetail['flow_info']));
   const isTaskFailed = computed(() => props.data?.flow_info.status === 'FAILED');
-  const isSuperuserSwitchShow = computed(() => isSuperuser && isTaskFailed.value);
+  const isSuperuserSwitchShow = computed(
+    () => isSuperuser && props.data?.flow_info && !['FINISHED', 'REVOKED'].includes(props.data.flow_info.status),
+  );
 
   const statusText = computed(() => {
     if (isTaskFailed.value) {
