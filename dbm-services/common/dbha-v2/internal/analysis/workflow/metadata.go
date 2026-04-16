@@ -65,10 +65,10 @@ func (r *MetadataReader) ReadBusinessMetadata(bizId int) (*BusinessMetadata, err
 		config.Cfg.Workflow.ReadDbMetaOffsetDuration)
 	if err != nil {
 		logger.Warn("failed to read the DB metadata for the business, bizId: %d, errmsg: %s", bizId, err)
-		r.reportDbQueryError("read_metadata")
+		r.reportDbQueryError(apm.MetricQueryTypeReadMetadata)
 		return nil, ErrReadMetadataFailure
 	}
-	r.reportDbQueryTime("read_metadata", start)
+	r.reportDbQueryTime(apm.MetricQueryTypeReadMetadata, start)
 
 	conds := make([]*storage.DbInstance, 0, len(metaData))
 	metaInsts := make(map[string]*hamodel.DbmMetadata, len(metaData))
@@ -94,10 +94,10 @@ func (r *MetadataReader) ReadBusinessSkipInstances(bizId int) (map[string]*hamod
 	dbSkipInsts, err := r.hadata.ReadSkipDbInstancesWithBkBizId(bizId)
 	if err != nil {
 		logger.Warn("failed to read the skipped DB insts for the business: %d, errmsg: %s", bizId, err)
-		r.reportDbQueryError("read_skip_instances")
+		r.reportDbQueryError(apm.MetricQueryTypeReadSkipInstances)
 		return nil, ErrReadSkipDbInstFailure
 	}
-	r.reportDbQueryTime("read_skip_instances", start)
+	r.reportDbQueryTime(apm.MetricQueryTypeReadSkipInstances, start)
 
 	skipInsts := make(map[string]*hamodel.SkipDbInstance, len(dbSkipInsts))
 	for _, skipInst := range dbSkipInsts {
@@ -114,10 +114,10 @@ func (r *MetadataReader) ReadDbStatusWithInstances(conds []*storage.DbInstance,
 	start := time.Now()
 	dbStatus, err := r.hadata.ReadDbStatusWithDbInstances(conds, offsetDuration)
 	if err != nil {
-		r.reportDbQueryError("read_db_status")
+		r.reportDbQueryError(apm.MetricQueryTypeReadDBStatus)
 		return nil, err
 	}
-	r.reportDbQueryTime("read_db_status", start)
+	r.reportDbQueryTime(apm.MetricQueryTypeReadDBStatus, start)
 
 	return dbStatus, nil
 }
@@ -127,7 +127,7 @@ func (r *MetadataReader) reportDbQueryTime(queryType string, start time.Time) {
 	if reportErr := apm.DbQueryTimeConsumingMs.UpdateLabel(map[string]string{
 		apm.MetricLabelQueryType:     queryType,
 		haapm.MetricLabelServiceID:   r.myServiceID,
-		haapm.MetricLabelServiceName: "analysis",
+		haapm.MetricLabelServiceName: apm.MetricServerName,
 	}).Observe(float64(time.Since(start).Milliseconds())); reportErr != nil {
 		logger.Warn("failed to report db query time consuming metric, queryType: %s, errmsg: %s", queryType, reportErr)
 	}
@@ -138,7 +138,7 @@ func (r *MetadataReader) reportDbQueryError(queryType string) {
 	if reportErr := apm.DbQueryErrorTotal.UpdateLabel(map[string]string{
 		apm.MetricLabelQueryType:     queryType,
 		haapm.MetricLabelServiceID:   r.myServiceID,
-		haapm.MetricLabelServiceName: "analysis",
+		haapm.MetricLabelServiceName: apm.MetricServerName,
 	}).Inc(); reportErr != nil {
 		logger.Warn("failed to report db query error metric, queryType: %s, errmsg: %s", queryType, reportErr)
 	}

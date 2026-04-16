@@ -176,9 +176,9 @@ func (s *Synchronizer) syncMetadataFromDbm(ctx context.Context) error {
 
 	// Report DBM API sync metadata request latency
 	if reportErr := apm.DbmApiRequestTimeConsumingMs.UpdateLabel(map[string]string{
-		apm.MetricLabelApiName:       "sync_metadata",
+		apm.MetricLabelApiName:       apm.MetricApiNameSyncMetadata,
 		haapm.MetricLabelServiceID:   s.myServiceID,
-		haapm.MetricLabelServiceName: "analysis",
+		haapm.MetricLabelServiceName: apm.MetricServerName,
 	}).Observe(float64(time.Since(start).Milliseconds())); reportErr != nil {
 		logger.Warn("failed to report dbm api request time consuming metric, errmsg: %s", reportErr)
 	}
@@ -186,9 +186,9 @@ func (s *Synchronizer) syncMetadataFromDbm(ctx context.Context) error {
 	// Report DBM API request error if any error occurred
 	if hasError {
 		if reportErr := apm.DbmApiRequestErrorTotal.UpdateLabel(map[string]string{
-			apm.MetricLabelApiName:       "sync_metadata",
+			apm.MetricLabelApiName:       apm.MetricApiNameSyncMetadata,
 			haapm.MetricLabelServiceID:   s.myServiceID,
-			haapm.MetricLabelServiceName: "analysis",
+			haapm.MetricLabelServiceName: apm.MetricServerName,
 		}).Inc(); reportErr != nil {
 			logger.Warn("failed to report dbm api request error metric, errmsg: %s", reportErr)
 		}

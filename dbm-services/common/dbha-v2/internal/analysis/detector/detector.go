@@ -168,7 +168,7 @@ func (d *detectorTask) run(cmd string) {
 func (d *detectorTask) reportSshTime(start time.Time) {
 	if reportErr := apm.DetectorSshTimeConsumingMs.UpdateLabel(map[string]string{
 		haapm.MetricLabelServiceID:   d.serviceID,
-		haapm.MetricLabelServiceName: "analysis",
+		haapm.MetricLabelServiceName: apm.MetricServerName,
 	}).Observe(float64(time.Since(start).Milliseconds())); reportErr != nil {
 		logger.Warn("failed to report detector ssh time consuming metric, errmsg: %s", reportErr)
 	}
@@ -178,7 +178,7 @@ func (d *detectorTask) reportSshTime(start time.Time) {
 func (d *detectorTask) reportSshError() {
 	if reportErr := apm.DetectorSshErrorTotal.UpdateLabel(map[string]string{
 		haapm.MetricLabelServiceID:   d.serviceID,
-		haapm.MetricLabelServiceName: "analysis",
+		haapm.MetricLabelServiceName: apm.MetricServerName,
 	}).Inc(); reportErr != nil {
 		logger.Warn("failed to report detector ssh error metric, errmsg: %s", reportErr)
 	}

@@ -34,6 +34,13 @@ const (
 	MetricLabelDbType      = "db_type"
 	MetricLabelQueryType   = "query_type"
 	MetricLabelApiName     = "api_name"
+
+	MetricServerName                 = "analysis"
+	MetricApiNameQueryMetadata       = "query_metadata"
+	MetricApiNameSyncMetadata        = "sync_metadata"
+	MetricQueryTypeReadMetadata      = "read_metadata"
+	MetricQueryTypeReadSkipInstances = "read_skip_instances"
+	MetricQueryTypeReadDBStatus      = "read_db_status"
 )
 
 var (

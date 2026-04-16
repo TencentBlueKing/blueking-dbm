@@ -301,7 +301,7 @@ func (w *Workflow) ScanBusinesses(ctx context.Context) {
 	// report the scan business time consuming
 	if err := apm.ScanBusinessTimeConsumingMs.UpdateLabel(map[string]string{
 		haapm.MetricLabelServiceID:   w.myServiceID,
-		haapm.MetricLabelServiceName: "analysis",
+		haapm.MetricLabelServiceName: apm.MetricServerName,
 	}).Observe(float64(time.Since(start).Milliseconds())); err != nil {
 		logger.Warn("failed to report the scan business time consuming, errmsg: %s", err)
 	}
@@ -309,7 +309,7 @@ func (w *Workflow) ScanBusinesses(ctx context.Context) {
 	// report the scan business total
 	if err := apm.ScanBusinessTotal.UpdateLabel(map[string]string{
 		haapm.MetricLabelServiceID:   w.myServiceID,
-		haapm.MetricLabelServiceName: "analysis",
+		haapm.MetricLabelServiceName: apm.MetricServerName,
 	}).Add(float64(len(assigned))); err != nil {
 		logger.Warn("failed to report the scan business total, errmsg: %s", err)
 	}
@@ -351,7 +351,7 @@ func (w *Workflow) PopAndSwitch(ctx context.Context) {
 	// report the pop-switch time consuming
 	if err := apm.PopSwitchTimeConsumingMs.UpdateLabel(map[string]string{
 		haapm.MetricLabelServiceID:   w.myServiceID,
-		haapm.MetricLabelServiceName: "analysis",
+		haapm.MetricLabelServiceName: apm.MetricServerName,
 	}).Observe(float64(time.Since(start).Milliseconds())); err != nil {
 		logger.Warn("failed to report the pop-switch time consuming, errmsg: %s", err)
 	}
@@ -359,7 +359,7 @@ func (w *Workflow) PopAndSwitch(ctx context.Context) {
 	// report the pop-switch business total
 	if err := apm.PopSwitchBusinessTotal.UpdateLabel(map[string]string{
 		haapm.MetricLabelServiceID:   w.myServiceID,
-		haapm.MetricLabelServiceName: "analysis",
+		haapm.MetricLabelServiceName: apm.MetricServerName,
 	}).Add(float64(len(assigned))); err != nil {
 		logger.Warn("failed to report the pop-switch business total, errmsg: %s", err)
 	}
