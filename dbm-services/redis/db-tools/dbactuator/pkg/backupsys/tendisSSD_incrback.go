@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -130,17 +131,34 @@ func NewTredisRocksDBIncrBack(filename, sourceIP string, fullStartPos uint64, st
 func (incr *TredisRocksDBIncrBack) getSeqFromFile(fpath string) uint64 {
 	mylog.Logger.Info("getSeqFromFile start ...")
 	DepsDir := "/usr/local/redis/bin/deps"
-	//获取文件第一行（包含序列号）
-	// firstline, err := exec.Command(filepath.Join(binPath, "tredisbinlog"),
-	// "--with-timestamp", "--with-seq", fpath).Output()
-	getSeqCmd := fmt.Sprintf(`
-	export LD_PRELOAD=%s/libjemalloc.so
-	export LD_LIBRARY_PATH=LD_LIBRARY_PATH:%s
-	%s --with-timestamp --with-seq  %s 
-	`, DepsDir, DepsDir, consts.TredisBinlogBin, fpath)
-	mylog.Logger.Info("获取 binlog 获取文件第一行（包含序列号）,命令:%v", getSeqCmd)
-	firstline, err := util.RunLocalCmd("bash", []string{"-c", getSeqCmd}, "", nil, 1*time.Hour)
 
+	// 安全校验：检查文件路径是否合法
+	if !isSafeFilename(filepath.Base(fpath)) {
+		incr.Err = fmt.Errorf("文件名包含非法字符: %s", fpath)
+		mylog.Logger.Error(incr.Err.Error())
+		return 0
+	}
+
+	// 安全校验：确保文件路径在指定目录内
+	if !isPathInDir(fpath, incr.SaveMyDir) {
+		incr.Err = fmt.Errorf("文件路径越界: %s", fpath)
+		mylog.Logger.Error(incr.Err.Error())
+		return 0
+	}
+
+	// 直接调用tredisbinlog二进制文件，避免使用bash -c
+	cmd := exec.Command(consts.TredisBinlogBin, "--with-timestamp", "--with-seq", fpath)
+
+	// 设置环境变量
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("LD_PRELOAD=%s/libjemalloc.so", DepsDir),
+		fmt.Sprintf("LD_LIBRARY_PATH=%s:%s", os.Getenv("LD_LIBRARY_PATH"), DepsDir),
+	)
+
+	mylog.Logger.Info("获取 binlog 获取文件第一行（包含序列号）,命令:%s --with-timestamp --with-seq %s",
+		consts.TredisBinlogBin, fpath)
+
+	firstline, err := cmd.Output()
 	if err != nil {
 		mylog.Logger.Error(fmt.Sprintf("解析binlog失败,详情:%v", err))
 		incr.Err = err
@@ -687,13 +705,31 @@ func (incr *TredisRocksDBIncrBack) rmLocalDecompressedFiles(bkList []*TredisRock
 		if bkItem.DecompressedFile == "" {
 			continue
 		}
+
+		// 安全校验：检查文件名是否合法
+		if !isSafeFilename(bkItem.DecompressedFile) {
+			incr.Err = fmt.Errorf("文件名包含非法字符: %s", bkItem.DecompressedFile)
+			mylog.Logger.Error(incr.Err.Error())
+			return
+		}
+
 		decpFileFullPath := filepath.Join(incr.SaveMyDir, bkItem.DecompressedFile)
+
+		// 安全校验：确保文件路径在指定目录内
+		if !isPathInDir(decpFileFullPath, incr.SaveMyDir) {
+			incr.Err = fmt.Errorf("文件路径越界: %s", decpFileFullPath)
+			mylog.Logger.Error(incr.Err.Error())
+			return
+		}
+
 		if _, err := os.Stat(decpFileFullPath); os.IsNotExist(err) {
 			continue
 		}
-		rmCmd := fmt.Sprintf("cd %s && rm -f %s 2>/dev/null", incr.SaveMyDir, bkItem.DecompressedFile)
-		_, incr.Err = util.RunLocalCmd("bash", []string{"-c", rmCmd}, "", nil, 30*time.Minute)
-		if incr.Err != nil {
+
+		// 使用os.Remove代替shell rm命令
+		if err := os.Remove(decpFileFullPath); err != nil {
+			incr.Err = fmt.Errorf("删除文件失败: %s, err: %v", decpFileFullPath, err)
+			mylog.Logger.Error(incr.Err.Error())
 			return
 		}
 		rmCnt++
@@ -735,13 +771,31 @@ func (incr *TredisRocksDBIncrBack) rmLocalBackupFiles(bkList []*TredisRocksDBInc
 	rmCnt := 0
 	for _, bk01 := range bkList {
 		bkItem := bk01
+
+		// 安全校验：检查文件名是否合法
+		if !isSafeFilename(bkItem.BackupFile) {
+			incr.Err = fmt.Errorf("文件名包含非法字符: %s", bkItem.BackupFile)
+			mylog.Logger.Error(incr.Err.Error())
+			return
+		}
+
 		bkFileFullPath := filepath.Join(incr.SaveMyDir, bkItem.BackupFile)
+
+		// 安全校验：确保文件路径在指定目录内
+		if !isPathInDir(bkFileFullPath, incr.SaveMyDir) {
+			incr.Err = fmt.Errorf("文件路径越界: %s", bkFileFullPath)
+			mylog.Logger.Error(incr.Err.Error())
+			return
+		}
+
 		if _, err := os.Stat(bkFileFullPath); os.IsNotExist(err) {
 			continue
 		}
-		rmCmd := fmt.Sprintf("cd %s && rm -f %s 2>/dev/null", incr.SaveMyDir, bkItem.BackupFile)
-		_, incr.Err = util.RunLocalCmd("bash", []string{"-c", rmCmd}, "", nil, 30*time.Minute)
-		if incr.Err != nil {
+
+		// 使用os.Remove代替shell rm命令
+		if err := os.Remove(bkFileFullPath); err != nil {
+			incr.Err = fmt.Errorf("删除文件失败: %s, err: %v", bkFileFullPath, err)
+			mylog.Logger.Error(incr.Err.Error())
 			return
 		}
 		rmCnt++
@@ -910,63 +964,83 @@ func (incr *TredisRocksDBIncrBack) PullAllFiles() {
 
 // DecompressedOne 解压一个binlog文件
 func (incr *TredisRocksDBIncrBack) DecompressedOne(item *TredisRocksDBIncrBackItem) {
-	var cmd string
 	var bkFileExt string = incr.GetBackupFileExt(item)
 	if incr.Err != nil {
 		return
 	}
-	if bkFileExt == ".tar" {
-		cmd = fmt.Sprintf("cd %s && tar -xf %s",
-			incr.SaveMyDir, item.BackupFile)
-	} else if bkFileExt == ".tar.gz" {
-		cmd = fmt.Sprintf("cd %s && tar -zxf %s",
-			incr.SaveMyDir, item.BackupFile)
-	} else if bkFileExt == ".tgz" {
-		cmd = fmt.Sprintf("cd %s && tar -zxf %s",
-			incr.SaveMyDir, item.BackupFile)
-	} else if bkFileExt == ".gz" {
-		cmd = fmt.Sprintf("cd %s && gunzip %s",
-			incr.SaveMyDir, item.BackupFile)
-	} else if bkFileExt == ".zip" {
-		cmd = fmt.Sprintf("cd %s && unzip %s",
-			incr.SaveMyDir, item.BackupFile)
-	} else if bkFileExt == ".lzo" {
-		cmd = fmt.Sprintf("cd %s && lzop -d %s",
-			incr.SaveMyDir, item.BackupFile)
-	} else if bkFileExt == ".zst" {
-		cmd = fmt.Sprintf("cd %s && %s -d %s",
-			incr.SaveMyDir, consts.ZstdBin, item.BackupFile)
+
+	// 安全校验：检查文件名是否合法
+	if !isSafeFilename(item.BackupFile) {
+		incr.Err = fmt.Errorf("文件名包含非法字符: %s", item.BackupFile)
+		mylog.Logger.Error(incr.Err.Error())
+		return
 	}
-	if cmd != "" {
-		var decpFileFullPath string
-		item.DecompressedFile, decpFileFullPath = incr.getDecompressedFile(item)
-		msg := fmt.Sprintf("binlog解压命令:%s", cmd)
-		mylog.Logger.Info(msg)
 
-		_, incr.Err = util.RunLocalCmd("bash", []string{"-c", cmd}, "", nil, 600*time.Second)
-		if incr.Err != nil {
-			return
-		}
-		_, err := os.Stat(decpFileFullPath)
-		if err != nil {
-			incr.Err = fmt.Errorf("解压binlog:%s => %s 失败,err:%v",
-				item.BackupFile, decpFileFullPath, err)
-			mylog.Logger.Error(incr.Err.Error())
+	var decpFileFullPath string
+	item.DecompressedFile, decpFileFullPath = incr.getDecompressedFile(item)
 
-			return
-		}
-		msg = fmt.Sprintf("解压binlog:%s成功", item.BackupFile)
-		mylog.Logger.Info(msg)
-
-		//rm 源文件
-		rmCmd := fmt.Sprintf("cd %s && rm -f %s 2>/dev/null", incr.SaveMyDir, item.BackupFile)
-		_, incr.Err = util.RunLocalCmd("bash", []string{"-c", rmCmd}, "", nil, 30*time.Minute)
-		if incr.Err != nil {
-			return
-		}
-		msg = fmt.Sprintf("删除binlog源文件:%s完成", item.BackupFile)
-		mylog.Logger.Info(msg)
+	// 安全校验：确保文件路径在指定目录内
+	bkFileFullPath := filepath.Join(incr.SaveMyDir, item.BackupFile)
+	if !isPathInDir(bkFileFullPath, incr.SaveMyDir) {
+		incr.Err = fmt.Errorf("文件路径越界: %s", bkFileFullPath)
+		mylog.Logger.Error(incr.Err.Error())
+		return
 	}
+
+	// 定义不同压缩格式对应的解压命令
+	decompressCommands := map[string][]string{
+		".tar":    {"tar", "-xf"},
+		".tar.gz": {"tar", "-zxf"},
+		".tgz":    {"tar", "-zxf"},
+		".gz":     {"gunzip"},
+		".zip":    {"unzip"},
+		".lzo":    {"lzop", "-d"},
+		".zst":    {consts.ZstdBin, "-d"},
+	}
+
+	// 获取对应的解压命令
+	args, exists := decompressCommands[bkFileExt]
+	if !exists {
+		incr.Err = fmt.Errorf("不支持的压缩格式: %s", bkFileExt)
+		mylog.Logger.Error(incr.Err.Error())
+		return
+	}
+
+	// 构建命令
+	cmdArgs := append(args, item.BackupFile)
+	msg := fmt.Sprintf("binlog解压命令:%s %s", args[0], strings.Join(args[1:], " "))
+	if len(cmdArgs) > 1 {
+		msg += " " + item.BackupFile
+	}
+	mylog.Logger.Info(msg)
+
+	cmd := exec.Command(args[0], cmdArgs[1:]...)
+	cmd.Dir = incr.SaveMyDir
+	_, incr.Err = util.RunLocalCmd(cmd.Path, cmd.Args[1:], "", nil, 600*time.Second)
+
+	if incr.Err != nil {
+		return
+	}
+
+	_, err := os.Stat(decpFileFullPath)
+	if err != nil {
+		incr.Err = fmt.Errorf("解压binlog:%s => %s 失败,err:%v",
+			item.BackupFile, decpFileFullPath, err)
+		mylog.Logger.Error(incr.Err.Error())
+		return
+	}
+	msg = fmt.Sprintf("解压binlog:%s成功", item.BackupFile)
+	mylog.Logger.Info(msg)
+
+	//rm 源文件
+	// 使用os.Remove代替shell rm命令
+	if err := os.Remove(bkFileFullPath); err != nil {
+		incr.Err = fmt.Errorf("删除文件失败: %s, err: %v", bkFileFullPath, err)
+		mylog.Logger.Error(incr.Err.Error())
+		return
+	}
+	msg = fmt.Sprintf("删除binlog源文件:%s完成", item.BackupFile)
+	mylog.Logger.Info(msg)
 }
 
 // DecompressedAll 解压全部binlog文件
@@ -1135,33 +1209,115 @@ func (incr *TredisRocksDBIncrBack) ImportOneBinlogToTredis(tplusIP string, tplus
 	}
 	endtime := t.Unix() * 1000 // 转换为 Unix 时间戳，*1000 转为毫秒
 
-	restoreCmd := fmt.Sprintf(`
-	export LD_PRELOAD=%s/libjemalloc.so
-	export LD_LIBRARY_PATH=LD_LIBRARY_PATH:%s
-	%s --start-position=%d --end-datetime=%d  %s >/%s
-	`, DepsDir, DepsDir, consts.TredisBinlogBin, incr.FullStartPos, endtime, incrBackFile, cmdfile)
+	// 安全校验：检查文件路径是否合法
+	if !isSafeFilename(bkItem.DecompressedFile) {
+		incr.Err = fmt.Errorf("文件名包含非法字符: %s", bkItem.DecompressedFile)
+		mylog.Logger.Error(incr.Err.Error())
+		return
+	}
 
-	mylog.Logger.Info("解析binlog,命令:%v", restoreCmd)
-	ret01, err := util.RunLocalCmd("bash", []string{"-c", restoreCmd}, "", nil, 1*time.Hour)
+	// 安全校验：确保文件路径在指定目录内
+	if !isPathInDir(incrBackFile, incr.SaveMyDir) {
+		incr.Err = fmt.Errorf("文件路径越界: %s", incrBackFile)
+		mylog.Logger.Error(incr.Err.Error())
+		return
+	}
+
+	// 直接调用tredisbinlog二进制文件，避免使用bash -c
+	cmd := exec.Command(consts.TredisBinlogBin, "--start-position",
+		strconv.FormatUint(incr.FullStartPos, 10), "--end-datetime",
+		strconv.FormatInt(endtime, 10), incrBackFile)
+
+	// 设置环境变量
+	cmd.Env = append(os.Environ(),
+		fmt.Sprintf("LD_PRELOAD=%s/libjemalloc.so", DepsDir),
+		fmt.Sprintf("LD_LIBRARY_PATH=%s:%s", os.Getenv("LD_LIBRARY_PATH"), DepsDir),
+	)
+
+	// 重定向输出到文件
+	outputFile, err := os.Create(cmdfile)
+	if err != nil {
+		incr.Err = fmt.Errorf("创建输出文件失败: %s, err: %v", cmdfile, err)
+		mylog.Logger.Error(incr.Err.Error())
+		return
+	}
+	defer outputFile.Close()
+	cmd.Stdout = outputFile
+
+	mylog.Logger.Info("解析binlog,命令:%s --start-position %d --end-datetime %d %s > %s",
+		consts.TredisBinlogBin, incr.FullStartPos, endtime, incrBackFile, cmdfile)
+
+	err = cmd.Run()
 	if err != nil {
 		mylog.Logger.Error(fmt.Sprintf("解析binlog失败,详情:%v", err))
 		incr.Err = err
 		return
 	}
-	ret01 = strings.TrimSpace(ret01)
+
+	// 检查输出文件是否包含错误信息
+	outputContent, err := os.ReadFile(cmdfile)
+	if err != nil {
+		mylog.Logger.Error(fmt.Sprintf("读取输出文件失败: %v", err))
+		incr.Err = err
+		return
+	}
+
+	ret01 := strings.TrimSpace(string(outputContent))
 	if strings.Contains(ret01, "ERR:") == true {
-		mylog.Logger.Error(fmt.Sprintf("解析binlog失败,cmd:%s,err:%s", restoreCmd, ret01))
+		mylog.Logger.Error(fmt.Sprintf("解析binlog失败,输出包含错误:%s", ret01))
 		incr.Err = fmt.Errorf("解析binlog失败")
 		return
 	}
-	//You can force human readable output when writing to a file or in pipe to other commands by using --no-raw.
-	// NOCC:tosa/linelength(设计如此)
-	importCmd := fmt.Sprintf("%s --no-raw --no-auth-warning -h %s -p %d -a %s < %s > %s", consts.RedisCliBin, tplusIP, tplusPort,
-		util.ShellQuote(tplusPasswd), cmdfile, outfile)
-	importFmtCmd := fmt.Sprintf("%s --no-raw --no-auth-warning -h %s -p %d -a xxxx < %s > %s", consts.RedisCliBin, tplusIP, tplusPort,
-		cmdfile, outfile)
+	// 安全校验：检查文件路径是否合法
+	if !isSafeFilename(cmdfile) {
+		incr.Err = fmt.Errorf("文件名包含非法字符: %s", cmdfile)
+		mylog.Logger.Error(incr.Err.Error())
+		return
+	}
+
+	// 安全校验：确保文件路径在指定目录内
+	cmdfileFullPath := filepath.Join(incr.SaveMyDir, cmdfile)
+	if !isPathInDir(cmdfileFullPath, incr.SaveMyDir) {
+		incr.Err = fmt.Errorf("文件路径越界: %s", cmdfileFullPath)
+		mylog.Logger.Error(incr.Err.Error())
+		return
+	}
+
+	// 直接调用redis-cli二进制文件，避免使用bash -c
+	// 使用管道方式将cmdfile内容传递给redis-cli
+	inputFile, err := os.Open(cmdfileFullPath)
+	if err != nil {
+		incr.Err = fmt.Errorf("打开输入文件失败: %s, err: %v", cmdfileFullPath, err)
+		mylog.Logger.Error(incr.Err.Error())
+		return
+	}
+	defer inputFile.Close()
+
+	// 创建输出文件
+	outfileFullPath := filepath.Join(incr.SaveMyDir, outfile)
+	outputFile, err = os.Create(outfileFullPath)
+	if err != nil {
+		incr.Err = fmt.Errorf("创建输出文件失败: %s, err: %v", outfileFullPath, err)
+		mylog.Logger.Error(incr.Err.Error())
+		return
+	}
+	defer outputFile.Close()
+
+	// 构建redis-cli命令
+	cmd = exec.Command(consts.RedisCliBin, "--no-raw", "--no-auth-warning",
+		"-h", tplusIP, "-p", strconv.Itoa(tplusPort), "-a", tplusPasswd)
+
+	// 设置输入输出
+	cmd.Stdin = inputFile
+	cmd.Stdout = outputFile
+	cmd.Stderr = outputFile
+
+	importFmtCmd := fmt.Sprintf("%s --no-raw --no-auth-warning -h %s -p %d -a xxxx < %s > %s",
+		consts.RedisCliBin, tplusIP, tplusPort, cmdfile, outfile)
 	mylog.Logger.Info("binlog 写入命令:%v", importFmtCmd)
-	_, err = util.RunLocalCmdReplacePkey("bash", []string{"-c", importCmd}, tplusPasswd, "", nil, 1*time.Hour)
+
+	// 执行命令
+	err = cmd.Run()
 	if err != nil {
 		mylog.Logger.Error(fmt.Sprintf("导入binlog 命令失败,详情:%v", err))
 		incr.Err = err
@@ -1219,4 +1375,27 @@ func (incr *TredisRocksDBIncrBack) ImportOneBinlogToTredis(tplusIP string, tplus
 
 	mylog.Logger.Info("binlog:%s 导入 %s:%d成功", bkItem.BackupFile, tplusIP, tplusPort)
 	return
+}
+
+// isSafeFilename 检查文件名是否安全，只允许字母、数字、点、下划线、连字符
+func isSafeFilename(filename string) bool {
+	// 只允许字母、数字、点、下划线、连字符
+	safePattern := regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
+	return safePattern.MatchString(filename)
+}
+
+// isPathInDir 检查文件路径是否在指定目录内，防止路径遍历攻击
+func isPathInDir(filePath, baseDir string) bool {
+	// 清理路径并获取绝对路径
+	cleanPath := filepath.Clean(filePath)
+	cleanBaseDir := filepath.Clean(baseDir)
+
+	// 检查路径是否以基础目录开头
+	relPath, err := filepath.Rel(cleanBaseDir, cleanPath)
+	if err != nil {
+		return false
+	}
+
+	// 防止路径遍历攻击
+	return !strings.Contains(relPath, "..") && !filepath.IsAbs(relPath)
 }
