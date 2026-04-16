@@ -233,12 +233,10 @@ export const exportPartitions = function (params: {
 // 导出导入失败详情
 export const exportImportFailed = function (params: {
   failed_items: {
-    cluster: string;
-    dblikes: string;
     error: string;
     row: number;
-    tblikes: string;
   }[];
+  file_path: string;
 }) {
   return http.post('/apis/partition/export_import_failed/', params, { responseType: 'blob' });
 };
