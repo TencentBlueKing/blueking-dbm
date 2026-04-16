@@ -347,15 +347,13 @@ class PartitionImportFailedItemSerializer(serializers.Serializer):
     """单条导入失败详情序列化器"""
 
     row = serializers.IntegerField(help_text=_("Excel行号"))
-    cluster = serializers.CharField(help_text=_("集群域名"), allow_blank=True)
-    dblikes = serializers.CharField(help_text=_("DB名"), allow_blank=True)
-    tblikes = serializers.CharField(help_text=_("表名"), allow_blank=True)
     error = serializers.CharField(help_text=_("失败原因"))
 
 
 class PartitionExportImportFailedSerializer(serializers.Serializer):
     """下载导入失败详情序列化器"""
 
+    file_path = serializers.CharField(help_text=_("原始导入文件在制品库的路径"))
     failed_items = serializers.ListField(
         child=PartitionImportFailedItemSerializer(),
         help_text=_("导入失败详情列表"),
