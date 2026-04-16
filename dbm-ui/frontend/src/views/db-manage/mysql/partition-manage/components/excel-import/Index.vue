@@ -145,7 +145,11 @@
 
   const handleDownloadFailed = () => {
     exportImportFailed({
-      failed_items: result.failed_items,
+      failed_items: result.failed_items.map((item) => ({
+        error: item.error,
+        row: item.row,
+      })),
+      file_path: filePath.value,
     });
   };
 
