@@ -402,4 +402,4 @@ class DBPartitionViewSet(viewsets.SystemViewSet):
     def export_import_failed(self, request, *args, **kwargs):
         "将导入失败详情导出为 Excel 文件供用户下载"
         validated_data = self.params_validate(PartitionExportImportFailedSerializer)
-        return PartitionHandler.export_import_failed(validated_data["failed_items"])
+        return PartitionHandler.export_import_failed(validated_data["file_path"], validated_data["failed_items"])
