@@ -9,11 +9,10 @@
         style="margin-left: auto" />
       <LocaleSwitch />
       <BkPopover
+        click-content-auto-hide
         placement="bottom"
-        :popover-delay="[200, 100]"
         theme="light top-action-menu-theme"
-        @after-hidden="isShowHelp = false"
-        @after-show="isShowHelp = true">
+        trigger="click">
         <div class="top-action-btn mr-8">
           <DbIcon type="help-fill" />
         </div>
@@ -31,9 +30,10 @@
         </template>
       </BkPopover>
       <BkPopover
+        click-content-auto-hide
         placement="bottom"
-        :popover-delay="[200, 100]"
         theme="light top-action-menu-theme"
+        trigger="click"
         @after-hidden="isShowLogout = false"
         @after-show="isShowLogout = true">
         <div class="user-info-box">
@@ -100,7 +100,6 @@
 
   const noticeApi = urlJoin(window.PROJECT_ENV.VITE_AJAX_URL_PREFIX, '/notice/announcements/');
   const isShowBKNotice = ref(false);
-  const isShowHelp = ref(false);
   const isShowLogout = ref(false);
   const isShowSystemVersionLog = ref(false);
 
