@@ -31,6 +31,7 @@ export function getProfile() {
       values: any;
     }[];
     resource_manage: boolean;
+    tenant_id: string;
     username: string;
   }>(`${path}/get_profile/`);
 }
