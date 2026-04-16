@@ -2,7 +2,7 @@
 # MIT License — same as dbha-v2 module
 """Render dbha-v2 etc/*.yaml from templates and an rc key-value file."""
 
-from __future__ import annotations
+from typing import Dict, List, Match, Optional, Tuple
 
 import argparse
 import fcntl
@@ -25,9 +25,9 @@ _FALLBACK_NET_IFACE = "eth1"
 _RC_SNIPPET_FILE_SUFFIX = "_YAML_FILE"
 
 
-def parse_rc(content: str) -> dict[str, str]:
+def parse_rc(content: str) -> Dict[str, str]:
     """Parse one KEY=value per line; quoted values must fit on a single line."""
-    result: dict[str, str] = {}
+    result: Dict[str, str] = {}
 
     for line in content.splitlines():
         stripped = line.strip()
@@ -45,11 +45,11 @@ def parse_rc(content: str) -> dict[str, str]:
     return result
 
 
-def load_rc(path: Path) -> dict[str, str]:
+def load_rc(path: Path) -> Dict[str, str]:
     return parse_rc(path.read_text(encoding="utf-8"))
 
 
-def apply_common_apm_listen_address_default(values: dict[str, str], ip_detect_host: str) -> None:
+def apply_common_apm_listen_address_default(values: Dict[str, str], ip_detect_host: str) -> None:
     """If COMMON_APM_LISTEN_ADDRESS is unset or empty, set http://<primary IPv4>:50050."""
     raw = values.get("COMMON_APM_LISTEN_ADDRESS", "").strip()
     if raw:
@@ -63,7 +63,7 @@ def apply_common_apm_listen_address_default(values: dict[str, str], ip_detect_ho
     )
 
 
-def apply_receiver_source_probe_endpoint_default(values: dict[str, str], ip_detect_host: str) -> None:
+def apply_receiver_source_probe_endpoint_default(values: Dict[str, str], ip_detect_host: str) -> None:
     """If RECEIVER_SOURCE_PROBE_ENDPOINT is unset or empty, set host:port for probe source."""
     raw = values.get("RECEIVER_SOURCE_PROBE_ENDPOINT", "").strip()
     if raw:
@@ -77,7 +77,7 @@ def apply_receiver_source_probe_endpoint_default(values: dict[str, str], ip_dete
     )
 
 
-def apply_admin_grpc_listen_address_default(values: dict[str, str], ip_detect_host: str) -> None:
+def apply_admin_grpc_listen_address_default(values: Dict[str, str], ip_detect_host: str) -> None:
     """Unset/empty, or ':port' only: fill host using same IPv4 detection as APM/probe defaults."""
     raw = values.get("ADMIN_GRPC_LISTEN_ADDRESS", "").strip()
     if not raw:
@@ -97,7 +97,7 @@ def apply_admin_grpc_listen_address_default(values: dict[str, str], ip_detect_ho
         )
 
 
-def apply_admin_web_listen_defaults(values: dict[str, str], ip_detect_host: str) -> None:
+def apply_admin_web_listen_defaults(values: Dict[str, str], ip_detect_host: str) -> None:
     """If ADMIN_WEB_HOST/PORT are unset or empty, fill host by IPv4 detection and port by default."""
     raw_host = values.get("ADMIN_WEB_HOST", "").strip()
     if not raw_host:
@@ -110,7 +110,7 @@ def apply_admin_web_listen_defaults(values: dict[str, str], ip_detect_host: str)
         sys.stderr.write("ADMIN_WEB_PORT unset, using default port: {}\n".format(_DEFAULT_ADMIN_WEB_PORT))
 
 
-def apply_receiver_source_probe_block(values: dict[str, str], rc_path: Path) -> None:
+def apply_receiver_source_probe_block(values: Dict[str, str], rc_path: Path) -> None:
     """Load receiver service.source probe entry from shard YAML (path relative to rc)."""
     _apply_shard_block(
         values, rc_path,
@@ -121,7 +121,7 @@ def apply_receiver_source_probe_block(values: dict[str, str], rc_path: Path) -> 
     )
 
 
-def apply_receiver_source_kafka_block(values: dict[str, str], rc_path: Path) -> None:
+def apply_receiver_source_kafka_block(values: Dict[str, str], rc_path: Path) -> None:
     """Load receiver service.source kafka entry from shard YAML (path relative to rc)."""
     _apply_shard_block(
         values, rc_path,
@@ -133,7 +133,7 @@ def apply_receiver_source_kafka_block(values: dict[str, str], rc_path: Path) -> 
     )
 
 
-def apply_receiver_sink_mysql_block(values: dict[str, str], rc_path: Path) -> None:
+def apply_receiver_sink_mysql_block(values: Dict[str, str], rc_path: Path) -> None:
     """Load receiver service.sink mysql entry from shard YAML (path relative to rc)."""
     _apply_shard_block(
         values, rc_path,
@@ -144,7 +144,7 @@ def apply_receiver_sink_mysql_block(values: dict[str, str], rc_path: Path) -> No
     )
 
 
-def apply_probe_mysql_shard_block(values: dict[str, str], rc_path: Path) -> None:
+def apply_probe_mysql_shard_block(values: Dict[str, str], rc_path: Path) -> None:
     """Load mysql harvester shard YAML and substitute placeholders (after *_YAML_FILE)."""
     _apply_shard_block(
         values, rc_path,
@@ -155,7 +155,7 @@ def apply_probe_mysql_shard_block(values: dict[str, str], rc_path: Path) -> None
     )
 
 
-def apply_probe_redis_shard_block(values: dict[str, str], rc_path: Path) -> None:
+def apply_probe_redis_shard_block(values: Dict[str, str], rc_path: Path) -> None:
     """Load redis shard YAML and substitute placeholders."""
     if not _redis_shard_enabled(values):
         values["PROBE_REDIS_SHARD_BLOCK"] = ""
@@ -171,7 +171,7 @@ def apply_probe_redis_shard_block(values: dict[str, str], rc_path: Path) -> None
     )
 
 
-def apply_yaml_snippet_files(values: dict[str, str], rc_path: Path) -> None:
+def apply_yaml_snippet_files(values: Dict[str, str], rc_path: Path) -> None:
     """Expand KEY ending in _YAML_FILE into KEY without _FILE, with file body."""
     for k in list(values.keys()):
         if not k.endswith(_RC_SNIPPET_FILE_SUFFIX):
@@ -194,13 +194,13 @@ def apply_yaml_snippet_files(values: dict[str, str], rc_path: Path) -> None:
         del values[k]
 
 
-def render_template(template_text: str, values: dict[str, str]) -> str:
+def render_template(template_text: str, values: Dict[str, str]) -> str:
     # Use regex one-pass substitution to avoid secondary expansion when a value
     # itself contains {{ANOTHER_KEY}} literals.
     return _PLACEHOLDER_RE.sub(lambda m: _placeholder_replace(m, values), template_text)
 
 
-def find_missing_placeholders(text: str) -> list[str]:
+def find_missing_placeholders(text: str) -> List[str]:
     return sorted(set(_PLACEHOLDER_RE.findall(text)))
 
 
@@ -293,8 +293,8 @@ def main() -> None:
         sys.stderr.write("no *.yaml templates in {}\n".format(args.template_dir))
         sys.exit(1)
 
-    missing_report: list[str] = []
-    rendered_results: list[tuple[Path, str]] = []
+    missing_report: List[str] = []
+    rendered_results: List[Tuple[Path, str]] = []
     for tpl in templates:
         text = tpl.read_text(encoding="utf-8")
         rendered = render_template(text, values)
@@ -328,7 +328,7 @@ def _guess_primary_ipv4(ip_detect_host: str) -> str:
         return iface_addr if iface_addr else _DEFAULT_LOOPBACK_IPV4
 
 
-def _get_iface_ipv4(ifname: str) -> str | None:
+def _get_iface_ipv4(ifname: str) -> Optional[str]:
     """Return IPv4 for interface *ifname* (Linux ioctl); None if unavailable."""
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -342,14 +342,14 @@ def _get_iface_ipv4(ifname: str) -> str | None:
         return None
 
 
-def _unescape(raw: str, stop_at_quote: bool = False) -> tuple[str, int]:
+def _unescape(raw: str, stop_at_quote: bool = False) -> Tuple[str, int]:
     """Unescape \\n \\t \\" \\\\ in *raw*.
 
     When *stop_at_quote* is True, parsing stops at the first unescaped ``"``;
     returns ``(unescaped_text, index_of_closing_quote)``.
     When False, the entire string is consumed and *index* equals ``len(raw)``.
     """
-    out: list[str] = []
+    out: List[str] = []
     i = 0
 
     while i < len(raw):
@@ -393,7 +393,7 @@ def _parse_double_quoted_line(s: str) -> str:
     return text
 
 
-def _redis_shard_enabled(values: dict[str, str]) -> bool:
+def _redis_shard_enabled(values: Dict[str, str]) -> bool:
     """When false, omit redis harvester (no redis shard). Value must be set in rc."""
     raw = values.get("PROBE_REDIS_SHARD_ENABLED", "").strip()
     if not raw:
@@ -420,13 +420,13 @@ def _resolve_rc_relative_path(rc_path: Path, rel: str) -> Path:
     return fallback
 
 
-def _placeholder_replace(m: re.Match, values: dict[str, str]) -> str:
+def _placeholder_replace(m: Match, values: Dict[str, str]) -> str:
     key = m.group(1)
     return values[key] if key in values else m.group(0)
 
 
 def _apply_shard_block(
-    values: dict[str, str],
+    values: Dict[str, str],
     rc_path: Path,
     file_key: str,
     block_key: str,
