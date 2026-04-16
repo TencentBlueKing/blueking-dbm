@@ -663,7 +663,11 @@ class MySQLMigrateClusterRemoteFlow(object):
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_svr_sub_pipeline_list)
             tendb_migrate_pipeline_list.append(
                 tendb_migrate_pipeline.build_sub_process(
-                    sub_name=_("{} > {} 成对迁移".format(self.data["master_ip"], self.data["new_master_ip"]))
+                    sub_name=_(
+                        "{} > {} 成对迁移 {}".format(
+                            self.data["master_ip"], self.data["new_master_ip"], cluster_class.immute_domain
+                        )
+                    )
                 )
             )
         # 运行流程

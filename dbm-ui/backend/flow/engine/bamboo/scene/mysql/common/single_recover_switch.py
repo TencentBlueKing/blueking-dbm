@@ -140,6 +140,8 @@ def single_migrate_switch_sub_flow(
         )
 
     domain_add_list = []
+    if domains is None or len(domains) == 0:
+        raise Exception(_("集群 {} 不存在域名关系".format(cluster.name)))
     for domain in domains:
         domain_add_list.append(
             {
