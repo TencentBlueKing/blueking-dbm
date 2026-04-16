@@ -43,6 +43,8 @@
 
   import { dbTippy } from '@common/tippy';
 
+  import { messageSuccess } from '@utils';
+
   import { CanvasEvent, GraphEvent, NodeEvent } from '@antv/g6';
   import { useFullscreen } from '@vueuse/core';
 
@@ -533,6 +535,7 @@
           .then(() => {
             // isSuperUserMode.value = false;
             Object.assign(formData, { remark: '' });
+            messageSuccess(t('操作成功'));
             emits('refresh');
             return true;
           });
