@@ -329,8 +329,11 @@ db.temp.drop();`
 
 // standaloneStart 单机形式启动
 func (c *MongoDChangeOplogSize) standaloneStart() error {
-	if err := common.ShutdownMongoProcess(c.OsUser, "mongod", c.BinDir, c.DbpathDir,
-		c.ConfParams.Port); err != nil {
+	if err := common.ShutdownMongoProcess(
+		c.ConfParams.Port,
+		30*time.Second,
+		false,
+	); err != nil {
 		c.runtime.Logger.Error("shutdown mongod fail, error:%s", err)
 		return fmt.Errorf("shutdown mongod fail, error:%s", err)
 	}
@@ -364,8 +367,11 @@ func (c *MongoDChangeOplogSize) standaloneStart() error {
 
 // normalStart 正常启动
 func (c *MongoDChangeOplogSize) normalStart() error {
-	if err := common.ShutdownMongoProcess(c.OsUser, "mongod", c.BinDir, c.DbpathDir,
-		c.NewPort); err != nil {
+	if err := common.ShutdownMongoProcess(
+		c.NewPort,
+		30*time.Second,
+		false,
+	); err != nil {
 		c.runtime.Logger.Error("shutdown mongod about port:%d fail, error:%s", c.NewPort, err)
 		return fmt.Errorf("shutdown mongod about port:%d fail, error:%s", c.NewPort, err)
 	}

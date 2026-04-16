@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import logging
 from dataclasses import asdict
 from typing import Dict, List, Optional
 
@@ -30,6 +31,9 @@ from backend.db_services.dbbase.constants import IpDest
 from backend.db_services.ipchooser.constants import BK_OS_CODE__TYPE, BkOsType
 from backend.flow.consts import LINUX_ADMIN_USER_FOR_CHECK, WINDOW_ADMIN_USER_FOR_CHECK
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.mongodb.sub_task.mongodb_clean_residual_exporter import (
+    add_mongodb_clean_residual_exporter_acts,
+)
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
 from backend.flow.plugins.components.collections.common.resource_replenish import HCMResourceReplenishComponent
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
@@ -46,6 +50,8 @@ from backend.flow.utils.common_act_dataclass import (
 )
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket, Todo
+
+logger = logging.getLogger("flow")
 
 
 def insert_host_event(params, data, kwargs, global_data):
@@ -134,7 +140,7 @@ class ImportResourceInitStepFlow(object):
         else:
             account_name = LINUX_ADMIN_USER_FOR_CHECK
 
-        # 先执行空闲检查
+        # 执行空闲检查
         if env.SA_RECYCLE_IDLE_CHECK_TEMPLATE_ID or env.SA_CHECK_TEMPLATE_ID:
             p.add_act(
                 act_name=_("执行sa空闲检查(严格)") if env.SA_RECYCLE_IDLE_CHECK_TEMPLATE_ID else _("执行sa空闲检查"),
@@ -375,6 +381,7 @@ class ImportResourceInitStepFlow(object):
 
         p.run_pipeline()
 
+    # 主机空闲检查. 用于回收主机流程中.
     def machine_idle_check_flow(self):
         p = Builder(root_id=self.root_id, data=self.data)
 
@@ -384,6 +391,21 @@ class ImportResourceInitStepFlow(object):
         if self.data["ticket_type"] == TicketType.RECYCLE_OLD_HOST and exist_hosts:
             raise InvalidOperationException(_("流程校验不通过，存在元数据主机: {}").format(exist_hosts))
 
+        # 在RECYCLE_OLD_HOST流程中，SA 空闲检查前先清理 exporter 残留（使用 sa_check_ips）
+        # get_resource_biz 机器已经在资源池业务中了，所以 bk_biz_id 使用资源池业务
+        if self.data["ticket_type"] == TicketType.RECYCLE_OLD_HOST:
+            db_type = self.data.get("db_type", "")
+            if not db_type:
+                logger.warning("machine_idle_check_flow: db_type is empty, skip exporter cleanup")
+            else:
+                add_mongodb_clean_residual_exporter_acts(
+                    p=p,
+                    db_type=db_type,
+                    bk_cloud_id=self.data.get("bk_cloud_id", 0),
+                    bk_biz_id=get_resource_biz(),
+                    iplist=self.data.get("sa_check_ips", []),
+                )
+
         kwargs = InitCheckForResourceKwargs(
             ips=self.data["sa_check_ips"],
             # 主机目前已回收到资源池业务的pending模块
@@ -392,6 +414,7 @@ class ImportResourceInitStepFlow(object):
             if self.data["db_type"] == DBType.Sqlserver
             else LINUX_ADMIN_USER_FOR_CHECK,
         )
+
         p.add_act(
             act_name=_("执行sa空闲检查"),
             act_component_code=CheckMachineIdleComponent.code,

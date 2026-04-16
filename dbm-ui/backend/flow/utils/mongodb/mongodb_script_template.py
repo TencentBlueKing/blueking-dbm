@@ -247,17 +247,20 @@ db.getSisterDB('config').settings.save({ _id:'chunksize', value: 512 });
 # 禁用bk-dbmon 监控
 mongodb_dbmon_shield_port = """
 cd /home/mysql/bk-dbmon
-/home/mysql/bk-dbmon/bk-dbmon alarm shield --port {{port}}
+flock -w 30 /tmp/dbmon_shield.{{exec_account}}.lock -c \
+"/home/mysql/bk-dbmon/bk-dbmon alarm shield --port {{port}}" || { echo "Error shield dbmon failed"; exit 1; }
 """
 
 # 解禁bk-dbmon 监控
 mongodb_dbmon_unblock_port = """
 cd /home/mysql/bk-dbmon
-/home/mysql/bk-dbmon/bk-dbmon alarm unblock --port {{port}}
+flock -w 30 /tmp/dbmon_shield.{{exec_account}}.lock -c \
+"/home/mysql/bk-dbmon/bk-dbmon alarm unblock --port {{port}}" || { echo "Error unblock dbmon failed"; exit 1; }
 """
 
 # 删除bk-dbmon 监控
 mongodb_dbmon_delete_port = """
 cd /home/mysql/bk-dbmon
-/home/mysql/bk-dbmon/bk-dbmon meta delete --port  {{port}}
+flock -w 30 /tmp/dbmon_shield.{{exec_account}}.lock -c \
+"/home/mysql/bk-dbmon/bk-dbmon meta delete --port {{port}}" || { echo "Error delete dbmon failed"; exit 1; }
 """

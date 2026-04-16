@@ -285,23 +285,6 @@ func (r *MongoDReplace) primaryStepDown() error {
 	return nil
 }
 
-// shutdownSourceProcess 关闭源端mongod进程  取消
-// func (r *MongoDReplace) shutdownSourceProcess() error {
-//	flag, _, _ := common.CheckMongoService(r.ConfParams.Port)
-//	if flag == false {
-//		r.runtime.Logger.Info("source mongod process has been shut")
-//		return nil
-//	}
-//	r.runtime.Logger.Info("start to shutdown source mongod process")
-//	if err := common.ShutdownMongoProcess(r.OsUser, "mongod", r.BinDir, r.DbpathDir, r.ConfParams.Port); err != nil {
-//		source := fmt.Sprintf("%s:%d", r.ConfParams.IP, r.ConfParams.Port)
-//		r.runtime.Logger.Error(fmt.Sprintf("shutdown source:%s fail, error:%s", source, err))
-//		return fmt.Errorf("shutdown source:%s fail, error:%s", source, err)
-//	}
-//	r.runtime.Logger.Info("shutdown source mongod process successfully")
-//	return nil
-// }
-
 // removeSource 复制集中移除source
 func (r *MongoDReplace) removeSource() error {
 	if r.ConfParams.SourceIP == "" {

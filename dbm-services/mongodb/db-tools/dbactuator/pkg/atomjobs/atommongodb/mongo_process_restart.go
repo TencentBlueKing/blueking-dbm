@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/common"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/consts"
@@ -368,8 +369,11 @@ func (r *MongoRestart) shutdown() error {
 
 	// 关闭服务
 	r.runtime.Logger.Info("start to shutdown %s", r.ConfParams.InstanceType)
-	if err = common.ShutdownMongoProcess(r.OsUser, r.ConfParams.InstanceType, r.BinDir, r.DbpathDir,
-		r.ConfParams.Port); err != nil {
+	if err = common.ShutdownMongoProcess(
+		r.ConfParams.Port,
+		30*time.Second,
+		false,
+	); err != nil {
 		r.runtime.Logger.Error(fmt.Sprintf("shutdown %s fail, error:%s", r.ConfParams.InstanceType, err))
 		return fmt.Errorf("shutdown %s fail, error:%s", r.ConfParams.InstanceType, err)
 	}
