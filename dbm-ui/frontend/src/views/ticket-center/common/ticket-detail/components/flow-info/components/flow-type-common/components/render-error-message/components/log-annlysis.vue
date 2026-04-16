@@ -46,7 +46,7 @@
   const { data: logContent, loading: isLoading } = useRequest(
     (params: { flow_id: string; ticket_id: number }) => {
       // 资源不足的日志分析
-      if (props.flowType === FlowMode.TYPE_RESOURCE_APPLY) {
+      if (props.flowType === FlowMode.TYPE_RESOURCE_APPLY || props.flowType === FlowMode.TYPE_RESOURCE_BATCH_APPLY) {
         return getResouceLackLogAnalysis(params);
       }
       // 通用类型的日志分析
