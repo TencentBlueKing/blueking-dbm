@@ -76,9 +76,9 @@ func (e *SwitchExecutor) CreateRequestWithGroup(ctx context.Context, group *Fail
 
 		// Report DBM API query metadata request error
 		if reportErr := apm.DbmApiRequestErrorTotal.UpdateLabel(map[string]string{
-			apm.MetricLabelApiName:       "query_metadata",
+			apm.MetricLabelApiName:       apm.MetricApiNameQueryMetadata,
 			haapm.MetricLabelServiceID:   e.myServiceID,
-			haapm.MetricLabelServiceName: "analysis",
+			haapm.MetricLabelServiceName: apm.MetricServerName,
 		}).Inc(); reportErr != nil {
 			logger.Warn("failed to report dbm api request error metric, errmsg: %s", reportErr)
 		}
@@ -87,9 +87,9 @@ func (e *SwitchExecutor) CreateRequestWithGroup(ctx context.Context, group *Fail
 
 	// Report DBM API query metadata request latency
 	if reportErr := apm.DbmApiRequestTimeConsumingMs.UpdateLabel(map[string]string{
-		apm.MetricLabelApiName:       "query_metadata",
+		apm.MetricLabelApiName:       apm.MetricApiNameQueryMetadata,
 		haapm.MetricLabelServiceID:   e.myServiceID,
-		haapm.MetricLabelServiceName: "analysis",
+		haapm.MetricLabelServiceName: apm.MetricServerName,
 	}).Observe(float64(time.Since(start).Milliseconds())); reportErr != nil {
 		logger.Warn("failed to report dbm api request time consuming metric, errmsg: %s", reportErr)
 	}
@@ -198,7 +198,7 @@ func (e *SwitchExecutor) reportSwitchingMetrics(start time.Time, req *switcher.R
 	if err := apm.SwitchingTimeConsumingMs.UpdateLabel(map[string]string{
 		apm.MetricLabelDbType:        dbType.String(),
 		haapm.MetricLabelServiceID:   e.myServiceID,
-		haapm.MetricLabelServiceName: "analysis",
+		haapm.MetricLabelServiceName: apm.MetricServerName,
 	}).Observe(float64(time.Since(start).Milliseconds())); err != nil {
 		logger.Warn("failed to update switching time consuming metric, errmsg: %s", err)
 	}
@@ -206,14 +206,14 @@ func (e *SwitchExecutor) reportSwitchingMetrics(start time.Time, req *switcher.R
 	successCount := float64(len(req.MySqlInstData) - len(rsp.MySqlFailureInsts))
 	if err := apm.SwitchingSuccessTotal.UpdateLabel(map[string]string{
 		haapm.MetricLabelServiceID:   e.myServiceID,
-		haapm.MetricLabelServiceName: "analysis",
+		haapm.MetricLabelServiceName: apm.MetricServerName,
 	}).Add(successCount); err != nil {
 		logger.Error("failed to update switching success total metric, errmsg: %s", err.Error())
 	}
 
 	if err := apm.SwitchingErrorTotal.UpdateLabel(map[string]string{
 		haapm.MetricLabelServiceID:   e.myServiceID,
-		haapm.MetricLabelServiceName: "analysis",
+		haapm.MetricLabelServiceName: apm.MetricServerName,
 	}).Add(float64(len(rsp.MySqlFailureInsts))); err != nil {
 		logger.Error("failed to update switching error total metric, errmsg: %s", err.Error())
 	}
