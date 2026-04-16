@@ -28,6 +28,7 @@
     "@blueking/ai-blueking": "1.3.4-beta.2",
     "@blueking/app-select": "0.0.1-beta.19",
     "@blueking/bk-trace-core": "0.0.6",
+    "@blueking/bk-user-selector": "0.1.6",
     "@blueking/date-picker": "1.0.1",
     "@blueking/ip-selector": "0.3.0-beta.23",
     "@blueking/login-modal": "1.0.6",
