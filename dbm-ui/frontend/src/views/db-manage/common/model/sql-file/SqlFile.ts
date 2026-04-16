@@ -31,6 +31,7 @@ export default class SqlFile {
   currentState!: SqlFileState;
   file: File | null;
   grammarCheck?: GrammarCheckModel;
+  isUtf8Bom: boolean;
   messageList: GrammarCheckModel['messageList'];
   realFilePath: string;
   sqlFileCheckFailState: SqlFileCheckFailState;
@@ -45,6 +46,7 @@ export default class SqlFile {
     this.content = payload.content || '';
     this.file = payload.file || null;
     this.grammarCheck = undefined;
+    this.isUtf8Bom = true;
     this.state = '';
     this.messageList = [];
     this.realFilePath = payload.realFilePath || '';

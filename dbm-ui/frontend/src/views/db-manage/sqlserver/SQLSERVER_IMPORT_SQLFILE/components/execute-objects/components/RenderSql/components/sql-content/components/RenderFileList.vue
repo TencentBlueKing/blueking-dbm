@@ -44,7 +44,54 @@
               <div
                 v-overflow-tips
                 class="file-item-text">
-                {{ fileItemData.name }}
+                <span class="file-name">{{ fileItemData.name }}</span>
+                <!-- 状态 icon 紧跟文件名，始终显示 -->
+                <!-- 未检查状态 -->
+                <DbIcon
+                  v-if="fileData[fileItemData.name].state === SqlFileModel.UNCHEKED"
+                  class="ml-4"
+                  style="color: #979ba5"
+                  type="clock" />
+                <!-- 上传失败：红色 + tooltip "上传失败" -->
+                <DbIcon
+                  v-else-if="fileData[fileItemData.name].state === SqlFileModel.UPLOAD_FAIL"
+                  v-bk-tooltips="t('上传失败')"
+                  class="ml-4"
+                  style="color: #ea3636; font-size: 14px"
+                  svg
+                  type="attention-fill" />
+                <!-- 语法检查未通过 + 编码异常：红色 + 组合 tooltip -->
+                <DbIcon
+                  v-else-if="
+                    fileData[fileItemData.name].state === SqlFileModel.CHECK_FAIL &&
+                    !fileData[fileItemData.name].isUtf8Bom
+                  "
+                  v-bk-tooltips="t('语法检查未通过 / 非 UTF-8 BOM 编码')"
+                  class="ml-4"
+                  style="color: #ea3636; font-size: 14px"
+                  svg
+                  type="attention-fill" />
+                <!-- 语法检查未通过：红色 + tooltip "语法检查未通过" -->
+                <DbIcon
+                  v-else-if="fileData[fileItemData.name].state === SqlFileModel.CHECK_FAIL"
+                  v-bk-tooltips="t('语法检查未通过')"
+                  class="ml-4"
+                  style="color: #ea3636; font-size: 14px"
+                  svg
+                  type="attention-fill" />
+                <!-- 编码异常（单独）：黄色 + tooltip "非 UTF-8 BOM 编码" -->
+                <DbIcon
+                  v-else-if="!fileData[fileItemData.name].isUtf8Bom"
+                  v-bk-tooltips="t('非 UTF-8 BOM 编码')"
+                  class="ml-4"
+                  style="color: #f5d100"
+                  type="alert" />
+                <!-- 正常状态：绿色，无 tooltip -->
+                <DbIcon
+                  v-else-if="fileData[fileItemData.name].state === SqlFileModel.SUCCESS"
+                  class="ml-4"
+                  style="color: #2dcb56"
+                  type="check-circle-fill" />
               </div>
               <div class="extend-box">
                 <div
@@ -55,25 +102,6 @@
                   </div>
                 </div>
                 <template v-else>
-                  <div class="upload-info">
-                    <span
-                      v-if="fileData[fileItemData.name].state === SqlFileModel.UNCHEKED"
-                      style="color: #979ba5">
-                      {{ t('待校验') }}
-                    </span>
-                    <DbIcon
-                      v-else-if="
-                        fileData[fileItemData.name].state === SqlFileModel.CHECK_FAIL ||
-                        fileData[fileItemData.name].state === SqlFileModel.UPLOAD_FAIL
-                      "
-                      style="color: #ea3636"
-                      svg
-                      type="attention-fill" />
-                    <DbIcon
-                      v-else-if="fileData[fileItemData.name].state === SqlFileModel.SUCCESS"
-                      style="color: #2dcb56"
-                      type="check-circle-fill" />
-                  </div>
                   <div class="drag-flag">
                     <DbIcon
                       style="font-size: 14px; color: #fff"
@@ -242,9 +270,23 @@
         }
 
         .file-item-text {
+          display: flex;
+          align-items: center;
           overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+
+          .file-name {
+            flex: 1;
+            min-width: 0;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+          }
+
+          .bk-dbm-icon {
+            flex-shrink: 0;
+            position: relative;
+            top: 1px;
+          }
         }
       }
     }
