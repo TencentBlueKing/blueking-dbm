@@ -79,12 +79,14 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { onActivated, ref } from 'vue';
+  import { onActivated, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { useSqlImport } from '@stores';
 
   import SqlFileModel from '@views/db-manage/common/model/sql-file/SqlFile';
+
+  import { messageWarn } from '@utils';
 
   import Editor from '../editor/Index.vue';
   import useEditableFileContent from '../hooks/useEditableFileContent';
@@ -127,6 +129,26 @@
   const uploadRef = ref();
 
   let isInnerChange = false;
+
+  /**
+   * 检测文件是否为 UTF-8 BOM 编码
+   * UTF-8 BOM 文件的前三个字节为: 0xEF, 0xBB, 0xBF
+   * @param file 文件对象
+   */
+  const checkFileEncoding = (file: File): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const arrayBuffer = reader.result as ArrayBuffer;
+        const uint8Array = new Uint8Array(arrayBuffer);
+        // 检查前3个字节是否为 BOM 标记 (EF BB BF)
+        const isUtf8Bom = uint8Array[0] === 0xef && uint8Array[1] === 0xbb && uint8Array[2] === 0xbf;
+        resolve(isUtf8Bom);
+      };
+      // 只读取文件的前4字节即可判断编码
+      reader.readAsArrayBuffer(file.slice(0, 4));
+    });
+  };
 
   // 同步外部值(编辑态)
   watch(
@@ -177,7 +199,7 @@
   };
 
   // 开始上传本地文件
-  const handleStartUpdate = (event: Event) => {
+  const handleStartUpdate = async (event: Event) => {
     const { files = [] } = event.target as HTMLInputElement;
     if (!files) {
       return;
@@ -186,11 +208,29 @@
     const currentFileDataMap = {} as Record<string, SqlFileModel>;
     const params = new FormData();
 
-    Array.from(files).forEach((curFile, fileIndex) => {
+    // 检测所有文件的编码
+    const fileArray = Array.from(files);
+    const encodingCheckResults = await Promise.all(fileArray.map((file) => checkFileEncoding(file)));
+
+    // 收集非 UTF-8 BOM 编码的文件名，统一提示
+    const nonBomFileNames = fileArray
+      .filter((_, fileIndex) => !encodingCheckResults[fileIndex])
+      .map((file) => file.name);
+    if (nonBomFileNames.length > 0) {
+      messageWarn(
+        t('文件编码可能导致中文乱码，建议转存为 UTF-8 BOM：{fileNames}', {
+          fileNames: nonBomFileNames.join('、'),
+        }),
+        5000,
+      );
+    }
+
+    fileArray.forEach((curFile, fileIndex) => {
       fileNameList.push(curFile.name);
       currentFileDataMap[curFile.name] = new SqlFileModel({
         file: curFile,
       });
+      currentFileDataMap[curFile.name].isUtf8Bom = encodingCheckResults[fileIndex];
       currentFileDataMap[curFile.name].grammarCheckStart();
 
       // 上传文件大小限制 1GB (1024 * 1024 * 1024 = 1073741824)
@@ -291,6 +331,8 @@
 
     .bk-resize-layout-aside {
       border: none !important;
+      max-width: 90vw;
+      overflow-x: auto;
     }
 
     .editor-error-tips {
