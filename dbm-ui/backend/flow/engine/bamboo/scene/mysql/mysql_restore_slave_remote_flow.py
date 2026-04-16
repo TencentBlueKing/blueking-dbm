@@ -475,7 +475,11 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_svr_sub_pipeline_list)
 
             tendb_migrate_pipeline_list.append(
-                tendb_migrate_pipeline.build_sub_process(_("slave重建迁移{}").format(self.data["new_slave_ip"]))
+                tendb_migrate_pipeline.build_sub_process(
+                    _("{} > {} 从库重建 {}").format(
+                        self.data["old_slave_ip"], self.data["new_slave_ip"], cluster_class.immute_domain
+                    )
+                )
             )
         # 运行流程
         tendb_migrate_pipeline_all.add_parallel_sub_pipeline(tendb_migrate_pipeline_list)
@@ -833,7 +837,9 @@ class MySQLRestoreSlaveRemoteFlow(object):
             )
 
             tendb_migrate_pipeline_list.append(
-                tendb_migrate_pipeline.build_sub_process(_("{}slave原地重建").format(target_slave.ip_port))
+                tendb_migrate_pipeline.build_sub_process(
+                    _("{} 从库原地重建 {}").format(target_slave.ip_port, cluster_model.immute_domain)
+                )
             )
 
         tendb_migrate_pipeline_all.add_parallel_sub_pipeline(sub_flow_list=tendb_migrate_pipeline_list)

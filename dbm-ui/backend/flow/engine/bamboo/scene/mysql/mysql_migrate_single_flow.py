@@ -574,7 +574,11 @@ class MySQLMigrateSingleFlow(object):
             )
             tendb_migrate_pipeline_list.append(
                 tendb_migrate_pipeline.build_sub_process(
-                    sub_name=_("{} > {} 单节点迁移".format(self.data["orphan_ip"], self.data["new_orphan_ip"]))
+                    sub_name=_(
+                        "{} > {} 单节点迁移 {}".format(
+                            self.data["orphan_ip"], self.data["new_orphan_ip"], cluster_class.immute_domain
+                        )
+                    )
                 )
             )
         # 运行流程
