@@ -193,9 +193,12 @@ func (d *DeInstall) shutdownProcess() error {
 			}
 		}
 
-		// 关闭进程
-		if err := common.ShutdownMongoProcess(d.OsUser, d.ConfParams.InstanceType, d.BinDir, d.DbpathDir,
-			d.ConfParams.Port); err != nil {
+		// 关闭进程（deinstall场景: 30秒未退出则kill -9兜底）
+		if err := common.ShutdownMongoProcess(
+			d.ConfParams.Port,
+			30*time.Second,
+			true,
+		); err != nil {
 			d.runtime.Logger.Error("shutdown mongo service fail, error:%s", err)
 			return fmt.Errorf("shutdown mongo service fail, error:%s", err)
 		}

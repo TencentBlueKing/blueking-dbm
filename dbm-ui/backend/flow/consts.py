@@ -604,6 +604,7 @@ class MongoDBActuatorActionEnum(StrStructuredEnum):
     MongodNodeHidden = EnumField("mongod_node_hidden", _("mongod_node_hidden"))
     MongoSetFcv = EnumField("mongo_set_fcv", _("mongo_set_fcv"))
     FixServiceStatus = EnumField("fix_service_status", _("fix_service_status"))
+    CleanResidualExporter = EnumField("mongodb_clean_residual_exporter", _("mongodb_clean_residual_exporter"))
 
 
 class EsActuatorActionEnum(StrStructuredEnum):

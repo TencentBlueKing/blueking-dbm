@@ -58,6 +58,7 @@ from backend.flow.views.hdfs_replace import ReplaceHdfsSceneApiView
 from backend.flow.views.hdfs_scale_up import ScaleUpHdfsSceneApiView
 from backend.flow.views.hdfs_shrink import ShrinkHdfsSceneApiView
 from backend.flow.views.import_resource_init import ImportResourceInitStepApiView
+from backend.flow.views.machine_idle_check import MachineIdleCheckFlowApiView
 from backend.flow.views.import_sqlfile import ImportSQLFileSceneApiView
 from backend.flow.views.influxdb_apply import InstallInfluxdbSceneApiView
 from backend.flow.views.influxdb_destroy import DestroyInfluxdbSceneApiView
@@ -524,6 +525,7 @@ urlpatterns = [
     url(r"^scene/fake_install_pulsar$", FakeInstallPulsarSceneApiView.as_view()),
     url(r"^scene/pulsar_machine_clear$", PulsarMachineClearApiView.as_view()),
     url(r"^scene/import_resource_init$", ImportResourceInitStepApiView.as_view()),
+    url(r"^scene/machine_idle_check$", MachineIdleCheckFlowApiView.as_view()),
     url("^scene/mysql_data_migrate$", MysqlDataMigrateSceneApiView.as_view()),
     url("^scene/mysql_machine_clear$", MysqlMachineClearApiView.as_view()),
     # spider
