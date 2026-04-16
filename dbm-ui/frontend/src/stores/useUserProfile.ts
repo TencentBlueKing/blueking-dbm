@@ -30,6 +30,7 @@ export const useUserProfile = defineStore('UserProfile', {
     platformTicketView: false,
     profile: {} as Record<string, any>,
     resourceManage: false, // 顶部导航资源管理访问权限
+    tenantId: '', // 有值为多租户环境
     username: '',
   }),
   actions: {
@@ -41,6 +42,7 @@ export const useUserProfile = defineStore('UserProfile', {
         this.globalManage = Boolean(result.global_manage);
         this.isSuperuser = result.is_superuser;
         this.isDba = Boolean(result.is_dba);
+        this.tenantId = result.tenant_id;
         this.platformManage = Boolean(result.platform_manage);
         this.platformTicketView = Boolean(result.platform_ticket_view);
         this.platformTaskflowView = Boolean(result.platform_taskflow_view);
