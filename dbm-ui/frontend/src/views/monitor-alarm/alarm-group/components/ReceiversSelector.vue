@@ -13,20 +13,7 @@
 
 <template>
   <div class="receivers-selector-wrapper">
-    <UserSelector
-      v-if="!loading"
-      ref="userSelectorRef"
-      v-model="modelValue"
-      class="receivers-selector"
-      :default-alternate="defaultAlternate"
-      :disabled="disabled"
-      :fuzzy-search-method="fuzzySearchMethod"
-      :paste-validator="pasteValidator"
-      :render-list="renderList"
-      :render-tag="renderTag"
-      :search-from-default-alternate="false"
-      tag-clearable
-      @remove-selected="handleRemoveSelected" />
+    <MemberSelector v-model="modelValue" />
     <div
       v-if="memberList.length > 0"
       class="receivers-list">
@@ -46,25 +33,14 @@
 </template>
 
 <script setup lang="ts">
-  import _ from 'lodash';
-  import { Fragment } from 'vue/jsx-runtime';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import { getUserGroupList } from '@services/source/cmdb';
   import { getAlarmGroupList } from '@services/source/monitorNoticeGroup';
-  import { getUserList } from '@services/source/user';
 
-  import dbIcon from '@components/db-icon';
+  import MemberSelector from '@components/db-member-selector/index.vue';
 
   type UserGroup = ServiceReturnType<typeof getUserGroupList>[number];
-
-  interface Props {
-    bizId: number;
-    disabled: boolean;
-    isBuiltIn: boolean;
-    type: 'add' | 'edit' | 'copy' | '';
-  }
 
   interface Exposes {
     getSelectedReceivers: () => ServiceReturnType<typeof getAlarmGroupList>['results'][number]['receivers'];
@@ -76,28 +52,16 @@
     username: string;
   }
 
-  const props = defineProps<Props>();
   const modelValue = defineModel<string[]>({
     required: true,
   });
 
   const { t } = useI18n();
-  // const route = useRoute();
 
-  // const isPlatform = route.matched[0]?.name === 'Platform';
-  const modelValueOrigin = _.cloneDeep(modelValue.value);
   const itemMap: Record<string, RecipientItem> = {};
   const userGroupMap: Record<string, Pick<UserGroup, 'display_name' | 'members'>> = {};
 
-  const userSelectorRef = ref();
-  const roleList = ref<RecipientItem[]>([]);
-
   const memberList = computed(() => {
-    // 待列表数据查询结束后展示
-    if (loading.value) {
-      return [];
-    }
-
     const userGroupList: {
       label: string;
       value: string;
@@ -129,112 +93,6 @@
     return userGroupList;
   });
 
-  // 获取用户组数据
-  const { loading } = useRequest(getUserGroupList, {
-    defaultParams: [{ bk_biz_id: props.bizId }],
-    onSuccess(userGroupList) {
-      const newUserGroupList: RecipientItem[] = [];
-
-      userGroupList.forEach((userGroupItem) => {
-        const newUserGroupItem = {
-          display_name: userGroupItem.display_name,
-          type: 'group',
-          username: userGroupItem.id,
-        };
-        itemMap[userGroupItem.id] = newUserGroupItem;
-        userGroupMap[userGroupItem.id] = userGroupItem;
-        newUserGroupList.push(newUserGroupItem);
-      });
-
-      roleList.value = newUserGroupList;
-    },
-  });
-
-  const isClosable = (id: string) => {
-    if (props.type !== 'edit') {
-      return true;
-    }
-    return !(props.isBuiltIn && modelValueOrigin.includes(id));
-  };
-
-  const defaultAlternate = () => [
-    {
-      children: _.cloneDeep(roleList.value),
-      display_name: t('用户组'),
-      username: 'role',
-    },
-  ];
-
-  const fuzzySearchMethod = (keyword: string) =>
-    getUserList({
-      fuzzy_lookups: keyword,
-    }).then((searchList) => ({
-      next: false,
-      results: [
-        {
-          children: searchList.results.map((userItem) => ({
-            display_name: userItem.username,
-            type: 'group',
-            username: userItem.username,
-          })),
-          display_name: t('个人用户'),
-          username: 'role',
-        },
-      ],
-    }));
-
-  const renderTag = (renderMethod: typeof h, node: Record<string, string>) => {
-    const type = itemMap[node.username]?.type || 'user';
-
-    return renderMethod(
-      'div',
-      {
-        class: isClosable(node.username) ? '' : 'built-in',
-      },
-      [
-        renderMethod(dbIcon, {
-          class: 'receivers-selector-selected-tag-icon mr-4',
-          type: type === 'group' ? 'yonghuzu' : 'dba-config',
-        }),
-        renderMethod(
-          'span',
-          {
-            class: 'mr-4',
-          },
-          itemMap[node.username]?.display_name || node.username,
-        ),
-      ],
-    );
-  };
-
-  const renderList = (
-    renderMethod: typeof h,
-    node: {
-      user: RecipientItem;
-    },
-  ) => {
-    const { display_name: displayName, type } = node.user;
-
-    return renderMethod(Fragment, [
-      renderMethod(dbIcon, {
-        class: 'receivers-selector-selected-tag-icon mr-4',
-        type: type === 'group' ? 'yonghuzu' : 'dba-config',
-      }),
-      renderMethod('span', displayName),
-    ]);
-  };
-
-  const handleRemoveSelected = () => {
-    userSelectorRef.value.search();
-  };
-
-  const pasteValidator = (values: string[]) =>
-    getUserList({
-      exact_lookups: values.join(','),
-      limit: -1,
-      offset: 0,
-    }).then((userResult) => userResult.results.map((userItem) => userItem.username));
-
   defineExpose<Exposes>({
     getSelectedReceivers() {
       return modelValue.value.map((modelValueItem) => ({
@@ -247,16 +105,6 @@
 
 <style lang="less" scoped>
   .receivers-selector-wrapper {
-    .receivers-selector {
-      width: 100%;
-    }
-
-    :deep(.user-selector-selected) {
-      .built-in + .user-selector-selected-clear {
-        display: none;
-      }
-    }
-
     .receivers-list {
       padding: 12px 16px;
       background: #f5f7fa;
@@ -280,11 +128,5 @@
         color: #63656e;
       }
     }
-  }
-</style>
-
-<style>
-  .receivers-selector-selected-tag-icon {
-    font-size: 17.5px;
   }
 </style>
