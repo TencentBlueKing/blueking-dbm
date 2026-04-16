@@ -76,6 +76,7 @@
       FlowMode.TYPE_INNER_FLOW,
       FlowMode.TYPE_INNER_FLOW,
       FlowMode.TYPE_RESOURCE_APPLY,
+      FlowMode.TYPE_RESOURCE_BATCH_APPLY,
       FlowMode.TYPE_RESOURCE_HCM_REPLENISH,
     ].includes(props.data.flow_type);
   });
