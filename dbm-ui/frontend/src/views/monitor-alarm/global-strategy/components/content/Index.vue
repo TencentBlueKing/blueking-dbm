@@ -39,6 +39,12 @@
             row-key="id"
             @bk-ui-settings-change="updateTableSettings">
             <TableColumn
+              col-key="id"
+              fixed="left"
+              title="ID"
+              :width="130">
+            </TableColumn>
+            <TableColumn
               col-key="name"
               fixed="left"
               :min-width="300"
@@ -73,11 +79,7 @@
                 </TextOverflowLayout>
               </template>
             </TableColumn>
-            <TableColumn
-              col-key="id"
-              title="ID"
-              :width="130">
-            </TableColumn>
+
             <TableColumn
               col-key="is_enabled"
               :title="t('启停')"
