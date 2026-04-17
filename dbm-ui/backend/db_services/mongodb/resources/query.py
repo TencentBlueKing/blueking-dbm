@@ -16,7 +16,13 @@ from django.db.models.functions import Concat
 from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole, MachineType
-from backend.db_meta.models import AppCache, ClusterEntry, NosqlStorageSetDtl, StorageInstanceTuple
+from backend.db_meta.models import (
+    AppCache,
+    ClusterEntry,
+    MongoDBStorageInstanceExt,
+    NosqlStorageSetDtl,
+    StorageInstanceTuple,
+)
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
 from backend.db_services.dbbase.resources import query
@@ -25,7 +31,7 @@ from backend.db_services.dbbase.resources.query import (
     CommonQueryResourceMixin,
     ResourceList,
 )
-from backend.db_services.dbbase.resources.query_base import build_q_for_domain_by_mongo_instance
+from backend.db_services.dbbase.resources.query_base import build_empty_and_in_q, build_q_for_domain_by_mongo_instance
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.dbresource.handlers import MongoDBShardSpecFilter
 from backend.ticket.constants import TicketType
@@ -95,6 +101,27 @@ class MongoDBExportQueryResourceMixin(CommonExportQueryResourceMixin):
         del cluster_info["slave_domain"], cluster_info["db_module_name"]
 
         return cluster_info
+
+    @classmethod
+    def update_instance_ext_info(cls, resource_list):
+        """
+        补充副本集状态数据
+        """
+        instance_ids = [item["id"] for item in resource_list.data]
+
+        if not instance_ids:
+            return resource_list
+
+        ext_instances = MongoDBStorageInstanceExt.objects.filter(instance_id__in=instance_ids).values(
+            "instance_id", "state"
+        )
+
+        ext_dict = {ext["instance_id"]: ext["state"] for ext in ext_instances}
+
+        for item in resource_list.data:
+            item["mongodb_state"] = ext_dict.get(item["id"], None)
+
+        return resource_list
 
 
 @register_resource_decorator()
@@ -313,7 +340,8 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource, MongoDBExportQuery
             "cluster_type": Q(cluster_type=query_params.get("cluster_type")),
             "exact_ip": Q(machine__ip=query_params.get("exact_ip")),
         }
-        return super()._list_instances(bk_biz_id, query_params, limit, offset, filter_params_map, **kwargs)
+        resource_list = super()._list_instances(bk_biz_id, query_params, limit, offset, filter_params_map, **kwargs)
+        return super().update_instance_ext_info(resource_list)
 
     @classmethod
     def _filter_instance_qs(cls, query_filters: Q, query_params: Dict[str, str]) -> QuerySet:
@@ -376,7 +404,14 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource, MongoDBExportQuery
             .filter(query_filters & Q(bind_entry__cluster_entry_type=ClusterEntryType.DNS.value))  # 过滤实例域名
             .values(*fields)
         )
-        return storage_instance.union(proxy_instance).order_by(query_params.get("ordering", "-create_at"))
+        mongodb_state = query_params.get("mongodb_state", "")
+        ordering = query_params.get("ordering", "-create_at")
+        if mongodb_state:
+            # 根据副本集状态字段过滤
+            mongo_state_filters = (build_empty_and_in_q("mongodbstorageinstanceext__state", mongodb_state),)
+            return storage_instance.filter(*mongo_state_filters).distinct().order_by(ordering)
+
+        return storage_instance.union(proxy_instance).order_by(ordering)
 
     @classmethod
     def _filter_instance_hook(cls, bk_biz_id, query_params, instances, **kwargs):
