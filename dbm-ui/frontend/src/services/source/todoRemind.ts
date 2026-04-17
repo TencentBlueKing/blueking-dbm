@@ -22,6 +22,7 @@ interface TodoRemindParams {
     value: string;
   }[];
   remind_time: {
+    day_of_week?: string;
     hour: string;
     minute: string;
   };
