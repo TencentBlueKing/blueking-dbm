@@ -10,8 +10,9 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Dict
 
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, StorageInstanceTuple
+from backend.db_meta.models.storage_set_dtl import TenDBClusterStorageSet
 
 
 def mysql_cluster_topo(cluster_obj: Cluster) -> Dict:
@@ -113,12 +114,45 @@ def __tendbha_topo(cluster_obj: Cluster) -> Dict:
     }
 
 
+def _get_shard_id(tp: StorageInstanceTuple) -> int:
+    """
+    获取 StorageInstanceTuple 对应的 shard_id
+    迁移期间会存在三类 tuple:
+      1. remote_master -> remote_slave (绑定了 TenDBClusterStorageSet, 可直接获取 shard_id)
+      2. remote_master -> remote_repeater (未绑定, 通过 ejector 即 remote_master 找到第 1 类 tuple 获取 shard_id)
+      3. remote_repeater -> new remote_slave (未绑定, 沿 replication chain 向上找到 remote_master 再获取 shard_id)
+    """
+    try:
+        return tp.tendbclusterstorageset.shard_id
+    except TenDBClusterStorageSet.DoesNotExist:
+        pass
+
+    if (
+        tp.ejector.instance_role == InstanceRole.REMOTE_MASTER
+        and tp.receiver.instance_role == InstanceRole.REMOTE_REPEATER
+    ):
+        bound = TenDBClusterStorageSet.objects.filter(storage_instance_tuple__ejector=tp.ejector).first()
+        if bound:
+            return bound.shard_id
+
+    elif tp.ejector.instance_role == InstanceRole.REMOTE_REPEATER:
+        upstream = StorageInstanceTuple.objects.filter(
+            receiver=tp.ejector, ejector__instance_role=InstanceRole.REMOTE_MASTER
+        ).first()
+        if upstream:
+            bound = TenDBClusterStorageSet.objects.filter(storage_instance_tuple__ejector=upstream.ejector).first()
+            if bound:
+                return bound.shard_id
+
+    return -1
+
+
 def __tendbcluster_topo(cluster_obj: Cluster) -> Dict:
     storage_instance_replicate_sets = []
     for tp in StorageInstanceTuple.objects.filter(ejector__cluster=cluster_obj):
         storage_instance_replicate_sets.append(
             {
-                "shard_id": tp.tendbclusterstorageset.shard_id,
+                "shard_id": _get_shard_id(tp),
                 "master_instance": {
                     "address": tp.ejector.ip_port,
                     "status": tp.ejector.status,
@@ -169,7 +203,6 @@ def __tendbcluster_topo(cluster_obj: Cluster) -> Dict:
                 "bk_idc_area": p.machine.bk_idc_area,
                 "bk_sub_zone_id": p.machine.bk_sub_zone_id,
                 "bk_sub_zone": p.machine.bk_sub_zone,
-                "role": p.tendbclusterspiderext.spider_role,
             }
             for p in cluster_obj.proxyinstance_set.all()
         ],
