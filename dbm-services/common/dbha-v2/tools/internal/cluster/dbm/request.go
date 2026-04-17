@@ -39,7 +39,7 @@ type UpdateInstanceStatusRequest struct {
 }
 
 var DefaultMetadataRequest = MetadataRequest{
-	MachineOnly: true,
+	MachineOnly: false,
 }
 
 // MetadataRequest represents the request structure for getting metadata of instances

@@ -154,7 +154,7 @@ func getMetadataFromDBM(ctx context.Context, bkCloudID int, ip string) ([]*dbm.D
 		BkCloudId:    bkCloudID,
 		Addresses:    []string{ip},
 		DbCloudToken: api.Token,
-		MachineOnly:  true,
+		MachineOnly:  false,
 	}
 	data, err := json.Marshal(&req)
 	if err != nil {

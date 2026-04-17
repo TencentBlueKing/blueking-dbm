@@ -38,9 +38,11 @@ var (
 	ErrInvalidMySqlStatus = gerrors.Newf(gerrors.InvalidParameter, "invalid MySQL status")
 )
 
+// MySqlStatus parses MySQL probe status payloads.
 type MySqlStatus struct {
 }
 
+// Process parses one MySQL raw status payload into a DB event.
 func (m *MySqlStatus) Process(task json.RawMessage) (*haprobe.DbEvent, error) {
 	var mySqlStatus haprobe.MySqlStatus
 	if err := json.Unmarshal(task, &mySqlStatus); err != nil {
@@ -48,7 +50,8 @@ func (m *MySqlStatus) Process(task json.RawMessage) (*haprobe.DbEvent, error) {
 		return nil, ErrInvalidMySqlStatus
 	}
 
-	logger.Debug("process MySQL status: %v, raw: %s", *mySqlStatus.GlobalStatus, string(task))
+	// Note: MySqlStatus fields are pointers and may be nil; guard before dereferencing.
+	logger.Debug("process MySQL status: %v, raw: %s", mySqlStatus.GlobalStatus, string(task))
 	return nil, nil
 }
 

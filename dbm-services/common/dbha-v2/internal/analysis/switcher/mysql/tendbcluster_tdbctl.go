@@ -378,9 +378,10 @@ func (op *TdbctlOperator) QueryTdbctlNodesOfCluster() error {
 				curSpider.IP, curSpider.AdminPort, connErr.Error())
 			continue
 		}
-		defer tdbctlDB.Close()
 
 		tdbctlList, queryErr := op.SelectTdbctlNodes(tdbctlDB)
+		tdbctlDB.Close()
+
 		if queryErr != nil {
 			op.Logf(switchlogger.SwitchWarn,
 				"failed to get tdbctl nodes info from tdbctl(%s:%d), errmsg: %s",
