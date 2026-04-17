@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Union
 
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Max
 from django.forms import model_to_dict
 from django.http.response import HttpResponse
 from django.utils.translation import gettext as _
@@ -395,6 +396,7 @@ class PartitionHandler(object):
                 "cluster_id": cluster_id,
                 "configs": configs,
                 "force": info.get("force", False),
+                "interval_check": True,
             }
             ticket = Ticket.create_ticket(
                 ticket_type=partition_ticket_type,
@@ -1006,9 +1008,68 @@ class PartitionHandler(object):
         查询分区v2配置
         @param query_params: 查询参数
         """
+        default_time = datetime(1970, 1, 1, tzinfo=timezone.utc)
+        status = query_params.get("status")
+        bk_biz_id = query_params.get("bk_biz_id")
+        cluster_type = query_params.get("cluster_type")
+
+        # status 条件存在时，先从状态表按业务+集群类型+状态过滤出 config_id，再交给配置服务按 ids 查询
+        if status:
+            latest_log_ids = (
+                MysqlPartitionResult.objects.filter(bk_biz_id=bk_biz_id, cluster_type=cluster_type)
+                .values("config_id")
+                .annotate(latest_id=Max("id"))
+                .values("latest_id")
+            )
+            latest_logs = MysqlPartitionResult.objects.filter(id__in=latest_log_ids, status__iexact=status).only(
+                "config_id", "status", "create_time"
+            )
+            log_map = {log.config_id: log for log in latest_logs}
+            status_config_ids = list(log_map.keys())
+
+            if not status_config_ids:
+                return {"count": 0, "results": []}
+
+            partition_query_params = dict(query_params)
+            partition_query_params.pop("status", None)
+            partition_query_params["ids"] = status_config_ids
+            partition_data = DBPartitionApi.query_conf_v2(params=partition_query_params)
+
+            partition_list = []
+            for info in partition_data["items"]:
+                log_detail = log_map.get(info["id"])
+                info["status"] = (log_detail.status if log_detail else "NO_EXECUTION_RECORD").upper()
+                info["execute_time"] = log_detail.create_time if log_detail else default_time
+                partition_list.append(info)
+
+            return {"count": len(status_config_ids), "results": partition_list}
+
         partition_data = DBPartitionApi.query_conf_v2(params=query_params)
-        partition_list = cls.update_log_status_v2(partition_data["items"], status=query_params.get("status"))
-        return {"count": len(partition_list), "results": partition_list}
+        if not partition_data["items"]:
+            return {"count": partition_data["count"], "results": []}
+
+        page_config_ids = [info["id"] for info in partition_data["items"]]
+        latest_log_ids = (
+            MysqlPartitionResult.objects.filter(
+                bk_biz_id=bk_biz_id,
+                cluster_type=cluster_type,
+                config_id__in=page_config_ids,
+            )
+            .values("config_id")
+            .annotate(latest_id=Max("id"))
+            .values("latest_id")
+        )
+        latest_logs = MysqlPartitionResult.objects.filter(id__in=latest_log_ids).only(
+            "config_id", "status", "create_time"
+        )
+        log_map = {log.config_id: log for log in latest_logs}
+
+        for info in partition_data["items"]:
+            log_detail = log_map.get(info["id"])
+            info["status"] = (log_detail.status if log_detail else "NO_EXECUTION_RECORD").upper()
+            info["execute_time"] = log_detail.create_time if log_detail else default_time
+
+        return {"count": partition_data["count"], "results": partition_data["items"]}
 
     @classmethod
     def upload_import_file(cls, bk_biz_id: int, upload_file) -> Dict[str, Any]:
