@@ -65,8 +65,16 @@ storage:
   user: "{{COMMON_STORAGE_USER}}"
   password: "{{COMMON_STORAGE_PASSWORD}}"
 
+probeGse:
+  endpoint: "{{ADMIN_PROBE_GSE_ENDPOINT}}"
+  dataID: {{ADMIN_PROBE_GSE_DATA_ID}}
+  # empty, invalid duration, or value strictly below 5s is normalized to 5s when admin loads config
+  connTimeout: {{ADMIN_PROBE_GSE_CONN_TIMEOUT}}
+
 log:
   path: "{{ADMIN_LOG_PATH}}"
   level: {{COMMON_LOG_LEVEL}}
   fileCount: {{COMMON_LOG_FILE_COUNT}}
   fileSize: {{COMMON_LOG_FILE_SIZE}}
+
+

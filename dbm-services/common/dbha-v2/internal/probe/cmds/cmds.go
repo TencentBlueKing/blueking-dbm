@@ -189,17 +189,17 @@ func GenConfigCmdRunE(cmd *cobra.Command, args []string) error {
 		UpdatedTime: 0,
 	}
 
-	payload, err := getProbeConfigPayload(ctx, endpoints, req)
+	raw, err := getProbeConfigPayload(ctx, endpoints, req)
 	if err != nil {
 		return err
 	}
 
-	var metadata []probeconfig.ProbeMetadataItem
-	if err := json.Unmarshal([]byte(payload), &metadata); err != nil {
-		return fmt.Errorf("parse metadata from admin: %w", err)
+	var payload probeconfig.ProbeConfigPayload
+	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
+		return fmt.Errorf("parse probe config payload from admin: %w", err)
 	}
 
-	yamlStr, err := config.GenProbeYAML(metadata)
+	yamlStr, err := config.GenProbeYAML(payload.Gse, payload.Metadata)
 	if err != nil {
 		return fmt.Errorf("generate probe config: %w", err)
 	}

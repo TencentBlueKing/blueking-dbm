@@ -33,8 +33,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// GenProbeYAML builds full probe config YAML from metadata items (returned by admin).
-func GenProbeYAML(metadata []probeconfig.ProbeMetadataItem) (string, error) {
+// GenProbeYAML builds full probe config YAML from gse defaults + metadata items (both returned by admin).
+func GenProbeYAML(gse probeconfig.GseConfig, metadata []probeconfig.ProbeMetadataItem) (string, error) {
 	mysqlEndpoints, redisEndpoints := buildEndpointsFromMetadata(metadata)
 
 	cfg := probeYAML{
@@ -43,9 +43,9 @@ func GenProbeYAML(metadata []probeconfig.ProbeMetadataItem) (string, error) {
 		PidFile: "./pids/probe.pid",
 		Reporter: probeReporterYAML{
 			Name:        "gse",
-			Endpoint:    "/usr/local/gse2_bkte/agent/data/ipc.state.report",
-			DataID:      0,
-			ConnTimeout: "5s",
+			Endpoint:    gse.Endpoint,
+			DataID:      gse.DataID,
+			ConnTimeout: gse.ConnTimeout,
 		},
 
 		Harvester: probeHarvesterYAML{},

@@ -26,6 +26,7 @@
 package config
 
 import (
+	"strings"
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/constant"
@@ -114,6 +115,13 @@ type LogConfig struct {
 	FileSize  int    `yaml:"fileSize"  mapstructure:"fileSize"`
 }
 
+// ProbeGseConfig defaults for probe GSE reporter; admin loads from YAML and passes to probe.
+type ProbeGseConfig struct {
+	Endpoint    string `yaml:"endpoint"    mapstructure:"endpoint"`
+	DataID      uint64 `yaml:"dataID"      mapstructure:"dataID"`
+	ConnTimeout string `yaml:"connTimeout" mapstructure:"connTimeout"`
+}
+
 // Configuration admin's configuration
 type Configuration struct {
 	Name       string          `yaml:"name"       mapstructure:"name"`
@@ -127,6 +135,26 @@ type Configuration struct {
 	DbmApis    []DbmApi        `yaml:"dbmApi"     mapstructure:"dbmApi"`
 	Storage    StorageConfig   `yaml:"storage"    mapstructure:"storage"`
 	Log        LogConfig       `yaml:"log"        mapstructure:"log"`
+	ProbeGse   ProbeGseConfig  `yaml:"probeGse"   mapstructure:"probeGse"`
+}
+
+const minProbeGseConnTimeout = 5 * time.Second
+
+// clampProbeGseConnTimeout returns at least 5s: empty, unparseable, or strictly less than 5s become "5s".
+func clampProbeGseConnTimeout(raw string) string {
+	s := strings.TrimSpace(raw)
+	if s == "" {
+		return "5s"
+	}
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		logger.Warn("probeGse connTimeout invalid, using minimum, errmsg: %s", err)
+		return "5s"
+	}
+	if d < minProbeGseConnTimeout {
+		return "5s"
+	}
+	return s
 }
 
 // Load loads admin configuration from file
@@ -143,5 +171,9 @@ func Load(configFilePath string) error {
 		return err
 	}
 
-	return viper.Unmarshal(&Cfg)
+	if err := viper.Unmarshal(&Cfg); err != nil {
+		return err
+	}
+	Cfg.ProbeGse.ConnTimeout = clampProbeGseConnTimeout(Cfg.ProbeGse.ConnTimeout)
+	return nil
 }

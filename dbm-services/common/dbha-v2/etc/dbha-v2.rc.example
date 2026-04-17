@@ -120,6 +120,11 @@ ADMIN_WEB_WRITE_TIMEOUT=5s
 # ## admin · logging
 ADMIN_LOG_PATH=./logs/admin.log
 
+# ## admin · probe gse reporter defaults (returned to probe via GetProbeConfig)
+ADMIN_PROBE_GSE_ENDPOINT=""
+ADMIN_PROBE_GSE_DATA_ID=0
+ADMIN_PROBE_GSE_CONN_TIMEOUT=5s
+
 # --- analysis ---
 
 # ## analysis · process and identity
