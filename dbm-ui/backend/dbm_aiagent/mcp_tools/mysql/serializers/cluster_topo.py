@@ -26,6 +26,7 @@ class MySQLBaseInstanceSerializer(serializers.Serializer):
     bk_idc_area = serializers.CharField(help_text=_("机房区域名称"))
     bk_sub_zone_id = serializers.IntegerField(help_text=_("子ZoneID"))
     bk_sub_zone = serializers.CharField(help_text=_("子Zone名称"))
+    role = serializers.CharField(help_text=_("接入层角色, 仅 TenDBCluster 有效"), required=False, default=None)
 
 
 #

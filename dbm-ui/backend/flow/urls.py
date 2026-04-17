@@ -58,7 +58,6 @@ from backend.flow.views.hdfs_replace import ReplaceHdfsSceneApiView
 from backend.flow.views.hdfs_scale_up import ScaleUpHdfsSceneApiView
 from backend.flow.views.hdfs_shrink import ShrinkHdfsSceneApiView
 from backend.flow.views.import_resource_init import ImportResourceInitStepApiView
-from backend.flow.views.machine_idle_check import MachineIdleCheckFlowApiView
 from backend.flow.views.import_sqlfile import ImportSQLFileSceneApiView
 from backend.flow.views.influxdb_apply import InstallInfluxdbSceneApiView
 from backend.flow.views.influxdb_destroy import DestroyInfluxdbSceneApiView
@@ -76,6 +75,7 @@ from backend.flow.views.kafka_reboot import RebootKafkaSceneApiView
 from backend.flow.views.kafka_replace import ReplaceKafkaSceneApiView
 from backend.flow.views.kafka_scale_up import ScaleUpKafkaSceneApiView
 from backend.flow.views.kafka_shrink import ShrinkKafkaSceneApiView
+from backend.flow.views.machine_idle_check import MachineIdleCheckFlowApiView
 from backend.flow.views.migrate_views.doris_fake_apply import FakeInstallDorisSceneApiView
 from backend.flow.views.migrate_views.es_fake_apply import FakeInstallEsSceneApiView
 from backend.flow.views.migrate_views.hdfs_fake_apply import FakeInstallHdfsSceneApiView
