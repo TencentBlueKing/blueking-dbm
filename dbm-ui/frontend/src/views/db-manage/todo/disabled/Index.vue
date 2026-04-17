@@ -85,6 +85,16 @@
             :selected="selectedList"
             @filter-change="handleFilterChange"
             @selection="handleSelection">
+            <!-- <TableColumn
+              col-key="cluster_id"
+              :filter="columnFilter?.cluster_id"
+              fixed="left"
+              title="ID"
+              :width="150">
+              <template #default="{ row }: { row: TicketClusterDisableTodoModel }">
+                {{ row.id }}
+              </template>
+            </TableColumn> -->
             <TableColumn
               col-key="immute_domain"
               :filter="columnFilter?.immute_domain"
@@ -92,25 +102,10 @@
               :min-width="340"
               :title="t('集群')">
               <template #default="{ row }: { row: TicketClusterDisableTodoModel }">
-                <TextOverflowLayout>
-                  <BkButton
-                    text
-                    theme="primary"
-                    @click="() => handleToClusterDetail(row)">
-                    {{ row.immute_domain }}
-                  </BkButton>
-                </TextOverflowLayout>
+                {{ row.immute_domain }}
               </template>
             </TableColumn>
-            <TableColumn
-              col-key="cluster_id"
-              :filter="columnFilter?.cluster_id"
-              title="ID"
-              :width="200">
-              <template #default="{ row }: { row: TicketClusterDisableTodoModel }">
-                {{ row.id }}
-              </template>
-            </TableColumn>
+
             <TableColumn
               v-if="showClusterTypeColumn"
               col-key="cluster_type"
@@ -163,7 +158,7 @@
               col-key="opration"
               fixed="right"
               :title="t('操作')"
-              :width="100">
+              :width="150">
               <template #default="{ row }: { row: TicketClusterDisableTodoModel }">
                 <BkButton
                   text
@@ -177,6 +172,13 @@
                   theme="primary"
                   @click="() => handleEnable(row)">
                   {{ t('启用') }}
+                </BkButton>
+                <BkButton
+                  class="ml-8"
+                  text
+                  theme="primary"
+                  @click="() => handleToClusterDetail(row)">
+                  {{ t('查看集群') }}
                 </BkButton>
               </template>
             </TableColumn>
@@ -212,7 +214,6 @@
 
   import DbTab from '@components/db-tab/Index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
-  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { URL_CLUSTER_DETAIL_MEMO_KEY } from '@views/db-manage/common/cluster-details';
   import { clusterTypeListPageMap } from '@views/db-manage/const/clusterTypeListPageMap';
