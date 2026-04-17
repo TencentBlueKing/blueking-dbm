@@ -48,44 +48,58 @@ var (
 	ErrNoData = gerrors.New(gerrors.NotExist, "no data")
 )
 
-// GenProbeConfig returns probe metadata as JSON by cloudid + ip: first from DBHA DB, then from DBM API if not found.
-// The probe uses this metadata to generate the final probe config YAML locally.
+// GenProbeConfig returns ProbeConfigPayload (gse defaults + metadata) as JSON by cloudid + ip:
+// metadata is taken from DBHA DB first, then DBM API fallback; gse defaults come from admin config.
+// The probe uses this payload to generate the final probe config YAML locally.
 func GenProbeConfig(ctx context.Context, db *hamysql.GormDB, bkCloudID int, ip string) (string, error) {
 	if db == nil {
 		return "", ErrDbNil
 	}
 
-	// 1. Query DBHA own database for metadata (bk_cloud_id + ip)
-	list, err := getMetadataFromDBHA(db, bkCloudID, ip)
+	items, err := loadProbeMetadata(ctx, db, bkCloudID, ip)
 	if err != nil {
 		return "", err
 	}
-
-	if len(list) > 0 {
-		items := convertFromDBHA(list)
-		data, err := json.Marshal(items)
-		if err != nil {
-			return "", gerrors.NewE(gerrors.InvalidJson, err)
-		}
-		return string(data), nil
-	}
-
-	// 2. Not found in DBHA: fetch from DBM API
-	dmList, err := getMetadataFromDBM(ctx, bkCloudID, ip)
-	if err != nil {
-		return "", err
-	}
-	if len(dmList) == 0 {
+	if len(items) == 0 {
 		logger.Warnf("no metadata for bk_cloud_id: %d, ip: %s", bkCloudID, ip)
 		return "", ErrNoData
 	}
 
-	items := convertFromDBM(dmList)
-	data, err := json.Marshal(items)
+	payload := probeconfig.ProbeConfigPayload{
+		Gse: probeconfig.GseConfig{
+			Endpoint:    Cfg.ProbeGse.Endpoint,
+			DataID:      Cfg.ProbeGse.DataID,
+			ConnTimeout: Cfg.ProbeGse.ConnTimeout,
+		},
+		Metadata: items,
+	}
+	data, err := json.Marshal(payload)
 	if err != nil {
-		return "", gerrors.NewE(gerrors.InvalidParameter, err)
+		return "", gerrors.NewE(gerrors.InvalidJson, err)
 	}
 	return string(data), nil
+}
+
+// loadProbeMetadata returns probe metadata items from DBHA DB; falls back to DBM API when empty.
+func loadProbeMetadata(
+	ctx context.Context, db *hamysql.GormDB, bkCloudID int, ip string,
+) ([]probeconfig.ProbeMetadataItem, error) {
+	list, err := getMetadataFromDBHA(db, bkCloudID, ip)
+	if err != nil {
+		return nil, err
+	}
+	if len(list) > 0 {
+		return convertFromDBHA(list), nil
+	}
+
+	dmList, err := getMetadataFromDBM(ctx, bkCloudID, ip)
+	if err != nil {
+		return nil, err
+	}
+	if len(dmList) == 0 {
+		return nil, nil
+	}
+	return convertFromDBM(dmList), nil
 }
 
 // convertFromDBHA converts DBHA metadata to probe metadata items.

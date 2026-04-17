@@ -26,7 +26,6 @@
 package probeconfig
 
 // ProbeMetadataItem is a single instance metadata entry for probe config generation (ip, port, cluster type, etc.).
-// Admin returns a JSON array of these; probe uses them to build the final probe YAML.
 type ProbeMetadataItem struct {
 	IP          string `json:"ip"`
 	Port        int    `json:"port"`
@@ -34,4 +33,18 @@ type ProbeMetadataItem struct {
 	ClusterType string `json:"cluster_type"`
 	MachineType string `json:"machine_type"`
 	AccessLayer string `json:"access_layer"`
+}
+
+// GseConfig carries GSE reporter defaults from admin to probe (loaded from admin YAML).
+type GseConfig struct {
+	Endpoint    string `json:"endpoint"`
+	DataID      uint64 `json:"data_id"`
+	ConnTimeout string `json:"conn_timeout"`
+}
+
+// ProbeConfigPayload is the JSON payload returned by admin GetProbeConfig.
+// Probe parses it to render the final probe YAML (gse reporter + db endpoints).
+type ProbeConfigPayload struct {
+	Gse      GseConfig           `json:"gse"`
+	Metadata []ProbeMetadataItem `json:"metadata"`
 }
