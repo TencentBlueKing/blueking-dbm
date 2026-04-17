@@ -43,13 +43,22 @@
             :label="t('提醒时间')"
             property="remindTime"
             required>
-            <BkTimePicker
-              v-model="formData.remindTime"
-              append-to-body
-              :disabled="!formData.isEnable"
-              format="HH:mm"
-              style="width: 120px" />
-            <span class="time-text ml-8">{{ t('每日') }}</span>
+            <div class="remind-time">
+              <div class="time-text">{{ t('每日') }}</div>
+              <BkTimePicker
+                v-model="formData.remindTime"
+                append-to-body
+                class="time-picker"
+                :disabled="!formData.isEnable"
+                format="HH:mm"
+                style="width: 120px" />
+              <BkCheckbox
+                v-model="formData.dayOfWeek"
+                class="ml-8"
+                :disabled="!formData.isEnable">
+                {{ t('周末（周六/周日）不发送提醒') }}
+              </BkCheckbox>
+            </div>
           </DbFormItem>
           <DbFormItem
             :label="t('通知方式')"
@@ -119,6 +128,7 @@
   const formRef = useTemplateRef('form');
 
   const formData = reactive({
+    dayOfWeek: false,
     isEnable: false,
     notice: [] as DataRow[],
     remindTime: '10:00',
@@ -292,6 +302,7 @@
       }
 
       Object.assign(formData, {
+        dayOfWeek: remindTime.day_of_week ? true : false,
         isEnable: isEnable,
         notice: [
           {
@@ -314,7 +325,7 @@
   const handleSave = async () => {
     await formRef.value!.validate();
 
-    const { isEnable, notice, remindTime } = formData;
+    const { dayOfWeek, isEnable, notice, remindTime } = formData;
     const [hour, minute] = remindTime.split(':');
     const { checkbox, input } = notice[0];
     const checkboxNotice = Object.entries(checkbox)
@@ -334,6 +345,7 @@
       is_enable: isEnable,
       notice: [...checkboxNotice, ...inputNotice],
       remind_time: {
+        day_of_week: dayOfWeek ? '1-5' : undefined,
         hour,
         minute,
       },
@@ -375,9 +387,26 @@
         font-size: 12px;
       }
 
-      .time-text {
-        font-size: 12px;
-        color: #979ba5;
+      .remind-time {
+        display: flex;
+        align-items: center;
+
+        .time-text {
+          height: 32px;
+          padding: 0 8px;
+          align-items: center;
+          font-size: 12px;
+          background-color: #fafbfd;
+          border: 1px solid #c4c6cc;
+          border-right: none;
+          border-radius: 2px 0 0 2px;
+        }
+
+        .time-picker {
+          .bk-date-picker-editor {
+            border-radius: 0 2px 2px 0;
+          }
+        }
       }
 
       .notice-table {
