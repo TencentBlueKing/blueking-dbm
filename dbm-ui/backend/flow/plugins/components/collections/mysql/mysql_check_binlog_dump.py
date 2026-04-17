@@ -46,7 +46,7 @@ class MySQLCheckBinlogDumpService(BaseService):
                 self.log_error(
                     _(
                         "实例存在Binlog Dump进程: {},原地slave重建会对其从库有影响,请谨慎确认".format(
-                            res[0]["cmd_results"][0]["table_data"]["HOST"]
+                            res[0]["cmd_results"][0]["table_data"][0]["HOST"]
                         )
                     )
                 )
