@@ -160,7 +160,8 @@ def execute_kafka_cli(
 
     body = {
         "account_alias": DBA_ROOT_USER,
-        "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+        "bk_scope_type": "biz_set",
+        "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
         "task_name": task_name,
         "script_content": base64_encode(script),
         "script_language": 1,
@@ -323,7 +324,8 @@ echo "===UNAVAILABLE==="
 
     body = {
         "account_alias": DBA_ROOT_USER,
-        "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+        "bk_scope_type": "biz_set",
+        "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
         "task_name": _("Kafka: 集群健康检查"),
         "script_content": base64_encode(script),
         "script_language": 1,
@@ -406,7 +408,8 @@ $KAFKA_BIN --bootstrap-server $BOOTSTRAP_SERVER --topic {topic} \
 
     body = {
         "account_alias": DBA_ROOT_USER,
-        "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+        "bk_scope_type": "biz_set",
+        "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
         "task_name": _("Kafka: 采样 topic 消息"),
         "script_content": base64_encode(script),
         "script_language": 1,

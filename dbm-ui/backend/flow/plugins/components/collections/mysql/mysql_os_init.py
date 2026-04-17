@@ -99,7 +99,8 @@ class MySQLOsInit(BkJobService):
         exec_ips = self.__get_exec_ips(kwargs=kwargs, trans_data=trans_data)
         target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
         body = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": "DBM_MySQL_OS_Init",
             "script_content": base64_encode(script_content),
             "script_language": 1,
@@ -241,7 +242,8 @@ class SysInit(BkJobService):
         exec_ips = self.__get_exec_ips(kwargs=kwargs, trans_data=trans_data)
         target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
         body = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": "DBM-Init-Mysql-Os",
             "script_content": base64_encode(script_content),
             "script_language": 1,
@@ -302,7 +304,8 @@ class GetOsSysParam(BkJobService):
         exec_ips = self.splice_exec_ips_list(ticket_ips=kwargs["exec_ip"])
         target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
         body = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": "DBM-Get-Os-Sys-Param",
             "script_content": base64_encode(script_content),
             "script_language": 1,
@@ -358,7 +361,8 @@ class CleanDataBakDirSvr(BkJobService):
         exec_ips = self.splice_exec_ips_list(ticket_ips=kwargs["exec_ip"])
         target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
         body = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": "Clean-DataBak-Dir",
             "script_content": base64_encode(script_content),
             "script_language": 1,
@@ -495,7 +499,8 @@ class AdaptTLinux4DependenciesSvr(BkJobService):
 
         target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
         body = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": "Adapt-TLinux4-Dependencies",
             "script_content": base64_encode(script_content),
             "script_language": 1,

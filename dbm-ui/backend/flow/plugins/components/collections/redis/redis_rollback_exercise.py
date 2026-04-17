@@ -421,7 +421,8 @@ class RedisExerciseBestEffortCleanupService(RedisLogCapturingService, BkJobServi
 
         target_ips = [{"bk_cloud_id": h["bk_cloud_id"], "ip": h["ip"]} for h in cleanup_hosts]
         body = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": "DBM_drill_cleanup",
             "script_content": base64_encode(_KILL_SCRIPT),
             "script_language": 1,

@@ -105,7 +105,8 @@ class AddHostsEntryService(BkJobService):
         target_ip_info = [{"bk_cloud_id": t["bk_cloud_id"], "ip": t["ip"]} for t in exec_targets]
 
         body = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": "DBM-Update-Hosts-File",
             "script_content": base64_encode(script_content),
             "script_language": 1,
