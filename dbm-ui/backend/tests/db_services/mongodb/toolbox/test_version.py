@@ -21,7 +21,7 @@ class _FakePackageManager:
         return _FakePackageQuerySet(self._packages)
 
 
-def test_list_available_versions_major_success(monkeypatch):
+def test_list_available_versions_from_4_4_success(monkeypatch):
     monkeypatch.setattr(
         "backend.db_services.mongodb.toolbox.handlers.Cluster.objects.filter",
         lambda **kwargs: [SimpleNamespace(id=100, major_version="MongoDB-4.4")],
@@ -39,11 +39,16 @@ def test_list_available_versions_major_success(monkeypatch):
         ),
     )
 
-    versions = ToolboxHandler(bk_biz_id=1).list_available_versions(cluster_ids=[100], upgrade_type="major")
-    assert versions == ["mongodb-5.0.14", "mongodb-6.0.9", "mongodb-7.0.3"]
+    data = ToolboxHandler(bk_biz_id=1).list_available_versions(cluster_ids=[100])
+    assert data == [
+        {"major": "mongodb-4.4", "full_list": ["mongodb-4.4.18"]},
+        {"major": "mongodb-5.0", "full_list": ["mongodb-5.0.3", "mongodb-5.0.14"]},
+        {"major": "mongodb-6.0", "full_list": ["mongodb-6.0.9"]},
+        {"major": "mongodb-7.0", "full_list": ["mongodb-7.0.3"]},
+    ]
 
 
-def test_list_available_versions_minor_success(monkeypatch):
+def test_list_available_versions_same_line_and_higher_lines(monkeypatch):
     monkeypatch.setattr(
         "backend.db_services.mongodb.toolbox.handlers.Cluster.objects.filter",
         lambda **kwargs: [SimpleNamespace(id=100, major_version="MongoDB-5.0.4")],
@@ -61,8 +66,11 @@ def test_list_available_versions_minor_success(monkeypatch):
         ),
     )
 
-    versions = ToolboxHandler(bk_biz_id=1).list_available_versions(cluster_ids=[100], upgrade_type="minor")
-    assert versions == ["mongodb-5.0.9", "mongodb-5.0.14"]
+    data = ToolboxHandler(bk_biz_id=1).list_available_versions(cluster_ids=[100])
+    assert data == [
+        {"major": "mongodb-5.0", "full_list": ["mongodb-5.0.9", "mongodb-5.0.14"]},
+        {"major": "mongodb-7.0", "full_list": ["mongodb-7.0.3"]},
+    ]
 
 
 def test_list_available_versions_when_no_higher_version(monkeypatch):
@@ -74,14 +82,14 @@ def test_list_available_versions_when_no_higher_version(monkeypatch):
         "backend.db_services.mongodb.toolbox.handlers.Package.objects",
         _FakePackageManager(
             [
-                SimpleNamespace(version="mongodb-7.0.2"),
+                SimpleNamespace(version="mongodb-7.0.0"),
                 SimpleNamespace(version="mongodb-6.0.9"),
             ]
         ),
     )
 
-    versions = ToolboxHandler(bk_biz_id=1).list_available_versions(cluster_ids=[100], upgrade_type="major")
-    assert versions == []
+    data = ToolboxHandler(bk_biz_id=1).list_available_versions(cluster_ids=[100])
+    assert data == []
 
 
 def test_list_available_versions_raise_for_unsupported_current_version(monkeypatch):
@@ -91,7 +99,7 @@ def test_list_available_versions_raise_for_unsupported_current_version(monkeypat
     )
 
     with pytest.raises(ValidationError):
-        ToolboxHandler(bk_biz_id=1).list_available_versions(cluster_ids=[100], upgrade_type="major")
+        ToolboxHandler(bk_biz_id=1).list_available_versions(cluster_ids=[100])
 
 
 def test_list_available_version_serializer_require_cluster_ids():
@@ -100,10 +108,10 @@ def test_list_available_version_serializer_require_cluster_ids():
     assert "cluster_ids" in serializer.errors
 
 
-def test_list_available_version_serializer_default_upgrade_type():
+def test_list_available_version_serializer_accepts_cluster_ids_only():
     serializer = ListAvailableVersionSerializer(data={"cluster_ids": [1]})
     assert serializer.is_valid()
-    assert serializer.validated_data["upgrade_type"] == "major"
+    assert serializer.validated_data == {"cluster_ids": [1]}
 
 
 def test_list_available_versions_major_intersection(monkeypatch):
@@ -125,8 +133,12 @@ def test_list_available_versions_major_intersection(monkeypatch):
         ),
     )
 
-    versions = ToolboxHandler(bk_biz_id=1).list_available_versions(cluster_ids=[100, 101], upgrade_type="major")
-    assert versions == ["mongodb-6.0.9", "mongodb-7.0.3"]
+    data = ToolboxHandler(bk_biz_id=1).list_available_versions(cluster_ids=[100, 101])
+    assert data == [
+        {"major": "mongodb-5.0", "full_list": ["mongodb-5.0.14"]},
+        {"major": "mongodb-6.0", "full_list": ["mongodb-6.0.9"]},
+        {"major": "mongodb-7.0", "full_list": ["mongodb-7.0.3"]},
+    ]
 
 
 def test_list_available_versions_raise_for_missing_cluster(monkeypatch):
@@ -136,4 +148,4 @@ def test_list_available_versions_raise_for_missing_cluster(monkeypatch):
     )
 
     with pytest.raises(ValidationError):
-        ToolboxHandler(bk_biz_id=1).list_available_versions(cluster_ids=[100, 101], upgrade_type="major")
+        ToolboxHandler(bk_biz_id=1).list_available_versions(cluster_ids=[100, 101])

@@ -88,8 +88,4 @@ class ToolboxViewSet(BaseClusterViewSet):
     @action(methods=["GET"], detail=False, serializer_class=ListAvailableVersionSerializer, pagination_class=None)
     def list_available_versions(self, request, bk_biz_id, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        return Response(
-            ToolboxHandler(bk_biz_id).list_available_versions(
-                cluster_ids=data["cluster_ids"], upgrade_type=data["upgrade_type"]
-            )
-        )
+        return Response(ToolboxHandler(bk_biz_id).list_available_versions(cluster_ids=data["cluster_ids"]))

@@ -46,7 +46,12 @@ def test_list_available_versions_live_api(live_client):
     assert "code" in body
     assert body["code"] == 0
     assert isinstance(body.get("data"), list)
-    assert all(isinstance(version, str) for version in body["data"])
+    for row in body["data"]:
+        assert isinstance(row, dict)
+        assert "major" in row and "full_list" in row
+        assert isinstance(row["major"], str)
+        assert isinstance(row["full_list"], list)
+        assert all(isinstance(v, str) for v in row["full_list"])
 
 
 def test_list_available_versions_live_api_missing_param(live_client):

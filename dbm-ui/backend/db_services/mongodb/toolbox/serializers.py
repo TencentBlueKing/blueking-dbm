@@ -33,20 +33,5 @@ class GetMongoShardSerializer(serializers.Serializer):
         return attrs
 
 
-class _StrippedChoiceField(serializers.ChoiceField):
-    """避免因查询参数等带入首尾空格导致选项校验失败（如 \"major \"）。"""
-
-    def to_internal_value(self, data):
-        if isinstance(data, str):
-            data = data.strip()
-        return super().to_internal_value(data)
-
-
 class ListAvailableVersionSerializer(serializers.Serializer):
     cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField(), allow_empty=False)
-    upgrade_type = _StrippedChoiceField(
-        help_text=_("升级类型"),
-        choices=[("major", "major"), ("minor", "minor")],
-        required=False,
-        default="major",
-    )
