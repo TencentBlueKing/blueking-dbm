@@ -2655,6 +2655,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
 
         force = self.ticket_data.get("force", False)
         partial_force = self.ticket_data.get("partial_force", False)
+        interval_check = self.ticket_data.get("interval_check", False)
 
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,  # spider集群也用mysql类型
@@ -2666,6 +2667,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "configs": self.ticket_data["configs"],
                     "force": force,
                     "partial_force": partial_force,
+                    "interval_check": interval_check,
                 },
             },
         }
