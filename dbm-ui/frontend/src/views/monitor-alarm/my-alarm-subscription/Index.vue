@@ -99,24 +99,24 @@
             title="ID"
             :width="100">
             <template #default="{ row }: { row: IRowData }">
-              <BkButton
-                text
-                theme="primary"
-                @click="() => handleEditSubscription(row)">
-                {{ row.id }}
-              </BkButton>
+              <!-- <BkButton
+              text
+              theme="primary"
+              @click="() => handleEditSubscription(row)">
+              {{ row.id }}
+            </BkButton> -->
+              {{ row.id }}
             </template>
           </TableColumn>
           <TableColumn
             col-key="master_domain"
-            resizable
             :title="t('域名')"
             :width="420">
             <template #default="{ row }: { row: IRowData }">
               <BkButton
                 text
                 theme="primary"
-                @click="() => handleGoClusterDetailPage(row)">
+                @click="() => handleEditSubscription(row)">
                 {{ row.master_domain }}
               </BkButton>
             </template>
@@ -147,12 +147,13 @@
             :title="t('指标')"
             :width="80">
             <template #default="{ row }: { row: IRowData }">
-              <BkButton
+              <!-- <BkButton
                 text
                 theme="primary"
                 @click="() => handleEditSubscription(row)">
                 {{ metricsMap[row.cluster_type]?.list.length }}
-              </BkButton>
+              </BkButton> -->
+              {{ metricsMap[row.cluster_type]?.list.length || 0 }}
             </template>
           </TableColumn>
           <TableColumn
@@ -186,7 +187,7 @@
             fixed="right"
             resizable
             :title="t('操作')"
-            width="120">
+            width="160">
             <template #default="{ row }: { row: IRowData }">
               <BkButton
                 text
@@ -210,6 +211,13 @@
                   {{ t('删除') }}
                 </BkButton>
               </BkPopConfirm>
+              <BkButton
+                class="ml-12"
+                text
+                theme="primary"
+                @click="() => handleGoClusterDetailPage(row)">
+                {{ t('查看集群') }}
+              </BkButton>
             </template>
           </TableColumn>
           <template #empty>
