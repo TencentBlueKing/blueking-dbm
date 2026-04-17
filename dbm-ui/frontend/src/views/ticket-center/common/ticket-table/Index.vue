@@ -45,10 +45,10 @@
               </template>
               <BkPopover
                 :arrow="false"
+                click-content-auto-hide
                 placement="bottom-start"
-                :popover-delay="[200, 100]"
                 theme="light ticket-table-select-menu"
-                trigger="hover">
+                trigger="click">
                 <DbIcon
                   class="select-menu-flag"
                   type="down-big" />

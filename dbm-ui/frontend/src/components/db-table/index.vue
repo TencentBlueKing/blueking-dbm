@@ -58,10 +58,10 @@
               <BkPopover
                 v-if="showSelectAllPage"
                 :arrow="false"
+                click-content-auto-hide
                 placement="bottom-start"
-                :popover-delay="[200, 100]"
                 theme="light db-table-select-menu"
-                trigger="hover">
+                trigger="click">
                 <template #default>
                   <DbIcon
                     class="select-menu-flag"
@@ -287,9 +287,10 @@
               ),
             }}
             arrow={false}
+            click-content-auto-hide={true}
             placement='bottom-start'
             theme='light db-table-select-menu'
-            trigger='hover'></bk-popover>
+            trigger='click'></bk-popover>
         </div>
       );
     },
