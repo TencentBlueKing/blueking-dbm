@@ -25,7 +25,7 @@
 package dbm
 
 var DefaultRequest = Request{
-	MachineOnly: true,
+	MachineOnly: false,
 }
 
 // Request represents the request structure for getting metadata of instances
