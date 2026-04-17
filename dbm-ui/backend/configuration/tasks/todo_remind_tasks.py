@@ -28,7 +28,7 @@ from backend.configuration.constants import (
 )
 from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.core.notify.constants import MsgType
-from backend.core.notify.handlers import BkChatHandler, CmsiHandler
+from backend.core.notify.handlers import BkChatApi, BkChatHandler, CmsiHandler
 from backend.db_report.enums import ReportStateType
 from backend.db_report.register import db_report_maps
 from backend.db_services.risk_memo.models.risk_memo import RiskMemo
@@ -50,9 +50,11 @@ REMIND_TITLE = _("【DBM 每日待办提醒】")
 
 TODO_DIR = f"{env.BK_SAAS_HOST}/ticket-self-todo"
 
-MASS_CONTEXT_TEMPLATE = _("\n以下 DBA 有待办事项待处理：\n\n{}\n\n共 {} 人，{} 项待办\n\n前往处理 > {}")
+# MASS_CONTEXT_TEMPLATE = _("\n以下 DBA 有待办事项待处理：\n\n{}\n\n共 {} 人，{} 项待办\n")
+MASS_CONTEXT_TEMPLATE = _("\n代办人数：{} 人\n代办总数：{}条\n\n{}\n")
 
-ONE_ON_ONE_CONTEXT_TEMPLATE = _("\n你有以下待办事项待处理：\n\n{}\n\n前往处理 > {}")
+# ONE_ON_ONE_CONTEXT_TEMPLATE = _("\n你有以下待办事项待处理：\n\n{}\n")
+ONE_ON_ONE_CONTEXT_TEMPLATE = _("\n待办总数：{} 条\n\n{}\n\n")
 
 
 class CalcPersonalTodoClass:
@@ -194,7 +196,11 @@ def get_mass_context(user_infos):
 
     if not all_total:
         return ""
-    return MASS_CONTEXT_TEMPLATE.format(user_contexts, len(user_infos), all_total, TODO_DIR)
+
+    receivers = user_infos.keys()
+    at_list = "".join([f"<@{staff}>" for staff in receivers])
+    user_contexts += "\n" + at_list
+    return MASS_CONTEXT_TEMPLATE.format(len(user_infos), all_total, user_contexts)
 
 
 def get_single_context(detail):
@@ -202,7 +208,7 @@ def get_single_context(detail):
     context_list = detail["context_list"]
     context_list = [context for context in context_list if context]
     context = "\n".join(context_list)
-    return ONE_ON_ONE_CONTEXT_TEMPLATE.format(context, TODO_DIR)
+    return ONE_ON_ONE_CONTEXT_TEMPLATE.format(detail.get("count"), context)
 
 
 def get_dba_infos():
@@ -217,6 +223,36 @@ def get_dba_infos():
             dba_infos[primary_user].append({"bk_biz_id": bk_biz_id, "db_type": db_type, "users": users})
 
     return dict(dba_infos)
+
+
+def get_actions():
+    search_action = {
+        "name": _("前往处理"),
+        "color": "green",
+        "callback_url": TODO_DIR,
+        "callback_data": {},
+    }
+    return [search_action]
+
+
+def send_msg(title, context, receivers, msg_type):
+    if msg_type in BkChatHandler.get_msg_type():
+        msg_info = {
+            "title": title,
+            # 处理人
+            "approvers": [],
+            # 微信消息时 receiver生效，不发群消息，群消息时，receive_group，不发送个人消息
+            "receiver": receivers if msg_type == MsgType.RTX else [],
+            "receive_group": receivers if msg_type == MsgType.WECOM_ROBOT else [],
+            "summary": context,
+            # 操作和详情按钮
+            "actions": get_actions(),
+            "click": {"click_url": TODO_DIR, "name": _("前往处理")},
+        }
+        BkChatApi.send_ticket_msg(msg_info, use_admin=True)
+
+    else:
+        CmsiHandler(title, context, receivers).send_msg(MsgType.MAIL.value, context=None)
 
 
 @shared_task
@@ -281,7 +317,8 @@ def send_todo_remind():
             receivers = [
                 conf["value"] for conf in todo_remind_conf["notice"] if conf["type"] == MsgType.WECOM_ROBOT.value
             ][0].split(",")
-            BkChatHandler(REMIND_TITLE, mass_context, receivers).send_custom_msg()
+            send_msg(REMIND_TITLE, mass_context, receivers, MsgType.WECOM_ROBOT)
+            # BkChatHandler(REMIND_TITLE, mass_context, receivers).send_custom_msg()
 
         # 发送完群聊剔除对应的类型
         send_types.remove(MsgType.WECOM_ROBOT)
@@ -296,6 +333,8 @@ def send_todo_remind():
         if not ordinary_context:
             continue
         if MsgType.RTX.value in send_types:
-            BkChatHandler(REMIND_TITLE, ordinary_context, [username]).send_custom_msg()
+            send_msg(REMIND_TITLE, ordinary_context, [username], MsgType.RTX)
+            # BkChatHandler(REMIND_TITLE, ordinary_context, [username]).send_custom_msg()
         if MsgType.MAIL.value in send_types:
-            CmsiHandler(REMIND_TITLE, ordinary_context, [username]).send_msg(MsgType.MAIL.value, context=None)
+            send_msg(REMIND_TITLE, ordinary_context, [username], MsgType.MAIL)
+            # CmsiHandler(REMIND_TITLE, ordinary_context, [username]).send_msg(MsgType.MAIL.value, context=None)
