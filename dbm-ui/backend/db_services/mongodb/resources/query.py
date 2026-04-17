@@ -16,7 +16,13 @@ from django.db.models.functions import Concat
 from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole, MachineType
-from backend.db_meta.models import AppCache, ClusterEntry, NosqlStorageSetDtl, StorageInstanceTuple
+from backend.db_meta.models import (
+    AppCache,
+    ClusterEntry,
+    MongoDBStorageInstanceExt,
+    NosqlStorageSetDtl,
+    StorageInstanceTuple,
+)
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
 from backend.db_services.dbbase.resources import query
@@ -95,6 +101,27 @@ class MongoDBExportQueryResourceMixin(CommonExportQueryResourceMixin):
         del cluster_info["slave_domain"], cluster_info["db_module_name"]
 
         return cluster_info
+
+    @classmethod
+    def update_instance_ext_info(cls, resource_list):
+        """
+        补充副本集状态数据
+        """
+        instance_ids = [item["id"] for item in resource_list.data]
+
+        if not instance_ids:
+            return resource_list
+
+        ext_instances = MongoDBStorageInstanceExt.objects.filter(instance_id__in=instance_ids).values(
+            "instance_id", "state"
+        )
+
+        ext_dict = {ext["instance_id"]: ext["state"] for ext in ext_instances}
+
+        for item in resource_list.data:
+            item["mongodb_state"] = ext_dict.get(item["id"], None)
+
+        return resource_list
 
 
 @register_resource_decorator()
@@ -313,7 +340,8 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource, MongoDBExportQuery
             "cluster_type": Q(cluster_type=query_params.get("cluster_type")),
             "exact_ip": Q(machine__ip=query_params.get("exact_ip")),
         }
-        return super()._list_instances(bk_biz_id, query_params, limit, offset, filter_params_map, **kwargs)
+        resource_list = super()._list_instances(bk_biz_id, query_params, limit, offset, filter_params_map, **kwargs)
+        return super().update_instance_ext_info(resource_list)
 
     @classmethod
     def _filter_instance_qs(cls, query_filters: Q, query_params: Dict[str, str]) -> QuerySet:
