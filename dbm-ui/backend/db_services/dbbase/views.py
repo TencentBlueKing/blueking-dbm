@@ -31,6 +31,7 @@ from backend.db_meta.models import (
     Cluster,
     DBModule,
     Machine,
+    MongoDBStorageInstanceExt,
     ProxyInstance,
     Spec,
     StorageInstance,
@@ -500,6 +501,13 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         storage_queryset = StorageInstance.objects.filter(**query_map)
 
         instance_attrs: Dict[str, Union[List, Set]] = defaultdict(list)
+        # mongodb实例列表副本集状态下拉筛选的数据来源
+        if "mongodb_state" in data["instances_attrs"]:
+            instance_ids = [*proxy_query.values_list("id", flat=True), *storage_queryset.values_list("id", flat=True)]
+            ext_instances = (
+                MongoDBStorageInstanceExt.objects.filter(instance_id__in=instance_ids).distinct().values("state")
+            )
+            instance_attrs["mongodb_state"] = [{"value": ext["state"], "text": ext["state"]} for ext in ext_instances]
 
         if "role" in data["instances_attrs"]:
             cluster_type = data.get("cluster_type")
