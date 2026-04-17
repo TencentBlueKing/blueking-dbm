@@ -25,11 +25,10 @@
 package workflow
 
 import (
-	"sync"
-
 	"dbm-services/common/dbha-v2/internal/analysis/detector"
 	"dbm-services/common/dbha-v2/internal/analysis/workflow/parser"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/safe"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
@@ -148,31 +147,28 @@ func (c *BusinessChecker) RunBusinessChecks(
 		c.CheckEventWithBizId(bizId, dbEvents, skipInsts, metaInsts)
 	}
 
-	var wg sync.WaitGroup
+	onPanic := func(pi safe.PanicInfo) {
+		logger.Error("panic in business check sub-task, bizId: %d, errmsg: %v", bizId, pi.Reason)
+	}
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	w1 := safe.GoWait(func() {
 		c.CheckMissedProbe(bizId, dbStatus, skipInsts, metaInsts)
-	}()
+	}, safe.WithLabel("CheckMissedProbe"), safe.WithOnPanic(onPanic))
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	w2 := safe.GoWait(func() {
 		c.CheckEventWithBizId(bizId, statusData.DbEvents, skipInsts, metaInsts)
-	}()
+	}, safe.WithLabel("CheckEventWithBizId"), safe.WithOnPanic(onPanic))
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	w3 := safe.GoWait(func() {
 		c.CheckDbHosts(statusData.DbHosts, checkDbEventFunc)
-	}()
+	}, safe.WithLabel("CheckDbHosts"), safe.WithOnPanic(onPanic))
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	w4 := safe.GoWait(func() {
 		c.CheckDbStatus(statusData.DbStatusVals, checkDbEventFunc)
-	}()
+	}, safe.WithLabel("CheckDbStatus"), safe.WithOnPanic(onPanic))
 
-	wg.Wait()
+	w1()
+	w2()
+	w3()
+	w4()
 }
