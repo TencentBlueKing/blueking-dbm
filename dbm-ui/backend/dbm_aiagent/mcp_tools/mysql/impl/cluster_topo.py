@@ -169,6 +169,7 @@ def __tendbcluster_topo(cluster_obj: Cluster) -> Dict:
                 "bk_idc_area": p.machine.bk_idc_area,
                 "bk_sub_zone_id": p.machine.bk_sub_zone_id,
                 "bk_sub_zone": p.machine.bk_sub_zone,
+                "role": p.tendbclusterspiderext.spider_role,
             }
             for p in cluster_obj.proxyinstance_set.all()
         ],

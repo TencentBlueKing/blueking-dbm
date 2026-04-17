@@ -53,8 +53,9 @@ class SQLServerRollbackHandler(object):
         if not last_binlogs:
             raise ValueError(
                 _(
-                    f"cluster [{self.cluster.name}] 在时间范围 "
-                    f"[{end_time}~{end_time + timedelta(days=BACKUP_LOG_RANGE_DAYS)}] 内找不到后续的日志备份记录"
+                    "cluster [{}] 在时间范围 [{}~{}] 内找不到后续的日志备份记录".format(
+                        self.cluster.name, end_time, end_time + timedelta(days=BACKUP_LOG_RANGE_DAYS)
+                    )
                 )
             )
 
@@ -95,8 +96,9 @@ class SQLServerRollbackHandler(object):
         if not last_binlogs:
             raise ValueError(
                 _(
-                    f"cluster [{self.cluster.name}] 在时间范围 "
-                    f"[{end_time}~{end_time + timedelta(days=BACKUP_LOG_RANGE_DAYS)}] 内找不到后续的日志备份记录"
+                    "cluster [{}] 在时间范围 [{}~{}] 内找不到后续的日志备份记录".format(
+                        self.cluster.name, end_time, end_time + timedelta(days=BACKUP_LOG_RANGE_DAYS)
+                    )
                 )
             )
 

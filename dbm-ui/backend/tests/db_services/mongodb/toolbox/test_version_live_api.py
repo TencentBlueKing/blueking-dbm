@@ -5,7 +5,6 @@ import pytest
 import requests
 from requests.exceptions import RequestException
 
-
 BASE_URL = os.getenv("DBM_API_BASE_URL", "http://127.0.0.1:8090").rstrip("/")
 BK_BIZ_ID = os.getenv("DBM_TEST_BK_BIZ_ID")
 CLUSTER_ID = os.getenv("DBM_TEST_MONGO_CLUSTER_ID")
