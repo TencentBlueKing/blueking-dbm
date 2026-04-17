@@ -104,6 +104,12 @@
                 type="multiple"
                 :width="40" />
               <TableColumn
+                col-key="id"
+                fixed="left"
+                title="ID"
+                :width="130">
+              </TableColumn>
+              <TableColumn
                 col-key="name"
                 fixed="left"
                 :title="t('策略名称')"
@@ -170,11 +176,7 @@
                   </div>
                 </template>
               </TableColumn>
-              <TableColumn
-                col-key="id"
-                title="ID"
-                :width="130">
-              </TableColumn>
+
               <TableColumn
                 col-key="targets"
                 :min-width="300"
