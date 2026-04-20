@@ -2264,7 +2264,7 @@ class RedisActPayload(object):
             target_version=cluster_map["target_version"],
         )
         # 返回值为元组 (conf_names, target_version_for_rename)
-        conf_names, _ = conf_result if isinstance(conf_result, tuple) else (conf_result, None)
+        conf_names, _target_version = conf_result if isinstance(conf_result, tuple) else (conf_result, None)
         # 如果返回None，表示需要继承所有配置项（版本升级场景）
         if conf_names is None:
             conf_names = list(src_resp["content"].keys())
