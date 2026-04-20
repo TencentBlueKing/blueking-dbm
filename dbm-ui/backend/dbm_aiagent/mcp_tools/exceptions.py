@@ -93,4 +93,15 @@ class DBMMcpUnsafeIdentifierException(DBMMcpBaseException):
 class DBMMcpCalleePlanException(DBMMcpBaseException):
     ERROR_CODE = "013"
     MESSAGE = _("MCP 计划异常")
+
+
+class DBMMcpBackupNotFoundException(DBMMcpBaseException):
+    ERROR_CODE = "014"
+    MESSAGE = _("备份未找到")
+    MESSAGE_TPL = _("{msg}")
+
+
+class DBMMcpForbiddenException(DBMMcpBaseException):
+    ERROR_CODE = "015"
+    MESSAGE = _("操作不被允许")
     MESSAGE_TPL = _("{msg}")

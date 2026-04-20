@@ -125,9 +125,9 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         # 获取备份结果
         result = {}
         if db_type == DBType.MySQL.value:
-            result = handler.get_tendbha_rollback_backup_info(latest_time)
+            result = handler.get_tendbha_rollback_backup_info(latest_time=latest_time)
         elif db_type == DBType.TenDBCluster.value:
-            result = handler.get_spider_rollback_backup_info(latest_time)
+            result = handler.get_spider_rollback_backup_info(latest_time=latest_time)
         return Response(result)
 
     @common_swagger_auto_schema(
