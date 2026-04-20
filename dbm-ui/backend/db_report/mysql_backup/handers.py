@@ -146,7 +146,7 @@ class MySQLBackupHandler:
         backup_info["local_files"] = local_files
         return backup_info
 
-    def get_backup_infos(self, latest_time: datetime = None) -> list:
+    def get_backup_infos(self, latest_time: datetime = None, start_time: datetime = None) -> list:
         """
         获取指定集群的远程备份信息，根据备份时间排序
         @param latest_time: 备份最迟时间
@@ -168,6 +168,10 @@ class MySQLBackupHandler:
             if self.deadlines_days > 0:
                 logger.info(_("指定备份最小时间 {} 天前").format(self.deadlines_days))
                 begin_time = datetime.now().astimezone(timezone.utc) - timedelta(days=self.deadlines_days)
+                conditions &= Q(backup_consistent_time__gte=begin_time)
+            if start_time is not None:
+                begin_time = start_time.astimezone(timezone.utc)
+                logger.info(_("指定备份最早时间 {} ").format(begin_time))
                 conditions &= Q(backup_consistent_time__gte=begin_time)
             if latest_time is not None:
                 latest_time = latest_time.astimezone(timezone.utc)
@@ -222,7 +226,7 @@ class MySQLBackupHandler:
         """
         if self.backup_source == MySQLBackupSource.LOCAL:
             return self.get_local_latest_backup_info(latest_time)
-        backup_infos = self.get_backup_infos(latest_time)
+        backup_infos = self.get_backup_infos(latest_time=latest_time)
         if backup_infos is None:
             return None
         logger.info(_("获取到的backup_id {} ").format(backup_infos[0]["backup_id"]))
@@ -235,7 +239,7 @@ class MySQLBackupHandler:
         @return: 返回集群的各个数据节点的权限备份记录
         """
         # 查询当前集群集群实例下各个节点的最新一份权限备份。
-        backup_infos = self.get_backup_infos(latest_time)
+        backup_infos = self.get_backup_infos(latest_time=latest_time)
         if backup_infos is None:
             return None
         backup_priv_info = {
@@ -324,19 +328,21 @@ class MySQLBackupHandler:
         logger.error(self.errmsg)
         return None
 
-    def get_tendbha_rollback_backup_info(self, latest_time: datetime = None):
+    def get_tendbha_rollback_backup_info(self, latest_time: datetime = None, start_time: datetime = None):
         """
         tendbha 获取指定集群的备份信息，根据备份时间排序
         @param latest_time: 查询备份最迟时间
         @return: 返回集群的各个数据节点的备份记录，且backup_id必须一致
         """
         if self.backup_source == MySQLBackupSource.LOCAL:
-            backup_infos = self.get_local_backup_infos(latest_time=latest_time)
+            backup_infos = self.get_local_backup_infos(latest_time=latest_time, start_time=start_time)
         else:
-            backup_infos = self.get_backup_infos(latest_time)
+            backup_infos = self.get_backup_infos(latest_time=latest_time, start_time=start_time)
         return backup_infos
 
-    def get_spider_rollback_backup_info(self, latest_time: datetime = None, limit_one: bool = False) -> Dict[str, Any]:
+    def get_spider_rollback_backup_info(
+        self, latest_time: datetime = None, limit_one: bool = False, start_time: datetime = None
+    ) -> Dict[str, Any]:
         """
         tendbCluster 查询当前集群集群各个remote节点点的最新一份远程备份,且要求所有的分片backup_id是一致的。
         @param latest_time: 查询备份最迟时间
@@ -344,9 +350,11 @@ class MySQLBackupHandler:
         @return: 返回集群的各个数据节点的备份记录，且backup_id必须一致
         """
         if self.backup_source == MySQLBackupSource.LOCAL:
-            backup_infos = self.get_local_backup_infos(latest_time=latest_time, include_proxy=True)
+            backup_infos = self.get_local_backup_infos(
+                latest_time=latest_time, include_proxy=True, start_time=start_time
+            )
         else:
-            backup_infos = self.get_backup_infos(latest_time)
+            backup_infos = self.get_backup_infos(latest_time=latest_time, start_time=start_time)
         if backup_infos is None:
             return None
         cluster_shards = self.cluster.tendbclusterstorageset_set.all()
@@ -616,7 +624,7 @@ class MySQLBackupHandler:
         return result
 
     def get_local_backup_infos(
-        self, latest_time: datetime = None, limit: str = "", include_proxy: bool = False
+        self, latest_time: datetime = None, limit: str = "", include_proxy: bool = False, start_time: datetime = None
     ) -> list[dict]:
         """
         获取指定集群本地备份信息 本地查询不需要条件 check_instance_exist shard_id filter_ips is_standby
@@ -653,7 +661,12 @@ class MySQLBackupHandler:
                 conditions = (
                     f" {conditions} and backup_consistent_time >= CONVERT_TZ('{begin_time_str}','+00:00',@@time_zone) "
                 )
-
+            if start_time is not None:
+                start_time = start_time.astimezone(timezone.utc)
+                start_time_str = start_time.isoformat()
+                conditions = (
+                    f" {conditions} and backup_consistent_time >= CONVERT_TZ('{start_time_str}','+00:00',@@time_zone) "
+                )
             if latest_time is not None:
                 logger.info(_("指定备份最迟时间 {} ").format(latest_time))
                 latest_time = latest_time.astimezone(timezone.utc)
@@ -739,7 +752,7 @@ class MySQLBackupHandler:
         @param latest_time: 备份最大时间
         @return: 返回一条本地备份记录
         """
-        backup_infos = self.get_local_backup_infos(latest_time, " limit 1 ")
+        backup_infos = self.get_local_backup_infos(latest_time=latest_time, limit=" limit 1 ")
         backup_time = "1999-01-01T11:11:11+08:00"
         if backup_infos is None or len(backup_infos) == 0:
             return None

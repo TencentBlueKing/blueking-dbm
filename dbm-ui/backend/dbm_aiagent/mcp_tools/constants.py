@@ -24,6 +24,7 @@ class DBMMcpTools(StrStructuredEnum):
     MYSQL_CAPACITY = EnumField("mysql-capacity", "mysql-capacity")
     MYSQL_METRICS = EnumField("mysql-metrics", "mysql-metrics")
     MYSQL_SENSITIVE = EnumField("mysql-sensitive", "mysql-sensitive")
+    MYSQL_BACKUP = EnumField("mysql-backup", "mysql-backup")
     SQLSERVER_QUERY = EnumField("sqlserver-query", "sqlserver-query")
     TICKET_OP = EnumField("ticket-op", "ticket-op")
     ALARM_QUERY = EnumField("alarm-query", "alarm-query")
