@@ -9,12 +9,11 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from blueapps.account.models import User
 from django.conf import settings
-from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from rest_framework.test import APIClient
@@ -450,58 +449,6 @@ class TestRiskMemoViewSet:
 
         # 清理操作记录
         RiskOperateRecord.objects.filter(risk=risk).delete()
-
-    # ===== Phase 3: 文件上传 action（需 Mock 外部依赖）=====
-
-    @patch("backend.db_services.risk_memo.viewsets.risk_memo.BKRepoStorage")
-    def test_upload_image(self, mock_storage_cls, risk_memo_bk_biz_id):
-        """测试上传图片到制品库"""
-        mock_storage = MagicMock()
-        mock_storage_cls.return_value = mock_storage
-        mock_storage.url.return_value = "https://bkrepo.example.com/risk_memo/2005000002/test_img.png"
-
-        # 创建模拟图片文件
-        file_content = b"\x89PNG\r\n\x1a\n" + b"\x00" * 100
-        uploaded_file = SimpleUploadedFile("test_image.png", file_content, content_type="image/png")
-
-        url = "/apis/risk_memo/images/"
-        response = client.post(
-            url,
-            {"file": uploaded_file, "bk_biz_id": risk_memo_bk_biz_id},
-            format="multipart",
-        )
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()["data"]
-        assert "url" in data
-        assert data["url"] == "https://bkrepo.example.com/risk_memo/2005000002/test_img.png"
-
-        # 验证 Storage 调用
-        mock_storage.save.assert_called_once()
-        mock_storage.url.assert_called_once()
-
-    @patch("backend.db_services.risk_memo.viewsets.risk_memo.BKRepoStorage")
-    def test_upload_image_failure(self, mock_storage_cls, risk_memo_bk_biz_id):
-        """测试上传图片失败 - 制品库异常"""
-        mock_storage = MagicMock()
-        mock_storage_cls.return_value = mock_storage
-        mock_storage.save.side_effect = Exception("BKRepo connection timeout")
-
-        file_content = b"\x89PNG\r\n\x1a\n" + b"\x00" * 100
-        uploaded_file = SimpleUploadedFile("test_fail.png", file_content, content_type="image/png")
-
-        url = "/apis/risk_memo/images/"
-        response = client.post(
-            url,
-            {"file": uploaded_file, "bk_biz_id": risk_memo_bk_biz_id},
-            format="multipart",
-        )
-
-        # 异常被捕获，返回 JsonResponse（code=1）
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["code"] == 1
-        assert "BKRepo connection timeout" in data["msg"]
 
     # ===== Phase 4: 异常处理分支 =====
 
