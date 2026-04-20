@@ -296,8 +296,13 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
             return True
 
         if callback_data:
-            callback_child_root_id = callback_data.get("child_root_id")
-            callback_child_state = callback_data.get("child_state")
+            # BambooEngine.callback wraps desc under {"description": desc}, so unwrap before reading.
+            # Fall back to the top-level dict in case a caller bypasses BambooEngine and stores the desc directly.
+            payload = callback_data.get("description")
+            if not isinstance(payload, dict):
+                payload = callback_data
+            callback_child_root_id = payload.get("child_root_id")
+            callback_child_state = payload.get("child_state")
 
             if not callback_child_root_id:
                 self.log_warning("Received callback_data without child_root_id, ignoring fast-path")
@@ -308,7 +313,6 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
                     )
                 )
             else:
-                # Callback comes from child terminal signal and can fast-path finish.
                 if self._finish_by_child_state(data, child_root_id, callback_child_state):
                     return True
 
