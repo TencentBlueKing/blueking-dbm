@@ -24,6 +24,13 @@ _DEFAULT_LOOPBACK_IPV4 = "127.0.0.1"
 _FALLBACK_NET_IFACE = "eth1"
 _RC_SNIPPET_FILE_SUFFIX = "_YAML_FILE"
 
+_MODULE_SERVER = "server"
+_MODULE_PROBE = "probe"
+_MODULE_TEMPLATES = {
+    _MODULE_SERVER: ("admin.yaml", "analysis.yaml", "receiver.yaml"),
+    _MODULE_PROBE: ("probe.yaml",),
+}
+
 
 def parse_rc(content: str) -> dict[str, str]:
     """Parse one KEY=value per line; quoted values must fit on a single line."""
@@ -255,6 +262,15 @@ def main() -> None:
             "(e.g. a reachable resolver or gateway)"
         ),
     )
+    parser.add_argument(
+        "--module",
+        required=True,
+        choices=(_MODULE_SERVER, _MODULE_PROBE),
+        help=(
+            "which module to render: 'server' renders admin/analysis/receiver, "
+            "'probe' renders probe only"
+        ),
+    )
     args = parser.parse_args()
 
     if not args.rc.is_file():
@@ -267,30 +283,41 @@ def main() -> None:
 
     values = load_rc(args.rc)
     ip_detect_host = args.ip_detect_udp_connect_host
-    apply_common_apm_listen_address_default(values, ip_detect_host)
-    apply_receiver_source_probe_endpoint_default(values, ip_detect_host)
-    apply_admin_grpc_listen_address_default(values, ip_detect_host)
-    apply_admin_web_listen_defaults(values, ip_detect_host)
     rc_resolved = args.rc.resolve()
+
+    # Module-scoped default injection and shard expansion: only touch the keys
+    # that the selected module's templates actually consume.
+    if args.module == _MODULE_SERVER:
+        apply_common_apm_listen_address_default(values, ip_detect_host)
+        apply_receiver_source_probe_endpoint_default(values, ip_detect_host)
+        apply_admin_grpc_listen_address_default(values, ip_detect_host)
+        apply_admin_web_listen_defaults(values, ip_detect_host)
 
     # Phase 1: expand _YAML_FILE keys into raw YAML text (no placeholder rendering).
     apply_yaml_snippet_files(values, rc_resolved)
 
     # Phase 2: render shard blocks — each block may reference keys populated in
-    #          earlier phases or in the rc itself.  Order matters: receiver blocks
-    #          before probe blocks, because probe templates are independent while
-    #          receiver snippets may share common keys.
-    apply_receiver_source_probe_block(values, rc_resolved)
-    apply_receiver_source_kafka_block(values, rc_resolved)
-    apply_receiver_sink_mysql_block(values, rc_resolved)
-    apply_probe_mysql_shard_block(values, rc_resolved)
-    apply_probe_redis_shard_block(values, rc_resolved)
+    #          earlier phases or in the rc itself.  Only render blocks needed by
+    #          the selected module to avoid forcing the other module's keys.
+    if args.module == _MODULE_SERVER:
+        apply_receiver_source_probe_block(values, rc_resolved)
+        apply_receiver_source_kafka_block(values, rc_resolved)
+        apply_receiver_sink_mysql_block(values, rc_resolved)
+    else:
+        apply_probe_mysql_shard_block(values, rc_resolved)
+        apply_probe_redis_shard_block(values, rc_resolved)
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
-    templates = sorted(args.template_dir.glob("*.yaml"))
-    if not templates:
-        sys.stderr.write("no *.yaml templates in {}\n".format(args.template_dir))
+    selected_names = _MODULE_TEMPLATES[args.module]
+    templates = [args.template_dir / name for name in selected_names]
+    missing_templates = [str(p) for p in templates if not p.is_file()]
+    if missing_templates:
+        sys.stderr.write(
+            "missing template files for module {}: {}\n".format(
+                args.module, ", ".join(missing_templates)
+            )
+        )
         sys.exit(1)
 
     missing_report: list[str] = []
