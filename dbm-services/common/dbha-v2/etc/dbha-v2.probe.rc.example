@@ -1,0 +1,61 @@
+# Copy to dbha-v2.probe.rc and adjust. Used to render the probe-side config
+# (probe.yaml). Run with:
+#   render_configs.py --module probe --rc etc/dbha-v2.probe.rc \
+#       --ip-detect-udp-connect-host HOST
+# All template placeholders must be set here; the renderer does not inject
+# defaults for any probe key.
+# Syntax: KEY=value or KEY="value with spaces"; use \n \" \\ inside double quotes.
+
+# --- shared (used by probe template) ---
+COMMON_VERSION=v2.0.0
+COMMON_LOG_LEVEL=debug
+COMMON_LOG_FILE_COUNT=10
+COMMON_LOG_FILE_SIZE=100
+
+# --- probe (shard YAML follows the same rules as receiver/admin/analysis;
+#     paths are relative to this rc) ---
+
+# ## probe · process and identity
+PROBE_NAME=probe
+PROBE_SERVICE_ID=""
+PROBE_PID_FILE=./pids/probe.pid
+
+# ## probe · reporter
+PROBE_REPORTER_NAME=gse
+PROBE_REPORTER_ENDPOINT=""
+PROBE_REPORTER_DATA_ID=0
+PROBE_REPORTER_CONN_TIMEOUT=5s
+
+# ## probe · harvester · mysql
+PROBE_MYSQL_SHARD_FILE=templates/snippets/probe_mysql_shard.yaml
+PROBE_MYSQL_USER=root
+PROBE_MYSQL_PASSWORD=root
+PROBE_MYSQL_INTERVAL=20s
+# mysql endpoints[0] (matches DbEndpointConfig)
+PROBE_MYSQL_EP_PROTO=tcp
+PROBE_MYSQL_EP_CLUSTER_TYPE=""
+PROBE_MYSQL_EP_MACHINE_TYPE=""
+PROBE_MYSQL_EP_ACCESS_LAYER=""
+PROBE_MYSQL_EP_IP=127.0.0.1
+PROBE_MYSQL_EP_PORTS=[1000-2000,20003]
+PROBE_MYSQL_EP_ADMIN_PORTS=[]
+
+# ## probe · harvester · redis
+# 1/true: render harvester.redis (shard YAML, see PROBE_REDIS_SHARD_FILE);
+# 0/false: omit redis section
+PROBE_REDIS_SHARD_ENABLED=1
+PROBE_REDIS_SHARD_FILE=templates/snippets/probe_redis_shard.yaml
+PROBE_REDIS_PASSWORD=""
+PROBE_REDIS_INTERVAL=20s
+PROBE_REDIS_TIMEOUT=5s
+# redis endpoints[0] (matches DbEndpointConfig)
+PROBE_REDIS_EP_PROTO=tcp
+PROBE_REDIS_EP_CLUSTER_TYPE=""
+PROBE_REDIS_EP_MACHINE_TYPE=""
+PROBE_REDIS_EP_ACCESS_LAYER=""
+PROBE_REDIS_EP_IP=127.0.0.1
+PROBE_REDIS_EP_PORTS=[3306,10000-12000]
+PROBE_REDIS_EP_ADMIN_PORTS=[]
+
+# ## probe · logging
+PROBE_LOG_PATH=./logs/probe.log

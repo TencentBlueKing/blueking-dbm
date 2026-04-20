@@ -1,9 +1,13 @@
-# Copy to dbha-v2.rc and adjust. All template placeholders must be set here;
-# scripts/render_configs.py does not inject defaults (run it with required
-# --ip-detect-udp-connect-host HOST when using auto IPv4 for empty APM/probe/admin listen keys).
+# Copy to dbha-v2.server.rc and adjust. Used to render server-side configs
+# (admin/analysis/receiver). Run with:
+#   render_configs.py --module server --rc etc/dbha-v2.server.rc \
+#       --ip-detect-udp-connect-host HOST
+# All template placeholders must be set here; the renderer only injects
+# defaults for COMMON_APM_LISTEN_ADDRESS / RECEIVER_SOURCE_PROBE_ENDPOINT /
+# ADMIN_GRPC_LISTEN_ADDRESS / ADMIN_WEB_HOST / ADMIN_WEB_PORT when empty.
 # Syntax: KEY=value or KEY="value with spaces"; use \n \" \\ inside double quotes.
 
-# --- shared (receiver + analysis + admin where applicable) ---
+# --- shared (admin + analysis + receiver) ---
 COMMON_VERSION=v2.0.0
 COMMON_LOG_LEVEL=debug
 COMMON_LOG_FILE_COUNT=10
@@ -16,8 +20,8 @@ COMMON_DISCOVERY_TLS_CERT_FILE=""
 COMMON_DISCOVERY_TLS_KEY_FILE=""
 COMMON_DISCOVERY_TLS_TRUSTED_CA_FILE=""
 
-# apm settings shared by all services; omit COMMON_APM_LISTEN_ADDRESS or leave empty
-# to use http://<auto-detected-ipv4>:50050 at render time
+# apm settings shared by all server services; omit COMMON_APM_LISTEN_ADDRESS
+# or leave empty to use http://<auto-detected-ipv4>:50050 at render time
 COMMON_APM_LISTEN_ADDRESS=""
 COMMON_APM_READ_TIMEOUT=10s
 COMMON_APM_WRITE_TIMEOUT=10s
@@ -44,7 +48,8 @@ COMMON_DBM_API_POLARIS_UNBIND_TOKEN=""
 COMMON_DBM_API_DUMPER_SWITCH_API=""
 COMMON_DBM_API_DUMPER_SWITCH_TOKEN=""
 
-# storage tcp endpoint/user/password/timeout shared by admin, analysis, and receiver sink mysql
+# storage tcp endpoint/user/password/timeout shared by admin, analysis,
+# and receiver sink mysql
 COMMON_STORAGE_TCP_ENDPOINT=""
 COMMON_STORAGE_USER=root
 COMMON_STORAGE_PASSWORD=dbhatest
@@ -65,7 +70,8 @@ RECEIVER_SINK_MYSQL_SHARD_FILE=templates/snippets/receiver_sink_mysql.yaml
 # ## receiver · service.source · probe
 RECEIVER_SOURCE_PROBE_NAME=probe
 RECEIVER_SOURCE_PROBE_ENABLE=false
-# omit RECEIVER_SOURCE_PROBE_ENDPOINT or leave empty to use <auto-detected-ipv4>:50051 at render time
+# omit RECEIVER_SOURCE_PROBE_ENDPOINT or leave empty to use
+# <auto-detected-ipv4>:50051 at render time
 RECEIVER_SOURCE_PROBE_ENDPOINT=""
 RECEIVER_SOURCE_PROBE_NET_DIAL_TIMEOUT=30s
 RECEIVER_SOURCE_PROBE_NET_READ_TIMEOUT=30s
@@ -102,7 +108,8 @@ ADMIN_PID_FILE=./pids/admin.pid
 ADMIN_DOC_FILE_DIR=./docs
 
 # ## admin · grpc
-# omit ADMIN_GRPC_LISTEN_ADDRESS or use :<port> only to fill host via same IP detection as APM/probe
+# omit ADMIN_GRPC_LISTEN_ADDRESS or use :<port> only to fill host via same
+# IP detection as APM/probe
 ADMIN_GRPC_LISTEN_ADDRESS=127.0.0.1:50051
 ADMIN_GRPC_SERVER_PING_TIME=5m
 ADMIN_GRPC_PING_TIMEOUT=10s
@@ -168,49 +175,3 @@ ANALYSIS_MONITOR_BK_MONITOR_ENDPOINT=127.0.0.1:9090
 
 # ## analysis · logging
 ANALYSIS_LOG_PATH=./logs/analysis.log
-
-# --- probe (shard YAML follows same rules as redis; paths relative to this rc) ---
-
-# ## probe · process and identity
-PROBE_NAME=probe
-PROBE_SERVICE_ID=""
-PROBE_PID_FILE=./pids/probe.pid
-
-# ## probe · reporter
-PROBE_REPORTER_NAME=gse
-PROBE_REPORTER_ENDPOINT=""
-PROBE_REPORTER_DATA_ID=0
-PROBE_REPORTER_CONN_TIMEOUT=5s
-
-# ## probe · harvester · mysql
-PROBE_MYSQL_SHARD_FILE=templates/snippets/probe_mysql_shard.yaml
-PROBE_MYSQL_USER=root
-PROBE_MYSQL_PASSWORD=root
-PROBE_MYSQL_INTERVAL=20s
-# mysql endpoints[0] (matches DbEndpointConfig)
-PROBE_MYSQL_EP_PROTO=tcp
-PROBE_MYSQL_EP_CLUSTER_TYPE=""
-PROBE_MYSQL_EP_MACHINE_TYPE=""
-PROBE_MYSQL_EP_ACCESS_LAYER=""
-PROBE_MYSQL_EP_IP=127.0.0.1
-PROBE_MYSQL_EP_PORTS=[1000-2000,20003]
-PROBE_MYSQL_EP_ADMIN_PORTS=[]
-
-# ## probe · harvester · redis
-# 1/true: render harvester.redis (shard YAML, see PROBE_REDIS_SHARD_FILE); 0/false: omit redis section
-PROBE_REDIS_SHARD_ENABLED=1
-PROBE_REDIS_SHARD_FILE=templates/snippets/probe_redis_shard.yaml
-PROBE_REDIS_PASSWORD=""
-PROBE_REDIS_INTERVAL=20s
-PROBE_REDIS_TIMEOUT=5s
-# redis endpoints[0] (matches DbEndpointConfig)
-PROBE_REDIS_EP_PROTO=tcp
-PROBE_REDIS_EP_CLUSTER_TYPE=""
-PROBE_REDIS_EP_MACHINE_TYPE=""
-PROBE_REDIS_EP_ACCESS_LAYER=""
-PROBE_REDIS_EP_IP=127.0.0.1
-PROBE_REDIS_EP_PORTS=[3306,10000-12000]
-PROBE_REDIS_EP_ADMIN_PORTS=[]
-
-# ## probe · logging
-PROBE_LOG_PATH=./logs/probe.log
