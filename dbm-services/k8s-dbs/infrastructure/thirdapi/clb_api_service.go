@@ -1,0 +1,149 @@
+/*
+TencentBlueKing is pleased to support the open source community by making
+蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+
+Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+
+Licensed under the MIT License (the "License");
+you may not use this file except in compliance with the License.
+
+You may obtain a copy of the License at
+https://opensource.org/licenses/MIT
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package thirdapi
+
+import (
+	"fmt"
+	"log/slog"
+	"strings"
+	"sync"
+
+	"k8s-dbs/common/util"
+	infreq "k8s-dbs/infrastructure/request"
+	infresp "k8s-dbs/infrastructure/response"
+
+	"github.com/pkg/errors"
+	"k8s.io/utils/env"
+)
+
+const createClbPath = "/ops/create_clb"
+
+// ClbAPIService CLB API 服务，用于调用 bk-base 的 CLB 创建接口
+type ClbAPIService struct {
+	clbAPIURL      string // CLB 创建接口域名，来自环境变量 BKBASE_CLB_API_URL
+	username       string // 操作用户名，来自环境变量 BKBASE_CLB_USERNAME
+	backupUsername string // 备份操作用户名，来自环境变量 BKBASE_CLB_BACKUP_USERNAME
+}
+
+var (
+	clbInstance *ClbAPIService
+	clbOnce     sync.Once
+)
+
+// InitClbAPIService 初始化 CLB API 服务（仅从环境变量加载配置）
+func InitClbAPIService() {
+	clbOnce.Do(func() {
+		clbAPIURL := env.GetString("BKBASE_CLB_API_URL", "")
+		username := env.GetString("BKBASE_CLB_USERNAME", "")
+		backupUsername := env.GetString("BKBASE_CLB_BACKUP_USERNAME", "")
+
+		if clbAPIURL == "" {
+			slog.Warn("BKBASE_CLB_API_URL 未配置，CLB 创建功能将不可用")
+		}
+
+		clbInstance = &ClbAPIService{
+			clbAPIURL:      clbAPIURL,
+			username:       username,
+			backupUsername: backupUsername,
+		}
+		slog.Info("CLB API 服务初始化完成", "clbAPIURL", clbAPIURL)
+	})
+}
+
+// GetClbAPIService 获取 CLB API 服务实例
+func GetClbAPIService() *ClbAPIService {
+	InitClbAPIService()
+	return clbInstance
+}
+
+// NewClbAPIService ClbAPIService 构造函数（保持向后兼容）
+func NewClbAPIService() *ClbAPIService {
+	return GetClbAPIService()
+}
+
+// CreateClb 创建 CLB，调用 bk-base 的 /ops/create_clb 接口。
+// 请求参数通过 request 传入（包含 region、vpc_id 等），成功时返回第一个 CLB ID。
+func (c *ClbAPIService) CreateClb(request *infreq.CreateClbRequest) (string, error) {
+	if c.clbAPIURL == "" {
+		return "", fmt.Errorf("BKBASE_CLB_API_URL 未配置，无法创建 CLB")
+	}
+
+	url := c.buildCreateClbURL()
+
+	// 构造完整请求，包含从环境变量加载的 username 和 backup_username
+	reqData := map[string]interface{}{
+		"region":          request.Region,
+		"vpc_id":          request.VpcID,
+		"clb_name":        request.ClbName,
+		"clb_nums":        request.ClbNums,
+		"username":        c.username,
+		"backup_username": c.backupUsername,
+	}
+
+	resp, err := util.BaseHTTPClient.PostWithResponse(url, reqData, nil)
+	if err != nil {
+		return "", errors.Wrap(err, "创建 CLB HTTP 请求失败")
+	}
+
+	if resp.StatusCode() < 200 || resp.StatusCode() >= 300 {
+		body := truncateBody(resp.String(), 200)
+		return "", fmt.Errorf("创建 CLB 返回非 2xx (status=%d): %s", resp.StatusCode(), body)
+	}
+
+	var clbResp infresp.ClbAPIResponse
+	if err := util.BaseHTTPClient.ParseResponse(resp, &clbResp); err != nil {
+		return "", errors.Wrap(err, "创建 CLB 响应解析失败")
+	}
+
+	if !clbResp.Result {
+		slog.Error("创建 CLB 失败",
+			"code", clbResp.Code,
+			"message", clbResp.Message,
+			"errors", clbResp.Errors,
+			"clb_name", request.ClbName,
+		)
+		return "", fmt.Errorf("创建 CLB 失败 [%s]: %s", clbResp.Code, clbResp.Message)
+	}
+
+	if len(clbResp.Data) == 0 {
+		slog.Error("创建 CLB 返回空列表",
+			"code", clbResp.Code,
+			"clb_name", request.ClbName,
+		)
+		return "", fmt.Errorf("创建 CLB 返回空列表 [%s]", clbResp.Code)
+	}
+
+	clbID := clbResp.Data[0]
+	slog.Info("创建 CLB 成功",
+		"clb_id", clbID,
+		"clb_name", request.ClbName,
+		"code", clbResp.Code,
+	)
+
+	return clbID, nil
+}
+
+// buildCreateClbURL 构建创建 CLB 的完整 URL
+func (c *ClbAPIService) buildCreateClbURL() string {
+	if strings.HasPrefix(c.clbAPIURL, "http://") || strings.HasPrefix(c.clbAPIURL, "https://") {
+		return c.clbAPIURL + createClbPath
+	}
+	return fmt.Sprintf("https://%s%s", c.clbAPIURL, createClbPath)
+}

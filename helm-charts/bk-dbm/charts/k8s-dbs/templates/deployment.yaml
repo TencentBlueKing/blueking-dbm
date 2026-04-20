@@ -77,6 +77,7 @@ spec:
             value: "{{ .Values.server.datasource.dbs.maxIdelConns }}"
           - name: DBS_MYSQL_MAX_LIFETIME
             value: "{{ .Values.server.datasource.dbs.maxLifeTime }}"
+          # dbm api 配置
           - name: ASYNC_TO_DBM
             value: "{{ .Values.server.dbmConfig.asyncToDbm }}"
           - name: DBM_SYNCDATA_API_URL
@@ -91,3 +92,10 @@ spec:
             value: "{{ .Values.server.dbmConfig.innerBkAppSecret }}"
           - name: BKBASE_BK_BIZ_ID
             value: "{{ .Values.server.dbmConfig.bkbaseBkBizId }}"
+          # clb api 配置
+          - name: BKBASE_CLB_API_URL
+            value: "{{ .Values.server.clbApiConfig.clbApiURL }}"
+          - name: BKBASE_CLB_USERNAME
+            value: "{{ .Values.server.clbApiConfig.username }}"
+          - name: BKBASE_CLB_BACKUP_USERNAME
+            value: "{{ .Values.server.clbApiConfig.backupUsername }}"
