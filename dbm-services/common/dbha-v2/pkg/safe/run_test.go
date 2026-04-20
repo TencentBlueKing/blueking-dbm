@@ -99,9 +99,7 @@ func TestGo_OnPanicCallbackPanic_DoesNotCrash(t *testing.T) {
 	t.Parallel()
 	callbackEntered := make(chan struct{}, 1)
 	wait := GoWait(
-		[]func(){
-			func() { panic("original") },
-		},
+		func() { panic("original") },
 		WithOnPanic(func(p PanicInfo) {
 			callbackEntered <- struct{}{}
 			panic("callback-panic")
@@ -119,8 +117,8 @@ func TestGo_OnPanicCallbackPanic_DoesNotCrash(t *testing.T) {
 func TestGoWait_NoPanic(t *testing.T) {
 	t.Parallel()
 	var called int32
-	wait := GoWait([]func(){
-		func() { atomic.StoreInt32(&called, 1) },
+	wait := GoWait(func() {
+		atomic.StoreInt32(&called, 1)
 	})
 	wait()
 	if atomic.LoadInt32(&called) != 1 {
@@ -132,9 +130,7 @@ func TestGoWait_Panic(t *testing.T) {
 	t.Parallel()
 	var got PanicInfo
 	wait := GoWait(
-		[]func(){
-			func() { panic("wait-boom") },
-		},
+		func() { panic("wait-boom") },
 		WithOnPanic(func(p PanicInfo) { got = p }),
 	)
 	wait()
@@ -148,6 +144,62 @@ func TestGoWait_RepanicIgnoredInAsyncMode(t *testing.T) {
 	mock := &warnLogger{}
 	var got PanicInfo
 	wait := GoWait(
+		func() { panic("async-boom") },
+		WithLogger(mock),
+		WithRepanic(true),
+		WithOnPanic(func(p PanicInfo) { got = p }),
+	)
+	wait()
+	if got.Reason != "async-boom" {
+		t.Fatalf("unexpected reason: %v", got.Reason)
+	}
+	if !mock.warnCalled {
+		t.Fatal("expected async repanic warning to be logged")
+	}
+}
+
+func TestGoWaits_NoPanic(t *testing.T) {
+	t.Parallel()
+	var called int32
+	wait := GoWaits([]func(){
+		func() { atomic.StoreInt32(&called, 1) },
+	})
+	wait()
+	if atomic.LoadInt32(&called) != 1 {
+		t.Fatal("fn was not called")
+	}
+}
+
+func TestGoWaits_EmptyFns(t *testing.T) {
+	t.Parallel()
+	var called int32
+	wait := GoWaits([]func(){})
+	wait()
+	if atomic.LoadInt32(&called) != 0 {
+		t.Fatal("fn was not called")
+	}
+}
+
+func TestGoWaits_Panic(t *testing.T) {
+	t.Parallel()
+	var got PanicInfo
+	wait := GoWaits(
+		[]func(){
+			func() { panic("wait-boom") },
+		},
+		WithOnPanic(func(p PanicInfo) { got = p }),
+	)
+	wait()
+	if got.Reason != "wait-boom" {
+		t.Fatalf("unexpected reason: %v", got.Reason)
+	}
+}
+
+func TestGoWaits_RepanicIgnoredInAsyncMode(t *testing.T) {
+	t.Parallel()
+	mock := &warnLogger{}
+	var got PanicInfo
+	wait := GoWaits(
 		[]func(){
 			func() { panic("async-boom") },
 		},
