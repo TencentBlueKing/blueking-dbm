@@ -343,6 +343,9 @@ class TicketTask(object):
             slz.is_valid()
             replenish_infos.append(slz.data)
 
+        if not replenish_infos:
+            return
+
         # 创建补货单据
         bk_biz_id = get_resource_biz()
         remark = _("资源池自动补货单")
