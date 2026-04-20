@@ -147,28 +147,17 @@ func (c *BusinessChecker) RunBusinessChecks(
 		c.CheckEventWithBizId(bizId, dbEvents, skipInsts, metaInsts)
 	}
 
-	onPanic := func(pi safe.PanicInfo) {
-		logger.Error("panic in business check sub-task, bizId: %d, errmsg: %v", bizId, pi.Reason)
+	fns := []func(){
+		func() { c.CheckMissedProbe(bizId, dbStatus, skipInsts, metaInsts) },
+		func() { c.CheckEventWithBizId(bizId, statusData.DbEvents, skipInsts, metaInsts) },
+		func() { c.CheckDbHosts(statusData.DbHosts, checkDbEventFunc) },
+		func() { c.CheckDbStatus(statusData.DbStatusVals, checkDbEventFunc) },
 	}
 
-	w1 := safe.GoWait(func() {
-		c.CheckMissedProbe(bizId, dbStatus, skipInsts, metaInsts)
-	}, safe.WithLabel("CheckMissedProbe"), safe.WithOnPanic(onPanic))
+	wait := safe.GoWait(fns,
+		safe.WithLabel("RunBusinessChecks"), safe.WithOnPanic(func(pi safe.PanicInfo) {
+			logger.Error("panic in business check sub-task, bizId: %d, errmsg: %v", bizId, pi.Reason)
+		}))
 
-	w2 := safe.GoWait(func() {
-		c.CheckEventWithBizId(bizId, statusData.DbEvents, skipInsts, metaInsts)
-	}, safe.WithLabel("CheckEventWithBizId"), safe.WithOnPanic(onPanic))
-
-	w3 := safe.GoWait(func() {
-		c.CheckDbHosts(statusData.DbHosts, checkDbEventFunc)
-	}, safe.WithLabel("CheckDbHosts"), safe.WithOnPanic(onPanic))
-
-	w4 := safe.GoWait(func() {
-		c.CheckDbStatus(statusData.DbStatusVals, checkDbEventFunc)
-	}, safe.WithLabel("CheckDbStatus"), safe.WithOnPanic(onPanic))
-
-	w1()
-	w2()
-	w3()
-	w4()
+	wait()
 }

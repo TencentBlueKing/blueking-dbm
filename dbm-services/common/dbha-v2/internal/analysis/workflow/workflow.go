@@ -318,7 +318,7 @@ func (w *Workflow) ScanBusinesses(ctx context.Context) {
 }
 
 // PopAndSwitch iterates over assigned business IDs, pops matured entries from sliding windows,
-// matches switching strategies, and triggers asynchronous switching for matched groups.
+// matches switching strategies, and triggers switching for matched groups.
 // Each business acquires an independent SwitchLock to prevent multiple AM instances from
 // switching the same business simultaneously. SwitchLock is independent of ScanLock.
 func (w *Workflow) PopAndSwitch(ctx context.Context) {
@@ -388,30 +388,34 @@ func (w *Workflow) popAndSwitchForBiz(ctx context.Context, bizId int) {
 	logger.Info("popped %d matured entries for biz %d", len(entries), bizId)
 	groups := groupEntriesByCloudAndDbType(entries)
 
-	safe.Run(func() {
-		var wg sync.WaitGroup
-		for _, group := range groups {
-			w.handleFailureGroup(ctx, group, &wg)
-		}
-		wg.Wait()
-	}, safe.WithLabel("popAndSwitchForBiz"), safe.WithOnPanic(func(pi safe.PanicInfo) {
-		logger.Error("panic in popAndSwitchForBiz, bizId: %d, errmsg: %v", bizId, pi.Reason)
-	}))
+	var failureGroupFns []func()
+	for _, group := range groups {
+		failureGroupFns = append(failureGroupFns, func() {
+			w.handleFailureGroup(ctx, group)
+		})
+	}
+
+	wait := safe.GoWait(failureGroupFns,
+		safe.WithLabel("popAndSwitchForBiz"), safe.WithOnPanic(func(pi safe.PanicInfo) {
+			logger.Error("panic in popAndSwitchForBiz, bizId: %d, errmsg: %v", bizId, pi.Reason)
+		}))
+
+	wait()
 }
 
-func (w *Workflow) handleFailureGroup(ctx context.Context, group *FailureGroup, wg *sync.WaitGroup) {
+func (w *Workflow) handleFailureGroup(ctx context.Context, group *FailureGroup) {
 	groupInstKeys := collectGroupInstanceKeys(group)
+	defer w.markDoneAll(groupInstKeys)
+
 	req := w.switchExecutor.CreateRequestWithGroup(ctx, group)
 
 	if req == nil {
-		w.markDoneAll(groupInstKeys)
 		return
 	}
 
 	if !req.HasDbInstMetadata() {
 		logger.Warn("no db inst metadata after query, dbType: %s, cloudId: %d, instances: %d",
 			group.DbType, group.BkCloudID, len(group.Instances))
-		w.markDoneAll(groupInstKeys)
 		return
 	}
 
@@ -424,21 +428,19 @@ func (w *Workflow) handleFailureGroup(ctx context.Context, group *FailureGroup, 
 			len(group.Instances),
 			FormatInstanceEventSummary(group.Instances),
 		)
-		w.markDoneAll(groupInstKeys)
 		return
 	}
 
-	if w.handleStrategyNotify(strategy, group, groupInstKeys) {
+	if w.handleStrategyNotify(strategy, group) {
 		return
 	}
 
-	if w.handleStrategySwitch(strategy, group, groupInstKeys, req, wg) {
+	if w.handleStrategySwitch(strategy, group, req) {
 		return
 	}
 
 	logger.Warn("unknown strategy action: %s, strategyId: %d, cloudId: %d, dbType: %s",
 		strategy.Action, strategy.ID, group.BkCloudID, group.DbType)
-	w.markDoneAll(groupInstKeys)
 }
 
 func collectGroupInstanceKeys(group *FailureGroup) []string {
@@ -451,8 +453,7 @@ func collectGroupInstanceKeys(group *FailureGroup) []string {
 	return groupInstKeys
 }
 
-func (w *Workflow) handleStrategyNotify(strategy *hamodel.DbSwitchingStrategy, group *FailureGroup,
-	groupInstKeys []string) bool {
+func (w *Workflow) handleStrategyNotify(strategy *hamodel.DbSwitchingStrategy, group *FailureGroup) bool {
 	if strategy.Action != hamodel.ActionTypeNotify {
 		return false
 	}
@@ -462,12 +463,10 @@ func (w *Workflow) handleStrategyNotify(strategy *hamodel.DbSwitchingStrategy, g
 	logger.Info("%s", log)
 
 	w.alarm.TriggerWithBizId(group.Instances[0].BkBizID, log)
-	w.markDoneAll(groupInstKeys)
 	return true
 }
 
-func (w *Workflow) handleStrategySwitch(strategy *hamodel.DbSwitchingStrategy, group *FailureGroup,
-	groupInstKeys []string, req *switcher.Request, wg *sync.WaitGroup) bool {
+func (w *Workflow) handleStrategySwitch(strategy *hamodel.DbSwitchingStrategy, group *FailureGroup, req *switcher.Request) bool {
 	if strategy.Action != hamodel.ActionTypeSwitch {
 		return false
 	}
@@ -478,18 +477,7 @@ func (w *Workflow) handleStrategySwitch(strategy *hamodel.DbSwitchingStrategy, g
 	logger.Info("trigger switching by strategyId: %d, switchId: %s, dbType: %s, cloudId: %d, instances: %d",
 		strategy.ID, req.SwitchID, group.DbType, group.BkCloudID, len(group.Instances))
 
-	wg.Add(1)
-	go func(keys []string, dbType haprobe.DbType, strategyID int, cloudID int, switchReq *switcher.Request) {
-		defer wg.Done()
-		defer w.markDoneAll(keys)
-
-		safe.Run(func() {
-			w.switchExecutor.TriggerSwitching(dbType, switchReq)
-		}, safe.WithLabel("handleStrategySwitch"), safe.WithOnPanic(func(pi safe.PanicInfo) {
-			logger.Error("panic occurred during trigger switching, dbType: %s, strategyId: %d, cloudId: %d, errmsg: %v",
-				dbType, strategyID, cloudID, pi.Reason)
-		}))
-	}(groupInstKeys, group.DbType, strategy.ID, group.BkCloudID, req)
+	w.switchExecutor.TriggerSwitching(group.DbType, req)
 
 	return true
 }

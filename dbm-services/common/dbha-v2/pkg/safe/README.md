@@ -4,14 +4,14 @@
 
 ## 核心 API
 
-| 函数 | 说明 |
-|------|------|
-| `Run(fn, opts...)` | 在当前 goroutine 执行 `fn`，recover panic 后记录日志 |
-| `Go(fn, opts...)` | 在新 goroutine 中执行 `fn`（fire-and-forget） |
-| `GoWait(fn, opts...) func()` | 同 `Go`，返回 wait 函数，调用后阻塞直到 goroutine 结束 |
-| `GoCtx(ctx, fn, opts...)` | 同 `Go`，panic 时 `PanicInfo.Ctx` 会携带传入的 ctx |
+| 函数                                   | 说明 |
+|--------------------------------------|------|
+| `Run(fn, opts...)`                   | 在当前 goroutine 执行 `fn`，recover panic 后记录日志 |
+| `Go(fn, opts...)`                    | 在新 goroutine 中执行 `fn`（fire-and-forget） |
+| `GoWait([]fn, opts...) func()`       | 同 `Go`，返回 wait 函数，调用后阻塞直到 goroutine 结束 |
+| `GoCtx(ctx, fn, opts...)`            | 同 `Go`，panic 时 `PanicInfo.Ctx` 会携带传入的 ctx |
 | `GoCtxWait(ctx, fn, opts...) func()` | `GoCtx` + `GoWait` 的组合 |
-| `FormatPanicInfo(pi) string` | 将 `PanicInfo` 格式化为可读字符串，用于告警或结构化日志 |
+| `FormatPanicInfo(pi) string`         | 将 `PanicInfo` 格式化为可读字符串，用于告警或结构化日志 |
 
 ## Option
 
@@ -43,8 +43,8 @@ safe.Go(func() {
 }, safe.WithLabel("background-task"))
 
 // 异步执行，等待完成
-wait := safe.GoWait(func() {
-    riskyWork()
+wait := safe.GoWait([]func() {
+    func() { riskyWork() },
 })
 wait() // 阻塞直到完成
 ```
