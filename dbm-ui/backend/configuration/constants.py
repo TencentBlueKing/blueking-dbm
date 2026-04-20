@@ -412,14 +412,14 @@ DAILY_TODO_REMIND_DEFAULT = {
         "minute": "0",
         "hour": "9",
     },
-    "notice": [],
+    "notice": [{"type": "rtx", "value": ""}],
 }
 
 DBM_USER_TODO_TYPE_MAP_DEFAULT = {
     "types": {
-        "ticket_todo": _("单据代办"),
-        "inspect_todo": _("巡检代办"),
-        "cluster_disable_todo": _("集群下架代办"),
+        "ticket_todo": _("单据待办"),
+        "inspect_todo": _("巡检待办"),
+        "cluster_disable_todo": _("集群下架待办"),
         "host_todo": _("主机处理待办"),
         "alarm_todo": _("告警事件待办"),
         "risk_memo_todo": _("风险备忘录"),
