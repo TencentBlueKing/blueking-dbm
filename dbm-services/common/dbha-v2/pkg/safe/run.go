@@ -92,17 +92,23 @@ func Go(fn func(), opts ...Option) {
 	}()
 }
 
-// GoWait starts fn in a new goroutine with panic recovery like Go, and returns a
-// wait function. Calling the returned function blocks until the goroutine finishes.
-func GoWait(fn func(), opts ...Option) func() {
+// GoWait starts each fn in its own goroutine with panic recovery like Go, and returns a
+// wait function. Calling the returned function blocks until all goroutines finish.
+func GoWait(fns []func(), opts ...Option) func() {
 	cfg := newConfig(opts)
 	var wg sync.WaitGroup
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		guard(&cfg, nil, false, execModeAsync, fn)
-	}()
+	if len(fns) == 0 {
+		return func() {}
+	}
+
+	for _, fn := range fns {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			guard(&cfg, nil, false, execModeAsync, fn)
+		}()
+	}
 
 	return wg.Wait
 }

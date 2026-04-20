@@ -27,7 +27,6 @@ package workflow
 import (
 	"context"
 	"net/http"
-	"sync"
 	"testing"
 	"time"
 
@@ -104,9 +103,7 @@ func TestHandleFailureGroup_RequestNilReleasesInflight(t *testing.T) {
 	group := buildSingleFailureGroup()
 	key := markGroupInflight(w, group)
 
-	var wg sync.WaitGroup
-	w.handleFailureGroup(context.Background(), group, &wg)
-	wg.Wait()
+	w.handleFailureGroup(context.Background(), group)
 
 	if inflightExists(w, key) {
 		t.Fatal("expected inflight mark released when request is nil")
@@ -123,9 +120,7 @@ func TestHandleFailureGroup_RequestWithoutMetadataReleasesInflight(t *testing.T)
 	group := buildSingleFailureGroup()
 	key := markGroupInflight(w, group)
 
-	var wg sync.WaitGroup
-	w.handleFailureGroup(context.Background(), group, &wg)
-	wg.Wait()
+	w.handleFailureGroup(context.Background(), group)
 
 	if inflightExists(w, key) {
 		t.Fatal("expected inflight mark released when request has no metadata")
@@ -142,9 +137,7 @@ func TestHandleFailureGroup_NoMatchedStrategyReleasesInflight(t *testing.T) {
 	group := buildSingleFailureGroup()
 	key := markGroupInflight(w, group)
 
-	var wg sync.WaitGroup
-	w.handleFailureGroup(context.Background(), group, &wg)
-	wg.Wait()
+	w.handleFailureGroup(context.Background(), group)
 
 	if inflightExists(w, key) {
 		t.Fatal("expected inflight mark released when strategy not matched")
@@ -174,9 +167,7 @@ func TestHandleFailureGroup_NotifyStrategyReleasesInflight(t *testing.T) {
 	group := buildSingleFailureGroup()
 	key := markGroupInflight(w, group)
 
-	var wg sync.WaitGroup
-	w.handleFailureGroup(context.Background(), group, &wg)
-	wg.Wait()
+	w.handleFailureGroup(context.Background(), group)
 
 	if inflightExists(w, key) {
 		t.Fatal("expected inflight mark released for notify action")
@@ -207,9 +198,7 @@ func TestHandleFailureGroup_SwitchStrategyReleasesInflightWithoutSwitcher(t *tes
 	group := buildSingleFailureGroup()
 	key := markGroupInflight(w, group)
 
-	var wg sync.WaitGroup
-	w.handleFailureGroup(context.Background(), group, &wg)
-	wg.Wait()
+	w.handleFailureGroup(context.Background(), group)
 
 	if inflightExists(w, key) {
 		t.Fatal("expected inflight mark released for switch action")
@@ -239,9 +228,7 @@ func TestHandleFailureGroup_UnknownActionReleasesInflight(t *testing.T) {
 	group := buildSingleFailureGroup()
 	key := markGroupInflight(w, group)
 
-	var wg sync.WaitGroup
-	w.handleFailureGroup(context.Background(), group, &wg)
-	wg.Wait()
+	w.handleFailureGroup(context.Background(), group)
 
 	if inflightExists(w, key) {
 		t.Fatal("expected inflight mark released for unknown action")

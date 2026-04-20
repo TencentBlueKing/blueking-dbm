@@ -99,7 +99,9 @@ func TestGo_OnPanicCallbackPanic_DoesNotCrash(t *testing.T) {
 	t.Parallel()
 	callbackEntered := make(chan struct{}, 1)
 	wait := GoWait(
-		func() { panic("original") },
+		[]func(){
+			func() { panic("original") },
+		},
 		WithOnPanic(func(p PanicInfo) {
 			callbackEntered <- struct{}{}
 			panic("callback-panic")
@@ -117,8 +119,8 @@ func TestGo_OnPanicCallbackPanic_DoesNotCrash(t *testing.T) {
 func TestGoWait_NoPanic(t *testing.T) {
 	t.Parallel()
 	var called int32
-	wait := GoWait(func() {
-		atomic.StoreInt32(&called, 1)
+	wait := GoWait([]func(){
+		func() { atomic.StoreInt32(&called, 1) },
 	})
 	wait()
 	if atomic.LoadInt32(&called) != 1 {
@@ -130,7 +132,9 @@ func TestGoWait_Panic(t *testing.T) {
 	t.Parallel()
 	var got PanicInfo
 	wait := GoWait(
-		func() { panic("wait-boom") },
+		[]func(){
+			func() { panic("wait-boom") },
+		},
 		WithOnPanic(func(p PanicInfo) { got = p }),
 	)
 	wait()
@@ -144,7 +148,9 @@ func TestGoWait_RepanicIgnoredInAsyncMode(t *testing.T) {
 	mock := &warnLogger{}
 	var got PanicInfo
 	wait := GoWait(
-		func() { panic("async-boom") },
+		[]func(){
+			func() { panic("async-boom") },
+		},
 		WithLogger(mock),
 		WithRepanic(true),
 		WithOnPanic(func(p PanicInfo) { got = p }),
