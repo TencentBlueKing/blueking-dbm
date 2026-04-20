@@ -14,6 +14,7 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List
 
+from celery import shared_task
 from django.utils.translation import gettext as _
 
 from backend.components import CCApi
@@ -533,8 +534,10 @@ class ResourceHandler(object):
         return hosts
 
     @classmethod
-    def create_replenish(cls, username, bk_biz_id: int, infos: List[Dict], remark: str = ""):
-        """创建海磊资源池补货单"""
+    def create_replenish(cls, username, bk_biz_id: int, infos: List[Dict], remark: str = "", record_id: int = None):
+        """创建海磊资源池补货单
+        @param record_id: 已预创建的补货记录ID，异步调用时传入；为空则自动创建
+        """
         ticket_ids, details = [], defaultdict(lambda: 0)
         # 海磊限制，每个单据最大申请数量不超过100
         MAX_COUNT_PER_TICKET = 100
@@ -560,8 +563,10 @@ class ResourceHandler(object):
                 details[replenish_info["db_type"]] += replenish_info["count"]
                 ticket_ids.append(ticket.id)
 
-        # 创建补货记录
-        if ticket_ids:
+        # 更新或创建补货记录
+        if record_id:
+            ResourceReplenishRecord.objects.filter(id=record_id).update(ticket_ids=ticket_ids, details=dict(details))
+        elif ticket_ids:
             ResourceReplenishRecord.objects.create(creator=username, ticket_ids=ticket_ids, details=details)
 
     @classmethod
@@ -773,3 +778,9 @@ class ResourceHandler(object):
         wb = ExcelHandler.serialize(data_list, headers=headers, match_header=True)
 
         return ExcelHandler.response(wb, "dbm_resource_list.xlsx")
+
+
+@shared_task
+def async_create_replenish(username, bk_biz_id, infos, remark="", record_id=None):
+    """异步创建补货单据，避免前端同步请求超时"""
+    ResourceHandler.create_replenish(username, bk_biz_id, infos, remark, record_id=record_id)

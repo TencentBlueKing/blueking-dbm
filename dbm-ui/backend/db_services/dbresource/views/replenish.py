@@ -25,7 +25,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums.spec import SpecMachineType
 from backend.db_services.dbresource.constants import SWAGGER_TAG
 from backend.db_services.dbresource.filters import ReplenishRecordFilter
-from backend.db_services.dbresource.handlers import ResourceHandler
+from backend.db_services.dbresource.handlers import ResourceHandler, async_create_replenish
 from backend.db_services.dbresource.models import ResourceReplenishRecord
 from backend.db_services.dbresource.serializers import (  # CheckFaultHostsSerializer,
     CreateResourceReplenishSerializer,
@@ -79,9 +79,18 @@ class DBReplenishViewSet(viewsets.AuditedModelViewSet):
     def create_resource_replenish(self, request):
         data = self.params_validate(self.get_serializer_class())
         username = request.user.username
+
         if ResourceReplenishRecord.is_latest_running():
             raise ApiRequestError(_("有正在运行的补货记录，不允许提交"))
-        return Response(ResourceHandler.create_replenish(username, data["bk_biz_id"], data["infos"]))
+        if not data["infos"]:
+            raise ValueError(_("不存在任何补货信息"))
+
+        # 先创建空记录用于防重入和状态轮询，异步任务完成后更新 ticket_ids 和 details
+        record = ResourceReplenishRecord.objects.create(creator=username, ticket_ids=[], details={})
+        # 一次提单可能很多，所以异步发起
+        kwargs = {"username": username, "bk_biz_id": data["bk_biz_id"], "infos": data["infos"], "record_id": record.id}
+        async_create_replenish.apply_async(kwargs=kwargs)
+        return Response()
 
     @common_swagger_auto_schema(
         operation_summary=_("获取资源池单据申请交付信息"),
