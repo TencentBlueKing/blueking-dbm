@@ -24,6 +24,7 @@ from backend.components import BKMonitorV3Api
 from backend.configuration.constants import (
     DAILY_TODO_REMIND_DEFAULT,
     DBM_USER_TODO_TYPE_MAP_DEFAULT,
+    DBType,
     SystemSettingsEnum,
 )
 from backend.configuration.models import DBAdministrator, SystemSettings
@@ -46,12 +47,12 @@ TODO_TYPE_CONTEXT = {
     "TIMER": _("定时中"),
 }
 
-REMIND_TITLE = _("【DBM 每日待办提醒】")
+REMIND_TITLE = _("「DBM」：每日待办提醒")
 
 TODO_DIR = f"{env.BK_SAAS_HOST}/ticket-self-todo"
 
 # MASS_CONTEXT_TEMPLATE = _("\n以下 DBA 有待办事项待处理：\n\n{}\n\n共 {} 人，{} 项待办\n")
-MASS_CONTEXT_TEMPLATE = _("\n代办人数：{} 人\n代办总数：{}条\n\n{}\n")
+MASS_CONTEXT_TEMPLATE = _("\n待办人数：{} 人\n待办总数：{}条\n\n{}\n")
 
 # ONE_ON_ONE_CONTEXT_TEMPLATE = _("\n你有以下待办事项待处理：\n\n{}\n")
 ONE_ON_ONE_CONTEXT_TEMPLATE = _("\n待办总数：{} 条\n\n{}\n\n")
@@ -60,7 +61,7 @@ ONE_ON_ONE_CONTEXT_TEMPLATE = _("\n待办总数：{} 条\n\n{}\n\n")
 class CalcPersonalTodoClass:
     @classmethod
     def get_ticket_todo_count(cls, username, infos):
-        """获取单据代办"""
+        """获取单据待办"""
         exclude_values = {"MY_APPROVE", "SELF_MANAGE", "DONE"}
         count_map = {count_type: 0 for count_type in CountType.get_values() if count_type not in exclude_values}
         status_counts = (
@@ -80,7 +81,7 @@ class CalcPersonalTodoClass:
 
     @classmethod
     def get_inspect_todo_count(cls, username, infos):
-        """获取巡检代办"""
+        """获取巡检待办"""
         result_map: Dict[str, int] = defaultdict(int)
         now_date = datetime.now(timezone.utc).date()
         for db_type, report_classes in db_report_maps.items():
@@ -88,7 +89,7 @@ class CalcPersonalTodoClass:
             # 获取用户的管理业务
             manage_bizs = [info["bk_biz_id"] for info in infos if db_type == info["db_type"]]
             for cls_ in report_classes:
-                # 过滤当天的代办
+                # 过滤当天的待办
                 count = cls_.queryset.filter(
                     state=ReportStateType.ABNORMAL, update_at__gte=now_date, bk_biz_id__in=manage_bizs
                 ).count()
@@ -99,7 +100,7 @@ class CalcPersonalTodoClass:
 
     @classmethod
     def get_cluster_disable_todo_count(cls, username, infos):
-        """获取集群下架代办"""
+        """获取集群下架待办"""
         todos = Todo.objects.filter(
             status=TodoStatus.TODO, type=TodoType.CLUSTER_DISABLE, operators__contains=username
         )
@@ -113,7 +114,7 @@ class CalcPersonalTodoClass:
 
     @classmethod
     def get_host_todo_count(cls, username, infos):
-        """获取主机代办"""
+        """获取主机待办"""
         result = Todo.objects.filter(
             operators__contains=username, status="TODO", type__in=["RECYCLE_HOST", "FAULT_HOST"]
         ).aggregate(
@@ -124,7 +125,7 @@ class CalcPersonalTodoClass:
 
     @classmethod
     def get_alarm_todo_count(cls, username, infos):
-        """获取告警代办"""
+        """获取告警待办"""
 
         now_time = int(datetime.now().timestamp())
         start_time = int((datetime.now() - timedelta(days=7)).timestamp())
@@ -167,25 +168,25 @@ class CalcPersonalTodoClass:
 
 def get_todo_context(count, text):
     """
-    获取各个类型代办的模板
+    获取各个类型待办的模板
     """
     # 当传入是一个数量时，直接生成模板返回
     if isinstance(count, int):
         if count:
             return _("- {text} {count}条").format(text=text, count=count)
 
-    # 当传入的是一个字典时，则代办需要生成各类型的代办明细模板
+    # 当传入的是一个字典时，则待办需要生成各类型的待办明细模板
     elif isinstance(count, dict):
         total = sum(count.values())
         if total:
-            contexts = [f"{type_} {count}" for type_, count in count.items()]
+            contexts = [f"{DBType.get_choice_label(type_)} {count}" for type_, count in count.items()]
             contexts = "，".join(contexts)
             return _("- {text}：{total} 条（{contexts}）").format(text=text, total=total, contexts=contexts)
     return ""
 
 
 def get_mass_context(user_infos):
-    """组装群聊的代办模板"""
+    """组装群聊的待办模板"""
     all_total = 0
     user_contexts = ""
     for username in user_infos:
@@ -204,7 +205,7 @@ def get_mass_context(user_infos):
 
 
 def get_single_context(detail):
-    """组装个人的代办模板"""
+    """组装个人的待办模板"""
     context_list = detail["context_list"]
     context_list = [context for context in context_list if context]
     context = "\n".join(context_list)
@@ -225,16 +226,6 @@ def get_dba_infos():
     return dict(dba_infos)
 
 
-def get_actions():
-    search_action = {
-        "name": _("前往处理"),
-        "color": "green",
-        "callback_url": TODO_DIR,
-        "callback_data": {},
-    }
-    return [search_action]
-
-
 def send_msg(title, context, receivers, msg_type):
     if msg_type in BkChatHandler.get_msg_type():
         msg_info = {
@@ -246,7 +237,7 @@ def send_msg(title, context, receivers, msg_type):
             "receive_group": receivers if msg_type == MsgType.WECOM_ROBOT else [],
             "summary": context,
             # 操作和详情按钮
-            "actions": get_actions(),
+            "actions": [],
             "click": {"click_url": TODO_DIR, "name": _("前往处理")},
         }
         BkChatApi.send_ticket_msg(msg_info, use_admin=True)
@@ -258,7 +249,7 @@ def send_msg(title, context, receivers, msg_type):
 @shared_task
 def send_todo_remind():
 
-    # 获取代办通知配置， 未开启则不做处理
+    # 获取待办通知配置， 未开启则不做处理
     todo_remind_conf = SystemSettings.get_setting_value(
         SystemSettingsEnum.DBM_DAILY_TODO_REMIND, default=DAILY_TODO_REMIND_DEFAULT
     )
@@ -281,14 +272,14 @@ def send_todo_remind():
 
     dba_infos = get_dba_infos()
 
-    # 对每个用户进行代办查询，有代办则发送通知
+    # 对每个用户进行待办查询，有待办则发送通知
     for user in users:
         user_all_todo_info = {"count": 0, "context_list": []}
         is_dba = True if user.username in dba_infos else False
 
         todo_funcs = user_todo_map["dba" if is_dba else "ordinary"]
 
-        # 每个用户对应需要收集的代办信息，收集总数以及代办模板
+        # 每个用户对应需要收集的待办信息，收集总数以及待办模板
         for todo_func in todo_funcs:
             func_name = f"get_{todo_func}_count"
             if not hasattr(CalcPersonalTodoClass, func_name):
@@ -301,7 +292,7 @@ def send_todo_remind():
                 user_all_todo_info["count"] += sum(count_info.values())
             user_all_todo_info["context_list"].append(get_todo_context(count_info, todo_types[todo_func]))
 
-        # 如果没有代办数量则跳过
+        # 如果没有待办数量则跳过
         if not user_all_todo_info["count"]:
             continue
 
@@ -318,7 +309,6 @@ def send_todo_remind():
                 conf["value"] for conf in todo_remind_conf["notice"] if conf["type"] == MsgType.WECOM_ROBOT.value
             ][0].split(",")
             send_msg(REMIND_TITLE, mass_context, receivers, MsgType.WECOM_ROBOT)
-            # BkChatHandler(REMIND_TITLE, mass_context, receivers).send_custom_msg()
 
         # 发送完群聊剔除对应的类型
         send_types.remove(MsgType.WECOM_ROBOT)
@@ -326,15 +316,17 @@ def send_todo_remind():
     if not send_types:
         return
 
-    # 对剩下的通知类型进行通知，有代办的用户都会通知到
+    # 对剩下的通知类型进行通知，有待办的用户都会通知到
     dba_user.update(no_dba_user)
     for username in dba_user:
         ordinary_context = get_single_context(dba_user[username])
         if not ordinary_context:
             continue
-        if MsgType.RTX.value in send_types:
-            send_msg(REMIND_TITLE, ordinary_context, [username], MsgType.RTX)
-            # BkChatHandler(REMIND_TITLE, ordinary_context, [username]).send_custom_msg()
-        if MsgType.MAIL.value in send_types:
-            send_msg(REMIND_TITLE, ordinary_context, [username], MsgType.MAIL)
-            # CmsiHandler(REMIND_TITLE, ordinary_context, [username]).send_msg(MsgType.MAIL.value, context=None)
+        try:
+            if MsgType.RTX.value in send_types:
+                send_msg(REMIND_TITLE, ordinary_context, [username], MsgType.RTX)
+            if MsgType.MAIL.value in send_types:
+                send_msg(REMIND_TITLE, ordinary_context, [username], MsgType.MAIL)
+
+        except Exception as e:
+            logger.error("send todo remind error: {}".format(e))
