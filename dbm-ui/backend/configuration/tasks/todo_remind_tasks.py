@@ -17,7 +17,7 @@ from blueapps.account.models import User
 from celery import shared_task
 from django.db.models import Count, Q
 from django.utils import timezone
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components import BKMonitorV3Api
