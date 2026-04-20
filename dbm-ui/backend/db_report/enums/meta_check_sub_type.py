@@ -64,3 +64,4 @@ class MetaCheckSubType(StrStructuredEnum):
     TenDBClusterCLBRSNotMatchMeta = EnumField("tendbcluster_clb_rs_not_match_meta", _("TenDBCluster CLB 后端与元数据不一致"))
     MachineSpectEmpty = EnumField("machine_spec_empty", _("机器规格为空"))
     MultiSpecInGroup = EnumField("multi_spec_in_group", _("同组机器存在多个规格"))
+    NoStandbyMaster = EnumField("no_standby_master", _("master stand_by异常"))

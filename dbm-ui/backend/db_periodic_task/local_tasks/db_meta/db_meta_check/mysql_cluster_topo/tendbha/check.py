@@ -33,6 +33,7 @@ from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_to
     _cluster_proxy_count,
     cluster_instance_status,
     cluster_master_entry_count,
+    cluster_master_standby,
     cluster_master_status,
     cluster_one_master,
     cluster_one_standby_slave,
@@ -101,5 +102,7 @@ def health_check(cluster_id: int) -> List[CheckResponse]:
     res.extend(cluster_replicate_out(cluster_obj))
     # spec check
     res.extend(cluster_machine_spec(cluster_obj))
+
+    res.extend(cluster_master_standby(cluster_obj))
 
     return res

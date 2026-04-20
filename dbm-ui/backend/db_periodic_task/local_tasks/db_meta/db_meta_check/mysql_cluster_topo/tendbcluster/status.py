@@ -16,6 +16,9 @@ from backend.db_meta.enums import InstanceInnerRole, InstancePhase, InstanceStat
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.check_response import CheckResponse
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.decorator import checker_wrapper
+from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbha.status import (
+    cluster_master_standby,
+)
 from backend.db_report.enums import MetaCheckSubType
 
 
@@ -99,3 +102,11 @@ def _cluster_one_standby_slave_each_shard(c: Cluster) -> List[CheckResponse]:
                 )
 
     return bad
+
+
+@checker_wrapper
+def _cluster_master_standby_each_shard(c: Cluster) -> List[CheckResponse]:
+    """
+    每个 shard 的 master 都是 standby
+    """
+    return cluster_master_standby(c)
