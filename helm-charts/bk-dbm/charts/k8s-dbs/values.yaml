@@ -41,6 +41,10 @@ containerPorts:
 
 # @section dbs 服务配置
 server:
+  clbApiConfig:
+    clbApiURL: ""          # clb 服务调用地址
+    username: ""           # 管理人员
+    backupUsername: ""     # 备份管理人员
   dbmConfig:
     asyncToDbm: "true"
     syncDataApiUrl: ""          # 内部直连地址（同步用）
