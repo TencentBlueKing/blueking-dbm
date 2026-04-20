@@ -395,7 +395,7 @@ func (w *Workflow) popAndSwitchForBiz(ctx context.Context, bizId int) {
 		})
 	}
 
-	wait := safe.GoWait(failureGroupFns,
+	wait := safe.GoWaits(failureGroupFns,
 		safe.WithLabel("popAndSwitchForBiz"), safe.WithOnPanic(func(pi safe.PanicInfo) {
 			logger.Error("panic in popAndSwitchForBiz, bizId: %d, errmsg: %v", bizId, pi.Reason)
 		}))

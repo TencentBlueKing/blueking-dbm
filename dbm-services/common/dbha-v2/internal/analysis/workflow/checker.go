@@ -154,7 +154,7 @@ func (c *BusinessChecker) RunBusinessChecks(
 		func() { c.CheckDbStatus(statusData.DbStatusVals, checkDbEventFunc) },
 	}
 
-	wait := safe.GoWait(fns,
+	wait := safe.GoWaits(fns,
 		safe.WithLabel("RunBusinessChecks"), safe.WithOnPanic(func(pi safe.PanicInfo) {
 			logger.Error("panic in business check sub-task, bizId: %d, errmsg: %v", bizId, pi.Reason)
 		}))
