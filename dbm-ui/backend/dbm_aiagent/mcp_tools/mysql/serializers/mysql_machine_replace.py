@@ -11,10 +11,12 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.flow.consts import MySQLBackupTypeEnum
+
+class SubmitBillMySQLMachineReplaceSerializer:
+    cluster_domains = serializers.ListField(child=serializers.CharField(), help_text=_("域名列表"))
+    ips = serializers.ListField(child=serializers.CharField(), help_text=_("待替换 ip 列表"))
 
 
-class SubmitBillMySQLFullBackupInputSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务 id, bk_biz_id"))
-    cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    backup_type = serializers.ChoiceField(choices=MySQLBackupTypeEnum.get_choices(), help_text=_("备份类型"))
+class SubmitBillTenDBClusterMachineReplaceSerializer:
+    cluster_domain = serializers.CharField(help_text=_("域名列表"))
+    ips = serializers.ListField(child=serializers.CharField(), help_text=_("待替换 ip 列表"))

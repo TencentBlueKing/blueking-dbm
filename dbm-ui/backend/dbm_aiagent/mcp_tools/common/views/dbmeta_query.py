@@ -13,6 +13,7 @@ import logging
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
+from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterType
 from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_bizs
 from backend.dbm_aiagent.mcp_tools.common.impl.list_biz_clusters import list_biz_clusters
@@ -34,6 +35,7 @@ from backend.dbm_aiagent.mcp_tools.common.serializers.list_dbmodule import (
 )
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
+from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpUsernameNotFoundException
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
@@ -95,6 +97,15 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
         cluster_domains = self.get_param("cluster_domains")
         ips = self.get_param("ips")
         instances = self.get_param("instances")
+
+        username = request.user.username
+        if not username:
+            raise DBMMcpUsernameNotFoundException()
+
+        if DBAdministrator.is_dba(username):
+            pass
+        else:
+            pass
 
         if not (ips or instances or cluster_domains):
             raise Exception("ips, instances, cluster_domains at least one")
