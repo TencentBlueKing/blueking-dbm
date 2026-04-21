@@ -1235,12 +1235,6 @@ class MonitorPolicy(AuditedModel):
             .values_list("id", flat=True)
             .distinct()
         )
-        result["detects_config"] = {
-            "trigger_config": details["detects"][0]["trigger_config"],
-            "recovery_config": details["detects"][0]["recovery_config"],
-        }
-
-        result["no_data_config"] = details["items"][0]["no_data_config"]
 
         result["detects_config"] = {
             "trigger_config": details["detects"][0]["trigger_config"],
