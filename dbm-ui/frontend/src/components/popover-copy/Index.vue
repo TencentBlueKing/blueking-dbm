@@ -85,6 +85,8 @@
   }
 
   .dbm-popover-copy-panel {
+    padding: 5px 9px;
+
     & > * {
       position: relative;
       display: inline-block;
