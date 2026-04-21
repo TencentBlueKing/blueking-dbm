@@ -56,6 +56,7 @@ type ClusterOperationLogResponse struct {
 	RequestTypeAlias string                 `json:"requestTypeAlias"`
 	RequestParams    string                 `json:"requestParams"`
 	Status           string                 `json:"status"`
+	TicketID         *uint64                `json:"ticketId"`
 	Description      string                 `json:"description"`
 	CreatedBy        string                 `json:"createdBy"`
 	CreatedAt        commtypes.JSONDatetime `json:"createdAt"`
@@ -76,6 +77,7 @@ func (k ClusterOperationLogResponse) MarshalJSON() ([]byte, error) {
 		"requestTypeAlias": k.RequestTypeAlias,
 		"requestParams":    k.RequestParams,
 		"status":           k.Status,
+		"ticketId":         k.TicketID,
 		"description":      k.Description,
 		"createdBy":        k.CreatedBy,
 		"createdAt":        k.CreatedAt,

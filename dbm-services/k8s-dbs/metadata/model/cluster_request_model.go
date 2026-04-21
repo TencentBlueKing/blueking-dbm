@@ -34,6 +34,7 @@ type ClusterRequestRecordModel struct {
 	RequestType    string                 `gorm:"size:50;not null;column:request_type" json:"requestType"`
 	RequestParams  string                 `gorm:"type:text;column:request_params" json:"requestParams"`
 	Status         string                 `gorm:"size:32;column:status" json:"status"`
+	TicketID       *uint64                `gorm:"column:ticket_id" json:"ticketId"`
 	Description    string                 `gorm:"size:100;column:description" json:"description"`
 	CreatedBy      string                 `gorm:"size:50;not null;column:created_by" json:"createdBy"`
 	CreatedAt      commtypes.JSONDatetime `gorm:"type:timestamp;not null;default:CURRENT_TIMESTAMP;column:created_at" json:"createdAt"` //nolint:lll
