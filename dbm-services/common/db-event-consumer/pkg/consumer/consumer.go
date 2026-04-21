@@ -89,7 +89,7 @@ func (s *AnySinker) ConsumeClaim(session sarama.ConsumerGroupSession, claim sara
 			if len(msgs) > 0 {
 				if err := s.HandleMessageTryBatch(msgs, s.Sinker); err != nil {
 					slog.Error("handle message batch",
-						slog.Any("error", err), slog.String("model", s.modelType.Name()))
+						slog.Any("error", err), slog.String("table", s.Sinker.RuntimeConfig.ModelTable))
 				} else {
 					session.MarkMessage(msgs[len(msgs)-1], "")
 				}
@@ -104,7 +104,7 @@ func (s *AnySinker) ConsumeClaim(session sarama.ConsumerGroupSession, claim sara
 			if len(msgs) >= BatchSize {
 				if err := s.HandleMessageTryBatch(msgs, s.Sinker); err != nil {
 					slog.Error("handle message batch",
-						slog.Any("error", err), slog.String("model", s.modelType.Name()))
+						slog.Any("error", err), slog.String("table", s.Sinker.RuntimeConfig.ModelTable))
 					time.Sleep(200 * time.Millisecond)
 				} else {
 					session.MarkMessage(message, "")
