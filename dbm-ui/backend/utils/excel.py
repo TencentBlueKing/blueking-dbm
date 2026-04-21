@@ -117,6 +117,7 @@ class ExcelHandler:
         match_header: bool = False,
         extra_headers: List[str] = None,
         style_ref_col: int = 2,
+        auto_fit: bool = False,
     ):
         """
         - 处理excel对象数据写入单元格
@@ -129,6 +130,7 @@ class ExcelHandler:
         :param match_header: 数据是否匹配表头，如果为True，则根据 header 严格匹配列名，若不存在，则在该 cell 填充空
         :param extra_headers: 需要在模板表头末尾追加的额外列名列表（仅在使用template时生效），自动复制参考列的样式
         :param style_ref_col: 追加列时用于复制样式的参考列号（1-based），默认为2
+        :param auto_fit: 是否自适应调整行高和列宽，默认为False
         """
 
         first_data_row: int = 2
@@ -177,7 +179,8 @@ class ExcelHandler:
                     sheet.cell(row + first_data_row, col + 1, cls._clean_illegal_char(value))
 
         # 自适应设置行高和列宽
-        cls._adapt_sheet_weight_height(sheet=sheet, first_header_row=first_data_row - 1)
+        if auto_fit:
+            cls._adapt_sheet_weight_height(sheet=sheet, first_header_row=first_data_row - 1)
         return wb
 
     @classmethod
@@ -191,6 +194,7 @@ class ExcelHandler:
         sheet_name: str = None,
         extra_headers: List[str] = None,
         style_ref_col: int = 2,
+        auto_fit: bool = False,
     ) -> Workbook:
         """
         - 将数据字典序列化为excel对象
@@ -201,6 +205,7 @@ class ExcelHandler:
         :param match_header: 数据是否匹配表头，如果为True，则根据 header 严格匹配列名，若不存在，则在该 cell 填充空
         :param extra_headers: 需要在模板表头末尾追加的额外列名列表（仅在使用template时生效）
         :param style_ref_col: 追加列时用于复制样式的参考列号（1-based），默认为2
+        :param auto_fit: 是否自适应调整行高和列宽，默认为False
         """
 
         wb: Workbook = Workbook()
@@ -208,7 +213,16 @@ class ExcelHandler:
         if sheet_name:
             sheet.title = sheet_name
         wb = cls.serialize_handler(
-            data_dict__list, wb, sheet, template, headers, header_style, match_header, extra_headers, style_ref_col
+            data_dict__list,
+            wb,
+            sheet,
+            template,
+            headers,
+            header_style,
+            match_header,
+            extra_headers,
+            style_ref_col,
+            auto_fit,
         )
 
         return wb
