@@ -211,6 +211,7 @@
   import ClusterShrink from '@views/db-manage/kafka/common/shrink/Index.vue';
 
   interface Props {
+    activePanel: string;
     clusterData: KafkaDetailModel;
   }
 
@@ -240,12 +241,19 @@
   const fetchClusterMachineList = useClusterMachineList(ClusterTypes.KAFKA);
 
   const hostTableRef = ref<InstanceType<typeof DbTable>>();
-  const { quickSearchData, quickSearchValue } = useHostSearchSelect(ClusterTypes.KAFKA, {
+  const { initQuickSearchValue, quickSearchData, quickSearchValue } = useHostSearchSelect(ClusterTypes.KAFKA, {
     clusterId: props.clusterData.id,
     serviceHandler: () => {
       fetchData();
     },
   });
+
+  watch(
+    () => props.activePanel,
+    () => {
+      initQuickSearchValue();
+    },
+  );
 
   const dataSource = (params: Parameters<typeof fetchClusterMachineList>[0]) =>
     fetchClusterMachineList({
