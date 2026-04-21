@@ -35,6 +35,8 @@ import (
 
 const createClbPath = "/ops/create_clb"
 
+const getClbInfoPath = "/ops/get_clb"
+
 // ClbAPIService CLB API 服务，用于调用 bk-base 的 CLB 创建接口
 type ClbAPIService struct {
 	clbAPIURL      string // CLB 创建接口域名，来自环境变量 BKBASE_CLB_API_URL
@@ -85,9 +87,8 @@ func (c *ClbAPIService) CreateClb(request *infreq.CreateClbRequest) (string, err
 		return "", fmt.Errorf("BKBASE_CLB_API_URL 未配置，无法创建 CLB")
 	}
 
-	url := c.buildCreateClbURL()
+	url := c.buildURL(createClbPath)
 
-	// 构造完整请求，包含从环境变量加载的 username 和 backup_username
 	reqData := map[string]interface{}{
 		"region":          request.Region,
 		"vpc_id":          request.VpcID,
@@ -107,7 +108,7 @@ func (c *ClbAPIService) CreateClb(request *infreq.CreateClbRequest) (string, err
 		return "", fmt.Errorf("创建 CLB 返回非 2xx (status=%d): %s", resp.StatusCode(), body)
 	}
 
-	var clbResp infresp.ClbAPIResponse
+	var clbResp infresp.CreateClbAPIResponse
 	if err := util.BaseHTTPClient.ParseResponse(resp, &clbResp); err != nil {
 		return "", errors.Wrap(err, "创建 CLB 响应解析失败")
 	}
@@ -140,10 +141,60 @@ func (c *ClbAPIService) CreateClb(request *infreq.CreateClbRequest) (string, err
 	return clbID, nil
 }
 
-// buildCreateClbURL 构建创建 CLB 的完整 URL
-func (c *ClbAPIService) buildCreateClbURL() string {
-	if strings.HasPrefix(c.clbAPIURL, "http://") || strings.HasPrefix(c.clbAPIURL, "https://") {
-		return c.clbAPIURL + createClbPath
+// GetClb 获取 CLB
+func (c *ClbAPIService) GetClb(request *infreq.GetClbRequest) (*infresp.GetClbAPIResponse, error) {
+	if c.clbAPIURL == "" {
+		return nil, fmt.Errorf("BKBASE_CLB_API_URL 未配置，无法创建 CLB")
 	}
-	return fmt.Sprintf("https://%s%s", c.clbAPIURL, createClbPath)
+
+	url := c.buildURL(getClbInfoPath)
+
+	reqData := map[string]interface{}{
+		"region":          request.Region,
+		"clb_ids":         request.ClbIDs,
+		"username":        c.username,
+		"backup_username": c.backupUsername,
+	}
+
+	resp, err := util.BaseHTTPClient.PostWithResponse(url, reqData, nil)
+	if err != nil {
+		return nil, errors.Wrap(err, "获取 CLB 信息失败")
+	}
+
+	if resp.StatusCode() < 200 || resp.StatusCode() >= 300 {
+		body := truncateBody(resp.String(), 200)
+		return nil, fmt.Errorf("获取 CLB 返回非 2xx (status=%d): %s", resp.StatusCode(), body)
+	}
+
+	var clbResp infresp.GetClbAPIResponse
+	if err := util.BaseHTTPClient.ParseResponse(resp, &clbResp); err != nil {
+		return nil, errors.Wrap(err, "获取 CLB 响应解析失败")
+	}
+
+	if !clbResp.Result {
+		slog.Error("获取 CLB 失败",
+			"code", clbResp.Code,
+			"message", clbResp.Message,
+			"errors", clbResp.Errors,
+			"clb_ids", request.ClbIDs,
+		)
+		return nil, fmt.Errorf("获取 CLB 失败 [%s]: %s", clbResp.Code, clbResp.Message)
+	}
+
+	if len(clbResp.Data) == 0 {
+		slog.Error("获取 CLB 返回空列表",
+			"code", clbResp.Code,
+			"clb_ids", request.ClbIDs,
+		)
+		return nil, fmt.Errorf("获取 CLB 返回空列表 [%s]", clbResp.Code)
+	}
+
+	return &clbResp, nil
+}
+
+func (c *ClbAPIService) buildURL(path string) string {
+	if strings.HasPrefix(c.clbAPIURL, "http://") || strings.HasPrefix(c.clbAPIURL, "https://") {
+		return c.clbAPIURL + path
+	}
+	return fmt.Sprintf("https://%s%s", c.clbAPIURL, path)
 }

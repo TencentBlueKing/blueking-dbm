@@ -19,11 +19,30 @@ limitations under the License.
 
 package response
 
-// ClbAPIResponse CLB API 创建响应
-type ClbAPIResponse struct {
+// CreateClbAPIResponse CLB API 创建响应
+type CreateClbAPIResponse struct {
 	Result  bool        `json:"result"`
-	Data    []string    `json:"data"`
+	Data    []string    `json:"data"` // 返回 clb_id列表
 	Code    string      `json:"code"`
 	Message string      `json:"message"`
 	Errors  interface{} `json:"errors"`
+}
+
+// GetClbAPIResponse CLB API 获取响应
+type GetClbAPIResponse struct {
+	Result  bool        `json:"result"`
+	Data    []ClbItem   `json:"data"`
+	Code    string      `json:"code"`
+	Message string      `json:"message"`
+	Errors  interface{} `json:"errors"`
+}
+
+// ClbItem CLB 信息
+type ClbItem struct {
+	LoadBalancerID   string   `json:"LoadBalancerId"`
+	LoadBalancerName string   `json:"LoadBalancerName"`
+	LoadBalancerType string   `json:"LoadBalancerType"`
+	LoadBalancerVips string   `json:"LoadBalancerVips"`
+	VpcID            string   `json:"VpcId"`
+	Zones            []string `json:"Zones"`
 }
