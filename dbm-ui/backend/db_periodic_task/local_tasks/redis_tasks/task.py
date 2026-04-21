@@ -48,7 +48,7 @@ def redis_backend_data_skew_check_task():
     CheckBackendDataSkewTask().start()
 
 
-@register_periodic_task(run_every=crontab(minute=5, hour=0))
+@register_periodic_task(run_every=crontab(minute=30, hour=9))
 def redis_agent_alarm_daily_domain_cache_build_task():
     """Build daily alert-domain cache for Redis agent checks. Runs once a day."""
     check_tasks = [CheckClusterCapacityGrowthTask, CheckBackendLoadSkewTask, CheckBackendDataSkewTask]
@@ -56,6 +56,7 @@ def redis_agent_alarm_daily_domain_cache_build_task():
         task_instance = task_cls()
         config = task_instance.config
         if not config.enabled or not config.priority_alarm_names:
+            logger.info("%s: disabled or no priority alarm names", task_cls.__name__)
             continue
 
         try:

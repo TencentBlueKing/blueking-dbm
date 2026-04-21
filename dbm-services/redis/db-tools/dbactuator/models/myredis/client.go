@@ -1148,8 +1148,9 @@ func (db *RedisClient) ConfigRewrite() (string, error) {
 	}
 	needSaveWorkaround, err = db.needSaveConfigRewriteWorkaround()
 	if err != nil {
-		mylog.Logger.Warn("check redis(%s) version for config rewrite workaround failed,err:%v,apply workaround", db.Addr, err)
-		needSaveWorkaround = true
+		// 无法确认是否为受影响的 Redis 版本时, 不冒险改动本地配置文件, 避免误伤同机器其它实例.
+		mylog.Logger.Warn("check redis(%s) version for config rewrite workaround failed,err:%v,skip workaround", db.Addr, err)
+		needSaveWorkaround = false
 	}
 	if needSaveWorkaround {
 		saveMap, err := db.ConfigGet("save")
@@ -1192,13 +1193,21 @@ func (db *RedisClient) ConfigRewrite() (string, error) {
 }
 
 func (db *RedisClient) needSaveConfigRewriteWorkaround() (bool, error) {
+	if consts.IsTendisplusInstanceDbType(db.DbType) || consts.IsTendisSSDInstanceDbType(db.DbType) {
+		mylog.Logger.Info("dbType:%s is tendisplus/tendisSSD,skip save config workaround,addr:%s",
+			db.DbType, db.Addr)
+		return false, nil
+	}
 	infoMap, err := db.Info("server")
 	if err != nil {
 		return false, err
 	}
 	redisVersion, ok := infoMap["redis_version"]
 	if !ok || redisVersion == "" {
-		return false, fmt.Errorf("redis_version not found in info server,addr:%s", db.Addr)
+		// 非 Redis 实例 (例如 predixy/twemproxy 等 proxy) 的 INFO 里不会有 redis_version 字段.
+		// 该 workaround 只针对 Redis < 6.2.2 的 CONFIG REWRITE bug, 对 proxy 不适用, 跳过即可.
+		mylog.Logger.Info("redis_version not found in info server,skip save config workaround,addr:%s", db.Addr)
+		return false, nil
 	}
 	return needSaveConfigRewriteWorkaroundByVersion(redisVersion)
 }
@@ -1232,11 +1241,24 @@ func formatSaveConfigValue(saveValue string) string {
 }
 
 func (db *RedisClient) ensureSaveConfigInConfFile(saveValue string) (err error) {
-	_, port, err := util.AddrToIpPort(db.Addr)
+	ip, port, err := util.AddrToIpPort(db.Addr)
 	if err != nil {
 		err = fmt.Errorf("parse redis addr(%s) failed,err:%v", db.Addr, err)
 		mylog.Logger.Error(err.Error())
 		return err
+	}
+
+	// ConfigRewrite 可能在非目标 redis 所在机器上执行
+	// 只有当目标 redis 就在本机时才去修改本地 redis.conf
+	localIP, lerr := util.GetLocalIP()
+	if lerr != nil {
+		mylog.Logger.Warn("get local ip failed,skip save config workaround,addr:%s,err:%v", db.Addr, lerr)
+		return nil
+	}
+	if localIP != ip {
+		mylog.Logger.Warn("localIP:%s redisIP:%s not equal,skip save config workaround,addr:%s",
+			localIP, ip, db.Addr)
+		return nil
 	}
 
 	confFile := filepath.Join(consts.GetRedisDataDir(), "redis", strconv.Itoa(port), "redis.conf")
@@ -1245,6 +1267,14 @@ func (db *RedisClient) ensureSaveConfigInConfFile(saveValue string) (err error) 
 		if err != nil {
 			return err
 		}
+	}
+	// 匹配 save 后紧跟至少一个空白
+	sedCmd := fmt.Sprintf("sed -i -e '/^[Ss][Aa][Vv][Ee][[:space:]]\\+/d' %s", confFile)
+	mylog.Logger.Info(sedCmd)
+	if _, err = util.RunBashCmd(sedCmd, "", nil, 10*time.Second); err != nil {
+		err = fmt.Errorf("clean existing save lines in %s failed,err:%v,addr:%s", confFile, err, db.Addr)
+		mylog.Logger.Error(err.Error())
+		return err
 	}
 	saveValue = formatSaveConfigValue(saveValue)
 	err = util.SaveKvToConfigFile(confFile, "save", saveValue)

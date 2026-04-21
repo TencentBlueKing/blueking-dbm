@@ -217,6 +217,10 @@ class RedisExerciseFlowRunnerService(RedisLogCapturingService):
 
         if child_state in (StateType.FAILED, StateType.REVOKED):
             self.log_error(_("Child pipeline {} ended with status {}").format(child_root_id, child_state))
+            # FAILED means the pipeline errored out but sibling/pending nodes may still be running.
+            # Revoke to ensure the whole tree is terminated. REVOKED is already terminal, skip.
+            if child_state == StateType.FAILED:
+                self._terminate_child_pipeline(child_root_id)
             self._set_result(data, 1)
             self.finish_schedule()
             return True
