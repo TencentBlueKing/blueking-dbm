@@ -31,10 +31,14 @@ def ticket_list(
     statuses: List[TicketStatus],
     time_duration: timedelta,
 ):
-    q = Q(**{"bk_biz_id": bk_biz_id, "create_at__gte": timezone.now() - time_duration})
+    q = Q(**{"create_at__gte": timezone.now() - time_duration})
+
+    if bk_biz_id:
+        q &= Q(**{"bk_biz_id": bk_biz_id})
 
     if ticket_ids:
         q &= Q(**{"pk__in": ticket_ids})
+
     if statuses:
         q &= Q(**{"status__in": statuses})
 

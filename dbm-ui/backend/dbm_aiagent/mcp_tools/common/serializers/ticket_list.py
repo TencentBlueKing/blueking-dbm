@@ -17,11 +17,13 @@ from backend.ticket.constants import TicketStatus, TicketType
 
 
 class TicketListInputSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"))
-    # ticket_types = serializers.ListField(child=serializers.ChoiceField(choices=TicketType.get_choices()),
-    #                                    help_text=_("单据类型"), default=[])
-    ticket_ids = serializers.ListField(child=serializers.IntegerField(), help_text=_("单据 ID"), default=[])
-    cluster_domains = serializers.ListField(child=serializers.CharField(), help_text=_("集群域名"), default=[])
+    bk_biz_id = serializers.IntegerField(help_text=_("业务 ID"), default=None, required=False)
+    ticket_ids = serializers.ListField(
+        child=serializers.IntegerField(), help_text=_("单据 ID"), default=[], required=False
+    )
+    cluster_domains = serializers.ListField(
+        child=serializers.CharField(), help_text=_("集群域名"), default=[], required=False
+    )
     statuses = serializers.ListField(
         child=serializers.ChoiceField(choices=TicketStatus.get_choices()), help_text=_("单据状态"), default=[]
     )
