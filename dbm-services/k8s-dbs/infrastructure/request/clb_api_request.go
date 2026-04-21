@@ -26,3 +26,9 @@ type CreateClbRequest struct {
 	ClbName string `json:"clb_name"`
 	ClbNums int    `json:"clb_nums"`
 }
+
+// GetClbRequest 获取 CLB 请求
+type GetClbRequest struct {
+	Region string   `json:"region"`
+	ClbIDs []string `json:"clb_ids"`
+}
