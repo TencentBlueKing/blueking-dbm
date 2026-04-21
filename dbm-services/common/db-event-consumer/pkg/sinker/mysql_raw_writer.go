@@ -68,6 +68,16 @@ func (w *MysqlRawWriter) AutoMigrate(m interface{}) error {
 // WriteBatch goframe 版本，支持 replace 语义
 func (w *MysqlRawWriter) WriteBatch(table interface{}, models interface{}) error {
 	var err error
+
+	objs := models.([]map[string]interface{})
+	if err = w.writeDbUsingMapWithSqlBuilderBatch(table, objs); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (w *MysqlRawWriter) WriteBatchWithGdb(table interface{}, models interface{}) error {
+	var err error
 	if !w.dbWithModel {
 		w.session = w.db.Model(table)
 		w.dbWithModel = true
@@ -87,8 +97,8 @@ func (w *MysqlRawWriter) WriteBatch(table interface{}, models interface{}) error
 	return err
 }
 
-// WriteBatch2 把 struct 都转成 map 处理
-func (w *MysqlRawWriter) WriteBatch2(table interface{}, models interface{}) error {
+// WriteBatchWithSqlBuilder 把 struct 都转成 map 处理
+func (w *MysqlRawWriter) WriteBatchWithSqlBuilder(table interface{}, models interface{}) error {
 	var err error
 	var objs []map[string]interface{}
 	sliceValue := reflect.Indirect(reflect.ValueOf(models))
@@ -128,7 +138,7 @@ func (w *MysqlRawWriter) WriteBatch2(table interface{}, models interface{}) erro
 	return nil
 }
 
-// writeDbUsingMapWithSqlBuilderBatch use sql builder to generate sql
+// writeDbUsingMapWithSqlBuilderBatch use sql builder to generate sql from struct
 func (w *MysqlRawWriter) writeDbUsingMapWithSqlBuilderBatch(table interface{}, objs []map[string]interface{}) error {
 	t, ok := table.(schema.Tabler)
 	if !ok {
@@ -152,16 +162,17 @@ func (w *MysqlRawWriter) writeDbUsingMapWithSqlBuilderBatch(table interface{}, o
 	if err != nil {
 		return err
 	}
-	if _, err = w.db.Exec(context.Background(), sqlFull); err != nil {
+	// 	if _, err = w.db.Exec(context.Background(), sqlFull); err != nil {
+	if _, err = w.DB().ExecContext(context.Background(), sqlFull); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// writeDbUsingMapWithSqlBuilder use sql builder to generate sql
+// writeDbUsingMapWithSqlBuilderOne use sql builder to generate sql from struct
 // insert one by one
-func (w *MysqlRawWriter) writeDbUsingMapWithSqlBuilder(table interface{}, objs []map[string]interface{}) error {
+func (w *MysqlRawWriter) writeDbUsingMapWithSqlBuilderOne(table interface{}, objs []map[string]interface{}) error {
 	t, ok := table.(schema.Tabler)
 	if !ok {
 		return errors.Errorf("Cannot find TableName() for table %v", table)
