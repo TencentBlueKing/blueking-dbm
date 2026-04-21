@@ -207,6 +207,7 @@
   import useClusterMachineList from '@views/db-manage/hooks/useClusterMachineList';
 
   interface Props {
+    activePanel: string;
     clusterData: HdfsDetailModel;
   }
 
@@ -217,12 +218,19 @@
   const { copyAllIp, copyNotAliveIp } = useCopyMachineIp();
 
   const hostTableRef = ref<InstanceType<typeof DbTable>>();
-  const { quickSearchData, quickSearchValue } = useHostSearchSelect(ClusterTypes.HDFS, {
+  const { initQuickSearchValue, quickSearchData, quickSearchValue } = useHostSearchSelect(ClusterTypes.HDFS, {
     clusterId: props.clusterData.id,
     serviceHandler: () => {
       fetchData();
     },
   });
+
+  watch(
+    () => props.activePanel,
+    () => {
+      initQuickSearchValue();
+    },
+  );
 
   const dataSource = (params: Parameters<typeof fetchClusterMachineList>[0]) =>
     fetchClusterMachineList({

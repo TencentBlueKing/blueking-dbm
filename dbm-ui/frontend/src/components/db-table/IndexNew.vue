@@ -502,8 +502,8 @@
 
       &::after {
         position: absolute;
-        top: 2px;
-        left: 5px;
+        top: 1px;
+        left: 4px;
         width: 4px;
         height: 8px;
         border: 2px solid #3a84ff;
