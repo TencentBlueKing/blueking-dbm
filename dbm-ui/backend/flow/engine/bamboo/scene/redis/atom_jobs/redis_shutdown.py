@@ -44,6 +44,7 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
             "ports":[],
             "force_shutdown":False,
             "skip_connections_check":False,
+            "skip_dbmon_uninstall":False,  # 演练场景：dbmon从未安装，跳过重装/卸载监控步骤
         }
     """
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
@@ -105,15 +106,17 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
     act_kwargs.cluster["bk_biz_id"] = cluster_bk_biz_id  # 仅针对机器元数据操作修改 bk_biz_id
 
     # 停监控
-    act_kwargs.cluster["ip"] = exec_ip
-    act_kwargs.cluster["bk_biz_id"] = str(act_kwargs.cluster["bk_biz_id"])
-    act_kwargs.cluster["bk_cloud_id"] = act_kwargs.bk_cloud_id
-    act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
-    sub_pipeline.add_act(
-        act_name=_("重装监控-{}").format(exec_ip),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(act_kwargs),
-    )
+    # 演练场景下 dbmon 从未安装，无需重装/卸载监控
+    if not shutdown_param.get("skip_dbmon_uninstall", False):
+        act_kwargs.cluster["ip"] = exec_ip
+        act_kwargs.cluster["bk_biz_id"] = str(act_kwargs.cluster["bk_biz_id"])
+        act_kwargs.cluster["bk_cloud_id"] = act_kwargs.bk_cloud_id
+        act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
+        sub_pipeline.add_act(
+            act_name=_("重装监控-{}").format(exec_ip),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
 
     # 从集群踢掉
     if act_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster:

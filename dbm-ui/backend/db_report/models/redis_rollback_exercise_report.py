@@ -146,6 +146,7 @@ class RedisRollbackExerciseReport(BaseReportABS):
             match stage:
                 case (
                     TaskStage.SKIPPED
+                    | TaskStage.BACKUP_INVALID
                     | TaskStage.TICKET_GEN_FAILED
                     | TaskStage.RESOURCE_APPLI_FAILED
                     | TaskStage.CLEANUP_FAILED
