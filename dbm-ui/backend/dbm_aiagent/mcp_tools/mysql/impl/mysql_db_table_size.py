@@ -20,12 +20,40 @@ from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
 
 logger = logging.getLogger("root")
 
+DEFAULT_DATABASE_SIZE_LIMIT = 20
+DEFAULT_TABLE_SIZE_LIMIT = 50
+
+
+def _apply_capacity_filters(
+    items: List[Dict],
+    size_field: str,
+    name_field: str,
+    limit: Optional[int],
+    top_n: Optional[int],
+    min_size_bytes: Optional[int],
+    default_limit: int,
+) -> List[Dict]:
+    """先按 min_size_bytes 过滤；若指定 top_n 则按 size 降序取前 top_n；否则按 name 字典序再按 limit 截取。"""
+    if min_size_bytes is not None:
+        items = [x for x in items if x.get(size_field, 0) >= min_size_bytes]
+
+    if top_n is not None:
+        items = sorted(items, key=lambda x: -int(x.get(size_field) or 0))
+        return items[:top_n]
+
+    items = sorted(items, key=lambda x: str(x.get(name_field) or ""))
+    eff_limit = limit if limit is not None else default_limit
+    return items[:eff_limit]
+
 
 def query_database_size(
     cluster_domain: str,
     instance_role: str,
     database_names: List[str],
     base_time: Optional[timezone.datetime] = None,
+    limit: Optional[int] = None,
+    top_n: Optional[int] = None,
+    min_size_bytes: Optional[int] = None,
 ) -> Dict:
     """查询某些 databases 的大小
 
@@ -87,6 +115,16 @@ def query_database_size(
 
         result.append(item)
 
+    result = _apply_capacity_filters(
+        result,
+        size_field="database_size",
+        name_field="database_name",
+        limit=limit,
+        top_n=top_n,
+        min_size_bytes=min_size_bytes,
+        default_limit=DEFAULT_DATABASE_SIZE_LIMIT,
+    )
+
     return {
         "cluster_domain": cluster_domain,
         "instance_role": instance_role,
@@ -100,7 +138,9 @@ def query_table_size(
     database_name: str,
     table_names: List[str],
     base_time: Optional[timezone.datetime] = None,
-    limit=50,
+    limit: Optional[int] = None,
+    top_n: Optional[int] = None,
+    min_size_bytes: Optional[int] = None,
 ) -> Dict:
     """查询某些表的大小
 
@@ -155,8 +195,16 @@ def query_table_size(
             item["dteventtimehour"] = str(item["dteventtimehour"])
 
         result.append(item)
-        if len(result) >= limit:
-            break
+
+    result = _apply_capacity_filters(
+        result,
+        size_field="table_size",
+        name_field="table_name",
+        limit=limit,
+        top_n=top_n,
+        min_size_bytes=min_size_bytes,
+        default_limit=DEFAULT_TABLE_SIZE_LIMIT,
+    )
 
     return {
         "cluster_domain": cluster_domain,

@@ -39,7 +39,9 @@ class MySQLTableCapacityMcpToolsViewSet(McpToolsViewSet):
                 "查询 tendbsingle, tendbha, tendbcluster 集群中指定数据库的大小。"
                 "database_names 传 ['*'] 则查询所有数据库大小。"
                 "tendbcluster 集群会自动将各分片数据汇总，返回的是逻辑库的总大小。"
-                "返回的 database_size 单位是字节(bytes)"
+                "返回的 database_size 单位是字节(bytes)。"
+                "limit 按库名字典序截取（默认 20）；top_n 按库大小降序截取，与 limit 互斥；"
+                "min_size_bytes 可过滤掉小于该字节数的库。"
             )
         ),
         request_slz=DatabaseSizeInputSerializer,
@@ -55,6 +57,9 @@ class MySQLTableCapacityMcpToolsViewSet(McpToolsViewSet):
         instance_role = self.get_param("instance_role")
         database_names = self.get_param("database_names")
         base_time = self.get_param("base_time")
+        limit = self.get_param("limit")
+        top_n = self.get_param("top_n")
+        min_size_bytes = self.get_param("min_size_bytes")
 
         return Response(
             query_database_size(
@@ -62,6 +67,9 @@ class MySQLTableCapacityMcpToolsViewSet(McpToolsViewSet):
                 instance_role=instance_role,
                 database_names=database_names,
                 base_time=base_time,
+                limit=limit,
+                top_n=top_n,
+                min_size_bytes=min_size_bytes,
             )
         )
 
@@ -71,7 +79,9 @@ class MySQLTableCapacityMcpToolsViewSet(McpToolsViewSet):
                 "查询 tendbsingle, tendbha, tendbcluster 集群中指定数据库下某些表的大小。"
                 "table_names 传 ['*'] 则查询该库下所有表大小。"
                 "tendbcluster 集群会自动将各分片数据汇总，返回的是逻辑表的总大小。"
-                "返回的 table_size 单位是字节(bytes)"
+                "返回的 table_size 单位是字节(bytes)。"
+                "limit 按表名字典序截取（默认 50)；top_n 按表大小降序截取，与 limit 互斥；"
+                "min_size_bytes 可过滤掉小于该字节数的表。"
             )
         ),
         request_slz=TableSizeInputSerializer,
@@ -88,7 +98,9 @@ class MySQLTableCapacityMcpToolsViewSet(McpToolsViewSet):
         database_name = self.get_param("database_name")
         table_names = self.get_param("table_names")
         base_time = self.get_param("base_time")
-        limit = self.get_param("limit", 50)
+        limit = self.get_param("limit")
+        top_n = self.get_param("top_n")
+        min_size_bytes = self.get_param("min_size_bytes")
 
         return Response(
             query_table_size(
@@ -98,5 +110,7 @@ class MySQLTableCapacityMcpToolsViewSet(McpToolsViewSet):
                 table_names=table_names,
                 base_time=base_time,
                 limit=limit,
+                top_n=top_n,
+                min_size_bytes=min_size_bytes,
             )
         )
