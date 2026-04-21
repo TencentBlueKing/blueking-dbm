@@ -164,7 +164,9 @@ func (l *LogicalLoader) Execute() (err error) {
 		l.cnf.InitCommand += ";set global max_allowed_packet=1073741824"
 	}
 	if !strings.Contains(l.cnf.InitCommand, "sql_mode") {
-		l.cnf.InitCommand += fmt.Sprintf(";set sql_mode='%s'", l.metaInfo.SqlMode)
+		sqlModes := cmutil.SplitAnyRuneTrim(l.metaInfo.SqlMode, ",")
+		sqlModes = cmutil.RemoveDuplicate(append(sqlModes, "NO_AUTO_VALUE_ON_ZERO"))
+		l.cnf.InitCommand += fmt.Sprintf(";set sql_mode='%s'", strings.Join(sqlModes, ","))
 	}
 	if l.cnf.InitCommand != "" {
 		// https://github.com/mydumper/mydumper/blob/master/README.md#defaults-file

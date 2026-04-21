@@ -144,6 +144,11 @@ func (w *MysqlRawWriter) writeDbUsingMapWithSqlBuilderBatch(table interface{}, o
 	if !ok {
 		return errors.Errorf("Cannot find TableName() for table %v", table)
 	}
+	omittedKeys := []string{}
+	if omitted, ok := table.(base.ModelFieldOmit); ok {
+		omittedKeys = omitted.OmitFields()
+	}
+
 	builder := sb.NewInsertBuilder()
 	if w.writeMode == cst.ModeUpsert || w.writeMode == cst.ModeReplace {
 		builder.ReplaceInto(t.TableName())
@@ -151,6 +156,10 @@ func (w *MysqlRawWriter) writeDbUsingMapWithSqlBuilderBatch(table interface{}, o
 		builder.InsertIgnoreInto(t.TableName())
 	}
 	colNames := lo.Keys(objs[0])
+	// 如果有需要忽略的字段，则从列名中去掉
+	if len(omittedKeys) > 0 {
+		colNames = lo.Without(colNames, omittedKeys...)
+	}
 	builder.Cols(colNames...)
 	colValues := convertMapSliceToSliceSliceWithKeys(objs, colNames, w.dbParseTime)
 	for _, vals := range colValues {
@@ -177,6 +186,11 @@ func (w *MysqlRawWriter) writeDbUsingMapWithSqlBuilderOne(table interface{}, obj
 	if !ok {
 		return errors.Errorf("Cannot find TableName() for table %v", table)
 	}
+	omittedKeys := []string{}
+	if omitted, ok := table.(base.ModelFieldOmit); ok {
+		omittedKeys = omitted.OmitFields()
+	}
+	omittedKeySet := lo.Keyify(omittedKeys)
 	for _, obj := range objs {
 		builder := sb.NewInsertBuilder()
 		if w.writeMode == cst.ModeUpsert || w.writeMode == cst.ModeReplace {
@@ -188,6 +202,10 @@ func (w *MysqlRawWriter) writeDbUsingMapWithSqlBuilderOne(table interface{}, obj
 		var colNames []string
 		var colValues []interface{}
 		for colName, colValue := range obj {
+			// 如果有需要忽略的字段，则跳过
+			if _, ok := omittedKeySet[colName]; ok {
+				continue
+			}
 			colNames = append(colNames, colName)
 			if t, ok := colValue.(time.Time); ok && w.dbParseTime {
 				colValues = append(colValues, t.UTC())
