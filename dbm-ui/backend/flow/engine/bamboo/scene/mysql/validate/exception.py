@@ -46,3 +46,15 @@ class TenDBHAUpgradeParamCheckFailedException(FlowValidateBaseException):
     ERROR_CODE = "35006"
     MESSAGE = _("TenDBHA升级参数检查失败")
     MESSAGE_TPL = _("{message}")
+
+
+class ProxyRebuildDuplicateIPException(FlowValidateBaseException):
+    ERROR_CODE = "35007"
+    MESSAGE = _("集群proxy重建传入机器存在重复")
+    MESSAGE_TPL = _("{message}")
+
+
+class ProxyRebuildCountFailedException(FlowValidateBaseException):
+    ERROR_CODE = "35008"
+    MESSAGE = _("集群proxy重建机器数量非法")
+    MESSAGE_TPL = _("{message}")

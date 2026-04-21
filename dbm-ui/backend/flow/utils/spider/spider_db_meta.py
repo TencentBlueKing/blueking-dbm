@@ -135,6 +135,21 @@ class SpiderDBMeta(object):
         )
         return True
 
+    @classmethod
+    def modify_spider_nodes_meta(cls, cluster_id: int, spiders: list, op_status: InstanceStatus):
+        """
+        修改spider实例状态
+        @param cluster_id: 集群id
+        @param spiders: 需要修改状态的spider列表
+        @param op_status: 需要修改的状态
+        """
+        TenDBClusterClusterHandler.modify_spider_status(
+            cluster_id=cluster_id,
+            replace_spiders=spiders,
+            op_status=op_status,
+        )
+        return True
+
     def del_spider_nodes_meta(self):
         """
         删除spider db meta
