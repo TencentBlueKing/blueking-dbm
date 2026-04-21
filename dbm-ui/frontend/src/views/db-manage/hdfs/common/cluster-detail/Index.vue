@@ -152,8 +152,10 @@
             @refresh="fetchDetailData">
           </BaseInfo>
         </template>
-        <template #hostContent>
-          <HostList :cluster-data="data" />
+        <template #hostContent="{ activePanel }">
+          <HostList
+            :active-panel="activePanel"
+            :cluster-data="data" />
         </template>
         <template #instanceContent>
           <BigDataInstanceList
