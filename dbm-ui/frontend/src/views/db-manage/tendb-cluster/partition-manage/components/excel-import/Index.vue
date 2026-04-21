@@ -85,7 +85,7 @@
   const phase = ref<'after' | 'before'>('before');
   const uploadRef = ref<InstanceType<typeof ImportUpload>>();
   const hasFile = ref(false);
-  const filePath = ref('');
+  const rawFile = ref<File | null>(null);
   const isUploading = ref(false);
   const isImporting = ref(false);
 
@@ -112,23 +112,37 @@
     result.success_count = 0;
   };
 
-  const handleFileReady = (path: string) => {
+  /** 文件上传成功，存储原始文件用于后续导入 */
+  const handleFileReady = (_data: unknown[], file: File) => {
     hasFile.value = true;
-    filePath.value = path;
+    rawFile.value = file;
   };
 
   const handleFileRemoved = () => {
     hasFile.value = false;
-    filePath.value = '';
+    rawFile.value = null;
   };
 
   const handleImport = async () => {
+    if (!rawFile.value) return;
+
     isImporting.value = true;
     try {
-      const res = await importFromExcel({ file_path: filePath.value });
+      const res = await importFromExcel(rawFile.value);
+      // 校验响应有效性（防止 502 等错误被静默处理）
+      if (!res || typeof res.success_count !== 'number') {
+        result.failed_count = 1;
+        result.failed_items = [];
+        result.success_count = 0;
+        phase.value = 'after';
+        return;
+      }
       Object.assign(result, res);
       phase.value = 'after';
     } catch {
+      result.failed_count = 1;
+      result.failed_items = [];
+      result.success_count = 0;
       phase.value = 'after';
     } finally {
       isImporting.value = false;
@@ -138,7 +152,7 @@
   const handleReUpload = () => {
     phase.value = 'before';
     hasFile.value = false;
-    filePath.value = '';
+    rawFile.value = null;
     resetResult();
     nextTick(() => uploadRef.value?.reset());
   };
@@ -157,10 +171,11 @@
     nextTick(() => {
       phase.value = 'before';
       hasFile.value = false;
-      filePath.value = '';
+      rawFile.value = null;
       isUploading.value = false;
       isImporting.value = false;
       resetResult();
+      nextTick(() => uploadRef.value?.reset());
     });
   };
 </script>

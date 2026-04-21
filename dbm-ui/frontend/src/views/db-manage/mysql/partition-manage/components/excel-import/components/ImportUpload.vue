@@ -10,131 +10,131 @@
       closable
       theme="warning"
       :title="t('不存在的集群、DB、表在导入过程中将会被忽略，不执行导入')" />
-    <BkUpload
+    <DbUpload
       :key="uploadKey"
       ref="uploadRef"
       accept=".xlsx,.xls"
-      :before-upload="handleBeforeUpload"
+      :custom-request="handleCustomUpload"
       :disabled="isImporting"
-      :form-data-attributes="[{ name: 'bk_biz_id', value: String(bizId) }]"
-      :handle-res-code="handleUploadResponse"
-      :header="[{ name: 'X-CSRFToken', value: Cookies.get('dbm_csrftoken') }]"
+      file-icon="excel"
       :limit="1"
-      :multiple="false"
-      name="file"
       :size="2"
-      :url="uploadUrl"
-      with-credentials
       @delete="handleDeleteFile"
-      @done="handleUploadDone">
+      @error="handleUploadError"
+      @success="handleUploadSuccess">
       <template #tip>
         <p class="upload-tip">
           {{ t('支持Excel文件_文件小于2M_下载') }}
           <a :href="templatePath">{{ t('模板文件') }}</a>
         </p>
       </template>
-      <template #file="{ file }">
-        <div class="uploaded-file">
-          <DbIcon type="excel" />
-          <div class="uploaded-file-info">
-            <div
-              v-overflow-tips
-              class="text-overflow">
-              {{ file.name }}
-            </div>
-            <p
-              v-if="file.status !== 'uploading'"
-              class="uploaded-file-status"
-              :class="{ 'is-fail': file.status === 'fail' }">
-              <DbIcon
-                v-if="file.status === 'success'"
-                type="check-line" />
-              {{ file.status === 'success' ? t('上传成功') : file.statusText || t('上传失败') }}
-            </p>
-            <BkProgress
-              v-if="file.status === 'uploading'"
-              :percent="file.percentage"
-              size="small"
-              :title-style="{ fontSize: '12px' }" />
-          </div>
-          <div class="uploaded-file-actions">
-            <DbIcon
-              v-if="file.status === 'fail'"
-              class="action-icon"
-              type="refresh-2"
-              @click="handleRetry(file)" />
-            <DbIcon
-              class="action-icon"
-              type="delete"
-              @click="uploadRef?.handleRemove(file)" />
-          </div>
-        </div>
-      </template>
-    </BkUpload>
+    </DbUpload>
   </div>
 </template>
 
 <script setup lang="ts">
-  import Cookies from 'js-cookie';
-  import urlJoin from 'url-join';
   import { useI18n } from 'vue-i18n';
+  import * as XLSX from 'xlsx';
 
-  defineProps<{
+  import DbUpload, { type UploadFile, type UploadRequestOptions } from '@components/db-upload';
+
+  interface Props {
     isImporting?: boolean;
-  }>();
+  }
 
-  const emit = defineEmits<{
-    (e: 'file-ready', filePath: string): void;
+  type Emits = {
+    (e: 'file-ready', file: File): void;
     (e: 'file-removed'): void;
     (e: 'uploading', val: boolean): void;
-  }>();
+  };
+
+  defineOptions({
+    name: 'ImportUpload',
+  });
+
+  defineProps<Props>();
+  const emit = defineEmits<Emits>();
+
+  /** Excel 最大行数限制 */
+  const MAX_EXCEL_ROWS = 1000;
 
   const { t } = useI18n();
 
   const uploadRef = ref();
-  const filePath = ref('');
   const uploadKey = ref(0);
 
-  const bizId = window.PROJECT_CONFIG.BIZ_ID;
-  const uploadUrl = urlJoin(window.PROJECT_ENV.VITE_AJAX_URL_PREFIX, `/apis/partition/upload_import_file/`);
   const templatePath = `${window.PROJECT_ENV.VITE_PUBLIC_PATH}cluster-partition-template.xlsx`;
 
-  const handleBeforeUpload = () => {
-    emit('uploading', true);
-    return true;
+  /** 模拟进度事件 */
+  const mockProgressEvent = (percent: number): ProgressEvent =>
+    ({
+      lengthComputable: true,
+      loaded: percent,
+      total: 100,
+    }) as ProgressEvent;
+
+  /** 纯前端解析 Excel 文件，校验行数 */
+  const parseExcelFile = (file: File): Promise<unknown[]> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          // 取第一个 sheet 的数据
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+          // 校验行数（含表头）
+          if (jsonData.length > MAX_EXCEL_ROWS + 1) {
+            reject(new Error(t('Excel文件行数超过限制_最大允许_n_行', [MAX_EXCEL_ROWS])));
+            return;
+          }
+
+          resolve(jsonData);
+        } catch {
+          reject(new Error(t('Excel文件解析失败')));
+        }
+      };
+      reader.onerror = () => {
+        reject(new Error(t('Excel文件读取失败')));
+      };
+      reader.readAsArrayBuffer(file);
+    });
   };
 
-  const handleUploadResponse = (res: Record<string, any>) => {
+  /** 自定义上传处理：纯前端解析 + 校验 */
+  const handleCustomUpload = (options: UploadRequestOptions): void => {
+    options.onProgress(mockProgressEvent(10));
+
+    parseExcelFile(options.file)
+      .then((jsonData) => {
+        options.onProgress(mockProgressEvent(100));
+        // 上传成功，将解析后的 Excel 数据传给父组件
+        options.onSuccess(jsonData);
+      })
+      .catch((err: Error) => {
+        options.onError(err);
+      });
+  };
+
+  const handleUploadSuccess = (file: UploadFile) => {
     emit('uploading', false);
-    if (res.code === 0) {
-      filePath.value = res.data?.file_path ?? '';
-      return true;
-    }
-    filePath.value = '';
-    return false;
+    emit('file-ready', file.raw);
   };
 
-  const handleUploadDone = () => {
-    if (filePath.value) {
-      emit('file-ready', filePath.value);
-    } else {
-      emit('file-removed');
-    }
+  const handleUploadError = () => {
+    emit('uploading', false);
   };
 
   const handleDeleteFile = () => {
     emit('uploading', false);
-    filePath.value = '';
     emit('file-removed');
   };
 
-  const handleRetry = (file: any) => {
-    emit('uploading', true);
-    uploadRef.value?.handleRetry(file);
-  };
-
   const reset = () => {
-    filePath.value = '';
+    uploadRef.value?.clearFiles();
     uploadKey.value += 1;
   };
 
@@ -146,43 +146,5 @@
 
   .upload-tip {
     padding-top: 4px;
-  }
-
-  .uploaded-file {
-    display: flex;
-    align-items: center;
-    flex: 1;
-    overflow: hidden;
-    font-size: @font-size-mini;
-
-    .db-icon-excel {
-      margin-right: 16px;
-      font-size: 26px;
-      color: @success-color;
-    }
-  }
-
-  .uploaded-file-info {
-    flex: 1;
-    overflow: hidden;
-  }
-
-  .uploaded-file-status {
-    color: @success-color;
-
-    &.is-fail {
-      color: @danger-color;
-    }
-  }
-
-  .uploaded-file-actions {
-    display: flex;
-    align-items: center;
-  }
-
-  .action-icon {
-    margin-left: 12px;
-    font-size: @font-size-normal;
-    cursor: pointer;
   }
 </style>
