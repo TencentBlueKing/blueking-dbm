@@ -34,6 +34,7 @@ type ClusterRequestRecordEntity struct {
 	RequestParams  string                 `json:"requestParams"`
 	Status         string                 `json:"status"`
 	Description    string                 `json:"description"`
+	TicketID       *uint64                `json:"ticketId"`
 	CreatedBy      string                 `json:"createdBy"`
 	CreatedAt      commtypes.JSONDatetime `json:"createdAt"`
 	UpdatedBy      string                 `json:"updatedBy"`
