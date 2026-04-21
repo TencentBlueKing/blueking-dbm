@@ -25,7 +25,6 @@ from rest_framework.exceptions import PermissionDenied
 
 from backend import env
 from backend.dbm_aiagent.mcp_tools.constants import DBMMcpTools
-from backend.dbm_aiagent.utils import get_class_from_qualname
 from backend.ticket.models import Ticket
 
 logger = logging.getLogger("root")
@@ -179,6 +178,8 @@ def mcp_tools_api_decorator(  # noqa: C901
                 raise ValueError(_("视图函数名称 '{}' 必须与引用视图函数名称 '{}' 一致").format(func.__name__, reference_view.__name__))
 
             # 获取 reference_view 所属的视图类（都是未绑定方法，直接使用 __qualname__）
+            from backend.dbm_aiagent.utils import get_class_from_qualname
+
             reference_view_class = get_class_from_qualname(reference_view)
             if not reference_view_class:
                 raise ValueError(_("无法获取引用视图类：{} 请检查是否存在").format(reference_view.__name__))
