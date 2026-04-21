@@ -10,6 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
+from blueapps.account.models import User
+
 from backend.bk_web import viewsets
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
 
@@ -41,3 +43,10 @@ class BaseOpenAPIViewSet(viewsets.SystemViewSet):
                 result.append(perm)
 
         return result
+
+    @classmethod
+    def get_or_create_user(cls, username):
+        try:
+            return User.objects.get(username=username)
+        except User.DoesNotExist:
+            return User.objects.create(username=username)
