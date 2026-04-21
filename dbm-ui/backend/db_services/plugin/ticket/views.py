@@ -61,14 +61,14 @@ class TicketApiGwViewSet(BaseOpenAPIViewSet, TicketViewSet):
         bkchat专属的待办处理，区别主要是返回结构不同
         """
         params = self.params_validate(self.get_serializer_class())
-
+        user = super().get_or_create_user(params["username"])
         todo = Todo.objects.get(id=params["todo_id"])
         if todo.type not in [TodoType.ITSM, TodoType.APPROVE]:
             return Response({"response_msg": _("暂不支持该类型{}todo的处理").fromat(todo.type), "response_color": "red"})
 
         # 确认todo，忽略重复操作
         try:
-            TodoActorFactory.actor(todo).process(params["username"], params["action"], params["params"])
+            TodoActorFactory.actor(todo).process(user.username, params["action"], params["params"])
         except TodoDuplicateProcessException:
             pass
 
