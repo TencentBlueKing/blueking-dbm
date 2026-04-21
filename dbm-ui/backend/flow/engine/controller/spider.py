@@ -32,6 +32,7 @@ from backend.flow.engine.bamboo.scene.spider.spider_keyword_check_flow import Sp
 from backend.flow.engine.bamboo.scene.spider.spider_nodes_change_spec import TenDBClusterNodesChangeSpecFlow
 from backend.flow.engine.bamboo.scene.spider.spider_partition import SpiderPartitionFlow
 from backend.flow.engine.bamboo.scene.spider.spider_partition_cron import SpiderPartitionCronFlow
+from backend.flow.engine.bamboo.scene.spider.spider_rebuild_nodes import TenDBClusterRebuildNodesFlow
 from backend.flow.engine.bamboo.scene.spider.spider_reduce_mnt import TenDBClusterReduceMNTFlow
 from backend.flow.engine.bamboo.scene.spider.spider_reduce_nodes import TenDBClusterReduceNodesFlow
 from backend.flow.engine.bamboo.scene.spider.spider_remote_local_slave_recover import TenDBRemoteSlaveLocalRecoverFlow
@@ -53,6 +54,9 @@ from backend.flow.engine.bamboo.scene.spider.validate.spider_add_nodes_validate 
 )
 from backend.flow.engine.bamboo.scene.spider.validate.spider_nodes_change_spec_validate import (
     TenDBClusterNodesChangeSpecValidator,
+)
+from backend.flow.engine.bamboo.scene.spider.validate.spider_rebuild_nodes_validate import (
+    TenDBClusterRebuildNodesFlowValidator,
 )
 from backend.flow.engine.bamboo.scene.spider.validate.spider_reduce_nodes_validate import (
     TenDBClusterReduceNodesFlowValidator,
@@ -199,6 +203,14 @@ class SpiderController(BaseController):
         """
         flow = TenDBClusterReduceNodesFlow(root_id=self.root_id, data=self.ticket_data)
         flow.reduce_spider_nodes()
+
+    @validates_with(TenDBClusterRebuildNodesFlowValidator)
+    def rebuild_spider_nodes_scene(self):
+        """
+        重建接入层的场景
+        """
+        flow = TenDBClusterRebuildNodesFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.rebuild_spider_nodes()
 
     def flashback(self):
         flow = TenDBClusterFlashbackFlow(

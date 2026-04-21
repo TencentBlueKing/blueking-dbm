@@ -34,6 +34,8 @@ type ProxySetBackendParam struct {
 	Port        int    `json:"port" validate:"required,gte=3306"` // 当前实例的端口
 	BackendHost string `json:"backend_host" validate:"required,ip"`
 	BackendPort int    `json:"backend_port" validate:"required,gte=3306"`
+	// Force 是否强制执行，为 true 时跳过前置检测（不校验后端是否为 1.1.1.1:3306），默认 false
+	Force bool `json:"force,omitempty"`
 }
 
 // Example  proxy set backend mysql example
@@ -64,6 +66,11 @@ func (p *ProxySetBackendCom) Init() (err error) {
 	if err != nil {
 		logger.Error("connect proxy admin port(ori:%s) failed,%s", p.Params.Port, err.Error())
 		return err
+	}
+	// 如果指定了强制执行，则跳过前置检测
+	if p.Params.Force {
+		logger.Info("force mode is enabled, skip checking current backends")
+		return
 	}
 	backend, err := p.proxyAdminConn.SelectBackend()
 	if err != nil {

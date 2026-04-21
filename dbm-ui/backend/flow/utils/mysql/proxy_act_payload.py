@@ -171,6 +171,7 @@ class ProxyActPayload(object):
                     "port": proxy_port,
                     "backend_host": master.machine.ip,
                     "backend_port": master.port,
+                    "force": kwargs.get("force", False),
                 },
             },
         }

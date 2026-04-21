@@ -335,7 +335,7 @@ class UpgradeSpiderFlow(TenDBClusterSwitchNodesFlow):
             expand_sub_pipelines.append(
                 self.add_spider_nodes_with_cluster(
                     cluster_id=cluster_id,
-                    add_spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value,
+                    add_spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE,
                     add_spider_hosts=spider_slave_ip_list,
                     new_db_module_id=new_db_module_id,
                     global_pkg_id=new_pkg_id,

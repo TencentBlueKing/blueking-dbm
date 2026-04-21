@@ -54,6 +54,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_partition_v2_flow import Mysql
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_add import MySQLProxyClusterAddFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_reduce import MySQLProxyClusterReduceFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_switch import MySQLProxyClusterSwitchFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_rebuild import MySQLProxyRebuildFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_switch_for_extend import ProxySwitchForExtendFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_switch_for_migrate import ProxySwitchForMigrateFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_upgrade import MySQLProxyLocalUpgradeFlow
@@ -72,6 +73,9 @@ from backend.flow.engine.bamboo.scene.mysql.revoke.mysql_ha_apply_revoke_flow im
 from backend.flow.engine.bamboo.scene.mysql.revoke.mysql_single_apply_revoke_flow import MySQLSingleApplyRevokeFlow
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_local_upgrade_validator import MySQLLocalUpgradeValidator
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_add_validator import MySQLProxyClusterAddFlowValidator
+from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_rebuild_validator import (
+    MySQLProxyRebuildFlowValidator,
+)
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_reduce_validator import (
     MySQLProxyClusterReduceFlowValidator,
 )
@@ -275,6 +279,15 @@ class MySQLController(BaseController):
 
         flow = MySQLProxyClusterAddFlow(root_id=self.root_id, data=self.ticket_data)
         flow.add_mysql_cluster_proxy_flow()
+
+    @validates_with(MySQLProxyRebuildFlowValidator)
+    def mysql_proxy_rebuild_scene(self):
+        """
+        原地重建mysql_proxy实例场景(新flow编排)
+        """
+
+        flow = MySQLProxyRebuildFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.rebuild_mysql_cluster_proxy_flow()
 
     def mysql_ha_truncate_data_scene(self):
         """

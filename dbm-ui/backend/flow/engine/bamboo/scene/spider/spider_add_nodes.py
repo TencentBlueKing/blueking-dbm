@@ -145,9 +145,17 @@ class TenDBClusterAddNodesFlow(object):
         new_db_module_id: int = 0,
         global_pkg_id: int = 0,
         is_check_disaster_tolerance_level: bool = True,
+        is_rebuild: bool = False,
     ):
         """
         定义添加spider节点的通用子流程
+        @param cluster_id: 集群id
+        @param add_spider_role: 添加spider角色
+        @param add_spider_hosts: 添加spider机器列表
+        @param new_db_module_id: 新的db_module_id
+        @param global_pkg_id: 全局包id
+        @param is_check_disaster_tolerance_level: 是否检查容灾级别
+        @param is_rebuild: 是否是重建场景, 默认False, 代表非重建场景
         """
 
         # 获取对应集群相关对象
@@ -192,12 +200,12 @@ class TenDBClusterAddNodesFlow(object):
         if add_spider_role == TenDBClusterSpiderRole.SPIDER_MASTER:
 
             # 加入spider-master 子流程
-            return self.add_spider_master_notes(sub_flow_context, cluster, new_db_module_id, global_pkg_id)
+            return self.add_spider_master_notes(sub_flow_context, cluster, new_db_module_id, global_pkg_id, is_rebuild)
 
         elif add_spider_role == TenDBClusterSpiderRole.SPIDER_SLAVE:
 
             # 加入spider-slave 子流程
-            return self.add_spider_slave_notes(sub_flow_context, cluster, new_db_module_id, global_pkg_id)
+            return self.add_spider_slave_notes(sub_flow_context, cluster, new_db_module_id, global_pkg_id, is_rebuild)
 
         else:
             # 理论上不会出现，出现就中断这次流程构造
@@ -206,11 +214,21 @@ class TenDBClusterAddNodesFlow(object):
             )
 
     def add_spider_master_notes(
-        self, sub_flow_context: dict, cluster: Cluster, new_db_module_id: int = 0, global_pkg_id: int = 0
+        self,
+        sub_flow_context: dict,
+        cluster: Cluster,
+        new_db_module_id: int = 0,
+        global_pkg_id: int = 0,
+        is_rebuild: bool = False,
     ):
         """
         定义spider master集群部署子流程
         目前产品形态 spider专属一套集群，所以流程只支持spider单机单实例安装
+        @param sub_flow_context: 子流程上下文, 一般是基础上流程的上下文
+        @param cluster: 集群对象
+        @param new_db_module_id: 新的db_module_id，默认是0, 表示不指定， 则使用当前集群的db_module_id
+        @param global_pkg_id: spider介质包id， 默认是0, 表示不指定，获取版本最新介质包部署
+        @param is_rebuild: 是否是重建场景, 默认False, 代表非重建场景
         """
 
         # 启动子流程
@@ -227,15 +245,18 @@ class TenDBClusterAddNodesFlow(object):
                 is_add_spider_mnt=False,
                 new_db_module_id=new_db_module_id,
                 global_pkg_id=global_pkg_id,
+                is_rebuild=is_rebuild,
             )
         )
 
         # 阶段2 变更db_meta数据
-        sub_pipeline.add_act(
-            act_name=_("更新DBMeta元信息"),
-            act_component_code=SpiderDBMetaComponent.code,
-            kwargs=asdict(DBMetaOPKwargs(db_meta_class_func=SpiderDBMeta.add_spider_master_nodes_apply.__name__)),
-        )
+        # 如果是重建场景，不需要再对db_meta进行变更
+        if not is_rebuild:
+            sub_pipeline.add_act(
+                act_name=_("更新DBMeta元信息"),
+                act_component_code=SpiderDBMetaComponent.code,
+                kwargs=asdict(DBMetaOPKwargs(db_meta_class_func=SpiderDBMeta.add_spider_master_nodes_apply.__name__)),
+            )
 
         # 阶段3 安装周边程序
         sub_pipeline.add_sub_pipeline(
@@ -254,11 +275,21 @@ class TenDBClusterAddNodesFlow(object):
         return sub_pipeline.build_sub_process(sub_name=_("[{}]添加spider-master节点流程".format(cluster.name)))
 
     def add_spider_slave_notes(
-        self, sub_flow_context: dict, cluster: Cluster, new_db_module_id: int = 0, global_pkg_id: int = 0
+        self,
+        sub_flow_context: dict,
+        cluster: Cluster,
+        new_db_module_id: int = 0,
+        global_pkg_id: int = 0,
+        is_rebuild: bool = False,
     ):
         """
         添加spider-slave节点的子流程流程逻辑
         必须集群存在从集群，才能添加
+        @param sub_flow_context: 子流程上下文, 一般是基础上流程的上下文
+        @param cluster: 集群对象
+        @param new_db_module_id: 新的db_module_id，默认是0, 表示不指定， 则使用当前集群的db_module_id
+        @param global_pkg_id: spider介质包id， 默认是0, 表示不指定，获取版本最新介质包部署
+        @param is_rebuild: 是否是重建场景, 默认False, 代表非重建场景
         """
 
         sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
@@ -273,14 +304,17 @@ class TenDBClusterAddNodesFlow(object):
                 parent_global_data=copy.deepcopy(sub_flow_context),
                 new_db_module_id=new_db_module_id,
                 global_pkg_id=global_pkg_id,
+                is_rebuild=is_rebuild,
             )
         )
         # 阶段2 变更db_meta数据
-        sub_pipeline.add_act(
-            act_name=_("更新DBMeta元信息"),
-            act_component_code=SpiderDBMetaComponent.code,
-            kwargs=asdict(DBMetaOPKwargs(db_meta_class_func=SpiderDBMeta.add_spider_slave_nodes_apply.__name__)),
-        )
+        # 如果是重建场景，不需要再对db_meta进行变更
+        if not is_rebuild:
+            sub_pipeline.add_act(
+                act_name=_("更新DBMeta元信息"),
+                act_component_code=SpiderDBMetaComponent.code,
+                kwargs=asdict(DBMetaOPKwargs(db_meta_class_func=SpiderDBMeta.add_spider_slave_nodes_apply.__name__)),
+            )
 
         # 阶段3 安装周边程序
         sub_pipeline.add_sub_pipeline(

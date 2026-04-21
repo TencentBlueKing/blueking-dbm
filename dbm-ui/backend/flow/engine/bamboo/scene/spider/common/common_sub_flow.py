@@ -156,6 +156,7 @@ def add_spider_slaves_sub_flow(
     slave_domain: str = None,
     global_pkg_id: int = 0,
     new_db_module_id: int = 0,
+    is_rebuild: bool = False,
 ):
     """
     定义对原有的TenDB cluster集群添加spider slave节点的公共子流程
@@ -169,6 +170,7 @@ def add_spider_slaves_sub_flow(
     @param is_clone_user 是否克隆权限, 区分一些单据场景。
     @param global_pkg_id 全局安装包的package ID，非必需参数，如果传入代表这批机器都以这个介质包来安装
     @param new_db_module_id 如果是做升级部署，需要传新的DB模块ID，默认为0，表示不升级部署
+    @param is_rebuild: 是否是重建场景，默认是False，代表非重建场景，如果是True，代表是重建场景
     """
     tdbctl_pass = get_random_string(length=10)
 
@@ -211,17 +213,19 @@ def add_spider_slaves_sub_flow(
     exec_ips = [ip_info["ip"] for ip_info in add_spider_slaves]
     bk_host_ids = [ip_info["bk_host_id"] for ip_info in add_spider_slaves]
     # 初始新机器
-    sub_pipeline.add_sub_pipeline(
-        sub_flow=init_machine_sub_flow(
-            uid=uid,
-            root_id=root_id,
-            bk_cloud_id=int(cluster.bk_cloud_id),
-            sys_init_ips=exec_ips,
-            init_check_ips=exec_ips,
-            yum_install_perl_ips=exec_ips,
-            bk_host_ids=bk_host_ids,
+    # 如果是重建场景，不需要再做初始化
+    if not is_rebuild:
+        sub_pipeline.add_sub_pipeline(
+            sub_flow=init_machine_sub_flow(
+                uid=uid,
+                root_id=root_id,
+                bk_cloud_id=int(cluster.bk_cloud_id),
+                sys_init_ips=exec_ips,
+                init_check_ips=exec_ips,
+                yum_install_perl_ips=exec_ips,
+                bk_host_ids=bk_host_ids,
+            )
         )
-    )
 
     # 阶段1 下发spider安装介质包
     if global_pkg_id:
@@ -370,6 +374,7 @@ def add_spider_masters_sub_flow(
     is_add_spider_mnt: bool,
     global_pkg_id: int = 0,
     new_db_module_id: int = 0,
+    is_rebuild: bool = False,
 ):
     """
     定义对原有的TenDB cluster集群添加spider master节点的公共子流程
@@ -383,6 +388,7 @@ def add_spider_masters_sub_flow(
     @param uid: 单据uid
     @param global_pkg_id 全局安装包的package ID，非必需参数，如果传入代表这批机器都以这个介质包来安装
     @param new_db_module_id 如果是做升级部署，需要传新的DB模块ID，默认为0，表示不升级部署
+    @param is_rebuild: 是否是重建场景，默认是False，代表非重建场景，如果是True，代表是重建场景
     """
     tag = "mnt"
     tdbctl_pass = get_random_string(length=10)
@@ -417,17 +423,19 @@ def add_spider_masters_sub_flow(
     exec_ips = [ip_info["ip"] for ip_info in add_spider_masters]
     bk_host_ids = [ip_info["bk_host_id"] for ip_info in add_spider_masters]
     # 初始新机器
-    sub_pipeline.add_sub_pipeline(
-        sub_flow=init_machine_sub_flow(
-            uid=uid,
-            root_id=root_id,
-            bk_cloud_id=int(cluster.bk_cloud_id),
-            sys_init_ips=exec_ips,
-            init_check_ips=exec_ips,
-            yum_install_perl_ips=exec_ips,
-            bk_host_ids=bk_host_ids,
+    # 如果是重建场景，不需要再做初始化
+    if not is_rebuild:
+        sub_pipeline.add_sub_pipeline(
+            sub_flow=init_machine_sub_flow(
+                uid=uid,
+                root_id=root_id,
+                bk_cloud_id=int(cluster.bk_cloud_id),
+                sys_init_ips=exec_ips,
+                init_check_ips=exec_ips,
+                yum_install_perl_ips=exec_ips,
+                bk_host_ids=bk_host_ids,
+            )
         )
-    )
     # 阶段1 下发spider安装介质包
     if global_pkg_id:
         # 针对全局统一版本指定的场景，比如整体版本升级、扩容spider单据
@@ -444,7 +452,6 @@ def add_spider_masters_sub_flow(
         )
     else:
         # 如果没有传global_pkg_id参数，说明每个待加入的节点都携带自己安装的版本ID(pkg_id), 比如替换spider场景
-        # todo 后面可能考虑做聚合优化，减少发起的job数量
         acts_list = []
         for spider in add_spider_masters:
             acts_list.append(
@@ -651,6 +658,7 @@ def reduce_spiders_flow(
     root_id: str,
     parent_global_data: dict,
     spider_role: TenDBClusterSpiderRole,
+    is_rebuild: bool = False,
 ):
     """
     减少spider节点的子流程, 提供给集群缩容接入层或者替换类单据所用
@@ -659,6 +667,7 @@ def reduce_spiders_flow(
     @param root_id: flow流程的root_id
     @param parent_global_data: 本次子流程的对应上层流程的全局只读上下文
     @param spider_role: 本次操作的spider角色
+    @param is_rebuild: 是否是重建场景, 默认为False， 如果Ture则代表进入重建场景，不做清理元数据处理
     """
 
     # ToDo 这里的代码有点重复了, 实际上这个函数就应该直接接收下面 2 个参数
@@ -829,15 +838,17 @@ def reduce_spiders_flow(
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     # 阶段4 清空相关集群元信息；相关的cmdb注册信息
-    sub_pipeline.add_act(
-        act_name=_("清理db_meta元信息"),
-        act_component_code=SpiderDBMetaComponent.code,
-        kwargs=asdict(
-            DBMetaOPKwargs(
-                db_meta_class_func=SpiderDBMeta.reduce_spider_nodes_apply.__name__,
-            )
-        ),
-    )
+    # 如果是重建场景，is_rebuild=True, 则不需要做删除实例元数据
+    if not is_rebuild:
+        sub_pipeline.add_act(
+            act_name=_("清理db_meta元信息"),
+            act_component_code=SpiderDBMetaComponent.code,
+            kwargs=asdict(
+                DBMetaOPKwargs(
+                    db_meta_class_func=SpiderDBMeta.reduce_spider_nodes_apply.__name__,
+                )
+            ),
+        )
 
     return sub_pipeline.build_sub_process(sub_name=_("下架spider节点"))
 
