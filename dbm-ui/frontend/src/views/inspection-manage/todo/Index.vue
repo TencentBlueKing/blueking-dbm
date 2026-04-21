@@ -62,6 +62,10 @@
   };
 </script>
 <style lang="less">
+  .inspection-todo-page {
+    height: 100%;
+  }
+
   .inspection-todo-page-title-icon {
     display: flex;
     margin-right: 12px;
