@@ -1072,6 +1072,11 @@ class MongoDBBackupFileTagEnum(StrStructuredEnum):
     FOREVER_BACKUP = EnumField("forever_backup", _("长期备份(3年)"))
 
 
+class MongoDBStrategyEnum(StrStructuredEnum):
+    ROLLING = EnumField("rolling", _("滚动升级"))
+    FULL_STOP = EnumField("full_stop", _("停机升级"))
+
+
 MONGODB_DATA_EXPORT_PATH = "mongodb-data-export/{biz}"
 
 
