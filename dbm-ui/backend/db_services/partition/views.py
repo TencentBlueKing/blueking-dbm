@@ -35,8 +35,6 @@ from backend.db_services.partition.serializers import (
     PartitionExportSerializer,
     PartitionFieldTypeV2ResponseSerializer,
     PartitionFieldTypeV2Serializer,
-    PartitionImportFileUploadResponseSerializer,
-    PartitionImportFileUploadSerializer,
     PartitionImportResultSerializer,
     PartitionImportSerializer,
     PartitionListResponseSerializer,
@@ -274,9 +272,13 @@ class DBPartitionViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=PartitionImportSerializer)
     def import_from_excel(self, request, *args, **kwargs):
         """通过Excel文件导入分区v2策略"""
-        validated_data = self.params_validate(PartitionImportSerializer)
+        # params_validate 不会合并 request.FILES，FileField 无法获取上传文件，
+        # 因此手动构建序列化器，将 request.data 和 request.FILES 一起传入
+        slz = PartitionImportSerializer(data=request.data, context={"request": request})
+        slz.is_valid(raise_exception=True)
+        excel_file = slz.validated_data["file"]
         # 调用导入处理逻辑
-        import_result = PartitionHandler.import_from_excel(request.user.username, validated_data["file_path"])
+        import_result = PartitionHandler.import_from_excel(request.user.username, excel_file)
         return Response(import_result)
 
     @common_swagger_auto_schema(
@@ -376,22 +378,6 @@ class DBPartitionViewSet(viewsets.SystemViewSet):
     # def query_conf_by_status_v2(self, request, *args, **kwargs):
     #     validated_data = self.params_validate(QueryConfByStatusSerializer)
     #     return Response(PartitionHandler.query_conf_by_status_v2(**validated_data))
-    @common_swagger_auto_schema(
-        operation_summary=_("上传分区导入文件到制品库v2"),
-        request_body=PartitionImportFileUploadSerializer(),
-        responses={status.HTTP_200_OK: PartitionImportFileUploadResponseSerializer()},
-        tags=[SWAGGER_TAG],
-    )
-    @action(methods=["POST"], detail=False, serializer_class=PartitionImportFileUploadSerializer)
-    def upload_import_file(self, request, *args, **kwargs):
-        """
-        上传分区导入文件到制品库
-        用于前端上传分区策略导入文件，保存到制品库后返回文件路径等信息
-        """
-        validated_data = self.params_validate(PartitionImportFileUploadSerializer)
-        bk_biz_id = validated_data["bk_biz_id"]
-        upload_file = validated_data["file"]
-        return Response(PartitionHandler.upload_import_file(bk_biz_id, upload_file))
 
     @common_swagger_auto_schema(
         operation_summary=_("下载分区导入失败详情"),
@@ -402,4 +388,4 @@ class DBPartitionViewSet(viewsets.SystemViewSet):
     def export_import_failed(self, request, *args, **kwargs):
         "将导入失败详情导出为 Excel 文件供用户下载"
         validated_data = self.params_validate(PartitionExportImportFailedSerializer)
-        return PartitionHandler.export_import_failed(validated_data["file_path"], validated_data["failed_items"])
+        return PartitionHandler.export_import_failed(validated_data["failed_items"])
