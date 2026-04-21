@@ -695,14 +695,16 @@ func ExecLocalSQLFileForDataExport(
 		outPutFile := strings.Replace(filename, ".sql", fmt.Sprintf("_%s_%d_%s.csv", cluster_domain, port, dbName), -1)
 		outPutFiles = append(outPutFiles, outPutFile)
 		cmd := fmt.Sprintf(
-			"& '%s' -S '127.0.0.1,%d' -C -I -d %s -f %d -b -i %s -U '%s' -P '%s' -s ',' -W | Out-File -FilePath '%s' -Encoding UTF8",
+			"$output = & '%s' -S '127.0.0.1,%d' -C -I -d %s -f %d -b -i %s -U '%s' -P '%s' -s ',' -W 2>&1;"+
+				" if ($LASTEXITCODE -ne 0) { Write-Error ($output -join \"`n\"); exit $LASTEXITCODE }"+
+				" else { $output | Out-File -FilePath '%s' -Encoding UTF8 }",
 			cmdSql, port, dbName, 936, filename, userName, pwd, outPutFile,
 		)
 
 		logger.Info("exec cmd: %s", strings.Replace(cmd, pwd, "xxx", -1))
 		if ret, err = osutil.StandardPowerShellCommand(cmd); err != nil {
-			logger.Error("the db [%s] exec sql script failed %s, result: %s ", dbName, err.Error(), ret)
-			return outPutFiles, err
+			sanitizedErr := fmt.Errorf("the db [%s] exec sql script failed %s, result: %s ", dbName, strings.Replace(err.Error(), pwd, "xxx", -1), ret)
+			return outPutFiles, sanitizedErr
 		}
 		logger.InfoNotForAi("exec result: %s", ret)
 		logger.Info("ths db [%s] exec sql select script success  [%d:%s]", dbName, port, filename)
