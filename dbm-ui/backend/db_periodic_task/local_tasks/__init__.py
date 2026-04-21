@@ -15,7 +15,6 @@ from backend.db_periodic_task.constants import PeriodicTaskType  # isort:skip
 
 # 再导入各个任务模块
 from backend.db_periodic_task.local_tasks.ai_mysql_tasks.mysql_slowlog_analysis import *
-from backend.configuration.tasks.todo_remind_tasks import send_todo_remind
 from backend.db_periodic_task.local_tasks.ai_tasks.log_analysis import *
 from backend.db_periodic_task.local_tasks.backup_files_expire import *
 from backend.db_periodic_task.local_tasks.check_expired_job_users import *
@@ -50,12 +49,14 @@ from backend.db_periodic_task.local_tasks.ticket import *
 from backend.db_periodic_task.local_tasks.update_host_property import sync_machine_ip_cache, update_host_property
 from backend.db_periodic_task.models import DBPeriodicTask
 
+from backend.configuration.tasks.todo_remind_tasks import send_todo_remind  # isort:skip
+
 # 注册动态创建的定时任务
 # 添加轮值排版发送定时任务
 send_duty_schedule_names = [f"{db_type}_periodic_{send_duty_schedule.__name__}" for db_type in DBType.get_values()]
-send_todo_remind_schedule_names = [f"dbm_periodic_{send_todo_remind.__name__}"]
+send_todo_remind_schedule_names = [f"dbm_periodic_{send_todo_remind.__name__}"]  # isort:skip
 registered_local_tasks.update(send_duty_schedule_names)
-registered_local_tasks.update(send_todo_remind_schedule_names)
+registered_local_tasks.update(send_todo_remind_schedule_names)  # isort:skip
 
 # 删除过期的本地周期任务
 DBPeriodicTask.delete_legacy_periodic_task(registered_local_tasks, PeriodicTaskType.LOCAL.value)
