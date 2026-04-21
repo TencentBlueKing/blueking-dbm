@@ -113,11 +113,23 @@ func GetConn(dsn *InstanceDsn, sessionVars map[string]interface{}) (db *sql.DB, 
 }
 
 func GetXormDB(dsn *InstanceDsn) (*xorm.Engine, error) {
-	dsnUrl := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=True&loc=Local",
+	defaultSessionVars := map[string]interface{}{
+		"loc":       "UTC",
+		"time_zone": "'+00:00'",
+		"parseTime": "True",
+	}
+	dsn.SessionVariables = lo.Assign(defaultSessionVars, dsn.SessionVariables)
+	sessionParams := toUrlParams(dsn.SessionVariables)
+	if dsn.Charset == "" {
+		dsn.Charset = "utf8mb4"
+	}
+	dsnUrl := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=%s&%s",
 		dsn.User,
 		dsn.Password,
 		dsn.Address,
 		dsn.Database,
+		dsn.Charset,
+		strings.Join(sessionParams, "&"),
 	)
 	engine, err := xorm.NewEngine("mysql", dsnUrl)
 	if err != nil {
@@ -143,11 +155,14 @@ func GetXormDB(dsn *InstanceDsn) (*xorm.Engine, error) {
 
 func GetGoframeDB(dsn *InstanceDsn) (gdb.DB, error) {
 	defaultSessionVars := map[string]interface{}{
-		"loc":       "UTC",
-		"time_zone": "'+00:00'",
+		"loc": "UTC",
+		//"time_zone": "'+00:00'", // cause error: unknown time zone ' 00:00'
 		"parseTime": "True",
 	}
-	sessionParams := toUrlParams(defaultSessionVars)
+	dsn.SessionVariables = lo.Assign(defaultSessionVars, dsn.SessionVariables)
+	slog.Info("sessionVars", slog.String("db", dsn.Address), slog.Any("sessionVars", dsn.SessionVariables))
+	sessionParams := toUrlParams(dsn.SessionVariables)
+
 	if dsn.Charset == "" {
 		dsn.Charset = "utf8mb4"
 	}
@@ -159,9 +174,12 @@ func GetGoframeDB(dsn *InstanceDsn) (gdb.DB, error) {
 		dsn.Charset,
 		strings.Join(sessionParams, "&"),
 	)
+
 	db, err := gdb.New(gdb.ConfigNode{
-		Link: "mysql:" + dsnUrl,
+		Link:     "mysql:" + dsnUrl,
+		Timezone: "UTC",
 	})
+
 	if err != nil {
 		log.Fatalf("connect to mysql failed %s", err.Error())
 		return nil, err
