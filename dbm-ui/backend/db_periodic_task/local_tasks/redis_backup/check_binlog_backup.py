@@ -10,8 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import time
-from datetime import timedelta
-from typing import Any
+from datetime import datetime, timedelta
+from typing import Any, Optional
 
 from django.db.models import Prefetch, Q
 from django.utils import timezone
@@ -56,6 +56,39 @@ def _extract_binlog_index(file_name: str, tendis_type: str) -> int:
     if is_tendisssd_instance_type(tendis_type):
         return int(parts[3])
     raise ValueError(f"unsupported tendis type for binlog index extraction: {tendis_type}")
+
+
+def _extract_binlog_timestamp(file_name: str, tendis_type: str) -> Optional[datetime]:
+    """Extract the binlog file rotation timestamp (its content cutoff time).
+
+    The trailing component of the filename is ``YYYYMMDDHHMMSS`` in local
+    time. The index of that component differs by tendis type because
+    TendisPlus filenames carry an extra ``kvstore`` field. Mirror the
+    layout documented on ``_extract_binlog_index`` above:
+
+        TendisSSD:  binlog-{ip}-{port}-{idx}-{ts}.log.zst        -> parts[4]
+        TendisPlus: binlog-{ip}-{port}-{kv}-{idx}-{ts}.log.zst   -> parts[5]
+
+    Examples:
+        TendisSSD:  binlog-1.2.3.4-30000-0014018-20251216171048.log.zst
+        TendisPlus: binlog-1.2.3.4-30000-5-0022670-20251216171459.log.zst
+
+    Returns a naive ``datetime`` representing local time, or ``None`` on
+    parse failure.  Callers treat unparseable entries as "not yesterday"
+    so that they are excluded from gap analysis (fail-safe: never causes
+    a false positive).
+    """
+    parts = file_name.split("-")
+    try:
+        if is_tendisplus_instance_type(tendis_type):
+            ts_str = parts[5].split(".")[0]
+        elif is_tendisssd_instance_type(tendis_type):
+            ts_str = parts[4].split(".")[0]
+        else:
+            return None
+        return datetime.strptime(ts_str, "%Y%m%d%H%M%S")
+    except (IndexError, ValueError):
+        return None
 
 
 def _find_missing_binlogs(
@@ -168,7 +201,7 @@ class CheckBinlogBackupTask:
         batch_ops.delete_today_records()
 
         cluster_ids = list(self._get_cluster_ids(config))
-        start_time, end_time = self._yesterday_time_range()
+        start_time, end_time, analysis_end_local = self._yesterday_time_range()
         cluster_state_total = {
             ReportStateType.NORMAL.value: 0,
             ReportStateType.WARNING.value: 0,
@@ -182,7 +215,9 @@ class CheckBinlogBackupTask:
 
             for cluster in batch_clusters:
                 total_num += 1
-                rows = self._check_cluster_with_retry(cluster, start_time, end_time, config)
+                rows = self._check_cluster_with_retry(
+                    cluster, start_time, end_time, config, analysis_end_local=analysis_end_local
+                )
                 if rows:
                     cluster_state_total[rows[0].state] += 1
                 for row in rows:
@@ -235,11 +270,15 @@ class CheckBinlogBackupTask:
         end_time,
         config: RedisBackupCheckConfig,
         max_retries: int = 3,
+        *,
+        analysis_end_local: Optional[datetime] = None,
     ):
         last_error = None
         for attempt in range(max_retries):
             try:
-                return self._check_cluster(cluster, start_time, end_time, config)
+                return self._check_cluster(
+                    cluster, start_time, end_time, config, analysis_end_local=analysis_end_local
+                )
             except Exception as e:
                 logger.error(
                     "CheckBinlogBackupTask cluster=%s attempt=%d/%d error: %s",
@@ -253,7 +292,15 @@ class CheckBinlogBackupTask:
         report = RedisBackupClusterReport(cluster, self.subtype)
         return report.make_error_record(f"system error after {max_retries} retries: {last_error}")
 
-    def _check_cluster(self, cluster: Cluster, start_time, end_time, config: RedisBackupCheckConfig):
+    def _check_cluster(
+        self,
+        cluster: Cluster,
+        start_time,
+        end_time,
+        config: RedisBackupCheckConfig,
+        *,
+        analysis_end_local: Optional[datetime] = None,
+    ):
         report = RedisBackupClusterReport(cluster, self.subtype)
 
         if cluster.bk_cloud_id not in config.target_bk_cloud_ids:
@@ -301,6 +348,7 @@ class CheckBinlogBackupTask:
                     port,
                     kvstorecount,
                     recently_switched=recently_switched.get(instance),
+                    analysis_end_local=analysis_end_local,
                 )
             except Exception as e:
                 logger.error(
@@ -353,7 +401,23 @@ class CheckBinlogBackupTask:
 
         return result
 
-    def _check_instance(self, report, bklogs, cluster, instance, ip, port, kvstorecount, *, recently_switched=None):
+    def _check_instance(
+        self,
+        report,
+        bklogs,
+        cluster,
+        instance,
+        ip,
+        port,
+        kvstorecount,
+        *,
+        recently_switched=None,
+        analysis_end_local: Optional[datetime] = None,
+    ):
+        # The "no logs found" check is done against the raw query window
+        # (pre-filter): if BKLog returned nothing at all for this instance
+        # within yesterday + 1h buffer, that itself is a strong abnormal
+        # signal regardless of content-time semantics.
         if not bklogs:
             if recently_switched is not None:
                 report.append(
@@ -365,15 +429,47 @@ class CheckBinlogBackupTask:
                 report.append(ReportStateType.ABNORMAL.value, instance, "no logs found")
             return
 
+        # Failed-task verification runs against the full window so that a
+        # success arriving in the buffer (today 00:00-01:00) can still
+        # promote a corresponding ``to_backup_system_start`` from yesterday.
         api_confirmed = find_and_verify_failed_tasks(bklogs)
 
+        # Filter to entries whose binlog content time falls in yesterday.
+        # Today's first-hour entries (caught by the 1h buffer) are
+        # excluded so that gap detection never uses them as a max
+        # boundary -- avoiding day-boundary false positives where a
+        # late-uploaded yesterday seq looks like an interior gap between
+        # an earlier yesterday seq and a today seq.  The excluded
+        # entries will be re-checked tomorrow as part of "yesterday".
+        #
+        # Timezone contract: both operands below are NAIVE local time.
+        # ``_extract_binlog_timestamp`` returns naive local per the
+        # backup-agent filename convention (YYYYMMDDHHMMSS in the local
+        # tz of the source host); ``analysis_end_local`` is naive local
+        # stripped from a Django timezone-aware ``localtime()``.  They
+        # are directly comparable only because both are local wall-clock.
+        # If a newly provisioned instance ever emits UTC timestamps in
+        # filenames, this comparison would silently mis-classify
+        # buffer-window entries -- revisit this contract then.
+        if analysis_end_local is not None:
+            yesterday_logs = [
+                e
+                for e in bklogs
+                if (
+                    (ts := _extract_binlog_timestamp(e.get("file_name", ""), cluster.cluster_type)) is not None
+                    and ts < analysis_end_local
+                )
+            ]
+        else:
+            yesterday_logs = bklogs
+
         _TERMINAL = ("to_backup_system_success", "to_backup_system_failed")
-        all_terminal = [e for e in bklogs if e.get("backup_status") in _TERMINAL]
-        success_entries = [e for e in bklogs if e.get("backup_status") == "to_backup_system_success"]
+        all_terminal = [e for e in yesterday_logs if e.get("backup_status") in _TERMINAL]
+        success_entries = [e for e in yesterday_logs if e.get("backup_status") == "to_backup_system_success"]
 
         api_promoted = [
             e
-            for e in bklogs
+            for e in yesterday_logs
             if e.get("backup_status") == "to_backup_system_start" and e.get("task_id", "") in api_confirmed
         ]
         if api_promoted:
@@ -476,12 +572,27 @@ class CheckBinlogBackupTask:
 
     @staticmethod
     def _yesterday_time_range():
+        """Compute the BKLog query window and the gap-analysis cutoff.
+
+        Returns ``(query_start, query_end, analysis_end_local)``:
+
+        - ``query_start``/``query_end``: aware UTC bounds for the BKLog
+          ES query.  Window is ``[yesterday 00:00, today 01:00)`` local
+          time.  The 1h tail buffer is intentional -- it captures
+          binlogs whose **content** belongs to yesterday but whose
+          upload completed slightly after midnight (slow uploads,
+          backup-system retries, ES ingestion delay).
+        - ``analysis_end_local``: naive local ``datetime`` representing
+          today 00:00:00.  Used downstream to filter out entries whose
+          content time falls in today's first hour -- those entries are
+          today's data that happen to fall inside the buffer window and
+          should not participate in yesterday's gap detection.  They
+          will be re-checked tomorrow as part of "yesterday" then.
+        """
         local_now = timezone.localtime()
-        yesterday = local_now - timedelta(days=1)
-        start = yesterday.replace(hour=0, minute=0, second=0, microsecond=0).astimezone(tz=timezone.utc)
-        # +1h buffer: binlog entries logged near 23:59 may be ingested into BKLog
-        # after midnight due to ES indexing delay.
-        end = yesterday.replace(hour=23, minute=59, second=59, microsecond=0).astimezone(tz=timezone.utc) + timedelta(
-            hours=1
-        )
-        return start, end
+        local_today_start = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
+        local_yesterday_start = local_today_start - timedelta(days=1)
+        query_start = local_yesterday_start.astimezone(tz=timezone.utc)
+        query_end = local_today_start.astimezone(tz=timezone.utc) + timedelta(hours=1)
+        analysis_end_local = local_today_start.replace(tzinfo=None)
+        return query_start, query_end, analysis_end_local

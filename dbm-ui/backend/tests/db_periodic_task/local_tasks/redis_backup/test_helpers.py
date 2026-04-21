@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import datetime as _dt
 from unittest.mock import patch
 
 import pytest
@@ -66,6 +67,12 @@ def _extract_binlog_index(*a, **kw):
     from backend.db_periodic_task.local_tasks.redis_backup.check_binlog_backup import _extract_binlog_index
 
     return _extract_binlog_index(*a, **kw)
+
+
+def _extract_binlog_timestamp(*a, **kw):
+    from backend.db_periodic_task.local_tasks.redis_backup.check_binlog_backup import _extract_binlog_timestamp
+
+    return _extract_binlog_timestamp(*a, **kw)
 
 
 def _find_missing_binlogs(*a, **kw):
@@ -262,6 +269,36 @@ def test_extract_binlog_index_invalid_type():
     with patch(_IS_PLUS, return_value=False), patch(_IS_SSD, return_value=False):
         with pytest.raises(ValueError, match="unsupported"):
             _extract_binlog_index("binlog-a-b-c-d.log", "UnknownType")
+
+
+# ---------------------------------------------------------------------------
+# _extract_binlog_timestamp
+# ---------------------------------------------------------------------------
+def test_extract_binlog_timestamp_tendisplus():
+    with patch(_IS_PLUS, return_value=True), patch(_IS_SSD, return_value=False):
+        ts = _extract_binlog_timestamp("binlog-1.2.3.4-30000-5-0022670-20251216171459.log.zst", "TendisPlus")
+        assert ts == _dt.datetime(2025, 12, 16, 17, 14, 59)
+
+
+def test_extract_binlog_timestamp_tendisssd():
+    with patch(_IS_PLUS, return_value=False), patch(_IS_SSD, return_value=True):
+        ts = _extract_binlog_timestamp("binlog-1.3.3.79-30009-0014018-20251216171048.log.zst", "TendisSSD")
+        assert ts == _dt.datetime(2025, 12, 16, 17, 10, 48)
+
+
+def test_extract_binlog_timestamp_unparseable_returns_none():
+    with patch(_IS_PLUS, return_value=False), patch(_IS_SSD, return_value=True):
+        assert _extract_binlog_timestamp("binlog-ip-30000-99-not_a_timestamp.log.zst", "TendisSSD") is None
+
+
+def test_extract_binlog_timestamp_too_few_parts_returns_none():
+    with patch(_IS_PLUS, return_value=False), patch(_IS_SSD, return_value=True):
+        assert _extract_binlog_timestamp("binlog-only.log.zst", "TendisSSD") is None
+
+
+def test_extract_binlog_timestamp_unsupported_type_returns_none():
+    with patch(_IS_PLUS, return_value=False), patch(_IS_SSD, return_value=False):
+        assert _extract_binlog_timestamp("binlog-a-b-c-20251216171048.log.zst", "Unknown") is None
 
 
 # ---------------------------------------------------------------------------

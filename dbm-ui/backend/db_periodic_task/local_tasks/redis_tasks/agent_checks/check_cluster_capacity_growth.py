@@ -16,6 +16,8 @@ from blueapps.core.celery.celery import app
 
 from backend.configuration.constants import SystemSettingsEnum
 from backend.db_periodic_task.local_tasks.redis_tasks.agent_checks.base import (
+    DEFAULT_AGENT_HARD_TIME_LIMIT_SECONDS,
+    DEFAULT_AGENT_SOFT_TIME_LIMIT_SECONDS,
     BaseCheckConfig,
     BaseRedisAgentCheckTask,
     execute_agent_check,
@@ -45,7 +47,14 @@ class CheckClusterCapacityGrowthTask(BaseRedisAgentCheckTask):
         return check_cluster_capacity_growth_task
 
 
-@app.task(bind=True, rate_limit="5/m")
+# soft/hard limits below are a safety floor for direct invocations;
+# ``start()`` overrides them per call from ``BaseCheckConfig``.
+@app.task(
+    bind=True,
+    rate_limit="5/m",
+    soft_time_limit=DEFAULT_AGENT_SOFT_TIME_LIMIT_SECONDS,
+    time_limit=DEFAULT_AGENT_HARD_TIME_LIMIT_SECONDS,
+)
 def check_cluster_capacity_growth_task(self, cluster_id: int, config_dict: dict):
     """Check a single Redis cluster's capacity growth using LLM agent."""
     config = ClusterCapacityGrowthCheckConfig.from_raw(config_dict)

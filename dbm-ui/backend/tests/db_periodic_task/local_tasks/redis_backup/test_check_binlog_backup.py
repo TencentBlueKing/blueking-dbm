@@ -8,7 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from datetime import timedelta
+# Tests for CheckBinlogBackupTask — _check_instance and _check_cluster.
+#
+# Source-module imports are done lazily to avoid triggering the
+# ``local_tasks/__init__.py`` import chain.
+from datetime import datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -16,13 +20,6 @@ import pytest
 from django.utils import timezone
 
 from .conftest import make_binlog_entry
-
-"""
-Tests for CheckBinlogBackupTask — _check_instance and _check_cluster.
-
-Source-module imports are done lazily to avoid triggering the
-``local_tasks/__init__.py`` import chain.
-"""
 
 pytestmark = pytest.mark.django_db
 
@@ -40,6 +37,15 @@ _PATCH_FETCH_INSTANCE = (
 
 _DUMMY_START = timezone.now()
 _DUMMY_END = timezone.now()
+
+
+def _yesterday_local():
+    """Today 00:00 local time as a naive datetime (used as analysis cutoff)."""
+    return timezone.localtime().replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
+
+
+def _ts_str(dt: datetime) -> str:
+    return dt.strftime("%Y%m%d%H%M%S")
 
 
 def _task_cls():
@@ -108,13 +114,15 @@ def _make_slave_master(slave_ip, slave_port, master_ip, master_port, slave_age_h
     )
 
 
-def _run_check_instance(bklogs, cluster=None, kvstorecount=None, ip="3.3.3.2", port="30000"):
+def _run_check_instance(bklogs, cluster=None, kvstorecount=None, ip="3.3.3.2", port="30000", analysis_end_local=None):
     if cluster is None:
         cluster = _make_cluster()
     report = _report_cls()(cluster, "binlog_backup")
     instance = f"{ip}:{port}"
     with patch(_PATCH_FIND, return_value=set()):
-        _task()._check_instance(report, bklogs, cluster, instance, ip, port, kvstorecount)
+        _task()._check_instance(
+            report, bklogs, cluster, instance, ip, port, kvstorecount, analysis_end_local=analysis_end_local
+        )
     return report
 
 
@@ -264,6 +272,163 @@ def test_check_instance_tendisplus_kv_all_failed():
     records = report.records[ST.WARNING.value]
     assert len(records) == 1
     assert "failed" in records[0]["msg"]
+
+
+# ---------------------------------------------------------------------------
+# content-time filter (analysis_end_local) tests
+# ---------------------------------------------------------------------------
+def _ssd_filename(ip, port, idx, content_time):
+    return f"binlog-{ip}-{port}-{idx}-{_ts_str(content_time)}.log.zst"
+
+
+def _plus_filename(ip, port, kv, idx, content_time):
+    return f"binlog-{ip}-{port}-{kv}-{idx}-{_ts_str(content_time)}.log.zst"
+
+
+def test_check_instance_day_boundary_no_false_positive():
+    """User scenario: idx=2 yesterday is uploaded too late (out of window),
+    idx=3 today is in the buffer.  Without filter, [1, 3] would falsely
+    flag idx=2 as missing.  With filter, today's idx=3 is excluded and
+    only idx=1 remains -- no gap reported."""
+    ST = _state()
+    today_start = _yesterday_local()
+    yesterday_late = today_start - timedelta(minutes=10)
+    today_first_hour = today_start + timedelta(minutes=10)
+    logs = [
+        make_binlog_entry(
+            status="to_backup_system_success",
+            ip="3.3.3.2",
+            port=30000,
+            file_name=_ssd_filename("3.3.3.2", 30000, 1, yesterday_late),
+        ),
+        make_binlog_entry(
+            status="to_backup_system_success",
+            ip="3.3.3.2",
+            port=30000,
+            file_name=_ssd_filename("3.3.3.2", 30000, 3, today_first_hour),
+        ),
+    ]
+    with patch(_PATCH_IS_PLUS, return_value=False), patch(_PATCH_IS_SSD, return_value=True):
+        report = _run_check_instance(logs, analysis_end_local=today_start)
+    records = report.records[ST.NORMAL.value]
+    assert len(records) == 1
+    assert records[0]["msg"] == "ok"
+
+
+def test_check_instance_tail_missing_within_yesterday_still_detected():
+    """Genuine gap inside yesterday content (idx=3 missing between 1, 2, 4)
+    must still be flagged even with the content-time filter active."""
+    ST = _state()
+    today_start = _yesterday_local()
+    base = today_start - timedelta(hours=12)
+    logs = [
+        make_binlog_entry(
+            status="to_backup_system_success",
+            ip="3.3.3.2",
+            port=30000,
+            file_name=_ssd_filename("3.3.3.2", 30000, idx, base + timedelta(minutes=10 * idx)),
+        )
+        for idx in (1, 2, 4)
+    ]
+    with patch(_PATCH_IS_PLUS, return_value=False), patch(_PATCH_IS_SSD, return_value=True):
+        report = _run_check_instance(logs, analysis_end_local=today_start)
+    records = report.records[ST.WARNING.value]
+    assert len(records) == 1
+    assert "seq gaps" in records[0]["msg"]
+    assert "3" in records[0]["msg"]
+
+
+def test_check_instance_late_uploaded_yesterday_seq_in_buffer_normal():
+    """idx=2 has yesterday content but uploaded after midnight (still in
+    the 1h buffer window).  Buffer brings it in, content-time filter
+    keeps it, no gap reported -- this validates the buffer's purpose."""
+    ST = _state()
+    today_start = _yesterday_local()
+    logs = [
+        make_binlog_entry(
+            status="to_backup_system_success",
+            ip="3.3.3.2",
+            port=30000,
+            file_name=_ssd_filename("3.3.3.2", 30000, 1, today_start - timedelta(minutes=20)),
+        ),
+        make_binlog_entry(
+            status="to_backup_system_success",
+            ip="3.3.3.2",
+            port=30000,
+            file_name=_ssd_filename("3.3.3.2", 30000, 2, today_start - timedelta(minutes=5)),
+        ),
+        make_binlog_entry(
+            status="to_backup_system_success",
+            ip="3.3.3.2",
+            port=30000,
+            file_name=_ssd_filename("3.3.3.2", 30000, 3, today_start + timedelta(minutes=15)),
+        ),
+    ]
+    with patch(_PATCH_IS_PLUS, return_value=False), patch(_PATCH_IS_SSD, return_value=True):
+        report = _run_check_instance(logs, analysis_end_local=today_start)
+    records = report.records[ST.NORMAL.value]
+    assert len(records) == 1
+    assert records[0]["msg"] == "ok"
+
+
+def test_check_instance_filename_timestamp_unparseable_excluded():
+    """Entries whose file_name has an unparseable timestamp segment are
+    treated as 'not yesterday' and excluded from gap analysis."""
+    ST = _state()
+    today_start = _yesterday_local()
+    yest = today_start - timedelta(hours=2)
+    logs = [
+        make_binlog_entry(
+            status="to_backup_system_success",
+            ip="3.3.3.2",
+            port=30000,
+            file_name=_ssd_filename("3.3.3.2", 30000, 1, yest),
+        ),
+        make_binlog_entry(
+            status="to_backup_system_success",
+            ip="3.3.3.2",
+            port=30000,
+            file_name=_ssd_filename("3.3.3.2", 30000, 2, yest + timedelta(minutes=10)),
+        ),
+        make_binlog_entry(
+            status="to_backup_system_success",
+            ip="3.3.3.2",
+            port=30000,
+            file_name="binlog-3.3.3.2-30000-99-not_a_timestamp.log.zst",
+        ),
+    ]
+    with patch(_PATCH_IS_PLUS, return_value=False), patch(_PATCH_IS_SSD, return_value=True):
+        report = _run_check_instance(logs, analysis_end_local=today_start)
+    records = report.records[ST.NORMAL.value]
+    assert len(records) == 1, f"unexpected report: {report.records}"
+
+
+def test_check_instance_tendisplus_day_boundary_no_false_positive():
+    """Same false-positive scenario, TendisPlus per-kvstore variant."""
+    ST = _state()
+    CT = _cluster_type()
+    cluster = _make_cluster(CT.TendisPredixyTendisplusCluster.value)
+    today_start = _yesterday_local()
+    yest_late = today_start - timedelta(minutes=10)
+    today_first = today_start + timedelta(minutes=20)
+    logs = [
+        make_binlog_entry(
+            status="to_backup_system_success",
+            ip="3.3.3.2",
+            port=30000,
+            file_name=_plus_filename("3.3.3.2", 30000, 0, 1, yest_late),
+        ),
+        make_binlog_entry(
+            status="to_backup_system_success",
+            ip="3.3.3.2",
+            port=30000,
+            file_name=_plus_filename("3.3.3.2", 30000, 0, 3, today_first),
+        ),
+    ]
+    with patch(_PATCH_IS_PLUS, return_value=True), patch(_PATCH_IS_SSD, return_value=False):
+        report = _run_check_instance(logs, cluster=cluster, kvstorecount=1, analysis_end_local=today_start)
+    records = report.records[ST.NORMAL.value]
+    assert len(records) == 1
 
 
 def test_check_instance_api_promoted_counted():

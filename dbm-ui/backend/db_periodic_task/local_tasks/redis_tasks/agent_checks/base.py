@@ -17,6 +17,7 @@ from dataclasses import dataclass, field, fields
 from datetime import timedelta
 from typing import Callable, ClassVar
 
+from celery.exceptions import SoftTimeLimitExceeded
 from django.core.cache import cache
 from django.db.models import Q
 from django.utils import timezone
@@ -58,6 +59,44 @@ DISPATCH_EXPIRE_BUFFER_SECONDS = 60
 DISPATCH_SPREAD_SECONDS = DISPATCH_INTERVAL_SECONDS - DISPATCH_EXPIRE_BUFFER_SECONDS
 DISPATCH_RATE_LIMIT_COOLDOWN_SECONDS = 60
 DEFAULT_MAX_RATE_LIMIT_RETRIES = 3
+
+# Layered timeouts for a single agent check. Two invariants must hold:
+#   1. invoke_timeout < soft_time_limit < hard_time_limit
+#      SDK-level timeout aborts gracefully first, Celery's soft limit is the
+#      Python-level fallback, and the hard limit is the last-resort SIGKILL
+#      against native hangs.
+#   2. hard_time_limit <= DISPATCH_INTERVAL_SECONDS
+#      A cycle-N task must not occupy a worker slot past the start of
+#      cycle-(N+1). Otherwise slow stragglers silently reduce the capacity
+#      available to the next batch, because apply_async(expires=...) then
+#      drops fresh tasks in favor of finishing old ones.
+DEFAULT_AGENT_INVOKE_TIMEOUT_SECONDS = 540
+DEFAULT_AGENT_SOFT_TIME_LIMIT_SECONDS = 570
+DEFAULT_AGENT_HARD_TIME_LIMIT_SECONDS = 600
+
+# Cap how many characters of an agent response we log. A single report is
+# typically ~400-600 chars; this leaves generous headroom for multi-table
+# outputs while preventing a runaway response from flooding the log pipeline.
+AGENT_RESPONSE_LOG_MAX_CHARS = 2000
+
+# Structured outcome tags for log aggregation. Every terminal log line
+# emitted by execute_agent_check, the task_failure handler in signals.py,
+# or start()'s dispatch loop carries `outcome=<one of the below>` so
+# external log platforms (ES/Datadog) can cleanly count per-cycle
+# distributions. When adding new outcomes, keep them snake_case and
+# document them here.
+OUTCOME_SUCCESS = "success"  # agent call returned normally
+OUTCOME_TIMEOUT_SOFT = "timeout_soft"  # Celery SoftTimeLimitExceeded fired
+OUTCOME_TIMEOUT_HARD = "timeout_hard"  # worker SIGKILLed at time_limit (WorkerLostError)
+OUTCOME_RATELIMIT_RETRY = "ratelimit_retry"  # 429 detected, celery retry scheduled
+OUTCOME_RATELIMIT_GAVE_UP = "ratelimit_gave_up"  # 429 but max retries reached
+OUTCOME_ERROR = "error"  # any other uncaught exception from the agent call
+OUTCOME_SKIPPED = "skipped"  # cluster skipped pre-agent; specific cause in the reason field
+# Dispatch-side outcomes: emitted by start(), not by the worker.
+OUTCOME_DISPATCH_OK = "dispatch_ok"
+OUTCOME_DISPATCH_FAILED = "dispatch_failed"
+OUTCOME_DISPATCH_DEDUP_SKIPPED = "dispatch_dedup_skipped"
+
 PRIORITY_ALARM_DAILY_DOMAIN_CACHE_KEY_PREFIX = "redis_agent_check_priority_alarm_domains"
 PRIORITY_ALARM_DAILY_DOMAIN_CACHE_LOCK_KEY_PREFIX = "redis_agent_check_priority_alarm_domains_lock"
 PRIORITY_ALARM_DAILY_CONSUME_LOCK_TTL_SECONDS = 15
@@ -70,18 +109,38 @@ def _is_rate_limit_error(exc: Exception) -> bool:
     return bool(_RATE_LIMIT_PATTERN.search(str(exc)))
 
 
+def _truncate_agent_response_for_log(response, max_chars: int = AGENT_RESPONSE_LOG_MAX_CHARS) -> str:
+    """Coerce an agent response to a bounded single-line repr for logging.
+
+    Non-string responses (None, dict, etc.) are passed through repr() unchanged
+    so unexpected upstream shapes stay debuggable. Long strings are truncated
+    with a trailing marker showing the original length.
+    """
+    if not isinstance(response, str):
+        return repr(response)
+    if len(response) <= max_chars:
+        return repr(response)
+    return f"{response[:max_chars]!r}...[truncated, total_len={len(response)}]"
+
+
 def _should_skip(config: "BaseCheckConfig", cluster: Cluster) -> tuple[bool, str]:
-    """Skip clusters that are young, offline, in ignore list, or have recent/active tickets."""
+    """Decide whether to skip this cluster.
+
+    Returns (skipped, human_reason). The outcome tag for all skip paths is
+    uniformly ``OUTCOME_SKIPPED``; the specific cause (young / offline /
+    ignored / busy) is carried in ``human_reason`` and emitted as a
+    ``reason=...`` field alongside ``outcome=skipped`` in logs.
+    """
     now = timezone.now()
 
     if cluster.create_at > now - timedelta(days=config.lookback_days):
-        return True, f"skipped: cluster younger than {config.lookback_days} days"
+        return True, f"cluster younger than {config.lookback_days} days"
 
     if cluster.phase != ClusterPhase.ONLINE.value:
-        return True, f"skipped: cluster phase={cluster.phase} is not online"
+        return True, f"cluster phase={cluster.phase} is not online"
 
     if cluster.immute_domain in config.ignore_cluster_domains:
-        return True, "skipped: cluster in ignore list"
+        return True, "cluster in ignore list"
 
     cutoff = now - timedelta(days=config.lookback_days)
     has_recent = (
@@ -93,7 +152,7 @@ def _should_skip(config: "BaseCheckConfig", cluster: Cluster) -> tuple[bool, str
         .exists()
     )
     if has_recent:
-        return True, "skipped: recent or active capacity/autofix/migrate ticket"
+        return True, "recent or active capacity/autofix/migrate ticket"
 
     return False, ""
 
@@ -111,38 +170,85 @@ def execute_agent_check(
     ``celery_task.retry(countdown=rate_limit_cooldown_seconds)`` instead of
     failing immediately.  The retried task may expire before execution,
     which is acceptable.
+
+    Failure semantics (intentional):
+      - ``OUTCOME_RATELIMIT_GAVE_UP`` (retries exhausted) is a **soft
+        failure** -- we log at ERROR and return normally without
+        re-raising.  The Celery task is therefore marked SUCCESS.
+        Downstream monitoring must tail the outcome tag in logs rather
+        than rely on Celery task failure state to detect this case.
+      - ``OUTCOME_TIMEOUT_SOFT`` (SoftTimeLimitExceeded) is also soft-
+        swallowed for the same reason: continued retries under rate
+        pressure rarely help and only amplify load.
+      - All other exceptions fall through to the generic ``logger.exception``
+        at the bottom, which similarly does not re-raise.  Celery retries
+        are only triggered explicitly via ``celery_task.retry`` in the
+        rate-limit path above.
     """
     task_label = celery_task.name if celery_task else str(agent_code)
 
     try:
         cluster = Cluster.objects.filter(id=cluster_id).first()
         if not cluster:
-            logger.warning("%s: cluster_id=%s not found", task_label, cluster_id)
+            logger.warning(
+                "%s: cluster_id=%s outcome=%s reason=%s",
+                task_label,
+                cluster_id,
+                OUTCOME_SKIPPED,
+                "cluster not found",
+            )
             return
 
-        skipped, reason = _should_skip(config, cluster)
+        skipped, skip_reason = _should_skip(config, cluster)
         if skipped:
-            logger.debug("%s: cluster_id=%s %s", task_label, cluster_id, reason)
+            logger.debug(
+                "%s: cluster_id=%s outcome=%s reason=%s",
+                task_label,
+                cluster_id,
+                OUTCOME_SKIPPED,
+                skip_reason,
+            )
             return
 
         from backend.dbm_aiagent.agent.handlers import AgentHandler
 
         content = prompt_template.format(cluster_domain=cluster.immute_domain)
-        AgentHandler.ask_agent_with_content(
+        ai_response = AgentHandler.ask_agent_with_content(
             agent_code=agent_code,
             content=content,
+            timeout=max(1, int(config.agent_invoke_timeout_seconds)),
         )
-        logger.info("%s: cluster_id=%s done", task_label, cluster_id)
+        logger.info(
+            "%s: cluster_id=%s outcome=%s agent_response=%s",
+            task_label,
+            cluster_id,
+            OUTCOME_SUCCESS,
+            _truncate_agent_response_for_log(ai_response),
+        )
 
+    except SoftTimeLimitExceeded as e:
+        # Celery soft-limit fired: SDK-level invoke_timeout did not abort in time.
+        # Log loudly and return — do NOT retry, as continued rate pressure is unlikely
+        # to help and may mask a broken upstream.
+        logger.error(
+            "%s: cluster_id=%s outcome=%s soft_time_limit=%ds invoke_timeout=%ds: %s",
+            task_label,
+            cluster_id,
+            OUTCOME_TIMEOUT_SOFT,
+            config.agent_soft_time_limit_seconds,
+            config.agent_invoke_timeout_seconds,
+            e,
+        )
     except Exception as e:
         if _is_rate_limit_error(e) and celery_task is not None:
             cooldown = max(1, config.rate_limit_cooldown_seconds)
             max_retries = max(0, config.max_rate_limit_retries)
             if celery_task.request.retries < max_retries:
                 logger.warning(
-                    "%s: cluster_id=%s hit rate limit (attempt %d/%d), retrying in %ds: %s",
+                    "%s: cluster_id=%s outcome=%s attempt=%d/%d cooldown=%ds: %s",
                     task_label,
                     cluster_id,
+                    OUTCOME_RATELIMIT_RETRY,
                     celery_task.request.retries + 1,
                     max_retries,
                     cooldown,
@@ -151,8 +257,26 @@ def execute_agent_check(
                 raise celery_task.retry(
                     countdown=cooldown, max_retries=max_retries, exc=e, expires=DISPATCH_INTERVAL_SECONDS
                 )
+            # Rate limit retries exhausted: tag separately so the generic
+            # ERROR bucket stays informative, and skip the logger.exception
+            # below to avoid a second log line for the same root cause.
+            logger.error(
+                "%s: cluster_id=%s outcome=%s attempts=%d: %s",
+                task_label,
+                cluster_id,
+                OUTCOME_RATELIMIT_GAVE_UP,
+                celery_task.request.retries,
+                e,
+            )
+            return
 
-        logger.exception("%s: cluster_id=%s failed: %s", task_label, cluster_id, e)
+        logger.exception(
+            "%s: cluster_id=%s outcome=%s: %s",
+            task_label,
+            cluster_id,
+            OUTCOME_ERROR,
+            e,
+        )
 
 
 @dataclass
@@ -166,7 +290,7 @@ class BaseCheckConfig:
     candidate_scan_multiplier: int = 2
     candidate_page_size: int = 200
     max_candidate_scan: int = 0
-    selection_strategy: str = "sequential"  # sequential | rotating
+    selection_strategy: str = "rotating"  # sequential | rotating
     # Keep rolling 24h behavior by default; calendar_day can be enabled later via config.
     recent_check_mode: str = "rolling_24h"  # rolling_24h | calendar_day
     # 0 means use fallback (lookback_days / 2) to preserve current behavior.
@@ -176,6 +300,11 @@ class BaseCheckConfig:
     inflight_lock_ttl_seconds: int = DISPATCH_INTERVAL_SECONDS
     rate_limit_cooldown_seconds: int = DISPATCH_RATE_LIMIT_COOLDOWN_SECONDS
     max_rate_limit_retries: int = DEFAULT_MAX_RATE_LIMIT_RETRIES
+    # Layered per-cluster timeouts. See DEFAULT_AGENT_* constants above for the
+    # invariant (invoke < soft < hard) and the reasoning behind each layer.
+    agent_invoke_timeout_seconds: int = DEFAULT_AGENT_INVOKE_TIMEOUT_SECONDS
+    agent_soft_time_limit_seconds: int = DEFAULT_AGENT_SOFT_TIME_LIMIT_SECONDS
+    agent_hard_time_limit_seconds: int = DEFAULT_AGENT_HARD_TIME_LIMIT_SECONDS
     # Names are matched against the alert's strategy_name (the clean policy name),
     # not alert_name (which carries dynamic business-name suffixes at runtime).
     priority_alarm_names: list = field(default_factory=list)
@@ -236,15 +365,54 @@ class BaseRedisAgentCheckTask(ABC):
     def get_celery_task(self) -> Callable:
         """Return the bound Celery task function used to dispatch per-cluster work."""
 
+    def _resolve_agent_timeouts(self) -> tuple[int, int, int]:
+        """Return (invoke_timeout, soft_time_limit, hard_time_limit) from config.
+
+        Config is authoritative — values flow through unchanged so operators
+        can override at runtime via SystemSettings without us silently
+        rewriting their intent. Two invariants are checked and any violation
+        is logged as a warning so ops can spot misconfiguration:
+
+          1. invoke_timeout < soft_time_limit < hard_time_limit
+             (defense-in-depth layering; see DEFAULT_AGENT_* constants)
+          2. hard_time_limit <= DISPATCH_INTERVAL_SECONDS
+             (tasks should finish before the next dispatch cycle; exceeding
+             this lets slow stragglers occupy worker slots across cycles)
+
+        Only non-positive values are defensively coerced to 1 so apply_async
+        does not reject the dispatch entirely.
+        """
+        invoke = max(1, int(self.config.agent_invoke_timeout_seconds))
+        soft = max(1, int(self.config.agent_soft_time_limit_seconds))
+        hard = max(1, int(self.config.agent_hard_time_limit_seconds))
+
+        issues = []
+        if not (invoke < soft < hard):
+            issues.append(f"invoke<soft<hard violated (invoke={invoke}, soft={soft}, hard={hard})")
+        if hard > DISPATCH_INTERVAL_SECONDS:
+            issues.append(
+                f"hard_time_limit={hard}s exceeds "
+                f"DISPATCH_INTERVAL_SECONDS={DISPATCH_INTERVAL_SECONDS}s; "
+                "slow tasks may occupy worker slots across dispatch cycles"
+            )
+        if issues:
+            logger.warning(
+                "%s: agent timeout config issues: %s",
+                type(self).__name__,
+                "; ".join(issues),
+            )
+
+        return invoke, soft, hard
+
     def _resolve_selection_strategy(self) -> str:
-        strategy = (self.config.selection_strategy or "sequential").lower()
+        strategy = (self.config.selection_strategy or "rotating").lower()
         if strategy not in {"sequential", "rotating"}:
             logger.warning(
-                "%s: invalid selection_strategy=%s, fallback to sequential",
+                "%s: invalid selection_strategy=%s, fallback to rotating",
                 type(self).__name__,
                 self.config.selection_strategy,
             )
-            return "sequential"
+            return "rotating"
         return strategy
 
     def _resolve_max_candidate_scan(self) -> int:
@@ -592,8 +760,18 @@ class BaseRedisAgentCheckTask(ABC):
             return 0
 
         celery_task = self.get_celery_task()
+        # Config is the source of truth; _resolve_agent_timeouts only validates
+        # and warns on invariant violations. We intentionally do NOT rewrite
+        # config_dict so operator-set values propagate unchanged to the worker.
+        # The returned ``_invoke_timeout`` is discarded here because the
+        # worker reads it back from ``config.agent_invoke_timeout_seconds``
+        # inside ``execute_agent_check`` (see the ``ask_agent_with_content``
+        # call above); only soft/hard limits need to be passed to
+        # ``apply_async`` directly for Celery enforcement.
+        _invoke_timeout, soft_time_limit, hard_time_limit = self._resolve_agent_timeouts()
         config_dict = dataclasses.asdict(self.config)
-        dispatched = 0
+        dispatched_ok = 0
+        dispatch_failed = 0
         dedupe_skipped = 0
         count = len(cluster_ids)
         for idx, cluster_id in enumerate(cluster_ids):
@@ -604,24 +782,42 @@ class BaseRedisAgentCheckTask(ABC):
                     lock_ttl = max(1, int(self.config.inflight_lock_ttl_seconds))
                     if not cache.add(lock_key, 1, timeout=lock_ttl):
                         dedupe_skipped += 1
+                        logger.debug(
+                            "%s: cluster_id=%s outcome=%s",
+                            task_name,
+                            cluster_id,
+                            OUTCOME_DISPATCH_DEDUP_SKIPPED,
+                        )
                         continue
 
                 countdown = calculate_countdown(count=count, index=idx, duration=DISPATCH_SPREAD_SECONDS)
                 celery_task.apply_async(
-                    args=[cluster_id, config_dict], countdown=countdown, expires=DISPATCH_INTERVAL_SECONDS
+                    args=[cluster_id, config_dict],
+                    countdown=countdown,
+                    expires=DISPATCH_INTERVAL_SECONDS,
+                    soft_time_limit=soft_time_limit,
+                    time_limit=hard_time_limit,
                 )
-                dispatched += 1
+                dispatched_ok += 1
             except Exception as e:
                 if lock_key:
                     cache.delete(lock_key)
-                logger.error("%s: failed to dispatch cluster_id=%s: %s", task_name, cluster_id, e)
+                dispatch_failed += 1
+                logger.error(
+                    "%s: cluster_id=%s outcome=%s: %s",
+                    task_name,
+                    cluster_id,
+                    OUTCOME_DISPATCH_FAILED,
+                    e,
+                )
 
         logger.info(
-            "%s: dispatched %d/%d clusters (dedupe_skipped=%d, sample ids=%s)",
+            "%s: dispatch_summary requested=%d ok=%d failed=%d dedupe_skipped=%d sample_ids=%s",
             task_name,
-            dispatched,
             count,
+            dispatched_ok,
+            dispatch_failed,
             dedupe_skipped,
             cluster_ids[:5] if len(cluster_ids) >= 5 else cluster_ids,
         )
-        return dispatched
+        return dispatched_ok
