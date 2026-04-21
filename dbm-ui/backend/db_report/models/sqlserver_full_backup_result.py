@@ -8,8 +8,10 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-
 from django.db import models
+from django.utils.translation import gettext as _
+
+from backend.db_meta.enums import ClusterType
 
 
 class SQLServerBackupResult(models.Model):
@@ -56,6 +58,9 @@ class SQLServerBackupResult(models.Model):
     db_size_kb = models.BigIntegerField(default=0)
     compatibility_level = models.IntegerField(default=0)
     local_path = models.CharField(max_length=255, default="")
+    cluster_type = models.CharField(
+        max_length=64, choices=ClusterType.get_choices(), default="", verbose_name=_("集群类型")
+    )
 
     class Meta:
         db_table = "tb_sqlserver_dbbackup_result"

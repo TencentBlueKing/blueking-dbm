@@ -8,15 +8,18 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-
 from django.db import models
+from django.utils import timezone
+from django.utils.translation import gettext as _
+
+from backend.db_meta.enums import ClusterType
 
 
 class SQLServerBinlogResult(models.Model):
     """SQLServer 事务日志备份结果，从 kafka 消费写入"""
 
     id = models.BigAutoField(primary_key=True)
-    created_at = models.DateTimeField(blank=True, null=True)
+    created_at = models.DateTimeField(blank=True, null=True, default=timezone.now)
     updated_at = models.DateTimeField(blank=True, null=True)
     bk_biz_id = models.IntegerField()
     bk_cloud_id = models.IntegerField(default=0)
@@ -44,7 +47,10 @@ class SQLServerBinlogResult(models.Model):
     backup_status = models.SmallIntegerField()
     backup_status_info = models.CharField(max_length=255)
     task_id = models.CharField(max_length=60)
-    local_path = models.CharField(max_length=512)
+    local_path = models.CharField(max_length=255, default="")
+    cluster_type = models.CharField(
+        max_length=64, choices=ClusterType.get_choices(), default="", verbose_name=_("集群类型")
+    )
 
     class Meta:
         db_table = "tb_sqlserver_binlog_result"
