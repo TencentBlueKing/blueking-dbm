@@ -26,7 +26,7 @@ from backend.dbm_aiagent.mcp_tools.common.serializers.ticket_manipulate import (
 )
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
-from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBadTicketStatusException
+from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBadTicketStatusException, DBMMcpBaseException
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.iam_app.handlers.drf_perm.mcp import McpDBManagePermission
@@ -53,16 +53,15 @@ class TicketOperationMcpToolsViewSet(McpToolsViewSet):
     )
     def ticket_list(self, request, *args, **kwargs):
         bk_biz_id = self.get_param("bk_biz_id")
-        # ticket_types = self.get_param("ticket_types")
         ticket_ids = self.get_param("ticket_ids")
         cluster_domains = self.get_param("cluster_domains")
         statuses = self.get_param("statuses")
         time_duration = self.get_param("time_duration")
 
-        # username = request.user.username
+        if bk_biz_id is None and len(ticket_ids) == 0 and len(cluster_domains) == 0:
+            raise DBMMcpBaseException(msg="bk_biz_id, ticket_ids and cluster_domains must input at least 1")
 
         res = ticket_list(bk_biz_id, ticket_ids, cluster_domains, statuses, time_duration)
-        # res = ticket_list(username, bk_biz_id, ticket_ids, cluster_domains, statuses, time_duration)
         return Response({"ticket_infos": res})
 
     @mcp_tools_api_decorator(
