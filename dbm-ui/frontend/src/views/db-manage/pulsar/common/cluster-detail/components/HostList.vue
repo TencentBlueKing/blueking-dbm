@@ -211,6 +211,7 @@
   import ClusterShrink from '@views/db-manage/pulsar/common/shrink/Index.vue';
 
   interface Props {
+    activePanel: string;
     clusterData: PulsarDetailModel;
   }
 
@@ -222,12 +223,19 @@
   const { copyAllIp, copyNotAliveIp } = useCopyMachineIp();
 
   const hostTableRef = ref<InstanceType<typeof DbTable>>();
-  const { quickSearchData, quickSearchValue } = useHostQuickSearch(ClusterTypes.PULSAR, {
+  const { initQuickSearchValue, quickSearchData, quickSearchValue } = useHostQuickSearch(ClusterTypes.PULSAR, {
     clusterId: props.clusterData.id,
     serviceHandler: () => {
       fetchData();
     },
   });
+
+  watch(
+    () => props.activePanel,
+    () => {
+      initQuickSearchValue();
+    },
+  );
 
   const dataSource = (params: Parameters<typeof fetchClusterMachineList>[0]) =>
     fetchClusterMachineList({

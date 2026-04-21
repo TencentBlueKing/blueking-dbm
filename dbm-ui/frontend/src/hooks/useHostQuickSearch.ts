@@ -112,7 +112,10 @@ export const useHostQuickSearch = (
     },
   ];
 
-  quickSearchValue.value = JSON.parse(decodeURIComponent(String(route.query[URL_HOST_MEMO_KEY] || '{}')));
+  const initQuickSearchValue = () => {
+    quickSearchValue.value = JSON.parse(decodeURIComponent(String(route.query[URL_HOST_MEMO_KEY] || '{}')));
+  };
+  initQuickSearchValue();
 
   watch(
     quickSearchValue,
@@ -128,6 +131,7 @@ export const useHostQuickSearch = (
   );
 
   return {
+    initQuickSearchValue,
     quickSearchData,
     quickSearchValue,
   };

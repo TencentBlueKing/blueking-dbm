@@ -3,142 +3,144 @@
     <div
       ref="root"
       class="cluster-detail-action-panel-box">
-        <BkTab
-          v-if="!isLoading"
-          :active="activePanel"
-          class="content-tabs"
-          type="card-tab"
-          @change="handlePanelChange">
-          <slot name="topo">
-            <BkTabPanel
-              :key="clusterData.id"
-              :label="t('集群拓扑')"
-              name="topo">
-              <ClusterTopo
-                v-if="visitedPanels.has('topo')"
-                v-show="activePanel === 'topo'"
+      <BkTab
+        v-if="!isLoading"
+        :active="activePanel"
+        class="content-tabs"
+        type="card-tab"
+        @change="handlePanelChange">
+        <slot name="topo">
+          <BkTabPanel
+            :key="clusterData.id"
+            :label="t('集群拓扑')"
+            name="topo">
+            <ClusterTopo
+              v-if="visitedPanels.has('topo')"
+              v-show="activePanel === 'topo'"
+              :cluster-id="clusterData.id"
+              :cluster-role-node-group="clusterRoleNodeGroup"
+              :cluster-type="clusterType"
+              :db-type="dbType" />
+          </BkTabPanel>
+        </slot>
+        <slot name="info">
+          <BkTabPanel
+            :key="clusterData.id"
+            :label="t('基本信息')"
+            name="info">
+            <slot
+              v-if="visitedPanels.has('info') && clusterData"
+              name="infoContent">
+              <BaseInfo
+                v-show="activePanel === 'info'"
+                :key="clusterData.id"
+                :data="clusterData" />
+            </slot>
+          </BkTabPanel>
+        </slot>
+        <slot name="instance">
+          <BkTabPanel
+            :key="clusterData.id"
+            :label="t('实例列表')"
+            name="instance">
+            <slot
+              v-if="visitedPanels.has('instance')"
+              name="instanceContent">
+              <Instancelist
+                v-show="activePanel === 'instance'"
+                :key="clusterData.id"
                 :cluster-id="clusterData.id"
                 :cluster-role-node-group="clusterRoleNodeGroup"
-                :cluster-type="clusterType"
-                :db-type="dbType" />
-            </BkTabPanel>
-          </slot>
-          <slot name="info">
-            <BkTabPanel
-              :key="clusterData.id"
-              :label="t('基本信息')"
-              name="info">
-              <slot
-                v-if="visitedPanels.has('info') && clusterData"
-                name="infoContent">
-                <BaseInfo
-                  v-show="activePanel === 'info'"
-                  :key="clusterData.id"
-                  :data="clusterData" />
-              </slot>
-            </BkTabPanel>
-          </slot>
-          <slot name="instance">
-            <BkTabPanel
-              :key="clusterData.id"
-              :label="t('实例列表')"
-              name="instance">
-              <slot
-                v-if="visitedPanels.has('instance')"
-                name="instanceContent">
-                <Instancelist
-                  v-show="activePanel === 'instance'"
-                  :key="clusterData.id"
-                  :cluster-id="clusterData.id"
-                  :cluster-role-node-group="clusterRoleNodeGroup"
-                  :cluster-type="clusterType" />
-              </slot>
-            </BkTabPanel>
-          </slot>
-          <slot name="host">
-            <BkTabPanel
-              :key="clusterData.id"
-              :label="t('主机列表')"
-              name="host">
-              <slot
-                v-if="visitedPanels.has('host')"
-                name="hostContent">
-                <HostList
-                  v-show="activePanel === 'host'"
-                  :key="clusterData.id"
-                  :cluster-id="clusterData.id"
-                  :cluster-type="clusterType" />
-              </slot>
-            </BkTabPanel>
-          </slot>
-          <slot name="paramConfig">
-            <BkTabPanel
-              :key="clusterData.id"
-              :label="t('参数配置')"
-              name="paramConfig">
-              <ParamConfig
-                v-if="visitedPanels.has('paramConfig') && clusterData.id"
-                v-show="activePanel === 'paramConfig'"
-                :cluster="clusterData" />
-            </BkTabPanel>
-          </slot>
-          <template v-if="monitorPanelList && monitorPanelList.urls.length > 0">
-            <BkTabPanel
-              v-for="monirotItem in monitorPanelList.urls"
-              :key="monirotItem.view"
-              :label="monirotItem.view"
-              :name="monirotItem.view">
-              <MonitorDashboard
-                v-if="visitedPanels.has(monirotItem.view)"
-                v-show="activePanel === monirotItem.view"
+                :cluster-type="clusterType" />
+            </slot>
+          </BkTabPanel>
+        </slot>
+        <slot name="host">
+          <BkTabPanel
+            :key="clusterData.id"
+            :label="t('主机列表')"
+            name="host">
+            <slot
+              v-if="visitedPanels.has('host')"
+              :active-panel="activePanel"
+              name="hostContent">
+              <HostList
+                v-show="activePanel === 'host'"
                 :key="clusterData.id"
-                :url="monirotItem.url" />
-            </BkTabPanel>
-          </template>
-          <slot
-            v-if="isAbleSubscribe"
+                :active-panel="activePanel"
+                :cluster-id="clusterData.id"
+                :cluster-type="clusterType" />
+            </slot>
+          </BkTabPanel>
+        </slot>
+        <slot name="paramConfig">
+          <BkTabPanel
+            :key="clusterData.id"
+            :label="t('参数配置')"
+            name="paramConfig">
+            <ParamConfig
+              v-if="visitedPanels.has('paramConfig') && clusterData.id"
+              v-show="activePanel === 'paramConfig'"
+              :cluster="clusterData" />
+          </BkTabPanel>
+        </slot>
+        <template v-if="monitorPanelList && monitorPanelList.urls.length > 0">
+          <BkTabPanel
+            v-for="monirotItem in monitorPanelList.urls"
+            :key="monirotItem.view"
+            :label="monirotItem.view"
+            :name="monirotItem.view">
+            <MonitorDashboard
+              v-if="visitedPanels.has(monirotItem.view)"
+              v-show="activePanel === monirotItem.view"
+              :key="clusterData.id"
+              :url="monirotItem.url" />
+          </BkTabPanel>
+        </template>
+        <slot
+          v-if="isAbleSubscribe"
+          name="alarmSubscription">
+          <BkTabPanel
+            :key="clusterData.id"
+            :label="t('告警订阅')"
             name="alarmSubscription">
-            <BkTabPanel
-              :key="clusterData.id"
-              :label="t('告警订阅')"
-              name="alarmSubscription">
-              <AlarmSubscription
-                v-show="activePanel === 'alarmSubscription'"
-                :cluster-type="clusterData.cluster_type"
-                :data="clusterData" />
-            </BkTabPanel>
-          </slot>
-          <slot name="record">
-            <BkTabPanel
-              :key="clusterData.id"
-              :label="t('操作记录')"
-              name="record">
-              <div
-                v-if="visitedPanels.has('record')"
-                v-show="activePanel === 'record'"
-                class="conf-tab-wrapper mt-16">
-                <BkTab
-                  v-model:active="recordSubTab"
-                  type="unborder-card">
-                  <BkTabPanel
-                    :label="t('操作记录')"
-                    name="configRecord">
-                    <ConfigOperationRecord
-                      :cluster-id="clusterData.id"
-                      :cluster-type="clusterData.cluster_type" />
-                  </BkTabPanel>
-                  <BkTabPanel
-                    :label="t('单据记录')"
-                    name="ticketRecord">
-                    <OperationRecord
-                      :id="clusterData.id"
-                      :key="clusterData.id" />
-                  </BkTabPanel>
-                </BkTab>
-              </div>
-            </BkTabPanel>
-          </slot>
-        </BkTab>
+            <AlarmSubscription
+              v-show="activePanel === 'alarmSubscription'"
+              :cluster-type="clusterData.cluster_type"
+              :data="clusterData" />
+          </BkTabPanel>
+        </slot>
+        <slot name="record">
+          <BkTabPanel
+            :key="clusterData.id"
+            :label="t('操作记录')"
+            name="record">
+            <div
+              v-if="visitedPanels.has('record')"
+              v-show="activePanel === 'record'"
+              class="conf-tab-wrapper mt-16">
+              <BkTab
+                v-model:active="recordSubTab"
+                type="unborder-card">
+                <BkTabPanel
+                  :label="t('操作记录')"
+                  name="configRecord">
+                  <ConfigOperationRecord
+                    :cluster-id="clusterData.id"
+                    :cluster-type="clusterData.cluster_type" />
+                </BkTabPanel>
+                <BkTabPanel
+                  :label="t('单据记录')"
+                  name="ticketRecord">
+                  <OperationRecord
+                    :id="clusterData.id"
+                    :key="clusterData.id" />
+                </BkTabPanel>
+              </BkTab>
+            </div>
+          </BkTabPanel>
+        </slot>
+      </BkTab>
     </div>
   </BkLoading>
 </template>
@@ -196,7 +198,7 @@
   export interface Slots {
     alarmSubscription: () => VNode;
     host: () => VNode;
-    hostContent: () => VNode;
+    hostContent: (params: { activePanel: string }) => VNode;
     info: () => VNode;
     infoContent: () => VNode;
     instance: () => VNode;
