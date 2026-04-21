@@ -34,6 +34,9 @@ from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.mongodb_clean_residual_exporter import (
     add_mongodb_clean_residual_exporter_acts,
 )
+from backend.flow.engine.bamboo.scene.redis.sub_task.redis_clean_residual_exporter import (
+    add_redis_clean_residual_exporter_acts,
+)
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
 from backend.flow.plugins.components.collections.common.resource_replenish import HCMResourceReplenishComponent
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
@@ -399,6 +402,13 @@ class ImportResourceInitStepFlow(object):
                 logger.warning("machine_idle_check_flow: db_type is empty, skip exporter cleanup")
             else:
                 add_mongodb_clean_residual_exporter_acts(
+                    p=p,
+                    db_type=db_type,
+                    bk_cloud_id=self.data.get("bk_cloud_id", 0),
+                    bk_biz_id=get_resource_biz(),
+                    iplist=self.data.get("sa_check_ips", []),
+                )
+                add_redis_clean_residual_exporter_acts(
                     p=p,
                     db_type=db_type,
                     bk_cloud_id=self.data.get("bk_cloud_id", 0),

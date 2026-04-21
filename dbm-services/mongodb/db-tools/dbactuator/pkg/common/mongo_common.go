@@ -6,6 +6,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -202,11 +203,11 @@ func ShutdownMongoProcess(port int, timeout time.Duration, force bool) error {
 		timeout = 30 * time.Second
 	}
 
-	using, err := checkPortInUse(port)
+	listenPID0, err := getPidByPort(port)
 	if err != nil {
-		return errors.Wrapf(err, "check port %d before shutdown", port)
+		return errors.Wrapf(err, "check TCP LISTEN on port %d before shutdown", port)
 	}
-	if !using {
+	if listenPID0 == 0 {
 		return nil
 	}
 
@@ -216,7 +217,7 @@ func ShutdownMongoProcess(port int, timeout time.Duration, force bool) error {
 	}
 
 	// kill -15 pid, graceful shutdown
-	if err := syscall.Kill(pid, syscall.SIGTERM); err != nil {
+	if err := syscall.Kill(pid, syscall.SIGTERM); err != nil && !stderrors.Is(err, syscall.ESRCH) {
 		return errors.Wrapf(err, "kill -15 pid %d for port %d", pid, port)
 	}
 
@@ -228,11 +229,32 @@ func ShutdownMongoProcess(port int, timeout time.Duration, force bool) error {
 		return fmt.Errorf("graceful shutdown timeout for port %d after %s", port, timeout)
 	}
 
+	// Listener may exit between waitPortRelease timing out and SIGKILL; skip kill if nothing listens.
+	listenPID, err := getPidByPort(port)
+	if err != nil {
+		return errors.Wrapf(err, "getPidByPort %d before kill -9", port)
+	}
+	if listenPID == 0 {
+		return nil
+	}
+
 	if err := syscall.Kill(pid, syscall.SIGKILL); err != nil {
+		if stderrors.Is(err, syscall.ESRCH) {
+			listenPID2, err2 := getPidByPort(port)
+			if err2 != nil {
+				return errors.Wrapf(err2, "getPidByPort %d after kill -9 ESRCH", port)
+			}
+			if listenPID2 == 0 {
+				return nil
+			}
+			return fmt.Errorf(
+				"kill -9 pid %d (%s) for port %d: process already exited but listener pid %d still on port",
+				pid, procName, port, listenPID2)
+		}
 		return errors.Wrapf(err, "kill -9 pid %d (%s) for port %d", pid, procName, port)
 	}
 	if err := waitPortRelease(port, 10*time.Second); err != nil {
-		return fmt.Errorf("port %d still in use after graceful timeout (%s) and kill -9", port, timeout)
+		return fmt.Errorf("port %d still has TCP LISTEN after graceful timeout (%s) and kill -9: %w", port, timeout, err)
 	}
 	return nil
 }
@@ -257,18 +279,21 @@ func getMongoPidAndNameByPort(port int) (int, string, error) {
 	return pid, processNameStr, nil
 }
 
+// waitPortRelease waits until no TCP LISTEN on port. Uses only IPv4 /proc/net/tcp (ListenSocketInodes),
+// not full /proc/*/fd resolution, to keep polling cheap; PID is resolved once on timeout for the error message.
 func waitPortRelease(port int, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
 	for {
-		using, err := checkPortInUse(port)
+		listening, err := portHasTCPListenIPv4(port)
 		if err != nil {
-			return errors.Wrapf(err, "check port %d status after shutdown", port)
+			return errors.Wrapf(err, "check TCP LISTEN on port %d after shutdown", port)
 		}
-		if !using {
+		if !listening {
 			return nil
 		}
 		if time.Now().After(deadline) {
-			return fmt.Errorf("port %d still in use after %s", port, timeout)
+			listenPID, _ := getPidByPort(port)
+			return fmt.Errorf("port %d still has TCP LISTEN (pid %d) after %s", port, listenPID, timeout)
 		}
 		time.Sleep(mongoShutdownPollInterval)
 	}

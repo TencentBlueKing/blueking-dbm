@@ -82,46 +82,139 @@ func ParseHexAddr(host string) (ip string, port int, err error) {
 
 }
 
-const ProcNetTcpPath = "/proc/net/tcp"
+// ParseLocalPortFromProcNet parses the local_address column from /proc/net/tcp.
+// IPv4 example: 0100007F:0271
+func ParseLocalPortFromProcNet(localField string) (int, error) {
+	i := strings.LastIndex(localField, ":")
+	if i < 0 {
+		return 0, errors.Errorf("no port in %q", localField)
+	}
+	n, err := strconv.ParseInt(localField[i+1:], 16, 32)
+	if err != nil {
+		return 0, errors.Wrap(err, "parse port hex")
+	}
+	return int(n), nil
+}
+
+func inodeColumnIndex(headerFields []string) int {
+	for i, h := range headerFields {
+		if h == "inode" {
+			return i
+		}
+	}
+	return -1
+}
+
+func parseSlField(slField string) int {
+	s := strings.TrimSuffix(slField, ":")
+	n, _ := strconv.Atoi(s)
+	return n
+}
+
+const (
+	// ProcNetTcpPath IPv4 TCP socket table
+	ProcNetTcpPath = "/proc/net/tcp"
+)
+
 const ESTABLISHED = 1
 const LISTEN = 10
 
 // ProcNetTcp 读取/proc/net/tcp文件
 func ProcNetTcp(input []byte) (rows []NetTcp, err error) {
-	var fh *os.File
-	var scanner *bufio.Scanner
+	return procNetTcpRead(ProcNetTcpPath, input)
+}
 
+func procNetTcpRead(path string, input []byte) (rows []NetTcp, err error) {
+	var scanner *bufio.Scanner
 	if input == nil {
-		fh, err = os.Open(ProcNetTcpPath)
-		if err != nil {
-			panic(err)
+		fh, openErr := os.Open(path)
+		if openErr != nil {
+			if os.IsNotExist(openErr) {
+				return nil, nil
+			}
+			return nil, errors.Wrap(openErr, "open "+path)
 		}
+		defer fh.Close()
 		scanner = bufio.NewScanner(fh)
 	} else {
 		scanner = bufio.NewScanner(bytes.NewReader(input))
 	}
 
+	inodeIdx := -1
 	nLine := 0
 	for scanner.Scan() {
 		nLine++
 		line := scanner.Text()
-		row := NetTcp{}
-		row.Fields = strings.Fields(line)
-
-		if nLine == 1 {
-			if row.Fields[0] != "sl" {
-				return nil, errors.New("bad input")
-			}
+		fields := strings.Fields(line)
+		if len(fields) < 4 {
 			continue
 		}
 
-		row.Fields = strings.Fields(line)
-		row.Sl, _ = strconv.Atoi(row.Fields[0])
-		row.LocalHost, row.LocalPort, err = ParseHexAddr(row.Fields[1])
-		row.RemoteHost, row.RemotePort, err = ParseHexAddr(row.Fields[2])
-		v, _ := strconv.ParseUint(row.Fields[3], 16, 8)
+		if nLine == 1 {
+			if fields[0] != "sl" {
+				return nil, errors.New("bad proc net tcp header")
+			}
+			inodeIdx = inodeColumnIndex(fields)
+			continue
+		}
+
+		row := NetTcp{}
+		row.Fields = fields
+		row.Sl = parseSlField(fields[0])
+
+		lp, errLP := ParseLocalPortFromProcNet(fields[1])
+		if errLP != nil {
+			continue
+		}
+		row.LocalPort = lp
+
+		if lh, _, e := ParseHexAddr(fields[1]); e == nil {
+			row.LocalHost = lh
+		}
+
+		if rh, rp, e := ParseHexAddr(fields[2]); e == nil {
+			row.RemoteHost = rh
+			row.RemotePort = rp
+		}
+
+		v, errSt := strconv.ParseUint(fields[3], 16, 8)
+		if errSt != nil {
+			continue
+		}
 		row.St = int(v)
+
+		if inodeIdx >= 0 && len(fields) > inodeIdx {
+			row.Inode, _ = strconv.ParseInt(fields[inodeIdx], 10, 64)
+		}
+
 		rows = append(rows, row)
 	}
+	if scanErr := scanner.Err(); scanErr != nil {
+		return rows, scanErr
+	}
 	return rows, nil
+}
+
+// ListenSocketInodes returns socket inodes in TCP LISTEN on local port (IPv4 table).
+func ListenSocketInodes(port int) ([]int64, error) {
+	var inodes []int64
+	seen := map[int64]struct{}{}
+	tcpRows, err := procNetTcpRead(ProcNetTcpPath, nil)
+	if err != nil {
+		return nil, err
+	}
+	if tcpRows == nil {
+		return inodes, nil
+	}
+	for _, row := range tcpRows {
+		if row.LocalPort != port || !row.IsListen() || row.Inode <= 0 {
+			continue
+		}
+		if _, ok := seen[row.Inode]; ok {
+			continue
+		}
+		seen[row.Inode] = struct{}{}
+		inodes = append(inodes, row.Inode)
+	}
+	return inodes, nil
 }
