@@ -97,6 +97,7 @@ class RedisRecoverDrillTaskViewSet(RecoverDrillTaskViewSet):
             RedisRollbackExerciseTaskStage.ROLLBACK_FAILED,
             RedisRollbackExerciseTaskStage.CLEANUP_FAILED,
             RedisRollbackExerciseTaskStage.SKIPPED,
+            RedisRollbackExerciseTaskStage.BACKUP_INVALID,
         ]
     ).order_by("-update_at")
     serializer_class = RedisRecoverDrillTaskSerializer

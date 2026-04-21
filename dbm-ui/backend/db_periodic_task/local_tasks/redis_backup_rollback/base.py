@@ -22,12 +22,21 @@ from typing import List, Optional, Set, Tuple
 from django.utils import timezone as django_timezone
 from django.utils.translation import gettext as _
 
+from backend.components import DBConfigApi
+from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.enums import ClusterPhase, DestroyedStatus, InstanceInnerRole
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_report.enums import RedisRollbackExerciseTaskStage as TaskStage
 from backend.db_report.models import RedisRollbackExerciseReport as Report
 from backend.db_services.redis.rollback.handlers import DataStructureHandler
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
+from backend.db_services.redis.util import (
+    is_redis_instance_type,
+    is_tendisplus_instance_type,
+    is_tendisssd_instance_type,
+)
+from backend.exceptions import AppBaseException
+from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum
 from backend.ticket.builders.common.base import ClusterType, IpSource
 from backend.ticket.constants import TICKET_RUNNING_STATUS_SET, TicketType
 from backend.ticket.models import ClusterOperateRecord, SystemSettings, Ticket
@@ -38,8 +47,8 @@ logger = logging.getLogger("root")
 
 
 def _fmt_task_msg(message: str) -> str:
-    """Format task message with timestamp prefix [yyyy-mm-dd hh:mm:ss]"""
-    timestamp = django_timezone.now().strftime("%Y-%m-%d %H:%M:%S")
+    """Format task message with local time prefix [yyyy-mm-dd hh:mm:ss]"""
+    timestamp = django_timezone.localtime().strftime("%Y-%m-%d %H:%M:%S")
     return f"[{timestamp}] {message}"
 
 
@@ -53,6 +62,17 @@ RPUSH_BATCH_SIZE = 500
 class RedisRollbackExerciseMode(StrEnum):
     SPECIFIED = "specified"
     RANDOM = "random"
+
+
+class ValidationFailureKind(StrEnum):
+    """Why a candidate failed pre-flight validation.
+
+    BACKUP_INVALID is treated as ABNORMAL on the report (real data-protection issue);
+    ENV_SKIPPED is treated as SKIPPED -> WARNING (transient/environmental).
+    """
+
+    BACKUP_INVALID = "backup_invalid"
+    ENV_SKIPPED = "env_skipped"
 
 
 @dataclass
@@ -96,9 +116,18 @@ class RedisRollbackExerciseConfig:
 
     # Extra
     max_instances: int = 10  # Each round
-    rollback_days: List[int] = field(default_factory=lambda: [7, 5, 3, 2, 1])
+    rollback_days: List[int] = field(default_factory=lambda: [0.1, 0.2, 0.3, 0.4, 0.5, 1, 2])  # Rollback days
     polling_interval: int = 10  # sec
     polling_timeout: int = 3600  # sec
+
+    # Recovery time-point offset (after the chosen full backup uptime).
+    # SSD / Tendisplus default ~23h50m so we exercise almost a full day of binlog
+    # (daily full backup at ~05:00 -> rollback target lands ~04:50 of next day,
+    # safely before the next full backup window).
+    binlog_replay_minutes: int = 1430
+    # Cluster types without binlog (cache / redis main-slave / predixy redis cluster)
+    # only need a small offset past the full backup uptime.
+    no_binlog_offset_minutes: int = 30
 
 
 class RedisRollbackExercise:
@@ -165,33 +194,68 @@ class RedisRollbackExercise:
             report = self._create_report(cluster, instance)
 
             try:
-                is_valid, backup_info, days_used, fail_reason = self._validate_instance(
+                (
+                    is_valid,
+                    full_backup,
+                    days_used,
+                    recovery_time_point,
+                    binlog_summary,
+                    fail_reason,
+                    failure_kind,
+                ) = self._validate_instance(
                     backup_check_instance.machine.ip,
                     backup_check_instance.port,
-                    cluster.id,
-                    cluster.cluster_type,
+                    cluster,
                     rollback_days=self.config.rollback_days,
                 )
 
                 if is_valid:
-                    report.backup_info = json.dumps(backup_info, indent=2, ensure_ascii=False)
+                    report.backup_info = json.dumps(
+                        {
+                            "full_backup": full_backup,
+                            "binlog_summary": binlog_summary,
+                            "recovery_time_point": datetime2str(recovery_time_point),
+                            "tendis_type": self._resolve_tendis_type(cluster.cluster_type),
+                            "kvstorecount": (
+                                self._get_kvstorecount(cluster)
+                                if is_tendisplus_instance_type(cluster.cluster_type)
+                                else None
+                            ),
+                        },
+                        indent=2,
+                        ensure_ascii=False,
+                    )
                     report.save(update_fields=["backup_info", "update_at"])
 
                     valid_instances.append(
                         {
                             "cluster": cluster,
                             "instance": instance,
-                            "backup_info": backup_info,
+                            "full_backup": full_backup,
                             "days_used": days_used,
+                            "recovery_time_point": recovery_time_point,
+                            "binlog_summary": binlog_summary,
                             "report": report,
                         }
                     )
                 else:
+                    stage = (
+                        TaskStage.BACKUP_INVALID
+                        if failure_kind == ValidationFailureKind.BACKUP_INVALID
+                        else TaskStage.SKIPPED
+                    )
                     report.mark(
-                        TaskStage.SKIPPED,
+                        stage,
                         task_message=_fmt_task_msg(_("Validation failed: {}").format(fail_reason)),
                     )
 
+            except AppBaseException as e:
+                logger.exception(_("Backup validation error for instance {} {}").format(instance.ip_port, str(e)))
+                report.mark(
+                    TaskStage.BACKUP_INVALID,
+                    task_message=_fmt_task_msg(_("Backup validation error: {}").format(str(e))),
+                )
+                continue
             except Exception as e:
                 logger.exception(_("Error validating instance {} {}").format(instance.ip_port, str(e)))
                 report.mark(
@@ -289,32 +353,45 @@ class RedisRollbackExercise:
                 return self._consume_from_queue(num)
 
     def _validate_instance(
-        self, instance_ip: str, instance_port: int, cluster_id: int, cluster_type: str, rollback_days: List[int]
+        self, instance_ip: str, instance_port: int, cluster: Cluster, rollback_days: List[int]
     ) -> tuple:
         """
-        Validate if instance is suitable for rollback exercise
+        Validate if instance is suitable for rollback exercise.
 
         Validations:
-        1. Check if instance has valid backup
-        2. Check if cluster has no existing temp instance (not destroyed) in tb_tendis_rollback_tasks
-        3. Check if cluster has no undone conflicting ticket
+        1. Backup availability (full backup + binlog when applicable)
+        2. No existing temp instance (not destroyed) in tb_tendis_rollback_tasks
+        3. No undone conflicting ticket
 
         Returns:
-            tuple: (is_valid: bool, backup_info: dict or None, days_used: int or None, fail_reason: str or None)
+            tuple: (is_valid, full_backup_log, days_used, recovery_time_point,
+                    binlog_summary, fail_reason, failure_kind)
+
+            ``failure_kind`` is a ``ValidationFailureKind`` (or None when valid):
+            - BACKUP_INVALID -> caller should mark report as BACKUP_INVALID (ABNORMAL)
+            - ENV_SKIPPED    -> caller should mark report as SKIPPED (WARNING)
         """
-        # 1. Backup check
-        has_backup, backup_info, days_used = self._instance_has_backup(
+        cluster_id = cluster.id
+
+        # 1. Backup check (full + binlog when applicable)
+        (
+            has_backup,
+            full_backup,
+            days_used,
+            recovery_time_point,
+            binlog_summary,
+            backup_fail_reason,
+        ) = self._instance_has_backup(
             instance_ip=instance_ip,
             instance_port=instance_port,
-            cluster_id=cluster_id,
-            cluster_type=cluster_type,
+            cluster=cluster,
             rollback_days=rollback_days,
         )
         if not has_backup:
-            fail_reason = _("Instance {}:{} - No valid backup found across rollback days {}").format(
-                instance_ip, instance_port, rollback_days
+            fail_reason = _("Instance {}:{} - No valid backup across rollback days {}: {}").format(
+                instance_ip, instance_port, rollback_days, backup_fail_reason or _("unknown")
             )
-            return False, None, None, fail_reason
+            return False, None, None, None, None, fail_reason, ValidationFailureKind.BACKUP_INVALID
 
         # 2. Temp instance check
         existing_temp_instances = TbTendisRollbackTasks.objects.filter(
@@ -323,7 +400,7 @@ class RedisRollbackExercise:
         )
         if existing_temp_instances.exists():
             fail_reason = _("Cluster {} has existing temp instances (not destroyed)").format(cluster_id)
-            return False, None, None, fail_reason
+            return False, None, None, None, None, fail_reason, ValidationFailureKind.ENV_SKIPPED
 
         # 3. Undone ticket check
         conflicting_ticket_type = [
@@ -344,9 +421,9 @@ class RedisRollbackExercise:
             fail_reason = _("Cluster {} has undone {} ticket {}").format(
                 cluster_id, undone_record.ticket.ticket_type, undone_record.ticket.id
             )
-            return False, None, None, fail_reason
+            return False, None, None, None, None, fail_reason, ValidationFailureKind.ENV_SKIPPED
 
-        return True, backup_info, days_used, None
+        return True, full_backup, days_used, recovery_time_point, binlog_summary, None, None
 
     def _create_ticket(self, valid_instances: List[dict]):
         """
@@ -360,10 +437,8 @@ class RedisRollbackExercise:
         for item in valid_instances:
             cluster = item["cluster"]
             instance: StorageInstance = item["instance"]
-            backup_info = item["backup_info"]
+            recovery_time_point = item["recovery_time_point"]
             report: Report = item["report"]
-
-            recovery_time_point = str2datetime(backup_info["uptime"]) + timedelta(minutes=30)
 
             logger.info(_("instance: {}").format(instance))
 
@@ -660,53 +735,168 @@ class RedisRollbackExercise:
         return result, skipped_clusters
 
     def _instance_has_backup(
-        self, instance_ip: str, instance_port: int, cluster_id: int, cluster_type: str, rollback_days: List[int]
+        self,
+        instance_ip: str,
+        instance_port: int,
+        cluster: Cluster,
+        rollback_days: List[int],
     ) -> tuple:
         """
-        Check if instance has valid backups by querying from bklog
+        Check if instance has valid backup (full + binlog when applicable) by querying bklog.
+
+        For SSD / Tendisplus we additionally call ``query_binlog_from_bklog`` over the same
+        window the rollback flow will later download (see
+        ``RedisDataStructureFlow.get_backupfile``); that helper enforces consecutivity and
+        the >= 2 binlog-files-per-instance rule, so any missing/duplicate index surfaces
+        here as a backup-invalid signal rather than a mid-flow failure.
 
         Returns:
-            tuple: (has_backup: bool, backup_info: dict or None, days_used: int or None)
+            tuple: (has_backup, full_backup_log, days_used, recovery_time_point, binlog_summary, fail_reason)
         """
+        cluster_id = cluster.id
+        cluster_type = cluster.cluster_type
         logger.debug(
             _("Checking backup records for instance {}:{} (type: {})").format(instance_ip, instance_port, cluster_type)
         )
+
+        has_binlog = self._cluster_type_has_binlog(cluster_type)
+        tendis_type = self._resolve_tendis_type(cluster_type)
+        kvstorecount = self._get_kvstorecount(cluster) if is_tendisplus_instance_type(cluster_type) else None
+        offset_minutes = self.config.binlog_replay_minutes if has_binlog else self.config.no_binlog_offset_minutes
+
         sorted_days = sorted(rollback_days)
         handler = DataStructureHandler(cluster_id=cluster_id)
+        last_fail_reason = None
+
         for days_before in sorted_days:
+            rollback_time = django_timezone.now() - timedelta(days=days_before)
             try:
-                rollback_time = django_timezone.now() - timedelta(days=days_before)
                 backup_log = handler.query_latest_backup_log(
                     rollback_time=rollback_time,
                     host_ip=instance_ip,
                     port=instance_port,
                 )
-
-                if backup_log and backup_log.get("status") == "to_backup_system_success":
-                    logger.info(
-                        _("Found valid backup for instance {}:{} at {} days before, backup time: {}").format(
-                            instance_ip, instance_port, days_before, backup_log.get("uptime")
-                        )
-                    )
-                    return True, backup_log, days_before
-                else:
-                    logger.debug(
-                        _("No valid backup found for instance {}:{} at {} days before").format(
-                            instance_ip, instance_port, days_before
-                        )
-                    )
-
             except Exception as e:
+                last_fail_reason = _("Full backup query error at {} days before: {}").format(days_before, str(e))
                 logger.warning(
-                    _("Error querying backup for instance {}:{} at {} days before: {}").format(
+                    _("Error querying full backup for instance {}:{} at {} days before: {}").format(
                         instance_ip, instance_port, days_before, str(e)
                     )
                 )
                 continue
+
+            if not (backup_log and backup_log.get("status") == "to_backup_system_success"):
+                last_fail_reason = _("No successful full backup at {} days before").format(days_before)
+                logger.debug(
+                    _("No valid full backup for instance {}:{} at {} days before").format(
+                        instance_ip, instance_port, days_before
+                    )
+                )
+                continue
+
+            logger.info(
+                _("Found valid full backup for instance {}:{} at {} days before, backup uptime: {}").format(
+                    instance_ip, instance_port, days_before, backup_log.get("uptime")
+                )
+            )
+
+            recovery_time_point = str2datetime(backup_log["uptime"]) + timedelta(minutes=offset_minutes)
+
+            if not has_binlog:
+                return True, backup_log, days_before, recovery_time_point, None, None
+
+            # SSD / Tendisplus: validate binlog over [file_last_mtime, recovery_time_point]
+            try:
+                binlog_files = handler.query_binlog_from_bklog(
+                    start_time=str2datetime(backup_log["file_last_mtime"]),
+                    end_time=recovery_time_point,
+                    host_ip=instance_ip,
+                    port=instance_port,
+                    kvstorecount=kvstorecount,
+                    tendis_type=tendis_type,
+                )
+            except AppBaseException as e:
+                last_fail_reason = _("Binlog invalid at {} days before: {}").format(days_before, str(e))
+                logger.warning(
+                    _("Binlog validation failed for {}:{} at {} days before: {}").format(
+                        instance_ip, instance_port, days_before, str(e)
+                    )
+                )
+                continue
+            except Exception as e:
+                last_fail_reason = _("Binlog query error at {} days before: {}").format(days_before, str(e))
+                logger.warning(
+                    _("Error querying binlog for {}:{} at {} days before: {}").format(
+                        instance_ip, instance_port, days_before, str(e)
+                    )
+                )
+                continue
+
+            binlog_summary = self._summarize_binlog(binlog_files)
+            return True, backup_log, days_before, recovery_time_point, binlog_summary, None
 
         logger.warning(
             _("No valid backup found for instance {}:{} across all rollback days {}").format(
                 instance_ip, instance_port, sorted_days
             )
         )
-        return False, None, None
+        return False, None, None, None, None, last_fail_reason
+
+    @staticmethod
+    def _cluster_type_has_binlog(cluster_type: str) -> bool:
+        """Whether this cluster type produces binlog (i.e. tendis_type is SSD or Tendisplus)."""
+        return is_tendisssd_instance_type(cluster_type) or is_tendisplus_instance_type(cluster_type)
+
+    @staticmethod
+    def _resolve_tendis_type(cluster_type: str) -> str:
+        """Mirror RedisDataStructureFlow.get_tendis_type_by_cluster_type so binlog query
+        receives the same tendis_type the rollback flow will use later."""
+        if is_redis_instance_type(cluster_type):
+            return ClusterType.RedisInstance.value
+        if is_tendisplus_instance_type(cluster_type):
+            return ClusterType.TendisplusInstance.value
+        if is_tendisssd_instance_type(cluster_type):
+            return ClusterType.TendisSSDInstance.value
+        raise NotImplementedError("Not supported tendis type: %s" % cluster_type)
+
+    @staticmethod
+    def _get_kvstorecount(cluster: Cluster) -> Optional[str]:
+        """Fetch tendisplus kvstorecount from DBConfig (mirrors
+        RedisDataStructureFlow.__get_cluster_config so binlog completeness check
+        runs over the same kvstore set)."""
+        try:
+            data = DBConfigApi.query_conf_item(
+                params={
+                    "bk_biz_id": str(cluster.bk_biz_id),
+                    "level_name": LevelName.CLUSTER,
+                    "level_value": cluster.immute_domain,
+                    "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
+                    "conf_file": cluster.major_version,
+                    "conf_type": ConfigTypeEnum.DBConf,
+                    "namespace": cluster.cluster_type,
+                    "format": FormatType.MAP,
+                }
+            )
+            return data["content"].get("kvstorecount")
+        except Exception as e:
+            logger.warning(
+                _("Failed to fetch kvstorecount for tendisplus cluster {}: {}").format(cluster.immute_domain, str(e))
+            )
+            return None
+
+    @staticmethod
+    def _summarize_binlog(binlog_files: List[dict]) -> dict:
+        """Compact abstraction of binlog list (could be hundreds of files per instance/day)."""
+        if not binlog_files:
+            return {"count": 0, "total_size_bytes": 0}
+
+        sized = [int(b.get("size") or 0) for b in binlog_files]
+        mtimes = [b.get("file_last_mtime") for b in binlog_files if b.get("file_last_mtime")]
+        return {
+            "count": len(binlog_files),
+            "total_size_bytes": sum(sized),
+            "earliest_start_time": min(mtimes) if mtimes else None,
+            "latest_start_time": max(mtimes) if mtimes else None,
+            "first_file": binlog_files[0].get("file_name"),
+            "last_file": binlog_files[-1].get("file_name"),
+        }

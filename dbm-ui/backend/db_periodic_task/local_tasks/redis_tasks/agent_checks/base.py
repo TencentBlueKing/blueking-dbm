@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import dataclasses
 import logging
 import re
+import time
 import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field, fields
@@ -86,6 +87,7 @@ AGENT_RESPONSE_LOG_MAX_CHARS = 2000
 # distributions. When adding new outcomes, keep them snake_case and
 # document them here.
 OUTCOME_SUCCESS = "success"  # agent call returned normally
+OUTCOME_TIMEOUT_INVOKE = "timeout_invoke"  # SDK-level invoke_timeout fired (graceful first layer)
 OUTCOME_TIMEOUT_SOFT = "timeout_soft"  # Celery SoftTimeLimitExceeded fired
 OUTCOME_TIMEOUT_HARD = "timeout_hard"  # worker SIGKILLed at time_limit (WorkerLostError)
 OUTCOME_RATELIMIT_RETRY = "ratelimit_retry"  # 429 detected, celery retry scheduled
@@ -180,6 +182,11 @@ def execute_agent_check(
       - ``OUTCOME_TIMEOUT_SOFT`` (SoftTimeLimitExceeded) is also soft-
         swallowed for the same reason: continued retries under rate
         pressure rarely help and only amplify load.
+      - ``OUTCOME_TIMEOUT_INVOKE`` (SDK-level invoke_timeout fired via
+        ``asyncio.wait_for`` inside ``aidev_agent``) is the graceful
+        first layer of the timeout cascade and is also soft-swallowed.
+        Logged at WARNING without a traceback since the async stack is
+        always identical and non-diagnostic.
       - All other exceptions fall through to the generic ``logger.exception``
         at the bottom, which similarly does not re-raise.  Celery retries
         are only triggered explicitly via ``celery_task.retry`` in the
@@ -213,16 +220,27 @@ def execute_agent_check(
         from backend.dbm_aiagent.agent.handlers import AgentHandler
 
         content = prompt_template.format(cluster_domain=cluster.immute_domain)
-        ai_response = AgentHandler.ask_agent_with_content(
-            agent_code=agent_code,
-            content=content,
-            timeout=max(1, int(config.agent_invoke_timeout_seconds)),
-        )
+        invoke_timeout = max(1, int(config.agent_invoke_timeout_seconds))
+        invoke_started_at = time.monotonic()
+        try:
+            ai_response = AgentHandler.ask_agent_with_content(
+                agent_code=agent_code,
+                content=content,
+                timeout=invoke_timeout,
+            )
+        except BaseException:
+            # Annotate the elapsed invoke duration so downstream handlers can
+            # tell SDK-level timeouts apart from Celery soft-limit / upstream cancels.
+            _invoke_elapsed = time.monotonic() - invoke_started_at
+            raise
+        invoke_elapsed = time.monotonic() - invoke_started_at
         logger.info(
-            "%s: cluster_id=%s outcome=%s agent_response=%s",
+            "%s: cluster_id=%s outcome=%s elapsed=%.2fs invoke_timeout=%ds agent_response=%s",
             task_label,
             cluster_id,
             OUTCOME_SUCCESS,
+            invoke_elapsed,
+            invoke_timeout,
             _truncate_agent_response_for_log(ai_response),
         )
 
@@ -231,11 +249,26 @@ def execute_agent_check(
         # Log loudly and return — do NOT retry, as continued rate pressure is unlikely
         # to help and may mask a broken upstream.
         logger.error(
-            "%s: cluster_id=%s outcome=%s soft_time_limit=%ds invoke_timeout=%ds: %s",
+            "%s: cluster_id=%s outcome=%s elapsed=%.2fs soft_time_limit=%ds invoke_timeout=%ds: %s",
             task_label,
             cluster_id,
             OUTCOME_TIMEOUT_SOFT,
+            locals().get("_invoke_elapsed", -1.0),
             config.agent_soft_time_limit_seconds,
+            config.agent_invoke_timeout_seconds,
+            e,
+        )
+    except TimeoutError as e:
+        # SDK-level invoke_timeout (aidev_agent run_coro_sync / asyncio.wait_for) fired.
+        # This is the FIRST, graceful layer of the timeout cascade (see module-level
+        # comment on layered timeouts). Log at WARNING without a traceback; the async
+        # stack is always identical and carries no diagnostic value.
+        logger.warning(
+            "%s: cluster_id=%s outcome=%s elapsed=%.2fs invoke_timeout=%ds: %s",
+            task_label,
+            cluster_id,
+            OUTCOME_TIMEOUT_INVOKE,
+            locals().get("_invoke_elapsed", -1.0),
             config.agent_invoke_timeout_seconds,
             e,
         )
@@ -271,10 +304,12 @@ def execute_agent_check(
             return
 
         logger.exception(
-            "%s: cluster_id=%s outcome=%s: %s",
+            "%s: cluster_id=%s outcome=%s elapsed=%.2fs invoke_timeout=%ds: %s",
             task_label,
             cluster_id,
             OUTCOME_ERROR,
+            locals().get("_invoke_elapsed", -1.0),
+            config.agent_invoke_timeout_seconds,
             e,
         )
 

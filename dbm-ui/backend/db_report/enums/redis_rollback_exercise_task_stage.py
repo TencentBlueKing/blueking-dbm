@@ -20,6 +20,7 @@ class RedisRollbackExerciseTaskStage(StrStructuredEnum):
 
     TASK_GENERATED = EnumField("task_generated", _("任务已生成"))
     SKIPPED = EnumField("skipped", _("已跳过"))
+    BACKUP_INVALID = EnumField("backup_invalid", _("备份不可用"))
 
     TICKET_GEN_FAILED = EnumField("ticket_gen_failed", _("单据生成失败"))
     TICKET_GENERATED = EnumField("ticket_generated", _("单据已生成"))
@@ -38,6 +39,7 @@ class RedisRollbackExerciseTaskStage(StrStructuredEnum):
 
 
 FAILED_STAGES = [
+    RedisRollbackExerciseTaskStage.BACKUP_INVALID,
     RedisRollbackExerciseTaskStage.TICKET_GEN_FAILED,
     RedisRollbackExerciseTaskStage.RESOURCE_APPLI_FAILED,
     RedisRollbackExerciseTaskStage.ROLLBACK_FAILED,

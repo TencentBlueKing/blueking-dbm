@@ -198,6 +198,7 @@ class RedisRollbackExerciseFlow(object):
             "created_by": self.ticket_data.get("created_by", "system"),
             "ticket_type": "REDIS_DATA_STRUCTURE_TASK_DELETE",
             "skip_connections_check": True,
+            "is_rollback_drill": True,
             "infos": [del_info],
         }
 

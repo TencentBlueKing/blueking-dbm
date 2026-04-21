@@ -215,6 +215,7 @@ class RedisDataStructureFlow(object):
                     "spec_config": resource_spec,
                 },
                 to_install_puglins=not is_drill,  # 演练场景跳过安装beat插件
+                to_install_dbmon=not is_drill,  # 演练场景跳过安装dbmon，销毁时也无需卸载
             )
             sub_pipelines_install.append(sub_builder)
 

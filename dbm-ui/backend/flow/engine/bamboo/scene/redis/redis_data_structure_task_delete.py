@@ -116,6 +116,7 @@ class RedisDataStructureTaskDeleteFlow(object):
             tasks_info: Pre-computed task info dict. If None, queries TbTendisRollbackTasks.
         """
         ticket_bk_biz_id = self.data["bk_biz_id"]
+        is_drill = self.data.get("is_rollback_drill", False)
 
         if tasks_info is None:
             tasks_info = self.__get_cluster_info(
@@ -188,6 +189,8 @@ class RedisDataStructureTaskDeleteFlow(object):
                 "ip": ip_address,
                 "ports": ports,
                 "skip_connections_check": self.data.get("skip_connections_check", False),
+                # 演练场景：dbmon从未安装，跳过重装/卸载监控步骤
+                "skip_dbmon_uninstall": is_drill,
             }
             sub_builder = RedisBatchShutdownAtomJob(self.root_id, self.data, act_kwargs, params)
             sub_pipelines.append(sub_builder)
