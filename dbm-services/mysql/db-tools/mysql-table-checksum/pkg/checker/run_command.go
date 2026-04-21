@@ -156,7 +156,7 @@ func (r *Checker) runGeneral() error {
 					r.resultDB, r.resultTbl,
 				)
 
-				_, cleanUpErr = r.db.Exec(cleanUpSQL)
+				_, cleanUpErr = r.conn.ExecContext(context.Background(), cleanUpSQL)
 				if cleanUpErr != nil {
 					slog.Error("clean up retry run checksum", slog.String("error", cleanUpErr.Error()))
 					return
