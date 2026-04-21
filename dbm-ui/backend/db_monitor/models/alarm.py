@@ -1030,7 +1030,7 @@ class MonitorPolicy(AuditedModel):
 
         # step1. sync to model
         # 启停操作(["is_enabled"]) -> 跳过重复的patch
-        details = self.details if update_fields == ["is_enabled", "update_at"] else self.patch_all()
+        details = self.details if update_fields == ["is_enabled", "update_at", "details"] else self.patch_all()
 
         # step2. sync to bkm
         res = bkm_save_alarm_strategy(details)
@@ -1082,7 +1082,7 @@ class MonitorPolicy(AuditedModel):
         """
         self.is_enabled = True
         self.details.update(is_enabled=self.is_enabled)
-        self.save(update_fields=["is_enabled", "update_at"])
+        self.save(update_fields=["is_enabled", "update_at", "details"])
 
         return self.is_enabled
 
@@ -1090,7 +1090,7 @@ class MonitorPolicy(AuditedModel):
         """禁用：is_enabled:false -> save"""
         self.is_enabled = False
         self.details.update(is_enabled=self.is_enabled)
-        self.save(update_fields=["is_enabled", "update_at"])
+        self.save(update_fields=["is_enabled", "update_at", "details"])
 
         return self.is_enabled
 

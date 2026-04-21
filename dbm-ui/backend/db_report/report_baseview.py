@@ -145,5 +145,5 @@ class ReportCommonViewSet(viewsets.SystemViewSet):
                 )
 
         # 默认可以做1h的缓存
-        cache.set(cache_key, report_count_map, 60 * 60)
+        cache.set(cache_key, report_count_map, 60 * 10)
         return Response(report_count_map)
