@@ -715,28 +715,30 @@ class PartitionHandler(object):
             "cluster": row_data.get(_("集群"), ""),
             "dblikes": row_data.get(_("DB名"), ""),
             "tblikes": row_data.get(_("表名"), ""),
+            "partition_column": row_data.get(_("分区字段"), ""),
+            "partition_column_type": row_data.get(_("分区字段类型"), ""),
+            "expire_time": row_data.get(_("数据过期时间（天）"), ""),
+            "partition_time_interval": row_data.get(_("分区间隔（天）"), ""),
             "error": error,
         }
 
     @classmethod
-    def import_from_excel(cls, user, file_path) -> dict:
+    def import_from_excel(cls, user, excel_file) -> dict:
         """
         从Excel文件导入分区策略
 
         Args:
-            file_path: Excel文件路径
+            user: 操作用户
+            excel_file: 上传的Excel文件对象（InMemoryUploadedFile / TemporaryUploadedFile）
 
         Returns:
             dict: 导入结果
         """
         try:
-            storage = get_storage(file_overwrite=False)
-
-            with storage.open(file_path, "rb") as f:
-                content = f.read()
-            # 使用ExcelHandler解析Excel文件，表头在第2行（索引为1）
+            # 直接读取上传的文件内容
             from io import BytesIO
 
+            content = excel_file.read()
             excel_data = ExcelHandler.paser(BytesIO(content), header_row=1)
             if not excel_data:
                 return {
@@ -908,44 +910,36 @@ class PartitionHandler(object):
     IMPORT_TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "template", "cluster-partition-template.xlsx")
 
     @classmethod
-    def export_import_failed(cls, file_path: str, failed_items: List[Dict]) -> HttpResponse:
+    def export_import_failed(cls, failed_items: List[Dict]) -> HttpResponse:
 
         """
         将导入失败详情导出为 Excel 文件。
         基于导入模板构建 workbook（保留模板第1行注释行和第2行表头行的字体颜色与格式），
-        从用户上传的原始文件中提取失败行数据写入，末尾追加"失败原因"列。
+        直接使用 failed_items 中的数据写入，末尾追加"失败原因"列。
 
         Args:
-            file_path: 原始导入文件在制品库的路径
-            failed_items: 导入失败详情列表，每项包含 row（Excel行号）和 error（失败原因）
+            failed_items: 导入失败详情列表，每项包含 cluster、dblikes、tblikes 等字段和 error（失败原因）
 
         Returns:
             HttpResponse: Excel 文件响应
         """
-        from io import BytesIO
-
-        # 从制品库下载用户上传的原始导入文件
-        storage = get_storage(file_overwrite=False)
-        with storage.open(file_path, "rb") as f:
-            content = f.read()
-
-        # 构建失败行号 -> 失败原因的映射
-        failed_row_map = {item["row"]: item["error"] for item in failed_items}
-
-        # 使用 ExcelHandler.paser_rows 按行号筛选失败行数据（表头在第2行，索引为1）
-        failed_rows = ExcelHandler.paser_rows(
-            BytesIO(content),
-            header_row=1,
-            row_nums=list(failed_row_map.keys()),
-        )
-
-        # 为每行数据追加"失败原因"字段
-        for row_data in failed_rows:
-            row_data[_("失败原因")] = failed_row_map.get(row_data.pop("_row_num"), "")
+        export_rows = []
+        for item in failed_items:
+            row_data = {
+                _("集群"): item.get("cluster", ""),
+                _("DB名"): item.get("dblikes", ""),
+                _("表名"): item.get("tblikes", ""),
+                _("分区字段"): item.get("partition_column", ""),
+                _("分区字段类型"): item.get("partition_column_type", ""),
+                _("分区间隔（天）"): item.get("partition_time_interval", ""),
+                _("数据过期时间（天）"): item.get("expire_time", ""),
+                _("失败原因"): item.get("error", ""),
+            }
+            export_rows.append(row_data)
 
         # 使用 ExcelHandler.serialize_with_template 基于模板生成 workbook，追加"失败原因"列
         tpl_wb = ExcelHandler.serialize(
-            data_dict__list=failed_rows,
+            data_dict__list=export_rows,
             template=cls.IMPORT_TEMPLATE_PATH,
             extra_headers=[_("失败原因")],
             style_ref_col=2,

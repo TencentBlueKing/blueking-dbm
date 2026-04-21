@@ -201,7 +201,7 @@ class PartitionColumnVerifyResponseSerializer(serializers.Serializer):
 class PartitionImportSerializer(serializers.Serializer):
     """Excel导入分区策略序列化器"""
 
-    file_path = serializers.CharField(help_text=_("文件路径"))
+    file = serializers.FileField(help_text=_("Excel文件"))
 
     class Meta:
         swagger_schema_fields = {"description": _("通过Excel文件导入分区策略")}
@@ -322,38 +322,23 @@ class QueryConfByStatusSerializer(serializers.Serializer):
     offset = serializers.IntegerField(required=False, default=0)
 
 
-class PartitionImportFileUploadSerializer(serializers.Serializer):
-    """分区导入文件上传到制品库序列化器"""
-
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
-    file = serializers.FileField(help_text=_("导入文件"))
-
-    class Meta:
-        swagger_schema_fields = {"description": _("分区导入文件上传到制品库")}
-
-
-class PartitionImportFileUploadResponseSerializer(serializers.Serializer):
-    """分区导入文件上传响应序列化器"""
-
-    file_path = serializers.CharField(help_text=_("文件在制品库的路径"))
-    file_content = serializers.CharField(help_text=_("文件内容（小文件预览用）"))
-    raw_file_name = serializers.CharField(help_text=_("原始文件名"))
-
-    class Meta:
-        swagger_schema_fields = {"description": _("分区导入文件上传结果")}
-
-
 class PartitionImportFailedItemSerializer(serializers.Serializer):
     """单条导入失败详情序列化器"""
 
     row = serializers.IntegerField(help_text=_("Excel行号"))
+    cluster = serializers.CharField(help_text=_("集群"))
+    dblikes = serializers.CharField(help_text=_("匹配库列表"))
+    tblikes = serializers.CharField(help_text=_("匹配表列表"))
+    partition_column = serializers.CharField(help_text=_("分区字段"))
+    partition_column_type = serializers.CharField(help_text=_("分区字段类型"))
+    expire_time = serializers.CharField(help_text=_("过期时间"))
+    partition_time_interval = serializers.CharField(help_text=_("分区时间间隔"))
     error = serializers.CharField(help_text=_("失败原因"))
 
 
 class PartitionExportImportFailedSerializer(serializers.Serializer):
     """下载导入失败详情序列化器"""
 
-    file_path = serializers.CharField(help_text=_("原始导入文件在制品库的路径"))
     failed_items = serializers.ListField(
         child=PartitionImportFailedItemSerializer(),
         help_text=_("导入失败详情列表"),
