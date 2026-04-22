@@ -202,6 +202,7 @@ export enum TicketTypes {
   MONGODB_SHARD_CUTOFF = 'MONGODB_SHARD_CUTOFF', // mongo 分片集群整机替换
   MONGODB_SHARD_MIGRATE = 'MONGODB_SHARD_MIGRATE', // MongoDB 分片集群迁移
   MONGODB_TEMPORARY_DESTROY = 'MONGODB_TEMPORARY_DESTROY', // mongo 临时集群销毁
+  MONGODB_UPGRADE_VERSION = 'MONGODB_UPGRADE_VERSION', // MongoDB 版本升级
 }
 export enum TicketTypes {
   SQLSERVER_ADD_SLAVE = 'SQLSERVER_ADD_SLAVE', // sqlserver 增加从库'

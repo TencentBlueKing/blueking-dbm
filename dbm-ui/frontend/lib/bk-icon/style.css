@@ -683,6 +683,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-copy-2:before {
 	content: "\e216";
 }
+.db-icon-ai:before {
+	content: "\e259";
+}
 .db-icon-piliangluru:before {
 	content: "\e1f1";
 }
@@ -865,4 +868,10 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 }
 .db-icon-wubiaoqian:before {
 	content: "\e257";
+}
+.db-icon-gundongshengji:before {
+	content: "\e25a";
+}
+.db-icon-tingjishengji:before {
+	content: "\e25b";
 }
