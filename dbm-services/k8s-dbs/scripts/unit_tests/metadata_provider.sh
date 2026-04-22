@@ -27,6 +27,8 @@ PROVIDER_TESTS=(
     TestK8sClusterAddonsProvider
     TestOpsrequestProvider
     TestAuthUserRoleProvider
+    TestAddonSpecPlanProvider
+    TestComponentSpecPlanProvider
 )
 
 echo "=========================================="

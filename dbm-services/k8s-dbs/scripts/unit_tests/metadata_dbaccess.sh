@@ -27,6 +27,8 @@ DBACCESS_TESTS=(
     TestK8sClusterAddonsDbAccess
     TestOpsRequestDbAccess
     TestAuthUserRoleDbAccess
+    TestAddonSpecPlanDbAccess
+    TestComponentSpecPlanDbAccess
 )
 
 echo "=========================================="

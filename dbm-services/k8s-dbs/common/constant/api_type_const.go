@@ -100,6 +100,24 @@ const (
 	APIMetaAddonUpdate   = "v4_dbs_meta_addon_update"
 )
 
+// addon spec plan meta api
+const (
+	APIMetaAddonSpecPlanList   = "v4_dbs_meta_addon_spec_plan_list"
+	APIMetaAddonSpecPlanDetail = "v4_dbs_meta_addon_spec_plan_detail"
+	APIMetaAddonSpecPlanCreate = "v4_dbs_meta_addon_spec_plan_create"
+	APIMetaAddonSpecPlanDelete = "v4_dbs_meta_addon_spec_plan_delete"
+	APIMetaAddonSpecPlanUpdate = "v4_dbs_meta_addon_spec_plan_update"
+)
+
+// component spec plan meta api
+const (
+	APIMetaComponentSpecPlanList   = "v4_dbs_meta_component_spec_plan_list"
+	APIMetaComponentSpecPlanDetail = "v4_dbs_meta_component_spec_plan_detail"
+	APIMetaComponentSpecPlanCreate = "v4_dbs_meta_component_spec_plan_create"
+	APIMetaComponentSpecPlanDelete = "v4_dbs_meta_component_spec_plan_delete"
+	APIMetaComponentSpecPlanUpdate = "v4_dbs_meta_component_spec_plan_update"
+)
+
 // addon repo meta api
 const (
 	APIMetaAddonRepoDetail = "v4_dbs_meta_addon_repo_detail"
@@ -284,6 +302,8 @@ func initK8sGroups(groups map[string]string) {
 func initMetaGroups(groups map[string]string) {
 	initAddonCategoryMetaGroups(groups)
 	initAddonMetaGroups(groups)
+	initAddonSpecPlanMetaGroups(groups)
+	initComponentSpecPlanMetaGroups(groups)
 	initAddonRepoMetaGroups(groups)
 	initAddonClusterRepoMetaGroups(groups)
 	initAddonTopoMetaGroups(groups)
@@ -316,6 +336,26 @@ func initAddonMetaGroups(groups map[string]string) {
 		APIMetaAddonCreate,
 		APIMetaAddonDelete,
 		APIMetaAddonUpdate,
+	)
+}
+
+func initAddonSpecPlanMetaGroups(groups map[string]string) {
+	add(groups, APIGroupMeta,
+		APIMetaAddonSpecPlanList,
+		APIMetaAddonSpecPlanDetail,
+		APIMetaAddonSpecPlanCreate,
+		APIMetaAddonSpecPlanDelete,
+		APIMetaAddonSpecPlanUpdate,
+	)
+}
+
+func initComponentSpecPlanMetaGroups(groups map[string]string) {
+	add(groups, APIGroupMeta,
+		APIMetaComponentSpecPlanList,
+		APIMetaComponentSpecPlanDetail,
+		APIMetaComponentSpecPlanCreate,
+		APIMetaComponentSpecPlanDelete,
+		APIMetaComponentSpecPlanUpdate,
 	)
 }
 

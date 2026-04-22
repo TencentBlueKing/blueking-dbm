@@ -24,6 +24,8 @@ CONTROLLER_TESTS=(
     TestK8sClusterConfigController
     TestOperationDefinitionController
     TestOpsRequestController
+    TestAddonSpecPlanController
+    TestComponentSpecPlanController
 )
 
 echo "=========================================="
