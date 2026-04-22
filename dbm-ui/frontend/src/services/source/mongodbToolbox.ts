@@ -74,3 +74,15 @@ export function getMongoShard(params: {
     >
   >(`${getRootPath()}/get_mongo_shard/`, params);
 }
+
+/**
+ * MongoDB: 查询集群可升级版本列表
+ */
+export function listAvailableMongoVersions(params: { cluster_ids: number[] }) {
+  return http.get<
+    {
+      full_list: string[];
+      major: string;
+    }[]
+  >(`${getRootPath()}/list_available_versions/`, params);
+}

@@ -24,7 +24,6 @@
               :clearable="false"
               :disabled="disabled"
               filterable
-              :list="dataList"
               v-bind="{ ...attrs, ...props }"
               :model-value="localValue"
               @change="handleChange">
@@ -40,6 +39,23 @@
                   :label="label"
                   name="tagRender"
                   :value="value" />
+              </template>
+              <template
+                v-for="item in dataList"
+                :key="item.label">
+                <BkOptionGroup
+                  v-if="'children' in item"
+                  :label="item.label">
+                  <BkOption
+                    v-for="child in item.children"
+                    :key="child.value"
+                    :label="child.label"
+                    :value="child.value" />
+                </BkOptionGroup>
+                <BkOption
+                  v-else
+                  :label="item.label"
+                  :value="item.value" />
               </template>
             </BkSelect>
             <BkInput
@@ -98,11 +114,18 @@
 
   import { batchSplitRegex } from '@common/regex';
 
+  interface SelectOption {
+    label: string;
+    value: string | number;
+  }
+
+  interface SelectOptionGroup {
+    children: SelectOption[];
+    label: string;
+  }
+
   interface Props {
-    dataList?: {
-      label: string;
-      value: string | number;
-    }[];
+    dataList?: (SelectOptionGroup | SelectOption)[];
     disableFn?: (date?: Date | number) => boolean;
     placeholder?: string;
     single?: boolean;
