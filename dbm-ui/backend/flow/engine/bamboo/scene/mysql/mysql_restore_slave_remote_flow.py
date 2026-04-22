@@ -473,13 +473,13 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 # 卸载remote节点
                 tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_svr_sub_pipeline_list)
 
-            tendb_migrate_pipeline_list.append(
-                tendb_migrate_pipeline.build_sub_process(
-                    _("{} > {} 从库重建 {}").format(
-                        self.data["old_slave_ip"], self.data["new_slave_ip"], cluster_class.immute_domain
-                    )
+            if self.add_slave_only:
+                title = _("添加从库 {} {}").format(self.data["new_slave_ip"], cluster_class.immute_domain)
+            else:
+                title = _("{} > {} 从库重建 {}").format(
+                    self.data["old_slave_ip"], self.data["new_slave_ip"], cluster_class.immute_domain
                 )
-            )
+            tendb_migrate_pipeline_list.append(tendb_migrate_pipeline.build_sub_process(title))
         # 运行流程
         tendb_migrate_pipeline_all.add_parallel_sub_pipeline(tendb_migrate_pipeline_list)
         tendb_migrate_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)
@@ -720,7 +720,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                             bk_cloud_id=cluster_model.bk_cloud_id,
                             instance_ip=target_slave.machine.ip,
                             instance_port=target_slave.port,
-                            slave_delay_threshold=100000,
+                            slave_delay_threshold=1000000,
                             check_file_delay=1,
                         )
                     ),
@@ -736,7 +736,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                             bk_cloud_id=cluster_model.bk_cloud_id,
                             instance_ip=target_slave.machine.ip,
                             instance_port=target_slave.port,
-                            slave_delay_threshold=100000,
+                            slave_delay_threshold=1000000,
                             check_file_delay=1,
                         )
                     ),
