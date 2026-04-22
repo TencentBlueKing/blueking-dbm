@@ -680,6 +680,12 @@
         title: t('确认停用该策略？'),
       };
     }
+    if (row.isChild && row.is_enabled) {
+      return {
+        content: t('停用后，该子策略覆盖的对象将回退使用父策略的告警规则。'),
+        title: t('确认停用该子策略？'),
+      };
+    }
     return {
       content: '',
       title: '',
@@ -952,6 +958,11 @@
       return;
     }
 
+    if (row.isChild) {
+      showTipMap.value[row.id] = true;
+      return;
+    }
+
     // 预检测对应全局策略的最新数据，对比更新时间
     runGetGlobalMonitorPolicy({
       bk_biz_id: 0,
@@ -1038,6 +1049,9 @@
     } else if (row.isCustom) {
       // 全局已禁用，停用当前策略（已是自定义）
       runDisablePolicy({ get_data_time: appParentInfoMap.value[row.id].update_at, id: row.id });
+    } else if (row.isChild) {
+      // 子策略停用
+      runDisablePolicy({ id: row.id });
     }
     showTipMap.value[row.id] = false;
   };
@@ -1046,7 +1060,7 @@
     showTipMap.value[row.id] = false;
   };
 
-  // 自定义（已停用）或 子策略
+  // 自定义（已停用）或 子策略启用
   const handleChangeSwitchCommon = (row: MonitorPolicyModel) => {
     if (row.is_enabled) {
       runEnablePolicy({ id: row.id });
