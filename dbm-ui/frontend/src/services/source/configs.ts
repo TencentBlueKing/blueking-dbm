@@ -497,7 +497,6 @@ export interface BackupConfigRow {
   bk_cloud_id: string;
   bk_cloud_name: string;
   conf_items: BackupConfigItem[];
-  permission: Record<string, boolean>;
   updated_at: string;
   updated_by: string;
 }
@@ -505,8 +504,11 @@ export interface BackupConfigRow {
 /**
  * 查询备份存储配置列表 (COS)
  */
-export function getBackupConfigList(params: { bk_biz_id: number; limit?: number; offset?: number }) {
-  return http.get<BackupConfigRow[]>(`${path}/list_cos_configs/`, params);
+export function getBackupConfigList(
+  params: { bk_biz_id: number; limit?: number; offset?: number },
+  payload = {} as IRequestPayload,
+) {
+  return http.get<BackupConfigRow[]>(`${path}/list_cos_configs/`, params, payload);
 }
 
 /**
@@ -571,6 +573,26 @@ export function deleteBackupConfig(params: {
   version?: string;
 }) {
   return http.post<null>(`${path}/delete_level_value/`, params);
+}
+
+/**
+ * 备份存储配置项
+ */
+export interface BackupConfigItem {
+  conf_name: string;
+  conf_value: string;
+}
+
+/**
+ * 备份存储配置行
+ */
+export interface BackupConfigRow {
+  bk_cloud_id: string;
+  bk_cloud_name: string;
+  conf_items: BackupConfigItem[];
+  permission: Record<string, boolean>;
+  updated_at: string;
+  updated_by: string;
 }
 
 /**
