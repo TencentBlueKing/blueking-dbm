@@ -19,6 +19,7 @@ import { useGlobalBizs } from '@stores';
 
 import getAiChatRoutes from '@views/ai-chat/routes';
 import BizPermission from '@views/BizPermission.vue';
+import getBackupStorageRoutes from '@views/backup-storage/routes';
 import getDashborderRoutes from '@views/dashboard-manage/routes';
 import getDbConfRoutes from '@views/db-configure/routes';
 import getDbManageRoutes from '@views/db-manage/routes';
@@ -138,6 +139,7 @@ export default () => {
       children: [
         ...getDbConfRoutes(),
         ...getDbhaSwitchEventsRouters(),
+        ...getBackupStorageRoutes(),
         ...getNotificationSettingRoutes(),
         ...getStaffManageRoutes(),
         ...getWhitelistRoutes(),

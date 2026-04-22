@@ -54,6 +54,7 @@ export default class FunctionController {
   bigdata: ControllerItem<BigdataFunctions>;
   bizConfigManage: ControllerItem<string>;
   'bizConfigManage.alarmGroup': ControllerItem<string>;
+  'bizConfigManage.backupStorageConfig': ControllerItem<string>;
   'bizConfigManage.businessClusterTag': ControllerItem<string>;
   'bizConfigManage.businessResourceTag': ControllerItem<string>;
   'bizConfigManage.bussinessDashboard': ControllerItem<string>;
