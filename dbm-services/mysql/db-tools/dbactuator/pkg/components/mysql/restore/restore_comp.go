@@ -24,8 +24,6 @@ type Restore interface {
 	Init() error
 	PreCheck() error
 	Start() error
-	WaitDone() error
-	PostCheck() error
 	ReturnChangeMaster() (*mysqlutil.ChangeMaster, error)
 }
 
@@ -49,6 +47,8 @@ type RestoreParam struct {
 	RestoreOpt *RestoreOpt `json:"restore_opts"`
 	// TotalThreads 机器级别的并发度，默认是当前机器逻辑 cpu 核数。当机器上存在多个实例同时恢复时控制并发
 	TotalThreads int `json:"total_threads"`
+	// SkipAfterLoad 是否跳过 PostLoad 阶段（物理恢复后的 repairAndStart），用于 restore-dr-after 独立执行
+	SkipAfterLoad bool `json:"skip_after_load"`
 
 	ShareContext *filecontext.FileContext `json:"-"`
 }
@@ -125,16 +125,6 @@ func (r *RestoreDRComp) Start() error {
 	return r.restore.Start()
 }
 
-// WaitDone TODO
-func (r *RestoreDRComp) WaitDone() error {
-	return r.restore.WaitDone()
-}
-
-// PostCheck TODO
-func (r *RestoreDRComp) PostCheck() error {
-	return r.restore.PostCheck()
-}
-
 // OutputCtx TODO
 func (r *RestoreDRComp) OutputCtx() error {
 	m := r.Params
@@ -188,7 +178,7 @@ func (r *RestoreDRComp) BuildChangeMaster() *mysql.BuildMSRelationComp {
 // 在 Init 之前运行
 func (r *RestoreDRComp) ChooseType() error {
 	b := &r.Params.BackupInfo
-	if err := b.GetBackupMetaFile(dbbackup.BACKUP_INDEX_FILE); err != nil {
+	if err := b.GetBackupMetaFile(dbbackup.BACKUP_INDEX_FILE, true); err != nil {
 		return err
 	}
 	b.backupType = strings.ToLower(b.backupType) // 一律转成小写来判断

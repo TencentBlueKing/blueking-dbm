@@ -100,6 +100,7 @@ func DeleteOldBackup(cnf *config.Public, expireDays int) error {
 			indexFilesKeep = append(indexFilesKeep, indexFile)
 		}
 	}
+
 	// 还有一类是脏数据，已经没有 .index 了，但备份文件还在，也需要清理
 	for bakFileName, bakFileSize := range bakFiles {
 		if bakFileSize == -1 { // deleted already

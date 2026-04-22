@@ -19,6 +19,7 @@ import (
 
 // LogicalLoader TODO
 type LogicalLoader struct {
+	// LoaderUtil logical and physical 通用参数
 	*LoaderUtil
 	MyloaderOpt   *LoaderOpt
 	myloaderRegex string
@@ -88,6 +89,16 @@ func (l *LogicalLoader) PreLoad() error {
 }
 
 func (l *LogicalLoader) PostLoad() error {
+	if l.RecoverGrants {
+		logger.Info("LogicalLoader recover grants")
+		privFiles := l.IndexObj.GetTarFileList("priv")
+		if err := recoverGrant(l.LoaderUtil.TgtInstance, privFiles, l.LoaderUtil.BackupDir); err != nil {
+			return errors.WithMessagef(err, "restore-dr recover grants")
+		}
+	}
+	if err := l.commonPostLoad(l.LoaderUtil.BackupDir); err != nil {
+		return err
+	}
 	return nil
 }
 

@@ -99,6 +99,7 @@ func NewMysqlCommand() *cobra.Command {
 			Commands: []*cobra.Command{
 				NewBuildMsRelatioCommand(),
 				RestoreDRCommand(),
+				RestoreDRAfterCommand(),
 				RecoverBinlogCommand(),
 			},
 		},

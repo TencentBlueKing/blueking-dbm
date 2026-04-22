@@ -109,19 +109,11 @@ func (x *XLoad) Start() error {
 	if err := x.DoXLoad(); err != nil {
 		return err
 	}
-	return nil
-}
 
-// WaitDone TODO
-func (x *XLoad) WaitDone() error {
-	return nil
-}
-
-// PostCheck 物理备份肯修改了密码，验证能否用 ADMIN 登录
-func (x *XLoad) PostCheck() error {
+	// 物理备份肯修改了密码，验证能否用 ADMIN 登录
 	_, err := x.TgtInstance.Conn()
 	if err != nil {
-		return errors.Wrap(err, "目标实例连接失败")
+		return errors.Wrap(err, "恢复后检查目标实例连接")
 	}
 	return nil
 }

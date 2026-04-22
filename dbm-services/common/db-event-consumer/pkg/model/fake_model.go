@@ -33,6 +33,7 @@ func (m *FakeModelForNoStrictSchema) OmitFields() []string {
 	if len(m.omitFields) > 0 {
 		return m.omitFields
 	}
+	// 默认忽略 dbm saas 注入的字段
 	return []string{
 		"event_type",
 		"event_cluster_type",
