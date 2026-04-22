@@ -98,8 +98,9 @@
     () => props.modelValue,
     () => {
       setTimeout(() => {
-        if (props.modelValue !== editor.getValue()) {
-          editor.setValue(props.modelValue || '');
+        const stripped = stripBom(props.modelValue || '');
+        if (stripped !== stripBom(editor.getValue())) {
+          editor.setValue(stripped);
           isMessageListFolded.value = true;
         }
       });
@@ -130,12 +131,22 @@
     editor.layout();
   };
 
+  /** UTF-8 BOM 头 */
+  const UTF8_BOM = '\uFEFF';
+
+  /** 去除字符串开头的 BOM（如果有） */
+  const stripBom = (str: string): string => {
+    return str.startsWith(UTF8_BOM) ? str.slice(1) : str;
+  };
+
   const handleDownload = () => {
     const link = document.createElement('a');
     link.download = `${props.title.replace(/\s/g, '')}.sql`;
     link.style.display = 'none';
-    // 字符内容转变成blob地址
-    const blob = new Blob([props.modelValue], { type: 'sql' });
+    // 字符内容转变成 blob 地址（带 UTF-8 BOM）
+    const blob = new Blob([`${UTF8_BOM}${props.modelValue}`], {
+      type: 'text/plain;charset=utf-8',
+    });
     link.href = URL.createObjectURL(blob);
     document.body.appendChild(link);
     link.click();
@@ -175,7 +186,7 @@
       });
       editor.onDidChangeModelContent(() => {
         const value = editor.getValue();
-        if (value !== props.modelValue) {
+        if (value !== stripBom(props.modelValue)) {
           emits('update:modelValue', value);
           emits('change', value);
         }
