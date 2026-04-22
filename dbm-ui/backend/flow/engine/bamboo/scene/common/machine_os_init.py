@@ -31,9 +31,7 @@ from backend.db_services.dbbase.constants import IpDest
 from backend.db_services.ipchooser.constants import BK_OS_CODE__TYPE, BkOsType
 from backend.flow.consts import LINUX_ADMIN_USER_FOR_CHECK, WINDOW_ADMIN_USER_FOR_CHECK
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
-from backend.flow.engine.bamboo.scene.mongodb.sub_task.mongodb_clean_residual_exporter import (
-    add_mongodb_clean_residual_exporter_acts,
-)
+from backend.flow.engine.bamboo.scene.common.clean_residual_exporter import add_clean_residual_exporter_acts
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
 from backend.flow.plugins.components.collections.common.resource_replenish import HCMResourceReplenishComponent
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
@@ -397,8 +395,10 @@ class ImportResourceInitStepFlow(object):
             db_type = self.data.get("db_type", "")
             if not db_type:
                 logger.warning("machine_idle_check_flow: db_type is empty, skip exporter cleanup")
+            elif db_type == DBType.Sqlserver:
+                logger.info("machine_idle_check_flow: db_type is sqlserver, skip exporter cleanup")
             else:
-                add_mongodb_clean_residual_exporter_acts(
+                add_clean_residual_exporter_acts(
                     p=p,
                     db_type=db_type,
                     bk_cloud_id=self.data.get("bk_cloud_id", 0),

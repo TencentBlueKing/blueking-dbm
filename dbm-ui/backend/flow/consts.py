@@ -586,6 +586,7 @@ class RedisActuatorActionEnum(StrStructuredEnum):
     HOTKEY_ANALYSIS = EnumField("hotkey_analysis", _("hotkey_analysis"))
     PROXY_REUSE = EnumField("proxy_reuse", _("proxy_reuse"))
     KEYSTAT = EnumField("keystat", _("keystat"))
+    CLEAN_RESIDUAL_EXPORTER = EnumField("redis_clean_residual_exporter", _("redis_clean_residual_exporter"))
 
 
 class MongoDBActuatorActionEnum(StrStructuredEnum):

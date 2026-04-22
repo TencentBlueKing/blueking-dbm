@@ -155,7 +155,6 @@ func (m *JobGenericManager) RegisterAtomJob() {
 			atommongodb.NewNodeHidden,
 			atommongodb.NewMongoDataExportJob,
 			atommongodb.NewMongoSetFCV,
-			atommongodb.NewCleanResidualExporterJob,
 		} {
 			m.atomJobMapper[f().Name()] = f
 		}

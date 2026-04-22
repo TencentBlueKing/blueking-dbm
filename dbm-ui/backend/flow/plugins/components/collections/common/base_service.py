@@ -449,6 +449,11 @@ class BkJobService(BaseService, metaclass=ABCMeta):
 
         self.log_info(_("[{}]任务调度成功🥳︎").format(node_name))
         data.outputs.job_execute = True
+        if kwargs.get("print_ip_log_on_success"):
+            for ip_dict in ip_dicts:
+                ip_log_resp = self.__log__(job_instance_id, step_instance_id, ip_dict)
+                if ip_log_resp.get("result"):
+                    self.log_info(f"{ip_dict}:{ip_log_resp['data']['log_content']}")
 
         if not write_payload_var:
             self.finish_schedule()
