@@ -28,6 +28,17 @@ from backend.flow.utils.spider.spider_db_function import (
 # 支持并发添加节点的最低版本编号: 2.4.13
 MIN_PARALLEL_ROUTE_VERSION = 2004013
 
+# 13以上的中控版本，添加路由时，会自动跳过TC_SKIP_CHECK_DB_LIST中的数据库
+TC_SKIP_CHECK_DB_LIST = [
+    "mysql",
+    "information_schema",
+    "performance_schema",
+    "sys",
+    "test",
+    "infodba_schema",
+    "db_infobase",
+]
+
 
 class AddSpiderRoutingService(BaseService):
     """
@@ -206,7 +217,7 @@ class AddSpiderRoutingService(BaseService):
 
         cmds = [
             "set tc_admin=1",
-            "SET GLOBAL tc_skip_check_db_list = 'performance_schema,information_schema,mysql,test,sys,infodba_schema'",
+            f"SET GLOBAL tc_skip_check_db_list = '{','.join(TC_SKIP_CHECK_DB_LIST)}'",
         ]
         rpc_params = {
             "addresses": [ctl_master],
