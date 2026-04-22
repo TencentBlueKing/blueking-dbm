@@ -284,7 +284,7 @@ class TenDBRemoteSlaveRecoverFlow(object):
                                     instance_port=node["new_slave"]["port"],
                                     master_ip=node["master"]["ip"],
                                     master_port=node["master"]["port"],
-                                    slave_delay_threshold=100000,
+                                    slave_delay_threshold=1000000,
                                     check_file_delay=1,
                                     sqls=["show slave status"],
                                 )
@@ -303,7 +303,7 @@ class TenDBRemoteSlaveRecoverFlow(object):
                                     instance_port=node["new_slave"]["port"],
                                     master_ip=node["master"]["ip"],
                                     master_port=node["master"]["port"],
-                                    slave_delay_threshold=100000,
+                                    slave_delay_threshold=1000000,
                                     check_file_delay=1,
                                     sqls=["show slave status"],
                                 )

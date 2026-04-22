@@ -105,7 +105,7 @@ def slave_migrate_switch_sub_flow(
                     bk_cloud_id=cluster.bk_cloud_id,
                     instance_ip=new_slave_ip,
                     instance_port=master.port,
-                    slave_delay_threshold=100000,
+                    slave_delay_threshold=1000000,
                     check_file_delay=1,
                 )
             ),
@@ -119,7 +119,7 @@ def slave_migrate_switch_sub_flow(
                     bk_cloud_id=cluster.bk_cloud_id,
                     instance_ip=new_slave_ip,
                     instance_port=master.port,
-                    slave_delay_threshold=100000,
+                    slave_delay_threshold=1000000,
                     check_file_delay=1,
                 )
             ),
