@@ -85,6 +85,12 @@
           name: t('集群标准化'),
           parentId: 'mongo_data',
         },
+        {
+          dbConsoleValue: 'mongodb.toolbox.upgradeVersion',
+          id: TicketTypes.MONGODB_UPGRADE_VERSION,
+          name: t('版本升级'),
+          parentId: 'mongo_data',
+        },
       ],
       icon: 'db-icon-cluster',
       id: 'mongo_manage',
