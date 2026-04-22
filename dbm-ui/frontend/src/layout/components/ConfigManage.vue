@@ -54,6 +54,18 @@
               {{ t('数据库配置') }}
             </span>
           </BkMenuItem>
+          <BkMenuItem
+            key="BackupStorageConfig"
+            v-db-console="'bizConfigManage.backupStorageConfig'">
+            <template #icon>
+              <DbIcon type="backup" />
+            </template>
+            <span
+              v-overflow-tips.right
+              class="text-overflow">
+              {{ t('备份存储配置') }}
+            </span>
+          </BkMenuItem>
         </BkMenuGroup>
         <BkMenuGroup :name="t('监控告警')">
           <BkMenuItem

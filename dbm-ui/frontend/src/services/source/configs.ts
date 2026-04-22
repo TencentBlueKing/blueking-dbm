@@ -466,3 +466,93 @@ export function changeConfNames(params: {
 }) {
   return http.post(`${path}/change_conf_names/`, params);
 }
+
+/**
+ * 备份存储配置项
+ */
+export interface BackupConfigItem {
+  conf_name: string;
+  conf_value: string;
+}
+
+/**
+ * 备份存储配置行
+ */
+export interface BackupConfigRow {
+  bk_cloud_id: string;
+  bk_cloud_name: string;
+  conf_items: BackupConfigItem[];
+  updated_at: string;
+  updated_by: string;
+}
+
+/**
+ * 查询备份存储配置列表 (COS)
+ */
+export function getBackupConfigList(params: { bk_biz_id: number; limit?: number; offset?: number }) {
+  return http.get<BackupConfigRow[]>(`${path}/list_cos_configs/`, params);
+}
+
+/**
+ * 新增/编辑备份存储配置 (复用 upsert_level_config)
+ */
+export function upsertBackupConfig(params: {
+  bk_biz_id: number;
+  conf_items: {
+    conf_name: string;
+    conf_value: string;
+    flag_locked?: number;
+    op_type: 'update' | 'remove' | 'add';
+  }[];
+  conf_type: string;
+  confirm?: number;
+  description?: string;
+  level_name: string;
+  level_value: number | string;
+  meta_cluster_type?: string;
+  version: string;
+}) {
+  return http.post<null>(`${path}/upsert_level_config/`, params);
+}
+
+/**
+ * 编辑层级（业务、模块、集群）配置
+ */
+export function upsertCommonLevelConfig(params: {
+  bk_biz_id: number;
+  conf_items: Array<{
+    conf_name: string;
+    conf_value: string;
+    description?: string;
+    flag_locked?: number;
+    op_type: 'update' | 'remove' | 'add';
+  }>;
+  conf_type: string;
+  confirm?: number;
+  description?: string;
+  level_info?: {
+    description?: Record<string, string>;
+  };
+  level_name: string;
+  level_value: number | string;
+  meta_cluster_type: string;
+  publish_description?: string;
+  version: string;
+}) {
+  return http.post<null>(`${path}/upsert_common_level_config/`, params);
+}
+
+/**
+ * 删除备份存储配置
+ */
+export function deleteBackupConfig(params: {
+  bk_biz_id: number;
+  conf_file?: string;
+  conf_type?: string;
+  level_name: string;
+  level_value: number | string;
+  meta_cluster_type?: string;
+  version?: string;
+}) {
+  return http.post<null>(`${path}/delete_level_value/`, params);
+}
