@@ -22,3 +22,4 @@ export * as ResourcePool from './resource-pool/index';
 export * from './restore';
 export * from './shardApply';
 export * from './temporaryDestroy';
+export * from './upgradeVersion';
