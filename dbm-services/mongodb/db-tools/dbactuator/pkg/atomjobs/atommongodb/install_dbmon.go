@@ -12,9 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"path/filepath"
 	"reflect"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -450,31 +448,6 @@ func fileMd5Eq(file1, file2 string) bool {
 	return v1 == v2
 }
 
-// getPIDByPort TODO
-// require root user or users process can access
-func getPIDByPort(port string) (string, error) {
-	cmd := exec.Command("lsof", "-i", ":"+port, "-t", "-sTCP:LISTEN")
-	output, err := cmd.Output()
-	if err != nil {
-		return "", err
-	}
-
-	re := regexp.MustCompile(`\d+`)
-	pid := re.FindString(string(output))
-	return pid, nil
-}
-
-func getExeNameByPID(pid string) (string, error) {
-	exePath := filepath.Join("/proc", pid, "exe")
-	exeName, err := os.Readlink(exePath)
-	if err != nil {
-		return "", err
-	}
-
-	return exeName, nil
-}
-
-// dbmonIsRunning TODO
 // check dbmon is running
 func dbmonIsRunning(comm string) (pid int, err error) {
 	comm = path.Base(comm)

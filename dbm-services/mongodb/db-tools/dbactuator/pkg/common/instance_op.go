@@ -13,7 +13,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -102,12 +101,12 @@ func NewInstanceOp(ip string, port int, user, pass string, logger *logger.Logger
 
 // DoStop 停止mongod/mongos
 func (inst *InstanceOp) DoStop() error {
-	using, err := checkPortInUse(inst.Port)
+	listenPID, err := getPidByPort(inst.Port)
 	if err != nil {
-		return errors.Wrap(err, "checkPortInUse "+strconv.Itoa(inst.Port))
+		return errors.Wrap(err, "getPidByPort "+strconv.Itoa(inst.Port))
 	}
-	if !using {
-		inst.logger.Info("port %d is not in use", inst.Port)
+	if listenPID == 0 {
+		inst.logger.Info("port %d has no TCP listener", inst.Port)
 		return nil
 	}
 	maxRetry := 10
@@ -148,22 +147,21 @@ func (inst *InstanceOp) DoStop() error {
 	return fmt.Errorf("port %d still in use after %d retries, stop failed", inst.Port, maxRetry)
 }
 
-// waitPortRelease waits until checkPortInUse reports the port is fully released
-// from /proc/net/tcp (including TIME_WAIT/CLOSE_WAIT), aligning with IsRunning().
+// waitPortRelease waits until no TCP LISTEN on the port (/proc/net/tcp + tcp6), not merely any /proc/net/tcp row.
 func (inst *InstanceOp) waitPortRelease(maxRetry int, waitTime time.Duration) error {
 	for i := 0; i < maxRetry; i++ {
-		using, err := checkPortInUse(inst.Port)
+		listenPID, err := getPidByPort(inst.Port)
 		if err != nil {
-			return errors.Wrap(err, "checkPortInUse after stop")
+			return errors.Wrap(err, "getPidByPort after stop")
 		}
-		if !using {
-			inst.logger.Info("port %d fully released", inst.Port)
+		if listenPID == 0 {
+			inst.logger.Info("port %d has no TCP listener", inst.Port)
 			return nil
 		}
-		inst.logger.Info("port %d still in /proc/net/tcp (attempt %d/%d), waiting...", inst.Port, i+1, maxRetry)
+		inst.logger.Info("port %d still has TCP LISTEN (pid %d), attempt %d/%d, waiting...", inst.Port, listenPID, i+1, maxRetry)
 		time.Sleep(waitTime)
 	}
-	return fmt.Errorf("port %d still in /proc/net/tcp after process stopped, waited %d retries", inst.Port, maxRetry)
+	return fmt.Errorf("port %d still has TCP LISTEN after process stopped, waited %d retries", inst.Port, maxRetry)
 }
 
 const startMongoScript = "/usr/local/mongodb/bin/start_mongo.sh"
@@ -403,20 +401,20 @@ func checkPortInUse(port int) (bool, error) {
 	return idx >= 0, nil
 }
 
-// getPidByPort 通过端口获取pid. 普通用户只能查到自己的进程的pid
+// getPidByPort 通过端口获取监听进程的 pid（/proc/net/tcp、tcp6 与 /proc/*/fd，不依赖 lsof）。
+// 普通用户只能扫到自己有权限的 /proc 条目，可能返回 0 即使端口被其他用户占用。
 func getPidByPort(port int) (int, error) {
-	cmd := exec.Command("lsof", "-i", ":"+fmt.Sprintf("%d", port), "-t", "-sTCP:LISTEN")
-	output, err := cmd.Output()
+	return linuxproc.TCPListenPID(port)
+}
 
+// portHasTCPListenIPv4 仅读 IPv4 /proc/net/tcp 判断端口上是否仍有 TCP LISTEN（不扫描 /proc/*/fd）。
+// 用于 waitPortRelease 轮询，避免高频全量 /proc 扫描。
+func portHasTCPListenIPv4(port int) (bool, error) {
+	inodes, err := linuxproc.ListenSocketInodes(port)
 	if err != nil {
-		if err.Error() == "exit status 1" {
-			return 0, nil
-		}
-		return 0, err
+		return false, err
 	}
-	re := regexp.MustCompile(`\d+`)
-	pid := re.FindString(string(output))
-	return strconv.Atoi(pid)
+	return len(inodes) > 0, nil
 }
 
 func startMongoWithConfigFile(port int, confFile string) error {
