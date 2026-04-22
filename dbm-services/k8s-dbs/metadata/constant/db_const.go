@@ -22,24 +22,48 @@ package constant
 // DefaultFetchSizeStr 列表默认拉取行数
 
 const (
-	TbK8sCrdStorageAddon   = "tb_k8s_crd_storageaddon"
-	TbK8sCrdCluster        = "tb_k8s_crd_cluster"
-	TbK8sCrdComponent      = "tb_k8s_crd_component"
-	TbK8sCrdOpsRequest     = "tb_k8s_crd_opsrequest"
-	TbK8sCrdClusterTag     = "tb_k8s_crd_cluster_tag"
-	TbK8sClusterConfig     = "tb_k8s_cluster_config"
+	// TbK8sCrdStorageAddon K8S CRD 存储插件表
+	TbK8sCrdStorageAddon = "tb_k8s_crd_storageaddon"
+	// TbK8sCrdCluster K8S CRD 集群表
+	TbK8sCrdCluster = "tb_k8s_crd_cluster"
+	// TbK8sCrdComponent K8S CRD 组件表
+	TbK8sCrdComponent = "tb_k8s_crd_component"
+	// TbK8sCrdOpsRequest K8S CRD 运维请求表
+	TbK8sCrdOpsRequest = "tb_k8s_crd_opsrequest"
+	// TbK8sCrdClusterTag K8S CRD 集群标签表
+	TbK8sCrdClusterTag = "tb_k8s_crd_cluster_tag"
+	// TbK8sClusterConfig K8S 集群配置表
+	TbK8sClusterConfig = "tb_k8s_cluster_config"
+	// TbClusterRequestRecord 集群请求记录表
 	TbClusterRequestRecord = "tb_cluster_request_record"
-	TbK8sClusterService    = "tb_k8s_cluster_service"
-	TbOperationDefinition  = "tb_operation_definition"
-	TbComponentOperation   = "tb_component_operation"
-	TbClusterOperation     = "tb_cluster_operation"
-	TbAddonClusterRelease  = "tb_addoncluster_release"
+	// TbK8sClusterService K8S 集群服务表
+	TbK8sClusterService = "tb_k8s_cluster_service"
+	// TbOperationDefinition 操作定义表
+	TbOperationDefinition = "tb_operation_definition"
+	// TbComponentOperation 组件操作表
+	TbComponentOperation = "tb_component_operation"
+	// TbClusterOperation 集群操作表
+	TbClusterOperation = "tb_cluster_operation"
+	// TbAddonClusterRelease 插件集群发布表
+	TbAddonClusterRelease = "tb_addoncluster_release"
+	// TbAddonClusterHelmRepo 插件集群 Helm 仓库表
 	TbAddonClusterHelmRepo = "tb_addoncluster_helm_repository"
-	TbAddonHelmRepo        = "tb_addon_helm_repository"
-	TbK8sClusterAddons     = "tb_k8s_cluster_addons"
-	TbAddonClusterVersion  = "tb_addoncluster_version"
-	TbAddonCategory        = "tb_addon_category"
-	TbAddonType            = "tb_addon_type"
-	TbAddonTopology        = "tb_addon_topology"
-	TbAuthUserRole         = "bkdata_basic.auth_user_role"
+	// TbAddonHelmRepo 插件 Helm 仓库表
+	TbAddonHelmRepo = "tb_addon_helm_repository"
+	// TbK8sClusterAddons K8S 集群插件表
+	TbK8sClusterAddons = "tb_k8s_cluster_addons"
+	// TbAddonClusterVersion 插件集群版本表
+	TbAddonClusterVersion = "tb_addoncluster_version"
+	// TbAddonCategory 插件分类表
+	TbAddonCategory = "tb_addon_category"
+	// TbAddonType 插件类型表
+	TbAddonType = "tb_addon_type"
+	// TbAddonTopology 插件拓扑表
+	TbAddonTopology = "tb_addon_topology"
+	// TbAddonSpecPlan 存储套餐配置表
+	TbAddonSpecPlan = "tb_addon_spec_plan"
+	// TbComponentSpecPlan 存储套餐组件配置表
+	TbComponentSpecPlan = "tb_component_spec_plan"
+	// TbAuthUserRole 用户角色表
+	TbAuthUserRole = "bkdata_basic.auth_user_role"
 )
