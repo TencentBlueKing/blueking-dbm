@@ -9,12 +9,17 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-from typing import Dict
+from typing import Dict, List
 
+from django.utils.translation import gettext as _
+
+from backend.bk_web.constants import LogLevelName
+from backend.db_periodic_task.models import MySQLBackupRecoverTask
 from backend.db_services.taskflow.handlers import TaskFlowHandler
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
-from backend.flow.models import FlowNode
+from backend.flow.models import FlowNode, FlowTree
+from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("root")
 
@@ -37,7 +42,9 @@ def get_taskflow_error_logs(root_id: str) -> Dict:
     # 按 updated_at 降序取最后失败的节点（root_id 有索引）
     last_failed = FlowNode.objects.filter(root_id=root_id, status=StateType.FAILED).order_by("-updated_at").first()
     if not last_failed:
-        return {"node_id": "", "node_name": "", "logs": []}
+        logs: List = []
+        _append_mysql_rollback_exercise_task_info_to_logs(root_id, logs)
+        return {"node_id": "", "node_name": "", "logs": logs}
 
     node_id = last_failed.node_id
     version_id = last_failed.version_id
@@ -53,5 +60,22 @@ def get_taskflow_error_logs(root_id: str) -> Dict:
 
     handler = TaskFlowHandler(root_id=root_id)
     logs = handler.get_version_error_logs_for_dbactuator(node_id=node_id, version_id=version_id)
+    _append_mysql_rollback_exercise_task_info_to_logs(root_id, logs)
 
     return {"node_id": node_id, "node_name": node_name, "logs": logs}
+
+
+def _append_mysql_rollback_exercise_task_info_to_logs(root_id: str, logs: List) -> None:
+    """若为 MYSQL_ROLLBACK_EXERCISE，将 MySQLBackupRecoverTask.task_info 追加为一条错误日志。"""
+    flow = FlowTree.objects.filter(root_id=root_id).only("ticket_type").first()
+    if not flow or flow.ticket_type != TicketType.MYSQL_ROLLBACK_EXERCISE.value:
+        return
+    recover = MySQLBackupRecoverTask.objects.filter(task_id=root_id).only("task_info").first()
+    if not recover or not recover.task_info:
+        return
+    logs.append(
+        TaskFlowHandler.generate_log_record(
+            message=_("备份恢复演练任务信息(task_info):\n{}").format(recover.task_info),
+            levelname=LogLevelName.ERROR.value,
+        )
+    )
