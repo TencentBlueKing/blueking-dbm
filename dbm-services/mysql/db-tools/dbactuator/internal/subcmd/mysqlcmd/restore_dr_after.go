@@ -7,21 +7,20 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/restore"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-	_ "dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil" // mysqlutil TODO
 
 	"github.com/spf13/cobra"
 )
 
-// RestoreDRAct TODO
-type RestoreDRAct struct {
+// RestoreDRAfterAct restore-dr-after 子命令
+type RestoreDRAfterAct struct {
 	*subcmd.BaseOptions
-	Payload restore.RestoreDRComp
+	Payload restore.RestoreDRAfterComp
 }
 
-// RestoreDRCommand godoc
+// RestoreDRAfterCommand godoc
 //
-// @Summary  备份恢复
-// @Description  物理备份、逻辑备份恢复
+// @Summary  物理恢复后操作
+// @Description  物理备份恢复后的 PostLoad 操作（repairAndStart），独立于 restore-dr 执行
 // ./dbactuator  mysql restore-dr
 //
 //	增加了 skip_after_load 参数，控制是否跳过数据恢复后的收尾工作。默认 false 不跳过
@@ -33,36 +32,31 @@ type RestoreDRAct struct {
 //
 // @Tags         mysql
 // @Accept       json
-// @Param        body body      restore.RestoreDRComp  true  "short description"
-// @Success      200  {object}  mysqlutil.ChangeMaster
-// @Router       /mysql/restore-dr [post]
-func RestoreDRCommand() *cobra.Command {
-	act := RestoreDRAct{
+// @Router       /mysql/restore-dr-after [post]
+func RestoreDRAfterCommand() *cobra.Command {
+	act := RestoreDRAfterAct{
 		BaseOptions: subcmd.GBaseOptions,
 	}
 	cmd := &cobra.Command{
-		Use:   "restore-dr",
-		Short: "备份恢复",
+		Use:   "restore-dr-after",
+		Short: "物理恢复后操作",
 		Example: fmt.Sprintf(
-			"dbactuator mysql restore-dr %s %s\n"+
-				"\nOutput examples:\n%s",
+			"dbactuator mysql restore-dr-after %s %s",
 			subcmd.CmdBaseExampleStr,
 			subcmd.ToPrettyJson(act.Payload.Example()),
-			subcmd.ToPrettyJson(act.Payload.ExampleOutput()),
 		),
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(act.Validate())
 			util.CheckErr(act.Init())
 			util.CheckErr(act.Run())
-			util.CheckErr(act.Next())
 		},
 	}
 	return cmd
 }
 
 // Init TODO
-func (d *RestoreDRAct) Init() (err error) {
-	if err = d.BaseOptions.Validate(); err != nil { // @todo 应该在一开始就validate
+func (d *RestoreDRAfterAct) Init() (err error) {
+	if err = d.BaseOptions.Validate(); err != nil {
 		return err
 	}
 	if err = d.Deserialize(&d.Payload.Params); err != nil {
@@ -74,51 +68,26 @@ func (d *RestoreDRAct) Init() (err error) {
 }
 
 // Validate TODO
-func (d *RestoreDRAct) Validate() error {
+func (d *RestoreDRAfterAct) Validate() error {
 	return nil
 }
 
 // Run TODO
-func (d *RestoreDRAct) Run() (err error) {
+func (d *RestoreDRAfterAct) Run() (err error) {
 	defer util.LoggerErrorStack(logger.Error, err)
-	if err = d.Payload.ChooseType(); err != nil {
-		// logger.Error("%+v", err)
-		return err
-	}
 	steps := subcmd.Steps{
 		{
 			FunName: "环境初始化",
 			Func:    d.Payload.Init,
 		},
 		{
-			FunName: "恢复预检查",
-			Func:    d.Payload.PreCheck,
-		},
-		{
-			FunName: "恢复",
+			FunName: "执行恢复后操作(repairAndStart)",
 			Func:    d.Payload.Start,
-		},
-		{
-			FunName: "输出位点",
-			Func:    d.Payload.OutputCtx,
 		},
 	}
 	if err = steps.Run(); err != nil {
 		return err
 	}
-	logger.Info("backup restore successfully")
-	return nil
-}
-
-// Next 运行下一个 component
-func (d *RestoreDRAct) Next() error {
-	if comp := d.Payload.BuildChangeMaster(); comp != nil {
-		act := BuildMsRelationAct{
-			BaseOptions: d.BaseOptions,
-			Payload:     *comp,
-		}
-		logger.Info("run next: change-master")
-		return act.Run()
-	}
+	logger.Info("restore-dr-after successfully")
 	return nil
 }

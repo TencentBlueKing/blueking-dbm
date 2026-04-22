@@ -47,7 +47,7 @@ type BackupIndexFile struct {
 
 // ParseBackupIndexFile read index file: fileDir/fileName
 // 注意这里不依赖于 index content 里面的 index file，而是使用传入的 index file
-func ParseBackupIndexFile(indexFilePath string, indexObj *BackupIndexFile) error {
+func ParseBackupIndexFile(indexFilePath string, indexObj *BackupIndexFile, doValidate bool) error {
 	fileDir, fileName := filepath.Split(indexFilePath)
 	bodyBytes, err := os.ReadFile(indexFilePath)
 	if err != nil {
@@ -68,7 +68,10 @@ func ParseBackupIndexFile(indexFilePath string, indexObj *BackupIndexFile) error
 	}
 	logger.Info("backupIndexBasename=%s, backupType=%s, charset=%s",
 		indexObj.backupIndexBasename, indexObj.BackupType, indexObj.BackupCharset)
-	return indexObj.ValidateFiles()
+	if doValidate {
+		return indexObj.ValidateFiles()
+	}
+	return nil
 }
 
 // GetTarFileList 从 index 中返回文件名列表
