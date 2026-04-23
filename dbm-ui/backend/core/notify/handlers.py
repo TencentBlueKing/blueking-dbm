@@ -22,7 +22,7 @@ from backend.components import CmsiApi
 from backend.components.bkchat.client import BkChatApi
 from backend.configuration.constants import BizSettingsEnum
 from backend.configuration.models import BizSettings
-from backend.core.notify.constants import DEFAULT_BIZ_AI_NOTIFY_CONFIG, DEFAULT_BIZ_NOTIFY_CONFIG, MsgType
+from backend.core.notify.constants import MsgType
 from backend.core.notify.exceptions import NotifyBaseException
 from backend.core.notify.template import (
     AI_TASK_GUARDIAN_TEMPLATE,
@@ -378,9 +378,7 @@ class NotifyAdapter:
         if self.phase in self.ticket.msg_config:
             send_msg_config = self.ticket.msg_config[self.phase]
         else:
-            biz_notify_config = BizSettings.get_setting_value(
-                self.bk_biz_id, key=BizSettingsEnum.NOTIFY_CONFIG, default=DEFAULT_BIZ_NOTIFY_CONFIG
-            )
+            biz_notify_config = BizSettings.get_setting_value(self.bk_biz_id, key=BizSettingsEnum.NOTIFY_CONFIG)
             send_msg_config = biz_notify_config.get(self.phase)
 
         # 如果不存在通知配置，则提前退出
@@ -412,12 +410,10 @@ class NotifyAdapter:
         定义AI单据值守推送消息的逻辑
         @param ai_result： 调用智能体之后的结果信息
         """
-        biz_notify_config = BizSettings.get_setting_value(
-            self.bk_biz_id, key=BizSettingsEnum.NOTIFY_CONFIG, default=DEFAULT_BIZ_AI_NOTIFY_CONFIG
-        )
+        biz_notify_config = BizSettings.get_setting_value(self.bk_biz_id, key=BizSettingsEnum.NOTIFY_CONFIG)
         # 业务已配置的通知配置可能不含 AI_TASK_GUARDIAN 键（与单据状态通知配置共用同一 key），
         # 此时 fallback 到默认 AI 值守通知配置
-        send_msg_config = biz_notify_config.get("AI_TASK_GUARDIAN", DEFAULT_BIZ_AI_NOTIFY_CONFIG["AI_TASK_GUARDIAN"])
+        send_msg_config = biz_notify_config.get("AI_TASK_GUARDIAN")
 
         send_msg_types = [msg_type for msg_type in send_msg_config if send_msg_config.get(msg_type)]
         for msg_type in send_msg_types:
