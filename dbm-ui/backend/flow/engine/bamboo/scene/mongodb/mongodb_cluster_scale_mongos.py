@@ -45,6 +45,7 @@ class ScaleMongoSFlow(object):
 
         # 根据不同的cluster进行增加mongos——子流程并行
         sub_pipelines = []
+        check_ai_monitor_cluster_list = []
         for cluster in self.data["infos"]:
             if increase:
                 sub_pipline = increase_mongos(
@@ -54,8 +55,9 @@ class ScaleMongoSFlow(object):
                 sub_pipline = reduce_mongos(
                     root_id=self.root_id, ticket_data=self.data, sub_kwargs=self.get_kwargs, info=cluster
                 )
+            check_ai_monitor_cluster_list.append(cluster["cluster_id"])
             sub_pipelines.append(sub_pipline)
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
         # 运行流程
-        pipeline.run_pipeline()
+        pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=check_ai_monitor_cluster_list)
