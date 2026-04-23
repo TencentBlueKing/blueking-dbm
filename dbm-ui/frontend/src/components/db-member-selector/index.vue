@@ -17,12 +17,20 @@
     :class="{ 'is-hover': isHover }"
     @mouseenter="handleHover"
     @mouseleave="handleBlur">
-    <TenantSelector
-      v-if="tenantId"
-      v-model="modelValue" />
-    <CommonSelector
-      v-else
-      v-model="modelValue" />
+    <UserSelector
+      ref="userSelectorRef"
+      v-model="modelValue"
+      class="member-selector"
+      :exact-search-method="exactSearchMethod"
+      fast-clear
+      :fixed-height="false"
+      :fuzzy-search-method="fuzzySearchMethod"
+      :paste-validator="pasteValidator"
+      :render-list="renderList"
+      :render-tag="renderTag"
+      :search-from-default-alternate="false"
+      tag-clearable
+      @remove-selected="handleRemoveSelected" />
     <DbIcon
       v-if="modelValue.length > 0"
       v-bk-tooltips="t('复制')"
@@ -33,14 +41,12 @@
 </template>
 
 <script setup lang="ts">
+  import { Fragment } from 'vue/jsx-runtime';
   import { useI18n } from 'vue-i18n';
 
-  import { useUserProfile } from '@stores';
+  import { getUserList } from '@services/source/user';
 
   import { execCopy } from '@utils';
-
-  import CommonSelector from './components/CommonSelector.vue';
-  import TenantSelector from './components/TenantSelector.vue';
 
   const emits = defineEmits<(e: 'change', value: string[]) => void>();
 
@@ -48,14 +54,72 @@
     required: true,
   });
 
-  const { tenantId } = useUserProfile();
   const { t } = useI18n();
 
+  const userSelectorRef = ref();
   const isHover = ref(false);
 
+  const exactSearchMethod = () =>
+    getUserList({
+      exact_lookups: modelValue.value.join(','),
+    }).then((result) => result.results);
+
+  const pasteValidator = (values: string[]) => values;
+
+  const fuzzySearchMethod = (keyword: string) =>
+    getUserList({
+      fuzzy_lookups: keyword,
+    }).then((searchList) => ({
+      next: false,
+      results: searchList.results.map((userItem) => ({
+        display_name: userItem.display_name,
+        username: userItem.username,
+      })),
+    }));
+
+  const renderTag = (
+    renderMethod: typeof h,
+    node: {
+      user: {
+        display_name: string;
+        username: string;
+      };
+      username: string;
+    },
+  ) =>
+    renderMethod('div', null, [
+      renderMethod(
+        'span',
+        {
+          class: 'mr-4',
+        },
+        `${node.username}(${node.user?.display_name || node.username})`,
+      ),
+    ]);
+
+  const renderList = (
+    renderMethod: typeof h,
+    node: {
+      user: {
+        display_name: string;
+        type: string;
+        username: string;
+      };
+    },
+  ) => {
+    const { display_name: displayName, username } = node.user;
+
+    return renderMethod(Fragment, [renderMethod('span', `${username}(${displayName})`)]);
+  };
+
   watch(modelValue, () => {
+    console.log('from watchch modelvall = ', modelValue.value);
     emits('change', modelValue.value);
   });
+
+  const handleRemoveSelected = () => {
+    userSelectorRef.value.search();
+  };
 
   const handleHover = () => {
     isHover.value = true;
@@ -87,10 +151,14 @@
       }
     }
 
+    .member-selector {
+      width: 100%;
+    }
+
     .db-member-selector-copy {
       position: absolute;
       top: 50%;
-      right: 10px;
+      right: 24px;
       z-index: 99;
       display: none;
       width: 20px;
