@@ -368,6 +368,8 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         write_payload_var = data.get_one_of_inputs("write_payload_var")
         trans_data = data.get_one_of_inputs("trans_data")
 
+        hide_error = kwargs.get("hide_error", False)
+
         node_name = kwargs["node_name"]
 
         # 在轮询的时候ext_result都不会改变，考虑收敛日志
@@ -386,17 +388,17 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         if isinstance(ext_result, bool):
             # ext_result 为 布尔类型 表示 不需要任务是同步进行，不需要调用api去监听任务状态
             self.finish_schedule()
-            return ext_result
+            return ext_result or hide_error
 
         if not ext_result["result"]:
             # 调用结果检测到失败
             self.log_error(f"[{node_name}] schedule  status failed: {ext_result.get('error')}")
-            return False
+            return False or hide_error
 
         if not ext_result["data"]:
             # 没有data返回，可能是job内部服务异常
             self.log_error(f"[{node_name}] job execute failed, request id is {ext_result.get('job_request_id')}")
-            return False
+            return False or hide_error
 
         job_instance_id = ext_result["data"]["job_instance_id"]
         resp = self.__status__(job_instance_id)
@@ -445,7 +447,7 @@ class BkJobService(BaseService, metaclass=ABCMeta):
             data.outputs.job_execute_info = {"job_instance_id": job_instance_id, "step_instance_id": step_instance_id}
 
             self.finish_schedule()
-            return False
+            return False or hide_error
 
         self.log_info(_("[{}]任务调度成功🥳︎").format(node_name))
         data.outputs.job_execute = True
@@ -480,7 +482,7 @@ class BkJobService(BaseService, metaclass=ABCMeta):
 
         if is_false:
             self.finish_schedule()
-            return False
+            return False or hide_error
 
         self.finish_schedule()
         return True
