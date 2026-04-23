@@ -198,3 +198,22 @@ func (ha *DbhaData) ReadSkipDbInstancesWithBkBizId(bkBizId int) ([]*hamodel.Skip
 
 	return skipDbInstances, nil
 }
+
+// ReadBlackWhiteList returns black-white list records for the given business ID and cloud ID.
+func (ha *DbhaData) ReadBlackWhiteList(ctx context.Context, bkBizId int, bkCloudId int) ([]*hamodel.DbBlackWhiteList, error) {
+	var blackWhiteList []*hamodel.DbBlackWhiteList
+
+	cond := fmt.Sprintf("%s = ? and %s = ? and %s = ? and %s = ?",
+		hamodel.DbBlackWhiteListFieldBkBizID,
+		hamodel.DbBlackWhiteListFieldBkCloudID,
+		hamodel.DbBlackWhiteListFieldStatus,
+		hamodel.DbBlackWhiteListFieldSwitchVersion)
+
+	query := ha.DB.DB().WithContext(ctx).Model(&hamodel.DbBlackWhiteList{})
+	if e := query.Where(cond, bkBizId, bkCloudId, hamodel.StatusTypeEnabled,
+		hamodel.SwitchVersionV2).Find(&blackWhiteList).Error; e != nil {
+		return nil, gerrors.NewE(gerrors.MysqlFailure, e)
+	}
+
+	return blackWhiteList, nil
+}

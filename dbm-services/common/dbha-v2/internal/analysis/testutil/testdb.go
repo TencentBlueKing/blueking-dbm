@@ -59,6 +59,9 @@ func NewTestDbhaData(t *testing.T) *TestDbhaData {
 	if err := gormDB.AutoMigrate(&hamodel.DbSwitchingStrategy{}); err != nil {
 		t.Fatalf("failed to auto migrate DbSwitchingStrategy: %v", err)
 	}
+	if err := gormDB.AutoMigrate(&hamodel.DbBlackWhiteList{}); err != nil {
+		t.Fatalf("failed to auto migrate DbBlackWhiteList: %v", err)
+	}
 
 	t.Cleanup(func() {
 		sqlDB, _ := gormDB.DB()
@@ -79,6 +82,16 @@ func InsertStrategies(t *testing.T, hadata *storage.DbhaData, strategies ...*ham
 	for _, s := range strategies {
 		if err := hadata.DB.DB().Create(s).Error; err != nil {
 			t.Fatalf("failed to insert strategy: %v", err)
+		}
+	}
+}
+
+// InsertBlackWhiteList inserts black-white list records in batch into the test database.
+func InsertBlackWhiteList(t *testing.T, hadata *storage.DbhaData, records ...*hamodel.DbBlackWhiteList) {
+	t.Helper()
+	for _, r := range records {
+		if err := hadata.DB.DB().Create(r).Error; err != nil {
+			t.Fatalf("failed to insert black-white list: %v", err)
 		}
 	}
 }
