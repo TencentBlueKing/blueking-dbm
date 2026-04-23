@@ -70,6 +70,7 @@ var tables = []any{
 	&hamodel.DbmMetadata{},
 	&hamodel.DbSwitchingLog{},
 	&hamodel.DbSwitchingStrategy{},
+	&hamodel.DbBlackWhiteList{},
 }
 
 const (

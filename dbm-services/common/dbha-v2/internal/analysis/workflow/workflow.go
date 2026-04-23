@@ -35,6 +35,7 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/analysis/apm"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
+	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
 	"dbm-services/common/dbha-v2/pkg/discovery"
@@ -435,6 +436,13 @@ func (w *Workflow) handleFailureGroup(ctx context.Context, group *FailureGroup) 
 		return
 	}
 
+	w.filterWhitelistedInstances(ctx, group, req)
+	if !req.HasDbInstMetadata() {
+		logger.Info("all instances are whitelisted, notify only, cloudId: %d, dbType: %s",
+			group.BkCloudID, group.DbType)
+		return
+	}
+
 	if w.handleStrategySwitch(strategy, group, req) {
 		return
 	}
@@ -464,6 +472,62 @@ func (w *Workflow) handleStrategyNotify(strategy *hamodel.DbSwitchingStrategy, g
 
 	w.alarm.TriggerWithBizId(group.Instances[0].BkBizID, log)
 	return true
+}
+
+// filterWhitelistedInstances filters out instances that are in the whitelist from the switch request.
+// Whitelisted instances are removed from the request and a notification alarm is sent for them.
+// The remaining instances will continue through the normal strategy matching and switching flow.
+func (w *Workflow) filterWhitelistedInstances(ctx context.Context, group *FailureGroup, req *switcher.Request) {
+	bkBizID := group.Instances[0].BkBizID
+
+	qCtx, cancel := context.WithTimeout(ctx, config.Cfg.Storage.Timeout)
+	defer cancel()
+
+	whiteList, err := w.hadata.ReadBlackWhiteList(qCtx, bkBizID, group.BkCloudID)
+	if err != nil {
+		logger.Warn("failed to read the black-white list, bkBizId: %d, bkCloudId: %d, errmsg: %s",
+			bkBizID, group.BkCloudID, err)
+		return
+	}
+
+	if len(whiteList) == 0 {
+		return
+	}
+
+	whiteListMap := make(map[int]*hamodel.DbBlackWhiteList, len(whiteList))
+	for _, item := range whiteList {
+		whiteListMap[item.ClusterID] = item
+	}
+
+	whitelistedMetas := make([]*dbm.DbInstMetadata, 0)
+	remaining := make([]*dbm.DbInstMetadata, 0)
+
+	for _, meta := range req.MySqlInstData {
+		if _, exists := whiteListMap[meta.ClusterID]; exists {
+			logger.Info("instance is in the whitelist, skip switching, clusterId: %d, clusterName: %s, ip: %s, port: %d",
+				meta.ClusterID, meta.Cluster, meta.IP, meta.Port)
+			whitelistedMetas = append(whitelistedMetas, meta)
+			continue
+		}
+		remaining = append(remaining, meta)
+	}
+
+	if len(whitelistedMetas) == 0 {
+		return
+	}
+
+	req.MySqlInstData = remaining
+
+	// if there are whitelisted instances, send a notification alarm
+	clusterInfos := make([]string, 0, len(whitelistedMetas))
+	for _, meta := range whitelistedMetas {
+		clusterInfos = append(clusterInfos, fmt.Sprintf("%d:%s", meta.ClusterID, meta.Cluster))
+	}
+	log := fmt.Sprintf(
+		"found %d whitelisted instance(s), execute notification only, bkBizId: %d, bkCloudId: %d, dbType: %s, clusters: [%s]",
+		len(whitelistedMetas), bkBizID, group.BkCloudID, group.DbType, strings.Join(clusterInfos, ", "))
+	logger.Info("%s", log)
+	w.alarm.TriggerWithBizId(bkBizID, log)
 }
 
 func (w *Workflow) handleStrategySwitch(strategy *hamodel.DbSwitchingStrategy, group *FailureGroup, req *switcher.Request) bool {

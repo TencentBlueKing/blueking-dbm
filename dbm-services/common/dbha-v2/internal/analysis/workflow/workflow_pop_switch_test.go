@@ -32,6 +32,7 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
+	"dbm-services/common/dbha-v2/internal/analysis/switcher"
 
 	"dbm-services/common/dbha-v2/internal/analysis/testutil"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
@@ -54,6 +55,7 @@ func newWorkflowForHandleFailureGroupTests(t *testing.T, dbmClient *dbm.Client) 
 	td := testutil.NewTestDbhaData(t)
 	return &Workflow{
 		hadata:    td.DbhaData,
+		alarm:     NewAlarmNotifier(),
 		windowMgr: NewBizWindowManager(10*time.Second, 30*time.Second),
 		switchExecutor: &SwitchExecutor{
 			hadata: td.DbhaData,
@@ -251,5 +253,142 @@ func TestMarkDoneAllReleasesAllKeys(t *testing.T) {
 		if inflightExists(w, k) {
 			t.Fatalf("expected key %s released", k)
 		}
+	}
+}
+
+func TestFilterWhitelistedInstances_NoWhitelistRemovesNothing(t *testing.T) {
+	w := newWorkflowForHandleFailureGroupTests(t, nil)
+	group := buildSingleFailureGroup()
+	req := &switcher.Request{
+		DbType: haprobe.DbTypeMySql,
+		MySqlInstData: []*dbm.DbInstMetadata{
+			{BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Status: dbm.Available},
+		},
+	}
+
+	w.filterWhitelistedInstances(context.Background(), group, req)
+
+	if len(req.MySqlInstData) != 1 {
+		t.Fatalf("expected 1 instance remaining, got %d", len(req.MySqlInstData))
+	}
+}
+
+func TestFilterWhitelistedInstances_WhitelistedInstanceRemoved(t *testing.T) {
+	w := newWorkflowForHandleFailureGroupTests(t, nil)
+
+	testutil.InsertBlackWhiteList(t, w.hadata,
+		&hamodel.DbBlackWhiteList{
+			BkBizID:       100,
+			BkCloudID:     1,
+			ClusterID:     200,
+			ClusterName:   "test-cluster",
+			SwitchVersion: hamodel.SwitchVersionV2,
+			Status:        hamodel.StatusTypeEnabled,
+		},
+	)
+
+	group := buildSingleFailureGroup()
+	req := &switcher.Request{
+		DbType: haprobe.DbTypeMySql,
+		MySqlInstData: []*dbm.DbInstMetadata{
+			{BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "test-cluster", Status: dbm.Available},
+		},
+	}
+
+	w.filterWhitelistedInstances(context.Background(), group, req)
+
+	if len(req.MySqlInstData) != 0 {
+		t.Fatalf("expected 0 instances remaining (whitelisted), got %d", len(req.MySqlInstData))
+	}
+}
+
+func TestFilterWhitelistedInstances_PartialWhitelisted(t *testing.T) {
+	w := newWorkflowForHandleFailureGroupTests(t, nil)
+
+	testutil.InsertBlackWhiteList(t, w.hadata,
+		&hamodel.DbBlackWhiteList{
+			BkBizID:       100,
+			BkCloudID:     1,
+			ClusterID:     200,
+			ClusterName:   "whitelisted-cluster",
+			SwitchVersion: hamodel.SwitchVersionV2,
+			Status:        hamodel.StatusTypeEnabled,
+		},
+	)
+
+	group := buildSingleFailureGroup()
+	req := &switcher.Request{
+		DbType: haprobe.DbTypeMySql,
+		MySqlInstData: []*dbm.DbInstMetadata{
+			{BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "whitelisted-cluster", Status: dbm.Available},
+			{BkCloudID: 1, IP: "127.0.0.11", Port: 3306, ClusterID: 300, Cluster: "normal-cluster", Status: dbm.Available},
+		},
+	}
+
+	w.filterWhitelistedInstances(context.Background(), group, req)
+
+	if len(req.MySqlInstData) != 1 {
+		t.Fatalf("expected 1 instance remaining, got %d", len(req.MySqlInstData))
+	}
+	if req.MySqlInstData[0].ClusterID != 300 {
+		t.Fatalf("expected remaining instance clusterId=300, got %d", req.MySqlInstData[0].ClusterID)
+	}
+}
+
+func TestFilterWhitelistedInstances_V1SwitchVersionNotFiltered(t *testing.T) {
+	w := newWorkflowForHandleFailureGroupTests(t, nil)
+
+	testutil.InsertBlackWhiteList(t, w.hadata,
+		&hamodel.DbBlackWhiteList{
+			BkBizID:       100,
+			BkCloudID:     1,
+			ClusterID:     200,
+			ClusterName:   "v1-cluster",
+			SwitchVersion: hamodel.SwitchVersionV1,
+			Status:        hamodel.StatusTypeEnabled,
+		},
+	)
+
+	group := buildSingleFailureGroup()
+	req := &switcher.Request{
+		DbType: haprobe.DbTypeMySql,
+		MySqlInstData: []*dbm.DbInstMetadata{
+			{BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "v1-cluster", Status: dbm.Available},
+		},
+	}
+
+	w.filterWhitelistedInstances(context.Background(), group, req)
+
+	if len(req.MySqlInstData) != 1 {
+		t.Fatalf("expected 1 instance remaining (v1 switch version not filtered), got %d", len(req.MySqlInstData))
+	}
+}
+
+func TestFilterWhitelistedInstances_DisabledWhitelistNotFiltered(t *testing.T) {
+	w := newWorkflowForHandleFailureGroupTests(t, nil)
+
+	testutil.InsertBlackWhiteList(t, w.hadata,
+		&hamodel.DbBlackWhiteList{
+			BkBizID:       100,
+			BkCloudID:     1,
+			ClusterID:     200,
+			ClusterName:   "disabled-cluster",
+			SwitchVersion: hamodel.SwitchVersionV2,
+			Status:        hamodel.StatusTypeDisabled,
+		},
+	)
+
+	group := buildSingleFailureGroup()
+	req := &switcher.Request{
+		DbType: haprobe.DbTypeMySql,
+		MySqlInstData: []*dbm.DbInstMetadata{
+			{BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "disabled-cluster", Status: dbm.Available},
+		},
+	}
+
+	w.filterWhitelistedInstances(context.Background(), group, req)
+
+	if len(req.MySqlInstData) != 1 {
+		t.Fatalf("expected 1 instance remaining (disabled whitelist not filtered), got %d", len(req.MySqlInstData))
 	}
 }
