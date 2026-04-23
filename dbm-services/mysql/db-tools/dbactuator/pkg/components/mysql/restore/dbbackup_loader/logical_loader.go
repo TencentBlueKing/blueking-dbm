@@ -89,6 +89,13 @@ func (l *LogicalLoader) PreLoad() error {
 }
 
 func (l *LogicalLoader) PostLoad() error {
+	// 这里主要是提示用户如果跳过，跳过了后面那些步骤
+	logger.Warn("LogicalLoader post load steps: "+
+		"[RecoverGrants(%v), "+
+		"commonPostLoad(global_backup,remove_backup_file)]",
+		l.RecoverGrants)
+
+	logger.Warn("[step-1/2] LogicalLoader post load: RecoverGrants")
 	if l.RecoverGrants {
 		logger.Info("LogicalLoader recover grants")
 		privFiles := l.IndexObj.GetTarFileList("priv")
@@ -96,6 +103,8 @@ func (l *LogicalLoader) PostLoad() error {
 			return errors.WithMessagef(err, "restore-dr recover grants")
 		}
 	}
+
+	logger.Warn("[step-2/2] LogicalLoader post load: commonPostLoad")
 	if err := l.commonPostLoad(l.LoaderUtil.BackupDir); err != nil {
 		return err
 	}
