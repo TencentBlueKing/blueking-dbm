@@ -114,6 +114,8 @@ class CheckClientConnService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs")
         global_data = data.get_one_of_inputs("global_data")
 
+        hide_error = kwargs.get("hide_error", False)
+
         results = check_client_connection(
             bk_cloud_id=kwargs["bk_cloud_id"],
             instances=kwargs["check_instances"],
@@ -127,7 +129,7 @@ class CheckClientConnService(BaseService):
             # 检查返回的每个实例的结果
             if res["error_msg"]:
                 self.log_error(f"select processlist failed: {res['error_msg']}")
-                return False
+                return False or hide_error
 
             infos = res["cmd_results"][0]["table_data"]
             if kwargs.get("is_proxy", False):
@@ -166,7 +168,7 @@ class CheckClientConnService(BaseService):
                     env.BK_SAAS_HOST, global_data["job_root_id"]
                 )
             )
-            return False
+            return False or hide_error
 
         return True
 

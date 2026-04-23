@@ -49,6 +49,8 @@ class TransFileService(BkJobService):
         kwargs = data.get_one_of_inputs("kwargs")
         trans_data = data.get_one_of_inputs("trans_data")
 
+        hide_error = kwargs.get("hide_error", False)
+
         root_id = kwargs["root_id"]
         node_name = kwargs["node_name"]
         node_id = kwargs["node_id"]
@@ -58,13 +60,13 @@ class TransFileService(BkJobService):
 
         if not exec_ips:
             self.log_error(_("该节点获取到执行ip信息为空，请联系系统管理员{}").format(exec_ips))
-            return False
+            return False or hide_error
 
         if kwargs.get("file_type") == MediumFileTypeEnum.Server.value:
             # 服务器之间文件传输模式
             if not kwargs["source_ip_list"]:
                 self.log_error(_("选择服务器之间文件传输模式，应当源文件的机器ip列表不能为空，请联系系统管理员{}").format(kwargs["source_ip_list"]))
-                return False
+                return False or hide_error
 
             file_source = {
                 "file_list": kwargs["file_list"],
