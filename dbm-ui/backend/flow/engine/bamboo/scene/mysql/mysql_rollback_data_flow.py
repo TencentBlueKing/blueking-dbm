@@ -338,7 +338,10 @@ class MySQLRollbackDataFlow(object):
                         ),
                     )
                 #  全库表会回档这里设置停止从库
-                if self.data["all_database_rollback"]:
+                if self.data["all_database_rollback"] and rollback_storage.instance_role in (
+                    InstanceRole.BACKEND_SLAVE,
+                    InstanceRole.BACKEND_REPEATER,
+                ):
                     rollback_pipeline.add_act(
                         act_name=_("从库stop slave {}").format(rollback_storage.ip_port),
                         act_component_code=MySQLExecuteRdsComponent.code,

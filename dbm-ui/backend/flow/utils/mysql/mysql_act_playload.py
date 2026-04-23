@@ -968,6 +968,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             "payload": {
                 "general": {"runtime_account": self.account},
                 "extend": {
+                    "skip_after_load": self.cluster.get("skip_after_load", False),
                     "work_dir": self.cluster["file_target_path"],
                     "backup_dir": self.cluster["file_target_path"],
                     "backup_files": {
@@ -1634,12 +1635,11 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             "payload": {
                 "general": {"runtime_account": self.account},
                 "extend": {
+                    "skip_after_load": self.cluster.get("skip_after_load", False),
                     "work_dir": self.cluster["file_target_path"],
                     "backup_dir": self.cluster["file_target_path"],
                     "backup_files": {
-                        # "full": None,
                         "index": [index_file],
-                        # "priv": None,
                     },
                     "tgt_instance": {
                         "host": self.cluster["restore_ip"],
@@ -1657,6 +1657,33 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "src_instance": {"host": self.cluster["source_ip"], "port": self.cluster["source_port"]},
                     "change_master": self.cluster["change_master"],
                     "work_id": "",
+                },
+            },
+        }
+        return payload
+
+    def tendb_restore_dr_after_payload(self, **kwargs):
+        recover_grants = self.cluster.get("recover_grants", False)
+        logger.info(self.cluster["backupinfo"])
+        index_file = os.path.basename(self.cluster["backupinfo"]["index"]["file_name"])
+        payload = {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.RestoreDrAfter.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "backup_dir": self.cluster["file_target_path"],
+                    "backup_files": {"index": [index_file]},
+                    "tgt_instance": {
+                        "host": self.cluster["restore_ip"],
+                        "port": self.cluster["restore_port"],
+                        "user": self.account["admin_user"],
+                        "pwd": self.account["admin_pwd"],
+                        "socket": None,
+                        "charset": self.cluster["charset"],
+                        "options": "",
+                    },
+                    "recover_grants": recover_grants,
                 },
             },
         }
@@ -1740,6 +1767,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "host": self.cluster["target_ip"],
                     "port": self.cluster["target_port"],
                     "repl_hosts": [self.cluster["repl_ip"]],
+                    "super_privilege": self.cluster.get("super_privilege", False),
                 },
             },
         }
