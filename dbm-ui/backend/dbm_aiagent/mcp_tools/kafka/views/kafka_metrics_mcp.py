@@ -13,6 +13,7 @@ import logging
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
+from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clusters
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.kafka.impl.kafka_metrics import (
@@ -30,6 +31,7 @@ from backend.dbm_aiagent.mcp_tools.kafka.serializers.kafka_metrics import (
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
+from backend.iam_app.handlers.drf_perm.mcp import McpClusterManagePermission
 
 logger = logging.getLogger("flow")
 
@@ -55,8 +57,8 @@ class KafkaMetricsMcpToolsViewSet(McpToolsViewSet):
         response_slz=KafkaMetricsOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.KAFKA_METRICS, DBMMcpTools.DBM_PUBLIC_MARKET],
-        permission_classes=[],
-        mcp_auth_parser=None,
+        permission_classes=[McpClusterManagePermission],
+        mcp_auth_parser=auth_parse_clusters,
         name_prefix="kafka_metrics",
     )
     def query_metrics(self, request, *args, **kwargs):
