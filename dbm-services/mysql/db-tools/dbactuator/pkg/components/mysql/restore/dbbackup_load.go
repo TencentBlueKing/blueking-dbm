@@ -222,6 +222,10 @@ func (m *DBLoader) Start() error {
 
 	logger.Info("开始数据恢复 targetDir=%s", m.targetDir)
 	if err := m.dbLoader.Load(); err != nil {
+		// 导入失败了也打印位点，但不输出到上下文
+		if changeMs, err := m.getChangeMasterPos(m.SrcInstance); err == nil {
+			logger.Warn("change master pos: %+v", changeMs.GetSQL())
+		}
 		return errors.WithMessage(err, "dbactuator dbloaderData failed")
 	}
 	// 清理恢复中转目录：安全起见，只清理路径带 doDr_ 的目录

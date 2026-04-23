@@ -53,9 +53,7 @@ class PromQLQueryInputSerializer(serializers.Serializer):
 
     cluster_domain = serializers.CharField(required=True, help_text=_("集群域名"))
 
-    metric_name = serializers.CharField(
-        help_text=_("指标名称，如 bkmonitor:dbm_system:cpu_summary:usage, " "mysql_global_status_questions")
-    )
+    metric_name = serializers.CharField(help_text=_("指标名称，如 cpu_summary:usage, mysql_global_status_questions"))
 
     filters = PromQLFilterSerializer(
         many=True,

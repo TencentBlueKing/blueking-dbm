@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
@@ -175,7 +176,7 @@ func (b *BuildMSRelationComp) CheckCurrentSlaveStatus() (err error) {
 func (b *BuildMSRelationComp) BuildMSRelation() (err error) {
 	logger.Info("begin change Master to %s:%d", b.Params.MasterHost, b.Params.Port)
 	changeMasterSql := b.getChangeMasterSql()
-	logger.Info("change master sql: %s", changeMasterSql)
+	logger.Info("change master sql: %s", mysqlcomm.ClearMasterPasswordInSQL(changeMasterSql))
 	if _, err = b.db.Exec(changeMasterSql); err != nil {
 		logger.Error("change master to %s:%d failed,err:%s", b.Params.MasterHost, b.Params.MasterPort, err.Error())
 		return err

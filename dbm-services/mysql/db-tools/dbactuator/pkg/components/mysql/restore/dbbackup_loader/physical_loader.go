@@ -77,22 +77,26 @@ func (l *PhysicalLoader) PreLoad() error {
 }
 
 // PostLoad TODO
-func (l *PhysicalLoader) PostLoad() error {
+func (l *PhysicalLoader) PostLoad() (err error) {
 	// 这里主要是提示用户如果跳过，跳过了后面那些步骤
-	logger.Warn("PhysicalLoader post load steps: " +
-		"[repairSysAndStart, recoverGrants, repairNonSysMyIsamTables, commonPostLoad]")
+	logger.Warn("PhysicalLoader post load steps: "+
+		"[repairSysAndStart, "+
+		"recoverGrants(%v), "+
+		"repairNonSysMyIsamTables, "+
+		"commonPostLoad(global_backup,remove_backup_file)]",
+		l.RecoverGrants)
 
 	logger.Warn("[step-1/4] PhysicalLoader post load: repairSysAndStart")
 	if err := l.Xtrabackup.repairSysAndStart(); err != nil {
 		return err
 	}
 
-	// 判断可连接性后，再继续
-	dbWorker, err := l.Xtrabackup.TgtInstance.Conn()
+	// 判断可连接性后，再继续。连接会在后面用到
+	l.Xtrabackup.dbWorker, err = l.Xtrabackup.TgtInstance.Conn()
 	if err != nil {
 		return err
 	}
-	defer dbWorker.Stop()
+	defer l.Xtrabackup.dbWorker.Stop()
 
 	logger.Warn("[step-2/4] PhysicalLoader post load: recoverGrants")
 	if l.RecoverGrants {
