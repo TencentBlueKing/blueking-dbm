@@ -142,7 +142,7 @@ func (l *cronLogAdapter) Error(err error, msg string, keysAndValues ...interface
 // Info info
 func (l *cronLogAdapter) Info(msg string, keysAndValues ...interface{}) {
 	keysAndValues = formatTimes(keysAndValues)
-	l.Logger.Info(fmt.Sprintf(formatString(len(keysAndValues)), append([]interface{}{msg}, keysAndValues...)...))
+	l.Logger.Debug(fmt.Sprintf(formatString(len(keysAndValues)), append([]interface{}{msg}, keysAndValues...)...))
 }
 
 // formatString returns a logfmt-like format string for the number of

@@ -6,13 +6,15 @@ import (
 	"runtime"
 	"time"
 
-	"dbm-services/mongodb/db-tools/dbactuator/mylog"
 	"dbm-services/redis/db-tools/dbmon/config"
+	"dbm-services/redis/db-tools/dbmon/mylog"
 	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 	"dbm-services/redis/db-tools/dbmon/pkg/redisbinlogbackup"
 	"dbm-services/redis/db-tools/dbmon/pkg/redisfullbackup"
 	"dbm-services/redis/db-tools/dbmon/pkg/redismaxmemory"
 	"dbm-services/redis/db-tools/dbmon/util"
+
+	"go.uber.org/zap"
 )
 
 // MonitorMemoryUsg 检测内存使用情况
@@ -31,16 +33,18 @@ func MonitorMemoryUsg() {
 		if m.Alloc >= 500*consts.MiByte {
 			if binlogBackupGlob.IsRunning || fullBackupGlob.IsRunning ||
 				checkFullBackGlob.IsRunning || maxmemoryGlob.IsRunning {
-				mylog.Logger.Error("dbmon memory usage %s exceed 500M, but binlogbackup or fullbackup or maxmemory is running",
-					util.SizeToHumanStr(int64(m.Alloc)))
+				mylog.Logger.Error("dbmon memory usage exceed 500M, but binlogbackup or fullbackup or maxmemory is running",
+					zap.String("memory_usage", util.SizeToHumanStr(int64(m.Alloc))))
 				continue
 			}
-			mylog.Logger.Error("dbmon memory usage %s exceed 500M,now exit", util.SizeToHumanStr(int64(m.Alloc)))
+			mylog.Logger.Error("dbmon memory usage exceed 500M, now exit",
+				zap.String("memory_usage", util.SizeToHumanStr(int64(m.Alloc))))
 			os.Exit(1)
 		}
 		// 超过100MB,每隔2分钟秒打印一次内存使用情况
 		if m.Alloc >= 100*consts.MiByte && times%24 == 0 {
-			mylog.Logger.Error("dbmon memory usage %s exceed 100M", util.SizeToHumanStr(int64(m.Alloc)))
+			mylog.Logger.Error("dbmon memory usage exceed 100M",
+				zap.String("memory_usage", util.SizeToHumanStr(int64(m.Alloc))))
 		}
 	}
 }

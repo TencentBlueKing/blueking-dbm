@@ -187,7 +187,7 @@ func (task *TailTask) GetLogFiles() {
 	} else if consts.IsTendisplusInstanceDbType(task.ClusterType) {
 		task.TendisplusGetLogFiles()
 	}
-	mylog.Logger.Info(fmt.Sprintf("TailTask %s %s found logfiles %+v", task.Addr(), task.Role, task.LogFiles))
+	mylog.Logger.Debug(fmt.Sprintf("TailTask %s %s found logfiles %+v", task.Addr(), task.Role, task.LogFiles))
 	// 2026-01-20 : 新增需求
 	task.SetServerVersion()
 }
