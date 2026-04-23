@@ -8,9 +8,11 @@
 </template>
 
 <script setup lang="ts">
+  import urlJoin from 'url-join';
+
   import BkUserSelector from '@blueking/bk-user-selector';
 
-  import { useUserProfile } from '@stores';
+  import { useSystemEnviron, useUserProfile } from '@stores';
 
   import '@blueking/bk-user-selector/vue3/vue3.css';
 
@@ -18,7 +20,8 @@
     required: true,
   });
 
+  const systemEnvironStore = useSystemEnviron();
   const { tenantId } = useUserProfile();
 
-  const apiBaseUrl = 'https://bk-user-web.apigw.o.woa.com/prod';
+  const apiBaseUrl = urlJoin(systemEnvironStore.urls.USER_MANAGE_FRONTEND_APIGW_DOMAIN);
 </script>
