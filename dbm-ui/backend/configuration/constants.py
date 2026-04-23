@@ -432,3 +432,22 @@ DBM_USER_TODO_TYPE_MAP_DEFAULT = {
     "ordinary": ["ticket_todo", "cluster_disable_todo"],
     "dba": ["ticket_todo", "inspect_todo", "cluster_disable_todo", "host_todo", "alarm_todo", "risk_memo_todo"],
 }
+
+BIZ_DEFAULT_CONFIGS = {
+    "NOTIFY_CONFIG": {
+        "APPROVE": {"rtx": True},
+        "FAILED": {"rtx": True},
+        "INNER_TODO": {"rtx": True},
+        "PENDING": {"rtx": True},
+        "RESOURCE_REPLENISH": {"rtx": True},
+        "REVOKED": {"rtx": True},
+        "SUCCEEDED": {"rtx": True},
+        "TERMINATED": {"rtx": True},
+        "TODO": {"rtx": True},
+        "AI_TASK_GUARDIAN": {"rtx": True},
+    },
+    "DEFAULT_BIZ_AI_NOTIFY_CONFIG": {"AI_TASK_GUARDIAN": {"rtx": True}},
+    "BIZ_ASSISTANCE_SWITCH": False,
+    "BIZ_ASSISTANCE_VARS": [],
+    "INDEPENDENT_HOSTING_DB_TYPES": [],
+}

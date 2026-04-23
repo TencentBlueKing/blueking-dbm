@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext as _
 
-from backend.ticket.constants import TicketStatus
 from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
@@ -23,10 +22,3 @@ class MsgType(StrStructuredEnum):
     WECOM_ROBOT = EnumField("wecom_robot", _("企微群聊"))
     # 未知发送类型，配置此type一般用于跳过消息发送
     UNKNOWN = EnumField("unknown", _("未知"))
-
-
-# 默认通知：企业微信
-DEFAULT_BIZ_NOTIFY_CONFIG = {status: {MsgType.RTX.value: True} for status in TicketStatus.get_values()}
-
-# 单据值守默认通知方式: 企业微信
-DEFAULT_BIZ_AI_NOTIFY_CONFIG = {"AI_TASK_GUARDIAN": {MsgType.RTX.value: True}}

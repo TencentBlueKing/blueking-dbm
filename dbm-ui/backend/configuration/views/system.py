@@ -19,7 +19,12 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import BKBaseApi
 from backend.configuration.common_sqls import DB_TYPE__COMMON_SQL_MAP, PROXY_COMMON_SQL_STATEMENTS
-from backend.configuration.constants import DEFAULT_MACHINE_PROPERTY, DISK_CLASSES, SystemSettingsEnum
+from backend.configuration.constants import (
+    BIZ_DEFAULT_CONFIGS,
+    DEFAULT_MACHINE_PROPERTY,
+    DISK_CLASSES,
+    SystemSettingsEnum,
+)
 from backend.configuration.models.system import BizSettings, SystemSettings
 from backend.configuration.serializers import (
     BatchUpdateBizSettingsSerializer,
@@ -216,16 +221,16 @@ class BizSettingsViewSet(viewsets.AuditedModelViewSet):
     def simple(self, request, *args, **kwargs):
         filter_field = self.params_validate(self.get_serializer_class())
         data = {q.key: q.value for q in self.queryset.filter(**filter_field)}
-        # 从system settings获取全局的默认业务配置
-        biz_configs = SystemSettings.get_setting_value(key=SystemSettingsEnum.BIZ_CONFIG)
-        # 如果配置是list, dict则合并，其他类型则首先以业务为准
-        for key, value in data.items():
-            if isinstance(value, dict):
-                # dict优先以业务的为准
-                data[key] = {**biz_configs.get(key, {}), **data[key]}
-            elif isinstance(value, list):
-                data[key].extend(biz_configs.get(key, {}))
+        if data:
+            return Response(data)
 
+        if filter_field.get("key"):
+            # 从system settings获取全局的默认业务配置
+            biz_configs = SystemSettings.get_setting_value(key=SystemSettingsEnum.BIZ_CONFIG, default={})
+            data = {
+                filter_field["key"]: biz_configs.get(filter_field["key"], {})
+                or BIZ_DEFAULT_CONFIGS.get(filter_field["key"])
+            }
         return Response(data)
 
     @common_swagger_auto_schema(

@@ -19,7 +19,7 @@ from backend import env
 from backend.bk_web.constants import LEN_LONG, LEN_NORMAL
 from backend.bk_web.models import AuditedModel
 from backend.configuration import constants
-from backend.configuration.constants import BizSettingsEnum
+from backend.configuration.constants import BIZ_DEFAULT_CONFIGS, BizSettingsEnum, SystemSettingsEnum
 from backend.db_meta.enums import ClusterType
 
 logger = logging.getLogger("root")
@@ -136,7 +136,12 @@ class BizSettings(AbstractSettings):
 
     @classmethod
     def get_setting_value(cls, bk_biz_id: int, key: str, default: Optional[Any] = None) -> Union[str, Dict, List]:
-        return super().get_setting_value(key={"key": key, "bk_biz_id": bk_biz_id}, default=default)
+        data = super().get_setting_value(key={"key": key, "bk_biz_id": bk_biz_id}, default=default)
+
+        if not data:
+            biz_configs = SystemSettings.get_setting_value(key=SystemSettingsEnum.BIZ_CONFIG, default={})
+            data = biz_configs.get(key, {}) or BIZ_DEFAULT_CONFIGS.get(key)
+        return data
 
     @classmethod
     def insert_setting_value(cls, bk_biz_id: int, key: str, value: Any, value_type: str = "str", user: str = "admin"):
