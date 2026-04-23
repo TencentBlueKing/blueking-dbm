@@ -267,11 +267,11 @@
     "edit_allowed": true,
     "metric_type": "time_series",
     "data_source_type": "Prometheus",
-    "is_enabled": true
+    "is_enabled": false
   },
-  "is_enabled": true,
+  "is_enabled": false,
   "monitor_indicator": "[TendisSSD]实例CPU使用率",
-  "version": 4,
+  "version": 5,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-07-23T16:36:12+08:00"
