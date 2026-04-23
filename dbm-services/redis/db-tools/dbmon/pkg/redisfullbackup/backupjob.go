@@ -188,7 +188,7 @@ func (job *Job) createTasks() {
 
 // CheckOldFullbackupStatus 重试备份系统上传失败的,检查备份系统上传中的是否成功
 func (job *Job) CheckOldFullbackupStatus(port int) {
-	mylog.Logger.Info(fmt.Sprintf("port:%d start CheckOldFullbackupStatus", port))
+	mylog.Logger.Debug(fmt.Sprintf("port:%d start CheckOldFullbackupStatus,重试备份系统上传失败的", port))
 	toCheckRows := []models.RedisFullbackupHistorySchema{}
 	var taskStatus int
 	var statusMsg string
@@ -259,6 +259,7 @@ func (job *Job) CheckOldFullbackupStatus(port int) {
 						mylog.Logger.Error(err.Error())
 					}
 					// row.BackupRecordReport(job.Reporter)
+					mylog.Logger.Info(fmt.Sprintf("%s %s", row.BackupFile, row.Message))
 				}
 			}
 			// 更新记录 status 和 message
@@ -278,7 +279,7 @@ func (job *Job) DeleteTooOldFullBackup(port int) {
 	var removeOK bool
 	NDaysAgo := time.Now().Local().AddDate(0, 0, -job.Conf.RedisFullBackup.OldFileLeftDay)
 	Days15Ago := time.Now().Local().AddDate(0, 0, -15)
-	mylog.Logger.Info(fmt.Sprintf("port:%d start DeleteTooOldFullBackup", port))
+	mylog.Logger.Debug(fmt.Sprintf("port:%d start DeleteTooOldFullBackup (15 days ago.)", port))
 
 	// 15 天以前的,本地文件已删除的,记录直接删除
 	job.Err = job.sqdb.Where("start_time<=? and local_file_removed=?", Days15Ago, 1).
@@ -301,6 +302,7 @@ func (job *Job) DeleteTooOldFullBackup(port int) {
 	for _, row := range toDoRows {
 		removeOK = true
 		if util.FileExists(row.BackupFile) {
+			mylog.Logger.Info(fmt.Sprintf("redis(%s) backupFiles:%+v remove", row.Addr(), row.BackupFile))
 			err = os.Remove(row.BackupFile)
 			if err != nil {
 				err = fmt.Errorf("os.Remove fail,err:%v,file:%s", err, row.BackupFile)

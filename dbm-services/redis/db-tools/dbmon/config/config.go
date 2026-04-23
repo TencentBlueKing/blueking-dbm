@@ -2,6 +2,7 @@
 package config
 
 import (
+	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -115,8 +116,14 @@ func loadConfigFile() {
 	if conf.RedisFullBackup.OldFileLeftDay == 0 {
 		conf.RedisFullBackup.OldFileLeftDay = 3 // 默认全备保留天数
 	}
+	if conf.RedisFullBackup.BackupFileTag == "" {
+		conf.RedisFullBackup.BackupFileTag = consts.RedisFullBackupTAG // 默认全备文件标签
+	}
 	if conf.RedisBinlogBackup.OldFileLeftDay == 0 {
 		conf.RedisBinlogBackup.OldFileLeftDay = 3 // 默认binlog保留天数
+	}
+	if conf.RedisBinlogBackup.BackupFileTag == "" {
+		conf.RedisBinlogBackup.BackupFileTag = consts.RedisBinlogTAG // 默认binlog文件标签
 	}
 	if conf.ReportLeftDay == 0 {
 		conf.ReportLeftDay = 15
