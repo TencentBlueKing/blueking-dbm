@@ -39,6 +39,10 @@ func (m MeasureRange) Legal() bool {
 
 // MatchTotalDataStorageSize match total data disk capacity
 func (m *MeasureRange) MatchTotalDataStorageSize(db *gorm.DB) {
+	if m.Min == m.Max {
+		db.Where("total_data_storage_cap = ?", m.Min)
+		return
+	}
 	m.MatchRange(db, "total_data_storage_cap")
 }
 
