@@ -28,11 +28,11 @@
     <div class="content-box">
       <div
         v-for="item in flowList"
-        :key="item.title"
+        :key="item.id"
         class="item-box mt-16"
         :class="{ custom: item.isCustom }">
         <div class="item-box-title">
-          {{ item.title }}
+          {{ item.isCustom ? customTitleMap[item.title] : item.title }}
         </div>
         <BkSelect
           v-model="item.method"
@@ -220,7 +220,7 @@
       // isShow: true,
       method: getMethod(item.method),
       selectList: [],
-      title: customTitleMap[item.dimension_name],
+      title: item.dimension_name,
       value: isFuzzyInput(item.method) && item.value.length > 0 ? item.value[0] : '',
       valueList: isFuzzyInput(item.method) ? [] : item.value,
     }));
@@ -294,7 +294,7 @@
       .filter((item) => item.isCustom)
       .map((row) => ({
         condition: 'and',
-        dimension_name: row.title,
+        dimension_name: /[\u4e00-\u9fa5]/.test(row.title) ? row.id : row.title,
         key: row.id,
         method: props.isPromql ? promqlDisplayOptionMap[row.method] : row.method,
         value: isFuzzyInput(row.method) ? [row.value] : row.valueList,
