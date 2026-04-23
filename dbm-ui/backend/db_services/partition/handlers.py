@@ -931,8 +931,8 @@ class PartitionHandler(object):
                 _("表名"): item.get("tblikes", ""),
                 _("分区字段"): item.get("partition_column", ""),
                 _("分区字段类型"): item.get("partition_column_type", ""),
-                _("分区间隔（天）"): item.get("partition_time_interval", ""),
                 _("数据过期时间（天）"): item.get("expire_time", ""),
+                _("分区间隔（天）"): item.get("partition_time_interval", ""),
                 _("失败原因"): item.get("error", ""),
             }
             export_rows.append(row_data)
