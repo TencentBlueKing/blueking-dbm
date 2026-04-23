@@ -136,7 +136,7 @@
             v-if="data.dbm_policy.id"
             text
             theme="primary"
-            @click="() => handleToMonitorStrategy(data.dbm_policy)">
+            @click="() => handleToMonitorStrategy(data.dbm_policy, data.dimensions)">
             {{ data.policyNameDisplay }}
           </BkButton>
           <span v-else>--</span>
@@ -208,7 +208,7 @@
             v-if="data.dbm_policy.id"
             :data="data.dbm_policy"
             :name="data.policyNameDisplay"
-            @confirm="(editType: string) => handleToMonitorStrategy(data.dbm_policy, editType)" />
+            @confirm="(editType: string) => handleToMonitorStrategy(data.dbm_policy, data.dimensions, editType)" />
           <BkButton
             class="ml-16"
             :disabled="!urls.BKMONITOR_URL"
@@ -557,7 +557,11 @@
     currentEvent.value!.is_shielded = true;
   };
 
-  const handleToMonitorStrategy = (data: RowData['dbm_policy'], editType?: string) => {
+  const handleToMonitorStrategy = (
+    data: RowData['dbm_policy'],
+    dimensions: RowData['dimensions'],
+    editType?: string,
+  ) => {
     const { href } = router.resolve({
       name: 'monitorStrategy',
       query: {
@@ -566,7 +570,8 @@
         id: data.id,
       },
     });
-    window.open(isTodoPage || isGlobalPage ? getBusinessHref(href, data.bk_biz_id) : href, '_blank');
+    const bizId = dimensions.find((item) => item.key === 'tags.appid')?.value || 0;
+    window.open(isTodoPage || isGlobalPage ? getBusinessHref(href, Number(bizId)) : href, '_blank');
   };
 
   defineExpose<Exposes>({
