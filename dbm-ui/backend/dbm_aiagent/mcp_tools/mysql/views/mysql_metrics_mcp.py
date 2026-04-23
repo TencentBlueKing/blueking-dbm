@@ -52,10 +52,12 @@ class MySQLMetricsMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=MysqlMetricsInputSerializer,
         response_slz=MysqlMetricsOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
-        mcp_auth_parser=auth_parse_clusters,
+        # permission_classes=[McpClusterManagePermission],
+        # mcp_auth_parser=auth_parse_clusters,
+        permission_classes=[],
+        mcp_auth_parser=None,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.MYSQL_METRICS],
+        mcp=[DBMMcpTools.MYSQL_METRICS, DBMMcpTools.DBM_PUBLIC_MARKET],
         name_prefix="mysql_metrics",
     )
     def query_by_metric_name(self, request, *args, **kwargs):
