@@ -27,6 +27,7 @@ class ClusterBaseInfoSerializer(serializers.Serializer):
     region = serializers.CharField(help_text=_("所在地域, 城市, city"))
     affinity = serializers.CharField(help_text=_("亲和性"))
     status = serializers.CharField(help_text=_("集群状态"))
+    phase = serializers.CharField(help_text=_("集群生命周期状态"))
     creator = serializers.CharField(help_text=_("集群创建人"))
     dbas = serializers.ListField(child=serializers.CharField(), help_text=_("集群 DBA 列表"))
     # 集群标签以 tag_<key> 形式作为动态顶级字段返回，每个字段的值为 List[str]
