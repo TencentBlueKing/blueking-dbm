@@ -25,6 +25,8 @@ from backend.flow.consts import (
     SyncType,
 )
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
@@ -148,6 +150,53 @@ def TwemproxyClusterMasterReplaceJob(
         sub_pipelines.append(RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs, slave_params))
     redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
     # ### 部署实例 ####################################################################### 完毕 ###
+
+    # 在流程开始时添加告警屏蔽
+    replace_ips = set()
+    for replace_info in master_replace_detail:
+        old_master = replace_info["ip"]
+        old_slave = act_kwargs.cluster["master_slave_map"][old_master]
+        new_master = replace_info["target"]["master"]["ip"]
+        new_slave = replace_info["target"]["slave"]["ip"]
+
+        replace_ips.add(old_master)
+        replace_ips.add(old_slave)
+        replace_ips.add(new_master)
+        replace_ips.add(new_slave)
+
+    # 在流程开始时添加告警屏蔽
+    # 动态计算屏蔽时长，默认屏蔽3小时但不能超过20点
+    import datetime
+
+    now = datetime.datetime.now()
+    default_duration = 3 * 3600  # 默认屏蔽3小时
+    end_time_default = now + datetime.timedelta(seconds=default_duration)
+    end_time_20 = now.replace(hour=20, minute=0, second=0, microsecond=0)
+
+    if end_time_default <= end_time_20:
+        # 如果3小时后不超过20点，使用默认3小时
+        duration_seconds = default_duration
+    else:
+        # 如果3小时后超过20点，只屏蔽到20点
+        duration_seconds = int((end_time_20 - now).total_seconds())
+        if duration_seconds < 0:
+            # 如果当前时间已经超过20点，则屏蔽时长为0秒（立即结束）
+            duration_seconds = 0
+
+    redis_pipeline.add_act(
+        act_name=_("屏蔽集群告警-{}").format(act_kwargs.cluster["immute_domain"]),
+        act_component_code=AddAlarmShieldComponent.code,
+        kwargs={
+            **asdict(act_kwargs),
+            "description": _("Redis Master替换-屏蔽告警-{}").format(act_kwargs.cluster["immute_domain"]),
+            "dimensions": [
+                {"name": "appid", "values": [act_kwargs.cluster["bk_biz_id"]]},
+                {"name": "cluster_domain", "values": [act_kwargs.cluster["immute_domain"]]},
+                {"name": "bk_target_ip", "values": list(replace_ips)},
+            ],
+            "duration_seconds": duration_seconds,
+        },
+    )
 
     sync_relations = []  # 按照机器对组合
     # #### 建同步关系 #############################################################################
@@ -279,6 +328,13 @@ def TwemproxyClusterMasterReplaceJob(
         sub_pipelines.append(sub_builder)
     redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
     # #### 下架旧实例 ###################################################################### 完毕 ###
+
+    # 在流程结束时解除告警屏蔽
+    redis_pipeline.add_act(
+        act_name=_("解除集群告警屏蔽-{}").format(act_kwargs.cluster["immute_domain"]),
+        act_component_code=DisableAlarmShieldComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
 
     return redis_pipeline.build_sub_process(sub_name=_("主从替换-{}").format(act_kwargs.cluster["cluster_type"]))
 
