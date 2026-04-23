@@ -444,6 +444,7 @@ class DBActuatorActionEnum(StrStructuredEnum):
     ClusterSchemaRepair = EnumField("schema-repair", _("schema-repair"))
     GetBackupFile = EnumField("find-local-backup", _("find-local-backup"))
     RestoreSlave = EnumField("restore-dr", _("restore-dr"))
+    RestoreDrAfter = EnumField("restore-dr-after", _("restore-dr-after"))
     StopMysqld = EnumField("stop-mysqld", _("stop-mysqld"))
     FastExecuteSqlFile = EnumField("fast-execute-sql-file", _("fast-execute-sql-file"))
     RecoverBinlog = EnumField("recover-binlog", _("recover-binlog"))
