@@ -36,6 +36,7 @@ def __tendbsingle_topo(cluster_obj: Cluster) -> Dict:
             "master_instance": {
                 "address": master.ip_port,
                 "status": master.status,
+                "phase": master.phase,
                 "machine_type": master.machine_type,
                 "instance_role": master.instance_role,
                 "instance_inner_role": master.instance_inner_role,
@@ -55,6 +56,7 @@ def __tendbsingle_topo(cluster_obj: Cluster) -> Dict:
                 {
                     "address": tp.receiver.ip_port,
                     "status": tp.receiver.status,
+                    "phase": tp.receiver.phase,
                     "machine_type": tp.receiver.machine_type,
                     "instance_role": tp.receiver.instance_role,
                     "instance_inner_role": tp.receiver.instance_inner_role,
@@ -85,6 +87,7 @@ def __tendbha_topo(cluster_obj: Cluster) -> Dict:
                 "master_instance": {
                     "address": tp.ejector.ip_port,
                     "status": tp.ejector.status,
+                    "phase": tp.ejector.phase,
                     "machine_type": tp.ejector.machine_type,
                     "instance_role": tp.ejector.instance_role,
                     "instance_inner_role": tp.ejector.instance_inner_role,
@@ -101,6 +104,7 @@ def __tendbha_topo(cluster_obj: Cluster) -> Dict:
                     {
                         "address": tp.receiver.ip_port,
                         "status": tp.receiver.status,
+                        "phase": tp.receiver.phase,
                         "machine_type": tp.receiver.machine_type,
                         "instance_role": tp.receiver.instance_role,
                         "instance_inner_role": tp.receiver.instance_inner_role,
@@ -124,6 +128,7 @@ def __tendbha_topo(cluster_obj: Cluster) -> Dict:
             {
                 "address": p.ip_port,
                 "status": p.status,
+                "phase": p.phase,
                 "machine_type": p.machine_type,
                 # "bk_cloud_id": p.machine.bk_cloud_id,
                 "bk_idc_id": p.machine.bk_idc_id,
@@ -181,6 +186,7 @@ def __tendbcluster_topo(cluster_obj: Cluster) -> Dict:
                 "master_instance": {
                     "address": tp.ejector.ip_port,
                     "status": tp.ejector.status,
+                    "phase": tp.ejector.phase,
                     "machine_type": tp.ejector.machine_type,
                     "instance_role": tp.ejector.instance_role,
                     "instance_inner_role": tp.ejector.instance_inner_role,
@@ -197,6 +203,7 @@ def __tendbcluster_topo(cluster_obj: Cluster) -> Dict:
                     {
                         "address": tp.receiver.ip_port,
                         "status": tp.receiver.status,
+                        "phase": tp.receiver.phase,
                         "machine_type": tp.receiver.machine_type,
                         "instance_role": tp.receiver.instance_role,
                         "instance_inner_role": tp.receiver.instance_inner_role,
@@ -220,6 +227,7 @@ def __tendbcluster_topo(cluster_obj: Cluster) -> Dict:
             {
                 "address": p.ip_port,
                 "status": p.status,
+                "phase": p.phase,
                 "machine_type": p.machine_type,
                 # "bk_cloud_id": p.machine.bk_cloud_id,
                 "bk_idc_id": p.machine.bk_idc_id,

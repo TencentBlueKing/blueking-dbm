@@ -103,6 +103,7 @@ def list_biz_clusters(
             "region": cluster_obj.region,
             "affinity": cluster_obj.disaster_tolerance_level,
             "status": cluster_obj.status,
+            "phase": cluster_obj.phase,
             "creator": cluster_obj.creator,
             "dbas": dbas[:2],
             **tag_fields,

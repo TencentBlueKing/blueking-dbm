@@ -19,6 +19,7 @@ class MySQLClusterTopoInputSerializer(serializers.Serializer):
 class MySQLBaseInstanceSerializer(serializers.Serializer):
     address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
     status = serializers.CharField(help_text=_("实例状态"))
+    phase = serializers.CharField(help_text=_("实例生命周期状态"))
     machine_type = serializers.CharField(help_text=_("实例机器类型"))
     bk_idc_id = serializers.IntegerField(help_text=_("机房ID"))
     bk_idc_name = serializers.CharField(help_text=_("机房名称"))
