@@ -54,7 +54,9 @@ class KafkaMetricsMcpToolsViewSet(McpToolsViewSet):
         request_slz=KafkaMetricsInputSerializer,
         response_slz=KafkaMetricsOutputSerializer,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.KAFKA_METRICS],
+        mcp=[DBMMcpTools.KAFKA_METRICS, DBMMcpTools.DBM_PUBLIC_MARKET],
+        permission_classes=[],
+        mcp_auth_parser=None,
         name_prefix="kafka_metrics",
     )
     def query_metrics(self, request, *args, **kwargs):

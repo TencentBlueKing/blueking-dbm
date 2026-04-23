@@ -120,10 +120,12 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=RedisClusterProxySeriesInputSerializer,
         response_slz=RedisMetricsSeriesOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
-        mcp_auth_parser=auth_parse_clusters,
+        # permission_classes=[McpClusterManagePermission],
+        # mcp_auth_parser=auth_parse_clusters,
+        permission_classes=[],
+        mcp_auth_parser=None,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.REDIS_METRICS],
+        mcp=[DBMMcpTools.REDIS_METRICS, DBMMcpTools.DBM_PUBLIC_MARKET],
         name_prefix="redis_metrics",
     )
     def query_cluster_proxy_series(self, request, *args, **kwargs):
@@ -182,10 +184,12 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=RedisClusterBackendSeriesInputSerializer,
         response_slz=RedisMetricsSeriesOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
-        mcp_auth_parser=auth_parse_clusters,
+        # permission_classes=[McpClusterManagePermission],
+        # mcp_auth_parser=auth_parse_clusters,
+        permission_classes=[],
+        mcp_auth_parser=None,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.REDIS_METRICS],
+        mcp=[DBMMcpTools.REDIS_METRICS, DBMMcpTools.DBM_PUBLIC_MARKET],
         name_prefix="redis_metrics",
     )
     def query_cluster_master_series(self, request, *args, **kwargs):
