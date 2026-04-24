@@ -57,7 +57,7 @@ func MysqlCliHasOption(mysqlCmd string, option string) error {
 		return errors.Errorf("mysql %s has no option %s", mysqlCmd, option)
 	}
 	if err != nil {
-		return err
+		return errors.WithMessagef(err, errStr)
 	}
 	if strings.Contains(outStr, option) {
 		return nil

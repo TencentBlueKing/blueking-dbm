@@ -377,7 +377,20 @@ func (r *RecoverBinlog) buildMysqlOptions() error {
 	if mysqlOpt.MaxAllowedPacket > 0 {
 		r.TgtInstance.Options += fmt.Sprintf(" --max-allowed-packet=%d", mysqlOpt.MaxAllowedPacket)
 	}
-	mysqlClient := r.ToolSet.MustGet(tools.ToolMysqlclient)
+
+	var mysqlClient string
+	if mysqlClient80, err := r.ToolSet.Get(tools.ToolMysqlclient80); err == nil {
+		// 需要确认 dba-toolkit 下的 mysql 8.0 客户端可以用
+		if err = mysqlcomm.MysqlCliHasOption(mysqlClient80, "--help"); err == nil {
+			mysqlClient = mysqlClient80
+		} else {
+			logger.Info("try use mysql client 8.0 got error:", err.Error())
+		}
+	}
+	if mysqlClient == "" {
+		mysqlClient = r.ToolSet.MustGet(tools.ToolMysqlclient)
+		logger.Info("fallback to system mysql client: %s", mysqlClient)
+	}
 	// mysqlOpt.BinaryMode &&
 	if mysqlcomm.MysqlCliHasOption(mysqlClient, "--binary-mode") == nil {
 		r.TgtInstance.Options += " --binary-mode"

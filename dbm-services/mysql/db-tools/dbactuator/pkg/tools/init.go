@@ -17,6 +17,8 @@ const (
 	ToolMload ExternalTool = "mload"
 	// ToolMysqlclient mysql
 	ToolMysqlclient ExternalTool = "mysql"
+	// ToolMysqlclient80 mysql80
+	ToolMysqlclient80 ExternalTool = "mysql80"
 	// ToolXLoad xload
 	ToolXLoad ExternalTool = "xload"
 	// ToolQPress qpress
@@ -52,6 +54,7 @@ var defaultPath = map[ExternalTool]string{
 	ToolPv:                    "/home/mysql/dbbackup-go/bin/pv",
 	ToolMysqlclient:           "/usr/local/mysql/bin/mysql",
 	ToolMysqlbinlog:           "/usr/local/mysql/bin/mysqlbinlog",
+	ToolMysqlclient80:         filepath.Join(cst.DBAToolkitPath, string(ToolMysqlclient)),
 	ToolGoMysqlbinlog:         filepath.Join(cst.DBAToolkitPath, string(ToolGoMysqlbinlog)),
 	ToolMysqlbinlogRollback:   filepath.Join(cst.DBAToolkitPath, string(ToolMysqlbinlogRollback)),
 	ToolMysqlbinlogRollback80: filepath.Join(cst.DBAToolkitPath, "mysqlbinlog_rollback80"),

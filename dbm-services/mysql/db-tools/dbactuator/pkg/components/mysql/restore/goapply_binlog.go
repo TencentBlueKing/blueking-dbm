@@ -123,7 +123,7 @@ func (r *GoApplyBinlog) ParseBinlogFiles() error {
 	logger.Info("start to parse binlog files with concurrency %d", r.ParseConcurrency)
 
 	binlogParseLockFile := "/tmp/mysql_binlog_parse.lock.yaml"
-	fileLock, err := filecontext.NewIncrFile(binlogParseLockFile, r.ParseConcurrency, 10*time.Second)
+	fileLock, err := filecontext.NewIncrFile(binlogParseLockFile, 4, 10*time.Second)
 	if err != nil {
 		return err
 	}
@@ -386,7 +386,20 @@ func (r *GoApplyBinlog) buildMysqlCliOptions() error {
 	if mysqlOpt.MaxAllowedPacket > 0 {
 		r.TgtInstance.Options += fmt.Sprintf(" --max-allowed-packet=%d", mysqlOpt.MaxAllowedPacket)
 	}
-	mysqlClient := r.ToolSet.MustGet(tools.ToolMysqlclient)
+
+	var mysqlClient string
+	if mysqlClient80, err := r.ToolSet.Get(tools.ToolMysqlclient80); err == nil {
+		// 需要确认 dba-toolkit 下的 mysql 8.0 客户端可以用
+		if err = mysqlcomm.MysqlCliHasOption(mysqlClient80, "--help"); err == nil {
+			mysqlClient = mysqlClient80
+		} else {
+			logger.Info("try use mysql client 8.0 got error:", err.Error())
+		}
+	}
+	if mysqlClient == "" {
+		mysqlClient = r.ToolSet.MustGet(tools.ToolMysqlclient)
+		logger.Info("fallback to system mysql client: %s", mysqlClient)
+	}
 	// mysqlOpt.BinaryMode &&
 	if mysqlcomm.MysqlCliHasOption(mysqlClient, "--binary-mode") == nil {
 		r.TgtInstance.Options += " --binary-mode"
