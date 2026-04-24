@@ -19,7 +19,6 @@ require (
 	github.com/spf13/viper v1.21.0
 	go.mongodb.org/mongo-driver v1.16.1
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.63.0
-	golang.org/x/time v0.12.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 

@@ -26,7 +26,7 @@ def show_instance_variables(bk_cloud_id: int, address: str, machine_type: Machin
         in_clause = safe_sql_in_string(names)
         cmd = f"{cmd} WHERE Variable_name IN {in_clause}"
 
-    raw_drs_res = DRSApi.rpc({"addresses": [address], "cmds": [cmd], "bk_cloud_id": bk_cloud_id})
+    raw_drs_res = DRSApi.v2_mysql_rpc({"addresses": [address], "cmds": [cmd], "bk_cloud_id": bk_cloud_id})
 
     address_res = raw_drs_res[0]
     if address_res["error_msg"]:

@@ -14,6 +14,7 @@ from backend.components import DRSApi
 from backend.db_meta.enums import ClusterType
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
 from backend.dbm_aiagent.mcp_tools.mysql.helpers.get_slave_address_and_dbname import get_cloud_slave_address_and_dbname
+from backend.dbm_aiagent.mcp_tools.mysql.helpers.sql_safety import quote_ident
 
 
 def show_create_table(cluster_type: ClusterType, cluster_domain: str, dbname: str, tablename: str) -> Dict:
@@ -23,10 +24,13 @@ def show_create_table(cluster_type: ClusterType, cluster_domain: str, dbname: st
         cluster_type=cluster_type, cluster_domain=cluster_domain, dbname=dbname
     )
 
-    drs_raw_res = DRSApi.rpc(
+    quoted_db = quote_ident(dbname)
+    quoted_tbl = quote_ident(tablename)
+
+    drs_raw_res = DRSApi.v2_webconsole_rpc(
         {
             "addresses": [address],
-            "cmds": [f"USE `{dbname}`", f"SHOW CREATE TABLE `{tablename}`"],
+            "cmds": [f"USE {quoted_db}", f"SHOW CREATE TABLE {quoted_tbl}"],
             "force": False,
             "bk_cloud_id": bk_cloud_id,
             "query_timeout": 10,
@@ -46,9 +50,5 @@ def show_create_table(cluster_type: ClusterType, cluster_domain: str, dbname: st
         raise DBMMcpBaseException(msg=f"show create table {tablename} failed: {show_create_res['error_msg']}")
 
     return {
-        # "cluster_domain": cluster_domain,
-        # "cluster_type": cluster_type,
-        # "dbname": raw_dbname,
-        # "tablename": tablename,
         "create_sql": list(show_create_res["table_data"][0].values())[0],
     }

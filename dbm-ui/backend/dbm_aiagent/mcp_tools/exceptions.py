@@ -76,3 +76,15 @@ class DBMMcpBadTicketStatusException(DBMMcpBaseException):
     ERROR_CODE = "010"
     MESSAGE = _("单据类型不支持当前操作")
     MESSAGE_TPL = _("{msg}")
+
+
+class DBMMcpUnsafeSQLException(DBMMcpBaseException):
+    ERROR_CODE = "011"
+    MESSAGE = _("不安全的 SQL")
+    MESSAGE_TPL = _("{msg}")
+
+
+class DBMMcpUnsafeIdentifierException(DBMMcpBaseException):
+    ERROR_CODE = "012"
+    MESSAGE = _("不安全的标识符")
+    MESSAGE_TPL = _("{msg}")

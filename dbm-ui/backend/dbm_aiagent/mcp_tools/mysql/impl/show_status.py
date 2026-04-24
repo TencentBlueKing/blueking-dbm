@@ -37,7 +37,7 @@ def show_instance_status(bk_cloud_id: int, address: str, machine_type: MachineTy
 
 def __show_proxy_status(bk_cloud_id: int, address: str) -> Dict:
     split_address = address.split(":")
-    raw_drs_res = DRSApi.proxyrpc(
+    raw_drs_res = DRSApi.v2_proxyrpc(
         {
             "addresses": [f"{split_address[0]}:{int(split_address[1]) + 1000}"],
             "cmds": ["show uptime"],
@@ -65,7 +65,7 @@ def __mysql_show_status(bk_cloud_id: int, address: str, names: list[str]) -> Lis
         # 因为是使用输入的 names，担心有注入，限制只能是 a-zA-Z_
         in_clause = safe_sql_in_string(names)
         cmd = f"{cmd} WHERE Variable_name IN {in_clause}"
-    raw_drs_res = DRSApi.rpc({"addresses": [address], "cmds": [cmd], "bk_cloud_id": bk_cloud_id})
+    raw_drs_res = DRSApi.v2_mysql_rpc({"addresses": [address], "cmds": [cmd], "bk_cloud_id": bk_cloud_id})
 
     address_res = raw_drs_res[0]
     if address_res["error_msg"]:
@@ -85,7 +85,9 @@ def __mysql_show_status(bk_cloud_id: int, address: str, names: list[str]) -> Lis
 
 
 def mysql_show_slave_status(bk_cloud_id: int, address: str) -> List:
-    raw_drs_res = DRSApi.rpc({"addresses": [address], "cmds": ["SHOW SLAVE STATUS"], "bk_cloud_id": bk_cloud_id})
+    raw_drs_res = DRSApi.v2_mysql_rpc(
+        {"addresses": [address], "cmds": ["SHOW SLAVE STATUS"], "bk_cloud_id": bk_cloud_id}
+    )
 
     address_res = raw_drs_res[0]
     if address_res["error_msg"]:

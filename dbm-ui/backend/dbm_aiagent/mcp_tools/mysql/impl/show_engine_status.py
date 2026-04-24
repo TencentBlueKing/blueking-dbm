@@ -19,7 +19,7 @@ def show_engine_status(bk_cloud_id: int, address: str, engine: str, machine_type
     if machine_type not in [MachineType.SINGLE, MachineType.BACKEND, MachineType.REMOTE, MachineType.SPIDER]:
         raise DBMMcpNotSupportMachineTypeException(machine_type=machine_type)
 
-    raw_drs_res = DRSApi.rpc(
+    raw_drs_res = DRSApi.v2_mysql_rpc(
         {"addresses": [address], "cmds": [f"show engine {engine} status"], "bk_cloud_id": bk_cloud_id}
     )
     address_res = raw_drs_res[0]

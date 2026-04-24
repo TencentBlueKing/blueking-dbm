@@ -285,7 +285,7 @@ from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
 
 
 def show_mysql_processlist(bk_cloud_id: int, address: str):
-    drs_raw_res = DRSApi.rpc(
+    drs_raw_res = DRSApi.v2_mysql_rpc(
         {
             "addresses": [address],
             "cmds": ["show full processlist"],
@@ -330,7 +330,7 @@ def show_mysql_processlist(bk_cloud_id: int, address: str):
 def show_proxy_processlist(bk_cloud_id: int, address: str):
     ip, port = address.split(":")
     proxy_ins = ProxyInstance.objects.get(machine__ip=ip, port=port, machine__bk_cloud_id=bk_cloud_id)
-    drs_raw_res = DRSApi.proxyrpc(
+    drs_raw_res = DRSApi.v2_proxyrpc(
         {
             "addresses": [f"{ip}:{proxy_ins.admin_port}"],
             "cmds": ["show processlist"],
