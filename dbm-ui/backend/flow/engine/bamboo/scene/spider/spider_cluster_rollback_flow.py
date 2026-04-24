@@ -37,12 +37,14 @@ from backend.flow.plugins.components.collections.common.add_alarm_shield import 
 from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_processlist import MySQLCheckProcesslistComponent
+from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay import MySQLCheckSlaveDelayComponent
 from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.remotedb_node_priv_recover import RemoteDbPrivRecoverComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import (
+    CheckSlaveStatusKwargs,
     DBMetaOPKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
@@ -89,14 +91,14 @@ class TenDBRollBackDataFlow(object):
         tendb_rollback_list = []
         for info in self.ticket_data["infos"]:
             self.data = info
-            # 判断是否全库回档,默认是全库,全库包括逻辑备份，物理备份. todo 如果指定部分库。则只能使用逻辑备份。
-            self.data["all_database_rollback"] = True
-            if not (
+            # 全库回档或者物理备份回档要求stop slave
+            all_db_rollback = False
+            if (
                 self.data["databases"][0] == "*"
                 and self.data["tables"][0] == "*"
                 and len(self.data["databases_ignore"]) == 0
             ):
-                self.data["all_database_rollback"] = False
+                all_db_rollback = True
             source_cluster = Cluster.objects.get(id=self.data["source_cluster_id"])
             target_cluster = Cluster.objects.get(id=self.data["target_cluster_id"])
             self.data["uid"] = self.ticket_data["uid"]
@@ -194,8 +196,7 @@ class TenDBRollBackDataFlow(object):
                     "databases_ignore": self.data["databases_ignore"],
                     "tables_ignore": self.data["tables_ignore"],
                     "change_master": False,
-                    "all_database_rollback": self.data["all_database_rollback"],
-                    # 由于不恢复binlog。所以设置为仅 BACKUPID 恢复
+                    # 由于不恢复binlog。所以设置为仅 backupId 恢复
                     "rollback_type": rollback_type,
                 }
                 check_connect_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
@@ -330,9 +331,26 @@ class TenDBRollBackDataFlow(object):
                 shard = target_cluster.tendbclusterstorageset_set.get(shard_id=shard_id)
                 target_slave = target_cluster.storageinstance_set.get(id=shard.storage_instance_tuple.receiver.id)
                 target_master = target_cluster.storageinstance_set.get(id=shard.storage_instance_tuple.ejector.id)
+                ms_diff_node = True
+                if remote_node["new_master"]["instance"] == remote_node["new_slave"]["instance"]:
+                    ms_diff_node = False
 
                 shard_backup_info = copy.deepcopy(backup_info["remote_node"][int(shard_id)])
                 ins_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+
+                if ms_diff_node:
+                    ins_sub_pipeline.add_act(
+                        act_name=_("检查主从延迟 {}").format(remote_node["new_slave"]["instance"]),
+                        act_component_code=MySQLCheckSlaveDelayComponent.code,
+                        kwargs=asdict(
+                            CheckSlaveStatusKwargs(
+                                bk_cloud_id=target_cluster.bk_cloud_id,
+                                instance_ip=remote_node["new_slave"]["ip"],
+                                instance_port=remote_node["new_slave"]["port"],
+                            )
+                        ),
+                    )
+
                 cluster = {
                     "storage_status": InstanceStatus.RESTORING.value,
                     "storage_ids": [target_slave.id, target_master.id],
@@ -348,7 +366,20 @@ class TenDBRollBackDataFlow(object):
                         )
                     ),
                 )
-                #  shard_id
+                if ms_diff_node and all_db_rollback:
+                    ins_sub_pipeline.add_act(
+                        act_name=_("从库stop slave {}").format(remote_node["new_slave"]["instance"]),
+                        act_component_code=MySQLExecuteRdsComponent.code,
+                        kwargs=asdict(
+                            ExecuteRdsKwargs(
+                                bk_cloud_id=target_cluster.bk_cloud_id,
+                                instance_ip=remote_node["new_slave"]["ip"],
+                                instance_port=remote_node["new_slave"]["port"],
+                                sqls=["stop slave"],
+                            )
+                        ),
+                    )
+
                 rollback_dbs = []
                 for db in self.data["databases"]:
                     if db == "*":
@@ -379,7 +410,7 @@ class TenDBRollBackDataFlow(object):
                 data_restore_sub_list.append(master_restore_sub_flow)
 
                 # 由于构造到新tendbCluster集群remote从节点可能是虚拟出来的节点，有可能实际上是主节点信息。
-                if remote_node["new_master"]["instance"] != remote_node["new_slave"]["instance"]:
+                if ms_diff_node:
                     slave_cluster_info = {
                         "rollback_ip": remote_node["new_slave"]["ip"],
                         "rollback_port": remote_node["new_slave"]["port"],
@@ -403,7 +434,7 @@ class TenDBRollBackDataFlow(object):
                     data_restore_sub_list.append(slave_restore_sub_flow)
 
                 ins_sub_pipeline.add_parallel_sub_pipeline(data_restore_sub_list)
-                if remote_node["new_master"]["instance"] != remote_node["new_slave"]["instance"]:
+                if ms_diff_node:
                     backup_type = shard_backup_info.get("backup_type", "")
                     if backup_type == MySQLBackupTypeEnum.PHYSICAL.value:
                         change_master_info = {
@@ -420,7 +451,7 @@ class TenDBRollBackDataFlow(object):
                                 root_id=self.root_id, uid=self.ticket_data["uid"], cluster_info=change_master_info
                             )
                         )
-                    elif backup_type == MySQLBackupTypeEnum.LOGICAL.value:
+                    elif backup_type == MySQLBackupTypeEnum.LOGICAL.value and all_db_rollback:
                         ins_sub_pipeline.add_act(
                             act_name=_("从库start slave {}").format(remote_node["new_slave"]["instance"]),
                             act_component_code=MySQLExecuteRdsComponent.code,
@@ -433,8 +464,6 @@ class TenDBRollBackDataFlow(object):
                                 )
                             ),
                         )
-                    else:
-                        raise Exception(_("备份类型{}不支持").format(backup_type))
 
                 # 如果备份是物理备份，spider层的路由账号需要恢复
                 if shard_backup_info.get("backup_type", "") == MySQLBackupTypeEnum.PHYSICAL.value:
