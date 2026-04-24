@@ -126,6 +126,7 @@ export const updatePolicy = (id: number, params: { name?: string } & UpdatePolic
 
 // 批量更新策略告警组
 export const batchUpdateNotifyGroup = (params: {
+  bk_biz_id: number;
   notify_groups: {
     groups: number[];
     policy_id: number;
