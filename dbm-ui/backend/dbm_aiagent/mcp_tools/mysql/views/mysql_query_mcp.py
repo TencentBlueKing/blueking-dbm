@@ -27,6 +27,7 @@ from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpNotSupportMachineType
 from backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_topo import mysql_cluster_topo
 from backend.dbm_aiagent.mcp_tools.mysql.impl.explain_sql import explain_sql
 from backend.dbm_aiagent.mcp_tools.mysql.impl.query_trx import query_long_running_trx
+from backend.dbm_aiagent.mcp_tools.mysql.impl.show_binlog_events import show_binlog_events as run_show_binlog_events
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_create_table import show_create_table
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_engine_status import show_engine_status
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_priv_template import show_biz_mysql_privilege_template
@@ -42,6 +43,10 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.explain_sql import (
     ExplainSQLOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.query_trx import QueryLongRunningTrxOutputSerializer
+from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_binlog_events import (
+    ShowBinlogEventsInputSerializer,
+    ShowBinlogEventsOutputSerializer,
+)
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_create_table import (
     ShowCreateTableInputSerializer,
     ShowCreateTableOutputSerializer,
@@ -72,7 +77,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_variables import (
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
-from backend.iam_app.handlers.drf_perm.mcp import McpClusterManagePermission
+from backend.iam_app.handlers.drf_perm.mcp import McpClusterManagePermission, McpIsDbaPermission
 
 logger = logging.getLogger("root")
 
@@ -417,6 +422,42 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
 
         machine_obj = _validate_and_get_machine(bk_cloud_id, address)
         return Response(show_engine_status(bk_cloud_id, address, engine, machine_obj.machine_type))
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                """在实例上执行 SHOW BINLOG EVENTS, 支持可选的 IN 日志名、FROM 位点、LIMIT; """
+                """limit 行数最大 100(由 limit_row_count 指定, 与可选的 limit_offset 共同组成 LIMIT)"""
+            )
+        ),
+        request_slz=ShowBinlogEventsInputSerializer,
+        response_slz=ShowBinlogEventsOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.MYSQL_QUERY],
+        permission_classes=[McpClusterManagePermission, McpIsDbaPermission],
+        mcp_auth_parser=auth_parse_instances,
+        name_prefix="mysql_query",
+    )
+    def show_binlog_events(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        address = self.get_param("address")
+        log_name = self.get_param("log_name")
+        from_pos = self.get_param("from_pos")
+        limit_offset = self.get_param("limit_offset")
+        limit_row_count = self.get_param("limit_row_count")
+
+        machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        return Response(
+            run_show_binlog_events(
+                bk_cloud_id=machine_obj.bk_cloud_id,
+                address=address,
+                machine_type=machine_obj.machine_type,
+                log_name=log_name,
+                from_pos=from_pos,
+                limit_offset=limit_offset,
+                limit_row_count=limit_row_count,
+            )
+        )
 
 
 def _validate_and_get_machine(bk_cloud_id: int | None, address: str) -> Machine:
