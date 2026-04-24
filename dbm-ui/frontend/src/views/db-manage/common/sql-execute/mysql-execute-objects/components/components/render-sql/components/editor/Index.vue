@@ -35,10 +35,6 @@
     <BkResizeLayout
       :border="false"
       class="editor-resize-wrapper"
-      :class="{
-        'resize-disabled': isMessageListFolded,
-      }"
-      :disabled="isMessageListFolded"
       :initial-divide="resizeLayoutInitialDivide"
       :max="300"
       :min="48"
@@ -51,7 +47,6 @@
       </template>
       <template #aside>
         <RenderMessageList
-          v-model="isMessageListFolded"
           class="editor-error"
           :data="messageList" />
       </template>
@@ -90,7 +85,6 @@
   const resizeLayoutStyle = ref();
   const isFullscreen = ref(false);
   const resizeLayoutInitialDivide = ref(48);
-  const isMessageListFolded = ref(true);
 
   let editor: monaco.editor.IStandaloneCodeEditor;
 
@@ -100,7 +94,6 @@
       setTimeout(() => {
         if (props.modelValue !== editor.getValue()) {
           editor.setValue(props.modelValue || '');
-          isMessageListFolded.value = true;
         }
       });
     },
@@ -109,13 +102,16 @@
     },
   );
 
-  watch(isMessageListFolded, () => {
-    if (isMessageListFolded.value) {
-      resizeLayoutInitialDivide.value = 48;
-      return;
-    }
-    resizeLayoutInitialDivide.value = Math.min(24 + props.messageList.length * 24, 200);
-  });
+  watch(
+    () => props.messageList.length,
+    () => {
+      if (props.messageList.length > 0) {
+        resizeLayoutInitialDivide.value = Math.min(32 + props.messageList.length * 28, 280);
+      } else {
+        resizeLayoutInitialDivide.value = 48;
+      }
+    },
+  );
 
   const handleToggleScreenfull = () => {
     if (screenfull.isFullscreen) {
@@ -232,14 +228,6 @@
     .editor-resize-wrapper {
       height: calc(100% - 40px) !important;
       background: #212121;
-
-      &.resize-disabled {
-        :deep(.bk-resize-layout-aside) {
-          &::after {
-            display: none;
-          }
-        }
-      }
     }
 
     .editor-error {

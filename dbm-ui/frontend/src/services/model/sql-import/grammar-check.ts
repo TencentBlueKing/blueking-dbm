@@ -50,7 +50,7 @@ export default class GrammarCheck {
       return false;
     }
 
-    return this.syntax_fails.length > 0 || this.bancommand_warnings.length > 0;
+    return this.syntax_fails.length > 0 || this.bancommand_warnings.length > 0 || this.highrisk_warnings.length > 0;
   }
 
   get messageList() {
