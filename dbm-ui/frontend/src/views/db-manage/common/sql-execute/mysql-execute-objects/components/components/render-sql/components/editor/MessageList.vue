@@ -14,14 +14,17 @@
 <template>
   <div
     v-if="data.length > 0"
-    class="sql-execute-error-message-list">
-    <div
-      v-if="isFolded"
-      class="message-total-wrapper"
-      @click="handleShowError">
+    class="sql-execute-error-message-list"
+    :class="statusClass">
+    <div class="message-total-wrapper">
       <DbIcon
+        v-if="totalMap.errorNum > 0"
         style="margin-right: 4px; color: #b34747"
         type="delete-fill" />
+      <DbIcon
+        v-else
+        style="margin-right: 4px; color: #ff9c01"
+        type="early-warning" />
       <I18nT
         v-if="totalMap.errorNum"
         keypath="检测失败_共n个错误"
@@ -37,9 +40,7 @@
         </I18nT>
       </template>
     </div>
-    <div
-      v-else
-      class="message-list-wrapper">
+    <div class="message-list-wrapper">
       <div
         v-for="(item, index) in data"
         :key="index"
@@ -60,34 +61,26 @@
         </div>
       </div>
     </div>
-    <div
-      class="toggle-btn"
-      @click="handleToogle">
-      <DbIcon
-        v-if="isFolded"
-        type="up-big" />
-      <DbIcon
-        v-else
-        type="down-big" />
-    </div>
+  </div>
+  <div
+    v-else
+    class="sql-execute-error-message-list success-message">
+    {{ t('检测通过') }}
   </div>
 </template>
 <script setup lang="ts">
-  import { computed, ref } from 'vue';
+  import { computed } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   export type IMessageList = Array<{ line: number; message: string; type: 'warning' | 'error' }>;
 
   interface Props {
     data: IMessageList;
-    modelValue: boolean;
   }
 
-  type Emits = (e: 'update:modelValue', value: boolean) => void;
-
   const props = defineProps<Props>();
-  const emits = defineEmits<Emits>();
+  const { t } = useI18n();
 
-  const isFolded = ref(props.modelValue);
   const totalMap = computed(() => {
     let errorNum = 0;
     let warningNum = 0;
@@ -105,15 +98,15 @@
     };
   });
 
-  const handleShowError = () => {
-    isFolded.value = false;
-    emits('update:modelValue', false);
-  };
-
-  const handleToogle = () => {
-    isFolded.value = !isFolded.value;
-    emits('update:modelValue', isFolded.value);
-  };
+  const statusClass = computed(() => {
+    if (totalMap.value.errorNum > 0) {
+      return 'is-error';
+    }
+    if (totalMap.value.warningNum > 0) {
+      return 'is-warning';
+    }
+    return '';
+  });
 </script>
 <style lang="less">
   .sql-execute-error-message-list {
@@ -124,14 +117,25 @@
     background: #212121;
     border-left: 4px solid #b34747;
 
+    &.is-warning {
+      border-left-color: #ff9c01;
+    }
+
+    &.success-message {
+      display: flex;
+      padding: 8px 16px;
+      color: #3fc06d;
+      border-left-color: #3fc06d;
+      align-items: center;
+    }
+
     .message-total-wrapper {
       padding: 8px 16px;
       color: #dcdee5;
-      cursor: pointer;
     }
 
     .message-list-wrapper {
-      padding: 12px 0;
+      padding: 0 0 12px;
       overflow-y: auto;
 
       .item-box {
@@ -160,20 +164,6 @@
           color: #979ba5;
         }
       }
-    }
-
-    .toggle-btn {
-      position: absolute;
-      top: 0;
-      right: 10px;
-      display: flex;
-      width: 30px;
-      height: 30px;
-      font-size: 18px;
-      color: #dcdee5;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
     }
   }
 </style>
