@@ -15,31 +15,61 @@ import { Message } from 'bkui-vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
-export const useTicketMessage = () => {
+import { useSystemEnviron } from '@stores';
+
+import { getBusinessHref } from '@utils';
+
+export const useTicketMessage = (
+  params: {
+    isCurrentBiz?: boolean;
+  } = {},
+) => {
   const { t } = useI18n();
   const router = useRouter();
-  return (id: number | string) => {
-    const route = router.resolve({
+  const systemEnvironStore = useSystemEnviron();
+
+  return (ticketIds: number | number[]) => {
+    const ticketRoute = {
       name: 'bizTicketManage',
-      params: {
-        ticketId: id,
-      },
-    });
+    };
+    const isArray = Array.isArray(ticketIds);
+    const ids = isArray ? ticketIds : [ticketIds];
+    const count = ids.length;
+
+    if (count === 1) {
+      Object.assign(ticketRoute, {
+        params: {
+          ticketId: ids[0],
+        },
+      });
+    } else {
+      Object.assign(ticketRoute, {
+        query: {
+          ids: ids.join(','),
+        },
+      });
+    }
+
+    const routeInfo = router.resolve(ticketRoute);
+    const routeInfoHref = params.isCurrentBiz
+      ? routeInfo.href
+      : getBusinessHref(routeInfo.href, systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ);
+
+    const messageText = count === 1 ? t('操作提交成功') : t('操作提交成功，已生成 {n} 个单据', { n: count });
 
     Message({
       delay: 6000,
       dismissable: false,
-      message: h('p', {}, [
-        t('任务提交成功_具体结果可前往'),
+      message: h('div', { style: 'width: 100%; display: flex; justify-content: space-between;' }, [
+        h('span', {}, messageText),
         h(
           'a',
           {
-            href: route.href,
+            href: routeInfoHref,
             target: '_blank',
           },
-          ` "${t('单据')}" `,
+          t('查看详情'),
         ),
-        t('查看'),
       ]),
       theme: 'success',
     });

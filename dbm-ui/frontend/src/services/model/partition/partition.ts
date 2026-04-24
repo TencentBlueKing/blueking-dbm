@@ -12,20 +12,14 @@
  */
 import { isRecentDays, utcDisplayTime } from '@utils';
 
-const STATUS_PENDING = 'PENDING';
-const STATUS_READY = 'READY';
-const STATUS_RUNNING = 'RUNNING';
 const STATUS_FAILED = 'FAILED';
-const STATUS_FINISHED = 'FINISHED';
-const STATUS_SUCCEEDED = 'SUCCEEDED';
+const STATUS_SUCCESS = 'SUCCESS';
+const STATUS_NO_EXECUTION_RECORD = 'NO_EXECUTION_RECORD';
 
 export default class Partition {
   static STATUS_FAILED = STATUS_FAILED;
-  static STATUS_FINISHED = STATUS_FINISHED;
-  static STATUS_PENDING = STATUS_PENDING;
-  static STATUS_READY = STATUS_READY;
-  static STATUS_RUNNING = STATUS_RUNNING;
-  static STATUS_SUCCEEDED = STATUS_SUCCEEDED;
+  static STATUS_NO_EXECUTION_RECORD = STATUS_NO_EXECUTION_RECORD;
+  static STATUS_SUCCESS = STATUS_SUCCESS;
 
   bk_biz_id: number;
   bk_cloud_id: number;
@@ -39,8 +33,8 @@ export default class Partition {
   extra_partition: number;
   id: number;
   immute_domain: string;
+  partition_column: string;
   partition_column_type: string;
-  partition_columns: string;
   partition_time_interval: number;
   partition_type: number;
   permission: {
@@ -62,6 +56,7 @@ export default class Partition {
   tblike: string;
   ticket_id: number;
   ticket_status: string;
+  time_zone: string;
   update_time: string;
   updator: string;
 
@@ -79,12 +74,13 @@ export default class Partition {
     this.id = payload.id;
     this.immute_domain = payload.immute_domain;
     this.partition_column_type = payload.partition_column_type;
-    this.partition_columns = payload.partition_columns;
+    this.partition_column = payload.partition_column;
     this.partition_time_interval = payload.partition_time_interval;
     this.partition_type = payload.partition_type;
     this.permission = payload.permission || {};
     this.phase = payload.phase;
     this.port = payload.port;
+    this.time_zone = payload.time_zone;
     this.reserved_partition = payload.reserved_partition;
     this.status = payload.status;
     this.tblike = payload.tblike;
@@ -103,7 +99,7 @@ export default class Partition {
   }
 
   get isFinished() {
-    return [Partition.STATUS_FINISHED, Partition.STATUS_SUCCEEDED].includes(this.status);
+    return this.status === Partition.STATUS_SUCCESS;
   }
 
   get isNew() {
@@ -118,32 +114,22 @@ export default class Partition {
     return this.phase === 'online';
   }
 
-  get isRunning() {
-    return [Partition.STATUS_READY, Partition.STATUS_RUNNING].includes(this.status);
-  }
-
   get statusIcon() {
     const iconMap = {
       [Partition.STATUS_FAILED]: 'sync-failed',
-      [Partition.STATUS_FINISHED]: 'sync-success',
-      [Partition.STATUS_PENDING]: 'sync-default',
-      [Partition.STATUS_READY]: 'sync-pending',
-      [Partition.STATUS_RUNNING]: 'sync-pending',
-      [Partition.STATUS_SUCCEEDED]: 'sync-success',
+      [Partition.STATUS_NO_EXECUTION_RECORD]: 'sync-default',
+      [Partition.STATUS_SUCCESS]: 'sync-success',
     };
 
-    return iconMap[this.status] || 'sync-default';
+    return iconMap[this.status] || '';
   }
 
   get statusText() {
     const statusMap = {
       [Partition.STATUS_FAILED]: '执行失败',
-      [Partition.STATUS_FINISHED]: '执行成功',
-      [Partition.STATUS_PENDING]: '等待执行',
-      [Partition.STATUS_READY]: '执行中',
-      [Partition.STATUS_RUNNING]: '执行中',
-      [Partition.STATUS_SUCCEEDED]: '执行成功',
+      [Partition.STATUS_NO_EXECUTION_RECORD]: '无执行记录',
+      [Partition.STATUS_SUCCESS]: '执行成功',
     };
-    return statusMap[this.status] || '等待执行';
+    return statusMap[this.status] || '--';
   }
 }
