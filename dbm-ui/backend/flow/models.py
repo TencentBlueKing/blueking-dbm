@@ -13,6 +13,7 @@ from typing import Union
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from backend.bk_web.constants import LEN_NORMAL
 from backend.configuration.constants import DBType
 from backend.flow.consts import FlowNodeOperateType, StateType
 from backend.ticket.constants import TicketType
@@ -267,3 +268,40 @@ class FlowWithAITaskGuardianReport(models.Model):
             )
         else:
             self.save(update_fields=["no_risk_streak"])
+
+
+class FlowBkJobInstance(models.Model):
+    """
+    记录一次蓝鲸作业 fast_execute_script 的 job_instance_id 与流程/单据的对应关系
+    ticket_id 可为空：直接发起任务、不经过单据时与 FlowTree.uid 一样无单据 ID
+    """
+
+    ticket_id = models.PositiveIntegerField(_("单据ID"), null=True, blank=True, db_index=True)
+    root_id = models.CharField(_("流程任务ID"), max_length=33, db_index=True)
+    job_instance_id = models.BigIntegerField(_("蓝鲸作业实例ID"), db_index=True)
+    step_instance_id = models.BigIntegerField(
+        _("蓝鲸步骤实例ID"), null=True, blank=True, db_index=True, help_text=_("可选，尽力从任务返回或 job 状态接口解析")
+    )
+    node_id = models.CharField(_("节点ID"), max_length=33)
+    version_id = models.CharField(_("版本ID"), max_length=33, blank=True, default="")
+    node_name = models.CharField(_("节点名称"), max_length=LEN_NORMAL, blank=True, default="")
+    component_code = models.CharField(_("组件代码"), max_length=LEN_NORMAL, blank=True, default="")
+    cluster_id = models.PositiveIntegerField(
+        _("集群ID"), null=True, blank=True, db_index=True, help_text=_("可选，仅当上下文中能确定集群主键时写入")
+    )
+    exec_ips = models.JSONField(
+        _("执行目标IP"),
+        null=True,
+        blank=True,
+        help_text=_("可选，与节点实际下发的 exec_ip 一致，可能为 IP 字符串或含 ip/bk_cloud_id 的字典列表"),
+    )
+    created_at = models.DateTimeField(_("创建时间"), auto_now_add=True, blank=True)
+
+    class Meta:
+        db_table = "flow_bk_job_instance"
+        indexes = [
+            models.Index(
+                fields=["root_id", "node_id", "version_id"],
+                name="flow_bk_jobinst_rnv_idx",
+            ),
+        ]

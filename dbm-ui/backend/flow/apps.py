@@ -24,6 +24,9 @@ class FlowConfig(AppConfig):
 
         import backend.flow.signal.sqlserver_dts_callback_handler  # noqa
         import backend.iam_app.handlers.signal  # noqa
+        from backend.flow.plugins.components.collections.mysql import (  # noqa: F401
+            exec_actuator_script_with_bk_job_record,
+        )
         from backend.flow.signal.handlers import post_set_state_signal_handler
 
         post_set_state.connect(post_set_state_signal_handler, dispatch_uid="_post_set_state_handler")
