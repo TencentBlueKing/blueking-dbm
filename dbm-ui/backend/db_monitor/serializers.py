@@ -268,6 +268,7 @@ class BatchUpdateMonitorPolicyNotifySerializer(serializers.Serializer):
         groups = serializers.ListField(help_text=_("告警组ID列表"), child=serializers.IntegerField())
 
     notify_groups = serializers.ListSerializer(help_text=_("告警组ID列表"), child=NoticeGroupInfoSerializer())
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
 
 
 class MonitorPolicyCloneSerializer(MonitorPolicyUpdateSerializer):
