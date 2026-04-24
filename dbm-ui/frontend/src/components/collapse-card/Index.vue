@@ -22,10 +22,17 @@
 <script setup lang="ts">
   import BKCollapseTransition from 'bkui-vue/lib/collapse-transition';
 
-  const isToggle = ref(true);
+  type Emits = (e: 'toggle', value: boolean) => void;
+
+  const emits = defineEmits<Emits>();
+
+  const isToggle = defineModel<boolean>({
+    default: true,
+  });
 
   const handleTogglle = () => {
     isToggle.value = !isToggle.value;
+    emits('toggle', isToggle.value);
   };
 </script>
 <style lang="less" scoped>
