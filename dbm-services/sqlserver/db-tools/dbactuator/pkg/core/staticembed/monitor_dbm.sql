@@ -3000,6 +3000,10 @@ GO
 USE [Monitor]
 GO
 
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[TOOL_BACKUP_DATABASE]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[TOOL_BACKUP_DATABASE]
+GO
+
 SET ANSI_NULLS ON
 GO
 
@@ -3461,11 +3465,11 @@ BEGIN
 		DECLARE @REPORT_JSON NVARCHAR(MAX)
 		IF @TYPE=1
 		BEGIN
-			SET @REPORT_JSON='[{"cluster_id":'+@CLUSTER_ID+',"cluster_domain":"'+@CLUSTER_DOMAIN+'","backup_host":"'+@IP+'","backup_port":'+@PORT+',"master_ip":"'+@MASTER_IP+'","master_port":'+@MASTER_PORT+',"role":"'+@ROLE+'","backup_type":"'+@BACKUP_TYPE+'","bill_id":"","bk_biz_id":'+@BK_BIZ_ID+',"bk_cloud_id":'+@BK_CLOUD_ID+',"charset":"'+@CHARSET+'","time_zone":"'+@TIME_ZONE+'","version":"'+@VERSION+'","data_schema_grant":"'+@DATA_SCHEMA_GRANT+'","is_full_backup":'+(case when @TYPE=1 then 'true' else 'false' end)+',"backup_id":"'+@BACKUP_ID+'","first_lsn":"'+convert(varchar,@FirstLSN)+'","last_lsn":"'+convert(varchar,@LastLSN)+'","checkpoint_lsn":"'+convert(varchar,@CheckpointLSN)+'","database_backup_lsn":"'+convert(varchar,@DataBaseBackupLSN)+'","backup_task_start_time":"'+CONVERT(varchar,DATEADD(HOUR,-8,@BACKUP_TASK_START_TIME),120)+'","backup_task_end_time":"'+CONVERT(varchar,DATEADD(HOUR,-8,@BACKUP_TASK_END_TIME),120)+'","db_list":"'+@DBLIST+'","file_cnt":'+convert(varchar,@FILECNT)+',"task_id":"'+@TASK_ID+'","dbname":"'+@DBNAME+'","backup_begin_time":"'+CONVERT(varchar,DATEADD(HOUR,-8,@BackupStartDate),120)+'","backup_end_time":"'+CONVERT(varchar,DATEADD(HOUR,-8,@BackupFinishDate),120)+'","file_name":"'+@FILENAME+'","file_size_kb":'+convert(varchar,@FILESIZE)+',"db_size_kb":'+convert(varchar,@DBSIZE)+',"compatibility_level":'+convert(varchar,@DBLEVEL)+',"local_path":"'+replace(@BACKUP_PATH,'\','\\')+'","cluster_type":"'+@CLUSTER_TYPE_VAL+'","event_type":"'+@EVENT_TYPE_VAL+'"}]'
+			SET @REPORT_JSON='[{"backup_file_tag":"'+@FULL_BACKUP_FILETAG+'","cluster_id":'+@CLUSTER_ID+',"cluster_domain":"'+@CLUSTER_DOMAIN+'","backup_host":"'+@IP+'","backup_port":'+@PORT+',"master_ip":"'+@MASTER_IP+'","master_port":'+@MASTER_PORT+',"role":"'+@ROLE+'","backup_type":"'+@BACKUP_TYPE+'","bill_id":"","bk_biz_id":'+@BK_BIZ_ID+',"bk_cloud_id":'+@BK_CLOUD_ID+',"charset":"'+@CHARSET+'","time_zone":"'+@TIME_ZONE+'","version":"'+@VERSION+'","data_schema_grant":"'+@DATA_SCHEMA_GRANT+'","is_full_backup":'+(case when @TYPE=1 then 'true' else 'false' end)+',"backup_id":"'+@BACKUP_ID+'","first_lsn":"'+convert(varchar,@FirstLSN)+'","last_lsn":"'+convert(varchar,@LastLSN)+'","checkpoint_lsn":"'+convert(varchar,@CheckpointLSN)+'","database_backup_lsn":"'+convert(varchar,@DataBaseBackupLSN)+'","backup_task_start_time":"'+CONVERT(varchar,DATEADD(HOUR,-8,@BACKUP_TASK_START_TIME),120)+'","backup_task_end_time":"'+CONVERT(varchar,DATEADD(HOUR,-8,@BACKUP_TASK_END_TIME),120)+'","db_list":"'+@DBLIST+'","file_cnt":'+convert(varchar,@FILECNT)+',"task_id":"'+@TASK_ID+'","dbname":"'+@DBNAME+'","backup_begin_time":"'+CONVERT(varchar,DATEADD(HOUR,-8,@BackupStartDate),120)+'","backup_end_time":"'+CONVERT(varchar,DATEADD(HOUR,-8,@BackupFinishDate),120)+'","file_name":"'+@FILENAME+'","file_size_kb":'+convert(varchar,@FILESIZE)+',"db_size_kb":'+convert(varchar,@DBSIZE)+',"compatibility_level":'+convert(varchar,@DBLEVEL)+',"local_path":"'+replace(@BACKUP_PATH,'\','\\')+'","cluster_type":"'+@CLUSTER_TYPE_VAL+'","event_type":"'+@EVENT_TYPE_VAL+'"}]'
 		END
 		ELSE
 		BEGIN
-			SET @REPORT_JSON='[{"cluster_id":'+@CLUSTER_ID+',"cluster_domain":"'+@CLUSTER_DOMAIN+'","db_role":"'+@ROLE+'","host":"'+@IP+'","port":'+@PORT+',"bk_biz_id":'+@BK_BIZ_ID+',"bk_cloud_id":'+@BK_CLOUD_ID+',"backup_id":"'+@BACKUP_ID+'","first_lsn":"'+convert(varchar,@FirstLSN)+'","last_lsn":"'+convert(varchar,@LastLSN)+'","checkpoint_lsn":"'+convert(varchar,@CheckpointLSN)+'","database_backup_lsn":"'+convert(varchar,@DataBaseBackupLSN)+'","file_name":"'+@FILENAME+'","size":'+convert(varchar,@FILESIZE)+',"backup_task_start_time":"'+CONVERT(varchar,DATEADD(HOUR,-8,@BACKUP_TASK_START_TIME),120)+'","backup_task_end_time":"'+CONVERT(varchar,DATEADD(HOUR,-8,@BACKUP_TASK_END_TIME),120)+'","backup_begin_time":"'+CONVERT(varchar,DATEADD(HOUR,-8,@BackupStartDate),120)+'","backup_end_time":"'+CONVERT(varchar,DATEADD(HOUR,-8,@BackupFinishDate),120)+'","backup_status":4,"backup_status_info":"","task_id":"'+@TASK_ID+'","dbname":"'+@DBNAME+'","file_cnt":'+convert(varchar,@FILECNT)+',"local_path":"'+replace(@BACKUP_PATH,'\','\\')+'","cluster_type":"'+@CLUSTER_TYPE_VAL+'","event_type":"'+@EVENT_TYPE_VAL+'"}]'
+			SET @REPORT_JSON='[{"backup_file_tag":"'+@LOG_BACKUP_FILETAG+'","cluster_id":'+@CLUSTER_ID+',"cluster_domain":"'+@CLUSTER_DOMAIN+'","db_role":"'+@ROLE+'","host":"'+@IP+'","port":'+@PORT+',"bk_biz_id":'+@BK_BIZ_ID+',"bk_cloud_id":'+@BK_CLOUD_ID+',"backup_id":"'+@BACKUP_ID+'","first_lsn":"'+convert(varchar,@FirstLSN)+'","last_lsn":"'+convert(varchar,@LastLSN)+'","checkpoint_lsn":"'+convert(varchar,@CheckpointLSN)+'","database_backup_lsn":"'+convert(varchar,@DataBaseBackupLSN)+'","file_name":"'+@FILENAME+'","size":'+convert(varchar,@FILESIZE)+',"backup_task_start_time":"'+CONVERT(varchar,DATEADD(HOUR,-8,@BACKUP_TASK_START_TIME),120)+'","backup_task_end_time":"'+CONVERT(varchar,DATEADD(HOUR,-8,@BACKUP_TASK_END_TIME),120)+'","backup_begin_time":"'+CONVERT(varchar,DATEADD(HOUR,-8,@BackupStartDate),120)+'","backup_end_time":"'+CONVERT(varchar,DATEADD(HOUR,-8,@BackupFinishDate),120)+'","backup_status":4,"backup_status_info":"","task_id":"'+@TASK_ID+'","dbname":"'+@DBNAME+'","file_cnt":'+convert(varchar,@FILECNT)+',"local_path":"'+replace(@BACKUP_PATH,'\','\\')+'","cluster_type":"'+@CLUSTER_TYPE_VAL+'","event_type":"'+@EVENT_TYPE_VAL+'"}]'
 		END
 
 		-- Report backup result via HTTP API
@@ -4320,11 +4324,20 @@ BEGIN
     
     -- Declare variables for HTTP request
     DECLARE @Url VARCHAR(2000)
-    DECLARE @Cmd VARCHAR(8000)
+    DECLARE @Cmd VARCHAR(8000)          -- xp_cmdshell REQUIRES varchar (not MAX); command stays short by reading body from temp file
     DECLARE @CompactJson NVARCHAR(MAX)
+    DECLARE @CompactJsonAnsi VARCHAR(MAX)
     DECLARE @JsonBin VARBINARY(MAX)
     DECLARE @Base64Body VARCHAR(MAX)
-    
+    DECLARE @Base64Len INT
+    DECLARE @ChunkSize INT = 6000       -- safe chunk size for a single cmd.exe line
+    DECLARE @Pos INT
+    DECLARE @Chunk VARCHAR(8000)
+    DECLARE @Redirect VARCHAR(4)
+    DECLARE @TmpFile VARCHAR(260)
+    DECLARE @FileSuffix VARCHAR(50)
+    DECLARE @CmdChunk VARCHAR(8000)     -- static-length varchar required by xp_cmdshell
+
     -- Declare table to capture xp_cmdshell output
     DECLARE @CmdOutput TABLE (OutputLine NVARCHAR(4000))
     DECLARE @NginxNodes TABLE (
@@ -4341,7 +4354,7 @@ BEGIN
         RETURN
     END
     
-    PRINT 'Input JSON Body: ' + @JsonBody
+    PRINT 'Input JSON Body length: ' + CAST(LEN(@JsonBody) AS VARCHAR(20))
     
     -- Step 1: Read all nginx proxy configurations from DBM_NGINX_PROXY table with deduplication
     INSERT INTO @NginxNodes (IP, Port, BkCloudId)
@@ -4368,8 +4381,41 @@ BEGIN
         SET @CompactJson = REPLACE(@CompactJson, '  ', ' ')
     
     PRINT 'Compact JSON: ' + @CompactJson
-    
-    -- Step 3: Try each node with retry logic
+
+    -- Encode JSON as bytes, then Base64 (ASCII/JSON so VARCHAR cast preserves content)
+    SET @CompactJsonAnsi = CAST(@CompactJson AS VARCHAR(MAX))
+    SET @JsonBin = CAST(@CompactJsonAnsi AS VARBINARY(MAX))
+    SET @Base64Body = CAST(N'' AS XML).value('xs:base64Binary(sql:variable("@JsonBin"))', 'VARCHAR(MAX)')
+    SET @Base64Len = LEN(@Base64Body)
+    PRINT 'Base64 body length:  ' + CAST(@Base64Len AS VARCHAR(20))
+
+    -- Build a unique temp file path. Use session/time based suffix to avoid conflicts
+    SET @FileSuffix = REPLACE(CONVERT(VARCHAR(30), GETDATE(), 121), ':', '')
+    SET @FileSuffix = REPLACE(@FileSuffix, '-', '')
+    SET @FileSuffix = REPLACE(@FileSuffix, ' ', '_')
+    SET @FileSuffix = REPLACE(@FileSuffix, '.', '')
+    SET @TmpFile = 'C:\Windows\Temp\dbm_report_' + @FileSuffix + '_' + CAST(@@SPID AS VARCHAR(10)) + '.b64'
+    PRINT 'Temp file: ' + @TmpFile
+
+    -- Step 3: Write Base64 body to a temp file in chunks to bypass cmd.exe 8191 char limit.
+    -- Use `<nul set /p="..."` so no trailing CRLF is appended; first chunk ">" creates, rest ">>" appends.
+    DELETE FROM @CmdOutput
+    SET @Pos = 1
+    SET @Redirect = '>'
+    WHILE @Pos <= @Base64Len
+    BEGIN
+        -- CONVERT forces result to static varchar(8000); otherwise SUBSTRING on VARCHAR(MAX)
+        -- returns VARCHAR(MAX) and causes xp_cmdshell error 214 (expects varchar).
+        SET @Chunk = CONVERT(VARCHAR(8000), SUBSTRING(@Base64Body, @Pos, @ChunkSize))
+        SET @CmdChunk = CONVERT(VARCHAR(8000),
+            'cmd.exe /c "<nul set /p="' + @Chunk + '" ' + @Redirect + ' "' + @TmpFile + '""')
+        EXEC master.dbo.xp_cmdshell @CmdChunk
+        SET @Pos = @Pos + @ChunkSize
+        SET @Redirect = '>>'
+    END
+    PRINT 'Base64 body written to temp file'
+
+    -- Step 4: Try each node with retry logic
     DECLARE @Success BIT = 0
     DECLARE @RetryCount INT
     DECLARE @Response NVARCHAR(4000)
@@ -4407,16 +4453,16 @@ BEGIN
             
             PRINT 'Attempt ' + CAST(@RetryCount AS VARCHAR(10)) + '/' + CAST(@MaxRetryCount AS VARCHAR(10))
             
-            -- Encode the JSON body as Base64 so it passes safely through cmd.exe
-            -- CAST(NVARCHAR AS VARBINARY) produces UTF-16LE bytes in SQL Server
-            -- PowerShell decodes with [Text.Encoding]::Unicode (UTF-16LE) to match
-            SET @JsonBin = CAST(@CompactJson AS VARBINARY(MAX))
-            SET @Base64Body = CAST(N'' AS XML).value('xs:base64Binary(sql:variable("@JsonBin"))', 'VARCHAR(MAX)')
-            
-            -- Build PowerShell command: decode Base64 (UTF-16LE) to get original JSON, then POST it
-            -- The Base64 string is pure alphanumeric+/= so cmd.exe won't corrupt it
+            -- Encode the JSON body as Base64 (already written to @TmpFile earlier).
+            -- We DO NOT inline the Base64 here — PowerShell reads it from the temp file.
+            -- This keeps @Cmd well under 8000 chars so xp_cmdshell (varchar(8000)) is happy.
+
+            -- Build PowerShell command: read Base64 from temp file, decode (ANSI), then POST it.
+            -- Note: @CompactJson was cast to VARCHAR (ANSI) before Base64 encoding,
+            -- so PowerShell must decode with [Text.Encoding]::Default / ASCII to match.
             SET @Cmd = 'powershell.exe -NoProfile -Command "try { ' +
-                '$b = [Text.Encoding]::Unicode.GetString([Convert]::FromBase64String(''' + @Base64Body + ''')); ' +
+                '$b64 = [IO.File]::ReadAllText(''' + @TmpFile + '''); ' +
+                '$b = [Text.Encoding]::Default.GetString([Convert]::FromBase64String($b64)); ' +
                 '$r = Invoke-RestMethod -Uri ''' + @Url + ''' -Method Post -ContentType ''application/json'' -Body ([Text.Encoding]::UTF8.GetBytes($b)) -TimeoutSec 5; ' +
                 'Write-Output (''SUCCESS: '' + ($r | ConvertTo-Json -Compress)); ' +
                 '} catch { ' +
