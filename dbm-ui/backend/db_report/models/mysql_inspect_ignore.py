@@ -34,7 +34,7 @@ class MysqlInspectIgnore(models.Model):
         verbose_name = _("巡检忽略配置")
         verbose_name_plural = _("巡检忽略配置")
         # 添加唯一索引，确保同一个集群的同一个巡检类型只能有一条配置
-        unique_together = ["cluster", "bk_biz_id", "subtype"]
+        unique_together = ["cluster", "bk_biz_id", "subtype", "cluster_type"]
         index_together = ["subtype", "cluster_type"]
 
     def __str__(self):
