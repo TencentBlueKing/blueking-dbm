@@ -154,6 +154,20 @@ func (c CheckerResult) IsPass() bool {
 	return len(c.BanWarns) == 0 && len(c.RiskWarns) == 0
 }
 
+// Merge 将 other 的 BanWarns、RiskWarns 依次追加到 c 上，用于在通用 Checker 与 Spider/扩展专检之间合并结果。
+// 若 c 为 nil 则返回 other；若 other 为 nil 则返回 c（便于链式调用而不必每次判空）。
+func (c *CheckerResult) Merge(other *CheckerResult) *CheckerResult {
+	if c == nil {
+		return other
+	}
+	if other == nil {
+		return c
+	}
+	c.BanWarns = append(c.BanWarns, other.BanWarns...)
+	c.RiskWarns = append(c.RiskWarns, other.RiskWarns...)
+	return c
+}
+
 // addBan 统一写入 BanWarns，自动拼接分类前缀
 func (c *CheckerResult) addBan(msg string, category BanCategory) {
 	c.BanWarns = append(c.BanWarns, fmt.Sprintf("%s：%s", category.Label(), msg))

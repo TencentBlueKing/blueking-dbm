@@ -21,7 +21,10 @@ import (
 const (
 	// AlterTypeAddColumn add_column
 	AlterTypeAddColumn = "add_column"
-
+	// AlterTypeDropColumn drop_column
+	AlterTypeDropColumn = "drop_column"
+	// AlterTypeDropKey drop_key
+	AlterTypeDropKey = "drop_key"
 	// SQLTypeCreateTable is create table sql
 	SQLTypeCreateTable = "create_table"
 	// SQLTypeCreateDb ise create database sql
