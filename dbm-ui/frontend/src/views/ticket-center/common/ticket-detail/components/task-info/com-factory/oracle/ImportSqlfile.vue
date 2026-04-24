@@ -63,7 +63,6 @@
         </div>
         <div class="editor-layout-right">
           <RenderFileContent
-            :db-types="DBTypes.ORACLE"
             :model-value="currentFileContent"
             readonly
             :title="localSelectFileName" />
@@ -80,7 +79,7 @@
   import TicketModel, { type Oracle } from '@services/model/ticket/ticket';
   import { batchFetchFile } from '@services/source/storage';
 
-  import { DBTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
   import TagBlock from '@components/tag-block/Index.vue';
 

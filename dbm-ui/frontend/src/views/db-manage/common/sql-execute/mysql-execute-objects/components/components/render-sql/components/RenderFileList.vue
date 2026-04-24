@@ -13,7 +13,6 @@
 
 <template>
   <div
-    ref="rootRef"
     class="sql-execute-render-file-list"
     :style="styles">
     <div class="file-list-header">
@@ -39,12 +38,40 @@
                 'is-error': [SqlFileModel.UPLOAD_FAIL, SqlFileModel.CHECK_FAIL].includes(
                   fileData[fileItemData.name].state,
                 ),
+                'is-warning':
+                  fileData[fileItemData.name].state === SqlFileModel.SUCCESS &&
+                  fileData[fileItemData.name].messageList?.some((item) => item.type === 'warning'),
               }"
               @click="handleClick(fileItemData.name)">
               <div
                 v-overflow-tips
                 class="file-item-text">
                 {{ fileItemData.name }}
+              </div>
+              <div class="upload-info ml-8">
+                <span
+                  v-if="fileData[fileItemData.name].state === SqlFileModel.UNCHEKED"
+                  style="color: #979ba5">
+                  {{ t('待校验') }}
+                </span>
+                <DbIcon
+                  v-else-if="
+                    fileData[fileItemData.name].state === SqlFileModel.CHECK_FAIL ||
+                    fileData[fileItemData.name].state === SqlFileModel.UPLOAD_FAIL
+                  "
+                  style="color: #ea3636"
+                  type="bk-dbm-icon db-icon-close-circle-shape" />
+                <DbIcon
+                  v-else-if="
+                    fileData[fileItemData.name].state === SqlFileModel.SUCCESS &&
+                    fileData[fileItemData.name].messageList?.some((item) => item.type === 'warning')
+                  "
+                  style="color: #ff9c01"
+                  type="bk-dbm-icon db-icon-early-warning" />
+                <DbIcon
+                  v-else-if="fileData[fileItemData.name].state === SqlFileModel.SUCCESS"
+                  style="color: #2dcb56"
+                  type="check-circle-fill" />
               </div>
               <div class="extend-box">
                 <div
@@ -55,25 +82,6 @@
                   </div>
                 </div>
                 <template v-else>
-                  <div class="upload-info">
-                    <span
-                      v-if="fileData[fileItemData.name].state === SqlFileModel.UNCHEKED"
-                      style="color: #979ba5">
-                      {{ t('待校验') }}
-                    </span>
-                    <DbIcon
-                      v-else-if="
-                        fileData[fileItemData.name].state === SqlFileModel.CHECK_FAIL ||
-                        fileData[fileItemData.name].state === SqlFileModel.UPLOAD_FAIL
-                      "
-                      style="color: #ea3636"
-                      svg
-                      type="attention-fill" />
-                    <DbIcon
-                      v-else-if="fileData[fileItemData.name].state === SqlFileModel.SUCCESS"
-                      style="color: #2dcb56"
-                      type="check-circle-fill" />
-                  </div>
                   <div class="drag-flag">
                     <DbIcon
                       style="font-size: 14px; color: #fff"
@@ -134,16 +142,14 @@
   import { onMounted, ref, shallowRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  interface Props {
-    fileData: Record<string, SqlFileModel>;
-  }
-
   interface Emits {
     (e: 'remove', filename: string): void;
     (e: 'after-sort'): void;
   }
 
-  defineProps<Props>();
+  defineProps<{
+    fileData: Record<string, SqlFileModel>;
+  }>();
   const emits = defineEmits<Emits>();
 
   // 选中的文件名
@@ -157,7 +163,6 @@
 
   const { t } = useI18n();
 
-  const rootRef = ref<HTMLElement>();
   const localList = ref<Array<Record<'id' | 'name', string>>>([]);
 
   const styles = shallowRef({});
@@ -259,13 +264,18 @@
         &.active {
           font-weight: bold;
           color: #fff;
-          background: #1768ef;
+          background: #094771;
           opacity: 100% !important;
         }
 
         &.is-error {
-          color: rgb(255 86 86 / 100%);
+          color: #ea3636;
           background: rgb(255 86 86 / 21%);
+        }
+
+        &.is-warning {
+          color: #ff9c01;
+          background: rgb(255 156 1 / 13%);
         }
 
         & ~ .file-item {

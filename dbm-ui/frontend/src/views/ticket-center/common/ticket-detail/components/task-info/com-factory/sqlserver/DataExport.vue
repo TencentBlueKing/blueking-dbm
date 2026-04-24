@@ -47,11 +47,9 @@
           <div class="editor-layout">
             <RenderFileContent
               v-if="fileInfo?.[0]?.content"
-              :db-types="DBTypes.SQLSERVER"
               :model-value="fileInfo[0].content"
               readonly
-              :title="fileInfo[0].path"
-              :version-list="versionList" />
+              :title="fileInfo[0].path" />
           </div>
         </BkLoading>
       </BkSideslider>
@@ -86,7 +84,7 @@
   import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
   import { batchFetchFile } from '@services/source/storage';
 
-  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import TagBlock from '@components/tag-block/Index.vue';
 
