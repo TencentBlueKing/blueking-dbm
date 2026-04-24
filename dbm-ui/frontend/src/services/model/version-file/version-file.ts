@@ -5,8 +5,10 @@ export default class VersionFile {
   create_at: string;
   creator: string;
   db_type: string;
+  db_version: number;
   enable: boolean;
   id: number;
+  instances: number;
   md5: string;
   mode: string;
   name: string;
@@ -14,6 +16,8 @@ export default class VersionFile {
   permission: {
     package_manage: boolean;
   };
+  permit_os: string[];
+  permit_os_type: string;
   pkg_type: string;
   priority: number;
   size: number;
@@ -39,6 +43,10 @@ export default class VersionFile {
     this.updater = payload.updater;
     this.version = payload.version;
     this.permission = payload.permission || {};
+    this.db_version = payload.db_version;
+    this.instances = payload.instances;
+    this.permit_os = payload.permit_os;
+    this.permit_os_type = payload.permit_os_type;
   }
 
   get updateAtDisplay() {
