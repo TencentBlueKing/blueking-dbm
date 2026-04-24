@@ -71,9 +71,12 @@
             <SyntaxError
               v-else-if="selectFileData.state === SqlFileModel.UPLOAD_FAIL"
               class="syntax-error" />
-            <SyntaxSuccess
-              v-else-if="selectFileData.state === SqlFileModel.SUCCESS"
-              class="syntax-success" />
+            <MessageList
+              v-else-if="
+                selectFileData.state === SqlFileModel.SUCCESS &&
+                selectFileData.messageList.filter((m) => m.type === 'error').length === 0 &&
+                selectFileData.messageList.filter((m) => m.type === 'warning').length === 0
+              " />
           </template>
         </template>
       </BkLoading>
@@ -104,12 +107,12 @@
   import SqlFileModel from '@views/db-manage/common/model/sql-file/SqlFile';
 
   import Editor from '../editor/Index.vue';
+  import MessageList from '../editor/MessageList.vue';
   import useEditableFileContent from '../hooks/useEditableFileContent';
   import RenderFileList from '../RenderFileList.vue';
 
   import SyntaxChecking from './components/SyntaxChecking.vue';
   import SyntaxError from './components/SyntaxError.vue';
-  import SyntaxSuccess from './components/SyntaxSuccess.vue';
 
   interface Props {
     clusterVersionList: string[];
@@ -118,7 +121,7 @@
     isShow: boolean;
   }
 
-  type Emits = (e: 'grammar-check', doCheck: boolean, checkPass: boolean) => void;
+  type Emits = (e: 'grammar-check', doCheck: boolean, result: boolean | string) => void;
 
   interface Expose {
     getFileData: () => Record<string, SqlFileModel>;
@@ -165,16 +168,25 @@
   const triggerGramarCheckChange = () => {
     let doCheck = true;
     let checkPass = true;
+    let totalErrorNum = 0;
     Object.values(uploadFileDataMap.value).forEach((item) => {
       if (!item.grammarCheck && item.content) {
         doCheck = false;
         return;
       }
-      if (item.state === SqlFileModel.CHECK_FAIL) {
+      if (item.state === SqlFileModel.CHECK_FAIL || item.state === SqlFileModel.UPLOAD_FAIL) {
         checkPass = false;
       }
+      // 统计所有文件中的 error 数量
+      if (item.messageList?.length) {
+        totalErrorNum += item.messageList.filter((msg) => msg.type === 'error').length;
+      }
     });
-    emits('grammar-check', doCheck, checkPass);
+    if (!checkPass && totalErrorNum > 0) {
+      emits('grammar-check', doCheck, t('请先修复n个错误后再提交', { n: totalErrorNum }));
+    } else {
+      emits('grammar-check', doCheck, checkPass);
+    }
   };
 
   const handleCreateFile = () => {

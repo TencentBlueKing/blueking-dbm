@@ -14,80 +14,138 @@
 <template>
   <div
     v-if="data.length > 0"
-    class="sql-execute-error-message-list">
+    class="sql-error-message-list"
+    :class="[statusClass, { collapsed }]">
+    <!-- 可点击展开/收起的汇总栏 -->
     <div
-      v-if="isFolded"
-      class="message-total-wrapper"
-      @click="handleShowError">
-      <DbIcon
-        style="margin-right: 4px; color: #b34747"
-        type="delete-fill" />
-      <I18nT
-        v-if="totalMap.errorNum"
-        keypath="检测失败_共n个错误"
-        scope="global">
-        <span style="color: #b34747">{{ totalMap.errorNum }}</span>
-      </I18nT>
-      <template v-if="totalMap.warningNum > 0">
-        <span v-if="totalMap.errorNum">，</span>
-        <I18nT
-          keypath="n个告警提示"
-          scope="global">
-          <span style="color: #ff9c01">{{ totalMap.warningNum }}</span>
-        </I18nT>
-      </template>
+      class="check-summary"
+      @click="handleToggleCollapse">
+      <div class="summary-text">
+        <span class="summary-label">{{ t('检查结果') }}：</span>
+        <template v-if="totalMap.errorNum > 0">
+          <span class="summary-count-error">{{ totalMap.errorNum }} {{ t('个错误') }}</span>
+        </template>
+        <template v-if="totalMap.warningNum > 0">
+          <span
+            v-if="totalMap.errorNum > 0"
+            class="summary-divider">
+            ·
+          </span>
+          <span class="summary-count-warn">{{ totalMap.warningNum }} {{ t('个风险提示') }}</span>
+        </template>
+      </div>
+      <div
+        class="summary-toggle"
+        :class="{ 'is-collapsed': collapsed }">
+        <span>{{ collapsed ? t('展开') : t('收起') }}</span>
+        <DbIcon
+          class="toggle-arrow"
+          type="bk-dbm-icon db-icon-down-shape" />
+      </div>
     </div>
+
+    <!-- 列表区域：随内容撑开，>5 条时限高内滚动 -->
     <div
-      v-else
-      class="message-list-wrapper">
+      class="check-list-wrapper"
+      :style="listWrapperStyle">
       <div
         v-for="(item, index) in data"
         :key="index"
-        class="item-box">
-        <div class="item-head">
-          <DbIcon
-            v-if="item.type === 'error'"
-            style="color: #b34747"
-            type="delete-fill" />
-          <DbIcon
-            v-else
-            style="color: #e59e1e"
-            type="early-warning" />
-        </div>
-        <div>
-          <span>{{ item.message }}</span>
-          <span class="error-line-number">[{{ item.line }}]</span>
-        </div>
+        class="item-row"
+        :class="{ 'is-active': activeLine === item.line }"
+        @click="handleItemClick(item.line)">
+        <DbIcon
+          v-if="item.type === 'error'"
+          class="item-icon"
+          type="bk-dbm-icon db-icon-close-circle-shape" />
+        <DbIcon
+          v-else
+          class="item-icon item-icon--warning"
+          type="bk-dbm-icon db-icon-early-warning" />
+        <span
+          v-if="item.category"
+          class="item-tag"
+          :class="`tag-${item.category}`">
+          {{ CATEGORY_MAP[item.category] || '' }}
+        </span>
+        <span
+          :ref="(el: any) => setMessageRef(el, index)"
+          v-bk-tooltips="{
+            disabled: !isOverflowMap[index],
+            content: item.message,
+          }"
+          class="item-message"
+          @mouseenter="handleMessageEnter(index)">
+          {{ item.message }}
+        </span>
+        <span class="item-line">[{{ t('行') }} {{ item.line }}]</span>
       </div>
     </div>
-    <div
-      class="toggle-btn"
-      @click="handleToogle">
-      <DbIcon
-        v-if="isFolded"
-        type="up-big" />
-      <DbIcon
-        v-else
-        type="down-big" />
+  </div>
+  <div
+    v-else
+    class="sql-error-message-list success-message">
+    <div class="success-summary">
+      <span class="summary-label">{{ t('检查结果') }}：</span>
+      <span class="summary-success-text">{{ t('检测通过') }}</span>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-  import { computed, ref } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
-  export type IMessageList = Array<{ line: number; message: string; type: 'warning' | 'error' }>;
+  export type IMessageList = Array<{
+    category?: string;
+    line: number;
+    message: string;
+    type: 'warning' | 'error';
+  }>;
 
   interface Props {
     data: IMessageList;
-    modelValue: boolean;
   }
 
-  type Emits = (e: 'update:modelValue', value: boolean) => void;
+  type Emits = (e: 'goto-line', line: number) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const isFolded = ref(props.modelValue);
+  const { t } = useI18n();
+
+  const collapsed = ref(false);
+
+  // 记录每一行 message 是否溢出
+  const isOverflowMap = ref<Record<number, boolean>>({});
+
+  // 鼠标进入时检测是否溢出，仅溢出时才启用 tooltip
+  const handleMessageEnter = (index: number) => {
+    const el = messageRefMap.get(index);
+    if (!el) return;
+    isOverflowMap.value = {
+      ...isOverflowMap.value,
+      [index]: el.offsetWidth < el.scrollWidth,
+    };
+  };
+
+  // 缓存每个 message span 的 DOM 引用
+  const messageRefMap = new Map<number, HTMLElement>();
+
+  const setMessageRef = (el: any, index: number) => {
+    if (el) {
+      messageRefMap.set(index, el.$el ?? el);
+    } else {
+      messageRefMap.delete(index);
+    }
+  };
+
+  const activeLine = ref<number>(-1);
+
+  const CATEGORY_MAP = computed<Record<string, string>>(() => ({
+    ban_command: t('禁用命令'),
+    high_risk: t('高危变更'),
+    syntax_error: t('语法错误'),
+  }));
+
   const totalMap = computed(() => {
     let errorNum = 0;
     let warningNum = 0;
@@ -98,82 +156,232 @@
         warningNum += 1;
       }
     });
-
-    return {
-      errorNum,
-      warningNum,
-    };
+    return { errorNum, warningNum };
   });
 
-  const handleShowError = () => {
-    isFolded.value = false;
-    emits('update:modelValue', false);
+  const statusClass = computed(() => {
+    if (totalMap.value.errorNum > 0) return 'is-error';
+    if (totalMap.value.warningNum > 0) return 'is-warning';
+    return '';
+  });
+
+  // 条目超过 5 条时限制高度，否则随内容撑开
+  const listWrapperStyle = computed(() => {
+    if (collapsed.value) return { display: 'none' };
+    return props.data.length > 5 ? { maxHeight: '220px' } : {};
+  });
+
+  const handleToggleCollapse = () => {
+    collapsed.value = !collapsed.value;
   };
 
-  const handleToogle = () => {
-    isFolded.value = !isFolded.value;
-    emits('update:modelValue', isFolded.value);
+  const handleItemClick = (line: number) => {
+    activeLine.value = line;
+    emits('goto-line', line);
   };
 </script>
 <style lang="less">
-  .sql-execute-error-message-list {
-    position: relative;
-    height: 100%;
-    overflow-y: auto;
+  .sql-error-message-list {
+    display: flex;
+    flex-direction: column;
     font-size: 12px;
-    background: #212121;
-    border-left: 4px solid #b34747;
+    background: #252526;
+    border-top: 4px solid #ea3636;
 
-    .message-total-wrapper {
-      padding: 8px 16px;
-      color: #dcdee5;
-      cursor: pointer;
+    &.is-warning {
+      border-top-color: #ff9c01;
     }
 
-    .message-list-wrapper {
-      padding: 12px 0;
-      overflow-y: auto;
+    &.collapsed .check-list-wrapper {
+      display: none;
+    }
 
-      .item-box {
-        display: flex;
-        padding: 4px 20px 4px 0;
-        line-height: 16px;
-        color: #dcdee5;
-        cursor: pointer;
-        align-items: flex-start;
+    &.success-message {
+      display: flex;
+      height: 48px;
+      padding: 10px 16px;
+    }
 
-        &:hover {
-          background: #313238;
-        }
+    .success-summary {
+      display: flex;
+      gap: 4px;
+      line-height: 28px;
+    }
 
-        .item-head {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          height: 16px;
-          padding-right: 10px;
-          padding-left: 16px;
-        }
+    .summary-success-text {
+      color: #3fc06d;
+      font-weight: 600;
+    }
 
-        .error-line-number {
-          padding-left: 4px;
-          color: #979ba5;
-        }
+    /* ===== 汇总栏（可点击展开/收起，固定高度不随列表变化）===== */
+    .check-summary {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      padding: 10px 16px;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.15s;
+
+      &:hover {
+        background: rgb(255 255 255 / 6%);
       }
     }
 
-    .toggle-btn {
-      position: absolute;
-      top: 0;
-      right: 10px;
+    .summary-text {
       display: flex;
-      width: 30px;
-      height: 30px;
-      font-size: 18px;
-      color: #dcdee5;
       align-items: center;
-      justify-content: center;
-      cursor: pointer;
+      gap: 4px;
+      color: #cccccc;
+    }
+
+    .summary-label {
+      color: #9d9d9d;
+      flex-shrink: 0;
+    }
+
+    .summary-count-error {
+      margin-left: 2px;
+      color: #ff6b6b;
+      font-weight: 600;
+    }
+
+    .summary-count-warn {
+      margin-left: 2px;
+      color: #ffb648;
+      font-weight: 600;
+    }
+
+    .summary-divider {
+      margin: 0 4px;
+      color: #6a6a6a;
+    }
+
+    .summary-toggle {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #9d9d9d;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    .toggle-arrow {
+      font-size: 12px;
+      transition: transform 0.2s ease;
+      color: #9d9d9d;
+    }
+
+    .is-collapsed .toggle-arrow {
+      transform: rotate(-90deg);
+    }
+
+    /* ===== 列表区域：flex 填充，>5 条限高内滚动 ===== */
+    .check-list-wrapper {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      border-top: 1px solid #2d2d2d;
+      padding: 6px 0;
+
+      // 自定义滚动条
+      &::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255 / 16%);
+        border-radius: 2px;
+
+        &:hover {
+          background: rgba(255, 255, 255 / 24%);
+        }
+      }
+
+      .item-row {
+        display: flex;
+        align-items: center;
+        padding: 6px 12px;
+        line-height: 20px;
+        cursor: pointer;
+        border-left: 2px solid transparent;
+        transition:
+          background 0.15s ease,
+          border-color 0.15s ease;
+
+        &:hover {
+          background: #2a2d2e;
+          border-left-color: #3a84ff;
+
+          .item-line {
+            color: #cccccc;
+          }
+
+          .item-message {
+            color: #ffffff;
+          }
+        }
+
+        &:active {
+          background: #323436;
+        }
+
+        &.is-active {
+          background: rgb(58 132 255 / 10%);
+          border-left-color: #3a84ff;
+        }
+
+        // 图标 — 形状 + 颜色双编码
+        .item-icon {
+          flex-shrink: 0;
+          width: 14px;
+          height: 14px;
+          margin-right: 10px;
+          font-size: 14px;
+          color: #ea3636;
+
+          &--warning {
+            color: #ff9c01;
+          }
+        }
+
+        // 分类标签 — 中性灰色
+        .item-tag {
+          flex-shrink: 0;
+          margin-right: 8px;
+          padding: 1px 6px;
+          font-size: 11px;
+          line-height: 18px;
+          white-space: nowrap;
+          color: #9d9d9d;
+          background: rgba(255, 255, 255 / 8%);
+          border-radius: 2px;
+        }
+
+        // 详情文本
+        .item-message {
+          flex: 1;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          color: #d4d4d4;
+        }
+
+        // 行号
+        .item-line {
+          flex-shrink: 0;
+          margin-left: 6px;
+          color: #6a6a6a;
+          font-size: 11.5px;
+        }
+      }
     }
   }
 </style>
