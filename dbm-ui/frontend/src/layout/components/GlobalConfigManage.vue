@@ -21,6 +21,18 @@
               {{ t('版本文件') }}
             </span>
           </BkMenuItem>
+          <BkMenuItem
+            v-show="false"
+            key="PlatformVersionFilesV2">
+            <template #icon>
+              <DbIcon type="version" />
+            </template>
+            <span
+              v-overflow-tips.right
+              class="text-overflow">
+              {{ t('版本文件') }}
+            </span>
+          </BkMenuItem>
         </BkMenuGroup>
         <BkMenuGroup
           v-db-console="'globalConfigManage.dbConfig'"
