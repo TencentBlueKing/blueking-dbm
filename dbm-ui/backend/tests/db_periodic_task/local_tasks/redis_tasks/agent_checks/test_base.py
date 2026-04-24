@@ -21,6 +21,7 @@ specific language governing permissions and limitations under the License.
 #
 # All tests are pure-unit: the Cluster / ClusterOperateRecord / AgentHandler /
 # cache / celery_task touchpoints are patched so no DB or broker is needed.
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -311,6 +312,132 @@ class TestExecuteAgentCheck:
     def test_generic_error(self, base, invoke, caplog):
         invoke(agent_side_effect=RuntimeError("boom"), caplog=caplog)
         assert f"outcome={base.OUTCOME_ERROR}" in caplog.text
+
+
+# ---------------------------------------------------------------------------
+# BaseRedisAgentCheckTask.extra_skip_check + _apply_extra_skip_check
+# ---------------------------------------------------------------------------
+class TestApplyExtraSkipCheck:
+    """Dispatch-time per-page filtering driven by ``extra_skip_check``."""
+
+    _CLUSTER = "backend.db_periodic_task.local_tasks.redis_tasks.agent_checks.base.Cluster"
+
+    def _make_task_with_override(self, base, hook):
+        """Return a task whose ``extra_skip_check`` is the supplied hook.
+
+        Bypasses ``__init__`` so we don't need a populated config; the
+        helpers under test only need ``self.extra_skip_check``.
+        """
+        from backend.db_report.enums.redis_sub_type import RedisCheckSubType
+        from backend.dbm_aiagent.agent.constants import DBMAgentCode
+
+        class _Task(base.BaseRedisAgentCheckTask):
+            subtype = RedisCheckSubType.ClusterCapacityGrowthRisk
+            agent_code = DBMAgentCode.REDIS_CLUSTER_CAPACITY_GROWTH_CHECK
+            prompt_template = "x"
+
+            def load_config(self):
+                return base.BaseCheckConfig()
+
+            def get_celery_task(self):
+                return MagicMock()
+
+            extra_skip_check = hook
+
+        return _Task.__new__(_Task)
+
+    def test_default_hook_returns_no_skip(self, base, fake_task_instance):
+        # The base no-op must short-circuit so default-path callers don't
+        # accidentally pay for the cluster fetch.
+        task = fake_task_instance()
+        assert task._has_extra_skip_check() is False
+        assert task.extra_skip_check(MagicMock()) == (False, "")
+
+    def test_no_override_short_circuits(self, base, fake_task_instance):
+        # When the subclass doesn't override, we must not even hit the ORM.
+        task = fake_task_instance()
+        with patch(self._CLUSTER) as cluster_cls:
+            result = task._apply_extra_skip_check(
+                task_name="X",
+                page_ids=[1, 2, 3],
+                page_busy_ids=set(),
+                has_extra_skip=False,
+            )
+        assert result == set()
+        cluster_cls.objects.filter.assert_not_called()
+
+    def test_override_filters_eligible_ids(self, base, caplog):
+        # Page has 4 ids; one is busy (skipped before us), two should be
+        # filtered by the hook, one survives.
+        task = self._make_task_with_override(
+            base,
+            lambda self, cluster: (cluster.id in {2, 3}, f"policy-skip-{cluster.id}"),
+        )
+        clusters = [SimpleNamespace(id=i) for i in (1, 2, 3)]  # busy=4 already excluded
+        with patch(self._CLUSTER) as cluster_cls:
+            cluster_cls.objects.filter.return_value = clusters
+            caplog.set_level("INFO")
+            skipped = task._apply_extra_skip_check(
+                task_name="X",
+                page_ids=[1, 2, 3, 4],
+                page_busy_ids={4},
+                has_extra_skip=True,
+            )
+        assert skipped == {2, 3}
+        assert "policy-skip-2" in caplog.text
+        assert "policy-skip-3" in caplog.text
+
+    def test_override_only_fetches_non_busy_ids(self, base):
+        # Avoid wasting a Cluster.objects.filter on rows we already know
+        # we'll skip via the busy filter.
+        task = self._make_task_with_override(base, lambda self, cluster: (False, ""))
+        with patch(self._CLUSTER) as cluster_cls:
+            cluster_cls.objects.filter.return_value = []
+            task._apply_extra_skip_check(
+                task_name="X",
+                page_ids=[1, 2, 3, 4],
+                page_busy_ids={2, 4},
+                has_extra_skip=True,
+            )
+        passed_ids = list(cluster_cls.objects.filter.call_args.kwargs["id__in"])
+        assert sorted(passed_ids) == [1, 3]
+
+    def test_override_exception_fails_open(self, base, caplog):
+        # Hook misbehavior must never silently suppress the entire fleet --
+        # exceptions are logged and the cluster proceeds to dispatch.
+        def boom(self, _cluster):
+            raise RuntimeError("dbconfig 500")
+
+        task = self._make_task_with_override(base, boom)
+        with patch(self._CLUSTER) as cluster_cls:
+            cluster_cls.objects.filter.return_value = [SimpleNamespace(id=1), SimpleNamespace(id=2)]
+            caplog.set_level("WARNING")
+            skipped = task._apply_extra_skip_check(
+                task_name="X",
+                page_ids=[1, 2],
+                page_busy_ids=set(),
+                has_extra_skip=True,
+            )
+        assert skipped == set()
+        assert "extra_skip_check raised" in caplog.text
+
+    def test_vanished_cluster_is_silently_passed_through(self, base):
+        # Cluster row gone between candidate scan and skip-check fetch:
+        # don't skip here -- let the worker's "cluster not found" branch
+        # log it consistently.
+        task = self._make_task_with_override(
+            base,
+            lambda self, cluster: (True, "should-not-fire"),  # would skip if called
+        )
+        with patch(self._CLUSTER) as cluster_cls:
+            cluster_cls.objects.filter.return_value = []  # nothing returned for [1, 2]
+            skipped = task._apply_extra_skip_check(
+                task_name="X",
+                page_ids=[1, 2],
+                page_busy_ids=set(),
+                has_extra_skip=True,
+            )
+        assert skipped == set()
 
 
 # ---------------------------------------------------------------------------

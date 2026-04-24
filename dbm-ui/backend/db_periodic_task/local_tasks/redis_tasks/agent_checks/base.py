@@ -382,6 +382,8 @@ class BaseRedisAgentCheckTask(ABC):
       1. Create a thin subclass declaring `subtype`, `agent_code`, `prompt_template`, and `load_config()`.
       2. Define a bound Celery task that calls ``execute_agent_check()`` with explicit params.
       3. Register a periodic task in task.py.
+      4. Optionally override ``extra_skip_check()`` to express check-specific
+         dispatch-time skip rules (e.g. dbconfig-driven policy checks).
     """
 
     # Subclasses must declare these:
@@ -399,6 +401,34 @@ class BaseRedisAgentCheckTask(ABC):
     @abstractmethod
     def get_celery_task(self) -> Callable:
         """Return the bound Celery task function used to dispatch per-cluster work."""
+
+    def extra_skip_check(self, cluster: Cluster) -> tuple[bool, str]:
+        """Subclass-specific dispatch-time skip rule. Default: never skip.
+
+        Override on a subclass to express skip rules that the generic
+        ``_should_skip`` cannot capture (e.g. configuration-driven skips
+        that need a dbconfig lookup, like Redis ``maxmemory-policy``).
+
+        The hook runs inside ``get_clusters_to_check`` after the busy-
+        ticket filter and *before* Celery dispatch, so a skip here frees
+        the worker slot for another candidate instead of paying the
+        round-trip cost of a noop task.
+
+        Must fail open: ``get_clusters_to_check`` catches any exception
+        raised here and treats the cluster as eligible. Otherwise a
+        misbehaving rule could silently suppress an entire check across
+        the fleet.
+        """
+        return False, ""
+
+    def _has_extra_skip_check(self) -> bool:
+        """True iff a subclass actually overrides ``extra_skip_check``.
+
+        Used by ``get_clusters_to_check`` to skip the per-page Cluster
+        fetch when no subclass cares, keeping the default-path query
+        cost identical to before this hook existed.
+        """
+        return type(self).extra_skip_check is not BaseRedisAgentCheckTask.extra_skip_check
 
     def _resolve_agent_timeouts(self) -> tuple[int, int, int]:
         """Return (invoke_timeout, soft_time_limit, hard_time_limit) from config.
@@ -736,6 +766,9 @@ class BaseRedisAgentCheckTask(ABC):
         result = []
         scanned = 0
         busy_hits = 0
+        extra_skip_hits = 0
+        task_name = type(self).__name__
+        has_extra_skip = self._has_extra_skip_check()
         early_stop_reason = "exhausted_candidates"
 
         for idx in range(0, len(candidate_ids), page_size):
@@ -755,8 +788,18 @@ class BaseRedisAgentCheckTask(ABC):
             )
             busy_hits += len(page_busy_ids)
 
+            page_extra_skipped_ids = self._apply_extra_skip_check(
+                task_name=task_name,
+                page_ids=page_ids,
+                page_busy_ids=page_busy_ids,
+                has_extra_skip=has_extra_skip,
+            )
+            extra_skip_hits += len(page_extra_skipped_ids)
+
             for cluster_id in page_ids:
                 if cluster_id in page_busy_ids:
+                    continue
+                if cluster_id in page_extra_skipped_ids:
                     continue
                 result.append(cluster_id)
                 if len(result) >= batch_size:
@@ -764,14 +807,15 @@ class BaseRedisAgentCheckTask(ABC):
                     break
 
         logger.info(
-            "%s: selected=%d requested=%d scanned=%d busy_hits=%d "
+            "%s: selected=%d requested=%d scanned=%d busy_hits=%d extra_skip_hits=%d "
             "priority_hits=%d priority_consumed=%d "
             "priority_dropped=%d priority_dropped_domains=%s strategy=%s stop=%s",
-            type(self).__name__,
+            task_name,
             len(result),
             batch_size,
             scanned,
             busy_hits,
+            extra_skip_hits,
             len(priority_ids),
             len(consumed_domains),
             len(dropped_domains),
@@ -780,6 +824,61 @@ class BaseRedisAgentCheckTask(ABC):
             early_stop_reason,
         )
         return result
+
+    def _apply_extra_skip_check(
+        self,
+        *,
+        task_name: str,
+        page_ids: list,
+        page_busy_ids: set,
+        has_extra_skip: bool,
+    ) -> set:
+        """Run the subclass ``extra_skip_check`` on the non-busy IDs of a page.
+
+        Returns the subset of ``page_ids`` that the subclass asked to skip.
+        Cleanly short-circuits to an empty set when no subclass overrides
+        the hook so the default path is identical to pre-hook behavior.
+
+        Per-cluster failures are logged at WARNING and treated as "do not
+        skip" (fail open) so a transient dbconfig hiccup never converts
+        into a fleet-wide skip.
+        """
+        if not has_extra_skip:
+            return set()
+
+        keep_ids = [cid for cid in page_ids if cid not in page_busy_ids]
+        if not keep_ids:
+            return set()
+
+        clusters_by_id = {c.id: c for c in Cluster.objects.filter(id__in=keep_ids)}
+        skipped_ids: set = set()
+        for cluster_id in keep_ids:
+            cluster = clusters_by_id.get(cluster_id)
+            if cluster is None:
+                # Cluster vanished between the candidate scan and now;
+                # let the worker-side ``cluster not found`` branch handle
+                # logging consistently.
+                continue
+            try:
+                skipped, reason = self.extra_skip_check(cluster)
+            except Exception as exc:
+                logger.warning(
+                    "%s: cluster_id=%s extra_skip_check raised, dispatching anyway: %s",
+                    task_name,
+                    cluster_id,
+                    exc,
+                )
+                continue
+            if skipped:
+                skipped_ids.add(cluster_id)
+                logger.info(
+                    "%s: cluster_id=%s outcome=%s reason=%s",
+                    task_name,
+                    cluster_id,
+                    OUTCOME_SKIPPED,
+                    reason,
+                )
+        return skipped_ids
 
     def start(self) -> int:
         """Dispatch a batch of clusters for LLM analysis. Returns the number dispatched."""
