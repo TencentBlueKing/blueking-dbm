@@ -156,7 +156,7 @@
 
   &-enter-from,
   &-leave-to {
-    opacity: 0%;
+    opacity: 0;
     transform: translateY(-30px);
   }
 
@@ -180,13 +180,13 @@
   &-item-name {
     display: block;
     max-width: 85%;
-    overflow: hidden;
     font-size: @font-size-mini;
     color: @default-color;
     text-align: left;
+    direction: rtl;
+    overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    direction: rtl;
   }
 
   // 文件大小 / 百分比
@@ -207,11 +207,11 @@
   &-item-message {
     display: flex;
     max-width: 85%;
-    overflow: hidden;
+    align-items: center;
     font-size: @font-size-mini;
+    overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    align-items: center;
 
     .db-icon {
       margin-right: 4px;
@@ -291,7 +291,7 @@
 
   // 成功状态：绿边框 + 浅绿背景 + 文件大小垂直居中
   &-item-success {
-    background: rgb(63 192 109 / 4%);
+    background: rgba(63, 192, 109, 0.04);
     border-color: #3fc06d;
 
     .db-upload-list-item-speed {
@@ -300,14 +300,14 @@
     }
 
     &:hover {
-      background: rgb(63 192 109 / 4%);
+      background: rgba(63, 192, 109, 0.04);
       border-color: #3fc06d;
     }
   }
 
   // 失败状态：红边框 + 红背景
   &-item-fail {
-    background: rgb(254 221 220 / 40%);
+    background: rgba(254, 221, 220, 0.4);
     border-color: #ff5656;
 
     &:hover {
