@@ -17,7 +17,8 @@ export const downloadFile = (response: AxiosResponse): void => {
   const contentDisposition = response.headers['content-disposition'];
   const fileBasename = contentDisposition ? contentDisposition.split('=')[1] : 'download';
   const utcTimeStamp = dayjs().format('YYYYMMDDHHmmss');
-  const fileName = `${utcTimeStamp}_${fileBasename}`;
+  // 将时间戳插入到文件名和扩展名之间，如 partition_strategy_20260415120555.xlsx
+  const fileName = fileBasename.replace(/(\.[^.]+)$/, `_${utcTimeStamp}$1`);
   const url = window.URL.createObjectURL(new Blob([response.data]));
   const link = document.createElement('a');
   link.href = url;
