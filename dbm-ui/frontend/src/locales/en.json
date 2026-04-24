@@ -5245,7 +5245,6 @@
   "导入成功 n 条": "Successfully imported {n} items",
   "导出所有": "Export All",
   "导出已选": "Export Selected",
-  "批量启用": "Batch Enable",
   "策略ID": "Strategy ID",
   "DB名": "DB Name",
   "确定批量执行 n 条分区策略？": "Confirm to batch execute {n} partition strategies?",
