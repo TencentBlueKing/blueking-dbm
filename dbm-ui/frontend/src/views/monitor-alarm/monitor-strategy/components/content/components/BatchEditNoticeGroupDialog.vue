@@ -156,6 +156,7 @@
       });
 
       runBatchUpdateNotifyGroup({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         notify_groups: paramNotifyGroups,
       });
     });
