@@ -24,10 +24,12 @@ const path = '/apis/packages';
 export function getPackages(
   params: {
     db_type: string;
+    db_version?: string;
     keyword?: string;
     limit?: number;
     offset?: number;
     pkg_type: string;
+    version?: string;
   },
   payload = {} as IRequestPayload,
 ) {
@@ -107,4 +109,41 @@ export function listPackageTypes(params: {
   version?: string;
 }) {
   return http.get<Record<string, string[]>>(`${path}/list_install_pkg_types/`, params);
+}
+
+/**
+ * 获取介质支持的操作系统
+ */
+export function listSupportSystems() {
+  return http.get<Record<string, string[]>>(`${path}/list_support_systems/`);
+}
+
+/**
+ * 批量新建版本
+ */
+export function batchCreatePackages(params: {
+  packages: {
+    allow_biz_ids?: number[];
+    db_type: string;
+    db_version?: number;
+    enable?: boolean;
+    md5: string;
+    mode?: string;
+    name: string;
+    path: string;
+    permit_os?: string[];
+    permit_os_type?: string;
+    pkg_type: string;
+    size: number;
+    version: string;
+  }[];
+}) {
+  return http.post<{ id: number }[]>(`${path}/bulk_create/`, params);
+}
+
+/**
+ * 批量删除版本
+ */
+export function batchDeletePackages(params: { package_ids: number[] }) {
+  return http.delete<null>(`${path}/bulk_destroy/`, params);
 }
