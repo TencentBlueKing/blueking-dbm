@@ -28,6 +28,7 @@ export * from './migrateCluster';
 export * from './migrateUpgrade';
 export * from './openArea';
 export * from './partition';
+export * from './partitionV2';
 export * from './proxyAdd';
 export * from './proxyReduce';
 export * from './proxySwitch';

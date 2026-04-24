@@ -54,9 +54,9 @@
   import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
   import { importResource } from '@services/source/dbresourceResource';
 
-  import { useSystemEnviron } from '@stores';
+  import { useTicketMessage } from '@hooks';
 
-  import { useImportResourcePoolTooltip } from '@views/resource-manage/common/hooks/useImportResourcePoolTip';
+  import { useSystemEnviron } from '@stores';
 
   import FormPanel from './components/FormPanel.vue';
   import ListPanel from './components/ListPanel.vue';
@@ -77,7 +77,7 @@
   const systemEnvironStore = useSystemEnviron();
 
   const formPanelRef = useTemplateRef('formPanelRef');
-  const { successMessage } = useImportResourcePoolTooltip();
+  const ticketMessage = useTicketMessage();
 
   const width = Math.ceil(window.innerWidth * 0.8);
   const contentHeight = Math.ceil(window.innerHeight * 0.8 - 48);
@@ -89,7 +89,7 @@
     manual: true,
     onSuccess({ ticket_ids: ticketIds }) {
       handleCancel();
-      successMessage(ticketIds);
+      ticketMessage(ticketIds);
     },
   });
 
