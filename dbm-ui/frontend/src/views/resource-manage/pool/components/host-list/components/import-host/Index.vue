@@ -69,7 +69,7 @@
   import { importResource } from '@services/source/dbresourceResource';
   import type { HostInfo } from '@services/types';
 
-  import { useImportResourcePoolTooltip } from '@views/resource-manage/common/hooks/useImportResourcePoolTip';
+  import { useTicketMessage } from '@hooks';
 
   import FormPanel from './components/FormPanel.vue';
   import SelectHostPanel from './components/select-host-panel/Index.vue';
@@ -97,7 +97,7 @@
   const isSubmitting = ref(false);
   const hostSelectList = shallowRef<HostInfo[]>([]);
 
-  const { successMessage } = useImportResourcePoolTooltip({
+  const ticketMessage = useTicketMessage({
     isCurrentBiz: props.type === 'business',
   });
 
@@ -121,7 +121,7 @@
           })),
         }).then(({ ticket_ids: ticketIds }) => {
           window.changeConfirm = false;
-          successMessage(ticketIds);
+          ticketMessage(ticketIds);
           handleCancel();
           emits('change');
         });
