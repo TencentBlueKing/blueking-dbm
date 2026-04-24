@@ -25,7 +25,8 @@ func (cf *Config) Routes() []*gin.RouteInfo {
 		{Method: http.MethodPost, Path: "/conffile/add", HandlerFunc: cf.UpsertConfigFilePlat},
 		{Method: http.MethodPost, Path: "/conffile/update", HandlerFunc: cf.UpdateConfigFilePlat},
 		{Method: http.MethodGet, Path: "/conffile/list", HandlerFunc: cf.ListConfigFiles},
-		{Method: http.MethodGet, Path: "/conffile/list_level_value", HandlerFunc: cf.ListLevelNode},
+		{Method: http.MethodGet, Path: "/conffile/list_level_value", HandlerFunc: cf.ListConfigLevel},
+		{Method: http.MethodPost, Path: "/conffile/delete_level_value", HandlerFunc: cf.DeleteConfigLevel},
 		{Method: http.MethodGet, Path: "/conffile/query", HandlerFunc: cf.QueryConfigTypeNamesPlat},
 
 		// config_version
