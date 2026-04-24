@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -11,8 +12,26 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+const (
+	maxQueryRows        = 100000
+	maxQueryBytes int64 = 64 << 20 // 64 MB
+)
+
+// SQLResultRow 一行查询结果
+type SQLResultRow map[string]interface{}
+
+// SQLResultRows 全部行
+type SQLResultRows []SQLResultRow
+
+// DoSQL 在已有 conn 上执行单条命令。
+// 按 IsQueryCommand / IsExecuteCommand 分流，不认识的命令返回 error。
 func DoSQL(conn *sqlx.Conn, sql string, timeout int) ([]byte, int64, error) {
 	sql = strings.TrimSpace(sql)
+
+	if !IsSupportedCommand(sql) {
+		return nil, 0, fmt.Errorf("unsupported command: %s", sql)
+	}
+
 	var cmdWorker func(*sqlx.Conn, string, int) (SQLResultRows, int64, error)
 	if IsQueryCommand(sql) {
 		cmdWorker = doQuery
@@ -33,10 +52,15 @@ func DoSQL(conn *sqlx.Conn, sql string, timeout int) ([]byte, int64, error) {
 
 	b, _ := json.Marshal(crs)
 
-	var rErrs retry.Error
-	errors.As(err, &rErrs)
+	if err == nil {
+		return b, n, nil
+	}
 
-	return b, n, errors.Join(rErrs...)
+	var rErrs retry.Error
+	if errors.As(err, &rErrs) {
+		return b, n, errors.Join(rErrs...)
+	}
+	return b, n, err
 }
 
 func doQuery(conn *sqlx.Conn, sql string, timeout int) (SQLResultRows, int64, error) {
@@ -52,15 +76,24 @@ func doQuery(conn *sqlx.Conn, sql string, timeout int) (SQLResultRows, int64, er
 	}()
 
 	srs := make(SQLResultRows, 0)
+	var totalBytes int64
 	for rows.Next() {
+		if len(srs) >= maxQueryRows {
+			return nil, 0, fmt.Errorf("result set exceeds row limit (%d rows); narrow your query with WHERE/LIMIT", maxQueryRows)
+		}
 		data := make(map[string]interface{})
 		if err := rows.MapScan(data); err != nil {
 			return nil, 0, err
 		}
 		for k, v := range data {
+			totalBytes += int64(len(k))
 			if value, ok := v.([]byte); ok {
 				data[k] = string(value)
+				totalBytes += int64(len(value))
 			}
+		}
+		if totalBytes > maxQueryBytes {
+			return nil, 0, fmt.Errorf("result set exceeds byte limit (%d bytes); narrow your query with WHERE/LIMIT", maxQueryBytes)
 		}
 		srs = append(srs, data)
 	}

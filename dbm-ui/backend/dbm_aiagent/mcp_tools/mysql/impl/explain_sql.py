@@ -14,19 +14,22 @@ from backend.components import DRSApi
 from backend.db_meta.enums import ClusterType
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
 from backend.dbm_aiagent.mcp_tools.mysql.helpers.get_slave_address_and_dbname import get_cloud_slave_address_and_dbname
+from backend.dbm_aiagent.mcp_tools.mysql.helpers.sql_safety import quote_ident, sanitize_select_sql
 
 
 def explain_sql(cluster_type: ClusterType, cluster_domain: str, dbname: str, query_sql: str) -> Dict:
-    raw_dbname = dbname  # noqa: F841
+    # 校验并归一化用户提交的 SQL；UPDATE/DELETE/INSERT...SELECT 会被改写为等价 SELECT，
+    # 以便在只读账号下也能拿到执行计划
+    explained_sql, was_rewritten = sanitize_select_sql(query_sql)
 
     bk_cloud_id, address, dbname = get_cloud_slave_address_and_dbname(
         cluster_type=cluster_type, cluster_domain=cluster_domain, dbname=dbname
     )
 
-    drs_raw_res = DRSApi.rpc(
+    drs_raw_res = DRSApi.v2_webconsole_rpc(
         {
             "addresses": [address],
-            "cmds": [f"USE `{dbname}`", f"EXPLAIN {query_sql}"],
+            "cmds": [f"USE {quote_ident(dbname)}", f"EXPLAIN {explained_sql}"],
             "force": False,
             "bk_cloud_id": bk_cloud_id,
             "query_timeout": 10,
@@ -47,4 +50,6 @@ def explain_sql(cluster_type: ClusterType, cluster_domain: str, dbname: str, que
 
     return {
         "explain_result": explain_sql_res["table_data"][0],
+        "explained_sql": explained_sql,
+        "rewritten": was_rewritten,
     }

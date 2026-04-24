@@ -83,5 +83,5 @@ func InitConfig() {
 		Json:       viper.GetBool("log_json"),
 	}
 
-	InitGlobalLimiter()
+	InitGlobalSemaphore()
 }

@@ -9,18 +9,29 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
+import warnings
 
 from pipeline.component_framework.component import Component
+from typing_extensions import deprecated
 
 from backend.components import DRSApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.mysql.mysql_commom_query import check_backend_in_proxy
 
+warnings.warn(
+    "set_backend_in_porxy module is deprecated: DRS does not support executing refresh_backends command.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
 logger = logging.getLogger("flow")
 
 
+@deprecated("SetBackendInProxyService is deprecated: DRS does not support executing refresh_backends command.")
 class SetBackendInProxyService(BaseService):
     """
+    Deprecated: DRS 未开放执行 refresh_backends 指令，该 Service 已废弃。
+
     在新proxy设置backend后端信息，设置之前需要保证proxy的backend是1.1.1.1:3306
     如果不是则证明不是最新的，则作为异常退出
     """
@@ -53,6 +64,7 @@ class SetBackendInProxyService(BaseService):
         return True
 
 
+@deprecated("SetBackendInProxyComponent is deprecated: DRS does not support executing refresh_backends command.")
 class SetBackendInProxyComponent(Component):
     name = __name__
     code = "set_backend_in_proxy"

@@ -15,6 +15,12 @@ import "dbm-services/common/go-pubpkg/apm/metric"
 var (
 	ErrCnt     = "err_cnt"
 	ExecuteCnt = "execute_cnt"
+
+	// InflightAddresses 当前正在执行的 per-address 任务数 (gauge)
+	InflightAddresses = "inflight_addresses"
+	// AddressesTotal per-address 任务计数, 按结果分类 (counter_vec)
+	//   result: success / error / throttled
+	AddressesTotal = "addresses_total"
 )
 
 // CustomMetrics custom metric example
@@ -32,5 +38,18 @@ var CustomMetrics = []*metric.Metric{
 		Description: "Counter test metric",
 		Type:        "counter_vec",
 		Labels:      []string{"url", "method", "code"},
+	},
+	{
+		ID:          InflightAddresses,
+		Name:        InflightAddresses,
+		Description: "Number of per-address tasks currently in-flight (acquired the global semaphore)",
+		Type:        "gauge",
+	},
+	{
+		ID:          AddressesTotal,
+		Name:        AddressesTotal,
+		Description: "Total per-address task count, partitioned by result (success/error/throttled)",
+		Type:        "counter_vec",
+		Labels:      []string{"result"},
 	},
 }

@@ -24,7 +24,7 @@ QUERY_LONG_RUNNING_TRX_SQL = (
 
 def query_long_running_trx(bk_cloud_id: int, address: str):
     """查询 MySQL 长事务，事务未关闭，当前可能正在执行 SQL，也可能 Sleep 未提交"""
-    drs_raw_res = DRSApi.rpc(
+    drs_raw_res = DRSApi.v2_mysql_rpc(
         {
             "addresses": [address],
             "cmds": [QUERY_LONG_RUNNING_TRX_SQL],

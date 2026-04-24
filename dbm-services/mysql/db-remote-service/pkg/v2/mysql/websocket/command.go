@@ -19,5 +19,9 @@ func handleCommand(conn *sqlx.Conn, b []byte) ([]byte, int64, error) {
 		return []byte(""), 0, nil
 	}
 
+	if wcr.Timeout <= 0 {
+		wcr.Timeout = defaultCommandTimeout
+	}
+
 	return impl.DoSQL(conn, wcr.Command, wcr.Timeout)
 }
