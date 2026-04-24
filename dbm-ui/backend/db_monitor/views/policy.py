@@ -28,7 +28,7 @@ from backend.bk_web.viewsets import AuditedModelViewSet
 from backend.components import BKMonitorV3Api
 from backend.configuration.constants import PLAT_BIZ_ID
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance, TenDBClusterSpiderExt
+from backend.db_meta.models import AppCache, Cluster, DBModule, ProxyInstance, StorageInstance, TenDBClusterSpiderExt
 from backend.db_monitor import constants, serializers
 from backend.db_monitor.models import MonitorPolicy
 from backend.iam_app.dataclass import ResourceEnum
@@ -247,12 +247,44 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
     @action(methods=["POST"], detail=False, serializer_class=serializers.BatchUpdateMonitorPolicyNotifySerializer)
     def batch_update_notify_group(self, request, *args, **kwargs):
         notify_groups = self.validated_data["notify_groups"]
+        bk_biz_id = self.validated_data["bk_biz_id"]
+        app_cache = AppCache.objects.filter(bk_biz_id=bk_biz_id).first()
         # 更新较慢考虑采用多线程方案
         policy_map = MonitorPolicy.objects.in_bulk(id_list=[info["policy_id"] for info in notify_groups])
         for info in notify_groups:
             policy = policy_map[info["policy_id"]]
-            params = {"notify_groups": info["groups"]}
-            policy.update(params, username=request.user.username)
+            # 批量替换等于平台策略的时候要走克隆
+            if policy.target_level == "platform":
+                app_tag = app_cache.db_app_abbr or str(app_cache.bk_biz_id)
+                params = {
+                    "agg_info": policy.agg_info,
+                    "bk_biz_id": bk_biz_id,
+                    "custom_conditions": policy.custom_conditions,
+                    "detects_config": policy.detects_config,
+                    "is_enabled": policy.is_enabled,
+                    "name": f"DBM#{app_tag} {policy.name}",
+                    "no_data_config": policy.no_data_config,
+                    "notify_config": policy.notify_config,
+                    "notify_rules": policy.notify_rules,
+                    "parent_id": policy.id,
+                    "policy_tag": "inner",
+                    "targets": [
+                        {
+                            "level": "appid",
+                            "rule": {
+                                "key": "appid",
+                                "method": policy.targets[0]["rule"]["method"],
+                                "value": [bk_biz_id],
+                            },
+                        }
+                    ],
+                    "test_rules": policy.test_rules,
+                    "notify_groups": info["groups"],
+                }
+                policy.clone(params, username=request.user.username)
+            else:
+                params = {"notify_groups": info["groups"]}
+                policy.update(params, username=request.user.username)
         return Response()
 
     @common_swagger_auto_schema(
