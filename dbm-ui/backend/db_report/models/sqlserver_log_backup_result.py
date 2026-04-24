@@ -51,6 +51,10 @@ class SQLServerBinlogResult(models.Model):
     cluster_type = models.CharField(
         max_length=64, choices=ClusterType.get_choices(), default="", verbose_name=_("集群类型")
     )
+    # 文件容量，单位：KB
+    size = models.IntegerField(default=0)
+    # 备份系统相关
+    backup_file_tag = models.CharField(max_length=255, default="", verbose_name=_("备份系统文件过期标签"))
 
     class Meta:
         db_table = "tb_sqlserver_binlog_result"
