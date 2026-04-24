@@ -10,7 +10,11 @@
 
 package syntax
 
-import "fmt"
+import (
+	"fmt"
+
+	"dbm-services/common/go-pubpkg/logger"
+)
 
 // SpiderChecker syntax checker
 func (c AlterTableResult) SpiderChecker(mysqlVersion string) (r *CheckerResult) {
@@ -18,15 +22,22 @@ func (c AlterTableResult) SpiderChecker(mysqlVersion string) (r *CheckerResult) 
 		ObjName: c.TableName,
 	}
 	for _, alterCmd := range c.AlterCommands {
+		logger.Info("alter cmd: %+v", alterCmd)
 		// 如果是增加字段，需要判断增加的字段名称是否是关键字
 		if alterCmd.Type == AlterTypeAddColumn {
 			r.ParseBuiltinRisk(func() (bool, string) {
 				return KeyWordValidator(mysqlVersion, alterCmd.ColDef.ColName)
 			})
 		}
+		logger.Info("alter cmd drop primary: %v", alterCmd.DropPrimary)
+		if alterCmd.Type == AlterTypeDropKey && alterCmd.DropPrimary {
+			r.ParseBuiltinBan(func() (bool, string) {
+				return true, "Tendbcluster集群表不允许删除主键"
+			})
+		}
 	}
 	r.ParseBuiltinBan(c.NotAllowedDefaultValCol)
-	return c.Checker(mysqlVersion)
+	return r.Merge(c.Checker(mysqlVersion))
 }
 
 // NotAllowedDefaultValCol 不允许存在默认值的字段

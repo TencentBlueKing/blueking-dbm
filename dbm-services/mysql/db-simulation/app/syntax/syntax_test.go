@@ -1105,6 +1105,25 @@ func TestCheckerResult_ParseBuiltinSyntaxBan_NoMatch(t *testing.T) {
 	assert.Empty(t, r.BanWarns)
 }
 
+// TestCheckerResult_Merge 验证 Spider/扩展专检与通用 Checker 结果合并
+func TestCheckerResult_Merge(t *testing.T) {
+	a := &syntax.CheckerResult{BanWarns: []string{"a1"}, RiskWarns: []string{"r1"}}
+	b := &syntax.CheckerResult{BanWarns: []string{"a2"}, RiskWarns: []string{"r2"}}
+	out := a.Merge(b)
+	require.Equal(t, a, out)
+	assert.Equal(t, []string{"a1", "a2"}, a.BanWarns)
+	assert.Equal(t, []string{"r1", "r2"}, a.RiskWarns)
+
+	onlyA := &syntax.CheckerResult{BanWarns: []string{"x"}}
+	onlyA.Merge(nil)
+	require.Equal(t, []string{"x"}, onlyA.BanWarns)
+
+	var z *syntax.CheckerResult
+	merged := z.Merge(b)
+	require.Equal(t, b, merged)
+	assert.Equal(t, []string{"a2"}, merged.BanWarns)
+}
+
 // TestCheckerResult_Trigger_CategoryPrefix 验证 Trigger 在 Ban 规则下写入正确的分类前缀
 func TestCheckerResult_Trigger_CategoryPrefix(t *testing.T) {
 	platformRule := &syntax.BoolRuleItem{

@@ -140,12 +140,11 @@ SpiderCreateTableRule:
 AlterTableRule:
   HighRiskType:
     expr: " Val in Item "
-    item:
-      ["drop_column", "drop_key", "change_column", "rename_table", "rename_key"]
+    item: [ "drop_column", "drop_key", "change_column", "rename_table", "rename_key" ]
     desc: "高危变更类型"
   HighRiskPkAlterType:
     expr: " Val in Item "
-    item: ["add_column", "add_key", "change_column"]
+    item: [ "add_column", "add_key", "change_column" ]
     desc: "高危主键变更类型"
   AlterUseAfter:
     expr: " Val != Item "
