@@ -36,6 +36,9 @@ from backend.flow.plugins.components.collections.common.display_semantic_check_i
     DisplaySemanticCheckInfoComponent,
 )
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.exec_actuator_script_with_bk_job_record import (
+    ExecuteDBActuatorScriptWithBkJobRecordComponent,
+)
 from backend.flow.plugins.components.collections.mysql.semantic_check import SemanticCheckComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
@@ -137,13 +140,13 @@ class ImportSQLFlow(object):
             sub_pipeline = SubBuilder(self.root_id, self.data)
             sub_pipeline.add_act(
                 act_name=_("执行SQL导入"),
-                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                act_component_code=ExecuteDBActuatorScriptWithBkJobRecordComponent.code,
                 kwargs=asdict(
                     ExecActuatorKwargs(
                         job_timeout=LONG_JOB_TIMEOUT,
                         exec_ip=master.machine.ip,
                         bk_cloud_id=cluster.bk_cloud_id,
-                        cluster={"port": master.port},
+                        cluster={"cluster_id": cluster.id, "port": master.port},
                         get_mysql_payload_func=MysqlActPayload.get_import_sqlfile_payload.__name__,
                     )
                 ),

@@ -30,3 +30,31 @@ class FlowNodeAdmin(admin.ModelAdmin):
         "node_id",
         "version_id",
     )
+
+
+@admin.register(models.FlowBkJobInstance)
+class FlowBkJobInstanceAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "ticket_id",
+        "cluster_id",
+        "root_id",
+        "node_id",
+        "version_id",
+        "job_instance_id",
+        "step_instance_id",
+        "exec_ips",
+        "node_name",
+        "component_code",
+        "created_at",
+    )
+    list_filter = ("root_id", "cluster_id")
+    search_fields = (
+        "ticket_id",
+        "root_id",
+        "node_id",
+        "job_instance_id",
+        "step_instance_id",
+        "component_code",
+    )
+    readonly_fields = ("created_at",)
