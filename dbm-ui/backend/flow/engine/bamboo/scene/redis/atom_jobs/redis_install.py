@@ -181,14 +181,6 @@ def RedisBatchInstallAtomJob(
             kwargs=asdict(act_kwargs),
         )
 
-    # 重载Nginx配置
-    act_kwargs.get_redis_payload_func = RedisActPayload.redis_reverse_config.__name__
-    sub_pipeline.add_act(
-        act_name=_("{}-加载Nginx配置").format(exec_ip),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(act_kwargs),
-    )
-
     # 部署bkdbmon
     if to_install_dbmon:
         act_kwargs.cluster["servers"] = [
@@ -214,5 +206,13 @@ def RedisBatchInstallAtomJob(
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(act_kwargs),
         )
+
+    # 重载Nginx配置
+    act_kwargs.get_redis_payload_func = RedisActPayload.redis_reverse_config.__name__
+    sub_pipeline.add_act(
+        act_name=_("{}-加载Nginx配置").format(exec_ip),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
 
     return sub_pipeline.build_sub_process(sub_name=_("Redis-{}-{}").format(exec_ip, atom_name))
