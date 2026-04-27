@@ -173,7 +173,7 @@ def get_todo_context(count, text):
     # 当传入是一个数量时，直接生成模板返回
     if isinstance(count, int):
         if count:
-            return _("- {text} {count}条").format(text=text, count=count)
+            return _("{text} {count}条").format(text=text, count=count)
 
     # 当传入的是一个字典时，则待办需要生成各类型的待办明细模板
     elif isinstance(count, dict):
@@ -181,7 +181,7 @@ def get_todo_context(count, text):
         if total:
             contexts = [f"{DBType.get_choice_label(type_)} {count}" for type_, count in count.items()]
             contexts = "，".join(contexts)
-            return _("- {text}：{total} 条（{contexts}）").format(text=text, total=total, contexts=contexts)
+            return _("{text}：{total} 条（{contexts}）").format(text=text, total=total, contexts=contexts)
     return ""
 
 
@@ -190,7 +190,7 @@ def get_mass_context(user_infos):
     all_total = 0
     user_contexts = ""
     for username in user_infos:
-        context_list = [context.replace("- ", "") for context in user_infos[username]["context_list"] if context]
+        context_list = [context for context in user_infos[username]["context_list"] if context]
         all_total += user_infos[username]["count"]
         user_context = "，".join(context_list)
         user_contexts += f"{username}：{user_context}\n"
@@ -242,7 +242,8 @@ def send_msg(title, context, receivers, msg_type):
         }
         BkChatApi.send_ticket_msg(msg_info, use_admin=True)
 
-    else:
+    elif msg_type == MsgType.MAIL.value:
+        context += '\n<p><a href="{}">{}</a></p>'.format(TODO_DIR, _("前往处理"))
         CmsiHandler(title, context, receivers).send_msg(MsgType.MAIL.value, context=None)
 
 
