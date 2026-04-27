@@ -100,6 +100,11 @@ class OperatorEnum(StrStructuredEnum):
     GTE = EnumField("gte", _("大于等于"))
 
 
+class UpdateNotifyGroupType(StrStructuredEnum):
+    APPEND = EnumField("append", _("追加"))
+    REPLACE = EnumField("replace", _("替换"))
+
+
 class AlertLevelEnum(IntStructuredEnum):
     """告警级别"""
 
