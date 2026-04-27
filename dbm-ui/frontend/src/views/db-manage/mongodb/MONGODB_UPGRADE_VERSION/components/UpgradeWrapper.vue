@@ -31,14 +31,14 @@
           <CardCheckbox
             v-model="modelValue.strategy"
             :desc="t('节点逐个升级_服务不中断_RS会发生主从切换_Mongos连接短暂中断_适用于生产环境')"
-            icon="bk-dbm-icon db-icon-form"
+            icon="bk-dbm-icon db-icon-gundongshengji"
             :title="t('滚动升级')"
             true-value="rolling" />
           <CardCheckbox
             v-model="modelValue.strategy"
             class="ml-8"
             :desc="t('所有节点同时停止_升级_启动_有服务中断_适用于测试环境或可接受停机窗口的场景')"
-            icon="bk-dbm-icon db-icon-time"
+            icon="bk-dbm-icon db-icon-tingjishengji"
             :title="t('停机升级')"
             true-value="full_stop" />
         </div>

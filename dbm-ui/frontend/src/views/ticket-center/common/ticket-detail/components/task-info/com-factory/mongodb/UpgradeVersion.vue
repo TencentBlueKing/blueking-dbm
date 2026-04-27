@@ -19,11 +19,21 @@
   </InfoList>
   <TicketInfoTable
     :data="tableData"
-    row-key="cluster_id">
+    row-key="cluster_id_list">
     <TicketInfoTableColumn
-      col-key="immute_domain"
-      :get-copy-value="(row: RowData) => row.immute_domain"
-      :title="t('目标集群')" />
+      col-key="cluster_id_list"
+      :get-copy-value="
+        (item: RowData) => item.cluster_id_list.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain)
+      "
+      :title="t('目标集群')">
+      <template #default="{ row }: { row: RowData }">
+        <p
+          v-for="item in row.cluster_id_list"
+          :key="item">
+          {{ ticketDetails.details.clusters[item].immute_domain }}
+        </p>
+      </template>
+    </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="cluster_type"
       :title="t('集群类型')">
@@ -66,11 +76,10 @@
   }
 
   interface RowData {
-    cluster_id: string;
+    cluster_id_list: number[];
     cluster_type: ClusterTypes;
     current_version: string;
     dest_version: string;
-    immute_domain: string;
     strategy: string;
   }
 
@@ -97,11 +106,10 @@
     }
 
     return infos.map((item) => ({
-      cluster_id: item.cluster_id.join(','),
-      cluster_type: clusters[item.cluster_id[0]]?.cluster_type ?? '--',
+      cluster_id_list: item.cluster_id_list,
+      cluster_type: clusters[item.cluster_id_list[0]]?.cluster_type ?? '--',
       current_version: item.current_version,
       dest_version: item.dest_version,
-      immute_domain: clusters[item.cluster_id[0]]?.immute_domain ?? '--',
       strategy: item.strategy,
     }));
   });
