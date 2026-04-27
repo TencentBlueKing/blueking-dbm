@@ -14,11 +14,13 @@ discovery:
   certFile: "{{COMMON_DISCOVERY_TLS_CERT_FILE}}"
   keyFile: "{{COMMON_DISCOVERY_TLS_KEY_FILE}}"
   trustedCAFile: "{{COMMON_DISCOVERY_TLS_TRUSTED_CA_FILE}}"
+  serviceTimerInterval: {{ADMIN_DISCOVERY_SERVICE_TIMER_INTERVAL}}
+  serviceUpdateTimeout: {{ADMIN_DISCOVERY_SERVICE_UPDATE_TIMEOUT}}
 
 apm:
   readTimeout: {{COMMON_APM_READ_TIMEOUT}}
   writeTimeout: {{COMMON_APM_WRITE_TIMEOUT}}
-  listenAddress: "{{COMMON_APM_LISTEN_ADDRESS}}"
+  listenAddress: "{{ADMIN_APM_LISTEN_ADDRESS}}"
 
 grpc:
   listenAddress: "{{ADMIN_GRPC_LISTEN_ADDRESS}}"
@@ -70,6 +72,21 @@ probeGse:
   dataID: {{ADMIN_PROBE_GSE_DATA_ID}}
   # empty, invalid duration, or value strictly below 5s is normalized to 5s when admin loads config
   connTimeout: {{ADMIN_PROBE_GSE_CONN_TIMEOUT}}
+
+# Returned to probe via GetProbeConfig only when the requesting probe's metadata
+# contains MySQL-family clusters (tendbha / tendbcluster).
+probeMysql:
+  user: "{{ADMIN_PROBE_MYSQL_USER}}"
+  password: "{{ADMIN_PROBE_MYSQL_PASSWORD}}"
+  interval: {{ADMIN_PROBE_MYSQL_INTERVAL}}
+
+# Returned to probe via GetProbeConfig only when the requesting probe's metadata
+# contains Redis-family clusters (redis / twemproxy / predixy variants).
+probeRedis:
+  user: "{{ADMIN_PROBE_REDIS_USER}}"
+  password: "{{ADMIN_PROBE_REDIS_PASSWORD}}"
+  interval: {{ADMIN_PROBE_REDIS_INTERVAL}}
+  timeout: {{ADMIN_PROBE_REDIS_TIMEOUT}}
 
 log:
   path: "{{ADMIN_LOG_PATH}}"

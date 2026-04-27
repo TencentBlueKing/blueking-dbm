@@ -47,12 +47,19 @@ python3 scripts/render_configs.py --module server \
 - **公共键 `COMMON_*`**：server rc 中包含全部 `COMMON_*`；probe rc 仅包含 probe 模板使用的 `COMMON_VERSION` / `COMMON_LOG_*`。
 - **无脚本内建默认值**：所有 `{{PLACEHOLDER}}` 必须在对应 rc 中赋值；可参考 `dbha-v2.server.rc.example` 与 `dbha-v2.probe.rc.example`。
   - **例外**（仅 server 模块；下列键未设置或留空时由脚本推断，均在 stderr 提示）：
-    1. `COMMON_APM_LISTEN_ADDRESS` → `http://<本机检测 IPv4>:50050`（失败则为 `http://127.0.0.1:50050`）。
-    2. `RECEIVER_SOURCE_PROBE_ENDPOINT` → `<本机检测 IPv4>:50051`（失败则为 `127.0.0.1:50051`）。
-    3. `ADMIN_GRPC_LISTEN_ADDRESS` → `<本机检测 IPv4>:50051`；若仅为 `:<端口>` 则补全主机段。
-    4. `ADMIN_WEB_HOST` → `<本机检测 IPv4>`（失败则为 `127.0.0.1`）；`ADMIN_WEB_PORT` → `50060`。
-  - 「本机检测 IPv4」依赖必填参数 `--ip-detect-udp-connect-host`（UDP connect 对端；与上列 (1)–(4) 同一策略）。
+    1. `ADMIN_APM_LISTEN_ADDRESS` → `http://<本机检测 IPv4>:50080`（失败则为 `http://127.0.0.1:50080`）。
+    2. `RECEIVER_APM_LISTEN_ADDRESS` → `http://<本机检测 IPv4>:50081`（失败则为 `http://127.0.0.1:50081`）。
+    3. `ANALYSIS_APM_LISTEN_ADDRESS` → `http://<本机检测 IPv4>:50082`（失败则为 `http://127.0.0.1:50082`）。
+    4. `RECEIVER_SOURCE_PROBE_ENDPOINT` → `<本机检测 IPv4>:50052`（失败则为 `127.0.0.1:50052`）。
+    5. `ADMIN_GRPC_LISTEN_ADDRESS` → `<本机检测 IPv4>:50051`；若仅为 `:<端口>` 则补全主机段。
+    6. `ADMIN_WEB_HOST` → `<本机检测 IPv4>`（失败则为 `127.0.0.1`）；`ADMIN_WEB_PORT` → `50060`。
+  - 「本机检测 IPv4」依赖必填参数 `--ip-detect-udp-connect-host`（UDP connect 对端；与上列 (1)–(6) 同一策略）。
 - **receiver `service.source` 分片（server）**：`RECEIVER_SOURCE_PROBE_SHARD_FILE` / `RECEIVER_SOURCE_KAFKA_SHARD_FILE` 各对应一类 source 列表项（默认见 `templates/snippets/receiver_source_probe.yaml`、`receiver_source_kafka.yaml`），占位符与 rc 中 `RECEIVER_SOURCE_PROBE_*` / `RECEIVER_SOURCE_KAFKA_*` 一致。
+- **probe client（probe）**：`probe.yaml` 的 `client.*` 可配置 probe 侧 gRPC client 的 keepalive/msg size，以及 receiver client 的重连参数；未设置时回退到内置默认值。
+- **probe harvester 凭据由 admin 下发（server）**：admin 通过 `GetProbeConfig` 把 `probeMysql` / `probeRedis` 段返回给 probe，probe 侧 `genconfig` 不再硬编码用户名/密码/采集间隔；只有当请求 probe 的元数据包含对应集群家族时才下发对应段。
+  - `ADMIN_PROBE_MYSQL_USER` / `ADMIN_PROBE_MYSQL_PASSWORD` / `ADMIN_PROBE_MYSQL_INTERVAL`：仅当 probe 元数据包含 MySQL 系列（`tendbha` / `tendbcluster`）时返回。
+  - `ADMIN_PROBE_REDIS_USER` / `ADMIN_PROBE_REDIS_PASSWORD` / `ADMIN_PROBE_REDIS_INTERVAL` / `ADMIN_PROBE_REDIS_TIMEOUT`：仅当 probe 元数据包含 Redis 系列（`redis` / `twemproxy*` / `predixy*`）时返回。
+  - 留空或 `0` 视为未设置，将以零值（空字符串）渲染入 `probe.yaml`。
 - **receiver `service.sink` mysql 分片（server）**：`RECEIVER_SINK_MYSQL_SHARD_FILE`（默认 `templates/snippets/receiver_sink_mysql.yaml`），占位符为 `RECEIVER_SINK_MYSQL_*`。
 - **probe 分片（probe）**：`PROBE_MYSQL_SHARD_FILE` / `PROBE_REDIS_SHARD_FILE` 分别描述 `harvester.mysql` / `harvester.redis`（默认见 `templates/snippets/`）。MySQL / Redis 的 `endpoints[0]` 字段通过 `PROBE_MYSQL_EP_*` / `PROBE_REDIS_EP_*` 在 rc 中配置并由分片模板渲染；`PROBE_REDIS_SHARD_ENABLED=0` 时不生成 `redis:` 段。
 - 若已安装 PyYAML，渲染后会做语法校验；可用 `--no-validate-yaml` 跳过。

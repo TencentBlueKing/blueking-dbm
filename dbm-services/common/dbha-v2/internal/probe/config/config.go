@@ -45,6 +45,16 @@ var Cfg = Configuration{
 	},
 }
 
+// ClientConfig holds gRPC client tuning (ping, message sizes) and receiver reconnect settings for the probe agent.
+type ClientConfig struct {
+	PingTime                     time.Duration `yaml:"pingTime"                   mapstructure:"pingTime"`
+	PingTimeout                  time.Duration `yaml:"pingTimeout"                mapstructure:"pingTimeout"`
+	MaxReceiveMessageSize        int           `yaml:"maxReceiveMessageSize"      mapstructure:"maxReceiveMessageSize"`
+	MaxSendMessageSize           int           `yaml:"maxSendMessageSize"         mapstructure:"maxSendMessageSize"`
+	ReceiverReconnectInterval    time.Duration `yaml:"receiverReconnectInterval"  mapstructure:"receiverReconnectInterval"`
+	ReceiverMaxReconnectAttempts int           `yaml:"receiverMaxReconnectAttempts" mapstructure:"receiverMaxReconnectAttempts"`
+}
+
 // ReporterConfig reporter config
 type ReporterConfig struct {
 	Name        string        `yaml:"name"        mapstructure:"name"`
@@ -74,6 +84,7 @@ type MySqlHarvesterConfig struct {
 
 // RedisHarvesterConfig Redis harvester config
 type RedisHarvesterConfig struct {
+	User      string             `yaml:"user"      mapstructure:"user"`
 	Password  string             `yaml:"password"  mapstructure:"password"`
 	Interval  time.Duration      `yaml:"interval"  mapstructure:"interval"`
 	Timeout   time.Duration      `yaml:"timeout"   mapstructure:"timeout"`
@@ -101,6 +112,7 @@ type Configuration struct {
 	ServiceID string          `yaml:"serviceID" mapstructure:"serviceID"`
 	PidFile   string          `yaml:"pidFile"   mapstructure:"pidFile"`
 	Reporter  *ReporterConfig `yaml:"reporter"  mapstructure:"reporter"`
+	Client    ClientConfig    `yaml:"client"    mapstructure:"client"`
 	Harvester HarvesterConfig `yaml:"harvester" mapstructure:"harvester"`
 	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
 }

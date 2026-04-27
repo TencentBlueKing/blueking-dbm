@@ -107,7 +107,10 @@ func (s *Service) Run(ctx context.Context) error {
 		s.quit = make(chan struct{})
 	}
 
-	timerTimeout := constant.DefaultServiceTimerInterval
+	timerTimeout := config.Cfg.Discovery.ServiceTimerInterval
+	if timerTimeout == 0 {
+		timerTimeout = constant.DefaultServiceTimerInterval
+	}
 	timer := time.NewTimer(timerTimeout)
 	defer timer.Stop()
 
@@ -196,7 +199,11 @@ func (s *Service) updateInfo() {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), constant.DefaultServiceUpdateTimeout)
+	updateTimeout := config.Cfg.Discovery.ServiceUpdateTimeout
+	if updateTimeout == 0 {
+		updateTimeout = constant.DefaultServiceUpdateTimeout
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), updateTimeout)
 	defer cancel()
 
 	if err = s.regCli.SetService(ctx, string(data)); err != nil {

@@ -35,6 +35,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+// minProbeGseConnTimeout is the lower bound enforced by clampProbeGseConnTimeout
+// when probeGse.connTimeout is empty, invalid, or below this duration.
+const minProbeGseConnTimeout = 5 * time.Second
+
 var Cfg = Configuration{
 	Name:    "admin",
 	PidFile: "./pids/admin.pid",
@@ -57,12 +61,14 @@ var Cfg = Configuration{
 
 // DiscoveryConfig discovery configuration
 type DiscoveryConfig struct {
-	Endpoint      string `yaml:"endpoint"      mapstructure:"endpoint"`
-	User          string `yaml:"user"          mapstructure:"user"`
-	Password      string `yaml:"password"      mapstructure:"password"`
-	CertFile      string `yaml:"certFile"      mapstructure:"certFile"`
-	KeyFile       string `yaml:"keyFile"       mapstructure:"keyFile"`
-	TrustedCAFile string `yaml:"trustedCAFile" mapstructure:"trustedCAFile"`
+	Endpoint             string        `yaml:"endpoint"              mapstructure:"endpoint"`
+	User                 string        `yaml:"user"                  mapstructure:"user"`
+	Password             string        `yaml:"password"              mapstructure:"password"`
+	CertFile             string        `yaml:"certFile"              mapstructure:"certFile"`
+	KeyFile              string        `yaml:"keyFile"               mapstructure:"keyFile"`
+	TrustedCAFile        string        `yaml:"trustedCAFile"         mapstructure:"trustedCAFile"`
+	ServiceTimerInterval time.Duration `yaml:"serviceTimerInterval"  mapstructure:"serviceTimerInterval"`
+	ServiceUpdateTimeout time.Duration `yaml:"serviceUpdateTimeout"  mapstructure:"serviceUpdateTimeout"`
 }
 
 // ApmConfig apm's configuration
@@ -74,13 +80,13 @@ type ApmConfig struct {
 
 // GrpcConfig grpc configuration
 type GrpcConfig struct {
-	ListenAddress         string        `yaml:"listenAddress"           mapstructure:"listenAddress"`
-	ServerPingTime        time.Duration `yaml:"serverPingTime"          mapstructure:"serverPingTime"`
-	PingTimeout           time.Duration `yaml:"pingTimeout"             mapstructure:"pingTimeout"`
-	KeepAliveMinTime      time.Duration `yaml:"keepAliveMinTime"        mapstructure:"keepAliveMinTime"`
-	PermitWithoutStream   bool          `yaml:"permitWithoutStream"     mapstructure:"permitWithoutStream"`
-	MaxReceiveMessageSize int           `yaml:"maxReceiveMessageSize"   mapstructure:"maxReceiveMessageSize"`
-	MaxSendMessageSize    int           `yaml:"maxSendMessageSize"      mapstructure:"maxSendMessageSize"`
+	ListenAddress         string        `yaml:"listenAddress"         mapstructure:"listenAddress"`
+	ServerPingTime        time.Duration `yaml:"serverPingTime"        mapstructure:"serverPingTime"`
+	PingTimeout           time.Duration `yaml:"pingTimeout"           mapstructure:"pingTimeout"`
+	KeepAliveMinTime      time.Duration `yaml:"keepAliveMinTime"      mapstructure:"keepAliveMinTime"`
+	PermitWithoutStream   bool          `yaml:"permitWithoutStream"   mapstructure:"permitWithoutStream"`
+	MaxReceiveMessageSize int           `yaml:"maxReceiveMessageSize" mapstructure:"maxReceiveMessageSize"`
+	MaxSendMessageSize    int           `yaml:"maxSendMessageSize"    mapstructure:"maxSendMessageSize"`
 }
 
 // WebConfig web configuration
@@ -122,38 +128,59 @@ type ProbeGseConfig struct {
 	ConnTimeout string `yaml:"connTimeout" mapstructure:"connTimeout"`
 }
 
-// Configuration admin's configuration
-type Configuration struct {
-	Name       string          `yaml:"name"       mapstructure:"name"`
-	Version    string          `yaml:"version"    mapstructure:"version"`
-	PidFile    string          `yaml:"pidFile"    mapstructure:"pidFile"`
-	DocFileDir string          `yaml:"docFileDir" mapstructure:"docFileDir"`
-	Discovery  DiscoveryConfig `yaml:"discovery"  mapstructure:"discovery"`
-	Apm        ApmConfig       `yaml:"apm"        mapstructure:"apm"`
-	Grpc       GrpcConfig      `yaml:"grpc"       mapstructure:"grpc"`
-	Web        WebConfig       `yaml:"web"        mapstructure:"web"`
-	DbmApis    []DbmApi        `yaml:"dbmApi"     mapstructure:"dbmApi"`
-	Storage    StorageConfig   `yaml:"storage"    mapstructure:"storage"`
-	Log        LogConfig       `yaml:"log"        mapstructure:"log"`
-	ProbeGse   ProbeGseConfig  `yaml:"probeGse"   mapstructure:"probeGse"`
+// ProbeMysqlConfig defaults for probe MySQL harvester; admin loads from YAML and returns to probe
+// via GetProbeConfig only when the requesting probe's metadata contains MySQL clusters.
+type ProbeMysqlConfig struct {
+	User     string        `yaml:"user"     mapstructure:"user"`
+	Password string        `yaml:"password" mapstructure:"password"`
+	Interval time.Duration `yaml:"interval" mapstructure:"interval"`
 }
 
-const minProbeGseConnTimeout = 5 * time.Second
+// ProbeRedisConfig defaults for probe Redis harvester; admin loads from YAML and returns to probe
+// via GetProbeConfig only when the requesting probe's metadata contains Redis clusters.
+type ProbeRedisConfig struct {
+	User     string        `yaml:"user"     mapstructure:"user"`
+	Password string        `yaml:"password" mapstructure:"password"`
+	Interval time.Duration `yaml:"interval" mapstructure:"interval"`
+	Timeout  time.Duration `yaml:"timeout"  mapstructure:"timeout"`
+}
 
-// clampProbeGseConnTimeout returns at least 5s: empty, unparseable, or strictly less than 5s become "5s".
+// Configuration admin's configuration
+type Configuration struct {
+	Name       string           `yaml:"name"       mapstructure:"name"`
+	Version    string           `yaml:"version"    mapstructure:"version"`
+	PidFile    string           `yaml:"pidFile"    mapstructure:"pidFile"`
+	DocFileDir string           `yaml:"docFileDir" mapstructure:"docFileDir"`
+	Discovery  DiscoveryConfig  `yaml:"discovery"  mapstructure:"discovery"`
+	Apm        ApmConfig        `yaml:"apm"        mapstructure:"apm"`
+	Grpc       GrpcConfig       `yaml:"grpc"       mapstructure:"grpc"`
+	Web        WebConfig        `yaml:"web"        mapstructure:"web"`
+	DbmApis    []DbmApi         `yaml:"dbmApi"     mapstructure:"dbmApi"`
+	Storage    StorageConfig    `yaml:"storage"    mapstructure:"storage"`
+	Log        LogConfig        `yaml:"log"        mapstructure:"log"`
+	ProbeGse   ProbeGseConfig   `yaml:"probeGse"   mapstructure:"probeGse"`
+	ProbeMysql ProbeMysqlConfig `yaml:"probeMysql" mapstructure:"probeMysql"`
+	ProbeRedis ProbeRedisConfig `yaml:"probeRedis" mapstructure:"probeRedis"`
+}
+
+// clampProbeGseConnTimeout returns at least minProbeGseConnTimeout: empty,
+// unparseable, or values strictly below the minimum are rounded up.
 func clampProbeGseConnTimeout(raw string) string {
 	s := strings.TrimSpace(raw)
 	if s == "" {
-		return "5s"
+		return minProbeGseConnTimeout.String()
 	}
+
 	d, err := time.ParseDuration(s)
 	if err != nil {
 		logger.Warn("probeGse connTimeout invalid, using minimum, errmsg: %s", err)
-		return "5s"
+		return minProbeGseConnTimeout.String()
 	}
+
 	if d < minProbeGseConnTimeout {
-		return "5s"
+		return minProbeGseConnTimeout.String()
 	}
+
 	return s
 }
 
@@ -174,6 +201,7 @@ func Load(configFilePath string) error {
 	if err := viper.Unmarshal(&Cfg); err != nil {
 		return err
 	}
+
 	Cfg.ProbeGse.ConnTimeout = clampProbeGseConnTimeout(Cfg.ProbeGse.ConnTimeout)
 	return nil
 }

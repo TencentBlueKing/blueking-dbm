@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+// Package probe implements the gRPC receiver service that ingests probe push streams and forwards events to sinks.
 package probe
 
 import (
@@ -43,6 +44,7 @@ import (
 	"google.golang.org/grpc/peer"
 )
 
+// Probe is a gRPC receiver server that accepts probe data streams and dispatches them to configured sinkers.
 type Probe struct {
 	proto.UnimplementedReceiverServiceServer
 	wg     sync.WaitGroup
@@ -61,6 +63,8 @@ func NewProbeServer(cfg config.SourceConfig, outputers []sink.Sinker) (*Probe, e
 	return &Probe{cfg: cfg, savers: outputers}, nil
 }
 
+// PushData handles a client push stream until the context is canceled, EOF,
+// or a receive error; it returns nil in those cases.
 func (p *Probe) PushData(stream proto.ReceiverService_PushDataServer) error {
 	ctx := stream.Context()
 	addr, ok := peer.FromContext(ctx)
@@ -70,7 +74,10 @@ func (p *Probe) PushData(stream proto.ReceiverService_PushDataServer) error {
 		clientId = addr.Addr.String()
 	}
 
-	connHandler := &connectionHandler{savers: p.savers}
+	connHandler := &connectionHandler{
+		savers:     p.savers,
+		bufferSize: p.cfg.BufferSize,
+	}
 	connHandler.run()
 	defer connHandler.close()
 
@@ -99,22 +106,44 @@ func (p *Probe) PushData(stream proto.ReceiverService_PushDataServer) error {
 	}
 }
 
+// Run starts the gRPC server and blocks until Serve returns or the listener fails.
 func (p *Probe) Run(ctx context.Context) error {
+	serverPingTime := p.cfg.GrpcServerPingTime
+	if serverPingTime == 0 {
+		serverPingTime = constant.DefaultServerPingTime
+	}
+	pingTimeout := p.cfg.GrpcPingTimeout
+	if pingTimeout == 0 {
+		pingTimeout = constant.DefaultPingTimeout
+	}
+	keepAliveMinTime := p.cfg.GrpcKeepAliveMinTime
+	if keepAliveMinTime == 0 {
+		keepAliveMinTime = constant.DefaultKeepAliveMiniTime
+	}
+	maxRecvMsgSize := p.cfg.GrpcMaxReceiveMessageSize
+	if maxRecvMsgSize == 0 {
+		maxRecvMsgSize = constant.DefaultMaxReceiveMessageSize
+	}
+	maxSendMsgSize := p.cfg.GrpcMaxSendMessageSize
+	if maxSendMsgSize == 0 {
+		maxSendMsgSize = constant.DefaultMaxSendMessageSize
+	}
+
 	kasp := keepalive.ServerParameters{
-		Time:    constant.DefaultServerPingTime,
-		Timeout: constant.DefaultPingTimeout,
+		Time:    serverPingTime,
+		Timeout: pingTimeout,
 	}
 
 	kacp := keepalive.EnforcementPolicy{
-		MinTime:             constant.DefaultKeepAliveMiniTime,
+		MinTime:             keepAliveMinTime,
 		PermitWithoutStream: true,
 	}
 
 	svr := grpc.NewServer(
 		grpc.KeepaliveParams(kasp),
 		grpc.KeepaliveEnforcementPolicy(kacp),
-		grpc.MaxRecvMsgSize(constant.DefaultMaxReceiveMessageSize),
-		grpc.MaxSendMsgSize(constant.DefaultMaxSendMessageSize),
+		grpc.MaxRecvMsgSize(maxRecvMsgSize),
+		grpc.MaxSendMsgSize(maxSendMsgSize),
 	)
 
 	proto.RegisterReceiverServiceServer(svr, p)
@@ -129,6 +158,7 @@ func (p *Probe) Run(ctx context.Context) error {
 	return p.svr.Serve(listen)
 }
 
+// Close stops the gRPC server if it was started and waits for in-flight work registered on the wait group.
 func (p *Probe) Close() {
 	if p.svr == nil {
 		return

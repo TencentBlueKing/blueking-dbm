@@ -46,12 +46,14 @@ var Cfg = Configuration{
 
 // DiscoveryConfig discovery configuration
 type DiscoveryConfig struct {
-	Endpoint      string `yaml:"endpoint"      mapstructure:"endpoint"`
-	User          string `yaml:"user"          mapstructure:"user"`
-	Password      string `yaml:"password"      mapstructure:"password"`
-	CertFile      string `yaml:"certFile"      mapstructure:"certFile"`
-	KeyFile       string `yaml:"keyFile"       mapstructure:"keyFile"`
-	TrustedCAFile string `yaml:"trustedCAFile" mapstructure:"trustedCAFile"`
+	Endpoint             string        `yaml:"endpoint"              mapstructure:"endpoint"`
+	User                 string        `yaml:"user"                  mapstructure:"user"`
+	Password             string        `yaml:"password"              mapstructure:"password"`
+	CertFile             string        `yaml:"certFile"              mapstructure:"certFile"`
+	KeyFile              string        `yaml:"keyFile"               mapstructure:"keyFile"`
+	TrustedCAFile        string        `yaml:"trustedCAFile"         mapstructure:"trustedCAFile"`
+	ServiceTimerInterval time.Duration `yaml:"serviceTimerInterval"  mapstructure:"serviceTimerInterval"`
+	ServiceUpdateTimeout time.Duration `yaml:"serviceUpdateTimeout"  mapstructure:"serviceUpdateTimeout"`
 }
 
 // ApmConfig apm's configuration
@@ -63,16 +65,22 @@ type ApmConfig struct {
 
 // SourceConfig define the information of data input stream.
 type SourceConfig struct {
-	Name            string        `yaml:"name"            mapstructure:"name"`
-	Enable          bool          `yaml:"enable"          mapstructure:"enable"`
-	Endpoints       string        `yaml:"endpoint"        mapstructure:"endpoint"`
-	NetDialTimeout  time.Duration `yaml:"netDialTimeout"  mapstructure:"netDialTimeout"`
-	NetReadTimeout  time.Duration `yaml:"netReadTimeout"  mapstructure:"netReadTimeout"`
-	NetWriteTimeout time.Duration `yaml:"netWriteTimeout" mapstructure:"netWriteTimeout"`
-	User            string        `yaml:"user"            mapstructure:"user"`
-	Password        string        `yaml:"password"        mapstructure:"password"`
-	Mechanism       string        `yaml:"mechanism"       mapstructure:"mechanism"`
-	Topics          []string      `yaml:"topics"          mapstructure:"topics"`
+	Name                      string        `yaml:"name"                 mapstructure:"name"`
+	Enable                    bool          `yaml:"enable"               mapstructure:"enable"`
+	Endpoints                 string        `yaml:"endpoint"             mapstructure:"endpoint"`
+	NetDialTimeout            time.Duration `yaml:"netDialTimeout"       mapstructure:"netDialTimeout"`
+	NetReadTimeout            time.Duration `yaml:"netReadTimeout"       mapstructure:"netReadTimeout"`
+	NetWriteTimeout           time.Duration `yaml:"netWriteTimeout"      mapstructure:"netWriteTimeout"`
+	User                      string        `yaml:"user"                 mapstructure:"user"`
+	Password                  string        `yaml:"password"             mapstructure:"password"`
+	Mechanism                 string        `yaml:"mechanism"            mapstructure:"mechanism"`
+	Topics                    []string      `yaml:"topics"               mapstructure:"topics"`
+	BufferSize                int           `yaml:"bufferSize"           mapstructure:"bufferSize"`
+	GrpcServerPingTime        time.Duration `yaml:"grpcServerPingTime"        mapstructure:"grpcServerPingTime"`
+	GrpcPingTimeout           time.Duration `yaml:"grpcPingTimeout"           mapstructure:"grpcPingTimeout"`
+	GrpcKeepAliveMinTime      time.Duration `yaml:"grpcKeepAliveMinTime"      mapstructure:"grpcKeepAliveMinTime"`
+	GrpcMaxReceiveMessageSize int           `yaml:"grpcMaxReceiveMessageSize" mapstructure:"grpcMaxReceiveMessageSize"`
+	GrpcMaxSendMessageSize    int           `yaml:"grpcMaxSendMessageSize"    mapstructure:"grpcMaxSendMessageSize"`
 }
 
 // SinkConfig Configuration related to data storage.

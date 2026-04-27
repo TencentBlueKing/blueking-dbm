@@ -22,6 +22,8 @@
  * SOFTWARE.
  */
 
+// Package redis implements the Redis harvester plugin that collects status from
+// Redis-family backends (RedisCluster, TendisCache, TendisSSD, TendisPlus, Predixy, Twemproxy).
 package redis
 
 import (
@@ -140,6 +142,7 @@ func (r *Redis) makeCollector(epoint config.DbEndpointConfig, eport int) *collec
 	c.machineType = epoint.MachineType
 	c.clusterType = epoint.ClusterType
 
+	c.user = r.cfg.User
 	c.password = r.cfg.Password
 	c.timeout = r.cfg.Timeout
 
@@ -246,53 +249,51 @@ func (r *Redis) collecting(ctx context.Context, c *collector, dataC chan<- *plug
 		return
 	}
 
-	if c.isPredixy() {
+	r.populateOpenedDbStatus(ctx, c, status)
+}
+
+func (r *Redis) populateOpenedDbStatus(ctx context.Context, c *collector, status *haprobe.RedisStatus) {
+	switch {
+	case c.isPredixy():
 		dbStatus, err := c.obtainPredixyStatus(ctx)
 		if err != nil {
 			logger.Warn("failed to obtain the Redis(Predixy) status, errmsg: %s", err)
 			return
 		}
 		status.PredixyStatus = dbStatus
-		return
-	}
 
-	if c.isTendisCache() {
+	case c.isTendisCache():
 		dbStatus, err := c.obtainTendisCacheStatus(ctx)
 		if err != nil {
 			logger.Warn("failed to obtain the Redis(TendisCache) status, errmsg: %s", err)
 			return
 		}
 		status.TendisCacheStatus = dbStatus
-		return
-	}
 
-	if c.isTendisSSD() {
+	case c.isTendisSSD():
 		dbStatus, err := c.obtainTendisSSDStatus(ctx)
 		if err != nil {
 			logger.Warn("failed to obtain the Redis(TendisSSD) status, errmsg: %s", err)
 			return
 		}
 		status.TendisSSDStatus = dbStatus
-		return
-	}
 
-	if c.isTendisPlus() {
+	case c.isTendisPlus():
 		dbStatus, err := c.obtainTendisPlusStatus(ctx)
 		if err != nil {
 			logger.Warn("failed to obtain the Redis(TendisPlus) status, errmsg: %s", err)
 			return
 		}
 		status.TendisPlusStatus = dbStatus
-		return
-	}
 
-	// Default: RedisCluster or other Redis types
-	dbStatus, err := c.obtainRedisClusterStatus(ctx)
-	if err != nil {
-		logger.Warn("failed to obtain the Redis status, errmsg: %s", err)
-		return
+	default:
+		dbStatus, err := c.obtainRedisClusterStatus(ctx)
+		if err != nil {
+			logger.Warn("failed to obtain the Redis status, errmsg: %s", err)
+			return
+		}
+		status.RedisClusterStatus = dbStatus
 	}
-	status.RedisClusterStatus = dbStatus
 }
 
 func (r *Redis) beginCollecting(ctx context.Context, wg *sync.WaitGroup, dataC chan<- *plugin.HarvestData) {

@@ -51,6 +51,7 @@ type probeHarvesterYAML struct {
 		Endpoints []DbEndpointConfig `yaml:"endpoints"`
 	} `yaml:"mysql,omitempty"`
 	Redis *struct {
+		User      string             `yaml:"user"`
 		Password  string             `yaml:"password"`
 		Interval  string             `yaml:"interval"`
 		Timeout   string             `yaml:"timeout"`

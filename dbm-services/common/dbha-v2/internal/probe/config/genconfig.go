@@ -33,9 +33,14 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// GenProbeYAML builds full probe config YAML from gse defaults + metadata items (both returned by admin).
-func GenProbeYAML(gse probeconfig.GseConfig, metadata []probeconfig.ProbeMetadataItem) (string, error) {
-	mysqlEndpoints, redisEndpoints := buildEndpointsFromMetadata(metadata)
+// GenProbeYAML builds the full probe config YAML from the payload returned by admin
+// (gse reporter defaults, harvester credentials/timing, and per-cluster metadata).
+//
+// Harvester sections are emitted only when admin attached the matching credentials block
+// (payload.MySQL / payload.Redis) AND the metadata yields at least one matching endpoint.
+// MySQL / Redis credentials default to zero values; admin owns the source of truth.
+func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
+	mysqlEndpoints, redisEndpoints := buildEndpointsFromMetadata(payload.Metadata)
 
 	cfg := probeYAML{
 		Name:    "probe",
@@ -43,9 +48,9 @@ func GenProbeYAML(gse probeconfig.GseConfig, metadata []probeconfig.ProbeMetadat
 		PidFile: "./pids/probe.pid",
 		Reporter: probeReporterYAML{
 			Name:        "gse",
-			Endpoint:    gse.Endpoint,
-			DataID:      gse.DataID,
-			ConnTimeout: gse.ConnTimeout,
+			Endpoint:    payload.Gse.Endpoint,
+			DataID:      payload.Gse.DataID,
+			ConnTimeout: payload.Gse.ConnTimeout,
 		},
 
 		Harvester: probeHarvesterYAML{},
@@ -58,29 +63,31 @@ func GenProbeYAML(gse probeconfig.GseConfig, metadata []probeconfig.ProbeMetadat
 		},
 	}
 
-	if len(mysqlEndpoints) > 0 {
+	if payload.MySQL != nil && len(mysqlEndpoints) > 0 {
 		cfg.Harvester.MySQL = &struct {
 			User      string             `yaml:"user"`
 			Password  string             `yaml:"password"`
 			Interval  string             `yaml:"interval"`
 			Endpoints []DbEndpointConfig `yaml:"endpoints"`
 		}{
-			User:      "root",
-			Password:  "root",
-			Interval:  "20s",
+			User:      payload.MySQL.User,
+			Password:  payload.MySQL.Password,
+			Interval:  payload.MySQL.Interval,
 			Endpoints: mysqlEndpoints,
 		}
 	}
-	if len(redisEndpoints) > 0 {
+	if payload.Redis != nil && len(redisEndpoints) > 0 {
 		cfg.Harvester.Redis = &struct {
+			User      string             `yaml:"user"`
 			Password  string             `yaml:"password"`
 			Interval  string             `yaml:"interval"`
 			Timeout   string             `yaml:"timeout"`
 			Endpoints []DbEndpointConfig `yaml:"endpoints"`
 		}{
-			Password:  "",
-			Interval:  "20s",
-			Timeout:   "5s",
+			User:      payload.Redis.User,
+			Password:  payload.Redis.Password,
+			Interval:  payload.Redis.Interval,
+			Timeout:   payload.Redis.Timeout,
 			Endpoints: redisEndpoints,
 		}
 	}
@@ -125,28 +132,12 @@ func buildEndpointsFromMetadata(list []probeconfig.ProbeMetadataItem) (mysql, re
 			Ports:       ports,
 			AdminPorts:  adminPortsByKey[k],
 		}
-		if isMySQLClusterType(k.clusterType) {
+		switch {
+		case probeconfig.IsMySQLClusterType(k.clusterType):
 			mysql = append(mysql, ep)
-		} else if isRedisClusterType(k.clusterType) {
+		case probeconfig.IsRedisClusterType(k.clusterType):
 			redis = append(redis, ep)
 		}
 	}
 	return mysql, redis
-}
-
-func isMySQLClusterType(ct string) bool {
-	return ct == string(haprobe.DbmMetadataClusterTypeTendbha) ||
-		ct == string(haprobe.DbmMetadataClusterTypeTendbCluster)
-}
-
-func isRedisClusterType(ct string) bool {
-	switch haprobe.DbmMetadataClusterType(ct) {
-	case haprobe.DbmMetadataClusterTypeRedis,
-		haprobe.DbmMetadataClusterTypeTwemproxyRedis,
-		haprobe.DbmMetadataClusterTypeTwemproxyTendisSSD,
-		haprobe.DbmMetadataClusterTypePredixyTendisplusCluster,
-		haprobe.DbmMetadataClusterTypePredixyRedisCluster:
-		return true
-	}
-	return false
 }
