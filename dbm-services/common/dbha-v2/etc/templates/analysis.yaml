@@ -105,6 +105,11 @@ storage:
   password: "{{COMMON_STORAGE_PASSWORD}}"
   timeout: {{COMMON_STORAGE_TIMEOUT}}
 
+v1storage:
+  endpoint: "{{COMMON_V1STORAGE_TCP_ENDPOINT}}"
+  user: "{{COMMON_V1STORAGE_USER}}"
+  password: "{{COMMON_V1STORAGE_PASSWORD}}"
+
 log:
   path: "{{ANALYSIS_LOG_PATH}}"
   level: {{COMMON_LOG_LEVEL}}

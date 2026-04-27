@@ -55,6 +55,11 @@ COMMON_STORAGE_USER=root
 COMMON_STORAGE_PASSWORD=dbhatest
 COMMON_STORAGE_TIMEOUT=10s
 
+# v1 storage tcp endpoint/user/password shared by analysis
+COMMON_V1STORAGE_TCP_ENDPOINT=""
+COMMON_V1STORAGE_USER=root
+COMMON_V1STORAGE_PASSWORD=dbhatest
+
 # --- receiver ---
 
 # ## receiver · process and identity

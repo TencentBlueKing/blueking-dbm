@@ -483,6 +483,10 @@ func (w *Workflow) filterWhitelistedInstances(ctx context.Context, group *Failur
 		return
 	}
 
+	if len(group.Instances) == 0 {
+		return
+	}
+
 	bkBizID := group.Instances[0].BkBizID
 
 	qCtx, cancel := context.WithTimeout(ctx, config.Cfg.Storage.Timeout)
