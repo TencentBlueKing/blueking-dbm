@@ -51,14 +51,13 @@ def _payload():
         "ticket_id": "t1",
         "bk_biz_id": 100,
         "bk_cloud_id": 0,
-        "ticket_type": "MongoDBUpgradeVersionFlow",
+        "ticket_type": "MONGODB_UPGRADE_VERSION",
         "created_by": "tester",
         "infos": [
             {
                 "cluster_id_list": [1],
                 "current_version": "3.4.0",
                 "dest_version": "3.6.0",
-                "upgrade_type": "major",
                 "strategy": "rolling",
                 "bk_cloud_id": 0,
             }
@@ -165,7 +164,6 @@ def test_reject_inconsistent_upgrade_path_across_clusters(monkeypatch):
             "cluster_id_list": [2],
             "current_version": "4.4.0",
             "dest_version": "5.0.0",
-            "upgrade_type": "major",
             "strategy": "rolling",
             "bk_cloud_id": 0,
         }

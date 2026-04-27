@@ -55,7 +55,6 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
             cluster_id_list = serializers.ListField(child=serializers.IntegerField(min_value=1), allow_empty=False)
             current_version = serializers.CharField()
             dest_version = serializers.CharField()
-            upgrade_type = serializers.ChoiceField(choices=["major", "minor"])
             strategy = serializers.ChoiceField(choices=["rolling", "full_stop"])
             bk_cloud_id = serializers.IntegerField()
 
@@ -68,7 +67,7 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
         ticket_id = serializers.CharField()
         bk_biz_id = serializers.IntegerField()
         bk_cloud_id = serializers.IntegerField()
-        ticket_type = serializers.ChoiceField(choices=["MongoDBUpgradeVersionFlow"])
+        ticket_type = serializers.ChoiceField(choices=["MONGODB_UPGRADE_VERSION"])
         created_by = serializers.CharField()
         infos = InfoRow(many=True, allow_empty=False)
 
