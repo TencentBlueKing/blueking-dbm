@@ -952,8 +952,6 @@
         details: getDetails(),
       };
 
-      console.log(params);
-
       // 如果英文名为空新增业务英文名称接口，创建单据
       if (bizState.hasEnglishName) {
         handleCreateTicket(params);
