@@ -31,6 +31,7 @@ import (
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/apm"
+	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/mysql"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchcore"
@@ -424,14 +425,24 @@ func (m *Mysql) ClusterLevelSwitch(ctx context.Context, switchLoggers []switchlo
 	}
 
 	clusterGroup := m.buildClusterGroup(req)
-	var wg sync.WaitGroup
+	maxConcurrency := config.Cfg.Workflow.ClusterLevelSwitchMaxClusterNum
+	if maxConcurrency <= 0 {
+		logger.Warn("max cluster number(%d) for cluster level switch is invalid, using default %d",
+			maxConcurrency, ClusterLevelSwitchDefaultMaxClusterNum)
+		maxConcurrency = ClusterLevelSwitchDefaultMaxClusterNum
+	}
 
-	// parallelize the processing of the same cluster
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, maxConcurrency)
+
+	// parallelize cluster-level switch (bounded by workflow.clusterLevelSwitchMaxClusterNum)
 	for clusterKey, instDataMap := range clusterGroup {
 		wg.Add(1)
+		sem <- struct{}{}
 
 		go func(clusterKey switchcore.ClusterKey, instDataMap switchcore.InstMetadataMap) {
 			defer wg.Done()
+			defer func() { <-sem }()
 
 			swReporter := NewSwitchReporter(switchLoggers, instDataMap, req.SwitchID, req.ActionScope)
 			swReporter.ReportSwitchLogf(switchlogger.SwitchInfo, "start to switch current instance in cluster level")
