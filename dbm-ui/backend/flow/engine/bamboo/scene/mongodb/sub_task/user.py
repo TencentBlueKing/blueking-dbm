@@ -51,13 +51,14 @@ def user(
 
     # 创建或删除用户
     kwargs = sub_get_kwargs.get_user_kwargs(create=create, admin_user=MongoDBManagerUser.DbaUser.value, info=info)
+    user_with_db = "{}@{}".format(info["username"], info["auth_db"])
     if create:
-        act_name = _("MongoDB-cluster_id:{}-创建用户:{}".format(str(cluster_id), info["username"]))
+        act_name = _("MongoDB-cluster_id:{}-创建用户:{}".format(str(cluster_id), user_with_db))
         sub_name = _(
             "MongoDB--创建用户--cluster_id:{}-{}".format(str(cluster_id), sub_get_kwargs.payload["hosts"][0]["ip"])
         )
     else:
-        act_name = _("MongoDB-cluster_id:{}-删除用户:{}".format(str(cluster_id), info["username"]))
+        act_name = _("MongoDB-cluster_id:{}-删除用户:{}".format(str(cluster_id), user_with_db))
         sub_name = _(
             "MongoDB--删除用户--cluster_id:{}-{}".format(str(cluster_id), sub_get_kwargs.payload["hosts"][0]["ip"])
         )

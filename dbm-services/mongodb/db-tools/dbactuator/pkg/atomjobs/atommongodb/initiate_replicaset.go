@@ -3,9 +3,12 @@ package atommongodb
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/common"
@@ -39,6 +42,8 @@ type InitiateReplicaset struct {
 	ConfParams      *InitConfParams
 	ClusterId       string
 	StatusChan      chan int
+	signalMu        sync.Mutex
+	primarySignaled bool
 }
 
 // NewInitiateReplicaset 实例化结构体
@@ -53,6 +58,16 @@ func (i *InitiateReplicaset) Name() string {
 
 // Run 运行原子任务
 func (i *InitiateReplicaset) Run() error {
+	if i.ConfParams == nil {
+		return fmt.Errorf("initiateReplicaset: ConfParams is nil")
+	}
+
+	// 如果任何一个成员上复制集已就绪，则跳过后续 initiate（不必再写脚本、执行 rs.initiate）。
+	if i.checkIfAnyNodeInitialized() {
+		i.runtime.Logger.Info("some node has been initialized, skip initiate replicaset")
+		return nil
+	}
+
 	// 获取配置内容
 	if err := i.makeConfContent(); err != nil {
 		return err
@@ -68,8 +83,13 @@ func (i *InitiateReplicaset) Run() error {
 		return err
 	}
 
+	// checkStatus 轮询前先尝试一次获取 primary，降低初始化瞬时超时报错概率。
+	primaryFound := i.tryFindPrimaryBeforeCheckStatus()
+
 	// 检查状态
-	go i.checkStatus()
+	if !primaryFound {
+		go i.checkStatus()
+	}
 
 	// 获取状态
 	if err := i.getStatus(); err != nil {
@@ -77,6 +97,70 @@ func (i *InitiateReplicaset) Run() error {
 	}
 
 	return nil
+}
+
+// checkIfAnyNodeInitialized 遍历 members，任一节点的 repl 已选举出属于本列表的 primary 即视为复制集已初始化。
+func (i *InitiateReplicaset) checkIfAnyNodeInitialized() bool {
+	for _, hp := range i.ConfParams.Ips {
+		host, portStr, err := net.SplitHostPort(hp)
+		if err != nil {
+			i.runtime.Logger.Warn("checkIfAnyNodeInitialized: invalid member address %s, error:%s", hp, err)
+			continue
+		}
+		port, err := strconv.Atoi(portStr)
+		if err != nil {
+			i.runtime.Logger.Warn("checkIfAnyNodeInitialized: invalid port in %s, error:%s", hp, err)
+			continue
+		}
+		primary, err := common.InitiateReplicasetGetPrimaryInfo(i.Mongo, host, port)
+		if err != nil {
+			i.runtime.Logger.Warn("checkIfAnyNodeInitialized: probe member %s fail, error:%s", hp, err)
+			continue
+		}
+		if primary == "" {
+			continue
+		}
+		for _, member := range i.ConfParams.Ips {
+			if member == primary {
+				i.runtime.Logger.Info(
+					"checkIfAnyNodeInitialized: replica set already up, primary:%s (probed via %s)", primary, hp)
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (i *InitiateReplicaset) tryFindPrimaryBeforeCheckStatus() bool {
+	i.runtime.Logger.Info("try to find primary before checkStatus")
+	result, err := common.NoAuthGetPrimaryInfo(i.Mongo, i.ConfParams.IP, i.ConfParams.Port)
+	if err != nil {
+		i.runtime.Logger.Warn("pre-check primary lookup failed before checkStatus, error:%s", err)
+		return false
+	}
+	if result == "" {
+		i.runtime.Logger.Warn("pre-check primary lookup returned empty before checkStatus")
+		return false
+	}
+	i.runtime.Logger.Info("pre-check found primary:%s before checkStatus", result)
+	i.signalPrimaryReadyOnce()
+	return true
+}
+
+// signalPrimaryReadyOnce 向 StatusChan 发送就绪信号，可重入：仅发送一次，且避免阻塞（channel 已满时跳过）。
+func (i *InitiateReplicaset) signalPrimaryReadyOnce() {
+	i.signalMu.Lock()
+	defer i.signalMu.Unlock()
+	if i.primarySignaled {
+		return
+	}
+	select {
+	case i.StatusChan <- 1:
+		i.primarySignaled = true
+		i.runtime.Logger.Info("replica set primary ready signal sent")
+	default:
+		i.runtime.Logger.Warn("replica set primary ready signal skipped (channel busy or already signaled)")
+	}
 }
 
 // Retry 重试
@@ -94,15 +178,16 @@ func (i *InitiateReplicaset) Init(runtime *jobruntime.JobGenericRuntime) error {
 	// 获取安装参数
 	i.runtime = runtime
 	i.runtime.Logger.Info("start to init")
-	i.BinDir = consts.UsrLocal
+	i.BinDir = consts.GetMongoBinDir()
 	i.Mongo = filepath.Join(i.BinDir, "mongodb", "bin", "mongo")
 	i.OsUser = consts.GetProcessUser()
 	i.StatusChan = make(chan int, 1)
+	i.primarySignaled = false
 
 	// 获取MongoDB配置文件参数
 	if err := json.Unmarshal([]byte(i.runtime.PayloadDecoded), &i.ConfParams); err != nil {
-		i.runtime.Logger.Error(fmt.Sprintf(
-			"get parameters of initiateReplicaset fail by json.Unmarshal, error:%s", err))
+		i.runtime.Logger.Error(
+			"get parameters of initiateReplicaset fail by json.Unmarshal, error:%s", err)
 		return fmt.Errorf("get parameters of initiateReplicaset fail by json.Unmarshal, error:%s", err)
 	}
 	i.ClusterId = i.ConfParams.SetId
@@ -123,7 +208,7 @@ func (i *InitiateReplicaset) checkParams() error {
 	validate := validator.New()
 	i.runtime.Logger.Info("start to validate parameters of initiateReplicaset")
 	if err := validate.Struct(i.ConfParams); err != nil {
-		i.runtime.Logger.Error(fmt.Sprintf("validate parameters of initiateReplicaset fail, error:%s", err))
+		i.runtime.Logger.Error("validate parameters of initiateReplicaset fail, error:%s", err)
 		return fmt.Errorf("validate parameters of initiateReplicaset fail, error:%s", err)
 	}
 	i.runtime.Logger.Info("validate parameters of initiateReplicaset successfully")
@@ -135,15 +220,17 @@ func (i *InitiateReplicaset) makeConfContent() error {
 	i.runtime.Logger.Info("start to make config content of initiateReplicaset")
 	jsonConfReplicaset := common.NewJsonConfReplicaset()
 	jsonConfReplicaset.Id = i.ClusterId
+	localMember := fmt.Sprintf("%s:%d", i.ConfParams.IP, i.ConfParams.Port)
 	for index, value := range i.ConfParams.Ips {
 		member := common.NewMember()
 		member.Id = index
-		member.Host = i.ConfParams.Ips[index]
-		if index == 0 {
-			member.Priority = i.ConfParams.Priority[value] + 1
-		} else {
-			member.Priority = i.ConfParams.Priority[value]
+		member.Host = value
+		prio := i.ConfParams.Priority[value]
+		// 提高当前执行节点的 priority，避免因 ips 数组顺序与执行节点不一致时选主错误。
+		if value == localMember {
+			prio++
 		}
+		member.Priority = prio
 		member.Hidden = i.ConfParams.Hidden[value]
 		jsonConfReplicaset.Members = append(jsonConfReplicaset.Members, member)
 	}
@@ -153,8 +240,8 @@ func (i *InitiateReplicaset) makeConfContent() error {
 	confJson, err := json.Marshal(jsonConfReplicaset)
 	if err != nil {
 		i.runtime.Logger.Error(
-			fmt.Sprintf("config content of initiateReplicaset json Marshal fial, error:%s", err))
-		return fmt.Errorf("config content of initiateReplicaset json Marshal fial, error:%s", err)
+			"config content of initiateReplicaset json Marshal fail, error:%s", err)
+		return fmt.Errorf("config content of initiateReplicaset json Marshal fail, error:%s", err)
 	}
 	i.ConfFileContent = strings.Join([]string{"var config=",
 		string(confJson), "\n", "rs.initiate(config)\n"}, "")
@@ -167,17 +254,16 @@ func (i *InitiateReplicaset) makeConfContent() error {
 func (i *InitiateReplicaset) createInitiateReplicasetScript() error {
 	i.runtime.Logger.Info("start to create initiateReplicaset script")
 	confFile, err := os.OpenFile(i.ConfFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, DefaultPerm)
-	defer confFile.Close()
 	if err != nil {
 		i.runtime.Logger.Error(
-			fmt.Sprintf("create script file of initiateReplicaset json Marshal fail, error:%s", err))
-		return fmt.Errorf("create script file of initiateReplicaset json Marshal fail, error:%s", err)
+			"create script file of initiateReplicaset open fail, error:%s", err)
+		return fmt.Errorf("create script file of initiateReplicaset open fail, error:%s", err)
 	}
+	defer confFile.Close()
 
 	if _, err = confFile.WriteString(i.ConfFileContent); err != nil {
 		i.runtime.Logger.Error(
-			fmt.Sprintf("create script file of initiateReplicaset write content fail, error:%s",
-				err))
+			"create script file of initiateReplicaset write content fail, error:%s", err)
 		return fmt.Errorf("create script file of initiateReplicaset write content fail, error:%s",
 			err)
 	}
@@ -190,7 +276,7 @@ func (i *InitiateReplicaset) getPrimaryInfo() (bool, error) {
 	i.runtime.Logger.Info("start to check replicaset status")
 	result, err := common.InitiateReplicasetGetPrimaryInfo(i.Mongo, i.ConfParams.IP, i.ConfParams.Port)
 	if err != nil {
-		i.runtime.Logger.Error(fmt.Sprintf("get initiateReplicaset primary info fail, error:%s", err))
+		i.runtime.Logger.Error("get initiateReplicaset primary info fail, error:%s", err)
 		return false, fmt.Errorf("get initiateReplicaset primary info fail, error:%s", err)
 	}
 	i.runtime.Logger.Info("check replicaset status successfully")
@@ -208,11 +294,13 @@ func (i *InitiateReplicaset) checkStatus() {
 	for {
 		result, err := common.NoAuthGetPrimaryInfo(i.Mongo, i.ConfParams.IP, i.ConfParams.Port)
 		if err != nil {
-			i.runtime.Logger.Error("check replicaset status fail, error:%s", err)
-			panic(fmt.Sprintf("check replicaset status fail, error:%s\n", err.Error()))
+			i.runtime.Logger.Warn("check replicaset status fail, retrying, error:%s", err)
+			time.Sleep(2 * time.Second)
+			continue
 		}
 		if result != "" {
-			i.StatusChan <- 1
+			i.signalPrimaryReadyOnce()
+			return
 		}
 		time.Sleep(2 * time.Second)
 	}
@@ -231,6 +319,7 @@ func (i *InitiateReplicaset) execScript() error {
 			return err
 		}
 
+		i.signalPrimaryReadyOnce()
 		return nil
 	}
 
@@ -251,6 +340,7 @@ func (i *InitiateReplicaset) execScript() error {
 
 // getStatus 检查复制集状态，是否创建成功
 func (i *InitiateReplicaset) getStatus() error {
+	timeout := time.After(10 * time.Minute)
 	for {
 		select {
 		case status := <-i.StatusChan:
@@ -262,8 +352,10 @@ func (i *InitiateReplicaset) getStatus() error {
 				}
 				return nil
 			}
+		case <-timeout:
+			return fmt.Errorf("initiate replicaset timeout: no primary elected within 10 minutes")
 		default:
-
+			time.Sleep(200 * time.Millisecond)
 		}
 	}
 }
@@ -273,7 +365,7 @@ func (i *InitiateReplicaset) removeScript() error {
 	// 删除脚本
 	i.runtime.Logger.Info("start to remove initiateReplicaset script")
 	if err := common.RemoveFile(i.ConfFilePath); err != nil {
-		i.runtime.Logger.Error(fmt.Sprintf("remove initiateReplicaset script fail, error:%s", err))
+		i.runtime.Logger.Error("remove initiateReplicaset script fail, error:%s", err)
 		return fmt.Errorf("remove initiateReplicaset script fail, error:%s", err)
 	}
 	i.runtime.Logger.Info("remove initiateReplicaset script successfully")

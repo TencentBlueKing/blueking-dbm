@@ -5,7 +5,7 @@ import "encoding/json"
 // JsonConfReplicaset 复制集配置
 type JsonConfReplicaset struct {
 	Id        string    `json:"_id"`
-	ConfigSvr bool      `json:"configsvr"`
+	ConfigSvr bool      `json:"configsvr,omitempty"`
 	Members   []*Member `json:"members"`
 }
 

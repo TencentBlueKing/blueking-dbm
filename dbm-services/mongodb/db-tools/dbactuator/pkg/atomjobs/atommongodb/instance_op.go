@@ -294,7 +294,7 @@ func (s *instOpJob) doPrecheckUpgrade() error {
 	if s.ConfParams.CurrentVersion == "" {
 		return fmt.Errorf("currentVersion is required for precheck_upgrade")
 	}
-	mongoBin := filepath.Join(consts.UsrLocal, "mongodb", "bin", "mongo")
+	mongoBin := filepath.Join(consts.GetMongoBinDir(), "mongodb", "bin", "mongo")
 	expectedMajor := versionMajorMinor(s.ConfParams.CurrentVersion)
 	ip := s.ConfParams.IP
 	port := s.ConfParams.Port

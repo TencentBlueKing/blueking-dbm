@@ -70,7 +70,7 @@ func (s *StepDown) Init(runtime *jobruntime.JobGenericRuntime) error {
 	// 获取安装参数
 	s.runtime = runtime
 	s.runtime.Logger.Info("start to init")
-	s.BinDir = consts.UsrLocal
+	s.BinDir = consts.GetMongoBinDir()
 	s.Mongo = filepath.Join(s.BinDir, "mongodb", "bin", "mongo")
 	s.OsUser = consts.GetProcessUser()
 

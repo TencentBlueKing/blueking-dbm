@@ -83,7 +83,7 @@ func (b *Balancer) Init(runtime *jobruntime.JobGenericRuntime) error {
 	// 获取安装参数
 	b.runtime = runtime
 	b.runtime.Logger.Info("start to init")
-	b.BinDir = consts.UsrLocal
+	b.BinDir = consts.GetMongoBinDir()
 	b.Mongo = filepath.Join(b.BinDir, "mongodb", "bin", "mongo")
 	b.OsUser = consts.GetProcessUser()
 

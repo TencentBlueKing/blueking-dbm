@@ -67,6 +67,8 @@ func (d *DeInstall) Run() error {
 	// 关闭进程
 	if err := d.shutdownProcess(); err != nil {
 		return err
+	} else {
+		d.runtime.Logger.Info("shutdown service successfully")
 	}
 
 	// rename目录
@@ -92,7 +94,7 @@ func (d *DeInstall) Init(runtime *jobruntime.JobGenericRuntime) error {
 	// 获取安装参数
 	d.runtime = runtime
 	d.runtime.Logger.Info("start to init")
-	d.BinDir = consts.UsrLocal
+	d.BinDir = consts.GetMongoBinDir()
 	d.DataDir = consts.GetMongoDataDir()
 	d.BackupDir = consts.GetMongoBackupDir()
 
@@ -111,18 +113,10 @@ func (d *DeInstall) Init(runtime *jobruntime.JobGenericRuntime) error {
 	strPort := strconv.Itoa(d.ConfParams.Port)
 	d.PortDir = filepath.Join(d.DataDir, "mongodata", strPort)
 	d.DbpathDir = filepath.Join(d.DataDir, "mongodata", strPort, "db")
-	strTime := time.Now().Format("2006-01-02")
-	if d.ConfParams.SetId == "" {
-		d.DbPathRenameDir = filepath.Join(d.DataDir, "mongodata", fmt.Sprintf("%s_%d_%s_removed",
-			d.ConfParams.InstanceType, d.ConfParams.Port, strTime))
-		d.LogPathRenameDir = filepath.Join(d.BackupDir, "mongolog", fmt.Sprintf("%s_%d_%s_removed",
-			d.ConfParams.InstanceType, d.ConfParams.Port, strTime))
-	} else {
-		d.DbPathRenameDir = filepath.Join(d.DataDir, "mongodata", fmt.Sprintf("%s_%s_%d_%s_removed",
-			d.ConfParams.InstanceType, d.ConfParams.SetId, d.ConfParams.Port, strTime))
-		d.LogPathRenameDir = filepath.Join(d.BackupDir, "mongolog", fmt.Sprintf("%s_%s_%d_%s_removed",
-			d.ConfParams.InstanceType, d.ConfParams.SetId, d.ConfParams.Port, strTime))
-	}
+	strTime := time.Now().Format("20060102150405")
+	renameDirName := fmt.Sprintf("removed_%d_%s", d.ConfParams.Port, strTime)
+	d.DbPathRenameDir = filepath.Join(d.DataDir, "mongodata", renameDirName)
+	d.LogPathRenameDir = filepath.Join(d.BackupDir, "mongolog", renameDirName)
 	d.IPInfo = strings.Join(d.ConfParams.NodeInfo, "|")
 	d.LogPortDir = filepath.Join(d.BackupDir, "mongolog", strPort)
 
@@ -195,6 +189,7 @@ func (d *DeInstall) shutdownProcess() error {
 
 		// 关闭进程（deinstall场景: 30秒未退出则kill -9兜底）
 		if err := common.ShutdownMongoProcess(
+			d.runtime.Logger,
 			d.ConfParams.Port,
 			30*time.Second,
 			true,
@@ -212,11 +207,12 @@ func (d *DeInstall) DirRename() error {
 	// renameDb数据目录
 	// 关闭进程后不重命名目录
 	if d.ConfParams.RenameDir == false {
+		d.runtime.Logger.Info("rename directory is disabled")
 		return nil
 	}
 	flag := util.FileExists(d.PortDir)
 	if flag == true {
-		d.runtime.Logger.Info("start to rename db directory")
+		d.runtime.Logger.Info("start to rename db directory %s to %s", d.PortDir, d.DbPathRenameDir)
 		cmd := fmt.Sprintf(
 			"mv %s %s",
 			d.PortDir, d.DbPathRenameDir)
@@ -227,12 +223,14 @@ func (d *DeInstall) DirRename() error {
 			d.runtime.Logger.Error("rename db directory fail, error:%s", err)
 			return fmt.Errorf("rename db directory fail, error:%s", err)
 		}
+	} else {
+		d.runtime.Logger.Info("db directory %s not exists, skip rename", d.PortDir)
 	}
 
 	// renameDb日志目录
 	flag = util.FileExists(d.LogPortDir)
 	if flag == true {
-		d.runtime.Logger.Info("start to rename log directory")
+		d.runtime.Logger.Info("start to rename log directory %s to %s", d.LogPortDir, d.LogPathRenameDir)
 		cmd := fmt.Sprintf(
 			"mv %s %s",
 			d.LogPortDir, d.LogPathRenameDir)
@@ -243,6 +241,8 @@ func (d *DeInstall) DirRename() error {
 			d.runtime.Logger.Error("rename log directory fail, error:%s", err)
 			return fmt.Errorf("rename log directory fail, error:%s", err)
 		}
+	} else {
+		d.runtime.Logger.Info("log directory %s not exists, skip rename", d.LogPortDir)
 	}
 
 	return nil

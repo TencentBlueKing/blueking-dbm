@@ -108,7 +108,7 @@ func (e *ExecScript) Init(runtime *jobruntime.JobGenericRuntime) error {
 	// 获取安装参数
 	e.runtime = runtime
 	e.runtime.Logger.Info("start to init")
-	e.BinDir = consts.UsrLocal
+	e.BinDir = consts.GetMongoBinDir()
 	e.OsUser = consts.GetProcessUser()
 	e.OsGroup = consts.GetProcessUserGroup()
 

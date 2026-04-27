@@ -75,7 +75,7 @@ func (n *NodeHidden) Init(runtime *jobruntime.JobGenericRuntime) error {
 	// 获取参数
 	n.runtime = runtime
 	n.runtime.Logger.Info("start to init")
-	n.BinDir = consts.UsrLocal
+	n.BinDir = consts.GetMongoBinDir()
 	n.Mongo = filepath.Join(n.BinDir, "mongodb", "bin", "mongo")
 	n.OsUser = consts.GetProcessUser()
 

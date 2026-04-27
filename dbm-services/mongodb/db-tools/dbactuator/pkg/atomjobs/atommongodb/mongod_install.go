@@ -37,10 +37,16 @@ import (
 const MongoDBPortMin = 27000
 
 // MongoDBPortMax MongoDB最大端口
-const MongoDBPortMax = 28999
+const MongoDBPortMax = 29999
 
 // DefaultPerm 创建目录、文件的默认权限
 const DefaultPerm = 0755
+
+const (
+	installFileLockWaitTimeout  = 5 * time.Minute
+	installFileLockLogInterval  = 10 * time.Second
+	installFileLockRetryBackoff = 1 * time.Second
+)
 
 // MongoDBConfParams 配置文件参数
 type MongoDBConfParams struct {
@@ -144,7 +150,7 @@ func (m *MongoDBInstall) Init(runtime *jobruntime.JobGenericRuntime) error {
 	// 获取安装参数
 	m.runtime = runtime
 	m.runtime.Logger.Info("start to init")
-	m.BinDir = consts.UsrLocal
+	m.BinDir = consts.GetMongoBinDir()
 	m.BackupDir = consts.GetMongoBackupDir()
 	m.DataDir = consts.GetMongoDataDir()
 	m.OsUser = consts.GetProcessUser()
@@ -386,30 +392,42 @@ func (m *MongoDBInstall) unTarAndCreateSoftLink() error {
 	// 解压安装包并授权
 	// 安装多实例并发执行添加文件锁
 	m.runtime.Logger.Info("start to get install file lock")
-	fileLock := common.NewFileLock(m.LockFilePath)
-	// 获取锁
-	err := fileLock.Lock()
+	fileLock, err := common.NewFileLock(m.LockFilePath)
 	if err != nil {
-		for {
-			err = fileLock.Lock()
-			if err != nil {
-				time.Sleep(1 * time.Second)
-				continue
-			}
+		return fmt.Errorf("create install file lock fail, lock_file:%s, err:%v", m.LockFilePath, err)
+	}
+	// 获取锁（带超时，避免无限等待）
+	startAt := time.Now()
+	nextLogAt := startAt.Add(installFileLockLogInterval)
+	for {
+		err = fileLock.Lock()
+		if err == nil {
 			m.runtime.Logger.Info("get install file lock successfully")
 			break
 		}
-	} else {
-		m.runtime.Logger.Info("get install file lock successfully")
+		if time.Now().After(startAt.Add(installFileLockWaitTimeout)) {
+			return fmt.Errorf("get install file lock timeout after %s, lock_file:%s, last_err:%v",
+				installFileLockWaitTimeout, m.LockFilePath, err)
+		}
+		if time.Now().After(nextLogAt) {
+			m.runtime.Logger.Warn("waiting install file lock, lock_file:%s, elapsed:%s, err:%v",
+				m.LockFilePath, time.Since(startAt), err)
+			nextLogAt = time.Now().Add(installFileLockLogInterval)
+		}
+		time.Sleep(installFileLockRetryBackoff)
 	}
+	defer func() {
+		if unlockErr := fileLock.UnLock(); unlockErr != nil {
+			m.runtime.Logger.Warn("release install file lock fail, lock_file:%s, err:%v", m.LockFilePath, unlockErr)
+		} else {
+			m.runtime.Logger.Info("release install file lock successfully")
+		}
+	}()
 
 	if err = common.UnTarAndCreateSoftLinkAndChown(m.runtime, m.BinDir,
 		m.InstallPackagePath, unTarPath, installPath, m.OsUser, m.OsGroup); err != nil {
 		return err
 	}
-	// 释放锁
-	_ = fileLock.UnLock()
-	m.runtime.Logger.Info("release install file lock successfully")
 
 	// 检查mongod版本
 	m.runtime.Logger.Info("start to check mongod version")

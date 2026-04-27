@@ -82,7 +82,7 @@ func (a *AddShardToCluster) Init(runtime *jobruntime.JobGenericRuntime) error {
 	// 获取安装参数
 	a.runtime = runtime
 	a.runtime.Logger.Info("start to init")
-	a.BinDir = consts.UsrLocal
+	a.BinDir = consts.GetMongoBinDir()
 	a.Mongo = filepath.Join(a.BinDir, "mongodb", "bin", "mongo")
 	a.ConfFilePath = filepath.Join("/", "tmp", "addShardToCluster.js")
 	a.OsUser = consts.GetProcessUser()

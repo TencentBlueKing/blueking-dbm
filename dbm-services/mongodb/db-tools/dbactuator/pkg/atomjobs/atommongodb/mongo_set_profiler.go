@@ -79,7 +79,7 @@ func (s *SetProfiler) Init(runtime *jobruntime.JobGenericRuntime) error {
 	// 获取安装参数
 	s.runtime = runtime
 	s.runtime.Logger.Info("start to init")
-	s.BinDir = consts.UsrLocal
+	s.BinDir = consts.GetMongoBinDir()
 	s.OsUser = consts.GetProcessUser()
 
 	// 获取MongoDB配置文件参数
