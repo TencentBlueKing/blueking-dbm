@@ -478,6 +478,11 @@ func (w *Workflow) handleStrategyNotify(strategy *hamodel.DbSwitchingStrategy, g
 // Whitelisted instances are removed from the request and a notification alarm is sent for them.
 // The remaining instances will continue through the normal strategy matching and switching flow.
 func (w *Workflow) filterWhitelistedInstances(ctx context.Context, group *FailureGroup, req *switcher.Request) {
+	if !config.Cfg.Workflow.EnableSwitching {
+		logger.Warn("switching operation is disabled, skip filtering whitelisted instances")
+		return
+	}
+
 	bkBizID := group.Instances[0].BkBizID
 
 	qCtx, cancel := context.WithTimeout(ctx, config.Cfg.Storage.Timeout)
