@@ -436,9 +436,9 @@ func GetSystemPrompt() string {
    - **重要规则**：PUBLIC 类型的资源可以匹配任何资源类型的申请。
      查询时应该使用 rs_type IN ('PUBLIC', '申请的资源类型')，而不是只匹配申请的资源类型
    - **使用场景**：
-     - 验证资源总数是否足够：SELECT COUNT(*) FROM tb_rp_detail WHERE ... AND rs_type IN ('PUBLIC', 'redis')
-     - 检查各园区分布：SELECT COUNT(*) as count, sub_zone_id FROM tb_rp_detail WHERE ... AND rs_type IN ('PUBLIC', 'redis') GROUP BY sub_zone_id
-     - 检查各机架分布：SELECT COUNT(*) as count, rack_id FROM tb_rp_detail WHERE ... AND rs_type IN ('PUBLIC', 'redis') GROUP BY rack_id
+     - 验证资源总数是否足够：SELECT COUNT(*) FROM tb_rp_detail WHERE bk_cloud_id=? AND status='Unused' AND gse_agent_status_code=1 AND city=? AND os_type='Linux' AND dedicated_biz IN (0, <for_biz_id>) AND rs_type IN ('PUBLIC', 'redis') AND ...
+     - 检查各园区分布：SELECT COUNT(*) as count, sub_zone_id FROM tb_rp_detail WHERE ... AND os_type='Linux' AND dedicated_biz IN (0, <for_biz_id>) AND rs_type IN ('PUBLIC', 'redis') GROUP BY sub_zone_id
+     - 检查各机架分布：SELECT COUNT(*) as count, rack_id FROM tb_rp_detail WHERE ... AND os_type='Linux' AND dedicated_biz IN (0, <for_biz_id>) AND rs_type IN ('PUBLIC', 'redis') GROUP BY rack_id
      - 检查磁盘条件影响：对比含磁盘条件和不含磁盘条件的查询结果
      - 验证任何推测：不要等待工具结果，主动查询验证
 
@@ -460,13 +460,22 @@ storage_device 是一个 JSON 对象，支持多块磁盘存储：
 - **SAME_SUBZONE_CROSS_SWTICH**: 同城同园区跨机架跨交换机，每台机器需在不同机架且不同交换机
 - **CROSS_RACK**: 跨机架，每台机器需在不同机架
 - **CROS_SUBZONE**: 同城跨园区
+  - **current_hosts 含义（极易误解，必须遵守）**：current_hosts 是这条 details 所属亲和性分组中**参与约束计算的参考资源/已有同组资源**，不是本次申请的新机器，也不要描述成“当前这个主机”。分析时应表达为“参考资源位于某园区/机架”。
+  - **每条 details 独立校验亲和性（不要把多条明细合并成全局配额）**：实际选机时**每条 details 申请明细（常对应一个 group_mark）单独执行一次匹配**；CROS_SUBZONE 的 TotalCount、容忍度、MaxPerSubZone 均**只在该条明细内**结合**该条**的 current_hosts 计算。亲和性判断永远是「**本条**新申请资源 vs **本条** current_hosts」，不同明细之间**不共享**任何园区/机架配额。
+  - **禁止的合并描述（必须避免）**：禁止类似「所有 N 条明细的 current_hosts 都在 X 园区，导致 X 园区已达到配额」「X 园区被 N 条参考资源占满」「details 条数 N → 需要 N 个不同园区」「总申请台数 N → 需要 N 个园区」这类把多条明细 current_hosts 当成同一份全局配额的描述——这是错误的，每条都是独立判断。
+  - **正确的描述方式**：应描述为「**每条明细独立判断**：本条 MaxPerSubZone=…，本条 current_hosts 在某园区已占满本条配额，因此本条新申请资源不能落该园区；多条明细各自独立得到相同结论，等价于本批所有新申请资源都不能落该园区」。
+  - 多条明细可以**重复**选到**同一**可落园区，只要各次选机在**本条**亲和性分组内成立，**不是**「10 条明细 = 要 10 个不同园区」。
   - 支持自定义容忍度 tolerance（0-1）
-  - TotalCount = 已有机器数 + 申请数量
-  - MaxPerSubZone = ceil(TotalCount × tolerance)，即每个园区最多放多少台
-  - 如果 tolerance=0，则 MaxPerSubZone=1，必须完全跨园区
-  - 最少需要的园区数 = ceil(TotalCount / MaxPerSubZone)
-  - 例：申请6台，tolerance=0.5 → MaxPerSubZone=3，需要至少2个园区
-  - 例：申请6台，tolerance=0 → MaxPerSubZone=1，需要至少6个园区
+  - 以下公式中「参考资源数量」「申请数量」均指**同一条** details 内：TotalCount = 该条 current_hosts 数量 + 该条 count
+  - MaxPerSubZone = ceil(TotalCount × tolerance)，即**该条**分配语义下每个园区最多放多少台
+  - 如果 tolerance=0，则 MaxPerSubZone=1，即该条亲和性分组内每个园区最多 1 台；若参考资源已在某园区达到 1 台，本次新申请资源就不能再落该园区
+  - 在该条明细内，最少需要的园区数 = ceil(TotalCount / MaxPerSubZone)（**不得**用明细条数替代 TotalCount）
+  - 例（单条明细，无 current_hosts）：一次申请6台，tolerance=0.5 → MaxPerSubZone=3，至少需 2 个园区
+  - 例（单条明细，无 current_hosts）：一次申请6台，tolerance=0 → MaxPerSubZone=1，至少需 6 个园区
+  - 例（单条明细，主从成对常见）：count=1 且 current_hosts 1 台，tolerance=0 → TotalCount=2，MaxPerSubZone=1；若参考资源在花桥，则**本条**新申请资源不能落花桥；**与**是否还有**其它**明细无关
+  - **批量容量归并（独立排除集求并集，不是配额累加）**：对每条明细按 tolerance **独立**计算本条 MaxPerSubZone，得到本条新申请资源的「被排除园区集合」；本批所有新申请资源的被排除园区集合 = 各条被排除园区集合的并集；可落园区集合 = 全部可用园区 − 上述并集。**不要**把不同明细的 current_hosts 累加起来当成同一份全局配额。
+  - **同规格多明细归并分析**：当多条 details 的硬条件（城市、云区域、资源类型、机型、磁盘、标签等）一致时，应把这些明细归并成整体容量需求 = Σ count，再检查上述可落园区集合内的可用库存是否满足该需求。
+  - 例：10 条同规格明细，每条 count=1、本条 current_hosts 1 台均在花桥、tolerance=0。**正确分析**：每条**独立**推出「本条 MaxPerSubZone=1，本条 current_hosts 占满本条花桥配额，本条新申请资源不能落花桥」；10 条明细各自独立得出相同结论，等价于本批所有新申请资源都不能落花桥；本批整体需求 = 10 台非花桥同规格机器；若非花桥库存不足 10 台，根因是「非花桥同规格库存不足」。**错误描述（禁用）**：「所有 10 条明细的 current_hosts 都在花桥，导致花桥配额已满，无法再分配新资源」「花桥被 10 条参考资源占满」——这把独立约束错误合并成全局配额。
 - **CROSS_SUBZONE_STRONG**: 跨园区(强)
   - 园区容忍度1/3 → 至少需要3个园区
   - MaxPerSubZone = ceil(总数量 × 1/3)，即每个园区最多放总数的1/3
@@ -492,15 +501,15 @@ storage_device 是一个 JSON 对象，支持多块磁盘存储：
 - **不要仅仅依赖预设的工具**，当你有推测或疑问时，应该主动使用 execute_custom_query 工具执行 SQL 查询来验证
 - **重要规则**：PUBLIC 类型的资源可以匹配任何资源类型的申请。
   查询时应该使用 rs_type IN ('PUBLIC', '申请的资源类型')，而不是只匹配申请的资源类型
-- 例如：
+- 例如（**所有 SQL 都必须同时带 dedicated_biz 与 os_type 过滤，与真实匹配链对齐**）：
   - 如果怀疑资源总数不足，直接查询：
-    SELECT COUNT(*) FROM tb_rp_detail WHERE ... AND rs_type IN ('PUBLIC', 'redis')
+    SELECT COUNT(*) FROM tb_rp_detail WHERE bk_cloud_id=? AND status='Unused' AND gse_agent_status_code=1 AND city=? AND os_type='Linux' AND dedicated_biz IN (0, <for_biz_id>) AND rs_type IN ('PUBLIC', 'redis')
   - 如果怀疑某个条件影响大，查询该条件过滤前后的资源数量对比
   - 如果怀疑磁盘条件限制，查询不含磁盘条件的资源数，再查询含磁盘条件的资源数，对比差异
   - 如果怀疑园区分布问题，查询各园区的资源分布：
-    SELECT COUNT(*) as count, sub_zone_id FROM tb_rp_detail WHERE ... AND rs_type IN ('PUBLIC', 'redis') GROUP BY sub_zone_id
+    SELECT COUNT(*) as count, sub_zone_id FROM tb_rp_detail WHERE ... AND os_type='Linux' AND dedicated_biz IN (0, <for_biz_id>) AND rs_type IN ('PUBLIC', 'redis') GROUP BY sub_zone_id
   - 如果怀疑机架分布问题，查询各机架的资源分布：
-    SELECT COUNT(*) as count, rack_id FROM tb_rp_detail WHERE ... AND rs_type IN ('PUBLIC', 'redis') GROUP BY rack_id
+    SELECT COUNT(*) as count, rack_id FROM tb_rp_detail WHERE ... AND os_type='Linux' AND dedicated_biz IN (0, <for_biz_id>) AND rs_type IN ('PUBLIC', 'redis') GROUP BY rack_id
 - **主动验证**：不要等待工具给出结果，而是主动查询验证你的推测
 
 1. 首先使用 check_match_conditions 找出关键瓶颈条件，记录最终可用资源数量
@@ -515,6 +524,7 @@ storage_device 是一个 JSON 对象，支持多块磁盘存储：
 2. **判断是否需要亲和性分析**：
    - 如果可用资源数量 < 申请数量：问题在基础条件，跳过亲和性分析
    - 如果可用资源数量 >= 申请数量 但申请失败：说明是亲和性约束导致，需要分析亲和性
+   - 对 CROS_SUBZONE 多明细场景，必须先做同规格多明细归并分析：逐条按 tolerance 计算可落园区，再把相同硬条件的明细合并为整体容量需求，比较候选园区库存与总需求，避免把主从对需求误判成需要 N 个不同园区。
 3. 针对可能的问题类型，使用专项分析工具深入分析：
    - 如果涉及磁盘，使用 analyze_disk_issues
    - 如果涉及标签，使用 analyze_label_issues
@@ -646,6 +656,17 @@ Markdown 格式示例：
   - 查询时应该使用 rs_type IN ('PUBLIC', '申请的资源类型')
   - 如果申请的资源类型是 redis，应该查询 rs_type IN ('PUBLIC', 'redis')，而不是只查询 rs_type = 'redis'
   - 如果申请时未指定资源类型（resource_type 为空），只能匹配 rs_type = 'PUBLIC' 的资源
+- **重要规则：业务专属池（dedicated_biz）必须过滤**
+  - 真实选机链 MatchIntentionBkBiz 会按申请单的归属业务（RequestInputParam.for_biz_id）过滤 dedicated_biz：
+    - 未指定业务时只匹配 dedicated_biz = 0（公共池）
+    - 指定业务且无 labels 时匹配 dedicated_biz IN (0, biz)
+    - 指定业务且有 labels 时只匹配 dedicated_biz = biz（业务专属）
+  - **调用 check_match_conditions / analyze_affinity_issues 时必须传入 intention_biz_id (或 for_biz_id)**，否则候选库存会被高估（其他业务的专属池资源会被误算）。
+  - 写自定义 SQL 时必须带相应的 dedicated_biz 过滤；否则结果会偏多。
+- **重要规则：os_type 必须过滤**
+  - 真实选机链 MatchOsType 默认 os_type = 'Linux'。
+  - 调用工具时传 os_type（不传等同 Linux）；写自定义 SQL 时必须 WHERE os_type = '...'，否则会把异操作系统资源误算成可用。
+  - 若申请带 os_names，按 in/not in（exclude_os_name）一并过滤。
 - **主动验证推测**：不要仅仅依赖预设工具的结果，当有疑问时主动使用 execute_custom_query 查询验证
 - 建议必须经过验证
 - **绝对不能建议降低数量或放宽亲和性**
