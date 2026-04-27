@@ -16,8 +16,8 @@ from typing import List
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole
-from backend.db_meta.models import Cluster, StorageInstance
+from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, ClusterType, InstanceRole
+from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
 from backend.db_monitor.constants import MonitorShieldType
 from backend.db_monitor.models import MonitorPolicy
@@ -234,8 +234,14 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                 )
             )
 
-            # 从域名修复的逻辑
-            entry_list = rebuild_slave.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
+            # 从域名修复的逻辑(sqlserver没有绑定clb)
+            # 目前sqlserver没有一主多从场景，从域名角色理论上只绑定standby实例上
+            # 后续接入一主多从的场景，dns的角色分配需要改造，现在这里不考虑这样场景处理
+            entry_list = ClusterEntry.objects.filter(
+                cluster_entry_type=ClusterEntryType.DNS.value,
+                cluster=cluster,
+                role=ClusterEntryRole.SLAVE_ENTRY.value,
+            ).all()
             if len(entry_list) > 0:
                 sub_lists = []
                 for entry in entry_list:
@@ -498,8 +504,14 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                         kwargs={},
                     )
 
-                # 并发替换从域名映射
-                entry_list = old_slave.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
+                # 从域名修复的逻辑(sqlserver没有绑定clb)
+                # 目前sqlserver没有一主多从场景，从域名角色理论上只绑定standby实例上
+                # 后续接入一主多从的场景，dns的角色分配需要改造，现在这里不考虑这样场景处理
+                entry_list = ClusterEntry.objects.filter(
+                    cluster_entry_type=ClusterEntryType.DNS.value,
+                    cluster=cluster,
+                    role=ClusterEntryRole.SLAVE_ENTRY.value,
+                ).all()
                 if len(entry_list) > 0:
                     sub_lists = []
                     for entry in entry_list:
@@ -771,7 +783,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                     "kwargs": asdict(
                         ExecLoginKwargs(
                             cluster_id=cluster.id,
-                            exec_mode=SqlserverLoginExecMode.DISABLE.value,
+                            exec_mode=SqlserverLoginExecMode.DISABLE,
                             exec_ip=instance.machine.ip,
                         ),
                     ),
