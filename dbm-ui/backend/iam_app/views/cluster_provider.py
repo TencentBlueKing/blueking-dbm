@@ -166,29 +166,29 @@ class OracleClusterResourceProvider(ClusterResourceProvider):
 
 class K8sSurrealClusterResourceProvider(ClusterResourceProvider):
     resource_meta: ResourceMeta = ResourceEnum.K8S_SURREALDB
-    cluster_types: ClusterType = [ClusterType.K8sSurrealdb]
+    cluster_types: ClusterType = [ClusterType.K8sSurrealdbHa, ClusterType.K8sSurrealdbSingle]
 
 
 class K8sVictoriametricsClusterResourceProvider(ClusterResourceProvider):
     resource_meta: ResourceMeta = ResourceEnum.K8S_VICTORIAMETRICS
-    cluster_types: ClusterType = [ClusterType.K8sVictoriametrics]
+    cluster_types: ClusterType = [ClusterType.K8sVictoriametricsHa]
 
 
 class K8sRisingwaveClusterResourceProvider(ClusterResourceProvider):
     resource_meta: ResourceMeta = ResourceEnum.K8S_RISINGWAVE
-    cluster_types: ClusterType = [ClusterType.K8sRisingwave]
+    cluster_types: ClusterType = [ClusterType.K8sRisingwaveHa]
 
 
 class K8sMilvusClusterResourceProvider(ClusterResourceProvider):
     resource_meta: ResourceMeta = ResourceEnum.K8S_MILVUS
-    cluster_types: ClusterType = [ClusterType.K8sMilvus]
+    cluster_types: ClusterType = [ClusterType.K8sMilvusHa]
 
 
 class K8sQdrantClusterResourceProvider(ClusterResourceProvider):
     resource_meta: ResourceMeta = ResourceEnum.K8S_QDRANT
-    cluster_types: ClusterType = [ClusterType.K8sQdrant]
+    cluster_types: ClusterType = [ClusterType.K8sQdrantHa]
 
 
 class K8sGreptimedbClusterResourceProvider(ClusterResourceProvider):
     resource_meta: ResourceMeta = ResourceEnum.K8S_GREPTIMEDB
-    cluster_types: ClusterType = [ClusterType.K8sGreptimedb]
+    cluster_types: ClusterType = [ClusterType.K8sGreptimedbHa]

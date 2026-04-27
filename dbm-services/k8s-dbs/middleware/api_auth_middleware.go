@@ -26,19 +26,14 @@ type iamChecker interface {
 	SimpleCheckAllowed(username, actionID string, bkBizID int, resourceID string) (bool, *infresp.ApplyData, error)
 }
 
-// bizValidator 抽象业务 ID 校验操作
-type bizValidator interface {
-	IsValidBizID(bizID uint64) (bool, error)
-}
-
 // APIAuthMiddleware API 权限校验中间件（调用 DBM IAM 接口做细粒度鉴权）
 func APIAuthMiddleware() gin.HandlerFunc {
 	resolver := NewDBClusterTypeResolver()
-	return apiAuthMiddlewareWithDeps(thirdapi.GetDbmAPIService(), resolver, thirdapi.GetBizCacheService())
+	return apiAuthMiddlewareWithDeps(thirdapi.GetDbmAPIService(), resolver)
 }
 
-// apiAuthMiddlewareWithDeps 接受 checker、resolver、bizValidator 接口，供测试注入 mock
-func apiAuthMiddlewareWithDeps(checker iamChecker, resolver ClusterTypeResolver, bv bizValidator) gin.HandlerFunc {
+// apiAuthMiddlewareWithDeps 接受 checker、resolver 接口，供测试注入 mock
+func apiAuthMiddlewareWithDeps(checker iamChecker, resolver ClusterTypeResolver) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		path := c.FullPath()
 		method := c.Request.Method
@@ -76,7 +71,7 @@ func apiAuthMiddlewareWithDeps(checker iamChecker, resolver ClusterTypeResolver,
 		}
 
 		allowed, applyData, authErr := checkIAMPermission(
-			checker, resolver, bv, apiName, reqBody, userName)
+			checker, resolver, apiName, reqBody, userName)
 		if authErr != nil {
 			if IsResolverError(authErr) {
 				// 本地解析失败（DB 不可达、参数缺失、类型不匹配等）
@@ -104,7 +99,6 @@ func apiAuthMiddlewareWithDeps(checker iamChecker, resolver ClusterTypeResolver,
 func checkIAMPermission(
 	checker iamChecker,
 	resolver ClusterTypeResolver,
-	bv bizValidator,
 	apiName string,
 	rawJSON []byte,
 	userName string,
@@ -138,12 +132,6 @@ func checkIAMPermission(
 		bizID := gjsonFirstInt(rawJSON, "bkBizId", "basicInfo.bkBizId")
 		if bizID <= 0 {
 			return false, nil, newResolverError("bkBizId 缺失或无效")
-		}
-		// 校验 bizID 在 bk-base 业务列表中是否存在，避免非法 bizID 导致 IAM 鉴权永久失败
-		if valid, bizErr := bv.IsValidBizID(uint64(bizID)); bizErr != nil {
-			return false, nil, newResolverError("业务 ID 校验异常: %v", bizErr)
-		} else if !valid {
-			return false, nil, newResolverError("业务 ID %d 不存在或无效", bizID)
 		}
 		bkBizID = int(bizID)
 		resourceID = ""

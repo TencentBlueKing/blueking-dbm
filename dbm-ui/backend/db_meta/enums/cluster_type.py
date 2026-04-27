@@ -60,13 +60,14 @@ class ClusterType(StrStructuredEnum):
     OraclePrimaryStandby = EnumField("oracle_primary_standby", _("oracle主从版"))
     OracleSingleNone = EnumField("oracle_single_none", _("oracle单节点版"))
 
-    # k8s集群
-    K8sSurrealdb = EnumField("k8s_surrealdb", _("k8s SurrealDB集群"))
-    K8sVictoriametrics = EnumField("k8s_victoriametrics", _("k8s VictoriaMetrics集群"))
-    K8sRisingwave = EnumField("k8s_risingwave", _("k8s Risingwave集群"))
-    K8sMilvus = EnumField("k8s_milvus", _("k8s Milvus集群"))
-    K8sQdrant = EnumField("k8s_qdrant", _("k8s Qdrant集群"))
-    K8sGreptimedb = EnumField("k8s_greptimedb", _("k8s GreptimeDB集群"))
+    # k8s集群 HA/Single 拆分
+    K8sSurrealdbHa = EnumField("k8s_surrealdb_ha", _("k8s SurrealDB集群版"))
+    K8sSurrealdbSingle = EnumField("k8s_surrealdb_single", _("k8s SurrealDB单机版"))
+    K8sVictoriametricsHa = EnumField("k8s_victoriametrics_ha", _("k8s VictoriaMetrics集群版"))
+    K8sRisingwaveHa = EnumField("k8s_risingwave_ha", _("k8s Risingwave集群版"))
+    K8sGreptimedbHa = EnumField("k8s_greptimedb_ha", _("k8s GreptimeDB集群版"))
+    K8sMilvusHa = EnumField("k8s_milvus_ha", _("k8s Milvus集群版"))
+    K8sQdrantHa = EnumField("k8s_qdrant_ha", _("k8s Qdrant集群版"))
 
     @classmethod
     def db_type_cluster_types_map(cls) -> Dict[str, List]:
@@ -103,12 +104,12 @@ class ClusterType(StrStructuredEnum):
             DBType.Doris.value: [cls.Doris],
             DBType.Vm.value: [cls.Vm],
             DBType.Oracle.value: [cls.OraclePrimaryStandby, cls.OracleSingleNone],
-            DBType.K8sSurrealdb.value: [cls.K8sSurrealdb],
-            DBType.K8sVictoriametrics.value: [cls.K8sVictoriametrics],
-            DBType.K8sRisingwave.value: [cls.K8sRisingwave],
-            DBType.K8sMilvus.value: [cls.K8sMilvus],
-            DBType.K8sQdrant.value: [cls.K8sQdrant],
-            DBType.K8sGreptimedb.value: [cls.K8sGreptimedb],
+            DBType.K8sSurrealdb.value: [cls.K8sSurrealdbHa, cls.K8sSurrealdbSingle],
+            DBType.K8sVictoriametrics.value: [cls.K8sVictoriametricsHa],
+            DBType.K8sRisingwave.value: [cls.K8sRisingwaveHa],
+            DBType.K8sMilvus.value: [cls.K8sMilvusHa],
+            DBType.K8sQdrant.value: [cls.K8sQdrantHa],
+            DBType.K8sGreptimedb.value: [cls.K8sGreptimedbHa],
         }
 
     @classmethod
@@ -125,12 +126,13 @@ class ClusterType(StrStructuredEnum):
         return frozenset(
             t.value
             for t in (
-                cls.K8sSurrealdb,
-                cls.K8sVictoriametrics,
-                cls.K8sRisingwave,
-                cls.K8sMilvus,
-                cls.K8sQdrant,
-                cls.K8sGreptimedb,
+                cls.K8sSurrealdbHa,
+                cls.K8sSurrealdbSingle,
+                cls.K8sVictoriametricsHa,
+                cls.K8sRisingwaveHa,
+                cls.K8sMilvusHa,
+                cls.K8sQdrantHa,
+                cls.K8sGreptimedbHa,
             )
         )
 

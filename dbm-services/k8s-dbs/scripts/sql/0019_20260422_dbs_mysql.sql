@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS tb_addon_spec_plan (
     addon_id bigint NOT NULL COMMENT '关联 k8s_crd_storageaddon 主键 id',
     addon_topology varchar(32) NOT NULL DEFAULT '' COMMENT 'addon 拓扑类型',
     spec_level varchar(32) NOT NULL DEFAULT 'basic' COMMENT '规格 basic/standard/premium',
-    spec_level_alias varchar(32) NOT NULL DEFAULT '' COMMENT '规格别名 基础/标准/高配'
+    spec_level_alias varchar(32) NOT NULL DEFAULT '' COMMENT '规格别名 基础/标准/高配',
     active tinyint(1) NOT NULL DEFAULT 1 COMMENT '0:无效，1:有效',
     description varchar(100) Null COMMENT '存储插件描述',
     created_by varchar(50) NOT NULL COMMENT '创建者',

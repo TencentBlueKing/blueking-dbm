@@ -108,10 +108,10 @@ func newTestResolver(
 func TestResolve_Create_TopLevelStorageAddonType(t *testing.T) {
 	r := newTestResolver(nil, nil)
 
-	result, err := r.Resolve(constant.APIClusterCreate, []byte(`{"storageAddonType":"surrealdb"}`))
+	result, err := r.Resolve(constant.APIClusterCreate, []byte(`{"storageAddonType":"surrealdb","topoName":"surreal-tikv"}`))
 
 	require.NoError(t, err)
-	assert.Equal(t, "k8s_surrealdb", result.ClusterType)
+	assert.Equal(t, "k8s_surrealdb_ha", result.ClusterType)
 	assert.Equal(t, uint64(0), result.DbmClusterID, "create operation should have DbmClusterID=0")
 }
 
@@ -121,7 +121,7 @@ func TestResolve_Create_NestedStorageAddonType(t *testing.T) {
 	result, err := r.Resolve(constant.APIClusterCreate, []byte(`{"basicInfo":{"storageAddonType":"victoriametrics"}}`))
 
 	require.NoError(t, err)
-	assert.Equal(t, "k8s_victoriametrics", result.ClusterType)
+	assert.Equal(t, "k8s_victoriametrics_ha", result.ClusterType)
 }
 
 func TestResolve_Create_MissingStorageAddonType(t *testing.T) {
@@ -153,6 +153,7 @@ func TestResolve_NonCreate_DBQuerySuccess(t *testing.T) {
 	clusterMock := &mockK8sCrdClusterProvider{
 		cluster: &metaentity.K8sCrdClusterEntity{
 			AddonInfo:    &metaentity.K8sCrdStorageAddonEntity{AddonType: "qdrant"},
+			TopoName:     "cluster",
 			DbmClusterID: 999,
 		},
 	}
@@ -162,7 +163,7 @@ func TestResolve_NonCreate_DBQuerySuccess(t *testing.T) {
 		[]byte(`{"k8sClusterName":"bcs-test","namespace":"ns-1","clusterName":"my-qdrant"}`))
 
 	require.NoError(t, err)
-	assert.Equal(t, "k8s_qdrant", result.ClusterType)
+	assert.Equal(t, "k8s_qdrant_ha", result.ClusterType)
 	assert.Equal(t, uint64(999), result.DbmClusterID)
 }
 
@@ -173,6 +174,7 @@ func TestResolve_NonCreate_DbmClusterIDZero(t *testing.T) {
 	clusterMock := &mockK8sCrdClusterProvider{
 		cluster: &metaentity.K8sCrdClusterEntity{
 			AddonInfo:    &metaentity.K8sCrdStorageAddonEntity{AddonType: "qdrant"},
+			TopoName:     "cluster",
 			DbmClusterID: 0, // 尚未同步到 DBM
 		},
 	}
@@ -182,7 +184,7 @@ func TestResolve_NonCreate_DbmClusterIDZero(t *testing.T) {
 		[]byte(`{"k8sClusterName":"bcs-test","namespace":"ns-1","clusterName":"my-qdrant"}`))
 
 	require.NoError(t, err)
-	assert.Equal(t, "k8s_qdrant", result.ClusterType)
+	assert.Equal(t, "k8s_qdrant_ha", result.ClusterType)
 	assert.Equal(t, uint64(0), result.DbmClusterID)
 }
 
@@ -290,16 +292,17 @@ func TestResolve_NonCreate_ExplicitClusterType_Consistent(t *testing.T) {
 	clusterMock := &mockK8sCrdClusterProvider{
 		cluster: &metaentity.K8sCrdClusterEntity{
 			AddonInfo:    &metaentity.K8sCrdStorageAddonEntity{AddonType: "surrealdb"},
+			TopoName:     "surreal-tikv",
 			DbmClusterID: 123,
 		},
 	}
 	r := newTestResolver(configMock, clusterMock)
 
 	result, err := r.Resolve(constant.APIClusterDelete,
-		[]byte(`{"k8sClusterName":"bcs-test","namespace":"ns","clusterName":"c","cluster_type":"k8s_surrealdb"}`))
+		[]byte(`{"k8sClusterName":"bcs-test","namespace":"ns","clusterName":"c","cluster_type":"k8s_surrealdb_ha"}`))
 
 	require.NoError(t, err)
-	assert.Equal(t, "k8s_surrealdb", result.ClusterType)
+	assert.Equal(t, "k8s_surrealdb_ha", result.ClusterType)
 	assert.Equal(t, uint64(123), result.DbmClusterID)
 }
 
@@ -310,12 +313,13 @@ func TestResolve_NonCreate_ExplicitClusterType_Inconsistent(t *testing.T) {
 	clusterMock := &mockK8sCrdClusterProvider{
 		cluster: &metaentity.K8sCrdClusterEntity{
 			AddonInfo: &metaentity.K8sCrdStorageAddonEntity{AddonType: "surrealdb"},
+			TopoName:  "surreal-tikv",
 		},
 	}
 	r := newTestResolver(configMock, clusterMock)
 
 	_, err := r.Resolve(constant.APIClusterDelete,
-		[]byte(`{"k8sClusterName":"bcs-test","namespace":"ns","clusterName":"c","cluster_type":"k8s_qdrant"}`))
+		[]byte(`{"k8sClusterName":"bcs-test","namespace":"ns","clusterName":"c","cluster_type":"k8s_qdrant_ha"}`))
 
 	require.Error(t, err)
 	assert.True(t, IsResolverError(err))
@@ -348,6 +352,7 @@ func TestResolve_NonCreate_NestedFields(t *testing.T) {
 	clusterMock := &mockK8sCrdClusterProvider{
 		cluster: &metaentity.K8sCrdClusterEntity{
 			AddonInfo:    &metaentity.K8sCrdStorageAddonEntity{AddonType: "risingwave"},
+			TopoName:     "risingwave",
 			DbmClusterID: 77,
 		},
 	}
@@ -358,7 +363,7 @@ func TestResolve_NonCreate_NestedFields(t *testing.T) {
 		[]byte(`{"deploymentEnv":{"k8sClusterName":"bcs-dataweb"},"basicInfo":{"namespace":"rw-ns","clusterName":"rw-cluster"}}`))
 
 	require.NoError(t, err)
-	assert.Equal(t, "k8s_risingwave", result.ClusterType)
+	assert.Equal(t, "k8s_risingwave_ha", result.ClusterType)
 	assert.Equal(t, uint64(77), result.DbmClusterID)
 }
 
@@ -410,10 +415,10 @@ func TestResolve_Create_ExplicitClusterType_Trusted(t *testing.T) {
 	r := newTestResolver(nil, nil)
 
 	result, err := r.Resolve(constant.APIClusterCreate,
-		[]byte(`{"storageAddonType":"milvus","cluster_type":"k8s_milvus"}`))
+		[]byte(`{"storageAddonType":"milvus","cluster_type":"k8s_milvus_ha"}`))
 
 	require.NoError(t, err)
-	assert.Equal(t, "k8s_milvus", result.ClusterType)
+	assert.Equal(t, "k8s_milvus_ha", result.ClusterType)
 }
 
 // --- Addon 操作测试 ---

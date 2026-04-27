@@ -53,15 +53,16 @@ func TestAPIToIAMAction_AllWriteAPIsHaveMapping(t *testing.T) {
 	}
 }
 
-// TestClusterTypeToIAMPrefix_AllSixTypes 验证 6 个集群类型都有前缀映射
-func TestClusterTypeToIAMPrefix_AllSixTypes(t *testing.T) {
+// TestClusterTypeToIAMPrefix_AllTypes 验证所有集群类型都有前缀映射
+func TestClusterTypeToIAMPrefix_AllTypes(t *testing.T) {
 	expectedTypes := []string{
-		"k8s_surrealdb",
-		"k8s_victoriametrics",
-		"k8s_risingwave",
-		"k8s_milvus",
-		"k8s_qdrant",
-		"k8s_greptimedb",
+		"k8s_surrealdb_ha",
+		"k8s_surrealdb_single",
+		"k8s_victoriametrics_ha",
+		"k8s_risingwave_ha",
+		"k8s_milvus_ha",
+		"k8s_qdrant_ha",
+		"k8s_greptimedb_ha",
 	}
 
 	for _, ct := range expectedTypes {

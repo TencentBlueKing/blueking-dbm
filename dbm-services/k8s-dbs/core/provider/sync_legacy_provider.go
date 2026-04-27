@@ -64,7 +64,6 @@ type SyncLegacyProvider struct {
 	clusterMetaProvider metaprovider.K8sCrdClusterProvider
 	configProvider      metaprovider.K8sClusterConfigProvider
 	dbmAPIService       *thirdapi.DbmAPIService
-	bizCacheService     *thirdapi.BizCacheService
 }
 
 // NewSyncLegacyProvider 创建 SyncLegacyProvider 实例
@@ -72,13 +71,11 @@ func NewSyncLegacyProvider(
 	clusterMetaProvider metaprovider.K8sCrdClusterProvider,
 	configProvider metaprovider.K8sClusterConfigProvider,
 	dbmAPIService *thirdapi.DbmAPIService,
-	bizCacheService *thirdapi.BizCacheService,
 ) *SyncLegacyProvider {
 	return &SyncLegacyProvider{
 		clusterMetaProvider: clusterMetaProvider,
 		configProvider:      configProvider,
 		dbmAPIService:       dbmAPIService,
-		bizCacheService:     bizCacheService,
 	}
 }
 
@@ -169,20 +166,6 @@ func (s *SyncLegacyProvider) syncOneCluster(cluster *metaentity.K8sCrdClusterEnt
 		ClusterName: cluster.ClusterName,
 	}
 
-	// 校验 bk_biz_id 合法性
-	valid, err := s.bizCacheService.IsValidBizID(cluster.BkBizID)
-	if err != nil {
-		slog.Warn("bizID 校验异常，跳过该集群", "bk_biz_id", cluster.BkBizID, "error", err)
-		detail.Status = statusFailed
-		detail.Error = fmt.Sprintf("bk_biz_id 校验异常: %v", err)
-		return detail
-	}
-	if !valid {
-		detail.Status = statusFailed
-		detail.Error = fmt.Sprintf("bk_biz_id %d 不存在或无效", cluster.BkBizID)
-		return detail
-	}
-
 	// 获取 DBM cluster type
 	if cluster.AddonInfo == nil {
 		detail.Status = statusFailed
@@ -190,7 +173,7 @@ func (s *SyncLegacyProvider) syncOneCluster(cluster *metaentity.K8sCrdClusterEnt
 		return detail
 	}
 
-	dbmClusterType, err := infrautil.GetDbmClusterType(cluster.AddonInfo.AddonType)
+	dbmClusterType, err := infrautil.GetDbmClusterType(cluster.AddonInfo.AddonType, cluster.TopoName)
 	if err != nil {
 		detail.Status = statusFailed
 		detail.Error = fmt.Sprintf("failed to get dbm cluster type: %v", err)

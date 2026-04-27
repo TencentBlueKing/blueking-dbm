@@ -36,13 +36,12 @@ import (
 	metaentity "k8s-dbs/metadata/entity"
 )
 
-// GetDbmClusterType 获取 addon 类型对应的 DBM cluster type。
-// 复用 addon_registry.go 中的 AddonTypeToIAMClusterType 映射，
-func GetDbmClusterType(storageAddonType string) (string, error) {
-	if clusterType, exists := commconst.AddonTypeToIAMClusterType[storageAddonType]; exists {
+// GetDbmClusterType 根据 addon 类型和拓扑名称获取 DBM cluster type。
+func GetDbmClusterType(storageAddonType, topoName string) (string, error) {
+	if clusterType, ok := commconst.ResolveClusterType(storageAddonType, topoName); ok {
 		return clusterType, nil
 	}
-	return "", fmt.Errorf("不支持的存储插件类型: %s", storageAddonType)
+	return "", fmt.Errorf("不支持的存储插件类型: %s (topoName=%s)", storageAddonType, topoName)
 }
 
 // AsyncClusterCreated 同步集群创建信息到 DBM。
@@ -57,7 +56,7 @@ func AsyncClusterCreated(
 		if err := checkContextCancelled(ctx); err != nil {
 			return err
 		}
-		dbmClusterType, err := GetDbmClusterType(entity.AddonInfo.AddonType)
+		dbmClusterType, err := GetDbmClusterType(entity.AddonInfo.AddonType, entity.TopoName)
 		if err != nil {
 			return fmt.Errorf("未找到对应的 dbm cluster type: %w", err)
 		}
@@ -326,7 +325,7 @@ func syncClusterWithCtx(
 		return err
 	}
 
-	dbmClusterType, err := GetDbmClusterType(clusterEntity.AddonInfo.AddonType)
+	dbmClusterType, err := GetDbmClusterType(clusterEntity.AddonInfo.AddonType, clusterEntity.TopoName)
 	if err != nil {
 		return fmt.Errorf("未找到对应的 dbm cluster type: %w", err)
 	}

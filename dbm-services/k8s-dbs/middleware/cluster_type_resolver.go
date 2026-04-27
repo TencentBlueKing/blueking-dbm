@@ -53,7 +53,7 @@ func IsResolverError(err error) bool {
 
 // ResolveResult 包含 resolver 推断出的集群类型和可选的 DBM cluster ID。
 type ResolveResult struct {
-	ClusterType  string // IAM cluster_type，如 "k8s_surrealdb"
+	ClusterType  string // cluster_type，如 "k8s_surrealdb_ha"
 	DbmClusterID uint64 // DBM 侧的集群 ID（非创建操作从本地 DB 获取，创建操作为 0）
 	BkBizID      uint64 // 业务 ID（非创建操作从本地 DB 获取，创建操作为 0）
 }
@@ -93,10 +93,10 @@ func (r *DBClusterTypeResolver) initProviders() error {
 	return r.initErr
 }
 
-// Resolve 根据 apiName 和原始请求体推断 IAM cluster_type。
+// Resolve 根据 apiName 和原始请求体推断 cluster_type。
 //
-// 创建操作：从请求体提取 storageAddonType → AddonTypeToIAMClusterType。
-// 非创建操作：DB 查询 → addonType → AddonTypeToIAMClusterType + DbmClusterID。
+// 创建操作：从请求体提取 storageAddonType + topoName → ResolveClusterType。
+// 非创建操作：DB 查询 → addonType + topoName → ResolveClusterType + DbmClusterID。
 func (r *DBClusterTypeResolver) Resolve(apiName string, rawJSON []byte) (*ResolveResult, error) {
 	if apiName == constant.APIClusterCreate {
 		return r.resolveForCreate(rawJSON)
@@ -104,17 +104,18 @@ func (r *DBClusterTypeResolver) Resolve(apiName string, rawJSON []byte) (*Resolv
 	return r.resolveForNonCreate(apiName, rawJSON)
 }
 
-// resolveForCreate 从请求体提取 storageAddonType 并映射到 IAM cluster_type。
-// 兼容 Core API（顶层 storageAddonType）和 Dataweb API（basicInfo.storageAddonType）。
+// resolveForCreate 从请求体提取 storageAddonType + topoName 并解析出 cluster_type。
+// 兼容 Core API（顶层字段）和 Dataweb API（basicInfo / resourceConfig 嵌套字段）。
 func (r *DBClusterTypeResolver) resolveForCreate(rawJSON []byte) (*ResolveResult, error) {
 	addonType := gjsonFirstString(rawJSON, "storageAddonType", "basicInfo.storageAddonType")
 	if addonType == "" {
 		return nil, newResolverError("创建操作缺少 storageAddonType 字段")
 	}
+	topoName := gjsonFirstString(rawJSON, "topoName", "resourceConfig.topoName")
 
-	clusterType, ok := constant.AddonTypeToIAMClusterType[addonType]
+	clusterType, ok := constant.ResolveClusterType(addonType, topoName)
 	if !ok {
-		return nil, newResolverError("未知的 addon 类型: %s", addonType)
+		return nil, newResolverError("未知的 addon 类型: %s (topoName=%s)", addonType, topoName)
 	}
 	return &ResolveResult{ClusterType: clusterType, DbmClusterID: 0}, nil
 }
@@ -162,14 +163,15 @@ func (r *DBClusterTypeResolver) resolveForNonCreate(apiName string, rawJSON []by
 			configEntity.ID, namespace, clusterName)
 	}
 
-	// Step 3: addonType → IAM cluster_type
+	// Step 3: addonType + topoName → cluster_type
 	if clusterEntity.AddonInfo == nil {
 		return nil, newResolverError("集群 AddonInfo 为空: cluster=%s", clusterName)
 	}
 	addonType := clusterEntity.AddonInfo.AddonType
-	clusterType, ok := constant.AddonTypeToIAMClusterType[addonType]
+	clusterType, ok := constant.ResolveClusterType(addonType, clusterEntity.TopoName)
 	if !ok {
-		return nil, newResolverError("未知的 addon 类型: %s (cluster=%s)", addonType, clusterName)
+		return nil, newResolverError("未知的 addon 类型: %s (topoName=%s, cluster=%s)",
+			addonType, clusterEntity.TopoName, clusterName)
 	}
 
 	// 安全性校验：如果请求体显式包含 cluster_type，与 DB 结果比较
