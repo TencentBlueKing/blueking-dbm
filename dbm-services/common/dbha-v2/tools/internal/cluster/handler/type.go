@@ -27,7 +27,24 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+
+	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
+
+	"go.uber.org/zap"
 )
+
+const defaultClusterMaxConcurrency = 20
+
+// ClusterMaxConcurrency controls the maximum number of concurrent goroutines used by cluster tools.
+var ClusterMaxConcurrency = defaultClusterMaxConcurrency
+
+func getClusterMaxConcurrency() int {
+	if ClusterMaxConcurrency <= 0 {
+		return defaultClusterMaxConcurrency
+	}
+	return ClusterMaxConcurrency
+}
 
 // DomainInstanceList represents instance list for a specific domain
 type DomainInstanceList struct {
@@ -114,6 +131,22 @@ type ShowResponse struct {
 	Result bool        `json:"result"`
 	Errmsg string      `json:"errmsg"`
 	Data   interface{} `json:"data"`
+}
+
+type silentGormLogger struct{}
+
+func (silentGormLogger) OriginLogger() *zap.Logger { return zap.NewNop() }
+func (silentGormLogger) Debug(string, ...any)      {}
+func (silentGormLogger) Info(string, ...any)       {}
+func (silentGormLogger) Warn(string, ...any)       {}
+func (silentGormLogger) Error(string, ...any)      {}
+func (silentGormLogger) Fatal(string, ...any)      {}
+
+var toolsGormLogger logger.Logger = silentGormLogger{}
+
+func newToolGormDB(opts ...hamysql.Option) (*hamysql.GormDB, error) {
+	opts = append(opts, hamysql.OptionLogger(toolsGormLogger))
+	return hamysql.NewGormDB(opts...)
 }
 
 // printJSON prints data in JSON format with result and errmsg fields

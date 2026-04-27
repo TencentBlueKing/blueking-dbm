@@ -210,7 +210,7 @@ func (hdl *MysqlBaseHandler) ResetSlave(slaveDB *hamysql.GormDB) error {
 
 // stopSlaveForMaster stops slave for master
 func (hdl *MysqlBaseHandler) stopSlaveForMaster(ip string, port int) (string, uint64, error) {
-	masterDB, err := hamysql.NewGormDB(
+	masterDB, err := newToolGormDB(
 		hamysql.OptionProto(MySQLProtocol),
 		hamysql.OptionIP(ip),
 		hamysql.OptionPort(port),
@@ -273,7 +273,7 @@ func (hdl *MysqlBaseHandler) changeMasterForAllSlave(slaveList []config.Instance
 // checkSlaveStatus checks slave status
 func (hdl *MysqlBaseHandler) checkSlaveStatus(slaveList []config.InstanceAddress, targetIp string, targetPort int) error {
 	for _, slave := range slaveList {
-		slaveDB, err := hamysql.NewGormDB(
+		slaveDB, err := newToolGormDB(
 			hamysql.OptionProto(MySQLProtocol),
 			hamysql.OptionIP(slave.Host),
 			hamysql.OptionPort(slave.Port),
@@ -304,7 +304,7 @@ func (hdl *MysqlBaseHandler) checkSlaveStatus(slaveList []config.InstanceAddress
 
 // changeMasterForSlave changes master for slave
 func (hdl *MysqlBaseHandler) changeMasterForSlave(slaveIp string, slavePort int, changeMasterSQL string) error {
-	slaveDB, err := hamysql.NewGormDB(
+	slaveDB, err := newToolGormDB(
 		hamysql.OptionProto(MySQLProtocol),
 		hamysql.OptionIP(slaveIp),
 		hamysql.OptionPort(slavePort),
@@ -781,7 +781,7 @@ func (hdl *MysqlClusterHandler) ShowAllMysqlClustersReplication() error {
 
 // getBackendNodeReplicationInfo gets replication info from a backend node
 func (hdl *MysqlClusterHandler) getBackendNodeReplicationInfo(host string, port int, user, password string) (*ReplicationInfo, error) {
-	db, err := hamysql.NewGormDB(
+	db, err := newToolGormDB(
 		hamysql.OptionProto(MySQLProtocol),
 		hamysql.OptionIP(host),
 		hamysql.OptionPort(port),

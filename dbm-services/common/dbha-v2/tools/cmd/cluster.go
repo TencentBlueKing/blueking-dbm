@@ -226,6 +226,12 @@ func main() {
 		},
 	}
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
+	rootCmd.PersistentFlags().IntVar(
+		&handler.ClusterMaxConcurrency,
+		"max-concurrency",
+		handler.ClusterMaxConcurrency,
+		"Maximum number of concurrent goroutines used by cluster operations",
+	)
 
 	versionCmd := &cobra.Command{
 		Use:   "version",

@@ -29,6 +29,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
@@ -36,6 +37,8 @@ import (
 	"dbm-services/common/dbha-v2/tools/internal/cluster/config"
 	"dbm-services/common/dbha-v2/tools/internal/cluster/dbm"
 )
+
+const dbmAPIMaxConcurrency = 5
 
 // TenDBClusterHandler provides MySQL cluster management functions
 type TenDBClusterHandler struct {
@@ -74,12 +77,28 @@ func (hdl *TenDBClusterHandler) setTcAdmin(db *hamysql.GormDB, value int64) erro
 // printOneTenDBCluster prints TenDBCluster information
 func (hdl *TenDBClusterHandler) printOneTenDBCluster(cluster *config.TenDBCluster) {
 	fmt.Printf("Cluster Domain: %s\n", cluster.Domain)
-	fmt.Printf("Spider: %v\n", cluster.Spider)
-	fmt.Printf("Spider Slaves: %v\n", cluster.SpiderSlave)
+	fmt.Printf("Spider: %v\n", formatTenDBClusterNodes(cluster.Spider))
+	fmt.Printf("Spider Slaves: %v\n", formatTenDBClusterNodes(cluster.SpiderSlave))
 	fmt.Printf("TdbCtl Master: %s:%d\n", cluster.CtlMaster.Host, cluster.CtlMaster.Port)
-	fmt.Printf("TdbCtl Slaves: %v\n", cluster.CtlSlave)
-	fmt.Printf("Remote Master: %v\n", cluster.RemoteMaster)
-	fmt.Printf("Remote Slaves: %v\n", cluster.RemoteSlave)
+	fmt.Printf("TdbCtl Slaves: %v\n", formatTenDBClusterNodes(cluster.CtlSlave))
+	fmt.Printf("Remote Master: %v\n", formatTenDBClusterNodes(cluster.RemoteMaster))
+	fmt.Printf("Remote Slaves: %v\n", formatRemoteSlaveNodes(cluster.RemoteSlave))
+}
+
+func formatTenDBClusterNodes(nodes []config.TenDBClusterNodeInfo) []string {
+	result := make([]string, 0, len(nodes))
+	for _, node := range nodes {
+		result = append(result, fmt.Sprintf("%s:%d", node.Host, node.Port))
+	}
+	return result
+}
+
+func formatRemoteSlaveNodes(nodes []config.RemoteSlaveInfo) []string {
+	result := make([]string, 0, len(nodes))
+	for _, node := range nodes {
+		result = append(result, fmt.Sprintf("%s:%d", node.Host, node.Port))
+	}
+	return result
 }
 
 func (hdl *TenDBClusterHandler) getInstanceListForDbmStatusUpdate(cluster *config.TenDBCluster) []config.InstanceAddress {
@@ -101,83 +120,191 @@ func (hdl *TenDBClusterHandler) getInstanceListForDbmStatusUpdate(cluster *confi
 
 // stopSlaveForRemoteMasterAndGetBinlogList stops slave for remote master and gets binlog list
 func (hdl *TenDBClusterHandler) stopSlaveForRemoteMasterAndGetBinlogList(cluster *config.TenDBCluster) ([]config.BinlogInfo, error) {
-	binlogList := make([]config.BinlogInfo, 0)
-
+	uniqueRemotes := make([]config.TenDBClusterNodeInfo, 0, len(cluster.RemoteMaster))
+	seenRemoteMasters := make(map[string]struct{}, len(cluster.RemoteMaster))
 	for _, remote := range cluster.RemoteMaster {
-		binlogFile, binlogPos, err := hdl.stopSlaveForMaster(remote.Host, remote.Port)
+		remoteKey := remote.Host + ":" + strconv.Itoa(remote.Port)
+		if _, exists := seenRemoteMasters[remoteKey]; exists {
+			continue
+		}
+		seenRemoteMasters[remoteKey] = struct{}{}
+		uniqueRemotes = append(uniqueRemotes, remote)
+	}
+
+	binlogList := make([]config.BinlogInfo, len(uniqueRemotes))
+	sem := make(chan struct{}, getClusterMaxConcurrency())
+	errCh := make(chan error, len(uniqueRemotes))
+	var wg sync.WaitGroup
+
+	for idx, remote := range uniqueRemotes {
+		wg.Add(1)
+		sem <- struct{}{}
+
+		go func(idx int, remote config.TenDBClusterNodeInfo) {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			binlogFile, binlogPos, err := hdl.stopSlaveForMaster(remote.Host, remote.Port)
+			if err != nil {
+				errCh <- err
+				return
+			}
+
+			binlogList[idx] = config.BinlogInfo{
+				TenDBClusterNodeInfo: config.TenDBClusterNodeInfo{
+					Host:     remote.Host,
+					Port:     remote.Port,
+					User:     remote.User,
+					Password: remote.Password,
+				},
+				File:     binlogFile,
+				Position: binlogPos,
+			}
+		}(idx, remote)
+	}
+
+	wg.Wait()
+	close(errCh)
+
+	for err := range errCh {
 		if err != nil {
 			return nil, err
 		}
-		binlogList = append(binlogList, config.BinlogInfo{
-
-			TenDBClusterNodeInfo: config.TenDBClusterNodeInfo{
-				Host:     remote.Host,
-				Port:     remote.Port,
-				User:     remote.User,
-				Password: remote.Password,
-			},
-			File:     binlogFile,
-			Position: binlogPos,
-		})
 	}
+
 	return binlogList, nil
 }
 
 // changeMasterForAllRemoteSlave changes master for all remote slave
 func (hdl *TenDBClusterHandler) changeMasterForAllRemoteSlave(remoteSlave []config.RemoteSlaveInfo, binlogList []config.BinlogInfo) error {
-	remoteSlaveMap := make(map[string]config.RemoteSlaveInfo)
+	remoteSlaveMap := make(map[string]config.InstanceAddress)
 	for _, remote := range remoteSlave {
-		remoteSlaveMap[remote.MasterHost+":"+strconv.Itoa(remote.MasterPort)] = remote
+		remoteSlaveMap[remote.MasterHost+":"+strconv.Itoa(remote.MasterPort)] = config.InstanceAddress{
+			Host: remote.Host,
+			Port: remote.Port,
+		}
 	}
+
+	binlogMasterSet := make(map[string]struct{}, len(binlogList))
+	for _, binlog := range binlogList {
+		binlogMasterSet[binlog.Host+":"+strconv.Itoa(binlog.Port)] = struct{}{}
+	}
+
+	missingMasters := make([]string, 0)
+	for masterAddr := range remoteSlaveMap {
+		if _, exists := binlogMasterSet[masterAddr]; exists {
+			continue
+		}
+		missingMasters = append(missingMasters, masterAddr)
+	}
+	if len(missingMasters) > 0 {
+		return gerrors.Newf(gerrors.Failure,
+			"failed to cover all remote slaves when changing master, missing master binlog info for: [%s]",
+			strings.Join(missingMasters, ", "))
+	}
+
+	sem := make(chan struct{}, getClusterMaxConcurrency())
+	errCh := make(chan error, len(binlogList))
+	var wg sync.WaitGroup
 
 	for _, binlog := range binlogList {
 		remote, ok := remoteSlaveMap[binlog.Host+":"+strconv.Itoa(binlog.Port)]
 		if !ok {
 			continue
 		}
-		var slaveList []config.InstanceAddress
-		slaveList = append(slaveList, config.InstanceAddress{
-			Host: remote.Host,
-			Port: remote.Port,
-		})
 
-		if err := hdl.changeMasterForAllSlave(slaveList, binlog.Host, binlog.Port, binlog.File,
-			binlog.Position); err != nil {
+		wg.Add(1)
+		sem <- struct{}{}
+
+		go func(remoteAddress *config.InstanceAddress, binlog config.BinlogInfo) {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			slaveList := []config.InstanceAddress{
+				*remoteAddress,
+			}
+
+			if err := hdl.changeMasterForAllSlave(slaveList, binlog.Host, binlog.Port, binlog.File,
+				binlog.Position); err != nil {
+				errCh <- err
+			}
+		}(&remote, binlog)
+	}
+
+	wg.Wait()
+	close(errCh)
+
+	for err := range errCh {
+		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
 // correctRemoteDBRole correct remote db role
 func (hdl *TenDBClusterHandler) correctRemoteDBRole(cluster *config.TenDBCluster) error {
+	uniqueRemoteSlaves := make([]config.RemoteSlaveInfo, 0, len(cluster.RemoteSlave))
+	seenRemoteSlaves := make(map[string]struct{}, len(cluster.RemoteSlave))
 	for _, remoteSlave := range cluster.RemoteSlave {
-		masterHost := remoteSlave.MasterHost
-		masterPort := remoteSlave.MasterPort
-		masterRole, err := hdl.dbmClient.QueryInstanceRole(masterHost, masterPort)
-		if err != nil {
-			return gerrors.Newf(gerrors.Failure, "failed to query instance role of node(%s:%d), errmsg: %s",
-				masterHost, masterPort, err.Error())
+		remoteSlaveKey := remoteSlave.Host + ":" + strconv.Itoa(remoteSlave.Port)
+		if _, exists := seenRemoteSlaves[remoteSlaveKey]; exists {
+			continue
 		}
-
-		if masterRole != dbm.TenDBClusterRemoteMaster {
-			if err := hdl.dbmClient.SwapMySQLRole(remoteSlave.Host, remoteSlave.Port, masterHost, masterPort); err != nil {
-				return gerrors.Newf(gerrors.Failure, "failed to swap role of (%s:%d) and (%s:%d), errmsg: %s",
-					remoteSlave.Host, remoteSlave.Port, masterHost, masterPort, err.Error())
-			}
-		}
+		seenRemoteSlaves[remoteSlaveKey] = struct{}{}
+		uniqueRemoteSlaves = append(uniqueRemoteSlaves, remoteSlave)
 	}
 
-	for _, remoteSlave := range cluster.RemoteSlave {
-		slaveRole, err := hdl.dbmClient.QueryInstanceRole(remoteSlave.Host, remoteSlave.Port)
-		if err != nil {
-			return gerrors.Newf(gerrors.Failure, "failed to query instance role of node(%s:%d), errmsg: %s",
-				remoteSlave.Host, remoteSlave.Port, err.Error())
-		}
+	sem := make(chan struct{}, dbmAPIMaxConcurrency)
+	errCh := make(chan error, len(uniqueRemoteSlaves))
+	var wg sync.WaitGroup
 
-		if slaveRole != dbm.TenDBClusterRemoteSlave {
-			return gerrors.Newf(gerrors.Failure, "slave(%s:%d) role is not %s", remoteSlave.Host,
-				remoteSlave.Port, dbm.TenDBClusterRemoteSlave)
+	for _, remoteSlave := range uniqueRemoteSlaves {
+		wg.Add(1)
+		sem <- struct{}{}
+
+		go func(remoteSlave config.RemoteSlaveInfo) {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			masterHost := remoteSlave.MasterHost
+			masterPort := remoteSlave.MasterPort
+			masterRole, err := hdl.dbmClient.QueryInstanceRole(masterHost, masterPort)
+			if err != nil {
+				errCh <- gerrors.Newf(gerrors.Failure, "failed to query instance role of node(%s:%d), errmsg: %s",
+					masterHost, masterPort, err.Error())
+				return
+			}
+
+			if masterRole != dbm.TenDBClusterRemoteMaster {
+				if err := hdl.dbmClient.SwapMySQLRole(remoteSlave.Host, remoteSlave.Port, masterHost, masterPort); err != nil {
+					errCh <- gerrors.Newf(gerrors.Failure, "failed to swap role of (%s:%d) and (%s:%d), errmsg: %s",
+						remoteSlave.Host, remoteSlave.Port, masterHost, masterPort, err.Error())
+					return
+				}
+			}
+
+			slaveRole, err := hdl.dbmClient.QueryInstanceRole(remoteSlave.Host, remoteSlave.Port)
+			if err != nil {
+				errCh <- gerrors.Newf(gerrors.Failure, "failed to query instance role of node(%s:%d), errmsg: %s",
+					remoteSlave.Host, remoteSlave.Port, err.Error())
+				return
+			}
+
+			if slaveRole != dbm.TenDBClusterRemoteSlave {
+				errCh <- gerrors.Newf(gerrors.Failure, "slave(%s:%d) role is not %s", remoteSlave.Host,
+					remoteSlave.Port, dbm.TenDBClusterRemoteSlave)
+			}
+		}(remoteSlave)
+	}
+
+	wg.Wait()
+	close(errCh)
+
+	for err := range errCh {
+		if err != nil {
+			return err
 		}
 	}
 
@@ -186,7 +313,7 @@ func (hdl *TenDBClusterHandler) correctRemoteDBRole(cluster *config.TenDBCluster
 
 // ConnectTdbctlNode connects tdbctl node using authInfo credentials
 func (hdl *TenDBClusterHandler) ConnectTdbctlNode(ip string, port int) (*hamysql.GormDB, error) {
-	tdbctlDB, err := hamysql.NewGormDB(
+	tdbctlDB, err := newToolGormDB(
 		hamysql.OptionProto(MySQLProtocol),
 		hamysql.OptionIP(ip),
 		hamysql.OptionPort(port),
@@ -881,7 +1008,7 @@ func (hdl *TenDBClusterHandler) ShowAllTenDBClustersReplication() error {
 
 // getRemoteNodeReplicationInfo gets replication info from a node
 func (hdl *TenDBClusterHandler) getRemoteNodeReplicationInfo(host string, port int, serverName string, user, password string) (*ReplicationInfo, error) {
-	db, err := hamysql.NewGormDB(
+	db, err := newToolGormDB(
 		hamysql.OptionProto(MySQLProtocol),
 		hamysql.OptionIP(host),
 		hamysql.OptionPort(port),
@@ -995,8 +1122,10 @@ func (hdl *TenDBClusterHandler) getClusterRoutingInfo(cluster *config.TenDBClust
 		return nil, err
 	}
 
+	selectSQL := "SELECT Server_name, Host, Port, Username, Wrapper FROM mysql.servers ORDER BY Server_name"
+
 	var routingEntries []RoutingEntry
-	if err = primaryDB.DB().Raw("SELECT Server_name, Host, Port, Username, Wrapper FROM mysql.servers ORDER BY Server_name").Scan(&routingEntries).Error; err != nil {
+	if err = primaryDB.DB().Raw(selectSQL).Scan(&routingEntries).Error; err != nil {
 		return nil, gerrors.Newf(gerrors.Failure, "failed to query mysql.servers on primary tdbctl, errmsg: %s", err.Error())
 	}
 
