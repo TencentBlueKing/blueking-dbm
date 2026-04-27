@@ -228,7 +228,7 @@
           tableData: infos.map((item) =>
             createTableRow({
               cluster: {
-                master_domain: clusters[item.cluster_id[0]].immute_domain,
+                master_domain: clusters[item.cluster_id_list[0]].immute_domain,
               } as RowData['cluster'],
               dest_version: item.dest_version,
             }),
@@ -243,7 +243,7 @@
     bk_cloud_id: number;
     infos: {
       bk_cloud_id: number;
-      cluster_id: number[];
+      cluster_id_list: number[];
       current_version: string;
       dest_version: string;
       strategy: UpgradeStrategy;
@@ -301,7 +301,7 @@
         bk_cloud_id: formData.tableData[0]?.cluster.bk_cloud_id ?? 0,
         infos: formData.tableData.map((tableRow) => ({
           bk_cloud_id: tableRow.cluster.bk_cloud_id ?? 0,
-          cluster_id: [tableRow.cluster.id!],
+          cluster_id_list: [tableRow.cluster.id, ...tableRow.cluster.related_clusters.map((item) => item.id)],
           current_version: tableRow.cluster.major_version!,
           dest_version: tableRow.dest_version,
           strategy: formData.strategy,
