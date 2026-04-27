@@ -130,12 +130,14 @@ func (c *Component) GenerateBackupConfig() error {
 		fmt.Sprintf("dbbackup.%d.ini", c.backupPort),
 	)
 
-	dailyBackupConfigFile, err := ini.LoadSources(ini.LoadOptions{
-		PreserveSurroundedQuote: true,
-		IgnoreInlineComment:     true,
-		AllowBooleanKeys:        true,
-		AllowShadows:            true,
-	}, dailyBackupConfigPath)
+	dailyBackupConfigFile, err := ini.LoadSources(
+		ini.LoadOptions{
+			PreserveSurroundedQuote: true,
+			IgnoreInlineComment:     true,
+			AllowBooleanKeys:        true,
+			AllowShadows:            true,
+		}, dailyBackupConfigPath,
+	)
 	if err != nil {
 		logger.Error("load %s failed: %s", dailyBackupConfigPath, err.Error())
 		return err
@@ -168,9 +170,11 @@ func (c *Component) GenerateBackupConfig() error {
 	backupConfig.LogicalBackup.Regex = ""
 	if c.Params.BackupType == "logical" {
 		backupConfig.LogicalBackup.UseMysqldump = "auto"
-		ignoreDbs := slices.DeleteFunc(native.DBSys, func(s string) bool {
-			return s == "infodba_schema"
-		})
+		ignoreDbs := slices.DeleteFunc(
+			native.DBSys, func(s string) bool {
+				return s == "infodba_schema"
+			},
+		)
 		ignoreDbs = append(ignoreDbs, c.Params.IgnoreDbs...)
 		backupConfig.LogicalBackup.Databases = strings.Join(c.Params.DbPatterns, ",")
 		backupConfig.LogicalBackup.ExcludeDatabases = strings.Join(ignoreDbs, ",")
@@ -191,11 +195,14 @@ func (c *Component) GenerateBackupConfig() error {
 	if c.Params.CustomBackupDir != "" {
 		backupConfig.Public.BackupDir = filepath.Join(
 			backupConfig.Public.BackupDir,
-			fmt.Sprintf("%s_%s_%d_%s",
+			fmt.Sprintf(
+				"%s_%s_%d_%s",
 				c.Params.CustomBackupDir,
 				c.now.Format("20060102150405"),
 				c.backupPort,
-				c.Params.BackupId))
+				c.Params.BackupId,
+			),
+		)
 
 		if err := os.Mkdir(backupConfig.Public.BackupDir, 0755); err != nil {
 			logger.Error("mkdir %s failed: %s", backupConfig.Public.BackupDir, err.Error())
@@ -221,8 +228,10 @@ func (c *Component) GenerateBackupConfig() error {
 	//backupConfigPath := c.backupConfigPath[port]
 	err = backupConfigFile.SaveTo(c.backupConfigPath)
 	if err != nil {
-		logger.Error("write backup config to %s failed: %s",
-			c.backupConfigPath, err.Error())
+		logger.Error(
+			"write backup config to %s failed: %s",
+			c.backupConfigPath, err.Error(),
+		)
 		return err
 	}
 
@@ -281,8 +290,10 @@ func (c *Component) DoBackup() error {
 	cmdArgs = append(cmdArgs, "--log-dir", logDir)
 	logger.Info("backup command: %s", strings.Join(cmdArgs, " "))
 
-	_, errStr, err := cmutil.ExecCommandAsUser(false, "mysql", "",
-		cmdArgs[0], cmdArgs[1:]...)
+	_, errStr, err := cmutil.ExecCommandAsUser(
+		false, "mysql", "",
+		cmdArgs[0], cmdArgs[1:]...,
+	)
 
 	if err != nil {
 		logger.Error("execute %s failed: %s, msg:%s", cmdArgs, err.Error(), errStr)
@@ -295,7 +306,7 @@ func (c *Component) DoBackup() error {
 func (c *Component) GenerateReport() (report *Report, indexFile string, err error) {
 	report = &Report{}
 
-	indexFileSearch := filepath.Join(c.backupDir, "*.index")
+	indexFileSearch := filepath.Join(c.backupDir, fmt.Sprintf("*%s_%d_*.index", c.Params.Host, c.Params.Port))
 	if files, err := filepath.Glob(indexFileSearch); err != nil {
 		return nil, indexFile, err
 	} else {
@@ -311,7 +322,7 @@ func (c *Component) GenerateReport() (report *Report, indexFile string, err erro
 				continue
 				//return nil, err
 			}
-			if result.BillId == c.Params.BillId && c.Params.BillId != "" {
+			if result.BillId == c.Params.BillId && c.Params.BillId != "" && c.Params.BackupId == result.BackupId {
 				report.Result = &result
 				indexFile = f
 				break
