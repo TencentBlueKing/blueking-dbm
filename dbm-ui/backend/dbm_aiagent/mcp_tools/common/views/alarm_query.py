@@ -21,7 +21,7 @@ from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
-from backend.iam_app.handlers.drf_perm.mcp import McpClusterManagePermission
+from backend.iam_app.handlers.drf_perm.mcp import McpClusterDetailPermission
 
 
 class MonitorQueryMcpToolsViewSet(McpToolsViewSet):
@@ -32,7 +32,7 @@ class MonitorQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=SearchAlertInputSerializer,
         response_slz=SearchAlertOutputSerializer,
         tags=[DBMMCPTags.READ],
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         mcp=[DBMMcpTools.ALARM_QUERY, DBMMcpTools.DBM_PUBLIC_MARKET],
         name_prefix="alarm_query",
@@ -56,7 +56,7 @@ class MonitorQueryMcpToolsViewSet(McpToolsViewSet):
         request_slz=QueryAlertInputSerializer,
         response_slz=SearchAlertOutputSerializer,
         tags=[DBMMCPTags.READ],
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         mcp=[DBMMcpTools.MYSQL_METRICS],
         name_prefix="",

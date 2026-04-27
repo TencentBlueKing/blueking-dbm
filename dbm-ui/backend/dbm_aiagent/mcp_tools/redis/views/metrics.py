@@ -44,7 +44,7 @@ from backend.dbm_aiagent.mcp_tools.redis.serializers.redis_metrics import (
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
-from backend.iam_app.handlers.drf_perm.mcp import McpClusterManagePermission
+from backend.iam_app.handlers.drf_perm.mcp import McpClusterDetailPermission
 
 logger = logging.getLogger("root")
 
@@ -120,7 +120,7 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=RedisClusterProxySeriesInputSerializer,
         response_slz=RedisMetricsSeriesOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_METRICS, DBMMcpTools.DBM_PUBLIC_MARKET],
@@ -148,7 +148,7 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=RedisClusterProxyStatsInputSerializer,
         response_slz=RedisMetricsStatsOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_METRICS],
@@ -182,7 +182,7 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=RedisClusterBackendSeriesInputSerializer,
         response_slz=RedisMetricsSeriesOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_METRICS, DBMMcpTools.DBM_PUBLIC_MARKET],
@@ -210,7 +210,7 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=RedisClusterBackendStatsInputSerializer,
         response_slz=RedisMetricsStatsOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_METRICS],
@@ -244,7 +244,7 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=RedisClusterBackendSeriesInputSerializer,
         response_slz=RedisMetricsSeriesOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_METRICS],
@@ -272,7 +272,7 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=RedisClusterBackendStatsInputSerializer,
         response_slz=RedisMetricsStatsOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_METRICS],
@@ -306,7 +306,7 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=RedisMachineSeriesInputSerializer,
         response_slz=RedisMetricsSeriesOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_hosts,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_METRICS],
@@ -335,7 +335,7 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=RedisMachineStatsInputSerializer,
         response_slz=RedisMetricsStatsOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_hosts,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_METRICS],
@@ -371,7 +371,7 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=RedisInstanceSeriesInputSerializer,
         response_slz=RedisMetricsSeriesOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_instances,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_METRICS],
@@ -401,7 +401,7 @@ class RedisMetricsMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=RedisInstanceStatsInputSerializer,
         response_slz=RedisMetricsStatsOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_instances,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_METRICS],

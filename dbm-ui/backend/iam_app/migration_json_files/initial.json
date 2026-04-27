@@ -482,6 +482,120 @@
             }
         },
         {
+            "operation": "upsert_resource_type",
+            "data": {
+                "id": "k8s_surrealdb",
+                "name": "K8s SurrealDB集群",
+                "name_en": "k8s_surrealdb",
+                "description": "K8s SurrealDB集群",
+                "provider_config": {
+                    "path": "/apis/iam/resource/"
+                },
+                "version": 1,
+                "parents": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz"
+                    }
+                ]
+            }
+        },
+        {
+            "operation": "upsert_resource_type",
+            "data": {
+                "id": "k8s_victoriametrics",
+                "name": "K8s VictoriaMetrics集群",
+                "name_en": "k8s_victoriametrics",
+                "description": "K8s VictoriaMetrics集群",
+                "provider_config": {
+                    "path": "/apis/iam/resource/"
+                },
+                "version": 1,
+                "parents": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz"
+                    }
+                ]
+            }
+        },
+        {
+            "operation": "upsert_resource_type",
+            "data": {
+                "id": "k8s_risingwave",
+                "name": "K8s Risingwave集群",
+                "name_en": "k8s_risingwave",
+                "description": "K8s Risingwave集群",
+                "provider_config": {
+                    "path": "/apis/iam/resource/"
+                },
+                "version": 1,
+                "parents": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz"
+                    }
+                ]
+            }
+        },
+        {
+            "operation": "upsert_resource_type",
+            "data": {
+                "id": "k8s_milvus",
+                "name": "K8s Milvus集群",
+                "name_en": "k8s_milvus",
+                "description": "K8s Milvus集群",
+                "provider_config": {
+                    "path": "/apis/iam/resource/"
+                },
+                "version": 1,
+                "parents": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz"
+                    }
+                ]
+            }
+        },
+        {
+            "operation": "upsert_resource_type",
+            "data": {
+                "id": "k8s_qdrant",
+                "name": "K8s Qdrant集群",
+                "name_en": "k8s_qdrant",
+                "description": "K8s Qdrant集群",
+                "provider_config": {
+                    "path": "/apis/iam/resource/"
+                },
+                "version": 1,
+                "parents": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz"
+                    }
+                ]
+            }
+        },
+        {
+            "operation": "upsert_resource_type",
+            "data": {
+                "id": "k8s_greptimedb",
+                "name": "K8s GreptimeDB集群",
+                "name_en": "k8s_greptimedb",
+                "description": "K8s GreptimeDB集群",
+                "provider_config": {
+                    "path": "/apis/iam/resource/"
+                },
+                "version": 1,
+                "parents": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz"
+                    }
+                ]
+            }
+        },
+        {
             "operation": "upsert_instance_selection",
             "data": {
                 "id": "flow_list",
@@ -931,6 +1045,114 @@
                     {
                         "system_id": "bk_dbm",
                         "id": "vm"
+                    }
+                ]
+            }
+        },
+        {
+            "operation": "upsert_instance_selection",
+            "data": {
+                "id": "k8s_surrealdb_list",
+                "name": "K8s SurrealDB集群 列表",
+                "name_en": "k8s_surrealdb list",
+                "resource_type_chain": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz"
+                    },
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_surrealdb"
+                    }
+                ]
+            }
+        },
+        {
+            "operation": "upsert_instance_selection",
+            "data": {
+                "id": "k8s_victoriametrics_list",
+                "name": "K8s VictoriaMetrics集群 列表",
+                "name_en": "k8s_victoriametrics list",
+                "resource_type_chain": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz"
+                    },
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_victoriametrics"
+                    }
+                ]
+            }
+        },
+        {
+            "operation": "upsert_instance_selection",
+            "data": {
+                "id": "k8s_risingwave_list",
+                "name": "K8s Risingwave集群 列表",
+                "name_en": "k8s_risingwave list",
+                "resource_type_chain": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz"
+                    },
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_risingwave"
+                    }
+                ]
+            }
+        },
+        {
+            "operation": "upsert_instance_selection",
+            "data": {
+                "id": "k8s_milvus_list",
+                "name": "K8s Milvus集群 列表",
+                "name_en": "k8s_milvus list",
+                "resource_type_chain": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz"
+                    },
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_milvus"
+                    }
+                ]
+            }
+        },
+        {
+            "operation": "upsert_instance_selection",
+            "data": {
+                "id": "k8s_qdrant_list",
+                "name": "K8s Qdrant集群 列表",
+                "name_en": "k8s_qdrant list",
+                "resource_type_chain": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz"
+                    },
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_qdrant"
+                    }
+                ]
+            }
+        },
+        {
+            "operation": "upsert_instance_selection",
+            "data": {
+                "id": "k8s_greptimedb_list",
+                "name": "K8s GreptimeDB集群 列表",
+                "name_en": "k8s_greptimedb list",
+                "resource_type_chain": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz"
+                    },
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_greptimedb"
                     }
                 ]
             }
@@ -5569,6 +5791,37 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "mongodb_access_entry_view",
+                "name": "Mongodb 获取访问方式",
+                "name_en": "mongodb_access_entry_view",
+                "type": "view",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mongodb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mongodb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "MongoDB",
+                "subgroup": "集群管理",
+                "description": "Mongodb 获取访问方式",
+                "description_en": "mongodb_access_entry_view"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "mongodb_apply",
                 "name": "MongoDB 部署",
                 "name_en": "mongodb_apply",
@@ -7757,6 +8010,2030 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "mysql_manage",
+                "name": "MySQL 集群管理",
+                "name_en": "mysql_manage",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "集群管理",
+                "description": "MySQL 集群管理",
+                "description_en": "mysql_manage"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "tendbcluster_manage",
+                "name": "TenDBCluster 集群管理",
+                "name_en": "tendbcluster_manage",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "tendbcluster",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "tendbcluster_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "TenDBCluster",
+                "subgroup": "集群管理",
+                "description": "TenDBCluster 集群管理",
+                "description_en": "tendbcluster_manage"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "redis_manage",
+                "name": "Redis 集群管理",
+                "name_en": "redis_manage",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "集群管理",
+                "description": "Redis 集群管理",
+                "description_en": "redis_manage"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "es_manage",
+                "name": "ES 集群管理",
+                "name_en": "es_manage",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "es",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "es_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "ES",
+                "subgroup": "集群管理",
+                "description": "ES 集群管理",
+                "description_en": "es_manage"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "doris_manage",
+                "name": "Doris 集群管理",
+                "name_en": "doris_manage",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "doris",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "doris_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Doris",
+                "subgroup": "集群管理",
+                "description": "Doris 集群管理",
+                "description_en": "doris_manage"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "kafka_manage",
+                "name": "Kafka 集群管理",
+                "name_en": "kafka_manage",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "kafka",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "kafka_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Kafka",
+                "subgroup": "集群管理",
+                "description": "Kafka 集群管理",
+                "description_en": "kafka_manage"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "hdfs_manage",
+                "name": "HDFS 集群管理",
+                "name_en": "hdfs_manage",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "hdfs",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "hdfs_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "HDFS",
+                "subgroup": "集群管理",
+                "description": "HDFS 集群管理",
+                "description_en": "hdfs_manage"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "pulsar_manage",
+                "name": "Pulsar 集群管理",
+                "name_en": "pulsar_manage",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "pulsar",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "pulsar_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Pulsar",
+                "subgroup": "集群管理",
+                "description": "Pulsar 集群管理",
+                "description_en": "pulsar_manage"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mongodb_manage",
+                "name": "MongoDB 集群管理",
+                "name_en": "mongodb_manage",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mongodb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mongodb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MongoDB",
+                "subgroup": "集群管理",
+                "description": "MongoDB 集群管理",
+                "description_en": "mongodb_manage"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "sqlserver_manage",
+                "name": "SQLServer 集群管理",
+                "name_en": "sqlserver_manage",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "sqlserver",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "sqlserver_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "SQLServer",
+                "subgroup": "集群管理",
+                "description": "SQLServer 集群管理",
+                "description_en": "sqlserver_manage"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "oracle_manage",
+                "name": "Oracle 集群管理",
+                "name_en": "oracle_manage",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "oracle",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "oracle_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Oracle",
+                "subgroup": "集群管理",
+                "description": "Oracle 集群管理",
+                "description_en": "oracle_manage"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_surrealdb_apply",
+                "name": "K8s SurrealDB 集群部署",
+                "name_en": "k8s_surrealdb_apply",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz",
+                        "selection_mode": "instance",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_cmdb",
+                                "id": "business"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "SurrealDB集群管理",
+                "description": "K8s SurrealDB 集群部署",
+                "description_en": "k8s_surrealdb_apply"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_surrealdb_modify",
+                "name": "K8s SurrealDB 集群变更",
+                "name_en": "k8s_surrealdb_modify",
+                "type": "edit",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_surrealdb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_surrealdb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "SurrealDB集群管理",
+                "description": "K8s SurrealDB 集群变更",
+                "description_en": "k8s_surrealdb_modify"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_surrealdb_destroy",
+                "name": "K8s SurrealDB 集群删除",
+                "name_en": "k8s_surrealdb_destroy",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_surrealdb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_surrealdb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "SurrealDB集群管理",
+                "description": "K8s SurrealDB 集群删除",
+                "description_en": "k8s_surrealdb_destroy"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_surrealdb_start",
+                "name": "K8s SurrealDB 集群启动",
+                "name_en": "k8s_surrealdb_start",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_surrealdb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_surrealdb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "SurrealDB集群管理",
+                "description": "K8s SurrealDB 集群启动",
+                "description_en": "k8s_surrealdb_start"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_surrealdb_stop",
+                "name": "K8s SurrealDB 集群停止",
+                "name_en": "k8s_surrealdb_stop",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_surrealdb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_surrealdb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "SurrealDB集群管理",
+                "description": "K8s SurrealDB 集群停止",
+                "description_en": "k8s_surrealdb_stop"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_surrealdb_restart",
+                "name": "K8s SurrealDB 集群重启",
+                "name_en": "k8s_surrealdb_restart",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_surrealdb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_surrealdb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "SurrealDB集群管理",
+                "description": "K8s SurrealDB 集群重启",
+                "description_en": "k8s_surrealdb_restart"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_surrealdb_pod_delete",
+                "name": "K8s SurrealDB Pod删除",
+                "name_en": "k8s_surrealdb_pod_delete",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_surrealdb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_surrealdb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "SurrealDB集群管理",
+                "description": "K8s SurrealDB Pod删除",
+                "description_en": "k8s_surrealdb_pod_delete"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_surrealdb_scale",
+                "name": "K8s SurrealDB 集群扩缩容",
+                "name_en": "k8s_surrealdb_scale",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_surrealdb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_surrealdb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "SurrealDB集群管理",
+                "description": "K8s SurrealDB 集群扩缩容",
+                "description_en": "k8s_surrealdb_scale"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_surrealdb_upgrade",
+                "name": "K8s SurrealDB 集群版本升级",
+                "name_en": "k8s_surrealdb_upgrade",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_surrealdb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_surrealdb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "SurrealDB集群管理",
+                "description": "K8s SurrealDB 集群版本升级",
+                "description_en": "k8s_surrealdb_upgrade"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_victoriametrics_apply",
+                "name": "K8s VictoriaMetrics 集群部署",
+                "name_en": "k8s_victoriametrics_apply",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz",
+                        "selection_mode": "instance",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_cmdb",
+                                "id": "business"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "VictoriaMetrics集群管理",
+                "description": "K8s VictoriaMetrics 集群部署",
+                "description_en": "k8s_victoriametrics_apply"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_victoriametrics_modify",
+                "name": "K8s VictoriaMetrics 集群变更",
+                "name_en": "k8s_victoriametrics_modify",
+                "type": "edit",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_victoriametrics",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_victoriametrics_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "VictoriaMetrics集群管理",
+                "description": "K8s VictoriaMetrics 集群变更",
+                "description_en": "k8s_victoriametrics_modify"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_victoriametrics_destroy",
+                "name": "K8s VictoriaMetrics 集群删除",
+                "name_en": "k8s_victoriametrics_destroy",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_victoriametrics",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_victoriametrics_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "VictoriaMetrics集群管理",
+                "description": "K8s VictoriaMetrics 集群删除",
+                "description_en": "k8s_victoriametrics_destroy"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_victoriametrics_start",
+                "name": "K8s VictoriaMetrics 集群启动",
+                "name_en": "k8s_victoriametrics_start",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_victoriametrics",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_victoriametrics_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "VictoriaMetrics集群管理",
+                "description": "K8s VictoriaMetrics 集群启动",
+                "description_en": "k8s_victoriametrics_start"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_victoriametrics_stop",
+                "name": "K8s VictoriaMetrics 集群停止",
+                "name_en": "k8s_victoriametrics_stop",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_victoriametrics",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_victoriametrics_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "VictoriaMetrics集群管理",
+                "description": "K8s VictoriaMetrics 集群停止",
+                "description_en": "k8s_victoriametrics_stop"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_victoriametrics_restart",
+                "name": "K8s VictoriaMetrics 集群重启",
+                "name_en": "k8s_victoriametrics_restart",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_victoriametrics",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_victoriametrics_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "VictoriaMetrics集群管理",
+                "description": "K8s VictoriaMetrics 集群重启",
+                "description_en": "k8s_victoriametrics_restart"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_victoriametrics_pod_delete",
+                "name": "K8s VictoriaMetrics Pod删除",
+                "name_en": "k8s_victoriametrics_pod_delete",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_victoriametrics",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_victoriametrics_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "VictoriaMetrics集群管理",
+                "description": "K8s VictoriaMetrics Pod删除",
+                "description_en": "k8s_victoriametrics_pod_delete"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_victoriametrics_scale",
+                "name": "K8s VictoriaMetrics 集群扩缩容",
+                "name_en": "k8s_victoriametrics_scale",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_victoriametrics",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_victoriametrics_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "VictoriaMetrics集群管理",
+                "description": "K8s VictoriaMetrics 集群扩缩容",
+                "description_en": "k8s_victoriametrics_scale"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_victoriametrics_upgrade",
+                "name": "K8s VictoriaMetrics 集群版本升级",
+                "name_en": "k8s_victoriametrics_upgrade",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_victoriametrics",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_victoriametrics_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "VictoriaMetrics集群管理",
+                "description": "K8s VictoriaMetrics 集群版本升级",
+                "description_en": "k8s_victoriametrics_upgrade"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_risingwave_apply",
+                "name": "K8s Risingwave 集群部署",
+                "name_en": "k8s_risingwave_apply",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz",
+                        "selection_mode": "instance",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_cmdb",
+                                "id": "business"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Risingwave集群管理",
+                "description": "K8s Risingwave 集群部署",
+                "description_en": "k8s_risingwave_apply"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_risingwave_modify",
+                "name": "K8s Risingwave 集群变更",
+                "name_en": "k8s_risingwave_modify",
+                "type": "edit",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_risingwave",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_risingwave_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Risingwave集群管理",
+                "description": "K8s Risingwave 集群变更",
+                "description_en": "k8s_risingwave_modify"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_risingwave_destroy",
+                "name": "K8s Risingwave 集群删除",
+                "name_en": "k8s_risingwave_destroy",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_risingwave",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_risingwave_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Risingwave集群管理",
+                "description": "K8s Risingwave 集群删除",
+                "description_en": "k8s_risingwave_destroy"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_risingwave_start",
+                "name": "K8s Risingwave 集群启动",
+                "name_en": "k8s_risingwave_start",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_risingwave",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_risingwave_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Risingwave集群管理",
+                "description": "K8s Risingwave 集群启动",
+                "description_en": "k8s_risingwave_start"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_risingwave_stop",
+                "name": "K8s Risingwave 集群停止",
+                "name_en": "k8s_risingwave_stop",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_risingwave",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_risingwave_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Risingwave集群管理",
+                "description": "K8s Risingwave 集群停止",
+                "description_en": "k8s_risingwave_stop"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_risingwave_restart",
+                "name": "K8s Risingwave 集群重启",
+                "name_en": "k8s_risingwave_restart",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_risingwave",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_risingwave_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Risingwave集群管理",
+                "description": "K8s Risingwave 集群重启",
+                "description_en": "k8s_risingwave_restart"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_risingwave_pod_delete",
+                "name": "K8s Risingwave Pod删除",
+                "name_en": "k8s_risingwave_pod_delete",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_risingwave",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_risingwave_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Risingwave集群管理",
+                "description": "K8s Risingwave Pod删除",
+                "description_en": "k8s_risingwave_pod_delete"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_risingwave_scale",
+                "name": "K8s Risingwave 集群扩缩容",
+                "name_en": "k8s_risingwave_scale",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_risingwave",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_risingwave_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Risingwave集群管理",
+                "description": "K8s Risingwave 集群扩缩容",
+                "description_en": "k8s_risingwave_scale"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_risingwave_upgrade",
+                "name": "K8s Risingwave 集群版本升级",
+                "name_en": "k8s_risingwave_upgrade",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_risingwave",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_risingwave_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Risingwave集群管理",
+                "description": "K8s Risingwave 集群版本升级",
+                "description_en": "k8s_risingwave_upgrade"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_milvus_apply",
+                "name": "K8s Milvus 集群部署",
+                "name_en": "k8s_milvus_apply",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz",
+                        "selection_mode": "instance",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_cmdb",
+                                "id": "business"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Milvus集群管理",
+                "description": "K8s Milvus 集群部署",
+                "description_en": "k8s_milvus_apply"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_milvus_modify",
+                "name": "K8s Milvus 集群变更",
+                "name_en": "k8s_milvus_modify",
+                "type": "edit",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_milvus",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_milvus_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Milvus集群管理",
+                "description": "K8s Milvus 集群变更",
+                "description_en": "k8s_milvus_modify"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_milvus_destroy",
+                "name": "K8s Milvus 集群删除",
+                "name_en": "k8s_milvus_destroy",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_milvus",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_milvus_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Milvus集群管理",
+                "description": "K8s Milvus 集群删除",
+                "description_en": "k8s_milvus_destroy"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_milvus_start",
+                "name": "K8s Milvus 集群启动",
+                "name_en": "k8s_milvus_start",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_milvus",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_milvus_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Milvus集群管理",
+                "description": "K8s Milvus 集群启动",
+                "description_en": "k8s_milvus_start"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_milvus_stop",
+                "name": "K8s Milvus 集群停止",
+                "name_en": "k8s_milvus_stop",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_milvus",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_milvus_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Milvus集群管理",
+                "description": "K8s Milvus 集群停止",
+                "description_en": "k8s_milvus_stop"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_milvus_restart",
+                "name": "K8s Milvus 集群重启",
+                "name_en": "k8s_milvus_restart",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_milvus",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_milvus_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Milvus集群管理",
+                "description": "K8s Milvus 集群重启",
+                "description_en": "k8s_milvus_restart"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_milvus_pod_delete",
+                "name": "K8s Milvus Pod删除",
+                "name_en": "k8s_milvus_pod_delete",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_milvus",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_milvus_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Milvus集群管理",
+                "description": "K8s Milvus Pod删除",
+                "description_en": "k8s_milvus_pod_delete"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_milvus_scale",
+                "name": "K8s Milvus 集群扩缩容",
+                "name_en": "k8s_milvus_scale",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_milvus",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_milvus_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Milvus集群管理",
+                "description": "K8s Milvus 集群扩缩容",
+                "description_en": "k8s_milvus_scale"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_milvus_upgrade",
+                "name": "K8s Milvus 集群版本升级",
+                "name_en": "k8s_milvus_upgrade",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_milvus",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_milvus_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Milvus集群管理",
+                "description": "K8s Milvus 集群版本升级",
+                "description_en": "k8s_milvus_upgrade"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_qdrant_apply",
+                "name": "K8s Qdrant 集群部署",
+                "name_en": "k8s_qdrant_apply",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz",
+                        "selection_mode": "instance",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_cmdb",
+                                "id": "business"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Qdrant集群管理",
+                "description": "K8s Qdrant 集群部署",
+                "description_en": "k8s_qdrant_apply"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_qdrant_modify",
+                "name": "K8s Qdrant 集群变更",
+                "name_en": "k8s_qdrant_modify",
+                "type": "edit",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_qdrant",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_qdrant_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Qdrant集群管理",
+                "description": "K8s Qdrant 集群变更",
+                "description_en": "k8s_qdrant_modify"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_qdrant_destroy",
+                "name": "K8s Qdrant 集群删除",
+                "name_en": "k8s_qdrant_destroy",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_qdrant",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_qdrant_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Qdrant集群管理",
+                "description": "K8s Qdrant 集群删除",
+                "description_en": "k8s_qdrant_destroy"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_qdrant_start",
+                "name": "K8s Qdrant 集群启动",
+                "name_en": "k8s_qdrant_start",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_qdrant",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_qdrant_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Qdrant集群管理",
+                "description": "K8s Qdrant 集群启动",
+                "description_en": "k8s_qdrant_start"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_qdrant_stop",
+                "name": "K8s Qdrant 集群停止",
+                "name_en": "k8s_qdrant_stop",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_qdrant",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_qdrant_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Qdrant集群管理",
+                "description": "K8s Qdrant 集群停止",
+                "description_en": "k8s_qdrant_stop"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_qdrant_restart",
+                "name": "K8s Qdrant 集群重启",
+                "name_en": "k8s_qdrant_restart",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_qdrant",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_qdrant_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Qdrant集群管理",
+                "description": "K8s Qdrant 集群重启",
+                "description_en": "k8s_qdrant_restart"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_qdrant_pod_delete",
+                "name": "K8s Qdrant Pod删除",
+                "name_en": "k8s_qdrant_pod_delete",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_qdrant",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_qdrant_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Qdrant集群管理",
+                "description": "K8s Qdrant Pod删除",
+                "description_en": "k8s_qdrant_pod_delete"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_qdrant_scale",
+                "name": "K8s Qdrant 集群扩缩容",
+                "name_en": "k8s_qdrant_scale",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_qdrant",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_qdrant_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Qdrant集群管理",
+                "description": "K8s Qdrant 集群扩缩容",
+                "description_en": "k8s_qdrant_scale"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_qdrant_upgrade",
+                "name": "K8s Qdrant 集群版本升级",
+                "name_en": "k8s_qdrant_upgrade",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_qdrant",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_qdrant_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Qdrant集群管理",
+                "description": "K8s Qdrant 集群版本升级",
+                "description_en": "k8s_qdrant_upgrade"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_greptimedb_apply",
+                "name": "K8s GreptimeDB 集群部署",
+                "name_en": "k8s_greptimedb_apply",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz",
+                        "selection_mode": "instance",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_cmdb",
+                                "id": "business"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "GreptimeDB集群管理",
+                "description": "K8s GreptimeDB 集群部署",
+                "description_en": "k8s_greptimedb_apply"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_greptimedb_modify",
+                "name": "K8s GreptimeDB 集群变更",
+                "name_en": "k8s_greptimedb_modify",
+                "type": "edit",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_greptimedb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_greptimedb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "GreptimeDB集群管理",
+                "description": "K8s GreptimeDB 集群变更",
+                "description_en": "k8s_greptimedb_modify"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_greptimedb_destroy",
+                "name": "K8s GreptimeDB 集群删除",
+                "name_en": "k8s_greptimedb_destroy",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_greptimedb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_greptimedb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "GreptimeDB集群管理",
+                "description": "K8s GreptimeDB 集群删除",
+                "description_en": "k8s_greptimedb_destroy"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_greptimedb_start",
+                "name": "K8s GreptimeDB 集群启动",
+                "name_en": "k8s_greptimedb_start",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_greptimedb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_greptimedb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "GreptimeDB集群管理",
+                "description": "K8s GreptimeDB 集群启动",
+                "description_en": "k8s_greptimedb_start"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_greptimedb_stop",
+                "name": "K8s GreptimeDB 集群停止",
+                "name_en": "k8s_greptimedb_stop",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_greptimedb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_greptimedb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "GreptimeDB集群管理",
+                "description": "K8s GreptimeDB 集群停止",
+                "description_en": "k8s_greptimedb_stop"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_greptimedb_restart",
+                "name": "K8s GreptimeDB 集群重启",
+                "name_en": "k8s_greptimedb_restart",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_greptimedb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_greptimedb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "GreptimeDB集群管理",
+                "description": "K8s GreptimeDB 集群重启",
+                "description_en": "k8s_greptimedb_restart"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_greptimedb_pod_delete",
+                "name": "K8s GreptimeDB Pod删除",
+                "name_en": "k8s_greptimedb_pod_delete",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_greptimedb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_greptimedb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "GreptimeDB集群管理",
+                "description": "K8s GreptimeDB Pod删除",
+                "description_en": "k8s_greptimedb_pod_delete"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_greptimedb_scale",
+                "name": "K8s GreptimeDB 集群扩缩容",
+                "name_en": "k8s_greptimedb_scale",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_greptimedb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_greptimedb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "GreptimeDB集群管理",
+                "description": "K8s GreptimeDB 集群扩缩容",
+                "description_en": "k8s_greptimedb_scale"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_greptimedb_upgrade",
+                "name": "K8s GreptimeDB 集群版本升级",
+                "name_en": "k8s_greptimedb_upgrade",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "k8s_greptimedb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "k8s_greptimedb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "GreptimeDB集群管理",
+                "description": "K8s GreptimeDB 集群版本升级",
+                "description_en": "k8s_greptimedb_upgrade"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "k8s_addon_manage",
+                "name": "K8s Addon 管理",
+                "name_en": "k8s_addon_manage",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz",
+                        "selection_mode": "instance",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_cmdb",
+                                "id": "business"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "K8s数据库",
+                "subgroup": "Addon管理",
+                "description": "K8s Addon 管理",
+                "description_en": "k8s_addon_manage"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "mysql_add_slave",
                 "name": "MySQL 添加从库",
                 "name_en": "MYSQL_ADD_SLAVE",
@@ -8888,6 +11165,35 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "mysql_proxy_rescue",
+                "name": "MySQL Proxy 救援",
+                "name_en": "MYSQL_PROXY_RESCUE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "集群维护",
+                "description": "MySQL Proxy 救援",
+                "description_en": "MYSQL_PROXY_RESCUE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "tendbcluster_checksum",
                 "name": "TenDB Cluster 数据校验修复",
                 "name_en": "TENDBCLUSTER_CHECKSUM",
@@ -9057,6 +11363,35 @@
                 "subgroup": "集群维护",
                 "description": "TenDB Cluster Spider迁移升级",
                 "description_en": "TENDBCLUSTER_SPIDER_UPGRADE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "tendbcluster_migrate_upgrade",
+                "name": "TenDB Cluster 存储层迁移升级",
+                "name_en": "TENDBCLUSTER_MIGRATE_UPGRADE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "tendbcluster",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "tendbcluster_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "TenDBCluster",
+                "subgroup": "集群维护",
+                "description": "TenDB Cluster 存储层迁移升级",
+                "description_en": "TENDBCLUSTER_MIGRATE_UPGRADE"
             }
         },
         {
@@ -9758,6 +12093,35 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "tendbcluster_tdbctl_upgrade",
+                "name": "TenDB Cluster TDBCTL 升级",
+                "name_en": "TENDBCLUSTER_TDBCTL_UPGRADE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "tendbcluster",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "tendbcluster_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "TenDBCluster",
+                "subgroup": "集群维护",
+                "description": "TenDB Cluster TDBCTL 升级",
+                "description_en": "TENDBCLUSTER_TDBCTL_UPGRADE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "sqlserver_import_sqlfile",
                 "name": "SQLServer SQL导入执行",
                 "name_en": "SQLSERVER_IMPORT_SQLFILE",
@@ -10222,6 +12586,35 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "sqlserver_data_export",
+                "name": "SQLServer 数据导出",
+                "name_en": "SQLSERVER_DATA_EXPORT",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "sqlserver",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "sqlserver_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "SQLServer",
+                "subgroup": "数据处理",
+                "description": "SQLServer 数据导出",
+                "description_en": "SQLSERVER_DATA_EXPORT"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "redis_plugin_delete_clb",
                 "name": "Redis 删除CLB",
                 "name_en": "REDIS_PLUGIN_DELETE_CLB",
@@ -10425,9 +12818,9 @@
         {
             "operation": "upsert_action",
             "data": {
-                "id": "redis_proxy_fast_fix",
-                "name": "Redis 集群Proxy快速恢复",
-                "name_en": "REDIS_PROXY_FAST_FIX",
+                "id": "redis_proxy_kickoff",
+                "name": "Redis 集群Proxy剔除",
+                "name_en": "REDIS_PROXY_KICKOFF",
                 "type": "execute",
                 "related_resource_types": [
                     {
@@ -10447,8 +12840,37 @@
                 "hidden": false,
                 "group": "Redis",
                 "subgroup": "集群管理",
-                "description": "Redis 集群Proxy快速恢复",
-                "description_en": "REDIS_PROXY_FAST_FIX"
+                "description": "Redis 集群Proxy剔除",
+                "description_en": "REDIS_PROXY_KICKOFF"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "redis_proxy_fix",
+                "name": "Redis 集群Proxy恢复",
+                "name_en": "REDIS_PROXY_FIX",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "集群管理",
+                "description": "Redis 集群Proxy恢复",
+                "description_en": "REDIS_PROXY_FIX"
             }
         },
         {
@@ -10860,6 +13282,64 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "redis_shard_add",
+                "name": "Redis 增加分片数",
+                "name_en": "REDIS_SHARD_ADD",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "集群维护",
+                "description": "Redis 增加分片数",
+                "description_en": "REDIS_SHARD_ADD"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "redis_shard_reduce",
+                "name": "Redis 减少分片数",
+                "name_en": "REDIS_SHARD_REDUCE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "集群维护",
+                "description": "Redis 减少分片数",
+                "description_en": "REDIS_SHARD_REDUCE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "redis_cluster_add_slave",
                 "name": "Redis 重建从库",
                 "name_en": "REDIS_CLUSTER_ADD_SLAVE",
@@ -11121,6 +13601,64 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "redis_role_check",
+                "name": "Redis 角色检查",
+                "name_en": "REDIS_ROLE_CHECK",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "工具箱",
+                "description": "Redis 角色检查",
+                "description_en": "REDIS_ROLE_CHECK"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "redis_entry_check",
+                "name": "Redis 入口一致性检查",
+                "name_en": "REDIS_ENTRY_CHECK",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "工具箱",
+                "description": "Redis 入口一致性检查",
+                "description_en": "REDIS_ENTRY_CHECK"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "redis_rollback_exercise",
                 "name": "Redis 回档演练",
                 "name_en": "REDIS_ROLLBACK_EXERCISE",
@@ -11145,6 +13683,35 @@
                 "subgroup": "工具箱",
                 "description": "Redis 回档演练",
                 "description_en": "REDIS_ROLLBACK_EXERCISE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "redis_proxy_fast_recover",
+                "name": "Redis Proxy剔除和修复",
+                "name_en": "REDIS_PROXY_FAST_RECOVER",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "集群维护",
+                "description": "Redis Proxy剔除和修复",
+                "description_en": "REDIS_PROXY_FAST_RECOVER"
             }
         },
         {
@@ -12919,6 +15486,35 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "mongodb_instance_fix_status",
+                "name": "MongoDB 节点状态修复",
+                "name_en": "MONGODB_INSTANCE_FIX_STATUS",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mongodb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mongodb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MongoDB",
+                "subgroup": "集群维护",
+                "description": "MongoDB 节点状态修复",
+                "description_en": "MONGODB_INSTANCE_FIX_STATUS"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "vm_scale_up",
                 "name": "VM 集群扩容",
                 "name_en": "VM_SCALE_UP",
@@ -13425,6 +16021,9 @@
                                 },
                                 {
                                     "id": "mysql_destroy"
+                                },
+                                {
+                                    "id": "mysql_manage"
                                 }
                             ]
                         },
@@ -13593,6 +16192,9 @@
                                 },
                                 {
                                     "id": "mysql_clone_cluster"
+                                },
+                                {
+                                    "id": "mysql_proxy_rescue"
                                 }
                             ]
                         },
@@ -13753,6 +16355,9 @@
                                 },
                                 {
                                     "id": "tendbcluster_enable_disable"
+                                },
+                                {
+                                    "id": "tendbcluster_manage"
                                 },
                                 {
                                     "id": "tendbcluster_destroy"
@@ -13920,6 +16525,9 @@
                                     "id": "tendbcluster_spider_upgrade"
                                 },
                                 {
+                                    "id": "tendbcluster_migrate_upgrade"
+                                },
+                                {
                                     "id": "tendbcluster_remote_upgrade"
                                 },
                                 {
@@ -13939,6 +16547,9 @@
                                 },
                                 {
                                     "id": "tendbcluster_node_rebalance"
+                                },
+                                {
+                                    "id": "tendbcluster_tdbctl_upgrade"
                                 }
                             ]
                         },
@@ -14047,6 +16658,9 @@
                                     "id": "redis_open_close"
                                 },
                                 {
+                                    "id": "redis_manage"
+                                },
+                                {
                                     "id": "redis_plugin_delete_clb"
                                 },
                                 {
@@ -14068,7 +16682,10 @@
                                     "id": "redis_purge"
                                 },
                                 {
-                                    "id": "redis_proxy_fast_fix"
+                                    "id": "redis_proxy_kickoff"
+                                },
+                                {
+                                    "id": "redis_proxy_fix"
                                 },
                                 {
                                     "id": "redis_cluster_ins_migrate"
@@ -14110,6 +16727,12 @@
                                     "id": "redis_cluster_type_update"
                                 },
                                 {
+                                    "id": "redis_shard_add"
+                                },
+                                {
+                                    "id": "redis_shard_reduce"
+                                },
+                                {
                                     "id": "redis_cluster_add_slave"
                                 },
                                 {
@@ -14117,6 +16740,9 @@
                                 },
                                 {
                                     "id": "redis_tendisplus_lightning_data"
+                                },
+                                {
+                                    "id": "redis_proxy_fast_recover"
                                 }
                             ]
                         },
@@ -14162,6 +16788,12 @@
                                 },
                                 {
                                     "id": "redis_cluster_load_modules"
+                                },
+                                {
+                                    "id": "redis_role_check"
+                                },
+                                {
+                                    "id": "redis_entry_check"
                                 },
                                 {
                                     "id": "redis_rollback_exercise"
@@ -14300,6 +16932,9 @@
                                     "id": "doris_enable_disable"
                                 },
                                 {
+                                    "id": "doris_manage"
+                                },
+                                {
                                     "id": "doris_scale_up"
                                 },
                                 {
@@ -14344,6 +16979,9 @@
                                 },
                                 {
                                     "id": "kafka_enable_disable"
+                                },
+                                {
+                                    "id": "kafka_manage"
                                 },
                                 {
                                     "id": "kafka_scale_up"
@@ -14395,6 +17033,9 @@
                                     "id": "hdfs_enable_disable"
                                 },
                                 {
+                                    "id": "hdfs_manage"
+                                },
+                                {
                                     "id": "hdfs_scale_up"
                                 },
                                 {
@@ -14439,6 +17080,9 @@
                                 },
                                 {
                                     "id": "pulsar_enable_disable"
+                                },
+                                {
+                                    "id": "pulsar_manage"
                                 },
                                 {
                                     "id": "pulsar_scale_up"
@@ -14524,6 +17168,9 @@
                                     "id": "mongodb_source_access_view"
                                 },
                                 {
+                                    "id": "mongodb_access_entry_view"
+                                },
+                                {
                                     "id": "mongodb_apply"
                                 },
                                 {
@@ -14531,6 +17178,9 @@
                                 },
                                 {
                                     "id": "mongodb_webconsole"
+                                },
+                                {
+                                    "id": "mongodb_manage"
                                 },
                                 {
                                     "id": "mongodb_plugin_create_clb"
@@ -14639,6 +17289,9 @@
                                 },
                                 {
                                     "id": "mongodb_instance_deinstall"
+                                },
+                                {
+                                    "id": "mongodb_instance_fix_status"
                                 }
                             ]
                         },
@@ -14705,6 +17358,9 @@
                                     "id": "sqlserver_enable_disable"
                                 },
                                 {
+                                    "id": "sqlserver_manage"
+                                },
+                                {
                                     "id": "sqlserver_destroy"
                                 }
                             ]
@@ -14766,6 +17422,9 @@
                                 },
                                 {
                                     "id": "sqlserver_rollback"
+                                },
+                                {
+                                    "id": "sqlserver_data_export"
                                 }
                             ]
                         },
@@ -14827,6 +17486,9 @@
                                 },
                                 {
                                     "id": "oracle_destroy"
+                                },
+                                {
+                                    "id": "oracle_manage"
                                 }
                             ]
                         },
@@ -14853,6 +17515,236 @@
                         }
                     ],
                     "sub_groups": []
+                },
+                {
+                    "name": "ES",
+                    "name_en": "ES",
+                    "actions": [],
+                    "sub_groups": [
+                        {
+                            "name": "集群管理",
+                            "name_en": "集群管理",
+                            "actions": [
+                                {
+                                    "id": "es_manage"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "K8s数据库",
+                    "name_en": "K8s数据库",
+                    "actions": [],
+                    "sub_groups": [
+                        {
+                            "name": "SurrealDB集群管理",
+                            "name_en": "SurrealDB集群管理",
+                            "actions": [
+                                {
+                                    "id": "k8s_surrealdb_apply"
+                                },
+                                {
+                                    "id": "k8s_surrealdb_modify"
+                                },
+                                {
+                                    "id": "k8s_surrealdb_destroy"
+                                },
+                                {
+                                    "id": "k8s_surrealdb_start"
+                                },
+                                {
+                                    "id": "k8s_surrealdb_stop"
+                                },
+                                {
+                                    "id": "k8s_surrealdb_restart"
+                                },
+                                {
+                                    "id": "k8s_surrealdb_pod_delete"
+                                },
+                                {
+                                    "id": "k8s_surrealdb_scale"
+                                },
+                                {
+                                    "id": "k8s_surrealdb_upgrade"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "VictoriaMetrics集群管理",
+                            "name_en": "VictoriaMetrics集群管理",
+                            "actions": [
+                                {
+                                    "id": "k8s_victoriametrics_apply"
+                                },
+                                {
+                                    "id": "k8s_victoriametrics_modify"
+                                },
+                                {
+                                    "id": "k8s_victoriametrics_destroy"
+                                },
+                                {
+                                    "id": "k8s_victoriametrics_start"
+                                },
+                                {
+                                    "id": "k8s_victoriametrics_stop"
+                                },
+                                {
+                                    "id": "k8s_victoriametrics_restart"
+                                },
+                                {
+                                    "id": "k8s_victoriametrics_pod_delete"
+                                },
+                                {
+                                    "id": "k8s_victoriametrics_scale"
+                                },
+                                {
+                                    "id": "k8s_victoriametrics_upgrade"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Risingwave集群管理",
+                            "name_en": "Risingwave集群管理",
+                            "actions": [
+                                {
+                                    "id": "k8s_risingwave_apply"
+                                },
+                                {
+                                    "id": "k8s_risingwave_modify"
+                                },
+                                {
+                                    "id": "k8s_risingwave_destroy"
+                                },
+                                {
+                                    "id": "k8s_risingwave_start"
+                                },
+                                {
+                                    "id": "k8s_risingwave_stop"
+                                },
+                                {
+                                    "id": "k8s_risingwave_restart"
+                                },
+                                {
+                                    "id": "k8s_risingwave_pod_delete"
+                                },
+                                {
+                                    "id": "k8s_risingwave_scale"
+                                },
+                                {
+                                    "id": "k8s_risingwave_upgrade"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Milvus集群管理",
+                            "name_en": "Milvus集群管理",
+                            "actions": [
+                                {
+                                    "id": "k8s_milvus_apply"
+                                },
+                                {
+                                    "id": "k8s_milvus_modify"
+                                },
+                                {
+                                    "id": "k8s_milvus_destroy"
+                                },
+                                {
+                                    "id": "k8s_milvus_start"
+                                },
+                                {
+                                    "id": "k8s_milvus_stop"
+                                },
+                                {
+                                    "id": "k8s_milvus_restart"
+                                },
+                                {
+                                    "id": "k8s_milvus_pod_delete"
+                                },
+                                {
+                                    "id": "k8s_milvus_scale"
+                                },
+                                {
+                                    "id": "k8s_milvus_upgrade"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Qdrant集群管理",
+                            "name_en": "Qdrant集群管理",
+                            "actions": [
+                                {
+                                    "id": "k8s_qdrant_apply"
+                                },
+                                {
+                                    "id": "k8s_qdrant_modify"
+                                },
+                                {
+                                    "id": "k8s_qdrant_destroy"
+                                },
+                                {
+                                    "id": "k8s_qdrant_start"
+                                },
+                                {
+                                    "id": "k8s_qdrant_stop"
+                                },
+                                {
+                                    "id": "k8s_qdrant_restart"
+                                },
+                                {
+                                    "id": "k8s_qdrant_pod_delete"
+                                },
+                                {
+                                    "id": "k8s_qdrant_scale"
+                                },
+                                {
+                                    "id": "k8s_qdrant_upgrade"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "GreptimeDB集群管理",
+                            "name_en": "GreptimeDB集群管理",
+                            "actions": [
+                                {
+                                    "id": "k8s_greptimedb_apply"
+                                },
+                                {
+                                    "id": "k8s_greptimedb_modify"
+                                },
+                                {
+                                    "id": "k8s_greptimedb_destroy"
+                                },
+                                {
+                                    "id": "k8s_greptimedb_start"
+                                },
+                                {
+                                    "id": "k8s_greptimedb_stop"
+                                },
+                                {
+                                    "id": "k8s_greptimedb_restart"
+                                },
+                                {
+                                    "id": "k8s_greptimedb_pod_delete"
+                                },
+                                {
+                                    "id": "k8s_greptimedb_scale"
+                                },
+                                {
+                                    "id": "k8s_greptimedb_upgrade"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "Addon管理",
+                            "name_en": "Addon管理",
+                            "actions": [
+                                {
+                                    "id": "k8s_addon_manage"
+                                }
+                            ]
+                        }
+                    ]
                 },
                 {
                     "name": "Vm",
@@ -15375,6 +18267,9 @@
                             "id": "mongodb_source_access_view"
                         },
                         {
+                            "id": "mongodb_access_entry_view"
+                        },
+                        {
                             "id": "mongodb_apply"
                         },
                         {
@@ -15633,6 +18528,9 @@
                             "id": "mysql_clb_unbind_domain"
                         },
                         {
+                            "id": "mysql_proxy_rescue"
+                        },
+                        {
                             "id": "tendbcluster_checksum"
                         },
                         {
@@ -15649,6 +18547,9 @@
                         },
                         {
                             "id": "tendbcluster_spider_upgrade"
+                        },
+                        {
+                            "id": "tendbcluster_migrate_upgrade"
                         },
                         {
                             "id": "tendbcluster_remote_upgrade"
@@ -15723,6 +18624,9 @@
                             "id": "tendbcluster_clb_unbind_domain"
                         },
                         {
+                            "id": "tendbcluster_tdbctl_upgrade"
+                        },
+                        {
                             "id": "sqlserver_import_sqlfile"
                         },
                         {
@@ -15771,6 +18675,9 @@
                             "id": "sqlserver_rollback"
                         },
                         {
+                            "id": "sqlserver_data_export"
+                        },
+                        {
                             "id": "redis_plugin_delete_clb"
                         },
                         {
@@ -15792,7 +18699,10 @@
                             "id": "redis_purge"
                         },
                         {
-                            "id": "redis_proxy_fast_fix"
+                            "id": "redis_proxy_kickoff"
+                        },
+                        {
+                            "id": "redis_proxy_fix"
                         },
                         {
                             "id": "redis_scale_updown"
@@ -15837,6 +18747,12 @@
                             "id": "redis_datacopy_check_repair"
                         },
                         {
+                            "id": "redis_shard_add"
+                        },
+                        {
+                            "id": "redis_shard_reduce"
+                        },
+                        {
                             "id": "redis_cluster_add_slave"
                         },
                         {
@@ -15864,7 +18780,16 @@
                             "id": "redis_single_ins_migrate"
                         },
                         {
+                            "id": "redis_role_check"
+                        },
+                        {
+                            "id": "redis_entry_check"
+                        },
+                        {
                             "id": "redis_rollback_exercise"
+                        },
+                        {
+                            "id": "redis_proxy_fast_recover"
                         },
                         {
                             "id": "kafka_scale_up"
@@ -16048,6 +18973,9 @@
                         },
                         {
                             "id": "mongodb_instance_deinstall"
+                        },
+                        {
+                            "id": "mongodb_instance_fix_status"
                         },
                         {
                             "id": "vm_scale_up"
@@ -16647,6 +19575,10 @@
                                 "required": true
                             },
                             {
+                                "id": "mysql_manage",
+                                "required": true
+                            },
+                            {
                                 "id": "mysql_add_slave",
                                 "required": true
                             },
@@ -16801,6 +19733,10 @@
                             {
                                 "id": "mysql_clb_unbind_domain",
                                 "required": true
+                            },
+                            {
+                                "id": "mysql_proxy_rescue",
+                                "required": true
                             }
                         ]
                     },
@@ -16931,6 +19867,10 @@
                                 "required": true
                             },
                             {
+                                "id": "tendbcluster_manage",
+                                "required": true
+                            },
+                            {
                                 "id": "tendbcluster_checksum",
                                 "required": true
                             },
@@ -16952,6 +19892,10 @@
                             },
                             {
                                 "id": "tendbcluster_spider_upgrade",
+                                "required": true
+                            },
+                            {
+                                "id": "tendbcluster_migrate_upgrade",
                                 "required": true
                             },
                             {
@@ -17049,6 +19993,10 @@
                             {
                                 "id": "tendbcluster_clb_unbind_domain",
                                 "required": true
+                            },
+                            {
+                                "id": "tendbcluster_tdbctl_upgrade",
+                                "required": true
                             }
                         ]
                     },
@@ -17125,6 +20073,10 @@
                                 "required": true
                             },
                             {
+                                "id": "redis_manage",
+                                "required": true
+                            },
+                            {
                                 "id": "redis_plugin_delete_clb",
                                 "required": true
                             },
@@ -17153,7 +20105,11 @@
                                 "required": true
                             },
                             {
-                                "id": "redis_proxy_fast_fix",
+                                "id": "redis_proxy_kickoff",
+                                "required": true
+                            },
+                            {
+                                "id": "redis_proxy_fix",
                                 "required": true
                             },
                             {
@@ -17213,6 +20169,14 @@
                                 "required": true
                             },
                             {
+                                "id": "redis_shard_add",
+                                "required": true
+                            },
+                            {
+                                "id": "redis_shard_reduce",
+                                "required": true
+                            },
+                            {
                                 "id": "redis_cluster_add_slave",
                                 "required": true
                             },
@@ -17249,7 +20213,19 @@
                                 "required": true
                             },
                             {
+                                "id": "redis_role_check",
+                                "required": true
+                            },
+                            {
+                                "id": "redis_entry_check",
+                                "required": true
+                            },
+                            {
                                 "id": "redis_rollback_exercise",
+                                "required": true
+                            },
+                            {
+                                "id": "redis_proxy_fast_recover",
                                 "required": true
                             }
                         ]
@@ -17275,6 +20251,10 @@
                             },
                             {
                                 "id": "es_enable_disable",
+                                "required": true
+                            },
+                            {
+                                "id": "es_manage",
                                 "required": true
                             },
                             {
@@ -17384,6 +20364,10 @@
                                 "required": true
                             },
                             {
+                                "id": "doris_manage",
+                                "required": true
+                            },
+                            {
                                 "id": "doris_scale_up",
                                 "required": true
                             },
@@ -17426,6 +20410,10 @@
                             },
                             {
                                 "id": "kafka_enable_disable",
+                                "required": true
+                            },
+                            {
+                                "id": "kafka_manage",
                                 "required": true
                             },
                             {
@@ -17478,6 +20466,10 @@
                                 "required": true
                             },
                             {
+                                "id": "hdfs_manage",
+                                "required": true
+                            },
+                            {
                                 "id": "hdfs_scale_up",
                                 "required": true
                             },
@@ -17520,6 +20512,10 @@
                             },
                             {
                                 "id": "pulsar_enable_disable",
+                                "required": true
+                            },
+                            {
+                                "id": "pulsar_manage",
                                 "required": true
                             },
                             {
@@ -17605,6 +20601,10 @@
                                 "required": true
                             },
                             {
+                                "id": "mongodb_access_entry_view",
+                                "required": true
+                            },
+                            {
                                 "id": "mongodb_enable_disable",
                                 "required": true
                             },
@@ -17630,6 +20630,10 @@
                             },
                             {
                                 "id": "mongodb_full_backup",
+                                "required": true
+                            },
+                            {
+                                "id": "mongodb_manage",
                                 "required": true
                             },
                             {
@@ -17727,6 +20731,10 @@
                             {
                                 "id": "mongodb_instance_deinstall",
                                 "required": true
+                            },
+                            {
+                                "id": "mongodb_instance_fix_status",
+                                "required": true
                             }
                         ]
                     },
@@ -17764,6 +20772,10 @@
                             },
                             {
                                 "id": "sqlserver_enable_disable",
+                                "required": true
+                            },
+                            {
+                                "id": "sqlserver_manage",
                                 "required": true
                             },
                             {
@@ -17829,6 +20841,10 @@
                             {
                                 "id": "sqlserver_rollback",
                                 "required": true
+                            },
+                            {
+                                "id": "sqlserver_data_export",
+                                "required": true
                             }
                         ]
                     },
@@ -17866,6 +20882,10 @@
                             },
                             {
                                 "id": "oracle_destroy",
+                                "required": true
+                            },
+                            {
+                                "id": "oracle_manage",
                                 "required": true
                             },
                             {
@@ -17912,6 +20932,228 @@
                             },
                             {
                                 "id": "global_monitor_policy_start_stop",
+                                "required": true
+                            }
+                        ]
+                    },
+                    {
+                        "id": "k8s_surrealdb",
+                        "actions": [
+                            {
+                                "id": "k8s_surrealdb_modify",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_surrealdb_destroy",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_surrealdb_start",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_surrealdb_stop",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_surrealdb_restart",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_surrealdb_pod_delete",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_surrealdb_scale",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_surrealdb_upgrade",
+                                "required": true
+                            }
+                        ]
+                    },
+                    {
+                        "id": "k8s_victoriametrics",
+                        "actions": [
+                            {
+                                "id": "k8s_victoriametrics_modify",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_victoriametrics_destroy",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_victoriametrics_start",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_victoriametrics_stop",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_victoriametrics_restart",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_victoriametrics_pod_delete",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_victoriametrics_scale",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_victoriametrics_upgrade",
+                                "required": true
+                            }
+                        ]
+                    },
+                    {
+                        "id": "k8s_risingwave",
+                        "actions": [
+                            {
+                                "id": "k8s_risingwave_modify",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_risingwave_destroy",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_risingwave_start",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_risingwave_stop",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_risingwave_restart",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_risingwave_pod_delete",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_risingwave_scale",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_risingwave_upgrade",
+                                "required": true
+                            }
+                        ]
+                    },
+                    {
+                        "id": "k8s_milvus",
+                        "actions": [
+                            {
+                                "id": "k8s_milvus_modify",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_milvus_destroy",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_milvus_start",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_milvus_stop",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_milvus_restart",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_milvus_pod_delete",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_milvus_scale",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_milvus_upgrade",
+                                "required": true
+                            }
+                        ]
+                    },
+                    {
+                        "id": "k8s_qdrant",
+                        "actions": [
+                            {
+                                "id": "k8s_qdrant_modify",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_qdrant_destroy",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_qdrant_start",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_qdrant_stop",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_qdrant_restart",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_qdrant_pod_delete",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_qdrant_scale",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_qdrant_upgrade",
+                                "required": true
+                            }
+                        ]
+                    },
+                    {
+                        "id": "k8s_greptimedb",
+                        "actions": [
+                            {
+                                "id": "k8s_greptimedb_modify",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_greptimedb_destroy",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_greptimedb_start",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_greptimedb_stop",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_greptimedb_restart",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_greptimedb_pod_delete",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_greptimedb_scale",
+                                "required": true
+                            },
+                            {
+                                "id": "k8s_greptimedb_upgrade",
                                 "required": true
                             }
                         ]

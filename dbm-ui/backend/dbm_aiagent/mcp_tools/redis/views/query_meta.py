@@ -52,7 +52,7 @@ from backend.dbm_aiagent.mcp_tools.redis.serializers.cluster_meta import (
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
-from backend.iam_app.handlers.drf_perm.mcp import McpClusterManagePermission, McpDBManagePermission
+from backend.iam_app.handlers.drf_perm.mcp import McpClusterDetailPermission, McpDBManagePermission
 
 logger = logging.getLogger("flow")
 
@@ -112,7 +112,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
         description=str(_("查询指定 Redis 集群的基本概览信息，需要提供集群域名（cluster_domain）。")),
         request_slz=RedisTopoInputSerializer,
         response_slz=RedisClusterBasicOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_QUERY_META],
@@ -126,7 +126,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
         description=str(_("查询指定 Redis 集群的 Proxy（代理层）实例统计摘要。适合快速了解集群代理层整体健康状况，不返回具体实例列表。")),
         request_slz=RedisTopoInputSerializer,
         response_slz=RedisInstancesTopoSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_QUERY_META],
@@ -140,7 +140,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
         description=str(_("查询指定 Redis 集群的存储层（redis_master 和 redis_slave）实例统计摘要，适合快速了解集群存储层整体规模和健康状况，不返回具体实例列表。")),
         request_slz=RedisTopoInputSerializer,
         response_slz=RedisClusterStorageDepOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_QUERY_META],
@@ -154,7 +154,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
         description=str(_("查询指定 Redis 集群的 Proxy 节点详细列表，支持通过 ips 参数过滤特定主机，支持分页参数")),
         request_slz=RedisListInstsTopoInputSerializer,
         response_slz=RedisProxiesSummarySerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_QUERY_META],
@@ -171,7 +171,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
         description=str(_("查询指定 Redis 集群的存储节点主从关系对列表，支持通过 addrs 参数过滤与特定实例相关的主从对，支持分页。适合排查主从关系、定位某个实例的对端节点。")),
         request_slz=RedisListStorageInstsInputSerializer,
         response_slz=ClusterStorageTuplesSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_QUERY_META],
@@ -192,7 +192,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
         description=str(_("根据输入的主机 IP 列表，反查这些主机所属的 Redis 集群信息。")),
         request_slz=RedisHostInputSerializer,
         response_slz=RedisHostClusterOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_hosts,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_QUERY_META],
@@ -206,7 +206,7 @@ class RedisQueryMetaMcpToolsViewSet(McpToolsViewSet):
         description=str(_("查询指定集群内特定实例的详细信息，适合深入排查某个具体实例的配置和状态。")),
         request_slz=RedisInstancesInputSerializer,
         response_slz=ClusterInstancesDetailSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_QUERY_META],

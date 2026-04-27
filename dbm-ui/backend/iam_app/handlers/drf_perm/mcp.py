@@ -67,13 +67,14 @@ class McpDBManagePermission(BaseMcpDetailPermission):
         super().__init__(actions=actions, resource_meta=resource_meta)
 
 
-class McpClusterManagePermission(BaseMcpDetailPermission):
+class McpClusterDetailPermission(BaseMcpDetailPermission):
     """
-    MCP工具集群详情相关动作鉴权
+    MCP工具集群详情动作鉴权 - 集群查看
     鉴权字段：集群列表 List[int]
     """
 
     resource_checker = TypeAdapter(typing.ClusterIdList)
+    action_key = "VIEW"
 
     def __init__(self, actions: List[ActionMeta] = None, resource_meta: ResourceMeta = None):
         super().__init__(actions=actions, resource_meta=resource_meta)
@@ -89,8 +90,18 @@ class McpClusterManagePermission(BaseMcpDetailPermission):
 
         # 从获取到集群ID后，决定动作和资源类型
         self.resource_meta = ResourceEnum.cluster_type_to_resource_meta(cluster_types[0])
-        self.actions = [ActionEnum.cluster_type_to_action(cluster_types[0], action_key="VIEW")]
+        self.actions = [ActionEnum.cluster_type_to_action(cluster_types[0], action_key=self.action_key)]
         return cluster_ids
+
+
+class McpClusterOperatePermission(McpClusterDetailPermission):
+    """
+    MCP工具集群详情动作鉴权 - 集群操作
+    鉴权字段：集群列表 List[int]
+    """
+
+    resource_checker = TypeAdapter(typing.ClusterIdList)
+    action_key = "MANAGE"
 
 
 class McpTicketToolPermission(BaseMcpDetailPermission):

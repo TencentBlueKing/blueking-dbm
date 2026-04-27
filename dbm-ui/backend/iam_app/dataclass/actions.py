@@ -2720,6 +2720,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     TENDBCLUSTER_MANAGE = ActionMeta(
@@ -2731,6 +2732,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
         group=_("TenDBCluster"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     REDIS_MANAGE = ActionMeta(
@@ -2742,6 +2744,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.REDIS],
         group=_("Redis"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     ES_MANAGE = ActionMeta(
@@ -2753,6 +2756,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.ES],
         group=_("ES"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     DORIS_MANAGE = ActionMeta(
@@ -2764,6 +2768,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.DORIS],
         group=_("Doris"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     KAFKA_MANAGE = ActionMeta(
@@ -2775,6 +2780,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.KAFKA],
         group=_("Kafka"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     HDFS_MANAGE = ActionMeta(
@@ -2786,6 +2792,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.HDFS],
         group=_("HDFS"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     PULSAR_MANAGE = ActionMeta(
@@ -2797,6 +2804,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.PULSAR],
         group=_("Pulsar"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     MONGODB_MANAGE = ActionMeta(
@@ -2808,6 +2816,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MONGODB],
         group=_("MongoDB"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     SQLSERVER_MANAGE = ActionMeta(
@@ -2819,6 +2828,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.SQLSERVER],
         group=_("SQLServer"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     ORACLE_MANAGE = ActionMeta(
@@ -2830,6 +2840,7 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.ORACLE],
         group=_("Oracle"),
         subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
     # -----------------------------------------------------------------------

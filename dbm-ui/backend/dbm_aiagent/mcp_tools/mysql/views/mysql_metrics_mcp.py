@@ -34,7 +34,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_metrics import (
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
-from backend.iam_app.handlers.drf_perm.mcp import McpClusterManagePermission
+from backend.iam_app.handlers.drf_perm.mcp import McpClusterDetailPermission
 
 logger = logging.getLogger("root")
 
@@ -52,7 +52,7 @@ class MySQLMetricsMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=MysqlMetricsInputSerializer,
         response_slz=MysqlMetricsOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_METRICS, DBMMcpTools.DBM_PUBLIC_MARKET],
@@ -111,7 +111,7 @@ class MySQLMetricsMcpToolsViewSet(McpToolsViewSet):
         description=str(_("获取一段时间内某个 tendbha/tendbcluster 集群的 cpu负载 指标信息")),
         request_slz=MysqlMetricsInputSerializer,
         response_slz=MysqlMetricsOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_METRICS],
@@ -124,7 +124,7 @@ class MySQLMetricsMcpToolsViewSet(McpToolsViewSet):
         description=str(_("获取一段时间内某个 tendbha/tendbcluster 集群的 qps 请求量 指标信息")),
         request_slz=MysqlMetricsInputSerializer,
         response_slz=MysqlMetricsOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_METRICS],
@@ -137,7 +137,7 @@ class MySQLMetricsMcpToolsViewSet(McpToolsViewSet):
         description=str(_("获取一段时间内某个 tendbha/tendbcluster 集群的 qps 请求量 指标信息")),
         request_slz=MysqlMetricsInputSerializer,
         response_slz=MysqlMetricsOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_METRICS],
@@ -150,7 +150,7 @@ class MySQLMetricsMcpToolsViewSet(McpToolsViewSet):
         description=str(_("获取一段时间内某个 tendbha/tendbcluster 集群的 slow_query 数量 指标信息")),
         request_slz=MysqlMetricsInputSerializer,
         response_slz=MysqlMetricsOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_METRICS],
@@ -163,7 +163,7 @@ class MySQLMetricsMcpToolsViewSet(McpToolsViewSet):
         description=str(_("获取一段时间内某个 tendbha/tendbcluster 集群的 connections 连接数 指标信息")),
         request_slz=MysqlMetricsInputSerializer,
         response_slz=MysqlMetricsOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_METRICS],
@@ -176,7 +176,7 @@ class MySQLMetricsMcpToolsViewSet(McpToolsViewSet):
         description=str(_("获取一段时间内某个 tendbha/tendbcluster 集群的 threads_running 线程数 指标信息")),
         request_slz=MysqlMetricsInputSerializer,
         response_slz=MysqlMetricsOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_METRICS],
@@ -189,7 +189,7 @@ class MySQLMetricsMcpToolsViewSet(McpToolsViewSet):
         description=str(_("""查询 mysql 某个实例连接情况, 返回是按照 aggregate_type 聚合 processlist 的结果，不是 processlist 原始信息""")),
         request_slz=ShowInstanceProcessListAggregatedInputSerializer,
         response_slz=ShowInstanceProcessListAggregatedOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_instances,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_METRICS],
