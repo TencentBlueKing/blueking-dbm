@@ -336,6 +336,8 @@ workflow:
   readDbMetricOffsetDuration: -60s
   readDbEventOffsetDuration: -10m
   enableSwitching: true
+  clusterLevelSwitchMaxClusterNum: 16
+  clusterLevelSwitchMaxInstanceNum: 64
 
   dbmApiMetadata:
     api: ${DBM_API_BASE}/apis/proxypass/dbmeta/dbha/instances
