@@ -126,7 +126,7 @@
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
-  import { toolboxMenuList } from '@views/db-manage/mongodb/toolbox/Index.vue';
+  import { toolboxMenuList } from '@views/db-manage/mongodb/toolbox/toolboxMenuList';
 
   import CountTag from './components/CountTag.vue';
   import MenuGroup from './components/MenuGroup.vue';

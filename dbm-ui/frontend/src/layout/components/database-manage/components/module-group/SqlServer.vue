@@ -97,7 +97,7 @@
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
-  import { toolboxMenuList } from '@views/db-manage/sqlserver/toolbox/Index.vue';
+  import { toolboxMenuList } from '@views/db-manage/sqlserver/toolbox/toolboxMenuList';
 
   import CountTag from './components/CountTag.vue';
   import MenuGroup from './components/MenuGroup.vue';
