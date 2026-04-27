@@ -237,11 +237,11 @@ def query_slowlog_aggregated(
         SUM(rows_examined) AS rows_examined_sum,
         MAX(rows_sent) AS rows_sent_max,
         SUM(rows_sent) AS rows_sent_sum,
-        ANY_VALUE(query_digest_text) AS query_digest_text,
-        ANY_VALUE(query_command) AS query_command,
-        ANY_VALUE(query_db_name) AS query_db_name,
-        ANY_VALUE(table_names) AS table_names,
-        ANY_VALUE(username) AS username
+        ANY_VALUE(query_digest_text) AS _query_digest_text,
+        ANY_VALUE(query_command) AS _query_command,
+        ANY_VALUE(query_db_name) AS _query_db_name,
+        ANY_VALUE(table_names) AS _table_names,
+        ANY_VALUE(username) AS _username
     FROM {MysqlSlowlogDetail._meta.db_table}
     WHERE cluster_domain = %s
         AND instance_role = %s
@@ -287,17 +287,23 @@ def query_slowlog_aggregated(
                 rows_examined_sum=Sum("rows_examined"),
                 rows_sent_max=Max("rows_sent"),
                 rows_sent_sum=Sum("rows_sent"),
-                query_digest_text=AnyValue(F("query_digest_text"), output_field=CharField()),
-                query_command=AnyValue(F("query_command"), output_field=CharField()),
-                query_db_name=AnyValue(F("query_db_name"), output_field=CharField()),
-                table_names=AnyValue(F("table_names"), output_field=CharField()),
-                username=AnyValue(F("username"), output_field=CharField()),
-                instance_host=AnyValue(F("instance_host"), output_field=CharField()),
-                instance_port=AnyValue(F("instance_port"), output_field=IntegerField()),
+                _query_digest_text=AnyValue(F("query_digest_text"), output_field=CharField()),
+                _query_command=AnyValue(F("query_command"), output_field=CharField()),
+                _query_db_name=AnyValue(F("query_db_name"), output_field=CharField()),
+                _table_names=AnyValue(F("table_names"), output_field=CharField()),
+                _username=AnyValue(F("username"), output_field=CharField()),
+                _instance_host=AnyValue(F("instance_host"), output_field=CharField()),
+                _instance_port=AnyValue(F("instance_port"), output_field=IntegerField()),
             )
             .order_by(f"-{order_by}")[:limit]
         )
         rows = list(qs)
+        """
+        Django 发现 annotate 的别名与模型字段同名时，会认为这是对该字段的"覆盖注解"，
+        并将聚合表达式也加入 GROUP BY 子句中，导致 Doris 报错：GROUP BY expression must not contain aggregate functions:
+        any_value(query_digest_text)。
+        所以之类我们需要用 _ 开头的别名，避免与 model 字段同名
+        """
     except Exception as e:
         raise DBMMcpBaseException(msg=f"query slowlog aggregated data failed: {e}")
 
@@ -309,6 +315,18 @@ def query_slowlog_aggregated(
                 item[time_field] = item[time_field].strftime("%Y-%m-%d %H:%M:%S")
             elif item.get(time_field):
                 item[time_field] = str(item[time_field])
+        # 将带下划线前缀的别名字段重命名为原始字段名
+        for _key, key in [
+            ("_query_digest_text", "query_digest_text"),
+            ("_query_command", "query_command"),
+            ("_query_db_name", "query_db_name"),
+            ("_table_names", "table_names"),
+            ("_username", "username"),
+            ("_instance_host", "instance_host"),
+            ("_instance_port", "instance_port"),
+        ]:
+            if _key in item:
+                item[key] = item.pop(_key)
         # 去除 query_digest_text 中的反引号，优化 markdown 展示
         if item.get("query_digest_text"):
             item["query_digest_text"] = item["query_digest_text"].replace("`", "")

@@ -60,13 +60,15 @@ func ScheduleBackup(cnf *config.Public) error {
 			localLog:          logger.Log.WithField("Port", cnf.MysqlPort),
 		}
 		var backupId string
-		var servers []MysqlServer
-		if backupId, servers, err = globalBackup.prepareBackup(mysqlconn.GetTdbctlInst(spiderInst)); err != nil {
+		var servers, spiderSlaves []MysqlServer
+		if backupId, servers, spiderSlaves, err = globalBackup.prepareBackup(mysqlconn.GetTdbctlInst(spiderInst)); err != nil {
 			return errors.WithMessagef(err, "prepareBackup")
 		}
+		servers = append(servers, spiderSlaves...)
 		if err = globalBackup.initializeBackup(servers, dbw); err != nil {
 			return errors.WithMessage(err, "initializeBackup")
 		}
+
 		if viper.GetBool("schedule.wait") {
 			ch := make(chan error, 1)
 			go func() {
@@ -215,7 +217,7 @@ func RunBackupTasks(cnfList []*config.Public) error {
 				return err
 			}
 		} else {
-			var tasks []*GlobalBackupModel
+			var tasks = make([]*GlobalBackupModel, len(backupIdTasks))
 			for i, t := range backupIdTasks {
 				tasks[i] = t.earliestBackupTask
 			}
@@ -324,8 +326,10 @@ func (g GlobalBackup) runBackup(task InstBackupTask) error {
 	}
 
 	var execCmd *exec.Cmd
-	if strings.EqualFold(g.cnfObj.MysqlRole, cst.BackupRoleSpiderMaster) || g.Wrapper == cst.WrapperSpider {
-		g.localLog.Infof("runBackup for spider master with dbbackup_main.sh for backup-id:%s", g.BackupId)
+	if strings.EqualFold(g.cnfObj.MysqlRole, cst.BackupRoleSpiderMaster) ||
+		g.Wrapper == cst.WrapperSpider || g.Wrapper == cst.WrapperSpiderSlave {
+		g.localLog.Infof("runBackup for spider %s with dbbackup_main.sh for backup-id:%s",
+			g.Wrapper, g.BackupId)
 		execCmd = buildBackupCmdForSpiderMaster(g.BackupId)
 	} else {
 		g.localLog.Infof("runBackup for remote shard %d with backup-id:%s", task.shardValue, g.BackupId)
@@ -502,7 +506,7 @@ func (g GlobalBackup) getBackupStatusByWrapper(backupId string, wrapper string) 
 		logger.Log.Warnf("TdbctlQueryByRoleWithMerge error:%s", err.Error())
 		return nil, err
 	}
-	logger.Log.Warnf("TdbctlQueryByRoleWithMerge slave tasks:%+v", tasks)
+	logger.Log.Warnf("TdbctlQueryByRoleWithMerge [%s] tasks:%+v", wrapper, tasks)
 	return tasks, nil
 }
 
@@ -516,7 +520,8 @@ func (g GlobalBackup) getBackupStatusMaster(backupId string) ([]*GlobalBackupMod
 	}
 	defer spiderDbw.Close()
 	sqlBuilder := sq.Select("*").
-		From(g.GlobalBackupModel.TableName()).Where("BackupStatus != ?", StatusReplicated)
+		From(g.GlobalBackupModel.TableName()).Where("BackupStatus != ? and Wrapper not in (?)",
+		StatusReplicated, cst.WrapperSpiderSlave)
 	if backupId != "" {
 		sqlBuilder = sqlBuilder.Where("BackupId = ?", backupId)
 	}
@@ -534,6 +539,10 @@ func (g GlobalBackup) queryBackupStatusById(backupId string, backupStatus []stri
 	slaveTasks, err1 := g.getBackupStatusByWrapper(backupId, cst.WrapperRemoteSlave)
 	if err == nil && err1 == nil {
 		tasks = append(tasks, slaveTasks...)
+		spiderSlaveTasks, err2 := g.getBackupStatusByWrapper(backupId, cst.WrapperSpiderSlave)
+		if err2 == nil {
+			tasks = append(tasks, spiderSlaveTasks...)
+		}
 	} else if err != nil || err1 != nil {
 		return nil, err
 	}
@@ -567,8 +576,12 @@ func (g GlobalBackup) waitBackupDone(backupId string) error {
 
 		tasks, err := g.getBackupStatusMaster(backupId)
 		slaveTasks, err1 := g.getBackupStatusByWrapper(backupId, cst.WrapperRemoteSlave)
+		spiderSlaveTask, err2 := g.getBackupStatusByWrapper(backupId, cst.WrapperSpiderSlave)
 		if err == nil && err1 == nil {
 			tasks = append(tasks, slaveTasks...)
+			if err2 == nil {
+				tasks = append(tasks, spiderSlaveTask...)
+			}
 		} else if err != nil || err1 != nil {
 			if g.retries > 120 {
 				return errors.Errorf("backup progress [%s] waitBackupDone failed", backupId)

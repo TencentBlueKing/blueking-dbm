@@ -22,10 +22,11 @@ import (
 
 // prepareBackup 获取backupId 和 需要备份的 servers
 // servers 从 tdbctl master 获取，因为它的是全的， spider节点的 mysql.servers 没有 remote slave 信息
-func (g GlobalBackup) prepareBackup(tdbctlInst mysqlconn.InsObject) (string, []MysqlServer, error) {
+func (g GlobalBackup) prepareBackup(tdbctlInst mysqlconn.InsObject) (
+	backupId string, backupServers []MysqlServer, backupServerSlave []MysqlServer, err error) {
 	dbw, err := tdbctlInst.Conn()
 	if err != nil {
-		return "", nil, err
+		return "", nil, nil, err
 	}
 	defer dbw.Close()
 
@@ -35,10 +36,9 @@ func (g GlobalBackup) prepareBackup(tdbctlInst mysqlconn.InsObject) (string, []M
 	sqlStr, sqlArgs := sqlQ.MustSql()
 	logger.Log.Infof("sqlStr: %s", sqlStr)
 	if err := dbw.Db.Select(&serversTmp, sqlStr, sqlArgs...); err != nil {
-		return "", nil, err
+		return "", nil, nil, err
 	}
-	var backupId string
-	var backupServers []MysqlServer
+
 	for _, s := range serversTmp {
 		if s.Wrapper == cst.WrapperRemote || s.Wrapper == cst.WrapperRemoteSlave {
 			if strings.HasPrefix(s.ServerName, "SPT_SLAVE") {
@@ -46,13 +46,17 @@ func (g GlobalBackup) prepareBackup(tdbctlInst mysqlconn.InsObject) (string, []M
 			} else if strings.HasPrefix(s.ServerName, "SPT") {
 				s.PartValue = cast.ToInt(strings.TrimPrefix(s.ServerName, "SPT"))
 			} else {
-				return "", nil, errors.Errorf("Server_name should has prefix SPT/SPT_SLAVE: %+v", s)
+				return "", nil, nil, errors.Errorf("Server_name should has prefix SPT/SPT_SLAVE: %+v", s)
 			}
 			backupServers = append(backupServers, s)
 		} else if s.Host == g.Host && s.Wrapper == cst.WrapperSpider {
 			// primary spider / tdbctl
 			s.PartValue = cst.SpiderNodeShardValue
 			backupServers = append(backupServers, s)
+		} else if s.Wrapper == cst.WrapperSpiderSlave {
+			// spider slave 也备份 schema,grant
+			s.PartValue = cst.SpiderNodeShardValue
+			backupServerSlave = append(backupServerSlave, s)
 		}
 	}
 	logger.Log.Infof("backupServers:%+v", backupServers)
@@ -60,11 +64,11 @@ func (g GlobalBackup) prepareBackup(tdbctlInst mysqlconn.InsObject) (string, []M
 		backupId = g.BackupId
 	} else {
 		if backupId, err = dbareport.GenerateUUid(); err != nil {
-			return "", nil, err
+			return "", nil, nil, err
 		}
 		g.BackupId = backupId
 	}
-	return backupId, backupServers, nil
+	return backupId, backupServers, backupServerSlave, err
 }
 
 // uniqMysqlServers servers 去重，但优先选择 remote master
@@ -135,6 +139,9 @@ func (g GlobalBackup) initializeBackup(backupServers []MysqlServer, dbw *mysqlco
 		if strings.HasPrefix(s.ServerName, "SPT_SLAVE") {
 			sqlBuilder.Values(s.ServerName, s.Wrapper, s.Host, s.Port, s.PartValue, g.BackupId,
 				StatusReplicated, createdAt)
+		} else if s.Wrapper == cst.WrapperSpiderSlave {
+			// 直接把备份任务写入 spider slave 节点
+			sqlBuilder.Values(s.ServerName, s.Wrapper, s.Host, s.Port, s.PartValue, g.BackupId, StatusInit, createdAt)
 		} else {
 			sqlBuilder.Values(s.ServerName, s.Wrapper, s.Host, s.Port, s.PartValue, g.BackupId, StatusInit, createdAt)
 		}
@@ -152,7 +159,7 @@ func (g GlobalBackup) initializeBackup(backupServers []MysqlServer, dbw *mysqlco
 		if err2 := migrateBackupSchema(mysqlErr, dbw.Db); err2 != nil {
 			return errors.WithMessagef(err, "migrateBackupSchema failed:%s", err2.Error())
 		} else {
-			logger.Log.Infof("migrateBackupSchema sucess: continue")
+			logger.Log.Infof("migrateBackupSchema success: continue")
 			if g.retries < 1 {
 				g.retries += 1
 				return g.initializeBackup(backupServers, dbw)
@@ -180,29 +187,16 @@ func (b GlobalBackupModel) checkBackupStatus(db *sqlx.DB) (string, error) {
 
 // queryBackupTasks 以本机 ip:port 来查询本实例的备份任务
 func (b GlobalBackupModel) queryBackupTasks(retries int, db *sqlx.DB) (backupTasks []*GlobalBackupModel, err error) {
-	/*
-		builder := sb.Select("BackupId", "ServerName", "Host", "Port", "BackupStatus", "ShardValue", "CreatedAt").
-			From(b.TableName())
-		builder.Where(builder.EQ("Host", b.Host), builder.EQ("Port", b.Port)).
-			In("BackupStatus", StatusInit, StatusReplicated, StatusRunning)
-		if b.BackupId != "" {
-			builder.Where(builder.EQ("BackupId", b.BackupId))
-		}
-		if b.Wrapper == cst.WrapperSpider { // 可以避免在 spider node 上备份时，跨分片查询
-			builder.Where(builder.EQ("ShardValue", cst.SpiderNodeShardValue))
-			b.Wrapper = "" // 避免后续可能干扰后续查询条件
-		}
-		sqlStr, sqlArgs := builder.Build()
-		query, err := sb.MySQL.Interpolate(sqlStr, sqlArgs)
-	*/
-	sqlBuilder := sq.Select("BackupId", "ServerName", "Host", "Port", "BackupStatus", "ShardValue", "CreatedAt").
+	sqlBuilder := sq.Select("BackupId", "ServerName", "Host", "Port",
+		"BackupStatus", "ShardValue", "Wrapper", "CreatedAt").
 		From(b.TableName()).
 		Where("Host = ? and Port = ?", b.Host, b.Port).
 		Where(sq.Eq{"BackupStatus": []string{StatusInit, StatusReplicated, StatusRunning}}) // isBackupStatusInit
 	if b.BackupId != "" {
 		sqlBuilder = sqlBuilder.Where("BackupId = ?", b.BackupId)
 	}
-	if b.Wrapper == cst.WrapperSpider { // 可以避免在 spider node 上备份时，跨分片查询
+	if b.Wrapper == cst.WrapperSpider || b.Wrapper == cst.WrapperSpiderSlave {
+		// 可以避免在 spider node 上备份时，跨分片查询
 		sqlBuilder = sqlBuilder.Where("ShardValue = ?", cst.SpiderNodeShardValue)
 		b.Wrapper = "" // 避免后续可能干扰后续查询条件
 	}
@@ -220,16 +214,14 @@ func (b GlobalBackupModel) queryBackupTasks(retries int, db *sqlx.DB) (backupTas
 		}
 		if err2 := migrateBackupSchema(mysqlErr, db); err2 != nil {
 			return nil, errors.WithMessagef(err, "migrateBackupSchema failed:%s", err2.Error())
-		} else {
-			logger.Log.Infof("migrateBackupSchema sucess: continue")
-			if retries < 1 {
-				retries += 1
-				return b.queryBackupTasks(retries, db)
-			} else {
-				return nil, errors.Wrap(err, "retry queryBackupTasks too much")
-			}
-			// return nil, nil
 		}
+		logger.Log.Infof("migrateBackupSchema success: continue")
+		if retries < 1 {
+			retries += 1
+			return b.queryBackupTasks(retries, db)
+		}
+		return nil, errors.Wrap(err, "retry queryBackupTasks too much")
+
 	} else if len(backupTasks) == 0 {
 		logger.Log.Infof("no backup task for %s:%d", b.Host, b.Port)
 		return nil, nil
@@ -347,7 +339,20 @@ func (b GlobalBackupModel) updateBackupTask(backupStatus string, taskPid int, db
 	}
 	sqlStr, sqlArgs := sqlBuilder.MustSql()
 	logger.Log.Infof("updateBackupTask: %+v, %+v", sqlStr, sqlArgs)
-	if res, err := sqlBuilder.RunWith(db).Exec(); err != nil {
+
+	ctx := context.Background()
+	oneConn, err := db.Conn(ctx)
+	if err != nil {
+		return 0, errors.WithMessage(err, "get db conn failed")
+	}
+	defer oneConn.Close()
+
+	if b.Wrapper == cst.WrapperSpiderSlave {
+		if _, err = oneConn.ExecContext(ctx, "set spider_read_only_mode=0"); err != nil {
+			return 0, errors.WithMessage(err, "set spider_read_only_mode=0 failed")
+		}
+	}
+	if res, err := oneConn.ExecContext(ctx, sqlStr, sqlArgs...); err != nil {
 		return 0, errors.WithMessage(err, "update task failed")
 	} else {
 		rowsAffected, _ := res.RowsAffected()

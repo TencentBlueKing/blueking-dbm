@@ -21,7 +21,8 @@ func ConfigNamesBatchUpsert(db *gorm.DB, cf api.BaseConfFileDef, confNames []*ap
 	deletes := make([]*model.ConfigNameDefModel, 0)
 	upserts := make([]*model.ConfigNameDefModel, 0)
 
-	// 目前只允许 update 这几个属性 "value_default", "value_allowed", "flag_status", "flag_locked"，见 ConfigNamesBatchUpdate
+	// 目前只允许 update 这几个属性 "value_default", "value_allowed", "flag_status", "flag_locked"，
+	// 见 ConfigNamesBatchUpdate
 	for _, cn := range confNames {
 		confName := &model.ConfigNameDefModel{}
 		_ = copier.Copy(confName, cn.ConfNameDef)

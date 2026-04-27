@@ -315,12 +315,13 @@ func ValidateConfValue(confValue, valueType, valueTypeSub, valueAllowed string) 
 	if valueType == "" && valueTypeSub == "" && valueAllowed == "" {
 		return nil
 	}
-	if strings.HasPrefix(confValue, "{{") && strings.HasSuffix(confValue, "}}") {
+	if err := CheckDataTypeSub(valueType, valueTypeSub); err != nil {
+		return err
+	}
+	if util.ConfValueIsPlaceHolder(confValue) {
 		return nil
 	}
 	if err := CheckDataType(valueType, confValue); err != nil {
-		return err
-	} else if err = CheckDataTypeSub(valueType, valueTypeSub); err != nil {
 		return err
 	}
 	var invalidErr = errors.Errorf("invalid value_type_sub %s for %s", valueTypeSub, valueType)
@@ -334,9 +335,9 @@ func ValidateConfValue(confValue, valueType, valueTypeSub, valueAllowed string) 
 		}
 	} else if util.StringsHas([]string{DTypeInt, DTypeFloat, DTypeNumber}, valueType) {
 		return validateValueNumber(valueType, valueTypeSub, confValue, valueAllowed)
-	} else { // STRING
-		return validateValueString(valueType, valueTypeSub, confValue, valueAllowed)
 	}
+	// STRING
+	return validateValueString(valueType, valueTypeSub, confValue, valueAllowed)
 }
 
 func validateValueNumber(valueType, valueTypeSub, confValue, valueAllowed string) error {
