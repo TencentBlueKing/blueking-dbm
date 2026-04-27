@@ -21,7 +21,7 @@ from backend.ticket.constants import TicketType
 
 class MongodbUpgradeDetailSerializer(BaseMongoDBOperateDetailSerializer):
     class InfoSerializer(serializers.Serializer):
-        cluster_id = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField(), min_length=1)
+        cluster_id_list = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField(), min_length=1)
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
         current_version = serializers.CharField(help_text=_("当前版本"))
         dest_version = serializers.CharField(help_text=_("目标版本"))
@@ -33,6 +33,9 @@ class MongodbUpgradeDetailSerializer(BaseMongoDBOperateDetailSerializer):
 
 class MongoDBUpgradeParamBuilder(builders.FlowParamBuilder):
     controller = MongoDBController.mongo_upgrade_version
+
+    def format_ticket_data(self):
+        self.ticket_data["ticket_id"] = self.ticket.id
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_UPGRADE_VERSION)
