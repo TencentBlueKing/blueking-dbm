@@ -274,7 +274,7 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
                             "rule": {
                                 "key": "appid",
                                 "method": policy.targets[0]["rule"]["method"],
-                                "value": [bk_biz_id],
+                                "value": [str(bk_biz_id)],
                             },
                         }
                     ],
