@@ -60,7 +60,8 @@ const (
 	// WrapperRemoteSlave TODO
 	WrapperRemoteSlave = "mysql_slave"
 	// WrapperSpider TODO
-	WrapperSpider = "SPIDER"
+	WrapperSpider      = "SPIDER"
+	WrapperSpiderSlave = "SPIDER_SLAVE"
 	// WrapperTdbctl TODO
 	WrapperTdbctl = "TDBCTL"
 	// ServerNamePrefix TODO

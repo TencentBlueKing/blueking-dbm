@@ -37,7 +37,7 @@ func ConfigNamesBatchUpdate(db *gorm.DB, confNames []*ConfigNameDefModel, opUser
 			if err1 := tx.Debug().Select(
 				"value_default",
 				"value_allowed", "value_type", "value_type_sub",
-				"flag_status", "flag_locked", "flag_readonly", "flag_visible", "need_restart",
+				"flag_status", "flag_locked", "flag_readonly", "flag_visible", "need_restart", "flag_encrypt",
 				"description", "conf_name_lc").
 				Where(c.UniqueWhere()).Updates(c).Error; err1 != nil {
 				return errors.WithMessage(err1, c.ConfName)

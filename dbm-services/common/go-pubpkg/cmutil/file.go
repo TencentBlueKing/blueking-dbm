@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -108,6 +109,15 @@ func GetFileModifyTime(filename string) (bool, int64) {
 		return true, fi.ModTime().Unix()
 	}
 	return false, 0
+}
+
+// FileModifyTime 获取文件修改时间
+func FileModifyTime(filename string) (bool, time.Time) {
+	fi, err := os.Stat(filename)
+	if err != nil {
+		return false, time.Time{}
+	}
+	return true, fi.ModTime()
 }
 
 // OSCopyFile os cp file

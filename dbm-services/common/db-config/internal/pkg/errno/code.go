@@ -74,5 +74,6 @@ var (
 	// ErrOnlyLevelConfigAllowed TODO
 	ErrOnlyLevelConfigAllowed = Errno{Code: 10007, Message: "only level_config is allowed to be applied by default",
 		CNMessage: "只有 level_config 才能直接应用 config"}
-	ErrDecryptValue = Errno{Code: 10007, Message: "decrypt config value failed", CNMessage: "解密出现异常"}
+	ErrDecryptValue  = Errno{Code: 10007, Message: "decrypt config value failed", CNMessage: "解密出现异常"}
+	ErrValidateValue = Errno{Code: 10008, Message: "validate config value failed", CNMessage: "校验不通过"}
 )
