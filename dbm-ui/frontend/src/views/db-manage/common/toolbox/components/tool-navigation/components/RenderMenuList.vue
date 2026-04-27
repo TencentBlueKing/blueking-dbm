@@ -39,8 +39,6 @@
   const dbType = route.meta.dbType as DBTypes;
   const profileSortKey = `${dbType}_${props.groupKey ? props.groupKey + '_' : ''}toolbox_group_sort`.toUpperCase();
 
-  console.log('profileSortKey ', profileSortKey);
-
   const renderMenuList = ref<ToolNavigationProps['data']>([]);
 
   watch(

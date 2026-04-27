@@ -99,7 +99,7 @@
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
-  import { menuGroupList, toolboxMenuList } from '@views/db-manage/redis/toolbox/Index.vue';
+  import { menuGroupList, toolboxMenuList } from '@views/db-manage/redis/toolbox/toolboxMenuList';
 
   import CountTag from './components/CountTag.vue';
   import MenuGroup from './components/MenuGroup.vue';
