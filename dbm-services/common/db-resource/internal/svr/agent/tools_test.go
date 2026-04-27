@@ -13,6 +13,7 @@ package agent
 import (
 	"context"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -1231,5 +1232,121 @@ func TestFormatSubZoneDisplay(t *testing.T) {
 					tt.city, tt.subZone, tt.subZoneID, result, tt.expected)
 			}
 		})
+	}
+}
+
+// TestApplyBizAndOsFilters_AlignsWithMatchChain 验证 applyBizAndOsFilters 生成的 SQL 与
+// apply.SearchContext.MatchIntentionBkBiz/MatchOsType/MatchOsName 行为一致：
+//   - 未指定 biz：dedicated_biz = 0
+//   - 指定 biz 且无 labels：dedicated_biz IN (0, biz)
+//   - 指定 biz 且有 labels：dedicated_biz = biz
+//   - 默认 os_type = Linux，可被显式覆盖
+//   - os_names 配合 exclude_os_name 切换 IN/NOT IN
+func TestApplyBizAndOsFilters_AlignsWithMatchChain(t *testing.T) {
+	gormDB, _ := setupTestDB(t)
+	tools := NewResourceTools(gormDB)
+
+	cases := []struct {
+		name        string
+		args        map[string]interface{}
+		wantSubstrs []string
+		denySubstrs []string
+	}{
+		{
+			name:        "defaults: 未指定 biz/os_type 时使用公共池+Linux",
+			args:        map[string]interface{}{},
+			wantSubstrs: []string{"dedicated_biz = 0", "os_type = 'Linux'"},
+		},
+		{
+			name: "intention_biz_id 无 labels: 公共池或业务专属池",
+			args: map[string]interface{}{
+				"intention_biz_id": float64(100298),
+			},
+			wantSubstrs: []string{"dedicated_biz IN (0,100298)", "os_type = 'Linux'"},
+		},
+		{
+			name: "intention_biz_id 有 labels: 仅业务专属池",
+			args: map[string]interface{}{
+				"intention_biz_id": float64(100298),
+				"labels":           []interface{}{"db_type:slave"},
+			},
+			wantSubstrs: []string{"dedicated_biz = 100298"},
+			denySubstrs: []string{"dedicated_biz IN", "dedicated_biz = 0"},
+		},
+		{
+			name: "for_biz_id 是 intention_biz_id 的别名",
+			args: map[string]interface{}{
+				"for_biz_id": float64(100298),
+			},
+			wantSubstrs: []string{"dedicated_biz IN (0,100298)"},
+		},
+		{
+			name: "显式 os_type=Windows 与 os_names 白名单",
+			args: map[string]interface{}{
+				"os_type":  "Windows",
+				"os_names": []interface{}{"WS2012", "WS2016"},
+			},
+			wantSubstrs: []string{
+				"os_type = 'Windows'",
+				"os_name IN ('WS2012','WS2016')",
+			},
+			denySubstrs: []string{"os_type = 'Linux'"},
+		},
+		{
+			name: "exclude_os_name=true 时为黑名单",
+			args: map[string]interface{}{
+				"os_names":        []interface{}{"Tlinux2.6"},
+				"exclude_os_name": true,
+			},
+			wantSubstrs: []string{"os_name NOT IN ('Tlinux2.6')"},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			q := gormDB.Table(model.TbRpDetailName())
+			q = applyBizAndOsFilters(q, tc.args)
+			sql := tools.getSQLFromQuery(q)
+			for _, want := range tc.wantSubstrs {
+				if !strings.Contains(sql, want) {
+					t.Errorf("expect SQL contains %q\nfull SQL: %s", want, sql)
+				}
+			}
+			for _, deny := range tc.denySubstrs {
+				if strings.Contains(sql, deny) {
+					t.Errorf("expect SQL NOT contain %q\nfull SQL: %s", deny, sql)
+				}
+			}
+		})
+	}
+}
+
+// TestCheckMatchConditionsToolDefDeclaresBizAndOsParams 确保 schema 暴露了与真实匹配链
+// 对齐所必需的鉴别字段，避免 LLM 漏传 intention_biz_id / os_type 导致候选库存被高估。
+func TestCheckMatchConditionsToolDefDeclaresBizAndOsParams(t *testing.T) {
+	gormDB, _ := setupTestDB(t)
+	tools := NewResourceTools(gormDB)
+	def := tools.checkMatchConditionsToolDef()
+	mustDeclareBizAndOsParams(t, def)
+}
+
+// TestAnalyzeAffinityIssuesToolDefDeclaresBizAndOsParams 同上，覆盖亲和性分析工具。
+func TestAnalyzeAffinityIssuesToolDefDeclaresBizAndOsParams(t *testing.T) {
+	gormDB, _ := setupTestDB(t)
+	tools := NewResourceTools(gormDB)
+	def := tools.analyzeAffinityIssuesToolDef()
+	mustDeclareBizAndOsParams(t, def)
+}
+
+func mustDeclareBizAndOsParams(t *testing.T, def ToolDefinition) {
+	t.Helper()
+	params, ok := def.Function.Parameters["properties"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("tool %q missing properties map", def.Function.Name)
+	}
+	for _, key := range []string{"intention_biz_id", "for_biz_id", "os_type", "os_names", "exclude_os_name"} {
+		if _, exists := params[key]; !exists {
+			t.Errorf("tool %q schema missing %q param", def.Function.Name, key)
+		}
 	}
 }

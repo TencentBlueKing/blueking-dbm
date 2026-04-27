@@ -129,6 +129,120 @@ func getBkCloudID(args map[string]interface{}) int {
 	}
 }
 
+// getIntentionBizID 从参数中提取 intention_biz_id，对齐真实匹配链 SearchContext.IntentionBkBizId。
+// 支持 JSON 解析后的 float64/int/int64。
+// 备注：单据流程中 IntentionBkBizId 来自 RequestInputParam.ForbizId（json: for_biz_id）。
+// 兼容上游也可能直接传 for_biz_id 的情况。
+func getIntentionBizID(args map[string]interface{}) int {
+	keys := []string{"intention_biz_id", "for_biz_id"}
+	for _, k := range keys {
+		v, ok := args[k]
+		if !ok || v == nil {
+			continue
+		}
+		switch val := v.(type) {
+		case int:
+			return val
+		case int64:
+			return int(val)
+		case float64:
+			return int(val)
+		}
+	}
+	return 0
+}
+
+// getOsType 从参数中提取 os_type，缺省返回 model.LinuxOs，对齐 SearchContext.MatchOsType 默认 Linux 行为。
+func getOsType(args map[string]interface{}) string {
+	if s, ok := args["os_type"].(string); ok && s != "" {
+		return s
+	}
+	return model.LinuxOs
+}
+
+// getStringSlice 从参数里提取 []string（用于 os_names/labels 等）。
+func getStringSlice(args map[string]interface{}, key string) []string {
+	raw, ok := args[key].([]interface{})
+	if !ok {
+		return nil
+	}
+	out := make([]string, 0, len(raw))
+	for _, x := range raw {
+		if s, ok := x.(string); ok && s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// getBool 提取 bool（用于 exclude_os_name 等）。
+func getBool(args map[string]interface{}, key string) bool {
+	if v, ok := args[key].(bool); ok {
+		return v
+	}
+	return false
+}
+
+// applyBizAndOsFilters 对齐 apply.SearchContext 真实选机链的业务/操作系统过滤，避免 AI 工具高估候选库存。
+//   - dedicated_biz：未指定 IntentionBkBizId 时只能匹配公共池（dedicated_biz=0）；指定时若同时带 labels 则只能匹配该业务专属
+//     （dedicated_biz=biz），否则匹配公共池或该业务专属（dedicated_biz IN (0, biz)）。
+//   - os_type：未传时默认 Linux。
+//   - os_names：传入则按 in/not in 过滤（与 ObjectDetail.ExcludeOsName 行为对齐）。
+//
+// 与 apply.MatchIntentionBkBiz/MatchOsType/MatchOsName 行为完全一致，方便分析工具的 SQL 与真实匹配链对齐。
+func applyBizAndOsFilters(db *gorm.DB, args map[string]interface{}) *gorm.DB {
+	bizID := getIntentionBizID(args)
+	labels := getStringSlice(args, "labels")
+	if bizID <= 0 {
+		db = db.Where("dedicated_biz = ?", 0)
+	} else if len(labels) > 0 {
+		db = db.Where("dedicated_biz = ?", bizID)
+	} else {
+		db = db.Where("dedicated_biz IN (?)", []int{0, bizID})
+	}
+
+	db = db.Where("os_type = ?", getOsType(args))
+
+	osNames := getStringSlice(args, "os_names")
+	if len(osNames) > 0 {
+		if getBool(args, "exclude_os_name") {
+			db = db.Where("os_name NOT IN (?)", osNames)
+		} else {
+			db = db.Where("os_name IN (?)", osNames)
+		}
+	}
+	return db
+}
+
+// bizAndOsParamDefs 返回与 apply.MatchIntentionBkBiz/MatchOsType/MatchOsName 对齐的 schema 参数定义。
+// 任何对候选库存做评估的工具都应包含这组参数，使分析结果与真实匹配链一致。
+func bizAndOsParamDefs() map[string]interface{} {
+	return map[string]interface{}{
+		"intention_biz_id": map[string]interface{}{
+			"type": "integer",
+			"description": "申请单据归属业务ID（来自 RequestInputParam.for_biz_id）。" +
+				"未指定时只能匹配 dedicated_biz=0 的公共池；指定时匹配 dedicated_biz IN (0, biz)，若同时带 labels 则仅匹配该业务专属池。",
+		},
+		"for_biz_id": map[string]interface{}{
+			"type":        "integer",
+			"description": "等价于 intention_biz_id 的别名，兼容直接传单据原始字段的场景。",
+		},
+		"os_type": map[string]interface{}{
+			"type":        "string",
+			"description": "操作系统类型（Linux/Windows）。未传则默认 Linux，与真实匹配链 MatchOsType 行为一致。",
+		},
+		"os_names": map[string]interface{}{
+			"type":        "array",
+			"items":       map[string]interface{}{"type": "string"},
+			"description": "os_name 限制列表，配合 exclude_os_name 决定 in/not in。",
+		},
+		"exclude_os_name": map[string]interface{}{
+			"type":        "boolean",
+			"description": "是否将 os_names 视为黑名单（true=NOT IN，false=IN）。",
+		},
+	}
+}
+
 // getSQLFromQuery 从 GORM 查询中获取 SQL 语句（用于调试）
 func (t *ResourceTools) getSQLFromQuery(query *gorm.DB) string {
 	// 使用 DryRun 模式获取 SQL
@@ -638,10 +752,13 @@ func (t *ResourceTools) checkMatchConditionsToolDef() ToolDefinition {
 	}
 	return NewFunctionTool(
 		"check_match_conditions",
-		"逐步检查各匹配条件对资源数量的影响，找出关键瓶颈",
+		"逐步检查各匹配条件对资源数量的影响，找出关键瓶颈。"+
+			"【重要】基础条件与真实选机链对齐，已包含 dedicated_biz/os_type 过滤："+
+			"调用时请从 RequestInputParam 中传入 intention_biz_id (或 for_biz_id)、os_type、os_names，"+
+			"未传将默认按公共池 + Linux 处理。",
 		map[string]interface{}{
 			"type":       "object",
-			"properties": mergeParams(baseParams, diskParamDefs()),
+			"properties": mergeParams(baseParams, diskParamDefs(), bizAndOsParamDefs()),
 			"required":   []string{"bk_cloud_id", "request_count"},
 		},
 	)
@@ -841,10 +958,12 @@ func (t *ResourceTools) analyzeAffinityIssuesToolDef() ToolDefinition {
 	return NewFunctionTool(
 		"analyze_affinity_issues",
 		"分析亲和性匹配问题，展示资源在机架/交换机上的分布情况。"+
-			"SAME_SUBZONE_CROSS_SWTICH要求同城同园区跨机架跨交换机，需要机架和交换机数量都>=申请数量",
+			"SAME_SUBZONE_CROSS_SWTICH要求同城同园区跨机架跨交换机，需要机架和交换机数量都>=申请数量。"+
+			"【重要】候选库存评估已对齐真实选机链，包含 dedicated_biz/os_type 过滤："+
+			"调用时请从 RequestInputParam 中传入 intention_biz_id (或 for_biz_id)、os_type、os_names。",
 		map[string]interface{}{
 			"type":       "object",
-			"properties": mergeParams(baseParams, diskParamDefs(), diskSpecParamDefs()),
+			"properties": mergeParams(baseParams, diskParamDefs(), diskSpecParamDefs(), bizAndOsParamDefs()),
 			"required":   []string{"bk_cloud_id", "affinity_type", "request_count"},
 		},
 	)
@@ -1192,10 +1311,12 @@ func (t *ResourceTools) CheckMatchConditions(args map[string]interface{}) (*Matc
 	t.db.Table(model.TbRpDetailName()).Count(&totalTableCount)
 	result.TotalTableCount = int(totalTableCount)
 
-	// 1. 基础条件：云区域 + 状态
+	// 1. 基础条件：云区域 + 状态 + 业务/操作系统（与 apply.SearchContext.pickBase 对齐，
+	//    避免遗漏 dedicated_biz/os_type 导致候选数量被高估）
 	baseQuery := t.db.Table(model.TbRpDetailName()).
 		Where("bk_cloud_id = ? AND status = ? AND gse_agent_status_code = ?",
 			bkCloudID, model.Unused, bk.GseAlive)
+	baseQuery = applyBizAndOsFilters(baseQuery, args)
 
 	var baseCount int64
 	baseQuery.Count(&baseCount)
@@ -1357,10 +1478,11 @@ func (t *ResourceTools) CheckMatchConditions(args map[string]interface{}) (*Matc
 		},
 	}
 
-	// 累积查询
+	// 累积查询：基础条件需与 baseQuery 完全一致，包含 dedicated_biz/os_type 过滤
 	cumulativeQuery := t.db.Table(model.TbRpDetailName()).
 		Where("bk_cloud_id = ? AND status = ? AND gse_agent_status_code = ?",
 			bkCloudID, model.Unused, bk.GseAlive)
+	cumulativeQuery = applyBizAndOsFilters(cumulativeQuery, args)
 
 	for _, cond := range conditions {
 		if cond.skip {
@@ -2238,10 +2360,12 @@ func (t *ResourceTools) AnalyzeAffinityIssues(args map[string]interface{}) (*Aff
 		},
 	}
 
-	// 构建基础查询
+	// 构建基础查询（含与 apply.SearchContext.pickBase 对齐的 dedicated_biz/os_type 过滤，
+	// 避免亲和性分析阶段把专属业务资源/异操作系统资源误算成候选）
 	baseQuery := t.db.Table(model.TbRpDetailName()).
 		Where("bk_cloud_id = ? AND status = ? AND gse_agent_status_code = ?",
 			bkCloudID, model.Unused, bk.GseAlive)
+	baseQuery = applyBizAndOsFilters(baseQuery, args)
 	if city != "" {
 		baseQuery = baseQuery.Where("city = ?", city)
 	}
@@ -2366,9 +2490,11 @@ func (t *ResourceTools) AnalyzeAffinityIssues(args map[string]interface{}) (*Aff
 	// 如果应用所有条件后没有找到机器，逐步放宽强约束条件进行诊断
 	if result.AvailableCount == 0 {
 		// 构建基础查询（只包含地域和基础状态条件）
+		// 这里同样应用 dedicated_biz/os_type 过滤，否则放宽诊断会把专属池/异操作系统资源算成可用
 		baseRelaxedQuery := t.db.Table(model.TbRpDetailName()).
 			Where("bk_cloud_id = ? AND status = ? AND gse_agent_status_code = ?",
 				bkCloudID, model.Unused, bk.GseAlive)
+		baseRelaxedQuery = applyBizAndOsFilters(baseRelaxedQuery, args)
 		if city != "" {
 			baseRelaxedQuery = baseRelaxedQuery.Where("city = ?", city)
 		}

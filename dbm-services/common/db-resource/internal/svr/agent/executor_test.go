@@ -126,6 +126,51 @@ func TestBuildUserMessageKeepsOriginalIDs(t *testing.T) {
 	}
 }
 
+func TestSystemPromptExplainsCrossSubzoneBatchCapacityAnalysis(t *testing.T) {
+	prompt := GetSystemPrompt()
+
+	expectedParts := []string{
+		"current_hosts 是这条 details 所属亲和性分组中**参与约束计算的参考资源/已有同组资源**",
+		"每条 details 独立校验亲和性",
+		"不同明细之间**不共享**任何园区/机架配额",
+		"禁止的合并描述",
+		"X 园区被 N 条参考资源占满",
+		"批量容量归并（独立排除集求并集，不是配额累加）",
+		"被排除园区集合 = 各条被排除园区集合的并集",
+		"同规格多明细归并分析",
+		"10 台非花桥同规格机器",
+	}
+
+	for _, part := range expectedParts {
+		if !strings.Contains(prompt, part) {
+			t.Errorf("GetSystemPrompt should explain CROS_SUBZONE batch capacity analysis, missing %q", part)
+		}
+	}
+}
+
+// TestSystemPromptRequiresBizAndOsFilters 确认提示词强制要求 LLM 在分析候选库存时
+// 同时使用 dedicated_biz/os_type 过滤，避免出现「非花桥可用 12 台」这类把专属池或
+// 异操作系统资源误算成可用资源的偏差。
+func TestSystemPromptRequiresBizAndOsFilters(t *testing.T) {
+	prompt := GetSystemPrompt()
+
+	expectedParts := []string{
+		"业务专属池（dedicated_biz）必须过滤",
+		"intention_biz_id (或 for_biz_id)",
+		"否则候选库存会被高估",
+		"os_type 必须过滤",
+		"不传等同 Linux",
+		"AND dedicated_biz IN (0, <for_biz_id>)",
+		"AND os_type='Linux'",
+	}
+
+	for _, part := range expectedParts {
+		if !strings.Contains(prompt, part) {
+			t.Errorf("GetSystemPrompt should require dedicated_biz/os_type filters, missing %q", part)
+		}
+	}
+}
+
 // TestReplaceAll tests the replaceAll helper function
 func TestReplaceAll(t *testing.T) {
 	tests := []struct {
