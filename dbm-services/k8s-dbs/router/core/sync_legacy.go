@@ -45,7 +45,7 @@ func initSyncLegacyController(db *gorm.DB) *controller.SyncLegacyController {
 	configProvider := routerutil.BuildK8sClusterConfigProvider(db)
 	dbmAPIService := thirdapi.NewDbmAPIService()
 	syncLegacyProvider := coreprovider.NewSyncLegacyProvider(
-		clusterMetaProvider, configProvider, dbmAPIService, thirdapi.GetBizCacheService())
+		clusterMetaProvider, configProvider, dbmAPIService)
 	return controller.NewSyncLegacyController(syncLegacyProvider)
 }
 

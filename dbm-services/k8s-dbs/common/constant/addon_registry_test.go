@@ -25,71 +25,92 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAddonIAMRegistry_NoDuplicateAddonType(t *testing.T) {
-	seen := make(map[string]bool)
-	for _, entry := range addonIAMRegistry {
-		assert.False(t, seen[entry.AddonType],
-			"duplicate AddonType in registry: %s", entry.AddonType)
-		seen[entry.AddonType] = true
-	}
-}
-
 func TestAddonIAMRegistry_NoDuplicateClusterType(t *testing.T) {
 	seen := make(map[string]bool)
 	for _, entry := range addonIAMRegistry {
-		assert.False(t, seen[entry.ClusterType],
-			"duplicate ClusterType in registry: %s", entry.ClusterType)
-		seen[entry.ClusterType] = true
+		assert.False(t, seen[entry.DbmClusterType],
+			"duplicate ClusterType in registry: %s", entry.DbmClusterType)
+		seen[entry.DbmClusterType] = true
 	}
 }
 
-func TestAddonIAMRegistry_AllSixAddonsPresent(t *testing.T) {
-	expectedAddons := []string{
-		"surrealdb", "victoriametrics", "risingwave",
-		"greptimedb", "milvus", "qdrant",
-	}
-
-	for _, addon := range expectedAddons {
-		_, exists := AddonTypeToIAMClusterType[addon]
-		assert.True(t, exists, "addon %s should be in registry", addon)
-	}
-	assert.Equal(t, len(expectedAddons), len(addonIAMRegistry),
-		"registry should have exactly %d entries", len(expectedAddons))
+func TestAddonIAMRegistry_EntryCount(t *testing.T) {
+	assert.Equal(t, 7, len(addonIAMRegistry),
+		"registry should have exactly 7 entries (surrealdb ha+single, 5 others ha)")
 }
 
-func TestAddonIAMRegistry_QdrantMapping(t *testing.T) {
-	ct, exists := AddonTypeToIAMClusterType["qdrant"]
-	assert.True(t, exists, "qdrant should be in AddonTypeToIAMClusterType")
-	assert.Equal(t, "k8s_qdrant", ct)
-
-	prefix, exists := ClusterTypeToIAMPrefix["k8s_qdrant"]
-	assert.True(t, exists, "k8s_qdrant should be in ClusterTypeToIAMPrefix")
-	assert.Equal(t, "k8s_qdrant", prefix)
-}
-
-func TestAddonTypeToIAMClusterType_CorrectMappings(t *testing.T) {
-	expected := map[string]string{
-		"surrealdb":       "k8s_surrealdb",
-		"victoriametrics": "k8s_victoriametrics",
-		"risingwave":      "k8s_risingwave",
-		"greptimedb":      "k8s_greptimedb",
-		"milvus":          "k8s_milvus",
-		"qdrant":          "k8s_qdrant",
+func TestAddonIAMRegistry_AllAddonsPresent(t *testing.T) {
+	expectedAddons := map[string]bool{
+		"surrealdb": false, "victoriametrics": false, "risingwave": false,
+		"greptimedb": false, "milvus": false, "qdrant": false,
 	}
-
-	for addonType, expectedCT := range expected {
-		ct, exists := AddonTypeToIAMClusterType[addonType]
-		assert.True(t, exists, "addon %s should be in map", addonType)
-		assert.Equal(t, expectedCT, ct, "addon %s should map to %s", addonType, expectedCT)
-	}
-}
-
-func TestClusterTypeToIAMPrefix_IdentityMapping(t *testing.T) {
-	// ClusterTypeToIAMPrefix should be identity mapping for all entries
 	for _, entry := range addonIAMRegistry {
-		prefix, exists := ClusterTypeToIAMPrefix[entry.ClusterType]
-		assert.True(t, exists)
-		assert.Equal(t, entry.ClusterType, prefix,
-			"ClusterTypeToIAMPrefix should be identity mapping for %s", entry.ClusterType)
+		expectedAddons[entry.AddonType] = true
 	}
+	for addon, found := range expectedAddons {
+		assert.True(t, found, "addon %s should be in registry", addon)
+	}
+}
+
+func TestClusterTypeToIAMPrefix_MapsToCorrectPrefix(t *testing.T) {
+	expected := map[string]string{
+		"k8s_surrealdb_ha":       "k8s_surrealdb",
+		"k8s_surrealdb_single":   "k8s_surrealdb",
+		"k8s_victoriametrics_ha": "k8s_victoriametrics",
+		"k8s_risingwave_ha":      "k8s_risingwave",
+		"k8s_greptimedb_ha":      "k8s_greptimedb",
+		"k8s_milvus_ha":          "k8s_milvus",
+		"k8s_qdrant_ha":          "k8s_qdrant",
+	}
+	for ct, expectedPrefix := range expected {
+		prefix, exists := ClusterTypeToIAMPrefix[ct]
+		assert.True(t, exists, "cluster type %s should be in ClusterTypeToIAMPrefix", ct)
+		assert.Equal(t, expectedPrefix, prefix)
+	}
+}
+
+func TestResolveClusterType_SurrealdbHA(t *testing.T) {
+	ct, ok := ResolveClusterType("surrealdb", "surreal-tikv")
+	assert.True(t, ok)
+	assert.Equal(t, "k8s_surrealdb_ha", ct)
+}
+
+func TestResolveClusterType_SurrealdbSingle(t *testing.T) {
+	for _, topo := range []string{"surreal-rocksdb", "surreal-memory"} {
+		ct, ok := ResolveClusterType("surrealdb", topo)
+		assert.True(t, ok, "topo %s should resolve", topo)
+		assert.Equal(t, "k8s_surrealdb_single", ct, "topo %s should resolve to single", topo)
+	}
+}
+
+func TestResolveClusterType_CatchAll(t *testing.T) {
+	catchAllAddons := []struct {
+		addonType  string
+		expectedCT string
+	}{
+		{"victoriametrics", "k8s_victoriametrics_ha"},
+		{"risingwave", "k8s_risingwave_ha"},
+		{"greptimedb", "k8s_greptimedb_ha"},
+		{"milvus", "k8s_milvus_ha"},
+		{"qdrant", "k8s_qdrant_ha"},
+	}
+	for _, tc := range catchAllAddons {
+		ct, ok := ResolveClusterType(tc.addonType, "any-topo")
+		assert.True(t, ok, "addon %s should resolve with any topo", tc.addonType)
+		assert.Equal(t, tc.expectedCT, ct)
+
+		ct2, ok2 := ResolveClusterType(tc.addonType, "")
+		assert.True(t, ok2, "addon %s should resolve with empty topo", tc.addonType)
+		assert.Equal(t, tc.expectedCT, ct2)
+	}
+}
+
+func TestResolveClusterType_UnknownAddon(t *testing.T) {
+	_, ok := ResolveClusterType("unknown_addon", "some-topo")
+	assert.False(t, ok)
+}
+
+func TestResolveClusterType_SurrealdbUnknownTopo(t *testing.T) {
+	_, ok := ResolveClusterType("surrealdb", "unknown-topo")
+	assert.False(t, ok)
 }

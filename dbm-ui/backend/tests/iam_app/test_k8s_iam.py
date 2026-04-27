@@ -20,14 +20,15 @@ from backend.iam_app.dataclass.resources import ResourceEnum
 
 pytestmark = pytest.mark.django_db
 
-# 6 个 K8s 集群类型及其对应的 ResourceEnum 属性名
+# 7 个 K8s 集群类型（SurrealDB 拆为 HA + Single，其余均为 HA）
 K8S_CLUSTER_TYPES = [
-    ClusterType.K8sSurrealdb,
-    ClusterType.K8sVictoriametrics,
-    ClusterType.K8sRisingwave,
-    ClusterType.K8sMilvus,
-    ClusterType.K8sQdrant,
-    ClusterType.K8sGreptimedb,
+    ClusterType.K8sSurrealdbHa,
+    ClusterType.K8sSurrealdbSingle,
+    ClusterType.K8sVictoriametricsHa,
+    ClusterType.K8sRisingwaveHa,
+    ClusterType.K8sMilvusHa,
+    ClusterType.K8sQdrantHa,
+    ClusterType.K8sGreptimedbHa,
 ]
 
 # 每种 K8s 存储类型下的操作后缀（与 ActionMeta 中 id 一致，不含跨类型的 k8s_addon_manage）
@@ -47,20 +48,40 @@ K8S_ACTION_SUFFIXES = [
 class TestK8sClusterTypeEnum:
     """T0-1: K8s 集群类型枚举测试"""
 
-    def test_k8s_qdrant_exists(self):
-        """K8sQdrant 枚举值存在"""
-        assert ClusterType.K8sQdrant == "k8s_qdrant"
+    def test_k8s_surrealdb_ha_exists(self):
+        assert ClusterType.K8sSurrealdbHa == "k8s_surrealdb_ha"
 
-    def test_k8s_greptimedb_exists(self):
-        """K8sGreptimedb 枚举值存在"""
-        assert ClusterType.K8sGreptimedb == "k8s_greptimedb"
+    def test_k8s_surrealdb_single_exists(self):
+        assert ClusterType.K8sSurrealdbSingle == "k8s_surrealdb_single"
 
-    def test_each_k8s_cluster_type_maps_to_own_db_type(self):
-        """每种 K8s 集群类型与自身 db_type 一对一"""
-        for ct in K8S_CLUSTER_TYPES:
+    def test_k8s_qdrant_ha_exists(self):
+        assert ClusterType.K8sQdrantHa == "k8s_qdrant_ha"
+
+    def test_k8s_greptimedb_ha_exists(self):
+        assert ClusterType.K8sGreptimedbHa == "k8s_greptimedb_ha"
+
+    def test_surrealdb_maps_to_shared_db_type(self):
+        """SurrealDB HA/Single 均映射到同一 db_type"""
+        for ct in [ClusterType.K8sSurrealdbHa, ClusterType.K8sSurrealdbSingle]:
             db_type = ClusterType.cluster_type_to_db_type(ct)
-            assert db_type == ct.value
-            types_for_db = ClusterType.db_type_to_cluster_types(db_type)
+            assert db_type == "k8s_surrealdb"
+        types_for_db = ClusterType.db_type_to_cluster_types("k8s_surrealdb")
+        assert ClusterType.K8sSurrealdbHa in types_for_db
+        assert ClusterType.K8sSurrealdbSingle in types_for_db
+
+    def test_each_ha_only_k8s_cluster_type_maps_to_db_type(self):
+        """HA-only 集群类型映射到各自 db_type"""
+        ha_only = {
+            ClusterType.K8sVictoriametricsHa: "k8s_victoriametrics",
+            ClusterType.K8sRisingwaveHa: "k8s_risingwave",
+            ClusterType.K8sMilvusHa: "k8s_milvus",
+            ClusterType.K8sQdrantHa: "k8s_qdrant",
+            ClusterType.K8sGreptimedbHa: "k8s_greptimedb",
+        }
+        for ct, expected_db_type in ha_only.items():
+            db_type = ClusterType.cluster_type_to_db_type(ct)
+            assert db_type == expected_db_type
+            types_for_db = ClusterType.db_type_to_cluster_types(expected_db_type)
             assert types_for_db == [ct]
 
     def test_k8s_container_cluster_type_values(self):
@@ -68,20 +89,21 @@ class TestK8sClusterTypeEnum:
 
 
 class TestK8sResourceEnum:
-    """T0-2: K8s ResourceMeta 枚举测试"""
+    """T0-2: K8s ResourceMeta 枚举测试（ResourceMeta 仍在 DBType 粒度，不随 HA/Single 拆分）"""
+
+    K8S_RESOURCE_ATTRS = [
+        "K8S_SURREALDB",
+        "K8S_VICTORIAMETRICS",
+        "K8S_RISINGWAVE",
+        "K8S_MILVUS",
+        "K8S_QDRANT",
+        "K8S_GREPTIMEDB",
+    ]
 
     def test_all_k8s_resource_attrs_exist(self):
         """6 个 K8s ResourceMeta 属性都注册在 ResourceEnum 中"""
-        for ct in K8S_CLUSTER_TYPES:
-            attr_name = ct.upper().replace("-", "_")
-            assert hasattr(ResourceEnum, attr_name), f"ResourceEnum.{attr_name} not found for cluster_type {ct}"
-
-    def test_resource_attr_names_follow_convention(self):
-        """属性名须等于 cluster_type_value.upper()"""
-        for ct in K8S_CLUSTER_TYPES:
-            expected_attr = ct.upper().replace("-", "_")
-            resource_meta = getattr(ResourceEnum, expected_attr)
-            assert resource_meta.id == ct, f"ResourceEnum.{expected_attr}.id={resource_meta.id!r}, expected {ct!r}"
+        for attr_name in self.K8S_RESOURCE_ATTRS:
+            assert hasattr(ResourceEnum, attr_name), f"ResourceEnum.{attr_name} not found"
 
     def test_k8s_surrealdb_resource_meta_id(self):
         assert ResourceEnum.K8S_SURREALDB.id == "k8s_surrealdb"
@@ -103,30 +125,34 @@ class TestK8sResourceEnum:
 
 
 class TestClusterTypeToResourceMeta:
-    """T0-3: cluster_type_to_resource_meta 反射映射测试"""
+    """T0-3: cluster_type_to_resource_meta 反射映射测试（HA/Single 共享同一 ResourceMeta）"""
 
-    def test_k8s_surrealdb_maps_to_k8s_surrealdb_resource(self):
-        result = ResourceEnum.cluster_type_to_resource_meta(ClusterType.K8sSurrealdb)
+    def test_surrealdb_ha_maps_to_k8s_surrealdb_resource(self):
+        result = ResourceEnum.cluster_type_to_resource_meta(ClusterType.K8sSurrealdbHa)
         assert result == ResourceEnum.K8S_SURREALDB
 
-    def test_k8s_victoriametrics_maps_to_resource(self):
-        result = ResourceEnum.cluster_type_to_resource_meta(ClusterType.K8sVictoriametrics)
+    def test_surrealdb_single_maps_to_k8s_surrealdb_resource(self):
+        result = ResourceEnum.cluster_type_to_resource_meta(ClusterType.K8sSurrealdbSingle)
+        assert result == ResourceEnum.K8S_SURREALDB
+
+    def test_k8s_victoriametrics_ha_maps_to_resource(self):
+        result = ResourceEnum.cluster_type_to_resource_meta(ClusterType.K8sVictoriametricsHa)
         assert result == ResourceEnum.K8S_VICTORIAMETRICS
 
-    def test_k8s_risingwave_maps_to_resource(self):
-        result = ResourceEnum.cluster_type_to_resource_meta(ClusterType.K8sRisingwave)
+    def test_k8s_risingwave_ha_maps_to_resource(self):
+        result = ResourceEnum.cluster_type_to_resource_meta(ClusterType.K8sRisingwaveHa)
         assert result == ResourceEnum.K8S_RISINGWAVE
 
-    def test_k8s_milvus_maps_to_resource(self):
-        result = ResourceEnum.cluster_type_to_resource_meta(ClusterType.K8sMilvus)
+    def test_k8s_milvus_ha_maps_to_resource(self):
+        result = ResourceEnum.cluster_type_to_resource_meta(ClusterType.K8sMilvusHa)
         assert result == ResourceEnum.K8S_MILVUS
 
-    def test_k8s_qdrant_maps_to_k8s_qdrant_resource(self):
-        result = ResourceEnum.cluster_type_to_resource_meta(ClusterType.K8sQdrant)
+    def test_k8s_qdrant_ha_maps_to_resource(self):
+        result = ResourceEnum.cluster_type_to_resource_meta(ClusterType.K8sQdrantHa)
         assert result == ResourceEnum.K8S_QDRANT
 
-    def test_k8s_greptimedb_maps_to_k8s_greptimedb_resource(self):
-        result = ResourceEnum.cluster_type_to_resource_meta(ClusterType.K8sGreptimedb)
+    def test_k8s_greptimedb_ha_maps_to_resource(self):
+        result = ResourceEnum.cluster_type_to_resource_meta(ClusterType.K8sGreptimedbHa)
         assert result == ResourceEnum.K8S_GREPTIMEDB
 
     def test_all_k8s_types_return_non_none(self):
@@ -283,24 +309,22 @@ class TestSignalK8sClusterAutoGrant:
     """T0-6: K8s 集群创建时自动授权给创建者"""
 
     @patch("backend.iam_app.handlers.signal.post_save_grant_iam")
-    def test_post_save_cluster_k8s_surrealdb_calls_grant(self, mock_grant):
-        """K8s Surreal 集群创建时触发 IAM 授权"""
+    def test_post_save_cluster_k8s_surrealdb_ha_calls_grant(self, mock_grant):
+        """K8s SurrealDB HA 集群创建时触发 IAM 授权"""
         from backend.db_meta.models import Cluster
         from backend.iam_app.handlers.signal import post_save_cluster
 
         instance = MagicMock(spec=Cluster)
-        instance.cluster_type = ClusterType.K8sSurrealdb
+        instance.cluster_type = ClusterType.K8sSurrealdbHa
         instance.creator = "test_user"
 
         post_save_cluster(sender=Cluster, instance=instance, created=True)
 
         mock_grant.assert_called_once()
         resource_meta_arg = mock_grant.call_args[0][0]
-        expected_attr = ClusterType.K8sSurrealdb.upper().replace("-", "_")
-        expected_meta = getattr(ResourceEnum, expected_attr)
         assert (
-            resource_meta_arg == expected_meta
-        ), f"post_save_cluster({ClusterType.K8sSurrealdb}): resource_meta={resource_meta_arg!r}, expected {expected_meta!r}"
+            resource_meta_arg == ResourceEnum.K8S_SURREALDB
+        ), f"post_save_cluster(K8sSurrealdbHa): resource_meta={resource_meta_arg!r}, expected K8S_SURREALDB"
 
     @patch("backend.iam_app.handlers.signal.post_save_grant_iam")
     def test_unknown_cluster_type_does_not_call_grant(self, mock_grant):
@@ -323,11 +347,9 @@ class TestSignalK8sClusterAutoGrant:
         from backend.iam_app.handlers.signal import post_save_cluster
 
         instance = MagicMock(spec=Cluster)
-        instance.cluster_type = ClusterType.K8sSurrealdb
+        instance.cluster_type = ClusterType.K8sSurrealdbHa
         instance.creator = "test_user"
 
-        # post_save_cluster 本身只负责获取 resource_meta 并调用 post_save_grant_iam
-        # created=False 由 post_save_grant_iam 内部处理，这里验证 post_save_cluster 仍调用了 grant
         post_save_cluster(sender=Cluster, instance=instance, created=False)
 
         # post_save_cluster 本身不检查 created，它传递给 post_save_grant_iam

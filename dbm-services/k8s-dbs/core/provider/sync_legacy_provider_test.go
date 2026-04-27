@@ -117,7 +117,7 @@ func TestSyncFilteredClusters_K8sClusterNameResolvesToConfigID(t *testing.T) {
 	clusterMock := &mockClusterProvider{
 		unsyncedFiltered: []*metaentity.K8sCrdClusterEntity{},
 	}
-	p := NewSyncLegacyProvider(clusterMock, configMock, nil, nil)
+	p := NewSyncLegacyProvider(clusterMock, configMock, nil)
 
 	result, err := p.SyncFilteredClusters(&SyncFilteredRequest{
 		K8sClusterName: "bcs-test",
@@ -137,7 +137,7 @@ func TestSyncFilteredClusters_CombinedFilters(t *testing.T) {
 	clusterMock := &mockClusterProvider{
 		unsyncedFiltered: []*metaentity.K8sCrdClusterEntity{},
 	}
-	p := NewSyncLegacyProvider(clusterMock, configMock, nil, nil)
+	p := NewSyncLegacyProvider(clusterMock, configMock, nil)
 
 	_, err := p.SyncFilteredClusters(&SyncFilteredRequest{
 		K8sClusterName: "bcs-prod",
@@ -160,7 +160,7 @@ func TestSyncFilteredClusters_K8sClusterWithNamespace(t *testing.T) {
 	clusterMock := &mockClusterProvider{
 		unsyncedFiltered: []*metaentity.K8sCrdClusterEntity{},
 	}
-	p := NewSyncLegacyProvider(clusterMock, configMock, nil, nil)
+	p := NewSyncLegacyProvider(clusterMock, configMock, nil)
 
 	result, err := p.SyncFilteredClusters(&SyncFilteredRequest{
 		K8sClusterName: "bcs-prod",
@@ -178,7 +178,7 @@ func TestSyncLegacyClusters_Empty(t *testing.T) {
 	clusterMock := &mockClusterProvider{
 		unsyncedAll: []*metaentity.K8sCrdClusterEntity{},
 	}
-	p := NewSyncLegacyProvider(clusterMock, &mockConfigProvider{}, nil, nil)
+	p := NewSyncLegacyProvider(clusterMock, &mockConfigProvider{}, nil)
 
 	result, err := p.SyncLegacyClusters()
 
@@ -193,7 +193,7 @@ func TestSyncLegacyClusters_ListError(t *testing.T) {
 	clusterMock := &mockClusterProvider{
 		err: fmt.Errorf("database unavailable"),
 	}
-	p := NewSyncLegacyProvider(clusterMock, &mockConfigProvider{}, nil, nil)
+	p := NewSyncLegacyProvider(clusterMock, &mockConfigProvider{}, nil)
 
 	_, err := p.SyncLegacyClusters()
 
@@ -205,7 +205,7 @@ func TestSyncFilteredClusters_K8sClusterNameNotFound(t *testing.T) {
 	configMock := &mockConfigProvider{
 		configs: map[string]*metaentity.K8sClusterConfigEntity{},
 	}
-	p := NewSyncLegacyProvider(&mockClusterProvider{}, configMock, nil, nil)
+	p := NewSyncLegacyProvider(&mockClusterProvider{}, configMock, nil)
 
 	_, err := p.SyncFilteredClusters(&SyncFilteredRequest{
 		K8sClusterName: "nonexistent",
@@ -219,7 +219,7 @@ func TestSyncFilteredClusters_ConfigProviderError(t *testing.T) {
 	configMock := &mockConfigProvider{
 		err: fmt.Errorf("db connection refused"),
 	}
-	p := NewSyncLegacyProvider(&mockClusterProvider{}, configMock, nil, nil)
+	p := NewSyncLegacyProvider(&mockClusterProvider{}, configMock, nil)
 
 	_, err := p.SyncFilteredClusters(&SyncFilteredRequest{
 		K8sClusterName: "some-cluster",
@@ -238,7 +238,7 @@ func TestSyncFilteredClusters_ClusterProviderError(t *testing.T) {
 	clusterMock := &mockClusterProvider{
 		err: fmt.Errorf("query timeout"),
 	}
-	p := NewSyncLegacyProvider(clusterMock, configMock, nil, nil)
+	p := NewSyncLegacyProvider(clusterMock, configMock, nil)
 
 	_, err := p.SyncFilteredClusters(&SyncFilteredRequest{
 		K8sClusterName: "bcs-test",

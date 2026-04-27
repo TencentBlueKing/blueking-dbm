@@ -60,20 +60,6 @@ func (m *mockClusterTypeResolver) Resolve(_ string, _ []byte) (*ResolveResult, e
 	return &ResolveResult{ClusterType: m.clusterType, DbmClusterID: m.dbmClusterID}, nil
 }
 
-// mockBizValidator 实现 bizValidator 接口，供测试注入
-type mockBizValidator struct {
-	valid bool
-	err   error
-}
-
-func (m *mockBizValidator) IsValidBizID(_ uint64) (bool, error) {
-	return m.valid, m.err
-}
-
-func defaultBizValidator() *mockBizValidator {
-	return &mockBizValidator{valid: true}
-}
-
 // toJSON 将 map 序列化为 JSON bytes，用于测试
 func toJSON(v interface{}) []byte {
 	b, _ := json.Marshal(v)
@@ -84,9 +70,9 @@ func toJSON(v interface{}) []byte {
 
 func TestCheckIAMPermission_APINotInMapping(t *testing.T) {
 	checker := &mockIAMChecker{allowed: false}
-	resolver := &mockClusterTypeResolver{clusterType: "k8s_surrealdb"}
+	resolver := &mockClusterTypeResolver{clusterType: "k8s_surrealdb_ha"}
 
-	allowed, applyData, err := checkIAMPermission(checker, resolver, defaultBizValidator(), "unknown_api", toJSON(map[string]interface{}{}), "user1")
+	allowed, applyData, err := checkIAMPermission(checker, resolver, "unknown_api", toJSON(map[string]interface{}{}), "user1")
 
 	assert.NoError(t, err)
 	assert.True(t, allowed)
@@ -95,10 +81,10 @@ func TestCheckIAMPermission_APINotInMapping(t *testing.T) {
 
 func TestCheckIAMPermission_SkippedAPI_Passthrough(t *testing.T) {
 	checker := &mockIAMChecker{}
-	resolver := &mockClusterTypeResolver{clusterType: "k8s_surrealdb"}
+	resolver := &mockClusterTypeResolver{clusterType: "k8s_surrealdb_ha"}
 
 	// APIMetaAddonCategoryCreate 不在 APIToIAMAction 中，应跳过鉴权
-	allowed, _, err := checkIAMPermission(checker, resolver, defaultBizValidator(), constant.APIMetaAddonCategoryCreate, toJSON(map[string]interface{}{}), "user1")
+	allowed, _, err := checkIAMPermission(checker, resolver, constant.APIMetaAddonCategoryCreate, toJSON(map[string]interface{}{}), "user1")
 
 	assert.NoError(t, err)
 	assert.True(t, allowed)
@@ -108,7 +94,7 @@ func TestCheckIAMPermission_ResolverError(t *testing.T) {
 	checker := &mockIAMChecker{}
 	resolver := &mockClusterTypeResolver{err: newResolverError("解析失败")}
 
-	allowed, _, err := checkIAMPermission(checker, resolver, defaultBizValidator(), constant.APIClusterDelete, toJSON(map[string]interface{}{
+	allowed, _, err := checkIAMPermission(checker, resolver, constant.APIClusterDelete, toJSON(map[string]interface{}{
 		"clusterName": "c",
 	}), "user1")
 
@@ -119,9 +105,9 @@ func TestCheckIAMPermission_ResolverError(t *testing.T) {
 
 func TestCheckIAMPermission_CreateCluster_Allowed(t *testing.T) {
 	checker := &mockIAMChecker{allowed: true}
-	resolver := &mockClusterTypeResolver{clusterType: "k8s_surrealdb"}
+	resolver := &mockClusterTypeResolver{clusterType: "k8s_surrealdb_ha"}
 
-	allowed, applyData, err := checkIAMPermission(checker, resolver, defaultBizValidator(), constant.APIClusterCreate, toJSON(map[string]interface{}{
+	allowed, applyData, err := checkIAMPermission(checker, resolver, constant.APIClusterCreate, toJSON(map[string]interface{}{
 		"bkBizId": 123,
 	}), "user1")
 
@@ -132,9 +118,9 @@ func TestCheckIAMPermission_CreateCluster_Allowed(t *testing.T) {
 
 func TestCheckIAMPermission_CreateCluster_MissingBkBizId_Error(t *testing.T) {
 	checker := &mockIAMChecker{allowed: true}
-	resolver := &mockClusterTypeResolver{clusterType: "k8s_surrealdb"}
+	resolver := &mockClusterTypeResolver{clusterType: "k8s_surrealdb_ha"}
 
-	allowed, _, err := checkIAMPermission(checker, resolver, defaultBizValidator(), constant.APIClusterCreate, toJSON(map[string]interface{}{}), "user1")
+	allowed, _, err := checkIAMPermission(checker, resolver, constant.APIClusterCreate, toJSON(map[string]interface{}{}), "user1")
 
 	assert.Error(t, err)
 	assert.False(t, allowed)
@@ -143,9 +129,9 @@ func TestCheckIAMPermission_CreateCluster_MissingBkBizId_Error(t *testing.T) {
 
 func TestCheckIAMPermission_CreateCluster_ZeroBkBizId_Error(t *testing.T) {
 	checker := &mockIAMChecker{allowed: true}
-	resolver := &mockClusterTypeResolver{clusterType: "k8s_surrealdb"}
+	resolver := &mockClusterTypeResolver{clusterType: "k8s_surrealdb_ha"}
 
-	allowed, _, err := checkIAMPermission(checker, resolver, defaultBizValidator(), constant.APIClusterCreate, toJSON(map[string]interface{}{
+	allowed, _, err := checkIAMPermission(checker, resolver, constant.APIClusterCreate, toJSON(map[string]interface{}{
 		"bkBizId": 0,
 	}), "user1")
 
@@ -159,15 +145,15 @@ func TestCheckIAMPermission_DeleteCluster_NotAllowed_WithApplyData(t *testing.T)
 			SystemID:   "bk_dbm",
 			SystemName: "数据库管理",
 			Actions: []infresp.PermissionAction{
-				{ID: "k8s_surrealdb_destroy", Name: "K8s SurrealDB 下架"},
+				{ID: "k8s_surrealdb_destroy", Name: "K8s SurrealDB HA 下架"},
 			},
 		},
 		ApplyURL: "https://iam.example.com/apply",
 	}
 	checker := &mockIAMChecker{allowed: false, applyData: expectedData}
-	resolver := &mockClusterTypeResolver{clusterType: "k8s_surrealdb", dbmClusterID: 42}
+	resolver := &mockClusterTypeResolver{clusterType: "k8s_surrealdb_ha", dbmClusterID: 42}
 
-	allowed, applyData, err := checkIAMPermission(checker, resolver, defaultBizValidator(), constant.APIClusterDelete, toJSON(map[string]interface{}{
+	allowed, applyData, err := checkIAMPermission(checker, resolver, constant.APIClusterDelete, toJSON(map[string]interface{}{
 		"clusterName": "cluster-1",
 	}), "user1")
 
@@ -180,9 +166,9 @@ func TestCheckIAMPermission_DeleteCluster_NotAllowed_WithApplyData(t *testing.T)
 
 func TestCheckIAMPermission_DBMError(t *testing.T) {
 	checker := &mockIAMChecker{err: fmt.Errorf("DBM unavailable")}
-	resolver := &mockClusterTypeResolver{clusterType: "k8s_surrealdb", dbmClusterID: 42}
+	resolver := &mockClusterTypeResolver{clusterType: "k8s_surrealdb_ha", dbmClusterID: 42}
 
-	_, _, err := checkIAMPermission(checker, resolver, defaultBizValidator(), constant.APIClusterDelete, toJSON(map[string]interface{}{
+	_, _, err := checkIAMPermission(checker, resolver, constant.APIClusterDelete, toJSON(map[string]interface{}{
 		"clusterName": "cluster-1",
 	}), "user1")
 
@@ -192,10 +178,10 @@ func TestCheckIAMPermission_DBMError(t *testing.T) {
 
 // --- APIAuthMiddleware integration tests ---
 
-func setupRouter(checker iamChecker, resolver ClusterTypeResolver, bv bizValidator) *gin.Engine {
+func setupRouter(checker iamChecker, resolver ClusterTypeResolver) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	r.Use(apiAuthMiddlewareWithDeps(checker, resolver, bv))
+	r.Use(apiAuthMiddlewareWithDeps(checker, resolver))
 	r.GET("/v4/dbs/cluster/desc", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"result": true})
 	})
@@ -215,11 +201,11 @@ func setupRouter(checker iamChecker, resolver ClusterTypeResolver, bv bizValidat
 }
 
 func defaultResolver() *mockClusterTypeResolver {
-	return &mockClusterTypeResolver{clusterType: "k8s_surrealdb", dbmClusterID: 42}
+	return &mockClusterTypeResolver{clusterType: "k8s_surrealdb_ha", dbmClusterID: 42}
 }
 
 func TestAPIAuthMiddleware_GETRequest_Passthrough(t *testing.T) {
-	r := setupRouter(&mockIAMChecker{allowed: false}, defaultResolver(), defaultBizValidator())
+	r := setupRouter(&mockIAMChecker{allowed: false}, defaultResolver())
 	req := httptest.NewRequest(http.MethodGet, "/v4/dbs/cluster/desc", nil)
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
@@ -227,7 +213,7 @@ func TestAPIAuthMiddleware_GETRequest_Passthrough(t *testing.T) {
 }
 
 func TestAPIAuthMiddleware_UnregisteredPath_Passthrough(t *testing.T) {
-	r := setupRouter(&mockIAMChecker{allowed: false}, defaultResolver(), defaultBizValidator())
+	r := setupRouter(&mockIAMChecker{allowed: false}, defaultResolver())
 	w := testPostJSON(r, "/unknown/path", map[string]interface{}{
 		"bk_username": "user1",
 	})
@@ -235,7 +221,7 @@ func TestAPIAuthMiddleware_UnregisteredPath_Passthrough(t *testing.T) {
 }
 
 func TestAPIAuthMiddleware_EmptyBody_Error(t *testing.T) {
-	r := setupRouter(&mockIAMChecker{allowed: true}, defaultResolver(), defaultBizValidator())
+	r := setupRouter(&mockIAMChecker{allowed: true}, defaultResolver())
 	req := httptest.NewRequest(http.MethodPost, "/v4/dbs/cluster/create", nil)
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -247,7 +233,7 @@ func TestAPIAuthMiddleware_EmptyBody_Error(t *testing.T) {
 }
 
 func TestAPIAuthMiddleware_NoBKUsername_Rejected(t *testing.T) {
-	r := setupRouter(&mockIAMChecker{allowed: false}, defaultResolver(), defaultBizValidator())
+	r := setupRouter(&mockIAMChecker{allowed: false}, defaultResolver())
 	w := testPostJSON(r, "/v4/dbs/cluster/create", map[string]interface{}{
 		"bkBizId": 123,
 	})
@@ -259,7 +245,7 @@ func TestAPIAuthMiddleware_NoBKUsername_Rejected(t *testing.T) {
 }
 
 func TestAPIAuthMiddleware_EmptyBKUsername_Rejected(t *testing.T) {
-	r := setupRouter(&mockIAMChecker{allowed: false}, defaultResolver(), defaultBizValidator())
+	r := setupRouter(&mockIAMChecker{allowed: false}, defaultResolver())
 	w := testPostJSON(r, "/v4/dbs/cluster/create", map[string]interface{}{
 		"bk_username": "",
 		"bkBizId":     123,
@@ -272,7 +258,7 @@ func TestAPIAuthMiddleware_EmptyBKUsername_Rejected(t *testing.T) {
 }
 
 func TestAPIAuthMiddleware_UserAllowed_Passthrough(t *testing.T) {
-	r := setupRouter(&mockIAMChecker{allowed: true}, defaultResolver(), defaultBizValidator())
+	r := setupRouter(&mockIAMChecker{allowed: true}, defaultResolver())
 	w := testPostJSON(r, "/v4/dbs/cluster/delete", map[string]interface{}{
 		"clusterName": "cluster-1",
 		"bk_username": "user1",
@@ -290,12 +276,12 @@ func TestAPIAuthMiddleware_UserNotAllowed_PermissionDenied(t *testing.T) {
 			SystemID:   "bk_dbm",
 			SystemName: "数据库管理",
 			Actions: []infresp.PermissionAction{
-				{ID: "k8s_surrealdb_destroy", Name: "K8s SurrealDB 下架"},
+				{ID: "k8s_surrealdb_destroy", Name: "K8s SurrealDB HA 下架"},
 			},
 		},
 		ApplyURL: "https://iam.example.com/apply",
 	}
-	r := setupRouter(&mockIAMChecker{allowed: false, applyData: applyData}, defaultResolver(), defaultBizValidator())
+	r := setupRouter(&mockIAMChecker{allowed: false, applyData: applyData}, defaultResolver())
 	w := testPostJSON(r, "/v4/dbs/cluster/delete", map[string]interface{}{
 		"clusterName": "cluster-1",
 		"bk_username": "user1",
@@ -314,7 +300,7 @@ func TestAPIAuthMiddleware_UserNotAllowed_PermissionDenied(t *testing.T) {
 }
 
 func TestAPIAuthMiddleware_IAMError_ThirdAPIError(t *testing.T) {
-	r := setupRouter(&mockIAMChecker{err: fmt.Errorf("IAM unreachable")}, defaultResolver(), defaultBizValidator())
+	r := setupRouter(&mockIAMChecker{err: fmt.Errorf("IAM unreachable")}, defaultResolver())
 	w := testPostJSON(r, "/v4/dbs/cluster/delete", map[string]interface{}{
 		"clusterName": "cluster-1",
 		"bk_username": "user1",
@@ -327,7 +313,7 @@ func TestAPIAuthMiddleware_IAMError_ThirdAPIError(t *testing.T) {
 
 func TestAPIAuthMiddleware_UserNotAllowed_NilApplyData(t *testing.T) {
 	// 测试 allowed=false, applyData=nil 路径（如 AdminOnlyAction）
-	r := setupRouter(&mockIAMChecker{allowed: false, applyData: nil}, defaultResolver(), defaultBizValidator())
+	r := setupRouter(&mockIAMChecker{allowed: false, applyData: nil}, defaultResolver())
 	w := testPostJSON(r, "/v4/dbs/cluster/delete", map[string]interface{}{
 		"clusterName": "cluster-1",
 		"bk_username": "user1",
@@ -344,7 +330,7 @@ func TestAPIAuthMiddleware_UserNotAllowed_NilApplyData(t *testing.T) {
 func TestAPIAuthMiddleware_ResolverError_ReturnsParameterInvalidError(t *testing.T) {
 	// resolver 返回错误时，middleware 应返回 ParameterInvalidError（非 ThirdAPIError）
 	resolverErr := &mockClusterTypeResolver{err: newResolverError("集群类型解析失败")}
-	r := setupRouter(&mockIAMChecker{allowed: true}, resolverErr, defaultBizValidator())
+	r := setupRouter(&mockIAMChecker{allowed: true}, resolverErr)
 	w := testPostJSON(r, "/v4/dbs/cluster/delete", map[string]interface{}{
 		"clusterName": "cluster-1",
 		"bk_username": "user1",
@@ -363,7 +349,7 @@ func TestAPIAuthMiddleware_ResolverError_ReturnsParameterInvalidError(t *testing
 func TestAPIAuthMiddleware_ResolverInitFailed_ReturnsError(t *testing.T) {
 	// 模拟 resolver 初始化失败
 	resolverErr := &mockClusterTypeResolver{err: newResolverError("provider 尚未初始化")}
-	r := setupRouter(&mockIAMChecker{allowed: true}, resolverErr, defaultBizValidator())
+	r := setupRouter(&mockIAMChecker{allowed: true}, resolverErr)
 	w := testPostJSON(r, "/v4/dbs/cluster/delete", map[string]interface{}{
 		"clusterName": "cluster-1",
 		"bk_username": "user1",
@@ -379,7 +365,7 @@ func TestAPIAuthMiddleware_ResolverInitFailed_ReturnsError(t *testing.T) {
 
 func TestAPIAuthMiddleware_AddonInstall_Allowed(t *testing.T) {
 	t.Setenv("BKBASE_BK_BIZ_ID", "100")
-	r := setupRouter(&mockIAMChecker{allowed: true}, defaultResolver(), defaultBizValidator())
+	r := setupRouter(&mockIAMChecker{allowed: true}, defaultResolver())
 	w := testPostJSON(r, "/v4/dbs/addon/install", map[string]interface{}{
 		"k8sClusterName": "minikube",
 		"addonType":      "qdrant",
@@ -397,7 +383,7 @@ func TestAPIAuthMiddleware_AddonInstall_NotAllowed(t *testing.T) {
 	t.Setenv("BKBASE_BK_BIZ_ID", "100")
 	r := setupRouter(&mockIAMChecker{allowed: false, applyData: &infresp.ApplyData{
 		ApplyURL: "https://iam.example.com/apply",
-	}}, defaultResolver(), defaultBizValidator())
+	}}, defaultResolver())
 	w := testPostJSON(r, "/v4/dbs/addon/install", map[string]interface{}{
 		"k8sClusterName": "minikube",
 		"addonType":      "qdrant",
@@ -411,7 +397,7 @@ func TestAPIAuthMiddleware_AddonInstall_NotAllowed(t *testing.T) {
 
 func TestAPIAuthMiddleware_AddonInstall_MissingBkbaseBizId(t *testing.T) {
 	// BKBASE_BK_BIZ_ID 未设置，addon 鉴权应失败
-	r := setupRouter(&mockIAMChecker{allowed: true}, defaultResolver(), defaultBizValidator())
+	r := setupRouter(&mockIAMChecker{allowed: true}, defaultResolver())
 	w := testPostJSON(r, "/v4/dbs/addon/install", map[string]interface{}{
 		"k8sClusterName": "minikube",
 		"addonType":      "qdrant",
@@ -425,7 +411,7 @@ func TestAPIAuthMiddleware_AddonInstall_MissingBkbaseBizId(t *testing.T) {
 }
 
 func TestAPIAuthMiddleware_AddonInstall_NoBkUsername_Rejected(t *testing.T) {
-	r := setupRouter(&mockIAMChecker{allowed: false}, defaultResolver(), defaultBizValidator())
+	r := setupRouter(&mockIAMChecker{allowed: false}, defaultResolver())
 	w := testPostJSON(r, "/v4/dbs/addon/install", map[string]interface{}{
 		"k8sClusterName": "minikube",
 		"addonType":      "qdrant",
@@ -444,9 +430,9 @@ func TestCheckIAMPermission_AddonInstall_UsesFixedActionID(t *testing.T) {
 		allowed:        true,
 		capturedAction: &capturedActionID,
 	}
-	resolver := &mockClusterTypeResolver{clusterType: "k8s_surrealdb"}
+	resolver := &mockClusterTypeResolver{clusterType: "k8s_surrealdb_ha"}
 
-	allowed, _, err := checkIAMPermission(checker, resolver, defaultBizValidator(), constant.APIAddonInstall, toJSON(map[string]interface{}{}), "user1")
+	allowed, _, err := checkIAMPermission(checker, resolver, constant.APIAddonInstall, toJSON(map[string]interface{}{}), "user1")
 
 	assert.NoError(t, err)
 	assert.True(t, allowed)
@@ -466,7 +452,7 @@ func (m *mockIAMCheckerCapture) SimpleCheckAllowed(_, actionID string, _ int, _ 
 
 func TestAPIAuthMiddleware_InvalidJSON_Error(t *testing.T) {
 	// 测试非法 JSON 请求体
-	r := setupRouter(&mockIAMChecker{allowed: true}, defaultResolver(), defaultBizValidator())
+	r := setupRouter(&mockIAMChecker{allowed: true}, defaultResolver())
 	req := httptest.NewRequest(http.MethodPost, "/v4/dbs/cluster/create",
 		strings.NewReader("{invalid json"))
 	req.Header.Set("Content-Type", "application/json")
