@@ -137,12 +137,17 @@
               collapse-tags
               filterable
               multiple
-              multiple-mode="tag">
+              multiple-mode="tag"
+              @clear="handleNotifyTargetClear">
               <template #tag="{ selected }">
                 <BkTag
                   v-for="item in selected"
                   :key="item"
-                  closable
+                  v-bk-tooltips="{
+                    content: t('默认组件 DBA，不可删除'),
+                    disabled: item.value !== bizDefaultGroupId,
+                  }"
+                  :closable="item.value === bizDefaultGroupId ? false : true"
                   @close="() => handleDeleteNotifyTargetItem(item.value)">
                   <template #icon>
                     <DbIcon
@@ -155,6 +160,7 @@
               <BkOption
                 v-for="item in alarmGroupList"
                 :key="item.value"
+                :disabled="item.value === bizDefaultGroupId"
                 :label="item.label"
                 :value="item.value" />
             </BkSelect>
@@ -244,7 +250,7 @@
   import MonitorTarget from './monitor-target/Index.vue';
 
   interface Props {
-    alarmGroupList: SelectItem<string>[];
+    alarmGroupList: SelectItem<number>[];
     alarmGroupNameMap: Record<string, string>;
     appParentInfoMap: Record<number, MonitorPolicyModel>;
     clusterList: SelectItem<string>[];
@@ -384,6 +390,11 @@
       content: '',
       title: '',
     };
+  });
+
+  const bizDefaultGroupId = computed(() => {
+    const groupItem = props.alarmGroupList.find((item) => item.label === `${DBTypeInfos[props.dbType].name}_DBA`)!;
+    return groupItem?.value;
   });
 
   const notifyTypes = [
@@ -601,6 +612,12 @@
   const getBizDefaultGroupIds = () => {
     const groupItem = props.alarmGroupList.find((item) => item.label === `${DBTypeInfos[props.dbType].name}_DBA`);
     return groupItem ? [Number(groupItem.value)] : [];
+  };
+
+  const handleNotifyTargetClear = () => {
+    const groups = formModel.notifyTarget;
+    groups.splice(0, 0, bizDefaultGroupId.value);
+    formModel.notifyTarget = groups;
   };
 
   const handleResetToDefault = () => {
