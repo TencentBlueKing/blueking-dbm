@@ -1255,6 +1255,7 @@ class MonitorPolicy(AuditedModel):
                 }
             )
         result["agg_info"] = agg_info
+        result["policy_tag"] = PolicyTag.INNER.value
 
         return result
 
