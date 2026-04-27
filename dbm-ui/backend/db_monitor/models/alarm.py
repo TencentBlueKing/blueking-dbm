@@ -1249,6 +1249,7 @@ class MonitorPolicy(AuditedModel):
                 }
             )
         result["agg_info"] = agg_info
+        result["policy_tag"] = "inner"
 
         return result
 
