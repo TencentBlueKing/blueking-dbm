@@ -109,7 +109,7 @@
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
-  import { toolboxMenuList } from '@views/db-manage/tendb-cluster/toolbox/Index.vue';
+  import { toolboxMenuList } from '@views/db-manage/tendb-cluster/toolbox/toolboxMenuList';
 
   import CountTag from './components/CountTag.vue';
   import MenuGroup from './components/MenuGroup.vue';
