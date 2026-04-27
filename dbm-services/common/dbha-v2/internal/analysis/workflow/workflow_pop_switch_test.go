@@ -50,6 +50,15 @@ func setupMetadataAPIForTest(t *testing.T, serverURL string) {
 	})
 }
 
+func setupEnableSwitchingForTest(t *testing.T) {
+	t.Helper()
+	old := config.Cfg.Workflow.EnableSwitching
+	config.Cfg.Workflow.EnableSwitching = true
+	t.Cleanup(func() {
+		config.Cfg.Workflow.EnableSwitching = old
+	})
+}
+
 func newWorkflowForHandleFailureGroupTests(t *testing.T, dbmClient *dbm.Client) *Workflow {
 	t.Helper()
 	td := testutil.NewTestDbhaData(t)
@@ -257,6 +266,7 @@ func TestMarkDoneAllReleasesAllKeys(t *testing.T) {
 }
 
 func TestFilterWhitelistedInstances_NoWhitelistRemovesNothing(t *testing.T) {
+	setupEnableSwitchingForTest(t)
 	w := newWorkflowForHandleFailureGroupTests(t, nil)
 	group := buildSingleFailureGroup()
 	req := &switcher.Request{
@@ -274,6 +284,7 @@ func TestFilterWhitelistedInstances_NoWhitelistRemovesNothing(t *testing.T) {
 }
 
 func TestFilterWhitelistedInstances_WhitelistedInstanceRemoved(t *testing.T) {
+	setupEnableSwitchingForTest(t)
 	w := newWorkflowForHandleFailureGroupTests(t, nil)
 
 	testutil.InsertBlackWhiteList(t, w.hadata,
@@ -303,6 +314,7 @@ func TestFilterWhitelistedInstances_WhitelistedInstanceRemoved(t *testing.T) {
 }
 
 func TestFilterWhitelistedInstances_PartialWhitelisted(t *testing.T) {
+	setupEnableSwitchingForTest(t)
 	w := newWorkflowForHandleFailureGroupTests(t, nil)
 
 	testutil.InsertBlackWhiteList(t, w.hadata,
@@ -336,6 +348,7 @@ func TestFilterWhitelistedInstances_PartialWhitelisted(t *testing.T) {
 }
 
 func TestFilterWhitelistedInstances_V1SwitchVersionNotFiltered(t *testing.T) {
+	setupEnableSwitchingForTest(t)
 	w := newWorkflowForHandleFailureGroupTests(t, nil)
 
 	testutil.InsertBlackWhiteList(t, w.hadata,
@@ -365,6 +378,7 @@ func TestFilterWhitelistedInstances_V1SwitchVersionNotFiltered(t *testing.T) {
 }
 
 func TestFilterWhitelistedInstances_DisabledWhitelistNotFiltered(t *testing.T) {
+	setupEnableSwitchingForTest(t)
 	w := newWorkflowForHandleFailureGroupTests(t, nil)
 
 	testutil.InsertBlackWhiteList(t, w.hadata,
@@ -390,5 +404,38 @@ func TestFilterWhitelistedInstances_DisabledWhitelistNotFiltered(t *testing.T) {
 
 	if len(req.MySqlInstData) != 1 {
 		t.Fatalf("expected 1 instance remaining (disabled whitelist not filtered), got %d", len(req.MySqlInstData))
+	}
+}
+
+func TestFilterWhitelistedInstances_SwitchingDisabledSkipsFiltering(t *testing.T) {
+	setupEnableSwitchingForTest(t)
+	w := newWorkflowForHandleFailureGroupTests(t, nil)
+
+	testutil.InsertBlackWhiteList(t, w.hadata,
+		&hamodel.DbBlackWhiteList{
+			BkBizID:       100,
+			BkCloudID:     1,
+			ClusterID:     200,
+			ClusterName:   "test-cluster",
+			SwitchVersion: hamodel.SwitchVersionV2,
+			Status:        hamodel.StatusTypeEnabled,
+		},
+	)
+
+	// Disable switching
+	config.Cfg.Workflow.EnableSwitching = false
+
+	group := buildSingleFailureGroup()
+	req := &switcher.Request{
+		DbType: haprobe.DbTypeMySql,
+		MySqlInstData: []*dbm.DbInstMetadata{
+			{BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "test-cluster", Status: dbm.Available},
+		},
+	}
+
+	w.filterWhitelistedInstances(context.Background(), group, req)
+
+	if len(req.MySqlInstData) != 1 {
+		t.Fatalf("expected 1 instance remaining (switching disabled), got %d", len(req.MySqlInstData))
 	}
 }
