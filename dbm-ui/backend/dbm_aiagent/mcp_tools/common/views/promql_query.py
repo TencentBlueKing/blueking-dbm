@@ -24,7 +24,7 @@ from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
-from backend.iam_app.handlers.drf_perm.mcp import McpClusterManagePermission
+from backend.iam_app.handlers.drf_perm.mcp import McpClusterDetailPermission
 
 logger = logging.getLogger("root")
 
@@ -84,7 +84,7 @@ class PromQLQueryMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=QueryMetricByRoleInputSerializer,
         response_slz=PromQLQueryOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_METRICS],
@@ -118,7 +118,7 @@ class PromQLQueryMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=QueryMetricByInstanceInputSerializer,
         response_slz=PromQLQueryOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_METRICS],

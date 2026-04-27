@@ -40,7 +40,7 @@ from backend.dbm_aiagent.mcp_tools.redis.serializers.redis_reports import (
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.env import DEFAULT_USERNAME
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
-from backend.iam_app.handlers.drf_perm.mcp import McpClusterManagePermission, McpDBManagePermission
+from backend.iam_app.handlers.drf_perm.mcp import McpClusterDetailPermission, McpDBManagePermission
 
 
 class RedisReportsMcpToolsViewSet(McpToolsViewSet):
@@ -115,7 +115,7 @@ class RedisReportsMcpToolsViewSet(McpToolsViewSet):
         description=str(_("Query Redis inspection reports by cluster domain")),
         request_slz=RedisReportsByClusterInputSerializer,
         response_slz=RedisReportsOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_REPORTS],

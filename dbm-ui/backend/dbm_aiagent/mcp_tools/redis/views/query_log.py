@@ -45,7 +45,7 @@ from backend.dbm_aiagent.mcp_tools.redis.serializers.redis_log import (
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
-from backend.iam_app.handlers.drf_perm.mcp import McpClusterManagePermission
+from backend.iam_app.handlers.drf_perm.mcp import McpClusterDetailPermission
 
 logger = logging.getLogger("root")
 
@@ -62,7 +62,7 @@ class RedisQueryLogMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=RedisSlowlogInputSerializer,
         response_slz=RedisSlowClusterStaticSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_QUERY_LOG],
@@ -82,7 +82,7 @@ class RedisQueryLogMcpToolsViewSet(McpToolsViewSet):
         description=str(_("查询某台机器上的慢查询日志(slowlog),包括执行时间、命令内容等。可用于分析Redis性能问题和慢查询优化")),
         request_slz=RedisSlowlog4HostInputSerializer,
         response_slz=RedisSlowlogResponseSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_QUERY_LOG],
@@ -103,7 +103,7 @@ class RedisQueryLogMcpToolsViewSet(McpToolsViewSet):
         description=str(_("查询某个实例的慢查询日志(slowlog),包括执行时间、命令内容等。可用于分析Redis性能问题和慢查询优化")),
         request_slz=RedisSlowlog4InstInputSerializer,
         response_slz=RedisSlowlogResponseSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_QUERY_LOG],
@@ -132,7 +132,7 @@ class RedisQueryLogMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=RedisBigkeyInputSerializer,
         response_slz=RedisBigkeyClusterStaticSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_QUERY_LOG],
@@ -158,7 +158,7 @@ class RedisQueryLogMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=RedisBigkey4HostInputSerializer,
         response_slz=RedisBigkeyResponseSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_QUERY_LOG],
@@ -187,7 +187,7 @@ class RedisQueryLogMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=RedisServerlogInputSerializer,
         response_slz=RedisServerlogClusterStaticSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_QUERY_LOG],
@@ -213,7 +213,7 @@ class RedisQueryLogMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=RedisServerlog4HostInputSerializer,
         response_slz=RedisServerlogResponseSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_QUERY_LOG],

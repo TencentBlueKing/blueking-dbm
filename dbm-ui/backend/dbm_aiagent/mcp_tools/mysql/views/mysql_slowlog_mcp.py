@@ -34,7 +34,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_slowlog import (
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
-from backend.iam_app.handlers.drf_perm.mcp import McpClusterManagePermission
+from backend.iam_app.handlers.drf_perm.mcp import McpClusterDetailPermission
 
 logger = logging.getLogger("root")
 
@@ -55,7 +55,7 @@ class MySQLSlowlogMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=MysqlSlowlogInputSerializer,
         response_slz=MysqlSlowlogOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_SLOWLOG],
@@ -84,7 +84,7 @@ class MySQLSlowlogMcpToolsViewSet(McpToolsViewSet):
         description=str(_("获取 tendbsingle, tendbha, tendbcluster 集群的慢查询统计信息")),
         request_slz=SlowlogAggregatedInputSerializer,
         response_slz=SlowlogAggregatedOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_SLOWLOG],
@@ -125,7 +125,7 @@ class MySQLSlowlogMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=MysqlOneSlowlogInputSerializer,
         response_slz=MysqlSlowlogOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_SLOWLOG],
@@ -155,7 +155,7 @@ class MySQLSlowlogMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=MysqlSlowTunerInputSerializer,
         response_slz=MysqlSlowTunerOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_SLOWLOG],

@@ -77,7 +77,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_variables import (
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
-from backend.iam_app.handlers.drf_perm.mcp import McpClusterManagePermission, McpIsDbaPermission
+from backend.iam_app.handlers.drf_perm.mcp import McpClusterDetailPermission, McpIsDbaPermission
 
 logger = logging.getLogger("root")
 
@@ -89,7 +89,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         description=str(_("获取 tendbsingle, tendbha, tendbcluster 集群的表结构")),
         request_slz=ShowCreateTableInputSerializer,
         response_slz=ShowCreateTableOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY, DBMMcpTools.MYSQL_SLOWLOG],
@@ -115,7 +115,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         description=str(_("查询 SQL 执行计划")),
         request_slz=ExplainSQLInputSerializer,
         response_slz=ExplainSQLOutputSerializer,
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY, DBMMcpTools.MYSQL_SLOWLOG],
@@ -143,7 +143,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=MySQLClusterTopoOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         name_prefix="mysql_query",
     )
@@ -169,7 +169,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=ShowInstanceVariablesOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_instances,
         name_prefix="mysql_query",
     )
@@ -196,7 +196,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=ShowInstanceStatuesOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_instances,
         name_prefix="mysql_query",
     )
@@ -223,7 +223,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=ShowInstanceStatuesOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_instances,
         name_prefix="mysql_query",
     )
@@ -245,7 +245,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=ShowBizMySQLPrivilegeTemplateOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_bizs,
         name_prefix="mysql_query",
     )
@@ -267,7 +267,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=ShowMySQLInstanceProcessListOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY, DBMMcpTools.MYSQL_METRICS],
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_instances,
         name_prefix="mysql_query",
     )
@@ -293,7 +293,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=ShowProxyProcessListOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY, DBMMcpTools.MYSQL_METRICS],
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_instances,
         name_prefix="mysql_query",
     )
@@ -318,7 +318,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=QueryLongRunningTrxOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_instances,
         name_prefix="mysql_query",
     )
@@ -349,7 +349,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=ShowInstanceVariablesOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_instances,
         name_prefix="mysql_query",
     )
@@ -383,7 +383,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=ShowInstanceStatuesOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_instances,
         name_prefix="mysql_query",
     )
@@ -411,7 +411,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=ShowInstanceEngineStatusOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_instances,
         name_prefix="mysql_query",
     )
@@ -434,7 +434,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         response_slz=ShowBinlogEventsOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.MYSQL_QUERY],
-        permission_classes=[McpClusterManagePermission, McpIsDbaPermission],
+        permission_classes=[McpClusterDetailPermission, McpIsDbaPermission],
         mcp_auth_parser=auth_parse_instances,
         name_prefix="mysql_query",
     )

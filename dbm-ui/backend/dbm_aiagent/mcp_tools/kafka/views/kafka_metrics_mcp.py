@@ -31,7 +31,7 @@ from backend.dbm_aiagent.mcp_tools.kafka.serializers.kafka_metrics import (
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
-from backend.iam_app.handlers.drf_perm.mcp import McpClusterManagePermission
+from backend.iam_app.handlers.drf_perm.mcp import McpClusterDetailPermission
 
 logger = logging.getLogger("flow")
 
@@ -57,7 +57,7 @@ class KafkaMetricsMcpToolsViewSet(McpToolsViewSet):
         response_slz=KafkaMetricsOutputSerializer,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.KAFKA_METRICS, DBMMcpTools.DBM_PUBLIC_MARKET],
-        permission_classes=[McpClusterManagePermission],
+        permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         name_prefix="kafka_metrics",
     )

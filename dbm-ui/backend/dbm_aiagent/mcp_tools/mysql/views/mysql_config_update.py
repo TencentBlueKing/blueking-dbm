@@ -21,7 +21,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_config_update import 
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
-from backend.iam_app.handlers.drf_perm.mcp import McpClusterManagePermission, McpIsDbaPermission
+from backend.iam_app.handlers.drf_perm.mcp import McpClusterOperatePermission, McpIsDbaPermission
 
 
 class MySQLConfigUpdateMcpToolsViewSet(McpToolsViewSet):
@@ -44,7 +44,7 @@ class MySQLConfigUpdateMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=UpdateMysqlConfigInputSerializer,
         response_slz=UpdateMysqlConfigOutputSerializer,
-        permission_classes=[McpClusterManagePermission, McpIsDbaPermission],
+        permission_classes=[McpClusterOperatePermission, McpIsDbaPermission],
         mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.MYSQL_CONFIG],
