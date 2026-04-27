@@ -3,8 +3,9 @@
 #   render_configs.py --module server --rc etc/dbha-v2.server.rc \
 #       --ip-detect-udp-connect-host HOST
 # All template placeholders must be set here; the renderer only injects
-# defaults for COMMON_APM_LISTEN_ADDRESS / RECEIVER_SOURCE_PROBE_ENDPOINT /
-# ADMIN_GRPC_LISTEN_ADDRESS / ADMIN_WEB_HOST / ADMIN_WEB_PORT when empty.
+# defaults for ADMIN_/RECEIVER_/ANALYSIS_APM_LISTEN_ADDRESS /
+# RECEIVER_SOURCE_PROBE_ENDPOINT / ADMIN_GRPC_LISTEN_ADDRESS /
+# ADMIN_WEB_HOST / ADMIN_WEB_PORT when empty.
 # Syntax: KEY=value or KEY="value with spaces"; use \n \" \\ inside double quotes.
 
 # --- shared (admin + analysis + receiver) ---
@@ -20,9 +21,10 @@ COMMON_DISCOVERY_TLS_CERT_FILE=""
 COMMON_DISCOVERY_TLS_KEY_FILE=""
 COMMON_DISCOVERY_TLS_TRUSTED_CA_FILE=""
 
-# apm settings shared by all server services; omit COMMON_APM_LISTEN_ADDRESS
-# or leave empty to use http://<auto-detected-ipv4>:50050 at render time
-COMMON_APM_LISTEN_ADDRESS=""
+# apm timeouts shared by all server services; per-service listen addresses
+# are configured in their own sections below (ADMIN_/RECEIVER_/ANALYSIS_APM_LISTEN_ADDRESS).
+# Leave any per-service listen address empty to fall back to
+# http://<auto-detected-ipv4>:50080|50081|50082 at render time.
 COMMON_APM_READ_TIMEOUT=10s
 COMMON_APM_WRITE_TIMEOUT=10s
 
@@ -66,6 +68,15 @@ COMMON_V1STORAGE_PASSWORD=dbhatest
 RECEIVER_NAME=receiver
 RECEIVER_PID_FILE=./pids/receiver.pid
 
+# ## receiver · discovery (runtime tuning)
+RECEIVER_DISCOVERY_SERVICE_TIMER_INTERVAL=3s
+RECEIVER_DISCOVERY_SERVICE_UPDATE_TIMEOUT=3s
+
+# ## receiver · apm
+# omit RECEIVER_APM_LISTEN_ADDRESS or leave empty to use
+# http://<auto-detected-ipv4>:50081 at render time
+RECEIVER_APM_LISTEN_ADDRESS=http://127.0.0.1:50081
+
 # ## receiver · shard templates
 # shard files (paths relative to this rc)
 RECEIVER_SOURCE_PROBE_SHARD_FILE=templates/snippets/receiver_source_probe.yaml
@@ -76,7 +87,7 @@ RECEIVER_SINK_MYSQL_SHARD_FILE=templates/snippets/receiver_sink_mysql.yaml
 RECEIVER_SOURCE_PROBE_NAME=probe
 RECEIVER_SOURCE_PROBE_ENABLE=false
 # omit RECEIVER_SOURCE_PROBE_ENDPOINT or leave empty to use
-# <auto-detected-ipv4>:50051 at render time
+# <auto-detected-ipv4>:50052 at render time
 RECEIVER_SOURCE_PROBE_ENDPOINT=""
 RECEIVER_SOURCE_PROBE_NET_DIAL_TIMEOUT=30s
 RECEIVER_SOURCE_PROBE_NET_READ_TIMEOUT=30s
@@ -85,6 +96,12 @@ RECEIVER_SOURCE_PROBE_USER=""
 RECEIVER_SOURCE_PROBE_PASSWORD=""
 RECEIVER_SOURCE_PROBE_MECHANISM=plaintext
 RECEIVER_SOURCE_PROBE_TOPICS=[]
+RECEIVER_SOURCE_PROBE_BUFFER_SIZE=1024
+RECEIVER_SOURCE_PROBE_GRPC_SERVER_PING_TIME=5m
+RECEIVER_SOURCE_PROBE_GRPC_PING_TIMEOUT=10s
+RECEIVER_SOURCE_PROBE_GRPC_KEEP_ALIVE_MIN_TIME=5m
+RECEIVER_SOURCE_PROBE_GRPC_MAX_RECEIVE_MESSAGE_SIZE=10485760
+RECEIVER_SOURCE_PROBE_GRPC_MAX_SEND_MESSAGE_SIZE=10485760
 
 # ## receiver · service.source · kafka
 RECEIVER_SOURCE_KAFKA_NAME=kafka
@@ -112,6 +129,15 @@ ADMIN_NAME=admin
 ADMIN_PID_FILE=./pids/admin.pid
 ADMIN_DOC_FILE_DIR=./docs
 
+# ## admin · discovery (runtime tuning)
+ADMIN_DISCOVERY_SERVICE_TIMER_INTERVAL=3s
+ADMIN_DISCOVERY_SERVICE_UPDATE_TIMEOUT=3s
+
+# ## admin · apm
+# omit ADMIN_APM_LISTEN_ADDRESS or leave empty to use
+# http://<auto-detected-ipv4>:50080 at render time
+ADMIN_APM_LISTEN_ADDRESS=http://127.0.0.1:50080
+
 # ## admin · grpc
 # omit ADMIN_GRPC_LISTEN_ADDRESS or use :<port> only to fill host via same
 # IP detection as APM/probe
@@ -137,11 +163,31 @@ ADMIN_PROBE_GSE_ENDPOINT=""
 ADMIN_PROBE_GSE_DATA_ID=0
 ADMIN_PROBE_GSE_CONN_TIMEOUT=5s
 
+# ## admin · probe mysql harvester (returned only to probes whose metadata contains MySQL clusters)
+ADMIN_PROBE_MYSQL_USER=""
+ADMIN_PROBE_MYSQL_PASSWORD=""
+ADMIN_PROBE_MYSQL_INTERVAL=20s
+
+# ## admin · probe redis harvester (returned only to probes whose metadata contains Redis clusters)
+ADMIN_PROBE_REDIS_USER=""
+ADMIN_PROBE_REDIS_PASSWORD=""
+ADMIN_PROBE_REDIS_INTERVAL=20s
+ADMIN_PROBE_REDIS_TIMEOUT=5s
+
 # --- analysis ---
 
 # ## analysis · process and identity
 ANALYSIS_NAME=analysis
 ANALYSIS_PID_FILE=./pids/analysis.pid
+
+# ## analysis · discovery (runtime tuning)
+ANALYSIS_DISCOVERY_SERVICE_TIMER_INTERVAL=3s
+ANALYSIS_DISCOVERY_SERVICE_UPDATE_TIMEOUT=3s
+
+# ## analysis · apm
+# omit ANALYSIS_APM_LISTEN_ADDRESS or leave empty to use
+# http://<auto-detected-ipv4>:50082 at render time
+ANALYSIS_APM_LISTEN_ADDRESS=http://127.0.0.1:50082
 
 # ## analysis · workflow
 ANALYSIS_WORKFLOW_WORKER_BUSINESS_COUNT=100

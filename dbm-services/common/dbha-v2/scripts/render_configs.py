@@ -15,13 +15,24 @@ from pathlib import Path
 _PLACEHOLDER_RE = re.compile(r"\{\{([A-Z0-9_]+)\}\}")
 _KEY_LINE_RE = re.compile(r"^([A-Z0-9_]+)=(.*)$")
 
-_DEFAULT_APM_LISTEN_PORT = 50050
-_DEFAULT_RECEIVER_SOURCE_PROBE_PORT = 50051
+# APM listen defaults (server: admin/receiver/analysis).
+_DEFAULT_ADMIN_APM_LISTEN_PORT = 50080
+_DEFAULT_RECEIVER_APM_LISTEN_PORT = 50081
+_DEFAULT_ANALYSIS_APM_LISTEN_PORT = 50082
+
+# receiver -> probe endpoint default.
+_DEFAULT_RECEIVER_SOURCE_PROBE_PORT = 50052
+
+# admin network ports.
 _DEFAULT_ADMIN_GRPC_LISTEN_PORT = 50051
-_IP_DETECT_UDP_CONNECT_PORT = 80
 _DEFAULT_ADMIN_WEB_PORT = 50060
+
+# IP detection and fallback.
+_IP_DETECT_UDP_CONNECT_PORT = 80
 _DEFAULT_LOOPBACK_IPV4 = "127.0.0.1"
 _FALLBACK_NET_IFACE = "eth1"
+
+# rc parsing helpers.
 _RC_SNIPPET_FILE_SUFFIX = "_YAML_FILE"
 
 _MODULE_SERVER = "server"
@@ -56,17 +67,44 @@ def load_rc(path: Path) -> Dict[str, str]:
     return parse_rc(path.read_text(encoding="utf-8"))
 
 
-def apply_common_apm_listen_address_default(values: Dict[str, str], ip_detect_host: str) -> None:
-    """If COMMON_APM_LISTEN_ADDRESS is unset or empty, set http://<primary IPv4>:50050."""
-    raw = values.get("COMMON_APM_LISTEN_ADDRESS", "").strip()
+def apply_admin_apm_listen_address_default(values: Dict[str, str], ip_detect_host: str) -> None:
+    """If ADMIN_APM_LISTEN_ADDRESS is unset or empty, set http://<primary IPv4>:50080."""
+    _apply_apm_listen_address_default(
+        values, ip_detect_host,
+        key="ADMIN_APM_LISTEN_ADDRESS",
+        port=_DEFAULT_ADMIN_APM_LISTEN_PORT,
+    )
+
+
+def apply_receiver_apm_listen_address_default(values: Dict[str, str], ip_detect_host: str) -> None:
+    """If RECEIVER_APM_LISTEN_ADDRESS is unset or empty, set http://<primary IPv4>:50081."""
+    _apply_apm_listen_address_default(
+        values, ip_detect_host,
+        key="RECEIVER_APM_LISTEN_ADDRESS",
+        port=_DEFAULT_RECEIVER_APM_LISTEN_PORT,
+    )
+
+
+def apply_analysis_apm_listen_address_default(values: Dict[str, str], ip_detect_host: str) -> None:
+    """If ANALYSIS_APM_LISTEN_ADDRESS is unset or empty, set http://<primary IPv4>:50082."""
+    _apply_apm_listen_address_default(
+        values, ip_detect_host,
+        key="ANALYSIS_APM_LISTEN_ADDRESS",
+        port=_DEFAULT_ANALYSIS_APM_LISTEN_PORT,
+    )
+
+
+def _apply_apm_listen_address_default(
+    values: Dict[str, str], ip_detect_host: str, key: str, port: int,
+) -> None:
+    """Shared helper: fill http://<primary IPv4>:<port> when *key* is unset/empty."""
+    raw = values.get(key, "").strip()
     if raw:
         return
     host = _guess_primary_ipv4(ip_detect_host)
-    values["COMMON_APM_LISTEN_ADDRESS"] = "http://{}:{}".format(host, _DEFAULT_APM_LISTEN_PORT)
+    values[key] = "http://{}:{}".format(host, port)
     sys.stderr.write(
-        "COMMON_APM_LISTEN_ADDRESS unset, using default listen, port: {}\n".format(
-            _DEFAULT_APM_LISTEN_PORT
-        )
+        "{} unset, using default listen, port: {}\n".format(key, port)
     )
 
 
@@ -288,7 +326,9 @@ def main() -> None:
     # Module-scoped default injection and shard expansion: only touch the keys
     # that the selected module's templates actually consume.
     if args.module == _MODULE_SERVER:
-        apply_common_apm_listen_address_default(values, ip_detect_host)
+        apply_admin_apm_listen_address_default(values, ip_detect_host)
+        apply_receiver_apm_listen_address_default(values, ip_detect_host)
+        apply_analysis_apm_listen_address_default(values, ip_detect_host)
         apply_receiver_source_probe_endpoint_default(values, ip_detect_host)
         apply_admin_grpc_listen_address_default(values, ip_detect_host)
         apply_admin_web_listen_defaults(values, ip_detect_host)
@@ -376,27 +416,33 @@ def _unescape(raw: str, stop_at_quote: bool = False) -> Tuple[str, int]:
     returns ``(unescaped_text, index_of_closing_quote)``.
     When False, the entire string is consumed and *index* equals ``len(raw)``.
     """
+    escape_map = {
+        "n": "\n",
+        "t": "\t",
+        "\\": "\\",
+        '"': '"',
+    }
+
     out: List[str] = []
     i = 0
 
     while i < len(raw):
         c = raw[i]
-        if c == "\\" and i + 1 < len(raw):
-            nxt = raw[i + 1]
-            if nxt == "n":
-                out.append("\n")
-                i += 2
-                continue
-            if nxt == "t":
-                out.append("\t")
-                i += 2
-                continue
-            if nxt in ("\\", '"'):
-                out.append(nxt)
-                i += 2
-                continue
         if stop_at_quote and c == '"':
             return "".join(out), i
+
+        if c == "\\" and i + 1 < len(raw):
+            nxt = raw[i + 1]
+            if nxt in escape_map:
+                out.append(escape_map[nxt])
+                i += 2
+                continue
+            # Unknown escape: keep the backslash verbatim, and let the next char
+            # be processed in the next iteration (same behavior as before).
+            out.append("\\")
+            i += 1
+            continue
+
         out.append(c)
         i += 1
     return "".join(out), i

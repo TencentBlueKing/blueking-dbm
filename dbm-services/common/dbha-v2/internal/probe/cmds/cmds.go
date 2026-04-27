@@ -161,6 +161,7 @@ func GenConfigCmdRunE(cmd *cobra.Command, args []string) error {
 	adminEndpointsStr, _ := cmd.Flags().GetString("admin-endpoints")
 	cloudID, _ := cmd.Flags().GetUint64("cloud-id")
 	localIP, _ := cmd.Flags().GetString("local-ip")
+	localIPInterface, _ := cmd.Flags().GetString("local-ip-interface")
 	outputPath, _ := cmd.Flags().GetString("output")
 
 	if adminEndpointsStr == "" {
@@ -168,10 +169,13 @@ func GenConfigCmdRunE(cmd *cobra.Command, args []string) error {
 	}
 	if localIP == "" {
 		var err error
-		localIP, err = machine.GetLocalIPWithInterface(constant.DefaultLocalIPInterface)
+		ifName := constant.DefaultLocalIPInterface
+		if strings.TrimSpace(localIPInterface) != "" {
+			ifName = strings.TrimSpace(localIPInterface)
+		}
+		localIP, err = machine.GetLocalIPWithInterface(ifName)
 		if err != nil {
-			return fmt.Errorf("local-ip not set and failed to get %s internal ip: %w",
-				constant.DefaultLocalIPInterface, err)
+			return fmt.Errorf("local-ip not set and failed to get %s internal ip: %w", ifName, err)
 		}
 	}
 
@@ -199,7 +203,7 @@ func GenConfigCmdRunE(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("parse probe config payload from admin: %w", err)
 	}
 
-	yamlStr, err := config.GenProbeYAML(payload.Gse, payload.Metadata)
+	yamlStr, err := config.GenProbeYAML(payload)
 	if err != nil {
 		return fmt.Errorf("generate probe config: %w", err)
 	}

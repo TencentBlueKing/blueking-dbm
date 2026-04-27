@@ -47,6 +47,7 @@ type collector struct {
 	clusterType haprobe.DbmMetadataClusterType
 	machineType haprobe.DbmMetadataMachineType
 	accessLayer haprobe.DbmMetadataAccessLayerType
+	user        string
 	password    string
 	endpoint    *hanet.Endpoint
 	timeout     time.Duration
@@ -63,6 +64,7 @@ func (c *collector) open(ctx context.Context) (*haprobe.DbEvent, error) {
 
 	c.rdb = redis.NewClient(&redis.Options{
 		Addr:         addr,
+		Username:     c.user,
 		Password:     c.password,
 		DialTimeout:  timeout,
 		ReadTimeout:  timeout,

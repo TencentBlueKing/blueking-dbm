@@ -30,6 +30,7 @@ import (
 	"sync"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -61,9 +62,35 @@ type ReceiverClient struct {
 
 // NewReceiverClient creates a ReceiverClient connected to the given endpoints.
 func NewReceiverClient(ctx context.Context, endpoints string, clientId string) (*ReceiverClient, error) {
+	pingTime := config.Cfg.Client.PingTime
+	if pingTime == 0 {
+		pingTime = constant.DefaultClientPingTime
+	}
+	pingTimeout := config.Cfg.Client.PingTimeout
+	if pingTimeout == 0 {
+		pingTimeout = constant.DefaultPingTimeout
+	}
+	maxRecvMsgSize := config.Cfg.Client.MaxReceiveMessageSize
+	if maxRecvMsgSize == 0 {
+		maxRecvMsgSize = constant.DefaultMaxReceiveMessageSize
+	}
+	maxSendMsgSize := config.Cfg.Client.MaxSendMessageSize
+	if maxSendMsgSize == 0 {
+		maxSendMsgSize = constant.DefaultMaxSendMessageSize
+	}
+
+	reconnectInterval := config.Cfg.Client.ReceiverReconnectInterval
+	if reconnectInterval == 0 {
+		reconnectInterval = constant.DefaultClientReconnectInterval
+	}
+	maxReconnectAttempts := config.Cfg.Client.ReceiverMaxReconnectAttempts
+	if maxReconnectAttempts == 0 {
+		maxReconnectAttempts = constant.DefaultClientMaxReconnectAttempts
+	}
+
 	kacp := keepalive.ClientParameters{
-		Time:                constant.DefaultClientPingTime,
-		Timeout:             constant.DefaultPingTimeout,
+		Time:                pingTime,
+		Timeout:             pingTimeout,
 		PermitWithoutStream: true,
 	}
 
@@ -71,8 +98,8 @@ func NewReceiverClient(ctx context.Context, endpoints string, clientId string) (
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithKeepaliveParams(kacp),
 		grpc.WithDefaultCallOptions(
-			grpc.MaxCallRecvMsgSize(constant.DefaultMaxReceiveMessageSize),
-			grpc.MaxCallSendMsgSize(constant.DefaultMaxSendMessageSize),
+			grpc.MaxCallRecvMsgSize(maxRecvMsgSize),
+			grpc.MaxCallSendMsgSize(maxSendMsgSize),
 		),
 	)
 
@@ -89,8 +116,8 @@ func NewReceiverClient(ctx context.Context, endpoints string, clientId string) (
 		client:               proto.NewReceiverServiceClient(conn),
 		ctx:                  ctxBase,
 		cancel:               cancel,
-		reconnectInterval:    constant.DefaultClientReconnectInterval,
-		maxReconnectAttempts: constant.DefaultClientMaxReconnectAttempts,
+		reconnectInterval:    reconnectInterval,
+		maxReconnectAttempts: maxReconnectAttempts,
 	}
 
 	return r, nil

@@ -38,10 +38,11 @@ type requestEventC chan *proto.ReceiverRequest
 
 // connectionHandler service connection handler
 type connectionHandler struct {
-	savers []sink.Sinker
-	eventC requestEventC
-	quit   chan struct{}
-	wg     sync.WaitGroup
+	savers     []sink.Sinker
+	bufferSize int
+	eventC     requestEventC
+	quit       chan struct{}
+	wg         sync.WaitGroup
 }
 
 func (c *connectionHandler) readEvent() {
@@ -87,7 +88,11 @@ func (c *connectionHandler) postEvent(event *proto.ReceiverRequest) error {
 
 func (c *connectionHandler) run() {
 	if c.eventC == nil {
-		c.eventC = make(chan *proto.ReceiverRequest, constant.DefaultReceiverBufferSize)
+		size := c.bufferSize
+		if size <= 0 {
+			size = constant.DefaultReceiverBufferSize
+		}
+		c.eventC = make(chan *proto.ReceiverRequest, size)
 	}
 
 	if c.quit == nil {

@@ -11,11 +11,13 @@ discovery:
   certFile: "{{COMMON_DISCOVERY_TLS_CERT_FILE}}"
   keyFile: "{{COMMON_DISCOVERY_TLS_KEY_FILE}}"
   trustedCAFile: "{{COMMON_DISCOVERY_TLS_TRUSTED_CA_FILE}}"
+  serviceTimerInterval: {{ANALYSIS_DISCOVERY_SERVICE_TIMER_INTERVAL}}
+  serviceUpdateTimeout: {{ANALYSIS_DISCOVERY_SERVICE_UPDATE_TIMEOUT}}
 
 apm:
   readTimeout: {{COMMON_APM_READ_TIMEOUT}}
   writeTimeout: {{COMMON_APM_WRITE_TIMEOUT}}
-  listenAddress: "{{COMMON_APM_LISTEN_ADDRESS}}"
+  listenAddress: "{{ANALYSIS_APM_LISTEN_ADDRESS}}"
 
 workflow:
   workerBusinessCount: {{ANALYSIS_WORKFLOW_WORKER_BUSINESS_COUNT}}

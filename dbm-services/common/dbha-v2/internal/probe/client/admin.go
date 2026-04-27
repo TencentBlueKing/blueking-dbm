@@ -27,6 +27,7 @@ package client
 import (
 	"sync"
 
+	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -51,9 +52,26 @@ type AdminClient struct {
 
 // NewAdminClient creates an AdminClient connected to the given admin endpoint.
 func NewAdminClient(ctx context.Context, endpoint string, clientId string) (*AdminClient, error) {
+	pingTime := config.Cfg.Client.PingTime
+	if pingTime == 0 {
+		pingTime = constant.DefaultClientPingTime
+	}
+	pingTimeout := config.Cfg.Client.PingTimeout
+	if pingTimeout == 0 {
+		pingTimeout = constant.DefaultPingTimeout
+	}
+	maxRecvMsgSize := config.Cfg.Client.MaxReceiveMessageSize
+	if maxRecvMsgSize == 0 {
+		maxRecvMsgSize = constant.DefaultMaxReceiveMessageSize
+	}
+	maxSendMsgSize := config.Cfg.Client.MaxSendMessageSize
+	if maxSendMsgSize == 0 {
+		maxSendMsgSize = constant.DefaultMaxSendMessageSize
+	}
+
 	kacp := keepalive.ClientParameters{
-		Time:                constant.DefaultClientPingTime,
-		Timeout:             constant.DefaultPingTimeout,
+		Time:                pingTime,
+		Timeout:             pingTimeout,
 		PermitWithoutStream: true,
 	}
 
@@ -61,8 +79,8 @@ func NewAdminClient(ctx context.Context, endpoint string, clientId string) (*Adm
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithKeepaliveParams(kacp),
 		grpc.WithDefaultCallOptions(
-			grpc.MaxCallRecvMsgSize(constant.DefaultMaxReceiveMessageSize),
-			grpc.MaxCallSendMsgSize(constant.DefaultMaxSendMessageSize),
+			grpc.MaxCallRecvMsgSize(maxRecvMsgSize),
+			grpc.MaxCallSendMsgSize(maxSendMsgSize),
 		),
 	)
 

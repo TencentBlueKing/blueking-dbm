@@ -94,5 +94,10 @@ func init() {
 		"Admin service endpoints, separated by ; (e.g. host1:port1;host2:port2)")
 	GenConfigCmd.Flags().Uint64("cloud-id", 0, "Cloud ID (bk_cloud_id)")
 	GenConfigCmd.Flags().String("local-ip", "", "Probe local IP address")
+	GenConfigCmd.Flags().String(
+		"local-ip-interface",
+		"",
+		"Preferred local interface name when auto-detecting --local-ip (default: use built-in default)",
+	)
 	GenConfigCmd.Flags().StringP("output", "o", "", "Output config file path (default: stdout)")
 }

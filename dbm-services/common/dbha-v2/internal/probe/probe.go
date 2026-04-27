@@ -94,7 +94,8 @@ func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin) {
 
 			if p.reporter != nil {
 				if err := p.reporter.Post(ctx, dataEncoded); err != nil {
-					logger.Warn("post data to receiver failed, plugin(%s), reporter(%s), %v", name, p.reporter.Name(), err)
+					logger.Warn("post data to receiver failed, plugin(%s), reporter(%s), %v",
+						name, p.reporter.Name(), err)
 				}
 			}
 		}
