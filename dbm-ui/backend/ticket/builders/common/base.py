@@ -73,6 +73,7 @@ def fetch_cluster_ids(details: Dict[str, Any]) -> List[int]:
         "source_clusters",
         "target_cluster",
         "target_clusters",
+        "cluster_id_list",
     ]
     return get_filtered_items(details, cluster_keys, int)
 
