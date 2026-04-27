@@ -92,11 +92,17 @@ type options struct {
 	disableAutomaticPing         bool
 }
 
-func (o options) DSN() string {
+func (o options) BuildDSNString(coverPassword bool) string {
 	// DSN format: "user:pass@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local"
 
 	dsnBuilder := strings.Builder{}
-	dsnBuilder.WriteString(o.user + ":" + o.password + "@")
+
+	if coverPassword {
+		dsnBuilder.WriteString(o.user + ":" + "<secret>" + "@")
+	} else {
+		dsnBuilder.WriteString(o.user + ":" + o.password + "@")
+	}
+
 	dsnBuilder.WriteString(o.proto + "(" + o.ip + ":" + fmt.Sprintf("%d", o.port) + ")")
 
 	if o.dbName != "" {
@@ -148,6 +154,14 @@ func (o options) DSN() string {
 	}
 
 	return dsnBuilder.String()
+}
+
+func (o options) DSN() string {
+	return o.BuildDSNString(false)
+}
+
+func (o options) SafeDSN() string {
+	return o.BuildDSNString(true)
 }
 
 func (o options) Config() mysql.Config {

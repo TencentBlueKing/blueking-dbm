@@ -85,7 +85,7 @@ func NewGormDB(opts ...Option) (*GormDB, error) {
 		gormCfg.Logger = gormLogger
 	}
 
-	logger.Debug("dsn:%s", db.opts.DSN())
+	logger.Debug("dsn:%s", db.opts.SafeDSN())
 
 	gdb, err := gorm.Open(mysql.New(db.opts.Config()), gormCfg)
 	if err != nil {
