@@ -31,7 +31,7 @@
         "period": 60,
         "password": false,
         "bk_username": "",
-        "metrics_url": "http://localhost:7071"
+        "metrics_url": "http://localhost:7071/metrics"
       },
       "target_node_type": "TOPO",
       "target_object_type": "SERVICE"
@@ -39,7 +39,7 @@
     "plugin_id": "dbm_kafka_bkpull"
   },
   "db_type": "kafka",
-  "version": 18,
+  "version": 19,
   "machine_types": [],
   "plugin_id": "dbm_kafka_bkpull"
 }
