@@ -98,7 +98,7 @@ func ParseLocalPortFromProcNet(localField string) (int, error) {
 
 func inodeColumnIndex(headerFields []string) int {
 	for i, h := range headerFields {
-		if h == "inode" {
+		if strings.EqualFold(strings.TrimSpace(h), "inode") {
 			return i
 		}
 	}
@@ -187,6 +187,11 @@ func procNetTcpRead(path string, input []byte) (rows []NetTcp, err error) {
 
 		if inodeIdx >= 0 && len(fields) > inodeIdx {
 			row.Inode, _ = strconv.ParseInt(fields[inodeIdx], 10, 64)
+		} else if len(fields) >= 4 {
+			// Header missing "inode" on some kernels/images: inode is usually the last numeric column.
+			if n, err := strconv.ParseInt(fields[len(fields)-1], 10, 64); err == nil && n > 0 {
+				row.Inode = n
+			}
 		}
 
 		rows = append(rows, row)
@@ -195,6 +200,24 @@ func procNetTcpRead(path string, input []byte) (rows []NetTcp, err error) {
 		return rows, scanErr
 	}
 	return rows, nil
+}
+
+// TCPPortHasLISTEN reports whether /proc/net/tcp or tcp6 has any row in TCP LISTEN on local port.
+// Unlike ListenSocketInodes, it does not require a non-zero socket inode (fixes false "port free"
+// when the inode column is missing or not parsed).
+func TCPPortHasLISTEN(port int) (bool, error) {
+	for _, path := range []string{ProcNetTcpPath, ProcNetTcp6Path} {
+		tcpRows, err := procNetTcpRead(path, nil)
+		if err != nil {
+			return false, err
+		}
+		for _, row := range tcpRows {
+			if row.LocalPort == port && row.IsListen() {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
 
 // ListenSocketInodes returns socket inodes in TCP LISTEN on local port.

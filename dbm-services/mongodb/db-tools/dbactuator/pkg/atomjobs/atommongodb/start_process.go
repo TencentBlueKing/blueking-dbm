@@ -70,7 +70,7 @@ func (s *MongoStartProcess) Init(runtime *jobruntime.JobGenericRuntime) error {
 	// 获取安装参数
 	s.runtime = runtime
 	s.runtime.Logger.Info("start to init")
-	s.BinDir = consts.UsrLocal
+	s.BinDir = consts.GetMongoBinDir()
 	s.DataDir = consts.GetMongoDataDir()
 	s.OsUser = consts.GetProcessUser()
 	s.OsGroup = consts.GetProcessUserGroup()

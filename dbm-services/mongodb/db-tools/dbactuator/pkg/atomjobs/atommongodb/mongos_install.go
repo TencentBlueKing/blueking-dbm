@@ -115,7 +115,7 @@ func (s *MongoSInstall) Init(runtime *jobruntime.JobGenericRuntime) error {
 	// 获取安装参数
 	s.runtime = runtime
 	s.runtime.Logger.Info("start to init")
-	s.BinDir = consts.UsrLocal
+	s.BinDir = consts.GetMongoBinDir()
 	s.DataDir = consts.GetMongoDataDir()
 	s.OsUser = consts.GetProcessUser()
 	s.OsGroup = consts.GetProcessUserGroup()
@@ -317,29 +317,41 @@ func (s *MongoSInstall) unTarAndCreateSoftLink() error {
 	// 解压安装包并授权
 	// 安装多实例并发执行添加文件锁
 	s.runtime.Logger.Info("start to get install file lock")
-	fileLock := common.NewFileLock(s.LockFilePath)
-	// 获取锁
-	err := fileLock.Lock()
+	fileLock, err := common.NewFileLock(s.LockFilePath)
 	if err != nil {
-		for {
-			err = fileLock.Lock()
-			if err != nil {
-				time.Sleep(1 * time.Second)
-				continue
-			}
+		return fmt.Errorf("create install file lock fail, lock_file:%s, err:%v", s.LockFilePath, err)
+	}
+	// 获取锁（带超时，避免无限等待）
+	startAt := time.Now()
+	nextLogAt := startAt.Add(installFileLockLogInterval)
+	for {
+		err = fileLock.Lock()
+		if err == nil {
 			s.runtime.Logger.Info("get install file lock successfully")
 			break
 		}
-	} else {
-		s.runtime.Logger.Info("get install file lock successfully")
+		if time.Now().After(startAt.Add(installFileLockWaitTimeout)) {
+			return fmt.Errorf("get install file lock timeout after %s, lock_file:%s, last_err:%v",
+				installFileLockWaitTimeout, s.LockFilePath, err)
+		}
+		if time.Now().After(nextLogAt) {
+			s.runtime.Logger.Warn("waiting install file lock, lock_file:%s, elapsed:%s, err:%v",
+				s.LockFilePath, time.Since(startAt), err)
+			nextLogAt = time.Now().Add(installFileLockLogInterval)
+		}
+		time.Sleep(installFileLockRetryBackoff)
 	}
+	defer func() {
+		if unlockErr := fileLock.UnLock(); unlockErr != nil {
+			s.runtime.Logger.Warn("release install file lock fail, lock_file:%s, err:%v", s.LockFilePath, unlockErr)
+		} else {
+			s.runtime.Logger.Info("release install file lock successfully")
+		}
+	}()
 	if err = common.UnTarAndCreateSoftLinkAndChown(s.runtime, s.BinDir,
 		s.InstallPackagePath, unTarPath, installPath, s.OsUser, s.OsGroup); err != nil {
 		return err
 	}
-	// 释放锁
-	s.runtime.Logger.Info("release install file lock successfully")
-	_ = fileLock.UnLock()
 
 	// 检查mongos版本
 	s.runtime.Logger.Info("start to check mongos version")

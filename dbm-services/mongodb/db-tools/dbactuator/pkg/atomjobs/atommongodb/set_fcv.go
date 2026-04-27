@@ -82,7 +82,7 @@ func (v *MongoSetFCV) Init(runtime *jobruntime.JobGenericRuntime) error {
 	// 获取安装参数
 	v.runtime = runtime
 	v.runtime.Logger.Info("start to init")
-	v.BinDir = consts.UsrLocal
+	v.BinDir = consts.GetMongoBinDir()
 	v.Mongo = filepath.Join(v.BinDir, "mongodb", "bin", "mongo")
 
 	// 获取MongoDB配置文件参数

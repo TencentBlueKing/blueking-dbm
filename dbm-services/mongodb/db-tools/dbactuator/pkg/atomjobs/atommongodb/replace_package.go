@@ -55,7 +55,10 @@ func (r *ReplacePackage) Name() string {
 // 3. 检测当前db版本，如果当前版本不是目标版本，则返回错误
 func (r *ReplacePackage) Run() error {
 	// fetch File Lock
-	fileLock := common.NewFileLock(r.LockFilePath)
+	fileLock, err := common.NewFileLock(r.LockFilePath)
+	if err != nil {
+		return fmt.Errorf("create file lock fail, lock file: %s, err:%v", r.LockFilePath, err)
+	}
 	lockDeadline := time.Now().Add(20 * time.Minute)
 	waitLockCount := 0
 	for {
@@ -133,7 +136,7 @@ func (r *ReplacePackage) Init(runtime *jobruntime.JobGenericRuntime) error {
 	// 获取安装参数
 	r.runtime = runtime
 	r.runtime.Logger.Info("start to init")
-	r.BinDir = consts.UsrLocal
+	r.BinDir = consts.GetMongoBinDir()
 	r.DataDir = consts.GetMongoDataDir()
 	r.OsUser = consts.GetProcessUser()
 	r.OsGroup = consts.GetProcessUserGroup()

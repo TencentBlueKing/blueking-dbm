@@ -59,32 +59,47 @@ func (r *MongoRestart) Name() string {
 
 // Run 运行原子任务
 func (r *MongoRestart) Run() error {
+	r.runtime.Logger.Info("mongo_restart Run: begin (onlyChangeParam=%v, instance=%s, port=%d)",
+		r.ConfParams.OnlyChangeParam, r.ConfParams.InstanceType, r.ConfParams.Port)
+
 	// 修改配置文件参数
 	if r.ConfParams.OnlyChangeParam {
+		r.runtime.Logger.Info("mongo_restart Run: step changeParam only (no restart)")
 		if err := r.changeParam(); err != nil {
 			return err
 		}
+		r.runtime.Logger.Info("mongo_restart Run: step changeParam only finished successfully")
 		return nil
 	}
+
+	r.runtime.Logger.Info("mongo_restart Run: step changeParam before restart")
 	if err := r.changeParam(); err != nil {
 		return err
 	}
+	r.runtime.Logger.Info("mongo_restart Run: step changeParam finished successfully")
 
 	// mongod的primary进行主备切换
+	r.runtime.Logger.Info("mongo_restart Run: step RsStepDown")
 	if err := r.RsStepDown(); err != nil {
 		return err
 	}
+	r.runtime.Logger.Info("mongo_restart Run: step RsStepDown finished successfully")
 
 	// 关闭服务
+	r.runtime.Logger.Info("mongo_restart Run: step shutdown")
 	if err := r.shutdown(); err != nil {
 		return err
 	}
+	r.runtime.Logger.Info("mongo_restart Run: step shutdown finished successfully")
 
 	// 启动服务
+	r.runtime.Logger.Info("mongo_restart Run: step startup")
 	if err := r.startup(); err != nil {
 		return err
 	}
+	r.runtime.Logger.Info("mongo_restart Run: step startup finished successfully")
 
+	r.runtime.Logger.Info("mongo_restart Run: all steps completed successfully")
 	return nil
 }
 
@@ -103,7 +118,7 @@ func (r *MongoRestart) Init(runtime *jobruntime.JobGenericRuntime) error {
 	// 获取安装参数
 	r.runtime = runtime
 	r.runtime.Logger.Info("start to init")
-	r.BinDir = consts.UsrLocal
+	r.BinDir = consts.GetMongoBinDir()
 	r.DataDir = consts.GetMongoDataDir()
 	r.OsUser = consts.GetProcessUser()
 	r.OsGroup = consts.GetProcessUserGroup()
@@ -299,6 +314,12 @@ func (r *MongoRestart) checkPrimary() (bool, error) {
 			r.ConfParams.IP, r.ConfParams.Port)
 	}
 	if err != nil {
+		// During rolling restart, a member may temporarily fail to resolve primary (election/network jitter).
+		// In this case, treat it as "not primary" so restart can continue on this node.
+		if strings.Contains(err.Error(), "get primary info timeout") {
+			r.runtime.Logger.Warn("get primary info timeout, treat current node as non-primary and skip stepDown")
+			return false, nil
+		}
 		r.runtime.Logger.Error("get primary info fail, error:%s", err)
 		return false, fmt.Errorf("get primary info fail, error:%s", err)
 	}
@@ -325,6 +346,7 @@ func (r *MongoRestart) RsStepDown() error {
 
 		// 检查是否是primary
 		flag1, err := r.checkPrimary()
+		r.runtime.Logger.Info("checkPrimary %s:%d primary=%v, error:%v", r.ConfParams.IP, r.ConfParams.Port, flag1, err)
 		if err != nil {
 			return err
 		}
@@ -370,6 +392,7 @@ func (r *MongoRestart) shutdown() error {
 	// 关闭服务
 	r.runtime.Logger.Info("start to shutdown %s", r.ConfParams.InstanceType)
 	if err = common.ShutdownMongoProcess(
+		r.runtime.Logger,
 		r.ConfParams.Port,
 		30*time.Second,
 		false,
@@ -383,18 +406,18 @@ func (r *MongoRestart) shutdown() error {
 
 // startup 开启服务
 func (r *MongoRestart) startup() error {
-	// 检查服务是否存在
-	r.runtime.Logger.Info("start to check %s service", r.ConfParams.InstanceType)
-	result, _, err := common.CheckMongoService(r.ConfParams.Port)
+	// 检查是否已有 mongod/mongos 监听（/proc/net/tcp{,6} + pid，任意本机地址含 127.0.0.1）
+	r.runtime.Logger.Info("start to check %s listener on port %d", r.ConfParams.InstanceType, r.ConfParams.Port)
+	pid, procName, err := common.GetMongoPidAndNameByPort(r.ConfParams.Port)
 	if err != nil {
-		r.runtime.Logger.Error("check %s service fail, error:%s", r.ConfParams.InstanceType, err)
-		return fmt.Errorf("check %s service fail, error:%s", r.ConfParams.InstanceType, err)
+		r.runtime.Logger.Error("check %s listener fail, error:%s", r.ConfParams.InstanceType, err)
+		return fmt.Errorf("check %s listener fail, error:%s", r.ConfParams.InstanceType, err)
 	}
-	if result == true {
-		r.runtime.Logger.Info("%s service has been open", r.ConfParams.InstanceType)
+	if pid > 0 {
+		r.runtime.Logger.Info("%s service already listening (pid=%d comm=%s)", r.ConfParams.InstanceType, pid, procName)
 		return nil
 	}
-	r.runtime.Logger.Info("check %s service successfully", r.ConfParams.InstanceType)
+	r.runtime.Logger.Info("no %s TCP listener on port %d, will start process", r.ConfParams.InstanceType, r.ConfParams.Port)
 
 	// 开启服务
 	r.runtime.Logger.Info("start to startup %s", r.ConfParams.InstanceType)

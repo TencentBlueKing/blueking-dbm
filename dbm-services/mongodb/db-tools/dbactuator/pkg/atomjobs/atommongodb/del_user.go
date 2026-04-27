@@ -80,7 +80,7 @@ func (d *DelUser) Init(runtime *jobruntime.JobGenericRuntime) error {
 	// 获取安装参数
 	d.runtime = runtime
 	d.runtime.Logger.Info("start to init")
-	d.BinDir = consts.UsrLocal
+	d.BinDir = consts.GetMongoBinDir()
 	d.Mongo = filepath.Join(d.BinDir, "mongodb", "bin", "mongo")
 	d.OsUser = consts.GetProcessUser()
 

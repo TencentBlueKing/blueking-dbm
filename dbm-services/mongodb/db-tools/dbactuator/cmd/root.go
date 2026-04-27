@@ -11,9 +11,13 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 
+	"dbm-services/mongodb/db-tools/dbactuator/mylog"
+	"dbm-services/mongodb/db-tools/dbactuator/pkg/common"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobmanager"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/util"
@@ -27,6 +31,7 @@ var nodeID string
 var versionID string
 var dataDir string
 var backupDir string
+var binDir string
 var payLoad string
 var payLoadFormat string
 var payLoadFile string
@@ -36,6 +41,15 @@ var group string
 var printParamJson string
 var listJob bool
 var debugPs bool
+
+// debugGetPidByPort <= 0 means flag not used (default -1).
+var debugGetPidByPort int = -1
+
+// debugStepDownPort <= 0 means flag not used (default -1).
+var debugStepDownPort int = -1
+var debugStepDownIP string = "127.0.0.1"
+var debugStepDownUser string
+var debugStepDownPass string
 
 func exitWithError(err error) {
 	log.Println("err:", err)
@@ -53,6 +67,10 @@ func initEnv() error {
 	err = consts.SetMongoBackupDir(backupDir)
 	if err != nil {
 		return errors.Wrap(err, "SetMongoBackupDir")
+	}
+	err = consts.SetMongoBinDir(binDir)
+	if err != nil {
+		return errors.Wrap(err, "SetMongoBinDir")
 	}
 
 	err = consts.SetProcessUser(user)
@@ -133,6 +151,59 @@ var debugCmd = &cobra.Command{
 				}
 			}
 			os.Exit(0)
+		} else if debugGetPidByPort > 0 {
+			pid, comm, err := common.GetMongoPidAndNameByPort(debugGetPidByPort)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "GetMongoPidAndNameByPort(%d) error: %v\n", debugGetPidByPort, err)
+				os.Exit(1)
+			}
+			if pid == 0 {
+				fmt.Printf("port=%d: no TCP LISTEN (GetMongoPidAndNameByPort returned pid=0)\n", debugGetPidByPort)
+			} else {
+				fmt.Printf("port=%d pid=%d comm=%q\n", debugGetPidByPort, pid, comm)
+			}
+			os.Exit(0)
+		} else if debugStepDownPort > 0 {
+			// stepDown path uses util.RunBashCmd -> util.RunLocalCmd -> mylog.Logger.*.
+			// Debug mode does not create jobruntime logger, so initialize a lightweight default logger here.
+			if mylog.Logger == nil {
+				mylog.UnitTestInitLog()
+			}
+			if (debugStepDownUser == "" && debugStepDownPass != "") ||
+				(debugStepDownUser != "" && debugStepDownPass == "") {
+				fmt.Fprintln(os.Stderr, "debug --stepdown requires both --stepdown-user and --stepdown-pass, or neither")
+				os.Exit(1)
+			}
+			mongoBinRoot := binDir
+			if mongoBinRoot == "" {
+				mongoBinRoot = consts.GetMongoBinDir()
+			}
+			mongoBin := filepath.Join(mongoBinRoot, "mongodb", "bin", "mongo")
+			var (
+				ok  bool
+				err error
+			)
+			if debugStepDownUser != "" {
+				ok, err = common.AuthRsStepDown(mongoBin, debugStepDownIP, debugStepDownPort, debugStepDownUser, debugStepDownPass)
+			} else {
+				ok, err = common.NoAuthRsStepDown(mongoBin, debugStepDownIP, debugStepDownPort)
+			}
+			if err != nil {
+				if strings.Contains(err.Error(), "get primary info timeout") {
+					fmt.Printf(
+						"stepDown command sent: ip=%s port=%d, primary verify timeout (%v)\n",
+						debugStepDownIP, debugStepDownPort, err)
+					os.Exit(0)
+				}
+				fmt.Fprintf(os.Stderr, "stepDown failed: ip=%s port=%d err=%v\n", debugStepDownIP, debugStepDownPort, err)
+				os.Exit(1)
+			}
+			if ok {
+				fmt.Printf("stepDown success: ip=%s port=%d, primary switched\n", debugStepDownIP, debugStepDownPort)
+			} else {
+				fmt.Printf("stepDown executed: ip=%s port=%d, node still primary\n", debugStepDownIP, debugStepDownPort)
+			}
+			os.Exit(0)
 		} else if printParamJson != "" {
 			doPrintParamJson()
 		} else {
@@ -158,6 +229,8 @@ func init() {
 		"数据保存路径,亦可通过环境变量 REDIS_DATA_DIR 指定")
 	RootCmd.PersistentFlags().StringVarP(&backupDir, "backup_dir", "B", "",
 		"备份保存路径,亦可通过环境变量REDIS_BACKUP_DIR指定")
+	RootCmd.PersistentFlags().StringVar(&binDir, "bin_dir", "",
+		"Mongo二进制安装根路径,亦可通过环境变量 MONGO_BIN_DIR 指定,默认 /usr/local")
 	RootCmd.PersistentFlags().StringVarP(&payLoad, "payload", "p", "", "原子任务参数信息,base64包裹")
 	RootCmd.PersistentFlags().StringVarP(&payLoadFormat, "payload-format", "m", "",
 		"command payload format, default base64, value_allowed: base64|raw")
@@ -169,6 +242,16 @@ func init() {
 	debugCmd.PersistentFlags().StringVarP(&printParamJson, "param", "P", "", "print atom job param")
 	debugCmd.PersistentFlags().BoolVarP(&listJob, "list", "L", false, "list atom jobs")
 	debugCmd.PersistentFlags().BoolVarP(&debugPs, "ps", "S", false, "list process")
+	debugCmd.PersistentFlags().IntVar(&debugGetPidByPort, "get-pid-by-port", -1,
+		"test common.GetMongoPidAndNameByPort for this TCP port (e.g. 27017)")
+	debugCmd.PersistentFlags().IntVar(&debugStepDownPort, "stepdown", -1,
+		"debug rs.stepDown on this mongo port (e.g. 27017)")
+	debugCmd.PersistentFlags().StringVar(&debugStepDownIP, "stepdown-ip", "127.0.0.1",
+		"ip used by debug --stepdown")
+	debugCmd.PersistentFlags().StringVar(&debugStepDownUser, "stepdown-user", "",
+		"admin username used by debug --stepdown (optional)")
+	debugCmd.PersistentFlags().StringVar(&debugStepDownPass, "stepdown-pass", "",
+		"admin password used by debug --stepdown (optional)")
 
 	RootCmd.AddCommand(debugCmd)
 

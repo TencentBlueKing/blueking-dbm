@@ -69,7 +69,6 @@ func (inst *Instance) WaitForConnectable(count int, waitTime time.Duration) (err
 		if err == nil {
 			cli.Disconnect(context.Background())
 			return nil
-			break
 		}
 	}
 	return nil
@@ -164,22 +163,36 @@ func (inst *InstanceOp) waitPortRelease(maxRetry int, waitTime time.Duration) er
 	return fmt.Errorf("port %d still has TCP LISTEN after process stopped, waited %d retries", inst.Port, maxRetry)
 }
 
-const startMongoScript = "/usr/local/mongodb/bin/start_mongo.sh"
+func getMongoBinRootDir() string {
+	if binDir := strings.TrimSpace(os.Getenv("MONGO_BIN_DIR")); binDir != "" {
+		return binDir
+	}
+	return "/usr/local"
+}
 
 // DoStart 启动 mongod/mongos
-// 默认是使用start_mongo.sh $port 来启动
-// 如果configFile不为空，则使用configFile来启动
+// 直接使用 mongod --config，避免依赖 start_mongo.sh 中的固定路径。
 func (inst *InstanceOp) DoStart(mode string) error {
+	dataDir := consts.GetMongoDataDir(strconv.Itoa(inst.Port))
+	if dataDir == "" {
+		return errors.New("can not find data dir for port " + strconv.Itoa(inst.Port))
+	}
+	confName := "noauth.conf"
 	switch mode {
 	case "auth":
-		_, err := mycmd.New(startMongoScript, fmt.Sprintf("%d", inst.Port)).Run3(time.Second*60, nil, nil)
-		return err
+		confName = "mongo.conf"
 	case "noauth":
-		_, err := mycmd.New(startMongoScript, fmt.Sprintf("%d", inst.Port), "noauth").Run3(time.Second*60, nil, nil)
-		return err
 	default:
 		return errors.New("unknown mode " + mode)
 	}
+	confPath := filepath.Join(dataDir, "mongodata", strconv.Itoa(inst.Port), confName)
+	mongodBin := filepath.Join(getMongoBinRootDir(), "mongodb", "bin", "mongod")
+	shellCmd := fmt.Sprintf(
+		"if command -v numactl >/dev/null 2>&1; then numactl --interleave=all %s --config %s; else %s --config %s; fi",
+		mongodBin, confPath, mongodBin, confPath,
+	)
+	_, err := mycmd.New("bash", "-c", shellCmd).Run3(time.Second*60, nil, nil)
+	return err
 }
 
 // DoStartAsStandAlone 启动为单节点
@@ -319,7 +332,7 @@ func (inst *InstanceOp) ExecJs(js string, timeout int64) error {
 	sb.WriteString(js)
 	sb.WriteString("\n")
 	jsCode := sb.String()
-	o, err := mycmd.New("/usr/local/mongodb/bin/mongo", "--nodb", "--eval", jsCode).
+	o, err := mycmd.New(filepath.Join(getMongoBinRootDir(), "mongodb", "bin", "mongo"), "--nodb", "--eval", jsCode).
 		Run3(time.Second*time.Duration(timeout), bytes.NewBuffer(nil), bytes.NewBuffer(nil))
 
 	if err != nil {
@@ -407,19 +420,15 @@ func getPidByPort(port int) (int, error) {
 	return linuxproc.TCPListenPID(port)
 }
 
-// portHasTCPListenIPv4 仅读 IPv4 /proc/net/tcp 判断端口上是否仍有 TCP LISTEN（不扫描 /proc/*/fd）。
-// 用于 waitPortRelease 轮询，避免高频全量 /proc 扫描。
+// portHasTCPListenIPv4 通过 /proc/net/tcp 与 tcp6 判断端口是否仍有 TCP LISTEN（任意本机地址，含 127.0.0.1）。
+// 使用 TCPPortHasLISTEN，不依赖 inode 列是否解析成功（ListenSocketInodes 曾因 inode<=0 漏掉 LISTEN）。
 func portHasTCPListenIPv4(port int) (bool, error) {
-	inodes, err := linuxproc.ListenSocketInodes(port)
-	if err != nil {
-		return false, err
-	}
-	return len(inodes) > 0, nil
+	return linuxproc.TCPPortHasLISTEN(port)
 }
 
 func startMongoWithConfigFile(port int, confFile string) error {
 	// 启动服务
-	cmd := exec.Command("/usr/local/mongodb/bin/mongod", "--config", confFile)
+	cmd := exec.Command(filepath.Join(getMongoBinRootDir(), "mongodb", "bin", "mongod"), "--config", confFile)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Start()

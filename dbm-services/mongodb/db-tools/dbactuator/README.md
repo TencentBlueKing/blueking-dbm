@@ -13,6 +13,7 @@ Usage:
 Flags:
   -A, --atom-job-list string   多个原子任务名用','分割,如 redis_install,redis_replicaof
   -B, --backup_dir string      备份保存路径,亦可通过环境变量MONGO_BACKUP_DIR指定
+      --bin_dir string          Mongo二进制安装根路径,亦可通过环境变量 MONGO_BIN_DIR 指定,默认 /usr/local
   -D, --data_dir string        数据保存路径,亦可通过环境变量 MONGO_DATA_DIR 指定
   -h, --help                   help for mongo-dbactuator
   -N, --node_id string         节点id
@@ -28,3 +29,7 @@ Flags:
 //执行示例
 mongo-dbactuator --uid=1111 --root_id=2222 --node_id=3333 --version_id=v1 --payload='' --atom-job-list="mongod_install"
 ```
+
+说明:
+- `--bin_dir`/`MONGO_BIN_DIR` 主要用于测试环境覆盖 Mongo 二进制安装根路径；线上默认使用 `/usr/local`。
+- e2e 脚本中的 `/data2` 仅为测试默认值，线上请按实际磁盘规划使用（常见为 `/data1` 或 `/data`）。

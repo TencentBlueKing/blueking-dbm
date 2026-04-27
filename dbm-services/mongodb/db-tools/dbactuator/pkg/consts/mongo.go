@@ -30,9 +30,6 @@ const MongoVersionV42 = "4.2"
 
 // MongoVersionV100 TODO
 const MongoVersionV100 = "100.7" // >= 4.4 https://www.mongodb.com/docs/database-tools/
-// MongoInstallDir TODO
-const MongoInstallDir = "/usr/local/mongodb"
-
 // GetMongoShellBin 根据版本号获取mongodump的二进制文件名
 // 2.x : 不支持
 // others: mongodump.100
@@ -46,6 +43,6 @@ func GetMongoShellBin(version *mymongo.MongoVersion) (bin string, err error) {
 		bin = "mongo"
 	}
 
-	bin = path.Join(MongoInstallDir, "bin", bin)
+	bin = path.Join(GetMongoBinDir(), "mongodb", "bin", bin)
 	return
 }
