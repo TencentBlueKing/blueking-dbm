@@ -15,12 +15,50 @@ from django.db import transaction
 from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
+from backend.configuration.constants import DisableDBHAAutofixLevel, SystemSettingsEnum
+from backend.configuration.models import SystemSettings
 from backend.db_meta.enums import MachineType
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.db_monitor.models import MySQLDBHAEvent
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 logger = logging.getLogger("celery")
+
+
+def is_autofix_disabled(row: dict, cluster_obj) -> bool:
+    """
+    判断该事件是否命中自愈禁用规则。
+
+    rules 来自 SystemSettings DISABLE_DBHA_AUTOFIX_APPS, 结构为 list[dict]:
+    [
+        {
+            "bk_biz_id": int,             # (必填) 业务ID
+            "cluster_type": str,          # (必填) 集群类型, 如 "tendbha", "tendbcluster"
+            "disable_level": str,         # (必填) 禁用级别: "cluster_type" | "cluster" | "machine_type"
+            "disable_value": str/int,     # disable_level 为 "cluster_type" 时无意义;
+                                          #   为 "cluster" 时填 cluster_id;
+                                          #   为 "machine_type" 时填 machine_type 字符串, 如 "proxy", "backend"
+        }
+    ]
+    """
+    rules: list[dict] = SystemSettings.get_setting_value(SystemSettingsEnum.DISABLE_DBHA_AUTOFIX_APPS.value) or []
+    for rule in rules:
+        if rule["bk_biz_id"] != row["bk_biz_id"]:
+            continue
+        if rule["cluster_type"] != cluster_obj.cluster_type:
+            continue
+
+        level = rule["disable_level"]
+        value = rule.get("disable_value", "")
+
+        if level == DisableDBHAAutofixLevel.CLUSTER_TYPE:
+            return True
+        elif level == DisableDBHAAutofixLevel.CLUSTER and value == cluster_obj.pk:
+            return True
+        elif level == DisableDBHAAutofixLevel.MACHINE_TYPE and value == row["machine_type"]:
+            return True
+
+    return False
 
 
 class MySQLDBHAAFTodoRegisterService(BaseService):
@@ -34,6 +72,12 @@ class MySQLDBHAAFTodoRegisterService(BaseService):
             cluster_obj = Cluster.objects.get(
                 bk_cloud_id=row["bk_cloud_id"], bk_biz_id=row["bk_biz_id"], immute_domain=row["immute_domain"]
             )
+
+            if is_autofix_disabled(row, cluster_obj):
+                self.log_info(
+                    "[{}] mysql autofix info row: {} skipped by disable rule".format(kwargs["node_name"], row)
+                )
+                continue
 
             if row["machine_type"] in [MachineType.PROXY, MachineType.SPIDER]:
                 ProxyInstance.objects.get(cluster=cluster_obj, machine__ip=row["ip"], port=row["port"])

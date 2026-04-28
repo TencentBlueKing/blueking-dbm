@@ -37,21 +37,20 @@ func VerifyGrantPrivFile(conn *sqlx.Conn, filePath string, dstVer int64) error {
 		actual, queryErr := queryShowGrants(ctx, conn, user, host)
 		if queryErr != nil {
 			logger.Error("SHOW GRANTS FOR %s: %v", userHost, queryErr)
-			mismatches = append(mismatches, fmt.Sprintf("%s: SHOW GRANTS failed: %v", userHost, queryErr))
-			continue
+			return fmt.Errorf("query error: SHOW GRANTS FOR %s: %w", userHost, queryErr)
 		}
 
 		for scope, exp := range scopeMap {
 			if _, isAll := exp.privs["ALL PRIVILEGES"]; isAll && scope == "*.*" && dstVer >= 8000000 {
 				if missing, verifyErr := verifyAllStaticPrivs(ctx, conn, user, host); verifyErr != nil {
-					mismatches = append(mismatches, fmt.Sprintf("%s: verify ALL static privs failed: %v", userHost, verifyErr))
+					return fmt.Errorf("query error: verify ALL static privs for %s: %w", userHost, verifyErr)
 				} else if len(missing) > 0 {
 					mismatches = append(mismatches, fmt.Sprintf("%s: scope *.* static privs not 'Y': %v", userHost, missing))
 				}
 
 				if exp.grantOption {
 					if grantPriv, verifyErr := queryGrantPriv(ctx, conn, user, host); verifyErr != nil {
-						mismatches = append(mismatches, fmt.Sprintf("%s: query Grant_priv failed: %v", userHost, verifyErr))
+						return fmt.Errorf("query error: query Grant_priv for %s: %w", userHost, verifyErr)
 					} else if grantPriv != "Y" {
 						mismatches = append(mismatches, fmt.Sprintf("%s: scope *.* missing GRANT OPTION", userHost))
 					}

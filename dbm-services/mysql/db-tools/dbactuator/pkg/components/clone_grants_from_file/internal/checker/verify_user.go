@@ -31,8 +31,7 @@ func VerifyCreateUserFile(conn *sqlx.Conn, filePath string, dstVer int64) error 
 		exists, pwMatch, rlMatch, checkErr := CheckAccountOnTarget(ctx, conn, line, dstVer)
 		if checkErr != nil {
 			logger.Error("verify line %d: %v", ls.LineNo(), checkErr)
-			mismatches = append(mismatches, fmt.Sprintf("line %d: check error: %v", ls.LineNo(), checkErr))
-			continue
+			return fmt.Errorf("query error at line %d: %w", ls.LineNo(), checkErr)
 		}
 
 		if !exists {
