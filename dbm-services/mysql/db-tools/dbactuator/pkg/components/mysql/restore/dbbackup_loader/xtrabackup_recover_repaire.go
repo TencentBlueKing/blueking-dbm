@@ -204,8 +204,8 @@ func (x *Xtrabackup) RepairNonSysMyIsamTables(ctx context.Context) error {
 	return nil
 }
 
-// RepairPrivileges repair user host like dba_bak_all_sel,MONITOR,yw
-func (x *Xtrabackup) RepairPrivileges() error {
+// RepairPrivilegesForNormalUser repair user host like dba_bak_all_sel,MONITOR,yw
+func (x *Xtrabackup) RepairPrivilegesForNormalUser() error {
 	if x.TgtInstance.Host == x.SrcBackupHost {
 		return nil
 	}

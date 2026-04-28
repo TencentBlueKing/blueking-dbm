@@ -65,21 +65,21 @@ var ValueTypeSubRef = map[string][]string{
 	}, // 暂不支持复杂类型，比如 (1, 100] || on|off
 	DTypeInt: []string{
 		DTypeSubEnum,
-		DTypeSubEmpty, // 只要是个 int 就行
+		//DTypeSubEmpty, // 只要是个 int 就行
 		DTypeSubRange,
 	},
 	DTypeFloat: []string{
 		DTypeSubEnum,
-		DTypeSubEmpty, // 只要是个数字就行
+		//DTypeSubEmpty, // 只要是个数字就行
 		DTypeSubRange,
 	},
 	DTypeNumber: []string{
 		DTypeSubEnum,
-		DTypeSubEmpty, // 只要是个数字就行
+		//DTypeSubEmpty, // 只要是个数字就行
 		DTypeSubRange,
 	},
 	DTypeBool: []string{
 		DTypeSubEnum,
-		DTypeSubEmpty, // 允许不设定 bool 默认值，类似 NULL
+		//DTypeSubEmpty, // 允许不设定 bool 默认值，类似 NULL
 	},
 }
