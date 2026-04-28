@@ -24,6 +24,7 @@ from .monogdb_check_report import MongodbBackupCheckReport
 from .mysql_backup_progress import MysqlBackupProgress
 from .mysql_db_table_size import MysqlDbTableSize
 from .mysql_inspect_ignore import MysqlInspectIgnore
+from .mysql_slowlog_ai_analysis import MysqlSlowlogAiAnalysis
 from .mysql_slowlog_detail import MysqlSlowlogDetail
 from .mysqlbackup_check_report import MysqlBackupCheckReport
 from .redis_check_report import RedisCheckReport
