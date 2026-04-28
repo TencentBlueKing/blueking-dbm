@@ -148,7 +148,7 @@ func (w *Workflow) Run(ctx context.Context) error {
 	}
 
 	if err := w.dbmSync.Run(ctx); err != nil {
-		logger.Error("failed to run the dbm metadata manager, errmsg: %v", err)
+		logger.Error("failed to run dbm metadata manager, errmsg: %s", err)
 		return err
 	}
 
@@ -407,7 +407,7 @@ func (w *Workflow) popAndSwitchForBiz(ctx context.Context, bizId int) {
 
 	wait := safe.GoWaits(failureGroupFns,
 		safe.WithLabel("popAndSwitchForBiz"), safe.WithOnPanic(func(pi safe.PanicInfo) {
-			logger.Error("panic in popAndSwitchForBiz, bizId: %d, errmsg: %v", bizId, pi.Reason)
+			logger.Error("panic in pop and switch for biz, biz_id: %d, errmsg: %s", bizId, pi.Reason)
 		}))
 
 	wait()

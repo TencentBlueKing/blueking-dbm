@@ -27,7 +27,6 @@ package receiver
 import (
 	"context"
 	"encoding/json"
-	"strings"
 	"sync"
 	"time"
 
@@ -39,6 +38,7 @@ import (
 	"dbm-services/common/dbha-v2/pkg/discovery"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/haapm"
+	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/machine"
 	"dbm-services/common/go-pubpkg/apm/trace"
@@ -159,8 +159,14 @@ func (s *Service) Close() {
 }
 
 func (s *Service) createDiscovery() error {
+	discoveryTLSEnabled := config.Cfg.Discovery.CertFile != "" && config.Cfg.Discovery.KeyFile != ""
+	etcdEndpoints, err := discovery.ParseEtcdEndpoints(config.Cfg.Discovery.Endpoint, discoveryTLSEnabled)
+	if err != nil {
+		return err
+	}
+
 	opts := []discovery.Option{
-		discovery.OptionEndpoints(strings.Split(config.Cfg.Discovery.Endpoint, constant.Delimiter)),
+		discovery.OptionEndpoints(etcdEndpoints),
 		discovery.OptionUser(config.Cfg.Discovery.User),
 		discovery.OptionPassword(config.Cfg.Discovery.Password),
 		discovery.OptionServiceName(s.info.Name),
@@ -224,13 +230,13 @@ func (s *Service) createSource(ctx context.Context) error {
 
 		inputter, err := source.NewInputter(sourceCfg)
 		if err != nil {
-			logger.Warn("create new inputer(%s) failed, errmsg(%v)", sourceCfg.Name, err)
+			logger.Warn("create new inputer failed, inputer: %s, errmsg: %s", sourceCfg.Name, err)
 			continue
 		}
 
 		err = inputter.Harvest(ctx, s.sinkers)
 		if err != nil {
-			logger.Warn("do not start harvest for inputer(%s), errmsg(%v)", sourceCfg.Name, err)
+			logger.Warn("do not start harvest for inputer, inputer: %s, errmsg: %s", sourceCfg.Name, err)
 			continue
 		}
 
@@ -253,7 +259,7 @@ func (s *Service) createSinkers() error {
 
 		sinker, err := sink.NewSinker(sinkCfg)
 		if err != nil {
-			logger.Warn("create new outputer(%s) failed, errmsg(%v)", sinkCfg.Name, err)
+			logger.Warn("create new outputer failed, outputer: %s, errmsg: %s", sinkCfg.Name, err)
 			continue
 		}
 
@@ -267,9 +273,14 @@ func (s *Service) createApmServer() error {
 	trace.Setup()
 	apm.InitAPM(s.info.ID, s.info.Name)
 
-	var err error
+	ep, err := hanet.Parse(config.Cfg.Apm.ListenAddress, "http")
+	if err != nil {
+		logger.Error("invalid receiver apm listen address, errmsg: %s", err)
+		return gerrors.Newf(gerrors.InvalidConfiguration, "invalid receiver apm listen address, errmsg: %s", err)
+	}
+
 	s.apmSvr, err = haapm.Serve(haapm.ServerConfig{
-		Addr:         config.Cfg.Apm.ListenAddress,
+		Addr:         ep.HostPort(),
 		Subsystem:    "dbha-v2-receiver",
 		ReadTimeout:  config.Cfg.Apm.ReadTimeout,
 		WriteTimeout: config.Cfg.Apm.WriteTimeout,

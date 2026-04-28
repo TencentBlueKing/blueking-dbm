@@ -101,7 +101,7 @@ func Run(cmd *cobra.Command, args []string) error {
 
 	etcdLogger := logger.NewZapLogger(etcdLogCfg)
 
-	logger.Debug("receiver configuration: %v", config.Cfg)
+	logger.Debug("receiver startup config, log_path: %s, log_level: %s", config.Cfg.Log.Path, config.Cfg.Log.Level)
 
 	ctx := context.Background()
 	svr := &Service{etcdLogger: etcdLogger.OriginLogger()}

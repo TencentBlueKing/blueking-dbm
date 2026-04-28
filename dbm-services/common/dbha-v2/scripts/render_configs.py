@@ -25,7 +25,7 @@ _DEFAULT_RECEIVER_SOURCE_PROBE_PORT = 50052
 
 # admin network ports.
 _DEFAULT_ADMIN_GRPC_LISTEN_PORT = 50051
-_DEFAULT_ADMIN_WEB_PORT = 50060
+_DEFAULT_ADMIN_WEB_LISTEN_PORT = 50060
 
 # IP detection and fallback.
 _IP_DETECT_UDP_CONNECT_PORT = 80
@@ -97,15 +97,26 @@ def apply_analysis_apm_listen_address_default(values: Dict[str, str], ip_detect_
 def _apply_apm_listen_address_default(
     values: Dict[str, str], ip_detect_host: str, key: str, port: int,
 ) -> None:
-    """Shared helper: fill http://<primary IPv4>:<port> when *key* is unset/empty."""
+    """Shared helper: fill http://<primary IPv4>:<port> when *key* is unset or empty.
+
+    Also handles the ``:NNNN`` shorthand by prepending the detected IPv4 host.
+    """
     raw = values.get(key, "").strip()
-    if raw:
+    if not raw:
+        host = _guess_primary_ipv4(ip_detect_host)
+        values[key] = "http://{}:{}".format(host, port)
+        sys.stderr.write(
+            "{} unset, using default listen, port: {}\n".format(key, port)
+        )
         return
-    host = _guess_primary_ipv4(ip_detect_host)
-    values[key] = "http://{}:{}".format(host, port)
-    sys.stderr.write(
-        "{} unset, using default listen, port: {}\n".format(key, port)
-    )
+
+    # Support ":port" shorthand — auto-detect host (same as gRPC listen address).
+    if raw.startswith(":") and raw[1:].isdigit():
+        host = _guess_primary_ipv4(ip_detect_host)
+        values[key] = "http://{}{}".format(host, raw)
+        sys.stderr.write(
+            "{} missing host, using detected address with port from rc\n".format(key)
+        )
 
 
 def apply_receiver_source_probe_endpoint_default(values: Dict[str, str], ip_detect_host: str) -> None:
@@ -142,17 +153,13 @@ def apply_admin_grpc_listen_address_default(values: Dict[str, str], ip_detect_ho
         )
 
 
-def apply_admin_web_listen_defaults(values: Dict[str, str], ip_detect_host: str) -> None:
-    """If ADMIN_WEB_HOST/PORT are unset or empty, fill host by IPv4 detection and port by default."""
-    raw_host = values.get("ADMIN_WEB_HOST", "").strip()
-    if not raw_host:
-        values["ADMIN_WEB_HOST"] = _guess_primary_ipv4(ip_detect_host)
-        sys.stderr.write("ADMIN_WEB_HOST unset, using detected ipv4\n")
-
-    raw_port = values.get("ADMIN_WEB_PORT", "").strip()
-    if not raw_port:
-        values["ADMIN_WEB_PORT"] = str(_DEFAULT_ADMIN_WEB_PORT)
-        sys.stderr.write("ADMIN_WEB_PORT unset, using default port: {}\n".format(_DEFAULT_ADMIN_WEB_PORT))
+def apply_admin_web_listen_address_default(values: Dict[str, str], ip_detect_host: str) -> None:
+    """If ADMIN_WEB_LISTEN_ADDRESS is unset or empty, set http://<primary IPv4>:50060."""
+    _apply_apm_listen_address_default(
+        values, ip_detect_host,
+        key="ADMIN_WEB_LISTEN_ADDRESS",
+        port=_DEFAULT_ADMIN_WEB_LISTEN_PORT,
+    )
 
 
 def apply_receiver_source_probe_block(values: Dict[str, str], rc_path: Path) -> None:
@@ -331,7 +338,7 @@ def main() -> None:
         apply_analysis_apm_listen_address_default(values, ip_detect_host)
         apply_receiver_source_probe_endpoint_default(values, ip_detect_host)
         apply_admin_grpc_listen_address_default(values, ip_detect_host)
-        apply_admin_web_listen_defaults(values, ip_detect_host)
+        apply_admin_web_listen_address_default(values, ip_detect_host)
 
     # Phase 1: expand _YAML_FILE keys into raw YAML text (no placeholder rendering).
     apply_yaml_snippet_files(values, rc_resolved)

@@ -50,7 +50,7 @@ func NewGSEClient(cfg config.ReporterConfig, logger types.Logger) (Reporter, err
 	)
 
 	if err != nil {
-		logger.Error("do not create gse agent, endpoint(%s), %v", cfg.Endpoint, err)
+		logger.Error("do not create gse agent, endpoint: %s, errmsg: %s", cfg.Endpoint, err)
 		return nil, gerrors.Newf(gerrors.BkGseFailure, "create GSE agent client failed, %v", err)
 	}
 
@@ -58,7 +58,7 @@ func NewGSEClient(cfg config.ReporterConfig, logger types.Logger) (Reporter, err
 	defer cancel()
 
 	if err = cli.Launch(ctx); err != nil {
-		logger.Error("do not connect with agent, endpoint(%s), connection timeout(%v), %v", cfg.Endpoint,
+		logger.Error("do not connect with agent, endpoint: %s, connection_timeout: %v, errmsg: %s", cfg.Endpoint,
 			cfg.ConnTimeout, err)
 
 		return nil, gerrors.Newf(gerrors.BkGseFailure, "do not connect with GSE agent, %v", err)
@@ -102,7 +102,7 @@ func (g *gse) GetBaseInfo() BaseInfo {
 
 func (g *gse) Close() {
 	if err := g.agentCli.Terminate(context.Background()); err != nil {
-		logger.Error("terminate the connection with gse agent failed, %v", err)
+		logger.Error("terminate the connection with gse agent failed, errmsg: %s", err)
 	}
 	logger.Info("Terminate the connection with GSE agent successfully")
 }

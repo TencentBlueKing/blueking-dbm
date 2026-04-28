@@ -32,8 +32,7 @@ grpc:
   maxSendMessageSize: {{ADMIN_GRPC_MAX_SEND_MESSAGE_SIZE}}
 
 web:
-  host: "{{ADMIN_WEB_HOST}}"
-  port: {{ADMIN_WEB_PORT}}
+  listenAddress: "{{ADMIN_WEB_LISTEN_ADDRESS}}"
   readTimeout: {{ADMIN_WEB_READ_TIMEOUT}}
   writeTimeout: {{ADMIN_WEB_WRITE_TIMEOUT}}
 

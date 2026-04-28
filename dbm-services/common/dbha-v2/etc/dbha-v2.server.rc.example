@@ -5,8 +5,22 @@
 # All template placeholders must be set here; the renderer only injects
 # defaults for ADMIN_/RECEIVER_/ANALYSIS_APM_LISTEN_ADDRESS /
 # RECEIVER_SOURCE_PROBE_ENDPOINT / ADMIN_GRPC_LISTEN_ADDRESS /
-# ADMIN_WEB_HOST / ADMIN_WEB_PORT when empty.
+# ADMIN_WEB_LISTEN_ADDRESS when empty.
 # Syntax: KEY=value or KEY="value with spaces"; use \n \" \\ inside double quotes.
+#
+# Endpoint / listen address format (applies to every *_LISTEN_ADDRESS and
+# *_ENDPOINT key in this file): each value accepts one of:
+#   - host:port              (e.g. 127.0.0.1:50080)
+#   - tcp://host:port        (e.g. tcp://127.0.0.1:3306)
+#   - http://host:port       (e.g. http://127.0.0.1:50080)
+# When the scheme is omitted, each consumer applies its own default scheme:
+#   - admin/receiver/analysis APM listen, admin web listen, etcd discovery,
+#     bkMonitor endpoint -> http
+#   - admin gRPC listen, receiver probe source listen, MySQL storage / sink,
+#     kafka source -> tcp
+# The scheme is informational; the actual transport is decided by the consumer.
+# Note: discovery endpoint (COMMON_DISCOVERY_ENDPOINT) only accepts host:port,
+# http://host:port, or https://host:port. Do not use tcp:// for discovery.
 
 # --- shared (admin + analysis + receiver) ---
 COMMON_VERSION=v2.0.0
@@ -150,8 +164,9 @@ ADMIN_GRPC_MAX_RECEIVE_MESSAGE_SIZE=10485760
 ADMIN_GRPC_MAX_SEND_MESSAGE_SIZE=10485760
 
 # ## admin · web
-ADMIN_WEB_HOST=""
-ADMIN_WEB_PORT=50060
+# omit ADMIN_WEB_LISTEN_ADDRESS or leave empty to use
+# http://<auto-detected-ipv4>:50060 at render time
+ADMIN_WEB_LISTEN_ADDRESS=""
 ADMIN_WEB_READ_TIMEOUT=5s
 ADMIN_WEB_WRITE_TIMEOUT=5s
 

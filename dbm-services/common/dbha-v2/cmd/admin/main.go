@@ -52,7 +52,7 @@ func main() {
 	rootCmd.AddCommand(admin.ReloadCmd)
 
 	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed to start admin server. errmsg:%s", err.Error())
+		logger.Error("failed to start admin server, errmsg: %s", err)
 		return
 	}
 

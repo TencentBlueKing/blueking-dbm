@@ -50,7 +50,7 @@ func main() {
 	rootCmd.AddCommand(receiver.ReloadCmd)
 
 	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed to start receiver server. errmsg:%s", err.Error())
+		logger.Error("failed to start receiver server, errmsg: %s", err)
 		return
 	}
 

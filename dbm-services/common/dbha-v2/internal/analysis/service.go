@@ -27,7 +27,6 @@ package analysis
 import (
 	"context"
 	"encoding/json"
-	"strings"
 	"sync"
 	"time"
 
@@ -156,8 +155,14 @@ func (s *Service) Close() {
 }
 
 func (s *Service) createDiscovery() error {
+	discoveryTLSEnabled := config.Cfg.Discovery.CertFile != "" && config.Cfg.Discovery.KeyFile != ""
+	etcdEndpoints, err := discovery.ParseEtcdEndpoints(config.Cfg.Discovery.Endpoint, discoveryTLSEnabled)
+	if err != nil {
+		return err
+	}
+
 	opts := []discovery.Option{
-		discovery.OptionEndpoints(strings.Split(config.Cfg.Discovery.Endpoint, constant.Delimiter)),
+		discovery.OptionEndpoints(etcdEndpoints),
 		discovery.OptionUser(config.Cfg.Discovery.User),
 		discovery.OptionPassword(config.Cfg.Discovery.Password),
 		discovery.OptionServiceName(s.info.Name),
@@ -196,9 +201,14 @@ func (s *Service) createApmServer() error {
 	trace.Setup()
 	apm.InitAPM(s.info.ID, s.info.Name)
 
-	var err error
+	ep, err := hanet.Parse(config.Cfg.Apm.ListenAddress, "http")
+	if err != nil {
+		logger.Error("invalid analysis apm listen address, errmsg: %s", err)
+		return gerrors.Newf(gerrors.InvalidConfiguration, "invalid analysis apm listen address, errmsg: %s", err)
+	}
+
 	s.apmSvr, err = haapm.Serve(haapm.ServerConfig{
-		Addr:         config.Cfg.Apm.ListenAddress,
+		Addr:         ep.HostPort(),
 		Subsystem:    "dbha-v2-analysis",
 		ReadTimeout:  config.Cfg.Apm.ReadTimeout,
 		WriteTimeout: config.Cfg.Apm.WriteTimeout,
@@ -232,10 +242,10 @@ func (s *Service) updateInfo() {
 }
 
 func (s *Service) createStorage() error {
-	epoint, err := hanet.NewEndpoint(config.Cfg.Storage.Endpoint)
+	epoint, err := hanet.Parse(config.Cfg.Storage.Endpoint, "tcp")
 	if err != nil {
-		logger.Error("invalid storage configuration, %v", err)
-		return gerrors.Newf(gerrors.InvalidConfiguration, "invalid storage configuration, %v", err)
+		logger.Error("invalid storage configuration, errmsg: %s", err)
+		return gerrors.Newf(gerrors.InvalidConfiguration, "invalid storage configuration, errmsg: %s", err)
 	}
 
 	db, err := hamysql.NewGormDB(
@@ -249,7 +259,7 @@ func (s *Service) createStorage() error {
 	)
 
 	if err != nil {
-		logger.Warn("create mysql storage failed, %v", err)
+		logger.Warn("create mysql storage failed, errmsg: %s", err)
 		return err
 	}
 
@@ -259,7 +269,16 @@ func (s *Service) createStorage() error {
 
 func (s *Service) createNotifier() error {
 	monitor.SetDataID(config.Cfg.Monitor.DataID)
-	monitor.SetEndpoint(config.Cfg.Monitor.BkMonitorEndpoint)
+
+	if raw := config.Cfg.Monitor.BkMonitorEndpoint; raw != "" {
+		ep, err := hanet.Parse(raw, "http")
+		if err != nil {
+			logger.Error("invalid bk monitor endpoint, errmsg: %s", err)
+			return gerrors.Newf(gerrors.InvalidConfiguration, "invalid bk monitor endpoint, errmsg: %s", err)
+		}
+		monitor.SetEndpoint(ep.HostPort())
+	}
+
 	monitor.SetBkMonitorBeat(config.Cfg.Monitor.BkMonitorBeat)
 	monitor.SetAccessToken(config.Cfg.Monitor.AccessToken)
 	return nil

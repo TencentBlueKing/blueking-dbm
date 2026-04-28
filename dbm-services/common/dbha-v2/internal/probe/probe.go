@@ -54,13 +54,13 @@ func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin) {
 
 	defer func() {
 		if err := plug.Close(); err != nil {
-			logger.Error("exit harvester plugin(%s) failed, %v", name, err)
+			logger.Error("exit harvester plugin failed, plugin: %s, errmsg: %s", name, err)
 		}
 	}()
 
 	eventC, err := plug.Harvest(ctx, p.machineID, p.serviceID)
 	if err != nil {
-		logger.Warn("start harvester plugin(%s) failed, %v", name, err)
+		logger.Warn("start harvester plugin failed, plugin: %s, errmsg: %s", name, err)
 		return
 	}
 
@@ -86,7 +86,7 @@ func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin) {
 
 			dataEncoded, err := json.Marshal(data)
 			if err != nil {
-				logger.Warn("encode data to json failed, plugin(%s), data(%v), %v", name, data.Value, err)
+				logger.Warn("encode data to json failed, plugin: %s, data: %v, errmsg: %s", name, data.Value, err)
 				continue
 			}
 
@@ -94,7 +94,7 @@ func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin) {
 
 			if p.reporter != nil {
 				if err := p.reporter.Post(ctx, dataEncoded); err != nil {
-					logger.Warn("post data to receiver failed, plugin(%s), reporter(%s), %v",
+					logger.Warn("post data to receiver failed, plugin: %s, reporter: %s, errmsg: %s",
 						name, p.reporter.Name(), err)
 				}
 			}
@@ -155,7 +155,7 @@ func (p *Probe) createReporter() {
 			default:
 				r, err := client.NewReporter(cfg)
 				if err != nil {
-					logger.Warn("create new reporter failed, reporter(%s), %v", cfg.Name, err)
+					logger.Warn("create new reporter failed, reporter: %s, errmsg: %s", cfg.Name, err)
 					time.Sleep(100 * time.Millisecond)
 					continue
 				}

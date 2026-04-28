@@ -85,7 +85,7 @@ func NewAdminClient(ctx context.Context, endpoint string, clientId string) (*Adm
 	)
 
 	if err != nil {
-		logger.Error("create admin grpc client failed. errmsg(%v)", err)
+		logger.Error("create admin grpc client failed, errmsg: %s", err)
 		return nil, gerrors.New(gerrors.GrpcFailure, err.Error())
 	}
 

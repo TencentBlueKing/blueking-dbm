@@ -116,9 +116,13 @@ func TestHttpClient_Clone(t *testing.T) {
 
 func TestHttpClient_CloneNil(t *testing.T) {
 	var cli *HttpClient
-	if cli.Clone() != nil {
-		t.Fatal("Clone() on nil receiver should return nil")
-	}
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("Clone() on nil receiver should panic")
+		}
+	}()
+
+	_ = cli.Clone()
 }
 
 func TestHttpMethod_String(t *testing.T) {

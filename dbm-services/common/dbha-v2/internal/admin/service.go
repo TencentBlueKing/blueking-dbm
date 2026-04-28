@@ -28,7 +28,6 @@ import (
 	"context"
 	"encoding/json"
 	"net"
-	"strings"
 	"sync"
 	"time"
 
@@ -161,8 +160,14 @@ func (s *Service) Close() {
 }
 
 func (s *Service) createDiscovery() error {
+	discoveryTLSEnabled := config.Cfg.Discovery.CertFile != "" && config.Cfg.Discovery.KeyFile != ""
+	etcdEndpoints, err := discovery.ParseEtcdEndpoints(config.Cfg.Discovery.Endpoint, discoveryTLSEnabled)
+	if err != nil {
+		return err
+	}
+
 	opts := []discovery.Option{
-		discovery.OptionEndpoints(strings.Split(config.Cfg.Discovery.Endpoint, constant.Delimiter)),
+		discovery.OptionEndpoints(etcdEndpoints),
 		discovery.OptionUser(config.Cfg.Discovery.User),
 		discovery.OptionPassword(config.Cfg.Discovery.Password),
 		discovery.OptionServiceName(s.info.Name),
@@ -218,9 +223,14 @@ func (s *Service) createApmServer() error {
 	trace.Setup()
 	apm.InitAPM(s.info.ID, s.info.Name)
 
-	var err error
+	ep, err := hanet.Parse(config.Cfg.Apm.ListenAddress, "http")
+	if err != nil {
+		logger.Error("invalid admin apm listen address, errmsg: %s", err)
+		return gerrors.Newf(gerrors.InvalidConfiguration, "invalid admin apm listen address, errmsg: %s", err)
+	}
+
 	s.apmSvr, err = haapm.Serve(haapm.ServerConfig{
-		Addr:         config.Cfg.Apm.ListenAddress,
+		Addr:         ep.HostPort(),
 		Subsystem:    "dbha-v2-admin",
 		ReadTimeout:  config.Cfg.Apm.ReadTimeout,
 		WriteTimeout: config.Cfg.Apm.WriteTimeout,
@@ -236,7 +246,14 @@ func (s *Service) createGrpcServer() error {
 	s.grpcSvc = NewAdminGrpcService(s)
 	svr := s.grpcSvc.NewServer()
 	proto.RegisterAdminServiceServer(svr, s.grpcSvc)
-	listen, err := net.Listen("tcp", config.Cfg.Grpc.ListenAddress)
+
+	ep, err := hanet.Parse(config.Cfg.Grpc.ListenAddress, "tcp")
+	if err != nil {
+		logger.Error("invalid admin grpc listen address, errmsg: %s", err)
+		return gerrors.Newf(gerrors.InvalidConfiguration, "invalid admin grpc listen address, errmsg: %s", err)
+	}
+
+	listen, err := net.Listen("tcp", ep.HostPort())
 	if err != nil {
 		return gerrors.New(gerrors.NetException, err.Error())
 	}
@@ -265,9 +282,15 @@ func (s *Service) createWebServer() error {
 
 	strategyHandler := handler.NewStrategyHandler(s.strategy)
 
+	ep, err := hanet.Parse(config.Cfg.Web.ListenAddress, "http")
+	if err != nil {
+		logger.Error("invalid admin web listen address, errmsg: %s", err)
+		return gerrors.Newf(gerrors.InvalidConfiguration, "invalid admin web listen address, errmsg: %s", err)
+	}
+
 	serverConfig := &hanet.GinServerConfig{
-		Host:         config.Cfg.Web.Host,
-		Port:         config.Cfg.Web.Port,
+		Host:         ep.Host,
+		Port:         ep.Port,
 		ReadTimeout:  config.Cfg.Web.ReadTimeout,
 		WriteTimeout: config.Cfg.Web.WriteTimeout,
 	}

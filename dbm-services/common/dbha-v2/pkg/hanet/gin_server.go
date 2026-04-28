@@ -158,7 +158,7 @@ func (s *GinHTTPServer) Start() error {
 		defer s.wg.Done()
 		logger.Info("Starting HTTP server on %s", s.server.Addr)
 		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("Failed to start server: %v", err)
+			logger.Error("failed to start server, errmsg: %s", err)
 		}
 	}()
 
@@ -182,7 +182,7 @@ func (s *GinHTTPServer) Stop() error {
 	defer cancel()
 
 	if err := s.server.Shutdown(ctx); err != nil {
-		logger.Error("Server shutdown error: %v", err)
+		logger.Error("server shutdown error, errmsg: %s", err)
 		return err
 	}
 

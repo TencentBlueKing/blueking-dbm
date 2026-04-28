@@ -200,7 +200,7 @@ func (c HttpClient) Request(ctx context.Context, url string,
 
 	defer func() {
 		if errClose := rsp.Body.Close(); errClose != nil {
-			logger.Warn("failed to close the http respond body, errmsg: %v", errClose)
+			logger.Warn("failed to close the http respond body, errmsg: %s", errClose)
 		}
 	}()
 

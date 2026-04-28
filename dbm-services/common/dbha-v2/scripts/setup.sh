@@ -210,8 +210,7 @@ grpc:
   listenAddress: ${LOCAL_IP}:${ADMIN_GRPC_PORT}
 
 web:
-  host: ${LOCAL_IP}
-  port: ${ADMIN_WEB_PORT}
+  listenAddress: ${LOCAL_IP}:${ADMIN_WEB_PORT}
   readTimeout: 5s
   writeTimeout: 5s
 

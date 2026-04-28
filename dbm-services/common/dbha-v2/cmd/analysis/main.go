@@ -51,7 +51,7 @@ func main() {
 	rootCmd.AddCommand(analysis.ReloadCmd)
 
 	if err := rootCmd.Execute(); err != nil {
-		logger.Error("failed to start analysis server. errmsg:%s", err.Error())
+		logger.Error("failed to start analysis server, errmsg: %s", err)
 		return
 	}
 }

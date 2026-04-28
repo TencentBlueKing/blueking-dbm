@@ -89,12 +89,12 @@ type GrpcConfig struct {
 	MaxSendMessageSize    int           `yaml:"maxSendMessageSize"    mapstructure:"maxSendMessageSize"`
 }
 
-// WebConfig web configuration
+// WebConfig web configuration. ListenAddress accepts host:port or http://host:port;
+// an omitted scheme defaults to http at the call site.
 type WebConfig struct {
-	Host         string        `yaml:"host"         mapstructure:"host"`
-	Port         int           `yaml:"port"         mapstructure:"port"`
-	ReadTimeout  time.Duration `yaml:"readTimeout"  mapstructure:"readTimeout"`
-	WriteTimeout time.Duration `yaml:"writeTimeout" mapstructure:"writeTimeout"`
+	ListenAddress string        `yaml:"listenAddress" mapstructure:"listenAddress"`
+	ReadTimeout   time.Duration `yaml:"readTimeout"   mapstructure:"readTimeout"`
+	WriteTimeout  time.Duration `yaml:"writeTimeout"  mapstructure:"writeTimeout"`
 }
 
 // DbmApi the API config of the DBM metadata

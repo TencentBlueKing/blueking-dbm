@@ -113,7 +113,7 @@ func (r *Registry) SetService(ctx context.Context, value string) error {
 
 	_, err := r.client.Put(ctx, r.rootKey, value, clientv3.WithLease(r.leaseID))
 	if err != nil {
-		logger.Warn("registry set service put failed, lease-id: %v errmsg: %v", r.leaseID, err)
+		logger.Warn("registry set service put failed, lease_id: %d, errmsg: %s", r.leaseID, err)
 		return gerrors.Newf(gerrors.EtcdFailure,
 			"registry set service put failed, lease-id: %d, errmsg: %s", r.leaseID, err)
 	}

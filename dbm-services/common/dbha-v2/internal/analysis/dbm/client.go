@@ -165,14 +165,14 @@ func (c *Client) GetAddressNumberOfDomain(bkCloudId int, domainName string) (int
 		DbCloudToken: config.Cfg.Workflow.DbmApiDomainGet.Token,
 		DomainName:   []string{domainName},
 	}
-	logger.Debug("GetAddressNumberOfDomain req:%v", req)
+	logger.Debug("query domain address count request, bk_cloud_id: %d, domain: %s", bkCloudId, domainName)
 
 	resp, err := c.SendRequest(config.Cfg.Workflow.DbmApiDomainGet.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiDomainGet.Timeout)
 	if err != nil {
 		return 0, err
 	}
-	logger.Debug("GetAddressNumberOfDomain response: %s", string(resp))
+	logger.Debug("query domain address count response, domain: %s, resp_len: %d", domainName, len(resp))
 
 	domainGetRes := &DomainGetRespond{}
 	if err := json.Unmarshal(resp, domainGetRes); err != nil {
@@ -200,16 +200,22 @@ func (c *Client) UpdateInstanceStatus(bkCloudId int, ip string, port int, status
 		},
 	}
 
-	logger.Debug("UpdateInstanceStatus req:%v", req)
+	logger.Debug(
+		"update instance status request, bk_cloud_id: %d, ip: %s, port: %d, status: %s",
+		bkCloudId,
+		ip,
+		port,
+		status,
+	)
 
 	response, err := c.SendRequest(config.Cfg.Workflow.DbmApiUpdateStatus.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiUpdateStatus.Timeout)
 	if err != nil {
-		logger.Error("failed to update instance (%s:%d) status, errmsg:%s", ip, port, err.Error())
+		logger.Error("failed to update instance status, ip: %s, port: %d, errmsg: %s", ip, port, err)
 		return err
 	}
 
-	logger.Debug("UpdateInstanceStatus response: %s", string(response))
+	logger.Debug("update instance status response, ip: %s, port: %d, resp_len: %d", ip, port, len(response))
 
 	updateStatusResp := &UpdateInstanceStatusRespond{}
 	if err := json.Unmarshal(response, updateStatusResp); err != nil {
@@ -236,14 +242,20 @@ func (c *Client) DeleteFromDomain(bkCloudId int, domainName string, instance str
 			},
 		},
 	}
-	logger.Debug("DeleteFromDomain req:%v", req)
+	logger.Debug(
+		"delete from domain request, bk_cloud_id: %d, domain: %s, instance: %s, app: %s",
+		bkCloudId,
+		domainName,
+		instance,
+		app,
+	)
 
 	resp, err := c.SendRequest(config.Cfg.Workflow.DbmApiDomainDelete.Api, hanet.HttpMethodDelete,
 		req, config.Cfg.Workflow.DbmApiDomainDelete.Timeout)
 	if err != nil {
 		return err
 	}
-	logger.Debug("DeleteFromDomain response: %s", string(resp))
+	logger.Debug("delete from domain response, domain: %s, instance: %s, resp_len: %d", domainName, instance, len(resp))
 
 	domainDeleteRes := &DomainDeleteRespond{}
 	if err := json.Unmarshal(resp, domainDeleteRes); err != nil {
@@ -273,7 +285,14 @@ func (c *Client) DeleteFromCLB(bkCloudId int, region string, lbid string, lnid s
 		IPs:            []string{ins},
 	}
 
-	logger.Debug("DeleteFromCLB req: %v", req)
+	logger.Debug(
+		"delete from clb request, bk_cloud_id: %d, region: %s, lb_id: %s, listener_id: %s, instance: %s",
+		bkCloudId,
+		region,
+		lbid,
+		lnid,
+		ins,
+	)
 
 	response, err := c.SendRequest(config.Cfg.Workflow.DbmApiCLBDeregister.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiCLBDeregister.Timeout)
@@ -282,7 +301,7 @@ func (c *Client) DeleteFromCLB(bkCloudId int, region string, lbid string, lnid s
 		return err
 	}
 
-	logger.Debug("DeleteFromCLB response: %s", string(response))
+	logger.Debug("delete from clb response, instance: %s, resp_len: %d", ins, len(response))
 
 	// TODO: parse response and check if result is success
 
@@ -299,16 +318,21 @@ func (c *Client) DeleteFromPolaris(bkCloudId int, servname string, servtoken str
 		IPs:          []string{ins},
 	}
 
-	logger.Debug("DeleteFromPolaris req: %v", req)
+	logger.Debug(
+		"delete from polaris request, bk_cloud_id: %d, service_name: %s, instance: %s",
+		bkCloudId,
+		servname,
+		ins,
+	)
 
 	response, err := c.SendRequest(config.Cfg.Workflow.DbmApiPolarisUnbind.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiPolarisUnbind.Timeout)
 	if err != nil {
-		logger.Error("failed to unbind instance (%s) from Polaris, %s", ins, err.Error())
+		logger.Error("failed to unbind instance from polaris, instance: %s, errmsg: %s", ins, err)
 		return err
 	}
 
-	logger.Debug("DeleteFromPolaris response: %s", string(response))
+	logger.Debug("delete from polaris response, instance: %s, resp_len: %d", ins, len(response))
 
 	// TODO: parse response and check if result is success
 
@@ -334,7 +358,14 @@ func (c *Client) SwapMySQLRole(bkCloudId int, masterIp string, masterPort int, s
 		Payloads:     []SwapMySQLRolePayload{payload},
 	}
 
-	logger.Debug("SwapMySQLRole req: %v", req)
+	logger.Debug(
+		"swap mysql role request, bk_cloud_id: %d, master: %s:%d, slave: %s:%d",
+		bkCloudId,
+		masterIp,
+		masterPort,
+		slaveIp,
+		slavePort,
+	)
 
 	response, err := c.SendRequest(config.Cfg.Workflow.DbmApiSwapMysqlRole.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiSwapMysqlRole.Timeout)
@@ -344,7 +375,8 @@ func (c *Client) SwapMySQLRole(bkCloudId int, masterIp string, masterPort int, s
 		return err
 	}
 
-	logger.Debug("SwapMySQLRole response: %s", string(response))
+	logger.Debug("swap mysql role response, master: %s:%d, slave: %s:%d, resp_len: %d",
+		masterIp, masterPort, slaveIp, slavePort, len(response))
 
 	swapResp := &SwapRoleRespond{}
 	if err := json.Unmarshal(response, swapResp); err != nil {
@@ -368,7 +400,12 @@ func (c *Client) SwitchBinlogDumper(bkCloudId int, app string, switchInfos []Dum
 		SwitchInfos:  switchInfos,
 	}
 
-	logger.Debug("SwitchBinlogDumper req: %v", req)
+	logger.Debug(
+		"switch binlogdumper request, bk_cloud_id: %d, bk_biz_id: %s, switch_count: %d",
+		bkCloudId,
+		app,
+		len(switchInfos),
+	)
 
 	response, err := c.SendRequest(config.Cfg.Workflow.DbmApiDumperSwitch.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiDumperSwitch.Timeout)
@@ -377,7 +414,7 @@ func (c *Client) SwitchBinlogDumper(bkCloudId int, app string, switchInfos []Dum
 		return err
 	}
 
-	logger.Debug("SwitchBinlogDumper response: %s", string(response))
+	logger.Debug("switch binlogdumper response, bk_biz_id: %s, resp_len: %d", app, len(response))
 
 	// TODO: parse response and check if result is success
 

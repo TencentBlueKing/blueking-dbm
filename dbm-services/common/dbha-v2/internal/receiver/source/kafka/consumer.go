@@ -33,8 +33,8 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/receiver/config"
 	"dbm-services/common/dbha-v2/internal/receiver/sink"
-	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
 
 	"github.com/IBM/sarama"
@@ -84,21 +84,18 @@ type consumer struct {
 	wg        sync.WaitGroup
 }
 
+// New creates a Kafka consumer inputter from source configuration.
 func New(cfg config.SourceConfig) (*consumer, error) {
 	cliCfg := sarama.NewConfig()
-
-	cliCfg.Version = sarama.V3_2_3_0
-	cliCfg.Metadata.Full = true
 
 	// Network configuration
 	cliCfg.Net.DialTimeout = cfg.NetDialTimeout
 	cliCfg.Net.ReadTimeout = cfg.NetReadTimeout
 	cliCfg.Net.WriteTimeout = cfg.NetWriteTimeout
 
-	// SASL Configuration
-	cliCfg.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.NewBalanceStrategyRoundRobin()}
-	cliCfg.Consumer.Offsets.Initial = sarama.OffsetNewest
+	// Consumer defaults (base version for non-SCRAM; SCRAM overrides to V2_4_0_0 below).
 	cliCfg.Version = sarama.V0_10_2_0
+	cliCfg.Consumer.Offsets.Initial = sarama.OffsetNewest
 	cliCfg.Consumer.Return.Errors = true
 	cliCfg.Consumer.MaxProcessingTime = 200 * time.Millisecond
 	cliCfg.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{
@@ -131,10 +128,15 @@ func New(cfg config.SourceConfig) (*consumer, error) {
 		cliCfg.Net.SASL.Mechanism = sarama.SASLTypePlaintext
 	}
 
-	endpoints := strings.Split(cfg.Endpoints, constant.Delimiter)
+	parsed, err := hanet.ParseList(cfg.Endpoints, "tcp")
+	if err != nil {
+		return nil, gerrors.Newf(gerrors.InvalidConfiguration, "invalid kafka endpoints, errmsg: %s", err)
+	}
+	endpoints := hanet.ToHostPorts(parsed)
+
 	group, err := sarama.NewConsumerGroup(endpoints, kafkaConsumerGroupID, cliCfg)
 	if err != nil {
-		return nil, gerrors.Newf(gerrors.KafkaFailure, "create kafka client failed, errmsg: %v", err)
+		return nil, gerrors.Newf(gerrors.KafkaFailure, "create kafka client failed, errmsg: %s", err)
 	}
 
 	kInputer := &consumer{
@@ -164,7 +166,7 @@ func (k *consumer) Harvest(ctx context.Context, savers []sink.Sinker) error {
 			default:
 				err := k.group.Consume(ctx, k.topics, &consumerHandler{savers: savers})
 				if err != nil {
-					logger.Warn("kafka consumer failed, errmsg(%v)", err)
+					logger.Warn("kafka consumer failed, errmsg: %s", err)
 					return
 				}
 			}

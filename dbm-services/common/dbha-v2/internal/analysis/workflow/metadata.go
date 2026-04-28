@@ -176,7 +176,7 @@ func (r *MetadataReader) acquireLock(ctx context.Context, prefix string, bizId i
 
 	cleanup := func() {
 		if err := mu.Unlock(ctx); err != nil {
-			logger.Warn("failed to unlock %s lock for biz: %d, errmsg: %v", prefix, bizId, err)
+			logger.Warn("failed to unlock %s lock for biz: %d, errmsg: %s", prefix, bizId, err)
 		}
 		mu.Close()
 	}
