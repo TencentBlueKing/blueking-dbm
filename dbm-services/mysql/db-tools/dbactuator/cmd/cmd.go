@@ -17,6 +17,7 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd/commoncmd"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd/crontabcmd"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd/mysqlcmd"
+	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd/oscmd"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd/proxycmd"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd/spidercmd"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd/spiderctlcmd"
@@ -107,6 +108,12 @@ Buildstamp:%s`, version, githash, strings.ToUpper(external), buildstamp,
 			Message: "sysinit operation sets",
 			Commands: []*cobra.Command{
 				sysinitcmd.NewSysInitCommand(),
+			},
+		},
+		{
+			Message: "os operation sets",
+			Commands: []*cobra.Command{
+				oscmd.NewOSCommand(),
 			},
 		},
 		{

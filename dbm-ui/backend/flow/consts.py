@@ -431,10 +431,12 @@ class DBActuatorTypeEnum(StrStructuredEnum):
     Sqlserver_check = EnumField("check", _("sqlserer_check"))
     Doris = EnumField("doris", _("doris"))
     Vm = EnumField("vm", _("vm"))
+    OS = EnumField("os", _("os"))
 
 
 class DBActuatorActionEnum(StrStructuredEnum):
     Sysinit = EnumField("sysinit", _("sysinit"))
+    DiskBenchmark = EnumField("disk-benchmark", _("disk-benchmark"))
     Deploy = EnumField("deploy", _("deploy"))
     AppendDeploy = EnumField("append-deploy", _("append-deploy"))
     ImportSchemaToTdbctl = EnumField("import-schema-to-tdbctl", _("import-schema-to-tdbctl"))

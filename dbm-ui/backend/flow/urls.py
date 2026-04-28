@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 
 from django.urls import re_path as url
 
+from backend.flow.views.baseline_disk_benchmark import BaselineDiskBenchmarkSceneApiView
 from backend.flow.views.client_set_dns_server import ClientSetDnsServerSceneApiView
 from backend.flow.views.cloud_dbha_apply import CloudDBHAApplySceneApiView
 from backend.flow.views.cloud_dns_bind_apply import CloudDNSApplySceneApiView
@@ -526,6 +527,7 @@ urlpatterns = [
     url(r"^scene/pulsar_machine_clear$", PulsarMachineClearApiView.as_view()),
     url(r"^scene/import_resource_init$", ImportResourceInitStepApiView.as_view()),
     url(r"^scene/machine_idle_check$", MachineIdleCheckFlowApiView.as_view()),
+    url(r"^scene/baseline_disk_benchmark$", BaselineDiskBenchmarkSceneApiView.as_view()),
     url("^scene/mysql_data_migrate$", MysqlDataMigrateSceneApiView.as_view()),
     url("^scene/mysql_machine_clear$", MysqlMachineClearApiView.as_view()),
     # spider
