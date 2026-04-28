@@ -24,7 +24,7 @@ func ValidateValueForClient(items []*api.UpsertConfNames, checkReadonly bool) er
 		if c.OPType == "remove" {
 			continue
 		}
-		if checkReadonly && (c.FlagLocked == 1 || c.FlagReadonly == 1) {
+		if checkReadonly && c.FlagReadonly == 1 {
 			errs = errors.Join(errs, errors2.Errorf("conf_name %s is readonly", c.ConfName))
 		}
 
