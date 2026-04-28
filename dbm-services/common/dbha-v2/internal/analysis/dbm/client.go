@@ -186,22 +186,29 @@ func (c *Client) GetAddressNumberOfDomain(bkCloudId int, domainName string) (int
 	return domainGetRes.Data.RowsNum, nil
 }
 
-// UpdateInstanceStatus updates the status of a database instance
-func (c *Client) UpdateInstanceStatus(bkCloudId int, ip string, port int, status DbmMetadataStatus) error {
+// UpdateBatchInstancesStatus updates status for multiple database instances in one request.
+func (c *Client) UpdateBatchInstancesStatus(bkCloudId int, insts []InstWithinCluster, status DbmMetadataStatus) error {
+	if len(insts) == 0 {
+		return nil
+	}
+
+	payloads := make([]UpdateInstanceStatusPayload, 0, len(insts))
+	for _, inst := range insts {
+		payloads = append(payloads, UpdateInstanceStatusPayload{
+			IP:     inst.IP,
+			Port:   inst.Port,
+			Status: string(status),
+		})
+	}
+
 	req := UpdateInstanceStatusRequest{
 		BkCloudID:    bkCloudId,
 		DbCloudToken: config.Cfg.Workflow.DbmApiUpdateStatus.Token,
-		Payloads: []UpdateInstanceStatusPayload{
-			{
-				IP:     ip,
-				Port:   port,
-				Status: string(status),
-			},
-		},
+		Payloads:     payloads,
 	}
 
 	logger.Debug(
-		"update instance status request, bk_cloud_id: %d, ip: %s, port: %d, status: %s",
+		"updateBatch instances status request, bk_cloud_id: %d, ip: %s, port: %d, status: %s",
 		bkCloudId,
 		ip,
 		port,
@@ -219,14 +226,19 @@ func (c *Client) UpdateInstanceStatus(bkCloudId int, ip string, port int, status
 
 	updateStatusResp := &UpdateInstanceStatusRespond{}
 	if err := json.Unmarshal(response, updateStatusResp); err != nil {
-		return err
+		return gerrors.Newf(gerrors.InvalidJson, "failed to unmarshal status update response, errmsg: %s", err.Error())
 	}
 
 	if !updateStatusResp.Result {
-		return gerrors.Newf(gerrors.Failure, "request failed, errmsg: %s", updateStatusResp.Message)
+		return gerrors.Newf(gerrors.Failure, "status update request failed, errmsg: %s", updateStatusResp.Message)
 	}
 
 	return nil
+}
+
+// UpdateInstanceStatus updates the status of a single database instance.
+func (c *Client) UpdateInstanceStatus(bkCloudId int, ip string, port int, status DbmMetadataStatus) error {
+	return c.UpdateBatchInstancesStatus(bkCloudId, []InstWithinCluster{{IP: ip, Port: port}}, status)
 }
 
 // DeleteFromDomain removes an instance from the specified domain

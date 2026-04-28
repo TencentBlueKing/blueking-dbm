@@ -31,7 +31,6 @@ import (
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/apm"
-	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/mysql"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchcore"
@@ -425,12 +424,7 @@ func (m *Mysql) ClusterLevelSwitch(ctx context.Context, switchLoggers []switchlo
 	}
 
 	clusterGroup := m.buildClusterGroup(req)
-	maxConcurrency := config.Cfg.Workflow.ClusterLevelSwitchMaxClusterNum
-	if maxConcurrency <= 0 {
-		logger.Warn("max cluster number(%d) for cluster level switch is invalid, using default %d",
-			maxConcurrency, ClusterLevelSwitchDefaultMaxClusterNum)
-		maxConcurrency = ClusterLevelSwitchDefaultMaxClusterNum
-	}
+	maxConcurrency := switchcore.ClusterLevelSwitchMaxClusterConcurrency()
 
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, maxConcurrency)

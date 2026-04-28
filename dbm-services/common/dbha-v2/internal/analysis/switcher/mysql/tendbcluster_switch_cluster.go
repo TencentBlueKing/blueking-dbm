@@ -26,6 +26,7 @@ package mysql
 
 import (
 	"fmt"
+	"sync"
 
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchcore"
@@ -198,9 +199,10 @@ func (cluster *TenDBClusterSwitchCluster) CheckRemoteMaster(
 	return nil
 }
 
-// CheckRemoteNode classifies a remote backend node and checks if it needs switching
+// CheckRemoteNode classifies a remote backend node and checks if it needs switching.
 func (cluster *TenDBClusterSwitchCluster) CheckRemoteNode(
 	instKey switchcore.MetadataKey,
+	listMu *sync.Mutex,
 ) error {
 	instData, exists := cluster.SwitchInstances[instKey]
 	if !exists {
@@ -220,7 +222,17 @@ func (cluster *TenDBClusterSwitchCluster) CheckRemoteNode(
 		if err := cluster.CheckRemoteMaster(instKey); err != nil {
 			return err
 		}
+
+		if listMu != nil {
+			listMu.Lock()
+		}
+
 		cluster.RemoteMasterKeyList = append(cluster.RemoteMasterKeyList, instKey)
+
+		if listMu != nil {
+			listMu.Unlock()
+		}
+
 		cluster.ReportLogf(instKey, switchlogger.SwitchInfo,
 			"check result before switch: switch required, this is a remote master node")
 		return nil
@@ -240,27 +252,48 @@ func (cluster *TenDBClusterSwitchCluster) CheckBeforeSwitch() (switchcore.Switch
 	cluster.RemoteSlaveKeyList = []switchcore.MetadataKey{}
 	checkUnpassKeyList := []switchcore.MetadataKey{}
 
-	for instKey, instData := range cluster.SwitchInstances {
-		switch instData.MachineType {
-		case haprobe.DbmMetadataMachineTypeSpider:
-			cluster.SpiderKeyList = append(cluster.SpiderKeyList, instKey)
-			cluster.ReportLogf(instKey, switchlogger.SwitchInfo,
-				"check result before switch: switch required, this is a spider node, spider role: %s", instData.SpiderRole)
+	var wg sync.WaitGroup
+	var listMu sync.Mutex
+	maxInstanceConcurrency := switchcore.ClusterLevelSwitchMaxInstanceConcurrency()
+	sem := make(chan struct{}, maxInstanceConcurrency)
 
-		case haprobe.DbmMetadataMachineTypeRemote:
-			if err := cluster.CheckRemoteNode(instKey); err != nil {
-				checkUnpassKeyList = append(checkUnpassKeyList, instKey)
-				cluster.ReportLogf(instKey, switchlogger.SwitchError,
-					"check result before switch: check unpass, %s", err.Error())
-			}
-
-		default:
-			checkUnpassKeyList = append(checkUnpassKeyList, instKey)
-			cluster.ReportLogf(instKey, switchlogger.SwitchError,
-				"check result before switch: check unpass, invalid machine type(%s)",
-				instData.MachineType)
-		}
+	appendLocked := func(slice *[]switchcore.MetadataKey, k switchcore.MetadataKey) {
+		listMu.Lock()
+		*slice = append(*slice, k)
+		listMu.Unlock()
 	}
+
+	for instKey, instData := range cluster.SwitchInstances {
+		wg.Add(1)
+		go func(instKey switchcore.MetadataKey, instData *dbm.DbInstMetadata) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			switch instData.MachineType {
+			case haprobe.DbmMetadataMachineTypeSpider:
+				appendLocked(&cluster.SpiderKeyList, instKey)
+				cluster.ReportLogf(instKey, switchlogger.SwitchInfo,
+					"check result before switch: switch required, this is a spider node, spider role: %s",
+					instData.SpiderRole)
+
+			case haprobe.DbmMetadataMachineTypeRemote:
+				if err := cluster.CheckRemoteNode(instKey, &listMu); err != nil {
+					appendLocked(&checkUnpassKeyList, instKey)
+					cluster.ReportLogf(instKey, switchlogger.SwitchError,
+						"check result before switch: check unpass, %s", err.Error())
+					return
+				}
+
+			default:
+				appendLocked(&checkUnpassKeyList, instKey)
+				cluster.ReportLogf(instKey, switchlogger.SwitchError,
+					"check result before switch: check unpass, invalid machine type(%s)",
+					instData.MachineType)
+			}
+		}(instKey, instData)
+	}
+	wg.Wait()
 
 	if len(checkUnpassKeyList) > 0 {
 		return switchcore.SwitchCheckUnpass, gerrors.Newf(gerrors.Failure,
@@ -291,14 +324,32 @@ func (cluster *TenDBClusterSwitchCluster) DeleteSpiderNameService() error {
 		return nil
 	}
 
-	failedKeyList := []switchcore.MetadataKey{}
+	maxInstanceConcurrency := switchcore.ClusterLevelSwitchMaxInstanceConcurrency()
+	sem := make(chan struct{}, maxInstanceConcurrency)
+	failCh := make(chan switchcore.MetadataKey, len(cluster.SpiderKeyList))
+	var wg sync.WaitGroup
+
 	for _, instKey := range cluster.SpiderKeyList {
-		if err := cluster.DeleteOneInstanceNameService(instKey); err != nil {
-			failedKeyList = append(failedKeyList, instKey)
-			cluster.ReportLogf(instKey, switchlogger.SwitchWarn,
-				"failed to delete name service, spider: %s, errmsg: %s",
-				instKey, err.Error())
-		}
+		wg.Add(1)
+		go func(instKey switchcore.MetadataKey) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			if err := cluster.DeleteOneInstanceNameService(instKey); err != nil {
+				failCh <- instKey
+				cluster.ReportLogf(instKey, switchlogger.SwitchWarn,
+					"failed to delete name service, spider: %s, errmsg: %s",
+					instKey, err.Error())
+			}
+		}(instKey)
+	}
+	wg.Wait()
+	close(failCh)
+
+	failedKeyList := make([]switchcore.MetadataKey, 0, len(cluster.SpiderKeyList))
+	for k := range failCh {
+		failedKeyList = append(failedKeyList, k)
 	}
 
 	if len(failedKeyList) > 0 {
@@ -461,6 +512,45 @@ func (cluster *TenDBClusterSwitchCluster) dropAllBrokenSpiderRoutes(
 	return nil
 }
 
+// switchRemoteMasterWorker finds master/slave route rows, resets the standby slave,
+// and updates primary tdbctl route to point at the new master.
+// tdbctlMu serializes access to cluster.tdbctlHelper (shared mutable helper state);
+// DoResetSlaveWithBinlogPos runs outside the lock.
+func (cluster *TenDBClusterSwitchCluster) switchRemoteMasterWorker(
+	primaryTdbctlConn *hamysql.GormDB,
+	instKey switchcore.MetadataKey,
+	instData *dbm.DbInstMetadata,
+	standbySlave *dbm.DbmMetadataSlaveInfo,
+	instLogFunc switchlogger.SwitchLogFunc,
+	tdbctlMu *sync.Mutex,
+) error {
+	tdbctlMu.Lock()
+	cluster.tdbctlHelper.SetLogFunc(instLogFunc)
+	masterRoute, slaveRoute, findErr := cluster.tdbctlHelper.FindMasterSlavePair(
+		instData.IP, instData.Port, standbySlave.Ip, standbySlave.Port)
+	tdbctlMu.Unlock()
+	if findErr != nil {
+		return findErr
+	}
+
+	_, _, resetErr := DoResetSlaveWithBinlogPos(
+		standbySlave.Ip, standbySlave.Port, instLogFunc)
+	if resetErr != nil {
+		errMsg := fmt.Sprintf(
+			"failed to reset slave for standby slave(%s:%d), errmsg: %s",
+			standbySlave.Ip, standbySlave.Port, resetErr.Error())
+		cluster.ReportLogf(instKey, switchlogger.SwitchWarn, "%s", errMsg)
+		return resetErr
+	}
+
+	tdbctlMu.Lock()
+	cluster.tdbctlHelper.SetLogFunc(instLogFunc)
+	updateErr := cluster.tdbctlHelper.UpdateMasterRouteToSlave(
+		primaryTdbctlConn, masterRoute, slaveRoute)
+	tdbctlMu.Unlock()
+	return updateErr
+}
+
 // switchRemoteMasters resets slaves and updates route info for each broken remote master
 // find master/slave pair, reset slave, and update route info
 func (cluster *TenDBClusterSwitchCluster) switchRemoteMasters(
@@ -469,60 +559,57 @@ func (cluster *TenDBClusterSwitchCluster) switchRemoteMasters(
 	originalLogFunc := cluster.tdbctlHelper.GetLogFunc()
 	defer cluster.tdbctlHelper.SetLogFunc(originalLogFunc)
 
-	failedKeyList := []switchcore.MetadataKey{}
-
 	if len(cluster.RemoteMasterKeyList) == 0 {
 		cluster.ReportClusterLogf(switchlogger.SwitchInfo,
 			"no broken remote master instances to switch")
 		return nil
 	}
 
+	var tdbctlMu sync.Mutex
+	maxInstanceConcurrency := switchcore.ClusterLevelSwitchMaxInstanceConcurrency()
+	sem := make(chan struct{}, maxInstanceConcurrency)
+	failCh := make(chan switchcore.MetadataKey, len(cluster.RemoteMasterKeyList))
+	var wg sync.WaitGroup
+
 	for _, instKey := range cluster.RemoteMasterKeyList {
-		instData, exists := cluster.SwitchInstances[instKey]
-		if !exists {
-			cluster.ReportLogf(instKey, switchlogger.SwitchWarn,
-				"failed to get remote master instance(%s) metadata when trying to switch it", instKey)
-			failedKeyList = append(failedKeyList, instKey)
-			continue
-		}
+		wg.Add(1)
+		go func(instKey switchcore.MetadataKey) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
 
-		standbySlave, exists := cluster.StandbySlaveMap[instKey]
-		if !exists || (standbySlave == nil) {
-			cluster.ReportLogf(instKey, switchlogger.SwitchWarn,
-				"failed to get standby slave for remote master(%s) when trying to switch it", instKey)
-			failedKeyList = append(failedKeyList, instKey)
-			continue
-		}
+			instData, exists := cluster.SwitchInstances[instKey]
+			if !exists {
+				cluster.ReportLogf(instKey, switchlogger.SwitchWarn,
+					"failed to get remote master instance(%s) metadata when trying to switch it", instKey)
+				failCh <- instKey
+				return
+			}
 
-		instLogFunc := func(level switchlogger.SwitchLogLevel, format string, args ...any) bool {
-			return cluster.ReportLogf(instKey, level, format, args...)
-		}
-		cluster.tdbctlHelper.SetLogFunc(instLogFunc)
+			standbySlave, exists := cluster.StandbySlaveMap[instKey]
+			if !exists || (standbySlave == nil) {
+				cluster.ReportLogf(instKey, switchlogger.SwitchWarn,
+					"failed to get standby slave for remote master(%s) when trying to switch it", instKey)
+				failCh <- instKey
+				return
+			}
 
-		masterRoute, slaveRoute, findErr := cluster.tdbctlHelper.FindMasterSlavePair(
-			instData.IP, instData.Port, standbySlave.Ip, standbySlave.Port)
-		if findErr != nil {
-			failedKeyList = append(failedKeyList, instKey)
-			continue
-		}
+			instLogFunc := func(level switchlogger.SwitchLogLevel, format string, args ...any) bool {
+				return cluster.ReportLogf(instKey, level, format, args...)
+			}
 
-		_, _, resetErr := DoResetSlaveWithBinlogPos(
-			standbySlave.Ip, standbySlave.Port, instLogFunc)
-		if resetErr != nil {
-			errMsg := fmt.Sprintf(
-				"failed to reset slave for standby slave(%s:%d), errmsg: %s",
-				standbySlave.Ip, standbySlave.Port, resetErr.Error())
-			cluster.ReportLogf(instKey, switchlogger.SwitchWarn, "%s", errMsg)
-			failedKeyList = append(failedKeyList, instKey)
-			continue
-		}
+			if err := cluster.switchRemoteMasterWorker(
+				primaryTdbctlConn, instKey, instData, standbySlave, instLogFunc, &tdbctlMu); err != nil {
+				failCh <- instKey
+			}
+		}(instKey)
+	}
+	wg.Wait()
+	close(failCh)
 
-		if err := cluster.tdbctlHelper.UpdateMasterRouteToSlave(
-			primaryTdbctlConn, masterRoute, slaveRoute,
-		); err != nil {
-			failedKeyList = append(failedKeyList, instKey)
-			continue
-		}
+	failedKeyList := make([]switchcore.MetadataKey, 0, len(cluster.RemoteMasterKeyList))
+	for k := range failCh {
+		failedKeyList = append(failedKeyList, k)
 	}
 
 	if len(failedKeyList) > 0 {
@@ -538,40 +625,57 @@ func (cluster *TenDBClusterSwitchCluster) switchRemoteMasters(
 
 // UpdateMetaInfo swaps roles of remote masters and their standby slaves
 func (cluster *TenDBClusterSwitchCluster) UpdateMetaInfo() error {
-	failedInstKeyList := []switchcore.MetadataKey{}
-
 	if len(cluster.RemoteMasterKeyList) == 0 {
 		cluster.ReportClusterLogf(switchlogger.SwitchInfo,
 			"no remote master instances that need to swap roles")
 		return nil
 	}
 
+	maxDbmAPIConcurrency := switchcore.DbmApiMaxConcurrentRequests()
+	sem := make(chan struct{}, maxDbmAPIConcurrency)
+	failCh := make(chan switchcore.MetadataKey, len(cluster.RemoteMasterKeyList))
+	var wg sync.WaitGroup
+
 	for _, instKey := range cluster.RemoteMasterKeyList {
-		instData, exists := cluster.SwitchInstances[instKey]
-		if !exists {
-			continue
-		}
+		wg.Add(1)
+		go func(instKey switchcore.MetadataKey) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
 
-		standbySlave, exists := cluster.StandbySlaveMap[instKey]
-		if !exists || (standbySlave == nil) {
-			cluster.ReportLogf(instKey, switchlogger.SwitchWarn,
-				"failed to get standby slave when trying to update meta info")
-			failedInstKeyList = append(failedInstKeyList, instKey)
-			continue
-		}
+			instData, exists := cluster.SwitchInstances[instKey]
+			if !exists {
+				return
+			}
 
-		if err := cluster.DbmClient.SwapMySQLRole(cluster.BkCloudID,
-			instData.IP, instData.Port, standbySlave.Ip, standbySlave.Port); err != nil {
-			cluster.ReportLogf(instKey, switchlogger.SwitchWarn,
-				"failed to swap roles of remote nodes(master:%s:%d, slave:%s:%d), errmsg:%s",
-				instData.IP, instData.Port, standbySlave.Ip, standbySlave.Port, err.Error())
-			failedInstKeyList = append(failedInstKeyList, instKey)
-			continue
-		}
+			standbySlave, exists := cluster.StandbySlaveMap[instKey]
+			if !exists || (standbySlave == nil) {
+				cluster.ReportLogf(instKey, switchlogger.SwitchWarn,
+					"failed to get standby slave when trying to update meta info")
+				failCh <- instKey
+				return
+			}
 
-		cluster.ReportLogf(instKey, switchlogger.SwitchInfo,
-			"successfully swap roles of remote nodes(master:%s:%d, slave:%s:%d)",
-			instData.IP, instData.Port, standbySlave.Ip, standbySlave.Port)
+			if err := cluster.DbmClient.SwapMySQLRole(cluster.BkCloudID,
+				instData.IP, instData.Port, standbySlave.Ip, standbySlave.Port); err != nil {
+				cluster.ReportLogf(instKey, switchlogger.SwitchWarn,
+					"failed to swap roles of remote nodes(master:%s:%d, slave:%s:%d), errmsg:%s",
+					instData.IP, instData.Port, standbySlave.Ip, standbySlave.Port, err.Error())
+				failCh <- instKey
+				return
+			}
+
+			cluster.ReportLogf(instKey, switchlogger.SwitchInfo,
+				"successfully swap roles of remote nodes(master:%s:%d, slave:%s:%d)",
+				instData.IP, instData.Port, standbySlave.Ip, standbySlave.Port)
+		}(instKey)
+	}
+	wg.Wait()
+	close(failCh)
+
+	failedInstKeyList := make([]switchcore.MetadataKey, 0, len(cluster.RemoteMasterKeyList))
+	for k := range failCh {
+		failedInstKeyList = append(failedInstKeyList, k)
 	}
 
 	if len(failedInstKeyList) > 0 {

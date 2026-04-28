@@ -243,6 +243,7 @@ func (cluster *MySQLSwitchCluster) SwitchRequiredNodes() []switchcore.MetadataKe
 }
 
 // CheckBeforeSwitch checks if the cluster is required to be switched
+// Note: no per-instance parallelism here; only the backend master check is materially expensive.
 func (cluster *MySQLSwitchCluster) CheckBeforeSwitch() (switchcore.SwitchCheckCode, error) {
 	cluster.BackendMasterKeyList = []switchcore.MetadataKey{}
 	cluster.BackendSlaveKeyList = []switchcore.MetadataKey{}

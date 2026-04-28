@@ -44,11 +44,6 @@ var (
 	ErrSwitchPartialSuccess = gerrors.Newf(gerrors.Failure, "the switching achieved partial success")
 )
 
-var (
-	ClusterLevelSwitchDefaultMaxClusterNum  = 16
-	ClusterLevelSwitchDefaultMaxInstanceNum = 64
-)
-
 // Request contains all data needed for database switching operation
 type Request struct {
 	SwitchID      string
