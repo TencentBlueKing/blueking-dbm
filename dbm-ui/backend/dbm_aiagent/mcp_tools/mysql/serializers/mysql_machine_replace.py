@@ -12,11 +12,11 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 
-class SubmitBillMySQLMachineReplaceSerializer:
+class SubmitBillMySQLMachineReplaceSerializer(serializers.Serializer):
     cluster_domains = serializers.ListField(child=serializers.CharField(), help_text=_("域名列表"))
     ips = serializers.ListField(child=serializers.CharField(), help_text=_("待替换 ip 列表"))
 
 
-class SubmitBillTenDBClusterMachineReplaceSerializer:
+class SubmitBillTenDBClusterMachineReplaceSerializer(serializers.Serializer):
     cluster_domain = serializers.CharField(help_text=_("域名列表"))
     ips = serializers.ListField(child=serializers.CharField(), help_text=_("待替换 ip 列表"))

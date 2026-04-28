@@ -30,10 +30,14 @@ from backend.db_meta.models.extra_process import ExtraProcessInstance
 
 logger = logging.getLogger("root")
 
+# prefetch_related 分批大小，避免生成过大的 IN (list) 查询
+PREFETCH_BATCH_SIZE = 50
 
-def storage_instance(storages: QuerySet) -> List[Dict]:
-    storages_list: List[StorageInstance] = list(
-        storages.prefetch_related(
+
+def _prefetch_storage_batch(storage_ids: List[int]) -> List[StorageInstance]:
+    """按给定的 ID 列表查询并预加载关联数据"""
+    return list(
+        StorageInstance.objects.filter(id__in=storage_ids).prefetch_related(
             *_machine_prefetch(),
             "as_ejector",
             "as_ejector__receiver__machine",
@@ -48,9 +52,20 @@ def storage_instance(storages: QuerySet) -> List[Dict]:
             "bind_entry__polarisentrydetail_set",
             "bind_entry__storageinstance_set",
             "bind_entry__storageinstance_set__machine",
-            "cluster"
+            "cluster",
         )
     )
+
+
+def storage_instance(storages: QuerySet) -> List[Dict]:
+    # 先获取所有符合条件的 storage ID，避免一次性 prefetch 产生过大的 IN (list) 查询
+    storage_ids = list(storages.values_list("id", flat=True))
+
+    # 分批 prefetch_related
+    storages_list: List[StorageInstance] = []
+    for i in range(0, len(storage_ids), PREFETCH_BATCH_SIZE):
+        batch_ids = storage_ids[i : i + PREFETCH_BATCH_SIZE]
+        storages_list.extend(_prefetch_storage_batch(batch_ids))
     # 提前查询出 dumper 的信息,目前只过滤出online状态的dumper实例信息
     cluster_ids = [cluster.id for ins in storages_list for cluster in ins.cluster.all()]
     dumper_infos: Dict[str, Dict[str, List]] = defaultdict(lambda: defaultdict(list))
