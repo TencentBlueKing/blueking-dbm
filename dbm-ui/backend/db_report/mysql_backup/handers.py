@@ -113,6 +113,10 @@ class MySQLBackupHandler:
         backup_info["time_zone"] = backup_info["extra_fields"]["time_zone"]
         backup_info["backup_charset"] = backup_info["extra_fields"]["backup_charset"]
         backup_info["bk_cloud_id"] = backup_info["extra_fields"]["bk_cloud_id"]
+        backup_info["binlog_format"] = backup_info["extra_fields"].get("binlog_format", "")
+        if backup_info["binlog_format"] is None:
+            backup_info["binlog_format"] = ""
+
         backup_info["binlog_ips"] = []
         if isinstance(backup_info["binlog_info"], dict):
             show_master_status = backup_info["binlog_info"].get("show_master_status", None)

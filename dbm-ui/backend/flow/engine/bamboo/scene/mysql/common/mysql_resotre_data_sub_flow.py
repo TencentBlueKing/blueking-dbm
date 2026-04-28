@@ -20,7 +20,13 @@ from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME, MYSQL_USUAL
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.db_report.mysql_backup.handers import MySQLBackupHandler
-from backend.flow.consts import DBA_ROOT_USER, MySQLBackupTypeEnum, MysqlChangeMasterType, RollbackType
+from backend.flow.consts import (
+    DBA_ROOT_USER,
+    MySQLBackupTypeEnum,
+    MysqlChangeMasterType,
+    RollbackType,
+    TendbSingleRestoreType,
+)
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import check_binlog_missing
@@ -130,6 +136,15 @@ def mysql_restore_data_sub_flow(
             )
         )
     cluster["backupinfo"] = backup_info
+    if cluster_model.cluster_type == ClusterType.TenDBSingle.value:
+        if ticket_data.get("orphan_restore_type", "") in (
+            TendbSingleRestoreType.REPLICATE_WITH_DATA.value,
+            TendbSingleRestoreType.REPLICATE_WITH_STRUCT.value,
+        ):
+            if backup_info.get("binlog_format", "") == "":
+                raise TendbGetBackupInfoFailedException(
+                    message=_("集群 {} 备份 {} 没有位点信息 binlog_format为空".format(cluster_model.id, backup_info["backup_id"]))
+                )
 
     # 阶段2: 下载备份文件
     # 根据备份源类型（本地/远程）确定下载参数
