@@ -97,6 +97,7 @@ class MySQLSlowlogMcpToolsViewSet(McpToolsViewSet):
         start_time = self.get_param("start_time")
         end_time = self.get_param("end_time")
         limit = self.get_param("limit")
+        query_sample = self.get_param("query_sample")
 
         return Response(
             query_slowlog_aggregated(
@@ -106,6 +107,7 @@ class MySQLSlowlogMcpToolsViewSet(McpToolsViewSet):
                 end_time=end_time,
                 order_by=order_by,
                 limit=limit,
+                query_sample=query_sample,
             )
         )
 

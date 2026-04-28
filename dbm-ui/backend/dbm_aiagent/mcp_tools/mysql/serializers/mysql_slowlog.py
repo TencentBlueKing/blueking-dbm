@@ -47,6 +47,7 @@ class SlowlogAggregatedInputSerializer(serializers.Serializer):
     limit = serializers.IntegerField(help_text=_("查看 top N 慢日志种类"))
     start_time = serializers.DateTimeField(help_text=_("开始时间"))
     end_time = serializers.DateTimeField(help_text=_("结束时间"))
+    query_sample = serializers.BooleanField(help_text=_("是否返回原始 sql 示例"), required=False, default=True)
 
 
 class SlowlogAggregatedRowSerializer(serializers.Serializer):

@@ -2,6 +2,10 @@ package mysql
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"os"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -9,9 +13,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/clone_grants_from_file/internal/importer"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/clone_grants_from_file/internal/mysql"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/clone_grants_from_file/internal/pkg"
-	"fmt"
-	"io"
-	"os"
 
 	_ "github.com/go-sql-driver/mysql" // mysql 驱动
 
@@ -153,8 +154,8 @@ func (c *ImportPrivFileComponent) copySourcePrivFile() error {
 		logger.Error("copy file from %s to %s err: %v", sourceFile, sourceFileCp, err)
 		return err
 	}
-
-	logger.Info("copied file from %s to %s", sourceFile, sourceFileCp)
+	// log warn 便于看到是在处理那个 priv 权限文件
+	logger.Warn("copied file from %s to %s", sourceFile, sourceFileCp)
 
 	c.sourcePrivFileCpPath = sourceFileCp
 	return nil

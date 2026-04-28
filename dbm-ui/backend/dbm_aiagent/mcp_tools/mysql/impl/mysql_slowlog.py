@@ -222,9 +222,9 @@ def query_slowlog_aggregated(
     instance_role: str,
     start_time: timezone.datetime,
     end_time: timezone.datetime,
-    instance="",
     order_by="query_time_max",
     limit=10,
+    query_sample=True,
 ):
     """使用 Django ORM 实现慢日志聚合查询
         SELECT cluster_domain, instance_role, query_digest_md5,
@@ -289,6 +289,7 @@ def query_slowlog_aggregated(
                 rows_sent_max=Max("rows_sent"),
                 rows_sent_sum=Sum("rows_sent"),
                 query_digest_text=AnyValue("query_digest_text", output_field=CharField()),
+                query_string=AnyValue("query_string", output_field=CharField()),
                 query_command=AnyValue("query_command", output_field=CharField()),
                 query_db_name=AnyValue("query_db_name", output_field=CharField()),
                 table_names=AnyValue("table_names", output_field=CharField()),
@@ -316,6 +317,9 @@ def query_slowlog_aggregated(
         # 删除不必要的返回字段
         item.pop("cluster_domain", None)
         item.pop("instance_role", None)
+        if not query_sample:
+            # 不查询慢日志样本时，删除 query_string 字段。某些情况 sample 非常大，返回给 mcp 占用大量上下文
+            item.pop("query_string", None)
         result.append(item)
 
     return {
