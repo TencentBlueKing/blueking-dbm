@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+// Package monitor provides helpers to build and post DBHA events to BKMonitor.
 package monitor
 
 import (
@@ -55,6 +56,7 @@ type Event struct {
 	Data        []*EventData `json:"data"`
 }
 
+// EventData represents one BKMonitor event payload with content and dimensions.
 type EventData struct {
 	Name   string `json:"event_name"`
 	Target string `json:"target"`
@@ -114,30 +116,37 @@ type EventData struct {
 	} `json:"dimension"`
 }
 
+// SetEndpoint sets the BKMonitor agent endpoint.
 func SetEndpoint(epoint string) {
 	agentEndpoint = epoint
 }
 
+// SetAccessToken sets the BKMonitor access token.
 func SetAccessToken(token string) {
 	accessToken = token
 }
 
+// SetBkMonitorBeat sets the bkmonitorbeat binary path.
 func SetBkMonitorBeat(beatPath string) {
 	bkMonitorBeat = beatPath
 }
 
+// SetDataID sets the BKMonitor data ID.
 func SetDataID(id uint64) {
 	dataID = id
 }
 
+// SetReportType sets the report type passed to bkmonitorbeat.
 func SetReportType(rtype string) {
 	reporterType = rtype
 }
 
+// SetReporterKind sets the report message kind passed to bkmonitorbeat.
 func SetReporterKind(rkind string) {
 	reporterKind = rkind
 }
 
+// PostBKMonitor posts event data to BKMonitor through bkmonitorbeat.
 func PostBKMonitor(timeout time.Duration, edatas ...*EventData) error {
 	if dataID == 0 {
 		return gerrors.Newf(gerrors.InvalidParameter, "invalid data id(%d)", dataID)
@@ -195,7 +204,12 @@ func PostBKMonitor(timeout time.Duration, edatas ...*EventData) error {
 	cmd.Stderr = &stderr
 
 	if err = cmd.Run(); err != nil {
-		logger.Error("post bkmonitor event failed, stdout(%s), stderr(%s), %v", stdout.String(), stderr.String(), err)
+		logger.Error(
+			"post bkmonitor event failed, stdout: %s, stderr: %s, errmsg: %s",
+			stdout.String(),
+			stderr.String(),
+			err,
+		)
 		return gerrors.Newf(gerrors.BkMonitorFailure, "post bkmonitor event failed, %v", err)
 	}
 

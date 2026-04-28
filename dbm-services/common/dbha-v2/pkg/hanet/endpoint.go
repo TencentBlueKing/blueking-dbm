@@ -26,6 +26,7 @@ package hanet
 
 import (
 	"fmt"
+	"net"
 	"net/url"
 	"strconv"
 	"strings"
@@ -34,54 +35,134 @@ import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 )
 
-// Endpoint for parsing DSN addresses
+// Endpoint represents a parsed network address. Three input formats are accepted:
+//
+//   - bare host:port (e.g. "127.0.0.1:3306")
+//   - tcp://host:port
+//   - http://host:port (or any scheme://host:port)
+//
+// When the input has no scheme, callers supply a default scheme that fits their
+// transport (tcp for raw sockets / MySQL / Kafka, http for HTTP / etcd, etc.).
+// The scheme is informational; the actual transport is decided by the consumer.
 type Endpoint struct {
 	Proto string `json:"proto"`
 	Host  string `json:"host"`
 	Port  int    `json:"port"`
 }
 
-// NewEndpoint create new endpoint by DSN
-func NewEndpoint(dsn string) (*Endpoint, error) {
-	parsedURL, err := url.Parse(dsn)
-	if err != nil {
-		return nil, gerrors.Newf(gerrors.InvalidUrl, "invalid DSN(%s)", dsn)
+// Parse parses a single address. When raw lacks a scheme, defaultScheme is used
+// to populate Proto. Empty or port-less inputs return InvalidUrl.
+func Parse(raw, defaultScheme string) (*Endpoint, error) {
+	addr := strings.TrimSpace(raw)
+	if addr == "" {
+		return nil, gerrors.Newf(gerrors.InvalidUrl, "endpoint is empty")
 	}
 
-	epoint := &Endpoint{}
-	epoint.Proto = parsedURL.Scheme
-	epoint.Host = parsedURL.Hostname()
-	port, err := strconv.Atoi(parsedURL.Port())
-	if err != nil {
-		return nil, gerrors.Newf(gerrors.InvalidUrl, "invalid port in DSN(%s)", dsn)
-	}
-	epoint.Port = port
+	scheme := strings.TrimSpace(defaultScheme)
+	hostPort := addr
 
-	return epoint, nil
+	// url.Parse silently drops path/query/fragment; only scheme and host:port are used.
+	// e.g. "http://host:port/path?query=1" → Scheme="http", Host="host:port"
+	if strings.Contains(addr, "://") {
+		parsedURL, err := url.Parse(addr)
+		if err != nil {
+			return nil, gerrors.Newf(gerrors.InvalidUrl, "invalid endpoint(%s), errmsg: %s", raw, err)
+		}
+
+		scheme = parsedURL.Scheme
+		hostPort = parsedURL.Host
+		if hostPort == "" {
+			return nil, gerrors.Newf(gerrors.InvalidUrl, "invalid endpoint(%s): missing host", raw)
+		}
+	}
+
+	host, portStr, err := net.SplitHostPort(hostPort)
+	if err != nil {
+		return nil, gerrors.Newf(gerrors.InvalidUrl, "invalid endpoint(%s), errmsg: %s", raw, err)
+	}
+
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		return nil, gerrors.Newf(gerrors.InvalidUrl, "invalid port in endpoint(%s), errmsg: %s", raw, err)
+	}
+	if port < 1 || port > 65535 {
+		return nil, gerrors.Newf(gerrors.InvalidUrl, "port out of range in endpoint(%s): %d", raw, port)
+	}
+
+	return &Endpoint{
+		Proto: scheme,
+		Host:  host,
+		Port:  port,
+	}, nil
 }
 
-// NewEndpoints create a group endpoint by DSNs
-//
-// split with ';'
-func NewEndpoints(dsns string) ([]*Endpoint, error) {
-	epoints := []*Endpoint{}
+// ParseList parses a delimiter-separated address list (delimiter is constant.Delimiter,
+// currently ";"). Each item passes through Parse with the same defaultScheme.
+func ParseList(raw, defaultScheme string) ([]*Endpoint, error) {
+	addr := strings.TrimSpace(raw)
+	if addr == "" {
+		return nil, gerrors.Newf(gerrors.InvalidUrl, "endpoint list is empty")
+	}
 
-	endpoints := strings.Split(dsns, constant.Delimiter)
-	for _, endpoint := range endpoints {
-		epoint, err := NewEndpoint(endpoint)
+	parts := strings.Split(addr, constant.Delimiter)
+	endpoints := make([]*Endpoint, 0, len(parts))
+	for _, part := range parts {
+		ep, err := Parse(part, defaultScheme)
 		if err != nil {
 			return nil, err
 		}
-		epoints = append(epoints, epoint)
+		endpoints = append(endpoints, ep)
 	}
-
-	return epoints, nil
+	return endpoints, nil
 }
 
+// NewEndpoint parses a single address using "tcp" as the default scheme. Kept for
+// backward compatibility; new code should call Parse with an explicit default.
+func NewEndpoint(dsn string) (*Endpoint, error) {
+	return Parse(dsn, "tcp")
+}
+
+// NewEndpoints parses a ";" separated address list using "tcp" as the default
+// scheme. Kept for backward compatibility; new code should call ParseList with
+// an explicit default.
+func NewEndpoints(dsns string) ([]*Endpoint, error) {
+	return ParseList(dsns, "tcp")
+}
+
+// String returns the canonical scheme://host:port form.
 func (e Endpoint) String() string {
 	return fmt.Sprintf("%s://%s:%d", e.Proto, e.Host, e.Port)
 }
 
+// URL is an alias for String, used at call sites that expect a full URL form.
+func (e Endpoint) URL() string {
+	return e.String()
+}
+
+// Addr returns host:port (no scheme), suitable for net.Listen / http.Server.Addr.
 func (e Endpoint) Addr() string {
-	return fmt.Sprintf("%s:%d", e.Host, e.Port)
+	return net.JoinHostPort(e.Host, strconv.Itoa(e.Port))
+}
+
+// HostPort is an alias for Addr, used at call sites that emphasize the host:port form.
+func (e Endpoint) HostPort() string {
+	return e.Addr()
+}
+
+// ToURLs returns scheme://host:port for each endpoint as a string slice.
+func ToURLs(endpoints []*Endpoint) []string {
+	out := make([]string, len(endpoints))
+	for i, ep := range endpoints {
+		out[i] = ep.URL()
+	}
+	return out
+}
+
+// ToHostPorts returns host:port for each endpoint as a string slice.
+func ToHostPorts(endpoints []*Endpoint) []string {
+	out := make([]string, len(endpoints))
+	for i, ep := range endpoints {
+		out[i] = ep.HostPort()
+	}
+	return out
 }

@@ -29,13 +29,13 @@ import (
 	"context"
 	"io"
 	"net"
-	"strings"
 	"sync"
 
 	"dbm-services/common/dbha-v2/internal/receiver/config"
 	"dbm-services/common/dbha-v2/internal/receiver/sink"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/proto"
 
@@ -50,17 +50,19 @@ type Probe struct {
 	wg     sync.WaitGroup
 	savers []sink.Sinker
 	cfg    config.SourceConfig
+	ep     *hanet.Endpoint
 	svr    *grpc.Server
 }
 
-// NewProbeServer new a receiver server
+// NewProbeServer creates a new receiver server. The endpoint is parsed and validated once here;
+// Run reuses the cached result to avoid redundant parsing.
 func NewProbeServer(cfg config.SourceConfig, outputers []sink.Sinker) (*Probe, error) {
-	addr := strings.TrimSpace(cfg.Endpoints)
-	if addr == "" {
-		return nil, gerrors.New(gerrors.InvalidParameter, "address is required")
+	ep, err := hanet.Parse(cfg.Endpoints, "tcp")
+	if err != nil {
+		return nil, gerrors.Newf(gerrors.InvalidConfiguration, "invalid probe source endpoint, errmsg: %s", err)
 	}
 
-	return &Probe{cfg: cfg, savers: outputers}, nil
+	return &Probe{cfg: cfg, ep: ep, savers: outputers}, nil
 }
 
 // PushData handles a client push stream until the context is canceled, EOF,
@@ -90,17 +92,17 @@ func (p *Probe) PushData(stream proto.ReceiverService_PushDataServer) error {
 		default:
 			req, err := stream.Recv()
 			if err == io.EOF {
-				logger.Error("receiver server exited. recv return errmsg(%v)", err)
+				logger.Error("receiver server exited, errmsg: %s", err)
 				return nil
 			}
 
 			if err != nil {
-				logger.Error("receiver server exited. recv return errmsg(%v)", err)
+				logger.Error("receiver server exited, errmsg: %s", err)
 				return nil
 			}
 
 			if err := connHandler.postEvent(req); err != nil {
-				logger.Warn("handle the client event data failed, client(%s), errmsg(%v)", clientId, err)
+				logger.Warn("handle the client event data failed, client: %s, errmsg: %s", clientId, err)
 			}
 		}
 	}
@@ -147,9 +149,10 @@ func (p *Probe) Run(ctx context.Context) error {
 	)
 
 	proto.RegisterReceiverServiceServer(svr, p)
-	listen, err := net.Listen("tcp", p.cfg.Endpoints)
+
+	listen, err := net.Listen("tcp", p.ep.HostPort())
 	if err != nil {
-		logger.Error("receiver listen failed. address(%s)", p.cfg.Endpoints)
+		logger.Error("probe source listen failed, address: %s, errmsg: %s", p.ep.HostPort(), err)
 		return gerrors.New(gerrors.NetException, err.Error())
 	}
 

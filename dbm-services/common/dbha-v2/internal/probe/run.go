@@ -78,7 +78,7 @@ func Run(cmd *cobra.Command, args []string) error {
 	log := logger.NewDbmLogger(logCfg)
 	logger.SetLogger(log)
 
-	logger.Debug("probe config. %v", config.Cfg)
+	logger.Debug("probe startup config, log_path: %s, log_level: %s", config.Cfg.Log.Path, config.Cfg.Log.Level)
 
 	clientID, err := machine.ID()
 	if err != nil {

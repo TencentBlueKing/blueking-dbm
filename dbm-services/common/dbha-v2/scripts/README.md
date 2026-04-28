@@ -52,7 +52,7 @@ python3 scripts/render_configs.py --module server \
     3. `ANALYSIS_APM_LISTEN_ADDRESS` → `http://<本机检测 IPv4>:50082`（失败则为 `http://127.0.0.1:50082`）。
     4. `RECEIVER_SOURCE_PROBE_ENDPOINT` → `<本机检测 IPv4>:50052`（失败则为 `127.0.0.1:50052`）。
     5. `ADMIN_GRPC_LISTEN_ADDRESS` → `<本机检测 IPv4>:50051`；若仅为 `:<端口>` 则补全主机段。
-    6. `ADMIN_WEB_HOST` → `<本机检测 IPv4>`（失败则为 `127.0.0.1`）；`ADMIN_WEB_PORT` → `50060`。
+    6. `ADMIN_WEB_LISTEN_ADDRESS` → `http://<本机检测 IPv4>:50060`（失败则为 `http://127.0.0.1:50060`）。
   - 「本机检测 IPv4」依赖必填参数 `--ip-detect-udp-connect-host`（UDP connect 对端；与上列 (1)–(6) 同一策略）。
 - **receiver `service.source` 分片（server）**：`RECEIVER_SOURCE_PROBE_SHARD_FILE` / `RECEIVER_SOURCE_KAFKA_SHARD_FILE` 各对应一类 source 列表项（默认见 `templates/snippets/receiver_source_probe.yaml`、`receiver_source_kafka.yaml`），占位符与 rc 中 `RECEIVER_SOURCE_PROBE_*` / `RECEIVER_SOURCE_KAFKA_*` 一致。
 - **probe client（probe）**：`probe.yaml` 的 `client.*` 可配置 probe 侧 gRPC client 的 keepalive/msg size，以及 receiver client 的重连参数；未设置时回退到内置默认值。

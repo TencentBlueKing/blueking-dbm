@@ -104,7 +104,7 @@ func NewReceiverClient(ctx context.Context, endpoints string, clientId string) (
 	)
 
 	if err != nil {
-		logger.Error("failed to new grpc client. errmsg(%v)", err)
+		logger.Error("failed to new grpc client, errmsg: %s", err)
 		return nil, gerrors.New(gerrors.GrpcFailure, err.Error())
 	}
 
@@ -187,7 +187,7 @@ func (r *ReceiverClient) handleDisconnect() {
 	logger.Info("receiver client attempting to reconnect...")
 	err := r.createStream()
 	if err != nil {
-		logger.Warn("receiver client reconnect failed. errmsg(%v)", err)
+		logger.Warn("receiver client reconnect failed, errmsg: %s", err)
 		r.wg.Add(1)
 		go r.handleDisconnect()
 		return
@@ -319,7 +319,7 @@ func (r *ReceiverClient) Close() {
 	if r.stream != nil {
 		_, err := r.stream.CloseAndRecv()
 		if err != nil {
-			logger.Error("receiver client close and recv failed. errmsg(%v)", err)
+			logger.Error("receiver client close and recv failed, errmsg: %s", err)
 		}
 	}
 

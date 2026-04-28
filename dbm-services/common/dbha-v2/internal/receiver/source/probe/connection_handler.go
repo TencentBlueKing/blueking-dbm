@@ -69,7 +69,7 @@ func (c *connectionHandler) readEvent() {
 
 			for _, saver := range c.savers {
 				if err := saver.Save(data); err != nil {
-					logger.Warn("save probe msg failed, %v", err)
+					logger.Warn("save probe msg failed, errmsg: %s", err)
 				}
 			}
 		}

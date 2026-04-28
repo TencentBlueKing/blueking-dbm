@@ -74,7 +74,7 @@ func (c *collector) open(ctx context.Context) (*haprobe.DbEvent, error) {
 	})
 
 	if err := c.rdb.Ping(ctx).Err(); err != nil {
-		logger.Warn("failed to connect to redis: %s, errmsg: %v", addr, err)
+		logger.Warn("failed to connect to redis, endpoint: %s, errmsg: %s", addr, err)
 		event := &haprobe.DbEvent{
 			Name:       haprobe.DbEventNameDetectFailure,
 			Reason:     haprobe.DbEventNameReasonConnectionException,
@@ -94,7 +94,7 @@ func (c *collector) close() {
 	}
 	err := c.rdb.Close()
 	if err != nil {
-		logger.Warn("failed to close redis db, err: %v", err)
+		logger.Warn("failed to close redis db, errmsg: %s", err)
 		return
 	}
 }
@@ -175,7 +175,7 @@ func (c *collector) obtainPredixyStatus(ctx context.Context) (*haprobe.RedisPred
 
 	serversInfo, err := c.info(ctx, "Servers")
 	if err != nil {
-		logger.Warn("failed to get predixy servers info: %v", err)
+		logger.Warn("failed to get predixy servers info, errmsg: %s", err)
 	} else {
 		parsePredixyServersInfo(serversInfo, status)
 	}

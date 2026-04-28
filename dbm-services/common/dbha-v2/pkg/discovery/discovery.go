@@ -22,6 +22,8 @@
  * SOFTWARE.
  */
 
+// Package discovery provides etcd-backed service discovery primitives, including
+// key watch/get helpers and lifecycle management for discovery clients.
 package discovery
 
 import (
@@ -185,7 +187,7 @@ func (d *Discovery) watchCommon(ctx context.Context, key string, opts ...clientv
 					d.client.Close()
 					d.client = nil
 					d.cliMu.Unlock()
-					logger.Error("failed to read watch event, errmsg: %v", err)
+					logger.Error("failed to read watch event, errmsg: %s", err)
 					return
 				}
 

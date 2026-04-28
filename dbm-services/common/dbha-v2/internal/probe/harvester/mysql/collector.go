@@ -61,7 +61,7 @@ func (c *collector) open() (*haprobe.DbEvent, error) {
 	)
 
 	if err != nil {
-		logger.Warn("create mysql db operator failed, %v", err)
+		logger.Warn("create mysql db operator failed, errmsg: %s", err)
 		event := &haprobe.DbEvent{
 			Name:       haprobe.DbEventNameDetectFailure,
 			Reason:     haprobe.DbEventNameReasonConnectionException,

@@ -90,7 +90,7 @@ func Run(cmd *cobra.Command, args []string) error {
 	log := logger.NewDbmLogger(logCfg)
 	logger.SetLogger(log)
 
-	logger.Debug("admin configuration:%v", config.Cfg)
+	logger.Debug("admin startup config, log_path: %s, log_level: %s", config.Cfg.Log.Path, config.Cfg.Log.Level)
 
 	ctx := context.Background()
 	svr := &Service{logger: log.OriginLogger()}

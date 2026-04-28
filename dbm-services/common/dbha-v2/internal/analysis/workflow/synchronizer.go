@@ -192,15 +192,19 @@ func (s *Synchronizer) syncMetadataFromDbm(ctx context.Context) error {
 				continue
 			}
 
-			logger.Warn("failed to request the metadata from DBM, API: %s, req: %v, errmsg: %s",
-				config.Cfg.Workflow.DbmApiMetadata.Api, req, err)
+			logger.Warn(
+				"failed to request metadata from dbm, api: %s, hash_value: %d, errmsg: %s",
+				config.Cfg.Workflow.DbmApiMetadata.Api,
+				req.HashValue,
+				err,
+			)
 
 			hasError = true
 			continue
 		}
 
 		if err := s.saveRespond(metaRsp); err != nil {
-			logger.Warn("failed to save the metadata: %v, errmsg: %v", metaRsp, err)
+			logger.Warn("failed to save metadata, rows: %d, errmsg: %s", len(metaRsp.Data), err)
 		}
 	}
 
@@ -229,7 +233,7 @@ func (s *Synchronizer) syncMetadataFromDbm(ctx context.Context) error {
 
 func (s *Synchronizer) updateCache(ctx context.Context) error {
 	if err := s.syncMetadataFromDbm(ctx); err != nil {
-		logger.Warn("faled to sync metadata from dbm, errmsg: %v", err)
+		logger.Warn("failed to sync metadata from dbm, errmsg: %s", err)
 	}
 
 	election, err := s.discoveryCli.CreateElection(electionName)
@@ -243,7 +247,7 @@ func (s *Synchronizer) updateCache(ctx context.Context) error {
 
 		if err := election.Campaign(ctx); err != nil {
 			election.Close()
-			logger.Warn("election failure, errmsg: %v", err)
+			logger.Warn("election failure, errmsg: %s", err)
 			election = nil
 		}
 
@@ -253,14 +257,14 @@ func (s *Synchronizer) updateCache(ctx context.Context) error {
 			if election == nil {
 				election, err = s.discoveryCli.CreateElection(electionName)
 				if err != nil {
-					logger.Warn("election failure, errmsg: %v", err)
+					logger.Warn("election failure, errmsg: %s", err)
 					time.Sleep(100 * time.Millisecond)
 					continue
 				}
 
 				if err := election.Campaign(ctx); err != nil {
 					election.Close()
-					logger.Warn("election failure, errmsg: %v", err)
+					logger.Warn("election failure, errmsg: %s", err)
 					election = nil
 					time.Sleep(100 * time.Millisecond)
 					continue
@@ -280,7 +284,7 @@ func (s *Synchronizer) updateCache(ctx context.Context) error {
 
 			case <-timer.C:
 				if err := s.syncMetadataFromDbm(ctx); err != nil {
-					logger.Warn("faled to query metadata from dbm, errmsg: %v", err)
+					logger.Warn("failed to query metadata from dbm, errmsg: %s", err)
 				}
 
 				timer.Reset(config.Cfg.Workflow.UpdateDbmCacheInterval)

@@ -173,7 +173,7 @@ func (s *Server) Start() error {
 	go func() {
 		logger.Info("haapm metrics server listening on %s", s.config.Addr)
 		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("haapm metrics server error: %v", err)
+			logger.Error("haapm metrics server error, errmsg: %s", err)
 		}
 	}()
 	return nil

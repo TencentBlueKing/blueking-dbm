@@ -46,6 +46,7 @@ import (
 type Collector struct {
 }
 
+// SetCpuStatus collects CPU usage/load metrics and fills hostStatus fields.
 func (c *Collector) SetCpuStatus(hostStatus *haprobe.HostMetric) error {
 	cpuPercent, err := cpu.Percent(1*time.Second, false)
 	if err != nil {
@@ -87,6 +88,7 @@ func (c *Collector) SetCpuStatus(hostStatus *haprobe.HostMetric) error {
 	return nil
 }
 
+// SetMemoryStatus collects memory and swap metrics and fills hostStatus fields.
 func (c *Collector) SetMemoryStatus(hostStatus *haprobe.HostMetric) error {
 	memory, err := mem.VirtualMemory()
 	if err != nil {
@@ -115,14 +117,14 @@ func (c *Collector) SetMemoryStatus(hostStatus *haprobe.HostMetric) error {
 func (c *Collector) SetDiskStatus(hostStatus *haprobe.HostMetric) error {
 	partitions, err := disk.Partitions(false)
 	if err != nil {
-		logger.Error("failed to get partitions info, %v", err)
+		logger.Error("failed to get partitions info, errmsg: %s", err)
 		return err
 	}
 
 	for _, partition := range partitions {
 		usageStat, err := disk.Usage(partition.Mountpoint)
 		if err != nil {
-			logger.Error("failed to get disk usage info. errmsg: %v", err)
+			logger.Error("failed to get disk usage info, errmsg: %s", err)
 			continue
 		}
 
@@ -135,7 +137,7 @@ func (c *Collector) SetDiskStatus(hostStatus *haprobe.HostMetric) error {
 	return nil
 }
 
-// setNetStatus set this host net status
+// SetNetStatus collects network metrics and fills hostStatus fields.
 func (c *Collector) SetNetStatus(hostStatus *haprobe.HostMetric) error {
 	ifaces, err := net.Interfaces()
 	if err != nil {
