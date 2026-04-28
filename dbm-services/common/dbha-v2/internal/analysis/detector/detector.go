@@ -26,6 +26,8 @@
 package detector
 
 import (
+	"errors"
+	"strconv"
 	"sync"
 	"time"
 
@@ -157,29 +159,41 @@ func (d *detectorTask) run(cmd string) {
 	resp.Err = err
 	d.resp = resp
 
-	d.reportSshTime(start)
+	var code int
+	if sshResp != nil {
+		code = sshResp.ExitCode
+	} else {
+		var gerr *gerrors.Error
+		if errors.As(err, &gerr) {
+			code = gerr.Code()
+		}
+	}
+
+	d.reportSshTime(start, code)
 
 	if err != nil {
-		d.reportSshError()
+		d.reportSshError(code)
 	}
 }
 
-// reportSshTime reports SSH detection latency metric for a single connection.
-func (d *detectorTask) reportSshTime(start time.Time) {
-	if reportErr := apm.DetectorSshTimeConsumingMs.UpdateLabel(map[string]string{
+// reportSshTime reports SSH detection duration metric for a single connection.
+func (d *detectorTask) reportSshTime(start time.Time, code int) {
+	if reportErr := apm.DetectorSshTimeConsumingMs.ObserveWithLabels(map[string]string{
 		haapm.MetricLabelServiceID:   d.serviceID,
 		haapm.MetricLabelServiceName: apm.MetricServerName,
-	}).Observe(float64(time.Since(start).Milliseconds())); reportErr != nil {
+		apm.MetricLabelStatusCode:    strconv.Itoa(code),
+	}, float64(time.Since(start).Milliseconds())); reportErr != nil {
 		logger.Warn("failed to report detector ssh time consuming metric, errmsg: %s", reportErr)
 	}
 }
 
 // reportSshError reports SSH detection error metric.
-func (d *detectorTask) reportSshError() {
-	if reportErr := apm.DetectorSshErrorTotal.UpdateLabel(map[string]string{
+func (d *detectorTask) reportSshError(code int) {
+	if reportErr := apm.DetectorSshErrorTotal.IncWithLabels(map[string]string{
 		haapm.MetricLabelServiceID:   d.serviceID,
 		haapm.MetricLabelServiceName: apm.MetricServerName,
-	}).Inc(); reportErr != nil {
+		apm.MetricLabelStatusCode:    strconv.Itoa(code),
+	}); reportErr != nil {
 		logger.Warn("failed to report detector ssh error metric, errmsg: %s", reportErr)
 	}
 }

@@ -34,6 +34,8 @@ const (
 	MetricLabelDbType      = "db_type"
 	MetricLabelQueryType   = "query_type"
 	MetricLabelApiName     = "api_name"
+	MetricLabelStatusCode  = "status_code"
+	MetricLabelBizID       = "biz_id"
 
 	MetricServerName                 = "analysis"
 	MetricApiNameQueryMetadata       = "query_metadata"
@@ -63,6 +65,12 @@ var (
 	PopSwitchTimeConsumingMs *haapm.HaHistogram
 	PopSwitchBusinessTotal   *haapm.HaCounter
 
+	// SlidingWindow*
+	SlidingWindowSize *haapm.HaGauge
+
+	// Am Business*
+	AmBusinessTotal *haapm.HaGauge
+
 	// Switching*
 	SwitchingErrorTotal      *haapm.HaCounter
 	SwitchingSuccessTotal    *haapm.HaCounter
@@ -73,21 +81,22 @@ var (
 	DbQueryErrorTotal      *haapm.HaCounter
 
 	// DBM API*
-	DbmApiRequestTimeConsumingMs *haapm.HaHistogram
-	DbmApiRequestErrorTotal      *haapm.HaCounter
+	DbmApiSyncMetadataTimeConsumingMs  *haapm.HaHistogram
+	DbmApiSyncMetadataErrorTotal       *haapm.HaCounter
+	DbmApiQueryMetadataTimeConsumingMs *haapm.HaHistogram
+	DbmApiQueryMetadataErrorTotal      *haapm.HaCounter
 
 	// SSH Detector*
 	DetectorSshTimeConsumingMs *haapm.HaHistogram
 	DetectorSshErrorTotal      *haapm.HaCounter
 )
 
-// Default histogram buckets for latency (milliseconds)
-var defaultLatencyBuckets = []float64{1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000}
-
 func init() {
 	initScanMetrics()
 	initPopSwitchMetrics()
 	initSwitchingMetrics()
+	initSlidingWindowMetrics()
+	initAmBusinessMetrics()
 	initMySQLMetrics()
 	initRedisMetrics()
 	initDBMetrics()
@@ -107,7 +116,7 @@ func initScanMetrics() {
 	ScanBusinessTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
 		"scan_business_time_consuming_ms",
 		"Time consuming of scan business in milliseconds",
-		defaultLatencyBuckets,
+		haapm.DefaultDurationBuckets,
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
 	)
 }
@@ -124,7 +133,23 @@ func initPopSwitchMetrics() {
 	PopSwitchTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
 		"pop_switch_time_consuming_ms",
 		"Time consuming of pop-switch business in milliseconds",
-		defaultLatencyBuckets,
+		haapm.DefaultDurationBuckets,
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
+	)
+}
+
+func initSlidingWindowMetrics() {
+	SlidingWindowSize = haapm.NewHaGauge(
+		"sliding_window_size",
+		"Size of sliding window",
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelBizID,
+	)
+}
+
+func initAmBusinessMetrics() {
+	AmBusinessTotal = haapm.NewHaGauge(
+		"am_business_total",
+		"Total number of business processed by am",
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
 	)
 }
@@ -134,7 +159,7 @@ func initSwitchingMetrics() {
 	SwitchingTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
 		"switching_time_consuming_ms",
 		"Time consuming of switching in milliseconds",
-		defaultLatencyBuckets,
+		haapm.DefaultDurationBuckets,
 		MetricLabelDbType,
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
 	)
@@ -159,7 +184,7 @@ func initMySQLMetrics() {
 	MysqlClusterSwitchingTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
 		"mysql_cluster_switching_time_consuming_ms",
 		"Time consuming of MySQL cluster switching in milliseconds",
-		defaultLatencyBuckets,
+		haapm.DefaultDurationBuckets,
 		MetricLabelSwitchID, MetricLabelActionScope, MetricLabelDbType,
 	)
 
@@ -167,7 +192,7 @@ func initMySQLMetrics() {
 	MysqlHostSwitchingTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
 		"mysql_host_switching_time_consuming_ms",
 		"Time consuming of MySQL host switching in milliseconds",
-		defaultLatencyBuckets,
+		haapm.DefaultDurationBuckets,
 		MetricLabelSwitchID, MetricLabelActionScope, MetricLabelDbType,
 	)
 
@@ -175,7 +200,7 @@ func initMySQLMetrics() {
 	MysqlInstanceSwitchingTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
 		"mysql_instance_switching_time_consuming_ms",
 		"Time consuming of MySQL instance switching in milliseconds",
-		defaultLatencyBuckets,
+		haapm.DefaultDurationBuckets,
 		MetricLabelSwitchID, MetricLabelActionScope, MetricLabelDbType,
 	)
 
@@ -215,7 +240,7 @@ func initDBMetrics() {
 	DbQueryTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
 		"db_query_time_consuming_ms",
 		"Time consuming of database queries in milliseconds",
-		defaultLatencyBuckets,
+		haapm.DefaultDurationBuckets,
 		MetricLabelQueryType,
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
 	)
@@ -230,21 +255,38 @@ func initDBMetrics() {
 }
 
 func initDbmApiMetrics() {
-	// DBM API request time consuming histogram
-	DbmApiRequestTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
-		"dbm_api_request_time_consuming_ms",
-		"Time consuming of DBM API requests in milliseconds",
-		defaultLatencyBuckets,
+	// DBM API sync metadata request time consuming histogram
+	DbmApiSyncMetadataTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
+		"dbm_api_sync_metadata_request_time_consuming_ms",
+		"Time consuming of DBM API sync metadata requests in milliseconds",
+		haapm.DefaultDurationBuckets,
 		MetricLabelApiName,
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
 	)
 
-	// DBM API request error counter
-	DbmApiRequestErrorTotal = haapm.NewHaCounter(
-		"dbm_api_request_error_total",
-		"Total number of DBM API request errors",
+	// DBM API sync metadata request error counter
+	DbmApiSyncMetadataErrorTotal = haapm.NewHaCounter(
+		"dbm_api_sync_metadata_request_error_total",
+		"Total number of DBM API sync metadata request errors",
 		MetricLabelApiName,
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
+	)
+
+	// DBM API query metadata time consuming histogram
+	DbmApiQueryMetadataTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
+		"dbm_api_query_metadata_request_time_consuming_ms",
+		"Time consuming of DBM API query metadata requests in milliseconds",
+		haapm.DefaultDurationBuckets,
+		MetricLabelApiName,
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelStatusCode,
+	)
+
+	// DBM API query metadata error counter
+	DbmApiQueryMetadataErrorTotal = haapm.NewHaCounter(
+		"dbm_api_query_metadata_request_error_total",
+		"Total number of DBM API query metadata request errors",
+		MetricLabelApiName,
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelStatusCode,
 	)
 }
 
@@ -253,15 +295,15 @@ func initDetectorMetrics() {
 	DetectorSshTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
 		"detector_ssh_time_consuming_ms",
 		"Time consuming of SSH detection in milliseconds",
-		defaultLatencyBuckets,
-		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
+		haapm.DefaultDurationBuckets,
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelStatusCode,
 	)
 
 	// SSH detector error counter
 	DetectorSshErrorTotal = haapm.NewHaCounter(
 		"detector_ssh_error_total",
 		"Total number of SSH detection errors",
-		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelStatusCode,
 	)
 }
 
@@ -286,13 +328,17 @@ func InitAPM(serviceID, serviceName string) {
 		PopSwitchTimeConsumingMs,
 		ScanBusinessTimeConsumingMs,
 		ScanBusinessTotal,
+		SlidingWindowSize,
+		AmBusinessTotal,
 		SwitchingErrorTotal,
 		SwitchingSuccessTotal,
 		SwitchingTimeConsumingMs,
 		DbQueryTimeConsumingMs,
 		DbQueryErrorTotal,
-		DbmApiRequestTimeConsumingMs,
-		DbmApiRequestErrorTotal,
+		DbmApiSyncMetadataTimeConsumingMs,
+		DbmApiSyncMetadataErrorTotal,
+		DbmApiQueryMetadataTimeConsumingMs,
+		DbmApiQueryMetadataErrorTotal,
 		DetectorSshTimeConsumingMs,
 		DetectorSshErrorTotal,
 	)

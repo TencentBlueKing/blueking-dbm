@@ -27,9 +27,12 @@ package workflow
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/analysis/apm"
+	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
@@ -51,18 +54,20 @@ type BizWindowManager struct {
 	inflightTTL    time.Duration
 	windows        map[int]*slidingWindow // key = BizID
 	inflight       map[string]time.Time   // key = instanceKey (bkCloudID:ip:port:dbType), value = inflight mark timestamp
+	myServiceID    string
 }
 
 // NewBizWindowManager creates a BizWindowManager with the given window duration and inflight TTL.
 // windowDuration controls how long entries stay in the window before being eligible for Pop.
 // inflightTTL is the maximum time an inflight mark is valid; expired marks are automatically cleaned up
 // to prevent permanent blocking if MarkDone is not called (e.g. goroutine panic).
-func NewBizWindowManager(windowDuration, inflightTTL time.Duration) *BizWindowManager {
+func NewBizWindowManager(windowDuration, inflightTTL time.Duration, serviceID string) *BizWindowManager {
 	return &BizWindowManager{
 		windowDuration: windowDuration,
 		inflightTTL:    inflightTTL,
 		windows:        make(map[int]*slidingWindow),
 		inflight:       make(map[string]time.Time),
+		myServiceID:    serviceID,
 	}
 }
 
@@ -155,7 +160,7 @@ func (m *BizWindowManager) MarkDone(instanceKey string) {
 func (m *BizWindowManager) getOrCreateWindowLocked(bizId int) *slidingWindow {
 	w, ok := m.windows[bizId]
 	if !ok {
-		w = newSlidingWindow(m.windowDuration)
+		w = newSlidingWindow(m.windowDuration, bizId, m.myServiceID)
 		m.windows[bizId] = w
 	}
 	return w
@@ -167,14 +172,18 @@ func (m *BizWindowManager) getOrCreateWindowLocked(bizId int) *slidingWindow {
 // slidingWindow is NOT safe for concurrent use; callers must hold the BizWindowManager lock.
 type slidingWindow struct {
 	windowDuration time.Duration
+	bizId          int
 	byKey          map[string]*FailureWindowEntry
+	myServiceID    string
 }
 
 // newSlidingWindow creates a time-based sliding window with the given duration.
-func newSlidingWindow(windowDuration time.Duration) *slidingWindow {
+func newSlidingWindow(windowDuration time.Duration, bizId int, serviceID string) *slidingWindow {
 	return &slidingWindow{
 		windowDuration: windowDuration,
+		bizId:          bizId,
 		byKey:          make(map[string]*FailureWindowEntry),
+		myServiceID:    serviceID,
 	}
 }
 
@@ -186,6 +195,15 @@ func (w *slidingWindow) push(inst *FailureInstanceInfo, at time.Time) {
 	if e, ok := w.byKey[key]; ok {
 		e.Count++
 		return
+	}
+
+	// Report sliding window size metric
+	if err := apm.SlidingWindowSize.AddWithLabels(map[string]string{
+		haapm.MetricLabelServiceID:   w.myServiceID,
+		haapm.MetricLabelServiceName: apm.MetricServerName,
+		apm.MetricLabelBizID:         strconv.Itoa(w.bizId),
+	}, 1); err != nil {
+		logger.Warn("failed to report sliding window size metric, errmsg: %s", err)
 	}
 
 	w.byKey[key] = &FailureWindowEntry{
@@ -205,6 +223,17 @@ func (w *slidingWindow) pop(now time.Time) []*FailureWindowEntry {
 		if e.FirstAt.Before(cutoff) {
 			result = append(result, e)
 			delete(w.byKey, k)
+		}
+	}
+
+	if len(result) > 0 {
+		// Report sliding window size metric
+		if err := apm.SlidingWindowSize.AddWithLabels(map[string]string{
+			haapm.MetricLabelServiceID:   w.myServiceID,
+			haapm.MetricLabelServiceName: apm.MetricServerName,
+			apm.MetricLabelBizID:         strconv.Itoa(w.bizId),
+		}, float64(-len(result))); err != nil {
+			logger.Warn("failed to report sliding window size metric, errmsg: %s", err)
 		}
 	}
 

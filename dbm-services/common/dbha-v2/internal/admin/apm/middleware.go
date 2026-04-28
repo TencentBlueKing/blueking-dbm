@@ -66,35 +66,35 @@ func MetricMiddleware() gin.HandlerFunc {
 
 		c.Next()
 
-		latencyMs := float64(time.Since(start).Milliseconds())
+		durationMs := float64(time.Since(start).Milliseconds())
 		status := strconv.Itoa(c.Writer.Status())
 		respSize := float64(c.Writer.Size())
 		if respSize < 0 {
 			respSize = 0
 		}
-		recordAPIMetrics(method, path, status, latencyMs, reqSize, respSize, c.Writer.Status() >= 400)
+		recordAPIMetrics(method, path, status, durationMs, reqSize, respSize, c.Writer.Status() >= 400)
 	}
 }
 
 // recordAPIMetrics records all API metrics for one request with the same method/path/status.
-func recordAPIMetrics(method, path, status string, latencyMs float64, reqSize int, respSize float64, isError bool) {
+func recordAPIMetrics(method, path, status string, durationMs float64, reqSize int, respSize float64, isError bool) {
 	l := map[string]string{MetricLabelMethod: method, MetricLabelPath: path}
 	lWithStatus := map[string]string{MetricLabelMethod: method, MetricLabelPath: path, MetricLabelStatus: status}
 
-	if err := APIRequestsTotal.UpdateLabel(lWithStatus).Inc(); err != nil {
+	if err := APIRequestsTotal.IncWithLabels(lWithStatus); err != nil {
 		logger.Warn("failed to record api_requests_total, errmsg: %s", err)
 	}
-	if err := APIRequestLatencyMs.UpdateLabel(l).Observe(latencyMs); err != nil {
-		logger.Warn("failed to record api_request_latency_ms, errmsg: %s", err)
+	if err := APIRequestDurationMs.ObserveWithLabels(l, durationMs); err != nil {
+		logger.Warn("failed to record api_request_duration_ms, errmsg: %s", err)
 	}
-	if err := APIRequestSizeBytes.UpdateLabel(l).Observe(float64(reqSize)); err != nil {
+	if err := APIRequestSizeBytes.ObserveWithLabels(l, float64(reqSize)); err != nil {
 		logger.Warn("failed to record api_request_size_bytes, errmsg: %s", err)
 	}
-	if err := APIResponseSizeBytes.UpdateLabel(l).Observe(respSize); err != nil {
+	if err := APIResponseSizeBytes.ObserveWithLabels(l, respSize); err != nil {
 		logger.Warn("failed to record api_response_size_bytes, errmsg: %s", err)
 	}
 	if isError {
-		if err := APIRequestErrorsTotal.UpdateLabel(l).Inc(); err != nil {
+		if err := APIRequestErrorsTotal.IncWithLabels(l); err != nil {
 			logger.Warn("failed to record api_request_errors_total, errmsg: %s", err)
 		}
 	}

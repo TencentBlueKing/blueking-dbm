@@ -58,7 +58,6 @@ func NewSwitchExecutor(hadata *storage.DbhaData, dbmSync *Synchronizer, switcher
 // CreateRequestWithGroup creates a switcher request from a failure group.
 // It queries metadata from DBM for all instances in the group and filters out unavailable ones.
 func (e *SwitchExecutor) CreateRequestWithGroup(ctx context.Context, group *FailureGroup) *switcher.Request {
-	start := time.Now()
 	ips := group.IPs()
 	if len(ips) == 0 {
 		logger.Warn("empty IP list in failure group, cloudId: %d, dbType: %s", group.BkCloudID, group.DbType)
@@ -74,24 +73,7 @@ func (e *SwitchExecutor) CreateRequestWithGroup(ctx context.Context, group *Fail
 		logger.Warn("failed to query metadata from DBM, cloudId: %d, dbType: %s, instances: %d, errmsg: %s",
 			group.BkCloudID, group.DbType, len(group.Instances), err)
 
-		// Report DBM API query metadata request error
-		if reportErr := apm.DbmApiRequestErrorTotal.UpdateLabel(map[string]string{
-			apm.MetricLabelApiName:       apm.MetricApiNameQueryMetadata,
-			haapm.MetricLabelServiceID:   e.myServiceID,
-			haapm.MetricLabelServiceName: apm.MetricServerName,
-		}).Inc(); reportErr != nil {
-			logger.Warn("failed to report dbm api request error metric, errmsg: %s", reportErr)
-		}
 		return nil
-	}
-
-	// Report DBM API query metadata request latency
-	if reportErr := apm.DbmApiRequestTimeConsumingMs.UpdateLabel(map[string]string{
-		apm.MetricLabelApiName:       apm.MetricApiNameQueryMetadata,
-		haapm.MetricLabelServiceID:   e.myServiceID,
-		haapm.MetricLabelServiceName: apm.MetricServerName,
-	}).Observe(float64(time.Since(start).Milliseconds())); reportErr != nil {
-		logger.Warn("failed to report dbm api request time consuming metric, errmsg: %s", reportErr)
 	}
 
 	req := &switcher.Request{DbType: group.DbType}
@@ -195,26 +177,26 @@ func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.R
 
 func (e *SwitchExecutor) reportSwitchingMetrics(start time.Time, req *switcher.Request,
 	rsp *switcher.Response, dbType haprobe.DbType) {
-	if err := apm.SwitchingTimeConsumingMs.UpdateLabel(map[string]string{
+	if err := apm.SwitchingTimeConsumingMs.ObserveWithLabels(map[string]string{
 		apm.MetricLabelDbType:        dbType.String(),
 		haapm.MetricLabelServiceID:   e.myServiceID,
 		haapm.MetricLabelServiceName: apm.MetricServerName,
-	}).Observe(float64(time.Since(start).Milliseconds())); err != nil {
+	}, float64(time.Since(start).Milliseconds())); err != nil {
 		logger.Warn("failed to update switching time consuming metric, errmsg: %s", err)
 	}
 
 	successCount := float64(len(req.MySqlInstData) - len(rsp.MySqlFailureInsts))
-	if err := apm.SwitchingSuccessTotal.UpdateLabel(map[string]string{
+	if err := apm.SwitchingSuccessTotal.AddWithLabels(map[string]string{
 		haapm.MetricLabelServiceID:   e.myServiceID,
 		haapm.MetricLabelServiceName: apm.MetricServerName,
-	}).Add(successCount); err != nil {
+	}, successCount); err != nil {
 		logger.Error("failed to update switching success total metric, errmsg: %s", err.Error())
 	}
 
-	if err := apm.SwitchingErrorTotal.UpdateLabel(map[string]string{
+	if err := apm.SwitchingErrorTotal.AddWithLabels(map[string]string{
 		haapm.MetricLabelServiceID:   e.myServiceID,
 		haapm.MetricLabelServiceName: apm.MetricServerName,
-	}).Add(float64(len(rsp.MySqlFailureInsts))); err != nil {
+	}, float64(len(rsp.MySqlFailureInsts))); err != nil {
 		logger.Error("failed to update switching error total metric, errmsg: %s", err.Error())
 	}
 }

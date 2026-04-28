@@ -60,7 +60,11 @@ func (m *HaGauge) WithLabels(labels map[string]string) *BoundGauge {
 	return &BoundGauge{gauge: m, labels: copyLabels(labels)}
 }
 
-// UpdateLabel updates the labels.
+// UpdateLabel sets label values for the next Set/Inc/Dec/Add/Sub call.
+//
+// WARNING: This method is NOT atomic with the subsequent operation call.
+// In concurrent code, use SetWithLabels/IncWithLabels/AddWithLabels etc. instead,
+// which perform the full label-write + operation + reset atomically under a single lock.
 func (m *HaGauge) UpdateLabel(lvs map[string]string) *HaGauge {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -98,6 +102,10 @@ func (m *HaGauge) Set(val float64) error {
 		return m.Error
 	}
 
+	if m.metric.Collector == nil {
+		return nil
+	}
+
 	if len(m.labelNames) == 0 {
 		m.metric.Collector.(prometheus.Gauge).Set(val)
 		return m.Error
@@ -120,6 +128,10 @@ func (m *HaGauge) Inc() error {
 
 	if m.Error != nil {
 		return m.Error
+	}
+
+	if m.metric.Collector == nil {
+		return nil
 	}
 
 	if len(m.labelNames) == 0 {
@@ -146,6 +158,10 @@ func (m *HaGauge) Dec() error {
 		return m.Error
 	}
 
+	if m.metric.Collector == nil {
+		return nil
+	}
+
 	if len(m.labelNames) == 0 {
 		m.metric.Collector.(prometheus.Gauge).Dec()
 		return m.Error
@@ -168,6 +184,10 @@ func (m *HaGauge) Add(val float64) error {
 
 	if m.Error != nil {
 		return m.Error
+	}
+
+	if m.metric.Collector == nil {
+		return nil
 	}
 
 	if len(m.labelNames) == 0 {
@@ -194,6 +214,10 @@ func (m *HaGauge) Sub(val float64) error {
 		return m.Error
 	}
 
+	if m.metric.Collector == nil {
+		return nil
+	}
+
 	if len(m.labelNames) == 0 {
 		m.metric.Collector.(prometheus.Gauge).Sub(val)
 		return m.Error
@@ -206,6 +230,161 @@ func (m *HaGauge) Sub(val float64) error {
 
 	m.metric.Collector.(*prometheus.GaugeVec).With(m.labelValues).Sub(val)
 	return m.Error
+}
+
+// SetWithLabels performs the full label-write + set + reset atomically
+// under a single lock. This is the goroutine-safe entry point for concurrent code.
+func (m *HaGauge) SetWithLabels(labels map[string]string, val float64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	defer m.reset()
+
+	if m.metric.Collector == nil {
+		return nil
+	}
+
+	if len(m.labelNames) == 0 {
+		m.metric.Collector.(prometheus.Gauge).Set(val)
+		return nil
+	}
+
+	for k, v := range labels {
+		if _, ok := m.labelValues[k]; !ok {
+			return gerrors.Newf(gerrors.InvalidParameter, "label is mismatched: %s", k)
+		}
+		m.labelValues[k] = v
+	}
+
+	if len(m.labelValues) != len(m.labelNames) {
+		return gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+	}
+
+	m.metric.Collector.(*prometheus.GaugeVec).With(m.labelValues).Set(val)
+	return nil
+}
+
+// IncWithLabels performs the full label-write + inc + reset atomically
+// under a single lock. This is the goroutine-safe entry point for concurrent code.
+func (m *HaGauge) IncWithLabels(labels map[string]string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	defer m.reset()
+
+	if m.metric.Collector == nil {
+		return nil
+	}
+
+	if len(m.labelNames) == 0 {
+		m.metric.Collector.(prometheus.Gauge).Inc()
+		return nil
+	}
+
+	for k, v := range labels {
+		if _, ok := m.labelValues[k]; !ok {
+			return gerrors.Newf(gerrors.InvalidParameter, "label is mismatched: %s", k)
+		}
+		m.labelValues[k] = v
+	}
+
+	if len(m.labelValues) != len(m.labelNames) {
+		return gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+	}
+
+	m.metric.Collector.(*prometheus.GaugeVec).With(m.labelValues).Inc()
+	return nil
+}
+
+// AddWithLabels performs the full label-write + add + reset atomically
+// under a single lock. This is the goroutine-safe entry point for concurrent code.
+func (m *HaGauge) AddWithLabels(labels map[string]string, val float64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	defer m.reset()
+
+	if m.metric.Collector == nil {
+		return nil
+	}
+
+	if len(m.labelNames) == 0 {
+		m.metric.Collector.(prometheus.Gauge).Add(val)
+		return nil
+	}
+
+	for k, v := range labels {
+		if _, ok := m.labelValues[k]; !ok {
+			return gerrors.Newf(gerrors.InvalidParameter, "label is mismatched: %s", k)
+		}
+		m.labelValues[k] = v
+	}
+
+	if len(m.labelValues) != len(m.labelNames) {
+		return gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+	}
+
+	m.metric.Collector.(*prometheus.GaugeVec).With(m.labelValues).Add(val)
+	return nil
+}
+
+// SubWithLabels performs the full label-write + sub + reset atomically
+// under a single lock. This is the goroutine-safe entry point for concurrent code.
+func (m *HaGauge) SubWithLabels(labels map[string]string, val float64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	defer m.reset()
+
+	if m.metric.Collector == nil {
+		return nil
+	}
+
+	if len(m.labelNames) == 0 {
+		m.metric.Collector.(prometheus.Gauge).Sub(val)
+		return nil
+	}
+
+	for k, v := range labels {
+		if _, ok := m.labelValues[k]; !ok {
+			return gerrors.Newf(gerrors.InvalidParameter, "label is mismatched: %s", k)
+		}
+		m.labelValues[k] = v
+	}
+
+	if len(m.labelValues) != len(m.labelNames) {
+		return gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+	}
+
+	m.metric.Collector.(*prometheus.GaugeVec).With(m.labelValues).Sub(val)
+	return nil
+}
+
+// DecWithLabels performs the full label-write + dec + reset atomically
+// under a single lock. This is the goroutine-safe entry point for concurrent code.
+func (m *HaGauge) DecWithLabels(labels map[string]string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	defer m.reset()
+
+	if m.metric.Collector == nil {
+		return nil
+	}
+
+	if len(m.labelNames) == 0 {
+		m.metric.Collector.(prometheus.Gauge).Dec()
+		return nil
+	}
+
+	for k, v := range labels {
+		if _, ok := m.labelValues[k]; !ok {
+			return gerrors.Newf(gerrors.InvalidParameter, "label is mismatched: %s", k)
+		}
+		m.labelValues[k] = v
+	}
+
+	if len(m.labelValues) != len(m.labelNames) {
+		return gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+	}
+
+	m.metric.Collector.(*prometheus.GaugeVec).With(m.labelValues).Dec()
+	return nil
 }
 
 func (m *HaGauge) reset() {

@@ -65,7 +65,7 @@ func newWorkflowForHandleFailureGroupTests(t *testing.T, dbmClient *dbm.Client) 
 	return &Workflow{
 		hadata:    td.DbhaData,
 		alarm:     NewAlarmNotifier(),
-		windowMgr: NewBizWindowManager(10*time.Second, 30*time.Second),
+		windowMgr: NewBizWindowManager(10*time.Second, 30*time.Second, "test-service"),
 		switchExecutor: &SwitchExecutor{
 			hadata: td.DbhaData,
 			dbmSync: &Synchronizer{
@@ -247,7 +247,7 @@ func TestHandleFailureGroup_UnknownActionReleasesInflight(t *testing.T) {
 }
 
 func TestMarkDoneAllReleasesAllKeys(t *testing.T) {
-	w := &Workflow{windowMgr: NewBizWindowManager(10*time.Second, 30*time.Second)}
+	w := &Workflow{windowMgr: NewBizWindowManager(10*time.Second, 30*time.Second, "test-service")}
 	keys := []string{"1:127.0.0.11:3306:mysql", "1:127.0.0.12:3306:mysql"}
 
 	w.windowMgr.mu.Lock()

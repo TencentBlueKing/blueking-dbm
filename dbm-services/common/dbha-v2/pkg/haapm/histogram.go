@@ -61,7 +61,11 @@ func (m *HaHistogram) WithLabels(labels map[string]string) *BoundHistogram {
 	return &BoundHistogram{histogram: m, labels: copyLabels(labels)}
 }
 
-// UpdateLabel updates the label values.
+// UpdateLabel sets label values for the next Observe call.
+//
+// WARNING: This method is NOT atomic with the subsequent Observe call.
+// In concurrent code, use ObserveWithLabels instead, which performs the full
+// label-write + observe + reset atomically under a single lock.
 func (m *HaHistogram) UpdateLabel(lvs map[string]string) *HaHistogram {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -99,6 +103,10 @@ func (m *HaHistogram) Observe(val float64) error {
 		return m.Error
 	}
 
+	if m.metric.Collector == nil {
+		return nil
+	}
+
 	if len(m.labelNames) == 0 {
 		m.metric.Collector.(prometheus.Histogram).Observe(val)
 		return m.Error
@@ -111,6 +119,38 @@ func (m *HaHistogram) Observe(val float64) error {
 
 	m.metric.Collector.(*prometheus.HistogramVec).With(m.labelValues).Observe(val)
 	return m.Error
+}
+
+// ObserveWithLabels performs the full label-write + observe + reset atomically
+// under a single lock. This is the goroutine-safe entry point for concurrent code.
+func (m *HaHistogram) ObserveWithLabels(labels map[string]string, val float64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	defer m.reset()
+
+	if m.metric.Collector == nil {
+		return nil
+	}
+
+	if len(m.labelNames) == 0 {
+		m.metric.Collector.(prometheus.Histogram).Observe(val)
+		return nil
+	}
+
+	// Apply labels directly
+	for k, v := range labels {
+		if _, ok := m.labelValues[k]; !ok {
+			return gerrors.Newf(gerrors.InvalidParameter, "label is mismatched: %s", k)
+		}
+		m.labelValues[k] = v
+	}
+
+	if len(m.labelValues) != len(m.labelNames) {
+		return gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+	}
+
+	m.metric.Collector.(*prometheus.HistogramVec).With(m.labelValues).Observe(val)
+	return nil
 }
 
 // reset resets the label values.

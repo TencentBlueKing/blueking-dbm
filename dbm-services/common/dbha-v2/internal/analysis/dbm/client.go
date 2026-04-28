@@ -92,53 +92,53 @@ func (c *Client) SendRequest(url string, method hanet.HttpMethod, req any,
 }
 
 // RequestMetadata sends HTTP request to DBM to get metadata of instances
-func (c *Client) RequestMetadata(ctx context.Context, req *Request) (*Response, error) {
+func (c *Client) RequestMetadata(ctx context.Context, req *Request) (int, *Response, error) {
 	data, err := json.Marshal(&req)
 	if err != nil {
-		return nil, err
+		return 0, nil, gerrors.Newf(gerrors.InvalidJson, "failed to marshal metadata request, %s", err)
 	}
 
 	cli := c.getRequestClientWithTimeout(config.Cfg.Workflow.DbmApiMetadata.Timeout)
 
 	code, resp, err := cli.Post(ctx, config.Cfg.Workflow.DbmApiMetadata.Api, data)
 	if err != nil {
-		return nil, err
+		return code, nil, err
 	}
 
 	if http.StatusOK != code {
-		return nil, gerrors.Newf(gerrors.HttpRequestFailure, "HTTP responded with a bad code: %d", code)
+		return code, nil, gerrors.Newf(gerrors.HttpRequestFailure, "HTTP responded with a bad code: %d", code)
 	}
 
 	if len(resp) == 0 {
-		return nil, ErrNoResponse
+		return code, nil, ErrNoResponse
 	}
 
 	metaRsp := &Response{}
 	if err := json.Unmarshal(resp, metaRsp); err != nil {
-		return nil, gerrors.Newf(gerrors.InvalidJson, "failed to unmarshal metadata response, %s", err)
+		return code, nil, gerrors.Newf(gerrors.InvalidJson, "failed to unmarshal metadata response, %s", err)
 	}
 
 	if len(metaRsp.Data) == 0 {
-		return nil, ErrNoResponse
+		return code, nil, ErrNoResponse
 	}
 
-	return metaRsp, nil
+	return code, metaRsp, nil
 }
 
 // QueryMetadataFromDbm queries metadata from DBM
-func (c *Client) QueryMetadataFromDbm(ctx context.Context, bkCloudId int, ips []string) ([]*DbInstMetadata, error) {
+func (c *Client) QueryMetadataFromDbm(ctx context.Context, bkCloudId int, ips []string) (int, []*DbInstMetadata, error) {
 
 	req := DefaultRequest
 	req.BkCloudId = bkCloudId
 	req.Addresses = append(req.Addresses, ips...)
 	req.DbCloudToken = config.Cfg.Workflow.DbmApiMetadata.Token
 
-	metaRsp, err := c.RequestMetadata(ctx, &req)
+	code, metaRsp, err := c.RequestMetadata(ctx, &req)
 	if err != nil {
-		return nil, err
+		return code, nil, err
 	}
 
-	return metaRsp.Data, nil
+	return code, metaRsp.Data, nil
 }
 
 // QueryInstanceInfoByDomain queries instance info from DBM by domain
@@ -150,7 +150,7 @@ func (c *Client) QueryInstanceInfoByDomain(bkCloudId int, clusterDomainName stri
 		Addresses:    []string{clusterDomainName},
 	}
 
-	metaRsp, err := c.RequestMetadata(context.Background(), &req)
+	_, metaRsp, err := c.RequestMetadata(context.Background(), &req)
 	if err != nil {
 		return nil, err
 	}

@@ -70,7 +70,11 @@ func (m *HaSummary) WithLabels(labels map[string]string) *BoundSummary {
 	return &BoundSummary{summary: m, labels: copyLabels(labels)}
 }
 
-// UpdateLabel updates the labels.
+// UpdateLabel sets label values for the next Observe call.
+//
+// WARNING: This method is NOT atomic with the subsequent Observe call.
+// In concurrent code, use ObserveWithLabels instead, which performs the full
+// label-write + observe + reset atomically under a single lock.
 func (m *HaSummary) UpdateLabel(lvs map[string]string) *HaSummary {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -109,6 +113,10 @@ func (m *HaSummary) Observe(val float64) error {
 		return m.Error
 	}
 
+	if m.metric.Collector == nil {
+		return nil
+	}
+
 	if len(m.labelNames) == 0 {
 		m.metric.Collector.(prometheus.Summary).Observe(val)
 		return m.Error
@@ -123,7 +131,37 @@ func (m *HaSummary) Observe(val float64) error {
 	return m.Error
 }
 
-// reset resets the labels.
+// ObserveWithLabels performs the full label-write + observe + reset atomically
+// under a single lock. This is the goroutine-safe entry point for concurrent code.
+func (m *HaSummary) ObserveWithLabels(labels map[string]string, val float64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	defer m.reset()
+
+	if m.metric.Collector == nil {
+		return nil
+	}
+
+	if len(m.labelNames) == 0 {
+		m.metric.Collector.(prometheus.Summary).Observe(val)
+		return nil
+	}
+
+	for k, v := range labels {
+		if _, ok := m.labelValues[k]; !ok {
+			return gerrors.Newf(gerrors.InvalidParameter, "label is mismatched: %s", k)
+		}
+		m.labelValues[k] = v
+	}
+
+	if len(m.labelValues) != len(m.labelNames) {
+		return gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+	}
+
+	m.metric.Collector.(*prometheus.SummaryVec).With(m.labelValues).Observe(val)
+	return nil
+}
+
 func (m *HaSummary) reset() {
 	m.labelValues = map[string]string{}
 	for _, name := range m.labelNames {
