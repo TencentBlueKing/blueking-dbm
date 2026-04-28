@@ -28,7 +28,7 @@ export const useStrategyQuickSearch = (isPlatform: boolean, dbType?: DBTypes) =>
         name: t('策略名称'),
         // type: 'input',
       },
-      {
+      isPlatform && {
         id: 'id',
         name: t('策略 ID'),
         // type: 'input',
@@ -146,12 +146,6 @@ export const useStrategyQuickSearch = (isPlatform: boolean, dbType?: DBTypes) =>
         return false;
       }
       if (
-        Object.prototype.hasOwnProperty.call(localSearchValue, 'id') &&
-        tableOriginalDataItem.id !== Number(localSearchValue.id)
-      ) {
-        return false;
-      }
-      if (
         Object.prototype.hasOwnProperty.call(localSearchValue, 'is_enabled') &&
         String(tableOriginalDataItem.is_enabled) !== localSearchValue.is_enabled
       ) {
@@ -162,6 +156,15 @@ export const useStrategyQuickSearch = (isPlatform: boolean, dbType?: DBTypes) =>
         tableOriginalDataItem.updater !== localSearchValue.updater
       ) {
         return false;
+      }
+
+      if (isPlatform) {
+        if (
+          Object.prototype.hasOwnProperty.call(localSearchValue, 'id') &&
+          tableOriginalDataItem.id !== Number(localSearchValue.id)
+        ) {
+          return false;
+        }
       }
 
       if (!isPlatform) {

@@ -59,6 +59,7 @@
             resizable
             :row-class-name="rowClassName"
             row-key="id"
+            :selected-row-keys="selectedRowKeys"
             @bk-ui-settings-change="updateTableSettings"
             @select-change="handleSelectChange">
             <template #default>
@@ -103,12 +104,12 @@
                 fixed="left"
                 type="multiple"
                 :width="40" />
-              <TableColumn
+              <!-- <TableColumn
                 col-key="id"
                 fixed="left"
                 title="ID"
                 :width="130">
-              </TableColumn>
+              </TableColumn> -->
               <TableColumn
                 col-key="name"
                 fixed="left"
@@ -176,7 +177,6 @@
                   </div>
                 </template>
               </TableColumn>
-
               <TableColumn
                 col-key="targets"
                 :min-width="300"
@@ -375,6 +375,7 @@
       v-model="batchEditNoticeGroupDialogShow"
       :alarm-group-list="alarmGroupList"
       :alarm-group-name-map="alarmGroupNameMap"
+      :db-type="dbType"
       :selected="selected"
       @suceess="handleBatchEditNoticeGroupSuceess" />
     <BatchResetToDefaultDialog
@@ -458,7 +459,7 @@
 
   const isShowEditStrrategySideSilder = ref(false);
   const currentChoosedRow = ref({} as MonitorPolicyModel);
-  const alarmGroupList = ref<SelectItem<string>[]>([]);
+  const alarmGroupList = ref<SelectItem<number>[]>([]);
   const pageStatus = ref<ComponentProps<typeof EditStrategy>['pageStatus']>('edit');
   const clusterList = ref<SelectItem<string>[]>([]);
   const existedNames = ref<string[]>([]);
@@ -497,7 +498,7 @@
   const { run: fetchAlarmGroupList } = useRequest(getSimpleList, {
     manual: true,
     onSuccess: (res) => {
-      const groupList: SelectItem<string>[] = [];
+      const groupList: SelectItem<number>[] = [];
       res.forEach((item) => {
         groupList.push({
           label: item.name,
