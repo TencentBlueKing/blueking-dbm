@@ -80,23 +80,22 @@ func (l *PhysicalLoader) PreLoad() error {
 func (l *PhysicalLoader) PostLoad() (err error) {
 	// 这里主要是提示用户如果跳过，跳过了后面那些步骤
 	logger.Warn("PhysicalLoader post load steps: "+
-		"[repairSysAndStart, "+
+		"[RepairPrivilegesForNormalUser, "+
 		"recoverGrants(%v), "+
 		"repairNonSysMyIsamTables, "+
 		"commonPostLoad(global_backup,remove_backup_file)]",
 		l.RecoverGrants)
-
-	logger.Warn("[step-1/4] PhysicalLoader post load: repairSysAndStart")
-	if err := l.Xtrabackup.repairSysAndStart(); err != nil {
-		return err
-	}
-
 	// 判断可连接性后，再继续。连接会在后面用到
 	l.Xtrabackup.dbWorker, err = l.Xtrabackup.TgtInstance.Conn()
 	if err != nil {
 		return err
 	}
 	defer l.Xtrabackup.dbWorker.Stop()
+
+	logger.Warn("[step-1/4] PhysicalLoader post load: repair normal user's privileges")
+	if err := l.Xtrabackup.RepairPrivilegesForNormalUser(); err != nil {
+		return errors.WithMessage(err, "RepairPrivilegesForNormalUser")
+	}
 
 	logger.Warn("[step-2/4] PhysicalLoader post load: recoverGrants")
 	if l.RecoverGrants {
@@ -140,6 +139,11 @@ func (l *PhysicalLoader) Load() error {
 
 	// 调整目录属主
 	if err := l.Xtrabackup.ChangeDirOwner(); err != nil {
+		return err
+	}
+
+	logger.Warn("PhysicalLoader run repairSysAndStart")
+	if err := l.Xtrabackup.repairSysAndStart(); err != nil {
 		return err
 	}
 	return nil

@@ -129,11 +129,6 @@ func (x *Xtrabackup) repairSysAndStart() (err error) {
 		}
 	}
 
-	logger.Info("repair other user privileges")
-	// 修复权限
-	if err := x.RepairPrivileges(); err != nil {
-		return errors.WithMessage(err, "RepairPrivileges")
-	}
 	x.dbWorker.Stop()
 
 	logger.Info("restart local mysqld %d", x.TgtInstance.Port)
