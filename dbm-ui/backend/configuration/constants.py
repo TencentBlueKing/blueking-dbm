@@ -199,6 +199,7 @@ class SystemSettingsEnum(StrStructuredEnum):
     WINDOWS_HOST_TO_RECYCLE_SWITCH = EnumField("WINDOWS_HOST_TO_RECYCLE_SWITCH", _("判断windows主机开关"))
     # AIDEV相关配置
     AI_CODE_SCENE_MAP = EnumField("AI_CODE_SCENE_MAP", _("智能体code场景映射关系表"))
+    AGENT_TOKEN_CONFIG = EnumField("AGENT_TOKEN_CONFIG", _("Agent Token配置"))
     # 机器初始化时需要写入 /etc/hosts 的条目，格式：{domain: ip}
     # 示例：{"example.internal.domain": "127.0.0.1"}
     INIT_OS_HOSTS = EnumField("INIT_OS_HOSTS", _("机器初始化hosts配置"))

@@ -8,80 +8,58 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
-import json
+from typing import Optional
 
-from aidev_agent.api import BKAidevApi
-from aidev_agent.enums import PromptRole
-from aidev_bkplugin.views.builtin import (
-    AgentInfoViewSet,
-    ChatCompletionViewSet,
-    ChatGroupViewSet,
+from aidev_agent.packages.resource_manager import ResourceManagerProtocol
+from aidev_bkplugin.views.agent import AgentInfoViewSet
+from aidev_bkplugin.views.chat import ChatCompletionViewSet
+from aidev_bkplugin.views.chat_group import ChatGroupViewSet
+from aidev_bkplugin.views.session import (
     ChatSessionContentFeedbackViewSet,
     ChatSessionContentViewSet,
     ChatSessionShareView,
     ChatSessionViewSet,
 )
-from django.conf import settings
-from django.core.cache import cache
+from django.urls import reverse
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from backend import env
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.dbm_aiagent.agent.commands import CommandProcessor
+from backend.dbm_aiagent.agent.configs.manager import build_resource_manager
 
 
-class AICorsResponseMixin:
-    """为 AI 接口的所有响应注入 CORS 头，并处理 OPTIONS 预检请求"""
+class AgentCodeResourceManagerMixin:
+    """以前端传入的 agent_code 优先构造 resource_manager 的基类。
+    前端会在每个 request 外层带上 agent_code，这里覆盖 ``PluginViewSet.get_resource_manager``，
+    优先以 agent_code 构造子智能体的 resource_manager；未携带 agent_code 时回退到父类默认逻辑
+    （主智能体 / 快捷指令路由）。
+    """
 
-    def finalize_response(self, request, response, *args, **kwargs):
-        response = super().finalize_response(request, response, *args, **kwargs)
-        if request.headers.get("Origin"):
-            response["Access-Control-Allow-Origin"] = request.headers.get("Origin")
-            response["Access-Control-Allow-Credentials"] = "true"
-            response["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-            response["Access-Control-Allow-Headers"] = "*"
-        return response
-
-    def options(self, request, *args, **kwargs):
-        """OPTIONS 预检请求直接返回 200"""
-        response = Response(status=200)
-        return response
+    def get_resource_manager(self) -> Optional[ResourceManagerProtocol]:
+        params = self.request.query_params or self.request.data
+        agent_code = params.get("agent_code", "")
+        if not agent_code:
+            return super().get_resource_manager()
+        return build_resource_manager(agent_code, username=self.get_username())
 
 
-def get_agent_config_info(username: str | None = None, agent_code: str = None):
-    agent_code = agent_code or settings.AGENT_APP_CODE
-    agent_info_key = f"get_agent_config_info:{username or 'default'}-{agent_code}"
-
-    agent_info = cache.get(agent_info_key)
-    if not agent_info:
-        client = BKAidevApi.get_client()
-        result = client.api.retrieve_agent_config(
-            path_params={"agent_code": agent_code}, headers={"X-BKAIDEV-USER": username}
-        )
-        agent_info = result["data"]
-        otel_env_info = agent_info.pop("otel_info", None)
-        if otel_env_info:
-            agent_info["otel_info"] = json.loads(base64.b64decode(otel_env_info).decode())
-        cache.set(agent_info_key, agent_info, 60)
-    return agent_info
-
-
-class AIChatSessionViewSet(ChatSessionViewSet):
+class AIChatSessionViewSet(AgentCodeResourceManagerMixin, ChatSessionViewSet):
     pass
 
 
-class AIChatSessionContentViewSet(ChatSessionContentViewSet):
+class AIChatSessionContentViewSet(AgentCodeResourceManagerMixin, ChatSessionContentViewSet):
     """AI 聊天框"""
 
     @staticmethod
     def __render_command(command_data):
         # 如果有命令且平台有注册，则渲染指令内容
         if not command_data.get("command"):
-            return
+            return None
         if command_data["command"] not in CommandProcessor._handlers:
-            return
+            return None
         rendered_content = CommandProcessor.process_command(command_data)
         command_data.update(rendered_content=rendered_content)
         return rendered_content
@@ -89,7 +67,7 @@ class AIChatSessionContentViewSet(ChatSessionContentViewSet):
     def create(self, request):
         """创建聊天内容"""
         # 渲染快捷指令内容
-        if request.data["property"]["extra"].get("command"):
+        if request.data.get("property", {}).get("extra", {}).get("command"):
             request.data["content"] = self.__render_command(request.data["property"]["extra"])
 
         # 如果前端指定了agent_code，则利用快捷指令模式强制切换
@@ -101,45 +79,32 @@ class AIChatSessionContentViewSet(ChatSessionContentViewSet):
         return super().create(request)
 
 
-class AIChatCompletionViewSet(ChatCompletionViewSet):
+class AIChatCompletionViewSet(AgentCodeResourceManagerMixin, ChatCompletionViewSet):
     def create(self, request):
         return super().create(request)
 
 
-class AIChatSessionContentFeedbackViewSet(ChatSessionContentFeedbackViewSet):
+class AIChatSessionContentFeedbackViewSet(AgentCodeResourceManagerMixin, ChatSessionContentFeedbackViewSet):
     pass
 
 
-class AIAgentInfoViewSet(AgentInfoViewSet):
+class AIAgentInfoViewSet(AgentCodeResourceManagerMixin, AgentInfoViewSet):
     @action(detail=False, methods=["GET"], url_path="agent_scene", url_name="agent_scene")
     def get_agent_scene(self, request):
         return Response(SystemSettings.get_setting_value(key=SystemSettingsEnum.AI_CODE_SCENE_MAP, default={}))
 
     @action(detail=False, methods=["GET"], url_path="info", url_name="info")
     def info(self, request):
-        # 根据agent code获取agent信息
-        agent_info = get_agent_config_info(request.user.username, request.query_params.get("agent_code"))
-
-        # 新增群聊信息
-        agent_info["chat_group"] = {
-            "enabled": settings.CHAT_GROUP_ENABLED,
-            "staff": settings.CHAT_GROUP_STAFF,
-            "username": request.user.username,
-        }
-        prompt_setting = agent_info.get("prompt_setting", {})
-        prompt_setting["collection_content"] = []
-        prompt_setting["collection_variables"] = []
-        prompt_setting["content"] = [
-            content for content in prompt_setting["content"] if content.get("role") == PromptRole.PAUSE.value
-        ]
-        agent_info["prompt_setting"] = prompt_setting
-        agent_info.pop("otel_info", None)
-        return Response(data=agent_info)
+        response = super().info(request)
+        # 根据 agent code 获取 agent 信息；saas_url 指向本服务的 ping 配置接口
+        agent_ping_path = reverse(f"{self.basename}-ping")
+        response.data["saas_url"] = f"{env.BK_SAAS_HOST}{agent_ping_path}"
+        return response
 
 
-class AIChatGroupViewSet(ChatGroupViewSet):
+class AIChatGroupViewSet(AgentCodeResourceManagerMixin, ChatGroupViewSet):
     pass
 
 
-class AIChatSessionShareView(ChatSessionShareView):
+class AIChatSessionShareView(AgentCodeResourceManagerMixin, ChatSessionShareView):
     pass

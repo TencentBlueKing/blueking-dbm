@@ -14,9 +14,9 @@ import os
 from backend import env
 
 # 智能体配置
-AIDEV_BKPLUGIN_DEFAULT_NAME = "default"
-DEFAULT_AGENT = "aidev_agent.core.extend.agent.qa.CommonQAAgent"
-DEFAULT_CONFIG_MANAGER = "backend.dbm_aiagent.agent.configs.manager.DBMAgentConfigManager"
+BK_APIGW_MCP_TIMEOUT = 300
+AIDEV_AGENT = "aidev_agent.services.common_agent.CommonQAAgent"
+AIDEV_RESOURCE_MANAGER = "backend.dbm_aiagent.agent.configs.manager.DBMAgentResourceManager"
 AGENT_APP_CODE = env.BK_AIDEV_AGENT_APP_CODE or env.APP_CODE
 AGENT_APP_SECRET = env.BK_AIDEV_AGENT_APP_SECRET or env.SECRET_KEY
 BK_AIDEV_APIGW_ENDPOINT = env.BK_AIDEV_APIGW_ENDPOINT
@@ -499,11 +499,11 @@ BK_APIGW_STAGE_MCP_SERVERS = [
 ]
 
 __all__ = [
+    "BK_APIGW_MCP_TIMEOUT",
     "BK_APIGW_STAGE_ENABLE_MCP_SERVERS",
     "BK_APIGW_STAGE_MCP_SERVERS",
-    "AIDEV_BKPLUGIN_DEFAULT_NAME",
-    "DEFAULT_AGENT",
-    "DEFAULT_CONFIG_MANAGER",
+    "AIDEV_AGENT",
+    "AIDEV_RESOURCE_MANAGER",
     "AGENT_APP_CODE",
     "AGENT_APP_SECRET",
     "BK_AIDEV_APIGW_ENDPOINT",
