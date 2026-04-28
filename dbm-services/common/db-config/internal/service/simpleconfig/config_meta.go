@@ -97,7 +97,7 @@ func QueryConfigNames(r *api.QueryConfigNamesReq, isPub bool) (*api.QueryConfigN
 			Description:  c.Description,
 			FlagVisible:  c.FlagVisible,
 			FlagReadonly: c.FlagReadonly,
-			FlagLocked:   c.FlagLocked,
+			FlagEncrypt:  c.FlagEncrypt,
 			FlagStatus:   c.FlagStatus, // 废弃
 		}
 	}

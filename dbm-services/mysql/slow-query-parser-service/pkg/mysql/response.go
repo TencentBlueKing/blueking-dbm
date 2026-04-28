@@ -1,5 +1,7 @@
 package mysql
 
+import "strings"
+
 // Response TODO
 type Response struct {
 	Command         string      `json:"command"`
@@ -16,11 +18,11 @@ type Response struct {
 type QueryTables []*TableRef
 
 func (q *QueryTables) String() string {
-	var result string
+	parts := make([]string, 0, len(*q))
 	for _, t := range *q {
-		result += t.String() + ","
+		parts = append(parts, t.String())
 	}
-	return result
+	return strings.Join(parts, ",")
 }
 
 type TableRef struct {
@@ -29,5 +31,8 @@ type TableRef struct {
 }
 
 func (t *TableRef) String() string {
+	if t.DbName == "" {
+		return t.TableName
+	}
 	return t.DbName + "." + t.TableName
 }
