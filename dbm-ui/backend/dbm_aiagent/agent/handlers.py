@@ -13,13 +13,16 @@ import logging
 import re
 import uuid
 
-from aidev_agent.services.pydantic_models import ExecuteKwargs
-from aidev_bkplugin.services.agent import build_chat_completion_agent_by_session_code
-from aidev_bkplugin.views.builtin import client
+from aidev_agent.packages.resource_manager import ResourceManagerProtocol
+from aidev_agent.pydantic_models import ExecuteKwargs
+from aidev_bkplugin.services.agent_builder import AgentBuilder
+from aidev_bkplugin.services.agent_helpers import AgentHelper
+from aidev_bkplugin.services.agent_session import SessionManager
 from django.http import StreamingHttpResponse
 from django.utils.translation import gettext_lazy as _
 
 from backend.dbm_aiagent.agent.commands import CommandProcessor
+from backend.dbm_aiagent.agent.configs.manager import build_resource_manager, build_session_manager
 from backend.dbm_aiagent.agent.constants import DEFAULT_AGENT_CHAT_TIMEOUT, RISK_COMPARE_PROMPT, DBMAgentCode
 from backend.env import DEFAULT_USERNAME
 
@@ -34,8 +37,23 @@ class AgentHandler:
         """生成session_code"""
         return str(uuid.uuid4())
 
+    @staticmethod
+    def __build_resource_manager(agent_code) -> ResourceManagerProtocol:
+        """创建子智能体 resource manager"""
+        return build_resource_manager(agent_code)
+
+    @staticmethod
+    def __build_session_manager(agent_code) -> SessionManager:
+        """创建session manager"""
+        return build_session_manager(agent_code)
+
     @classmethod
-    def create_temporary_session(cls, username=DEFAULT_USERNAME):
+    def __build_client(cls, agent_code: str = None):
+        """按 agent_code 构建携带对应 resource_manager 的 client"""
+        return AgentHelper.get_client(resource_manager=cls.__build_resource_manager(agent_code))
+
+    @classmethod
+    def create_temporary_session(cls, username=DEFAULT_USERNAME, agent_code=None):
         """创建临时会话"""
         session_code = cls.__generate_session_code()
 
@@ -46,6 +64,7 @@ class AgentHandler:
             "is_temporary": True,
             "session_property": {},
         }
+        client = cls.__build_client(agent_code)
         client.api.create_chat_session(json=create_session_params, headers={"X-BKAIDEV-USER": username})
 
         return session_code
@@ -53,6 +72,7 @@ class AgentHandler:
     @classmethod
     def create_chat_completion(
         cls,
+        agent_code,
         session_code,
         session_content_id,
         stream: bool = False,
@@ -60,7 +80,14 @@ class AgentHandler:
     ):
         """获得本次对话内容，支持流式/非流式"""
         execute_kwargs = ExecuteKwargs(stream=stream, invoke_timeout=timeout)
-        agent_instance = build_chat_completion_agent_by_session_code(session_code)
+        rm = cls.__build_resource_manager(agent_code)
+        sm = cls.__build_session_manager(agent_code)
+        agent_instance = AgentBuilder(
+            resource_manager=rm,
+            session_manager=sm,
+            username=DEFAULT_USERNAME,
+            agent_code=rm.get_agent_code(),
+        ).by_session_code(session_code, version=execute_kwargs.version)
         result = agent_instance.execute(execute_kwargs)
         return result
 
@@ -76,7 +103,7 @@ class AgentHandler:
     ):
         """根据agent直接内容询问agent"""
         # 创建临时会话
-        session_code = session_code or cls.create_temporary_session(username)
+        session_code = session_code or cls.create_temporary_session(username, agent_code)
 
         # 创建会话内容
         # 主智能体直接询问，子智能体走快捷指令切换询问
@@ -86,11 +113,18 @@ class AgentHandler:
             rendered_content = f"comment：{agent_code}\n" + content
             content_property = {"extra": {"command": agent_code, "rendered_content": rendered_content}}
             content_params.update(property=content_property, content=str(DBMAgentCode.get_choice_label(agent_code)))
+        client = cls.__build_client(agent_code)
         resp = client.api.create_chat_session_content(json=content_params, headers={"X-BKAIDEV-USER": username})
 
         # 获取AI回复
         session_content_id = resp["data"]["id"]
-        ai_response = cls.create_chat_completion(session_code, session_content_id, stream=stream, timeout=timeout)
+        ai_response = cls.create_chat_completion(
+            agent_code=agent_code,
+            session_content_id=session_content_id,
+            session_code=session_code,
+            stream=stream,
+            timeout=timeout,
+        )
 
         if stream and not isinstance(ai_response, dict):
             return cls.streaming_response(ai_response)
@@ -107,7 +141,7 @@ class AgentHandler:
         timeout=DEFAULT_AGENT_CHAT_TIMEOUT,
     ):
         """根据agent直接内容询问agent, 连续对话"""
-        session_code = session_code or cls.create_temporary_session(username)
+        session_code = session_code or cls.create_temporary_session(username, agent_code)
         ai_response = cls.ask_agent_with_content(agent_code, content, username, session_code, timeout=timeout)
         return ai_response, session_code
 
@@ -124,9 +158,10 @@ class AgentHandler:
         if command not in CommandProcessor._handlers:
             raise ValueError(f"Command {command} not found")
         command_handler = CommandProcessor._handlers[command]
+        agent_code = command_handler.agent_code
 
         # 创建临时会话
-        session_code = cls.create_temporary_session(username)
+        session_code = cls.create_temporary_session(username, agent_code)
 
         # 渲染command内容
         context = [{"__key": key, "__value": value, "context_type": "text"} for key, value in command_params.items()]
@@ -141,11 +176,18 @@ class AgentHandler:
             "property": content_property,
             "content": command_handler.name,
         }
+        client = cls.__build_client(agent_code)
         resp = client.api.create_chat_session_content(json=content_params, headers={"X-BKAIDEV-USER": username})
 
         # 获取AI回复
         session_content_id = resp["data"]["id"]
-        ai_response = cls.create_chat_completion(session_code, session_content_id, stream=stream, timeout=timeout)
+        ai_response = cls.create_chat_completion(
+            agent_code=agent_code,
+            session_code=session_code,
+            session_content_id=session_content_id,
+            stream=stream,
+            timeout=timeout,
+        )
 
         if stream and not isinstance(ai_response, dict):
             return cls.streaming_response(ai_response)

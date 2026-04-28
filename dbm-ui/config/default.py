@@ -22,9 +22,13 @@ from django.db.backends.mysql.features import DatabaseFeatures
 from backend import env
 from backend.core.encrypt.interceptors import SymmetricInterceptor
 from blueking.mysql_patch import PatchFeatures
+from blueking.plugin_framework_patch import patch_bk_plugin_framework
 
+# 全局patch
 DatabaseFeatures.minimum_database_version = PatchFeatures.minimum_database_version
+patch_bk_plugin_framework()
 
+# 加载开发框架默认settings
 if env.RUN_VER == "open":
     from blueapps.patch.settings_open_saas import *  # pylint: disable=wildcard-import
 
@@ -687,6 +691,7 @@ if env.DEBUG_TOOL_BAR:
 AGENT_APP_CODE = env.BK_AIDEV_AGENT_APP_CODE or env.APP_CODE
 AGENT_APP_SECRET = env.BK_AIDEV_AGENT_APP_SECRET or env.SECRET_KEY
 BK_AIDEV_APIGW_ENDPOINT = env.BK_AIDEV_APIGW_ENDPOINT
+BK_AIDEV_ENGINE_REGION = env.RUN_VER
 # 默认关闭 AIDEV MCP server
 BK_APIGW_STAGE_ENABLE_MCP_SERVERS = False
 BK_APIGW_STAGE_MCP_SERVERS = []
