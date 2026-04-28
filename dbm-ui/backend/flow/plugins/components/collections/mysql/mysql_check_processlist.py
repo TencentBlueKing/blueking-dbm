@@ -16,6 +16,7 @@ from pipeline.component_framework.component import Component
 from backend.components import DRSApi
 from backend.constants import IP_PORT_DIVIDER
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.plugins.components.collections.mysql.check_client_connections import _format_process_infos
 
 
 class MySQLCheckProcesslistService(BaseService):
@@ -60,6 +61,8 @@ and User!=SUBSTRING_INDEX(current_user(),'@',1)"""
                 return False
             else:
                 if res[0]["cmd_results"][0]["table_data"] is None or len(res[0]["cmd_results"][0]["table_data"]) == 0:
+                    if kwargs.get("only_show_processlist", False):
+                        return True
                     #  flush tables 前先 stop slave
                     rpc_info["cmds"] = ["show slave status"]
                     self.log_info(rpc_info["cmds"][0])
@@ -109,7 +112,18 @@ and User!=SUBSTRING_INDEX(current_user(),'@',1)"""
                         return False
 
                 else:
-                    self.log_error(_("实例: {},存在链接 {}".format(instance, res[0]["cmd_results"][0]["table_data"])))
+                    infos = res[0]["cmd_results"][0]["table_data"]
+                    self.log_error(_("实例: {},存在 {} 个链接".format(instance, len(infos))))
+                    if len(infos) < 1:
+                        return False
+                    process_infos = []
+                    temp = {"check_address": res[0]["address"]}
+                    for i in infos:
+                        process_infos.append({**temp, **i})
+                    if len(process_infos) > 0:
+                        formatted = _format_process_infos(process_infos, info_max_len=120)
+                        if formatted:
+                            self.log_error(formatted)
                     return False
         finally:
             if check_slave_flag:

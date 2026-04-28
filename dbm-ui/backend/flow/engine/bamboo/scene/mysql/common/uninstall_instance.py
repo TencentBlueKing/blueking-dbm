@@ -17,7 +17,8 @@ from django.utils.translation import gettext as _
 from backend.db_meta.models import StorageInstance
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import ExecActuatorKwargs
+from backend.flow.plugins.components.collections.mysql.mysql_check_processlist import MySQLCheckProcesslistComponent
+from backend.flow.utils.mysql.mysql_act_dataclass import CheckProcesslistKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
 
@@ -39,20 +40,32 @@ def uninstall_instance_sub_flow(root_id: str, ticket_data: dict, ip: str, ports:
 
     sub_pipeline_list = []
     for storage in storage_instances:
-        cluster = {"uninstall_ip": ip, "bk_cloud_id": ticket_data["bk_cloud_id"], "backend_port": storage.port}
-        sub_pipeline_list.append(
-            {
-                "act_name": _("卸载实例 {}".format(storage.ip_port)),
-                "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                "kwargs": asdict(
-                    ExecActuatorKwargs(
-                        exec_ip=storage.machine.ip,
-                        bk_cloud_id=cluster["bk_cloud_id"],
-                        cluster=copy.deepcopy(cluster),
-                        get_mysql_payload_func=MysqlActPayload.get_uninstall_mysql_payload.__name__,
-                    )
-                ),
-            }
+        uninstall_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
+        uninstall_pipeline.add_act(
+            act_name=_("检查实例链接{}").format(storage.ip_port),
+            act_component_code=MySQLCheckProcesslistComponent.code,
+            kwargs=asdict(
+                CheckProcesslistKwargs(
+                    bk_cloud_id=ticket_data["bk_cloud_id"],
+                    instance_ip=storage.machine.ip,
+                    instance_port=storage.port,
+                    only_show_processlist=True,
+                )
+            ),
         )
-    sub_pipeline.add_parallel_acts(sub_pipeline_list)
+        cluster = {"uninstall_ip": ip, "bk_cloud_id": ticket_data["bk_cloud_id"], "backend_port": storage.port}
+        uninstall_pipeline.add_act(
+            act_name=_("卸载实例 {}".format(storage.ip_port)),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(
+                ExecActuatorKwargs(
+                    exec_ip=storage.machine.ip,
+                    bk_cloud_id=cluster["bk_cloud_id"],
+                    cluster=copy.deepcopy(cluster),
+                    get_mysql_payload_func=MysqlActPayload.get_uninstall_mysql_payload.__name__,
+                )
+            ),
+        )
+        sub_pipeline_list.append(uninstall_pipeline.build_sub_process(sub_name=_(" {} 卸载实例".format(storage.ip_port))))
+    sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipeline_list)
     return sub_pipeline.build_sub_process(sub_name=_(" {} 卸载实例".format(ip)))

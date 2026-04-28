@@ -94,7 +94,7 @@ def _format_process_infos(rows: list[dict], info_max_len: int = 120) -> str:
     line = sep.join("-" * widths[i] for i in range(len(widths)))
     body = [sep.join(val[i].ljust(widths[i]) for i in range(len(widths))) for val in values]
 
-    return "\n".join([header, line, *body])
+    return "\n" + "\n".join([header, line, *body])
 
 
 class CheckClientSerializer(BaseFlowOutputSerializer):

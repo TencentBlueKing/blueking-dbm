@@ -428,6 +428,15 @@ class ExecuteRdsKwargs:
     sqls: list = field(default_factory=list)
 
 
+@dataclass
+class CheckProcesslistKwargs(ExecuteRdsKwargs):
+    """
+    定义检查MySQL客户端链接
+    """
+
+    only_show_processlist: bool = False
+
+
 @dataclass()
 class CheckSlaveStatusKwargs(ExecuteRdsKwargs):
     master_ip: str = ""
