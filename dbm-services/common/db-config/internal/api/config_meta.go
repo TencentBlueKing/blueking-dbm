@@ -59,8 +59,8 @@ type ConfNameDef struct {
 	// 是否需要重启生效. 默认1
 
 	NeedRestart int8 `json:"need_restart" form:"need_restart" example:"1"`
-	// 是否锁定. 默认0
-	FlagLocked int8 `json:"flag_locked" form:"flag_locked" example:"0"`
+	// 是否加密. 默认0
+	FlagEncrypt int8 `json:"flag_encrypt" form:"flag_encrypt" example:"0"`
 	// 是否只读. 默认0
 	FlagReadonly int8 `json:"flag_readonly" form:"flag_readonly" example:"0"`
 	// 可见性. 默认1
