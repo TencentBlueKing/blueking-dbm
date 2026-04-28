@@ -28,12 +28,17 @@ import (
 	"dbm-services/common/dbha-v2/pkg/haapm"
 )
 
+const (
+	MetricLabelKafka = "kafka"
+	MetricLabelMysql = "mysql"
+)
+
 var (
 	KafkaReadMessagesTotal *haapm.HaCounter
 	KafkaReadBytesTotal    *haapm.HaCounter
 	KafkaWriteErrorsTotal  *haapm.HaCounter
 
-	MySqlWriteLatencyMs     *haapm.HaHistogram
+	MySqlWriteDurationMs    *haapm.HaHistogram
 	MySqlWriteMessagesTotal *haapm.HaCounter
 	MySqlWriteBytesTotal    *haapm.HaCounter
 	MySqlReadErrorsTotal    *haapm.HaCounter
@@ -45,44 +50,45 @@ func init() {
 	KafkaReadBytesTotal = haapm.NewHaCounter(
 		"kafka_read_bytes_total",
 		"Total bytes read from Kafka",
-		"kafka",
+		MetricLabelKafka,
 	)
 	KafkaReadMessagesTotal = haapm.NewHaCounter(
 		"kafka_read_messages_total",
 		"Total messages read from Kafka",
-		"kafka",
+		MetricLabelKafka,
 	)
 	KafkaWriteErrorsTotal = haapm.NewHaCounter(
 		"kafka_write_errors_total",
 		"Total errors write to Kafka",
-		"kafka",
+		MetricLabelKafka,
 	)
 
 	// mysql
-	MySqlWriteLatencyMs = haapm.NewHaHistogram(
-		"mysql_write_latency_ms",
-		"Latency of write to mysql (milliseconds)",
-		"mysql",
+	MySqlWriteDurationMs = haapm.NewHaHistogramWithBuckets(
+		"mysql_write_duration_ms",
+		"Duration of write to mysql (milliseconds)",
+		haapm.DefaultDurationBuckets,
+		MetricLabelMysql,
 	)
 	MySqlWriteMessagesTotal = haapm.NewHaCounter(
 		"mysql_write_messages_total",
 		"Total messages write to mysql",
-		"mysql",
+		MetricLabelMysql,
 	)
 	MySqlWriteBytesTotal = haapm.NewHaCounter(
 		"mysql_write_bytes_total",
 		"Total bytes write to mysql",
-		"mysql",
+		MetricLabelMysql,
 	)
 	MySqlReadErrorsTotal = haapm.NewHaCounter(
 		"mysql_read_errors_total",
 		"Total errors read from mysql",
-		"mysql",
+		MetricLabelMysql,
 	)
 	MySqlWriteErrorsTotal = haapm.NewHaCounter(
 		"mysql_write_errors_total",
 		"Total errors write to mysql",
-		"mysql",
+		MetricLabelMysql,
 	)
 }
 
@@ -99,7 +105,7 @@ func InitAPM(serviceID, serviceName string) {
 		KafkaReadMessagesTotal,
 		KafkaReadBytesTotal,
 		KafkaWriteErrorsTotal,
-		MySqlWriteLatencyMs,
+		MySqlWriteDurationMs,
 		MySqlWriteMessagesTotal,
 		MySqlWriteBytesTotal,
 		MySqlReadErrorsTotal,

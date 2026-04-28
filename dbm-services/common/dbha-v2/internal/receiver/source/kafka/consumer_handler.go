@@ -60,15 +60,15 @@ func (h *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 			copy(data.Data, msg.Value)
 		}
 
-		if err := apm.KafkaReadBytesTotal.UpdateLabel(map[string]string{
-			"kafka": msg.Topic,
-		}).Add(float64(dataLength)); err != nil {
+		if err := apm.KafkaReadBytesTotal.AddWithLabels(map[string]string{
+			apm.MetricLabelKafka: msg.Topic,
+		}, float64(dataLength)); err != nil {
 			logger.Warn("update kafka read bytes metric failed, errmsg: %s", err)
 		}
 
-		if err := apm.KafkaReadMessagesTotal.UpdateLabel(map[string]string{
-			"kafka": msg.Topic,
-		}).Inc(); err != nil {
+		if err := apm.KafkaReadMessagesTotal.IncWithLabels(map[string]string{
+			apm.MetricLabelKafka: msg.Topic,
+		}); err != nil {
 			logger.Warn("update kafka read messages metric failed, errmsg: %s", err)
 		}
 
@@ -76,9 +76,9 @@ func (h *consumerHandler) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 			if err := saver.Save(data); err != nil {
 				logger.Warn("save the data failed, topic(%s), errmsg: %s", msg.Topic, err)
 
-				if metricErr := apm.KafkaWriteErrorsTotal.UpdateLabel(map[string]string{
-					"kafka": msg.Topic,
-				}).Inc(); metricErr != nil {
+				if metricErr := apm.KafkaWriteErrorsTotal.IncWithLabels(map[string]string{
+					apm.MetricLabelKafka: msg.Topic,
+				}); metricErr != nil {
 					logger.Warn("update kafka write errors metric failed, errmsg: %s", metricErr)
 				}
 			}

@@ -36,17 +36,11 @@ const (
 
 var (
 	APIRequestsTotal      *haapm.HaCounter
-	APIRequestLatencyMs   *haapm.HaHistogram
+	APIRequestDurationMs  *haapm.HaHistogram
 	APIRequestSizeBytes   *haapm.HaHistogram
 	APIResponseSizeBytes  *haapm.HaHistogram
 	APIRequestErrorsTotal *haapm.HaCounter
 )
-
-// Default histogram buckets for latency (milliseconds)
-var defaultLatencyBuckets = []float64{1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000}
-
-// Default histogram buckets for size (bytes)
-var defaultSizeBuckets = []float64{100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1000000}
 
 func init() {
 	// API request total counter
@@ -56,11 +50,11 @@ func init() {
 		MetricLabelMethod, MetricLabelPath, MetricLabelStatus,
 	)
 
-	// API request latency histogram
-	APIRequestLatencyMs = haapm.NewHaHistogramWithBuckets(
-		"api_request_latency_ms",
-		"API request latency (milliseconds)",
-		defaultLatencyBuckets,
+	// API request duration histogram
+	APIRequestDurationMs = haapm.NewHaHistogramWithBuckets(
+		"api_request_duration_ms",
+		"API request duration (milliseconds)",
+		haapm.DefaultDurationBuckets,
 		MetricLabelMethod, MetricLabelPath,
 	)
 
@@ -68,7 +62,7 @@ func init() {
 	APIRequestSizeBytes = haapm.NewHaHistogramWithBuckets(
 		"api_request_size_bytes",
 		"API request size (bytes)",
-		defaultSizeBuckets,
+		haapm.DefaultSizeBuckets,
 		MetricLabelMethod, MetricLabelPath,
 	)
 
@@ -76,7 +70,7 @@ func init() {
 	APIResponseSizeBytes = haapm.NewHaHistogramWithBuckets(
 		"api_response_size_bytes",
 		"API response size (bytes)",
-		defaultSizeBuckets,
+		haapm.DefaultSizeBuckets,
 		MetricLabelMethod, MetricLabelPath,
 	)
 
@@ -100,7 +94,7 @@ func InitAPM(serviceID, serviceName string) {
 	haapm.MustRegister(
 		haapm.AppStartupMetric,
 		APIRequestsTotal,
-		APIRequestLatencyMs,
+		APIRequestDurationMs,
 		APIRequestSizeBytes,
 		APIResponseSizeBytes,
 		APIRequestErrorsTotal,

@@ -44,7 +44,7 @@ func newFailureInstanceForWindow(ip string, port int, dbType haprobe.DbType) *Fa
 }
 
 func TestBizWindowManager_PushMergeAndPop(t *testing.T) {
-	mgr := NewBizWindowManager(10*time.Second, 30*time.Second)
+	mgr := NewBizWindowManager(10*time.Second, 30*time.Second, "test-service")
 	inst := newFailureInstanceForWindow("127.0.0.1", 3306, haprobe.DbTypeMySql)
 	base := time.Now()
 
@@ -65,7 +65,7 @@ func TestBizWindowManager_PushMergeAndPop(t *testing.T) {
 }
 
 func TestBizWindowManager_BizIsolation(t *testing.T) {
-	mgr := NewBizWindowManager(10*time.Second, 30*time.Second)
+	mgr := NewBizWindowManager(10*time.Second, 30*time.Second, "test-service")
 	inst := newFailureInstanceForWindow("127.0.0.2", 3306, haprobe.DbTypeMySql)
 	base := time.Now()
 
@@ -88,7 +88,7 @@ func TestBizWindowManager_BizIsolation(t *testing.T) {
 }
 
 func TestBizWindowManager_PopBoundary(t *testing.T) {
-	mgr := NewBizWindowManager(10*time.Second, 30*time.Second)
+	mgr := NewBizWindowManager(10*time.Second, 30*time.Second, "test-service")
 	inst := newFailureInstanceForWindow("127.0.0.3", 3306, haprobe.DbTypeMySql)
 	base := time.Now()
 
@@ -108,7 +108,7 @@ func TestBizWindowManager_PopBoundary(t *testing.T) {
 }
 
 func TestBizWindowManager_PopOrderByFirstAt(t *testing.T) {
-	mgr := NewBizWindowManager(10*time.Second, 30*time.Second)
+	mgr := NewBizWindowManager(10*time.Second, 30*time.Second, "test-service")
 	instA := newFailureInstanceForWindow("127.0.0.4", 3306, haprobe.DbTypeMySql)
 	instB := newFailureInstanceForWindow("127.0.0.5", 3307, haprobe.DbTypeMySql)
 	base := time.Now()
@@ -133,7 +133,7 @@ func TestBizWindowManager_PopOrderByFirstAt(t *testing.T) {
 }
 
 func TestBizWindowManager_PopAndMarkStartThenMarkDone(t *testing.T) {
-	mgr := NewBizWindowManager(10*time.Second, 30*time.Second)
+	mgr := NewBizWindowManager(10*time.Second, 30*time.Second, "test-service")
 	inst := newFailureInstanceForWindow("127.0.0.6", 3306, haprobe.DbTypeMySql)
 	base := time.Now()
 
@@ -159,7 +159,7 @@ func TestBizWindowManager_PopAndMarkStartThenMarkDone(t *testing.T) {
 }
 
 func TestBizWindowManager_InflightTTLExpiredAutoCleanup(t *testing.T) {
-	mgr := NewBizWindowManager(10*time.Second, 100*time.Millisecond)
+	mgr := NewBizWindowManager(10*time.Second, 100*time.Millisecond, "test-service")
 	inst := newFailureInstanceForWindow("127.0.0.7", 3306, haprobe.DbTypeMySql)
 	key := instanceWindowKey(inst.BkCloudID, inst.IP, inst.Port, inst.DbType)
 
@@ -180,7 +180,7 @@ func TestBizWindowManager_InflightTTLExpiredAutoCleanup(t *testing.T) {
 }
 
 func TestBizWindowManager_ConcurrentPushSameInstance(t *testing.T) {
-	mgr := NewBizWindowManager(10*time.Second, 30*time.Second)
+	mgr := NewBizWindowManager(10*time.Second, 30*time.Second, "test-service")
 	inst := newFailureInstanceForWindow("127.0.0.8", 3306, haprobe.DbTypeMySql)
 	base := time.Now()
 

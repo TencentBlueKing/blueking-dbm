@@ -51,7 +51,7 @@ func (b *BoundCounter) Inc() error {
 	if b.labels == nil {
 		return b.counter.Inc()
 	}
-	return b.counter.UpdateLabel(b.labels).Inc()
+	return b.counter.IncWithLabels(b.labels)
 }
 
 // Add adds the given value to the counter.
@@ -59,7 +59,7 @@ func (b *BoundCounter) Add(delta float64) error {
 	if b.labels == nil {
 		return b.counter.Add(delta)
 	}
-	return b.counter.UpdateLabel(b.labels).Add(delta)
+	return b.counter.AddWithLabels(b.labels, delta)
 }
 
 // BoundGauge is a gauge with fixed labels. Create via HaGauge.WithLabels.
@@ -73,7 +73,7 @@ func (b *BoundGauge) Set(val float64) error {
 	if b.labels == nil {
 		return b.gauge.Set(val)
 	}
-	return b.gauge.UpdateLabel(b.labels).Set(val)
+	return b.gauge.SetWithLabels(b.labels, val)
 }
 
 // Inc increments the gauge by 1.
@@ -81,7 +81,7 @@ func (b *BoundGauge) Inc() error {
 	if b.labels == nil {
 		return b.gauge.Inc()
 	}
-	return b.gauge.UpdateLabel(b.labels).Inc()
+	return b.gauge.IncWithLabels(b.labels)
 }
 
 // Dec decrements the gauge by 1.
@@ -89,7 +89,7 @@ func (b *BoundGauge) Dec() error {
 	if b.labels == nil {
 		return b.gauge.Dec()
 	}
-	return b.gauge.UpdateLabel(b.labels).Dec()
+	return b.gauge.DecWithLabels(b.labels)
 }
 
 // Add adds the given value to the gauge.
@@ -97,7 +97,7 @@ func (b *BoundGauge) Add(val float64) error {
 	if b.labels == nil {
 		return b.gauge.Add(val)
 	}
-	return b.gauge.UpdateLabel(b.labels).Add(val)
+	return b.gauge.AddWithLabels(b.labels, val)
 }
 
 // Sub subtracts the given value from the gauge.
@@ -105,7 +105,7 @@ func (b *BoundGauge) Sub(val float64) error {
 	if b.labels == nil {
 		return b.gauge.Sub(val)
 	}
-	return b.gauge.UpdateLabel(b.labels).Sub(val)
+	return b.gauge.SubWithLabels(b.labels, val)
 }
 
 // BoundHistogram is a histogram with fixed labels. Create via HaHistogram.WithLabels.
@@ -119,7 +119,7 @@ func (b *BoundHistogram) Observe(val float64) error {
 	if b.labels == nil {
 		return b.histogram.Observe(val)
 	}
-	return b.histogram.UpdateLabel(b.labels).Observe(val)
+	return b.histogram.ObserveWithLabels(b.labels, val)
 }
 
 // BoundSummary is a summary with fixed labels. Create via HaSummary.WithLabels.
@@ -133,5 +133,5 @@ func (b *BoundSummary) Observe(val float64) error {
 	if b.labels == nil {
 		return b.summary.Observe(val)
 	}
-	return b.summary.UpdateLabel(b.labels).Observe(val)
+	return b.summary.ObserveWithLabels(b.labels, val)
 }

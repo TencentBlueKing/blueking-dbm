@@ -75,6 +75,12 @@ const (
 	MetricLabelServiceNice = "nice"
 )
 
+// DefaultDurationBuckets Default histogram buckets for duration (milliseconds)
+var DefaultDurationBuckets = []float64{1, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000}
+
+// DefaultSizeBuckets Default histogram buckets for size (bytes)
+var DefaultSizeBuckets = []float64{100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1000000}
+
 func init() {
 	AppStartupMetric = NewHaGauge("dbha_startup_time_sec",
 		"The duration of how long the DBHA-V2 server has been running.",

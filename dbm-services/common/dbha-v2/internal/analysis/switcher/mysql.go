@@ -292,7 +292,7 @@ func (m *Mysql) checkHostInstanceCompleteness(ctx context.Context, host switchco
 	missingInsts := []string{}
 
 	dbmClient := &dbm.Client{}
-	metas, err := dbmClient.QueryMetadataFromDbm(ctx, host.BkCloudID, []string{host.IP})
+	_, metas, err := dbmClient.QueryMetadataFromDbm(ctx, host.BkCloudID, []string{host.IP})
 	if err != nil {
 		return gerrors.Newf(gerrors.Failure, "failed to query metadata from dbm, host: %s, errmsg: %s",
 			host.String(), err.Error())
@@ -474,27 +474,27 @@ func (m *Mysql) ClusterLevelSwitch(ctx context.Context, switchLoggers []switchlo
 func (m *Mysql) reportMysqlSwitchingMetrics(timeConsumingMetric *haapm.HaHistogram, start time.Time, req *Request, rsp *Response) {
 
 	// report the mysql switching time consuming
-	if err := timeConsumingMetric.UpdateLabel(map[string]string{
+	if err := timeConsumingMetric.ObserveWithLabels(map[string]string{
 		apm.MetricLabelSwitchID:    req.SwitchID,
 		apm.MetricLabelActionScope: string(req.ActionScope),
 		apm.MetricLabelDbType:      string(m.DbTypeName()),
-	}).Observe(float64(time.Since(start).Milliseconds())); err != nil {
+	}, float64(time.Since(start).Milliseconds())); err != nil {
 		logger.Error("failed to update mysql switching time consuming metric, errmsg: %s", err.Error())
 	}
 
 	// report the mysql switching success total
-	if err := apm.MysqlSwitchingSuccessTotal.UpdateLabel(map[string]string{
+	if err := apm.MysqlSwitchingSuccessTotal.AddWithLabels(map[string]string{
 		apm.MetricLabelActionScope: string(req.ActionScope),
 		apm.MetricLabelDbType:      string(m.DbTypeName()),
-	}).Add(float64(len(req.MySqlInstData) - len(rsp.MySqlFailureInsts))); err != nil {
+	}, float64(len(req.MySqlInstData)-len(rsp.MySqlFailureInsts))); err != nil {
 		logger.Error("failed to update mysql switching success total metric, errmsg: %s", err.Error())
 	}
 
 	// report the mysql switching error total
-	if err := apm.MysqlSwitchingErrorTotal.UpdateLabel(map[string]string{
+	if err := apm.MysqlSwitchingErrorTotal.AddWithLabels(map[string]string{
 		apm.MetricLabelActionScope: string(req.ActionScope),
 		apm.MetricLabelDbType:      string(m.DbTypeName()),
-	}).Add(float64(len(rsp.MySqlFailureInsts))); err != nil {
+	}, float64(len(rsp.MySqlFailureInsts))); err != nil {
 		logger.Error("failed to update mysql switching error total metric, errmsg: %s", err.Error())
 	}
 }

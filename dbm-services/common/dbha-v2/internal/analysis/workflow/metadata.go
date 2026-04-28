@@ -124,22 +124,22 @@ func (r *MetadataReader) ReadDbStatusWithInstances(conds []*storage.DbInstance,
 
 // reportDbQueryTime reports DB query time consuming metric.
 func (r *MetadataReader) reportDbQueryTime(queryType string, start time.Time) {
-	if reportErr := apm.DbQueryTimeConsumingMs.UpdateLabel(map[string]string{
+	if reportErr := apm.DbQueryTimeConsumingMs.ObserveWithLabels(map[string]string{
 		apm.MetricLabelQueryType:     queryType,
 		haapm.MetricLabelServiceID:   r.myServiceID,
 		haapm.MetricLabelServiceName: apm.MetricServerName,
-	}).Observe(float64(time.Since(start).Milliseconds())); reportErr != nil {
+	}, float64(time.Since(start).Milliseconds())); reportErr != nil {
 		logger.Warn("failed to report db query time consuming metric, queryType: %s, errmsg: %s", queryType, reportErr)
 	}
 }
 
 // reportDbQueryError reports DB query error metric.
 func (r *MetadataReader) reportDbQueryError(queryType string) {
-	if reportErr := apm.DbQueryErrorTotal.UpdateLabel(map[string]string{
+	if reportErr := apm.DbQueryErrorTotal.IncWithLabels(map[string]string{
 		apm.MetricLabelQueryType:     queryType,
 		haapm.MetricLabelServiceID:   r.myServiceID,
 		haapm.MetricLabelServiceName: apm.MetricServerName,
-	}).Inc(); reportErr != nil {
+	}); reportErr != nil {
 		logger.Warn("failed to report db query error metric, queryType: %s, errmsg: %s", queryType, reportErr)
 	}
 }
