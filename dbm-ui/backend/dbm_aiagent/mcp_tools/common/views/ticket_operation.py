@@ -14,7 +14,7 @@ import time
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
-from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_bizs, auth_parse_ticket_biz
+from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_ticket_biz
 from backend.dbm_aiagent.mcp_tools.common.impl.ticket_list import ticket_list
 from backend.dbm_aiagent.mcp_tools.common.serializers.ticket_list import (
     TicketListInputSerializer,
@@ -47,7 +47,7 @@ class TicketOperationMcpToolsViewSet(McpToolsViewSet):
         response_slz=TicketListOutputSerializer,
         tags=[DBMMCPTags.READ],
         permission_classes=[McpDBManagePermission],
-        mcp_auth_parser=auth_parse_bizs,
+        mcp_auth_parser=auth_parse_ticket_biz,
         mcp=[DBMMcpTools.TICKET_OP, DBMMcpTools.DBM_PUBLIC_MARKET],
         name_prefix="ticket_op",
     )

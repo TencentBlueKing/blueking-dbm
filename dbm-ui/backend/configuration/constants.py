@@ -203,6 +203,13 @@ class SystemSettingsEnum(StrStructuredEnum):
     DBM_DAILY_TODO_REMIND = EnumField("DBM_DAILY_TODO_REMIND", _("每日代办提醒配置"))
     # 代办类型和用户映射信息
     DBM_USER_TODO_TYPE_MAP = EnumField("DBM_USER_TODO_TYPE_MAP", _("代办类型和用户映射信息"))
+    DISABLE_DBHA_AUTOFIX_APPS = EnumField("DISABLE_DBHA_AUTOFIX_APPS", _("DBHA业务自动修复开关"))
+
+
+class DisableDBHAAutofixLevel(StrStructuredEnum):
+    CLUSTER_TYPE = EnumField("cluster_type", _("集群类型"))
+    CLUSTER = EnumField("cluster", _("集群"))
+    MACHINE_TYPE = EnumField("machine_type", _("机器类型"))
 
 
 class BizSettingsEnum(StrStructuredEnum):
@@ -361,6 +368,15 @@ DEFAULT_SETTINGS = [
     # [SystemSettingsEnum.REVERSE_REPORT_EVENT_TYPES, "list", DEFAULT_REVERSE_REPORT_EVENT_TYPES, _("反向上报事件类型")],
     [SystemSettingsEnum.OPERATION_DATA_SWITCH.value, "bool", False, _("运营数据开关")],
     [SystemSettingsEnum.AI_CODE_SCENE_MAP.value, "str", DEFAULT_AI_CODE_SCENE_MAP, _("智能体code场景映射关系表")],
+    # list[dict], 每条规则: {
+    #     "bk_biz_id": int,                 (必填) 业务ID
+    #     "cluster_type": str,              (必填) 集群类型, 如 "tendbha", "tendbcluster"
+    #     "disable_level": str,             (必填) DisableDBHAAutofixLevel 枚举值: "cluster_type" | "cluster" | "machine_type"
+    #     "disable_value": str/int,         disable_level 为 "cluster_type" 时无意义;
+    #                                       为 "cluster" 时填 cluster_id;
+    #                                       为 "machine_type" 时填 machine_type 字符串, 如 "proxy", "backend"
+    # }
+    [SystemSettingsEnum.DISABLE_DBHA_AUTOFIX_APPS, "list", [], _("禁用DBHA自动修复配置")],
 ]
 
 # 环境配置项 是否支持DNS解析 pulsar flow used
