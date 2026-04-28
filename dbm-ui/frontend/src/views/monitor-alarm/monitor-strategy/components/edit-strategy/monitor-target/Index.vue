@@ -32,7 +32,7 @@
         class="item-box mt-16"
         :class="{ custom: item.isCustom }">
         <div class="item-box-title">
-          {{ item.isCustom ? customTitleMap[item.title] : item.title }}
+          {{ item.isCustom ? customTitleMap[item.id] : item.title }}
         </div>
         <BkSelect
           v-model="item.method"
