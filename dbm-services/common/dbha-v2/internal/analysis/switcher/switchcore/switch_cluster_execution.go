@@ -51,6 +51,8 @@ func CheckStatusForClusterSwitch(swCluster SwitchableCluster) error {
 		return gerrors.Newf(gerrors.Failure, "found wrong status instances: %s", strings.Join(wrongStatusInsts, ", "))
 	}
 
+	swCluster.ReportClusterLogf(switchlogger.SwitchInfo, "pre-status check pass with %d instances", len(insts))
+
 	return nil
 }
 

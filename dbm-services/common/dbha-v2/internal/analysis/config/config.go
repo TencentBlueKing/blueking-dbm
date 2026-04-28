@@ -50,8 +50,9 @@ var Cfg = Configuration{
 		InflightTTL:                      30 * time.Second,
 		SwitchTimeout:                    1 * time.Minute,
 		DbmApiMetadataHashCnt:            minDbmApiMetadataHashCnt,
-		ClusterLevelSwitchMaxClusterNum:  16,
+		ClusterLevelSwitchMaxClusterNum:  32,
 		ClusterLevelSwitchMaxInstanceNum: 64,
+		DbmApiMaxConcurrentRequests:      16,
 	},
 
 	Monitor: MonitorConfig{
@@ -101,6 +102,7 @@ type WorkflowConfig struct {
 	InflightTTL                      time.Duration `yaml:"inflightTTL"                      mapstructure:"inflightTTL"`
 	SwitchTimeout                    time.Duration `yaml:"switchTimeout"                    mapstructure:"switchTimeout"`
 	DbmApiMetadataHashCnt            int           `yaml:"dbmApiMetadataHashCnt"            mapstructure:"dbmApiMetadataHashCnt"`
+	DbmApiMaxConcurrentRequests      int           `yaml:"dbmApiMaxConcurrentRequests"      mapstructure:"dbmApiMaxConcurrentRequests"`
 	ClusterLevelSwitchMaxClusterNum  int           `yaml:"clusterLevelSwitchMaxClusterNum"  mapstructure:"clusterLevelSwitchMaxClusterNum"`
 	ClusterLevelSwitchMaxInstanceNum int           `yaml:"clusterLevelSwitchMaxInstanceNum" mapstructure:"clusterLevelSwitchMaxInstanceNum"`
 	DbmApiMetadata                   DbmApi        `yaml:"dbmApiMetadata"                   mapstructure:"dbmApiMetadata"`

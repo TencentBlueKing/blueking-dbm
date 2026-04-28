@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
@@ -105,23 +106,47 @@ func (cluster *BaseSwitchCluster) SetSwitchID(switchID string) {
 
 // SetInstanceUnavailable marks instances as unavailable before switching.
 func (cluster *BaseSwitchCluster) SetInstanceUnavailable() error {
-	failedInsts := []string{}
-	for instKey, instMeta := range cluster.SwitchInstances {
-		err := cluster.DbmClient.UpdateInstanceStatus(instMeta.BkCloudID, instMeta.IP, instMeta.Port, dbm.Unavailable)
-		if err == nil {
-			cluster.ReportLogf(instKey, switchlogger.SwitchInfo, "successfully set instance unavailable: %s", string(instKey))
-			continue
-		}
+	if len(cluster.SwitchInstances) == 0 {
+		return nil
+	}
 
-		failedInsts = append(failedInsts, string(instKey))
-		cluster.ReportLogf(instKey, switchlogger.SwitchError,
-			"failed to set instance unavailable, inst: %s, err: %s", string(instKey), err.Error())
+	sem := make(chan struct{}, DbmApiMaxConcurrentRequests())
+	failCh := make(chan string, len(cluster.SwitchInstances))
+	var wg sync.WaitGroup
+
+	for instKey, instMeta := range cluster.SwitchInstances {
+		wg.Add(1)
+		go func(key MetadataKey, meta *dbm.DbInstMetadata) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			err := cluster.DbmClient.UpdateInstanceStatus(cluster.BkCloudID, meta.IP, meta.Port, dbm.Unavailable)
+			if err == nil {
+				cluster.ReportLogf(key, switchlogger.SwitchInfo, "successfully set instance unavailable: %s", string(key))
+				return
+			}
+
+			failCh <- string(key)
+			cluster.ReportLogf(key, switchlogger.SwitchError,
+				"failed to set instance unavailable, inst: %s, err: %s", string(key), err.Error())
+		}(instKey, instMeta)
+	}
+	wg.Wait()
+	close(failCh)
+
+	failedInsts := make([]string, 0, len(failCh))
+	for k := range failCh {
+		failedInsts = append(failedInsts, k)
 	}
 
 	if len(failedInsts) > 0 {
 		return gerrors.Newf(gerrors.Failure,
 			"failed to set unavailable status for instances: %s", strings.Join(failedInsts, ", "))
 	}
+
+	cluster.ReportClusterLogf(switchlogger.SwitchInfo,
+		"successfully set %d instances unavailable", len(cluster.SwitchInstances))
 	return nil
 }
 
