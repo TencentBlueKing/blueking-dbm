@@ -41,12 +41,18 @@
           multiple
           multiple-mode="tag"
           :show-all="false"
-          show-select-all>
+          show-select-all
+          @change="handleChange"
+          @clear="handleClear">
           <template #tag="{ selected: selectedTags }">
             <BkTag
               v-for="item in selectedTags"
-              :key="item"
-              closable
+              :key="item.value"
+              v-bk-tooltips="{
+                content: t('默认组件 DBA，不可删除'),
+                disabled: item.value !== bizDefaultGroupId,
+              }"
+              :closable="formData.settingType === 'replace' && item.value === bizDefaultGroupId ? false : true"
               @close="() => handleDeleteNotifyTargetItem(item.value)">
               <template #icon>
                 <DbIcon
@@ -57,8 +63,9 @@
             </BkTag>
           </template>
           <BkOption
-            v-for="item in alarmGroupList"
+            v-for="item in alarmGroupSelectList"
             :key="item.value"
+            :disabled="item.value === bizDefaultGroupId"
             :label="item.label"
             :value="item.value" />
         </BkSelect>
@@ -89,11 +96,14 @@
   import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
   import { batchUpdateNotifyGroup } from '@services/source/monitor';
 
+  import { DBTypeInfos, DBTypes } from '@common/const';
+
   import { messageSuccess } from '@utils';
 
   interface Props {
-    alarmGroupList: SelectItem<string>[];
+    alarmGroupList: SelectItem<number>[];
     alarmGroupNameMap: Record<string, string>;
+    dbType: DBTypes;
     selected: MonitorPolicyModel[];
   }
 
@@ -120,12 +130,24 @@
     },
     {
       label: 'replace',
-      title: t('批量替换'),
-      tooltips: t('替换选中策略的告警组'),
+      title: t('批量覆盖'),
+      tooltips: t('覆盖选中策略的告警组配置'),
     },
   ];
 
   const formData = reactive(initFormData());
+
+  const bizDefaultGroupId = computed(() => {
+    const groupItem = props.alarmGroupList.find((item) => item.label === `${DBTypeInfos[props.dbType].name}_DBA`)!;
+    return groupItem?.value;
+  });
+
+  const alarmGroupSelectList = computed(() => {
+    if (formData.settingType === 'append') {
+      return props.alarmGroupList.filter((item) => item.value !== bizDefaultGroupId.value);
+    }
+    return props.alarmGroupList;
+  });
 
   const { loading: isSubmitting, run: runBatchUpdateNotifyGroup } = useRequest(batchUpdateNotifyGroup, {
     manual: true,
@@ -136,6 +158,36 @@
       emits('suceess');
     },
   });
+
+  watch(
+    () => formData.settingType,
+    () => {
+      if (formData.settingType === 'append') {
+        formData.notifyGroups = formData.notifyGroups.filter((item) => item !== bizDefaultGroupId.value);
+      } else {
+        const groups = formData.notifyGroups;
+        groups.splice(0, 1, bizDefaultGroupId.value);
+        formData.notifyGroups = groups;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  const handleClear = () => {
+    if (formData.settingType === 'replace') {
+      formData.notifyGroups = [bizDefaultGroupId.value];
+    }
+  };
+
+  const handleChange = () => {
+    if (formData.settingType === 'replace' && formData.notifyGroups.every((item) => item !== bizDefaultGroupId.value)) {
+      const groups = formData.notifyGroups;
+      groups.splice(0, 0, bizDefaultGroupId.value);
+      formData.notifyGroups = groups;
+    }
+  };
 
   const handleDeleteNotifyTargetItem = (id: number) => {
     const index = formData.notifyGroups.findIndex((item) => item === id);
@@ -148,7 +200,15 @@
       const isAppend = settingType === 'append';
 
       const paramNotifyGroups = props.selected.map((selectedItem) => {
-        const groupIds = isAppend ? _.uniq([...selectedItem.notify_groups, ...pageNotifyGroups]) : pageNotifyGroups;
+        let groupIds = pageNotifyGroups;
+        if (isAppend) {
+          groupIds = _.uniq([
+            ...(selectedItem.isInnerReal ? [bizDefaultGroupId.value] : []),
+            ...selectedItem.notify_groups,
+            ...pageNotifyGroups,
+          ]);
+        }
+
         return {
           groups: groupIds,
           policy_id: selectedItem.id,
@@ -156,6 +216,7 @@
       });
 
       runBatchUpdateNotifyGroup({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         notify_groups: paramNotifyGroups,
       });
     });
