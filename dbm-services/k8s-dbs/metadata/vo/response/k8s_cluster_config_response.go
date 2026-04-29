@@ -19,30 +19,16 @@ limitations under the License.
 
 package response
 
-import commtypes "k8s-dbs/common/types"
-
 // K8sClusterConfigResponse response vo 定义
 type K8sClusterConfigResponse struct {
-	ID           uint64                 `json:"id"`
-	ClusterName  string                 `json:"clusterName"`
-	APIServerURL string                 `json:"apiServerUrl"`
-	CACert       string                 `json:"caCert"`
-	ClientCert   string                 `json:"clientCert"`
-	ClientKey    string                 `json:"clientKey"`
-	Token        string                 `json:"token"`
-	Username     string                 `json:"username"`
-	Password     string                 `json:"password"`
-	IsPublic     bool                   `json:"isPublic"`
-	RegionName   string                 `json:"regionName"`
-	RegionCode   string                 `json:"regionCode"`
-	VpcID        string                 `json:"vpcID"`
-	Provider     string                 `json:"provider"`
-	Active       bool                   `json:"active"`
-	Description  string                 `json:"description"`
-	CreatedBy    string                 `json:"createdBy"`
-	CreatedAt    commtypes.JSONDatetime `json:"createdAt"`
-	UpdatedBy    string                 `json:"updatedBy"`
-	UpdatedAt    commtypes.JSONDatetime `json:"updatedAt"`
+	ID          uint64 `json:"id"`
+	ClusterName string `json:"clusterName"`
+	IsPublic    bool   `json:"isPublic"`
+	RegionName  string `json:"regionName"`
+	RegionCode  string `json:"regionCode"`
+	VpcID       string `json:"vpcID"`
+	Provider    string `json:"provider"`
+	Description string `json:"description"`
 }
 
 // RegionResp 区域信息响应结构体
