@@ -42,7 +42,7 @@ const (
 	defaultTTL                   = 6
 	defaultMaxUnaryRetries       = 3
 	defaultDialTimeout           = 5 * time.Second
-	defaultAutoSyncInterval      = 60 * time.Second
+	defaultAutoSyncInterval      = 0 // disable auto-sync
 	defaultKeepAliveTime         = 30 * time.Second
 	defaultKeepAliveTimeout      = 10 * time.Second
 	defaultRegistryRootKeyPrefix = "/dbha/registry"
