@@ -46,10 +46,7 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-const (
-	maxCountPerPage = 200
-	electionName    = "sync-dbm-metadata"
-)
+const electionName = "sync-dbm-metadata"
 
 // Synchronizer periodically syncs DBM metadata into the local database cache.
 type Synchronizer struct {
@@ -177,13 +174,14 @@ func (s *Synchronizer) saveRespond(resp *dbm.Response) error {
 
 func (s *Synchronizer) syncMetadataFromDbm(ctx context.Context) error {
 	start := time.Now()
+	hashCnt := config.Cfg.Workflow.DbmApiMetadataHashCnt
 	req := dbm.DefaultRequest
-	req.HashCnt = maxCountPerPage
+	req.HashCnt = hashCnt
 	req.DbCloudToken = config.Cfg.Workflow.DbmApiMetadata.Token
 	req.Statuses = []string{string(dbm.Running), string(dbm.Available)}
 
 	var hasError bool
-	for idx := range maxCountPerPage {
+	for idx := range hashCnt {
 		req.HashValue = idx
 
 		_, metaRsp, err := s.cli.RequestMetadata(ctx, &req)
