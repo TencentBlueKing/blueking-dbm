@@ -33,6 +33,7 @@ workflow:
   windowDuration: {{ANALYSIS_WORKFLOW_WINDOW_DURATION}}
   inflightTTL: {{ANALYSIS_WORKFLOW_INFLIGHT_TTL}}
   switchTimeout: {{ANALYSIS_WORKFLOW_SWITCH_TIMEOUT}}
+  dbmApiMetadataHashCnt: {{ANALYSIS_WORKFLOW_DBM_API_METADATA_HASH_CNT}}
 
   dbmApiMetadata:
     api: "{{COMMON_DBM_API_METADATA_API}}"

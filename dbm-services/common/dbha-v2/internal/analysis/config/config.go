@@ -49,6 +49,7 @@ var Cfg = Configuration{
 		WindowDuration:             10 * time.Second,
 		InflightTTL:                30 * time.Second,
 		SwitchTimeout:              1 * time.Minute,
+		DbmApiMetadataHashCnt:      minDbmApiMetadataHashCnt,
 	},
 
 	Monitor: MonitorConfig{
@@ -97,6 +98,7 @@ type WorkflowConfig struct {
 	PopInterval                time.Duration `yaml:"popInterval"                mapstructure:"popInterval"`
 	InflightTTL                time.Duration `yaml:"inflightTTL"                mapstructure:"inflightTTL"`
 	SwitchTimeout              time.Duration `yaml:"switchTimeout"              mapstructure:"switchTimeout"`
+	DbmApiMetadataHashCnt      int           `yaml:"dbmApiMetadataHashCnt"      mapstructure:"dbmApiMetadataHashCnt"`
 	DbmApiMetadata             DbmApi        `yaml:"dbmApiMetadata"             mapstructure:"dbmApiMetadata"`
 	DbmApiUpdateStatus         DbmApi        `yaml:"dbmApiUpdateStatus"         mapstructure:"dbmApiUpdateStatus"`
 	DbmApiSwapMysqlRole        DbmApi        `yaml:"dbmApiSwapMysqlRole"        mapstructure:"dbmApiSwapMysqlRole"`
@@ -193,11 +195,31 @@ func Load(configFilePath string) error {
 		return err
 	}
 
-	return viper.Unmarshal(&Cfg)
+	if err := viper.Unmarshal(&Cfg); err != nil {
+		return err
+	}
+
+	Cfg.Workflow.DbmApiMetadataHashCnt = clampDbmApiMetadataHashCnt(Cfg.Workflow.DbmApiMetadataHashCnt)
+	return nil
 }
 
 // SwitchIDVersion is the version prefix for generated switch IDs
-const SwitchIDVersion = "00"
+const (
+	SwitchIDVersion          = "00"
+	minDbmApiMetadataHashCnt = 200
+)
+
+func clampDbmApiMetadataHashCnt(hashCnt int) int {
+	if hashCnt < minDbmApiMetadataHashCnt {
+		logger.Warn(
+			"dbm api metadata hash count too small, configured: %d, fallback: %d",
+			hashCnt, minDbmApiMetadataHashCnt,
+		)
+		return minDbmApiMetadataHashCnt
+	}
+
+	return hashCnt
+}
 
 func init() {
 	Cfg.Detector.Ssh.Port = 22
