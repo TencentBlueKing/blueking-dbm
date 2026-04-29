@@ -230,10 +230,6 @@ func (s *Synchronizer) syncMetadataFromDbm(ctx context.Context) error {
 }
 
 func (s *Synchronizer) updateCache(ctx context.Context) error {
-	if err := s.syncMetadataFromDbm(ctx); err != nil {
-		logger.Warn("failed to sync metadata from dbm, errmsg: %s", err)
-	}
-
 	election, err := s.discoveryCli.CreateElection(electionName)
 	if err != nil {
 		return err
