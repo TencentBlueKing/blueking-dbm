@@ -238,10 +238,10 @@ class DBAdministratorHandler(object):
             operate_list.append(
                 AppOperate(
                     creator=username,
-                    bk_biz_id=operate["bk_biz_id"],
-                    operate_type=operate["type"],
-                    change_before=operate["before"],
-                    change_after=operate["after"],
+                    bk_biz_id=operate.get("bk_biz_id"),
+                    operate_type=operate.get("type"),
+                    change_before=operate.get("before", ""),
+                    change_after=operate.get("after", ""),
                     role=operate.get("role", ""),
                     db_type=operate.get("db_type", ""),
                 )
