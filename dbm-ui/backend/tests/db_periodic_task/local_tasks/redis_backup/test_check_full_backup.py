@@ -86,6 +86,7 @@ def _run_evaluate_slave(
     slave_times=None,
     master_times=None,
     recently_switched=None,
+    api_promoted_count=0,
 ):
     if schedule is None:
         schedule = [5]
@@ -123,6 +124,7 @@ def _run_evaluate_slave(
         ", ".join(f"{h:02d}:00" for h in schedule),
         2.5,
         recently_switched=recently_switched,
+        api_promoted_count=api_promoted_count,
     )
     return report
 
@@ -162,10 +164,11 @@ def test_process_bklog_all_success():
     ]
     tracked = ["3.3.3.2:30000", "3.3.3.2:30001"]
     with patch(_PATCH_FIND, return_value=set()):
-        sc, st, seen, errors = _task()._process_bklog_entries(report, entries, tracked)
+        sc, st, seen, errors, promoted = _task()._process_bklog_entries(report, entries, tracked)
     assert sc["3.3.3.2:30000"] == 1
     assert sc["3.3.3.2:30001"] == 1
     assert len(errors) == 0
+    assert promoted == {}
 
 
 def test_process_bklog_failed_dedup_by_success_taskid():
@@ -177,12 +180,14 @@ def test_process_bklog_failed_dedup_by_success_taskid():
     ]
     tracked = ["3.3.3.2:30000"]
     with patch(_PATCH_FIND, return_value=set()):
-        sc, st, seen, errors = _task()._process_bklog_entries(report, entries, tracked)
+        sc, st, seen, errors, promoted = _task()._process_bklog_entries(report, entries, tracked)
     assert sc["3.3.3.2:30000"] == 1
     assert len(errors.get("3.3.3.2:30000", [])) == 0
+    assert promoted == {}
 
 
 def test_process_bklog_api_confirmed_counted():
+    ST = _state()
     cluster = _make_cluster()
     report = _report_cls()(cluster, "full_backup")
     entries = [
@@ -190,8 +195,12 @@ def test_process_bklog_api_confirmed_counted():
     ]
     tracked = ["3.3.3.2:30000"]
     with patch(_PATCH_FIND, return_value={"t1"}):
-        sc, st, seen, errors = _task()._process_bklog_entries(report, entries, tracked)
+        sc, st, seen, errors, promoted = _task()._process_bklog_entries(report, entries, tracked)
     assert sc["3.3.3.2:30000"] == 1
+    # API-promoted entries must not produce per-task normal report rows.
+    assert report.records[ST.NORMAL.value] == []
+    # The promoted slot must be tracked so _evaluate_slave can annotate the row.
+    assert promoted["3.3.3.2:30000"] == 1
 
 
 def test_process_bklog_failed_collects_errors():
@@ -208,9 +217,10 @@ def test_process_bklog_failed_collects_errors():
     ]
     tracked = ["3.3.3.2:30000"]
     with patch(_PATCH_FIND, return_value=set()):
-        sc, st, seen, errors = _task()._process_bklog_entries(report, entries, tracked)
+        sc, st, seen, errors, promoted = _task()._process_bklog_entries(report, entries, tracked)
     assert sc["3.3.3.2:30000"] == 0
     assert "upload err" in errors["3.3.3.2:30000"]
+    assert promoted == {}
 
 
 def test_process_bklog_unknown_instance_in_seen():
@@ -221,9 +231,10 @@ def test_process_bklog_unknown_instance_in_seen():
     ]
     tracked = ["3.3.3.2:30000"]
     with patch(_PATCH_FIND, return_value=set()):
-        sc, st, seen, errors = _task()._process_bklog_entries(report, entries, tracked)
+        sc, st, seen, errors, promoted = _task()._process_bklog_entries(report, entries, tracked)
     assert "3.3.3.9:30000" in seen
     assert sc["3.3.3.2:30000"] == 0
+    assert promoted == {}
 
 
 # ---------------------------------------------------------------------------
@@ -235,6 +246,34 @@ def test_evaluate_slave_normal_ok():
     records = report.records[ST.NORMAL.value]
     assert len(records) == 1
     assert records[0]["msg"] == "ok"
+
+
+def test_evaluate_slave_normal_ok_fully_promoted_suffix():
+    """All success slots came from the API double-check -> NORMAL with suffix."""
+    ST = _state()
+    report = _run_evaluate_slave(
+        slave_count=3,
+        master_count=0,
+        schedule=[5, 13, 21],
+        api_promoted_count=3,
+    )
+    records = report.records[ST.NORMAL.value]
+    assert len(records) == 1
+    assert records[0]["msg"] == "ok (3 via backup system double-check)"
+
+
+def test_evaluate_slave_normal_ok_partial_promotion_shows_suffix():
+    """Even one promoted slot must be surfaced so operators see the disagreement."""
+    ST = _state()
+    report = _run_evaluate_slave(
+        slave_count=3,
+        master_count=0,
+        schedule=[5, 13, 21],
+        api_promoted_count=1,
+    )
+    records = report.records[ST.NORMAL.value]
+    assert len(records) == 1
+    assert records[0]["msg"] == "ok (1 via backup system double-check)"
 
 
 def test_evaluate_slave_off_schedule_abnormal():
@@ -390,6 +429,104 @@ def test_check_cluster_happy_path():
         rows = _task()._check_cluster(cluster, bklogs, cfg)
     assert len(rows) == 1
     assert rows[0].state == ST.NORMAL.value
+
+
+def test_check_cluster_api_confirmed_groups_with_ok_ports():
+    """API-promoted ports must NOT introduce per-task `task_id` messages.
+
+    Mirrors the production noise scenario: ports 30000~30002 have
+    `to_backup_system_start` entries that the backup system API confirms as
+    successful, ports 30003 has the expected 3 successes, and port 30004 is
+    missing one schedule slot.  The final per-IP report should collapse all
+    healthy ports into a single `ok` segment and only call out the missing
+    port; the cross-check `task_id` text must not appear.
+    """
+    ST = _state()
+    cluster = _make_cluster(cluster_type="TwemproxyRedisInstance")  # schedule [5, 13, 21]
+
+    storages = []
+    for port in (30000, 30001, 30002, 30003, 30004):
+        storages.append(
+            SimpleNamespace(
+                machine=SimpleNamespace(ip="3.3.3.1"),
+                port=port,
+                ejector_tuples=[
+                    SimpleNamespace(
+                        receiver=SimpleNamespace(
+                            machine=SimpleNamespace(ip="3.3.3.2"),
+                            port=port,
+                            create_at=timezone.now() - timedelta(hours=72),
+                        ),
+                        create_at=timezone.now() - timedelta(hours=72),
+                    )
+                ],
+            )
+        )
+    cluster.storages = storages
+    cfg = _config()
+
+    schedule_hours = (5, 13, 21)
+    bklogs: list[dict] = []
+    api_confirmed: set[str] = set()
+
+    # 30000~30002: every slot recorded as `to_backup_system_start` but API-confirmed.
+    for port in (30000, 30001, 30002):
+        for h in schedule_hours:
+            tid = f"start-{port}-{h}"
+            bklogs.append(
+                make_fullbackup_entry(
+                    status="to_backup_system_start",
+                    ip="3.3.3.2",
+                    port=port,
+                    task_id=tid,
+                    uptime=f"2024-01-15T{h:02d}:30:00+08:00",
+                )
+            )
+            api_confirmed.add(tid)
+
+    # 30003: clean 3/3 successes.
+    for h in schedule_hours:
+        bklogs.append(
+            make_fullbackup_entry(
+                status="to_backup_system_success",
+                ip="3.3.3.2",
+                port=30003,
+                task_id=f"ok-30003-{h}",
+                uptime=f"2024-01-15T{h:02d}:30:00+08:00",
+            )
+        )
+
+    # 30004: only 2/3 successes -- missing the 21:00 slot.
+    for h in (5, 13):
+        bklogs.append(
+            make_fullbackup_entry(
+                status="to_backup_system_success",
+                ip="3.3.3.2",
+                port=30004,
+                task_id=f"ok-30004-{h}",
+                uptime=f"2024-01-15T{h:02d}:30:00+08:00",
+            )
+        )
+
+    with patch(_PATCH_FIND, return_value=api_confirmed):
+        rows = _task()._check_cluster(cluster, bklogs, cfg)
+
+    # Records are grouped per IP, so all five slave ports collapse into one row.
+    assert len(rows) == 1
+    row = rows[0]
+    assert row.instance == "3.3.3.2"
+    # Worst port drives the row state.
+    assert row.state == ST.WARNING.value
+    # Fully-promoted ports group separately with a NORMAL suffix indicating the double-check.
+    assert "30000~30002: ok (3 via backup system double-check)" in row.msg
+    # The cleanly-successful port stays plain `ok` and forms its own segment.
+    assert "30003: ok" in row.msg
+    # The struggling port must surface its missing slot.
+    assert "30004: " in row.msg
+    assert "missing 21:00" in row.msg
+    # No per-task noise should leak into the message.
+    assert "task_id" not in row.msg
+    assert "backup system confirms success" not in row.msg
 
 
 def test_check_cluster_mixed_per_ip_rows():

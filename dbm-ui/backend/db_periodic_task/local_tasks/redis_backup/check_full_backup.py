@@ -225,9 +225,13 @@ class CheckFullBackupTask:
             return report.make_error_record("no full backup logs found for this cluster")
 
         all_instances = slave_instances + master_instances
-        success_count, success_times, seen_instances, inst_errors = self._process_bklog_entries(
-            report, bklogs, all_instances
-        )
+        (
+            success_count,
+            success_times,
+            seen_instances,
+            inst_errors,
+            api_promoted_per_inst,
+        ) = self._process_bklog_entries(report, bklogs, all_instances)
 
         schedule_hours = config.get_full_backup_schedule(cluster.cluster_type)
         expect_count = len(schedule_hours)
@@ -248,6 +252,7 @@ class CheckFullBackupTask:
                 schedule_str,
                 config.max_schedule_deviation_hours,
                 recently_switched=recently_switched.get(slave_inst),
+                api_promoted_count=api_promoted_per_inst.get(slave_inst, 0),
             )
 
         return report.make_records()
@@ -257,7 +262,7 @@ class CheckFullBackupTask:
         report: RedisBackupClusterReport,
         bklogs: list[dict],
         tracked_instances: list[str],
-    ) -> tuple[dict[str, int], dict[str, list[str]], set[str], dict[str, list[str]]]:
+    ) -> tuple[dict[str, int], dict[str, list[str]], set[str], dict[str, list[str]], dict[str, int]]:
         """Classify BKLog entries: count successes, collect errors, cross-check with backup API."""
         success_count: dict[str, int] = {inst: 0 for inst in tracked_instances}
         success_times: dict[str, list[str]] = {inst: [] for inst in tracked_instances}
@@ -268,6 +273,7 @@ class CheckFullBackupTask:
         bklog_success_task_ids = {
             e["task_id"] for e in bklogs if e.get("backup_status") == "to_backup_system_success" and e.get("task_id")
         }
+        api_promoted_per_inst: dict[str, int] = defaultdict(int)
 
         for entry in bklogs:
             status = entry.get("backup_status", "")
@@ -286,11 +292,7 @@ class CheckFullBackupTask:
                     if inst_addr in success_count:
                         success_count[inst_addr] += 1
                         success_times[inst_addr].append(entry.get("uptime", ""))
-                    report.append(
-                        ReportStateType.NORMAL.value,
-                        inst_addr,
-                        f"bklog status: {status}, but backup system confirms success (task_id: {task_id})",
-                    )
+                        api_promoted_per_inst[inst_addr] += 1
                 elif status == "to_backup_system_failed":
                     err_msg = entry.get("backup_status_info", "upload failed")
                     if err_msg not in inst_errors[inst_addr]:
@@ -298,7 +300,16 @@ class CheckFullBackupTask:
                 # to_backup_system_start entries not confirmed by the API are in-flight
                 # uploads -- not an error; they are intentionally left unreported.
 
-        return success_count, success_times, seen_instances, inst_errors
+        if api_promoted_per_inst:
+            total_promoted = sum(api_promoted_per_inst.values())
+            logger.info(
+                "CheckFullBackupTask cluster=%s: %d entries across %d instances promoted to success via backup system API",
+                report.cluster.immute_domain,
+                total_promoted,
+                len(api_promoted_per_inst),
+            )
+
+        return success_count, success_times, seen_instances, inst_errors, api_promoted_per_inst
 
     @staticmethod
     def _evaluate_slave(
@@ -314,6 +325,7 @@ class CheckFullBackupTask:
         schedule_str: str,
         max_deviation_hours: float,
         recently_switched: int | None = None,
+        api_promoted_count: int = 0,
     ):
         """Evaluate a single slave instance and append the result to the report.
 
@@ -338,7 +350,10 @@ class CheckFullBackupTask:
                         f"{slave_count}/{expect_count} backups but {len(off_sched)} off-schedule: {off_detail}",
                     )
                     return
-            report.append(ReportStateType.NORMAL.value, slave_inst, "ok")
+            ok_msg = "ok"
+            if api_promoted_count > 0:
+                ok_msg = f"ok ({api_promoted_count} via backup system double-check)"
+            report.append(ReportStateType.NORMAL.value, slave_inst, ok_msg)
             return
 
         if master_count >= expect_count:

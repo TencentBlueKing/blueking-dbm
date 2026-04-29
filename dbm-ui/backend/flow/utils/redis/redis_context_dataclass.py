@@ -149,6 +149,7 @@ class RedisDataStructureContext:
     redis_act_payload: Optional[Any] = None  # 代表获取payload参数的类
     disk_used: dict = field(default_factory=dict)
     backup_dir: str = None
+    alarm_shield_id: int = None  # 告警屏蔽ID
 
     def cal_twemproxy_serveres(self, name) -> list:
         """
