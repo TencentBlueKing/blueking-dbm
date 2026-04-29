@@ -33,14 +33,10 @@ def sync_appcache_managed():
 
         managed_biz_ids = all_biz_ids & managed_ids
 
-        managed_app = AppCache.objects.filter(bk_biz_id__in=list(managed_biz_ids))
-
-        for app in managed_app:
-            update_data = {
-                "status": "managed",
-                "managed_time": datetime.datetime.now(timezone.utc)
-            }
-            AppCache.objects.filter(bk_biz_id=app.bk_biz_id).update(**update_data)
+        AppCache.objects.filter(bk_biz_id__in=list(managed_biz_ids)).update(
+            status="managed",
+            managed_time=datetime.datetime.now(timezone.utc)
+        )
 
     with transaction.atomic():
         for dba in DBAdministrator.objects.all():
