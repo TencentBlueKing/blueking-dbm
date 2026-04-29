@@ -150,7 +150,7 @@ class BatchUpsertDBAdminSerializer(serializers.Serializer):
     operates = serializers.ListSerializer(child=OperateSerializer())
 
 
-class AppOperateLogSerializer(serializers.Serializer):
+class AppOperateLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = AppOperate
         fields = "__all__"
