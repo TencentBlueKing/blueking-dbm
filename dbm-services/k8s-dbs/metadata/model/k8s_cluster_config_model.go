@@ -39,6 +39,7 @@ type K8sClusterConfigModel struct {
 	IsPublic     bool                   `gorm:"type:tinyint(1);not null;default:1;column:is_public" json:"isPublic"`
 	RegionName   string                 `gorm:"column:region_name;type:varchar(32);not null" json:"regionName"`
 	RegionCode   string                 `gorm:"column:region_code;type:varchar(32);not null" json:"regionCode"`
+	VpcID        string                 `gorm:"column:vpc_id;type:varchar(32);" json:"vpcID"`
 	Provider     string                 `gorm:"column:provider;type:varchar(32);not null" json:"provider"`
 	Active       bool                   `gorm:"type:tinyint(1);not null;default:1;column:active" json:"active"`
 	Description  string                 `gorm:"size:100;column:description" json:"description"`
@@ -55,6 +56,7 @@ type RegionModel struct {
 	ClusterAlias string `gorm:"column:cluster_alias;type:varchar(32);not null" json:"clusterAlias"`
 	RegionName   string `gorm:"column:region_name;type:varchar(32);not null" json:"regionName"`
 	RegionCode   string `gorm:"column:region_code;type:varchar(32);not null" json:"regionCode"`
+	VpcID        string `gorm:"column:vpc_id;type:varchar(32);" json:"vpcID"`
 	Provider     string `gorm:"column:provider;type:varchar(32);not null" json:"provider"`
 }
 

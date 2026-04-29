@@ -37,6 +37,7 @@ type K8sClusterConfigRequest struct {
 	IsPublic          bool   `json:"isPublic"`
 	RegionName        string `json:"regionName"`
 	RegionCode        string `json:"regionCode"`
+	VpcID             string `json:"vpcID"`
 	Provider          string `json:"provider"`
 	Active            bool   `json:"active"`
 	Description       string `json:"description" binding:"required"`

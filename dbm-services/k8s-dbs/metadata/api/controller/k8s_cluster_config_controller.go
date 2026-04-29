@@ -97,6 +97,7 @@ func (k *K8sClusterConfigController) GetRegionsByVisibility(ctx *gin.Context) {
 			response.K8sClusterResp{
 				ClusterName:  region.ClusterName,
 				ClusterAlias: region.ClusterAlias,
+				VpcID:        region.VpcID,
 			})
 	}
 	// 转换为切片返回

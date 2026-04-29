@@ -49,5 +49,6 @@ type RegionEntity struct {
 	ClusterAlias string `json:"clusterAlias"`
 	RegionName   string `json:"regionName"`
 	RegionCode   string `json:"regionCode"`
+	VpcID        string `json:"vpcID"`
 	Provider     string `json:"provider"`
 }
