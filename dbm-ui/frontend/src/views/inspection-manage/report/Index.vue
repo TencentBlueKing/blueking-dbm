@@ -9,6 +9,11 @@
           v-model="tabType"
           :count-config="dbCountConfig"
           :include="availableDbs" />
+        <DbTab
+          v-else-if="isPlatform"
+          v-model="tabType"
+          :exclude="excludeDbs"
+          :label-config="labelConfig" />
         <DbTabForBiz
           v-else
           v-model="tabType"
@@ -65,6 +70,7 @@
 
   import { DBTypeInfos, DBTypes } from '@common/const';
 
+  import DbTab from '@components/db-tab/Index.vue';
   import DbTabForBiz from '@components/db-tab-for-biz/Index.vue';
   import DbaDbTab from '@components/dba-db-tab/Index.vue';
 
