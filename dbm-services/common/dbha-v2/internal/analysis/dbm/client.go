@@ -208,21 +208,25 @@ func (c *Client) UpdateBatchInstancesStatus(bkCloudId int, insts []InstWithinClu
 	}
 
 	logger.Debug(
-		"updateBatch instances status request, bk_cloud_id: %d, ip: %s, port: %d, status: %s",
+		"update batch instances status request, bk_cloud_id: %d, instance_count: %d, status: %s",
 		bkCloudId,
-		ip,
-		port,
+		len(payloads),
 		status,
 	)
 
 	response, err := c.SendRequest(config.Cfg.Workflow.DbmApiUpdateStatus.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiUpdateStatus.Timeout)
 	if err != nil {
-		logger.Error("failed to update instance status, ip: %s, port: %d, errmsg: %s", ip, port, err)
+		logger.Error("failed to update batch instances status, errmsg: %s", err.Error())
 		return err
 	}
 
-	logger.Debug("update instance status response, ip: %s, port: %d, resp_len: %d", ip, port, len(response))
+	logger.Debug(
+		"update batch instances status response, bk_cloud_id: %d, instance_count: %d, resp_len: %d",
+		bkCloudId,
+		len(payloads),
+		len(response),
+	)
 
 	updateStatusResp := &UpdateInstanceStatusRespond{}
 	if err := json.Unmarshal(response, updateStatusResp); err != nil {
@@ -230,7 +234,11 @@ func (c *Client) UpdateBatchInstancesStatus(bkCloudId int, insts []InstWithinClu
 	}
 
 	if !updateStatusResp.Result {
-		return gerrors.Newf(gerrors.Failure, "status update request failed, errmsg: %s", updateStatusResp.Message)
+		return gerrors.Newf(gerrors.Failure,
+			"failed to update batch instances status, instance_count: %d, errmsg: %s",
+			len(payloads),
+			updateStatusResp.Message,
+		)
 	}
 
 	return nil
