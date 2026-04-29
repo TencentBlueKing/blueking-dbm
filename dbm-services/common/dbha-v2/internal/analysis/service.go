@@ -27,6 +27,8 @@ package analysis
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"strings"
 	"sync"
 	"time"
 
@@ -271,12 +273,17 @@ func (s *Service) createNotifier() error {
 	monitor.SetDataID(config.Cfg.Monitor.DataID)
 
 	if raw := config.Cfg.Monitor.BkMonitorEndpoint; raw != "" {
-		ep, err := hanet.Parse(raw, "http")
+		endpoint, err := resolveBkMonitorEndpoint(raw)
 		if err != nil {
-			logger.Error("invalid bk monitor endpoint, errmsg: %s", err)
-			return gerrors.Newf(gerrors.InvalidConfiguration, "invalid bk monitor endpoint, errmsg: %s", err)
+			logger.Error("invalid bk monitor endpoint, endpoint: %s, errmsg: %s", raw, err)
+			return gerrors.Newf(
+				gerrors.InvalidConfiguration,
+				"invalid bk monitor endpoint, endpoint: %s, errmsg: %s",
+				raw, err,
+			)
 		}
-		monitor.SetEndpoint(ep.HostPort())
+
+		monitor.SetEndpoint(endpoint)
 	}
 
 	monitor.SetBkMonitorBeat(config.Cfg.Monitor.BkMonitorBeat)
@@ -292,4 +299,22 @@ func (s *Service) createWorkflow(ctx context.Context) error {
 	s.wflow = wflow
 
 	return s.wflow.Run(ctx)
+}
+
+func resolveBkMonitorEndpoint(raw string) (string, error) {
+	endpoint := strings.TrimSpace(raw)
+	if endpoint == "" {
+		return "", errors.New("empty endpoint")
+	}
+
+	if strings.HasPrefix(endpoint, "/") {
+		return endpoint, nil
+	}
+
+	ep, err := hanet.Parse(endpoint, "http")
+	if err != nil {
+		return "", err
+	}
+
+	return ep.HostPort(), nil
 }
