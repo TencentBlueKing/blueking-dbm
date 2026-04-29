@@ -49,6 +49,11 @@ class GlobalDBAPermission(ResourceActionPermission):
 
     @staticmethod
     def instance_dbtype_getter(request, view):
-        db_admins = request.data.get("db_admins", []) or request.data.get("update_info", {}).get("db_admins", [])
+        db_admins = request.data.get("db_admins", [])
+        if not db_admins:
+            update_info = request.data.get("update_info", [])
+            if update_info:
+                db_admins = update_info[0].get("db_admins", [])
+
         db_type_list = [item["db_type"] for item in db_admins]
         return db_type_list

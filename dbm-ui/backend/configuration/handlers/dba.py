@@ -28,7 +28,7 @@ from backend.exceptions import ApiError
 from backend.flow.utils.cc_manage import CcManage
 
 logger = logging.getLogger("root")
-OPERATE_DBA_MAP = {0: _("主DBA"), 1: _("备DBA"), 2: _("二线DBA")}
+OPERATE_DBA_MAP = {0: _("primary_dba"), 1: _("standby_dba"), 2: _("sec_dba")}
 
 
 class DBAdministratorHandler(object):
