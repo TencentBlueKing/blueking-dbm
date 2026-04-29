@@ -35,6 +35,7 @@ type K8sClusterConfigResponse struct {
 	IsPublic     bool                   `json:"isPublic"`
 	RegionName   string                 `json:"regionName"`
 	RegionCode   string                 `json:"regionCode"`
+	VpcID        string                 `json:"vpcID"`
 	Provider     string                 `json:"provider"`
 	Active       bool                   `json:"active"`
 	Description  string                 `json:"description"`
@@ -56,4 +57,5 @@ type RegionResp struct {
 type K8sClusterResp struct {
 	ClusterName  string `json:"clusterName"`
 	ClusterAlias string `json:"clusterAlias"`
+	VpcID        string `json:"vpcID"`
 }
