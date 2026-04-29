@@ -189,7 +189,7 @@ func (r *Checker) prepareReplicateTable() error {
 }
 
 func (r *Checker) prepareDsnsTable() error {
-	_, err := r.db.Exec(`DROP TABLE IF EXISTS dsns`)
+	_, err := r.db.Exec(fmt.Sprintf(`DROP TABLE IF EXISTS %s.dsns`, r.resultDB))
 	if err != nil {
 		slog.Error("drop exists dsns table", slog.String("error", err.Error()))
 		return err
@@ -210,7 +210,7 @@ func (r *Checker) prepareDsnsTable() error {
 	for _, slave := range r.Config.Slaves {
 		_, err := r.conn.ExecContext(
 			context.Background(),
-			`INSERT INTO dsns (dsn) VALUES (?)`,
+			fmt.Sprintf(`INSERT INTO %s.dsns (dsn) VALUES (?)`, r.resultDB),
 			fmt.Sprintf(`h=%s,u=%s,p=%s,P=%d`, slave.Ip, slave.User, slave.Password, slave.Port),
 		)
 		if err != nil {
