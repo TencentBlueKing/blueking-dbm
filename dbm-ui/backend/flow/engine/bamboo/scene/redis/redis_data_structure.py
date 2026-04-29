@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging.config
+import re
 from collections import defaultdict
 from copy import deepcopy
 from dataclasses import asdict
@@ -49,6 +50,8 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import RedisBatchInstallAtomJob
 from backend.flow.engine.bamboo.scene.redis.common.exceptions import TendisGetBinlogFailedException
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure_sub import redis_backupfile_download
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -73,6 +76,8 @@ from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.utils.time import str2datetime
 
 logger = logging.getLogger("flow")
+
+SHARD_VALUE_RANGE_SEPARATOR = re.compile(r"[\s,]+")
 
 
 class RedisDataStructureFlow(object):
@@ -132,6 +137,24 @@ class RedisDataStructureFlow(object):
         logger.info("redis_data_structure_flow info:{}".format(info))
         redis_pipeline, act_kwargs = self.__init_builder(_("REDIS_DATA_STRUCTURE"), info)
         cluster_type = act_kwargs.cluster["cluster_type"]
+
+        # 屏蔽临时主机告警，避免数据构造期间临时实例上报噪声告警
+        temp_host_ips = [host["ip"] for host in info["redis"]]
+        shield_duration_seconds = int(self.data.get("alarm_shield_duration_seconds", 2 * 3600))
+        shield_kwargs = deepcopy(act_kwargs)
+        redis_pipeline.add_act(
+            act_name=_("屏蔽临时主机告警-{}").format(temp_host_ips),
+            act_component_code=AddAlarmShieldComponent.code,
+            kwargs={
+                **asdict(shield_kwargs),
+                "description": _("Redis数据构造-屏蔽告警-{}").format(act_kwargs.cluster["domain_name"]),
+                "dimensions": [
+                    {"name": "appid", "values": [str(act_kwargs.cluster["bk_biz_id"])]},
+                    {"name": "bk_target_ip", "values": temp_host_ips},
+                ],
+                "duration_seconds": shield_duration_seconds,
+            },
+        )
         # 获取 kvstorecount
         redis_config = self.__get_cluster_config(
             str(act_kwargs.cluster["bk_biz_id"]),
@@ -215,7 +238,7 @@ class RedisDataStructureFlow(object):
                     "spec_config": resource_spec,
                 },
                 to_install_puglins=not is_drill,  # 演练场景跳过安装beat插件
-                to_install_dbmon=not is_drill,  # 演练场景跳过安装dbmon，销毁时也无需卸载
+                to_install_dbmon=not is_drill,  # 演练场景跳过dbmon, 销毁时也无需卸载
             )
             sub_pipelines_install.append(sub_builder)
 
@@ -419,6 +442,13 @@ class RedisDataStructureFlow(object):
             act_name=_("写入构造记录元数据"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
         )
 
+        # 解除临时主机告警屏蔽
+        redis_pipeline.add_act(
+            act_name=_("解除临时主机告警屏蔽-{}").format(temp_host_ips),
+            act_component_code=DisableAlarmShieldComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+
         return redis_pipeline.build_sub_process(sub_name=_("集群[{}]数据构造").format(act_kwargs.cluster["domain_name"]))
 
     @staticmethod
@@ -556,8 +586,8 @@ class RedisDataStructureFlow(object):
                 duplicate_instances.append(instance)
             else:
                 instance_shard_dict[instance] = shard_value
-            shard_start, shard_end = map(int, shard_value.split("-"))
-            missing_ranges.extend(range(shard_start, shard_end + 1))
+            for shard_start, shard_end in RedisDataStructureFlow.parse_shard_value_ranges(shard_value):
+                missing_ranges.extend(range(shard_start, shard_end + 1))
 
         logger.info(_("实例 segment 对应关系，instance_shard_dict: {}".format(instance_shard_dict)))
         if duplicate_instances:
@@ -598,6 +628,37 @@ class RedisDataStructureFlow(object):
         logger.info(_("cluster_id: {},所有的instance:{}".format(info["cluster_id"], cluster_backup_instance)))
         logger.info(_("cluster_id: {},所有的redis_instance_set:{}".format(info["cluster_id"], redis_instance_set)))
         return cluster_backup_instance, redis_instance_set
+
+    @staticmethod
+    def parse_shard_value_ranges(shard_value: str) -> List[Tuple[int, int]]:
+        """
+        Parse backup-log shard_value into one or more inclusive ranges.
+
+        Redis cluster backups can report non-contiguous slots for a single node,
+        e.g. "1365-1637 10651-10923" or "1-2 4 5-6".
+        Migrating/importing markers from CLUSTER NODES do not represent owned
+        slots in dbmon's decoder, so they are ignored here too.
+        """
+        shard_value = str(shard_value).strip()
+        ranges = []
+        for shard_range in SHARD_VALUE_RANGE_SEPARATOR.split(shard_value):
+            if not shard_range:
+                continue
+            if shard_range.startswith("[") and shard_range.endswith("]"):
+                continue
+            parts = shard_range.split("-")
+            if len(parts) == 1:
+                shard_start = shard_end = int(parts[0])
+            elif len(parts) == 2:
+                shard_start, shard_end = map(int, parts)
+            else:
+                raise ValueError(_("shard_value格式不正确: {}".format(shard_value)))
+            if shard_start > shard_end:
+                raise ValueError(_("shard_value范围不正确: {}".format(shard_value)))
+            ranges.append((shard_start, shard_end))
+        if not ranges:
+            raise ValueError(_("shard_value为空: {}".format(shard_value)))
+        return ranges
 
     def __get_cluster_info(self, cluster_id: int) -> dict:
         """获取集群现有信息
