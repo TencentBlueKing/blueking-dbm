@@ -89,7 +89,7 @@ class DBAdminViewSet(viewsets.SystemViewSet):
         bk_biz_id = validated_data.get("bk_biz_id")
         return Response(DBAdministratorHandler.cancel_manage_biz(bk_biz_id, username))
 
-    @common_swagger_auto_schema(operation_summary=_("取消纳管业务"), tags=[SWAGGER_TAG])
+    @common_swagger_auto_schema(operation_summary=_("更新业务标签"), tags=[SWAGGER_TAG])
     @action(methods=["POST"], detail=False, serializer_class=UpdateAppTagsSerializer)
     def update_app_tag(self, request, *args, **kwargs):
         username = request.user.username
