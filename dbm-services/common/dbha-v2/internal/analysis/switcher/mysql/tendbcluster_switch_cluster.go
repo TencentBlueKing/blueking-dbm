@@ -97,6 +97,9 @@ type TenDBClusterSwitchCluster struct {
 	RemoteMasterKeyList []switchcore.MetadataKey
 	// remote slave instances that need to be switched
 	RemoteSlaveKeyList []switchcore.MetadataKey
+
+	// keyListMu guards concurrent appends to SpiderKeyList, RemoteMasterKeyList, and RemoteSlaveKeyList
+	keyListMu sync.Mutex
 }
 
 // SetStandbySlaveMap sets the standby slave map from remote master metadata
@@ -142,6 +145,13 @@ func (cluster *TenDBClusterSwitchCluster) SwitchRequiredNodes() []switchcore.Met
 	nodes = append(nodes, cluster.RemoteMasterKeyList...)
 	nodes = append(nodes, cluster.RemoteSlaveKeyList...)
 	return nodes
+}
+
+// appendKey appends k to SpiderKeyList, RemoteMasterKeyList, or RemoteSlaveKeyList (caller passes slice field address).
+func (cluster *TenDBClusterSwitchCluster) appendKey(slice *[]switchcore.MetadataKey, k switchcore.MetadataKey) {
+	cluster.keyListMu.Lock()
+	*slice = append(*slice, k)
+	cluster.keyListMu.Unlock()
 }
 
 // CheckRemoteMaster checks if remote master node satisfies switching conditions
@@ -199,11 +209,9 @@ func (cluster *TenDBClusterSwitchCluster) CheckRemoteMaster(
 	return nil
 }
 
-// CheckRemoteNode classifies a remote backend node and checks if it needs switching.
-func (cluster *TenDBClusterSwitchCluster) CheckRemoteNode(
-	instKey switchcore.MetadataKey,
-	listMu *sync.Mutex,
-) error {
+// checkRemoteNode classifies a remote backend node and checks if it needs switching.
+// Writes to RemoteMasterKeyList use appendKey under keyListMu.
+func (cluster *TenDBClusterSwitchCluster) checkRemoteNode(instKey switchcore.MetadataKey) error {
 	instData, exists := cluster.SwitchInstances[instKey]
 	if !exists {
 		return gerrors.Newf(gerrors.Failure,
@@ -222,17 +230,7 @@ func (cluster *TenDBClusterSwitchCluster) CheckRemoteNode(
 		if err := cluster.CheckRemoteMaster(instKey); err != nil {
 			return err
 		}
-
-		if listMu != nil {
-			listMu.Lock()
-		}
-
-		cluster.RemoteMasterKeyList = append(cluster.RemoteMasterKeyList, instKey)
-
-		if listMu != nil {
-			listMu.Unlock()
-		}
-
+		cluster.appendKey(&cluster.RemoteMasterKeyList, instKey)
 		cluster.ReportLogf(instKey, switchlogger.SwitchInfo,
 			"check result before switch: switch required, this is a remote master node")
 		return nil
@@ -250,18 +248,11 @@ func (cluster *TenDBClusterSwitchCluster) CheckBeforeSwitch() (switchcore.Switch
 	cluster.SpiderKeyList = []switchcore.MetadataKey{}
 	cluster.RemoteMasterKeyList = []switchcore.MetadataKey{}
 	cluster.RemoteSlaveKeyList = []switchcore.MetadataKey{}
-	checkUnpassKeyList := []switchcore.MetadataKey{}
 
 	var wg sync.WaitGroup
-	var listMu sync.Mutex
 	maxInstanceConcurrency := switchcore.ClusterLevelSwitchMaxInstanceConcurrency()
 	sem := make(chan struct{}, maxInstanceConcurrency)
-
-	appendLocked := func(slice *[]switchcore.MetadataKey, k switchcore.MetadataKey) {
-		listMu.Lock()
-		*slice = append(*slice, k)
-		listMu.Unlock()
-	}
+	failCh := make(chan switchcore.MetadataKey, len(cluster.SwitchInstances))
 
 	for instKey, instData := range cluster.SwitchInstances {
 		wg.Add(1)
@@ -272,21 +263,21 @@ func (cluster *TenDBClusterSwitchCluster) CheckBeforeSwitch() (switchcore.Switch
 
 			switch instData.MachineType {
 			case haprobe.DbmMetadataMachineTypeSpider:
-				appendLocked(&cluster.SpiderKeyList, instKey)
+				cluster.appendKey(&cluster.SpiderKeyList, instKey)
 				cluster.ReportLogf(instKey, switchlogger.SwitchInfo,
 					"check result before switch: switch required, this is a spider node, spider role: %s",
 					instData.SpiderRole)
 
 			case haprobe.DbmMetadataMachineTypeRemote:
-				if err := cluster.CheckRemoteNode(instKey, &listMu); err != nil {
-					appendLocked(&checkUnpassKeyList, instKey)
+				if err := cluster.checkRemoteNode(instKey); err != nil {
+					failCh <- instKey
 					cluster.ReportLogf(instKey, switchlogger.SwitchError,
 						"check result before switch: check unpass, %s", err.Error())
 					return
 				}
 
 			default:
-				appendLocked(&checkUnpassKeyList, instKey)
+				failCh <- instKey
 				cluster.ReportLogf(instKey, switchlogger.SwitchError,
 					"check result before switch: check unpass, invalid machine type(%s)",
 					instData.MachineType)
@@ -294,6 +285,12 @@ func (cluster *TenDBClusterSwitchCluster) CheckBeforeSwitch() (switchcore.Switch
 		}(instKey, instData)
 	}
 	wg.Wait()
+	close(failCh)
+
+	checkUnpassKeyList := make([]switchcore.MetadataKey, 0, len(cluster.SwitchInstances))
+	for k := range failCh {
+		checkUnpassKeyList = append(checkUnpassKeyList, k)
+	}
 
 	if len(checkUnpassKeyList) > 0 {
 		return switchcore.SwitchCheckUnpass, gerrors.Newf(gerrors.Failure,
