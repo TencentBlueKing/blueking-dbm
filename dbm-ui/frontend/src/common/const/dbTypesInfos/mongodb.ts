@@ -7,6 +7,7 @@ import { type DbInfoType } from './index';
 
 export const mongodb: DbInfoType = {
   [DBTypes.MONGODB]: {
+    icon: 'mongo-db',
     id: DBTypes.MONGODB,
     machineList: [
       {

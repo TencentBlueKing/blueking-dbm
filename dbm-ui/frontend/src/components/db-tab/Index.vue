@@ -16,7 +16,7 @@
     :key="renderKey"
     v-model:active="moduleValue"
     class="db-tab"
-    type="unborder-card">
+    :type="type">
     <BkTabPanel
       v-for="tab of renderTabs"
       :key="tab.id"
@@ -26,7 +26,9 @@
 </template>
 
 <script setup lang="ts">
+  import BkTab from 'bkui-vue/lib/tab';
   import _ from 'lodash';
+  import { type ComponentProps } from 'vue-component-type-helpers';
 
   import { useFunController, useUserProfile } from '@stores';
 
@@ -35,17 +37,21 @@
   interface Props {
     exclude?: DBTypes[];
     labelConfig?: Record<DBTypes, string>;
+    suffixItems?: TabItem[];
     topSort?: boolean;
+    type?: ComponentProps<typeof BkTab>['type'];
   }
 
   interface TabItem {
-    id: DBTypes;
+    id: string;
     name: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     exclude: () => [],
     labelConfig: undefined,
+    suffixItems: () => [],
+    type: 'unborder-card',
   });
 
   const moduleValue = defineModel<DBTypes>();
@@ -79,11 +85,11 @@
         const topDbTypeMap = Object.fromEntries(topDbTypes.map((item) => [item, renderMap[item]]));
         const topList = topDbTypes.map((topItem) => renderMap[topItem as DBTypes]);
         const commonList = renderList.filter((item) => !topDbTypeMap[item.id]);
-        return topList.concat(commonList);
+        return topList.concat(commonList).concat(props.suffixItems);
       }
     }
 
-    return renderList;
+    return renderList.concat(props.suffixItems);
   });
 
   watch(

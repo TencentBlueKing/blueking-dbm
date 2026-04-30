@@ -150,7 +150,7 @@
             <span
               v-overflow-tips.right
               class="text-overflow">
-              {{ t('DBA人员管理') }}
+              {{ t('业务与 DBA 管理') }}
             </span>
           </BkMenuItem>
           <BkMenuItem

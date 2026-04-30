@@ -875,9 +875,42 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-tingjishengji:before {
 	content: "\e25b";
 }
+.db-icon-qiehuan-2:before {
+	content: "\e26d";
+}
 .db-icon-baoguanli:before {
 	content: "\e25c";
 }
 .db-icon-qiweiqunliao:before {
 	content: "\e260";
+}
+.db-icon-tongyong:before {
+	content: "\e265";
+}
+.db-icon-danjiedi:before {
+	content: "\e26c";
+}
+.db-icon-zhucong-2:before {
+	content: "\e26b";
+}
+.db-icon-shujuqingli:before {
+	content: "\e264";
+}
+.db-icon-kelong-2:before {
+	content: "\e269";
+}
+.db-icon-shujuhuifu:before {
+	content: "\e26a";
+}
+.db-icon-baofen:before {
+	content: "\e266";
+}
+.db-icon-chaxunyubiangeng:before {
+	content: "\e267";
+}
+.db-icon-zuijinshiyong:before {
+	content: "\e263";
+}
+.db-icon-shoucang:before {
+	content: "\e268";
 }

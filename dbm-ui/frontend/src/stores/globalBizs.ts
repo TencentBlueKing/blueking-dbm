@@ -26,12 +26,15 @@ const PUBLIC_BIZ_INFO = {
   bk_biz_id: 0,
   display_name: t('公共资源池'),
   english_name: '',
+  managed_time: '',
   name: t('公共资源池'),
   permission: {
     db_manage: true,
   },
   pinyin_head: '',
   pinyin_name: '',
+  status: 'managed' as BizItem['status'],
+  tags: [] as BizItem['tags'],
 };
 
 export const useGlobalBizs = defineStore('GlobalBizs', {
