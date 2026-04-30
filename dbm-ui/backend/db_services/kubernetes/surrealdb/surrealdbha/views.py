@@ -71,14 +71,6 @@ from backend.db_services.kubernetes.surrealdb.surrealdbha.query import SurrealDB
         tags=[constants.RESOURCE_TAG],
     ),
 )
-@method_decorator(
-    name="get_nodes",
-    decorator=common_swagger_auto_schema(
-        operation_summary=_("获取集群节点"),
-        query_serializer=serializers.ListNodesSLZ(),
-        tags=[constants.RESOURCE_TAG],
-    ),
-)
 class SurrealDBHaResourceViewSet(KubernetesResourceViewSet):
     query_class = SurrealDBHaListRetrieveResource
     query_serializer_class = serializers.ListKubernetesResourceSLZ
