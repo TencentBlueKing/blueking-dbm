@@ -118,7 +118,7 @@ class MySQLMetricsMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_metrics",
     )
     def query_cpu_summary(self, request, *args, **kwargs):
-        return self._query_metrics_by_type(request, "cpu_summary", *args, **kwargs)
+        return self.query_by_metric_name(request, *args, **kwargs)
 
     @mcp_tools_api_decorator(
         description=str(_("获取一段时间内某个 tendbha/tendbcluster 集群的 qps 请求量 指标信息")),
@@ -131,7 +131,7 @@ class MySQLMetricsMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_metrics",
     )
     def query_qps_summary(self, request, *args, **kwargs):
-        return self._query_metrics_by_type(request, "qps_summary", *args, **kwargs)
+        return self.query_by_metric_name(request, *args, **kwargs)
 
     @mcp_tools_api_decorator(
         description=str(_("获取一段时间内某个 tendbha/tendbcluster 集群的 qps 请求量 指标信息")),
@@ -144,7 +144,7 @@ class MySQLMetricsMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_metrics",
     )
     def query_memory_usage(self, request, *args, **kwargs):
-        return self._query_metrics_by_type(request, "memory_usage", *args, **kwargs)
+        return self.query_by_metric_name(request, *args, **kwargs)
 
     @mcp_tools_api_decorator(
         description=str(_("获取一段时间内某个 tendbha/tendbcluster 集群的 slow_query 数量 指标信息")),
@@ -157,7 +157,7 @@ class MySQLMetricsMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_metrics",
     )
     def query_slow_count(self, request, *args, **kwargs):
-        return self._query_metrics_by_type(request, "slow_count", *args, **kwargs)
+        return self.query_by_metric_name(request, *args, **kwargs)
 
     @mcp_tools_api_decorator(
         description=str(_("获取一段时间内某个 tendbha/tendbcluster 集群的 connections 连接数 指标信息")),
@@ -170,7 +170,7 @@ class MySQLMetricsMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_metrics",
     )
     def query_connections(self, request, *args, **kwargs):
-        return self._query_metrics_by_type(request, "connections", *args, **kwargs)
+        return self.query_by_metric_name(request, *args, **kwargs)
 
     @mcp_tools_api_decorator(
         description=str(_("获取一段时间内某个 tendbha/tendbcluster 集群的 threads_running 线程数 指标信息")),
@@ -183,7 +183,7 @@ class MySQLMetricsMcpToolsViewSet(McpToolsViewSet):
         name_prefix="mysql_metrics",
     )
     def query_threads_running(self, request, *args, **kwargs):
-        return self._query_metrics_by_type(request, "threads_running", *args, **kwargs)
+        return self.query_by_metric_name(request, *args, **kwargs)
 
     @mcp_tools_api_decorator(
         description=str(_("""查询 mysql 某个实例连接情况, 返回是按照 aggregate_type 聚合 processlist 的结果，不是 processlist 原始信息""")),
