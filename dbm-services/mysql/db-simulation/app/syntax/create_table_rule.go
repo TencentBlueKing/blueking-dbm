@@ -124,14 +124,22 @@ func (c CreateTableResult) ColCharsetNotEqTbCharset() bool {
 // JsonDataType JSON 数据类型常量
 const JsonDataType = "json"
 
-// JsonColumInvalidDefaultCheck 检查创建表时json字段是否设置了无效的默认值
-// 无效的默认值包括：NULL 关键字、字符串 'null'、空字符串 ”
-// 有效的默认值包括：有效的 JSON 值（如 [], {}, "string" 等）
+// JsonColumInvalidDefaultCheck 检查创建表时 json 字段是否设置了无效的默认值
+// 无效的默认值包括：字符串 'null'（DEFAULT 'null'）、空字符串 ”（DEFAULT ”）
+// 有效的默认值包括：DEFAULT NULL（NULL 关键字，MySQL 5.7 仅允许此形态；
+// 8.0.13+ 还允许 DEFAULT (expr) 表达式形式，如 DEFAULT (JSON_ARRAY()))
+//
+// 实现说明：必须遍历完所有列再返回，避免因第一个 JSON 列合法而提前 return，
+// 导致后续违规的 JSON 列被漏检。
 func (c CreateTableResult) JsonColumInvalidDefaultCheck() (bool, string) {
+	var invalidCols []string
 	for _, colDef := range c.CreateDefinitions.ColDefs {
-		if colDef.DataType == JsonDataType {
-			return colDef.HasInvalidJsonDefault(), fmt.Sprintf("json 列 %s 的默认值无效，不允许为 '' 或 'null'", colDef.ColName)
+		if colDef.DataType == JsonDataType && colDef.HasInvalidJsonDefault() {
+			invalidCols = append(invalidCols, colDef.ColName)
 		}
 	}
-	return false, ""
+	if len(invalidCols) == 0 {
+		return false, ""
+	}
+	return true, fmt.Sprintf("json 列 %s 的默认值无效，不允许为 '' 或 'null'", strings.Join(invalidCols, ", "))
 }

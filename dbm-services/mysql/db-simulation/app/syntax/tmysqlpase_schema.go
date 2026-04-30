@@ -121,8 +121,9 @@ func (c ColDef) IsNotAllowDefaultValCol() bool {
 }
 
 // HasInvalidJsonDefault 检查 JSON 字段是否设置了无效的默认值
-// 无效的默认值包括：NULL 关键字、字符串 'null'、空字符串 ”
-// 有效的默认值包括：有效的 JSON 值（如 [], {}, "string" 等）
+// 无效的默认值包括：字符串 'null'（DEFAULT 'null'）、空字符串 ”（DEFAULT ”）
+// 有效的默认值包括：DEFAULT NULL（NULL 关键字，MySQL 5.7 仅允许此形态）、
+// MySQL 8.0.13+ 的表达式默认值（如 DEFAULT (JSON_ARRAY())、DEFAULT ('[]') 等）
 func (c ColDef) HasInvalidJsonDefault() bool {
 	// 只检查 JSON 类型的字段
 	if c.DataType != "json" {
