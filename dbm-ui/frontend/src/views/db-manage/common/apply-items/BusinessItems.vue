@@ -102,7 +102,7 @@
       },
     ],
     onSuccess(data) {
-      bizList.value = data;
+      bizList.value = data.filter((item) => item.status === 'managed');
     },
   });
 
@@ -162,7 +162,9 @@
   const handleAppChange = (appInfo: IAppItem) => {
     handleChangeAppAbbr(appInfo.english_name);
     hasEnglishName.value = !!appInfo?.english_name;
-    appInfo.english_name && appAbbrRef.value?.clearValidate();
+    if (appInfo.english_name) {
+      appAbbrRef.value?.clearValidate();
+    }
 
     bizId.value = appInfo.bk_biz_id;
     emits('changeBiz', { ...appInfo });

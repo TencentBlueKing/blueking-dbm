@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import ResourceTagModel from '@services/model/db-resource/ResourceTag';
+
 /**
  * 业务信息
  */
@@ -18,10 +20,13 @@ export interface BizItem {
   bk_biz_id: number;
   display_name: string;
   english_name: string;
+  managed_time: string;
   name: string;
   permission: {
     db_manage: boolean;
   };
   pinyin_head: string;
   pinyin_name: string;
+  status: 'managed' | 'unmanaged'; // managed 已纳管 ; unmanaged 未纳管
+  tags: ResourceTagModel[];
 }

@@ -7,6 +7,7 @@ import { type DbInfoType } from './index';
 
 export const mysql: DbInfoType = {
   [DBTypes.MYSQL]: {
+    icon: 'mysql',
     id: DBTypes.MYSQL,
     machineList: [
       {
@@ -23,6 +24,7 @@ export const mysql: DbInfoType = {
     routeIndexName: 'MysqlManage',
   },
   [DBTypes.TENDBCLUSTER]: {
+    icon: 'mysql',
     id: DBTypes.TENDBCLUSTER,
     machineList: [
       {

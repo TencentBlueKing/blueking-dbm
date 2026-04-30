@@ -906,7 +906,9 @@
         nextTick(() => {
           const selected = getSelectedDOM();
           const $referenceTarget = selected[inputIndex.value] || null;
-          containerRef.value.insertBefore(inputRef.value, $referenceTarget);
+          if (props.multiple) {
+            containerRef.value.insertBefore(inputRef.value, $referenceTarget);
+          }
           setSelection(option);
           updatePopover();
         });
