@@ -24,7 +24,7 @@ export function checkAuthAllowed(params: {
   action_ids: Array<string>;
   resources?: Array<{ id?: string | number; type: string }>;
 }) {
-  return http.post<
+  return http.get<
     {
       action_id: string;
       is_allowed: boolean;
@@ -51,7 +51,7 @@ export function simpleCheckAllowed(
   },
   payload = {} as IRequestPayload,
 ) {
-  return http.post<boolean>(`${path}/simple_check_allowed/`, params, payload);
+  return http.get<boolean>(`${path}/simple_check_allowed/`, params, payload);
 }
 
 export function simpleGetApplyData(params: { action_id: string; bk_biz_id?: number; resource_id?: string | number }) {

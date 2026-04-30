@@ -7,6 +7,7 @@ import { type DbInfoType } from './index';
 
 export const sqlserver: DbInfoType = {
   [DBTypes.SQLSERVER]: {
+    icon: 'sqlserver',
     id: DBTypes.SQLSERVER,
     machineList: [
       {

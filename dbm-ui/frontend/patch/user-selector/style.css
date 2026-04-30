@@ -23,6 +23,10 @@
   height: 100%;
 }
 
+.is-error .user-selector .user-selector-layout .user-selector-container {
+  border: 1px solid #EA3636;
+}
+
 .user-selector .user-selector-layout .user-selector-container {
   position: relative;
   min-width: 100%;
