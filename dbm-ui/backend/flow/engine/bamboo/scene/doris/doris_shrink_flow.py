@@ -164,7 +164,7 @@ class DorisShrinkFlow(DorisBaseFlow):
                 shrink_resource_flow = resource_flow.shrink_resource_sub_flow(data=shrink_data)
                 doris_pipeline.add_sub_pipeline(shrink_resource_flow.build_sub_process(sub_name=_("缩容冷存储资源")))
 
-        doris_pipeline.run_pipeline()
+        doris_pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=[self.cluster_id])
 
     def check_shrink_role_ip_count(self, data: dict):
         # 缩容 检查各个角色节点传参

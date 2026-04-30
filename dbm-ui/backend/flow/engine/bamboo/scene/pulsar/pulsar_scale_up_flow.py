@@ -128,4 +128,4 @@ class PulsarScaleUpFlow(PulsarBaseFlow):
         pulsar_pipeline.add_act(
             act_name=_("更新DBMeta元信息"), act_component_code=PulsarDBMetaComponent.code, kwargs=asdict(act_kwargs)
         )
-        pulsar_pipeline.run_pipeline()
+        pulsar_pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=[self.cluster_id])

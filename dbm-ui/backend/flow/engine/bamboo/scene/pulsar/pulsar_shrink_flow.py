@@ -108,4 +108,4 @@ class PulsarShrinkFlow(PulsarOperationFlow):
             act_name=_("DBMeta删除下架IP"), act_component_code=PulsarDBMetaComponent.code, kwargs=asdict(act_kwargs)
         )
 
-        pulsar_pipeline.run_pipeline()
+        pulsar_pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=[self.data["cluster_id"]])

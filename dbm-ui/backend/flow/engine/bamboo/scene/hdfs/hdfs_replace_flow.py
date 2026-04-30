@@ -68,7 +68,7 @@ class HdfsReplaceFlow(HdfsOperationFlow):
         del_dn_sub_pipeline = self.build_del_dn_sub_flow(act_kwargs, shrink_data)
         hdfs_pipeline.add_sub_pipeline(del_dn_sub_pipeline.build_sub_process(sub_name=_("集群DN替换-缩容DN")))
 
-        hdfs_pipeline.run_pipeline()
+        hdfs_pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=[self.data["cluster_id"]])
 
     def __init_data_with_role(self):
         data_with_role = copy.deepcopy(self.data)

@@ -172,7 +172,7 @@ class DorisScaleUpFlow(DorisBaseFlow):
                 create_res_pipeline = resource_flow.create_resource_sub_flow(data=scale_up_data)
                 doris_pipeline.add_sub_pipeline(create_res_pipeline.build_sub_process(sub_name=_("创建Doris冷存储资源")))
 
-        doris_pipeline.run_pipeline()
+        doris_pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=[self.cluster_id])
 
     def check_only_scale_up_resource(self, data: dict) -> bool:
         scale_ips = get_all_node_ips_in_ticket(data)
