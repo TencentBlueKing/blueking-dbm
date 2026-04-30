@@ -102,7 +102,7 @@
       },
     ],
     onSuccess(data) {
-      bizList.value = data;
+      bizList.value = data.filter((item) => item.status === 'managed');
     },
   });
 

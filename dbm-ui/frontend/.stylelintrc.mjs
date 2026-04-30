@@ -196,6 +196,7 @@ export default {
       'unicode-bidi',
       'speak',
     ],
+    'no-invalid-position-declaration': null,
   },
   overrides: [
     {

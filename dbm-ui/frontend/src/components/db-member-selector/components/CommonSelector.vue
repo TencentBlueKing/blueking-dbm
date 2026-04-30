@@ -13,6 +13,7 @@
 
 <template>
   <UserSelector
+    v-bind="$attrs"
     ref="userSelectorRef"
     v-model="modelValue"
     class="member-selector"

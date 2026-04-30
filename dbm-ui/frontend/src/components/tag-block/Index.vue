@@ -67,6 +67,7 @@
   import { execCopy } from '@utils';
 
   interface Props {
+    copyData?: Array<string>;
     copyenable?: boolean;
     data: Array<string>;
     size?: 'default' | 'small';
@@ -75,6 +76,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    copyData: undefined,
     copyenable: false,
     max: 0,
     size: 'default',
@@ -194,7 +196,8 @@
   );
 
   const handleCopy = () => {
-    execCopy(props.data.join('\n'), t('复制成功，共n条', { n: props.data.length }));
+    const dataList = props.copyData || props.data;
+    execCopy(dataList.join('\n'), t('复制成功，共n条', { n: dataList.length }));
   };
 
   let resizeObserver: any;
@@ -251,6 +254,7 @@
     .copy-btn {
       display: inline-block;
       padding-left: 8px;
+      color: #3a84ff;
       cursor: pointer;
       opacity: 0%;
 

@@ -11,6 +11,7 @@ import { redis } from './redis';
 import { sqlserver } from './sqlserver';
 
 export interface DBInfoItem {
+  icon: string;
   id: DBTypes;
   machineList: {
     label: string;

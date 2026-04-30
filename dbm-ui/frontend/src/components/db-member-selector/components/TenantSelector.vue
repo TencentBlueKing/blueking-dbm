@@ -1,9 +1,10 @@
 <template>
   <BkUserSelector
+    v-bind="$attrs"
     v-model="modelValue"
     :api-base-url="apiBaseUrl"
     draggable
-    multiple
+    :multiple="multiple"
     :tenant-id="tenantId" />
 </template>
 
@@ -16,6 +17,13 @@
 
   import '@blueking/bk-user-selector/vue3/vue3.css';
 
+  interface Props {
+    multiple?: boolean;
+  }
+
+  withDefaults(defineProps<Props>(), {
+    multiple: true,
+  });
   const modelValue = defineModel<string[]>({
     required: true,
   });

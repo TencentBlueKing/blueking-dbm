@@ -149,7 +149,7 @@
     if (props.showPublicBiz) {
       sortedList.unshift(publicBiz);
     }
-    return sortedList;
+    return sortedList.filter((item) => item.status === 'managed');
   });
 
   const searchExtensionMethod = (data: IAppItem, keyword: string) => {

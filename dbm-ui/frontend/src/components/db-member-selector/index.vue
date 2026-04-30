@@ -19,9 +19,11 @@
     @mouseleave="handleBlur">
     <TenantSelector
       v-if="tenantId"
+      v-bind="$attrs"
       v-model="modelValue" />
     <CommonSelector
       v-else
+      v-bind="$attrs"
       v-model="modelValue" />
     <DbIcon
       v-if="modelValue.length > 0"
