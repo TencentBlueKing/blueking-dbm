@@ -1040,37 +1040,64 @@ func (k *DbPodSets) executeInPod(cmd, container string, extMap map[string]string
 		logger.Error("at remotecommand.NewSPDYExecutor %s", err.Error())
 		return bytes.Buffer{}, bytes.Buffer{}, err
 	}
-	// 导入表结构的时候不打印普通非关键日志
 
+	// 启动 reader goroutine：从 pipe 中逐行读取 pod 的 stdout，
+	// 同时写入命名返回值 stdout（供 caller 拼接 sstdout / 错误日志使用）
+	// 以及打印到 logger（供前端实时展示）。
+	//
+	// 关键约束：
+	//   - exec.StreamWithContext 是同步调用，返回时不会自动 close 调用方传入
+	//     的 writer，必须显式 writer.Close() 让 reader 端见到 EOF，否则
+	//     goroutine 会永久阻塞在 sc.Scan() 上造成泄漏；
+	//   - 主 goroutine 在 <-done 之后才返回 stdout，保证 reader 已把 pipe
+	//     里的所有数据消费完，避免 caller 拿到 partial buffer。
+	done := make(chan struct{})
 	go func() {
+		defer close(done)
 		buf := []byte{}
 		sc := bufio.NewScanner(reader)
 		sc.Buffer(buf, 2048*1024)
 		lineNumber := 1
 		for sc.Scan() {
+			line := sc.Text()
+			// 导入表结构的时候不打印普通非关键日志
 			if !noLogger {
 				// 此方案打印的日志会在前端展示
-				xlogger.Info("%s", sc.Text())
+				xlogger.Info("%s", line)
 			} else {
-				logger.Info(sc.Text())
+				logger.Info(line)
 			}
+			// 把 pod stdout 行回写到命名返回值 stdout buffer，
+			// 否则上层 sstdout += stdout.String() 永远拿到空字符串。
+			stdout.WriteString(line)
+			stdout.WriteByte('\n')
 			lineNumber++
 		}
-		if err = sc.Err(); err != nil {
-			logger.Error("something bad happened in the line %v: %v", lineNumber, err)
-			return
+		// scan 错误只记录日志，不向上抛 —— 与原行为一致；不再写外层
+		// 命名返回值 err，避免与主 goroutine 的 err 赋值产生数据竞争。
+		if scanErr := sc.Err(); scanErr != nil {
+			logger.Error("scan pod stdout failed at line %v: %v", lineNumber, scanErr)
 		}
 	}()
-	err = exec.StreamWithContext(context.Background(), remotecommand.StreamOptions{
+
+	streamErr := exec.StreamWithContext(context.Background(), remotecommand.StreamOptions{
 		Stdin:  nil,
 		Stdout: writer,
 		Stderr: &stderr,
 		Tty:    false,
 	})
-	if err != nil {
-		xlogger.Error("exec.Stream failed %s:\n stdout:%s\n stderr: %s", err.Error(), strings.TrimSpace(stdout.String()),
+	// 关键：必须主动 close writer，否则 reader goroutine 看不到 EOF，
+	// 会在 sc.Scan() 上永久阻塞。
+	_ = writer.Close()
+	// 等 reader goroutine 把剩余 pipe 数据消费完且退出，保证 stdout 已被
+	// 完整填充，避免 caller 拿到 partial buffer。
+	<-done
+
+	if streamErr != nil {
+		xlogger.Error("exec.Stream failed %s:\n stdout:%s\n stderr: %s", streamErr.Error(),
+			strings.TrimSpace(stdout.String()),
 			strings.TrimSpace(stderr.String()))
-		return stdout, stderr, err
+		return stdout, stderr, streamErr
 	}
 	xlogger.Info("exec successfully...")
 	logger.Info("info stdout:%s\nstderr:%s ", strings.TrimSpace(stdout.String()),
