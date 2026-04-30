@@ -274,8 +274,8 @@ def query_slowlog_aggregated(
             MysqlSlowlogDetail.objects.filter(
                 cluster_domain=cluster_domain,
                 instance_role=instance_role,
-                dteventtimestamp__gt=start_time,
-                dteventtimestamp__lte=end_time,
+                log_time__gt=start_time,
+                log_time__lte=end_time,
             )
             .values("cluster_domain", "instance_role", "query_digest_md5")
             .annotate(
