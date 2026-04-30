@@ -59,3 +59,6 @@ class DBMAgentCode(StrStructuredEnum):
     KAFKA_TASK_GUARDIAN = EnumField("ai-kafka-taskgd", _("Kafka单据值守"))
     ES_TASK_GUARDIAN = EnumField("ai-es-taskgd", _("ES单据值守"))
     MONGO_TASK_GUARDIAN = EnumField("ai-mongo-taskgd", _("MongoDB单据值守"))
+    PULSAR_TASK_GUARDIAN = EnumField("ai-pulsar-taskgd", _("Pulsar单据值守"))
+    HDFS_TASK_GUARDIAN = EnumField("ai-hdfs-taskgd", _("HDFS单据值守"))
+    DORIS_TASK_GUARDIAN = EnumField("ai-doris-taskgd", _("Doris单据值守"))

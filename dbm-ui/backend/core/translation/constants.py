@@ -52,6 +52,9 @@ EXCLUDE_FILE_PATHS = [
     "backend/dbm_aiagent/agent/commands/kafka_commands.py",
     "backend/dbm_aiagent/agent/commands/redis_commands.py",
     "backend/dbm_aiagent/agent/commands/mongodb_commands.py",
+    "backend/dbm_aiagent/agent/commands/pulsar_commands.py",
+    "backend/dbm_aiagent/agent/commands/hdfs_commands.py",
+    "backend/dbm_aiagent/agent/commands/doris_commands.py",
 ]
 ALL_EXCLUDE_DIRS = set(EXCLUDE_DIRS + EXCLUDE_FILE_PATHS)
 

@@ -14,9 +14,12 @@ specific language governing permissions and limitations under the License.
 from aidev_agent.services.command_handler import CommandProcessor as BaseCommandProcessor
 
 from .commands import *
+from .doris_commands import *
 from .es_commands import *
+from .hdfs_commands import *
 from .kafka_commands import *
 from .mongodb_commands import *
+from .pulsar_commands import *
 from .redis_commands import *
 from .register import command, register_command
 

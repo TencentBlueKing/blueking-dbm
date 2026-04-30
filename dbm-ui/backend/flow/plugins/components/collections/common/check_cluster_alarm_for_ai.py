@@ -37,6 +37,9 @@ ASK_AI_COMMAND_MAP = {
     DBType.Kafka: commands.CheckKafkaClusterCommand,
     DBType.Es: commands.CheckEsClusterCommand,
     DBType.MongoDB: commands.CheckMongoDBClusterCommand,
+    DBType.Pulsar: commands.CheckPulsarClusterCommand,
+    DBType.Hdfs: commands.CheckHdfsClusterCommand,
+    DBType.Doris: commands.CheckDorisClusterCommand,
 }
 
 
