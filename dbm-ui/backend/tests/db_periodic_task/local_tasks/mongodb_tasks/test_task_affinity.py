@@ -8,23 +8,20 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import gettext_lazy as _
+from unittest.mock import patch
 
-from blue_krill.data_types.enum import EnumField, StrStructuredEnum
+import pytest
 
-
-class MongodbBackupCheckSubType(StrStructuredEnum):
-    FullBackup = EnumField("full_backup", _("全量备份"))
-    IncrBackup = EnumField("incr_backup", _("增量备份"))
+pytestmark = pytest.mark.django_db
 
 
-class MongodbExporterCheckSubType(StrStructuredEnum):
-    Up = EnumField("mongodb_up", _("mongodb_up指标"))
+def test_mongodb_affinity_check_task_entry(mongodb_tasks_task_module):
+    with patch.object(mongodb_tasks_task_module.TaskRecordRepo, "execute_task_with_record") as execute_mock:
+        mongodb_tasks_task_module.mongodb_affinity_check_task()
 
-
-class MongodbAffinityCheckSubType(StrStructuredEnum):
-    ClusterAffinity = EnumField("cluster_affinity", _("集群亲和性"))
-
-
-class StorageInstanceStatusCheckSubType(StrStructuredEnum):
-    SyncStatus = EnumField("sync_storage_instance_status", _("同步storage实例状态"))
+    assert execute_mock.called
+    kwargs = execute_mock.call_args.kwargs
+    assert kwargs["db_type"] == "mongodb"
+    assert kwargs["task_name"] == "mongodb_affinity_check_task"
+    assert kwargs["task_type"] == "affinity"
+    assert kwargs["check_task_instance"].__class__.__name__ == "CheckMongodbAffinityTask"
