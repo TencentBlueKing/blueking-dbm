@@ -58,7 +58,7 @@
                 <BkButton
                   v-bk-tooltips="{
                     content: t('关联集群不为空，不能删除'),
-                    disabled: moduleInfo.relatedClusterCount > 0,
+                    disabled: moduleInfo.relatedClusterCount <= 0,
                   }"
                   :disabled="moduleInfo.relatedClusterCount > 0"
                   size="small">
@@ -70,31 +70,31 @@
         </template>
         <BkForm class="module-info-form">
           <div class="module-info-form-row">
-            <BkFormItem :label="t('模块名称')">
+            <BkFormItem :label="t('模块名称：')">
               {{ moduleInfo.moduleName || '--' }}
             </BkFormItem>
-            <BkFormItem :label="t('模块 ID')">
+            <BkFormItem :label="t('模块 ID：')">
               {{ moduleInfo.moduleId || '--' }}
             </BkFormItem>
           </div>
           <div class="module-info-form-row">
-            <BkFormItem :label="t('存储层版本')">
+            <BkFormItem :label="t('存储层版本：')">
               {{ moduleInfo.version || '--' }}
             </BkFormItem>
-            <BkFormItem :label="t('字符集')">
+            <BkFormItem :label="t('字符集：')">
               {{ moduleInfo.charset || '--' }}
             </BkFormItem>
           </div>
           <div class="module-info-form-row">
-            <BkFormItem :label="t('最近更新人')">
+            <BkFormItem :label="t('最近更新人：')">
               {{ moduleInfo.updatedBy || '--' }}
             </BkFormItem>
-            <BkFormItem :label="t('更新时间')">
+            <BkFormItem :label="t('更新时间：')">
               {{ moduleInfo.updatedAt || '--' }}
             </BkFormItem>
           </div>
           <div class="module-info-form-row">
-            <BkFormItem :label="t('关联集群')">
+            <BkFormItem :label="t('关联集群：')">
               <span class="related-clusters">
                 <span
                   v-overflow-tips="{ content: moduleInfo.relatedClusters, placement: 'top' }"
@@ -130,6 +130,11 @@
             class="module-conf-tab mt-16"
             :db-module-id="moduleInfo.moduleId">
             <template #default="{ tab }">
+              <BkAlert
+                class="mb-16"
+                closable
+                theme="info"
+                :title="t('模块配置参数说明')" />
               <ParamTable
                 :cluster-type="clusterType"
                 :conf-type="tab.conf_type"
@@ -299,6 +304,7 @@
 
   .module-header-card {
     box-shadow: none;
+    padding-bottom: 0;
 
     :deep(.db-card-content) {
       padding: 0;
@@ -354,6 +360,7 @@
 
   .module-top-tab {
     :deep(.bk-tab-header) {
+      box-shadow: none;
       border-bottom: none;
     }
 
@@ -361,11 +368,17 @@
       padding: 0;
       background: #f6f7fb;
     }
+
+    :deep(.bk-tab-header-active-bar) {
+      width: 56px !important;
+      bottom: 2px !important;
+      margin: 0 20px !important;
+    }
   }
 
   .module-conf-tab {
     :deep(.bk-tab-content) {
-      padding: 16px;
+      padding: 16px 16px 0;
       background: #fff;
     }
   }

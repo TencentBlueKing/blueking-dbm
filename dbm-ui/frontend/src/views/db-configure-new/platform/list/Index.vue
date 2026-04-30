@@ -29,7 +29,7 @@
           <OperationRecord
             v-if="tab.conf_type === 'operationRecord'"
             :cluster-type="activeClusterType" />
-          <ConfigList
+          <ConfigDatabase
             v-else
             :cluster-type="activeClusterType"
             :conf-type="tab.conf_type" />
@@ -49,7 +49,7 @@
 
   import ClusterTab from '@components/cluster-tab/Index.vue';
 
-  import ConfigList from './components/ConfigList.vue';
+  import ConfigDatabase from './components/ConfigDatabase.vue';
   import OperationRecord from './components/OperationRecord.vue';
 
   const { t } = useI18n();
@@ -102,6 +102,7 @@
 
     :deep(.bk-tab-content) {
       background: #fff;
+      padding-bottom: 0;
     }
   }
 </style>

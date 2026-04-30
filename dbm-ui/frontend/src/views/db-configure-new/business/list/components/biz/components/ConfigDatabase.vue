@@ -23,10 +23,10 @@
     </div>
     <DbTable
       ref="tableRef"
-      class="biz-database__table"
+      :custom-sort-method="handleCustomSort"
       :data-source="dataSource"
-      fixed-pagination
       row-key="name"
+      :sort="tableSort"
       @clear-search="handleQuickSearchChange">
       <TableColumn
         col-key="name"
@@ -62,12 +62,14 @@
       </TableColumn>
       <TableColumn
         col-key="updated_at"
+        sorter
         :title="t('更新时间')" />
     </DbTable>
   </div>
 </template>
 
 <script setup lang="ts">
+  import type { TableSort } from 'tdesign-vue-next';
   import type { ComputedRef, Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
@@ -98,6 +100,12 @@
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const searchValue = ref<Record<string, any>>({});
 
+  // 受控排序状态
+  const tableSort = ref<{ descending: boolean; sortBy: string }>({
+    descending: true,
+    sortBy: 'updated_at',
+  });
+
   const quickSearchData = [
     {
       id: 'name',
@@ -110,13 +118,18 @@
       type: 'input' as const,
     },
     {
+      id: 'description',
+      name: t('描述'),
+      type: 'input' as const,
+    },
+    {
       id: 'updated_by',
       name: t('更新人'),
       type: 'input' as const,
     },
     {
-      id: 'description',
-      name: t('描述'),
+      id: 'updated_at',
+      name: t('更新时间'),
       type: 'input' as const,
     },
   ];
@@ -137,6 +150,13 @@
     ).then((res) => {
       // 前端过滤
       let filteredData = res;
+
+      // 按当前排序状态动态排序
+      filteredData.sort((a, b) => {
+        const valA = String((a as Record<string, any>)[tableSort.value.sortBy] ?? '');
+        const valB = String((b as Record<string, any>)[tableSort.value.sortBy] ?? '');
+        return tableSort.value.descending ? valB.localeCompare(valA) : valA.localeCompare(valB);
+      });
       const filters = searchValue.value;
       if (Object.keys(filters).length > 0) {
         filteredData = res.filter((item) => {
@@ -160,6 +180,14 @@
   };
 
   const handleQuickSearchChange = () => {
+    tableRef.value?.fetchData({}, true);
+  };
+
+  /** 自定义排序方法：更新排序状态并重新拉取数据 */
+  const handleCustomSort = (sort: TableSort) => {
+    if (!Array.isArray(sort) && sort?.sortBy) {
+      tableSort.value = { descending: sort.descending, sortBy: sort.sortBy };
+    }
     tableRef.value?.fetchData({}, true);
   };
 

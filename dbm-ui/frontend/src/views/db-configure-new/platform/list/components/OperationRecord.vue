@@ -17,74 +17,83 @@
       v-model="searchValue"
       class="mb-16"
       :data="quickSearchData"
-      :placeholder="t('搜索操作人_操作时间_配置名称_参数类型_操作类型_参数名')"
+      :placeholder="t('搜索操作人_操作时间_配置类型_配置文件_操作类型_操作参数')"
       style="width: 500px"
       @change="handleQuickSearchChange" />
     <DbTable
       ref="tableRef"
+      :custom-sort-method="handleSortChange"
       :data-source="dataSource"
-      fixed-pagination
       row-key="id"
+      :sort="tableSort"
       @clear-search="handleQuickSearchChange">
+      <!-- 1. 操作时间 -->
       <TableColumn
         col-key="updated_at"
+        sorter
         :title="t('操作时间')"
-        :width="220">
+        :width="200">
         <template #default="{ row }">
           {{ row.updated_at || '--' }}
         </template>
       </TableColumn>
+      <!-- 2. 操作人 -->
       <TableColumn
         col-key="op_user"
         :title="t('操作人')"
-        :width="140">
+        :width="130">
         <template #default="{ row }">
           {{ row.op_user || '--' }}
         </template>
       </TableColumn>
+      <!-- 3. 配置类型 -->
       <TableColumn
         col-key="conf_type_lc"
         :title="t('配置类型')"
-        :width="120">
+        :width="110">
         <template #default="{ row }">
           <BkTag>
             {{ row.conf_type_lc }}
           </BkTag>
         </template>
       </TableColumn>
+      <!-- 4. 配置文件 -->
       <TableColumn
         col-key="conf_file_lc"
         ellipsis
-        :title="t('配置文件')">
+        :title="t('配置文件')"
+        :width="200">
         <template #default="{ row }">
-          <BkTag>
-            {{ row.conf_type_lc }}
-          </BkTag>
+          {{ row.conf_file_lc || '--' }}
         </template>
       </TableColumn>
+      <!-- 5. 操作类型 -->
       <TableColumn
         col-key="op_type"
         :title="t('操作类型')"
-        :width="120">
+        :width="110">
         <template #default="{ row }">
           <BkTag :theme="operateTypeThemeMap[row.op_type]?.theme || ''">
             {{ operateTypeThemeMap[row.op_type]?.text || '--' }}
           </BkTag>
         </template>
       </TableColumn>
+      <!-- 6. 操作参数 -->
       <TableColumn
         col-key="conf_name"
         ellipsis
-        :title="t('操作参数')">
+        :title="t('操作参数')"
+        :width="220">
         <template #default="{ row }">
           {{ row.conf_name || '--' }}
         </template>
       </TableColumn>
+      <!-- 7. 操作 -->
       <TableColumn
         col-key="operation"
         fixed="right"
         :title="t('操作')"
-        :width="120">
+        :width="100">
         <template #default="{ row }">
           <BkButton
             text
@@ -159,7 +168,7 @@
                 <BkCheckboxGroup
                   disabled
                   :model-value="beforeCheckboxValues">
-                  <BkCheckbox label="flag_locked">
+                  <BkCheckbox label="flag_visible">
                     {{ t('写入配置文件') }}
                   </BkCheckbox>
                   <BkCheckbox label="flag_readonly">
@@ -177,7 +186,7 @@
                 <BkCheckboxGroup
                   disabled
                   :model-value="afterCheckboxValues">
-                  <BkCheckbox label="flag_locked">
+                  <BkCheckbox label="flag_visible">
                     {{ t('写入配置文件') }}
                   </BkCheckbox>
                   <BkCheckbox label="flag_readonly">
@@ -200,6 +209,7 @@
 </template>
 
 <script setup lang="ts">
+  import type { TableSort } from 'tdesign-vue-next';
   import { useI18n } from 'vue-i18n';
 
   import ConfigNameChangeModel, { type ConfigNameChangeImage } from '@services/model/config/config-name-change';
@@ -218,6 +228,12 @@
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const searchValue = ref<Record<string, any>>({});
 
+  // 受控排序状态
+  const tableSort = ref<{ descending: boolean; sortBy: string }>({
+    descending: true,
+    sortBy: 'updated_at',
+  });
+
   const isShowDetail = ref(false);
   const detailRow = ref<ConfigNameChangeModel>();
 
@@ -233,18 +249,23 @@
       type: 'input' as const,
     },
     {
-      id: 'conf_name',
-      name: t('参数名'),
-      type: 'input' as const,
-    },
-    {
       id: 'conf_type',
       name: t('配置类型'),
       type: 'input' as const,
     },
     {
+      id: 'conf_file_lc',
+      name: t('配置文件'),
+      type: 'input' as const,
+    },
+    {
       id: 'op_type',
       name: t('操作类型'),
+      type: 'input' as const,
+    },
+    {
+      id: 'conf_name',
+      name: t('操作参数'),
       type: 'input' as const,
     },
   ];
@@ -268,11 +289,11 @@
 
     let filteredData = res.results || [];
 
-    // 默认按时间倒序
+    // 按当前排序状态动态排序
     filteredData.sort((a, b) => {
-      const timeA = a.updated_at ? String(a.updated_at) : '';
-      const timeB = b.updated_at ? String(b.updated_at) : '';
-      return timeB.localeCompare(timeA);
+      const valA = String((a as Record<string, any>)[tableSort.value.sortBy] ?? '');
+      const valB = String((b as Record<string, any>)[tableSort.value.sortBy] ?? '');
+      return tableSort.value.descending ? valB.localeCompare(valA) : valA.localeCompare(valB);
     });
     const filters = searchValue.value;
     if (Object.keys(filters).length > 0) {
@@ -295,6 +316,14 @@
   };
 
   const handleQuickSearchChange = () => {
+    tableRef.value?.fetchData({}, true);
+  };
+
+  /** 排序变化：更新受控状态并重新拉取数据 */
+  const handleSortChange = (sort: TableSort) => {
+    if (!Array.isArray(sort) && sort?.sortBy) {
+      tableSort.value = { descending: sort.descending, sortBy: sort.sortBy };
+    }
     tableRef.value?.fetchData({}, true);
   };
 
@@ -335,7 +364,7 @@
     const a = detailRow.value.after_image;
     if (!b || !a) return true;
     return (
-      b.flag_locked !== a.flag_locked ||
+      b.flag_visible !== a.flag_visible ||
       b.flag_readonly !== a.flag_readonly ||
       b.need_restart !== a.need_restart ||
       b.flag_encrypt !== a.flag_encrypt
@@ -350,7 +379,7 @@
       });
     },
   );
-  const checkboxKeys = ['flag_locked', 'flag_readonly', 'need_restart', 'flag_encrypt'] as const;
+  const checkboxKeys = ['flag_visible', 'flag_readonly', 'need_restart', 'flag_encrypt'] as const;
 
   const getCheckboxValues = (image: ConfigNameChangeImage | undefined) => {
     if (!image) return [];
@@ -468,6 +497,10 @@
 
     :deep(.bk-checkbox ~ .bk-checkbox) {
       margin-left: 0;
+    }
+
+    :deep(.bk-checkbox.is-disabled) {
+      color: inherit;
     }
   }
 </style>

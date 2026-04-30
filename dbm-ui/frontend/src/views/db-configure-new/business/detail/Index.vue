@@ -14,42 +14,13 @@
 <template>
   <div class="config-detail-page">
     <div class="config-detail-page-content db-scroll-y">
-      <!-- 基础信息 -->
-      <DbCard
-        mode="collapse"
-        :title="t('基础信息')">
-        <BkLoading :loading="loading">
-          <BkForm class="base-info-form">
-            <div class="base-info-form-row">
-              <BkFormItem :label="t('配置名称')">
-                {{ detailData.name || '--' }}
-              </BkFormItem>
-              <BkFormItem :label="t('配置文件')">
-                {{ detailData.version || '--' }}
-              </BkFormItem>
-            </div>
-            <div class="base-info-form-row">
-              <BkFormItem :label="t('最近更新人')">
-                {{ detailData.updated_by || '--' }}
-              </BkFormItem>
-              <BkFormItem :label="t('更新时间')">
-                {{ detailData.updated_at || '--' }}
-              </BkFormItem>
-            </div>
-            <div class="base-info-form-row">
-              <BkFormItem :label="t('描述')">
-                {{ detailData.description || '--' }}
-              </BkFormItem>
-            </div>
-          </BkForm>
-        </BkLoading>
-      </DbCard>
-
       <!-- 参数信息 -->
-      <DbCard
-        class="mt-16"
-        mode="collapse"
-        :title="t('参数信息')">
+      <DbCard>
+        <BkAlert
+          class="mb-16"
+          closable
+          theme="info"
+          :title="t('业务配置参数说明')" />
         <ParamTable
           ref="paramTableRef"
           :cluster-type="clusterType"
@@ -66,12 +37,18 @@
     </div>
   </div>
   <Teleport to="#dbContentTitleAppend">
-    <span class="config-detail-nav-title">
-      {{ configTypeName }}
-    </span>
-    <span class="config-detail-nav-desc">
-      {{ configName }}
-    </span>
+    <div class="config-detail-header">
+      <span class="config-detail-nav-title">
+        {{ configTypeName }}
+      </span>
+      <span class="config-detail-meta">
+        <span v-if="detailData.name">{{ t('配置名称') }}：{{ detailData.name }}</span>
+        <span v-if="detailData.updated_by || detailData.updated_at">
+          {{ t('最近更新') }}：{{ detailData.updated_by || '--' }} / {{ detailData.updated_at || '--' }}
+        </span>
+        <span v-if="detailData.description">{{ t('描述') }}：{{ detailData.description }}</span>
+      </span>
+    </div>
   </Teleport>
 </template>
 
@@ -126,7 +103,7 @@
   }));
 
   /** 获取配置详情 */
-  const { loading, run: fetchDetail } = useRequest(getLevelConfig, {
+  const { run: fetchDetail } = useRequest(getLevelConfig, {
     defaultParams: [fetchParams.value, { permission: 'page' }],
     onSuccess(res) {
       detailData.value = res;
@@ -163,54 +140,40 @@
 </script>
 
 <style lang="less" scoped>
+  .config-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
   .config-detail-nav-title {
     font-family: 'Microsoft YaHei', sans-serif;
     font-size: 16px;
     line-height: 24px;
   }
 
-  .config-detail-nav-desc {
-    position: relative;
-    padding-left: 8px;
-    margin-left: 8px;
-    font-family: 'Microsoft YaHei', sans-serif;
+  .config-detail-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     font-size: 14px;
-    line-height: 22px;
     color: #979ba5;
-  }
 
-  .config-detail-nav-desc::before {
-    position: absolute;
-    top: 50%;
-    left: 0;
-    width: 1px;
-    height: 16px;
-    content: '';
-    background: #dcdee5;
-    transform: translateY(-50%);
+    &::before {
+      content: '';
+      display: inline-block;
+      width: 1px;
+      height: 14px;
+      background: #dcdee5;
+    }
   }
 
   .config-detail-page-content {
-    height: calc(100vh - var(--notice-height) - 100px);
     padding: 24px;
-  }
-
-  .base-info-form {
-    display: flex;
-    flex-direction: column;
-    align-self: stretch;
-    padding: 16px 24px;
-    background: #fff;
     border-radius: 2px;
-  }
 
-  .base-info-form-row {
-    display: flex;
-    width: 100%;
-
-    :deep(.bk-form-item) {
-      flex: 1;
-      margin-bottom: 0;
+    :deep(.db-card-content) {
+      padding-top: 0;
     }
   }
 </style>

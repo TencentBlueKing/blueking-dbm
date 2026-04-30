@@ -225,9 +225,12 @@ export const useTreeData = (treeState: TreeState) => {
       ...(query?.moduleName && { moduleName: query.moduleName }),
     };
 
+    // 是否克隆模块
+    const isCloneModule = query?.moduleId || query?.moduleName;
+
     if ([ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE].includes(clusterType.value as ClusterTypes)) {
       router.push({
-        name: 'SelfServiceCreateDbModule',
+        name: isCloneModule ? 'SelfServiceCloneDbModule' : 'SelfServiceCreateDbModule',
         params: {
           bk_biz_id: globalBizsStore.currentBizId,
           type: ticketTypeMap[clusterType.value as ClusterTypes],
@@ -236,7 +239,7 @@ export const useTreeData = (treeState: TreeState) => {
       });
     } else if ([ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE].includes(clusterType.value as ClusterTypes)) {
       router.push({
-        name: 'SqlServerCreateDbModule',
+        name: isCloneModule ? 'SqlServerCloneDbModule' : 'SqlServerCreateDbModule',
         params: {
           bizId: globalBizsStore.currentBizId,
           ticketType: ticketTypeMap[clusterType.value as ClusterTypes],
@@ -245,7 +248,7 @@ export const useTreeData = (treeState: TreeState) => {
       });
     } else {
       router.push({
-        name: 'createSpiderModule',
+        name: isCloneModule ? 'cloneSpiderModule' : 'createSpiderModule',
         params: {
           bizId: globalBizsStore.currentBizId,
         },
@@ -266,9 +269,8 @@ export const useTreeData = (treeState: TreeState) => {
       .filter((item) => item.obj_id !== ConfLevels.CLUSTER)
       .map((item) => {
         const treeId = `${item.obj_id}-${item.instance_id}`;
-        const children = item.obj_id === ConfLevels.MODULE
-          ? []
-          : item.children ? formatTreeData(item.children, treeId) : [];
+        const children =
+          item.obj_id === ConfLevels.MODULE ? [] : item.children ? formatTreeData(item.children, treeId) : [];
         return {
           children,
           data: item,

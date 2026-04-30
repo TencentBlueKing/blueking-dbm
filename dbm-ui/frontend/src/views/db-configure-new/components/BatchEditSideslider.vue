@@ -20,9 +20,9 @@
     width="70%"
     @closed="handleClose">
     <template #header>
-      {{ t('批量编辑_clusterType_参数', { clusterType: clusterTypeLabel }) }}
+      {{ t('批量编辑参数') }}
       <span class="batch-edit-subtitle">
-        {{ clusterDomain }}
+        {{ fetchParams.version || '' }}
       </span>
       <span class="batch-edit-count ml-40">
         {{ t('已选 : n 个参数', { n: editItems.length }) }}
@@ -74,10 +74,6 @@
             ellipsis
             :title="t('参数名')"
             :width="240" />
-          <!-- <TableColumn
-            col-key="value_default"
-            :title="t('默认值')"
-            :width="150" /> -->
           <TableColumn
             col-key="conf_value"
             :title="t('当前值')"
@@ -85,7 +81,7 @@
             <template #default="{ row }">
               <ValueEditor
                 v-model="row.conf_value"
-                :value-allowed="row.value_allowed || ''"
+                :value-default="row.conf_value"
                 :value-type-sub="row.value_type_sub || ''" />
             </template>
           </TableColumn>
@@ -219,29 +215,19 @@
 
   import { useBeforeClose } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
-
-  import type { ClusterTypes } from '@common/const';
-  import { clusterTypeInfos, ConfLevels } from '@common/const';
-
   import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
 
-  import ValueEditor from '@views/db-configure-new/components/ValueEditor.vue';
-
   import type { ConfItem } from './ParamTable.vue';
+  import ValueEditor from './ValueEditor.vue';
 
   interface Props {
-    cluster: {
-      cluster_type: ClusterTypes;
-      id: number;
-      master_domain: string;
-    };
-    confType: string;
     data: ConfItem[];
-    version: string;
+    /** 提交参数 */
+    fetchParams: Record<string, any>;
   }
 
   const props = defineProps<Props>();
+
   const emit = defineEmits<{
     (e: 'saved'): void;
     (e: 'close'): void;
@@ -252,7 +238,6 @@
   });
 
   const { t } = useI18n();
-  const globalBizsStore = useGlobalBizs();
   const handleBeforeClose = useBeforeClose();
 
   const currentStep = ref(1);
@@ -270,11 +255,6 @@
     const target = e.target as HTMLElement;
     overflowMap.value[key] = target.scrollWidth > target.clientWidth;
   };
-
-  const clusterTypeLabel = computed(
-    () => clusterTypeInfos[props.cluster.cluster_type]?.name || props.cluster.cluster_type,
-  );
-  const clusterDomain = computed(() => props.cluster.master_domain);
 
   // 根据筛选条件过滤后的数据
   const filteredEditItems = computed(() => {
@@ -387,17 +367,18 @@
     submitLoading.value = true;
     try {
       await updateBusinessConfig({
-        bk_biz_id: globalBizsStore.currentBizId,
+        bk_biz_id: props.fetchParams.bk_biz_id,
         conf_items: changedItems,
-        conf_type: props.confType,
+        conf_type: props.fetchParams.conf_type,
         confirm: 0,
         description: '',
-        level_name: ConfLevels.CLUSTER,
-        level_value: props.cluster.id,
-        meta_cluster_type: props.cluster.cluster_type,
-        name: '',
+        level_info: props.fetchParams.level_info,
+        level_name: props.fetchParams.level_name,
+        level_value: Number(props.fetchParams.level_value),
+        meta_cluster_type: props.fetchParams.meta_cluster_type,
+        name: props.fetchParams.name || '',
         publish_description: '',
-        version: props.version,
+        version: props.fetchParams.version,
       });
       emit('saved');
       handleClose();

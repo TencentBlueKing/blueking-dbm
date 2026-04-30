@@ -96,7 +96,7 @@
               :ref="(el: any) => setTableRef(tab.name, el)"
               :cluster-type="ticketInfo.type"
               :conf-type="tab.conf_type"
-              :version="formData.db_version" />
+              :version="tab.conf_file" />
           </BkTabPanel>
         </BkTab>
       </div>

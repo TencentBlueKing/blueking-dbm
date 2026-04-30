@@ -81,3 +81,13 @@
     { immediate: true },
   );
 </script>
+
+<style lang="less" scoped>
+  .biz-content {
+    border-radius: 2px;
+
+    :deep(.bk-tab-content) {
+      padding-bottom: 0;
+    }
+  }
+</style>

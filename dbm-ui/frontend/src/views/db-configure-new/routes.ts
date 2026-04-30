@@ -71,6 +71,30 @@ const routes: RouteRecordRaw[] = [
         },
         component: () => import('@views/db-configure-new/business/create-module/SqlServer.vue'),
       },
+      {
+        path: 'create-db-module/:type/:bk_biz_id/',
+        name: 'SelfServiceCloneDbModule',
+        meta: {
+          navName: t('克隆模块'),
+        },
+        component: () => import('@views/db-configure-new/business/create-module/Index.vue'),
+      },
+      {
+        path: 'create-module/:bizId(\\d+)',
+        name: 'cloneSpiderModule',
+        meta: {
+          navName: t('克隆模块'),
+        },
+        component: () => import('@views/db-configure-new/business/create-module/TendbCluster.vue'),
+      },
+      {
+        path: 'sqlserver-create-db-module/:ticketType/:bizId/',
+        name: 'SqlServerCloneDbModule',
+        meta: {
+          navName: t('克隆模块'),
+        },
+        component: () => import('@views/db-configure-new/business/create-module/SqlServer.vue'),
+      },
     ],
   },
 ];
