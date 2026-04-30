@@ -103,9 +103,9 @@ class MongoDBExportQueryResourceMixin(CommonExportQueryResourceMixin):
         return cluster_info
 
     @classmethod
-    def update_instance_ext_info(cls, resource_list):
+    def add_mongodb_state_and_filter(cls, resource_list, query_params):
         """
-        补充副本集状态数据
+        补充副本集状态数据,及根据副本集状态过滤
         """
         instance_ids = [item["id"] for item in resource_list.data]
 
@@ -120,6 +120,15 @@ class MongoDBExportQueryResourceMixin(CommonExportQueryResourceMixin):
 
         for item in resource_list.data:
             item["mongodb_state"] = ext_dict.get(item["id"], None)
+
+        mongodb_state = query_params.get("mongodb_state", "")
+        if mongodb_state:
+            # 根据副本集状态字段过滤
+            values = [v.strip() for v in mongodb_state.split(",") if v.strip()]
+            resource_list.data = [
+                item for item in resource_list.data if ext_dict.get(item["id"], "__empty__") in values
+            ]
+            resource_list.count = len(resource_list.data)
 
         return resource_list
 
@@ -341,7 +350,7 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource, MongoDBExportQuery
             "exact_ip": Q(machine__ip=query_params.get("exact_ip")),
         }
         resource_list = super()._list_instances(bk_biz_id, query_params, limit, offset, filter_params_map, **kwargs)
-        return super().update_instance_ext_info(resource_list)
+        return super().add_mongodb_state_and_filter(resource_list, query_params)
 
     @classmethod
     def _filter_instance_qs(cls, query_filters: Q, query_params: Dict[str, str]) -> QuerySet:
