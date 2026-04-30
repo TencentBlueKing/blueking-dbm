@@ -692,6 +692,14 @@ class TicketType(StrStructuredEnum):
     CLOUD_REDIS_DTS_SERVER_ADD = EnumField("CLOUD_REDIS_DTS_SERVER_ADD", _("云区域redis_dts 服务新增"))
     CLOUD_REDIS_DTS_SERVER_REDUCE = EnumField("CLOUD_REDIS_DTS_SERVER_REDUCE", _("云区域redis_dts 服务删除"))
 
+    # SURREALDB
+    K8S_SURREALDB_APPLY = TicketEnumField("K8S_SURREALDB_APPLY", _("SurrealDB 集群部署"), register_iam=False)
+    K8S_SURREALDB_SINGLE_APPLY = TicketEnumField("K8S_SURREALDB_SINGLE_APPLY", _("SurrealDB 单节点部署"), register_iam=False)
+    K8S_SURREALDB_ENABLE = TicketEnumField("K8S_SURREALDB_ENABLE", _("SurrealDB 集群启动"), register_iam=False)
+    K8S_SURREALDB_DISABLE = TicketEnumField("K8S_SURREALDB_DISABLE", _("SurrealDB 集群停止"), register_iam=False)
+    K8S_SURREALDB_DELETE = TicketEnumField("K8S_SURREALDB_DELETE", _("SurrealDB 集群卸载"), register_iam=False)
+    K8S_SURREALDB_RESTART = TicketEnumField("K8S_SURREALDB_RESTART", _("SurrealDB 集群重启"), register_iam=False)
+
     # 资源池
     RESOURCE_IMPORT = EnumField("RESOURCE_IMPORT", _("主机导入资源池"))
     ADMIN_PASSWORD_MODIFY = EnumField("ADMIN_PASSWORD_MODIFY", _("临时密码修改"))
