@@ -378,7 +378,8 @@ def mysql_restore_master_slave_sub_flow(
         cluster_type=cluster_model.cluster_type,
     )
     restore_list = []
-
+    after_restore_list = []
+    cluster["skip_after_load"] = True
     # 配置新主节点的恢复参数
     cluster["recover_binlog"] = True
     cluster["restore_ip"] = cluster["new_master_ip"]
@@ -393,24 +394,26 @@ def mysql_restore_master_slave_sub_flow(
     exec_act_kwargs.job_timeout = MYSQL_DATA_RESTORE_TIME
     exec_act_kwargs.cluster = copy.deepcopy(cluster)
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_restore_remotedb_payload.__name__
-    sub_pipeline_master = SubBuilder(root_id=root_id, data=ticket_data)
-    sub_pipeline_master.add_act(
-        act_name=_(
-            "恢复新主节点数据 {}:{} 备份backup_id: {}".format(
-                exec_act_kwargs.exec_ip, cluster["restore_port"], backup_info["backup_id"]
-            )
-        ),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(exec_act_kwargs),
-        write_payload_var="change_master_info",
+    restore_list.append(
+        {
+            "act_name": _(
+                "恢复新主节点数据 {}:{} 备份backup_id: {}".format(
+                    exec_act_kwargs.exec_ip, cluster["restore_port"], backup_info["backup_id"]
+                )
+            ),
+            "act_component_code": ExecuteDBActuatorScriptComponent.code,
+            "kwargs": asdict(exec_act_kwargs),
+            "write_payload_var": "change_master_info",
+        }
     )
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_restore_dr_after_payload.__name__
-    sub_pipeline_master.add_act(
-        act_name=_("数据恢复完成善后 {}:{} ".format(exec_act_kwargs.exec_ip, cluster["restore_port"])),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(exec_act_kwargs),
+    after_restore_list.append(
+        {
+            "act_name": _("数据恢复完成善后主节点 {}:{} ".format(exec_act_kwargs.exec_ip, cluster["restore_port"])),
+            "act_component_code": ExecuteDBActuatorScriptComponent.code,
+            "kwargs": asdict(exec_act_kwargs),
+        }
     )
-    restore_list.append(sub_pipeline_master.build_sub_process(sub_name=_("恢复新主节点")))
 
     # 配置新从节点的恢复参数
     cluster["restore_ip"] = cluster["new_slave_ip"]
@@ -420,27 +423,29 @@ def mysql_restore_master_slave_sub_flow(
     exec_act_kwargs.cluster = copy.deepcopy(cluster)
     exec_act_kwargs.exec_ip = cluster["new_slave_ip"]
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_restore_remotedb_payload.__name__
-
-    sub_pipeline_slave = SubBuilder(root_id=root_id, data=ticket_data)
-    sub_pipeline_slave.add_act(
-        act_name=_(
-            "恢复新主节点数据 {}:{} 备份backup_id: {}".format(
-                exec_act_kwargs.exec_ip, cluster["restore_port"], backup_info["backup_id"]
-            )
-        ),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(exec_act_kwargs),
-        write_payload_var="change_master_info",
+    restore_list.append(
+        {
+            "act_name": _(
+                "恢复新从节点数据 {}:{} 备份backup_id: {}".format(
+                    exec_act_kwargs.exec_ip, cluster["restore_port"], backup_info["backup_id"]
+                )
+            ),
+            "act_component_code": ExecuteDBActuatorScriptComponent.code,
+            "kwargs": asdict(exec_act_kwargs),
+        }
     )
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_restore_dr_after_payload.__name__
-    sub_pipeline_slave.add_act(
-        act_name=_("数据恢复完成善后 {}:{} ".format(exec_act_kwargs.exec_ip, cluster["restore_port"])),
-        act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(exec_act_kwargs),
+    after_restore_list.append(
+        {
+            "act_name": _("数据恢复完成善后从节点 {}:{} ".format(exec_act_kwargs.exec_ip, cluster["restore_port"])),
+            "act_component_code": ExecuteDBActuatorScriptComponent.code,
+            "kwargs": asdict(exec_act_kwargs),
+        }
     )
-    restore_list.append(sub_pipeline_slave.build_sub_process(sub_name=_("恢复新从节点")))
+
     # 并行执行新主节点和新从节点的数据恢复
-    sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=restore_list)
+    sub_pipeline.add_parallel_acts(acts_list=restore_list)
+    sub_pipeline.add_parallel_acts(acts_list=after_restore_list)
 
     # 阶段5: 建立主从关系 - 新从库指向新主库
     change_master_cluster = {
