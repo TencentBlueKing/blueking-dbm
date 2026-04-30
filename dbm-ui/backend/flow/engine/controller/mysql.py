@@ -75,7 +75,6 @@ from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_add_validator i
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_reduce_validator import (
     MySQLProxyClusterReduceFlowValidator,
 )
-from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_rescue_validator import MySQLProxyRescueValidator
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_proxy_switch_for_extend_validator import (
     MySQLProxySwitchForExtendValidator,
 )
@@ -725,44 +724,6 @@ class MySQLController(BaseController):
         """
         flow = MySQLProxyClusterReduceFlow(root_id=self.root_id, data=self.ticket_data)
         flow.reduce_mysql_proxy_flow()
-
-    @validates_with(MySQLProxyRescueValidator)
-    def mysql_proxy_rescue_scene(self):
-        """
-        TendbHA Proxy 救援流程
-
-        用于所有 Proxy 都故障无法恢复的极端情况，执行以下步骤：
-        1. 上架新 Proxy 实例
-        2. 配置 Proxy 后端
-        3. 从 Master 恢复白名单
-        4. 更新域名/CLB 解析
-        5. 人工确认新 Proxy 工作正常
-        6. （可选）下架旧 Proxy
-
-        ⚠️ 安全限制: 仅在集群所有 Proxy 状态都是 UNAVAILABLE 且确实不可连接时才能执行
-
-        ticket_data 参数结构体样例:
-        {
-            "uid": "2022051612120001",
-            "created_by": "xxx",
-            "bk_biz_id": 152,
-            "ticket_type": "MYSQL_PROXY_RESCUE",
-            "cluster_id": 456,
-            "new_proxies": [
-                {"ip": "127.0.0.1", "bk_host_id": 1, "bk_cloud_id": 0, "bk_biz_id": 152,
-                 "spec": {"id": 1, "name": "S4.2XLARGE16"}},
-                {"ip": "127.0.0.2", "bk_host_id": 2, "bk_cloud_id": 0, "bk_biz_id": 152,
-                 "spec": {"id": 1, "name": "S4.2XLARGE16"}}
-            ],
-            "proxy_port": 10000,  # 可选，没有旧 Proxy 元数据时必填
-            "proxy_version": "0.82.10",  # 可选，指定则使用该版本
-            "auto_cleanup_old_proxies": true
-        }
-        """
-        from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_rescue_flow import MySQLProxyRescueFlow
-
-        flow = MySQLProxyRescueFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.rescue_proxy_flow()
 
     def cluster_standardize(self):
         flow = MySQLStandardizeFlow(root_id=self.root_id, data=self.ticket_data)
