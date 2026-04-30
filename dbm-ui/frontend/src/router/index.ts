@@ -109,6 +109,7 @@ export default () => {
   getDbManageRoutes();
   getRiskMemoRoutes();
   getAiChatRoutes();
+  getStaffManageRoutes();
 
   const routes = [
     {
@@ -139,7 +140,6 @@ export default () => {
         ...getDbConfRoutes(),
         ...getDbhaSwitchEventsRouters(),
         ...getNotificationSettingRoutes(),
-        ...getStaffManageRoutes(),
         ...getWhitelistRoutes(),
         ...getTemporaryPasswordModify(),
         ...businessModuleList,

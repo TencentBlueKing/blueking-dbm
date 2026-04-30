@@ -59,7 +59,7 @@
   const isCooperationOpen = ref(false);
 
   const formModel = reactive({
-    members: [],
+    members: [] as string[],
   });
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');

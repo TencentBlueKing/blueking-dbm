@@ -18,7 +18,7 @@ export function listTag(
     limit?: number;
     offset?: number;
     ordering?: string;
-    type: 'resource' | 'cluster';
+    type: 'resource' | 'cluster' | 'app';
     value?: string;
   },
   payload = {} as IRequestPayload,
