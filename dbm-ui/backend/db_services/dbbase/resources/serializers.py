@@ -114,6 +114,7 @@ class ListInstancesSerializer(InstanceAddressSerializer):
     spider_ctl = serializers.BooleanField(help_text=_("中控节点"), required=False)
     # 额外过滤角色参数
     role_exclude = serializers.CharField(help_text=_("需要过滤的角色"), required=False)
+    mongodb_state = serializers.CharField(help_text=_("副本集状态"), required=False)
 
 
 class SqlserverListInstanceSerializer(ListInstancesSerializer):
