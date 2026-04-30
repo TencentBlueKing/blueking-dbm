@@ -27,15 +27,18 @@ interface ParameterConfigItem {
   conf_value?: string;
   description: string;
   extra_info?: string;
-  flag_disable: number;
-  flag_locked: number;
+  flag_disable?: number;
+  flag_encrypt?: number;
+  flag_locked?: number;
+  flag_readonly?: number;
+  flag_visible?: number;
   leval_value?: string;
   level_name?: string;
-  need_restart: number;
+  need_restart?: number;
   op_type: string;
   value_allowed: string;
   value_default?: string;
-  value_type?: string;
+  value_type: string;
   value_type_sub?: string;
 }
 
@@ -50,6 +53,8 @@ interface ConfigVersionDetails {
     extra_info: string;
     flag_disable: number;
     flag_locked: number;
+    flag_readonly: number;
+    flag_visible: number;
     level_name: string;
     level_value: string;
     need_restart: number;
@@ -407,11 +412,27 @@ export function recoverDefaultConfigItem(params: {
   return http.post(`${path}/recover_default_conf_item/`, params);
 }
 
+// 删除某个级别的配置文件
+export function deleteLevelValue(params: {
+  bk_biz_id?: number;
+  conf_file: string;
+  conf_type: string;
+  level_name: string;
+  level_value: number | string;
+  meta_cluster_type: string;
+}) {
+  return http.post(`${path}/delete_level_value/`, params);
+}
+
 // 配置项定义和值合法性校验
 export function validateConfItems(
   params: Array<{
     conf_name: string;
+    flag_encrypt?: number;
+    flag_locked?: number;
     flag_readonly?: number;
+    flag_visible?: number;
+    need_restart?: number;
     op_type: string;
     value_allowed: string;
     value_default: string;
@@ -429,10 +450,11 @@ export function changeConfNames(params: {
     conf_name: string;
     conf_name_lc: string;
     description: string;
-    flag_locked: number;
-    flag_readonly: number;
-    flag_visible: number;
-    need_restart: number;
+    flag_encrypt?: number;
+    flag_locked?: number;
+    flag_readonly?: number;
+    flag_visible?: number;
+    need_restart?: number;
     op_type: string;
     value_allowed: string;
     value_default: string;

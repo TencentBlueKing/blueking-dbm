@@ -17,15 +17,27 @@
       v-model="searchValue"
       class="mb-16"
       :data="quickSearchData"
-      :placeholder="t('搜索操作人_操作时间_配置名称_参数类型_操作类型_参数名')"
+      :placeholder="t('搜索操作人_操作时间_配置类型_配置文件_操作类型_操作参数')"
       style="width: 500px"
       @change="handleQuickSearchChange" />
     <DbTable
       ref="tableRef"
+      :custom-sort-method="handleCustomSort"
       :data-source="dataSource"
-      fixed-pagination
       row-key="id"
+      :sort="tableSort"
       @clear-search="handleQuickSearchChange">
+      <!-- 1. 操作时间 -->
+      <TableColumn
+        col-key="updated_at"
+        sorter
+        :title="t('操作时间')"
+        :width="220">
+        <template #default="{ row }">
+          {{ row.updated_at || '--' }}
+        </template>
+      </TableColumn>
+      <!-- 2. 操作人 -->
       <TableColumn
         col-key="op_user"
         :title="t('操作人')"
@@ -34,22 +46,7 @@
           {{ row.op_user || '--' }}
         </template>
       </TableColumn>
-      <TableColumn
-        col-key="updated_at"
-        :title="t('操作时间')"
-        :width="220">
-        <template #default="{ row }">
-          {{ row.updated_at || '--' }}
-        </template>
-      </TableColumn>
-      <TableColumn
-        col-key="conf_file_lc"
-        ellipsis
-        :title="t('配置文件')">
-        <template #default="{ row }">
-          {{ row.conf_file_lc || '--' }}
-        </template>
-      </TableColumn>
+      <!-- 3. 配置类型 -->
       <TableColumn
         col-key="conf_type_lc"
         :title="t('配置类型')"
@@ -60,6 +57,16 @@
           </BkTag>
         </template>
       </TableColumn>
+      <!-- 4. 配置文件 -->
+      <TableColumn
+        col-key="conf_file_lc"
+        ellipsis
+        :title="t('配置文件')">
+        <template #default="{ row }">
+          {{ row.conf_file_lc || '--' }}
+        </template>
+      </TableColumn>
+      <!-- 5. 操作类型 -->
       <TableColumn
         col-key="op_type"
         :title="t('操作类型')"
@@ -70,16 +77,20 @@
           </BkTag>
         </template>
       </TableColumn>
+      <!-- 6. 操作参数 -->
       <TableColumn
         col-key="conf_name"
         ellipsis
-        :title="t('操作参数')">
+        :title="t('操作参数')"
+        :width="200">
         <template #default="{ row }">
           {{ row.conf_name || '--' }}
         </template>
       </TableColumn>
+      <!-- 7. 操作明细 -->
       <TableColumn
         col-key="conf_value"
+        :min-width="200"
         :title="t('操作明细')">
         <template #default="{ row }">
           <span
@@ -90,13 +101,13 @@
           <span
             v-else
             class="config-change-value">
-            <span class="config-change-value__before">{{ row.before_image?.conf_value }}</span>
-            <span class="config-change-value__icon">
+            <span class="config-change-value-before">{{ row.before_image?.conf_value }}</span>
+            <span class="config-change-value-icon">
               <DbIcon
                 size="small"
                 type="bk-dbm-icon db-icon-arrow-right" />
             </span>
-            <span class="config-change-value__after">{{ row.after_image?.conf_value }}</span>
+            <span class="config-change-value-after">{{ row.after_image?.conf_value }}</span>
           </span>
         </template>
       </TableColumn>
@@ -105,6 +116,7 @@
 </template>
 
 <script setup lang="ts">
+  import type { TableSort } from 'tdesign-vue-next';
   import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -118,6 +130,12 @@
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const searchValue = ref<Record<string, any>>({});
 
+  // 受控排序状态
+  const tableSort = ref<{ descending: boolean; sortBy: string }>({
+    descending: true,
+    sortBy: 'updated_at',
+  });
+
   const quickSearchData = [
     {
       id: 'op_user',
@@ -130,22 +148,22 @@
       type: 'input' as const,
     },
     {
-      id: 'conf_name',
-      name: t('配置名称'),
-      type: 'input' as const,
-    },
-    {
-      id: 'conf_type',
+      id: 'conf_type_lc',
       name: t('配置类型'),
       type: 'input' as const,
     },
     {
-      id: 'operate_type',
+      id: 'conf_file_lc',
+      name: t('配置文件'),
+      type: 'input' as const,
+    },
+    {
+      id: 'op_type',
       name: t('操作类型'),
       type: 'input' as const,
     },
     {
-      id: 'operate_param',
+      id: 'conf_name',
       name: t('操作参数'),
       type: 'input' as const,
     },
@@ -164,6 +182,10 @@
     add: {
       text: t('新增参数'),
       theme: 'success',
+    },
+    recover: {
+      text: t('恢复默认'),
+      theme: 'info',
     },
     remove: {
       text: t('删除参数'),
@@ -191,6 +213,14 @@
 
     // 前端过滤
     let filteredData = res.results || [];
+
+    // 按当前排序状态动态排序
+    filteredData.sort((a, b) => {
+      const valA = String((a as Record<string, any>)[tableSort.value.sortBy] ?? '');
+      const valB = String((b as Record<string, any>)[tableSort.value.sortBy] ?? '');
+      return tableSort.value.descending ? valB.localeCompare(valA) : valA.localeCompare(valB);
+    });
+
     const filters = searchValue.value;
     if (Object.keys(filters).length > 0) {
       filteredData = filteredData.filter((item) =>
@@ -215,6 +245,14 @@
   const handleQuickSearchChange = () => {
     tableRef.value?.fetchData({}, true);
   };
+
+  /** 自定义排序方法：更新排序状态并重新拉取数据 */
+  const handleCustomSort = (sort: TableSort) => {
+    if (!Array.isArray(sort) && sort?.sortBy) {
+      tableSort.value = { descending: sort.descending, sortBy: sort.sortBy };
+    }
+    tableRef.value?.fetchData({}, true);
+  };
 </script>
 
 <style lang="less" scoped>
@@ -232,16 +270,13 @@
       color: #2caf5e;
     }
 
-    &__before {
+    &-before {
       color: #f59500;
       flex-shrink: 1;
-      max-width: 45%;
-      overflow: hidden;
-      text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    &__icon {
+    &-icon {
       color: #979ba5;
       display: flex;
       flex-shrink: 0;
@@ -256,12 +291,9 @@
       background: var(--Neutral-8--, #f0f1f5);
     }
 
-    &__after {
+    &-after {
       color: #2caf5e;
       flex-shrink: 1;
-      max-width: 45%;
-      overflow: hidden;
-      text-overflow: ellipsis;
       white-space: nowrap;
     }
   }

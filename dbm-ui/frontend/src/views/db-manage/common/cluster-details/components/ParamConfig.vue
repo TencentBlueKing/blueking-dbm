@@ -22,6 +22,11 @@
         :label="tab.name"
         :name="tab.conf_file"
         render-directive="if">
+        <BkAlert
+          class="mb-16"
+          closable
+          theme="info"
+          :title="t('集群配置参数说明')" />
         <ParamTable
           :cluster="cluster"
           :conf-type="tab.conf_type"
@@ -35,6 +40,7 @@
 </template>
 
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { getListClusterModuleConfFiles } from '@services/source/configs';
@@ -52,6 +58,8 @@
   }
 
   const props = defineProps<Props>();
+
+  const { t } = useI18n();
 
   const activeTab = ref('');
   const confTabs = ref<ServiceReturnType<typeof getListClusterModuleConfFiles>>([]);
