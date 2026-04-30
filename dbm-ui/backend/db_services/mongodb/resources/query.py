@@ -119,7 +119,7 @@ class MongoDBExportQueryResourceMixin(CommonExportQueryResourceMixin):
         ext_dict = {ext["instance_id"]: ext["state"] for ext in ext_instances}
 
         for item in resource_list.data:
-            item["mongodb_state"] = ext_dict.get(item["id"], None)
+            item["mongodb_state"] = ext_dict.get(item["id"], "UNKNOWN")
 
         return resource_list
 
@@ -404,6 +404,25 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource, MongoDBExportQuery
             .filter(query_filters & Q(bind_entry__cluster_entry_type=ClusterEntryType.DNS.value))  # 过滤实例域名
             .values(*fields)
         )
+        mongodb_state = query_params.get("mongodb_state", "")
+        if mongodb_state:
+            # 根据副本集状态字段过滤
+            result = storage_instance.union(proxy_instance)
+            instance_ids = [item["id"] for item in result]
+            ext_instances = MongoDBStorageInstanceExt.objects.filter(instance_id__in=instance_ids).values(
+                "instance_id", "state"
+            )
+            id_state_map = {ext["instance_id"]: ext.get("state", "") for ext in ext_instances}
+            id_state_map.update({item["id"]: "UNKNOWN" for item in result if item["id"] not in id_state_map})
+
+            values = [v.strip() for v in mongodb_state.split(",") if v.strip()]
+            filtered_instance_ids = {item["id"] for item in result if id_state_map[item["id"]] in values}
+
+            storage_qs = storage_instance.filter(id__in=filtered_instance_ids)
+            proxy_qs = proxy_instance.filter(id__in=filtered_instance_ids)
+
+            return storage_qs.union(proxy_qs).order_by(query_params.get("ordering", "-create_at"))
+
         return storage_instance.union(proxy_instance).order_by(query_params.get("ordering", "-create_at"))
 
     @classmethod
