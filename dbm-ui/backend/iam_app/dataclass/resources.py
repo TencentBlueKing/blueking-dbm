@@ -351,6 +351,14 @@ class EsResourceMeta(ClusterResourceMeta):
 
 
 @dataclass
+class SurrealDBResourceMeta(ClusterResourceMeta):
+    """surrealdb集群resource 属性定义"""
+
+    id: str = "surrealdb"
+    name: str = _("Surrealdb集群")
+
+
+@dataclass
 class DorisResourceMeta(ClusterResourceMeta):
     """doris集群resource 属性定义"""
 
@@ -748,6 +756,7 @@ class ResourceEnum:
     REDIS = RedisResourceMeta()
     # INFLUXDB = InfluxDBResourceMeta()
     ES = EsResourceMeta()
+    SURREALDB = SurrealDBResourceMeta()
     DORIS = DorisResourceMeta()
     KAFKA = KafkaResourceMeta()
     HDFS = HdfsResourceMeta()

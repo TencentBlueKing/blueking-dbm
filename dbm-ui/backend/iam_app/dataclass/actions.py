@@ -1500,6 +1500,54 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    SURREALDB_APPLY = ActionMeta(
+        id="surrealdb_apply",
+        name=_("SURREALDB 集群部署"),
+        name_en="surrealdb_apply",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.SURREALDB],
+        group=_("SurrealDB"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    SURREALDB_ENABLE_DISABLE = ActionMeta(
+        id="surrealdb_enable_disable",
+        name=_("SURREALDB 集群禁用启用"),
+        name_en="surrealdb_enable_disable",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.SURREALDB],
+        group=_("SurrealDB"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    SURREALDB_DELETE = ActionMeta(
+        id="surrealdb_delete",
+        name=_("SURREALDB 集群卸载"),
+        name_en="surrealdb_delete",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.SURREALDB],
+        group=_("SurrealDB"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    SURREALDB_RESTART = ActionMeta(
+        id="surrealdb_restart",
+        name=_("SURREALDB 集群重启"),
+        name_en="surrealdb_restart",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.SURREALDB],
+        group=_("SurrealDB"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     VM_ENABLE_DISABLE = ActionMeta(
         id="vm_enable_disable",
         name=_("VictoriaMetrics 集群禁用/启用"),

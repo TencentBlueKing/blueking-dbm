@@ -706,6 +706,10 @@ class MySQLTicketFlowBuilderPatchMixin(BaseTicketFlowBuilderPatchMixin):
     pass
 
 
+class SurrealDBTicketFlowBuilderPatchMixin(BaseTicketFlowBuilderPatchMixin):
+    pass
+
+
 class SQLServerTicketFlowBuilderPatchMixin(BaseTicketFlowBuilderPatchMixin):
     pass
 
