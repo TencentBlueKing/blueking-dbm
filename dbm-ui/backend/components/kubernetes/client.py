@@ -30,6 +30,16 @@ class _KubernetesApi(BaseApi):
             url="/v4/dbs/metadata/k8s_cluster_config/regions",
             description=_("获取BCS集群信息"),
         )
+        self.addon_versions = self.generate_data_api(
+            method="GET",
+            url="/v4/dbs/metadata/addon/versions",
+            description=_("获取存储版本信息"),
+        )
+        self.addon_spec_plan = self.generate_data_api(
+            method="GET",
+            url="/v4/dbs/metadata/addon_spec_plan",
+            description=_("查询集群部署套餐"),
+        )
         self.component_pods = self.generate_data_api(
             method="GET",
             url="/v4/dbs/component/pods",

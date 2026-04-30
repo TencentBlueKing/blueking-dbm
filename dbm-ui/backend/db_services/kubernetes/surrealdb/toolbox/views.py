@@ -10,7 +10,18 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
+from django.utils.translation import gettext_lazy as _
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
 from backend.bk_web import viewsets
+from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.components.kubernetes.client import KubernetesApi
+from backend.db_services.kubernetes.surrealdb.toolbox.serializers import (
+    GetAddonSpecPlanSerializer,
+    GetAddonVersionsSerializer,
+    GetK8sClusterConfigSerializer,
+)
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 logger = logging.getLogger("root")
@@ -30,3 +41,33 @@ class ToolboxViewSet(viewsets.SystemViewSet):
     """
 
     default_permission_class = [DBManagePermission()]
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取存储版本信息"),
+        query_serializer=GetAddonVersionsSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=GetAddonVersionsSerializer)
+    def get_addon_versions(self, request, **kwargs):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(KubernetesApi.addon_versions(params=validated_data, use_admin=True))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询BCS集群信息"),
+        query_serializer=GetK8sClusterConfigSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=GetK8sClusterConfigSerializer)
+    def get_k8s_cluster_config(self, request, **kwargs):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(KubernetesApi.bcs_regions(params=validated_data, use_admin=True))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询集群部署套餐"),
+        query_serializer=GetAddonSpecPlanSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=GetAddonSpecPlanSerializer)
+    def get_addon_spec_plan(self, request, **kwargs):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(KubernetesApi.addon_spec_plan(params=validated_data, use_admin=True))
