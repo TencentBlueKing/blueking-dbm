@@ -31,7 +31,7 @@ from backend.db_services.dbbase.resources.query import (
     CommonQueryResourceMixin,
     ResourceList,
 )
-from backend.db_services.dbbase.resources.query_base import build_q_for_domain_by_mongo_instance
+from backend.db_services.dbbase.resources.query_base import build_empty_and_in_q, build_q_for_domain_by_mongo_instance
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.dbresource.handlers import MongoDBShardSpecFilter
 from backend.ticket.constants import TicketType
@@ -404,7 +404,14 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource, MongoDBExportQuery
             .filter(query_filters & Q(bind_entry__cluster_entry_type=ClusterEntryType.DNS.value))  # 过滤实例域名
             .values(*fields)
         )
-        return storage_instance.union(proxy_instance).order_by(query_params.get("ordering", "-create_at"))
+        mongodb_state = query_params.get("mongodb_state", "")
+        ordering = query_params.get("ordering", "-create_at")
+        if mongodb_state:
+            # 根据副本集状态字段过滤
+            mongo_state_filters = (build_empty_and_in_q("mongodbstorageinstanceext__state", mongodb_state),)
+            return storage_instance.filter(*mongo_state_filters).distinct().order_by(ordering)
+
+        return storage_instance.union(proxy_instance).order_by(ordering)
 
     @classmethod
     def _filter_instance_hook(cls, bk_biz_id, query_params, instances, **kwargs):
