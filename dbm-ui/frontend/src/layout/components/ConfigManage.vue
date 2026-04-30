@@ -148,12 +148,12 @@
             key="StaffManage"
             v-db-console="'bizConfigManage.StaffManage'">
             <template #icon>
-              <DbIcon type="db-config" />
+              <DbIcon type="dba-config" />
             </template>
             <span
               v-overflow-tips.right
               class="text-overflow">
-              {{ t('DBA人员管理') }}
+              {{ t('DBA 管理') }}
             </span>
           </BkMenuItem>
         </BkMenuGroup>

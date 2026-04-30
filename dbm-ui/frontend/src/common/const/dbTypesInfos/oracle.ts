@@ -7,6 +7,7 @@ import { type DbInfoType } from './index';
 
 export const oracle: DbInfoType = {
   [DBTypes.ORACLE]: {
+    icon: 'influxdb',
     id: DBTypes.ORACLE,
     machineList: [
       {

@@ -18,7 +18,14 @@ import { queryClusterInstanceCount } from '@services/source/dbbase';
 
 import { useFunController, useUserProfile } from '@stores';
 
-import { ClusterTypes, type DBInfoItem, DBTypeInfos, DBTypes, UserPersonalSettings } from '@common/const';
+import {
+  ClusterCountMap,
+  ClusterTypes,
+  type DBInfoItem,
+  DBTypeInfos,
+  DBTypes,
+  UserPersonalSettings,
+} from '@common/const';
 
 export function useBizDbDisplay(options?: { ignoreClusterCount?: boolean; manual?: boolean }) {
   const funControllerStore = useFunController();
@@ -49,15 +56,6 @@ export function useBizDbDisplay(options?: { ignoreClusterCount?: boolean; manual
         return;
       }
 
-      const countKeyMap: Record<string, string[]> = {
-        [DBTypes.MONGODB]: [ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER],
-        [DBTypes.MYSQL]: [ClusterTypes.TENDBSINGLE, ClusterTypes.TENDBHA],
-        [DBTypes.ORACLE]: [ClusterTypes.ORACLE_PRIMARY_STANDBY, ClusterTypes.ORACLE_SINGLE_NONE],
-        [DBTypes.REDIS]: [ClusterTypes.REDIS_INSTANCE, 'redis_cluster'],
-        [DBTypes.SQLSERVER]: [ClusterTypes.SQLSERVER_SINGLE, ClusterTypes.SQLSERVER_HA],
-        [DBTypes.TENDBCLUSTER]: [ClusterTypes.TENDBCLUSTER],
-      };
-
       try {
         const resultList = Object.keys(DBTypeInfos).reduce<DBInfoItem[]>((prevList, dbType) => {
           const dbTypeInfo = DBTypeInfos[dbType as DBTypes];
@@ -83,7 +81,7 @@ export function useBizDbDisplay(options?: { ignoreClusterCount?: boolean; manual
                 if (ignoreClusterCount) {
                   return prevList.concat(dbTypeInfo);
                 } else {
-                  const clusterCount = countKeyMap[dbTypeInfo.id as string]!.reduce(
+                  const clusterCount = ClusterCountMap[dbTypeInfo.id as string]!.reduce(
                     (prevCount, key) =>
                       prevCount + (clusterInstanceCount.value![key as ClusterTypes]?.cluster_count || 0),
                     0,

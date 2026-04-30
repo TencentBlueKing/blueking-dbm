@@ -10,41 +10,32 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import type { RouteRecordRaw } from 'vue-router';
 
-import { checkDbConsole } from '@utils';
+import { registerBusinessModule, registerModule } from '@router';
 
 import { t } from '@locales/index';
 
-const staffManageRoute = {
-  path: 'staff-manage',
-  name: 'StaffManage',
-  meta: {
-    fullScreen: true,
-    navName: t('DBA人员管理'),
-  },
-  component: () => import('@views/staff-manage/Index.vue'),
-};
-
-const platformStaffManageRoute = {
-  path: 'platform-staff-manage',
-  name: 'PlatformStaffManage',
-  meta: {
-    navName: t('DBA人员管理'),
-  },
-  component: () => import('@views/staff-manage/Index.vue'),
-};
-
 export default function getRoutes() {
-  const routes: RouteRecordRaw[] = [];
-
-  if (checkDbConsole('globalConfigManage.staffManage')) {
-    routes.push(platformStaffManageRoute);
-  }
-
-  if (checkDbConsole('bizConfigManage.StaffManage')) {
-    routes.push(staffManageRoute);
-  }
-
-  return routes;
+  registerBusinessModule([
+    {
+      path: 'staff-manage/:tabType?/:subTabType?',
+      name: 'StaffManage',
+      meta: {
+        fullscreen: true,
+        navName: t('DBA 管理'),
+      },
+      component: () => import('@views/staff-manage/biz-staff-manage/Index.vue'),
+    },
+  ]);
+  registerModule([
+    {
+      path: 'platform-staff-manage/:tabType?/:subTabType?',
+      name: 'PlatformStaffManage',
+      meta: {
+        fullscreen: true,
+        navName: t('业务与 DBA 管理'),
+      },
+      component: () => import('@views/staff-manage/global-staff-manage/Index.vue'),
+    },
+  ]);
 }

@@ -7,6 +7,7 @@ import { type DbInfoType } from './index';
 
 export const redis: DbInfoType = {
   [DBTypes.REDIS]: {
+    icon: 'redis',
     id: DBTypes.REDIS,
     machineList: [
       {

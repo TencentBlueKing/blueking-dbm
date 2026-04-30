@@ -24,11 +24,13 @@
     <CommonSelector
       v-else
       v-bind="$attrs"
-      v-model="modelValue" />
+      v-model="modelValue"
+      :fast-clear="fastClear" />
     <DbIcon
       v-if="modelValue.length > 0"
       v-bk-tooltips="t('复制')"
       class="db-member-selector-copy"
+      :class="{ 'db-member-selector-copy-position': !tenantId && fastClear }"
       type="copy"
       @click.stop="handleCopy" />
   </div>
@@ -44,6 +46,11 @@
   import CommonSelector from './components/CommonSelector.vue';
   import TenantSelector from './components/TenantSelector.vue';
 
+  interface Props {
+    fastClear?: boolean;
+  }
+
+  defineProps<Props>();
   const emits = defineEmits<(e: 'change', value: string[]) => void>();
 
   const modelValue = defineModel<string[]>({
@@ -107,6 +114,10 @@
       &:hover {
         color: @primary-color;
         background-color: #e1ecff;
+      }
+
+      &.db-member-selector-copy-position {
+        right: 20px;
       }
     }
   }
