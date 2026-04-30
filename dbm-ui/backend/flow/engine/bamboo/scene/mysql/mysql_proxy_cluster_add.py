@@ -69,13 +69,13 @@ class MySQLProxyClusterAddFlow(object):
             {
                 "cluster_ids": [1,2], # 集群列表信息，list
                 "new_proxies": [
-                {"ip": "1.1.1.1", "bk_cloud_id": 0, "bk_host_id": 1, "bk_biz_id": 0, "spec":{...}},
+                {"ip": "1.1.1.1", "bk_cloud_id": 0, "bk_host_id": 1, "bk_biz_id": 0, "spce":{...}},
                 ....] # 新加机器信息
               },
             {
                 "cluster_ids": [3,4],
                 "new_proxies": [
-                {"ip": "2.2.2.2", "bk_cloud_id": 0, "bk_host_id": 1, "bk_biz_id": 0, "spec":{...}},
+                {"ip": "2.2.2.2", "bk_cloud_id": 0, "bk_host_id": 1, "bk_biz_id": 0, "spce":{...}},
                 ....]
             }
         ]
