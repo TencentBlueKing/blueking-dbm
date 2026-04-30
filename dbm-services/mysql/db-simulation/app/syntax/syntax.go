@@ -458,36 +458,52 @@ func (tf *TmysqlParseFile) checkConflictUsedbInOneFile(sqlFile, version string,
 	return nil
 }
 
-func (tf *TmysqlParseFile) doSingleVersion(dbtype string, mysqlVersion string) (err error) {
-	errChan := make(chan error)
-	ExecutedSqlFileChan := make(chan string, len(tf.Param.FileNames))
-	signalChan := make(chan struct{})
+// doSingleVersion 针对单个 mysql 版本执行：tmysqlparse 解析 + 解析结果分析。
+//
+// 并发模型：producer/consumer
+//   - producer goroutine: tf.Execute 把成功解析完的文件名写入 executedSqlFileCh
+//   - consumer goroutine: tf.AnalyzeParseResult 从 channel 读取并分析
+//
+// 同步约束（必须遵守，否则会引发 goroutine 泄漏 / 数据竞争）：
+//  1. close(executedSqlFileCh) 必须在 producer 退出时无条件执行，否则 consumer
+//     的 range 永远不会结束。这里用 defer 保证 panic / error 路径都 close。
+//  2. 函数返回前必须等待两个 goroutine 都跑完（wg.Wait），否则：
+//     - 后台 goroutine 可能在 caller 拿到 tf.result 之后继续写入，造成数据竞争；
+//     - 当前函数所在进程是常驻 web 服务，caller 提前 return 不会终止子 goroutine。
+//  3. 用 errors.Join 收集两个 goroutine 的错误，避免任一错误被丢弃。
+func (tf *TmysqlParseFile) doSingleVersion(dbtype string, mysqlVersion string) error {
+	executedSqlFileCh := make(chan string, len(tf.Param.FileNames))
+
+	var (
+		wg         sync.WaitGroup
+		execErr    error
+		analyzeErr error
+	)
+	wg.Add(2)
 
 	go func() {
-		if err = tf.Execute(ExecutedSqlFileChan, mysqlVersion); err != nil {
+		defer wg.Done()
+		defer close(executedSqlFileCh)
+		if err := tf.Execute(executedSqlFileCh, mysqlVersion); err != nil {
 			logger.Error("failed to execute tmysqlparse: %s", err.Error())
-			errChan <- err
+			execErr = err
 		}
-		close(ExecutedSqlFileChan)
 	}()
 
-	// 对tmysqlparse的处理结果进行分析，为json文件，后面用到了rule
 	go func() {
+		defer wg.Done()
 		logger.Info("start to analyze the parsing result")
-		if err = tf.AnalyzeParseResult(ExecutedSqlFileChan, mysqlVersion, dbtype); err != nil {
+		if err := tf.AnalyzeParseResult(executedSqlFileCh, mysqlVersion, dbtype); err != nil {
 			logger.Error("failed to analyze the parsing result:%s", err.Error())
-			errChan <- err
+			analyzeErr = err
 		}
-		signalChan <- struct{}{}
 	}()
 
-	select {
-	case err := <-errChan:
+	wg.Wait()
+	logger.Info("analyze the parsing result done")
+	if err := errors.Join(execErr, analyzeErr); err != nil {
 		logger.Error("failed to do sytax check:%s", err.Error())
 		return err
-	case <-signalChan:
-		logger.Info("analyze the parsing result done")
-		break
 	}
 	return nil
 }
