@@ -177,6 +177,8 @@ func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.R
 
 func (e *SwitchExecutor) reportSwitchingMetrics(start time.Time, req *switcher.Request,
 	rsp *switcher.Response, dbType haprobe.DbType) {
+
+	// Report the switching time consuming
 	if err := apm.SwitchingTimeConsumingMs.ObserveWithLabels(map[string]string{
 		apm.MetricLabelDbType:        dbType.String(),
 		haapm.MetricLabelServiceID:   e.myServiceID,
@@ -185,19 +187,21 @@ func (e *SwitchExecutor) reportSwitchingMetrics(start time.Time, req *switcher.R
 		logger.Warn("failed to update switching time consuming metric, errmsg: %s", err)
 	}
 
+	// Report the switching instance success total and error total
 	successCount := float64(len(req.MySqlInstData) - len(rsp.MySqlFailureInsts))
-	if err := apm.SwitchingSuccessTotal.AddWithLabels(map[string]string{
+	if err := apm.SwitchingInstanceSuccessTotal.AddWithLabels(map[string]string{
 		haapm.MetricLabelServiceID:   e.myServiceID,
 		haapm.MetricLabelServiceName: apm.MetricServerName,
 	}, successCount); err != nil {
-		logger.Error("failed to update switching success total metric, errmsg: %s", err.Error())
+		logger.Error("failed to update switching instance success total metric, errmsg: %s", err)
 	}
 
-	if err := apm.SwitchingErrorTotal.AddWithLabels(map[string]string{
+	// Report the switching instance error total
+	if err := apm.SwitchingInstanceErrorTotal.AddWithLabels(map[string]string{
 		haapm.MetricLabelServiceID:   e.myServiceID,
 		haapm.MetricLabelServiceName: apm.MetricServerName,
 	}, float64(len(rsp.MySqlFailureInsts))); err != nil {
-		logger.Error("failed to update switching error total metric, errmsg: %s", err.Error())
+		logger.Error("failed to update switching instance error total metric, errmsg: %s", err)
 	}
 }
 

@@ -160,8 +160,10 @@ func (d *detectorTask) run(cmd string) {
 	d.resp = resp
 
 	var code int
+	var errMsg string
 	if sshResp != nil {
 		code = sshResp.ExitCode
+		errMsg = sshResp.ErrMsg
 	} else {
 		var gerr *gerrors.Error
 		if errors.As(err, &gerr) {
@@ -171,7 +173,7 @@ func (d *detectorTask) run(cmd string) {
 
 	d.reportSshTime(start, code)
 
-	if err != nil {
+	if err != nil || errMsg != "" {
 		d.reportSshError(code)
 	}
 }

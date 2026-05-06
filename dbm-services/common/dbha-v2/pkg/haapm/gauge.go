@@ -388,7 +388,29 @@ func (m *HaGauge) DecWithLabels(labels map[string]string) error {
 }
 
 func (m *HaGauge) reset() {
+	m.labelValues = map[string]string{}
+	for _, name := range m.labelNames {
+		m.labelValues[name] = "" // set default label value
+	}
+
 	m.Error = nil
+}
+
+// Clear removes all metrics with label values from the underlying GaugeVec.
+// Typical usage: periodic snapshot metrics that need the previous window's
+// series to be discarded before the next window is written.
+//
+// NOTE: For a gauge without label names, this is a no-op.
+func (m *HaGauge) Clear() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.metric == nil || m.metric.Collector == nil {
+		return
+	}
+	if vec, ok := m.metric.Collector.(*prometheus.GaugeVec); ok {
+		vec.Reset() // prometheus sdk native Reset: drops all children
+	}
 }
 
 // NewHaGauge creates a new HaGauge.

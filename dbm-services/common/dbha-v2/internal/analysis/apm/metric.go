@@ -72,23 +72,31 @@ var (
 	AmBusinessTotal *haapm.HaGauge
 
 	// Switching*
-	SwitchingErrorTotal      *haapm.HaCounter
-	SwitchingSuccessTotal    *haapm.HaCounter
-	SwitchingTimeConsumingMs *haapm.HaHistogram
+	TriggerSwitchingInstanceTotal *haapm.HaCounter
+	SwitchingInstanceErrorTotal   *haapm.HaCounter
+	SwitchingInstanceSuccessTotal *haapm.HaCounter
+	SwitchingTimeConsumingMs      *haapm.HaHistogram
 
 	// DB*
 	DbQueryTimeConsumingMs *haapm.HaHistogram
 	DbQueryErrorTotal      *haapm.HaCounter
 
 	// DBM API*
+	DbmApiSyncMetadataTotal            *haapm.HaCounter
 	DbmApiSyncMetadataTimeConsumingMs  *haapm.HaHistogram
 	DbmApiSyncMetadataErrorTotal       *haapm.HaCounter
 	DbmApiQueryMetadataTimeConsumingMs *haapm.HaHistogram
 	DbmApiQueryMetadataErrorTotal      *haapm.HaCounter
+	DbmApiQueryMetadataIpCount         *haapm.HaGauge
 
 	// SSH Detector*
 	DetectorSshTimeConsumingMs *haapm.HaHistogram
 	DetectorSshErrorTotal      *haapm.HaCounter
+
+	// Dbm Metadata*
+	DbmMetadataSaveTimeConsumingMs *haapm.HaHistogram
+	DbmMetadataUpdatedCount        *haapm.HaGauge
+	DbhaDataStatusUpdatedCount     *haapm.HaGauge
 )
 
 func init() {
@@ -102,6 +110,7 @@ func init() {
 	initDBMetrics()
 	initDbmApiMetrics()
 	initDetectorMetrics()
+	initDbTableUpdatedMetrics()
 }
 
 func initScanMetrics() {
@@ -155,6 +164,13 @@ func initAmBusinessMetrics() {
 }
 
 func initSwitchingMetrics() {
+	// Trigger switching instance total counter
+	TriggerSwitchingInstanceTotal = haapm.NewHaCounter(
+		"trigger_switching_instance_total",
+		"Total number of trigger switching instances",
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
+	)
+
 	// Switching time consuming histogram
 	SwitchingTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
 		"switching_time_consuming_ms",
@@ -164,17 +180,17 @@ func initSwitchingMetrics() {
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
 	)
 
-	// Switching success total counter
-	SwitchingSuccessTotal = haapm.NewHaCounter(
-		"switching_success_total",
-		"Total number of switching success",
+	// Switching instance success total counter
+	SwitchingInstanceSuccessTotal = haapm.NewHaCounter(
+		"switching_instance_success_total",
+		"Total number of switching instance success",
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
 	)
 
-	// Switching error total counter
-	SwitchingErrorTotal = haapm.NewHaCounter(
-		"switching_error_total",
-		"Total number of switching error",
+	// Switching instance error total counter
+	SwitchingInstanceErrorTotal = haapm.NewHaCounter(
+		"switching_instance_error_total",
+		"Total number of switching instance error",
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
 	)
 }
@@ -255,6 +271,14 @@ func initDBMetrics() {
 }
 
 func initDbmApiMetrics() {
+	// DBM API sync metadata total counter
+	DbmApiSyncMetadataTotal = haapm.NewHaCounter(
+		"dbm_api_sync_metadata_total",
+		"Total number of DBM API sync metadata",
+		MetricLabelApiName,
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
+	)
+
 	// DBM API sync metadata request time consuming histogram
 	DbmApiSyncMetadataTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
 		"dbm_api_sync_metadata_request_time_consuming_ms",
@@ -288,6 +312,14 @@ func initDbmApiMetrics() {
 		MetricLabelApiName,
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelStatusCode,
 	)
+
+	// DBM API query metadata ip count gauge
+	DbmApiQueryMetadataIpCount = haapm.NewHaGauge(
+		"dbm_api_query_metadata_ip_count",
+		"Number of DBM API query metadata request ips per query",
+		MetricLabelApiName,
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
+	)
 }
 
 func initDetectorMetrics() {
@@ -304,6 +336,30 @@ func initDetectorMetrics() {
 		"detector_ssh_error_total",
 		"Total number of SSH detection errors",
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelStatusCode,
+	)
+}
+
+func initDbTableUpdatedMetrics() {
+	// DbmMetadata updated time consuming histogram
+	DbmMetadataSaveTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
+		"dbm_metadata_save_time_consuming_ms",
+		"Time consuming of DbmMetadata save in milliseconds",
+		haapm.DefaultDurationBuckets,
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
+	)
+
+	// DbmMetadata rows updated within the latest statistics window, grouped by db_type.
+	DbmMetadataUpdatedCount = haapm.NewHaGauge(
+		"dbm_metadata_updated_count",
+		"Number of DbmMetadata rows updated within the latest statistics window, by db_type",
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelDbType,
+	)
+
+	// DbhaDataStatus rows updated within the latest statistics window, grouped by db_type.
+	DbhaDataStatusUpdatedCount = haapm.NewHaGauge(
+		"dbha_data_status_updated_count",
+		"Number of DbhaDataStatus rows updated within the latest statistics window, by db_type",
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelDbType,
 	)
 }
 
@@ -330,16 +386,22 @@ func InitAPM(serviceID, serviceName string) {
 		ScanBusinessTotal,
 		SlidingWindowSize,
 		AmBusinessTotal,
-		SwitchingErrorTotal,
-		SwitchingSuccessTotal,
+		TriggerSwitchingInstanceTotal,
+		SwitchingInstanceErrorTotal,
+		SwitchingInstanceSuccessTotal,
 		SwitchingTimeConsumingMs,
 		DbQueryTimeConsumingMs,
 		DbQueryErrorTotal,
+		DbmApiSyncMetadataTotal,
 		DbmApiSyncMetadataTimeConsumingMs,
 		DbmApiSyncMetadataErrorTotal,
 		DbmApiQueryMetadataTimeConsumingMs,
 		DbmApiQueryMetadataErrorTotal,
+		DbmApiQueryMetadataIpCount,
 		DetectorSshTimeConsumingMs,
 		DetectorSshErrorTotal,
+		DbmMetadataSaveTimeConsumingMs,
+		DbmMetadataUpdatedCount,
+		DbhaDataStatusUpdatedCount,
 	)
 }
