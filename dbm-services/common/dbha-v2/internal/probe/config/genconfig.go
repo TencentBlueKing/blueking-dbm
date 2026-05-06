@@ -40,7 +40,8 @@ import (
 // (payload.MySQL / payload.Redis) AND the metadata yields at least one matching endpoint.
 // MySQL / Redis credentials default to zero values; admin owns the source of truth.
 func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
-	mysqlEndpoints, redisEndpoints := buildEndpointsFromMetadata(payload.Metadata)
+	adminOnly := isStrictProxyRuntime(payload.Metadata)
+	mysqlEndpoints, redisEndpoints := buildEndpointsFromMetadata(payload.Metadata, adminOnly)
 
 	cfg := probeYAML{
 		Name:    "probe",
@@ -63,35 +64,100 @@ func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
 		},
 	}
 
-	if payload.MySQL != nil && len(mysqlEndpoints) > 0 {
-		cfg.Harvester.MySQL = &struct {
-			User      string             `yaml:"user"`
-			Password  string             `yaml:"password"`
-			Interval  string             `yaml:"interval"`
-			Endpoints []DbEndpointConfig `yaml:"endpoints"`
-		}{
-			User:      payload.MySQL.User,
-			Password:  payload.MySQL.Password,
-			Interval:  payload.MySQL.Interval,
-			Endpoints: mysqlEndpoints,
+	if adminOnly && payload.ProxyAdmin != nil {
+		applyProxyAdminHarvesters(&cfg.Harvester, payload.ProxyAdmin, mysqlEndpoints, redisEndpoints)
+		return marshalProbeYAML(cfg)
+	}
+	applyRegularHarvesters(&cfg.Harvester, payload, mysqlEndpoints, redisEndpoints)
+
+	return marshalProbeYAML(cfg)
+}
+
+func isStrictProxyRuntime(items []probeconfig.ProbeMetadataItem) bool {
+	if len(items) == 0 {
+		return false
+	}
+	for _, item := range items {
+		if item.AccessLayer != string(haprobe.DbmMetadataAccessLayerTypeProxy) {
+			return false
 		}
+		if item.MachineType != string(haprobe.DbmMetadataMachineTypeProxy) {
+			return false
+		}
+	}
+	return true
+}
+
+func applyProxyAdminHarvesters(
+	harvester *probeHarvesterYAML,
+	cfg *probeconfig.ProbeProxyAdminConfig,
+	mysqlEndpoints []DbEndpointConfig,
+	redisEndpoints []DbEndpointConfig,
+) {
+	if len(mysqlEndpoints) > 0 {
+		harvester.MySQL = buildMySQLHarvester(cfg.User, cfg.Password, cfg.Interval, mysqlEndpoints)
+	}
+	if len(redisEndpoints) > 0 {
+		harvester.Redis = buildRedisHarvester(cfg.User, cfg.Password, cfg.Interval, cfg.Timeout, redisEndpoints)
+	}
+}
+
+func applyRegularHarvesters(
+	harvester *probeHarvesterYAML,
+	payload probeconfig.ProbeConfigPayload,
+	mysqlEndpoints []DbEndpointConfig,
+	redisEndpoints []DbEndpointConfig,
+) {
+	if payload.MySQL != nil && len(mysqlEndpoints) > 0 {
+		harvester.MySQL = buildMySQLHarvester(
+			payload.MySQL.User,
+			payload.MySQL.Password,
+			payload.MySQL.Interval,
+			mysqlEndpoints,
+		)
 	}
 	if payload.Redis != nil && len(redisEndpoints) > 0 {
-		cfg.Harvester.Redis = &struct {
-			User      string             `yaml:"user"`
-			Password  string             `yaml:"password"`
-			Interval  string             `yaml:"interval"`
-			Timeout   string             `yaml:"timeout"`
-			Endpoints []DbEndpointConfig `yaml:"endpoints"`
-		}{
-			User:      payload.Redis.User,
-			Password:  payload.Redis.Password,
-			Interval:  payload.Redis.Interval,
-			Timeout:   payload.Redis.Timeout,
-			Endpoints: redisEndpoints,
-		}
+		harvester.Redis = buildRedisHarvester(
+			payload.Redis.User,
+			payload.Redis.Password,
+			payload.Redis.Interval,
+			payload.Redis.Timeout,
+			redisEndpoints,
+		)
 	}
+}
 
+func buildMySQLHarvester(
+	user string,
+	password string,
+	interval string,
+	endpoints []DbEndpointConfig,
+) *probeMySQLHarvesterYAML {
+	return &probeMySQLHarvesterYAML{
+		User:      user,
+		Password:  password,
+		Interval:  interval,
+		Endpoints: endpoints,
+	}
+}
+
+func buildRedisHarvester(
+	user string,
+	password string,
+	interval string,
+	timeout string,
+	endpoints []DbEndpointConfig,
+) *probeRedisHarvesterYAML {
+	return &probeRedisHarvesterYAML{
+		User:      user,
+		Password:  password,
+		Interval:  interval,
+		Timeout:   timeout,
+		Endpoints: endpoints,
+	}
+}
+
+func marshalProbeYAML(cfg probeYAML) (string, error) {
 	out, err := yaml.Marshal(&cfg)
 	if err != nil {
 		return "", err
@@ -99,13 +165,17 @@ func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
 	return string(out), nil
 }
 
-func buildEndpointsFromMetadata(list []probeconfig.ProbeMetadataItem) (mysql, redis []DbEndpointConfig) {
+func buildEndpointsFromMetadata(
+	list []probeconfig.ProbeMetadataItem,
+	adminOnly bool,
+) (mysql, redis []DbEndpointConfig) {
 	type key struct {
 		ip          string
 		clusterType string
 		machineType string
 		accessLayer string
 	}
+	keys := make(map[key]struct{})
 	portsByKey := make(map[key][]string)
 	adminPortsByKey := make(map[key][]string)
 
@@ -116,22 +186,34 @@ func buildEndpointsFromMetadata(list []probeconfig.ProbeMetadataItem) (mysql, re
 			machineType: m.MachineType,
 			accessLayer: m.AccessLayer,
 		}
-		portsByKey[k] = append(portsByKey[k], strconv.Itoa(m.Port))
+		keys[k] = struct{}{}
+		if !adminOnly && m.Port > 0 {
+			portsByKey[k] = append(portsByKey[k], strconv.Itoa(m.Port))
+		}
 		if m.AdminPort > 0 {
 			adminPortsByKey[k] = append(adminPortsByKey[k], strconv.Itoa(m.AdminPort))
 		}
 	}
 
-	for k, ports := range portsByKey {
+	for k := range keys {
+		adminPorts := adminPortsByKey[k]
+		if adminOnly && len(adminPorts) == 0 {
+			continue
+		}
 		ep := DbEndpointConfig{
 			Proto:       "tcp",
 			ClusterType: haprobe.DbmMetadataClusterType(k.clusterType),
 			MachineType: haprobe.DbmMetadataMachineType(k.machineType),
 			AccessLayer: haprobe.DbmMetadataAccessLayerType(k.accessLayer),
 			Ip:          k.ip,
-			Ports:       ports,
-			AdminPorts:  adminPortsByKey[k],
+			AdminPorts:  adminPorts,
 		}
+
+		// In proxy_admin_only mode, ports are intentionally omitted.
+		if !adminOnly {
+			ep.Ports = portsByKey[k]
+		}
+
 		switch {
 		case probeconfig.IsMySQLClusterType(k.clusterType):
 			mysql = append(mysql, ep)

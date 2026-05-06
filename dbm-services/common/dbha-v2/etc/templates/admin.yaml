@@ -72,20 +72,29 @@ probeGse:
   # empty, invalid duration, or value strictly below 5s is normalized to 5s when admin loads config
   connTimeout: {{ADMIN_PROBE_GSE_CONN_TIMEOUT}}
 
-# Returned to probe via GetProbeConfig only when the requesting probe's metadata
-# contains MySQL-family clusters (tendbha / tendbcluster).
+# Returned to probe via GetProbeConfig for every probe request.
+# Probe applies this config in non-strict-proxy runtime based on metadata.
 probeMysql:
   user: "{{ADMIN_PROBE_MYSQL_USER}}"
   password: "{{ADMIN_PROBE_MYSQL_PASSWORD}}"
   interval: {{ADMIN_PROBE_MYSQL_INTERVAL}}
 
-# Returned to probe via GetProbeConfig only when the requesting probe's metadata
-# contains Redis-family clusters (redis / twemproxy / predixy variants).
+# Returned to probe via GetProbeConfig for every probe request.
+# Probe applies this config in non-strict-proxy runtime based on metadata.
 probeRedis:
   user: "{{ADMIN_PROBE_REDIS_USER}}"
   password: "{{ADMIN_PROBE_REDIS_PASSWORD}}"
   interval: {{ADMIN_PROBE_REDIS_INTERVAL}}
   timeout: {{ADMIN_PROBE_REDIS_TIMEOUT}}
+
+# Returned to probe via GetProbeConfig for every probe request.
+# Probe applies this config only in strict proxy runtime where all metadata entries satisfy:
+# access_layer == proxy AND machine_type == proxy.
+probeProxyAdmin:
+  user: "{{ADMIN_PROBE_PROXY_ADMIN_USER}}"
+  password: "{{ADMIN_PROBE_PROXY_ADMIN_PASSWORD}}"
+  interval: {{ADMIN_PROBE_PROXY_ADMIN_INTERVAL}}
+  timeout: {{ADMIN_PROBE_PROXY_ADMIN_TIMEOUT}}
 
 log:
   path: "{{ADMIN_LOG_PATH}}"

@@ -178,16 +178,23 @@ ADMIN_PROBE_GSE_ENDPOINT=""
 ADMIN_PROBE_GSE_DATA_ID=0
 ADMIN_PROBE_GSE_CONN_TIMEOUT=5s
 
-# ## admin · probe mysql harvester (returned only to probes whose metadata contains MySQL clusters)
+# ## admin · probe mysql harvester (returned to every probe; applied by probe in non-strict-proxy runtime)
 ADMIN_PROBE_MYSQL_USER=""
 ADMIN_PROBE_MYSQL_PASSWORD=""
 ADMIN_PROBE_MYSQL_INTERVAL=20s
 
-# ## admin · probe redis harvester (returned only to probes whose metadata contains Redis clusters)
+# ## admin · probe redis harvester (returned to every probe; applied by probe in non-strict-proxy runtime)
 ADMIN_PROBE_REDIS_USER=""
 ADMIN_PROBE_REDIS_PASSWORD=""
 ADMIN_PROBE_REDIS_INTERVAL=20s
 ADMIN_PROBE_REDIS_TIMEOUT=5s
+
+# ## admin · probe proxy admin harvester (returned to every probe; applied only in strict proxy runtime)
+# strict proxy: access_layer == proxy AND machine_type == proxy
+ADMIN_PROBE_PROXY_ADMIN_USER=""
+ADMIN_PROBE_PROXY_ADMIN_PASSWORD=""
+ADMIN_PROBE_PROXY_ADMIN_INTERVAL=20s
+ADMIN_PROBE_PROXY_ADMIN_TIMEOUT=5s
 
 # --- analysis ---
 
