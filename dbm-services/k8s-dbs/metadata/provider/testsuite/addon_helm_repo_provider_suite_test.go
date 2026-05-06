@@ -90,8 +90,8 @@ func (suite *AddonHelmRepoProviderTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbAccess := dbaccess.NewAddonHelmRepoDbAccess(db)
-	addonHelmRepoProvider := provider.NewAddonHelmRepoProvider(dbAccess)
+	dbAccess := dbaccess.GetAddonHelmRepoDbAccess(db)
+	addonHelmRepoProvider := provider.GetAddonHelmRepoProvider(dbAccess)
 	suite.addonHelmRepoProvider = addonHelmRepoProvider
 }
 

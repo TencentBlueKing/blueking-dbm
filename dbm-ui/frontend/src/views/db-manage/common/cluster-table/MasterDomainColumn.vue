@@ -105,12 +105,12 @@
       }
     }
 
-    [class*='db-icon'] {
-      display: none;
-      margin-top: 1px;
-      margin-left: 4px;
-      color: @primary-color;
-      cursor: pointer;
-    }
+    // [class*='db-icon'] {
+    //   display: none;
+    //   margin-top: 1px;
+    //   margin-left: 4px;
+    //   // color: @primary-color;
+    //   cursor: pointer;
+    // }
   }
 </style>

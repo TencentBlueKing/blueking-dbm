@@ -48,7 +48,7 @@ const (
 	APIClusterHScaling      = "v4_dbs_cluster_hscaling"
 	APIClusterVExpansion    = "v4_dbs_cluster_vexpansion"
 	APIClusterStart         = "v4_dbs_cluster_start"
-	APIClusterReStart       = "v4_dbs_cluster_restart"
+	APIClusterRestart       = "v4_dbs_cluster_restart"
 	APIClusterStop          = "v4_dbs_cluster_stop"
 	APIClusterDelete        = "v4_dbs_cluster_delete"
 	APIClusterCreate        = "v4_dbs_cluster_create"
@@ -98,6 +98,24 @@ const (
 	APIMetaAddonCreate   = "v4_dbs_meta_addon_create"
 	APIMetaAddonDelete   = "v4_dbs_meta_addon_delete"
 	APIMetaAddonUpdate   = "v4_dbs_meta_addon_update"
+)
+
+// addon spec plan meta api
+const (
+	APIMetaAddonSpecPlanList   = "v4_dbs_meta_addon_spec_plan_list"
+	APIMetaAddonSpecPlanDetail = "v4_dbs_meta_addon_spec_plan_detail"
+	APIMetaAddonSpecPlanCreate = "v4_dbs_meta_addon_spec_plan_create"
+	APIMetaAddonSpecPlanDelete = "v4_dbs_meta_addon_spec_plan_delete"
+	APIMetaAddonSpecPlanUpdate = "v4_dbs_meta_addon_spec_plan_update"
+)
+
+// component spec plan meta api
+const (
+	APIMetaComponentSpecPlanList   = "v4_dbs_meta_component_spec_plan_list"
+	APIMetaComponentSpecPlanDetail = "v4_dbs_meta_component_spec_plan_detail"
+	APIMetaComponentSpecPlanCreate = "v4_dbs_meta_component_spec_plan_create"
+	APIMetaComponentSpecPlanDelete = "v4_dbs_meta_component_spec_plan_delete"
+	APIMetaComponentSpecPlanUpdate = "v4_dbs_meta_component_spec_plan_update"
 )
 
 // addon repo meta api
@@ -241,7 +259,7 @@ func initClusterGroups(groups map[string]string) {
 		APIClusterHScaling,
 		APIClusterVExpansion,
 		APIClusterStart,
-		APIClusterReStart,
+		APIClusterRestart,
 		APIClusterStop,
 		APIClusterDelete,
 		APIClusterCreate,
@@ -284,6 +302,8 @@ func initK8sGroups(groups map[string]string) {
 func initMetaGroups(groups map[string]string) {
 	initAddonCategoryMetaGroups(groups)
 	initAddonMetaGroups(groups)
+	initAddonSpecPlanMetaGroups(groups)
+	initComponentSpecPlanMetaGroups(groups)
 	initAddonRepoMetaGroups(groups)
 	initAddonClusterRepoMetaGroups(groups)
 	initAddonTopoMetaGroups(groups)
@@ -316,6 +336,26 @@ func initAddonMetaGroups(groups map[string]string) {
 		APIMetaAddonCreate,
 		APIMetaAddonDelete,
 		APIMetaAddonUpdate,
+	)
+}
+
+func initAddonSpecPlanMetaGroups(groups map[string]string) {
+	add(groups, APIGroupMeta,
+		APIMetaAddonSpecPlanList,
+		APIMetaAddonSpecPlanDetail,
+		APIMetaAddonSpecPlanCreate,
+		APIMetaAddonSpecPlanDelete,
+		APIMetaAddonSpecPlanUpdate,
+	)
+}
+
+func initComponentSpecPlanMetaGroups(groups map[string]string) {
+	add(groups, APIGroupMeta,
+		APIMetaComponentSpecPlanList,
+		APIMetaComponentSpecPlanDetail,
+		APIMetaComponentSpecPlanCreate,
+		APIMetaComponentSpecPlanDelete,
+		APIMetaComponentSpecPlanUpdate,
 	)
 }
 

@@ -93,7 +93,7 @@ func (c BackStageHandler) RunModuleCheck(r *gin.Context) {
 
 // RunAsyncCmdb async from cmdb
 func (c BackStageHandler) RunAsyncCmdb(r *gin.Context) {
-	err := task.AsyncResourceHardInfo()
+	err := task.AsyncBkCmdbAttributes()
 	if err != nil {
 		logger.Error("asyncResourceHardInfo failed %v", err)
 	}

@@ -49,6 +49,11 @@ const (
 	TenDBClusterProxySlave    DbmMetadataInstanceRole = "spider_slave"
 )
 
+// String returns the string representation of DbmMetadataInstanceRole.
+func (d DbmMetadataInstanceRole) String() string {
+	return string(d)
+}
+
 // the "spider_role" in metadata.
 type DbmMetadataSpiderRole string
 
@@ -114,5 +119,11 @@ type DbmMetadataProxyInstance struct {
 // DbmMetadataBinlogDumper defined "tbinlogdumper" info in metadata.
 type DbmMetadataBinlogDumper struct {
 	Ip   string `json:"ip"`
+	Port int    `json:"port"`
+}
+
+// InstWithinCluster defined the instance within a cluster.
+type InstWithinCluster struct {
+	IP   string `json:"ip"`
 	Port int    `json:"port"`
 }

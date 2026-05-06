@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -21,7 +22,7 @@ var subCmdClean = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		initLogger(config.MonitorConfig.Log)
+		utils.InitLogger(config.MonitorConfig.Log)
 
 		manager := ma.NewManager(config.MonitorConfig.ApiUrl)
 		entries, err := manager.Entries()

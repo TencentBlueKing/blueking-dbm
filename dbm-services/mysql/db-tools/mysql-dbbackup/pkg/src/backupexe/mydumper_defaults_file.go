@@ -20,7 +20,8 @@ sync_binlog = 0
 slow_query_log = OFF
 
 [myloader_session_variables]
-long_query_time = 300
+long_query_time = 999999
+sql_mode='NO_AUTO_VALUE_ON_ZERO'
 
 [myloader_global_variables]
 sync_binlog = 0

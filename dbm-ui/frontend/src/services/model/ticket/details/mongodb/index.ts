@@ -1,7 +1,9 @@
 export * from './addShardNodes';
 export * from './authorizeRules';
 export * from './backup';
+export * from './clusterStandardize';
 export * from './cutoff';
+export * from './dataExport';
 export * from './destroy';
 export * from './disable';
 export * from './enable';
@@ -9,6 +11,7 @@ export * from './excelAuthorize';
 export * from './execScriptApply';
 export * from './fullBackup';
 export * from './instanceDeinstall';
+export * from './instanceFixStatus';
 export * from './instanceReload';
 export * from './pitrRestore';
 export * from './reduceMongos';

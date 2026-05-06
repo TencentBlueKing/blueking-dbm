@@ -118,6 +118,7 @@ class MySQLStorageLocalUpgradeFlow(object):
         mysql_upgrade_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
         cluster_ids = []
+        all_cluster_ids = []  # 收集所有集群ID，用于标准化
         reinstall_ip_list = []
         cluster_type = None
         bk_cloud_id = 0
@@ -127,6 +128,7 @@ class MySQLStorageLocalUpgradeFlow(object):
             sub_flow_context = copy.deepcopy(self.data)
             # 这批集群是共同的机器，主从机器是一样的
             cluster_ids = upgrade_info["cluster_ids"]
+            all_cluster_ids.extend(cluster_ids)  # 收集所有集群ID
             pkg_id = upgrade_info["pkg_id"]
             new_mysql_pkg_name = self.__get_pkg_name_by_pkg_id(pkg_id)
             new_db_module_id = upgrade_info.get("new_db_module_id")
@@ -230,16 +232,21 @@ class MySQLStorageLocalUpgradeFlow(object):
         mysql_upgrade_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
         # 标准化集群
+
         mysql_upgrade_pipeline.add_sub_pipeline(
             sub_flow=standardize_mysql_cluster_by_ip_subflow(
                 root_id=self.root_id,
-                data=copy.deepcopy(self.data),
+                data={
+                    **copy.deepcopy(self.data),
+                    "cluster_ids": list(set(all_cluster_ids)),  # 去重
+                },
                 bk_cloud_id=int(bk_cloud_id),
                 bk_biz_id=self.data["bk_biz_id"],
                 ips=reinstall_ip_list,
                 with_collect_sysinfo=False,
                 with_actuator=False,
                 with_bk_plugin=False,
+                with_cc_standardize=True,
             )
         )
         mysql_upgrade_pipeline.run_pipeline(init_trans_data_class=MySQLUpgradeContext(), is_drop_random_user=True)
@@ -577,16 +584,21 @@ class MySQLStorageLocalUpgradeFlow(object):
             )
         )
         # 先做标准化集群,后面可能会暂停很久
+
         sub_pipeline.add_sub_pipeline(
             sub_flow=standardize_mysql_cluster_by_ip_subflow(
                 root_id=self.root_id,
-                data=copy.deepcopy(self.data),
+                data={
+                    **copy.deepcopy(self.data),
+                    "cluster_ids": cluster_ids,
+                },
                 bk_cloud_id=int(bk_cloud_id),
                 bk_biz_id=self.data["bk_biz_id"],
                 ips=[master_ip, slave_ip],
                 with_collect_sysinfo=False,
                 with_actuator=False,
                 with_bk_plugin=False,
+                with_cc_standardize=True,
             )
         )
 

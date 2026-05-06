@@ -123,7 +123,7 @@ func (r *GoApplyBinlog) ParseBinlogFiles() error {
 	logger.Info("start to parse binlog files with concurrency %d", r.ParseConcurrency)
 
 	binlogParseLockFile := "/tmp/mysql_binlog_parse.lock.yaml"
-	fileLock, err := filecontext.NewIncrFile(binlogParseLockFile, r.ParseConcurrency, 10*time.Second)
+	fileLock, err := filecontext.NewIncrFile(binlogParseLockFile, 4, 10*time.Second)
 	if err != nil {
 		return err
 	}
@@ -321,10 +321,11 @@ func (r *GoApplyBinlog) Init() error {
 	// r.BinlogOpt.StartTime r.BinlogOpt.StopTime 是 DateTime 格式，传给 gomysqlbinlog
 	if r.StartTime != "" {
 		if t, err := time.ParseInLocation(time.DateTime, r.StartTime, time.Local); err == nil {
-			r.BinlogOpt.StartTime = r.StartTime
-			r.StartTime = t.Format(time.RFC3339)
+			r.BinlogOpt.StartTime = t.Local().Format(time.DateTime)
+			r.StartTime = t.Local().Format(time.RFC3339)
 		} else if t, err := time.ParseInLocation(time.RFC3339, r.StartTime, time.Local); err == nil {
-			r.BinlogOpt.StartTime = t.Format(time.DateTime)
+			r.BinlogOpt.StartTime = t.Local().Format(time.DateTime)
+			r.StartTime = t.Local().Format(time.RFC3339)
 		} else {
 			return errors.Errorf("unknown time format for start_time: %s", r.StartTime)
 		}
@@ -332,10 +333,11 @@ func (r *GoApplyBinlog) Init() error {
 	if r.StopTime != "" {
 		var stopTime time.Time
 		if t, err := time.ParseInLocation(time.DateTime, r.StopTime, time.Local); err == nil {
-			r.BinlogOpt.StopTime = r.StopTime
-			r.StopTime = t.Format(time.RFC3339)
+			r.BinlogOpt.StopTime = t.Local().Format(time.DateTime)
+			r.StopTime = t.Local().Format(time.RFC3339)
 		} else if t, err := time.ParseInLocation(time.RFC3339, r.StopTime, time.Local); err == nil {
-			r.BinlogOpt.StopTime = t.Format(time.DateTime)
+			r.BinlogOpt.StopTime = t.Local().Format(time.DateTime)
+			r.StopTime = t.Local().Format(time.RFC3339)
 		} else {
 			return errors.Errorf("unknown time format for stop_time: %s", r.StopTime)
 		}
@@ -384,7 +386,20 @@ func (r *GoApplyBinlog) buildMysqlCliOptions() error {
 	if mysqlOpt.MaxAllowedPacket > 0 {
 		r.TgtInstance.Options += fmt.Sprintf(" --max-allowed-packet=%d", mysqlOpt.MaxAllowedPacket)
 	}
-	mysqlClient := r.ToolSet.MustGet(tools.ToolMysqlclient)
+
+	var mysqlClient string
+	if mysqlClient80, err := r.ToolSet.Get(tools.ToolMysqlclient80); err == nil {
+		// 需要确认 dba-toolkit 下的 mysql 8.0 客户端可以用
+		if err = mysqlcomm.MysqlCliHasOption(mysqlClient80, "--help"); err == nil {
+			mysqlClient = mysqlClient80
+		} else {
+			logger.Info("try use mysql client 8.0 got error:", err.Error())
+		}
+	}
+	if mysqlClient == "" {
+		mysqlClient = r.ToolSet.MustGet(tools.ToolMysqlclient)
+		logger.Info("fallback to system mysql client: %s", mysqlClient)
+	}
 	// mysqlOpt.BinaryMode &&
 	if mysqlcomm.MysqlCliHasOption(mysqlClient, "--binary-mode") == nil {
 		r.TgtInstance.Options += " --binary-mode"
@@ -586,7 +601,7 @@ func (r *GoApplyBinlog) FilterBinlogFiles() (totalSize int64, err error) {
 		// todo 如果是闪回模式，只从本地binlog获取，也可以读取 file mtime，确保不会出错
 		events, err := bp.GetTimeIgnoreStopErr(fileName, true, true)
 		if err != nil {
-			if strings.Contains(err.Error(), "No such file or directory") {
+			if strings.Contains(strings.ToLower(err.Error()), "no such file or directory") {
 				// 文件可能在处理的时候被删除了，但有可能是正在过滤旧的文件，旧文件被删除无所谓
 				continue
 			} else {

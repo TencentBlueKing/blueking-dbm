@@ -25,8 +25,9 @@
 package haapm
 
 import (
+	"sync"
+
 	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"dbm-services/common/go-pubpkg/apm/metric"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -43,16 +44,32 @@ import (
 type HaCounter struct {
 	Error error
 
-	metric      *metric.Metric
+	mu          sync.Mutex
+	metric      *Metric
 	labelNames  []string
 	labelValues map[string]string
 }
 
-func (m *HaCounter) ToMetric() *metric.Metric {
-	return (*metric.Metric)(m.metric)
+// ToMetric returns the Metric.
+func (m *HaCounter) ToMetric() *Metric {
+	return m.metric
 }
 
+// WithLabels returns a BoundCounter with fixed labels. For static resources, create once
+// and use the bound in business code so only Inc() or Add() is needed.
+func (m *HaCounter) WithLabels(labels map[string]string) *BoundCounter {
+	return &BoundCounter{counter: m, labels: copyLabels(labels)}
+}
+
+// UpdateLabel sets label values for the next Inc/Add call.
+//
+// WARNING: This method is NOT atomic with the subsequent Inc/Add call.
+// In concurrent code, use IncWithLabels or AddWithLabels instead, which perform
+// the full label-write + operation + reset atomically under a single lock.
 func (m *HaCounter) UpdateLabel(lvs map[string]string) *HaCounter {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	if m.Error != nil {
 		return m
 	}
@@ -76,15 +93,23 @@ func (m *HaCounter) UpdateLabel(lvs map[string]string) *HaCounter {
 	return m
 }
 
+// Inc increments the counter by 1.
 func (m *HaCounter) Inc() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	defer m.reset()
 
 	if m.Error != nil {
 		return m.Error
 	}
 
+	if m.metric.Collector == nil {
+		return nil
+	}
+
 	if len(m.labelNames) == 0 {
 		m.metric.Collector.(prometheus.Counter).Inc()
+		return m.Error
 	}
 
 	if len(m.labelValues) != len(m.labelNames) {
@@ -96,16 +121,23 @@ func (m *HaCounter) Inc() error {
 	return m.Error
 }
 
+// Add adds the given value to the counter.
 func (m *HaCounter) Add(val float64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	defer m.reset()
 
 	if m.Error != nil {
 		return m.Error
 	}
 
+	if m.metric.Collector == nil {
+		return nil
+	}
+
 	if len(m.labelNames) == 0 {
 		m.metric.Collector.(prometheus.Counter).Add(val)
-		return nil
+		return m.Error
 	}
 
 	if len(m.labelValues) != len(m.labelNames) {
@@ -117,6 +149,68 @@ func (m *HaCounter) Add(val float64) error {
 	return m.Error
 }
 
+// IncWithLabels performs the full label-write + inc + reset atomically
+// under a single lock. This is the goroutine-safe entry point for concurrent code.
+func (m *HaCounter) IncWithLabels(labels map[string]string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	defer m.reset()
+
+	if m.metric.Collector == nil {
+		return nil
+	}
+
+	if len(m.labelNames) == 0 {
+		m.metric.Collector.(prometheus.Counter).Inc()
+		return nil
+	}
+
+	for k, v := range labels {
+		if _, ok := m.labelValues[k]; !ok {
+			return gerrors.Newf(gerrors.InvalidParameter, "label is mismatched: %s", k)
+		}
+		m.labelValues[k] = v
+	}
+
+	if len(m.labelValues) != len(m.labelNames) {
+		return gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+	}
+
+	m.metric.Collector.(*prometheus.CounterVec).With(m.labelValues).Inc()
+	return nil
+}
+
+// AddWithLabels performs the full label-write + add + reset atomically
+// under a single lock. This is the goroutine-safe entry point for concurrent code.
+func (m *HaCounter) AddWithLabels(labels map[string]string, val float64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	defer m.reset()
+
+	if m.metric.Collector == nil {
+		return nil
+	}
+
+	if len(m.labelNames) == 0 {
+		m.metric.Collector.(prometheus.Counter).Add(val)
+		return nil
+	}
+
+	for k, v := range labels {
+		if _, ok := m.labelValues[k]; !ok {
+			return gerrors.Newf(gerrors.InvalidParameter, "label is mismatched: %s", k)
+		}
+		m.labelValues[k] = v
+	}
+
+	if len(m.labelValues) != len(m.labelNames) {
+		return gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+	}
+
+	m.metric.Collector.(*prometheus.CounterVec).With(m.labelValues).Add(val)
+	return nil
+}
+
 func (m *HaCounter) reset() {
 	m.labelValues = map[string]string{}
 	for _, name := range m.labelNames {
@@ -126,10 +220,10 @@ func (m *HaCounter) reset() {
 	m.Error = nil
 }
 
+// NewHaCounter creates a new HaCounter.
 func NewHaCounter(name, help string, labelNames ...string) *HaCounter {
 	counter := &HaCounter{}
-	counter.metric = &metric.Metric{
-		ID:          name,
+	counter.metric = &Metric{
 		Name:        name,
 		Description: help,
 	}

@@ -13,8 +13,10 @@
 
 <template>
   <BkPopover
+    click-content-auto-hide
     placement="bottom"
     theme="light local-switch-menu-theme"
+    trigger="click"
     @after-hidden="isShow = false"
     @after-show="isShow = true">
     <div

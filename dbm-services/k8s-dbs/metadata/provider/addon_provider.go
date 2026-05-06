@@ -24,6 +24,7 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -45,6 +46,22 @@ type K8sCrdStorageAddonProvider interface {
 // K8sCrdStorageAddonProviderImpl K8sCrdStorageAddonProvider 具体实现
 type K8sCrdStorageAddonProviderImpl struct {
 	dbAccess dbaccess.K8sCrdStorageAddonDbAccess
+}
+
+var (
+	k8sCrdStorageAddonInstance K8sCrdStorageAddonProvider
+	k8sCrdStorageAddonOnce     sync.Once
+)
+
+// GetK8sCrdStorageAddonProvider 获取 K8sCrdStorageAddonProvider 单例实例
+func GetK8sCrdStorageAddonProvider(dbAccess dbaccess.K8sCrdStorageAddonDbAccess) K8sCrdStorageAddonProvider {
+	k8sCrdStorageAddonOnce.Do(func() {
+		k8sCrdStorageAddonInstance = &K8sCrdStorageAddonProviderImpl{dbAccess: dbAccess}
+	})
+	if k8sCrdStorageAddonInstance == nil {
+		panic("K8sCrdStorageAddonProvider instance is nil after initialization")
+	}
+	return k8sCrdStorageAddonInstance
 }
 
 // FindVersionsByParams 按照参数查询 addon 版本信息
@@ -155,9 +172,4 @@ func (k *K8sCrdStorageAddonProviderImpl) ListStorageAddons(pagination commentity
 		return nil, errors.Wrapf(err, "failed to copy")
 	}
 	return storageAddons, nil
-}
-
-// NewK8sCrdStorageAddonProvider 创建 K8sCrdStorageAddonDbAccess 接口实现实例
-func NewK8sCrdStorageAddonProvider(dbAccess dbaccess.K8sCrdStorageAddonDbAccess) K8sCrdStorageAddonProvider {
-	return &K8sCrdStorageAddonProviderImpl{dbAccess: dbAccess}
 }

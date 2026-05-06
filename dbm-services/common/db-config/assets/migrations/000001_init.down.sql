@@ -1,1 +1,1 @@
-SET NAMES utf8;
+SET NAMES utf8mb4;

@@ -21,24 +21,38 @@ import (
 const (
 	// AlterTypeAddColumn add_column
 	AlterTypeAddColumn = "add_column"
-
+	// AlterTypeDropColumn drop_column
+	AlterTypeDropColumn = "drop_column"
+	// AlterTypeDropKey drop_key
+	AlterTypeDropKey = "drop_key"
 	// SQLTypeCreateTable is create table sql
 	SQLTypeCreateTable = "create_table"
 	// SQLTypeCreateDb ise create database sql
 	SQLTypeCreateDb = "create_db"
 	// SQLTypeCreateFunction is create function sql
 	SQLTypeCreateFunction = "create_function"
+	// SQLTypeDropFunction is drop function sql
+	SQLTypeDropFunction = "drop_function"
 	// SQLTypeCreateSpFunction is create sp function sql
 	SQLTypeCreateSpFunction = "create_spfunction"
 	// SQLTypeCreateTrigger is create trigger sql
 	SQLTypeCreateTrigger = "create_trigger"
+	// SQLTypeDropTrigger is drop trigger sql
+	SQLTypeDropTrigger = "drop_trigger"
 	// SQLTypeCreateEvent  is create event sql
 	SQLTypeCreateEvent = "create_event"
+	// SQLTypeDropEvent is drop event sql
+	SQLTypeDropEvent = "drop_event"
 	// SQLTypeCreateProcedure is create procedure sql
 	SQLTypeCreateProcedure = "create_procedure"
+	// SQLTypeDropProcedure is drop procedure sql
+	SQLTypeDropProcedure = "drop_procedure"
 	// SQLTypeCreateView is create view sql
 	SQLTypeCreateView = "create_view"
-
+	// SQLTypeDropView is drop view sql
+	SQLTypeDropView = "drop_view"
+	// SQLTypeRenameTable is rename table sql
+	SQLTypeRenameTable = "rename_table"
 	// SQLTypeInsert is insert sql
 	SQLTypeInsert = "insert"
 	// SQLTypeReplace is replace sql
@@ -59,6 +73,14 @@ const (
 	SQLTypeDropTable = "drop_table"
 	// SQLTypeCreateIndex is create table sql
 	SQLTypeCreateIndex = "create_index"
+	// SQLTypeSetOption is set option sql
+	SQLTypeSetOption = "set_option"
+	// SQLTypeDropIndex is drop index sql
+	SQLTypeDropIndex = "drop_index"
+	// SQLTypeAlterDb is alter db sql
+	SQLTypeAlterDb = "alter_db"
+	// SQLTypeFlush is flush sql
+	SQLTypeFlush = "flush"
 )
 
 // NotAllowedDefaultValColMap 不允许默认值的字段
@@ -260,7 +282,8 @@ type ParseLineQueryBase struct {
 
 // IsSysDb sql modify target db is sys db
 func (p ParseLineQueryBase) IsSysDb() bool {
-	return lo.Contains([]string{"mysql", "information_schema", "performance_schema", "sys"}, strings.ToLower(p.DbName))
+	return lo.Contains([]string{"mysql", "db_infobase", "test", "information_schema", "performance_schema", "sys"},
+		strings.ToLower(p.DbName))
 }
 
 // UserHost user host
@@ -349,3 +372,19 @@ type ParseIncludeTableBase struct {
 	DbName    string `json:"db_name"`
 	TableName string `json:"table_name"`
 }
+
+type RenameTableResult struct {
+	ParseBase
+	QueryDigestText  string           `json:"query_digest_text"`
+	QueryDigestMd5   string           `json:"query_digest_md5"`
+	RenameTablePairs RenameTablePairs `json:"rename_table_pairs"`
+}
+
+// RenameTablePair represents a pair of old/new table names for RENAME TABLE
+type RenameTablePair struct {
+	OldName string `json:"old_name"`
+	NewName string `json:"new_name"`
+}
+
+// RenameTablePairs is a slice of RenameTablePair for bulk renames
+type RenameTablePairs []RenameTablePair

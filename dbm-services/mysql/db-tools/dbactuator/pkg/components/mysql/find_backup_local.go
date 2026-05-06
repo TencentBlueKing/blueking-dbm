@@ -181,7 +181,7 @@ func (f *FindLocalBackupParam) Start() error {
 		indexList := cmutil.SplitAnyRune(strings.TrimSpace(out), " \n")
 		for _, info := range indexList {
 			file := dbbackup.BackupIndexFile{}
-			if err := dbbackup.ParseBackupIndexFile(info, &file); err != nil {
+			if err := dbbackup.ParseBackupIndexFile(info, &file, true); err != nil {
 				logger.Warn("file %s parse error: %s", info, err.Error())
 				continue
 			}

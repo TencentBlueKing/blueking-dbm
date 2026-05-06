@@ -1,11 +1,12 @@
 package cmd
 
 import (
+	"os"
+	"time"
+
 	"dbm-services/common/db-mcp-server/internal/config"
 	"dbm-services/common/db-mcp-server/internal/tools"
 	"dbm-services/common/go-pubpkg/logger"
-	"os"
-	"time"
 
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/spf13/cobra"
@@ -17,6 +18,8 @@ var rootCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		config.InitConfig()
 
+		//backend.InitClient()
+
 		s := server.NewMCPServer(
 			"db-mcp-server",
 			"1.0.0",
@@ -25,7 +28,9 @@ var rootCmd = &cobra.Command{
 
 		err := tools.LoadTools(s)
 		if err != nil {
-			return err
+			logger.Error("init load tools failed: %s", err.Error())
+		} else {
+			logger.Info("init load tools success")
 		}
 
 		errCh := make(chan error)
@@ -39,12 +44,11 @@ var rootCmd = &cobra.Command{
 				case <-ticker.C:
 					err := tools.LoadTools(s)
 					if err != nil {
-						logger.Error("update tools failed", err.Error())
-						errCh <- err
-					}
-					//logger.Info("update tools done")
-				default:
-
+						logger.Error("update tools failed: %s", err.Error())
+						//errCh <- nil
+					} /* else {
+						logger.Info("update tools done")
+					}*/
 				}
 			}
 		}()

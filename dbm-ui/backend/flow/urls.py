@@ -75,6 +75,8 @@ from backend.flow.views.kafka_reboot import RebootKafkaSceneApiView
 from backend.flow.views.kafka_replace import ReplaceKafkaSceneApiView
 from backend.flow.views.kafka_scale_up import ScaleUpKafkaSceneApiView
 from backend.flow.views.kafka_shrink import ShrinkKafkaSceneApiView
+from backend.flow.views.machine_idle_check import MachineIdleCheckFlowApiView
+from backend.flow.views.migrate_views.doris_fake_apply import FakeInstallDorisSceneApiView
 from backend.flow.views.migrate_views.es_fake_apply import FakeInstallEsSceneApiView
 from backend.flow.views.migrate_views.hdfs_fake_apply import FakeInstallHdfsSceneApiView
 from backend.flow.views.migrate_views.influxdb_fake_apply import FakeInstallInfluxdbSceneApiView
@@ -108,11 +110,13 @@ from backend.flow.views.mongodb_scene import (
     MongoDBReduceNodeView,
     MongoDBReplaceView,
     MongoDBScaleView,
+    MongoDBStandardizationView,
     MongoFakeInstallApiView,
     MongoInstallDbmonApiView,
     MongoPitrRestoreApiView,
     MongoRemoveNsApiView,
     MongoRestoreApiView,
+    MongoUpgradeVersionApiView,
     MultiReplicasetInstallApiView,
 )
 from backend.flow.views.mysql import MysqlMachineClearApiView
@@ -125,6 +129,7 @@ from backend.flow.views.mysql_clb_operation import (
     MysqlDomainBindClbIpSceneApiView,
     MysqlDomainUnBindClbIpSceneApiView,
 )
+from backend.flow.views.mysql_clone_cluster import MysqlCloneClusterSceneApiView
 from backend.flow.views.mysql_data_migrate import MysqlDataMigrateSceneApiView
 from backend.flow.views.mysql_edit_config import MysqlEditConfigSceneApiView
 from backend.flow.views.mysql_failover_drill import MysqlFailoverDrillSceneApiView
@@ -248,6 +253,8 @@ from backend.flow.views.spider_partition import SpiderPartitionSceneApiView
 from backend.flow.views.spider_partition_cron import SpiderPartitionCronSceneApiView
 from backend.flow.views.spider_reduce_mnt import ReduceSpiderMNTSceneApiView
 from backend.flow.views.spider_reduce_nodes import ReduceSpiderNodesSceneApiView
+from backend.flow.views.spider_schema_check import SpiderSchemaCheckSceneApiView
+from backend.flow.views.spider_schema_repair import SpiderSchemaRepairSceneApiView
 from backend.flow.views.spider_semantic_check import SpiderSemanticCheckSceneApiView
 from backend.flow.views.spider_slave_apply import InstallSpiderSlaveClusterSceneApiView
 from backend.flow.views.spider_slave_destroy import DestroySpiderSlaveClusterSceneApiView
@@ -293,6 +300,7 @@ from backend.flow.views.tendbcluster_upgrade import (
     SpiderKeywordCheckSceneApiView,
     UpgradeTendbClusterRemoteSceneApiView,
     UpgradeTendbClusterSpiderSceneApiView,
+    UpgradeTendbClusterTdbctlSceneApiView,
 )
 from backend.flow.views.vm_apply import InstallVmSceneApiView
 from backend.flow.views.vm_destroy import DestroyVmSceneApiView
@@ -371,6 +379,7 @@ urlpatterns = [
     url(r"^scene/mongo_data_export$", MongoDataExportApiView.as_view()),
     url(r"^scene/mongo_restore$", MongoRestoreApiView.as_view()),
     url(r"^scene/mongo_pitr_restore$", MongoPitrRestoreApiView.as_view()),
+    url(r"^scene/mongo_upgrade_version$", MongoUpgradeVersionApiView.as_view()),
     url(r"^scene/mongo_remove_ns$", MongoRemoveNsApiView.as_view()),
     url(r"^scene/mongo_install_dbmon$", MongoInstallDbmonApiView.as_view()),
     url(r"^scene/install_rs_fake$", MongoFakeInstallApiView.as_view()),
@@ -392,6 +401,7 @@ urlpatterns = [
     url(r"^scene/multi_cluster_add_shard$", MongoDBClusterAddShardView.as_view()),
     url(r"^scene/multi_instance_migrate$", MongoDBInstanceMigrateView.as_view()),
     url(r"^scene/mongo_instance_fix_status$", MongoDBInstanceFixStatusView.as_view()),
+    url(r"^scene/mongo_cluster_standardization$", MongoDBStandardizationView.as_view()),
     # mongodb end
     # oracle start
     url(r"^scene/multi_oracle_execute_script$", MultiOracleExecuteScriptApiView.as_view()),
@@ -405,6 +415,7 @@ urlpatterns = [
     # tendbcluster upgrade
     url(r"^scene/tendbcluster/upgrade_spider$", UpgradeTendbClusterSpiderSceneApiView.as_view()),
     url(r"^scene/tendbcluster/upgrade_remote$", UpgradeTendbClusterRemoteSceneApiView.as_view()),
+    url(r"^scene/tendbcluster/upgrade_tdbctl$", UpgradeTendbClusterTdbctlSceneApiView.as_view()),
     url(r"^scene/tendbcluster/spider_keyword_check$", SpiderKeywordCheckSceneApiView.as_view()),
     # mysql clb operation
     url(r"^scene/mysql/clb_create$", MysqlClbCreateSceneApiView.as_view()),
@@ -474,6 +485,7 @@ urlpatterns = [
     url(r"^scene/add_slave_remote$", AddMysqlSlaveRemoteSceneApiView.as_view()),
     url(r"^scene/restore_local_slave_remote$", RestoreMysqlLocalRemoteSceneApiView.as_view()),
     url(r"^scene/migrate_cluster_remote$", MysqlMigrateRemoteSceneApiView.as_view()),
+    url(r"^scene/mysql/clone_cluster$", MysqlCloneClusterSceneApiView.as_view()),
     url(r"^scene/mysql_rollback_data", MysqlRollbackDataSceneApiView.as_view()),
     url(r"^scene/mysql_rollback_to_cluster", MysqlRollbackToClusterSceneApiView.as_view()),
     url(r"^scene/install_es$", InstallEsSceneApiView.as_view()),
@@ -513,6 +525,7 @@ urlpatterns = [
     url(r"^scene/fake_install_pulsar$", FakeInstallPulsarSceneApiView.as_view()),
     url(r"^scene/pulsar_machine_clear$", PulsarMachineClearApiView.as_view()),
     url(r"^scene/import_resource_init$", ImportResourceInitStepApiView.as_view()),
+    url(r"^scene/machine_idle_check$", MachineIdleCheckFlowApiView.as_view()),
     url("^scene/mysql_data_migrate$", MysqlDataMigrateSceneApiView.as_view()),
     url("^scene/mysql_machine_clear$", MysqlMachineClearApiView.as_view()),
     # spider
@@ -520,6 +533,8 @@ urlpatterns = [
     url(r"^scene/install_tendb_cluster$", InstallSpiderClusterSceneApiView.as_view()),
     url(r"^scene/destroy_tendb_cluster$", DestroySpiderClusterSceneApiView.as_view()),
     url(r"^scene/spider_checksum$", SpiderChecksumSceneApiView.as_view()),
+    url(r"^scene/spider_schema_check$", SpiderSchemaCheckSceneApiView.as_view()),
+    url(r"^scene/spider_schema_repair$", SpiderSchemaRepairSceneApiView.as_view()),
     url(r"^scene/disable_spider_cluster$", DisableSpiderSceneApiView.as_view()),
     url(r"^scene/enable_spider_cluster$", EnableSpiderSceneApiView.as_view()),
     url(r"^scene/install_tendb_slave_cluster$", InstallSpiderSlaveClusterSceneApiView.as_view()),
@@ -602,6 +617,7 @@ urlpatterns = [
     url("^scene/download_dbactor$", DownloadDbactorApiView.as_view()),
     url("^scene/download_file$", DownloadFileApiView.as_view()),
     url("^scene/doris_machine_clear$", DorisMachineClearApiView.as_view()),
+    url(r"^scene/fake_install_doris$", FakeInstallDorisSceneApiView.as_view()),
     # vm
     url(r"^scene/install_vm$", InstallVmSceneApiView.as_view()),
     url(r"^scene/scale_up_vm$", ScaleUpVmSceneApiView.as_view()),

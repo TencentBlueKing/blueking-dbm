@@ -24,6 +24,7 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	metaentity "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -40,6 +41,25 @@ type ClusterOperationProvider interface {
 type ClusterOperationProviderImpl struct {
 	clusterOpDBAccess dbaccess.ClusterOperationDbAccess
 	opDefDBAccess     dbaccess.OperationDefinitionDbAccess
+}
+
+var (
+	clusterOperationInstance ClusterOperationProvider
+	clusterOperationOnce     sync.Once
+)
+
+// GetClusterOperationProvider 获取 ClusterOperationProvider 单例实例
+func GetClusterOperationProvider(
+	clusterOpDBAccess dbaccess.ClusterOperationDbAccess,
+	opDefDBAccess dbaccess.OperationDefinitionDbAccess,
+) ClusterOperationProvider {
+	clusterOperationOnce.Do(func() {
+		clusterOperationInstance = &ClusterOperationProviderImpl{clusterOpDBAccess, opDefDBAccess}
+	})
+	if clusterOperationInstance == nil {
+		panic("ClusterOperationProvider instance is nil after initialization")
+	}
+	return clusterOperationInstance
 }
 
 // CreateClusterOperation 创建 cluster operation
@@ -88,12 +108,4 @@ func (o *ClusterOperationProviderImpl) ListClusterOperations(pagination entity.P
 		clusterOpEntities[i].Operation = opDefEntity
 	}
 	return clusterOpEntities, nil
-}
-
-// NewClusterOperationProvider 创建 ClusterOperationProvider 接口实现实例
-func NewClusterOperationProvider(
-	clusterOpDBAccess dbaccess.ClusterOperationDbAccess,
-	opDefDBAccess dbaccess.OperationDefinitionDbAccess,
-) ClusterOperationProvider {
-	return &ClusterOperationProviderImpl{clusterOpDBAccess, opDefDBAccess}
 }

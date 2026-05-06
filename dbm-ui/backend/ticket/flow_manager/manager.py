@@ -17,7 +17,13 @@ from backend.core import notify
 from backend.iam_app.handlers.drf_perm.ticket import add_ticket_audit_event, audit_ticket_status
 from backend.ticket import constants
 from backend.ticket.builders import BuilderFactory
-from backend.ticket.constants import FLOW_FINISHED_STATUS, FlowType, TicketStatus, TicketType
+from backend.ticket.constants import (
+    CLUSTER_APPLY_TICKET_TO_CLUSTER_TYPE,
+    FLOW_FINISHED_STATUS,
+    FlowType,
+    TicketStatus,
+    TicketType,
+)
 from backend.ticket.flow_manager.delivery import DeliveryFlow, DescribeTaskFlow
 from backend.ticket.flow_manager.inner import (
     HCMReplenishResourceTaskFlow,
@@ -31,7 +37,7 @@ from backend.ticket.flow_manager.pause import PauseFlow
 from backend.ticket.flow_manager.resource import ResourceApplyFlow, ResourceBatchApplyFlow, ResourceDeliveryFlow
 from backend.ticket.flow_manager.timer import TimerFlow
 from backend.ticket.models import Ticket
-from backend.ticket.tasks.ticket_tasks import create_recycle_ticket
+from backend.ticket.tasks.ticket_tasks import create_cluster_todo, create_monitor_grafana, create_recycle_ticket
 
 SUPPORTED_FLOW_MAP = {
     FlowType.BK_ITSM.value: ItsmFlow,
@@ -144,5 +150,28 @@ class TicketFlowManager(object):
         # 如果是待下架单据，正常结束要联动回收主机
         is_recycle = self.ticket.ticket_type in BuilderFactory.recycle_ticket_type
         if target_status == TicketStatus.SUCCEEDED and is_recycle:
-            recycle_old_hosts = self.ticket.details.get("recycle_hosts", [])
-            create_recycle_ticket.apply_async(args=(self.ticket.id, recycle_old_hosts, TicketType.RECYCLE_OLD_HOST))
+            recycle_hosts = self.ticket.details.get("recycle_hosts", [])
+            create_recycle_ticket.apply_async(args=(self.ticket.id, recycle_hosts, TicketType.RECYCLE_OLD_HOST))
+
+        # 如果是部署类单据，异常终止要联动回收主机
+        is_apply = self.ticket.ticket_type in BuilderFactory.apply_ticket_type
+        if target_status == TicketStatus.TERMINATED and is_apply:
+            create_recycle_ticket.apply_async(args=(self.ticket.id, [], TicketType.RECYCLE_APPLY_HOST))
+
+        # 如果是集群的禁用、启动、删除、sqlserver重置则处理相对应代办操作
+        if (
+            self.ticket.ticket_type in BuilderFactory.ticket_type__cluster_phase
+            and target_status == TicketStatus.SUCCEEDED
+        ):
+            create_cluster_todo.apply_async(
+                args=(self.ticket.id, BuilderFactory.ticket_type__cluster_phase[self.ticket.ticket_type])
+            )
+
+        # 如果是部署集群单据，则下发监控大盘
+        if self.ticket.ticket_type in CLUSTER_APPLY_TICKET_TO_CLUSTER_TYPE and target_status == TicketStatus.SUCCEEDED:
+            # redis类型的集群部署的details中有cluster_type字段 其它类型的部署都是一对一的，从map映射中获取
+            cluster_type = self.ticket.details.get("cluster_type") or CLUSTER_APPLY_TICKET_TO_CLUSTER_TYPE.get(
+                self.ticket.ticket_type
+            )
+            bk_biz_id = self.ticket.bk_biz_id
+            create_monitor_grafana.apply_async(args=(bk_biz_id, cluster_type))

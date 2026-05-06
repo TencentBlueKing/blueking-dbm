@@ -32,6 +32,7 @@ class TicketConfig(AppConfig):
     name = "backend.ticket"
 
     def ready(self):
+        # TODO: 优化
         from backend.ticket.builders import register_all_builders
         from backend.ticket.models import Flow
         from backend.ticket.signals import update_ticket_status

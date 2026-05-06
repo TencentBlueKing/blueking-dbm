@@ -117,6 +117,7 @@ func (c *ClusterController) ListCluster(ctx *gin.Context) {
 	clusterEntities, count, err := c.clusterProvider.ListClusters(requestParams, pagination)
 	if err != nil {
 		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
+		return
 	}
 	var data []response.K8sCrdClusterResponse
 	if err = copier.Copy(&data, clusterEntities); err != nil {

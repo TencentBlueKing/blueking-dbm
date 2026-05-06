@@ -26,7 +26,7 @@
 
   import { specCostEstimate } from '@services/source/dbresourceResource';
 
-  import { checkDbConsole } from '@/utils';
+  import { checkDbConsole } from '@utils';
 
   import { Item as InfoItem } from './info-list/Index.vue';
 

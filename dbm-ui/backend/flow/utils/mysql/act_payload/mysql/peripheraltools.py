@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import pathlib
 from typing import List
 
 from backend.db_meta.enums import AccessLayer, MachineType, TenDBClusterSpiderRole
@@ -94,8 +95,10 @@ class PeripheralToolsPayload(PayloadBase, MySQLAccountMixed, ProxyAccountMixed):
                     dbbackup_pkg_type = MysqlVersionToDBBackupForMap[db_version]
 
                 dbbackup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=dbbackup_pkg_type)
+                # path like /mysql/dbbackup/latest/dbbackup-go-universal.tar.gz
+                # path.basename may be different from pkg.name for dbbackup/dbbackup-txsql
                 depart_pkgs[DeployPeripheralToolsDepart.MySQLDBBackup] = {
-                    "pkg": dbbackup_pkg.name,
+                    "pkg": pathlib.Path(dbbackup_pkg.path).name,  # dbbackup_pkg.name,
                     "pkg_md5": dbbackup_pkg.md5,
                 }
 

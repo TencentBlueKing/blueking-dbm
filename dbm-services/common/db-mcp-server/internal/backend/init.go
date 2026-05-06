@@ -21,6 +21,9 @@ func init() {
 				InsecureSkipVerify: true,
 			},
 		},
+		//CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		//	return http.ErrUseLastResponse
+		//},
 	}
-	httpClient = http.DefaultClient
+	//httpClient = http.DefaultClient
 }

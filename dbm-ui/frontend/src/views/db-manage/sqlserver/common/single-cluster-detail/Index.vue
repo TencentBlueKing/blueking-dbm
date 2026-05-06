@@ -48,8 +48,8 @@
             {{ t('重置') }}
           </BkButton>
         </OperationBtnStatusTips>
-        <MoreActionExtend trigger="hover">
-          <template #handler>
+        <MoreActionExtend>
+          <template #trigger>
             <BkButton
               v-bk-tooltips="t('更多操作')"
               class="ml-4"
@@ -58,7 +58,7 @@
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <BkDropdownItem v-db-console="'sqlserver.singleClusterList.disable'">
+          <div v-db-console="'sqlserver.singleClusterList.disable'">
             <OperationBtnStatusTips :data="data">
               <BkButton
                 :disabled="data.isOffline || Boolean(data.operationTicketId)"
@@ -67,8 +67,8 @@
                 {{ t('禁用') }}
               </BkButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem v-db-console="'sqlserver.singleClusterList.delete'">
+          </div>
+          <div v-db-console="'sqlserver.singleClusterList.delete'">
             <OperationBtnStatusTips :data="data">
               <BkButton
                 v-bk-tooltips="{
@@ -81,10 +81,8 @@
                 {{ t('删除') }}
               </BkButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem>
-            <ClusterDomainDnsRelation :data="data" />
-          </BkDropdownItem>
+          </div>
+          <ClusterDomainDnsRelation :data="data" />
         </MoreActionExtend>
       </DisplayBox>
       <ActionPanel

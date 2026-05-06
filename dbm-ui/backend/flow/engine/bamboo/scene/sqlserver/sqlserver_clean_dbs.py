@@ -144,4 +144,6 @@ class SqlserverCleanDBSFlow(BaseFlow):
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("{}集群执行清档".format(cluster.name))))
 
         main_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        main_pipeline.run_pipeline()
+        main_pipeline.run_pipeline_with_sidecar(
+            check_ai_monitor_cluster_list=[info["cluster_id"] for info in self.data["infos"]]
+        )

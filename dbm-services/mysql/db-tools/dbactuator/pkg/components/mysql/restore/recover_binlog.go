@@ -295,7 +295,7 @@ func (r *RecoverBinlog) Init() error {
 	}
 	if r.RecoverOpt.StartTime != "" {
 		if t, err := time.ParseInLocation(time.DateTime, r.RecoverOpt.StartTime, time.Local); err == nil {
-			r.RecoverOpt.StartTime = t.Format(time.RFC3339)
+			r.RecoverOpt.StartTime = t.Local().Format(time.RFC3339)
 		} else if _, err := time.ParseInLocation(time.RFC3339, r.RecoverOpt.StartTime, time.Local); err == nil {
 			// keep
 		} else {
@@ -306,7 +306,7 @@ func (r *RecoverBinlog) Init() error {
 	if r.RecoverOpt.StopTime != "" {
 		var stopTime time.Time
 		if t, err := time.ParseInLocation(time.DateTime, r.RecoverOpt.StopTime, time.Local); err == nil {
-			r.RecoverOpt.StopTime = t.Format(time.RFC3339)
+			r.RecoverOpt.StopTime = t.Local().Format(time.RFC3339)
 		} else if _, err := time.ParseInLocation(time.RFC3339, r.RecoverOpt.StopTime, time.Local); err == nil {
 			// keep
 		} else {
@@ -377,7 +377,20 @@ func (r *RecoverBinlog) buildMysqlOptions() error {
 	if mysqlOpt.MaxAllowedPacket > 0 {
 		r.TgtInstance.Options += fmt.Sprintf(" --max-allowed-packet=%d", mysqlOpt.MaxAllowedPacket)
 	}
-	mysqlClient := r.ToolSet.MustGet(tools.ToolMysqlclient)
+
+	var mysqlClient string
+	if mysqlClient80, err := r.ToolSet.Get(tools.ToolMysqlclient80); err == nil {
+		// 需要确认 dba-toolkit 下的 mysql 8.0 客户端可以用
+		if err = mysqlcomm.MysqlCliHasOption(mysqlClient80, "--help"); err == nil {
+			mysqlClient = mysqlClient80
+		} else {
+			logger.Info("try use mysql client 8.0 got error:", err.Error())
+		}
+	}
+	if mysqlClient == "" {
+		mysqlClient = r.ToolSet.MustGet(tools.ToolMysqlclient)
+		logger.Info("fallback to system mysql client: %s", mysqlClient)
+	}
 	// mysqlOpt.BinaryMode &&
 	if mysqlcomm.MysqlCliHasOption(mysqlClient, "--binary-mode") == nil {
 		r.TgtInstance.Options += " --binary-mode"
@@ -695,7 +708,7 @@ func (r *RecoverBinlog) FilterBinlogFiles() (totalSize int64, err error) {
 		// todo 如果是闪回模式，只从本地binlog获取，也可以读取 file mtime，确保不会出错
 		events, err := bp.GetTimeIgnoreStopErr(fileName, true, true)
 		if err != nil {
-			if strings.Contains(err.Error(), "No such file or directory") {
+			if strings.Contains(strings.ToLower(err.Error()), "no such file or directory") {
 				// 文件可能在处理的时候被删除了，但有可能是正在过滤旧的文件，旧文件被删除无所谓
 				continue
 			} else {

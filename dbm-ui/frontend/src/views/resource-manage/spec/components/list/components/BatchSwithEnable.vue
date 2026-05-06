@@ -1,7 +1,6 @@
 <template>
   <AuthTemplate
     action-id="spec_update"
-    class="mr-8"
     :resource="dbType">
     <DbPopconfirm
       :confirm-handler="() => handleBatchUpdate()"
@@ -11,17 +10,13 @@
           ? t('启用后，所有场景均可使用，如：部署、扩容、迁移规格')
           : t('停用后，存量集群的变更操作不受影响，新增集群不可使用此规格')
       "
-      placement="bottom"
-      :title="enable ? t('批量启用规格') : t('批量停用规格')"
-      :width="430">
+      placement="top"
+      :title="enable ? t('批量启用规格') : t('批量停用规格')">
       <BkButton
-        v-bk-tooltips="{
-          content: t('请选择规格'),
-          disabled: !disabled,
-        }"
-        class="w-88"
-        :disabled="disabled">
-        {{ enable ? t('启用') : t('停用') }}
+        class="opration-button"
+        :disabled="disabled"
+        text>
+        {{ enable ? t('启用规格') : t('停用规格') }}
       </BkButton>
     </DbPopconfirm>
   </AuthTemplate>

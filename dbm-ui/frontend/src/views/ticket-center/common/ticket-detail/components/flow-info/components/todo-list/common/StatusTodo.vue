@@ -38,7 +38,7 @@
     <template v-if="data.operators.includes(username) || ticketData.todo_helpers.includes(username)">
       <ProcessApproveExce :todo-data="data">
         <BkButton
-          class="w-88"
+          class="w-88 mt-12"
           theme="primary">
           {{ t('确认执行') }}
         </BkButton>

@@ -46,6 +46,7 @@
         :label="t('资源标签')"
         property="labels">
         <TagSelector
+          ref="tagSelector"
           v-model="formData.labels"
           :bk-biz-id="formData.for_biz"
           :default-list="currentData" />
@@ -72,6 +73,7 @@
   }
 
   interface Expose {
+    getLabelNames: () => string[];
     getValue: () => Promise<{
       for_biz: number;
       labels: number[];
@@ -83,6 +85,7 @@
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
   const formRef = useTemplateRef('formRef');
+  const tagSelectorRef = useTemplateRef('tagSelector');
 
   const formData = reactive({
     for_biz: 0,
@@ -122,6 +125,9 @@
   );
 
   defineExpose<Expose>({
+    getLabelNames() {
+      return tagSelectorRef.value?.getLabelNames() || [];
+    },
     getValue() {
       return formRef.value!.validate().then(() => ({
         for_biz: Number(formData.for_biz),

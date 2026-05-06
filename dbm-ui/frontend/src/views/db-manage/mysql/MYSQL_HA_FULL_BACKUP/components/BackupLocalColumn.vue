@@ -75,6 +75,11 @@
     },
   ];
 
+  const backupLocalMap = {
+    master: 'master',
+    slave: 'slave',
+  } as Record<string, string>;
+
   const list = computed(() => {
     if (props.cluster.cluster_type === ClusterTypes.TENDBSINGLE) {
       return selectList.slice(0, 1);
@@ -83,10 +88,12 @@
   });
 
   watch(
-    () => props.cluster,
+    () => [props.cluster.id, modelValue.value],
     () => {
-      if (props.cluster.id && !modelValue.value) {
+      if (props.cluster.id && modelValue.value === '') {
         modelValue.value = 'master';
+      } else {
+        modelValue.value = backupLocalMap[modelValue.value];
       }
     },
     {

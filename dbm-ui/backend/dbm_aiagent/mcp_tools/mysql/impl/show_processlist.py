@@ -8,185 +8,354 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from collections import defaultdict
-from typing import Dict, List, Union
-
-from django.db.models import Q
 
 from backend.components import DRSApi
-from backend.db_meta.enums import ClusterType, MachineType, TenDBClusterSpiderRole
-from backend.db_meta.models import Cluster
-from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException, DBMMcpNotSupportClusterTypeException
+from backend.db_meta.models import ProxyInstance
+from backend.db_services.mysql.sqlparse import digest
+from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
+
+# def show_instance_processlist_summary(cluster_obj: Cluster, instance: str, aggregate_type: str):
+#     cluster_type = cluster_obj.cluster_type
+#     bk_cloud_id = cluster_obj.bk_cloud_id
+#     instance_host, instance_port = instance.split(":")
+#
+#     storage_instances = StorageInstance.objects.filter(machine__ip=instance_host, port=instance_port)
+#     proxy_instances = []
+#     if not storage_instances or cluster_type == ClusterType.TenDBHA:
+#         # if instance is not storage, we query from proxy instances
+#         proxy_instances = ProxyInstance.objects.filter(machine__ip=instance_host, port=instance_port)
+#
+#     if cluster_type == ClusterType.TenDBSingle:
+#         proxy_processlist_detail = []
+#         storage_processlist_detail = __show_tendbsingle_processlist(bk_cloud_id, storage_instances)
+#     elif cluster_type == ClusterType.TenDBHA:
+#         proxy_processlist_detail, storage_processlist_detail = __show_tendbha_processlist(
+#             bk_cloud_id, proxy_instances, storage_instances
+#         )
+#         # TODO combine ?
+#     else:
+#         # may be query proxy or storage
+#         proxy_processlist_detail, storage_processlist_detail = __show_tendbcluster_processlist(
+#             bk_cloud_id, proxy_instances, storage_instances
+#         )
+#         for ele in storage_processlist_detail:
+#             if ele["db"]:
+#                 ele["db"] = re.sub(r"_[0-9]+$", "", ele["db"])
+#
+#     res = {}
+#     if proxy_processlist_detail:
+#         res["proxy_processlist_summary"] = __summary_processlist_by_type(proxy_processlist_detail, aggregate_type)
+#     if storage_processlist_detail:
+#         res["storage_processlist_summary"] = __summary_processlist_by_type(storage_processlist_detail, aggregate_type)
+#     return res
 
 
-def show_cluster_processlist(cluster_type: ClusterType, cluster_domain: str, raw_addresses=None) -> Dict:
-    if raw_addresses is None:
-        raw_addresses = []
-    cluster_obj = Cluster.objects.get(cluster_type=cluster_type, immute_domain=cluster_domain)
-
-    addresses = []
-    if raw_addresses:
-        addresses = [{"ip": a.split(":")[0], "port": int(a.split(":")[1])} for a in raw_addresses]
-
-    if cluster_type == ClusterType.TenDBSingle:
-        return __show_tendbsingle_processlist(cluster_obj, addresses)
-    elif cluster_type == ClusterType.TenDBHA:
-        return __show_tendbha_processlist(cluster_obj, addresses)
-    elif cluster_type == ClusterType.TenDBCluster:
-        return __show_tendbcluster_processlist(cluster_obj, addresses)
-    else:
-        raise DBMMcpNotSupportClusterTypeException(cluster_type=cluster_type)
-
-
-def __show_processlist(addresses: List[str], machine_type: MachineType) -> Dict:
-    if not addresses:
-        return {}
-
-    if machine_type == MachineType.PROXY:
-        drs_raw_res = DRSApi.proxyrpc({"addresses": addresses, "cmds": ["show processlist"]})
-    else:
-        drs_raw_res = DRSApi.rpc({"addresses": addresses, "cmds": ["show processlist"]})
-
-    res = defaultdict(list)
-    for proxy_plist_res in drs_raw_res:
-        if proxy_plist_res["error_msg"]:
-            raise DBMMcpBaseException(msg=proxy_plist_res["error_msg"])
-
-        plist_res = proxy_plist_res["cmd_results"][0]
-        if plist_res["error_msg"]:
-            raise DBMMcpBaseException(msg=plist_res["error_msg"])
-
-        res[proxy_plist_res["address"]] = plist_res["table_data"]
-
-    return res
+# def show_cluster_processlist_summary(
+#     cluster_obj: Cluster, instance_group: MySQLProcessListInstanceGroupType
+# ) -> Tuple[Dict, Dict]:
+#     cluster_type = cluster_obj.cluster_type
+#     bk_cloud_id = cluster_obj.bk_cloud_id
+#
+#     proxy_instance_addresses, storage_instance_addresses = __get_instances_address(cluster_obj, instance_group)
+#
+#     if cluster_type == ClusterType.TenDBSingle:
+#         proxy_processlist_detail = []
+#         storage_processlist_detail = __show_tendbsingle_processlist(bk_cloud_id, storage_instance_addresses)
+#
+#     elif cluster_type == ClusterType.TenDBHA:
+#         proxy_processlist_detail, storage_processlist_detail = __show_tendbha_processlist(
+#             bk_cloud_id, proxy_instance_addresses, storage_instance_addresses
+#         )
+#
+#     else:
+#         proxy_processlist_detail, storage_processlist_detail = __show_tendbcluster_processlist(
+#             bk_cloud_id, proxy_instance_addresses, storage_instance_addresses
+#         )
+#         for ele in storage_processlist_detail:
+#             if ele["db"]:
+#                 ele["db"] = re.sub(r"_[0-9]+$", "", ele["db"])
+#
+#     return {
+#         "proxy_processlist_summary": __summary_processlist(proxy_processlist_detail),
+#         "storage_processlist_summary": __summary_processlist(storage_processlist_detail),
+#     }
 
 
-def __show_processlist_on_proxy(addresses: List[str]) -> Dict:
-    """
-    {
-        'Host': '1.1.1.1:27057',
-        'Id': '309244',
-        'Server': '2.2.2.2:20000',
-        'State': 'CON_STATE_READ_QUERY',
-        'Time': '218',
-        'User': 'gcs_admin',
-        'db': None
-    }
-    """
-    plist_res = __show_processlist(addresses, MachineType.PROXY)
-
-    res = defaultdict(list)
-    for address, plist in plist_res.items():
-        for row in plist:
-            res[address].append(
-                {
-                    "Id": row["Id"],
-                    "host": row["Host"],
-                    "command": "",
-                    "user": row["User"],
-                    "db": row["db"],
-                    "time": row["Time"],
-                    "state": row["State"],
-                }
-            )
-
-    return res
-
-
-def __show_processlist_on_mysql(addresses: List[str], machine_type: MachineType) -> Dict:
-    """
-    {
-        'Command': 'Binlog Dump',
-        'Host': '3.3.3.3:55846',
-        'Id': '128245',
-        'Info': None,
-        'Rows_examined': '0',
-        'Rows_sent': '0',
-        'State': 'Master has sent all binlog to '
-                'slave; waiting for binlog to be '
-                'updated',
-        'Time': '348886',
-        'User': 'repl',
-        'db': None
-    }
-    """
-    plist_res = __show_processlist(addresses, machine_type)
-
-    res = defaultdict(list)
-    for address, plist in plist_res.items():
-        for row in plist:
-            res[address].append(
-                {
-                    "id": row["Id"],
-                    "host": row["Host"],
-                    "command": row["Command"],
-                    "user": row["User"],
-                    "db": row["db"],
-                    "time": row["Time"],
-                    "state": row["State"],
-                }
-            )
-
-    return res
+# def __get_instances_address(
+#     cluster_obj: Cluster, instance_group: MySQLProcessListInstanceGroupType
+# ) -> Tuple[List[str], List[str]]:
+#     cluster_type = cluster_obj.cluster_type
+#
+#     if cluster_type == ClusterType.TenDBSingle:
+#         return [], [ele.ip_port for ele in cluster_obj.storageinstance_set.all()]
+#     elif cluster_type == ClusterType.TenDBHA:
+#         if instance_group == MySQLProcessListInstanceGroupType.MasterGroup:
+#             return [ele.ip_port for ele in cluster_obj.proxyinstance_set.all()], [
+#                 ele.ip_port
+#                 for ele in cluster_obj.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER)
+#             ]
+#         else:
+#             return [], [
+#                 ele.ip_port
+#                 for ele in cluster_obj.storageinstance_set.filter(
+#                     instance_inner_role=InstanceInnerRole.SLAVE, is_stand_by=True
+#                 )
+#             ]
+#     else:
+#         if instance_group == MySQLProcessListInstanceGroupType.MasterGroup:
+#             return [
+#                 ele.ip_port
+#                 for ele in cluster_obj.proxyinstance_set.filter(
+#                     tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
+#                 )
+#             ], [
+#                 ele.ip_port
+#                 for ele in cluster_obj.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER)
+#             ]
+#         else:
+#             return [
+#                 ele.ip_port
+#                 for ele in cluster_obj.proxyinstance_set.filter(
+#                     tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE
+#                 )
+#             ], [
+#                 ele.ip_port
+#                 for ele in cluster_obj.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.SLAVE)
+#             ]
 
 
-def __show_tendbsingle_processlist(cluster_obj: Cluster, addresses: List[Dict[str, Union[str, int]]]) -> Dict:
-    q = Q()
-    for address in addresses:
-        q |= Q(**{"machine__ip": address["ip"], "port": address["port"]})
-
-    instances = cluster_obj.storageinstance_set.filter(q)
-    if not instances.exists():
-        raise
-
-    return __show_processlist_on_mysql([ins.ip_port for ins in instances], MachineType.SINGLE)
+# def __show_tendbsingle_processlist(bk_cloud_id: int, instance_addresses: List[str]) -> List:
+#     return __show_processlist(
+#         bk_cloud_id=bk_cloud_id,
+#         addresses=instance_addresses,
+#         machine_type=MachineType.SINGLE,
+#     )
 
 
-def __show_tendbha_processlist(cluster_obj: Cluster, addresses: List[Dict[str, Union[str, int]]]) -> Dict:
-    if not addresses:
-        return __show_processlist_on_proxy(
-            [f"{pi.machine.ip}:{pi.port + 1000}" for pi in cluster_obj.proxyinstance_set.all()]
+# def __show_tendbha_processlist(
+#     bk_cloud_id: int, proxy_instance_addresses: List[str], storage_instance_addresses: List[str]
+# ) -> Tuple[List, List]:
+#     return __show_processlist(
+#         bk_cloud_id=bk_cloud_id,
+#         addresses=proxy_instance_addresses,
+#         machine_type=MachineType.PROXY,
+#     ), __show_processlist(
+#         bk_cloud_id=bk_cloud_id,
+#         addresses=storage_instance_addresses,
+#         machine_type=MachineType.BACKEND,
+#     )
+
+
+# def __show_tendbcluster_processlist(
+#     bk_cloud_id: int, spider_instance_addresses: List[str], storage_instance_addresses: List[str]
+# ) -> Tuple[List, List]:
+#     return __show_processlist(
+#         bk_cloud_id=bk_cloud_id,
+#         addresses=spider_instance_addresses,
+#         machine_type=MachineType.SPIDER,
+#     ), __show_processlist(
+#         bk_cloud_id=bk_cloud_id,
+#         addresses=storage_instance_addresses,
+#         machine_type=MachineType.REMOTE,
+#     )
+
+
+# def __show_processlist(bk_cloud_id: int, addresses: List[str], machine_type: MachineType) -> List:
+#     if not addresses:
+#         return {}
+#
+#     if machine_type == MachineType.PROXY:
+#         admin_addresses = []
+#         for ele in addresses:
+#             ip, port = ele.split(":")
+#             proxy_ins = ProxyInstance.objects.get(machine__bk_cloud_id=bk_cloud_id, machine__ip=ip, port=port)
+#             admin_addr = f"{ip}:{proxy_ins.admin_port}"
+#             admin_addresses.append(admin_addr)
+#
+#         drs_raw_res = DRSApi.proxyrpc(
+#             {"addresses": admin_addresses, "cmds": ["show processlist"], "bk_cloud_id": bk_cloud_id}
+#         )
+#         for sr in drs_raw_res:
+#             admin_addr = sr["address"]
+#             ip, admin_port = admin_addr.split(":")
+#             port = int(admin_port) - 1000
+#             addr = f"{ip}:{port}"
+#             sr["address"] = addr
+#     else:
+#         drs_raw_res = DRSApi.rpc(
+#             {"addresses": addresses, "cmds": ["show full processlist"], "bk_cloud_id": bk_cloud_id}
+#         )
+#
+#     res = []
+#     for raw_plist_res in drs_raw_res:
+#         if raw_plist_res["error_msg"]:
+#             raise DBMMcpBaseException(msg=raw_plist_res["error_msg"])
+#
+#         plist_res = raw_plist_res["cmd_results"][0]
+#         if plist_res["error_msg"]:
+#             raise DBMMcpBaseException(msg=plist_res["error_msg"])
+#
+#         for row in plist_res["table_data"]:
+#             if row["User"] == "system user":
+#                 continue
+#             digest_info = {}
+#             if row["Info"]:
+#                 digest_info = digest.generate_sql_fingerprint(row["Info"], row["db"])
+#             res.append(
+#                 {
+#                     "id": row["Id"],
+#                     "access_source_address": row["Host"].split(":")[0],
+#                     # "proxy_address": "",
+#                     "command": row.get("Command", ""),
+#                     "user": row["User"],
+#                     "db": row["db"],
+#                     "time": int(row["Time"]) if isinstance(row["Time"], str) else 0,
+#                     "state": row["State"],
+#                     "info": row["Info"],  # detail 里面可以包含 sql 详情
+#                     "instance_address": raw_plist_res["address"],
+#                     "tables": digest_info.get("tables", []),
+#                     "fingerprint": digest_info.get("query_digest_text", ""),
+#                     "fingerprint_md5": digest_info.get("query_digest_md5", ""),
+#                     "query_len": digest_info.get("query_len", 0),
+#                 }
+#             )
+#
+#     return res
+
+
+# def __combine_by_id(proxy_list_dict: Dict, storage_list_dict: Dict) -> List:
+#     combine_dict = {}
+#     for k, v in storage_list_dict.items():
+#
+#         proxy_v = proxy_list_dict.get(k, {})
+#         if proxy_v:
+#             v["proxy_address"] = v.pop("access_source_address")
+#             combine_dict[k] = v
+#             combine_dict[k]["access_source_address"] = proxy_v["access_source_address"]
+#         else:
+#             combine_dict[k] = v
+#             combine_dict[k]["proxy_address"] = ""
+#
+#     return list(combine_dict.values())
+
+
+# def apply_filters(row, filters) -> bool:
+#     satisfy = True
+#     for ft in filters:
+#         filter_field = ft["filter_field"]
+#         filter_op = ft["filter_op"]
+#         filter_values = ft["filter_values"]
+#
+#         row_value = row[filter_field]
+#
+#         if filter_field == MySQLProcessListFilterFieldType.State:
+#             evaluator = EvalWithCompoundTypes()
+#             command_value = row["command"]
+#             expr = f"'{row_value}' {filter_op} {filter_values} or '{command_value}' {filter_op} {filter_values}"
+#             yes = evaluator.eval(expr)
+#         elif filter_field == MySQLProcessListFilterFieldType.Time:
+#             yes = simple_eval(f"{row_value} {filter_op} {int(filter_values[0])}")
+#         else:
+#             evaluator = EvalWithCompoundTypes()
+#             yes = evaluator.eval(f"'{row_value}' {filter_op} {filter_values}")
+#
+#         satisfy = satisfy and yes
+#
+#     return satisfy
+
+
+# def __summary_processlist(processlist_detail: List) -> Dict[str, str]:
+#     if not processlist_detail:
+#         return {}
+#
+#     df = pandas.DataFrame(processlist_detail)
+#     hist, bin_edges = numpy.histogram(df["time"], bins=5)
+#     return {
+#         "total_count": len(processlist_detail),
+#         "group_by_access_source_address": df.groupby("access_source_address")
+#         .agg({"access_source_address": ["count"]})
+#         .to_json(),
+#         "group_by_user": df.groupby("user").agg({"user": ["count"]}).to_json(),
+#         "group_by_db": df.groupby("db").agg({"db": ["count"]}).to_json(),
+#         "group_by_command": df.groupby("command").agg({"command": ["count"]}).to_json(),
+#         "group_by_state": df.groupby("state").agg({"state": ["count"]}).to_json(),
+#         "group_by_instance_address": df.groupby("instance_address").agg({"instance_address": ["count"]}).to_json(),
+#         "time_histogram": pandas.cut(df["time"], bins=bin_edges).value_counts().sort_index().to_json(),
+#     }
+
+
+def show_mysql_processlist(bk_cloud_id: int, address: str):
+    drs_raw_res = DRSApi.rpc(
+        {
+            "addresses": [address],
+            "cmds": ["show full processlist"],
+            "bk_cloud_id": bk_cloud_id,
+        }
+    )
+    if drs_raw_res[0]["error_msg"]:
+        raise DBMMcpBaseException(msg=drs_raw_res[0]["error_msg"])
+
+    if drs_raw_res[0]["cmd_results"][0]["error_msg"]:
+        raise DBMMcpBaseException(msg=drs_raw_res[0]["cmd_results"][0]["error_msg"])
+
+    processlist_detail = drs_raw_res[0]["cmd_results"][0]["table_data"]
+    res = []
+    for item in processlist_detail:
+        # 不过滤任何东西
+        digest_info = {}
+        if item["Info"]:
+            digest_info = digest.generate_sql_fingerprint(item["Info"], item["db"])
+        res.append(
+            {
+                "id": item["Id"],
+                # "access_source_address": item["Host"].split(":")[0],
+                "source_host": item["Host"],
+                "command": item.get("Command", ""),
+                "user": item["User"],
+                "db": item["db"],
+                "time": int(item["Time"]) if isinstance(item["Time"], str) else 0,
+                "state": item["State"],
+                "info": item["Info"],
+                # "instance_address": address,
+                "tables": digest_info.get("tables", []),
+                "fingerprint": digest_info.get("query_digest_text", ""),
+                "fingerprint_md5": digest_info.get("query_digest_md5", ""),
+                "query_len": digest_info.get("query_len", 0),
+            }
         )
 
-    q = Q()
-    for address in addresses:
-        q |= Q(**{"machine__ip": address["ip"], "port": address["port"]})
-
-    proxy_instances = cluster_obj.proxyinstance_set.filter(q)
-    storage_instances = cluster_obj.storageinstance_set.filter(q)
-
-    if not proxy_instances.exists() and not storage_instances.exists():
-        raise
-
-    return {
-        **__show_processlist_on_proxy([f"{pi.machine.ip}:{pi.port + 1000}" for pi in proxy_instances]),
-        **__show_processlist_on_mysql([si.ip_port for si in storage_instances], MachineType.BACKEND),
-    }
+    return res
 
 
-def __show_tendbcluster_processlist(cluster_obj: Cluster, addresses: List[Dict[str, Union[str, int]]]) -> Dict:
-    if not addresses:
-        return __show_processlist_on_mysql(
-            [
-                si.ip_port
-                for si in cluster_obj.proxyinstance_set.filter(
-                    tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
-                )
-            ],
-            MachineType.SPIDER,
+def show_proxy_processlist(bk_cloud_id: int, address: str):
+    ip, port = address.split(":")
+    proxy_ins = ProxyInstance.objects.get(machine__ip=ip, port=port, machine__bk_cloud_id=bk_cloud_id)
+    drs_raw_res = DRSApi.proxyrpc(
+        {
+            "addresses": [f"{ip}:{proxy_ins.admin_port}"],
+            "cmds": ["show processlist"],
+            "bk_cloud_id": bk_cloud_id,
+        }
+    )
+    if drs_raw_res[0]["error_msg"]:
+        raise DBMMcpBaseException(msg=drs_raw_res[0]["error_msg"])
+
+    if drs_raw_res[0]["cmd_results"][0]["error_msg"]:
+        raise DBMMcpBaseException(msg=drs_raw_res[0]["cmd_results"][0]["error_msg"])
+
+    processlist_detail = drs_raw_res[0]["cmd_results"][0]["table_data"]
+    res = []
+    for item in processlist_detail:
+        res.append(
+            {
+                "id": item["Id"],
+                "source_host": item["Host"],
+                "user": item["User"],
+                "destination_host": item["Server"],
+                "state": item["State"],
+                "db": item["db"],
+                "time": int(item["Time"]) if isinstance(item["Time"], str) else 0,
+            }
         )
 
-    q = Q()
-    for address in addresses:
-        q |= Q(**{"machine__ip": address["ip"], "port": address["port"]})
-
-    proxy_instances = cluster_obj.proxyinstance_set.filter(q)
-    storage_instances = cluster_obj.storageinstance_set.filter(q)
-
-    if not proxy_instances.exists() and not storage_instances.exists():
-        raise
-
-    return {
-        **__show_processlist_on_mysql([pi.ip_port for pi in proxy_instances], MachineType.SPIDER),
-        **__show_processlist_on_mysql([si.ip_port for si in storage_instances], MachineType.BACKEND),
-    }
+    return res

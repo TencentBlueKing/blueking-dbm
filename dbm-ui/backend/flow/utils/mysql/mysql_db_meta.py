@@ -21,6 +21,8 @@ from backend.db_meta import api
 from backend.db_meta.api.cluster.tendbha.handler import TenDBHAClusterHandler
 from backend.db_meta.api.cluster.tendbsingle.handler import TenDBSingleClusterHandler
 from backend.db_meta.enums import (
+    ClusterEntryRole,
+    ClusterEntryType,
     ClusterPhase,
     ClusterType,
     InstanceInnerRole,
@@ -961,6 +963,19 @@ class MySQLDBMeta(object):
         storage.phase = self.cluster["phase"]
         storage.save()
 
+        # 针对tendbHa主从切换后的is standby slave节点直接原地重建，修复域名的映射关系
+        cluster_id = self.cluster.get("cluster_id", None)
+        if cluster_id is not None:
+            cluster = Cluster.objects.get(id=cluster_id)
+            if cluster.cluster_type == ClusterType.TenDBHA.value and storage.is_stand_by:
+                master_storage = cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+                for be in master_storage.bind_entry.filter(
+                    cluster_entry_type=ClusterEntryType.DNS.value, role=ClusterEntryRole.SLAVE_ENTRY.value
+                ):
+                    be.storageinstance_set.remove(master_storage)
+                    be.storageinstance_set.add(storage)
+                    be.save()
+
     def migrate_cluster_add_instance(self):
         """
         集群成对迁移之一：安装新节点，添加实例元数据，关联到集群，转移机器模块
@@ -1249,3 +1264,29 @@ class MySQLDBMeta(object):
         清理机器信息
         """
         api.machine.clear_info_for_machine(machines=self.ticket_data["clear_hosts"])
+
+    def mysql_single_destroy_for_revoke(self) -> bool:
+        """
+        mysql单节点版集群终止后，删除相关的集群原信息
+        """
+        try:
+            cluster = Cluster.objects.get(immute_domain=self.cluster["domain"], bk_biz_id=self.cluster["bk_biz_id"])
+        except Cluster.DoesNotExist:
+            logger.info(f"the cluster [{self.cluster['domain']}] is not exist")
+            return True
+
+        TenDBSingleClusterHandler(bk_biz_id=self.bk_biz_id, cluster_id=cluster.id).decommission()
+        return True
+
+    def mysql_ha_destroy_for_revoke(self) -> bool:
+        """
+        mysql主从版集群终止后，删除相关的集群原信息
+        """
+        try:
+            cluster = Cluster.objects.get(immute_domain=self.cluster["domain"], bk_biz_id=self.cluster["bk_biz_id"])
+        except Cluster.DoesNotExist:
+            logger.info(f"the cluster [{self.cluster['domain']}] is not exist")
+            return True
+
+        TenDBHAClusterHandler(bk_biz_id=cluster.bk_biz_id, cluster_id=cluster.id).decommission()
+        return True

@@ -2,30 +2,20 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-
 nameOverride: ""
+
 fullnameOverride: ""
-
-
-## @param commonLabels Labels to add to all deployed objects
-##
-commonLabels: {}
 
 ## @param application images
 ##
 image:
-  registry: mirror.ccs.tencentyun.com
+  registry: docker.io
   repository: qdrant/qdrant
   pullPolicy: IfNotPresent
-  tag: "v1.8.4"
+  tag: "v1.16.3"
   tools:
     repository: apecloud/curl-jq
     tag: 0.1.0
 
-## @param debugEnabled enables containers' debug logging
-##
-debugEnabled: true
-
+## @param data volume mount path
 dataMountPath: /qdrant/storage
-
-clusterDomain: ".cluster.local"

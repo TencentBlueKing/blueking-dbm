@@ -13,9 +13,11 @@ import hashlib
 import json
 import logging
 import os
+import shutil
 import subprocess
 import zipfile
 from datetime import datetime
+from pathlib import Path
 
 import yaml
 from bkstorages.backends.bkrepo import TIMEOUT_THRESHOLD, BKGenericRepoClient, BKRepoStorage, urljoin
@@ -258,13 +260,10 @@ class MediumHandler:
                     # 如果介质和安装模式不匹配，忽略
                     if medium_info.get("installation", False) != installation:
                         continue
-                    # 将编译好的介质复制到指定目录
-                    target_medium_path = f"{bkrepo_tmp_dir}/{db_type}/{medium_type}/{medium_info['version']}"
-                    result = subprocess.run(
-                        [f"mkdir -p {target_medium_path} && cp {medium_info['buildPath']} {target_medium_path}"],
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE,
-                        shell=True,
-                    )
-                    if result.returncode:
-                        print("Error: move medium fail! message: %s", result.stderr)
+                    # 将编译好的介质复制到指定目录（使用 pathlib+shutil 替代 shell 命令，避免命令注入风险）
+                    target_path = Path(bkrepo_tmp_dir) / db_type / medium_type / medium_info["version"]
+                    target_path.mkdir(parents=True, exist_ok=True)
+                    try:
+                        shutil.copy2(medium_info["buildPath"], target_path)
+                    except OSError as e:
+                        print("Error: move medium fail! message: %s", str(e))

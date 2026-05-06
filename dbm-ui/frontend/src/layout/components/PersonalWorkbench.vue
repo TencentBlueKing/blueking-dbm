@@ -16,7 +16,7 @@
         <span>
           {{ t('单据待办') }}
         </span>
-        <span class="ticket-count">{{ todoCount }}</span>
+        <span class="ticket-count">{{ ticketTodoCount }}</span>
       </BkMenuItem>
       <BkMenuItem
         v-if="userProfileStore.isDba"
@@ -32,7 +32,7 @@
       </BkMenuItem>
       <BkMenuItem
         v-if="userProfileStore.isDba"
-        key="InspectionTodos"
+        key="inspectionTodosGlobal"
         v-db-console="'personalWorkbench.InspectionTodos'">
         <template #icon>
           <DbIcon type="cluster-standardize" />
@@ -40,7 +40,30 @@
         <span>
           {{ t('巡检待办') }}
         </span>
-        <span class="ticket-count">{{ manageCount }}</span>
+        <span class="ticket-count">{{ reportManageCount }}</span>
+      </BkMenuItem>
+      <BkMenuItem
+        v-if="userProfileStore.isDba"
+        key="resourceManageHostTodo"
+        v-db-console="'personalWorkbench.hostTodo'">
+        <template #icon>
+          <DbIcon type="host" />
+        </template>
+        <span>
+          {{ t('主机处理待办') }}
+        </span>
+        <span class="ticket-count">{{ hostTodoCount }}</span>
+      </BkMenuItem>
+      <BkMenuItem
+        key="ClusterDisableTodo"
+        v-db-console="'personalWorkbench.clusterDisableTodo'">
+        <template #icon>
+          <DbIcon type="todos" />
+        </template>
+        <span>
+          {{ t('集群下架待办') }}
+        </span>
+        <span class="ticket-count">{{ clusterDisableTodoCount + clusterDisableToAssistCount }}</span>
       </BkMenuItem>
       <BkMenuItem
         v-if="userProfileStore.isDba"
@@ -121,7 +144,14 @@
   import { Menu } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import { useAlarmEventsCount, useReportCount, useRiskMemoCount, useTicketCount } from '@hooks';
+  import {
+    useAlarmEventsCount,
+    useClusterDisableCount,
+    useHostTodoCount,
+    useReportCount,
+    useRiskMemoCount,
+    useTicketCount,
+  } from '@hooks';
 
   import { useUserProfile } from '@stores';
 
@@ -137,13 +167,15 @@
     routeLocation: handleMenuChange,
   } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'MyTodos');
 
+  const userProfileStore = useUserProfile();
   const { data: ticketCount } = useTicketCount();
-  const { manageCount } = useReportCount();
+  const { toAssistCount: clusterDisableToAssistCount, todoCount: clusterDisableTodoCount } = useClusterDisableCount();
+  const { totalCount: hostTodoCount } = useHostTodoCount();
   const { todoCount: alarmEventsTodoCount } = useAlarmEventsCount();
   const { todoCount: riskMemoTodoCount } = useRiskMemoCount();
-  const userProfileStore = useUserProfile();
+  const { manageCount: reportManageCount } = useReportCount(userProfileStore.isDba);
 
-  const todoCount = computed(() => {
+  const ticketTodoCount = computed(() => {
     if (!ticketCount.value) {
       return 0;
     }

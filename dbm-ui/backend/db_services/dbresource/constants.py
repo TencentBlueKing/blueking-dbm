@@ -40,6 +40,17 @@ SPEC_FILTER_FACTORY = {
     SpecClusterType.MongoDB: {SpecMachineType.MONGODB: MongoDBShardSpecFilter},
 }
 
+RESOURCE_UPDATE_REMARK = {
+    "for_biz": _("所属业务"),
+    "resource_type": _("所属DB"),
+    "labels": _("资源标签"),
+    "city": _("地域 "),
+    "sub_zone": _("园区"),
+    "rack_id": _("机架"),
+    "device_class": _("机型"),
+    "storage_device": _("数据盘"),
+}
+
 
 class ResourceOperation(StrStructuredEnum):
     import_hosts = EnumField("imported", _("导入主机"))

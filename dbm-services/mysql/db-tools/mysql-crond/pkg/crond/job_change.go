@@ -23,6 +23,9 @@ import (
 // ScheduleChange 修改 job 的 schedule 时间
 // return new entry id
 func ScheduleChange(j *config.ExternalJob, permanent bool) (int, error) {
+	crondMu.Lock()
+	defer crondMu.Unlock()
+
 	existEntry := findEntry(j.Name)
 	if existEntry == nil {
 		err := errors.WithMessagef(api.NotFoundError, "change [%s] schedule time", j.Name)

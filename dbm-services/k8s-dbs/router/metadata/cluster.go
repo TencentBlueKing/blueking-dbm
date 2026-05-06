@@ -30,14 +30,20 @@ import (
 // BuildClusterMetaRouter clusterMeta 管理路由构建
 func BuildClusterMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	metaRouter := baseRouter.Group(BasePath)
+	clusterMetaController := buildClusterController(db)
 	clusterMetaGroup := metaRouter.Group("/cluster")
-	clusterMetaProvider := routerutil.BuildClusterMetaProvider(db)
-	clusterMetaController := metacontroller.NewClusterController(clusterMetaProvider)
 	{
 		clusterMetaGroup.GET("/:id", clusterMetaController.GetClusterInfo)
 		clusterMetaGroup.GET("/topology/:id", clusterMetaController.GetClusterTopology)
 		clusterMetaGroup.GET("/search", clusterMetaController.ListCluster)
 	}
+}
+
+// buildClusterController 构建 Cluster Controller
+func buildClusterController(db *gorm.DB) *metacontroller.ClusterController {
+	clusterMetaProvider := routerutil.BuildClusterMetaProvider(db)
+	clusterMetaController := metacontroller.NewClusterController(clusterMetaProvider)
+	return clusterMetaController
 }
 
 func init() {

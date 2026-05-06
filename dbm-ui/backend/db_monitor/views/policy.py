@@ -22,11 +22,13 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from backend import env
+from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import AuditedModelViewSet
+from backend.components import BKMonitorV3Api
 from backend.configuration.constants import PLAT_BIZ_ID
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster, DBModule, ProxyInstance, StorageInstance
+from backend.db_meta.models import AppCache, Cluster, DBModule, ProxyInstance, StorageInstance, TenDBClusterSpiderExt
 from backend.db_monitor import constants, serializers
 from backend.db_monitor.models import MonitorPolicy
 from backend.iam_app.dataclass import ResourceEnum
@@ -43,18 +45,20 @@ from backend.ticket.models import Ticket
 
 
 class MonitorPolicyListFilter(filters.FilterSet):
+    id = filters.NumberFilter(field_name="id", label=_("ID"))
     name = filters.CharFilter(field_name="name", lookup_expr="icontains", label=_("策略名"))
     updater = filters.CharFilter(lookup_expr="exact", label=_("更新人"))
     creator = filters.CharFilter(lookup_expr="creator", label=_("创建人"))
     db_type = filters.CharFilter(lookup_expr="exact", label=_("db类型"))
     target_keyword = filters.CharFilter(lookup_expr="icontains", label=_("目标关键字检索"))
+    target_level = filters.CharFilter(method="filter_target_level", label=_("策略来源"))
     is_enabled = filters.BooleanFilter(label=_("是否启用"))
     monitor_policy_ids = filters.CharFilter(method="filter_monitor_policy_id", label=_("监控策略ID列表"))
     bk_biz_id = filters.NumberFilter(method="filter_bk_biz_id", label=_("业务ID"))
 
     # 如果只需要开区间，可以简化配置，这里的注释留作学习示例
     # (create_at_after, create_at_before): create_at_after=2023-09-05 14:29:00&create_at_before=2023-09-05 14:30:05
-    # create_at = filters.DateTimeFromToRangeFilter("create_at")
+    create_at = filters.DateTimeFromToRangeFilter("create_at")
     # 拆分rangeFilter，支持两端闭区间
     create_at_before = filters.DateTimeFilter(field_name="create_at", lookup_expr="lte")
     create_at_after = filters.DateTimeFilter(field_name="create_at", lookup_expr="gte")
@@ -79,9 +83,14 @@ class MonitorPolicyListFilter(filters.FilterSet):
         """默认包含平台告警策略"""
         return queryset.filter(bk_biz_id__in=[PLAT_BIZ_ID, value])
 
+    def filter_target_level(self, queryset, name, value):
+        """策略来源"""
+        return queryset.filter(target_level__in=value.split(","))
+
     class Meta:
         model = MonitorPolicy
         fields = [
+            "id",
             "bk_biz_id",
             "name",
             "db_type",
@@ -92,6 +101,7 @@ class MonitorPolicyListFilter(filters.FilterSet):
             "is_enabled",
             "target_keyword",
             "notify_groups",
+            "target_level",
         ]
 
 
@@ -126,6 +136,7 @@ class MonitorPolicyListFilter(filters.FilterSet):
 class MonitorPolicyViewSet(AuditedModelViewSet):
     """监控策略管理"""
 
+    pagination_class = AuditedLimitOffsetPagination
     queryset = MonitorPolicy.objects.order_by("-create_at")
 
     http_method_names = ["get", "post", "delete"]
@@ -236,22 +247,59 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
     @action(methods=["POST"], detail=False, serializer_class=serializers.BatchUpdateMonitorPolicyNotifySerializer)
     def batch_update_notify_group(self, request, *args, **kwargs):
         notify_groups = self.validated_data["notify_groups"]
+        bk_biz_id = self.validated_data["bk_biz_id"]
+        app_cache = AppCache.objects.filter(bk_biz_id=bk_biz_id).first()
         # 更新较慢考虑采用多线程方案
         policy_map = MonitorPolicy.objects.in_bulk(id_list=[info["policy_id"] for info in notify_groups])
         for info in notify_groups:
             policy = policy_map[info["policy_id"]]
-            params = {"notify_groups": info["groups"]}
-            policy.update(params, username=request.user.username)
+            # 批量替换等于平台策略的时候要走克隆
+            if policy.target_level == "platform":
+                app_tag = app_cache.db_app_abbr or str(app_cache.bk_biz_id)
+                params = {
+                    "agg_info": policy.agg_info,
+                    "bk_biz_id": bk_biz_id,
+                    "custom_conditions": policy.custom_conditions,
+                    "detects_config": policy.detects_config,
+                    "is_enabled": policy.is_enabled,
+                    "name": f"DBM#{app_tag} {policy.name}",
+                    "no_data_config": policy.no_data_config,
+                    "notify_config": policy.notify_config,
+                    "notify_rules": policy.notify_rules,
+                    "parent_id": policy.id,
+                    "policy_tag": "inner",
+                    "targets": [
+                        {
+                            "level": "appid",
+                            "rule": {
+                                "key": "appid",
+                                "method": policy.targets[0]["rule"]["method"],
+                                "value": [str(bk_biz_id)],
+                            },
+                        }
+                    ],
+                    "test_rules": policy.test_rules,
+                    "notify_groups": info["groups"],
+                }
+                policy.clone(params, username=request.user.username)
+            else:
+                params = {"notify_groups": info["groups"]}
+                policy.update(params, username=request.user.username)
         return Response()
 
-    # @common_swagger_auto_schema(
-    #     operation_summary=_("恢复默认策略"),
-    #     tags=[constants.SWAGGER_TAG],
-    #     request_body=serializers.MonitorPolicyEmptySerializer()
-    # )
-    # @action(methods=["POST"], detail=True)
-    # def reset(self, request, *args, **kwargs):
-    #     return Response(self.get_object().reset())
+    @common_swagger_auto_schema(
+        operation_summary=_("全局策略恢复初始值"),
+        tags=[constants.SWAGGER_TAG],
+        request_body=serializers.MonitorPolicyResetSerializer(),
+    )
+    @action(methods=["POST"], detail=False, serializer_class=serializers.MonitorPolicyResetSerializer)
+    def reset(self, request, *args, **kwargs):
+        policy_id = self.validated_data["policy_id"]
+        policy = MonitorPolicy.objects.filter(id=policy_id).first()
+        db_type = policy.db_type
+        name = policy.name
+        MonitorPolicy.sync_plat_monitor_policy(db_type=db_type, specified_name=name, force=True)
+        return Response()
 
     @common_swagger_auto_schema(
         operation_summary=_("根据db类型查询集群列表"),
@@ -352,7 +400,11 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         bk_biz_id = self.validated_data["bk_biz_id"]
         storage_roles = StorageInstance.objects.filter(bk_biz_id=bk_biz_id).values_list("instance_role", flat=True)
         proxy_roles = ProxyInstance.objects.filter(bk_biz_id=bk_biz_id).values_list("access_layer", flat=True)
-        return Response(list(set(list(storage_roles) + list(proxy_roles))))
+        # 添加spider 相关角色
+        spider_roles = TenDBClusterSpiderExt.objects.filter(instance__bk_biz_id=bk_biz_id).values_list(
+            "spider_role", flat=True
+        )
+        return Response(list(set(list(storage_roles) + list(proxy_roles) + list(spider_roles))))
 
     @common_swagger_auto_schema(
         operation_summary=_("根据db类型查询模块列表"),
@@ -397,3 +449,72 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         if token != env.BKMONITOR_BEARER_TOKEN:
             raise PermissionError("Bearer token is not valid")
         return Response(Ticket.create_ticket_from_bk_monitor(self.validated_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询监控的策略信息"),
+        tags=[constants.SWAGGER_TAG],
+        query_serializer=serializers.AlarmStrategySerializer,
+    )
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=serializers.AlarmStrategySerializer,
+        pagination_class=None,
+        filter_class=None,
+    )
+    def search_alarm_strategy(self, request, *args, **kwargs):
+        bk_biz_id = self.validated_data["bk_biz_id"]
+        monitor_policy_id = self.validated_data["monitor_policy_id"]
+
+        data = {}
+
+        res = BKMonitorV3Api.search_alarm_strategy(
+            {
+                "conditions": [{"key": "strategy_id", "value": [monitor_policy_id]}],
+                "bk_biz_id": bk_biz_id,
+            },
+            use_admin=True,
+        )
+
+        if res:
+            metric_ids = []
+            agg_dimension = []
+            data["data_source_list"] = []
+            strategy_config_list = res.get("strategy_config_list", [])
+            for config in strategy_config_list:
+                for item in config["items"]:
+                    for query_config in item["query_configs"]:
+                        data["data_source_list"].append(
+                            {
+                                "data_source_label": query_config["data_source_label"],
+                                "data_type_label": query_config["data_type_label"],
+                            }
+                        )
+                        agg_dimension.extend(query_config.get("agg_dimension", []))
+                        metric_ids.append(query_config["metric_id"])
+
+            data["agg_dimension"] = list(set(agg_dimension))
+            if metric_ids:
+                metric_info = BKMonitorV3Api.metric_list(
+                    params={"bk_biz_id": bk_biz_id, "conditions": [{"key": "metric_id", "value": metric_ids}]},
+                    use_admin=True,
+                )
+                data["metric_list"] = metric_info.get("metric_list", [])
+
+        return Response(data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("批量恢复默认"),
+        tags=[constants.SWAGGER_TAG],
+        request_body=serializers.PatchDestroySerializer,
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=serializers.PatchDestroySerializer,
+    )
+    def patch_destroy(self, request, *args, **kwargs):
+        policy_ids = self.validated_data["ids"]
+        for policy in MonitorPolicy.objects.filter(id__in=policy_ids, target_level=constants.TargetLevel.APP):
+            policy.delete()
+        return Response()

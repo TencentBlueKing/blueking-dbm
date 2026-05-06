@@ -15,6 +15,7 @@ import (
 	"net/http"
 
 	"dbm-services/common/db-resource/internal/controller"
+	"dbm-services/common/db-resource/internal/controller/analyze"
 	"dbm-services/common/db-resource/internal/controller/apply"
 	"dbm-services/common/db-resource/internal/controller/manage"
 	"dbm-services/common/db-resource/internal/controller/statistic"
@@ -27,8 +28,11 @@ func RegisterRoutes(engine *gin.Engine) {
 	apply := apply.ApplyHandler{}
 	apply.RegisterRouter(engine)
 	// machine resource management
-	manage := manage.MachineResourceHandler{}
-	manage.RegisterRouter(engine)
+	manageHandler := manage.MachineResourceHandler{}
+	manageHandler.RegisterRouter(engine)
+	// machine resource parameter query
+	resourceParamHandler := manage.MachineResourceParamHandler{}
+	resourceParamHandler.RegisterRouter(engine)
 	// background router
 	background := controller.BackStageHandler{}
 	background.RegisterRouter(engine)
@@ -38,6 +42,12 @@ func RegisterRoutes(engine *gin.Engine) {
 	// water level router
 	waterLevel := statistic.WaterLevelHandler{}
 	waterLevel.RegisterRouter(engine)
+	waterLevelOptimized := statistic.WaterLevelHandlerOptimized{}
+	waterLevelOptimized.RegisterRouter(engine)
+
+	// analyze router (LLM 智能分析)
+	analyzeHandler := analyze.AnalyzeHandler{}
+	analyzeHandler.RegisterRouter(engine)
 	engine.Handle("GET", "/ping", func(context *gin.Context) {
 		context.String(http.StatusOK, "pong")
 	})

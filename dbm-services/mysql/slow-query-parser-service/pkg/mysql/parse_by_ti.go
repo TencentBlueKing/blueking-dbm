@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"regexp"
+	"strconv"
 	"strings"
 
 	pq "github.com/percona/go-mysql/query"
@@ -13,9 +14,30 @@ import (
 )
 
 // replace Multi Values to ?+
-// values(?,?,?),(?,?,?) to (?+)
-// in (?,?,?,?) to (?+)
-var replaceMultiValues = regexp.MustCompile(`\(\?(,\?|\),\(\?)+\)`) // .ReplaceAllString("", "(?+")
+// values(?,?,?),(?,?,?) to (?+/*omitted N items ...*/)
+// in (?,?,?,?) to (?+/*omitted N items ...*/)
+var replaceMultiValues = regexp.MustCompile(`\(\?(,\?|\),\(\?)+\)`)
+
+// replaceMultiValuesWithCount 替换多值占位符，并添加数量注释
+// 例如: (?,?,?) -> (?+/*omitted 3 items ...*/), 但返回两个版本
+// 注意：ReplaceAllStringFunc 会对每个匹配项分别调用回调函数，
+// 所以对于 "col1 IN (?,?,?) AND col2 IN (?,?)" 这样的 SQL，
+// 会分别匹配两次，第一次 match="(?,?,?)" count=3，第二次 match="(?,?)" count=2
+func replaceMultiValuesWithCount(fingerprint string) (withComment, forHash string) {
+	// 用于计算哈希的版本，不包含注释
+	forHash = replaceMultiValues.ReplaceAllString(fingerprint, "(?+)")
+	if strings.Count(fingerprint, "?") < 100 {
+		return forHash, forHash
+	}
+	// 当检测到 ? 的数量大于 100 时，显示/*omitted N items ...*/
+	withComment = replaceMultiValues.ReplaceAllStringFunc(fingerprint, func(match string) string {
+		// 计算当前匹配项中的问号数量（不是整个 SQL 的问号总数）
+		count := strings.Count(match, "?")
+		return "(?+/*omitted " + strconv.Itoa(count) + " items ...*/)"
+	})
+
+	return withComment, forHash
+}
 
 // AnalyzeSql 解析sql
 // 计算指纹
@@ -33,8 +55,21 @@ func AnalyzeSql(db, oneSql string) (*Response, error) {
 
 	tableNames := &tiparser.TableNameExtractor{TableNames: make(map[string]*ast.TableName)}
 	sqlCommands := &tiparser.SqlCommandVisitor{}
-	stmts[0].Accept(&tiparser.FingerprintVisitor{})
+	fpVisitor := &tiparser.FingerprintVisitor{}
+
+	// 先提取原始表名（在 fpVisitor 修改 AST 之前），因为 fpVisitor 会将分表后缀 _数字 替换为 _?
 	stmts[0].Accept(tableNames)
+	// 保存原始表名信息，避免后续 fpVisitor 修改指针指向的 Name.O
+	type tableRef struct {
+		schema string
+		name   string
+	}
+	originalTableRefs := make([]tableRef, 0, len(tableNames.TableNames))
+	for _, tn := range tableNames.TableNames {
+		originalTableRefs = append(originalTableRefs, tableRef{schema: tn.Schema.O, name: tn.Name.O})
+	}
+
+	stmts[0].Accept(fpVisitor)
 	stmts[0].Accept(sqlCommands)
 	fingerprint, err := tiparser.RestoreToSqlWithFlag(format.RestoreKeyWordUppercase|format.RestoreNameBackQuotes,
 		stmts[0])
@@ -42,20 +77,27 @@ func AnalyzeSql(db, oneSql string) (*Response, error) {
 		return nil, err
 	}
 
-	fingerprint = replaceMultiValues.ReplaceAllString(fingerprint, "(?+)")
+	// 大 offset 查询追加 hint
+	if fpVisitor.HasLargeOffset {
+		fingerprint += " /* large offset */"
+	}
+
+	// 生成两个版本：一个带注释（用于显示），一个不带注释（用于计算MD5）
+	fingerprintWithComment, fingerprintForHash := replaceMultiValuesWithCount(fingerprint)
+
 	resp := &Response{
 		QueryString: oneSql, // do not return original sql
 		// remove # Time:
 		QueryLength:     len(oneSql),
-		QueryDigestText: fingerprint,
-		QueryDigestMd5:  strings.ToLower(pq.Id(fingerprint)),
+		QueryDigestText: fingerprintWithComment,                     // 使用带注释的版本
+		QueryDigestMd5:  strings.ToLower(pq.Id(fingerprintForHash)), // 使用不带注释的版本计算MD5
 	}
-	for _, tableName := range tableNames.TableNames {
-		tableRef := &TableRef{tableName.Schema.O, tableName.Name.O}
-		if tableRef.DbName == "" {
-			tableRef.DbName = db
+	for _, tr := range originalTableRefs {
+		ref := &TableRef{tr.schema, tr.name}
+		if ref.DbName == "" {
+			ref.DbName = db
 		}
-		resp.TableReferences = append(resp.TableReferences, tableRef)
+		resp.TableReferences = append(resp.TableReferences, ref)
 	}
 	resp.Command = strings.Join(sqlCommands.CommandName, ",")
 	// fmt.Println("xxxx", resp.Command, resp.TableReferences)

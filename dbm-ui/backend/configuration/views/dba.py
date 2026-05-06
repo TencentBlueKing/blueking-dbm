@@ -16,7 +16,7 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.handlers.dba import DBAdministratorHandler
 from backend.configuration.models.dba import DBAdministrator
-from backend.configuration.serializers import ListDBAdminSerializer, UpsertDBAdminSerializer
+from backend.configuration.serializers import DBAComponentSerializer, ListDBAdminSerializer, UpsertDBAdminSerializer
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.dba import BizDBAPermission, GlobalDBAPermission
 
@@ -25,7 +25,7 @@ SWAGGER_TAG = _("DBA人员")
 
 class DBAdminViewSet(viewsets.SystemViewSet):
     def _get_custom_permissions(self):
-        if self.action == "list_admins":
+        if self.action in ["list_admins", "get_dba_component"]:
             return []
         if not int(self.request.data.get("bk_biz_id", 0)):
             return [GlobalDBAPermission([ActionEnum.GLOBAL_DBA_ADMINISTRATOR_EDIT])]
@@ -48,3 +48,11 @@ class DBAdminViewSet(viewsets.SystemViewSet):
         bk_biz_id = validated_data["bk_biz_id"]
         db_admins = validated_data["db_admins"]
         return Response(DBAdministratorHandler.upsert_biz_admins(bk_biz_id, db_admins))
+
+    @common_swagger_auto_schema(operation_summary=_("获取DBA人员组件信息"), tags=[SWAGGER_TAG])
+    @action(methods=["POST"], detail=False, serializer_class=DBAComponentSerializer)
+    def get_dba_component(self, request, *args, **kwargs):
+        username = request.user.username
+        validated_data = self.params_validate(self.get_serializer_class())
+        bk_biz_id, db_type = validated_data.get("bk_biz_id"), validated_data.get("db_type")
+        return Response(DBAdministratorHandler.get_dba_component_info(username, bk_biz_id, db_type))

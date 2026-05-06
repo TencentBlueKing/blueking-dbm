@@ -144,7 +144,7 @@
 
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
 
-  import { messageError } from '@/utils';
+  import { messageError } from '@utils';
 
   import ModuleParameterTable from './components/ModuleParameterTable.vue';
 
@@ -405,14 +405,6 @@
         color: @primary-color;
         background: white;
         border: 1px solid @border-primary;
-      }
-    }
-
-    &__footer {
-      margin-left: 192px;
-
-      .bk-button {
-        width: 88px;
       }
     }
   }

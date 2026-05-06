@@ -14,12 +14,14 @@ import (
 
 // BackupInfo backup file info
 type BackupInfo struct {
-	// WorkDir /data/dbbak/5ff3fc36e75f11/20000
-	WorkDir string `json:"work_dir" validate:"required" example:"/data1/dbbak"` // 备份恢复目录，工作目录
 	// BackupDir 备份文件所在本地目录，理论上doDr不会对该目录写入，而是写入 targetDir
 	BackupDir string `json:"backup_dir"  validate:"required" example:"/data/dbbak"`
 	// 备份文件名列表，key 是 info|full|priv|index, value 是是相对于 backup_dir 的文件名列表
 	BackupFiles map[string][]string `json:"backup_files" validate:"required"`
+	// WorkDir /data/dbbak/5ff3fc36e75f11/20000
+	// WorkDir 与 BackupDir 的区别：WorkDir 是备份恢复目录，BackupDir 是备份文件所在本地目录
+	//   当前上层传递下来这两个目录都是 /data/dbbak/xxx/port，相当于是复用同一个目录
+	WorkDir string `json:"work_dir" validate:"required" example:"/data1/dbbak"` // 备份恢复目录，工作目录
 
 	backupType string
 	backupHost string
@@ -54,7 +56,7 @@ func (b *BackupInfo) CheckIntegrity() error {
 
 // GetBackupMetaFile godoc
 // 获取 .info / .index 文件名，解析文件内容
-func (b *BackupInfo) GetBackupMetaFile(fileType string) error {
+func (b *BackupInfo) GetBackupMetaFile(fileType string, doValidate bool) error {
 	fileList, ok := b.BackupFiles[fileType]
 	if !ok {
 		return errors.Errorf("backup_files has no file_type: %s", fileType)
@@ -72,7 +74,7 @@ func (b *BackupInfo) GetBackupMetaFile(fileType string) error {
 		b.indexFilePath = metaFilePath
 		//b.backupBaseName = strings.TrimSuffix(metaFilename, ".index")
 		var indexObj = &dbbackup.BackupIndexFile{}
-		if err := dbbackup.ParseBackupIndexFile(b.indexFilePath, indexObj); err != nil {
+		if err := dbbackup.ParseBackupIndexFile(b.indexFilePath, indexObj, doValidate); err != nil {
 			return err
 		} else {
 			b.indexObj = indexObj

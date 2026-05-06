@@ -26,10 +26,12 @@ package harvester
 
 import (
 	"dbm-services/common/dbha-v2/internal/probe/harvester/mysql"
+	"dbm-services/common/dbha-v2/internal/probe/harvester/redis"
 )
 
 var (
 	// NewPluginMySql To avoid potential ambiguity caused by directly using 'mysql',
 	// the method for creating the mysql plugin has been renamed here.
 	NewPluginMySql = mysql.NewMySql
+	NewPluginRedis = redis.NewRedis
 )

@@ -33,7 +33,6 @@
           v-for="(item, index) in formData.tableData"
           :key="index">
           <ClusterColumn
-            ref="clusterRef"
             v-model="item.cluster"
             allow-repeat
             :cluster-types="[ClusterTypes.TENDBHA]"
@@ -53,30 +52,26 @@
             :cluster-id="item.cluster?.id"
             field="db_patterns"
             :label="t('校验 DB 名')"
-            :rowspan="item.same_master"
+            required
             @batch-edit="handleBatchEdit" />
           <DbNameColumn
             v-model="item.ignore_dbs"
             :cluster-id="item.cluster?.id"
             field="ignore_dbs"
             :label="t('忽略 DB 名')"
-            :required="false"
-            :rowspan="item.same_master"
             @batch-edit="handleBatchEdit" />
           <TableNameColumn
             v-model="item.table_patterns"
             :cluster-id="item.cluster?.id"
             field="table_patterns"
             :label="t('校验表名')"
-            :rowspan="item.same_master"
+            required
             @batch-edit="handleBatchEdit" />
           <TableNameColumn
             v-model="item.ignore_tables"
             :cluster-id="item.cluster?.id"
             field="ignore_tables"
             :label="t('忽略表名')"
-            :required="false"
-            :rowspan="item.same_master"
             @batch-edit="handleBatchEdit" />
           <OperationColumn
             v-model:table-data="formData.tableData"
@@ -85,6 +80,41 @@
         </EditableRow>
       </EditableTable>
       <BkFormItem
+        :label="t('执行模式')"
+        required>
+        <BkRadioGroup
+          v-model="formData.execute_mode"
+          class="execute-mode">
+          <div class="item-box">
+            <BkRadio label="timer">
+              <div class="item-content">
+                <DbIcon
+                  class="item-flag"
+                  type="timed-task" />
+                <div class="item-label">
+                  {{ t('定时执行') }}
+                </div>
+                <div>{{ t('单据审批通过之后_定时执行_无需确认') }}</div>
+              </div>
+            </BkRadio>
+          </div>
+          <div class="item-box">
+            <BkRadio label="manual">
+              <div class="item-content">
+                <DbIcon
+                  class="item-flag"
+                  type="account" />
+                <div class="item-label">
+                  {{ t('手动执行') }}
+                </div>
+                <div>{{ t('单据审批通过之后_需要人工确认方可执行') }}</div>
+              </div>
+            </BkRadio>
+          </div>
+        </BkRadioGroup>
+      </BkFormItem>
+      <BkFormItem
+        v-if="formData.execute_mode === 'timer'"
         :label="t('定时执行时间')"
         property="timing"
         required>
@@ -196,9 +226,9 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import DbNameColumn from '@views/db-manage/mysql/common/edit-table-column/DbNameColumn.vue';
-  import TableNameColumn from '@views/db-manage/mysql/common/edit-table-column/TableNameColumn.vue';
   import ClusterColumn from '@views/db-manage/mysql/common/toolbox-field/cluster-column/Index.vue';
+  import DbNameColumn from '@views/db-manage/mysql/common/toolbox-field/db-name-column/Index.vue';
+  import TableNameColumn from '@views/db-manage/mysql/common/toolbox-field/table-name-column/Index.vue';
 
   import { random } from '@utils';
 
@@ -222,7 +252,6 @@
   const { format: formatDateToUTC } = useTimeZoneFormat();
 
   const tableRef = useTemplateRef('table');
-  const clusterRef = ref<InstanceType<typeof ClusterColumn>[]>();
   const tableKey = ref(random());
 
   const batchInputConfig = [
@@ -312,7 +341,7 @@
       is_repair: true,
       mode: 'manual',
     },
-    force: true,
+    execute_mode: 'timer', // 默认定时执行
     payload: createTickePayload(),
     runtime_hour: 48,
     tableData: [createTableRow()],
@@ -354,7 +383,13 @@
       const { details } = ticketDetail;
       const { clusters, infos } = details;
       Object.assign(formData, {
+        data_repair: {
+          is_repair: details.data_repair.is_repair,
+          mode: details.data_repair.mode,
+        },
+        execute_mode: details.need_manual_confirm ? 'manual' : 'timer',
         payload: createTickePayload(ticketDetail),
+        runtime_hour: details.runtime_hour,
         tableData: infos.map((item) =>
           createTableRow({
             cluster: {
@@ -382,6 +417,7 @@
             table_patterns: item.table_patterns,
           }),
         ),
+        timing: details.timing,
       });
     },
   });
@@ -412,6 +448,7 @@
       }[];
       table_patterns: string[];
     }[];
+    need_manual_confirm: boolean;
     remark: string;
     runtime_hour: number;
     timing: string;
@@ -434,6 +471,7 @@
           slaves: item.slaves,
           table_patterns: item.table_patterns,
         })),
+        need_manual_confirm: formData.execute_mode === 'manual',
         remark: formData.payload.remark,
         runtime_hour: formData.runtime_hour,
         timing: formatDateToUTC(dayjs(formData.timing).format('YYYY-MM-DD HH:mm:ss')),
@@ -515,6 +553,7 @@
       }
     }
 
+    .execute-mode,
     .repair-mode {
       flex-direction: column;
 

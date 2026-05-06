@@ -56,7 +56,7 @@ func (p *PhysicalRocksdbDumper) buildArgs() []string {
 
 	args := []string{
 		fmt.Sprintf("--user=%s", p.cnf.Public.MysqlUser),
-		fmt.Sprintf("--password=%s", p.cnf.Public.MysqlPasswd),
+		fmt.Sprintf("--password='%s'", p.cnf.Public.MysqlPasswd),
 		fmt.Sprintf("--host=%s", p.cnf.Public.MysqlHost),
 		fmt.Sprintf("--port=%d", p.cnf.Public.MysqlPort),
 		fmt.Sprintf("--checkpoint_dir=%s", p.checkpointDir),
@@ -197,10 +197,8 @@ func (p *PhysicalRocksdbDumper) Execute(ctx context.Context) error {
 
 // PrepareBackupMetaInfo generate the metadata of database backup
 func (p *PhysicalRocksdbDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent) error {
-	metaInfo.BackupMetaFileBase = dbareport.BackupMetaFileBase{
-		BackupBeginTime: p.backupStartTime,
-		BackupEndTime:   p.backupEndTime,
-	}
+	metaInfo.BackupBeginTime = p.backupStartTime
+	metaInfo.BackupEndTime = p.backupEndTime
 	backupTargetDir := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName())
 	xtrabackupBinlogInfoFileName := filepath.Join(backupTargetDir, "xtrabackup_binlog_info")
 	xtrabackupSlaveInfoFileName := filepath.Join(backupTargetDir, "xtrabackup_slave_info")

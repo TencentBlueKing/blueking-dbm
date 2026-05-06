@@ -90,7 +90,12 @@ export function deleteAlarmGroup(params: { id: number }) {
 /**
  * 获取告警组通知方式
  */
-export function getAlarmGroupNotifyList(params: { bk_biz_id: number; limit?: number; name?: string; offset?: number }) {
+export function getAlarmGroupNotifyList(params: {
+  bk_biz_id?: number;
+  limit?: number;
+  name?: string;
+  offset?: number;
+}) {
   return http.get<
     {
       icon: string;
@@ -104,7 +109,7 @@ export function getAlarmGroupNotifyList(params: { bk_biz_id: number; limit?: num
 export function getSimpleList(params: { bk_biz_id: number; db_type: string }) {
   return http.get<
     {
-      id: string;
+      id: number;
       name: string;
       receivers: {
         id: string;

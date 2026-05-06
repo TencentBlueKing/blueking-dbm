@@ -118,6 +118,7 @@
   type IRowData = ServiceReturnType<ReturnType<typeof useClusterMachineList>>['results'][number];
 
   interface Props {
+    clusterId: number;
     clusterType: ClusterTypes;
   }
 
@@ -125,7 +126,7 @@
 
   const { t } = useI18n();
 
-  const tableFilter = useHostListTableFilter(props.clusterType);
+  const tableFilter = useHostListTableFilter(props.clusterType, props.clusterId);
 
   const transformMToG = (value: number) => {
     return value ? (value / 1024).toFixed(2) : '--';

@@ -196,11 +196,10 @@ func (p *PredixyInstall) checkParams() error {
 	}
 
 	// 校验servers
-	if len(p.ConfParams.Servers) < 2 {
-		p.runtime.Logger.Error(fmt.Sprintf(
-			"%s:validate parameters of predixy configer file fail, ser, the number of server is incorrect", p.Name()))
-		return errors.New(fmt.Sprintf(
-			"%s:validate parameters of predixy configer file fail, ser, the number of server is incorrect", p.Name()))
+	if len(p.ConfParams.Servers) < 1 {
+		err_msg := fmt.Sprintf("%s:validate parameters of predixy configer file fail, ser, the number of server is fewer than 1", p.Name())
+		p.runtime.Logger.Error("%s", err_msg)
+		return errors.New(err_msg)
 	}
 	// 校验安装包是否存在，md5值是否一致
 	if flag := util.FileExists(p.InstallFilePath); !flag {

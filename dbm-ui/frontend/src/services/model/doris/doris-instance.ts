@@ -17,7 +17,9 @@ import { ClusterTypes, TicketTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
-export default class DorisInstance {
+import InstanceBase from '../_instanceBase';
+
+export default class DorisInstance extends InstanceBase {
   static DORIS_REBOOT = TicketTypes.DORIS_REBOOT;
 
   static operationIconMap = {
@@ -40,7 +42,6 @@ export default class DorisInstance {
   cluster_name: string;
   cluster_type: ClusterTypes;
   cluster_type_name: string;
-  create_at: string;
   db_module_id: number;
   db_module_name: string;
   host_info: HostInfo;
@@ -60,10 +61,10 @@ export default class DorisInstance {
   role: string;
   slave_domain: string;
   spec_config: InstanceListSpecConfig;
-  status: string;
   version: string;
 
   constructor(payload = {} as DorisInstance) {
+    super(payload);
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
@@ -76,7 +77,6 @@ export default class DorisInstance {
     this.cluster_name = payload.cluster_name;
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
-    this.create_at = payload.create_at;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
     this.host_info = payload.host_info || {};
@@ -94,7 +94,6 @@ export default class DorisInstance {
     this.role = payload.role;
     this.slave_domain = payload.slave_domain;
     this.spec_config = payload.spec_config || {};
-    this.status = payload.status;
     this.version = payload.version;
   }
 

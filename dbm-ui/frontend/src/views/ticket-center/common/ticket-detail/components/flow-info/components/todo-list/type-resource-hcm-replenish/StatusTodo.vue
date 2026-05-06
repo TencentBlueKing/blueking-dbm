@@ -24,7 +24,9 @@
       style="color: #979ba5">
       {{ utcDisplayTime(data.done_at) }}
     </div>
-    <template v-if="isSuperuser || data.operators.includes(username) || ticketData.todo_helpers.includes(username)">
+    <div
+      v-if="isSuperuser || data.operators.includes(username) || ticketData.todo_helpers.includes(username)"
+      class="mt-12">
       <ProcessResourceReplenish :todo-data="data">
         <BkButton
           class="w-88"
@@ -32,7 +34,7 @@
           {{ t('重试') }}
         </BkButton>
       </ProcessResourceReplenish>
-    </template>
+    </div>
   </div>
 </template>
 <script setup lang="ts">

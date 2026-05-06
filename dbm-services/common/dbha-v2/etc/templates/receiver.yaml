@@ -1,0 +1,34 @@
+name: {{RECEIVER_NAME}}
+version: {{COMMON_VERSION}}
+
+pidFile: "{{RECEIVER_PID_FILE}}"
+
+discovery:
+  endpoint: "{{COMMON_DISCOVERY_ENDPOINT}}"
+  user: "{{COMMON_DISCOVERY_USER}}"
+  password: "{{COMMON_DISCOVERY_PASSWORD}}"
+  # optional TLS for etcd: use absolute paths; certFile and keyFile are both required when enabling mTLS
+  certFile: "{{COMMON_DISCOVERY_TLS_CERT_FILE}}"
+  keyFile: "{{COMMON_DISCOVERY_TLS_KEY_FILE}}"
+  trustedCAFile: "{{COMMON_DISCOVERY_TLS_TRUSTED_CA_FILE}}"
+  serviceTimerInterval: {{RECEIVER_DISCOVERY_SERVICE_TIMER_INTERVAL}}
+  serviceUpdateTimeout: {{RECEIVER_DISCOVERY_SERVICE_UPDATE_TIMEOUT}}
+
+apm:
+  readTimeout: {{COMMON_APM_READ_TIMEOUT}}
+  writeTimeout: {{COMMON_APM_WRITE_TIMEOUT}}
+  listenAddress: "{{RECEIVER_APM_LISTEN_ADDRESS}}"
+
+service:
+  source:
+{{RECEIVER_SOURCE_PROBE_BLOCK}}
+{{RECEIVER_SOURCE_KAFKA_BLOCK}}
+
+  sink:
+{{RECEIVER_SINK_MYSQL_BLOCK}}
+
+log:
+  path: "{{RECEIVER_LOG_PATH}}"
+  level: {{COMMON_LOG_LEVEL}}
+  fileCount: {{COMMON_LOG_FILE_COUNT}}
+  fileSize: {{COMMON_LOG_FILE_SIZE}}

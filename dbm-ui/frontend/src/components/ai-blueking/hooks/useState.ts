@@ -1,4 +1,4 @@
-import { useSystemEnviron } from '@stores';
+import urlJoin from 'url-join';
 
 interface ShortCutInfo {
   agent_code: string;
@@ -38,7 +38,7 @@ let currentIsLogAnalysisMode = false;
 let aiLogAnalysisShortCut: ShortCutInfo | null = null;
 
 export const useState = () => {
-  const systemEnvironStore = useSystemEnviron();
+  const apiUrl = urlJoin(window.PROJECT_ENV.VITE_AJAX_URL_PREFIX, '/apis/ai/agent');
 
   const hideNimbus = ref(false);
   const showNewChatIcon = ref(true);
@@ -46,9 +46,6 @@ export const useState = () => {
   const showMoreIcon = ref(true);
 
   const isLogAnalysisMode = computed(() => aiBluekingMode.value === AiBluekingModeEnum['LOG_ANALYSIS']);
-  const apiUrl = computed(() => (isLogAnalysisMode.value ? logAnalysisUrl : aidevUrl));
-
-  const { BK_AIDEV_LOG_ANALYSIS_URL: logAnalysisUrl, BK_AIDEV_URL: aidevUrl } = systemEnvironStore.urls;
 
   watch(
     isLogAnalysisMode,
@@ -77,13 +74,14 @@ export const useState = () => {
     currentIsLogAnalysisMode = isLogAnalysisMode.value;
     if (isLogAnalysisMode.value) {
       // 读取智能体info接口
-      const infoUrl = `${apiUrl.value}/agent/info/`;
+      const infoUrl = `${apiUrl}/agent/info/`;
       const response = await fetch(infoUrl, {
         credentials: 'include',
         method: 'GET',
       });
       const infoData = (await response.json()) as { data: { conversation_settings: { commands: ShortCutInfo[] } } };
-      aiLogAnalysisShortCut = infoData.data.conversation_settings.commands[0];
+      aiLogAnalysisShortCut =
+        infoData.data.conversation_settings.commands.find((item) => item.id === 'LogAnalysis') ?? null;
     }
   });
 
@@ -95,9 +93,10 @@ export const useState = () => {
     await aiBluekingRef.value?.handleClose();
   };
 
-  const sendMessage = async (message: string) => {
+  const sendMessage = async (ticketTypeDisplay: string, message: string) => {
     if (aiLogAnalysisShortCut) {
-      aiLogAnalysisShortCut.components[0].default = message;
+      aiLogAnalysisShortCut.components[0].default = ticketTypeDisplay;
+      aiLogAnalysisShortCut.components[1].default = message;
       await aiBluekingRef.value?.handleShortcutClick({
         shortcut: aiLogAnalysisShortCut,
         source: 'popup',

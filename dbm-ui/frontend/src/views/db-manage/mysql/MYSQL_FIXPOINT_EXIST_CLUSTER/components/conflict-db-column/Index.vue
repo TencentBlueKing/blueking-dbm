@@ -63,7 +63,7 @@
      * true：默认*，不可编辑
      * false: 可填
      */
-    disabled: boolean;
+    disabled?: boolean;
     rowData: {
       backupRecord: BackupLogRecordModel;
       cluster: {
@@ -172,9 +172,9 @@
       if (props.rowData.targetCluster) {
         valid = Boolean(
           props.rowData.cluster.id &&
-            props.rowData.backupRecord?.backup_id &&
-            props.rowData.databases.length &&
-            props.rowData.targetCluster.id,
+          props.rowData.backupRecord?.backup_id &&
+          props.rowData.databases.length &&
+          props.rowData.targetCluster.id,
         );
       } else {
         valid = Boolean(

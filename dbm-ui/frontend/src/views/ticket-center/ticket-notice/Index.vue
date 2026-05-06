@@ -22,16 +22,34 @@
         :show-header="false">
         <DbForm
           class="notice-form"
+          form-type="vertical"
           :label-width="100">
-          <DbFormItem
-            :label="t('通知方式')"
-            required>
+          <DbFormItem>
+            <template #label>
+              <span class="main-label">{{ t('单据变更通知') }}</span>
+              <span class="sub-label ml-4">（{{ t('单据状态发生变更时发送的通知') }}）</span>
+            </template>
             <BkTable
               align="center"
               border="full"
               class="notice-table"
-              :columns="columns"
-              :data="dataList"
+              :columns="changeColumns"
+              :data="changeDataList"
+              header-align="center"
+              :header-cell-class-name="setHeadCellClassName">
+            </BkTable>
+          </DbFormItem>
+          <DbFormItem>
+            <template #label>
+              <span class="main-label">{{ t('单据执行通知') }}</span>
+              <span class="sub-label ml-4">（{{ t('单据执行期间检测到异常而触发的通知') }}）</span>
+            </template>
+            <BkTable
+              align="center"
+              border="full"
+              class="notice-table"
+              :columns="excuteColumns"
+              :data="excuteDataList"
               header-align="center"
               :header-cell-class-name="setHeadCellClassName">
             </BkTable>
@@ -95,19 +113,27 @@
 
   const { t } = useI18n();
 
-  const dataList = ref<DataRow[]>([]);
+  const changeDataList = ref<DataRow[]>([]);
+  const excuteDataList = ref<DataRow[]>([]);
 
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
+
   const DefaultMessageTypeList = [MessageTypes.RTX];
   const NoticeTicketTypeList = Object.entries(TicketModel.statusTextMap).filter(
     ([status]) => ![TicketModel.STATUS_RUNNING, TicketModel.STATUS_TIMER].includes(status),
   );
 
-  const columns = computed(() => {
+  const AI_TASK_GUARDIAN = 'AI_TASK_GUARDIAN';
+  const TicketExcuteMap = {
+    [AI_TASK_GUARDIAN]: t('集群产生告警'),
+  };
+  const TicketExcuteList = Object.entries(TicketExcuteMap);
+
+  const getColumns = (statusTextLabel: string) => {
     const baseColumns = [
       {
         field: 'statusText',
-        label: t('单据状态'),
+        label: statusTextLabel,
         width: 100,
       },
       {
@@ -180,7 +206,10 @@
     });
 
     return [...baseColumns, ...nofityColumns];
-  });
+  };
+
+  const changeColumns = computed(() => getColumns(t('单据状态')));
+  const excuteColumns = computed(() => getColumns(t('通知场景')));
 
   const {
     data: bizSetting,
@@ -216,67 +245,64 @@
 
   watch([bizSetting, alarmGroupNotifyList], () => {
     if (bizSetting.value && alarmGroupNotifyList.value) {
-      const activeTypeMap = alarmGroupNotifyList.value.reduce<{
-        checkbox: Record<string, boolean>;
-        input: Record<string, string>;
-      }>(
-        (prevMap, item) => {
-          if (item.is_active) {
-            if (InputMessageTypes.includes(item.type)) {
-              Object.assign(prevMap.input, {
-                [item.type]: '',
-              });
-            } else {
-              Object.assign(prevMap.checkbox, {
-                [item.type]: false,
-              });
-            }
-          }
-          return prevMap;
-        },
-        {
-          checkbox: {},
-          input: {},
-        },
-      );
-
-      const isBizSettingEmpty =
-        _.isEmpty(bizSetting.value) || _.isEmpty(bizSetting.value[BizSettingKeys.NOTIFY_CONFIG]);
-      const list: DataRow[] = [];
-
-      NoticeTicketTypeList.forEach(([status, statusText]) => {
-        const initSetting = _.cloneDeep(activeTypeMap);
-        if (isBizSettingEmpty) {
-          DefaultMessageTypeList.forEach((type) => {
-            if (initSetting.checkbox[type] !== undefined) {
-              initSetting.checkbox[type] = true;
-            }
-          });
-        } else {
-          // 若有新增状态，且存量设置不包含此状态，设初始值
-          const statusBizSetting =
-            bizSetting.value![BizSettingKeys.NOTIFY_CONFIG][status] ||
-            Object.fromEntries(DefaultMessageTypeList.map((defaultItem) => [defaultItem, true]));
-
-          Object.keys(initSetting.checkbox).forEach((initSettingKey) => {
-            initSetting.checkbox[initSettingKey] = statusBizSetting[initSettingKey] || false;
-          });
-          Object.keys(initSetting.input).forEach((initSettingKey) => {
-            initSetting.input[initSettingKey] = (statusBizSetting[initSettingKey] || []).join(',');
-          });
-        }
-
-        list.push({
-          checkbox: initSetting.checkbox,
-          input: initSetting.input,
-          noticeMember: status === TicketModel.STATUS_APPROVE ? [t('审批人')] : [t('提单人'), t('协助人')],
-          status,
-          statusText,
-        });
-      });
-      dataList.value = list;
+      changeDataList.value = getFormatList(NoticeTicketTypeList);
+      excuteDataList.value = getFormatList(TicketExcuteList);
     }
   });
+
+  const getFormatList = (settingList: string[][]) => {
+    const activeTypeMap = alarmGroupNotifyList.value!.reduce<{
+      checkbox: Record<string, boolean>;
+      input: Record<string, string>;
+    }>(
+      (prevMap, item) => {
+        if (item.is_active) {
+          if (InputMessageTypes.includes(item.type)) {
+            Object.assign(prevMap.input, {
+              [item.type]: '',
+            });
+          } else {
+            Object.assign(prevMap.checkbox, {
+              [item.type]: false,
+            });
+          }
+        }
+        return prevMap;
+      },
+      {
+        checkbox: {},
+        input: {},
+      },
+    );
+
+    const isBizSettingEmpty = _.isEmpty(bizSetting.value) || _.isEmpty(bizSetting.value[BizSettingKeys.NOTIFY_CONFIG]);
+    const list: DataRow[] = [];
+
+    settingList.forEach(([status, statusText]) => {
+      const initSetting = _.cloneDeep(activeTypeMap);
+      if (!isBizSettingEmpty && !_.isEmpty(bizSetting.value![BizSettingKeys.NOTIFY_CONFIG][status])) {
+        // 若有新增状态，且存量设置不包含此状态，设初始值
+        const statusBizSetting = bizSetting.value![BizSettingKeys.NOTIFY_CONFIG][status] || {};
+
+        Object.keys(initSetting.checkbox).forEach((initSettingKey) => {
+          initSetting.checkbox[initSettingKey] = statusBizSetting[initSettingKey] || false;
+        });
+        Object.keys(initSetting.input).forEach((initSettingKey) => {
+          initSetting.input[initSettingKey] = (statusBizSetting[initSettingKey] || []).join(',');
+        });
+      }
+
+      list.push({
+        checkbox: initSetting.checkbox,
+        input: initSetting.input,
+        noticeMember: status === TicketModel.STATUS_APPROVE ? [t('审批人')] : [t('提单人'), t('协助人')],
+        status,
+        statusText,
+      });
+    });
+
+    return list;
+  };
 
   const setHeadCellClassName = ({ columnIndex }: { columnIndex: number }) => (columnIndex < 2 ? 'common-head' : '');
 
@@ -296,7 +322,7 @@
     runUpdateBizSetting({
       bk_biz_id: bizId,
       key: BizSettingKeys.NOTIFY_CONFIG,
-      value: dataList.value.reduce<TicketNoticeSetting>((prevMap, dataItem) => {
+      value: [...changeDataList.value, ...excuteDataList.value].reduce<TicketNoticeSetting>((prevMap, dataItem) => {
         const checkboxMap = Object.entries(dataItem.checkbox).reduce<Record<string, boolean>>(
           (prevMap, [key, value]) => {
             if (value) {
@@ -326,7 +352,7 @@
     runResetBizSetting({
       bk_biz_id: bizId,
       key: BizSettingKeys.NOTIFY_CONFIG,
-      value: NoticeTicketTypeList.reduce<TicketNoticeSetting>(
+      value: [...NoticeTicketTypeList, ...TicketExcuteList].reduce<TicketNoticeSetting>(
         (prevSettingMap, [status]) =>
           Object.assign({}, prevSettingMap, {
             [status]: DefaultMessageTypeList.reduce<Record<string, boolean>>(
@@ -361,6 +387,16 @@
 
       .bk-form-label {
         font-size: 12px;
+      }
+
+      .main-label {
+        font-size: 14px;
+        font-weight: bolder;
+        color: #313238;
+      }
+
+      .sub-label {
+        color: #979ba5;
       }
     }
 

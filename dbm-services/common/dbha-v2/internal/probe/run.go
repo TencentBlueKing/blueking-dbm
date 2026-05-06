@@ -36,55 +36,35 @@ import (
 	"dbm-services/common/dbha-v2/pkg/process"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 func setupGracefulShutdown(p *Probe) {
 	sigC := make(chan os.Signal, 1)
-	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 
 	process.SavePid(config.Cfg.PidFile)
 
 	go func() {
-		<-sigC
+		for sig := range sigC {
+			if sig == syscall.SIGHUP {
+				logger.Info("received SIGHUP, reloading configuration...")
+				continue
+			}
 
-		defer func() {
 			logger.Info("shutdown probe")
 			p.Close()
+
+			if config.Cfg.PidFile != "" {
+				_ = os.Remove(config.Cfg.PidFile)
+			}
 			os.Exit(0)
-		}()
-
-		if config.Cfg.PidFile == "" {
-			logger.Error("pid file is not set, file: %s", config.Cfg.PidFile)
-			return
-		}
-
-		if _, err := os.Stat(config.Cfg.PidFile); err != nil {
-			logger.Error("failed to remove the file: %s, errmsg: %s", config.Cfg.PidFile, err)
-			return
-		}
-
-		if err := os.Remove(config.Cfg.PidFile); err != nil {
-			logger.Error("failed to remove the file: %s, errmsg: %s", config.Cfg.PidFile, err)
 		}
 	}()
 }
 
 // Run run probe
 func Run(cmd *cobra.Command, args []string) error {
-	viper.SetConfigName("probe")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./etc")
-
-	if ConfigFilePath != "" {
-		viper.SetConfigFile(ConfigFilePath)
-	}
-
-	if err := viper.ReadInConfig(); err != nil {
-		return err
-	}
-
-	if err := viper.Unmarshal(&config.Cfg); err != nil {
+	if err := config.Load(ConfigFilePath); err != nil {
 		return err
 	}
 
@@ -98,7 +78,7 @@ func Run(cmd *cobra.Command, args []string) error {
 	log := logger.NewDbmLogger(logCfg)
 	logger.SetLogger(log)
 
-	logger.Debug("probe config. %v", config.Cfg)
+	logger.Debug("probe startup config, log_path: %s, log_level: %s", config.Cfg.Log.Path, config.Cfg.Log.Level)
 
 	clientID, err := machine.ID()
 	if err != nil {

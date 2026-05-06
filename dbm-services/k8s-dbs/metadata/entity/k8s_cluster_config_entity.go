@@ -25,6 +25,7 @@ import commtypes "k8s-dbs/common/types"
 type K8sClusterConfigEntity struct {
 	ID            uint64 `json:"id"`
 	ClusterName   string `json:"clusterName"`
+	ClusterAlias  string `json:"clusterAlias"`
 	APIServerURL  string `json:"apiServerUrl"`
 	CACert        string `json:"caCert"`
 	ClientCert    string `json:"clientCert"`
@@ -43,9 +44,11 @@ type K8sClusterConfigEntity struct {
 
 // RegionEntity 区域信息 entity
 type RegionEntity struct {
-	IsPublic    bool   `json:"isPublic"`
-	ClusterName string `json:"clusterName"`
-	RegionName  string `json:"regionName"`
-	RegionCode  string `json:"regionCode"`
-	Provider    string `json:"provider"`
+	IsPublic     bool   `json:"isPublic"`
+	ClusterName  string `json:"clusterName"`
+	ClusterAlias string `json:"clusterAlias"`
+	RegionName   string `json:"regionName"`
+	RegionCode   string `json:"regionCode"`
+	VpcID        string `json:"vpcID"`
+	Provider     string `json:"provider"`
 }

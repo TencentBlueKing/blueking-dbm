@@ -116,7 +116,7 @@ class Command(BaseCommand):
         custom_conditions = options["custom_conditions"] or []
         db_type = options["db_type"]
         is_disabled = options["is_disabled"]
-        res = BKMonitorV3Api.search_alarm_strategy_v3(
+        res = BKMonitorV3Api.search_alarm_strategy(
             {
                 "page": 1,
                 "page_size": 1000,

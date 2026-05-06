@@ -24,6 +24,7 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	entitys "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -39,6 +40,22 @@ type OperationDefinitionProvider interface {
 // OperationDefinitionProviderImpl OperationDefinitionProvider 具体实现
 type OperationDefinitionProviderImpl struct {
 	dbAccess dbaccess.OperationDefinitionDbAccess
+}
+
+var (
+	operationDefinitionInstance OperationDefinitionProvider
+	operationDefinitionOnce     sync.Once
+)
+
+// GetOperationDefinitionProvider 获取 OperationDefinitionProvider 单例实例
+func GetOperationDefinitionProvider(dbAccess dbaccess.OperationDefinitionDbAccess) OperationDefinitionProvider {
+	operationDefinitionOnce.Do(func() {
+		operationDefinitionInstance = &OperationDefinitionProviderImpl{dbAccess: dbAccess}
+	})
+	if operationDefinitionInstance == nil {
+		panic("OperationDefinitionProvider instance is nil after initialization")
+	}
+	return operationDefinitionInstance
 }
 
 // CreateOperationDefinition 创建 operation definition
@@ -76,9 +93,4 @@ func (o *OperationDefinitionProviderImpl) ListOperationDefinitions(pagination en
 		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return definitionEntities, nil
-}
-
-// NewOperationDefinitionProvider 创建 K8sCrdStorageAddonDbAccess 接口实现实例
-func NewOperationDefinitionProvider(dbAccess dbaccess.OperationDefinitionDbAccess) OperationDefinitionProvider {
-	return &OperationDefinitionProviderImpl{dbAccess: dbAccess}
 }

@@ -39,20 +39,10 @@
           </a>
         </template>
       </slot>
-      <FlowCollapse
-        v-if="data.err_msg"
-        danger
-        :title="t('失败原因')">
-        <div
-          class="pl-16"
-          :style="{
-            'white-space': 'pre-wrap',
-            'max-height': `${errMessageMaxHeight}px`,
-            overflow: 'auto',
-          }">
-          {{ data.err_msg }}
-        </div>
-      </FlowCollapse>
+      <RenderErrorMessage
+        :data="data"
+        :ticket-detail="ticketDetail" />
+      <Abstract :data="data" />
       <div
         v-if="isCanOperation && isNeedOperation"
         class="mt-12">
@@ -76,7 +66,6 @@
           {{ utcDisplayTime(data.update_at) }}
         </div>
       </template>
-      <Abstract :data="data" />
     </template>
     <template #desc>
       {{ utcDisplayTime(data.update_at) }}
@@ -102,7 +91,7 @@
   import DbTimeLineItem from '../time-line/TimeLineItem.vue';
 
   import Abstract from './components/abstract/Index.vue';
-  import FlowCollapse from './components/FlowCollapse.vue';
+  import RenderErrorMessage from './components/render-error-message/Index.vue';
 
   interface Props {
     data: FlowMode<unknown, any>;
@@ -123,15 +112,13 @@
   const { t } = useI18n();
   const { isSuperuser, username } = useUserProfile();
 
-  const errMessageMaxHeight = window.innerHeight * 0.4;
-
   const isCanOperation = computed(
     () =>
       isSuperuser ||
       props.ticketDetail.todo_operators.includes(username) ||
       props.ticketDetail.todo_helpers.includes(username),
   );
-  const isNeedOperation = computed(() => [0, 2].includes(props.data.err_code));
+  const isNeedOperation = computed(() => [0, 2, 4].includes(props.data.err_code));
   const renderTodoList = computed(() =>
     _.filter(props.data.todos, (item) => item.type !== FlowMode.TODO_TYPE_INNER_FAILED),
   );

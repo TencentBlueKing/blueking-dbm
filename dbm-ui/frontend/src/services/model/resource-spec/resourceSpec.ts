@@ -57,6 +57,13 @@ export default class ResourceSpec {
   }[];
   update_at: string;
   updater: string;
+  tags: {
+    id: number;
+    key: string;
+    value: string;
+    is_builtin: boolean;
+    system: boolean;
+  }[];
 
   constructor(payload = {} as ResourceSpec) {
     this.capacity = payload.capacity;
@@ -81,6 +88,7 @@ export default class ResourceSpec {
     this.qps = payload.qps || {};
     this.permission = payload.permission || {};
     this.capacity = payload.capacity || 0;
+    this.tags = payload.tags || [];
   }
 
   get isRecentSeconds() {
@@ -103,5 +111,9 @@ export default class ResourceSpec {
 
   get updateAtDisplay() {
     return utcDisplayTime(this.update_at);
+  }
+
+  get needReplenish() {
+    return this.tags.some((tag) => tag.key === 'replenish' && tag.value === 'True');
   }
 }

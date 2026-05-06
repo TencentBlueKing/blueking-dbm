@@ -11,6 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 import http from '@services/http';
+import type MysqlMergeDiskSpaceModel from '@services/model/mysql/mysql-merge-disk-space';
 
 /**
  * 查询mysql版本升级可用版本列表
@@ -56,20 +57,20 @@ export function getSpiderVersionModules(params: {
 }) {
   return http.post<
     {
+      charset: string;
       db_module_id: number;
       db_module_name: string;
-      spider_version: string;
-      module_alias_name: string;
       db_version: string;
-      charset: string;
-      spider_version_num: number;
+      module_alias_name: string;
       pkg_list: {
+        full_version: number;
+        major_version: number;
         pkg_id: number;
         pkg_name: string;
-        major_version: number;
         sub_version: number;
-        full_version: number;
       }[];
+      spider_version: string;
+      spider_version_num: number;
     }[]
   >(`/apis/mysql/toolbox/get_spider_version_modules/`, params);
 }
@@ -98,10 +99,10 @@ export function getVersionModules(params: {
 }) {
   return http.post<
     {
+      charset: string;
       db_module_id: number;
       db_module_name: string;
       db_version: string;
-      charset: string;
       pkg_list: {
         pkg_id: number;
         pkg_name: string;
@@ -109,3 +110,19 @@ export function getVersionModules(params: {
     }[]
   >(`/apis/mysql/toolbox/get_storage_version_modules/`, params);
 }
+
+/**
+ * 合并磁盘空间评估
+ */
+export const mergeDiskSpace = (params: {
+  bk_biz_id: number;
+  factor: number; // DB数据克隆单据调用factor=1，DB数据合并空间评估调用factor=2
+  migrations: {
+    clone_db_list?: string[];
+    data_schema_grant?: string;
+    db_list: string[];
+    ignore_db_list?: string[];
+    source_cluster: number;
+    target_clusters: number[];
+  }[];
+}) => http.post<MysqlMergeDiskSpaceModel[]>('/apis/mysql/toolbox/mysql_disk_space/', params);

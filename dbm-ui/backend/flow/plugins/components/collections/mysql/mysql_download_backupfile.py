@@ -23,7 +23,7 @@ class MySQLDownloadBackupfile(BkJobService):
     """
 
     __need_schedule__ = True
-    interval = StaticIntervalGenerator(60)
+    interval = StaticIntervalGenerator(120)
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
@@ -75,7 +75,11 @@ class MySQLDownloadBackupfile(BkJobService):
                 self.finish_schedule()
                 return False
             else:
-                self.log_info(_("{} 下载中: todo {}").format(backup_bill_id, result_response["total"]["todo"]))
+                self.log_info(
+                    _("{} 下载中: todo {} doing {}").format(
+                        backup_bill_id, result_response["total"]["todo"], result_response["total"]["doing"]
+                    )
+                )
         else:
             self.log_error("result response fail")
             self.finish_schedule()

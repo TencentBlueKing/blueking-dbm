@@ -17,7 +17,7 @@ func Handler(c *gin.Context) {
 		return
 	}
 
-	res, err := req.do()
+	res, err := req.execute()
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,

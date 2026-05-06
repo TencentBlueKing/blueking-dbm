@@ -28,7 +28,7 @@ logger = logging.getLogger("root")
 def bkm_get_alarm_strategy(name, bk_biz_id=env.DBA_APP_BK_BIZ_ID):
     """获取监控策略"""
 
-    res = BKMonitorV3Api.search_alarm_strategy_v3(
+    res = BKMonitorV3Api.search_alarm_strategy(
         {
             "page": 1,
             "page_size": 100,
@@ -48,12 +48,12 @@ def bkm_get_alarm_strategy(name, bk_biz_id=env.DBA_APP_BK_BIZ_ID):
 def bkm_save_alarm_strategy(params):
     """保存监控策略"""
 
-    response = BKMonitorV3Api.save_alarm_strategy_v3(params, use_admin=True, raw=True)
+    response = BKMonitorV3Api.save_alarm_strategy(params, use_admin=True, raw=True)
 
     if not response.get("result"):
         if response.get("code") == BKMonitorV3Api.ErrorCode.STRATEGY_ALREADY_EXISTS:
             params["id"] = bkm_get_alarm_strategy(params["name"])["id"]
-            return BKMonitorV3Api.save_alarm_strategy_v3(params, use_admin=True)
+            return BKMonitorV3Api.save_alarm_strategy(params, use_admin=True)
         else:
             logger.error("bkm_save_alarm_strategy failed: params: %s\n response: %s", params, response)
             raise BkMonitorSaveAlarmException(message=response.get("message"))
@@ -65,7 +65,7 @@ def bkm_delete_alarm_strategy(monitor_policy_id):
     """删除监控策略"""
 
     params = {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "ids": [monitor_policy_id]}
-    response = BKMonitorV3Api.delete_alarm_strategy_v3(params, use_admin=True, raw=True)
+    response = BKMonitorV3Api.delete_alarm_strategy(params, use_admin=True, raw=True)
     if not response.get("result"):
         logger.error("bkm_delete_alarm_strategy failed: params: %s\n response: %s", params, response)
         raise BkMonitorDeleteAlarmException(message=response.get("message"))
@@ -76,6 +76,7 @@ def bkm_delete_alarm_strategy(monitor_policy_id):
 
 def render_promql_sql(prom_sql, wheres):
     """
+    TODO: 后续新方法稳定之后删除
     渲染promql语句，通过正则替换
         prom_sql (str): The original PromQL query.
         wheres (dict): A dictionary of conditions to add or replace in the form {label: value or list of values}.
@@ -103,6 +104,48 @@ def render_promql_sql(prom_sql, wheres):
             # If label does not exist, add before the closing '}'
             # Use double }} to escape a single } in the f-string
             prom_sql = re.sub(r"}", f", {label}={value}}}", prom_sql)
+
+    return prom_sql
+
+
+def render_promql_sql_new(prom_sql, wheres):
+    """
+    渲染promql语句，通过正则替换
+        prom_sql (str): The original PromQL query.
+        wheres (list): [{"key": "appid", "value": ["2", "3"], "method": "=~"}]
+    """
+    for rule in wheres:
+        label, value, method = rule["key"], rule["value"], rule["method"]
+        # If the value is a list, convert it to a regex alternation pattern
+        value = value[0] if isinstance(value, list) and len(value) == 1 else value
+
+        # skip empty list
+        if not value:
+            continue
+
+        if isinstance(value, list):
+
+            # 如果是 in 的情况 则需要把 = 改成 =~
+            if method == "=":
+                method = "=~"
+                value = f'"^({"|".join(map(str, value))})$"'
+            # 如果是 not in 的情况， 则需要把 != 改成 !~
+            elif method == "!=":
+                method = "!~"
+                value = f'"^({"|".join(map(str, value))})$"'
+            else:
+                value = f'"({"|".join(map(str, value))})"'
+        else:
+            value = f'"{value}"'
+
+        pattern = rf'{label}\s*(?:=|!=|=~|!~)\s*"[^"]*"'
+
+        if re.search(pattern, prom_sql):
+            # If label exists with any operator, replace it
+            prom_sql = re.sub(pattern, rf"{label}{method}{value}", prom_sql)
+        else:
+            # If label does not exist, add before the closing '}'
+            prom_sql = re.sub(r"}", f", {label}{method}{value}}}", prom_sql)
 
     return prom_sql
 
@@ -238,3 +281,11 @@ def parse_shield_description_biz(description=""):
     p = r"\[dbm:appid=(\d+)\]"
     match = re.search(p, description)
     return int(match.group(1)) if match else env.DBA_APP_BK_BIZ_ID
+
+
+def flatten_policy_results(data):
+    result = []
+    for d in data["results"]:
+        result.append(d)
+        result.extend(d.get("child", []))
+    return result

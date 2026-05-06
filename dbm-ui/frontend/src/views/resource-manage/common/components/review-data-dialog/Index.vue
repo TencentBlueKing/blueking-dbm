@@ -80,16 +80,20 @@
   </BkDialog>
 </template>
 
-<script setup lang="tsx">
-  import type { UnwrapRef, VNode } from 'vue';
+<script setup lang="ts" generic="T extends any">
+  import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { messageSuccess } from '@utils';
 
-  interface Props {
+  export interface FormData {
+    remark: string;
+  }
+
+  export interface Props<U> {
     alert?: string;
-    cancelHandler?: () => Promise<any> | void;
-    confirmHandler: (value: UnwrapRef<typeof formData>) => Promise<any> | void;
+    cancelHandler?: () => Promise<any>;
+    confirmHandler: (value: FormData) => Promise<U>;
     selected: string[];
     showRemark?: boolean;
     theme?: 'primary' | 'danger';
@@ -97,9 +101,9 @@
     title: string;
   }
 
-  type Emits = (e: 'success', data: Record<string, any>) => void;
+  type Emits = (e: 'success', data: T) => void;
 
-  const props = withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props<T>>(), {
     alert: undefined,
     cancelHandler: () => Promise.resolve(),
     theme: 'primary',

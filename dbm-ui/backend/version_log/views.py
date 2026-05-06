@@ -13,21 +13,55 @@ specific language governing permissions and limitations under the License.
 
 import functools
 import logging
+import re
 
 from django.http import JsonResponse
 from django.utils.translation import gettext_lazy as _
 
 from backend.version_log import config
 from backend.version_log.models import VersionLogVisited
-from backend.version_log.utils import get_parsed_html, get_version_list
+from backend.version_log.utils import get_md_files_dir_with_language_code, get_parsed_html, get_version_list
 
 logger = logging.getLogger(__name__)
+
+
+def validate_log_version(log_version: str) -> bool:
+    """
+    校验log_version参数，防止路径穿越攻击
+    :param log_version: 版本号参数
+    :return: True表示合法，False表示非法
+    """
+    if not log_version:
+        return False
+
+    if not log_version or len(log_version) > 50:  # 添加长度限制
+        return False
+
+    # 只允许字母、数字、下划线、连字符、点号
+    if not re.match(r"^[a-zA-Z0-9._-]+$", log_version):
+        return False
+    # 允许的字符：字母、数字、下划线、点、连字符
+    # 支持格式：V1.5.0, V1.5.0-alpha.78, V1.5.0-beta.1, V1.5.0-rc.1, V1.5.0_20240101等
+    pattern = r"^[vV]?\d+(?:\.\d+)*(?:[-_][a-zA-Z]+(?:\.\d+)?)?$"
+
+    # 检查是否包含路径穿越字符
+    # 检查单个危险字符：点号、斜杠、反斜杠、冒号等
+    dangerous_chars = ["..", "/", "\\", ":", "*", "?", '"', "<", ">", "|"]
+
+    if any(char in log_version for char in dangerous_chars):
+        return False
+    # 检查是否符合命名规范
+    return bool(re.match(pattern, log_version))
 
 
 def latest_read_record(view_func):
     @functools.wraps(view_func)
     def wrapper(request, *args, **kwargs):
         visit_log_version = request.GET.get("log_version") or request.POST.get("log_version")
+        if visit_log_version and not validate_log_version(visit_log_version):
+            logger.warning(f"Invalid log_version detected: {visit_log_version}, username: {request.user.username}")
+            return JsonResponse({"result": False, "code": -1, "message": _("版本参数不合法"), "data": None})
+
         if config.LATEST_VERSION_INFORM and visit_log_version == config.LATEST_VERSION:
             VersionLogVisited.objects.update_visit_version(request.user.username, visit_log_version)
 
@@ -38,9 +72,11 @@ def latest_read_record(view_func):
 
 def version_logs_list(request):
     """获取版本日志列表"""
-    version_list = get_version_list()
+    language_code = getattr(request, "LANGUAGE_CODE", None)
+    version_list = get_version_list(language_code)
     if version_list is None:
-        logger.error("MD_FILES_DIR not found. Current path is {}".format(config.MD_FILES_DIR))
+        md_files_dir = get_md_files_dir_with_language_code(language_code)
+        logger.error("MD_FILES_DIR not found. Current path is {}".format(md_files_dir))
         return JsonResponse({"result": False, "code": -1, "message": _("访问出错，请联系管理员。"), "data": None})
     response = {
         "result": True,
@@ -54,8 +90,14 @@ def version_logs_list(request):
 @latest_read_record
 def get_version_log_detail(request):
     """获取单条版本日志转换结果"""
+    language_code = getattr(request, "LANGUAGE_CODE", None)
     log_version = request.GET.get("log_version")
-    html_text = get_parsed_html(log_version)
+    # 再次校验参数，确保安全
+    if not validate_log_version(log_version):
+        logger.warning(f"Invalid log_version in get_version_log_detail: {log_version}")
+        return JsonResponse({"result": False, "code": -1, "message": _("版本参数不合法"), "data": None})
+
+    html_text = get_parsed_html(log_version, language_code)
     if html_text is None:
         logger.error("md file not found or log version not valid. Log version is {}".format(log_version))
         response = {

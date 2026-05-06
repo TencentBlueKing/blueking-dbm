@@ -39,6 +39,9 @@ func snapShot(db *sqlx.DB) error {
 		slog.Error("create reg file", slog.String("error", err.Error()))
 		return err
 	}
+	defer func() {
+		_ = regFile.Close()
+	}()
 
 	for scanner.Scan() {
 		content := scanner.Bytes()
@@ -75,6 +78,10 @@ func snapShot(db *sqlx.DB) error {
 		slog.Error("open offset reg", slog.String("error", err.Error()))
 		return err
 	}
+	defer func() {
+		_ = f.Close()
+	}()
+
 	_, err = f.WriteString(strconv.FormatInt(offset, 10))
 	if err != nil {
 		slog.Error("update offset reg", slog.String("error", err.Error()))

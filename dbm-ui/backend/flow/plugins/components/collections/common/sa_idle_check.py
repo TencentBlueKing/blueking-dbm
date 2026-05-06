@@ -47,6 +47,9 @@ class CheckMachineIdleCheck(BkSopsService):
         trans_data = data.get_one_of_inputs("trans_data")
 
         ips = kwargs["ips"]
+        template_id = env.SA_CHECK_TEMPLATE_ID
+        if kwargs.get("strict_idle_check"):
+            template_id = env.SA_RECYCLE_IDLE_CHECK_TEMPLATE_ID
         # 从上下文中获取ip列表
         if isinstance(trans_data, dict) and trans_data.get("hosts"):
             ips = [host["ip"] for host in trans_data["hosts"]] + ips
@@ -59,7 +62,7 @@ class CheckMachineIdleCheck(BkSopsService):
             bk_biz_id = self.__get_bk_biz_id_for_ip(ip=ips[0], bk_cloud_id=int(kwargs["bk_cloud_id"]))
 
         param = {
-            "template_id": env.SA_CHECK_TEMPLATE_ID,
+            "template_id": template_id,
             "bk_biz_id": bk_biz_id,
             "template_source": "common",
             "name": _("空闲检查FOR_DBM"),

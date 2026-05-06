@@ -23,6 +23,7 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	entitys "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -39,6 +40,25 @@ type AddonTypeProvider interface {
 type AddonTypeProviderImpl struct {
 	typeDbAccess     dbaccess.AddonTypeDbAccess
 	categoryDbAccess dbaccess.AddonCategoryDbAccess
+}
+
+var (
+	addonTypeInstance AddonTypeProvider
+	addonTypeOnce     sync.Once
+)
+
+// GetAddonTypeProvider 获取 AddonTypeProvider 单例实例
+func GetAddonTypeProvider(
+	typeDbAccess dbaccess.AddonTypeDbAccess,
+	categoryDbAccess dbaccess.AddonCategoryDbAccess,
+) AddonTypeProvider {
+	addonTypeOnce.Do(func() {
+		addonTypeInstance = &AddonTypeProviderImpl{typeDbAccess: typeDbAccess, categoryDbAccess: categoryDbAccess}
+	})
+	if addonTypeInstance == nil {
+		panic("AddonTypeProvider instance is nil after initialization")
+	}
+	return addonTypeInstance
 }
 
 // Create 创建 addon type
@@ -89,12 +109,4 @@ func (a *AddonTypeProviderImpl) ListByLimit(limit int) (
 	}
 
 	return typeEntities, nil
-}
-
-// NewAddonTypeProvider 创建 AddonTypeProvider 接口实现实例
-func NewAddonTypeProvider(
-	typeDbAccess dbaccess.AddonTypeDbAccess,
-	categoryDbAccess dbaccess.AddonCategoryDbAccess,
-) AddonTypeProvider {
-	return &AddonTypeProviderImpl{typeDbAccess: typeDbAccess, categoryDbAccess: categoryDbAccess}
 }

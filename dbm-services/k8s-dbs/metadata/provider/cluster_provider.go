@@ -30,6 +30,7 @@ import (
 	metaentity "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
 	"log/slog"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -50,6 +51,9 @@ type K8sCrdClusterProvider interface {
 		pagination *entity.Pagination,
 	) ([]*metaentity.K8sCrdClusterEntity, uint64, error)
 	FindClusterTopology(id uint64) (*metaentity.ClusterTopologyEntity, error)
+	ListUnSyncedClusters() ([]*metaentity.K8sCrdClusterEntity, error)
+	ListUnSyncedClustersByFilters(k8sClusterConfigID uint64, namespace string, clusterNames []string) (
+		[]*metaentity.K8sCrdClusterEntity, error)
 }
 
 // K8sCrdClusterProviderImpl K8sCrlClusterProvider 具体实现
@@ -59,7 +63,13 @@ type K8sCrdClusterProviderImpl struct {
 	clusterTagDbAccess       dbaccess.K8sCrdClusterTagDbAccess
 	k8sClusterConfigDbAccess dbaccess.K8sClusterConfigDbAccess
 	addonTopologyDbAccess    dbaccess.AddonTopologyDbAccess
+	addonTypeDbAccess        dbaccess.AddonTypeDbAccess
 }
+
+var (
+	clusterInstance K8sCrdClusterProvider
+	clusterOnce     sync.Once
+)
 
 // K8sCrdClusterProviderOptions K8sCrdClusterProvider 函数选项
 type K8sCrdClusterProviderOptions func(*K8sCrdClusterProviderImpl)
@@ -109,6 +119,15 @@ func (k *K8sCrdClusterProviderBuilder) WithAddonTopologyDbAccess(
 ) K8sCrdClusterProviderOptions {
 	return func(k *K8sCrdClusterProviderImpl) {
 		k.addonTopologyDbAccess = access
+	}
+}
+
+// WithAddonTypeDbAccess 设置 WithAddonTypeDbAccess
+func (k *K8sCrdClusterProviderBuilder) WithAddonTypeDbAccess(
+	access dbaccess.AddonTypeDbAccess,
+) K8sCrdClusterProviderOptions {
+	return func(k *K8sCrdClusterProviderImpl) {
+		k.addonTypeDbAccess = access
 	}
 }
 
@@ -333,7 +352,7 @@ func (k *K8sCrdClusterProviderImpl) ListClusters(
 	params *metaentity.ClusterQueryParams,
 	pagination *entity.Pagination,
 ) ([]*metaentity.K8sCrdClusterEntity, uint64, error) {
-	clusterModels, count, err := k.clusterDbAccess.ListByPage(params, pagination)
+	clusterModels, count, err := k.clusterDbAccess.ListActiveByPage(params, pagination)
 	if err != nil {
 		return nil, 0, errors.Wrapf(err, "failed to list cluster with params %+v", params)
 	}
@@ -341,6 +360,7 @@ func (k *K8sCrdClusterProviderImpl) ListClusters(
 	if err = copier.Copy(&clusterEntities, clusterModels); err != nil {
 		return nil, 0, errors.Wrapf(err, "failed to copy")
 	}
+
 	for _, clusterEntity := range clusterEntities {
 		// 设置 addon 信息
 		addonModel, err := k.addonDbAccess.FindByID(clusterEntity.AddonID)
@@ -348,6 +368,7 @@ func (k *K8sCrdClusterProviderImpl) ListClusters(
 			slog.Warn("Failed to find addonModel by ID", "ID", clusterEntity.AddonID, "error", err)
 			continue
 		}
+
 		addonEntity := &metaentity.K8sCrdStorageAddonEntity{}
 		if err := copier.Copy(addonEntity, addonModel); err != nil {
 			slog.Warn("Failed to copy model to copied model", "error", err)
@@ -375,6 +396,59 @@ func (k *K8sCrdClusterProviderImpl) ListClusters(
 		clusterEntity.Status = string(clusterResource.ClusterStatus.Phase)
 	}
 	return clusterEntities, count, nil
+}
+
+// buildClusterEntitiesWithAddon 将 cluster model 列表转换为带 AddonInfo 的 entity 列表。
+// 转换失败或 addon 查询失败的条目会被跳过并记录警告日志。
+func (k *K8sCrdClusterProviderImpl) buildClusterEntitiesWithAddon(
+	clusterModels []*models.K8sCrdClusterModel,
+) []*metaentity.K8sCrdClusterEntity {
+	var clusterEntities []*metaentity.K8sCrdClusterEntity
+	for _, clusterModel := range clusterModels {
+		clusterEntity := &metaentity.K8sCrdClusterEntity{}
+		if err := copier.Copy(clusterEntity, clusterModel); err != nil {
+			slog.Warn("Failed to copy cluster model to entity", "cluster_id", clusterModel.ID, "error", err)
+			continue
+		}
+
+		// 加载 AddonInfo（同步到 DBM 需要 AddonType 来映射 cluster type）
+		addonModel, err := k.addonDbAccess.FindByID(clusterModel.AddonID)
+		if err != nil {
+			slog.Warn("Failed to find addon for cluster",
+				"cluster_id", clusterModel.ID,
+				"addon_id", clusterModel.AddonID,
+				"error", err)
+			continue
+		}
+		addonEntity := &metaentity.K8sCrdStorageAddonEntity{}
+		if err := copier.Copy(addonEntity, addonModel); err != nil {
+			slog.Warn("Failed to copy addon model to entity", "addon_id", clusterModel.AddonID, "error", err)
+			continue
+		}
+		clusterEntity.AddonInfo = addonEntity
+		clusterEntities = append(clusterEntities, clusterEntity)
+	}
+	return clusterEntities
+}
+
+// ListUnSyncedClusters 查询所有 dbm_cluster_id 为 0 或 NULL 的存量集群，并加载 AddonInfo
+func (k *K8sCrdClusterProviderImpl) ListUnSyncedClusters() ([]*metaentity.K8sCrdClusterEntity, error) {
+	clusterModels, err := k.clusterDbAccess.ListByDbmClusterIDZero()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to list unsynced clusters")
+	}
+	return k.buildClusterEntitiesWithAddon(clusterModels), nil
+}
+
+// ListUnSyncedClustersByFilters 按过滤条件查询未同步集群，并加载 AddonInfo
+func (k *K8sCrdClusterProviderImpl) ListUnSyncedClustersByFilters(
+	k8sClusterConfigID uint64, namespace string, clusterNames []string,
+) ([]*metaentity.K8sCrdClusterEntity, error) {
+	clusterModels, err := k.clusterDbAccess.ListUnSyncedByFilters(k8sClusterConfigID, namespace, clusterNames)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to list unsynced clusters by filters")
+	}
+	return k.buildClusterEntitiesWithAddon(clusterModels), nil
 }
 
 // getClusterResource 获取 cluster 资源对象
@@ -424,18 +498,27 @@ func (k *K8sCrdClusterProviderImpl) validateProvider() error {
 	if k.clusterTagDbAccess == nil {
 		return errors.New("clusterTagDbAccess is required")
 	}
+	if k.addonTypeDbAccess == nil {
+		return errors.New("addonTypeDbAccess is required")
+	}
 	return nil
 }
 
-// NewK8sCrdClusterProvider 创建 K8sCrdClusterProvider 接口实现实例
-func NewK8sCrdClusterProvider(option ...K8sCrdClusterProviderOptions) (*K8sCrdClusterProviderImpl, error) {
-	provider := &K8sCrdClusterProviderImpl{}
-	for _, option := range option {
-		option(provider)
-	}
+// GetK8sCrdClusterProvider 获取 K8sCrdClusterProvider 单例实例
+func GetK8sCrdClusterProvider(options ...K8sCrdClusterProviderOptions) K8sCrdClusterProvider {
+	clusterOnce.Do(func() {
+		provider := &K8sCrdClusterProviderImpl{}
+		for _, option := range options {
+			option(provider)
+		}
 
-	if err := provider.validateProvider(); err != nil {
-		return nil, errors.Wrap(err, "validate provider failed")
+		if err := provider.validateProvider(); err != nil {
+			panic(errors.Wrap(err, "validate provider failed"))
+		}
+		clusterInstance = provider
+	})
+	if clusterInstance == nil {
+		panic("K8sCrdClusterProvider instance is nil after initialization")
 	}
-	return provider, nil
+	return clusterInstance
 }

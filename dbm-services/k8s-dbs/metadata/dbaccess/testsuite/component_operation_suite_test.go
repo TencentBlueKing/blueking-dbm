@@ -76,7 +76,7 @@ func (suite *ComponentOperationDbAccessTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbAccess := dbaccess.NewComponentOperationDbAccess(db)
+	dbAccess := dbaccess.GetComponentOperationDbAccess(db)
 	suite.dbAccess = dbAccess
 }
 

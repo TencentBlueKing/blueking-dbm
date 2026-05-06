@@ -204,8 +204,8 @@ func (x *Xtrabackup) RepairNonSysMyIsamTables(ctx context.Context) error {
 	return nil
 }
 
-// RepairPrivileges repair user host like dba_bak_all_sel,MONITOR,yw
-func (x *Xtrabackup) RepairPrivileges() error {
+// RepairPrivilegesForNormalUser repair user host like dba_bak_all_sel,MONITOR,yw
+func (x *Xtrabackup) RepairPrivilegesForNormalUser() error {
 	if x.TgtInstance.Host == x.SrcBackupHost {
 		return nil
 	}
@@ -347,7 +347,7 @@ func (x *Xtrabackup) ReplaceMycnf(items []string) error {
 }
 
 // ChangeDirOwner 修正目录属组，需要 root 权限
-func (x *Xtrabackup) ChangeDirOwner(dirs []string) error {
+func (x *Xtrabackup) changeDirOwner(dirs []string) error {
 	var commands []string
 	for _, v := range dirs {
 		// 如果my.cnf中没有配置这个目录, 就不做操作

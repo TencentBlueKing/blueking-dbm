@@ -13,7 +13,6 @@ package manage
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"dbm-services/common/db-resource/internal/config"
@@ -268,7 +267,7 @@ func buildTbRpItem(h *cc.Host, forBizId, bkbizId, bkCloudId int, rsType string, 
 		CityID:                h.IdcCityId,
 		SubZone:               h.SZone,
 		SubZoneID:             h.SZoneID,
-		RackID:                cleanStr(h.Equipment),
+		RackID:                util.CleanStr(h.Equipment),
 		SvrTypeName:           h.SvrTypeName,
 		Status:                model.Unused,
 		NetDeviceID:           util.TransInnerSwitchIpAsNetDeviceId(h.InnerSwitchIp),
@@ -293,10 +292,6 @@ func dealEmptyRs(rsType string) string {
 		return model.PUBLIC_RESOURCE_DBTYEP
 	}
 	return rsType
-}
-
-func cleanStr(v string) string {
-	return strings.ReplaceAll(strings.TrimSpace(v), "\"", "")
 }
 
 // ImportMachineWithDiffInfoParam 导入主机信息

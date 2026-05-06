@@ -382,7 +382,12 @@ func (a *ObjectDetail) GetDiskMatchInfo() (message string) {
 func (a *ObjectDetail) GetMessage() (message string) {
 	message += fmt.Sprintf(" group: %s\n", a.GroupMark)
 	if len(a.DeviceClass) > 0 {
-		message += fmt.Sprintf("device_class: %v\n", a.DeviceClass)
+		message += fmt.Sprintf("CC机型: %v\n", a.DeviceClass)
+	}
+	if len(a.Labels) > 0 {
+		message += fmt.Sprintf("标签: %v\n", a.Labels)
+	} else {
+		message += "标签: 无\n"
 	}
 	if a.Spec.NotEmpty() {
 		if a.Spec.Cpu.IsNotEmpty() {
@@ -394,7 +399,7 @@ func (a *ObjectDetail) GetMessage() (message string) {
 	}
 	message += a.GetDiskMatchInfo()
 	if !a.LocationSpec.IsEmpty() {
-		message += fmt.Sprintf("city: %s \n", a.LocationSpec.City)
+		message += fmt.Sprintf("城市: %s \n", a.LocationSpec.City)
 		if len(a.LocationSpec.SubZoneIds) > 0 {
 			if a.LocationSpec.IsExclude() {
 				message += fmt.Sprintf("subzoneId 必须不能存在这些园区中: %v", translateSubzoneIdToName(a.LocationSpec.SubZoneIds))

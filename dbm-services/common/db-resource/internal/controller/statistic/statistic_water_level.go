@@ -41,7 +41,7 @@ type WaterLevelHandler struct {
 
 // RegisterRouter 注册路由
 func (h *WaterLevelHandler) RegisterRouter(engine *gin.Engine) {
-	engine.POST("/statistic/water_level", h.WaterLevelStatistic)
+	engine.POST("/statistic/water_level/old", h.WaterLevelStatistic)
 }
 
 // getSpecParam 获取规格参数
@@ -128,7 +128,7 @@ func (h *WaterLevelHandler) WaterLevelStatistic(c *gin.Context) {
 		return
 	}
 
-	items, noSpecIpList, osNameMap := rebuildGroupBySpecItem(machines, specList)
+	items, noSpecIpList, osNameMap, subZoneMap := rebuildGroupBySpecItem(machines, specList)
 	logger.Info("noSpecIpList: %+v", noSpecIpList)
 
 	groupResult, err := h.executeGroupBy(items)
@@ -159,6 +159,15 @@ func (h *WaterLevelHandler) WaterLevelStatistic(c *gin.Context) {
 				osNameOrigin = origin
 			}
 		}
+
+		// 从映射中获取 SubZone
+		subZone := ""
+		if subZoneId, ok := group.Keys["sub_zone_id"].(string); ok && subZoneId != "" {
+			if name, exists := subZoneMap[subZoneId]; exists {
+				subZone = name
+			}
+		}
+
 		specId, ok := group.Keys["spec_id"].(string)
 		if !ok {
 			specId = ""
@@ -171,6 +180,7 @@ func (h *WaterLevelHandler) WaterLevelStatistic(c *gin.Context) {
 		result = append(result, WaterLevelStatisticResponse{
 			City:            group.Keys["city"],
 			SubZoneId:       group.Keys["sub_zone_id"],
+			SubZone:         subZone,
 			SpecId:          specIdInt,
 			OsName:          group.Keys["os_name"],
 			OsNameOrigin:    osNameOrigin,
@@ -192,6 +202,7 @@ func (h *WaterLevelHandler) WaterLevelStatistic(c *gin.Context) {
 type WaterLevelStatisticResponse struct {
 	City            interface{} `json:"city"`
 	SubZoneId       interface{} `json:"sub_zone_id"`
+	SubZone         interface{} `json:"sub_zone"`
 	SpecId          interface{} `json:"spec_id"`
 	SpecName        string      `json:"spec_name"`
 	SpecClusterType string      `json:"spec_cluster_type"`
@@ -244,13 +255,15 @@ type GroupBySpecItem struct {
 }
 
 func rebuildGroupBySpecItem(rsList []model.TbRpDetail, specList []dbmapi.DbmSpec) (
-	items []GroupBySpecItem, noSpecIpList []string, osNameMap map[string]string) {
+	items []GroupBySpecItem, noSpecIpList []string, osNameMap map[string]string, subZoneMap map[string]string) {
 	ctrlChan := make(chan struct{}, 10)
 	wg := sync.WaitGroup{}
 	lc := sync.Mutex{}
 	osNameMap = make(map[string]string)
+	subZoneMap = make(map[string]string)
 	for _, rs := range rsList {
 		osNameMap[rs.OsName] = rs.OsNameOrigin
+		subZoneMap[rs.SubZoneID] = rs.SubZone
 		for _, spec := range specList {
 			wg.Add(1)
 			go func(xrs model.TbRpDetail, xspec dbmapi.DbmSpec) {
@@ -278,7 +291,7 @@ func rebuildGroupBySpecItem(rsList []model.TbRpDetail, specList []dbmapi.DbmSpec
 		}
 	}
 	wg.Wait()
-	return items, noSpecIpList, osNameMap
+	return items, noSpecIpList, osNameMap, subZoneMap
 }
 
 // sortGroupResults 对分组结果按 count 降序排序

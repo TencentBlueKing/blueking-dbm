@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import importlib
 import json
 import logging
 from collections import defaultdict
@@ -27,6 +28,7 @@ from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_monitor.exceptions import AutofixException
+from backend.flow.engine.revoke.base import RevokeFlowBase
 from backend.ticket.constants import (
     EXCLUSIVE_TICKET_EXCEL_PATH,
     TICKET_RUNNING_STATUS_SET,
@@ -110,6 +112,15 @@ class Flow(models.Model):
         self.context.update(kwargs)
         self.save(update_fields=["context", "update_at"])
         return self.context
+
+    def get_inner_controller_func(self):
+        if self.flow_type != FlowType.INNER_FLOW:
+            return None
+        controller_info = self.details["controller_info"]
+        controller_class = getattr(importlib.import_module(controller_info["module"]), controller_info["class_name"])
+        controller_inst = controller_class(root_id=self.flow_obj_id, ticket_data=self.details["ticket_data"])
+        controller_func = getattr(controller_inst, controller_info["func_name"])
+        return controller_func
 
 
 class FlowSummary(models.Model):
@@ -327,19 +338,42 @@ class Ticket(AuditedModel):
         :param hosts: 回收机器列表
         :param ticket_type: 回收单据类型
         """
+
         from backend.db_meta.models import Machine
 
         revoke_ticket = Ticket.objects.get(id=revoke_ticket_id)
-        host_ids = [host["bk_host_id"] for host in hosts]
 
-        if not host_ids:
-            logger.error(_("不存在回收主机"))
-            return
+        # 已下架回收单据，如果存在元数据主机或者不存在回收主机，则不允许发起回收单据
+        if ticket_type == TicketType.RECYCLE_OLD_HOST:
+            host_ids = [host["bk_host_id"] for host in hosts]
+            if not host_ids:
+                logger.error(_("不存在可回收主机，跳过旧主机回收"))
+                return
 
-        # 已下架回收单据，如果存在元数据主机，则不允许发起回收单据
-        if ticket_type == TicketType.RECYCLE_OLD_HOST and Machine.objects.filter(bk_host_id__in=host_ids).exists():
-            logger.error(_("流程校验不通过，存在元数据主机: {}").format(host_ids))
-            return
+            if Machine.objects.filter(bk_host_id__in=host_ids).exists():
+                logger.error(_("回收校验不通过，存在元数据主机: {}").format(host_ids))
+                return
+
+        # 对于新机回收，如果未定义revoke flow，则不发起回收单
+        if ticket_type == TicketType.RECYCLE_APPLY_HOST:
+            flow = revoke_ticket.current_flow()
+            if flow.flow_type != FlowType.INNER_FLOW:
+                logger.error(_("当前流程并非inner flow，跳过新机回收").format(flow))
+                return
+
+            func = flow.get_inner_controller_func()
+            if not hasattr(func, RevokeFlowBase.revoke_flow.__name__):
+                logger.error(_("{} 未定义revoke_flow，跳过新机回收").format(func.__name__))
+                return
+
+        # 主机回收时用于判断是否托管在业务下，mysql需要用到集群类型，别的db则是用db type即可
+        def __add_cluster_types(clusters, group):
+            if not clusters or group != DBType.MySQL.value:
+                return group
+            cluster_types = [clusters[cluster_id]["cluster_type"] for cluster_id in clusters]
+            if len(set(cluster_types)) == 1:
+                return cluster_types[0]
+            return group
 
         # 回收单的创建者为业务第一DBA，协助人为其他DBA，如果没有dba则取原单据创建者
         dba, second_dba, other_dba = DBAdministrator.get_dba_for_db_type(revoke_ticket.bk_biz_id, revoke_ticket.group)
@@ -357,7 +391,9 @@ class Ticket(AuditedModel):
             remark=_("单据{}结束后自动发起{}单据").format(revoke_ticket.id, TicketType.get_choice_label(ticket_type)),
             details={
                 "parent_ticket": revoke_ticket_id,
+                "parent_ticket_type": revoke_ticket.ticket_type,
                 "group": revoke_ticket.group,
+                "cluster_type": __add_cluster_types(revoke_ticket.details.get("clusters", {}), revoke_ticket.group),
                 "recycle_hosts": hosts,
                 "immediate_recycle": immediate_recycle,
             },
@@ -437,7 +473,12 @@ class TicketFlowsConfig(AuditedModel):
 class ClusterOperateRecordManager(models.Manager):
     def filter_actives(self, cluster_id, *args, **kwargs):
         """获得集群正在运行的单据记录"""
-        return self.filter(cluster_id=cluster_id, ticket__status=TicketStatus.RUNNING, *args, **kwargs)
+        return self.filter(
+            cluster_id=cluster_id,
+            ticket__status__in=[TicketStatus.RUNNING, TicketStatus.INNER_TODO, TicketStatus.FAILED],
+            *args,
+            **kwargs,
+        )
 
     def filter_inner_actives(self, cluster_id, *args, **kwargs):
         """
@@ -569,7 +610,7 @@ class ClusterOperateRecord(AuditedModel):
             "flow_id": self.flow.id,
             "ticket_id": self.ticket.id,
             "ticket_type": self.ticket.ticket_type,
-            "title": TicketType.get_choice_label(self.ticket.ticket_type),
+            "title": str(TicketType.get_choice_label(self.ticket.ticket_type)),
             "status": self.ticket.status,
         }
 

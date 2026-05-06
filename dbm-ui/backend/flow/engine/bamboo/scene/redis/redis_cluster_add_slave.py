@@ -214,8 +214,8 @@ class RedisClusterAddSlaveFlow(object):
                             "start_port": DEFAULT_REDIS_START_PORT,
                             "ports": cluster_info["master_ports"][master_ip],
                             "instance_numb": 0,
-                            "spec_id": input_item["resource_spec"][master_ip].get("id", 0),
-                            "spec_config": input_item["resource_spec"][master_ip],
+                            "spec_id": new_slave_item.get("spec", {}).get("id", 0),
+                            "spec_config": new_slave_item.get("spec", {}),
                             "server_shards": twemproxy_server_shards.get(new_slave_item["ip"], {}),
                             "cache_backup_mode": get_cache_backup_mode(cluster.bk_biz_id, cluster_id),
                         },
@@ -541,6 +541,19 @@ class RedisClusterAddSlaveFlow(object):
             )
             if predixy_conf_rewrite_bulider:
                 sub_pipeline.add_sub_pipeline(predixy_conf_rewrite_bulider)
+
+            from backend.flow.plugins.components.collections.redis.redis_update_version import (
+                RedisUpdateVersionComponent,
+            )
+
+            act_kwargs.cluster["update_all"] = True
+            act_kwargs.cluster["cluster_id"] = int(cluster_id)
+            act_kwargs.cluster["bk_biz_id"] = bk_biz_id
+            sub_pipeline.add_act(
+                act_name=_("{}-更新版本").format(cluster_info["immute_domain"]),
+                act_component_code=RedisUpdateVersionComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
 
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(sub_name=_("Redis-{}-新建从库").format(cluster_info["immute_domain"]))

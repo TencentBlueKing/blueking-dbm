@@ -13,6 +13,7 @@
 
 <template>
   <EditableColumn
+    ref="editableColumn"
     :append-rules="rules"
     :disabled-method="disabledMethod"
     field="target_clusters"
@@ -26,6 +27,7 @@
       @change="handleInputChange">
       <template #append>
         <DbIcon
+          v-bk-tooltips="t('选择集群')"
           class="select-icon"
           type="host-select"
           @click="handleShowSelector" />
@@ -54,6 +56,7 @@
   interface Props {
     cluster: {
       id: number;
+      master_domain: string;
     };
   }
 
@@ -70,27 +73,33 @@
   });
 
   const { t } = useI18n();
+  const editableColumnRef = useTemplateRef('editableColumn');
 
-  const tabListConfig = {
-    [ClusterTypes.TENDBHA]: {
-      disabledRowConfig: [
-        {
-          handler: (data: TendbhaModel) => data.id === props.cluster.id,
-          tip: t('不能选择源集群'),
+  const tabListConfig = computed(
+    () =>
+      ({
+        [ClusterTypes.TENDBHA]: {
+          disabledRowConfig: [
+            {
+              handler: (data: TendbhaModel) => data.id === props.cluster.id,
+              tip: t('不能选择源集群'),
+            },
+          ],
+          multiple: true,
+          showPreviewResultTitle: true,
         },
-      ],
-      showPreviewResultTitle: true,
-    },
-    [ClusterTypes.TENDBSINGLE]: {
-      disabledRowConfig: [
-        {
-          handler: (data: TendbhaModel) => data.id === props.cluster.id,
-          tip: t('不能选择源集群'),
+        [ClusterTypes.TENDBSINGLE]: {
+          disabledRowConfig: [
+            {
+              handler: (data: TendbhaModel) => data.id === props.cluster.id,
+              tip: t('不能选择源集群'),
+            },
+          ],
+          multiple: true,
+          showPreviewResultTitle: true,
         },
-      ],
-      showPreviewResultTitle: true,
-    },
-  } as unknown as Record<string, TabConfig>;
+      }) as unknown as Record<string, TabConfig>,
+  );
 
   const localValue = ref('');
   const showSelector = ref(false);
@@ -104,7 +113,7 @@
   const rules = [
     {
       message: t('集群域名格式不正确:xx', [formatError]),
-      trigger: 'change',
+      trigger: 'blur',
       validator: () =>
         !localValue.value ||
         localValue.value.split(batchSplitRegex).every((item) => {
@@ -113,6 +122,19 @@
           } else {
             formatError = item;
             return false;
+          }
+        }),
+    },
+    {
+      message: t('不能选择源集群'),
+      trigger: 'blur',
+      validator: () =>
+        !localValue.value ||
+        modelValue.value.every((item) => {
+          if (item.id === props.cluster.id || item.master_domain === props.cluster.master_domain) {
+            return false;
+          } else {
+            return true;
           }
         }),
     },
@@ -159,7 +181,7 @@
   });
 
   const disabledMethod = (rowData?: any) => {
-    if (!rowData.cluster.id) {
+    if (!rowData.source_cluster.id) {
       return t('请先选择源集群');
     }
     return '';
@@ -191,6 +213,13 @@
         id: cluster.id,
         master_domain: cluster.master_domain,
       }));
+    localValue.value = Object.values(selected)
+      .flat()
+      .map((item) => item.master_domain)
+      .join(',');
+    setTimeout(() => {
+      editableColumnRef.value?.validate();
+    }, 60);
   };
 
   watch(

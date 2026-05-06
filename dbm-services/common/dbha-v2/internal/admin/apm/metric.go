@@ -26,16 +26,77 @@ package apm
 
 import (
 	"dbm-services/common/dbha-v2/pkg/haapm"
-	"dbm-services/common/go-pubpkg/apm/metric"
 )
 
-var Metrics []*metric.Metric
+const (
+	MetricLabelMethod = "method"
+	MetricLabelPath   = "path"
+	MetricLabelStatus = "status"
+)
 
+var (
+	APIRequestsTotal      *haapm.HaCounter
+	APIRequestDurationMs  *haapm.HaHistogram
+	APIRequestSizeBytes   *haapm.HaHistogram
+	APIResponseSizeBytes  *haapm.HaHistogram
+	APIRequestErrorsTotal *haapm.HaCounter
+)
+
+func init() {
+	// API request total counter
+	APIRequestsTotal = haapm.NewHaCounter(
+		"api_requests_total",
+		"Total number of API requests",
+		MetricLabelMethod, MetricLabelPath, MetricLabelStatus,
+	)
+
+	// API request duration histogram
+	APIRequestDurationMs = haapm.NewHaHistogramWithBuckets(
+		"api_request_duration_ms",
+		"API request duration (milliseconds)",
+		haapm.DefaultDurationBuckets,
+		MetricLabelMethod, MetricLabelPath,
+	)
+
+	// API request size histogram
+	APIRequestSizeBytes = haapm.NewHaHistogramWithBuckets(
+		"api_request_size_bytes",
+		"API request size (bytes)",
+		haapm.DefaultSizeBuckets,
+		MetricLabelMethod, MetricLabelPath,
+	)
+
+	// API response size histogram
+	APIResponseSizeBytes = haapm.NewHaHistogramWithBuckets(
+		"api_response_size_bytes",
+		"API response size (bytes)",
+		haapm.DefaultSizeBuckets,
+		MetricLabelMethod, MetricLabelPath,
+	)
+
+	// API request errors counter
+	APIRequestErrorsTotal = haapm.NewHaCounter(
+		"api_request_errors_total",
+		"Total number of API request errors",
+		MetricLabelMethod, MetricLabelPath,
+	)
+}
+
+// InitAPM sets service labels for startup metric and registers all metrics to haapm (Option 2).
+// Must be called before haapm.Serve so metrics are collected automatically.
 func InitAPM(serviceID, serviceName string) {
+
 	haapm.AppStartupMetric.UpdateLabel(map[string]string{
 		haapm.MetricLabelServiceID:   serviceID,
 		haapm.MetricLabelServiceName: serviceName,
 	})
 
-	Metrics = append(Metrics, haapm.AppStartupMetric.ToMetric())
+	haapm.MustRegister(
+		haapm.AppStartupMetric,
+		APIRequestsTotal,
+		APIRequestDurationMs,
+		APIRequestSizeBytes,
+		APIResponseSizeBytes,
+		APIRequestErrorsTotal,
+	)
 }

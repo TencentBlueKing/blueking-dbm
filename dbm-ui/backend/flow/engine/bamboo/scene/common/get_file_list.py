@@ -522,11 +522,9 @@ class GetFileList(object):
         ]
 
     @classmethod
-    def nginx_apply(cls) -> list:
+    def nginx_apply(cls, version: str = MediumEnum.Latest) -> list:
         # 部署云区域nginx服务的文件列表
-        nginx_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.CloudNginx, db_type=DBType.Cloud
-        )
+        nginx_pkg = Package.get_latest_package(version=version, pkg_type=MediumEnum.CloudNginx, db_type=DBType.Cloud)
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{nginx_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{CLOUD_SSL_PATH}/{SSLEnum.SERVER_CRT}",
@@ -638,6 +636,16 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{tdbctl_pkg.path}",
         ]
 
+    def tdbctl_upgrade_package(self, pkg_id: int) -> list:
+        """
+        tdbctl 升级需要的安装包列表
+        """
+        tdbctl_pkg = Package.objects.get(id=pkg_id, pkg_type=MediumEnum.tdbCtl, db_type=DBType.MySQL)
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{tdbctl_pkg.path}",
+        ]
+
     @staticmethod
     def get_spider_apps_package():
         """
@@ -741,14 +749,25 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
         ]
 
-    def get_tlinux4_dependencies_package(self) -> tuple:
+    def get_tlinux4_dependencies_package(self) -> list:
         """
-        tlinux4依赖包
+        tlinux4依赖包，可能返回多个rpm依赖包
+        @return: 返回包信息列表，每个元素为 (包名, 下载URL) 元组
         """
-        tlinux4_dependencies_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.TLinux4Dependencies, db_type=DBType.MySQL
-        )
-        return [
-            tlinux4_dependencies_pkg.name,
-            f"{env.BKREPO_ENDPOINT_URL}/generic/{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{tlinux4_dependencies_pkg.path}",
-        ]
+        tlinux4_dependencies_pkgs = Package.objects.filter(
+            pkg_type=MediumEnum.TLinux4Dependencies, db_type=DBType.MySQL, enable=True
+        ).order_by("-update_at")
+
+        non_perl_pkgs = []
+        perl_pkgs = []
+        for pkg in tlinux4_dependencies_pkgs:
+            pkg_info = (
+                pkg.name,
+                f"{env.BKREPO_ENDPOINT_URL}/generic/{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{pkg.path}",
+            )
+            # perl相关依赖包 依赖其他的包，需要后安装
+            if "perl" in pkg.name.lower():
+                perl_pkgs.append(pkg_info)
+            else:
+                non_perl_pkgs.append(pkg_info)
+        return non_perl_pkgs + perl_pkgs

@@ -370,7 +370,7 @@ func (p *PackageFile) splitTarFile(destFile string) error {
 
 	paddingSize := len(cast.ToString(partNum))
 	for i := 0; i < partNum; i++ {
-		dstTarName := strings.TrimSuffix(destFile, ".tar")
+		dstTarName := strings.TrimSuffix(destFile, cst.SuffixTar)
 		partTarName := fmt.Sprintf(`%s.part_%0*d`, dstTarName, paddingSize, i) // need to be same with ReSplitPart
 		destFileWriter, err := os.OpenFile(partTarName, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 		if err != nil {
@@ -409,12 +409,12 @@ func (p *PackageFile) splitTarFile(destFile string) error {
 // backupReport 里面还只有 base 信息，没有文件信息
 func PackageBackupFiles(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent) (indexFilePath string, err error) {
 	targetDir := path.Join(cnf.Public.BackupDir, cnf.Public.TargetName())
-	indexFilePath = path.Join(cnf.Public.BackupDir, cnf.Public.TargetName()+".index")
+	indexFilePath = path.Join(cnf.Public.BackupDir, cnf.Public.TargetName()+cst.SuffixIndex)
 
 	var packageFile = &PackageFile{
 		srcDir:        targetDir,
 		dstDir:        targetDir,
-		dstTarFile:    targetDir + ".tar",
+		dstTarFile:    targetDir + cst.SuffixTar,
 		cnf:           cnf,
 		indexFile:     metaInfo,
 		indexFilePath: indexFilePath,
@@ -469,7 +469,7 @@ func tarBallWithEncrypt(tarFilename string, srcFilename string) error {
 // ParseTarFilename 从 tar file name 中解析出 targetName
 // 因为 tar name 生成规则在此
 func ParseTarFilename(fileName string) string {
-	if !strings.Contains(fileName, ".tar") {
+	if !strings.Contains(fileName, cst.SuffixTar) {
 		return ""
 	}
 	filename := filepath.Base(fileName)

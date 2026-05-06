@@ -28,6 +28,7 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"dbm-services/common/dbha-v2/internal/receiver/config"
@@ -40,31 +41,24 @@ import (
 
 func setupGracefulShutdown(svr *Service) {
 	sigC := make(chan os.Signal, 1)
-	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 
 	process.SavePid(config.Cfg.PidFile)
 
 	go func() {
-		<-sigC
+		for sig := range sigC {
+			if sig == syscall.SIGHUP {
+				logger.Info("received SIGHUP, reloading configuration...")
+				continue
+			}
 
-		defer func() {
 			logger.Info("shutdown receiver server")
 			svr.Close()
+
+			if config.Cfg.PidFile != "" {
+				_ = os.Remove(config.Cfg.PidFile)
+			}
 			os.Exit(0)
-		}()
-
-		if config.Cfg.PidFile == "" {
-			logger.Error("pid file is not set, file: %s", config.Cfg.PidFile)
-			return
-		}
-
-		if _, err := os.Stat(config.Cfg.PidFile); err != nil {
-			logger.Error("failed to remove the file: %s, errmsg: %s", config.Cfg.PidFile, err)
-			return
-		}
-
-		if err := os.Remove(config.Cfg.PidFile); err != nil {
-			logger.Error("failed to remove the file: %s, errmsg: %s", config.Cfg.PidFile, err)
 		}
 	}()
 }
@@ -87,6 +81,7 @@ func Run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// set a logger for DBHA
 	logCfg := logger.Config{
 		FileName:   config.Cfg.Log.Path,
 		LogLevel:   logger.Level(config.Cfg.Log.Level),
@@ -97,10 +92,19 @@ func Run(cmd *cobra.Command, args []string) error {
 	log := logger.NewDbmLogger(logCfg)
 	logger.SetLogger(log)
 
-	logger.Debug("receiver config. %v", config.Cfg)
+	logBasename := filepath.Base(config.Cfg.Log.Path)
+	logDir := filepath.Dir(config.Cfg.Log.Path)
+
+	// create a logger for Etcd
+	etcdLogCfg := logCfg
+	etcdLogCfg.FileName = filepath.Join(logDir, "etcd-"+logBasename)
+
+	etcdLogger := logger.NewZapLogger(etcdLogCfg)
+
+	logger.Debug("receiver startup config, log_path: %s, log_level: %s", config.Cfg.Log.Path, config.Cfg.Log.Level)
 
 	ctx := context.Background()
-	svr := &Service{logger: log.OriginLogger()}
+	svr := &Service{etcdLogger: etcdLogger.OriginLogger()}
 
 	setupGracefulShutdown(svr)
 

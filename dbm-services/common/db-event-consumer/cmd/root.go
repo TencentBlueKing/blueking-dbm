@@ -13,7 +13,9 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"time"
 
+	"dbm-services/common/db-event-consumer/pkg/base"
 	"dbm-services/common/db-event-consumer/pkg/config"
 	"dbm-services/common/db-event-consumer/pkg/consumer"
 	"dbm-services/common/db-event-consumer/pkg/sinker"
@@ -34,6 +36,21 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 
+		// 初始化指标收集器
+		base.GetTopicMetrics()
+
+		// 启动指标上报器（如果配置了）
+		if config.MainConfig.BkmReport != nil && config.MainConfig.BkmReport.ReportUrl != "" {
+			reporter := base.NewMetricsReporter(config.MainConfig.BkmReport)
+			// 每分钟上报一次
+			reporter.StartReporting(1 * time.Minute)
+			slog.Info("metrics reporter started",
+				slog.String("report_url", config.MainConfig.BkmReport.ReportUrl),
+				slog.Int("data_id", config.MainConfig.BkmReport.DataID))
+		} else {
+			slog.Warn("metrics reporter not configured, skipping")
+		}
+
 		r := gin.Default()
 		r.Handle("GET", "/ping", func(context *gin.Context) {
 			context.String(http.StatusOK, "pong")
@@ -45,6 +62,10 @@ var rootCmd = &cobra.Command{
 		wg := &sync.WaitGroup{}
 
 		for _, sink := range config.SinkerConfigs {
+			if sink.Enable != nil && *sink.Enable == false {
+				slog.Info("skip sink", slog.String("table", sink.ModelTable))
+				continue
+			}
 			// 每一个 sinker 都有自己的 writer 实体
 			dsWriter, err := sinker.GetDSWriter(sinker.DatasourceMap[sink.Datasource])
 			if err != nil {
@@ -52,9 +73,24 @@ var rootCmd = &cobra.Command{
 			}
 			sinker := consumer.Sinker{
 				RuntimeConfig: sink,
-				MetaInfo:      config.MainConfig.KafkaInfo,
 				DSWriter:      dsWriter,
 			}
+			if sink.BkDataId > 0 {
+				sinker.RuntimeConfig.Topic = ""
+				// get kafka from bk api
+				if err = consumer.QueryKafkaMetaWithBkDataId(&sinker, config.MainConfig.BkmApiInfo); err != nil {
+					slog.Error("get kafka meta", err, slog.Int("bk_data_id", sink.BkDataId))
+					continue
+				}
+				if sinker.RuntimeConfig.Topic == "" {
+					slog.Error("topic is empty", slog.String("table", sink.ModelTable))
+					continue
+				}
+				//sinker.MetaInfo is set// = sinker.RuntimeConfig.KafkaMeta
+			} else {
+				sinker.MetaInfo = config.MainConfig.KafkaInfo
+			}
+
 			cg, err := sinker.NewConsumerGroup()
 			if err != nil {
 				slog.Error("new consumer group", err,

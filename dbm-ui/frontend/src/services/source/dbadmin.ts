@@ -42,3 +42,22 @@ export function updateAdmins(params: {
 }) {
   return http.post(`${path}/upsert_admins/`, params);
 }
+
+/**
+ * 精确查询：判断当前用户是否为指定业务+组件的 DBA
+ */
+export function checkBizDba(params: { bk_biz_id: number; db_type: string }) {
+  return http.post<{ is_biz_dba: boolean }>(`${path}/get_dba_component/`, params);
+}
+
+/**
+ * 组件列表查询：获取当前用户关联的所有组件类型（跨业务去重）
+ */
+export function getUserDbaComponents() {
+  return http.post<{
+    component: {
+      db_type: string;
+      db_type_display: string;
+    }[];
+  }>(`${path}/get_dba_component/`);
+}

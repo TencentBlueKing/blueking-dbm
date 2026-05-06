@@ -12,135 +12,82 @@
 -->
 
 <template>
-  <div class="monitor-targets-box">
-    <div
-      class="left-box"
-      :style="{
-        display: flowList.length === 0 ? 'none' : 'block',
-      }">
-      <div
-        v-show="flowList.length > 0"
-        class="item-box">
-        <div class="item">
-          <span class="top-bar" />
-          AND
-          <span class="bottom-bar" />
-        </div>
-      </div>
-      <template v-if="flowList.length > 0">
-        <div
-          v-for="index in flowList.length - 1"
-          :key="index"
-          class="item-box other">
-          <div class="item">
-            <span class="top-bar" />
-            AND
-            <span class="bottom-bar" />
-          </div>
-        </div>
-      </template>
+  <DbFormItem
+    ref="formItem"
+    class="monitor-targets-box mt-16 mb-16"
+    property="targets"
+    :rules="rules">
+    <div class="monitor-targets-title mt-16">
+      <span class="main-title">{{ t('监控目标') }}</span>
+      <span class="sub-title">（{{ t('子策略必须指定监控目标') }}）</span>
     </div>
-    <div class="right-box">
-      <div class="item-box biz">
-        <span
-          v-show="flowList.length > 0"
-          class="left-bar" />
-        <div class="title-box">
-          <BkSelect
-            v-model="bizObj.title"
-            class="title-select"
-            disabled>
-            <BkOption
-              :label="bizObj.titleList[0].label"
-              :value="bizObj.titleList[0].value" />
-          </BkSelect>
-        </div>
-        <div class="content">
-          <BkSelect
-            v-model="bizObj.value"
-            disabled>
-            <BkOption
-              :label="bizObj.selectList[0].label"
-              :value="bizObj.selectList[0].value" />
-          </BkSelect>
-        </div>
-        <div class="operate-box">
-          <i
-            class="db-icon-plus-fill icon plus"
-            :class="{ 'no-active-icon': disabled || !bizObj.activeAdd }"
-            @click="() => handleClickPlusItem(-1, bizObj.activeAdd)" />
-        </div>
-      </div>
+    <BkAlert
+      class="mt-16"
+      theme="warning"
+      :title="t('子策略的监控目标优先级高于父策略，匹配到条件的对象将使用子策略的告警配置')" />
+    <div class="content-box">
       <div
-        v-for="(item, index) in flowList"
-        :key="item.title"
-        class="item-box other"
+        v-for="item in flowList"
+        :key="item.id"
+        class="item-box mt-16"
         :class="{ custom: item.isCustom }">
-        <span class="left-bar" />
-        <div class="title-box">
-          <BkSelect
-            v-if="!item.isCustom"
-            v-model="item.title"
-            class="title-select"
-            :clearable="false"
-            :filterable="false"
-            @change="(value) => handleTitleChange(index, value)">
-            <BkOption
-              v-for="data in item.titleList"
-              :key="data.value"
-              :label="data.label"
-              :value="data.value" />
-          </BkSelect>
-          <BkOverflowTitle
-            v-else
-            class="title-txt">
-            {{ item.title }}
-          </BkOverflowTitle>
+        <div class="item-box-title">
+          {{ item.isCustom ? customTitleMap[item.id] : item.title }}
         </div>
-        <div class="content">
-          <BkSelect
-            v-if="item.isSelect"
+        <BkSelect
+          v-model="item.method"
+          class="method-select"
+          :clearable="false"
+          collapse-tags
+          style="width: 100px"
+          @change="handleChange">
+          <BkOption
+            v-for="data in methodList"
+            :key="data.id"
+            :label="data.name"
+            :value="data.id" />
+        </BkSelect>
+        <div style="flex: 1">
+          <BkInput
+            v-if="isFuzzyInput(item.method)"
             v-model="item.value"
-            :clearable="false"
-            collapse-tags
-            filterable
-            :input-search="false"
-            multiple
-            multiple-mode="tag">
-            <BkOption
-              v-for="data in item.selectList"
-              :key="data.value"
-              :label="data.label"
-              :value="data.value" />
-          </BkSelect>
-          <div
-            v-else
-            class="content-custom">
-            <span class="condition">{{ signMap[item.method] }}</span>
+            clearable
+            :placeholder="t('输入通配符匹配模式（如 *test*），留空表示匹配全部')"
+            @change="handleChange" />
+          <template v-else>
             <BkTagInput
+              v-if="item.id === MonitorTargetLevel.CLUSTER"
+              v-model="item.valueList"
+              collapse-tags
+              :content-width="500"
+              has-delete-icon
+              :list="item.selectList"
+              :paste-fn="pasteCallback"
+              :placeholder="t('留空表示匹配全部')"
+              trigger="focus"
+              @change="handleChange" />
+            <BkTagInput
+              v-else
               v-model="item.valueList"
               allow-create
               collapse-tags
               has-delete-icon
               :paste-fn="pasteCallback"
-              :placeholder="t('请输入')" />
-          </div>
-        </div>
-        <div class="operate-box">
-          <template v-if="!item.isCustom">
-            <i
-              class="db-icon-plus-fill icon plus"
-              :class="{ 'no-active-icon': !item.activeAdd }"
-              @click="() => handleClickPlusItem(index, item.activeAdd)" />
-            <i
-              class="db-icon-minus-fill icon minus"
-              :class="{ 'no-active-icon': !item.activeMinus }"
-              @click="handleClickMinusItem(index)" />
+              :placeholder="t('留空表示匹配全部')"
+              @change="handleChange" />
           </template>
         </div>
+        <!-- <BkButton
+          v-if="isCustomExist"
+          class="minus-btn ml-4"
+          :disabled="displayFlowList.length === 1"
+          text
+          @click="() => handleClickMinusItem(item.realIndex)">
+          <DbIcon type="minus-fill" />
+        </BkButton> -->
       </div>
     </div>
-  </div>
+  </DbFormItem>
 </template>
 
 <script setup lang="ts">
@@ -151,255 +98,165 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { MonitorTargetLevel } from '@common/const';
   import { batchSplitRegex } from '@common/regex';
 
-  import { signMap } from '@components/monitor-rule-check/index.vue';
-
-  type TargetItem = MonitorPolicyModel['targets'][0];
-  type CustomItem = MonitorPolicyModel['custom_conditions'][0];
+  type TargetItem = MonitorPolicyModel['targets'][number];
+  type CustomItem = MonitorPolicyModel['custom_conditions'][number];
 
   type FlowListType = {
-    activeAdd: boolean;
-    activeMinus: boolean;
-    id: TargetType;
+    id: MonitorTargetLevel;
     isCustom: boolean;
     isSelect: boolean;
+    // isShow: boolean;
     method: string;
+    // realIndex: number;
     selectList: {
-      label: string;
-      value: string;
+      id: string;
+      name: string;
     }[];
     title: string;
-    titleList: {
-      label: string;
-      value: string;
-    }[];
-    value: string[];
-    valueList: string[];
+    value: string; // like / not like 运算符使用普通文本输入框
+    valueList: string[]; // 其余方法使用select 或 tagInput
   }[];
+
+  interface Props {
+    clusterList: SelectItem<string>[];
+    customs: CustomItem[];
+    isNew: boolean;
+    isPromql: boolean;
+    targets: TargetItem[];
+  }
+
+  type Emits = (e: 'change') => void;
 
   interface Exposes {
     getValue: () => any;
     resetValue: () => void;
   }
 
-  interface Props {
-    bizsMap: Record<string, string>;
-    clusterList: SelectItem<string>[];
-    customs: CustomItem[];
-    dbType: string;
-    disabled?: boolean;
-    moduleList: SelectItem<string>[];
-    targets: TargetItem[];
-  }
-
-  const props = withDefaults(defineProps<Props>(), {
-    disabled: false,
-  });
-
-  let titleListRaw: FlowListType[number]['titleList'] = [];
-
-  const initFlowList = () => {
-    const titles = [TargetType.CLUSTER, TargetType.MODULE] as string[];
-    let selectCounts = 0;
-    const targets = _.cloneDeep(props.targets).reduce((results, item) => {
-      if (!([TargetType.BIZ, TargetType.PLATFORM] as string[]).includes(item.level)) {
-        if (titles.includes(item.level)) {
-          selectCounts = selectCounts + 1;
-        }
-        results.push(item);
-      }
-      return results;
-    }, [] as TargetItem[]);
-    const targetList = targets.map((item) => {
-      let title = '';
-      const isCustom = !titles.includes(item.level);
-      if (isCustom) {
-        title = item.level;
-      } else {
-        title = item.level === TargetType.CLUSTER ? '1' : '0';
-      }
-      let titleList = [] as SelectItem<string>[];
-      let selectList = [] as SelectItem<number>[] | SelectItem<string>[];
-      if (selectCounts === 1) {
-        titleList = _.cloneDeep(titleListRaw);
-        if (title === '1') {
-          // 集群
-          selectList = props.clusterList;
-        } else {
-          selectList = props.moduleList;
-        }
-      }
-      if (selectCounts === 2) {
-        if (title === '1') {
-          // 集群
-          titleList = [
-            {
-              label: t('集群'),
-              value: '1',
-            },
-          ];
-          selectList = props.clusterList;
-        } else {
-          titleList = [
-            {
-              label: t('模块'),
-              value: '0',
-            },
-          ];
-          selectList = props.moduleList;
-        }
-      }
-
-      return {
-        activeAdd: isMySql.value ? selectCounts < 2 : false,
-        activeMinus: !isCustom,
-        id: item.level,
-        isCustom,
-        isSelect: !isCustom,
-        method: '',
-        selectList,
-        title,
-        titleList,
-        value: item.rule.value as string | string[],
-        valueList: [],
-      };
-    });
-
-    const customeList = props.customs.map((item) => ({
-      activeAdd: false,
-      activeMinus: false,
-      id: item.key,
-      isCustom: true,
-      isSelect: false,
-      method: item.method,
-      selectList: [],
-      title: item.dimension_name,
-      titleList: [],
-      value: '',
-      valueList: item.value,
-    }));
-    return [...targetList, ...customeList] as FlowListType;
-  };
-
-  const generateFlowSelectItem = () => {
-    const item = {
-      activeAdd: true,
-      activeMinus: true,
-      id: TargetType.MODULE,
-      isCustom: false,
-      isSelect: true,
-      selectList: [],
-      title: '0',
-      titleList: _.cloneDeep(titleListRaw),
-      value: [],
-    } as unknown as FlowListType[number];
-
-    if (!isMySql.value) {
-      // 非 mysql
-      item.id = TargetType.CLUSTER;
-      item.title = '1';
-    }
-
-    if (flowList.value.length > 0) {
-      if (flowList.value[0].id === TargetType.MODULE) {
-        // 已经有 模块栏
-        Object.assign(item, {
-          activeAdd: false,
-          activeMinus: true,
-          id: TargetType.CLUSTER,
-          selectList: props.clusterList,
-          title: '1',
-          titleList: [
-            {
-              label: t('集群'),
-              value: '1',
-            },
-          ],
-        });
-        return item;
-      }
-    }
-    Object.assign(item, {
-      activeAdd: isMySql.value,
-      activeMinus: true,
-      selectList: isMySql.value ? props.moduleList : props.clusterList,
-      titleList: _.cloneDeep(titleListRaw),
-    });
-    return item;
-  };
-
-  const enum TargetType {
-    BIZ = 'appid',
-    CLUSTER = 'cluster_domain',
-    MODULE = 'db_module',
-    PLATFORM = 'platform',
-  }
+  const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
-  const isPlatform = computed(() => props.targets.filter((item) => item.level === TargetType.PLATFORM).length > 0);
+  const commonOptions = [
+    { id: 'eq', name: 'in' },
+    { id: 'neq', name: 'not in' },
+    { id: 'include', name: 'like' },
+    { id: 'exclude', name: 'not like' },
+    { id: 'reg', name: 'regex' },
+    { id: 'nreg', name: 'nregex' },
+  ];
+  const promqlOptions = [
+    { id: '=', name: 'in' },
+    { id: '!=', name: 'not in' },
+    { id: '=~', name: 'like' },
+    { id: '!~', name: 'not like' },
+    { id: '=~', name: 'regex' },
+    { id: '!~', name: 'nregex' },
+  ];
+  const promqlOriginOptionMap = Object.fromEntries(promqlOptions.map((item) => [item.id, item.name]));
+  const promqlDisplayOptionMap = Object.fromEntries(promqlOptions.map((item) => [`${item.id}-${item.name}`, item.id]));
 
-  const isMySql = computed(() => props.dbType === 'mysql');
+  const customTitleMap: Record<string, string> = {
+    consumergroup: t('消费组'),
+    topic: 'Topic',
+  };
 
-  const bizId = computed(() =>
-    isPlatform.value ? currentBizId : props.targets.find((item) => item.level === TargetType.BIZ)!.rule.value[0],
-  );
+  const isFuzzyInput = (method: string) =>
+    ['!~-not like', '!~-nregex', `=~-like`, '=~-regex', 'exclude', 'include', 'nreg', 'reg'].includes(method);
 
-  const bizObj = computed(() => {
-    const selectCount = flowList.value.filter((item) => item.isSelect).length;
-    return {
-      activeAdd: isMySql.value ? selectCount < 2 : selectCount === 0,
-      selectList: [
-        {
-          label: props.bizsMap[bizId.value],
-          value: '0',
-        },
-      ],
-      title: '0',
-      titleList: [
-        {
-          label: t('业务'),
-          value: '0',
-        },
-      ],
-      value: ['0'],
+  const initFlowList = (): FlowListType => {
+    const clusterDomainItem = props.targets.find((item) => item.level === MonitorTargetLevel.CLUSTER);
+    const getMethod = (originMethod: TargetItem['rule']['method']) => {
+      if (props.isPromql) {
+        const methodId = originMethod;
+        const methodName = promqlOriginOptionMap[methodId];
+        return `${methodId}-${methodName}`;
+      }
+      return originMethod;
     };
-  });
+
+    const selectClusterList = props.clusterList.map((item) => ({
+      id: item.value,
+      name: item.label,
+    }));
+    const targetList = clusterDomainItem
+      ? [
+          {
+            id: MonitorTargetLevel.CLUSTER,
+            isCustom: false,
+            isSelect: true,
+            // isShow: true,
+            method: getMethod(clusterDomainItem.rule.method),
+            selectList: selectClusterList,
+            title: t('集群域名'),
+            value: isFuzzyInput(getMethod(clusterDomainItem.rule.method))
+              ? clusterDomainItem.rule.value?.[0] || ''
+              : '',
+            valueList: isFuzzyInput(getMethod(clusterDomainItem.rule.method)) ? [] : clusterDomainItem.rule.value,
+          },
+        ]
+      : [
+          {
+            id: MonitorTargetLevel.CLUSTER,
+            isCustom: false,
+            isSelect: true,
+            // isShow: true,
+            method: methodList.value[0].id,
+            selectList: selectClusterList,
+            title: t('集群域名'),
+            value: '',
+            valueList: [],
+          },
+        ];
+
+    const customList = props.customs.map((item) => ({
+      id: item.key as MonitorTargetLevel,
+      isCustom: true,
+      isSelect: false,
+      // isShow: true,
+      method: getMethod(item.method),
+      selectList: [],
+      title: item.dimension_name,
+      value: isFuzzyInput(item.method) && item.value.length > 0 ? item.value[0] : '',
+      valueList: isFuzzyInput(item.method) ? [] : item.value,
+    }));
+    // return [...targetList, ...customeList].map((item, index) => Object.assign({}, item, { realIndex: index }));
+    return [...targetList, ...customList];
+  };
+
+  const rules = [
+    {
+      message: t('至少填写一个条件，子策略需通过条件匹配特定对象。'),
+      required: true,
+      trigger: 'change',
+      validator: () => {
+        return flowList.value.some((item) => {
+          if (isFuzzyInput(item.method)) {
+            return !!item.value;
+          } else {
+            return item.valueList.length > 0;
+          }
+        });
+      },
+    },
+  ];
+
+  const formItemRef = useTemplateRef('formItem');
 
   const flowList = ref<FlowListType>([]);
 
-  watch(
-    isMySql,
-    (status) => {
-      if (!status) {
-        titleListRaw = [
-          {
-            label: t('集群'),
-            value: '1',
-          },
-        ];
-        return;
-      }
-      titleListRaw = [
-        {
-          label: t('模块'),
-          value: '0',
-        },
-        {
-          label: t('集群'),
-          value: '1',
-        },
-      ];
-    },
-    {
-      immediate: true,
-    },
+  // const displayFlowList = computed(() => flowList.value.filter((item) => item.isShow));
+  // const isCustomExist = computed(() => props.customs.length > 0);
+  const methodList = computed(() =>
+    props.isPromql ? promqlOptions.map((item) => ({ id: `${item.id}-${item.name}`, name: item.name })) : commonOptions,
   );
 
   watch(
-    () => [props.clusterList, props.moduleList],
+    () => props.clusterList,
     () => {
       flowList.value = initFlowList();
     },
@@ -418,298 +275,136 @@
     }));
   };
 
-  const handleTitleChange = (index: number, value: string) => {
-    const isModule = value === '0';
-    flowList.value[index].id = isModule ? TargetType.MODULE : TargetType.CLUSTER;
-    flowList.value[index].selectList = isModule ? props.moduleList : props.clusterList;
-    flowList.value[index].value = [];
+  const handleChange = () => {
+    formItemRef.value!.validate();
+    emits('change');
   };
 
-  const handleClickPlusItem = (index: number, isAddActive: boolean) => {
-    if (props.disabled || !isAddActive) {
-      return;
-    }
+  // const handleClickMinusItem = (index: number) => {
+  //   flowList.value[index].isShow = false;
 
-    if (flowList.value.length > 0) {
-      flowList.value[0].activeAdd = false;
-      flowList.value[0].titleList = [];
-    }
+  //   const flowItem = flowList.value[index];
+  //   if (flowItem.value || flowItem.valueList.length > 0) {
+  //     handleChange();
+  //   }
+  // };
 
-    if (index === -1 && bizObj.value.activeAdd) {
-      // 点击业务栏添加
-      const selectCount = flowList.value.filter((item) => item.isSelect).length;
-      if (selectCount === 1) {
-        const newItem = generateFlowSelectItem();
-        if (newItem.id === TargetType.MODULE) {
-          flowList.value.splice(0, 0, newItem);
-        } else {
-          flowList.value.splice(1, 0, newItem);
-        }
+  const getFinalValue = () => {
+    const customs = flowList.value
+      .filter((item) => item.isCustom)
+      .map((row) => ({
+        condition: 'and',
+        dimension_name: /[\u4e00-\u9fa5]/.test(row.title) ? row.id : row.title,
+        key: row.id,
+        method: props.isPromql ? promqlDisplayOptionMap[row.method] : row.method,
+        value: isFuzzyInput(row.method) ? [row.value] : row.valueList,
+      }));
 
-        return;
-      }
-      const newItem = generateFlowSelectItem();
-      flowList.value.unshift(newItem);
-    } else {
-      // 点击 集群栏或者模块栏
-      const newItem = generateFlowSelectItem();
-      if (newItem.id === TargetType.MODULE) {
-        flowList.value.splice(index, 0, newItem);
-      } else {
-        flowList.value.splice(index + 1, 0, newItem);
-      }
-    }
-  };
-
-  const handleClickMinusItem = (index: number) => {
-    flowList.value.splice(index, 1);
-    nextTick(() => {
-      if (flowList.value.length > 0) {
-        flowList.value[0].activeAdd = true;
-        flowList.value[0].titleList = _.cloneDeep(titleListRaw);
-      }
-    });
+    const defalutTarget = props.isNew
+      ? [
+          {
+            level: MonitorTargetLevel.BIZ,
+            rule: {
+              key: MonitorTargetLevel.BIZ,
+              method: props.isPromql ? promqlOptions[0].id : commonOptions[0].id,
+              value: [currentBizId],
+            },
+          },
+        ]
+      : props.targets.filter(
+          (item) => ![MonitorTargetLevel.CLUSTER, MonitorTargetLevel.CUSTOM].includes(item.level as MonitorTargetLevel),
+        );
+    const targetList = flowList.value
+      .filter((item) => !item.isCustom)
+      .map((row) => ({
+        level: row.id,
+        rule: {
+          key: row.id,
+          method: props.isPromql ? promqlDisplayOptionMap[row.method] : row.method,
+          value: isFuzzyInput(row.method) ? [row.value] : row.valueList,
+        },
+      }));
+    const targets = [
+      ...defalutTarget,
+      ...targetList,
+      ...customs.map((customsItem) => ({
+        level: MonitorTargetLevel.CUSTOM,
+        rule: {
+          key: customsItem.key,
+          method: customsItem.method,
+          value: customsItem.value,
+        },
+      })),
+    ];
+    return {
+      custom_conditions: customs,
+      targets,
+    };
   };
 
   defineExpose<Exposes>({
     getValue() {
-      const defalutObj = {
-        level: TargetType.BIZ,
-        rule: {
-          key: TargetType.BIZ,
-          value: [bizId.value],
-        },
-      };
-      const targetList = flowList.value
-        .filter((item) => !item.isCustom)
-        .map((row) => ({
-          level: row.id,
-          rule: {
-            key: row.id,
-            value: row.value,
-          },
-        }));
-      const targets = [defalutObj, ...targetList];
-      const customs = flowList.value
-        .filter((item) => item.isCustom)
-        .map((item) => ({
-          condition: 'and',
-          dimension_name: item.title,
-          key: item.id,
-          method: item.method,
-          value: item.valueList,
-        }));
-      return {
-        custom_conditions: customs,
-        targets,
-      };
+      return getFinalValue();
     },
     resetValue() {
       flowList.value = initFlowList();
     },
   });
 </script>
-<style lang="less" scoped>
+<style lang="less">
   .monitor-targets-box {
-    display: flex;
     width: 100%;
+    border-top: 1px solid rgb(234 235 240);
 
-    .left-box {
-      width: 60px;
-
-      .item-box {
-        position: relative;
-        width: 44px;
-        height: 22px;
-        margin-top: 31px;
-        font-size: 12px;
-        line-height: 22px;
-        color: #3a84ff;
-        text-align: center;
-        background: #edf4ff;
-        border-radius: 2px;
-
-        .top-bar {
-          position: absolute;
-          top: -16px;
-          left: 20px;
-          width: 0;
-          height: 16px;
-          border-left: 1px solid #c4c6cc;
-        }
-
-        .bottom-bar {
-          position: absolute;
-          bottom: -15px;
-          left: 20px;
-          width: 0;
-          height: 15px;
-          border-left: 1px solid #c4c6cc;
-        }
+    &.bk-form-item.is-error {
+      .bk-tag-input-trigger {
+        border-color: #ea3636;
+        transition: all 0.15s;
       }
 
-      .other {
-        margin-top: 31px;
+      .method-select {
+        .bk-input {
+          border-color: #c4c6cc;
+        }
       }
     }
 
-    .right-box {
-      flex: 1;
-
-      .biz {
-        .content {
-          background-color: #fafbfd;
-
-          :deep(.bk-input) {
-            border-left-width: 0;
-            border-bottom-left-radius: 0;
-            border-top-left-radius: 0;
-          }
-        }
+    .bk-form-content {
+      .bk-form-error {
+        left: 200px;
       }
+    }
+
+    .monitor-targets-title {
+      .main-title {
+        font-weight: bolder;
+        color: #313238;
+      }
+
+      .sub-title {
+        font-size: 12px;
+      }
+    }
+
+    .content-box {
+      margin-bottom: 8px;
 
       .item-box {
         position: relative;
         display: flex;
+        align-items: center;
         width: 100%;
         height: 32px;
 
-        .left-bar {
-          position: absolute;
-          top: 15px;
-          left: -40px;
-          width: 40px;
-          height: 0;
-          border-bottom: 1px solid #c4c6cc;
+        .item-box-title {
+          width: 100px;
+          padding-right: 8px;
+          font-size: 12px;
+          text-align: right;
         }
 
-        .title-box {
-          display: flex;
-          width: 80px;
-          height: 32px;
-          background: #fafbfd;
-          align-items: center;
-          justify-content: space-between;
-
-          .title-select {
-            width: 100%;
-
-            :deep(.bk-input) {
-              border-radius: 2px 0 0 2px;
-            }
-          }
-        }
-
-        .content {
-          flex: 1;
-
-          :deep(.bk-select-tag-wrapper) {
-            gap: 4px;
-          }
-
-          .is-focus {
-            :deep(.bk-select-tag) {
-              border-left-color: #3a84ff;
-
-              &:hover {
-                border-left-color: #3a84ff;
-              }
-            }
-          }
-
-          :deep(.bk-input) {
-            outline: none;
-          }
-
-          :deep(.bk-select-tag) {
-            width: 100%;
-            min-height: 32px;
-            overflow: hidden;
-            border-left-color: transparent;
-            border-bottom-left-radius: 0;
-            border-top-left-radius: 0;
-
-            &:hover {
-              border-left-color: #a4a2a2;
-            }
-
-            .bk-select-tag-wrapper {
-              height: auto;
-              max-height: 100px;
-              overflow-y: auto;
-              gap: 4px;
-            }
-          }
-
-          .content-custom {
-            display: flex;
-            width: 100%;
-
-            .condition {
-              width: 60px;
-              height: 32px;
-              line-height: 32px;
-              text-align: center;
-              border: 1px solid #c4c6cc;
-              border-right: none;
-            }
-
-            .bk-tag-input {
-              flex: 1;
-
-              :deep(.bk-tag-input-trigger) {
-                border-radius: 0;
-              }
-            }
-          }
-        }
-
-        .operate-box {
-          display: flex;
-          width: 85px;
-          align-items: center;
-          padding-left: 12px;
-
-          .plus {
-            margin-right: 12px;
-          }
-
-          .icon {
-            font-size: 18px;
-            color: #979ba5;
-            cursor: pointer;
-          }
-
-          .active-icon {
-            color: #979ba5;
-          }
-
-          .no-active-icon {
-            color: #c4c6cc;
-          }
-        }
-      }
-
-      .other {
-        margin-top: 21px;
-      }
-
-      .custom {
-        .title-box {
-          width: auto;
-          min-width: 80px;
-          max-width: 300px;
-          padding: 0 8px;
-          background: #f5f7fa;
-          border: none;
-          justify-content: center;
-
-          .title-txt {
-            font-size: 12px;
-            overflow: hidden;
-            white-space: nowrap;
-            text-overflow: ellipsis;
-          }
+        .minus-btn {
+          font-size: 18px;
         }
       }
     }

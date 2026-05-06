@@ -12,7 +12,6 @@ from operator import itemgetter
 from typing import Any, Dict, List
 
 from django.db.models import Count, F, Q
-from django.forms import model_to_dict
 from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.models import AppCache
@@ -165,7 +164,7 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource, BigDataBaseExp
                 spec = None
 
             if spec:
-                cluster_spec = model_to_dict(spec)
+                cluster_spec = spec.to_dict()
                 spec_name_parts.append(f"{cluster_spec['spec_name']}({instance_role})")
 
         # 合并所有的规格信息

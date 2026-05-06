@@ -39,6 +39,7 @@ def execute_tendbha_partition_task(info: Dict):
         "cluster_type": ClusterType.TenDBHA.value,
         "cluster_id": info["cluster_id"],
         "configs": info["configs"],
+        "force": info.get("force", False),
     }
     MySQLController(root_id=root_id, ticket_data=data).mysql_partition_scene_v2()
 
@@ -59,6 +60,7 @@ def execute_tendbcluster_partition_task(info: Dict):
         "cluster_type": ClusterType.TenDBCluster.value,
         "cluster_id": info["cluster_id"],
         "configs": info["configs"],
+        "force": info.get("force", False),
     }
     MySQLController(root_id=root_id, ticket_data=data).mysql_partition_scene_v2()
 

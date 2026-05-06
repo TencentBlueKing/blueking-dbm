@@ -42,12 +42,14 @@ class MySQLChecksumDetailSerializer(MySQLBaseOperateDetailSerializer):
         table_patterns = serializers.ListField(help_text=_("匹配Table列表"), child=DBTableField())
         ignore_tables = serializers.ListField(help_text=_("忽略Table列表"), child=DBTableField())
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        repl_table = serializers.CharField(help_text=_("校验结果表名"), default=None, required=False, allow_blank=True)
 
     runtime_hour = serializers.IntegerField(help_text=_("超时时间"))
     timing = DBTimezoneField(help_text=_("定时触发时间"))
     infos = serializers.ListField(help_text=_("数据校验信息列表"), child=ChecksumDataInfoSerializer())
     data_repair = serializers.DictField(help_text=_("数据修复信息"))
     is_sync_non_innodb = serializers.BooleanField(help_text=_("非innodb表是否修复"), required=False, default=False)
+    need_manual_confirm = serializers.BooleanField(help_text=_("是否需要人工确认"), default=False)
 
     def validate(self, attrs):
         """验证库表数据库的数据"""
@@ -57,8 +59,15 @@ class MySQLChecksumDetailSerializer(MySQLBaseOperateDetailSerializer):
         super().validate_database_table_selector(attrs)
 
         # 校验定时时间不能早于当前时间
-        if str2datetime(attrs["timing"]) < datetime.now(timezone.utc):
-            raise serializers.ValidationError(_("定时时间必须晚于当前时间"))
+        if attrs["need_manual_confirm"] is False:
+            if str2datetime(attrs["timing"]) < datetime.now(timezone.utc):
+                raise serializers.ValidationError(_("定时时间必须晚于当前时间"))
+
+        for info in attrs["infos"]:
+            if "repl_table" in info and info["repl_table"]:
+                repl_table = info["repl_table"].strip()
+                if "." in repl_table:
+                    raise serializers.ValidationError("repl_table can't contain '.'")
 
         return attrs
 
@@ -107,7 +116,8 @@ class MySQLChecksumFlowParamBuilder(builders.FlowParamBuilder):
 
         # 更新校验表和触发类型 TODO: 考虑用serializer序列化数据
         table_sync_flow.details["ticket_data"].update(
-            checksum_table=self.ticket_data["checksum_table"], trigger_type=MySQLDataRepairTriggerMode.MANUAL.value
+            checksum_table=self.ticket_data["checksum_table"],
+            trigger_type=MySQLDataRepairTriggerMode.MANUAL.value,
         )
         table_sync_flow.save(update_fields=["details"])
 
@@ -173,8 +183,21 @@ class MySQLChecksumFlowBuilder(BaseMySQLHATicketFlowBuilder):
                 }
                 for slave in slave_insts
             ]
-
+        # 归一化触发时间字段：将前端提交的调度策略参数重命名为引擎标准字段
+        self.ticket.details["trigger_time"] = self.ticket.details["timing"]
         self.ticket.save(update_fields=["details"])
+
+    @property
+    def need_timer(self):
+        return not self.ticket.details["need_manual_confirm"]
+
+    @property
+    def need_manual_confirm(self):
+        return self.ticket.details["need_manual_confirm"]
+
+    @property
+    def need_itsm(self):
+        return True
 
     def custom_ticket_flows(self):
         flows = [

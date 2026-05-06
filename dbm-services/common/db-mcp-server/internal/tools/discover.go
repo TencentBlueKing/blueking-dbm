@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -31,7 +32,11 @@ func discover() ([]*toolsDefinition, error) {
 		return nil, err
 	}
 
-	resp, err := http.Get(discoveryUrl)
+	httpClient := &http.Client{
+		Timeout: 1 * time.Second,
+	}
+
+	resp, err := httpClient.Get(discoveryUrl)
 	if err != nil {
 		return nil, err
 	}

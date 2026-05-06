@@ -49,6 +49,7 @@ class MySQLBackupHandler:
         backup_method: list[str] = None,
         is_standby: bool = True,
         backup_source: str = MySQLBackupSource.REMOTE.value,
+        need_binlog_check: str = "",
     ):
         """
         @param cluster_id: 集群ID
@@ -61,6 +62,7 @@ class MySQLBackupHandler:
         @param backup_method: 备份方法
         @param is_standby: 是否为备机
         @param backup_source: 是否从本地备份获取
+        @param need_binlog_check: 匹配输入的信息信息,如masterIP
         """
         self.cluster = Cluster.objects.get(id=cluster_id)
         # 是否为全备份
@@ -80,6 +82,7 @@ class MySQLBackupHandler:
         self.backup_method = backup_method
         self.is_standby = is_standby
         self.backup_source = backup_source
+        self.need_binlog_check = need_binlog_check
         self.query = ""
         self.errmsg = ""
 
@@ -110,6 +113,21 @@ class MySQLBackupHandler:
         backup_info["time_zone"] = backup_info["extra_fields"]["time_zone"]
         backup_info["backup_charset"] = backup_info["extra_fields"]["backup_charset"]
         backup_info["bk_cloud_id"] = backup_info["extra_fields"]["bk_cloud_id"]
+        backup_info["binlog_format"] = backup_info["extra_fields"].get("binlog_format", "")
+        if backup_info["binlog_format"] is None:
+            backup_info["binlog_format"] = ""
+
+        backup_info["binlog_ips"] = []
+        if isinstance(backup_info["binlog_info"], dict):
+            show_master_status = backup_info["binlog_info"].get("show_master_status", None)
+            show_slave_status = backup_info["binlog_info"].get("show_slave_status", None)
+            if isinstance(show_master_status, dict) and "master_host" in show_master_status:
+                backup_info["binlog_ips"].append(show_master_status["master_host"])
+            if isinstance(show_slave_status, dict) and "master_host" in show_slave_status:
+                backup_info["binlog_ips"].append(show_slave_status["master_host"])
+            backup_info["binlog_ips"] = list(set(backup_info["binlog_ips"]))
+            if "" in backup_info["binlog_ips"]:
+                backup_info["binlog_ips"].remove("")
 
         task_ids = []
         local_files = []
@@ -174,6 +192,10 @@ class MySQLBackupHandler:
                 logger.info(_("指定查询必须从is_standby实例查询。spider_master/TDBCTL/orphan除外"))
                 conditions &= Q(is_standby="yes") | Q(mysql_role__in=["spider_master", "TDBCTL", "orphan"])
 
+            if self.need_binlog_check != "":
+                logger.info(_("指定备份binlog_info必须匹配信息 {}".format(self.need_binlog_check)))
+                conditions &= Q(binlog_info__icontains=self.need_binlog_check)
+
         backup_infos = MysqlBackupResult.objects.filter(conditions).order_by("-backup_consistent_time")
         self.query = str(backup_infos.query)
         logger.info(self.query)
@@ -225,12 +247,15 @@ class MySQLBackupHandler:
             "task_ids": [],
             "backup_ids": [],
             "priv_files": [],
+            "message": "",
         }
-        instance_ips = copy.deepcopy(self.instance_ips)
+        instances = copy.deepcopy(self.instances)
         for backup_info in backup_infos:
-            if backup_info["backup_host"] in instance_ips:
-                instance_ips.remove(backup_info["backup_host"])
-                key_name = "{}{}{}".format(backup_info["backup_host"], IP_PORT_DIVIDER, backup_info["backup_port"])
+            key_name = "{}{}{}".format(backup_info["backup_host"], IP_PORT_DIVIDER, backup_info["backup_port"])
+            if key_name in instances:
+                if "priv" not in backup_info:
+                    continue
+                instances.remove(key_name)
                 backup_priv_info["file_list"][key_name] = backup_info["priv"]
                 backup_priv_info["task_ids"].append(backup_info["priv"]["task_id"])
                 backup_priv_info["priv_files"].append(os.path.basename(backup_info["priv"]["file_name"]))
@@ -239,15 +264,19 @@ class MySQLBackupHandler:
             self.errmsg = _("集群id {} 查询不到指定过滤条件的权限文件").format(self.cluster.id)
             logger.error(self.errmsg)
             return None
-        if len(instance_ips) > 0:
-            logger.info("{} only part of storage instance get privilege file".format(self.cluster.id))
+        if len(instances) > 0:
+            backup_priv_info[
+                "message"
+            ] = "{} only part of storage instance get priv file, priv ip: {} ,no priv instance: {}".format(
+                self.cluster.immute_domain, self.filter_ips, instances
+            )
+            logger.info(backup_priv_info["message"])
         return backup_priv_info
 
     def get_tendbha_rollback_backup_info(self, latest_time: datetime = None):
         """
         tendbha 获取指定集群的备份信息，根据备份时间排序
         @param latest_time: 查询备份最迟时间
-        @param limit_one: 是否限制只返回一条备份记录
         @return: 返回集群的各个数据节点的备份记录，且backup_id必须一致
         """
         if self.backup_source == MySQLBackupSource.LOCAL:
@@ -587,6 +616,9 @@ class MySQLBackupHandler:
                     f" {conditions} and (backup_method in ('{backup_method_str}')"
                     f" or mysql_role in ('spider_master','TDBCTL'))"
                 )
+            if self.need_binlog_check != "":
+                logger.info(_("指定备份binlog_info必须匹配信息 {}".format(self.need_binlog_check)))
+                conditions = f" {conditions} and binlog_info like '%{self.need_binlog_check}%' "
 
         backup_infos = []
 

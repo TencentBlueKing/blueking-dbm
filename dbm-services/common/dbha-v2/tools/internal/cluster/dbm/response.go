@@ -68,6 +68,22 @@ type DbInstMetadata struct {
 	ClusterID          int    `json:"cluster_id"`
 	ClusterType        string `json:"cluster_type"`
 	Status             string `json:"status"`
+	SpiderRole         string `json:"spider_role"`
+}
+
+func (m *DbInstMetadata) GetMySQLRole() string {
+	if m.InstanceRole != "" {
+		return m.InstanceRole
+	}
+	// TenDBHA proxy does not have instance_role field, fallback to machine_type
+	return m.MachineType
+}
+
+func (m *DbInstMetadata) GetTenDBClusterRole() string {
+	if m.MachineType == "spider" {
+		return m.SpiderRole
+	}
+	return m.InstanceRole
 }
 
 // MetadataResponse represents the response structure for instances metadata query

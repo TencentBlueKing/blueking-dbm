@@ -23,19 +23,46 @@ from backend.ticket.models import Flow
 logger = logging.getLogger("root")
 
 
+class BaseHostInfoSerializer(serializers.Serializer):
+    ip = serializers.CharField(help_text=_("主机IP"))
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+    bk_host_id = serializers.IntegerField(help_text=_("主机ID"))
+
+
+class NginxHostInfoSerializer(BaseHostInfoSerializer):
+    bk_outer_ip = serializers.CharField(help_text=_("nginx外网IP"))
+    dbm_port = serializers.IntegerField(help_text=_("dbm端口"), required=False)
+    manage_port = serializers.IntegerField(help_text=_("管理端口"), required=False)
+    nginx_version = serializers.CharField(help_text=_("nginx版本"), required=False, allow_blank=True)
+
+
+class DrsHostInfoSerializer(BaseHostInfoSerializer):
+    drs_port = serializers.IntegerField(help_text=_("drs服务端口"))
+
+
+class DnsHostInfoSerializer(BaseHostInfoSerializer):
+    pass
+
+
+class DbhaHostInfoSerializer(BaseHostInfoSerializer):
+    bk_city_code = serializers.IntegerField(help_text=_("城市代码"), required=False)
+    bk_city_name = serializers.CharField(help_text=_("城市名称"), required=False, allow_blank=True)
+    ssh_port = serializers.IntegerField(help_text=_("ssh端口"), required=False)
+
+
 class CloudServiceApplyDetailSerializer(serializers.Serializer):
     class DRSDetailSerialzier(serializers.Serializer):
-        host_infos = serializers.ListField(help_text=_("部署drs服务主机信息"), child=serializers.DictField())
+        host_infos = serializers.ListField(help_text=_("部署drs服务主机信息"), child=DrsHostInfoSerializer())
 
     class NginxDetailSerializer(serializers.Serializer):
-        host_infos = serializers.ListField(help_text=_("部署nginx服务主机信息"), child=serializers.DictField())
+        host_infos = serializers.ListField(help_text=_("部署nginx服务主机信息"), child=NginxHostInfoSerializer())
 
     class DNSDetailSerializer(serializers.Serializer):
-        host_infos = serializers.ListField(help_text=_("部署dns服务主机信息"), child=serializers.DictField())
+        host_infos = serializers.ListField(help_text=_("部署dns服务主机信息"), child=DnsHostInfoSerializer())
 
     class DBHADetailSerializer(serializers.Serializer):
-        agent = serializers.ListField(help_text=_("部署dbha-agent服务主机信息"), child=serializers.DictField())
-        gm = serializers.ListField(help_text=_("部署dbha-gm服务主机信息"), child=serializers.DictField())
+        agent = serializers.ListField(help_text=_("部署dbha-agent服务主机信息"), child=DbhaHostInfoSerializer())
+        gm = serializers.ListField(help_text=_("部署dbha-gm服务主机信息"), child=DbhaHostInfoSerializer())
 
     class RedisDtsSerializer(serializers.Serializer):
         host_infos = serializers.ListField(help_text=_("部署dns服务主机信息"), child=serializers.DictField())

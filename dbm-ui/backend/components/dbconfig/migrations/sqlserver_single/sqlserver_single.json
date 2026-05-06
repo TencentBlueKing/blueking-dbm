@@ -1,0 +1,122 @@
+[
+  {
+    "conf_type": "alarm",
+    "conf_file": "alarm.conf",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "",
+    "conf_type_lc": "告警配置",
+    "conf_file_lc": "",
+    "level_names": "plat,app,module,cluster",
+    "level_versioned": ""
+  },
+  {
+    "conf_type": "backup",
+    "conf_file": "dbbackup.conf",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "",
+    "conf_type_lc": "备份配置",
+    "conf_file_lc": "",
+    "level_names": "plat,app,module,cluster",
+    "level_versioned": ""
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "MSSQL_Enterprise_2008",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "2008_安装参数",
+    "conf_type_lc": "安装配置",
+    "conf_file_lc": "SQL2008x64_SorceMedia.7z",
+    "level_names": "plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "MSSQL_Enterprise_2012",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "2012_安装参数",
+    "conf_type_lc": "安装配置",
+    "conf_file_lc": "SQL2012x64_SorceMedia.7z",
+    "level_names": "plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "MSSQL_Enterprise_2014",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "2014_安装参数",
+    "conf_type_lc": "安装配置",
+    "conf_file_lc": "SQL2014x64_SorceMedia.7z",
+    "level_names": "plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "MSSQL_Enterprise_2016",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "2016_安装参数",
+    "conf_type_lc": "安装配置",
+    "conf_file_lc": "SQL2016x64_SorceMedia.7z",
+    "level_names": "plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "MSSQL_Enterprise_2017",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "2017_安装参数",
+    "conf_type_lc": "安装配置",
+    "conf_file_lc": "SQL2017x64_SorceMedia.7z",
+    "level_names": "plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "MSSQL_Enterprise_2019",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "2019_安装参数",
+    "conf_type_lc": "安装配置",
+    "conf_file_lc": "SQL2019x64_SorceMedia.7z",
+    "level_names": "plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "MSSQL_Enterprise_2022",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "2022_安装参数",
+    "conf_type_lc": "安装配置",
+    "conf_file_lc": "SQL2022x64_SorceMedia.7z",
+    "level_names": "plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "deploy",
+    "conf_file": "deploy_info",
+    "conf_name_validate": 0,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "",
+    "conf_type_lc": "部署配置",
+    "conf_file_lc": "NULL",
+    "level_names": "plat,app,module,cluster",
+    "level_versioned": ""
+  }
+]

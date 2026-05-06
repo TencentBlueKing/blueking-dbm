@@ -13,8 +13,12 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('指定执行时间')">
-      {{ utcDisplayTime(ticketDetails.details.timing) }}
+    <InfoItem :label="t('执行模式')">
+      {{
+        ticketDetails.details.need_manual_confirm
+          ? t('手动执行')
+          : `${t('定时执行')}（${utcDisplayTime(ticketDetails.details.timing) || '--'}）`
+      }}
     </InfoItem>
     <InfoItem :label="t('全局超时时间（h）')">
       {{ ticketDetails.details.runtime_hour }}
@@ -198,7 +202,9 @@
 
   // 再行合并
   const groupedData = _.groupBy(tableData.value, 'cluster_id');
-  const spanInfo = Object.values(groupedData).flatMap((list, index) => [{ rowIndex: index, rowspan: list.length }]);
+  const spanInfo = Object.values(groupedData).flatMap((list, index) => [
+    { rowIndex: index * list.length, rowspan: list.length },
+  ]);
 
   const rowspanAndColspan = ({ colIndex, rowIndex }: { colIndex: number; rowIndex: number }) => {
     const spanItem = spanInfo.find((item) => (colIndex === 0 || colIndex === 1) && item.rowIndex === rowIndex);

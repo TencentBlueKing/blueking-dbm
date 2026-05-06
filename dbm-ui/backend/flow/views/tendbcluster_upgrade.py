@@ -64,3 +64,18 @@ class SpiderKeywordCheckSceneApiView(FlowTestView):
         test = SpiderController(root_id=root_id, ticket_data=request.data)
         test.spider_keyword_check_scene()
         return Response({"root_id": root_id})
+
+
+class UpgradeTendbClusterTdbctlSceneApiView(FlowTestView):
+    """
+    api: /apis/v1/flow/scene/tendbcluster/upgrade_tdbctl
+    """
+
+    @staticmethod
+    def post(request):
+        logger.info(_("开始测试tdbctl升级场景"))
+        root_id = generate_root_id()
+        logger.info("define root_id: {}".format(root_id))
+        test = SpiderController(root_id=root_id, ticket_data=request.data)
+        test.tendbcluster_tdbctl_upgrade()
+        return Response({"root_id": root_id})

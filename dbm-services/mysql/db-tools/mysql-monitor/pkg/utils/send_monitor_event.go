@@ -6,22 +6,28 @@ import (
 
 	ma "dbm-services/mysql/db-tools/mysql-crond/api"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
+
+	"golang.org/x/exp/maps"
 )
 
 // SendMonitorEvent TODO
-func SendMonitorEvent(name string, msg string) {
+func SendMonitorEvent(name string, msg string, customDimension map[string]interface{}) {
 	crondManager := ma.NewManager(config.MonitorConfig.ApiUrl)
 
 	additionDimension := map[string]interface{}{
-		"appid":          config.MonitorConfig.BkBizId,
-		"cluster_domain": config.MonitorConfig.ImmuteDomain,
-		"cluster_type":   config.MonitorConfig.ClusterType,
-		"machine_type":   config.MonitorConfig.MachineType,
-		"bk_cloud_id":    *config.MonitorConfig.BkCloudID,
-		// "server_ip":                     config.MonitorConfig.Ip,   // 监控插件服务实例维度和自定义上报维度统一
+		"appid":                         config.MonitorConfig.BkBizId,
+		"bk_biz_id":                     config.MonitorConfig.BkBizId,
+		"cluster_domain":                config.MonitorConfig.ImmuteDomain,
+		"cluster_type":                  config.MonitorConfig.ClusterType,
+		"machine_type":                  config.MonitorConfig.MachineType,
+		"bk_cloud_id":                   *config.MonitorConfig.BkCloudID,
 		"instance_port":                 config.MonitorConfig.Port,
 		"instance_host":                 config.MonitorConfig.Ip,
 		"bk_target_service_instance_id": strconv.FormatInt(*config.MonitorConfig.BkInstanceId, 10),
+	}
+
+	if customDimension != nil {
+		maps.Copy(additionDimension, customDimension)
 	}
 
 	if config.MonitorConfig.Role != nil {

@@ -61,7 +61,7 @@ func CheckConfNameAndValue(c *model.ConfigModel, checkValue bool, valueType, val
 		// 如果不校验 conf_name， 那么 conf_name 可能在 name_def 里没定义，value_type, value_type_sub, value_allowed 都为空
 		err := validatestruct.ValidateConfValue(cn.ValueDefault, cn.ValueType, cn.ValueTypeSub, cn.ValueAllowed)
 		if err != nil {
-			errors.WithMessage(err, c.ConfName)
+			return errors.WithMessage(err, c.ConfName)
 		}
 	} else {
 		return nil
@@ -94,10 +94,11 @@ func QueryConfigNames(r *api.QueryConfigNamesReq, isPub bool) (*api.QueryConfigN
 			ValueDefault: c.ValueDefault,
 			ValueAllowed: c.ValueAllowed,
 			NeedRestart:  c.NeedRestart,
-			FlagDisable:  c.FlagDisable,
-			FlagLocked:   c.FlagLocked,
 			Description:  c.Description,
-			FlagStatus:   c.FlagStatus,
+			FlagVisible:  c.FlagVisible,
+			FlagReadonly: c.FlagReadonly,
+			FlagEncrypt:  c.FlagEncrypt,
+			FlagStatus:   c.FlagStatus, // 废弃
 		}
 	}
 	resp.ConfNames = namesMap
@@ -146,6 +147,23 @@ func QueryConfigTypeInfo(r *api.QueryConfigTypeReq) (*api.QueryConfigTypeResp, e
 		ConfLevels: confLevels,
 	}
 	return resp, nil
+}
+
+func CheckValidConfFile(namespace, confType, confFile, levelName string) (string, error) {
+	msg := fmt.Sprintf("namespace=%s, conf_type=%s, conf_file=%s", namespace, confType, confFile)
+	fd := api.BaseConfFileDef{Namespace: namespace, ConfType: confType, ConfFile: confFile}
+	if f, e := model.CacheGetConfigFile(fd); e != nil {
+		return "", errors.Wrapf(errno.ErrConfFile, "ErrFound:%s for %s", e.Error(), msg)
+	} else if f == nil {
+		return "", errors.Wrapf(errno.ErrNamespaceType, msg)
+	} else {
+		if levelName != "" {
+			if !util.StringsHas(f.LevelNameList, levelName) {
+				return "", errors.Wrapf(errno.ErrLevelName, "allowed [%s] but given %s", f.LevelNames, levelName)
+			}
+		}
+		return f.LevelVersioned, nil
+	}
 }
 
 // CheckValidConfType 检查 namespace, conf_type, conf_file, level_name 的合法性

@@ -1,0 +1,26 @@
+[
+  {
+    "conf_type": "dbconf",
+    "conf_file": "riak-22",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "",
+    "conf_type_lc": "riak-2.2",
+    "conf_file_lc": "riak-2.2 config",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "deploy",
+    "conf_file": "deploy_info",
+    "conf_name_validate": 0,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "",
+    "conf_type_lc": "部署配置",
+    "conf_file_lc": "deploy_info",
+    "level_names": "plat,app,module,cluster",
+    "level_versioned": ""
+  }
+]

@@ -29,10 +29,10 @@
           <div
             v-for="item of listData"
             :key="item.id"
-            class="aside-list__item"
+            class="aside-list-item"
             :class="[
               {
-                'aside-list__item--active': item.id === activeInstId,
+                'aside-list-item--active': item.id === activeInstId,
               },
             ]"
             @click="handleClickItem(item)">
@@ -69,10 +69,10 @@
   import type InfluxdbInstanceModel from '@services/model/influxdb/influxdbInstance';
   import { getInfluxdbInstanceList } from '@services/source/influxdb';
 
+  import { useGlobalBizs } from '@stores';
+
   import DbStatus from '@components/db-status/index.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
-
-  import { useGlobalBizs } from '@/stores';
 
   type Emits = (e: 'change', value: { id: number; instance: string }) => void;
 
@@ -190,7 +190,7 @@
     .aside-list {
       height: calc(100% - 32px);
 
-      &__item {
+      .aside-list-item {
         display: flex;
         width: calc(100% - 1px);
         padding: 0 20px;
@@ -205,7 +205,7 @@
           background-color: @bg-white;
         }
 
-        &--active {
+        .aside-list--active {
           width: 100%;
           background-color: @bg-white;
           border-top-color: @border-disable;

@@ -25,9 +25,13 @@
             </BkRadioButton>
           </BkRadioGroup>
         </BkFormItem>
+        <BatchInput
+          :config="batchInputConfig"
+          @change="handleBatchInput" />
         <EditableTable
+          :key="tableKey"
           ref="editableTable"
-          class="mb-24"
+          class="mt-16 mb-24"
           :model="formData.tableData">
           <EditableRow
             v-for="(rowData, index) in formData.tableData"
@@ -95,13 +99,16 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import KeyOperationAlert from '@views/db-manage/redis/common/toolbox-common/key-operation-alert/Index.vue';
   import KeyOperationColumn from '@views/db-manage/redis/common/toolbox-field/key-operation-column/Index.vue';
+
+  import { random } from '@utils';
 
   import ClusterColumn from './components/ClusterColumn.vue';
 
@@ -109,7 +116,7 @@
     black_regex: string;
     cluster: {
       bk_cloud_id: number;
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       cluster_type_name: string;
       id: number;
       master_domain: string;
@@ -172,6 +179,7 @@
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('editableTable');
 
+  const tableKey = ref(random());
   const formData = reactive(createDefaultFormData());
 
   // 集群列表跳转
@@ -194,6 +202,42 @@
   );
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
+  const batchInputConfig = [
+    {
+      case: 'redis.test.dba.db',
+      key: 'domain',
+      label: t('集群域名'),
+    },
+    {
+      case: 'key1\\nkey2',
+      key: 'white_regex',
+      label: t('包含 Key'),
+    },
+    {
+      case: 'key1\\nkey2',
+      key: 'black_regex',
+      label: t('排除 Key'),
+    },
+  ];
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createRowData({
+        black_regex: item.black_regex?.replaceAll('\\n', '\n') || '',
+        cluster: {
+          master_domain: item.domain || '',
+        } as IDataRow['cluster'],
+        white_regex: item.white_regex?.replaceAll('\\n', '\n') || '',
+      }),
+    );
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = [...dataList];
+    } else {
+      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+    }
+  };
+
   const handleClusterBatchEdit = (clusterList: RedisModel[]) => {
     const newList: IDataRow[] = [];
     clusterList.forEach((item) => {
@@ -212,14 +256,12 @@
       }
     });
     formData.tableData = [...(formData.tableData[0]!.cluster.master_domain ? formData.tableData : []), ...newList];
-    window.changeConfirm = true;
   };
 
   const handleBatchEdit = (value: string, field: string) => {
     formData.tableData.forEach((item) => {
       Object.assign(item, { [field]: value });
     });
-    window.changeConfirm = true;
   };
 
   const handleSubmit = async () => {
@@ -242,7 +284,6 @@
 
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
-    window.changeConfirm = false;
   };
 
   const handleTypeChange = () => {

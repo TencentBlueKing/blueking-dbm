@@ -265,7 +265,10 @@ class SqlserverDTSFlow(BaseFlow):
             is_remote_rewritable=True,
         )
 
-        main_pipeline.run_pipeline(init_trans_data_class=SqlserverBackupIDContext())
+        # main_pipeline.run_pipeline(init_trans_data_class=SqlserverBackupIDContext())
+        main_pipeline.run_pipeline_with_sidecar(
+            check_ai_monitor_cluster_list=total_cluster_ids, init_trans_data_class=SqlserverBackupIDContext()
+        )
 
     def incr_dts_flow_v2(self):
         """
@@ -408,7 +411,10 @@ class SqlserverDTSFlow(BaseFlow):
             is_remote_rewritable=True,
         )
 
-        main_pipeline.run_pipeline(init_trans_data_class=SqlserverBackupIDContext())
+        # main_pipeline.run_pipeline(init_trans_data_class=SqlserverBackupIDContext())
+        main_pipeline.run_pipeline_with_sidecar(
+            check_ai_monitor_cluster_list=total_cluster_ids, init_trans_data_class=SqlserverBackupIDContext()
+        )
 
     def __full_restore_sub_flow(
         self,

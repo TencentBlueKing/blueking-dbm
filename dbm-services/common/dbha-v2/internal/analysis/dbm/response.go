@@ -62,6 +62,7 @@ type DbInstMetadata struct {
 	ClusterType        haprobe.DbmMetadataClusterType     `json:"cluster_type"`
 	Status             DbmMetadataStatus                  `json:"status"`
 	SpiderRole         DbmMetadataSpiderRole              `json:"spider_role"`
+	IsStandBy          bool                               `json:"is_stand_by"`
 
 	// The storage instance will be set when the cluster type is tendbha and the access layer is storage.
 	Receiver []DbmMetadataSlaveInfo `json:"receiver"`

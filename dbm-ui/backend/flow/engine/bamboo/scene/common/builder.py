@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging
+import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Self
 
@@ -32,6 +33,7 @@ from django.utils import translation
 from django.utils.translation import gettext as _
 from pipeline.eri.runtime import BambooDjangoRuntime
 
+from backend.env import ENABLE_DBM_AI
 from backend.flow.engine.exceptions import PipelineError
 from backend.flow.models import FlowNode, FlowTree, StateType
 from backend.flow.plugins.components.collections.common.create_random_job_user import AddTempUserForClusterComponent
@@ -98,9 +100,37 @@ class Builder(object):
         # 定义条件网关的上下文参数
         self.node_output_list = []
 
+        # 定义旁路act节点列表
+        self.sidecar_acts = []
+
         # 判断是否添加临时账号的流程逻辑
         if self.need_random_pass_cluster_ids:
             self.create_random_pass_act()
+
+    def add_sidecar_acts(self, sidecar_acts: List):
+        """
+        支持开发者拓展flow的自定义的单据值守的节点
+        @param sidecar_acts: 待加进去的值守节点
+        """
+        self.sidecar_acts.extend(sidecar_acts)
+
+    def default_sidecar_act(self, check_cluster_ids: List[int], enable_converge: bool = True):
+        """
+        流程默认单据值守节点列表的活动节点
+        @param check_cluster_ids：需要监听的集群列表
+        @param enable_converge：是否启用消息推送收敛，默认为True
+        """
+        from backend.flow.plugins.components.collections.common.check_cluster_alarm_for_ai import (
+            CheckClusterAlarmForAIComponent,
+        )
+
+        self.sidecar_acts.append(
+            {
+                "act_name": _("分析运行期间的集群风险"),
+                "act_component_code": CheckClusterAlarmForAIComponent.code,
+                "kwargs": {"cluster_ids": check_cluster_ids, "enable_converge": enable_converge},
+            },
+        )
 
     def with_sidecar_acts(self, worker_name: str, sidecar_acts: List) -> Self:
         if sidecar_acts and isinstance(sidecar_acts, list) and len(sidecar_acts) > 0:
@@ -298,12 +328,83 @@ class Builder(object):
         # 拼接有可能条件网关需要的上下文变量
         self.node_output_list.append({"conditions_param": conditions_param, "source_act_id": source_act.id})
 
-    def run_pipeline(self, init_trans_data_class: Optional[Any] = None, is_drop_random_user: bool = True) -> bool:
+    def _build_sidecar_sub_pipeline(self):
+        """
+        定义创建旁路子流程的过程
+        """
+        sidecar_subpipe = SubBuilder(root_id=self.root_id, data=self.data)
+        sidecar_subpipe.add_parallel_acts(acts_list=self.sidecar_acts)
+        return sidecar_subpipe.build_sub_process(sub_name=_("单据值守"))
+
+    def run_pipeline_with_sidecar(
+        self,
+        check_ai_monitor_cluster_list: List[int] = None,
+        init_trans_data_class: Optional[Any] = None,
+        is_drop_random_user: bool = True,
+        enable_converge: bool = True,
+    ):
+        """
+        定义已注册单据值守的形态，运行pipeline
+        @param 传入需要监听的集群列表
+        @param check_ai_monitor_cluster_list 传入需要AI智能体监控的集群Id列表，只有环境开启AI才能操作。默认是空
+        @param init_trans_data_class: trans_data变量上下文初始化的值，默认""
+        @param is_drop_random_user: 控制是否最后回收临时账号，需要跟need_random_pass_cluster_ids不为空才能操作，针对集群下架场景
+        @param enable_converge: 是否启用AI值守消息推送收敛，默认为True。设为False则每次检测到风险都推送
+        """
+        if ENABLE_DBM_AI:
+            # 需要判断系统环境是否开启AI
+            # 接入单据值守框架，整个任务流程会下降成子流程， 同时生成监听单据的子流程
+            # 比如： 【开始】-----【任务流程】-----【结束】
+            # 接入后：
+            #          | --[单据值守] --|
+            # 【开始】---|--【任务流程】--|---【结束】
+            if not isinstance(check_ai_monitor_cluster_list, list) or len(check_ai_monitor_cluster_list) == 0:
+                # 不符合注入单据值守子流程的条件，报错
+                raise Exception(
+                    _(
+                        "不满足启动单据值守子流程的条件，请联系系统管理员： "
+                        "参数check_ai_monitor_cluster_list:{}, self.sidecar_acts:{}".format(
+                            check_ai_monitor_cluster_list, self.sidecar_acts
+                        )
+                    )
+                )
+            # 设置默认的值守节点
+            self.default_sidecar_act(check_cluster_ids=check_ai_monitor_cluster_list)
+
+        # 判断值守旁路节点列表是否为空
+        if len(self.sidecar_acts) == 0:
+            # 不符合注入单据值守子流程的条件，不报错处理，只是进入普通模式启动pipeline
+            return self.run_pipeline(
+                init_trans_data_class=init_trans_data_class, is_drop_random_user=is_drop_random_user
+            )
+
+        # 判断是否回收临时账号的流程逻辑
+        if self.need_random_pass_cluster_ids and is_drop_random_user:
+            self.reduce_random_pass_act()
+
+        # 将整体任务设置子任务流程
+        sub_process = self.build_sub_process(sub_name=_("任务流程"))
+        # 添加单据值守子流程
+        ai_monitor_sub_process = self._build_sidecar_sub_pipeline()
+
+        # 重新声明一个流程对象
+        pipeline = Builder(root_id=self.root_id, data=self.data)
+        pipeline.add_parallel_sub_pipeline(sub_flow_list=[ai_monitor_sub_process, sub_process])
+        pipeline.run_pipeline(init_trans_data_class=init_trans_data_class)
+
+        return True
+
+    def run_pipeline(
+        self,
+        init_trans_data_class: Optional[Any] = None,
+        is_drop_random_user: bool = True,
+    ) -> bool:
         """
         开始运行 pipeline
         @param init_trans_data_class: trans_data变量上下文初始化的值，默认""
         @param is_drop_random_user: 控制是否最后回收临时账号，需要跟need_random_pass_cluster_ids不为空才能操作，针对集群下架场景
         """
+        flow_generate_t0 = time.perf_counter()
 
         # 判断是否回收临时账号的流程逻辑
         if self.need_random_pass_cluster_ids and is_drop_random_user:
@@ -318,13 +419,20 @@ class Builder(object):
             self.global_data.inputs[f"${{{i['conditions_param']}}}"] = NodeOutput(
                 type=Var.SPLICE, source_act=i["source_act_id"], source_key=f"{i['conditions_param']}"
             )
-
+        # 接入流程中结束节点
         self.pipe.extend(self.end_act)
-        pipeline = builder.build_tree(self.start_act, id=self.root_id, data=self.global_data)
 
+        # 构建pipeline流程树
+        build_tree_t0 = time.perf_counter()
+        pipeline = builder.build_tree(self.start_act, id=self.root_id, data=self.global_data)
+        build_tree_sec = time.perf_counter() - build_tree_t0
+
+        # 传入参数进行脱敏
         pipeline_copy = copy.deepcopy(pipeline)
         insensitive_data = self.hide_sensitive_data(pipeline_copy)
+
         # 考虑到有些任务没有单据关联，因此uid一般为root_id，此时创建FlowTree的时候uid应该为null
+        # 讲流程信息录入到FLowTree表
         uid = self.data.get("uid") if isinstance(self.data.get("uid"), int) else None
         FlowTree.objects.create(
             uid=uid,
@@ -336,8 +444,18 @@ class Builder(object):
             created_by=self.data["created_by"],
             db_type=TicketType.get_db_type_by_ticket(self.data["ticket_type"]),
         )
-
+        flow_generate_sec = time.perf_counter() - flow_generate_t0
+        logger.info(
+            "flow generated root_id=%s ticket_type=%s build_tree_sec=%.4f flow_generate_sec=%.4f",
+            self.root_id,
+            self.data.get("ticket_type"),
+            build_tree_sec,
+            flow_generate_sec,
+        )
+        # 尝试运行流程
         result = api.run_pipeline(runtime=BambooDjangoRuntime(), pipeline=pipeline)
+
+        # 确认流程是否运行正常
         if not result.result:
             raise PipelineError(_("部署bamboo流程任务创建失败: {}").format(result.exc_trace))
 
@@ -357,13 +475,6 @@ class Builder(object):
     def get_ip_list(ips: list) -> list:
         return [{"bk_cloud_id": 0, "ip": ip} for ip in ips]
 
-
-class SubBuilder(Builder):
-    """
-    SubBuilder：创建bamboo子流程的对象，活动节点所有的需要参数都是通过流程上下文传递，
-    流程上下文只要一个dict参数
-    """
-
     def build_sub_process(self, sub_name) -> Optional[SubProcess]:
         """
         build_sub_bamboo方法: 建立子流程树
@@ -382,6 +493,16 @@ class SubBuilder(Builder):
         sub_params = Params({"${trans_data}": Var(type=Var.SPLICE, value="${trans_data}")})
         self.pipe.extend(self.end_act)
         return SubProcess(start=self.start_act, data=sub_data, params=sub_params, name=sub_name)
+
+
+class SubBuilder(Builder):
+    """
+    SubBuilder：创建bamboo子流程的对象，活动节点所有的需要参数都是通过流程上下文传递，
+    流程上下文只要一个dict参数
+    """
+
+    def build_sub_process(self, sub_name) -> Optional[SubProcess]:
+        return super().build_sub_process(sub_name=sub_name)
 
     @classmethod
     def from_builder(cls, b: Builder) -> Self:

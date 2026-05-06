@@ -10,6 +10,13 @@ type BaseConfFileDef struct {
 	ConfFile string `json:"conf_file" form:"conf_file" validate:"required" example:"MySQL-5.7"`
 }
 
+type ConfigFileDesc struct {
+	// 配置类型中文名
+	ConfTypeLC string `json:"conf_type_lc" form:"conf_type_lc" example:"DB参数配置"`
+	// 配置文件中文名，也可以是其它 locale 语言类型
+	ConfFileLC string `json:"conf_file_lc" form:"conf_file_lc" example:"5.7_参数配置"`
+}
+
 // ConfFileDef TODO
 type ConfFileDef struct {
 	BaseConfFileDef
@@ -38,9 +45,9 @@ type ConfNameDef struct {
 	// 配置项中文名，可不填
 	ConfNameLC string `json:"conf_name_lc" form:"conf_name_lc"`
 	// 配置项的值类型，如 `STRING`,`INT`,`FLOAT`,`NUMBER`
-	ValueType string `json:"value_type" form:"value_type" validate:"required,enums" enums:"STRING,INT,FLOAT,NUMBER" example:"STRING"`
+	ValueType string `json:"value_type" form:"value_type" validate:"required,enums" enums:"STRING,INT,FLOAT,NUMBER,BOOL" example:"STRING"`
 	// value_type 的子类型，如果设置则用于校验 value_type 的具体类型，或者返回用于告知前端控件类型，例如 ENUM,RANGE
-	ValueTypeSub string `json:"value_type_sub" form:"value_type_sub" validate:"enums" enums:",STRING,ENUM,ENUMS,RANGE,BYTES,REGEX,JSON,COMPLEX" example:"ENUM"`
+	ValueTypeSub string `json:"value_type_sub" form:"value_type_sub"  example:"ENUM"`
 	// 允许设定值，如枚举/范围等，为空时表示不限制范围
 	// 当 value_type_sub=ENUM 时，value_allowed 格式 0|1 或者 ON|OFF 或者 aaa|bbb|ccc ， 会校验value的合法性
 	// 当 value_type_sub=REGEX 时，会根据 value_allowed 进行正则校验
@@ -50,13 +57,17 @@ type ConfNameDef struct {
 	// 配置项默认值
 	ValueDefault string `json:"value_default" form:"value_default" example:"1"`
 	// 是否需要重启生效. 默认1
+
 	NeedRestart int8 `json:"need_restart" form:"need_restart" example:"1"`
-	// 是否禁用，代表该配置项状态. 默认0启用. 1: disable，相当于软删, -1: 物理删除
-	FlagDisable int8 `json:"flag_disable" form:"flag_disable" example:"0"`
-	// 是否锁定. 默认0
-	FlagLocked int8 `json:"flag_locked" form:"flag_locked" example:"0"`
+	// 是否加密. 默认0
+	FlagEncrypt int8 `json:"flag_encrypt" form:"flag_encrypt" example:"0"`
+	// 是否只读. 默认0
+	FlagReadonly int8 `json:"flag_readonly" form:"flag_readonly" example:"0"`
+	// 可见性. 默认1
+	FlagVisible int8 `json:"flag_visible" form:"flag_visible" example:"1"`
 	// 配置读写状态，1:可读可写， 2:只读不可修改，用于展示或者生成配置 -1: 不展示配置，只表示合法全量配置用于下拉
 	FlagStatus int8 `json:"flag_status" form:"flag_status" example:"1"`
+
 	// 配置项说明
 	Description string `json:"description" form:"description"`
 }
@@ -76,7 +87,8 @@ type ConfTypeDef struct {
 // UpsertConfNames TODO
 type UpsertConfNames struct {
 	ConfNameDef
-	OperationType
+	// 配置项修改动作，需提供操作类型字段，允许值 `add`,`update`,`remove`,`upsert`
+	OPType string `json:"op_type" form:"op_type" validate:"required,enums" enums:"add,update,remove,upsert"`
 }
 
 // QueryConfigNamesReq TODO

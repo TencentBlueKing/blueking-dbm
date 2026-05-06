@@ -1,5 +1,8 @@
 <template>
   <BkNavigation
+    :class="{
+      'is-hide-navigation-header': isHideNavigationHeader,
+    }"
     :default-open="isSideMenuFlod"
     navigation-type="top-bottom"
     :need-menu="needMenu"
@@ -50,13 +53,14 @@
     <div
       class="db-navigation-content-wrapper"
       :class="{ 'is-fullscreen': isContendFullscreen }"
-      style="height: calc(100vh - var(--notice-height) - 104px)">
+      :style="{
+        height: `calc(100vh - var(--notice-height) - 52px - ${navigationHeaderHeight})`,
+      }">
       <slot />
     </div>
   </BkNavigation>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
@@ -172,6 +176,7 @@
       'PlatformWhitelist',
       'PlatGlobalStrategy',
       'dutyRuleManange',
+      'TodoRemind',
       'PlatformNotificationSetting',
       'passwordManage',
       'PlatformTicketFlowSetting',
@@ -189,8 +194,10 @@
       'SelfServiceMyTickets',
       'MyTodos',
       'ticketSelfDone',
+      'resourceManageHostTodo',
+      'ClusterDisableTodo',
       'ticketSelfManage',
-      'InspectionTodos',
+      'inspectionTodosGlobal',
       'platformAlarmEventsTodo',
       'RiskMemoTodos',
       'myAlarmSubscription',
@@ -205,6 +212,7 @@
       'DashboradManage',
       'RiskMemoGlobal',
       'ExerciseReportGlobal',
+      'AgentChat',
     ],
     [menuEnum.resourceManage]: ['ResourceSpec', 'resourceManage', 'resourcePoolDirtyMachines'],
   } as Record<string, string[]>;
@@ -227,6 +235,8 @@
   const isContendFullscreen = computed(() => Boolean(route.meta.fullscreen));
   // 全局搜索结果页面不显示，点击顶部导航栏后显示并自动跳转
   const needMenu = computed(() => Boolean(menuType.value));
+  const isHideNavigationHeader = computed(() => route.name === 'AgentChatIndex');
+  const navigationHeaderHeight = computed(() => (isHideNavigationHeader.value ? '0px' : '52px'));
 
   // 解析路由分组
   watch(
@@ -271,6 +281,12 @@
 <style lang="less">
   .bk-navigation {
     height: calc(100vh - var(--notice-height)) !important;
+
+    &.is-hide-navigation-header {
+      .db-navigation-content-header {
+        display: none;
+      }
+    }
 
     .container-content {
       height: auto;

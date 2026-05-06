@@ -224,6 +224,13 @@ export default class Tendbha extends ClusterBase {
     return operation.ticket_id;
   }
 
+  /**
+   * is_stand_by: false
+   */
+  get readonlySlaveList() {
+    return this.slaves.filter((item) => !item.is_stand_by);
+  }
+
   get roleFailedInstanceInfo() {
     return {
       Master: ClusterBase.getRoleFaildInstanceList(this.masters),
@@ -255,12 +262,5 @@ export default class Tendbha extends ClusterBase {
    */
   get standbySlaveList() {
     return this.slaves.filter((item) => item.is_stand_by);
-  }
-
-  /**
-   * is_stand_by: false
-   */
-  get readonlySlaveList() {
-    return this.slaves.filter((item) => !item.is_stand_by);
   }
 }

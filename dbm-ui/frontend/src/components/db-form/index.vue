@@ -109,6 +109,10 @@
     }
   });
 
+  onBeforeUnmount(() => {
+    window.changeConfirm = false;
+  });
+
   defineExpose({
     clearValidate: () => dbFormRef.value.clearValidate(),
     validate: (fields?: string | Array<string>) =>

@@ -17,34 +17,34 @@
     v-bind="$attrs">
     <div
       v-if="buttonText"
-      class="db-ip-selector__operations">
+      class="db-ip-selector-operations">
       <div>
         <span
           v-bk-tooltips="buttonTips"
           class="inline-block">
           <BkButton
             v-if="buttonText"
-            class="db-ip-selector__trigger"
+            class="db-ip-selector-trigger"
             :disabled="!buttonTips.disabled"
             @click="handleShowIpSelector">
             <i class="db-icon-add" />
             {{ buttonText }}
           </BkButton>
         </span>
-        <span class="db-ip-selector__desc">
+        <span class="db-ip-selector-desc">
           <slot name="desc" />
         </span>
       </div>
       <BkInput
         v-if="showPreview"
         v-model="selectorState.search"
-        class="db-ip-selector__search"
+        class="db-ip-selector-search"
         :placeholder="searchPlaceholder || $t('请输入IP')"
         type="search" />
     </div>
     <div
       v-if="showPreview"
-      class="db-ip-selector__content">
+      class="db-ip-selector-content">
       <slot>
         <BkLoading
           v-if="renderData.length > 0"
@@ -474,8 +474,8 @@
         label: t('操作'),
         render: ({ index }: { index: number }) => (
           <bk-button
-            theme='primary'
             text
+            theme='primary'
             onClick={() => handleRemoveSelected(index)}>
             {t('删除')}
           </bk-button>
@@ -610,19 +610,19 @@
   @import '@styles/mixins.less';
 
   .db-ip-selector {
-    &__operations {
+    .db-ip-selector-operations {
       justify-content: space-between;
       .flex-center();
     }
 
-    &__desc {
+    .db-ip-selector-desc {
       padding-left: 12px;
       font-size: @font-size-mini;
       line-height: 20px;
       color: @default-color;
     }
 
-    &__trigger {
+    .db-ip-selector-trigger {
       .db-icon-add {
         margin-right: 4px;
         color: @gray-color;
@@ -635,27 +635,27 @@
       }
     }
 
-    &__search {
+    .db-ip-selector-search {
       width: 320px;
     }
+  }
 
-    &-dialog {
-      width: 80%;
-      max-width: 1600px;
-      min-width: 1200px;
+  .db-ip-selector-dialog {
+    width: 80%;
+    max-width: 1600px;
+    min-width: 1200px;
 
-      :deep(.bk-modal-header) {
-        display: none;
-      }
+    :deep(.bk-modal-header) {
+      display: none;
+    }
 
-      :deep(.bk-dialog-content) {
-        padding: 0;
-        margin: 0;
-      }
+    :deep(.bk-dialog-content) {
+      padding: 0;
+      margin: 0;
+    }
 
-      :deep(.bk-button) {
-        min-width: 88px;
-      }
+    :deep(.bk-button) {
+      min-width: 88px;
     }
   }
 </style>

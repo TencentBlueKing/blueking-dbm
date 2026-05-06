@@ -14,65 +14,67 @@
 <template>
   <UpgradeWrapper v-model="wrapperController">
     <SmartAction class="db-toolbox">
-      <EditableTable
-        ref="table"
-        class="mb-20"
-        :model="formData.tableData">
-        <EditableRow
-          v-for="(item, index) in formData.tableData"
-          :key="index">
-          <WithRelatedClustersColumn
-            v-model="item.cluster"
-            :selected="selected"
-            @batch-edit="handleBatchEdit" />
-          <ClusterHostColumn :cluster="item.cluster" />
-          <CurrentVersionColumn
-            v-model="item.current_version"
-            :cluster="item.cluster" />
-          <TargetVersionColumn
-            v-model="item.target_version"
-            v-model:new-db-module-id="item.new_db_module_id"
-            v-model:pkg-id="item.pkg_id"
-            :cluster="item.cluster" />
-          <MultipleResourceHostColumn
-            v-model="item.new_master_slave_host"
-            field="new_master_slave_host"
-            :label="t('新主从主机')"
-            :limit="2"
-            :min-width="200"
-            :params="{
-              for_bizs: [currentBizId, 0],
-              resource_types: [DBTypes.MYSQL, 'PUBLIC'],
-            }" />
-          <NewReadonlyHostColumn
-            v-model="item.new_readonly_host"
-            :cluster="item.cluster" />
-          <OperationColumn
-            v-model:table-data="formData.tableData"
-            :create-row-method="createTableRow" />
-        </EditableRow>
-      </EditableTable>
-      <BkFormItem class="mb-8">
-        <BkCheckbox
-          v-model="formData.is_check_process"
-          :false-label="false"
-          true-label>
-          <span
-            v-bk-tooltips="t('存在业务连接时需要人工确认')"
-            class="safe-action-text">
-            {{ t('检查业务连接') }}
-          </span>
-        </BkCheckbox>
-      </BkFormItem>
-      <BackupSource v-model="formData.backup_source" />
-      <BkFormItem
-        :label="t('数据校验')"
-        property="need_checksum">
-        <BkSwitcher
-          v-model="formData.need_checksum"
-          theme="primary" />
-      </BkFormItem>
-      <TicketPayload v-model="formData.payload" />
+      <BkForm
+        class="toolbox-form mb-20"
+        form-type="vertical"
+        :model="formData">
+        <EditableTable
+          ref="table"
+          class="mb-20"
+          :model="formData.tableData">
+          <EditableRow
+            v-for="(item, index) in formData.tableData"
+            :key="index">
+            <WithRelatedClustersColumn
+              v-model="item.cluster"
+              :selected="selected"
+              @batch-edit="handleBatchEdit" />
+            <CurrentVersionColumn
+              v-model="item.current_version"
+              :cluster="item.cluster" />
+            <TargetVersionColumn
+              v-model="item.target_version"
+              v-model:new-db-module-id="item.new_db_module_id"
+              v-model:pkg-id="item.pkg_id"
+              :cluster="item.cluster" />
+            <SpecColumn
+              v-model="item.specId"
+              :cluster-type="DBTypes.MYSQL"
+              :current-spec-id-list="item.cluster.spec_id_list"
+              :label="t('规格')"
+              :machine-type="MachineTypes.MYSQL_BACKEND"
+              required />
+            <ResourceTagColumn v-model="item.labels" />
+            <ReadonlyHostColumn
+              v-model="item.read_only_slaves"
+              :cluster="item.cluster" />
+            <OperationColumn
+              v-model:table-data="formData.tableData"
+              :create-row-method="createTableRow" />
+          </EditableRow>
+        </EditableTable>
+        <BkFormItem class="mb-8">
+          <BkCheckbox
+            v-model="formData.is_check_process"
+            :false-label="false"
+            true-label>
+            <span
+              v-bk-tooltips="t('存在业务连接时需要人工确认')"
+              class="safe-action-text">
+              {{ t('检查业务连接') }}
+            </span>
+          </BkCheckbox>
+        </BkFormItem>
+        <BackupSource v-model="formData.backupSource" />
+        <BkFormItem
+          :label="t('数据校验')"
+          property="need_checksum">
+          <BkSwitcher
+            v-model="formData.need_checksum"
+            theme="primary" />
+        </BkFormItem>
+        <TicketPayload v-model="formData.payload" />
+      </BkForm>
       <template #action>
         <BkButton
           class="mr-8 w-88"
@@ -106,25 +108,26 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
-  import MultipleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/multiple-resource-host-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
+  import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import BackupSource from '@views/db-manage/common/toolbox-field/form-item/backup-source/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import WithRelatedClustersColumn from '@views/db-manage/mysql/common/edit-table-column/WithRelatedClustersColumn.vue';
+  import WithRelatedClustersColumn from '@views/db-manage/mysql/common/toolbox-field/with-related-clusters-column/Index.vue';
   import CurrentVersionColumn from '@views/db-manage/mysql/MYSQL_LOCAL_UPGRADE/components/CurrentVersionColumn.vue';
   import TargetVersionColumn from '@views/db-manage/mysql/MYSQL_LOCAL_UPGRADE/components/TargetVersionColumn.vue';
   import UpgradeWrapper from '@views/db-manage/mysql/MYSQL_LOCAL_UPGRADE/components/UpgradeWrapper.vue';
 
-  import ClusterHostColumn from './components/ClusterHostColumn.vue';
-  import NewReadonlyHostColumn from './components/NewReadonlyHostColumn.vue';
+  import ReadonlyHostColumn from './components/ReadonlyHostColumn.vue';
 
   interface IHostData {
     bk_biz_id: number;
     bk_cloud_id: number;
     bk_host_id: number;
+    bk_sub_zone?: string;
     ip: string;
   }
 
@@ -138,20 +141,22 @@
         id: number;
         master_domain: string;
       }[];
+      spec_id_list: number[];
     } & TendbhaModel;
     current_version: ComponentProps<typeof CurrentVersionColumn>['modelValue'];
+    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     new_db_module_id: number;
-    new_master_slave_host: IHostData[];
-    new_readonly_host: IHostData[];
     pkg_id: number;
-    readonly_host: IHostData[];
+    read_only_slaves: {
+      new_slave: IHostData;
+      old_slave: IHostData;
+    }[];
+    specId: number;
     target_version: ComponentProps<typeof TargetVersionColumn>['modelValue'];
   }
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
-
-  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const createTableRow = (data = {} as DeepPartial<RowData>) => ({
     cluster: Object.assign(
@@ -160,6 +165,7 @@
         id: 0,
         master_domain: '',
         related_clusters: [],
+        spec_id_list: [],
       } as unknown as RowData['cluster'],
       data.cluster,
     ),
@@ -172,11 +178,11 @@
       },
       data.current_version,
     ),
+    labels: (data.labels || []) as RowData['labels'],
     new_db_module_id: data.new_db_module_id || 0,
-    new_master_slave_host: (data.new_master_slave_host as IHostData[]) || [],
-    new_readonly_host: (data.new_readonly_host as IHostData[]) || [],
     pkg_id: data.pkg_id || 0,
-    readonly_host: (data.readonly_host as IHostData[]) || [],
+    read_only_slaves: (data.read_only_slaves || []) as RowData['read_only_slaves'],
+    specId: data.specId || 0,
     target_version: Object.assign(
       {
         charset: '',
@@ -189,7 +195,7 @@
   });
 
   const defaultData = () => ({
-    backup_source: BackupSourceType.REMOTE,
+    backupSource: BackupSourceType.REMOTE,
     is_check_process: true,
     need_checksum: true,
     payload: createTickePayload(),
@@ -223,6 +229,7 @@
       if (infos.length > 0) {
         Object.assign(formData, {
           ...createTickePayload(ticketDetail),
+          backupSource: ticketDetail.details.backup_source,
           is_check_process: ticketDetail.details.is_check_process,
           need_checksum: ticketDetail.details.need_checksum,
           tableData: ticketDetail.details.infos.map((item) =>
@@ -231,9 +238,8 @@
                 master_domain: clusters[item.cluster_ids[0]].immute_domain,
               },
               new_db_module_id: item.new_db_module_id,
-              new_master_slave_host: [item.resource_spec.new_master.hosts[0], item.resource_spec.new_slave.hosts[0]],
-              new_readonly_host: item.read_only_slaves.map((item) => item.new_slave),
               pkg_id: item.pkg_id,
+              read_only_slaves: item.read_only_slaves,
               target_version: {
                 charset: item.display_info.charset,
                 db_module_name: item.display_info.target_module_name,
@@ -257,7 +263,6 @@
         current_module_name: string;
         current_package: string;
         current_version: string;
-        old_master_slave: string[];
         target_module_name: string;
         target_package: string;
         target_version: string;
@@ -269,13 +274,18 @@
         old_slave: IHostData;
       }[];
       resource_spec: {
-        new_master: {
-          hosts: IHostData[];
-          spec_id: 0;
+        backend_group: {
+          count: number;
+          label_names: string[]; // 标签名称列表，单据详情回显用
+          labels: string[]; // 标签id列表
+          spec_id: number;
         };
-        new_slave: {
+        new_read_slave?: {
+          count: number;
           hosts: IHostData[];
-          spec_id: 0;
+          label_names: string[]; // 标签名称列表，单据详情回显用
+          labels: string[]; // 标签id列表
+          spec_id: number;
         };
       };
     }[];
@@ -305,7 +315,7 @@
     if (result) {
       createTicketRun({
         details: {
-          backup_source: formData.backup_source,
+          backup_source: formData.backupSource,
           infos: formData.tableData.map((item) => ({
             cluster_ids: [item.cluster.id, ...item.cluster.related_clusters.map((item) => item.id)],
             display_info: {
@@ -314,31 +324,30 @@
               current_module_name: item.cluster.db_module_name,
               current_package: item.current_version.pkg_name,
               current_version: item.current_version.db_version,
-              old_master_slave: [
-                item.cluster.masters?.[0]?.ip,
-                item.cluster.slaves.filter((slave) => slave.is_stand_by)?.[0]?.ip,
-              ],
               target_module_name: item.target_version.db_module_name,
               target_package: item.target_version.pkg_name,
               target_version: item.target_version.db_version,
             },
             new_db_module_id: item.new_db_module_id,
             pkg_id: item.pkg_id,
-            read_only_slaves: item.readonly_host.length
-              ? item.readonly_host.map((host, index) => ({
-                  new_slave: item.new_readonly_host[index],
-                  old_slave: host,
-                }))
-              : [],
+            read_only_slaves: item.read_only_slaves,
             resource_spec: {
-              new_master: {
-                hosts: [item.new_master_slave_host[0]],
-                spec_id: 0,
+              backend_group: {
+                count: 1,
+                label_names: item.labels.map((item) => item.value),
+                labels: item.labels.map((item) => String(item.id)),
+                spec_id: item.specId,
               },
-              new_slave: {
-                hosts: [item.new_master_slave_host[1]],
-                spec_id: 0,
-              },
+              new_read_slave:
+                item.read_only_slaves.length > 0
+                  ? {
+                      count: item.read_only_slaves.length,
+                      hosts: item.read_only_slaves.reduce<IHostData[]>((acc, cur) => [...acc, cur.new_slave], []),
+                      label_names: item.labels.map((item) => item.value),
+                      labels: item.labels.map((item) => String(item.id)),
+                      spec_id: item.specId,
+                    }
+                  : undefined,
             },
           })),
           ip_source: 'resource_pool',

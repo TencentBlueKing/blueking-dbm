@@ -12,10 +12,10 @@ from datetime import datetime, timedelta
 
 from django.utils.translation import gettext as _
 
-from ...configuration.constants import SystemSettingsEnum
+from ...configuration.constants import HCM_DISK_CLASS_MAP, SystemSettingsEnum
 from ...configuration.models import SystemSettings
 from ...db_meta.models.city_map import BKSubzone
-from ...db_services.cmdb.biz import get_resource_biz
+from ...db_services.cmdb.biz import get_hcm_apply_resource_biz, get_resource_biz
 from .. import CCApi
 from ..base import BaseApi
 from ..domains import HCM_APIGW_DOMAIN
@@ -113,7 +113,7 @@ class _HCMApi(BaseApi):
 
         return has_uwork_hosts_map
 
-    def create_recycle(self, bk_host_ids: list):
+    def create_recycle(self, bk_host_ids: list, operator: str):
         params = {
             # 所有待回收的机器一定在资源池管控业务
             "bk_biz_id": get_resource_biz(),
@@ -121,8 +121,9 @@ class _HCMApi(BaseApi):
             "remark": "dbm auto create",
             # 回收策略固定是：立刻销毁
             "return_plan": {"cvm": "IMMEDIATE", "pm": "IMMEDIATE"},
+            "bk_username": operator,
         }
-        resp = self.create_biz_recycle(params=params)
+        resp = self.create_biz_recycle(params=params, use_param_user=True)
         return resp["info"][0]["order_id"]
 
     def create_apply(
@@ -132,9 +133,10 @@ class _HCMApi(BaseApi):
         city: str,
         subzone: str,
         os_name: str,
-        device_type: str,
+        device_types: list,
         disk: list,
         count: int,
+        ticket_id: int = None,
     ):
         """
         HCM资源申请规则：
@@ -146,21 +148,19 @@ class _HCMApi(BaseApi):
         5. 计费模式：包年包月，36个月
         6. 继承云实例ID：在弹性资源池cc上找到一个同地域同机型的主机固资编号，如果无法找到则不能申请改类型规格的机器
         """
+        bk_biz_id = get_hcm_apply_resource_biz()
         hcm_image_map = SystemSettings.get_setting_value(SystemSettingsEnum.HCM_OS_NAME_IMAGE_MAP, default={})
         hcm_image_map = {key.strip().lower(): value for key, value in hcm_image_map.items()}
 
-        # 根据操作系统名称获取镜像ID
-        image_id = hcm_image_map.get(os_name.strip().lower())
-        if not image_id:
-            raise DataAPIException(_("未找到操作系统{}对应的镜像ID").format(os_name))
-
-        # 查询资源池业务下同地域同机型的任意一个机器云区域实例ID
+        # 查询cc的园区需要拿园区映射关系（HCM可能是虚拟园区，要拿映射的真实园区查询）TODO: 暂不需要约束CC园区
+        # subzone_map = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_SUBZONE_MAP, {})
+        # subzones = subzone_map.get(subzone) or [subzone]
+        # 查询业务下同地域同一批机型的任意一个机器云区域实例ID
         filters = {
             "condition": "AND",
             "rules": [
-                {"field": "bk_svr_device_cls_name", "operator": "equal", "value": device_type},
+                {"field": "bk_svr_device_cls_name", "operator": "in", "value": device_types},
                 {"field": "idc_city_name", "operator": "equal", "value": city},
-                {"field": "sub_zone", "operator": "equal", "value": subzone},
             ],
         }
         params = {
@@ -179,6 +179,14 @@ class _HCMApi(BaseApi):
         except BKSubzone.DoesNotExist:
             raise DataAPIException(_("BKSubzone未找到可用区记录: {}").format(subzone))
 
+        # 申请的机型是给定机型列表的首位
+        apply_device_type = device_types[0]
+
+        # 根据操作系统名称获取镜像ID
+        image_id = hcm_image_map.get(os_name.strip().lower())
+        if not image_id:
+            raise DataAPIException(_("未找到操作系统{}对应的镜像ID").format(os_name))
+
         # 预期申请时间定位当前时间+3月(HCM规则?)
         expect_apply_time = str((datetime.now() + timedelta(days=91)).strftime("%Y-%m-%d %H:%M:%S"))
 
@@ -191,11 +199,15 @@ class _HCMApi(BaseApi):
                 "zone": bk_subzone.bk_cloud_zone,
                 # 按机型申请
                 "resource_mode": 0,
-                "device_type": device_type,
+                "device_type": apply_device_type,
                 "image_id": image_id,
-                # 磁盘类型固定CLOUD_SSD，操作系统盘默认50G
-                "system_disk": {"disk_type": "CLOUD_SSD", "disk_size": 50},
-                "data_disk": [{"disk_type": d["disk_type"], "disk_size": d["disk_size"]} for d in disk],
+                # 操作系统盘默认高性能云盘-50G
+                "system_disk": {"disk_type": "CLOUD_PREMIUM", "disk_size": 50},
+                "data_disk": [
+                    {"disk_type": HCM_DISK_CLASS_MAP[d["disk_type"]], "disk_size": d["disk_size"], "disk_num": 1}
+                    for d in disk
+                    if d["disk_type"] in HCM_DISK_CLASS_MAP
+                ],
                 # 计费时长固定为包年包月，36个月
                 "charge_type": "PREPAID",
                 "charge_months": 36,
@@ -209,7 +221,7 @@ class _HCMApi(BaseApi):
             "require_type": 6,
             "expect_time": expect_apply_time,
             "suborders": [suborder_params],
-            "remark": _("DBM资源补货申请"),
+            "remark": _("DBM资源补货申请，来源单据ID: {}").format(ticket_id),
         }
         ticket_id = self.create_biz_apply(params=apply_params, use_admin=True)["order_id"]
         return ticket_id

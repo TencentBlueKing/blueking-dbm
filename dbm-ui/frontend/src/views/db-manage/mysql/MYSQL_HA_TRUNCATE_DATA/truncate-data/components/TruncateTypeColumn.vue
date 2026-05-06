@@ -69,6 +69,22 @@
     },
   ];
 
+  const truncateTypeMap = {
+    drop_database: 'drop_database',
+    drop_table: 'drop_table',
+    truncate_table: 'truncate_table',
+  } as Record<string, string>;
+
+  watch(
+    modelValue,
+    () => {
+      modelValue.value = truncateTypeMap[modelValue.value];
+    },
+    {
+      immediate: true,
+    },
+  );
+
   const handleShowBatchEdit = () => {
     isShowBatchEdit.value = true;
   };

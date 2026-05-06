@@ -15,6 +15,10 @@ from django.utils.translation import gettext_lazy as _
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, InstancePhase, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.check_response import CheckResponse
+from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.clb_entry_bind_check import (
+    TENDBHA_CLB_SUBTYPES,
+    collect_clb_entry_check_results,
+)
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.decorator import checker_wrapper
 from backend.db_report.enums import MetaCheckSubType
 
@@ -61,6 +65,15 @@ def _cluster_master_entry_on_storage(c: Cluster) -> List[CheckResponse]:
                 )
 
     return bad
+
+
+@checker_wrapper
+def _cluster_clb_exists_and_rs_match(c: Cluster) -> List[CheckResponse]:
+    """
+    存在 CLB 入口时：校验名字服务可查询该 CLB，且后端 RS 与当前 CLB entry 的 proxy 元数据一致。
+    期望后端来自该 entry 的 proxyinstance_set；与名字服务 data.ips 返回项及元数据 ip:port 拼接串做 strip 后集合比对。
+    """
+    return collect_clb_entry_check_results(c, TENDBHA_CLB_SUBTYPES)
 
 
 @checker_wrapper

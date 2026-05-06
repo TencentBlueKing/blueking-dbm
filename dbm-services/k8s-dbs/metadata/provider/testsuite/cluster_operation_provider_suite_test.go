@@ -79,10 +79,10 @@ func (suite *ClusterOperationProviderTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbAccess := dbaccess.NewClusterOperationDbAccess(db)
-	definitionDbAccess := dbaccess.NewOperationDefinitionDbAccess(db)
-	suite.clusterOperationProvider = provider.NewClusterOperationProvider(dbAccess, definitionDbAccess)
-	suite.operationDefinitionProvider = provider.NewOperationDefinitionProvider(definitionDbAccess)
+	dbAccess := dbaccess.GetClusterOperationDbAccess(db)
+	definitionDbAccess := dbaccess.GetOperationDefinitionDbAccess(db)
+	suite.clusterOperationProvider = provider.GetClusterOperationProvider(dbAccess, definitionDbAccess)
+	suite.operationDefinitionProvider = provider.GetOperationDefinitionProvider(definitionDbAccess)
 
 }
 

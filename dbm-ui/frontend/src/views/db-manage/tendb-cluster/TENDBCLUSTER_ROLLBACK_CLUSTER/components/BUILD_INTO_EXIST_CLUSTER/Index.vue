@@ -81,7 +81,7 @@
   import { type TendbCluster } from '@services/model/ticket/ticket';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
-  import DbNameColumn from '@views/db-manage/tendb-cluster/common/toolbox-field/db-name-column/Index.vue';
+  import DbNameColumn from '@views/db-manage/mysql/common/toolbox-field/db-name-column/Index.vue';
 
   import { random } from '@utils';
 

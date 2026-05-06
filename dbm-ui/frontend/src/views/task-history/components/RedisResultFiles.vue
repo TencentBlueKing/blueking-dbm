@@ -16,14 +16,14 @@
     class="result-files"
     dialog-type="show"
     :is-show="isShow"
-    :title="$t('查看结果文件')"
+    :title="t('查看结果文件')"
     :width="1140"
     @closed="handleClose">
     <div class="mb-24">
       <span
         v-bk-tooltips="{
           disabled: hasSelected,
-          content: $t('请选择结果项'),
+          content: t('请选择结果项'),
         }"
         class="inline-block">
         <BkButton
@@ -31,26 +31,24 @@
           :disabled="!hasSelected"
           :loading="state.isBatchDownloading"
           @click="() => handleBatchDownload()">
-          {{ $t('打包下载') }}
+          {{ t('打包下载') }}
         </BkButton>
       </span>
       <span
         v-if="showDelete"
         v-bk-tooltips="{
           disabled: hasSelected,
-          content: $t('请选择结果项'),
+          content: t('请选择结果项'),
         }"
         class="inline-block">
-        <BkButton
-          :disabled="!hasSelected"
-          @click="handleDeleteKeys()">
-          {{ $t('删除Key') }}
+        <BkButton @click="handleDeleteKeys()">
+          {{ t('删除Key') }}
         </BkButton>
       </span>
     </div>
     <BkLoading :loading="state.isLoading">
       <DbOriginalTable
-        class="result-files__table"
+        class="result-files-table"
         :columns="columns"
         :data="state.data"
         :height="460"
@@ -139,7 +137,7 @@
           class='cluster-name text-overflow'>
           <span>{data.domain}</span>
           <br />
-          <span class='cluster-name__alias'>{data.cluster_alias}</span>
+          <span class='cluster-name-alias'>{data.cluster_alias}</span>
         </div>
       ),
       showOverflowTooltip: false,
@@ -157,15 +155,15 @@
           <bk-button
             class='mr-8'
             loading={state.downloadLoadings[index]}
-            theme='primary'
             text
+            theme='primary'
             onClick={() => handleDownloadFile(data, index)}>
             {t('下载')}
           </bk-button>
           <bk-button
             loading={state.fileLoadings[index]}
-            theme='primary'
             text
+            theme='primary'
             onClick={() => getDownloadUrl(data, index)}>
             {t('复制文件地址')}
           </bk-button>
@@ -178,7 +176,9 @@
   const hasSelected = computed(() => state.selected.length > 0);
 
   watch(isShow, (isShow) => {
-    isShow && fetchKeyFiles();
+    if (isShow) {
+      fetchKeyFiles();
+    }
   });
 
   /**
@@ -320,18 +320,18 @@
         <div class='delete-confirm'>
           {data.length > 1 ? (
             data.map((item, index) => (
-              <p class='delete-confirm__item'>
+              <p class='delete-confirm-item'>
                 {index + 1}.{item.domain}
-                {item.cluster_alias ? <span class='delete-confirm__desc'>（{item.cluster_alias}）</span> : null}
+                {item.cluster_alias ? <span class='delete-confirm-desc'>（{item.cluster_alias}）</span> : null}
               </p>
             ))
           ) : (
-            <p class='delete-confirm__item'>
+            <p class='delete-confirm-item'>
               {t('集群')}：{firstData.domain}
-              {firstData.cluster_alias ? <span class='delete-confirm__desc'>（{firstData.cluster_alias}）</span> : null}
+              {firstData.cluster_alias ? <span class='delete-confirm-desc'>（{firstData.cluster_alias}）</span> : null}
             </p>
           )}
-          <p class='delete-confirm__item'>{t('删除Key_会将Key提取的对应内容进行删除_请谨慎操作')}</p>
+          <p class='delete-confirm-item'>{t('删除Key_会将Key提取的对应内容进行删除_请谨慎操作')}</p>
         </div>
       ),
       extCls: 'redis-delete-keys-confirm',
@@ -374,11 +374,11 @@
 
 <style lang="less" scoped>
   .result-files {
-    &__table {
+    .result-files-table {
       :deep(.cluster-name) {
         line-height: 16px;
 
-        &__alias {
+        .result-files-alias {
           color: @light-gray;
         }
       }
@@ -394,12 +394,12 @@
       padding: 0 36px;
       text-align: left;
 
-      &__item {
+      .delete-confirm-item {
         padding-bottom: 4px;
         word-break: break-all;
       }
 
-      &__desc {
+      .delete-confirm-desc {
         color: @light-gray;
       }
     }

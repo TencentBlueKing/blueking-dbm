@@ -80,7 +80,7 @@ func (suite *AddonHelmRepoDbAccessTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	suite.dbAccess = dbaccess.NewAddonHelmRepoDbAccess(db)
+	suite.dbAccess = dbaccess.GetAddonHelmRepoDbAccess(db)
 }
 
 func (suite *AddonHelmRepoDbAccessTestSuite) TearDownSuite() {

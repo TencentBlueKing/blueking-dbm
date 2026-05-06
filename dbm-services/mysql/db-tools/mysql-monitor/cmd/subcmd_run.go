@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 	"log/slog"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
@@ -19,7 +20,7 @@ var subCmdRun = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		initLogger(config.MonitorConfig.Log)
+		utils.InitLogger(config.MonitorConfig.Log)
 
 		err = config.LoadMonitorItemsConfig()
 		if err != nil {

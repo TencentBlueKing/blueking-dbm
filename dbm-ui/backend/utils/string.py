@@ -159,11 +159,7 @@ def format_json_string(msg: str) -> str:
                 # 注意因为json的限制，字典里的引号必须为双引号
                 format_msg = json.dumps(json.loads(msg[be:ed].replace("'", '"')), indent=2)
             except json.JSONDecodeError:
-                # 如果用json无法尝试解析，则尝试用eval解析 TODO：⚠️ eval解析比json解析慢10倍, 是否需要兼容?
-                try:
-                    format_msg = json.dumps(eval(msg[be:ed]), indent=2)
-                except Exception:  # pylint: disable=broad-except
-                    format_msg = msg[be:ed]
+                format_msg = msg[be:ed]
 
         format_msg_list.append(format_msg)
 

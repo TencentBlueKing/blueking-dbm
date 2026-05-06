@@ -12,6 +12,7 @@ package validatestruct
 
 import (
 	"encoding/json"
+	errors2 "errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -75,9 +76,9 @@ func ParseFloat32ExprRange(rangeValue string) ([]string, []float32, error) {
 	leftVal, err1 := strconv.ParseFloat(vals[0], 32)
 	rightVal, err2 := strconv.ParseFloat(vals[1], 32)
 	if err1 != nil || err2 != nil {
-		return nil, nil, err
+		return nil, nil, errors2.Join(err1, err2)
 	} else if leftVal > rightVal {
-		return nil, nil, err
+		return nil, nil, errors.Errorf("left %f should be less than right %f", leftVal, rightVal)
 	}
 	return bound, []float32{float32(leftVal), float32(rightVal)}, nil
 }
@@ -254,22 +255,22 @@ func CheckInBool(valueGiven, valueAllowed string) error {
 
 // CheckDataType 检验数据类型
 func CheckDataType(name, value string) error {
-	err2 := errors.Errorf("expect type %s but given value %s", name, value)
+	err2 := errors.Errorf("expect type %s but given value '%s'", name, value)
 	if name == DTypeInt {
 		if _, err := strconv.ParseInt(value, 10, 64); err != nil {
-			return errors.Wrap(err2, err.Error())
+			return err2
 		}
 	} else if name == DTypeFloat {
 		if _, err := strconv.ParseFloat(value, 32); err != nil {
-			return errors.Wrap(err2, err.Error())
+			return err2
 		}
 	} else if name == DTypeNumber {
 		if _, err := strconv.ParseFloat(value, 64); err != nil {
-			return errors.Wrap(err2, err.Error())
+			return err2
 		}
 	} else if name == DTypeBool {
 		if _, err := cmutil.ToBoolExtE(value); err != nil {
-			return errors.Wrap(err2, err.Error())
+			return err2
 		}
 	} else if name == "" {
 		// return errors.Errorf("empty value_type for value [%s]", value)
@@ -284,7 +285,7 @@ func CheckDataTypeSub(dataType, subType string) error {
 	}
 	if subs, ok := ValueTypeSubRef[dataType]; ok {
 		if !util.StringsHas(subs, subType) {
-			return errors.Errorf("value_type %s doesnot has sub type %s, allowed %s",
+			return errors.Errorf("value_type %s does not has sub type %s, allowed %s",
 				dataType, subType, subs)
 		}
 	} else {
@@ -314,9 +315,13 @@ func ValidateConfValue(confValue, valueType, valueTypeSub, valueAllowed string) 
 	if valueType == "" && valueTypeSub == "" && valueAllowed == "" {
 		return nil
 	}
-	if err := CheckDataType(valueType, confValue); err != nil {
+	if err := CheckDataTypeSub(valueType, valueTypeSub); err != nil {
 		return err
-	} else if err = CheckDataTypeSub(valueType, valueTypeSub); err != nil {
+	}
+	if util.ConfValueIsPlaceHolder(confValue) {
+		return nil
+	}
+	if err := CheckDataType(valueType, confValue); err != nil {
 		return err
 	}
 	var invalidErr = errors.Errorf("invalid value_type_sub %s for %s", valueTypeSub, valueType)
@@ -325,23 +330,24 @@ func ValidateConfValue(confValue, valueType, valueTypeSub, valueAllowed string) 
 		switch valueTypeSub {
 		case DTypeSubEnum, "":
 			return CheckInBool(confValue, valueAllowed)
-		case DTypeSubFlag:
-			return nil
 		default:
 			return invalidErr
 		}
 	} else if util.StringsHas([]string{DTypeInt, DTypeFloat, DTypeNumber}, valueType) {
 		return validateValueNumber(valueType, valueTypeSub, confValue, valueAllowed)
-	} else { // STRING
-		return validateValueString(valueType, valueTypeSub, confValue, valueAllowed)
 	}
+	// STRING
+	return validateValueString(valueType, valueTypeSub, confValue, valueAllowed)
 }
 
 func validateValueNumber(valueType, valueTypeSub, confValue, valueAllowed string) error {
+	if valueAllowed == "" {
+		return nil
+	}
 	if valueTypeSub == "" {
 		valueTypeSub = AutoDetectTypeSub(valueAllowed)
 		if valueTypeSub == "" {
-			return errors.Errorf("cannot detect value_type_sub for %s", valueAllowed)
+			return errors.Errorf("cannot detect value_type_sub for valueAllowed: '%s'", valueAllowed)
 		}
 	}
 	switch valueTypeSub {
@@ -396,7 +402,7 @@ func validateValueString(valueType, valueTypeSub, confValue, valueAllowed string
 		if valueAllowed != "" {
 			// value_allowed !='' and value_type_sub=''，要求 conf_value 只能一个值即 value_allowed
 			if confValue != valueAllowed {
-				return errors.Errorf("value must equal value_allowed:%s", valueAllowed)
+				return errors.Errorf("value must match value_allowed:%s", valueAllowed)
 			}
 			return nil
 		}

@@ -1,3 +1,5 @@
+//go:build integration
+
 /**
  * MIT License
  *
@@ -26,7 +28,6 @@ package discovery_test
 
 import (
 	"context"
-	"log"
 	"testing"
 	"time"
 
@@ -38,12 +39,12 @@ func TestRegsitrySetService(t *testing.T) {
 
 	err := reg.SetService(ctx, "registry-test-value")
 	if err != nil {
-		t.Errorf("failed to set service. errmsg: %v", err)
+		t.Errorf("failed to set service, errmsg: %v", err)
 	}
 
 	resp, err := etcdClient.Get(ctx, reg.GetRootKey())
 	if err != nil {
-		t.Errorf("failed to get service value. errmsg: %v", err)
+		t.Errorf("failed to get service value, errmsg: %v", err)
 	}
 
 	if len(resp.Kvs) == 0 {
@@ -64,7 +65,7 @@ func TestRegistrySet(t *testing.T) {
 
 	err := reg.Set(ctx, "registry-test-key", "registry-test-value")
 	if err != nil {
-		t.Errorf("failed to set key. errmsg: %v", err)
+		t.Errorf("failed to set key, errmsg: %v", err)
 	}
 
 	time.Sleep(10 * time.Second)
@@ -73,10 +74,10 @@ func TestRegistrySet(t *testing.T) {
 	resp, err := etcdClient.Get(ctx, expectedKey)
 
 	if err != nil {
-		t.Errorf("failed to get child node value. errmsg: %v", err)
+		t.Errorf("failed to get child node value, errmsg: %v", err)
 	}
 	if len(resp.Kvs) == 0 {
-		t.Errorf("missing child node value. errmsg: %v", err)
+		t.Errorf("missing child node value, errmsg: %v", err)
 	}
 	if string(resp.Kvs[0].Value) != "registry-test-value" {
 		t.Errorf("service value does not match. Expected: registry-test-value, Got: %s", string(resp.Kvs[0].Value))
@@ -88,15 +89,15 @@ func TestRegistryLeaseManagement(t *testing.T) {
 
 	err := reg.SetService(ctx, "registry-test-value")
 	if err != nil {
-		t.Errorf("failed to set service. errmsg: %v", err.Error())
+		t.Errorf("failed to set service, errmsg: %v", err)
 	}
 
 	resp, err := etcdClient.Get(ctx, reg.GetRootKey())
 	if err != nil {
-		t.Errorf("failed to get service value. errmsg: %v", err.Error())
+		t.Errorf("failed to get service value, errmsg: %v", err)
 	}
 	if len(resp.Kvs) == 0 {
-		t.Errorf("service value expired. errmsg: %v", err)
+		t.Errorf("service value expired, errmsg: %v", err)
 	}
 
 	initialLeaseID := resp.Kvs[0].Lease
@@ -105,10 +106,10 @@ func TestRegistryLeaseManagement(t *testing.T) {
 
 	resp, err = etcdClient.Get(ctx, reg.GetRootKey())
 	if err != nil {
-		t.Errorf("failed to get service value. errmsg: %v", err.Error())
+		t.Errorf("failed to get service value, errmsg: %v", err)
 	}
 	if len(resp.Kvs) == 0 {
-		t.Errorf("service value expired. errmsg: %v", err)
+		t.Errorf("service value expired, errmsg: %v", err)
 	}
 
 	if resp.Kvs[0].Lease != initialLeaseID {
@@ -129,17 +130,14 @@ func TestRegistryInvalidParameters(t *testing.T) {
 }
 
 func TestRegistryClose(t *testing.T) {
-	newreg, err := client.CreateRegistry()
-	if err != nil {
-		log.Fatalf("failed to create registry. errmsg:%s", err.Error())
-	}
+	newReg := client.CreateRegistry()
 
 	ctx := context.Background()
 
-	err = newreg.SetService(ctx, "registry-test-value")
+	err := newReg.SetService(ctx, "registry-test-value")
 	if err != nil {
-		t.Errorf("failed to set service. errmsg: %v", err)
+		t.Errorf("failed to set service, errmsg: %v", err)
 	}
 
-	newreg.Close()
+	newReg.Close()
 }

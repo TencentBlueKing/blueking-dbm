@@ -52,7 +52,7 @@
         required>
         <CardCheckbox
           v-model="modelValue.updateType"
-          :desc="t('适用于小版本升级，如 5.6.1 ->  5.6.2 ')"
+          :desc="t('适用于小版本升级，如 5.6.1 ->  5.6.2')"
           icon="rebuild"
           :title="t('原地升级')"
           :true-value="TicketTypes.MYSQL_LOCAL_UPGRADE" />

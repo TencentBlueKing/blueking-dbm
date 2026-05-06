@@ -17,6 +17,7 @@ import { connectToMain, rootPath } from '@blueking/sub-saas';
 
 import { useGlobalBizs } from '@stores';
 
+import getAiChatRoutes from '@views/ai-chat/routes';
 import BizPermission from '@views/BizPermission.vue';
 import getDashborderRoutes from '@views/dashboard-manage/routes';
 import getDbConfRoutes from '@views/db-configure/routes';
@@ -38,6 +39,7 @@ import getStaffManageRoutes from '@views/staff-manage/routes';
 import getTaskHistoryRoutes from '@views/task-history/routes';
 import getTemporaryPasswordModify from '@views/temporary-paassword-modify/routes';
 import getTicketRoutes from '@views/ticket-center/routes';
+import getTodoRemindRoutes from '@views/todo-remind/routes';
 import getVersionFilesRoutes from '@views/version-files/routes';
 import getWhitelistRoutes from '@views/whitelist/routes';
 
@@ -106,6 +108,7 @@ export default () => {
   getDashborderRoutes();
   getDbManageRoutes();
   getRiskMemoRoutes();
+  getAiChatRoutes();
 
   const routes = [
     {
@@ -118,6 +121,7 @@ export default () => {
         ...getDutyRuleManageRoutes(),
         ...getServiceStatusRoutes(),
         ...getExerciseReportRoutes(),
+        ...getTodoRemindRoutes(),
         ...moduleList,
         {
           component: () => import('@/demo/Index.vue'),

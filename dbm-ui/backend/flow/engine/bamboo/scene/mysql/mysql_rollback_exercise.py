@@ -35,6 +35,7 @@ from backend.flow.engine.bamboo.scene.mysql.common.mysql_restore_download_sub_fl
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_apply_flow import MySQLSingleApplyFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_destroy_flow import MySQLSingleDestroyFlow
 from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.delay import DelayComponent
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.common.transfer_host_service import TransferHostServiceComponent
@@ -335,6 +336,13 @@ class MySQLRollbackExerciseFlow(object):
                 bk_biz_id=self.rollback_to_bk_biz_id,
                 skip_clean_surrounding_config=True,
             )
+        )
+        sub_pipeline.add_act(
+            act_name=_("延迟100秒/等待节点管理异步任务执行完成"),
+            act_component_code=DelayComponent.code,
+            kwargs={
+                "delay_seconds": 100,
+            },
         )
         # 退还资源到资源池
         import_data = {

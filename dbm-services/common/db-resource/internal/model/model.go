@@ -19,7 +19,6 @@ import (
 	"sync"
 	"time"
 
-	"dbm-services/common/db-resource/assets"
 	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/go-pubpkg/logger"
 
@@ -45,12 +44,54 @@ var (
 	once         sync.Once
 )
 
+// InitModel 初始化模型
 func InitModel() {
 	createSysDb()
 	ormDB := initSelfDB()
 	sqlDB, err := ormDB.DB()
 	if err != nil {
 		logger.Fatal("init db connect failed %s", err.Error())
+		return
+	}
+	// GORM AutoMigrate - 自动同步所有模型到数据库
+	err = ormDB.AutoMigrate(&TbRequestLog{})
+	if err != nil {
+		logger.Fatal("AutoMigrate TbRequestLog failed: %s", err.Error())
+		return
+	}
+	err = ormDB.AutoMigrate(&TbRpAnalysisResult{})
+	if err != nil {
+		logger.Fatal("AutoMigrate TbRpAnalysisResult failed: %s", err.Error())
+		return
+	}
+	err = ormDB.AutoMigrate(&TbRpDetailArchive{})
+	if err != nil {
+		logger.Fatal("AutoMigrate TbRpDetailArchive failed: %s", err.Error())
+		return
+	}
+	err = ormDB.AutoMigrate(&TbRpApplyDetailLog{})
+	if err != nil {
+		logger.Fatal("AutoMigrate TbRpApplyDetailLog failed: %s", err.Error())
+		return
+	}
+	err = ormDB.AutoMigrate(&TbRpDetail{})
+	if err != nil {
+		logger.Fatal("AutoMigrate TbRpDetail failed: %s", err.Error())
+		return
+	}
+	err = ormDB.AutoMigrate(&TbRpOperationInfo{})
+	if err != nil {
+		logger.Fatal("AutoMigrate TbRpOperationInfo failed: %s", err.Error())
+		return
+	}
+	err = ormDB.AutoMigrate(&TbRpStatusChangeLog{})
+	if err != nil {
+		logger.Fatal("AutoMigrate TbRpStatusChangeLog failed: %s", err.Error())
+		return
+	}
+	err = ormDB.AutoMigrate(&TbRpDailySnapShot{})
+	if err != nil {
+		logger.Fatal("AutoMigrate TbRpDailySnapShot failed: %s", err.Error())
 		return
 	}
 	DB = &Database{
@@ -120,18 +161,21 @@ func createSysDb() {
 	if err != nil {
 		log.Fatalf("init create db failed:%s", err.Error())
 	}
-	err = assets.DoMigrateFromEmbed(user, addr, pwd, dbname)
-	if err != nil {
-		log.Fatalf("init migrate from embed failed:%s", err.Error())
-	}
+	// 注释掉 migration 模式，完全使用 GORM AutoMigrate
+	// err = assets.DoMigrateFromEmbed(user, addr, pwd, dbname)
+	// if err != nil {
+	// 	log.Fatalf("init migrate from embed failed:%s", err.Error())
+	// }
 
 	// 获取表名并校验
 	archiveTableName := TbRpDetailArchiveName()
 	detailTableName := TbRpDetailName()
-	if err := validateIdentifier(archiveTableName); err != nil {
+	err = validateIdentifier(archiveTableName)
+	if err != nil {
 		log.Fatalf("invalid archive table name: %s", err.Error())
 	}
-	if err := validateIdentifier(detailTableName); err != nil {
+	err = validateIdentifier(detailTableName)
+	if err != nil {
 		log.Fatalf("invalid detail table name: %s", err.Error())
 	}
 

@@ -25,5 +25,5 @@ func ConnectMySQL() (*sqlx.DB, error) {
 		)
 		return nil, err
 	}
-	return db, nil //&ConnectionCollect{MySqlDB: db}, nil
+	return db, nil
 }

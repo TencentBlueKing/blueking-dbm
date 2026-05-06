@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	_ "github.com/go-sql-driver/mysql" // mysql 驱动
+	"github.com/samber/lo"
 )
 
 // DbTableFilter 库表过滤
@@ -63,10 +64,10 @@ func NewFilter(
 	}
 
 	tf := &DbTableFilter{
-		IncludeDbPatterns:       trimEle(includeDbPatterns),
-		IncludeTablePatterns:    trimEle(includeTablePatterns),
-		ExcludeDbPatterns:       trimEle(excludeDbPatterns),
-		ExcludeTablePatterns:    trimEle(excludeTablePatterns),
+		IncludeDbPatterns:       lo.Uniq(trimEle(includeDbPatterns)),
+		IncludeTablePatterns:    lo.Uniq(trimEle(includeTablePatterns)),
+		ExcludeDbPatterns:       lo.Uniq(trimEle(excludeDbPatterns)),
+		ExcludeTablePatterns:    lo.Uniq(trimEle(excludeTablePatterns)),
 		dbFilterIncludeRegex:    "",
 		dbFilterExcludeRegex:    "",
 		tableFilterIncludeRegex: "",

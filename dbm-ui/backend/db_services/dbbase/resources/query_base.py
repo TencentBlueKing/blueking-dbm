@@ -16,6 +16,8 @@ def build_q_for_cluster_name_or_alias(name):
 
 
 def build_q_for_domain_by_cluster(domains, role=None):
+    # 域名可能会带端口查询，要清除掉端口
+    domains = [domain.split(":")[0] for domain in domains]
     # 基础查询条件
     base_query = Q()
     if role:
@@ -77,3 +79,22 @@ def build_q_for_instance_filter(params_data: dict) -> Q:
 
     # 合并两种过滤条件
     return q_ip | q_ip_port
+
+
+def build_empty_and_in_q(field_name: str, raw_value: str, field_expr: str = "exact") -> Q:
+    values = [v.strip() for v in raw_value.split(",") if v.strip()]
+    if not values:
+        return Q()
+
+    if len(values) == 1 and values[0] != "__empty__":
+        return Q(**{f"{field_name}__{field_expr}": values[0]})
+
+    condition = Q()
+    if "__empty__" in values:
+        condition |= Q(**{f"{field_name}__isnull": True}) | Q(**{field_name: ""})
+
+    normal_values = [v for v in values if v != "__empty__"]
+    if normal_values:
+        condition |= Q(**{f"{field_name}__in": normal_values})
+
+    return condition

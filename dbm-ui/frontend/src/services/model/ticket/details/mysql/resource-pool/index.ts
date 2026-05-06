@@ -8,3 +8,4 @@ export * from './rollBackCluster';
 export * from './proxyConfChange';
 export * from './proxyMigrate';
 export * from './proxyMigrateIns';
+export * from './migrateSingle';

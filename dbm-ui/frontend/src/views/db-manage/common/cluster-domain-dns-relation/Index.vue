@@ -14,7 +14,7 @@
 <template>
   <span v-db-console="accessEntryDbConsole">
     <BkButton
-      v-if="userProfileStore.isDba"
+      v-if="isBizComponentDba"
       :disabled="data.isOffline"
       text
       @click="() => (isShow = true)">
@@ -30,7 +30,6 @@
       @closed="() => (isShow = false)">
       <BkLoading :loading="loading">
         <BkTable
-          ref="tableRef"
           :cell-class="generateCellClass"
           class="entry-config-table-box"
           :data="tableData"
@@ -127,7 +126,7 @@
   import ClusterEntryDetailModel, { type DnsTargetDetails } from '@services/model/cluster-entry/cluster-entry-details';
   import { getClusterEntries } from '@services/source/clusterEntry';
 
-  import { useUserProfile } from '@stores';
+  import { useBizComponentDba } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
 
@@ -141,7 +140,7 @@
     role: string;
   }
 
-  interface Props {
+  export interface Props {
     data: {
       cluster_type: ClusterTypes;
       db_type: string;
@@ -153,7 +152,7 @@
     };
   }
 
-  interface Slots {
+  export interface Slots {
     default: () => VNode;
   }
 
@@ -174,11 +173,10 @@
   });
 
   const { t } = useI18n();
-  const userProfileStore = useUserProfile();
+  const { isDba: isBizComponentDba } = useBizComponentDba(window.PROJECT_CONFIG.BIZ_ID, props.data.db_type);
 
   const generateCellClass = (cell: { field: string }) => (cell.field === 'ips' ? 'entry-config-ips-column' : '');
 
-  const tableRef = ref();
   const tableData = ref<ClusterEntryInfo[]>([]);
 
   const accessEntryDbConsole = computed(() => {

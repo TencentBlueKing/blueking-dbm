@@ -65,7 +65,7 @@ func (l *LogicalDumper) Execute(ctx context.Context) error {
 		"-h", l.cnf.Public.MysqlHost,
 		"-P", strconv.Itoa(l.cnf.Public.MysqlPort),
 		"-u", l.cnf.Public.MysqlUser,
-		"-p", l.cnf.Public.MysqlPasswd,
+		fmt.Sprintf("--password='%s'", l.cnf.Public.MysqlPasswd),
 		"-o", filepath.Join(l.cnf.Public.BackupDir, l.cnf.Public.TargetName()),
 		"--long-query-retry-interval=10",
 		fmt.Sprintf("--long-query-retries=%d", l.cnf.LogicalBackup.FlushRetryCount),
@@ -236,7 +236,7 @@ func (l *LogicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig, metaInfo
 		MasterHost: cnf.Public.MysqlHost, // use backup_host as local binlog file_pos host
 		MasterPort: cast.ToInt(cnf.Public.MysqlPort),
 	}
-	if strings.ToLower(cnf.Public.MysqlRole) == cst.RoleSlave {
+	if strings.ToLower(cnf.Public.MysqlRole) == cst.RoleSlave && metadata.SlaveStatus["Relay_Master_Log_File"] != "" {
 		metaInfo.BinlogInfo.ShowSlaveStatus = &dbareport.StatusInfo{
 			BinlogFile: metadata.SlaveStatus["Relay_Master_Log_File"],
 			BinlogPos:  metadata.SlaveStatus["Exec_Master_Log_Pos"],

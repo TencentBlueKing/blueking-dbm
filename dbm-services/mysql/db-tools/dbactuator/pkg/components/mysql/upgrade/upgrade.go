@@ -52,6 +52,9 @@ func (m *MysqlUpgradeComp) ReStartMysql() (err error) {
 		MyCnfName: util.GetMyCnfFileName(m.port),
 		MediaDir:  cst.MysqldInstallPath,
 	}
+	if m.Params.IsTdbctl {
+		start.MediaDir = cst.TdbctlInstallPath
+	}
 	logger.Info("do mysql restart for %d", m.port)
 	pid, err := start.RestartMysqlInstance()
 	if err != nil {
@@ -74,7 +77,7 @@ func (m *MysqlUpgradeComp) UpgradePrepare() (err error) {
 	if err = m.upgradeOldPassword(); err != nil {
 		return err
 	}
-	// shutfown mysql
+	// shutdown mysql
 	logger.Info("do shutdown mysql for %d", port)
 	if err = computil.ShutdownMySQLBySocket(m.adminUser, m.adminPwd, m.socket); err != nil {
 		logger.Error("shutdown mysql %d failed %s", port, err.Error())

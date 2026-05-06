@@ -1,2 +1,40 @@
-1. Get the application URL by running these commands:
+🎉 Qdrant Cluster has been deployed successfully!
+
+📦 Release Name: {{ .Release.Name }}
+📍 Namespace: {{ .Release.Namespace }}
+
+🔍 Check the cluster status:
+  kubectl get cluster {{ .Release.Name }} -n {{ .Release.Namespace }}
+
+📊 View pods:
+  kubectl get pods -n {{ .Release.Namespace }} -l app.kubernetes.io/instance={{ .Release.Name }}
+
+🌐 Access Qdrant:
+  kubectl port-forward -n {{ .Release.Namespace }} svc/{{ .Release.Name }}-qdrant 6333:6333
+
+  Then visit: http://localhost:6333/dashboard
+
+{{- $apiKey := include "qdrant.apiKey" . | trim }}
+{{- if $apiKey }}
+🔐 API Key Authentication is ENABLED
+  API Key: {{ $apiKey }}
+  
+  Test with curl:
+  curl -H "Authorization: Bearer {{ $apiKey }}" http://localhost:6333/collections
+{{- else }}
+⚠️  API Key Authentication is DISABLED
+  To enable it, set QDRANT__SERVICE__API_KEY in values.yaml
+{{- end }}
+
+{{- if .Values.observeConfig.svcMonitor.enabled }}
+📈 ServiceMonitor is ENABLED
+  Prometheus will scrape metrics from /metrics endpoint
+{{- end }}
+
+{{- if .Values.observeConfig.bkLogConfig.enabled }}
+📝 BkLogConfig is ENABLED
+  Logs will be collected by BK Log system
+{{- end }}
+
+📚 Documentation: https://qdrant.tech/documentation/
 

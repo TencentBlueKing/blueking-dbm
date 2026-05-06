@@ -14,11 +14,11 @@
       theme="primary"
       @click="handleAddFollowUp">
       <DbIcon
-        style="font-size: 16px"
+        style="font-size: 14px"
         type="plus-fill" />
       <span
-        class="ml-6"
-        style="font-size: 14px">
+        class="ml-4"
+        style="font-size: 12px">
         {{ t('添加') }}
       </span>
     </AuthButton>
@@ -37,7 +37,7 @@
           :loading="addLoading"
           theme="primary"
           @click="handleSubmit">
-          {{ t('提交') }}
+          {{ t('确定') }}
         </BkButton>
         <BkButton
           class="w-88"
@@ -56,7 +56,7 @@
 
   import { createRiskFollowUp } from '@services/source/riskMemo';
 
-  import RiskMemoEditor from './Editor.vue';
+  import RiskMemoEditor from '../../RickMemoEditor.vue';
 
   interface Props {
     bizId?: number;

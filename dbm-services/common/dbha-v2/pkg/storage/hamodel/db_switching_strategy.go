@@ -42,41 +42,61 @@ func (a ActionType) String() string {
 	return string(a)
 }
 
+var ActionTypeMap = map[ActionType]ActionType{
+	ActionTypeNotify: ActionTypeNotify,
+	ActionTypeSwitch: ActionTypeSwitch,
+}
+
 // ActionScopeType  impact scope: cluster, host.
 type ActionScopeType string
 
 const (
-	ActionScopeTypeCluster ActionScopeType = "cluster"
-	ActionScopeTypeHost    ActionScopeType = "host"
+	ActionScopeTypeCluster    ActionScopeType = "cluster"
+	ActionScopeTypeHost       ActionScopeType = "host"
+	ActionScopeTypeDbInstance ActionScopeType = "db_instance"
 )
 
 func (a ActionScopeType) String() string {
 	return string(a)
 }
 
+var ActionScopeTypeMap = map[ActionScopeType]ActionScopeType{
+	ActionScopeTypeCluster:    ActionScopeTypeCluster,
+	ActionScopeTypeHost:       ActionScopeTypeHost,
+	ActionScopeTypeDbInstance: ActionScopeTypeDbInstance,
+}
+
+// StatusType enabled, disabled, deleted.
+type StatusType string
+
+const (
+	StatusTypeEnabled  StatusType = "enabled"
+	StatusTypeDisabled StatusType = "disabled"
+	StatusTypeDeleted  StatusType = "deleted"
+)
+
+func (s StatusType) String() string {
+	return string(s)
+}
+
+var StatusTypeMap = map[StatusType]StatusType{
+	StatusTypeEnabled:  StatusTypeEnabled,
+	StatusTypeDisabled: StatusTypeDisabled,
+}
+
 const (
 	// Define variables for all the field names of the database tables
 	// to avoid hard-coding the field names in the business code.
-	// DbSwitchingLog Table
-	DbSwitchingLogTableName              = "t_db_switching_log"
-	DbSwitchingLogFieldID                = "id"
-	DbSwitchingLogFieldBkBizID           = "bk_biz_id"
-	DbSwitchingLogFieldBkCloudID         = "bk_cloud_id"
-	DbSwitchingLogFieldDbIP              = "db_ip"
-	DbSwitchingLogFieldDbPort            = "db_port"
-	DbSwitchingLogFieldDbTypeName        = "db_type_name"
-	DbSwitchingLogFieldDbEventName       = "db_event_name"
-	DbSwitchingLogFieldDbEventNameReason = "db_event_name_reason"
-	DbSwitchingLogFieldLevel             = "level"
-	DbSwitchingLogFieldContent           = "content"
-	DbSwitchingLogFieldCreatedAt         = "created_at"
 
 	// DbSwitchingStrategy Table
 	DbSwitchingStrategyTableName                   = "t_db_switching_strategy"
+	DbSwitchingStrategyFieldID                     = "id"
 	DbSwitchingStrategyFieldName                   = "name"
 	DbSwitchingStrategyFieldBkBizID                = "bk_biz_id"
+	DbSwitchingStrategyFieldStatus                 = "status"
 	DbSwitchingStrategyFieldTriggerEventName       = "trigger_event_name"
 	DbSwitchingStrategyFieldTriggerEventNameReason = "trigger_event_name_reason"
+	DbSwitchingStrategyFieldTriggerCount           = "trigger_count"
 	DbSwitchingStrategyFieldPriority               = "priority"
 	DbSwitchingStrategyFieldScope                  = "scope"
 	DbSwitchingStrategyFieldAction                 = "action"
@@ -86,38 +106,27 @@ const (
 	DbSwitchingStrategyFieldDeletedAt              = "deleted_at"
 )
 
-// DbSwitchingLog defines the log of database switching.
-type DbSwitchingLog struct {
-	ID                uint      `gorm:"column:id;primaryKey;autoIncrement"`
-	BkBizID           int       `gorm:"column:bk_biz_id"`
-	BkCloudID         int       `gorm:"column:bk_cloud_id"`
-	DbIP              string    `gorm:"column:db_ip"`
-	DbPort            int       `gorm:"column:db_port"`
-	DbTypeName        string    `gorm:"column:db_type_name"`
-	DbEventName       string    `gorm:"column:db_event_name"`
-	DbEventNameReason string    `gorm:"column:db_event_name_reason"`
-	Level             string    `gorm:"column:level"`
-	Content           string    `gorm:"column:content;mediumtext"`
-	CreatedAt         time.Time `gorm:"column:created_at;autoCreateTime"`
-}
-
-func (t DbSwitchingLog) TableName() string {
-	return DbSwitchingLogTableName
-}
-
 // DbSwitchingStrategy database switching strategy
 type DbSwitchingStrategy struct {
+	// strategy id
+	ID int `gorm:"column:id;primaryKey;autoIncrement"`
+
+	// strategy status
+	Status StatusType `gorm:"column:status"`
+
 	// strategy name
-	Name string `gorm:"column:name"`
+	Name string `gorm:"column:name;uniqueIndex:idx_name"`
 
 	// 0 is global default strategy
-	BkBizID int `gorm:"column:bk_biz_id;primaryKey"`
+	BkBizID int `gorm:"column:bk_biz_id;primaryKey;uniqueIndex:idx_name"`
 
 	// The event name that triggers the database switch.
-	TriggerEventName haprobe.DbEventName `gorm:"column:trigger_event_name;primaryKey"`
+	TriggerEventName haprobe.DbEventName `gorm:"column:trigger_event_name;primaryKey;index"`
 
 	// The reason for the event name.
-	TriggerEventNameReason haprobe.DbEventNameReason `gorm:"trigger_event_name_reason;primaryKey"`
+	TriggerEventNameReason haprobe.DbEventNameReason `gorm:"column:trigger_event_name_reason;primaryKey;index"`
+	// This strategy will be triggered after the number of events reaches this value.
+	TriggerCount int `gorm:"column:trigger_count"`
 
 	// level: 0 > 1> 2 > 3 > ...
 	Priority int             `gorm:"column:priority"`
@@ -125,12 +134,13 @@ type DbSwitchingStrategy struct {
 	Action   ActionType      `gorm:"column:action"`
 
 	// Detailed explanation of db switching strategy.
-	Description string    `gorm:"column:description;mediumtext"`
-	CreatedAt   time.Time `gorm:"column:created_at;autoCreateTime"`
-	UpdatedAt   time.Time `gorm:"column:updated_at;autoUpdateTime"`
-	DeletedAt   time.Time `gorm:"column:deleted_at"`
+	Description string    `gorm:"column:description;type:mediumtext;index:idx_description,length:255"`
+	CreatedAt   time.Time `gorm:"column:created_at;autoCreateTime;index"`
+	UpdatedAt   time.Time `gorm:"column:updated_at;autoUpdateTime;index"`
+	DeletedAt   time.Time `gorm:"column:deleted_at;index;default:null"`
 }
 
+// TableName returns the name of the switching strategy table.
 func (t DbSwitchingStrategy) TableName() string {
-	return "t_db_switching_strategy"
+	return DbSwitchingStrategyTableName
 }

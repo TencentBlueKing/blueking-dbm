@@ -37,6 +37,8 @@ export default function getRoutes() {
           component: () => import('@views/db-manage/common/dba-toolbox-result/Index.vue'),
         },
         createRouteItem(TicketTypes.REDIS_CLUSTER_CUTOFF, t('整机替换')),
+        createRouteItem(TicketTypes.REDIS_PROXY_KICKOFF, t('Proxy 剔除')),
+        createRouteItem(TicketTypes.REDIS_PROXY_FIX, t('Proxy 修复')),
         createRouteItem(TicketTypes.REDIS_CLUSTER_REINSTALL_DBMON, t('集群标准化')),
       ],
     },

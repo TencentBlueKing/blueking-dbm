@@ -73,27 +73,25 @@ pytest backend/tests
 
 >本机环境：
 >
->MacBook Pro (13-inch, M1, 2020)
+>MacBook Pro (16英寸, M2Pro, 2023)
+>
+>已安装Homebrew（如果无法访问镜像源自己更换镜像源地址）、wget（Homebrew没有对应的版本时使用）
 
 ### 1. 资源准备
 
-#### 1.1 准备本地RabbitMQ资源
+#### 1.1 准备本地Redis资源
 
-在本地安装 `rabbitmq`，并启动 `rabbitmq-server`，服务监听的端口保持默认**5672**。
+在本地安装 `redis`（版本建议7.2.x），并启动 `redis-server`，服务监听的端口保持默认**6379**。
 
-#### 1.2 准备本地Redis资源
+#### 1.2 准备本地MySQL资源
 
-在本地安装 `redis`，并启动 `redis-server`，服务监听的端口保持默认**6379**。
+在本地安装 `mysql`（版本建议8.0），并启动 `mysql-server`，服务监听的端口保持默认**3306**。
 
-#### 1.3 准备本地MySQL资源
+#### 1.3 安装Python和依赖库
 
-在本地安装 `mysql`，并启动 `mysql-server`，服务监听的端口保持默认**3306**。
+本地准备python环境，python版本要求在**>=3.11.10<3.12**。
 
-#### 1.4 安装Python和依赖库
-
-本地准备python环境，python版本要求在**>=3.6.2, <3.7**。
-
->python版本过高会导致后续poetry安装依赖报错
+>python版本过高会导致后续poetry安装依赖报错，若系统本机已有其他版本，可用pyenv安装切换版本。
 
 bk-dbm的依赖安装采用的是`poetry`，使用步骤如下:
 
@@ -103,7 +101,7 @@ bk-dbm的依赖安装采用的是`poetry`，使用步骤如下:
 pip install poetry
 ```
 
-然后进入到工作目录中利用`poetry`安装依赖
+然后进入到工作目录`dbm-ui`中利用`poetry`安装依赖
 
 ```shell
 poetry install
@@ -123,7 +121,6 @@ BK_COMPONENT_API_URL="{BK_COMPONENT_API_URL}";
 BKPAAS_APP_ID=bk-dbm;
 APP_TOKEN="{你的蓝鲸应用 APP_TOKEN}";
 DBA_APP_BK_BIZ_ID="{DBA_APP_BK_BIZ_ID}";
-BK_BASE_URL="{BK_BASE_URL}";
 DBCONFIG_APIGW_DOMAIN="{DBCONFIG_APIGW_DOMAIN}";
 BKREPO_USERNAME="{你的制品库用户名}";
 BKREPO_PASSWORD="{你的制品库密码}";
@@ -141,7 +138,7 @@ BK_LOGIN_URL="{BK_LOGIN_URL}";
 
 #### 2.2 数据库准备
 
-1. 修改项目目录的`./backend/settings/dev.py`中的数据库配置
+1. 修改项目目录的`./backend/settings/dev.py`中的数据库配置或者将其作为环境变量添加进环境变量文件中
 
 ```python
 DATABASES = {
@@ -159,45 +156,49 @@ DATABASES = {
 }
 ```
 
-2. 在mysql中创建名为`bk-dbm`的数据库
+2. 在mysql中创建名为`bk_dbm`和`bk_dbm_report`的数据库
 
 ```shell
-CREATE DATABASE `bk-dbm` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
+CREATE DATABASE `bk_dbm` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+CREATE DATABASE `bk_dbm_report` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 ```
 
 3. 在项目目录下执行以下命令初始化数据库
 
 ```shell
 python manage.py migrate
-python manage.py createcachetable django_cache
+python manage.py migrate db_report --database=report_db
 ```
+
+4.在环境变量文件中添加自己的DB
+
+```
+DB_NAME=name
+DB_USER=username
+DB_HOST=host
+DB_PORT=port
+DB_PASSWORD=password
+
+REPORT_DB_NAME=name
+REPORT_DB_PASSWORD=password
+REPORT_DB_USER=user
+
+REDIS_HOST=host
+REDIS_PORT=port
+REDIS_PASSWORD=password
+```
+
+5.配置系统环境
+
+```shell
+export DJANGO_SETTINGS_MODULE=config.prod
+```
+
+
 
 #### 2.3 前端环境准备
 
-1. 在工程目录下打包前端资源，进入`./frontend`执行命令：
-
-```shell
-npm install
-npm run build
-```
-
->如果install的时候提示某些依赖not found(比如 iconcool)，可以尝试切换npm腾讯源：
->
->```shell
->npm config set registry https://mirrors.tencent.com/npm/
->```
-
-2. 打包成功后将`./frontend/dist`下的所有文件复制到`./backend/static`中
-
-```shell
-cp -rf ./frontend/dist/* ./backend/static/
-```
-
-3. 收集静态资源
-
-```shell
-python manage.py collectstatic --settings=config.dev --noinput
-```
+1. 在工程目录下打包前端资源前确保本机以安装`nodejs`（推荐版本v22.x），进入`dbm-ui/backend/bin`执行命令脚本`build_frontend.sh`
 
 #### 2.4 配置本地hosts
 
@@ -209,7 +210,11 @@ python manage.py collectstatic --settings=config.dev --noinput
 #### 3.1 启动celery
 
 ```shell
-celery -A config.prod worker -Q er_execute,er_schedule -l info
+# 用于执行流程
+celery -A config.prod worker -c 20 -P threads -Q er_execute,er_schedule,celery -l info
+
+# 用于执行一些周期任务
+celery -A config.prod beat -l info --loglevel=info
 ```
 
 >如果用pycharm进行配置的话，可以在运行/调试配置中新建python，在配置选项中选择模块名称(注意不是脚本路径)，然后选择.venv的celery文件夹(模块)，并在形参中配置celery启动参数

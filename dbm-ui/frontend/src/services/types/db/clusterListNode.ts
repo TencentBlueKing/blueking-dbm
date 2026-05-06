@@ -10,26 +10,28 @@ export interface ClusterListNode {
   phase: string;
   port: number;
   spec_config: {
-    id: number;
+    count: number;
     cpu: {
       max: number;
       min: number;
     };
+    device_class: string[];
+    id: number;
     mem: {
       max: number;
       min: number;
     };
+    name: string;
     qps: {
       max: number;
       min: number;
     };
-    name: string;
-    count: number;
-    device_class: string[];
     storage_spec: {
-      size: number;
-      type: string;
+      max: number;
+      min: number;
       mount_point: string;
+      size?: number;
+      type: string;
     }[];
   };
   status: 'running' | 'unavailable';

@@ -17,7 +17,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.helpers.get_slave_address_and_dbname im
 
 
 def show_create_table(cluster_type: ClusterType, cluster_domain: str, dbname: str, tablename: str) -> Dict:
-    raw_dbname = dbname
+    raw_dbname = dbname  # noqa: F841
 
     bk_cloud_id, address, dbname = get_cloud_slave_address_and_dbname(
         cluster_type=cluster_type, cluster_domain=cluster_domain, dbname=dbname
@@ -46,9 +46,9 @@ def show_create_table(cluster_type: ClusterType, cluster_domain: str, dbname: st
         raise DBMMcpBaseException(msg=f"show create table {tablename} failed: {show_create_res['error_msg']}")
 
     return {
-        "cluster_domain": cluster_domain,
-        "cluster_type": cluster_type,
-        "dbname": raw_dbname,
-        "tablename": tablename,
+        # "cluster_domain": cluster_domain,
+        # "cluster_type": cluster_type,
+        # "dbname": raw_dbname,
+        # "tablename": tablename,
         "create_sql": list(show_create_res["table_data"][0].values())[0],
     }

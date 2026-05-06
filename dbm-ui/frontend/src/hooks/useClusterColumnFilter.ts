@@ -22,7 +22,7 @@ const clusterRedisTypeList = [
   ClusterTypes.PREDIXY_REDIS_CLUSTER,
 ];
 
-export const baseFilter = {
+const baseFilter = {
   cluster_ids: {
     component: markRaw(MultipleInput),
     popupProps: {
@@ -188,7 +188,6 @@ export const baseFilter = {
 export const useClusterColumnFilter = <T extends readonly string[] = Array<keyof typeof baseFilter>>(params: {
   cluster_attrs?: T;
   cluster_type: ClusterTypes;
-  instances_attrs?: T;
 }) => {
   const data = shallowRef<{
     [K in keyof typeof baseFilter | T[number]]: {
@@ -233,13 +232,12 @@ export const useClusterColumnFilter = <T extends readonly string[] = Array<keyof
     },
   });
 
-  if (params.cluster_attrs?.length || params.instances_attrs?.length) {
+  if (params.cluster_attrs?.length) {
     fetchBizClusterAttrs({
       ...params,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       cluster_attrs: params.cluster_attrs?.join(','),
       cluster_type: params.cluster_type === ClusterTypes.REDIS ? clusterRedisTypeList.join(',') : params.cluster_type,
-      instances_attrs: params.instances_attrs?.join(''),
     });
   } else {
     data.value = {

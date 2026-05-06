@@ -279,3 +279,53 @@ class DBTableField(serializers.CharField):
 
     def to_representation(self, value):
         return super().to_representation(value)
+
+
+class RelatedClusterAutoCalculateMixin:
+    """
+    关联集群自动计算Mixin
+    用于在序列化器验证阶段自动计算关联集群，解除前端对关联集群的强依赖
+    """
+
+    def auto_calculate_related_clusters(self, attrs, role=None):
+        """
+        自动计算关联集群并扩展cluster_ids
+
+        @param attrs: 验证后的数据
+        @param role: 查询角色，默认为None使用MASTER角色
+        @return: 扩展后的attrs
+        """
+        from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler
+
+        # 如果没有指定角色，使用MASTER角色
+        if role is None:
+            role = InstanceInnerRole.MASTER
+
+        # 处理infos列表中的cluster_ids
+        if "infos" in attrs:
+            for info in attrs["infos"]:
+                input_cluster_ids = fetch_cluster_ids(info)
+                if not input_cluster_ids:
+                    continue
+                # 获取第一个集群的bk_biz_id
+                first_cluster = Cluster.objects.filter(id__in=input_cluster_ids).first()
+                if not first_cluster:
+                    continue
+
+                # 调用关联集群查询接口
+                handler = ClusterServiceHandler(first_cluster.bk_biz_id)
+                related_info = handler.find_related_clusters_by_cluster_ids(cluster_ids=input_cluster_ids, role=role)
+
+                # 收集所有关联集群ID（包括自身和关联集群）
+                all_cluster_ids = set(input_cluster_ids)
+                for item in related_info:
+                    # 添加当前集群ID
+                    all_cluster_ids.add(item["cluster_id"])
+                    # 添加所有关联集群ID
+                    for related_cluster in item["related_clusters"]:
+                        all_cluster_ids.add(related_cluster["id"])
+
+                # 更新cluster_ids为完整的关联集群列表
+                info["cluster_ids"] = sorted(list(all_cluster_ids))
+
+        return attrs

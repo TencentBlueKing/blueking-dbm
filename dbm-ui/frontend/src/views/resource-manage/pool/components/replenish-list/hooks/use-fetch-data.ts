@@ -1,13 +1,14 @@
 import { reactive, ref } from 'vue';
+import { useRequest } from 'vue-request';
+
+import { getRunningReplenishRecord } from '@services/source/dbresourceReplenish';
+import { calcResourceWaterLevel } from '@services/source/dbresourceResource';
 
 import { useUrlSearch } from '@hooks';
 
 import { useStorage } from '@vueuse/core';
-import { calcResourceWaterLevel } from '@services/source/dbresourceResource';
-import { useRequest } from 'vue-request';
-import { getRunningReplenishRecord } from '@services/source/dbresourceReplenish';
 
-type ResourceWaterLevel = ServiceReturnType<typeof calcResourceWaterLevel>;
+export type ResourceWaterLevel = ServiceReturnType<typeof calcResourceWaterLevel>;
 
 export default () => {
   const { getSearchParams } = useUrlSearch();
@@ -15,8 +16,7 @@ export default () => {
 
   const searchParams = getSearchParams();
 
-  const flushTime = ref<string>('');
-  const updateTime = ref<string>('');
+  const waterLevelData = ref<ResourceWaterLevel>();
   const runningReplenishRecord = ref(0); // 补货中的记录ID
   const dataList = ref<ResourceWaterLevel['water_level']>([]);
   const tableData = ref<ResourceWaterLevel['water_level']>([]);
@@ -43,8 +43,7 @@ export default () => {
   const { loading, run } = useRequest(calcResourceWaterLevel, {
     manual: true,
     onSuccess: (data: ResourceWaterLevel) => {
-      flushTime.value = data.flush_time;
-      updateTime.value = data.update_time;
+      waterLevelData.value = data;
       dataList.value = data.water_level;
       pagination.count = data.water_level.length;
 
@@ -76,15 +75,14 @@ export default () => {
   };
 
   return {
-    tableData,
-    run,
-    loading,
-    pagination,
+    dataList,
     handlePageLimitChange,
     handlePageValueChange,
+    loading,
+    pagination,
+    run,
     runningReplenishRecord,
-    updateTime,
-    flushTime,
-    dataList,
+    tableData,
+    waterLevelData,
   };
 };

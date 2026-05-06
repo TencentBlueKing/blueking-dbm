@@ -150,9 +150,10 @@ REDIS_REBUILD_SLAVE_DATA = {
                 "pairs": [
                     {
                         "redis_master": {"bk_cloud_id": 0, "bk_host_id": 493, "ip": "5.5.5.3"},
-                        "redis_slave": {"count": 1, "old_slave_ip": "5.5.5.5", "spec_id": 333},
+                        "redis_slave": {"bk_cloud_id": 0, "bk_host_id": 493, "ip": "5.5.5.4"},
                     }
                 ],
+                "resource_spec": {"redis_slave_5.5.5.4": {"spec_id": 333, "count": 1, "labels": ["23"]}},
             }
         ],
         "ip_source": "resource_pool",
@@ -169,9 +170,9 @@ REDIS_CLUSTER_CUTOFF_DATA = {
             {
                 "bk_cloud_id": 0,
                 "cluster_ids": [CLUSTER_ID],
-                "proxy": [],
+                "switch_role": "redis_master",
                 "redis_master": [{"bk_host_id": 493, "ip": "5.5.5.3", "spec_id": 333}],
-                "redis_slave": [],
+                "resource_spec": {"backend_group": {"spec_id": 333, "count": 1, "labels": ["23"]}},
             }
         ],
         "ip_source": "resource_pool",

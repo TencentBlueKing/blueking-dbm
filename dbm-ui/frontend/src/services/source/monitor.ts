@@ -20,33 +20,18 @@ import type { ListBase } from '@services/types';
 import type { DBTypes } from '@common/const';
 
 interface UpdatePolicyParams {
-  custom_conditions: {
-    condition: string;
-    dimension_name: string;
-    key: string;
-    method: string;
-    value: string[];
-  }[];
+  agg_info: MonitorPolicyModel['agg_info'];
+  custom_conditions: MonitorPolicyModel['custom_conditions'];
+  detects_config: MonitorPolicyModel['detects_config'];
+  get_data_time?: string;
+  is_enabled: boolean;
+  no_data_config: MonitorPolicyModel['no_data_config'];
+  notify_config: MonitorPolicyModel['notify_config'];
   notify_groups: number[];
   notify_rules: string[];
-  targets: {
-    level: string;
-    rule: {
-      key: string;
-      value: string[];
-    };
-  }[];
-  test_rules: {
-    config: [
-      {
-        method: string;
-        threshold: number;
-      },
-    ][];
-    level: number;
-    type: string;
-    unit_prefix: string;
-  }[];
+  policy_tag: MonitorPolicyModel['policy_tag'];
+  targets: MonitorPolicyModel['targets'];
+  test_rules: MonitorPolicyModel['test_rules'];
 }
 
 interface CreateCycleDutyRuleParams {
@@ -110,6 +95,7 @@ export const queryMonitorPolicyList = (
   params: {
     bk_biz_id?: number;
     db_type?: string;
+    id?: number;
     limit?: number;
     name?: string;
     notify_groups?: string;
@@ -132,7 +118,7 @@ export const queryMonitorPolicyList = (
   }));
 
 // 更新策略
-export const updatePolicy = (id: number, params: UpdatePolicyParams) =>
+export const updatePolicy = (id: number, params: { name?: string } & UpdatePolicyParams) =>
   http.post<{
     bkm_id: number;
     local_id: number;
@@ -140,6 +126,7 @@ export const updatePolicy = (id: number, params: UpdatePolicyParams) =>
 
 // 批量更新策略告警组
 export const batchUpdateNotifyGroup = (params: {
+  bk_biz_id: number;
   notify_groups: {
     groups: number[];
     policy_id: number;
@@ -163,7 +150,8 @@ export const clonePolicy = (
 export const enablePolicy = (params: { id: number }) => http.post<boolean>(`${path}/policy/${params.id}/enable/`);
 
 // 停用策略
-export const disablePolicy = (params: { id: number }) => http.post<boolean>(`${path}/policy/${params.id}/disable/`);
+export const disablePolicy = (params: { get_data_time?: string; id: number }) =>
+  http.post<boolean>(`${path}/policy/${params.id}/disable/`);
 
 // 恢复默认策略
 export const resetPolicy = (params: { id: number }) => http.post<void>(`${path}/policy/${params.id}/reset`);
@@ -171,6 +159,9 @@ export const resetPolicy = (params: { id: number }) => http.post<void>(`${path}/
 // 删除策略
 export const deletePolicy = (params: { id: number }) =>
   http.delete<null | Record<string, any>>(`${path}/policy/${params.id}/`);
+
+// 批量删除策略
+export const patchDeletePolicy = (params: { ids: number[] }) => http.post(`${path}/policy/patch_destroy/`, params);
 
 // 根据db类型查询集群列表
 export const getClusterList = (params: { bk_biz_id: number; dbtype?: string }) =>
@@ -410,3 +401,56 @@ export const getPolicyList = (params: {
       }[]
     >
   >(`${path}/policy/`, params);
+
+// 获取策略判断条件的无数据配置
+export const searchAlarmStrategy = (params: { monitor_policy_id: number }) =>
+  http.get<{
+    agg_dimension: string[];
+    data_source_list: {
+      data_source_label: string;
+      data_type_label: string;
+    }[];
+    metric_list: {
+      bk_biz_id: number;
+      collect_interval: number;
+      data_label: string;
+      data_source_label: string;
+      data_target: string;
+      data_type_label: string;
+      default_condition: any[];
+      default_dimensions: string[];
+      default_trigger_config: {
+        check_window: number;
+        count: number;
+      };
+      description: string;
+      dimensions: {
+        id: string;
+        is_dimension: boolean;
+        name: string;
+        type: string;
+      }[];
+      disabled: boolean;
+      extend_fields: Record<string, any>;
+      id: number;
+      metric_field: string;
+      metric_field_name: string;
+      metric_id: string;
+      name: string;
+      promql_metric: string;
+      readable_name: string;
+      related_id: string;
+      related_name: string;
+      remarks: any[];
+      result_table_id: string;
+      result_table_label: string;
+      result_table_label_name: string;
+      result_table_name: string;
+      time_field: string;
+      unit: string;
+      use_frequency: number;
+    }[];
+  }>(`${path}/policy/search_alarm_strategy/`, params);
+
+// 全局策略恢复初始值
+export const resetGlobalStrategy = (params: { policy_id: number }) => http.post(`${path}/policy/reset/`, params);

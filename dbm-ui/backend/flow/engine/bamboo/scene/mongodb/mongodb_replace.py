@@ -16,6 +16,7 @@ from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.cluster_replace import cluster_replace
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.replicaset_replace import replicaset_replace
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
+from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
 
@@ -68,4 +69,15 @@ class MongoReplaceFlow(object):
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
         # 运行流程
-        pipeline.run_pipeline()
+        check_ai_monitor_cluster_list = []
+        if self.data.get("ticket_type") == TicketType.MONGODB_SHARD_CUTOFF.value:
+            check_ai_monitor_cluster_list = [cluster["cluster_id"] for cluster in self.data["infos"]]
+        elif self.data.get("ticket_type") == TicketType.MONGODB_REPLICASET_CUTOFF.value:
+            for cluster_info in self.data["infos"]:
+                # cluster_info["cluster_id"] 有可能是int 和 list
+                if isinstance(cluster_info["cluster_id"], int):
+                    check_ai_monitor_cluster_list.append(cluster_info["cluster_id"])
+                elif isinstance(cluster_info["cluster_id"], list):
+                    check_ai_monitor_cluster_list.extend(cluster_info["cluster_id"])
+
+        pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=check_ai_monitor_cluster_list)

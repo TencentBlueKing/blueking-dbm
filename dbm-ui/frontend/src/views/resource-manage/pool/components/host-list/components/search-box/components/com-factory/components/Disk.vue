@@ -15,6 +15,7 @@
   <div class="search-item-disk">
     <BkInput
       v-model="min"
+      allow-empty-value
       :disabled="Boolean(model.spec_id)"
       :min="1"
       type="number"
@@ -22,6 +23,7 @@
     <div class="ml-12 mr-12">至</div>
     <BkInput
       v-model="max"
+      allow-empty-value
       :disabled="Boolean(model.spec_id)"
       :min="1"
       type="number"

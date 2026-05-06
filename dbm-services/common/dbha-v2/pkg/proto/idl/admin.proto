@@ -42,18 +42,27 @@ message HeartbeatResponse {
 }
 
 message ProbeConfigRequest {
-    string clientID    = 1;
-    string version     = 2;
-    uint64 updatedTime = 3;
+    uint64 bkCloudId   = 1;
+    string ip          = 2;
+    string clientID    = 3;
+    string version     = 4;
+    uint64 updatedTime = 5;
+}
+
+// ProbeConfigCode result code for GetProbeConfig: success / failure / no data
+enum ProbeConfigCode {
+    PROBE_CONFIG_SUCCESS = 0;  // success
+    PROBE_CONFIG_FAIL    = 1;  // failure
+    PROBE_CONFIG_NO_DATA = 2;  // no data
 }
 
 message ProbeConfigResponse {
-    int32  code    = 1;
-    string errmsg  = 2;
-    string payload = 3;
+    ProbeConfigCode code    = 1;
+    string          errmsg  = 2;
+    string          payload = 3;
 }
 
 service AdminService {
     rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse) {};
-    rpc WatchConfig(stream ProbeConfigRequest) returns (stream ProbeConfigResponse) {};
+    rpc GetProbeConfig(ProbeConfigRequest) returns (ProbeConfigResponse) {};
 }

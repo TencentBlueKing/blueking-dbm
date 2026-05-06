@@ -1,0 +1,41 @@
+import type RedisModel from '@services/model/redis/redis';
+import type { OnlineSwitchType } from '@services/types';
+
+import { Affinity } from '@common/const';
+
+import type { ResourcePoolDetailBase } from '../../resource-pool';
+
+export interface ScaleUpdown extends ResourcePoolDetailBase {
+  infos: {
+    bk_cloud_id: number;
+    capacity: number;
+    cluster_id: number;
+    db_version: string;
+    display_info: Pick<
+      RedisModel,
+      'cluster_stats' | 'cluster_spec' | 'cluster_shard_num' | 'cluster_capacity' | 'machine_pair_cnt'
+    >;
+    future_capacity: number;
+    group_num: number;
+    old_nodes: {
+      backend_hosts: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+      }[];
+    };
+    online_switch_type: OnlineSwitchType;
+    resource_spec: {
+      backend_group: {
+        affinity: Affinity;
+        count: number; // 机器组数
+        label_names: string[]; // 标签名称列表，单据详情回显用
+        labels: string[]; // 标签id列表
+        spec_id: number;
+      };
+    };
+    shard_num: number;
+    update_mode: string;
+  }[];
+}

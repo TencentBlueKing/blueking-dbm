@@ -1,6 +1,6 @@
 <template>
   <DbFormItem
-    :label="t('规格')"
+    :label="t('后端存储规格')"
     property="spec.spec_id"
     required>
     <SpecSelector
@@ -11,13 +11,24 @@
       cluster-type="redis"
       :machine-type="specClusterMachineMap[cluster.cluster_type]"
       style="width: 314px"
-      @update:model-value="handleChangeSpec" />
+      @update:model-value="handleSpecChange" />
+  </DbFormItem>
+  <DbFormItem
+    :label="t('资源标签')"
+    property="labels"
+    required
+    :rules="resourceTagRules">
+    <ResourceTagSelector
+      ref="resourceTagSelector"
+      v-model="targetInfo.labels"
+      style="width: 314px"
+      @change="handleTesourceTagChange" />
   </DbFormItem>
   <DbFormItem
     :label="t('数量')"
     property="groupNum"
     required
-    :rules="rules">
+    :rules="groupNumRules">
     <BkInput
       v-model="groupNum"
       clearable
@@ -66,6 +77,7 @@
 
 <script setup lang="ts">
   import _ from 'lodash';
+  import type { UnwrapRef } from 'vue';
   import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
@@ -73,6 +85,7 @@
 
   import { ClusterTypes } from '@common/const';
 
+  import ResourceTagSelector from '@views/db-manage/common/apply-items/ResourceTagSelector.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import { specClusterMachineMap } from '@views/db-manage/redis/common/const';
 
@@ -81,7 +94,11 @@
   interface Props {
     cluster: RedisModel;
   }
-  type Emits = (e: 'change', data: typeof targetInfo.value) => void;
+
+  interface Emits {
+    (e: 'spec-change', value: UnwrapRef<typeof targetInfo>): void;
+    (e: 'label-change', value: UnwrapRef<typeof targetInfo>['labels']): void;
+  }
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -90,6 +107,8 @@
   const { t } = useI18n();
 
   const specSelectorRef = ref<ComponentExposed<typeof SpecSelector>>();
+  const resourceTagSelector = useTemplateRef('resourceTagSelector');
+
   const groupNum = ref('');
 
   /**
@@ -99,7 +118,7 @@
     - 单机分片数 = 集群分片数/ 数量n组，自动计算
     - 集群分片数，固定为源集群分片数
 
-    Tendisplus集群（＝PredixyTendisplusCluster） 
+    Tendisplus集群（＝PredixyTendisplusCluster）
     - 规格 ---  默认值：集群现在用的规格 （可变）
     - 数量  n 组 ---- 默认留空（最小3）
     - 单机分片数 默认带出来当前集群的值，但是可以改变
@@ -117,7 +136,7 @@
     return 1;
   });
 
-  const rules = [
+  const groupNumRules = [
     {
       message: t('组数不能为空'),
       trigger: 'change',
@@ -127,6 +146,15 @@
       message: t('必须要能除尽总分片数'),
       trigger: 'change',
       validator: (value: number) => (isTendisplus.value ? true : targetInfo.value.clusterShardNum % value === 0),
+    },
+  ];
+
+  const resourceTagRules = [
+    {
+      message: t('请选择资源标签'),
+      required: true,
+      trigger: 'change',
+      validator: () => resourceTagSelector.value?.validate(),
     },
   ];
 
@@ -142,15 +170,19 @@
       }
       targetInfo.value.spec = data;
       targetInfo.value.capacity = Math.floor(targetInfo.value.groupNum * data.capacity);
-      emits('change', targetInfo.value);
+      emits('spec-change', targetInfo.value);
     });
   };
 
-  const handleChangeSpec = (value: number | string) => {
+  const handleSpecChange = (value: number | string) => {
     if (!value) {
       return;
     }
     fetchUpdateInfo();
+  };
+
+  const handleTesourceTagChange = (value: UnwrapRef<typeof targetInfo>['labels']) => {
+    emits('label-change', value);
   };
 
   const handleChangeGroupNum = (value: string) => {

@@ -3,7 +3,9 @@ package atommongodb
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/common"
@@ -17,8 +19,9 @@ type ReplacePackageConfParams struct {
 	common.MediaPkg `json:"mediapkg"`
 	IP              string `json:"ip" validate:"required"`
 	Port            int    `json:"port" validate:"required"`
-	DbVersion       string `json:"dbVersion" validate:"required"`
-	InstanceType    string `json:"instanceType" validate:"required"` // mongos mongod
+	CurrentVersion  string `json:"currentVersion" validate:"required"` // 当前版本
+	DestVersion     string `json:"destVersion" validate:"required"`    // 目标版本
+	InstanceType    string `json:"instanceType" validate:"required"`   // mongos mongod
 }
 
 // ReplacePackage 安装包替换
@@ -29,7 +32,7 @@ type ReplacePackage struct {
 	DataDir            string
 	OsUser             string // MongoDB安装在哪个用户下
 	OsGroup            string
-	ConfParams         *MongoDBConfParams
+	ConfParams         *ReplacePackageConfParams
 	InstallPackagePath string
 	UnTarPath          string
 	InstallPath        string // soft link目录
@@ -47,12 +50,72 @@ func (r *ReplacePackage) Name() string {
 }
 
 // Run 运行原子任务
+// 1. 检测当前db版本，如果当前版本已经是目标版本，则直接返回
+// 2. 解压安装包并修改属主，重建软链接
+// 3. 检测当前db版本，如果当前版本不是目标版本，则返回错误
 func (r *ReplacePackage) Run() error {
-	// 解压安装包并修改属主，重建软链接
-	if err := r.unTarAndRecreateSoftLink(); err != nil {
-		return err
+	// fetch File Lock
+	fileLock := common.NewFileLock(r.LockFilePath)
+	lockDeadline := time.Now().Add(20 * time.Minute)
+	waitLockCount := 0
+	for {
+		if err := fileLock.Lock(); err == nil {
+			break
+		} else if time.Now().After(lockDeadline) {
+			return fmt.Errorf("get file lock timeout(20 minutes), lock file: %s", r.LockFilePath)
+		}
+		// print log every 300 seconds
+		if waitLockCount%300 == 0 {
+			r.runtime.Logger.Info("waiting for file lock, waitLockCount: %d, lock file: %s", waitLockCount, r.LockFilePath)
+		}
+		time.Sleep(1 * time.Second)
+		waitLockCount++
 	}
-	return nil
+	defer func() {
+		if err := fileLock.UnLock(); err != nil {
+			r.runtime.Logger.Error("release file lock fail, error:%s", err)
+		}
+	}()
+	// 前端传入的版本号可能包含mongodb-前缀，需要去掉
+	r.ConfParams.CurrentVersion = strings.ReplaceAll(r.ConfParams.CurrentVersion, "mongodb-", "")
+	r.ConfParams.DestVersion = strings.ReplaceAll(r.ConfParams.DestVersion, "mongodb-", "")
+
+	// 检查当前版本（与 Flow 一致：主次版本 M.m 对齐，忽略 patch；CheckMongoVersion 常为 3.4.20 等形式）
+	dbVersion, err := common.CheckMongoVersion(r.BinDir, r.ConfParams.InstanceType)
+	if err != nil {
+		return fmt.Errorf("check db version fail, error:%s", err)
+	}
+	dbMM := versionMajorMinor(dbVersion)
+	destMM := versionMajorMinor(r.ConfParams.DestVersion)
+	curMM := versionMajorMinor(r.ConfParams.CurrentVersion)
+
+	switch {
+	case dbMM == destMM:
+		r.runtime.Logger.Info("current db version is %s (mm=%s), already matches dest line %s", dbVersion, dbMM, destMM)
+		return nil
+	case dbMM == curMM:
+		// dbVersion is the current release line, need to replace the package
+		r.runtime.Logger.Info("current db version is %s (mm=%s), need to replace the package to %s", dbVersion, dbMM, destMM)
+		if err := r.unTarAndRecreateSoftLink(); err != nil {
+			return fmt.Errorf("unTar and create soft link fail, error:%s", err)
+		}
+		dbVersionAfter, err := common.CheckMongoVersion(r.BinDir, r.ConfParams.InstanceType)
+		if err != nil {
+			return fmt.Errorf("check db version fail, error:%s", err)
+		}
+		if versionMajorMinor(dbVersionAfter) != destMM {
+			return fmt.Errorf(
+				"db version mismatch after replace: current=%s (line=%s), expected target line=%s (destVersion=%s)",
+				dbVersionAfter, versionMajorMinor(dbVersionAfter), destMM, r.ConfParams.DestVersion,
+			)
+		}
+		return nil
+	default:
+		return fmt.Errorf(
+			"unexpected current db version before replace: current=%s (line=%s), expected current line=%s or target line=%s (destVersion=%s)",
+			dbVersion, dbMM, curMM, destMM, r.ConfParams.DestVersion,
+		)
+	}
 }
 
 // Retry 重试
@@ -77,8 +140,7 @@ func (r *ReplacePackage) Init(runtime *jobruntime.JobGenericRuntime) error {
 
 	// 获取MongoDB配置文件参数
 	if err := json.Unmarshal([]byte(r.runtime.PayloadDecoded), &r.ConfParams); err != nil {
-		r.runtime.Logger.Error(fmt.Sprintf(
-			"get parameters of replace package fail by json.Unmarshal, error:%s", err))
+		r.runtime.Logger.Error("get parameters of replace package fail by json.Unmarshal, error:%s", err)
 		return fmt.Errorf("get parameters of replace package fail by json.Unmarshal, error:%s", err)
 	}
 
@@ -93,83 +155,23 @@ func (r *ReplacePackage) Init(runtime *jobruntime.JobGenericRuntime) error {
 	return nil
 }
 
-// checkDbVersion 检查db版本
-func (r *ReplacePackage) checkDbVersion() (error, bool) {
-	// 检查db版本
-	r.runtime.Logger.Info("start to check db version")
-	dbVersion, err := common.CheckMongoVersion(r.BinDir, r.ConfParams.InstanceType)
-	if err != nil {
-		r.runtime.Logger.Error("check db version fail, error:%s", err)
-		return err, false
-	}
-	r.runtime.Logger.Info("current db version is %s", dbVersion)
-	if dbVersion != r.ConfParams.DbVersion {
-		return nil, false
-	}
-	r.runtime.Logger.Info("check db version successfully")
-	return nil, true
-}
-
 // unTarAndRecreateSoftLink 解压安装包，重建软链接并给目录授权
 func (r *ReplacePackage) unTarAndRecreateSoftLink() error {
-	r.runtime.Logger.Info("start to replace package")
-	// 检查db版本
-	err, versionStatus := r.checkDbVersion()
-	if err != nil {
-		return err
-	}
-	if versionStatus {
-		return nil
-	}
 
-	// 删除软链接
+	// 删除软链接（放在锁内，避免并发竞态）
 	if util.FileExists(r.InstallPath) {
 		r.runtime.Logger.Info("start to delete soft link")
-		softLink := fmt.Sprintf("rm -rf %s", r.InstallPath)
-		if _, err := util.RunBashCmd(softLink, "", nil, 60*time.Second); err != nil {
-			r.runtime.Logger.Error(
-				fmt.Sprintf("delete soft link fail, error:%s", err))
+		if err := os.RemoveAll(r.InstallPath); err != nil {
+			r.runtime.Logger.Error("delete soft link fail, error:%s", err)
 			return fmt.Errorf("delete soft link, error:%s", err)
 		}
 		r.runtime.Logger.Info("delete soft link successfully")
 	}
 
-	// 解压安装包并授权
-	// 安装多实例并发执行添加文件锁
-	r.runtime.Logger.Info("start to get file lock")
-	fileLock := common.NewFileLock(r.LockFilePath)
-	// 获取锁
-	err = fileLock.Lock()
-	if err != nil {
-		for {
-			err = fileLock.Lock()
-			if err != nil {
-				time.Sleep(1 * time.Second)
-				continue
-			}
-			r.runtime.Logger.Info("get file lock successfully")
-			break
-		}
-	} else {
-		r.runtime.Logger.Info("get file lock successfully")
-	}
-	if err = common.UnTarAndCreateSoftLinkAndChown(r.runtime, r.BinDir,
+	if err := common.UnTarAndCreateSoftLinkAndChown(r.runtime, r.BinDir,
 		r.InstallPackagePath, r.UnTarPath, r.InstallPath, r.OsUser, r.OsGroup); err != nil {
-		return err
+		return fmt.Errorf("unTar and create soft link fail, error:%s", err)
 	}
-	// 释放锁
-	_ = fileLock.UnLock()
-	r.runtime.Logger.Info("release file lock successfully")
-
-	// 检查db版本
-	err, versionStatus = r.checkDbVersion()
-	if err != nil {
-		return err
-	}
-	if !versionStatus {
-		r.runtime.Logger.Error("replace package fail, current db version is not %s", r.ConfParams.DbVersion)
-		return fmt.Errorf("replace package fail, current db version is not %s", r.ConfParams.DbVersion)
-	}
-	r.runtime.Logger.Info("replace package successfully")
+	r.runtime.Logger.Info("unTar and create soft link successfully")
 	return nil
 }

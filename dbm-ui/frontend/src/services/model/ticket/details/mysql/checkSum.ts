@@ -32,6 +32,7 @@ export interface CheckSum extends DetailBase {
     table_patterns: string[];
   }[];
   is_sync_non_innodb: boolean;
+  need_manual_confirm: boolean;
   runtime_hour: number;
   timing: string;
 }

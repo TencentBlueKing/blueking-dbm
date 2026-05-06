@@ -41,12 +41,14 @@ import (
 // StartInformers 启动 informer
 func StartInformers(ctx context.Context) {
 	k8sClusterConfigProvider := metaprovider.
-		NewK8sClusterConfigProvider(metadbaccess.NewK8sClusterConfigDbAccess(util.Db.GormDb))
+		GetK8sClusterConfigProvider(metadbaccess.GetK8sClusterConfigDbAccess(util.Db.DbsGormDb))
 	opsMetaProvider := metaprovider.
-		NewK8sCrdOpsRequestProvider(metadbaccess.NewK8sCrdOpsRequestDbAccess(util.Db.GormDb))
-	clusterMetaProvider := routerutil.BuildClusterMetaProvider(util.Db.GormDb)
+		GetK8sCrdOpsRequestProvider(metadbaccess.GetOpsRequestDbAccess(util.Db.DbsGormDb))
+	clusterMetaProvider := routerutil.BuildClusterMetaProvider(util.Db.DbsGormDb)
 	componentMetaProvider := metaprovider.
-		NewK8sCrdComponentProvider(metadbaccess.NewK8sCrdComponentAccess(util.Db.GormDb))
+		GetK8sCrdComponentProvider(metadbaccess.GetComponentDbAccess(util.Db.DbsGormDb))
+	clusterServiceProvider := metaprovider.
+		GetK8sClusterServiceProvider(metadbaccess.GetClusterServiceDbAccess(util.Db.DbsGormDb))
 
 	k8sClusterConfigs, err := k8sClusterConfigProvider.ListConfigsByLimit(commconst.MaxFetchSize)
 	if err != nil || len(k8sClusterConfigs) == 0 {
@@ -63,8 +65,16 @@ func StartInformers(ctx context.Context) {
 
 		cmpInformer := NewComponentInformer(clusterConfig, clusterMetaProvider, componentMetaProvider)
 		startGenericInformer(ctx, clusterConfig, cmpInformer, "componentInformer")
+
+		// 启动 ServiceInformer（typed corev1 informer，独立于 DynamicSharedInformerFactory）
+		svcInformer := NewServiceInformer(clusterConfig, clusterMetaProvider, clusterServiceProvider)
+		go func(cfg *entitys.K8sClusterConfigEntity) {
+			if err := svcInformer.Start(ctx); err != nil {
+				slog.Error("serviceInformer failed", "k8sCluster", cfg.ClusterName, "error", err)
+			}
+		}(clusterConfig)
 	}
-	slog.Info("Finished starting all opsInformer")
+	slog.Info("Finished starting all informers")
 }
 
 // DbsInformerStarter 定义所有 informer 必须实现的启动方法

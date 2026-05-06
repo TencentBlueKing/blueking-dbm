@@ -43,7 +43,6 @@ class TendbSpiderAddNodesDetailSerializer(TendbBaseOperateDetailSerializer):
 
 class TendbSpiderAddNodesFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.add_spider_nodes_scene
-    validator = SpiderController.add_spider_nodes_scene.validator
 
     def format_ticket_data(self):
         pass
@@ -88,3 +87,4 @@ class TendbSpiderAddNodesFlowBuilder(BaseTendbTicketFlowBuilder):
     inner_flow_builder = TendbSpiderAddNodesFlowParamBuilder
     inner_flow_name = _("TenDBCluster Cluster 接入层扩容")
     resource_batch_apply_builder = TendbSpiderAddNodesResourceParamBuilder
+    validator = SpiderController.add_spider_nodes_scene.validator

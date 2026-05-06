@@ -1,5 +1,6 @@
 <template>
   <EditableColumn
+    ref="editableColumn"
     :append-rules="localRules"
     :disabled-method="disabledMethod"
     :field="field"
@@ -26,8 +27,7 @@
       has-delete-icon
       :max-data="single ? 1 : -1"
       :paste-fn="tagInputPasteFn"
-      :placeholder="t('请输入DB 名称，支持通配符“%”，含通配符的仅支持单个')"
-      @change="handleChange" />
+      :placeholder="t('请输入DB 名称，支持通配符“%”，含通配符的仅支持单个')" />
     <template #tips>
       <div class="db-table-tag-tip">
         <div style="font-weight: 700">{{ t('库表输入说明') }}：</div>
@@ -108,8 +108,7 @@
   });
 
   const { t } = useI18n();
-
-  let isInit = true;
+  const editableColumnRef = useTemplateRef('editableColumn');
 
   const batchEditValue = ref<string[]>([]);
 
@@ -185,7 +184,7 @@
           return true;
         }
         if (!props.clusterId) {
-          return t('请先选择集群');
+          return true;
         }
         return checkClusterDatabase({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -219,7 +218,7 @@
           return true;
         }
         if (!props.clusterId) {
-          return t('请先选择集群');
+          return true;
         }
         return checkClusterDatabase({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -242,12 +241,11 @@
     },
   ];
 
-  // 集群改变时 DB 需要重置
   watch(
     () => props.clusterId,
     () => {
-      if (!isInit) {
-        modelValue.value = [];
+      if (props.clusterId && modelValue.value.length > 0) {
+        editableColumnRef.value?.validate();
       }
     },
   );
@@ -256,18 +254,13 @@
     if (!props.checkExist || !props.checkNotExist) {
       return false;
     }
-    return props.clusterId ? false : t('请先选择集群');
+    return props.clusterId ? false : t('请输入合法的集群域名');
   };
 
   const tagInputPasteFn = (value: string) => value.split(batchSplitRegex).map((item) => ({ id: item }));
 
   const handleBatchEditConfirm = () => {
-    isInit = false;
     emits('batch-edit', batchEditValue.value, props.field);
-  };
-
-  const handleChange = () => {
-    isInit = false;
   };
 </script>
 

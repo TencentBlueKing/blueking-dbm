@@ -21,6 +21,8 @@ from backend.db_meta.enums import ClusterEntryRole, ClusterType, InstanceRole
 from backend.db_services.redis.util import is_predixy_proxy_type, is_redis_cluster_protocal
 from backend.flow.consts import DEFAULT_REDIS_START_PORT, DnsOpType, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.redis.dns_manage import RedisDnsManageComponent
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.exec_shell_script import ExecuteShellReloadMetaComponent
@@ -49,26 +51,59 @@ class StorageRepLink:
     new_slave_port: int = 0
 
 
-def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, slave_replace_info: Dict) -> SubBuilder:
-    """适用于 集群中Slave 机房裁撤/迁移替换场景
-    步骤：   获取变更锁--> 新实例部署-->
-            重建热备--> 检测同步状态-->
-            Kill Dead链接--> 下架旧实例
-    """
-    act_kwargs = deepcopy(sub_kwargs)
-    redis_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
-    sub_pipelines, newslave_to_master, replace_link_info, old_slaves, new_slaves = [], {}, {}, [], []
-    slave_replace_detail = slave_replace_info["redis_slave"]
+def _setup_alarm_shield(redis_pipeline, act_kwargs, replace_ips):
+    """设置告警屏蔽"""
+    import datetime
+
+    now = datetime.datetime.now()
+    default_duration = 3 * 3600  # 默认屏蔽3小时
+    end_time_default = now + datetime.timedelta(seconds=default_duration)
+    end_time_20 = now.replace(hour=20, minute=0, second=0, microsecond=0)
+
+    if end_time_default <= end_time_20:
+        duration_seconds = default_duration
+    else:
+        duration_seconds = int((end_time_20 - now).total_seconds())
+        if duration_seconds < 0:
+            duration_seconds = 0
+
+    redis_pipeline.add_act(
+        act_name=_("屏蔽集群告警-{}").format(act_kwargs.cluster["immute_domain"]),
+        act_component_code=AddAlarmShieldComponent.code,
+        kwargs={
+            **asdict(act_kwargs),
+            "description": _("Redis Slave替换-屏蔽告警-{}").format(act_kwargs.cluster["immute_domain"]),
+            "dimensions": [
+                {"name": "appid", "values": [act_kwargs.cluster["bk_biz_id"]]},
+                {"name": "cluster_domain", "values": [act_kwargs.cluster["immute_domain"]]},
+                {"name": "bk_target_ip", "values": list(replace_ips)},
+            ],
+            "duration_seconds": duration_seconds,
+        },
+    )
+
+
+def _collect_replace_info(slave_replace_detail, act_kwargs):
+    """收集替换信息"""
+    newslave_to_master, replace_link_info, old_slaves, new_slaves = {}, {}, [], []
+    replace_ips = set()
 
     for replace_link in slave_replace_detail:
         old_slave, new_slave = replace_link["ip"], replace_link["target"]["ip"]
+        replace_ips.add(old_slave)
+        replace_ips.add(new_slave)
+        master_ip = act_kwargs.cluster["slave_master_map"].get(old_slave)
+        if master_ip:
+            replace_ips.add(master_ip)
+
         old_slaves.append(old_slave)
         new_slaves.append(new_slave)
         new_ins_port = DEFAULT_REDIS_START_PORT
         if act_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
             new_ins_port = min(act_kwargs.cluster["slave_ports"][old_slave])
+
         old_ports = act_kwargs.cluster["slave_ports"][old_slave]
-        old_ports.sort()  # 升序
+        old_ports.sort()
         for port in old_ports:
             one_link = StorageRepLink()
             one_link.old_slave_port, one_link.old_slave_ip = int(port), old_slave
@@ -87,13 +122,15 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
             replace_link_info[old_slave_addr] = one_link
             new_ins_port += 1
 
-    twemproxy_server_shards = get_twemproxy_cluster_server_shards(
-        act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"], newslave_to_master
-    )
+    return newslave_to_master, replace_link_info, old_slaves, new_slaves, replace_ips
 
-    # ### 部署实例 ###############################################################################
+
+def _deploy_new_instances(
+    root_id, ticket_data, act_kwargs, slave_replace_detail, slave_replace_info, twemproxy_server_shards
+):
+    """部署新实例"""
+    sub_pipelines = []
     for replace_link in slave_replace_detail:
-        # {"ip": "1.1.1.a","spec_id": 17,"target": {"bk_cloud_id": 0,"bk_host_id": 216,"status": 1,"ip": "2.2.2.b"}}
         old_slave = replace_link["ip"]
         new_slave = replace_link["target"]["ip"]
         params = {
@@ -113,13 +150,15 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
             params["start_port"] = min(act_kwargs.cluster["slave_ports"][old_slave])
         sub_builder = RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs, params)
         sub_pipelines.append(sub_builder)
-    redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-    # ### 部署实例 ######################################################################## 完毕 ###
+    return sub_pipelines
 
-    # #### 建同步关系 ##############################################################################
+
+def _setup_sync_relations(
+    root_id, ticket_data, act_kwargs, slave_replace_detail, replace_link_info, twemproxy_server_shards
+):
+    """建立同步关系"""
     sub_pipelines = []
     for replace_link in slave_replace_detail:
-        # "Old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
         old_slave = replace_link["ip"]
         new_slave = replace_link["target"]["ip"]
         install_params = {
@@ -135,7 +174,6 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
         }
         for slave_port in act_kwargs.cluster["slave_ports"][old_slave]:
             old_ins = "{}{}{}".format(old_slave, IP_PORT_DIVIDER, slave_port)
-            # master_port = act_kwargs.cluster["slave_ins_map"].get(old_ins).split(IP_PORT_DIVIDER)[1]
             rep_link = replace_link_info.get(old_ins, StorageRepLink())
             install_params["ins_link"].append(
                 {
@@ -146,16 +184,17 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
             )
         sub_builder = RedisMakeSyncAtomJob(root_id, ticket_data, act_kwargs, install_params)
         sub_pipelines.append(sub_builder)
-    redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-    # #### 建同步关系 ##################################################################### 完毕 ####
+    return sub_pipelines
 
-    # 新节点加入集群 ################################################################################
+
+def _add_new_nodes_to_cluster(act_kwargs, ticket_data, slave_replace_detail, replace_link_info):
+    """新节点加入集群"""
     act_kwargs.cluster["meta_func_name"] = RedisDBMeta.redis_redo_slaves.__name__
     act_kwargs.cluster["old_slaves"] = []
     act_kwargs.cluster["created_by"] = ticket_data["created_by"]
     act_kwargs.cluster["tendiss"] = []
+
     for replace_link in slave_replace_detail:
-        # "Old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
         old_slave = replace_link["ip"]
         act_kwargs.cluster["old_slaves"].append(
             {"ip": old_slave, "ports": act_kwargs.cluster["slave_ports"][old_slave]}
@@ -173,12 +212,9 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
                 }
             )
 
-    redis_pipeline.add_act(
-        act_name=_("Redis-新节点加入集群"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
-    )
-    # #### 新节点加入集群 ################################################################# 完毕 ###
 
-    # 刷新bkdbmon , 刷新DNS
+def _refresh_monitoring_and_dns(redis_pipeline, act_kwargs, slave_replace_detail):
+    """刷新监控和DNS"""
     if act_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
         for replace_link in slave_replace_detail:
             old_slave, new_slave = replace_link["ip"], replace_link["target"]["ip"]
@@ -207,10 +243,10 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
                 kwargs=asdict(act_kwargs),
             )
 
-    # rediscluster集群类型需要更新Nodes域名 ########################################################
+
+def _handle_redis_cluster_specifics(redis_pipeline, root_id, ticket_data, act_kwargs, old_slaves, new_slaves):
+    """处理Redis Cluster特定逻辑"""
     if is_redis_cluster_protocal(act_kwargs.cluster["cluster_type"]):
-        # nodes写入元数据。这个必须在添加nodes域名之前
-        # 这个地方的node需要先保证都是这种格式
         act_kwargs.cluster["nodes_domain"] = "nodes." + act_kwargs.cluster["immute_domain"]
         act_kwargs.cluster["meta_func_name"] = RedisDBMeta.update_cluster_entry.__name__
         redis_pipeline.add_act(
@@ -219,7 +255,6 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
             kwargs=asdict(act_kwargs),
         )
 
-        # 增加nodes域名
         access_sub_builder = AccessManagerAtomJob(
             root_id,
             ticket_data,
@@ -234,7 +269,6 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
         )
         if access_sub_builder:
             redis_pipeline.add_sub_pipeline(sub_flow=access_sub_builder)
-        # 如果这里为空，说明之前并不存在nodes接入层记录，此时，需要用另一种方式初始化nodes域名
         else:
             act_kwargs.exec_ip = new_slaves
             redis_pipeline.add_act(
@@ -252,7 +286,6 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
                 },
             )
 
-        # 删除老实例的nodes域名
         access_sub_builder = AccessManagerAtomJob(
             root_id,
             ticket_data,
@@ -267,9 +300,10 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
         )
         if access_sub_builder:
             redis_pipeline.add_sub_pipeline(sub_flow=access_sub_builder)
-    # #### rediscluster集群类型需要更新Nodes域名 ############################################### 完毕 ###
 
-    # predixy类型的集群需要刷新配置文件 #################################################################
+
+def _handle_predixy_specifics(redis_pipeline, act_kwargs, slave_replace_detail):
+    """处理Predixy特定逻辑"""
     if is_predixy_proxy_type(act_kwargs.cluster["cluster_type"]):
         sed_args = []
         for replace_link in slave_replace_detail:
@@ -280,17 +314,16 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
                         old_slave, IP_PORT_DIVIDER, slave_port, new_slave, IP_PORT_DIVIDER, slave_port
                     )
                 )
-            sed_seed = " ".join(sed_args)
+        sed_seed = " ".join(sed_args)
 
-        # act_kwargs.exec_ip = act_kwargs.cluster["proxy_ips"]  # predixy ips ...
         act_kwargs.cluster[
             "shell_command"
         ] = """
         cnf="$REDIS_DATA_DIR/predixy/{}/predixy.conf"
-        echo "`date "+%F %T"` : before sed config $cnf: : `cat $cnf |grep  "+"|grep ":"`"
-        echo "`date "+%F %T"` : exec sed -i {}"
+        echo "`date \"+%F %T\"` : before sed config $cnf: : `cat $cnf |grep  \"+\"|grep \":\"`"
+        echo "`date \"+%F %T\"` : exec sed -i {}"
         sed -i {} $cnf
-        echo "`date "+%F %T"` : after sed configs : `cat $cnf |grep "+"|grep ":"`"
+        echo "`date \"+%F %T\"` : after sed configs : `cat $cnf |grep \"+\"|grep \":\"`"
         """.format(
             act_kwargs.cluster["proxy_port"], sed_seed, sed_seed
         )
@@ -300,12 +333,12 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
             act_component_code=ExecuteShellReloadMetaComponent.code,
             kwargs=asdict(act_kwargs),
         )
-    # predixy类型的集群需要刷新配置文件 ######################################################## 完毕 ###
 
-    # #### 下架旧实例 ############################################################################
+
+def _shutdown_old_instances(root_id, ticket_data, act_kwargs, slave_replace_detail):
+    """下架旧实例"""
     sub_pipelines = []
     for replace_link in slave_replace_detail:
-        # "Old": {"ip": "2.2.a.4", "bk_cloud_id": 0, "bk_host_id": 123},
         old_slave = replace_link["ip"]
         params = {
             "ignore_ips": [act_kwargs.cluster["slave_master_map"][old_slave]],
@@ -314,7 +347,73 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
         }
         sub_builder = RedisBatchShutdownAtomJob(root_id, ticket_data, act_kwargs, params)
         sub_pipelines.append(sub_builder)
-    redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-    # #### 下架旧实例 ###################################################################### 完毕 ###
+    return sub_pipelines
+
+
+def _disable_alarm_shield(redis_pipeline, act_kwargs):
+    """解除告警屏蔽"""
+    redis_pipeline.add_act(
+        act_name=_("解除集群告警屏蔽-{}").format(act_kwargs.cluster["immute_domain"]),
+        act_component_code=DisableAlarmShieldComponent.code,
+        kwargs=asdict(act_kwargs),
+    )
+
+
+def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, slave_replace_info: Dict) -> SubBuilder:
+    """适用于 集群中Slave 机房裁撤/迁移替换场景
+    步骤：   获取变更锁--> 新实例部署-->
+            重建热备--> 检测同步状态-->
+            Kill Dead链接--> 下架旧实例
+    """
+    act_kwargs = deepcopy(sub_kwargs)
+    redis_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
+    slave_replace_detail = slave_replace_info["redis_slave"]
+
+    # 收集替换信息
+    newslave_to_master, replace_link_info, old_slaves, new_slaves, replace_ips = _collect_replace_info(
+        slave_replace_detail, act_kwargs
+    )
+
+    # 设置告警屏蔽
+    _setup_alarm_shield(redis_pipeline, act_kwargs, replace_ips)
+
+    # 获取twemproxy服务器分片信息
+    twemproxy_server_shards = get_twemproxy_cluster_server_shards(
+        act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"], newslave_to_master
+    )
+
+    # 部署新实例
+    deploy_sub_pipelines = _deploy_new_instances(
+        root_id, ticket_data, act_kwargs, slave_replace_detail, slave_replace_info, twemproxy_server_shards
+    )
+    redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=deploy_sub_pipelines)
+
+    # 建立同步关系
+    sync_sub_pipelines = _setup_sync_relations(
+        root_id, ticket_data, act_kwargs, slave_replace_detail, replace_link_info, twemproxy_server_shards
+    )
+    redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_sub_pipelines)
+
+    # 新节点加入集群
+    _add_new_nodes_to_cluster(act_kwargs, ticket_data, slave_replace_detail, replace_link_info)
+    redis_pipeline.add_act(
+        act_name=_("Redis-新节点加入集群"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
+    )
+
+    # 刷新监控和DNS
+    _refresh_monitoring_and_dns(redis_pipeline, act_kwargs, slave_replace_detail)
+
+    # 处理Redis Cluster特定逻辑
+    _handle_redis_cluster_specifics(redis_pipeline, root_id, ticket_data, act_kwargs, old_slaves, new_slaves)
+
+    # 处理Predixy特定逻辑
+    _handle_predixy_specifics(redis_pipeline, act_kwargs, slave_replace_detail)
+
+    # 下架旧实例
+    shutdown_sub_pipelines = _shutdown_old_instances(root_id, ticket_data, act_kwargs, slave_replace_detail)
+    redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=shutdown_sub_pipelines)
+
+    # 解除告警屏蔽
+    _disable_alarm_shield(redis_pipeline, act_kwargs)
 
     return redis_pipeline.build_sub_process(sub_name=_("Slave替换-{}").format(act_kwargs.cluster["cluster_type"]))

@@ -121,8 +121,8 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import DbNameColumn from '@views/db-manage/tendb-cluster/common/edit-table-column/DbNameColumn.vue';
-  import TableNameColumn from '@views/db-manage/tendb-cluster/common/edit-table-column/TableNameColumn.vue';
+  import DbNameColumn from '@views/db-manage/mysql/common/toolbox-field/db-name-column/Index.vue';
+  import TableNameColumn from '@views/db-manage/mysql/common/toolbox-field/table-name-column/Index.vue';
   import ClusterColumn from '@views/db-manage/tendb-cluster/common/toolbox-field/cluster-column/Index.vue';
 
   import { random } from '@utils';

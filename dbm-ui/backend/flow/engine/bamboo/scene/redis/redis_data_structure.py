@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging.config
+import re
 from collections import defaultdict
 from copy import deepcopy
 from dataclasses import asdict
@@ -49,6 +50,8 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import RedisBatchInstallAtomJob
 from backend.flow.engine.bamboo.scene.redis.common.exceptions import TendisGetBinlogFailedException
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure_sub import redis_backupfile_download
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -73,6 +76,8 @@ from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.utils.time import str2datetime
 
 logger = logging.getLogger("flow")
+
+SHARD_VALUE_RANGE_SEPARATOR = re.compile(r"[\s,]+")
 
 
 class RedisDataStructureFlow(object):
@@ -99,7 +104,9 @@ class RedisDataStructureFlow(object):
                 "redis": {"id": 1}
             }
           }
-        ]
+        ],
+        "skip_mannual_confirm": False,
+        "is_rollback_drill": False  # Optional
     }
     """
 
@@ -114,177 +121,205 @@ class RedisDataStructureFlow(object):
 
     def redis_data_structure_flow(self):
         redis_pipeline_all = Builder(root_id=self.root_id, data=self.data)
-
-        # 支持批量操作
         sub_pipelines_multi_cluster = []
         for info in self.data["infos"]:
-            """"""
-            logger.info("redis_data_structure_flow info:{}".format(info))
-            redis_pipeline, act_kwargs = self.__init_builder(_("REDIS_DATA_STRUCTURE"), info)
-            cluster_type = act_kwargs.cluster["cluster_type"]
-            # 获取 kvstorecount
-            redis_config = self.__get_cluster_config(
-                str(act_kwargs.cluster["bk_biz_id"]),
-                act_kwargs.cluster["domain_name"],
-                act_kwargs.cluster["db_version"],
-                ConfigTypeEnum.DBConf,
-                cluster_type,
-            )
+            sub_pipelines_multi_cluster.append(self.build_cluster_data_structure(info))
+        redis_pipeline_all.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines_multi_cluster)
+        redis_pipeline_all.run_pipeline()
 
-            if is_tendisplus_instance_type(act_kwargs.cluster["cluster_type"]):
-                logger.info("redis_data_structure_flow kvstorecount:{}".format(redis_config["kvstorecount"]))
-                act_kwargs.cluster["kvstorecount"] = redis_config["kvstorecount"]
-            act_kwargs.cluster["ticket_type"] = self.data["ticket_type"]
+    def build_cluster_data_structure(self, info: dict):
+        """Build a SubProcess for a single cluster's data-structure steps.
 
-            cluster_kwargs = deepcopy(act_kwargs)
-            # 源节点列表
-            logger.info("redis_data_structure_flow  info['master_instances']: {}".format(info["master_instances"]))
-            logger.info("redis_master_set:{}".format(cluster_kwargs.cluster["redis_master_set"]))
-            is_cluster_all = self.check_all_instances(
-                info["master_instances"], cluster_kwargs.cluster["redis_master_set"], cluster_type
-            )
-            logger.info(_("是否是集群维度：is_cluster_all:{}".format(is_cluster_all)))
-            # 如果是tendisplus必须要传入所有节点，也就是需要是集群维度的
-            if is_redis_cluster_protocal(cluster_type) and not is_cluster_all:
-                raise Exception(
-                    _(
-                        "tendisplus 需要按集群维度进行数据构造，请检查传入的节点：cluster_type is :{},"
-                        "传入节点：master_instances is：{},redis_master_set is :{}".format(
-                            cluster_type,
-                            info["master_instances"],
-                            cluster_kwargs.cluster["redis_master_set"],
-                        )
+        Can be embedded into another pipeline (e.g. rollback exercise)
+        without spawning a separate FlowTree.
+        """
+        is_drill = self.data.get("is_rollback_drill", False)
+        logger.info("redis_data_structure_flow info:{}".format(info))
+        redis_pipeline, act_kwargs = self.__init_builder(_("REDIS_DATA_STRUCTURE"), info)
+        cluster_type = act_kwargs.cluster["cluster_type"]
+
+        # 屏蔽临时主机告警，避免数据构造期间临时实例上报噪声告警
+        temp_host_ips = [host["ip"] for host in info["redis"]]
+        shield_duration_seconds = int(self.data.get("alarm_shield_duration_seconds", 2 * 3600))
+        shield_kwargs = deepcopy(act_kwargs)
+        redis_pipeline.add_act(
+            act_name=_("屏蔽临时主机告警-{}").format(temp_host_ips),
+            act_component_code=AddAlarmShieldComponent.code,
+            kwargs={
+                **asdict(shield_kwargs),
+                "description": _("Redis数据构造-屏蔽告警-{}").format(act_kwargs.cluster["domain_name"]),
+                "dimensions": [
+                    {"name": "appid", "values": [str(act_kwargs.cluster["bk_biz_id"])]},
+                    {"name": "bk_target_ip", "values": temp_host_ips},
+                ],
+                "duration_seconds": shield_duration_seconds,
+            },
+        )
+        # 获取 kvstorecount
+        redis_config = self.__get_cluster_config(
+            str(act_kwargs.cluster["bk_biz_id"]),
+            act_kwargs.cluster["domain_name"],
+            act_kwargs.cluster["db_version"],
+            ConfigTypeEnum.DBConf,
+            cluster_type,
+        )
+
+        if is_tendisplus_instance_type(act_kwargs.cluster["cluster_type"]):
+            logger.info("redis_data_structure_flow kvstorecount:{}".format(redis_config["kvstorecount"]))
+            act_kwargs.cluster["kvstorecount"] = redis_config["kvstorecount"]
+        act_kwargs.cluster["ticket_type"] = self.data["ticket_type"]
+
+        cluster_kwargs = deepcopy(act_kwargs)
+        # 源节点列表
+        logger.info("redis_data_structure_flow  info['master_instances']: {}".format(info["master_instances"]))
+        logger.info("redis_master_set:{}".format(cluster_kwargs.cluster["redis_master_set"]))
+        is_cluster_all = self.check_all_instances(
+            info["master_instances"], cluster_kwargs.cluster["redis_master_set"], cluster_type
+        )
+        logger.info(_("是否是集群维度：is_cluster_all:{}".format(is_cluster_all)))
+        # 如果是tendisplus必须要传入所有节点，也就是需要是集群维度的，除非是回档演练场景
+        if is_redis_cluster_protocal(cluster_type) and not is_cluster_all and not is_drill:
+            raise Exception(
+                _(
+                    "tendisplus 需要按集群维度进行数据构造，请检查传入的节点：cluster_type is :{},"
+                    "传入节点：master_instances is：{},redis_master_set is :{}".format(
+                        cluster_type,
+                        info["master_instances"],
+                        cluster_kwargs.cluster["redis_master_set"],
                     )
                 )
+            )
 
-            # sass 层传入部分节点信息,不是集群所有节点
-            if not is_cluster_all:
-                # 用户选择 构造 "1.1.1.1:30000、1.1.1.1:30001" 部分实例的情况下，
-                # 因为 ip 可能变了，shard_value 可能变了，不支持 回档到  "集群容量变更" 以前；
-                # 从db_mate 根据传入的master_instance 获取其slave_instance -》 部分节点
-                cluster_src_instance = self.get_slave_instance_by_master(info["master_instances"], cluster_kwargs)
-                redis_instance_set = cluster_kwargs.cluster["redis_slave_set"]
-                logger.info(_("redis_data_structure_flow 从db_meta 查询的备份节点信息"))
-            # sass 层传入集群所有节点信息
-            else:
-                # 用户选择 构造 "all"的情况下， 可以支持 回档到  "集群容量变更" 以前,以及故障替换场景；
-                # 从bklog查询备份节点信息
-                cluster_src_instance, redis_instance_set = self.get_backup_instance_by_bklog(info, cluster_type)
-                logger.info(_("redis_data_structure_flow 从bklog查询的备份节点信息"))
+        # sass 层传入部分节点信息,不是集群所有节点
+        if not is_cluster_all:
+            # 用户选择 构造 "1.1.1.1:30000、1.1.1.1:30001" 部分实例的情况下，
+            # 因为 ip 可能变了，shard_value 可能变了，不支持 回档到  "集群容量变更" 以前；
+            # 从db_mate 根据传入的master_instance 获取其slave_instance -》 部分节点
+            cluster_src_instance = self.get_slave_instance_by_master(info["master_instances"], cluster_kwargs)
+            redis_instance_set = cluster_kwargs.cluster["redis_slave_set"]
+            logger.info(_("redis_data_structure_flow 从db_meta 查询的备份节点信息"))
+        # sass 层传入集群所有节点信息
+        else:
+            # 用户选择 构造 "all"的情况下， 可以支持 回档到  "集群容量变更" 以前,以及故障替换场景；
+            # 从bklog查询备份节点信息
+            cluster_src_instance, redis_instance_set = self.get_backup_instance_by_bklog(info, cluster_type, is_drill)
+            logger.info(_("redis_data_structure_flow 从bklog查询的备份节点信息"))
 
-            logger.info("redis_data_structure_flow cluster_src_instance: {}".format(cluster_src_instance))
-            logger.info(_("这个值和部署proxy有关系 redis_instance_set: {}".format(redis_instance_set)))
-            logger.info("redis_data_structure_flow  len(info['redis']): {}".format(len(info["redis"])))
+        logger.info("redis_data_structure_flow cluster_src_instance: {}".format(cluster_src_instance))
+        logger.info(_("这个值和部署proxy有关系 redis_instance_set: {}".format(redis_instance_set)))
+        logger.info("redis_data_structure_flow  len(info['redis']): {}".format(len(info["redis"])))
 
-            if len(info["redis"]) > 0:
-                # 计算每台主机部署的节点数
-                avg = int(len(cluster_src_instance) // len(info["redis"]))
-                # 计算整除后多于的节点数
-                remainder = int(len(cluster_src_instance) % len(info["redis"]))
-                logger.info("redis_data_structure_flow info['redis']: {}".format(info["redis"]))
-            else:
-                raise ValueError("info['redis'] len <= 0, please check!")
-            # ### 部署redis ############################################################
-            sub_pipelines_install = []
-            cluster_dst_instance = []
-            resource_spec = info["resource_spec"]["redis"]
-            for index, new_master in enumerate([host["ip"] for host in info["redis"]]):
-                # 将整除后多于的节点一个一个地分配给每台主机
-                instance_numb = avg + 1 if index < remainder else avg
-                sub_builder = RedisBatchInstallAtomJob(
-                    self.root_id,
-                    self.data,  # ticket-based biz id
-                    act_kwargs,  # cluster-based biz id
-                    {
-                        "ip": new_master,
-                        "meta_role": InstanceRole.REDIS_MASTER.value,
-                        "start_port": DEFAULT_REDIS_START_PORT,
-                        "ports": [],
-                        "instance_numb": instance_numb,
-                        "spec_id": resource_spec["id"],
-                        "spec_config": resource_spec,
-                    },
+        if len(info["redis"]) > 0:
+            # 计算每台主机部署的节点数
+            avg = int(len(cluster_src_instance) // len(info["redis"]))
+            # 计算整除后多于的节点数
+            remainder = int(len(cluster_src_instance) % len(info["redis"]))
+            logger.info("redis_data_structure_flow info['redis']: {}".format(info["redis"]))
+        else:
+            raise ValueError("info['redis'] len <= 0, please check!")
+        # ### 部署redis ############################################################
+        sub_pipelines_install = []
+        cluster_dst_instance = []
+        resource_spec = info["resource_spec"]["redis"]
+        for index, new_master in enumerate([host["ip"] for host in info["redis"]]):
+            # 将整除后多于的节点一个一个地分配给每台主机
+            instance_numb = avg + 1 if index < remainder else avg
+            sub_builder = RedisBatchInstallAtomJob(
+                self.root_id,
+                self.data,  # ticket-based biz id
+                act_kwargs,  # cluster-based biz id
+                {
+                    "ip": new_master,
+                    "meta_role": InstanceRole.REDIS_MASTER.value,
+                    "start_port": DEFAULT_REDIS_START_PORT,
+                    "ports": [],
+                    "instance_numb": instance_numb,
+                    "spec_id": resource_spec["id"],
+                    "spec_config": resource_spec,
+                },
+                to_install_puglins=not is_drill,  # 演练场景跳过安装beat插件
+                to_install_dbmon=not is_drill,  # 演练场景跳过dbmon, 销毁时也无需卸载
+            )
+            sub_pipelines_install.append(sub_builder)
+
+            # 将部署信息存入cluster_dst_instance
+            for inst_no in range(0, instance_numb):
+                port = DEFAULT_REDIS_START_PORT + inst_no
+                cluster_dst_instance.append("{}{}{}".format(new_master, IP_PORT_DIVIDER, port))
+        logger.info("redis_data_structure_flow cluster_dst_instance: {}".format(cluster_dst_instance))
+        # 检查节点总数是否相等
+        if len(info["master_instances"]) != len(cluster_dst_instance):
+            raise ValueError(
+                "info ins num:{} != cluster dts ins:{}".format(
+                    len(info["master_instances"]), len(cluster_dst_instance)
                 )
-                sub_pipelines_install.append(sub_builder)
+            )
 
-                # 将部署信息存入cluster_dst_instance
-                for inst_no in range(0, instance_numb):
-                    port = DEFAULT_REDIS_START_PORT + inst_no
-                    cluster_dst_instance.append("{}{}{}".format(new_master, IP_PORT_DIVIDER, port))
-            logger.info("redis_data_structure_flow cluster_dst_instance: {}".format(cluster_dst_instance))
-            # 检查节点总数是否相等
-            if len(info["master_instances"]) != len(cluster_dst_instance):
-                raise ValueError(
-                    "info ins num:{} != cluster dts ins:{}".format(
-                        len(info["master_instances"]), len(cluster_dst_instance)
-                    )
-                )
+        # 使用zip函数将源集群和临时集群的节点一一对应
+        node_pairs = list(zip(cluster_src_instance, cluster_dst_instance))
+        logger.info(_("redis_data_structure_flow 源集群和临时集群的节点一一对应关系node_pairs: {}".format(node_pairs)))
+        # ### 下发actuator包############################################################
+        acts_lists = []
+        first_act_kwargs = deepcopy(act_kwargs)
+        for index, new_master in enumerate([host["ip"] for host in info["redis"]]):
+            trans_files = GetFileList(db_type=DBType.Redis)
+            first_act_kwargs.file_list = trans_files.redis_actuator_backend()
+            first_act_kwargs.exec_ip = new_master
+            acts_lists.append(
+                {
+                    "act_name": _("Redis-{}-下发actuator包").format(new_master),
+                    "act_component_code": TransFileComponent.code,
+                    "kwargs": asdict(first_act_kwargs),
+                }
+            )
+        redis_pipeline.add_parallel_acts(acts_list=acts_lists)
+        # ### 下发actuator包完成############################################################
 
-            # 使用zip函数将源集群和临时集群的节点一一对应
-            node_pairs = list(zip(cluster_src_instance, cluster_dst_instance))
-            logger.info(_("redis_data_structure_flow 源集群和临时集群的节点一一对应关系node_pairs: {}".format(node_pairs)))
-            # ### 下发actuator包############################################################
-            acts_lists = []
-            first_act_kwargs = deepcopy(act_kwargs)
-            for index, new_master in enumerate([host["ip"] for host in info["redis"]]):
-                trans_files = GetFileList(db_type=DBType.Redis)
-                first_act_kwargs.file_list = trans_files.redis_actuator_backend()
-                first_act_kwargs.exec_ip = new_master
-                acts_lists.append(
-                    {
-                        "act_name": _("Redis-{}-下发actuator包").format(new_master),
-                        "act_component_code": TransFileComponent.code,
-                        "kwargs": asdict(first_act_kwargs),
-                    }
-                )
-            redis_pipeline.add_parallel_acts(acts_list=acts_lists)
-            # ### 下发actuator包完成############################################################
+        # ###  初始化机器，有时机器混用环境变量没处理，会导致部分目录不存在，会有影响###############
+        acts_lists = []
+        first_act_kwargs = deepcopy(act_kwargs)
+        for index, new_master in enumerate([host["ip"] for host in info["redis"]]):
+            first_act_kwargs.exec_ip = new_master
+            first_act_kwargs.get_redis_payload_func = RedisActPayload.get_sys_init_payload.__name__
+            acts_lists.append(
+                {
+                    "act_name": _("初始化机器"),
+                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                    "kwargs": asdict(first_act_kwargs),
+                }
+            )
+        redis_pipeline.add_parallel_acts(acts_list=acts_lists)
+        # ### 初始化机器完成############################################################
 
-            # ###  初始化机器，有时机器混用环境变量没处理，会导致部分目录不存在，会有影响###############
-            acts_lists = []
-            first_act_kwargs = deepcopy(act_kwargs)
-            for index, new_master in enumerate([host["ip"] for host in info["redis"]]):
-                first_act_kwargs.exec_ip = new_master
-                first_act_kwargs.get_redis_payload_func = RedisActPayload.get_sys_init_payload.__name__
-                acts_lists.append(
-                    {
-                        "act_name": _("初始化机器"),
-                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                        "kwargs": asdict(first_act_kwargs),
-                    }
-                )
-            redis_pipeline.add_parallel_acts(acts_list=acts_lists)
-            # ### 初始化机器完成############################################################
+        # ###安装备份环境##########################################################################
+        new_master_list = []
 
-            # ###安装备份环境##########################################################################
-            new_master_list = []
-
-            for index, new_master in enumerate([host["ip"] for host in info["redis"]]):
-                # 将new_master添加到列表中
-                new_master_list.append(new_master)
-            redis_pipeline.add_act(
-                act_name=_("Redis-安装backup-client工具-{}").format(new_master_list),
-                act_component_code=DownloadBackupClientComponent.code,
-                kwargs=asdict(
-                    DownloadBackupClientKwargs(
-                        bk_cloud_id=act_kwargs.cluster["bk_cloud_id"],
-                        bk_biz_id=int(self.data["bk_biz_id"]),
-                        download_host_list=new_master_list,
-                    ),
+        for index, new_master in enumerate([host["ip"] for host in info["redis"]]):
+            # 将new_master添加到列表中
+            new_master_list.append(new_master)
+        redis_pipeline.add_act(
+            act_name=_("Redis-安装backup-client工具-{}").format(new_master_list),
+            act_component_code=DownloadBackupClientComponent.code,
+            kwargs=asdict(
+                DownloadBackupClientKwargs(
+                    bk_cloud_id=act_kwargs.cluster["bk_cloud_id"],
+                    bk_biz_id=int(self.data["bk_biz_id"]),
+                    download_host_list=new_master_list,
                 ),
-            )
-            # ###  安装备份环境结束##########################################################################
+            ),
+        )
+        # ###  安装备份环境结束##########################################################################
 
-            # # ### 获取机器磁盘备份目录信息 ##########################################################
+        # # ### 获取机器磁盘备份目录信息 ##########################################################
 
-            first_act_kwargs = deepcopy(act_kwargs)
-            ip_list = [host["ip"] for host in info["redis"]]
-            first_act_kwargs.exec_ip = ip_list
+        first_act_kwargs = deepcopy(act_kwargs)
+        ip_list = [host["ip"] for host in info["redis"]]
+        first_act_kwargs.exec_ip = ip_list
 
-            first_act_kwargs.write_op = WriteContextOpType.APPEND.value
-            first_act_kwargs.cluster[
-                "shell_command"
-            ] = """
+        first_act_kwargs.write_op = WriteContextOpType.APPEND.value
+        first_act_kwargs.cluster[
+            "shell_command"
+        ] = """
                 REDIS_DATA_DIR_DATA=`df -k $REDIS_DATA_DIR | grep -iv Filesystem`
                 REDIS_BACKUP_DIR_DATA=`df -k $REDIS_BACKUP_DIR | grep -iv Filesystem`
                 BACKUP_DIR=`echo $REDIS_BACKUP_DIR`
@@ -293,124 +328,128 @@ class RedisDataStructureFlow(object):
                 echo "<ctx>{\\\"redis_data_dir_data\\\":\\\"${REDIS_DATA_DIR_DATA}\\\", \\
                 \\\"backup_dir\\\":\\\"${BACKUP_DIR}\\\",\\\"redis_backup_dir_data\\\":\\\"${REDIS_BACKUP_DIR_DATA}\\\"}</ctx>"
                 """
-            redis_pipeline.add_act(
-                act_name=_("获取磁盘使用情况: {}").format(ip_list[:3]),
-                act_component_code=ExecuteShellScriptComponent.code,
-                kwargs=asdict(first_act_kwargs),
-                write_payload_var="disk_used",
+        redis_pipeline.add_act(
+            act_name=_("获取磁盘使用情况: {}").format(ip_list[:3]),
+            act_component_code=ExecuteShellScriptComponent.code,
+            kwargs=asdict(first_act_kwargs),
+            write_payload_var="disk_used",
+        )
+
+        # ### 获取机器磁盘备份目录信息结束############################################################
+
+        # ### 数据构造下发actuator 检查备份文件是否存在，新机器磁盘空间是否够##############################################
+        tendis_type = self.get_tendis_type_by_cluster_type(cluster_type)
+        # 目录设置为空，根据获取到的机器备份目录来设置
+        dest_dir = ""
+        # 整理数据构造下发actuator 源节点和临时集群节点之间的对应关系，# 获取备份信息，用于磁盘空间是否足够的前置检查
+        acts_list, acts_list_push_json = self.get_prod_temp_instance_pairs(
+            act_kwargs, node_pairs, int(info["cluster_id"]), info["recovery_time_point"], tendis_type, dest_dir
+        )
+        logger.info(_("redis_data_structure_flow acts_list_push_json: {}".format(acts_list_push_json)))
+
+        # ### 检查新机器磁盘空间和内存是否够##############################################
+        acts_list_disk_check = self.generate_acts_list_disk_check(
+            info["redis"], acts_list, cluster_type, first_act_kwargs
+        )
+        redis_pipeline.add_parallel_acts(acts_list=acts_list_disk_check)
+
+        # 并发下载 节点维度的备份文件
+        sub_pipelines = []
+        for act in acts_list:
+            data_params = act["kwargs"]["cluster"]
+            # source_ports = data_params["source_ports"]
+            # for source_port in source_ports:
+            # 这里可以一次下载，不用按端口分批下载
+            sub_builder = redis_backupfile_download(
+                self.root_id,
+                self.data,
+                info,
+                {
+                    "source_ip": data_params["source_ip"],
+                    # "source_port": source_port,
+                    "new_temp_ip": data_params["new_temp_ip"],
+                    "full_file_list": data_params["full_file_list"],
+                    "binlog_file_list": data_params["binlog_file_list"],
+                    "dest_dir": data_params["dest_dir"],
+                    "tendis_type": data_params["tendis_type"],
+                },
             )
+            sub_pipelines.append(sub_builder)
+            # 并发下载
+        redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
-            # ### 获取机器磁盘备份目录信息结束############################################################
+        # 检查备份信息存在，机器磁盘是否够，然后下载到临时机器，这里最后再部署redis 节点，免得做无用步骤
+        redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines_install)
 
-            # ### 数据构造下发actuator 检查备份文件是否存在，新机器磁盘空间是否够##############################################
-            tendis_type = self.get_tendis_type_by_cluster_type(cluster_type)
-            # 目录设置为空，根据获取到的机器备份目录来设置
-            dest_dir = ""
-            # 整理数据构造下发actuator 源节点和临时集群节点之间的对应关系，# 获取备份信息，用于磁盘空间是否足够的前置检查
-            acts_list, acts_list_push_json = self.get_prod_temp_instance_pairs(
-                act_kwargs, node_pairs, int(info["cluster_id"]), info["recovery_time_point"], tendis_type, dest_dir
-            )
-            logger.info(_("redis_data_structure_flow acts_list_push_json: {}".format(acts_list_push_json)))
+        # # ###cc 转移机器模块 ################################################################
+        cluster_kwargs.cluster["meta_func_name"] = RedisDBMeta.redis_rollback_host_transfer.__name__
+        cluster_kwargs.cluster["tendiss"] = []
+        for instance in cluster_dst_instance:
+            ip, port = instance.split(":")
+            cluster_kwargs.cluster["tendiss"].append({"receiver": {"ip": ip, "port": int(port)}})
+        redis_pipeline.add_act(
+            act_name=_("Redis-临时节点加入源集群cc模块"),
+            act_component_code=RedisDBMetaComponent.code,
+            kwargs=asdict(cluster_kwargs),
+        )
+        # # ### cc 转移机器模块完成 ############################################################
 
-            # ### 检查新机器磁盘空间和内存是否够##############################################
-            acts_list_disk_check = self.generate_acts_list_disk_check(
-                info["redis"], acts_list, cluster_type, first_act_kwargs
-            )
-            redis_pipeline.add_parallel_acts(acts_list=acts_list_disk_check)
+        # 人工确认文件下发完成的节点
+        if not self.data.get("skip_mannual_confirm", False):
+            redis_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
-            # 并发下载 节点维度的备份文件
-            sub_pipelines = []
-            for act in acts_list:
-                data_params = act["kwargs"]["cluster"]
-                # source_ports = data_params["source_ports"]
-                # for source_port in source_ports:
-                # 这里可以一次下载，不用按端口分批下载
-                sub_builder = redis_backupfile_download(
-                    self.root_id,
-                    self.data,
-                    info,
-                    {
-                        "source_ip": data_params["source_ip"],
-                        # "source_port": source_port,
-                        "new_temp_ip": data_params["new_temp_ip"],
-                        "full_file_list": data_params["full_file_list"],
-                        "binlog_file_list": data_params["binlog_file_list"],
-                        "dest_dir": data_params["dest_dir"],
-                        "tendis_type": data_params["tendis_type"],
-                    },
-                )
-                sub_pipelines.append(sub_builder)
-                # 并发下载
-            redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-
-            # 检查备份信息存在，机器磁盘是否够，然后下载到临时机器，这里最后再部署redis 节点，免得做无用步骤
-            redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines_install)
-
-            # # ###cc 转移机器模块 ################################################################
-            cluster_kwargs.cluster["meta_func_name"] = RedisDBMeta.redis_rollback_host_transfer.__name__
-            cluster_kwargs.cluster["tendiss"] = []
-            for instance in cluster_dst_instance:
-                ip, port = instance.split(":")
-                cluster_kwargs.cluster["tendiss"].append({"receiver": {"ip": ip, "port": int(port)}})
-            redis_pipeline.add_act(
-                act_name=_("Redis-临时节点加入源集群cc模块"),
-                act_component_code=RedisDBMetaComponent.code,
-                kwargs=asdict(cluster_kwargs),
-            )
-            # # ### cc 转移机器模块完成 ############################################################
-
-            # 人工确认文件下发完成的节点
-            if not self.data.get("skip_mannual_confirm", False):
-                redis_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
-
-            # ### 如果是tendisplus,需要构建tendis cluster关系 ############################################################
+        # ### 如果是tendisplus,需要构建tendis cluster关系 ############################################################
+        if is_redis_cluster_protocal(cluster_type) and not is_drill:
             self._setup_cluster_meet(cluster_type, act_kwargs, cluster_dst_instance, info, redis_pipeline)
-            # ### 构建tendisplus集群关系结束 #############################################################################
+        # ### 构建tendisplus集群关系结束 #############################################################################
 
-            # ### 部署proxy实例 #############################################################################
-            self._deploy_proxy_instance(
-                cluster_type, act_kwargs, info, redis_instance_set, node_pairs, cluster_dst_instance, redis_pipeline
-            )
-            # ### 数据构造payload json下发 #########################################################################
-            redis_pipeline.add_parallel_acts(acts_list=acts_list_push_json)
-            # ### 数据构造下发actuator #############################################################################
-            redis_pipeline.add_parallel_acts(acts_list=acts_list)
+        # ### 部署proxy实例 #############################################################################
+        self._deploy_proxy_instance(
+            cluster_type, act_kwargs, info, redis_instance_set, node_pairs, cluster_dst_instance, redis_pipeline
+        )
+        # ### 数据构造payload json下发 #########################################################################
+        redis_pipeline.add_parallel_acts(acts_list=acts_list_push_json)
+        # ### 数据构造下发actuator #############################################################################
+        redis_pipeline.add_parallel_acts(acts_list=acts_list)
 
-            # # ###  # ### 如果是tendisplus,需要重新构建 cluster关系,因为tendisplus数据构造需要reset集群关系  ##############
+        # # ###  # ### 如果是tendisplus,需要重新构建 cluster关系,因为tendisplus数据构造需要reset集群关系  ##############
+        if is_redis_cluster_protocal(cluster_type) and not is_drill:
             self._check_cluster_meet(cluster_type, act_kwargs, cluster_dst_instance, info, redis_pipeline)
 
-            # ### 写入构造记录元数据 ######################################################
-            act_kwargs.cluster = {
-                # 记录元数据
-                "domain_name": act_kwargs.cluster["domain_name"],
-                "bk_cloud_id": act_kwargs.cluster["bk_cloud_id"],
-                "prod_cluster_type": cluster_type,
-                "prod_cluster": act_kwargs.cluster["domain_name"],
-                "prod_cluster_id": info["cluster_id"],
-                "specification": resource_spec,
-                "prod_instance_range": cluster_src_instance,
-                "temp_cluster_type": cluster_type,
-                "temp_instance_range": cluster_dst_instance,
-                "temp_cluster_proxy": "{}:{}".format(
-                    act_kwargs.new_install_proxy_exec_ip, act_kwargs.cluster["proxy_port"]
-                ),
-                "prod_temp_instance_pairs": node_pairs,
-                "host_count": len(info["redis"]),
-                "recovery_time_point": info["recovery_time_point"],
-                "status": DataStructureStatus.COMPLETED,
-                "meta_func_name": RedisDBMeta.data_construction_tasks_operate.__name__,
-                "cluster_type": cluster_type,
-            }
-            redis_pipeline.add_act(
-                act_name=_("写入构造记录元数据"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
-            )
+        # ### 写入构造记录元数据 ######################################################
+        act_kwargs.cluster = {
+            # 记录元数据
+            "domain_name": act_kwargs.cluster["domain_name"],
+            "bk_cloud_id": act_kwargs.cluster["bk_cloud_id"],
+            "prod_cluster_type": cluster_type,
+            "prod_cluster": act_kwargs.cluster["domain_name"],
+            "prod_cluster_id": info["cluster_id"],
+            "specification": resource_spec,
+            "prod_instance_range": cluster_src_instance,
+            "temp_cluster_type": cluster_type,
+            "temp_instance_range": cluster_dst_instance,
+            "temp_cluster_proxy": "{}:{}".format(
+                act_kwargs.new_install_proxy_exec_ip, act_kwargs.cluster["proxy_port"]
+            ),
+            "prod_temp_instance_pairs": node_pairs,
+            "host_count": len(info["redis"]),
+            "recovery_time_point": info["recovery_time_point"],
+            "status": DataStructureStatus.COMPLETED,
+            "meta_func_name": RedisDBMeta.data_construction_tasks_operate.__name__,
+            "cluster_type": cluster_type,
+        }
+        redis_pipeline.add_act(
+            act_name=_("写入构造记录元数据"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
+        )
 
-            sub_pipelines_multi_cluster.append(
-                redis_pipeline.build_sub_process(sub_name=_("集群[{}]数据构造").format(act_kwargs.cluster["domain_name"]))
-            )
+        # 解除临时主机告警屏蔽
+        redis_pipeline.add_act(
+            act_name=_("解除临时主机告警屏蔽-{}").format(temp_host_ips),
+            act_component_code=DisableAlarmShieldComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
 
-        redis_pipeline_all.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines_multi_cluster)
-        redis_pipeline_all.run_pipeline()
+        return redis_pipeline.build_sub_process(sub_name=_("集群[{}]数据构造").format(act_kwargs.cluster["domain_name"]))
 
     @staticmethod
     def generate_acts_list_disk_check(
@@ -522,7 +561,7 @@ class RedisDataStructureFlow(object):
         return len(diff) == 0
 
     @staticmethod
-    def get_backup_instance_by_bklog(info: dict, cluster_type: str) -> Tuple[list, list]:
+    def get_backup_instance_by_bklog(info: dict, cluster_type: str, is_drill: bool) -> Tuple[list, list]:
         # 根据传入的集群和时间获取其backup_instance
         rollback_handler = DataStructureHandler(info["cluster_id"])
         cluster_full_instance_backup = rollback_handler.query_donmain_backup_log(
@@ -547,8 +586,8 @@ class RedisDataStructureFlow(object):
                 duplicate_instances.append(instance)
             else:
                 instance_shard_dict[instance] = shard_value
-            shard_start, shard_end = map(int, shard_value.split("-"))
-            missing_ranges.extend(range(shard_start, shard_end + 1))
+            for shard_start, shard_end in RedisDataStructureFlow.parse_shard_value_ranges(shard_value):
+                missing_ranges.extend(range(shard_start, shard_end + 1))
 
         logger.info(_("实例 segment 对应关系，instance_shard_dict: {}".format(instance_shard_dict)))
         if duplicate_instances:
@@ -562,7 +601,11 @@ class RedisDataStructureFlow(object):
             )
         # tendisplus、rediscluster
         if is_redis_cluster_protocal(cluster_type):
-            missing_ranges = set(range(RedisSlotNum.MIN_SLOT, RedisSlotNum.TOTAL_SLOT)) - set(missing_ranges)
+            missing_ranges = (
+                set(range(RedisSlotNum.MIN_SLOT, RedisSlotNum.TOTAL_SLOT)) - set(missing_ranges)
+                if not is_drill
+                else []
+            )  # 演练场景下当作单实例对待
 
         # 单实例
         if cluster_type in [ClusterType.TendisRedisInstance]:
@@ -585,6 +628,37 @@ class RedisDataStructureFlow(object):
         logger.info(_("cluster_id: {},所有的instance:{}".format(info["cluster_id"], cluster_backup_instance)))
         logger.info(_("cluster_id: {},所有的redis_instance_set:{}".format(info["cluster_id"], redis_instance_set)))
         return cluster_backup_instance, redis_instance_set
+
+    @staticmethod
+    def parse_shard_value_ranges(shard_value: str) -> List[Tuple[int, int]]:
+        """
+        Parse backup-log shard_value into one or more inclusive ranges.
+
+        Redis cluster backups can report non-contiguous slots for a single node,
+        e.g. "1365-1637 10651-10923" or "1-2 4 5-6".
+        Migrating/importing markers from CLUSTER NODES do not represent owned
+        slots in dbmon's decoder, so they are ignored here too.
+        """
+        shard_value = str(shard_value).strip()
+        ranges = []
+        for shard_range in SHARD_VALUE_RANGE_SEPARATOR.split(shard_value):
+            if not shard_range:
+                continue
+            if shard_range.startswith("[") and shard_range.endswith("]"):
+                continue
+            parts = shard_range.split("-")
+            if len(parts) == 1:
+                shard_start = shard_end = int(parts[0])
+            elif len(parts) == 2:
+                shard_start, shard_end = map(int, parts)
+            else:
+                raise ValueError(_("shard_value格式不正确: {}".format(shard_value)))
+            if shard_start > shard_end:
+                raise ValueError(_("shard_value范围不正确: {}".format(shard_value)))
+            ranges.append((shard_start, shard_end))
+        if not ranges:
+            raise ValueError(_("shard_value为空: {}".format(shard_value)))
+        return ranges
 
     def __get_cluster_info(self, cluster_id: int) -> dict:
         """获取集群现有信息
@@ -699,16 +773,15 @@ class RedisDataStructureFlow(object):
 
     def _setup_cluster_meet(self, cluster_type, act_kwargs, cluster_dst_instance, info, redis_pipeline):
         """Setup cluster meet relationship for tendisplus"""
-        if is_redis_cluster_protocal(cluster_type):
-            logger.info("cluster_type is:{} need tendis cluster relation".format(cluster_type))
-            act_kwargs.cluster["all_instance"] = cluster_dst_instance
-            act_kwargs.get_redis_payload_func = RedisActPayload.rollback_clustermeet_payload.__name__
-            act_kwargs.exec_ip = info["redis"][0]["ip"]
-            redis_pipeline.add_act(
-                act_name=_("建立meet关系"),
-                act_component_code=ExecuteDBActuatorScriptComponent.code,
-                kwargs=asdict(act_kwargs),
-            )
+        logger.info("cluster_type is:{} need tendis cluster relation".format(cluster_type))
+        act_kwargs.cluster["all_instance"] = cluster_dst_instance
+        act_kwargs.get_redis_payload_func = RedisActPayload.rollback_clustermeet_payload.__name__
+        act_kwargs.exec_ip = info["redis"][0]["ip"]
+        redis_pipeline.add_act(
+            act_name=_("建立meet关系"),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
 
     def _deploy_proxy_instance(
         self, cluster_type, act_kwargs, info, redis_instance_set, node_pairs, cluster_dst_instance, redis_pipeline
@@ -755,16 +828,15 @@ class RedisDataStructureFlow(object):
 
     def _check_cluster_meet(self, cluster_type, act_kwargs, cluster_dst_instance, info, redis_pipeline):
         """Check cluster meet relationship for tendisplus"""
-        if is_redis_cluster_protocal(cluster_type):
-            logger.info("cluster_type is:{}  cluster  meet and check finish relation".format(cluster_type))
-            act_kwargs.cluster["all_instance"] = cluster_dst_instance
-            act_kwargs.get_redis_payload_func = RedisActPayload.clustermeet_check_payload.__name__
-            act_kwargs.exec_ip = info["redis"][0]["ip"]
-            redis_pipeline.add_act(
-                act_name=_("meet建立集群关系并检查集群状态"),
-                act_component_code=ExecuteDBActuatorScriptComponent.code,
-                kwargs=asdict(act_kwargs),
-            )
+        logger.info("cluster_type is:{}  cluster  meet and check finish relation".format(cluster_type))
+        act_kwargs.cluster["all_instance"] = cluster_dst_instance
+        act_kwargs.get_redis_payload_func = RedisActPayload.clustermeet_check_payload.__name__
+        act_kwargs.exec_ip = info["redis"][0]["ip"]
+        redis_pipeline.add_act(
+            act_name=_("meet建立集群关系并检查集群状态"),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
 
     def cal_twemproxy_serveres(self, name, redis_instance_set, node_pairs) -> list:
         """

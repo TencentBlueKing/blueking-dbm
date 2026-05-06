@@ -31,14 +31,15 @@
         class="mt-16 mb-20"
         :model="formData.tableData">
         <EditableRow
-          v-for="(item, index) in formData.tableData"
-          :key="index">
+          v-for="item in formData.tableData"
+          :key="item.row_key">
           <InstanceColumn
             v-model="item.instance"
+            :data-source-map="dataSourceMap"
             :selected="selected"
-            :tab-list-config="tabListConfig"
             @batch-edit="handleInstanceBatchEdit" />
           <EditableColumn
+            id-mark="master_domain"
             :label="t('所属集群')"
             :min-width="150"
             readonly>
@@ -47,6 +48,7 @@
               :placeholder="t('自动生成')" />
           </EditableColumn>
           <EditableColumn
+            id-mark="cluster_type_name"
             :label="t('架构版本')"
             :min-width="150"
             readonly>
@@ -93,13 +95,11 @@
 
   import RedisInstanceModel from '@services/model/redis/redis-instance';
   import type { Redis } from '@services/model/ticket/ticket';
-  import { getRedisClusterList, getRedisInstances } from '@services/source/redis';
+  import { getRedisInstances } from '@services/source/redis';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
-
-  import type { PanelListType } from '@components/instance-selector/Index.vue';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
@@ -126,37 +126,18 @@
     },
   ];
 
-  const tabListConfig = {
-    RedisInstance: [
-      {
-        tableConfig: {
-          firsrColumn: {
-            role: 'redis_master',
-          },
-          getTableList: (params: ServiceParameters<typeof getRedisInstances>) =>
-            getRedisInstances({
-              ...params,
-              cluster_type: [
-                ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-                ClusterTypes.PREDIXY_REDIS_CLUSTER,
-                ClusterTypes.REDIS_INSTANCE,
-              ].join(','),
-            }),
-        },
-        topoConfig: {
-          getTopoList: (params: ServiceParameters<typeof getRedisClusterList>) =>
-            getRedisClusterList({
-              ...params,
-              cluster_type: [
-                ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-                ClusterTypes.PREDIXY_REDIS_CLUSTER,
-                ClusterTypes.REDIS_INSTANCE,
-              ].join(','),
-            }),
-        },
-      },
-    ],
-  } as unknown as Record<string, PanelListType>;
+  const dataSourceMap = {
+    [ClusterTypes.REDIS]: (params: ServiceParameters<typeof getRedisInstances>) =>
+      getRedisInstances({
+        ...params,
+        cluster_type: [
+          ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+          ClusterTypes.PREDIXY_REDIS_CLUSTER,
+          ClusterTypes.REDIS_INSTANCE,
+        ].join(','),
+        role: 'redis_master',
+      }),
+  };
 
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('table');
@@ -193,6 +174,7 @@
       },
       data.instance,
     ),
+    row_key: random(),
     stat_info: {
       key_num: 0,
       memory_total: 0,
@@ -216,10 +198,14 @@
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     bk_cloud_id: number;
     infos: Redis.KeyStat['infos'];
-  }>(TicketTypes.REDIS_KEYSTAT);
+  }>(TicketTypes.REDIS_KEYSTAT, {
+    onError(errors) {
+      editableTableRef.value!.viewError(errors);
+    },
+  });
 
   const handleInstanceBatchEdit = (list: RedisInstanceModel[]) => {
-    const dataList = list.reduce<IRowData[]>((acc, item) => {
+    const dataList = list.reduce<ReturnType<typeof createTableRow>[]>((acc, item) => {
       if (!selectedMap.value[item.instance_address]) {
         acc.push(
           createTableRow({

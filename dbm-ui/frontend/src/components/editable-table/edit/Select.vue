@@ -52,8 +52,6 @@
     disabled?: boolean;
     filterable?: boolean;
     multiple?: boolean;
-    placeholder?: string;
-    popoverOptions?: Record<string, any>;
   }
 </script>
 <script setup lang="ts" generic="T extends string[] | number[] | string | number">

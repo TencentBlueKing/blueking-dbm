@@ -195,7 +195,7 @@
       ip: value,
       machine_type: '' as MongodbInstanceModel['machine_type'],
       master_domain: '',
-      related_clusters: [],
+      related_clusters: [] as MongodbInstanceModel['related_clusters'],
       shard: '',
       spec_config: {} as MongodbInstanceModel['spec_config'],
     };

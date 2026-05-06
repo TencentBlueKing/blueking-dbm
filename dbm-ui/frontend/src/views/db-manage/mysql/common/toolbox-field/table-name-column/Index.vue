@@ -13,16 +13,20 @@
 
 <template>
   <DbNameColumn
+    ref="editableColumn"
     v-model="modelValue"
+    :disabled="disabled"
+    :disabled-method="disabledMethod"
     :field="field"
     :label="label"
-    :placeholder="placeholder"
+    :min-width="180"
+    :placeholder="localPlaceholder"
+    :readonly="readonly"
     :required="required"
     :rules="localRules"
     :show-batch-edit="showBatchEdit"
     :single="single"
-    @batch-edit="handleBatchEdit"
-    @change="handleChange">
+    @batch-edit="handleBatchEdit">
     <template #tip>
       <div class="db-table-tag-tip">
         <div style="font-weight: 700">{{ t('库表输入说明') }}：</div>
@@ -55,8 +59,6 @@
   import _ from 'lodash';
   import type { ComponentProps } from 'vue-component-type-helpers';
 
-  import { checkClusterDatabase } from '@services/source/dbbase';
-
   import DbNameColumn from '@views/db-manage/common/toolbox-field/column/db-table-name-column/Index.vue';
 
   import { t } from '@locales/index';
@@ -83,9 +85,11 @@
      */
     checkNotExist?: boolean;
     clusterId?: number;
+    disabled?: boolean;
     field: string;
     label: string;
     placeholder?: string;
+    readonly?: boolean;
     required?: boolean;
     rules?: NonNullable<ComponentProps<typeof DbNameColumn>['rules']>;
     showBatchEdit?: boolean;
@@ -101,7 +105,8 @@
     checkNotExist: false,
     clusterId: undefined,
     disabled: false,
-    placeholder: t('请输入DB 名称，支持通配符“%”，含通配符的仅支持单个'),
+    placeholder: undefined,
+    readonly: false,
     required: false,
     rules: () => [],
     showBatchEdit: true,
@@ -113,13 +118,20 @@
     required: true,
   });
 
-  let isInit = true;
+  const editableColumnRef = useTemplateRef('editableColumn');
 
   const systemDbNames = ['mysql', 'db_infobase', 'information_schema', 'performance_schema', 'sys', 'infodba_schema'];
 
+  const localPlaceholder = computed(() => {
+    if (props.placeholder) {
+      return props.placeholder;
+    }
+    return props.required ? t('请输入 Table 名') : t('请输入要忽略的 Table 名');
+  });
+
   const localRules = computed(() => [
     {
-      message: t('DB 名不能为空'),
+      message: t('表名不能为空'),
       trigger: 'change',
       validator: (value: string[]) => {
         if (!props.required) {
@@ -170,9 +182,9 @@
       },
     },
     {
-      message: t('% 不允许单独使用'),
+      message: t('% 或 ? 不允许单独使用'),
       trigger: 'change',
-      validator: (value: string[]) => _.every(value, (item) => !/^%$/.test(item)),
+      validator: (value: string[]) => _.every(value, (item) => !/^[%?]$/.test(item)),
     },
     {
       message: t('含通配符的单元格仅支持输入单个对象'),
@@ -184,94 +196,27 @@
         return true;
       },
     },
-    {
-      message: t('DB 已存在'),
-      trigger: 'change',
-      validator: (value: string[]) => {
-        if (!props.checkExist) {
-          return true;
-        }
-        // % 通配符不需要校验存在
-        const clearDbList = _.filter(value, (item) => !/[*%?]/.test(item));
-        if (clearDbList.length < 1) {
-          return true;
-        }
-        if (!props.clusterId) {
-          return t('请先选择集群');
-        }
-        return checkClusterDatabase({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_id: props.clusterId,
-          db_list: value,
-        }).then((data) => {
-          const existDbList = Object.keys(data).reduce<string[]>((result, dbName) => {
-            if (data[dbName]) {
-              result.push(dbName);
-            }
-            return result;
-          }, []);
-          if (existDbList.length > 0) {
-            return t('n 已存在', { n: existDbList.join('、') });
-          }
-
-          return true;
-        });
-      },
-    },
-    {
-      message: t('DB 不存在'),
-      trigger: 'change',
-      validator: (value: string[]) => {
-        if (!props.checkNotExist) {
-          return true;
-        }
-        // % 通配符不需要校验存在
-        const clearDbList = _.filter(value, (item) => !/[*%?]/.test(item));
-        if (clearDbList.length < 1) {
-          return true;
-        }
-        if (!props.clusterId) {
-          return t('请先选择集群');
-        }
-        return checkClusterDatabase({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_id: props.clusterId,
-          db_list: value,
-        }).then((data) => {
-          const notExistDbList = Object.keys(data).reduce<string[]>((result, dbName) => {
-            if (!data[dbName]) {
-              result.push(dbName);
-            }
-            return result;
-          }, []);
-          if (notExistDbList.length > 0) {
-            return t('n 不存在', { n: notExistDbList.join('、') });
-          }
-
-          return true;
-        });
-      },
-    },
     ...props.rules,
   ]);
 
-  // 集群改变时 DB 需要重置
   watch(
     () => props.clusterId,
     () => {
-      if (!isInit) {
-        modelValue.value = [];
+      if (props.clusterId && modelValue.value.length > 0) {
+        editableColumnRef.value?.validate();
       }
     },
   );
 
-  const handleBatchEdit = (value: string[]) => {
-    isInit = false;
-    emits('batch-edit', value, props.field);
+  const disabledMethod = () => {
+    if (!props.checkExist && !props.checkNotExist) {
+      return false;
+    }
+    return props.clusterId ? false : t('请输入合法的集群域名');
   };
 
-  const handleChange = () => {
-    isInit = false;
+  const handleBatchEdit = (value: string[]) => {
+    emits('batch-edit', value, props.field);
   };
 </script>
 

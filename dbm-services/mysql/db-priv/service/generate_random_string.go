@@ -48,15 +48,15 @@ func GenerateRandomString(security SecurityRule) (string, error) {
 		str = append(str, uppercase[index])
 		vrange = fmt.Sprintf("%s%s", vrange, uppercase)
 	}
-	if security.IncludeRule.Symbols {
-		index := rand.Intn(len(symbol))
-		str = append(str, symbol[index])
-		vrange = fmt.Sprintf("%s%s", vrange, symbol)
-	}
 	if security.IncludeRule.Numbers {
 		index := rand.Intn(len(number))
 		str = append(str, number[index])
 		vrange = fmt.Sprintf("%s%s", vrange, number)
+	}
+	if security.IncludeRule.Symbols {
+		index := rand.Intn(len(symbol))
+		str = append(str, symbol[index])
+		vrange = fmt.Sprintf("%s%s", vrange, symbol)
 	}
 	if len(str) > security.MinLength {
 		return string(str), errno.IncludeCharTypesLargerThanLength
@@ -76,12 +76,15 @@ func GenerateRandomString(security SecurityRule) (string, error) {
 		str = append(str, vrange[index])
 	}
 	for i := 0; i < 10; i++ {
-		RandShuffle(&str)
 		// 连续规则以及重复规则不通过，打乱顺序
-		result := CheckPassword(security, str)
-		if result.IsStrength {
+		check := CheckPasswordComplexity{IsStrength: true, PasswordVerifyInfo: PasswordVerifyInfo{true,
+			true, "", true, true, true,
+			true, true, true, true}}
+		WeakPassword(security, &check, str)
+		if check.IsStrength && !strings.Contains(symbol, string(str[0])) {
 			return string(str), nil
 		}
+		RandShuffle(&str)
 	}
 	slog.Error("error", errno.TryTooManyTimes.AddBefore("GenerateRandomString"))
 	return "", errno.TryTooManyTimes.AddBefore("GenerateRandomString")
@@ -91,8 +94,6 @@ func CheckPassword(security SecurityRule, password []byte) CheckPasswordComplexi
 	check := CheckPasswordComplexity{IsStrength: true, PasswordVerifyInfo: PasswordVerifyInfo{true,
 		true, "", true, true, true,
 		true, true, true, true}}
-	str := string(password)
-	strLower := strings.ToLower(str)
 	// check 默认每个检查项是true，检查不通过是false
 	if len(password) > security.MaxLength {
 		check.PasswordVerifyInfo.MaxLengthValid = false
@@ -147,6 +148,13 @@ func CheckPassword(security SecurityRule, password []byte) CheckPasswordComplexi
 		check.PasswordVerifyInfo.OutOfRange = outOfRange
 		check.IsStrength = false
 	}
+	WeakPassword(security, &check, password)
+	return check
+}
+
+func WeakPassword(security SecurityRule, check *CheckPasswordComplexity, password []byte) {
+	str := string(password)
+	strLower := strings.ToLower(str)
 	if security.WeakPassword {
 		// 不能密码连续重复出现某字符
 		if !CheckContinuousRepeats(str, security.Repeats) {
@@ -176,7 +184,6 @@ func CheckPassword(security SecurityRule, password []byte) CheckPasswordComplexi
 			}
 		}
 	}
-	return check
 }
 
 // RandShuffle 随机打乱字符串中的字符顺序

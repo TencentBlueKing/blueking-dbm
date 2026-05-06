@@ -27,23 +27,32 @@
         {{ t('复制信息') }}
       </BkButton>
     </div>
-    <BkLoading :loading="clbLoading">
+    <BkLoading :loading="clbLoading || passwordLoading">
       <div class="mongo-access-entry-content">
         <div
           v-for="(item, index) in dataList"
           :key="index"
           class="mongo-access-entry-item">
           <span class="mongo-access-entry-item-label">{{ item.label }}：</span>
-          <span class="mongo-access-entry-item-value">{{ item.value || '--' }}</span>
-          <BkButton
-            v-bk-tooltips="t('复制xxx', [item.label])"
-            class="copy-btn"
-            text
-            theme="primary">
-            <DbIcon
-              type="copy"
-              @click="execCopy(item.value)" />
-          </BkButton>
+          <span class="mongo-access-entry-item-value">
+            <span>{{ item.value || '--' }}</span>
+            <BkButton
+              v-if="item.password && isPasswordExits"
+              class="ml-4"
+              text
+              theme="primary"
+              @click="handlePasswordShow">
+              <DbIcon type="visible1" />
+            </BkButton>
+            <BkButton
+              v-bk-tooltips="t('复制xxx', [item.label])"
+              class="copy-btn"
+              text
+              theme="primary"
+              @click="execCopy(item.value)">
+              <DbIcon type="copy" />
+            </BkButton>
+          </span>
         </div>
       </div>
       <div
@@ -90,6 +99,7 @@
   import MongodbModel from '@services/model/mongodb/mongodb';
   import MongodbDetailModel from '@services/model/mongodb/mongodb-detail';
   import { getClusterEntries } from '@services/source/clusterEntry';
+  import { getPassword } from '@services/source/mongodb';
 
   import { execCopy } from '@utils';
 
@@ -105,6 +115,8 @@
 
   const { t } = useI18n();
 
+  const passwordShow = ref(false);
+
   const entryInfo = shallowRef<{
     list: {
       shareLink?: string;
@@ -114,18 +126,27 @@
     title: string;
   }>();
 
+  const isPasswordExits = computed(() => passwordData.value && passwordData.value.password);
+
+  const getFormatPassword = () => {
+    if (isPasswordExits.value) {
+      return `mongodb://${passwordData.value!.username}:${passwordShow.value ? passwordData.value!.password : '******'}@`;
+    }
+    return 'mongodb://{username}:{password}@';
+  };
+
   const getEntryAccess = (data: Props['data'], entryDomain: string) => {
     if (data.isMongoReplicaSet) {
-      return `mongodb://{username}:{password}@${entryDomain}/?replicaSet=${data.cluster_name}&authSource=admin`;
+      return `${getFormatPassword()}${entryDomain}/?replicaSet=${data.cluster_name}&authSource=admin`;
     }
-    return `mongodb://{username}:{password}@${entryDomain}/?authSource=admin`;
+    return `${getFormatPassword()}${entryDomain}/?authSource=admin`;
   };
 
   const getEntryAccessClb = (data: Props['data'], clusterEntry: ClusterEntryDetailModel[]) => {
     if (!data.isMongoReplicaSet) {
       const clbItem = clusterEntry.find((entryItem) => entryItem.cluster_entry_type === 'clbDns');
       if (clbItem) {
-        return `mongodb://{username}:{password}@${clbItem.entry}:${data.cluster_access_port}/?authSource=admin`;
+        return `${getFormatPassword()}${clbItem.entry}:${data.cluster_access_port}/?authSource=admin`;
       }
     }
     return '';
@@ -163,6 +184,7 @@
       },
       {
         label: t('连接字符串'),
+        password: true,
         value: entryAccess,
       },
     ];
@@ -170,6 +192,7 @@
     if (entryAccessClb) {
       infoList.push({
         label: t('连接字符串（CLB）'),
+        password: true,
         value: entryAccessClb,
       });
     }
@@ -208,6 +231,14 @@
     },
   });
 
+  const {
+    data: passwordData,
+    loading: passwordLoading,
+    run: runGetPassword,
+  } = useRequest(getPassword, {
+    manual: true,
+  });
+
   watch(
     isShow,
     () => {
@@ -216,8 +247,10 @@
           bk_biz_id: props.data.bk_biz_id,
           cluster_id: props.data.id,
         });
+        runGetPassword({ cluster_id: props.data.id });
       } else {
         entryInfo.value = undefined;
+        passwordShow.value = false;
       }
     },
     {
@@ -231,6 +264,10 @@
       content.push(...entryInfo.value.list.map((valueItem) => `${valueItem.title}：${valueItem.value}`));
     }
     execCopy(content.join('\n'));
+  };
+
+  const handlePasswordShow = () => {
+    passwordShow.value = !passwordShow.value;
   };
 
   const handleClose = () => {

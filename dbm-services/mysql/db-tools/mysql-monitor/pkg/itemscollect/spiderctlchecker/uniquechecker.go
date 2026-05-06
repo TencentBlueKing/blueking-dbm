@@ -1,9 +1,11 @@
 package spiderctlchecker
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"log/slog"
 	"math/big"
 	"net"
+	"strconv"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
@@ -27,8 +29,10 @@ func (c *UniqueCtlChecker) Run() (msg string, err error) {
 		return "", err
 	}
 
-	slog.Info("unique-ctl-master",
-		slog.String("ctl master", p.Host))
+	slog.Info(
+		"unique-ctl-master",
+		slog.String("ctl master", p.Host),
+	)
 
 	ret := big.NewInt(0)
 	ret.SetBytes(net.ParseIP(p.Host).To4())
@@ -37,7 +41,8 @@ func (c *UniqueCtlChecker) Run() (msg string, err error) {
 		"unique_ctl_master",
 		ret.Int64(),
 		map[string]interface{}{
-			"ctl-master": p.Host,
+			"ctl-master":    p.Host,
+			"instance_port": strconv.Itoa(config.MonitorConfig.Port + 1000), // 调整维度为 ctl 端口
 		},
 	)
 

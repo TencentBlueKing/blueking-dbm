@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from blue_krill.data_types.enum import EnumField, StrStructuredEnum
@@ -56,3 +56,67 @@ class SpecMachineType(StrStructuredEnum):
     DORIS_BACKEND = EnumField("doris_backend", _("doris_backend"))
 
     ORACLE = EnumField("oracle", _("oracle"))
+
+
+def machine_type_to_spec_machine_type(machine_type: str) -> str:
+    """
+    将 MachineType 转换为对应的 SpecMachineType
+
+    @param machine_type: MachineType 的值（如 "spider", "proxy", "backend" 等）
+    @return: 对应的 SpecMachineType 的值
+    @raises ValueError: 如果 machine_type 不存在对应的 SpecMachineType
+    """
+    # 导入放在函数内部，避免循环导入
+    from backend.db_meta.enums.machine_type import MachineType
+
+    # MachineType 到 SpecMachineType 的映射关系
+    mapping = {
+        # MySQL 相关
+        MachineType.SPIDER.value: SpecMachineType.PROXY.value,
+        MachineType.REMOTE.value: SpecMachineType.BACKEND.value,
+        MachineType.PROXY.value: SpecMachineType.PROXY.value,
+        MachineType.BACKEND.value: SpecMachineType.BACKEND.value,
+        MachineType.SINGLE.value: SpecMachineType.BACKEND.value,
+        # Redis 相关 - 代理层
+        MachineType.PREDIXY.value: SpecMachineType.PROXY.value,
+        MachineType.TWEMPROXY.value: SpecMachineType.PROXY.value,
+        # Redis 相关 - 存储层
+        MachineType.REDIS.value: SpecMachineType.TendisTwemproxyRedisInstance.value,
+        MachineType.TENDISCACHE.value: SpecMachineType.TendisTwemproxyRedisInstance.value,
+        MachineType.TENDISSSD.value: SpecMachineType.TwemproxyTendisSSDInstance.value,
+        MachineType.TENDISPLUS.value: SpecMachineType.TendisPredixyTendisplusCluster.value,
+        # ES 相关
+        MachineType.ES_DATANODE.value: SpecMachineType.ES_DATANODE.value,
+        MachineType.ES_MASTER.value: SpecMachineType.ES_MASTER.value,
+        MachineType.ES_CLIENT.value: SpecMachineType.ES_CLIENT.value,
+        # Kafka 相关
+        MachineType.BROKER.value: SpecMachineType.BROKER.value,
+        MachineType.ZOOKEEPER.value: SpecMachineType.ZOOKEEPER.value,
+        # HDFS 相关
+        MachineType.HDFS_MASTER.value: SpecMachineType.HDFS_MASTER.value,
+        MachineType.HDFS_DATANODE.value: SpecMachineType.HDFS_DATANODE.value,
+        # MongoDB 相关
+        MachineType.MONGOS.value: SpecMachineType.MONGOS.value,
+        MachineType.MONGODB.value: SpecMachineType.MONGODB.value,
+        MachineType.MONOG_CONFIG.value: SpecMachineType.MONOG_CONFIG.value,
+        # Pulsar 相关
+        MachineType.PULSAR_ZOOKEEPER.value: SpecMachineType.PULSAR_ZOOKEEPER.value,
+        MachineType.PULSAR_BOOKKEEPER.value: SpecMachineType.PULSAR_BOOKKEEPER.value,
+        MachineType.PULSAR_BROKER.value: SpecMachineType.PULSAR_BROKER.value,
+        # Riak
+        MachineType.RIAK.value: SpecMachineType.RIAK.value,
+        # Doris 相关
+        MachineType.DORIS_FOLLOWER.value: SpecMachineType.DORIS_FOLLOWER.value,
+        MachineType.DORIS_OBSERVER.value: SpecMachineType.DORIS_OBSERVER.value,
+        MachineType.DORIS_BACKEND.value: SpecMachineType.DORIS_BACKEND.value,
+        # SQLServer 相关
+        MachineType.SQLSERVER_SINGLE.value: SpecMachineType.SQLSERVER.value,
+        MachineType.SQLSERVER_HA.value: SpecMachineType.SQLSERVER.value,
+        # Oracle
+        MachineType.ORACLE.value: SpecMachineType.ORACLE.value,
+    }
+
+    if machine_type not in mapping:
+        raise ValueError(_("MachineType {} 没有对应的 SpecMachineType").format(machine_type))
+
+    return mapping[machine_type]

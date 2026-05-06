@@ -28,7 +28,7 @@ class TransferHostService(BaseService):
         trans_data = data.get_one_of_inputs("trans_data")
         bk_biz_id = kwargs["bk_biz_id"]
         bk_module_ids = kwargs["bk_module_ids"]
-        bk_host_ids = kwargs["bk_host_ids"]
+        bk_host_ids = kwargs.get("bk_host_ids", [])
         update_host_properties = kwargs.get("update_host_properties", None)
         operate_collector_action = kwargs.get("operate_collector_action", None)
 

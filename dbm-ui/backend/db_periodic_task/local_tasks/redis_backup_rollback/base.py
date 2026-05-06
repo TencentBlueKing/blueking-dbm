@@ -9,21 +9,35 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import heapq
+import json
 import logging
+import math
 import random
 from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import StrEnum
-from typing import List, Optional
+from typing import List, Optional, Set, Tuple
 
 from django.utils import timezone as django_timezone
 from django.utils.translation import gettext as _
 
+from backend.components import DBConfigApi
+from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.enums import ClusterPhase, DestroyedStatus, InstanceInnerRole
 from backend.db_meta.models import Cluster, StorageInstance
+from backend.db_report.enums import RedisRollbackExerciseTaskStage as TaskStage
+from backend.db_report.models import RedisRollbackExerciseReport as Report
 from backend.db_services.redis.rollback.handlers import DataStructureHandler
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
-from backend.ticket.builders.common.base import IpSource
+from backend.db_services.redis.util import (
+    is_redis_instance_type,
+    is_tendisplus_instance_type,
+    is_tendisssd_instance_type,
+)
+from backend.exceptions import AppBaseException
+from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum
+from backend.ticket.builders.common.base import ClusterType, IpSource
 from backend.ticket.constants import TICKET_RUNNING_STATUS_SET, TicketType
 from backend.ticket.models import ClusterOperateRecord, SystemSettings, Ticket
 from backend.utils.redis import RedisConn
@@ -31,6 +45,14 @@ from backend.utils.time import datetime2str, str2datetime
 
 logger = logging.getLogger("root")
 
+
+def _fmt_task_msg(message: str) -> str:
+    """Format task message with local time prefix [yyyy-mm-dd hh:mm:ss]"""
+    timestamp = django_timezone.localtime().strftime("%Y-%m-%d %H:%M:%S")
+    return f"[{timestamp}] {message}"
+
+
+# Candidates queue configurations
 REDIS_CANDIDATES_QUEUE_KEY = "redis_rollback_exercise:candidates_queue"
 REDIS_CANDIDATES_LOCK_KEY = "redis_rollback_exercise:candidates_lock"
 REDIS_LOCK_TIMEOUT = 600  # 10 minutes
@@ -42,6 +64,17 @@ class RedisRollbackExerciseMode(StrEnum):
     RANDOM = "random"
 
 
+class ValidationFailureKind(StrEnum):
+    """Why a candidate failed pre-flight validation.
+
+    BACKUP_INVALID is treated as ABNORMAL on the report (real data-protection issue);
+    ENV_SKIPPED is treated as SKIPPED -> WARNING (transient/environmental).
+    """
+
+    BACKUP_INVALID = "backup_invalid"
+    ENV_SKIPPED = "env_skipped"
+
+
 @dataclass
 class RedisRollbackExerciseConfig:
     """
@@ -49,7 +82,7 @@ class RedisRollbackExerciseConfig:
     """
 
     # Meta Configs
-    switch: bool = False
+    enabled: bool = False
     mode: RedisRollbackExerciseMode = RedisRollbackExerciseMode.RANDOM
     bk_biz_id: int = 0  # The biz where the drill ticket locates
 
@@ -61,19 +94,49 @@ class RedisRollbackExerciseConfig:
     bizs_high_priority: Optional[List[int]] = None  # Customed bizs with high priority
     clusters_ignored: Optional[List[int]] = None  # Customed clusters(id) to ignore
     bizs_ignored: Optional[List[int]] = None  # Customed bizs to ignore
-    cluster_types: Optional[List[str]] = None  # Customed ClusterTypes to exercise
+    cluster_types: List[str] = field(
+        default_factory=lambda: [
+            ClusterType.TendisTwemproxyRedisInstance.value,  # TendisCache 集群
+            ClusterType.TwemproxyTendisSSDInstance.value,  # TendisSSD 集群
+            ClusterType.TendisRedisInstance.value,  # Redis 主从
+            ClusterType.TendisPredixyRedisCluster.value,
+            ClusterType.TendisPredixyTendisplusCluster.value,
+        ]
+    )  # Customed ClusterTypes to exercise
+
+    # Weighted selection: probability multipliers (how many times more likely to be selected)
+    # Combined effect is multiplicative, e.g., high_priority + failed = 2.0 * 3.0 = 6x more likely
+    weight_multiplier_high_priority_biz: float = 2.0  # 2x more likely than default
+    weight_multiplier_previously_failed: float = 3.0  # 3x more likely than default
+    weight_multiplier_not_exercised: float = 2.0  # 2x more likely for clusters not exercised recently
+    not_exercised_days_threshold: int = 180  # Days threshold for "not exercised" status
+
+    # Error handling
+    error_ignorable: bool = True  # Continue exercising other clusters when one rollback fails
 
     # Extra
     max_instances: int = 10  # Each round
-    rollback_days: List[int] = field(default_factory=lambda: [20, 10, 5])
+    rollback_days: List[int] = field(default_factory=lambda: [0.1, 0.2, 0.3, 0.4, 0.5, 1, 2])  # Rollback days
     polling_interval: int = 10  # sec
     polling_timeout: int = 3600  # sec
+
+    # Recovery time-point offset (after the chosen full backup uptime).
+    # SSD / Tendisplus default ~23h50m so we exercise almost a full day of binlog
+    # (daily full backup at ~05:00 -> rollback target lands ~04:50 of next day,
+    # safely before the next full backup window).
+    binlog_replay_minutes: int = 1430
+    # Cluster types without binlog (cache / redis main-slave / predixy redis cluster)
+    # only need a small offset past the full backup uptime.
+    no_binlog_offset_minutes: int = 30
 
 
 class RedisRollbackExercise:
     """
     Redis rollback exercise task generator
     """
+
+    def __init__(self):
+        self.config = self._init_config()
 
     def _init_config(self) -> RedisRollbackExerciseConfig:
         """Initialize configuration from system settings"""
@@ -82,58 +145,141 @@ class RedisRollbackExercise:
         logger.info(_("Redis rollback exercise settings: {}").format(config))
         return config
 
-    def __init__(self):
-        self.config = self._init_config()
-
-    def _calculate_candidates(self) -> List[int]:
+    def start(self):
         """
-        Filter from Cluster to get candidate cluster IDs
+        Generate Redis rollback exercise tasks
 
-        Strategy:
-        1. Skip clusters whose bizs or itself are ignored
-        2. Skip clusters not running (only include ONLINE phase)
-        3. Skip clusters not in config.cluster_types
-        4. Collect up to config.batch_size cluster_ids as candidates
+        Main workflow:
+        1. Pop no more than n target instances from candidates queue
+        2. For each instance, check if backup rollback days ago exists
+        3. Create a REDIS_ROLLBACK_EXERCISE drill ticket with selected instances
 
-        Returns:
-            List[int]: List of candidate cluster IDs
+        The drill ticket will:
+        - Apply resources
+        - Create `redis_data_structure` flow to rollback each instance
+        - Each rollback flow requires 1 machine with spec equal to instance selected
+        - Monitor rollback flow states
+        - Destroy temp instances via `redis_data_structure_task_delete` flow
+        - Return the resources
         """
-        logger.info(_("Calculating candidate clusters for rollback exercise"))
+        logger.info(_("Starting Redis rollback exercise task generation"))
 
-        queryset = Cluster.objects.all()
+        if not self.config.enabled:
+            logger.info(_("Redis rollback exercise is disabled, exiting..."))
+            return
 
-        if self.config.clusters_ignored:
-            queryset = queryset.exclude(id__in=self.config.clusters_ignored)
-            logger.debug(_("Excluding clusters: {}").format(self.config.clusters_ignored))
+        # Pick targets first
+        selected_instances, skipped_clusters = self._pick_target_instances(self.config.max_instances)
 
-        if self.config.bizs_ignored:
-            queryset = queryset.exclude(bk_biz_id__in=self.config.bizs_ignored)
-            logger.debug(_("Excluding bizs: {}").format(self.config.bizs_ignored))
+        # Record skipped clusters
+        for cluster, reason in skipped_clusters:
+            report = self._create_report(cluster)
+            report.mark(TaskStage.SKIPPED, _fmt_task_msg(reason))
 
-        if self.config.cluster_types:
-            queryset = queryset.filter(cluster_type__in=self.config.cluster_types)
-            logger.debug(_("Including cluster types: {}").format(self.config.cluster_types))
+        if not selected_instances:
+            logger.info(_("No instances selected for exercise"))
+            return
 
-        queryset = queryset.filter(phase=ClusterPhase.ONLINE.value)
+        logger.info(_("Selected {} instances for exercise").format(len(selected_instances)))
+        valid_instances = []
 
-        total_candidates = queryset.count()
-        logger.info(_("Found {} total candidate clusters").format(total_candidates))
-        if total_candidates <= self.config.batch_size:
-            candidate_ids = list(queryset.only("id").values_list("id", flat=True))
-        else:
-            all_ids = list(queryset.only("id").values_list("id", flat=True))
-            candidate_ids = random.sample(all_ids, self.config.batch_size)
+        # Validations
+        for item in selected_instances:
+            cluster = item["cluster"]
+            instance: StorageInstance = item["instance"]  # Master instance as target for rollback
+            backup_check_instance: StorageInstance = item.get(
+                "backup_check_instance", instance
+            )  # Slave for backup check
 
-        logger.info(
-            _("Selected {} candidate clusters (batch_size: {})").format(
-                len(candidate_ids),
-                self.config.batch_size,
-            )
-        )
+            report = self._create_report(cluster, instance)
 
-        return candidate_ids
+            try:
+                (
+                    is_valid,
+                    full_backup,
+                    days_used,
+                    recovery_time_point,
+                    binlog_summary,
+                    fail_reason,
+                    failure_kind,
+                ) = self._validate_instance(
+                    backup_check_instance.machine.ip,
+                    backup_check_instance.port,
+                    cluster,
+                    rollback_days=self.config.rollback_days,
+                )
 
-    def init_candidates_queue(self) -> bool:
+                if is_valid:
+                    report.backup_info = json.dumps(
+                        {
+                            "full_backup": full_backup,
+                            "binlog_summary": binlog_summary,
+                            "recovery_time_point": datetime2str(recovery_time_point),
+                            "tendis_type": self._resolve_tendis_type(cluster.cluster_type),
+                            "kvstorecount": (
+                                self._get_kvstorecount(cluster)
+                                if is_tendisplus_instance_type(cluster.cluster_type)
+                                else None
+                            ),
+                        },
+                        indent=2,
+                        ensure_ascii=False,
+                    )
+                    report.save(update_fields=["backup_info", "update_at"])
+
+                    valid_instances.append(
+                        {
+                            "cluster": cluster,
+                            "instance": instance,
+                            "full_backup": full_backup,
+                            "days_used": days_used,
+                            "recovery_time_point": recovery_time_point,
+                            "binlog_summary": binlog_summary,
+                            "report": report,
+                        }
+                    )
+                else:
+                    stage = (
+                        TaskStage.BACKUP_INVALID
+                        if failure_kind == ValidationFailureKind.BACKUP_INVALID
+                        else TaskStage.SKIPPED
+                    )
+                    report.mark(
+                        stage,
+                        task_message=_fmt_task_msg(_("Validation failed: {}").format(fail_reason)),
+                    )
+
+            except AppBaseException as e:
+                logger.exception(_("Backup validation error for instance {} {}").format(instance.ip_port, str(e)))
+                report.mark(
+                    TaskStage.BACKUP_INVALID,
+                    task_message=_fmt_task_msg(_("Backup validation error: {}").format(str(e))),
+                )
+                continue
+            except Exception as e:
+                logger.exception(_("Error validating instance {} {}").format(instance.ip_port, str(e)))
+                report.mark(
+                    TaskStage.SKIPPED,
+                    task_message=_fmt_task_msg(_("Exception during validation: {}").format(str(e))),
+                )
+                continue
+
+        if not valid_instances:
+            logger.info(_("No instances with valid backup found"))
+            return
+
+        logger.info(_("Found {} instances with valid backup: {}").format(len(valid_instances), valid_instances))
+
+        # Generate exercise ticket
+        try:
+            self._create_ticket(valid_instances)
+        except Exception as e:
+            logger.exception(_("Failed to create exercise ticket: {}").format(str(e)))
+            for item in valid_instances:
+                report: Report = item["report"]
+                report.mark(TaskStage.TICKET_GEN_FAILED, task_message=_fmt_task_msg(str(e)))
+
+    def init_candidates_queue(self):
         """
         Initialize the candidates queue in Redis
 
@@ -154,7 +300,7 @@ class RedisRollbackExercise:
 
         if not lock_acquired:
             logger.warning(_("Failed to acquire lock for candidates queue initialization"))
-            return False
+            return
 
         try:
             # Clear existing queue
@@ -168,7 +314,7 @@ class RedisRollbackExercise:
 
             if not candidate_ids:
                 logger.warning(_("No candidate clusters found"))
-                return True
+                return
 
             # Push candidates into Redis queue using pipeline for efficiency
             pipeline = RedisConn.pipeline()
@@ -181,94 +327,18 @@ class RedisRollbackExercise:
 
             logger.info(_("Successfully loaded {} candidates into queue using pipeline").format(len(candidate_ids)))
 
-            return True
+            return
 
         except Exception as e:
             logger.exception(_("Error initializing candidates queue: {}").format(str(e)))
-            return False
+            return
 
         finally:
             # Release lock
             RedisConn.delete(REDIS_CANDIDATES_LOCK_KEY)
             logger.debug(_("Released lock for candidates queue"))
 
-    def __get_specified_instances(self) -> List[dict]:
-        result = []
-        for domain in self.config.specified_domains:
-            cluster = Cluster.objects.get(immute_domain=domain)
-            slave_instance = (
-                cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.SLAVE).order_by("?").first()
-            )
-            master_instance = slave_instance.as_receiver.get().ejector
-            logger.info(
-                _("Selected slave {} for backup check and its paired master {} for rollback from cluster {}").format(
-                    slave_instance.ip_port, master_instance.ip_port, cluster.immute_domain
-                )
-            )
-            result.append({"cluster": cluster, "instance": master_instance, "backup_check_instance": slave_instance})
-        return result
-
-    def __get_random_instances(self, num: int) -> List[dict]:
-        result = []
-        if RedisConn.exists(REDIS_CANDIDATES_LOCK_KEY):
-            logger.warning(_("Candidates queue is locked (being initialized), skipping this round"))
-            return result
-
-        queue_length = RedisConn.llen(REDIS_CANDIDATES_QUEUE_KEY)
-        if queue_length == 0:
-            logger.warning(_("Candidates queue is empty, need to initialize first"))
-            return result
-
-        logger.info(_("Candidates queue has {} items, popping up {} items").format(queue_length, num))
-
-        pop_count = min(num, queue_length)
-
-        for _i in range(pop_count):
-            candidate_data = RedisConn.lpop(REDIS_CANDIDATES_QUEUE_KEY)
-
-            if not candidate_data:
-                break
-
-            try:
-                cluster_id = eval(candidate_data)
-                cluster = Cluster.objects.get(id=cluster_id)
-                if cluster.phase != ClusterPhase.ONLINE.value:
-                    logger.warning(_("Cluster {} is offline, skipping").format(cluster.immute_domain))
-                    continue
-
-                slave_instance = (
-                    cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.SLAVE)
-                    .order_by("?")
-                    .first()
-                )
-                if not slave_instance:
-                    logger.warning(_("Cluster {} has no slave instance, skipping").format(cluster.immute_domain))
-                    continue
-                master_instance = slave_instance.as_receiver.get().ejector
-
-                logger.info(
-                    _(
-                        (
-                            "Selected slave {} for backup check and its paired master {} for rollback from cluster {}"
-                        ).format(slave_instance.ip_port, master_instance.ip_port, cluster.immute_domain)
-                    )
-                )
-
-                result.append(
-                    {"cluster": cluster, "instance": master_instance, "backup_check_instance": slave_instance}
-                )
-
-            except Cluster.DoesNotExist:
-                logger.warning(_("Cluster {} not found, skipping").format(cluster_id))
-                continue
-            except Exception as e:
-                logger.warning(_("Error processing candidate {}: {}, skipping").format(candidate_data, str(e)))
-                continue
-
-        logger.info(_("Successfully collected {} candidate instances from queue").format(len(result)))
-        return result
-
-    def _pick_target_instances(self, num: int) -> List[dict]:
+    def _pick_target_instances(self, num: int) -> Tuple[List[dict], List[tuple]]:
         """
         Pick target instances for rollback exercise
 
@@ -278,119 +348,84 @@ class RedisRollbackExercise:
         """
         match self.config.mode:
             case RedisRollbackExerciseMode.SPECIFIED:
-                return self.__get_specified_instances()
+                return self._get_specified_instances(), []
             case RedisRollbackExerciseMode.RANDOM:
-                return self.__get_random_instances(num)
-
-    def _instance_has_backup(
-        self, instance_ip: str, instance_port: int, cluster_id: int, cluster_type: str, rollback_days: List[int]
-    ) -> tuple:
-        """
-        Check if instance has valid backups by querying from bklog
-
-        Returns:
-            tuple: (has_backup: bool, backup_info: dict or None, days_used: int or None)
-        """
-        logger.debug(
-            _("Checking backup records for instance {}:{} (type: {})").format(instance_ip, instance_port, cluster_type)
-        )
-        sorted_days = sorted(rollback_days, reverse=True)
-        handler = DataStructureHandler(cluster_id=cluster_id)
-        for days_before in sorted_days:
-            try:
-                rollback_time = django_timezone.now() - timedelta(days=days_before)
-                backup_log = handler.query_latest_backup_log(
-                    rollback_time=rollback_time,
-                    host_ip=instance_ip,
-                    port=instance_port,
-                )
-
-                if backup_log and backup_log.get("status") == "to_backup_system_success":
-                    logger.info(
-                        _("Found valid backup for instance {}:{} at {} days before, backup time: {}").format(
-                            instance_ip, instance_port, days_before, backup_log.get("uptime")
-                        )
-                    )
-                    return True, backup_log, days_before
-                else:
-                    logger.debug(
-                        _("No valid backup found for instance {}:{} at {} days before").format(
-                            instance_ip, instance_port, days_before
-                        )
-                    )
-
-            except Exception as e:
-                logger.warning(
-                    _("Error querying backup for instance {}:{} at {} days before: {}").format(
-                        instance_ip, instance_port, days_before, str(e)
-                    )
-                )
-                continue
-
-        logger.warning(
-            _("No valid backup found for instance {}:{} across all rollback days {}").format(
-                instance_ip, instance_port, sorted_days
-            )
-        )
-        return False, None, None
+                return self._consume_from_queue(num)
 
     def _validate_instance(
-        self, instance_ip: str, instance_port: int, cluster_id: int, cluster_type: str, rollback_days: List[int]
+        self, instance_ip: str, instance_port: int, cluster: Cluster, rollback_days: List[int]
     ) -> tuple:
         """
-        Validate if instance is suitable for rollback exercise
+        Validate if instance is suitable for rollback exercise.
 
         Validations:
-        1. Check if instance has valid backup
-        2. Check if cluster has no existing temp instance (not destroyed) in tb_tendis_rollback_tasks
+        1. Backup availability (full backup + binlog when applicable)
+        2. No existing temp instance (not destroyed) in tb_tendis_rollback_tasks
+        3. No undone conflicting ticket
+
+        Returns:
+            tuple: (is_valid, full_backup_log, days_used, recovery_time_point,
+                    binlog_summary, fail_reason, failure_kind)
+
+            ``failure_kind`` is a ``ValidationFailureKind`` (or None when valid):
+            - BACKUP_INVALID -> caller should mark report as BACKUP_INVALID (ABNORMAL)
+            - ENV_SKIPPED    -> caller should mark report as SKIPPED (WARNING)
         """
-        has_backup, backup_info, days_used = self._instance_has_backup(
+        cluster_id = cluster.id
+
+        # 1. Backup check (full + binlog when applicable)
+        (
+            has_backup,
+            full_backup,
+            days_used,
+            recovery_time_point,
+            binlog_summary,
+            backup_fail_reason,
+        ) = self._instance_has_backup(
             instance_ip=instance_ip,
             instance_port=instance_port,
-            cluster_id=cluster_id,
-            cluster_type=cluster_type,
+            cluster=cluster,
             rollback_days=rollback_days,
         )
         if not has_backup:
-            return False, None, None
+            fail_reason = _("Instance {}:{} - No valid backup across rollback days {}: {}").format(
+                instance_ip, instance_port, rollback_days, backup_fail_reason or _("unknown")
+            )
+            return False, None, None, None, None, fail_reason, ValidationFailureKind.BACKUP_INVALID
 
+        # 2. Temp instance check
         existing_temp_instances = TbTendisRollbackTasks.objects.filter(
             prod_cluster_id=cluster_id,
             destroyed_status__in=[DestroyedStatus.NOT_DESTROYED, DestroyedStatus.DESTROYING],
         )
         if existing_temp_instances.exists():
-            logger.warning(
-                _("Instance {}:{} validation failed: cluster {} has existing temp instances (not destroyed)").format(
-                    instance_ip, instance_port, cluster_id
-                )
-            )
-            return False, None, None
+            fail_reason = _("Cluster {} has existing temp instances (not destroyed)").format(cluster_id)
+            return False, None, None, None, None, fail_reason, ValidationFailureKind.ENV_SKIPPED
 
+        # 3. Undone ticket check
+        conflicting_ticket_type = [
+            TicketType.REDIS_ROLLBACK_EXERCISE,
+            TicketType.REDIS_DATA_STRUCTURE,
+            TicketType.REDIS_DATA_STRUCTURE_TASK_DELETE,
+        ]
         undone_record = (
             ClusterOperateRecord.objects.filter(
                 cluster_id=cluster_id,
-                ticket__ticket_type=TicketType.REDIS_ROLLBACK_EXERCISE,
+                ticket__ticket_type__in=conflicting_ticket_type,
                 ticket__status__in=TICKET_RUNNING_STATUS_SET,
             )
             .select_related("ticket")
             .first()
         )
         if undone_record:
-            logger.warning(
-                _("Instance {}:{} validation failed: cluster {} has undone rollback exercise ticket {}").format(
-                    instance_ip, instance_port, cluster_id, undone_record.ticket.id
-                )
+            fail_reason = _("Cluster {} has undone {} ticket {}").format(
+                cluster_id, undone_record.ticket.ticket_type, undone_record.ticket.id
             )
-            return False, None, None
+            return False, None, None, None, None, fail_reason, ValidationFailureKind.ENV_SKIPPED
 
-        logger.info(
-            _("Instance {}:{} passed all validations with backup at {} days before").format(
-                instance_ip, instance_port, days_used
-            )
-        )
-        return True, backup_info, days_used
+        return True, full_backup, days_used, recovery_time_point, binlog_summary, None, None
 
-    def _create_drill_ticket(self, valid_instances: List[dict]):
+    def _create_ticket(self, valid_instances: List[dict]):
         """
         Create REDIS_ROLLBACK_EXERCISE drill ticket with selected instances
         """
@@ -402,9 +437,8 @@ class RedisRollbackExercise:
         for item in valid_instances:
             cluster = item["cluster"]
             instance: StorageInstance = item["instance"]
-            backup_info = item["backup_info"]
-
-            recovery_time_point = str2datetime(backup_info["uptime"]) + timedelta(minutes=30)
+            recovery_time_point = item["recovery_time_point"]
+            report: Report = item["report"]
 
             logger.info(_("instance: {}").format(instance))
 
@@ -414,7 +448,7 @@ class RedisRollbackExercise:
                 "instance_ip": instance.machine.ip,
                 "instance_port": instance.port,
                 "recovery_time_point": datetime2str(recovery_time_point),
-                "task_id": 0,  # Link to task record for status updates, currently dry-run
+                "report_id": report.id,  # Link to report record for status updates
                 "resource_spec": {
                     "redis": {
                         "count": 1,
@@ -435,6 +469,7 @@ class RedisRollbackExercise:
                     "drill_config": {
                         "polling_interval": self.config.polling_interval,
                         "polling_timeout": self.config.polling_timeout,
+                        "error_ignorable": self.config.error_ignorable,
                     },
                     "ip_source": IpSource.RESOURCE_POOL.value,
                 },
@@ -446,102 +481,422 @@ class RedisRollbackExercise:
             )
 
             for item in valid_instances:
-                instance = item["instance"]
-                logger.info(
-                    _("  - Instance {} from cluster {}").format(instance.ip_port, item["cluster"].immute_domain)
-                )
+                report: Report = item["report"]
+                report.ticket_id = ticket.id
+                report.mark(TaskStage.TICKET_GENERATED)
 
         except Exception as e:
             logger.exception(_("Failed to create drill ticket: {}").format(str(e)))
+            # Mark all reports as TICKET_GEN_FAILED
+            for item in valid_instances:
+                report: Report = item["report"]
+                report.mark(TaskStage.TICKET_GEN_FAILED, task_message=_fmt_task_msg(str(e)))
 
-    def start(self):
+    def _create_report(self, cluster: Cluster, instance: StorageInstance = None) -> Report:
         """
-        Generate Redis rollback exercise tasks
+        Create a Report record for tracking the exercise task
 
-        Main workflow:
-        1. Pick n target instances
-        2. For each instance, check if backup exists before rollback days
-        3. Create a REDIS_ROLLBACK_EXERCISE drill ticket with selected instances
+        Args:
+            cluster: The cluster being exercised
+            instance: The master instance for rollback (optional, can be None for skipped clusters)
 
-        The drill ticket will:
-        - Apply resources
-        - Create `redis_data_structure` flow to rollback each instance
-        - Each rollback flow requires 1 machine with spec equal to instance selected
-        - Monitor rollback flow states
-        - Destroy temp instances via `redis_data_structure_task_delete` flow
-        - Return the resources
+        Returns:
+            Report: The created report record
         """
-        logger.info(_("Starting Redis rollback exercise task generation"))
+        report = Report.objects.create(
+            bk_biz_id=cluster.bk_biz_id,
+            bk_cloud_id=cluster.bk_cloud_id,
+            cluster_id=cluster.id,
+            cluster_domain=cluster.immute_domain,
+            cluster_type=cluster.cluster_type,
+            instance_ip=instance.machine.ip if instance else None,
+            instance_port=instance.port if instance else None,
+            redis_version=(instance.version or "") if instance else "",
+            task_stage=TaskStage.TASK_GENERATED,
+            creator="system",
+            updater="system",
+        )
+        return report
 
-        if not self.config.switch:
-            logger.info(_("Redis rollback exercise is disabled, exiting..."))
-            return
+    def _calculate_candidates(self) -> List[int]:
+        """
+        Filter from Cluster to get candidate cluster IDs
 
-        selected_instances = self._pick_target_instances(self.config.max_instances)
-        if not selected_instances:
-            logger.info(_("No instances selected for exercise"))
-            return
+        Strategy:
+        1. Skip clusters whose bizs or itself are ignored
+        2. Skip clusters not running (only include ONLINE phase)
+        3. Skip clusters not in config.cluster_types
+        4. Collect up to config.batch_size cluster_ids as candidates
 
-        logger.info(_("Selected {} instances for exercise").format(len(selected_instances)))
-        valid_instances = []
+        Returns:
+            List[int]: List of candidate cluster IDs
+        """
+        logger.info(_("Calculating candidate clusters for rollback exercise"))
 
-        for item in selected_instances:
-            cluster = item["cluster"]
-            instance: StorageInstance = item["instance"]  # Master instance for rollback
-            backup_check_instance: StorageInstance = item.get(
-                "backup_check_instance", instance
-            )  # Slave for backup check
+        queryset = Cluster.objects.all()
+
+        if self.config.clusters_ignored:
+            queryset = queryset.exclude(id__in=self.config.clusters_ignored)
+
+        if self.config.bizs_ignored:
+            queryset = queryset.exclude(bk_biz_id__in=self.config.bizs_ignored)
+
+        if self.config.cluster_types:
+            queryset = queryset.filter(cluster_type__in=self.config.cluster_types)
+
+        queryset = queryset.filter(phase=ClusterPhase.ONLINE.value)
+
+        total_candidates = queryset.count()
+        logger.info(_("Found {} total candidate clusters").format(total_candidates))
+        if total_candidates <= self.config.batch_size:
+            candidate_ids = list(queryset.only("id").values_list("id", flat=True))
+        else:
+            all_ids = list(queryset.only("id", "bk_biz_id").values_list("id", "bk_biz_id"))
+            random.shuffle(all_ids)  # Mix the order first to avoid database ordering bias
+            candidate_ids = self._weighted_random_selection(all_ids, self.config.batch_size)
+
+        logger.info(
+            _("Selected {} candidate clusters (batch_size: {})").format(
+                len(candidate_ids),
+                self.config.batch_size,
+            )
+        )
+
+        return candidate_ids
+
+    def _weighted_random_selection(self, cluster_id_biz_pairs: List[Tuple[int, int]], count: int) -> List[int]:
+        """
+        Perform weighted random selection on cluster candidates.
+
+        Weighting strategy (multiplicative):
+        - Default weight: 1.0
+        - High priority biz: * config.weight_multiplier_high_priority_biz (default 2.0x)
+        - Previously failed cluster: * config.weight_multiplier_previously_failed (default 3.0x)
+        - Combined: factors are multiplied (e.g., high_priority + failed = 2.0 * 3.0 = 6.0x)
+
+        Args:
+            cluster_id_biz_pairs: List of (cluster_id, bk_biz_id) tuples
+            count: Number of clusters to select
+
+        Returns:
+            List[int]: Selected cluster IDs
+        """
+        if not cluster_id_biz_pairs:
+            return []
+
+        cluster_ids = [pair[0] for pair in cluster_id_biz_pairs]
+        cluster_biz_map = {pair[0]: pair[1] for pair in cluster_id_biz_pairs}
+
+        previously_failed_clusters, _q = Report.get_previously_failed_clusters()
+        not_exercised_clusters, _q = Report.get_not_exercised_clusters(
+            cluster_ids, self.config.not_exercised_days_threshold
+        )
+        high_priority_bizs: Set[int] = set(self.config.bizs_high_priority or [])
+
+        # Weight = base * high_priority_multiplier * failed_multiplier * not_exercised_multiplier
+        weights = [
+            1.0
+            * (self.config.weight_multiplier_high_priority_biz if cluster_biz_map[cid] in high_priority_bizs else 1.0)
+            * (self.config.weight_multiplier_previously_failed if cid in previously_failed_clusters else 1.0)
+            * (self.config.weight_multiplier_not_exercised if cid in not_exercised_clusters else 1.0)
+            for cid in cluster_ids
+        ]
+
+        logger.info(
+            _(
+                "Weighted selection: {} clusters, {} high priority biz clusters, "
+                "{} previously failed clusters, {} not exercised in {} days"
+            ).format(
+                len(cluster_ids),
+                sum(1 for cid in cluster_ids if cluster_biz_map[cid] in high_priority_bizs),
+                len(previously_failed_clusters),
+                sum(1 for cid in cluster_ids if cid in not_exercised_clusters),
+                self.config.not_exercised_days_threshold,
+            )
+        )
+
+        # Perform weighted random sampling without replacement
+        return self._weighted_sample_without_replacement(cluster_ids, weights, count)
+
+    def _weighted_sample_without_replacement(self, items: List[int], weights: List[float], count: int) -> List[int]:
+        """
+        Perform weighted random sampling without replacement.
+
+        Uses the Efraimidis-Spirakis algorithm (A-Res) which achieves O(n log k)
+        complexity instead of O(n * k) from iterative approach.
+
+        Algorithm: For each item, compute key = random() ^ (1/weight), then
+        select the top-k items with the highest keys. We use the mathematically
+        equivalent form: key = log(random()) / weight for numerical stability.
+
+        Reference: https://utopia.duth.gr/~pefraimi/research/data/2007EncssAlgorithms.pdf
+
+        Args:
+            items: List of items to sample from
+            weights: Corresponding weights for each item
+            count: Number of items to select
+
+        Returns:
+            List[int]: Selected items
+        """
+        if count >= len(items):
+            return items[:]
+
+        if count == 0:
+            return []
+
+        # Handle zero weights by replacing with tiny positive value
+        safe_weights = [w if w > 0 else 1e-10 for w in weights]
+
+        # Efraimidis-Spirakis algorithm: key_i = random() ^ (1/weight_i)
+        # Equivalent to: key_i = log(random()) / weight_i (for numerical stability)
+        # We want top-k highest keys, which means top-k highest log(random())/weight
+        # Since log(random()) is negative, highest = least negative = closest to 0
+        keys = [math.log(random.random()) / w for w in safe_weights]
+
+        # Get indices of top-k highest keys (use nlargest for O(n log k) complexity)
+        top_k_indices = heapq.nlargest(count, range(len(keys)), key=lambda i: keys[i])
+
+        return [items[i] for i in top_k_indices]
+
+    def _get_specified_instances(self) -> List[dict]:
+        result = []
+        for domain in self.config.specified_domains:
+            cluster = Cluster.objects.get(immute_domain=domain)
+            slave_instance = (
+                cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.SLAVE).order_by("?").first()
+            )
+            master_instance = slave_instance.as_receiver.get().ejector
+            logger.info(
+                _("Selected slave {} for backup check and its paired master {} for rollback from cluster {}").format(
+                    slave_instance.ip_port, master_instance.ip_port, cluster.immute_domain
+                )
+            )
+            result.append({"cluster": cluster, "instance": master_instance, "backup_check_instance": slave_instance})
+        return result
+
+    def _consume_from_queue(self, num: int) -> Tuple[List[dict], List[tuple]]:
+        """
+        Pops candidate clusters from queue.
+
+        Returns:
+        - result: Selected instances {cluster, instance, backup_instance}
+        - skipped_clusters: Clusters skipped for some reasons
+        """
+        result = []
+        skipped_clusters = []
+        if RedisConn.exists(REDIS_CANDIDATES_LOCK_KEY):
+            logger.warning(_("Candidates queue is locked (being initialized), skipping this round"))
+            return result
+
+        queue_length = RedisConn.llen(REDIS_CANDIDATES_QUEUE_KEY)
+        if queue_length == 0:
+            logger.warning(_("Candidates queue is empty, need to initialize first"))
+            return result
+
+        logger.info(_("Candidates queue has {} items, popping up {} items").format(queue_length, num))
+
+        pop_count = min(num, queue_length)
+
+        for _i in range(pop_count):
+            candidate_data = RedisConn.lpop(REDIS_CANDIDATES_QUEUE_KEY)
+
+            if not candidate_data:
+                break
 
             try:
-                is_valid, backup_info, days_used = self._validate_instance(
-                    backup_check_instance.machine.ip,
-                    backup_check_instance.port,
-                    cluster.id,
-                    cluster.cluster_type,
-                    rollback_days=self.config.rollback_days,
+                cluster_id = int(candidate_data)
+                cluster = Cluster.objects.get(id=cluster_id)
+                if cluster.phase != ClusterPhase.ONLINE.value:
+                    skip_msg = _("Cluster {} is offline (phase: {})").format(cluster.immute_domain, cluster.phase)
+                    skipped_clusters.append((cluster, skip_msg))
+                    continue
+
+                slave_instance = (
+                    cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.SLAVE)
+                    .order_by("?")
+                    .first()
+                )
+                if not slave_instance:
+                    skip_msg = _("Cluster {} has no slave instance").format(cluster.immute_domain)
+                    skipped_clusters.append((cluster, skip_msg))
+                    continue
+                master_instance = slave_instance.as_receiver.get().ejector
+
+                result.append(
+                    {"cluster": cluster, "instance": master_instance, "backup_check_instance": slave_instance}
                 )
 
-                if is_valid:
-                    valid_instances.append(
-                        {
-                            "cluster": cluster,
-                            "instance": instance,  # Master instance for rollback
-                            "backup_info": backup_info,
-                            "days_used": days_used,
-                        }
-                    )
-                    logger.info(
-                        _("Slave {} passed validation with backup at {} days, will use master {} for rollback").format(
-                            backup_check_instance.ip_port, days_used, instance.ip_port
-                        )
-                    )
-                else:
-                    logger.warning(
-                        _("Slave {} failed validation (no backup or existing temp instance), skipping cluster").format(
-                            backup_check_instance.ip_port
-                        )
-                    )
-                    logger.info(
-                        _(
-                            "Dry-run: changing state to SKIPPED for master instance({}) due to validation failure"
-                        ).format(instance.ip_port)
-                    )
-
             except Exception as e:
-                logger.exception(_("Error validating instance {} {}").format(instance.ip_port, str(e)))
-                logger.info(
-                    _("Dry-run: changing state to SKIPPED for instance({}) due to exception").format(instance.ip_port)
+                logger.warning(_("Error processing candidate {}: {}, skipping").format(candidate_data, str(e)))
+                continue
+
+        logger.info(_("Successfully collected {} candidate instances from queue").format(len(result)))
+        return result, skipped_clusters
+
+    def _instance_has_backup(
+        self,
+        instance_ip: str,
+        instance_port: int,
+        cluster: Cluster,
+        rollback_days: List[int],
+    ) -> tuple:
+        """
+        Check if instance has valid backup (full + binlog when applicable) by querying bklog.
+
+        For SSD / Tendisplus we additionally call ``query_binlog_from_bklog`` over the same
+        window the rollback flow will later download (see
+        ``RedisDataStructureFlow.get_backupfile``); that helper enforces consecutivity and
+        the >= 2 binlog-files-per-instance rule, so any missing/duplicate index surfaces
+        here as a backup-invalid signal rather than a mid-flow failure.
+
+        Returns:
+            tuple: (has_backup, full_backup_log, days_used, recovery_time_point, binlog_summary, fail_reason)
+        """
+        cluster_id = cluster.id
+        cluster_type = cluster.cluster_type
+        logger.debug(
+            _("Checking backup records for instance {}:{} (type: {})").format(instance_ip, instance_port, cluster_type)
+        )
+
+        has_binlog = self._cluster_type_has_binlog(cluster_type)
+        tendis_type = self._resolve_tendis_type(cluster_type)
+        kvstorecount = self._get_kvstorecount(cluster) if is_tendisplus_instance_type(cluster_type) else None
+        offset_minutes = self.config.binlog_replay_minutes if has_binlog else self.config.no_binlog_offset_minutes
+
+        sorted_days = sorted(rollback_days)
+        handler = DataStructureHandler(cluster_id=cluster_id)
+        last_fail_reason = None
+
+        for days_before in sorted_days:
+            rollback_time = django_timezone.now() - timedelta(days=days_before)
+            try:
+                backup_log = handler.query_latest_backup_log(
+                    rollback_time=rollback_time,
+                    host_ip=instance_ip,
+                    port=instance_port,
+                )
+            except Exception as e:
+                last_fail_reason = _("Full backup query error at {} days before: {}").format(days_before, str(e))
+                logger.warning(
+                    _("Error querying full backup for instance {}:{} at {} days before: {}").format(
+                        instance_ip, instance_port, days_before, str(e)
+                    )
                 )
                 continue
 
-        if not valid_instances:
-            logger.info(_("No instances with valid backup found"))
-            return
+            if not (backup_log and backup_log.get("status") == "to_backup_system_success"):
+                last_fail_reason = _("No successful full backup at {} days before").format(days_before)
+                logger.debug(
+                    _("No valid full backup for instance {}:{} at {} days before").format(
+                        instance_ip, instance_port, days_before
+                    )
+                )
+                continue
 
-        logger.info(_("Found {} instances with valid backup: {}").format(len(valid_instances), valid_instances))
+            logger.info(
+                _("Found valid full backup for instance {}:{} at {} days before, backup uptime: {}").format(
+                    instance_ip, instance_port, days_before, backup_log.get("uptime")
+                )
+            )
 
+            recovery_time_point = str2datetime(backup_log["uptime"]) + timedelta(minutes=offset_minutes)
+
+            if not has_binlog:
+                return True, backup_log, days_before, recovery_time_point, None, None
+
+            # SSD / Tendisplus: validate binlog over [file_last_mtime, recovery_time_point]
+            try:
+                binlog_files = handler.query_binlog_from_bklog(
+                    start_time=str2datetime(backup_log["file_last_mtime"]),
+                    end_time=recovery_time_point,
+                    host_ip=instance_ip,
+                    port=instance_port,
+                    kvstorecount=kvstorecount,
+                    tendis_type=tendis_type,
+                )
+            except AppBaseException as e:
+                last_fail_reason = _("Binlog invalid at {} days before: {}").format(days_before, str(e))
+                logger.warning(
+                    _("Binlog validation failed for {}:{} at {} days before: {}").format(
+                        instance_ip, instance_port, days_before, str(e)
+                    )
+                )
+                continue
+            except Exception as e:
+                last_fail_reason = _("Binlog query error at {} days before: {}").format(days_before, str(e))
+                logger.warning(
+                    _("Error querying binlog for {}:{} at {} days before: {}").format(
+                        instance_ip, instance_port, days_before, str(e)
+                    )
+                )
+                continue
+
+            binlog_summary = self._summarize_binlog(binlog_files)
+            return True, backup_log, days_before, recovery_time_point, binlog_summary, None
+
+        logger.warning(
+            _("No valid backup found for instance {}:{} across all rollback days {}").format(
+                instance_ip, instance_port, sorted_days
+            )
+        )
+        return False, None, None, None, None, last_fail_reason
+
+    @staticmethod
+    def _cluster_type_has_binlog(cluster_type: str) -> bool:
+        """Whether this cluster type produces binlog (i.e. tendis_type is SSD or Tendisplus)."""
+        return is_tendisssd_instance_type(cluster_type) or is_tendisplus_instance_type(cluster_type)
+
+    @staticmethod
+    def _resolve_tendis_type(cluster_type: str) -> str:
+        """Mirror RedisDataStructureFlow.get_tendis_type_by_cluster_type so binlog query
+        receives the same tendis_type the rollback flow will use later."""
+        if is_redis_instance_type(cluster_type):
+            return ClusterType.RedisInstance.value
+        if is_tendisplus_instance_type(cluster_type):
+            return ClusterType.TendisplusInstance.value
+        if is_tendisssd_instance_type(cluster_type):
+            return ClusterType.TendisSSDInstance.value
+        raise NotImplementedError("Not supported tendis type: %s" % cluster_type)
+
+    @staticmethod
+    def _get_kvstorecount(cluster: Cluster) -> Optional[str]:
+        """Fetch tendisplus kvstorecount from DBConfig (mirrors
+        RedisDataStructureFlow.__get_cluster_config so binlog completeness check
+        runs over the same kvstore set)."""
         try:
-            self._create_drill_ticket(valid_instances)
+            data = DBConfigApi.query_conf_item(
+                params={
+                    "bk_biz_id": str(cluster.bk_biz_id),
+                    "level_name": LevelName.CLUSTER,
+                    "level_value": cluster.immute_domain,
+                    "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
+                    "conf_file": cluster.major_version,
+                    "conf_type": ConfigTypeEnum.DBConf,
+                    "namespace": cluster.cluster_type,
+                    "format": FormatType.MAP,
+                }
+            )
+            return data["content"].get("kvstorecount")
         except Exception as e:
-            logger.exception(_("Failed to create drill ticket: {}").format(str(e)))
-            logger.info(_("Dry-run: Mark tasks as GENERATE_TICKET_FAILED"))
+            logger.warning(
+                _("Failed to fetch kvstorecount for tendisplus cluster {}: {}").format(cluster.immute_domain, str(e))
+            )
+            return None
+
+    @staticmethod
+    def _summarize_binlog(binlog_files: List[dict]) -> dict:
+        """Compact abstraction of binlog list (could be hundreds of files per instance/day)."""
+        if not binlog_files:
+            return {"count": 0, "total_size_bytes": 0}
+
+        sized = [int(b.get("size") or 0) for b in binlog_files]
+        mtimes = [b.get("file_last_mtime") for b in binlog_files if b.get("file_last_mtime")]
+        return {
+            "count": len(binlog_files),
+            "total_size_bytes": sum(sized),
+            "earliest_start_time": min(mtimes) if mtimes else None,
+            "latest_start_time": max(mtimes) if mtimes else None,
+            "first_file": binlog_files[0].get("file_name"),
+            "last_file": binlog_files[-1].get("file_name"),
+        }

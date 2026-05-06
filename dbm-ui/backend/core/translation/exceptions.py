@@ -25,3 +25,7 @@ class UnTranslatedFileExistException(CoreBaseException):
 
 class LanguageSpecificFStringException(CoreBaseException):
     MESSAGE = _("存在包含特定翻译语言的f-string")
+
+
+class IllegalImportException(CoreBaseException):
+    MESSAGE = _("存在非法导入")

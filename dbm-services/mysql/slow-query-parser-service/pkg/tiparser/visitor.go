@@ -12,6 +12,7 @@ package tiparser
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/pingcap/tidb/pkg/parser/ast"
@@ -19,15 +20,62 @@ import (
 	driver "github.com/pingcap/tidb/pkg/parser/test_driver"
 )
 
+// shardTableSuffixRegex 匹配表名以 _数字 结尾的分表后缀，如 user_01, order_123
+var shardTableSuffixRegex = regexp.MustCompile(`_\d+$`)
+
+// largeOffsetThreshold 大 offset 阈值，超过此值认为是大翻页查询
+const largeOffsetThreshold = 100000
+
 // FingerprintVisitor implements ast.Visitor interface.
-type FingerprintVisitor struct{}
+type FingerprintVisitor struct {
+	InCount        int
+	OriginalValues []string
+	// HasLargeOffset 标记是否检测到大 offset 查询
+	HasLargeOffset bool
+}
 
 func (f *FingerprintVisitor) Enter(n ast.Node) (node ast.Node, skipChildren bool) {
-	if v, ok := n.(*driver.ValueExpr); ok {
+	switch v := n.(type) {
+	case *driver.ValueExpr:
 		v.Type.SetCharset("")
 		v.SetValue([]byte("?"))
+		f.InCount++
+		f.OriginalValues = append(f.OriginalValues, fmt.Sprintf("%v", v.GetValue()))
+	case *ast.TableName:
+		// 分表场景：将表名后缀 _数字 替换为 _?，避免分表被当做不同的 sql 指纹
+		if shardTableSuffixRegex.MatchString(v.Name.O) {
+			newName := shardTableSuffixRegex.ReplaceAllString(v.Name.O, "_?")
+			v.Name = ast.NewCIStr(newName)
+		}
+	case *ast.SelectStmt:
+		// 检测大 offset 查询
+		f.checkLargeOffset(v.Limit)
+	case *ast.SetOprSelectList:
+		// union 语句中的 limit
+		f.checkLargeOffset(v.Limit)
 	}
 	return n, false
+}
+
+// checkLargeOffset 检查 limit 中的 offset 是否超过阈值
+func (f *FingerprintVisitor) checkLargeOffset(limit *ast.Limit) {
+	if limit == nil || limit.Offset == nil {
+		return
+	}
+	if v, ok := limit.Offset.(*driver.ValueExpr); ok {
+		var offsetVal int64
+		switch val := v.GetValue().(type) {
+		case int64:
+			offsetVal = val
+		case uint64:
+			offsetVal = int64(val)
+		case float64:
+			offsetVal = int64(val)
+		}
+		if offsetVal >= largeOffsetThreshold {
+			f.HasLargeOffset = true
+		}
+	}
 }
 
 func (f *FingerprintVisitor) Leave(n ast.Node) (node ast.Node, ok bool) {
@@ -128,7 +176,8 @@ func (cp *CapitalizeProcessor) Leave(in ast.Node) (node ast.Node, ok bool) {
 
 // TableNameExtractor implements ast.Visitor interface.
 type TableNameExtractor struct {
-	TableNames map[string] /*origin table name without database name*/ *ast.TableName
+	/*origin table name without database name*/
+	TableNames map[string]*ast.TableName
 }
 
 func (te *TableNameExtractor) Enter(in ast.Node) (node ast.Node, skipChildren bool) {

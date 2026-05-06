@@ -10,10 +10,23 @@ specific language governing permissions and limitations under the License.
 """
 from rest_framework.routers import DefaultRouter
 
-from backend.dbm_aiagent.mcp_tools.mysql.views import MySQLMcpToolsViewSet
+from backend.dbm_aiagent.mcp_tools.mysql.views import (
+    MySQLBillMcpToolsViewSet,
+    MySQLConfigUpdateMcpToolsViewSet,
+    MySQLMetricsMcpToolsViewSet,
+    MySQLQueryMcpToolsViewSet,
+    MySQLSlowlogMcpToolsViewSet,
+    MySQLTableCapacityMcpToolsViewSet,
+    SqlSyntaxCheckMcpViewSet,
+)
 
 routers = DefaultRouter(trailing_slash=True)
 
-routers.register(r"", MySQLMcpToolsViewSet, basename="mcp-mysql-query")
-
+routers.register(r"", MySQLQueryMcpToolsViewSet, basename="mcp-mysql-query")
+routers.register(r"", MySQLBillMcpToolsViewSet, basename="mcp-mysql-bill")
+routers.register(r"", MySQLSlowlogMcpToolsViewSet, basename="mcp-mysql-slowlog")
+routers.register(r"", SqlSyntaxCheckMcpViewSet, basename="mcp-sql-syntax-check")
+routers.register(r"", MySQLMetricsMcpToolsViewSet, basename="mcp-mysql-metrics")
+routers.register(r"", MySQLConfigUpdateMcpToolsViewSet, basename="mcp-mysql-config-update")
+routers.register(r"", MySQLTableCapacityMcpToolsViewSet, basename="mcp-mysql-table-capacity")
 urlpatterns = routers.urls

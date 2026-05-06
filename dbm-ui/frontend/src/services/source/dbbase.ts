@@ -261,10 +261,10 @@ export function getGlobalMachine(params: {
   bk_os_name?: string; // 操作系统
   cluster_ids?: string; // 集群ID列表
   cluster_status?: string;
-  cluster_type?: string;
+  cluster_type?: string; // 集群类型，非redis集群类型必传
   creator?: string; // 创建人
   db_module_id?: number; // 模块ID
-  db_type: DBTypes; // 数据库类型
+  db_type?: DBTypes; // 数据库类型，redis集群类型必传
   instance_address?: string;
   instance_role?: string; // 实例角色
   instance_status?: string; // 实例状态
@@ -344,7 +344,31 @@ export function queryClusterLoad(params: { bk_biz_id: number; cluster_type: stri
   }>(`${path}/query_cluster_load/`, params, payload);
 }
 
-export function queryBizMachineAttrs(params: { bk_biz_id: number; cluster_type: ClusterTypes; machine_attrs: string }) {
+export function queryBizInstanceAttrs(params: {
+  bk_biz_id: number;
+  cluster_id?: number;
+  cluster_type?: string;
+  instances_attrs: string;
+}) {
+  return http.get<
+    Record<
+      string,
+      {
+        text: string;
+        value: string;
+      }[]
+    >
+  >(`${path}/query_biz_instance_attrs/`, params, {
+    cache: 3000,
+  });
+}
+
+export function queryBizMachineAttrs(params: {
+  bk_biz_id: number;
+  cluster_id?: number;
+  cluster_type: ClusterTypes;
+  machine_attrs: string;
+}) {
   return http.get<
     Record<
       string,
@@ -354,6 +378,24 @@ export function queryBizMachineAttrs(params: { bk_biz_id: number; cluster_type: 
       }[]
     >
   >(`${path}/query_biz_machine_attrs/`, params, {
+    cache: 3000,
+  });
+}
+
+export function queryDirtyMachineAttrs(params: {
+  is_todo?: boolean; // 是否主机待办
+  machine_attrs: string;
+  pool?: 'fault' | 'recycle';
+}) {
+  return http.get<
+    Record<
+      string,
+      {
+        text: string;
+        value: string;
+      }[]
+    >
+  >(`${path}/query_dirty_machine_attrs/`, params, {
     cache: 3000,
   });
 }

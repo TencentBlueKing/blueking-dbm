@@ -11,8 +11,6 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { clusterInstStatus, ClusterInstStatusKeys } from '@common/const';
-
 import { utcDisplayTime } from '@utils';
 
 export default class DbhaServiceStatus {
@@ -50,11 +48,5 @@ export default class DbhaServiceStatus {
 
   get startTimeDisplay() {
     return utcDisplayTime(this.start_time) || '--';
-  }
-
-  get statusInfo() {
-    return (
-      clusterInstStatus[this.status as ClusterInstStatusKeys] || clusterInstStatus[ClusterInstStatusKeys.UNAVAILABLE]
-    );
   }
 }

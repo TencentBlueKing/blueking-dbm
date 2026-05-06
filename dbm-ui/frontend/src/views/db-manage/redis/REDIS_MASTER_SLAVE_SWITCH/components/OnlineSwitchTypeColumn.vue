@@ -41,7 +41,9 @@
   type Emits = (e: 'batch-edit', value: string, field: string) => void;
 
   const emits = defineEmits<Emits>();
-  const modelValue = defineModel<string>();
+  const modelValue = defineModel<string>({
+    required: true,
+  });
 
   const { t } = useI18n();
 
@@ -62,6 +64,21 @@
   ];
 
   const batchEditValue = ref('');
+
+  const optionValues = list.map((item) => item.value) as string[];
+  const optionMap = Object.fromEntries(list.map((item) => [item.label, item.value]));
+
+  watch(
+    modelValue,
+    () => {
+      if (!optionValues.includes(modelValue.value)) {
+        modelValue.value = optionMap[modelValue.value];
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleBatchEditConfirm = () => {
     emits('batch-edit', batchEditValue.value, 'online_switch_type');

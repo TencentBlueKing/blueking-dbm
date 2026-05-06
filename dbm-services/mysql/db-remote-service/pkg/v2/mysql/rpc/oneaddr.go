@@ -4,10 +4,9 @@ import (
 	"context"
 	"dbm-services/mysql/db-remote-service/pkg/config"
 	"dbm-services/mysql/db-remote-service/pkg/v2/mysql/internal/impl"
-	"sync"
 )
 
-func (c *MySQLRPCRequest) oneAddr(addr string) (res []MySQLRPCResponse, err error) {
+func (c *MySQLRPCRequest) executeCmds(addr string) (res []MySQLCmdRPCResponse, err error) {
 	db, conn, connId, err := impl.Prepare(
 		addr, config.RuntimeConfig.MySQLAdminUser, config.RuntimeConfig.MySQLAdminPassword,
 		c.Timezone, c.Charset, c.ConnectTimeout,
@@ -21,62 +20,26 @@ func (c *MySQLRPCRequest) oneAddr(addr string) (res []MySQLRPCResponse, err erro
 		return nil, err
 	}
 
-	rChan := make(chan MySQLRPCResponse)
-	done := make(chan struct{})
-	errChan := make(chan error)
+	for _, sql := range c.Cmds {
+		_ = config.GlobalLimiter.Wait(context.Background())
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	go func() {
-		defer func() {
-			close(rChan)
-			close(done)
-			close(errChan)
-		}()
-
-		var wg = &sync.WaitGroup{}
-		wg.Add(len(c.Cmds))
-		for _, sql := range c.Cmds {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
-
-			_ = config.GlobalLimiter.Wait(context.Background())
-			go func(sql string) {
-				defer wg.Done()
-				srs, n, err := impl.DoSQL(conn, sql, c.QueryTimeout)
-				srp := MySQLRPCResponse{
-					Cmd:          sql,
-					Result:       srs,
-					RowsAffected: n,
-					Error:        "",
-				}
-				if err != nil {
-					srp.Error = err.Error()
-				}
-				rChan <- srp
-				if err != nil && !c.Force {
-					errChan <- err
-				}
-			}(sql)
+		tableData, rowsAffected, err := impl.DoSQL(conn, sql, c.QueryTimeout)
+		response := MySQLCmdRPCResponse{
+			Cmd:          sql,
+			Result:       tableData,
+			RowsAffected: rowsAffected,
+			Error:        "",
 		}
-		wg.Wait()
-		done <- struct{}{}
-	}()
+		if err != nil {
+			response.Error = err.Error()
+		}
+		res = append(res, response)
 
-	for {
-		select {
-		case <-done:
-			return res, nil
-		case err := <-errChan:
-			cancel()
+		// 非 force 模式下遇到错误立即返回
+		if err != nil && !c.Force {
 			return res, err
-		case srp := <-rChan:
-			res = append(res, srp)
-		default:
 		}
 	}
+
+	return res, nil
 }

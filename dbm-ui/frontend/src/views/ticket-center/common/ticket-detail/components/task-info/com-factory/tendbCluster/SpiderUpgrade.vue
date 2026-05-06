@@ -52,6 +52,39 @@
           }" />
       </template>
     </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="spec_id"
+      :min-width="150"
+      :title="t('规格')">
+      <template #default="{ row: data }: { row: RowData }">
+        <p v-if="data.resource_spec.spider_master?.spec_id">
+          {{ ticketDetails.details.specs[data.resource_spec.spider_master?.spec_id]?.name }}（spider_master）
+        </p>
+        <p v-else>--</p>
+        <p v-if="data.resource_spec.spider_slave?.spec_id">
+          {{ ticketDetails.details.specs[data.resource_spec.spider_slave?.spec_id]?.name }}（spider_slave）
+        </p>
+      </template>
+    </TicketInfoTableColumn>
+    <TicketInfoTableColumn
+      col-key="label_names"
+      :min-width="200"
+      :title="t('资源标签')">
+      <template #default="{ row: data }: { row: RowData }">
+        <template v-if="data.resource_spec.spider_master?.label_names?.length">
+          <BkTag
+            v-for="item in data.resource_spec.spider_master.label_names"
+            :key="item">
+            {{ item }}
+          </BkTag>
+        </template>
+        <BkTag
+          v-else
+          theme="success">
+          {{ t('通用无标签') }}
+        </BkTag>
+      </template>
+    </TicketInfoTableColumn>
   </TicketInfoTable>
   <InfoList>
     <InfoItem :label="t('检查业务连接')">
@@ -72,7 +105,7 @@
   import VersionContent from './components/VersionContent.vue';
 
   interface Props {
-    ticketDetails: TicketModel<TendbCluster.SpiderUpgrade>;
+    ticketDetails: TicketModel<TendbCluster.ResourcePool.SpiderUpgrade>;
   }
 
   type RowData = Props['ticketDetails']['details']['infos'][number];

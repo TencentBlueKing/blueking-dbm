@@ -66,8 +66,8 @@ func (suite *OperationDefinitionControllerTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbAccess := dbaccess.NewOperationDefinitionDbAccess(db)
-	operationDefinitionProvider := provider.NewOperationDefinitionProvider(dbAccess)
+	dbAccess := dbaccess.GetOperationDefinitionDbAccess(db)
+	operationDefinitionProvider := provider.GetOperationDefinitionProvider(dbAccess)
 	operationDefinitionController := controller.NewOperationDefinitionController(operationDefinitionProvider)
 	suite.operationDefinitionController = operationDefinitionController
 	gin.SetMode(gin.TestMode)

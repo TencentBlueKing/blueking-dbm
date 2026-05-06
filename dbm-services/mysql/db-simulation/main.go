@@ -105,12 +105,17 @@ func apiLogger(c *gin.Context) {
 		if len(body) == 0 {
 			body = []byte("{}")
 		}
+		platform := c.Request.Header.Get("platform")
+		if platform == "" {
+			platform = ""
+		}
 		model.DB.Create(&model.TbRequestRecord{
 			RequestID:    rid,
 			Method:       c.Request.Method,
 			Path:         c.Request.URL.Path,
 			SourceIP:     c.Request.RemoteAddr,
 			RequestBody:  string(body),
+			Platform:     platform,
 			ResponseBody: "{}",
 			CreateTime:   time.Now(),
 			UpdateTime:   time.Now(),

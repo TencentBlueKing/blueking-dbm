@@ -57,12 +57,14 @@ class TendbChecksumDetailSerializer(TendbBaseOperateDetailSerializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         checksum_scope = serializers.ChoiceField(help_text=_("校验范围"), choices=TendbChecksumScope.get_choices())
         backup_infos = serializers.ListSerializer(help_text=_("备份信息"), child=BackupInfoSerializer())
+        repl_table = serializers.CharField(help_text=_("校验结果表名"), default=None, required=False, allow_blank=True)
 
     data_repair = DataRepairSerializer(help_text=_("数据修复信息"))
     runtime_hour = serializers.IntegerField(help_text=_("超时时间"))
     timing = DBTimezoneField(help_text=_("定时触发时间"))
     infos = serializers.ListField(help_text=_("全备信息列表"), child=ChecksumDataInfoSerializer())
     is_sync_non_innodb = serializers.BooleanField(help_text=_("非innodb表是否修复"), required=False, default=False)
+    need_manual_confirm = serializers.BooleanField(help_text=_("是否需要人工确认"), default=False)
 
     def validate(self, attrs):
         attrs = super(TendbBaseOperateDetailSerializer, self).validate(attrs)
@@ -70,8 +72,9 @@ class TendbChecksumDetailSerializer(TendbBaseOperateDetailSerializer):
         super().validate_checksum_database_selector(attrs)
 
         # 校验定时时间不能早于当前时间
-        if str2datetime(attrs["timing"]) < datetime.now(timezone.utc):
-            raise serializers.ValidationError(_("定时时间必须晚于当前时间"))
+        if attrs["need_manual_confirm"] is False:
+            if str2datetime(attrs["timing"]) < datetime.now(timezone.utc):
+                raise serializers.ValidationError(_("定时时间必须晚于当前时间"))
 
         return attrs
 
@@ -234,6 +237,21 @@ class TendbChecksumFlowBuilder(MySQLChecksumFlowBuilder):
 
     def patch_ticket_detail(self):
         BaseMySQLTicketFlowBuilder.patch_ticket_detail(self)
+        self.ticket.details["trigger_time"] = self.ticket.details["timing"]
+        self.ticket.save(update_fields=["details"])
+
+    @property
+    def need_manual_confirm(self):
+        """是否需要人工确认节点。后续默认从单据配置表获取。子类可覆写，覆写以后editable为False"""
+        return self.ticket.details["need_manual_confirm"]
+
+    @property
+    def need_timer(self):
+        return not self.ticket.details["need_manual_confirm"]
+
+    @property
+    def need_itsm(self):
+        return True
 
     def custom_ticket_flows(self):
         return super().custom_ticket_flows()

@@ -53,24 +53,63 @@ func parseByPercona(db, query string) (*Response, error) {
 // parseTableNameFromQuery TODO need unique
 func parseTableNameFromQuery(db, query string) []*TableRef {
 	var tables []*TableRef
-	reTable := regexp.MustCompile(`(?i)\s+(from|join|into table|into|table)\s+([a-zA-Z0-9_.\-]+)`)
-	query = strings.Replace(strings.Replace(query, "`", "", -1), "\n", "", -1)
-	//res := reTable.FindAllStringSubmatch(query, -1)
-	res := reTable.FindAllStringSubmatch(query, 1) // 减少误判，只取第一个
+
+	// 移除反引号和换行符，统一处理
+	query = strings.Replace(strings.Replace(query, "`", "", -1), "\n", " ", -1)
+
+	// 先移除子查询，避免干扰表名提取
+	// 匹配 FROM/JOIN 后面的子查询: FROM (SELECT ...) 或 JOIN (SELECT ...)
+	reSubQuery := regexp.MustCompile(`(?i)(from|join)\s*\(\s*select[^)]*\)(\s+as)?\s+[a-zA-Z0-9_]+`)
+	query = reSubQuery.ReplaceAllString(query, "")
+
+	// 改进的正则表达式：
+	// 1. 匹配 FROM/JOIN/INTO TABLE/INTO/TABLE 关键字
+	// 2. 匹配表名（支持 db.table 格式）
+	// 3. 可选的 AS 关键字
+	// 4. 可选的别名（但我们不捕获别名）
+	reTable := regexp.MustCompile(`(?i)\s+(from|join|into\s+table|into|table)\s+([a-zA-Z0-9_.\-]+)(?:\s+(?:as\s+)?[a-zA-Z0-9_]+)?`)
+
+	// 获取所有匹配，但限制最多取前5个以减少误判
+	res := reTable.FindAllStringSubmatch(query, 5)
+
 	var err error
+	seen := make(map[string]bool) // 用于去重
+
 	for _, dbt := range res {
-		tb := &TableRef{}
-		if strings.Contains(dbt[2], ".") {
-			tb.DbName, tb.TableName, err = cmutil.GetDbTableName(dbt[2])
-		} else {
-			tb.TableName = dbt[2]
-			tb.DbName = db
-		}
-		if err != nil {
+		if len(dbt) < 3 {
 			continue
 		}
+
+		tableName := strings.TrimSpace(dbt[2])
+
+		// 过滤掉一些常见的非表名关键字
+		lowerTableName := strings.ToLower(tableName)
+		if lowerTableName == "select" || lowerTableName == "where" ||
+			lowerTableName == "dual" || lowerTableName == "values" {
+			continue
+		}
+
+		tb := &TableRef{}
+		if strings.Contains(tableName, ".") {
+			tb.DbName, tb.TableName, err = cmutil.GetDbTableName(tableName)
+			if err != nil {
+				continue
+			}
+		} else {
+			tb.TableName = tableName
+			tb.DbName = db
+		}
+
+		// 去重：使用 db.table 作为唯一标识
+		uniqueKey := tb.DbName + "." + tb.TableName
+		if seen[uniqueKey] {
+			continue
+		}
+		seen[uniqueKey] = true
+
 		tables = append(tables, tb)
 	}
+
 	return tables
 }
 

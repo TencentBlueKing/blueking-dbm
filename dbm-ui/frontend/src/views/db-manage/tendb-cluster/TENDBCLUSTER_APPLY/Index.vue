@@ -41,7 +41,7 @@
             :biz-id="formData.bk_biz_id"
             :cluster-type="ClusterTypes.TENDBCLUSTER" />
           <BkFormItem
-            :label="t('接入层Master')"
+            label="Spider Master"
             required>
             <div class="resource-pool-item">
               <BkFormItem
@@ -86,7 +86,7 @@
             </div>
           </BkFormItem>
           <BkFormItem
-            :label="t('后端存储规格')"
+            :label="t('后端存储')"
             required>
             <BackendQPSSpec
               ref="specBackendRef"
@@ -371,21 +371,21 @@
       // delete details.resource_spec.backend_group.future_capacity;
 
       const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
-      const specInfo = specBackendRef.value!.getData();
+      const specBackendInfo = specBackendRef.value!.getData();
 
       return {
         ...details,
-        cluster_shard_num: Number(specInfo.cluster_shard_num),
+        cluster_shard_num: Number(specBackendInfo.cluster_shard_num),
         // disaster_tolerance_level: details.resource_spec.backend_group.affinity,
-        remote_shard_num: Number(specInfo.cluster_shard_num) / specInfo.machine_pair!,
+        remote_shard_num: Number(specBackendInfo.cluster_shard_num) / specBackendInfo.machine_pair!,
         resource_spec: {
           backend_group: {
             ...details.resource_spec.backend_group,
             ...regionAndDisasterParams,
-            count: specInfo.machine_pair,
+            count: specBackendInfo.machine_pair,
             label_names: details.resource_spec.backend_group.labels.map((item: { value: string }) => item.value),
             labels: details.resource_spec.backend_group.labels.map((item: { id: number }) => String(item.id)),
-            spec_info: specInfo,
+            spec_info: specBackendInfo,
           },
           spider: {
             ...details.resource_spec.spider,

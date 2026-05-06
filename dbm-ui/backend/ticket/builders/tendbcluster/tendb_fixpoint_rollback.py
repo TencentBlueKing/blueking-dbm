@@ -84,7 +84,6 @@ class TendbFixPointRollbackDetailSerializer(TendbBaseOperateDetailSerializer):
 
 class TendbFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.tendb_cluster_rollback_data
-    validator = SpiderController.tendb_cluster_rollback_data.validator
 
     def format_ticket_data(self):
         for info in self.ticket_data["infos"]:
@@ -147,6 +146,7 @@ class TendbFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
     inner_flow_builder = TendbFixPointRollbackFlowParamBuilder
     # 这里不要用batch_builder，因为下一节点是部署临时集群
     resource_apply_builder = TendbFixPointRollbackResourceParamBuilder
+    validator = SpiderController.tendb_cluster_rollback_data.validator
 
     def get_cluster_config(self, cluster, details):
         db_config = DBConfigApi.query_conf_item(

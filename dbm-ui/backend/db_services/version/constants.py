@@ -23,7 +23,7 @@ class MySQLVersion(StrStructuredEnum):
 
     MySQL56 = EnumField("MySQL-5.6", _("MySQL-5.6"))
     MySQL57 = EnumField("MySQL-5.7", _("MySQL-5.7"))
-    MySQL80 = EnumField("MySQL-8.0", _("MySQL-8.0"))
+    # MySQL80 = EnumField("MySQL-8.0", _("MySQL-8.0"))
     TXSQL80 = EnumField("TXSQL-8.0", _("TXSQL-8.0"))
     TENDB80 = EnumField("TENDB-8.0", _("TENDB-8.0"))
     MySQL56TokuDB = EnumField("MySQL-5.6-TokuDB", _("MySQL-5.6-TokuDB"))

@@ -13,6 +13,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 
@@ -27,7 +28,8 @@ func queryMeta(sinker *Sinker) error {
 	params := url.Values{}
 	params.Add("bk_data_id", strconv.Itoa(sinker.RuntimeConfig.BkDataId))
 
-	urlPath, err := url.JoinPath(config.MainConfig.ApiURL, "metadata_get_data_id")
+	metaApiPath := "app/metadata/get_data_id" // bkmonitorv3:metadata_get_data_id
+	urlPath, err := url.JoinPath(config.MainConfig.ApiURL, metaApiPath)
 	if err != nil {
 		slog.Error("join api path", err)
 		return err
@@ -63,6 +65,9 @@ func queryMeta(sinker *Sinker) error {
 	slog.Info("pack header", slog.String("header", string(content)))
 
 	req.Header.Set("X-Bkapi-Authorization", string(content))
+	if bkTenantId := os.Getenv("BK_TENANT_ID"); bkTenantId != "" {
+		req.Header.Set("X-Bk-Tenant-Id", bkTenantId)
+	}
 	slog.Info("request", slog.Any("request", req))
 
 	resp, err := http.DefaultClient.Do(req)

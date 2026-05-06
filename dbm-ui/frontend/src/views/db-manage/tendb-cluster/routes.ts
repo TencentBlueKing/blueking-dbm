@@ -30,7 +30,6 @@ const tendbClusterInstanceRoute = {
   path: 'instance-list',
   name: 'tendbClusterInstance',
   meta: {
-    fullscreen: true,
     navName: t('TendbCluster分布式集群_实例视图'),
   },
   component: () => import('@views/db-manage/tendb-cluster/instance-list/Index.vue'),
@@ -101,16 +100,16 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_NODE_REBALANCE, t('集群容量变更'), {
       dbConsole: 'tendbCluster.toolbox.capacityChange',
     }),
-    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES, t('接入层变更'), {
+    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES, t('添加 Spider'), {
       dbConsole: 'tendbCluster.toolbox.proxyScaleUp',
     }),
-    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES, t('接入层变更'), {
+    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES, t('减少 Spider'), {
       dbConsole: 'tendbCluster.toolbox.proxyScaleDown',
     }),
-    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_CONF_UP_DOWN, t('接入层变更'), {
+    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_CONF_UP_DOWN, t('Spider 升降配'), {
       dbConsole: 'tendbCluster.toolbox.spiderConfUpDown',
     }),
-    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES, t('接入层变更'), {
+    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES, t('替换 Spider'), {
       dbConsole: 'tendbCluster.toolbox.switchNodes',
     }),
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY, t('部署只读接入层'), {
@@ -127,6 +126,9 @@ const spiderToolboxRoute = {
     }),
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_UPGRADE, t('版本升级'), {
       dbConsole: 'tendbCluster.toolbox.spiderUpgrade',
+    }),
+    createRouteItem(TicketTypes.TENDBCLUSTER_MIGRATE_UPGRADE, t('版本升级'), {
+      dbConsole: 'tendbCluster.toolbox.migateUpgrade',
     }),
     createRouteItem(TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP, t('库表备份'), {
       dbConsole: 'tendbCluster.toolbox.dbTableBackup',
@@ -190,14 +192,6 @@ const spiderToolboxRoute = {
         navName: 'Webconsole',
       },
       component: () => import('@views/db-manage/tendb-cluster/webconsole/Index.vue'),
-    },
-    {
-      path: 'toolbox-result/:ticketType?/:ticketId?',
-      name: 'TendbclusterToolboxResult',
-      meta: {
-        dbConsole: 'tendbCluster.toolbox.toolboxResult',
-      },
-      component: () => import('@views/db-manage/common/toolbox-result/Index.vue'),
     },
     createRouteItem(TicketTypes.TENDBCLUSTER_CLUSTER_STANDARDIZE, t('集群标准化'), {
       dbConsole: 'tendbCluster.toolbox.clusterStandardize',

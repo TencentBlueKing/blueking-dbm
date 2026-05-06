@@ -11,28 +11,17 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
-from backend.components import DBConfigApi, DBPrivManagerApi, DRSApi
-from backend.components.dbconfig.constants import FormatType, LevelName
+from backend.components import DBPrivManagerApi, DRSApi
 from backend.constants import IP_PORT_DIVIDER
-from backend.flow.consts import ConfigTypeEnum, NameSpaceEnum, PrivRole
+from backend.flow.consts import PrivRole
 from backend.flow.engine.bamboo.scene.mysql.common.exceptions import NormalTenDBFlowException
 from backend.flow.plugins.components.collections.common.base_service import BaseService
+from backend.flow.utils.base.payload_handler import PayloadHandler
 
 
 class SyncMasterService(BaseService):
     def _get_repl_user(self):
-        data = DBConfigApi.query_conf_item(
-            {
-                "bk_biz_id": "0",
-                "level_name": LevelName.PLAT,
-                "level_value": "0",
-                "conf_file": "mysql#user",
-                "conf_type": ConfigTypeEnum.InitUser,
-                "namespace": NameSpaceEnum.TenDB.value,
-                "format": FormatType.MAP,
-            }
-        )["content"]
-        self.log_info("get repl_user successfully")
+        data = PayloadHandler.get_repl_account()
         return data["repl_user"], data["repl_pwd"]
 
     def _add_repl_user(

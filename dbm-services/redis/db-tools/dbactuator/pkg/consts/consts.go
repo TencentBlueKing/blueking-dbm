@@ -128,6 +128,7 @@ const (
 
 // tool path
 const (
+	ReverseAPIConfigName     = ".nginx_proxy.list"
 	DbToolsPath              = "/home/mysql/dbtools"
 	RedisShakeBin            = "/home/mysql/dbtools/redis-shake"
 	RedisSafeDeleteToolBin   = "/home/mysql/dbtools/redisSafeDeleteTool"

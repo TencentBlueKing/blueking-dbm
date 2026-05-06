@@ -13,11 +13,11 @@
 
 import type { HostInfo, InstanceListOperation } from '@services/types';
 
-import { isRecentDays, utcDisplayTime } from '@utils';
-
 import { t } from '@locales/index';
 
-export default class InfluxDBInstance {
+import InstanceBase from '../_instanceBase';
+
+export default class InfluxDBInstance extends InstanceBase {
   static INFLUXDB_ENABLE = 'INFLUXDB_ENABLE';
   static INFLUXDB_REBOOT = 'INFLUXDB_REBOOT';
   static INFLUXDB_REPLACE = 'INFLUXDB_REPLACE';
@@ -38,7 +38,6 @@ export default class InfluxDBInstance {
   bk_cloud_name: string;
   bk_host_id: number;
   cpu: number;
-  create_at: string;
   creator: string;
   disk: number;
   group_id: null | number;
@@ -59,16 +58,15 @@ export default class InfluxDBInstance {
   phase: string;
   restart_at: string;
   role: string;
-  status: string;
   update_at: string;
   version: string;
 
   constructor(payload = {} as InfluxDBInstance) {
+    super(payload);
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
     this.cpu = payload.cpu;
-    this.create_at = payload.create_at;
     this.creator = payload.creator;
     this.disk = payload.disk;
     this.group_id = payload.group_id;
@@ -83,21 +81,12 @@ export default class InfluxDBInstance {
     this.phase = payload.phase;
     this.restart_at = payload.restart_at;
     this.role = payload.role;
-    this.status = payload.status;
     this.update_at = payload.update_at;
     this.version = payload.version;
   }
 
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
-  }
-
   get ip() {
     return this.instance_address.replace(/:.*/, '');
-  }
-
-  get isNew() {
-    return isRecentDays(this.create_at, 24 * 3);
   }
 
   get isOffline() {

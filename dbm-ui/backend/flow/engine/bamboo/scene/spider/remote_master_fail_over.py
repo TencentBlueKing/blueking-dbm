@@ -7,6 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import copy
 import logging
 from typing import Any, Dict, List
@@ -14,6 +15,9 @@ from typing import Any, Dict, List
 from django.utils.translation import gettext as _
 
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import (
+    standardize_mysql_cluster_by_ip_subflow,
+)
 from backend.flow.engine.bamboo.scene.spider.remote_master_slave_swtich import RemoteMasterSlaveSwitchFlow
 from backend.flow.utils.mysql.mysql_context_dataclass import SpiderSwitchContext
 
@@ -144,5 +148,20 @@ class RemoteMasterFailOverFlow(RemoteMasterSlaveSwitchFlow):
         logger.info(_("添加标准化流程 - 故障切换定制版本"))
         slave_ips = [info["slave"]["ip"] for info in switch_tuples]
 
-        standardization_flows = [self.create_standardization_flow(sub_flow_context, cluster, slave_ips)]
-        sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=standardization_flows)
+        standardization_flow = standardize_mysql_cluster_by_ip_subflow(
+            root_id=self.root_id,
+            data={
+                **copy.deepcopy(sub_flow_context),
+                "cluster_ids": [cluster.id],
+            },
+            bk_cloud_id=cluster.bk_cloud_id,
+            bk_biz_id=cluster.bk_biz_id,
+            ips=slave_ips,
+            with_actuator=True,
+            with_cc_standardize=True,
+            with_instance_standardize=False,
+            with_bk_plugin=False,
+            with_collect_sysinfo=False,
+        )
+
+        sub_pipeline.add_sub_pipeline(sub_flow=standardization_flow)

@@ -61,7 +61,7 @@ func Hash(s string, bits uint) uint64 {
 	return fullHash & mask
 }
 
-// NewMachineID  return the  machine-id
+// ID returns the protected machine identifier for dbha-v2.
 func ID() (string, error) {
 	idOnce.Do(func() error {
 		id, idErr = machineid.ProtectedID("dbha-v2")
@@ -88,7 +88,7 @@ func NewSequenceID() uint64 {
 		epoch, _ := time.Parse("2006-01-02", "2024-08-01")
 		s, e := NewSnowflake(idHash, epoch)
 		if e != nil {
-			logger.Warn("failed to generate snowflake sequence-id, use the defalut generate strategy, %v", e)
+			logger.Warn("failed to generate snowflake sequence-id, use default generate strategy, errmsg: %s", e)
 			return 0
 		}
 		sf = s
@@ -100,7 +100,7 @@ func NewSequenceID() uint64 {
 		// After the time rewind, only one retry is allowed.
 		s, e := NewSnowflake(idHash, time.Now())
 		if e != nil {
-			logger.Warn("failed to generate snowflake sequence-id, use the defalut generate strategy, %v", e)
+			logger.Warn("failed to generate snowflake sequence-id, use default generate strategy, errmsg: %s", e)
 			lastSeqID++
 			return lastSeqID
 		}
@@ -110,7 +110,7 @@ func NewSequenceID() uint64 {
 	}
 
 	if err != nil {
-		logger.Warn("failed to generate snowflake sequence-id, use the defalut generate strategy, %v", err)
+		logger.Warn("failed to generate snowflake sequence-id, use default generate strategy, errmsg: %s", err)
 		lastSeqID++
 		return lastSeqID
 	}

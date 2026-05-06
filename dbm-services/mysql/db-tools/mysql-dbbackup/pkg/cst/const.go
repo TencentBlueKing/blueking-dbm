@@ -60,7 +60,8 @@ const (
 	// WrapperRemoteSlave TODO
 	WrapperRemoteSlave = "mysql_slave"
 	// WrapperSpider TODO
-	WrapperSpider = "SPIDER"
+	WrapperSpider      = "SPIDER"
+	WrapperSpiderSlave = "SPIDER_SLAVE"
 	// WrapperTdbctl TODO
 	WrapperTdbctl = "TDBCTL"
 	// ServerNamePrefix TODO
@@ -119,6 +120,10 @@ const (
 	// FileDirectory 未打包的目录
 	FileDirectory = "dir"
 	FileIndex     = "index"
+
+	SuffixIndex = ".index"
+	SuffixPriv  = ".priv"
+	SuffixTar   = ".tar"
 )
 
 const DBAReportBase = "/home/mysql/dbareport"

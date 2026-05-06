@@ -25,6 +25,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import AccessLayer, ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.exceptions import ClusterNotExistException, InstanceNotExistException
 from backend.db_meta.models import AppCache, Cluster, ProxyInstance, StorageInstance, StorageInstanceTuple
+from backend.db_meta.models.city_map import BKSubzone
 from backend.db_meta.models.machine import Machine
 from backend.db_services.dbbase.constants import TCP_ESTABLISHED_CODE, TCP_LISTEN_CODE
 from backend.db_services.dbbase.dataclass import DBInstance
@@ -351,6 +352,12 @@ class ClusterServiceHandler:
     def _format_cluster_field(self, cluster_info: Dict[str, Any]):
         cluster_info["cluster_name"] = cluster_info["name"]
         cluster_info["master_domain"] = cluster_info["immute_domain"]
+        if cluster_info.get("zone_list"):
+            cluster_info["zone_names"] = BKSubzone.objects.filter(
+                bk_sub_zone_id__in=cluster_info["zone_list"]
+            ).values_list("bk_sub_zone", flat=True)
+        else:
+            cluster_info["zone_names"] = []
         return cluster_info
 
     def _get_instance_objs(self, instances: List[DBInstance]):
@@ -572,7 +579,8 @@ class ClusterServiceHandler:
         cmds = """head -n 30000 /proc/net/tcp;"""
         body = {
             "account_alias": DBA_ROOT_USER,
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": _("查询集群接入层tcp的连接信息"),
             "script_content": base64_encode(cmds),
             "script_language": 1,
@@ -594,7 +602,12 @@ class ClusterServiceHandler:
         """
         通过作用平台查询集群proc/net/tcp信息执行信息
         """
-        payload = {"bk_biz_id": env.JOB_BLUEKING_BIZ_ID, "job_instance_id": job_instance_id, "return_ip_result": True}
+        payload = {
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
+            "job_instance_id": job_instance_id,
+            "return_ip_result": True,
+        }
         resp = JobApi.get_job_instance_status(payload, use_admin=True)
 
         # job 未完成
@@ -608,7 +621,8 @@ class ClusterServiceHandler:
         bk_host_ids = [result["bk_host_id"] for result in resp["step_instance_list"][0]["step_ip_result_list"]]
         resp = JobApi.batch_get_job_instance_ip_log(
             {
-                "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+                "bk_scope_type": "biz_set",
+                "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
                 "job_instance_id": job_instance_id,
                 "step_instance_id": step_instance_id,
                 "host_id_list": bk_host_ids,
@@ -815,13 +829,16 @@ class ClusterServiceHandler:
 
 def get_cluster_service_handler(bk_biz_id: int, db_type: str = "dbbase"):
     """根据集群类型获取对应的集群查询handler"""
+    if db_type not in DBType.get_values() + ["dbbase"]:
+        raise ValueError(f"Can't import cluster handler, Invalid db_type: {db_type}")
+
     if db_type == DBType.TenDBCluster.value:
         db_type = DBType.MySQL.value
     handler_import_path = f"backend.db_services.{db_type}.cluster.handlers"
     try:
         handler_class = getattr(importlib.import_module(handler_import_path), "ClusterServiceHandler")
         handler = handler_class(bk_biz_id)
-    except (ModuleNotFoundError, AttributeError):
+    except (ModuleNotFoundError, AttributeError, ImportError):
         handler = ClusterServiceHandler(bk_biz_id)
 
     return handler

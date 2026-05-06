@@ -1,0 +1,38 @@
+[
+  {
+    "conf_type": "dbconf",
+    "conf_file": "2.6.0-bkbase",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "hdfs集群配置",
+    "conf_type_lc": "hdfs集群配置",
+    "conf_file_lc": "2.6.0-bkbase",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "2.6.0-cdh5.4.11-tendataV0.2",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "hdfs集群配置",
+    "conf_type_lc": "hdfs集群配置",
+    "conf_file_lc": "2.6.0-cdh5.4.11",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "3.1.3",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "hdfs集群配置",
+    "conf_type_lc": "hdfs集群配置",
+    "conf_file_lc": "3.1.3",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  }
+]

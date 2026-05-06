@@ -13,11 +13,13 @@
 
 <template>
   <EditableColumn
+    ref="editableColumn"
     :append-rules="localRules"
     :disabled-method="disabledMethod"
     :field="field"
     :label="label"
     :min-width="200"
+    :readonly="readonly"
     :required="required">
     <template #headAppend>
       <div style="display: flex">
@@ -39,8 +41,7 @@
       has-delete-icon
       :max-data="single ? 1 : -1"
       :paste-fn="tagInputPasteFn"
-      :placeholder="t('请输入DB 名称，支持通配符“%”，含通配符的仅支持单个')"
-      @change="handleChange" />
+      :placeholder="required ? t('请输入 DB 名') : t('请输入要忽略的 DB 名')" />
     <template #tips>
       <div class="db-table-tag-tip">
         <div style="font-weight: 700">{{ t('库表输入说明') }}：</div>
@@ -106,6 +107,7 @@
     disabled?: boolean;
     field: string;
     label: string;
+    readonly?: boolean;
     required?: boolean;
     rules?: NonNullable<ComponentProps<typeof DbNameColumn>['rules']>;
     showBatchEdit?: boolean;
@@ -121,11 +123,13 @@
     checkNotExist: false,
     clusterId: undefined,
     disabled: false,
+    readonly: false,
     required: false,
     rules: () => [],
     showBatchEdit: true,
     single: false,
   });
+
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<string[]>({
@@ -133,8 +137,7 @@
   });
 
   const { t } = useI18n();
-
-  let isInit = true;
+  const editableColumnRef = useTemplateRef('editableColumn');
 
   const batchEditValue = ref<string[]>([]);
 
@@ -209,7 +212,7 @@
     // },
     {
       message: t('DB 已存在'),
-      trigger: 'change',
+      trigger: 'blur',
       validator: (value: string[]) => {
         if (!props.checkExist) {
           return true;
@@ -220,7 +223,7 @@
           return true;
         }
         if (!props.clusterId) {
-          return false;
+          return true;
         }
         return checkClusterDatabase({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -243,7 +246,7 @@
     },
     {
       message: t('DB 不存在'),
-      trigger: 'change',
+      trigger: 'blur',
       validator: (value: string[]) => {
         if (!props.checkNotExist) {
           return true;
@@ -254,7 +257,7 @@
           return true;
         }
         if (!props.clusterId) {
-          return false;
+          return true;
         }
         return checkClusterDatabase({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -278,32 +281,26 @@
     ...props.rules,
   ]);
 
-  // 集群改变时 DB 需要重置
   watch(
     () => props.clusterId,
     () => {
-      if (!isInit) {
-        modelValue.value = [];
+      if (props.clusterId && modelValue.value.length > 0) {
+        editableColumnRef.value?.validate();
       }
     },
   );
 
   const disabledMethod = () => {
-    if (!props.checkExist || !props.checkNotExist) {
+    if (!props.checkExist && !props.checkNotExist) {
       return false;
     }
-    return props.clusterId ? false : t('请先选择集群');
+    return props.clusterId ? false : t('请输入合法的集群域名');
   };
 
   const tagInputPasteFn = (value: string) => value.split(batchSplitRegex).map((item) => ({ id: item }));
 
   const handleBatchEditConfirm = () => {
-    isInit = false;
     emits('batch-edit', batchEditValue.value, props.field);
-  };
-
-  const handleChange = () => {
-    isInit = false;
   };
 </script>
 

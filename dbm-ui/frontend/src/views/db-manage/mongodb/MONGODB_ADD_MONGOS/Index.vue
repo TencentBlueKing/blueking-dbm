@@ -65,7 +65,7 @@
               :cluster-type="DBTypes.MONGODB"
               :current-spec-id-list="item.cluster.mongos.map((item) => item.spec_config.id)"
               field="spec_id"
-              label="扩容规格"
+              :label="t('扩容规格')"
               :machine-type="MachineTypes.MONGOS"
               required
               selectable
@@ -301,7 +301,6 @@
     });
 
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
-    window.changeConfirm = true;
   };
 
   const handleBatchEdit = (value: string | string[] | number, field: string) => {
@@ -334,7 +333,6 @@
   // 重置
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
-    window.changeConfirm = false;
   };
 </script>
 

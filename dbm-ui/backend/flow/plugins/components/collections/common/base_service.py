@@ -23,6 +23,7 @@ from pipeline.core.flow.activity import Service, StaticIntervalGenerator
 from backend import env
 from backend.bk_dataview.prometheus import metrics
 from backend.bk_dataview.prometheus.handlers import node_label_func, setup_counter, setup_gauge, setup_histogram
+from backend.bk_web.constants import LogLabel
 from backend.components import JobApi
 from backend.components.sops.client import BkSopsApi
 from backend.core.translation.constants import Language
@@ -39,6 +40,11 @@ cpl = re.compile("<ctx>(?P<context>.+?)</ctx>")  # 非贪婪模式，只匹配�
 class ServiceLogMixin:
     def log_info(self, msg: str):
         logger.info(msg, extra=self.extra_log)
+
+    def info_not_for_ai(self, msg: str):
+        # 展示日志不交给AI分析
+        extra = {**self.extra_log, "label": LogLabel.NOT_AI.value}
+        logger.info(msg, extra=extra)
 
     def log_error(self, msg: str):
         logger.error(msg, extra=self.extra_log)
@@ -248,7 +254,8 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         获取任务状态
         """
         payload = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "job_instance_id": instance_id,
             "return_ip_result": True,
         }
@@ -265,7 +272,8 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         获取任务日志
         """
         payload = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "job_instance_id": job_instance_id,
             "step_instance_id": step_instance_id,
         }
@@ -328,7 +336,8 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         针对一个任务进行失败IP重试
         """
         params = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "job_instance_id": job_instance_id,
             "step_instance_id": step_instance_id,
             "operation_code": JobOperationCode.FAILED_IP_RETRY.value,
@@ -359,6 +368,8 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         write_payload_var = data.get_one_of_inputs("write_payload_var")
         trans_data = data.get_one_of_inputs("trans_data")
 
+        hide_error = kwargs.get("hide_error", False)
+
         node_name = kwargs["node_name"]
 
         # 在轮询的时候ext_result都不会改变，考虑收敛日志
@@ -377,17 +388,17 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         if isinstance(ext_result, bool):
             # ext_result 为 布尔类型 表示 不需要任务是同步进行，不需要调用api去监听任务状态
             self.finish_schedule()
-            return ext_result
+            return ext_result or hide_error
 
         if not ext_result["result"]:
             # 调用结果检测到失败
             self.log_error(f"[{node_name}] schedule  status failed: {ext_result.get('error')}")
-            return False
+            return False or hide_error
 
         if not ext_result["data"]:
             # 没有data返回，可能是job内部服务异常
             self.log_error(f"[{node_name}] job execute failed, request id is {ext_result.get('job_request_id')}")
-            return False
+            return False or hide_error
 
         job_instance_id = ext_result["data"]["job_instance_id"]
         resp = self.__status__(job_instance_id)
@@ -436,10 +447,15 @@ class BkJobService(BaseService, metaclass=ABCMeta):
             data.outputs.job_execute_info = {"job_instance_id": job_instance_id, "step_instance_id": step_instance_id}
 
             self.finish_schedule()
-            return False
+            return False or hide_error
 
         self.log_info(_("[{}]任务调度成功🥳︎").format(node_name))
         data.outputs.job_execute = True
+        if kwargs.get("print_ip_log_on_success"):
+            for ip_dict in ip_dicts:
+                ip_log_resp = self.__log__(job_instance_id, step_instance_id, ip_dict)
+                if ip_log_resp.get("result"):
+                    self.log_info(f"{ip_dict}:{ip_log_resp['data']['log_content']}")
 
         if not write_payload_var:
             self.finish_schedule()
@@ -466,7 +482,7 @@ class BkJobService(BaseService, metaclass=ABCMeta):
 
         if is_false:
             self.finish_schedule()
-            return False
+            return False or hide_error
 
         self.finish_schedule()
         return True

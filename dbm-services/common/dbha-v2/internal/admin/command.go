@@ -25,6 +25,7 @@
 package admin
 
 import (
+	"dbm-services/common/dbha-v2/internal/admin/cmds"
 	"dbm-services/common/dbha-v2/internal/admin/config"
 	"dbm-services/common/dbha-v2/internal/admin/migrator"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -44,7 +45,11 @@ var VersionCmd = &cobra.Command{
 
 var MigrateCmd = &cobra.Command{
 	Use:   "migrate",
-	Short: "migrate all databases",
+	Short: "migrate databases schema and default global strategies",
+	Long: `Migrate command supports the following types:
+  			--type schema    : only migrate table schema
+  			--type strategy  : only create default global strategies
+  			--type all       : migrate schema and create strategies (default)`,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		viper.SetConfigName("admin")
@@ -58,18 +63,76 @@ var MigrateCmd = &cobra.Command{
 		}
 
 		if err := viper.ReadInConfig(); err != nil {
-			logger.Error("read admin configuration failed, %v", err)
+			logger.Error("read admin configuration failed, errmsg: %s", err)
 			return
 		}
 
 		if err := viper.Unmarshal(&config.Cfg); err != nil {
-			logger.Error("unmarshal admin configuration failed, %v", err)
+			logger.Error("unmarshal admin configuration failed, errmsg: %s", err)
 			return
 		}
 
 		mig := &migrator.Migrator{}
-		if err := mig.InitDbhaData(); err != nil {
-			logger.Error("migrate dbhadata failed, %v", err)
+		switch MigrateType {
+		case migrator.MigrateTypeSchema:
+			logger.Info("migrate type: schema")
+			if err := mig.MigrateSchema(); err != nil {
+				logger.Error("migrate schema failed, errmsg: %s", err)
+			}
+		case migrator.MigrateTypeStrategy:
+			logger.Info("migrate type: strategy")
+			if err := mig.MigrateStrategy(); err != nil {
+				logger.Error("migrate strategy failed, errmsg: %s", err)
+			}
+		case migrator.MigrateTypeAll:
+			logger.Info("migrate type: all")
+			if err := mig.MigrateAll(); err != nil {
+				logger.Error("migrate all failed, errmsg: %s", err)
+			}
+		default:
+			logger.Error("unknown migrate type: %s, supported types: schema, strategy, all", MigrateType)
 		}
 	},
+}
+
+// HealthCmd is used to show the health information of this process.
+var HealthCmd = &cobra.Command{
+	Use:   "health",
+	Short: "Show the health information of this process",
+	RunE:  cmds.HealthCmdRunE,
+}
+
+// StartCmd is used to start this process in background (daemon mode).
+var StartCmd = &cobra.Command{
+	Use:   "start",
+	Short: "Start this process.",
+	RunE:  cmds.StartCmdRunE,
+}
+
+// DaemonStartCmd is used to start this process with a guard that restarts it on abnormal exit.
+var DaemonStartCmd = &cobra.Command{
+	Use:   "daemon-start",
+	Short: "Start this process with guard (auto-restart on crash).",
+	RunE:  cmds.DaemonStartCmdRunE,
+}
+
+// StopCmd is used to stop this process.
+var StopCmd = &cobra.Command{
+	Use:   "stop",
+	Short: "Stop this process.",
+	RunE:  cmds.StopCmdRunE,
+}
+
+// RestartCmd is used to restart this process.
+var RestartCmd = &cobra.Command{
+	Use:   "restart",
+	Short: "Restart this process.",
+	RunE:  cmds.RestartCmdRunE,
+}
+
+// ReloadCmd is used to reload this process.
+var ReloadCmd = &cobra.Command{
+	Use:   "reload",
+	Short: "Reload this process.",
+	RunE:  cmds.ReloadCmdRunE,
 }

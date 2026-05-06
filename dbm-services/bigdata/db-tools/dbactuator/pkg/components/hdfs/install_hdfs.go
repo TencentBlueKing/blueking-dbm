@@ -432,6 +432,10 @@ func (i *InstallHdfsService) WriteDfsHostConfig() error {
 	buf := bytes.NewBufferString("")
 	for _, dnIp := range dnIps {
 		dnHost := i.Params.HostMap[dnIp]
+		// 若无匹配，使用dnIp
+		if dnHost == "" {
+			dnHost = dnIp
+		}
 		buf.WriteString(fmt.Sprintln(dnHost))
 	}
 	return os.WriteFile(i.HdfsConfDir+"/"+"dfs.include", buf.Bytes(), 0644)

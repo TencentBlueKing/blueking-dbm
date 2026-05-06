@@ -99,6 +99,18 @@ class MongoPitrRestoreApiView(FlowTestView):
         return Response({"root_id": root_id})
 
 
+class MongoUpgradeVersionApiView(FlowTestView):
+    """
+    Mongo UpgradeVersion Api
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).mongo_upgrade_version()
+        return Response({"root_id": root_id})
+
+
 class MongoInstallDbmonApiView(FlowTestView):
     """
     Mongo InstallDbmon Api
@@ -346,4 +358,16 @@ class MongoDBInstanceFixStatusView(FlowTestView):
     def post(request):
         root_id = uuid.uuid1().hex
         MongoDBController(root_id=root_id, ticket_data=request.data).instance_fix_status()
+        return Response({"root_id": root_id})
+
+
+class MongoDBStandardizationView(FlowTestView):
+    """
+    集群标准化
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).cluster_standardization()
         return Response({"root_id": root_id})

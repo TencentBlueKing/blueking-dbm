@@ -20,8 +20,11 @@ from backend.bk_web import viewsets
 from backend.bk_web.models import AuditedModel
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models import SystemSettings
 from backend.db_meta.enums import InstanceRole, MachineType
-from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
+from backend.db_meta.enums.comm import SystemTagEnum, TagType
+from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance, Tag
 from backend.db_meta.models.machine import DeviceClass
 from backend.db_meta.models.spec import Spec
 from backend.db_services.dbresource.constants import SPEC_FILTER_FACTORY, SWAGGER_TAG
@@ -35,7 +38,9 @@ from backend.db_services.dbresource.serializers import (
     QueryQPSRangeSerializer,
     RecommendResponseSpecSerializer,
     RecommendSpecSerializer,
+    SetSpecReplenishRatioSerializer,
     SpecBatchUpdateSerializer,
+    SpecNeedReplenishSerializer,
     SpecSerializer,
     VerifyDuplicatedSpecNameSerializer,
 )
@@ -50,7 +55,7 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
     资源池规格类型视图
     """
 
-    queryset = Spec.objects.all()
+    queryset = Spec.objects.prefetch_related("tags").all()
     pagination_class = AuditedLimitOffsetPagination
     serializer_class = SpecSerializer
     filter_class = SpecListFilter
@@ -153,6 +158,10 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
                     raise SpecOperateException(_("规格: {}已经被引用，无法修改磁盘信息").format(spec.spec_name))
 
                 for mount_point in new_storage_spec:
+                    # 防止出现min和size不统一的情况
+                    new_storage_spec[mount_point]["size"] = new_storage_spec[mount_point]["min"]
+                    old_storage_spec[mount_point]["size"] = old_storage_spec[mount_point]["min"]
+
                     if new_storage_spec[mount_point] != old_storage_spec[mount_point]:
                         raise SpecOperateException(_("规格: {}已经被引用，无法修改磁盘信息").format(spec.spec_name))
             # 对正在被引用的规格的配置字段更改，抛出异常
@@ -170,6 +179,56 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
         data = self.params_validate(self.get_serializer_class())
         spec_ids = data.pop("spec_ids")
         Spec.objects.filter(spec_id__in=spec_ids).update(**data)
+        return Response()
+
+    @common_swagger_auto_schema(
+        operation_summary=_("修改规格补货定义"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=SpecNeedReplenishSerializer)
+    def add_spec_replenish_tag(self, request, *args, **kwargs):
+        """批量修改规格的补货标签"""
+
+        data = self.params_validate(self.get_serializer_class())
+
+        # 获取补货系统标签和规格
+        spec_ids = data["spec_ids"]
+        need_replenish = data["need_replenish"]
+        tag, _ = Tag.get_builtin_tag(key=SystemTagEnum.REPLENISH.value, value=True, type=TagType.RESOURCE.value)
+        specs = Spec.objects.filter(spec_id__in=spec_ids)
+
+        # 根据need_replenish，添加或移除补货标签
+        tag.spec_set.add(*specs) if need_replenish else tag.spec_set.remove(*specs)
+
+        return Response()
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取规格与补货比例映射"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, filter_class=None)
+    def get_spec_replenish_ratio(self, request, *args, **kwargs):
+        """获取规格与补货比例映射"""
+        ratio_map = SystemSettings.get_setting_value(key=SystemSettingsEnum.REPLENISH_RATIO_MAP, default={})
+        # 补充默认比例 1%
+        default_ratio = ratio_map.get(str(0), 0.01)
+        ratio_map["default"] = default_ratio
+        return Response(ratio_map)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("设置规格与补货比例映射"),
+        request_body=SetSpecReplenishRatioSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=SetSpecReplenishRatioSerializer)
+    def set_spec_replenish_ratio(self, request, *args, **kwargs):
+        update_ratio_map = self.params_validate(self.get_serializer_class())["ratio_map"]
+        # 合并原本的和新的补货比例信息
+        ratio_map = SystemSettings.get_setting_value(key=SystemSettingsEnum.REPLENISH_RATIO_MAP, default={})
+        ratio_map.update(update_ratio_map)
+        SystemSettings.insert_setting_value(
+            key=SystemSettingsEnum.REPLENISH_RATIO_MAP, value=ratio_map, value_type="dict"
+        )
         return Response()
 
     @common_swagger_auto_schema(

@@ -61,7 +61,6 @@ class SQLServerClusterMigrateResourceParamBuilder(SQLServerBaseOperateResourcePa
 
 class SQLServerClusterMigrateParamBuilder(builders.FlowParamBuilder):
     controller = SqlserverController.sqlserver_cluster_migrate_for_ins_scene
-    validator = SqlserverController.sqlserver_cluster_migrate_for_ins_scene.validator
 
 
 @builders.BuilderFactory.register(TicketType.SQLSERVER_CLUSTER_MIGRATE, is_apply=True, is_recycle=True)
@@ -70,3 +69,4 @@ class SQLServerClusterMigrateFlowBuilder(BaseSQLServerHATicketFlowBuilder):
     inner_flow_builder = SQLServerClusterMigrateParamBuilder
     inner_flow_name = _("SQLServer 集群迁移")
     resource_batch_apply_builder = SQLServerClusterMigrateResourceParamBuilder
+    validator = SqlserverController.sqlserver_cluster_migrate_for_ins_scene.validator

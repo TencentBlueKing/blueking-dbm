@@ -26,7 +26,11 @@ package sink
 
 import (
 	"encoding/json"
+	"path/filepath"
+	"time"
 
+	"dbm-services/common/dbha-v2/internal/receiver/apm"
+	"dbm-services/common/dbha-v2/internal/receiver/config"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -56,17 +60,30 @@ func newMySql(endpoints, user, password string) (*mysql, error) {
 		return nil, err
 	}
 
+	logBasename := filepath.Base(config.Cfg.Log.Path)
+	logDir := filepath.Dir(config.Cfg.Log.Path)
+
+	logCfg := logger.Config{
+		FileName:   filepath.Join(logDir, "gorm-"+logBasename),
+		LogLevel:   logger.Level(config.Cfg.Log.Level),
+		MaxSizeMB:  config.Cfg.Log.FileSize,
+		MaxBackups: config.Cfg.Log.FileCount,
+	}
+
+	gormLogger := logger.NewZapLogger(logCfg)
+
 	msql := &mysql{}
 
 	for _, epoint := range epoints {
-
 		db, err := hamysql.NewGormDB(
 			hamysql.OptionIP(epoint.Host),
 			hamysql.OptionPort(epoint.Port),
 			hamysql.OptionProto(epoint.Proto),
 			hamysql.OptionDBName(hamodel.DatabaseName),
 			hamysql.OptionUser(user),
-			hamysql.OptionPassword(password))
+			hamysql.OptionPassword(password),
+			hamysql.OptionLogger(gormLogger),
+		)
 
 		if err != nil {
 			return nil, err
@@ -79,43 +96,57 @@ func newMySql(endpoints, user, password string) (*mysql, error) {
 }
 
 func (s *mysql) Save(msg *Message) error {
-	data := &haprobe.HarvestData{}
-	if err := json.Unmarshal([]byte(msg.Data), data); err != nil {
+	startTime := time.Now()
+	defer func() {
+		if err := apm.MySqlWriteDurationMs.ObserveWithLabels(map[string]string{
+			apm.MetricLabelMysql: msg.Topic,
+		}, float64(time.Since(startTime).Milliseconds())); err != nil {
+			logger.Warn("update mysql write duration metric failed, errmsg: %s", err)
+		}
+	}()
+
+	dbStatus := &haprobe.HarvestData{}
+	if err := json.Unmarshal([]byte(msg.Data), dbStatus); err != nil {
+		if metricErr := apm.MySqlReadErrorsTotal.IncWithLabels(map[string]string{
+			apm.MetricLabelMysql: msg.Topic,
+		}); metricErr != nil {
+			logger.Warn("update mysql read errors metric failed, errmsg: %s", metricErr)
+		}
 		return gerrors.Newf(gerrors.InvalidJson, "unmarshal a mysql metric message failed, topic(%s), %v", msg.Topic, err)
 	}
 
-	logger.Debug("outputter(mysql) save msg(%v)", string(msg.Data))
+	logger.Debug("outputter(mysql) save msg: %s, raw: %s", string(msg.Data), string(dbStatus.RawValue))
 
-	switch data.ClusterType {
-	case haprobe.DbmMetadataClusterTypeTendb, haprobe.DbmMetadataClusterTypeTendbCluster:
-		value, err := json.Marshal(data.Value)
+	data := hamodel.NewDbhaData(dbStatus)
+
+	for _, db := range s.dbs {
+		err := db.DB().Session(&gorm.Session{FullSaveAssociations: true}).
+			Clauses(clause.OnConflict{UpdateAll: true}).
+			Create(data).Error
+
 		if err != nil {
-			logger.Warn("failed to marshal harvest data value, errmsg: %s", err)
-			return err
-		}
+			logger.Warn("save the mysql metric failed, errmsg: %s", err)
 
-		mysqlMetric := &haprobe.MySqlMetric{}
-		if err = json.Unmarshal(value, mysqlMetric); err != nil {
-			logger.Warn("failed to unmarshal harvest data value, errmsg: %s", err)
-			return gerrors.Newf(gerrors.InvalidParameter, "can not convert the harvest data to MySQL metrics")
-		}
-
-		data := hamodel.NewDbhaData(mysqlMetric)
-
-		for _, db := range s.dbs {
-			err := db.DB().Session(&gorm.Session{FullSaveAssociations: true}).
-				Clauses(clause.OnConflict{UpdateAll: true}).
-				Create(data).Error
-
-			if err != nil {
-				logger.Warn("save the mysql metric failed, %v", err)
+			if metricErr := apm.MySqlWriteErrorsTotal.IncWithLabels(map[string]string{
+				apm.MetricLabelMysql: msg.Topic,
+			}); metricErr != nil {
+				logger.Warn("update mysql write errors metric failed, errmsg: %s", metricErr)
 			}
 		}
-
-		return nil
 	}
 
-	return gerrors.Newf(gerrors.Unsupported, "unsupported the cluster type: %s", data.ClusterType)
+	if err := apm.MySqlWriteMessagesTotal.IncWithLabels(map[string]string{
+		apm.MetricLabelMysql: msg.Topic,
+	}); err != nil {
+		logger.Warn("update mysql write messages metric failed, errmsg: %s", err)
+	}
+
+	if err := apm.MySqlWriteBytesTotal.AddWithLabels(map[string]string{
+		apm.MetricLabelMysql: msg.Topic,
+	}, float64(len(msg.Data))); err != nil {
+		logger.Warn("update mysql write bytes metric failed, errmsg: %s", err)
+	}
+	return nil
 }
 
 func (s *mysql) Close() {

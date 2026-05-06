@@ -22,13 +22,19 @@
  * SOFTWARE.
  */
 
+// Package detector provides probe health detection and target selection for DBHA analysis.
 package detector
 
 import (
+	"errors"
+	"strconv"
 	"sync"
+	"time"
 
+	"dbm-services/common/dbha-v2/internal/analysis/apm"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
@@ -43,9 +49,17 @@ const (
 	CheckProbeProcessCmd = "cd ~/dbhav2/ && ./probe health -j"
 )
 
+// DoubleCheckTask represents the double-check task.
+type DoubleCheckTask struct {
+	Meta   *hamodel.DbmMetadata
+	DbType haprobe.DbType
+}
+
+// Response represents the response of the detector.
 type Response struct {
 	Id                string
 	Meta              *hamodel.DbmMetadata
+	DbType            haprobe.DbType
 	DbEventName       haprobe.DbEventName
 	DbEventNameReason haprobe.DbEventNameReason
 	Err               error
@@ -54,11 +68,13 @@ type Response struct {
 
 // Detector is used to detect whether the host or the probe is alive.
 type Detector struct {
-	wg    sync.WaitGroup
-	tasks map[string]*detectorTask
+	wg        sync.WaitGroup
+	tasks     map[string]*detectorTask
+	ServiceID string
 }
 
-func (d *Detector) Detect(dbInsts []*hamodel.DbmMetadata) error {
+// Detect detects the health of the host or the probe.
+func (d *Detector) Detect(dbInsts []DoubleCheckTask) error {
 	if len(dbInsts) == 0 {
 		return ErrDetectorNoTarget
 	}
@@ -67,9 +83,11 @@ func (d *Detector) Detect(dbInsts []*hamodel.DbmMetadata) error {
 
 	for _, inst := range dbInsts {
 		task := &detectorTask{
-			meta: inst,
+			meta:      inst.Meta,
+			dbType:    inst.DbType,
+			serviceID: d.ServiceID,
 			sshCli: &Ssh{
-				ip:       inst.IP,
+				ip:       inst.Meta.IP,
 				port:     config.Cfg.Detector.Ssh.Port,
 				user:     config.Cfg.Detector.Ssh.User,
 				password: config.Cfg.Detector.Ssh.Password,
@@ -97,6 +115,7 @@ func (d *Detector) Detect(dbInsts []*hamodel.DbmMetadata) error {
 	return nil
 }
 
+// WaitResponses waits for the responses of the detector.
 func (d *Detector) WaitResponses() []*Response {
 	d.wg.Wait()
 	resps := []*Response{}
@@ -114,9 +133,11 @@ func (d *Detector) WaitResponses() []*Response {
 }
 
 type detectorTask struct {
-	meta   *hamodel.DbmMetadata
-	resp   *Response
-	sshCli *Ssh
+	meta      *hamodel.DbmMetadata
+	dbType    haprobe.DbType
+	resp      *Response
+	sshCli    *Ssh
+	serviceID string
 }
 
 func (d *detectorTask) id() string {
@@ -126,13 +147,55 @@ func (d *detectorTask) id() string {
 func (d *detectorTask) run(cmd string) {
 	resp := &Response{
 		Meta:              d.meta,
+		DbType:            d.dbType,
 		Id:                d.sshCli.Id(),
 		DbEventName:       haprobe.DbEventNameProbeOffline,
 		DbEventNameReason: haprobe.DbEventNameReasonMissedProbe,
 	}
 
+	start := time.Now()
 	sshResp, err := d.sshCli.Run(cmd)
 	resp.SshResp = sshResp
 	resp.Err = err
 	d.resp = resp
+
+	var code int
+	var errMsg string
+	if sshResp != nil {
+		code = sshResp.ExitCode
+		errMsg = sshResp.ErrMsg
+	} else {
+		var gerr *gerrors.Error
+		if errors.As(err, &gerr) {
+			code = gerr.Code()
+		}
+	}
+
+	d.reportSshTime(start, code)
+
+	if err != nil || errMsg != "" {
+		d.reportSshError(code)
+	}
+}
+
+// reportSshTime reports SSH detection duration metric for a single connection.
+func (d *detectorTask) reportSshTime(start time.Time, code int) {
+	if reportErr := apm.DetectorSshTimeConsumingMs.ObserveWithLabels(map[string]string{
+		haapm.MetricLabelServiceID:   d.serviceID,
+		haapm.MetricLabelServiceName: apm.MetricServerName,
+		apm.MetricLabelStatusCode:    strconv.Itoa(code),
+	}, float64(time.Since(start).Milliseconds())); reportErr != nil {
+		logger.Warn("failed to report detector ssh time consuming metric, errmsg: %s", reportErr)
+	}
+}
+
+// reportSshError reports SSH detection error metric.
+func (d *detectorTask) reportSshError(code int) {
+	if reportErr := apm.DetectorSshErrorTotal.IncWithLabels(map[string]string{
+		haapm.MetricLabelServiceID:   d.serviceID,
+		haapm.MetricLabelServiceName: apm.MetricServerName,
+		apm.MetricLabelStatusCode:    strconv.Itoa(code),
+	}); reportErr != nil {
+		logger.Warn("failed to report detector ssh error metric, errmsg: %s", reportErr)
+	}
 }

@@ -32,6 +32,26 @@
     </BkButton>
   </BkDropdownItem>
   <BkDropdownItem
+    v-if="isClusterTypeAlarmSupported"
+    v-db-console="'tendbCluster.clusterManage.configAlarmSubscription'">
+    <BkButton
+      class="opration-button"
+      text
+      @click="() => (showClusterBatchEditSubscription = true)">
+      {{ t('设置告警订阅') }}
+    </BkButton>
+  </BkDropdownItem>
+  <BkDropdownItem
+    v-if="isClusterTypeAlarmSupported"
+    v-db-console="'tendbCluster.clusterManage.deleteAlarmSubscription'">
+    <BkButton
+      class="opration-button"
+      text
+      @click="() => (showClusterBatchDeleteSubscription = true)">
+      {{ t('删除告警订阅') }}
+    </BkButton>
+  </BkDropdownItem>
+  <BkDropdownItem
     v-db-console="'tendbCluster.clusterManage.disable'"
     @click="handleDisableCluster(selected)">
     <BkButton
@@ -89,6 +109,14 @@
     v-model:is-show="showClusterBatchRemoveTag"
     :selected="selected"
     @success="handleSuccess" />
+  <ClusterBatchEditSubscription
+    v-model:is-show="showClusterBatchEditSubscription"
+    :selected="selected"
+    @success="handleSuccess" />
+  <ClusterBatchDeleteSubscription
+    v-model:is-show="showClusterBatchDeleteSubscription"
+    :selected="selected"
+    @success="handleSuccess" />
 </template>
 
 <script setup lang="ts">
@@ -96,10 +124,14 @@
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
 
+  import { useAlarmSubscribe } from '@hooks';
+
   import { AccountTypes, ClusterTypes } from '@common/const';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import ClusterBatchAddTag from '@views/db-manage/common/cluster-batch-add-tag/Index.vue';
+  import ClusterBatchDeleteSubscription from '@views/db-manage/common/cluster-batch-delete-subscription/Index.vue';
+  import ClusterBatchEditSubscription from '@views/db-manage/common/cluster-batch-edit-subscription/Index.vue';
   import ClusterBatchRemoveTag from '@views/db-manage/common/cluster-batch-remove-tag/Index.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
 
@@ -127,9 +159,13 @@
     },
   );
 
+  const { isClusterTypeAlarmSupported } = useAlarmSubscribe([ClusterTypes.TENDBCLUSTER]);
+
   const clusterAuthorizeShow = ref(false);
   const showClusterBatchAddTag = ref(false);
   const showClusterBatchRemoveTag = ref(false);
+  const showClusterBatchEditSubscription = ref(false);
+  const showClusterBatchDeleteSubscription = ref(false);
 
   const batchAuthorizeDisabled = computed(() => props.selected.some((data) => data.isOffline));
   const batchDisabledDisabled = computed(() =>

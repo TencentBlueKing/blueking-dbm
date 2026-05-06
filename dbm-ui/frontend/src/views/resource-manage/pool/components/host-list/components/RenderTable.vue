@@ -99,7 +99,7 @@
 <script setup lang="tsx">
   import type { Table } from 'bkui-vue';
   import _ from 'lodash';
-  import { computed, onMounted, reactive, type Ref, ref, shallowRef } from 'vue';
+  import { computed, onMounted, reactive, type Ref, ref, shallowRef, type UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { IRequestPayload } from '@services/http';
@@ -352,7 +352,7 @@
 
   // 全选当前页
   const handlePageSelect = () => {
-    const selectMap = { ...rowSelectMemo.value };
+    const selectMap = {} as UnwrapRef<typeof rowSelectMemo>;
     tableData.value.results.forEach((dataItem: any) => {
       if (props.disableSelectMethod(dataItem)) {
         return;
@@ -399,7 +399,7 @@
           ...sortParams,
         })
         .then((data) => {
-          const selectMap = { ...rowSelectMemo.value };
+          const selectMap = {} as UnwrapRef<typeof rowSelectMemo>;
           data.results.forEach((dataItem: any) => {
             if (props.disableSelectMethod(dataItem)) {
               return;

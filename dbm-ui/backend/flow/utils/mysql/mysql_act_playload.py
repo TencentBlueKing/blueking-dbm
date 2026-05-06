@@ -37,7 +37,6 @@ from backend.flow.consts import (
     STAGE_DB_HEADER,
     SYSTEM_DBS,
     TDBCTL_USER,
-    CHECKSUM_TABlE_PREFIX,
     ConfigTypeEnum,
     DataSyncSource,
     DBActuatorActionEnum,
@@ -65,25 +64,36 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
     todo 比如spider场景拆出来、公共部分的拆出来等
     """
 
-    def __get_mysql_config(self, immutable_domain, db_version) -> Any:
+    @staticmethod
+    def get_mysql_config(
+        bk_biz_id: int | str,
+        db_module_id: int | str,
+        cluster_type: str,
+        immutable_domain: str,
+        db_version: str,
+        conf_type: str = ConfigTypeEnum.DBConf,
+    ) -> dict:
         """
         生成并获取mysql实例配置,集群级别配置
         spider/spider-ctl/spider-mysql实例统一用这里拿去配置
+        @param immutable_domain: 集群域名
+        @param db_version: 数据库版本
+        @param conf_type: 配置类型， 默认为 ConfigTypeEnum.DBConf
         """
-        if db_version != "Tdbctl" and self.db_module_id == 0:
+        if db_version != "Tdbctl" and int(db_module_id) == 0:
             # 这里做一层判断，对传入的db_module_id值判断，非Tdbctl实例，传入的db_module_id必须是合理且存在的值，否则抛出异常
             raise Exception(
-                f"The db_module_id parameter is illegal, db_module_id:{self.db_module_id}, db_version:{db_version}"
+                f"The db_module_id parameter is illegal, db_module_id:{db_module_id}, db_version:{db_version}"
             )
         data = DBConfigApi.get_or_generate_instance_config(
             {
-                "bk_biz_id": str(self.ticket_data["bk_biz_id"]),
+                "bk_biz_id": str(bk_biz_id),
                 "level_name": LevelName.CLUSTER,
                 "level_value": immutable_domain,
-                "level_info": {"module": str(self.db_module_id)},
+                "level_info": {"module": str(db_module_id)},
                 "conf_file": db_version,
-                "conf_type": ConfigTypeEnum.DBConf,
-                "namespace": self.cluster_type,
+                "conf_type": conf_type,
+                "namespace": cluster_type,
                 "format": FormatType.MAP_LEVEL,
                 "method": ReqType.GENERATE_AND_PUBLISH,
             }
@@ -258,8 +268,12 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             charset, db_version = self.__get_version_and_charset(db_module_id=self.db_module_id)
 
         for cluster in self.ticket_data["clusters"]:
-            init_mysql_config[cluster["mysql_port"]] = self.__get_mysql_config(
-                immutable_domain=cluster["master"], db_version=db_version
+            init_mysql_config[cluster["mysql_port"]] = self.get_mysql_config(
+                bk_biz_id=self.ticket_data["bk_biz_id"],
+                db_module_id=self.db_module_id,
+                cluster_type=self.cluster_type,
+                immutable_domain=cluster["master"],
+                db_version=db_version,
             )
         mysql_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.MySQL)
         if self.cluster.get("pkg_id"):
@@ -334,9 +348,20 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
 
         for port in install_spider_ports:
             spider_config[port] = copy.deepcopy(
-                self.__get_mysql_config(immutable_domain=self.cluster["immutable_domain"], db_version=spider_version)
+                self.get_mysql_config(
+                    bk_biz_id=self.ticket_data["bk_biz_id"],
+                    db_module_id=self.db_module_id,
+                    cluster_type=self.cluster_type,
+                    immutable_domain=self.cluster["immutable_domain"],
+                    db_version=spider_version,
+                    conf_type=ConfigTypeEnum.ProxyConf,
+                )
             )
             spider_auto_incr_mode_map[port] = self.cluster["auto_incr_value"]
+
+            # 如果有传入需要克隆的参数，则变更
+            if self.cluster.get("spider_copy_config"):
+                spider_config[port]["mysqld"].update(self.cluster["spider_copy_config"][port])
 
         drs_account, dbha_account = self.get_super_account()
 
@@ -404,8 +429,12 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "webconsolers_account": self.get_webconsolers_account(),
                     "partition_yw_account": self.get_partition_yw_account(),
                     "mycnf_configs": {
-                        self.cluster["ctl_port"]: self.__get_mysql_config(
-                            immutable_domain=self.cluster["immutable_domain"], db_version="Tdbctl"
+                        self.cluster["ctl_port"]: self.get_mysql_config(
+                            bk_biz_id=self.ticket_data["bk_biz_id"],
+                            db_module_id=self.db_module_id,
+                            cluster_type=self.cluster_type,
+                            immutable_domain=self.cluster["immutable_domain"],
+                            db_version="Tdbctl",
                         )
                     },
                 },
@@ -489,8 +518,12 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "webconsolers_account": self.get_webconsolers_account(),
                     "partition_yw_account": self.get_partition_yw_account(),
                     "mycnf_configs": {
-                        self.ticket_data["ctl_port"]: self.__get_mysql_config(
-                            immutable_domain=self.cluster["immutable_domain"], db_version="Tdbctl"
+                        self.ticket_data["ctl_port"]: self.get_mysql_config(
+                            bk_biz_id=self.ticket_data["bk_biz_id"],
+                            db_module_id=self.db_module_id,
+                            cluster_type=self.cluster_type,
+                            immutable_domain=self.cluster["immutable_domain"],
+                            db_version="Tdbctl",
                         )
                     },
                 },
@@ -831,42 +864,6 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
-    def get_mysql_restore_slave_payload(self, **kwargs):
-        """
-        MYSQL SLAVE 恢复
-        """
-        index_file = os.path.basename(kwargs["trans_data"]["backupinfo"]["index_file"])
-        payload = {
-            "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.RestoreSlave.value,
-            "payload": {
-                "general": {"runtime_account": self.account},
-                "extend": {
-                    "work_dir": self.cluster["file_target_path"],
-                    "backup_dir": self.cluster["file_target_path"],
-                    "backup_files": {
-                        # "full": None,
-                        "index": [index_file],
-                        # "priv": None,
-                    },
-                    "tgt_instance": {
-                        # "host": self.cluster["new_slave_ip"],
-                        "host": kwargs["ip"],
-                        "port": self.cluster["master_port"],
-                        "user": self.account["admin_user"],
-                        "pwd": self.account["admin_pwd"],
-                        "socket": None,
-                        "charset": self.cluster["charset"],
-                        "options": "",
-                    },
-                    "src_instance": {"host": self.cluster["master_ip"], "port": self.cluster["master_port"]},
-                    "change_master": self.cluster["change_master"],
-                    "work_id": "",
-                },
-            },
-        }
-        return payload
-
     @staticmethod
     def get_clear_machine_crontab(**kwargs):
         """
@@ -971,6 +968,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             "payload": {
                 "general": {"runtime_account": self.account},
                 "extend": {
+                    "skip_after_load": self.cluster.get("skip_after_load", False),
                     "work_dir": self.cluster["file_target_path"],
                     "backup_dir": self.cluster["file_target_path"],
                     "backup_files": {
@@ -1040,9 +1038,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "table_patterns": self.ticket_data["table_patterns"],
                     "ignore_tables": self.ticket_data["ignore_tables"],
                     "runtime_hour": self.ticket_data["runtime_hour"],
-                    "replicate_table": "{}.{}{}".format(
-                        CHECKSUM_DB, CHECKSUM_TABlE_PREFIX, self.ticket_data["ran_str"]
-                    ),
+                    "replicate_table": f"{CHECKSUM_DB}.{self.ticket_data['repl_table']}",
                     "system_dbs": SYSTEM_DBS,
                     "stage_db_header": STAGE_DB_HEADER,
                     "rollback_db_tail": ROLLBACK_DB_TAIL,
@@ -1099,9 +1095,9 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "general": {"runtime_account": self.account},
                 "extend": {
                     "host": self.cluster["slave_ip"],
-                    "port": self.cluster["slave_port"],
+                    "port": int(self.cluster["slave_port"]),
                     "master_host": self.cluster["master_ip"],
-                    "master_port": self.cluster["master_port"],
+                    "master_port": int(self.cluster["master_port"]),
                     "is_sync_non_innodb": self.cluster.get("is_sync_non_innodb", False),
                     "sync_user": self.cluster["sync_user"],
                     "sync_pass": self.cluster["sync_pass"],
@@ -1475,7 +1471,9 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
 
     def mysql_backup_for_restore_payload(self, **kwargs):
         self.ticket_data["backup_id"] = self.ticket_data.get("backup_id_for_restore", uuid.uuid1()).__str__()
-        return self.mysql_backup_demand_payload(**kwargs)
+        backup_payload = self.mysql_backup_demand_payload(**kwargs)
+        backup_payload["payload"]["extend"]["is_full_backup"] = "yes"
+        return backup_payload
 
     def spider_priv_backup_demand_payload(self, **kwargs):
         return {
@@ -1637,12 +1635,11 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             "payload": {
                 "general": {"runtime_account": self.account},
                 "extend": {
+                    "skip_after_load": self.cluster.get("skip_after_load", False),
                     "work_dir": self.cluster["file_target_path"],
                     "backup_dir": self.cluster["file_target_path"],
                     "backup_files": {
-                        # "full": None,
                         "index": [index_file],
-                        # "priv": None,
                     },
                     "tgt_instance": {
                         "host": self.cluster["restore_ip"],
@@ -1653,12 +1650,40 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "charset": self.cluster["charset"],
                         "options": "",
                     },
-                    "recover_opt": {
+                    "restore_opts": {
+                        "recover_binlog": self.cluster.get("recover_binlog", True),
                         "recover_grants": recover_grants,
                     },
                     "src_instance": {"host": self.cluster["source_ip"], "port": self.cluster["source_port"]},
                     "change_master": self.cluster["change_master"],
                     "work_id": "",
+                },
+            },
+        }
+        return payload
+
+    def tendb_restore_dr_after_payload(self, **kwargs):
+        recover_grants = self.cluster.get("recover_grants", False)
+        logger.info(self.cluster["backupinfo"])
+        index_file = os.path.basename(self.cluster["backupinfo"]["index"]["file_name"])
+        payload = {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.RestoreDrAfter.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "backup_dir": self.cluster["file_target_path"],
+                    "backup_files": {"index": [index_file]},
+                    "tgt_instance": {
+                        "host": self.cluster["restore_ip"],
+                        "port": self.cluster["restore_port"],
+                        "user": self.account["admin_user"],
+                        "pwd": self.account["admin_pwd"],
+                        "socket": None,
+                        "charset": self.cluster["charset"],
+                        "options": "",
+                    },
+                    "recover_grants": recover_grants,
                 },
             },
         }
@@ -1742,6 +1767,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "host": self.cluster["target_ip"],
                     "port": self.cluster["target_port"],
                     "repl_hosts": [self.cluster["repl_ip"]],
+                    "super_privilege": self.cluster.get("super_privilege", False),
                 },
             },
         }
@@ -2073,6 +2099,32 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
+    def get_tdbctl_restart_payload(self, **kwargs) -> dict:
+        """
+        MySQL升级操作的通用payload构建方法
+
+        @param action_enum: DBActuatorActionEnum中的升级操作类型
+        @param include_ports: 是否包含端口参数（机器级别操作如relink不需要端口）
+        @param kwargs: 其他参数
+        @return: 构建好的payload
+        """
+        db_pkg = Package.objects.get(id=self.cluster["pkg_id"])
+        extend_params = {
+            "host": kwargs["ip"],
+            "port": self.cluster["port"],
+            "pkg": db_pkg.name,
+            "pkg_md5": db_pkg.md5,
+            "is_tdbctl": True,
+        }
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.UpgradeRestart.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": extend_params,
+            },
+        }
+
     def _get_mysql_upgrade_base_payload(self, action_enum, include_ports: bool = True, **kwargs) -> dict:
         """
         MySQL升级操作的通用payload构建方法
@@ -2082,12 +2134,12 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         @param kwargs: 其他参数
         @return: 构建好的payload
         """
-        mysql_pkg = Package.objects.get(id=self.cluster["pkg_id"], pkg_type=MediumEnum.MySQL)
+        db_pkg = Package.objects.get(id=self.cluster["pkg_id"])
 
         extend_params = {
             "host": kwargs["ip"],
-            "pkg": mysql_pkg.name,
-            "pkg_md5": mysql_pkg.md5,
+            "pkg": db_pkg.name,
+            "pkg_md5": db_pkg.md5,
         }
 
         # 实例级别操作需要端口，机器级别操作(如relink)不需要
@@ -2153,6 +2205,15 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         机器级别操作，不依赖具体端口
         """
         return self._get_mysql_upgrade_base_payload(DBActuatorActionEnum.UpgradeRelink, include_ports=False, **kwargs)
+
+    def get_tdbctl_upgrade_relink_payload(self, **kwargs) -> dict:
+        """
+        tdbctl升级重新链接 (upgrade-relink-tdbctl)
+        机器级别操作，不依赖具体端口
+        """
+        return self._get_mysql_upgrade_base_payload(
+            DBActuatorActionEnum.UpgradeRelinkTdbctl, include_ports=False, **kwargs
+        )
 
     def get_mysql_master_slave_switch_payload(self, **kwargs) -> dict:
         """
@@ -2518,13 +2579,60 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
+    def get_spider_schema_check_payload(self, **kwargs) -> dict:
+        """
+        spider集群表结构检查
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.SpiderCtl.value,
+            "action": DBActuatorActionEnum.ClusterSchemaCheck.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "port": self.cluster["port"],
+                    "check_all": self.cluster.get("check_all", False),
+                    "inconsistency_throws_err": self.cluster.get("inconsistency_throws_err", False),
+                    "check_objects": self.cluster.get("check_objects", []),
+                },
+            },
+        }
+
+    def get_spider_schema_repair_payload(self, **kwargs) -> dict:
+        """
+        spider集群表结构修复
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.SpiderCtl.value,
+            "action": DBActuatorActionEnum.ClusterSchemaRepair.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "port": self.cluster["port"],
+                    "auto_fix": self.cluster.get("auto_fix", False),
+                    "db": self.cluster.get("db", ""),
+                    "tables": self.cluster.get("tables", []),
+                    "dry_run": self.cluster.get("dry_run", False),
+                },
+            },
+        }
+
     def get_partition_v2_payload(self, **kwargs) -> dict:
+
+        force = self.ticket_data.get("force", False)
+        partial_force = self.ticket_data.get("partial_force", False)
 
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,  # spider集群也用mysql类型
             "action": DBActuatorActionEnum.MysqlPartitionV2.value,
             "payload": {
                 "general": {"runtime_account": self.account},
-                "extend": {"cluster": self.cluster, "configs": self.ticket_data["configs"]},
+                "extend": {
+                    "cluster": self.cluster,
+                    "configs": self.ticket_data["configs"],
+                    "force": force,
+                    "partial_force": partial_force,
+                },
             },
         }

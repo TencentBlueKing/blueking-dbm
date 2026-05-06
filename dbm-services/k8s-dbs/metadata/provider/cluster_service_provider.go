@@ -23,6 +23,7 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -34,12 +35,33 @@ type K8sClusterServiceProvider interface {
 	CreateClusterService(entity *metaentity.K8sClusterServiceEntity) (*metaentity.K8sClusterServiceEntity, error)
 	DeleteClusterServiceByID(id uint64) (uint64, error)
 	FindClusterServiceByID(id uint64) (*metaentity.K8sClusterServiceEntity, error)
+	FindByClusterID(crdClusterID uint64) ([]*metaentity.K8sClusterServiceEntity, error)
+	DeleteByClusterID(crdClusterID uint64) (uint64, error)
+	DeleteByClusterIDAndServiceName(crdClusterID uint64, serviceName string) (uint64, error)
+	UpsertClusterServices(crdClusterID uint64, entities []*metaentity.K8sClusterServiceEntity) error
+	UpsertSingleService(entity *metaentity.K8sClusterServiceEntity) error
 	UpdateClusterService(entity *metaentity.K8sClusterServiceEntity) (uint64, error)
 }
 
 // K8sClusterServiceProviderImpl K8sClusterServiceProvider 具体实现
 type K8sClusterServiceProviderImpl struct {
 	dbAccess dbaccess.K8sClusterServiceDbAccess
+}
+
+var (
+	clusterServiceInstance K8sClusterServiceProvider
+	clusterServiceOnce     sync.Once
+)
+
+// GetK8sClusterServiceProvider 获取 K8sClusterServiceProvider 单例实例
+func GetK8sClusterServiceProvider(dbAccess dbaccess.K8sClusterServiceDbAccess) K8sClusterServiceProvider {
+	clusterServiceOnce.Do(func() {
+		clusterServiceInstance = &K8sClusterServiceProviderImpl{dbAccess: dbAccess}
+	})
+	if clusterServiceInstance == nil {
+		panic("K8sClusterServiceProvider instance is nil after initialization")
+	}
+	return clusterServiceInstance
 }
 
 // CreateClusterService 创建 cluster service
@@ -101,7 +123,65 @@ func (k *K8sClusterServiceProviderImpl) UpdateClusterService(entity *metaentity.
 	return rows, nil
 }
 
-// NewK8sClusterServiceProvider 创建 K8sClusterServiceProvider 接口实现实例
-func NewK8sClusterServiceProvider(dbAccess dbaccess.K8sClusterServiceDbAccess) K8sClusterServiceProvider {
-	return &K8sClusterServiceProviderImpl{dbAccess: dbAccess}
+// FindByClusterID 根据 crd_cluster_id 查找所有关联的 cluster service
+func (k *K8sClusterServiceProviderImpl) FindByClusterID(
+	crdClusterID uint64,
+) ([]*metaentity.K8sClusterServiceEntity, error) {
+	models, err := k.dbAccess.FindByClusterID(crdClusterID)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to find cluster services by cluster id %d", crdClusterID)
+	}
+	var entities []*metaentity.K8sClusterServiceEntity
+	for _, m := range models {
+		entity := &metaentity.K8sClusterServiceEntity{}
+		if err := copier.Copy(entity, &m); err != nil {
+			return nil, errors.Wrap(err, "failed to copy")
+		}
+		entities = append(entities, entity)
+	}
+	return entities, nil
+}
+
+// DeleteByClusterID 根据 crd_cluster_id 删除所有关联的 cluster service
+func (k *K8sClusterServiceProviderImpl) DeleteByClusterID(crdClusterID uint64) (uint64, error) {
+	return k.dbAccess.DeleteByClusterID(crdClusterID)
+}
+
+// DeleteByClusterIDAndServiceName 根据 crd_cluster_id 和 service_name 删除特定 cluster service
+func (k *K8sClusterServiceProviderImpl) DeleteByClusterIDAndServiceName(
+	crdClusterID uint64, serviceName string,
+) (uint64, error) {
+	return k.dbAccess.DeleteByClusterIDAndServiceName(crdClusterID, serviceName)
+}
+
+// UpsertClusterServices 原子性地替换指定集群的所有 service 记录
+// 如果 entities 为空，不执行任何操作（避免误删已有记录）
+func (k *K8sClusterServiceProviderImpl) UpsertClusterServices(
+	crdClusterID uint64, entities []*metaentity.K8sClusterServiceEntity,
+) error {
+	if len(entities) == 0 {
+		return nil
+	}
+
+	var serviceModels []*metamodel.K8sClusterServiceModel
+	for _, entity := range entities {
+		m := &metamodel.K8sClusterServiceModel{}
+		if err := copier.Copy(m, entity); err != nil {
+			return errors.Wrap(err, "failed to copy entity to model")
+		}
+		serviceModels = append(serviceModels, m)
+	}
+	return k.dbAccess.ReplaceAllByClusterID(crdClusterID, serviceModels)
+}
+
+// UpsertSingleService 原子性地更新或插入单个 service 记录
+// 在事务中根据 (crd_cluster_id, service_name) 先删除再创建
+func (k *K8sClusterServiceProviderImpl) UpsertSingleService(
+	entity *metaentity.K8sClusterServiceEntity,
+) error {
+	m := &metamodel.K8sClusterServiceModel{}
+	if err := copier.Copy(m, entity); err != nil {
+		return errors.Wrap(err, "failed to copy entity to model")
+	}
+	return k.dbAccess.UpsertByClusterIDAndServiceName(m)
 }

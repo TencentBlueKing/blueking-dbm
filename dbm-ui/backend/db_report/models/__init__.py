@@ -18,11 +18,17 @@ from .es_master_report import EsMasterReport
 from .es_status_report import EsStatusReport
 from .es_version_report import EsVersionReport
 from .failover_drill_report import FailoverDrillReport
+from .kafka_affinity_report import KafkaBrokerAffinityReport, KafkaZookeeperAffinityReport
 from .meta_check_report import MetaCheckReport
 from .monogdb_check_report import MongodbBackupCheckReport
 from .mysql_backup_progress import MysqlBackupProgress
+from .mysql_db_table_size import MysqlDbTableSize
 from .mysql_inspect_ignore import MysqlInspectIgnore
+from .mysql_slowlog_ai_analysis import MysqlSlowlogAiAnalysis
+from .mysql_slowlog_detail import MysqlSlowlogDetail
 from .mysqlbackup_check_report import MysqlBackupCheckReport
+from .redis_check_report import RedisCheckReport
+from .redis_rollback_exercise_report import RedisRollbackExerciseReport
 from .redisbackup_check_report import RedisBackupCheckReport
 from .sqlserver_check_report import (
     SqlserverCheckAppSettingReport,
@@ -30,7 +36,12 @@ from .sqlserver_check_report import (
     SqlserverCheckLinkServerReport,
     SqlserverCheckSysJobStatuReport,
     SqlserverCheckUserSyncReport,
+    SqlserverFullBackupCheckReport,
     SqlserverFullBackupInfoReport,
+    SqlserverLogBackupCheckReport,
     SqlserverLogBackupInfoReport,
 )
-from .redis_check_report import RedisCheckReport
+from .sqlserver_full_backup_result import SQLServerBackupResult
+from .sqlserver_log_backup_result import SQLServerBinlogResult
+from .task_record import TaskRecord
+from .tdbctl_upgrade_report import TdbctlUpgradeRecord

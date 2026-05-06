@@ -47,6 +47,7 @@ class MongoScaleNodeFlow(object):
         pipeline = Builder(root_id=self.root_id, data=self.data)
 
         sub_pipelines = []
+        check_ai_monitor_cluster_list = []
         # 扩容 shard 节点数——子流程并行
         if increase:
             # 副本集
@@ -59,6 +60,7 @@ class MongoScaleNodeFlow(object):
                         info=replicaset_set,
                     )
                     sub_pipelines.append(sub_pipline)
+                    check_ai_monitor_cluster_list.extend(replicaset_set["cluster_ids"])
             # 分片集群
             elif self.data.get("cluster_type") == ClusterType.MongoShardedCluster.value:
                 for cluster in self.data["infos"]:
@@ -66,6 +68,7 @@ class MongoScaleNodeFlow(object):
                         root_id=self.root_id, ticket_data=self.data, sub_kwargs=self.get_kwargs, info=cluster
                     )
                     sub_pipelines.append(sub_pipline)
+                    check_ai_monitor_cluster_list.append(cluster["cluster_id"])
         # 缩容 shard 节点数——子流程并行
         else:
             if ClusterType.MongoReplicaSet.value in self.data["infos"]:
@@ -78,6 +81,7 @@ class MongoScaleNodeFlow(object):
                         cluster=False,
                     )
                     sub_pipelines.append(sub_pipline)
+                    check_ai_monitor_cluster_list.extend(replicaset_set["cluster_ids"])
             # cluster的shard增减节点——子流程并行
             if ClusterType.MongoShardedCluster.value in self.data["infos"]:
                 for cluster in self.data["infos"][ClusterType.MongoShardedCluster.value]:
@@ -85,8 +89,9 @@ class MongoScaleNodeFlow(object):
                         root_id=self.root_id, ticket_data=self.data, sub_kwargs=self.get_kwargs, info=cluster
                     )
                     sub_pipelines.append(sub_pipline)
+                    check_ai_monitor_cluster_list.append(cluster["cluster_id"])
 
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
         # 运行流程
-        pipeline.run_pipeline()
+        pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=check_ai_monitor_cluster_list)

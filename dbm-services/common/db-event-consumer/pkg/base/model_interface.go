@@ -30,3 +30,7 @@ type ModelFieldOmit interface {
 type UniqueKey interface {
 	UniqueKey() []string
 }
+
+type BklogUnmarshalItem interface {
+	UnmarshalItem([]byte, MessageWrapper) error
+}

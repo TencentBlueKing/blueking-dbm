@@ -16,8 +16,6 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/validate"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/restore/dbbackup_loader"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
@@ -25,26 +23,28 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/spider"
 )
 
 // DBLoader 使用 dbbackup-go loadbackup 进行恢复
 type DBLoader struct {
 	*RestoreParam
+	LogDir string `json:"-"`
 
-	taskDir   string // 依赖 BackupInfo.WorkDir ${work_dir}/doDr_${id}/${port}/
-	untarDir  string
-	targetDir string // 备份解压后的目录，${taskDir}/<backupBaseName>/
-	LogDir    string `json:"-"`
-	// dbLoaderUtil logical and physical 通用参数，会传给 PhysicalLoader / LogicalLoader
-	dbLoaderUtil *dbbackup_loader.LoaderUtil
+	// taskDir 依赖 BackupInfo.WorkDir ${work_dir}/doDr_3306_1234567/
+	taskDir string
+	// untarDir  move-back: /data1/mysqldata/${root_id}/doDr_3306_1234567
+	// copy-back: is taskDir
+	untarDir string
+	// 备份解压后的目录，${taskDir}/<backupBaseName>/
+	targetDir string
 	// dbLoader is interface
 	dbLoader dbbackup_loader.DBBackupLoader
 	// myCnf for physical backup
 	myCnf *util.CnfFile
 }
 
-var SContext = filecontext.NewFileContext("/tmp/test.json")
+// SContext 全局共享变量，持久化，可传递到下一个节点
+var SContext *filecontext.FileContext
 
 // Init load index file
 func (m *DBLoader) Init() error {
@@ -59,9 +59,11 @@ func (m *DBLoader) Init() error {
 		}
 	}
 
+	if SContext == nil {
+		SContext = filecontext.NewFileContext(fmt.Sprintf(
+			"/tmp/dbloader_ctx_%d_%s.json", m.TgtInstance.Port, subcmd.GBaseOptions.RootId))
+	}
 	SContext.Set("untar_remove_original", false, false)
-	SContext.Set("untar_dir", "", false)
-	//SContext.Set("physical_rename_original_dir", m.RestoreOpt.PhysicalRenameOriginalDir, false)
 	SContext.Set("change_master", nil, false)
 	SContext.Save()
 
@@ -99,8 +101,7 @@ func (m *DBLoader) PreCheck() error {
 		if info, err := m.getChangeMasterPos(m.SrcInstance); err != nil {
 			return err
 		} else {
-			SContext.Set("change_master", info, false)
-			SContext.Save()
+			SContext.Set("change_master", info, true)
 		}
 	}
 	if m.RestoreParam.RestoreOpt.RecoverGrants {
@@ -127,19 +128,21 @@ func (m *DBLoader) chooseDBBackupLoader() error {
 			InitCommand:  "",
 		}
 	}
-	m.dbLoaderUtil = &dbbackup_loader.LoaderUtil{
+	dbLoaderUtil := &dbbackup_loader.LoaderUtil{
 		Client:        dbloaderPath,
 		TgtInstance:   m.TgtInstance,
 		IndexFilePath: m.BackupInfo.indexFilePath,
 		IndexObj:      m.BackupInfo.indexObj,
 		LoaderDir:     m.targetDir,
 		TaskDir:       m.taskDir,
+		BackupDir:     m.BackupDir,
 		LogDir:        m.LogDir,
 		EnableBinlog:  m.RestoreOpt.EnableBinlog,
 		InitCommand:   m.RestoreOpt.InitCommand,
+		RecoverGrants: m.RestoreParam.RestoreOpt.RecoverGrants,
 	}
 	// logger.Warn("validate dbLoaderUtil: %+v", m.dbLoaderUtil)
-	if err := validate.GoValidateStruct(m.dbLoaderUtil, false); err != nil {
+	if err := validate.GoValidateStruct(dbLoaderUtil, false); err != nil {
 		return err
 	}
 
@@ -148,16 +151,16 @@ func (m *DBLoader) chooseDBBackupLoader() error {
 		copier.Copy(myloaderOpt, m.RestoreOpt)
 		logger.Warn("myloaderOpt copied: %+v. src:%+v", myloaderOpt, m.RestoreOpt)
 		m.dbLoader = &dbbackup_loader.LogicalLoader{
-			LoaderUtil:  m.dbLoaderUtil,
+			LoaderUtil:  dbLoaderUtil,
 			MyloaderOpt: myloaderOpt,
 		}
 	} else if m.backupType == cst.BackupTypePhysical {
 		// include rocksdb, tokudb
 		m.dbLoader = &dbbackup_loader.PhysicalLoader{
-			LoaderUtil: m.dbLoaderUtil,
+			LoaderUtil: dbLoaderUtil,
 			Xtrabackup: &dbbackup_loader.Xtrabackup{
-				TgtInstance:   m.dbLoaderUtil.TgtInstance,
-				SrcBackupHost: m.dbLoaderUtil.IndexObj.BackupHost,
+				TgtInstance:   dbLoaderUtil.TgtInstance,
+				SrcBackupHost: dbLoaderUtil.IndexObj.BackupHost,
 				QpressTool:    m.Tools.MustGet(tools.ToolQPress),
 				LoaderDir:     m.targetDir,
 				StorageType:   strings.ToLower(m.indexObj.StorageEngine),
@@ -193,6 +196,20 @@ func (m *DBLoader) Start() error {
 		cmutil.ExecCommand(false, "", "chown", "-R", "mysql:mysql", m.taskDir)
 	}()
 
+	// 做并发约束判断
+	restoreDataLockFile, maxProcessNum := m.getConcurrencyInfo()
+	fileLock, err := filecontext.NewIncrFile(restoreDataLockFile, maxProcessNum, 20*time.Second)
+	if err != nil {
+		return err
+	}
+	// 未解之谜：在 tlinux4 上这个打开，会导致 permission denied
+	//_ = cmutil.ChownNotUsingExec(fileLock.GetContextFilePath(), "mysql", "mysql")
+	logger.Info("using lock file %s", fileLock.GetContextFilePath())
+	if err := fileLock.Incr(1); err != nil {
+		return errors.WithMessage(err, "file lock incr failed")
+	}
+	defer fileLock.Done()
+
 	logger.Info("开始解压 untarDir=%s", m.untarDir)
 	if err := m.BackupInfo.indexObj.UntarFiles(m.untarDir, SContext); err != nil {
 		return err
@@ -205,100 +222,36 @@ func (m *DBLoader) Start() error {
 
 	logger.Info("开始数据恢复 targetDir=%s", m.targetDir)
 	if err := m.dbLoader.Load(); err != nil {
+		// 导入失败了也打印位点，但不输出到上下文
+		if changeMs, err := m.getChangeMasterPos(m.SrcInstance); err == nil {
+			logger.Warn("change master pos: %+v", changeMs.GetSQL())
+		}
 		return errors.WithMessage(err, "dbactuator dbloaderData failed")
 	}
-	// 进度存档
-	SContext.Set("recover_data_success", true, true)
-	if err := m.dbLoader.PostLoad(); err != nil {
-		return err
-	}
-	return nil
-}
-
-// WaitDone TODO
-func (m *DBLoader) WaitDone() error {
-	return nil
-}
-
-// PostCheck TODO
-func (m *DBLoader) PostCheck() error {
-	// update old backup tasks to quit
-	// 对于 spider remote，恢复完数据后 global_backup 可能包含废弃的 备份任务，这里把状态改成 quit 避免任务被重新发起
-	dbWorker, err := m.TgtInstance.Conn()
-	if err != nil {
-		return err
-	}
-	defer dbWorker.Stop()
-	sqlStr := fmt.Sprintf(`update infodba_schema.global_backup SET BackupStatus ='%s' where Host ='%s' and Port =%d`,
-		spider.StatusQuit, m.TgtInstance.Host, m.TgtInstance.Port)
-	if _, err = dbWorker.ExecMore([]string{"set session sql_log_bin=off", sqlStr}); err != nil {
-		logger.Warn("fail to repair data for table global_backup. ignore %s", err.Error())
-	}
-
-	if m.RestoreParam.RestoreOpt.RecoverGrants {
-		privFile := m.RestoreParam.indexObj.GetTarFileList("priv")
-		if len(privFile) == 0 {
-			return errors.Errorf("no priv file found in %s", m.RestoreParam.BackupDir)
-		}
-		logger.Info("recover grants for port %d from sql file: %s", m.TgtInstance.Port, privFile)
-		comp := mysql.FastExecuteSqlComp{
-			GeneralParam: &components.GeneralParam{
-				RuntimeAccountParam: components.RuntimeAccountParam{
-					MySQLAccountParam: components.MySQLAccountParam{
-						MySQLAdminAccount: components.MySQLAdminAccount{
-							AdminUser: m.TgtInstance.User, AdminPwd: m.TgtInstance.Pwd,
-						},
-					},
-				},
-			},
-			Params: mysql.FastExecuteSqlParam{
-				Host:       m.TgtInstance.Host,
-				Port:       m.TgtInstance.Port,
-				Socket:     m.TgtInstance.Socket,
-				Force:      true,
-				OnDatabase: "mysql",
-				FileDir:    m.RestoreParam.BackupDir,
-				SqlFiles:   privFile,
-			},
-		}
-		if err = comp.Init(); err != nil {
-			return errors.WithMessagef(err, "restore-dr recover grants")
-		}
-		if err = comp.Run(); err != nil {
-			return errors.WithMessagef(err, "restore-dr recover grants")
-		}
-	}
-
-	_ = m.removeRestoreDir()
-	return nil
-}
-
-// removeRestoreDir 恢复成功后，删除 restore 目录
-// 这里目前只删除备份文件，恢复工作产生的配置/日志，暂时保留以便后续跟踪问题
-func (m *DBLoader) removeRestoreDir() error {
-	// 安全起见，只清理路径带 doDr_ 的目录
+	// 清理恢复中转目录：安全起见，只清理路径带 doDr_ 的目录
 	if strings.Contains(m.targetDir, "doDr_") {
 		if err := os.RemoveAll(m.targetDir); err != nil {
 			logger.Warn("fail to remove old recover dir: %s. ignore %s", m.targetDir, err.Error())
 			//return err
 		}
 	}
-	//oldDirs, _ := filepath.Glob(fmt.Sprintf("%s/doDr_*", m.WorkDir))
-	for _, oldFile := range m.dbLoaderUtil.IndexObj.GetTarFileList("") {
-		oldFile = filepath.Join(m.BackupInfo.WorkDir, oldFile)
-		//logger.Info("remove old backup file: %s", oldFile)
-		_ = os.Remove(oldFile)
+	// 进度存档
+	SContext.Set("recover_data_success", true, true)
+
+	if m.RestoreParam.SkipAfterLoad {
+		logger.Info("skip PostLoad as requested, will be done by restore-dr-after")
+	} else {
+		logger.Info("running PostLoad now")
+		if err := m.dbLoader.PostLoad(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 // ReturnChangeMaster TODO
 func (m *DBLoader) ReturnChangeMaster() (*mysqlutil.ChangeMaster, error) {
-	if m.RestoreParam.RestoreOpt != nil && m.RestoreParam.RestoreOpt.WillRecoverBinlog { //
-		return m.getChangeMasterPos(m.SrcInstance)
-	} else {
-		return &mysqlutil.ChangeMaster{}, nil
-	}
+	return m.getChangeMasterPos(m.SrcInstance)
 }
 
 // initDirs 如果 removeOld =  true，会删除当前任务目录下，之前的解压目录，可能是重试导致的废弃目录
@@ -308,6 +261,7 @@ func (m *DBLoader) initDirs(removeOld bool) error {
 	}
 	if m.WorkID == "" {
 		m.WorkID = cmutil.NewTimestampString()
+		//m.WorkID = subcmd.GBaseOptions.RootId
 		//SContext.Set("work_id", m.WorkID, true)
 	}
 
@@ -318,6 +272,8 @@ func (m *DBLoader) initDirs(removeOld bool) error {
 		m.untarDir = filepath.Join(untarDir2, untarDirSuffix)
 		logger.Info("use untar dir from file context %s: %s", SContext.GetContextFilePath(), untarDir2)
 	} else if m.BackupInfo.backupType == cst.BackupTypePhysical && !m.RestoreOpt.PhysicalCopyBack {
+		// move-back directly by default
+		// get mysql data root dir (not mysql datadir) to save untar files
 		if instanceDataRootDir, err := m.myCnf.GetMySQLDataRootDir(); err != nil {
 			logger.Warn("fail to get mysqld datadir: %s", m.myCnf.FileName)
 		} else {
@@ -365,6 +321,13 @@ func (m *DBLoader) initDirs(removeOld bool) error {
 	logger.Info("current recover work directory: %s", m.taskDir)
 	logger.Info("current recover work untar directory: %s", m.untarDir)
 	logger.Info("current recover work target directory: %s", m.targetDir)
+	SContext.Set("task_dir", m.taskDir, false)
+	SContext.Set("untar_dir", m.untarDir, false)
+	err := SContext.Set("target_dir", m.targetDir, true)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -415,4 +378,29 @@ func (m *DBLoader) getChangeMasterPos(masterInst native.Instance) (*mysqlutil.Ch
 		MasterPort:      masterInst.Port,
 	}
 	return cm, nil
+}
+
+func (m *DBLoader) getConcurrencyInfo() (string, int) {
+	restoreDataLockFile := "/tmp/mysql_restore_data.lock.yaml"
+	threadsForOneInstance := 16 // cpu cores?
+
+	cpuCores := 8
+	if cpus, err := cmutil.GetCPUInfo(); err == nil {
+		cpuCores = cpus.CoresLogical
+	} else {
+		logger.Warn("fail loader get cpu cores(use 8): ", err.Error())
+	}
+	if m.TotalThreads == 0 {
+		m.TotalThreads = cpuCores
+	}
+	if cpuCores < threadsForOneInstance {
+		// 避免低核机器 cpu 占用太高
+		threadsForOneInstance = cpuCores
+	} else if cpuCores >= 64 {
+		// 这里影响的就是单机单实例的恢复速度，因为实例本身并不知道还有没有其他恢复进程。这里意思一下，单实例加大到 32
+		threadsForOneInstance = 32
+	}
+
+	maxProcessNum := m.TotalThreads/threadsForOneInstance + 1
+	return restoreDataLockFile, maxProcessNum
 }

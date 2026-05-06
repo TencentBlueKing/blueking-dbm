@@ -27,7 +27,7 @@ func InitConfig(configFile string) {
 			if err == io.EOF {
 				break
 			}
-			log.Fatalln("read config error ")
+			log.Printf("read config error ")
 			os.Exit(2)
 		}
 		s := strings.TrimSpace(strings.ReplaceAll(string(b), "\"", ""))
@@ -51,8 +51,8 @@ func InitConfig(configFile string) {
 func GetConfig(k string) string {
 	v, _ok := ConfigMap[k]
 	if !_ok {
-		log.Fatalln(" unknown  parameter %s in config ", k)
-		os.Exit(2)
+		log.Printf(" unknown  parameter %s in config.", k)
+		return ""
 	}
 
 	return v

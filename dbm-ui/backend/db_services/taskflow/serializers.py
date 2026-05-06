@@ -13,7 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.models import AppCache
-from backend.flow.consts import PipelineStatus
+from backend.flow.consts import PipelineStatus, StateType
 from backend.flow.models import FlowTree
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Flow
@@ -81,6 +81,8 @@ class FlowTaskSerializer(serializers.ModelSerializer):
 
 class NodeSerializer(serializers.Serializer):
     node_id = serializers.CharField(help_text=_("节点ID"))
+    is_force = serializers.BooleanField(help_text=_("是否强制"), default=False, required=False)
+    remark = serializers.CharField(help_text=_("备注"), required=False, default="")
 
 
 class NodeRecordSerializer(serializers.Serializer):
@@ -89,6 +91,8 @@ class NodeRecordSerializer(serializers.Serializer):
 
 class BatchNodesSerializer(serializers.Serializer):
     nodes = serializers.ListField(help_text=_("指定节点"), child=serializers.CharField(), required=False, default=[])
+    is_force = serializers.BooleanField(help_text=_("是否强制"), default=False, required=False)
+    remark = serializers.CharField(help_text=_("备注"), required=False, default="")
 
 
 class CallbackNodeSerializer(NodeSerializer):
@@ -100,9 +104,15 @@ class DownloadExcelSerializer(serializers.Serializer):
     match_header = serializers.BooleanField(help_text=_("是否严格匹配列名"), required=False)
 
 
+class GetSpecifiedNodeSerializer(serializers.Serializer):
+    root_id = serializers.CharField(help_text=_("流程根节点ID"), required=True)
+    status = serializers.ChoiceField(help_text=_("节点状态"), choices=StateType.get_choices(), required=True)
+
+
 class VersionSerializer(NodeSerializer):
     version_id = serializers.CharField(help_text=_("版本ID"))
     download = serializers.BooleanField(help_text=_("是否下载日志"), default=False)
+    labels = serializers.CharField(help_text=_("标签过滤,逗号分割"), required=False)
 
 
 class BatchDownloadSerializer(serializers.Serializer):

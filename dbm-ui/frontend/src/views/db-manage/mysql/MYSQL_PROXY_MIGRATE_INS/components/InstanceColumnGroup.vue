@@ -44,11 +44,10 @@
       :placeholder="t('自动生成')" />
   </EditableColumn>
   <InstanceSelector
+    v-model="selectedInstances"
     v-model:is-show="showSelector"
     :cluster-types="[ClusterTypes.TENDBHA]"
-    hide-manual-input
-    :selected="selectedInstances"
-    :tab-list-config="tabListConfig"
+    :data-source-map="dataSourceMap"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -56,18 +55,14 @@
   import { useRequest } from 'vue-request';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
+  import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
   import { checkInstance } from '@services/source/dbbase';
+  import { getTendbhaInstanceList } from '@services/source/tendbha';
 
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
-
-  export type SelectorItem = IValue;
+  import InstanceSelector from '@components/instance-selector-new/Index.vue';
 
   interface Props {
     handleRowMerge: () => void;
@@ -75,7 +70,7 @@
     selected: Array<typeof modelValue.value>;
   }
 
-  type Emits = (e: 'batch-edit', list: IValue[]) => void;
+  type Emits = (e: 'batch-edit', list: TendbhaInstanceModel[]) => void;
 
   const props = defineProps<Props>();
 
@@ -84,8 +79,7 @@
   const modelValue = defineModel<{
     bk_cloud_id: number;
     bk_host_id: number;
-    bk_idc_city_name: string;
-    bk_sub_zone: string;
+    city: string;
     cluster_id: number;
     instance_address: string;
     ip: string;
@@ -93,50 +87,26 @@
     port: number;
     role: string;
     spec_config: TendbhaModel['masters'][number]['spec_config'];
+    subzones: string;
   }>({
     required: true,
   });
 
   const { t } = useI18n();
 
-  const tabListConfig = {
-    [ClusterTypes.TENDBHA]: [
-      {
-        id: ClusterTypes.TENDBHA,
-        name: t('目标实例'),
-        tableConfig: {
-          firsrColumn: {
-            field: 'instance_address',
-            label: t('Proxy 实例'),
-            role: 'proxy',
-          },
-        },
-        topoConfig: {
-          countFunc: (item: TendbhaModel) => item.proxies.length,
-        },
-      },
-      {
-        id: 'manualInput',
-        name: t('手动输入'),
-        tableConfig: {
-          firsrColumn: {
-            field: 'instance_address',
-            label: t('Proxy 实例'),
-            role: 'proxy',
-          },
-        },
-      },
-    ],
-  } as Record<ClusterTypes, PanelListType>;
+  const dataSourceMap = {
+    [ClusterTypes.TENDBHA]: (params: ServiceParameters<typeof getTendbhaInstanceList>) =>
+      getTendbhaInstanceList({
+        ...params,
+        role: 'proxy',
+      }),
+  };
 
   const showSelector = ref(false);
-  const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
-    [ClusterTypes.TENDBHA]: props.selected.map(
-      (item) =>
-        ({
-          instance_address: item.instance_address,
-        }) as IValue,
-    ),
+  const selectedInstances = computed(() => ({
+    [ClusterTypes.TENDBHA]: props.selected.map((item) => ({
+      instance_address: item.instance_address,
+    })) as TendbhaInstanceModel[],
   }));
 
   const rules = [
@@ -168,11 +138,11 @@
     onSuccess: (data) => {
       if (data.length) {
         const [instanceInfo] = data;
+        const [{ region, zone_names: zoneNames }] = instanceInfo.related_clusters;
         modelValue.value = {
           bk_cloud_id: instanceInfo.bk_cloud_id,
           bk_host_id: instanceInfo.bk_host_id,
-          bk_idc_city_name: instanceInfo.host_info?.bk_idc_city_name || '',
-          bk_sub_zone: instanceInfo.host_info?.bk_sub_zone || '',
+          city: region && region !== 'default' ? region : '',
           cluster_id: instanceInfo.cluster_id,
           instance_address: instanceInfo.instance_address,
           ip: instanceInfo.ip,
@@ -180,6 +150,7 @@
           port: instanceInfo.port,
           role: instanceInfo.role,
           spec_config: instanceInfo.spec_config,
+          subzones: zoneNames?.join(',') || '',
         };
         setTimeout(() => {
           props.handleRowMerge();
@@ -198,8 +169,7 @@
       {
         bk_cloud_id: 0,
         bk_host_id: 0,
-        bk_idc_city_name: '',
-        bk_sub_zone: '',
+        city: '',
         cluster_id: 0,
         instance_address: value,
         ip: '',
@@ -207,12 +177,16 @@
         port: 0,
         role: '',
         spec_config: {} as TendbhaModel['masters'][number]['spec_config'],
+        subzones: '',
       },
     );
   };
 
-  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected[ClusterTypes.TENDBHA]);
+  const handleSelectorChange = (selected: { [ClusterTypes.TENDBHA]: TendbhaInstanceModel[] }) => {
+    emits(
+      'batch-edit',
+      Object.values(selected).flatMap((item) => item),
+    );
   };
 
   watch(

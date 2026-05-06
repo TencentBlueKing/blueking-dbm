@@ -154,10 +154,21 @@ func (s *mongoDataExport) setupMongoTools() error {
 	// Extract package base name (e.g., mongodb-linux-x86_64-3.4.20.tar.gz -> mongodb-linux-x86_64-3.4.20)
 	pkgBaseName := strings.TrimSuffix(path.Base(s.ConfParams.PackagePath), ".tar.gz")
 
-	binDir := "/usr/local"
+	// Use /data/dbbak/mongodb-tools as extraction directory (where mysql user has permissions)
+	binDir := path.Join(consts.GetMongoBackupDir(), "dbbak", "mongodb-tools")
 	unTarPath := path.Join(binDir, pkgBaseName)
 
-	// Untar the package to /usr/local if not already extracted
+	// Create binDir with mysql ownership if it doesn't exist
+	if !util.FileExists(binDir) {
+		if err := util.MkDirsIfNotExists([]string{binDir}); err != nil {
+			return errors.Wrap(err, "failed to create mongodb-tools directory")
+		}
+		if err := util.LocalDirChownMysql(binDir); err != nil {
+			return errors.Wrap(err, "failed to chown mongodb-tools directory")
+		}
+	}
+
+	// Untar the package to binDir if not already extracted
 	if !util.FileExists(unTarPath) {
 		s.runtime.Logger.Info("Extracting MongoDB package to %s", binDir)
 		tarCmd := fmt.Sprintf("tar -zxf %s -C %s", s.ConfParams.PackagePath, binDir)
@@ -170,7 +181,6 @@ func (s *mongoDataExport) setupMongoTools() error {
 		s.runtime.Logger.Info("MongoDB package already extracted at %s", unTarPath)
 	}
 
-	// Set mongodump and mongoexport paths
 	s.MongoDump = path.Join(unTarPath, "bin", "mongodump")
 	s.MongoExport = path.Join(unTarPath, "bin", "mongoexport")
 

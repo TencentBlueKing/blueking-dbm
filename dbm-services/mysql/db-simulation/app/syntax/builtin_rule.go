@@ -15,7 +15,7 @@ import (
 	"regexp"
 	"strings"
 
-	"dbm-services/mysql/db-simulation/app/keyworld"
+	"dbm-services/mysql/db-simulation/app/keyword"
 )
 
 const (
@@ -36,27 +36,27 @@ func init() {
 	sysReservesPrefixNames = []string{"stage_truncate"}
 	reAllowWord = regexp.MustCompile(AllowWordRegex)
 	reAllowOneWord = regexp.MustCompile(`^[a-zA-Z0-9]$`)
-	mysql56WordMap = sliceToMap(keyworld.GetReservedKeyWords(keyworld.Keywords56))
-	mysql57WordMap = sliceToMap(keyworld.GetReservedKeyWords(keyworld.Keywords57))
-	mysql80WordMap = sliceToMap(keyworld.GetReservedKeyWords(keyworld.Keywords80))
-	defaultWordMap = sliceToMap(keyworld.ALL_KEYWORD)
+	mysql56WordMap = sliceToMap(keyword.GetReservedKeyWords(keyword.Keywords56))
+	mysql57WordMap = sliceToMap(keyword.GetReservedKeyWords(keyword.Keywords57))
+	mysql80WordMap = sliceToMap(keyword.GetReservedKeyWords(keyword.Keywords80))
+	defaultWordMap = sliceToMap(keyword.ALL_KEYWORD)
 }
 
 // KeyWordValidator keyword check
 func KeyWordValidator(ver, name string) (matched bool, msg string) {
-	var kwmap map[string]struct{}
+	var keyWordMap map[string]struct{}
 	switch ver {
 	case "mysql5.6":
-		kwmap = mysql56WordMap
+		keyWordMap = mysql56WordMap
 	case "mysql5.7":
-		kwmap = mysql57WordMap
+		keyWordMap = mysql57WordMap
 	case "mysql8.0":
-		kwmap = mysql80WordMap
+		keyWordMap = mysql80WordMap
 	default:
-		kwmap = defaultWordMap
+		keyWordMap = defaultWordMap
 	}
-	if existInKeywords(strings.ToUpper(name), kwmap) {
-		return true, name + " is  mysql keyword"
+	if existInKeywords(strings.ToUpper(name), keyWordMap) {
+		return true, fmt.Sprintf("'%s' 是 MySQL %s 版本的保留关键字，请修改命名", name, ver)
 	}
 	return
 }
@@ -67,19 +67,19 @@ func SpecialCharValidator(name string) (matched bool, msg string) {
 		return false, ""
 	}
 	if !reAllowWord.MatchString(name) {
-		return true, name + " : Must match the regexp " + AllowWordRegex + " characters "
+		return true, "命名不合法，只能由字母、数字、下划线(_)和连字符(-)组成，且必须以字母或数字开头和结尾"
 	}
 	for _, sysPrefix := range sysReservesPrefixNames {
 		re := regexp.MustCompile(fmt.Sprintf("^%s", sysPrefix))
 		if re.MatchString(name) {
-			return true, "不允许以" + sysPrefix + "开头的关键字,前缀被系统占用"
+			return true, fmt.Sprintf("命名不合法：'%s' 前缀被系统占用，请更换名称", sysPrefix)
 		}
 	}
 	return
 }
 
-func existInKeywords(name string, keywordsmap map[string]struct{}) bool {
-	_, ok := keywordsmap[name]
+func existInKeywords(name string, keyWordMap map[string]struct{}) bool {
+	_, ok := keyWordMap[name]
 	return ok
 }
 

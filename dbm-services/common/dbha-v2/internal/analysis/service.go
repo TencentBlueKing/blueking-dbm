@@ -27,7 +27,7 @@ package analysis
 import (
 	"context"
 	"encoding/json"
-	"net/http"
+	"errors"
 	"strings"
 	"sync"
 	"time"
@@ -41,29 +41,30 @@ import (
 	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/machine"
 	"dbm-services/common/dbha-v2/pkg/monitor"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
-	"dbm-services/common/go-pubpkg/apm/metric"
 	"dbm-services/common/go-pubpkg/apm/trace"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/hako/durafmt"
-	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.uber.org/zap"
 )
 
-const (
-	Name = "analysis"
-)
+// Name returns the process name from the current executable (same as Makefile binary name).
+// When Makefile BIN_PREFIX or service name changes, this automatically reflects it.
+func Name() string {
+	return "analysis"
+}
 
+// Service is the analysis service runtime.
 type Service struct {
 	quit         chan struct{}
 	info         discovery.ServiceInfo
-	engine       *gin.Engine
-	httpApmSvr   *http.Server
+	apmSvr       *haapm.Server
 	discoveryCli *discovery.Client
+	discovery    *discovery.Discovery
 	regCli       *discovery.Registry
 	wflow        *workflow.Workflow
 	db           *hamysql.GormDB
@@ -72,10 +73,17 @@ type Service struct {
 	gormLogger   logger.Logger
 }
 
+// Run starts analysis service components and blocks until context cancelled or service closed.
 func (s *Service) Run(ctx context.Context) error {
-	s.info.Name = Name
+	ips, err := machine.GetLocalIPs()
+	if err != nil {
+		return err
+	}
+
+	s.info.Name = Name()
 	s.info.ID = uuid.New().String()
 	s.info.StartTime = time.Now().Local()
+	s.info.IPs = ips
 
 	// create discovery client
 	if err := s.createDiscovery(); err != nil {
@@ -92,13 +100,13 @@ func (s *Service) Run(ctx context.Context) error {
 		return err
 	}
 
-	// create workflow
-	if err := s.createWorkflow(ctx); err != nil {
+	// create apm server
+	if err := s.createApmServer(); err != nil {
 		return err
 	}
 
-	// create apm server
-	if err := s.createApmServer(); err != nil {
+	// create workflow
+	if err := s.createWorkflow(ctx); err != nil {
 		return err
 	}
 
@@ -110,7 +118,10 @@ func (s *Service) Run(ctx context.Context) error {
 		s.quit = make(chan struct{})
 	}
 
-	timerTimeout := 3 * time.Second
+	timerTimeout := config.Cfg.Discovery.ServiceTimerInterval
+	if timerTimeout == 0 {
+		timerTimeout = constant.DefaultServiceTimerInterval
+	}
 	timer := time.NewTimer(timerTimeout)
 	defer timer.Stop()
 
@@ -129,16 +140,16 @@ func (s *Service) Run(ctx context.Context) error {
 	}
 }
 
+// Close gracefully shuts down analysis service resources.
 func (s *Service) Close() {
 	s.wflow.Close()
-	if s.httpApmSvr != nil {
-		timeout := max(config.Cfg.Apm.ReadTimeout, config.Cfg.Apm.WriteTimeout)
-
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
-		defer cancel()
-		if err := s.httpApmSvr.Shutdown(ctx); err != nil {
-			logger.Fatal("failed to shutdown the apm server, errmsg: %s", err)
-		}
+	if s.discovery != nil {
+		s.discovery.Close()
+		s.discovery = nil
+	}
+	if s.apmSvr != nil {
+		_ = s.apmSvr.Stop()
+		s.apmSvr = nil
 	}
 
 	s.wg.Wait()
@@ -146,88 +157,97 @@ func (s *Service) Close() {
 }
 
 func (s *Service) createDiscovery() error {
-	cli, err := discovery.NewClientWithOptions(
-		discovery.OptionEndpoints(strings.Split(config.Cfg.Discovery.Endpoint, constant.Delimiter)),
+	discoveryTLSEnabled := config.Cfg.Discovery.CertFile != "" && config.Cfg.Discovery.KeyFile != ""
+	etcdEndpoints, err := discovery.ParseEtcdEndpoints(config.Cfg.Discovery.Endpoint, discoveryTLSEnabled)
+	if err != nil {
+		return err
+	}
+
+	opts := []discovery.Option{
+		discovery.OptionEndpoints(etcdEndpoints),
 		discovery.OptionUser(config.Cfg.Discovery.User),
 		discovery.OptionPassword(config.Cfg.Discovery.Password),
 		discovery.OptionServiceName(s.info.Name),
 		discovery.OptionServiceID(s.info.ID),
 		discovery.OptionLogger(s.etcdLogger),
-	)
+	}
 
+	if config.Cfg.Discovery.CertFile != "" {
+		opts = append(opts, discovery.OptionCertFile(config.Cfg.Discovery.CertFile))
+	}
+	if config.Cfg.Discovery.KeyFile != "" {
+		opts = append(opts, discovery.OptionKeyFile(config.Cfg.Discovery.KeyFile))
+	}
+	if config.Cfg.Discovery.TrustedCAFile != "" {
+		opts = append(opts, discovery.OptionTrustedCAFile(config.Cfg.Discovery.TrustedCAFile))
+	}
+
+	cli, err := discovery.NewClientWithOptions(opts...)
 	if err != nil {
 		return err
 	}
 	s.discoveryCli = cli
 
-	regCli, err := cli.CreateRegistry()
+	disc, err := cli.CreateDiscovery()
 	if err != nil {
 		return err
 	}
-	s.regCli = regCli
+	s.discovery = disc
 
+	s.regCli = cli.CreateRegistry()
 	s.updateInfo()
 	return nil
 }
 
 func (s *Service) createApmServer() error {
 	trace.Setup()
-
-	if s.engine == nil {
-		gin.SetMode(gin.ReleaseMode)
-		s.engine = gin.Default()
-		s.engine.Use(otelgin.Middleware("dbha-v2-analysis"))
-	}
-
-	if s.httpApmSvr == nil {
-		s.httpApmSvr = &http.Server{
-			Handler:      s.engine,
-			Addr:         config.Cfg.Apm.ListenAddress,
-			ReadTimeout:  config.Cfg.Apm.ReadTimeout,
-			WriteTimeout: config.Cfg.Apm.WriteTimeout,
-		}
-	}
-
 	apm.InitAPM(s.info.ID, s.info.Name)
-	metric.NewPrometheus("dbha-v2-analysis", apm.Metrics).Use(s.engine)
 
-	s.wg.Add(1)
-	go func() {
-		s.wg.Done()
-		if err := s.httpApmSvr.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatal("failed to run apm server, errmsg: %s", err)
-		}
-		logger.Info("exited from the apm server")
-	}()
+	ep, err := hanet.Parse(config.Cfg.Apm.ListenAddress, "http")
+	if err != nil {
+		logger.Error("invalid analysis apm listen address, errmsg: %s", err)
+		return gerrors.Newf(gerrors.InvalidConfiguration, "invalid analysis apm listen address, errmsg: %s", err)
+	}
+
+	s.apmSvr, err = haapm.Serve(haapm.ServerConfig{
+		Addr:         ep.HostPort(),
+		Subsystem:    "dbha-v2-analysis",
+		ReadTimeout:  config.Cfg.Apm.ReadTimeout,
+		WriteTimeout: config.Cfg.Apm.WriteTimeout,
+	})
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 func (s *Service) updateInfo() {
-	if s.info.UpdatedAt.IsZero() {
-		s.info.UpdatedAt = time.Now().Local()
-	}
-
+	s.info.UpdatedAt = time.Now().Local()
 	s.info.Uptime = durafmt.Parse(time.Now().Local().Sub(s.info.StartTime)).String()
 
 	data, err := json.Marshal(s.info)
 	if err != nil {
-		logger.Warn("failed to marshal service info to json, errmsg: %v", err)
+		logger.Warn("failed to marshal service info to json, errmsg: %s", err)
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	updateTimeout := config.Cfg.Discovery.ServiceUpdateTimeout
+	if updateTimeout == 0 {
+		updateTimeout = constant.DefaultServiceUpdateTimeout
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), updateTimeout)
 	defer cancel()
 
 	if err = s.regCli.SetService(ctx, string(data)); err != nil {
-		logger.Warn("failed to update the service info in the registry, errmsg: %v", err)
+		logger.Warn("failed to update the service info in the registry, errmsg: %s", err)
 	}
 }
 
 func (s *Service) createStorage() error {
-	epoint, err := hanet.NewEndpoint(config.Cfg.Storage.Endpoint)
+	epoint, err := hanet.Parse(config.Cfg.Storage.Endpoint, "tcp")
 	if err != nil {
-		logger.Error("invalid storage configuration, %v", err)
-		return gerrors.Newf(gerrors.InvalidConfiguration, "invalid storage configuration, %v", err)
+		logger.Error("invalid storage configuration, errmsg: %s", err)
+		return gerrors.Newf(gerrors.InvalidConfiguration, "invalid storage configuration, errmsg: %s", err)
 	}
 
 	db, err := hamysql.NewGormDB(
@@ -241,7 +261,7 @@ func (s *Service) createStorage() error {
 	)
 
 	if err != nil {
-		logger.Warn("create mysql storage failed, %v", err)
+		logger.Warn("create mysql storage failed, errmsg: %s", err)
 		return err
 	}
 
@@ -251,18 +271,50 @@ func (s *Service) createStorage() error {
 
 func (s *Service) createNotifier() error {
 	monitor.SetDataID(config.Cfg.Monitor.DataID)
-	monitor.SetEndpoint(config.Cfg.Monitor.BkMonitorEndpoint)
+
+	if raw := config.Cfg.Monitor.BkMonitorEndpoint; raw != "" {
+		endpoint, err := resolveBkMonitorEndpoint(raw)
+		if err != nil {
+			logger.Error("invalid bk monitor endpoint, endpoint: %s, errmsg: %s", raw, err)
+			return gerrors.Newf(
+				gerrors.InvalidConfiguration,
+				"invalid bk monitor endpoint, endpoint: %s, errmsg: %s",
+				raw, err,
+			)
+		}
+
+		monitor.SetEndpoint(endpoint)
+	}
+
 	monitor.SetBkMonitorBeat(config.Cfg.Monitor.BkMonitorBeat)
 	monitor.SetAccessToken(config.Cfg.Monitor.AccessToken)
 	return nil
 }
 
 func (s *Service) createWorkflow(ctx context.Context) error {
-	wflow, err := workflow.New(s.discoveryCli, s.db)
+	wflow, err := workflow.New(s.discoveryCli, s.db, s.discovery, s.discoveryCli.GetSelfPrefix(), s.info.ID)
 	if err != nil {
 		return err
 	}
 	s.wflow = wflow
 
 	return s.wflow.Run(ctx)
+}
+
+func resolveBkMonitorEndpoint(raw string) (string, error) {
+	endpoint := strings.TrimSpace(raw)
+	if endpoint == "" {
+		return "", errors.New("empty endpoint")
+	}
+
+	if strings.HasPrefix(endpoint, "/") {
+		return endpoint, nil
+	}
+
+	ep, err := hanet.Parse(endpoint, "http")
+	if err != nil {
+		return "", err
+	}
+
+	return ep.HostPort(), nil
 }

@@ -15,6 +15,7 @@
 import { createApp } from 'vue';
 import bkuiVue from 'bkui-vue';
 import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import tz from 'dayjs/plugin/timezone';
 import utc from 'dayjs/plugin/utc';
 import duration from 'dayjs/plugin/duration';
@@ -39,6 +40,7 @@ import '@xterm/xterm/css/xterm.css';
 import 'bkui-vue/dist/style.variable.css';
 import { setGlobalDirectives } from '@/directives/index';
 import { subEnv } from '@blueking/sub-saas';
+import 'dayjs/locale/zh-cn';
 
 import('tippy.js/dist/tippy.css');
 import('tippy.js/themes/light.css');
@@ -46,6 +48,8 @@ import('tippy.js/themes/light.css');
 dayjs.extend(utc);
 dayjs.extend(tz);
 dayjs.extend(duration);
+dayjs.extend(relativeTime);
+dayjs.locale('zh-cn');
 
 window.changeConfirm = false;
 

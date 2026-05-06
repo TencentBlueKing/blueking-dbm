@@ -42,3 +42,73 @@ class UpdateClusterSerializer(CreateClusterSerializer):
     """更新集群序列化器"""
 
     cluster_entry_type = serializers.CharField(help_text=_("入口类型"))
+
+
+class CreateDomainSerializer(BaseProxyPassSerializer):
+    """k8s集群创建域名序列化器"""
+
+    class Meta:
+        ref_name = "K8sCreateDomainSerializer"
+
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+    cluster_type = serializers.CharField(help_text=_("集群类型"))
+    name = serializers.CharField(help_text=_("集群名称"))
+    domain = serializers.CharField(help_text=_("域名"))
+    # 格式：["ip#port", ...]
+    instances = serializers.ListField(child=serializers.CharField(), help_text=_("实例列表，格式：ip#port"))
+    role = serializers.ChoiceField(
+        help_text=_("入口角色"),
+        choices=["master_entry", "slave_entry"],
+        default="master_entry",
+    )
+    operator = serializers.CharField(help_text=_("操作人"))
+
+
+class DeleteDomainSerializer(BaseProxyPassSerializer):
+    """k8s集群删除域名序列化器"""
+
+    class Meta:
+        ref_name = "K8sDeleteDomainSerializer"
+
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+    cluster_type = serializers.CharField(help_text=_("集群类型"))
+    name = serializers.CharField(help_text=_("集群名称"))
+    domain = serializers.CharField(help_text=_("待删除的域名"))
+    operator = serializers.CharField(help_text=_("操作人"))
+    instances = serializers.ListField(
+        child=serializers.CharField(),
+        help_text=_("要删除的实例列表，格式：[ip#port, ...]，如果不传则删除整个域名"),
+        required=False,
+        default=[],
+    )
+
+
+class UpdateDomainSerializer(BaseProxyPassSerializer):
+    """k8s集群更新域名序列化器"""
+
+    class Meta:
+        ref_name = "K8sUpdateDomainSerializer"
+
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+    cluster_type = serializers.CharField(help_text=_("集群类型"))
+    name = serializers.CharField(help_text=_("集群名称"))
+    domain = serializers.CharField(help_text=_("域名"))
+    old_instance = serializers.CharField(help_text=_("旧实例，格式：ip#port"))
+    new_instance = serializers.CharField(help_text=_("新实例，格式：ip#port"))
+    operator = serializers.CharField(help_text=_("操作人"))
+
+
+class GetDomainSerializer(BaseProxyPassSerializer):
+    """k8s集群查询域名序列化器"""
+
+    class Meta:
+        ref_name = "K8sGetDomainSerializer"
+
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+    cluster_type = serializers.CharField(help_text=_("集群类型"))
+    name = serializers.CharField(help_text=_("集群名称"))
+    domain = serializers.CharField(help_text=_("域名"))

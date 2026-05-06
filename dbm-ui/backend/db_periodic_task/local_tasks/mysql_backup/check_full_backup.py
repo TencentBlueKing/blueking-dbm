@@ -194,11 +194,11 @@ def _check_tendbha_full_backup(date_str: str):
     query = Q(cluster_type=ClusterType.TenDBHA) & Q(create_at__lt=timezone.now() - timedelta(days=1))
     for c in Cluster.objects.filter(query):
         try:
-            if ignore_configs.should_ignore_check_cluster(c.bk_biz_id, c.cluster, ClusterType.TenDBHA):
+            if ignore_configs.should_ignore_check_cluster(c.bk_biz_id, c.immute_domain, ClusterType.TenDBHA):
                 logger.info(f"==== skip check full backup for cluster {c.immute_domain} (ignored by config) ====")
                 continue
 
-            logger.info("==== start check full backup for cluster {} ====".format(c.immute_domain))
+            logger.info("==== start check full backup for tendbha {} ====".format(c.immute_domain))
             backup = ClusterBackup(c.id, c.immute_domain)
 
             items = backup.query_backup_from_dbreport(start_time, end_time)
@@ -285,10 +285,10 @@ def _check_tendbcluster_full_backup(date_str: str):
                         backup_id_stat[backup_id]["remote"][shard_id] = True
             message = ""
             for backup_id, stat in backup_id_stat.items():
-                if stat.get("spider_master") and stat.get("TDBCTL") and len(stat.get("remote")) == shard_num:
+                if stat.get("spider_master") and stat.get("TDBCTL") and len(stat.get("remote", {})) == shard_num:
                     backup.success = True
                     break
-                if len(stat.get("remote")) != shard_num:
+                if len(stat.get("remote", {})) != shard_num:
                     shard_id_list = [int(i) for i in stat.get("remote").keys()]
                     stat["remote"] = find_discontinuous_numbers(shard_id_list)
                 message = "backup_id={}:{}".format(backup_id, json.dumps(stat))

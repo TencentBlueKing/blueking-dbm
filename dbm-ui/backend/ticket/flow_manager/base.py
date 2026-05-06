@@ -152,7 +152,8 @@ class BaseTicketFlow(ABC):
         """重试刷新错误节点，更新相关状态，剔除错误信息"""
         self.flow_obj.err_msg = self.flow_obj.err_code = None
         self.flow_obj.status = TicketFlowStatus.RUNNING
-        self.flow_obj.context["ack"] = False
+        # 清空流程上下文
+        self.flow_obj.context = {"ack": False}
         self.flow_obj.save(update_fields=["err_msg", "status", "err_code", "update_at", "context"])
 
     def flush_revoke_status_handler(self, operator, remark=""):

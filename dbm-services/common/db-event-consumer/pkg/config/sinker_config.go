@@ -9,7 +9,9 @@
 package config
 
 type SinkerConfig struct {
-	Topic      string `yaml:"topic" validate:"required"`
+	Topic    string `yaml:"topic"`
+	BkDataId int    `yaml:"bk_data_id"`
+
 	ModelTable string `yaml:"model_table" validate:"required"`
 	// StrictSchema default strict_schema=true, use defined model struct to unmarshal kafka msg
 	// strict_schema=false: use map[string]interface{} to unmarshal kafka msg, and save to db.
@@ -31,11 +33,11 @@ type SinkerConfig struct {
 	FetchMinBytes int32 `yaml:"fetch_min_bytes"`
 	// SinkBatchSize 一次 fetch 可能有多条记录，sink_batch_size 控制多少次 fetch 合并成一次 sink. default 1
 	SinkBatchSize int `yaml:"sink_batch_size"`
-	// WriteMode default is insert_ignore, allowed: insert_ignore, insert, upsert
+	// WriteMode default is upsert, allowed: insert_ignore, insert, upsert
 	WriteMode  string `yaml:"write_mode"`
 	Datasource string `yaml:"datasource"`
-
-	KafkaMeta *KafkaMeta `yaml:"-"`
+	// Enable 是否启用。默认是启用 true
+	Enable *bool `yaml:"enable"`
 }
 
 type KafkaMeta struct {
@@ -44,6 +46,36 @@ type KafkaMeta struct {
 		Brokers string `json:"brokers" yaml:"brokers"`
 		Port    int    `json:"port" yaml:"port"`
 	} `json:"cluster_config" yaml:"cluster_config"`
+	AuthInfo struct {
+		Username string `json:"username" yaml:"username"`
+		Password string `json:"password" yaml:"password"`
+		// SaslMechanisms like SCRAM-SHA-512
+		SaslMechanisms string `json:"sasl_mechanisms" yaml:"sasl_mechanisms"`
+		// SecurityProtocol like SASL_PLAINTEXT
+		SecurityProtocol string `json:"security_protocol" yaml:"security_protocol"`
+	} `json:"auth_info" yaml:"auth_info"`
+}
+
+type BkmApiInfo struct {
+	BkAppCode   string `yaml:"bk_app_code" json:"bk_app_code"`
+	BkAppSecret string `yaml:"bk_app_secret" json:"bk_app_secret"`
+	BkBizId     int    `yaml:"bk_biz_id" json:"bk_biz_id"`
+	// BkUsername  string `yaml:"bk_username" json:"bk_username"`
+	// BkTicket    string `yaml:"bk_ticket" json:"bk_ticket"`
+	// BkToken     string `yaml:"bk_token" json:"bk_token"`
+	// BkApiUrl https://bk-monitor.xxx.com/prod/
+	BkApiUrl string `yaml:"api_url" json:"api_url"`
+}
+
+type BkDataKafkaMeta struct {
+	ClusterConfig struct {
+		DomainName string `json:"domain_name" yaml:"domain_name"`
+		Port       int    `json:"port" yaml:"port"`
+	} `json:"cluster_config" yaml:"cluster_config"`
+	StorageConfig struct {
+		Topic     string `json:"topic" yaml:"topic"`
+		Partition int    `json:"partition" yaml:"partition"`
+	} `json:"storage_config" yaml:"storage_config"`
 	AuthInfo struct {
 		Username string `json:"username" yaml:"username"`
 		Password string `json:"password" yaml:"password"`

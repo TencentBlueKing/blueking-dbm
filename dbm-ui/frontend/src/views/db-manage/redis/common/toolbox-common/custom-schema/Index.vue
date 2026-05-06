@@ -14,6 +14,16 @@
         style="width: 314px" />
     </DbFormItem>
     <DbFormItem
+      :label="t('资源标签')"
+      property="labels"
+      required
+      :rules="resourceTagRules">
+      <ResourceTagSelector
+        ref="resourceTagSelector"
+        v-model="modelValue.labels"
+        style="width: 314px" />
+    </DbFormItem>
+    <DbFormItem
       :label="t('数量')"
       property="count"
       required
@@ -67,11 +77,12 @@
 
 <script setup lang="ts">
   import _ from 'lodash';
-  import type { ComponentExposed } from 'vue-component-type-helpers';
+  import type { ComponentExposed, ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import { ClusterTypes } from '@common/const';
 
+  import ResourceTagSelector from '@views/db-manage/common/apply-items/ResourceTagSelector.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   import { specClusterMachineMap } from '../../const';
@@ -89,6 +100,7 @@
   interface ModelValue {
     clusterShardNum: number;
     count: string | number;
+    labels: ComponentProps<typeof ResourceTagSelector>['modelValue'];
     shardNum: number | string;
     specId: number | string;
     totalCapcity: number;
@@ -110,6 +122,16 @@
   const { t } = useI18n();
 
   const specSelectorRef = ref<ComponentExposed<typeof SpecSelector>>();
+  const resourceTagSelector = useTemplateRef('resourceTagSelector');
+
+  const resourceTagRules = [
+    {
+      message: t('请选择资源标签'),
+      required: true,
+      trigger: 'change',
+      validator: () => resourceTagSelector.value?.validate(),
+    },
+  ];
 
   const countRules = [
     {

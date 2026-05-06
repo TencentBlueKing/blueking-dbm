@@ -33,16 +33,32 @@ class Command(BaseCommand):
                 "grafana",
                 "bkjob",
                 "ssl",
+                "sync_dbconfig",
+                "create_job_user",
             ],
             help="all: initialize all services, "
             "itsm: initialize itsm service, "
-            "bklog: initialize bk-log services"
+            "bklog: initialize bk-log services, "
             "bkcc: initialize bk-cc services"
             "bkjob: initialize bk-job services"
             "ssl: create and upload ssl files to bkrepo"
             "bkmonitor_channel: initialize bk-monitor report services"
             "bkmonitor_alarm: initialize bk-bkmonitor alarm services"
-            "register_application: register applications into bk_notice",
+            "register_application: register applications into bk_notice"
+            "grafana: initialize grafana services"
+            "sync_dbconfig: sync dbconfig to bkrepo"
+            "create_job_user: create job user",
+        )
+        parser.add_argument("--namespace", type=str, required=False, help="Namespace for dbconfig")
+        parser.add_argument("--conf_type", type=str, required=False, help="Type of configuration")
+        parser.add_argument("--conf_file", type=str, required=False, help="Path to configuration file")
+        parser.add_argument("--account_list", type=str, required=False, help="account list, e.g. 'mysql,mysql_test'")
+        parser.add_argument(
+            "--max_workers",
+            type=int,
+            required=False,
+            default=1,
+            help="Max concurrent workers for sync_dbconfig (default: 1)",
         )
 
     def handle(self, *args, **options):
@@ -77,3 +93,15 @@ class Command(BaseCommand):
 
         if srv_type == "all" or srv_type == "iam":
             Services.auto_create_iam_migrations()
+
+        if srv_type == "sync_dbconfig":
+            namespace = options["namespace"]
+            conf_type = options["conf_type"]
+            conf_file = options["conf_file"]
+            max_workers = options["max_workers"]
+            Services.auto_sync_dbconfig(namespace, conf_type, conf_file, max_workers)
+
+        if srv_type == "all" or srv_type == "create_job_user":
+            account_list_str = options["account_list"]
+            account_list = account_list_str.split(",") if account_list_str else ["mysql"]
+            Services.auto_create_job_user(account_list)

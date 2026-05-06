@@ -10,7 +10,7 @@
       :label="t('状态')"
       :width="100">
       <template #default="{ data }: { data: RedisDtsServiceStatusModel }">
-        <DbStatus :theme="data.statusInfo.theme">{{ data.statusInfo.text }}</DbStatus>
+        <ClusterInstanceStatus :data="data.status" />
       </template>
     </BkTableColumn>
     <BkTableColumn
@@ -28,6 +28,8 @@
   import { useI18n } from 'vue-i18n';
 
   import RedisDtsServiceStatusModel from '@services/model/db-extension/redis-dts-service-status';
+
+  import ClusterInstanceStatus from '@components/cluster-instance-status/Index.vue';
 
   interface Props {
     list: RedisDtsServiceStatusModel[];

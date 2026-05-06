@@ -47,8 +47,8 @@
             @batch-edit="handleBatchEditColumn" />
           <AvailableResourceColumn
             :params="{
-              city: item.originProxy.bk_idc_city_name,
-              subzones: item.originProxy.bk_sub_zone,
+              city: item.originProxy.city,
+              subzones: item.originProxy.subzones,
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.MYSQL, 'PUBLIC'],
               spec_id: item.specId,
@@ -142,11 +142,6 @@
       label: t('目标Proxy主机'),
     },
     {
-      case: '2核_4G_50G',
-      key: 'spec_name',
-      label: t('目标规格'),
-    },
-    {
       case: '标签1,标签2',
       key: 'labels',
       label: t('资源标签'),
@@ -159,14 +154,14 @@
       {
         bk_cloud_id: 0,
         bk_host_id: 0,
-        bk_idc_city_name: '',
-        bk_sub_zone: '',
+        city: '',
         ip: '',
         related_clusters: [],
         related_instances: [],
         role: '',
         spec_config: {},
         spec_id_list: [],
+        subzones: '',
       } as unknown as RowData['originProxy'],
       data.originProxy,
     ),
@@ -323,7 +318,6 @@
           originProxy: {
             ip: item.proxy_ip,
           },
-          specId: item.spec_name,
         }),
       );
       return acc;

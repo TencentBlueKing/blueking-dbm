@@ -13,6 +13,7 @@ import logging
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -36,6 +37,7 @@ class ProxyScaleUpDetailSerializer(RedisBaseOperateDetailSerializer):
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
         target_proxy_count = serializers.IntegerField(help_text=_("目标proxy数量"), min_value=2)
         resource_spec = serializers.JSONField(help_text=_("资源规格"))
+        current_proxy_num = serializers.IntegerField(help_text=_("当前proxy数量"), required=False)
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
@@ -51,9 +53,17 @@ class ProxyScaleUpParamBuilder(builders.FlowParamBuilder):
 class ProxyScaleUpResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
         # 在跨机房亲和性要求下，接入层proxy的亲和性要求至少分布在2个机房
-        self.patch_info_affinity_location(roles=["proxy"])
         for info in self.ticket_data["infos"]:
-            info["resource_spec"]["proxy"]["group_count"] = 2
+            cluster = Cluster.objects.get(id=info["cluster_id"])
+            instances = cluster.proxyinstance_set.select_related("machine").all()
+            exclusive_hosts = [ins.machine for ins in instances]
+            self.patch_common_affinity(
+                info,
+                role="proxy",
+                cluster=cluster,
+                exclusive_hosts=exclusive_hosts,
+                tolerance=0.5,
+            )
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()

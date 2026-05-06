@@ -15,6 +15,7 @@ from pipeline.component_framework.component import Component
 
 from backend import env
 from backend.components import BKMonitorV3Api
+from backend.db_monitor.constants import MonitorShieldType
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 
@@ -36,6 +37,10 @@ class DisableAlarmShieldService(BaseService):
             "notice_config": detail["notice_config"],
             "id": shield_id,
         }
+        # 支持策略维度的调整
+        if detail["category"] == MonitorShieldType.STRATEGY.value:
+            edit_param["level"] = detail["dimension_config"]["level"]
+
         BKMonitorV3Api.edit_shield(edit_param)
 
         return True

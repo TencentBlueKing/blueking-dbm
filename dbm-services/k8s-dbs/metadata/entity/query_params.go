@@ -156,3 +156,18 @@ type AuthUserRoleQueryParams struct {
 	UserID string `gorm:"size:64;column:user_id" json:"userId"`
 	RoleID string `gorm:"size:64;column:role_id" json:"roleId"`
 }
+
+// AddonSpecPlanQueryParams addon spec plan 查询参数
+type AddonSpecPlanQueryParams struct {
+	ID            uint64 `gorm:"column:id" json:"id"`
+	AddonID       uint64 `gorm:"column:addon_id" json:"addonId"`
+	AddonTopology string `gorm:"column:addon_topology" json:"addonTopology"`
+	SpecLevel     string `gorm:"column:spec_level" json:"specLevel"`
+}
+
+// ComponentSpecPlanQueryParams component spec plan 查询参数
+type ComponentSpecPlanQueryParams struct {
+	ID              uint64 `gorm:"column:id" json:"id"`
+	AddonSpecPlanID uint64 `gorm:"column:addon_spec_plan_id" json:"addonSpecPlanId"`
+	ComponentName   string `gorm:"column:component_name" json:"componentName"`
+}

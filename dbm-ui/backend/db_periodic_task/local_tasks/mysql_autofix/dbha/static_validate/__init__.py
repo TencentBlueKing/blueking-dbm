@@ -11,4 +11,5 @@ specific language governing permissions and limitations under the License.
 from .validate_event_fields import validate_event_fields
 from .validate_event_wait_timeout import validate_event_wait_timeout
 from .validate_machine_share import validate_machine_share
+from .validate_spec import validate_spec
 from .validate_target import validate_target

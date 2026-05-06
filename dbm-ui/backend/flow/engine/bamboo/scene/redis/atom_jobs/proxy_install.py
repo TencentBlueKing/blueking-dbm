@@ -114,6 +114,7 @@ def ProxyBatchInstallAtomJob(
                         bk_cloud_id=int(act_kwargs.cluster["bk_cloud_id"]), ips=[exec_ip], plugin_name=plugin_name
                     )
                 ),
+                "timeout": 300,
             }
         )
     sub_pipeline.add_parallel_acts(acts_list=acts_list)

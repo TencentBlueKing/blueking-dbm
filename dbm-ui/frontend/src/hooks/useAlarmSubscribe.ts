@@ -12,7 +12,7 @@
  */
 import { getSubscribeList, getSubscribeMetrics } from '@services/source/monitorSubscribe';
 
-import { clusterTypeInfos } from '@common/const';
+import { clusterTypeInfos, ClusterTypes } from '@common/const';
 
 /**
  * 告警订阅
@@ -35,7 +35,11 @@ const subscribedDomainInfo = ref<{
   dataSet: new Set(),
 });
 
-export const useAlarmSubscribe = () => {
+export const useAlarmSubscribe = (clusterTypes: ClusterTypes[] = []) => {
+  const isClusterTypeAlarmSupported = computed(() =>
+    clusterTypes.some((type) => metricsMap.value[type]?.list?.length > 0),
+  );
+
   const initMetricsMap = async () => {
     const clusterTypeNameMap = Object.values(clusterTypeInfos).reduce<Record<string, string>>(
       (dataMap, item) =>
@@ -70,6 +74,7 @@ export const useAlarmSubscribe = () => {
   return {
     initMetricsMap,
     initSubscribedDomainInfo,
+    isClusterTypeAlarmSupported,
     metricsMap,
     subscribedDomainInfo,
   };

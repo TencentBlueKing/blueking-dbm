@@ -56,6 +56,7 @@ class ExecActuatorKwargs(ExecActuatorBaseKwargs):
     """
 
     exec_ip: Optional[Any] = None  # 表示执行的ip，多个ip传入list类型，当个ip传入str类型，空则传入None，针对手输ip场景
+    hide_error: bool = False
 
 
 @dataclass()
@@ -127,6 +128,7 @@ class DownloadMediaKwargs(DownloadMediaBaseKwargs):
     """
 
     exec_ip: Optional[Any] = None  # 表示执行的ip，多个ip传入list类型，当个ip传入str类型，空则传入None，针对手输ip场景
+    hide_error: bool = False
 
 
 @dataclass()
@@ -426,6 +428,15 @@ class ExecuteRdsKwargs:
     sqls: list = field(default_factory=list)
 
 
+@dataclass
+class CheckProcesslistKwargs(ExecuteRdsKwargs):
+    """
+    定义检查MySQL客户端链接
+    """
+
+    only_show_processlist: bool = False
+
+
 @dataclass()
 class CheckSlaveStatusKwargs(ExecuteRdsKwargs):
     master_ip: str = ""
@@ -489,6 +500,7 @@ class CheckClientConnKwargs:
     is_proxy: bool = False
     long_process_time: int = -1
     filter_hosts: list = field(default_factory=list)
+    hide_error: bool = False
 
 
 @dataclass

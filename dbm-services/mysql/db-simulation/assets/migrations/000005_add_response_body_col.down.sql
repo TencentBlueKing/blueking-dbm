@@ -1,1 +1,0 @@
-alter table `tb_request_records` drop column `response_body`;

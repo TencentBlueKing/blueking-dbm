@@ -12,6 +12,7 @@ from copy import deepcopy
 
 from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums.cluster_type import ClusterType
+from backend.db_meta.models import Machine
 from backend.flow.consts import (
     MongoDBClusterDefaultPort,
     MongoDBDomainPrefix,
@@ -443,3 +444,54 @@ def calculate_cluster_add_shard(payload: dict) -> dict:
 
     add_shard_payload["cluster_add_shard_info"] = cluster_add_shard_info
     return add_shard_payload
+
+
+def calc_cluster_standardization(payload: dict) -> dict:
+    """计算集群标准化"""
+
+    # 集群id
+    cluster_ids = payload["cluster_ids"]
+    bk_cloud_id = payload["bk_cloud_id"]
+    bk_biz_id = payload["bk_biz_id"]
+    payload["cluster_info"] = {}
+    # {ClusterType.MongoShardedCluster.value: [], ClusterType.MongoReplicaSet.value: []}
+    cluster_info, shard_clucster, rsp_cluster = {}, [], []
+    # 获取集群信息，通过集群类型进行分类
+    for cluster_id in cluster_ids:
+        cluster = MongoRepository().fetch_one_cluster(id=cluster_id)
+        if cluster.cluster_type == ClusterType.MongoShardedCluster.value:
+            shard_clucster.append(cluster_id)  # 分片集群所有的集群id
+        elif cluster.cluster_type == ClusterType.MongoReplicaSet.value:
+            rsp_cluster.append(cluster)  # 副本集所有的集群信息
+    # 副本集多实例部署要聚合 有可能多个副本集在单据中，则主机去重
+    host_set, all_rsp_id_set = set(), set()
+    for cluster in rsp_cluster:
+        hosts = []
+        members = cluster.get_shards()[0].members
+        for member in members:
+            hosts.append(member.ip)
+        if hosts:
+            sort_hosts_tuple = tuple(sorted(hosts))
+            if sort_hosts_tuple not in host_set:
+                host_set.add(sort_hosts_tuple)
+        else:
+            continue
+
+    unique_host_set = []  # [[cluster1_id,cluster2_id], [cluster3_id]] 副本集多实例部署同组机器的集群信息
+    for host in host_set:
+        rsp_cluster_id_set = []
+        all_storageinstance = Machine.objects.get(
+            ip=host[0], bk_biz_id=bk_biz_id, bk_cloud_id=bk_cloud_id
+        ).storageinstance_set.all()
+        for storageinstance in all_storageinstance:
+            for cluster in storageinstance.cluster.all():
+                if cluster.id not in all_rsp_id_set:
+                    all_rsp_id_set.add(cluster.id)
+                    rsp_cluster_id_set.append(cluster.id)
+        if rsp_cluster_id_set:
+            unique_host_set.append(rsp_cluster_id_set)
+
+    cluster_info[ClusterType.MongoShardedCluster.value] = shard_clucster
+    cluster_info[ClusterType.MongoReplicaSet.value] = unique_host_set
+    payload["cluster_info"] = cluster_info
+    return payload

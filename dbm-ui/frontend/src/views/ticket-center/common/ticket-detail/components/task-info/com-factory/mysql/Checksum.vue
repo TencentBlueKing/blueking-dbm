@@ -12,17 +12,23 @@
 -->
 <template>
   <InfoList>
-    <InfoItem :label="t('所属业务')">
-      {{ ticketDetails.bk_biz_name || '--' }}
-    </InfoItem>
-    <InfoItem :label="t('指定执行时间')">
-      {{ utcDisplayTime(ticketDetails.details.timing) || '--' }}
-    </InfoItem>
-    <InfoItem :label="t('自动修复')">
-      {{ ticketDetails.details.data_repair.is_repair ? t('是') : t('否') }}
+    <InfoItem :label="t('执行模式')">
+      {{
+        ticketDetails.details.need_manual_confirm
+          ? t('手动执行')
+          : `${t('定时执行')}（${utcDisplayTime(ticketDetails.details.timing) || '--'}）`
+      }}
     </InfoItem>
     <InfoItem :label="t('全局超时时间（h）')">
       {{ ticketDetails.details.runtime_hour }}
+    </InfoItem>
+    <InfoItem :label="t('修复数据')">
+      {{ ticketDetails.details.data_repair.is_repair ? t('是') : t('否') }}
+    </InfoItem>
+    <InfoItem
+      v-if="ticketDetails.details.data_repair.is_repair"
+      :label="t('修复模式')">
+      {{ repairModesMap[ticketDetails.details.data_repair.mode] }}
     </InfoItem>
   </InfoList>
   <TicketInfoTable
@@ -31,8 +37,8 @@
     <TicketInfoTableColumn
       col-key="cluster_id"
       :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
-      :min-width="280"
-      :title="t('目标集群')">
+      :title="t('目标集群')"
+      :width="300">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].immute_domain }}
       </template>
@@ -139,6 +145,11 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const repairModesMap = {
+    auto: t('自动修复'),
+    manual: t('手动执行'),
+  } as Record<string, string>;
 
   const handleCopySlave = (field: 'ip' | 'instance') => {
     const slaves = props.ticketDetails.details.infos.reduce<RowData['slaves']>((acc, item) => {

@@ -38,13 +38,28 @@ type RetryConfig struct {
 	DelayTime time.Duration // 每次重试间隔
 }
 
+// errStopRetry 包装一个不可重试的错误，Retry 识别后立即终止循环
+type errStopRetry struct{ cause error }
+
+func (e *errStopRetry) Error() string { return e.cause.Error() }
+func (e *errStopRetry) Unwrap() error { return e.cause }
+
+// StopRetry 将 err 包装为不可重试错误，在 Retry 回调中返回此值可立即终止重试
+func StopRetry(err error) error { return &errStopRetry{cause: err} }
+
 // Retry 重试
 // 第 0 次也需要 delay 再运行
+// 若 f() 返回经 StopRetry() 包装的错误，立即终止重试并返回原始错误
 func Retry(r RetryConfig, f func() error) (err error) {
 	for i := 0; i < r.Times; i++ {
 		time.Sleep(r.DelayTime)
 		if err = f(); err == nil {
 			return nil
+		}
+		var stop *errStopRetry
+		if errors.As(err, &stop) {
+			logger.Warn("遇到不可重试错误，终止重试: %s", stop.cause.Error())
+			return stop.cause
 		}
 		logger.Warn("第 %d 次重试,函数错误: %s", i, err.Error())
 	}

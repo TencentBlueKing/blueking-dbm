@@ -94,7 +94,7 @@
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
-  import { DBTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
@@ -114,7 +114,7 @@
       bk_biz_id: number;
       bk_cloud_id: number;
       cluster_name: string;
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       disaster_tolerance_level: string;
       id: number;
       major_version: string;
@@ -278,7 +278,6 @@
       }
     });
     formData.tableData = [...(formData.tableData[0].cluster.master_domain ? formData.tableData : []), ...newList];
-    window.changeConfirm = true;
   };
 
   const handleBatchEdit = (value: string | string[], field: string) => {
@@ -346,7 +345,6 @@
 
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
-    window.changeConfirm = false;
   };
 </script>
 

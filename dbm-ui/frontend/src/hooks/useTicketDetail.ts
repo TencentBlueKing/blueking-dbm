@@ -45,6 +45,7 @@ export function useTicketDetail<T extends DetailBase>(
           return;
         }
         options.onSuccess(ticketData as TicketModel<T>);
+        window.changeConfirm = true;
       },
     },
   );

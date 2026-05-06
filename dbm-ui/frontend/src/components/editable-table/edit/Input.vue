@@ -57,6 +57,7 @@
 
   const attrs = useAttrs();
   const columnContext = useColumn();
+
   const inputRef = ref();
 
   watch(modelValue, () => {

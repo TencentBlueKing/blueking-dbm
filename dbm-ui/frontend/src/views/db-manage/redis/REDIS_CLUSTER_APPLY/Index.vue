@@ -250,7 +250,7 @@
                 </div>
                 <p
                   v-if="isManualInput"
-                  class="apply-form__tips">
+                  class="apply-form-tips">
                   {{ t('单实例容量x分片数_根据选择的主机自动计算所有的组合') }}
                 </p>
               </BkFormItem>
@@ -259,7 +259,7 @@
               v-else
               class="mb-24">
               <BkFormItem
-                :label="t('Proxy规格')"
+                label="Proxy"
                 required>
                 <div class="resource-pool-item">
                   <BkFormItem
@@ -303,7 +303,7 @@
                 </div>
               </BkFormItem>
               <BkFormItem
-                :label="t('后端存储规格')"
+                :label="t('后端存储')"
                 required>
                 <BackendQPSSpec
                   ref="specBackendRef"
@@ -919,19 +919,19 @@
         delete details.resource_spec.backend_group.capacity;
         delete details.resource_spec.backend_group.future_capacity;
 
-        const specInfo = specBackendRef.value.getData();
+        const specBackendInfo = specBackendRef.value.getData();
         return {
           ...details,
-          cluster_shard_num: Number(specInfo.cluster_shard_num),
+          cluster_shard_num: Number(specBackendInfo.cluster_shard_num),
           // disaster_tolerance_level: affinity,
           resource_spec: {
             backend_group: {
               ...details.resource_spec.backend_group,
               ...regionAndDisasterParams,
-              count: Number(specInfo.machine_pair),
+              count: Number(specBackendInfo.machine_pair),
               label_names: details.resource_spec.backend_group.labels.map((item: { value: string }) => item.value),
               labels: details.resource_spec.backend_group.labels.map((item: { id: number }) => String(item.id)),
-              spec_info: specInfo,
+              spec_info: specBackendInfo,
             },
             proxy: {
               ...details.resource_spec.proxy,

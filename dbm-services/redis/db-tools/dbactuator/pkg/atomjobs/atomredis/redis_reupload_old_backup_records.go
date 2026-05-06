@@ -17,62 +17,13 @@ import (
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
 	"dbm-services/redis/db-tools/dbactuator/pkg/report"
+
+	"dbm-services/redis/db-tools/dbmon/pkg/models"
+	dbmonreport "dbm-services/redis/db-tools/dbmon/pkg/report"
+
+	// "dbm-services/redis/db-tools/dbactuator/pkg/report"
 	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 )
-
-// RedisBinlogHistorySchema TODO
-type RedisBinlogHistorySchema struct {
-	ID         int64  `json:"-" gorm:"primaryKey;column:id;not null`
-	ReportType string `json:"report_type" gorm:"column:report_type;not null;default:''"`
-	BkBizID    string `json:"bk_biz_id" gorm:"column:bk_biz_id;not null;default:''"`
-	BkCloudID  int64  `json:"bk_cloud_id" gorm:"column:bk_cloud_id;not null;default:0"`
-	ServerIP   string `json:"server_ip" gorm:"column:server_ip;not null;default:''"`
-	ServerPort int    `json:"server_port" gorm:"column:server_port;not null;default:0"`
-	Domain     string `json:"domain" gorm:"column:domain;not null;default:'';index"`
-	// TendisplusInstance or TendisSSDInstance
-	DbType string `json:"db_type" gorm:"column:db_type;not null;default:''"`
-	Role   string `json:"role" gorm:"column:role;not null;default:''"`
-	// 备份路径,如 /data/dbbak/binlog/30000
-	BackupDir string `json:"backup_dir" gorm:"column:backup_dir;not null;default:''"`
-	// 备份的目标文件(已压缩)
-	BackupFile string `json:"backup_file" gorm:"column:backup_file;not null;default:''"`
-	// binlog对应的 kvstoreidx
-	KvstoreIdx int `json:"kvstoreidx" gorm:"column:kvstoreidx;not null;default:0"`
-	// 备份文件大小(已压缩)
-	BackupFileSize int64 `json:"backup_file_size" gorm:"column:backup_file_size;not null;default:0"`
-	// binlog文件生成时间(非压缩)
-	StartTime time.Time `json:"start_time" gorm:"column:start_time;not null;default:'';index"`
-	// binlog文件最后修改时间(非压缩)
-	EndTime      time.Time `json:"end_time" gorm:"column:end_time;not null;default:'';index"`
-	TimeZone     string    `json:"time_zone" gorm:"column:time_zone;not null;default:''"`
-	BackupTaskID string    `json:"backup_taskid" gorm:"column:backup_taskid;not null;default:''"`
-	// 目前为空
-	BackupMD5 string `json:"backup_md5" gorm:"column:backup_md5;not null;default:''"`
-	// REDIS_BINLOG
-	BackupTag string `json:"backup_tag" gorm:"column:backup_tag;not null;default:''"`
-	// shard值
-	ShardValue string `json:"shard_value" gorm:"column:shard_value;not null;default:''"`
-	Status     string `json:"status" gorm:"column:status;not null;default:''"`
-	Message    string `json:"message" gorm:"column:message;not null;default:''"`
-	// 本地文件是否已删除,未被删除为0,已被删除为1
-	LocalFileRemoved int `json:"-" gorm:"column:local_file_removed;not null;default:0"`
-}
-
-// TableName TODO
-func (r *RedisBinlogHistorySchema) TableName() string {
-	return "redis_binlog_history"
-}
-
-// Addr string
-func (r *RedisBinlogHistorySchema) Addr() string {
-	return r.ServerIP + ":" + strconv.Itoa(r.ServerPort)
-}
-
-type redisBinlogReport struct {
-	RedisBinlogHistorySchema
-	StartTime string `json:"start_time"`
-	EndTime   string `json:"end_time"`
-}
 
 // reuploadBackupRecordsParams 参数
 type reuploadBackupRecordsParams struct {
@@ -96,8 +47,8 @@ type RedisReuploadOldBackupRecords struct {
 	oldBackupRecrods   []oldBackupItem
 	fullbackupReporter report.Reporter `json:"-"`
 	binlogReporter     report.Reporter `json:"-"`
-	binlogRow          RedisBinlogHistorySchema
-	fullbackupRow      RedisFullbackupHistorySchema
+	binlogRow          models.RedisBinlogHistorySchema
+	fullbackupRow      models.RedisFullbackupHistorySchema
 }
 
 // 无实际作用,仅确保实现了 jobruntime.JobRunner 接口
@@ -268,27 +219,27 @@ func (job *RedisReuploadOldBackupRecords) reupload() (err error) {
 	var upTime time.Time
 	var addr string
 	timeZone, _ := time.Now().Local().Zone()
-	job.binlogRow = RedisBinlogHistorySchema{
+	job.binlogRow = models.RedisBinlogHistorySchema{
 		ReportType: consts.RedisBinlogBackupReportType,
 		BkBizID:    job.params.BkBizID,
 		BkCloudID:  job.params.BkCloudID,
 		ServerIP:   job.params.ServerIP,
 		Domain:     job.params.ClusterDomain,
 		DbType:     util.GetRedisDbTypeByClusterType(job.params.ClusterType),
-		Role:       job.params.MetaRole,
+		RealRole:   job.params.MetaRole,
 		TimeZone:   timeZone,
 		Status:     consts.BackupStatusToBakSysSuccess,
 		BackupTag:  consts.RedisBinlogTAG,
 		Message:    "上传备份系统成功",
 	}
-	job.fullbackupRow = RedisFullbackupHistorySchema{
+	job.fullbackupRow = models.RedisFullbackupHistorySchema{
 		ReportType: consts.RedisFullBackupReportType,
 		BkBizID:    job.params.BkBizID,
 		BkCloudID:  job.params.BkCloudID,
 		ServerIP:   job.params.ServerIP,
 		Domain:     job.params.ClusterDomain,
 		DbType:     util.GetRedisDbTypeByClusterType(job.params.ClusterType),
-		Role:       job.params.MetaRole,
+		RealRole:   job.params.MetaRole,
 		TimeZone:   timeZone,
 		Status:     consts.BackupStatusToBakSysSuccess,
 		BackupTag:  consts.RedisFullBackupTAG,
@@ -321,8 +272,7 @@ func (job *RedisReuploadOldBackupRecords) reupload() (err error) {
 		addr = item.SourceIP + ":" + strconv.Itoa(port)
 		shardVal, _ = job.params.ServerShards[addr]
 		job.setParams(port, backupDir, fullPath, item.Size, upTime, item.TaskID, shardVal, item.FileTag)
-		err = job.DoReport(item.FileTag)
-		if err != nil {
+		if err = job.DoReport(item.FileTag); err != nil {
 			job.runtime.Logger.Error("DoReport failed,err:%+v", err)
 			continue
 		}
@@ -355,25 +305,13 @@ func (job *RedisReuploadOldBackupRecords) setParams(port int, backupDir, backupF
 }
 
 // DoReport 执行上报
-func (job RedisReuploadOldBackupRecords) DoReport(fileTag string) error {
+func (job RedisReuploadOldBackupRecords) DoReport(fileTag string) (err error) {
 	if fileTag == consts.RedisFullBackupTAG {
-		reportRow := redisFullBackupReport{
-			RedisFullbackupHistorySchema: job.fullbackupRow,
-			StartTime:                    job.fullbackupRow.StartTime.Format(time.RFC3339),
-			EndTime:                      job.fullbackupRow.EndTime.Format(time.RFC3339),
-		}
-		tmpBytes, _ := json.Marshal(reportRow)
-		job.fullbackupReporter.AddRecord(string(tmpBytes)+"\n", true)
+		err = dbmonreport.RedisFullBackupReport(&job.fullbackupRow, job.fullbackupReporter)
 	} else if fileTag == consts.RedisBinlogTAG {
-		reportRow := redisBinlogReport{
-			RedisBinlogHistorySchema: job.binlogRow,
-			StartTime:                job.binlogRow.StartTime.Format(time.RFC3339),
-			EndTime:                  job.binlogRow.EndTime.Format(time.RFC3339),
-		}
-		tmpBytes, _ := json.Marshal(reportRow)
-		job.binlogReporter.AddRecord(string(tmpBytes)+"\n", true)
+		err = dbmonreport.RedisBinlogReport(&job.binlogRow, job.binlogReporter)
 	}
-	return nil
+	return err
 }
 
 // Retry times

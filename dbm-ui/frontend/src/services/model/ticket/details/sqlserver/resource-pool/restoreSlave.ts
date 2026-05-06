@@ -16,17 +16,20 @@ export interface RestoreSlave extends ResourcePoolDetailBase {
     };
     resource_spec: {
       sqlserver_ha: {
-        affinity: string;
+        affinity: string; // 旧协议
+        count: number;
         hosts: {
           bk_biz_id: number;
           bk_cloud_id: number;
           bk_host_id: number;
           ip: string;
-        }[];
+        }[]; // 旧协议
+        label_names: string[]; // 标签名称列表，单据详情回显用
+        labels: string[]; // 标签id列表
         location_spec: {
           city: string;
           sub_zone_ids: number[];
-        };
+        }; // 旧协议
         spec_id: number;
       };
     };

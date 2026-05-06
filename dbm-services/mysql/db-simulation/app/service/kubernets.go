@@ -19,7 +19,6 @@ import (
 	"net/url"
 	"os"
 	"path"
-	"regexp"
 	"strings"
 	"time"
 
@@ -46,6 +45,19 @@ var Kcs KubeClientSets
 // DefaultUser default user
 const DefaultUser = "root"
 
+// FatalError 致命错误，表示不应该继续重试的错误
+type FatalError struct {
+	ContainerName string
+	Reason        string
+	CheckCount    int
+	Message       string
+}
+
+func (e *FatalError) Error() string {
+	return fmt.Sprintf("container %s is in %s state, pod creation failed after %d checks: %s",
+		e.ContainerName, e.Reason, e.CheckCount, e.Message)
+}
+
 // KubeClientSets k8s client sets
 type KubeClientSets struct {
 	Cli        *kubernetes.Clientset
@@ -56,6 +68,7 @@ type KubeClientSets struct {
 // MySQLPodBaseInfo mysql pod base info
 type MySQLPodBaseInfo struct {
 	PodName string
+	Engine  string
 	Labels  map[string]string
 	Args    []string
 	RootPwd string
@@ -64,20 +77,22 @@ type MySQLPodBaseInfo struct {
 
 // DbPodSets db pod sets
 type DbPodSets struct {
-	K8S         KubeClientSets
-	BaseInfo    *MySQLPodBaseInfo
-	DbWork      *cmutil.DbWorker
-	DbImage     string
-	TdbCtlImage string
-	SpiderImage string
+	K8S              KubeClientSets
+	BaseInfo         *MySQLPodBaseInfo
+	DbWork           *cmutil.DbWorker
+	DbImage          string
+	TdbCtlImage      string
+	SpiderPods       []SpiderPodBaseInfo
+	TdbCtlStartArgs  map[string]string
+	BackendStartArgs map[string]string
 }
 
-// ClusterPodSets cluster pod sets
-type ClusterPodSets struct {
-	DbPodSets
+// SpiderPodBaseInfo spider pod base info
+type SpiderPodBaseInfo struct {
+	SpiderImage     string
+	SpiderVersion   string
+	SpiderStartArgs map[string]string
 }
-
-var startArgsSplitRe *regexp.Regexp
 
 func init() {
 	logger.Info("start init bcs client ")
@@ -97,7 +112,6 @@ func init() {
 	}
 	Kcs.Cli = clientSet
 	Kcs.Namespace = config.GAppConfig.Bcs.NameSpace
-	startArgsSplitRe = regexp.MustCompile(` |,`)
 }
 
 // NewDbPodSets new db pod sets
@@ -109,9 +123,12 @@ func NewDbPodSets() *DbPodSets {
 
 func (k *DbPodSets) getCreateClusterSqls() []string {
 	var ss []string
-	ss = append(ss, fmt.Sprintf(
-		"tdbctl create node wrapper 'SPIDER' options(user 'root', password '%s', host '127.0.0.1', port 25000);",
-		k.BaseInfo.RootPwd))
+	for idx, _ := range k.SpiderPods {
+		spiderPort := 25000 + idx
+		ss = append(ss, fmt.Sprintf(
+			"tdbctl create node wrapper 'SPIDER' options(user 'root', password '%s', host '127.0.0.1', port %d);",
+			k.BaseInfo.RootPwd, spiderPort))
+	}
 	ss = append(ss, fmt.Sprintf(
 		"tdbctl create node wrapper 'mysql' options(user 'root', password '%s', host '127.0.0.1', port 20000);",
 		k.BaseInfo.RootPwd))
@@ -125,19 +142,15 @@ func (k *DbPodSets) getCreateClusterSqls() []string {
 
 // getClusterPodContainerSpec create cluster pod container spec
 // nolint
-func (k *DbPodSets) getClusterPodContainerSpec(mysqlVersion string) []v1.Container {
+func (k *DbPodSets) getClusterPodContainerSpec() []v1.Container {
 	// 简化启动参数，配置通过 ConfigMap 挂载的 my.cnf 提供
 	backendArgs := []string{"mysqld", "--defaults-file=/etc/my.cnf", "--user=mysql"}
-	spiderArgs := []string{"mysqld", "--defaults-file=/etc/my.cnf", "--user=mysql"}
 	tdbctlArgs := []string{"mysqld", "--defaults-file=/etc/my.cnf", "--user=mysql"}
 
-	return []v1.Container{
+	containers := []v1.Container{
 		{
-			Name: "backend",
-			Env: []v1.EnvVar{{
-				Name:  "MYSQL_ROOT_PASSWORD",
-				Value: k.BaseInfo.RootPwd,
-			}},
+			Name:            "backend",
+			Env:             k.getBackendEnv(),
 			Resources:       k.getResourceLimit(),
 			ImagePullPolicy: v1.PullIfNotPresent,
 			Image:           k.DbImage,
@@ -157,20 +170,29 @@ func (k *DbPodSets) getClusterPodContainerSpec(mysqlVersion string) []v1.Contain
 				InitialDelaySeconds: 3,
 				PeriodSeconds:       5,
 			},
-		}, {
-			Name: "spider",
+		},
+	}
+
+	// 为每个 Spider 版本创建独立的容器
+	for idx, spiderPod := range k.SpiderPods {
+		spiderArgs := []string{"mysqld", "--defaults-file=/etc/my.cnf", "--user=mysql"}
+		containerName := fmt.Sprintf("spider-%d", idx)
+		configSubPath := fmt.Sprintf("spider-%d-my.cnf", idx)
+
+		spiderContainer := v1.Container{
+			Name: containerName,
 			Env: []v1.EnvVar{{
 				Name:  "MYSQL_ROOT_PASSWORD",
 				Value: k.BaseInfo.RootPwd,
 			}},
 			Resources:       k.getResourceLimit(),
 			ImagePullPolicy: v1.PullIfNotPresent,
-			Image:           k.SpiderImage,
+			Image:           spiderPod.SpiderImage,
 			Args:            spiderArgs,
 			VolumeMounts: []v1.VolumeMount{{
 				Name:      "cluster-config",
 				MountPath: "/etc/my.cnf",
-				SubPath:   "spider-my.cnf",
+				SubPath:   configSubPath,
 			}},
 			ReadinessProbe: &v1.Probe{
 				ProbeHandler: v1.ProbeHandler{
@@ -182,116 +204,51 @@ func (k *DbPodSets) getClusterPodContainerSpec(mysqlVersion string) []v1.Contain
 				InitialDelaySeconds: 3,
 				PeriodSeconds:       5,
 			},
-		},
-		{
-			Name: "tdbctl",
-			Env: []v1.EnvVar{{
-				Name:  "MYSQL_ROOT_PASSWORD",
-				Value: k.BaseInfo.RootPwd,
-			}},
-			Resources:       k.gettdbctlResourceLimit(),
-			ImagePullPolicy: v1.PullIfNotPresent,
-			Image:           k.TdbCtlImage,
-			Args:            tdbctlArgs,
-			VolumeMounts: []v1.VolumeMount{{
-				Name:      "cluster-config",
-				MountPath: "/etc/my.cnf",
-				SubPath:   "tdbctl-my.cnf",
-			}},
-			ReadinessProbe: &v1.Probe{
-				ProbeHandler: v1.ProbeHandler{
-					Exec: &v1.ExecAction{
-						Command: []string{"/bin/bash", "-c",
-							fmt.Sprintf("mysql -S/data1/mysqldata/mysql.sock -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
-					},
+		}
+		containers = append(containers, spiderContainer)
+	}
+
+	// 添加 tdbctl 容器
+	tdbctlContainer := v1.Container{
+		Name: "tdbctl",
+		Env: []v1.EnvVar{{
+			Name:  "MYSQL_ROOT_PASSWORD",
+			Value: k.BaseInfo.RootPwd,
+		}},
+		Resources:       k.getTdbctlResourceLimit(),
+		ImagePullPolicy: v1.PullIfNotPresent,
+		Image:           k.TdbCtlImage,
+		Args:            tdbctlArgs,
+		VolumeMounts: []v1.VolumeMount{{
+			Name:      "cluster-config",
+			MountPath: "/etc/my.cnf",
+			SubPath:   "tdbctl-my.cnf",
+		}},
+		ReadinessProbe: &v1.Probe{
+			ProbeHandler: v1.ProbeHandler{
+				Exec: &v1.ExecAction{
+					Command: []string{"/bin/bash", "-c",
+						fmt.Sprintf("mysql -S/data1/mysqldata/mysql.sock -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 				},
-				InitialDelaySeconds: 3,
-				PeriodSeconds:       5,
 			},
+			InitialDelaySeconds: 3,
+			PeriodSeconds:       5,
 		},
 	}
-}
+	containers = append(containers, tdbctlContainer)
 
-func (k *DbPodSets) getTdbctlStartArgs() (args []string) {
-	args = []string{"mysqld",
-		"--defaults-file=/etc/my.cnf",
-		"--port=26000",
-		"--tc-admin=1",
-		"--dbm-allow-standalone-primary",
-		"--max_allowed_packet=1073741824",
-		fmt.Sprintf("--character-set-server=%s",
-			k.BaseInfo.Charset),
-		"--user=mysql"}
-	dbArgs, err := model.GetStartArgs("tdbctl", LatestVersion)
-	if err != nil {
-		logger.Warn("get tdbctl start args failed %s", err.Error())
-		return
-	}
-	for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
-		if lo.IsNotEmpty(arg) {
-			args = append(args, strings.TrimSpace(arg))
-		}
-	}
-	return
-}
-
-func (k *DbPodSets) getSpiderStartArgs() (args []string) {
-	args = []string{"mysqld",
-		"--defaults-file=/etc/my.cnf",
-		"--log_bin_trust_function_creators",
-		"--port=25000",
-		"--max_allowed_packet=1073741824",
-		fmt.Sprintf("--character-set-server=%s",
-			k.BaseInfo.Charset),
-		"--user=mysql"}
-	dbArgs, err := model.GetStartArgs("spider", LatestVersion)
-	if err != nil {
-		logger.Warn("get spider start args failed %s", err.Error())
-		return
-	}
-	for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
-		if lo.IsNotEmpty(arg) {
-			args = append(args, strings.TrimSpace(arg))
-		}
-	}
-	return
-}
-
-func (k *DbPodSets) getbackendStartArgs(mysqlVersion string) (args []string) {
-	args = []string{"mysqld",
-		"--defaults-file=/etc/my.cnf",
-		"--log_bin_trust_function_creators",
-		"--port=20000",
-		"--max_allowed_packet=1073741824",
-		"--sql-mode=",
-		fmt.Sprintf("--character-set-server=%s",
-			k.BaseInfo.Charset),
-		"--user=mysql"}
-	if cmutil.MySQLVersionParse(mysqlVersion) >= cmutil.MySQLVersionParse("8.0.0") {
-		args = append(args, "--default-authentication-plugin=mysql_native_password")
-	}
-	dbArgs, err := model.GetStartArgs("mysql", mysqlVersion)
-	if err != nil {
-		logger.Warn("get mysql start args failed %s", err.Error())
-		return
-	}
-	for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
-		if lo.IsNotEmpty(arg) {
-			args = append(args, strings.TrimSpace(arg))
-		}
-	}
-	return
+	return containers
 }
 
 // CreateClusterPod create tendbcluster simulation pod
-func (k *DbPodSets) CreateClusterPod(mySQLVersion string) (err error) {
+func (k *DbPodSets) CreateClusterPod(mySQLVersion string, xlogger *logger.Logger) (err error) {
 	// 创建 ConfigMap 存储 my.cnf 配置
 	if err = k.createClusterConfigMap(mySQLVersion); err != nil {
 		return err
 	}
 
 	configMapName := k.getClusterConfigMapName()
-	logger.Info("created cluster configmap: %s", configMapName)
+	logger.Info("created cluster config map: %s", configMapName)
 
 	c := &v1.Pod{
 		TypeMeta: metav1.TypeMeta{
@@ -320,11 +277,14 @@ func (k *DbPodSets) CreateClusterPod(mySQLVersion string) (err error) {
 					},
 				},
 			}},
-			Containers: k.getClusterPodContainerSpec(mySQLVersion),
+			Containers: k.getClusterPodContainerSpec(),
 		},
 	}
-	if err = k.createpod(c, 26000); err != nil {
+	if err = k.createPod(c, 26000, xlogger); err != nil {
 		logger.Error("create spider cluster failed %s", err.Error())
+		if deleteErr := k.deleteClusterConfigMap(); deleteErr != nil {
+			logger.Error("delete cluster configMap failed %s", deleteErr.Error())
+		}
 		return err
 	}
 	logger.Info("connect tdbctl success ~")
@@ -337,8 +297,11 @@ func (k *DbPodSets) CreateClusterPod(mySQLVersion string) (err error) {
 	return nil
 }
 
-// createpod create pod
-func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
+// CreatePod create pod
+func (k *DbPodSets) createPod(pod *v1.Pod, probePort int, xlogger *logger.Logger) (err error) {
+	if xlogger == nil {
+		xlogger = logger.New(os.Stdout, true, logger.InfoLevel, map[string]string{"pod_name": k.BaseInfo.PodName})
+	}
 	podc, err := k.K8S.Cli.CoreV1().Pods(k.K8S.Namespace).Create(context.TODO(), pod, metav1.CreateOptions{})
 	if err != nil {
 		logger.Error("create pod failed %s", err.Error())
@@ -351,6 +314,13 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 		CreatePodTime: time.Now(),
 		CreateTime:    time.Now()})
 	podIp := podc.Status.PodIP
+	// 用于跟踪每个容器的 CrashLoopBackOff 连续出现次数（按容器名称分别跟踪）
+	crashLoopCounts := make(map[string]int)
+	const maxCrashLoopChecks = 3 // 连续 3 次检测到 CrashLoopBackOff 就退出
+	// 自定义重试循环，支持提前退出
+	maxRetries := 120
+	retryDelay := 2 * time.Second
+	var lastErr error
 	// 连续多次探测pod的状态
 	fn := func() (err error) {
 		var podI *v1.Pod
@@ -362,8 +332,73 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 			return fmt.Errorf("get pod status is empty,wait some seconds")
 		}
 		for _, cStatus := range podI.Status.ContainerStatuses {
-			logger.Info("%s: %v", cStatus.Name, cStatus.Ready)
+			logger.Info("%s: %v, RestartCount: %d", cStatus.Name, cStatus.Ready, cStatus.RestartCount)
+
+			// 检测容器不 Ready 的情况
 			if !cStatus.Ready {
+				// 检查容器是否处于 crash 状态 - 先检查这个，因为需要尽早退出
+				if cStatus.State.Waiting != nil {
+					reason := cStatus.State.Waiting.Reason
+					if reason == "CrashLoopBackOff" || reason == "Error" {
+						// 增加该容器的 crash 计数
+						crashLoopCounts[cStatus.Name]++
+						currentCount := crashLoopCounts[cStatus.Name]
+
+						xlogger.Error("container %s is in %s state: %s (detected %d times)",
+							cStatus.Name, reason, cStatus.State.Waiting.Message, currentCount)
+
+						// 输出 Pod 中所有容器的镜像信息
+						containersInfo := k.getPodContainersInfo(podI)
+						xlogger.Error("%s", containersInfo)
+
+						// 抓取日志（使用 xlogger 输出到前端）
+						logs, logErr := k.getContainerLogs(k.BaseInfo.PodName, cStatus.Name, 100)
+						if logErr != nil {
+							xlogger.Error("failed to get crash logs: %s", logErr.Error())
+						} else {
+							xlogger.Error("========== Container %s Crash Logs ==========", cStatus.Name)
+							xlogger.Error("%s", logs)
+							xlogger.Error("========== End of Crash Logs ==========")
+						}
+
+						// 连续多次检测到 CrashLoopBackOff，停止重试
+						if currentCount >= maxCrashLoopChecks {
+							xlogger.Error("container %s has been in %s state for %d consecutive checks, stopping retry...",
+								cStatus.Name, reason, currentCount)
+							// 返回致命错误，外层会检测并立即退出重试循环
+							return &FatalError{
+								ContainerName: cStatus.Name,
+								Reason:        reason,
+								CheckCount:    currentCount,
+								Message:       cStatus.State.Waiting.Message,
+							}
+						}
+					} else {
+						// 如果容器状态不是 CrashLoopBackOff，重置该容器的计数器
+						crashLoopCounts[cStatus.Name] = 0
+					}
+				}
+
+				// 检测容器 crash 状态 - 重启次数检查
+				if cStatus.RestartCount > 2 {
+					// 容器反复重启，抓取日志（使用 xlogger 输出到前端）
+					xlogger.Warn("container %s has restarted %d times (not ready), fetching logs...",
+						cStatus.Name, cStatus.RestartCount)
+
+					// 输出 Pod 中所有容器的镜像信息
+					containersInfo := k.getPodContainersInfo(podI)
+					xlogger.Error("%s", containersInfo)
+
+					logs, logErr := k.getContainerLogs(k.BaseInfo.PodName, cStatus.Name, 200)
+					if logErr != nil {
+						xlogger.Error("failed to get logs for container %s: %s", cStatus.Name, logErr.Error())
+					} else {
+						xlogger.Error("========== Container %s Crash Logs (last 200 lines) ==========", cStatus.Name)
+						xlogger.Error("%s", logs)
+						xlogger.Error("========== End of Container %s Logs ==========", cStatus.Name)
+					}
+				}
+
 				return fmt.Errorf("container %s is not ready", cStatus.Name)
 			}
 			for _, podCondition := range podI.Status.Conditions {
@@ -376,8 +411,32 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 		logger.Info("the pod is ready,ip is %s", podIp)
 		return nil
 	}
-	if err = cmutil.Retry(cmutil.RetryConfig{Times: 120, DelayTime: 2 * time.Second}, fn); err != nil {
-		return err
+
+	// 自定义重试循环，支持检测到致命错误时立即退出
+	for i := 0; i < maxRetries; i++ {
+		lastErr = fn()
+		if lastErr == nil {
+			// 成功，退出循环
+			break
+		}
+
+		// 检查是否为致命错误（CrashLoopBackOff）
+		var fatalErr *FatalError
+		if errors.As(lastErr, &fatalErr) {
+			xlogger.Error("detected fatal error, stopping retry immediately: %s", fatalErr.Error())
+			return fatalErr
+		}
+
+		// 普通错误，继续重试
+		logger.Warn("第%d次重试,函数错误:%s", i, lastErr.Error())
+		if i < maxRetries-1 {
+			time.Sleep(retryDelay)
+		}
+	}
+
+	// 如果最终还是失败，返回错误
+	if lastErr != nil {
+		return errors.Wrap(lastErr, "retries exceeded")
 	}
 	logger.Info("the podIp is %s", podIp)
 	fnc := func() error {
@@ -394,15 +453,79 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 	if err = cmutil.Retry(cmutil.RetryConfig{Times: 60, DelayTime: 1 * time.Second}, fnc); err == nil {
 		model.UpdateTbContainerRecord(k.BaseInfo.PodName)
 	}
-	_, errx := k.DbWork.Db.Exec("create user ADMIN@localhost;")
-	if errx != nil {
-		logger.Error("create user ADMIN@localhost failed %s", errx.Error())
-	}
-	_, errx = k.DbWork.Db.Exec("grant all on *.* to ADMIN@localhost;")
-	if errx != nil {
-		logger.Error("grants user failed %s", errx.Error())
-	}
+	k.doAfterPodCreate()
 	return err
+}
+
+func (k *DbPodSets) doAfterPodCreate() {
+	// Fix: Do not warn if user already exists or grant fails due to already existing privilege
+	_, userErr := k.DbWork.Db.Exec("create user if not exists ADMIN@localhost;")
+	if userErr != nil {
+		logger.Warn("create user ADMIN@localhost failed: %s", userErr.Error())
+	}
+	_, grantErr := k.DbWork.Db.Exec("grant all privileges on *.* to ADMIN@localhost;")
+	if grantErr != nil {
+		logger.Warn("grant privileges to user ADMIN@localhost failed: %s", grantErr.Error())
+	}
+	return
+}
+
+// getContainerLogs 使用 k8s 原生接口获取容器日志
+func (k *DbPodSets) getContainerLogs(podName, containerName string, tailLines int64) (string, error) {
+	podLogOpts := v1.PodLogOptions{
+		Container: containerName,
+		TailLines: &tailLines, // 获取最后 N 行日志
+	}
+
+	req := k.K8S.Cli.CoreV1().Pods(k.K8S.Namespace).GetLogs(podName, &podLogOpts)
+	podLogs, err := req.Stream(context.TODO())
+	if err != nil {
+		return "", err
+	}
+	defer podLogs.Close()
+
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, podLogs)
+	if err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
+}
+
+// getPodContainersInfo 获取 Pod 中所有容器的镜像信息
+func (k *DbPodSets) getPodContainersInfo(podI *v1.Pod) string {
+	var info []string
+	info = append(info, "Pod Containers Information:")
+
+	for _, container := range podI.Spec.Containers {
+		// 查找对应的状态信息
+		var status string
+		var restartCount int32
+		for _, cStatus := range podI.Status.ContainerStatuses {
+			if cStatus.Name == container.Name {
+				switch {
+				case cStatus.Ready:
+					status = "Ready"
+				case cStatus.State.Waiting != nil:
+					status = fmt.Sprintf("Waiting (%s)", cStatus.State.Waiting.Reason)
+				case cStatus.State.Terminated != nil:
+					status = fmt.Sprintf("Terminated (%s)", cStatus.State.Terminated.Reason)
+				default:
+					status = "Not Ready"
+				}
+				restartCount = cStatus.RestartCount
+				break
+			}
+		}
+
+		info = append(info, fmt.Sprintf("  - Container: %s", container.Name))
+		info = append(info, fmt.Sprintf("    Image: %s", container.Image))
+		info = append(info, fmt.Sprintf("    Status: %s", status))
+		info = append(info, fmt.Sprintf("    Restart Count: %d", restartCount))
+	}
+
+	return strings.Join(info, "\n")
 }
 
 // getToleration special  node
@@ -410,7 +533,8 @@ func (k *DbPodSets) getToleration() []v1.Toleration {
 	ts := []v1.Toleration{}
 	for _, item := range config.GAppConfig.SimulationNodeLables {
 		ts = append(ts, v1.Toleration{
-			Key:      item.Key,
+			Key: item.Key,
+
 			Operator: v1.TolerationOpExists,
 		})
 	}
@@ -433,7 +557,7 @@ func (k *DbPodSets) getResourceLimit() v1.ResourceRequirements {
 	return v1.ResourceRequirements{}
 }
 
-func (k *DbPodSets) gettdbctlResourceLimit() v1.ResourceRequirements {
+func (k *DbPodSets) getTdbctlResourceLimit() v1.ResourceRequirements {
 	if !config.IsEmptyTdbctlPodResourceConfig() {
 		return v1.ResourceRequirements{
 			Limits: v1.ResourceList{
@@ -487,29 +611,14 @@ func (k *DbPodSets) generateMyCnfContent(mysqlVersion string) string {
 		lines = append(lines, "default-authentication-plugin=mysql_native_password")
 	}
 
-	// 从数据库获取额外的启动参数
-	dbArgs, err := model.GetStartArgs("mysql", mysqlVersion)
-	if err != nil {
-		logger.Warn("get mysql start args failed %s", err.Error())
-	} else {
-		for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
-			arg = strings.TrimSpace(arg)
-			if lo.IsNotEmpty(arg) {
-				// 去掉 -- 前缀
-				arg = strings.TrimPrefix(arg, "--")
-				lines = append(lines, arg)
-			}
+	for key, val := range k.BackendStartArgs {
+		if lo.IsEmpty(key) {
+			continue
 		}
-	}
-
-	// 添加用户自定义的启动参数
-	for _, arg := range k.BaseInfo.Args {
-		arg = strings.TrimSpace(arg)
-		if lo.IsNotEmpty(arg) {
-			// 去掉 -- 前缀
-			arg = strings.TrimPrefix(arg, "--")
-			lines = append(lines, arg)
+		if strings.TrimSpace(key) == "lower_case_table_names" && strings.TrimSpace(val) == "0" {
+			continue
 		}
+		lines = append(lines, fmt.Sprintf("%s=%s", key, val))
 	}
 
 	// [mysqld-5.7] section - MySQL 5.7 专用配置
@@ -542,10 +651,10 @@ func (k *DbPodSets) createMySQLConfigMap(mysqlVersion string) error {
 
 	_, err := k.K8S.Cli.CoreV1().ConfigMaps(k.K8S.Namespace).Create(context.TODO(), configMap, metav1.CreateOptions{})
 	if err != nil {
-		logger.Error("create configmap %s failed: %s", configMapName, err.Error())
-		return errors.Wrap(err, "create mysql configmap failed")
+		logger.Error("create config map %s failed: %s", configMapName, err.Error())
+		return errors.Wrap(err, "create mysql config map failed")
 	}
-	logger.Info("created configmap %s with my.cnf content", configMapName)
+	logger.Info("created config map %s with my.cnf content", configMapName)
 	return nil
 }
 
@@ -554,10 +663,10 @@ func (k *DbPodSets) deleteConfigMap() error {
 	configMapName := k.getConfigMapName()
 	err := k.K8S.Cli.CoreV1().ConfigMaps(k.K8S.Namespace).Delete(context.TODO(), configMapName, metav1.DeleteOptions{})
 	if err != nil {
-		logger.Warn("delete configmap %s failed: %s", configMapName, err.Error())
+		logger.Warn("delete config map %s failed: %s", configMapName, err.Error())
 		return err
 	}
-	logger.Info("deleted configmap %s", configMapName)
+	logger.Info("deleted config map %s", configMapName)
 	return nil
 }
 
@@ -596,18 +705,14 @@ func (k *DbPodSets) generateBackendMyCnfContent(mysqlVersion string) string {
 		lines = append(lines, "default-authentication-plugin=mysql_native_password")
 	}
 
-	// 从数据库获取额外的启动参数
-	dbArgs, err := model.GetStartArgs("mysql", mysqlVersion)
-	if err != nil {
-		logger.Warn("get mysql start args failed %s", err.Error())
-	} else {
-		for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
-			arg = strings.TrimSpace(arg)
-			if lo.IsNotEmpty(arg) {
-				arg = strings.TrimPrefix(arg, "--")
-				lines = append(lines, arg)
-			}
+	for key, val := range k.BackendStartArgs {
+		if lo.IsEmpty(key) {
+			continue
 		}
+		if strings.TrimSpace(key) == "lower_case_table_names" && strings.TrimSpace(val) == "0" {
+			continue
+		}
+		lines = append(lines, fmt.Sprintf("%s=%s", key, val))
 	}
 
 	// [mysqld-5.7] section
@@ -619,8 +724,15 @@ func (k *DbPodSets) generateBackendMyCnfContent(mysqlVersion string) string {
 }
 
 // generateSpiderMyCnfContent generates my.cnf content for spider container
-func (k *DbPodSets) generateSpiderMyCnfContent() string {
+// idx: Spider 容器的索引，用于分配端口和 server_id
+// spiderStartArgs: 该 Spider 版本的启动参数
+func (k *DbPodSets) generateSpiderMyCnfContent(idx int, spiderStartArgs map[string]string) string {
 	var lines []string
+
+	// 端口从 25000 开始递增
+	port := 25000 + idx
+	// server_id 从 124 开始递增
+	serverId := 124 + idx
 
 	// [client] section
 	lines = append(lines, "[client]")
@@ -636,35 +748,17 @@ func (k *DbPodSets) generateSpiderMyCnfContent() string {
 	lines = append(lines, "log_error=/data1/mysqldata/data/server_error.log")
 	lines = append(lines, "tmpdir=/data1/mysqldata/tmp")
 	lines = append(lines, "socket=/data1/mysqldata/mysql.sock")
-	lines = append(lines, "server_id=124")
-	lines = append(lines, "port=25000")
-	lines = append(lines, "log_bin_trust_function_creators=1")
+	lines = append(lines, fmt.Sprintf("server_id=%d", serverId))
+	lines = append(lines, fmt.Sprintf("port=%d", port))
 	lines = append(lines, "max_allowed_packet=1073741824")
 	lines = append(lines, fmt.Sprintf("character-set-server=%s", k.BaseInfo.Charset))
 
-	// 从数据库获取 spider 额外的启动参数
-	dbArgs, err := model.GetStartArgs("spider", LatestVersion)
-	if err != nil {
-		logger.Warn("get spider start args failed %s", err.Error())
-	} else {
-		for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
-			arg = strings.TrimSpace(arg)
-			if lo.IsNotEmpty(arg) {
-				arg = strings.TrimPrefix(arg, "--")
-				lines = append(lines, arg)
-			}
+	for key, val := range spiderStartArgs {
+		if lo.IsEmpty(key) {
+			continue
 		}
+		lines = append(lines, fmt.Sprintf("%s=%s", key, val))
 	}
-
-	// 添加用户自定义的启动参数
-	for _, arg := range k.BaseInfo.Args {
-		arg = strings.TrimSpace(arg)
-		if lo.IsNotEmpty(arg) {
-			arg = strings.TrimPrefix(arg, "--")
-			lines = append(lines, arg)
-		}
-	}
-
 	// [mysqld-5.7] section
 	lines = append(lines, "")
 	lines = append(lines, "[mysqld-5.7]")
@@ -698,20 +792,12 @@ func (k *DbPodSets) generateTdbctlMyCnfContent() string {
 	lines = append(lines, "max_allowed_packet=1073741824")
 	lines = append(lines, fmt.Sprintf("character-set-server=%s", k.BaseInfo.Charset))
 
-	// 从数据库获取 tdbctl 额外的启动参数
-	dbArgs, err := model.GetStartArgs("tdbctl", LatestVersion)
-	if err != nil {
-		logger.Warn("get tdbctl start args failed %s", err.Error())
-	} else {
-		for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
-			arg = strings.TrimSpace(arg)
-			if lo.IsNotEmpty(arg) {
-				arg = strings.TrimPrefix(arg, "--")
-				lines = append(lines, arg)
-			}
+	for key, val := range k.TdbCtlStartArgs {
+		if lo.IsEmpty(key) {
+			continue
 		}
+		lines = append(lines, fmt.Sprintf("%s=%s", key, val))
 	}
-
 	// [mysqld-5.7] section
 	lines = append(lines, "")
 	lines = append(lines, "[mysqld-5.7]")
@@ -724,6 +810,19 @@ func (k *DbPodSets) generateTdbctlMyCnfContent() string {
 func (k *DbPodSets) createClusterConfigMap(mysqlVersion string) error {
 	configMapName := k.getClusterConfigMapName()
 
+	// 构建 ConfigMap 数据
+	configData := map[string]string{
+		"backend-my.cnf": k.generateBackendMyCnfContent(mysqlVersion),
+		"tdbctl-my.cnf":  k.generateTdbctlMyCnfContent(),
+	}
+
+	// 为每个 Spider 版本生成独立的配置文件
+	for idx, spiderPod := range k.SpiderPods {
+		configKey := fmt.Sprintf("spider-%d-my.cnf", idx)
+		configData[configKey] = k.generateSpiderMyCnfContent(idx, spiderPod.SpiderStartArgs)
+		logger.Info("generated spider config: %s for version: %s", configKey, spiderPod.SpiderVersion)
+	}
+
 	configMap := &v1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ConfigMap",
@@ -734,19 +833,15 @@ func (k *DbPodSets) createClusterConfigMap(mysqlVersion string) error {
 			Namespace: k.K8S.Namespace,
 			Labels:    k.BaseInfo.Labels,
 		},
-		Data: map[string]string{
-			"backend-my.cnf": k.generateBackendMyCnfContent(mysqlVersion),
-			"spider-my.cnf":  k.generateSpiderMyCnfContent(),
-			"tdbctl-my.cnf":  k.generateTdbctlMyCnfContent(),
-		},
+		Data: configData,
 	}
 
 	_, err := k.K8S.Cli.CoreV1().ConfigMaps(k.K8S.Namespace).Create(context.TODO(), configMap, metav1.CreateOptions{})
 	if err != nil {
-		logger.Error("create cluster configmap %s failed: %s", configMapName, err.Error())
-		return errors.Wrap(err, "create cluster configmap failed")
+		logger.Error("create cluster config map %s failed: %s", configMapName, err.Error())
+		return errors.Wrap(err, "create cluster config map failed")
 	}
-	logger.Info("created cluster configmap %s", configMapName)
+	logger.Info("created cluster config map %s with %d spider configs", configMapName, len(k.SpiderPods))
 	return nil
 }
 
@@ -755,38 +850,29 @@ func (k *DbPodSets) deleteClusterConfigMap() error {
 	configMapName := k.getClusterConfigMapName()
 	err := k.K8S.Cli.CoreV1().ConfigMaps(k.K8S.Namespace).Delete(context.TODO(), configMapName, metav1.DeleteOptions{})
 	if err != nil {
-		logger.Warn("delete cluster configmap %s failed: %s", configMapName, err.Error())
+		logger.Warn("delete cluster conf igmap %s failed: %s", configMapName, err.Error())
 		return err
 	}
-	logger.Info("deleted cluster configmap %s", configMapName)
+	logger.Info("deleted cluster config map %s", configMapName)
 	return nil
 }
 
-func (k *DbPodSets) getTendbhaPodStartArgs(mysqlVersion string) (args []string) {
-	args = []string{
-		"mysqld",
-		"--defaults-file=/etc/my.cnf",
-		"--skip-log-bin",
-		"--max_allowed_packet=1073741824",
-		fmt.Sprintf("--character-set-server=%s", k.BaseInfo.Charset)}
-	if cmutil.MySQLVersionParse(mysqlVersion) >= cmutil.MySQLVersionParse("8.0.0") {
-		args = append(args, "--default-authentication-plugin=mysql_native_password")
+func (k *DbPodSets) getBackendEnv() []v1.EnvVar {
+	envs := []v1.EnvVar{{
+		Name:  "MYSQL_ROOT_PASSWORD",
+		Value: k.BaseInfo.RootPwd,
+	}}
+	if strings.ToLower(k.BaseInfo.Engine) == app.TokudbEngine {
+		envs = append(envs, v1.EnvVar{
+			Name:  "INIT_TOKUDB",
+			Value: "1",
+		})
 	}
-	dbArgs, err := model.GetStartArgs("mysql", mysqlVersion)
-	if err != nil {
-		logger.Warn("get mysql start args failed %s", err.Error())
-		return
-	}
-	for _, arg := range startArgsSplitRe.Split(dbArgs, -1) {
-		if lo.IsNotEmpty(arg) {
-			args = append(args, strings.TrimSpace(arg))
-		}
-	}
-	return
+	return envs
 }
 
 // CreateMySQLPod create mysql pod
-func (k *DbPodSets) CreateMySQLPod(mysqlVersion string) (err error) {
+func (k *DbPodSets) CreateMySQLPod(mysqlVersion string, xlogger *logger.Logger) (err error) {
 	// 创建 ConfigMap 存储 my.cnf 配置
 	if err = k.createMySQLConfigMap(mysqlVersion); err != nil {
 		return err
@@ -799,7 +885,7 @@ func (k *DbPodSets) CreateMySQLPod(mysqlVersion string) (err error) {
 		"--defaults-file=/etc/my.cnf",
 		"--user=mysql",
 	}
-	logger.Info("start pod args %v, configmap: %s", startArgs, configMapName)
+	logger.Info("start pod args %v, config map: %s", startArgs, configMapName)
 
 	c := &v1.Pod{
 		TypeMeta: metav1.TypeMeta{
@@ -831,10 +917,7 @@ func (k *DbPodSets) CreateMySQLPod(mysqlVersion string) (err error) {
 			Containers: []v1.Container{{
 				Resources: k.getResourceLimit(),
 				Name:      app.MySQL,
-				Env: []v1.EnvVar{{
-					Name:  "MYSQL_ROOT_PASSWORD",
-					Value: k.BaseInfo.RootPwd,
-				}},
+				Env:       k.getBackendEnv(),
 				Ports: []v1.ContainerPort{
 					{ContainerPort: 3306},
 				},
@@ -861,7 +944,7 @@ func (k *DbPodSets) CreateMySQLPod(mysqlVersion string) (err error) {
 		},
 	}
 
-	return k.createpod(c, 3306)
+	return k.createPod(c, 3306, xlogger)
 }
 
 // DeletePod delete pod and associated ConfigMap
@@ -886,21 +969,23 @@ func (k *DbPodSets) getLoadSchemaSQLCmd(bkpath, file string) (cmd string) {
 	// 从中控dump的schema文件,默认是添加了tc_admin=0,需要删除
 	// 因为模拟执行是需要将中控进行sql转发
 	commands = append(commands, fmt.Sprintf("sed -i '/50720 SET tc_admin=0/d' %s", file))
-	// del definer
-	commands = append(commands, fmt.Sprintf("sed -i 's/\\sDEFINER=`[^`]*`@`[^`]*`//g'  %s", file))
+	// del definer: 兼容 DEFINER=`user`@`host`（如 CREATE DEFINER=`ADMIN`@`localhost`）与 DEFINER='user'@'host' 两种格式
+	commands = append(commands, fmt.Sprintf("sed -i 's/[[:space:]]DEFINER=`[^`]*`@`[^`]*`//g' %s", file))
+	commands = append(commands, fmt.Sprintf("sed -i \"s/[[:space:]]DEFINER='[^']*'@'[^']*'//g\" %s", file))
 	commands = append(commands, fmt.Sprintf("mysql -uroot -p%s --default-character-set=%s -vvv < %s", k.BaseInfo.RootPwd,
 		k.BaseInfo.Charset, file))
 	return strings.Join(commands, " && ")
 }
 
-// getLoadSQLCmd get load sql cmd
-func (k *DbPodSets) getLoadSQLCmd(bkpath, file string, dbs []string) (cmd []string) {
-	cmd = append(cmd, k.getDownloadSqlCmd(bkpath, file))
-	for _, db := range dbs {
-		cmd = append(cmd, fmt.Sprintf("mysql --defaults-file=/etc/my.cnf -uroot -p%s --default-character-set=%s -vvv %s < %s",
-			k.BaseInfo.RootPwd, k.BaseInfo.Charset, db, file))
+// getExecuteSQLCmds 获取针对单个数据库的 SQL 执行命令列表
+// 包括清理 DEFINER 和执行 SQL 的命令
+func (k *DbPodSets) getExecuteSQLCmds(file, db string) []string {
+	return []string{
+		fmt.Sprintf("sed -i 's/[[:space:]]DEFINER=`[^`]*`@`[^`]*`//g' %s", file),
+		fmt.Sprintf("sed -i \"s/[[:space:]]DEFINER='[^']*'@'[^']*'//g\" %s", file),
+		fmt.Sprintf("mysql --defaults-file=/etc/my.cnf -uroot -p%s --default-character-set=%s -vvv %s < %s",
+			k.BaseInfo.RootPwd, k.BaseInfo.Charset, db, file),
 	}
-	return cmd
 }
 
 func (k *DbPodSets) getDownloadSqlCmd(bkpath, file string) string {
@@ -915,12 +1000,12 @@ func (k *DbPodSets) getDownloadSqlCmd(bkpath, file string) string {
 func getdownLoadUrl(bkpath, file string) string {
 	endpoint := config.GAppConfig.BkRepo.EndPointUrl
 	project := config.GAppConfig.BkRepo.Project
-	publicbucket := config.GAppConfig.BkRepo.PublicBucket
+	publicBucket := config.GAppConfig.BkRepo.PublicBucket
 	u, err := url.Parse(endpoint)
 	if err != nil {
 		return ""
 	}
-	r, err := url.Parse(path.Join("/generic", project, publicbucket, bkpath, file))
+	r, err := url.Parse(path.Join("/generic", project, publicBucket, bkpath, file))
 	if err != nil {
 		logger.Error(err.Error())
 		return ""

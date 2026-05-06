@@ -148,7 +148,10 @@ func (p *PublishConfig) PublishAndApplyVersioned(db *gorm.DB, isFromApplied bool
 			}
 			cms = append(cms, cm)
 		}
-		if _, err := UpsertConfigItems(db, cms, p.Revision); err != nil {
+		if _, err := UpsertConfigItems(db, cms, p.Revision, p.Versioned.CreatedBy,
+			&api.UpLevelInfo{LevelInfo: map[string]string{
+				"module": "fake",
+			}}); err != nil {
 			return err
 		}
 		// 走 delete version + update + GenAndPublish 流程

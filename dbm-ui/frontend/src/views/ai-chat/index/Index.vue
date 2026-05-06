@@ -1,0 +1,73 @@
+<template>
+  <div
+    v-bk-loading="{ loading: isAgentPingLoading }"
+    class="db-ai-chat-page">
+    <template v-if="!isAgentPingLoading && !isAgentPingError">
+      <BkResizeLayout
+        collapsible
+        :initial-divide="300"
+        style="height: 100%">
+        <template #aside>
+          <AgentList v-model="currentAgent" />
+        </template>
+        <template #main>
+          <AiBlueking
+            v-if="currentAgent"
+            :key="currentAgent.id"
+            ref="aiBlueking"
+            :agent-info="currentAgent" />
+        </template>
+      </BkResizeLayout>
+    </template>
+    <BkException
+      v-if="isAgentPingError"
+      style="margin-top: 100px"
+      type="500">
+      <template #description>
+        <I18nT keypath="蓝鲸 AIDev 服务暂时不可用，请稍后重试 ...">
+          <BkButton
+            text
+            theme="primary"
+            @click="handleRetry">
+            {{ t('重试') }}
+          </BkButton>
+        </I18nT>
+      </template>
+    </BkException>
+  </div>
+</template>
+<script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
+  import { getAgentPing, getAgentScene } from '@services/source/ai';
+
+  import AgentList from './components/agent-list.vue';
+  import AiBlueking from './components/ai-blueking.vue';
+
+  const { t } = useI18n();
+
+  const isAgentPingError = ref(false);
+
+  const { loading: isAgentPingLoading, runAsync: runAgentPing } = useRequest(getAgentPing, {
+    onError: () => {
+      isAgentPingError.value = true;
+    },
+    onSuccess: () => {
+      isAgentPingError.value = false;
+    },
+  });
+
+  const currentAgent = ref<{ group: string } & ServiceReturnType<typeof getAgentScene>['workbench'][string][number]>();
+
+  const handleRetry = () => {
+    runAgentPing();
+  };
+</script>
+<style lang="postcss">
+  .db-ai-chat-page {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+  }
+</style>

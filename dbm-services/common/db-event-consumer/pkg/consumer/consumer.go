@@ -13,6 +13,7 @@ import (
 	"errors"
 	"log/slog"
 	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/Shopify/sarama"
@@ -33,6 +34,7 @@ type AnySinker struct {
 	strictSchema bool
 }
 
+// Setup run default migrate or custom migrate
 func (s *AnySinker) Setup(sarama.ConsumerGroupSession) error {
 	var err error
 	if s.Sinker.RuntimeConfig.SkipMigrateSchema || !s.strictSchema {
@@ -43,6 +45,20 @@ func (s *AnySinker) Setup(sarama.ConsumerGroupSession) error {
 	} else {
 		err = s.dsWriter.AutoMigrate(s.modelObject)
 	}
+
+	// 如果遇到错误，上报 fatal_errors 指标
+	if err != nil {
+		metrics := base.GetTopicMetrics()
+		topic := s.Sinker.RuntimeConfig.Topic
+		modelTable := s.Sinker.RuntimeConfig.ModelTable
+		writer := s.Sinker.RuntimeConfig.Datasource
+		groupID := s.Sinker.RuntimeConfig.Topic + s.Sinker.RuntimeConfig.GroupIdSuffix
+		metrics.RecordFatalError(topic, modelTable, writer, groupID, "setup_error")
+		slog.Error("setup failed", slog.Any("error", err),
+			slog.String("topic", topic),
+			slog.String("model_table", modelTable))
+	}
+
 	return err
 }
 
@@ -73,18 +89,22 @@ func (s *AnySinker) ConsumeClaim(session sarama.ConsumerGroupSession, claim sara
 			if len(msgs) > 0 {
 				if err := s.HandleMessageTryBatch(msgs, s.Sinker); err != nil {
 					slog.Error("handle message batch",
-						slog.Any("error", err), slog.String("model", s.modelType.Name()))
+						slog.Any("error", err), slog.String("table", s.Sinker.RuntimeConfig.ModelTable))
 				} else {
 					session.MarkMessage(msgs[len(msgs)-1], "")
 				}
 				msgs = msgs[:0]
 			}
 		case message := <-claim.Messages():
+			if message == nil {
+				// channel 已关闭，应该退出或跳过
+				continue
+			}
 			msgs = append(msgs, message)
 			if len(msgs) >= BatchSize {
 				if err := s.HandleMessageTryBatch(msgs, s.Sinker); err != nil {
 					slog.Error("handle message batch",
-						slog.Any("error", err), slog.String("model", s.modelType.Name()))
+						slog.Any("error", err), slog.String("table", s.Sinker.RuntimeConfig.ModelTable))
 					time.Sleep(200 * time.Millisecond)
 				} else {
 					session.MarkMessage(message, "")
@@ -99,26 +119,49 @@ func (s *AnySinker) ConsumeClaim(session sarama.ConsumerGroupSession, claim sara
 
 // HandleMessageTryBatch 先尝试批量写入到 db，如果失败，再尝试单条写入
 func (s *AnySinker) HandleMessageTryBatch(msgs []*sarama.ConsumerMessage, sk *Sinker) error {
-	if !s.strictSchema {
-		return s.HandleMessagesMapper(msgs, sk)
-	}
-	if s.dsWriter.Type() == "mysql_xorm" {
-		return s.HandleMessagesXorm(msgs, sk)
-	}
-	err := s.HandleMessages(msgs, sk)
-	if err != nil {
-		err = nil
-		for _, msg := range msgs {
-			if err2 := s.HandleMessages([]*sarama.ConsumerMessage{msg}, sk); err2 != nil {
-				slog.Error("handle message", err2)
-				err = errors.Join(err, err2)
+	// 获取指标收集器
+	metrics := base.GetTopicMetrics()
+
+	// 获取标签信息
+	topic := sk.RuntimeConfig.Topic
+	modelTable := sk.RuntimeConfig.ModelTable
+	writer := sk.RuntimeConfig.Datasource
+	groupID := sk.RuntimeConfig.Topic + sk.RuntimeConfig.GroupIdSuffix
+
+	// 记录消费尝试和消息数量
+	metrics.RecordConsumeAttempt(topic, modelTable, writer, groupID, len(msgs))
+
+	var err error
+	if s.Sinker.RuntimeConfig.BkDataId > 0 {
+		err = s.HandleMessagesBklogGorm(msgs, sk)
+	} else if !s.strictSchema {
+		err = s.HandleMessagesMapper(msgs, sk)
+	} else if s.dsWriter.Type() == "mysql_xorm" {
+		err = s.HandleMessagesXorm(msgs, sk)
+	} else {
+		err = s.HandleMessages(msgs, sk)
+		if err != nil {
+			err = nil
+			for _, msg := range msgs {
+				if err2 := s.HandleMessages([]*sarama.ConsumerMessage{msg}, sk); err2 != nil {
+					slog.Error("handle message", err2)
+					err = errors.Join(err, err2)
+				}
 			}
 		}
-		return err
 	}
-	return nil
+
+	// 记录消费结果
+	if err != nil {
+		metrics.RecordConsumeFailed(topic, modelTable, writer, groupID)
+	} else {
+		metrics.RecordConsumeSuccess(topic, modelTable, writer, groupID)
+	}
+
+	return err
 }
 
+// HandleMessages for gorm, gorm 主要是 migrate 方便
 func (s *AnySinker) HandleMessages(msgs []*sarama.ConsumerMessage, sk *Sinker) error {
 	if len(msgs) == 0 {
 		return nil
@@ -141,7 +184,6 @@ func (s *AnySinker) HandleMessages(msgs []*sarama.ConsumerMessage, sk *Sinker) e
 		}
 		result = reflect.Append(result, objValue.Elem())
 	}
-	//return nil
 	if creator, ok := s.modelObject.(base.CustomCreator); ok {
 		err = creator.Create(result.Interface(), s.dsWriter)
 	} else {
@@ -174,6 +216,8 @@ func (s *AnySinker) HandleMessagesXorm(msgs []*sarama.ConsumerMessage, sk *Sinke
 	return nil
 }
 
+// HandleMessagesMapper map 形式，根据 map key拼成 sql 写入。不关心表结构
+// 如果表结构上字段不存在，会报错。要结合 AutoMigrate 使用
 func (s *AnySinker) HandleMessagesMapper(msgs []*sarama.ConsumerMessage, sk *Sinker) error {
 	if len(msgs) == 0 {
 		return nil
@@ -194,4 +238,135 @@ func (s *AnySinker) HandleMessagesMapper(msgs []*sarama.ConsumerMessage, sk *Sin
 		return err
 	}
 	return nil
+}
+
+// HandleMessagesBklog bklog 需要解包处理
+func (s *AnySinker) HandleMessagesBklog(msgs []*sarama.ConsumerMessage, sk *Sinker) error {
+	if len(msgs) == 0 {
+		return nil
+	}
+	var objs []base.ModelSinker
+	for _, message := range msgs {
+		// slog.Debug("process message", slog.String("Value", string(message.Value)))
+		var msg base.MessageWrapper
+		err := json.Unmarshal(message.Value, &msg)
+		if err != nil {
+			slog.Error("unmarshal message", err)
+			continue
+		}
+		for _, item := range msg.Items {
+			unquoteData, err := strconv.Unquote(string(item.Data))
+			if err != nil {
+				slog.Error("unquote message payload", err)
+				continue
+			}
+			obj := reflect.New(s.modelType).Interface()
+
+			err = json.Unmarshal([]byte(unquoteData), &obj)
+			if err != nil {
+				slog.Error("unmarshal task object", err, slog.Any("msg", unquoteData))
+				return err
+			}
+
+			objs = append(objs, obj.(base.ModelSinker))
+		}
+	}
+	var err error
+	if creator, ok := s.modelObject.(base.CustomCreator); ok {
+		err = creator.Create(objs, s.dsWriter)
+	} else {
+		err = s.dsWriter.WriteBatch(s.modelObject, objs)
+	}
+	return err
+}
+
+// HandleMessagesBklogGorm bklog 需要解包处理
+func (s *AnySinker) HandleMessagesBklogGorm(msgs []*sarama.ConsumerMessage, sk *Sinker) error {
+	if len(msgs) == 0 {
+		return nil
+	}
+	// 创建目标切片
+	sliceType := reflect.SliceOf(s.modelType)
+	result := reflect.MakeSlice(sliceType, 0, 0)
+	for _, message := range msgs {
+		// slog.Debug("process message", slog.String("Value", string(message.Value)))
+		var msg base.MessageWrapper
+
+		err := json.Unmarshal(message.Value, &msg)
+		if err != nil {
+			slog.Error("unmarshal message", err)
+			continue
+		}
+
+		for _, item := range msg.Items {
+			objValue := reflect.New(s.modelType)
+			obj := objValue.Interface()
+
+			if bklogItem, ok := obj.(base.BklogUnmarshalItem); ok {
+				err = bklogItem.UnmarshalItem(item.Data, msg)
+				if err != nil {
+					// slog.Error("unmarshal bklog item", err)
+					continue
+				}
+				result = reflect.Append(result, objValue.Elem())
+			} else { // json
+				unquoteData, err := strconv.Unquote(string(item.Data))
+				if err != nil {
+					slog.Error("unquote message payload", err)
+					continue
+				}
+
+				err = json.Unmarshal([]byte(unquoteData), &obj)
+				if err != nil {
+					slog.Error("unmarshal task object", err, slog.Any("msg", unquoteData))
+					return err
+				}
+				result = reflect.Append(result, objValue.Elem())
+			}
+		}
+	}
+	if result.Len() == 0 {
+		return nil
+	}
+	var err error
+	if creator, ok := s.modelObject.(base.CustomCreator); ok {
+		err = creator.Create(result.Interface(), s.dsWriter)
+	} else {
+		err = s.dsWriter.WriteBatch(s.modelObject, result.Interface())
+	}
+	return err
+}
+
+// HandleMessagesBklogMapper bklog 需要解包处理
+func (s *AnySinker) HandleMessagesBklogMapper(msgs []*sarama.ConsumerMessage, sk *Sinker) error {
+	if len(msgs) == 0 {
+		return nil
+	}
+	var objs []map[string]interface{}
+	for _, message := range msgs {
+		slog.Debug("process message", slog.String("Value", string(message.Value)))
+		var msg base.MessageWrapper
+		err := json.Unmarshal(message.Value, &msg)
+		if err != nil {
+			slog.Error("unmarshal message", err)
+			continue
+		}
+		for _, item := range msg.Items {
+			unquoteData, err := strconv.Unquote(string(item.Data))
+			if err != nil {
+				slog.Error("unquote message payload", err)
+				continue
+			}
+			var obj map[string]interface{}
+			// map 形式，无法正确处理时区问题
+			err = json.Unmarshal([]byte(unquoteData), &obj)
+			if err != nil {
+				slog.Error("unmarshal task object", err, slog.Any("msg", unquoteData))
+				return err
+			}
+			objs = append(objs, obj)
+		}
+	}
+	err := s.dsWriter.WriteBatch(s.modelObject, objs)
+	return err
 }

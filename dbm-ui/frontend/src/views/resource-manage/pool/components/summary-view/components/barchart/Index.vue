@@ -121,7 +121,7 @@
   .bar-chart {
     transform: translate(0, 0);
 
-    :deep(.db-card__content) {
+    :deep(.db-card-content) {
       padding: 0 22px;
     }
 

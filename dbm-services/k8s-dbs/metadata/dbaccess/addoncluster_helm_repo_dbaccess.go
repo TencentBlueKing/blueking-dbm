@@ -23,6 +23,7 @@ import (
 	commentity "k8s-dbs/common/entity"
 	metaenitty "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -42,6 +43,22 @@ type AddonClusterHelmRepoDbAccess interface {
 // AddonClusterHelmRepoDbAccessImpl AddonClusterHelmRepoDbAccess 的具体实现
 type AddonClusterHelmRepoDbAccessImpl struct {
 	db *gorm.DB
+}
+
+var (
+	acHelmRepoInstance AddonClusterHelmRepoDbAccess
+	acHelmRepoOnce     sync.Once
+)
+
+// GetAcHelmRepoDbAccess 获取 AddonClusterHelmRepoDbAccess 单例实例
+func GetAcHelmRepoDbAccess(db *gorm.DB) AddonClusterHelmRepoDbAccess {
+	acHelmRepoOnce.Do(func() {
+		acHelmRepoInstance = &AddonClusterHelmRepoDbAccessImpl{db: db}
+	})
+	if acHelmRepoInstance == nil {
+		panic("AddonClusterHelmRepoDbAccess instance is nil after initialization")
+	}
+	return acHelmRepoInstance
 }
 
 // Create 创建接口实现
@@ -110,9 +127,4 @@ func (a *AddonClusterHelmRepoDbAccessImpl) ListByPage(pagination commentity.Pagi
 		return nil, 0, errors.Wrapf(err, "failed to list addon cluster helm repo with pagination %+v", pagination)
 	}
 	return releaseModels, int64(len(releaseModels)), nil
-}
-
-// NewAddonClusterHelmRepoDbAccess 创建 AddonClusterHelmRepoDbAccess 接口实现实例
-func NewAddonClusterHelmRepoDbAccess(db *gorm.DB) AddonClusterHelmRepoDbAccess {
-	return &AddonClusterHelmRepoDbAccessImpl{db: db}
 }

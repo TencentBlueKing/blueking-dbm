@@ -24,8 +24,21 @@
 
 package probe
 
+import "dbm-services/common/dbha-v2/internal/probe/cmds"
+
 var (
 	ConfigFilePath = ""
-	StopTimeout    = uint(5)
-	ForceStop      = false
 )
+
+func init() {
+	StopCmd.Flags().BoolVarP(&cmds.ForceStop, "force", "f", false, "Force stop the process")
+	StopCmd.Flags().IntVarP(&cmds.StopTimeout, "timeout", "t", 30, "Timeout in seconds for graceful stop")
+
+	RestartCmd.Flags().BoolVarP(&cmds.ForceStop, "force", "f", false, "Force stop the process")
+	RestartCmd.Flags().IntVarP(&cmds.StopTimeout, "timeout", "t", 30, "Timeout in seconds for graceful stop")
+
+	ReloadCmd.Flags().BoolVarP(&cmds.ForceStop, "force", "f", false, "Force stop the process")
+	ReloadCmd.Flags().IntVarP(&cmds.StopTimeout, "timeout", "t", 30, "Timeout in seconds for graceful stop")
+
+	HealthCmd.Flags().BoolVarP(&cmds.JsonFormatter, "json", "j", false, "Output in JSON format")
+}

@@ -15,26 +15,27 @@
   <EditableColumn
     v-test="{ type: 'column', value: 'spec' }"
     :field="field"
-    :label="t(label)"
+    :label="renderLabel"
     :min-width="minWidth"
-    :readonly="!selectable"
+    :readonly="readonly"
     :required="required"
-    :rowspan="rowspan">
+    :rowspan="rowspan"
+    :rules="rules">
     <template
       v-if="tooltips"
       #head>
       <div v-bk-tooltips="tooltips">
-        <span class="spec-title">{{ t(label) }}</span>
+        <span class="spec-title">{{ renderLabel }}</span>
       </div>
     </template>
     <template
-      v-if="selectable"
+      v-if="selectable && !onlyShowCurrentSpec"
       #headAppend>
       <BatchEditColumn
         v-model="showBatchEdit"
         :data-list="batchEditSpecList"
         :placeholder="t('请选择')"
-        :title="t(label)"
+        :title="renderLabel"
         type="select"
         @change="handleBatchEditChange">
         <span
@@ -46,7 +47,7 @@
       </BatchEditColumn>
     </template>
     <EditableBlock
-      v-if="!selectable"
+      v-if="readonly"
       v-model="renderSpecName"
       :placeholder="t('自动生成')" />
     <EditableSelect
@@ -122,7 +123,7 @@
     currentSpecIdList: () => [],
     disabledCurrentSpec: false,
     field: 'specId',
-    label: '目标规格',
+    label: '',
     machineType: undefined,
     minWidth: 200,
     onlyShowCurrentSpec: false,
@@ -138,15 +139,31 @@
   /**
    * 绑定当前选择的规格 ID
    */
-  const modelValue = defineModel<number>({
+  const modelValue = defineModel<number | string>({
     required: true,
   });
 
   const { t } = useI18n();
 
+  const rules = [
+    {
+      message: t('规格不能为空'),
+      required: true,
+      trigger: 'blur',
+      validator: (value: number) => {
+        if (!props.required) {
+          return true;
+        }
+        return !!value;
+      },
+    },
+  ];
+
   const specList = ref<ServiceReturnType<typeof getResourceSpecList>['results']>([]);
   const showBatchEdit = ref(false);
 
+  const renderLabel = computed(() => (props.label ? props.label : !props.selectable ? t('当前规格') : t('目标规格')));
+  const readonly = computed(() => !props.selectable);
   const batchEditSpecList = computed(() =>
     specList.value.map((item) => ({
       label: item.spec_name,
@@ -191,10 +208,16 @@
         spec_cluster_type: props.clusterType,
         spec_machine_type: props.machineType,
       };
+      /**
+       * 1.规格不变时，即使规格【已停用】，也需要回显规格名
+       * 2.规格可选时:
+       * 规格来源为集群的当前规格，忽略【启用/停用】标识，显示集群的当前全部规格
+       * 规格来源为全部规格，过滤掉【停用】的规格，显示全部【已启用】的规格
+       */
       if (props.selectable) {
         Object.assign(params, {
           biz_ids: `${window.PROJECT_CONFIG.BIZ_ID}`,
-          enable: true,
+          enable: props.onlyShowCurrentSpec ? undefined : true,
         });
       }
       fetchData(params);
@@ -205,27 +228,8 @@
   );
 
   // 初始化
-  watch(
-    () => [modelValue.value, props.currentSpecIdList],
-    (newValue, oldValue) => {
-      if (props.selectable && modelValue.value && typeof modelValue.value !== 'string') {
-        const isExist = sortedSpecList.value.some((item) => item.spec_id === modelValue.value);
-        if (!isExist) {
-          modelValue.value = 0;
-          return;
-        }
-      }
-      if (oldValue && _.isEqual(newValue[1], oldValue[1])) {
-        return;
-      }
-      const currentSpecIdList = _.uniq(props.currentSpecIdList);
-      const isSame = currentSpecIdList.length === 1;
-      const [currentSpecId] = currentSpecIdList;
-      // 所有主机规格相同时则默认填充此规格。各主机规格不同时默认值留空。
-      if (!modelValue.value && isSame && currentSpecId && !props.disabledCurrentSpec) {
-        modelValue.value = currentSpecId;
-      }
-
+  watch(sortedSpecList, () => {
+    nextTick(() => {
       // 如果 modelValue 被设置为 字符串 时，若在规格列表中匹配到对应规格则选中（用于批量录入）
       if (modelValue.value && typeof modelValue.value === 'string') {
         const matchedSpecId = sortedSpecList.value.filter(
@@ -233,13 +237,30 @@
         )?.[0]?.spec_id;
         if (matchedSpecId) {
           modelValue.value = matchedSpecId;
+        } else {
+          modelValue.value = '';
         }
+        return;
       }
-    },
-    {
-      immediate: true,
-    },
-  );
+
+      // 如果 modelValue 被设置为 数字 时，若在规格列表中匹配到对应规格则选中,否则重置
+      if (props.selectable && modelValue.value && typeof modelValue.value === 'number') {
+        const isExist = sortedSpecList.value.some((item) => item.spec_id === modelValue.value);
+        if (!isExist) {
+          modelValue.value = '';
+        }
+        return;
+      }
+
+      const currentSpecIdList = _.uniq(props.currentSpecIdList);
+      const isSame = currentSpecIdList.length === 1;
+      const [currentSpecId] = currentSpecIdList;
+      // 所有主机规格相同时则默认填充此规格。各主机规格不同时默认值留空。
+      if (modelValue.value === 0 && isSame && currentSpecId && !props.disabledCurrentSpec) {
+        modelValue.value = currentSpecId;
+      }
+    });
+  });
 
   const handleBatchEditShow = () => {
     showBatchEdit.value = true;

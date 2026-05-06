@@ -23,6 +23,7 @@ import (
 	"k8s-dbs/common/entity"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -42,6 +43,22 @@ type ClusterRequestRecordDbAccess interface {
 // ClusterRequestRecordDbAccessImpl ClusterRequestRecordDbAccess 的具体实现
 type ClusterRequestRecordDbAccessImpl struct {
 	db *gorm.DB
+}
+
+var (
+	clusterRequestInstance ClusterRequestRecordDbAccess
+	clusterRequestOnce     sync.Once
+)
+
+// GetClusterRequestDbAccess 获取 ClusterRequestRecordDbAccess 单例实例
+func GetClusterRequestDbAccess(db *gorm.DB) ClusterRequestRecordDbAccess {
+	clusterRequestOnce.Do(func() {
+		clusterRequestInstance = &ClusterRequestRecordDbAccessImpl{db: db}
+	})
+	if clusterRequestInstance == nil {
+		panic("ClusterRequestRecordDbAccess instance is nil after initialization")
+	}
+	return clusterRequestInstance
 }
 
 // Create 创建元数据接口实现
@@ -93,7 +110,7 @@ func (k *ClusterRequestRecordDbAccessImpl) ListByPage(
 ) {
 	var recordModels []*metamodel.ClusterRequestRecordModel
 	var count int64
-	query := k.db.Debug().Model(&metamodel.ClusterRequestRecordModel{})
+	query := k.db.Model(&metamodel.ClusterRequestRecordModel{})
 	if params.K8sClusterName != "" {
 		query = query.Where("k8s_cluster_name = ?", params.K8sClusterName)
 	}
@@ -137,9 +154,4 @@ func (k *ClusterRequestRecordDbAccessImpl) ListByPage(
 		return nil, 0, errors.Wrapf(err, "failed to find request record with pagination %+v", pagination)
 	}
 	return recordModels, uint64(count), nil
-}
-
-// NewClusterRequestRecordDbAccess 创建 ClusterRequestRecordDbAccess 接口实现实例
-func NewClusterRequestRecordDbAccess(db *gorm.DB) ClusterRequestRecordDbAccess {
-	return &ClusterRequestRecordDbAccessImpl{db: db}
 }

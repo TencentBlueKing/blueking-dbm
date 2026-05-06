@@ -54,7 +54,7 @@ func (job *Job) getSqDB() {
 	job.Err = job.sqdb.AutoMigrate(&ClusterNodesSchema{})
 	if job.Err != nil {
 		job.Err = fmt.Errorf("ClusterNodesSchema AutoMigrate failed,err:%v", job.Err)
-		mylog.Logger.Info(job.Err.Error())
+		mylog.Logger.Error(job.Err.Error())
 		return
 	}
 }
@@ -100,11 +100,13 @@ func (job *Job) Run() {
 	job.Err = nil
 	job.getSqDB()
 	if job.Err != nil {
+		mylog.Logger.Error(fmt.Sprintf("get sqllite db failed :%+v", job.Err))
 		return
 	}
 	defer job.closeDB()
 	job.getReporter()
 	if job.Err != nil {
+		mylog.Logger.Error(fmt.Sprintf("get reporter failed :%+v", job.Err))
 		return
 	}
 	defer job.Reporter.Close()
@@ -121,6 +123,7 @@ func (job *Job) Run() {
 				Port:         port,
 				sqdb:         job.sqdb,
 				Reporter:     job.Reporter,
+				ConfigRole:   svrItem.MetaRole,
 			}
 			task.RunTask()
 			if task.Err != nil {
@@ -140,6 +143,7 @@ type redisNodeTask struct {
 	IP              string               `json:"ip"`
 	Port            int                  `json:"port"`
 	Password        string               `json:"password"`
+	ConfigRole      string               `json:"config_role"`
 	redisCli        *myredis.RedisClient `json:"-"`
 	sqdb            *gorm.DB             `json:"-"`
 	Reporter        report.Reporter      `json:"-"`
@@ -153,11 +157,13 @@ func (rn *redisNodeTask) RunTask() {
 	var clusterEnabled bool
 	rn.getRedisCli()
 	if rn.Err != nil {
+		mylog.Logger.Error(fmt.Sprintf("get redis conn failed :%+v", rn.Err))
 		return
 	}
 	defer rn.closeRedisCli()
 	clusterEnabled, rn.Err = rn.redisCli.IsClusterEnabled()
 	if rn.Err != nil {
+		mylog.Logger.Error(fmt.Sprintf("get redis info failed :%+v", rn.Err))
 		return
 	}
 	if !clusterEnabled {
@@ -176,6 +182,7 @@ func (rn *redisNodeTask) RunTask() {
 	}
 	rn.dbReplaceClusterNodes()
 	if rn.Err != nil {
+		mylog.Logger.Error(fmt.Sprintf("replace into sqllite failed :%+v", rn.Err))
 		return
 	}
 	rn.NodesHaveUpdate = true
@@ -255,6 +262,17 @@ func (rn *redisNodeTask) isMyselfHaveSlots() bool {
 	if rn.Err != nil {
 		return false
 	}
+
+	// 运行的角色和配置的角色不一致时，也要更新下
+	if selfNode.Role == consts.RedisMasterRole && rn.ConfigRole == "redis_slave" {
+		mylog.Logger.Info(fmt.Sprintf("current myrole: %s , but confied: %s", selfNode.Role, rn.ConfigRole))
+		return true
+	}
+	if selfNode.Role == consts.RedisSlaveRole && rn.ConfigRole == "redis_master" {
+		mylog.Logger.Info(fmt.Sprintf("current myrole: %s , but confied: %s", selfNode.Role, rn.ConfigRole))
+		return true
+	}
+	// 不是Master ， 我不管，
 	if selfNode.Role != consts.RedisMasterRole {
 		return false
 	}
@@ -280,17 +298,20 @@ func (rn *redisNodeTask) isClusterNodesUpdated() bool {
 	// 3. 拼接字符串: NodeID,IP,Port,Role,LinkState
 	currNodesStr := rn.getNodesJoinStr(currNodes)
 	if rn.Err != nil {
+		mylog.Logger.Error(fmt.Sprintf("concat str failed by :%+v", rn.Err))
 		return false
 	}
 	mylog.Logger.Debug(fmt.Sprintf("isClusterNodesUpdated currNodesStr:%s", currNodesStr))
 	// 4. 从数据库中获取旧的 cluster nodes, 同样根据NodeID排序, 拼接字符串
 	oldNodesStr := rn.getOldNodesJoinStr()
 	if rn.Err != nil {
+		mylog.Logger.Error(fmt.Sprintf("get old str failed by :%+v", rn.Err))
 		return false
 	}
 	mylog.Logger.Debug(fmt.Sprintf("isClusterNodesUpdated oldNodesStr:%s", oldNodesStr))
 	// 5. 对比两个字符串是否相同
 	if currNodesStr == oldNodesStr {
+		mylog.Logger.Info(fmt.Sprintf("cluster status not changed : will skip. upload status."))
 		return false
 	}
 	return true

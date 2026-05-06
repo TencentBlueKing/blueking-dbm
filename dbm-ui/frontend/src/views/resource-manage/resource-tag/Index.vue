@@ -95,11 +95,11 @@
   import type { getBizs } from '@services/source/cmdb';
   import { deleteTag, getTagRelatedResource, listTag, updateTag, validateTag } from '@services/source/tag';
 
+  import { useGlobalBizs } from '@stores';
+
   import DbAppSelect from '@components/db-app-select/Index.vue';
 
   import { getSearchSelectorParams, messageSuccess } from '@utils';
-
-  import { useGlobalBizs } from '@/stores';
 
   import CreateTag from './components/CreateTag.vue';
   import EditableCell from './components/EditableCell.vue';
@@ -159,10 +159,10 @@
           data.value
         ) : (
           <EditableCell
-            data={data}
-            editId={curEditId.value}
             onBlur={handleBlur}
             onEdit={handleEdit}
+            data={data}
+            editId={curEditId.value}
           />
         ),
     },
@@ -207,11 +207,11 @@
       label: t('操作'),
       render: ({ data }: { data: ResourceTagModel }) => (
         <BKPopConfirm
-          ext-cls='content-wrapper'
+          onConfirm={() => handleDelete(data)}
+          ext-cls='tag-delelte-popconfirm-content-wrapper'
           title={t('确认删除该标签值？')}
           trigger='click'
-          width={280}
-          onConfirm={() => handleDelete(data)}>
+          width={280}>
           {{
             content: () => (
               <>
@@ -229,8 +229,8 @@
                   disabled: !bindIpMap.value.get(data.id),
                 }}
                 disabled={!!bindIpMap.value.get(data.id)}
-                theme='primary'
-                text>
+                text
+                theme='primary'>
                 {t('删除')}
               </Button>
             ),
@@ -453,7 +453,7 @@
     }
   }
 
-  .content-wrapper {
+  .tag-delelte-popconfirm-content-wrapper {
     .bk-pop-confirm-title {
       font-size: 16px !important;
       color: #313238 !important;

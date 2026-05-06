@@ -18,6 +18,9 @@ export function useBatchCreateTicket<T>(ticketType: TicketTypes) {
     try {
       loading.value = true;
       const res = await createTicketBatch({ tickets });
+
+      window.changeConfirm = false;
+
       const toolboxResultMap = {
         MONGODB: 'DbaManageMongodbToolboxResult',
         MYSQL: 'DbaManageMysqlToolboxResult',

@@ -78,16 +78,18 @@ class TaskFlowHandler:
 
         return result
 
-    def retry_node(self, node_id: str, operator: str):
+    def retry_node(self, node_id: str, operator: str, remark: str = "", is_force: bool = False):
         """重试节点"""
-        flow = FlowNodeOperateRecord.insert_record(node_id, operator, FlowNodeOperateType.RETRY, root_id=self.root_id)
-        return task.retry_node(root_id=self.root_id, flow_node=flow, retry_times=1)
+        operate_type = FlowNodeOperateType.FORCE_RETRY if is_force else FlowNodeOperateType.RETRY
+        flow = FlowNodeOperateRecord.insert_record(node_id, operator, operate_type, remark, root_id=self.root_id)
+        return task.retry_node(root_id=self.root_id, flow_node=flow, retry_times=1, is_force=is_force)
 
-    def skip_node(self, node_id: str, operator: str):
+    def skip_node(self, node_id: str, operator: str, remark: str = "", is_force: bool = False):
         """跳过节点"""
-        FlowNodeOperateRecord.insert_record(node_id, operator, FlowNodeOperateType.SKIP, root_id=self.root_id)
+        operate_type = FlowNodeOperateType.FORCE_SKIP if is_force else FlowNodeOperateType.SKIP
+        FlowNodeOperateRecord.insert_record(node_id, operator, operate_type, remark, root_id=self.root_id)
 
-        result = BambooEngine(root_id=self.root_id).skip_node(node_id=node_id)
+        result = BambooEngine(root_id=self.root_id).skip_node(node_id=node_id, is_force=is_force)
         if not result.result:
             raise SkipNodeException(",".join(result.exc.args))
 
@@ -103,7 +105,15 @@ class TaskFlowHandler:
 
         return result
 
-    def batch_operate_nodes(self, func: Callable, node_status: StateType, operator: str, some_nodes: List[str] = None):
+    def batch_operate_nodes(
+        self,
+        func: Callable,
+        node_status: StateType,
+        operator: str,
+        some_nodes: List[str] = None,
+        is_force: bool = False,
+        remark: str = "",
+    ):
         """批量操作节点"""
         node_ids = self.get_specific_node_ids(status=node_status)
         # 支持部分节点重试
@@ -113,7 +123,10 @@ class TaskFlowHandler:
         errors = []
         for node_id in node_ids:
             try:
-                func(node_id, operator)
+                if is_force:
+                    func(node_id, operator, is_force=is_force, remark=remark)
+                else:
+                    func(node_id, operator)
             except Exception as err:
                 errors.append(f"{node_id} operate failed, err is {err}")
 
@@ -121,17 +134,17 @@ class TaskFlowHandler:
             success, fail = len(node_ids) - len(errors), len(errors)
             raise OperateNodeException(_("成功{}个节点, 失败{}个节点, 错误信息:{}").format(success, fail, errors))
 
-    def batch_retry_nodes(self, operator: str, some_nodes: List[str] = None):
+    def batch_retry_nodes(self, operator: str, some_nodes: List[str] = None, is_force: bool = False, remark: str = ""):
         """批量重试节点"""
-        self.batch_operate_nodes(self.retry_node, StateType.FAILED, operator, some_nodes)
+        self.batch_operate_nodes(self.retry_node, StateType.FAILED, operator, some_nodes, is_force, remark)
 
     def batch_force_fail_nodes(self, operator: str, some_nodes: List[str] = None):
         """批量强制失败节点"""
         self.batch_operate_nodes(self.force_fail_node, StateType.RUNNING, operator, some_nodes)
 
-    def batch_skip_nodes(self, operator: str, some_nodes: List[str] = None):
+    def batch_skip_nodes(self, operator: str, some_nodes: List[str] = None, is_force: bool = False, remark: str = ""):
         """批量强制失败节点"""
-        self.batch_operate_nodes(self.skip_node, StateType.FAILED, operator, some_nodes)
+        self.batch_operate_nodes(self.skip_node, StateType.FAILED, operator, some_nodes, is_force, remark)
 
     def callback_node(self, node_id: str, desc: Optional[Any]):
         """回调节点"""
@@ -151,7 +164,7 @@ class TaskFlowHandler:
         获取特定状态节点ID列表
         """
         node_ids = []
-        tree_states = BambooEngine(root_id=self.root_id).get_pipeline_tree_states()
+        tree_states = BambooEngine(root_id=self.root_id).get_pipeline_tree_states() or {}
         activities = tree_states.get("activities", {})
 
         def recurse_activities(current_activities):
@@ -165,6 +178,30 @@ class TaskFlowHandler:
 
         recurse_activities(activities)
         return node_ids
+
+    def get_specific_nodes(self, status: StateType, with_node_name: bool = False) -> List[Dict[str, str]]:
+        """
+        获取特定状态节点详情（节点ID、版本ID、可选节点名称）
+        """
+        # 获取特定状态节点ID列表
+        node_ids = self.get_specific_node_ids(status=status)
+        if not node_ids:
+            return []
+
+        # 获取节点版本ID映射
+        nodes = FlowNode.objects.filter(root_id=self.root_id, node_id__in=node_ids)
+        version_map = {node.node_id: node.version_id for node in nodes}
+
+        # 获取节点名称映射
+        name_map = {}
+        if with_node_name:
+            engine = BambooEngine(root_id=self.root_id)
+            engine.recursion_activity_name(engine.get_pipeline_tree()["activities"], name_map)
+
+        return [
+            {"node_id": node_id, "version_id": version_map.get(node_id), "node_name": name_map.get(node_id, "")}
+            for node_id in node_ids
+        ]
 
     def get_node_histories(self, node_id: str) -> List[Dict[str, Any]]:
         """获取节点历史版本信息"""
@@ -245,7 +282,7 @@ class TaskFlowHandler:
         )
         return resp["hits"]["hits"]
 
-    def get_version_logs(self, node_id: str, version_id: str) -> List[Dict[str, Dict[str, str]]]:
+    def get_version_logs(self, node_id: str, version_id: str, label_filters: list = None) -> List[Dict[str, Dict]]:
         """获取节点的日志信息"""
         if not FlowNode.objects.filter(root_id=self.root_id, node_id=node_id).count():
             return [self.generate_log_record(message=_("节点尚未运行，请稍后查看"))]
@@ -297,17 +334,19 @@ class TaskFlowHandler:
 
         for hit in sorted_hits:
             log = self._format_log(hit["_source"]["log"], hit["_source"]["serverIp"], hit["_index"])
-            if log:
-                logs.append(
-                    self.generate_log_record(
-                        timestamp=hit["_source"].get("time"), levelname=log["levelname"], message=log["log"]
-                    )
+            # 日志不存在，或者在过滤标签里面，则忽略
+            if not log or (label_filters and log.get("label") in label_filters):
+                continue
+            logs.append(
+                self.generate_log_record(
+                    timestamp=hit["_source"].get("time"), levelname=log["levelname"], message=log["log"]
                 )
+            )
         if not logs:
             return [self.generate_log_record(message=_("日志上报中，请稍后查看"))]
         return logs
 
-    def get_version_error_logs(self, node_id: str, version_id: str) -> List[Dict[str, Dict[str, str]]]:
+    def get_version_error_logs_for_dbactuator(self, node_id: str, version_id: str) -> List[Dict[str, Dict[str, str]]]:
         """仅获取指定节点版本的错误级别日志
 
         参考 get_version_logs 的实现，但仅查询 dbactuator 采集的日志，并增加 levelname:error 过滤。
@@ -355,18 +394,6 @@ class TaskFlowHandler:
                         timestamp=hit["_source"].get("time"), levelname=log["levelname"], message=log["log"]
                     )
                 )
-
-        if not logs:
-            # 兜底：拉取全部日志并基于level过滤，以兼容清洗差异
-            all_logs = self.get_version_logs(node_id, version_id)
-            error_only = [
-                rec
-                for rec in all_logs
-                if rec.get("levelname") and str(rec["levelname"]).upper() not in (LogLevelName.INFO.value, "DEBUG")
-            ]
-            if not error_only:
-                return [self.generate_log_record(message=_("暂无错误日志"))]
-            return error_only
         return logs
 
     @staticmethod
@@ -395,7 +422,7 @@ class TaskFlowHandler:
         if levelname == LogLevelName.DEBUG.value:
             # 不暴露debug日志给用户
             return
-        if levelname == LogLevelName.INFO.value:
+        if levelname in [LogLevelName.INFO.value]:
             # 目前前端组件不支持自定义配色，暂时由后端处理INFO日志，不添加 ## 标签则展示白色
             # TODO 待前端组件优化后可去掉此段处理
             log = f"{prefix}: {format_json_string(log['msg'])}"

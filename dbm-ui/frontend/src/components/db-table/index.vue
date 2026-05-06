@@ -58,9 +58,10 @@
               <BkPopover
                 v-if="showSelectAllPage"
                 :arrow="false"
+                click-content-auto-hide
                 placement="bottom-start"
                 theme="light db-table-select-menu"
-                trigger="hover">
+                trigger="click">
                 <template #default>
                   <DbIcon
                     class="select-menu-flag"
@@ -286,9 +287,10 @@
               ),
             }}
             arrow={false}
+            click-content-auto-hide={true}
             placement='bottom-start'
             theme='light db-table-select-menu'
-            trigger='hover'></bk-popover>
+            trigger='click'></bk-popover>
         </div>
       );
     },
@@ -486,6 +488,7 @@
         })
         .finally(() => {
           isLoading.value = false;
+          emits('requestFinished', tableData.value.results);
         });
     });
   };
@@ -800,8 +803,8 @@
 
       &::after {
         position: absolute;
-        top: 2px;
-        left: 5px;
+        top: 1px;
+        left: 4px;
         width: 4px;
         height: 8px;
         border: 2px solid #3a84ff;

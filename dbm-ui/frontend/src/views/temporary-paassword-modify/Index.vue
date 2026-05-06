@@ -82,7 +82,7 @@
 
   import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
 
-  import InstanceList from './components/form-item/InstanceList.vue';
+  import InstanceList, { type IRowData } from './components/form-item/InstanceList.vue';
   import ValidDuration from './components/form-item/ValidDuration.vue';
   import RenderPasswordInstance from './components/render-passwrod-instance/Index.vue';
   import UpdateResult from './components/UpdateResult.vue';
@@ -90,7 +90,7 @@
   const { t } = useI18n();
 
   const createDefaultData = () => ({
-    instanceList: [] as { bk_cloud_id: number; cluster_type: ClusterTypes; ip: string; port: number; role: string }[],
+    instanceList: [] as IRowData[],
     password: '',
     validDuration: 1,
     validDurationType: 'day',

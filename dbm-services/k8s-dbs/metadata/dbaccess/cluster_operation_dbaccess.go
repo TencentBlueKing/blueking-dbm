@@ -22,6 +22,7 @@ package dbaccess
 import (
 	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -37,6 +38,22 @@ type ClusterOperationDbAccess interface {
 // ClusterOperationDbAccessImpl ClusterOperationDbAccess 的具体实现
 type ClusterOperationDbAccessImpl struct {
 	db *gorm.DB
+}
+
+var (
+	clusterOperationInstance ClusterOperationDbAccess
+	clusterOperationOnce     sync.Once
+)
+
+// GetClusterOperationDbAccess 获取 ClusterOperationDbAccess 单例实例
+func GetClusterOperationDbAccess(db *gorm.DB) ClusterOperationDbAccess {
+	clusterOperationOnce.Do(func() {
+		clusterOperationInstance = &ClusterOperationDbAccessImpl{db: db}
+	})
+	if clusterOperationInstance == nil {
+		panic("ClusterOperationDbAccess instance is nil after initialization")
+	}
+	return clusterOperationInstance
 }
 
 // Create 创建 cluster operation 元数据接口实现
@@ -61,9 +78,4 @@ func (c *ClusterOperationDbAccessImpl) ListByPage(pagination entity.Pagination) 
 		return nil, 0, errors.Wrapf(err, "Failed to list cluster operations with pagination %+v", pagination)
 	}
 	return opsModels, int64(len(opsModels)), nil
-}
-
-// NewClusterOperationDbAccess 创建 ClusterOperationDbAccess 接口实现实例
-func NewClusterOperationDbAccess(db *gorm.DB) ClusterOperationDbAccess {
-	return &ClusterOperationDbAccessImpl{db: db}
 }

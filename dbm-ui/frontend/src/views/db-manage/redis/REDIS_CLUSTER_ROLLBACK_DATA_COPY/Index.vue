@@ -130,7 +130,7 @@
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import RegexKeysColumn from '@views/db-manage/redis/common/toolbox-field/regex-keys-column/Index.vue';
 
-  import { random } from '@/utils';
+  import { random } from '@utils';
 
   import SourceClusterColumn from './components/SourceClusterColumn.vue';
 
@@ -265,7 +265,6 @@
       }
     });
     formData.tableData = [...(formData.tableData[0].cluster.temp_cluster_proxy ? formData.tableData : []), ...newList];
-    window.changeConfirm = true;
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
@@ -298,7 +297,6 @@
     formData.tableData.forEach((item) => {
       Object.assign(item, { [field]: value });
     });
-    window.changeConfirm = true;
   };
 
   const handleSubmit = async () => {
@@ -324,7 +322,6 @@
 
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
-    window.changeConfirm = false;
   };
 </script>
 

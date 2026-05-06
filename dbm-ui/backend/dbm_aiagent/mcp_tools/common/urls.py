@@ -10,10 +10,25 @@ specific language governing permissions and limitations under the License.
 """
 from rest_framework.routers import DefaultRouter
 
-from backend.dbm_aiagent.mcp_tools.common.cluster import ClusterMcpToolsViewSet
+from backend.dbm_aiagent.mcp_tools.common.views import (
+    DBMetaQueryMcpToolsViewSet,
+    DBMetaUpdateMcpToolsViewSet,
+    HostDecommissionQueryMcpToolsViewSet,
+    PromQLQueryMcpToolsViewSet,
+    ResourceParamQueryMcpToolsViewSet,
+    TaskflowQueryMcpToolsViewSet,
+    TicketOperationMcpToolsViewSet,
+)
+from backend.dbm_aiagent.mcp_tools.common.views.alarm_query import MonitorQueryMcpToolsViewSet
 
 routers = DefaultRouter(trailing_slash=True)
 
-routers.register(r"cluster", ClusterMcpToolsViewSet, basename="mcp-common-cluster")
-
+routers.register(r"", DBMetaQueryMcpToolsViewSet, basename="mcp-dbmeta-query")
+routers.register(r"", DBMetaUpdateMcpToolsViewSet, basename="mcp-dbmeta-update")
+routers.register(r"", TicketOperationMcpToolsViewSet, basename="mcp-ticket-query")
+routers.register(r"", ResourceParamQueryMcpToolsViewSet, basename="mcp-resource-query")
+routers.register(r"", MonitorQueryMcpToolsViewSet, basename="mcp-monitor-query")
+routers.register(r"", HostDecommissionQueryMcpToolsViewSet, basename="mcp-host-decommission-query")
+routers.register(r"", TaskflowQueryMcpToolsViewSet, basename="mcp-taskflow-query")
+routers.register(r"", PromQLQueryMcpToolsViewSet, basename="mcp-promql-query")
 urlpatterns = routers.urls

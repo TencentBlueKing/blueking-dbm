@@ -33,6 +33,7 @@ type AddonRequest struct {
 	SupportedAcVersions  string `json:"supportedAcVersions" binding:"required"`
 	Topologies           string `json:"topologies" binding:"required"`
 	Releases             string `json:"releases" binding:"required"`
+	Active               bool   `json:"active"`
 	Description          string `json:"description" binding:"required"`
 	commentity.BKAuth    `json:",inline"`
 }

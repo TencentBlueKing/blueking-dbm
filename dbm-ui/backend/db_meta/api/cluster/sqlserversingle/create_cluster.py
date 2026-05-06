@@ -19,7 +19,6 @@ from backend.db_meta.api import common
 from backend.db_meta.enums import ClusterEntryType, ClusterPhase, ClusterStatus, ClusterType
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
-from backend.flow.utils.sqlserver.sqlserver_db_function import get_instance_time_zone
 
 logger = logging.getLogger("root")
 
@@ -53,6 +52,9 @@ def create(
     creator: str = "",
     zone_list: list = None,
 ) -> Cluster:
+    # 延迟导入，避免循环依赖
+    from backend.flow.utils.sqlserver.sqlserver_db_function import get_instance_time_zone
+
     bk_biz_id = request_validator.validated_integer(bk_biz_id)
     immute_domain = request_validator.validated_domain(immute_domain)
     db_module_id = request_validator.validated_integer(db_module_id)

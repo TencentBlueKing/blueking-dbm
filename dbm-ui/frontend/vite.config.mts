@@ -24,7 +24,6 @@ import vueJsx from '@vitejs/plugin-vue-jsx';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd());
   const isHttps = mode === 'https';
-
   console.log('env === ', mode);
 
   return {
@@ -54,7 +53,7 @@ export default defineConfig(({ mode }) => {
       preprocessorOptions: {
         less: {
           javascriptEnabled: true,
-          additionalData: '@import "@styles/variables";', // 全局导入变量
+          additionalData: '@import "@styles/variables";',
         },
         css: {
           javascriptEnabled: true,
@@ -69,13 +68,12 @@ export default defineConfig(({ mode }) => {
         },
       }),
       AutoImport({
-        // 生成自动引入 eslintrc 配置
         eslintrc: {
           enabled: false,
           filepath: './src/types/.eslintrc-auto-import.json',
         },
-        imports: ['vue', 'vue-router'], // 自动导入 vue、vue-router
-        dts: './src/types/auto-imports.d.ts', // 自动导出 ts types
+        imports: ['vue', 'vue-router'],
+        dts: './src/types/auto-imports.d.ts',
       }),
       viteStaticCopy({
         targets: [
@@ -89,12 +87,54 @@ export default defineConfig(({ mode }) => {
           },
         ],
       }),
-      monacoEditorPlugin.default({}),
+      monacoEditorPlugin.default({
+        languageWorkers: ['editorWorkerService', 'json', 'typescript'],
+      } as Parameters<typeof monacoEditorPlugin.default>[0]),
     ].concat(isHttps ? [basicSsl()] : []),
+    optimizeDeps: {
+      include: ['lodash-es', 'element-plus'],
+    },
+    build: {
+      target: 'es2020',
+      sourcemap: false,
+      reportCompressedSize: false,
+      chunkSizeWarningLimit: 2000,
+      cssCodeSplit: true,
+      cssMinify: 'esbuild',
+      assetsInlineLimit: 0,
+      modulePreload: { polyfill: false },
+      rolldownOptions: {
+        output: {
+          codeSplitting: {
+            groups: [
+              { name: 'vendor-monaco', test: /node_modules\/(monaco-editor|monaco-promql)/ },
+              { name: 'vendor-echarts', test: /node_modules\/echarts/ },
+              { name: 'vendor-antv', test: /node_modules\/@antv/ },
+              { name: 'vendor-wangeditor', test: /node_modules\/@wangeditor/ },
+              { name: 'vendor-xterm', test: /node_modules\/@xterm/ },
+              { name: 'vendor-xlsx', test: /node_modules\/xlsx/ },
+              { name: 'vendor-sql-formatter', test: /node_modules\/sql-formatter/ },
+              { name: 'vendor-element-plus', test: /node_modules\/element-plus/ },
+              {
+                name: 'vendor-bk-ai',
+                test: /node_modules\/(@blueking\/ai-blueking|x-mavon-editor|mermaid|highlight\.js|motion-v|vue-draggable-resizable)/,
+              },
+              { name: 'vendor-bk-ip-selector', test: /node_modules\/@blueking\/ip-selector/ },
+              { name: 'vendor-bk-tdesign', test: /node_modules\/@blueking\/tdesign-ui/ },
+              { name: 'vendor-bk-table', test: /node_modules\/@blueking\/table/ },
+              { name: 'vendor-bk-sub-saas', test: /node_modules\/@blueking\/sub-saas/ },
+              { name: 'vendor-bk-others', test: /node_modules\/@blueking/ },
+              { name: 'vendor-core', test: /node_modules/ },
+            ],
+          },
+        },
+      },
+    },
     server: {
       strictPort: true,
       host: '127.0.0.1',
       allowedHosts: true,
+      forwardConsole: false,
       hrm: true,
       watch: {
         usePolling: true,
@@ -107,6 +147,9 @@ export default defineConfig(({ mode }) => {
           rewrite: (path) => path.replace(/^\/bkrepo_upload/, ''),
         },
       },
+    },
+    preview: {
+      port: 8088,
     },
   };
 });

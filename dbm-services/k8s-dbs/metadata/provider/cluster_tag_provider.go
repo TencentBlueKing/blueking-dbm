@@ -24,6 +24,7 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	entitys "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -44,6 +45,22 @@ type K8sCrdClusterTagProvider interface {
 // K8sCrdClusterTagProviderImpl K8sCrdClusterTagProvider 具体实现
 type K8sCrdClusterTagProviderImpl struct {
 	dbAccess dbaccess.K8sCrdClusterTagDbAccess
+}
+
+var (
+	clusterTagInstance K8sCrdClusterTagProvider
+	clusterTagOnce     sync.Once
+)
+
+// GetK8sCrdClusterTagProvider 获取 K8sCrdClusterTagProvider 单例实例
+func GetK8sCrdClusterTagProvider(dbAccess dbaccess.K8sCrdClusterTagDbAccess) K8sCrdClusterTagProvider {
+	clusterTagOnce.Do(func() {
+		clusterTagInstance = &K8sCrdClusterTagProviderImpl{dbAccess: dbAccess}
+	})
+	if clusterTagInstance == nil {
+		panic("K8sCrdClusterTagProvider instance is nil after initialization")
+	}
+	return clusterTagInstance
 }
 
 // BatchCreate 批次创建 tags
@@ -113,9 +130,4 @@ func (k K8sCrdClusterTagProviderImpl) FindByClusterID(_ *commentity.DbsContext, 
 	}
 
 	return outputEntities, nil
-}
-
-// NewK8sCrdClusterTagProvider 创建 K8sCrdClusterTagProvider
-func NewK8sCrdClusterTagProvider(dbAccess dbaccess.K8sCrdClusterTagDbAccess) K8sCrdClusterTagProvider {
-	return &K8sCrdClusterTagProviderImpl{dbAccess: dbAccess}
 }

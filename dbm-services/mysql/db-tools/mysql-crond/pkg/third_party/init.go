@@ -1,6 +1,7 @@
 package third_party
 
 import (
+	"dbm-services/mysql/db-tools/mysql-crond/pkg/third_party/bk_biz_id_updater"
 	"dbm-services/mysql/db-tools/mysql-crond/pkg/third_party/instance_info_updater"
 	"dbm-services/mysql/db-tools/mysql-crond/pkg/third_party/nginx_updater"
 	"errors"
@@ -14,6 +15,7 @@ func init() {
 	ThirdPartyRegisters = []func(*cron.Cron){
 		nginx_updater.Register,
 		instance_info_updater.Register,
+		bk_biz_id_updater.Register,
 	}
 }
 
@@ -28,5 +30,9 @@ func Updater() (err error) {
 		err = errors.Join(err, e)
 	}
 
+	e = bk_biz_id_updater.Updater()
+	if e != nil {
+		err = errors.Join(err, e)
+	}
 	return err
 }

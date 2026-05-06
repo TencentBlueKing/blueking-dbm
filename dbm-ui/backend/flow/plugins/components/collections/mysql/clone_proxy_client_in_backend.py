@@ -50,10 +50,13 @@ class CloneProxyUsersInBackendService(BaseService):
             return ""
 
         # 执行授权
+        # 授权记录不加入的binlog
         res = DRSApi.rpc(
             {
                 "addresses": [backend.ip_port],
-                "cmds": [i.replace(origin_proxy_host, target_proxy_host, -1) for i in grant_sqls],
+                "cmds": ["set session sql_log_bin = 0;"]
+                + [i.replace(origin_proxy_host, target_proxy_host, -1) for i in grant_sqls]
+                + ["set session sql_log_bin = 1;"],
                 "force": False,
                 "bk_cloud_id": backend.machine.bk_cloud_id,
             }

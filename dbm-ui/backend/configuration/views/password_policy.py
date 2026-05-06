@@ -110,11 +110,11 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["POST"], detail=False, serializer_class=ModifyMySQLPasswordRandomCycleSerializer)
     def modify_random_cycle(self, request, *args, **kwargs):
-        from backend.db_periodic_task.local_tasks import auto_randomize_password_daily
 
         crontab_exec = self.params_validate(self.get_serializer_class())["crontab"]
+        # func_name 取值为函数名，函数导入地址： from backend.db_periodic_task.local_tasks import auto_randomize_password_daily
         DBPasswordHandler.modify_periodic_task_run_every(
-            run_every=crontab(**crontab_exec), func_name=auto_randomize_password_daily.__name__
+            run_every=crontab(**crontab_exec), func_name="auto_randomize_password_daily"
         )
         return Response()
 
@@ -125,9 +125,9 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["GET"], detail=False)
     def query_random_cycle(self, request, *args, **kwargs):
-        from backend.db_periodic_task.local_tasks import auto_randomize_password_daily
+        # func_name 取值为函数名，函数导入地址： from backend.db_periodic_task.local_tasks import auto_randomize_password_daily
 
-        task = DBPeriodicTask.objects.get(name__contains=auto_randomize_password_daily.__name__).task
+        task = DBPeriodicTask.objects.get(name__contains="auto_randomize_password_daily").task
         crontab_exec = {
             "minute": task.crontab.minute,
             "hour": task.crontab.hour,

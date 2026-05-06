@@ -60,9 +60,10 @@
                 </template>
                 <BkPopover
                   :arrow="false"
+                  click-content-auto-hide
                   placement="bottom-start"
                   theme="light ticket-table-select-menu"
-                  trigger="hover">
+                  trigger="click">
                   <DbIcon
                     class="select-menu-flag"
                     type="down-big" />
@@ -98,24 +99,24 @@
             title="ID"
             :width="100">
             <template #default="{ row }: { row: IRowData }">
-              <BkButton
-                text
-                theme="primary"
-                @click="() => handleEditSubscription(row)">
-                {{ row.id }}
-              </BkButton>
+              <!-- <BkButton
+              text
+              theme="primary"
+              @click="() => handleEditSubscription(row)">
+              {{ row.id }}
+            </BkButton> -->
+              {{ row.id }}
             </template>
           </TableColumn>
           <TableColumn
             col-key="master_domain"
-            resizable
             :title="t('域名')"
             :width="420">
             <template #default="{ row }: { row: IRowData }">
               <BkButton
                 text
                 theme="primary"
-                @click="() => handleGoClusterDetailPage(row)">
+                @click="() => handleEditSubscription(row)">
                 {{ row.master_domain }}
               </BkButton>
             </template>
@@ -146,12 +147,13 @@
             :title="t('指标')"
             :width="80">
             <template #default="{ row }: { row: IRowData }">
-              <BkButton
+              <!-- <BkButton
                 text
                 theme="primary"
                 @click="() => handleEditSubscription(row)">
                 {{ metricsMap[row.cluster_type]?.list.length }}
-              </BkButton>
+              </BkButton> -->
+              {{ metricsMap[row.cluster_type]?.list.length || 0 }}
             </template>
           </TableColumn>
           <TableColumn
@@ -185,7 +187,7 @@
             fixed="right"
             resizable
             :title="t('操作')"
-            width="120">
+            width="160">
             <template #default="{ row }: { row: IRowData }">
               <BkButton
                 text
@@ -209,6 +211,13 @@
                   {{ t('删除') }}
                 </BkButton>
               </BkPopConfirm>
+              <BkButton
+                class="ml-12"
+                text
+                theme="primary"
+                @click="() => handleGoClusterDetailPage(row)">
+                {{ t('查看集群') }}
+              </BkButton>
             </template>
           </TableColumn>
           <template #empty>
@@ -265,7 +274,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { clusterTypeListPageMap, DBTypeInfos } from '@common/const';
+  import { DBTypeInfos } from '@common/const';
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
@@ -273,6 +282,8 @@
   import AlertSeverityGroup from '@views/db-manage/common/cluster-batch-edit-subscription/components/content/components/AlertSeverityGroup.vue';
   import NoticeWaysGroup from '@views/db-manage/common/cluster-batch-edit-subscription/components/content/components/NoticeWaysGroup.vue';
   import BatchEditSubscription from '@views/db-manage/common/cluster-batch-edit-subscription/Index.vue';
+  import { URL_CLUSTER_DETAIL_MEMO_KEY } from '@views/db-manage/common/cluster-details/constants';
+  import { clusterTypeListPageMap } from '@views/db-manage/const/clusterTypeListPageMap';
 
   import { getOffset, messageSuccess } from '@utils';
 
@@ -497,8 +508,13 @@
       params: {
         clusterId: row.cluster_id,
       },
+      query: {
+        [URL_CLUSTER_DETAIL_MEMO_KEY]: 'info',
+      },
     });
-    window.open(routeInfo.href);
+    const { href } = routeInfo;
+    const targetPath = href.replace(/^\/[\d]+/, `/${row.bk_biz_id}`);
+    window.open(targetPath);
   };
 
   onMounted(() => {

@@ -24,6 +24,7 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -45,6 +46,22 @@ type ClusterRequestRecordProvider interface {
 // ClusterRequestRecordProviderImpl ClusterRequestRecordProvider 具体实现
 type ClusterRequestRecordProviderImpl struct {
 	dbAccess dbaccess.ClusterRequestRecordDbAccess
+}
+
+var (
+	clusterRequestInstance ClusterRequestRecordProvider
+	clusterRequestOnce     sync.Once
+)
+
+// GetClusterRequestRecordProvider 获取 ClusterRequestRecordProvider 单例实例
+func GetClusterRequestRecordProvider(dbAccess dbaccess.ClusterRequestRecordDbAccess) ClusterRequestRecordProvider {
+	clusterRequestOnce.Do(func() {
+		clusterRequestInstance = &ClusterRequestRecordProviderImpl{dbAccess: dbAccess}
+	})
+	if clusterRequestInstance == nil {
+		panic("ClusterRequestRecordProvider instance is nil after initialization")
+	}
+	return clusterRequestInstance
 }
 
 // ListRecords 查询 record 列表
@@ -122,9 +139,4 @@ func (k *ClusterRequestRecordProviderImpl) UpdateRequestRecord(entity *metaentit
 		return 0, errors.Wrapf(err, "failed to update request record with entity: %+v", entity)
 	}
 	return rows, nil
-}
-
-// NewClusterRequestRecordProvider 创建 ClusterRequestRecordProvider 接口实现实例
-func NewClusterRequestRecordProvider(dbAccess dbaccess.ClusterRequestRecordDbAccess) ClusterRequestRecordProvider {
-	return &ClusterRequestRecordProviderImpl{dbAccess: dbAccess}
 }

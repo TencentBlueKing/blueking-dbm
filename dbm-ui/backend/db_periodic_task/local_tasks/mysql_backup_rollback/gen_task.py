@@ -336,11 +336,9 @@ def gen_rollback_task():
         # 将集群、备份记录和备份大小存入列表
         cluster_backup_info.append((cluster, backup_result, backup_result.total_filesize))
 
-    # 第二阶段：按备份文件大小降序排序
-    cluster_backup_info.sort(key=lambda x: x[2], reverse=True)
-    logger.info(_("已收集 {} 个集群的备份信息，按备份大小排序后开始生成任务").format(len(cluster_backup_info)))
+    logger.info(_("已收集 {} 个集群的备份信息，开始生成任务").format(len(cluster_backup_info)))
 
-    # 第三阶段：按排序后的顺序生成回档任务
+    # 第三阶段：生成回档任务
     for cluster, backup_result, backup_size in cluster_backup_info:
         backup_file_size_gb = bytes_to_gb(backup_size)
         logger.info(_("开始处理集群 {} 的备份，备份大小: {:.2f} GB").format(cluster.immute_domain, backup_file_size_gb))
@@ -418,11 +416,19 @@ def gen_rollback_task():
         resp = DBResourceApi.resource_apply(params=apply_params, raw=True)
         if resp["code"] != 0:
             if resp["code"] == ResourceApplyErrCode.RESOURCE_LAKE:
-                logger.error(_("资源不足申请失败，请前往补货后重试{}").format(resp.get("message")))
-                task.task_status = TaskStatus.RESOURCE_INSUFFICIENT
-                task.phase = TaskPhase.DONE
-                task.task_info = _("需要的最小磁盘大小是{}GB".format(min_disk_size))
-                task.save()
+                logger.error(
+                    _(
+                        "资源不足申请失败，请前往补货后重试。集群信息: 集群域名={}, 集群ID={}, 备份ID={}, 备份大小={:.2f}GB, 需要最小磁盘={}GB, MySQL版本={}, 错误信息: {}"
+                    ).format(
+                        cluster.immute_domain,
+                        cluster.id,
+                        backup_id,
+                        backup_file_size_gb,
+                        min_disk_size,
+                        mysql_version,
+                        resp.get("message"),
+                    )
+                )
                 continue
             elif resp["code"] in ResourceApplyErrCode.get_values():
                 logger.error(
@@ -566,6 +572,118 @@ def weighted_random_choice(candidates: list, weights: list, num_select: int) -> 
     return selected
 
 
+def _calculate_target_ratio(
+    tendbcluster_cluster_ratio: float,
+    tendbcluster_recent: int,
+    tendbha_recent: int,
+    total_recent: int,
+) -> tuple:
+    """计算目标比例和演练比例"""
+    if total_recent == 0:
+        return tendbcluster_cluster_ratio, 0.0, 0.0
+
+    tendbcluster_exercise_ratio = tendbcluster_recent / total_recent
+    tendbha_exercise_ratio = tendbha_recent / total_recent
+
+    # 根据演练比例调整目标比例
+    balance_factor = 0.3
+    exercise_diff = tendbcluster_exercise_ratio - tendbha_exercise_ratio
+    adjustment = exercise_diff * balance_factor
+    target_ratio = tendbcluster_cluster_ratio - adjustment
+
+    # 确保比例在合理范围内
+    min_ratio = max(0.1, tendbcluster_cluster_ratio * 0.5)
+    max_ratio = min(0.9, tendbcluster_cluster_ratio * 2.0)
+    target_ratio = max(min_ratio, min(max_ratio, target_ratio))
+
+    return target_ratio, tendbcluster_exercise_ratio, tendbha_exercise_ratio
+
+
+def _check_balance_need(
+    tendbcluster_recent: int,
+    tendbha_recent: int,
+    total_recent: int,
+    tendbcluster_cluster_ratio: float,
+    tendbha_cluster_ratio: float,
+) -> tuple:
+    """判断是否需要优先平衡"""
+    need_balance_tendbcluster = False
+    need_balance_tendbha = False
+
+    if total_recent > 0:
+        if tendbcluster_recent == 0 and tendbha_recent > 0:
+            need_balance_tendbcluster = True
+        elif tendbha_recent == 0 and tendbcluster_recent > 0:
+            need_balance_tendbha = True
+        elif tendbcluster_recent > 0 and tendbha_recent > 0:
+            if tendbcluster_recent * 5 < tendbha_recent:
+                need_balance_tendbcluster = True
+            elif tendbha_recent * 5 < tendbcluster_recent:
+                need_balance_tendbha = True
+    else:
+        if tendbcluster_cluster_ratio < 0.1 and tendbha_cluster_ratio > 0.9:
+            need_balance_tendbcluster = True
+        elif tendbha_cluster_ratio < 0.1 and tendbcluster_cluster_ratio > 0.9:
+            need_balance_tendbha = True
+
+    return need_balance_tendbcluster, need_balance_tendbha
+
+
+def _allocate_resources(
+    num: int,
+    target_tendbcluster_ratio: float,
+    need_balance_tendbcluster: bool,
+    need_balance_tendbha: bool,
+) -> tuple:
+    """根据资源数量和平衡需求分配资源"""
+    DEFAULT_THRESHOLD = 0.5
+    BALANCE_THRESHOLD_LOW = 0.2
+    BALANCE_THRESHOLD_HIGH = 0.8
+    MIN_BALANCE_RATIO = 0.15
+    MIN_SIGNIFICANT_RATIO = 0.2
+
+    if num == 1:
+        # 计算阈值
+        threshold = DEFAULT_THRESHOLD
+        if need_balance_tendbcluster and target_tendbcluster_ratio >= MIN_BALANCE_RATIO:
+            threshold = BALANCE_THRESHOLD_LOW
+        elif need_balance_tendbha and (1 - target_tendbcluster_ratio) >= MIN_BALANCE_RATIO:
+            threshold = BALANCE_THRESHOLD_HIGH
+
+        tendbcluster_target = 1 if target_tendbcluster_ratio >= threshold else 0
+        tendbha_target = 1 - tendbcluster_target
+
+    elif num == 2:
+        if need_balance_tendbcluster or need_balance_tendbha:
+            tendbcluster_target = tendbha_target = 1
+        else:
+            tendbcluster_target = round(num * target_tendbcluster_ratio)
+            tendbha_target = num - tendbcluster_target
+            if 0.1 <= target_tendbcluster_ratio <= 0.9:
+                tendbcluster_target = tendbha_target = 1
+
+    else:
+        tendbcluster_target = round(num * target_tendbcluster_ratio)
+        tendbha_target = num - tendbcluster_target
+
+        # 确保比例>=20%或需要平衡的类型至少分配1台
+        if tendbcluster_target == 0 and (
+            target_tendbcluster_ratio >= MIN_SIGNIFICANT_RATIO or need_balance_tendbcluster
+        ):
+            tendbcluster_target, tendbha_target = 1, num - 1
+        elif tendbha_target == 0 and (target_tendbcluster_ratio <= 1 - MIN_SIGNIFICANT_RATIO or need_balance_tendbha):
+            tendbha_target, tendbcluster_target = 1, num - 1
+
+        # 修正四舍五入可能导致的总数超标
+        if tendbcluster_target + tendbha_target > num:
+            if target_tendbcluster_ratio >= 0.5:
+                tendbcluster_target, tendbha_target = num, 0
+            else:
+                tendbcluster_target, tendbha_target = 0, num
+
+    return tendbcluster_target, tendbha_target
+
+
 def calculate_dynamic_cluster_type_targets(
     num: int, recent_stats: dict, tendbcluster_count: int, tendbha_count: int
 ) -> tuple:
@@ -597,67 +715,50 @@ def calculate_dynamic_cluster_type_targets(
         )
     )
 
+    # 边界情况处理
     if total_cluster_count == 0:
-        # 如果没有可用集群，则平均分配
         tendbcluster_target = num // 2
         tendbha_target = num - tendbcluster_target
         logger.info(_("没有可用集群，采用平均分配策略"))
         return tendbcluster_target, tendbha_target
 
+    if tendbcluster_count == 0:
+        logger.info(_("TenDBCluster 集群数量为 0，目标数量设为 0"))
+        return 0, num
+    if tendbha_count == 0:
+        logger.info(_("TenDBHA 集群数量为 0，目标数量设为 0"))
+        return num, 0
+
     # 计算集群数量比例
     tendbcluster_cluster_ratio = tendbcluster_count / total_cluster_count
     tendbha_cluster_ratio = tendbha_count / total_cluster_count
 
-    if total_recent == 0:
-        # 如果最近24小时没有演练记录，则按照集群数量比例分配
-        tendbcluster_target = int(num * tendbcluster_cluster_ratio)
-        tendbha_target = num - tendbcluster_target
-        logger.info(
-            _("最近24小时无演练记录，按集群数量比例分配: TenDBCluster {:.1%}, TenDBHA {:.1%}").format(
-                tendbcluster_cluster_ratio, tendbha_cluster_ratio
-            )
+    # 计算目标比例
+    target_ratio, exercise_ratio_c, exercise_ratio_h = _calculate_target_ratio(
+        tendbcluster_cluster_ratio, tendbcluster_recent, tendbha_recent, total_recent
+    )
+
+    # 判断是否需要平衡
+    need_balance_c, need_balance_h = _check_balance_need(
+        tendbcluster_recent, tendbha_recent, total_recent, tendbcluster_cluster_ratio, tendbha_cluster_ratio
+    )
+
+    # 分配资源
+    tendbcluster_target, tendbha_target = _allocate_resources(num, target_ratio, need_balance_c, need_balance_h)
+
+    # 日志输出
+    logger.info(
+        _("分配结果({}台): 集群比例(C:{:.1%}/H:{:.1%}), 演练比例(C:{:.1%}/H:{:.1%}), " "目标比例{:.1%}, 结果(C:{}/H:{})").format(
+            num,
+            tendbcluster_cluster_ratio,
+            tendbha_cluster_ratio,
+            exercise_ratio_c,
+            exercise_ratio_h,
+            target_ratio,
+            tendbcluster_target,
+            tendbha_target,
         )
-    else:
-        # 计算演练比例
-        tendbcluster_exercise_ratio = tendbcluster_recent / total_recent
-        tendbha_exercise_ratio = tendbha_recent / total_recent
-
-        # 综合考虑集群数量比例和演练比例
-        # 如果某种类型演练较少，则增加其分配比例
-        # 使用集群数量比例作为基础，然后根据演练比例进行调整
-        balance_factor = 0.3  # 调节因子，控制演练比例对分配的影响
-
-        # 计算演练差异
-        exercise_diff = tendbcluster_exercise_ratio - tendbha_exercise_ratio
-
-        # 基于集群数量比例，根据演练差异进行调整
-        # 如果TenDBCluster演练较少（exercise_diff < 0），则增加其比例
-        adjustment = exercise_diff * balance_factor
-        target_tendbcluster_ratio = tendbcluster_cluster_ratio - adjustment
-
-        # 确保比例在合理范围内 [0.1, 0.9]，但不超过集群数量比例的2倍或小于集群数量比例的0.5倍
-        min_ratio = max(0.1, tendbcluster_cluster_ratio * 0.5)
-        max_ratio = min(0.9, tendbcluster_cluster_ratio * 2.0)
-        target_tendbcluster_ratio = max(min_ratio, min(max_ratio, target_tendbcluster_ratio))
-
-        tendbcluster_target = int(num * target_tendbcluster_ratio)
-        tendbha_target = num - tendbcluster_target
-
-        logger.info(
-            _(
-                "动态调整策略: 集群数量比例(TenDBCluster {:.1%}, TenDBHA {:.1%}), "
-                "演练比例(TenDBCluster {:.1%}, TenDBHA {:.1%}), "
-                "最终目标比例(TenDBCluster {:.1%}), 目标数量(TenDBCluster {}, TenDBHA {})"
-            ).format(
-                tendbcluster_cluster_ratio,
-                tendbha_cluster_ratio,
-                tendbcluster_exercise_ratio,
-                tendbha_exercise_ratio,
-                target_tendbcluster_ratio,
-                tendbcluster_target,
-                tendbha_target,
-            )
-        )
+    )
 
     return tendbcluster_target, tendbha_target
 

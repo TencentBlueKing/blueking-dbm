@@ -89,13 +89,14 @@
             <BkButton :loading="skipLoading">
               <DbIcon
                 class="mr-5"
-                type="tiaoguo" />{{ t('跳过') }}
+                type="tiaoguo-2" />{{ t('跳过') }}
             </BkButton>
           </BkPopConfirm>
           <BkButton
             v-if="isAiLogAnalysisOpen"
             class="ai-blueking-btn"
-            :disabled="!logContent"
+            :disabled="!logVersion"
+            :loading="aiLogAnalysisLoading"
             @click="handleAiLogAnalysis">
             <img
               class="mr-5"
@@ -169,7 +170,7 @@
             :is-show="isShow"
             :node="node"
             :root-id="rootId"
-            @log-change="handleLogChange" />
+            @version-change="handleVersionChange" />
         </BkTabPanel>
         <BkTabPanel
           v-if="userProfileStore.isSuperuser"
@@ -195,20 +196,21 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { forceFailflowNode, retryTaskflowNode, skipTaskflowNode } from '@services/source/taskflow';
+  import { forceFailflowNode, getNodeLog, retryTaskflowNode, skipTaskflowNode } from '@services/source/taskflow';
   import { ticketBatchProcessTodo } from '@services/source/ticket';
 
-  import { useUserProfile } from '@stores';
+  import { useSystemEnviron, useUserProfile } from '@stores';
 
   import { useState as useAiBluekingState } from '@components/ai-blueking/hooks/useState';
   import CostTimer from '@components/cost-timer/CostTimer.vue';
   import DbLog from '@components/db-log/index.vue';
+  import { formatLogData } from '@components/db-log/utils';
 
   import { messageSuccess } from '@utils';
 
   import AiBluekingImage from '@images/ai-blueking.svg';
 
-  import { type Node } from '../flow-canvas/utils';
+  import type { FlowDetail, Node } from '../flow-canvas/utils';
 
   import ExecuteLog from './components/execute-log/Index.vue';
   import InputOutput from './components/input-output/Index.vue';
@@ -216,6 +218,7 @@
 
   interface Props {
     autoOpenAiLog: boolean;
+    flowData?: FlowDetail;
     node?: Node;
     rootId: string;
   }
@@ -226,6 +229,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    flowData: undefined,
     node: () => ({}) as Node,
   });
   const emits = defineEmits<Emits>();
@@ -236,6 +240,12 @@
 
   const { t } = useI18n();
   const userProfileStore = useUserProfile();
+  const systemEnvironStore = useSystemEnviron();
+
+  const isAiLogAnalysisOpen = computed(
+    () => systemEnvironStore.urls.ENABLE_DBM_AI && window.PROJECT_CONFIG.AI_LOG_ANALYSIS_OPEN,
+  );
+
   const { sendMessage, show } = useAiBluekingState();
 
   const NODE_STATUS_TEXT: Record<string, string> = {
@@ -248,12 +258,11 @@
     SKIPPED: t('跳过'),
   };
 
-  const isAiLogAnalysisOpen = window.PROJECT_CONFIG.AI_LOG_ANALYSIS_OPEN;
-
   const dbLogRef = ref<InstanceType<typeof DbLog>>();
   const activePanelId = ref('log');
   const todoLoading = ref(false);
-  const logContent = ref('');
+  const aiLogAnalysisLoading = ref(false);
+  const logVersion = ref('');
 
   const nodeData = computed(() => props.node || {});
   const STATUS_RUNNING = computed(() => nodeData.value.status === 'RUNNING');
@@ -264,20 +273,20 @@
     if (STATUS_TODO.value && status !== 'FAILED') {
       return {
         text: t('待继续'),
-        theme: 'warning',
+        theme: 'warning' as const,
       };
     }
 
     const themesMap = {
-      CREATED: 'default',
+      CREATED: undefined,
       FAILED: 'danger',
       FINISHED: 'success',
       RUNNING: 'info',
-    };
+    } as const;
 
     return {
       text: NODE_STATUS_TEXT[status],
-      theme: themesMap[status as keyof typeof themesMap] || 'default',
+      theme: themesMap[status as keyof typeof themesMap] || undefined,
     };
   });
   const costTime = computed(() => {
@@ -309,6 +318,24 @@
       handleOperateSuccess();
     },
   });
+
+  watch(
+    () => [props.autoOpenAiLog, logVersion.value],
+    () => {
+      if (props.autoOpenAiLog && logVersion.value) {
+        setTimeout(() => {
+          handleAiLogAnalysis();
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  const handleVersionChange = (version: string) => {
+    logVersion.value = version;
+  };
 
   const handleOperateSuccess = () => {
     messageSuccess(t('操作成功'));
@@ -360,16 +387,21 @@
     activePanelId.value = 'log';
   };
 
-  const handleLogChange = async (log: string) => {
-    logContent.value = log;
-    if (props.autoOpenAiLog) {
-      await handleAiLogAnalysis();
-    }
-  };
-
   const handleAiLogAnalysis = async () => {
-    await show();
-    await sendMessage(logContent.value);
+    aiLogAnalysisLoading.value = true;
+    try {
+      const logList = await getNodeLog({
+        labels: 'not_for_ai',
+        node_id: props.node.id,
+        root_id: props.rootId,
+        version_id: logVersion.value,
+      });
+      const logContent = formatLogData(logList).join('\n');
+      await show();
+      await sendMessage(props.flowData?.flow_info.ticket_type_display || '', logContent);
+    } finally {
+      aiLogAnalysisLoading.value = false;
+    }
   };
 </script>
 

@@ -2,7 +2,7 @@
   <td
     v-if="isRowspanRender"
     :key="columnKey"
-    ref="rootRef"
+    ref="root"
     class="bk-editable-table-body-column"
     :class="{
       [`fixed-${fixed}-column`]: fixed,
@@ -40,7 +40,7 @@
     </div>
     <div
       v-if="slots.tips"
-      ref="tipsRef"
+      ref="tips"
       class="bk-editable-table-body-column-tips">
       <slot name="tips" />
     </div>
@@ -86,6 +86,7 @@
     email?: boolean;
     field?: string;
     fixed?: 'left' | 'right';
+    idMark?: string; // 作为身份标记，不参入任何内部逻辑处理，
     label: string;
     loading?: boolean;
     max?: number;
@@ -116,6 +117,7 @@
     clearValidate: () => void;
     getRowIndex: () => number;
     validate: () => Promise<boolean>;
+    viewError: (message: string, idMark: string) => void;
   }
 
   export interface IContext {
@@ -159,6 +161,7 @@
     disabledMethod: undefined,
     field: undefined,
     fixed: undefined,
+    idMark: undefined,
     max: undefined,
     maxlength: undefined,
     maxWidth: undefined,
@@ -331,8 +334,8 @@
 
   let registerRules: IRule[] = [];
 
-  const rootRef = ref<HTMLElement>();
-  const tipsRef = ref<HTMLElement>();
+  const rootRef = useTemplateRef<HTMLElement>('root');
+  const tipsRef = useTemplateRef<HTMLElement>('tips');
   const isRowspanRender = ref(false);
   const isFocused = ref(false);
   const isPreviousSiblingRowspan = ref(false);
@@ -393,6 +396,21 @@
     },
   );
 
+  watch(
+    isRowspanRender,
+    () => {
+      nextTick(() => {
+        if (isRowspanRender.value) {
+          // eslint-disable-next-line no-underscore-dangle
+          (rootRef.value as any).__getCurrentInstance__ = () => currentInstance;
+        }
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
+
   let tippyIns: Instance;
 
   const initTipsPopover = () => {
@@ -406,7 +424,7 @@
       tippyIns = tippy(tippyTarget as SingleTarget, {
         appendTo: () => document.body,
         arrow: true,
-        content: tipsRef.value,
+        content: tipsRef.value as HTMLElement,
         hideOnClick: false,
         interactive: true,
         maxWidth: 'none',
@@ -581,6 +599,13 @@
     });
   };
 
+  const viewError = (message: string, idMark: string) => {
+    if (props.idMark && idMark === props.idMark) {
+      validateState.isError = Boolean(message);
+      validateState.errorMessage = message;
+    }
+  };
+
   provide(EditableTableColumnKey, {
     blur: () => {
       isFocused.value = false;
@@ -637,6 +662,7 @@
     clearValidate,
     getRowIndex,
     validate,
+    viewError,
   });
 </script>
 <style lang="less">

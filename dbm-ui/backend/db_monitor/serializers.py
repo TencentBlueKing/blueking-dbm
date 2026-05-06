@@ -23,6 +23,7 @@ from backend.db_meta.models import AppCache
 from backend.db_monitor import mock_data
 from backend.db_monitor.constants import (
     AlertLevelEnum,
+    AlertRecoveryStatusEnum,
     AlertStageEnum,
     AlertStatusEnum,
     DetectAlgEnum,
@@ -162,7 +163,7 @@ class MonitorPolicyListSerializer(MonitorPolicySerializer):
 
     class Meta:
         model = MonitorPolicy
-        exclude = ["details", "parent_details"]
+        exclude = ["parent_details"]
 
 
 class MonitorPolicyUpdateSerializer(AuditedSerializer, serializers.ModelSerializer):
@@ -172,8 +173,9 @@ class MonitorPolicyUpdateSerializer(AuditedSerializer, serializers.ModelSerializ
         """
 
         class TargetRuleSerializer(serializers.Serializer):
-            key = serializers.ChoiceField(choices=TargetLevel.get_choices())
+            key = serializers.CharField(help_text=_("指标名"))
             value = serializers.ListSerializer(child=serializers.CharField(), allow_empty=True)
+            method = serializers.CharField(help_text=_("条件符号"))
 
         level = serializers.ChoiceField(choices=TargetLevel.get_choices())
         rule = TargetRuleSerializer()
@@ -194,16 +196,70 @@ class MonitorPolicyUpdateSerializer(AuditedSerializer, serializers.ModelSerializ
         )
         unit_prefix = serializers.CharField(allow_blank=True)
 
+    class DetectsConfigSerializer(serializers.Serializer):
+        class TriggerConfigSerializer(serializers.Serializer):
+            count = serializers.IntegerField(help_text=_("触发次数"))
+            check_window = serializers.IntegerField(help_text=_("检测周期（分钟）"))
+            uptime = serializers.JSONField(help_text=_("生效时间配置"))
+
+        class RecoveryConfigSerializer(serializers.Serializer):
+            check_window = serializers.IntegerField(help_text=_("检测周期（分钟）"))
+            status_setter = serializers.ChoiceField(
+                help_text=_("告警恢复目标状态"),
+                default=AlertRecoveryStatusEnum.RECOVERY,
+                choices=AlertRecoveryStatusEnum.get_choices(),
+            )
+
+        trigger_config = TriggerConfigSerializer()
+        recovery_config = RecoveryConfigSerializer()
+
+    class NoDataConfigSerializer(serializers.Serializer):
+        level = serializers.ChoiceField(choices=AlertLevelEnum.get_choices(), help_text=_("告警级别"))
+        continuous = serializers.IntegerField(help_text=_("周期"))
+        is_enabled = serializers.BooleanField(help_text=_("无数据开关"), default=False)
+        agg_dimension = serializers.ListSerializer(help_text=_("维度"), child=serializers.CharField(), allow_empty=True)
+
+    class NotifyConfigSerializer(serializers.Serializer):
+        interval_notify_mode = serializers.CharField(help_text=_("通知间隔类型"))
+        notify_interval = serializers.IntegerField(help_text=_("通知间隔时间（秒）"))
+
+    class AggInfoSerializer(serializers.Serializer):
+        metric_id = serializers.CharField(help_text=_("metric id"))
+        agg_interval = serializers.IntegerField(help_text=_("周期"), required=False, allow_null=True)
+        agg_method = serializers.CharField(help_text=_("汇聚方式"), required=False, allow_null=True)
+        metric_field = serializers.CharField(help_text=_("指标名称"), required=False, allow_null=True)
+        promql = serializers.CharField(help_text=_("sql语句"), required=False, allow_null=True)
+
     targets = serializers.ListField(child=TargetSerializer(), allow_empty=False)
     test_rules = serializers.ListField(child=TestRuleSerializer(), allow_empty=False)
+    detects_config = DetectsConfigSerializer()
+    no_data_config = NoDataConfigSerializer()
+    notify_config = NotifyConfigSerializer()
+    agg_info = serializers.ListField(child=AggInfoSerializer(), allow_empty=False)
     notify_rules = serializers.ListField(
         child=serializers.ChoiceField(choices=NoticeSignalEnum.get_choices()), allow_empty=False
     )
     notify_groups = serializers.ListField(child=serializers.IntegerField(), allow_empty=True)
+    name = serializers.CharField(help_text=_("策略名称"), required=False)
+    get_data_time = serializers.DateTimeField(help_text=_("获取到数据的时间"), required=False)
 
     class Meta:
         model = MonitorPolicy
-        fields = ["targets", "test_rules", "notify_rules", "notify_groups", "custom_conditions"]
+        fields = [
+            "name",
+            "is_enabled",
+            "policy_tag",
+            "targets",
+            "test_rules",
+            "notify_rules",
+            "notify_groups",
+            "custom_conditions",
+            "detects_config",
+            "no_data_config",
+            "notify_config",
+            "agg_info",
+            "get_data_time",
+        ]
 
 
 class BatchUpdateMonitorPolicyNotifySerializer(serializers.Serializer):
@@ -212,6 +268,7 @@ class BatchUpdateMonitorPolicyNotifySerializer(serializers.Serializer):
         groups = serializers.ListField(help_text=_("告警组ID列表"), child=serializers.IntegerField())
 
     notify_groups = serializers.ListSerializer(help_text=_("告警组ID列表"), child=NoticeGroupInfoSerializer())
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
 
 
 class MonitorPolicyCloneSerializer(MonitorPolicyUpdateSerializer):
@@ -236,6 +293,8 @@ class MonitorPolicyCloneSerializer(MonitorPolicyUpdateSerializer):
         model = MonitorPolicy
         fields = [
             "name",
+            "is_enabled",
+            "policy_tag",
             "bk_biz_id",
             "parent_id",
             "targets",
@@ -243,11 +302,26 @@ class MonitorPolicyCloneSerializer(MonitorPolicyUpdateSerializer):
             "notify_rules",
             "notify_groups",
             "custom_conditions",
+            "detects_config",
+            "no_data_config",
+            "notify_config",
+            "agg_info",
+            "get_data_time",
         ]
 
 
 class MonitorPolicyEmptySerializer(serializers.Serializer):
     pass
+
+
+class MonitorPolicyResetSerializer(serializers.Serializer):
+    policy_id = serializers.IntegerField(help_text=_("策略ID"))
+
+    def validate(self, attrs):
+        policy = MonitorPolicy.objects.filter(id=attrs["policy_id"], target_level=TargetLevel.PLATFORM.value).first()
+        if not policy:
+            raise serializers.ValidationError(_("此策略id非平台策略，不可重置"))
+        return attrs
 
 
 class ListClusterSerializer(serializers.Serializer):
@@ -257,6 +331,11 @@ class ListClusterSerializer(serializers.Serializer):
 
 class ListModuleSerializer(ListClusterSerializer):
     pass
+
+
+class AlarmStrategySerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务id"), default=env.DBA_APP_BK_BIZ_ID)
+    monitor_policy_id = serializers.IntegerField(help_text=_("监控策略id"))
 
 
 class AlarmCallBackDataSerializer(serializers.Serializer):
@@ -330,6 +409,11 @@ class ListAlertSerializer(serializers.Serializer):
         }
 
 
+class MetricListSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务id"))
+    conditions = serializers.JSONField(help_text=_("查询条件"))
+
+
 class CreateAlarmShieldSerializer(serializers.Serializer):
     category = serializers.CharField(help_text=_("屏蔽类型"))
     dimension_config = serializers.DictField(help_text=_("屏蔽维度配置"))
@@ -370,6 +454,10 @@ class UpdateAlarmShieldSerializer(serializers.Serializer):
 
 class DisableAlarmShieldSerializer(serializers.Serializer):
     id = serializers.IntegerField(help_text=_("屏蔽 ID"))
+
+
+class PatchDestroySerializer(serializers.Serializer):
+    ids = serializers.ListSerializer(child=serializers.IntegerField(), help_text=_("策略id列表"))
 
 
 class ListAlarmShieldSerializer(serializers.Serializer):
@@ -416,6 +504,10 @@ class SaveMonitorSubscribeSerializer(serializers.Serializer):
     )
 
     def validate(self, attrs):
+        cluster_types = {cluster["cluster_type"] for cluster in attrs["clusters"]}
+        db_type = [ClusterType.cluster_type_to_db_type(cluster_type) for cluster_type in cluster_types]
+        if len(set(db_type)) != 1:
+            raise serializers.ValidationError(_("订阅集群组件类型不一致"))
         return attrs
 
 

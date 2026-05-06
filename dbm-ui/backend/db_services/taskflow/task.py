@@ -32,6 +32,7 @@ from pipeline.eri.models import (
 )
 from pipeline.eri.signals import post_set_state
 
+from backend import env
 from backend.db_services.taskflow.constants import MAX_AUTO_RETRY_TIMES
 from backend.db_services.taskflow.exceptions import RetryNodeException
 from backend.flow.consts import StateType
@@ -43,7 +44,9 @@ logger = logging.getLogger("flow")
 
 
 @shared_task
-def retry_node(root_id: str, flow_node: FlowNode, retry_times: int) -> Union[EngineAPIResult, Any]:
+def retry_node(
+    root_id: str, flow_node: FlowNode, retry_times: int, is_force: bool = False
+) -> Union[EngineAPIResult, Any]:
     """重试flow任务节点"""
 
     def send_flow_state(state, _root_id, _node_id, _version_id):
@@ -69,7 +72,7 @@ def retry_node(root_id: str, flow_node: FlowNode, retry_times: int) -> Union[Eng
         return EngineAPIResult(result=False, message=error_msg)
 
     # 进行重试操作
-    result = BambooEngine(root_id=root_id).retry_node(node_id=flow_node.node_id)
+    result = BambooEngine(root_id=root_id).retry_node(node_id=flow_node.node_id, is_force=is_force)
     if not result.result:
         raise RetryNodeException(str(result.exc.args))
 
@@ -86,7 +89,7 @@ def clean_bamboo_engine_expired_data():
         :param pipeline_ids: 需要清理的 pipeline_instance_id 列表
         :return: Dict[str, QuerySet]
         """
-        # dbm的流程树和流程节点
+        # dbm的流程树和流程节点和流程日志
         flow_trees = FlowTree.objects.filter(root_id__in=pipeline_ids)
         flow_nodes = FlowNode.objects.filter(root_id__in=pipeline_ids)
 
@@ -106,7 +109,7 @@ def clean_bamboo_engine_expired_data():
         callback_data = CallbackData.objects.filter(node_id__in=node_ids)
         schedules = Schedule.objects.filter(node_id__in=node_ids)
 
-        return {
+        clean_data = {
             "context_value": context_value,
             "context_outputs": context_outputs,
             "process": process,
@@ -120,6 +123,15 @@ def clean_bamboo_engine_expired_data():
             "flow_nodes": flow_nodes,
             "flow_trees": flow_trees,
         }
+
+        # 增加AI日志的清理
+        if env.ENABLE_DBM_AI:
+            from backend.dbm_aiagent.models.ai_log import TicketFlowAILog
+
+            flow_ai_logs = TicketFlowAILog.objects.filter(flow_obj_id__in=pipeline_ids)
+            clean_data["flow_ai_logs"] = flow_ai_logs
+
+        return clean_data
 
     if not settings.ENABLE_CLEAN_EXPIRED_BAMBOO_TASK:
         logger.info(_("未开启bamboo数据清理，跳过..."))

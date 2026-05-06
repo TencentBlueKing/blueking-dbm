@@ -15,6 +15,7 @@ from backend.configuration.constants import AffinityEnum
 from backend.db_meta.models import AppCache
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mongodb import MongoDBController
+from backend.flow.utils.mongodb.mongodb_get_remove_hosts import instance_migrate_remove_hosts
 from backend.ticket import builders
 from backend.ticket.builders.common.base import get_mongodb_cluster_tolerance
 from backend.ticket.builders.mongodb.base import (
@@ -34,7 +35,6 @@ class MongoDBReplicasetMigrateDetailSerializer(BaseMongoDBOperateDetailSerialize
             help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
         )
         resource_spec = serializers.JSONField(help_text=_("资源规格"))
-        old_nodes = serializers.JSONField(help_text=_("旧节点信息集合"), required=False)
         related_instances = serializers.ListSerializer(
             help_text=_("实例信息查询"), child=serializers.JSONField(), required=False
         )
@@ -42,13 +42,13 @@ class MongoDBReplicasetMigrateDetailSerializer(BaseMongoDBOperateDetailSerialize
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
     )
+    old_nodes = serializers.JSONField(help_text=_("旧节点信息集合"), required=False)
     cluster_type = serializers.CharField(help_text=_("集群版本"))
     infos = serializers.ListSerializer(help_text=_("实例信息"), child=ReplicasetMigrateDetailSerializer())
 
 
 class MongoDBReplicasetMigrateFlowParamBuilder(builders.FlowParamBuilder):
     controller = MongoDBController.instance_migrate
-    validator = None
 
     def format_ticket_data(self):
         bk_biz_id = self.ticket_data["bk_biz_id"]
@@ -66,7 +66,15 @@ class MongoDBReplicasetMigrateResourceParamBuilder(BaseMongoDBOperateResourcePar
 @builders.BuilderFactory.register(TicketType.MONGODB_REPLICASET_MIGRATE, is_recycle=True)
 class MongoDBReplicasetMigrateFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBReplicasetMigrateDetailSerializer
+    validator = MongoDBController.instance_migrate.validator
     resource_batch_apply_builder = MongoDBReplicasetMigrateResourceParamBuilder
     inner_flow_builder = MongoDBReplicasetMigrateFlowParamBuilder
     inner_flow_name = _("MongoDB 副本集集群迁移")
     need_patch_recycle_host_details = True
+
+    def patch_ticket_detail(self):
+        details = self.ticket.details
+        details["old_nodes"] = {}
+        remove_hosts = instance_migrate_remove_hosts(details)
+        details["old_nodes"]["replicaset"] = remove_hosts
+        super().patch_ticket_detail()

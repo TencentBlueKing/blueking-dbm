@@ -86,8 +86,8 @@ func BodyLogMiddleware(c *gin.Context) {
 			return
 		}
 	}
-	if err := model.UpdateTbRequestLog(rp.RequestId, map[string]interface{}{"respone_body": blw.body.String(),
-		"respone_code": statusCode, "update_time": time.Now()}); err != nil {
+	if err := model.UpdateTbRequestLog(rp.RequestId, map[string]interface{}{"response_body": blw.body.String(),
+		"response_code": statusCode, "update_time": time.Now()}); err != nil {
 		logger.Warn("update request response failed %s", err.Error())
 	}
 }
@@ -148,13 +148,13 @@ func ApiLogger(c *gin.Context) {
 		// create a new buffer and replace the original request body
 		c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 		if err := model.CreateTbRequestLog(model.TbRequestLog{
-			RequestID:   rid,
-			RequestUser: c.Request.Header.Get("bk_username"),
-			RequestUrl:  c.Request.RequestURI,
-			RequestBody: string(bodyBytes),
-			SourceIP:    c.Request.RemoteAddr,
-			CreateTime:  time.Now(),
-			ResponeBody: "{}",
+			RequestID:    rid,
+			RequestUser:  c.Request.Header.Get("bk_username"),
+			RequestUrl:   c.Request.RequestURI,
+			RequestBody:  string(bodyBytes),
+			SourceIP:     c.Request.RemoteAddr,
+			CreateTime:   time.Now(),
+			ResponseBody: "{}",
 		}); err != nil {
 			logger.Warn("record request log failed %s", err.Error())
 		}

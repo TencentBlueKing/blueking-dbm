@@ -60,6 +60,16 @@ class _BKLogApi(BaseApi):
             url="databus_collectors/{collector_config_id}/",
             description=_("获取采集项详情"),
         )
+        self.query_ts = self.generate_data_api(
+            method="POST",
+            url="query/ts/",
+            description=_("按时序聚合统计日志"),
+        )
+        self.query_ts_reference = self.generate_data_api(
+            method="POST",
+            url="query/ts/reference/",
+            description=_("按维度聚合统计日志"),
+        )
 
 
 BKLogApi = _BKLogApi()

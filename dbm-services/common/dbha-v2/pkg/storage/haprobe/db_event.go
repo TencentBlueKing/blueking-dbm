@@ -30,6 +30,11 @@ import (
 	"dbm-services/common/dbha-v2/pkg/hanet"
 )
 
+// DBTyper DB type used to get the DB type name.
+type DBTyper interface {
+	GetDbType() DbType
+}
+
 // DbEventName db event name
 type DbEventName string
 
@@ -59,12 +64,31 @@ const (
 	DbEventNameApiFailureV1             DbEventName = "dbha_call_api_fail"
 
 	// V2
-	DbEventNameDetectFailure    DbEventName = "dbha_detect_db_failure"
-	DbEventNameDetectSSHFailure DbEventName = "dbha_detect_ssh_failure"
-	DbEventNameProbeOffline     DbEventName = "dbha_probe_offline"
+	DbEventNameDetectFailure                   DbEventName = "dbha_detect_db_failure"
+	DbEventNameProbeOffline                    DbEventName = "dbha_probe_offline"
+	DbEventNameTendbhaProxyBackendFailure      DbEventName = "dbha_tendbha_proxy_backend_failure"
+	DbEventNameTendbclusterSpiderRemoteFailure DbEventName = "dbha_tendbcluster_spider_remote_failure"
 )
 
-// DbEventNameReason db event name reason
+// DbEventNameMap db event name map
+var DbEventNameMap = map[DbEventName]DbEventName{
+	DbEventNameDetectFailure:                   DbEventNameDetectFailure,
+	DbEventNameDoubleCheckSshFailureV1:         DbEventNameDoubleCheckSshFailureV1,
+	DbEventNameTendbhaProxyBackendFailure:      DbEventNameTendbhaProxyBackendFailure,
+	DbEventNameTendbclusterSpiderRemoteFailure: DbEventNameTendbclusterSpiderRemoteFailure,
+	DbEventNameProbeOffline:                    DbEventNameProbeOffline,
+}
+
+// DbEventNameList db event name list
+var DbEventNameList = []DbEventName{
+	DbEventNameDetectFailure,
+	DbEventNameDoubleCheckSshFailureV1,
+	DbEventNameTendbhaProxyBackendFailure,
+	DbEventNameTendbclusterSpiderRemoteFailure,
+	DbEventNameProbeOffline,
+}
+
+// DbEventNameReasonStr db event name reason
 type DbEventNameReasonStr string
 
 func (v DbEventNameReasonStr) String() string {
@@ -117,8 +141,9 @@ const (
 type DbType string
 
 const (
-	DbTypeMysql        DbType = "mysql"
-	DbTypeTendbCluster DbType = "tendbcluster"
+	DbTypeNone  DbType = ""
+	DbTypeMySql DbType = "mysql"
+	DbTypeRedis DbType = "redis"
 )
 
 func (t DbType) String() string {
@@ -127,9 +152,10 @@ func (t DbType) String() string {
 
 // DbEvent Include some exception events
 type DbEvent struct {
-	Name       DbEventName       `json:"name"`
-	Reason     DbEventNameReason `json:"type"`
-	DbTypeName DbType            `json:"dbTypeName"`
+	Name       DbEventName       `json:"name,omitempty"`
+	Reason     DbEventNameReason `json:"type,omitempty"`
+	DbTypeName DbType            `json:"dbTypeName,omitempty"`
 	Endpoint   *hanet.Endpoint   `json:"endpoint,omitempty"`
-	Message    string            `json:"message"`
+	Message    string            `json:"message,omitempty"`
+	BkCloudID  int               `json:"bk_cloud_id,omitempty"`
 }

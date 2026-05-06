@@ -45,7 +45,12 @@ class DropTempUserForClusterService(BaseService):
         # 删除localhost和 local_ip用户
         payloads = []
         not_running_status_instances = []
-        for instance in get_instance_with_random_job(cluster=cluster, ticket_type=ticket_type):
+        instance_list = get_instance_with_random_job(cluster=cluster, ticket_type=ticket_type)
+        if not instance_list:
+            self.log_error(_("当前集群没有查询到需要删临时账号的实例：集群域名：{}, 单据类型：{}".format(cluster.immute_domain, ticket_type)))
+            return False
+
+        for instance in instance_list:
             # 默认先关闭binlog记录， 最后统一打开
             cmd = [
                 "set session sql_log_bin = 0 ;",

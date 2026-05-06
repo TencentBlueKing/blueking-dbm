@@ -1,0 +1,5 @@
+    - name: {{RECEIVER_SINK_MYSQL_NAME}}
+      enable: {{RECEIVER_SINK_MYSQL_ENABLE}}
+      endpoint: "{{COMMON_STORAGE_TCP_ENDPOINT}}"
+      user: "{{COMMON_STORAGE_USER}}"
+      password: "{{COMMON_STORAGE_PASSWORD}}"

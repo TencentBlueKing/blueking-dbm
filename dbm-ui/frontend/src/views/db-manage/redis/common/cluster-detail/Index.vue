@@ -82,8 +82,8 @@
             Webconsole
           </BkButton>
         </AuthRouterLink>
-        <MoreActionExtend trigger="hover">
-          <template #handler>
+        <MoreActionExtend>
+          <template #trigger>
             <BkButton
               v-bk-tooltips="t('更多操作')"
               class="ml-4"
@@ -92,7 +92,7 @@
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <BkDropdownItem v-db-console="'redis.clusterManage.backup'">
+          <div v-db-console="'redis.clusterManage.backup'">
             <OperationBtnStatusTips
               :data="data"
               :disabled="!data.isOffline">
@@ -107,8 +107,8 @@
                 {{ t('备份') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem v-db-console="'redis.clusterManage.dbClear'">
+          </div>
+          <div v-db-console="'redis.clusterManage.dbClear'">
             <OperationBtnStatusTips
               :data="data"
               :disabled="!data.isOffline">
@@ -123,8 +123,8 @@
                 {{ t('清档') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem v-db-console="'redis.clusterManage.getAccess'">
+          </div>
+          <div v-db-console="'redis.clusterManage.getAccess'">
             <OperationBtnStatusTips
               :data="data"
               :disabled="!data.isOffline">
@@ -139,8 +139,8 @@
                 {{ t('获取访问方式') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem v-db-console="'redis.clusterManage.queryAccessSource'">
+          </div>
+          <div v-db-console="'redis.clusterManage.queryAccessSource'">
             <OperationBtnStatusTips
               :data="data"
               :disabled="!data.isOffline">
@@ -155,13 +155,13 @@
                 {{ t('查询访问来源') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
+          </div>
           <ClusterAlarmSubscribe
             :data="data"
             db-console-prefix="redis.clusterManage"
             is-dropdown
             @edit="(e) => handleToDetails(data!.id, e, 'alarmSubscription')" />
-          <BkDropdownItem
+          <div
             v-if="!data.isOnlineCLB"
             v-db-console="'common.clb'">
             <OperationBtnStatusTips
@@ -178,8 +178,8 @@
                 {{ t('启用CLB') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-if="data.isOnlineCLB"
             v-db-console="'common.clb'">
             <OperationBtnStatusTips
@@ -196,8 +196,8 @@
                 {{ data.dns_to_clb ? t('恢复DNS域名指向') : t('DNS域名指向CLB') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-if="!data.isOnlinePolaris"
             v-db-console="'common.polaris'">
             <OperationBtnStatusTips
@@ -214,9 +214,9 @@
                 {{ t('启用北极星') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
+          </div>
           <!-- </FunController> -->
-          <BkDropdownItem
+          <div
             v-if="data.isOnline"
             v-db-console="'redis.clusterManage.disable'">
             <OperationBtnStatusTips :data="data">
@@ -231,8 +231,8 @@
                 {{ t('禁用') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-if="data.isOffline"
             v-db-console="'redis.clusterManage.enable'">
             <OperationBtnStatusTips :data="data">
@@ -247,8 +247,8 @@
                 {{ t('启用') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem v-db-console="'redis.clusterManage.delete'">
+          </div>
+          <div v-db-console="'redis.clusterManage.delete'">
             <OperationBtnStatusTips :data="data">
               <AuthButton
                 v-bk-tooltips="{
@@ -265,10 +265,8 @@
                 {{ t('删除') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem>
-            <ClusterDomainDnsRelation :data="data" />
-          </BkDropdownItem>
+          </div>
+          <ClusterDomainDnsRelation :data="data" />
         </MoreActionExtend>
       </DisplayBox>
       <ActionPanel

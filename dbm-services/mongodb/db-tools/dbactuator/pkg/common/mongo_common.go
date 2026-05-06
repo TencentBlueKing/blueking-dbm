@@ -6,14 +6,17 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
+	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -21,6 +24,8 @@ import (
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/util"
 )
+
+const mongoShutdownPollInterval = 500 * time.Millisecond
 
 // UnTarAndCreateSoftLinkAndChown 解压目录，创建软链接并修改属主
 func UnTarAndCreateSoftLinkAndChown(runtime *jobruntime.JobGenericRuntime, binDir string, installPackagePath string,
@@ -32,7 +37,7 @@ func UnTarAndCreateSoftLinkAndChown(runtime *jobruntime.JobGenericRuntime, binDi
 		runtime.Logger.Info("start to unTar install package")
 		tarCmd := fmt.Sprintf("tar -zxf %s -C %s", installPackagePath, binDir)
 		if _, err := util.RunBashCmd(tarCmd, "", nil, 60*time.Second); err != nil {
-			runtime.Logger.Error(fmt.Sprintf("untar install file  fail, error:%s", err))
+			runtime.Logger.Error("untar install file  fail, error:%s", err)
 			return fmt.Errorf("untar install file  fail, error:%s", err)
 		}
 		runtime.Logger.Info("unTar install package successfully")
@@ -42,7 +47,7 @@ func UnTarAndCreateSoftLinkAndChown(runtime *jobruntime.JobGenericRuntime, binDi
 			fmt.Sprintf("chown -R %s:%s %s", user, group, unTarPath),
 			"", nil,
 			60*time.Second); err != nil {
-			runtime.Logger.Error(fmt.Sprintf("chown untar directory fail, error:%s", err))
+			runtime.Logger.Error("chown untar directory fail, error:%s", err)
 			return fmt.Errorf("chown untar directory fail, error:%s", err)
 		}
 		runtime.Logger.Info("execute chown command for unTar directory successfully")
@@ -54,8 +59,7 @@ func UnTarAndCreateSoftLinkAndChown(runtime *jobruntime.JobGenericRuntime, binDi
 		runtime.Logger.Info("start to create soft link")
 		softLink := fmt.Sprintf("ln -s %s %s", unTarPath, installPath)
 		if _, err := util.RunBashCmd(softLink, "", nil, 60*time.Second); err != nil {
-			runtime.Logger.Error(
-				fmt.Sprintf("install directory create softLink fail, error:%s", err))
+			runtime.Logger.Error("install directory create softLink fail, error:%s", err)
 			return fmt.Errorf("install directory create softLink fail, error:%s", err)
 		}
 		runtime.Logger.Info("create soft link successfully")
@@ -66,7 +70,7 @@ func UnTarAndCreateSoftLinkAndChown(runtime *jobruntime.JobGenericRuntime, binDi
 			fmt.Sprintf("chown -R %s:%s %s", user, group, installPath),
 			"", nil,
 			60*time.Second); err != nil {
-			runtime.Logger.Error(fmt.Sprintf("chown softlink directory fail, error:%s", err))
+			runtime.Logger.Error("chown softlink directory fail, error:%s", err)
 			return fmt.Errorf("chown softlink directory fail, error:%s", err)
 		}
 		runtime.Logger.Info("execute chown command for softLink directory successfully")
@@ -119,11 +123,11 @@ func CreateFileAndChown(runtime *jobruntime.JobGenericRuntime, filePath string,
 	fileContent []byte, user string, group string, defaultPerm os.FileMode) error {
 	runtime.Logger.Info("start to create %s file", filePath)
 	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, defaultPerm)
-	defer file.Close()
 	if err != nil {
 		runtime.Logger.Error("create %s file fail, error:%s", filePath, err)
 		return fmt.Errorf("create %s file fail, error:%s", filePath, err)
 	}
+	defer file.Close()
 	if _, err = file.WriteString(string(fileContent)); err != nil {
 		runtime.Logger.Error("%s file write content fail, error:%s", filePath, err)
 		return fmt.Errorf("%s file write content  fail, error:%s", filePath, err)
@@ -192,21 +196,107 @@ func StartMongoProcess(binDir string, port int, user string, auth bool) error {
 	return nil
 }
 
-// ShutdownMongoProcess 关闭进程
-func ShutdownMongoProcess(user string, instanceType string, binDir string, dbpathDir string, port int) error {
-	var cmd string
-	cmd = fmt.Sprintf("su %s -c \"%s --shutdown --dbpath %s\"",
-		user, filepath.Join(binDir, "mongodb", "bin", "mongod"), dbpathDir)
-	if instanceType == "mongos" {
-		cmd = fmt.Sprintf("ps -ef|grep mongos |grep -v grep|grep %d|awk '{print $2}' | xargs kill -2", port)
+// ShutdownMongoProcess 关闭进程.
+// 统一使用SIGTERM(15)做graceful shutdown；超时后仅在force=true时升级SIGKILL(9)。
+func ShutdownMongoProcess(port int, timeout time.Duration, force bool) error {
+	if timeout <= 0 {
+		timeout = 30 * time.Second
 	}
-	if _, err := util.RunBashCmd(
-		cmd,
-		"", nil,
-		120*time.Second); err != nil {
+
+	listenPID0, err := getPidByPort(port)
+	if err != nil {
+		return errors.Wrapf(err, "check TCP LISTEN on port %d before shutdown", port)
+	}
+	if listenPID0 == 0 {
+		return nil
+	}
+
+	pid, procName, err := getMongoPidAndNameByPort(port)
+	if err != nil {
 		return err
 	}
+
+	// kill -15 pid, graceful shutdown
+	if err := syscall.Kill(pid, syscall.SIGTERM); err != nil && !stderrors.Is(err, syscall.ESRCH) {
+		return errors.Wrapf(err, "kill -15 pid %d for port %d", pid, port)
+	}
+
+	if err := waitPortRelease(port, timeout); err == nil {
+		return nil
+	}
+
+	if !force {
+		return fmt.Errorf("graceful shutdown timeout for port %d after %s", port, timeout)
+	}
+
+	// Listener may exit between waitPortRelease timing out and SIGKILL; skip kill if nothing listens.
+	listenPID, err := getPidByPort(port)
+	if err != nil {
+		return errors.Wrapf(err, "getPidByPort %d before kill -9", port)
+	}
+	if listenPID == 0 {
+		return nil
+	}
+
+	if err := syscall.Kill(pid, syscall.SIGKILL); err != nil {
+		if stderrors.Is(err, syscall.ESRCH) {
+			listenPID2, err2 := getPidByPort(port)
+			if err2 != nil {
+				return errors.Wrapf(err2, "getPidByPort %d after kill -9 ESRCH", port)
+			}
+			if listenPID2 == 0 {
+				return nil
+			}
+			return fmt.Errorf(
+				"kill -9 pid %d (%s) for port %d: process already exited but listener pid %d still on port",
+				pid, procName, port, listenPID2)
+		}
+		return errors.Wrapf(err, "kill -9 pid %d (%s) for port %d", pid, procName, port)
+	}
+	if err := waitPortRelease(port, 10*time.Second); err != nil {
+		return fmt.Errorf("port %d still has TCP LISTEN after graceful timeout (%s) and kill -9: %w", port, timeout, err)
+	}
 	return nil
+}
+
+func getMongoPidAndNameByPort(port int) (int, string, error) {
+	pid, err := getPidByPort(port)
+	if err != nil {
+		return 0, "", errors.Wrapf(err, "get pid by port %d", port)
+	}
+	if pid == 0 {
+		return 0, "", fmt.Errorf("port %d in use but no listening pid found", port)
+	}
+
+	processName, err := os.ReadFile(fmt.Sprintf("/proc/%d/comm", pid))
+	if err != nil {
+		return 0, "", errors.Wrapf(err, "read process name from /proc/%d/comm", pid)
+	}
+	processNameStr := strings.TrimSpace(string(processName))
+	if !strings.Contains(processNameStr, "mongod") && !strings.Contains(processNameStr, "mongos") {
+		return 0, "", fmt.Errorf("port %d occupied by non-mongo process %q (pid=%d)", port, processNameStr, pid)
+	}
+	return pid, processNameStr, nil
+}
+
+// waitPortRelease waits until no TCP LISTEN on port. Uses only IPv4 /proc/net/tcp (ListenSocketInodes),
+// not full /proc/*/fd resolution, to keep polling cheap; PID is resolved once on timeout for the error message.
+func waitPortRelease(port int, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for {
+		listening, err := portHasTCPListenIPv4(port)
+		if err != nil {
+			return errors.Wrapf(err, "check TCP LISTEN on port %d after shutdown", port)
+		}
+		if !listening {
+			return nil
+		}
+		if time.Now().After(deadline) {
+			listenPID, _ := getPidByPort(port)
+			return fmt.Errorf("port %d still has TCP LISTEN (pid %d) after %s", port, listenPID, timeout)
+		}
+		time.Sleep(mongoShutdownPollInterval)
+	}
 }
 
 // AddPathToProfile 把可执行文件路径写入/etc/profile
@@ -218,9 +308,9 @@ if ! grep -i %s: %s;
 then 
 echo "export PATH=%s:\$PATH" >> %s 
 fi`, filepath.Join(binDir, "mongodb", "bin"), etcProfilePath, filepath.Join(binDir, "mongodb", "bin"), etcProfilePath)
-	runtime.Logger.Info(addEtcProfile)
+	runtime.Logger.Info("%s", addEtcProfile)
 	if _, err := util.RunBashCmd(addEtcProfile, "", nil, 60*time.Second); err != nil {
-		runtime.Logger.Error(fmt.Sprintf("binary path add in /etc/profile, error:%s", err))
+		runtime.Logger.Error("binary path add in /etc/profile, error:%s", err)
 		return fmt.Errorf("binary path add in /etc/profile, error:%s", err)
 	}
 	runtime.Logger.Info("add binary path in /etc/profile successfully")
@@ -412,7 +502,7 @@ func GetNodeInfo26(ip string, port int, username string, password string) (
 	// 获取数据
 	for _, command := range []string{"replSetGetStatus", "replSetGetConfig"} {
 		var result bson.M
-		err = db.RunCommand(context.TODO(), bson.D{{command, 1}}).Decode(&result)
+		err = db.RunCommand(context.TODO(), bson.D{{Key: command, Value: 1}}).Decode(&result)
 		if err != nil {
 			return statusSlice, confSlice, fmt.Errorf("get %s info fail, error:%s", command, err)
 		}
@@ -666,24 +756,6 @@ func SetProfilingLevel(mongoBin string, ip string, port int, username string, pa
 		return err
 	}
 	return nil
-}
-
-// GetFCV 获取FCV
-func GetFCV(mongoBin string, ip string, port int, username string, password string) (string, error) {
-	cmd := fmt.Sprintf(
-		"%s  -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval \"db.adminCommand( { getParameter: 1, featureCompatibilityVersion: 1 } )\" admin",
-		mongoBin, username, password, ip, port)
-	fcvInfo, err := util.RunBashCmd(
-		cmd,
-		"", nil,
-		60*time.Second)
-	if err != nil {
-		return "", err
-	}
-	fcvInfo = strings.TrimSpace(fcvInfo)
-	fcv := GetFcv{}
-	_ = json.Unmarshal([]byte(fcvInfo), &fcv)
-	return fcv.FeatureCompatibilityVersion, nil
 }
 
 // GetShardInfo 获取shard信息

@@ -25,8 +25,9 @@
 package haapm
 
 import (
+	"sync"
+
 	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"dbm-services/common/go-pubpkg/apm/metric"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -42,16 +43,32 @@ import (
 type HaGauge struct {
 	Error error
 
-	metric      *metric.Metric
+	mu          sync.Mutex
+	metric      *Metric
 	labelNames  []string
 	labelValues map[string]string
 }
 
-func (m *HaGauge) ToMetric() *metric.Metric {
-	return (*metric.Metric)(m.metric)
+// ToMetric returns the Metric.
+func (m *HaGauge) ToMetric() *Metric {
+	return m.metric
 }
 
+// WithLabels returns a BoundGauge with fixed labels. For static resources, create once
+// and use the bound in business code so only Set/Inc/Dec/Add/Sub is needed.
+func (m *HaGauge) WithLabels(labels map[string]string) *BoundGauge {
+	return &BoundGauge{gauge: m, labels: copyLabels(labels)}
+}
+
+// UpdateLabel sets label values for the next Set/Inc/Dec/Add/Sub call.
+//
+// WARNING: This method is NOT atomic with the subsequent operation call.
+// In concurrent code, use SetWithLabels/IncWithLabels/AddWithLabels etc. instead,
+// which perform the full label-write + operation + reset atomically under a single lock.
 func (m *HaGauge) UpdateLabel(lvs map[string]string) *HaGauge {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	if m.Error != nil {
 		return m
 	}
@@ -75,11 +92,18 @@ func (m *HaGauge) UpdateLabel(lvs map[string]string) *HaGauge {
 	return m
 }
 
+// Set sets the HaGauge to an arbitrary value.
 func (m *HaGauge) Set(val float64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	defer m.reset()
 
 	if m.Error != nil {
 		return m.Error
+	}
+
+	if m.metric.Collector == nil {
+		return nil
 	}
 
 	if len(m.labelNames) == 0 {
@@ -87,7 +111,7 @@ func (m *HaGauge) Set(val float64) error {
 		return m.Error
 	}
 
-	if len(m.labelValues) != len(m.labelValues) {
+	if len(m.labelValues) != len(m.labelNames) {
 		m.Error = gerrors.New(gerrors.InvalidParameter, "label is mismatched")
 		return m.Error
 	}
@@ -96,19 +120,26 @@ func (m *HaGauge) Set(val float64) error {
 	return m.Error
 }
 
+// Inc increments the HaGauge by 1.
 func (m *HaGauge) Inc() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	defer m.reset()
 
 	if m.Error != nil {
 		return m.Error
 	}
 
-	if len(m.labelNames) == 0 {
-		m.metric.Collector.(prometheus.Gauge).Inc()
+	if m.metric.Collector == nil {
 		return nil
 	}
 
-	if len(m.labelValues) != len(m.labelValues) {
+	if len(m.labelNames) == 0 {
+		m.metric.Collector.(prometheus.Gauge).Inc()
+		return m.Error
+	}
+
+	if len(m.labelValues) != len(m.labelNames) {
 		m.Error = gerrors.New(gerrors.InvalidParameter, "label is mismatched")
 		return m.Error
 	}
@@ -117,11 +148,18 @@ func (m *HaGauge) Inc() error {
 	return m.Error
 }
 
+// Dec decrements the HaGauge by 1.
 func (m *HaGauge) Dec() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	defer m.reset()
 
 	if m.Error != nil {
 		return m.Error
+	}
+
+	if m.metric.Collector == nil {
+		return nil
 	}
 
 	if len(m.labelNames) == 0 {
@@ -129,7 +167,7 @@ func (m *HaGauge) Dec() error {
 		return m.Error
 	}
 
-	if len(m.labelValues) != len(m.labelValues) {
+	if len(m.labelValues) != len(m.labelNames) {
 		m.Error = gerrors.New(gerrors.InvalidParameter, "label is mismatched")
 		return m.Error
 	}
@@ -138,11 +176,18 @@ func (m *HaGauge) Dec() error {
 	return m.Error
 }
 
+// Add adds the given value to the HaGauge.
 func (m *HaGauge) Add(val float64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	defer m.reset()
 
 	if m.Error != nil {
 		return m.Error
+	}
+
+	if m.metric.Collector == nil {
+		return nil
 	}
 
 	if len(m.labelNames) == 0 {
@@ -150,7 +195,7 @@ func (m *HaGauge) Add(val float64) error {
 		return m.Error
 	}
 
-	if len(m.labelValues) != len(m.labelValues) {
+	if len(m.labelValues) != len(m.labelNames) {
 		m.Error = gerrors.New(gerrors.InvalidParameter, "label is mismatched")
 		return m.Error
 	}
@@ -159,11 +204,18 @@ func (m *HaGauge) Add(val float64) error {
 	return m.Error
 }
 
+// Sub subtracts the given value from the HaGauge.
 func (m *HaGauge) Sub(val float64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	defer m.reset()
 
 	if m.Error != nil {
 		return m.Error
+	}
+
+	if m.metric.Collector == nil {
+		return nil
 	}
 
 	if len(m.labelNames) == 0 {
@@ -171,7 +223,7 @@ func (m *HaGauge) Sub(val float64) error {
 		return m.Error
 	}
 
-	if len(m.labelValues) != len(m.labelValues) {
+	if len(m.labelValues) != len(m.labelNames) {
 		m.Error = gerrors.New(gerrors.InvalidParameter, "label is mismatched")
 		return m.Error
 	}
@@ -180,15 +232,192 @@ func (m *HaGauge) Sub(val float64) error {
 	return m.Error
 }
 
+// SetWithLabels performs the full label-write + set + reset atomically
+// under a single lock. This is the goroutine-safe entry point for concurrent code.
+func (m *HaGauge) SetWithLabels(labels map[string]string, val float64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	defer m.reset()
+
+	if m.metric.Collector == nil {
+		return nil
+	}
+
+	if len(m.labelNames) == 0 {
+		m.metric.Collector.(prometheus.Gauge).Set(val)
+		return nil
+	}
+
+	for k, v := range labels {
+		if _, ok := m.labelValues[k]; !ok {
+			return gerrors.Newf(gerrors.InvalidParameter, "label is mismatched: %s", k)
+		}
+		m.labelValues[k] = v
+	}
+
+	if len(m.labelValues) != len(m.labelNames) {
+		return gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+	}
+
+	m.metric.Collector.(*prometheus.GaugeVec).With(m.labelValues).Set(val)
+	return nil
+}
+
+// IncWithLabels performs the full label-write + inc + reset atomically
+// under a single lock. This is the goroutine-safe entry point for concurrent code.
+func (m *HaGauge) IncWithLabels(labels map[string]string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	defer m.reset()
+
+	if m.metric.Collector == nil {
+		return nil
+	}
+
+	if len(m.labelNames) == 0 {
+		m.metric.Collector.(prometheus.Gauge).Inc()
+		return nil
+	}
+
+	for k, v := range labels {
+		if _, ok := m.labelValues[k]; !ok {
+			return gerrors.Newf(gerrors.InvalidParameter, "label is mismatched: %s", k)
+		}
+		m.labelValues[k] = v
+	}
+
+	if len(m.labelValues) != len(m.labelNames) {
+		return gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+	}
+
+	m.metric.Collector.(*prometheus.GaugeVec).With(m.labelValues).Inc()
+	return nil
+}
+
+// AddWithLabels performs the full label-write + add + reset atomically
+// under a single lock. This is the goroutine-safe entry point for concurrent code.
+func (m *HaGauge) AddWithLabels(labels map[string]string, val float64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	defer m.reset()
+
+	if m.metric.Collector == nil {
+		return nil
+	}
+
+	if len(m.labelNames) == 0 {
+		m.metric.Collector.(prometheus.Gauge).Add(val)
+		return nil
+	}
+
+	for k, v := range labels {
+		if _, ok := m.labelValues[k]; !ok {
+			return gerrors.Newf(gerrors.InvalidParameter, "label is mismatched: %s", k)
+		}
+		m.labelValues[k] = v
+	}
+
+	if len(m.labelValues) != len(m.labelNames) {
+		return gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+	}
+
+	m.metric.Collector.(*prometheus.GaugeVec).With(m.labelValues).Add(val)
+	return nil
+}
+
+// SubWithLabels performs the full label-write + sub + reset atomically
+// under a single lock. This is the goroutine-safe entry point for concurrent code.
+func (m *HaGauge) SubWithLabels(labels map[string]string, val float64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	defer m.reset()
+
+	if m.metric.Collector == nil {
+		return nil
+	}
+
+	if len(m.labelNames) == 0 {
+		m.metric.Collector.(prometheus.Gauge).Sub(val)
+		return nil
+	}
+
+	for k, v := range labels {
+		if _, ok := m.labelValues[k]; !ok {
+			return gerrors.Newf(gerrors.InvalidParameter, "label is mismatched: %s", k)
+		}
+		m.labelValues[k] = v
+	}
+
+	if len(m.labelValues) != len(m.labelNames) {
+		return gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+	}
+
+	m.metric.Collector.(*prometheus.GaugeVec).With(m.labelValues).Sub(val)
+	return nil
+}
+
+// DecWithLabels performs the full label-write + dec + reset atomically
+// under a single lock. This is the goroutine-safe entry point for concurrent code.
+func (m *HaGauge) DecWithLabels(labels map[string]string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	defer m.reset()
+
+	if m.metric.Collector == nil {
+		return nil
+	}
+
+	if len(m.labelNames) == 0 {
+		m.metric.Collector.(prometheus.Gauge).Dec()
+		return nil
+	}
+
+	for k, v := range labels {
+		if _, ok := m.labelValues[k]; !ok {
+			return gerrors.Newf(gerrors.InvalidParameter, "label is mismatched: %s", k)
+		}
+		m.labelValues[k] = v
+	}
+
+	if len(m.labelValues) != len(m.labelNames) {
+		return gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+	}
+
+	m.metric.Collector.(*prometheus.GaugeVec).With(m.labelValues).Dec()
+	return nil
+}
+
 func (m *HaGauge) reset() {
+	m.labelValues = map[string]string{}
+	for _, name := range m.labelNames {
+		m.labelValues[name] = "" // set default label value
+	}
+
 	m.Error = nil
 }
 
+// Clear removes all metrics with label values from the underlying GaugeVec.
+// Typical usage: periodic snapshot metrics that need the previous window's
+// series to be discarded before the next window is written.
+//
+// NOTE: For a gauge without label names, this is a no-op.
+func (m *HaGauge) Clear() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.metric == nil || m.metric.Collector == nil {
+		return
+	}
+	if vec, ok := m.metric.Collector.(*prometheus.GaugeVec); ok {
+		vec.Reset() // prometheus sdk native Reset: drops all children
+	}
+}
+
+// NewHaGauge creates a new HaGauge.
 func NewHaGauge(name, help string, labelNames ...string) *HaGauge {
 	gauge := &HaGauge{}
 
-	gauge.metric = &metric.Metric{
-		ID:          name,
+	gauge.metric = &Metric{
 		Name:        name,
 		Description: help,
 	}
@@ -202,8 +431,8 @@ func NewHaGauge(name, help string, labelNames ...string) *HaGauge {
 	gauge.labelNames = append(gauge.labelNames, labelNames...)
 	gauge.metric.Labels = gauge.labelNames
 	gauge.labelValues = map[string]string{}
-	for _, name := range gauge.labelNames {
-		gauge.labelValues[name] = "" // set default label value
+	for _, n := range gauge.labelNames {
+		gauge.labelValues[n] = "" // set default label value
 	}
 
 	gauge.reset()

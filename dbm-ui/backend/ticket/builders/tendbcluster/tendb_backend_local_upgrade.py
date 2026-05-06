@@ -25,7 +25,6 @@ class TenDBBackendLocalUpgradeSerializer(TenDBLocalUpgradeSerializer):
 
 class TenDBBackendLocalUpgradeParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.tendbcluster_remote_upgrade
-    validator = None
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_REMOTE_UPGRADE)

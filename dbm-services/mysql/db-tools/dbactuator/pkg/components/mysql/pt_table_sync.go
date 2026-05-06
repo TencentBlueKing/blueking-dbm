@@ -384,8 +384,12 @@ func (c *PtTableSyncComp) CopyTableCheckSumReport(DBName string, tableName strin
 
 	// 导入异常记录在临时表上
 	copySQLs = append(copySQLs, "set sql_log_bin = OFF;")
-	copySQLs = append(copySQLs, fmt.Sprintf("create table if not exists %s.%s like %s.%s ;",
-		checkSumDB, tempCheckSumTableName, checkSumDB, c.Params.CheckSumTable))
+	copySQLs = append(
+		copySQLs, fmt.Sprintf(
+			"create table if not exists %s.%s like %s.%s ;",
+			checkSumDB, tempCheckSumTableName, checkSumDB, c.Params.CheckSumTable,
+		),
+	)
 	copySQLs = append(copySQLs, fmt.Sprintf("truncate table %s.%s ;", checkSumDB, tempCheckSumTableName))
 	copySQLs = append(
 		copySQLs,
@@ -445,20 +449,32 @@ func (c *PtTableSyncComp) DropTempTable() (err error) {
 
 // UpdateOldRecords 删除对应修复不一致表的记录，在本地执行，不打开binlog
 func (c *PtTableSyncComp) UpdateOldRecords(dbName string, tableName string) (err error) {
-	updateChecksumSql := fmt.Sprintf(
-		`update %s.%s set this_crc=master_crc, this_cnt=master_cnt where db='%s' and tbl='%s';`,
-		checkSumDB, checkSumTable, dbName, tableName,
-	)
-	updateChecksumHistorySql := fmt.Sprintf(
-		`update %s.%s set this_crc=master_crc, this_cnt=master_cnt where db='%s' and tbl='%s';`,
-		checkSumDB, checkSumHistoryTable, dbName, tableName,
-	)
 	sqls := []string{
 		"set session sql_log_bin = 0 ;",
-		updateChecksumSql,
-		updateChecksumHistorySql,
-		"set session sql_log_bin = 1 ;",
 	}
+	if c.Params.IsRoutineTrigger {
+		sqls = append(
+			sqls, []string{
+				fmt.Sprintf(
+					`update %s.%s set this_crc=master_crc, this_cnt=master_cnt where db='%s' and tbl='%s';`,
+					checkSumDB, checkSumTable, dbName, tableName,
+				),
+				fmt.Sprintf(
+					`update %s.%s set this_crc=master_crc, this_cnt=master_cnt where db='%s' and tbl='%s';`,
+					checkSumDB, checkSumHistoryTable, dbName, tableName,
+				),
+			}...,
+		)
+	} else {
+		sqls = append(
+			sqls, fmt.Sprintf(
+				`update %s.%s set this_crc=master_crc, this_cnt=master_cnt where db='%s' and tbl='%s';`,
+				checkSumDB, c.Params.CheckSumTable, dbName, tableName,
+			),
+		)
+	}
+
+	sqls = append(sqls, "set session sql_log_bin = 1 ;")
 
 	if _, err := c.dbConn.ExecMore(sqls); err != nil {
 		return fmt.Errorf("update-old-records %s.%s failed:[%s]", dbName, tableName, err.Error())

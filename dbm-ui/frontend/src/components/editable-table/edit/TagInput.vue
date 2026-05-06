@@ -80,6 +80,16 @@
         }
       }
     }
+
+    &.is-error {
+      .bk-editable-tag-input {
+        .bk-tag-input {
+          .bk-tag-input-trigger {
+            background: #fff0f1;
+          }
+        }
+      }
+    }
   }
 
   .bk-editable-tag-input {

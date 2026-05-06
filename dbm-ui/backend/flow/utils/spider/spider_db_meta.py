@@ -320,3 +320,16 @@ class SpiderDBMeta(object):
             TenDBClusterMigrateRemoteDb.switch_remote_node(
                 cluster_id=self.cluster["cluster_id"], source=source, target=target
             )
+
+    def cluster_destroy_for_revoke(self) -> bool:
+        """
+        TenDB_Cluster集群终止后，删除相关的集群原信息
+        """
+        try:
+            cluster = Cluster.objects.get(immute_domain=self.cluster["domain"], bk_biz_id=self.cluster["bk_biz_id"])
+        except Cluster.DoesNotExist:
+            logger.info(f"the cluster [{self.cluster['domain']}] is not exist")
+            return True
+
+        TenDBClusterClusterHandler(bk_biz_id=cluster.bk_biz_id, cluster_id=cluster.id).decommission()
+        return True

@@ -28,6 +28,8 @@
         <SearchOperation
           :key="route.name"
           ref="searchOperationRef"
+          :is-global-page="isGlobalPage"
+          :is-todo-page="isTodoPage"
           :show-bizs="isTodoPage || isGlobalPage"
           @search="handleSearchChange" />
       </div>
@@ -125,12 +127,19 @@
         </template>
       </BkTableColumn>
       <BkTableColumn
-        field="appointee"
-        :label="t('负责人')"
+        field="dbm_policy"
+        :label="t('关联策略')"
         show-overflow="tooltip"
-        :width="160">
+        :width="240">
         <template #default="{ data }: { data: RowData }">
-          <span>{{ data.appointee?.join(',') }}</span>
+          <BkButton
+            v-if="data.dbm_policy.id"
+            text
+            theme="primary"
+            @click="() => handleToMonitorStrategy(data.dbm_policy, data.dimensions)">
+            {{ data.policyNameDisplay }}
+          </BkButton>
+          <span v-else>--</span>
         </template>
       </BkTableColumn>
       <BkTableColumn
@@ -171,7 +180,7 @@
       <BkTableColumn
         fixed="right"
         :label="t('操作')"
-        :min-width="120">
+        :width="160">
         <template #default="{ data }: { data: RowData }">
           <BkButton
             v-if="data.is_shielded"
@@ -195,6 +204,11 @@
             @click="() => handleOpenShieldAlarms(true, data)">
             {{ t('屏蔽告警') }}
           </AuthButton>
+          <ToAlarmPolicy
+            v-if="data.dbm_policy.id"
+            :data="data.dbm_policy"
+            :name="data.policyNameDisplay"
+            @confirm="(editType: string) => handleToMonitorStrategy(data.dbm_policy, data.dimensions, editType)" />
           <BkButton
             class="ml-16"
             :disabled="!urls.BKMONITOR_URL"
@@ -239,10 +253,11 @@
 
   import DbTable from '@components/db-table/index.vue';
 
-  import { exportExcelFile } from '@utils';
+  import { exportExcelFile, getBusinessHref } from '@utils';
 
   import SearchOperation from './components/SearchOperation.vue';
   import ShieldAlarms from './components/ShieldAlarms.vue';
+  import ToAlarmPolicy from './components/ToAlarmPolicy.vue';
 
   export type RowData = ServiceReturnType<typeof getAlarmEventsList>['results'][number];
 
@@ -253,6 +268,7 @@
 
   const { t } = useI18n();
   const route = useRoute();
+  const router = useRouter();
   const globalBizStore = useGlobalBizs();
   const { urls } = useSystemEnviron();
 
@@ -351,6 +367,7 @@
       'createTimeDisplay',
       'bk_biz_id',
       'appointee',
+      'dbm_policy',
     ],
     disabled: ['alert_name'],
   };
@@ -538,6 +555,23 @@
 
   const handleShieldSuccess = () => {
     currentEvent.value!.is_shielded = true;
+  };
+
+  const handleToMonitorStrategy = (
+    data: RowData['dbm_policy'],
+    dimensions: RowData['dimensions'],
+    editType?: string,
+  ) => {
+    const { href } = router.resolve({
+      name: 'monitorStrategy',
+      query: {
+        db_type: data.db_type,
+        edit_type: editType,
+        id: data.id,
+      },
+    });
+    const bizId = dimensions.find((item) => item.key === 'tags.appid')?.value || 0;
+    window.open(isTodoPage || isGlobalPage ? getBusinessHref(href, Number(bizId)) : href, '_blank');
   };
 
   defineExpose<Exposes>({

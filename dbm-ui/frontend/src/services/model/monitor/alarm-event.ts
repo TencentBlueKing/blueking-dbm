@@ -12,6 +12,10 @@
  */
 import dayjs from 'dayjs';
 
+import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
+
+import { DBTypes, MonitorTargetLevel } from '@common/const';
+
 import { utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
@@ -37,6 +41,14 @@ export default class AlarmEvent {
   create_time: number;
   data_type: string;
   dbm_event: boolean;
+  dbm_policy: {
+    bk_biz_id: number;
+    db_type: DBTypes;
+    id: number;
+    name: string;
+    parent_id: number;
+    target_level: MonitorTargetLevel;
+  };
   dedupe_keys: string[];
   dedupe_md5: string;
   description: string;
@@ -108,6 +120,7 @@ export default class AlarmEvent {
     this.create_time = payload.create_time;
     this.data_type = payload.data_type;
     this.dbm_event = payload.dbm_event;
+    this.dbm_policy = payload.dbm_policy;
     this.dedupe_keys = payload.dedupe_keys;
     this.dedupe_md5 = payload.dedupe_md5;
     this.description = payload.description;
@@ -195,6 +208,21 @@ export default class AlarmEvent {
     }
 
     return portInfo ? `${hostInfo?.display_value || '--'}:${portInfo.display_value}` : hostInfo?.display_value || '--';
+  }
+
+  get policyNameDisplay() {
+    if (!this.dbm_policy.id) {
+      return '';
+    }
+
+    const { name, target_level: targetLevel } = this.dbm_policy;
+    if (![MonitorTargetLevel.MODULE, MonitorTargetLevel.PLATFORM].includes(targetLevel)) {
+      const match = MonitorPolicyModel.FormatDisplayName(this.dbm_policy.name);
+      if (match) {
+        return match;
+      }
+    }
+    return name;
   }
 
   get severityColor() {

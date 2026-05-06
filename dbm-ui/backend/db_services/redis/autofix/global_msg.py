@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import datetime
+import json
 
 from django.utils import timezone
 
@@ -31,6 +32,26 @@ def GetOrSaveSwitchWait(ip, srst):
         RedisConn.hincrby(k, "counter", 1)
     vals = RedisConn.hgetall(k)
     return vals
+
+
+# 切换完成，就可以发起自愈了
+def NeedStartAutofix(switched_finished):
+    k = "redis|autofix|start|lock|{}|{}".format(switched_finished.ip, switched_finished.cluster_id)
+    if RedisConn.setnx(
+        k,
+        "{}|{}".format(
+            datetime2timestamp(datetime.datetime.now(timezone.utc)), json.dumps(switched_finished.__dict__)
+        ),
+    ):
+        RedisConn.expire(k, SWITCH_MAX_WAIT_SECONDS * 50)  # 50 分钟
+        RedisConn.hset(
+            "redis|autofix|{}".format(switched_finished.cluster_type),
+            datetime2timestamp(datetime.datetime.now(timezone.utc)),
+            "{}|{}".format(switched_finished.ip, json.dumps(switched_finished.__dict__)),
+        )
+        return True
+    else:
+        return False
 
 
 # cluster 模式 集群｜机器 发起自愈需要有锁

@@ -103,6 +103,5 @@
     let paste = (event.clipboardData || window.clipboardData).getData('text');
     paste = encodeMult(paste);
     modelValue.value = paste;
-    window.changeConfirm = true;
   };
 </script>

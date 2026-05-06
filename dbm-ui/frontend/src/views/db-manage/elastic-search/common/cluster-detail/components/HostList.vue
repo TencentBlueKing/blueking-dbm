@@ -61,6 +61,10 @@
       </OperationBtnStatusTips>
       <BkDropdown
         class="ml-8"
+        :popover-options="{
+          clickContentAutoHide: true,
+        }"
+        trigger="click"
         @hide="() => (isCopyDropdown = false)"
         @show="() => (isCopyDropdown = true)">
         <BkButton>
@@ -122,7 +126,9 @@
       selectable
       @filter-change="handleFilterChange"
       @selection="handleSelectChange">
-      <HostListFieldColumn :cluster-type="ClusterTypes.ES" />
+      <HostListFieldColumn
+        :cluster-id="clusterData.id"
+        :cluster-type="ClusterTypes.ES" />
       <TableColumn
         col-key="row-operation"
         fixed="right"
@@ -204,6 +210,7 @@
   import useClusterMachineList from '@views/db-manage/hooks/useClusterMachineList';
 
   interface Props {
+    activePanel: string;
     clusterData: EsModel;
   }
 
@@ -215,11 +222,19 @@
   const { copyAllIp, copyNotAliveIp } = useCopyMachineIp();
 
   const hostTableRef = ref<InstanceType<typeof DbTable>>();
-  const { quickSearchData, quickSearchValue } = useHostSearchSelect(ClusterTypes.ES, {
+  const { initQuickSearchValue, quickSearchData, quickSearchValue } = useHostSearchSelect(ClusterTypes.ES, {
+    clusterId: props.clusterData.id,
     serviceHandler: () => {
       fetchData();
     },
   });
+
+  watch(
+    () => props.activePanel,
+    () => {
+      initQuickSearchValue();
+    },
+  );
 
   const dataSource = (params: Parameters<typeof fetchClusterMachineList>[0]) =>
     fetchClusterMachineList({

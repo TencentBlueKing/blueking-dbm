@@ -92,6 +92,7 @@ class InitCheckForResourceKwargs:
     ips: list
     bk_biz_id: int = env.DBA_APP_BK_BIZ_ID
     account_name: str = "root"
+    strict_idle_check: bool = False
 
 
 @dataclass
@@ -102,6 +103,7 @@ class ImportMachinePollKwargs:
 
     bk_biz_id: int
     db_type: str
+    cluster_type: str
     operator: str
     ticket_id: int
     event: MachineEventType = ""

@@ -722,6 +722,24 @@ CREATE_POLICY_DETAILS = {
         "user_groups": [20],
     },
     "labels": [],
+    "detects": [
+        {
+            "id": 2345,
+            "level": 2,
+            "connector": "and",
+            "expression": "",
+            "trigger_config": {
+                "count": 5,
+                "uptime": {
+                    "calendars": [],
+                    "time_ranges": [{"end": "22:59", "start": "08:00"}],
+                    "active_calendars": [],
+                },
+                "check_window": 5,
+            },
+            "recovery_config": {"check_window": 5, "status_setter": "recovery"},
+        }
+    ],
 }
 
 CREATE_POLICY = [

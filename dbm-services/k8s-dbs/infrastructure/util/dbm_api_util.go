@@ -22,39 +22,163 @@ package util
 import (
 	"context"
 	"fmt"
-	coreconst "k8s-dbs/core/constant"
-	infreq "k8s-dbs/infrastructure/request"
-	"k8s-dbs/infrastructure/thirdapi"
-	metaentity "k8s-dbs/metadata/entity"
 	"log/slog"
 	"time"
 
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
+
+	commconst "k8s-dbs/common/constant"
+	coreconst "k8s-dbs/core/constant"
+	infreq "k8s-dbs/infrastructure/request"
+	infresp "k8s-dbs/infrastructure/response"
+	"k8s-dbs/infrastructure/thirdapi"
+	metaentity "k8s-dbs/metadata/entity"
 )
 
-// clusterTypeMap 存储插件类型到DBM集群类型的映射表
-var clusterTypeMap = map[string]string{
-	string(coreconst.Victoriametrics): "k8s_vm",
-	string(coreconst.Greptimedb):      "k8s_gt",
-	string(coreconst.Surreal):         "k8s_surreal",
-	string(coreconst.Risingwave):      "k8s_rw",
-	string(coreconst.Milvus):          "k8s_mv",
-}
-
-// GetDbmClusterType 获取对应的 dbm cluster type
+// GetDbmClusterType 获取 addon 类型对应的 DBM cluster type。
+// 复用 addon_registry.go 中的 AddonTypeToIAMClusterType 映射，
 func GetDbmClusterType(storageAddonType string) (string, error) {
-	if clusterType, exists := clusterTypeMap[storageAddonType]; exists {
+	if clusterType, exists := commconst.AddonTypeToIAMClusterType[storageAddonType]; exists {
 		return clusterType, nil
 	}
-
 	return "", fmt.Errorf("不支持的存储插件类型: %s", storageAddonType)
 }
 
-// AsyncClusterOperation 通用的异步集群操作函数，支持创建、更新和删除操作
-func AsyncClusterOperation(
+// AsyncClusterCreated 同步集群创建信息到 DBM。
+// onIDReceived 为可选回调，DBM 创建成功后将返回的 cluster id 通知调用方。
+func AsyncClusterCreated(
 	clusterEntity *metaentity.K8sCrdClusterEntity,
-	operationType string,
+	dbmAPIService *thirdapi.DbmAPIService,
+	onIDReceived func(dbmClusterID uint64),
+) {
+	slog.Info("开始同步集群创建信息", "cluster_name", clusterEntity.ClusterName)
+	syncFunc := func(ctx context.Context, entity *metaentity.K8sCrdClusterEntity, svc *thirdapi.DbmAPIService) error {
+		if err := checkContextCancelled(ctx); err != nil {
+			return err
+		}
+		dbmClusterType, err := GetDbmClusterType(entity.AddonInfo.AddonType)
+		if err != nil {
+			return fmt.Errorf("未找到对应的 dbm cluster type: %w", err)
+		}
+		syncRequest := BuildCreateRequest(entity, dbmClusterType)
+		dbmClusterID, err := svc.SyncClusterCreated(syncRequest)
+		if err != nil {
+			return err
+		}
+		slog.Info("DBM API 返回同步成功", "operation", "创建",
+			"cluster_name", entity.ClusterName, "dbm_cluster_id", dbmClusterID)
+		if onIDReceived != nil {
+			onIDReceived(dbmClusterID)
+		}
+		return nil
+	}
+	asyncClusterOperation(clusterEntity, coreconst.OperationCreate, dbmAPIService, syncFunc)
+}
+
+// AsyncClusterUpdated 同步集群更新信息到DBM
+func AsyncClusterUpdated(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) {
+	slog.Info("开始同步集群更新信息", "cluster_name", clusterEntity.ClusterName)
+	asyncClusterOperation(clusterEntity, coreconst.OperationUpdate, dbmAPIService, syncClusterNormalWithCtx)
+}
+
+// AsyncClusterDeleted 同步集群删除信息到DBM
+func AsyncClusterDeleted(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) {
+	slog.Info("开始同步集群删除信息", "cluster_name", clusterEntity.ClusterName)
+	asyncClusterOperation(clusterEntity, coreconst.OperationDelete, dbmAPIService, syncClusterDeletedWithCtx)
+}
+
+// AsyncClusterExposed 同步集群服务暴露信息到DBM
+func AsyncClusterExposed(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) {
+	slog.Info("开始同步集群暴露信息", "cluster_name", clusterEntity.ClusterName)
+	asyncClusterOperation(clusterEntity, coreconst.OperationExpose, dbmAPIService, syncClusterExposedWithCtx)
+}
+
+// AsyncClusterStopped 同步集群停止信息到DBM
+func AsyncClusterStopped(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) {
+	slog.Info("开始同步集群停止信息", "cluster_name", clusterEntity.ClusterName)
+	asyncClusterOperation(clusterEntity, coreconst.OperationStop, dbmAPIService, syncClusterStoppedWithCtx)
+}
+
+// AsyncClusterStarted 同步集群启动信息到DBM
+func AsyncClusterStarted(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) {
+	slog.Info("开始同步集群启动信息", "cluster_name", clusterEntity.ClusterName)
+	asyncClusterOperation(clusterEntity, coreconst.OperationStart, dbmAPIService, syncClusterStartedWithCtx)
+}
+
+// AsyncClusterRestarted 同步集群重启信息到DBM
+func AsyncClusterRestarted(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) {
+	slog.Info("开始同步集群重启信息", "cluster_name", clusterEntity.ClusterName)
+	asyncClusterOperation(clusterEntity, coreconst.OperationRestart, dbmAPIService, syncClusterRestartedWithCtx)
+}
+
+// AsyncClusterHScaled 同步集群水平扩缩信息到DBM
+func AsyncClusterHScaled(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) {
+	slog.Info("开始同步集群水平扩缩信息", "cluster_name", clusterEntity.ClusterName)
+	asyncClusterOperation(clusterEntity, coreconst.OperationHscaling, dbmAPIService, syncClusterHsWithCtx)
+}
+
+// AsyncClusterVScaled 同步集群垂直扩缩信息到DBM
+func AsyncClusterVScaled(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) {
+	slog.Info("开始同步集群垂直扩缩信息", "cluster_name", clusterEntity.ClusterName)
+	asyncClusterOperation(clusterEntity, coreconst.OperationVscaling, dbmAPIService, syncClusterVsWithCtx)
+}
+
+// AsyncClusterVolumeExpanded 同步集群磁盘扩缩信息到DBM
+func AsyncClusterVolumeExpanded(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) {
+	slog.Info("开始同步集群磁盘扩缩信息", "cluster_name", clusterEntity.ClusterName)
+	asyncClusterOperation(clusterEntity, coreconst.OperationVolumeExpand, dbmAPIService, syncClusterVeWithCtx)
+}
+
+// AsyncClusterAbnormal 同步集群异常状态信息到DBM
+func AsyncClusterAbnormal(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) {
+	slog.Info("开始同步集群异常状态信息", "cluster_name", clusterEntity.ClusterName)
+	asyncClusterOperation(clusterEntity, coreconst.OperationStatusAbnormal, dbmAPIService, syncClusterAbnormalWithCtx)
+}
+
+// AsyncClusterNormal 同步集群正常状态信息到DBM
+func AsyncClusterNormal(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) {
+	slog.Info("开始同步集群正常状态信息", "cluster_name", clusterEntity.ClusterName)
+	asyncClusterOperation(clusterEntity, coreconst.OperationStatusNormal, dbmAPIService, syncClusterNormalWithCtx)
+}
+
+// asyncClusterOperation 通用的异步集群操作函数，支持创建、更新和删除操作
+func asyncClusterOperation(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	operationType coreconst.ClusterOperationType,
 	dbmAPIService *thirdapi.DbmAPIService,
 	syncFunc func(context.Context, *metaentity.K8sCrdClusterEntity, *thirdapi.DbmAPIService) error,
 ) {
@@ -79,20 +203,20 @@ func AsyncClusterOperation(
 
 		if err != nil {
 			if errors.Is(err, context.DeadlineExceeded) {
-				slog.Warn("同步集群"+operationType+"信息超时",
+				slog.Warn("同步集群"+string(operationType)+"信息超时",
 					"cluster_name", clusterEntity.ClusterName,
 					"namespace", clusterEntity.Namespace,
 					"timeout", "30s",
 				)
 			} else {
-				slog.Error("同步集群"+operationType+"信息失败",
+				slog.Error("同步集群"+string(operationType)+"信息失败",
 					"cluster_name", clusterEntity.ClusterName,
 					"namespace", clusterEntity.Namespace,
 					"error", err,
 				)
 			}
 		} else {
-			slog.Info("同步集群"+operationType+"信息成功",
+			slog.Info("同步集群"+string(operationType)+"信息成功",
 				"cluster_name", clusterEntity.ClusterName,
 				"namespace", clusterEntity.Namespace,
 			)
@@ -100,44 +224,106 @@ func AsyncClusterOperation(
 	}()
 }
 
-// AsyncClusterCreated 同步集群创建信息到DBM
-func AsyncClusterCreated(
-	clusterEntity *metaentity.K8sCrdClusterEntity,
-	dbmAPIService *thirdapi.DbmAPIService,
-) {
-	slog.Info("开始同步集群创建信息", "cluster_name", clusterEntity.ClusterName)
-	AsyncClusterOperation(clusterEntity, "create", dbmAPIService, syncClusterCreatedWithContext)
-}
-
-// AsyncClusterDeleted 同步集群删除信息到DBM
-func AsyncClusterDeleted(
-	clusterEntity *metaentity.K8sCrdClusterEntity,
-	dbmAPIService *thirdapi.DbmAPIService,
-) {
-	slog.Info("开始同步集群删除信息", "cluster_name", clusterEntity.ClusterName)
-	AsyncClusterOperation(clusterEntity, "delete", dbmAPIService, syncClusterDeletedWithContext)
-}
-
-// AsyncClusterExposed 同步集群服务暴露信息到DBM
-func AsyncClusterExposed(
-	clusterEntity *metaentity.K8sCrdClusterEntity,
-	dbmAPIService *thirdapi.DbmAPIService,
-) {
-	slog.Info("开始同步集群暴露信息", "cluster_name", clusterEntity.ClusterName)
-	AsyncClusterOperation(clusterEntity, "expose", dbmAPIService, syncClusterExposedWithContext)
-}
-
-// syncClusterDeletedWithContext 带context的同步集群删除信息到DBM
-func syncClusterDeletedWithContext(
+// syncClusterExposedWithCtx 带context的同步集群暴露信息到DBM
+func syncClusterExposedWithCtx(
 	ctx context.Context,
 	clusterEntity *metaentity.K8sCrdClusterEntity,
 	dbmAPIService *thirdapi.DbmAPIService,
 ) error {
-	// 检查context是否已取消
-	select {
-	case <-ctx.Done():
-		return fmt.Errorf("同步任务被取消: %w", ctx.Err())
-	default:
+	return syncClusterWithCtx(ctx, clusterEntity, dbmAPIService, coreconst.OperationExpose)
+}
+
+// syncClusterStoppedWithCtx 带context的同步集群停止信息到DBM
+func syncClusterStoppedWithCtx(
+	ctx context.Context,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) error {
+	return syncClusterWithCtx(ctx, clusterEntity, dbmAPIService, coreconst.OperationStop)
+}
+
+// syncClusterStartedWithCtx 带context的同步集群启动信息到DBM
+func syncClusterStartedWithCtx(
+	ctx context.Context,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) error {
+	return syncClusterWithCtx(ctx, clusterEntity, dbmAPIService, coreconst.OperationStart)
+}
+
+// syncClusterRestartedWithCtx 带context的同步集群重启信息到DBM
+func syncClusterRestartedWithCtx(
+	ctx context.Context,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) error {
+	return syncClusterWithCtx(ctx, clusterEntity, dbmAPIService, coreconst.OperationRestart)
+}
+
+// syncClusterHsWithCtx 带context的同步集群水平扩缩信息到DBM
+func syncClusterHsWithCtx(
+	ctx context.Context,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) error {
+	return syncClusterWithCtx(ctx, clusterEntity, dbmAPIService, coreconst.OperationHscaling)
+}
+
+// syncClusterVsWithCtx 带context的同步集群垂直扩缩信息到DBM
+func syncClusterVsWithCtx(
+	ctx context.Context,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) error {
+	return syncClusterWithCtx(ctx, clusterEntity, dbmAPIService, coreconst.OperationVscaling)
+}
+
+// syncClusterVeWithCtx 带 context 的同步集群磁盘扩缩信息到DBM
+func syncClusterVeWithCtx(
+	ctx context.Context,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) error {
+	return syncClusterWithCtx(ctx, clusterEntity, dbmAPIService, coreconst.OperationVolumeExpand)
+}
+
+// syncClusterAbnormalWithCtx 带 context 的同步集群异常信息到DBM
+func syncClusterAbnormalWithCtx(
+	ctx context.Context,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) error {
+	return syncClusterWithCtx(ctx, clusterEntity, dbmAPIService, coreconst.OperationStatusAbnormal)
+}
+
+// syncClusterNormalWithCtx 带 context 的同步集群正常信息到DBM
+func syncClusterNormalWithCtx(
+	ctx context.Context,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) error {
+	return syncClusterWithCtx(ctx, clusterEntity, dbmAPIService, coreconst.OperationStatusNormal)
+}
+
+// syncClusterDeletedWithCtx 带context的同步集群删除信息到DBM
+func syncClusterDeletedWithCtx(
+	ctx context.Context,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+) error {
+	return syncClusterWithCtx(ctx, clusterEntity, dbmAPIService, coreconst.OperationDelete)
+}
+
+// syncClusterWithCtx 统一的带context的同步集群操作函数
+func syncClusterWithCtx(
+	ctx context.Context,
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+	operation coreconst.ClusterOperationType,
+) error {
+	// 检查 context 是否已取消
+	if err := checkContextCancelled(ctx); err != nil {
+		return err
 	}
 
 	dbmClusterType, err := GetDbmClusterType(clusterEntity.AddonInfo.AddonType)
@@ -145,113 +331,149 @@ func syncClusterDeletedWithContext(
 		return fmt.Errorf("未找到对应的 dbm cluster type: %w", err)
 	}
 
-	// 构建同步请求
-	syncRequest := &infreq.DeleteClusterRequest{
+	switch operation {
+	case coreconst.OperationDelete:
+		return syncClusterDelete(clusterEntity, dbmAPIService, dbmClusterType)
+	case
+		coreconst.OperationExpose,
+		coreconst.OperationStop,
+		coreconst.OperationStart,
+		coreconst.OperationRestart,
+		coreconst.OperationHscaling,
+		coreconst.OperationVscaling,
+		coreconst.OperationVolumeExpand,
+		coreconst.OperationStatusNormal,
+		coreconst.OperationStatusAbnormal:
+		return syncClusterUpdate(clusterEntity, dbmAPIService, dbmClusterType, operation)
+	default:
+		return fmt.Errorf("不支持的同步操作类型: %s", operation)
+	}
+}
+
+// getPhaseByOperation 根据操作类型获取对应的phase值
+func getPhaseByOperation(operation coreconst.ClusterOperationType) coreconst.ClusterPhase {
+	if operation == coreconst.OperationStatusAbnormal {
+		return coreconst.PhaseOffline
+	}
+	return coreconst.PhaseOnline
+}
+
+// getStatusByOperation 根据操作类型获取对应的status值
+func getStatusByOperation(operation coreconst.ClusterOperationType) coreconst.ClusterStatus {
+	if operation == coreconst.OperationStatusAbnormal {
+		return coreconst.StatusAbNormal
+	}
+	return coreconst.StatusNormal
+}
+
+// checkContextCancelled 检查context是否已取消
+func checkContextCancelled(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("同步任务被取消: %w", ctx.Err())
+	default:
+		return nil
+	}
+}
+
+// syncClusterDelete 同步集群删除操作
+func syncClusterDelete(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+	dbmClusterType string,
+) error {
+	syncRequest := buildDeleteRequest(clusterEntity, dbmClusterType)
+	response, err := dbmAPIService.SyncClusterDeleted(syncRequest)
+	return handleSyncResponse(err, response, "删除", clusterEntity.ClusterName)
+}
+
+// syncClusterUpdate 同步集群更新操作
+func syncClusterUpdate(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+	dbmClusterType string,
+	operation coreconst.ClusterOperationType,
+) error {
+	phase := getPhaseByOperation(operation)
+	status := getStatusByOperation(operation)
+	syncRequest := buildUpdateRequest(clusterEntity, dbmClusterType, phase, status)
+	response, err := dbmAPIService.SyncClusterUpdated(syncRequest)
+	return handleSyncResponse(err, response, "更新", clusterEntity.ClusterName)
+}
+
+// buildDeleteRequest 构建删除请求
+func buildDeleteRequest(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmClusterType string,
+) *infreq.DeleteClusterRequest {
+	return &infreq.DeleteClusterRequest{
 		Name:        clusterEntity.ClusterName,
 		BkBizID:     clusterEntity.BkBizID,
 		ClusterType: dbmClusterType,
 	}
-
-	// 调用同步接口，支持context取消
-	response, err := dbmAPIService.SyncClusterDeleted(syncRequest)
-	if err != nil {
-		return fmt.Errorf("调用同步接口失败: %w", err)
-	}
-
-	if !response.Result {
-		return fmt.Errorf("DBM API返回同步失败: %s", response.Message)
-	}
-	slog.Info("DBM API 返回同步删除成功", "cluster_name", clusterEntity.ClusterName)
-	return nil
 }
 
-// syncClusterCreatedWithContext 带context的同步集群创建信息到DBM
-func syncClusterCreatedWithContext(
-	ctx context.Context,
+// BuildCreateRequest 构建创建请求
+func BuildCreateRequest(
 	clusterEntity *metaentity.K8sCrdClusterEntity,
-	dbmAPIService *thirdapi.DbmAPIService,
-) error {
-	// 检查context是否已取消
-	select {
-	case <-ctx.Done():
-		return fmt.Errorf("同步任务被取消: %w", ctx.Err())
-	default:
+	dbmClusterType string,
+) *infreq.CreateClusterRequest {
+	alias := clusterEntity.ClusterAlias
+	if alias == "" {
+		alias = clusterEntity.ClusterName
 	}
-
-	dbmClusterType, err := GetDbmClusterType(clusterEntity.AddonInfo.AddonType)
-	if err != nil {
-		return fmt.Errorf("未找到对应的 dbm cluster type: %w", err)
-	}
-
-	// 构建同步请求
-	syncRequest := &infreq.CreateClusterRequest{
+	return &infreq.CreateClusterRequest{
 		Name:         clusterEntity.ClusterName,
-		Alias:        clusterEntity.ClusterAlias,
+		Alias:        alias,
 		BkBizID:      clusterEntity.BkBizID,
 		ClusterType:  dbmClusterType,
 		ImmuteDomain: fmt.Sprintf("%d_%s_%s", clusterEntity.BkBizID, dbmClusterType, clusterEntity.ClusterName),
 		MajorVersion: clusterEntity.ServiceVersion,
-		Phase:        "online",
-		Status:       "normal",
+		Phase:        string(coreconst.PhaseOnline),
+		Status:       string(coreconst.StatusNormal),
 		Region:       "default",
 		Operator:     clusterEntity.CreatedBy,
 	}
-
-	// 调用同步接口，支持context取消
-	response, err := dbmAPIService.SyncClusterCreated(syncRequest)
-	if err != nil {
-		return fmt.Errorf("调用同步接口失败: %w", err)
-	}
-
-	if !response.Result {
-		return fmt.Errorf("DBM API返回同步失败: %s", response.Message)
-	}
-	slog.Info("DBM API 返回同步创建成功", "cluster_name", clusterEntity.ClusterName)
-	return nil
 }
 
-// syncClusterExposedWithContext 带context的同步集群暴露信息到DBM
-func syncClusterExposedWithContext(
-	ctx context.Context,
+// buildUpdateRequest 构建更新请求
+func buildUpdateRequest(
 	clusterEntity *metaentity.K8sCrdClusterEntity,
-	dbmAPIService *thirdapi.DbmAPIService,
-) error {
-	// 检查context是否已取消
-	select {
-	case <-ctx.Done():
-		return fmt.Errorf("同步任务被取消: %w", ctx.Err())
-	default:
+	dbmClusterType string,
+	phase coreconst.ClusterPhase,
+	status coreconst.ClusterStatus,
+) *infreq.UpdateClusterRequest {
+	domain := clusterEntity.VIP
+	if domain == "" {
+		domain = fmt.Sprintf("%d_%s_%s", clusterEntity.BkBizID, dbmClusterType, clusterEntity.ClusterName)
 	}
-
-	dbmClusterType, err := GetDbmClusterType(clusterEntity.AddonInfo.AddonType)
-	if err != nil {
-		return fmt.Errorf("未找到对应的 dbm cluster type: %w", err)
+	alias := clusterEntity.ClusterAlias
+	if alias == "" {
+		alias = clusterEntity.ClusterName
 	}
-
-	// 构建同步请求
-	syncRequest := &infreq.UpdateClusterRequest{
+	return &infreq.UpdateClusterRequest{
 		Name:             clusterEntity.ClusterName,
-		Alias:            clusterEntity.ClusterAlias,
+		Alias:            alias,
 		BkBizID:          clusterEntity.BkBizID,
 		ClusterType:      dbmClusterType,
-		ImmuteDomain:     clusterEntity.VIP,
+		ImmuteDomain:     domain,
 		MajorVersion:     clusterEntity.ServiceVersion,
-		Phase:            "online",
-		Status:           "normal",
+		Phase:            string(phase),
+		Status:           string(status),
 		Region:           "default",
 		Operator:         clusterEntity.UpdatedBy,
 		ClusterEntryType: "clb",
 	}
+}
 
-	// 调用同步接口，支持context取消
-	response, err := dbmAPIService.SyncClusterUpdated(syncRequest)
+// handleSyncResponse 统一处理同步响应
+func handleSyncResponse(err error, response infresp.DbmAPIResponse, operation string, clusterName string) error {
 	if err != nil {
-		return fmt.Errorf("调用同步接口失败: %w", err)
+		return fmt.Errorf("调用%s同步接口失败: %w", operation, err)
 	}
-
 	if !response.Result {
-		return fmt.Errorf("DBM API返回同步失败: %s", response.Message)
+		return fmt.Errorf("DBM API返回%s同步失败: %s", operation, response.Message)
 	}
-	slog.Info("DBM API 返回同步更新成功", "cluster_name", clusterEntity.ClusterName)
+	slog.Info("DBM API 返回同步成功", "operation", operation, "cluster_name", clusterName)
 	return nil
 }

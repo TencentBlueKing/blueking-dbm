@@ -149,6 +149,7 @@ class RedisDataStructureContext:
     redis_act_payload: Optional[Any] = None  # 代表获取payload参数的类
     disk_used: dict = field(default_factory=dict)
     backup_dir: str = None
+    alarm_shield_id: int = None  # 告警屏蔽ID
 
     def cal_twemproxy_serveres(self, name) -> list:
         """
@@ -192,12 +193,8 @@ class RedisRollbackExerciseContext:
     回档演练上下文
     """
 
-    # Flow tracking
-    rollback_flow_id: str = None  # 回滚 Flow ID
-    delete_flow_id: str = None  # 销毁 Flow ID
-    task_id: int = None  # Task record ID for status updates
-    polling_start_time: float = None  # 轮询开始时间
-    task_info: list = field(default_factory=list)  # 执行情况
+    alarm_shield_id: int = None  # 告警屏蔽ID
+    task_msg: list = field(default_factory=list)  # 执行情况
     error_occurred: bool = False  # 发生异常
 
 
@@ -228,3 +225,12 @@ class TendisplusLightningContext:
     tendis_backup_info: list = None  # 执行备份后的信息
     ticket_id: int = None  # 代表dts job id,对应表tb_tendis_dts_job
     dst_cluster: str = None  # 代表目标集群
+
+
+@dataclass()
+class RedisRoleCheckContext:
+    """
+    Redis role check context for passing data between components via trans_data.
+    """
+
+    job_infos: list = field(default_factory=list)  # Job execution info for polling

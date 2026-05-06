@@ -76,20 +76,25 @@ class ExecRollbackActForSourceService(ExecuteDBActuatorScriptService):
                     handler = TaskFlowHandler(root_id)
                     # 添加重试机制，防止日志异步上报导致获取为空
                     # 考虑到日志系统的异步特性，使用指数退避策略
-                    max_retries = 4
-                    base_interval = 0.5  # 基础间隔（秒）
+                    max_retries = 5
+                    base_interval = 2  # 基础间隔（秒）
 
                     for attempt in range(max_retries):
                         error_lines = []
-                        for rec in handler.get_version_error_logs(node_id, version_id):
-                            error_lines.append(f"[{node_id}] {rec['timestamp']} {rec['levelname']} {rec['message']}")
+                        for rec in handler.get_version_error_logs_for_dbactuator(node_id, version_id):
+                            # 仅收录真正的错误日志，跳过 INFO 级别的占位消息（如"暂无错误日志"）
+                            # 避免占位记录被误判为"成功获取"而导致重试提前退出
+                            if str(rec.get("levelname", "INFO")).upper() not in ("INFO", "DEBUG"):
+                                error_lines.append(
+                                    f"[{node_id}] {rec['timestamp']} {rec['levelname']} {rec['message']}"
+                                )
 
                         if error_lines:
                             logger.info(_("成功获取错误日志，共 {} 条，尝试次数: {}").format(len(error_lines), attempt + 1))
                             break
 
                         if attempt < max_retries - 1:
-                            # 使用指数退避：0.5s, 1s, 2s
+                            # 使用指数退避：2s, 4s, 8s, 16s
                             retry_interval = base_interval * (2**attempt)
                             logger.warning(_("第 {} 次尝试获取错误日志为空，等待 {:.1f} 秒后重试...").format(attempt + 1, retry_interval))
                             time.sleep(retry_interval)

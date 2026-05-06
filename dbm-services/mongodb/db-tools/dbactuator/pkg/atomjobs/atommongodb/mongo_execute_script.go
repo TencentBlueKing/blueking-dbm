@@ -1,6 +1,7 @@
 package atommongodb
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"dbm-services/common/go-pubpkg/mycmd"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/common"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/consts"
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/jobruntime"
@@ -222,16 +224,13 @@ func (e *ExecScript) creatScriptFile() error {
 	// 创建文件
 	e.runtime.Logger.Info("start to create script file")
 	script, err := os.OpenFile(e.ScriptFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, DefaultPerm)
-	defer script.Close()
 	if err != nil {
-		e.runtime.Logger.Error(
-			fmt.Sprintf("create script file fail, error:%s", err))
+		e.runtime.Logger.Error("create script file fail, error:%s", err)
 		return fmt.Errorf("create script file fail, error:%s", err)
 	}
+	defer script.Close()
 	if _, err = script.WriteString(e.ScriptContent); err != nil {
-		e.runtime.Logger.Error(
-			fmt.Sprintf("script file write content fail, error:%s",
-				err))
+		e.runtime.Logger.Error("script file write content fail, error:%s", err)
 		return fmt.Errorf("script file write content fail, error:%s",
 			err)
 	}
@@ -242,33 +241,50 @@ func (e *ExecScript) creatScriptFile() error {
 		fmt.Sprintf("chown -R %s:%s %s", e.OsUser, e.OsGroup, e.ScriptDir),
 		"", nil,
 		60*time.Second); err != nil {
-		e.runtime.Logger.Error(fmt.Sprintf("chown script file fail, error:%s", err))
+		e.runtime.Logger.Error("chown script file fail, error:%s", err)
 		return fmt.Errorf("chown script file fail, error:%s", err)
 	}
 	e.runtime.Logger.Info("execute chown command for script file successfully")
 	return nil
 }
 
-// execScript 执行脚本
+// execScript 执行脚本（使用 mycmd 调用 mongo，避免 RunBashCmd 记录明文密码）
 func (e *ExecScript) execScript() error {
 	e.runtime.Logger.Info("start to execute script")
 	timeout := 86400 * 3 * time.Second // 3天
-	cmd := fmt.Sprintf(
-		"%s -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet  %s > %s",
-		e.Mongo, e.ConfParams.AdminUsername, e.ConfParams.AdminPassword, e.execIP, e.execPort,
-		e.ScriptFilePath, e.ResultFilePath)
-	cmdX := fmt.Sprintf(
-		"%s -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet  %s > %s",
-		e.Mongo, e.ConfParams.AdminUsername, "xxx", e.execIP, e.execPort,
-		e.ScriptFilePath, e.ResultFilePath)
-	if _, err := util.RunBashCmd(
-		cmd,
-		"", nil,
-		timeout); err != nil {
-		e.runtime.Logger.Error("execute script:%s fail, error:%s", cmdX, err)
-		return fmt.Errorf("execute script:%s fail, error:%s", cmdX, err)
+
+	resultF, err := os.OpenFile(e.ResultFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, DefaultPerm)
+	if err != nil {
+		e.runtime.Logger.Error("open result file fail:%s", err)
+		return fmt.Errorf("open result file %s: %w", e.ResultFilePath, err)
 	}
-	e.runtime.Logger.Info("execute script:%s successfully", cmdX)
+	defer resultF.Close()
+
+	var stderrBuf bytes.Buffer
+	cmdBuilder := mycmd.New(
+		e.Mongo,
+		"-u", e.ConfParams.AdminUsername,
+		"-p", mycmd.Password(e.ConfParams.AdminPassword),
+		"--host", e.execIP,
+		"--port", strconv.Itoa(e.execPort),
+		"--authenticationDatabase=admin",
+		"--quiet",
+		e.ScriptFilePath,
+	)
+	maskedCmdline := cmdBuilder.GetCmdLine("", true)
+	ret, err := cmdBuilder.Run3(timeout, resultF, &stderrBuf)
+	if err != nil {
+		stderr := strings.TrimSpace(stderrBuf.String())
+		e.runtime.Logger.Error(
+			"execute mongo script fail, cmd:%q, exitCode:%d, stdout:%q, stderr:%q, err:%v",
+			maskedCmdline, ret.ExitCode, ret.GetStdout(), stderr, err,
+		)
+		if stderr != "" {
+			return fmt.Errorf("execute mongo script fail: %w (stderr: %s)", err, stderr)
+		}
+		return fmt.Errorf("execute mongo script fail: %w", err)
+	}
+	e.runtime.Logger.Info("execute mongo script successfully, cmd:%q", maskedCmdline)
 	return nil
 }
 
@@ -310,10 +326,6 @@ func (e *ExecScript) uploadFile() error {
 	request.Header.Set("X-BKREPO-EXPIRES", "30")
 	request.Header.Set("X-BKREPO-OVERWRITE", "true")
 	request.Header.Set("Content-Type", "multipart/form-data")
-	if err != nil {
-		e.runtime.Logger.Error("set request head for uploading result file fail, error:%s", err)
-		return fmt.Errorf("set request head for uploading result file fail, error:%s", err)
-	}
 
 	// 执行请求
 	response, err := http.DefaultClient.Do(request)

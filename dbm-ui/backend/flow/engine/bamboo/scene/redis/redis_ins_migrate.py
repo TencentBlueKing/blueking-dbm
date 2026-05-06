@@ -412,6 +412,19 @@ class RedisSingleInsMigrateFlow(object):
                         kwargs=asdict(act_kwargs),
                     )
 
+                from backend.flow.plugins.components.collections.redis.redis_update_version import (
+                    RedisUpdateVersionComponent,
+                )
+
+                act_kwargs.cluster["update_all"] = True
+                act_kwargs.cluster["cluster_id"] = src_master_info["cluster_id"]
+                act_kwargs.cluster["bk_biz_id"] = self.data["bk_biz_id"]
+                src_sub_pipeline.add_act(
+                    act_name=_("{}-更新版本").format(src_master_info["immute_domain"]),
+                    act_component_code=RedisUpdateVersionComponent.code,
+                    kwargs=asdict(act_kwargs),
+                )
+
                 src_sub_pipelines.append(
                     src_sub_pipeline.build_sub_process(sub_name=_("{}同步子流程").format(src_master_info["cluster_name"]))
                 )

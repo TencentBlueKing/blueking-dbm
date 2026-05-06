@@ -26,7 +26,8 @@ class InstallNodemanPluginService(BaseService):
     HTTP_STATUS_OK = 200  # HTTP请求成功的状态码
 
     __need_schedule__ = True
-    interval = StaticIntervalGenerator(5)
+    interval = StaticIntervalGenerator(10)
+    MAX_POLL_COUNT = 50  # 最多轮询次数，超过后任务失败
 
     def _execute(self, data, parent_data):
         kwargs = data.get_one_of_inputs("kwargs")
@@ -68,12 +69,25 @@ class InstallNodemanPluginService(BaseService):
             {"job_type": "MAIN_INSTALL_PLUGIN", "plugin_params": {"name": plugin_name}, "bk_host_id": bk_host_ids}
         )
         data.outputs.job_id = job["job_id"]
+        data.outputs.poll_count = 0  # 每次execute重置轮询计数器
         self.log_info(_("安装插件任务: {}/#/task-list/detail/{}").format(env.BK_NODEMAN_URL, data.outputs.job_id))
 
     def _schedule(self, data, parent_data, callback_data=None):
         job_id = data.get_one_of_outputs("job_id")
         max_retries = 3  # 最大重试次数
         retry_count = data.get_one_of_outputs("retry_count", 0)
+
+        # 轮询次数超限检查
+        poll_count = data.get_one_of_outputs("poll_count", 0)
+        poll_count += 1
+        data.outputs.poll_count = poll_count
+        if poll_count > self.MAX_POLL_COUNT:
+            self.log_error(
+                _("安装节点管理插件任务超时: 轮询次数已达上限 {} 次（间隔 {}s），job_id={}").format(
+                    self.MAX_POLL_COUNT, self.interval.interval, job_id
+                )
+            )
+            return False
         # 调用 API 并设置 raw=True, raise_exception=False，遇到特定错误码时重试
         raw_response = BKNodeManApi.job_details._send(params={"job_id": job_id}, headers={})
         # 检查网络状态

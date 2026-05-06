@@ -15,27 +15,34 @@ from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.ticket.handler import TicketHandler
 from backend.ticket.models import Ticket
-from backend.ticket.todos import TodoActionType
 
 logger = logging.getLogger("flow")
 
 
 class MySQLCheckSumTicket(BaseService):
     """
-    在mysql主从迁移数据复制完毕之后，生成checksum单据,单据在20分钟后开始执行
+    tendbHa/tendbCluster生成checksum单据
     """
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
+        trans_data = data.get_one_of_inputs("trans_data")
         self.log_info(kwargs)
-        #  todo ，根据指定时间定时执行。
-        checksum_time = datetime.now().astimezone() + timedelta(minutes=20)
+        # 定时于流程流程执行后的下一个凌晨2点钟
+        current_time = datetime.now().astimezone()
+        checksum_time = current_time.replace(hour=2, minute=0, second=0, microsecond=0)
+        if current_time > checksum_time:
+            checksum_time = checksum_time + timedelta(days=1)
         checksum_time_str = checksum_time.strftime("%Y-%m-%d %H:%M:%S%z")
-        self.log_info(_("生成check单据,check开始执行时间为 :{}").format(checksum_time_str))
+        self.log_info(_("生成check单据,check开始执行时间为: {}").format(checksum_time_str))
         checksum_info = kwargs["checksum_info"]
         checksum_info["details"]["timing"] = checksum_time_str
+        checksum_info["details"]["trigger_time"] = checksum_time_str
+        checksum_info["details"]["need_manual_confirm"] = False
+        #  跳过定时执行则设置skip_timer=True
+        checksum_info["details"]["skip_timer"] = False
+
         details = checksum_info["details"]
         restore_ticket = Ticket.objects.get(id=kwargs["uid"])
         checksum_ticket = Ticket.create_ticket(
@@ -45,10 +52,8 @@ class MySQLCheckSumTicket(BaseService):
             remark=_("迁移自动生成实例checksum单据"),
             details=details,
         )
-
-        #  todo 选择自动执行与立即执行。
-        if False:
-            TicketHandler.batch_process_ticket(kwargs["created_by"], TodoActionType.APPROVE, [checksum_ticket.id], {})
+        trans_data.auto_checksum_ticket_id = int(checksum_ticket.id)
+        data.outputs["trans_data"] = trans_data
         restore_ticket.add_related_ticket(checksum_ticket)
         return True
 
@@ -57,6 +62,4 @@ class MySQLCheckSumTicketComponent(Component):
     name = __name__
     code = "mysql_checksum_ticket_generate"
     bound_service = MySQLCheckSumTicket
-
-
-#  todo 循环判断单据状态是否完成。单据完成，循环查询rds是否一致。
+    node_name = str(_("生成checksum单据"))

@@ -13,7 +13,7 @@ from collections import Counter
 from typing import Dict, List
 
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.utils.translation import gettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, status
@@ -27,6 +27,7 @@ from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import PaginatedResponseSwaggerAutoSchema, common_swagger_auto_schema
 from backend.configuration.constants import DBType
+from backend.db_meta.models import Cluster
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -54,13 +55,19 @@ from backend.ticket.constants import (
 )
 from backend.ticket.contexts import TicketContext
 from backend.ticket.exceptions import TicketDuplicationException, TicketParamsVerifyException
-from backend.ticket.filters import ClusterOpRecordListFilter, InstanceOpRecordListFilter, TicketListFilter
+from backend.ticket.filters import (
+    ClusterDisableTodoFilter,
+    ClusterOpRecordListFilter,
+    InstanceOpRecordListFilter,
+    TicketListFilter,
+)
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.handler import TicketHandler
-from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord, Ticket, TicketFlowsConfig
+from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord, Ticket, TicketFlowsConfig, Todo
 from backend.ticket.serializers import (
     BatchTicketOperateSerializer,
     BatchTodoOperateSerializer,
+    ClusterDisableTodoSerializer,
     ClusterModifyOpSerializer,
     CreateTicketFlowConfigSerializer,
     DeleteTicketFlowConfigSerializer,
@@ -123,13 +130,15 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         elif self.action in ["update_ticket_flow_config", "create_ticket_flow_config", "delete_ticket_flow_config"]:
             return ticket_flows_config_permission(self.action, self.request)
         # 对于处理todo的接口，可以不用鉴权，todo本身会判断是否是确认人
-        elif self.action in ["process_todo", "batch_process_todo", "batch_process_ticket"]:
+        elif self.action in ["process_todo", "batch_process_todo", "batch_process_ticket", "cluster_disable_todo"]:
             return []
         # 其他非敏感GET接口，不鉴权
         elif self.action in [
             "list",
             "flow_types",
             "get_nodes",
+            "get_host_todo_count",
+            "get_cluster_disable_count",
             "get_tickets_count",
             "query_ticket_flow_describe",
             "list_ticket_status",
@@ -471,6 +480,77 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         TodoActorFactory.actor(todo).process(request.user.username, validated_data["action"], validated_data["params"])
 
         return Response(TodoSerializer(ticket.todo_of_ticket.all(), many=True).data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("集群下架代办"),
+        tags=[TICKET_TAG],
+    )
+    @action(
+        methods=["GET"],
+        detail=False,
+        queryset=Todo.objects.filter(type=TodoType.CLUSTER_DISABLE, status=TodoStatus.TODO)
+        .select_related("ticket")
+        .order_by("-update_at"),
+        serializer_class=ClusterDisableTodoSerializer,
+        filter_class=ClusterDisableTodoFilter,
+    )
+    def cluster_disable_todo(self, request, *args, **kwargs):
+        data = []
+        self.params_validate(self.get_serializer_class())
+        todo_queryset = super().filter_queryset(self.get_queryset())
+        pages = self.paginate_queryset(todo_queryset)
+
+        cluster_ids = [todo.context["cluster_id"] for todo in todo_queryset]
+        clusters = Cluster.objects.filter(id__in=cluster_ids)
+        cluster_map = {cluster.id: cluster.simple_desc for cluster in clusters}
+
+        for todo in pages:
+            cluster_info = cluster_map[todo.context["cluster_id"]]
+            cluster_info["disable_time"] = todo.create_at
+            cluster_info["disable_person"] = todo.ticket.creator
+            data.append(cluster_info)
+        return self.get_paginated_response(data=data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("集群下架待办单据数"),
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["GET"], detail=False, filter_class=None, pagination_class=None)
+    def get_cluster_disable_count(self, request, *args, **kwargs):
+        user = request.user.username
+        data = {}
+
+        def calculate_count(field_name):
+            todos = Todo.objects.filter(
+                status=TodoStatus.TODO, type=TodoType.CLUSTER_DISABLE, **{f"{field_name}__contains": user}
+            )
+            cluster_type_count = {}
+            for todo in todos:
+                if todo.context["db_type"] not in cluster_type_count:
+                    cluster_type_count[todo.context["db_type"]] = 1
+                else:
+                    cluster_type_count[todo.context["db_type"]] += 1
+            return cluster_type_count
+
+        data["todo"] = calculate_count("operators")
+        data["to_assist"] = calculate_count("helpers")
+        return Response(data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("主机待办单据数"),
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["GET"], detail=False, filter_class=None, pagination_class=None)
+    def get_host_todo_count(self, request, *args, **kwargs):
+        user = request.user.username
+
+        result = Todo.objects.filter(
+            operators__contains=user, status="TODO", type__in=["RECYCLE_HOST", "FAULT_HOST"]
+        ).aggregate(
+            recycle_count=Count("id", filter=Q(type="RECYCLE_HOST")),
+            fault_count=Count("id", filter=Q(type="FAULT_HOST")),
+        )
+        return Response(result)
 
     @common_swagger_auto_schema(
         operation_summary=_("待办单据数"),

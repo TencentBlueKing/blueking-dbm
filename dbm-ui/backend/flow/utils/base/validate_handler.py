@@ -8,6 +8,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import ipaddress
+import re
 from dataclasses import dataclass
 
 
@@ -69,6 +70,40 @@ def validate_ip(value) -> None:
         return None
     except ipaddress.AddressValueError:
         raise ValueError(f"{value} is not a valid ipv4 \n")
+
+
+def validate_domain(value) -> None:
+    """
+    判断domain字符串合法性表达
+    """
+    pattern = re.compile("(?=^.{3,255}$)[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+")
+    if bool(pattern.match(value)):
+        return None
+    raise ValueError(f"{value} is not a valid domain \n")
+
+
+def validate_ip_or_domain(value) -> None:
+    """
+    判断传入的值是否是合法的IPv4地址或合法域名（二者满足其一即可）
+    """
+    if not isinstance(value, str):
+        raise ValueError(f"{value} is not a valid ip or domain")
+
+    # 先尝试IPv4校验
+    try:
+        ipaddress.IPv4Address(value)
+        return None
+    except ipaddress.AddressValueError:
+        pass
+
+    # 再尝试域名校验
+    try:
+        validate_domain(value)
+        return None
+    except ValueError:
+        pass
+
+    raise ValueError(f"{value} is not a valid ipv4 or domain")
 
 
 def validate_port(value) -> None:
@@ -139,5 +174,22 @@ def validate_port_in_list(value, is_allow_null: bool = False) -> None:
     for item in value:
         try:
             validate_port(item)
+        except Exception as err:
+            raise ValueError(err)
+
+
+def validate_domain_in_list(value, is_allow_null: bool = False) -> None:
+    """
+    判断传入的类型变量是否是List[domain]类型
+    """
+    if not isinstance(value, list):
+        raise ValueError(f"{value} variable is not a list")
+
+    if not value and not is_allow_null:
+        raise ValueError(f"{value} variable is empty, check")
+
+    for item in value:
+        try:
+            validate_domain(item)
         except Exception as err:
             raise ValueError(err)

@@ -28,6 +28,7 @@ const dataSourceMap = {
   [ClusterTypes.PREDIXY_REDIS_CLUSTER]: getRedisInstances,
   [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: getRedisInstances,
   [ClusterTypes.PULSAR]: getPulsarInstanceList,
+  [ClusterTypes.REDIS]: getRedisInstances,
   [ClusterTypes.REDIS_INSTANCE]: getRedisInstances,
   [ClusterTypes.RIAK]: getRiakInstanceList,
   [ClusterTypes.SQLSERVER_HA]: getSqlServerHaInstanceList,

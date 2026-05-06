@@ -14,7 +14,7 @@ import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
 import { random } from '@utils';
 
-// MySQL DB克隆
+// MySQL DB 数据克隆
 export function generateMysqlDataMigrateCloneData(ticketData: TicketModel<Mysql.DataMigrate>) {
   const { clusters, infos } = ticketData.details;
   const tableDataList = infos.map((item) => {

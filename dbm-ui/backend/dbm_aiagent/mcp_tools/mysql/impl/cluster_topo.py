@@ -10,100 +10,234 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Dict
 
-from backend.db_meta.enums import ClusterType, InstanceInnerRole
+from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, StorageInstanceTuple
+from backend.db_meta.models.storage_set_dtl import TenDBClusterStorageSet
 
 
-def mysql_cluster_topo(cluster_type: ClusterType, cluster_domain: str) -> Dict:
-    if cluster_type == ClusterType.TenDBSingle:
-        return __tendbcluster_topo(cluster_domain)
-    elif cluster_type == ClusterType.TenDBHA:
-        return __tendbha_topo(cluster_domain)
+def mysql_cluster_topo(cluster_obj: Cluster) -> Dict:
+    if cluster_obj.cluster_type == ClusterType.TenDBSingle:
+        return __tendbsingle_topo(cluster_obj)
+    elif cluster_obj.cluster_type == ClusterType.TenDBHA:
+        return __tendbha_topo(cluster_obj)
     else:
-        return __tendbcluster_topo(cluster_domain)
+        return __tendbcluster_topo(cluster_obj)
 
 
-def __tendbsingle_topo(cluster_domain: str) -> Dict:
-    cluster_obj = Cluster.objects.get(immute_domain=cluster_domain, cluster_type=ClusterType.TenDBSingle)
-    storage_instance = cluster_obj.storageinstance_set.get()
+def __tendbsingle_topo(cluster_obj: Cluster) -> Dict:
+    storage_instance_replicate_sets = []
+    all_orphans = cluster_obj.storageinstance_set.filter(instance_role=InstanceRole.ORPHAN)
+    receiver_ids = set(
+        StorageInstanceTuple.objects.filter(ejector__in=all_orphans).values_list("receiver_id", flat=True)
+    )
 
-    return {
-        "cluster_type": ClusterType.TenDBSingle.value,
-        "cluster_domain": cluster_domain,
-        "storage": {"address": storage_instance.ip_port, "status": storage_instance.status},
-    }
-
-
-def __tendbha_topo(cluster_domain: str) -> Dict:
-    cluster_obj = Cluster.objects.get(immute_domain=cluster_domain, cluster_type=ClusterType.TenDBHA)
-
-    return {
-        "cluster_type": ClusterType.TenDBHA.value,
-        "cluster_domain": cluster_domain,
-        "proxy_instance": [
-            {"address": p.ip_port, "status": p.status, "machine_type": p.machine_type}
-            for p in cluster_obj.proxyinstance_set.all()
-        ],
-        "storage_instances": [
-            {
-                "address": s.ip_port,
-                "status": s.status,
-                "instance_role": s.instance_role,
-                "machine_type": s.machine_type,
-                "is_stand_by": s.is_stand_by,
-            }
-            for s in cluster_obj.storageinstance_set.all()
-        ],
-    }
-
-
-def __tendbcluster_topo(cluster_domain: str) -> Dict:
-    cluster_obj = Cluster.objects.get(cluster_type=ClusterType.TenDBCluster, immute_domain=cluster_domain)
-
-    spider_instances = []
-    for p in cluster_obj.proxyinstance_set.all():
-        po = {
-            "address": p.ip_port,
-            "status": p.status,
-            "spider_role": p.tendbclusterspiderext.spider_role,
-            "machine_type": p.machine_type,
+    for master in all_orphans.exclude(id__in=receiver_ids):
+        replicate_set = {
+            "master_instance": {
+                "address": master.ip_port,
+                "status": master.status,
+                "phase": master.phase,
+                "machine_type": master.machine_type,
+                "instance_role": master.instance_role,
+                "instance_inner_role": master.instance_inner_role,
+                "is_stand_by": master.is_stand_by,
+                "bk_idc_id": master.machine.bk_idc_id,
+                "bk_idc_name": master.machine.bk_idc_name,
+                "bk_idc_area_id": master.machine.bk_idc_area_id,
+                "bk_idc_area": master.machine.bk_idc_area,
+                "bk_sub_zone_id": master.machine.bk_sub_zone_id,
+                "bk_sub_zone": master.machine.bk_sub_zone,
+            },
         }
 
-        spider_instances.append(po)
-
-    storage_replicate_sets = []
-    for inst in cluster_obj.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER):
-        storage_set = {
-            "shard_id": 0,
-            "instances": [
-                {
-                    "address": inst.ip_port,
-                    "status": inst.status,
-                    "instance_role": inst.instance_role,
-                    "machine_type": inst.machine_type,
-                    "is_stand_by": inst.is_stand_by,
-                }
-            ],
-        }
-
-        for tp in StorageInstanceTuple.objects.filter(ejector=inst):
-            storage_set["instances"].append(
+        tuples = StorageInstanceTuple.objects.filter(ejector=master)
+        if tuples.exists():
+            replicate_set["slave_instances"] = [
                 {
                     "address": tp.receiver.ip_port,
                     "status": tp.receiver.status,
-                    "instance_role": tp.receiver.instance_role,
+                    "phase": tp.receiver.phase,
                     "machine_type": tp.receiver.machine_type,
+                    "instance_role": tp.receiver.instance_role,
+                    "instance_inner_role": tp.receiver.instance_inner_role,
                     "is_stand_by": tp.receiver.is_stand_by,
+                    "bk_idc_id": tp.receiver.machine.bk_idc_id,
+                    "bk_idc_name": tp.receiver.machine.bk_idc_name,
+                    "bk_idc_area_id": tp.receiver.machine.bk_idc_area_id,
+                    "bk_idc_area": tp.receiver.machine.bk_idc_area,
+                    "bk_sub_zone_id": tp.receiver.machine.bk_sub_zone_id,
+                    "bk_sub_zone": tp.receiver.machine.bk_sub_zone,
                 }
-            )
+                for tp in tuples
+            ]
 
-            storage_set["shard_id"] = tp.tendbclusterstorageset.shard_id
-
-        storage_replicate_sets.append(storage_set)
+        storage_instance_replicate_sets.append(replicate_set)
 
     return {
-        "cluster_type": ClusterType.TenDBCluster,
-        "cluster_domain": cluster_domain,
-        "spider_instances": spider_instances,
-        "storage_replicate_sets": storage_replicate_sets,
+        "cluster_type": ClusterType.TenDBSingle.value,
+        "storage_instance_replicate_sets": storage_instance_replicate_sets,
+    }
+
+
+def __tendbha_topo(cluster_obj: Cluster) -> Dict:
+    storage_instance_replicate_sets = []
+    for tp in StorageInstanceTuple.objects.filter(ejector__cluster=cluster_obj):
+        storage_instance_replicate_sets.append(
+            {
+                "master_instance": {
+                    "address": tp.ejector.ip_port,
+                    "status": tp.ejector.status,
+                    "phase": tp.ejector.phase,
+                    "machine_type": tp.ejector.machine_type,
+                    "instance_role": tp.ejector.instance_role,
+                    "instance_inner_role": tp.ejector.instance_inner_role,
+                    "is_stand_by": tp.ejector.is_stand_by,
+                    # "bk_cloud_id": tp.ejector.machine.bk_cloud_id,
+                    "bk_idc_id": tp.ejector.machine.bk_idc_id,
+                    "bk_idc_name": tp.ejector.machine.bk_idc_name,
+                    "bk_idc_area_id": tp.ejector.machine.bk_idc_area_id,
+                    "bk_idc_area": tp.ejector.machine.bk_idc_area,
+                    "bk_sub_zone_id": tp.ejector.machine.bk_sub_zone_id,
+                    "bk_sub_zone": tp.ejector.machine.bk_sub_zone,
+                },
+                "slave_instances": [
+                    {
+                        "address": tp.receiver.ip_port,
+                        "status": tp.receiver.status,
+                        "phase": tp.receiver.phase,
+                        "machine_type": tp.receiver.machine_type,
+                        "instance_role": tp.receiver.instance_role,
+                        "instance_inner_role": tp.receiver.instance_inner_role,
+                        "is_stand_by": tp.receiver.is_stand_by,
+                        # "bk_cloud_id": tp.receiver.machine.bk_cloud_id,
+                        "bk_idc_id": tp.receiver.machine.bk_idc_id,
+                        "bk_idc_name": tp.receiver.machine.bk_idc_name,
+                        "bk_idc_area_id": tp.receiver.machine.bk_idc_area_id,
+                        "bk_idc_area": tp.receiver.machine.bk_idc_area,
+                        "bk_sub_zone_id": tp.receiver.machine.bk_sub_zone_id,
+                        "bk_sub_zone": tp.receiver.machine.bk_sub_zone,
+                    }
+                ],
+            }
+        )
+
+    return {
+        "cluster_type": ClusterType.TenDBHA.value,
+        # "cluster_domain": cluster_obj.immute_domain,
+        "proxy_instances": [
+            {
+                "address": p.ip_port,
+                "status": p.status,
+                "phase": p.phase,
+                "machine_type": p.machine_type,
+                # "bk_cloud_id": p.machine.bk_cloud_id,
+                "bk_idc_id": p.machine.bk_idc_id,
+                "bk_idc_name": p.machine.bk_idc_name,
+                "bk_idc_area_id": p.machine.bk_idc_area_id,
+                "bk_idc_area": p.machine.bk_idc_area,
+                "bk_sub_zone_id": p.machine.bk_sub_zone_id,
+                "bk_sub_zone": p.machine.bk_sub_zone,
+            }
+            for p in cluster_obj.proxyinstance_set.all()
+        ],
+        "storage_instance_replicate_sets": storage_instance_replicate_sets,
+    }
+
+
+def _get_shard_id(tp: StorageInstanceTuple) -> int:
+    """
+    获取 StorageInstanceTuple 对应的 shard_id
+    迁移期间会存在三类 tuple:
+      1. remote_master -> remote_slave (绑定了 TenDBClusterStorageSet, 可直接获取 shard_id)
+      2. remote_master -> remote_repeater (未绑定, 通过 ejector 即 remote_master 找到第 1 类 tuple 获取 shard_id)
+      3. remote_repeater -> new remote_slave (未绑定, 沿 replication chain 向上找到 remote_master 再获取 shard_id)
+    """
+    try:
+        return tp.tendbclusterstorageset.shard_id
+    except TenDBClusterStorageSet.DoesNotExist:
+        pass
+
+    if (
+        tp.ejector.instance_role == InstanceRole.REMOTE_MASTER
+        and tp.receiver.instance_role == InstanceRole.REMOTE_REPEATER
+    ):
+        bound = TenDBClusterStorageSet.objects.filter(storage_instance_tuple__ejector=tp.ejector).first()
+        if bound:
+            return bound.shard_id
+
+    elif tp.ejector.instance_role == InstanceRole.REMOTE_REPEATER:
+        upstream = StorageInstanceTuple.objects.filter(
+            receiver=tp.ejector, ejector__instance_role=InstanceRole.REMOTE_MASTER
+        ).first()
+        if upstream:
+            bound = TenDBClusterStorageSet.objects.filter(storage_instance_tuple__ejector=upstream.ejector).first()
+            if bound:
+                return bound.shard_id
+
+    return -1
+
+
+def __tendbcluster_topo(cluster_obj: Cluster) -> Dict:
+    storage_instance_replicate_sets = []
+    for tp in StorageInstanceTuple.objects.filter(ejector__cluster=cluster_obj):
+        storage_instance_replicate_sets.append(
+            {
+                "shard_id": _get_shard_id(tp),
+                "master_instance": {
+                    "address": tp.ejector.ip_port,
+                    "status": tp.ejector.status,
+                    "phase": tp.ejector.phase,
+                    "machine_type": tp.ejector.machine_type,
+                    "instance_role": tp.ejector.instance_role,
+                    "instance_inner_role": tp.ejector.instance_inner_role,
+                    "is_stand_by": tp.ejector.is_stand_by,
+                    # "bk_cloud_id": tp.ejector.machine.bk_cloud_id,
+                    "bk_idc_id": tp.ejector.machine.bk_idc_id,
+                    "bk_idc_name": tp.ejector.machine.bk_idc_name,
+                    "bk_idc_area_id": tp.ejector.machine.bk_idc_area_id,
+                    "bk_idc_area": tp.ejector.machine.bk_idc_area,
+                    "bk_sub_zone_id": tp.ejector.machine.bk_sub_zone_id,
+                    "bk_sub_zone": tp.ejector.machine.bk_sub_zone,
+                },
+                "slave_instances": [
+                    {
+                        "address": tp.receiver.ip_port,
+                        "status": tp.receiver.status,
+                        "phase": tp.receiver.phase,
+                        "machine_type": tp.receiver.machine_type,
+                        "instance_role": tp.receiver.instance_role,
+                        "instance_inner_role": tp.receiver.instance_inner_role,
+                        "is_stand_by": tp.receiver.is_stand_by,
+                        # "bk_cloud_id": tp.receiver.machine.bk_cloud_id,
+                        "bk_idc_id": tp.receiver.machine.bk_idc_id,
+                        "bk_idc_name": tp.receiver.machine.bk_idc_name,
+                        "bk_idc_area_id": tp.receiver.machine.bk_idc_area_id,
+                        "bk_idc_area": tp.receiver.machine.bk_idc_area,
+                        "bk_sub_zone_id": tp.receiver.machine.bk_sub_zone_id,
+                        "bk_sub_zone": tp.receiver.machine.bk_sub_zone,
+                    }
+                ],
+            }
+        )
+
+    return {
+        "cluster_type": ClusterType.TenDBCluster.value,
+        # "cluster_domain": cluster_obj.immute_domain,
+        "proxy_instances": [
+            {
+                "address": p.ip_port,
+                "status": p.status,
+                "phase": p.phase,
+                "machine_type": p.machine_type,
+                # "bk_cloud_id": p.machine.bk_cloud_id,
+                "bk_idc_id": p.machine.bk_idc_id,
+                "bk_idc_name": p.machine.bk_idc_name,
+                "bk_idc_area_id": p.machine.bk_idc_area_id,
+                "bk_idc_area": p.machine.bk_idc_area,
+                "bk_sub_zone_id": p.machine.bk_sub_zone_id,
+                "bk_sub_zone": p.machine.bk_sub_zone,
+            }
+            for p in cluster_obj.proxyinstance_set.all()
+        ],
+        "storage_instance_replicate_sets": storage_instance_replicate_sets,
     }

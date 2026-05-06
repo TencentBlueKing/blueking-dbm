@@ -50,8 +50,6 @@ class SpiderSwitchNodesDetailSerializer(TendbBaseOperateDetailSerializer):
 
 class SpiderSwitchNodesFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.tendbcluster_switch_nodes_scene
-    # 暂时先为空，等校验函数出来再替换
-    validator = SpiderController.tendbcluster_switch_nodes_scene.validator
 
 
 class TendbSpiderSwitchNodesResourceParamBuilder(TendbBaseOperateResourceParamBuilder):
@@ -91,10 +89,11 @@ class TendbSpiderSwitchNodesResourceParamBuilder(TendbBaseOperateResourceParamBu
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_SWITCH_NODES, is_recycle=True)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_SWITCH_NODES, is_recycle=True, is_apply=True)
 class SpiderSwitchNodesFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = SpiderSwitchNodesDetailSerializer
     inner_flow_builder = SpiderSwitchNodesFlowParamBuilder
     inner_flow_name = _("TenDB Cluster 替换接入层")
     need_patch_recycle_host_details = True
     resource_batch_apply_builder = TendbSpiderSwitchNodesResourceParamBuilder
+    validator = SpiderController.tendbcluster_switch_nodes_scene.validator

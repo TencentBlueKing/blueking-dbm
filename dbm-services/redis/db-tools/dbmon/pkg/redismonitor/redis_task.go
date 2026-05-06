@@ -49,6 +49,7 @@ func (task *RedisMonitorTask) RunMonitor() {
 	if task.Err != nil {
 		task.eventSender.SendWarning(consts.EventRedisLogin, task.Err.Error(),
 			consts.WarnLevelError, task.ServerConf.ServerIP)
+		mylog.Logger.Error(fmt.Sprintf("get password failed", task.Err))
 		return
 	}
 	task.CheckRedisConn()

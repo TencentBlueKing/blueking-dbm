@@ -76,13 +76,6 @@ def reduce_mongod(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwar
         "source": node,
     }
 
-    # 从复制集中移除
-    kwargs = sub_get_kwargs.get_reduce_node_kwargs(info=remove_node_info)
-    sub_pipeline.add_act(
-        act_name=_("MongoDB-移除node"),
-        act_component_code=ExecuteDBActuatorJobComponent.code,
-        kwargs=kwargs,
-    )
     # 下架mongod关闭dbmon
     kwargs_delete_dbmon = sub_get_kwargs.get_dbmon_operation_kwargs(
         node_info=node, operation_type=MongoInstanceDbmonType.DeleteDbmon
@@ -91,6 +84,14 @@ def reduce_mongod(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKwar
         act_name=_("MongoDB-{}:{}-删除dbmon".format(node["ip"], str(node["port"]))),
         act_component_code=MongoFastExecScriptComponent.code,
         kwargs=kwargs_delete_dbmon,
+    )
+
+    # 从复制集中移除
+    kwargs = sub_get_kwargs.get_reduce_node_kwargs(info=remove_node_info)
+    sub_pipeline.add_act(
+        act_name=_("MongoDB-移除node"),
+        act_component_code=ExecuteDBActuatorJobComponent.code,
+        kwargs=kwargs,
     )
 
     # mongod下架

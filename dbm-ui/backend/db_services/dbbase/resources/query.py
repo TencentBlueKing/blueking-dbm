@@ -14,7 +14,6 @@ from typing import Any, Callable, Dict, List, Tuple
 
 import attr
 from django.db.models import F, Prefetch, Q, QuerySet
-from django.forms import model_to_dict
 from django.http import HttpResponse
 from django.utils.translation import gettext_lazy as _
 
@@ -34,6 +33,7 @@ from backend.db_meta.models import (
 from backend.db_meta.models.city_map import BKSubzone
 from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.db_services.dbbase.resources.query_base import (
+    build_empty_and_in_q,
     build_q_for_cluster_name_or_alias,
     build_q_for_domain_by_cluster,
     build_q_for_domain_by_instance,
@@ -261,7 +261,7 @@ class CommonQueryResourceMixin(abc.ABC):
         insert_position = next((index for index, header in enumerate(headers) if header["id"] == "tags"), None)
         # 收集需要插入的header
         dynamic_headers = [
-            {"id": ins_role, "name": InstanceRole.get_choice_label(ins_role).capitalize()}
+            {"id": ins_role, "name": str(InstanceRole.get_choice_label(ins_role)).capitalize()}
             for ins_role in InstanceRole.get_values()
             if ins_role in role_header_ids
         ]
@@ -282,19 +282,16 @@ class CommonQueryResourceMixin(abc.ABC):
             query_condition
         )
         headers = [
-            {"id": "bk_host_id", "name": _("主机 ID")},
-            {"id": "bk_cloud_id", "name": _("云区域 ID")},
+            {"id": "ip_port", "name": _("实例")},
+            {"id": "instance_id", "name": _("ID")},
+            {"id": "status", "name": _("状态")},
+            {"id": "instance_role", "name": _("部署角色")},
+            {"id": "version", "name": _("版本")},
+            {"id": "master_domain", "name": _("所属集群")},
             {"id": "ip", "name": _("IP")},
-            {"id": "ip_port", "name": _("IP 端口")},
-            {"id": "instance_role", "name": _("实例角色")},
-            {"id": "bk_idc_city_name", "name": _("城市")},
-            {"id": "bk_idc_name", "name": _("机房")},
-            {"id": "cluster_id", "name": _("集群 ID")},
-            {"id": "cluster_name", "name": _("集群名称")},
-            {"id": "cluster_alias", "name": _("集群别名")},
-            {"id": "cluster_type", "name": _("集群类型")},
-            {"id": "master_domain", "name": _("主域名")},
-            {"id": "major_version", "name": _("主版本")},
+            {"id": "bk_sub_zone", "name": _("园区")},
+            {"id": "bk_os_name", "name": _("操作系统")},
+            {"id": "create_at", "name": _("部署时间")},
         ]
         # 插入数据
         data_list = []
@@ -303,19 +300,16 @@ class CommonQueryResourceMixin(abc.ABC):
                 for cluster in ins.cluster.all():
                     data_list.append(
                         {
-                            "bk_host_id": ins.machine.bk_host_id,
-                            "bk_cloud_id": ins.machine.bk_cloud_id,
-                            "ip": ins.machine.ip,
                             "ip_port": ins.ip_port,
+                            "instance_id": ins.id,
+                            "status": ins.status,
                             "instance_role": ins.instance_role,
-                            "bk_idc_city_name": ins.machine.bk_city.bk_idc_city_name,
-                            "bk_idc_name": ins.machine.bk_idc_name,
-                            "cluster_id": cluster.id,
-                            "cluster_name": cluster.name,
-                            "cluster_alias": cluster.alias,
-                            "cluster_type": cluster.cluster_type,
+                            "version": ins.version,
                             "master_domain": cluster.immute_domain,
-                            "major_version": cluster.major_version,
+                            "ip": ins.machine.ip,
+                            "bk_sub_zone": ins.machine.bk_sub_zone,
+                            "bk_os_name": ins.machine.bk_os_name,
+                            "create_at": datetime2str(ins.create_at),
                         }
                     )
 
@@ -364,7 +358,7 @@ class CommonQueryResourceMixin(abc.ABC):
         except Cluster.DoesNotExist:
             domain = ""
 
-        temporary_info = {"source_cluster": domain, "ticket_id": record.ticket_id}
+        temporary_info = {"source_cluster": domain, "ticket_id": record.ticket_id if record else None}
         return temporary_info
 
 
@@ -757,7 +751,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
 
         return {
             "id": cluster.id,
-            "db_type": ClusterType.cluster_type_to_db_type(cluster.cluster_type),
+            "db_type": str(ClusterType.cluster_type_to_db_type(cluster.cluster_type)),
             "phase": cluster.phase,
             "phase_name": cluster.get_phase_display(),
             "status": cluster.status,
@@ -769,7 +763,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             "cluster_access_port": cluster.access_port,
             "cluster_stats": cluster_stats_map.get(cluster.immute_domain, {}),
             "cluster_type": cluster.cluster_type,
-            "cluster_type_name": ClusterType.get_choice_label(cluster.cluster_type),
+            "cluster_type_name": str(ClusterType.get_choice_label(cluster.cluster_type)),
             "cluster_subzones": [cluster_zone_map.get(str(zone), "") for zone in cluster_zone_list],
             "cluster_subzone_ids": cluster_zone_list,
             "disaster_tolerance_level": cluster.disaster_tolerance_level,
@@ -789,7 +783,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             "updater": cluster.updater,
             "create_at": datetime2str(cluster.create_at),
             "update_at": datetime2str(cluster.update_at),
-            "cluster_spec": model_to_dict(cluster_spec) if cluster_spec else None,
+            "cluster_spec": cluster_spec.to_dict() if cluster_spec else None,
             "tags": [tag.desc for tag in cluster.tags.all()],
             "zone_list": cluster.zone_list,
         }
@@ -819,6 +813,12 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
         # 定义内置的过滤参数map
         inner_filter_params_map = {
             "ip": Q(machine__ip__in=query_params.get("ip", "").split(",")),
+            "id": Q(id__in=query_params.get("id", "").split(",")),
+            "bk_sub_zone": build_empty_and_in_q("machine__bk_sub_zone", query_params.get("bk_sub_zone", "")),
+            "bk_os_name": build_empty_and_in_q("machine__bk_os_name", query_params.get("bk_os_name", "")),
+            "cluster_name": Q(cluster__name__in=query_params.get("cluster_name", "").split(",")),
+            "create_at__gte": Q(create_at__gte=query_params.get("create_at__gte", "")),
+            "create_at__lte": Q(create_at__lte=query_params.get("create_at__lte", "")),
             "port": Q(port__in=query_params.get("port", "").split(",")),
             "status": Q(status__in=query_params.get("status", "").split(",")),
             "cluster_id": Q(cluster__id=query_params.get("cluster_id")),
@@ -826,12 +826,13 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             # 所属DB模块
             "db_module_id": Q(db_module_id__in=query_params.get("db_module_id", "").split(",")),
             "region": Q(region=query_params.get("region")),
-            "role": Q(role__in=query_params.get("role", "").split(",")),
+            "role": build_empty_and_in_q("role", query_params.get("role", "")),
             "name": Q(cluster__name__in=query_params.get("name", "").split(",")),
             "domain": build_q_for_domain_by_instance(query_params),
             "instance": build_q_for_instance_filter(query_params),
-            "version": Q(version__in=query_params.get("version", "").split(",")),
+            "version": build_empty_and_in_q("version", query_params.get("version", "")),
         }
+
         filter_params_map = filter_params_map or {}
         filter_params_map.update(inner_filter_params_map)
         # 通过基础过滤参数进行instance过滤
@@ -965,7 +966,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             "id": instance["id"],
             "cluster_id": instance["cluster__id"],
             "cluster_type": instance["cluster__cluster_type"],
-            "cluster_type_name": ClusterType.get_choice_label(instance["cluster__cluster_type"]),
+            "cluster_type_name": str(ClusterType.get_choice_label(instance["cluster__cluster_type"])),
             "cluster_name": instance["cluster__name"],
             "version": instance["version"],
             "db_module_id": instance["cluster__db_module_id"],
@@ -1035,13 +1036,13 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             ),
             "bk_city_id": Q(bk_city__bk_idc_city_id__in=query_params.get("bk_city_id", "").split(",")),
             # 操作系统
-            "bk_os_name": Q(bk_os_name=query_params.get("bk_os_name", "").split(",")),
+            "bk_os_name": build_empty_and_in_q("bk_os_name", query_params.get("bk_os_name", "")),
             "bk_cloud_id": Q(bk_cloud_id=query_params.get("bk_cloud_id")),
             "bk_agent_id": Q(bk_agent_id=query_params.get("bk_agent_id")),
             "cluster_type": Q(cluster_type=query_params.get("cluster_type")),
             "instance_role": (
-                Q(storageinstance__instance_role__in=query_params.get("instance_role", "").split(","))
-                | Q(proxyinstance__access_layer__in=query_params.get("instance_role", "").split(","))
+                build_empty_and_in_q("storageinstance__instance_role", query_params.get("instance_role", ""))
+                | build_empty_and_in_q("proxyinstance__access_layer", query_params.get("instance_role", ""))
             ),
             "instance_status": (
                 Q(storageinstance__status=query_params.get("instance_status"))
@@ -1065,10 +1066,10 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             # 园区id过滤
             "bk_sub_zone_id": Q(bk_sub_zone_id__in=query_params.get("bk_sub_zone_id", "").split(",")),
             # 园区名称过滤
-            "bk_sub_zone": Q(bk_sub_zone__in=query_params.get("bk_sub_zone", "").split(",")),
+            "bk_sub_zone": build_empty_and_in_q("bk_sub_zone", query_params.get("bk_sub_zone", "")),
             # 机型
-            "bk_svr_device_cls_name": Q(
-                bk_svr_device_cls_name__in=query_params.get("bk_svr_device_cls_name", "").split(",")
+            "bk_svr_device_cls_name": build_empty_and_in_q(
+                "bk_svr_device_cls_name", query_params.get("bk_svr_device_cls_name", "")
             ),
         }
         filter_params_map = {**inner_filter_params_map, **filter_params_map}
@@ -1146,7 +1147,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             "bk_cloud_id": machine.bk_cloud_id,
             "bk_cloud_name": bk_cloud_name,
             "cluster_type": machine.cluster_type,
-            "cluster_type_name": ClusterType.get_choice_label(machine.cluster_type),
+            "cluster_type_name": str(ClusterType.get_choice_label(machine.cluster_type)),
             "machine_type": machine.machine_type,
             "create_at": machine.create_at,
             "spec_id": machine.spec_id,

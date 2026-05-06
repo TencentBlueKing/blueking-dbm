@@ -1,12 +1,12 @@
 <template>
-  <BkTableColumn
-    field="biz_scope"
-    :label="t('应用范围')"
+  <TableColumn
+    col-key="biz_scope"
     show-overflow
+    :title="t('应用范围')"
     :width="300">
-    <template #default="{ data }: { data: ResourceSpecModel }">
+    <template #default="{ row }: { row: ResourceSpecModel }">
       <div
-        v-if="data.biz_scope.length === 0"
+        v-if="row.biz_scope.length === 0"
         class="spec-list-biz-scope-column-all">
         <DbIcon
           class="all-icon"
@@ -25,15 +25,15 @@
         <div class="biz-name-list ml-4">
           （
           <span
-            v-for="(item, index) in bizList(data)"
+            v-for="(item, index) in bizList(row)"
             :key="index">
-            {{ item }}<span v-if="index !== bizList(data).length - 1">，</span>
+            {{ item }}<span v-if="index !== bizList(row).length - 1">，</span>
           </span>
           ）
         </div>
       </div>
     </template>
-  </BkTableColumn>
+  </TableColumn>
 </template>
 
 <script lang="ts" setup>

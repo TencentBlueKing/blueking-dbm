@@ -26,6 +26,7 @@
           v-for="(item, index) in formData.tableData"
           :key="index">
           <ClusterColumn
+            :ref="(el: any) => el && (clusterColumnRefs[index] = el)"
             v-model="item.cluster"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
@@ -111,7 +112,7 @@
 </template>
 <script lang="ts" setup>
   import _ from 'lodash';
-  import { reactive, useTemplateRef } from 'vue';
+  import { nextTick, reactive, useTemplateRef } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
@@ -149,6 +150,7 @@
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
+  const clusterColumnRefs = ref<InstanceType<typeof ClusterColumn>[]>([]);
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const batchInputConfig = [
@@ -213,7 +215,7 @@
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
   useTicketDetail<TendbCluster.ResourcePool.SpiderAddNodes>(TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES, {
-    onSuccess(ticketDetail) {
+    async onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       Object.assign(formData, {
         payload: createTickePayload(ticketDetail),
@@ -230,6 +232,8 @@
           }),
         ),
       });
+      await nextTick();
+      clusterColumnRefs.value[0]?.fetchData(formData.tableData);
     },
   });
 
@@ -282,7 +286,7 @@
     Object.assign(formData, defaultData());
   };
 
-  const handleBatchEdit = (list: TendbClusterModel[]) => {
+  const handleBatchEdit = async (list: TendbClusterModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!selectedMap.value[item.master_domain]) {
         acc.push(
@@ -296,9 +300,12 @@
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
+
+    await nextTick();
+    clusterColumnRefs.value[0]?.fetchData(formData.tableData);
   };
 
-  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+  const handleBatchInput = async (data: Record<string, any>[], isClear: boolean) => {
     const dataList = data.reduce<RowData[]>((acc, item) => {
       acc.push(
         createTableRow({
@@ -319,9 +326,9 @@
     } else {
       formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
     }
-    setTimeout(() => {
-      tableRef.value?.validate();
-    }, 200);
+
+    await nextTick();
+    clusterColumnRefs.value[0]?.fetchData(formData.tableData);
   };
 
   const handleBatchEditColumn = (value: any, field: string) => {

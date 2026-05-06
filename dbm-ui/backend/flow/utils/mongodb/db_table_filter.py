@@ -27,18 +27,23 @@ class MongoDbTableFilter(object):
         include_table_patterns: List[str],
         exclude_db_patterns: List[str],
         exclude_table_patterns: List[str],
+        table_is_null: bool = False,
     ):
         self.include_db_patterns = include_db_patterns
         self.include_table_patterns = include_table_patterns
         self.exclude_db_patterns = exclude_db_patterns
         self.exclude_table_patterns = exclude_table_patterns
+        self.table_is_null = table_is_null
 
         self._validate()
 
     def _validate(self):
         # include 组不允许为空
-        if not self.include_db_patterns or not self.include_table_patterns:
-            raise DbTableFilterValidateException(msg=_("include patterns 不能为空"))
+        if not self.table_is_null and not self.include_table_patterns:
+            raise DbTableFilterValidateException(msg=_("include table patterns 不能为空"))
+
+        if not self.include_db_patterns:
+            raise DbTableFilterValidateException(msg=_("include db patterns 不能为空"))
 
         # exclude 组要么同时为空，要么同时不为空
         if not (

@@ -44,7 +44,8 @@ func (c *Checker) backupToBackend(users []string) error {
 				) ENGINE=InnoDB;`,
 	)
 	if err != nil {
-		return err
+		slog.Warn("backup proxy user list", slog.String("err", err.Error()))
+		//return err
 	}
 
 	stmt, err := conn.PreparexContext(

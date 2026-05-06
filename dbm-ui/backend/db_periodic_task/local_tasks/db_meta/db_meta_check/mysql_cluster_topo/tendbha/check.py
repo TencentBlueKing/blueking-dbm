@@ -17,6 +17,7 @@ from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_to
     _cluster_proxy_access_master,
 )
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbha.entry_bind import (
+    _cluster_clb_exists_and_rs_match,
     _cluster_master_entry_on_proxy,
     _cluster_master_entry_on_storage,
 )
@@ -25,10 +26,14 @@ from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_to
     cluster_replicate_out,
     cluster_slave_as_receiver,
 )
+from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbha.spec import (
+    cluster_machine_spec,
+)
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbha.status import (
     _cluster_proxy_count,
     cluster_instance_status,
     cluster_master_entry_count,
+    cluster_master_standby,
     cluster_master_status,
     cluster_one_master,
     cluster_one_standby_slave,
@@ -52,6 +57,7 @@ def health_check(cluster_id: int) -> List[CheckResponse]:
     standby slave 状态正常
     主入口 bind 的 proxy 必须和集群正常 proxy 数量一致
     主入口不能 bind 到存储
+    若存在 CLB 入口：名字服务可查询且后端 RS 与元数据一致
     ToDo 检查域名真实的 bind 配置
     proxy 只能访问 master
     master 只能作为 ejector
@@ -60,6 +66,8 @@ def health_check(cluster_id: int) -> List[CheckResponse]:
     """
     qs = Cluster.objects.filter(cluster_type=ClusterType.TenDBHA).prefetch_related(
         "clusterentry_set__proxyinstance_set",
+        "clusterentry_set__proxyinstance_set__machine",
+        "clusterentry_set__clbentrydetail_set",
         "clusterentry_set__storageinstance_set",
         "proxyinstance_set__storageinstance",
         "storageinstance_set__as_receiver__ejector__cluster",
@@ -84,6 +92,7 @@ def health_check(cluster_id: int) -> List[CheckResponse]:
     # entry_bind.py
     res.extend(_cluster_master_entry_on_proxy(cluster_obj))
     res.extend(_cluster_master_entry_on_storage(cluster_obj))
+    res.extend(_cluster_clb_exists_and_rs_match(cluster_obj))
     # res.extend(_cluster_entry_real_bind(cluster_obj))
     # access_relate.py
     res.extend(_cluster_proxy_access_master(cluster_obj))
@@ -91,5 +100,9 @@ def health_check(cluster_id: int) -> List[CheckResponse]:
     res.extend(cluster_master_as_ejector(cluster_obj))
     res.extend(cluster_slave_as_receiver(cluster_obj))
     res.extend(cluster_replicate_out(cluster_obj))
+    # spec check
+    res.extend(cluster_machine_spec(cluster_obj))
+
+    res.extend(cluster_master_standby(cluster_obj))
 
     return res

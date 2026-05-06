@@ -9,107 +9,54 @@
         @click="handleRestart()">
         {{ t('批量重启') }}
       </BkButton>
-      <BkDropdown>
-        <BkButton
-          class="ml-8"
-          style="width: 105px">
-          {{ t('复制实例') }}
-          <DbIcon type="right-big" />
-        </BkButton>
-        <template #content>
-          <BkDropdownMenu>
-            <BkDropdownItem>
-              <BkButton
-                :disabled="selectionList.length < 1"
-                text
-                @click="handleCopySelectedInstance">
-                {{ t('已选实例') }}
-              </BkButton>
-            </BkDropdownItem>
-            <BkDropdownItem>
-              <BkButton
-                text
-                @click="handleCopyAbnormalInstance">
-                {{ t('异常实例') }}
-              </BkButton>
-            </BkDropdownItem>
-            <BkDropdownItem>
-              <BkButton
-                text
-                @click="handleCopyAllInstance">
-                {{ t('全部实例') }}
-              </BkButton>
-            </BkDropdownItem>
-          </BkDropdownMenu>
-        </template>
-      </BkDropdown>
-      <BkDropdown>
-        <BkButton
-          class="ml-8"
-          style="width: 105px">
-          {{ t('复制 IP') }}
-          <DbIcon type="right-big" />
-        </BkButton>
-        <template #content>
-          <BkDropdownMenu>
-            <BkDropdownItem>
-              <BkButton
-                :disabled="selectionList.length < 1"
-                text
-                @click="handleCopySelectedIp">
-                {{ t('已选 IP') }}
-              </BkButton>
-            </BkDropdownItem>
-            <BkDropdownItem>
-              <BkButton
-                text
-                @click="handleCopyAbnormalIp">
-                {{ t('异常 IP') }}
-              </BkButton>
-            </BkDropdownItem>
-            <BkDropdownItem>
-              <BkButton
-                text
-                @click="handleAllIp">
-                {{ t('全部 IP') }}
-              </BkButton>
-            </BkDropdownItem>
-          </BkDropdownMenu>
-        </template>
-      </BkDropdown>
-      <DbSearchSelect
-        :data="searchSelectData"
-        :get-menu-list="getSearchMenuList"
-        :model-value="searchSelectValue"
+      <InstanceBatchCopy
+        class="ml-8"
+        field="instance_address"
+        :get-table-data="getBatchCopyData"
+        :selected="selectedList" />
+      <InstanceBatchCopy
+        class="ml-8"
+        field="ip"
+        :get-table-data="getBatchCopyData"
+        :selected="selectedList" />
+      <DbQuickSearch
+        v-model="quickSearchValue"
+        :data="quickSearchData"
         :placeholder="t('请输入或选择条件搜索')"
-        style="flex: 1; max-width: 560px; margin-left: auto"
-        unique-select
-        @change="handleSearchValueChange" />
+        style="width: 500px; margin-left: auto"
+        @change="handleQuickSearchChange" />
     </div>
     <DbTable
-      ref="dbTable"
+      ref="instanceTable"
       :data-source="dataSource"
-      primary-key="id"
+      :filter-value="quickSearchValue"
+      releate-url-query
+      row-key="id"
       selectable
+      @filter-change="handleFilterChange"
       @selection="handleSelection">
-      <BkTableColumn
-        field="instance_address"
+      <TableColumn
+        col-key="instance_address"
         fixed="left"
+        :min-width="200"
         :title="t('实例')" />
-      <InstanceListFieldColumn />
-      <BkTableColumn
-        field="action"
+      <InstanceListFieldColumn
+        :cluster-id="clusterData.id"
+        :cluster-type="clusterType" />
+      <TableColumn
+        col-key="action"
         fixed="right"
-        :title="t('操作')">
-        <template #default="{ data }: { data: IInstanceDetail }">
+        :title="t('操作')"
+        :width="60">
+        <template #default="{ row }: { row: IColumnData }">
           <BkButton
             text
             theme="primary"
-            @click="handleRestart(data)">
+            @click="handleRestart(row)">
             {{ t('重启') }}
           </BkButton>
         </template>
-      </BkTableColumn>
+      </TableColumn>
     </DbTable>
   </div>
 </template>
@@ -126,17 +73,18 @@
   import PulsarModel from '@services/model/pulsar/pulsar';
   import { createTicket } from '@services/source/ticket';
 
-  import { useTicketMessage, useUrlSearch } from '@hooks';
+  import { useInstanceQuickSearch, useTicketMessage, useUrlSearch } from '@hooks';
 
-  import { ClusterInstStatusKeys, ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
+  import DbTable from '@components/db-table/IndexNew.vue';
+
+  import InstanceBatchCopy from '@views/db-manage/common/instance-batch-copy/Index.vue';
   import useClusterInstanceList from '@views/db-manage/hooks/useClusterInstaceList';
-
-  import { execCopy, getSearchSelectorParams, messageWarn } from '@utils';
+  import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
 
   import { URL_INSTANCE_MEMO_KEY } from '../constants';
   import InstanceListFieldColumn from '../InstanceListFieldColumn.vue';
-  import { getSearchSelectValue } from '../utils/index';
 
   interface ClusterTypeRelateClusterModel {
     [ClusterTypes.DORIS]: DorisModel;
@@ -154,7 +102,7 @@
     [ClusterTypes.PULSAR]: TicketTypes.PULSAR_REBOOT,
   };
 
-  type IInstanceDetail = ServiceReturnType<ReturnType<typeof useClusterInstanceList>>['results'][number];
+  type IColumnData = ServiceReturnType<ReturnType<typeof useClusterInstanceList>>['results'][number];
 </script>
 <script setup lang="tsx" generic="T extends keyof ClusterTypeRelateClusterModel">
   export interface Props<T extends keyof ClusterTypeRelateClusterModel> {
@@ -168,67 +116,14 @@
   const route = useRoute();
   const router = useRouter();
   const ticketMessage = useTicketMessage();
-  const requestHandler = useClusterInstanceList(props.clusterType);
   const { getSearchParams } = useUrlSearch();
 
-  const urlPaylaod = JSON.parse(decodeURIComponent(String(route.query[URL_INSTANCE_MEMO_KEY] || '{}')));
-
-  const searchSelectData = [
-    {
-      id: 'instance',
-      name: t('实例'),
-    },
-    {
-      id: 'ip',
-      name: 'IP',
-    },
-    {
-      children: [
-        {
-          id: 'restoring',
-          name: t('恢复中'),
-        },
-        {
-          id: 'running',
-          name: t('运行中'),
-        },
-        {
-          id: 'unavailable',
-          name: t('不可用'),
-        },
-        {
-          id: 'upgrading',
-          name: t('升级中'),
-        },
-      ],
-      id: 'status',
-      multiple: true,
-      name: t('状态'),
-    },
-    {
-      id: 'role',
-      name: t('部署角色'),
-    },
-    {
-      id: 'version',
-      name: t('版本'),
-    },
-  ];
-
-  const getSearchMenuList = (payload: { children: any[]; id: string }) => {
-    return Promise.resolve().then(() => {
-      if (payload.id === 'role') {
-        return _.uniqBy(
-          dbTable.value?.getData<IInstanceDetail>().map((item) => ({
-            id: item.role,
-            name: item.role,
-          })),
-          'id',
-        );
-      }
-      return payload.children || [];
-    });
-  };
+  const requestHandler = useClusterInstanceList(props.clusterType);
+  const { handleSelection, selectedList } = useClusterTableSelect<IColumnData>();
+  const { quickSearchData, quickSearchValue } = useInstanceQuickSearch({
+    cluster_id: props.clusterData.id,
+    cluster_type: props.clusterType,
+  });
 
   const dataSource = (params: ServiceParameters<typeof requestHandler>) =>
     requestHandler({
@@ -236,83 +131,39 @@
       cluster_id: props.clusterData.id,
     });
 
-  const dbTable = useTemplateRef('dbTable');
+  const instanceTableRef = useTemplateRef('instanceTable');
   const isRestartLoading = ref(false);
   const isBatchRestartLoading = ref(false);
   const isRestartActionDisabled = ref(false);
-  const selectionList = ref<IInstanceDetail[]>([]);
-  const searchSelectValue = shallowRef<ReturnType<typeof getSearchSelectValue>>([]);
 
-  const isBatchRestartDisabled = computed(() => selectionList.value.length < 1);
+  const isBatchRestartDisabled = computed(() => selectedList.value.length < 1);
 
-  const copyFieldData = (data: IInstanceDetail[], field: 'ip' | 'instance_address') => {
-    const result = data.map((item) => item[field]) || [];
-
-    if (result.length < 1) {
-      messageWarn(t('没有可复制数据'));
-      return;
-    }
-    execCopy(
-      result.join('\n'),
-      t('复制成功，共n条', {
-        n: result.length,
-      }),
-    );
+  const getBatchCopyData = () => {
+    return instanceTableRef.value!.fetchAllData<IColumnData>();
   };
 
-  const handleCopySelectedInstance = () => {
-    copyFieldData(selectionList.value, 'instance_address');
+  const fetchData = () => {
+    instanceTableRef.value?.fetchData(quickSearchValue.value);
+    instanceTableRef.value?.clearSelected();
   };
 
-  const handleCopyAbnormalInstance = () => {
-    copyFieldData(
-      _.filter(
-        dbTable.value?.getData<IInstanceDetail>() || [],
-        (item) => item.status !== ClusterInstStatusKeys.RUNNING,
-      ),
-      'instance_address',
-    );
-  };
-
-  const handleCopyAllInstance = () => {
-    copyFieldData(dbTable.value?.getData<IInstanceDetail>() || [], 'instance_address');
-  };
-
-  const handleCopySelectedIp = () => {
-    copyFieldData(selectionList.value, 'ip');
-  };
-
-  const handleCopyAbnormalIp = () => {
-    copyFieldData(
-      _.filter(
-        dbTable.value?.getData<IInstanceDetail>() || [],
-        (item) => item.status !== ClusterInstStatusKeys.RUNNING,
-      ),
-      'ip',
-    );
-  };
-
-  const handleAllIp = () => {
-    copyFieldData(dbTable.value?.getData<IInstanceDetail>() || [], 'ip');
-  };
-
-  const handleSearchValueChange = _.debounce((payload: any) => {
-    const serachParams = getSearchSelectorParams(payload);
-    dbTable.value?.fetchData(serachParams);
+  const handleQuickSearchChange = _.debounce(() => {
+    fetchData();
     router.replace({
       query: {
         ...getSearchParams(),
-        [URL_INSTANCE_MEMO_KEY]: encodeURIComponent(JSON.stringify(serachParams)),
+        [URL_INSTANCE_MEMO_KEY]: encodeURIComponent(JSON.stringify(quickSearchValue.value)),
       },
     });
   }, 100);
 
-  const handleSelection = (_: any, selectedRows: IInstanceDetail[]) => {
-    selectionList.value = selectedRows;
+  const handleFilterChange = (filterValue: Record<string, string>) => {
+    quickSearchValue.value = filterValue;
+    fetchData();
   };
 
-  const handleRestart = (data?: IInstanceDetail) => {
-    const restartInstanceList = data ? [data] : selectionList.value;
+  const handleRestart = (data?: IColumnData) => {
+    const restartInstanceList = data ? [data] : selectedList.value;
 
     if (data) {
       isRestartLoading.value = true;
@@ -320,7 +171,7 @@
       isBatchRestartLoading.value = true;
     }
 
-    const formatRequestData = (data: Array<IInstanceDetail>) =>
+    const formatRequestData = (data: Array<IColumnData>) =>
       data.map((item) => {
         const [ip, port] = item.instance_address.split(':');
         return {
@@ -389,7 +240,8 @@
   };
 
   onMounted(() => {
-    searchSelectValue.value = getSearchSelectValue(searchSelectData, urlPaylaod);
+    quickSearchValue.value = JSON.parse(decodeURIComponent(String(route.query[URL_INSTANCE_MEMO_KEY] || '{}')));
+    fetchData();
   });
 </script>
 <style lang="less">

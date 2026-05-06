@@ -8,27 +8,34 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
 import logging
+import os
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Union
 
 from celery import shared_task
 from celery.result import AsyncResult
+from django.core.cache import cache
 from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from backend.bk_dataview.grafana.constants import DASHBOARD_APP_ID, DASHBOARD_JSON_PATH
+from backend.components import BKMonitorV3Api
 from backend.components.bklog.handler import BKLogHandler
 from backend.configuration.constants import PLAT_BIZ_ID, DBType, SystemSettingsEnum
-from backend.configuration.models import DBAdministrator, SystemSettings
+from backend.configuration.models import BizSettings, DBAdministrator, SystemSettings
 from backend.constants import DEFAULT_SYSTEM_USER
 from backend.core import notify
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_services.cmdb.biz import get_resource_biz
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.dbresource.serializers import ResourceHcmReplenishSerializer
+from backend.exceptions import ApiResultError
+from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.builders.common.constants import MYSQL_CHECKSUM_TABLE, MySQLDataRepairTriggerMode
 from backend.ticket.constants import (
     FLOW_TASK_TYPES,
@@ -43,7 +50,8 @@ from backend.ticket.constants import (
     TodoType,
 )
 from backend.ticket.exceptions import TicketTaskTriggerException
-from backend.ticket.models.ticket import Flow, Ticket, TicketFlowsConfig
+from backend.ticket.models import Todo
+from backend.ticket.models.ticket import Flow, Ticket, TicketFlowsConfig, TodoStatus
 from backend.utils.time import date2str
 
 logger = logging.getLogger("root")
@@ -379,6 +387,110 @@ def apply_ticket_task(
 
 
 @shared_task
-def create_recycle_ticket(revoke_ticket_id: int, recycle_old_hosts: list, recycle_type: TicketType):
+def create_recycle_ticket(revoke_ticket_id: int, recycle_hosts: list, recycle_type: TicketType):
     """创建主机回收单据"""
-    Ticket.create_recycle_ticket(revoke_ticket_id, recycle_old_hosts, recycle_type)
+    Ticket.create_recycle_ticket(revoke_ticket_id, recycle_hosts, recycle_type)
+
+
+@shared_task
+def create_cluster_todo(ticket_id, cluster_phase):
+    from backend.ticket.todos import ClusterDisableTodoContext, TodoActionType
+
+    logger.info("--------------------create_cluster_todo-----{}-{}".format(ticket_id, cluster_phase))
+    ticket = Ticket.objects.get(id=ticket_id)
+    flow = Flow.objects.filter(ticket=ticket).order_by("-create_at").first()
+    cluster_ids = fetch_cluster_ids(ticket.details)
+    if cluster_phase == ClusterPhase.OFFLINE:
+        dba, second_dba, other_dba = DBAdministrator.get_dba_for_db_type(ticket.bk_biz_id, ticket.group)
+        biz_helpers = BizSettings.get_assistance(ticket.bk_biz_id)
+        dba.append(ticket.creator)
+        operators = set(dba)
+        helpers = list(set(second_dba + other_dba + biz_helpers))
+        todo_list = []
+        cluster_ids = fetch_cluster_ids(ticket.details)
+        cluster_map = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
+        for cluster_id in cluster_ids:
+            cluster = cluster_map.get(cluster_id)
+            db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
+            todo_list.append(
+                Todo(
+                    name=_("【{}】单据后续相关操作，待处理").format(ticket.get_ticket_type_display()),
+                    flow=flow,
+                    ticket=ticket,
+                    operators=list(operators),
+                    helpers=[helper for helper in helpers if helper not in operators],
+                    type=TodoType.CLUSTER_DISABLE,
+                    context=ClusterDisableTodoContext(
+                        flow.id, ticket.id, cluster_id, db_type, cluster.immute_domain
+                    ).to_dict(),
+                    status=TodoStatus.TODO,
+                )
+            )
+        Todo.objects.bulk_create(todo_list)
+    elif cluster_phase in [ClusterPhase.ONLINE, ClusterPhase.DESTROY]:
+        for cluster_id in cluster_ids:
+            todo = Todo.objects.filter(
+                type=TodoType.CLUSTER_DISABLE, status=TodoStatus.TODO, context__cluster_id=cluster_id
+            ).first()
+            if not todo:
+                continue
+            if cluster_phase == ClusterPhase.ONLINE:
+                action = TodoActionType.ENABLE
+            else:
+                action = TodoActionType.DESTROY
+            todo.set_success(ticket.creator, action)
+
+
+@shared_task
+def create_monitor_grafana(bk_biz_id, cluster_type):
+
+    # 如果是个列表类型，则表示未获取到准确的集群类型，跳过此次导入
+    if isinstance(cluster_type, list):
+        logger.error(_("grafana import error, cluster_type is list type"))
+        return
+
+    json_file_list = os.listdir(DASHBOARD_JSON_PATH)
+    target_files = {}
+
+    for file_name in json_file_list:
+        # 先从缓存读取， 如果没有数据则读文件
+        data = cache.get(file_name)
+        if not data:
+            with open(os.path.join(DASHBOARD_JSON_PATH, file_name), "r", encoding="utf-8") as f:
+                data = json.load(f)
+                # 存入缓存，时效7天
+                cache.set(file_name, data, 60 * 60 * 24 * 7)
+
+        # 排查日志平台的大盘
+        is_skip = False
+        for panel in data.get("panels", []):
+            if panel.get("datasource", {}).get("uid") == "${DS_日志平台}":
+                is_skip = True
+                break
+
+        if is_skip:
+            continue
+
+        tags = data.get("tags", [])
+        if cluster_type in tags:
+            target_files[file_name] = data
+
+    db_type = ClusterType.cluster_type_to_db_type(cluster_type).upper()
+    for target_file in target_files:
+        configs = {}
+        yaml_name = target_file.replace(".json", ".yaml")
+        configs[_("grafana/DBM内置仪表盘-{}/{}").format(db_type, yaml_name)] = json.dumps(target_files[target_file])
+
+        if not configs:
+            logger.info(_("没有匹配到对应的yaml数据"))
+            continue
+
+        try:
+            res = BKMonitorV3Api.as_code_import_config(
+                {"app": DASHBOARD_APP_ID, "bk_biz_id": bk_biz_id, "overwrite": True, "configs": configs},
+                use_admin=True,
+            )
+            logger.info(res)
+
+        except ApiResultError as e:
+            logger.error(_("grafana import error, file name is {}, {}").format(yaml_name, e))

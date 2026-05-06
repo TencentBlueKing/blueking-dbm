@@ -96,8 +96,13 @@ class DBType(StrStructuredEnum):
     Doris = EnumField("doris", _("Doris"))
     Vm = EnumField("vm", _("Vm"))
     Oracle = EnumField("oracle", _("Oracle"))
-    # 先将容器化集群统一归为K8s
-    K8s = EnumField("k8s", _("K8s"))
+    # K8s 容器化集群：与 mysql、es 等同级，一种集群类型对应一个 DBType（值与 ClusterType 一致）
+    K8sSurrealdb = EnumField("k8s_surrealdb", _("K8s SurrealDB"))
+    K8sVictoriametrics = EnumField("k8s_victoriametrics", _("K8s VictoriaMetrics"))
+    K8sRisingwave = EnumField("k8s_risingwave", _("K8s Risingwave"))
+    K8sMilvus = EnumField("k8s_milvus", _("K8s Milvus"))
+    K8sQdrant = EnumField("k8s_qdrant", _("K8s Qdrant"))
+    K8sGreptimedb = EnumField("k8s_greptimedb", _("K8s GreptimeDB"))
 
     # 不属于DB类型，仅用于云区域组件的单据部署的分组
     Cloud = EnumField("cloud", _("Cloud"))
@@ -138,7 +143,6 @@ class SystemSettingsEnum(StrStructuredEnum):
     SYNC_TENDBHA_CLUSTERS = EnumField("SYNC_TENDBHA_CLUSTERS", _("同步TenDBHA集群列表"))
     # 成本预估配置
     COST_ESTIMATE = EnumField("COST_ESTIMATE", _("COST_ESTIMATE"))
-    REPLENISH_RATIO = EnumField("REPLENISH_RATIO", _("补货比例"))
     # 主机属性配置
     MACHINE_PROPERTY = EnumField("MACHINE_PROPERTY", _("主机属性开关"))
     PADDING_PROXY_APPS = EnumField("PADDING_PROXY_APPS", _("补全proxy业务"))
@@ -171,9 +175,41 @@ class SystemSettingsEnum(StrStructuredEnum):
     DBA_ROBOT = EnumField("DBA_ROBOT", _("各组件负责的机器人"))
     # Redis 回档演练配置
     REDIS_ROLLBACK_EXERCISE = EnumField("REDIS_ROLLBACK_EXERCISE", _("Redis回档演练配置"))
-    # HCM操作系统与镜像ID映射
+    # Redis 巡检相关配置
+    REDIS_ROLE_CHECK = EnumField("REDIS_ROLE_CHECK", _("Redis实例角色校验配置"))
+    REDIS_ENTRY_CHECK = EnumField("REDIS_ENTRY_CHECK", _("Redis访问入口一致性校验配置"))
+    REDIS_CLUSTER_CAPACITY_GROWTH_CHECK = EnumField("REDIS_CLUSTER_CAPACITY_GROWTH_CHECK", _("Redis集群容量增长检查配置"))
+    REDIS_BACKEND_LOAD_SKEW_CHECK = EnumField("REDIS_BACKEND_LOAD_SKEW_CHECK", _("Redis后端负载倾斜检查配置"))
+    REDIS_BACKEND_DATA_SKEW_CHECK = EnumField("REDIS_BACKEND_DATA_SKEW_CHECK", _("Redis后端数据倾斜检查配置"))
+    REDIS_REPORT_ADDING_MODE = EnumField("REDIS_REPORT_ADDING_MODE", _("Redis报告写入模式配置"))
+    REDIS_BACKUP_CHECK = EnumField("REDIS_BACKUP_CHECK", _("Redis备份巡检配置"))
+    # 补货相关配置(内部独有)
+    HCM_APPLY_RESOURCE_BIZ = EnumField("HCM_APPLY_RESOURCE_BIZ", _("HCM申请资源业务"))
     HCM_OS_NAME_IMAGE_MAP = EnumField("HCM_OS_NAME_IMAGE_MAP", _("HCM操作系统与镜像ID映射"))
     HCM_REPLENISH_MAINTAINER = EnumField("HCM_REPLENISH_MAINTAINER", _("HCM补货维护人"))
+    REPLENISH_RATIO_MAP = EnumField("REPLENISH_RATIO_MAP", _("补货比例"))
+    REPLENISH_OS_MAP = EnumField("REPLENISH_OS_MAP", _("补货操作系统映射"))
+    REPLENISH_SUBZONE_MAP = EnumField("REPLENISH_SUBZONE_MAP", _("补货园区映射"))
+    # 主机池转移开发配置
+    HOST_DISSOLVED_SWITCH = EnumField("HOST_DISSOLVED_SWITCH", _("判断待裁撤主机开关"))
+    HOST_TO_FAULT_SWITCH = EnumField("HOST_TO_FAULT_SWITCH", _("转入故障池主机开关"))
+    WINDOWS_HOST_TO_RECYCLE_SWITCH = EnumField("WINDOWS_HOST_TO_RECYCLE_SWITCH", _("判断windows主机开关"))
+    # AIDEV相关配置
+    AI_CODE_SCENE_MAP = EnumField("AI_CODE_SCENE_MAP", _("智能体code场景映射关系表"))
+    # 机器初始化时需要写入 /etc/hosts 的条目，格式：{domain: ip}
+    # 示例：{"example.internal.domain": "127.0.0.1"}
+    INIT_OS_HOSTS = EnumField("INIT_OS_HOSTS", _("机器初始化hosts配置"))
+    # 每日代办提醒配置
+    DBM_DAILY_TODO_REMIND = EnumField("DBM_DAILY_TODO_REMIND", _("每日代办提醒配置"))
+    # 代办类型和用户映射信息
+    DBM_USER_TODO_TYPE_MAP = EnumField("DBM_USER_TODO_TYPE_MAP", _("代办类型和用户映射信息"))
+    DISABLE_DBHA_AUTOFIX_APPS = EnumField("DISABLE_DBHA_AUTOFIX_APPS", _("DBHA业务自动修复开关"))
+
+
+class DisableDBHAAutofixLevel(StrStructuredEnum):
+    CLUSTER_TYPE = EnumField("cluster_type", _("集群类型"))
+    CLUSTER = EnumField("cluster", _("集群"))
+    MACHINE_TYPE = EnumField("machine_type", _("机器类型"))
 
 
 class BizSettingsEnum(StrStructuredEnum):
@@ -249,6 +285,8 @@ COST_ESTIMATE_TEMPLATE = {
 
 # 磁盘类型，目前固定写死
 DISK_CLASSES = ["SSD", "CLOUD_SSD", "HDD", "LOCAL_HDD", "ALL"]
+# 磁盘类型和海磊(腾讯云)申请盘映射
+HCM_DISK_CLASS_MAP = {"CLOUD_SSD": "CLOUD_SSD", "HDD": "CLOUD_PREMIUM", "ALL": "CLOUD_PREMIUM"}
 
 # 默认轮值通知配置
 BKM_DUTY_NOTICE_VALUE = {
@@ -302,6 +340,9 @@ DEFAULT_MACHINE_PROPERTY = {
     "storage_device": True,  # 磁盘
 }
 
+# 默认智能体场景映射表
+DEFAULT_AI_CODE_SCENE_MAP = {"log_analysis": {"default": "LogAnalysis"}}
+
 # DEFAULT_REVERSE_REPORT_EVENT_TYPES = ["mysql_dbbackup_result", "mysql_dbbackup_progress", "mysql_binlog_result"]
 
 # 默认具备迁移权限的人员
@@ -326,6 +367,16 @@ DEFAULT_SETTINGS = [
     [SystemSettingsEnum.DISABLE_DBHA_APPS_CLUSTER_TYPE, "dict", {}, _("禁用DBHA业务")],
     # [SystemSettingsEnum.REVERSE_REPORT_EVENT_TYPES, "list", DEFAULT_REVERSE_REPORT_EVENT_TYPES, _("反向上报事件类型")],
     [SystemSettingsEnum.OPERATION_DATA_SWITCH.value, "bool", False, _("运营数据开关")],
+    [SystemSettingsEnum.AI_CODE_SCENE_MAP.value, "str", DEFAULT_AI_CODE_SCENE_MAP, _("智能体code场景映射关系表")],
+    # list[dict], 每条规则: {
+    #     "bk_biz_id": int,                 (必填) 业务ID
+    #     "cluster_type": str,              (必填) 集群类型, 如 "tendbha", "tendbcluster"
+    #     "disable_level": str,             (必填) DisableDBHAAutofixLevel 枚举值: "cluster_type" | "cluster" | "machine_type"
+    #     "disable_value": str/int,         disable_level 为 "cluster_type" 时无意义;
+    #                                       为 "cluster" 时填 cluster_id;
+    #                                       为 "machine_type" 时填 machine_type 字符串, 如 "proxy", "backend"
+    # }
+    [SystemSettingsEnum.DISABLE_DBHA_AUTOFIX_APPS, "list", [], _("禁用DBHA自动修复配置")],
 ]
 
 # 环境配置项 是否支持DNS解析 pulsar flow used
@@ -374,4 +425,45 @@ ACCOUNT_RULES_MAP = {
         "gcs_spider",
         "sync",
     ],
+}
+
+DAILY_TODO_REMIND_DEFAULT = {
+    "is_enable": False,
+    "remind_time": {
+        "minute": "0",
+        "hour": "9",
+    },
+    "notice": [{"type": "rtx", "value": ""}],
+}
+
+DBM_USER_TODO_TYPE_MAP_DEFAULT = {
+    "types": {
+        "ticket_todo": _("单据待办"),
+        "inspect_todo": _("巡检待办"),
+        "cluster_disable_todo": _("集群下架待办"),
+        "host_todo": _("主机处理待办"),
+        "alarm_todo": _("告警事件待办"),
+        "risk_memo_todo": _("风险备忘录"),
+    },
+    "ordinary": ["ticket_todo", "cluster_disable_todo"],
+    "dba": ["ticket_todo", "inspect_todo", "cluster_disable_todo", "host_todo", "alarm_todo", "risk_memo_todo"],
+}
+
+BIZ_DEFAULT_CONFIGS = {
+    "NOTIFY_CONFIG": {
+        "APPROVE": {"rtx": True},
+        "FAILED": {"rtx": True},
+        "INNER_TODO": {"rtx": True},
+        "PENDING": {"rtx": True},
+        "RESOURCE_REPLENISH": {"rtx": True},
+        "REVOKED": {"rtx": True},
+        "SUCCEEDED": {"rtx": True},
+        "TERMINATED": {"rtx": True},
+        "TODO": {"rtx": True},
+        "AI_TASK_GUARDIAN": {"rtx": True},
+    },
+    "DEFAULT_BIZ_AI_NOTIFY_CONFIG": {"AI_TASK_GUARDIAN": {"rtx": True}},
+    "BIZ_ASSISTANCE_SWITCH": False,
+    "BIZ_ASSISTANCE_VARS": [],
+    "INDEPENDENT_HOSTING_DB_TYPES": [],
 }

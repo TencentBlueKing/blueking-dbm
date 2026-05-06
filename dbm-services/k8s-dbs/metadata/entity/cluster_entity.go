@@ -45,6 +45,7 @@ type K8sCrdClusterEntity struct {
 	BkBizName           string                      `json:"bkBizName"`
 	BkAppAbbr           string                      `json:"bkAppAbbr"`
 	BkAppCode           string                      `json:"bkAppCode"`
+	DbmClusterID        uint64                      `json:"dbmClusterId"`
 	Tags                []*K8sCrdClusterTagEntity   `json:"tags"`
 	Status              string                      `json:"status"`
 	VIP                 string                      `json:"vip"`

@@ -48,14 +48,14 @@
         name="os_type"
         @change="handleChange" />
       <ComFactory
+        :ref="(el: any) => initInputRefCallback(el, 'os_names')"
+        :model="localValueMemo"
+        name="os_names"
+        @change="handleChange" />
+      <ComFactory
         :ref="(el: any) => initInputRefCallback(el, 'device_class')"
         :model="localValueMemo"
         name="device_class"
-        @change="handleChange" />
-      <ComFactory
-        :ref="(el: any) => initInputRefCallback(el, 'agent_status')"
-        :model="localValueMemo"
-        name="agent_status"
         @change="handleChange" />
     </div>
     <KeepAlive>
@@ -76,6 +76,11 @@
             :model="localValueMemo"
             name="bk_cloud_ids"
             @change="handleChange" />
+          <ComFactory
+            :ref="(el: any) => initInputRefCallback(el, 'agent_status')"
+            :model="localValueMemo"
+            name="agent_status"
+            @change="handleChange" />
         </div>
         <div class="row">
           <ComFactory
@@ -93,7 +98,7 @@
             :model="localValueMemo"
             name="mount_point"
             @change="handleChange" />
-          <!-- <div style="flex: 1" /> -->
+          <div style="flex: 1" />
         </div>
       </template>
     </KeepAlive>

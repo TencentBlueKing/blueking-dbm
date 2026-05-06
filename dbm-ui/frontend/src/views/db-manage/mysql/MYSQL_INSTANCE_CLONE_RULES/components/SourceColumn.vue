@@ -31,13 +31,13 @@
     <EditableInput
       v-model="source"
       :placeholder="t('请输入IP:Port或从表头批量选择')" />
-    <InstanceSelector
-      v-model:is-show="isShowIpSelector"
-      :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
-      :selected="selectedIps"
-      :tab-list-config="tabListConfig"
-      @change="handleSelectorChange" />
   </EditableColumn>
+  <InstanceSelector
+    v-model="selectedInstances"
+    v-model:is-show="isShowIpSelector"
+    :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
+    repeatable
+    @change="handleSelectorChange" />
   <EditableColumn
     field="cluster_domain"
     :label="t('所属集群')"
@@ -51,23 +51,19 @@
   </EditableColumn>
 </template>
 <script lang="ts" setup>
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
   import { checkInstance } from '@services/source/dbbase';
 
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
+  import InstanceSelector from '@components/instance-selector-new/Index.vue';
 
-  export type InstanceItem = IValue;
-
-  type Emits = (e: 'batch-edit', list: IValue[]) => void;
+  type Emits = (e: 'batch-edit', list: TendbhaInstanceModel[]) => void;
 
   const emits = defineEmits<Emits>();
 
@@ -85,47 +81,11 @@
 
   const { t } = useI18n();
 
-  const tabListConfig = {
-    [ClusterTypes.TENDBHA]: [
-      {
-        previewConfig: {
-          displayKey: 'instance_address',
-          showTitle: true,
-          title: t('主从'),
-        },
-        tableConfig: {
-          firsrColumn: {
-            field: '',
-            label: '',
-            role: '',
-          },
-        },
-      },
-    ],
-    [ClusterTypes.TENDBSINGLE]: [
-      {
-        previewConfig: {
-          displayKey: 'instance_address',
-          showTitle: true,
-          title: t('单节点'),
-        },
-      },
-      {
-        manualConfig: {
-          activePanelId: 'manualInput',
-        },
-        previewConfig: {
-          showTitle: true,
-        },
-      },
-    ],
-  } as unknown as Record<ClusterTypes, PanelListType>;
-
   const bkHostId = ref(0);
   const isShowIpSelector = ref(false);
-  const selectedIps = shallowRef<InstanceSelectorValues<IValue>>({
-    [ClusterTypes.TENDBHA]: [],
-    [ClusterTypes.TENDBSINGLE]: [],
+  const selectedInstances = shallowRef({
+    [ClusterTypes.TENDBHA]: [] as TendbhaInstanceModel[],
+    [ClusterTypes.TENDBSINGLE]: [] as TendbhaInstanceModel[],
   });
 
   const rules = [
@@ -163,7 +123,7 @@
     isShowIpSelector.value = true;
   };
 
-  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
+  const handleSelectorChange = (selected: UnwrapRef<typeof selectedInstances>) => {
     emits('batch-edit', Object.values(selected).flat());
   };
 

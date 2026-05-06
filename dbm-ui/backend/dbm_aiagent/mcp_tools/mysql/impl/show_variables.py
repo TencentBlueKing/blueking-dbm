@@ -8,18 +8,25 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Dict, List
+from typing import Dict
 
 from backend.components import DRSApi
 from backend.db_meta.enums import MachineType
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException, DBMMcpNotSupportMachineTypeException
+from backend.dbm_aiagent.mcp_tools.mysql.helpers.get_slave_address_and_dbname import safe_sql_in_string
 
 
-def show_mysql_variables(address: str, machine_type: MachineType, variable_hints: List[str]) -> Dict:
+def show_instance_variables(bk_cloud_id: int, address: str, machine_type: MachineType, names: list[str]) -> Dict:
     if machine_type not in [MachineType.SINGLE, MachineType.BACKEND, MachineType.REMOTE, MachineType.SPIDER]:
         raise DBMMcpNotSupportMachineTypeException(machine_type=machine_type)
+    cmd = "SHOW GLOBAL VARIABLES"
+    if names:
+        # show global variables  where Variable_name in ('wait_timeout', 'version');
+        # 因为是使用输入的 names，担心有注入，限制只能是 a-zA-Z_
+        in_clause = safe_sql_in_string(names)
+        cmd = f"{cmd} WHERE Variable_name IN {in_clause}"
 
-    raw_drs_res = DRSApi.rpc({"addresses": [address], "cmds": ["SHOW VARIABLES"]})
+    raw_drs_res = DRSApi.rpc({"addresses": [address], "cmds": [cmd], "bk_cloud_id": bk_cloud_id})
 
     address_res = raw_drs_res[0]
     if address_res["error_msg"]:
@@ -30,16 +37,7 @@ def show_mysql_variables(address: str, machine_type: MachineType, variable_hints
         raise DBMMcpBaseException(msg=address_res["error_msg"])
 
     runtime_variables = []
-    if variable_hints:
-        for vv in show_variable_res["table_data"]:
-            v_name = vv["Variable_name"]
-            v_value = vv["Value"]
-            if v_name in variable_hints:
-                runtime_variables.append({"variable_name": v_name, "variable_value": v_value})
-    else:
-        for vv in show_variable_res["table_data"]:
-            v_name = vv["Variable_name"]
-            v_value = vv["Value"]
-            runtime_variables.append({"variable_name": v_name, "variable_value": v_value})
+    for vv in show_variable_res["table_data"]:
+        runtime_variables.append({"variable_name": vv["Variable_name"], "variable_value": vv["Value"]})
 
-    return {"address": address, "runtime_variables": runtime_variables}
+    return {"runtime_variables": runtime_variables}

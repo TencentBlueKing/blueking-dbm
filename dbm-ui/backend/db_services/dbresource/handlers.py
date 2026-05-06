@@ -14,7 +14,6 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List
 
-from django.forms import model_to_dict
 from django.utils.translation import gettext as _
 
 from backend.components import CCApi
@@ -22,6 +21,7 @@ from backend.components.dbresource.client import DBResourceApi
 from backend.components.gse.client import GseApi
 from backend.configuration.constants import COST_ESTIMATE_TEMPLATE, DBType, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
+from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 from backend.db_meta.models import AppCache, Machine, Spec, Tag
 from backend.db_services.dbresource.exceptions import SpecOperateException
@@ -30,6 +30,7 @@ from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
 from backend.utils.cache import func_cache_decorator
+from backend.utils.excel import ExcelHandler
 
 
 class ClusterSpecFilter(object):
@@ -46,7 +47,7 @@ class ClusterSpecFilter(object):
         # 当前集群的筛选规格
         self.specs: List[Dict[str, Any]] = [
             {
-                **model_to_dict(spec),
+                **spec.to_dict(),
                 "capacity": spec.capacity,
             }
             for spec in Spec.objects.filter(
@@ -155,7 +156,7 @@ class TendisPlusSpecFilter(RedisSpecFilter):
     """TendisPlus集群规格过滤器"""
 
     # 最佳容量管理大小 300G
-    SINGLE_SHARD_SIZE = 300
+    SINGLE_SHARD_SIZE = 1200
     # 单机 1 ， 2，4 分片 可选
     SINGLE_SHARD_NUMBS = [1, 2, 4]
 
@@ -358,7 +359,7 @@ class MongoDBShardSpecFilter(object):
             spec_machine_type=spec_machine_type, spec_cluster_type=spec_cluster_type, enable=True
         )
         for spec in mongodb_specs:
-            spec_info = {**model_to_dict(spec), "capacity": spec.capacity}
+            spec_info = {**spec.to_dict(), "capacity": spec.capacity}
             spec_info["machine_pair"] = math.ceil(capacity / spec_info["capacity"])
             if self.get_spec_shard_info(spec_info, **kwargs):
                 self.specs.append(spec_info)
@@ -565,55 +566,210 @@ class ResourceHandler(object):
 
     @classmethod
     @func_cache_decorator(cache_time=60 * 10)
-    def calc_resource_water_level(cls):
+    def calc_resource_water_level(cls, need_replenish: bool = True):
         """计算资源池水位(计算较慢，默认缓存10min)"""
+
+        # 获取补货比例、操作系统映射、园区映射、规格信息映射
+        spec_map = {spec.spec_id: spec for spec in Spec.objects.filter(tags__key=SystemTagEnum.REPLENISH)}
+        ratio_map = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_RATIO_MAP, {})
+        os_map = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_OS_MAP, {})
+        os_map = {os_name: os_key for os_key, os_names in os_map.items() for os_name in os_names}
+        subzone_map = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_SUBZONE_MAP, {})
+        subzone_map = {name: zone_key for zone_key, zone_names in subzone_map.items() for name in zone_names}
+
+        # 不符合水位数据的统计函数定义
+        exclusive_spec = []
+        exclusive_machine = {"empty_os": [], "empty_city": [], "empty_subzone": []}
+
+        def add_exclusive_machine_infos(hosts):
+            for host in hosts:
+                if not host["bk_os_name"]:
+                    exclusive_machine["empty_os"].append(host["ip"])
+                if not host["bk_city__bk_idc_city_name"] or host["bk_city__bk_idc_city_name"] == "default":
+                    exclusive_machine["empty_city"].append(host["ip"])
+                if not host["bk_sub_zone"]:
+                    exclusive_machine["empty_subzone"].append(host["ip"])
+
+        def add_exclusive_spec_infos(spec_ids):
+            for spec_id in spec_ids:
+                if spec_id in spec_map and not spec_map[spec_id].device_class:
+                    exclusive_spec.append({"spec_id": spec_id, "spec_name": spec_map[spec_id].spec_name})
+
         # 按照规格 + 地域 + 园区 + 操作系统聚合主机
         machine_water_level_map = defaultdict(
             lambda: defaultdict(
                 lambda: defaultdict(lambda: defaultdict(lambda: {"machine_count": 0, "resource_count": 0}))
             )
         )
-        machines = Machine.objects.all().values("spec_id", "bk_os_name", "bk_city__bk_idc_city_name", "bk_sub_zone")
+
+        machines = Machine.objects.filter(bk_cloud_id=0).values(
+            "spec_id", "bk_os_name", "bk_city__bk_idc_city_name", "bk_sub_zone", "ip"
+        )
         for m in machines:
             spec_id, city_name, subzone = m["spec_id"], m["bk_city__bk_idc_city_name"], m["bk_sub_zone"]
             bk_os_name = (m["bk_os_name"] or "").strip().lower().replace(" ", "")
+            # 取映射
+            bk_os_name = os_map.get(bk_os_name, bk_os_name)
+            subzone = subzone_map.get(subzone, subzone)
             machine_water_level_map[spec_id][bk_os_name][city_name][subzone]["machine_count"] += 1
 
-        resource_water_level = DBResourceApi.water_level()["data"]
+        resource_water_level = DBResourceApi.water_level()["data"] or []
         for info in resource_water_level:
-            spec_id, city_name, subzone = info["spec_id"], info["city"], info["sub_zone_id"]
+            spec_id, city_name, subzone = info["spec_id"], info["city"], info["sub_zone"]
             bk_os_name = info["os_name_origin"].strip().lower().replace(" ", "")
-            machine_water_level_map[spec_id][bk_os_name][city_name][subzone]["resource_count"] = info["count"]
-
-        spec_map = {spec.spec_id: spec for spec in Spec.objects.all()}
-        update_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # 取映射
+            bk_os_name = os_map.get(bk_os_name, bk_os_name)
+            subzone = subzone_map.get(subzone, subzone)
+            machine_water_level_map[spec_id][bk_os_name][city_name][subzone]["resource_count"] += info["count"]
 
         # 打平聚合信息，生成资源水位
-        replenish_ratio = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_RATIO, [])
-        spec__replenish_ratio_map = {info["spec_id"]: info["ratio"] for info in replenish_ratio}
-        default_ratio = spec__replenish_ratio_map.get(0, 0.05)
+        default_ratio = ratio_map.get(str(0), 0.01)
         water_level: List[Dict] = [
             {
                 "spec_id": spec_id,
-                "spec_machine_type": spec_map[spec_id].spec_machine_type if spec_id in spec_map else "",
-                "spec_name": spec_map[spec_id].spec_name if spec_id in spec_map else "",
-                "db_type": spec_map[spec_id].spec_cluster_type if spec_id in spec_map else "",
+                "spec_machine_type": spec_map[spec_id].spec_machine_type,
+                "spec_name": spec_map[spec_id].spec_name,
+                "db_type": spec_map[spec_id].spec_cluster_type,
                 "os_name": bk_os_name,
                 "city": city_name,
                 "subzone": subzone,
                 "machine_count": subzone_info["machine_count"],
                 "resource_count": subzone_info["resource_count"],
                 "machine_refer_count": math.ceil(
-                    subzone_info["machine_count"] * spec__replenish_ratio_map.get(spec_id, default_ratio)
+                    subzone_info["machine_count"] * ratio_map.get(str(spec_id), default_ratio)
                 ),
             }
             for spec_id, spec_info in machine_water_level_map.items()
             for bk_os_name, bk_os_info in spec_info.items()
             for city_name, city_info in bk_os_info.items()
             for subzone, subzone_info in city_info.items()
+            # 过滤掉：操作系统为空，机型为空，城市为空(default)
+            if spec_id in spec_map and spec_map[spec_id].device_class
+            if bk_os_name and subzone and city_name and city_name != "default"
         ]
+        # 仅展示需要补货资源信息（重新计算 machine_refer_count）
+        if need_replenish:
+            water_level = [info for info in water_level if info["machine_refer_count"] > info["resource_count"]]
+
+        # 获取不符合水位统计信息
+        add_exclusive_spec_infos(list(machine_water_level_map.keys()))
+        add_exclusive_machine_infos(machines)
 
         # 补货固定显示时间上午九点
         flush_time = "09:00:00"
+        update_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        return {"update_time": update_time, "water_level": water_level, "flush_time": flush_time}
+        return {
+            "update_time": update_time,
+            "water_level": water_level,
+            "flush_time": flush_time,
+            "exclusive_spec": exclusive_spec,
+            "exclusive_machine": exclusive_machine,
+        }
+
+    @classmethod
+    def get_replenish_ticket_apply_info_map(cls, ticket_ids: List[int], runtime_info: bool = False) -> Dict[int, Dict]:
+        """获取补货单据申请/交付信息映射"""
+        tickets = Ticket.objects.prefetch_related("flows").filter(
+            id__in=ticket_ids, ticket_type=TicketType.RESOURCE_HCM_REPLENISH.value
+        )
+        replenish_records = ResourceReplenishRecord.objects.all().values("ticket_ids", "id")
+        ticket_replenish_map = {tid: record["id"] for record in replenish_records for tid in record["ticket_ids"]}
+
+        ticket_apply_count_map = {}
+        for ticket in tickets:
+            inner_flow = list(ticket.flows.all())[-1]
+            delivery_count = len(inner_flow.output_data[0]["values"]) if inner_flow and inner_flow.output_data else 0
+            info = {
+                "apply_count": ticket.details.get("count", 0),
+                "delivery_count": delivery_count,
+                "details": ticket.details,
+                "record_id": ticket_replenish_map.get(ticket.id, ""),
+            }
+            if runtime_info:
+                info.update({"ticket": ticket, "inner_flow": inner_flow})
+            ticket_apply_count_map[ticket.id] = info
+
+        return ticket_apply_count_map
+
+    @classmethod
+    def get_evnet_info(cls, bk_host_ids, remark, host_id_ip_map):
+        from backend.db_services.dbresource.constants import RESOURCE_UPDATE_REMARK
+
+        remark_map = {}
+        hosts = []
+        for index, host_id in enumerate(bk_host_ids):
+            remark_list = []
+            remark_info = remark[index]
+            for label_key in remark_info:
+                before_value = (
+                    remark_info[label_key]["before_value"] if remark_info[label_key].get("before_value") else _("无")
+                )
+                after_value = (
+                    remark_info[label_key]["after_value"] if remark_info[label_key].get("after_value") else _("无")
+                )
+                if before_value == after_value:
+                    continue
+                remark_list.append(f"{RESOURCE_UPDATE_REMARK[label_key]}: {before_value}→{after_value}")
+            if not remark_list:
+                continue
+            new_remark = ";".join(remark_list)
+            remark_map[host_id] = new_remark
+            hosts.append({"ip": host_id_ip_map[str(host_id)], "bk_host_id": host_id})
+
+        return remark_map, hosts
+
+    @classmethod
+    def resource_export(cls, params):
+        data_list = []
+        headers = [
+            {"id": "ip", "name": _("IP")},
+            {"id": "bk_cloud_name", "name": _("管控区域")},
+            {"id": "agent_status", "name": _("Agent 状态")},
+            {"id": "bk_biz_name", "name": _("所属业务")},
+            {"id": "resource_type", "name": _("所属DB")},
+            {"id": "labels", "name": _("资源标签")},
+            {"id": "city", "name": _("地域")},
+            {"id": "sub_zone", "name": _("园区")},
+            {"id": "rack_id", "name": _("机架")},
+            {"id": "os_type", "name": _("操作系统类型")},
+            {"id": "os_name", "name": _("操作系统名称")},
+            {"id": "device_class", "name": _("机型")},
+            {"id": "bk_cpu", "name": _("CPU(核)")},
+            {"id": "bk_mem", "name": _("内存(G)")},
+            {"id": "total_data_storage_cap", "name": _("数据盘容量（G）")},
+            {"id": "create_time", "name": _("转入时间")},
+            {"id": "operator", "name": _("转入人")},
+        ]
+
+        resource_res = cls.resource_list(params)
+        results = resource_res["results"]
+        if results:
+            for res in results:
+                data_list.append(
+                    {
+                        "ip": res["ip"],
+                        "bk_cloud_name": res["bk_cloud_name"],
+                        "agent_status": _("正常") if res["agent_status"] == 1 else _("异常"),
+                        "bk_biz_name": _("公共资源池")
+                        if res["for_biz"]["bk_biz_id"] == 0
+                        else res["for_biz"]["bk_biz_name"],
+                        "resource_type": _("通用") if res["resource_type"] == "PUBLIC" else res["resource_type"],
+                        "labels": " ".join(label["name"] for label in res["labels"]),
+                        "city": res["city"],
+                        "sub_zone": res["sub_zone"],
+                        "rack_id": res["rack_id"],
+                        "os_type": res["os_type"],
+                        "os_name": res["os_name"],
+                        "device_class": res["device_class"],
+                        "bk_cpu": res["bk_cpu"],
+                        "bk_mem": round(res["bk_mem"] / 1024, 2),
+                        "total_data_storage_cap": res.get("total_data_storage_cap", 0),
+                        "create_time": res["create_time"],
+                        "operator": res["operator"],
+                    }
+                )
+
+        wb = ExcelHandler.serialize(data_list, headers=headers, match_header=True)
+
+        return ExcelHandler.response(wb, "dbm_resource_list.xlsx")

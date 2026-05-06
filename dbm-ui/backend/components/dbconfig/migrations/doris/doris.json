@@ -1,0 +1,50 @@
+[
+  {
+    "conf_type": "dbconf",
+    "conf_file": "2.0.4",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "doris集群配置",
+    "conf_type_lc": "doris集群配置",
+    "conf_file_lc": "doris-2.0",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "2.1.5",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "doris集群配置",
+    "conf_type_lc": "doris集群配置",
+    "conf_file_lc": "doris-2.1",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "3.0.4",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "doris集群配置",
+    "conf_type_lc": "doris集群配置",
+    "conf_file_lc": "doris-3.0",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "4.0.0",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "doris集群配置",
+    "conf_type_lc": "doris集群配置",
+    "conf_file_lc": "doris-4.0",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  }
+]

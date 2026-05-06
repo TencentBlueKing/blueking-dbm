@@ -77,6 +77,17 @@ class ProfileSerializer(serializers.Serializer):
     values = serializers.JSONField()
 
 
+class TodoRemindSerializer(serializers.Serializer):
+    class TodoCrontabSerializer(serializers.Serializer):
+        minute = serializers.CharField(help_text=_("分钟"))
+        hour = serializers.CharField(help_text=_("小时"))
+        day_of_week = serializers.CharField(help_text=_("每周几天(eg: 1,4,5 表示一周的周一，周四，周五)"), required=False)
+
+    is_enable = serializers.BooleanField(help_text=_("是否开启"), default=True)
+    remind_time = TodoCrontabSerializer(help_text=_("通知周期"))
+    notice = serializers.ListSerializer(child=serializers.JSONField(), help_text=_("通知渠道"))
+
+
 class ProfileSqlSerializer(serializers.Serializer):
     class SqlSelfSerializer(serializers.Serializer):
         name = serializers.CharField(help_text=_("sql名称"))
@@ -98,6 +109,11 @@ class DBAdminSerializer(serializers.Serializer):
 class UpsertDBAdminSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     db_admins = serializers.ListSerializer(child=DBAdminSerializer())
+
+
+class DBAComponentSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
+    db_type = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices(), required=False)
 
 
 class ModifyMySQLPasswordRandomCycleSerializer(serializers.Serializer):

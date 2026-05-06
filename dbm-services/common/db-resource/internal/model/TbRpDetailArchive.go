@@ -26,7 +26,7 @@ type TbRpDetailArchive struct {
 	BkBizId             int                      `gorm:"column:bk_biz_id;type:int(11);not null;comment:'机器当前所属业务'" json:"bk_biz_id"`
 	DedicatedBiz        int                      `gorm:"column:dedicated_biz;type:int(11);default:0;comment:专属业务" json:"dedicated_biz"`
 	RsType              string                   `gorm:"column:rs_type;type:varchar(64);default:'PUBLIC';comment:资源专用组件类型" json:"rs_type"`
-	Bizs                map[string]string        `gorm:"-"`
+	Bizs                map[string]string        `gorm:"-" json:"-"`
 	BkHostID            int                      `gorm:"column:bk_host_id;type:int(11);not null;comment:'bk主机ID'" json:"bk_host_id"`
 	IP                  string                   `gorm:"column:ip;type:varchar(20);not null" json:"ip"` //  svr ip
 	AssetID             string                   `gorm:"column:asset_id;type:varchar(64);not null;comment:'固定资产编号'" json:"asset_id"`
@@ -37,7 +37,7 @@ type TbRpDetailArchive struct {
 	StorageDevice       json.RawMessage          `gorm:"column:storage_device;type:json;comment:'磁盘设备'" json:"storage_device"`
 	TotalStorageCap     int                      `gorm:"column:total_storage_cap;type:int(11);comment:'磁盘总容量'" json:"total_storage_cap"`
 	TotalDataStorageCap int                      `gorm:"column:total_data_storage_cap;type:int(11);comment:'数据盘总容量'" json:"total_data_storage_cap"`
-	Storages            map[string]bk.DiskDetail `gorm:"-"`
+	Storages            map[string]bk.DiskDetail `gorm:"-" json:"-"`
 	OsType              string                   `gorm:"column:os_type;type:varchar(32);not null;comment:'操作系统类型'" json:"os_type"`
 	OsBit               string                   `gorm:"column:os_bit;type:varchar(32);not null;comment:'操作系统位数'" json:"os_bit"`
 	//  操作系统版本
@@ -61,9 +61,9 @@ type TbRpDetailArchive struct {
 	//  网络设备ID, 判断是同交换机
 	NetDeviceID string `gorm:"column:net_device_id;type:varchar(128)" json:"net_device_id"`
 	// 标签
-	Labels string `gorm:"column:labels;type:json" json:"labels"`
-	IsInit int    `gorm:"column:is_init;type:int(11);comment:'是否初始化过'" json:"-"`
-	IsIdle int    `gorm:"column:is_idle;type:int(11);comment:'是否空闲检查过'" json:"-"`
+	Labels json.RawMessage `gorm:"column:labels;type:json" json:"labels"`
+	IsInit int             `gorm:"column:is_init;type:int(11);comment:'是否初始化过'" json:"-"`
+	IsIdle int             `gorm:"column:is_idle;type:int(11);comment:'是否空闲检查过'" json:"-"`
 	// Status: Unused: 未使用 Used: 已经售卖被使用: Preselected:预占用
 	Status    string `gorm:"column:status;type:varchar(20);not null" json:"status"`
 	BkAgentId string `gorm:"index:idx_bk_agent_id;column:bk_agent_id;type:varchar(64);not null" json:"bk_agent_id"`
@@ -71,16 +71,30 @@ type TbRpDetailArchive struct {
 	AgentStatusCode int `gorm:"column:gse_agent_status_code;type:int(11);not null" json:"gse_agent_status_code"`
 	// agent status 最后一次更新时间
 	AgentStatusUpdateTime time.Time `gorm:"column:agent_status_update_time;type:timestamp;default:1970-01-01 08:00:01" json:"agent_status_update_time"`
-	ConsumeTime           time.Time `gorm:"column:consume_time;type:timestamp;default:1970-01-01 08:00:01" json:"consume_time"`
-	UpdateTime            time.Time `gorm:"column:update_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"update_time"`
-	CreateTime            time.Time `gorm:"column:create_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"create_time"`
+	// 资源导入者
+	Operator    string    `gorm:"column:operator;type:char(64);not null" json:"operator"`
+	ConsumeTime time.Time `gorm:"column:consume_time;type:timestamp;default:1970-01-01 08:00:01" json:"consume_time"`
+	UpdateTime  time.Time `gorm:"column:update_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"update_time"`
+	CreateTime  time.Time `gorm:"column:create_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"create_time"`
 }
 
 // initarchive 启动的时候归档未清理的资源
 func initarchive() {
 	tx := DB.Self.Begin()
-	if err := tx.Exec("insert into tb_rp_detail_archive select * from tb_rp_detail where status = ? ", Used).
-		Error; err != nil {
+	if err := tx.Exec(`insert into tb_rp_detail_archive 
+		(id, bk_cloud_id, bk_biz_id, dedicated_biz, rs_type, bk_host_id, ip, asset_id, 
+		device_class, svr_type_name, cpu_num, dram_cap, storage_device, total_storage_cap, 
+		total_data_storage_cap, os_type, os_bit, os_version, os_name, os_name_origin, 
+		raid, city_id, city, sub_zone, sub_zone_id, rack_id, net_device_id, labels, 
+		is_init, is_idle, status, bk_agent_id, gse_agent_status_code, agent_status_update_time, 
+		operator, consume_time, update_time, create_time) 
+		select id, bk_cloud_id, bk_biz_id, dedicated_biz, rs_type, bk_host_id, ip, asset_id, 
+		device_class, svr_type_name, cpu_num, dram_cap, storage_device, total_storage_cap, 
+		total_data_storage_cap, os_type, os_bit, os_version, os_name, os_name_origin, 
+		raid, city_id, city, sub_zone, sub_zone_id, rack_id, net_device_id, labels, 
+		is_init, is_idle, status, bk_agent_id, gse_agent_status_code, agent_status_update_time, 
+		operator, consume_time, update_time, create_time 
+		from tb_rp_detail where status = ?`, Used).Error; err != nil {
 		logger.Error("insert into tb_rp_detail_archive failed %s", err.Error())
 	}
 	if err := tx.Exec("delete from tb_rp_detail where status = ? ", Used).Error; err != nil {
@@ -99,8 +113,8 @@ func TbRpDetailArchiveName() string {
 	return "tb_rp_detail_archive"
 }
 
-// ArchiverResouce 将申请完的资源转移到归档表
-func ArchiverResouce(ids []int) (err error) {
+// ArchiveResource 将申请完的资源转移到归档表
+func ArchiveResource(ids []int) (err error) {
 	tx := DB.Self.Begin()
 	defer func() {
 		if err != nil {
@@ -109,8 +123,20 @@ func ArchiverResouce(ids []int) (err error) {
 			}
 		}
 	}()
-	if err = tx.Exec("insert into tb_rp_detail_archive select * from tb_rp_detail where id in ? and status = ? ", ids,
-		Used).Error; err != nil {
+	if err = tx.Exec(`insert into tb_rp_detail_archive 
+		(id, bk_cloud_id, bk_biz_id, dedicated_biz, rs_type, bk_host_id, ip, asset_id, 
+		device_class, svr_type_name, cpu_num, dram_cap, storage_device, total_storage_cap, 
+		total_data_storage_cap, os_type, os_bit, os_version, os_name, os_name_origin, 
+		raid, city_id, city, sub_zone, sub_zone_id, rack_id, net_device_id, labels, 
+		is_init, is_idle, status, bk_agent_id, gse_agent_status_code, agent_status_update_time, 
+		operator, consume_time, update_time, create_time) 
+		select id, bk_cloud_id, bk_biz_id, dedicated_biz, rs_type, bk_host_id, ip, asset_id, 
+		device_class, svr_type_name, cpu_num, dram_cap, storage_device, total_storage_cap, 
+		total_data_storage_cap, os_type, os_bit, os_version, os_name, os_name_origin, 
+		raid, city_id, city, sub_zone, sub_zone_id, rack_id, net_device_id, labels, 
+		is_init, is_idle, status, bk_agent_id, gse_agent_status_code, agent_status_update_time, 
+		operator, consume_time, update_time, create_time 
+		from tb_rp_detail where id in ? and status = ?`, ids, Used).Error; err != nil {
 		return err
 	}
 	if err = tx.Exec("delete from tb_rp_detail where  id in ?  and status = ? ", ids, Used).Error; err != nil {

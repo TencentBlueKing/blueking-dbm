@@ -334,12 +334,15 @@ class MySQLMasterSlaveSwitchFlow(object):
             sub_pipeline.add_sub_pipeline(
                 sub_flow=standardize_mysql_cluster_by_ip_subflow(
                     root_id=self.root_id,
-                    data=copy.deepcopy(self.data),
+                    data={
+                        **copy.deepcopy(self.data),
+                        "cluster_ids": list(set(cluster_ids)),
+                    },
                     bk_cloud_id=info["slave_ip"]["bk_cloud_id"],
                     bk_biz_id=self.data["bk_biz_id"],
                     ips=[info["master_ip"]["ip"], info["slave_ip"]["ip"]],
                     with_actuator=False,
-                    with_cc_standardize=False,
+                    with_cc_standardize=True,
                     with_collect_sysinfo=False,
                     with_instance_standardize=False,
                     with_bk_plugin=False,

@@ -18323,7 +18323,7 @@
   ],
   "refresh": false,
   "schemaVersion": 39,
-  "tags": [],
+  "tags": ["es"],
   "templating": {
     "list": [
       {

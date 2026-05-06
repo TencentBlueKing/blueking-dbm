@@ -13,7 +13,6 @@ from backend import env
 BK_PKG_INSTALL_PATH = "/data/install"
 
 BK_TRANSFER_REPO_PAYLOAD = {
-    "bk_biz_id": 0,
     "file_target_path": BK_PKG_INSTALL_PATH,
     "transfer_mode": 2,
     "file_source_list": [],

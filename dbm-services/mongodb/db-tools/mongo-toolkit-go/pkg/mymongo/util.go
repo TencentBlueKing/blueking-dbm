@@ -31,6 +31,7 @@ type IsMasterResult struct {
 	Secondary  bool               `json:"secondary"`
 	Primary    string             `json:"primary"`
 	Me         string             `json:"me"`
+	Msg        string             `json:"msg,omitempty"`
 	ElectionID primitive.ObjectID `json:"electionId"`
 	LastWrite  struct {
 		Optime struct {

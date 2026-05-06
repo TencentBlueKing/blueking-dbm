@@ -27,11 +27,11 @@ dependencies:
   - condition: dbm.enabled
     name: dbm
     repository: file://charts/dbm
-    version: 0.1.48
+    version: 0.1.51
   - condition: dbconfig.enabled
     name: dbconfig
     repository: file://charts/dbconfig
-    version: 0.1.13
+    version: 0.1.14
   - condition: dbpriv.enabled
     name: dbpriv
     repository: file://charts/dbpriv
@@ -67,19 +67,19 @@ dependencies:
   - condition: backup-server.enabled
     name: backup-server
     repository: file://charts/backup-server
-    version: 0.0.5
+    version: 0.0.6
   - condition: backup-consumer.enabled
     name: backup-consumer
     repository: file://charts/backup-consumer
-    version: 0.0.3
+    version: 0.0.5
   - condition: bkdata-kafka-consumer.enabled
     name: bkdata-kafka-consumer
     repository: file://charts/bkdata-kafka-consumer
-    version: 0.0.7
+    version: 0.0.8
   - condition: db-event-consumer.enabled
     name: db-event-consumer
     repository: file://charts/db-event-consumer
-    version: 0.0.11
+    version: 0.0.14
   - condition: global.cloudContainer
     name: db-remote-service
     repository: file://charts/db-remote-service
@@ -99,9 +99,9 @@ dependencies:
   - condition: k8s-dbs.enabled
     name: k8s-dbs
     repository: file://charts/k8s-dbs
-    version: 2.1.2
+    version: 2.1.7
 description: A Helm chart for bk-dbm
 name: bk-dbm
 type: application
-version: 1.5.0-alpha.76
-appVersion: 1.5.0-alpha.76
+version: 1.5.0-alpha.87
+appVersion: 1.5.0-alpha.87

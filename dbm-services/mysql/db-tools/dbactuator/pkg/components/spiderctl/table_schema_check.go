@@ -18,9 +18,9 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
-	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/computil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 )
@@ -97,7 +97,7 @@ func (r *TableSchemaCheckComp) Init() (err error) {
 	r.tdbCtlConn = &native.TdbctlDbWork{DbWorker: *conn}
 	r.xconn, err = r.tdbCtlConn.GetSqlxDb().Connx(context.Background())
 	if err != nil {
-		logger.Error("get xconn error: %v")
+		logger.Error("get xconn error: %v", err)
 		return err
 	}
 	// init checksum table schema
@@ -145,7 +145,7 @@ func (r *TableSchemaCheckComp) checkAll() (err error) {
 		logger.Error("exec show database failed: %s", err.Error())
 		return err
 	}
-	for _, db := range util.FilterOutStringSlice(dbs, cmutil.GetMysqlSystemDatabases(r.version)) {
+	for _, db := range util.FilterOutStringSlice(dbs, computil.GetGcsSystemDatabases(r.version)) {
 		if err = r.atomUpdateDbTables(db); err != nil {
 			return err
 		}
@@ -175,7 +175,9 @@ func (r *TableSchemaCheckComp) atomUpdateDbTables(dbName string) (err error) {
 		inconsistentMap[item.Table] = append(inconsistentMap[item.Table], item)
 	}
 	for tbName, results := range inconsistentMap {
-		if err = r.atomUpdateCheckResult(dbName, tbName, results); err == nil {
+		if err = r.atomUpdateCheckResult(dbName, tbName, results); err != nil {
+			logger.Error("update %s.%s checkresult failed: %v", dbName, tbName, err)
+		} else {
 			logger.Info("update %s.%s checkresult ok", dbName, tbName)
 		}
 	}
@@ -226,7 +228,7 @@ func (r *TableSchemaCheckComp) atomUpdateCheckResult(db, tbl string, inconsisten
 	status := native.SchemaCheckOk
 	checkResult := []byte("{}")
 	if len(inconsistentItems) > 0 {
-		logger.Warn("tabel %s.%s has inconsistent items", db, tbl)
+		logger.Warn("table %s.%s has inconsistent items", db, tbl)
 		status = ""
 		checkResult, err = json.Marshal(inconsistentItems)
 		if err != nil {
@@ -239,7 +241,7 @@ func (r *TableSchemaCheckComp) atomUpdateCheckResult(db, tbl string, inconsisten
 		tbl, status,
 		checkResult,
 		time.Now()); err != nil {
-		logger.Error("replace checksum record failed", err)
+		logger.Error("replace checksum record failed: %v", err)
 		return
 	}
 	return

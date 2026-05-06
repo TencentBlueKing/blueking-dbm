@@ -22,13 +22,22 @@
  * SOFTWARE.
  */
 
+// Package config provides configuration management for the DBHA v2 admin module.
 package config
 
 import (
+	"strings"
 	"time"
 
+	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/logger"
+
+	"github.com/spf13/viper"
 )
+
+// minProbeGseConnTimeout is the lower bound enforced by clampProbeGseConnTimeout
+// when probeGse.connTimeout is empty, invalid, or below this duration.
+const minProbeGseConnTimeout = 5 * time.Second
 
 var Cfg = Configuration{
 	Name:    "admin",
@@ -39,20 +48,53 @@ var Cfg = Configuration{
 		FileCount: 10,
 		FileSize:  100,
 	},
+
+	Grpc: GrpcConfig{
+		ServerPingTime:        constant.DefaultServerPingTime,
+		PingTimeout:           constant.DefaultPingTimeout,
+		KeepAliveMinTime:      constant.DefaultKeepAliveMiniTime,
+		PermitWithoutStream:   true,
+		MaxReceiveMessageSize: constant.DefaultMaxReceiveMessageSize,
+		MaxSendMessageSize:    constant.DefaultMaxSendMessageSize,
+	},
 }
 
 // DiscoveryConfig discovery configuration
 type DiscoveryConfig struct {
-	Endpoint string `yaml:"endpoint" mapstructure:"endpoint"`
-	User     string `yaml:"user"     mapstructure:"user"`
-	Password string `yaml:"password" mapstructure:"password"`
+	Endpoint             string        `yaml:"endpoint"              mapstructure:"endpoint"`
+	User                 string        `yaml:"user"                  mapstructure:"user"`
+	Password             string        `yaml:"password"              mapstructure:"password"`
+	CertFile             string        `yaml:"certFile"              mapstructure:"certFile"`
+	KeyFile              string        `yaml:"keyFile"               mapstructure:"keyFile"`
+	TrustedCAFile        string        `yaml:"trustedCAFile"         mapstructure:"trustedCAFile"`
+	ServiceTimerInterval time.Duration `yaml:"serviceTimerInterval"  mapstructure:"serviceTimerInterval"`
+	ServiceUpdateTimeout time.Duration `yaml:"serviceUpdateTimeout"  mapstructure:"serviceUpdateTimeout"`
 }
 
 // ApmConfig apm's configuration
 type ApmConfig struct {
-	ReadTimeout   time.Duration `yaml:"readTimeout" mapstructure:"readTimeout"`
-	WriteTimeout  time.Duration `yaml:"writeTimeout" mapstructure:"writeTimeout"`
+	ReadTimeout   time.Duration `yaml:"readTimeout"   mapstructure:"readTimeout"`
+	WriteTimeout  time.Duration `yaml:"writeTimeout"  mapstructure:"writeTimeout"`
 	ListenAddress string        `yaml:"listenAddress" mapstructure:"listenAddress"`
+}
+
+// GrpcConfig grpc configuration
+type GrpcConfig struct {
+	ListenAddress         string        `yaml:"listenAddress"         mapstructure:"listenAddress"`
+	ServerPingTime        time.Duration `yaml:"serverPingTime"        mapstructure:"serverPingTime"`
+	PingTimeout           time.Duration `yaml:"pingTimeout"           mapstructure:"pingTimeout"`
+	KeepAliveMinTime      time.Duration `yaml:"keepAliveMinTime"      mapstructure:"keepAliveMinTime"`
+	PermitWithoutStream   bool          `yaml:"permitWithoutStream"   mapstructure:"permitWithoutStream"`
+	MaxReceiveMessageSize int           `yaml:"maxReceiveMessageSize" mapstructure:"maxReceiveMessageSize"`
+	MaxSendMessageSize    int           `yaml:"maxSendMessageSize"    mapstructure:"maxSendMessageSize"`
+}
+
+// WebConfig web configuration. ListenAddress accepts host:port or http://host:port;
+// an omitted scheme defaults to http at the call site.
+type WebConfig struct {
+	ListenAddress string        `yaml:"listenAddress" mapstructure:"listenAddress"`
+	ReadTimeout   time.Duration `yaml:"readTimeout"   mapstructure:"readTimeout"`
+	WriteTimeout  time.Duration `yaml:"writeTimeout"  mapstructure:"writeTimeout"`
 }
 
 // DbmApi the API config of the DBM metadata
@@ -79,14 +121,87 @@ type LogConfig struct {
 	FileSize  int    `yaml:"fileSize"  mapstructure:"fileSize"`
 }
 
+// ProbeGseConfig defaults for probe GSE reporter; admin loads from YAML and passes to probe.
+type ProbeGseConfig struct {
+	Endpoint    string `yaml:"endpoint"    mapstructure:"endpoint"`
+	DataID      uint64 `yaml:"dataID"      mapstructure:"dataID"`
+	ConnTimeout string `yaml:"connTimeout" mapstructure:"connTimeout"`
+}
+
+// ProbeMysqlConfig defaults for probe MySQL harvester; admin loads from YAML and returns to probe
+// via GetProbeConfig only when the requesting probe's metadata contains MySQL clusters.
+type ProbeMysqlConfig struct {
+	User     string        `yaml:"user"     mapstructure:"user"`
+	Password string        `yaml:"password" mapstructure:"password"`
+	Interval time.Duration `yaml:"interval" mapstructure:"interval"`
+}
+
+// ProbeRedisConfig defaults for probe Redis harvester; admin loads from YAML and returns to probe
+// via GetProbeConfig only when the requesting probe's metadata contains Redis clusters.
+type ProbeRedisConfig struct {
+	User     string        `yaml:"user"     mapstructure:"user"`
+	Password string        `yaml:"password" mapstructure:"password"`
+	Interval time.Duration `yaml:"interval" mapstructure:"interval"`
+	Timeout  time.Duration `yaml:"timeout"  mapstructure:"timeout"`
+}
+
 // Configuration admin's configuration
 type Configuration struct {
-	Name      string          `yaml:"name"      mapstructure:"name"`
-	Version   string          `yaml:"version"   mapstructure:"version"`
-	PidFile   string          `yaml:"pidFile"   mapstructure:"pidFile"`
-	Discovery DiscoveryConfig `yaml:"discovery" mapstructure:"discovery"`
-	Apm       ApmConfig       `yaml:"apm"       mapstructure:"apm"`
-	DbmApis   []DbmApi        `yaml:"dbmApi"    mapstructure:"dbmApi"`
-	Storage   StorageConfig   `yaml:"storage"   mapstructure:"storage"`
-	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
+	Name       string           `yaml:"name"       mapstructure:"name"`
+	Version    string           `yaml:"version"    mapstructure:"version"`
+	PidFile    string           `yaml:"pidFile"    mapstructure:"pidFile"`
+	DocFileDir string           `yaml:"docFileDir" mapstructure:"docFileDir"`
+	Discovery  DiscoveryConfig  `yaml:"discovery"  mapstructure:"discovery"`
+	Apm        ApmConfig        `yaml:"apm"        mapstructure:"apm"`
+	Grpc       GrpcConfig       `yaml:"grpc"       mapstructure:"grpc"`
+	Web        WebConfig        `yaml:"web"        mapstructure:"web"`
+	DbmApis    []DbmApi         `yaml:"dbmApi"     mapstructure:"dbmApi"`
+	Storage    StorageConfig    `yaml:"storage"    mapstructure:"storage"`
+	Log        LogConfig        `yaml:"log"        mapstructure:"log"`
+	ProbeGse   ProbeGseConfig   `yaml:"probeGse"   mapstructure:"probeGse"`
+	ProbeMysql ProbeMysqlConfig `yaml:"probeMysql" mapstructure:"probeMysql"`
+	ProbeRedis ProbeRedisConfig `yaml:"probeRedis" mapstructure:"probeRedis"`
+}
+
+// clampProbeGseConnTimeout returns at least minProbeGseConnTimeout: empty,
+// unparseable, or values strictly below the minimum are rounded up.
+func clampProbeGseConnTimeout(raw string) string {
+	s := strings.TrimSpace(raw)
+	if s == "" {
+		return minProbeGseConnTimeout.String()
+	}
+
+	d, err := time.ParseDuration(s)
+	if err != nil {
+		logger.Warn("probeGse connTimeout invalid, using minimum, errmsg: %s", err)
+		return minProbeGseConnTimeout.String()
+	}
+
+	if d < minProbeGseConnTimeout {
+		return minProbeGseConnTimeout.String()
+	}
+
+	return s
+}
+
+// Load loads admin configuration from file
+func Load(configFilePath string) error {
+	viper.SetConfigName("admin")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("./etc")
+
+	if configFilePath != "" {
+		viper.SetConfigFile(configFilePath)
+	}
+
+	if err := viper.ReadInConfig(); err != nil {
+		return err
+	}
+
+	if err := viper.Unmarshal(&Cfg); err != nil {
+		return err
+	}
+
+	Cfg.ProbeGse.ConnTimeout = clampProbeGseConnTimeout(Cfg.ProbeGse.ConnTimeout)
+	return nil
 }

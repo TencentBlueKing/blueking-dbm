@@ -88,6 +88,7 @@
             @change="() => handleChangeRowData(item)" />
           <TimeBackupRecordColumn
             v-if="formData.rollbackMethod === 'TIME'"
+            ref="timeBackupRecordColumnRef"
             v-model:backup-record="item.backupRecord"
             v-model:backup-time="item.backupTime"
             v-model:table-data="formData.tableData"
@@ -97,20 +98,22 @@
           <DbNameColumn
             v-model="item.databases"
             :cluster-id="item.cluster?.id"
-            :disabled="diabledEdit(item)"
             field="databases"
             :label="t('源 DB')"
+            :readonly="diabledEdit(item)"
+            required
             @batch-edit="handleBatchEdit" />
           <TableNameColumn
             v-model="item.tables"
             :cluster-id="item.cluster?.id"
-            :disabled="diabledEdit(item)"
             field="tables"
             :label="t('源表')"
+            :readonly="diabledEdit(item)"
+            required
             @batch-edit="handleBatchEdit" />
           <ConflictDbColumn
             v-model="item.affectDb"
-            :disabled="diabledEdit(item)"
+            :readonly="diabledEdit(item)"
             :row-data="item" />
           <OperationColumn
             v-model:table-data="formData.tableData"
@@ -162,9 +165,9 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import DbNameColumn from '@views/db-manage/mysql/common/edit-table-column/DbNameColumn.vue';
-  import TableNameColumn from '@views/db-manage/mysql/common/edit-table-column/TableNameColumn.vue';
   import ClusterColumn from '@views/db-manage/mysql/common/toolbox-field/cluster-column/Index.vue';
+  import DbNameColumn from '@views/db-manage/mysql/common/toolbox-field/db-name-column/Index.vue';
+  import TableNameColumn from '@views/db-manage/mysql/common/toolbox-field/table-name-column/Index.vue';
   import BackupRecordColumn from '@views/db-manage/mysql/MYSQL_FIXPOINT_EXIST_CLUSTER/components/backup-record-column/Index.vue';
   import ConflictDbColumn from '@views/db-manage/mysql/MYSQL_FIXPOINT_EXIST_CLUSTER/components/conflict-db-column/Index.vue';
   import TimeBackupRecordColumn from '@views/db-manage/mysql/MYSQL_FIXPOINT_EXIST_CLUSTER/components/time-backup-record-column/Index.vue';
@@ -234,6 +237,8 @@
 
   const formRef = useTemplateRef('formRef');
   const editableTableRef = useTemplateRef('editableTableRef');
+  const timeBackupRecordColumnRef =
+    useTemplateRef<InstanceType<typeof TimeBackupRecordColumn>[]>('timeBackupRecordColumnRef');
 
   const defaultData = () => ({
     backupSource: BackupSourceType.REMOTE,
@@ -263,15 +268,18 @@
       nextTick(() => {
         formData.tableData = infos.map((item) =>
           createTableRow({
-            backupRecord: item.backupinfo,
+            // 指定时间回档时，需要将backupinfo置空，调接口查询最新匹配到的备份记录
+            backupRecord: item.rollback_time ? {} : item.backupinfo,
             backupTime: item.rollback_time,
             cluster: {
               master_domain: clusters[item.cluster_id]?.immute_domain || '',
             },
-            databases: item.databases,
-            tables: item.tables,
+            databases: item.rollback_time ? [] : item.databases,
+            tables: item.rollback_time ? [] : item.tables,
           }),
         );
+      }).then(() => {
+        timeBackupRecordColumnRef.value?.[0]?.flush();
       });
     },
   });

@@ -1,17 +1,17 @@
-import json
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from datetime import datetime
+from typing import Dict, List, Tuple
 
-from django.utils import timezone
+from django.core.exceptions import ObjectDoesNotExist
 
 from backend import env
-from backend.components import BKLogApi, DRSApi
+from backend.components import DRSApi
 from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models import Cluster, StorageInstanceTuple
 from backend.db_report.enums import ReportStateType
 from backend.db_report.models import ChecksumCheckReport, ChecksumInstance
+from backend.flow.consts import InstanceStatus
 from backend.utils.time import datetime2str
 
 logger = logging.getLogger("celery")
@@ -39,63 +39,21 @@ class ChecksumResult:
 class ChecksumService:
     def __init__(self, cluster_id: int):
         self.cluster = Cluster.objects.get(id=cluster_id)
+        self.instances = []
         inner_role_filter = [InstanceInnerRole.SLAVE.value, InstanceInnerRole.REPEATER.value]
-        self.instances = list(self.cluster.storageinstance_set.filter(instance_inner_role__in=inner_role_filter))
+
+        # 只获取 standby master 的下级实例
+        i_set = set()
+        for ins in self.cluster.storageinstance_set.filter(instance_inner_role__in=inner_role_filter).exclude(
+            status=InstanceStatus.UNAVAILABLE
+        ):
+            if StorageInstanceTuple.objects.filter(
+                receiver=ins, ejector__instance_inner_role=InstanceInnerRole.MASTER
+            ).exists():
+                i_set.add(ins)
+        self.instances = list(i_set)
         machines = [inst.machine.ip for inst in self.instances]
         self.slaves = list(dict.fromkeys(machines))
-
-    @staticmethod
-    def build_time_ranges(now: Optional[datetime] = None) -> Tuple[datetime, datetime, datetime, datetime]:
-        """
-        - now: 当前时间（带时区）
-        - start_time/end_time: 前天 00:00:00 - 23:59:59，数据是否一致的时间范围
-        - log_start_time/log_end_time: 避免日志上报延迟，获取多天日志
-        返回（start_time, end_time, log_start_time, log_end_time）
-        """
-        yesterday = now - timedelta(days=1)
-        before_yesterday = now - timedelta(days=2)
-        log_start_time = datetime(before_yesterday.year, before_yesterday.month, before_yesterday.day).astimezone(
-            timezone.utc
-        )
-        log_end_time = datetime(now.year, now.month, now.day, 23, 59, 59).astimezone(timezone.utc)
-        # 检查前天的校验结果
-        start_time = datetime(yesterday.year, yesterday.month, yesterday.day).astimezone(timezone.utc)
-        end_time = datetime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59).astimezone(timezone.utc)
-        logger.info(
-            "[auto_check_checksum] now:{} log_start_time:{} start_time:{} end_time:{} log_end_time:{}".format(
-                now, log_start_time, start_time, end_time, log_end_time
-            )
-        )
-        return start_time, end_time, log_start_time, log_end_time
-
-    def fetch_bklog_logs(self, log_start_time: datetime, log_end_time: datetime) -> List[dict]:
-        """
-        从 BKLogApi 查询校验日志
-        """
-        if not self.slaves:
-            return []
-
-        machine_filter = [
-            {"field": "serverIp", "operator": "is one of", "value": self.slaves},
-            {"field": "cloudId", "operator": "is", "value": self.cluster.bk_cloud_id},
-        ]
-        try:
-            resp = BKLogApi.esquery_search(
-                {
-                    "indices": BKLOG_INDEX,
-                    "start_time": datetime2str(log_start_time),
-                    "end_time": datetime2str(log_end_time),
-                    "filter": machine_filter,
-                    "start": 0,
-                    "size": BKLOG_MAX_SIZE,
-                    "sort_list": [["dtEventTimeStamp", "desc"]],
-                }
-            )
-            hits = resp.get("hits", {}).get("hits", []) if resp else []
-            return hits
-        except Exception as e:
-            logger.exception("failed to fetch logs from BKLogApi: %s", e)
-            return []
 
     def calculate_failed_days(self, log_end_time: datetime) -> int:
         """
@@ -118,38 +76,40 @@ class ChecksumService:
         return delta_days
 
     def query_checksum_via_drs(
-        self, start_time: datetime, end_time: datetime
+        self, bk_cloud_id: int  # , start_time: datetime, end_time: datetime
     ) -> Tuple[List[ChecksumResult], List[ChecksumResult]]:
         fail: List[ChecksumResult] = []
         not_reported: List[ChecksumResult] = []
 
-        for inst in self.instances:
+        for inst in self.instances:  # 这是集群的 slave, repeater
             ip = inst.machine.ip
             port = inst.port
 
-            master_ins = StorageInstanceTuple.objects.get(receiver=inst).ejector
+            try:
+                # 如果 dbha 了是没有的
+                master_ins = StorageInstanceTuple.objects.get(receiver=inst).ejector
+            except ObjectDoesNotExist:
+                continue
+
             master_ip = master_ins.machine.ip
             master_port = master_ins.port
 
-            checksum = ChecksumResult(ip=ip, port=port)
+            checksum = ChecksumResult(master_ip=master_ip, master_port=master_port, ip=ip, port=port)
 
             drs_raw_res = DRSApi.rpc(
                 {
+                    "bk_cloud_id": bk_cloud_id,
                     "addresses": [inst.ip_port],
                     "cmds": [
                         "SELECT COUNT(*) AS cnt FROM infodba_schema.checksum_history \
-                        WHERE (ts BETWEEN '{}' AND '{}') AND (master_ip = '{}' AND master_port = {})".format(
-                            start_time.strftime("%Y-%m-%d 00:00:00"),
-                            end_time.strftime("%Y-%m-%d 23:59:59"),
+                        WHERE ts >= DATE_SUB(NOW(), INTERVAL 24 HOUR) AND (master_ip = '{}' AND master_port = {})".format(
                             master_ip,
                             master_port,
                         ),
                         "SELECT db, tbl, COUNT(*) AS inconsistent_cnt FROM infodba_schema.checksum_history \
-                        WHERE (ts BETWEEN '{}' AND '{}') \
+                        WHERE ts >= DATE_SUB(NOW(), INTERVAL 24 HOUR) \
                         AND (this_cnt <> master_cnt OR this_crc <> master_crc) \
                         AND (master_ip = '{}' AND master_port = {}) GROUP BY db, tbl".format(
-                            start_time.strftime("%Y-%m-%d 00:00:00"),
-                            end_time.strftime("%Y-%m-%d 23:59:59"),
                             master_ip,
                             master_port,
                         ),
@@ -158,78 +118,27 @@ class ChecksumService:
             )
 
             if drs_raw_res[0]["error_msg"]:
-                raise  # ToDo
+                raise Exception(drs_raw_res[0]["error_msg"])  # noqa
             cmd_results = drs_raw_res[0]["cmd_results"]
 
             if cmd_results[0]["error_msg"]:
-                raise  # ToDo
+                raise Exception(cmd_results[0]["error_msg"])  # noqa
             checksum_cnt = int(cmd_results[0]["table_data"][0]["cnt"])
 
             if checksum_cnt <= 0:
                 not_reported.append(checksum)
             else:
                 if cmd_results[1]["error_msg"]:
-                    raise  # ToDo
+                    raise cmd_results[1]["error_msg"]  # noqa
 
-                checksum.reported = True
-                checksum.master_ip = master_ip
-                checksum.master_port = master_port
-                for inconsistent_row in cmd_results[1]["table_data"]:
-                    checksum.add_not_consistent_table(inconsistent_row["db"], inconsistent_row["tbl"])
+                if len(cmd_results[1]["table_data"]) > 0:
+                    checksum.reported = True
+                    checksum.master_ip = master_ip
+                    checksum.master_port = master_port
+                    for inconsistent_row in cmd_results[1]["table_data"]:
+                        checksum.add_not_consistent_table(inconsistent_row["db"], inconsistent_row["tbl"])
 
-                fail.append(checksum)
-
-        return fail, not_reported
-
-    def parse_logs_for_instances(
-        self, hits: List[dict], start_time: datetime, end_time: datetime
-    ) -> Tuple[List[ChecksumResult], List[ChecksumResult]]:
-        """
-        解析日志，返回 (fail_list, not_reported_list)
-        - fail_list: 数据不一致的实例
-        - not_reported_list: 没有上报的实例
-        """
-        # 初始化每个备库实例
-        by_key = {}  # 键： (ip, port) -> ChecksumResult
-        for inst in self.instances:
-            key = (inst.machine.ip, inst.port)
-            by_key[key] = ChecksumResult(ip=inst.machine.ip, port=inst.port)
-
-        # 解析日志
-        for hit in hits:
-            src = hit.get("_source", {})
-            log_raw = src.get("log")
-            if not log_raw:
-                continue
-            log = json.loads(log_raw)
-            if log.get("cluster_id", 0) == self.cluster.cluster_id:
-                continue
-            ip = log.get("ip")
-            port = log.get("port")
-            if ip is None or port is None:
-                continue
-            key = (ip, port)
-            checksum = by_key.get(key)
-            if not checksum:
-                continue
-            # 标记已上报，记录 master 信息
-            checksum.reported = True
-            checksum.master_ip = log.get("master_ip", "0.0.0.0")
-            checksum.master_port = int(log.get("master_port") or 0)
-            ts = log.get("ts")
-            log_datetime = datetime.fromisoformat(ts)
-            is_consistent = log.get("master_crc") == log.get("this_crc") and log.get("master_cnt") == log.get(
-                "this_cnt"
-            )
-            if start_time <= log_datetime <= end_time and not is_consistent:
-                checksum.add_not_consistent_table(log.get("db"), log.get("tbl"))
-        fail = []
-        not_reported = []
-        for checksum in by_key.values():
-            if not checksum.reported:
-                not_reported.append(checksum)
-            elif checksum.details:
-                fail.append(checksum)
+                    fail.append(checksum)
 
         return fail, not_reported
 
@@ -239,8 +148,8 @@ class ChecksumService:
         not_reported_list: List[ChecksumResult],
         start_time: datetime,
         end_time: datetime,
-        log_start_time: datetime,
-        log_end_time: datetime,
+        # log_start_time: datetime,
+        # log_end_time: datetime,
     ) -> ChecksumCheckReport:
         """
         在 db_report 中创建 ChecksumCheckReport 以及对应的 ChecksumInstance
@@ -259,9 +168,7 @@ class ChecksumService:
             state = ReportStateType.ABNORMAL.value
             if err_msg:
                 err_msg += "; "
-            err_msg += "no checksum logs found [{}]>[{}]".format(
-                datetime2str(log_start_time), datetime2str(log_end_time)
-            )
+            err_msg += "no checksum logs found [{}]>[{}]".format(datetime2str(start_time), datetime2str(end_time))
 
         if err_msg == "":
             err_msg = "success"
@@ -276,7 +183,7 @@ class ChecksumService:
                 status=status,
                 msg=err_msg,
                 fail_slaves=len(fail_list),
-                failed_days=self.calculate_failed_days(log_end_time),
+                failed_days=self.calculate_failed_days(end_time),
                 state=state,
             )
         except Exception:
@@ -294,7 +201,7 @@ class ChecksumService:
                     details=r.details,
                     report=report,
                 )
-            except Exception:
+            except Exception:  # noqa
                 logger.exception(
                     "failed to create ChecksumInstance for cluster %s instance %s:%s",
                     self.cluster.immute_domain,

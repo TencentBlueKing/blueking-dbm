@@ -52,6 +52,7 @@ const (
 	ParameterValueError
 	OperationForbidden
 	NotPermissionError
+	BizValidationError
 )
 
 // 存储集群 cluster 操作异常
@@ -166,6 +167,9 @@ var codeTag = map[ErrorCode]string{
 
 	// 权限异常
 	NotPermissionError: "权限不足",
+
+	// 业务 ID 校验异常
+	BizValidationError: "业务 ID 校验失败",
 }
 
 // NewK8sDbsError 自定义错误

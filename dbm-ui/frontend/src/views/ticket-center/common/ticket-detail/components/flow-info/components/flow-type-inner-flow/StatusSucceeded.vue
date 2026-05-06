@@ -15,9 +15,19 @@
         <!-- prettier-ignore -->
         <MongodbExecScriptDownloadFile :details="(data.details as ComponentProps<typeof MongodbExecScriptDownloadFile>['details'])" />
       </template>
+      <template v-if="ticketDetail.ticket_type === TicketTypes.MONGODB_DATA_EXPORT">
+        <span> ，</span>
+        <!-- prettier-ignore -->
+        <MongodbExportDataDownload :ticket-detail="(ticketDetail as ComponentProps<typeof MongodbExportDataDownload>['ticketDetail'])" />
+      </template>
       <template v-if="ticketDetail.ticket_type === TicketTypes.REDIS_KEYS_EXTRACT">
         <span> ，</span>
         <RedisKeysExtractFile :id="data.flow_obj_id" />
+      </template>
+      <template v-if="ticketDetail.ticket_type === TicketTypes.SQLSERVER_DATA_EXPORT">
+        <span> ，</span>
+        <SqlserverExportDataDownload
+          :details="data.details as ComponentProps<typeof SqlserverExportDataDownload>['details']" />
       </template>
       <template
         v-if="[TicketTypes.MYSQL_DUMP_DATA, TicketTypes.TENDBCLUSTER_DUMP_DATA].includes(ticketDetail.ticket_type)">
@@ -59,9 +69,11 @@
   import StatusSucceeded from '../flow-type-common/StatusSucceeded.vue';
 
   import MongodbExecScriptDownloadFile from './components/MongodbExecScriptDownloadFile.vue';
+  import MongodbExportDataDownload from './components/MongodbExportDataDownload.vue';
   import MysqlDumpDataDownload from './components/MysqlDumpDataDownload.vue';
   import RedisAnalysisToList from './components/RedisAnalysisToList.vue';
   import RedisKeysExtractFile from './components/RedisKeysExtractFile.vue';
+  import SqlserverExportDataDownload from './components/SqlserverExportDataDownload.vue';
 
   interface Props {
     data: FlowMode<unknown>;

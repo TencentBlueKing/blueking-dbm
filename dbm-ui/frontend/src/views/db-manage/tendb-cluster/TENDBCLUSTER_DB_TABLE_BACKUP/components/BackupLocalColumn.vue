@@ -46,6 +46,8 @@
   import type TendbclusterModel from '@services/model/tendbcluster/tendbcluster';
   import { getTendbClusterList } from '@services/source/tendbcluster';
 
+  import { ipPort } from '@common/regex';
+
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
   interface Props {
@@ -103,6 +105,25 @@
       immediate: true,
     },
   );
+
+  const selectValueMap: Record<string, string> = {
+    RemoteDB: 'master',
+    RemoteDR: 'slave',
+  };
+
+  watch(backupList, () => {
+    if (ipPort.test(modelValue.value)) {
+      const value = `spider_mnt::${modelValue.value}`;
+      const isContains = backupList.value.some((item) => item.value === value);
+      if (isContains) {
+        modelValue.value = value;
+      } else {
+        modelValue.value = '';
+      }
+    } else {
+      modelValue.value = selectValueMap[modelValue.value];
+    }
+  });
 
   const disabledMethod = (rowData?: any) => {
     if (!rowData.cluster.id) {

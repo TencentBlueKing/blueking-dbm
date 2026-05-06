@@ -26,7 +26,6 @@ class SpiderConfUpDownDetailSerializer(SpiderSwitchNodesDetailSerializer):
 
 class SpiderConfUpDownFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.tendbcluster_nodes_change_spec_scene
-    validator = SpiderController.tendbcluster_nodes_change_spec_scene.validator
 
 
 class TendbSpiderConfUpDownResourceParamBuilder(TendbBaseOperateResourceParamBuilder):
@@ -61,3 +60,4 @@ class SpiderConfUpDownFlowBuilder(BaseTendbTicketFlowBuilder):
     inner_flow_name = _("TenDB Cluster 接入层升降配")
     need_patch_recycle_host_details = True
     resource_batch_apply_builder = TendbSpiderConfUpDownResourceParamBuilder
+    validator = SpiderController.tendbcluster_nodes_change_spec_scene.validator

@@ -15,6 +15,9 @@ func TestIsTlinux12(t *testing.T) {
 	t.Logf("is tlinux1.2: %v", isTlinux12())
 }
 func TestBackupJob(t *testing.T) {
+	if os.Getenv("TestDump_PORT") == "" {
+		t.Skip("integration test; set TestDump_PORT, TestDump_HOST, TestDump_USER, TestDump_PASS, TestDump_FILE_TAG")
+	}
 	// list all envs in Testdump_*
 	outs := []string{}
 	for _, env := range os.Environ() {

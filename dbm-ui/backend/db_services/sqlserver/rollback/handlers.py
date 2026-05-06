@@ -16,6 +16,8 @@ from django.utils.translation import gettext as _
 
 from backend.components.bklog.handler import BKLogHandler
 from backend.db_meta.models import Cluster
+from backend.db_report.models.sqlserver_full_backup_result import SQLServerBackupResult
+from backend.db_report.models.sqlserver_log_backup_result import SQLServerBinlogResult
 from backend.db_services.sqlserver.rollback.constants import BACKUP_LOG_RANGE_DAYS
 from backend.flow.utils.sqlserver.sqlserver_db_function import sqlserver_match_dbs
 from backend.utils.time import datetime2str, find_nearby_time, str2datetime, timezone2timestamp
@@ -49,7 +51,13 @@ class SQLServerRollbackHandler(object):
             size=1,
         )
         if not last_binlogs:
-            raise Exception("get last_binlog is null")
+            raise ValueError(
+                _(
+                    "cluster [{}] 在时间范围 [{}~{}] 内找不到后续的日志备份记录".format(
+                        self.cluster.name, end_time, end_time + timedelta(days=BACKUP_LOG_RANGE_DAYS)
+                    )
+                )
+            )
 
         # 然后获取时间范围内的binlog
         binlogs = self._get_log_from_bklog(
@@ -60,6 +68,51 @@ class SQLServerRollbackHandler(object):
         )
         # TODO: binlog是否需要聚合 or 转义
         # list去重
+        unique_list = []
+        seen_values = set()
+        for binlog in binlogs + last_binlogs:
+            if binlog["backup_id"] not in seen_values:
+                unique_list.append(binlog)
+                seen_values.add(binlog["backup_id"])
+
+        return unique_list
+
+    def query_binlogs_from_model(self, start_time: datetime, end_time: datetime, dbname: str) -> List[Dict]:
+        """
+        基于 SQLServerBinlogResult Model 查询集群的 binlog 记录（替代 bklog 查询）
+        @param start_time: 查询开始时间
+        @param end_time: 查询结束时间
+        @param dbname: 查询db
+        """
+        # 单独获取最后一个 binlog，加1秒为了保证获取比时间点大于的日志备份
+        last_binlog_qs = SQLServerBinlogResult.objects.filter(
+            cluster_id=self.cluster.id,
+            dbname=dbname,
+            backup_end_time__gte=end_time + timedelta(seconds=1),
+            backup_end_time__lte=end_time + timedelta(days=BACKUP_LOG_RANGE_DAYS),
+        ).order_by("backup_end_time")[:1]
+
+        last_binlogs = list(last_binlog_qs.values())
+        if not last_binlogs:
+            raise ValueError(
+                _(
+                    "cluster [{}] 在时间范围 [{}~{}] 内找不到后续的日志备份记录".format(
+                        self.cluster.name, end_time, end_time + timedelta(days=BACKUP_LOG_RANGE_DAYS)
+                    )
+                )
+            )
+
+        # 然后获取时间范围内的 binlog
+        binlog_qs = SQLServerBinlogResult.objects.filter(
+            cluster_id=self.cluster.id,
+            dbname=dbname,
+            backup_end_time__gte=start_time,
+            backup_end_time__lte=end_time + timedelta(seconds=1),
+        ).order_by("backup_end_time")
+
+        binlogs = list(binlog_qs.values())
+
+        # list 去重
         unique_list = []
         seen_values = set()
         for binlog in binlogs + last_binlogs:
@@ -117,6 +170,54 @@ class SQLServerRollbackHandler(object):
         backup_logs = sorted(backup_logs, key=lambda x: x["start_time"], reverse=True)
         return backup_logs
 
+    def query_backup_logs_from_model(self, start_time: datetime, end_time: datetime) -> List[Dict[str, Any]]:
+        """
+        基于 SQLServerBackupResult Model 查询集群的备份记录（替代 bklog 查询）
+        @param start_time: 查询开始时间
+        @param end_time: 查询结束时间
+        """
+        backup_qs = SQLServerBackupResult.objects.filter(
+            cluster_id=self.cluster.id,
+            backup_end_time__gte=start_time,
+            backup_end_time__lte=end_time,
+        )
+        backup_logs_raw = list(backup_qs.values())
+
+        # 根据 backup_id 聚合备份记录，仅保留 data_schema_grant == "all" 的记录
+        backup_id__logs: Dict[str, List] = defaultdict(list)
+        for log in backup_logs_raw:
+            if log["data_schema_grant"] == "all":
+                backup_id__logs[log["backup_id"]].append(log)
+
+        # 对每一份备份记录去重，相同的 backup_id 不能出现重复的 dbname
+        backup_id__valid_logs: Dict[str, List] = defaultdict(list)
+        for backup_id, logs in backup_id__logs.items():
+            dbname_set: Set[str] = set()
+            for log in logs:
+                if log["dbname"] not in dbname_set:
+                    backup_id__valid_logs[backup_id].append(log)
+                dbname_set.add(log["dbname"])
+
+        # 对每个聚合记录补充信息
+        result_logs: List[Dict[str, Any]] = []
+        for backup_id, logs in backup_id__valid_logs.items():
+            log_start_time = min(log["backup_begin_time"] for log in logs)
+            log_end_time = max(log["backup_end_time"] for log in logs)
+            backup_log_info = {
+                "start_time": datetime2str(log_start_time),
+                "end_time": datetime2str(log_end_time),
+                "backup_id": backup_id,
+                "logs": logs,
+                "complete": len(logs) == logs[0]["file_cnt"],
+                "expected_cnt": logs[0]["file_cnt"],
+                "real_cnt": len(logs),
+                "role": logs[0]["role"],
+            }
+            result_logs.append(backup_log_info)
+
+        result_logs = sorted(result_logs, key=lambda x: x["start_time"], reverse=True)
+        return result_logs
+
     def query_latest_backup_log(self, rollback_time: datetime):
         """
         根据回档时间查询集群最近的备份记录
@@ -125,6 +226,25 @@ class SQLServerRollbackHandler(object):
         end_time = rollback_time
         start_time = end_time - timedelta(days=BACKUP_LOG_RANGE_DAYS)
         backup_logs = self.query_backup_logs(start_time, end_time)
+
+        # 查询最近的备份记录
+        backup_logs.sort(key=lambda x: x["end_time"])
+        time_keys = [log["end_time"] for log in backup_logs]
+        try:
+            latest_backup_log_index = find_nearby_time(time_keys, timezone2timestamp(rollback_time), flag=1)
+        except IndexError:
+            return {"logs": []}
+
+        return backup_logs[latest_backup_log_index]
+
+    def query_latest_backup_log_from_model(self, rollback_time: datetime):
+        """
+        基于 Model 查询，根据回档时间查询集群最近的备份记录
+        @param rollback_time: 回档时间
+        """
+        end_time = rollback_time
+        start_time = end_time - timedelta(days=BACKUP_LOG_RANGE_DAYS)
+        backup_logs = self.query_backup_logs_from_model(start_time, end_time)
 
         # 查询最近的备份记录
         backup_logs.sort(key=lambda x: x["end_time"])
@@ -170,6 +290,23 @@ class SQLServerRollbackHandler(object):
             size=1,
             sort_rule="desc",
         )
+        if not last_binlogs:
+            raise Exception(_("集群【{}】最近的{}天里找不到日志备份").format(self.cluster.name, BACKUP_LOG_RANGE_DAYS))
+
+        return last_binlogs[0]["backup_task_start_time"]
+
+    def query_last_log_time_from_model(self, query_time: datetime):
+        """
+        基于 Model 查询集群的最近一次上报的备份时间
+        拿最新的一条备份记录的备份开始时间的作为判断依据
+        """
+        last_binlog_qs = SQLServerBinlogResult.objects.filter(
+            cluster_id=self.cluster.id,
+            backup_task_start_time__gte=query_time - timedelta(days=BACKUP_LOG_RANGE_DAYS),
+            backup_task_start_time__lte=query_time,
+        ).order_by("-backup_task_start_time")[:1]
+
+        last_binlogs = list(last_binlog_qs.values())
         if not last_binlogs:
             raise Exception(_("集群【{}】最近的{}天里找不到日志备份").format(self.cluster.name, BACKUP_LOG_RANGE_DAYS))
 

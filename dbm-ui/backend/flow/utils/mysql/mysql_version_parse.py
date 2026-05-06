@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import re
+from typing import Dict, List
 
 from django.utils.translation import gettext as _
 
@@ -166,6 +167,41 @@ def tspider_version_parse(mysql_version: str) -> int:
     return total
 
 
+# 解析tdbctl 版本号码
+# mysql-5.7.20-linux-x86_64-tdbctl-2.4.11.tar.gz
+# 解析 tdbctl-2.4.11 成数字 2.4.11  => 2 * 1000000 + 4 * 1000 + 11
+def tdbctl_version_parse(tdbctl_version: str) -> int:
+    """
+    解析 tdbctl 版本字符串，返回数值版本号用于比较
+
+    @param tdbctl_version: tdbctl 版本字符串，如 "mysql-5.7.20-linux-x86_64-tdbctl-2.4.11.tar.gz" 或 "tdbctl-2.4.11" 或 "2.4.11"
+    @return: 数值版本号，如 2.4.11 => 2004011
+    """
+    re_pattern = r"tdbctl-([\d]+).?([\d]+)?.?([\d]+)?"
+    result = re.findall(re_pattern, tdbctl_version)
+
+    if len(result) == 0:
+        # 如果没有找到 tdbctl- 前缀，尝试直接解析版本号
+        re_pattern = r"([\d]+).?([\d]+)?.?([\d]+)?"
+        result = re.findall(re_pattern, tdbctl_version)
+        if len(result) == 0:
+            return 0
+
+    billion, thousand, single = result[0]
+
+    total = 0
+
+    if billion != "":
+        total += int(billion) * 1000000
+
+    if thousand != "":
+        total += int(thousand) * 1000
+
+    if single != "":
+        total += int(single)
+    return total
+
+
 def proxy_version_parse(proxy_version: str) -> int:
     re_pattern = r"([\d]+).?([\d]+)?.?([\d]+)?"
     result = re.findall(re_pattern, proxy_version)
@@ -239,6 +275,60 @@ def get_online_mysql_version(ip: str, port: int, bk_cloud_id: int):
     # return "5.6.24-tmysql-2.2.2"
 
 
+# 单次 DRS short_rpc 批量查询 @@version 时 addresses 数量上限，避免对 DRS 单次压力过大
+ONLINE_MYSQL_VERSION_DRS_CHUNK_SIZE = 20
+
+
+def get_online_mysql_versions_batch(
+    addresses: List[str], bk_cloud_id: int, chunk_size: int = ONLINE_MYSQL_VERSION_DRS_CHUNK_SIZE
+) -> Dict[str, str]:
+    """
+    按分片串行调用 DRS short_rpc，批量查询多个实例的 @@version。
+
+    @param addresses: DRS 地址列表，格式与单实例一致，如 ["127.0.0.1:3306", ...]
+    @param bk_cloud_id: 云区域 ID
+    @param chunk_size: 每片最大地址数，默认 20
+    @return: address -> 版本字符串；查询失败或空的地址不会出现在 dict 中
+    """
+    version_by_address: Dict[str, str] = {}
+    if not addresses:
+        return version_by_address
+
+    for start in range(0, len(addresses), chunk_size):
+        chunk = addresses[start : start + chunk_size]
+        body = {
+            "addresses": chunk,
+            "cmds": ["select @@version as version"],
+            "force": False,
+            "bk_cloud_id": bk_cloud_id,
+        }
+        try:
+            resp = DRSApi.short_rpc(body)
+        except Exception as e:
+            logger.error(_("批量查询 MySQL 版本 DRS 调用异常: {}").format(str(e)))
+            continue
+
+        if not resp:
+            continue
+
+        for res in resp:
+            addr = res.get("address", "")
+            if res.get("error_msg"):
+                logger.error(_("DRS 调用失败，地址 {} 错误信息: {}").format(addr, res["error_msg"]))
+                continue
+            try:
+                table_data = res["cmd_results"][0]["table_data"]
+                if not table_data:
+                    continue
+                version = table_data[0].get("version")
+                if version:
+                    version_by_address[addr] = version
+            except (KeyError, IndexError, TypeError) as e:
+                logger.warning(_("解析地址 {} 的版本结果失败: {}").format(addr, str(e)))
+
+    return version_by_address
+
+
 def spider_cross_major_version(current_version_num, refer_version_num) -> bool:
     """判断spider是否跨主版本
 
@@ -250,6 +340,26 @@ def spider_cross_major_version(current_version_num, refer_version_num) -> bool:
         bool: _description_
     """
     return (current_version_num // 1000000 - refer_version_num // 1000000) >= 1
+
+
+def mysql_cross_major_version(current_version_num, refer_version_num) -> bool:
+    """判断tmysql是否跨主版本
+
+    Args:
+        current_version_num (_type_): _description_
+        refer_version_num (_type_): _description_
+
+    Returns:
+        bool: _description_
+    """
+    # mysql5.6 = 5060000
+    # mysql5.7 = 5070000
+    # mysql8.0 = 8000000
+    if current_version_num >= 8000000:
+        current_version_num = 5080000
+    if refer_version_num >= 8000000:
+        refer_version_num = 5080000
+    return (current_version_num // 10000 - refer_version_num // 10000) <= 1
 
 
 def module_version_parse(mysql_version: str) -> int:

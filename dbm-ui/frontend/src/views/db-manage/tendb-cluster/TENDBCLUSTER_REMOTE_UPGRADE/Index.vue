@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <UpgradeWrapper>
+  <UpgradeWrapper v-model="wrapperController">
     <SmartAction class="db-toolbox">
       <BatchInput
         :config="batchInputConfig"
@@ -37,7 +37,8 @@
             v-model:new-db-module-id="item.new_db_module_id"
             v-model:pkg-id="item.pkg_id"
             :cluster="item.cluster"
-            higher-sub-version />
+            higher-sub-version
+            module-readonly />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -156,6 +157,10 @@
     },
   ];
 
+  const wrapperController = ref({
+    roleType: 'remote',
+    updateType: TicketTypes.TENDBCLUSTER_REMOTE_UPGRADE,
+  });
   const formData = reactive(defaultData());
   const tableKey = ref(random());
   const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));

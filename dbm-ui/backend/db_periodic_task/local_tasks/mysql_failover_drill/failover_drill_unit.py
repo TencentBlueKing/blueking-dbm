@@ -23,7 +23,7 @@ from .failover_drill_spider import TendbclusterFailoverDrill
 logger = logging.getLogger("celery")
 
 
-@app.task
+@app.task(rate_limit="1/m")
 def ha_failover_drill_unit(city: str):
     try:
         conf = FailoverDrillConfig.objects.get(cluster_type=ClusterType.TenDBHA.value)
@@ -99,7 +99,7 @@ def ha_failover_drill_unit(city: str):
     mfod.update_drill_task_report(info, task_status="succeeded")
 
 
-@app.task
+@app.task(rate_limit="1/m")
 def spider_failover_drill_unit(city: str):
     """
     异步任务，完整的容灾流程（上架、容灾演练、下架）

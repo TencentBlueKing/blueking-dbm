@@ -536,10 +536,11 @@ func (i *InstallSqlServerComp) InitUsers() (err error) {
 			return err
 		}
 		// 初始化drs_data_read账号
-		if err := dbWork.CreateLoginUser(
+		if err := dbWork.CreateLoginUserWithSid(
 			i.GeneralParam.RuntimeAccountParam.DRSDataReadUser,
 			i.GeneralParam.RuntimeAccountParam.DRSDataReadPwd,
-			"sysadmin",
+			"public",
+			cst.MSSQL_DATA_READ_USER_SID,
 		); err != nil {
 			logger.Error("init drs_data_read login failed %v", err)
 			return err

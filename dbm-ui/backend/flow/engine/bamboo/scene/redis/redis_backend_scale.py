@@ -360,11 +360,12 @@ class RedisBackendScaleFlow(object):
         if new_info["target_group_num"] > new_info["current_group_num"]:
             # 扩容
             sub_pipeline = redis_rebalance_slots_4_expansion(self.root_id, self.data, None, new_info)
-        elif new_info["target_group_num"] < new_info["current_group_num"]:
+        elif new_info["target_group_num"] <= new_info["current_group_num"]:
             # 缩容
             new_info["is_delete_node"] = True
             new_info["shutdown_master_hosts"] = info.get("shutdown_master_hosts", [])
             new_info["shutdown_slave_hosts"] = info.get("shutdown_slave_hosts", [])
+            new_info["ins_num"] = int(info["shard_num"] / info["group_num"])
             sub_pipeline = redis_migrate_slots_4_contraction(self.root_id, self.data, None, new_info)
         return sub_pipeline
 
@@ -749,6 +750,19 @@ class RedisBackendScaleFlow(object):
                 )
                 if predixy_conf_rewrite_bulider:
                     sub_pipeline.add_sub_pipeline(predixy_conf_rewrite_bulider)
+
+            from backend.flow.plugins.components.collections.redis.redis_update_version import (
+                RedisUpdateVersionComponent,
+            )
+
+            act_kwargs.cluster["update_all"] = True
+            act_kwargs.cluster["cluster_id"] = info["cluster_id"]
+            act_kwargs.cluster["bk_biz_id"] = self.data["bk_biz_id"]
+            sub_pipeline.add_act(
+                act_name=_("{}-更新版本").format(act_kwargs.cluster["immute_domain"]),
+                act_component_code=RedisUpdateVersionComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
 
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(sub_name=_("{}backend扩缩容").format(act_kwargs.cluster["immute_domain"]))

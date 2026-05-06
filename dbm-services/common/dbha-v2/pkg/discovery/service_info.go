@@ -32,12 +32,13 @@ import (
 
 // ServiceInfo service's infomation
 type ServiceInfo struct {
-	ID            string         `json:"id"`
-	Name          string         `json:"name"`
-	Nice          int            `json:"nice"`
-	ListenAddress hanet.Endpoint `json:"listen_address,omitempty"`
-	ProbeEndpoint hanet.Endpoint `json:"probe_endpoint,omitempty"`
-	StartTime     time.Time      `json:"start_time"`
-	Uptime        string         `json:"uptime"`
-	UpdatedAt     time.Time      `json:"updated_at"`
+	ID            string          `json:"id"`
+	Name          string          `json:"name"`
+	Nice          int             `json:"nice"`
+	IPs           []string        `json:"ips"`
+	ListenAddress *hanet.Endpoint `json:"listen_address,omitempty"`
+	ProbeEndpoint *hanet.Endpoint `json:"probe_endpoint,omitempty"`
+	StartTime     time.Time       `json:"start_time"`
+	Uptime        string          `json:"uptime"`
+	UpdatedAt     time.Time       `json:"updated_at"`
 }

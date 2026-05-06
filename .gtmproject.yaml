@@ -34,4 +34,5 @@ project:
     - dbm-services
     - helm-charts
     - k8s-dbs
+    - dbha-v2
     - other

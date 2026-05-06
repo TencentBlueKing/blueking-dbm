@@ -22,6 +22,15 @@ type RestoreDRAct struct {
 //
 // @Summary  备份恢复
 // @Description  物理备份、逻辑备份恢复
+// ./dbactuator  mysql restore-dr
+//
+//	增加了 skip_after_load 参数，控制是否跳过数据恢复后的收尾工作。默认 false 不跳过
+//
+// ./dbactuator  mysql restore-dr-after
+//
+//	当 restore-dr 使用 skip_after_load 参数跳过了收尾工作，需要使用 restore-dr-after 子命令单独收尾
+//	restore-dr-after 命令参数是 restore-dr  的子集
+//
 // @Tags         mysql
 // @Accept       json
 // @Param        body body      restore.RestoreDRComp  true  "short description"
@@ -88,14 +97,6 @@ func (d *RestoreDRAct) Run() (err error) {
 		{
 			FunName: "恢复",
 			Func:    d.Payload.Start,
-		},
-		{
-			FunName: "等待恢复完成",
-			Func:    d.Payload.WaitDone,
-		},
-		{
-			FunName: "完成校验",
-			Func:    d.Payload.PostCheck,
 		},
 		{
 			FunName: "输出位点",

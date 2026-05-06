@@ -40,13 +40,13 @@ func mysqlConnLogRotate(db *sqlx.DB) (string, error) {
 		_ = conn.Close()
 	}()
 
-	isEnable, err := isEnableConnLog(conn)
-	if err != nil {
-		return "", err
-	}
-	if !isEnable {
-		return "", nil
-	}
+	//isEnable, err := isEnableConnLog(conn)
+	//if err != nil {
+	//	return "", err
+	//}
+	//if !isEnable {
+	//	return "", nil
+	//}
 
 	isTooMuch, err := isTooMuchConnLog(conn)
 	if err != nil {

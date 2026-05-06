@@ -69,8 +69,8 @@
           @click="handleShowDataExportSlider">
           {{ t('导出数据') }}
         </BkButton>
-        <MoreActionExtend trigger="hover">
-          <template #handler>
+        <MoreActionExtend>
+          <template #trigger>
             <BkButton
               v-bk-tooltips="t('更多操作')"
               class="ml-4"
@@ -79,7 +79,7 @@
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <BkDropdownItem
+          <div
             v-bk-tooltips="{
               disabled: data.spider_mnt.length > 0,
               content: t('无运维节点'),
@@ -96,8 +96,8 @@
                 {{ t('下架运维节点') }}
               </AuthButton>
             </div>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-bk-tooltips="{
               disabled: data.spider_slave.length > 0,
               content: t('无只读集群'),
@@ -114,8 +114,8 @@
                 {{ t('下架只读集群') }}
               </AuthButton>
             </div>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-if="!data.isOnlineCLBMaster"
             v-db-console="'common.clb'">
             <OperationBtnStatusTips
@@ -135,8 +135,8 @@
                 {{ t('启用 Spider Master 负载均衡（CLB）') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-if="!data.isOnlineCLBSlave"
             v-db-console="'common.clb'">
             <OperationBtnStatusTips
@@ -156,8 +156,8 @@
                 {{ t('启用 Spider Slave 负载均衡（CLB）') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-if="data.isOnlineCLBMaster"
             v-db-console="'common.clb'">
             <OperationBtnStatusTips
@@ -184,8 +184,8 @@
                 {{ data.dns_to_clb ? t('恢复主域名直连 Spider Master') : t('配置主域名指向负载均衡器（CLB）') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-if="data.isOnlineCLBSlave"
             v-db-console="'common.clb'">
             <OperationBtnStatusTips
@@ -212,8 +212,8 @@
                 {{ data.dns_to_clb ? t('恢复从域名直连 Spider Slave') : t('配置从域名指向负载均衡器（CLB）') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-if="data.isOnline"
             v-db-console="'tendbCluster.clusterManage.disable'">
             <OperationBtnStatusTips :data="data">
@@ -227,8 +227,8 @@
                 {{ t('禁用') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-if="data.isOffline"
             v-db-console="'tendbCluster.clusterManage.enable'">
             <OperationBtnStatusTips :data="data">
@@ -242,8 +242,8 @@
                 {{ t('启用') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem v-db-console="'tendbCluster.clusterManage.delete'">
+          </div>
+          <div v-db-console="'tendbCluster.clusterManage.delete'">
             <OperationBtnStatusTips :data="data">
               <AuthButton
                 v-bk-tooltips="{
@@ -259,10 +259,8 @@
                 {{ t('删除') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem>
-            <ClusterDomainDnsRelation :data="data" />
-          </BkDropdownItem>
+          </div>
+          <ClusterDomainDnsRelation :data="data" />
         </MoreActionExtend>
       </DisplayBox>
       <ActionPanel
@@ -374,7 +372,7 @@
   const data = ref<TendbClusterDetailModel>();
   const isAuthorizeShow = ref(false);
   const isShowDataExport = ref(false);
-  const removeMNTInstanceIds = ref<number[]>([]);
+  const removeMNTInstances = ref<string[]>([]);
   const clusterPrimaryMap = shallowRef<Record<string, boolean>>({});
 
   const clusterRoleNodeGroup = computed(() => {
@@ -498,21 +496,21 @@
               {t('请勾选要下架的运维节点')}
             </p>
             <Checkbox.Group
-              v-model={removeMNTInstanceIds.value}
+              v-model={removeMNTInstances.value}
               class='mnt-checkbox-group'
               style='flex-wrap: wrap;'>
               {data.spider_mnt.map((item) => (
-                <Checkbox label={item.bk_instance_id}>{item.instance}</Checkbox>
+                <Checkbox label={item.instance}>{item.instance}</Checkbox>
               ))}
             </Checkbox.Group>
           </div>
         </div>
       ),
       onCancel: () => {
-        removeMNTInstanceIds.value = [];
+        removeMNTInstances.value = [];
       },
       onConfirm: () => {
-        if (removeMNTInstanceIds.value.length === 0) {
+        if (removeMNTInstances.value.length === 0) {
           messageWarn(t('请勾选要下架的运维节点'));
           return false;
         }
@@ -524,7 +522,7 @@
                 cluster_id: data.id,
                 old_nodes: {
                   spider_ip_list: data.spider_mnt
-                    .filter((item) => removeMNTInstanceIds.value.includes(item.bk_instance_id))
+                    .filter((item) => removeMNTInstances.value.includes(item.instance))
                     .map((item) => ({
                       bk_cloud_id: item.bk_cloud_id,
                       bk_host_id: item.bk_host_id,
@@ -539,7 +537,7 @@
         })
           .then((res) => {
             ticketMessage(res.id);
-            removeMNTInstanceIds.value = [];
+            removeMNTInstances.value = [];
             return true;
           })
           .catch(() => false);

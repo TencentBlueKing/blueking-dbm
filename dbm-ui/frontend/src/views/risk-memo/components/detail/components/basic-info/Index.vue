@@ -31,19 +31,6 @@
       </div>
     </div>
     <div class="normal-info">
-      <div class="item-title">{{ isSpecial ? t('具体要求') : t('风险描述') }}</div>
-      <span class="colon-sign">:</span>
-      <div class="value-main">
-        <TextEdit
-          :biz-id="data.bk_biz_id"
-          :manage-permission="managePermission"
-          :readonly="isRiskDone"
-          text-area
-          :value="data.description"
-          @change="(value) => handleDetailChange('description', value)" />
-      </div>
-    </div>
-    <div class="normal-info mt-12">
       <div class="item-title">{{ isSpecial ? t('涉及 DB') : t('影响 DB') }}</div>
       <span class="colon-sign">:</span>
       <div class="value-main">
@@ -69,6 +56,18 @@
           @change="(value) => handleDetailChange('inpact_cluster', value)" />
       </div>
     </div>
+    <div class="normal-info mt-12">
+      <div class="item-title">{{ isSpecial ? t('具体要求') : t('风险描述') }}</div>
+      <span class="colon-sign">:</span>
+      <div class="value-main">
+        <RichTextEdit
+          :biz-id="data.bk_biz_id"
+          :manage-permission="managePermission"
+          :risk-id="data.id"
+          :value="data.description"
+          @update-success="() => emits('updateSuccess')" />
+      </div>
+    </div>
   </div>
 </template>
 <script setup lang="ts">
@@ -83,6 +82,7 @@
   import BizInpactEdit from './components/BizInpactEdit.vue';
   import ClusterEdit from './components/ClusterEdit.vue';
   import DbEdit from './components/DbEdit.vue';
+  import RichTextEdit from './components/RichTextEdit.vue';
   import TextEdit from './components/TextEdit.vue';
 
   interface Props {
@@ -145,13 +145,14 @@
 
         .item-title {
           min-width: 56px;
-          font-size: 14px;
+          font-size: 12px;
           color: #4d4f56;
           text-align: right;
+          margin-top: 2px;
         }
 
         .colon-sign {
-          margin-top: 2px;
+          margin-top: 3px;
           margin-right: 8px;
           margin-left: 4px;
         }
@@ -168,19 +169,22 @@
       width: 100%;
 
       .item-title {
-        width: 56px;
-        font-size: 14px;
+        min-width: 56px;
+        font-size: 12px;
         color: #4d4f56;
+        text-align: right;
+        margin-top: 2px;
       }
 
       .colon-sign {
-        margin-top: 2px;
+        margin-top: 3px;
         margin-right: 8px;
         margin-left: 4px;
       }
 
       .value-main {
         flex: 1;
+        overflow: hidden;
       }
     }
   }

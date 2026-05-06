@@ -1,0 +1,123 @@
+name: {{ANALYSIS_NAME}}
+version: {{COMMON_VERSION}}
+
+pidFile: "{{ANALYSIS_PID_FILE}}"
+
+discovery:
+  endpoint: "{{COMMON_DISCOVERY_ENDPOINT}}"
+  user: "{{COMMON_DISCOVERY_USER}}"
+  password: "{{COMMON_DISCOVERY_PASSWORD}}"
+  # optional TLS for etcd: use absolute paths; certFile and keyFile are both required when enabling mTLS
+  certFile: "{{COMMON_DISCOVERY_TLS_CERT_FILE}}"
+  keyFile: "{{COMMON_DISCOVERY_TLS_KEY_FILE}}"
+  trustedCAFile: "{{COMMON_DISCOVERY_TLS_TRUSTED_CA_FILE}}"
+  serviceTimerInterval: {{ANALYSIS_DISCOVERY_SERVICE_TIMER_INTERVAL}}
+  serviceUpdateTimeout: {{ANALYSIS_DISCOVERY_SERVICE_UPDATE_TIMEOUT}}
+
+apm:
+  readTimeout: {{COMMON_APM_READ_TIMEOUT}}
+  writeTimeout: {{COMMON_APM_WRITE_TIMEOUT}}
+  listenAddress: "{{ANALYSIS_APM_LISTEN_ADDRESS}}"
+
+workflow:
+  workerBusinessCount: {{ANALYSIS_WORKFLOW_WORKER_BUSINESS_COUNT}}
+  lockBusinessWaitTimeout: {{ANALYSIS_WORKFLOW_LOCK_BUSINESS_WAIT_TIMEOUT}}
+  scanTimeout: {{ANALYSIS_WORKFLOW_SCAN_TIMEOUT}}
+  scanInterval: {{ANALYSIS_WORKFLOW_SCAN_INTERVAL}}
+  updateDbmCacheInterval: {{ANALYSIS_WORKFLOW_UPDATE_DBM_CACHE_INTERVAL}}
+  readDbMetaOffsetDuration: {{ANALYSIS_WORKFLOW_READ_DB_META_OFFSET_DURATION}}
+  readDbMetricOffsetDuration: {{ANALYSIS_WORKFLOW_READ_DB_METRIC_OFFSET_DURATION}}
+  readDbEventOffsetDuration: {{ANALYSIS_WORKFLOW_READ_DB_EVENT_OFFSET_DURATION}}
+  enableSwitching: {{ANALYSIS_WORKFLOW_ENABLE_SWITCHING}}
+  popInterval: {{ANALYSIS_WORKFLOW_POP_INTERVAL}}
+  windowDuration: {{ANALYSIS_WORKFLOW_WINDOW_DURATION}}
+  inflightTTL: {{ANALYSIS_WORKFLOW_INFLIGHT_TTL}}
+  switchTimeout: {{ANALYSIS_WORKFLOW_SWITCH_TIMEOUT}}
+  dbmApiMetadataHashCnt: {{ANALYSIS_WORKFLOW_DBM_API_METADATA_HASH_CNT}}
+  dbmApiMaxConcurrentRequests: {{ANALYSIS_WORKFLOW_DBM_API_MAX_CONCURRENT_REQUESTS}}
+  clusterLevelSwitchMaxClusterNum: {{ANALYSIS_WORKFLOW_CLUSTER_LEVEL_SWITCH_MAX_CLUSTER_NUM}}
+  clusterLevelSwitchMaxInstanceNum: {{ANALYSIS_WORKFLOW_CLUSTER_LEVEL_SWITCH_MAX_INSTANCE_NUM}}
+
+  dbmApiMetadata:
+    api: "{{COMMON_DBM_API_METADATA_API}}"
+    timeout: {{COMMON_DBM_API_TIMEOUT}}
+    token: "{{COMMON_DBM_API_METADATA_TOKEN}}"
+
+  dbmApiUpdateStatus:
+    api: "{{COMMON_DBM_API_UPDATE_STATUS_API}}"
+    timeout: {{COMMON_DBM_API_TIMEOUT}}
+    token: "{{COMMON_DBM_API_UPDATE_STATUS_TOKEN}}"
+
+  dbmApiSwapMysqlRole:
+    api: "{{COMMON_DBM_API_SWAP_MYSQL_ROLE_API}}"
+    timeout: {{COMMON_DBM_API_TIMEOUT}}
+    token: "{{COMMON_DBM_API_SWAP_MYSQL_ROLE_TOKEN}}"
+
+  dbmApiSwapTendisCluster:
+    api: "{{COMMON_DBM_API_SWAP_TENDIS_CLUSTER_API}}"
+    timeout: {{COMMON_DBM_API_TIMEOUT}}
+    token: "{{COMMON_DBM_API_SWAP_TENDIS_CLUSTER_TOKEN}}"
+
+  dbmApiDomainGet:
+    api: "{{COMMON_DBM_API_DOMAIN_GET_API}}"
+    timeout: {{COMMON_DBM_API_TIMEOUT}}
+    token: "{{COMMON_DBM_API_DOMAIN_GET_TOKEN}}"
+
+  dbmApiDomainDelete:
+    api: "{{COMMON_DBM_API_DOMAIN_DELETE_API}}"
+    timeout: {{COMMON_DBM_API_TIMEOUT}}
+    token: "{{COMMON_DBM_API_DOMAIN_DELETE_TOKEN}}"
+
+  dbmApiCLBDeregister:
+    api: "{{COMMON_DBM_API_CLB_DEREGISTER_API}}"
+    timeout: {{COMMON_DBM_API_TIMEOUT}}
+    token: "{{COMMON_DBM_API_CLB_DEREGISTER_TOKEN}}"
+
+  dbmApiPolarisUnbind:
+    api: "{{COMMON_DBM_API_POLARIS_UNBIND_API}}"
+    timeout: {{COMMON_DBM_API_TIMEOUT}}
+    token: "{{COMMON_DBM_API_POLARIS_UNBIND_TOKEN}}"
+
+  dbmApiDumperSwitch:
+    api: "{{COMMON_DBM_API_DUMPER_SWITCH_API}}"
+    timeout: {{COMMON_DBM_API_TIMEOUT}}
+    token: "{{COMMON_DBM_API_DUMPER_SWITCH_TOKEN}}"
+
+database:
+  mysql:
+    user: "{{ANALYSIS_DATABASE_MYSQL_CTRL_USER}}"
+    password: "{{ANALYSIS_DATABASE_MYSQL_CTRL_PASSWORD}}"
+    proxyUser: "{{ANALYSIS_DATABASE_MYSQL_CTRL_DELEGATE_USER}}"
+    proxyPassword: "{{ANALYSIS_DATABASE_MYSQL_CTRL_DELEGATE_PASSWORD}}"
+    timeout: {{ANALYSIS_DATABASE_MYSQL_CTRL_TIMEOUT}}
+
+detector:
+  ssh:
+    port: {{ANALYSIS_DETECTOR_SSH_PORT}}
+    user: "{{ANALYSIS_DETECTOR_SSH_USER}}"
+    password: "{{ANALYSIS_DETECTOR_SSH_PASSWORD}}"
+    timeout: {{ANALYSIS_DETECTOR_SSH_TIMEOUT}}
+
+monitor:
+  dataID: {{ANALYSIS_MONITOR_DATA_ID}}
+  timeout: {{ANALYSIS_MONITOR_TIMEOUT}}
+  accessToken: "{{ANALYSIS_MONITOR_ACCESS_TOKEN}}"
+  bkMonitorBeat: "{{ANALYSIS_MONITOR_BK_MONITOR_BEAT}}"
+  bkMonitorEndpoint: "{{ANALYSIS_MONITOR_BK_MONITOR_ENDPOINT}}"
+
+storage:
+  endpoint: "{{COMMON_STORAGE_TCP_ENDPOINT}}"
+  user: "{{COMMON_STORAGE_USER}}"
+  password: "{{COMMON_STORAGE_PASSWORD}}"
+  timeout: {{COMMON_STORAGE_TIMEOUT}}
+
+v1storage:
+  endpoint: "{{COMMON_V1STORAGE_TCP_ENDPOINT}}"
+  user: "{{COMMON_V1STORAGE_USER}}"
+  password: "{{COMMON_V1STORAGE_PASSWORD}}"
+
+log:
+  path: "{{ANALYSIS_LOG_PATH}}"
+  level: {{COMMON_LOG_LEVEL}}
+  fileCount: {{COMMON_LOG_FILE_COUNT}}
+  fileSize: {{COMMON_LOG_FILE_SIZE}}

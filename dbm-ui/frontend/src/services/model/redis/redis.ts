@@ -56,7 +56,7 @@ export default class Redis extends ClusterBase {
   cluster_capacity: number;
   cluster_entry: ClusterListEntry[];
   cluster_name: string;
-  cluster_shard_num: number;
+  cluster_shard_num: number; // 集群分片数
   cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;

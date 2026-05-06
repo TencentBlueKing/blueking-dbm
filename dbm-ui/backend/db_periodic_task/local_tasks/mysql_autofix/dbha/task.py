@@ -65,7 +65,7 @@ def mysql_dbha_af_tracking_tickets():
             aftk.save(update_fields=["status"])
 
             # 如果单据状态变成了 failed
-            if current_status == TicketStatus.FAILED:
+            if current_status in [TicketStatus.FAILED, TicketStatus.RESOURCE_REPLENISH]:
                 need_warning.append(aftk)
 
     monitor_events = []
@@ -86,6 +86,7 @@ def mysql_dbha_af_tracking_tickets():
                     "bk_cloud_id": cluster_obj.bk_cloud_id,
                     "machine_type": failed_tk.machine_type,
                     "ticket_id": failed_tk.ticket_id,
+                    "ticket_status": failed_tk.status,
                 },
                 timestamp=0,
             )
@@ -200,6 +201,7 @@ def mysql_dbha_af_schedule():
             candidate_events_list = static_validate.validate_event_wait_timeout(candidate_events_list)
             candidate_events_list = static_validate.validate_event_fields(candidate_events_list)
             candidate_events_list = static_validate.validate_target(candidate_events_list)
+            candidate_events_list = static_validate.validate_spec(candidate_events_list)
             # ToDo 这个没写完
             # candidate_events_list = static_validate.validate_machine_share(candidate_events_list)
 

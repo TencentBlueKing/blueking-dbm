@@ -49,7 +49,7 @@ TICKET_DATA = {
     "create_at": "2025-06-28 09:05:48",
     "update_at": "2025-06-28 10:05:48",
     "bk_biz_id": constant.BK_BIZ_ID,
-    "ticket_type": "TENDBCLUSTER_SPIDER_SWITCH_NODES",
+    "ticket_type": "TENDBCLUSTER_FULL_BACKUP",
     "group": "tendbcluster",
     "status": "TODO",
     "remark": "",

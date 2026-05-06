@@ -1,3 +1,4 @@
+# flake8: noqa
 # -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
@@ -15,6 +16,7 @@ start_dns_service_template = """
 path=/usr/local;
 mkdir -p $path
 
+# ---- 部署 dns-bind 服务 ----
 # kill原来的bind服务
 bind_pid=`ps -aux | grep bind | grep -v grep | awk '{print $2}'`;
 if [ "$bind_pid" != "" ]; then
@@ -26,39 +28,18 @@ rm -rf $path/bind;
 # 启动bind服务
 tar -xvf /data/install/bind.tar.gz -C $path;
 ln -s $path/bind9 $path/bind;
+
+NAMESERVERS=$(grep -E '^nameserver\s+[0-9]' /etc/resolv.conf | awk '{print $2}' | grep -v -E '^(127\.|0\.0\.0\.0|::1)' | head -3 | sed 's/$/;/' | tr '\n' ' ' | sed 's/ $//')
+if [[ ! -z "$NAMESERVERS" ]]; then
+    FORWARDERS="forwarders { $NAMESERVERS };"
+    sed -i '/forwarders\s*{/,/};/c'"$FORWARDERS" $path/bind/etc/named.conf
+    echo "update bind [$FORWARDERS] success"
+fi
+
 chown -R root:root $path/bind/*
 nohup $path/bind/sbin/named -4 > $path/bind/bind-apply.log 2>&1 &
 
-# 验证bind服务可用性
-echo "--------------------------bind process info---------------------";
-ps -ef | grep bind;
-echo "----------------------------------------------------------------";
-
-old_db_ip="1.1.1.1";
-ips=`ifconfig -a|grep inet|grep -v 127.0.0.1|grep -v inet6|awk '{print $2}'|tr -d "addr:"`;
-check_bind(){
-    for ip in $ips;
-    do
-        res=`dig +short dns.test.dba.db @$ip`;
-        if [ $res != $1 ]; then
-            echo "Error, expected $1, actual output is $res";
-            exit 1;
-        else
-            echo "Successfully! $res";
-        fi
-    done
-}
-check_bind $old_db_ip;
-
-# 修改验证
-new_db_ip="1.1.1.2";
-sed -i "s/$old_db_ip/$new_db_ip/g" $path/bind/var/run/named/db;
-$path/bind/sbin/rndc reload;
-check_bind $new_db_ip;
-
-sed -i "s/$new_db_ip/$old_db_ip/g" $path/bind/var/run/named/db;
-$path/bind/sbin/rndc reload;
-
+# ---- 部署 pull-crond 服务 ----
 # kill原来的pull-crond服务
 pull_crond_pid=`ps -aux | grep pull-crond | grep -v grep | awk '{print $2}'`;
 if [ "$pull_crond_pid" != "" ]; then
@@ -96,6 +77,38 @@ if [ $? != 0 ]; then
     exit 1;
 fi
 
+# 验证bind服务可用性
+echo "--------------------------bind process info---------------------";
+ps -ef | grep bind;
+echo "----------------------------------------------------------------";
+
+old_db_ip="1.1.1.1";
+ips=`ifconfig -a|grep inet|grep -v 127.0.0.1|grep -v inet6|awk '{print $2}'|tr -d "addr:"`;
+check_bind(){
+    for ip in $ips;
+    do
+        res=`dig +short dns.test.dba.db @$ip`;
+        if [ $res != $1 ]; then
+            echo "Error, expected $1, actual output is $res";
+            exit 1;
+        else
+            echo "Successfully! $res";
+        fi
+    done
+}
+check_bind $old_db_ip;
+
+# 修改验证
+new_db_ip="1.1.1.2";
+sed -i "s/$old_db_ip/$new_db_ip/g" $path/bind/var/run/named/db;
+$path/bind/sbin/rndc reload;
+sleep 10;
+check_bind $new_db_ip;
+
+sed -i "s/$new_db_ip/$old_db_ip/g" $path/bind/var/run/named/db;
+$path/bind/sbin/rndc reload;
+
+# 验证pull-crond服务可用性
 echo "--------------------------pull-crond process info---------------------";
 ps -ef | grep pull-crond;
 echo "----------------------------------------------------------------";

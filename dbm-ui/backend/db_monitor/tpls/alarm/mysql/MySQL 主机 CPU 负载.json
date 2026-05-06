@@ -41,7 +41,8 @@
               "instance_role",
               "app",
               "cluster_domain",
-              "appid"
+              "appid",
+              "cluster_type"
             ],
             "agg_condition": [
               {
@@ -269,7 +270,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "AVG(CPU使用率)",
-  "version": 28,
+  "version": 29,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-11-26T16:26:58+08:00"

@@ -13,8 +13,9 @@
 
 <template>
   <EditableColumn
+    ref="editableColumnRef"
     :append-rules="rules"
-    field="cluster.master_domain"
+    :field="field"
     fixed="left"
     :label="label"
     :loading="loading"
@@ -65,7 +66,8 @@
     /**
      * 选择器tab集群类型
      */
-    clusterTypes?: ClusterTypes[];
+    clusterTypes?: (ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE)[];
+    field?: string;
     label?: string;
     minWidth?: number;
     /**
@@ -92,6 +94,7 @@
   const props = withDefaults(defineProps<Props>(), {
     allowRepeat: false,
     clusterTypes: () => [ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE],
+    field: 'cluster.master_domain',
     label: t('目标集群'),
     minWidth: 350,
     onlyOneType: false,
@@ -114,6 +117,8 @@
     required: true,
   });
 
+  const editableColumnRef = useTemplateRef('editableColumnRef');
+
   const showSelector = ref(false);
   const selectedClusters = computed<Record<string, TendbhaModel[]>>(() => ({
     [ClusterTypes.TENDBHA]: props.selected.filter(
@@ -131,13 +136,13 @@
       validator: (value: string) => !value || domainRegex.test(value),
     },
     {
-      message: t('目标集群重复'),
+      message: t('cluster重复', [props.label]),
       trigger: 'change',
       validator: (value: string) =>
         props.allowRepeat || !value || props.selected.filter((item) => item.master_domain === value).length < 2,
     },
     {
-      message: t('目标集群不存在'),
+      message: t('cluster不存在', [props.label]),
       trigger: 'blur',
       validator: (value: string) => !value || Boolean(modelValue.value.id),
     },
@@ -153,6 +158,9 @@
       const [currentCluster] = data;
       if (currentCluster) {
         modelValue.value = currentCluster;
+      } else {
+        // 集群不存在，触发校验
+        editableColumnRef.value?.validate();
       }
     },
   });

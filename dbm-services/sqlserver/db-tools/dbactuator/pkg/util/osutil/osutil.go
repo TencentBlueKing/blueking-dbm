@@ -12,11 +12,13 @@
 package osutil
 
 import (
+	"archive/zip"
 	"bytes"
 	"fmt"
 	"io"
 	"math/rand"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -209,4 +211,55 @@ func CreateExporterConf(fileName string, host string, port int, user string, pas
 	defer file.Close()
 	file.WriteString(fmt.Sprintf("%s %d %s %s false false", host, port, user, password))
 	return nil
+}
+
+// zipFiles 压缩文件
+func ZipFiles(filesToZip []string, zipFileName string) error {
+	zipFile, err := os.Create(path.Join(zipFileName))
+	if err != nil {
+		return err
+	}
+	defer zipFile.Close()
+
+	zipWriter := zip.NewWriter(zipFile)
+	defer zipWriter.Close()
+
+	for _, file := range filesToZip {
+		err = AddToZip(file, zipWriter)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// AddToZip 添加文件到zip包中
+func AddToZip(filename string, zipWriter *zip.Writer) error {
+	file, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	info, err := file.Stat()
+	if err != nil {
+		return err
+	}
+
+	header, err := zip.FileInfoHeader(info)
+	if err != nil {
+		return err
+	}
+
+	header.Name = info.Name()
+	header.Method = zip.Deflate
+
+	writer, err := zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(writer, file)
+	return err
 }

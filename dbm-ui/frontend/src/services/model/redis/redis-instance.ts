@@ -13,11 +13,9 @@
 
 import type { HostInfo, InstanceListSpecConfig, InstanceRelatedCluster } from '@services/types';
 
-import { type ClusterInstStatus, clusterInstStatus } from '@common/const';
+import InstanceBase from '../_instanceBase';
 
-import { isRecentDays, utcDisplayTime } from '@utils';
-
-export default class RedisInstance {
+export default class RedisInstance extends InstanceBase {
   bk_cloud_id: number;
   bk_cloud_name: string;
   bk_cpu: number;
@@ -34,7 +32,6 @@ export default class RedisInstance {
   cluster_name: string;
   cluster_type: string;
   cluster_type_name: string;
-  create_at: string;
   db_module_id: number;
   db_module_name: string;
   db_version: string;
@@ -53,10 +50,10 @@ export default class RedisInstance {
   role: string;
   slave_domain: string;
   spec_config: InstanceListSpecConfig;
-  status: ClusterInstStatus;
   version: string;
 
   constructor(payload = {} as RedisInstance) {
+    super(payload);
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
@@ -74,7 +71,6 @@ export default class RedisInstance {
     this.cluster_name = payload.cluster_name || '';
     this.cluster_type = payload.cluster_type || '';
     this.cluster_type_name = payload.cluster_type_name || '';
-    this.create_at = payload.create_at || '';
     this.db_module_id = payload.db_module_id || 0;
     this.db_module_name = payload.db_module_name;
     this.db_version = payload.db_version || '';
@@ -91,19 +87,6 @@ export default class RedisInstance {
     this.role = payload.role || '';
     this.slave_domain = payload.slave_domain || '';
     this.spec_config = payload.spec_config || {};
-    this.status = payload.status || '';
     this.version = payload.version || '';
-  }
-
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
-  }
-
-  get getStatusInfo() {
-    return clusterInstStatus[this.status] || clusterInstStatus.unavailable;
-  }
-
-  get isNew() {
-    return isRecentDays(this.create_at, 24 * 3);
   }
 }

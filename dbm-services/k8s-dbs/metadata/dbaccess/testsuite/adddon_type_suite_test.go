@@ -69,7 +69,7 @@ func (suite *AddonTypeDbAccessTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	suite.dbAccess = dbaccess.NewAddonTypeDbAccess(db)
+	suite.dbAccess = dbaccess.GetAddonTypeDbAccess(db)
 }
 
 func (suite *AddonTypeDbAccessTestSuite) TearDownSuite() {

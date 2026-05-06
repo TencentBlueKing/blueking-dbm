@@ -31,26 +31,27 @@ import (
 // MachineResourceGetterInputParam TODO
 type MachineResourceGetterInputParam struct {
 	// 专用业务Ids
-	ForBiz        *int              `json:"for_biz"`       // 后续删除
-	RsType        *string           `json:"resource_type"` // 后续删除
-	ForBizs       []int             `json:"for_bizs"`
-	RsTypes       []string          `json:"resource_types"`
-	City          []string          `json:"city"`
-	SubZoneIds    []string          `json:"subzone_ids"`
-	DeviceClass   []string          `json:"device_class"`
-	Labels        []string          `json:"labels"`
-	Hosts         []string          `json:"hosts"`
-	BkCloudIds    []int             `json:"bk_cloud_ids"`
-	MountPoint    string            `json:"mount_point"`
-	Cpu           meta.MeasureRange `json:"cpu"`
-	Mem           meta.MeasureRange `json:"mem"`
-	Disk          meta.MeasureRange `json:"disk"`
-	DiskType      string            `json:"disk_type"`
-	OsType        string            `json:"os_type"`
-	OsNames       []string          `json:"os_names"`
-	ExcludeOsName bool              `json:"exclude_os_name"`
-	StorageSpecs  []meta.DiskSpec   `json:"storage_spec"`
-	CreateTime    string            `json:"create_time"`
+	ForBiz        *int               `json:"for_biz"`       // 后续删除
+	RsType        *string            `json:"resource_type"` // 后续删除
+	ForBizs       []int              `json:"for_bizs"`
+	RsTypes       []string           `json:"resource_types"`
+	City          []string           `json:"city"`
+	SubZoneIds    []string           `json:"subzone_ids"`
+	DeviceClass   []string           `json:"device_class"`
+	Labels        []string           `json:"labels"`
+	Hosts         []string           `json:"hosts"`
+	BkCloudIds    []int              `json:"bk_cloud_ids"`
+	MountPoint    string             `json:"mount_point"`
+	Cpu           meta.MeasureRange  `json:"cpu"`
+	Mem           meta.MeasureRange  `json:"mem"`
+	Disk          *meta.MeasureRange `json:"disk"`
+	DiskType      string             `json:"disk_type"`
+	OsType        string             `json:"os_type"`
+	OsNames       []string           `json:"os_names"`
+	ExcludeOsName bool               `json:"exclude_os_name"`
+	StorageSpecs  []meta.DiskSpec    `json:"storage_spec"`
+	CreateTime    string             `json:"create_time"`
+	EmptyLabels   bool               `json:"empty_labels"`
 	// true,false,""
 	GseAgentAlive string `json:"gse_agent_alive"`
 	Limit         int    `json:"limit"`
@@ -156,12 +157,18 @@ func (c *MachineResourceGetterInputParam) matchStorageSpecs(db *gorm.DB) {
 		} else if cmutil.IsNotEmpty(c.DiskType) {
 			db.Where(model.JSONQuery("storage_device").SubValContains(c.DiskType, "disk_type"))
 		}
-		c.Disk.MatchTotalStorageSize(db)
+		if c.Disk != nil {
+			c.Disk.MatchTotalDataStorageSize(db)
+		}
 	}
 }
 
 func (c *MachineResourceGetterInputParam) getRealCities() (realCities []string, err error) {
 	for _, logicCity := range c.City {
+		if cmutil.IsEmpty(logicCity) {
+			realCities = append(realCities, "")
+			continue
+		}
 		real_cities, err := dbmapi.GetIdcCityByLogicCity(logicCity)
 		if err != nil {
 			logger.Error("from %s get real cites failed %s", logicCity, err.Error())
@@ -223,14 +230,19 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) (err error) {
 		if err != nil {
 			return err
 		}
-		db.Where(" city in (?) ", realCities)
+		if len(realCities) > 0 {
+			db.Where(" city in (?) ", realCities)
+		}
 	}
 	if len(c.SubZoneIds) > 0 {
 		db.Where(" sub_zone_id in (?) ", c.SubZoneIds)
 	}
 	if len(c.Labels) > 0 {
 		db.Where(model.JSONQuery("labels").JointOrContains(c.Labels))
+	} else if c.EmptyLabels {
+		db.Where(" JSON_TYPE(labels) = 'NULL' or JSON_TYPE(labels) is null OR JSON_LENGTH(labels) < 1 ")
 	}
+
 	if lo.IsNotEmpty(c.OsType) {
 		db.Where("os_type = ?", c.OsType)
 	}

@@ -133,7 +133,7 @@ class MonitorDutyRuleViewSet(viewsets.AuditedModelViewSet):
     )
     @action(methods=["POST"], detail=False, pagination_class=None, serializer_class=UpdateDutyNoticeSerializer)
     def update_duty_notice_config(self, request, *args, **kwargs):
-        from backend.db_periodic_task.local_tasks import send_duty_schedule
+        from backend.db_monitor.tasks import send_duty_schedule
 
         data = self.params_validate(self.get_serializer_class())
         db_type = data.pop("db_type")
@@ -163,7 +163,7 @@ class MonitorDutyRuleViewSet(viewsets.AuditedModelViewSet):
     )
     @action(methods=["POST"], detail=False, pagination_class=None, serializer_class=SendDutyNoticeScheduleSerializer)
     def send_duty_notice_schedule(self, request, *args, **kwargs):
-        from backend.db_periodic_task.local_tasks import send_duty_schedule
+        from backend.db_monitor.tasks import send_duty_schedule
 
         db_type = self.params_validate(self.get_serializer_class())["db_type"]
         send_duty_schedule.apply_async(args=(db_type,))

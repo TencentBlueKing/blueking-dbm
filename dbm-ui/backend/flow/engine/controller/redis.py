@@ -67,6 +67,7 @@ from backend.flow.engine.bamboo.scene.redis.redis_storages_client_conns_kill imp
 from backend.flow.engine.bamboo.scene.redis.redis_twemproxy_cluster_apply_flow import RedisClusterApplyFlow
 from backend.flow.engine.bamboo.scene.redis.single_proxy_shutdown import SingleProxyShutdownFlow
 from backend.flow.engine.bamboo.scene.redis.tendisplus_lightning_data import TendisPlusLightningData
+from backend.flow.engine.bamboo.scene.redis.validate.redis_keystat_validator import RedisKeyStatFlowValidator
 from backend.flow.engine.bamboo.scene.redis.validate.redis_migrate_validator import (
     RedisClusterInsMigrateFlowValidator,
     RedisSingleInsMigrateFlowValidator,
@@ -474,6 +475,7 @@ class RedisController(BaseController):
         flow = RedisRollbackExerciseFlow(root_id=self.root_id, data=self.ticket_data)
         flow.rollback_exercise_flow()
 
+    @validates_with(RedisKeyStatFlowValidator)
     def redis_keystat(self):
         """
         redis 内存分析

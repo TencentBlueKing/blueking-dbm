@@ -14,7 +14,7 @@
 <template>
   <EditableColumn
     ref="editableTableColumn"
-    :disabled-method="() => !cluster.id"
+    :disabled-method="() => (!cluster.id ? t('请先输入合法的集群域名') : false)"
     field="target_cluster_type"
     :label="t('新集群类型')"
     required

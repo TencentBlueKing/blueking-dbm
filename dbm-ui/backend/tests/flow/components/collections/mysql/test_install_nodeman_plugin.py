@@ -64,6 +64,7 @@ class TestInstallNodemanPluginComponent(MySQLComponentBaseTest, TestCase):
     def _set_excepted_outputs(cls) -> None:
         cls.excepted_outputs = {
             "job_id": JOB_ID,
+            "poll_count": 0,  # _execute 重置轮询计数器
         }
 
     def to_mock_class_list(self) -> List:
@@ -114,12 +115,12 @@ class TestInstallNodemanPluginComponent(MySQLComponentBaseTest, TestCase):
         1. 当HTTP状态码为504时的重试逻辑
         2. 验证retry_count被正确设置
         """
-        # 由于实际组件在执行时设置了retry_count，我们的测试期望也应该包含它
+        # _execute 设置 poll_count=0，_schedule 第一次执行后 poll_count=1，retry_count=1
         return [
             ScheduleAssertion(
                 success=True,
                 schedule_finished=False,
-                outputs={"job_id": JOB_ID, "retry_count": 1},  # 期望job_id和retry_count
+                outputs={"job_id": JOB_ID, "poll_count": 1, "retry_count": 1},
                 callback_data=None,
             )
         ]
@@ -135,8 +136,8 @@ class TestInstallNodemanPluginComponent(MySQLComponentBaseTest, TestCase):
         return [
             ScheduleAssertion(
                 success=False,  # 重试达到最大次数应该返回失败
-                schedule_finished=False,  # 根据实际行为修改为False
-                outputs={"job_id": JOB_ID},  # 确保包含job_id
+                schedule_finished=False,
+                outputs={"job_id": JOB_ID, "poll_count": 0},  # execute后poll_count=0，mock _schedule不修改它
                 callback_data=None,
             )
         ]
@@ -148,8 +149,8 @@ class TestInstallNodemanPluginComponent(MySQLComponentBaseTest, TestCase):
         第一个用例: 测试常规重试场景（重试次数未超过最大值）
         第二个用例: 测试重试次数达到最大值的场景
         """
-        # 第一个用例设置特定的断言，确保只期望job_id而不是retry_count
-        first_case_execute_assertion = ExecuteAssertion(success=True, outputs={"job_id": JOB_ID})
+        # 第一个用例设置特定的断言，确保期望job_id和poll_count
+        first_case_execute_assertion = ExecuteAssertion(success=True, outputs={"job_id": JOB_ID, "poll_count": 0})
         case1 = ComponentTestCase(
             name=f"{self.component_cls().__name__}组件基本重试测试",
             inputs={"global_data": self.global_data, "trans_data": self.trans_data, "kwargs": self.kwargs},
@@ -201,10 +202,10 @@ class TestInstallNodemanPluginComponent(MySQLComponentBaseTest, TestCase):
             )
         )
 
-        # 期望输出中，重试失败的断言
+        # 期望输出中，重试失败的断言（execute 阶段会设置 poll_count=0）
         failed_outputs = {
-            "job_id": JOB_ID
-            # 不检查retry_count的值，因为在失败情况下我们只关心返回值为False
+            "job_id": JOB_ID,
+            "poll_count": 0,  # _execute 重置轮询计数器
         }
 
         case2 = ComponentTestCase(

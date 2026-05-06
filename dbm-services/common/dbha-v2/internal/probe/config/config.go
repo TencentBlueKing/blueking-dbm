@@ -22,6 +22,7 @@
  * SOFTWARE.
  */
 
+// Package config provides probe configuration loading, structures, and generation from metadata.
 package config
 
 import (
@@ -29,6 +30,8 @@ import (
 
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+
+	"github.com/spf13/viper"
 )
 
 var Cfg = Configuration{
@@ -40,6 +43,16 @@ var Cfg = Configuration{
 		FileCount: 10,
 		FileSize:  100,
 	},
+}
+
+// ClientConfig holds gRPC client tuning (ping, message sizes) and receiver reconnect settings for the probe agent.
+type ClientConfig struct {
+	PingTime                     time.Duration `yaml:"pingTime"                   mapstructure:"pingTime"`
+	PingTimeout                  time.Duration `yaml:"pingTimeout"                mapstructure:"pingTimeout"`
+	MaxReceiveMessageSize        int           `yaml:"maxReceiveMessageSize"      mapstructure:"maxReceiveMessageSize"`
+	MaxSendMessageSize           int           `yaml:"maxSendMessageSize"         mapstructure:"maxSendMessageSize"`
+	ReceiverReconnectInterval    time.Duration `yaml:"receiverReconnectInterval"  mapstructure:"receiverReconnectInterval"`
+	ReceiverMaxReconnectAttempts int           `yaml:"receiverMaxReconnectAttempts" mapstructure:"receiverMaxReconnectAttempts"`
 }
 
 // ReporterConfig reporter config
@@ -69,9 +82,19 @@ type MySqlHarvesterConfig struct {
 	Endpoints []DbEndpointConfig `yaml:"endpoints" mapstructure:"endpoints"`
 }
 
+// RedisHarvesterConfig Redis harvester config
+type RedisHarvesterConfig struct {
+	User      string             `yaml:"user"      mapstructure:"user"`
+	Password  string             `yaml:"password"  mapstructure:"password"`
+	Interval  time.Duration      `yaml:"interval"  mapstructure:"interval"`
+	Timeout   time.Duration      `yaml:"timeout"   mapstructure:"timeout"`
+	Endpoints []DbEndpointConfig `yaml:"endpoints" mapstructure:"endpoints"`
+}
+
 // HarvesterConfig harvester config
 type HarvesterConfig struct {
 	MySql *MySqlHarvesterConfig
+	Redis *RedisHarvesterConfig
 }
 
 // LogConfig log configuration
@@ -84,11 +107,29 @@ type LogConfig struct {
 
 // Configuration receiver's configuration
 type Configuration struct {
-	Name      string           `yaml:"name"      mapstructure:"name"`
-	Version   string           `yaml:"version"   mapstructure:"version"`
-	ServiceID string           `yaml:"serviceID" mapstructure:"serviceID"`
-	PidFile   string           `yaml:"pidFile"   mapstructure:"pidFile"`
-	Reporters []ReporterConfig `yaml:"reporter"  mapstructure:"reporter"`
-	Harvester HarvesterConfig  `yaml:"harvester" mapstructure:"harvester"`
-	Log       LogConfig        `yaml:"log"       mapstructure:"log"`
+	Name      string          `yaml:"name"      mapstructure:"name"`
+	Version   string          `yaml:"version"   mapstructure:"version"`
+	ServiceID string          `yaml:"serviceID" mapstructure:"serviceID"`
+	PidFile   string          `yaml:"pidFile"   mapstructure:"pidFile"`
+	Reporter  *ReporterConfig `yaml:"reporter"  mapstructure:"reporter"`
+	Client    ClientConfig    `yaml:"client"    mapstructure:"client"`
+	Harvester HarvesterConfig `yaml:"harvester" mapstructure:"harvester"`
+	Log       LogConfig       `yaml:"log"       mapstructure:"log"`
+}
+
+// Load loads probe configuration from file
+func Load(configFilePath string) error {
+	viper.SetConfigName("probe")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("./etc")
+
+	if configFilePath != "" {
+		viper.SetConfigFile(configFilePath)
+	}
+
+	if err := viper.ReadInConfig(); err != nil {
+		return err
+	}
+
+	return viper.Unmarshal(&Cfg)
 }

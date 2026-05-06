@@ -15,7 +15,8 @@
             :label="t('集群拓扑')"
             name="topo">
             <ClusterTopo
-              v-if="activePanel === 'topo'"
+              v-if="visitedPanels.has('topo')"
+              v-show="activePanel === 'topo'"
               :cluster-id="clusterData.id"
               :cluster-role-node-group="clusterRoleNodeGroup"
               :cluster-type="clusterType"
@@ -28,9 +29,10 @@
             :label="t('基本信息')"
             name="info">
             <slot
-              v-if="activePanel === 'info' && clusterData"
+              v-if="visitedPanels.has('info') && clusterData"
               name="infoContent">
               <BaseInfo
+                v-show="activePanel === 'info'"
                 :key="clusterData.id"
                 :data="clusterData" />
             </slot>
@@ -42,9 +44,10 @@
             :label="t('实例列表')"
             name="instance">
             <slot
-              v-if="activePanel === 'instance'"
+              v-if="visitedPanels.has('instance')"
               name="instanceContent">
               <Instancelist
+                v-show="activePanel === 'instance'"
                 :key="clusterData.id"
                 :cluster-id="clusterData.id"
                 :cluster-role-node-group="clusterRoleNodeGroup"
@@ -58,10 +61,13 @@
             :label="t('主机列表')"
             name="host">
             <slot
-              v-if="activePanel === 'host'"
+              v-if="visitedPanels.has('host')"
+              :active-panel="activePanel"
               name="hostContent">
               <HostList
+                v-show="activePanel === 'host'"
                 :key="clusterData.id"
+                :active-panel="activePanel"
                 :cluster-id="clusterData.id"
                 :cluster-type="clusterType" />
             </slot>
@@ -74,7 +80,8 @@
             :label="monirotItem.view"
             :name="monirotItem.view">
             <MonitorDashboard
-              v-if="activePanel === monirotItem.view"
+              v-if="visitedPanels.has(monirotItem.view)"
+              v-show="activePanel === monirotItem.view"
               :key="clusterData.id"
               :url="monirotItem.url" />
           </BkTabPanel>
@@ -87,6 +94,7 @@
             :label="t('告警订阅')"
             name="alarmSubscription">
             <AlarmSubscription
+              v-show="activePanel === 'alarmSubscription'"
               :cluster-type="clusterData.cluster_type"
               :data="clusterData" />
           </BkTabPanel>
@@ -97,7 +105,8 @@
             :label="t('单据记录')"
             name="record">
             <OperationRecord
-              v-if="activePanel === 'record'"
+              v-if="visitedPanels.has('record')"
+              v-show="activePanel === 'record'"
               :id="clusterData.id"
               :key="clusterData.id" />
           </BkTabPanel>
@@ -158,7 +167,7 @@
   export interface Slots {
     alarmSubscription: () => VNode;
     host: () => VNode;
-    hostContent: () => VNode;
+    hostContent: (params: { activePanel: string }) => VNode;
     info: () => VNode;
     infoContent: () => VNode;
     instance: () => VNode;
@@ -209,6 +218,7 @@
 
   const rootRef = useTemplateRef('root');
   const activePanel = ref(String(route.query[URL_CLUSTER_DETAIL_MEMO_KEY]) || '');
+  const visitedPanels = reactive(new Set<string>());
   const tabcontentheight = ref('0');
 
   const dbType = computed(() => clusterTypeInfos[props.clusterData.cluster_type].dbType);
@@ -254,6 +264,9 @@
     () => {
       activePanel.value = String(route.query[URL_CLUSTER_DETAIL_MEMO_KEY] || '');
       isFixedTab.value = fixedTabList.includes(activePanel.value);
+      if (activePanel.value) {
+        visitedPanels.add(activePanel.value);
+      }
     },
     {
       immediate: true,
@@ -268,6 +281,7 @@
       },
     });
     activePanel.value = value;
+    visitedPanels.add(value);
   };
 
   onMounted(() => {

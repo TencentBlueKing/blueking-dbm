@@ -25,6 +25,7 @@ import (
 	"k8s-dbs/common/entity"
 	metaentity "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -48,6 +49,22 @@ type K8sClusterConfigDbAccessImpl struct {
 	db *gorm.DB
 }
 
+var (
+	clusterConfigInstance K8sClusterConfigDbAccess
+	clusterConfigOnce     sync.Once
+)
+
+// GetK8sClusterConfigDbAccess 获取 K8sClusterConfigDbAccess 单例实例
+func GetK8sClusterConfigDbAccess(db *gorm.DB) K8sClusterConfigDbAccess {
+	clusterConfigOnce.Do(func() {
+		clusterConfigInstance = &K8sClusterConfigDbAccessImpl{db: db}
+	})
+	if clusterConfigInstance == nil {
+		panic("K8sClusterConfigDbAccess instance is nil after initialization")
+	}
+	return clusterConfigInstance
+}
+
 // ListByLimit limit 查询实现
 func (k *K8sClusterConfigDbAccessImpl) ListByLimit(limit int) ([]*models.K8sClusterConfigModel, error) {
 	var configModels []*models.K8sClusterConfigModel
@@ -64,7 +81,7 @@ func (k *K8sClusterConfigDbAccessImpl) FindRegionsByParams(params *metaentity.Re
 ) {
 	var regions []*models.RegionModel
 	if err := k.db.Model(&models.K8sClusterConfigModel{}).
-		Select("cluster_name, is_public,region_name,region_code, provider").
+		Select("cluster_name, cluster_alias, is_public, region_name, region_code, vpc_id, provider").
 		Where(params).
 		Find(&regions).Limit(commconst.MaxFetchSize).Error; err != nil {
 		return nil, errors.Wrapf(err, "failed to find regions with params %+v", params)
@@ -122,9 +139,4 @@ func (k *K8sClusterConfigDbAccessImpl) Update(model *models.K8sClusterConfigMode
 // ListByPage 分页查询元数据接口实现
 func (k *K8sClusterConfigDbAccessImpl) ListByPage(_ entity.Pagination) ([]models.K8sClusterConfigModel, int64, error) {
 	return nil, 0, fmt.Errorf("not implemented yet")
-}
-
-// NewK8sClusterConfigDbAccess 创建 K8sClusterConfigDbAccess 接口实现实例
-func NewK8sClusterConfigDbAccess(db *gorm.DB) K8sClusterConfigDbAccess {
-	return &K8sClusterConfigDbAccessImpl{db: db}
 }

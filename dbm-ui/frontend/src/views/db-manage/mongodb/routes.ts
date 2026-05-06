@@ -13,6 +13,7 @@ const { createRouteItem } = createToolboxRoute(DBTypes.MONGODB);
 
 export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MONGODB_EXEC_SCRIPT_APPLY, t('变更脚本执行')),
+  createRouteItem(TicketTypes.MONGODB_CLUSTER_STANDARDIZE, t('集群标准化')),
   createRouteItem(TicketTypes.MONGODB_ADD_SHARD, t('分片集群增加分片数')),
   createRouteItem(TicketTypes.MONGODB_REPLICA_ADD_SHARD_NODES, t('扩容Shard节点数')),
   createRouteItem(TicketTypes.MONGODB_SHARD_ADD_SHARD_NODES, t('扩容Shard节点数')),
@@ -20,14 +21,16 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MONGODB_SCALE_UPDOWN, t('集群容量变更')),
   createRouteItem(TicketTypes.MONGODB_ADD_MONGOS, t('扩容接入层')),
   createRouteItem(TicketTypes.MONGODB_REDUCE_MONGOS, t('缩容接入层')),
+  createRouteItem(TicketTypes.MONGODB_INSTANCE_FIX_STATUS, t('节点状态修复')),
   createRouteItem(TicketTypes.MONGODB_REPLICASET_CUTOFF, t('整机替换')),
   createRouteItem(TicketTypes.MONGODB_SHARD_CUTOFF, t('整机替换')),
   createRouteItem(TicketTypes.MONGODB_PITR_RESTORE, t('定点构造')),
   createRouteItem(TicketTypes.MONGODB_BACKUP, t('库表备份')),
   createRouteItem(TicketTypes.MONGODB_FULL_BACKUP, t('全库备份')),
   createRouteItem(TicketTypes.MONGODB_REMOVE_NS, t('清档')),
-  createRouteItem(TicketTypes.MONGODB_REPLICASET_MIGRATE, t('迁移')),
-  createRouteItem(TicketTypes.MONGODB_SHARD_MIGRATE, t('迁移')),
+  createRouteItem(TicketTypes.MONGODB_REPLICASET_MIGRATE, t('副本集迁移')),
+  createRouteItem(TicketTypes.MONGODB_SHARD_MIGRATE, t('分片集群迁移')),
+  createRouteItem(TicketTypes.MONGODB_DATA_EXPORT, t('数据导出')),
   {
     path: 'structure-instance/:page?',
     name: 'MongoStructureInstance',
@@ -66,14 +69,7 @@ const mongodbToolboxRouters: RouteRecordRaw[] = [
       name: TicketTypes.MONGODB_EXEC_SCRIPT_APPLY,
     },
     component: () => import('@views/db-manage/mongodb/toolbox/Index.vue'),
-    children: [
-      ...mongoToolboxChildrenRoutes,
-      {
-        path: 'toolbox-result/:ticketType?/:ticketId?',
-        name: 'MongodbToolboxResult',
-        component: () => import('@views/db-manage/common/toolbox-result/Index.vue'),
-      },
-    ],
+    children: [...mongoToolboxChildrenRoutes],
   },
 ];
 
@@ -115,10 +111,9 @@ const replicaSetInstanceRouters: RouteRecordRaw[] = [
     path: 'instance-list',
     name: 'mongodbReplicaSetInstanceList',
     meta: {
-      fullscreen: true,
       navName: t('【MongoDB】副本集集群实例视图'),
     },
-    component: () => import('@views/db-manage/mongodb/instance-list/Index.vue'),
+    component: () => import('@views/db-manage/mongodb/replica-set-instance-list/Index.vue'),
   },
 ];
 
@@ -160,10 +155,9 @@ const sharedClusterInstanceRouters: RouteRecordRaw[] = [
     path: 'instance-list',
     name: 'mongodbShareClusterInstanceList',
     meta: {
-      fullscreen: true,
       navName: t('【MongoDB】分片集群实例视图'),
     },
-    component: () => import('@views/db-manage/mongodb/instance-list/Index.vue'),
+    component: () => import('@views/db-manage/mongodb/shared-cluster-instance-list/Index.vue'),
   },
 ];
 

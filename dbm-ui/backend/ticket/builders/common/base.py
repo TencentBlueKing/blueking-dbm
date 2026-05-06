@@ -93,8 +93,8 @@ def fetch_host_ips(details: Dict[str, Any]) -> List[Union[int, str]]:
 
 
 def fetch_apply_hosts(details: Dict[str, Any]) -> List[Dict]:
-    role_hosts = get_target_items_from_details(details, match_keys=["nodes"])
-    hosts = list(itertools.chain(*[h for hosts in role_hosts for h in hosts.values()]))
+    role_hosts = details["nodes"]
+    hosts = list(itertools.chain(*[h for h in role_hosts.values()]))
     # 适配backend_group分组
     master_slave_hosts = get_target_items_from_details(hosts, match_keys=["master", "slave"])
     apply_hosts = [host for host in hosts if "master" not in host] + master_slave_hosts
@@ -159,10 +159,12 @@ def get_mongodb_cluster_tolerance(disaster_tolerance_level, role=None):
 class HostInfoSerializer(serializers.Serializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     ip = serializers.CharField(help_text=_("IP地址"))
+    bk_sub_zone = serializers.CharField(help_text=_("园区"), allow_null=True, allow_blank=True, required=False)
     bk_host_id = serializers.IntegerField(help_text=_("主机ID"))
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
     port = serializers.IntegerField(help_text=_("端口号"), required=False)
     spec = serializers.JSONField(help_text=_("规格信息"), required=False)
+    city = serializers.CharField(help_text=_("城市"), allow_null=True, allow_blank=True, required=False)
 
 
 class DisplayInfoSerializer(serializers.Serializer):
@@ -175,6 +177,14 @@ class DisplayInfoSerializer(serializers.Serializer):
 
 class InstanceInfoSerializer(HostInfoSerializer):
     port = serializers.IntegerField(help_text=_("端口号"), required=False)
+
+
+class ResourceSpecBaseSerializer(serializers.Serializer):
+    count = serializers.IntegerField(help_text=_("数量"))
+    spec_id = serializers.IntegerField(help_text=_("规格id"))
+    hosts = serializers.ListField(help_text=_("手动选择的主机信息"), child=serializers.DictField(), required=False)
+    labels = serializers.ListField(help_text=_("标签id"), child=serializers.CharField(), required=False)
+    label_names = serializers.ListSerializer(help_text=_("标签名称列表"), child=serializers.CharField(), required=False)
 
 
 class TicketBaseValidateSerializerMixin(object):
@@ -216,8 +226,8 @@ class ParamValidateSerializerMixin(object):
     def validated_params(self, attrs):
         ticket_type = self.context["ticket_type"]
         ticket_flow_builder = builders.BuilderFactory.registry[ticket_type]
-        if hasattr(ticket_flow_builder.inner_flow_builder, "validator"):
-            self.validator = ticket_flow_builder.inner_flow_builder.validator
+        if hasattr(ticket_flow_builder, "validator"):
+            self.validator = ticket_flow_builder.validator
 
         if not self.validator:
             logger.info(_("单据类型 {} 没有配置验证器，跳过参数验证").format(ticket_type))

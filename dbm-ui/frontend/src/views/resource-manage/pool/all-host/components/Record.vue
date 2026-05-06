@@ -5,75 +5,83 @@
     <template #header>
       <div>【{{ data.ip }}】{{ t('操作记录') }}</div>
     </template>
-    <div class="all-host-record">
+    <div
+      ref="tableContainer"
+      class="all-host-record">
       <BkLoading
         :loading="tableLoading"
         :z-index="2">
-        <BkTable
+        <PrimaryTable
           ref="tableRef"
           :data="machineEventList"
-          :show-overflow="false">
-          <BkTableColumn
-            field="events"
-            :label="t('操作类型')"
+          :max-height="tableMaxHeight"
+          row-key="id">
+          <TableColumn
+            col-key="events"
+            :title="t('操作类型')"
             :width="130">
-            <template #default="{ data }: { data: MachineEventModel }">
-              {{ data.eventDisplay }}
+            <template #default="{ row }: { row : MachineEventModel }">
+              {{ row.eventDisplay }}
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="updater"
-            :label="t('操作人')"
-            show-overflow
+          </TableColumn>
+          <TableColumn
+            col-key="updater"
+            :title="t('操作人')"
             :width="120">
-          </BkTableColumn>
-          <BkTableColumn
-            field="updateAtDisplay"
-            :label="t('操作时间')"
+          </TableColumn>
+          <TableColumn
+            col-key="updateAtDisplay"
+            :title="t('操作时间')"
             :width="180">
-          </BkTableColumn>
-          <BkTableColumn
-            field="bk_biz_name"
-            :label="t('所属业务')"
+          </TableColumn>
+          <TableColumn
+            col-key="bk_biz_name"
+            :title="t('所属业务')"
             :width="100">
-          </BkTableColumn>
-          <BkTableColumn
-            field="ticket"
-            :label="t('关联单据')"
-            :min-width="200">
-            <template #default="{ data }: { data: MachineEventModel }">
-              <RouterLink
-                v-if="data.ticket"
-                target="_blank"
-                :to="{
-                  name: 'bizTicketManage',
-                  params: {
-                    ticketId: data.ticket,
-                  },
-                }">
-                {{ data.ticket_type_display }}
-              </RouterLink>
+          </TableColumn>
+          <TableColumn
+            col-key="ticket"
+            :min-width="200"
+            :title="t('关联单据')">
+            <template #default="{ row }: { row : MachineEventModel }">
+              <template v-if="row.ticket">
+                <TicketStatusTag
+                  :data="{
+                    status: row.ticket_status,
+                    statusText: row.statusText,
+                  }" />
+                <RouterLink
+                  class="ml-4"
+                  target="_blank"
+                  :to="{
+                    name: 'bizTicketManage',
+                    params: {
+                      ticketId: row.ticket,
+                    },
+                  }">
+                  {{ row.ticket_type_display }}[{{ row.ticket }}]
+                </RouterLink>
+              </template>
               <span v-else>--</span>
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="clusters"
-            :label="t('集群')"
+          </TableColumn>
+          <TableColumn
+            col-key="clusters"
             :min-width="300"
-            show-overflow>
-            <template #default="{ data }: { data: MachineEventModel }">
-              {{ data.clusters.length ? data.clusters.map((item) => item.immute_domain).join(', ') : '--' }}
+            :title="t('集群')">
+            <template #default="{ row }: { row : MachineEventModel }">
+              {{ row.clusters.length ? row.clusters.map((item) => item.immute_domain).join(', ') : '--' }}
             </template>
-          </BkTableColumn>
-          <BkTableColumn
-            field="event"
-            :label="t('操作明细')"
+          </TableColumn>
+          <TableColumn
+            col-key="event"
+            :title="t('操作明细')"
             :width="300">
-            <template #default="{ data }: { data: MachineEventModel }">
-              <OperationDetail :data="data" />
+            <template #default="{ row }: { row : MachineEventModel }">
+              <OperationDetail :data="row" />
             </template>
-          </BkTableColumn>
-        </BkTable>
+          </TableColumn>
+        </PrimaryTable>
       </BkLoading>
     </div>
   </BkSideslider>
@@ -84,6 +92,10 @@
 
   import MachineEventModel from '@services/model/db-resource/machineEvent';
   import { getHostCurrentEvent } from '@services/source/dbdirty';
+
+  import { useTableMaxHeight } from '@hooks';
+
+  import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
 
   import OperationDetail from '@views/resource-manage/common/components/operation-detail/Index.vue';
 
@@ -101,6 +113,10 @@
   });
 
   const { t } = useI18n();
+
+  const tableContainerRef = useTemplateRef('tableContainer');
+  const occupiedHeight = ref(0);
+  const tableMaxHeight = useTableMaxHeight(occupiedHeight);
 
   const {
     data: machineEventList,
@@ -121,6 +137,11 @@
       immediate: true,
     },
   );
+
+  onMounted(() => {
+    const { top } = tableContainerRef.value!.getBoundingClientRect();
+    occupiedHeight.value = top + 24;
+  });
 </script>
 
 <style lang="less" scoped>

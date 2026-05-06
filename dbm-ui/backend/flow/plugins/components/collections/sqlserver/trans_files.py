@@ -72,7 +72,8 @@ class TransFileInWindowsService(BkJobService):
             }
         # 文件传输设置24小时超时
         payload = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "file_target_path": kwargs["file_target_path"],
             "transfer_mode": 2,
             "timeout": DBM_SQLSERVER_JOB_LONG_TIMEOUT,

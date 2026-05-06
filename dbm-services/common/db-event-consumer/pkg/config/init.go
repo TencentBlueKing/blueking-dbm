@@ -17,6 +17,7 @@ import (
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 
+	"dbm-services/common/db-event-consumer/pkg/base"
 	"dbm-services/common/db-event-consumer/pkg/cst"
 	"dbm-services/common/db-event-consumer/pkg/model"
 	"dbm-services/common/db-event-consumer/pkg/sinker"
@@ -32,14 +33,24 @@ func init() {
 	_ = sinker.RegisterModelSinker(&model.BinlogFileModel{})
 	_ = sinker.RegisterModelSinker(&model.MysqlBackupStatusModel{})
 	_ = sinker.RegisterModelSinker(&model.MysqlPartitionResultModel{})
+	_ = sinker.RegisterModelSinker(&model.MysqlTableSize{})
+	_ = sinker.RegisterModelSinker(&model.MysqlSlowLogModel{})
+
+	_ = sinker.RegisterModelSinker(&model.RedisBackupResultModel{})
+	_ = sinker.RegisterModelSinker(&model.RedisBinlogFileModel{})
+	_ = sinker.RegisterModelSinker(&model.RedisBackupStatusModel{})
+
 	_ = sinker.RegisterModelWriteType(&sinker.MysqlWriter{})
 	_ = sinker.RegisterModelWriteType(&sinker.XormWriter{})
 	_ = sinker.RegisterModelWriteType(&sinker.MysqlRawWriter{})
+	_ = sinker.RegisterModelWriteType(&sinker.DorisWriter{})
 }
 
 type mainConfig struct {
-	Log       *LogConfig `yaml:"log"`
-	KafkaInfo *KafkaMeta `yaml:"kafka_info"`
+	Log        *LogConfig           `yaml:"log"`
+	KafkaInfo  *KafkaMeta           `yaml:"kafka_info"`
+	BkmApiInfo *BkmApiInfo          `yaml:"bkm_api_info"`
+	BkmReport  *base.BKReportConfig `yaml:"bkm_report"`
 }
 
 func InitConfig() {
@@ -93,7 +104,7 @@ func InitSinkerConfig(mainConfFile string) ([]*SinkerConfig, error) {
 			panic(err)
 		}
 		if err = yaml.UnmarshalStrict(content, &sinkers); err != nil {
-			os.Stderr.WriteString(err.Error())
+			os.Stderr.WriteString(fmt.Sprintf("error parsing %s: %v", f, err))
 			continue
 		}
 
@@ -109,10 +120,13 @@ func InitSinkerConfig(mainConfFile string) ([]*SinkerConfig, error) {
 			checkDup[name] = struct{}{}
 
 			if s.WriteMode == "" {
-				s.WriteMode = cst.ModeUpsert
+				s.WriteMode = cst.ModeReplace
 			}
-			if !lo.Contains([]string{cst.ModeInsertIgnore, cst.ModeInsert, cst.ModeUpsert}, s.WriteMode) {
+			if !lo.Contains([]string{cst.ModeInsertIgnore, cst.ModeInsert, cst.ModeUpsert, cst.ModeReplace}, s.WriteMode) {
 				return nil, fmt.Errorf("invalid write_mode: %s", s.WriteMode)
+			}
+			if s.Topic == "" && s.BkDataId == 0 {
+				return nil, fmt.Errorf("topic or bk_data_id must be set")
 			}
 		}
 	}

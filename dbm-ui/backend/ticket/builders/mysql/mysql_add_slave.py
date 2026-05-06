@@ -19,13 +19,17 @@ from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer, fetch_cluster_ids
 from backend.ticket.builders.common.constants import MySQLBackupSource
-from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.mysql.base import (
+    BaseMySQLHATicketFlowBuilder,
+    MySQLBaseOperateDetailSerializer,
+    RelatedClusterAutoCalculateMixin,
+)
 from backend.ticket.constants import TicketType
 
 
-class MysqlAddSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
+class MysqlAddSlaveDetailSerializer(RelatedClusterAutoCalculateMixin, MySQLBaseOperateDetailSerializer):
     class AddSlaveInfoSerializer(serializers.Serializer):
-        new_slave = HostInfoSerializer(help_text=_("新从库机器信息"), required=False)
+        new_slave = serializers.ListField(help_text=_("新从库机器信息列表"), child=HostInfoSerializer(), required=False)
         cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
         resource_spec = serializers.JSONField(help_text=_("资源规格"), required=False)
 
@@ -43,6 +47,9 @@ class MysqlAddSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
     def validate(self, attrs):
         attrs = super().validate(attrs)
         super().validated_cluster_type(attrs, ClusterType.TenDBHA)
+
+        # 自动计算关联集群（后端自动扩展cluster_ids）
+        attrs = self.auto_calculate_related_clusters(attrs, role=InstanceInnerRole.MASTER)
 
         if attrs["ip_source"] == IpSource.RESOURCE_POOL:
             return attrs
@@ -63,8 +70,23 @@ class MysqlAddSlaveParamBuilder(builders.FlowParamBuilder):
         if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
             return
 
+        # 重新组织infos结构：将每个new_slave拆分成独立的info对象
+        new_infos = []
         for info in self.ticket_data["infos"]:
-            info["new_slave_ip"] = info["new_slave"]["ip"]
+            cluster_ids = info.get("cluster_ids", [])
+            new_slaves = info.get("new_slave", [])
+
+            for new_slave in new_slaves:
+                new_info = {
+                    "cluster_ids": cluster_ids.copy(),  # 复制cluster_ids避免引用问题
+                    "new_slave_ip": new_slave["ip"],  # 单个IP字符串
+                    "new_slave": new_slave,  # 保留完整的new_slave信息
+                    "resource_spec": info.get("resource_spec", {}),
+                }
+                new_infos.append(new_info)
+
+        # 替换原来的infos结构
+        self.ticket_data["infos"] = new_infos
 
 
 class MysqlAddSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
@@ -92,9 +114,24 @@ class MysqlAddSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         ticket_data = next_flow.details["ticket_data"]
+
+        # 重新组织infos结构：将每个new_slave拆分成独立的info对象
+        new_infos = []
         for info in ticket_data["infos"]:
-            info["new_slave"] = info.pop("new_slave")[0]
-            info["new_slave_ip"] = info["new_slave"]["ip"]
+            cluster_ids = info.get("cluster_ids", [])
+            new_slaves = info.get("new_slave", [])
+
+            for new_slave in new_slaves:
+                new_info = {
+                    "cluster_ids": cluster_ids.copy(),  # 复制cluster_ids避免引用问题
+                    "new_slave_ip": new_slave["ip"],  # 单个IP字符串
+                    "new_slave": new_slave,  # 保留完整的new_slave信息
+                    "resource_spec": info.get("resource_spec", {}),
+                }
+                new_infos.append(new_info)
+
+        # 替换原来的infos结构
+        ticket_data["infos"] = new_infos
 
         next_flow.save(update_fields=["details"])
 

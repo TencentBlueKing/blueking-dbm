@@ -13,6 +13,9 @@ import (
 // Disable disable will remove the entry from crond
 // permanent will change file from filesystem
 func Disable(name string, permanent bool) (int, error) {
+	crondMu.Lock()
+	defer crondMu.Unlock()
+
 	existEntry := findEntry(name)
 	if existEntry == nil {
 		err := errors.WithMessagef(api.NotFoundError, "entry [%s] from active list", name)

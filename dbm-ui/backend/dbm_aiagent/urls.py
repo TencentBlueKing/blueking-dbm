@@ -15,4 +15,5 @@ from .views import mcp_discovery
 urlpatterns = [
     path("mcp_tools/", include("backend.dbm_aiagent.mcp_tools.urls")),
     path("mcp/mcp-discovery/", mcp_discovery, name="mcp-discovery"),
+    path("agent/", include("backend.dbm_aiagent.agent.urls")),
 ]

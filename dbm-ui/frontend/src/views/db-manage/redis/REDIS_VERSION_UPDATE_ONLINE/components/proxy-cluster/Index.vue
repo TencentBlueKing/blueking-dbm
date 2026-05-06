@@ -86,7 +86,7 @@
 
   interface IDataRow {
     cluster: {
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       cluster_type_name: string;
       id: number;
       master_domain: string;
@@ -139,7 +139,7 @@
       label: t('目标集群'),
     },
     {
-      case: 'Redis-6',
+      case: 'twemproxy-0.4.1-v36',
       key: 'version',
       label: t('目标版本'),
     },
@@ -184,7 +184,6 @@
       }
     });
     tableData.value = [...(selected.value.length ? tableData.value : []), ...newList];
-    window.changeConfirm = true;
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {

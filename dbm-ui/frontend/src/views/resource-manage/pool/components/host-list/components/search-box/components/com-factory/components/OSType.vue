@@ -19,11 +19,18 @@
     :model-value="defaultValue"
     :placeholder="t('请选择操作系统类型')"
     @change="handleChange">
-    <BkOption
-      v-for="item in data"
-      :key="item"
-      :label="item"
-      :value="item" />
+    <BkOptionGroup group-style="divider">
+      <BkOption
+        v-for="item in data"
+        :key="item"
+        :label="item"
+        :value="item" />
+    </BkOptionGroup>
+    <BkOptionGroup group-style="divider">
+      <BkOption
+        :label="specialOptionLabelMap[SpecialOptions.EMPTY]"
+        :value="SpecialOptions.EMPTY" />
+    </BkOptionGroup>
   </BkSelect>
 </template>
 <script setup lang="ts">
@@ -32,13 +39,17 @@
 
   import { getOsTypeList } from '@services/source/dbresourceResource';
 
+  import { specialOptionLabelMap, SpecialOptions } from '@common/const';
+
   interface Props {
     defaultValue?: string;
   }
 
-  interface Emits {
-    (e: 'change', value: string): void;
-  }
+  type Emits = (e: 'change', value: string) => void;
+
+  defineOptions({
+    inheritAttrs: false,
+  });
 
   withDefaults(defineProps<Props>(), {
     defaultValue: () => '',
@@ -46,17 +57,13 @@
 
   const emits = defineEmits<Emits>();
 
-  defineOptions({
-    inheritAttrs: false,
-  });
-
   const { t } = useI18n();
 
   const { data, loading } = useRequest(getOsTypeList, {
     defaultParams: [
       {
-        offset: 0,
         limit: -1,
+        offset: 0,
       },
     ],
     initialData: [],

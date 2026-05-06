@@ -22,6 +22,7 @@ package dbaccess
 import (
 	commconst "k8s-dbs/common/constant"
 	models "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -39,6 +40,22 @@ type K8sCrdClusterTagDbAccess interface {
 // K8sCrdClusterTagDbAccessImpl AddonClusterVersionDbAccess 的具体实现
 type K8sCrdClusterTagDbAccessImpl struct {
 	db *gorm.DB
+}
+
+var (
+	clusterTagInstance K8sCrdClusterTagDbAccess
+	clusterTagOnce     sync.Once
+)
+
+// GetClusterTagDbAccess 获取 K8sCrdClusterTagDbAccess 单例实例
+func GetClusterTagDbAccess(db *gorm.DB) K8sCrdClusterTagDbAccess {
+	clusterTagOnce.Do(func() {
+		clusterTagInstance = &K8sCrdClusterTagDbAccessImpl{db: db}
+	})
+	if clusterTagInstance == nil {
+		panic("K8sCrdClusterTagDbAccess instance is nil after initialization")
+	}
+	return clusterTagInstance
 }
 
 // BatchCreate 批量新增
@@ -80,9 +97,4 @@ func (k K8sCrdClusterTagDbAccessImpl) FindByClusterID(clusterID uint64) ([]*mode
 	}
 	return tagModels, nil
 
-}
-
-// NewK8sCrdClusterTagDbAccess 创建 K8sCrdClusterTagDbAccess 接口实现实例
-func NewK8sCrdClusterTagDbAccess(db *gorm.DB) K8sCrdClusterTagDbAccess {
-	return &K8sCrdClusterTagDbAccessImpl{db}
 }

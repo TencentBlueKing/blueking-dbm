@@ -1,0 +1,66 @@
+/**
+ * MIT License
+ *
+ * Copyright (c) 2023 腾讯蓝鲸
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+package workflow
+
+import (
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+)
+
+// FailureInstanceInfo represents one instance that detector marked as failure (needs switching).
+type FailureInstanceInfo struct {
+	BkCloudID       int
+	IP              string
+	Port            int
+	BkBizID         int
+	Cluster         string
+	ClusterID       int
+	DbType          haprobe.DbType
+	EventName       haprobe.DbEventName            // failure event name for each instance
+	EventNameReason haprobe.DbEventNameReason      // event reason, for logging only, not used in strategy matching
+	ClusterType     haprobe.DbmMetadataClusterType // cluster type (needed for special strategy matching)
+	MachineType     haprobe.DbmMetadataMachineType // machine type (needed for special strategy matching)
+	InstanceRole    string                         // instance role, e.g. remote_master
+}
+
+// FailureGroup groups failure instances by (BkCloudID, DbType) for batch switching.
+type FailureGroup struct {
+	BkCloudID int
+	DbType    haprobe.DbType
+	Instances []FailureInstanceInfo
+}
+
+// IPs returns the list of IPs for building switcher request (deduplicated).
+func (g *FailureGroup) IPs() []string {
+	seen := make(map[string]struct{}, len(g.Instances))
+	ips := make([]string, 0, len(g.Instances))
+	for _, inst := range g.Instances {
+		if _, ok := seen[inst.IP]; ok {
+			continue
+		}
+		seen[inst.IP] = struct{}{}
+		ips = append(ips, inst.IP)
+	}
+	return ips
+}

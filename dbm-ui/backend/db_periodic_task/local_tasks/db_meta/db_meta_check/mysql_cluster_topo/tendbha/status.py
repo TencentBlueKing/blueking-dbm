@@ -144,6 +144,23 @@ def cluster_master_status(
 
 
 @checker_wrapper
+def cluster_master_standby(c: Cluster) -> List[CheckResponse]:
+    """
+    master 必须是 standby
+    """
+    bad = []
+
+    bad_masters = c.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER).exclude(is_stand_by=True)
+    if bad_masters.exists():
+        bad = [
+            CheckResponse(msg=_("{} stand_by 异常".format(ele.ip_port)), check_subtype=MetaCheckSubType.NoStandbyMaster)
+            for ele in bad_masters
+        ]
+
+    return bad
+
+
+@checker_wrapper
 def cluster_one_standby_slave(
     c: Cluster,
 ) -> List[CheckResponse]:

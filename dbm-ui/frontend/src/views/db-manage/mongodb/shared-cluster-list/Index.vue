@@ -66,7 +66,9 @@
       @filter-change="handleFilterChange"
       @selection="handleSelection">
       <template #operation>
-        <OperationColumn :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER">
+        <OperationColumn
+          ref="operationColumnRef"
+          :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER">
           <template #default="{ data }: { data: MongodbModel }">
             <div v-db-console="'mongodb.sharedClusterList.getAccess'">
               <BkButton
@@ -92,6 +94,11 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
+            <ClusterAlarmSubscribe
+              :data="data"
+              db-console-prefix="mongodb.sharedClusterList"
+              @click="hideOperationColumn"
+              @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
             <div v-db-console="'mongodb.sharedClusterList.webconsole'">
               <AuthRouterLink
                 action-id="mongodb_webconsole"
@@ -258,6 +265,7 @@
 
   import { AccountTypes, ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
+  import ClusterAlarmSubscribe from '@views/db-manage/common/cluster-alarm-subscribe/Index.vue';
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
@@ -304,6 +312,7 @@
     });
   };
 
+  const operationColumnRef = ref<ComponentExposed<typeof OperationColumn>>();
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const clusterAuthorizeShow = ref(false);
   const excelAuthorizeShow = ref(false);
@@ -324,6 +333,10 @@
 
   const fetchData = () => {
     tableRef.value!.fetchData(searchValue.value);
+  };
+
+  const hideOperationColumn = () => {
+    operationColumnRef.value?.hide();
   };
 
   const handleApply = () => {

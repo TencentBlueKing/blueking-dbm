@@ -30,7 +30,7 @@ mcp_{agent_type}_{mcp_type}_{function_name}
 在 `constants.py` 中添加新的 MCP 工具枚举：
 
 ```python
-class DBMAMcpTools(StrStructuredEnum):
+class DBMMcpTools(StrStructuredEnum):
     DBM = EnumField("dbm-mcp", "DBM")
     YOUR_TOOL = EnumField("your-tool-name", "Your Tool Name")  # 新增
 ```
@@ -73,7 +73,7 @@ class YourFeatureOutputSerializer(serializers.Serializer):
 ```python
 class YourFeatureViewSet(McpToolsViewSet):
     """你的功能 ViewSet"""
-    
+
     default_permission_class = []  # 根据需要设置权限类
 
     @mcp_tools_api_decorator(
@@ -81,7 +81,7 @@ class YourFeatureViewSet(McpToolsViewSet):
         request_slz=YourFeatureInputSerializer,
         response_slz=YourFeatureOutputSerializer,
         tags=[DBMMCPTags.READ],  # 或 DBMMCPTags.WRITE
-        mcp=[DBMAMcpTools.YOUR_TOOL],  # 指定所属的 MCP 工具
+        mcp=[DBMMcpTools.YOUR_TOOL],  # 指定所属的 MCP 工具
     )
     def your_feature(self, request, *args, **kwargs):
         """
@@ -103,7 +103,7 @@ from backend.db_services.dbbase.views import DBBaseViewSet
     response_slz=YourFeatureOutputSerializer,
     reference_view=DBBaseViewSet.filter_clusters,  # 引用已有视图
     tags=[DBMMCPTags.READ],
-    mcp=[DBMAMcpTools.YOUR_TOOL],
+    mcp=[DBMMcpTools.YOUR_TOOL],
 )
 def filter_clusters(self, request, *args, **kwargs):
     """这个方法会复用 DBBaseViewSet.filter_clusters 的逻辑和权限校验"""
@@ -178,6 +178,7 @@ python manage.py sync_saas_apigw --mcp
 1. 修改 mcp 代码后, 执行 `python manage.py sync_saas_apigw --only_mcp_resource` 更新本地描述文件
 2. `export DEBUG_MCP=1; python manage.py runserver appdev.aaa.bbb.com:8080` 以调试模式启动 django 服务, server url 没啥要求, 随便
 3. `build/db-mcp-server --bind-address 0.0.0.0:9191  --mcp-backend-base-url http://appdev.aaa.bbb.com:8080/` 启动 mcp-server
+4. 如果想本地启动 bkai agent, 参考其他文档
 
 ### 联调配置
 基于 `CodeBuddy`

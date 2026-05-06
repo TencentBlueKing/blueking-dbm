@@ -16,7 +16,7 @@ import OperationModel from '@services/model/db-resource/Operation';
 import SummaryModel from '@services/model/db-resource/summary';
 import type { HostInfo, ListBase } from '@services/types';
 
-import type { DBTypes } from '@common/const';
+import { DBTypes, MachineEvents } from '@common/const';
 
 import http, { type IRequestPayload } from '../http';
 
@@ -91,10 +91,32 @@ export function importResource(params: {
   }>(`${path}/import/`, params);
 }
 
+interface ResouceListParams {
+  agent_status?: string;
+  bk_cloud_ids?: string;
+  city?: string;
+  cpu?: string;
+  device_class?: string;
+  disk?: string;
+  disk_type?: string;
+  for_biz?: number;
+  hosts?: string;
+  label_names?: string;
+  limit?: number;
+  mem?: string;
+  mount_point?: string;
+  offset?: number;
+  os_names?: string;
+  os_type?: string;
+  resource_type?: string;
+  spec_id?: string;
+  subzone_ids?: string;
+}
+
 /**
  * 资源池列表
  */
-export function fetchList(params: Record<string, any>, payload = {} as IRequestPayload) {
+export function fetchList(params: ResouceListParams, payload = {} as IRequestPayload) {
   return http.post<ListBase<DbResourceModel[]>>(`${path}/list/`, params, payload).then((data) => ({
     ...data,
     results: data.results.map(
@@ -106,6 +128,13 @@ export function fetchList(params: Record<string, any>, payload = {} as IRequestP
         ),
     ),
   }));
+}
+
+/**
+ * 资源池导出
+ */
+export function resourceExport(params: ResouceListParams) {
+  return http.post<string>(`${path}/resource_export/`, params, { responseType: 'blob' });
 }
 
 /**
@@ -192,6 +221,7 @@ export function getSpecResourceCount(params: {
  * 更新资源
  */
 export function updateResource(params: {
+  bk_biz_id?: number; // update_type 相关字段，当前业务id
   bk_host_ids: number[];
   city_meta?: {
     city: string;
@@ -199,14 +229,22 @@ export function updateResource(params: {
   };
   device_class?: string;
   for_biz?: number;
+  host_id_ip_map?: Record<string, string>; // update_type 相关字段
   labels?: number[];
   rack_id?: string;
+  remark?: {
+    [key: string]: {
+      after_value: string;
+      before_value: string;
+    };
+  }[]; // update_type 相关字段
   resource_type?: string;
   storage_device?: Record<string, { disk_type: string; size: number }>;
   sub_zone_meta?: {
     sub_zone: string;
     sub_zone_id: string;
   };
+  update_type?: MachineEvents.HOST_ATTRIBUTE | MachineEvents.RESOURCE_OWNER; // 修改资源归属或修改主机属性
 }) {
   return http.post(`${path}/update/`, params);
 }
@@ -216,6 +254,18 @@ export function updateResource(params: {
  */
 export function getOsTypeList(params: { limit?: number; offset?: number }) {
   return http.get<string[]>(`${path}/get_os_types/`, params);
+}
+
+/**
+ * 获取操作系统名称
+ */
+export function getResourceOsName() {
+  return http.post<{
+    os_names: {
+      text: string;
+      value: string;
+    }[];
+  }>(`${path}/resource_osname/`);
 }
 
 /**
@@ -256,7 +306,18 @@ export function getSummaryList(params: {
 /**
  * 追加主机标签
  */
-export function appendHostLabel(params: { bk_host_ids: number[]; labels: number[] }) {
+export function appendHostLabel(params: {
+  bk_biz_id: number;
+  bk_host_ids: number[];
+  host_id_ip_map: Record<string, string>;
+  labels: number[];
+  remark: {
+    [key: string]: {
+      after_value: string;
+      before_value: string;
+    };
+  }[];
+}) {
   return http.post(`${path}/append_labels/`, params);
 }
 
@@ -278,19 +339,28 @@ export function specCostEstimate(params: {
  */
 export function calcResourceWaterLevel(params: { cache: boolean }) {
   return http.post<{
-    update_time: string;
-    flush_time: string;
-    water_level: {
+    exclusive_machine: {
+      empty_city: string[];
+      empty_os: string[];
+      empty_subzone: string[];
+    };
+    exclusive_spec: {
       spec_id: number;
       spec_name: string;
-      spec_machine_type: string;
-      db_type: string;
-      os_name: string;
+    }[];
+    flush_time: string;
+    update_time: string;
+    water_level: {
       city: string;
-      subzone: string;
+      db_type: string;
       machine_count: number;
-      resource_count: number;
       machine_refer_count: number;
+      os_name: string;
+      resource_count: number;
+      spec_id: number;
+      spec_machine_type: string;
+      spec_name: string;
+      subzone: string;
     }[];
   }>(`${path}/calc_resource_water_level/`, params);
 }

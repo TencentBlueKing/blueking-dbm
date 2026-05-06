@@ -205,7 +205,7 @@
               return {
                 id: searchItemConfig.id,
                 name: searchItemConfig.name,
-                values: _.filter((latestValue[searchItemConfig.id] as string).split(','), (item) =>
+                values: _.filter(String(latestValue[searchItemConfig.id]).split(','), (item) =>
                   Boolean(_.trim(item)),
                 ).map((text) => ({
                   label: data[text] ? data[text] : text,

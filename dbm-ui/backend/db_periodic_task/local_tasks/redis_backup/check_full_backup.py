@@ -9,193 +9,431 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+import time
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from django.db.models import Prefetch, Q
 from django.utils import timezone
-from django.utils.translation import gettext as _
 
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
-from backend.db_report.enums import RedisBackupCheckSubType
-from backend.db_report.models import RedisBackupCheckReport
+from backend.db_report.enums import RedisBackupCheckSubType, ReportStateType
 
-from .bklog_query import ClusterBackup
+from .bklog_query import DOMAIN_BATCH_SIZE, batch_fetch_backup_logs, find_and_verify_failed_tasks
+from .config import RedisBackupCheckConfig
+from .report_op import RedisBackupCheckBatchOps, RedisBackupClusterReport
 
 logger = logging.getLogger("root")
 
-
-def check_full_backup():
-    _check_tendis_full_backup()
-
-
-class BackupFile:
-    def __init__(self, file_name: str, file_size: int, file_type=""):
-        self.file_name = file_name
-        self.file_size = file_size
-        self.file_type = file_type
+FULL_BACKUP_CLUSTER_TYPES = [
+    ClusterType.TendisRedisInstance,
+    ClusterType.TendisTwemproxyRedisInstance,
+    ClusterType.TendisPredixyRedisCluster,
+    ClusterType.TendisPredixyTendisplusCluster,
+    ClusterType.TwemproxyTendisSSDInstance,
+]
 
 
-def _check_tendis_full_backup():
+def _parse_backup_hour(time_str: str) -> int | None:
+    """Extract the hour from a backup timestamp string.
+
+    Handles Go time.Time JSON formats like "2024-01-15T05:30:00+08:00"
+    and "2024-01-15 05:30:00".
     """
-    tendisplus,ssd,cache 三种架构：
-    1、针对集群全部查询出来：
-        1.1 然后过滤失败的，直接写入库：不可能同一时间点，又存在失败的，又存在成功的，所以有失败的直接入库了
-        1.2、再过滤成功的部分，去校验，(如果不加这个逻辑的话，可能备份记录没上报的情况)
-                1.2.1 每天最少有3份全备份(新部署的集群可能没有3份，所以这里需要获取集群部署时间吗？)
-                        所以这里获取部署时间超过1天的集群，最少有3份；部署时间小于1天的集群，暂时不考虑这个校验咯，如果有失败的1.1会记录
-                1.2.2 Q:需要针对时间点去查询吗？这样子的话就是写死3个时间点了，但是机器的crontab可能被改动？
-                A:没必要，有些集群可能会设置业务低峰期备份
-                1.2.3 小于的这种情况，可能是在master上的备份，这种情况下，再去校验一下master的备份情况
-                1.2.4  过滤掉 刚扩容，重建热备-> 创建时间小于24小时的节点
+    if not time_str or len(time_str) < 13:
+        return None
+    try:
+        return int(time_str[11:13])
+    except (ValueError, IndexError):
+        return None
 
-    备份规则：
-    redis cache 全备份每天三次，一般的时间点如下：
-    cron: 0 5,13,21 * * *
-    ssd，plus 每天一次全备份,早上五点
+
+def _map_to_schedule_slot(hour: int, sorted_schedule: list[int]) -> int:
+    """Map a backup hour to its triggering schedule slot.
+
+    A backup completing at hour H was triggered by the most recent
+    schedule hour <= H (with midnight wrap-around).
     """
+    for sh in reversed(sorted_schedule):
+        if hour >= sh:
+            return sh
+    return sorted_schedule[-1]
 
-    """
-    删除时间大于60天的记录,全备份和binlog都是同一张表，这里操作就好
-    """
-    failed_records = []
-    RedisBackupCheckReport.objects.filter(create_at__lte=timezone.now() - timedelta(days=60)).delete()
 
-    # 构建查询条件:tendisplus,ssd,cache,集群创建时间大于1天，巡检0点发起
-    query = (
-        Q(cluster_type=ClusterType.TendisPredixyTendisplusCluster)
-        | Q(cluster_type=ClusterType.TwemproxyTendisSSDInstance)
-        | Q(cluster_type=ClusterType.TendisTwemproxyRedisInstance)
-    ) & Q(create_at__lt=timezone.now() - timedelta(days=1))
+def _find_missing_slots(backup_times: list[str], schedule_hours: list[int]) -> list[int]:
+    """Return schedule hours not covered by any backup timestamp."""
+    sorted_hours = sorted(schedule_hours)
+    covered: set[int] = set()
+    for time_str in backup_times:
+        hour = _parse_backup_hour(time_str)
+        if hour is not None:
+            covered.add(_map_to_schedule_slot(hour, sorted_hours))
+    return [h for h in sorted_hours if h not in covered]
 
-    # 预取storanges关联的as_ejector对象
-    ejector_prefetch = Prefetch(
-        "as_ejector", queryset=StorageInstanceTuple.objects.select_related("receiver"), to_attr="ejector_tuples"
-    )
 
-    # 预取storages对象
-    storage_prefetch = Prefetch(
-        "storageinstance_set",
-        queryset=StorageInstance.objects.filter(instance_role=InstanceRole.REDIS_MASTER.value)
-        .select_related("machine")
-        .prefetch_related(ejector_prefetch),
-        to_attr="storages",
-    )
-    cluster_list = Cluster.objects.filter(query).prefetch_related(storage_prefetch)
-    for c in cluster_list:
-        logger.info("+===+++++===  start check {} full backup +++++===++++ ".format(c.immute_domain))
-        logger.info("+===+++++===  cluster type is: {} +++++===++++ ".format(c.cluster_type))
-        cluster_slave_instance = []  # 初始化集群slave列表
-        cluster_master_instance = []  # 初始化集群master列表
-        cluster_all_instance = []
-        bklog_success_instance_count = {}  # 初始化字典：节点和对应的备份次数
-        slave_ins_map = defaultdict()  # 主从节点对应关系
-
-        for master_obj in c.storages:
-            slave_obj = master_obj.ejector_tuples[0].receiver
-            current_datetime = timezone.now()
-            # 计算时间差
-            time_difference = current_datetime - slave_obj.create_at
-            # 判断时间差是否大于等于24小时  # 过滤掉 刚扩容，重建热备-> 创建时间小于24小时
-            if time_difference >= timedelta(hours=24):
-                # 进行相应的操作
-                cluster_slave_instance.append("{}{}{}".format(slave_obj.machine.ip, IP_PORT_DIVIDER, slave_obj.port))
-                cluster_master_instance.append(
-                    "{}{}{}".format(master_obj.machine.ip, IP_PORT_DIVIDER, master_obj.port)
-                )
-                slave_ins_map[
-                    "{}{}{}".format(slave_obj.machine.ip, IP_PORT_DIVIDER, slave_obj.port)
-                ] = "{}{}{}".format(master_obj.machine.ip, IP_PORT_DIVIDER, master_obj.port)
-
-        cluster_all_instance.extend(cluster_slave_instance)
-        cluster_all_instance.extend(cluster_master_instance)
-        logger.info("+===+++++===  cluster slave instance  is: {} +++++===++++ ".format(cluster_slave_instance))
-
-        # 初始化所有 instance 的计数为 0
-        for instance in cluster_all_instance:
-            bklog_success_instance_count[instance] = 0
-
-        now = datetime.now(timezone.utc)
-        yesterday = now - timedelta(days=1)
-        start_time = datetime(yesterday.year, yesterday.month, yesterday.day).astimezone(timezone.utc)
-        end_time = datetime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59).astimezone(timezone.utc)
-        #  	 +===+++++=== start_time is: 2023-10-25 00:00:00 ,end_time is :2023-10-25 23:59:59 +++++===++++
-        logger.info("+===+++++=== start_time is: {} ,end_time is :{} +++++===++++ ".format(start_time, end_time))
-        # 集群前一天对应的集群备份记录
-        backup = ClusterBackup(c.id, c.immute_domain)
-        # 集群纬度的，假设一开始是备份完整的，后面会去校验对这个值进行赋值，如果有存在异常会赋值为False
-
-        bklogs = backup.query_full_log_from_bklog(start_time, end_time)
-        # 如果集群维度没有数据，就不用在看节点维度了
-        if not bklogs:
-            msg = _("无法查找到在时间范围内{}-{}，集群{}的全备份日志").format(start_time, end_time, c.immute_domain)
-            logger.error(msg)
-            instance = "all instance"
-            failed_records.append(create_full_failed_record(c, instance, msg))
+def _find_off_schedule_backups(
+    backup_times: list[str],
+    schedule_hours: list[int],
+    max_deviation_hours: float,
+) -> list[tuple[str, int, int]]:
+    """Return (time_str, actual_hour, mapped_slot) for backups deviating beyond threshold."""
+    sorted_hours = sorted(schedule_hours)
+    off_schedule = []
+    for time_str in backup_times:
+        hour = _parse_backup_hour(time_str)
+        if hour is None:
             continue
+        slot = _map_to_schedule_slot(hour, sorted_hours)
+        deviation = (hour - slot) % 24
+        if deviation > max_deviation_hours:
+            off_schedule.append((time_str, hour, slot))
+    return off_schedule
 
-        logger.info(_("+===+++++===  {} 集群维度日志不为空 +++++===++++ ".format(c.immute_domain)))
-        for bklog in bklogs:
-            # 失败的记录，直接记录:同一条记录，不可能又存在失败的，又存在成功的，所以有失败的直接入库了
-            if bklog.get("backup_status", "") == "to_backup_system_failed":
-                logger.error("+===+++++=== to_backup_system_failed bklog: {} +++++===++++ ".format(bklog))
-                msg = bklog["backup_status_info"]
-                instance = bklog["redis_ip"] + IP_PORT_DIVIDER + str(bklog["redis_port"])
-                failed_records.append(create_full_failed_record(c, instance, msg))
 
-            # 对成功的进行处理
-            if bklog.get("backup_status", "") == "to_backup_system_success":
-                # 集群的master和slave 都进行统计
-                for instance in cluster_all_instance:
-                    ip, port = instance.split(":")
-                    if ip == bklog["redis_ip"] and int(port) == bklog["redis_port"]:
-                        # 找到匹配的项，更新计数
-                        bklog_success_instance_count[instance] += 1
-        # 校验instance和对应的计数：可能存在master备份，也可能存在slave的备份
-        for instance, count in bklog_success_instance_count.items():
-            # 默认是对slave进行备份，slave进行校验
-            if instance not in cluster_slave_instance:
-                continue
-            logger.info(_("+===++==={}正常备份次数{}，集群类型{} ++++++++ ".format(instance, count, c.cluster_type)))
-            # ssd,plus 每天备份一次
-            if c.cluster_type in (ClusterType.TendisPredixyTendisplusCluster, ClusterType.TwemproxyTendisSSDInstance):
-                expect_count = 1
-            # cahce 每天备份三次
-            elif c.cluster_type == ClusterType.TendisTwemproxyRedisInstance:
-                expect_count = 3
-            else:
-                continue
-            master_instance = slave_ins_map[instance]
-            master_backup_count = bklog_success_instance_count[master_instance]
+def _format_hours(hours: list[int]) -> str:
+    return ", ".join(f"{h:02d}:00" for h in hours)
 
-            if count < expect_count and master_backup_count < expect_count:
-                msg = """slave:{} the number of files successfully backed is:{},
-                master:{} the number of files successfully backed is:{}：
-                There are no backup files {} times, please check! """.format(
-                    instance, count, master_instance, master_backup_count, expect_count
+
+class CheckFullBackupTask:
+    """Full backup check: verify every cluster has the expected number of
+    successful full backups in yesterday's BKLog records.
+
+    Backup schedule (default cron: 0 5,13,21 * * *):
+    - redis cache: 3 backups/day at 05:00, 13:00, 21:00
+    - ssd / plus:  1 backup/day  at 05:00 (13:00/21:00 skipped by dbmon)
+    - Default backup target is slave; if slave backup is insufficient
+      but master meets the threshold, report as WARNING.
+    """
+
+    def __init__(self):
+        self.subtype = RedisBackupCheckSubType.FullBackup.value
+
+    def start(self) -> tuple[int, int, int, int]:
+        config = RedisBackupCheckConfig.from_settings()
+        batch_ops = RedisBackupCheckBatchOps(self.subtype)
+        batch_ops.delete_old_records(config.retention_days)
+        batch_ops.delete_today_records()
+
+        cluster_ids = list(self._get_cluster_ids(config))
+        start_time, end_time = self._yesterday_time_range()
+        cluster_state_total = {
+            ReportStateType.NORMAL.value: 0,
+            ReportStateType.WARNING.value: 0,
+            ReportStateType.ABNORMAL.value: 0,
+        }
+
+        total_num = 0
+        for batch_start in range(0, len(cluster_ids), DOMAIN_BATCH_SIZE):
+            batch_ids = cluster_ids[batch_start : batch_start + DOMAIN_BATCH_SIZE]
+            batch_clusters = list(self._get_cluster_queryset(batch_ids))
+            domains = [c.immute_domain for c in batch_clusters]
+            domain_logs = batch_fetch_backup_logs("redis_fullbackup_result", start_time, end_time, domains)
+
+            for cluster in batch_clusters:
+                total_num += 1
+                bklogs = domain_logs.get(cluster.immute_domain, [])
+                rows = self._check_cluster_with_retry(cluster, bklogs, config)
+                if rows:
+                    cluster_state_total[rows[0].state] += 1
+                for row in rows:
+                    batch_ops.append(row)
+
+            batch_ops.bulk_create()
+
+        logger.info(
+            "CheckFullBackupTask total=%s states=%s",
+            total_num,
+            cluster_state_total,
+        )
+        return (
+            total_num,
+            cluster_state_total[ReportStateType.NORMAL.value],
+            cluster_state_total[ReportStateType.WARNING.value],
+            cluster_state_total[ReportStateType.ABNORMAL.value],
+        )
+
+    @staticmethod
+    def _base_filter(config: RedisBackupCheckConfig):
+        return Q(cluster_type__in=[ct.value for ct in FULL_BACKUP_CLUSTER_TYPES]) & Q(
+            create_at__lt=timezone.now() - timedelta(days=config.min_cluster_age_days)
+        )
+
+    @staticmethod
+    def _get_cluster_ids(config: RedisBackupCheckConfig):
+        return Cluster.objects.filter(CheckFullBackupTask._base_filter(config)).values_list("id", flat=True)
+
+    @staticmethod
+    def _get_cluster_queryset(ids):
+        ejector_prefetch = Prefetch(
+            "as_ejector",
+            queryset=StorageInstanceTuple.objects.select_related("receiver"),
+            to_attr="ejector_tuples",
+        )
+        storage_prefetch = Prefetch(
+            "storageinstance_set",
+            queryset=StorageInstance.objects.filter(instance_role=InstanceRole.REDIS_MASTER.value)
+            .select_related("machine")
+            .prefetch_related(ejector_prefetch),
+            to_attr="storages",
+        )
+        return Cluster.objects.filter(id__in=ids).prefetch_related(storage_prefetch)
+
+    def _check_cluster_with_retry(
+        self,
+        cluster: Cluster,
+        bklogs: list[dict],
+        config: RedisBackupCheckConfig,
+        max_retries: int = 3,
+    ):
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                return self._check_cluster(cluster, bklogs, config)
+            except Exception as e:
+                logger.error(
+                    "CheckFullBackupTask cluster=%s attempt=%d/%d error: %s",
+                    cluster.immute_domain,
+                    attempt + 1,
+                    max_retries,
+                    e,
                 )
-                # 记录备份失败的集群和实例
-                failed_records.append(create_full_failed_record(c, instance, msg))
+                last_error = e
+                time.sleep(attempt * 3 + 1)
+        report = RedisBackupClusterReport(cluster, self.subtype)
+        return report.make_error_record(f"system error after {max_retries} retries: {last_error}")
 
-    # 批量插入备份失败记录
-    RedisBackupCheckReport.objects.bulk_create(failed_records)
+    def _check_cluster(self, cluster: Cluster, bklogs: list[dict], config: RedisBackupCheckConfig):
+        report = RedisBackupClusterReport(cluster, self.subtype)
 
+        if cluster.bk_cloud_id not in config.target_bk_cloud_ids:
+            return report.make_skip_record(f"skipped: bk_cloud_id={cluster.bk_cloud_id} (not in target list)")
 
-def create_full_failed_record(c, instance, msg):
-    """
-    创建全备备份失败记录对象
-    """
-    logger.info(_("+===++===  实例{}全备份失败，集群类型{}写入记录 ++++++++ ".format(instance, c.cluster_type)))
-    return RedisBackupCheckReport(
-        creator=c.creator,
-        bk_biz_id=c.bk_biz_id,
-        bk_cloud_id=c.bk_cloud_id,
-        cluster=c.immute_domain,
-        cluster_type=c.cluster_type,
-        instance=instance,
-        status=False,
-        msg=msg,
-        subtype=RedisBackupCheckSubType.FullBackup.value,
-    )
+        if cluster.immute_domain in config.ignore_domains:
+            return report.make_skip_record("skipped: domain in ignore list")
+
+        slave_instances, master_instances, slave_to_master, recently_switched = self._collect_instance_pairs(
+            cluster, config
+        )
+        if not slave_instances:
+            return report.make_skip_record(
+                f"no eligible instances (all created < {config.min_instance_age_hours}h ago)"
+            )
+
+        if not bklogs:
+            return report.make_error_record("no full backup logs found for this cluster")
+
+        all_instances = slave_instances + master_instances
+        (
+            success_count,
+            success_times,
+            seen_instances,
+            inst_errors,
+            api_promoted_per_inst,
+        ) = self._process_bklog_entries(report, bklogs, all_instances)
+
+        schedule_hours = config.get_full_backup_schedule(cluster.cluster_type)
+        expect_count = len(schedule_hours)
+        schedule_str = _format_hours(schedule_hours)
+
+        for slave_inst in slave_instances:
+            master_inst = slave_to_master.get(slave_inst)
+            self._evaluate_slave(
+                report,
+                slave_inst,
+                master_inst,
+                success_count,
+                success_times,
+                seen_instances,
+                inst_errors,
+                schedule_hours,
+                expect_count,
+                schedule_str,
+                config.max_schedule_deviation_hours,
+                recently_switched=recently_switched.get(slave_inst),
+                api_promoted_count=api_promoted_per_inst.get(slave_inst, 0),
+            )
+
+        return report.make_records()
+
+    def _process_bklog_entries(
+        self,
+        report: RedisBackupClusterReport,
+        bklogs: list[dict],
+        tracked_instances: list[str],
+    ) -> tuple[dict[str, int], dict[str, list[str]], set[str], dict[str, list[str]], dict[str, int]]:
+        """Classify BKLog entries: count successes, collect errors, cross-check with backup API."""
+        success_count: dict[str, int] = {inst: 0 for inst in tracked_instances}
+        success_times: dict[str, list[str]] = {inst: [] for inst in tracked_instances}
+        seen_instances: set[str] = set()
+        inst_errors: dict[str, list[str]] = defaultdict(list)
+
+        api_confirmed = find_and_verify_failed_tasks(bklogs)
+        bklog_success_task_ids = {
+            e["task_id"] for e in bklogs if e.get("backup_status") == "to_backup_system_success" and e.get("task_id")
+        }
+        api_promoted_per_inst: dict[str, int] = defaultdict(int)
+
+        for entry in bklogs:
+            status = entry.get("backup_status", "")
+            task_id = entry.get("task_id", "")
+            inst_addr = f"{entry.get('redis_ip', '')}{IP_PORT_DIVIDER}{entry.get('redis_port', '')}"
+            seen_instances.add(inst_addr)
+
+            if status == "to_backup_system_success":
+                if inst_addr in success_count:
+                    success_count[inst_addr] += 1
+                    success_times[inst_addr].append(entry.get("uptime", ""))
+            elif status in ("to_backup_system_failed", "to_backup_system_start"):
+                if status == "to_backup_system_failed" and task_id in bklog_success_task_ids:
+                    continue
+                if task_id in api_confirmed:
+                    if inst_addr in success_count:
+                        success_count[inst_addr] += 1
+                        success_times[inst_addr].append(entry.get("uptime", ""))
+                        api_promoted_per_inst[inst_addr] += 1
+                elif status == "to_backup_system_failed":
+                    err_msg = entry.get("backup_status_info", "upload failed")
+                    if err_msg not in inst_errors[inst_addr]:
+                        inst_errors[inst_addr].append(err_msg)
+                # to_backup_system_start entries not confirmed by the API are in-flight
+                # uploads -- not an error; they are intentionally left unreported.
+
+        if api_promoted_per_inst:
+            total_promoted = sum(api_promoted_per_inst.values())
+            logger.info(
+                "CheckFullBackupTask cluster=%s: %d entries across %d instances promoted to success via backup system API",
+                report.cluster.immute_domain,
+                total_promoted,
+                len(api_promoted_per_inst),
+            )
+
+        return success_count, success_times, seen_instances, inst_errors, api_promoted_per_inst
+
+    @staticmethod
+    def _evaluate_slave(
+        report: RedisBackupClusterReport,
+        slave_inst: str,
+        master_inst: str | None,
+        success_count: dict[str, int],
+        success_times: dict[str, list[str]],
+        seen_instances: set[str],
+        inst_errors: dict[str, list[str]],
+        schedule_hours: list[int],
+        expect_count: int,
+        schedule_str: str,
+        max_deviation_hours: float,
+        recently_switched: int | None = None,
+        api_promoted_count: int = 0,
+    ):
+        """Evaluate a single slave instance and append the result to the report.
+
+        *recently_switched*: if not None, the master-slave tuple age in hours,
+        indicating a recent role switch that may explain missing backups.
+        """
+        slave_count = success_count[slave_inst]
+        master_count = success_count.get(master_inst, 0) if master_inst else 0
+
+        if slave_count >= expect_count:
+            if slave_count == expect_count:
+                off_sched = _find_off_schedule_backups(
+                    success_times[slave_inst],
+                    schedule_hours,
+                    max_deviation_hours,
+                )
+                if off_sched:
+                    off_detail = ", ".join(f"{t}(slot {s:02d}:00)" for t, _, s in off_sched)
+                    report.append(
+                        ReportStateType.ABNORMAL.value,
+                        slave_inst,
+                        f"{slave_count}/{expect_count} backups but {len(off_sched)} off-schedule: {off_detail}",
+                    )
+                    return
+            ok_msg = "ok"
+            if api_promoted_count > 0:
+                ok_msg = f"ok ({api_promoted_count} via backup system double-check)"
+            report.append(ReportStateType.NORMAL.value, slave_inst, ok_msg)
+            return
+
+        if master_count >= expect_count:
+            slave_missing = _find_missing_slots(success_times[slave_inst], schedule_hours)
+            report.append(
+                ReportStateType.WARNING.value,
+                slave_inst,
+                f"slave {slave_count}/{expect_count}, missing {_format_hours(slave_missing)}; "
+                f"covered by master ({master_count}/{expect_count})",
+            )
+            return
+
+        missing = _find_missing_slots(success_times[slave_inst], schedule_hours)
+        best_count = max(slave_count, master_count)
+        no_log = slave_inst not in seen_instances and (master_inst is None or master_inst not in seen_instances)
+        errors = list(inst_errors.get(slave_inst, []))
+        if master_inst:
+            for e in inst_errors.get(master_inst, []):
+                if e not in errors:
+                    errors.append(e)
+        detail = ""
+        if recently_switched is not None:
+            detail += f"possible recent master-slave switch ({recently_switched}h ago); "
+        if errors:
+            detail += f"errors({'; '.join(errors)}); "
+        detail += f"{best_count}/{expect_count} backups (expected at {schedule_str}), "
+        if no_log:
+            detail += "no log found, "
+        detail += f"missing {_format_hours(missing)}"
+        if recently_switched is not None or not no_log:
+            state = ReportStateType.WARNING.value
+        else:
+            state = ReportStateType.ABNORMAL.value
+        report.append(state, slave_inst, detail)
+
+    @staticmethod
+    def _collect_instance_pairs(cluster: Cluster, config: RedisBackupCheckConfig):
+        """Return (slave_instances, master_instances, slave_to_master_map, recently_switched).
+
+        Skips instances younger than config.min_instance_age_hours.
+        Populates *recently_switched* with slave addresses whose
+        StorageInstanceTuple was created within min_instance_age_hours,
+        mapping to the tuple age in hours.
+        """
+        slave_instances = []
+        master_instances = []
+        slave_to_master: dict[str, str] = {}
+        recently_switched: dict[str, int] = {}
+        now = timezone.now()
+
+        for master_obj in cluster.storages:
+            if not getattr(master_obj, "ejector_tuples", None):
+                logger.warning(
+                    "CheckFullBackupTask cluster=%s master %s:%s has no ejector tuples, skipped",
+                    cluster.immute_domain,
+                    master_obj.machine.ip,
+                    master_obj.port,
+                )
+                continue
+            tuple_obj = master_obj.ejector_tuples[0]
+            slave_obj = tuple_obj.receiver
+            if (now - slave_obj.create_at) < timedelta(hours=config.min_instance_age_hours):
+                continue
+
+            slave_addr = f"{slave_obj.machine.ip}{IP_PORT_DIVIDER}{slave_obj.port}"
+            master_addr = f"{master_obj.machine.ip}{IP_PORT_DIVIDER}{master_obj.port}"
+            slave_instances.append(slave_addr)
+            master_instances.append(master_addr)
+            slave_to_master[slave_addr] = master_addr
+
+            tuple_age = now - tuple_obj.create_at
+            if tuple_age < timedelta(hours=config.min_instance_age_hours):
+                recently_switched[slave_addr] = int(tuple_age.total_seconds() // 3600)
+
+        return slave_instances, master_instances, slave_to_master, recently_switched
+
+    @staticmethod
+    def _yesterday_time_range():
+        local_now = timezone.localtime()
+        yesterday = local_now - timedelta(days=1)
+        start = yesterday.replace(hour=0, minute=0, second=0, microsecond=0).astimezone(tz=timezone.utc)
+        end = yesterday.replace(hour=23, minute=59, second=59, microsecond=0).astimezone(tz=timezone.utc)
+        return start, end

@@ -9,6 +9,14 @@ import (
 
 // Add TODO
 func Add(j *config.ExternalJob, permanent bool) (int, error) {
+	crondMu.Lock()
+	defer crondMu.Unlock()
+
+	return add(j, permanent)
+}
+
+// add 内部实现，不加锁
+func add(j *config.ExternalJob, permanent bool) (int, error) {
 	existEntry := findEntry(j.Name)
 	if existEntry != nil {
 		err := fmt.Errorf("duplicate activate job name: %s", j.Name)

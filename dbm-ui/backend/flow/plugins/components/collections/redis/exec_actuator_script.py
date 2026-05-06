@@ -97,7 +97,7 @@ class ExecuteDBActuatorScriptService(BkJobService):
 
         if kwargs["is_update_trans_data"]:
             cluster_log = copy.deepcopy(kwargs["cluster"])
-            for k in ("password", "pwd"):
+            for k in ("password", "pwd", "src_redis_password", "dst_cluster_password"):
                 if cluster_log.get(k):
                     cluster_log[k] = "xxxxxx"
             self.log_info(_("[{}] kwargs['payload'] 是不完整，需要将{}内容加到payload中").format(node_name, cluster_log))
@@ -116,7 +116,8 @@ class ExecuteDBActuatorScriptService(BkJobService):
         template = jinja_env.from_string(redis_actuator_template)
 
         body = {
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": f"DBM_{node_name}_{node_id}",
             "script_content": base64_encode(template.render(db_act_template)),
             "script_language": 1,

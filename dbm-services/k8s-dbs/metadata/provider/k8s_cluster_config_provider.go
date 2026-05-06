@@ -23,6 +23,7 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -43,6 +44,22 @@ type K8sClusterConfigProvider interface {
 // K8sClusterConfigProviderImpl K8sClusterConfigProvider 具体实现
 type K8sClusterConfigProviderImpl struct {
 	dbAccess dbaccess.K8sClusterConfigDbAccess
+}
+
+var (
+	k8sClusterConfigInstance K8sClusterConfigProvider
+	k8sClusterConfigOnce     sync.Once
+)
+
+// GetK8sClusterConfigProvider 获取 K8sClusterConfigProvider 单例实例
+func GetK8sClusterConfigProvider(dbAccess dbaccess.K8sClusterConfigDbAccess) K8sClusterConfigProvider {
+	k8sClusterConfigOnce.Do(func() {
+		k8sClusterConfigInstance = &K8sClusterConfigProviderImpl{dbAccess: dbAccess}
+	})
+	if k8sClusterConfigInstance == nil {
+		panic("K8sClusterConfigProvider instance is nil after initialization")
+	}
+	return k8sClusterConfigInstance
 }
 
 // ListConfigsByLimit list 查询实现
@@ -140,9 +157,4 @@ func (k *K8sClusterConfigProviderImpl) UpdateConfig(entity *metaentity.K8sCluste
 		return 0, errors.Wrapf(err, "failed to update cluster config with entity: %+v", entity)
 	}
 	return rows, nil
-}
-
-// NewK8sClusterConfigProvider 创建 K8sClusterConfigDbAccess 接口实现实例
-func NewK8sClusterConfigProvider(dbAccess dbaccess.K8sClusterConfigDbAccess) K8sClusterConfigProvider {
-	return &K8sClusterConfigProviderImpl{dbAccess}
 }

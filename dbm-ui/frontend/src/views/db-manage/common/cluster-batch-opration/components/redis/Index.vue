@@ -84,7 +84,9 @@
       {{ t('移除标签') }}
     </BkButton>
   </BkDropdownItem>
-  <BkDropdownItem v-db-console="'redis.clusterManage.configAlarmSubscription'">
+  <BkDropdownItem
+    v-if="isClusterTypeAlarmSupported"
+    v-db-console="'redis.clusterManage.configAlarmSubscription'">
     <BkButton
       class="opration-button"
       text
@@ -92,7 +94,9 @@
       {{ t('设置告警订阅') }}
     </BkButton>
   </BkDropdownItem>
-  <BkDropdownItem v-db-console="'redis.clusterManage.deleteAlarmSubscription'">
+  <BkDropdownItem
+    v-if="isClusterTypeAlarmSupported"
+    v-db-console="'redis.clusterManage.deleteAlarmSubscription'">
     <BkButton
       class="opration-button"
       text
@@ -123,6 +127,8 @@
 
   import RedisModel from '@services/model/redis/redis';
 
+  import { useAlarmSubscribe } from '@hooks';
+
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterBatchAddTag from '@views/db-manage/common/cluster-batch-add-tag/Index.vue';
@@ -146,6 +152,12 @@
 
   const { t } = useI18n();
   const { handleToToolbox } = useRedisClusterListToToolbox();
+  const { isClusterTypeAlarmSupported } = useAlarmSubscribe([
+    ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+    ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+    ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+    ClusterTypes.PREDIXY_REDIS_CLUSTER,
+  ]);
 
   const showClusterBatchAddTag = ref(false);
   const showClusterBatchRemoveTag = ref(false);

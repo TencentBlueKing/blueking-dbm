@@ -68,7 +68,6 @@ const routes: RouteRecordRaw[] = [
             path: 'instance-list',
             name: 'SqlServerHaInstanceList',
             meta: {
-              fullscreen: true,
               navName: t('SQLServer 主从集群实例视图'),
             },
             component: () => import('@views/db-manage/sqlserver/ha-instance-list/Index.vue'),
@@ -131,13 +130,9 @@ const toolboxRouters: RouteRecordRaw[] = [
     },
     component: () => import('@views/db-manage/sqlserver/toolbox/Index.vue'),
     children: [
-      {
-        path: 'toolbox-result/:ticketType?/:ticketId?',
-        name: 'SqlserverToolboxResult',
-        component: () => import('@views/db-manage/common/toolbox-result/Index.vue'),
-      },
       createRouteItem(TicketTypes.SQLSERVER_IMPORT_SQLFILE, t('变更SQL执行')),
       createRouteItem(TicketTypes.SQLSERVER_DBRENAME, t('DB重命名')),
+      createRouteItem(TicketTypes.SQLSERVER_RESTORE_SLAVE, t('重建从库')),
       createRouteItem(TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE, t('重建从库')),
       createRouteItem(TicketTypes.SQLSERVER_ADD_SLAVE, t('添加从库')),
       createRouteItem(TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH, t('主从互切')),
@@ -149,6 +144,7 @@ const toolboxRouters: RouteRecordRaw[] = [
       createRouteItem(TicketTypes.SQLSERVER_INCR_MIGRATE, t('数据迁移')),
       createRouteItem(TicketTypes.SQLSERVER_CLUSTER_MIGRATE, t('迁移')),
       createRouteItem(TicketTypes.SQLSERVER_HOST_MIGRATE, t('迁移')),
+      createRouteItem(TicketTypes.SQLSERVER_DATA_EXPORT, t('数据导出')),
       {
         path: 'data-migrate-record',
         name: 'sqlServerDataMigrateRecord',

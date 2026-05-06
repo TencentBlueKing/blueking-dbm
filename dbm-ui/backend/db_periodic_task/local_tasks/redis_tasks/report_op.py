@@ -14,9 +14,9 @@ from datetime import datetime, timedelta
 
 from django.utils import timezone
 
+from backend.db_meta.models.cluster import Cluster
 from backend.db_report.enums import ReportStateType
 from backend.db_report.models.redis_check_report import RedisCheckReport
-from backend.db_meta.models.cluster import Cluster
 
 
 class RedisClusterReport:
@@ -70,6 +70,27 @@ class RedisClusterReport:
                 state=ReportStateType.NORMAL.value,
                 msg=reason,
                 failed_days=self.get_exceed_days(ReportStateType.NORMAL.value),
+            )
+        ]
+
+    def make_error_record(self, reason: str) -> list[RedisCheckReport]:
+        """生成系统/检查失败记录（如重试耗尽）"""
+        return [
+            RedisCheckReport(
+                creator="",
+                subtype=self.subtype,
+                report_day=self.report_day,
+                bk_biz_id=self.cluster.bk_biz_id,
+                bk_cloud_id=self.cluster.bk_cloud_id,
+                cluster=self.cluster.immute_domain,
+                cluster_id=self.cluster.id,
+                cluster_type=self.cluster.cluster_type,
+                shard="all",
+                instance="all",
+                status=False,
+                state=ReportStateType.ABNORMAL.value,
+                msg=reason,
+                failed_days=self.get_exceed_days(ReportStateType.ABNORMAL.value),
             )
         ]
 

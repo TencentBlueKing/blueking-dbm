@@ -1,0 +1,29 @@
+name: {{PROBE_NAME}}
+version: {{COMMON_VERSION}}
+
+serviceID: "{{PROBE_SERVICE_ID}}"
+pidFile: "{{PROBE_PID_FILE}}"
+
+reporter:
+  name: {{PROBE_REPORTER_NAME}}
+  endpoint: "{{PROBE_REPORTER_ENDPOINT}}"
+  dataID: {{PROBE_REPORTER_DATA_ID}}
+  connTimeout: {{PROBE_REPORTER_CONN_TIMEOUT}}
+
+client:
+  pingTime: {{PROBE_CLIENT_PING_TIME}}
+  pingTimeout: {{PROBE_CLIENT_PING_TIMEOUT}}
+  maxReceiveMessageSize: {{PROBE_CLIENT_MAX_RECEIVE_MESSAGE_SIZE}}
+  maxSendMessageSize: {{PROBE_CLIENT_MAX_SEND_MESSAGE_SIZE}}
+  receiverReconnectInterval: {{PROBE_CLIENT_RECEIVER_RECONNECT_INTERVAL}}
+  receiverMaxReconnectAttempts: {{PROBE_CLIENT_RECEIVER_MAX_RECONNECT_ATTEMPTS}}
+
+harvester:
+{{PROBE_MYSQL_SHARD_BLOCK}}
+{{PROBE_REDIS_SHARD_BLOCK}}
+
+log:
+  path: "{{PROBE_LOG_PATH}}"
+  level: {{COMMON_LOG_LEVEL}}
+  fileCount: {{COMMON_LOG_FILE_COUNT}}
+  fileSize: {{COMMON_LOG_FILE_SIZE}}

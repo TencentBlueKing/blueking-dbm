@@ -21,7 +21,8 @@
           <div
             v-for="item in renderList"
             :key="item.label"
-            class="t-table__filter-pop-item">
+            class="t-table__filter-pop-item"
+            :class="{ 'empty-item': renderList.length >= 2 && item.value === SpecialOptions.EMPTY }">
             <Checkbox
               :label="item.label"
               style="display: flex; flex: 1; flex-wrap: nowrap; white-space: nowrap"
@@ -46,6 +47,8 @@
   import { Checkbox, CheckboxGroup, type CheckboxGroupValue, Input } from 'tdesign-vue-next';
   import { nextTick, ref, shallowRef, useTemplateRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
+
+  import { SpecialOptions } from '@common/const';
 
   import { makeMap } from '@utils';
 
@@ -89,7 +92,7 @@
   const defaultValue = shallowRef<{ label: string; value: number | string }[]>([]);
 
   const wrapperRef = useTemplateRef('wrapper');
-  const localValue = shallowRef(props.value.split(','));
+  const localValue = shallowRef(props.value ? props.value.split(',') : []);
   const searchBoxRef = useTemplateRef('searchBox');
   const contentMinWidth = ref(0);
 
@@ -141,3 +144,21 @@
     }, 100);
   });
 </script>
+
+<style lang="less">
+  .t-table__filter-pop-wrapper {
+    .empty-item {
+      position: relative;
+
+      &::before {
+        position: absolute;
+        top: 0;
+        right: 16px;
+        left: 16px;
+        height: 0;
+        border-top: 1px solid #e5e5e5;
+        content: '';
+      }
+    }
+  }
+</style>

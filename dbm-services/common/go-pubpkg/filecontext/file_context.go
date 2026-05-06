@@ -178,14 +178,14 @@ func (c *FileContext) encodeData() error {
 		}
 	}
 
-	fd, err := os.OpenFile(c.contextFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+	fd, err := os.OpenFile(c.contextFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
-		return err
+		return errors.WithMessage(err, "open lock file")
 	}
 
 	defer fd.Close()
 	if _, err = fd.Write(buf.Bytes()); err != nil {
-		return err
+		return errors.WithMessage(err, "write lock file")
 	}
 	return nil
 }

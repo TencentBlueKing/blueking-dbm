@@ -227,7 +227,7 @@ export const useOperateClusterBasic = (clusterType: ClusterTypes, options: { onS
         <div class='mt-4'>{t('删除后将产生以下影响')}：</div>
         <div class='mt-4'>1. {t('删除xxx集群', [clusterNames])}</div>
         <div class='mt-4'>2. {t('删除xxx实例数据，停止相关进程', [clusterNames])}</div>
-        <div class='mt-4'>3. {t('回收主机')}：</div>
+        <div class='mt-4'>3. {t('回收主机')}</div>
       </div>
     );
     InfoBox({

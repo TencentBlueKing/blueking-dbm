@@ -27,3 +27,9 @@ const AdminUser = "admin"
 
 // AdminUserAuthRoleID 超级管理员角色 ID
 const AdminUserAuthRoleID = "bkdata.superuser"
+
+// EnvLogLevel  日志级别环境变量
+const EnvLogLevel = "LOG_LEVEL"
+
+// DefaultLogLevel  默认日志级别为 info
+const DefaultLogLevel = "info"

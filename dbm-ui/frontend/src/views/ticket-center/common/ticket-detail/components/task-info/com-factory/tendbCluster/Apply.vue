@@ -49,7 +49,7 @@
     <InfoItem :label="t('访问端口')">
       {{ ticketDetails.details.spider_port || '--' }}
     </InfoItem>
-    <InfoItem :label="t('接入层Master')">
+    <InfoItem :label="t('Spider Master 规格')">
       <SpecDetailPopover
         :data="ticketDetails.details.resource_spec.spider"
         placement="top">
@@ -62,7 +62,7 @@
         </span>
       </SpecDetailPopover>
     </InfoItem>
-    <InfoItem :label="t('接入层（Master）资源标签')">
+    <InfoItem :label="t('Spider Master 资源标签')">
       <template v-if="ticketDetails.details.resource_spec.spider.label_names?.length">
         <BkTag
           v-for="item in ticketDetails.details.resource_spec.spider.label_names"
@@ -77,7 +77,7 @@
       </BkTag>
     </InfoItem>
     <InfoItem
-      :label="t('集群部署方案')"
+      :label="t('后端存储')"
       style="flex: 1 0 100%">
       <TicketInfoTable
         :data="[ticketDetails.details.resource_spec.backend_group.spec_info]"

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -57,6 +58,16 @@ func IsDirectory(path string) bool {
 	return fileInfo.IsDir()
 }
 
+// IsNormalFile 检查本机路径是否是普通文件
+// 如果目录不存在，则返回 false，如果是软连，则返回 false
+func IsNormalFile(path string) bool {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return fileInfo.Mode().IsRegular()
+}
+
 // IsSymLinkFile 文件是否是软连
 func IsSymLinkFile(path string) (bool, error) {
 	info, err := os.Lstat(path)
@@ -100,6 +111,15 @@ func GetFileModifyTime(filename string) (bool, int64) {
 	return false, 0
 }
 
+// FileModifyTime 获取文件修改时间
+func FileModifyTime(filename string) (bool, time.Time) {
+	fi, err := os.Stat(filename)
+	if err != nil {
+		return false, time.Time{}
+	}
+	return true, fi.ModTime()
+}
+
 // OSCopyFile os cp file
 func OSCopyFile(srcFile, dstFile string) error {
 	_, errStr, err := ExecCommand(true, "", "cp", "-p", srcFile, dstFile)
@@ -137,4 +157,12 @@ func RemoveFileMatch(filePattern string, force bool) error {
 		}
 	}
 	return nil
+}
+
+func CreateEmptyFile(path string, perm os.FileMode) error {
+	f, e := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, perm)
+	if e != nil {
+		return e
+	}
+	return f.Close()
 }

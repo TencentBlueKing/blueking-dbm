@@ -70,7 +70,7 @@ from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
 from backend.iam_app.handlers.permission import Permission
 from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, TicketStatus, TicketType
-from backend.ticket.models import Ticket
+from backend.ticket.models import Ticket, Todo
 from backend.utils.redis import RedisConn
 
 
@@ -83,6 +83,8 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             "resource_confirm",
             "resource_delete",
             "resource_update",
+            "resource_export",
+            "resource_osname",
             "append_labels",
         ): [ResourceActionPermission([ActionEnum.RESOURCE_POLL_MANAGE])],
         (
@@ -145,6 +147,20 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             host.update(occupancy=(host["host_id"] in resource_host_ids))
 
         return Response(host_infos)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("资源池操作系统列表"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(detail=False, methods=["POST"])
+    def resource_osname(self, request):
+        data = {}
+        os_names = DBResourceApi.resource_osname()
+        if os_names:
+            bk_os_names = [{"value": os_name, "text": os_name} for os_name in os_names]
+            data["os_names"] = bk_os_names
+
+        return Response(data=data)
 
     @common_swagger_auto_schema(
         operation_summary=_("查询DBA业务下的主机信息"),
@@ -340,7 +356,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             MachineEvent.host_event_trigger(
                 env.DBA_APP_BK_BIZ_ID, data["hosts"], data["event"], operator, remark=data["remark"]
             )
-
+            Todo.host_todo_trigger(bk_host_ids, [operator], data["event"], None)
         # 删除资源
         resp = DBResourceApi.resource_delete(params={"bk_host_ids": bk_host_ids})
         return Response(resp)
@@ -353,6 +369,16 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     @action(detail=False, methods=["POST"], url_path="update", serializer_class=ResourceUpdateSerializer)
     def resource_update(self, request):
         update_params = self.params_validate(self.get_serializer_class())
+        # 修改主机属性和主机资源归属时添加操作记录
+        if update_params.get("update_type") and update_params.get("remark"):
+            update_type = update_params.pop("update_type")
+            remark = update_params.pop("remark")
+            bk_biz_id = update_params.pop("bk_biz_id")
+            host_id_ip_map = update_params.pop("host_id_ip_map")
+            remark_map, hosts = ResourceHandler.get_evnet_info(update_params["bk_host_ids"], remark, host_id_ip_map)
+            MachineEvent.create_machine_events(
+                bk_biz_id, hosts, update_type, None, request.user.username, None, "", remark_map
+            )
         return Response(DBResourceApi.resource_batch_update(params=update_params))
 
     @common_swagger_auto_schema(
@@ -495,6 +521,17 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     @action(detail=False, methods=["POST"], serializer_class=AppendHostLabelSerializer)
     def append_labels(self, request):
         append_params = self.params_validate(self.get_serializer_class())
+        # 修改主机属性和主机资源归属时添加操作记录
+        if append_params.get("remark"):
+            remark = append_params.pop("remark")
+            bk_biz_id = append_params.pop("bk_biz_id")
+            host_id_ip_map = append_params.pop("host_id_ip_map")
+            remark_map, hosts = ResourceHandler.get_evnet_info(append_params["bk_host_ids"], remark, host_id_ip_map)
+            if not remark_map:
+                return Response(DBResourceApi.resource_append_labels(append_params))
+            MachineEvent.create_machine_events(
+                bk_biz_id, hosts, "resource_owner", None, request.user.username, None, "", remark_map
+            )
         return Response(DBResourceApi.resource_append_labels(append_params))
 
     @common_swagger_auto_schema(
@@ -505,7 +542,13 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     def calc_resource_water_level(self, request):
         params = self.params_validate(self.get_serializer_class())
         data = ResourceHandler.calc_resource_water_level(get_cache=params["cache"])
-        # 过滤掉无需补货的记录
-        water_level = [info for info in data["water_level"] if info["machine_refer_count"] > info["resource_count"]]
-        data["water_level"] = water_level
         return Response(data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("资源池导出"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(detail=False, methods=["POST"], serializer_class=ResourceListSerializer)
+    def resource_export(self, request):
+        params = self.params_validate(self.get_serializer_class())
+        return ResourceHandler.resource_export(params)

@@ -34,6 +34,7 @@ import (
 	"gorm.io/driver/mysql"
 )
 
+// Option applies configuration to MySQL client options.
 type Option interface {
 	apply(*options) error
 }
@@ -91,15 +92,21 @@ type options struct {
 	disableAutomaticPing         bool
 }
 
-func (o options) DSN() string {
+func (o options) BuildDSNString(coverPassword bool) string {
 	// DSN format: "user:pass@tcp(127.0.0.1:3306)/dbname?charset=utf8mb4&parseTime=True&loc=Local"
 
 	dsnBuilder := strings.Builder{}
-	dsnBuilder.WriteString(o.user + ":" + o.password + "@")
+
+	if coverPassword {
+		dsnBuilder.WriteString(o.user + ":" + "<secret>" + "@")
+	} else {
+		dsnBuilder.WriteString(o.user + ":" + o.password + "@")
+	}
+
 	dsnBuilder.WriteString(o.proto + "(" + o.ip + ":" + fmt.Sprintf("%d", o.port) + ")")
 
 	if o.dbName != "" {
-		dsnBuilder.WriteString("/" + o.dbName)
+		dsnBuilder.WriteString("/" + o.dbName + "?")
 	} else {
 		dsnBuilder.WriteString("/?")
 	}
@@ -149,6 +156,14 @@ func (o options) DSN() string {
 	return dsnBuilder.String()
 }
 
+func (o options) DSN() string {
+	return o.BuildDSNString(false)
+}
+
+func (o options) SafeDSN() string {
+	return o.BuildDSNString(true)
+}
+
 func (o options) Config() mysql.Config {
 	return mysql.Config{
 		DSN:                       o.DSN(),
@@ -168,6 +183,7 @@ func (fdo *funcOptions) apply(opt *options) error {
 	return fdo.f(opt)
 }
 
+// OptionUser sets the mysql username.
 func OptionUser(val string) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -177,6 +193,7 @@ func OptionUser(val string) *funcOptions {
 	}
 }
 
+// OptionPassword sets the mysql password.
 func OptionPassword(val string) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -186,6 +203,7 @@ func OptionPassword(val string) *funcOptions {
 	}
 }
 
+// OptionProto sets the mysql connection protocol, such as tcp.
 func OptionProto(val string) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -197,6 +215,7 @@ func OptionProto(val string) *funcOptions {
 	}
 }
 
+// OptionIP sets the mysql server IP address.
 func OptionIP(val string) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -206,6 +225,7 @@ func OptionIP(val string) *funcOptions {
 	}
 }
 
+// OptionPort sets the mysql server port.
 func OptionPort(val int) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -215,6 +235,7 @@ func OptionPort(val int) *funcOptions {
 	}
 }
 
+// OptionDBName sets the mysql database name.
 func OptionDBName(val string) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -224,6 +245,7 @@ func OptionDBName(val string) *funcOptions {
 	}
 }
 
+// OptionCharset sets the mysql charset in DSN.
 func OptionCharset(val string) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -233,6 +255,7 @@ func OptionCharset(val string) *funcOptions {
 	}
 }
 
+// OptionParseTime sets whether to parse time values.
 func OptionParseTime(val bool) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -242,6 +265,7 @@ func OptionParseTime(val bool) *funcOptions {
 	}
 }
 
+// OptionLoc sets location for time parsing.
 func OptionLoc(val string) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -251,6 +275,7 @@ func OptionLoc(val string) *funcOptions {
 	}
 }
 
+// OptionLogger sets the logger used by mysql storage layer.
 func OptionLogger(val logger.Logger) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -260,6 +285,7 @@ func OptionLogger(val logger.Logger) *funcOptions {
 	}
 }
 
+// OptionSkipInitializeWithVersion controls whether to skip version-based auto config.
 func OptionSkipInitializeWithVersion(val bool) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -269,6 +295,7 @@ func OptionSkipInitializeWithVersion(val bool) *funcOptions {
 	}
 }
 
+// OptionLogSlowThreshold sets slow SQL logging threshold.
 func OptionLogSlowThreshold(val time.Duration) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -278,7 +305,8 @@ func OptionLogSlowThreshold(val time.Duration) *funcOptions {
 	}
 }
 
-func OptiionTimeout(val time.Duration) *funcOptions {
+// OptionTimeout sets mysql connection timeout in DSN.
+func OptionTimeout(val time.Duration) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
 			opt.timeout = val
@@ -287,6 +315,7 @@ func OptiionTimeout(val time.Duration) *funcOptions {
 	}
 }
 
+// OptionMaxAllowedPacket sets maxAllowedPacket in DSN.
 func OptionMaxAllowedPacket(val int) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -296,6 +325,7 @@ func OptionMaxAllowedPacket(val int) *funcOptions {
 	}
 }
 
+// OptionIgnoreRecordNotFound sets whether to ignore record-not-found logs.
 func OptionIgnoreRecordNotFound(val bool) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -305,6 +335,7 @@ func OptionIgnoreRecordNotFound(val bool) *funcOptions {
 	}
 }
 
+// OptionParameterizedQueries sets whether to parameterize SQL logs.
 func OptionParameterizedQueries(val bool) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
@@ -314,6 +345,7 @@ func OptionParameterizedQueries(val bool) *funcOptions {
 	}
 }
 
+// OptionDisableDatetimePrecision sets whether datetime precision is disabled.
 func OptionDisableDatetimePrecision(val bool) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {

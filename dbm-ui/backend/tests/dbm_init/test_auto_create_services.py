@@ -110,7 +110,7 @@ class TestAutoCreateServices(TestCase):
 
     @patch("backend.dbm_init.services.SwitchOrgView.initial")
     def test_auto_init_grafana_success(self, mock_initial):
-        user = User.objects.create(username="admin", is_superuser=True, is_staff=True)
+        user, __ = User.objects.get_or_create(username="admin", is_superuser=True, is_staff=True)
 
         result = Services.auto_init_grafana()
 

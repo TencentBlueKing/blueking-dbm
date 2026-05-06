@@ -22,11 +22,11 @@ type MysqlUpgradeRelinkParam struct {
 }
 
 func (m *MysqlUpgradeRelinkComp) RelinkMysql() (err error) {
-	// tar mysql new version  packege
+	// tar mysql new version  package
 	var stderr, oldlink string
 	if stderr, err = osutil.StandardShellCommand(false, fmt.Sprintf("tar -axf %s -C %s", m.Params.GetAbsolutePath(),
 		cst.UsrLocal)); err != nil {
-		logger.Error("tar mysql new version packege failed %s,stderr%s", err.Error(), stderr)
+		logger.Error("tar mysql new version package failed %s,stderr%s", err.Error(), stderr)
 		return err
 	}
 	fi, err := os.Lstat(cst.MysqldInstallPath)
@@ -55,7 +55,52 @@ func (m *MysqlUpgradeRelinkComp) RelinkMysql() (err error) {
 		return fmt.Errorf("file %s is not a dir or symlink", cst.MysqldInstallPath)
 	}
 	if stderr, err = osutil.StandardShellCommand(false, sc); err != nil {
-		logger.Error("tar mysql new version packege failed %s,stderr%s", err.Error(), stderr)
+		logger.Error("tar mysql new version package failed %s,stderr%s", err.Error(), stderr)
+		return err
+	}
+	return err
+}
+
+// RelinkTdbctl relink tdbctl
+/**
+ * @description: 重新链接tdbctl
+ * @return {*}
+ */
+func (m *MysqlUpgradeRelinkComp) RelinkTdbctl() (err error) {
+	// tar tdbctl new version package
+	var stderr, oldLink string
+	if stderr, err = osutil.StandardShellCommand(false, fmt.Sprintf("tar -axf %s -C %s", m.Params.GetAbsolutePath(),
+		cst.UsrLocal)); err != nil {
+		logger.Error("tar tdbctl new version package failed %s,stderr%s", err.Error(), stderr)
+		return err
+	}
+	fi, err := os.Lstat(cst.TdbctlInstallPath)
+	if err != nil {
+		logger.Error("read /usr/local/tdbctl dir info failed %s", err.Error())
+		return err
+	}
+	sc := ""
+	newLink := m.Params.GePkgBaseName()
+	switch mode := fi.Mode(); {
+	case mode.IsDir():
+		bakDir := fmt.Sprintf("mysql_%s", time.Now().Format(cst.TimeLayoutDir))
+		sc = fmt.Sprintf("cd %s && mv tdbctl %s && ln -s %s tdbctl ",
+			cst.UsrLocal, bakDir, newLink)
+		logger.Info("move tdbctl dir to %s", bakDir)
+	case mode&os.ModeSymlink != 0:
+		oldLink, err = os.Readlink(cst.MysqldInstallPath)
+		if err != nil {
+			logger.Error("get old tdbctl link failed %s", err.Error())
+			return err
+		}
+		logger.Info("tdbctl old link is %s", oldLink)
+		sc = fmt.Sprintf("cd %s && unlink tdbctl && ln -s %s tdbctl ",
+			cst.UsrLocal, newLink)
+	default:
+		return fmt.Errorf("file %s is not a dir or symlink", cst.MysqldInstallPath)
+	}
+	if stderr, err = osutil.StandardShellCommand(false, sc); err != nil {
+		logger.Error("tar tdbctl new version package failed %s,stderr%s", err.Error(), stderr)
 		return err
 	}
 	return err

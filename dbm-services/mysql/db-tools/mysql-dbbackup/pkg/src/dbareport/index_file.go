@@ -205,7 +205,7 @@ func (i *IndexContent) JudgeBackupMethod(cnf *config.BackupConfig) {
 			i.BackupMethod = config.BackupNonFullByRegular
 		}
 	}
-	//i.IsStandby = VarIsStandby
+	i.IsStandby = VarIsStandby
 }
 
 func (i *IndexContent) JudgeLogicalFilter(cnf *config.BackupConfig) string {
@@ -268,7 +268,7 @@ func (i *IndexContent) parseTableSchema(f *IndexFileItem) {
 		f.FileType = cst.FileMetadata
 	} else if matches = i.reSchemaView.FindStringSubmatch(f.BackupFileName); len(matches) == 3 {
 		f.FileType = cst.FileSchema
-	} else if strings.HasSuffix(f.BackupFileName, ".priv") {
+	} else if strings.HasSuffix(f.BackupFileName, cst.SuffixPriv) {
 		f.FileType = cst.FilePriv
 	} else if matches = i.reSplitPart.FindStringSubmatch(f.BackupFileName); len(matches) == 3 {
 		f.FileType = cst.FilePart
@@ -306,7 +306,7 @@ func (i *IndexContent) SaveIndexContent(indexFilePath string) error {
 
 // AddPrivFileItem add .priv to index file
 func (i *IndexContent) AddPrivFileItem(targetFilePath string) {
-	privFile := targetFilePath + ".priv"
+	privFile := targetFilePath + cst.SuffixPriv
 	if exists, fSize, _ := util.FileExistReturnSize(privFile); exists {
 		privFilename := filepath.Base(privFile)
 		tarFileItem := TarFileItem{FileName: privFilename, FileSize: fSize, FileType: cst.FilePriv}
@@ -319,8 +319,8 @@ func (i *IndexContent) AddPrivFileItem(targetFilePath string) {
 // AddIndexFileItem index file 记录自身信息
 func (i *IndexContent) AddIndexFileItem(targetFilePath string) {
 	var indexFile = targetFilePath
-	if !strings.HasSuffix(targetFilePath, ".index") {
-		indexFile = targetFilePath + ".index"
+	if !strings.HasSuffix(targetFilePath, cst.SuffixIndex) {
+		indexFile = targetFilePath + cst.SuffixIndex
 	}
 	if exists, fSize, _ := util.FileExistReturnSize(indexFile); exists {
 		indexFilename := filepath.Base(indexFile)

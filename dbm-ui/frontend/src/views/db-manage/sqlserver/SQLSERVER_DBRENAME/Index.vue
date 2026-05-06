@@ -5,15 +5,19 @@
         closable
         theme="info"
         :title="t('DB 重命名：database 重命名')" />
+      <BatchInput
+        class="mt-16"
+        :config="batchInputConfig"
+        @change="handleBatchInput" />
       <DbForm
         ref="form"
         class="mt-16 mb-24 toolbox-form"
         form-type="vertical">
         <EditableTable
+          :key="tableKey"
           ref="editableTable"
           class="mb-16"
-          :model="formData.tableData"
-          :rules="rules">
+          :model="formData.tableData">
           <EditableRow
             v-for="(rowData, index) in formData.tableData"
             :key="index">
@@ -79,15 +83,18 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
+  import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
   import ClusterColumn from '@views/db-manage/sqlserver/common/toolbox-field/cluster-column/Index.vue';
   import DbNameColumn from '@views/db-manage/sqlserver/common/toolbox-field/db-name-column/Index.vue';
 
+  import { random } from '@utils';
+
   interface IDataRow {
     cluster: {
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       id: number;
       master_domain: string;
     };
@@ -144,22 +151,6 @@
   const formRef = useTemplateRef('form');
   const editableTableRef = useTemplateRef('editableTable');
 
-  const rules = {
-    'cluster.master_domain': [
-      {
-        message: t('目标集群重复'),
-        trigger: 'change',
-        validator: (value: string) => {
-          if (value) {
-            const nonEmptyIdList = formData.tableData.filter((row) => row.cluster.master_domain === value);
-            return nonEmptyIdList.length === 1;
-          }
-          return true;
-        },
-      },
-    ],
-  };
-
   const clusterSelectorTabConfig = {
     [ClusterTypes.SQLSERVER_HA]: {
       disabledRowConfig: [
@@ -184,6 +175,7 @@
   };
 
   const formData = reactive(createDefaultFormData());
+  const tableKey = ref(random());
 
   const selected = computed(() => {
     const selectedClusters: ComponentProps<typeof ClusterColumn>['selected'] = {
@@ -210,6 +202,24 @@
     ),
   );
 
+  const batchInputConfig = [
+    {
+      case: 'sqlserver.test.dba.db',
+      key: 'domain',
+      label: t('集群域名'),
+    },
+    {
+      case: 'db1,db2',
+      key: 'from_database',
+      label: t('原 DB 名'),
+    },
+    {
+      case: 'new_db1,new_db2',
+      key: 'to_database',
+      label: t('新 DB 名'),
+    },
+  ];
+
   const handleClusterBatchEdit = (clusterList: SqlserverHaModel[]) => {
     const newList: IDataRow[] = [];
     clusterList.forEach((item) => {
@@ -226,14 +236,31 @@
       }
     });
     formData.tableData = [...(formData.tableData[0].cluster.master_domain ? formData.tableData : []), ...newList];
-    window.changeConfirm = true;
   };
 
   const handleDbTableBatchEdit = (value: string[], field: string) => {
     formData.tableData.forEach((item) => {
       Object.assign(item, { [field]: value });
     });
-    window.changeConfirm = true;
+  };
+
+  const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
+    const dataList = data.map((item) =>
+      createRowData({
+        cluster: {
+          master_domain: item.domain,
+        } as IDataRow['cluster'],
+        from_database: item.from_database ? item.from_database.split(',') : [],
+        to_database: item.to_database ? item.to_database.split(',') : [],
+      }),
+    );
+
+    if (isClear) {
+      tableKey.value = random();
+      formData.tableData = dataList;
+    } else {
+      formData.tableData = [...(formData.tableData[0].cluster.master_domain ? formData.tableData : []), ...dataList];
+    }
   };
 
   const handleSubmit = async () => {
@@ -256,6 +283,5 @@
 
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
-    window.changeConfirm = false;
   };
 </script>

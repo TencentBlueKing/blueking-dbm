@@ -21,7 +21,9 @@ import (
 
 // Checker type create table checker
 func (c CreateTableResult) Checker(mysqlVersion string) (r *CheckerResult) {
-	r = &CheckerResult{}
+	r = &CheckerResult{
+		ObjName: c.TableName,
+	}
 	r.Parse(R.CreateTableRule.SuggestEngine, c.GetEngine(), "")
 	r.Parse(R.CreateTableRule.SuggestBlobColumCount, c.BlobColumCount(), "")
 	if R.BuiltInRule.TableNameSpecification.KeyWord {
@@ -34,9 +36,7 @@ func (c CreateTableResult) Checker(mysqlVersion string) (r *CheckerResult) {
 			return SpecialCharValidator(c.TableName)
 		})
 	}
-	r.ParseBuiltinBan(func() (bool, string) {
-		return c.JsonColumInvalidDefaultCheck()
-	})
+	r.ParseBuiltinBan(c.JsonColumInvalidDefaultCheck)
 	return
 }
 

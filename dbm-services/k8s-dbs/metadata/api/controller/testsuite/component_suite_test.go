@@ -56,8 +56,8 @@ func (suite *ComponentControllerTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbAccess := dbaccess.NewK8sCrdComponentAccess(db)
-	componentProvider := provider.NewK8sCrdComponentProvider(dbAccess)
+	dbAccess := dbaccess.GetComponentDbAccess(db)
+	componentProvider := provider.GetK8sCrdComponentProvider(dbAccess)
 	componentController := controller.NewComponentController(componentProvider)
 	suite.componentController = componentController
 	gin.SetMode(gin.TestMode)

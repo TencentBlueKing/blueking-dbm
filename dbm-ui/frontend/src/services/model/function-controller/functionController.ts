@@ -50,6 +50,9 @@ interface ControllerItem<T extends string> {
 export type ExtractedControllerDataKeys = Extract<keyof FunctionController, string>;
 
 export default class FunctionController {
+  addons: ControllerItem<AddonsFunctions>;
+  bigdata: ControllerItem<BigdataFunctions>;
+  bizConfigManage: ControllerItem<string>;
   'bizConfigManage.alarmGroup': ControllerItem<string>;
   'bizConfigManage.businessClusterTag': ControllerItem<string>;
   'bizConfigManage.businessResourceTag': ControllerItem<string>;
@@ -57,17 +60,20 @@ export default class FunctionController {
   'bizConfigManage.dbConfigure': ControllerItem<string>;
   'bizConfigManage.monitorStrategy': ControllerItem<string>;
   'bizConfigManage.StaffManage': ControllerItem<string>;
+
   'bizConfigManage.ticketCooperationSetting': ControllerItem<string>;
   'bizConfigManage.ticketFlowSetting': ControllerItem<string>;
   'bizConfigManage.ticketNoticeSetting': ControllerItem<string>;
-
+  common: ControllerItem<string>;
   // 通用开关，涉及多个功能页面
   'common.clb': ControllerItem<string>;
+
   'common.dorisColdResource': ControllerItem<string>;
   'common.hcmRecycle': ControllerItem<string>;
   'common.polaris': ControllerItem<string>;
   'common.specCostEstimate': ControllerItem<string>;
-
+  dashboard: ControllerItem<DashboardFunctions>;
+  databaseManage: ControllerItem<string>;
   'databaseManage.missionManage': ControllerItem<string>;
   'databaseManage.temporaryPaasswordModify': ControllerItem<string>;
   'databaseManage.whitelistManage': ControllerItem<string>;
@@ -79,6 +85,7 @@ export default class FunctionController {
   'es.clusterManage.changeLog': ControllerItem<string>;
   'es.clusterManage.clusterTopo': ControllerItem<string>;
   'es.clusterManage.nodeList': ControllerItem<string>;
+  globalConfigManage: ControllerItem<string>;
   'globalConfigManage.alarmGroup': ControllerItem<string>;
   'globalConfigManage.dbConfig': ControllerItem<string>;
   'globalConfigManage.monitorStrategy': ControllerItem<string>;
@@ -86,6 +93,7 @@ export default class FunctionController {
   'globalConfigManage.rotationManage': ControllerItem<string>;
   'globalConfigManage.staffManage': ControllerItem<string>;
   'globalConfigManage.ticketFlowSetting': ControllerItem<string>;
+  'globalConfigManage.todoRemind': ControllerItem<string>;
   'globalConfigManage.versionFile': ControllerItem<string>;
   'globalConfigManage.whitelistManage': ControllerItem<string>;
   'hdfs.clusterManage.baseInfo': ControllerItem<string>;
@@ -96,6 +104,7 @@ export default class FunctionController {
   'kafka.clusterManage.changeLog': ControllerItem<string>;
   'kafka.clusterManage.clusterTopo': ControllerItem<string>;
   'kafka.clusterManage.nodeList': ControllerItem<string>;
+  mongodb: ControllerItem<MongoFunctions>;
   'mongodb.permissionManage': ControllerItem<string>;
   'mongodb.replicaSetInstanceManage': ControllerItem<string>;
   'mongodb.replicaSetList.basicInfo': ControllerItem<string>;
@@ -105,6 +114,8 @@ export default class FunctionController {
   'mongodb.sharedClusterList.basicInfo': ControllerItem<string>;
   'mongodb.sharedClusterList.changeLog': ControllerItem<string>;
   'mongodb.sharedClusterList.clusterTopo': ControllerItem<string>;
+  monitor: ControllerItem<MonitorFunctions>;
+  mysql: ControllerItem<MySQLFunctions>;
   'mysql.dataSubscription': ControllerItem<string>;
   'mysql.haClusterList.basicInfo': ControllerItem<string>;
   'mysql.haClusterList.changeLog': ControllerItem<string>;
@@ -133,16 +144,24 @@ export default class FunctionController {
   'mysql.toolbox.slaveAdd': ControllerItem<string>;
   'mysql.toolbox.slaveRebuild': ControllerItem<string>;
   'mysql.toolbox.sqlExecute': ControllerItem<string>;
+  observableManage: ControllerItem<string>;
   'observableManage.DBHASwitchEvents': ControllerItem<string>;
   'observableManage.healthReport': ControllerItem<string>;
-  'personalWorkbench.myTickets.viewDetails': ControllerItem<string>;
+  oracle: ControllerItem<string>;
+  // dbconsole 路由有关的开关
+  personalWorkbench: ControllerItem<string>;
+  'personalWorkbench.clusterDisableTodo': ControllerItem<string>;
+  'personalWorkbench.hostTodo': ControllerItem<string>;
   'personalWorkbench.myTickets': ControllerItem<string>;
+  'personalWorkbench.myTickets.viewDetails': ControllerItem<string>;
   'personalWorkbench.myTodos': ControllerItem<string>;
   'personalWorkbench.serviceApply': ControllerItem<string>;
+  platformManage: ControllerItem<string>;
   'pulsar.clusterManage.baseInfo': ControllerItem<string>;
   'pulsar.clusterManage.changeLog': ControllerItem<string>;
   'pulsar.clusterManage.clusterTopo': ControllerItem<string>;
   'pulsar.clusterManage.nodeList': ControllerItem<string>;
+  redis: ControllerItem<RedisFunctions>;
   'redis.clusterManage.baseInfo': ControllerItem<string>;
   'redis.clusterManage.changeLog': ControllerItem<string>;
   'redis.clusterManage.clusterTopo': ControllerItem<string>;
@@ -153,10 +172,10 @@ export default class FunctionController {
   'redis.clusterManage.enableCLB': ControllerItem<string>;
   'redis.clusterManage.enablePolaris': ControllerItem<string>;
   'redis.clusterManage.getAccess': ControllerItem<string>;
+  'redis.haClusterManage': ControllerItem<string>;
   'redis.haClusterManage.baseInfo': ControllerItem<string>;
   'redis.haClusterManage.changeLog': ControllerItem<string>;
   'redis.haClusterManage.clusterTopo': ControllerItem<string>;
-  'redis.haClusterManage': ControllerItem<string>;
   'redis.haInstanceManage': ControllerItem<string>;
   'redis.instanceManage': ControllerItem<string>;
   'redis.toolbox.capacityChange': ControllerItem<string>;
@@ -174,20 +193,24 @@ export default class FunctionController {
   'redis.toolbox.rollbackRecord': ControllerItem<string>;
   'redis.toolbox.slaveRebuild': ControllerItem<string>;
   'redis.toolbox.versionUpgrade': ControllerItem<string>;
+  resourceManage: ControllerItem<string>;
   'resourceManage.allHost': ControllerItem<string>;
   'resourceManage.dirtyHostManage': ControllerItem<string>;
   'resourceManage.faultPool': ControllerItem<string>;
   'resourceManage.replenishList': ControllerItem<string>;
+  'resourceManage.replenishList.replenishListRowOperation': ControllerItem<string>;
   'resourceManage.replenishRecord': ControllerItem<string>;
   'resourceManage.resourceOperationRecord': ControllerItem<string>;
   'resourceManage.resourcePool': ControllerItem<string>;
   'resourceManage.resourceSpec': ControllerItem<string>;
   'resourceManage.resourceTagsManagement': ControllerItem<string>;
+  'resourceManage.specListReplenish': ControllerItem<string>;
   'resourceManage.toRecyclePool': ControllerItem<string>;
   'riak.clusterManage.baseInfo': ControllerItem<string>;
   'riak.clusterManage.changeLog': ControllerItem<string>;
   'riak.clusterManage.clusterTopo': ControllerItem<string>;
   'riak.clusterManage.nodeList': ControllerItem<string>;
+  sqlserver: ControllerItem<SqlServerFunctions>;
   'sqlserver.haClusterList.basicInfo': ControllerItem<string>;
   'sqlserver.haClusterList.changeLog': ControllerItem<string>;
   'sqlserver.haClusterList.clusterTopo': ControllerItem<string>;
@@ -226,24 +249,6 @@ export default class FunctionController {
   'tendbCluster.toolbox.rollbackRecord': ControllerItem<string>;
   'tendbCluster.toolbox.slaveRebuild': ControllerItem<string>;
   'tendbCluster.toolbox.sqlExecute': ControllerItem<string>;
-  addons: ControllerItem<AddonsFunctions>;
-  bigdata: ControllerItem<BigdataFunctions>;
-  bizConfigManage: ControllerItem<string>;
-  common: ControllerItem<string>;
-  dashboard: ControllerItem<DashboardFunctions>;
-  databaseManage: ControllerItem<string>;
-  globalConfigManage: ControllerItem<string>;
-  mongodb: ControllerItem<MongoFunctions>;
-  monitor: ControllerItem<MonitorFunctions>;
-  mysql: ControllerItem<MySQLFunctions>;
-  observableManage: ControllerItem<string>;
-  oracle: ControllerItem<string>;
-  // dbconsole 路由有关的开关
-  personalWorkbench: ControllerItem<string>;
-  platformManage: ControllerItem<string>;
-  redis: ControllerItem<RedisFunctions>;
-  resourceManage: ControllerItem<string>;
-  sqlserver: ControllerItem<SqlServerFunctions>;
 
   constructor(payload = {} as FunctionController) {
     this.addons = payload.addons;

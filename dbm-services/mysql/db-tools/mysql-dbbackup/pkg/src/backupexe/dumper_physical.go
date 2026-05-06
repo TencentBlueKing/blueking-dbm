@@ -92,7 +92,7 @@ func (p *PhysicalDumper) buildArgs() []string {
 		fmt.Sprintf("--host=%s", p.cnf.Public.MysqlHost),
 		fmt.Sprintf("--port=%d", p.cnf.Public.MysqlPort),
 		fmt.Sprintf("--user=%s", p.cnf.Public.MysqlUser),
-		fmt.Sprintf("--password=%s", p.cnf.Public.MysqlPasswd),
+		fmt.Sprintf("--password='%s'", p.cnf.Public.MysqlPasswd),
 		"--compress",
 	}
 	if p.cnf.PhysicalBackup.Threads > 0 {
@@ -133,7 +133,8 @@ func (p *PhysicalDumper) buildArgs() []string {
 		}
 	}
 
-	if p.cnf.PhysicalBackup.Throttle > 0 {
+	if p.cnf.PhysicalBackup.Throttle > 0 && strings.Compare(p.mysqlVersion, "005007000") > 0 {
+		// 只在 5.7+ 加限速。5.5 限速可能有 bug，导致备份很慢
 		args = append(args, fmt.Sprintf("--throttle=%d", p.cnf.PhysicalBackup.Throttle))
 		args = append(args, "--log-copy-interval=300")
 	}

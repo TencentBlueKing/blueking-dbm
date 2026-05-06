@@ -963,10 +963,14 @@ func (task *RedisInsRecoverTask) RestoreFullbackup() error {
 	}
 	defer redisCli.Close()
 
-	task.FullBackup.RestoreBackup(task.NeWTempIP, task.NewTmpPort, task.NewTmpPassword)
+	restoreErr := task.FullBackup.RestoreBackup(task.NeWTempIP, task.NewTmpPort, task.NewTmpPassword)
+	if restoreErr != nil {
+		task.Err = restoreErr
+		return restoreErr
+	}
 	if task.FullBackup.Err != nil {
 		task.Err = task.FullBackup.Err
-		return err
+		return task.FullBackup.Err
 	}
 	msg = fmt.Sprintf("master:%s导入全备完成", redisAddr)
 	task.runtime.Logger.Info(msg)

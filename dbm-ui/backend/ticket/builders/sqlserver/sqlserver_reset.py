@@ -47,7 +47,7 @@ class SQLServerResetFlowParamBuilder(builders.FlowParamBuilder):
         pass
 
 
-@builders.BuilderFactory.register(TicketType.SQLSERVER_RESET)
+@builders.BuilderFactory.register(TicketType.SQLSERVER_RESET, phase=ClusterPhase.ONLINE)
 class SQLServerResetFlowBuilder(BaseSQLServerTicketFlowBuilder):
     serializer = SQLServerResetDetailSerializer
     inner_flow_builder = SQLServerResetFlowParamBuilder

@@ -69,9 +69,9 @@ func (suite *ComponentOperationControllerTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	componentOpDbAccess := dbaccess.NewComponentOperationDbAccess(db)
-	opDefDbAccess := dbaccess.NewOperationDefinitionDbAccess(db)
-	componentOpProvider := provider.NewComponentOperationProvider(componentOpDbAccess, opDefDbAccess)
+	componentOpDbAccess := dbaccess.GetComponentOperationDbAccess(db)
+	opDefDbAccess := dbaccess.GetOperationDefinitionDbAccess(db)
+	componentOpProvider := provider.GetComponentOperationProvider(componentOpDbAccess, opDefDbAccess)
 	componentOperationController := controller.NewComponentOperationController(componentOpProvider)
 	suite.componentOperationController = componentOperationController
 	gin.SetMode(gin.TestMode)

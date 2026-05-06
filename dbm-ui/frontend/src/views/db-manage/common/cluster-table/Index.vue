@@ -155,15 +155,15 @@
 
   defineSlots<Slots>();
 
-  const getRowClass = (data: { id: number; isNew: boolean; isOffline: boolean }) => {
+  const getRowClass = ({ row }: { row: { id: number; isNew: boolean; isOffline: boolean } }) => {
     const classList = [];
-    if (data.isNew) {
+    if (row.isNew) {
       classList.push('is-new');
     }
-    if (data.isOffline) {
+    if (row.isOffline) {
       classList.push('is-offline');
     }
-    if (data.id === props.clusterId) {
+    if (row.id === props.clusterId) {
       classList.push('is-selected-row');
     }
     return classList.join(' ');
@@ -270,11 +270,8 @@
     [role='table-cell-operation'] {
       display: none;
       margin-left: 4px;
+      color: #3a84ff;
       cursor: pointer;
-
-      &:hover {
-        color: #3a84ff;
-      }
     }
 
     tbody {

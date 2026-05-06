@@ -1189,8 +1189,9 @@ func (i *InstallMySQLComp) CheckTimeZoneSetting() (err error) {
 		// 如果系统和实例配置不一致,且mysql实例设置不是SYSTEM，则退出
 		if i.TimeZone != instanceTimeZone && instanceTimeZone != "SYSTEM" {
 			return fmt.Errorf(
-				"the time zone is inconsistent with the configuration of the operating system and mysqld[%d], check",
-				port,
+				"the operating system's time zone is %s, and the time zone of mysqld[%d] is %s; "+
+					"the two do not match. Please check",
+				i.TimeZone, port, instanceTimeZone,
 			)
 		}
 	}

@@ -13,6 +13,7 @@ package task
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"runtime/debug"
 	"time"
@@ -33,6 +34,12 @@ type ApplyResponseLogItem struct {
 	Data      []model.BatchGetTbDetailResult
 }
 
+// AnalysisTaskItem 智能体分析任务项
+type AnalysisTaskItem struct {
+	BillID      string
+	ApplyParams json.RawMessage
+}
+
 // ApplyResponseLogChan apply response log channel
 var ApplyResponseLogChan chan ApplyResponseLogItem
 
@@ -48,12 +55,16 @@ var SyncRsGseAgentStatusChan chan []int
 // RunningTask running task
 var RunningTask chan struct{}
 
+// AnalysisTaskChan 智能体分析任务 channel
+var AnalysisTaskChan chan AnalysisTaskItem
+
 func init() {
 	ApplyResponseLogChan = make(chan ApplyResponseLogItem, 100)
 	ArchivedResourceChan = make(chan int, 200)
 	RecordRsOperatorInfoChan = make(chan model.TbRpOperationInfo, 20)
 	RunningTask = make(chan struct{}, 100)
 	SyncRsGseAgentStatusChan = make(chan []int, 10)
+	AnalysisTaskChan = make(chan AnalysisTaskItem, 50)
 }
 
 // init TODO
@@ -101,6 +112,12 @@ func init() {
 				if err := UpdateResourceGseAgentStatus(agentIds...); err != nil {
 					logger.Warn("[sync task]: sync gse agent status failed:%s", err.Error())
 				}
+			case analysisTask := <-AnalysisTaskChan:
+				if ProcessAnalysisTask != nil {
+					go ProcessAnalysisTask(analysisTask)
+				} else {
+					logger.Warn("ProcessAnalysisTask is not initialized, skip analysis task for bill %s", analysisTask.BillID)
+				}
 			}
 		}
 	}()
@@ -108,7 +125,7 @@ func init() {
 
 // archiveResource 异步归档资源
 func archiveResource(ids []int) (err error) {
-	return model.ArchiverResouce(ids)
+	return model.ArchiveResource(ids)
 }
 
 func recordTask(data ApplyResponseLogItem) error {
@@ -145,7 +162,7 @@ func UpdateResourceGseAgentStatus(bkHostIds ...int) (err error) {
 	}
 	var unUsedRsList []model.TbRpDetail
 	db := model.DB.Self.Table(model.TbRpDetailName()).Where(
-		"status = ? and agent_status_update_time > date_sub(now(),INTERVAL 30 MINUTE)", model.Unused)
+		"status = ? and agent_status_update_time < date_sub(now(),INTERVAL 30 MINUTE)", model.Unused)
 	if len(bkHostIds) > 0 {
 		db.Where("bk_host_id in (?)", bkHostIds)
 	}
@@ -202,8 +219,8 @@ func UpdateResourceGseAgentStatus(bkHostIds ...int) (err error) {
 	return nil
 }
 
-// AsyncResourceHardInfo 异步同步主机磁盘硬件信息
-func AsyncResourceHardInfo() (err error) {
+// AsyncBkCmdbAttributes 异步同步主机CMDB属性
+func AsyncBkCmdbAttributes() (err error) {
 	logger.Info("start async from cmdb ...")
 	var rsList []model.TbRpDetail
 	err = model.DB.Self.Table(model.TbRpDetailName()).Where("total_storage_cap <= 0").Limit(300).Find(&rsList).Error
@@ -232,6 +249,15 @@ func AsyncResourceHardInfo() (err error) {
 				err = model.DB.Self.Table(model.TbRpDetailName()).Where("ip = ?  and  bk_biz_id = ? ", ccInfo.InnerIP, bizId).
 					Updates(map[string]interface{}{
 						"total_storage_cap": ccInfo.BkDisk,
+						"city":              ccInfo.IdcCityName,
+						"city_id":           ccInfo.IdcCityId,
+						"sub_zone":          ccInfo.SZone,
+						"sub_zone_id":       ccInfo.SZoneID,
+						"rack_id":           util.CleanStr(ccInfo.Equipment),
+						"net_device_id":     util.TransInnerSwitchIpAsNetDeviceId(ccInfo.InnerSwitchIp),
+						"os_name":           util.CleanOsName(ccInfo.OSName),
+						"os_version":        ccInfo.BkOsVersion,
+						"os_name_origin":    ccInfo.OSName,
 					}).Error
 				if err != nil {
 					logger.Warn("request cmdb api failed %s", err.Error())
@@ -311,4 +337,15 @@ func FlushNetDeviceInfo() (err error) {
 		}
 	}
 	return nil
+}
+
+// ProcessAnalysisTask 处理智能体分析任务（由 agent 包实现）
+// 此函数声明在这里，但实际实现在 agent 包中以避免循环导入
+var ProcessAnalysisTask func(task AnalysisTaskItem)
+
+// SetAnalysisTaskProcessor 设置分析任务处理器（在 main.go 中调用）
+func SetAnalysisTaskProcessor(processor func(billID string, applyParamsJSON json.RawMessage)) {
+	ProcessAnalysisTask = func(task AnalysisTaskItem) {
+		processor(task.BillID, task.ApplyParams)
+	}
 }

@@ -1,3 +1,5 @@
+//go:build integration
+
 /**
  * MIT License
  *
@@ -27,6 +29,7 @@ package discovery_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"dbm-services/common/dbha-v2/pkg/discovery"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
@@ -41,12 +44,12 @@ func TestGet(t *testing.T) {
 
 	_, err := etcdClient.Put(ctx, testKey, testValue)
 	if err != nil {
-		t.Errorf("failed to put. errmsg: %v", err)
+		t.Errorf("failed to put, errmsg: %v", err)
 	}
 
 	value, err := dis.Get(ctx, testKey)
 	if err != nil {
-		t.Errorf("failed to get value. errmsg: %v", err)
+		t.Errorf("failed to get value, errmsg: %v", err)
 	}
 	if string(value) != testValue {
 		t.Errorf("expected value is discovery-test-value, actual value is %v", value)
@@ -62,7 +65,7 @@ func TestGet(t *testing.T) {
 
 	_, err = etcdClient.Delete(ctx, testKey)
 	if err != nil {
-		t.Errorf("failed to clear test key. errmsg: %v", err)
+		t.Errorf("failed to clear test key, errmsg: %v", err)
 	}
 }
 
@@ -77,17 +80,17 @@ func TestGetWithPrefix(t *testing.T) {
 
 	_, err := etcdClient.Put(ctx, testKey1, testValue1)
 	if err != nil {
-		t.Errorf("failed to put key1. errmsg: %v", err)
+		t.Errorf("failed to put key1, errmsg: %v", err)
 	}
 
 	_, err = etcdClient.Put(ctx, testKey2, testValue2)
 	if err != nil {
-		t.Errorf("failed to put key2. errmsg: %v", err)
+		t.Errorf("failed to put key2, errmsg: %v", err)
 	}
 
 	kvs, err := dis.GetWithPrefix(ctx, prefix)
 	if err != nil {
-		t.Errorf("failed to get prefix value. errmsg: %v", err)
+		t.Errorf("failed to get prefix value, errmsg: %v", err)
 	}
 	if len(kvs) != 2 {
 		t.Errorf("expected to get 2 values, but got: %d", len(kvs))
@@ -101,7 +104,7 @@ func TestGetWithPrefix(t *testing.T) {
 
 	_, err = etcdClient.Delete(ctx, prefix, clientv3.WithPrefix())
 	if err != nil {
-		t.Errorf("failed to clear test data. errmsg: %v", err)
+		t.Errorf("failed to clear test data, errmsg: %v", err)
 	}
 }
 
@@ -126,25 +129,26 @@ func TestInvalidParametes(t *testing.T) {
 }
 
 func TestWatch(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
-	ctx := context.Background()
 	testKey := "/test/discovery/watch/key"
 	testValue := "discovery-test-value"
 
 	_, err := etcdClient.Put(ctx, testKey, testValue)
 	if err != nil {
-		t.Errorf("failed to put initial value. errmsg: %v", err)
+		t.Errorf("failed to put initial value, errmsg: %v", err)
 	}
 
 	watchChan, err := dis.Watch(ctx, testKey)
 	if err != nil {
-		t.Errorf("failed to start watch. errmsg: %v", err)
+		t.Errorf("failed to start watch, errmsg: %v", err)
 	}
 
 	newValue := "discovery-new-value"
 	_, err = etcdClient.Put(ctx, testKey, newValue)
 	if err != nil {
-		t.Errorf("failed to change test value. errmsg: %v", err)
+		t.Errorf("failed to change test value, errmsg: %v", err)
 	}
 
 	select {
@@ -161,7 +165,7 @@ func TestWatch(t *testing.T) {
 
 	_, err = etcdClient.Delete(ctx, testKey)
 	if err != nil {
-		t.Errorf("failed to delete value. errmsg: %v", err)
+		t.Errorf("failed to delete value, errmsg: %v", err)
 	}
 
 	select {
@@ -175,7 +179,9 @@ func TestWatch(t *testing.T) {
 }
 
 func TestWatchWithPrefix(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	prefix := "/discovery/test/watch/prefix"
 	testKey1 := prefix + "/key1"
 	testKey2 := prefix + "/key2"
@@ -184,23 +190,23 @@ func TestWatchWithPrefix(t *testing.T) {
 
 	_, err := etcdClient.Put(ctx, testKey1, testValue1)
 	if err != nil {
-		t.Errorf("failed to put initial Key2 value. errmsg: %v", err)
+		t.Errorf("failed to put initial key1 value, errmsg: %v", err)
 	}
 
 	_, err = etcdClient.Put(ctx, testKey2, testValue2)
 	if err != nil {
-		t.Errorf("failed to put initial Key2 value. errmsg: %v", err)
+		t.Errorf("failed to put initial key2 value, errmsg: %v", err)
 	}
 
 	watchChan, err := dis.WatchWithPrefix(ctx, prefix)
 	if err != nil {
-		t.Errorf("failed to start watch: %v", err)
+		t.Errorf("failed to start watch, errmsg: %v", err)
 	}
 
 	newValue1 := "new-value-1"
 	_, err = etcdClient.Put(ctx, testKey1, newValue1)
 	if err != nil {
-		t.Errorf("failed to change value1. errmsg: %v", err)
+		t.Errorf("failed to change value1, errmsg: %v", err)
 	}
 
 	select {
@@ -212,12 +218,12 @@ func TestWatchWithPrefix(t *testing.T) {
 			t.Errorf("expected event value is %s, but got: %v", newValue1, string(event.Value))
 		}
 	case <-ctx.Done():
-		t.Errorf("wait for watch delete timeout")
+		t.Errorf("wait for watch put timeout")
 	}
 
 	_, err = etcdClient.Delete(ctx, testKey1, clientv3.WithPrefix())
 	if err != nil {
-		t.Errorf("failed to delete test data. errmsg: %v", err)
+		t.Errorf("failed to delete test data, errmsg: %v", err)
 	}
 	select {
 	case event := <-watchChan:
@@ -232,22 +238,24 @@ func TestWatchWithPrefix(t *testing.T) {
 func TestClose(t *testing.T) {
 	newdis, err := client.CreateDiscovery()
 	if err != nil {
-		t.Errorf("failed to create discovery instance. errmsg: %v", err)
+		t.Errorf("failed to create discovery instance, errmsg: %v", err)
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	testKey := "/discovery/test/close/key"
 
 	watchChan, err := newdis.Watch(ctx, testKey)
 	if err != nil {
-		t.Errorf("failed to start watch. errmsg: %v", err)
+		t.Errorf("failed to start watch, errmsg: %v", err)
 	}
 
 	newdis.Close()
 
 	_, err = etcdClient.Put(ctx, testKey, "test-close-value")
 	if err != nil {
-		t.Errorf("failed to set key. errmsg: %v", err)
+		t.Errorf("failed to set key, errmsg: %v", err)
 	}
 
 	select {

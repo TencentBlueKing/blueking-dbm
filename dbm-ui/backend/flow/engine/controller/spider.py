@@ -17,6 +17,7 @@ from backend.flow.engine.bamboo.scene.spider.full_backup import TenDBClusterFull
 from backend.flow.engine.bamboo.scene.spider.import_sqlfile_flow import ImportSQLFlow
 from backend.flow.engine.bamboo.scene.spider.remote_master_fail_over import RemoteMasterFailOverFlow
 from backend.flow.engine.bamboo.scene.spider.remote_master_slave_swtich import RemoteMasterSlaveSwitchFlow
+from backend.flow.engine.bamboo.scene.spider.revoke.tendb_cluster_apply_revoke_flow import TenDBClusterApplyRevokeFlow
 from backend.flow.engine.bamboo.scene.spider.spider_add_mnt import TenDBClusterAddSpiderMNTFlow
 from backend.flow.engine.bamboo.scene.spider.spider_add_nodes import TenDBClusterAddNodesFlow
 from backend.flow.engine.bamboo.scene.spider.spider_checksum import SpiderChecksumFlow
@@ -38,11 +39,14 @@ from backend.flow.engine.bamboo.scene.spider.spider_remote_master_slave_migrate 
 from backend.flow.engine.bamboo.scene.spider.spider_remote_slave_recover import TenDBRemoteSlaveRecoverFlow
 from backend.flow.engine.bamboo.scene.spider.spider_remotedb_rebalance_flow import TenDBRemoteRebalanceFlow
 from backend.flow.engine.bamboo.scene.spider.spider_rename_database_flow import SpiderRenameDatabaseFlow
+from backend.flow.engine.bamboo.scene.spider.spider_schema_check import SpiderSchemaCheckFlow
+from backend.flow.engine.bamboo.scene.spider.spider_schema_repair import SpiderSchemaRepairFlow
 from backend.flow.engine.bamboo.scene.spider.spider_slave_cluster_deploy import TenDBSlaveClusterApplyFlow
 from backend.flow.engine.bamboo.scene.spider.spider_slave_cluster_destroy import TenDBSlaveClusterDestroyFlow
 from backend.flow.engine.bamboo.scene.spider.spider_switch_nodes import TenDBClusterSwitchNodesFlow
 from backend.flow.engine.bamboo.scene.spider.upgrade.upgrade_backend_storage import UpgradeRemoteFlow
 from backend.flow.engine.bamboo.scene.spider.upgrade.upgrade_spider_node import UpgradeSpiderFlow
+from backend.flow.engine.bamboo.scene.spider.upgrade.upgrade_tdbctl import UpgradeTdbctlFlow
 from backend.flow.engine.bamboo.scene.spider.validate.remote_upgrade_validate import TenDBClusterRemoteUpgradeValidator
 from backend.flow.engine.bamboo.scene.spider.validate.spider_add_nodes_validate import (
     TenDBClusterAddNodesFlowValidator,
@@ -58,6 +62,7 @@ from backend.flow.engine.bamboo.scene.spider.validate.spider_switch_nodes_valida
 )
 from backend.flow.engine.bamboo.scene.spider.validate.spider_upgrade_validate import TenDBClusterSpiderUpgradeValidator
 from backend.flow.engine.controller.base import BaseController
+from backend.flow.engine.revoke.base import revoke_with
 from backend.flow.engine.validate.base_validate import validates_with
 
 
@@ -66,6 +71,7 @@ class SpiderController(BaseController):
     spider相关调用
     """
 
+    @revoke_with(TenDBClusterApplyRevokeFlow)
     def spider_cluster_apply_scene(self):
         """
         部署tenDB cluster(spider cluster) 部署场景
@@ -97,6 +103,20 @@ class SpiderController(BaseController):
         """
         flow = SpiderChecksumFlow(root_id=self.root_id, data=self.ticket_data)
         flow.spider_checksum_flow()
+
+    def spider_schema_check_scene(self):
+        """
+        spider 集群表结构校验场景
+        """
+        flow = SpiderSchemaCheckFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.spider_schema_check_flow()
+
+    def spider_schema_repair_scene(self):
+        """
+        spider 集群表结构修复场景
+        """
+        flow = SpiderSchemaRepairFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.spider_schema_repair_flow()
 
     def spider_partition(self):
         """
@@ -301,4 +321,11 @@ class SpiderController(BaseController):
         spider关键字检查场景
         """
         flow = SpiderKeywordCheckFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run()
+
+    def tendbcluster_tdbctl_upgrade(self):
+        """
+        tendbcluster tdbctl（中控）升级
+        """
+        flow = UpgradeTdbctlFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run()

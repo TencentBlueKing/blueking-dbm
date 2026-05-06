@@ -16,12 +16,14 @@ from typing import Dict, Optional
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.engine.bamboo.scene.common.clone_module_config import add_clone_storage_module_config_act
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.cluster_entrys import get_tendb_ha_entry
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import install_mysql_in_cluster_sub_flow
@@ -44,6 +46,12 @@ from backend.flow.plugins.components.collections.common.pause import PauseCompon
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_checksum_ticket import MySQLCheckSumTicketComponent
+from backend.flow.plugins.components.collections.mysql.mysql_checksum_ticket_result_get import (
+    MySQLCheckSumTicketResultComponent,
+)
+from backend.flow.plugins.components.collections.mysql.mysql_checksum_ticket_status import (
+    MySQLCheckSumTicketProbeComponent,
+)
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
@@ -231,6 +239,7 @@ class TendbClusterUpgradeFlow(object):
                 check_client_conn=self.is_check_process,
                 is_verify_checksum=self.is_verify_checksum,
                 need_checksum=self.need_checksum,
+                ticket_info_data=copy.deepcopy(info),
             )
             sub_flows.append(subflow)
 
@@ -255,6 +264,7 @@ def tendbha_cluster_upgrade_subflow(
     check_client_conn: bool,
     is_verify_checksum: bool,
     need_checksum: bool,
+    ticket_info_data: dict,
 ):
     """
     一主多从，整个集群升级
@@ -291,6 +301,9 @@ def tendbha_cluster_upgrade_subflow(
         "force": force_uninstall,
         "ticket_type": ticket_type,
     }
+    for k, v in ticket_info_data.items():
+        if k not in parent_global_data:
+            parent_global_data[k] = v
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
     old_ro_slave_ips = []
     new_ro_slave_ips = []
@@ -403,7 +416,10 @@ def tendbha_cluster_upgrade_subflow(
     sub_pipeline.add_sub_pipeline(
         sub_flow=standardize_mysql_cluster_subflow(
             root_id=root_id,
-            data=copy.deepcopy(parent_global_data),
+            data={
+                **copy.deepcopy(parent_global_data),
+                "cluster_ids": cluster_ids,
+            },
             bk_cloud_id=cluster_cls.bk_cloud_id,
             bk_biz_id=cluster_cls.bk_biz_id,
             instances=[
@@ -414,7 +430,7 @@ def tendbha_cluster_upgrade_subflow(
             with_bk_plugin=False,
             with_collect_sysinfo=False,
             with_cc_standardize=True,
-            with_instance_standardize=False,
+            with_instance_standardize=True,
         )
     )
 
@@ -443,7 +459,10 @@ def tendbha_cluster_upgrade_subflow(
     sub_pipeline.add_sub_pipeline(
         sub_flow=standardize_mysql_cluster_subflow(
             root_id=root_id,
-            data=copy.deepcopy(parent_global_data),
+            data={
+                **copy.deepcopy(parent_global_data),
+                "cluster_ids": cluster_ids,
+            },
             bk_cloud_id=cluster_cls.bk_cloud_id,
             bk_biz_id=cluster_cls.bk_biz_id,
             instances=[
@@ -469,6 +488,8 @@ def tendbha_cluster_upgrade_subflow(
     )
     sub_pipeline.add_sub_pipeline(sub_flow=uninstall_surrounding_sub_pipeline)
     # 更新集群模块信息
+    # 注意：这里只是添加流程节点，不会立即更新内存中的 cluster_cls 对象
+    # cluster_cls.db_module_id 仍然是旧的模块ID，这正是我们需要的源模块ID
     sub_pipeline.add_act(
         act_name=_("更新集群db模块信息"),
         act_component_code=MySQLDBMetaComponent.code,
@@ -482,6 +503,15 @@ def tendbha_cluster_upgrade_subflow(
                 },
             )
         ),
+    )
+
+    # 克隆模块配置
+    # 使用旧的模块ID作为源，新的模块ID作为目标
+    add_clone_storage_module_config_act(
+        sub_pipeline,
+        cluster_cls,
+        cluster_cls.db_module_id,  # 源模块ID（旧的）
+        new_db_module_id,  # 目标模块ID（新的）
     )
 
     # 下架确认节点
@@ -1050,7 +1080,7 @@ def build_ms_pair_sync_data_sub_pipelines(
             # 生成checksum信息
             checksum_info = {
                 "bk_biz_id": cluster_model.bk_biz_id,
-                "ticket_type": TicketType.MYSQL_CHECKSUM,
+                "ticket_type": TicketType.MYSQL_CHECKSUM_CRON,
                 "remark": _("mysql成对迁移升级生成checksum单据"),
                 "details": {
                     "data_repair": {
@@ -1090,22 +1120,44 @@ def build_ms_pair_sync_data_sub_pipelines(
                     "ignore_tables": [],
                 }
             )
-
+            # 构建 checksum_pairs
+            checksum_pairs = [
+                {
+                    "master": master_model.ip_port,
+                    "slave": f"{new_master_ip}{IP_PORT_DIVIDER}{master_model.port}",
+                }
+            ]
+            # 恢复完毕,checksum校验数据。
             sync_data_sub_pipeline.add_act(
-                act_name=_("生成checksum单据"),
+                act_name=MySQLCheckSumTicketComponent.node_name,
                 act_component_code=MySQLCheckSumTicketComponent.code,
                 kwargs=asdict(
                     MysqlCheckSumKwargs(
                         uid=uid,
                         bk_biz_id=cluster_model.bk_biz_id,
                         created_by=created_by,
-                        checksum_info=checksum_info,
+                        checksum_info=copy.deepcopy(checksum_info),
                     )
                 ),
             )
+            sync_data_sub_pipeline.add_act(
+                act_name=MySQLCheckSumTicketProbeComponent.node_name,
+                act_component_code=MySQLCheckSumTicketProbeComponent.code,
+                kwargs={},
+            )
+            sync_data_sub_pipeline.add_act(
+                act_name=MySQLCheckSumTicketResultComponent.node_name,
+                act_component_code=MySQLCheckSumTicketResultComponent.code,
+                kwargs={
+                    "bk_cloud_id": cluster_model.bk_cloud_id,
+                    "checksum_pairs": checksum_pairs,
+                    "cluster_id": cluster_model.id,
+                },
+            )
         sync_data_sub_pipeline_list.append(
-            sync_data_sub_pipeline.build_sub_process(sub_name=_("{}:恢复实例数据").format(cluster_model.immute_domain))
+            sync_data_sub_pipeline.build_sub_process(sub_name=_("{} 集群恢复数据").format(cluster_model.name))
         )
+
     return sync_data_sub_pipeline_list
 
 

@@ -60,9 +60,10 @@ class ClearMachineScriptService(BkJobService):
         FlowNode.objects.filter(root_id=root_id, node_id=node_id).update(hosts=exec_ips)
 
         body = {
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "timeout": kwargs.get("job_timeout", 3600),
             "account_alias": db_type_account_user_map[global_data["db_type"]],
-            "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": f"DBM_{node_name}_{node_id}",
             "script_content": base64_encode(db_type_script_map[global_data["db_type"]]),
             "script_language": os_script_language_map[global_data["os_type"]],

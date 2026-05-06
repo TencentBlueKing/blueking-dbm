@@ -34,29 +34,24 @@
       @change="handleInputChange" />
   </EditableColumn>
   <InstanceSelector
+    v-model="selectedInstances"
     v-model:is-show="showSelector"
     :cluster-types="[ClusterTypes.TENDBHA]"
-    hide-manual-input
-    :selected="selectedInstances"
-    :tab-list-config="tabListConfig"
+    :data-source-map="dataSourceMap"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
   import { checkInstance } from '@services/source/dbbase';
+  import { getTendbhaInstanceList } from '@services/source/tendbha';
 
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
-
-  export type SelectorHost = IValue;
+  import InstanceSelector from '@components/instance-selector-new/Index.vue';
 
   interface Props {
     selected: {
@@ -64,7 +59,7 @@
     }[];
   }
 
-  type Emits = (e: 'batch-edit', list: IValue[]) => void;
+  type Emits = (e: 'batch-edit', list: TendbhaInstanceModel[]) => void;
 
   const props = defineProps<Props>();
 
@@ -86,29 +81,19 @@
 
   const { t } = useI18n();
 
-  const tabListConfig = {
-    [ClusterTypes.TENDBHA]: [
-      {
-        name: t('目标从库'),
-        tableConfig: {
-          firsrColumn: {
-            field: 'instance_address',
-            label: t('Slave 实例'),
-            role: 'backend_slave',
-          },
-        },
-      },
-    ],
-  } as unknown as Record<ClusterTypes, PanelListType>;
+  const dataSourceMap = {
+    [ClusterTypes.TENDBHA]: (params: ServiceParameters<typeof getTendbhaInstanceList>) =>
+      getTendbhaInstanceList({
+        ...params,
+        role: 'backend_slave',
+      }),
+  };
 
   const showSelector = ref(false);
-  const selectedInstances = computed<InstanceSelectorValues<IValue>>(() => ({
-    [ClusterTypes.TENDBHA]: props.selected.map(
-      (item) =>
-        ({
-          instance_address: item.instance_address,
-        }) as IValue,
-    ),
+  const selectedInstances = computed(() => ({
+    [ClusterTypes.TENDBHA]: props.selected.map((item) => ({
+      instance_address: item.instance_address,
+    })) as TendbhaInstanceModel[],
   }));
 
   const rules = [
@@ -173,8 +158,11 @@
     };
   };
 
-  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', selected[ClusterTypes.TENDBHA]);
+  const handleSelectorChange = (selected: { [ClusterTypes.TENDBHA]: TendbhaInstanceModel[] }) => {
+    emits(
+      'batch-edit',
+      Object.values(selected).flatMap((item) => item),
+    );
   };
 
   watch(

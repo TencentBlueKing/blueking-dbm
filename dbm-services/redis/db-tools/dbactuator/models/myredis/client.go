@@ -35,6 +35,8 @@ type RedisClient struct {
 	nodesMu          *sync.Mutex                 // 写入/读取 AddrMapToNodes NodeIDMapToNodes 时加锁
 }
 
+const redisConfigRewriteSaveFixVersion = "6.2.2"
+
 // NewRedisClient 建redis客户端
 func NewRedisClient(addr, passwd string, db int, dbType string) (conn *RedisClient, err error) {
 	// 统一不使用智能client,一个连接固定到某个实例上
@@ -1136,11 +1138,28 @@ func (db *RedisClient) ConfigRewrite() (string, error) {
 	var err error
 	var data string
 	var ok bool
+	needSaveWorkaround := true
+	saveValue := ""
 	// 执行 config rewrite 命令只能用 普通redis client
 	if db.InstanceClient == nil {
 		err = fmt.Errorf("ConfigRewrite redis:%s must create a standalone client", db.Addr)
 		mylog.Logger.Error(err.Error())
 		return "", err
+	}
+	needSaveWorkaround, err = db.needSaveConfigRewriteWorkaround()
+	if err != nil {
+		// 无法确认是否为受影响的 Redis 版本时, 不冒险改动本地配置文件, 避免误伤同机器其它实例.
+		mylog.Logger.Warn("check redis(%s) version for config rewrite workaround failed,err:%v,skip workaround", db.Addr, err)
+		needSaveWorkaround = false
+	}
+	if needSaveWorkaround {
+		saveMap, err := db.ConfigGet("save")
+		if err != nil {
+			err = fmt.Errorf("get redis save config failed before config rewrite,err:%v,addr:%s", err, db.Addr)
+			mylog.Logger.Error(err.Error())
+			return "", err
+		}
+		saveValue = getConfigValueIgnoreCase(saveMap, "save")
 	}
 	data, err = db.InstanceClient.ConfigRewrite(context.TODO()).Result()
 	if err != nil && strings.Contains(err.Error(), "ERR unknown command") {
@@ -1164,7 +1183,108 @@ func (db *RedisClient) ConfigRewrite() (string, error) {
 		mylog.Logger.Error(err.Error())
 		return "", err
 	}
+	if needSaveWorkaround {
+		err = db.ensureSaveConfigInConfFile(saveValue)
+		if err != nil {
+			return "", err
+		}
+	}
 	return data, nil
+}
+
+func (db *RedisClient) needSaveConfigRewriteWorkaround() (bool, error) {
+	if consts.IsTendisplusInstanceDbType(db.DbType) || consts.IsTendisSSDInstanceDbType(db.DbType) {
+		mylog.Logger.Info("dbType:%s is tendisplus/tendisSSD,skip save config workaround,addr:%s",
+			db.DbType, db.Addr)
+		return false, nil
+	}
+	infoMap, err := db.Info("server")
+	if err != nil {
+		return false, err
+	}
+	redisVersion, ok := infoMap["redis_version"]
+	if !ok || redisVersion == "" {
+		// 非 Redis 实例 (例如 predixy/twemproxy 等 proxy) 的 INFO 里不会有 redis_version 字段.
+		// 该 workaround 只针对 Redis < 6.2.2 的 CONFIG REWRITE bug, 对 proxy 不适用, 跳过即可.
+		mylog.Logger.Info("redis_version not found in info server,skip save config workaround,addr:%s", db.Addr)
+		return false, nil
+	}
+	return needSaveConfigRewriteWorkaroundByVersion(redisVersion)
+}
+
+func needSaveConfigRewriteWorkaroundByVersion(redisVersion string) (bool, error) {
+	runtimeBaseVersion, _, err := util.VersionParse(redisVersion)
+	if err != nil {
+		return false, err
+	}
+	fixedBaseVersion, _, err := util.VersionParse(redisConfigRewriteSaveFixVersion)
+	if err != nil {
+		return false, err
+	}
+	return runtimeBaseVersion < fixedBaseVersion, nil
+}
+
+func getConfigValueIgnoreCase(confMap map[string]string, confName string) string {
+	for k, v := range confMap {
+		if strings.EqualFold(k, confName) {
+			return strings.TrimSpace(v)
+		}
+	}
+	return ""
+}
+
+func formatSaveConfigValue(saveValue string) string {
+	if strings.TrimSpace(saveValue) == "" {
+		return `""`
+	}
+	return strings.TrimSpace(saveValue)
+}
+
+func (db *RedisClient) ensureSaveConfigInConfFile(saveValue string) (err error) {
+	ip, port, err := util.AddrToIpPort(db.Addr)
+	if err != nil {
+		err = fmt.Errorf("parse redis addr(%s) failed,err:%v", db.Addr, err)
+		mylog.Logger.Error(err.Error())
+		return err
+	}
+
+	// ConfigRewrite 可能在非目标 redis 所在机器上执行
+	// 只有当目标 redis 就在本机时才去修改本地 redis.conf
+	localIP, lerr := util.GetLocalIP()
+	if lerr != nil {
+		mylog.Logger.Warn("get local ip failed,skip save config workaround,addr:%s,err:%v", db.Addr, lerr)
+		return nil
+	}
+	if localIP != ip {
+		mylog.Logger.Warn("localIP:%s redisIP:%s not equal,skip save config workaround,addr:%s",
+			localIP, ip, db.Addr)
+		return nil
+	}
+
+	confFile := filepath.Join(consts.GetRedisDataDir(), "redis", strconv.Itoa(port), "redis.conf")
+	if !util.FileExists(confFile) {
+		confFile, err = GetRedisLoccalConfFile(port)
+		if err != nil {
+			return err
+		}
+	}
+	// 匹配 save 后紧跟至少一个空白
+	sedCmd := fmt.Sprintf("sed -i -e '/^[Ss][Aa][Vv][Ee][[:space:]]\\+/d' %s", confFile)
+	mylog.Logger.Info(sedCmd)
+	if _, err = util.RunBashCmd(sedCmd, "", nil, 10*time.Second); err != nil {
+		err = fmt.Errorf("clean existing save lines in %s failed,err:%v,addr:%s", confFile, err, db.Addr)
+		mylog.Logger.Error(err.Error())
+		return err
+	}
+	saveValue = formatSaveConfigValue(saveValue)
+	err = util.SaveKvToConfigFile(confFile, "save", saveValue)
+	if err != nil {
+		err = fmt.Errorf("save redis(%s) config to file(%s) failed,err:%v", db.Addr, confFile, err)
+		mylog.Logger.Error(err.Error())
+		return err
+	}
+	mylog.Logger.Info("save config persisted after rewrite,addr:%s,confFile:%s,save:%s", db.Addr, confFile, saveValue)
+	return nil
 }
 
 // SlaveOf 'slaveof' command

@@ -44,6 +44,12 @@ class RedisScaleUpDownDetailSerializer(RedisBaseOperateDetailSerializer):
                 affinity = serializers.ChoiceField(
                     help_text=_("亲和性"), choices=AffinityEnum.get_choices(), default=AffinityEnum.NONE
                 )
+                labels = serializers.ListSerializer(
+                    help_text=_("标签id列表"), child=serializers.CharField(), required=False
+                )
+                label_names = serializers.ListSerializer(
+                    help_text=_("标签名称列表"), child=serializers.CharField(), required=False
+                )
 
             backend_group = BackendGroupSerializer()
 
@@ -90,7 +96,7 @@ class RedisScaleUpDownResourceParamBuilder(BaseOperateResourceParamBuilder):
     allow_resource_empty = True
 
     def format(self):
-        self.patch_info_affinity_location(roles=["backend_group"])
+        self.patch_info_common_affinity(role="backend_group", tolerance=0)
 
     def post_callback(self):
         super().post_callback()
@@ -109,7 +115,8 @@ class RedisScaleUpDownFlowBuilder(BaseRedisTicketFlowBuilder):
         id__cluster_type = {cluster.id: cluster.cluster_type for cluster in Cluster.objects.filter(id__in=cluster_ids)}
         for info in self.ticket.details["infos"]:
             if id__cluster_type[info["cluster_id"]] == ClusterType.TendisPredixyTendisplusCluster.value:
-
+                info["old_nodes"] = {}
+                info["old_nodes"]["backend_hosts"] = []
                 shutdown_master_hosts, shutdown_slave_hosts = get_tendisplus_shutdown_hosts(
                     info["cluster_id"], info["group_num"], info["update_mode"]
                 )

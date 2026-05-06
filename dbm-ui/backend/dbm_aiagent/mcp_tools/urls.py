@@ -14,4 +14,8 @@ from django.urls import include, path
 urlpatterns = [
     path("common/", include("backend.dbm_aiagent.mcp_tools.common.urls")),
     path("mysql/", include("backend.dbm_aiagent.mcp_tools.mysql.urls")),
+    path("sqlserver/", include("backend.dbm_aiagent.mcp_tools.sqlserver.urls")),
+    path("redis/", include("backend.dbm_aiagent.mcp_tools.redis.urls")),
+    path("mongodb/", include("backend.dbm_aiagent.mcp_tools.mongodb.urls")),
+    path("kafka/", include("backend.dbm_aiagent.mcp_tools.kafka.urls")),
 ]

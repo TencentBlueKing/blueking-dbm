@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"strings"
 	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
@@ -67,6 +66,34 @@ type PtTableChecksumCtx struct {
 	uid     string
 	cfgFile string
 	dbh     *sqlx.DB
+}
+
+func (c *PtTableChecksumComp) CleanLegacy() error {
+	conn, err := c.dbh.Connx(context.Background())
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = conn.Close()
+	}()
+
+	_, err = conn.ExecContext(
+		context.Background(), `SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;`,
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = conn.ExecContext(context.Background(), `SET BINLOG_FORMAT = 'STATEMENT'`)
+	if err != nil {
+		return err
+	}
+
+	_, err = conn.ExecContext(context.Background(), fmt.Sprintf(`DROP TABLE IF EXISTS %s`, c.Params.ReplicateTable))
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Precheck 预检查
@@ -300,44 +327,44 @@ func (c *PtTableChecksumComp) checkSlaveStatus() (err error) {
 	return nil
 }
 
-func (c *PtTableChecksumComp) CopyResult() (err error) {
-	splitR := strings.Split(c.Params.ReplicateTable, ".")
-	sourceDB := splitR[0]
-	sourceTable := splitR[1]
-
-	conn, err := c.dbh.Connx(context.Background())
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = conn.Close()
-	}()
-
-	_, err = conn.ExecContext(
-		context.Background(), `SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;`,
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = conn.ExecContext(context.Background(), `SET BINLOG_FORMAT = 'STATEMENT'`)
-	if err != nil {
-		return err
-	}
-
-	_, err = conn.ExecContext(
-		context.Background(),
-		fmt.Sprintf(
-			"REPLACE INTO `%s`.`%s` SELECT *, 1 AS reported FROM `%s`.`%s`",
-			native.INFODBA_SCHEMA, "checksum_history", sourceDB, sourceTable,
-		),
-	)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
+//func (c *PtTableChecksumComp) CopyResult() (err error) {
+//	splitR := strings.Split(c.Params.ReplicateTable, ".")
+//	sourceDB := splitR[0]
+//	sourceTable := splitR[1]
+//
+//	conn, err := c.dbh.Connx(context.Background())
+//	if err != nil {
+//		return err
+//	}
+//	defer func() {
+//		_ = conn.Close()
+//	}()
+//
+//	_, err = conn.ExecContext(
+//		context.Background(), `SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;`,
+//	)
+//	if err != nil {
+//		return err
+//	}
+//
+//	_, err = conn.ExecContext(context.Background(), `SET BINLOG_FORMAT = 'STATEMENT'`)
+//	if err != nil {
+//		return err
+//	}
+//
+//	_, err = conn.ExecContext(
+//		context.Background(),
+//		fmt.Sprintf(
+//			"REPLACE INTO `%s`.`%s` SELECT *, 1 AS reported FROM `%s`.`%s`",
+//			native.INFODBA_SCHEMA, "checksum_history", sourceDB, sourceTable,
+//		),
+//	)
+//	if err != nil {
+//		return err
+//	}
+//
+//	return nil
+//}
 
 // Example 样例
 func (c *PtTableChecksumComp) Example() interface{} {

@@ -106,6 +106,7 @@ class TenDBClusterDBTableBackUpDetailSerializer(TendbBaseOperateDetailSerializer
 
         if bad:
             return _("重复集群备份位置不一致: {}".format(", ".join(bad)))
+        return None
 
     @staticmethod
     def __validate_cluster_type(cluster_ids) -> str:
@@ -119,6 +120,7 @@ class TenDBClusterDBTableBackUpDetailSerializer(TendbBaseOperateDetailSerializer
         )
         if bad:
             return _("不支持的集群类型 {}".format(", ".join(bad)))
+        return None
 
     @staticmethod
     def __validate_cluster_exists(cluster_ids) -> str:
@@ -133,6 +135,7 @@ class TenDBClusterDBTableBackUpDetailSerializer(TendbBaseOperateDetailSerializer
         not_exists_cluster_ids = list(set(cluster_ids) - set(exists_cluster_ids))
         if not_exists_cluster_ids:
             return _("cluster id: {} 不存在".format(cluster_ids))
+        return None
 
     @staticmethod
     def __validate_backup_local(attrs):
@@ -148,6 +151,7 @@ class TenDBClusterDBTableBackUpDetailSerializer(TendbBaseOperateDetailSerializer
 
         if bad:
             return ", ".join(list(set(bad)))
+        return None
 
     @staticmethod
     def __validate_cluster_status(attrs):
@@ -176,6 +180,7 @@ class TenDBClusterDBTableBackUpDetailSerializer(TendbBaseOperateDetailSerializer
 
         if bad:
             return _("集群状态异常: {}".format(", ".join(list(set(bad)))))
+        return None
 
 
 class TenDBClusterDBTableBackUpFlowParamBuilder(builders.FlowParamBuilder):

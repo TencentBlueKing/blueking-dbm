@@ -98,7 +98,7 @@
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import MultipleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/multiple-resource-host-column/Index.vue';
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
-  import DbNameColumn from '@views/db-manage/tendb-cluster/common/toolbox-field/db-name-column/Index.vue';
+  import DbNameColumn from '@views/db-manage/mysql/common/toolbox-field/db-name-column/Index.vue';
 
   import { random } from '@utils';
 

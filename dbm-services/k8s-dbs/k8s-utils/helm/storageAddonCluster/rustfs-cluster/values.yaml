@@ -1,0 +1,43 @@
+addonVersion: 1.0.0
+
+labels: {}
+annotations: {}
+
+terminationPolicy: Delete
+topoName: standalone
+
+componentList:
+  - componentName: rustfs
+    serviceVersion: "1.0.0"
+    env:
+      RUSTFS_ACCESS_KEY: ""
+      RUSTFS_SECRET_KEY: ""
+    replicas: 1
+    resources:
+      requests:
+        cpu: 1
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 1Gi
+    volumeClaimTemplates:
+      - name: data
+        accessModes: ["ReadWriteOnce"]
+        storage: "20Gi"
+        storageClassName: "local-path"
+        volumeMode: "Filesystem"
+      - name: logs
+        accessModes: ["ReadWriteOnce"]
+        storage: "1Gi"
+        storageClassName: "local-path"
+        volumeMode: "Filesystem"
+
+observeConfig:
+  bkLogConfig:
+    enabled: false
+    labels: {}
+    dataId:
+  svcMonitor:
+    enabled: false
+    labels: {}
+    interval: "15s"

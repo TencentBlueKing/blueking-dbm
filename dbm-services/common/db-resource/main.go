@@ -27,6 +27,7 @@ import (
 	"dbm-services/common/db-resource/internal/middleware"
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/db-resource/internal/routers"
+	"dbm-services/common/db-resource/internal/svr/agent"
 	"dbm-services/common/db-resource/internal/svr/bk"
 	"dbm-services/common/db-resource/internal/svr/cloud/tencent"
 	"dbm-services/common/db-resource/internal/svr/task"
@@ -72,11 +73,11 @@ func main() {
 	srv := &http.Server{
 		Addr:              config.AppConfig.ListenAddress,
 		Handler:           app,
-		ReadHeaderTimeout: 2 * time.Second,  // 防止Slowloris攻击
-		ReadTimeout:       30 * time.Second, // 完整请求读取超时
-		WriteTimeout:      60 * time.Second, // 响应写入超时
-		IdleTimeout:       60 * time.Second, // 空闲连接超时
-		MaxHeaderBytes:    1 << 20,          // 1MB头部大小限制
+		ReadHeaderTimeout: 2 * time.Second,            // 防止Slowloris攻击
+		ReadTimeout:       30 * time.Second,           // 完整请求读取超时
+		WriteTimeout:      agent.LLMHTTPClientTimeout, // 响应写入超时，以支持 LLM 长时间分析
+		IdleTimeout:       60 * time.Second,           // 空闲连接超时
+		MaxHeaderBytes:    1 << 20,                    // 1MB头部大小限制
 	}
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -84,10 +85,10 @@ func main() {
 		}
 	}()
 
-	lcron := cron.New()
-	registerCrontab(lcron)
-	lcron.Start()
-	defer lcron.Stop()
+	localCron := cron.New()
+	registerCrontab(localCron)
+	localCron.Start()
+	defer localCron.Stop()
 
 	// Wait for interrupt signal to gracefully shutdown the server with
 	// a timeout of 5 seconds.
@@ -118,6 +119,40 @@ func init() {
 	bk.InitCCClient()
 	// 依赖 InitConfig 的云厂商初始化，避免在 init() 读取到空配置
 	tencent.InitTencentCloud()
+	// 初始化 LLM 分析器
+	initLLMAnalyzer()
+}
+
+// initLLMAnalyzer 初始化 LLM 分析器
+func initLLMAnalyzer() {
+	llmCfg := config.AppConfig.LLM
+	if !llmCfg.Enabled {
+		logger.Info("LLM analyzer is disabled")
+		return
+	}
+
+	agentCfg := &agent.LLMConfig{
+		Enabled:  llmCfg.Enabled,
+		Provider: llmCfg.Provider,
+		OpenAI: agent.OpenAIConfig{
+			APIKey:      llmCfg.OpenAI.APIKey,
+			BaseURL:     llmCfg.OpenAI.BaseURL,
+			Model:       llmCfg.OpenAI.Model,
+			MaxTokens:   llmCfg.OpenAI.MaxTokens,
+			Temperature: llmCfg.OpenAI.Temperature,
+		},
+		Agent: agent.AgentConfig{
+			MaxIterations:  llmCfg.Agent.MaxIterations,
+			TimeoutSeconds: llmCfg.Agent.TimeoutSeconds,
+		},
+	}
+
+	if err := agent.InitAnalyzer(model.DB.Self, agentCfg); err != nil {
+		logger.Error("Failed to initialize LLM analyzer: %v", err)
+	}
+
+	// 连接 task 包和 agent 包（避免循环导入）
+	task.SetAnalysisTaskProcessor(agent.ProcessAnalysisTaskFromJSON)
 }
 
 // LocalCron define local crontab
@@ -155,7 +190,7 @@ func registerCrontab(localcron *cron.Cron) {
 			Spec: "20 */12 * * *",
 			Func: func() {
 				logger.Info("Start sync machine hardware information .....")
-				if err := task.AsyncResourceHardInfo(); err != nil {
+				if err := task.AsyncBkCmdbAttributes(); err != nil {
 					logger.Error("async machine hardware information failed:%s", err.Error())
 				}
 			},

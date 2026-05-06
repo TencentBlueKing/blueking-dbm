@@ -20,6 +20,7 @@ from backend.db_services.risk_memo.filters import RiskMemoFollowUpListFilter
 from backend.db_services.risk_memo.handler import log_operation
 from backend.db_services.risk_memo.models.risk_memo import RiskMemoFollowUp
 from backend.db_services.risk_memo.serializers import RiskMemoFollowUpSerializer, UpdateRiskMemoFollowUpSerializer
+from backend.iam_app.handlers.drf_perm.risk_memo import RiskFollowUpPermission
 
 RISK_MEMO_FOLLOWUP_VIEW_TAGS = ["risk_memo_follow_up"]
 
@@ -33,6 +34,7 @@ class RiskMemoFollowUpViewSet(viewsets.AuditedModelViewSet):
     pagination_class = AuditedLimitOffsetPagination
     serializer_class = RiskMemoFollowUpSerializer
     filter_class = RiskMemoFollowUpListFilter
+    default_permission_class = [RiskFollowUpPermission()]
 
     def get_serializer_class(self):
         if self.action == "update":

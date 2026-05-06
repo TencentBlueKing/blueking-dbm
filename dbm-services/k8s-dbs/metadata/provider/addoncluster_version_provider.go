@@ -24,6 +24,7 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	entitys "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -43,6 +44,22 @@ type AddonClusterVersionProvider interface {
 // AddonClusterVersionProviderImpl AddonClusterVersionProvider 具体实现
 type AddonClusterVersionProviderImpl struct {
 	dbAccess dbaccess.AddonClusterVersionDbAccess
+}
+
+var (
+	acVersionInstance AddonClusterVersionProvider
+	acVersionOnce     sync.Once
+)
+
+// GetAddonClusterVersionProvider 获取 AddonClusterVersionProvider 单例实例
+func GetAddonClusterVersionProvider(dbAccess dbaccess.AddonClusterVersionDbAccess) AddonClusterVersionProvider {
+	acVersionOnce.Do(func() {
+		acVersionInstance = &AddonClusterVersionProviderImpl{dbAccess}
+	})
+	if acVersionInstance == nil {
+		panic("AddonClusterVersionProvider instance is nil after initialization")
+	}
+	return acVersionInstance
 }
 
 // FindAcVersionByParams 按照参数进行查询
@@ -130,9 +147,4 @@ func (k *AddonClusterVersionProviderImpl) ListAcVersion(pagination entity.Pagina
 		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return acVersionEntities, nil
-}
-
-// NewAddonClusterVersionProvider 创建 AddonClusterVersionDbAccess 接口实现实例
-func NewAddonClusterVersionProvider(dbAccess dbaccess.AddonClusterVersionDbAccess) AddonClusterVersionProvider {
-	return &AddonClusterVersionProviderImpl{dbAccess: dbAccess}
 }

@@ -1,33 +1,46 @@
 <template>
-  <BkTableColumn
-    field="status"
+  <TableColumn
+    col-key="id"
+    :filter="columnFilter?.['id']"
+    title="ID"
+    :width="80">
+    <template #default="{ row }: { row: IColumnData }">
+      {{ row.id }}
+    </template>
+  </TableColumn>
+  <TableColumn
+    col-key="status"
+    :filter="columnFilter?.['status']"
     :min-width="80"
     :title="t('状态')">
-    <template #default="{ data }: { data: IColumnData }">
-      <ClusterInstanceStatus :data="data.status" />
+    <template #default="{ row }: { row: IColumnData }">
+      <ClusterInstanceStatus :data="row.status" />
     </template>
-  </BkTableColumn>
-  <BkTableColumn
-    field="role"
+  </TableColumn>
+  <TableColumn
+    col-key="role"
+    :filter="columnFilter?.['role']"
     :min-width="150"
     :title="t('部署角色')">
-    <template #default="{ data }: { data: IColumnData }">
-      <RenderClusterRole :data="[data.roleDisplay || data.role]" />
+    <template #default="{ row }: { row: IColumnData }">
+      <RenderClusterRole :data="[row.roleDisplay || row.role]" />
     </template>
-  </BkTableColumn>
-  <BkTableColumn
-    field="version"
-    :min-width="180"
+  </TableColumn>
+  <TableColumn
+    col-key="version"
+    :filter="columnFilter?.['version']"
+    :min-width="240"
     :title="t('版本')">
-    <template #default="{ data }: { data: IColumnData }">
-      {{ data.version || '--' }}
+    <template #default="{ row }: { row: IColumnData }">
+      {{ row.version || '--' }}
     </template>
-  </BkTableColumn>
-  <BkTableColumn
-    field="ip"
+  </TableColumn>
+  <TableColumn
+    col-key="ip"
+    :filter="columnFilter?.['ip']"
     :min-width="150"
     :title="t('主机IP')">
-    <template #default="{ data }: { data: IColumnData }">
+    <template #default="{ row }: { row: IColumnData }">
       <RouterLink
         :to="{
           query: {
@@ -35,79 +48,85 @@
             [URL_CLUSTER_DETAIL_MEMO_KEY]: 'host',
             [URL_HOST_MEMO_KEY]: encodeURIComponent(
               JSON.stringify({
-                ip: data.ip,
+                ip: row.ip,
               }),
             ),
           },
         }">
-        {{ data.ip }}
+        {{ row.ip }}
       </RouterLink>
     </template>
-  </BkTableColumn>
-  <BkTableColumn
-    field="bk_sub_zone"
+  </TableColumn>
+  <TableColumn
+    col-key="bk_sub_zone"
+    :filter="columnFilter?.['bk_sub_zone']"
     :min-width="120"
     :title="t('园区')">
-    <template #default="{ data }: { data: IColumnData }">
+    <template #default="{ row }: { row: IColumnData }">
       <RouterLink
-        v-if="data.bk_sub_zone"
+        v-if="row.bk_sub_zone"
         :to="{
           query: {
             ...getSearchParams(),
             [URL_CLUSTER_DETAIL_MEMO_KEY]: 'host',
             [URL_HOST_MEMO_KEY]: encodeURIComponent(
               JSON.stringify({
-                bk_sub_zone: data.bk_sub_zone,
+                bk_sub_zone: row.bk_sub_zone,
               }),
             ),
           },
         }">
-        {{ data.bk_sub_zone }}
+        {{ row.bk_sub_zone }}
       </RouterLink>
       <span v-else>--</span>
     </template>
-  </BkTableColumn>
-  <BkTableColumn
-    field="bk_os_name"
+  </TableColumn>
+  <TableColumn
+    col-key="bk_os_name"
+    :filter="columnFilter?.['bk_os_name']"
     :min-width="250"
     :title="t('操作系统')">
-    <template #default="{ data }: { data: IColumnData }">
+    <template #default="{ row }: { row: IColumnData }">
       <RouterLink
-        v-if="data.bk_os_name"
+        v-if="row.bk_os_name"
         :to="{
           query: {
             ...getSearchParams(),
             [URL_CLUSTER_DETAIL_MEMO_KEY]: 'host',
             [URL_HOST_MEMO_KEY]: encodeURIComponent(
               JSON.stringify({
-                bk_os_name: data.bk_os_name,
+                bk_os_name: row.bk_os_name,
               }),
             ),
           },
         }">
-        {{ data.bk_os_name }}
+        {{ row.bk_os_name }}
       </RouterLink>
       <span v-else>--</span>
     </template>
-  </BkTableColumn>
-  <BkTableColumn
-    field="bk_svr_device_cls_name"
+  </TableColumn>
+  <!-- <TableColumn
+    col-key="bk_svr_device_cls_name"
     :min-width="250"
     :title="t('机型')">
-    <template #default="{ data }: { data: IColumnData }">
-      {{ data.bk_svr_device_cls_name || '--' }}
+    <template #default="{ row }: { row: IColumnData }">
+      {{ row.bk_svr_device_cls_name || '--' }}
     </template>
-  </BkTableColumn>
-  <BkTableColumn
-    field="create_at"
+  </TableColumn> -->
+  <TableColumn
+    col-key="create_at"
+    :filter="columnFilter?.['create_at']"
     :min-width="250"
+    sorter
     :title="t('部署时间')" />
 </template>
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { useUrlSearch } from '@hooks';
+  import { useInstanceColumnFilter, useUrlSearch } from '@hooks';
+
+  import type { ClusterTypes } from '@common/const';
 
   import ClusterInstanceStatus from '@components/cluster-instance-status/Index.vue';
 
@@ -120,7 +139,19 @@
     roleDisplay?: string;
   } & ServiceReturnType<ReturnType<typeof useClusterInstanceList>>['results'][number];
 
+  interface Props {
+    clusterId: number;
+    clusterType: ClusterTypes;
+  }
+
+  const props = defineProps<Props>();
+
   const { t } = useI18n();
 
   const { getSearchParams } = useUrlSearch();
+  const { data: columnFilter } = useInstanceColumnFilter({
+    cluster_id: props.clusterId,
+    cluster_type: props.clusterType,
+    instance_attrs: ['role', 'version', 'bk_os_name', 'bk_sub_zone'] as const,
+  });
 </script>

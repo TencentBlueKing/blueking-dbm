@@ -92,7 +92,7 @@ func unMarshalResponse(respBytes []byte) (*commapi.Response, error) {
 func shouldSkipPath(c *gin.Context) bool {
 	path := c.Request.URL.Path
 	if IgnorePaths[path] {
-		slog.Warn("当前接口路径不需要进行日志上报", "接口路径", path)
+		slog.Debug("当前接口路径不需要进行日志上报", "接口路径", path)
 		return true
 	}
 	return false

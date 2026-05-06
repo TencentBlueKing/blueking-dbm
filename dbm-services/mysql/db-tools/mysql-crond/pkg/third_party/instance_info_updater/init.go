@@ -1,16 +1,19 @@
 package instance_info_updater
 
 import (
-	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
-	"dbm-services/common/reverseapi/define"
-	"dbm-services/common/reverseapi/pkg/core"
-	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
 	"log/slog"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"time"
 
+	reversemysqlapi "dbm-services/common/reverseapi/apis/mysql"
+	"dbm-services/common/reverseapi/define"
+	"dbm-services/common/reverseapi/pkg/core"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
+
+	"github.com/gofrs/flock"
 	"github.com/pkg/errors"
 	"github.com/robfig/cron/v3"
 )
@@ -44,24 +47,36 @@ func updater() error {
 }
 
 func Updater() error {
-	apiCore, err := core.NewCore(int64(*config.RuntimeConfig.BkCloudID), core.DefaultRetryOpts...)
+	slog.Info("call reverse api", slog.Any("runtime config", config.RuntimeConfig))
+	return DoUpdate(int64(*config.RuntimeConfig.BkCloudID))
+}
+
+// DoUpdate 更新实例信息
+// 会被外部调用，内部不要打日志了。slog 默认会打 stderr
+func DoUpdate(bkCloudId int64) error {
+	lkfp := filepath.Join(cst.MySQLCrondInstallPath, "instance-info-updater.lock")
+	fl := flock.New(lkfp)
+	defer func() {
+		_ = fl.Unlock()
+	}()
+
+	err := fl.Lock()
+	if err != nil {
+		slog.Error("lock failed", slog.String("err", err.Error()))
+		return err
+	}
+
+	apiCore, err := core.NewCore(bkCloudId, core.DefaultRetryOpts...)
 	if err != nil {
 		slog.Error("create api core", slog.String("err", err.Error()))
 		return err
 	}
 
-	slog.Info("call reverse api", slog.Any("runtime config", config.RuntimeConfig))
-
-	info, layer, err := reversemysqlapi.ListInstanceInfo(apiCore)
+	info, _, err := reversemysqlapi.ListInstanceInfo(apiCore)
 	if err != nil {
 		slog.Error("list instance info failed", slog.String("err", err.Error()))
 		return errors.Wrap(err, "list instance info failed")
 	}
-	slog.Info(
-		"list instance info",
-		slog.Any("info", info),
-		slog.String("layer", layer),
-	)
 
 	f, err := os.OpenFile(
 		filepath.Join(define.DefaultCommonConfigDir, define.DefaultInstanceInfoFileName),
@@ -73,12 +88,10 @@ func Updater() error {
 	defer func() {
 		_ = f.Close()
 	}()
-	slog.Info("update instance info recreate file success")
 
 	if _, err := f.WriteString(string(info) + "\n"); err != nil {
 		slog.Error("write instance info failed", slog.String("err", err.Error()))
 		return errors.Wrap(err, "write instance info failed")
 	}
-	slog.Info("update instance info recreate file success")
 	return nil
 }

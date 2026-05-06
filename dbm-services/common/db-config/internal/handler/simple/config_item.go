@@ -1,13 +1,14 @@
 package simple
 
 import (
+	"fmt"
+
 	"bk-dbconfig/internal/api"
 	"bk-dbconfig/internal/handler"
 	"bk-dbconfig/internal/service/simpleconfig"
 	"bk-dbconfig/pkg/constvar"
 	"bk-dbconfig/pkg/core/logger"
 	"bk-dbconfig/pkg/util"
-	"fmt"
 
 	"github.com/gin-gonic/gin"
 )
@@ -156,10 +157,20 @@ func (cf *Config) UpdateConfigFileItems(ctx *gin.Context) {
 		handler.SendResponse(ctx, err, nil)
 		return
 	}
-	if err = simpleconfig.CheckValidConfType(r.ConfFileInfo.Namespace, r.ConfFileInfo.ConfType,
-		r.ConfFileInfo.ConfFile, r.LevelName, 1); err != nil {
+	if versioned, err := simpleconfig.CheckValidConfFile(r.ConfFileInfo.Namespace, r.ConfFileInfo.ConfType,
+		r.ConfFileInfo.ConfFile, r.LevelName); err != nil {
 		handler.SendResponse(ctx, err, nil)
 		return
+	} else if versioned != "" {
+		r = api.UpsertConfItemsReq{
+			ReqType:          constvar.MethodGenAndPublish,
+			SaveConfItemsReq: r.SaveConfItemsReq,
+		}
+	} else {
+		r = api.UpsertConfItemsReq{
+			ReqType:          constvar.MethodSave,
+			SaveConfItemsReq: r.SaveConfItemsReq,
+		}
 	}
 	opUser := api.GetHeaderUsername(ctx.GetHeader(constvar.BKApiAuthorization))
 	if resp, err = simpleconfig.UpdateConfigFileItems(&r, opUser); err != nil {
@@ -184,7 +195,22 @@ func (cf *Config) UpdateConfigFileItems(ctx *gin.Context) {
 // @Failure      400  {object}  api.HTTPClientErrResp
 // @Router       /bkconfig/v1/confitem/save [post]
 func (cf *Config) SaveConfigFileItems(ctx *gin.Context) {
-	var r api.SaveConfItemsReq
+	cf.UpdateConfigFileItems(ctx)
+}
+
+// RecoverDefaultConfigItems godoc
+//
+// @Summary      恢复默认值
+// @Description  恢复默认值，即删除当前级别的配置，放弃集群的自定义配置，从上级继承
+// @Tags         config_item
+// @Accept       json
+// @Produce      json
+// @Param        body body     api.RecoverDefaultConfItemsReq  true  "RecoverDefaultConfItemsReq"
+// @Success      200  {object}  api.HTTPOkNilResp
+// @Failure      400  {object}  api.HTTPClientErrResp
+// @Router       /bkconfig/v1/confitem/recoverdefault [post]
+func (cf *Config) RecoverDefaultConfigItems(ctx *gin.Context) {
+	var r api.RecoverDefaultConfItemsReq
 	var resp *api.UpsertConfItemsResp
 	var err error
 	defer util.LoggerErrorStack(logger.Error, err)
@@ -193,21 +219,32 @@ func (cf *Config) SaveConfigFileItems(ctx *gin.Context) {
 		handler.SendResponse(ctx, err, nil)
 		return
 	}
-	if err = r.Validate(); err != nil {
+	req := api.UpsertConfItemsReq{
+		ReqType: constvar.MethodGenAndPublish,
+		SaveConfItemsReq: api.SaveConfItemsReq{
+			BKBizID:      r.BKBizID,
+			BaseLevelDef: r.BaseLevelDef,
+			ConfFileInfo: api.ConfFileDef{
+				BaseConfFileDef: r.BaseConfFileDef,
+			},
+		},
+	}
+	if _, err := simpleconfig.CheckValidConfFile(r.Namespace, r.ConfType,
+		r.ConfFile, r.LevelName); err != nil {
 		handler.SendResponse(ctx, err, nil)
 		return
 	}
-	if err = simpleconfig.CheckValidConfType(r.ConfFileInfo.Namespace, r.ConfFileInfo.ConfType,
-		r.ConfFileInfo.ConfFile, r.LevelName, 0); err != nil {
-		handler.SendResponse(ctx, err, nil)
-		return
+	for _, ele := range r.ConfNames {
+		req.ConfItems = append(req.ConfItems, &api.UpsertConfItem{
+			BaseConfItemDef: api.BaseConfItemDef{
+				ConfName: ele,
+			},
+			OPType: constvar.OPTypeRemove,
+		})
 	}
-	r2 := api.UpsertConfItemsReq{
-		RequestType:      api.RequestType{ReqType: constvar.MethodSave},
-		SaveConfItemsReq: r,
-	}
+
 	opUser := api.GetHeaderUsername(ctx.GetHeader(constvar.BKApiAuthorization))
-	if resp, err = simpleconfig.UpdateConfigFileItems(&r2, opUser); err != nil {
+	if resp, err = simpleconfig.UpdateConfigFileItems(&req, opUser); err != nil {
 		handler.SendResponse(ctx, err, nil)
 		return
 	} else {

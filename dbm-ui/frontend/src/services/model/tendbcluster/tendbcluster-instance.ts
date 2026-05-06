@@ -14,11 +14,11 @@ import type { HostInfo, InstanceListSpecConfig, InstanceRelatedCluster, MachineR
 
 import { ClusterTypes } from '@common/const';
 
-import { isRecentDays, utcDisplayTime } from '@utils';
-
 import { t } from '@locales/index';
 
-export default class TendbInstance {
+import InstanceBase from '../_instanceBase';
+
+export default class TendbInstance extends InstanceBase {
   bk_biz_id: number;
   bk_cloud_id: number;
   bk_cloud_name: string;
@@ -35,7 +35,6 @@ export default class TendbInstance {
   cluster_id: number;
   cluster_name: string;
   cluster_type: ClusterTypes;
-  create_at: string;
   db_module_id: number;
   db_module_name: string;
   host_info: HostInfo;
@@ -50,14 +49,14 @@ export default class TendbInstance {
   };
   port: number;
   related_clusters: InstanceRelatedCluster[];
+  related_pair_instance: MachineRelatedInstance;
   role: string;
   slave_domain: string;
   spec_config: InstanceListSpecConfig;
-  status: 'running' | 'unavailable';
   version: string;
-  related_pair_instance: MachineRelatedInstance;
 
   constructor(payload = {} as TendbInstance) {
+    super(payload);
     this.bk_biz_id = payload.bk_biz_id || 0;
     this.bk_cloud_id = payload.bk_cloud_id || 0;
     this.bk_cloud_name = payload.bk_cloud_name || '';
@@ -74,7 +73,6 @@ export default class TendbInstance {
     this.bk_mem = payload.bk_mem || 0;
     this.bk_disk = payload.bk_disk || 0;
     this.cluster_type = payload.cluster_type;
-    this.create_at = payload.create_at;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
     this.host_info = payload.host_info || {};
@@ -91,16 +89,7 @@ export default class TendbInstance {
     this.role = payload.role;
     this.slave_domain = payload.slave_domain;
     this.spec_config = payload.spec_config || {};
-    this.status = payload.status;
     this.version = payload.version;
-  }
-
-  get createAtDisplay() {
-    return utcDisplayTime(this.create_at);
-  }
-
-  get isNew() {
-    return isRecentDays(this.create_at, 24 * 3);
   }
 
   get roleDisplay() {

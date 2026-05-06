@@ -20,7 +20,13 @@ from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME, MYSQL_USUAL
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.db_report.mysql_backup.handers import MySQLBackupHandler
-from backend.flow.consts import DBA_ROOT_USER, MySQLBackupTypeEnum, MysqlChangeMasterType, RollbackType
+from backend.flow.consts import (
+    DBA_ROOT_USER,
+    MySQLBackupTypeEnum,
+    MysqlChangeMasterType,
+    RollbackType,
+    TendbSingleRestoreType,
+)
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import check_binlog_missing
@@ -99,7 +105,11 @@ def mysql_restore_data_sub_flow(
         filter_ips=filter_ips,
         backup_id=backup_id,
         backup_source=backup_source,
+        deadlines_days=7,
     )
+
+    if binlog_sync:
+        backup_handler.need_binlog_check = cluster["master_ip"]
 
     # 如果是TenDB Single类型，设置为增量备份
     if cluster_model.cluster_type == ClusterType.TenDBSingle.value:
@@ -126,6 +136,15 @@ def mysql_restore_data_sub_flow(
             )
         )
     cluster["backupinfo"] = backup_info
+    if cluster_model.cluster_type == ClusterType.TenDBSingle.value:
+        if ticket_data.get("orphan_restore_type", "") in (
+            TendbSingleRestoreType.REPLICATE_WITH_DATA.value,
+            TendbSingleRestoreType.REPLICATE_WITH_STRUCT.value,
+        ):
+            if backup_info.get("binlog_format", "") == "":
+                raise TendbGetBackupInfoFailedException(
+                    message=_("集群 {} 备份 {} 没有位点信息 binlog_format为空".format(cluster_model.id, backup_info["backup_id"]))
+                )
 
     # 阶段2: 下载备份文件
     # 根据备份源类型（本地/远程）确定下载参数
@@ -165,6 +184,8 @@ def mysql_restore_data_sub_flow(
     cluster["source_port"] = cluster["master_port"]
     # 恢复数据完毕不自动 change master，避免影响后续的主从关系建立
     cluster["change_master"] = False
+    # skip_after_load 拆分数据恢复和恢复后工作。
+    cluster["skip_after_load"] = True
 
     # 设置恢复任务参数
     exec_act_kwargs.cluster = copy.deepcopy(cluster)
@@ -182,11 +203,26 @@ def mysql_restore_data_sub_flow(
         kwargs=asdict(exec_act_kwargs),
         write_payload_var="change_master_info",
     )
+    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_restore_dr_after_payload.__name__
+    sub_pipeline.add_act(
+        act_name=_("数据恢复完成善后 {}:{} ".format(exec_act_kwargs.exec_ip, cluster["restore_port"])),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(exec_act_kwargs),
+    )
 
     # 阶段4: 建立主从关系 - 新从库指向旧主库（可选）
     # 根据binlog_sync配置决定是否建立主从关系
     if binlog_sync:
         # 在旧主库上为新从库创建复制用户
+        # 判断主节点ip是否在binlog位点里面
+        if cluster["master_ip"] not in backup_info["binlog_ips"]:
+            raise TendbGetBackupInfoFailedException(
+                message=_("备份 {} 不包含主节点位点IP {}".format(backup_info["backup_id"], cluster["master_ip"]))
+            )
+        #  如果是tendbSingle类型，复制账号呀添加super权限
+        if cluster_model.cluster_type == ClusterType.TenDBSingle.value:
+            cluster["super_privilege"] = True
+        cluster["recover_binlog"] = True
         cluster["target_ip"] = cluster["master_ip"]
         cluster["target_port"] = cluster["master_port"]
         cluster["repl_ip"] = cluster["new_slave_ip"]
@@ -290,6 +326,8 @@ def mysql_restore_master_slave_sub_flow(
         check_instance_exist=True,
         filter_ips=filter_ips,
         backup_source=backup_source,
+        need_binlog_check=cluster["master_ip"],
+        deadlines_days=7,
     )
 
     # 如果是TenDB Cluster类型，需要设置分片ID
@@ -342,6 +380,7 @@ def mysql_restore_master_slave_sub_flow(
     restore_list = []
 
     # 配置新主节点的恢复参数
+    cluster["recover_binlog"] = True
     cluster["restore_ip"] = cluster["new_master_ip"]
     cluster["restore_port"] = cluster["new_master_port"]
     cluster["source_ip"] = cluster["master_ip"]
@@ -354,18 +393,24 @@ def mysql_restore_master_slave_sub_flow(
     exec_act_kwargs.job_timeout = MYSQL_DATA_RESTORE_TIME
     exec_act_kwargs.cluster = copy.deepcopy(cluster)
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_restore_remotedb_payload.__name__
-    restore_list.append(
-        {
-            "act_name": _(
-                "恢复新主节点数据 {}:{} 备份backup_id: {}".format(
-                    exec_act_kwargs.exec_ip, cluster["restore_port"], backup_info["backup_id"]
-                )
-            ),
-            "act_component_code": ExecuteDBActuatorScriptComponent.code,
-            "kwargs": asdict(exec_act_kwargs),
-            "write_payload_var": "change_master_info",
-        }
+    sub_pipeline_master = SubBuilder(root_id=root_id, data=ticket_data)
+    sub_pipeline_master.add_act(
+        act_name=_(
+            "恢复新主节点数据 {}:{} 备份backup_id: {}".format(
+                exec_act_kwargs.exec_ip, cluster["restore_port"], backup_info["backup_id"]
+            )
+        ),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(exec_act_kwargs),
+        write_payload_var="change_master_info",
     )
+    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_restore_dr_after_payload.__name__
+    sub_pipeline_master.add_act(
+        act_name=_("数据恢复完成善后 {}:{} ".format(exec_act_kwargs.exec_ip, cluster["restore_port"])),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(exec_act_kwargs),
+    )
+    restore_list.append(sub_pipeline_master.build_sub_process(sub_name=_("恢复新主节点")))
 
     # 配置新从节点的恢复参数
     cluster["restore_ip"] = cluster["new_slave_ip"]
@@ -375,20 +420,27 @@ def mysql_restore_master_slave_sub_flow(
     exec_act_kwargs.cluster = copy.deepcopy(cluster)
     exec_act_kwargs.exec_ip = cluster["new_slave_ip"]
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_restore_remotedb_payload.__name__
-    restore_list.append(
-        {
-            "act_name": _(
-                "恢复新从节点数据 {}:{} 备份backup_id: {}".format(
-                    exec_act_kwargs.exec_ip, cluster["restore_port"], backup_info["backup_id"]
-                )
-            ),
-            "act_component_code": ExecuteDBActuatorScriptComponent.code,
-            "kwargs": asdict(exec_act_kwargs),
-        }
-    )
 
+    sub_pipeline_slave = SubBuilder(root_id=root_id, data=ticket_data)
+    sub_pipeline_slave.add_act(
+        act_name=_(
+            "恢复新主节点数据 {}:{} 备份backup_id: {}".format(
+                exec_act_kwargs.exec_ip, cluster["restore_port"], backup_info["backup_id"]
+            )
+        ),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(exec_act_kwargs),
+        write_payload_var="change_master_info",
+    )
+    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_restore_dr_after_payload.__name__
+    sub_pipeline_slave.add_act(
+        act_name=_("数据恢复完成善后 {}:{} ".format(exec_act_kwargs.exec_ip, cluster["restore_port"])),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(exec_act_kwargs),
+    )
+    restore_list.append(sub_pipeline_slave.build_sub_process(sub_name=_("恢复新从节点")))
     # 并行执行新主节点和新从节点的数据恢复
-    sub_pipeline.add_parallel_acts(acts_list=restore_list)
+    sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=restore_list)
 
     # 阶段5: 建立主从关系 - 新从库指向新主库
     change_master_cluster = {
@@ -406,6 +458,10 @@ def mysql_restore_master_slave_sub_flow(
     )
 
     # 阶段6: 建立主从关系 - 新主库指向旧主库
+    if cluster["master_ip"] not in backup_info["binlog_ips"]:
+        raise TendbGetBackupInfoFailedException(
+            message=_("备份 {} 不包含主节点位点IP {}".format(backup_info["backup_id"], cluster["master_ip"]))
+        )
     cluster["target_ip"] = cluster["master_ip"]
     cluster["target_port"] = cluster["master_port"]
     cluster["repl_ip"] = cluster["new_master_ip"]
@@ -453,7 +509,8 @@ def mysql_restore_master_slave_sub_flow(
             root_id=root_id,
             ticket_data=ticket_data,
             cluster_model=cluster_model,
-            ips=[cluster["new_slave_ip"], cluster["new_master_ip"]],
+            # ips=[cluster["new_slave_ip"], cluster["new_master_ip"]],
+            ips=[cluster["new_slave_ip"]],
             privilege_ips=privilege_ips,
         )
         if restore_priv_sub_pipeline is not None:
@@ -478,21 +535,21 @@ def priv_recover_sub_flow(
     """
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
 
-    backup_handler = MySQLBackupHandler(cluster_id=cluster_model.id, filter_ips=privilege_ips)
+    backup_handler = MySQLBackupHandler(cluster_id=cluster_model.id, filter_ips=privilege_ips, deadlines_days=7)
     backup_info = backup_handler.get_tendb_priv_backup_info()
     if backup_info is None:
         logger.error("cluster {} backup info not exists".format(cluster_model.id))
         return None
-
-    storages = cluster_model.storageinstance_set.filter(machine__ip__in=ips)
+    # 这里流程是提前生成的，这里新的ip还查询不到。所以只能通过指定ip
+    master = cluster_model.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
     priv_sub_pipeline_list = []
-    for storage in storages:
+    for restore_ip in ips:
         priv_sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
         cluster = {
             "cluster_id": cluster_model.id,
-            "file_target_path": f"/data/dbbak/{root_id}/{storage.port}/restore_priv",
+            "file_target_path": f"/data/dbbak/{root_id}/{master.port}/restore_priv",
             "sql_files": backup_info["priv_files"],
-            "port": storage.port,
+            "port": master.port,
             "force": False,
         }
 
@@ -503,7 +560,7 @@ def priv_recover_sub_flow(
                 bk_cloud_id=cluster_model.bk_cloud_id,
                 file_target_path=cluster["file_target_path"],
                 task_ids=backup_info["task_ids"],
-                dest_ips=[storage.machine.ip],
+                dest_ips=[restore_ip],
                 source_ip=None,
             )
         )
@@ -513,16 +570,14 @@ def priv_recover_sub_flow(
             cluster=copy.deepcopy(cluster),
             job_timeout=MYSQL_USUAL_JOB_TIME,
             get_mysql_payload_func=MysqlActPayload.tendb_restore_priv_payload.__name__,
-            exec_ip=storage.machine.ip,
+            exec_ip=restore_ip,
         )
         priv_sub_pipeline.add_act(
-            act_name=_("权限恢复 {} 权限backup_id: {}".format(storage.ip_port, backup_info["backup_ids"])),
+            act_name=_("{}:{}权限恢复,权限backup_ids: {}".format(restore_ip, master.port, backup_info["backup_ids"])),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(exec_act_kwargs),
         )
-        priv_sub_pipeline_list.append(
-            priv_sub_pipeline.build_sub_process(sub_name=_(_("{}权限恢复").format(storage.ip_port)))
-        )
+        priv_sub_pipeline_list.append(priv_sub_pipeline.build_sub_process(sub_name=_(_("{}权限恢复").format(restore_ip))))
 
     if len(priv_sub_pipeline_list) > 0:
         sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=priv_sub_pipeline_list)
@@ -683,6 +738,10 @@ def tendbha_rollback_data_sub_flow(
     # 阶段3 恢复数据
     # 恢复数据完毕不自动 change master
     cluster_info["change_master"] = False
+    # skip_after_load 拆分数据恢复和恢复后工作。
+    cluster_info["skip_after_load"] = True
+    cluster_info["restore_ip"] = cluster_info["rollback_ip"]
+    cluster_info["restore_port"] = cluster_info["rollback_port"]
     exec_act_kwargs = ExecActuatorKwargs(
         bk_cloud_id=cluster_model.bk_cloud_id,
         cluster_type=cluster_model.cluster_type,
@@ -696,6 +755,12 @@ def tendbha_rollback_data_sub_flow(
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
         write_payload_var="change_master_info",
+    )
+    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_restore_dr_after_payload.__name__
+    sub_pipeline.add_act(
+        act_name=_("数据恢复完成善后 {}:{} ".format(exec_act_kwargs.exec_ip, cluster_info["rollback_port"])),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(exec_act_kwargs),
     )
 
     if (
@@ -887,7 +952,7 @@ def mysql_backup_restore_sub_flow(
     )
     # 阶段1: 备份权限和表结构
     sub_pipeline.add_act(
-        act_name=_("备份表结构 {}".format(cluster["ip"])),
+        act_name=_("实时备份表结构/权限 {}".format(cluster["ip"])),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(
             ExecActuatorKwargs(

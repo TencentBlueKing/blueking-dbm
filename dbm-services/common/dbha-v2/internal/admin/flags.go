@@ -24,6 +24,25 @@
 
 package admin
 
+import "dbm-services/common/dbha-v2/internal/admin/cmds"
+
 var (
 	ConfigFilePath = ""
+	MigrateType    = ""
 )
+
+func init() {
+	MigrateCmd.Flags().StringVarP(&MigrateType, "type", "t", "all",
+		"Migrate type: schema (table schema only), strategy (default global strategies only), all (both)")
+
+	StopCmd.Flags().BoolVarP(&cmds.ForceStop, "force", "f", false, "Force stop the process")
+	StopCmd.Flags().IntVarP(&cmds.StopTimeout, "timeout", "t", 30, "Timeout in seconds for graceful stop")
+
+	RestartCmd.Flags().BoolVarP(&cmds.ForceStop, "force", "f", false, "Force stop the process")
+	RestartCmd.Flags().IntVarP(&cmds.StopTimeout, "timeout", "t", 30, "Timeout in seconds for graceful stop")
+
+	ReloadCmd.Flags().BoolVarP(&cmds.ForceStop, "force", "f", false, "Force stop the process")
+	ReloadCmd.Flags().IntVarP(&cmds.StopTimeout, "timeout", "t", 30, "Timeout in seconds for graceful stop")
+
+	HealthCmd.Flags().BoolVarP(&cmds.JsonFormatter, "json", "j", false, "Output in JSON format")
+}

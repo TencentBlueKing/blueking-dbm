@@ -245,6 +245,8 @@ class OperateCollectorActionEnum(StrStructuredEnum):
 class FlowNodeOperateType(StrStructuredEnum):
     RETRY = EnumField("retry", _("重试"))
     SKIP = EnumField("skip", _("跳过"))
+    FORCE_RETRY = EnumField("force_retry", _("强制重试"))
+    FORCE_SKIP = EnumField("force_skip", _("强制跳过"))
     FORCE_FAIL = EnumField("force_fail", _("强制失败"))
     CONFIRM = EnumField("confirm", _("确认继续"))
     PIPELINE_TERMINATE = EnumField("pipeline_terminate", _("流程终止"))
@@ -382,8 +384,8 @@ class CloudDBHATypeEnum(StrStructuredEnum):
 
 
 CLOUD_SSL_PATH = "cloud/ssl"
-CLOUD_NGINX_DBM_DEFAULT_PORT = 80
-CLOUD_NGINX_MANAGE_DEFAULT_HOST = 8080
+CLOUD_NGINX_DBM_DEFAULT_PORT = env.DBM_PORT
+CLOUD_NGINX_MANAGE_DEFAULT_HOST = env.MANAGE_PORT
 
 
 class CloudServiceModuleName(StrStructuredEnum):
@@ -438,8 +440,11 @@ class DBActuatorActionEnum(StrStructuredEnum):
     ImportSchemaToTdbctl = EnumField("import-schema-to-tdbctl", _("import-schema-to-tdbctl"))
     CheckTdbctlWithSpiderSchema = EnumField("check-tdbctl-with-spider-schema", _("check-tdbctl-with-spider-schema"))
     CheckTdbctlWithSpiderRouter = EnumField("check-tdbctl-with-spider-router", _("check-tdbctl-with-spider-router"))
+    ClusterSchemaCheck = EnumField("schema-check", _("schema-check"))
+    ClusterSchemaRepair = EnumField("schema-repair", _("schema-repair"))
     GetBackupFile = EnumField("find-local-backup", _("find-local-backup"))
     RestoreSlave = EnumField("restore-dr", _("restore-dr"))
+    RestoreDrAfter = EnumField("restore-dr-after", _("restore-dr-after"))
     StopMysqld = EnumField("stop-mysqld", _("stop-mysqld"))
     FastExecuteSqlFile = EnumField("fast-execute-sql-file", _("fast-execute-sql-file"))
     RecoverBinlog = EnumField("recover-binlog", _("recover-binlog"))
@@ -493,6 +498,7 @@ class DBActuatorActionEnum(StrStructuredEnum):
     UpgradeStart = EnumField("upgrade-start", _("MySQL升级启动"))
     UpgradeRestart = EnumField("upgrade-restart", _("MySQL升级重启"))
     UpgradeRelink = EnumField("upgrade-relink", _("MySQL升级重新链接"))
+    UpgradeRelinkTdbctl = EnumField("upgrade-relink-tdbctl", _("tdbctl版本重新链接"))
     MysqlDataMigrateDump = EnumField("mysql_data_migrate_dump", _("Mysql数据迁移导出库"))
     MysqlDataMigrateImport = EnumField("mysql_data_migrate_import", _("Mysql数据迁移导入库"))
     MysqlChangeMycnf = EnumField("mycnf-change", _("修改MySQL配置"))
@@ -518,6 +524,14 @@ class DBActuatorActionEnum(StrStructuredEnum):
     DeployPeripheralToolsBinary = EnumField("prepare-peripheraltools-binary", _("prepare-peripheraltools-binary"))
     InitCommonConfig = EnumField("init-common-config", _("初始化公共配置"))
     MysqlPartitionV2 = EnumField("partition-execute-v2", _("mysql分区执行V2"))
+    # clone 权限 v2
+    CloneGrantsDumpPriv = EnumField("clone-grants-dump-priv", _("导出权限"))
+    CloneGrantsParseFile = EnumField("clone-grants-parse-file", _("处理权限文件"))
+    CloneGrantsPrecheckCreate = EnumField("clone-grants-precheck-create", _("账号预检查"))
+    CloneGrantsImportCreate = EnumField("clone-grants-import-create", _("恢复账号"))
+    CloneGrantsImportGrant = EnumField("clone-grants-import-grant", _("恢复权限"))
+    CloneGrantsVerifyCreate = EnumField("clone-grants-verify-create", _("验证账号"))
+    CloneGrantsVerifyGrant = EnumField("clone-grants-verify-grant", _("验证权限"))
 
 
 class RedisActuatorActionEnum(StrStructuredEnum):
@@ -568,9 +582,11 @@ class RedisActuatorActionEnum(StrStructuredEnum):
     CLUSTER_RESET_FLUSH_MEET = EnumField("cluster_reset_flush_meet", _("cluster_reset_flush_meet"))
     REPLICAS_FORCE_RESYNC = EnumField("replicas_force_resync", _("replicas_force_resync"))
     RESTART_EXPORTER = EnumField("restart_exporter", _("restart_exporter"))
+    REVERSE_API_CONFIG = EnumField("reverse_config", _("reverse_config"))
     HOTKEY_ANALYSIS = EnumField("hotkey_analysis", _("hotkey_analysis"))
     PROXY_REUSE = EnumField("proxy_reuse", _("proxy_reuse"))
     KEYSTAT = EnumField("keystat", _("keystat"))
+    CLEAN_RESIDUAL_EXPORTER = EnumField("redis_clean_residual_exporter", _("redis_clean_residual_exporter"))
 
 
 class MongoDBActuatorActionEnum(StrStructuredEnum):
@@ -598,7 +614,9 @@ class MongoDBActuatorActionEnum(StrStructuredEnum):
     ReplicasetStepDown = EnumField("replicaset_stepdown", _("replicaset_stepdown"))
     ClusterBalancer = EnumField("cluster_balancer", _("cluster_balancer"))
     MongodNodeHidden = EnumField("mongod_node_hidden", _("mongod_node_hidden"))
+    MongoSetFcv = EnumField("mongo_set_fcv", _("mongo_set_fcv"))
     FixServiceStatus = EnumField("fix_service_status", _("fix_service_status"))
+    CleanResidualExporter = EnumField("mongodb_clean_residual_exporter", _("mongodb_clean_residual_exporter"))
 
 
 class EsActuatorActionEnum(StrStructuredEnum):
@@ -646,6 +664,7 @@ class KafkaActuatorActionEnum(StrStructuredEnum):
     ReplaceBroker = EnumField("replace_broker", _("replace_broker"))
     GenerateReassignment = EnumField("generate_reassignment", _("generate_reassignment"))
     ExecuteReassignment = EnumField("execute_reassignment", _("execute_reassignment"))
+    BrokerIsEmpty = EnumField("broker_isempty", _("broker_isempty"))
 
 
 class InfluxdbActuatorActionEnum(StrStructuredEnum):
@@ -735,6 +754,7 @@ class SqlserverActuatorActionEnum(StrStructuredEnum):
     RemoteDr = EnumField("RemoteDr", _("将一些dr移除可用组"))
     Init = EnumField("init", _("部署后需要初始化实例的步骤"))
     MssqlServiceCheck = EnumField("MssqlServiceCheck", _("检测进程是否注册"))
+    DataExport = EnumField("DataExport", _("sqlserver数据导出"))
 
 
 class DorisActuatorActionEnum(StrStructuredEnum):
@@ -1183,6 +1203,8 @@ class RedisCapacityUpdateType(StrStructuredEnum):
     KEEP_CURRENT_MACHINES = EnumField("keep_current_machines", _("原地变更"))
     ALL_MACHINES_REPLACE = EnumField("all_machines_replace", _("全部机器替换"))
     SLOT_MIGRATE = EnumField("slot_migrate", _("slot搬迁"))
+    SLOT_MIGRATE_UP = EnumField("slot_migrate_up", _("slot搬迁方式扩容"))
+    SLOT_MIGRATE_DOWN = EnumField("slot_migrate_down", _("slot搬迁方式缩容"))
 
 
 class RedisMaxmemoryConfigType(StrStructuredEnum):
@@ -1684,3 +1706,22 @@ class TendbSingleRestoreType(StrStructuredEnum):
     RESTORE_FROM_FLOW_BACKUP = EnumField("restore_from_flow_backup", _("流程中实时发起表结构备份&恢复,没有主从同步"))
     RESTORE_WITH_DATA = EnumField("restore_with_data", _("包含数据的恢复,没有主从同步"))
     RESTORE_WITH_STRUCT = EnumField("restore_with_struct", _("仅表结构的恢复,没有主从同步"))
+
+
+class MySQLServerWrapper(StrStructuredEnum):
+    """
+    定义mysql.server表的支持的wrapper类型
+    """
+
+    SPIDER = EnumField("SPIDER", _("SPIDER"))
+    TDBCTL = EnumField("TDBCTL", _("TDBCTL"))
+    SPIDER_SLAVE = EnumField("SPIDER_SLAVE", _("SPIDER_SLAVE"))
+
+
+class ClusterRoleEnum(StrStructuredEnum):
+    """
+    定义集群类型的架构role
+    """
+
+    PROXY = EnumField("Proxy", _("Proxy"))
+    BACKEND = EnumField("Backend", _("Backend"))

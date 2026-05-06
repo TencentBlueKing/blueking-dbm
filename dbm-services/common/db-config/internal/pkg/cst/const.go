@@ -13,6 +13,7 @@ var ConfigLevelMap = map[string]int{
 	"module":           30,
 	"db_module_id":     30,
 	"cluster":          50,
+	"cluster_domain":   50,
 	"role":             60,
 	"host":             70,
 	"instance":         80,
@@ -32,7 +33,7 @@ const (
 // var NamespaceAllowed = []string{TenDBCluster, TenDBHA, TenDBSingle}
 
 // GetConfigLevelMap TODO
-func GetConfigLevelMap(confTpye string) map[string]int {
+func GetConfigLevelMap(confType string) map[string]int {
 	return ConfigLevelMap
 }
 

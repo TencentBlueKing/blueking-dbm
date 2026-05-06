@@ -1,0 +1,96 @@
+name: {{ADMIN_NAME}}
+version: {{COMMON_VERSION}}
+
+pidFile: "{{ADMIN_PID_FILE}}"
+
+docFileDir: "{{ADMIN_DOC_FILE_DIR}}"
+
+discovery:
+  endpoint: "{{COMMON_DISCOVERY_ENDPOINT}}"
+  user: "{{COMMON_DISCOVERY_USER}}"
+  password: "{{COMMON_DISCOVERY_PASSWORD}}"
+  # optional TLS for etcd: use absolute paths;
+  # certFile and keyFile are both required when enabling mTLS
+  certFile: "{{COMMON_DISCOVERY_TLS_CERT_FILE}}"
+  keyFile: "{{COMMON_DISCOVERY_TLS_KEY_FILE}}"
+  trustedCAFile: "{{COMMON_DISCOVERY_TLS_TRUSTED_CA_FILE}}"
+  serviceTimerInterval: {{ADMIN_DISCOVERY_SERVICE_TIMER_INTERVAL}}
+  serviceUpdateTimeout: {{ADMIN_DISCOVERY_SERVICE_UPDATE_TIMEOUT}}
+
+apm:
+  readTimeout: {{COMMON_APM_READ_TIMEOUT}}
+  writeTimeout: {{COMMON_APM_WRITE_TIMEOUT}}
+  listenAddress: "{{ADMIN_APM_LISTEN_ADDRESS}}"
+
+grpc:
+  listenAddress: "{{ADMIN_GRPC_LISTEN_ADDRESS}}"
+  serverPingTime: {{ADMIN_GRPC_SERVER_PING_TIME}}
+  pingTimeout: {{ADMIN_GRPC_PING_TIMEOUT}}
+  keepAliveMinTime: {{ADMIN_GRPC_KEEP_ALIVE_MIN_TIME}}
+  permitWithoutStream: {{ADMIN_GRPC_PERMIT_WITHOUT_STREAM}}
+  maxReceiveMessageSize: {{ADMIN_GRPC_MAX_RECEIVE_MESSAGE_SIZE}}
+  maxSendMessageSize: {{ADMIN_GRPC_MAX_SEND_MESSAGE_SIZE}}
+
+web:
+  listenAddress: "{{ADMIN_WEB_LISTEN_ADDRESS}}"
+  readTimeout: {{ADMIN_WEB_READ_TIMEOUT}}
+  writeTimeout: {{ADMIN_WEB_WRITE_TIMEOUT}}
+
+dbmApi:
+  - name: metadata
+    api: "{{COMMON_DBM_API_METADATA_API}}"
+    method: {{COMMON_DBM_API_HTTP_METHOD}}
+    timeout: {{COMMON_DBM_API_TIMEOUT}}
+    token: "{{COMMON_DBM_API_METADATA_TOKEN}}"
+
+  - name: updateStatus
+    api: "{{COMMON_DBM_API_UPDATE_STATUS_API}}"
+    method: {{COMMON_DBM_API_HTTP_METHOD}}
+    timeout: {{COMMON_DBM_API_TIMEOUT}}
+    token: "{{COMMON_DBM_API_UPDATE_STATUS_TOKEN}}"
+
+  - name: swapMySQLRole
+    api: "{{COMMON_DBM_API_SWAP_MYSQL_ROLE_API}}"
+    method: {{COMMON_DBM_API_HTTP_METHOD}}
+    timeout: {{COMMON_DBM_API_TIMEOUT}}
+    token: "{{COMMON_DBM_API_SWAP_MYSQL_ROLE_TOKEN}}"
+
+  - name: swapTendisCluster
+    api: "{{COMMON_DBM_API_SWAP_TENDIS_CLUSTER_API}}"
+    method: {{COMMON_DBM_API_HTTP_METHOD}}
+    timeout: {{COMMON_DBM_API_TIMEOUT}}
+    token: "{{COMMON_DBM_API_SWAP_TENDIS_CLUSTER_TOKEN}}"
+
+storage:
+  endpoint: "{{COMMON_STORAGE_TCP_ENDPOINT}}"
+  user: "{{COMMON_STORAGE_USER}}"
+  password: "{{COMMON_STORAGE_PASSWORD}}"
+
+probeGse:
+  endpoint: "{{ADMIN_PROBE_GSE_ENDPOINT}}"
+  dataID: {{ADMIN_PROBE_GSE_DATA_ID}}
+  # empty, invalid duration, or value strictly below 5s is normalized to 5s when admin loads config
+  connTimeout: {{ADMIN_PROBE_GSE_CONN_TIMEOUT}}
+
+# Returned to probe via GetProbeConfig only when the requesting probe's metadata
+# contains MySQL-family clusters (tendbha / tendbcluster).
+probeMysql:
+  user: "{{ADMIN_PROBE_MYSQL_USER}}"
+  password: "{{ADMIN_PROBE_MYSQL_PASSWORD}}"
+  interval: {{ADMIN_PROBE_MYSQL_INTERVAL}}
+
+# Returned to probe via GetProbeConfig only when the requesting probe's metadata
+# contains Redis-family clusters (redis / twemproxy / predixy variants).
+probeRedis:
+  user: "{{ADMIN_PROBE_REDIS_USER}}"
+  password: "{{ADMIN_PROBE_REDIS_PASSWORD}}"
+  interval: {{ADMIN_PROBE_REDIS_INTERVAL}}
+  timeout: {{ADMIN_PROBE_REDIS_TIMEOUT}}
+
+log:
+  path: "{{ADMIN_LOG_PATH}}"
+  level: {{COMMON_LOG_LEVEL}}
+  fileCount: {{COMMON_LOG_FILE_COUNT}}
+  fileSize: {{COMMON_LOG_FILE_SIZE}}
+
+

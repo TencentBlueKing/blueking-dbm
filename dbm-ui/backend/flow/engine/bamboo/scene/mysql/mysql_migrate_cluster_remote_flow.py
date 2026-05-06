@@ -18,6 +18,7 @@ from django.utils.translation import gettext as _
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
@@ -50,6 +51,12 @@ from backend.flow.plugins.components.collections.common.pause_with_ticket_lock_c
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_checksum_ticket import MySQLCheckSumTicketComponent
+from backend.flow.plugins.components.collections.mysql.mysql_checksum_ticket_result_get import (
+    MySQLCheckSumTicketResultComponent,
+)
+from backend.flow.plugins.components.collections.mysql.mysql_checksum_ticket_status import (
+    MySQLCheckSumTicketProbeComponent,
+)
 from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
@@ -249,8 +256,9 @@ class MySQLMigrateClusterRemoteFlow(object):
             # 生成checksum信息
             checksum_info = {
                 "bk_biz_id": cluster_class.bk_biz_id,
-                "ticket_type": TicketType.MYSQL_CHECKSUM,
+                "ticket_type": TicketType.MYSQL_CHECKSUM_CRON,
                 "remark": _("mysql成对迁移生成checksum单据"),
+                # "ignore_duplication": True,
                 "details": {
                     "data_repair": {
                         "is_repair": True,
@@ -284,7 +292,8 @@ class MySQLMigrateClusterRemoteFlow(object):
                 cluster["change_master_force"] = False
                 cluster["change_master"] = False
                 cluster["restore_privilege"] = True
-                cluster["privilege_ips"] = [self.data["master_ip"], self.data["slave_ip"]]
+                # cluster["privilege_ips"] = [self.data["master_ip"], self.data["slave_ip"]]
+                cluster["privilege_ips"] = [self.data["slave_ip"]]
                 cluster["charset"] = self.data["charset"]
                 cluster["backup_source"] = self.ticket_data["backup_source"]
 
@@ -337,20 +346,6 @@ class MySQLMigrateClusterRemoteFlow(object):
                     filter_ips = [master_model.machine.ip]
                     filter_ips.extend([slave.machine.ip for slave in stand_by_slaves])
 
-                #  checksum 放到数据恢复前，在页面指定时间自动调起
-                if self.data["need_checksum"]:
-                    sync_data_sub_pipeline.add_act(
-                        act_name=_("生成checksum单据"),
-                        act_component_code=MySQLCheckSumTicketComponent.code,
-                        kwargs=asdict(
-                            MysqlCheckSumKwargs(
-                                uid=self.data["uid"],
-                                bk_biz_id=cluster_model.bk_biz_id,
-                                created_by=self.data["created_by"],
-                                checksum_info=copy.deepcopy(checksum_info),
-                            )
-                        ),
-                    )
                 sync_data_sub_pipeline.add_sub_pipeline(
                     sub_flow=mysql_restore_master_slave_sub_flow(
                         root_id=self.root_id,
@@ -372,6 +367,39 @@ class MySQLMigrateClusterRemoteFlow(object):
                         )
                     ),
                 )
+                if self.data["need_checksum"]:
+                    #  恢复完毕,checksum校验数据。
+                    sync_data_sub_pipeline.add_act(
+                        act_name=MySQLCheckSumTicketComponent.node_name,
+                        act_component_code=MySQLCheckSumTicketComponent.code,
+                        kwargs=asdict(
+                            MysqlCheckSumKwargs(
+                                uid=self.data["uid"],
+                                bk_biz_id=cluster_model.bk_biz_id,
+                                created_by=self.data["created_by"],
+                                checksum_info=copy.deepcopy(checksum_info),
+                            )
+                        ),
+                    )
+                    sync_data_sub_pipeline.add_act(
+                        act_name=MySQLCheckSumTicketProbeComponent.node_name,
+                        act_component_code=MySQLCheckSumTicketProbeComponent.code,
+                        kwargs={},
+                    )
+                    sync_data_sub_pipeline.add_act(
+                        act_name=MySQLCheckSumTicketResultComponent.node_name,
+                        act_component_code=MySQLCheckSumTicketResultComponent.code,
+                        kwargs={
+                            "bk_cloud_id": cluster_class.bk_cloud_id,
+                            "checksum_pairs": [
+                                {
+                                    "master": master_model.ip_port,
+                                    "slave": f"{self.data['new_master_ip']}{IP_PORT_DIVIDER}{master_model.port}",
+                                }
+                            ],
+                            "cluster_id": cluster_model.id,
+                        },
+                    )
                 sync_data_sub_pipeline_list.append(
                     sync_data_sub_pipeline.build_sub_process(sub_name=_("{} 集群恢复数据".format(cluster_model.name)))
                 )
@@ -549,10 +577,11 @@ class MySQLMigrateClusterRemoteFlow(object):
                     with_actuator=False,
                     with_bk_plugin=False,
                     with_collect_sysinfo=False,
-                    with_cc_standardize=False,
                     with_instance_standardize=False,
+                    with_cc_standardize=False,
                 )
             )
+            # todo 添加checksum单据状态检查 、添加通过后添加checksum结果的查询
 
             # 人工确认切换迁移实例, 释放解除之前的prox替换单据互斥
             tendb_migrate_pipeline.add_act(
@@ -568,6 +597,17 @@ class MySQLMigrateClusterRemoteFlow(object):
             # 切换迁移实例
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=switch_sub_pipeline_list)
 
+            # 解除对proxy替换的单据互斥锁，最后卸载旧实例阶段，能允许proxy替换单据进入执行
+            tendb_migrate_pipeline.add_act(
+                act_name=_("解锁部分单据互斥锁"),
+                act_component_code=AddUnlockTicketTypeConfigComponent.code,
+                kwargs=asdict(
+                    AddUnLockTicketTypeKwargs(
+                        cluster_ids=self.data["cluster_ids"], unlock_ticket_type_list=[TicketType.MYSQL_PROXY_SWITCH]
+                    )
+                ),
+            )
+
             tendb_migrate_pipeline.add_sub_pipeline(
                 sub_flow=standardize_mysql_cluster_subflow(
                     root_id=self.root_id,
@@ -580,7 +620,6 @@ class MySQLMigrateClusterRemoteFlow(object):
                     with_backup_client=False,
                     with_instance_standardize=False,
                     with_collect_sysinfo=False,
-                    with_cc_standardize=False,
                 )
             )
             tendb_migrate_pipeline.add_act(
@@ -618,29 +657,28 @@ class MySQLMigrateClusterRemoteFlow(object):
                 )
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_surrounding_sub_pipeline_list)
 
-            # 解除对proxy替换的单据互斥锁，最后卸载旧实例阶段，能允许proxy替换单据进入执行
-            tendb_migrate_pipeline.add_act(
-                act_name=_("解锁部分单据互斥锁"),
-                act_component_code=AddUnlockTicketTypeConfigComponent.code,
-                kwargs=asdict(
-                    AddUnLockTicketTypeKwargs(
-                        cluster_ids=self.data["cluster_ids"], unlock_ticket_type_list=[TicketType.MYSQL_PROXY_SWITCH]
-                    )
-                ),
-            )
-
             # 卸载流程人工确认
             tendb_migrate_pipeline.add_act(act_name=_("人工确认卸载实例"), act_component_code=PauseComponent.code, kwargs={})
             # 卸载remote节点
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_svr_sub_pipeline_list)
             tendb_migrate_pipeline_list.append(
                 tendb_migrate_pipeline.build_sub_process(
-                    sub_name=_("{} > {} 成对迁移".format(self.data["master_ip"], self.data["new_master_ip"]))
+                    sub_name=_(
+                        "{} > {} 成对迁移 {}".format(
+                            self.data["master_ip"], self.data["new_master_ip"], cluster_class.immute_domain
+                        )
+                    )
                 )
             )
         # 运行流程
         tendb_migrate_pipeline_all.add_parallel_sub_pipeline(tendb_migrate_pipeline_list)
-        tendb_migrate_pipeline_all.run_pipeline(
+        # tendb_migrate_pipeline_all.run_pipeline(
+        #     init_trans_data_class=ClusterInfoContext(),
+        #     is_drop_random_user=True,
+        # )
+        # 启动接入单据值守监听
+        tendb_migrate_pipeline_all.run_pipeline_with_sidecar(
             init_trans_data_class=ClusterInfoContext(),
             is_drop_random_user=True,
+            check_ai_monitor_cluster_list=list(set(cluster_ids)),
         )

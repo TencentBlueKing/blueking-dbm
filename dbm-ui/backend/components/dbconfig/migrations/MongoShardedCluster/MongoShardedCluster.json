@@ -1,0 +1,50 @@
+[
+  {
+    "conf_type": "dbconf",
+    "conf_file": "Mongodb-3",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 1,
+    "description": "cluster默认配置",
+    "conf_type_lc": "cluster配置",
+    "conf_file_lc": "3版本配置",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "Mongodb-4",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 1,
+    "description": "cluster默认配置",
+    "conf_type_lc": "cluster配置",
+    "conf_file_lc": "4版本配置",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "Mongodb-6",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 1,
+    "description": "cluster默认配置",
+    "conf_type_lc": "cluster配置",
+    "conf_file_lc": "6版本配置",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "dbconf",
+    "conf_file": "Mongodb-7",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 1,
+    "description": "cluster默认配置",
+    "conf_type_lc": "cluster配置",
+    "conf_file_lc": "7版本配置",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  }
+]

@@ -26,6 +26,9 @@ package logger
 
 import (
 	"log"
+	"os"
+
+	dbmlogger "dbm-services/common/go-pubpkg/logger"
 
 	"go.uber.org/zap"
 )
@@ -86,6 +89,10 @@ func Debug(format string, args ...any) {
 	dblog.Debug(format, args...)
 }
 
+func Debugf(format string, args ...any) {
+	Debug(format, args...)
+}
+
 func Info(format string, args ...any) {
 	if dblog == nil {
 		log.Printf(format, args...)
@@ -93,6 +100,10 @@ func Info(format string, args ...any) {
 	}
 
 	dblog.Info(format, args...)
+}
+
+func Infof(format string, args ...any) {
+	Info(format, args...)
 }
 
 func Warn(format string, args ...any) {
@@ -104,6 +115,10 @@ func Warn(format string, args ...any) {
 	dblog.Warn(format, args...)
 }
 
+func Warnf(format string, args ...any) {
+	Warn(format, args...)
+}
+
 func Error(format string, args ...any) {
 	if dblog == nil {
 		log.Printf(format, args...)
@@ -113,6 +128,10 @@ func Error(format string, args ...any) {
 	dblog.Error(format, args...)
 }
 
+func Errorf(format string, args ...any) {
+	Error(format, args...)
+}
+
 func Fatal(format string, args ...any) {
 	if dblog == nil {
 		log.Fatalf(format, args...)
@@ -120,4 +139,17 @@ func Fatal(format string, args ...any) {
 	}
 
 	dblog.Fatal(format, args...)
+}
+
+func Fatalf(format string, args ...any) {
+	Fatal(format, args...)
+}
+
+func init() {
+	// NOTE: Hack for dbm-services/common/go-pubpkg/trace.
+	//       The func trace/init will be called and print some info log.
+	//       To avoid this, we need to init the dbm logger first.
+	hackerLogger := dbmlogger.New(os.Stderr, false, dbmlogger.ErrorLevel)
+	dbmlogger.ResetDefault(hackerLogger)
+	defer dbmlogger.Sync()
 }

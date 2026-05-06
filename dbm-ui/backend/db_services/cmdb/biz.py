@@ -258,3 +258,12 @@ def get_resource_biz():
     """
     resource_biz = SystemSettings.get_setting_value(key=SystemSettingsEnum.RESOURCE_INDEPENDENT_BIZ)
     return int(resource_biz or env.DBA_APP_BK_BIZ_ID)
+
+
+def get_hcm_apply_resource_biz():
+    """
+    获取海磊申请资源的业务
+    默认是 DB数据库生产环境
+    """
+    apply_biz = SystemSettings.get_setting_value(key=SystemSettingsEnum.HCM_APPLY_RESOURCE_BIZ)
+    return int(apply_biz or env.DBA_APP_BK_BIZ_ID)

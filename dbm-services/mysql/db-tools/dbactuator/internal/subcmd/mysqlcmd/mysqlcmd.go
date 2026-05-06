@@ -16,6 +16,7 @@ import (
 
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
 	v2 "dbm-services/mysql/db-tools/dbactuator/internal/subcmd/mysqlcmd/v2"
+	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd/mysqlcmd/v2/clone_grants_from_file"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/templates"
 )
 
@@ -78,6 +79,13 @@ func NewMysqlCommand() *cobra.Command {
 				v2.NewReloadPeripheralToolsConfigCommand(),
 				v2.NewInitCommonConfigCommand(),
 				NewMysqlPartitionExec(),
+				clone_grants_from_file.NewCloneGrantsDumpPrivCommand(),
+				clone_grants_from_file.NewCloneGrantsParsePrivFileCommand(),
+				clone_grants_from_file.NewCloneGrantsPrecheckCreateCommand(),
+				clone_grants_from_file.NewCloneGrantsImportCreateCommand(),
+				clone_grants_from_file.NewCloneGrantsImportGrantCommand(),
+				clone_grants_from_file.NewCloneGrantsVerifyCreateCommand(),
+				clone_grants_from_file.NewCloneGrantsVerifyGrantCommand(),
 			},
 		},
 		{
@@ -91,6 +99,7 @@ func NewMysqlCommand() *cobra.Command {
 			Commands: []*cobra.Command{
 				NewBuildMsRelatioCommand(),
 				RestoreDRCommand(),
+				RestoreDRAfterCommand(),
 				RecoverBinlogCommand(),
 			},
 		},
@@ -103,6 +112,7 @@ func NewMysqlCommand() *cobra.Command {
 				NewUpgradeStartMySQLCommand(),
 				NewUpgradeCheckMySQLCommand(),
 				NewUpgradeExecMySQLCommand(),
+				NewUpgradeRelinkTdbctlCommand(),
 			},
 		},
 	}

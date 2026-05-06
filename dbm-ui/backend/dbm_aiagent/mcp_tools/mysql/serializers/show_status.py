@@ -11,15 +11,14 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import MachineType
-from backend.dbm_aiagent.mcp_tools.mysql.serializers.usefully_choices import mysql_machine_type_choices
-
 
 class ShowInstanceStatusesInputSerializer(serializers.Serializer):
-    machine_type = serializers.ChoiceField(
-        choices=mysql_machine_type_choices + [(MachineType.PROXY.value, MachineType.PROXY.name)],
-        help_text=_("实例的机器类型, 只能是 [single, proxy, backend, remote, spider] 中之一"),
-    )
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"), default=None)
+    address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
+
+
+class ShowInstanceSlaveStatusInputSerializer(serializers.Serializer):
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"), default=None)
     address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
 
 
@@ -29,5 +28,10 @@ class InstanceRuntimeStatusSerializer(serializers.Serializer):
 
 
 class ShowInstanceStatuesOutputSerializer(serializers.Serializer):
-    address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
     runtime_statuses = serializers.ListField(child=InstanceRuntimeStatusSerializer(), help_text=_("实例运行时状态列表"))
+
+
+class ShowStatusNamesInputSerializer(serializers.Serializer):
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"), default=None)
+    address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
+    status_names = serializers.ListField(child=serializers.CharField(), help_text=_("状态名列表"))

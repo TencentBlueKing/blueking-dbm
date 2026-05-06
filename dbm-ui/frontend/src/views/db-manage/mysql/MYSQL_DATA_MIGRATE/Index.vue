@@ -33,42 +33,32 @@
           v-for="(item, index) in formData.tableData"
           :key="index">
           <ClusterColumn
-            v-model="item.cluster"
+            v-model="item.source_cluster"
+            allow-repeat
+            field="source_cluster.master_domain"
             :label="t('源集群')"
             :selected="selected"
             @batch-edit="handleBatchEditCluster" />
-          <TargetClusterColumn
-            v-model="item.target_clusters"
-            :cluster="item.cluster" />
-          <EditableColumn
-            :disabled-method="disabledMethod"
-            field="data_schema_grant"
-            :label="t('克隆类型')"
-            :min-width="200"
-            required>
-            <EditableSelect
-              v-model="item.data_schema_grant"
-              :list="cloneTypeList" />
-          </EditableColumn>
+          <DataSchemaGrantColumn
+            v-model="item.data_schema_grant"
+            @batch-edit="handleBatchEdit" />
           <DbNameColumn
             v-model="item.clone_db_list"
             check-not-exist
-            :cluster-id="item.cluster?.id"
+            :cluster-id="item.source_cluster?.id"
             field="clone_db_list"
-            :label="t('克隆DB名')"
+            :label="t('克隆 DB 名')"
+            required
             @batch-edit="handleBatchEdit" />
           <DbNameColumn
             v-model="item.ignore_db_list"
-            :cluster-id="item.cluster?.id"
+            :cluster-id="item.source_cluster?.id"
             field="ignore_db_list"
-            :label="t('忽略DB名')"
-            :required="false"
+            :label="t('忽略 DB')"
             @batch-edit="handleBatchEdit" />
-          <TargetDbColumn
-            v-model:clone-db-list="item.clone_db_list"
-            v-model:db-list="item.db_list"
-            v-model:ignore-db-list="item.ignore_db_list"
-            :row-data="item" />
+          <TargetClusterColumn
+            v-model="item.target_clusters"
+            :cluster="item.source_cluster" />
           <OperationColumn
             v-model:table-data="formData.tableData"
             :create-row-method="createTableRow" />
@@ -78,7 +68,13 @@
     </BkForm>
     <template #action>
       <BkButton
+        class="mr-16 w-88"
+        @click="handleAssessment">
+        {{ t('磁盘空间评估') }}
+      </BkButton>
+      <BkButton
         class="mr-8 w-88"
+        :disabled="!assessmentValidate || isSubmitting"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -96,8 +92,13 @@
       </DbPopconfirm>
     </template>
   </SmartAction>
+  <Assessment
+    ref="assessmentRef"
+    v-model:table-data="formData.tableData"
+    @request-success="handleAssessmentSuccess" />
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import { reactive, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -113,20 +114,21 @@
   import TicketPayload, {
     createTickePayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
-  import DbNameColumn from '@views/db-manage/mysql/common/edit-table-column/DbNameColumn.vue';
   import ClusterColumn from '@views/db-manage/mysql/common/toolbox-field/cluster-column/Index.vue';
+  import DbNameColumn from '@views/db-manage/mysql/common/toolbox-field/db-name-column/Index.vue';
 
   import { random } from '@utils';
 
-  import TargetDbColumn from './components/target-db-column/Index.vue';
+  import Assessment from './components/assessment/Index.vue';
+  import DataSchemaGrantColumn from './components/DataSchemaGrantColumn.vue';
   import TargetClusterColumn from './components/TargetClusterColumn.vue';
 
   interface RowData {
     clone_db_list: string[];
-    cluster: TendbhaModel;
     data_schema_grant: string;
     db_list: string[];
     ignore_db_list: string[];
+    source_cluster: TendbhaModel;
     target_clusters: TendbhaModel[];
   }
 
@@ -138,16 +140,11 @@
   const batchInputConfig = [
     {
       case: 'tendbha.test.dba.db',
-      key: 'master_domain',
+      key: 'source_master_domain',
       label: t('源集群'),
     },
     {
-      case: 'tendbha2.test.dba.db,tendbha3.test.dba.db',
-      key: 'target_master_domain',
-      label: t('目标集群'),
-    },
-    {
-      case: '克隆表结构和数据',
+      case: '表结构和数据',
       key: 'data_schema_grant',
       label: t('克隆类型'),
     },
@@ -159,41 +156,28 @@
     {
       case: 'NULL',
       key: 'ignore_db_list',
-      label: t('忽略 DB 名'),
-    },
-  ];
-
-  const cloneTypeList = [
-    {
-      label: t('克隆表结构和数据'),
-      value: 'data,schema',
+      label: t('忽略 DB'),
     },
     {
-      label: t('克隆表结构'),
-      value: 'schema',
+      case: 'tendbha2.test.dba.db,tendbha3.test.dba.db',
+      key: 'target_master_domain',
+      label: t('目标集群'),
     },
   ];
-
-  const disabledMethod = (rowData?: any) => {
-    if (!rowData.cluster.id) {
-      return t('请先选择源集群');
-    }
-    return '';
-  };
 
   const createTableRow = (data = {} as Partial<RowData>) => ({
     clone_db_list: data.clone_db_list || [],
-    cluster: Object.assign(
+    data_schema_grant: data.data_schema_grant || '',
+    db_list: data.db_list || [],
+    ignore_db_list: data.ignore_db_list || [],
+    source_cluster: Object.assign(
       {
         cluster_type: '',
         id: 0,
         master_domain: '',
       } as unknown as TendbhaModel,
-      data.cluster,
+      data.source_cluster,
     ),
-    data_schema_grant: data.data_schema_grant || '',
-    db_list: data.db_list || [],
-    ignore_db_list: data.ignore_db_list || [],
     target_clusters: data.target_clusters || [],
   });
 
@@ -203,10 +187,14 @@
   });
 
   const formData = reactive(defaultData());
+  const assessmentRef = ref<InstanceType<typeof Assessment>>();
+  const assessmentValidate = ref(false);
 
-  const selected = computed(() => formData.tableData.filter((item) => item.cluster.id).map((item) => item.cluster));
+  const selected = computed(() =>
+    formData.tableData.filter((item) => item.source_cluster.id).map((item) => item.source_cluster),
+  );
   const selectedMap = computed(() =>
-    Object.fromEntries(formData.tableData.map((cur) => [cur.cluster.master_domain, true])),
+    Object.fromEntries(formData.tableData.map((cur) => [cur.source_cluster.master_domain, true])),
   );
 
   useTicketDetail<Mysql.DataMigrate>(TicketTypes.MYSQL_DATA_MIGRATE, {
@@ -217,12 +205,12 @@
         payload: createTickePayload(ticketDetail),
         tableData: infos.map((item) => ({
           clone_db_list: item.clone_db_list,
-          cluster: {
-            master_domain: clusters[item.source_cluster].immute_domain || '',
-          },
           data_schema_grant: item.data_schema_grant,
           db_list: item.db_list,
           ignore_db_list: item.ignore_db_list,
+          source_cluster: {
+            master_domain: clusters[item.source_cluster].immute_domain || '',
+          },
           target_clusters: item.target_clusters.map((clusterId) => ({
             cluster_type: clusters[clusterId].cluster_type || '',
             id: clusters[clusterId].id || 0,
@@ -243,6 +231,14 @@
     }[];
   }>(TicketTypes.MYSQL_DATA_MIGRATE);
 
+  watch(
+    () => formData.tableData,
+    () => {
+      assessmentValidate.value = false;
+    },
+    { deep: true },
+  );
+
   const handleSubmit = async () => {
     const result = await tableRef.value!.validate();
     if (!result) {
@@ -255,7 +251,7 @@
           data_schema_grant: item.data_schema_grant,
           db_list: item.db_list,
           ignore_db_list: item.ignore_db_list,
-          source_cluster: item.cluster.id,
+          source_cluster: item.source_cluster.id,
           target_clusters: item.target_clusters.map((cluster) => cluster.id),
         })),
       },
@@ -265,6 +261,20 @@
 
   const handleReset = () => {
     Object.assign(formData, defaultData());
+    tableKey.value = random();
+    assessmentRef.value?.reset();
+  };
+
+  const handleAssessment = async () => {
+    const result = await tableRef.value?.validate();
+    if (!result) {
+      return;
+    }
+    assessmentRef.value?.run();
+  };
+
+  const handleAssessmentSuccess = (validate: boolean) => {
+    assessmentValidate.value = validate;
   };
 
   const handleBatchEditCluster = (list: TendbhaModel[]) => {
@@ -272,36 +282,36 @@
       if (!selectedMap.value[cluster.master_domain]) {
         acc.push(
           createTableRow({
-            cluster,
+            source_cluster: cluster,
           }),
         );
       }
       return acc;
     }, []);
-    formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+    formData.tableData = [...(formData.tableData[0].source_cluster.id ? formData.tableData : []), ...dataList];
   };
 
   const handleBatchEdit = (value: any, field: string) => {
     formData.tableData.forEach((item) => {
       Object.assign(item, {
-        [field]: value,
+        [field]: _.cloneDeep(value),
       });
     });
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
     const cloneTypeMap = {
-      [t('克隆表结构')]: 'schema',
-      [t('克隆表结构和数据')]: 'data,schema',
+      [t('表结构')]: 'schema',
+      [t('表结构和数据')]: 'data,schema',
     };
     const dataList = data.map((item) =>
       createTableRow({
         clone_db_list: item.clone_db_list ? item.clone_db_list.split(',') : [],
-        cluster: {
-          master_domain: item.master_domain,
-        } as TendbhaModel,
         data_schema_grant: cloneTypeMap[item.data_schema_grant] || '',
         ignore_db_list: item.ignore_db_list ? item.ignore_db_list.split(',') : [],
+        source_cluster: {
+          master_domain: item.source_master_domain,
+        } as TendbhaModel,
         target_clusters: (item.target_master_domain?.split(',') || []).map((item: string) => ({
           master_domain: item,
         })),
@@ -311,8 +321,9 @@
       tableKey.value = random();
       formData.tableData = [...dataList];
     } else {
-      formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
+      formData.tableData = [...(formData.tableData[0].source_cluster.id ? formData.tableData : []), ...dataList];
     }
+
     setTimeout(() => {
       tableRef.value?.validate();
     }, 200);

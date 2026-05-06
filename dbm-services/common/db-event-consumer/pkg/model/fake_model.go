@@ -30,7 +30,17 @@ func (m *FakeModelForNoStrictSchema) StrictSchema() bool {
 }
 
 func (m *FakeModelForNoStrictSchema) OmitFields() []string {
-	return []string{"event_cluster_type", "event_type", "cluster_type"}
+	if len(m.omitFields) > 0 {
+		return m.omitFields
+	}
+	// 默认忽略 dbm saas 注入的字段
+	return []string{
+		"event_type",
+		"event_cluster_type",
+		"event_receive_timestamp",
+		"event_source_ip",
+		"event_bk_cloud_id",
+	}
 }
 
 func (m *FakeModelForNoStrictSchema) SetOmitFields(omitFields *[]string) {

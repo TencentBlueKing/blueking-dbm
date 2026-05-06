@@ -24,9 +24,19 @@ from backend.ticket.constants import TicketType
 logger = logging.getLogger("root")
 
 
+class NginxHostInfoSerializer(serializers.Serializer):
+    ip = serializers.CharField(help_text=_("主机IP"))
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+    bk_host_id = serializers.IntegerField(help_text=_("主机ID"))
+    bk_outer_ip = serializers.CharField(help_text=_("nginx外网IP"))
+    dbm_port = serializers.IntegerField(help_text=_("dbm端口"), required=False)
+    manage_port = serializers.IntegerField(help_text=_("管理端口"), required=False)
+    nginx_version = serializers.CharField(help_text=_("nginx版本"), required=False, allow_blank=True)
+
+
 class CloudNginxReplaceDetailSerializer(serializers.Serializer):
     class NginxDetailSerializer(serializers.Serializer):
-        host_infos = serializers.ListField(help_text=_("部署nginx服务主机信息"), child=serializers.DictField())
+        host_infos = serializers.ListField(help_text=_("部署nginx服务主机信息"), child=NginxHostInfoSerializer())
 
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     old_nginx_id = serializers.IntegerField(help_text=_("替换的nginx id"))

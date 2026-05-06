@@ -371,8 +371,8 @@ func mergeCompListFromVal(compListFromReq []coreentity.ComponentResource, compLi
 			}
 
 			if componentName == compFromReq.ComponentName {
-				if compFromReq.Version != "" {
-					compFromVal["serviceVersion"] = compFromReq.Version
+				if compFromReq.Version != nil {
+					compFromVal["serviceVersion"] = *compFromReq.Version
 				}
 				if compFromReq.Replicas != 0 {
 					compFromVal["replicas"] = int(compFromReq.Replicas)

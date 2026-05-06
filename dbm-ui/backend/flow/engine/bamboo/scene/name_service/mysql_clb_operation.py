@@ -14,7 +14,6 @@ from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
 
-from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.plugins.components.collections.name_service.mysql_clb_comp import (
     ClbOperationType,
@@ -39,7 +38,8 @@ class MySQLClbFlow(object):
         self.kwargs.cluster_id = self.data["cluster_id"]
         self.kwargs.creator = self.data["created_by"]
         # role 入参是 spider role 区分是建立spider master clb 还是建立spider slave clb
-        self.kwargs.role = self.data.get("spider_role", TenDBClusterSpiderRole.SPIDER_MASTER)
+        # TenDBHA 不传 spider_role，此时 role 为 None，create_by_role 会走 proxyinstance_set.all() 分支
+        self.kwargs.role = self.data.get("spider_role")
 
     def clb_create_flow(self):
         """

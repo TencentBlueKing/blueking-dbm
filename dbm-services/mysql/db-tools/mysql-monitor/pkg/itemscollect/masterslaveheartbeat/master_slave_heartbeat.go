@@ -4,6 +4,8 @@ package masterslaveheartbeat
 import (
 	"context"
 	"database/sql"
+
+	//"errors"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -15,6 +17,7 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
+	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
@@ -109,11 +112,12 @@ VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate(
 	if err != nil {
 		// 不再自动创建表
 		// merr.Number == 1146 || merr.Number == 1054 , c.initTableHeartbeat()
+		slog.Error(name, slog.String("error", err.Error()))
 		return err
-	} else {
-		if num, _ := res.RowsAffected(); num > 0 {
-			slog.Info("master-slave-heartbeat insert success")
-		}
+	}
+
+	if num, _ := res.RowsAffected(); num > 0 {
+		slog.Info("master-slave-heartbeat insert success")
 	}
 	slog.Info("master-slave-heartbeat update slave success")
 	return nil
@@ -187,7 +191,17 @@ func (c *Checker) reportHeartbeatDelay() (string, error) {
 			if errors.Is(err, sql.ErrNoRows) {
 				timeDelay = 99999999
 			} else {
-				return "", err
+				var me *mysql.MySQLError
+				ok := errors.As(err, &me)
+				if ok && me.Number == 1461 { // max_prepared_stmt_count too small
+					slog.Info(
+						name, slog.String("sql", "set global max_prepared_stmt_count=@@max_prepared_stmt_count+100"),
+					)
+					//_, _ = c.db.Exec("set global max_prepared_stmt_count=@@max_prepared_stmt_count+100")
+				} else {
+					slog.Error(name, slog.String("error", err.Error()))
+					return "", err
+				}
 			}
 		}
 
@@ -219,10 +233,9 @@ func (c *Checker) Run() (msg string, err error) {
 	slog.Info(name, slog.String("machine type", config.MonitorConfig.MachineType))
 	if config.MonitorConfig.MachineType == "spider" {
 		return c.heartBeatOnSpider()
-	} else {
-		return c.heartBeatOnStorage()
-
 	}
+
+	return c.heartBeatOnStorage()
 }
 
 func (c *Checker) heartBeatOnSpider() (msg string, err error) {
@@ -282,11 +295,11 @@ func New(cc *monitoriteminterface.ConnectionCollect) monitoriteminterface.Monito
 			db:             cc.CtlDB,
 			heartBeatTable: HeartBeatTable,
 		}
-	} else {
-		return &Checker{
-			db:             cc.MySqlDB,
-			heartBeatTable: HeartBeatTable,
-		}
+	}
+
+	return &Checker{
+		db:             cc.MySqlDB,
+		heartBeatTable: HeartBeatTable,
 	}
 }
 

@@ -20,6 +20,7 @@ limitations under the License.
 package provider
 
 import (
+	"encoding/json"
 	"fmt"
 	commentity "k8s-dbs/common/entity"
 	commutil "k8s-dbs/common/util"
@@ -27,8 +28,7 @@ import (
 	infrautil "k8s-dbs/infrastructure/util"
 	"os"
 	"runtime"
-
-	"github.com/samber/lo"
+	"strings"
 
 	coreentity "k8s-dbs/core/entity"
 	coreutil "k8s-dbs/core/util"
@@ -49,12 +49,20 @@ import (
 	kbtypes "github.com/apecloud/kbcli/pkg/types"
 	opv1 "github.com/apecloud/kubeblocks/apis/operations/v1alpha1"
 
+	corev1 "k8s.io/api/core/v1"
+
 	addonopschecker "k8s-dbs/core/checker/addonoperation"
 )
 
-// 需要异步处理的函数名列表
-var asyncFuncNames = []string{
-	"k8s-dbs/core/provider.(*OpsRequestProvider).doExposeCluster-fm",
+// 操作类型到同步方法的映射
+var operationSyncMap = map[string]func(*metaentity.K8sCrdClusterEntity, *thirdapi.DbmAPIService){
+	"doExposeCluster":     infrautil.AsyncClusterExposed,
+	"doStopCluster":       infrautil.AsyncClusterStopped,
+	"doStartCluster":      infrautil.AsyncClusterStarted,
+	"doRestartCluster":    infrautil.AsyncClusterRestarted,
+	"doHorizontalScaling": infrautil.AsyncClusterHScaled,
+	"doVerticalScaling":   infrautil.AsyncClusterVScaled,
+	"doVolumeExpansion":   infrautil.AsyncClusterVolumeExpanded,
 }
 
 // OpsRequestProvider the OpsRequest provider struct
@@ -207,22 +215,57 @@ func (o *OpsRequestProvider) withMetaDataSync(
 		return nil, err
 	}
 
-	// 同步逻辑
-	asyncToDBM := os.Getenv(coreconst.AsyncToDBMEnv)
-	if asyncToDBM == coreconst.AsyncToDBMEnabled {
-		funcValue := reflect.ValueOf(clusterOpsFn)
-		if !funcValue.IsNil() && funcValue.Kind() == reflect.Func {
-			if funcPC := funcValue.Pointer(); funcPC != 0 {
-				if funcInfo := runtime.FuncForPC(funcPC); funcInfo != nil {
-					funcName := funcInfo.Name()
-					if lo.Contains(asyncFuncNames, funcName) {
-						infrautil.AsyncClusterExposed(updatedClusterEntity, o.dbmAPIService)
-					}
-				}
-			}
+	// 异步同步逻辑
+	o.asyncSyncToDBM(clusterOpsFn, updatedClusterEntity)
+	return result, nil
+}
+
+// asyncSyncToDBM 异步同步到DBM系统
+func (o *OpsRequestProvider) asyncSyncToDBM(
+	clusterOpsFn ClusterOperationFn,
+	updatedClusterEntity *metaentity.K8sCrdClusterEntity,
+) {
+	if os.Getenv(coreconst.AsyncToDBMEnv) != coreconst.AsyncToDBMEnabled {
+		return
+	}
+
+	// 获取操作类型名称
+	operationType := o.getOperationType(clusterOpsFn)
+	if operationType == "" {
+		return
+	}
+
+	// 根据操作类型调用对应的同步方法
+	if syncFunc, exists := operationSyncMap[operationType]; exists {
+		syncFunc(updatedClusterEntity, o.dbmAPIService)
+	}
+}
+
+// getOperationType 获取操作类型名称
+func (o *OpsRequestProvider) getOperationType(clusterOpsFn ClusterOperationFn) string {
+	funcValue := reflect.ValueOf(clusterOpsFn)
+	if funcValue.IsNil() || funcValue.Kind() != reflect.Func {
+		return ""
+	}
+
+	funcPC := funcValue.Pointer()
+	if funcPC == 0 {
+		return ""
+	}
+
+	funcInfo := runtime.FuncForPC(funcPC)
+	if funcInfo == nil {
+		return ""
+	}
+
+	funcName := funcInfo.Name()
+	// 从函数名中提取操作类型，如 "doExposeCluster"
+	for opType := range operationSyncMap {
+		if strings.Contains(funcName, opType) {
+			return opType
 		}
 	}
-	return result, nil
+	return ""
 }
 
 // GetOpsRequestStatus get opsRequest status
@@ -808,6 +851,13 @@ func (o *OpsRequestProvider) doExposeCluster(
 
 	if err = coreutil.CreateCRD(k8sClient, expose); err != nil {
 		return nil, errors.Wrapf(err, "下发服务暴露任务失败")
+	}
+
+	// 缓存 expose service 配置，供 ServiceInformer 写入 extra 字段
+	if request.Service.ServiceType == corev1.ServiceTypeLoadBalancer {
+		if serviceJSON, marshalErr := json.Marshal(request.Service); marshalErr == nil {
+			coreutil.StoreExposeExtra(request.Namespace, request.ClusterName, string(serviceJSON))
+		}
 	}
 
 	responseData, err := coreentity.GetOpsRequestData(expose.ResourceObject)

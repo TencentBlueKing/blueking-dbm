@@ -62,6 +62,7 @@
               <template #header>
                 <BkPopover
                   ext-cls="mongo-config-spec-name-popover"
+                  :popover-delay="[200, 100]"
                   theme="light">
                   <span class="spec-name-head">{{ t('资源规格') }}</span>
                   <template #content>
@@ -174,7 +175,7 @@
           required>
           <BkInput
             v-model="formData.shard_node_count"
-            disabled
+            :disabled="replicaSetInputDisabled || shardClusterInputDisabled"
             :min="0"
             style="width: 314px"
             type="number" />
@@ -185,7 +186,7 @@
           required>
           <BkInput
             v-model="formData.shards_num"
-            disabled
+            :disabled="replicaSetInputDisabled || shardClusterInputDisabled"
             :min="0"
             style="width: 314px"
             type="number" />
@@ -196,7 +197,7 @@
           required>
           <BkInput
             v-model="formData.shard_machine_group"
-            disabled
+            :disabled="replicaSetInputDisabled"
             :min="0"
             style="width: 314px"
             type="number" />
@@ -296,29 +297,42 @@
 
   const { t } = useI18n();
 
+  // 副本集容量变更自定义方案
+  // 1.规格 可选
+  // 2.每个 Shard 节点数  不变
+  // 3.集群 Shared 数 不变
+  // 4.机器组数 不变
+  // 5.每组机器 Shared 数 自动计算
+  // 6.总机器数 自动计算
+
+  // 分片集群容量变更自定义方案
+  // 1.规格 可选
+  // 2.每个 Shard 节点数  不变
+  // 3.集群 Shared 数 不变
+  // 4.机器组数 可选
+  // 5.每组机器 Shared 数 自动计算
+  // 6.总机器数 自动计算
+  // 7.集群 Shared 数/机器组数 需要整除
+
   const getDefaultFormData = () => {
-    // if (props.clusterData.cluster_type === ClusterTypes.MONGO_SHARED_CLUSTER) {
-    //   return {
-    //     capacity: 0,
-    //     count: 0,
-    //     machine_group_shard_num: 0,
-    //     shard_machine_group: 0,
-    //     shard_node_count: 3,
-    //     shards_num: 0,
-    //     spec_id: props.clusterData.mongodb[0].spec_config.id,
-    //   };
-    // }
+    if (props.clusterData.cluster_type === ClusterTypes.MONGO_SHARED_CLUSTER) {
+      return {
+        capacity: 0,
+        count: 0,
+        machine_group_shard_num: 0,
+        shard_machine_group: 0,
+        shard_node_count: props.clusterData.shard_node_count,
+        shards_num: props.clusterData.shard_num,
+        spec_id: props.clusterData.mongodb[0].spec_config.id,
+      };
+    }
     return {
       capacity: 0,
-      // count: props.clusterData.shard_node_count * 1,
-      count: props.clusterData.mongodb_machine_num,
-      // machine_group_shard_num: 1,
-      machine_group_shard_num: props.clusterData.shard_num / props.clusterData.mongodb_machine_pair,
-      // shard_machine_group: 1,
-      shard_machine_group: props.clusterData.mongodb_machine_pair,
+      count: props.clusterData.shard_node_count * 1,
+      machine_group_shard_num: 1,
+      shard_machine_group: 1,
       shard_node_count: props.clusterData.shard_node_count,
-      // shards_num: 1,
-      shards_num: props.clusterData.shard_num,
+      shards_num: 1,
       spec_id: props.clusterData.mongodb[0].spec_config.id,
     };
   };
@@ -395,6 +409,10 @@
   };
 
   const originSpecId = computed(() => props.clusterData.mongodb[0].spec_config.id);
+  const replicaSetInputDisabled = computed(() => props.clusterData.cluster_type === ClusterTypes.MONGO_REPLICA_SET);
+  const shardClusterInputDisabled = computed(
+    () => props.clusterData.cluster_type === ClusterTypes.MONGO_SHARED_CLUSTER,
+  );
 
   const { loading: isLoading, run: getFilterClusterSpecRun } = useRequest(getFilterClusterSpec, {
     manual: true,
@@ -463,29 +481,29 @@
     },
   );
 
-  // watch(
-  //   () => [formData.shard_node_count, formData.shard_machine_group],
-  //   () => {
-  //     formData.count = formData.shard_node_count * formData.shard_machine_group;
-  //   },
-  //   {
-  //     immediate: true,
-  //   },
-  // );
+  watch(
+    () => [formData.shard_node_count, formData.shard_machine_group],
+    () => {
+      formData.count = formData.shard_node_count * formData.shard_machine_group;
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  // watch(
-  //   () => [formData.shards_num, formData.shard_machine_group],
-  //   () => {
-  //     if (formData.shards_num && formData.shard_machine_group) {
-  //       formData.machine_group_shard_num = formData.shards_num / formData.shard_machine_group;
-  //     } else {
-  //       formData.machine_group_shard_num = 0;
-  //     }
-  //   },
-  //   {
-  //     immediate: true,
-  //   },
-  // );
+  watch(
+    () => [formData.shards_num, formData.shard_machine_group],
+    () => {
+      if (formData.shards_num && formData.shard_machine_group) {
+        formData.machine_group_shard_num = formData.shards_num / formData.shard_machine_group;
+      } else {
+        formData.machine_group_shard_num = 0;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleApplySchemaChange = () => {
     Object.assign(formData, getDefaultFormData());

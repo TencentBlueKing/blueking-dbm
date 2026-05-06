@@ -32,7 +32,12 @@
         <div class="cluster-selector-result">
           <div class="result-title">
             <span>{{ t('结果预览') }}</span>
-            <BkDropdown class="result-dropdown">
+            <BkDropdown
+              class="result-dropdown"
+              :popover-options="{
+                clickContentAutoHide: true,
+              }"
+              trigger="click">
               <i class="db-icon-more result-trigger" />
               <template #content>
                 <BkDropdownMenu>
@@ -181,6 +186,7 @@
   import SpiderTable from './components/tendb-cluster/Index.vue';
   import TendbSingleTable from './components/tendb-single/Index.vue';
   import TendbhaTable from './components/tendbha/Index.vue';
+  import TendbhaSlaveTable from './components/tendbha-slave/Index.vue';
 
   export type TabListType = {
     // checkbox hover 提示
@@ -439,7 +445,7 @@
       multiple: true,
       name: t('主从集群'),
       resultContent: ResultPreview,
-      tableContent: TendbhaTable,
+      tableContent: TendbhaSlaveTable,
     },
   };
 

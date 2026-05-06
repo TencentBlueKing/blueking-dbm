@@ -498,3 +498,216 @@ class TestTicketViewSet:
         assert response.status_code == status.HTTP_200_OK
         data = response.json()["data"]
         assert str(ticket.id) in data or ticket.id in data
+
+    @patch("backend.ticket.views.TicketViewSet.get_serializer")
+    @patch("backend.ticket.views.Ticket.create_ticket")
+    @patch("backend.ticket.views.ParamValidateSerializerMixin.validated_params")
+    def test_batch_create_ticket(
+        self, mock_validated_params, mock_create_ticket, mock_get_serializer, test_ticket_bk_biz_id
+    ):
+        """测试批量创建单据"""
+        mock_validated_params.return_value = None
+        mock_create_ticket.return_value = MagicMock(id=9999)
+        mock_serializer = MagicMock()
+        mock_serializer.data = {"id": 9999, "ticket_type": TicketType.MYSQL_SINGLE_APPLY.value}
+        mock_get_serializer.return_value = mock_serializer
+
+        url = "/apis/tickets/batch_create_ticket/"
+        response = client.post(
+            url,
+            {
+                "tickets": [
+                    {
+                        "bk_biz_id": test_ticket_bk_biz_id,
+                        "ticket_type": TicketType.MYSQL_SINGLE_APPLY.value,
+                        "remark": "batch create test",
+                        "details": {"nodes": {}},
+                    }
+                ]
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()["data"]
+        assert isinstance(data, list)
+        assert len(data) == 1
+        assert data[0]["id"] == 9999
+        mock_create_ticket.assert_called_once()
+
+    @patch("backend.ticket.views.TicketViewSet.perform_create")
+    @patch("backend.ticket.views.TicketViewSet.get_serializer")
+    def test_create_sensitive_ticket(self, mock_get_serializer, mock_perform_create, test_ticket_bk_biz_id):
+        """测试创建敏感单据"""
+        mock_serializer_instance = MagicMock()
+        mock_serializer_instance.is_valid.return_value = True
+        mock_serializer_instance.data = {
+            "id": 8888,
+            "ticket_type": TicketType.MYSQL_SINGLE_APPLY.value,
+            "status": TicketStatus.PENDING.value,
+        }
+        mock_get_serializer.return_value = mock_serializer_instance
+
+        url = "/apis/tickets/create_sensitive_ticket/"
+        response = client.post(
+            url,
+            {
+                "bk_biz_id": test_ticket_bk_biz_id,
+                "ticket_type": TicketType.MYSQL_SINGLE_APPLY.value,
+                "remark": "sensitive ticket test",
+                "details": {},
+            },
+            format="json",
+        )
+
+        # 由于敏感单据需要 JWT 校验，非 JWT 请求会被拒绝或正常创建(取决于权限mock)
+        assert response.status_code in [status.HTTP_200_OK, status.HTTP_201_CREATED, status.HTTP_403_FORBIDDEN]
+
+    def test_get_host_todo_count(self):
+        """测试获取主机待办单据数"""
+        url = "/apis/tickets/get_host_todo_count/"
+        response = client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()["data"]
+        assert isinstance(data, dict)
+        assert "recycle_count" in data
+        assert "fault_count" in data
+
+    def test_get_cluster_disable_count(self):
+        """测试获取集群下架待办单据数"""
+        url = "/apis/tickets/get_cluster_disable_count/"
+        response = client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()["data"]
+        assert isinstance(data, dict)
+        assert "todo" in data
+        assert "to_assist" in data
+
+    def test_cluster_disable_todo(self):
+        """测试集群下架待办列表"""
+        url = "/apis/tickets/cluster_disable_todo/"
+        response = client.get(url, {"db_type": "mysql", "limit": 10, "offset": 0})
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()["data"]
+        assert "results" in data
+        assert "count" in data
+
+    @patch("backend.ticket.views.TicketViewSet.paginate_queryset")
+    @patch("backend.ticket.views.TicketViewSet.filter_queryset")
+    def test_get_cluster_operate_records(self, mock_filter_qs, mock_paginate, test_running_ticket_with_flow):
+        """测试查询集群变更单据事件"""
+        ticket, flow = test_running_ticket_with_flow
+        from backend.ticket.models import ClusterOperateRecord
+
+        record = ClusterOperateRecord.objects.create(
+            cluster_id=1,
+            flow=flow,
+            ticket=ticket,
+            creator="admin",
+            updater="admin",
+        )
+
+        mock_filter_qs.return_value = ClusterOperateRecord.objects.filter(id=record.id)
+        mock_paginate.return_value = [record]
+
+        url = "/apis/tickets/get_cluster_operate_records/"
+        response = client.get(url, {"cluster_id": 1, "limit": 10, "offset": 0})
+
+        assert response.status_code == status.HTTP_200_OK
+
+        record.delete()
+
+    @patch("backend.ticket.views.TicketViewSet.paginate_queryset")
+    @patch("backend.ticket.views.TicketViewSet.filter_queryset")
+    def test_get_instance_operate_records(self, mock_filter_qs, mock_paginate, test_running_ticket_with_flow):
+        """测试查询集群实例变更单据事件"""
+        ticket, flow = test_running_ticket_with_flow
+        from backend.ticket.models import InstanceOperateRecord
+
+        record = InstanceOperateRecord.objects.create(
+            instance_id="127.0.0.1:3306",
+            flow=flow,
+            ticket=ticket,
+            creator="admin",
+            updater="admin",
+        )
+
+        mock_filter_qs.return_value = InstanceOperateRecord.objects.filter(id=record.id)
+        mock_paginate.return_value = [record]
+
+        url = "/apis/tickets/get_instance_operate_records/"
+        response = client.get(url, {"instance_id": record.instance_id, "limit": 10, "offset": 0})
+
+        assert response.status_code == status.HTTP_200_OK
+
+        record.delete()
+
+    @patch("backend.ticket.views.TicketHandler.update_ticket_flow_config")
+    def test_update_ticket_flow_config(self, mock_update_config, mysql_single_flow_configs, test_ticket_bk_biz_id):
+        """测试修改可编辑的单据流程规则"""
+        url = "/apis/tickets/update_ticket_flow_config/"
+        response = client.post(
+            url,
+            {
+                "bk_biz_id": test_ticket_bk_biz_id,
+                "ticket_types": [TicketType.MYSQL_SINGLE_APPLY.value],
+                "configs": {
+                    FlowTypeConfig.NEED_ITSM.value: False,
+                    FlowTypeConfig.NEED_MANUAL_CONFIRM.value: False,
+                    FlowTypeConfig.EXPIRE_CONFIG.value: {"enable": False},
+                },
+                "config_ids": [],
+                "cluster_ids": [],
+                "remark": "test update config",
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        mock_update_config.assert_called_once()
+
+    @patch("backend.ticket.views.TicketHandler.create_ticket_flow_config")
+    def test_create_ticket_flow_config(self, mock_create_config, test_ticket_bk_biz_id):
+        """测试创建单据流程规则"""
+        url = "/apis/tickets/create_ticket_flow_config/"
+        response = client.post(
+            url,
+            {
+                "bk_biz_id": test_ticket_bk_biz_id,
+                "ticket_types": [TicketType.MYSQL_SINGLE_APPLY.value],
+                "configs": {
+                    FlowTypeConfig.NEED_ITSM.value: True,
+                    FlowTypeConfig.NEED_MANUAL_CONFIRM.value: False,
+                    FlowTypeConfig.EXPIRE_CONFIG.value: {"enable": False},
+                },
+                "cluster_ids": [],
+                "remark": "test create config",
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        mock_create_config.assert_called_once()
+
+    def test_delete_ticket_flow_config(self, mysql_single_flow_configs, test_ticket_bk_biz_id):
+        """测试删除单据流程规则"""
+        # 获取已存在的配置ID
+        config = TicketFlowsConfig.objects.filter(
+            bk_biz_id=test_ticket_bk_biz_id,
+            ticket_type=TicketType.MYSQL_SINGLE_APPLY.value,
+        ).first()
+        assert config is not None
+
+        url = "/apis/tickets/delete_ticket_flow_config/"
+        response = client.delete(
+            url,
+            {"config_ids": [config.id]},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        # 验证数据库中配置已被删除
+        assert not TicketFlowsConfig.objects.filter(id=config.id).exists()

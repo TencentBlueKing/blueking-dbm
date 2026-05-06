@@ -42,26 +42,21 @@
 </template>
 
 <script setup lang="tsx">
-  import { format } from 'date-fns';
   import _ from 'lodash';
 
   import { execCopy } from '@utils';
 
-  import { t } from '@locales';
+  import { t } from '@locales/index';
 
   import { FitAddon } from '@xterm/addon-fit';
   import { WebLinksAddon } from '@xterm/addon-web-links';
   import { type IBuffer, Terminal } from '@xterm/xterm';
 
+  import { formatLogData, type NodeLog } from './utils';
+
   interface Props {
     loading?: boolean;
     loadingText?: string;
-  }
-
-  interface NodeLog {
-    levelname: string;
-    message: string;
-    timestamp: number;
   }
 
   interface Exposes {
@@ -101,14 +96,12 @@
         background: '#1A1A1A', // 背景色
         foreground: '#C4C6CC', // 默认字体颜色
       },
-      windowsMode: false,
     });
     fitAddon = new FitAddon();
     const linkAddon = new WebLinksAddon();
     terminal.loadAddon(fitAddon);
     terminal.loadAddon(linkAddon);
     terminal.open(document.getElementById('nodeLogTermContent')!);
-    const viewport = terminal.element!.querySelector('.xterm-viewport')!;
     lastScrollPosition = terminal.buffer.active.viewportY;
 
     const originalWrite = terminal.writeln;
@@ -142,8 +135,9 @@
       return true;
     });
 
-    terminal.element!.querySelector('.xterm-viewport')!.addEventListener('scroll', () => {
-      isAutoScrollEnabled = viewport.scrollTop >= viewport.scrollHeight - viewport.clientHeight;
+    terminal.onScroll(() => {
+      const buffer = terminal?.buffer.active;
+      isAutoScrollEnabled = (buffer?.viewportY || 0) + (terminal?.rows || 0) >= (buffer?.length || 0);
       updateLineNumbers();
       checkTermScroll();
     });
@@ -181,11 +175,8 @@
     for (let i = 0; i < visibleRows; i++) {
       const lineIndex = scrollTop + i;
       isSameLine = logicalLineNumbers[lineIndex] === logicalLineNumbers[lineIndex - 1];
-      const logicalLine = !isSameLine ? logicalLineNumbers[lineIndex] : '';
-      const lineText = activeBuffer?.getLine(lineIndex)?.translateToString().trim();
-      if (lineText) {
-        numbersHtml += `<div class="line-num">${logicalLine}</div>`;
-      }
+      const logicalLine = !isSameLine ? (logicalLineNumbers[lineIndex] ?? '') : '';
+      numbersHtml += `<div class="line-num">${logicalLine}</div>`;
     }
     lineNumbers.innerHTML = numbersHtml;
   };
@@ -198,39 +189,6 @@
 
   const handleClearLog = () => {
     terminal?.clear();
-  };
-
-  const formatLogData = (data: NodeLog[] = [], isSetColor = true) => {
-    const regex = /^##\[[a-z]+]/;
-    return data.map((item) => {
-      const { levelname, message, timestamp } = item;
-      const time = timestamp ? format(new Date(Number(timestamp)), 'yyyy-MM-dd HH:mm:ss') : '';
-      if (!time && !levelname) {
-        return message;
-      }
-
-      let rowText = regex.test(message)
-        ? message.replace(regex, (match: string) => `${match}[${time} ${levelname}]`)
-        : `[${time} ${levelname}] ${message}`;
-      rowText = rowText.replace(/\n/g, '\r\n');
-      if (!isSetColor) {
-        return rowText;
-      }
-
-      // if (/\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} info\]/.test(rowText)) {
-      //   return `\x1b[32m${rowText}\x1b[0m`;
-      // }
-
-      if (/\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} warn\]/i.test(rowText)) {
-        return `\x1b[33m${rowText}\x1b[0m`;
-      }
-
-      if (/\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} error\]/i.test(rowText)) {
-        return `\x1b[31m${rowText}\x1b[0m`;
-      }
-
-      return rowText;
-    });
   };
 
   const handleTermToTop = () => {

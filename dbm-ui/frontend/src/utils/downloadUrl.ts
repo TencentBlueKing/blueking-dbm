@@ -14,20 +14,15 @@
 export const downloadUrl = (url: string) => {
   // 创建隐藏的可下载链接
 
-  const eleLink = document.createElement('a');
-  eleLink.style.display = 'none';
-  eleLink.href = url;
-  eleLink.target = '_blank';
+  const iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  iframe.src = url;
 
-  // 触发点击
-  document.body.appendChild(eleLink);
+  document.body.appendChild(iframe);
   const { changeConfirm } = window;
   window.changeConfirm = false;
-  eleLink.click();
   setTimeout(() => {
     window.changeConfirm = changeConfirm;
-  });
-
-  // 然后移除
-  document.body.removeChild(eleLink);
+    document.body.removeChild(iframe);
+  }, 3000);
 };

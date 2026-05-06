@@ -11,6 +11,14 @@ import (
 
 // Delete delete job from active job-list or disabled job-list
 func Delete(name string, permanent bool) (int, error) {
+	crondMu.Lock()
+	defer crondMu.Unlock()
+
+	return delete_(name, permanent)
+}
+
+// delete_ 内部实现，不加锁
+func delete_(name string, permanent bool) (int, error) {
 	existEntry := findEntry(name)
 	if existEntry != nil {
 		return deleteActivate(existEntry, permanent)
@@ -37,6 +45,7 @@ func deleteActivate(entry *cron.Entry, permanent bool) (int, error) {
 	if permanent {
 		err := config.SyncDelete(j.Name)
 		if err != nil {
+			slog.Error("delete activate permanent", slog.String("error", err.Error()))
 			_, _ = cronJob.AddJob(j.Schedule, j)
 			return 0, err
 		}
@@ -49,7 +58,7 @@ func deleteDisabled(name string, permanent bool) (int, error) {
 	v, _ := DisabledJobs.LoadAndDelete(name)
 	job, ok := v.(*config.ExternalJob)
 	if !ok {
-		err := fmt.Errorf("conver %v to ExternalJob failed", v)
+		err := fmt.Errorf("convert %v to ExternalJob failed", v)
 		slog.Error("delete disabled", slog.String("error", err.Error()))
 		return 0, err
 	}
@@ -57,6 +66,7 @@ func deleteDisabled(name string, permanent bool) (int, error) {
 	if permanent {
 		err := config.SyncDelete(name)
 		if err != nil {
+			slog.Error("delete delete permanent", slog.String("error", err.Error()))
 			DisabledJobs.Store(name, job)
 			return 0, err
 		}

@@ -31,6 +31,7 @@ from backend.flow.consts import (
 )
 from backend.flow.utils.mysql.db_table_filter import DbTableFilter
 from backend.flow.utils.mysql.get_mysql_sys_user import generate_mysql_tmp_user
+from backend.flow.utils.sqlserver.sqlserver_act_dataclass import NginxInfo
 from backend.flow.utils.sqlserver.sqlserver_host import Host
 
 logger = logging.getLogger("flow")
@@ -247,6 +248,36 @@ name not in (select name from {SQLSERVER_CUSTOM_SYS_DB}.dbo.BACKUP_FILTER (NOLOC
     routine_backup_dbs = [i["name"] for i in ret[0]["cmd_results"][0]["table_data"]]
 
     return routine_backup_dbs
+
+
+def get_backup_filter_dbs(cluster_id: int) -> list:
+    """
+    获取集群的主实例中，获取它的备份忽略的数据库列表
+    @param cluster_id 集群id
+    """
+
+    cluster = Cluster.objects.get(id=cluster_id)
+    # 获取当前cluster的主节点,每个集群有且只有一个master/orphan 实例
+    master_instance = cluster.storageinstance_set.get(
+        instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
+    )
+
+    check_sql = f"""select name from {SQLSERVER_CUSTOM_SYS_DB}.dbo.BACKUP_FILTER (NOLOCK)"""
+
+    ret = DRSApi.sqlserver_rpc(
+        {
+            "bk_cloud_id": cluster.bk_cloud_id,
+            "addresses": [master_instance.ip_port],
+            "cmds": [check_sql],
+            "force": False,
+        }
+    )
+    if ret[0]["error_msg"]:
+        raise Exception(f"[{master_instance.ip_port}] get_backup_filter_dbs failed: {ret[0]['error_msg']}")
+    # 获取所有忽略db名称
+    filter_backup_dbs = [i["name"] for i in ret[0]["cmd_results"][0]["table_data"]]
+
+    return filter_backup_dbs
 
 
 def get_restoring_dbs(instance: StorageInstance, bk_cloud_id: int) -> List[str]:
@@ -1134,4 +1165,61 @@ def remove_mirroring_config(target_instances: List[str], bk_cloud_id: int):
     )
 
     if ret[0]["error_msg"]:
-        raise Exception(f"remove_mirroring_configfailed: {ret[0]['error_msg']}")
+        raise Exception(f"remove_mirroring_config failed: {ret[0]['error_msg']}")
+
+
+def init_dbm_nginx_proxy_config(nginx_list: List[NginxInfo], bk_cloud_id: int, target_instances: List[str]):
+    # 检查表是否存在的SQL
+    check_table_sql = (
+        f"SELECT COUNT(*) AS cnt FROM [{SQLSERVER_CUSTOM_SYS_DB}].INFORMATION_SCHEMA.TABLES "
+        f"WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'DBM_NGINX_PROXY'"
+    )
+    drop_sql = f"use {SQLSERVER_CUSTOM_SYS_DB}; truncate table [{SQLSERVER_CUSTOM_SYS_DB}].[dbo].[DBM_NGINX_PROXY]"
+    insert_sqls = [
+        f"""INSERT INTO [{SQLSERVER_CUSTOM_SYS_DB}].[dbo].[DBM_NGINX_PROXY](
+[IP],
+[PORT],
+[BK_CLOUD_ID]
+) values(
+'{i.nginx_proxy_ip}',
+{i.nginx_proxy_port},
+{i.bk_cloud_id})
+"""
+        for i in nginx_list
+    ]
+
+    if not target_instances:
+        raise Exception("init_dbm_nginx_proxy_config: target_instances is empty")
+
+    for instance in target_instances:
+        # 先检查目标实例是否存在 DBM_NGINX_PROXY 表
+        check_ret = DRSApi.sqlserver_rpc(
+            {
+                "bk_cloud_id": bk_cloud_id,
+                "addresses": [instance],
+                "cmds": [check_table_sql],
+                "force": False,
+            }
+        )
+        if check_ret[0]["error_msg"]:
+            raise Exception(f"[{instance}] check DBM_NGINX_PROXY table failed: {check_ret[0]['error_msg']}")
+
+        table_count = int(check_ret[0]["cmd_results"][0]["table_data"][0]["cnt"])
+        if table_count == 0:
+            logger.warning(f"[{instance}] DBM_NGINX_PROXY table does not exist, skip init_dbm_nginx_proxy_config")
+            continue
+
+        # 表存在，执行 truncate + insert
+        exec_sqls = [drop_sql] + insert_sqls
+        ret = DRSApi.sqlserver_rpc(
+            {
+                "bk_cloud_id": bk_cloud_id,
+                "addresses": [instance],
+                "cmds": exec_sqls,
+                "force": False,
+            }
+        )
+        if ret[0]["error_msg"]:
+            raise Exception(f"[{instance}] init_dbm_nginx_proxy_config failed: {ret[0]['error_msg']}")
+
+        logger.info(f"[{instance}] init_dbm_nginx_proxy_config successfully")

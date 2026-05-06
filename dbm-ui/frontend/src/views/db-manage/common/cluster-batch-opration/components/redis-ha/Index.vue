@@ -73,7 +73,9 @@
       {{ t('移除标签') }}
     </BkButton>
   </BkDropdownItem>
-  <BkDropdownItem v-db-console="'redis.haClusterManage.configAlarmSubscription'">
+  <BkDropdownItem
+    v-if="isClusterTypeAlarmSupported"
+    v-db-console="'redis.haClusterManage.configAlarmSubscription'">
     <BkButton
       class="opration-button"
       :disabled="!isClusterTagEditable"
@@ -82,7 +84,9 @@
       {{ t('设置告警订阅') }}
     </BkButton>
   </BkDropdownItem>
-  <BkDropdownItem v-db-console="'redis.haClusterManage.deleteAlarmSubscription'">
+  <BkDropdownItem
+    v-if="isClusterTypeAlarmSupported"
+    v-db-console="'redis.haClusterManage.deleteAlarmSubscription'">
     <BkButton
       class="opration-button"
       :disabled="!isClusterTagEditable"
@@ -158,6 +162,8 @@
 
   import RedisModel from '@services/model/redis/redis';
 
+  import { useAlarmSubscribe } from '@hooks';
+
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterBatchAddTag from '@views/db-manage/common/cluster-batch-add-tag/Index.vue';
@@ -182,6 +188,7 @@
 
   const { t } = useI18n();
   const { handleToToolbox } = useRedisClusterListToToolbox();
+  const { isClusterTypeAlarmSupported } = useAlarmSubscribe([ClusterTypes.REDIS_INSTANCE]);
 
   const { handleDeleteCluster, handleDisableCluster, handleEnableCluster } = useOperateClusterBasic(
     ClusterTypes.REDIS_INSTANCE,

@@ -9,17 +9,19 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from django.db.models import Prefetch
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.serializers import Serializer
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import SystemViewSet
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import AccessLayer, MachineType, MachineTypeInstanceRoleMap
-from backend.db_meta.models.cluster import Cluster
+from backend.db_meta.enums import AccessLayer, ClusterType, InstanceInnerRole, MachineType, MachineTypeInstanceRoleMap
+from backend.db_meta.models import Cluster, ClusterEntry
 from backend.db_services.dbbase.resources import serializers
 from backend.db_services.dbbase.resources.constants import ResourceNodeType
 from backend.db_services.dbbase.resources.serializers import SearchResourceTreeSLZ
@@ -31,6 +33,7 @@ from backend.db_services.dbbase.resources.yasg_slz import (
 )
 from backend.db_services.mongodb.resources import constants, yasg_slz
 from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
+from backend.flow.utils.mongodb.mongodb_password import MongoDBPassword
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
@@ -96,6 +99,8 @@ from backend.iam_app.handlers.drf_perm.base import DBManagePermission
     ),
 )
 class MongoDBViewSet(ResourceViewSet):
+    # 为 schema 生成提供默认 serializer，避免 drf_yasg 调用 get_serializer 时触发断言
+    serializer_class = Serializer
     db_type = DBType.MongoDB
     query_class = MongoDBListRetrieveResource
     query_serializer_class = serializers.ListMongoDBResourceSLZ
@@ -108,6 +113,8 @@ class MongoDBViewSet(ResourceViewSet):
         ActionEnum.MONGODB_EDIT,
         ActionEnum.MONGODB_DESTROY,
         ActionEnum.MONGODB_SOURCE_ACCESS_VIEW,
+        ActionEnum.MONGODB_SUBSCRIBE_MONITOR,
+        ActionEnum.MONGODB_ACCESS_ENTRY_VIEW,
     ]
     list_instance_perm_actions = [ActionEnum.MONGODB_VIEW]
 
@@ -115,11 +122,41 @@ class MongoDBViewSet(ResourceViewSet):
         operation_summary=_("获取实例的角色类型"),
         tags=[constants.RESOURCE_TAG],
     )
-    @action(methods=["GET"], detail=False)
+    @action(methods=["GET"], detail=False, serializer_class=Serializer)
     def get_instance_role(self, request, *args, **kwargs):
         storage_role_types = MachineTypeInstanceRoleMap[MachineType.MONGODB]
         proxy_role_types = [AccessLayer.PROXY]
         return Response([*storage_role_types, *proxy_role_types])
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取集群访问密码"),
+        tags=[constants.RESOURCE_TAG],
+    )
+    @action(methods=["GET"], detail=True, url_path="get_password", serializer_class=Serializer)
+    def get_password(self, request, bk_biz_id: int, cluster_id: int):
+        port = None
+        domain = None
+        cluster = Cluster.objects.only("cluster_type").get(id=cluster_id, bk_biz_id=bk_biz_id)
+        if cluster.cluster_type == ClusterType.MongoShardedCluster.value:
+            queryset = cluster.proxyinstance_set
+        elif cluster.cluster_type == ClusterType.MongoReplicaSet.value:
+            queryset = cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER.value)
+
+        instance = (
+            queryset.prefetch_related(
+                Prefetch("bind_entry", queryset=ClusterEntry.objects.only("entry"), to_attr="entries")
+            )
+            .only("port")
+            .first()
+        )
+
+        if instance:
+            port = instance.port
+            domain = instance.entries[0].entry
+        if not port and not domain:
+            return Response(data={"username": "gameuser", "password": ""})
+        password_info = MongoDBPassword().get_password_from_db(domain, port, cluster.bk_cloud_id, "gameuser")
+        return Response(data={"username": "gameuser", "password": password_info["password"]})
 
 
 class ResourceTreeViewSet(SystemViewSet):

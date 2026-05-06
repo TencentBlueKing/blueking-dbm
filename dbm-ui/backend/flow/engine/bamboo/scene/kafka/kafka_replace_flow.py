@@ -470,6 +470,16 @@ class KafkaReplaceFlow(object):
                     kwargs=asdict(act_kwargs),
                 )
 
+                # 检查broker是否为空
+                act_kwargs.template = get_base_payload(
+                    action=KafkaActuatorActionEnum.BrokerIsEmpty.value, host=broker["ip"]
+                )
+                sub_pipeline.add_act(
+                    act_name=_("检查broker是否为空-{}").format(broker["ip"]),
+                    act_component_code=ExecuteDBActuatorScriptComponent.code,
+                    kwargs=asdict(act_kwargs),
+                )
+
                 act_kwargs.template = get_base_payload(
                     action=KafkaActuatorActionEnum.StopProcess.value,
                     host=broker["ip"],
@@ -504,4 +514,4 @@ class KafkaReplaceFlow(object):
             )
             kafka_pipeline.add_sub_pipeline(sub_flow=sub_pipeline.build_sub_process(sub_name=_("缩容DBMeta")))
 
-        kafka_pipeline.run_pipeline()
+        kafka_pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=[self.data["cluster_id"]])

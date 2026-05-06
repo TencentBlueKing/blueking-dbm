@@ -30,6 +30,25 @@ QUERY_DATABASE_FIELD_TYPE = (
     "from information_schema.columns where {table_sts} and {db_sts}"
 )
 
+# 查询表信息 是否已经是分区表
+Query_Tables_info_SQL = (
+    "select TABLE_SCHEMA, TABLE_NAME, CREATE_OPTIONS " "from information_schema.tables where {condition_sts}"
+)
+
+Query_shard_info_SQL = (
+    "SELECT Server_name, Host, Port "
+    "FROM mysql.servers "
+    "WHERE Server_name LIKE 'SPT%' AND Server_name NOT LIKE 'SPT_SLAVE%' "
+    "ORDER BY Server_name"
+)
+
+Query_partition_info_SQL = (
+    "SELECT PARTITION_NAME, PARTITION_DESCRIPTION "
+    "FROM information_schema.partitions "
+    "WHERE TABLE_SCHEMA='{dbname}' AND TABLE_NAME='{tb}' "
+    "ORDER BY PARTITION_DESCRIPTION ASC"
+)
+
 
 class PartitionTypeEnum(StrStructuredEnum):
     INT = EnumField("int", _("整型"))

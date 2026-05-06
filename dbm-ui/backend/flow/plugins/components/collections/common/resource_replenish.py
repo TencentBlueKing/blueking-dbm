@@ -15,6 +15,7 @@ from pipeline.core.flow.activity import StaticIntervalGenerator
 
 from backend.components.hcm.client import HCMApi
 from backend.db_meta.models import Spec
+from backend.db_services.cmdb.biz import get_hcm_apply_resource_biz
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.plugins.components.collections.common.base_service import BaseService
@@ -37,7 +38,7 @@ class HCMResourceReplenishService(BaseService):
     def _execute(self, data, parent_data):
         global_data = data.get_one_of_inputs("global_data")
         kwargs = data.get_one_of_inputs("kwargs")
-        bk_biz_id = global_data["bk_biz_id"]
+        bk_biz_id = get_hcm_apply_resource_biz()
 
         # 获取当前单据信息和申请补货信息
         ticket, flow = self.__get_ticket_flow(global_data)
@@ -65,12 +66,20 @@ class HCMResourceReplenishService(BaseService):
                 city=city,
                 subzone=subzone,
                 os_name=os_name,
-                device_type=spec.device_class[0],
+                device_types=spec.device_class,
                 disk=[{"disk_type": s["type"], "disk_size": s["min"]} for s in spec.storage_spec if s.get("min")],
                 count=apply_count,
+                ticket_id=ticket.id,
             )
         else:
-            HCMApi.update_ticket_apply_start({"bk_biz_id": bk_biz_id, "suborder_id": [suborder_id]}, use_admin=True)
+            # 先判断单据状态，如果已经非失败暂停，则不进行重试(可能是在海磊平台操作了)
+            apply_ticket = HCMApi.get_apply_status(params={"order_id": apply_id}, use_admin=True)["info"][0]
+            if apply_ticket["stage"] != "SUSPEND":
+                self.log_info(_("单据{}状态为{}，非失败暂停状态跳过重试").format(apply_id, apply_ticket["stage"]))
+            else:
+                HCMApi.update_ticket_apply_start(
+                    {"bk_biz_id": bk_biz_id, "suborder_id": [suborder_id]}, use_admin=True
+                )
 
         self.log_info(_("海磊资源单发起成功，单号: {}").format(apply_id))
         data.outputs.apply_id = apply_id
@@ -80,10 +89,8 @@ class HCMResourceReplenishService(BaseService):
         global_data = data.get_one_of_inputs("global_data")
         apply_id = data.get_one_of_outputs("apply_id")
         apply_count = data.get_one_of_outputs("apply_count")
-
-        # 获取当前单据信息和申请补货信息
-        bk_biz_id = global_data["bk_biz_id"]
         ticket, flow = self.__get_ticket_flow(global_data)
+        bk_biz_id = get_hcm_apply_resource_biz()
 
         if not apply_count:
             self.finish_schedule()
@@ -100,15 +107,9 @@ class HCMResourceReplenishService(BaseService):
             self.log_info(_("资源申请中，单号: {}, 状态: {}").format(apply_id, apply_ticket["stage"]))
             return True
 
-        # 如果这个单据是部分补货，创建一个补货代办; 资源申请完成，补货代办结束
-        from backend.ticket.todos.pause_todo import HcmResourceReplenishTodo
-
+        # 更新flow上下文，存海磊单据信息
         suborder_id = apply_ticket["suborder_id"]
         flow.update_context(suborder_id=suborder_id, apply_id=apply_id)
-        if apply_ticket["stage"] == "SUSPEND":
-            HcmResourceReplenishTodo.create(ticket, flow)
-        else:
-            HcmResourceReplenishTodo.done(ticket, flow)
 
         # 已经申请到资源，获取申请资源详情给到资源导入
         apply_detail = HCMApi.get_apply_device(
@@ -125,6 +126,11 @@ class HCMResourceReplenishService(BaseService):
         conditions = [{"field": "bk_host_innerip", "operator": "in", "value": host_ips}]
         resp = ResourceQueryHelper.query_cc_hosts(tree_node, conditions, page_size=len(host_ips), bk_cloud_id=0)
         hosts = ResourceHandler.standardized_resource_host(resp["info"])
+
+        # 申请到的机器和cc查询机器数量不一致，可能录入有延迟，推迟到下个周期查询
+        if len(host_ips) != len(hosts):
+            self.log_info(_("申请到的机器数量与CC查询到的机器数量不一致，推迟到下个周期查询"))
+            return True
 
         # 校验主机是否与申请机型参数一致(暂时仅打印日志提示)
         spec = Spec.objects.get(spec_id=ticket.details["spec_id"])

@@ -47,11 +47,49 @@ type ProxyAddress struct {
 
 // MysqlCluster represents a MySQL cluster.
 type MysqlCluster struct {
-	Domain  string            `yaml:"domain"`
-	BkBizId int               `yaml:"bkBizId"`
-	Proxy   []ProxyAddress    `yaml:"proxy"`
-	Master  InstanceAddress   `yaml:"master"`
-	Slave   []InstanceAddress `yaml:"slave"`
+	Domain      string            `yaml:"domain"`
+	DomainSlave string            `yaml:"domainSlave"`
+	BkBizId     int               `yaml:"bkBizId"`
+	Proxy       []ProxyAddress    `yaml:"proxy"`
+	Master      InstanceAddress   `yaml:"master"`
+	Slave       []InstanceAddress `yaml:"slave"`
+}
+
+// TenDBClusterNodeInfo represents the information of a TenDBCluster node.
+type TenDBClusterNodeInfo struct {
+	Host       string `yaml:"host"`
+	Port       int    `yaml:"port"`
+	ServerName string `yaml:"serverName"`
+	User       string `yaml:"user"`
+	Password   string `yaml:"password"`
+	Wrapper    string
+}
+
+// RemoteSlaveInfo represents the information of a remote slave instance.
+type RemoteSlaveInfo struct {
+	TenDBClusterNodeInfo `yaml:",inline"`
+	MasterHost           string `yaml:"masterHost"` // Identify the master-slave one-to-one relationship
+	MasterPort           int    `yaml:"masterPort"` // Identify the master-slave one-to-one relationship
+}
+
+// TenDBCluster represents a TenDB cluster.
+type TenDBCluster struct {
+	Domain       string                 `yaml:"domain"`      // main domain, used as master domain for spider binding
+	DomainSlave  string                 `yaml:"domainSlave"` // slave domain for spider slave binding (optional, only used when SpiderSlave exists)
+	BkBizId      int                    `yaml:"bkBizId"`
+	Spider       []TenDBClusterNodeInfo `yaml:"spider"`
+	SpiderSlave  []TenDBClusterNodeInfo `yaml:"spiderSlave"`
+	CtlMaster    TenDBClusterNodeInfo   `yaml:"ctlMaster"`
+	CtlSlave     []TenDBClusterNodeInfo `yaml:"ctlSlave"`
+	RemoteMaster []TenDBClusterNodeInfo `yaml:"remoteMaster"`
+	RemoteSlave  []RemoteSlaveInfo      `yaml:"remoteSlave"`
+}
+
+// BinlogInfo represents mysql binlog information.
+type BinlogInfo struct {
+	TenDBClusterNodeInfo
+	File     string `yaml:"file"`
+	Position uint64 `yaml:"position"`
 }
 
 // APIConfig represents API configuration
@@ -83,6 +121,7 @@ type AuthInfo struct {
 // Config represents the configuration of the test tools.
 type Config struct {
 	MysqlClusters []MysqlCluster `yaml:"mysqlClusters"`
+	TenDBClusters []TenDBCluster `yaml:"tenDBClusters"`
 	DbmServices   DbmApis        `yaml:"dbmServices"`
 	AuthInfo      AuthInfo       `yaml:"authInfo"`
 }

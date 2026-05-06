@@ -34,7 +34,7 @@
             :disabled="isSubmitting || Boolean(runningReplenishRecord)"
             :loading="isSubmitting"
             theme="primary"
-            @click="handleReplenish">
+            @click="() => handleReplenish()">
             <span v-if="!runningReplenishRecord">{{ t('一键补货') }}</span>
             <template v-else>
               <DbIcon
@@ -47,10 +47,10 @@
         <DbIcon
           class="ml-16"
           type="bk-dbm-icon db-icon-dingshichufa" />
-        {{ t('系统于每日 time 发起自动提交补货操作，也可手动点击', [flushTime]) }}
+        {{ t('系统于每日 time 发起自动提交补货操作，也可手动点击', [waterLevelData?.flush_time]) }}
       </div>
       <div>
-        <span>{{ t('最近更新时间：') }}{{ updateTime }}</span>
+        <span>{{ t('最近更新时间：') }}{{ waterLevelData?.update_time }}</span>
         <BkButton
           class="ml-8"
           @click="handleRefresh">
@@ -67,66 +67,87 @@
             type="bk-dbm-icon db-icon-history-2" />
           {{ t('补货记录') }}
         </BkButton>
+        <BkButton
+          class="ml-8"
+          :disabled="tableData.length === 0"
+          @click="handleExport">
+          <DbIcon
+            class="mr-6"
+            type="daochu" />
+          {{ t('导出数据') }}
+        </BkButton>
       </div>
     </div>
     <BkLoading :loading="isLoading">
+      <Exclusive
+        v-if="waterLevelData"
+        class="mb-12"
+        :data="waterLevelData" />
       <div ref="tableWrapper">
         <PrimaryTable
           :data="tableData"
+          ellipsis
           :height="tableHeight"
+          resizable
           row-key="db_type"
           title-ellipsis>
           <TableColumn
             col-key="db_type"
+            :min-width="120"
             :title="t('DB 类型')"
-            width="120">
+            :width="120">
             <template #default="{ row }: { row: IRowData }">
               {{ dbNameMap[row.db_type] || '--' }}
             </template>
           </TableColumn>
           <TableColumn
             col-key="spec_machine_type"
+            ellipsis
             :title="t('规格类型')"
-            width="120">
+            :width="150">
             <template #default="{ row }: { row: IRowData }">
               {{ machineTypeMap[row.spec_machine_type] || '--' }}
             </template>
           </TableColumn>
           <TableColumn
             col-key="spec_name"
+            ellipsis
             :title="t('规格')"
-            width="120">
+            :width="180">
             <template #default="{ row }: { row: IRowData }">
               {{ row.spec_name || '--' }}
             </template>
           </TableColumn>
           <TableColumn
             col-key="city"
+            :min-width="100"
             :title="t('地域')"
-            width="120">
+            :width="100">
             <template #default="{ row }: { row: IRowData }">
               {{ row.city || '--' }}
             </template>
           </TableColumn>
           <TableColumn
             col-key="subzone"
+            :min-width="120"
             :title="t('园区')"
-            width="120">
+            :width="120">
             <template #default="{ row }: { row: IRowData }">
               {{ row.subzone || '--' }}
             </template>
           </TableColumn>
           <TableColumn
             col-key="os_name"
+            :min-width="200"
             :title="t('操作系统')"
-            width="120">
+            :width="200">
             <template #default="{ row }: { row: IRowData }">
               {{ row.os_name || '--' }}
             </template>
           </TableColumn>
           <!-- <TableColumn
             col-key="machine_refer_count"
-            width="120"
+            :min-width="120"
             :title="t('AI 预测水位（台）')">
             <template #default="{ row }: { row: IRowData }">
               <span class="bold-number">{{ row.machine_refer_count }}</span>
@@ -134,28 +155,46 @@
           </TableColumn> -->
           <TableColumn
             col-key="machine_refer_count"
+            :min-width="120"
             :title="t('参考水位（台）')"
-            width="120">
+            :width="120">
             <template #default="{ row }: { row: IRowData }">
               <span class="bold-number">{{ row.machine_refer_count }}</span>
             </template>
           </TableColumn>
           <TableColumn
             col-key="resource_count"
+            :min-width="120"
             :title="t('当前数量（台）')"
-            width="120">
+            :width="120">
             <template #default="{ row }: { row: IRowData }">
               <span class="bold-number blue-number">{{ row.resource_count }}</span>
             </template>
           </TableColumn>
           <TableColumn
             col-key="resource_count"
+            :min-width="150"
             :title="t('待补充数量（台）')"
-            width="150">
+            :width="150">
             <template #default="{ row }: { row: IRowData }">
               <span class="bold-number red-number">
                 {{ Math.max(row.machine_refer_count - row.resource_count, 0) }}
               </span>
+            </template>
+          </TableColumn>
+          <TableColumn
+            v-if="isShowOperationColumn"
+            col-key="operate"
+            fixed="right"
+            :title="t('操作')"
+            width="100">
+            <template #default="{ row }: { row: IRowData }">
+              <BkButton
+                text
+                theme="primary"
+                @click="handleReplenish(row)">
+                {{ t('补货') }}
+              </BkButton>
             </template>
           </TableColumn>
         </PrimaryTable>
@@ -178,12 +217,13 @@
 
   import { createResourceReplenish } from '@services/source/dbresourceReplenish';
 
-  import { useSystemEnviron } from '@stores';
+  import { useFunController, useSystemEnviron } from '@stores';
 
   import { DBTypeInfos } from '@common/const';
 
-  import { getOffset, messageSuccess } from '@utils';
+  import { exportExcelFile, getOffset, messageSuccess } from '@utils';
 
+  import Exclusive from './components/Exclusive.vue';
   import useFetchData from './hooks/use-fetch-data';
 
   type IRowData = NonNullable<(typeof tableData.value)[0]>;
@@ -192,9 +232,9 @@
   const rootRef = useTemplateRef('tableWrapper');
   const router = useRouter();
   const systemEnvironStore = useSystemEnviron();
+  const funControllerStore = useFunController();
   const {
     dataList,
-    flushTime,
     handlePageLimitChange,
     handlePageValueChange,
     loading: isLoading,
@@ -202,7 +242,7 @@
     run: fetchData,
     runningReplenishRecord,
     tableData,
-    updateTime,
+    waterLevelData,
   } = useFetchData();
 
   const tableHeight = ref<number | 'auto'>('auto');
@@ -210,6 +250,9 @@
   const popRef = ref();
   let tippyIns: Instance;
   const URL_REPLENISH_MEMO_KEY = '__replenish_operation_view_payload__';
+  const isShowOperationColumn =
+    funControllerStore.funControllerData?.resourceManage?.children?.replenishList.children?.replenishListRowOperation
+      ?.is_enabled;
 
   const dbNameMap: Record<string, string> = {};
   const machineTypeMap: Record<string, string> = {};
@@ -251,6 +294,26 @@
     });
   };
 
+  const handleExport = () => {
+    /* eslint-disable */
+    const formatData = dataList.value.map((row) => ({
+      [t('DB 类型')]: dbNameMap[row.db_type],
+      [t('规格类型')]: machineTypeMap[row.spec_machine_type],
+      [t('规格')]: row.spec_name,
+      [t('地域')]: row.city,
+      [t('园区')]: row.subzone,
+      [t('操作系统')]: row.os_name,
+      [t('参考水位（台）')]: row.machine_refer_count,
+      [t('当前数量（台）')]: row.resource_count,
+      [t('待补充数量（台）')]: Math.max(row.machine_refer_count - row.resource_count, 0),
+    }));
+    /* eslint-enable */
+    const colsWidths = Array(8)
+      .fill(15)
+      .map((width) => ({ width }));
+    exportExcelFile(formatData, colsWidths, 'Sheet1', `${t('待补货列表')}_${waterLevelData.value?.update_time}.xlsx`);
+  };
+
   const { loading: isSubmitting, run: replenish } = useRequest(createResourceReplenish, {
     manual: true,
     onSuccess: () => {
@@ -259,8 +322,10 @@
     },
   });
 
-  const handleReplenish = () => {
-    const replenishList = dataList.value
+  const handleReplenish = (rowData?: IRowData) => {
+    const list = rowData ? [rowData] : dataList.value;
+
+    const replenishList = list
       .filter((item) => item.resource_count < item.machine_refer_count)
       .map((item) => ({
         city: item.city,
@@ -335,9 +400,8 @@
 <style lang="less">
   .resource-pool-replenish-list {
     padding: 16px 24px;
-    font-family: MicrosoftYaHei;
     background: #fff;
-    box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
+    box-shadow: 0 2px 4px 0 rgb(25 25 41 / 5%);
 
     .top-operation {
       display: flex;
@@ -346,12 +410,11 @@
     }
 
     .bold-number {
-      font-family: MicrosoftYaHei-Bold;
-      font-weight: 700;
       font-size: 12px;
-      color: #4d4f56;
-      letter-spacing: 0;
+      font-weight: 700;
       line-height: 20px;
+      letter-spacing: 0;
+      color: #4d4f56;
     }
 
     .blue-number {
@@ -384,13 +447,13 @@
   }
 
   .replenish-confirm-tip {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 14px;
+    line-height: 22px;
+    letter-spacing: 0;
+    color: #4d4f56;
     background: #f5f7fa;
     border-radius: 2px;
-    font-size: 14px;
-    color: #4d4f56;
-    letter-spacing: 0;
-    width: 100%;
-    line-height: 22px;
-    padding: 12px 16px;
   }
 </style>

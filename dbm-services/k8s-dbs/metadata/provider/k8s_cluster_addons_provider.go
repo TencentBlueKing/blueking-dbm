@@ -24,6 +24,7 @@ import (
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
 	"log/slog"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -43,6 +44,25 @@ type K8sClusterAddonsProvider interface {
 type K8sClusterAddonsProviderImpl struct {
 	kcaDbAccess dbaccess.K8sClusterAddonsDbAccess
 	saDbAccess  dbaccess.K8sCrdStorageAddonDbAccess
+}
+
+var (
+	k8sClusterAddonsInstance K8sClusterAddonsProvider
+	k8sClusterAddonsOnce     sync.Once
+)
+
+// GetK8sClusterAddonsProvider 获取 K8sClusterAddonsProvider 单例实例
+func GetK8sClusterAddonsProvider(
+	kcaDbAccess dbaccess.K8sClusterAddonsDbAccess,
+	saDbaAccess dbaccess.K8sCrdStorageAddonDbAccess,
+) K8sClusterAddonsProvider {
+	k8sClusterAddonsOnce.Do(func() {
+		k8sClusterAddonsInstance = &K8sClusterAddonsProviderImpl{kcaDbAccess, saDbaAccess}
+	})
+	if k8sClusterAddonsInstance == nil {
+		panic("K8sClusterAddonsProvider instance is nil after initialization")
+	}
+	return k8sClusterAddonsInstance
 }
 
 // FindClusterAddonByParams 通过参数查询 cluster addon
@@ -150,12 +170,4 @@ func (k *K8sClusterAddonsProviderImpl) UpdateClusterAddon(entity *metaentity.K8s
 		return 0, err
 	}
 	return rows, nil
-}
-
-// NewK8sClusterAddonsProvider 创建 K8sClusterAddonsProvider 接口实现实例
-func NewK8sClusterAddonsProvider(
-	kcaDbAccess dbaccess.K8sClusterAddonsDbAccess,
-	saDbaAccess dbaccess.K8sCrdStorageAddonDbAccess,
-) K8sClusterAddonsProvider {
-	return &K8sClusterAddonsProviderImpl{kcaDbAccess, saDbaAccess}
 }

@@ -104,6 +104,26 @@
           }}
         </span>
       </BkFormItem>
+      <BkFormItem
+        v-if="isShowReplenish"
+        :label="t('自动补货')">
+        <BkSwitcher
+          v-model="needReplenish"
+          size="small"
+          theme="primary"
+          @change="handleChangeNeedReplenish" />
+        <span class="enable-desc ml-4">
+          {{ `（${t('开启后，当资源池主机数低于参考水位时，将自动补货至目标配置')}）` }}
+        </span>
+      </BkFormItem>
+      <BkFormItem
+        v-if="isShowReplenish && needReplenish"
+        :label="t('参考水位')">
+        <BkInput
+          v-model="ratioValue"
+          style="width: 200px"
+          suffix="%" />
+      </BkFormItem>
     </DbForm>
   </div>
   <div class="spec-create-footer">
@@ -136,11 +156,19 @@
   import { useI18n } from 'vue-i18n';
 
   import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
-  import { createResourceSpec, updateResourceSpec, verifyDuplicatedSpecName } from '@services/source/dbresourceSpec';
+  import {
+    addSpecReplenishTag,
+    createResourceSpec,
+    setSpecReplenishRatio,
+    updateResourceSpec,
+    verifyDuplicatedSpecName,
+  } from '@services/source/dbresourceSpec';
+
+  import { useFunController } from '@stores';
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
-  import { messageSuccess } from '@/utils';
+  import { messageSuccess } from '@utils';
 
   import { useHasQPS } from '../../hooks/useHasQPS';
 
@@ -161,10 +189,13 @@
     machineType: string;
     machineTypeLabel: string;
     mode: 'create' | 'edit' | 'clone';
+    ratioMap?: Record<string, number>;
   }
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
+
+  const funControllerStore = useFunController();
 
   const notRequiredStorageList = [
     `${DBTypes.MYSQL}_proxy`,
@@ -176,6 +207,8 @@
     `${DBTypes.TENDBCLUSTER}_proxy`,
     `${DBTypes.SQLSERVER}_sqlserver`,
   ];
+
+  const isShowReplenish = funControllerStore.funControllerData?.getFlatData('resourceManage').specListReplenish;
 
   const isRequired = !notRequiredStorageList.includes(`${props.dbType}_${props.machineType}`);
 
@@ -255,11 +288,20 @@
   const isShowSwitchTip = ref(false);
   const isTableValueChange = ref(false);
   const isBizScopeChange = ref(false);
+  const needReplenish = ref(false);
+  const needReplenishChange = ref(false);
+  const ratioValue = ref(0);
   const initFormdataStringify = JSON.stringify(formdata.value);
+  let initNeedReplenish = false;
+  let initRatioValue = 0;
 
   const isChange = computed(
     () =>
-      JSON.stringify(formdata.value) !== initFormdataStringify || isTableValueChange.value || isBizScopeChange.value,
+      JSON.stringify(formdata.value) !== initFormdataStringify ||
+      isTableValueChange.value ||
+      isBizScopeChange.value ||
+      needReplenishChange.value ||
+      ratioValue.value !== initRatioValue,
   );
 
   const nameRules = computed(() => [
@@ -297,6 +339,32 @@
     { deep: true },
   );
 
+  watch(
+    () => props.data,
+    () => {
+      if (isShowReplenish && props.data?.needReplenish) {
+        needReplenish.value = props.data.needReplenish;
+        initNeedReplenish = props.data.needReplenish;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  watch(
+    () => props.ratioMap,
+    () => {
+      if (isShowReplenish && props.ratioMap) {
+        ratioValue.value = (props.ratioMap?.[`${formdata.value.spec_id}`] || props.ratioMap['default']) * 100;
+        initRatioValue = ratioValue.value;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
   const handleTableValueChange = () => {
     isTableValueChange.value = true;
   };
@@ -312,6 +380,10 @@
   const handleChangeSwitch = () => {
     isShowSwitchTip.value = true;
     formdata.value.enable = !formdata.value.enable;
+  };
+
+  const handleChangeNeedReplenish = () => {
+    needReplenishChange.value = needReplenish.value !== initNeedReplenish;
   };
 
   const handleConfirmSwitch = () => {
@@ -368,8 +440,26 @@
         params.device_class = [];
       }
 
+      // 编辑规格
       if (props.mode === 'edit') {
-        updateResourceSpec(params).then(() => {
+        const requestList = [updateResourceSpec(params)];
+        if (isShowReplenish) {
+          requestList.push(
+            addSpecReplenishTag({
+              need_replenish: needReplenish.value,
+              spec_ids: [params.spec_id],
+            }),
+          );
+          requestList.push(
+            setSpecReplenishRatio({
+              ratio_map: {
+                ...props.ratioMap,
+                [params.spec_id]: ratioValue.value / 100,
+              },
+            }),
+          );
+        }
+        Promise.all(requestList).then(() => {
           messageSuccess(t('编辑成功'));
           emits('successed');
           window.changeConfirm = false;
@@ -390,7 +480,26 @@
         delete params.qps;
       }
 
-      createResourceSpec(params).then(() => {
+      // 新增规格
+      const specData = await createResourceSpec(params);
+      const requestList = [];
+      if (isShowReplenish) {
+        requestList.push(
+          addSpecReplenishTag({
+            need_replenish: needReplenish.value,
+            spec_ids: [specData.spec_id],
+          }),
+        );
+        requestList.push(
+          setSpecReplenishRatio({
+            ratio_map: {
+              ...props.ratioMap,
+              [specData.spec_id]: ratioValue.value / 100,
+            },
+          }),
+        );
+      }
+      Promise.all(requestList).then(() => {
         messageSuccess(t('新建成功'));
         emits('successed');
         window.changeConfirm = false;

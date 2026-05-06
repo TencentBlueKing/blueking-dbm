@@ -38,7 +38,13 @@
         <div class="item">
           <div class="item-title">{{ t('变更方式') }}：</div>
           <div class="item-content">
-            <span>{{ !modelValue.update_mode ? '--' : modelValue.update_mode === 'keep_current_machines' ? t('原地变更') : t('替换变更') }}</span>
+            <span>{{
+              !modelValue.update_mode
+                ? '--'
+                : modelValue.update_mode === 'keep_current_machines'
+                  ? t('原地变更')
+                  : t('替换变更')
+            }}</span>
           </div>
         </div>
       </CapacityCell>
@@ -51,9 +57,12 @@
     @change="handleChangeTargetPlan" />
 </template>
 <script lang="ts" setup>
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
+
+  import ResourceTagSelector from '@views/db-manage/common/apply-items/ResourceTagSelector.vue';
 
   import CapacityCell from '../CapacityCell.vue';
 
@@ -74,6 +83,7 @@
     count: number;
     future_capacity: number;
     group_num: number;
+    labels: ComponentProps<typeof ResourceTagSelector>['modelValue'];
     old_machine_info: {
       bk_biz_id: number;
       bk_cloud_id: number;
@@ -84,7 +94,7 @@
     spec_id: number;
     update_mode: string;
   }>({
-    default: () => ({}),
+    required: true,
   });
 
   const { t } = useI18n();
@@ -95,6 +105,7 @@
     clusterShardNum: 0,
     clusterStats: { in_use: 0, total: 0, used: 0 },
     groupNum: 0,
+    labels: [],
     shardNum: 0,
     spec: {
       cpu: { max: 0, min: 0 },
@@ -124,6 +135,7 @@
     capacity: props.rowData.cluster.cluster_capacity,
     clusterShardNum: props.rowData.cluster.cluster_shard_num,
     groupNum: props.rowData.cluster.machine_pair_cnt,
+    labels: [],
     spec: props.rowData.cluster.cluster_spec,
   }));
 
@@ -151,6 +163,7 @@
       count: updateInfo.require_machine_group_num,
       future_capacity: targetInfo.capacity || 1,
       group_num: targetInfo.groupNum,
+      labels: targetInfo.labels,
       old_machine_info: updateInfo.old_machine_info,
       shard_num: targetInfo.clusterShardNum, // 目标集群分片数
       spec_id: targetInfo.spec.spec_id,

@@ -19,7 +19,11 @@ limitations under the License.
 
 package metric
 
-import "fmt"
+import (
+	"fmt"
+
+	commutil "k8s-dbs/common/util"
+)
 
 // ClusterMetricFetcher 集群指标接口
 type ClusterMetricFetcher interface {
@@ -45,7 +49,7 @@ func (c *ClusterMetricFetcherFactory) getClusterMetricFetcher(addonType string) 
 	case "milvus":
 		return nil, fmt.Errorf("not supported yet")
 	case "qdrant":
-		return nil, fmt.Errorf("not supported yet")
+		return NewQdrantClusterMetricFetcher(), nil
 	case "minio":
 		return nil, fmt.Errorf("not supported yet")
 	default:
@@ -64,9 +68,10 @@ func (c *ClusterMetricFetcherFactory) GetStorageUsage(params *ClusterMetricQuery
 
 // ClusterMetricQueryParams 集群指标查询参数
 type ClusterMetricQueryParams struct {
-	AddonType      string `json:"addonType"`
-	K8sClusterName string `json:"k8sClusterName"`
-	Namespace      string `json:"namespace"`
-	PodName        string `json:"podName"`
-	JobName        string `json:"jobName"`
+	AddonType      string              `json:"addonType"`
+	K8sClusterName string              `json:"k8sClusterName"`
+	Namespace      string              `json:"namespace"`
+	PodName        string              `json:"podName"`
+	JobName        string              `json:"jobName"`
+	K8sClient      *commutil.K8sClient `json:"-"` // 可选，kubelet-based fetcher 使用
 }

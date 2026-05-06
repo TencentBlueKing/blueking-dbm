@@ -23,6 +23,7 @@ import (
 	"k8s-dbs/common/entity"
 	metaentity "k8s-dbs/metadata/entity"
 	models "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -38,11 +39,32 @@ type K8sCrdClusterDbAccess interface {
 	Update(model *models.K8sCrdClusterModel) (uint64, error)
 	ListByPage(params *metaentity.ClusterQueryParams, pagination *entity.Pagination) (
 		[]*models.K8sCrdClusterModel, uint64, error)
+	ListActiveByPage(params *metaentity.ClusterQueryParams, pagination *entity.Pagination) (
+		[]*models.K8sCrdClusterModel, uint64, error)
+	ListByDbmClusterIDZero() ([]*models.K8sCrdClusterModel, error)
+	ListUnSyncedByFilters(k8sClusterConfigID uint64, namespace string, clusterNames []string) (
+		[]*models.K8sCrdClusterModel, error)
 }
 
 // K8sCrdClusterDbAccessImpl K8sCrdClusterDbAccess 的具体实现
 type K8sCrdClusterDbAccessImpl struct {
 	db *gorm.DB
+}
+
+var (
+	clusterInstance K8sCrdClusterDbAccess
+	clusterOnce     sync.Once
+)
+
+// GetClusterDbAccess 获取 K8sCrdClusterDbAccess 单例实例
+func GetClusterDbAccess(db *gorm.DB) K8sCrdClusterDbAccess {
+	clusterOnce.Do(func() {
+		clusterInstance = &K8sCrdClusterDbAccessImpl{db: db}
+	})
+	if clusterInstance == nil {
+		panic("K8sCrdClusterDbAccess instance is nil after initialization")
+	}
+	return clusterInstance
 }
 
 // Create 创建 cluster 元数据接口实现
@@ -91,6 +113,15 @@ func (k *K8sCrdClusterDbAccessImpl) FindByParams(params *metaentity.ClusterQuery
 	if params.ClusterName != "" {
 		query = query.Where("cluster_name = ?", params.ClusterName)
 	}
+	if len(params.BkBizIDs) > 0 {
+		query = query.Where("bk_biz_id in (?)", params.BkBizIDs)
+	}
+	if len(params.AddonTypes) > 0 {
+		subQuery := k.db.Model(&models.K8sCrdStorageAddonModel{}).
+			Select("id").
+			Where("addon_type in (?)", params.AddonTypes)
+		query = query.Where("addon_id in (?)", subQuery)
+	}
 	result := query.First(&cluster)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return nil, nil
@@ -117,7 +148,7 @@ func (k *K8sCrdClusterDbAccessImpl) ListByPage(
 ) ([]*models.K8sCrdClusterModel, uint64, error) {
 	var clusterModels []*models.K8sCrdClusterModel
 	var count int64
-	query := k.db.Debug().Model(&models.K8sCrdClusterModel{})
+	query := k.db.Model(&models.K8sCrdClusterModel{})
 	if len(params.Creators) > 0 {
 		query = query.Where("created_by in (?)", params.Creators)
 	}
@@ -140,7 +171,7 @@ func (k *K8sCrdClusterDbAccessImpl) ListByPage(
 		query = query.Where("namespace = ?", params.Namespace)
 	}
 	if len(params.AddonTypes) > 0 {
-		subQuery := k.db.Debug().Model(&models.K8sCrdStorageAddonModel{}).
+		subQuery := k.db.Model(&models.K8sCrdStorageAddonModel{}).
 			Select("id").
 			Where("addon_type in (?)", params.AddonTypes)
 		query = query.Where("addon_id in (?)", subQuery)
@@ -162,7 +193,91 @@ func (k *K8sCrdClusterDbAccessImpl) ListByPage(
 	return clusterModels, uint64(count), nil
 }
 
-// NewCrdClusterDbAccess 创建 K8sCrdClusterDbAccess 接口实现实例
-func NewCrdClusterDbAccess(db *gorm.DB) K8sCrdClusterDbAccess {
-	return &K8sCrdClusterDbAccessImpl{db: db}
+// ListByDbmClusterIDZero 查询所有 dbm_cluster_id 为 0 或 NULL 的集群（未同步到 DBM 的存量集群）
+func (k *K8sCrdClusterDbAccessImpl) ListByDbmClusterIDZero() ([]*models.K8sCrdClusterModel, error) {
+	var clusterModels []*models.K8sCrdClusterModel
+	result := k.db.Where("dbm_cluster_id = 0 OR dbm_cluster_id IS NULL").Find(&clusterModels)
+	if result.Error != nil {
+		return nil, errors.Wrap(result.Error, "failed to list clusters with dbm_cluster_id = 0")
+	}
+	return clusterModels, nil
+}
+
+// ListUnSyncedByFilters 查询未同步到 DBM 的集群，支持按 K8s 集群、namespace、集群名过滤
+func (k *K8sCrdClusterDbAccessImpl) ListUnSyncedByFilters(
+	k8sClusterConfigID uint64, namespace string, clusterNames []string,
+) ([]*models.K8sCrdClusterModel, error) {
+	var clusterModels []*models.K8sCrdClusterModel
+	query := k.db.Where("dbm_cluster_id = 0 OR dbm_cluster_id IS NULL")
+	if k8sClusterConfigID > 0 {
+		query = query.Where("k8s_cluster_config_id = ?", k8sClusterConfigID)
+	}
+	if namespace != "" {
+		query = query.Where("namespace = ?", namespace)
+	}
+	if len(clusterNames) > 0 {
+		query = query.Where("cluster_name IN (?)", clusterNames)
+	}
+	result := query.Find(&clusterModels)
+	if result.Error != nil {
+		return nil, errors.Wrap(result.Error, "failed to list unsynced clusters by filters")
+	}
+	return clusterModels, nil
+}
+
+// ListActiveByPage 查找激活状态的集群列表
+func (k *K8sCrdClusterDbAccessImpl) ListActiveByPage(
+	params *metaentity.ClusterQueryParams,
+	pagination *entity.Pagination,
+) ([]*models.K8sCrdClusterModel, uint64, error) {
+	var clusterModels []*models.K8sCrdClusterModel
+	var count int64
+
+	// 构建 join 查询：cluster -> storage_addon -> addon_type
+	query := k.db.
+		Model(&models.K8sCrdClusterModel{}).
+		Joins("JOIN tb_k8s_crd_storageaddon ON tb_k8s_crd_cluster.addon_id = tb_k8s_crd_storageaddon.id").
+		Joins("JOIN tb_addon_type " +
+			"ON tb_k8s_crd_storageaddon.addon_type = tb_addon_type.type_name AND tb_addon_type.active = 1")
+
+	// 复用 ListByPage 的参数过滤逻辑
+	if len(params.Creators) > 0 {
+		query = query.Where("tb_k8s_crd_cluster.created_by in (?)", params.Creators)
+	}
+	if len(params.Updaters) > 0 {
+		query = query.Where("tb_k8s_crd_cluster.updated_by in (?)", params.Updaters)
+	}
+	if params.ClusterName != "" {
+		query = query.Where("tb_k8s_crd_cluster.cluster_name like ?", "%"+params.ClusterName+"%")
+	}
+	if params.ClusterAlias != "" {
+		query = query.Where("tb_k8s_crd_cluster.cluster_alias like ?", "%"+params.ClusterAlias+"%")
+	}
+	if params.BkBizName != "" {
+		query = query.Where("tb_k8s_crd_cluster.bk_biz_name like ?", "%"+params.BkBizName+"%")
+	}
+	if len(params.BkBizIDs) > 0 {
+		query = query.Where("tb_k8s_crd_cluster.bk_biz_id in (?)", params.BkBizIDs)
+	}
+	if params.Namespace != "" {
+		query = query.Where("tb_k8s_crd_cluster.namespace = ?", params.Namespace)
+	}
+	if len(params.AddonTypes) > 0 {
+		query = query.Where("tb_k8s_crd_storageaddon.addon_type in (?)", params.AddonTypes)
+	}
+
+	if err := query.Count(&count).Error; err != nil {
+		return nil, 0, errors.Wrapf(err, "failed to count active cluster with pagination %+v", pagination)
+	}
+	offset := (pagination.Page - 1) * pagination.Limit
+	if err := query.
+		Offset(offset).
+		Limit(pagination.Limit).
+		Order("tb_k8s_crd_cluster.created_at DESC").
+		Find(&clusterModels).
+		Error; err != nil {
+		return nil, 0, errors.Wrapf(err, "failed to list active cluster with pagination %+v", pagination)
+	}
+
+	return clusterModels, uint64(count), nil
 }

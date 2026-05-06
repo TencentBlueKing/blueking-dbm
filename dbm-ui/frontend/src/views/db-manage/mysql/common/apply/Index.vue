@@ -52,7 +52,7 @@
               :max="65535"
               :min="1025"
               type="number" />
-            <span class="apply-form__tips ml-10">{{ t('多集群部署时_系统将从起始端口开始自动分配') }}</span>
+            <span class="apply-form-tips ml-10">{{ t('多集群部署时_系统将从起始端口开始自动分配') }}</span>
           </BkFormItem>
           <BkFormItem
             :label="t('MySQL起始端口')"
@@ -66,12 +66,12 @@
               type="number" />
             <span
               v-if="isSingleType"
-              class="apply-form__tips ml-10">
+              class="apply-form-tips ml-10">
               {{ t('多实例部署时_系统将从起始端口开始自动分配') }}
             </span>
             <span
               v-else
-              class="apply-form__tips ml-10">
+              class="apply-form-tips ml-10">
               {{ t('多集群部署时_系统将从起始端口开始自动分配') }}
             </span>
           </BkFormItem>
@@ -346,7 +346,7 @@
     :width="1180">
     <template #header>
       {{ t('实例预览') }}
-      <span class="apply-dialog__quantity">{{ t('共n条', { n: formData.details.cluster_count }) }}</span>
+      <span class="apply-dialog-quantity">{{ t('共n条', { n: formData.details.cluster_count }) }}</span>
     </template>
     <PreviewTable
       :data="previewData"
@@ -952,8 +952,6 @@
         details: getDetails(),
       };
 
-      console.log(params);
-
       // 如果英文名为空新增业务英文名称接口，创建单据
       if (bizState.hasEnglishName) {
         handleCreateTicket(params);
@@ -990,7 +988,7 @@
       flex-shrink: 0;
     }
 
-    &__item {
+    .domain-address-item {
       margin-bottom: 0;
 
       .bk-form-label {
@@ -998,7 +996,7 @@
       }
     }
 
-    &__placeholder {
+    .domain-address-placeholder {
       min-width: 12px;
     }
   }
@@ -1012,7 +1010,7 @@
   }
 
   .apply-form {
-    &__database {
+    .apply-form-database {
       width: 398px;
       padding: 8px 12px;
       margin-top: 16px;
@@ -1077,7 +1075,7 @@
   }
 
   .apply-dialog {
-    &__quantity {
+    .apply-form-quantity {
       margin-left: 15px;
       font-size: @font-size-normal;
       color: @default-color;

@@ -1,0 +1,158 @@
+## Provide a name in place of rustfs for `app:` labels
+nameOverride: ""
+
+## Provide a name to substitute for the full names of resources
+fullnameOverride: ""
+
+## set kubernetes cluster domain where rustfs is running
+clusterDomain: cluster.local
+
+clusterVersion: "20241211"
+
+## Set default image, imageTag, and imagePullPolicy
+image:
+  registry: ""
+  repository: rustfs/rustfs
+  tag: "1.0.0-alpha.72"
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+## rustfs mode, i.e. standalone or distributed
+mode: distributed
+
+## Additional labels to include with deployment or statefulset
+additionalLabels: {}
+
+## Additional annotations to include with deployment or statefulset
+additionalAnnotations: {}
+
+## Internal port number for RustFS S3 API container
+rustfsAPIPort: 9000
+
+## Internal port number for RustFS Browser Console container
+rustfsConsolePort: 9001
+
+## Log level configuration
+logLevel: "info"
+
+## Update strategy for StatefulSets
+statefulSetUpdate:
+  updateStrategy: RollingUpdate
+
+## Pod priority settings
+priorityClassName: ""
+
+## Pod runtime class name
+runtimeClassName: ""
+
+## Set default rootUser, rootPassword
+## rootUser and rootPassword is generated when not set
+rootUser: "rustfsadmin"
+rootPassword: "rustfsadmin"
+
+existingSecret: ""
+
+# Number of RustFS containers running (for distributed mode: 4 or 16)
+replicas: 4
+
+## TLS Settings for RustFS
+tls:
+  enabled: false
+  certSecret: ""
+  crt: tls.crt
+  key: tls.key
+
+## Enable persistence using Persistent Volume Claims
+persistence:
+  enabled: true
+  annotations: {}
+  existingClaim: ""
+  storageClass: ""
+  volumeName: ""
+  accessMode: ReadWriteOnce
+  size: 100Gi
+  subPath: ""
+
+## Expose the RustFS service
+service:
+  type: ClusterIP
+  clusterIP: ~
+  port: "9000"
+  nodePort: 32000
+  loadBalancerIP: ~
+  externalIPs: []
+  annotations: {}
+  loadBalancerSourceRanges: []
+  externalTrafficPolicy: Cluster
+
+consoleService:
+  type: ClusterIP
+  clusterIP: ~
+  port: "9001"
+  nodePort: 32001
+  loadBalancerIP: ~
+  externalIPs: []
+  annotations: {}
+  loadBalancerSourceRanges: []
+  externalTrafficPolicy: Cluster
+
+## Node labels for pod assignment
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []
+
+## Pod security context (matches official chart)
+podSecurityContext:
+  fsGroup: 10001
+  runAsUser: 10001
+  runAsGroup: 10001
+
+## Container security context (matches official chart)
+containerSecurityContext:
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+
+# Additional pod annotations
+podAnnotations: {}
+
+# Additional pod labels
+podLabels: {}
+
+## Configure resource requests and limits (matches official chart)
+resources:
+  requests:
+    memory: 128Mi
+    cpu: 100m
+  limits:
+    memory: 512Mi
+    cpu: 200m
+
+## OpenTelemetry Observability settings
+observability:
+  enabled: false
+  endpoint: ""
+  sampleRatio: "1.0"
+  meterInterval: "10"
+
+## Configure extra options for liveness probe (matches official chart)
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  successThreshold: 1
+  failureThreshold: 3
+
+## Configure extra options for readiness probe (matches official chart)
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  successThreshold: 1
+  failureThreshold: 3

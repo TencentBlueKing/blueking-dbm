@@ -35,13 +35,6 @@
               theme="info">
               {{ t('当前版本') }}
             </BkTag>
-            <BkTag
-              v-if="index === 0"
-              class="ml-4"
-              size="small"
-              theme="warning">
-              {{ t('推荐') }}
-            </BkTag>
           </span>
         </div>
       </BkOption>

@@ -52,20 +52,7 @@
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
-  interface Props {
-    selected: {
-      id: number;
-      master_domain: string;
-    }[];
-  }
-
-  type Emits = (e: 'batch-edit', list: TendbClusterModel[]) => void;
-
-  const props = defineProps<Props>();
-
-  const emits = defineEmits<Emits>();
-
-  const modelValue = defineModel<{
+  interface ClusterSpecModel {
     bk_cloud_id: number;
     id: number;
     master_domain: string;
@@ -75,7 +62,30 @@
     spider_master_spec_list: number[];
     spider_slave: TendbClusterModel['spider_slave'];
     spider_slave_spec_list: number[];
-  }>({
+  }
+
+  interface Props {
+    selected: {
+      id: number;
+      master_domain: string;
+    }[];
+  }
+
+  type Emits = (e: 'batch-edit', list: TendbClusterModel[]) => void;
+
+  interface Exposes {
+    fetchData: (
+      tableData: {
+        cluster: ClusterSpecModel;
+      }[],
+    ) => void;
+  }
+
+  const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
+
+  const modelValue = defineModel<ClusterSpecModel>({
     required: true,
   });
 
@@ -140,28 +150,54 @@
       spider_slave: [],
       spider_slave_spec_list: [],
     };
+    queryCluster({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      cluster_type: ClusterTypes.TENDBCLUSTER,
+      db_type: DBTypes.TENDBCLUSTER,
+      exact_domain: value,
+    });
   };
 
   const handleSelectorChange = (selected: Record<string, TendbClusterModel[]>) => {
     emits('batch-edit', selected[ClusterTypes.TENDBCLUSTER]);
   };
 
-  watch(
-    modelValue,
-    () => {
-      if (modelValue.value.master_domain && !modelValue.value.id) {
-        queryCluster({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          cluster_type: ClusterTypes.TENDBCLUSTER,
-          db_type: DBTypes.TENDBCLUSTER,
-          exact_domain: modelValue.value.master_domain,
-        });
+  defineExpose<Exposes>({
+    fetchData(
+      tableData: {
+        cluster: ClusterSpecModel;
+      }[],
+    ) {
+      const domainList = tableData.map((item) => item.cluster.master_domain);
+      if (!domainList.length) {
+        return;
       }
+
+      filterClusters<TendbClusterModel>({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        cluster_type: ClusterTypes.TENDBCLUSTER,
+        db_type: DBTypes.TENDBCLUSTER,
+        exact_domain: domainList.join(','),
+      }).then((data) => {
+        data.forEach((cluster) => {
+          const target = tableData.find((item) => item.cluster.master_domain === cluster.master_domain);
+          if (target) {
+            target.cluster = {
+              bk_cloud_id: cluster.bk_cloud_id,
+              id: cluster.id,
+              master_domain: cluster.master_domain,
+              mnt_count: cluster.spider_mnt.length,
+              region: cluster.region,
+              spider_master: cluster.spider_master,
+              spider_master_spec_list: cluster.spider_master.map((host) => host.spec_config.id),
+              spider_slave: cluster.spider_slave,
+              spider_slave_spec_list: cluster.spider_slave.map((host) => host.spec_config.id),
+            };
+          }
+        });
+      });
     },
-    {
-      immediate: true,
-    },
-  );
+  });
 </script>
 <style lang="less" scoped>
   .batch-host-select {

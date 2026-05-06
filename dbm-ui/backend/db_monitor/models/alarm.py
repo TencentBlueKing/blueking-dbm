@@ -41,6 +41,7 @@ from backend.db_monitor.constants import (
     AlertSourceEnum,
     DutyRuleCategory,
     PolicyStatus,
+    PolicyTag,
     TargetLevel,
     TargetPriority,
 )
@@ -55,7 +56,7 @@ from backend.db_monitor.utils import (
     bkm_delete_alarm_strategy,
     bkm_save_alarm_strategy,
     get_dbm_autofix_action_id,
-    render_promql_sql,
+    render_promql_sql_new,
 )
 from backend.db_services.cmdb.biz import list_cc_obj_user
 from backend.exceptions import ApiError
@@ -467,7 +468,7 @@ class AlertRule(AuditedModel):
 
         ids = list(cls.objects.all().values_list("monitor_policy_id", flat=True)) if not ids else ids.split(",")
         params = {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "ids": ids}
-        response = BKMonitorV3Api.delete_alarm_strategy_v3(params, use_admin=True, raw=True)
+        response = BKMonitorV3Api.delete_alarm_strategy(params, use_admin=True, raw=True)
         if not response.get("result"):
             logger.error("bkm_delete_alarm_strategy failed: params: %s\n response: %s", params, response)
             raise BkMonitorDeleteAlarmException(message=response.get("message"))
@@ -597,9 +598,10 @@ class DispatchGroup(AuditedModel):
 class MonitorPolicy(AuditedModel):
     """监控策略"""
 
-    KEEPED_FIELDS = [*AuditedModel.AUDITED_FIELDS, "id", "is_enabled", "monitor_policy_id", "policy_status"]
+    KEEPED_FIELDS = [*AuditedModel.AUDITED_FIELDS, "id", "monitor_policy_id", "policy_status"]
 
     parent_id = models.IntegerField(verbose_name=_("父级策略ID，0代表父级"), default=0)
+    # TODO: 设计上是保存最初版本的快照信息用于恢复策略，现在暂时没用到
     parent_details = models.JSONField(verbose_name=_("父级策略模板详情，可用于还原"), default=dict)
 
     name = models.CharField(verbose_name=_("策略名称，全局唯一"), max_length=LEN_MIDDLE, unique=True)
@@ -646,7 +648,7 @@ class MonitorPolicy(AuditedModel):
     #         },
     #     ]
     # }
-    # [{"level": platform, "rule":{"key": "appid/db_module/cluster_domain", "value": ["aa", "bb"]}}]
+    # [{"level": platform, "rule":{"key": "appid/db_module/cluster_domain", "method": "eq", "value": ["aa", "bb"]}}]
     targets = models.JSONField(verbose_name=_("监控目标"), default=list)
     target_level = models.CharField(
         verbose_name=_("监控目标级别，跟随targets调整"),
@@ -687,7 +689,12 @@ class MonitorPolicy(AuditedModel):
     notify_groups = models.JSONField(verbose_name=_("通知组"), default=list)
     # .notice.options.assign_mode = ["by_rule", "only_notice"]
     # assign_mode = models.JSONField(verbose_name=_("通知模式-分派|直接通知"), default=list)
+    notify_config = models.JSONField(verbose_name=_("通知间隔"), default=dict)
 
+    # 判断条件配置
+    detects_config = models.JSONField(verbose_name=_("触发配置"), default=dict)
+    # 判断条件的数据信息
+    no_data_config = models.JSONField(verbose_name=_("数据信息"), default=dict)
     is_enabled = models.BooleanField(verbose_name=_("是否已启用"), default=True)
 
     # 当 is_synced=True时，才有效
@@ -701,6 +708,7 @@ class MonitorPolicy(AuditedModel):
         max_length=LEN_NORMAL,
         default=PolicyStatus.VALID.value,
     )
+    agg_info = models.JSONField(verbose_name=_("汇聚方式和周期配置"), default=list)
 
     monitor_policy_id = models.BigIntegerField(verbose_name=_("蓝鲸监控策略ID"), default=0)
 
@@ -712,6 +720,12 @@ class MonitorPolicy(AuditedModel):
         max_length=LEN_SHORT,
         choices=AlertSourceEnum.get_choices(),
         default=AlertSourceEnum.TIME_SERIES,
+    )
+    policy_tag = models.CharField(
+        verbose_name=_("策略类型"),
+        choices=PolicyTag.get_choices(),
+        max_length=LEN_NORMAL,
+        default="",
     )
 
     class Meta:
@@ -832,7 +846,7 @@ class MonitorPolicy(AuditedModel):
                     "key": target_rule["key"],
                     "dimension_name": TargetLevel.get_choice_label(target_rule["key"]),
                     "value": target_rule["value"],
-                    "method": "eq",
+                    "method": target_rule["method"],
                     "condition": "and",
                 }
             )
@@ -850,21 +864,21 @@ class MonitorPolicy(AuditedModel):
                         filter(lambda cond: cond["key"] not in exclude_keys, query_config["agg_condition"])
                     )
                     query_config_agg_condition.extend(agg_conditions)
-                    query_config_agg_condition.extend(self.custom_conditions)
 
                     # overwrite agg_condition
                     query_config["agg_condition"] = query_config_agg_condition
                 else:
-                    key_values = {}
+                    key_values = []
                     for target in self.targets:
                         if target["level"] == TargetLevel.PLATFORM.value:
                             continue
 
                         target_rule = target["rule"]
-                        key, values = target_rule["key"], target_rule["value"]
-                        key_values[key] = values
+                        key_values.append(target_rule)
+                        # key, values = target_rule["key"], target_rule["value"]
+                        # key_values[key] = values
 
-                    query_config["promql"] = render_promql_sql(query_config["promql"], key_values)
+                    query_config["promql"] = render_promql_sql_new(query_config["promql"], key_values)
                     logger.info("query_config.promql: %s", query_config["promql"])
 
         return details
@@ -881,6 +895,44 @@ class MonitorPolicy(AuditedModel):
 
         return details
 
+    def patch_detects(self, details):
+
+        for detect in details["detects"]:
+            detect["trigger_config"] = self.detects_config.get("trigger_config")
+            detect["recovery_config"] = self.detects_config.get("recovery_config")
+
+        return details
+
+    def patch_no_data_config(self, details):
+
+        for item in details["items"]:
+            item["no_data_config"] = self.no_data_config
+
+        return details
+
+    def patch_agg_info(self, details):
+        agg_info = self.agg_info
+        id_agg_info_map = {info["metric_id"]: info for info in agg_info}
+        promql_map = {}
+        if not id_agg_info_map:
+            return details
+        for item in details["items"]:
+            for query_config in item["query_configs"]:
+
+                metric_id = query_config["metric_id"]
+                if "agg_condition" in query_config:
+                    # 非promsql的才有汇聚方式
+                    query_config["agg_method"] = id_agg_info_map.get(metric_id, {}).get("agg_method")
+                query_config["agg_interval"] = id_agg_info_map.get(metric_id, {}).get("agg_interval")
+                if query_config.get("promql"):
+                    promql_map[metric_id] = query_config.get("promql")
+        if promql_map:
+            for info in agg_info:
+                info["promql"] = promql_map[info["metric_id"]]
+            self.agg_info = agg_info
+
+        return details
+
     def patch_notice(self, details):
         """通知规则和通知对象"""
         # notify_rules -> notice.signal
@@ -891,9 +943,58 @@ class MonitorPolicy(AuditedModel):
             details["notice"]["options"]["assign_mode"] = ["only_notice"]
 
         # notice_groups -> notice.user_groups
-        details["notice"]["user_groups"] = NoticeGroup.get_monitor_groups(group_ids=self.notify_groups)
+        # 如果没传告警组默认获取当前业务的内置告警组，当前业务没有则获取平台业务的
+        if self.parent_id and not self.notify_groups:
+            expected_groups = NoticeGroup.get_groups(bk_biz_id=self.bk_biz_id)
+            if not expected_groups.get(self.db_type):
+                expected_groups = NoticeGroup.get_groups(bk_biz_id=PLAT_BIZ_ID)
+            monitor_group_id = expected_groups.get(self.db_type)
+            details["notice"]["user_groups"] = [monitor_group_id]
+        else:
+            details["notice"]["user_groups"] = NoticeGroup.get_monitor_groups(group_ids=self.notify_groups)
+
+        # notify_config -> notice.config.interval_notify_mode  notice.config. notify_interval
+        # increasing or standard
+        details["notice"]["config"]["interval_notify_mode"] = self.notify_config.get("interval_notify_mode")
+        details["notice"]["config"]["notify_interval"] = self.notify_config.get("notify_interval")
 
         return details
+
+    def cover_agg_info(self, items):
+        if not items:
+            return self.agg_info
+
+        agg_info = []
+        for query_config in items[0]["query_configs"]:
+            agg_info.append(
+                {
+                    "metric_id": query_config["metric_id"],
+                    "agg_interval": query_config.get("agg_interval"),
+                    "agg_method": query_config.get("agg_method"),
+                    "metric_field": query_config.get("metric_field"),
+                    "promql": query_config.get("promql"),
+                }
+            )
+        return agg_info
+
+    def sync_platform_policy(self):
+        """同步平台策略的属性"""
+
+        agg_interval_map = {info["metric_id"]: info["agg_interval"] for info in self.agg_info}
+        for sub_policy in MonitorPolicy.objects.filter(parent_id=self.id):
+            if sub_policy.policy_tag == PolicyTag.INNER and sub_policy.target_level == TargetLevel.APP:
+                sub_policy.test_rules = self.test_rules
+                sub_policy.no_data_config = self.no_data_config
+                sub_policy.detects_config = self.detects_config
+                sub_policy.notify_rules = self.notify_rules
+                sub_policy.notify_config = self.notify_config
+                sub_policy.is_enabled = self.is_enabled
+                sub_policy.details.update(is_enabled=self.is_enabled)
+                old_agg_info = sub_policy.agg_info
+                for info in old_agg_info:
+                    info["agg_interval"] = agg_interval_map[info["metric_id"]]
+                sub_policy.agg_info = old_agg_info
+            sub_policy.save()
 
     def local_save(self, *args, **kwargs):
         """仅保存到本地，不同步到监控"""
@@ -906,8 +1007,17 @@ class MonitorPolicy(AuditedModel):
         # model.test_rules -> algorithms
         details = self.patch_algorithms(details)
 
+        # model.detects_config -> detects
+        details = self.patch_detects(details)
+
+        # model.no_data_config -> no_data_config
+        details = self.patch_no_data_config(details)
+
         # model.notify_xxx -> notice
         details = self.patch_notice(details)
+
+        #
+        details = self.patch_agg_info(details)
 
         # other
         details = self.patch_bk_biz_id(details)
@@ -920,7 +1030,7 @@ class MonitorPolicy(AuditedModel):
 
         # step1. sync to model
         # 启停操作(["is_enabled"]) -> 跳过重复的patch
-        details = self.details if update_fields == ["is_enabled"] else self.patch_all()
+        details = self.details if update_fields == ["is_enabled", "update_at", "details"] else self.patch_all()
 
         # step2. sync to bkm
         res = bkm_save_alarm_strategy(details)
@@ -929,6 +1039,9 @@ class MonitorPolicy(AuditedModel):
         self.details = res
         self.monitor_policy_id = self.details["id"]
         self.sync_at = datetime.datetime.now(timezone.utc)
+
+        # 重新覆盖agg_info, 自定义事件的metric_id会变化
+        self.agg_info = self.cover_agg_info(self.details.get("items"))
 
         # 平台内置策略支持保存初始版本，用于恢复默认设置
         if self.pk is None and self.bk_biz_id == env.DBA_APP_BK_BIZ_ID:
@@ -940,13 +1053,16 @@ class MonitorPolicy(AuditedModel):
         # 父策略有变更时，把子策略也刷新一遍
         # 以保证子策略的配置与父策略的分组、指标、维度、周期一致，
         if self.parent_id == 0:
-            for sub_policy in MonitorPolicy.objects.filter(parent_id=self.id):
-                sub_policy.save()
+            self.sync_platform_policy()
 
     def delete(self, using=None, keep_parents=False):
         """删除策略的同时，同步删除监控策略"""
         if self.monitor_policy_id:
             bkm_delete_alarm_strategy(self.monitor_policy_id)
+
+        # 当业务策略恢复默认的时候， 更新一下父类的更新时间
+        if self.parent_id and self.target_level == TargetLevel.APP:
+            MonitorPolicy.objects.filter(id=self.parent_id).update(update_at=timezone.now())
 
         super().delete(using, keep_parents)
 
@@ -966,7 +1082,7 @@ class MonitorPolicy(AuditedModel):
         """
         self.is_enabled = True
         self.details.update(is_enabled=self.is_enabled)
-        self.save(update_fields=["is_enabled"])
+        self.save(update_fields=["is_enabled", "update_at", "details"])
 
         return self.is_enabled
 
@@ -974,7 +1090,7 @@ class MonitorPolicy(AuditedModel):
         """禁用：is_enabled:false -> save"""
         self.is_enabled = False
         self.details.update(is_enabled=self.is_enabled)
-        self.save(update_fields=["is_enabled"])
+        self.save(update_fields=["is_enabled", "update_at", "details"])
 
         return self.is_enabled
 
@@ -982,11 +1098,15 @@ class MonitorPolicy(AuditedModel):
     def clone(cls, params, username="system") -> dict:
         """克隆：patch -> create"""
 
+        get_data_time = params.pop("get_data_time", None)
         # params -> model
         policy = cls(**params)
 
         # transfer details from parent to self
         parent = cls.objects.get(id=policy.parent_id)
+        if get_data_time:
+            if parent.update_at.replace(microsecond=0) > get_data_time.replace(microsecond=0):
+                raise ApiError(_("全局策略已变更，当前页面数据已过期，请刷新后重试"))
 
         policy.parent_details = copy.deepcopy(parent.details)
         policy.db_type = parent.db_type
@@ -994,7 +1114,7 @@ class MonitorPolicy(AuditedModel):
 
         policy.details = copy.deepcopy(parent.details)
         policy.details.pop("id", None)
-        policy.details.update(name=policy.name, is_enabled=True)
+        policy.details.update(name=policy.name, is_enabled=policy.is_enabled)
 
         policy.creator = policy.updater = username
         policy.id = None
@@ -1009,7 +1129,18 @@ class MonitorPolicy(AuditedModel):
     def update(self, params, username="system") -> dict:
         """更新：patch -> update"""
 
-        update_fields = ["targets", "test_rules", "notify_rules", "notify_groups"]
+        update_fields = [
+            "is_enabled",
+            "policy_tag",
+            "targets",
+            "test_rules",
+            "notify_rules",
+            "notify_groups",
+            "detects_config",
+            "no_data_config",
+            "notify_config",
+            "agg_info",
+        ]
 
         # param -> model
         for key in update_fields:
@@ -1019,6 +1150,19 @@ class MonitorPolicy(AuditedModel):
         # 可选参数
         if "custom_conditions" in params:
             self.custom_conditions = params["custom_conditions"]
+
+        if "name" in params:
+            self.name = params["name"]
+            self.details.update(name=params["name"])
+
+        if "is_enabled" in params:
+            self.is_enabled = params["is_enabled"]
+            self.details.update(is_enabled=params["is_enabled"])
+
+        if "get_data_time" in params:
+            parent = MonitorPolicy.objects.get(id=self.parent_id)
+            if parent.update_at.replace(microsecond=0) > params["get_data_time"].replace(microsecond=0):
+                raise ApiError(_("全局策略已变更，当前页面数据已过期，请刷新后重试"))
 
         # update -> overwrite details
         self.creator = self.updater = username
@@ -1030,7 +1174,7 @@ class MonitorPolicy(AuditedModel):
         """从模板反向提取部分参数"""
 
         details = details or self.details
-        result = defaultdict(list)
+        result = defaultdict()
 
         result["test_rules"] = [
             {
@@ -1043,7 +1187,9 @@ class MonitorPolicy(AuditedModel):
             for alg in details["items"][0]["algorithms"]
         ]
 
-        first_query_config = details["items"][0]["query_configs"][0]
+        query_configs = details["items"][0]["query_configs"]
+
+        first_query_config = query_configs[0]
         target_conditions = (
             list(filter(lambda cond: cond["key"] in TargetLevel.get_values(), first_query_config["agg_condition"]))
             if "agg_condition" in first_query_config
@@ -1051,14 +1197,25 @@ class MonitorPolicy(AuditedModel):
         )
 
         result["targets"] = [
-            {"level": condition["key"], "rule": {"key": condition["key"], "value": condition["value"]}}
+            {
+                "level": condition["key"],
+                "rule": {"key": condition["key"], "value": condition["value"], "method": condition["method"]},
+            }
             for condition in target_conditions
         ]
 
         # 默认填充平台级目标
         if not result["targets"]:
+            data_source_label = first_query_config.get("data_source_label")
             result["targets"].append(
-                {"level": TargetLevel.PLATFORM.value, "rule": {"key": TargetLevel.PLATFORM.value, "value": []}}
+                {
+                    "level": TargetLevel.PLATFORM.value,
+                    "rule": {
+                        "key": TargetLevel.PLATFORM.value,
+                        "method": "==" if data_source_label == "prometheus" else "eq",
+                        "value": [],
+                    },
+                }
             )
 
         result["notify_rules"] = details["notice"]["signal"]
@@ -1067,6 +1224,38 @@ class MonitorPolicy(AuditedModel):
             .values_list("id", flat=True)
             .distinct()
         )
+        result["detects_config"] = {
+            "trigger_config": details["detects"][0]["trigger_config"],
+            "recovery_config": details["detects"][0]["recovery_config"],
+        }
+
+        result["no_data_config"] = details["items"][0]["no_data_config"]
+
+        result["detects_config"] = {
+            "trigger_config": details["detects"][0]["trigger_config"],
+            "recovery_config": details["detects"][0]["recovery_config"],
+        }
+
+        result["no_data_config"] = details["items"][0]["no_data_config"]
+
+        result["notify_config"] = {
+            "interval_notify_mode": details["notice"]["config"]["interval_notify_mode"],
+            "notify_interval": details["notice"]["config"]["notify_interval"],
+        }
+
+        agg_info = []
+        for query_config in details["items"][0]["query_configs"]:
+            agg_info.append(
+                {
+                    "metric_id": query_config["metric_id"],
+                    "agg_interval": query_config.get("agg_interval"),
+                    "agg_method": query_config.get("agg_method"),
+                    "metric_field": query_config.get("metric_field"),
+                    "promql": query_config.get("promql"),
+                }
+            )
+        result["agg_info"] = agg_info
+        result["policy_tag"] = PolicyTag.INNER.value
 
         return result
 
@@ -1113,7 +1302,7 @@ class MonitorPolicy(AuditedModel):
         )
 
     @classmethod
-    def sync_plat_monitor_policy(cls, action_id=None, db_type=None, force=False):
+    def sync_plat_monitor_policy(cls, action_id=None, db_type=None, force=False, specified_name=None):
         if action_id is None:
             action_id = get_dbm_autofix_action_id()
         skip_dir = "v1"
@@ -1143,12 +1332,16 @@ class MonitorPolicy(AuditedModel):
                     if db_type is not None and template_dict.get("db_type") != db_type:
                         continue
 
+                    if specified_name is not None and policy_name != specified_name:
+                        continue
+
                     deleted = template_dict.pop("deleted", False)
 
                     if not template_dict.get("details"):
                         logger.error(("[sync_plat_monitor_policy] template %s has no details" % alarm_tpl))
                         continue
 
+                    template_dict["is_enabled"] = template_dict["details"]["is_enabled"]
                     # patch template
                     labels = list(set(template_dict["details"]["labels"]))
                     template_dict["details"]["labels"] = labels

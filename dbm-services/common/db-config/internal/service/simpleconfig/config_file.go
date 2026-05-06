@@ -1,12 +1,13 @@
 package simpleconfig
 
 import (
+	"strconv"
+
 	"bk-dbconfig/internal/api"
 	"bk-dbconfig/internal/repository/model"
 	"bk-dbconfig/pkg/constvar"
 	"bk-dbconfig/pkg/core/logger"
 	util "bk-dbconfig/pkg/util/dbutil"
-	"strconv"
 
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
@@ -53,16 +54,15 @@ func NewConfigModels(r *api.UpsertConfFilePlatReq) ([]*model.ConfigModel, []*mod
 	configsDiff := make([]*model.ConfigModelOp, 0)
 	for _, cn := range r.ConfNames {
 		confItem := &model.ConfigModel{
-			BKBizID:     constvar.BKBizIDForPlat,
-			Namespace:   r.ConfFileInfo.Namespace,
-			ConfType:    r.ConfFileInfo.ConfType,
-			ConfFile:    r.ConfFileInfo.ConfFile,
-			ConfName:    cn.ConfName,
-			ConfValue:   cn.ValueDefault,
-			LevelName:   constvar.LevelPlat,
-			LevelValue:  constvar.BKBizIDForPlat,
-			FlagLocked:  cn.FlagLocked,
-			FlagDisable: cn.FlagDisable,
+			BKBizID:    constvar.BKBizIDForPlat,
+			Namespace:  r.ConfFileInfo.Namespace,
+			ConfType:   r.ConfFileInfo.ConfType,
+			ConfFile:   r.ConfFileInfo.ConfFile,
+			ConfName:   cn.ConfName,
+			ConfValue:  cn.ValueDefault,
+			LevelName:  constvar.LevelPlat,
+			LevelValue: constvar.BKBizIDForPlat,
+			//FlagLocked:  cn.FlagLocked,
 			Description: cn.Description,
 		}
 		configs = append(configs, confItem)
@@ -73,24 +73,6 @@ func NewConfigModels(r *api.UpsertConfFilePlatReq) ([]*model.ConfigModel, []*mod
 		configsDiff = append(configsDiff, COP)
 	}
 	return configs, configsDiff
-}
-
-// ProcessOPConfig TODO
-func ProcessOPConfig(opConfigs map[string]*ConfigModelRef) error {
-	for _, opConfig := range opConfigs {
-		for optype, configs := range *opConfig {
-			if optype == constvar.OPTypeRemoveRef {
-				if err := UpsertConfig(configs, false, false); err != nil {
-					// model.UpsertBatchConfigs(configs, false); err != nil {
-				}
-			} else if optype == constvar.OPTypeNotified {
-				// 值有变化，红点通知同步
-			} else { // locked
-				// 暂不处理
-			}
-		}
-	}
-	return nil
 }
 
 // ListConfigFiles godoc
@@ -186,4 +168,40 @@ func GetConfigFileSimpleInfo(r *api.BaseConfigNode) (*api.ConfFileResp, error) {
 		resp.UpdatedBy = cf.UpdatedBy
 	}
 	return resp, nil
+}
+
+// ListConfigLevels 查询业务下指定条件的配置层级节点列表
+// 从 tb_config_node 表中查询 distinct 的层级节点信息
+func ListConfigLevels(r *api.ListConfLevelReq) ([]*api.ListConfLevelResp, error) {
+	var results []*api.ListConfLevelResp
+	db := model.DB.Self.Debug().Model(&model.ConfigModel{}).
+		Distinct("bk_biz_id", "namespace", "conf_type", "conf_file", "level_name", "level_value").
+		Where("namespace = ? AND conf_type = ? AND bk_biz_id = ? AND level_name = ?",
+			r.Namespace, r.ConfType, r.BKBizID, r.LevelName)
+	if r.ConfFile != "" {
+		db = db.Where("conf_file = ?", r.ConfFile)
+	}
+	if err := db.Find(&results).Error; err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
+// DeleteConfigLevel 删除某个 level_name, level_value 下的相关配置
+// 从 tb_config_node 表中删除指定层级节点的所有配置项
+func DeleteConfigLevel(r *api.DeleteConfLevelReq) (int64, error) {
+	deleteWhere := map[string]string{
+		"namespace":   r.Namespace,
+		"conf_type":   r.ConfType,
+		"conf_file":   r.ConfFile,
+		"bk_biz_id":   r.BKBizID,
+		"level_name":  r.LevelName,
+		"level_value": r.LevelValue,
+	}
+	res := model.DB.Self.Debug().Where(deleteWhere).Delete(&model.ConfigModel{})
+	if res.Error != nil {
+		return 0, res.Error
+	}
+	logger.Infof("DeleteConfigLevel affected rows: %d, where: %+v", res.RowsAffected, deleteWhere)
+	return res.RowsAffected, nil
 }

@@ -175,14 +175,12 @@
     }
     localValue.value = item.id;
     tippyIns.hide();
-    window.changeConfirm = true;
     emits('update:modelValue', localValue.value);
     emits('change', localValue.value);
   };
   // 删除值
   const handleRemove = () => {
     localValue.value = '';
-    window.changeConfirm = true;
     emits('update:modelValue', localValue.value);
     emits('change', localValue.value);
   };

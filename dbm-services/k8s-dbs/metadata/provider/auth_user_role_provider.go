@@ -22,6 +22,7 @@ package provider
 import (
 	"k8s-dbs/metadata/dbaccess"
 	entitys "k8s-dbs/metadata/entity"
+	"sync"
 )
 
 // AuthUserRoleProvider 定义 auth user role 业务逻辑层访问接口
@@ -34,6 +35,24 @@ type AuthUserRoleProviderImpl struct {
 	dbAccess dbaccess.AuthUserRoleDbAccess
 }
 
+var (
+	authUserRoleInstance AuthUserRoleProvider
+	authUserRoleOnce     sync.Once
+)
+
+// GetAuthUserRoleProvider 获取 AuthUserRoleProvider 单例实例
+func GetAuthUserRoleProvider(dbAccess dbaccess.AuthUserRoleDbAccess) AuthUserRoleProvider {
+	authUserRoleOnce.Do(func() {
+		authUserRoleInstance = &AuthUserRoleProviderImpl{
+			dbAccess: dbAccess,
+		}
+	})
+	if authUserRoleInstance == nil {
+		panic("AuthUserRoleProvider instance is nil after initialization")
+	}
+	return authUserRoleInstance
+}
+
 // CheckUserRole 按照参数进行查询
 func (k *AuthUserRoleProviderImpl) CheckUserRole(
 	params entitys.AuthUserRoleQueryParams,
@@ -43,11 +62,4 @@ func (k *AuthUserRoleProviderImpl) CheckUserRole(
 		return false
 	}
 	return true
-}
-
-// NewAuthUserRoleProvider 创建 AuthUserRoleProvider 实例
-func NewAuthUserRoleProvider(dbAccess dbaccess.AuthUserRoleDbAccess) AuthUserRoleProvider {
-	return &AuthUserRoleProviderImpl{
-		dbAccess: dbAccess,
-	}
 }

@@ -70,7 +70,11 @@ MYSQL_ROLLBACK_CLUSTER_DATA = {
                 "cluster_id": CLUSTER_ID,
                 "databases": ["*"],
                 "databases_ignore": [],
-                "backupinfo": {"priv": {"size": 3104, "task_id": "1234"}},
+                "backupinfo": {
+                    "priv": {"size": 3104, "task_id": "1234"},
+                    "database_list": ["test1"],
+                    "backup_type": "logical",
+                },
                 "rollback_type": "REMOTE_AND_TIME",
                 "tables": ["*"],
                 "tables_ignore": [],
@@ -128,6 +132,7 @@ MYSQL_ADD_SLAVE_DATA = {
 MYSQL_CHECKSUM_DATA = {
     "bk_biz_id": BK_BIZ_ID,
     "details": {
+        "need_manual_confirm": True,
         "data_repair": {"is_repair": True, "mode": "manual"},
         "remark": "",
         "runtime_hour": 48,
@@ -831,7 +836,14 @@ MYSQL_MIGRATE_UPGRADE_DATA = {
                 "cluster_ids": [CLUSTER_ID],
                 "pkg_id": 1,
                 "new_db_module_id": 1,
-                "resource_spec": {"backend": {"spec_id": 444, "count": 2}},
+                "resource_spec": {
+                    "backend_group": {"spec_id": 444, "count": 2},
+                    "new_read_slave": {
+                        "spec_id": 0,
+                        "count": 1,
+                        "hosts": [{"ip": "1.2.2.1", "bk_cloud_id": 0, "bk_host_id": 124}],
+                    },
+                },
                 "read_only_slaves": [],  # 添加read_only_slaves字段
             }
         ],

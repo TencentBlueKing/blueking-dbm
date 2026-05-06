@@ -35,7 +35,11 @@
     <TicketInfoTableColumn
       col-key="target"
       :min-width="130"
-      :title="t('备份目标')" />
+      :title="t('备份目标')">
+      <template #default="{ row }: { row: IRowData }">
+        {{ _.capitalize(row.target) }}
+      </template>
+    </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="backup_type"
       :min-width="130"
@@ -48,6 +52,7 @@
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Redis } from '@services/model/ticket/ticket';

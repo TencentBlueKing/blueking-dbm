@@ -49,7 +49,7 @@ def clean_expired_mysql_backup_records():
             tag_info = BACKUP_FILE_TAG_TABLE[tag_name]
             file_savedays = tag_info["file_savedays"]
             # 计算过期时间点：当前时间 - 保留天数
-            expire_time = timezone.now() - timedelta(days=file_savedays)
+            expire_time = timezone.now() - timedelta(days=file_savedays + 1)
 
             logger.info(
                 f"==== processing tag: {tag_name}, "
@@ -104,7 +104,7 @@ def clean_expired_mysql_binlog_records():
             file_savedays = tag_info["file_savedays"]
 
             # 计算过期时间点：当前时间 - 保留天数
-            expire_time = timezone.now() - timedelta(days=file_savedays)
+            expire_time = timezone.now() - timedelta(days=file_savedays + 1)
 
             logger.info(
                 f"==== processing tag: {tag_name}, "
@@ -113,7 +113,7 @@ def clean_expired_mysql_binlog_records():
 
             # 查询该标签下所有过期的 binlog 备份记录
             # stop_time < expire_time 表示已过期
-            expired_records = MysqlBinlogResult.objects.filter(stop_time__lt=expire_time)
+            expired_records = MysqlBinlogResult.objects.filter(file_mtime__lt=expire_time)
 
             count = expired_records.count()
             if count > 0:

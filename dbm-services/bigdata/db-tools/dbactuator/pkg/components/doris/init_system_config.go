@@ -109,7 +109,7 @@ func (i *InitSystemConfigService) WriteProfile() (err error) {
 	scripts := []byte(`cat << 'EOF' > /data/dorisenv/dorisprofile
 export JAVA_HOME=/data/dorisenv/java/jdk
 export JRE=$JAVA_HOME/jre
-export PATH=$JAVA_HOME/bin:$JRE_HOME/bin:$PATH
+export PATH=/usr/local/bin:$JAVA_HOME/bin:$JRE_HOME/bin:$PATH
 export CLASSPATH=".:$JAVA_HOME/lib:$JRE/lib:$CLASSPATH"
 export LC_ALL=en_US
 export DORIS_HOME=/data/dorisenv/` + i.Params.Role + `

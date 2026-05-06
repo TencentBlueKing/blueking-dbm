@@ -89,6 +89,17 @@ APIGW_PUBLIC_KEY = get_type_env(key="APIGW_PUBLIC_KEY", _type=str, default="")
 BK_APIGW_STAGE_ENABLE_MCP_SERVERS = get_type_env(key="BK_APIGW_STAGE_ENABLE_MCP_SERVERS", _type=bool, default=False)
 BK_APIGW_STAGE_ENABLE_SERVERS = get_type_env(key="BK_APIGW_STAGE_ENABLE_SERVERS", _type=bool, default=True)
 
+# bkoauth 相关配置
+OAUTH_API_URL = get_type_env(key="OAUTH_API_URL", _type=str, default="")
+
+# AIDEV 相关配置
+BK_AIDEV_APIGW_ENDPOINT = get_type_env(key="BK_AIDEV_APIGW_ENDPOINT", _type=str, default="https://aidev.example.com")
+BK_AIDEV_AGENT_APP_CODE = get_type_env(key="BK_AIDEV_AGENT_APP_CODE", _type=str, default="")
+BK_AIDEV_AGENT_APP_SECRET = get_type_env(key="BK_AIDEV_AGENT_APP_SECRET", _type=str, default="")
+# 是否开启DBM AI功能
+ENABLE_DBM_AI = get_type_env(key="ENABLE_DBM_AI", _type=bool, default=False)
+
+# BKVision 相关配置
 BKAPP_BKVISION_APIGW_URL = get_type_env(key="BKAPP_BKVISION_APIGW_URL", _type=str, default="")
 
 ENVIRONMENT = get_type_env(key="BKPAAS_ENVIRONMENT", default="prod", _type=str)
@@ -130,6 +141,8 @@ ADMIN_USERS = [u.strip() for u in get_type_env(key="ADMIN_USERS", default="admin
 # 标准运维
 # 标准运维SA 空闲检查任务模版ID
 SA_CHECK_TEMPLATE_ID = get_type_env(key="SA_CHECK_TEMPLATE_ID", _type=int)
+# 主机回收空闲检查任务模版ID 更严格
+SA_RECYCLE_IDLE_CHECK_TEMPLATE_ID = get_type_env(key="SA_RECYCLE_IDLE_CHECK_TEMPLATE_ID", _type=int)
 # 标准运维SA 初始化任务模版ID
 SA_INIT_TEMPLATE_ID = get_type_env(key="SA_INIT_TEMPLATE_ID", _type=int)
 # 标准运维SA 安装L5Agent的模板ID
@@ -174,7 +187,7 @@ BKAPP_MONITOR_REPORTER_TARGET = get_type_env(key="BKAPP_MONITOR_REPORTER_TARGET"
 BKAPP_MONITOR_REPORTER_URL = get_type_env(key="BKAPP_MONITOR_REPORTER_URL", default="", _type=str)
 # 上报间隔
 BKAPP_MONITOR_REPORTER_REPORT_INTERVAL = get_type_env(
-    key="BKAPP_MONITOR_REPORTER_REPORT_INTERVAL", default=10, _type=int
+    key="BKAPP_MONITOR_REPORTER_REPORT_INTERVAL", default=30, _type=int
 )
 # 块大小
 BKAPP_MONITOR_REPORTER_CHUNK_SIZE = get_type_env(key="BKAPP_MONITOR_REPORTER_CHUNK_SIZE", default=200, _type=int)
@@ -229,6 +242,8 @@ DEBUG_TOOL_BAR = get_type_env(key="DEBUG_TOOL_BAR", _type=bool, default=False)
 
 # window ssh服务远程端口
 WINDOW_SSH_PORT = get_type_env(key="WINDOW_SSH_PORT", _type=int, default=22)
+# dbha ssh服务远程端口
+DBHA_SSH_PORT = get_type_env(key="DBHA_SSH_PORT", _type=int, default=36000)
 # 本地测试人员优先使用的版本
 REPO_VERSION_FOR_DEV = get_type_env(key="REPO_VERSION_FOR_DEV", _type=str, default="")
 # 机器主动下载文件
@@ -270,3 +285,9 @@ DBM_STATSDB_NAME = get_type_env(key="DBM_STATSDB_NAME", _type=str, default="")
 
 # 本地调试 MCP 用于跳过鉴权
 DEBUG_MCP = get_type_env(key="DEBUG_MCP", _type=bool, default=False)
+DEBUG_MCP_USERNAME = get_type_env(key="DEBUG_MCP_USERNAME", _type=str, default="admin")
+
+MYSQL_SLOW_LOG_INDEX_SET_ID = get_type_env(key="MYSQL_SLOW_LOG_INDEX_SET_ID", _type=int, default=0)
+
+# 用户管理前端APIGW域名
+USER_MANAGE_FRONTEND_APIGW_DOMAIN = get_type_env(key="USER_MANAGE_FRONTEND_APIGW_DOMAIN", _type=str, default="")

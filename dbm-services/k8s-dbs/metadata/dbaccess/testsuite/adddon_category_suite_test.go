@@ -66,7 +66,7 @@ func (suite *AddonCategoryDbAccessTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbAccess := dbaccess.NewAddonCategoryDbAccess(db)
+	dbAccess := dbaccess.GetAddonCategoryDbAccess(db)
 	suite.dbAccess = dbAccess
 }
 

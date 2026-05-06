@@ -48,16 +48,16 @@ type RuntimeAccountParam struct {
 	DRSUser string `json:"drs_user,omitempty"`
 	// drs 密码
 	DRSPwd string `json:"drs_pwd,omitempty"`
-	// drs 账号
+	// 业务数据只读 账号
 	DRSDataReadUser string `json:"drs_data_read_user,omitempty"`
-	// drs 密码
+	// 业务数据只读 密码
 	DRSDataReadPwd string `json:"drs_data_read_pwd,omitempty"`
-	// drs 账号
+	// 系统只读 账号
 	DRSSysReadUser string `json:"drs_sys_read_user,omitempty"`
-	// drs 密码
+	// 系统只读 密码
 	DRSSysReadPwd string `json:"drs_sys_read_pwd,omitempty"`
-	// drs 账号
+	// DBHA 账号
 	DBHAUser string `json:"DBHA_user,omitempty"`
-	// drs 密码
+	// DBHA 密码
 	DBHAPwd string `json:"DBHA_pwd,omitempty"`
 }

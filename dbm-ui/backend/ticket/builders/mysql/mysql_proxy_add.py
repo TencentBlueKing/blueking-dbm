@@ -12,16 +12,20 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import MachineType
+from backend.db_meta.enums import AccessLayer, MachineType
 from backend.db_services.dbbase.constants import IpSource, SourceType
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
-from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.mysql.base import (
+    BaseMySQLHATicketFlowBuilder,
+    MySQLBaseOperateDetailSerializer,
+    RelatedClusterAutoCalculateMixin,
+)
 from backend.ticket.constants import TicketType
 
 
-class MysqlProxyAddDetailSerializer(MySQLBaseOperateDetailSerializer):
+class MysqlProxyAddDetailSerializer(RelatedClusterAutoCalculateMixin, MySQLBaseOperateDetailSerializer):
     class AddInfoSerializer(serializers.Serializer):
         resource_spec = serializers.JSONField(help_text=_("资源规格"), required=False)
         target_proxy_pkg_id = serializers.IntegerField(
@@ -38,10 +42,17 @@ class MysqlProxyAddDetailSerializer(MySQLBaseOperateDetailSerializer):
     )
     infos = serializers.ListField(help_text=_("添加信息"), child=AddInfoSerializer())
 
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        # 自动计算关联集群（后端自动扩展cluster_ids）
+        attrs = self.auto_calculate_related_clusters(attrs, role=AccessLayer.PROXY)
+
+        return attrs
+
 
 class MysqlProxyAddParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_proxy_add_scene
-    validator = MySQLController.mysql_proxy_add_scene.validator
 
 
 class MysqlProxyAddResourceParamBuilder(BaseOperateResourceParamBuilder):
@@ -54,3 +65,4 @@ class MysqlProxyAddFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlProxyAddDetailSerializer
     inner_flow_builder = MysqlProxyAddParamBuilder
     resource_batch_apply_builder = MysqlProxyAddResourceParamBuilder
+    validator = MySQLController.mysql_proxy_add_scene.validator

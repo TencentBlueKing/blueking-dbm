@@ -92,11 +92,11 @@
     tableData: [],
   });
 
-  const shrinkType = ref<Redis.ResourcePool.ProxyScaleDown['shrink_type']>('QUANTITY');
+  const shrinkType = ref<Redis.ProxyScaleDown['shrink_type']>('QUANTITY');
   const formData = reactive(defaultData());
-  const ticketDetails = ref<Redis.ResourcePool.ProxyScaleDown>();
+  const ticketDetails = ref<Redis.ProxyScaleDown>();
 
-  useTicketDetail<Redis.ResourcePool.ProxyScaleDown>(TicketTypes.REDIS_PROXY_SCALE_DOWN, {
+  useTicketDetail<Redis.ProxyScaleDown>(TicketTypes.REDIS_PROXY_SCALE_DOWN, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       shrinkType.value = ticketDetail.details.shrink_type;
@@ -123,8 +123,7 @@
       online_switch_type: string;
       target_proxy_count?: number;
     }[];
-    ip_source: 'resource_pool';
-    shrink_type: Redis.ResourcePool.ProxyScaleDown['shrink_type'];
+    shrink_type: Redis.ProxyScaleDown['shrink_type'];
   }>(TicketTypes.REDIS_PROXY_SCALE_DOWN);
 
   const handleSubmit = async () => {
@@ -133,7 +132,6 @@
       createTicketRun({
         details: {
           ...ticketDetails,
-          ip_source: 'resource_pool',
           shrink_type: shrinkType.value,
         },
         ...formData.payload,

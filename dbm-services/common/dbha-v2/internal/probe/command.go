@@ -54,6 +54,13 @@ var StartCmd = &cobra.Command{
 	RunE:  cmds.StartCmdRunE,
 }
 
+// DaemonStartCmd is used to start this process with a guard that restarts it on abnormal exit.
+var DaemonStartCmd = &cobra.Command{
+	Use:   "daemon-start",
+	Short: "Start this process with guard (auto-restart on crash).",
+	RunE:  cmds.DaemonStartCmdRunE,
+}
+
 // StopCmd is used to stop this process.
 var StopCmd = &cobra.Command{
 	Use:   "stop",
@@ -75,12 +82,22 @@ var ReloadCmd = &cobra.Command{
 	RunE:  cmds.ReloadCmdRunE,
 }
 
+// GenConfigCmd is used to generate probe configuration file from admin server.
+var GenConfigCmd = &cobra.Command{
+	Use:   "gen-config",
+	Short: "Generate probe configuration file from admin server.",
+	RunE:  cmds.GenConfigCmdRunE,
+}
+
 func init() {
-	HealthCmd.Flags().BoolVarP(&cmds.JsonFormatter, "json", "j", false, "")
-
-	StopCmd.Flags().BoolVarP(&cmds.ForceStop, "force", "f", false, "Force stop the probe process.")
-	StopCmd.Flags().IntVarP(&cmds.StopTimeout, "timeout", "t", 5, "Timeout in seconds for stopping the probe process")
-
-	RestartCmd.Flags().BoolVarP(&cmds.ForceStop, "force", "f", false, "Force stop the probe process")
-	RestartCmd.Flags().IntVarP(&cmds.StopTimeout, "timeout", "t", 5, "Timeout in seconds for stopping the probe process")
+	GenConfigCmd.Flags().String("admin-endpoints", "",
+		"Admin service endpoints, separated by ; (e.g. host1:port1;host2:port2)")
+	GenConfigCmd.Flags().Uint64("cloud-id", 0, "Cloud ID (bk_cloud_id)")
+	GenConfigCmd.Flags().String("local-ip", "", "Probe local IP address")
+	GenConfigCmd.Flags().String(
+		"local-ip-interface",
+		"",
+		"Preferred local interface name when auto-detecting --local-ip (default: use built-in default)",
+	)
+	GenConfigCmd.Flags().StringP("output", "o", "", "Output config file path (default: stdout)")
 }

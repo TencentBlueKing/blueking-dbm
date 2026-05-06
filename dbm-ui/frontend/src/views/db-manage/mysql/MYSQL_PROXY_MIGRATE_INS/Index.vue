@@ -46,8 +46,8 @@
             @batch-edit="handleBatchEditColumn" />
           <AvailableResourceColumn
             :params="{
-              city: item.originProxy.bk_idc_city_name,
-              subzones: item.originProxy.bk_sub_zone,
+              city: item.originProxy.city,
+              subzones: item.originProxy.subzones,
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.MYSQL, 'PUBLIC'],
               spec_id: item.specId,
@@ -102,6 +102,7 @@
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
+  import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
   import type { Mysql } from '@services/model/ticket/ticket';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
@@ -119,7 +120,7 @@
 
   import { random } from '@utils';
 
-  import InstanceColumnGroup, { type SelectorItem } from './components/InstanceColumnGroup.vue';
+  import InstanceColumnGroup from './components/InstanceColumnGroup.vue';
 
   interface RowData {
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
@@ -157,8 +158,7 @@
       {
         bk_cloud_id: 0,
         bk_host_id: 0,
-        bk_idc_city_name: '',
-        bk_sub_zone: '',
+        city: '',
         cluster_id: 0,
         instance_address: '',
         ip: '',
@@ -166,6 +166,7 @@
         port: 0,
         role: '',
         spec_config: {},
+        subzones: '',
       } as unknown as RowData['originProxy'],
       data.originProxy,
     ),
@@ -276,7 +277,7 @@
     is_safe: boolean;
   }>(TicketTypes.MYSQL_PROXY_MIGRATE_INS);
 
-  const handleBatchEdit = (list: SelectorItem[]) => {
+  const handleBatchEdit = (list: TendbhaInstanceModel[]) => {
     const dataList = list.reduce<RowData[]>((acc, item) => {
       if (!selectedMap.value[item.instance_address]) {
         acc.push(

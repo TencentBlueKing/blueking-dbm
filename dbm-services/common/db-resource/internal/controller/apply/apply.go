@@ -12,6 +12,7 @@
 package apply
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -184,6 +185,21 @@ func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
 	}()
 	pickers, err = apply.CycleApply(param)
 	if err != nil {
+		// 发送异步分析任务（非阻塞）
+		if paramsJSON, marshalErr := json.Marshal(param); marshalErr == nil {
+			select {
+			case task.AnalysisTaskChan <- task.AnalysisTaskItem{
+				BillID:      param.ActionInfo.BillId,
+				ApplyParams: paramsJSON,
+			}:
+				logger.Info("Async analysis task triggered for bill: %s", param.ActionInfo.BillId)
+			default:
+				logger.Warn("Analysis task channel is full, skip analysis for bill: %s", param.ActionInfo.BillId)
+			}
+		} else {
+			logger.Error("Failed to marshal apply params for bill %s: %v", param.ActionInfo.BillId, marshalErr)
+		}
+
 		c.SendResponse(r, errno.ErrResourceinsufficient.Add(param.BuildMessage()+"\n"+err.Error()), "")
 		return
 	}

@@ -3143,7 +3143,7 @@
   "跳转新建模块": "跳转Create New模块",
   "绑定模块不能为空": "绑定模块不能To空",
   "升级类型": "升级Type",
-  "适用于小版本升级，如 5.6.1 ->  5.6.2 ": "适用于小版本升级，如 5.6.1 -> 5.6.2",
+  "适用于小版本升级，如 5.6.1 ->  5.6.2": "适用于小版本升级，如 5.6.1 -> 5.6.2",
   "适用于大版本升级，如 5.6.0 ->  5.7.0": "适用于大版本升级，如 5.6.0 -> 5.7.0",
   "单节点仅支持原地升级": "单节点仅支持Original地升级",
   "主从 - 接入层": "主从 - 接入层",
@@ -3512,7 +3512,7 @@
   "启用后，将会恢复访问": "启用后，将会恢复访问",
   "删除后将产生以下影响": "删除后将Generate以下影响：",
   "删除xxx集群": "删除 {0} Cluster",
-  "删除xxx实例数据，停止相关进程": "删除 {xxx} InstanceData，停止相关进程",
+  "删除xxx实例数据，停止相关进程": "删除 {0} InstanceData，停止相关进程",
   "确认扩容集群？": "ConfirmScale UpCluster？",
   "若选择至少需要n台": "若选择至少需要 {0} 台",
   "若选择至少需要n台，已选m台": "若选择至少需要 {0} 台，Selected {1} 台",
@@ -5142,5 +5142,7 @@
   "日志加载中，加载完成将自动解析日志": "Log loading, parsing will be automatically started after loading is complete",
   "失败自动跳过": "Failed auto skip",
   "失败手动跳过": "Failed manual skip",
+  "风险描述不能为空": "Risk description cannot be empty",
+  "具体要求不能为空": "Specific requirements cannot be empty",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

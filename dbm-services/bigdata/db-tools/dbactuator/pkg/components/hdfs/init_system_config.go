@@ -2,7 +2,7 @@ package hdfs
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/components"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/core/staticembed"
@@ -46,7 +46,7 @@ func (i *InitSystemConfigService) InitSystemConfig() (err error) {
 		return err
 	}
 	tmpScriptName := "/tmp/sysinit.sh"
-	if err = ioutil.WriteFile(tmpScriptName, data, 07555); err != nil {
+	if err = os.WriteFile(tmpScriptName, data, 07555); err != nil {
 		logger.Error("write tmp script failed %s", err.Error())
 		return err
 	}

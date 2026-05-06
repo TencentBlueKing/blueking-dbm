@@ -22,21 +22,19 @@
  * SOFTWARE.
  */
 
-package machine_test
+package machine
 
 import (
 	"testing"
-
-	"dbm-services/common/dbha-v2/pkg/machine"
 )
 
 func TestID(t *testing.T) {
-	id, err := machine.ID()
+	id, err := ID()
 	if err != nil {
 		t.Fatalf("failed to generate machine-id:%v", err)
 	}
 
-	id2, err := machine.ID()
+	id2, err := ID()
 	if err != nil {
 		t.Fatalf("failed to generate machine-id:%v", err)
 	}
@@ -50,7 +48,7 @@ func TestID(t *testing.T) {
 
 func TestSequenceID(t *testing.T) {
 	for i := 0; i < 10; i++ {
-		id := machine.NewSequenceID()
+		id := NewSequenceID()
 		t.Logf("sequence-id:%d", id)
 	}
 }

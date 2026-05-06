@@ -17,7 +17,7 @@ from backend.db_dirty.constants import MachineEventType
 from backend.db_dirty.models import MachineEvent
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.cc_manage import CcManage
-from backend.ticket.models import Ticket
+from backend.ticket.models import Ticket, Todo
 
 logger = logging.getLogger("flow")
 
@@ -31,15 +31,21 @@ class TransferHostToPoolService(BaseService):
         recycle_hosts = kwargs["hosts"]
         operator = kwargs["operator"]
         event = kwargs["event"]
+        cluster_type = kwargs["cluster_type"] or kwargs["db_type"]
         ticket = Ticket.objects.get(id=kwargs["ticket_id"])
         # 如果备注为空，则取转移主机备注。TODO：目前考虑支持批量插入，因此暂定所有主机备注一致
         remark = kwargs.get("remark") or recycle_hosts[0].get("remark") or ""
-        # 记录主机事件
-        MachineEvent.host_event_trigger(bk_biz_id, recycle_hosts, event, operator, ticket, remark=remark)
+        # 记录代办
+        if event in [MachineEventType.ToRecycle, MachineEventType.ToFault]:
+            host_ids = [host["bk_host_id"] for host in recycle_hosts]
+            Todo.host_todo_trigger(host_ids, [operator], event, ticket)
         # 如果主机事件是回收，则转移CC模块
         if event == MachineEventType.Recycled:
             host_ids = [host["bk_host_id"] for host in recycle_hosts]
-            CcManage(bk_biz_id=bk_biz_id, cluster_type=kwargs["db_type"]).recycle_host(host_ids)
+            CcManage(bk_biz_id=bk_biz_id, cluster_type=cluster_type).recycle_host(host_ids)
+
+        # 操作完主机后记录主机事件
+        MachineEvent.host_event_trigger(bk_biz_id, recycle_hosts, event, operator, ticket, remark=remark)
 
 
 class TransferHostToPoolComponent(Component):

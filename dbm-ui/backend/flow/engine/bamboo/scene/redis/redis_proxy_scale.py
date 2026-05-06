@@ -227,15 +227,18 @@ class RedisProxyScaleFlow(object):
     @staticmethod
     def calc_scale_down_ips(bk_biz_id, proxy_ips, target_proxy_count):
         # 统计proxy的idc情况
-        idc_ips = defaultdict(list)
+        idc2ips = defaultdict(list)
         max_count = 0
         for proxy_ip in proxy_ips:
             m = Machine.objects.get(bk_biz_id=bk_biz_id, ip=proxy_ip)
             proxy_bk_idc_id = m.bk_idc_id
-            idc_ips[proxy_bk_idc_id].append(proxy_ip)
-            if len(idc_ips[proxy_bk_idc_id]) > max_count:
-                max_count = len(idc_ips[proxy_bk_idc_id])
-        idc_ips_dict = dict(idc_ips)
+            idc2ips[proxy_bk_idc_id].append(proxy_ip)
+            if len(idc2ips[proxy_bk_idc_id]) > max_count:
+                max_count = len(idc2ips[proxy_bk_idc_id])
+        idc_ips_dict = dict(idc2ips)
+
+        if max_count == 0:
+            return []
 
         # 计算需要裁撤的proxy列表。大概就是从多的pop出来
         proxy_now_count = len(proxy_ips)

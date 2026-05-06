@@ -32,12 +32,12 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MYSQL_ADD_SLAVE, t('添加从库')),
   createRouteItem(TicketTypes.MYSQL_MIGRATE_CLUSTER, t('迁移主从')),
   createRouteItem(TicketTypes.MYSQL_MASTER_SLAVE_SWITCH, t('主从互切')),
-  createRouteItem(TicketTypes.MYSQL_PROXY_ADD, t('接入层变更')),
-  createRouteItem(TicketTypes.MYSQL_PROXY_REDUCE, t('接入层变更')),
-  createRouteItem(TicketTypes.MYSQL_PROXY_CONF_CHANGE, t('接入层变更')),
-  createRouteItem(TicketTypes.MYSQL_PROXY_SWITCH, t('接入层变更')),
-  createRouteItem(TicketTypes.MYSQL_PROXY_MIGRATE, t('接入层变更')),
-  createRouteItem(TicketTypes.MYSQL_PROXY_MIGRATE_INS, t('接入层变更')),
+  createRouteItem(TicketTypes.MYSQL_PROXY_ADD, t('添加 Proxy')),
+  createRouteItem(TicketTypes.MYSQL_PROXY_REDUCE, t('减少 Proxy')),
+  createRouteItem(TicketTypes.MYSQL_PROXY_CONF_CHANGE, t('Proxy 升降配')),
+  createRouteItem(TicketTypes.MYSQL_PROXY_SWITCH, t('替换 Proxy')),
+  createRouteItem(TicketTypes.MYSQL_PROXY_MIGRATE, t('迁移 Proxy (按集群)')),
+  createRouteItem(TicketTypes.MYSQL_PROXY_MIGRATE_INS, t('迁移 Proxy (按实例)')),
   createRouteItem(TicketTypes.MYSQL_MASTER_FAIL_OVER, t('主库故障切换')),
   createRouteItem(TicketTypes.MYSQL_INSTANCE_FAIL_OVER, t('主库故障切换')),
   createRouteItem(TicketTypes.MYSQL_HA_DB_TABLE_BACKUP, t('库表备份')),
@@ -48,11 +48,12 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MYSQL_CHECKSUM, t('数据校验修复')),
   createRouteItem(TicketTypes.MYSQL_CLIENT_CLONE_RULES, t('客户端权限克隆')),
   createRouteItem(TicketTypes.MYSQL_INSTANCE_CLONE_RULES, t('DB实例权限克隆')),
-  createRouteItem(TicketTypes.MYSQL_DATA_MIGRATE, t('DB克隆')),
+  createRouteItem(TicketTypes.MYSQL_DATA_MIGRATE, t('DB 数据克隆')),
   createRouteItem(TicketTypes.MYSQL_PROXY_UPGRADE, t('版本升级')),
   createRouteItem(TicketTypes.MYSQL_CLUSTER_STANDARDIZE, t('集群标准化')),
   createRouteItem(TicketTypes.MYSQL_FLASHBACK, t('回档')),
   createRouteItem(TicketTypes.MYSQL_ROLLBACK, t('回档')),
+  createRouteItem(TicketTypes.MYSQL_MIGRATE_SINGLE, t('单节点迁移')),
   createRouteItem(TicketTypes.MYSQL_OPEN_AREA, t('开区模版')),
   {
     path: 'webconsole',
@@ -61,6 +62,14 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
       navName: 'Webconsole',
     },
     component: () => import('@views/db-manage/mysql/webconsole/Index.vue'),
+  },
+  {
+    path: 'merge-disk-space',
+    name: 'MySQLMergeDiskSpace',
+    meta: {
+      navName: t('DB 数据合并空间评估'),
+    },
+    component: () => import('@views/db-manage/mysql/merge-disk-space/Index.vue'),
   },
   createRouteItem(TicketTypes.MYSQL_PROXY_UPGRADE, t('版本升级')), // 接入层升级
   createRouteItem(TicketTypes.MYSQL_LOCAL_UPGRADE, t('版本升级')), // 主从/单节点-存储层-本地升级
@@ -140,7 +149,6 @@ const haRoutes: RouteRecordRaw[] = [
         path: 'instance-list',
         name: 'DatabaseTendbhaInstance',
         meta: {
-          fullscreen: true,
           navName: t('MySQL主从集群_实例视图'),
         },
         component: () => import('@views/db-manage/mysql/ha-instance-list/Index.vue'),
@@ -160,15 +168,8 @@ const mysqlToolboxRouters: RouteRecordRaw[] = [
     redirect: {
       name: TicketTypes.MYSQL_IMPORT_SQLFILE,
     },
-    component: () => import('@views/db-manage/mysql/toolbox/index.vue'),
-    children: [
-      ...mysqlToolboxChildrenRouters,
-      {
-        path: 'toolbox-result/:ticketType?/:ticketId?',
-        name: 'MysqlToolboxResult',
-        component: () => import('@views/db-manage/common/toolbox-result/Index.vue'),
-      },
-    ],
+    component: () => import('@views/db-manage/mysql/toolbox/IndexNew.vue'),
+    children: [...mysqlToolboxChildrenRouters],
   },
 ];
 

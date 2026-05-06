@@ -34,10 +34,15 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="resource_spec"
+      :get-copy-value="(item: RowData) => item.resource_spec.new_slave.hosts.map((host) => host.ip)"
       :min-width="120"
       :title="t('新从库主机')">
       <template #default="{ row: data }: { row: RowData }">
-        {{ data.resource_spec.new_slave.hosts?.[0]?.ip || '--' }}
+        <p
+          v-for="item in data.resource_spec.new_slave.hosts"
+          :key="item.bk_host_id">
+          {{ item.ip }}
+        </p>
       </template>
     </TicketInfoTableColumn>
   </TicketInfoTable>

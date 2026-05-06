@@ -5,6 +5,7 @@
       class="db-select"
       collapse-tags
       filterable
+      :loading="isUserDbaComponentsLoading"
       multiple
       multiple-mode="tag"
       :placeholder="t('请选择DB类型')"
@@ -36,10 +37,15 @@
   import dayjs from 'dayjs';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
+  import { getUserDbaComponents } from '@services/source/dbadmin';
+
+  import { useBizDbDisplay } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import { DBTypeInfos } from '@common/const';
+  import { DBTypeInfos, DBTypes } from '@common/const';
   import { batchSplitRegex } from '@common/regex';
 
   import ShieldDateTimePicker from '@views/monitor-alarm/common/ShieldDateTimePicker.vue';
@@ -51,6 +57,8 @@
   }
 
   interface Props {
+    isGlobalPage: boolean;
+    isTodoPage: boolean;
     showBizs?: boolean;
   }
 
@@ -60,9 +68,10 @@
 
   const emits = defineEmits<Emits>();
 
+  const route = useRoute();
   const { t } = useI18n();
   const { bizs } = useGlobalBizs();
-  const route = useRoute();
+  const { tabList } = useBizDbDisplay();
 
   const baseSelectList = [
     {
@@ -153,7 +162,6 @@
     },
   ];
 
-  const dbList = Object.values(DBTypeInfos);
   const dateFormatStr = 'YYYY-MM-DD HH:mm:ss';
   const startTime = dayjs().subtract(7, 'day').format(dateFormatStr);
   const endTime = dayjs().format(dateFormatStr);
@@ -230,6 +238,39 @@
     }
     return baseSelect as ISearchItem[];
   });
+
+  const dbList = computed(() => {
+    if (props.isTodoPage) {
+      return (userDbaComponents.value?.component || [])
+        .filter((item) => DBTypeInfos[item.db_type as DBTypes])
+        .map((item) => ({
+          id: item.db_type,
+          name: item.db_type_display,
+        }));
+    }
+    if (props.isGlobalPage) {
+      return Object.values(DBTypeInfos);
+    }
+    return tabList.value;
+  });
+
+  const {
+    data: userDbaComponents,
+    loading: isUserDbaComponentsLoading,
+    run: runGetUserDbaComponents,
+  } = useRequest(getUserDbaComponents, {
+    manual: true,
+  });
+
+  watch(
+    () => props.isTodoPage,
+    () => {
+      if (props.isTodoPage) {
+        runGetUserDbaComponents();
+      }
+    },
+    { immediate: true },
+  );
 
   watch(
     filterData,

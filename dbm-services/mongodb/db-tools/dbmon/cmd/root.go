@@ -183,7 +183,7 @@ func main(cmd *cobra.Command, args []string) {
 		{job: job2, cron: "@every 1m", name: job2.Name},
 		{job: job3, cron: "@every 1m", name: job3.Name},
 		{job: job4, cron: "@every 1m", name: job4.Name},
-		{job: job5, cron: "@every 1m", name: job5.Name},
+		{job: job5, cron: "@every 2m", name: job5.Name}, // dstat 任务间隔为2分钟
 	} {
 		if entryID, err := c.AddJob(row.cron,
 			cron.NewChain(cron.SkipIfStillRunning(mylog.AdapterLog)).Then(row.job)); err == nil {

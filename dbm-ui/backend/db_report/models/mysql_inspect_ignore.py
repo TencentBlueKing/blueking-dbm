@@ -22,6 +22,9 @@ class MysqlInspectIgnore(models.Model):
     cluster = models.CharField(max_length=255, help_text=_("集群域名"))
     subtype = models.CharField(max_length=64, help_text=_("忽略的巡检类型"))
     reason = models.TextField(default="", help_text=_("忽略原因"))
+    policy = models.CharField(
+        max_length=64, help_text=_("exclude or include. default empty means exclude"), default="exclude"
+    )
     is_enabled = models.BooleanField(default=True, help_text=_("是否启用"))
 
     class Meta:
@@ -31,7 +34,7 @@ class MysqlInspectIgnore(models.Model):
         verbose_name = _("巡检忽略配置")
         verbose_name_plural = _("巡检忽略配置")
         # 添加唯一索引，确保同一个集群的同一个巡检类型只能有一条配置
-        unique_together = ["cluster", "bk_biz_id", "subtype"]
+        unique_together = ["cluster", "bk_biz_id", "subtype", "cluster_type"]
         index_together = ["subtype", "cluster_type"]
 
     def __str__(self):

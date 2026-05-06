@@ -23,6 +23,7 @@ from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import CLBEntryDetail, Cluster, ClusterEntry, Machine
 from backend.flow.consts import DEFAULT_CONFIG_CONFIRM, DEFAULT_DB_MODULE_ID, MongoDBManagerUser
 from backend.flow.utils import dns_manage
+from backend.flow.utils.mongodb.mongodb_module_operate import MongoDBCCTopoOperator
 from backend.flow.utils.mongodb.mongodb_password import MongoDBPassword
 
 logger = logging.getLogger("flow")
@@ -279,3 +280,49 @@ class MongoDBMigrateMeta(object):
             creator=self.info["created_by"],
         )
         clb_entry.save()
+
+    def gse_reload(self):
+        """gse 下发配置"""
+
+        cluster_type = self.info["cluster_type"]
+        if cluster_type == ClusterType.MongoReplicaSet.value:
+            # 副本集 同组机器多实例部署的集群穿行挪模块
+            cluster_id_set = self.info["cluster_id_set"]
+            for index, cluster_id in enumerate(cluster_id_set):
+                if index == 0:
+                    is_increment = False
+                else:
+                    is_increment = True
+                cluster = Cluster.objects.get(id=cluster_id)
+                storage_objs = cluster.storageinstance_set.all()
+                try:
+                    MongoDBCCTopoOperator(cluster).transfer_instances_to_cluster_module(
+                        storage_objs, is_increment=is_increment
+                    )
+                except Exception as e:
+                    logger.error(
+                        "cluster_id:{} transfer_instances_to_cluster_module fail, error:{}".format(cluster_id, str(e))
+                    )
+                    return False
+                logger.info(
+                    "cluster_id:{} transfer_instances_to_cluster_module success, is_increment:{}".format(
+                        cluster_id, is_increment
+                    )
+                )
+        elif cluster_type == ClusterType.MongoShardedCluster.value:
+            # 分片集群
+            cluster_id = self.info["cluster_id"]
+            cluster = Cluster.objects.get(id=cluster_id)
+            mongos_objs = cluster.proxyinstance_set.all()
+            storage_objs = cluster.storageinstance_set.all()
+            try:
+                cc_topo_operator = MongoDBCCTopoOperator(cluster)
+                cc_topo_operator.transfer_instances_to_cluster_module(mongos_objs)
+                cc_topo_operator.transfer_instances_to_cluster_module(storage_objs)
+            except Exception as e:
+                logger.error(
+                    "cluster_id:{} transfer_instances_to_cluster_module fail, error:{}".format(cluster_id, str(e))
+                )
+                return False
+            logger.info("cluster_id:{} transfer_instances_to_cluster_module success".format(cluster_id))
+        return True

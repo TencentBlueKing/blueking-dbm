@@ -27,3 +27,16 @@ func TestDefault(t *testing.T) {
 
 	Info("testing default info")
 }
+
+func TestNotForAi(t *testing.T) {
+	file, err := os.OpenFile("./access.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
+	logger := New(file, false, InfoLevel)
+	ResetDefault(logger)
+	defer Sync()
+	Info("testing default info")
+	InfoNotForAi("testing info not for ai")
+	Info("testing default info")
+}

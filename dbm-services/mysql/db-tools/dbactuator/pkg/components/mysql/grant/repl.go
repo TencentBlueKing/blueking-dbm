@@ -29,9 +29,10 @@ type GrantReplComp struct {
 
 // GrantReplParam 对Master 增加repl 账户
 type GrantReplParam struct {
-	Host      string   `json:"host"`       // 当前实例的主机地址
-	Port      int      `json:"port"`       // 当前实例的端口
-	ReplHosts []string `json:"repl_hosts"` // slave host
+	Host           string   `json:"host"`            // 当前实例的主机地址
+	Port           int      `json:"port"`            // 当前实例的端口
+	SuperPrivilege bool     `json:"super_privilege"` // 是否需要添加 super 权限。目前用于单节点切换域名
+	ReplHosts      []string `json:"repl_hosts"`      // slave host
 }
 
 // Example TODO
@@ -93,6 +94,10 @@ func (g *GrantReplComp) GrantRepl() (err error) {
 		}
 	}
 
+	replicaPrivs := []string{"REPLICATION SLAVE", "REPLICATION CLIENT"}
+	if g.Params.SuperPrivilege {
+		replicaPrivs = append(replicaPrivs, "SUPER")
+	}
 	for _, replHost := range g.Params.ReplHosts {
 		var grantSQL string
 		if cmutil.MySQLVersionParse(g.masterVersion) > cmutil.MySQLVersionParse("5.6") {
@@ -102,10 +107,11 @@ func (g *GrantReplComp) GrantRepl() (err error) {
 			if err = native.CreateUserIfNotExists(replUser, replHost, replPass, conn); err != nil {
 				return err
 			}
-			grantSQL = fmt.Sprintf("GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO `%s`@`%s`;", replUser, replHost)
+			grantSQL = fmt.Sprintf("GRANT %s ON *.* TO `%s`@`%s`;", strings.Join(replicaPrivs, ","), replUser, replHost)
 		} else {
 			// 兼容MySQL5.5 版本的授权
-			grantSQL = fmt.Sprintf("GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* TO `%s`@`%s` IDENTIFIED BY '%s';",
+			grantSQL = fmt.Sprintf("GRANT %s ON *.* TO `%s`@`%s` IDENTIFIED BY '%s';",
+				strings.Join(replicaPrivs, ","),
 				replUser,
 				replHost,
 				replPass)

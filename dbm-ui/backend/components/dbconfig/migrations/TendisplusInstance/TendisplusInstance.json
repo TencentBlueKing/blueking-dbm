@@ -1,0 +1,14 @@
+[
+  {
+    "conf_type": "redisconf",
+    "conf_file": "tendisplus-2.5",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "tendisplus-2.5版本_参数配置",
+    "conf_type_lc": "Tendisplus参数配置",
+    "conf_file_lc": "tendisplus-2.5",
+    "level_names": "plat,app,cluster",
+    "level_versioned": "cluster"
+  }
+]

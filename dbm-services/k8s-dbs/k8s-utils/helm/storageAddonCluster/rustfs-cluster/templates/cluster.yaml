@@ -1,0 +1,55 @@
+apiVersion: apps.kubeblocks.io/v1alpha1
+kind: Cluster
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  {{- with .Values.labels }}
+  labels:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  terminationPolicy: {{ .Values.terminationPolicy }}
+  clusterDefinitionRef: {{ include "rustfs.cdName" . }}
+  topology: {{ .Values.topoName }}
+  componentSpecs:
+    {{- range $idx, $comp := .Values.componentList }}
+    - name: {{ $comp.componentName }}
+      serviceVersion: {{ $comp.serviceVersion | quote }}
+      env:
+        {{- range $key, $value := $comp.env }}
+        {{- if $value }}
+        - name: {{ $key | quote }}
+          value: {{ $value | quote }}
+        {{- end }}
+        {{- end }}
+        {{- if eq $.Values.topoName "distributed" }}
+        - name: "RUSTFS_VOLUMES"
+          value: "http://{{ $.Release.Name }}-{{ $comp.componentName }}-{0...{{ sub $comp.replicas 1 }}}.{{ $.Release.Name }}-{{ $comp.componentName }}-headless:9000/data"
+        {{- end }}
+      replicas: {{ $comp.replicas }}
+      resources:
+        limits:
+          cpu: {{ $comp.resources.limits.cpu | quote }}
+          memory: {{ $comp.resources.limits.memory | quote }}
+        requests:
+          cpu: {{ $comp.resources.requests.cpu | quote }}
+          memory: {{ $comp.resources.requests.memory | quote }}
+      volumeClaimTemplates:
+        {{- range $comp.volumeClaimTemplates }}
+        - name: {{ .name }}
+          spec:
+            accessModes:
+              {{- range .accessModes }}
+              - {{ . }}
+              {{- end }}
+            resources:
+              requests:
+                storage: {{ .storage }}
+            storageClassName: {{ .storageClassName }}
+            volumeMode: {{ .volumeMode }}
+        {{- end }}
+    {{- end}}

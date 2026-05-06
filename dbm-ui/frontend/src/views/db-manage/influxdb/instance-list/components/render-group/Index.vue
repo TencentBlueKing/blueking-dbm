@@ -122,8 +122,9 @@
 
   import { createGroup, deleteGroup, getGroupList, updateGroupInfo } from '@services/source/influxdbGroup';
 
-  import { useGlobalBizs } from '@/stores';
-  import { messageSuccess } from '@/utils';
+  import { useGlobalBizs } from '@stores';
+
+  import { messageSuccess } from '@utils';
 
   import GroupCreate from './components/Create.vue';
 

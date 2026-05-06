@@ -13,18 +13,18 @@ specific language governing permissions and limitations under the License.
 
 import logging
 
-import version_log.config as config
 from django.conf import settings
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.decorators import available_attrs
 
+import backend.version_log.config as config
 from backend.version_log.models import VersionLogVisited
 
 """
 @summary: 装饰器
 @usage：
-          >>> from backend.version_log.decorators import update_log_view
+          >>> from version_log.decorators import update_log_view
           >>> @update_log_view
           >>> def home(request):
           >>>     pass

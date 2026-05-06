@@ -87,8 +87,10 @@
 </script>
 <style lang="less" scoped>
   .render-spec-box {
+    display: flex;
     overflow: hidden;
     line-height: 20px;
+    align-items: center;
     color: #313238;
     text-overflow: ellipsis;
     white-space: nowrap;

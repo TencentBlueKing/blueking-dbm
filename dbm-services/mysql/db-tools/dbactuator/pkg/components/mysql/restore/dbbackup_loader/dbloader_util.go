@@ -1,8 +1,18 @@
 package dbbackup_loader
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"github.com/pkg/errors"
+
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/dbbackup"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/spider"
 )
 
 // LoaderUtil myloader / xtrabackup 恢复 通用参数
@@ -17,8 +27,10 @@ type LoaderUtil struct {
 	InitCommand   string `json:"init_command"`
 	IndexFilePath string `json:"index_file_path" validate:"required"`
 	// LoaderDir 备份解压后的目录
-	LoaderDir string `json:"loader_dir"`
-	TaskDir   string `json:"taskDir"`
+	LoaderDir     string `json:"loader_dir"`
+	TaskDir       string `json:"task_dir"`
+	BackupDir     string `json:"backup_dir"`
+	RecoverGrants bool   `json:"recover_grants"`
 
 	// 上层传递过来的filter，不包括系统过滤库
 	Databases        []string `json:"databases"`
@@ -55,4 +67,64 @@ type LoaderOpt struct {
 	// 在库表级定点回档时有用，如果是 statement/mixed 格式，导入数据时需要全部导入；
 	// 如果是 row，可只导入指定库表数据, 在 recover-binlog 时可指定 quick_mode=true 也恢复指定库表 binlog
 	SourceBinlogFormat string `json:"source_binlog_format" enums:",ROW,STATEMENT,MIXED"`
+}
+
+func recoverGrant(inst native.InsObject, privFiles []string, backupDir string) (err error) {
+	if len(privFiles) == 0 {
+		return errors.Errorf("no priv file found in %s", backupDir)
+	}
+	logger.Info("recover grants for port %d from sql file: %s", inst.Port, privFiles)
+	comp := mysql.FastExecuteSqlComp{
+		GeneralParam: &components.GeneralParam{
+			RuntimeAccountParam: components.RuntimeAccountParam{
+				MySQLAccountParam: components.MySQLAccountParam{
+					MySQLAdminAccount: components.MySQLAdminAccount{
+						AdminUser: inst.User, AdminPwd: inst.Pwd,
+					},
+				},
+			},
+		},
+		Params: mysql.FastExecuteSqlParam{
+			Host:       inst.Host,
+			Port:       inst.Port,
+			Socket:     inst.Socket,
+			Force:      true,
+			OnDatabase: "mysql",
+			FileDir:    backupDir,
+			SqlFiles:   privFiles,
+		},
+	}
+	if err = comp.Init(); err != nil {
+		return errors.WithMessagef(err, "restore-dr recover grants")
+	}
+	if err = comp.Run(); err != nil {
+		return errors.WithMessagef(err, "restore-dr recover grants")
+	}
+	return nil
+}
+
+// update old backup tasks to quit
+// 对于 spider remote，恢复完数据后 global_backup 可能包含废弃的 备份任务，这里把状态改成 quit 避免任务被重新发起
+func (l *LoaderUtil) commonPostLoad(backupDir string) error {
+	dbWorker, err := l.TgtInstance.Conn()
+	if err != nil {
+		return err
+	}
+	defer dbWorker.Stop()
+
+	logger.Info("commonPostLoad: repair data for table global_backup")
+	sqlStr := fmt.Sprintf(`update infodba_schema.global_backup SET BackupStatus ='%s' where Host ='%s' and Port =%d`,
+		spider.StatusQuit, l.TgtInstance.Host, l.TgtInstance.Port)
+	if _, err = dbWorker.ExecMore([]string{"set session sql_log_bin=off", sqlStr}); err != nil {
+		logger.Warn("fail to repair data for table global_backup. ignore %s", err.Error())
+	}
+
+	// 清理备份下载目录
+	logger.Info("commonPostLoad: remove old backup file in %s", backupDir)
+	for _, oldFile := range l.IndexObj.GetTarFileList("") {
+		oldFile = filepath.Join(backupDir, oldFile)
+		//logger.Info("remove old backup file: %s", oldFile)
+		_ = os.Remove(oldFile)
+	}
+	return nil
 }

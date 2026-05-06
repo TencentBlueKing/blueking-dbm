@@ -18,7 +18,7 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.exceptions import ClusterNotExistException, DBMetaException
 from backend.db_meta.models import Cluster
-from backend.flow.consts import LONG_JOB_TIMEOUT
+from backend.flow.consts import MAX_LONG_JOB_TIMEOUT
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.initiative_download_file import InitiativeDownloadFileComponent
@@ -111,7 +111,7 @@ class MysqlPartitionV2Flow(object):
                     cluster_type=target_cluster["cluster_type"],
                     cluster=target_cluster,
                     exec_ip=target_cluster["ip"],
-                    job_timeout=LONG_JOB_TIMEOUT,
+                    job_timeout=MAX_LONG_JOB_TIMEOUT,
                     get_mysql_payload_func=MysqlActPayload.get_partition_v2_payload.__name__,
                 )
             ),

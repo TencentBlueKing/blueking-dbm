@@ -283,8 +283,8 @@ class RedisSlotsMigrateFlow(object):
             # 缩容，删除node
             if new_info["target_group_num"] - new_info["current_group_num"] < 0:
                 # 通过前置函数获取到了指定的下架机器
-                new_info["shutdown_master_hosts"] = [item["ip"] for item in info["old_machine_info"]["master"]]
-                new_info["shutdown_slave_hosts"] = [item["ip"] for item in info["old_machine_info"]["slave"]]
+                new_info["shutdown_master_hosts"] = info["shutdown_master_hosts"]
+                new_info["shutdown_slave_hosts"] = info["shutdown_slave_hosts"]
                 contraction_pipe = redis_migrate_slots_4_contraction(self.root_id, flow_data, act_kwargs, new_info)
                 redis_pipeline.add_sub_pipeline(contraction_pipe)
             else:

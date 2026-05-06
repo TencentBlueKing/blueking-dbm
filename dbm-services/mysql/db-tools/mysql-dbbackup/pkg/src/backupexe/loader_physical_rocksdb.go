@@ -240,10 +240,12 @@ func (p *PhysicalRocksdbLoader) cleanDirs() error {
 
 	logger.Log.Infof("delete the slow query log file:%s", p.slowQueryLogFile)
 	if p.slowQueryLogFile != "" && p.slowQueryLogFile != "/" {
-		// delete the old directory
-		os.Remove(p.slowQueryLogFile)
-		// create the new directory
-		os.MkdirAll(p.slowQueryLogFile, 0755)
+		if cmutil.IsNormalFile(p.slowQueryLogFile) {
+			// delete the old slow log file
+			os.Remove(p.slowQueryLogFile)
+			// create the new file
+			cmutil.CreateEmptyFile(p.slowQueryLogFile, 0755)
+		}
 	}
 
 	logger.Log.Infof("delete the tmp dir:%s", p.tmpDir)

@@ -49,4 +49,19 @@
       value: ClusterType.REDIS_CLUSTER,
     },
   ];
+
+  const optionValues = list.map((item) => item.value) as string[];
+  const optionMap = Object.fromEntries(list.map((item) => [item.label, item.value]));
+
+  watch(
+    modelValue,
+    () => {
+      if (!optionValues.includes(modelValue.value)) {
+        modelValue.value = optionMap[modelValue.value];
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>

@@ -52,7 +52,6 @@
                 )
               "
               field="target_spec_id"
-              label="目标规格"
               :machine-type="MachineTypes.MONGODB"
               required
               selectable
@@ -251,7 +250,6 @@
     });
 
     formData.tableData = [...formData.tableData.filter((item) => item.batchCluster.renderText), ...newList];
-    window.changeConfirm = true;
   };
 
   const handleBatchEdit = (value: number, field: string) => {

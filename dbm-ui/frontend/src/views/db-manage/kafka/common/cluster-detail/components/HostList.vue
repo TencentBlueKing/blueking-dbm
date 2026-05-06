@@ -60,6 +60,10 @@
       </OperationBtnStatusTips>
       <BkDropdown
         class="ml-8"
+        :popover-options="{
+          clickContentAutoHide: true,
+        }"
+        trigger="click"
         @hide="() => (isCopyDropdown = false)"
         @show="() => (isCopyDropdown = true)">
         <BkButton>
@@ -121,7 +125,9 @@
       selectable
       @filter-change="handleFilterChange"
       @selection="handleSelectChange">
-      <HostListFieldColumn :cluster-type="ClusterTypes.KAFKA" />
+      <HostListFieldColumn
+        :cluster-id="clusterData.id"
+        :cluster-type="ClusterTypes.KAFKA" />
       <TableColumn
         col-key="row-operation"
         fixed="right"
@@ -205,6 +211,7 @@
   import ClusterShrink from '@views/db-manage/kafka/common/shrink/Index.vue';
 
   interface Props {
+    activePanel: string;
     clusterData: KafkaDetailModel;
   }
 
@@ -234,11 +241,19 @@
   const fetchClusterMachineList = useClusterMachineList(ClusterTypes.KAFKA);
 
   const hostTableRef = ref<InstanceType<typeof DbTable>>();
-  const { quickSearchData, quickSearchValue } = useHostSearchSelect(ClusterTypes.KAFKA, {
+  const { initQuickSearchValue, quickSearchData, quickSearchValue } = useHostSearchSelect(ClusterTypes.KAFKA, {
+    clusterId: props.clusterData.id,
     serviceHandler: () => {
       fetchData();
     },
   });
+
+  watch(
+    () => props.activePanel,
+    () => {
+      initQuickSearchValue();
+    },
+  );
 
   const dataSource = (params: Parameters<typeof fetchClusterMachineList>[0]) =>
     fetchClusterMachineList({

@@ -21,7 +21,10 @@
           v-for="(valueItem, index) in renderList"
           :key="valueItem.value"
           class="value-item"
-          :class="{ active: activeIndex === index }"
+          :class="{
+            active: activeIndex === index,
+            'empty-item': renderList.length >= 2 && valueItem.value === SpecialOptions.EMPTY,
+          }"
           @click="handleChange(valueItem)">
           <Checkbox
             :checked="Boolean(checkedMap[valueItem.value])"
@@ -45,6 +48,8 @@
   import { SearchIcon } from 'tdesign-icons-vue-next';
   import { Checkbox, Input } from 'tdesign-vue-next';
   import { computed, onMounted, ref, useTemplateRef } from 'vue';
+
+  import { SpecialOptions } from '@common/const';
 
   import useMenuKeyboard from '@components/db-quick-search/bk-quick-search/hooks/useMenuKeyboard';
   import type { Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
@@ -96,7 +101,15 @@
     const keyword = `${filterKey.value || ''}`.trim().toLowerCase();
     if (!keyword) {
       const modelValueMap = makeMap(defaultModelValue.map((item) => item.value));
-      return [...defaultModelValue, ..._.filter(list.value, (item) => !modelValueMap[item.value])];
+      const filterList = [...defaultModelValue, ..._.filter(list.value, (item) => !modelValueMap[item.value])];
+
+      const emptyIndex = filterList.findIndex((item) => item.value === SpecialOptions.EMPTY);
+      if (emptyIndex !== -1) {
+        const specificItem = filterList.splice(emptyIndex, 1)[0];
+        filterList.push(specificItem);
+      }
+
+      return filterList;
     }
     return _.filter(list.value, (item) => item.label.toLowerCase().includes(keyword));
   });
@@ -154,5 +167,21 @@
 <style lang="less">
   .bk-quick-search-type-mult-select {
     padding-bottom: 8px;
+  }
+
+  .bk-quick-search-value-wrapper {
+    .empty-item {
+      position: relative;
+
+      &::before {
+        position: absolute;
+        top: 0;
+        right: 16px;
+        left: 16px;
+        height: 0;
+        border-top: 1px solid #e5e5e5;
+        content: '';
+      }
+    }
   }
 </style>

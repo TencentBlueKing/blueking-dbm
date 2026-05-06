@@ -82,7 +82,7 @@
         </InfoItem>
       </template>
       <template v-else>
-        <InfoItem :label="t('Proxy存储资源规格')">
+        <InfoItem :label="t('Proxy 规格')">
           <SpecDetailPopover
             :data="ticketDetails.details.resource_spec.proxy"
             placement="top">
@@ -110,14 +110,28 @@
           </BkTag>
         </InfoItem>
         <InfoItem
-          :label="t('集群部署方案')"
+          :label="t('后端存储')"
           style="flex: 1 0 100%">
           <TicketInfoTable
             :data="[ticketDetails.details.resource_spec.backend_group.spec_info]"
             row-key="spec_name">
             <TicketInfoTableColumn
               col-key="spec_name"
-              :title="t('资源规格')" />
+              :title="t('资源规格')">
+              <template #default>
+                <SpecDetailPopover
+                  v-if="backendGroupSpec.spec_id"
+                  :data="backendGroupSpec"
+                  placement="top-start">
+                  <span
+                    class="pb-2"
+                    style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+                    {{ backendGroupSpec.spec_name }}
+                  </span>
+                </SpecDetailPopover>
+                <span v-else>{{ backendGroupSpec.spec_name }}</span>
+              </template>
+            </TicketInfoTableColumn>
             <TicketInfoTableColumn
               col-key="label_names"
               :min-width="200"
@@ -194,6 +208,8 @@
   });
   const props = defineProps<Props>();
   const { t } = useI18n();
+
+  const backendGroupSpec = props.ticketDetails.details.resource_spec.backend_group.spec_info;
 
   const previewState = reactive({
     isShow: false,

@@ -89,6 +89,7 @@
     <BatchOperation
       v-if="showBatchOperation"
       ref="batchOperationRef"
+      v-model:is-super-user-mode="isSuperUserMode"
       :data="selectedNodes"
       :root-id="rootId"
       :status="statusValue"
@@ -129,6 +130,7 @@
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
+  const isSuperUserMode = defineModel<boolean>('isSuperUserMode', { required: true });
 
   const { t } = useI18n();
 

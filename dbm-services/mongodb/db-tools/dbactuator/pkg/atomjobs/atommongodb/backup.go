@@ -41,7 +41,7 @@ type backupParams struct {
 	AdminPassword         string            `json:"adminPassword"`
 	SkipBackupSystemDb    bool              `json:"skipBackupSysDb"`
 	WaitBackupSysTaskDone bool              `json:"waitBackupSysTaskDone"`
-	FileTag               string            `json:"file_tag"`       // file_tag normal_backup or forever_backup
+	FileTag               string            `json:"fileTag"`        // fileTag normal_backup or forever_backup
 	BackupType            string            `json:"backupType"`     // 只能是 logical
 	MaxConcurrency        int               `json:"maxConcurrency"` // 最大并发数，默认为4
 	Args                  struct {

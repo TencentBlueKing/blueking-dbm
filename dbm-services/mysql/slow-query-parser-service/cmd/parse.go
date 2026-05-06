@@ -73,7 +73,7 @@ func Execute() {
 		case ev := <-sp.EventChan():
 			//fmt.Println(ev.Db, ev.User, ev.Host, " | len= ", len(ev.Query))
 			if resp, err := mysql.AnalyzeSql(ev.Db, ev.Query); err == nil {
-				fmt.Printf("db=%s table=%s user=%s, len=%d digist=%s\n",
+				fmt.Printf("db=%s table=%s user=%s, len=%d digest=%s\n",
 					ev.Db, resp.TableName, ev.User, resp.QueryLength, resp.QueryDigestText)
 
 				time.Sleep(20 * time.Millisecond)

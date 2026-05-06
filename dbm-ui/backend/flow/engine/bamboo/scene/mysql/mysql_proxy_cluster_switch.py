@@ -22,7 +22,7 @@ from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster, ProxyInstance
 from backend.db_package.constants import PackageType
 from backend.db_package.models import Package
-from backend.flow.consts import DnsOpType
+from backend.flow.consts import DnsOpType, InstanceStatus
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -203,6 +203,12 @@ class MySQLProxyClusterSwitchFlow(object):
             sub_flow_context["proxy_ports"] = self.__get_proxy_install_ports(cluster_ids=info["cluster_ids"])
             instances = ["{}:{}".format(info["target_proxy"]["ip"], port) for port in sub_flow_context["proxy_ports"]]
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
+
+            has_unavailable_instance = ProxyInstance.objects.filter(
+                machine__ip=info["origin_proxy"]["ip"],
+                machine__bk_cloud_id=info["origin_proxy"]["bk_cloud_id"],
+                status=InstanceStatus.UNAVAILABLE,
+            ).exists()
 
             # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
             exec_act_kwargs = ExecActuatorKwargs(
@@ -434,6 +440,7 @@ class MySQLProxyClusterSwitchFlow(object):
                         .values_list("admin_port", flat=True)
                         .first(),
                         disable_manual_confirm=disable_manual_confirm,
+                        has_unavailable_instance=has_unavailable_instance,
                     )
                 )
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=reduce_proxy_sub_list)
@@ -456,6 +463,7 @@ class MySQLProxyClusterSwitchFlow(object):
             # 阶段7 清理机器级别的配置
             exec_act_kwargs.exec_ip = info["origin_proxy"]["ip"]
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clear_machine_crontab.__name__
+            exec_act_kwargs.hide_error = has_unavailable_instance
             sub_pipeline.add_act(
                 act_name=_("清理机器配置"),
                 act_component_code=MySQLClearMachineComponent.code,
@@ -470,7 +478,12 @@ class MySQLProxyClusterSwitchFlow(object):
 
         mysql_proxy_cluster_add_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
-        mysql_proxy_cluster_add_pipeline.run_pipeline(init_trans_data_class=SystemInfoContext())
+        # mysql_proxy_cluster_add_pipeline.run_pipeline(init_trans_data_class=SystemInfoContext())
+        # 启动接入单据值守监听
+        mysql_proxy_cluster_add_pipeline.run_pipeline_with_sidecar(
+            init_trans_data_class=SystemInfoContext(),
+            check_ai_monitor_cluster_list=list({cid for info in self.data["infos"] for cid in info["cluster_ids"]}),
+        )
 
     def proxy_reduce_sub_flow(
         self,
@@ -480,6 +493,7 @@ class MySQLProxyClusterSwitchFlow(object):
         origin_proxy_port: int,
         admin_proxy_port: int,
         disable_manual_confirm: bool = False,
+        has_unavailable_instance: bool = False,
     ):
         """
         回收proxy实例的子流程
@@ -497,7 +511,11 @@ class MySQLProxyClusterSwitchFlow(object):
         flow_context.pop("infos")
 
         #  拼接替换proxy节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
-        reduce_proxy_sub_act_kwargs = ExecActuatorKwargs(bk_cloud_id=bk_cloud_id, exec_ip=origin_proxy_ip)
+        reduce_proxy_sub_act_kwargs = ExecActuatorKwargs(
+            bk_cloud_id=bk_cloud_id,
+            exec_ip=origin_proxy_ip,
+            hide_error=has_unavailable_instance,
+        )
 
         # 针对集群维度声明替换子流程
         sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(flow_context))
@@ -512,6 +530,7 @@ class MySQLProxyClusterSwitchFlow(object):
                         bk_cloud_id=bk_cloud_id,
                         check_instances=[f"{origin_proxy_ip}{IP_PORT_DIVIDER}{admin_proxy_port}"],
                         is_proxy=True,
+                        hide_error=has_unavailable_instance,
                     )
                 ),
             )
@@ -537,6 +556,7 @@ class MySQLProxyClusterSwitchFlow(object):
                     bk_cloud_id=bk_cloud_id,
                     exec_ip=origin_proxy_ip,
                     file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                    hide_error=has_unavailable_instance,
                 ),
             ),
         )

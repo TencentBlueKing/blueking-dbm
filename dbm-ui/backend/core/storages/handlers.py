@@ -118,6 +118,41 @@ class StorageHandler(object):
             "path": path,
         }
 
+    def batch_create_bkrepo_access_token(self, file_path_list: List[str]) -> List[Dict[str, Any]]:
+        """
+        批量获取制品库临时凭证，为多个文件路径创建临时访问凭证
+        :param file_path_list: 文件路径列表
+        :return: 包含每个文件路径凭证信息的列表
+        """
+        # 去重处理
+        file_path_list = list(set(file_path_list))
+
+        # 过期时间默认一天，且限制访问1次
+        expire_time = 3600 * 24
+        permits = 1
+
+        # 批量创建临时凭证
+        tokens_data = self.storage.client.create_bkrepo_access_token(
+            paths=file_path_list, expire_time=expire_time, permits=permits
+        )
+
+        # 保证文件路径和凭证信息一一对应
+        result = []
+        for token_data in tokens_data:
+            # TODO: 取消校验文件路径，因为制品库会自动添加前缀‘/’
+            # if token_data["fullPath"] in file_path_list:
+            result.append(
+                {
+                    "token": token_data["token"],
+                    "url": env.BKREPO_FRONTEND_URL,
+                    "project": env.BKREPO_PROJECT,
+                    "repo": env.BKREPO_BUCKET,
+                    "path": token_data["fullPath"],
+                }
+            )
+
+        return result
+
     def download_dirs(self, file_path_list: list, force_download: bool):
         """
         指定目录下载，返回下载链接

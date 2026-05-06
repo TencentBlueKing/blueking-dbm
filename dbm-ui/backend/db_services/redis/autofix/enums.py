@@ -37,6 +37,7 @@ class AutofixStatus(StrStructuredEnum):
     """自愈状态"""
 
     AF_INIT = EnumField("initautofix", _("初始化"))
+    AF_START = EnumField("start", _("开始自愈"))
     AF_TICKET = EnumField("initticket", _("创建单据"))
     AF_REUSE = EnumField("reuse_host", _("尝试复用"))
     AF_REUSE_SUCCESS = EnumField("reuse_succ", _("复用搞定"))

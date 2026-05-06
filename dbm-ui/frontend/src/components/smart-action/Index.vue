@@ -14,6 +14,7 @@
 <template>
   <div ref="root">
     <slot />
+    <div class="smart-action-bottom-placeholder" />
     <div
       ref="placeholderRef"
       role="placeholder"

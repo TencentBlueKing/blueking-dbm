@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import json
 import logging
+from datetime import timedelta
 
 from celery.schedules import crontab
 from django.utils import timezone
@@ -22,7 +23,7 @@ from backend.db_services.redis.autofix.enums import AutofixItem, AutofixStatus
 from backend.db_services.redis.autofix.message import send_msg_2_qywx
 from backend.db_services.redis.autofix.models import RedisAutofixCore, RedisAutofixCtl
 from backend.db_services.redis.autofix.watcher import (
-    get_4_next_watch_ID,
+    check_and_process,
     save_swithed_host_by_cluster,
     watcher_get_by_hosts,
 )
@@ -58,12 +59,13 @@ def watch_dbha_switch():
         return
 
     logger.info("query switch logs :: {}:{}".format(current_id, switch_hosts))
-    next_id = get_4_next_watch_ID(current_id, switch_hosts)
+
+    next_id, wstart_autofix = check_and_process(current_id, switch_hosts)
     RedisAutofixCtl.objects.filter(ctl_name=AutofixItem.DBHA_ID.value).update(
         ctl_value=next_id, update_at=datetime2str(datetime.datetime.now(datetime.utc))
     )
     # 以集群维度聚合 # AutofixStatus.AF_REQRES.value
-    save_swithed_host_by_cluster(next_id, switch_hosts)
+    save_swithed_host_by_cluster(wstart_autofix)
 
 
 @register_periodic_task(run_every=crontab(minute="*/1"))
@@ -71,7 +73,14 @@ def start_autofix_flow():
     """请求自愈需要的资源"""
 
     try:
-        fixlists = RedisAutofixCore.objects.filter(deal_status=AutofixStatus.AF_TICKET.value)
+        ten_minutes_ago = datetime.datetime.now(timezone.utc) - timedelta(minutes=10)
+        fixlists = RedisAutofixCore.objects.filter(
+            deal_status=AutofixStatus.AF_TICKET.value
+        ) | RedisAutofixCore.objects.filter(
+            deal_status=AutofixStatus.AF_START.value,
+            update_at__lte=ten_minutes_ago,
+            ticket_id__lte=0,  # 未创建单据的才重试
+        )
     except RedisAutofixCore.DoesNotExist:
         logger.info("waiting request resource items ... ")
         return
@@ -79,10 +88,20 @@ def start_autofix_flow():
         logger.info("waiting request resource items ... ")
         return
 
+    # 拉到后先更新状态， 表示我这一批要处理的
+    # 推荐：原子批量更新，缩小竞态窗口
+    from django.db import transaction
+
+    with transaction.atomic():
+        ids = list(fixlists.values_list("id", flat=True))
+        if not ids:
+            return
+        RedisAutofixCore.objects.filter(id__in=ids).update(deal_status=AutofixStatus.AF_START.value)
+        fixlists = RedisAutofixCore.objects.filter(id__in=ids)
     generate_autofix_ticket(fixlists)
 
 
-@register_periodic_task(run_every=crontab(minute="*/1"))
+@register_periodic_task(run_every=crontab(minute="*/2"))
 def watch_autofix_flow():
     """监控自愈状态,已期进行流转"""
 
@@ -111,6 +130,9 @@ def watch_autofix_flow():
 
             if ticket_obj.status == TicketStatus.RUNNING.value:
                 flow.deal_status = AutofixStatus.AF_RUNNING.value
+            elif ticket_obj.status == TicketStatus.APPROVE.value:
+                #     APPROVE = EnumField("APPROVE", _("待审批"))
+                continue
             elif ticket_obj.status == TicketStatus.SUCCEEDED.value:
                 flow.deal_status = AutofixStatus.AF_SUCC.value
                 title = _("{} - 自愈成功".format(flow.immute_domain))

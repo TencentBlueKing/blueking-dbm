@@ -1,7 +1,9 @@
 <template>
-  <div class="bk-editable-table">
+  <div
+    class="bk-editable-table"
+    @click="handleUserChange">
     <div
-      ref="tableRef"
+      ref="table"
       class="bk-editable-table-wrapper"
       @scroll="handleContentScroll">
       <table>
@@ -29,12 +31,12 @@
         :style="rightFixedStyles" />
     </div>
     <div
-      ref="resizePlaceholderRef"
+      ref="resizePlaceholder"
       class="bk-editable-column-resize" />
 
     <div class="bk-edit-table-scroll">
       <div
-        ref="scrollXRef"
+        ref="scrollX"
         class="bk-edit-table-scroll-x"
         :class="{
           'is-show': isShowScrollX,
@@ -64,6 +66,8 @@
     type VNode,
     watch,
   } from 'vue';
+
+  import { useEventBus } from '@hooks';
 
   import Column, { type IContext as IColumnContext } from './Column.vue';
   import RenderHeader from './component/render-header/Index.vue';
@@ -100,6 +104,7 @@
     validateByColumnIndex: (row: number | number[]) => Promise<boolean>;
     validateByField: (row: string | string[]) => Promise<boolean>;
     validateByRowIndex: (row: number | number[]) => Promise<boolean>;
+    viewError: (errorList: { errors: string; field: string; row_key: string | number }[]) => void;
   }
 
   export const tableInjectKey: InjectionKey<
@@ -135,15 +140,18 @@
 
   const slots = defineSlots<Slots>();
 
-  const tableRef = ref<HTMLElement>();
-  const scrollXRef = ref<HTMLElement>();
-  const resizePlaceholderRef = ref<HTMLElement>();
+  const eventBus = useEventBus();
+
+  const tableRef = useTemplateRef<HTMLElement>('table');
+  const scrollXRef = useTemplateRef<HTMLElement>('scrollX');
+  const resizePlaceholderRef = useTemplateRef<HTMLElement>('resizePlaceholder');
   const tableWidth = ref<'auto' | number>('auto');
 
   const columnList = shallowRef<IColumnContext[]>([]);
   const rowList = shallowRef<IColumnContext[][]>([]);
 
   const isShowScrollX = ref(true);
+  const isUserChange = ref(false);
 
   const { columnSizeConfig, handleMouseDown, handleMouseMove } = useResize(tableRef, resizePlaceholderRef, columnList);
   const { fixedLeft, fixedRight, initalScroll, leftFixedStyles, rightFixedStyles } = useScroll(tableRef);
@@ -172,6 +180,23 @@
       immediate: true,
     },
   );
+
+  watch(
+    () => props.model,
+    () => {
+      if (isUserChange.value) {
+        window.changeConfirm = true;
+      }
+      eventBus.emit('editable-table-model-change');
+    },
+    {
+      deep: true,
+    },
+  );
+
+  const handleUserChange = () => {
+    isUserChange.value = true;
+  };
 
   const registerRow = (rowColumnList: IColumnContext[]) => {
     rowList.value.push(rowColumnList);
@@ -242,6 +267,41 @@
     return Promise.all(columnList.map((column) => column.validate())).then(() => true);
   };
 
+  const viewError = (errorList: Parameters<Expose['viewError']>[0]) => {
+    // 后端校验无法保证 row index 的正确性，需要通过 row key 来标记每一行数据
+    // 优先通过 props.model 将 row key 转换成 row index
+    const errorRowKeyMap = errorList.reduce<Record<string, (typeof errorList)[number]>>((result, item) => {
+      return Object.assign(result, {
+        [item.row_key]: item,
+      });
+    }, {});
+    const errorRowIndexMap = props.model.reduce<Record<string, (typeof errorList)[number]>>((result, item, index) => {
+      if (item?.row_key && errorRowKeyMap[item.row_key]) {
+        Object.assign(result, {
+          [index]: errorRowKeyMap[item.row_key],
+        });
+      }
+      return result;
+    }, {});
+    const allRowList = Array.from(tableRef.value!.querySelectorAll('tbody.bk-editable-table-body > tr') || []);
+
+    Object.keys(errorRowIndexMap).forEach((rowIndex) => {
+      const rowEle = allRowList[Number(rowIndex)];
+      if (!rowEle) {
+        return;
+      }
+      Array.from(rowEle.querySelectorAll('td.bk-editable-table-body-column') || []).forEach((tdEle) => {
+        // eslint-disable-next-line no-underscore-dangle
+        const columnInstance = (tdEle as any).__getCurrentInstance__!();
+        if (!columnInstance) {
+          return;
+        }
+        const errorInfo = errorRowIndexMap[rowIndex];
+        columnInstance.exposeProxy.viewError(errorInfo.errors, errorInfo.field);
+      });
+    });
+  };
+
   provide(tableInjectKey, {
     columnSizeConfig,
     emits,
@@ -257,6 +317,11 @@
     validateByColumnIndex,
     validateByField,
     validateByRowIndex,
+    viewError,
+  });
+
+  onBeforeUnmount(() => {
+    window.changeConfirm = false;
   });
 
   defineExpose<Expose>({
@@ -264,6 +329,7 @@
     validateByColumnIndex,
     validateByField,
     validateByRowIndex,
+    viewError,
   });
 </script>
 <style lang="less">
@@ -304,6 +370,7 @@
     }
 
     table {
+      width: 100%;
       text-align: left;
       table-layout: fixed;
     }

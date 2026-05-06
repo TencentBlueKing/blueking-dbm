@@ -37,6 +37,8 @@ import (
 	"dbm-services/common/dbha-v2/tools/internal/cluster/config"
 )
 
+const updateStatusBatchSize = 20
+
 // Client provides an HTTP client for communicating with the DBM
 type Client struct {
 	cli *hanet.HttpClient
@@ -71,17 +73,24 @@ func (c *Client) SendRequest(url string, method hanet.HttpMethod, req any,
 	return resp, nil
 }
 
-// UpdateInstanceStatus updates the status of a database instance
-func (c *Client) UpdateInstanceStatus(ip string, port int, status DbmMetadataStatus) error {
+// UpdateInstanceStatus updates the status of a batch of database instances.
+func (c *Client) UpdateInstanceStatus(instanceList []config.InstanceAddress, status DbmMetadataStatus) error {
+	if len(instanceList) == 0 {
+		return nil
+	}
+
+	payloads := make([]UpdateInstanceStatusPayload, 0, len(instanceList))
+	for _, instance := range instanceList {
+		payloads = append(payloads, UpdateInstanceStatusPayload{
+			IP:     instance.Host,
+			Port:   instance.Port,
+			Status: string(status),
+		})
+	}
+
 	req := UpdateInstanceStatusRequest{
 		DbCloudToken: config.ClusterConfig.DbmServices.DbmApiUpdateStatus.Token,
-		Payloads: []UpdateInstanceStatusPayload{
-			{
-				IP:     ip,
-				Port:   port,
-				Status: string(status),
-			},
-		},
+		Payloads:     payloads,
 	}
 
 	respond, err := c.SendRequest(config.ClusterConfig.DbmServices.DbmApiUpdateStatus.Api, hanet.HttpMethodPost,
@@ -102,11 +111,15 @@ func (c *Client) UpdateInstanceStatus(ip string, port int, status DbmMetadataSta
 	return nil
 }
 
-// UpdateAllInstancesStatus updates the status of all database instances
+// UpdateAllInstancesStatus updates the status of all database instances in batches.
 func (c *Client) UpdateAllInstancesStatus(instanceList []config.InstanceAddress, status DbmMetadataStatus) error {
-	for _, instance := range instanceList {
-		err := c.UpdateInstanceStatus(instance.Host, instance.Port, status)
-		if err != nil {
+	for start := 0; start < len(instanceList); start += updateStatusBatchSize {
+		end := start + updateStatusBatchSize
+		if end > len(instanceList) {
+			end = len(instanceList)
+		}
+
+		if err := c.UpdateInstanceStatus(instanceList[start:end], status); err != nil {
 			return err
 		}
 	}

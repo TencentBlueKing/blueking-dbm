@@ -34,11 +34,10 @@
   import OracalHaModel from '@services/model/oracle/oracle-ha';
   import { filterClusters } from '@services/source/dbbase';
 
+  import { ClusterTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
-
-  import { ClusterTypes } from '@/common/const';
 
   interface Props {
     selected: {

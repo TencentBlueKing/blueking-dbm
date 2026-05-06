@@ -25,8 +25,10 @@
           <strong>{{ machineNum }}</strong>
         </I18nT>
         <div class="sub-title">
-          <div class="sub-title-label">{{ t('地域') }}:</div>
-          <div class="sub-title-value">{{ params?.city || '--' }}</div>
+          <template v-if="params?.city">
+            <div class="sub-title-label">{{ t('地域') }}:</div>
+            <div class="sub-title-value">{{ params?.city || '--' }}</div>
+          </template>
           <template v-if="params?.subzones">
             <div class="sub-title-label">{{ t('园区') }}:</div>
             <div class="sub-title-value">{{ params?.subzones || '--' }}</div>

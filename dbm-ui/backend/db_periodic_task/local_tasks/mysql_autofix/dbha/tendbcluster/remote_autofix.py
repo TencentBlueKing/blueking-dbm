@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import uuid
-from typing import List
+from typing import Any, Dict, List
 
 from backend.db_meta.enums import MachineType
 from backend.db_meta.models import Machine
@@ -32,7 +32,7 @@ def replace_remote(cluster_ids: List[int], machine_type: MachineType, events: Li
     for ip in ips:
         machine_obj = Machine.objects.get(bk_cloud_id=bk_cloud_id, ip=ip)
         ip_events = [ev for ev in events if ev.ip == ip]
-        info = {
+        info: Dict[str, Any] = {
             "old_nodes": {"old_slave": []},
             "resource_spec": {"new_slave": {"count": 1, "spec_id": machine_obj.spec_id}},
             "cluster_id": cluster_id,

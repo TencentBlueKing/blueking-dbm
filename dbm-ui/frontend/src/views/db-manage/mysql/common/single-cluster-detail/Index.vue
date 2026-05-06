@@ -57,19 +57,16 @@
           @click="handleShowDataExportSlider">
           {{ t('导出数据') }}
         </AuthButton>
-        <MoreActionExtend
-          v-db-console="'mysql.singleClusterList.moreOperation'"
-          trigger="hover">
-          <template #handler>
+        <MoreActionExtend v-db-console="'mysql.singleClusterList.moreOperation'">
+          <template #trigger>
             <BkButton
-              v-bk-tooltips="t('更多操作')"
               class="ml-4"
               size="small"
               style="padding: 0 6px">
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <BkDropdownItem
+          <div
             v-if="data.isOnline"
             v-db-console="'mysql.singleClusterList.disable'">
             <OperationBtnStatusTips :data="data">
@@ -83,8 +80,8 @@
                 {{ t('禁用') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem
+          </div>
+          <div
             v-if="data.isOffline"
             v-db-console="'mysql.singleClusterList.enable'">
             <OperationBtnStatusTips :data="data">
@@ -98,8 +95,8 @@
                 {{ t('启用') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem v-db-console="'mysql.singleClusterList.delete'">
+          </div>
+          <div v-db-console="'mysql.singleClusterList.delete'">
             <OperationBtnStatusTips :data="data">
               <AuthButton
                 v-bk-tooltips="{
@@ -115,10 +112,8 @@
                 {{ t('删除') }}
               </AuthButton>
             </OperationBtnStatusTips>
-          </BkDropdownItem>
-          <BkDropdownItem>
-            <ClusterDomainDnsRelation :data="data" />
-          </BkDropdownItem>
+          </div>
+          <ClusterDomainDnsRelation :data="data" />
         </MoreActionExtend>
       </DisplayBox>
       <ActionPanel

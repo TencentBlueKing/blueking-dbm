@@ -1,8 +1,6 @@
 package migratespec
 
 import (
-	"fmt"
-
 	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/pkg/errors"
@@ -120,7 +118,7 @@ func MigrateSensitive(db *gorm.DB) error {
 			logger.Info("sensitive: {Namespace:%s ConfType:%s ConfFile:%s ConfName:%s ValueDefault:%s}",
 				c.Namespace, c.ConfType, c.ConfFile, c.ConfName, c.ValueDefault)
 			if c.FlagEncrypt == 1 {
-				key := fmt.Sprintf("%s%s", config.GetString("encrypt.keyPrefix"), constvar.BKBizIDForPlat)
+				key := config.GetString("encrypt.keyPrefix")
 				c.ValueDefault, _ = crypt.EncryptString(c.ValueDefault, key, constvar.EncryptEnableZip)
 			}
 		}

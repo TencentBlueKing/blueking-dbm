@@ -20,10 +20,10 @@ spec:
           compDef: {{ include "milvus.streamingnode.cmpdRegexpPattern" . }}
       orders:
         provision:
-          - mixcoord
-          - querynode,datanode,streamingnode
+          - mixcoord,streamingnode
+          - querynode,datanode
           - proxy,attu
         terminate:
           - proxy,attu
-          - querynode,datanode,streamingnode
-          - mixcoord
+          - querynode,datanode
+          - mixcoord,streamingnode

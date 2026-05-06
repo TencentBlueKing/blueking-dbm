@@ -24,8 +24,8 @@
     <EditableRow
       v-for="(item, index) in tableData"
       :key="index">
-      <ClusterColumn
-        v-model="item.batchCluster"
+      <MultipleClusterColumn
+        v-model="item.multipleCluster"
         :selected="selected"
         :selected-map="selectedMap"
         @batch-edit="handleBatchEdit" />
@@ -33,7 +33,7 @@
         <SpecColumn
           v-model="item.specId"
           :cluster-type="DBTypes.MYSQL"
-          :current-spec-id-list="item.batchCluster.spec_id_list"
+          :current-spec-id-list="item.multipleCluster.spec_ids"
           required
           selectable
           @batch-edit="handleBatchEditColumn" />
@@ -42,7 +42,8 @@
           @batch-edit="handleBatchEditColumn" />
         <AvailableResourceColumn
           :params="{
-            city: generateCity(item.batchCluster.clusters),
+            subzones: item.multipleCluster.subzones,
+            city: item.multipleCluster.city,
             for_bizs: [currentBizId, 0],
             resource_types: [DBTypes.MYSQL, 'PUBLIC'],
             spec_id: item.specId,
@@ -89,14 +90,13 @@
   import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SingleResourceHostColumn from '@views/db-manage/common/toolbox-field/column/single-resource-host-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
+  import MultipleClusterColumn from '@views/db-manage/mysql/common/toolbox-field/multiple-cluster-column/Index.vue';
 
   import { random } from '@utils';
 
-  import ClusterColumn from './components/ClusterColumn.vue';
-
   interface RowData {
-    batchCluster: ComponentProps<typeof ClusterColumn>['modelValue'];
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
+    multipleCluster: ComponentProps<typeof MultipleClusterColumn>['modelValue'];
     newMaster: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
     newSlave: ComponentProps<typeof SingleResourceHostColumn>['modelValue'];
     specId: number;
@@ -157,7 +157,7 @@
     if (props.sourceType === SourceType.RESOURCE_AUTO) {
       return [
         {
-          case: 'tendbha.test.dba.db',
+          case: 'tendbha.test.dba.db\\ntendbha.test2.dba.db',
           key: 'master_domain',
           label: t('目标集群'),
         },
@@ -175,7 +175,7 @@
     }
     return [
       {
-        case: 'tendbha.test.dba.db',
+        case: 'tendbha.test.dba.db\\ntendbha.test2.dba.db',
         key: 'master_domain',
         label: t('目标集群'),
       },
@@ -193,16 +193,17 @@
   });
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
-    batchCluster: Object.assign(
-      {
-        clusters: {} as RowData['batchCluster']['clusters'],
-        renderText: '',
-        spec_id_list: [] as RowData['batchCluster']['spec_id_list'],
-        specId: 0,
-      },
-      data.batchCluster,
-    ),
     labels: (data.labels || []) as RowData['labels'],
+    multipleCluster: Object.assign(
+      {
+        city: '',
+        clusters: [],
+        renderText: '',
+        spec_ids: [],
+        subzones: '',
+      } as RowData['multipleCluster'],
+      data.multipleCluster,
+    ),
     newMaster: Object.assign(
       {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -229,8 +230,8 @@
 
   const selected = computed(() =>
     tableData.value
-      .filter((item) => item.batchCluster.renderText)
-      .flatMap((item) => Object.values(item.batchCluster.clusters)),
+      .filter((item) => item.multipleCluster.renderText)
+      .flatMap((item) => Object.values(item.multipleCluster.clusters)),
   );
   const selectedMap = computed(() => Object.fromEntries(selected.value.map((cur) => [cur.master_domain, true])));
 
@@ -306,24 +307,25 @@
         const { clusters, infos } = props.ticketDetails;
         if (infos.length > 0) {
           tableData.value = infos.map((item) => {
-            const batchCluster = {
-              clusters: {},
-              renderText: '',
-            } as RowData['batchCluster'];
+            const domains: string[] = [];
             item.cluster_ids.forEach((clusterId) => {
-              batchCluster.renderText += batchCluster.renderText ? '\n' : '' + clusters[clusterId].immute_domain;
+              domains.push(clusters[clusterId].immute_domain);
             });
             // 资源池自动匹配
             if (props.sourceType === SourceType.RESOURCE_AUTO) {
               return createTableRow({
-                batchCluster,
                 labels: (item.resource_spec.backend_group?.labels || []).map((item) => ({ id: Number(item) })),
+                multipleCluster: {
+                  renderText: domains.join('\n'),
+                },
                 specId: item.resource_spec.backend_group?.spec_id || 0,
               });
             }
             // 资源池手动选择
             return createTableRow({
-              batchCluster,
+              multipleCluster: {
+                renderText: domains.join('\n'),
+              },
               newMaster: {
                 ip: item.resource_spec.new_master?.hosts?.[0]?.ip || '',
               },
@@ -342,7 +344,7 @@
       if (!selectedMap.value[item.master_domain]) {
         acc.push(
           createTableRow({
-            batchCluster: {
+            multipleCluster: {
               renderText: item.master_domain,
             },
           }),
@@ -350,17 +352,17 @@
       }
       return acc;
     }, []);
-    tableData.value = [...tableData.value.filter((item) => item.batchCluster.renderText), ...dataList];
+    tableData.value = [...tableData.value.filter((item) => item.multipleCluster.renderText), ...dataList];
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
     const dataList = data.reduce<RowData[]>((acc, item) => {
       acc.push(
         createTableRow({
-          batchCluster: {
-            renderText: item.master_domain,
-          },
           labels: (item.labels as string)?.split(',').map((item) => ({ value: item })),
+          multipleCluster: {
+            renderText: item.master_domain?.replaceAll('\\n', '\n') || '',
+          },
           newMaster: {
             ip: item.new_master_ip,
           },
@@ -376,7 +378,7 @@
       tableKey.value = random();
       tableData.value = [...dataList];
     } else {
-      tableData.value = [...tableData.value.filter((item) => item.batchCluster.renderText), ...dataList];
+      tableData.value = [...tableData.value.filter((item) => item.multipleCluster.renderText), ...dataList];
     }
     setTimeout(() => {
       tableRef.value?.validate();
@@ -391,11 +393,6 @@
     });
   };
 
-  const generateCity = (clusters: Record<string, { id: number; master_domain: string; region: string }>) => {
-    const cities = Object.values(clusters).map((item) => item.region);
-    return cities.length ? cities.join(',') : '';
-  };
-
   defineExpose<Exposes>({
     async getValue() {
       const validateResult = await tableRef.value?.validate();
@@ -404,7 +401,7 @@
       }
 
       return tableData.value.map((item) => ({
-        cluster_ids: Object.values(item.batchCluster.clusters).map((item) => item.id),
+        cluster_ids: item.multipleCluster.clusters.map((item) => item.id),
         resource_spec: {
           backend_group:
             props.sourceType === SourceType.RESOURCE_AUTO

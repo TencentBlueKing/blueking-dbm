@@ -2,72 +2,193 @@ package middleware
 
 import (
 	"fmt"
-	"k8s-dbs/common/api"
-	"k8s-dbs/common/constant"
-	commconst "k8s-dbs/common/constant"
-	"k8s-dbs/common/util"
-	apierrors "k8s-dbs/errors"
-	metadbaccess "k8s-dbs/metadata/dbaccess"
-	metaentity "k8s-dbs/metadata/entity"
-	metaprovider "k8s-dbs/metadata/provider"
 	"log/slog"
-
-	"gorm.io/gorm"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/tidwall/gjson"
+
+	"k8s-dbs/common/api"
+	"k8s-dbs/common/constant"
+	apierrors "k8s-dbs/errors"
+	infresp "k8s-dbs/infrastructure/response"
+	"k8s-dbs/infrastructure/thirdapi"
 )
 
-// APIAuthMiddleware API权限校验中间件
-func APIAuthMiddleware(db *gorm.DB) gin.HandlerFunc {
-	authUserRoleDbAccess := metadbaccess.NewAuthUserRoleDbAccess(db)
-	authUserRoleProvider := metaprovider.NewAuthUserRoleProvider(authUserRoleDbAccess)
+// iamChecker 抽象 IAM 鉴权操作
+type iamChecker interface {
+	// SimpleCheckAllowed 调用 DBM simple_check_allowed 做鉴权。
+	// bkAppCode/bkAppSecret 由实现方从环境变量 INNER_BK_APP_CODE / INNER_BK_APP_SECRET 获取。
+	// 返回：allowed, applyData（无权限时非 nil）, err
+	SimpleCheckAllowed(username, actionID string, bkBizID int, resourceID string) (bool, *infresp.ApplyData, error)
+}
+
+// bizValidator 抽象业务 ID 校验操作
+type bizValidator interface {
+	IsValidBizID(bizID uint64) (bool, error)
+}
+
+// APIAuthMiddleware API 权限校验中间件（调用 DBM IAM 接口做细粒度鉴权）
+func APIAuthMiddleware() gin.HandlerFunc {
+	resolver := NewDBClusterTypeResolver()
+	return apiAuthMiddlewareWithDeps(thirdapi.GetDbmAPIService(), resolver, thirdapi.GetBizCacheService())
+}
+
+// apiAuthMiddlewareWithDeps 接受 checker、resolver、bizValidator 接口，供测试注入 mock
+func apiAuthMiddlewareWithDeps(checker iamChecker, resolver ClusterTypeResolver, bv bizValidator) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 获取请求路径
 		path := c.FullPath()
 		method := c.Request.Method
-		// 获取当前Api名称
-		apiName := constant.GetAPIURL(path)
+		apiName := constant.GetAPIName(path)
 
-		if (apiName == "") || (apiName != "" && method == "GET") {
+		if apiName == "" || method == http.MethodGet {
+			c.Next()
 			return
 		}
 
 		reqBody := ParseReqBody(c)
-		// 没有请求体
 		if len(reqBody) == 0 {
-			api.ErrorResponse(c, apierrors.NewK8sDbsError(apierrors.ParameterInvalidError, fmt.Errorf("request body不能为空")))
+			api.ErrorResponse(c, apierrors.NewK8sDbsError(
+				apierrors.ParameterInvalidError, fmt.Errorf("request body不能为空")))
 			c.Abort()
 			return
 		}
 
-		requestMap, err := util.JSONStrToMap(string(reqBody))
-		if err != nil {
-			slog.Warn("failed to parse request body to map", "error", err)
-			api.ErrorResponse(c, apierrors.NewK8sDbsError(apierrors.ParameterInvalidError, fmt.Errorf("request body格式错误")))
+		// 使用 gjson 验证 JSON 格式并按需提取字段，不再全量反序列化
+		if !gjson.ValidBytes(reqBody) {
+			slog.Warn("failed to parse request body: invalid JSON")
+			api.ErrorResponse(c, apierrors.NewK8sDbsError(
+				apierrors.ParameterInvalidError, fmt.Errorf("request body格式错误")))
 			c.Abort()
 			return
 		}
 
-		userName := requestMap["bk_username"]
-		// 没有用户名
-		if userName == nil {
-			api.ErrorResponse(c, apierrors.NewK8sDbsError(apierrors.ParameterInvalidError, fmt.Errorf("请求参数中缺少bk_username字段")))
+		userName := gjson.GetBytes(reqBody, "bk_username").String()
+		if userName == "" {
+			slog.Warn("bk_username 缺失，拒绝请求", "api", apiName)
+			api.ErrorResponse(c, apierrors.NewK8sDbsError(
+				apierrors.ParameterInvalidError, fmt.Errorf("bk_username 不能为空")))
 			c.Abort()
 			return
 		}
 
-		params := metaentity.AuthUserRoleQueryParams{
-			UserID: userName.(string),
-			RoleID: commconst.AdminUserAuthRoleID,
-		}
-
-		ok := authUserRoleProvider.CheckUserRole(params)
-		// 没有权限
-		if !ok {
-			api.ErrorResponse(c, apierrors.NewK8sDbsError(apierrors.NotPermissionError, fmt.Errorf("您没有当前操作的权限")))
+		allowed, applyData, authErr := checkIAMPermission(
+			checker, resolver, bv, apiName, reqBody, userName)
+		if authErr != nil {
+			if IsResolverError(authErr) {
+				// 本地解析失败（DB 不可达、参数缺失、类型不匹配等）
+				slog.Error("集群类型解析失败", "error", authErr, "user", userName, "api", apiName)
+				api.ErrorResponse(c, apierrors.NewK8sDbsError(apierrors.ParameterInvalidError, authErr))
+			} else {
+				// IAM 远程调用失败
+				slog.Error("IAM 鉴权失败", "error", authErr, "user", userName, "api", apiName)
+				api.ErrorResponse(c, apierrors.NewK8sDbsError(apierrors.ThirdAPIError, authErr))
+			}
 			c.Abort()
 			return
 		}
-
+		if !allowed {
+			api.PermissionDeniedResponse(c, applyData)
+			c.Abort()
+			return
+		}
+		c.Next()
 	}
+}
+
+// checkIAMPermission 调用 DBM SaaS 的 simple_check_allowed 做鉴权。
+// DBM 负责实际的 IAM 查询和审计日志记录，k8s-dbs 只传递用户身份和操作上下文。
+func checkIAMPermission(
+	checker iamChecker,
+	resolver ClusterTypeResolver,
+	bv bizValidator,
+	apiName string,
+	rawJSON []byte,
+	userName string,
+) (allowed bool, applyData *infresp.ApplyData, err error) {
+	actionTemplate, exists := constant.APIToIAMAction[apiName]
+	if !exists {
+		return true, nil, nil
+	}
+
+	// Addon 操作：固定 action_id，仅校验业务级权限，无需 resolver
+	if isAddonAPI(apiName) {
+		return checkAddonPermission(checker, actionTemplate, userName)
+	}
+
+	// 通过 resolver 自动推断集群类型（创建操作从请求体，非创建操作从 DB）
+	result, resolveErr := resolver.Resolve(apiName, rawJSON)
+	if resolveErr != nil {
+		return false, nil, resolveErr
+	}
+
+	iamPrefix, ok := constant.ClusterTypeToIAMPrefix[result.ClusterType]
+	if !ok {
+		return false, nil, newResolverError("未知的集群类型: %s", result.ClusterType)
+	}
+
+	actionID := strings.Replace(actionTemplate, "{type}", iamPrefix, 1)
+
+	var bkBizID int
+	var resourceID string
+	if apiName == constant.APIClusterCreate {
+		bizID := gjsonFirstInt(rawJSON, "bkBizId", "basicInfo.bkBizId")
+		if bizID <= 0 {
+			return false, nil, newResolverError("bkBizId 缺失或无效")
+		}
+		// 校验 bizID 在 bk-base 业务列表中是否存在，避免非法 bizID 导致 IAM 鉴权永久失败
+		if valid, bizErr := bv.IsValidBizID(uint64(bizID)); bizErr != nil {
+			return false, nil, newResolverError("业务 ID 校验异常: %v", bizErr)
+		} else if !valid {
+			return false, nil, newResolverError("业务 ID %d 不存在或无效", bizID)
+		}
+		bkBizID = int(bizID)
+		resourceID = ""
+	} else {
+		if result.DbmClusterID <= 0 {
+			clusterName := gjsonFirstString(rawJSON, "clusterName", "basicInfo.clusterName")
+			slog.Error("本地 DbmClusterID 为 0，无法进行实例级鉴权",
+				"cluster", clusterName, "api", apiName)
+			return false, nil, newResolverError(
+				"集群 %q 的 DBM 集群 ID 未就绪（本地记录为 0），无法进行实例级鉴权，"+
+					"请检查集群同步状态或稍后重试", clusterName)
+		}
+		resourceID = fmt.Sprintf("%d", result.DbmClusterID)
+		if bizID := gjsonFirstInt(rawJSON, "bkBizId", "basicInfo.bkBizId"); bizID > 0 {
+			bkBizID = int(bizID)
+		}
+	}
+
+	return checker.SimpleCheckAllowed(userName, actionID, bkBizID, resourceID)
+}
+
+// isAddonAPI 判断是否为 addon 管理操作。
+// addon 操作作用于 K8s 集群级别（非存储实例级别），使用统一的 action_id。
+func isAddonAPI(apiName string) bool {
+	switch apiName {
+	case constant.APIAddonInstall, constant.APIAddonUninstall, constant.APIAddonUpgrade:
+		return true
+	}
+	return false
+}
+
+// checkAddonPermission addon 操作鉴权：固定 action_id = "k8s_addon_manage"，
+// related_resource_types = [BUSINESS]，bk_biz_id 从环境变量 BKBASE_BK_BIZ_ID 读取。
+func checkAddonPermission(
+	checker iamChecker,
+	actionID string,
+	userName string,
+) (bool, *infresp.ApplyData, error) {
+	raw := os.Getenv("BKBASE_BK_BIZ_ID")
+	if raw == "" {
+		return false, nil, newResolverError("环境变量 BKBASE_BK_BIZ_ID 未配置")
+	}
+	bizID, err := strconv.Atoi(raw)
+	if err != nil || bizID <= 0 {
+		return false, nil, newResolverError("环境变量 BKBASE_BK_BIZ_ID 无效: %s", raw)
+	}
+	return checker.SimpleCheckAllowed(userName, actionID, bizID, "")
 }

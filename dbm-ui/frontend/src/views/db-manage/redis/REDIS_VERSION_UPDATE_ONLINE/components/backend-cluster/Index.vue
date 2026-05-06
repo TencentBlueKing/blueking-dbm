@@ -47,7 +47,7 @@
 
   import { useTicketDetail } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
   import ClusterColumn from '@views/db-manage/redis/common/toolbox-field/cluster-column/Index.vue';
@@ -82,7 +82,7 @@
 
   interface IDataRow {
     cluster: {
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       cluster_type_name: string;
       id: number;
       master_domain: string;
@@ -138,7 +138,7 @@
       label: t('目标集群'),
     },
     {
-      case: 'Redis-6',
+      case: 'redis-6.2.21',
       key: 'version',
       label: t('目标版本'),
     },
@@ -169,7 +169,6 @@
       }
     });
     tableData.value = [...(selected.value.length ? tableData.value : []), ...newList];
-    window.changeConfirm = true;
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {

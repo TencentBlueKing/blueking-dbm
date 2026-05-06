@@ -37,7 +37,7 @@ func (s *Sinker) NewSinkHandler() (sarama.ConsumerGroupHandler, error) {
 	s.DSWriter.SetWriteMode(s.RuntimeConfig.WriteMode)
 	if ok {
 		if !*s.RuntimeConfig.StrictSchema {
-			return nil, fmt.Errorf("registerd table[%s] need strict_schema=true", s.RuntimeConfig.ModelTable)
+			return nil, fmt.Errorf("registered table[%s] need strict_schema=true", s.RuntimeConfig.ModelTable)
 		}
 		modelType := reflect.TypeOf(modelTable).Elem()
 		if modelType.Kind() == reflect.Ptr {

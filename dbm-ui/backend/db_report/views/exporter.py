@@ -21,6 +21,7 @@ from backend.bk_web.viewsets import SystemViewSet
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import StorageInstance
+from backend.db_monitor.tasks import query_cluster_exporter_up
 from backend.db_report.enums import SWAGGER_TAG
 from backend.iam_app.dataclass import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
@@ -40,7 +41,6 @@ class ClusterExporterUpViewSet(SystemViewSet):
     def get_redis_exporter_mismatch(self, request):
         """获取redis集群的exporter数与分片数不一致的报表"""
         # 获取exporter数与集群的映射
-        from backend.db_periodic_task.local_tasks.db_meta.sync_cluster_stat import query_cluster_exporter_up
 
         exporter_map = query_cluster_exporter_up(DBType.Redis, "dbm_redis_exporter")
         # 获取元数据的集群分片映射

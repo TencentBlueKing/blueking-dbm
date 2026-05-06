@@ -51,12 +51,12 @@ export function queryFixpointLog(params: { cluster_id: number; job_instance_id: 
  * 获取定点构造记录
  */
 export function queryLatesBackupLog(params: {
+  backup_method?: string;
+  backup_source?: string;
   bk_biz_id: number;
   cluster_id: number;
   job_instance_id?: number;
   rollback_time: string;
-  backup_source?: string;
-  backup_method?: string;
 }) {
   return http.get<BackupLogRecordModel>(`${path}/query_latest_backup_log/`, params);
 }
@@ -65,15 +65,15 @@ export function queryLatesBackupLog(params: {
  * 获取最近备份记录
  */
 export function queryLatestTimeBackupLog(params: {
+  backup_method?: string;
+  backup_source?: string;
   bk_biz_id: number;
   cluster_id: number;
   deadlines_days?: number;
+  is_full_backup?: boolean;
   latest_time?: string;
-  backup_source?: string;
-  backup_method?: string;
   limit?: number;
   offset?: number;
-  is_full_backup?: boolean;
 }) {
   return http.get<BackupLogRecordModel>(`${path}/latest_time_backup_log/`, params);
 }
@@ -82,14 +82,14 @@ export function queryLatestTimeBackupLog(params: {
  * 获取集群备份记录
  */
 export function queryBackupLogFromHandler(params: {
+  backup_method?: string; // 过滤备份类型
+  backup_source?: string; // 备份源
   cluster_id: number;
+  deadlines_days?: number; // 指定备份天数前数据
+  is_full_backup?: boolean; // 是否为全备
+  latest_time?: string; // 备份最迟时间
   limit?: number;
   offset?: number;
-  deadlines_days?: number; //指定备份天数前数据
-  latest_time?: string; //备份最迟时间
-  backup_method?: string; //过滤备份类型
-  is_full_backup?: boolean; //是否为全备
-  backup_source?: string; //备份源
 }) {
   return http.get<BackupLogRecordModel[]>(`${path}/query_backup_log_from_handler/`, params);
 }

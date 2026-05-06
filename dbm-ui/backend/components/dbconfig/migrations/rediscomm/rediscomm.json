@@ -1,0 +1,122 @@
+[
+  {
+    "conf_type": "config",
+    "conf_file": "backup_client",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "监控相关的配置",
+    "conf_type_lc": "配置",
+    "conf_file_lc": "备份客户端相关的配置",
+    "level_names": "plat,app,bk_cloud_id,city",
+    "level_versioned": ""
+  },
+  {
+    "conf_type": "config",
+    "conf_file": "base",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "运行时间",
+    "conf_type_lc": "运行时间",
+    "conf_file_lc": "base",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "config",
+    "conf_file": "bigkey",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "热key相关配置",
+    "conf_type_lc": "热key相关配置",
+    "conf_file_lc": "bigkey",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "config",
+    "conf_file": "binlogbackup",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "binlog备份相关的配置",
+    "conf_type_lc": "配置",
+    "conf_file_lc": "binlog备份相关的配置",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "config",
+    "conf_file": "fullbackup",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "全备相关的配置",
+    "conf_type_lc": "配置",
+    "conf_file_lc": "全备相关的配置",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "config",
+    "conf_file": "heartbeat",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "心跳相关的配置",
+    "conf_type_lc": "配置",
+    "conf_file_lc": "心跳相关的配置",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "config",
+    "conf_file": "hotkey",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "大key相关配置",
+    "conf_type_lc": "大key相关配置",
+    "conf_file_lc": "hotkey",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "config",
+    "conf_file": "keymod",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "key模式相关配置",
+    "conf_type_lc": "key模式相关配置",
+    "conf_file_lc": "keymod",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "config",
+    "conf_file": "maxmemory_set",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "",
+    "conf_type_lc": "配置",
+    "conf_file_lc": "maxmemory设置的配置",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  },
+  {
+    "conf_type": "config",
+    "conf_file": "monitor",
+    "conf_name_validate": 1,
+    "conf_value_validate": 1,
+    "value_type_strict": 0,
+    "description": "监控相关的配置",
+    "conf_type_lc": "配置",
+    "conf_file_lc": "监控相关的配置",
+    "level_names": "pub,plat,app,module,cluster",
+    "level_versioned": "cluster"
+  }
+]

@@ -109,7 +109,7 @@
     bk_host_id: number;
     cluster_id: number;
     cluster_name?: string;
-    cluster_type: string;
+    cluster_type: ClusterTypes;
     cluster_type_name: string;
     create_at: string;
     db_module_id: number;

@@ -5,7 +5,6 @@ import (
 	"dbm-services/common/go-pubpkg/cmutil"
 	"fmt"
 	"os/exec"
-	"os/user"
 	"path"
 	"path/filepath"
 
@@ -19,27 +18,17 @@ import (
 func Stop() (err error) {
 	var cmd *exec.Cmd
 
-	cu, _ := user.Current()
-	if cu.Uid == "0" {
-		cmd = exec.Command(
-			"su", []string{
-				"-", "mysql", "-c",
-				fmt.Sprintf(
-					`/bin/sh %s`,
-					path.Join(cst.MySQLCrondInstallPath, "stop.sh"),
-				),
-			}...,
-		)
-	} else {
-		cmd = exec.Command(
-			"sh", "-c", filepath.Join(cst.MySQLCrondInstallPath, "stop.sh"),
-		)
-	}
+	cmd = exec.Command(
+		"sh", "-c", filepath.Join(cst.MySQLCrondInstallPath, "stop.sh"),
+	)
+
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
 
 	err = cmd.Run()
 	if err != nil {
-		logger.Error("stop mysql-crond failed: %s", err.Error())
-		return err
+		logger.Error("stop mysql-crond failed: %s, %s", err.Error(), stderr.String())
+		return errors.WithMessagef(err, stderr.String())
 	}
 	logger.Info("stop mysql-crond success")
 	return nil

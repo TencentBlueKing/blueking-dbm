@@ -29,6 +29,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
@@ -37,22 +38,37 @@ import (
 	"dbm-services/common/dbha-v2/pkg/logger"
 )
 
+var (
+	ErrNoResponse = gerrors.New(gerrors.Failure, "no response from DBM")
+)
+
 // Client provides HTTP client for communicating with DBM API services
 // Handles database instance management operations including status updates, domain management, and role switching
 type Client struct {
-	cli *hanet.HttpClient
+	cli     *hanet.HttpClient
+	cliOnce sync.Once
+}
+
+func (c *Client) getHttpClient() *hanet.HttpClient {
+	c.cliOnce.Do(func() {
+		if c.cli == nil {
+			c.cli = hanet.NewHttpClientWithHeaders(map[string]string{
+				"Content-Type": "application/json",
+			})
+		}
+	})
+
+	return c.cli
+}
+
+func (c *Client) getRequestClientWithTimeout(timeout time.Duration) *hanet.HttpClient {
+	return c.getHttpClient().Clone().SetTimeout(timeout)
 }
 
 // SendRequest sends HTTP request to DBM API with specified method and timeout
 func (c *Client) SendRequest(url string, method hanet.HttpMethod, req any,
 	timeout time.Duration) ([]byte, error) {
-	if c.cli == nil {
-		c.cli = hanet.NewHttpClientWithHeaders(map[string]string{
-			"Content-Type": "application/json",
-		})
-	}
-
-	c.cli.SetTimeout(timeout)
+	cli := c.getRequestClientWithTimeout(timeout)
 
 	data, err := json.Marshal(&req)
 	if err != nil {
@@ -60,7 +76,7 @@ func (c *Client) SendRequest(url string, method hanet.HttpMethod, req any,
 		return nil, gerrors.NewE(gerrors.InvalidParameter, err)
 	}
 
-	code, resp, err := c.cli.Request(context.Background(), url, method, data)
+	code, resp, err := cli.Request(context.Background(), url, method, data)
 	if err != nil {
 		logger.Warn("failed to send http %s request to dbm, errmsg: %s", method, err)
 		return nil, err
@@ -76,57 +92,53 @@ func (c *Client) SendRequest(url string, method hanet.HttpMethod, req any,
 }
 
 // RequestMetadata sends HTTP request to DBM to get metadata of instances
-func (c *Client) RequestMetadata(ctx context.Context, req *Request) (*Response, error) {
+func (c *Client) RequestMetadata(ctx context.Context, req *Request) (int, *Response, error) {
 	data, err := json.Marshal(&req)
 	if err != nil {
-		return nil, err
+		return 0, nil, gerrors.Newf(gerrors.InvalidJson, "failed to marshal metadata request, %s", err)
 	}
 
-	if c.cli == nil {
-		c.cli = hanet.NewHttpClientWithHeaders(map[string]string{
-			"Content-Type": "application/json",
-		})
-	}
+	cli := c.getRequestClientWithTimeout(config.Cfg.Workflow.DbmApiMetadata.Timeout)
 
-	code, resp, err := c.cli.Post(ctx, config.Cfg.Workflow.DbmApiMetadata.Api, data)
+	code, resp, err := cli.Post(ctx, config.Cfg.Workflow.DbmApiMetadata.Api, data)
 	if err != nil {
-		return nil, err
+		return code, nil, err
 	}
 
 	if http.StatusOK != code {
-		return nil, gerrors.Newf(gerrors.HttpRequestFailure, "HTTP responded with a bad code: %d", code)
+		return code, nil, gerrors.Newf(gerrors.HttpRequestFailure, "HTTP responded with a bad code: %d", code)
 	}
 
 	if len(resp) == 0 {
-		return nil, gerrors.New(gerrors.Failure, "DBM responded with nothing")
+		return code, nil, ErrNoResponse
 	}
 
 	metaRsp := &Response{}
 	if err := json.Unmarshal(resp, metaRsp); err != nil {
-		return nil, gerrors.Newf(gerrors.InvalidJson, "failed to unmarshal metadata response, %s", err)
+		return code, nil, gerrors.Newf(gerrors.InvalidJson, "failed to unmarshal metadata response, %s", err)
 	}
 
 	if len(metaRsp.Data) == 0 {
-		return nil, gerrors.New(gerrors.Failure, "DBM responded with nothing")
+		return code, nil, ErrNoResponse
 	}
 
-	return metaRsp, nil
+	return code, metaRsp, nil
 }
 
 // QueryMetadataFromDbm queries metadata from DBM
-func (c *Client) QueryMetadataFromDbm(ctx context.Context, bkCloudId int, ips []string) ([]*DbInstMetadata, error) {
+func (c *Client) QueryMetadataFromDbm(ctx context.Context, bkCloudId int, ips []string) (int, []*DbInstMetadata, error) {
 
 	req := DefaultRequest
 	req.BkCloudId = bkCloudId
 	req.Addresses = append(req.Addresses, ips...)
 	req.DbCloudToken = config.Cfg.Workflow.DbmApiMetadata.Token
 
-	metaRsp, err := c.RequestMetadata(ctx, &req)
+	code, metaRsp, err := c.RequestMetadata(ctx, &req)
 	if err != nil {
-		return nil, err
+		return code, nil, err
 	}
 
-	return metaRsp.Data, nil
+	return code, metaRsp.Data, nil
 }
 
 // QueryInstanceInfoByDomain queries instance info from DBM by domain
@@ -138,7 +150,7 @@ func (c *Client) QueryInstanceInfoByDomain(bkCloudId int, clusterDomainName stri
 		Addresses:    []string{clusterDomainName},
 	}
 
-	metaRsp, err := c.RequestMetadata(context.Background(), &req)
+	_, metaRsp, err := c.RequestMetadata(context.Background(), &req)
 	if err != nil {
 		return nil, err
 	}
@@ -153,14 +165,14 @@ func (c *Client) GetAddressNumberOfDomain(bkCloudId int, domainName string) (int
 		DbCloudToken: config.Cfg.Workflow.DbmApiDomainGet.Token,
 		DomainName:   []string{domainName},
 	}
-	logger.Debug("GetAddressNumberOfDomain req:%v", req)
+	logger.Debug("query domain address count request, bk_cloud_id: %d, domain: %s", bkCloudId, domainName)
 
 	resp, err := c.SendRequest(config.Cfg.Workflow.DbmApiDomainGet.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiDomainGet.Timeout)
 	if err != nil {
 		return 0, err
 	}
-	logger.Debug("GetAddressNumberOfDomain response: %s", string(resp))
+	logger.Debug("query domain address count response, domain: %s, resp_len: %d", domainName, len(resp))
 
 	domainGetRes := &DomainGetRespond{}
 	if err := json.Unmarshal(resp, domainGetRes); err != nil {
@@ -174,41 +186,67 @@ func (c *Client) GetAddressNumberOfDomain(bkCloudId int, domainName string) (int
 	return domainGetRes.Data.RowsNum, nil
 }
 
-// UpdateInstanceStatus updates the status of a database instance
-func (c *Client) UpdateInstanceStatus(bkCloudId int, ip string, port int, status DbmMetadataStatus) error {
+// UpdateBatchInstancesStatus updates status for multiple database instances in one request.
+func (c *Client) UpdateBatchInstancesStatus(bkCloudId int, insts []InstWithinCluster, status DbmMetadataStatus) error {
+	if len(insts) == 0 {
+		return nil
+	}
+
+	payloads := make([]UpdateInstanceStatusPayload, 0, len(insts))
+	for _, inst := range insts {
+		payloads = append(payloads, UpdateInstanceStatusPayload{
+			IP:     inst.IP,
+			Port:   inst.Port,
+			Status: string(status),
+		})
+	}
+
 	req := UpdateInstanceStatusRequest{
 		BkCloudID:    bkCloudId,
 		DbCloudToken: config.Cfg.Workflow.DbmApiUpdateStatus.Token,
-		Payloads: []UpdateInstanceStatusPayload{
-			{
-				IP:     ip,
-				Port:   port,
-				Status: string(status),
-			},
-		},
+		Payloads:     payloads,
 	}
 
-	logger.Debug("UpdateInstanceStatus req:%v", req)
+	logger.Debug(
+		"update batch instances status request, bk_cloud_id: %d, instance_count: %d, status: %s",
+		bkCloudId,
+		len(payloads),
+		status,
+	)
 
 	response, err := c.SendRequest(config.Cfg.Workflow.DbmApiUpdateStatus.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiUpdateStatus.Timeout)
 	if err != nil {
-		logger.Error("failed to update instance (%s:%d) status, errmsg:%s", ip, port, err.Error())
+		logger.Error("failed to update batch instances status, errmsg: %s", err.Error())
 		return err
 	}
 
-	logger.Debug("UpdateInstanceStatus response: %s", string(response))
+	logger.Debug(
+		"update batch instances status response, bk_cloud_id: %d, instance_count: %d, resp_len: %d",
+		bkCloudId,
+		len(payloads),
+		len(response),
+	)
 
 	updateStatusResp := &UpdateInstanceStatusRespond{}
 	if err := json.Unmarshal(response, updateStatusResp); err != nil {
-		return err
+		return gerrors.Newf(gerrors.InvalidJson, "failed to unmarshal status update response, errmsg: %s", err.Error())
 	}
 
 	if !updateStatusResp.Result {
-		return gerrors.Newf(gerrors.Failure, "request failed, errmsg: %s", updateStatusResp.Message)
+		return gerrors.Newf(gerrors.Failure,
+			"failed to update batch instances status, instance_count: %d, errmsg: %s",
+			len(payloads),
+			updateStatusResp.Message,
+		)
 	}
 
 	return nil
+}
+
+// UpdateInstanceStatus updates the status of a single database instance.
+func (c *Client) UpdateInstanceStatus(bkCloudId int, ip string, port int, status DbmMetadataStatus) error {
+	return c.UpdateBatchInstancesStatus(bkCloudId, []InstWithinCluster{{IP: ip, Port: port}}, status)
 }
 
 // DeleteFromDomain removes an instance from the specified domain
@@ -224,14 +262,20 @@ func (c *Client) DeleteFromDomain(bkCloudId int, domainName string, instance str
 			},
 		},
 	}
-	logger.Debug("DeleteFromDomain req:%v", req)
+	logger.Debug(
+		"delete from domain request, bk_cloud_id: %d, domain: %s, instance: %s, app: %s",
+		bkCloudId,
+		domainName,
+		instance,
+		app,
+	)
 
 	resp, err := c.SendRequest(config.Cfg.Workflow.DbmApiDomainDelete.Api, hanet.HttpMethodDelete,
 		req, config.Cfg.Workflow.DbmApiDomainDelete.Timeout)
 	if err != nil {
 		return err
 	}
-	logger.Debug("DeleteFromDomain response: %s", string(resp))
+	logger.Debug("delete from domain response, domain: %s, instance: %s, resp_len: %d", domainName, instance, len(resp))
 
 	domainDeleteRes := &DomainDeleteRespond{}
 	if err := json.Unmarshal(resp, domainDeleteRes); err != nil {
@@ -261,7 +305,14 @@ func (c *Client) DeleteFromCLB(bkCloudId int, region string, lbid string, lnid s
 		IPs:            []string{ins},
 	}
 
-	logger.Debug("DeleteFromCLB req: %v", req)
+	logger.Debug(
+		"delete from clb request, bk_cloud_id: %d, region: %s, lb_id: %s, listener_id: %s, instance: %s",
+		bkCloudId,
+		region,
+		lbid,
+		lnid,
+		ins,
+	)
 
 	response, err := c.SendRequest(config.Cfg.Workflow.DbmApiCLBDeregister.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiCLBDeregister.Timeout)
@@ -270,7 +321,7 @@ func (c *Client) DeleteFromCLB(bkCloudId int, region string, lbid string, lnid s
 		return err
 	}
 
-	logger.Debug("DeleteFromCLB response: %s", string(response))
+	logger.Debug("delete from clb response, instance: %s, resp_len: %d", ins, len(response))
 
 	// TODO: parse response and check if result is success
 
@@ -287,16 +338,21 @@ func (c *Client) DeleteFromPolaris(bkCloudId int, servname string, servtoken str
 		IPs:          []string{ins},
 	}
 
-	logger.Debug("DeleteFromPolaris req: %v", req)
+	logger.Debug(
+		"delete from polaris request, bk_cloud_id: %d, service_name: %s, instance: %s",
+		bkCloudId,
+		servname,
+		ins,
+	)
 
 	response, err := c.SendRequest(config.Cfg.Workflow.DbmApiPolarisUnbind.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiPolarisUnbind.Timeout)
 	if err != nil {
-		logger.Error("failed to unbind instance (%s) from Polaris, %s", ins, err.Error())
+		logger.Error("failed to unbind instance from polaris, instance: %s, errmsg: %s", ins, err)
 		return err
 	}
 
-	logger.Debug("DeleteFromPolaris response: %s", string(response))
+	logger.Debug("delete from polaris response, instance: %s, resp_len: %d", ins, len(response))
 
 	// TODO: parse response and check if result is success
 
@@ -322,7 +378,14 @@ func (c *Client) SwapMySQLRole(bkCloudId int, masterIp string, masterPort int, s
 		Payloads:     []SwapMySQLRolePayload{payload},
 	}
 
-	logger.Debug("SwapMySQLRole req: %v", req)
+	logger.Debug(
+		"swap mysql role request, bk_cloud_id: %d, master: %s:%d, slave: %s:%d",
+		bkCloudId,
+		masterIp,
+		masterPort,
+		slaveIp,
+		slavePort,
+	)
 
 	response, err := c.SendRequest(config.Cfg.Workflow.DbmApiSwapMysqlRole.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiSwapMysqlRole.Timeout)
@@ -332,7 +395,8 @@ func (c *Client) SwapMySQLRole(bkCloudId int, masterIp string, masterPort int, s
 		return err
 	}
 
-	logger.Debug("SwapMySQLRole response: %s", string(response))
+	logger.Debug("swap mysql role response, master: %s:%d, slave: %s:%d, resp_len: %d",
+		masterIp, masterPort, slaveIp, slavePort, len(response))
 
 	swapResp := &SwapRoleRespond{}
 	if err := json.Unmarshal(response, swapResp); err != nil {
@@ -356,7 +420,12 @@ func (c *Client) SwitchBinlogDumper(bkCloudId int, app string, switchInfos []Dum
 		SwitchInfos:  switchInfos,
 	}
 
-	logger.Debug("SwitchBinlogDumper req: %v", req)
+	logger.Debug(
+		"switch binlogdumper request, bk_cloud_id: %d, bk_biz_id: %s, switch_count: %d",
+		bkCloudId,
+		app,
+		len(switchInfos),
+	)
 
 	response, err := c.SendRequest(config.Cfg.Workflow.DbmApiDumperSwitch.Api, hanet.HttpMethodPost,
 		req, config.Cfg.Workflow.DbmApiDumperSwitch.Timeout)
@@ -365,7 +434,7 @@ func (c *Client) SwitchBinlogDumper(bkCloudId int, app string, switchInfos []Dum
 		return err
 	}
 
-	logger.Debug("SwitchBinlogDumper response: %s", string(response))
+	logger.Debug("switch binlogdumper response, bk_biz_id: %s, resp_len: %d", app, len(response))
 
 	// TODO: parse response and check if result is success
 

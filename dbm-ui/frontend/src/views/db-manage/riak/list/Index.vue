@@ -52,7 +52,9 @@
       @filter-change="handleFilterChange"
       @selection="handleSelection">
       <template #operation>
-        <OperationColumn :cluster-type="ClusterTypes.RIAK">
+        <OperationColumn
+          ref="operationColumnRef"
+          :cluster-type="ClusterTypes.RIAK">
           <template #default="{ data }: { data: RiakModel }">
             <div v-db-console="'riak.clusterManage.addNodes'">
               <OperationBtnStatusTips :data="data">
@@ -82,6 +84,11 @@
                 </AuthButton>
               </OperationBtnStatusTips>
             </div>
+            <ClusterAlarmSubscribe
+              :data="data"
+              db-console-prefix="riak.clusterManage"
+              @click="hideOperationColumn"
+              @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
             <div v-db-console="'riak.clusterManage.disable'">
               <OperationBtnStatusTips :data="data">
                 <AuthButton
@@ -196,6 +203,7 @@
 
   import { ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
+  import ClusterAlarmSubscribe from '@views/db-manage/common/cluster-alarm-subscribe/Index.vue';
   import ClusterBatchOperation from '@views/db-manage/common/cluster-batch-opration/Index.vue';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
@@ -231,6 +239,7 @@
 
   const { handleSelection, selectedIdList, selectedList } = useClusterTableSelect<RiakModel>();
 
+  const operationColumnRef = ref<ComponentExposed<typeof OperationColumn>>();
   const tableRef = useTemplateRef<ComponentExposed<typeof ClusterTable>>('clusterTable');
   const addNodeShow = ref(false);
   const deleteNodeShow = ref(false);
@@ -244,6 +253,10 @@
 
   const fetchData = () => {
     tableRef.value!.fetchData(searchValue.value);
+  };
+
+  const hideOperationColumn = () => {
+    operationColumnRef.value?.hide();
   };
 
   const handleApply = () => {

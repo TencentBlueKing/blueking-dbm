@@ -49,7 +49,7 @@ func buildComponentResource(component webreq.Component, serviceVersion string) c
 	componentResource := coreentity.ComponentResource{
 		ComponentName: component.ComponentName,
 		Replicas:      component.Replicas,
-		Version:       serviceVersion,
+		Version:       &serviceVersion,
 		Request: &coreentity.Resource{
 			CPU:    component.RequestCPU,
 			Memory: component.RequestMemory,

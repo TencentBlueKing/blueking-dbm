@@ -60,3 +60,7 @@ class CheckDBExistSerializer(serializers.Serializer):
 class CheckDBExistResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": {"db1": True, "db2": False}}
+
+
+class GETIGNOREDBSerializer(serializers.Serializer):
+    cluster_ids = serializers.ListField(child=serializers.IntegerField(), help_text=_("集群ID"))

@@ -15,7 +15,7 @@ from typing import List
 from django.db.models import Q
 
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.check_response import CheckResponse
 from backend.db_report.enums import ReportStateType
 from backend.db_report.models import MetaCheckReport
@@ -49,9 +49,16 @@ def checker_wrapper(checker):
                 state=ReportStateType.ABNORMAL.value,
             )
             if cr.instance:
-                out_report.ip = cr.instance.machine.ip
-                out_report.port = cr.instance.port
-                out_report.machine_type = cr.instance.machine_type
+                if isinstance(cr.instance, StorageInstance) or isinstance(cr.instance, ProxyInstance):
+                    out_report.ip = cr.instance.machine.ip
+                    out_report.port = cr.instance.port
+                    out_report.machine_type = cr.instance.machine_type
+                elif isinstance(cr.instance, Machine):
+                    out_report.ip = cr.instance.ip
+                    out_report.port = 0
+                    out_report.machine_type = cr.instance.machine_type
+                else:
+                    raise Exception(f"unexpected cr instance type {type(cr.instance)}")  # noqa
 
             if out_report.cluster_type in [
                 ClusterType.TenDBSingle,

@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 import logging
 from collections import defaultdict
 from math import floor
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
@@ -21,11 +21,15 @@ from backend.configuration.constants import AffinityEnum, DBType
 from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterPhase, ClusterType, InstanceRole, MachineType
 from backend.db_meta.models import Cluster, StorageInstance
+from backend.db_meta.models.city_map import BKSubzone
 from backend.db_report.enums import MetaCheckSubType, ReportStateType
+from backend.flow.utils.redis.redis_report_utils import (
+    RedisReportWriter,
+    delete_old_meta_check_reports,
+    is_cluster_labeled_with,
+)
 from backend.ticket.constants import TICKET_RUNNING_STATUS_SET, TicketType
 from backend.ticket.models.ticket import ClusterOperateRecord
-
-from .base import create_meta_check_report, delete_old_meta_check_reports, is_cluster_labeled_with
 
 logger = logging.getLogger("root")
 
@@ -87,9 +91,11 @@ class RedisAffinityChecker:
     BACKEND_PAIRS_CHECK = "backend_pairs_location"
 
     SKIP_PROXY_CHECK_LABEL = {"directmode": "true"}
+    _subzone_map_cache: Dict[int, str] = {}
 
     def __init__(self):
         """Initialize the affinity checker"""
+        self._writer = RedisReportWriter()
         # ClusterTypes that need to check
         self._supported_cluster_types = [
             ClusterType.TendisTwemproxyRedisInstance.value,  # TendisCache 集群
@@ -114,22 +120,37 @@ class RedisAffinityChecker:
             AffinityEnum.NONE.value,
         }
 
+    def debug_check_cluster(self, cluster_domain: str) -> None:
+        """
+        Debug check a single cluster
+        """
+        self.__class__._subzone_map_cache = BKSubzone.get_subzone_map(get_cache=True)
+        cluster = Cluster.objects.get(immute_domain=cluster_domain)
+        self._check_cluster_affinity(cluster)
+
     def check_all_clusters(self) -> None:
         """
         Check affinity for all Redis clusters
         """
-        delete_old_meta_check_reports(MetaCheckSubType.AffinityViolation, self._supported_cluster_types, 30)
+        # Snapshot subzone names at the beginning of this check run.
+        self.__class__._subzone_map_cache = BKSubzone.get_subzone_map(get_cache=True)
+
+        delete_old_meta_check_reports(
+            MetaCheckSubType.AffinityViolation,
+            self._supported_cluster_types,
+            self._writer.retention_days,
+        )
         for cluster in Cluster.objects.filter(Q(cluster_type__in=self._supported_cluster_types)):
             try:
                 self._check_cluster_affinity(cluster)
             except Exception as e:
-                logger.error(f"affinity_check: error checking cluster {cluster.immute_domain}: {e}", exc_info=True)
+                logger.error("affinity_check: error checking cluster %s: %s", cluster.immute_domain, e, exc_info=True)
 
     def _check_cluster_affinity(self, cluster: Cluster) -> None:
         """
         Check master-slave affinity for a single cluster
         """
-        logger.info(f"affinity_check: start checking cluster {cluster.immute_domain}")
+        logger.info("affinity_check: start checking cluster %s", cluster.immute_domain)
 
         dba_list = DBAdministrator.get_biz_db_type_admins(bk_biz_id=cluster.bk_biz_id, db_type=DBType.Redis.value)
         creator = dba_list[0] if dba_list else "admin"
@@ -138,10 +159,10 @@ class RedisAffinityChecker:
         if affinity_level not in self._supported_levels:
             supported_levels_str = ", ".join(self._supported_levels)
             msg = _(
-                "Cannot perform affinity check: Unsupported affinity level '{}' for Redis. " "Supported levels are: {}"
+                "Cannot perform affinity check: Unsupported affinity level '{}' for Redis. Supported levels are: {}"
             ).format(affinity_level, supported_levels_str)
-            logger.warning(f"affinity_check: {msg}")
-            create_meta_check_report(
+            logger.warning("affinity_check: %s", msg)
+            self._writer.write_meta_report(
                 cluster=cluster,
                 ip="none",
                 port=None,
@@ -156,6 +177,7 @@ class RedisAffinityChecker:
             return
 
         check_results = []
+        expected_subzone_id = self._resolve_expected_subzone_id(cluster.zone_list or [])
 
         # Skip proxy check if cluster is RedisInstance or labeled
         skip_proxy_check = cluster.cluster_type == ClusterType.RedisInstance.value or is_cluster_labeled_with(
@@ -166,20 +188,27 @@ class RedisAffinityChecker:
         # For proxies, we check the stats of their locations
         if not skip_proxy_check:
             proxy_instances = cluster.proxyinstance_set.filter()
-            proxy_result = self._validate_proxies_affinity(proxy_instances, affinity_level)
+            proxy_result = self._validate_proxies_affinity(
+                proxy_instances=proxy_instances,
+                affinity_level=affinity_level,
+                expected_subzone_id=expected_subzone_id,
+            )
             proxy_result["result_type"] = RedisAffinityChecker.PROXY_DISTRIBUTION_CHECK
             proxy_result["identifier"] = "proxies"
             check_results.append(proxy_result)
 
         # For backends, we check each master-slave pair
         master_instances = cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)
-        backend_results = self._validate_backends_affinity(master_instances, affinity_level)
+        backend_results = self._validate_backends_affinity(
+            master_instances=master_instances,
+            affinity_level=affinity_level,
+            expected_subzone_id=expected_subzone_id,
+        )
         for identifier, result in backend_results.items():
             result["result_type"] = RedisAffinityChecker.BACKEND_PAIRS_CHECK
             result["identifier"] = identifier
             check_results.append(result)
 
-        # Create reports based on results
         self._create_affinity_reports(
             cluster=cluster,
             affinity_level=affinity_level,
@@ -192,7 +221,7 @@ class RedisAffinityChecker:
         Check if cluster should be ignored (being destroyed, disabled, or has active operations)
         """
         if cluster.disaster_tolerance_level == AffinityEnum.NONE.value:
-            logger.info(f"affinity_check: will ignore cluster {cluster.immute_domain}, affinity level is NONE")
+            logger.info("affinity_check: will ignore cluster %s, affinity level is NONE", cluster.immute_domain)
             return True
 
         if cluster.phase != ClusterPhase.ONLINE.value:
@@ -215,7 +244,28 @@ class RedisAffinityChecker:
         return False
 
     @classmethod
-    def _validate_proxies_affinity(cls, proxy_instances, affinity_level: AffinityEnum) -> Dict[str, any]:
+    def _resolve_expected_subzone_id(cls, zone_list: List[Union[int, str]]) -> Optional[int]:
+        """
+        Resolve expected subzone from cluster meta zone_list.
+        For SAME_SUBZONE style checks we use the first configured subzone.
+        """
+        if not zone_list:
+            return None
+
+        first_zone = zone_list[0]
+        try:
+            return int(first_zone)
+        except (TypeError, ValueError):
+            logger.warning("affinity_check: invalid zone_list value: %s", first_zone)
+            return None
+
+    @classmethod
+    def _validate_proxies_affinity(
+        cls,
+        proxy_instances,
+        affinity_level: AffinityEnum,
+        expected_subzone_id: Optional[int] = None,
+    ) -> Dict[str, any]:
         """
         Check if proxies fulfill the affinity requirement
 
@@ -246,7 +296,10 @@ class RedisAffinityChecker:
         match affinity_level:
             case AffinityEnum.SAME_SUBZONE_CROSS_SWTICH:
                 msg, state = cls._check_proxies_same_subzone(
-                    subzones_racks_map, subzones_machines_map, subzones_ips_map
+                    racks_map=subzones_racks_map,
+                    machines_map=subzones_machines_map,
+                    ips_map=subzones_ips_map,
+                    expected_subzone_id=expected_subzone_id,
                 )
             case AffinityEnum.CROS_SUBZONE:
                 msg, state = cls._check_proxies_cross_subzone(
@@ -262,31 +315,203 @@ class RedisAffinityChecker:
         return result
 
     @classmethod
-    def _check_proxies_same_subzone(cls, racks_map: dict, machines_map: dict, ips_map: dict) -> Optional[str]:
+    def _append_suggestion(cls, violation_msg: str, suggestion: str) -> str:
+        """Append a normalized suggestion suffix to a violation message."""
+        normalized_violation_msg = str(violation_msg).rstrip("。")
+        return "{}。{}。".format(normalized_violation_msg, str(_("建议：{}").format(suggestion)))
+
+    @classmethod
+    def _get_subzone_display(cls, subzone_id: Union[int, str]) -> str:
+        """Get human readable subzone display name with id fallback."""
+        subzone_name = cls._subzone_map_cache.get(subzone_id)
+        if subzone_name is None:
+            subzone_name = cls._subzone_map_cache.get(str(subzone_id))
+        if subzone_name is None:
+            # Fallback in case helper is used before check initialization.
+            subzone_map = BKSubzone.get_subzone_map(get_cache=True)
+            subzone_name = subzone_map.get(subzone_id) or subzone_map.get(str(subzone_id))
+        return subzone_name or _("园区ID:{}").format(subzone_id)
+
+    @classmethod
+    def _pick_ips_from_subzone(
+        cls,
+        ips_map: dict,
+        target_subzone_id: int,
+        pick_count: int,
+    ) -> List[str]:
+        """
+        Pick IPs from a target subzone, prioritizing racks with more instances first.
+        """
+        if pick_count <= 0:
+            return []
+
+        candidate_racks = []
+        for (subzone_id, rack_id), ips in ips_map.items():
+            if subzone_id != target_subzone_id:
+                continue
+            sorted_ips = sorted(ips)
+            candidate_racks.append((rack_id, sorted_ips))
+
+        candidate_racks.sort(key=lambda item: (-len(item[1]), str(item[0])))
+
+        selected_ips: List[str] = []
+        for _i, rack_ips in candidate_racks:
+            for ip in rack_ips:
+                selected_ips.append(ip)
+                if len(selected_ips) == pick_count:
+                    return selected_ips
+
+        return selected_ips
+
+    @classmethod
+    def _build_proxy_same_subzone_multi_subzone_suggestion(
+        cls,
+        machines_map: dict,
+        ips_map: dict,
+        expected_subzone_id: Optional[int] = None,
+    ) -> str:
+        """
+        Suggest moving proxies into target subzone from cluster meta if provided.
+        Otherwise fallback to majority subzone.
+        """
+        target_subzone_id = expected_subzone_id
+        if target_subzone_id is None:
+            target_subzone_id, _ = max(
+                sorted(machines_map.items(), key=lambda item: str(item[0])),
+                key=lambda item: item[1],
+            )
+
+        total_proxy_count = sum(machines_map.values())
+        target_subzone_count = machines_map.get(target_subzone_id, 0)
+        replace_count = total_proxy_count - target_subzone_count
+
+        non_target_ips = []
+        for (subzone_id, _), ips in sorted(ips_map.items(), key=lambda item: (str(item[0][0]), str(item[0][1]))):
+            if subzone_id != target_subzone_id:
+                non_target_ips.extend(sorted(ips))
+
+        selected_ips = non_target_ips[:replace_count]
+        target_subzone_display = cls._get_subzone_display(target_subzone_id)
+        return _("替换或迁移 {} 台 proxy 机器 [{}]（不在目标园区({})），使所有 proxy 位于同一园区").format(
+            replace_count, ", ".join(selected_ips), target_subzone_display
+        )
+
+    @classmethod
+    def _build_proxy_cross_subzone_suggestion(
+        cls,
+        subzone_id: int,
+        replace_count: int,
+        ips_map: dict,
+    ) -> str:
+        """
+        Suggest moving minimal proxies out of an overloaded subzone.
+        """
+        selected_ips = cls._pick_ips_from_subzone(
+            ips_map=ips_map, target_subzone_id=subzone_id, pick_count=replace_count
+        )
+        subzone_display = cls._get_subzone_display(subzone_id)
+        return _("将 {} 台 proxy 机器 [{}]（位于过载园区({})）迁移到其他园区，以满足园区分布要求").format(
+            replace_count, ", ".join(selected_ips), subzone_display
+        )
+
+    @classmethod
+    def _build_proxy_cross_rack_suggestion(
+        cls,
+        subzone_id: int,
+        replace_count: int,
+        ips_map: dict,
+    ) -> str:
+        """
+        Suggest moving minimal proxies to different racks/switches in the same subzone.
+        """
+        selected_ips = cls._pick_ips_from_subzone(
+            ips_map=ips_map, target_subzone_id=subzone_id, pick_count=replace_count
+        )
+        subzone_display = cls._get_subzone_display(subzone_id)
+        return _("将 {} 台 proxy 机器 [{}]（位于园区({})）替换或迁移到不同机架，以满足机架分布要求").format(
+            replace_count, ", ".join(selected_ips), subzone_display
+        )
+
+    @classmethod
+    def _build_backend_replace_slave_suggestion(
+        cls,
+        master_obj: StorageInstance,
+        slave_obj: StorageInstance,
+        affinity_level: str,
+        target_rule_desc: str,
+    ) -> str:
+        """
+        Suggest replacing/migrating slave machine for master-slave topology violations.
+        """
+        return _("后端主从对 ({}, {}) 不满足亲和级别 '{}'，请将副节点机器 {} 替换或迁移到 {}").format(
+            master_obj.machine.ip,
+            slave_obj.machine.ip,
+            affinity_level,
+            slave_obj.machine.ip,
+            target_rule_desc,
+        )
+
+    @classmethod
+    def _check_proxies_same_subzone(
+        cls,
+        racks_map: dict,
+        machines_map: dict,
+        ips_map: dict,
+        expected_subzone_id: Optional[int] = None,
+    ) -> Optional[str]:
         """Check SAME_SUBZONE_CROSS_SWTICH for proxies"""
         proxy_count = sum(machines_map.values())
         subzone_count = len(racks_map.keys())
         if subzone_count != 1:
             all_ips = [ip for ips in ips_map.values() for ip in ips]
             ips_str = ", ".join(all_ips)
-            return (
-                _("Affinity violation: proxies [{}] are in {} different subzones, expected 1").format(
-                    ips_str, subzone_count
-                ),
-                ReportStateType.ABNORMAL,
+            if expected_subzone_id is None:
+                violation_msg = _("亲和性违规：Proxy [{}] 分布在 {} 个不同园区，期望为 1 个园区").format(ips_str, subzone_count)
+            else:
+                expected_subzone_display = cls._get_subzone_display(expected_subzone_id)
+                violation_msg = _("亲和性违规：Proxy [{}] 分布在 {} 个不同园区，期望位于集群元数据指定的园区({})").format(
+                    ips_str, subzone_count, expected_subzone_display
+                )
+            suggestion = cls._build_proxy_same_subzone_multi_subzone_suggestion(
+                machines_map=machines_map,
+                ips_map=ips_map,
+                expected_subzone_id=expected_subzone_id,
             )
+            return (cls._append_suggestion(violation_msg, suggestion), ReportStateType.ABNORMAL)
 
         subzone_id = list(racks_map.keys())[0]
+        if expected_subzone_id is not None and subzone_id != expected_subzone_id:
+            all_ips_in_subzone = [ip for (sz_id, _), ips in ips_map.items() if sz_id == subzone_id for ip in ips]
+            ips_str = ", ".join(all_ips_in_subzone)
+            current_subzone_display = cls._get_subzone_display(subzone_id)
+            expected_subzone_display = cls._get_subzone_display(expected_subzone_id)
+            violation_msg = _("亲和性违规：Proxy [{}] 位于园区({})，期望位于集群元数据指定的园区({})").format(
+                ips_str, current_subzone_display, expected_subzone_display
+            )
+            suggestion = cls._build_proxy_same_subzone_multi_subzone_suggestion(
+                machines_map=machines_map,
+                ips_map=ips_map,
+                expected_subzone_id=expected_subzone_id,
+            )
+            return cls._append_suggestion(violation_msg, suggestion), ReportStateType.ABNORMAL
+
         rack_count = len(list(racks_map.values())[0])
         ok, min_required_racks = cls._cross_rack_check_and_get_limits(proxy_count, rack_count)
         if not ok:
             # Collect all IPs for this subzone across all racks
             all_ips_in_subzone = [ip for (sz_id, _), ips in ips_map.items() if sz_id == subzone_id for ip in ips]
             ips_str = ", ".join(all_ips_in_subzone)
-            msg = _(
-                "Affinity violation: proxies [{}] in subzone(id: {}) are in {} rack(s), expected at least {} racks"
-            ).format(ips_str, subzone_id, rack_count, min_required_racks)
-            return msg, ReportStateType.WARNING
+            subzone_display = cls._get_subzone_display(subzone_id)
+            violation_msg = _("亲和性违规：Proxy [{}] 在园区({}) 内仅分布在 {} 个机架，期望至少 {} 个机架").format(
+                ips_str, subzone_display, rack_count, min_required_racks
+            )
+            replace_count = max(0, min_required_racks - rack_count)
+            suggestion = cls._build_proxy_cross_rack_suggestion(
+                subzone_id=subzone_id,
+                replace_count=replace_count,
+                ips_map=ips_map,
+            )
+            return cls._append_suggestion(violation_msg, suggestion), ReportStateType.WARNING
         return None, ReportStateType.NORMAL
 
     @classmethod
@@ -304,10 +529,17 @@ class RedisAffinityChecker:
             ips_str = ", ".join(all_ips_in_subzone)
 
             if sub_proxy_count > max_proxies_per_subzone:
-                msg = _("Affinity violation: {} proxies [{}] in subzone(id: {}) exceed the limit of {}").format(
-                    sub_proxy_count, ips_str, subzone_id, max_proxies_per_subzone
+                subzone_display = cls._get_subzone_display(subzone_id)
+                violation_msg = _("亲和性违规：{} 个 proxy [{}] 在园区({}) 内超过上限 {}").format(
+                    sub_proxy_count, ips_str, subzone_display, max_proxies_per_subzone
                 )
-                return msg, ReportStateType.ABNORMAL
+                replace_count = sub_proxy_count - max_proxies_per_subzone
+                suggestion = cls._build_proxy_cross_subzone_suggestion(
+                    subzone_id=subzone_id,
+                    replace_count=replace_count,
+                    ips_map=ips_map,
+                )
+                return cls._append_suggestion(violation_msg, suggestion), ReportStateType.ABNORMAL
 
         return None, ReportStateType.NORMAL
 
@@ -323,9 +555,17 @@ class RedisAffinityChecker:
                 # Collect all IPs for this subzone across all racks
                 all_ips_in_subzone = [ip for (sz_id, _), ips in ips_map.items() if sz_id == subzone_id for ip in ips]
                 ips_str = ", ".join(all_ips_in_subzone)
-                msg += _(
-                    "Affinity violation: {} proxies [{}] in subzone(id: {}) are in {} rack(s), expected at least {} racks\n"
-                ).format(sub_proxy_count, ips_str, subzone_id, rack_count, min_required_racks)
+                subzone_display = cls._get_subzone_display(subzone_id)
+                violation_msg = _("亲和性违规：{} 个 proxy [{}] 在园区({}) 内仅分布在 {} 个机架，期望至少 {} 个机架\n").format(
+                    sub_proxy_count, ips_str, subzone_display, rack_count, min_required_racks
+                )
+                replace_count = max(0, min_required_racks - rack_count)
+                suggestion = cls._build_proxy_cross_rack_suggestion(
+                    subzone_id=subzone_id,
+                    replace_count=replace_count,
+                    ips_map=ips_map,
+                )
+                msg += cls._append_suggestion(violation_msg.rstrip("\n"), suggestion) + "\n"
         return msg, ReportStateType.ABNORMAL if msg else ReportStateType.NORMAL
 
     @classmethod
@@ -335,7 +575,12 @@ class RedisAffinityChecker:
         return n_rack >= min_required_racks, min_required_racks
 
     @classmethod
-    def _validate_backends_affinity(cls, master_instances, affinity_level: AffinityEnum) -> Dict[str, Dict[str, any]]:
+    def _validate_backends_affinity(
+        cls,
+        master_instances,
+        affinity_level: AffinityEnum,
+        expected_subzone_id: Optional[int] = None,
+    ) -> Dict[str, Dict[str, any]]:
         """
         Check if the master-slave pairs in cluster fulfill the affinity level
 
@@ -350,7 +595,9 @@ class RedisAffinityChecker:
         backend_results = {}
         for master_ip, instances in machine_instances.items():
             backend_result, slave_ips = cls._check_master_slave_affinity(
-                master_instances=instances, affinity_level=affinity_level
+                master_instances=instances,
+                affinity_level=affinity_level,
+                expected_subzone_id=expected_subzone_id,
             )
             identifier = master_ip if slave_ips is None else ", ".join(slave_ips)
             backend_results[identifier] = backend_result
@@ -359,7 +606,10 @@ class RedisAffinityChecker:
 
     @classmethod
     def _check_master_slave_affinity(
-        cls, master_instances: List[StorageInstance], affinity_level: str
+        cls,
+        master_instances: List[StorageInstance],
+        affinity_level: str,
+        expected_subzone_id: Optional[int] = None,
     ) -> Tuple[Dict[str, any], List[str]]:
         """
         Check affinity for all instances on a master machine
@@ -394,14 +644,14 @@ class RedisAffinityChecker:
                         all_slave_machines[slave_machine_ip] = slave_obj
             except Exception as e:
                 warning_msg = _("Error getting slaves for instance {}: {}").format(master_obj.ip_port, str(e))
-                logger.warning(f"affinity_check: {warning_msg}", exc_info=True)
+                logger.warning("affinity_check: %s", warning_msg, exc_info=True)
                 instances_without_slaves.append(master_obj.ip_port)
 
         if not all_slave_machines:
             warning_msg = _("Master machine {} has no slave configured").format(master_ip)
             if instances_without_slaves:
                 warning_msg += _(" (instances: {})").format(", ".join(instances_without_slaves))
-            logger.warning(f"affinity_check: {warning_msg}")
+            logger.warning("affinity_check: %s", warning_msg)
             result["msg"] = warning_msg
             result["state"] = ReportStateType.WARNING.value
             return result, None
@@ -414,7 +664,11 @@ class RedisAffinityChecker:
             msg = None
             match affinity_level:
                 case AffinityEnum.SAME_SUBZONE_CROSS_SWTICH.value:
-                    msg = cls._check_backend_same_subzone(first_master, slave_obj)
+                    msg = cls._check_backend_same_subzone(
+                        first_master,
+                        slave_obj,
+                        expected_subzone_id=expected_subzone_id,
+                    )
                 case AffinityEnum.CROS_SUBZONE.value:
                     msg = cls._check_backend_cross_subzone(first_master, slave_obj)
                 case AffinityEnum.CROSS_RACK.value:
@@ -427,7 +681,7 @@ class RedisAffinityChecker:
                 compliant_slaves.append(slave_machine_ip)
 
         if violation_msgs:
-            result["msg"] = "; ".join(violation_msgs)
+            result["msg"] = "; ".join(str(msg) for msg in violation_msgs)
             result["state"] = ReportStateType.ABNORMAL.value
         else:
             slaves_str = ", ".join(compliant_slaves)
@@ -442,14 +696,60 @@ class RedisAffinityChecker:
         cls,
         master_obj: StorageInstance,
         slave_obj: StorageInstance,
+        expected_subzone_id: Optional[int] = None,
     ) -> Optional[str]:
         """Check SAME_SUBZONE_CROSS_SWTICH affinity for master-slave pair"""
-        if master_obj.machine.bk_sub_zone_id != slave_obj.machine.bk_sub_zone_id:
-            return _(
-                "Affinity violation: master {} and slave {} " "are in different subzones, expected the same subzone"
-            ).format(master_obj.machine.ip, slave_obj.machine.ip)
+        master_subzone_id = master_obj.machine.bk_sub_zone_id
+        slave_subzone_id = slave_obj.machine.bk_sub_zone_id
 
-        return cls._check_backend_cross_rack(master_obj, slave_obj)
+        if master_obj.machine.bk_sub_zone_id != slave_obj.machine.bk_sub_zone_id:
+            expected_display = (
+                cls._get_subzone_display(expected_subzone_id) if expected_subzone_id is not None else None
+            )
+            master_subzone_display = cls._get_subzone_display(master_subzone_id)
+            slave_subzone_display = cls._get_subzone_display(slave_subzone_id)
+            violation_msg = _("亲和性违规：主节点 {} 位于园区({})，副节点 {} 位于园区({})，期望位于同一园区").format(
+                master_obj.machine.ip,
+                master_subzone_display,
+                slave_obj.machine.ip,
+                slave_subzone_display,
+            )
+            target_rule_desc = (
+                _("园区({}) 且不同机架").format(expected_display)
+                if expected_display
+                else _("与主节点 {} 位于同一园区且不同机架").format(master_obj.machine.ip)
+            )
+            suggestion = cls._build_backend_replace_slave_suggestion(
+                master_obj=master_obj,
+                slave_obj=slave_obj,
+                affinity_level=AffinityEnum.SAME_SUBZONE_CROSS_SWTICH.value,
+                target_rule_desc=target_rule_desc,
+            )
+            return cls._append_suggestion(violation_msg, suggestion)
+
+        if expected_subzone_id is not None and master_subzone_id != expected_subzone_id:
+            current_subzone_display = cls._get_subzone_display(master_subzone_id)
+            expected_subzone_display = cls._get_subzone_display(expected_subzone_id)
+            violation_msg = _("亲和性违规：主节点 {} 与副节点 {} 位于园区({})，期望位于集群元数据指定的园区({})").format(
+                master_obj.machine.ip,
+                slave_obj.machine.ip,
+                current_subzone_display,
+                expected_subzone_display,
+            )
+            suggestion = cls._build_backend_replace_slave_suggestion(
+                master_obj=master_obj,
+                slave_obj=slave_obj,
+                affinity_level=AffinityEnum.SAME_SUBZONE_CROSS_SWTICH.value,
+                target_rule_desc=_("园区({}) 且不同机架").format(expected_subzone_display),
+            )
+            return cls._append_suggestion(violation_msg, suggestion)
+
+        return cls._check_backend_cross_rack(
+            master_obj=master_obj,
+            slave_obj=slave_obj,
+            affinity_level=AffinityEnum.SAME_SUBZONE_CROSS_SWTICH.value,
+            target_rule_desc=_("与主节点 {} 位于同一园区且不同机架").format(master_obj.machine.ip),
+        )
 
     @classmethod
     def _check_backend_cross_subzone(
@@ -459,9 +759,16 @@ class RedisAffinityChecker:
     ) -> Optional[str]:
         """Check CROS_SUBZONE affinity for master-slave pair"""
         if master_obj.machine.bk_sub_zone_id == slave_obj.machine.bk_sub_zone_id:
-            return _(
-                "Affinity violation: master {} and slave {} " "are in the same subzone, expected different subzones"
-            ).format(master_obj.machine.ip, slave_obj.machine.ip)
+            violation_msg = _("亲和性违规：主节点 {} 与副节点 {} 位于同一园区，期望位于不同园区").format(
+                master_obj.machine.ip, slave_obj.machine.ip
+            )
+            suggestion = cls._build_backend_replace_slave_suggestion(
+                master_obj=master_obj,
+                slave_obj=slave_obj,
+                affinity_level=AffinityEnum.CROS_SUBZONE.value,
+                target_rule_desc=_("与主节点 {} 不同的园区").format(master_obj.machine.ip),
+            )
+            return cls._append_suggestion(violation_msg, suggestion)
         return None
 
     @classmethod
@@ -469,6 +776,8 @@ class RedisAffinityChecker:
         cls,
         master_obj: StorageInstance,
         slave_obj: StorageInstance,
+        affinity_level: str = AffinityEnum.CROSS_RACK.value,
+        target_rule_desc: Optional[str] = None,
     ) -> Optional[str]:
         """Check CROSS_RACK affinity for master-slave pair"""
         # If they are in different subzones, CROSS_RACK is satisfied regardless of rack
@@ -477,14 +786,21 @@ class RedisAffinityChecker:
 
         # Same subzone (or subzone unknown) - must be in different racks
         if master_obj.machine.bk_rack_id == slave_obj.machine.bk_rack_id:
-            return _(
-                "Affinity violation: master {} and slave {} " "are in the same rack, expected different racks"
-            ).format(master_obj.machine.ip, slave_obj.machine.ip)
+            violation_msg = _("亲和性违规：主节点 {} 与副节点 {} 位于同一机架，期望位于不同机架").format(
+                master_obj.machine.ip, slave_obj.machine.ip
+            )
+            final_target_rule = target_rule_desc or _("与主节点 {} 不同的机架（或不同园区）").format(master_obj.machine.ip)
+            suggestion = cls._build_backend_replace_slave_suggestion(
+                master_obj=master_obj,
+                slave_obj=slave_obj,
+                affinity_level=affinity_level,
+                target_rule_desc=final_target_rule,
+            )
+            return cls._append_suggestion(violation_msg, suggestion)
         return None
 
-    @classmethod
     def _create_affinity_reports(
-        cls,
+        self,
         cluster: Cluster,
         affinity_level: str,
         check_results: list[Dict],
@@ -508,11 +824,9 @@ class RedisAffinityChecker:
                 - machine_type: MachineType (optional, depends on result_type)
                 - proxy_count: int (only for proxy_distribution)
         """
-        # Count failed checks
         failed_checks = [result for result in check_results if result["state"] != ReportStateType.NORMAL.value]
         has_violations = len(failed_checks) > 0
 
-        # Calculate total machines for success message
         total_machines = 0
         backend_pair_count = 0
         for result in check_results:
@@ -520,17 +834,17 @@ class RedisAffinityChecker:
                 total_machines += result.get("proxy_count", 0)
             elif result["result_type"] == RedisAffinityChecker.BACKEND_PAIRS_CHECK:
                 backend_pair_count += 1
-        total_machines += backend_pair_count * 2  # Each backend pair has 2 machines
+        total_machines += backend_pair_count * 2
 
         if not has_violations:
-            msg = _("Affinity check passed: All {} machines comply with " "affinity level '{}'").format(
+            msg = _("Affinity check passed: All {} machines comply with affinity level '{}'").format(
                 total_machines, affinity_level
             )
-            logger.info(f"affinity_check: cluster {cluster.immute_domain} passed affinity check")
+            logger.info("affinity_check: cluster %s passed affinity check", cluster.immute_domain)
 
-            create_meta_check_report(
+            self._writer.write_meta_report(
                 cluster=cluster,
-                ip="all",  # Cluster-level report
+                ip="all",
                 port=None,
                 subtype=MetaCheckSubType.AffinityViolation,
                 msg=msg,
@@ -546,9 +860,8 @@ class RedisAffinityChecker:
                 f"affinity violations and {total_warnings} warnings"
             )
 
-            # Create individual report for each failed check
             for result in failed_checks:
-                create_meta_check_report(
+                self._writer.write_meta_report(
                     cluster=cluster,
                     ip=result["identifier"],
                     port=None,

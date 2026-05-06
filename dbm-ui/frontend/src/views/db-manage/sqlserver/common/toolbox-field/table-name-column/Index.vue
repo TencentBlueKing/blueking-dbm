@@ -81,7 +81,7 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<string[]>({
-    required: true,
+    default: () => [],
   });
 
   const { t } = useI18n();
@@ -143,7 +143,7 @@
     if (props.disabledMethod) {
       return props.disabledMethod();
     }
-    return props.clusterId ? false : t('请先选择集群');
+    return props.clusterId ? false : t('请输入合法的集群域名');
   };
 
   const handleBatchEditConfirm = () => {

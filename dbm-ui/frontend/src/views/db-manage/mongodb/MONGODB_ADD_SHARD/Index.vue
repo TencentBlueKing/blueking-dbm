@@ -54,6 +54,7 @@
             </EditableColumn>
             <AddShardsNumColumn
               v-model="item.add_shards_num"
+              :cluster-id="item.cluster.id"
               :single-host-shard-num="item.cluster.single_host_shard_num"
               @batch-edit="handleBatchEdit" />
             <EditableColumn
@@ -84,7 +85,6 @@
               v-model="item.cluster.current_spec_id"
               :cluster-type="DBTypes.MONGODB"
               field="cluster.current_spec_id"
-              label="当前规格"
               :machine-type="MachineTypes.MONGODB"
               required />
             <ResourceTagColumn
@@ -163,7 +163,7 @@
   export interface IDataRow {
     add_shards_num: number;
     cluster: {
-      cluster_type: string;
+      cluster_type: ClusterTypes;
       current_spec_id: number;
       disaster_tolerance_level: string;
       id: number;
@@ -314,7 +314,6 @@
       }
     });
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...newList];
-    window.changeConfirm = true;
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
@@ -382,7 +381,6 @@
 
   const handleReset = () => {
     Object.assign(formData, createDefaultFormData());
-    window.changeConfirm = false;
   };
 </script>
 

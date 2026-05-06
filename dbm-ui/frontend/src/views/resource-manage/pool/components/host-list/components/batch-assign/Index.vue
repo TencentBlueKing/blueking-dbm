@@ -59,6 +59,10 @@
   import DbResourceModel from '@services/model/db-resource/DbResource';
   import { updateResource } from '@services/source/dbresourceResource';
 
+  import { useSystemEnviron } from '@stores';
+
+  import { MachineEvents } from '@common/const/machineEvents';
+
   import { messageSuccess } from '@utils';
 
   import FormPanel from './components/FormPanel.vue';
@@ -79,7 +83,12 @@
   });
 
   const { t } = useI18n();
+  const route = useRoute();
+  const systemEnvironStore = useSystemEnviron();
   const formPanelRef = useTemplateRef('formPanelRef');
+
+  const isBusiness = route.name === 'BizResourcePool';
+  const defaultBizId = systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ;
 
   const width = Math.ceil(window.innerWidth * 0.67);
   const contentHeight = Math.ceil(window.innerHeight * 0.67 - 48);
@@ -125,13 +134,39 @@
 
   const handleSubmit = async () => {
     const data = await formPanelRef.value!.getValue();
+
+    const messageInfo = formPanelRef.value!.getMessageInfo();
+    const bizAfter = messageInfo.bizName;
+    const dbAfter = messageInfo.dbName;
+    const tagAfter = messageInfo.labelName.join('，') || '';
+    const remarkList = props.selected.map((item) => {
+      const bizBefore = item.forBizDisplay;
+      const dbBefore = item.resourceTypeDisplay;
+      const tagBefore = item.labels.map((labelItem) => labelItem.name).join('，') || '';
+
+      const remarkItem = {
+        for_biz: { after_value: bizAfter, before_value: bizBefore },
+        resource_type: { after_value: dbAfter, before_value: dbBefore },
+      };
+      if (data.for_biz !== 0) {
+        Object.assign(remarkItem, { labels: { after_value: tagAfter, before_value: tagBefore } });
+      }
+      return remarkItem;
+    });
+
     runUpdate({
+      bk_biz_id: isBusiness ? window.PROJECT_CONFIG.BIZ_ID : defaultBizId,
       bk_host_ids: hostList.value.map((item) => item.bk_host_id),
       for_biz: data.for_biz as number,
+      host_id_ip_map: props.selected.reduce<Record<string, string>>((prev, item) => {
+        return Object.assign(prev, { [item.bk_host_id]: item.ip });
+      }, {}),
       labels: data.labels,
       rack_id: '',
+      remark: remarkList,
       resource_type: data.resource_type as string,
       storage_device: {},
+      update_type: MachineEvents.RESOURCE_OWNER,
     });
   };
 

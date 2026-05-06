@@ -56,12 +56,12 @@ class _DBConfigApi(BaseApi):
         self.save_conf_item = self.generate_data_api(
             method="POST",
             url="bkconfig/v1/confitem/save",
-            description=_("保存不可变配置（如字符集等）"),
+            description=_("保存无版本概念的配置（如部署，备份，监控），现在与 upsert 接口完全相同了"),
         )
         self.upsert_conf_item = self.generate_data_api(
             method="POST",
             url="bkconfig/v1/confitem/upsert",
-            description=_("编辑发布层级（业务、集群、模块）配置"),
+            description=_("保存有版本概念的配置（如参数）"),
         )
         self.batch_get_conf_item = self.generate_data_api(
             method="POST",
@@ -87,6 +87,26 @@ class _DBConfigApi(BaseApi):
             method="POST",
             url="bkconfig/v1/version/change-bkbizid",
             description=_("集群转移业务"),
+        )
+        self.change_plat_config = self.generate_data_api(
+            method="POST",
+            url="bkconfig/v1/confname/change",
+            description=_("修改平台级配置项定义"),
+        )
+        self.change_config_file_def = self.generate_data_api(
+            method="POST",
+            url="bkconfig/v1/conffile/change",
+            description=_("修改配置文件本身的定义"),
+        )
+        self.clone_module_config = self.generate_data_api(
+            method="POST",
+            url="bkconfig/v1/confitem/clonemodule",
+            description=_("克隆模块配置"),
+        )
+        self.clone_cluster_config = self.generate_data_api(
+            method="POST",
+            url="bkconfig/v1/confitem/clonecluster",
+            description=_("克隆集群配置"),
         )
 
 

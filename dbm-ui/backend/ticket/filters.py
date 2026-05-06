@@ -16,7 +16,7 @@ from django_filters import rest_framework as filters
 
 from backend.db_meta.models import Cluster
 from backend.db_services.dbresource.models import ResourceReplenishRecord
-from backend.ticket.constants import TODO_RUNNING_STATUS, TicketStatus, TodoType
+from backend.ticket.constants import TODO_RUNNING_STATUS, TicketStatus, TicketType, TodoType
 from backend.ticket.models import ClusterOperateRecord, InstanceOperateRecord, Ticket, Todo
 
 
@@ -31,6 +31,9 @@ class TicketListFilter(filters.FilterSet):
     bk_biz_ids = filters.CharFilter(field_name="bk_biz_ids", method="filter_bk_biz_ids", label=_("业务ID列表(逗号分隔)"))
     db_type = filters.CharFilter(field_name="db_type", method="filter_db_type", label=_("db类型"))
     replenish = filters.CharFilter(field_name="replenish", method="filter_replenish", label=_("补货记录"))
+    replenish_db_type = filters.CharFilter(
+        field_name="replenish_db_type", method="filter_replenish_db_type", label=_("补货的组件类型")
+    )
 
     class Meta:
         model = Ticket
@@ -50,12 +53,6 @@ class TicketListFilter(filters.FilterSet):
     def filter_db_type(self, queryset, name, value):
         db_types = [db_type for db_type in value.split(",")]
         return queryset.filter(group__in=db_types)
-
-    def filter_replenish(self, queryset, name, value):
-        record_ids = value.split(",")
-        ticket_ids = ResourceReplenishRecord.objects.filter(id__in=record_ids).values_list("ticket_ids", flat=True)
-        ticket_ids = list(itertools.chain(*ticket_ids))
-        return queryset.filter(id__in=ticket_ids)
 
     def filter_ids(self, queryset, name, value):
         ids = list(map(int, value.split(",")))
@@ -108,8 +105,62 @@ class TicketListFilter(filters.FilterSet):
         biz_ids = [int(x.strip()) for x in value.split(",") if x.strip()]
         return queryset.filter(bk_biz_id__in=biz_ids)
 
+    def filter_replenish(self, queryset, name, value):
+        # 补货记录过滤
+        record_ids = value.split(",")
+        ticket_ids = ResourceReplenishRecord.objects.filter(id__in=record_ids).values_list("ticket_ids", flat=True)
+        ticket_ids = list(itertools.chain(*ticket_ids))
+        return queryset.filter(id__in=ticket_ids)
+
+    def filter_replenish_db_type(self, queryset, name, value):
+        # 补货类型存在details里面，json 过滤会有效率问题。不过考虑补货单数量级不大
+        db_types = value.split(",")
+        return queryset.filter(ticket_type=TicketType.RESOURCE_HCM_REPLENISH, details__db_type__in=db_types)
+
     def order_ticket(self, queryset, name, value):
         return queryset.order_by(value)
+
+
+class ClusterDisableTodoFilter(filters.FilterSet):
+    db_type = filters.CharFilter(field_name="db_type", method="filter_db_type", label=_("db类型"))
+    disable_person = filters.CharFilter(field_name="disable_person", method="filter_disable_person", label=_("禁用人"))
+    immute_domain = filters.CharFilter(field_name="immute_domain", method="filter_immute_domain", label=_("域名"))
+    is_assist = filters.BooleanFilter(field_name="is_assist", method="filter_is_assist", label=_("是否协助"))
+    cluster_id = filters.NumberFilter(field_name="cluster_id", method="filter_cluster_id", label=_("集群ID"))
+    bk_biz_id = filters.CharFilter(field_name="bk_biz_id", method="filter_bk_biz_id", label=_("业务ID"))
+    create_at__lte = filters.DateTimeFilter(field_name="create_at", lookup_expr="lte", label=_("创建时间早于"))
+    create_at__gte = filters.DateTimeFilter(field_name="create_at", lookup_expr="gte", label=_("创建时间晚于"))
+
+    class Meta:
+        model = Todo
+        fields = []
+
+    def filter_db_type(self, queryset, name, value):
+        if value:
+            return queryset.filter(context__db_type=value)
+        return queryset
+
+    def filter_disable_person(self, queryset, name, value):
+        return queryset.filter(ticket__creator__in=value.split(","))
+
+    def filter_immute_domain(self, queryset, name, value):
+        if value:
+            return queryset.filter(context__immute_domain__icontains=value)
+        return queryset
+
+    def filter_is_assist(self, queryset, name, value):
+        user = self.request.user.username
+        user_field = "helpers" if value else "operators"
+        return queryset.filter(**{f"{user_field}__contains": user})
+
+    def filter_cluster_id(self, queryset, name, value):
+        if value:
+            return queryset.filter(context__cluster_id=int(value))
+        return queryset
+
+    def filter_bk_biz_id(self, queryset, name, value):
+        bk_biz_ids = [int(biz_id) for biz_id in value.split(",")]
+        return queryset.filter(ticket__bk_biz_id__in=bk_biz_ids)
 
 
 class OpRecordListFilter(filters.FilterSet):

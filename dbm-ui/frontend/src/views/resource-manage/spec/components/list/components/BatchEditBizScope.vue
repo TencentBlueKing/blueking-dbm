@@ -6,15 +6,13 @@
     <DbPopconfirm
       :confirm-handler="() => handleBatchUpdate()"
       :hide-on-click="false"
-      placement="bottom"
+      placement="top"
       :title="t('批量修改应用范围')"
       :width="430">
       <BkButton
-        v-bk-tooltips="{
-          content: t('请选择规格'),
-          disabled: !disabled,
-        }"
-        :disabled="disabled">
+        class="opration-button"
+        :disabled="disabled"
+        text>
         {{ t('修改应用范围') }}
       </BkButton>
       <template #content>

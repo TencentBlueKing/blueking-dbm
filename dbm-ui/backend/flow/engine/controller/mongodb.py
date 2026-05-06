@@ -30,8 +30,14 @@ from backend.flow.engine.bamboo.scene.mongodb.mongodb_replace import MongoReplac
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_restore import MongoRestoreFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_scale_node import MongoScaleNodeFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_scale_storage import MongoScaleFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_standardization import MongoInstallDBmonAndOperatorCCFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version import MongoUpgradeVersionFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_user import MongoUserFlow
+from backend.flow.engine.bamboo.scene.mongodb.validate.mongodb_instance_migrate_validate import (
+    MongodbInstanceMigrateValidator,
+)
 from backend.flow.engine.controller.base import BaseController
+from backend.flow.engine.validate.base_validate import validates_with
 
 
 class MongoDBController(BaseController):
@@ -65,6 +71,10 @@ class MongoDBController(BaseController):
     def mongo_pitr_restore(self):
         # 发起PITR恢复任务
         MongoPitrRestoreFlow(root_id=self.root_id, data=self.ticket_data).start()
+
+    def mongo_upgrade_version(self):
+        # 发起版本升级任务
+        MongoUpgradeVersionFlow(root_id=self.root_id, data=self.ticket_data).start()
 
     def install_dbmon(self):
         # 部署MongoDB bk-dbmon
@@ -219,6 +229,7 @@ class MongoDBController(BaseController):
         flow = MongoDBClusterAddShardFlow(root_id=self.root_id, data=self.ticket_data)
         flow.multi_cluster_add_shard_flow()
 
+    @validates_with(MongodbInstanceMigrateValidator)
     def instance_migrate(self):
         """
         instance迁移
@@ -240,3 +251,11 @@ class MongoDBController(BaseController):
 
         flow = MongoDBInstanceFixStatusFlow(root_id=self.root_id, data=self.ticket_data)
         flow.start()
+
+    def cluster_standardization(self):
+        """
+        集群标准化
+        """
+
+        flow = MongoInstallDBmonAndOperatorCCFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.cluster_standardization()

@@ -41,7 +41,8 @@ func (c *PartitionExecComp) TendbClusterPartition() (err error) {
 			Port:  c.Params.Cluster.Port,
 		}
 	}
-	// 使用带缓冲的channel实现并发控制，最大并发数为10
+	// 使用带缓冲的channel实现并发控制，最大并发数为3
+	// TODO: 需要根据实际情况调整并发数 如果单机分片比较少 可以根据机器数据量调整并发数
 	concurrency := 3
 	sem := make(chan struct{}, concurrency)
 	errCh := make(chan error, len(c.Params.Configs))
@@ -63,7 +64,7 @@ func (c *PartitionExecComp) TendbClusterPartition() (err error) {
 					ShardResults: []*PartitionShardResult{},
 				},
 			}
-			err := c.ExecuteOneConfigOnShards(&tdbCluPartConf, forceInitInfo)
+			err := c.ExecuteOneConfigOnShards(&tdbCluPartConf, forceInitInfo, c.Params.PartialForce)
 
 			// 以分区配置为维度，上报执行结果
 			partitionResult := &PartitionResultReportEvent{
@@ -109,7 +110,7 @@ func (c *PartitionExecComp) TendbClusterPartition() (err error) {
 }
 
 // 在所有分片上执行同一个分区配置
-func (c *PartitionExecComp) ExecuteOneConfigOnShards(tdbCluPartConf *TdbCluPartConf, forceInitInfo *ForceInitInfo) (err error) {
+func (c *PartitionExecComp) ExecuteOneConfigOnShards(tdbCluPartConf *TdbCluPartConf, forceInitInfo *ForceInitInfo, partialForce bool) (err error) {
 
 	const maxConcurrency = 3
 	var wg sync.WaitGroup
@@ -146,7 +147,7 @@ func (c *PartitionExecComp) ExecuteOneConfigOnShards(tdbCluPartConf *TdbCluPartC
 				return
 			}
 
-			tdbCluPartConf.ExecuteOneShardPartition(tdbCluPartConf, shard, shardConn, partitionShardResult, forceInitInfo)
+			tdbCluPartConf.ExecuteOneShardPartition(tdbCluPartConf, shard, shardConn, partitionShardResult, forceInitInfo, partialForce)
 
 			if !partitionShardResult.ShardStatus {
 				mu.Lock()
@@ -172,7 +173,7 @@ func (c *PartitionExecComp) ExecuteOneConfigOnShards(tdbCluPartConf *TdbCluPartC
 
 // ExecuteOneShardPartition 在指定分片上执行分区相关操作。
 // 获取该分片上的真实库表信息后，逐一执行分区任务，返回分片执行结果
-func (pc *TdbCluPartConf) ExecuteOneShardPartition(tdbCluPartConf *TdbCluPartConf, shard *ShardInfo, conn *native.DbWorker, partitionShardResult *PartitionShardResult, forceInitInfo *ForceInitInfo) {
+func (pc *TdbCluPartConf) ExecuteOneShardPartition(tdbCluPartConf *TdbCluPartConf, shard *ShardInfo, conn *native.DbWorker, partitionShardResult *PartitionShardResult, forceInitInfo *ForceInitInfo, partialForce bool) {
 	// 会基于传入分片的 `ShardID` 改写配置中的 `DbLike`，获取该分片上的真实库表信息
 	ShardDbLike := fmt.Sprintf("%s_%d", tdbCluPartConf.DbLike, shard.ShardID)
 	partitionDetails, err := GetOneDbTbRealInfo(conn, ShardDbLike, tdbCluPartConf.TbLike)
@@ -183,20 +184,20 @@ func (pc *TdbCluPartConf) ExecuteOneShardPartition(tdbCluPartConf *TdbCluPartCon
 	}
 
 	// 具体执行分区操作
-	tdbCluPartConf.ExecuteOneConfPartition(conn, partitionDetails, partitionShardResult, forceInitInfo)
+	tdbCluPartConf.ExecuteOneConfPartition(conn, partitionDetails, partitionShardResult, forceInitInfo, partialForce)
 }
 
 // ExecuteOneConfPartition
 // 维度：
 // 一个分区配置
 // 一个具体的库表
-func (pc *TdbCluPartConf) ExecuteOneConfPartition(conn *native.DbWorker, partitionDetails []*PartitionDetail, partitionShardResult *PartitionShardResult, forceInitInfo *ForceInitInfo) {
+func (pc *TdbCluPartConf) ExecuteOneConfPartition(conn *native.DbWorker, partitionDetails []*PartitionDetail, partitionShardResult *PartitionShardResult, forceInitInfo *ForceInitInfo, partialForce bool) {
 
 	// 计算保留的分区数量
 	pc.ReservedPartition = int(math.Ceil(float64(pc.ExpireTime) / float64(pc.PartitionTimeInterval)))
 
 	for _, pd := range partitionDetails {
-		ptError := pc.ExecuteOneTbPartition(pd, conn, forceInitInfo)
+		ptError := pc.ExecuteOneTbPartition(pd, conn, forceInitInfo, partialForce)
 		if !ptError.Status {
 			partitionShardResult.ShardStatus = false
 			partitionShardResult.TableExecInfos = append(partitionShardResult.TableExecInfos, ptError)
@@ -206,7 +207,7 @@ func (pc *TdbCluPartConf) ExecuteOneConfPartition(conn *native.DbWorker, partiti
 }
 
 // ExecuteOneTbPartition 具体的一个表为维度
-func (pc *TdbCluPartConf) ExecuteOneTbPartition(pd *PartitionDetail, conn *native.DbWorker, forceInitInfo *ForceInitInfo) (ptError *PartitionTableExecInfo) {
+func (pc *TdbCluPartConf) ExecuteOneTbPartition(pd *PartitionDetail, conn *native.DbWorker, forceInitInfo *ForceInitInfo, partialForce bool) (ptError *PartitionTableExecInfo) {
 
 	defer func() {
 		_, _ = conn.Exec(fmt.Sprintf("FLUSH TABLES `%s`.`%s`", pd.DbName, pd.TbName))
@@ -218,7 +219,8 @@ func (pc *TdbCluPartConf) ExecuteOneTbPartition(pd *PartitionDetail, conn *nativ
 		Status:    true,
 		StepInfos: []*PartitionStepInfo{},
 	}
-	if pd.IsPartitioned {
+	// 非强制执行，且表已经是分区表，则不执行初始化分区，只执行添加和删除分区
+	if pd.IsPartitioned && forceInitInfo == nil {
 		// 目标表已是分区表
 		psError := pc.ExecuteAddStatement(pd, conn)
 		if !psError.Status {
@@ -233,6 +235,12 @@ func (pc *TdbCluPartConf) ExecuteOneTbPartition(pd *PartitionDetail, conn *nativ
 			return ptError
 		}
 	} else {
+
+		//  如果强制执行，且是部分强制执行，且表已经是分区表，则不执行初始化分区，只执行添加和删除分区
+		// 针对部分分片未执行，只对这些分片初始化分区，其他分片不动
+		if forceInitInfo != nil && partialForce && pd.IsPartitioned {
+			return ptError
+		}
 		psError := pc.ExecuteInitStatement(pd, conn, forceInitInfo)
 		if !psError.Status {
 			ptError.Status = false

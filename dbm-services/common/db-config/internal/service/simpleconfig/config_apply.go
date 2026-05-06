@@ -1,13 +1,14 @@
 package simpleconfig
 
 import (
+	"fmt"
+
 	"bk-dbconfig/internal/api"
 	"bk-dbconfig/internal/pkg/errno"
 	"bk-dbconfig/internal/repository/model"
 	"bk-dbconfig/pkg/constvar"
 	"bk-dbconfig/pkg/core/logger"
 	"bk-dbconfig/pkg/util"
-	"fmt"
 
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
@@ -103,7 +104,8 @@ func GetConfigsToApply(db *gorm.DB, req api.ApplyConfigInfoReq) (*api.ApplyConfi
 	resp.ConfigsDiff = ConfigsDiffNew
 
 	if resp.NodeID == 0 {
-		return nil, errors.New("illegal node_id")
+		return resp, nil
+		//return nil, errors.New("illegal node_id")
 	} else if resp.RevisionToApply == "" {
 		return nil, errors.New("illegal revision")
 	}
@@ -194,7 +196,7 @@ func (p *PublishConfig) ApplyVersionLevelNode(db *gorm.DB, req *api.VersionApply
 		return err
 	}
 	levelNode := api.BaseConfigNode{
-		BKBizIDDef: api.BKBizIDDef{BKBizID: req.BKBizID},
+		BKBizID: req.BKBizID,
 		BaseConfFileDef: api.BaseConfFileDef{
 			Namespace: req.Namespace,
 			ConfType:  req.ConfType,

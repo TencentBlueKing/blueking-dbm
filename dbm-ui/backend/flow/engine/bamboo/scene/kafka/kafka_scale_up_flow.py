@@ -242,7 +242,7 @@ class KafkaScaleUpFlow(object):
         ]
         details = {
             "cluster_id": self.data["cluster_id"],
-            "throttle_rate": 50000000,
+            "throttle_rate": 100000000,
             "topics": ["*"],
             "instance_list": instance_list,
         }
@@ -257,4 +257,4 @@ class KafkaScaleUpFlow(object):
             },
         )
 
-        kafka_pipeline.run_pipeline()
+        kafka_pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=[self.data["cluster_id"]])

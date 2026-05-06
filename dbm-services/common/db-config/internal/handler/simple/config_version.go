@@ -97,7 +97,7 @@ func (cf *Config) GenerateConfigVersion(ctx *gin.Context) {
 		// 之前generate过，判断是否过期
 		if vConfigs, err := v.GetVersionPublished(model.DB.Self); err == nil {
 			nowTime := time.Now()
-			createTime, _ := time.ParseInLocation(model.DBTimeFormat, vConfigs.Versioned.CreatedAt.String(), time.Local)
+			createTime, _ := time.ParseInLocation(util.DBTimeFormat, vConfigs.Versioned.CreatedAt.String(), time.Local)
 			if nowTime.Sub(createTime).Seconds() < 10 { // 10s 内重复 generate 会直接返回 published
 				expires = false
 			}
@@ -189,7 +189,7 @@ func (cf *Config) PublishConfigFile(ctx *gin.Context) {
 		Patch:         r.Patch,
 		ConfigsLocked: nil,
 		LevelNode: api.BaseConfigNode{
-			BKBizIDDef: api.BKBizIDDef{BKBizID: r.BKBizID},
+			BKBizID: r.BKBizID,
 			BaseConfFileDef: api.BaseConfFileDef{
 				Namespace: r.Namespace,
 				ConfType:  r.ConfType,

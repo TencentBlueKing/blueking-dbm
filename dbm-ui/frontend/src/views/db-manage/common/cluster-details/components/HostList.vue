@@ -37,7 +37,9 @@
       selectable
       @filter-change="handleFilterChange"
       @selection="handleSelectChange">
-      <HostListFieldColumn :cluster-type="clusterType" />
+      <HostListFieldColumn
+        :cluster-id="clusterId"
+        :cluster-type="clusterType" />
     </DbTable>
   </div>
 </template>
@@ -52,6 +54,7 @@
   import HostListFieldColumn from '../HostListFieldColumn.vue';
 
   interface Props {
+    activePanel: string;
     clusterId: number;
     clusterType: Parameters<typeof useClusterMachineList>[0];
   }
@@ -65,11 +68,19 @@
   const requestHandler = useClusterMachineList(props.clusterType);
 
   const hostTableRef = ref<InstanceType<typeof DbTable>>();
-  const { quickSearchData, quickSearchValue } = useHostSearchSelect(props.clusterType, {
+  const { initQuickSearchValue, quickSearchData, quickSearchValue } = useHostSearchSelect(props.clusterType, {
+    clusterId: props.clusterId,
     serviceHandler: () => {
       fetchData();
     },
   });
+
+  watch(
+    () => props.activePanel,
+    () => {
+      initQuickSearchValue();
+    },
+  );
 
   const dataSource = (params: ServiceParameters<typeof requestHandler>) =>
     requestHandler({

@@ -19,13 +19,12 @@ from django.utils.translation import gettext as _
 
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import Cluster
-from backend.flow.consts import ACCOUNT_PREFIX, DBA_ROOT_USER, MAX_LONG_JOB_TIMEOUT
+from backend.flow.consts import ACCOUNT_PREFIX, DBA_ROOT_USER, MAX_LONG_JOB_TIMEOUT, CHECKSUM_TABlE_PREFIX
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import DeployPeripheralToolsDepart
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import (
     standardize_mysql_cluster_by_cluster_subflow,
 )
-from backend.flow.plugins.components.collections.common.sleep_time_service import SleepTimerComponent
 from backend.flow.plugins.components.collections.mysql.create_user import CreateUserComponent
 from backend.flow.plugins.components.collections.mysql.drop_user import DropUserComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -33,13 +32,7 @@ from backend.flow.plugins.components.collections.mysql.mysql_checksum_report imp
 from backend.flow.plugins.components.collections.mysql.mysql_master_slave_relationship_check import (
     MysqlMasterSlaveRelationshipCheckServiceComponent,
 )
-from backend.flow.utils.mysql.mysql_act_dataclass import (
-    AddTempUserKwargs,
-    BKCloudIdKwargs,
-    DropUserKwargs,
-    ExecActuatorKwargs,
-    IfTimingAfterNowKwargs,
-)
+from backend.flow.utils.mysql.mysql_act_dataclass import AddTempUserKwargs, DropUserKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import MysqlChecksumContext
 
@@ -116,9 +109,9 @@ class MysqlChecksumFlow(object):
                     cluster_ids=list(cluster_ids_set),
                     departs=[DeployPeripheralToolsDepart.MySQLTableChecksum],
                     with_deploy_binary=True,
-                    with_push_config=True,
+                    with_push_config=False,
                     with_collect_sysinfo=False,
-                    with_actuator=True,
+                    with_actuator=False,
                     with_bk_plugin=False,
                     with_cc_standardize=False,
                     with_instance_standardize=False,
@@ -142,9 +135,14 @@ class MysqlChecksumFlow(object):
 
         ran_str = get_random_string(length=8).lower()
         random_account = "{}{}".format(ACCOUNT_PREFIX, ran_str)
-        ran_str_obj = {"ran_str": ran_str}
+        # ran_str_obj = {"ran_str": ran_str}
 
         for info in self.data["infos"]:
+            if "repl_table" not in info or not info["repl_table"]:
+                info["repl_table"] = f"{CHECKSUM_TABlE_PREFIX}{self.data['uid']}"
+            else:
+                info["repl_table"] = info["repl_table"].strip()
+
             cluster = Cluster.objects.get(id=info["cluster_id"])
             bk_cloud_id = cluster.bk_cloud_id
             immute_domain_obj = {"immute_domain": cluster.immute_domain}
@@ -154,18 +152,21 @@ class MysqlChecksumFlow(object):
             sub_data.pop("infos")
 
             sub_pipeline = SubBuilder(
-                root_id=self.root_id, data={**info, **sub_data, **ran_str_obj, **immute_domain_obj, **time_zone_obj}
+                root_id=self.root_id,
+                data={**info, **sub_data, **immute_domain_obj, **time_zone_obj}
+                # root_id = self.root_id, data = {**info, **sub_data, **ran_str_obj, **immute_domain_obj, **time_zone_obj}
             )
             sub_pipeline.add_act(
                 act_name=_("检查元数据信息是否存在主备关系"),
                 act_component_code=MysqlMasterSlaveRelationshipCheckServiceComponent.code,
                 kwargs={},
             )
-            sub_pipeline.add_act(
-                act_name=_("定时"),
-                act_component_code=SleepTimerComponent.code,
-                kwargs=asdict(IfTimingAfterNowKwargs(True)),
-            )
+            # 删除flow中的定时
+            # sub_pipeline.add_act(
+            #     act_name=_("定时"),
+            #     act_component_code=SleepTimerComponent.code,
+            #     kwargs=asdict(IfTimingAfterNowKwargs(True)),
+            # )
 
             acts_list = []
             for slave in info["slaves"]:
@@ -226,12 +227,12 @@ class MysqlChecksumFlow(object):
                     "master_port": info["master"]["port"],
                 }
                 inner_pipeline = SubBuilder(
-                    root_id=self.root_id, data={**inner_data, **info, **sub_data, **ran_str_obj}
+                    root_id=self.root_id, data={**inner_data, **info, **sub_data}  # , **ran_str_obj}
                 )
                 inner_pipeline.add_act(
                     act_name=_("生成校验报告"),
                     act_component_code=MysqlChecksumReportComponent.code,
-                    kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=bk_cloud_id)),
+                    kwargs={"bk_cloud_id": bk_cloud_id, "repl_table": info["repl_table"]},
                 )
                 inner_pipelines.append(
                     inner_pipeline.build_sub_process(
@@ -255,4 +256,10 @@ class MysqlChecksumFlow(object):
             )
         checksum_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         logger.info(_("构建checksum流程成功"))
-        checksum_pipeline.run_pipeline(init_trans_data_class=MysqlChecksumContext(), is_drop_random_user=True)
+        # checksum_pipeline.run_pipeline(init_trans_data_class=MysqlChecksumContext(), is_drop_random_user=True)
+        # 启动接入单据值守监听
+        checksum_pipeline.run_pipeline_with_sidecar(
+            init_trans_data_class=MysqlChecksumContext(),
+            is_drop_random_user=True,
+            check_ai_monitor_cluster_list=list(set(cluster_ids)),
+        )

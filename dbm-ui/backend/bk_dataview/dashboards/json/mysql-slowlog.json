@@ -273,7 +273,7 @@
               "periodUnit": "min",
               "timeNum": 1
             },
-            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: \"$digest\" AND $filter",
+            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: $digest AND $filter",
             "size": 50,
             "target": {
               "expandKeys": [],
@@ -775,7 +775,7 @@
               "periodUnit": "min",
               "timeNum": 1
             },
-            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: \"$digest\" AND $filter",
+            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: $digest AND $filter",
             "size": 1000,
             "target": {
               "expandKeys": [],
@@ -1237,7 +1237,7 @@
               "periodUnit": "min",
               "timeNum": 1
             },
-            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: \"$digest\" AND $filter",
+            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: $digest AND $filter",
             "size": 50,
             "target": {
               "expandKeys": [],
@@ -1673,7 +1673,7 @@
               "periodUnit": "min",
               "timeNum": 1
             },
-            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: \"$digest\" AND $filter",
+            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: $digest AND $filter",
             "size": 50,
             "target": {
               "expandKeys": [],
@@ -2109,7 +2109,7 @@
               "periodUnit": "min",
               "timeNum": 1
             },
-            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: \"$digest\" AND $filter",
+            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: $digest AND $filter",
             "size": 50,
             "target": {
               "expandKeys": [],
@@ -2545,7 +2545,7 @@
               "periodUnit": "min",
               "timeNum": 1
             },
-            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: \"$digest\" AND $filter",
+            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: $digest AND $filter",
             "size": 50,
             "target": {
               "expandKeys": [],
@@ -2981,7 +2981,7 @@
               "periodUnit": "min",
               "timeNum": 1
             },
-            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: \"$digest\" AND $filter",
+            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: $digest AND $filter",
             "size": 50,
             "target": {
               "expandKeys": [],
@@ -3410,7 +3410,7 @@
               "periodUnit": "min",
               "timeNum": 1
             },
-            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: \"$digest\" AND $filter",
+            "queryString": "__parse_failure: false AND slow_query.query_digest_md5: $digest AND $filter",
             "size": 50,
             "target": {
               "expandKeys": [],

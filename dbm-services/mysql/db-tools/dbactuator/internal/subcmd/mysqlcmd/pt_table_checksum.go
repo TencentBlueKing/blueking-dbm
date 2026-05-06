@@ -81,6 +81,10 @@ func (c *PtTableChecksumAct) Run() (err error) {
 			Func:    c.Service.Precheck,
 		},
 		{
+			FunName: "预清理校验结果表",
+			Func:    c.Service.CleanLegacy,
+		},
+		{
 			FunName: "生成配置文件",
 			Func:    c.Service.GenerateConfigFile,
 		},
@@ -88,10 +92,10 @@ func (c *PtTableChecksumAct) Run() (err error) {
 			FunName: "执行校验",
 			Func:    c.Service.DoChecksum,
 		},
-		{
-			FunName: "复制校验结果",
-			Func:    c.Service.CopyResult,
-		},
+		//{
+		//	FunName: "复制校验结果",
+		//	Func:    c.Service.CopyResult,
+		//},
 	}
 	if err := steps.Run(); err != nil {
 		return err

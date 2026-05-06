@@ -19,7 +19,7 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstancePhase, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster, StorageInstanceTuple
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum, MySQLBackupTypeEnum
@@ -35,17 +35,20 @@ from backend.flow.plugins.components.collections.common.add_alarm_shield import 
 from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_processlist import MySQLCheckProcesslistComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay import MySQLCheckSlaveDelayComponent
+from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CheckSlaveStatusKwargs,
+    DBMetaOPKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
     ExecuteRdsKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
+from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 
 logger = logging.getLogger("flow")
 
@@ -212,14 +215,14 @@ class MySQLRollbackDataFlow(object):
         sub_pipeline_list = []
         for info in self.ticket_data["infos"]:
             self.data = copy.deepcopy(info)
-            # 判断是否全库回档,默认是全库,全库包括逻辑备份，物理备份. todo 如果指定部分库。则只能使用逻辑备份。
-            self.data["all_database_rollback"] = True
-            if not (
+            # 全库回档或者物理备份回档要求stop slave
+            all_db_rollback = False
+            if (
                 self.data["databases"][0] == "*"
                 and self.data["tables"][0] == "*"
                 and len(self.data["databases_ignore"]) == 0
             ):
-                self.data["all_database_rollback"] = False
+                all_db_rollback = True
 
             cluster_class = Cluster.objects.get(id=self.data["cluster_id"])
             filters = Q(
@@ -255,7 +258,6 @@ class MySQLRollbackDataFlow(object):
             change_master_pipeline_list = []
 
             for rollback_storage in storages:
-                #  todo 后续改版这里页面只需要指定backup_id,不需要传整个备份信息。这里兼容原本的。
                 backup_id = self.data.get("backup_id", None)
                 if backup_id is None or backup_id == "":
                     backup_id = self.data.get("backupinfo", {}).get("backup_id", None)
@@ -337,8 +339,29 @@ class MySQLRollbackDataFlow(object):
                             )
                         ),
                     )
+
+                cluster_status = {
+                    "phase": InstancePhase.TRANS_STAGE.value,
+                    "storage_status": InstanceStatus.RESTORING.value,
+                    "storage_id": rollback_storage.id,
+                }
+                rollback_pipeline.add_act(
+                    act_name=_("修改{}状态为:{}".format(rollback_storage.ip_port, InstanceStatus.RESTORING.value)),
+                    act_component_code=MySQLDBMetaComponent.code,
+                    kwargs=asdict(
+                        DBMetaOPKwargs(
+                            db_meta_class_func=MySQLDBMeta.tendb_modify_storage_status.__name__,
+                            cluster=cluster_status,
+                            is_update_trans_data=False,
+                        )
+                    ),
+                )
+
                 #  全库表会回档这里设置停止从库
-                if self.data["all_database_rollback"]:
+                if all_db_rollback and rollback_storage.instance_role in (
+                    InstanceRole.BACKEND_SLAVE,
+                    InstanceRole.BACKEND_REPEATER,
+                ):
                     rollback_pipeline.add_act(
                         act_name=_("从库stop slave {}").format(rollback_storage.ip_port),
                         act_component_code=MySQLExecuteRdsComponent.code,
@@ -361,6 +384,22 @@ class MySQLRollbackDataFlow(object):
                 cluster_info["backupinfo"] = copy.deepcopy(backup_info)
                 rollback_pipeline.add_sub_pipeline(sub_flow=rollback_sub_flow)
 
+                cluster_status = {
+                    "phase": InstancePhase.ONLINE.value,
+                    "storage_status": InstanceStatus.RUNNING.value,
+                    "storage_id": rollback_storage.id,
+                }
+                rollback_pipeline.add_act(
+                    act_name=_("修改{}状态为:{}".format(rollback_storage.ip_port, InstanceStatus.RUNNING.value)),
+                    act_component_code=MySQLDBMetaComponent.code,
+                    kwargs=asdict(
+                        DBMetaOPKwargs(
+                            db_meta_class_func=MySQLDBMeta.tendb_modify_storage_status.__name__,
+                            cluster=cluster_status,
+                            is_update_trans_data=False,
+                        )
+                    ),
+                )
                 rollback_pipeline_list.append(
                     rollback_pipeline.build_sub_process(
                         sub_name=_("定点回档到{}:{}".format(rollback_storage.machine.ip, rollback_storage.port))
@@ -369,6 +408,7 @@ class MySQLRollbackDataFlow(object):
                 # 针对slave repeater角色的从库。建立复制链路。重置slave>添加复制账号和获取位点>建立主从关系
                 backup_type = backup_info.get("backup_type", "")
                 change_master_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+                change_master_pipeline_mark = False
                 if rollback_storage.instance_role in (InstanceRole.BACKEND_SLAVE, InstanceRole.BACKEND_REPEATER):
                     repl_master = StorageInstanceTuple.objects.get(receiver=rollback_storage)
                     if backup_type == MySQLBackupTypeEnum.PHYSICAL.value:
@@ -388,7 +428,8 @@ class MySQLRollbackDataFlow(object):
                                 cluster_info=copy.deepcopy(repl_cluster),
                             )
                         )
-                    elif backup_type == MySQLBackupTypeEnum.LOGICAL.value:
+                        change_master_pipeline_mark = True
+                    elif backup_type == MySQLBackupTypeEnum.LOGICAL.value and all_db_rollback:
                         change_master_pipeline.add_act(
                             act_name=_("从库start slave {}").format(rollback_storage.ip_port),
                             act_component_code=MySQLExecuteRdsComponent.code,
@@ -401,13 +442,13 @@ class MySQLRollbackDataFlow(object):
                                 )
                             ),
                         )
-                    else:
-                        raise Exception(_("备份类型{}不支持").format(backup_type))
-                    change_master_pipeline_list.append(
-                        change_master_pipeline.build_sub_process(
-                            sub_name=_("恢复复制链 {}:{}".format(rollback_storage.machine.ip, rollback_storage.port))
+                        change_master_pipeline_mark = True
+                    if change_master_pipeline_mark:
+                        change_master_pipeline_list.append(
+                            change_master_pipeline.build_sub_process(
+                                sub_name=_("恢复复制链 {}:{}".format(rollback_storage.machine.ip, rollback_storage.port))
+                            )
                         )
-                    )
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=check_connect_list)
             sub_pipeline.add_act(
                 act_name=_("屏蔽告警24小时"),

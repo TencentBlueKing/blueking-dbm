@@ -22,3 +22,9 @@ class RedisBackupCheckReport(BaseReportABS):
     subtype = models.CharField(
         max_length=64, choices=RedisBackupCheckSubType.get_choices(), default="", help_text=_("备份检查子项")
     )
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["subtype", "bk_biz_id", "state", "create_at"]),
+            models.Index(fields=["subtype", "create_at", "cluster"]),
+        ]

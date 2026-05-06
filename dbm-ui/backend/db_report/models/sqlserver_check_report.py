@@ -154,3 +154,19 @@ class SqlserverLogBackupInfoReport(BaseBackupReportABS):
     """
 
     pass
+
+
+class SqlserverFullBackupCheckReport(BaseSqlserverReportABS):
+    """
+    基于 Model 查询的全量备份文件巡检表
+    """
+
+    pass
+
+
+class SqlserverLogBackupCheckReport(BaseSqlserverReportABS):
+    """
+    基于 Model 查询的增量备份文件巡检表
+    """
+
+    pass

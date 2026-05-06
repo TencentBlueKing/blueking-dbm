@@ -20,6 +20,8 @@ class MetaCheckSubType(StrStructuredEnum):
     AloneInstance = EnumField("alone_instance", _("孤立的实例"))
     StatusAbnormal = EnumField("status_abnormal", _("不属于RUNNING状态"))
     AffinityViolation = EnumField("affinity_violation", _("亲和性违规"))
+    RoleMismatch = EnumField("redis_role_mismatch", _("实例角色不匹配"))
+    EntryInconsistent = EnumField("redis_entry_inconsistent", _("访问入口代理不一致"))
     # tendbha
     TenDBHAProxyBindWrongBackendRole = EnumField("proxy_bind_wrong_backend_role", _("proxy bind backend 角色错误"))
     TenDBHAProxyCountNotMatch = EnumField("proxy_count_not_match", _("访问入口关联 proxy 数和集群 proxy 数不相等"))
@@ -40,6 +42,9 @@ class MetaCheckSubType(StrStructuredEnum):
         "standby_slave_bad_status", _("standby slave status, phase, standby 状态异常")
     )
     TenDBHAMultiClusterBelong = EnumField("multi_cluster_belong", _("实例属于多个集群"))
+    TenDBHACLBMetaIncomplete = EnumField("clb_meta_incomplete", _("CLB 元数据不完整"))
+    TenDBHACLBQueryFailed = EnumField("clb_query_failed", _("CLB 名字服务查询失败"))
+    TenDBHACLBRSNotMatchMeta = EnumField("clb_rs_not_match_meta", _("CLB 后端与元数据不一致"))
     # tendbcluster
     TenDBClusterSpiderBindWrongRole = EnumField("spider_bind_wrong_role", _("spider 访问错误 remote 角色"))
     TenDBClusterRemoteCountNotMatch = EnumField(
@@ -54,3 +59,9 @@ class MetaCheckSubType(StrStructuredEnum):
     TenDBClusterRoutingSpiderNotMatch = EnumField("routing_spider_not_match", _("spider 节点在路由中不存在或多余"))
     TenDBClusterRoutingShardNotMatch = EnumField("routing_shard_not_match", _("后端分片序号不一致"))
     TenDBClusterRoutingTdbctlNotMatch = EnumField("routing_tdbctl_not_match", _("中控节点与元数据不一致"))
+    TenDBClusterCLBMetaIncomplete = EnumField("tendbcluster_clb_meta_incomplete", _("TenDBCluster CLB 元数据不完整"))
+    TenDBClusterCLBQueryFailed = EnumField("tendbcluster_clb_query_failed", _("TenDBCluster CLB 名字服务查询失败"))
+    TenDBClusterCLBRSNotMatchMeta = EnumField("tendbcluster_clb_rs_not_match_meta", _("TenDBCluster CLB 后端与元数据不一致"))
+    MachineSpectEmpty = EnumField("machine_spec_empty", _("机器规格为空"))
+    MultiSpecInGroup = EnumField("multi_spec_in_group", _("同组机器存在多个规格"))
+    NoStandbyMaster = EnumField("no_standby_master", _("master stand_by异常"))

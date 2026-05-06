@@ -10,7 +10,6 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import { clusterInstStatus, ClusterInstStatusKeys } from '@common/const';
 
 import { utcDisplayTime } from '@utils';
 
@@ -31,11 +30,6 @@ export default class DrsServiceStatus {
     this.update_at = payload.update_at;
   }
 
-  get statusInfo() {
-    return (
-      clusterInstStatus[this.status as ClusterInstStatusKeys] || clusterInstStatus[ClusterInstStatusKeys.UNAVAILABLE]
-    );
-  }
   get updateAtDisplay() {
     return utcDisplayTime(this.update_at) || '--';
   }

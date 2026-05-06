@@ -14,6 +14,7 @@ from backend.flow.engine.bamboo.scene.doris.doris_apply_flow import DorisApplyFl
 from backend.flow.engine.bamboo.scene.doris.doris_destroy_flow import DorisDestroyFlow
 from backend.flow.engine.bamboo.scene.doris.doris_disable_flow import DorisDisableFlow
 from backend.flow.engine.bamboo.scene.doris.doris_enable_flow import DorisEnableFlow
+from backend.flow.engine.bamboo.scene.doris.doris_fake_apply_flow import DorisFakeApplyFlow
 from backend.flow.engine.bamboo.scene.doris.doris_machine_clear_flow import ClearDorisMachineFlow
 from backend.flow.engine.bamboo.scene.doris.doris_reboot_flow import DorisRebootFlow
 from backend.flow.engine.bamboo.scene.doris.doris_replace_flow import DorisReplaceFlow
@@ -35,6 +36,13 @@ class DorisController(BaseController):
         """
         flow = DorisApplyFlow(root_id=self.root_id, data=self.ticket_data)
         flow.deploy_doris_flow()
+
+    def doris_fake_apply_scene(self):
+        """
+        doris假部署流程，用于集群IP等数据迁移
+        """
+        flow = DorisFakeApplyFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.fake_deploy_doris_flow()
 
     def doris_scale_up_scene(self):
         """

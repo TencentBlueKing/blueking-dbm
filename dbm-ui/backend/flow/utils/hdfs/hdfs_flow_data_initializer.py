@@ -104,9 +104,13 @@ class HdfsFlowDataInitializer:
 def get_node_ips_in_ticket_by_role(data: dict, role: str) -> list:
     if role == HdfsRoleEnum.JournalNode.value:
         return get_node_ips_in_ticket_by_role(data, HdfsRoleEnum.ZooKeeper.value)
-    if role not in data.get("nodes"):
+
+    # 适配当前HDFS替换单据没有nodes字段
+    nodes = data.get("nodes")
+    if not nodes or role not in nodes:
         return []
-    return [node["ip"] for node in data["nodes"][role]]
+
+    return [node["ip"] for node in nodes[role]]
 
 
 def get_all_node_ips_in_ticket(data: dict) -> list:

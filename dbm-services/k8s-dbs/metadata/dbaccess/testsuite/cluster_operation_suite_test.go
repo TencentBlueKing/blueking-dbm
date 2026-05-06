@@ -71,7 +71,7 @@ func (suite *ClusterOperationDbAccessTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbAccess := dbaccess.NewClusterOperationDbAccess(db)
+	dbAccess := dbaccess.GetClusterOperationDbAccess(db)
 	suite.dbAccess = dbAccess
 }
 

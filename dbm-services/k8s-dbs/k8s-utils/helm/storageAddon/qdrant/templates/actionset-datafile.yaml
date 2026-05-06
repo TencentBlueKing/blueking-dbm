@@ -1,7 +1,7 @@
 apiVersion: dataprotection.kubeblocks.io/v1alpha1
 kind: ActionSet
 metadata:
-  name: qdrant-snapshot
+  name: qdrant-snapshot-br
   labels:
     clusterdefinition.kubeblocks.io/name: qdrant
     {{- include "qdrant.labels" . | nindent 4 }}

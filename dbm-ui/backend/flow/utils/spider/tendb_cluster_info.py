@@ -10,6 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 
+from django.utils.translation import gettext as _
+
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import Cluster, StorageInstance
 
@@ -17,7 +19,11 @@ from backend.db_meta.models import Cluster, StorageInstance
 def get_rollback_clusters_info(
     source_cluster_id: int,
     target_cluster_id: int,
-):
+) -> (dict, list[str]):
+    """
+    获取集群相关信息
+    """
+    message = []
     ip_list = []
     cluster_info = {"shards": {}, "source_spiders": [], "target_spiders": []}
     source_obj = Cluster.objects.get(id=source_cluster_id)
@@ -29,6 +35,10 @@ def get_rollback_clusters_info(
     cluster_info["source"] = source_obj.to_dict()
     cluster_info["target"] = target_obj.to_dict()
     primary_map = Cluster.get_cluster_id__primary_address_map([source_obj.id, target_obj.id])
+    if source_cluster_id not in primary_map:
+        message.append(_("源集群 {} 获取中控节点失败".format(source_cluster_id)))
+    if target_cluster_id not in primary_map:
+        message.append(_("目标集群 {} 获取中控节点失败".format(target_cluster_id)))
     for spider in source_spiders:
         cluster_info["source_spiders"].append(spider.simple_desc)
     for spider in target_spiders:
@@ -47,7 +57,7 @@ def get_rollback_clusters_info(
     shards = source_obj.tendbclusterstorageset_set.filter()
     new_shards = target_obj.tendbclusterstorageset_set.filter()
     if len(shards) != len(new_shards):
-        return None
+        message.append(_("回档源集群和回档目标集群分片数不一致"))
     for shard in shards:
         master_obj = StorageInstance.objects.get(id=shard.storage_instance_tuple.ejector_id)
         slave_obj = StorageInstance.objects.get(id=shard.storage_instance_tuple.receiver_id)
@@ -63,10 +73,10 @@ def get_rollback_clusters_info(
         if shard.shard_id in cluster_info["shards"]:
             cluster_info["shards"][shard.shard_id].update(shards_info)
         else:
-            return None
+            message.append(_("new shardId {} 查询不到分片信息".format(shard.shard_id)))
     ip_list = list(set(ip_list))
     cluster_info["ip_list"] = ip_list
-    return cluster_info
+    return cluster_info, message
 
 
 def get_cluster_info(cluster_id: int):

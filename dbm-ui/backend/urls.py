@@ -67,8 +67,10 @@ api_patterns = [
     path("tag/", include("backend.db_services.tag.urls")),
     path("plugin/", include("backend.db_services.plugin.urls")),
     path("legacy/", include("backend.legacy.urls")),
-    path("ai/", include("backend.dbm_aiagent.urls")),
 ]
+if env.ENABLE_DBM_AI:
+    api_patterns.append(path("ai/", include("backend.dbm_aiagent.urls")))
+
 
 urlpatterns = [
     path("admin/dynamic_raw_id/", include("dynamic_raw_id.urls")),
@@ -105,6 +107,7 @@ if env.ENABLE_EXTERNAL_PROXY or env.ENABLE_OPEN_EXTERNAL_PROXY:
         )
     )
 
+# 前端路由
 vue_patterns = [
     path("login_success.html", LoginSuccessView.as_view()),
     path("logout/", LogOutView.as_view()),
@@ -114,6 +117,7 @@ vue_patterns = [
 ]
 urlpatterns += vue_patterns
 
+# debug toolbar
 if settings.DEBUG and env.DEBUG_TOOL_BAR:
     import debug_toolbar
 

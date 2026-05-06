@@ -80,7 +80,7 @@ func (suite *ClusterDbAccessTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	suite.dbAccess = dbaccess.NewCrdClusterDbAccess(db)
+	suite.dbAccess = dbaccess.GetClusterDbAccess(db)
 }
 
 func (suite *ClusterDbAccessTestSuite) TearDownSuite() {

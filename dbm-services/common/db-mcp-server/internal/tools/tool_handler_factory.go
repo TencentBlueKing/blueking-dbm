@@ -19,12 +19,24 @@ func toolHandlerFactory(td *toolsDefinition) func(
 	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		err := validateSchema("input.json", request.Params.Arguments, td.InputJsonSchema)
 		if err != nil {
-			return nil, err
+			return mcp.NewToolResultError(err.Error()), err
 		}
+
+		//var username string
+		//if config.Config.WithAuthCheck != nil && *config.Config.WithAuthCheck {
+		//	if config.Config.BKMCPUsername != "" {
+		//		username = config.Config.BKMCPUsername
+		//		logger.Info("get username from args: %s", username)
+		//	} else {
+		//		logger.Info("request header: %v", request.Header)
+		//		username = request.Header.Get("X-Bk-Username")
+		//		logger.Info("get username from header: %s", username)
+		//	}
+		//}
 
 		b, err := json.Marshal(request.Params.Arguments)
 		if err != nil {
-			return nil, err
+			return mcp.NewToolResultError(err.Error()), err
 		}
 
 		var res []byte
@@ -46,6 +58,11 @@ func toolHandlerFactory(td *toolsDefinition) func(
 			),
 		)
 
+		if err != nil {
+			logger.Info("return err: " + err.Error())
+			return mcp.NewToolResultError(err.Error()), err
+		}
+		logger.Info("return res: " + string(res))
 		return mcp.NewToolResultText(string(res)), nil
 	}
 }

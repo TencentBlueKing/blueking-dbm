@@ -22,6 +22,7 @@ package dbaccess
 import (
 	"k8s-dbs/common/entity"
 	models "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -38,6 +39,22 @@ type OperationDefinitionDbAccess interface {
 // OperationDefinitionDbAccessImpl OperationDefinitionDbAccess 的具体实现
 type OperationDefinitionDbAccessImpl struct {
 	db *gorm.DB
+}
+
+var (
+	operationDefinitionInstance OperationDefinitionDbAccess
+	operationDefinitionOnce     sync.Once
+)
+
+// GetOperationDefinitionDbAccess 获取 OperationDefinitionDbAccess 单例实例
+func GetOperationDefinitionDbAccess(db *gorm.DB) OperationDefinitionDbAccess {
+	operationDefinitionOnce.Do(func() {
+		operationDefinitionInstance = &OperationDefinitionDbAccessImpl{db: db}
+	})
+	if operationDefinitionInstance == nil {
+		panic("OperationDefinitionDbAccess instance is nil after initialization")
+	}
+	return operationDefinitionInstance
 }
 
 // FindByID 查找 operation definition 元数据接口实现
@@ -76,9 +93,4 @@ func (o *OperationDefinitionDbAccessImpl) ListByPage(pagination entity.Paginatio
 		return nil, 0, errors.Wrapf(err, "failed to list operation definition with pagination %+v", pagination)
 	}
 	return opDefModels, int64(len(opDefModels)), nil
-}
-
-// NewOperationDefinitionDbAccess 创建 OperationDefinitionDbAccess 接口实现实例
-func NewOperationDefinitionDbAccess(db *gorm.DB) OperationDefinitionDbAccess {
-	return &OperationDefinitionDbAccessImpl{db: db}
 }

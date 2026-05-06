@@ -70,23 +70,22 @@ func (suite *ClusterControllerTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	clusterDbAccess := dbaccess.NewCrdClusterDbAccess(db)
-	addonDbAccess := dbaccess.NewK8sCrdStorageAddonDbAccess(db)
-	clusterTagDbAccess := dbaccess.NewK8sCrdClusterTagDbAccess(db)
-	k8sConfigDbAccess := dbaccess.NewK8sClusterConfigDbAccess(db)
-	addonTopologyDbAccess := dbaccess.NewAddonTopologyDbAccess(db)
+	clusterDbAccess := dbaccess.GetClusterDbAccess(db)
+	addonDbAccess := dbaccess.GetStorageAddonDbAccess(db)
+	clusterTagDbAccess := dbaccess.GetClusterTagDbAccess(db)
+	k8sConfigDbAccess := dbaccess.GetK8sClusterConfigDbAccess(db)
+	addonTopologyDbAccess := dbaccess.GetAddonTopologyDbAccess(db)
+	addonTypeDbAccess := dbaccess.GetAddonTypeDbAccess(db)
 
 	builder := &provider.K8sCrdClusterProviderBuilder{}
-	clusterProvider, err := provider.NewK8sCrdClusterProvider(
+	clusterProvider := provider.GetK8sCrdClusterProvider(
 		builder.WithClusterDbAccess(clusterDbAccess),
 		builder.WithAddonDbAccess(addonDbAccess),
 		builder.WithClusterTagDbAccess(clusterTagDbAccess),
 		builder.WithK8sClusterConfigDbAccess(k8sConfigDbAccess),
 		builder.WithAddonTopologyDbAccess(addonTopologyDbAccess),
+		builder.WithAddonTypeDbAccess(addonTypeDbAccess),
 	)
-	if err != nil {
-		log.Fatal(err)
-	}
 	clusterController := controller.NewClusterController(clusterProvider)
 	suite.clusterController = clusterController
 	gin.SetMode(gin.TestMode)
@@ -107,6 +106,7 @@ func (suite *ClusterControllerTestSuite) TearDownSuite() {
 }
 
 func (suite *ClusterControllerTestSuite) SetupTest() {
+	testhelper.InitTestTable(suite.mySQLContainer.ConnStr, constant.TbAddonType, &model.AddonTypeModel{})
 	testhelper.InitTestTable(suite.mySQLContainer.ConnStr, constant.TbK8sCrdCluster, &model.K8sCrdClusterModel{})
 	testhelper.InitTestTable(suite.mySQLContainer.ConnStr, constant.TbK8sCrdStorageAddon, &model.K8sCrdStorageAddonModel{})
 	testhelper.InitTestTable(suite.mySQLContainer.ConnStr, constant.TbK8sClusterConfig, &model.K8sClusterConfigModel{})

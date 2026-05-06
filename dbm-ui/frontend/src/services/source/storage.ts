@@ -53,6 +53,21 @@ export function createBkrepoAccessToken(params: { file_path: string }) {
 }
 
 /**
+ * 批量获取临时凭证
+ */
+export function batchCreateBkrepoAccessToken(params: { file_path_list: string[] }) {
+  return http.post<
+    {
+      path: string;
+      project: string;
+      repo: string;
+      token: string;
+      url: string;
+    }[]
+  >(`${path}/batch_create_bkrepo_access_token/`, params);
+}
+
+/**
  * 批量下载
  */
 export function batchDownload(params: { file_path_list: string[] }) {

@@ -163,6 +163,12 @@ export default [
         parentId: 'migrate',
       },
       {
+        dbConsoleValue: 'mysql.toolbox.migrateSingle',
+        id: TicketTypes.MYSQL_MIGRATE_SINGLE,
+        name: t('单节点迁移'),
+        parentId: 'migrate',
+      },
+      {
         dbConsoleValue: 'mysql.toolbox.clusterStandardize',
         id: TicketTypes.MYSQL_CLUSTER_STANDARDIZE,
         name: t('集群标准化'),
@@ -191,7 +197,13 @@ export default [
       {
         dbConsoleValue: 'mysql.toolbox.dataMigrate',
         id: TicketTypes.MYSQL_DATA_MIGRATE,
-        name: t('DB克隆'),
+        name: t('DB 数据克隆'),
+        parentId: 'data',
+      },
+      {
+        dbConsoleValue: 'mysql.toolbox.mergeDiskSpace',
+        id: 'MySQLMergeDiskSpace',
+        name: t('DB 数据合并空间评估'),
         parentId: 'data',
       },
     ],

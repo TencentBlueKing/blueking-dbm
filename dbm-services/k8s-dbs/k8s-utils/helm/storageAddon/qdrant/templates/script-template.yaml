@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "qdrant.scriptsTplName" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "qdrant.labels" . | nindent 4 }}
+data:
+  common.sh: |-
+    #!/bin/bash
+    {{- include "kblib.compvars.get_target_pod_fqdn_from_pod_fqdn_vars" $ | nindent 4 }}
+    {{- include "kblib.pods.min_lexicographical_order_pod" $ | nindent 4 }}
+    {{- include "kblib.strings.is_empty" $ | nindent 4 }}
+  setup.sh: |-
+    {{- .Files.Get "scripts/qdrant-setup.sh" | nindent 4 }}
+  member-leave.sh: |-
+    {{- .Files.Get "scripts/qdrant-member-leave.sh" | nindent 4 }}

@@ -10,22 +10,36 @@ import (
 
 // CreateOrReplace TODO
 func CreateOrReplace(j *config.ExternalJob, permanent bool) (int, error) {
-	_, err := Delete(j.Name, permanent)
+	crondMu.Lock()
+	defer crondMu.Unlock()
+
+	if j == nil {
+		slog.Error("create or replace job skip nil", slog.Any("job", j))
+		return 0, nil
+	}
+	if j.Name == "" {
+		slog.Error("create or replace job skip empty", slog.Any("job", j))
+		return 0, nil
+	}
+
+	_, err := delete_(j.Name, permanent)
 
 	if err != nil {
 		var notFoundError NotFoundError
 		if !errors.As(err, &notFoundError) {
-			slog.Error("create or replace job",
+			slog.Error(
+				"create or replace job",
 				slog.String("error", err.Error()),
 				slog.Any("job", j),
 			)
-			return 0, err
+			return 0, nil
 		}
 	}
 
-	entryID, err := Add(j, permanent)
+	entryID, err := add(j, permanent)
 	if err != nil {
-		slog.Error("create or replace job",
+		slog.Error(
+			"create or replace job",
 			slog.String("error", err.Error()),
 			slog.Any("job", j),
 		)

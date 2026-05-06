@@ -36,4 +36,8 @@ func RegisterRouter(engine *gin.Engine) {
 	// 巡检
 	p.POST("/check_log", handler.CheckLog)
 	p.POST("/partition_conf_query", handler.PartitionConfQuery)
+
+	// v2 版本路由组
+	p2 := engine.Group("/partitionv2")
+	p2.POST("/query_conf", handler.GetPartitionsConfigV2)
 }

@@ -22,41 +22,37 @@
  * SOFTWARE.
  */
 
+// Package workflow provides the core workflow engine for DBHA.
 package workflow
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"strconv"
+	"sort"
 	"strings"
 	"sync"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/analysis/apm"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
-	"dbm-services/common/dbha-v2/internal/analysis/detector"
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
-	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/discovery"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/logger"
-	"dbm-services/common/dbha-v2/pkg/monitor"
-	"dbm-services/common/dbha-v2/pkg/process"
+	"dbm-services/common/dbha-v2/pkg/safe"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
-)
 
-const (
-	scanIntervalLimitMin = 5 * time.Second
-	readBatchCount       = 1000
+	"github.com/google/uuid"
 )
 
 var (
 	ErrCreateMutexFailure    = gerrors.Newf(gerrors.EtcdFailure, "failed to create a mutex for a business")
-	ErrReadeMetadataFailure  = gerrors.Newf(gerrors.MysqlFailure, "failed to read metadata")
+	ErrReadMetadataFailure   = gerrors.Newf(gerrors.MysqlFailure, "failed to read metadata")
 	ErrReadDbMetricFailure   = gerrors.Newf(gerrors.MysqlFailure, "failed to read DB metrics")
 	ErrReadDbEventFailure    = gerrors.Newf(gerrors.MysqlFailure, "failed to read DB event")
 	ErrReadSkipDbInstFailure = gerrors.Newf(gerrors.MysqlFailure, "failed to read skip db-inst")
@@ -64,8 +60,43 @@ var (
 	ErrDetectorFailure       = gerrors.Newf(gerrors.Failure, "detector failure, switching is needed")
 )
 
-// New create a workflow instance.
-func New(cli *discovery.Client, db *hamysql.GormDB) (*Workflow, error) {
+const (
+	scanIntervalLimitMin = 5 * time.Second
+	popIntervalLimitMin  = 5 * time.Second
+	dbTableStatsInterval = 5 * time.Minute
+	readBatchCount       = 1000
+)
+
+// Workflow represents the workflow engine for DBHA.
+// It is composed of instance discovery, alarm, metadata, switch, detector, and checker.
+// It manages two independent periodic loops: scan (detecting failures and pushing to windows)
+// and pop-switch (popping matured entries from windows and triggering switching).
+type Workflow struct {
+	StatusParser
+
+	hadata            *storage.DbhaData
+	dbmSync           *Synchronizer
+	discoveryCli      *discovery.Client
+	discovery         *discovery.Discovery
+	registryPrefix    string
+	myServiceID       string
+	switchers         map[haprobe.DbType]switcher.Switcher
+	quit              chan struct{}
+	wg                sync.WaitGroup
+	instanceDiscovery *InstanceDiscovery
+	alarm             *AlarmNotifier
+	metadataReader    *MetadataReader
+	switchExecutor    *SwitchExecutor
+	detectorHandler   *DetectorHandler
+	businessChecker   *BusinessChecker
+	windowMgr         *BizWindowManager
+}
+
+// New creates a workflow instance. discovery and registryPrefix are used to list and watch
+// same-module analysis instances for business sharding; myServiceID is this instance's ID.
+func New(cli *discovery.Client, db *hamysql.GormDB, disc *discovery.Discovery,
+	registryPrefix string, myServiceID string) (*Workflow, error) {
+
 	wflow := &Workflow{
 		hadata: &storage.DbhaData{
 			DB: db,
@@ -74,43 +105,51 @@ func New(cli *discovery.Client, db *hamysql.GormDB) (*Workflow, error) {
 		dbmSync: &Synchronizer{
 			db:           db,
 			discoveryCli: cli,
+			myServiceID:  myServiceID,
 		},
 
 		switchers: map[haprobe.DbType]switcher.Switcher{
-			haprobe.DbTypeMysql: &switcher.Mysql{},
+			haprobe.DbTypeMySql: &switcher.Mysql{},
 		},
 
-		discoveryCli: cli,
-		quit:         make(chan struct{}, 1),
+		discoveryCli:   cli,
+		discovery:      disc,
+		registryPrefix: registryPrefix,
+		myServiceID:    myServiceID,
+		quit:           make(chan struct{}, 1),
 	}
+
+	wflow.alarm = NewAlarmNotifier()
+	wflow.instanceDiscovery = NewInstanceDiscovery(wflow.discovery, wflow.registryPrefix,
+		wflow.myServiceID, wflow.quit)
+
+	wflow.windowMgr = NewBizWindowManager(config.Cfg.Workflow.WindowDuration, config.Cfg.Workflow.InflightTTL, myServiceID)
+	wflow.metadataReader = NewMetadataReader(wflow.hadata, wflow.discoveryCli, myServiceID)
+	wflow.switchExecutor = NewSwitchExecutor(wflow.hadata, wflow.dbmSync, wflow.switchers, myServiceID)
+	wflow.detectorHandler = NewDetectorHandler(wflow.alarm, wflow.windowMgr, myServiceID)
+	wflow.businessChecker = NewBusinessChecker(&wflow.StatusParser, wflow.detectorHandler)
 
 	return wflow, nil
 }
 
-type Workflow struct {
-	hadata       *storage.DbhaData
-	dbmSync      *Synchronizer
-	discoveryCli *discovery.Client
-	switchers    map[haprobe.DbType]switcher.Switcher
-	quit         chan struct{}
-	wg           sync.WaitGroup
-}
-
+// Run runs the workflow: starts dbm sync, instance watch, and the periodic business scan loop.
 func (w *Workflow) Run(ctx context.Context) error {
-	if config.Cfg.Workflow.ScanInterval < scanIntervalLimitMin {
-		logger.Warn("scan interval(%v) is too small,reset it to the default value(%v)",
-			config.Cfg.Workflow.ScanInterval, scanIntervalLimitMin)
-
-		config.Cfg.Workflow.ScanInterval = scanIntervalLimitMin
-	}
+	clampIntervalToMin("scan", &config.Cfg.Workflow.ScanInterval, scanIntervalLimitMin)
+	clampIntervalToMin("pop", &config.Cfg.Workflow.PopInterval, popIntervalLimitMin)
 
 	if err := w.dbmSync.Run(ctx); err != nil {
-		logger.Error("failed to run the dbm metadata manager, errmsg: %v", err)
+		logger.Error("failed to run dbm metadata manager, errmsg: %s", err)
 		return err
 	}
 
 	w.wg.Add(1)
+	go func() {
+		defer w.wg.Done()
+		w.instanceDiscovery.RunWatch(ctx)
+	}()
 
+	// Scan timer: periodically scan businesses, detect failures and push into sliding windows
+	w.wg.Add(1)
 	go func() {
 		defer w.wg.Done()
 		timer := time.NewTimer(config.Cfg.Workflow.ScanInterval)
@@ -119,22 +158,96 @@ func (w *Workflow) Run(ctx context.Context) error {
 		for {
 			select {
 			case <-w.quit:
+				logger.Info("the scan loop exited(quit)")
 				return
 
 			case <-ctx.Done():
+				logger.Info("the scan loop exited(ctx done)")
 				return
 
 			case <-timer.C:
-				w.scanEventWithoutMetadata()
-				w.scanBusinesses(ctx)
+				logger.Debug("the workflow begins to scan the businesses")
+				w.ScanBusinesses(ctx)
+				logger.Debug("the workflow will scan the businesses, after: %v", config.Cfg.Workflow.ScanInterval)
 				timer.Reset(config.Cfg.Workflow.ScanInterval)
 			}
 		}
 	}()
 
+	// Switch timer: periodically pop matured entries from sliding windows, match strategies and trigger switching
+	w.wg.Add(1)
+	go func() {
+		defer w.wg.Done()
+		timer := time.NewTimer(config.Cfg.Workflow.PopInterval)
+		defer timer.Stop()
+
+		for {
+			select {
+			case <-w.quit:
+				logger.Info("the pop-switch loop exited(quit)")
+				return
+
+			case <-ctx.Done():
+				logger.Info("the pop-switch loop exited(ctx done)")
+				return
+
+			case <-timer.C:
+				logger.Debug("the workflow begins to pop and switch")
+				w.PopAndSwitch(ctx)
+				logger.Debug("the workflow will pop and switch, after: %v", config.Cfg.Workflow.PopInterval)
+				timer.Reset(config.Cfg.Workflow.PopInterval)
+			}
+		}
+	}()
+
+	// DB table update stats timer: periodically count rows updated within dbTableStatsInterval,
+	// grouped by db_type, and report as gauges.
+	w.wg.Add(1)
+	go w.runDbTableStatsLoop(ctx)
+
 	return nil
 }
 
+// runDbTableStatsLoop periodically counts rows updated within dbTableStatsInterval
+// in the DbmMetadata and DbhaDataStatus tables, grouped by db_type,
+// and reports them as gauges. It exits on workflow quit or ctx cancellation.
+func (w *Workflow) runDbTableStatsLoop(ctx context.Context) {
+	defer w.wg.Done()
+
+	timer := time.NewTimer(dbTableStatsInterval)
+	defer timer.Stop()
+
+	for {
+		select {
+		case <-w.quit:
+			logger.Info("the db table stats loop exited(quit)")
+			return
+
+		case <-ctx.Done():
+			logger.Info("the db table stats loop exited(ctx done)")
+			return
+
+		case <-timer.C:
+			w.reportDbTableUpdatedStats(ctx)
+			timer.Reset(dbTableStatsInterval)
+		}
+	}
+}
+
+// clampIntervalToMin ensures the given interval is not smaller than the allowed minimum.
+// If it is, a warning is emitted and the interval is reset to the minimum in place.
+// name is used to label the interval in the log message (e.g. "scan", "pop").
+func clampIntervalToMin(name string, current *time.Duration, min time.Duration) {
+	if *current >= min {
+		return
+	}
+
+	logger.Warn("%s interval(%v) is too small, reset it to the default value(%v)",
+		name, *current, min)
+	*current = min
+}
+
+// Close closes the workflow.
 func (w *Workflow) Close() {
 	if w.quit != nil {
 		close(w.quit)
@@ -144,482 +257,448 @@ func (w *Workflow) Close() {
 	w.quit = nil
 }
 
-func (w *Workflow) triggerAlarmWithDetectorResponse(procName string, status process.Status,
-	content string, exitCode int, resp *detector.Response) {
+// CheckBusinessWithBizID checks a business by its ID.
+// It acquires scan lock, reads metadata and status, and runs checks via BusinessChecker.
+func (w *Workflow) CheckBusinessWithBizID(ctx context.Context, bizId int) error {
+	logger.Debug("scan the business: %d", bizId)
 
-	target := key(resp.Meta.BkCloudID, resp.Meta.IP, resp.Meta.Port)
-	monitorEvent := &monitor.EventData{
-		Name:      resp.DbEventName.String(),
-		Target:    target,
-		Timestamp: uint64(time.Now().UnixMilli()),
-	}
-
-	monitorEvent.Content.Content = content
-
-	monitorEvent.Dimension.DetectorExitCode = exitCode
-	monitorEvent.Dimension.IP = resp.Meta.IP
-	monitorEvent.Dimension.Port = resp.Meta.Port
-	monitorEvent.Dimension.BkBizId = resp.Meta.BkBizID
-	monitorEvent.Dimension.DbClusterType = resp.Meta.ClusterType
-	monitorEvent.Dimension.DbMachineType = resp.Meta.MachineType
-	monitorEvent.Dimension.DetectorProcName = procName
-	monitorEvent.Dimension.DetectorProcStatus = status
-	monitorEvent.Dimension.DbEventName = resp.DbEventName
-	monitorEvent.Dimension.DbEventNameReason = resp.DbEventNameReason.Str()
-
-	logger.Info("the workflow triggers an alarm, db-inst: %d:%s:%d content: %s",
-		resp.Meta.BkBizID, resp.Meta.IP, resp.Meta.Port, content)
-
-	if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
-		logger.Warn("failed to post the alarm event to BkMonitor, errmsg: %s", err)
-	}
-}
-
-func (w *Workflow) triggerAlarmWithBizId(bizId int, content string) {
-	target := fmt.Sprintf("BizId: %d", bizId)
-
-	monitorEvent := &monitor.EventData{
-		Name:      "",
-		Target:    target,
-		Timestamp: uint64(time.Now().UnixMilli()),
-	}
-
-	monitorEvent.Content.Content = content
-
-	monitorEvent.Dimension.BkBizId = bizId
-
-	if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
-		logger.Warn("%s", err)
-	}
-
-}
-
-func (w *Workflow) processDetectorResponse(resp *detector.Response) error {
-	if resp.Err == detector.ErrDetectorCreateSshConnection {
-		resp.DbEventName = haprobe.DbEventNameDoubleCheckSshFailureV1
-		resp.DbEventNameReason = haprobe.DbEventNameReasonConnectionException
-
-		content := fmt.Sprintf("failed to dial the remote host with SSH, host: %d:%s:%d",
-			resp.Meta.BkCloudID, resp.Meta.IP, config.Cfg.Detector.Ssh.Port)
-
-		w.triggerAlarmWithDetectorResponse("", "", content, gerrors.Failure.Int(), resp)
-		// NOTE: Trigger to switch the db.
-		return ErrDetectorFailure
-	}
-
-	if resp.Err == detector.ErrDetectorCreateSshSession {
-		resp.DbEventName = haprobe.DbEventNameDoubleCheckSshFailureV1
-		resp.DbEventNameReason = haprobe.DbEventNameReasonConnectionException
-
-		content := fmt.Sprintf("failed to create SSH session with the remote host, host: %d:%s:%d",
-			resp.Meta.BkCloudID, resp.Meta.IP, config.Cfg.Detector.Ssh.Port)
-
-		w.triggerAlarmWithDetectorResponse("", "", content, gerrors.Failure.Int(), resp)
-		// NOTE: Trigger to switch the db.
-		return ErrDetectorFailure
-	}
-
-	if resp.Err != nil {
-		w.triggerAlarmWithDetectorResponse("", "", resp.Err.Error(), gerrors.Failure.Int(), resp)
-		return nil
-	}
-
-	if resp.SshResp.ExitCode != 0 {
-		content := fmt.Sprintf("%s, errmsg: %s", resp.SshResp.Data, resp.SshResp.ErrMsg)
-		w.triggerAlarmWithDetectorResponse("", "", content, resp.SshResp.ExitCode, resp)
-		return nil
-	}
-
-	// Parse the probe health.
-	var health process.HealthInfo
-	err := json.Unmarshal([]byte(resp.SshResp.Data), &health)
+	_, unlock, err := w.metadataReader.AcquireScanLock(ctx, bizId)
 	if err != nil {
-		w.triggerAlarmWithDetectorResponse("", "", err.Error(), gerrors.Failure.Int(), resp)
-		return nil
+		return err
 	}
+	defer unlock()
 
-	content := fmt.Sprintf("pid: %d proc name: %s status: %s", health.Pid, health.ProcName, health.Status)
-	if health.Pid == process.InvalidPid {
-		content = health.ErrMsg
-	} else {
-		// Probe is running, but there are no target database metrics.
-		content = fmt.Sprintf("%s, db: %s:%d", content, resp.Meta.IP, resp.Meta.Port)
-		resp.DbEventName = haprobe.DbEventNameDetectFailure
-		resp.DbEventNameReason = haprobe.DbEventNameReasonNoTarget
-	}
-
-	w.triggerAlarmWithDetectorResponse(health.ProcName, health.Status, content, resp.SshResp.ExitCode, resp)
-	return nil
-}
-
-func (w *Workflow) databaseLivenessDoubleCheck(missedInsts []*hamodel.DbmMetadata) {
-	remoteDetector := detector.Detector{}
-
-	// Trigger to execute the remote detect logic.
-	if err := remoteDetector.Detect(missedInsts); err != nil {
-		logger.Warn("failed to detect remote db-insts, errmsg: %s", err)
-		return
-	}
-
-	// Read the detected results.
-	resps := remoteDetector.WaitResponses()
-
-	// Post the alarm event by the bk-monitor.
-	// key: bkCloudId, value: ip
-	cloudIdIps := map[int][]string{}
-	for idx, resp := range resps {
-		logger.Debug("idx: %d host: %s:%d resp: %p", idx, resp.Meta.IP, resp.Meta.Port, resp)
-		err := w.processDetectorResponse(resp)
-		if err == nil {
-			continue
-		}
-
-		if err == ErrDetectorFailure {
-			cloudIdIps[resp.Meta.BkCloudID] = append(cloudIdIps[resp.Meta.BkCloudID], resp.Meta.IP)
-			continue
-		}
-
-		instId := key(resp.Meta.BkCloudID, resp.Meta.IP, resp.Meta.Port)
-		logger.Warn("failed to process detector response, inst: %s, errmsg: %s", instId, err)
-	}
-
-	if len(cloudIdIps) == 0 {
-		return
-	}
-
-	for cloudId, ips := range cloudIdIps {
-		req := w.createSwitcherRequestWithIPs(cloudId, ips)
-		if req == nil {
-			continue
-		}
-
-		if len(req.MySqlInstData) == 0 {
-			logger.Debug("there is no database instance that needs to be switched")
-			continue
-		}
-
-		// TODO: Now there is only MySQL(default).
-		logger.Debug("trigger switching, dbType: %s, cloudId: %d, ips: %v", haprobe.DbTypeMysql, cloudId, ips)
-		w.triggerSwitching(haprobe.DbTypeMysql, req)
-	}
-}
-
-func (w *Workflow) createSwitcherRequestWithIPs(bkCloudId int, ips []string) *switcher.Request {
-	metadatas, err := w.dbmSync.cli.QueryMetadataFromDbm(context.Background(), bkCloudId, ips)
+	bizMeta, err := w.metadataReader.ReadBusinessMetadata(bizId)
 	if err != nil {
-		logger.Warn("failed to query metadata from DBM, bkCloudId: %d, ips: %v, errmsg: %s", bkCloudId, ips, err)
-		return nil
+		return err
 	}
 
-	req := &switcher.Request{}
-	for _, meta := range metadatas {
-		if meta.Status == dbm.Unavailable {
-			logger.Info("the database instance is unavailable, skipping, inst: %s", key(meta.BkCloudID, meta.IP, meta.Port))
-			continue
-		}
-
-		req.AddDbInstMetadata((*switcher.MySQLInstanceMetadata)(meta))
-	}
-
-	return req
-}
-
-func (w *Workflow) createSwitcherRequest(bkCloudId int, events []*hamodel.DbEvent) *switcher.Request {
-	ips := []string{}
-
-	for _, event := range events {
-		ips = append(ips, event.IP)
-	}
-
-	return w.createSwitcherRequestWithIPs(bkCloudId, ips)
-}
-
-func (w *Workflow) triggerSwitching(dbType haprobe.DbType, req *switcher.Request) {
-	if !config.Cfg.Workflow.EnableSwitching {
-		logger.Warn("switching operation is disabled")
-		return
-	}
-
-	sw, exists := w.switchers[dbType]
-	if !exists {
-		logger.Warn("unknown database type: %s", dbType)
-		return
-	}
-
-	rsp := sw.Switch(context.Background(), req)
-	if rsp.Err == nil {
-		logger.Info("switching success for the database type: %s", dbType)
-	}
-
-	// post the success alarm
-	for _, inst := range req.MySqlInstData {
-		instKey := switcher.GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
-
-		if _, exists := rsp.MySqlFailureInsts[instKey]; exists {
-			continue
-		}
-
-		monitorEvent := &monitor.EventData{
-			Name:      string(haprobe.DbEventNameMysqlSwitchSuccessV1),
-			Target:    string(instKey),
-			Timestamp: uint64(time.Now().UnixMilli()),
-		}
-
-		monitorEvent.Content.Content = "switching success"
-		monitorEvent.Dimension.BkCloudId = inst.BkCloudID
-		monitorEvent.Dimension.IP = inst.IP
-		monitorEvent.Dimension.Port = inst.Port
-		monitorEvent.Dimension.DbTypeName = dbType
-		monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchSuccessV1
-
-		if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
-			logger.Warn("switching success, failed to post the alarm, inst: %s, errmsg: %s", instKey, err)
-		}
-	}
-
-	// post the failure alarm
-	for instKey, inst := range rsp.MySqlFailureInsts {
-		monitorEvent := &monitor.EventData{
-			Name:      string(haprobe.DbEventNameMysqlSwitchFailureV1),
-			Target:    string(instKey),
-			Timestamp: uint64(time.Now().UnixMilli()),
-		}
-
-		monitorEvent.Content.Content = rsp.Err.Error()
-		monitorEvent.Dimension.BkCloudId = inst.BkCloudID
-		monitorEvent.Dimension.IP = inst.IP
-		monitorEvent.Dimension.Port = inst.Port
-		monitorEvent.Dimension.DbTypeName = dbType
-		monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchFailureV1
-
-		if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
-			logger.Warn("switching failure, failed to post the alarm, inst: %s, errmsg: %s", instKey, err)
-		}
-	}
-}
-
-func (w *Workflow) checkEventWithBizId(bizId int, dbEvents []*hamodel.DbEvent,
-	skipDbInsts map[string]*hamodel.SkipDbInstance, metaInsts map[string]*hamodel.DbmMetadata) {
-
-	// TODO: read switching strategy with bizId
-	_ = bizId
-
-	badInsts := []*hamodel.DbmMetadata{}
-
-	for _, event := range dbEvents {
-		key := key(event.BkCloudID, event.IP, event.Port)
-
-		if _, exists := skipDbInsts[key]; exists {
-			logger.Info("skip the db-inst: %s", key)
-			continue
-		}
-
-		meta, exists := metaInsts[key]
-		if !exists {
-			logger.Warn("not found the meta for the db-inst: %s", key)
-			continue
-		}
-
-		logger.Warn("recheck the db-inst: %s", key)
-		badInsts = append(badInsts, meta)
-	}
-
-	// Trigger to recheck.
-	w.databaseLivenessDoubleCheck(badInsts)
-}
-
-func (w *Workflow) checkMissedProbe(dbMetrics []*hamodel.MySqlStatus,
-	skipDbInsts map[string]*hamodel.SkipDbInstance, metaInsts map[string]*hamodel.DbmMetadata) {
-
-	// Read the DB instance information reported by the probe.
-	dbMetricKeys := map[string]struct{}{}
-	for _, dbMetric := range dbMetrics {
-		ips := strings.SplitSeq(dbMetric.IPs, constant.Delimiter)
-
-		for ip := range ips {
-			key := key(dbMetric.BkCloudID, ip, dbMetric.InstanceID)
-			dbMetricKeys[key] = struct{}{}
-		}
-
-		logger.Debug("db instance metric: %v", dbMetric)
-	}
-
-	// Extract the instance of the DB that the probe is currently in an office state.
-	missedProbeInsts := []*hamodel.DbmMetadata{}
-	for _, dbMeta := range metaInsts {
-		key := key(dbMeta.BkCloudID, dbMeta.IP, dbMeta.Port)
-
-		if _, exists := skipDbInsts[key]; exists {
-			logger.Info("skip the db instance: %s", key)
-			continue
-		}
-
-		if _, exists := dbMetricKeys[key]; exists {
-			logger.Debug("db instance(%s) has probe", key)
-			continue
-		}
-
-		missedProbeInsts = append(missedProbeInsts, dbMeta)
-	}
-
-	// Trigger to recheck.
-	w.databaseLivenessDoubleCheck(missedProbeInsts)
-}
-
-func (w *Workflow) checkDbMetricWithBizId(ctx context.Context, bizId int, dbMetrics []*hamodel.MySqlStatus) {
-	// TODO: Base on the metric data from the database, an in-depth analysis is conducted.
-	//       If any abnormal events occur, the switching strategy will be triggered.
-}
-
-func (w *Workflow) checkBusinessWithBizID(ctx context.Context, bizId int) (retErr error) {
-	logger.Debug("check the business: %d", bizId)
-
-	//  Acquire the lock to ensuer the only one instance of the AM handles the bizID.
-	mu, retErr := w.discoveryCli.CreateMutex(strconv.Itoa(bizId))
-	if retErr != nil {
-		logger.Warn("failed to acquire the mutex lock for the business, bizId: %d, errmsg: %s", bizId, retErr)
-		return ErrAcquireLockFailure
-	}
-
-	defer mu.Close()
-
-	if retErr = mu.TryLock(ctx); retErr != nil {
-		logger.Warn("failed to lock the business, bizId: %d, errmsg: %s", bizId, retErr)
-		return retErr
-	}
-
-	defer func() {
-		if retErr = mu.Unlock(ctx); retErr != nil {
-			logger.Warn("failed to unlock the biz: %d, errmsg: %v", bizId, retErr)
-		}
-	}()
-
-	// Read all metadata by business ID.
-	metaData, retErr := w.hadata.ReadMetadataCacheWithBizID(bizId, readBatchCount,
-		config.Cfg.Workflow.ReadDbMetaOffsetDuration)
-
-	if retErr != nil {
-		logger.Warn("failed to read the DB metadata for the business, bizId: %d, errmsg: %s", bizId, retErr)
-		return ErrReadeMetadataFailure
-	}
-
-	conds := []*storage.DbInstance{}
-	metaInsts := map[string]*hamodel.DbmMetadata{}
-	for _, meta := range metaData {
-		conds = append(conds, &storage.DbInstance{
-			BkCloudID: meta.BkCloudID,
-			IP:        meta.IP,
-			Port:      meta.Port,
-		})
-
-		metaInsts[key(meta.BkCloudID, meta.IP, meta.Port)] = meta
-	}
-
-	// Read the status data reported by the probe.
-	dbMetrics, err := w.hadata.ReadDbMetricsWithDbInstances(conds, config.Cfg.Workflow.ReadDbMetricOffsetDuration)
+	dbStatus, err := w.metadataReader.ReadDbStatusWithInstances(
+		bizMeta.Conds,
+		config.Cfg.Workflow.ReadDbMetricOffsetDuration,
+	)
 	if err != nil {
-		logger.Warn("failed to read the DB metrics with the conditions: %v, bizId: %d, errmsg: %s", conds, bizId, err)
+		logger.Warn("failed to read the DB status with the conditions: %v, bizId: %d, errmsg: %s", bizMeta.Conds, bizId, err)
 		return ErrReadDbMetricFailure
 	}
 
-	dbEvents, err := w.hadata.ReadDbEventWithDbInstances(conds, config.Cfg.Workflow.ReadDbEventOffsetDuration)
+	statusData := w.metadataReader.ExtractDbStatusData(dbStatus)
+
+	skipInsts, err := w.metadataReader.ReadBusinessSkipInstances(bizId)
 	if err != nil {
-		logger.Warn("failed to read the DB events with the conditions: %v, bizId: %d, errmsg: %s", conds, bizId, err)
-		return ErrReadDbEventFailure
+		return err
 	}
 
-	dbSkipInsts, err := w.hadata.ReadSkipDbInstancesWithBkBizId(bizId)
-	if err != nil {
-		logger.Warn("failed to read the skipped DB insts for the business: %d, errmsg: %s", bizId, err)
-		return ErrReadSkipDbInstFailure
-	}
+	w.businessChecker.RunBusinessChecks(bizId, dbStatus, statusData, skipInsts, bizMeta.MetaInsts)
 
-	skipInsts := map[string]*hamodel.SkipDbInstance{}
-	for _, skipInst := range dbSkipInsts {
-		skipInsts[key(skipInst.BkCloudID, skipInst.InstanceIP, skipInst.InstancePort)] = skipInst
-	}
-
-	var wg sync.WaitGroup
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		w.checkMissedProbe(dbMetrics, skipInsts, metaInsts)
-	}()
-
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		w.checkEventWithBizId(bizId, dbEvents, skipInsts, metaInsts)
-	}()
-
-	// Parse and trigger switching logic.
-	w.checkDbMetricWithBizId(ctx, bizId, dbMetrics)
-
-	wg.Wait()
-	return retErr
+	logger.Debug("finished scanning the business: %d", bizId)
+	return nil
 }
 
-func (w *Workflow) scanEventWithoutMetadata() {
-	events, err := w.hadata.ReadAllDbEventWithoutMetadata(readBatchCount, config.Cfg.Workflow.ReadDbEventOffsetDuration)
-	if err != nil {
-		logger.Warn("failed to read db event without metadata, errmsg: %s", err)
-		return
-	}
+// ScanBusinesses fetches business IDs, filters by instance sharding,
+// and runs CheckBusinessWithBizID for each (with concurrency limit).
+func (w *Workflow) ScanBusinesses(ctx context.Context) {
+	start := time.Now()
 
-	for _, event := range events {
-		monitorEvent := &monitor.EventData{
-			Name:      event.Name.String(),
-			Target:    event.Endpoint,
-			Timestamp: uint64(event.UpdatedAt.UnixMilli()),
-		}
-
-		monitorEvent.Content.Content = fmt.Sprintf("without metadata, %s", event.Message)
-		monitorEvent.Dimension.BkCloudId = event.BkCloudID
-		monitorEvent.Dimension.IP = event.IP
-		monitorEvent.Dimension.Port = event.Port
-		monitorEvent.Dimension.DbTypeName = event.DbTypeName
-		monitorEvent.Dimension.DbEventName = event.Name
-		monitorEvent.Dimension.DbEventNameReason = event.Reason.Str()
-
-		if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
-			logger.Warn("failed to post an alarm to the BkMonitor, errmsg: %s", err)
-		}
-
-		logger.Debug("check the business(event): %s %s", event.Endpoint, event.Message)
-	}
-}
-
-func (w *Workflow) scanBusinesses(ctx context.Context) {
-	bizIDs, err := w.hadata.GetBizIDs()
+	qCtx, cancel := context.WithTimeout(ctx, config.Cfg.Storage.Timeout)
+	bizIDs, err := w.hadata.GetBizIDs(qCtx)
+	cancel()
 	if err != nil {
 		logger.Warn("failed to get business IDs, errmsg: %s", err)
 		return
 	}
 
-	wgBizs := sync.WaitGroup{}
-	for _, bizID := range bizIDs {
-		wgBizs.Add(1)
+	assigned := w.instanceDiscovery.AssignedBizIDs(bizIDs)
+
+	// Report the business total
+	if err := apm.AmBusinessTotal.SetWithLabels(map[string]string{
+		haapm.MetricLabelServiceID:   w.myServiceID,
+		haapm.MetricLabelServiceName: apm.MetricServerName,
+	}, float64(len(assigned))); err != nil {
+		logger.Warn("failed to report the business total, errmsg: %s", err)
+	}
+
+	wg := sync.WaitGroup{}
+	sem := make(chan struct{}, 10)
+
+	for _, bizID := range assigned {
+		sem <- struct{}{}
+		wg.Add(1)
 
 		go func(bizId int) {
-			defer wgBizs.Done()
+			defer wg.Done()
+			defer func() { <-sem }()
 
-			err := w.checkBusinessWithBizID(ctx, bizId)
-			if err == nil {
-				logger.Info("successfully complete the business check, bizId: %d", bizId)
-				return
-			}
+			safe.Run(func() {
+				err := w.CheckBusinessWithBizID(ctx, bizId)
+				if err == nil {
+					logger.Info("successfully complete the business check, bizId: %d", bizId)
+					return
+				}
 
-			// Trigger an alarm and send it to the monitoring platform.
-			logger.Warn("failed to check the business, bizId: %d", bizId)
-			w.triggerAlarmWithBizId(bizId, err.Error())
-
+				logger.Warn("failed to check the business, bizId: %d", bizId)
+				w.alarm.TriggerWithBizId(bizId, err.Error())
+			}, safe.WithLabel("ScanBusinesses"))
 		}(bizID)
 	}
 
-	wgBizs.Wait()
+	wg.Wait()
+
+	// report the scan business time consuming
+	if err := apm.ScanBusinessTimeConsumingMs.ObserveWithLabels(map[string]string{
+		haapm.MetricLabelServiceID:   w.myServiceID,
+		haapm.MetricLabelServiceName: apm.MetricServerName,
+	}, float64(time.Since(start).Milliseconds())); err != nil {
+		logger.Warn("failed to report the scan business time consuming, errmsg: %s", err)
+	}
+
+	// report the scan business total
+	if err := apm.ScanBusinessTotal.AddWithLabels(map[string]string{
+		haapm.MetricLabelServiceID:   w.myServiceID,
+		haapm.MetricLabelServiceName: apm.MetricServerName,
+	}, float64(len(assigned))); err != nil {
+		logger.Warn("failed to report the scan business total, errmsg: %s", err)
+	}
 }
 
-func key[T any](bkCloudId int, ip string, port T) string {
+// PopAndSwitch iterates over assigned business IDs, pops matured entries from sliding windows,
+// matches switching strategies, and triggers switching for matched groups.
+// Each business acquires an independent SwitchLock to prevent multiple AM instances from
+// switching the same business simultaneously. SwitchLock is independent of ScanLock.
+func (w *Workflow) PopAndSwitch(ctx context.Context) {
+	start := time.Now()
+
+	qCtx, cancel := context.WithTimeout(ctx, config.Cfg.Storage.Timeout)
+	bizIDs, err := w.hadata.GetBizIDs(qCtx)
+	cancel()
+	if err != nil {
+		logger.Warn("failed to get business IDs for pop-switch, errmsg: %s", err)
+		return
+	}
+
+	assigned := w.instanceDiscovery.AssignedBizIDs(bizIDs)
+	wg := sync.WaitGroup{}
+	sem := make(chan struct{}, 10)
+
+	for _, bizID := range assigned {
+		sem <- struct{}{}
+		wg.Add(1)
+
+		go func(bizId int) {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			safe.Run(func() {
+				w.popAndSwitchForBiz(ctx, bizId)
+			}, safe.WithLabel("PopAndSwitch"))
+		}(bizID)
+	}
+
+	wg.Wait()
+
+	// report the pop-switch time consuming
+	if err := apm.PopSwitchTimeConsumingMs.ObserveWithLabels(map[string]string{
+		haapm.MetricLabelServiceID:   w.myServiceID,
+		haapm.MetricLabelServiceName: apm.MetricServerName,
+	}, float64(time.Since(start).Milliseconds())); err != nil {
+		logger.Warn("failed to report the pop-switch time consuming, errmsg: %s", err)
+	}
+
+	// report the pop-switch business total
+	if err := apm.PopSwitchBusinessTotal.AddWithLabels(map[string]string{
+		haapm.MetricLabelServiceID:   w.myServiceID,
+		haapm.MetricLabelServiceName: apm.MetricServerName,
+	}, float64(len(assigned))); err != nil {
+		logger.Warn("failed to report the pop-switch business total, errmsg: %s", err)
+	}
+}
+
+// popAndSwitchForBiz performs pop-and-switch for a single business:
+// acquires SwitchLock, pops matured entries, marks all instances as inflight,
+// groups by (BkCloudID, DbType), matches strategies, and triggers switching or notification.
+func (w *Workflow) popAndSwitchForBiz(ctx context.Context, bizId int) {
+	_, unlock, err := w.metadataReader.AcquireSwitchLock(ctx, bizId)
+	if err != nil {
+		logger.Debug("skip pop-switch for biz %d, unable to acquire switch lock, errmsg: %s", bizId, err)
+		return
+	}
+	defer unlock()
+
+	entries := w.windowMgr.PopAndMarkStart(bizId, time.Now())
+	if len(entries) == 0 {
+		return
+	}
+
+	logger.Info("popped %d matured entries for biz %d", len(entries), bizId)
+	groups := groupEntriesByCloudAndDbType(entries)
+
+	var failureGroupFns []func()
+	for _, group := range groups {
+		failureGroupFns = append(failureGroupFns, func() {
+			w.handleFailureGroup(ctx, group)
+		})
+	}
+
+	wait := safe.GoWaits(failureGroupFns,
+		safe.WithLabel("popAndSwitchForBiz"), safe.WithOnPanic(func(pi safe.PanicInfo) {
+			logger.Error("panic in pop and switch for biz, biz_id: %d, errmsg: %s", bizId, pi.Reason)
+		}))
+
+	wait()
+}
+
+func (w *Workflow) handleFailureGroup(ctx context.Context, group *FailureGroup) {
+	groupInstKeys := collectGroupInstanceKeys(group)
+	defer w.markDoneAll(groupInstKeys)
+
+	req := w.switchExecutor.CreateRequestWithGroup(ctx, group)
+
+	if req == nil {
+		return
+	}
+
+	if !req.HasDbInstMetadata() {
+		logger.Warn("no db inst metadata after query, dbType: %s, cloudId: %d, instances: %d",
+			group.DbType, group.BkCloudID, len(group.Instances))
+		return
+	}
+
+	matched, strategy := w.switchExecutor.MatchStrategyForGroup(ctx, group)
+	if !matched {
+		logger.Info(
+			"no matching switching strategy, skip, cloudId: %d, dbType: %s, instances: %d, events: [%s]",
+			group.BkCloudID,
+			group.DbType,
+			len(group.Instances),
+			FormatInstanceEventSummary(group.Instances),
+		)
+		return
+	}
+
+	if w.handleStrategyNotify(strategy, group) {
+		return
+	}
+
+	w.filterWhitelistedInstances(ctx, group, req)
+	if !req.HasDbInstMetadata() {
+		logger.Info("all instances are whitelisted, notify only, cloudId: %d, dbType: %s",
+			group.BkCloudID, group.DbType)
+		return
+	}
+
+	if w.handleStrategySwitch(strategy, group, req) {
+		return
+	}
+
+	logger.Warn("unknown strategy action: %s, strategyId: %d, cloudId: %d, dbType: %s",
+		strategy.Action, strategy.ID, group.BkCloudID, group.DbType)
+}
+
+func collectGroupInstanceKeys(group *FailureGroup) []string {
+	groupInstKeys := make([]string, 0, len(group.Instances))
+	for _, inst := range group.Instances {
+		groupInstKeys = append(groupInstKeys,
+			instanceWindowKey(inst.BkCloudID, inst.IP, inst.Port, inst.DbType))
+	}
+
+	return groupInstKeys
+}
+
+func (w *Workflow) handleStrategyNotify(strategy *hamodel.DbSwitchingStrategy, group *FailureGroup) bool {
+	if strategy.Action != hamodel.ActionTypeNotify {
+		return false
+	}
+
+	log := fmt.Sprintf("strategy action is %s, execute notification, strategyId: %d, cloudId: %d, dbType: %s",
+		strategy.Action, strategy.ID, group.BkCloudID, group.DbType)
+	logger.Info("%s", log)
+
+	w.alarm.TriggerWithBizId(group.Instances[0].BkBizID, log)
+	return true
+}
+
+// filterWhitelistedInstances filters out instances that are in the whitelist from the switch request.
+// Whitelisted instances are removed from the request and a notification alarm is sent for them.
+// The remaining instances will continue through the normal strategy matching and switching flow.
+func (w *Workflow) filterWhitelistedInstances(ctx context.Context, group *FailureGroup, req *switcher.Request) {
+	if !config.Cfg.Workflow.EnableSwitching {
+		logger.Warn("switching operation is disabled, skip filtering whitelisted instances")
+		return
+	}
+
+	if len(group.Instances) == 0 {
+		return
+	}
+
+	bkBizID := group.Instances[0].BkBizID
+
+	qCtx, cancel := context.WithTimeout(ctx, config.Cfg.Storage.Timeout)
+	defer cancel()
+
+	whiteList, err := w.hadata.ReadBlackWhiteList(qCtx, bkBizID, group.BkCloudID)
+	if err != nil {
+		logger.Warn("failed to read the black-white list, bkBizId: %d, bkCloudId: %d, errmsg: %s",
+			bkBizID, group.BkCloudID, err)
+		return
+	}
+
+	if len(whiteList) == 0 {
+		return
+	}
+
+	whiteListMap := make(map[int]*hamodel.DbBlackWhiteList, len(whiteList))
+	for _, item := range whiteList {
+		whiteListMap[item.ClusterID] = item
+	}
+
+	whitelistedMetas := make([]*dbm.DbInstMetadata, 0)
+	remaining := make([]*dbm.DbInstMetadata, 0)
+
+	for _, meta := range req.MySqlInstData {
+		if _, exists := whiteListMap[meta.ClusterID]; exists {
+			logger.Info("instance is in the whitelist, skip switching, clusterId: %d, clusterName: %s, ip: %s, port: %d",
+				meta.ClusterID, meta.Cluster, meta.IP, meta.Port)
+			whitelistedMetas = append(whitelistedMetas, meta)
+			continue
+		}
+		remaining = append(remaining, meta)
+	}
+
+	if len(whitelistedMetas) == 0 {
+		return
+	}
+
+	req.MySqlInstData = remaining
+
+	// if there are whitelisted instances, send a notification alarm
+	clusterInfos := make([]string, 0, len(whitelistedMetas))
+	for _, meta := range whitelistedMetas {
+		clusterInfos = append(clusterInfos, fmt.Sprintf("%d:%s", meta.ClusterID, meta.Cluster))
+	}
+	log := fmt.Sprintf(
+		"found %d whitelisted instance(s), execute notification only, bkBizId: %d, bkCloudId: %d, dbType: %s, clusters: [%s]",
+		len(whitelistedMetas), bkBizID, group.BkCloudID, group.DbType, strings.Join(clusterInfos, ", "))
+	logger.Info("%s", log)
+	w.alarm.TriggerWithBizId(bkBizID, log)
+}
+
+func (w *Workflow) handleStrategySwitch(strategy *hamodel.DbSwitchingStrategy, group *FailureGroup, req *switcher.Request) bool {
+	if strategy.Action != hamodel.ActionTypeSwitch {
+		return false
+	}
+
+	req.ActionScope = strategy.Scope
+	req.SwitchID = generateSwitchID()
+
+	logger.Info("trigger switching by strategyId: %d, switchId: %s, dbType: %s, cloudId: %d, instances: %d",
+		strategy.ID, req.SwitchID, group.DbType, group.BkCloudID, len(group.Instances))
+
+	// Report the triggering switching instance total
+	if err := apm.TriggerSwitchingInstanceTotal.AddWithLabels(map[string]string{
+		haapm.MetricLabelServiceID:   w.myServiceID,
+		haapm.MetricLabelServiceName: apm.MetricServerName,
+	}, float64(len(req.MySqlInstData))); err != nil {
+		logger.Warn("failed to update switching instance total metric, errmsg: %s", err)
+	}
+
+	w.switchExecutor.TriggerSwitching(group.DbType, req)
+
+	return true
+}
+
+// generateSwitchID generates a unique switch ID.
+func generateSwitchID() string {
+	return fmt.Sprintf("%s-%s", config.SwitchIDVersion, strings.ReplaceAll(uuid.New().String(), "-", ""))
+}
+
+// markDoneAll releases inflight marks for all the given instance keys.
+func (w *Workflow) markDoneAll(keys []string) {
+	for _, key := range keys {
+		w.windowMgr.MarkDone(key)
+	}
+}
+
+// groupEntriesByCloudAndDbType groups window entries by (BkCloudID, DbType) into FailureGroups
+// for batch strategy matching and switching.
+func groupEntriesByCloudAndDbType(entries []*FailureWindowEntry) []*FailureGroup {
+	groupMap := make(map[string]*FailureGroup)
+	var keys []string
+
+	for _, entry := range entries {
+		key := fmt.Sprintf("%d:%s", entry.BkCloudID, entry.DbType)
+		if g, ok := groupMap[key]; ok {
+			g.Instances = append(g.Instances, entry.FailureInstanceInfo)
+		} else {
+			groupMap[key] = &FailureGroup{
+				BkCloudID: entry.BkCloudID,
+				DbType:    entry.DbType,
+				Instances: []FailureInstanceInfo{entry.FailureInstanceInfo},
+			}
+			keys = append(keys, key)
+		}
+	}
+
+	// Maintain deterministic order
+	sort.Strings(keys)
+	groups := make([]*FailureGroup, 0, len(keys))
+	for _, k := range keys {
+		groups = append(groups, groupMap[k])
+	}
+
+	return groups
+}
+
+// instanceKey builds a unique instance identifier from cloud id, IP and port.
+func instanceKey[T any](bkCloudId int, ip string, port T) string {
 	return fmt.Sprintf("%d:%s:%v", bkCloudId, ip, port)
+}
+
+// reportDbTableUpdatedStats queries the DbmMetadata and DbhaDataStatus tables for
+// rows updated within the last dbTableStatsInterval, grouped by db_type,
+// and reports each group's count to the corresponding gauge metric.
+func (w *Workflow) reportDbTableUpdatedStats(ctx context.Context) {
+	qCtx, cancel := context.WithTimeout(ctx, config.Cfg.Storage.Timeout)
+	defer cancel()
+
+	// DbmMetadata
+	metaCounts, err := w.hadata.CountDbmMetadataUpdatedWithin(qCtx, dbTableStatsInterval)
+	if err != nil {
+		logger.Warn("failed to count DbmMetadata updated rows, errmsg: %s", err)
+		return
+	}
+	// Clear previous window's series so that instances that stopped updating won't keep their stale values.
+	apm.DbmMetadataUpdatedCount.Clear()
+	for _, item := range metaCounts {
+		if item.DbType == haprobe.DbTypeNone {
+			continue
+		}
+		if e := apm.DbmMetadataUpdatedCount.SetWithLabels(map[string]string{
+			haapm.MetricLabelServiceID:   w.myServiceID,
+			haapm.MetricLabelServiceName: apm.MetricServerName,
+			apm.MetricLabelDbType:        item.DbType.String(),
+		}, float64(item.Count)); e != nil {
+			logger.Warn("failed to report dbm_metadata_updated_count, dbType: %s, errmsg: %s", item.DbType, e)
+		}
+	}
+
+	// DbhaDataStatus
+	statusCounts, err := w.hadata.CountDbhaDataStatusUpdatedWithin(qCtx, dbTableStatsInterval)
+	if err != nil {
+		logger.Warn("failed to count DbhaDataStatus updated rows, errmsg: %s", err)
+		return
+	}
+	// Clear previous window's series so that instances that stopped updating won't keep their stale values.
+	apm.DbhaDataStatusUpdatedCount.Clear()
+	for _, item := range statusCounts {
+		if item.DbType == haprobe.DbTypeNone {
+			continue
+		}
+		if e := apm.DbhaDataStatusUpdatedCount.SetWithLabels(map[string]string{
+			haapm.MetricLabelServiceID:   w.myServiceID,
+			haapm.MetricLabelServiceName: apm.MetricServerName,
+			apm.MetricLabelDbType:        item.DbType.String(),
+		}, float64(item.Count)); e != nil {
+			logger.Warn("failed to report dbha_data_status_updated_count, dbType: %s, errmsg: %s", item.DbType, e)
+		}
+	}
 }

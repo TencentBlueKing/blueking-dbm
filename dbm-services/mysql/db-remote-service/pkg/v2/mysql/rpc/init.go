@@ -25,11 +25,17 @@ func (c *MySQLRPCRequest) TrimSpace() {
 	}
 }
 
-type MySQLRPCResponse struct {
-	Cmd          string
-	Result       json.RawMessage //[]byte //impl.SQLResultRows
-	RowsAffected int64
-	Error        string
+type MySQLCmdRPCResponse struct {
+	Cmd          string          `json:"cmd"`
+	Result       json.RawMessage `json:"table_data"`
+	RowsAffected int64           `json:"rows_affected"`
+	Error        string          `json:"error_msg"`
+}
+
+type MySQLOneAddressRPCResponse struct {
+	Address    string                `json:"address"`
+	CmdResults []MySQLCmdRPCResponse `json:"cmd_results"`
+	Error      string                `json:"error_msg"`
 }
 
 func BuildRequestWithDefault(c *gin.Context) (*MySQLRPCRequest, error) {

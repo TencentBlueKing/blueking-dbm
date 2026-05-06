@@ -2,6 +2,7 @@
   <EditableColumn
     ref="editableColumnRef"
     :append-rules="rules"
+    :disabled-method="() => (!clusterId ? t('请先输入合法的集群域名') : false)"
     field="add_shards_num"
     :label="t('新增集群分片数')"
     required
@@ -25,6 +26,7 @@
   import BatchEditColumn, { BatchEditNumberInput } from '@views/db-manage/common/batch-edit-column-new/Index.vue';
 
   interface Props {
+    clusterId: number;
     singleHostShardNum: number;
   }
 

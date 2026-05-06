@@ -56,9 +56,12 @@
   </DbSideslider>
 </template>
 <script setup lang="ts">
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
+
+  import type ResourceTagSelector from '@views/db-manage/common/apply-items/ResourceTagSelector.vue';
 
   import ChooseClusterTargetPlan, {
     type CapacityNeed,
@@ -87,6 +90,7 @@
     cluster_shard_num: number;
     count: string | number;
     future_capacity: number;
+    labels: ComponentProps<typeof ResourceTagSelector>['modelValue'];
     spec_id: number;
   }>({
     required: true,
@@ -135,7 +139,7 @@
 
   const disabledMethod = () => {
     if (!props.cluster.id) {
-      return t('请先选择集群');
+      return t('请先输入合法的集群域名');
     }
     if (!props.targetClusterType) {
       return t('请先选择新集群类型');
@@ -151,6 +155,7 @@
       cluster_shard_num: choosedObj.cluster_shard_num,
       count: choosedObj.machine_pair,
       future_capacity: capacity.future,
+      labels: choosedObj.labels,
       spec_id: choosedObj.spec_id,
     });
     showChooseClusterTargetPlan.value = false;

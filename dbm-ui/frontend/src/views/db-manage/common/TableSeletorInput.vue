@@ -57,7 +57,7 @@
       v-if="!isFocused"
       :content="tooltipContent"
       placement="top"
-      :popover-delay="0">
+      :popover-delay="[200, 100]">
       <div
         class="edit-btn"
         @click="handleClickSeletor">
@@ -111,11 +111,11 @@
 
   const emits = defineEmits<Emits>();
 
-  const { t } = useI18n();
-
   const modelValue = defineModel<string>({
     default: '',
   });
+
+  const { t } = useI18n();
 
   const inputRef = ref();
   const isFocused = ref(false);

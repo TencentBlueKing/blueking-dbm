@@ -2,7 +2,6 @@ package model
 
 import (
 	"fmt"
-	"strings"
 
 	"bk-dbconfig/internal/pkg/cst"
 	"bk-dbconfig/pkg/core/config"
@@ -74,7 +73,7 @@ func (c *ConfigModel) HandleFlagEncrypt() error {
 	}
 	nameDef, err := CacheGetConfigNameDef(c.Namespace, c.ConfType, c.ConfFile, c.ConfName)
 	if err == nil && nameDef.FlagEncrypt == 1 {
-		key := fmt.Sprintf("%s%s", config.GetString("encrypt.keyPrefix"), c.LevelValue)
+		key := config.GetString("encrypt.keyPrefix")
 		c.ConfValue, err = crypt.EncryptString(c.ConfValue, key, constvar.EncryptEnableZip)
 		if err != nil {
 			logger.Errorf("HandleFlagEncrypt %+v. Error: %w", c, err)
@@ -93,7 +92,7 @@ func (c *ConfigModel) MayDecrypt() error {
 	}
 	var err error
 	// 确实是已加密字符串，可以不用去 tb_config_name_def 里面获取 flag_encrypt
-	key := fmt.Sprintf("%s%s", config.GetString("encrypt.keyPrefix"), c.LevelValue)
+	key := config.GetString("encrypt.keyPrefix")
 	c.ConfValue, err = crypt.DecryptString(c.ConfValue, key, constvar.EncryptEnableZip)
 	if err != nil {
 		logger.Errorf("MayDecrypt %+v. Error: %w", c, err)
@@ -143,12 +142,16 @@ func (c *ConfigModel) Update(db *gorm.DB, ifNotFoundErr bool) error {
 // UpdateBatch TODO
 // allow update and create
 func UpdateBatch(db *gorm.DB, configs []*ConfigModel, ifNotFoundErr bool) error {
-	for _, c := range configs {
-		if err := c.Update(db, ifNotFoundErr); err != nil {
-			return err
+	upt := db.Transaction(func(tx *gorm.DB) error {
+		for _, c := range configs {
+			if err := c.Update(tx, ifNotFoundErr); err != nil {
+				return err
+			}
 		}
-	}
-	return nil
+		return nil
+	})
+
+	return upt
 }
 
 // CreateBatch TODO
@@ -174,124 +177,15 @@ func CreateBatch(db *gorm.DB, configs []*ConfigModel) error {
 // DeleteBatch TODO
 // 批量根据 id 删除配置项
 func DeleteBatch(db *gorm.DB, configs []*ConfigModel) error {
-	var sqlRes *gorm.DB
-	var ids []uint64
-	for _, c := range configs {
-		ids = append(ids, c.ID)
-	}
-	sqlRes = db.Delete(&configs, ids)
-	if err := sqlRes.Error; err != nil {
-		logger.Errorf("delete config items fail:%+v, err:%s", configs, err.Error())
-		return err
-	}
-	return nil
-}
-
-// UpsertBatchConfigs TODO
-// strict = true
-//
-//	如果 id=0, insert 出现唯一建重复, 会报错
-//	如果 id!=0, update 不存在的记录, 会报错
-//
-// strict = false
-//
-//	如果 id=0, insert 出现唯一建重复时, 会更新
-//	如果 id!=0, update 不存在的记录, 会忽略
-func UpsertBatchConfigs(db *gorm.DB, configs []*ConfigModel, strict bool) (err error) {
-	configsAdd := make([]*ConfigModel, 0)
-	configsUpt := make([]*ConfigModel, 0)
-	for _, c := range configs {
-		if configID, err := c.CheckRecordExists(db); err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				if c.ID != 0 {
-					return err
-				}
-				// c.ID = 0
-				configsAdd = append(configsAdd, c)
-			} else {
+	del := db.Transaction(func(tx *gorm.DB) error {
+		for _, c := range configs {
+			if err := DeleteByUnique(tx, c.TableName(), c.UniqueWhere()); err != nil {
 				return err
 			}
-		} else {
-			c.ID = configID
-			configsUpt = append(configsUpt, c)
 		}
-	}
-	logger.Infof("UpsertBatchConfigs strict=%t, configsAdd:%#v, configsUpt:%+v", strict, configsAdd, configsUpt)
-	if len(configsAdd) != 0 {
-		if err = CreateBatch(db, configsAdd); err != nil {
-			return err
-		}
-	}
-	if len(configsUpt) != 0 {
-		if err = UpdateBatch(db, configsUpt, strict); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// UpsertBatchConfigsByID TODO
-func UpsertBatchConfigsByID(configs []*ConfigModel) (err error) {
-	configsAdd := make([]*ConfigModel, 0)
-	configsUpt := make([]*ConfigModel, 0)
-	for _, c := range configs {
-		if c.ID == 0 {
-			configsAdd = append(configsAdd, c)
-		} else {
-			configsUpt = append(configsUpt, c)
-		}
-	}
-	logger.Infof("CreateOrUpdateConfigs2 configsAdd:%#v, configsUpt:%+v", configsAdd, configsUpt)
-	if len(configsAdd) != 0 {
-		if err = CreateBatch(DB.Self, configsAdd); err != nil {
-			return err
-		}
-	}
-	if len(configsUpt) != 0 {
-		if err = UpdateBatch(DB.Self, configsUpt, true); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// CheckConfigInherit TODO
-// inheritFrom = 0 表示继承自plat
-func CheckConfigInherit(confType, confName, namespace string, inheritFrom string) error {
-	type RowCount struct {
-		Count int64 `json:"cnt" gorm:"column:cnt"`
-	}
-	Cnt := make([]*RowCount, 0)
-	queryStr := "SELECT count(*) cnt FROM tb_config_node WHERE 1=1"
-	queryStr += fmt.Sprintf(" AND bk_biz_id = '%s' and level_name = '%s' and level_value = '%s'",
-		constvar.BKBizIDForPlat, constvar.LevelPlat, inheritFrom)
-	if confName != "" {
-		// queryStr += fmt.Sprintf(" AND conf_name = '%s'", conf_name)
-
-		confNameList := strings.Split(confName, ",")
-		nameIn := strings.Join(confNameList, "','")
-		queryStr += fmt.Sprintf(" AND conf_name in ('%s')", nameIn)
-	}
-	if confType != "" {
-		queryStr += fmt.Sprintf(" AND conf_type = '%s'", confType)
-	}
-	if namespace != "" {
-		queryStr += fmt.Sprintf(" AND namespace = '%s'", namespace)
-	}
-	logger.Warnf("CheckConfigInherit sql: %v", queryStr)
-
-	if err := DB.Self.Raw(queryStr).Scan(&Cnt).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			// return configs, nil  // return empty slice
-			return errors.New("no inherit config items found")
-		}
-		return err
-	} else if Cnt[0].Count == 0 {
-		logger.Warnf("CheckConfigInherit sql result: %+v, len:%d", Cnt[0], len(Cnt))
-		// return errors.New("0 inherit config items found")
-	}
-
-	return nil
+		return nil
+	}, nil)
+	return del
 }
 
 // CheckUniqueKeyProvided TODO
@@ -367,98 +261,6 @@ func GetUpLevelInfo(r *api.BaseConfigNode, up *api.UpLevelInfo) (*api.UpLevelInf
 		}
 	}
 	return up, nil
-}
-
-// GetSimpleConfig godoc
-// todo 目前函数不用于获取平台配置
-// todo 查询之前判断是否有足够的 up level_info, 比如 mysql 需要 module=xxx 而 redis 不需要 (model.CacheGetConfigFile vs up_info)
-func GetSimpleConfig(db *gorm.DB, r *api.BaseConfigNode, up *api.UpLevelInfo,
-	o *api.QueryConfigOptions) ([]*ConfigModel, error) {
-	var err error
-	defer util.LoggerErrorStack(logger.Error, err)
-
-	upLevel, err := GetUpLevelInfo(r, up)
-	if err != nil {
-		return nil, err
-	}
-	upLevel.LevelInfo[r.LevelName] = r.LevelValue
-
-	configs := make([]*ConfigModel, 0)
-	subSelectWhere := []string{}
-	subSelect := []string{}
-	simpleColumns :=
-		"id, bk_biz_id,namespace,conf_type,conf_file,conf_name,level_name,level_value, conf_value,flag_locked,flag_disable,updated_revision,stage,description,created_at,updated_at"
-
-	sqlWhere := ""
-	// todo 考虑把 queryLevels 变成 map，记录 {levelname1:level_value1}，拼sql时直接根据这个map来拼
-	var queryLevels []string
-	if o.InheritFrom != "" || (r.BKBizID == constvar.BKBizIDForPlat) {
-		subSelectPlat := fmt.Sprintf(
-			"select %s from v_tb_config_node_plat where bk_biz_id = '%s' and level_name = '%s' and level_value = '%s' and conf_type = '%s'",
-			simpleColumns, constvar.BKBizIDForPlat, constvar.LevelPlat, constvar.BKBizIDForPlat, r.ConfType)
-		if !o.Generate { // 只有 generate 时才需要带上 read_only 配置(flag_status=2)
-			subSelectPlat += " and flag_status >= 1" // 查询接口，也返回只读
-		} else {
-			subSelectPlat += " and flag_status >= 1"
-		}
-		subSelect = append(subSelect, subSelectPlat)
-		queryLevels = append(queryLevels, constvar.LevelPlat)
-	}
-	if r.BKBizID != "" && r.BKBizID != constvar.BKBizIDForPlat {
-		sqlWhere = fmt.Sprintf(" bk_biz_id = '%s' and level_name = '%s' and level_value = '%s' and conf_type = '%s'",
-			r.BKBizID, constvar.LevelApp, r.BKBizID, r.ConfType)
-		subSelectWhere = append(subSelectWhere, sqlWhere)
-		queryLevels = append(queryLevels, constvar.LevelApp)
-	}
-
-	for upLevelName, upLevelValue := range upLevel.LevelInfo {
-		if util.StringsHas(queryLevels, upLevelName) {
-			continue
-		}
-		sqlWhere = fmt.Sprintf(" bk_biz_id = '%s' and level_name = '%s' and level_value = '%s' and conf_type = '%s'",
-			r.BKBizID, upLevelName, upLevelValue, r.ConfType)
-		subSelectWhere = append(subSelectWhere, sqlWhere)
-		queryLevels = append(queryLevels, upLevelName)
-	}
-	for _, subWhere := range subSelectWhere {
-		subSelect = append(subSelect, fmt.Sprintf("select %s from tb_config_node where %s", simpleColumns, subWhere))
-	}
-	if len(subSelect) == 0 {
-		return nil, errors.New("GetSimpleConfig parameters error")
-	}
-	unionSelect := strings.Join(subSelect, " UNION ALL ")
-	queryStr := fmt.Sprintf("SELECT * FROM (\n%s\n) tt WHERE flag_disable = 0 AND namespace = '%s'", unionSelect,
-		r.Namespace)
-	if o.ConfName != "" {
-		// queryStr += fmt.Sprintf(" AND conf_name like '%s%%'", r.ConfName)
-		confNameList := strings.Split(o.ConfName, ",")
-		nameIn := strings.Join(confNameList, "','")
-		queryStr += fmt.Sprintf(" AND conf_name in ('%s')", nameIn)
-	}
-	if o.ConfValue != "" {
-		queryStr += fmt.Sprintf(" AND conf_value like '%%%s%%'", o.ConfValue)
-	}
-	if r.ConfFile != "" {
-		queryStr += fmt.Sprintf(" AND conf_file = '%s'", r.ConfFile)
-	}
-	logger.Infof("GetSimpleConfig sql: %v", queryStr)
-
-	if err = db.Debug().Raw(queryStr).Scan(&configs).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			// return configs, nil  // return empty slice
-			return configs, errors.New("no config items found")
-		}
-		return nil, err
-	}
-	if o.Decrypt {
-		for _, c := range configs {
-			err = c.MayDecrypt()
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-	return configs, nil
 }
 
 // QueryAndDeleteConfig TODO

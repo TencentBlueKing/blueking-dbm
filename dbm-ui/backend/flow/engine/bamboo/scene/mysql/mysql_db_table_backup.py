@@ -89,7 +89,10 @@ class MySQLDBTableBackupFlow(object):
 
         backup_pipeline.add_parallel_sub_pipeline(sub_flow_list=cluster_flows)
         logger.info(_("构建库表备份流程成功"))
-        backup_pipeline.run_pipeline(init_trans_data_class=MySQLBackupDemandContext())
+        # 启动接入单据值守监听
+        backup_pipeline.run_pipeline_with_sidecar(
+            init_trans_data_class=MySQLBackupDemandContext(), check_ai_monitor_cluster_list=list(merged_jobs.keys())
+        )
 
     def _build_cluster_sub_flow(self, cluster_id: int, jobs: List):
         cluster_obj = Cluster.objects.get(pk=cluster_id, bk_biz_id=self.data["bk_biz_id"])

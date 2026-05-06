@@ -23,6 +23,7 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -41,6 +42,22 @@ type K8sCrdOpsRequestProvider interface {
 // K8sCrdOpsRequestProviderImpl K8sCrdOpsRequestDbAccess 具体实现
 type K8sCrdOpsRequestProviderImpl struct {
 	dbAccess dbaccess.K8sCrdOpsRequestDbAccess
+}
+
+var (
+	opsRequestInstance K8sCrdOpsRequestProvider
+	opsRequestOnce     sync.Once
+)
+
+// GetK8sCrdOpsRequestProvider 获取 K8sCrdOpsRequestProvider 单例实例
+func GetK8sCrdOpsRequestProvider(dbAccess dbaccess.K8sCrdOpsRequestDbAccess) K8sCrdOpsRequestProvider {
+	opsRequestOnce.Do(func() {
+		opsRequestInstance = &K8sCrdOpsRequestProviderImpl{dbAccess: dbAccess}
+	})
+	if opsRequestInstance == nil {
+		panic("K8sCrdOpsRequestProvider instance is nil after initialization")
+	}
+	return opsRequestInstance
 }
 
 // FindOpsRequestByParams 根据参数查找接口实现
@@ -66,7 +83,8 @@ func (k K8sCrdOpsRequestProviderImpl) FindOpsRequestByParams(params *metaentity.
 
 // CreateOpsRequest 创建 opsRequest
 func (k K8sCrdOpsRequestProviderImpl) CreateOpsRequest(entity *metaentity.K8sCrdOpsRequestEntity) (
-	*metaentity.K8sCrdOpsRequestEntity, error,
+	*metaentity.K8sCrdOpsRequestEntity,
+	error,
 ) {
 	k8sOpsRequestModel := metamodel.K8sCrdOpsRequestModel{}
 	if err := copier.Copy(&k8sOpsRequestModel, entity); err != nil {
@@ -116,9 +134,4 @@ func (k K8sCrdOpsRequestProviderImpl) UpdateOpsRequest(entity *metaentity.K8sCrd
 		return 0, errors.Wrapf(err, "failed to update opsRequest with entity: %+v", entity)
 	}
 	return rows, nil
-}
-
-// NewK8sCrdOpsRequestProvider 创建 K8sCrdOpsRequestDbAccess 接口实现实例
-func NewK8sCrdOpsRequestProvider(dbAccess dbaccess.K8sCrdOpsRequestDbAccess) K8sCrdOpsRequestProvider {
-	return &K8sCrdOpsRequestProviderImpl{dbAccess}
 }

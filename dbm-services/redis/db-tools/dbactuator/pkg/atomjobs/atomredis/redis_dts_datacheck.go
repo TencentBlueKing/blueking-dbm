@@ -562,13 +562,13 @@ func (task *RedisInsDtsDataCheckAndRepairTask) KeyPatternAndDataCheck() {
 	}
 	// 数据校验
 	dataCheckCmd := fmt.Sprintf(
-		`cd %s && %s %s --src-addr=%s --src-password=%s --dst-addr=%s --dst-password=%s --result-file=%s --ticker=120 %s`,
+		`cd %s && %s %s --src-addr=%s --src-password="%s" --dst-addr=%s --dst-password="%s" --result-file=%s --ticker=120 %s`,
 		task.datacheckJob.saveDir, task.datacheckJob.dataCheckTool, checkMode,
 		task.getSrcRedisAddr(), task.getSrcRedisPassword(),
 		task.getDstRedisAddr(), task.getDstRedisPassword(),
 		task.getDataCheckDiffKeysFile(), extraOptsBuilder.String())
 	logCmd := fmt.Sprintf(
-		`cd %s && %s %s --src-addr=%s --src-password=xxxx --dst-addr=%s --dst-password=xxxx --result-file=%s --ticker=120 %s`,
+		`cd %s && %s %s --src-addr=%s --src-password="xxxx" --dst-addr=%s --dst-password="xxxx" --result-file=%s --ticker=120 %s`,
 		task.datacheckJob.saveDir, task.datacheckJob.dataCheckTool, checkMode,
 		task.getSrcRedisAddr(), task.getDstRedisAddr(),
 		task.getDataCheckDiffKeysFile(), extraOptsBuilder.String())
@@ -624,16 +624,16 @@ func (task *RedisInsDtsDataCheckAndRepairTask) RunDataRepair() {
 	}
 
 	repairCmd := fmt.Sprintf(
-		`cd %s && %s --src-addr=%s --src-password=%s \
-		--dest-addr=%s --dest-password=%s  --diff-keys-file=%s --hot-keys-file=%s %s`,
+		`cd %s && %s --src-addr=%s --src-password="%s" \
+		--dest-addr=%s --dest-password="%s"  --diff-keys-file=%s --hot-keys-file=%s %s`,
 		task.getSaveDir(), task.datacheckJob.dataRepairTool,
 		task.getSrcRedisAddr(), task.getSrcRedisPassword(),
 		task.getDstRedisAddr(), task.getDstRedisPassword(),
 		task.getDataCheckDiffKeysFile(), task.getRepairHotKeysFile(),
 		extraOptsBuilder.String())
 	logCmd := fmt.Sprintf(
-		`cd %s && %s --src-addr=%s --src-password=xxxx \
-		--dest-addr=%s --dest-password=xxxx  --diff-keys-file=%s --hot-keys-file=%s %s`,
+		`cd %s && %s --src-addr=%s --src-password="xxxx" \
+		--dest-addr=%s --dest-password="xxxx"  --diff-keys-file=%s --hot-keys-file=%s %s`,
 		task.getSaveDir(), task.datacheckJob.dataRepairTool,
 		task.getSrcRedisAddr(), task.getDstRedisAddr(),
 		task.getDataCheckDiffKeysFile(), task.getRepairHotKeysFile(),

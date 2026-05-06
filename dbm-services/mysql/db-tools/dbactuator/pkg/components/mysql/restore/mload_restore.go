@@ -125,16 +125,6 @@ func (m *MLoad) Start() error {
 	return nil
 }
 
-// WaitDone TODO
-func (m *MLoad) WaitDone() error {
-	return nil
-}
-
-// PostCheck TODO
-func (m *MLoad) PostCheck() error {
-	return nil
-}
-
 // ReturnChangeMaster TODO
 func (m *MLoad) ReturnChangeMaster() (*mysqlutil.ChangeMaster, error) {
 	return m.getChangeMasterPos(m.SrcInstance)

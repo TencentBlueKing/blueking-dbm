@@ -32,10 +32,11 @@
       v-model="source"
       :placeholder="t('请输入IP:Port或从表头批量选择')" />
     <InstanceSelector
+      v-model="selectedInstances"
       v-model:is-show="isShowIpSelector"
       :cluster-types="[ClusterTypes.TENDBCLUSTER]"
-      :selected="selectedIps"
-      :tab-list-config="tabListConfig"
+      :data-source-map="dataSourceMap"
+      repeatable
       @change="handleSelectorChange" />
   </EditableColumn>
   <EditableColumn
@@ -54,20 +55,16 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import TendbClusterInstanceModel from '@services/model/tendbcluster/tendbcluster-instance';
   import { checkInstance } from '@services/source/dbbase';
+  import { getTendbclusterInstanceList } from '@services/source/tendbcluster';
 
   import { ClusterTypes, DBTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
+  import InstanceSelector from '@components/instance-selector-new/Index.vue';
 
-  export type InstanceItem = IValue;
-
-  type Emits = (e: 'batch-edit', list: IValue[]) => void;
+  type Emits = (e: 'batch-edit', list: TendbClusterInstanceModel[]) => void;
 
   const emits = defineEmits<Emits>();
 
@@ -85,21 +82,19 @@
 
   const { t } = useI18n();
 
-  const tabListConfig = {
-    [ClusterTypes.TENDBCLUSTER]: [
-      {
-        previewConfig: {
-          displayKey: 'instance_address',
-        },
-      },
-    ],
-  } as unknown as Record<ClusterTypes, PanelListType>;
-
   const bkHostId = ref(0);
   const isShowIpSelector = ref(false);
-  const selectedIps = shallowRef<InstanceSelectorValues<IValue>>({
-    [ClusterTypes.TENDBCLUSTER]: [],
+  const selectedInstances = shallowRef({
+    [ClusterTypes.TENDBCLUSTER]: [] as TendbClusterInstanceModel[],
   });
+
+  const dataSourceMap = computed(() => ({
+    [ClusterTypes.TENDBCLUSTER]: (params: ServiceParameters<typeof getTendbclusterInstanceList>) =>
+      getTendbclusterInstanceList({
+        ...params,
+        role: 'remote_master',
+      }),
+  }));
 
   const rules = [
     {
@@ -136,8 +131,11 @@
     isShowIpSelector.value = true;
   };
 
-  const handleSelectorChange = (selected: InstanceSelectorValues<IValue>) => {
-    emits('batch-edit', Object.values(selected).flat());
+  const handleSelectorChange = (selected: { [ClusterTypes.TENDBCLUSTER]: TendbClusterInstanceModel[] }) => {
+    emits(
+      'batch-edit',
+      Object.values(selected).flatMap((item) => item),
+    );
   };
 
   watch(

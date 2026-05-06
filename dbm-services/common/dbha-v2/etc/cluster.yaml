@@ -1,6 +1,7 @@
 # mysql cluster
 mysqlClusters:
   - domain: "testdb.dbha-test1.hz.db"
+    domainSlave: "testdr.dbha-test1.hz.db"
     bkBizId: 1
     proxy: 
       - host: xxx.xxx.xxx.1
@@ -19,26 +20,72 @@ mysqlClusters:
         port: 3306
       - host: xxx.xxx.xxx.5
         port: 3306
-  
-  - domain: "testdb.dbha-test2.hz.db"
+
+# tenDB cluster
+tenDBClusters:
+  - domain: "spider.dbha-test1.hz.db"
+    domainSlave: "spider-slave.dbha-test1.hz.db"
     bkBizId: 1
-    proxy: 
-      - host: xxx.xxx.xxx.6
+    spider:
+      - serverName: SPIDER0
+        host: test-tspider0
+        user: xxx
+        password: xxx
         port: 3306
-        adminPort: 4306
-      - host: xxx.xxx.xxx.7
+      - serverName: SPIDER1
+        host: test-tspider1
+        user: xxx
+        password: xxx
         port: 3306
-        adminPort: 4306
-    
-    master:
-      host: xxx.xxx.xxx.8
+
+    spiderSlave:
+      - serverName: SPIDER_SLAVE0
+        host: test-tspider_slave0
+        user: xxx
+        password: xxx
+        port: 3306
+
+    ctlMaster:
+      serverName: TDBCTL0
+      host: test-tdbctl0
+      user: xxx
+      password: xxx
       port: 3306
-    
-    slave:
-      - host: xxx.xxx.xxx.9
+
+    ctlSlave:
+      - serverName: TDBCTL1
+        host: test-tdbctl1
+        user: xxx
+        password: xxx
         port: 3306
-      - host: xxx.xxx.xxx.10
+
+    remoteMaster:
+      - serverName: SPT0
+        host: test-tendb-spt0
+        user: xxx
+        password: xxx
         port: 3306
+      - serverName: SPT1
+        host: test-tendb-spt1
+        user: xxx
+        password: xxx
+        port: 3306
+
+    remoteSlave:
+      - serverName: SPT_SLAVE0
+        host: test-tendb-spt_slave0
+        user: xxx
+        password: xxx
+        port: 3306
+        masterHost: test-tendb-spt0
+        masterPort: 3306
+      - serverName: SPT_SLAVE1
+        host: test-tendb-spt_slave1
+        user: xxx
+        password: xxx
+        port: 3306
+        masterHost: test-tendb-spt1
+        masterPort: 3306
 
 dbmServices:
   dbmApiMetadata:

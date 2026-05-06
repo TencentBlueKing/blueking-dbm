@@ -26,6 +26,7 @@ type BaseConfItemDef struct {
 type BaseConfItemResp struct {
 	BaseConfItemDef
 	BaseLevelDef
+	UpLevelValue map[string]string `json:"up_level_value"`
 	// op_type 仅在返回差异config部分时有效
 	OPType string `json:"op_type"`
 }
@@ -33,14 +34,16 @@ type BaseConfItemResp struct {
 // UpsertConfItem TODO
 type UpsertConfItem struct {
 	BaseConfItemDef
-	OperationType
+	// 配置项修改动作，需提供操作类型字段，允许值 `add`,`update`,`remove`,`upsert`
+	OPType string `json:"op_type" form:"op_type" validate:"required,enums" enums:"add,update,remove,upsert"`
 }
 
 // UpsertConfItemsReq TODO
 // 更新 app/module/cluster 的配置
 type UpsertConfItemsReq struct {
 	SaveConfItemsReq
-	RequestType
+	// 配置文件修改动作的请求类型，`SaveOnly`: 仅保存, `SaveAndPublish`保存并发布
+	ReqType  string `json:"req_type" form:"req_type" validate:"enums" enums:",SaveOnly,SaveAndPublish"`
 	Revision string `json:"revision" form:"revision"`
 }
 
@@ -55,7 +58,7 @@ type UpsertConfItemsResp struct {
 
 // SaveConfItemsReq 直接保存 config node, 只针对无版本概念的 conf_type
 type SaveConfItemsReq struct {
-	BKBizIDDef
+	BKBizID string `json:"bk_biz_id" form:"bk_biz_id" validate:"required" example:"testapp"`
 	// 保存时如果与下层级存在冲突，提示确认，用 confirm=1 重新请求
 	Confirm int8 `json:"confirm" form:"confirm"`
 	// 发布描述
@@ -101,7 +104,8 @@ func (v *UpsertConfItemsReq) Validate() error {
 // GetConfigItemsReq TODO
 // 获取配置项信息，可用于平台、业务、模块、集群等个级别配置项获取。注意返回的结果是与上层级 merge 后的，但不会持久化成新版本
 type GetConfigItemsReq struct {
-	BKBizIDDef
+	// 业务ID，必选项
+	BKBizID string `json:"bk_biz_id" form:"bk_biz_id" validate:"required" example:"testapp"`
 	BaseConfFileDef
 	BaseLevelDef
 	UpLevelInfo
@@ -178,4 +182,12 @@ func ValidateAppWithLevelName(bkBizID, levelName, levelValue string) error {
 		return errors.New("level_name=bk_biz_id should have bk_biz_id=level_value")
 	}
 	return nil
+}
+
+type RecoverDefaultConfItemsReq struct {
+	// 业务ID，必选项
+	BKBizID string `json:"bk_biz_id" form:"bk_biz_id" validate:"required" example:"testapp"`
+	BaseLevelDef
+	BaseConfFileDef
+	ConfNames []string `json:"conf_names" form:"conf_names"`
 }

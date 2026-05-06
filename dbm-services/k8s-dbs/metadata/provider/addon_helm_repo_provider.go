@@ -24,6 +24,7 @@ import (
 	"k8s-dbs/metadata/dbaccess"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -46,6 +47,22 @@ type AddonHelmRepoProvider interface {
 // AddonHelmRepoProviderImpl AddonHelmRepoProvider 具体实现
 type AddonHelmRepoProviderImpl struct {
 	dbAccess dbaccess.AddonHelmRepoDbAccess
+}
+
+var (
+	addonHelmRepoInstance AddonHelmRepoProvider
+	addonHelmRepoOnce     sync.Once
+)
+
+// GetAddonHelmRepoProvider 获取 AddonHelmRepoDbAccess 单例实例
+func GetAddonHelmRepoProvider(dbAccess dbaccess.AddonHelmRepoDbAccess) AddonHelmRepoProvider {
+	addonHelmRepoOnce.Do(func() {
+		addonHelmRepoInstance = &AddonHelmRepoProviderImpl{dbAccess}
+	})
+	if addonHelmRepoInstance == nil {
+		panic("AddonHelmRepoProvider instance is nil after initialization")
+	}
+	return addonHelmRepoInstance
 }
 
 // CreateHelmRepo 创建
@@ -138,9 +155,4 @@ func (a *AddonHelmRepoProviderImpl) ListHelmRepos(pagination commentity.Paginati
 		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return repoEntities, nil
-}
-
-// NewAddonHelmRepoProvider 创建 AddonHelmRepoDbAccess 接口实现实例
-func NewAddonHelmRepoProvider(dbAccess dbaccess.AddonHelmRepoDbAccess) AddonHelmRepoProvider {
-	return &AddonHelmRepoProviderImpl{dbAccess: dbAccess}
 }

@@ -115,12 +115,17 @@
     emits('remove');
   };
 
-  const handleSearch = (keyword: string, data: { label: string }) =>
-    keyword.split(batchSplitRegex).includes(data.label);
+  const matchKeywords = (keywords: string[], target: string) =>
+    keywords.some((kw) => target.toLowerCase().includes(kw.toLowerCase()));
+
+  const handleSearch = (keyword: string, data: { label: string }) => {
+    const keywords = keyword.split(batchSplitRegex).filter(Boolean);
+    return matchKeywords(keywords, data.label);
+  };
 
   const handleSearchChange = (keyword: string) => {
-    const clusters = keyword.split(batchSplitRegex);
-    filterOption.value = (clusterList.value || []).filter((item) => clusters.includes(item.immute_domain));
+    const keywords = keyword.split(batchSplitRegex).filter(Boolean);
+    filterOption.value = (clusterList.value || []).filter((item) => matchKeywords(keywords, item.immute_domain));
   };
 
   // Enter 触发提交

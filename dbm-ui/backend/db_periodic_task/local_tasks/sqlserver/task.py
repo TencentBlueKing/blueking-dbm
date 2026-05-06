@@ -14,12 +14,13 @@ from celery.schedules import crontab
 
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_periodic_task.local_tasks.sqlserver.backup_file_check import CheckBackupInfo
+from backend.db_periodic_task.local_tasks.sqlserver.backup_file_check_by_model import CheckBackupInfoByModel
 from backend.db_periodic_task.local_tasks.sqlserver.check_app_setting_data import CheckAppSettingData
 
 logger = logging.getLogger("celery")
 
 
-@register_periodic_task(run_every=crontab(minute=30, hour=6))
+@register_periodic_task(run_every=crontab(minute=33, hour=6))
 def check_instance_app_setting():
     """
     检查实例的元数据表(app_setting)是否正常
@@ -35,3 +36,12 @@ def check_backup_info():
     每条下午15点执行
     """
     CheckBackupInfo().check_task()
+
+
+@register_periodic_task(run_every=crontab(minute=30, hour=15))
+def check_backup_info_by_model():
+    """
+    基于 SQLServerBackupResult / SQLServerBinlogResult 模型查询的备份巡检报告
+    每天下午15点30分执行
+    """
+    CheckBackupInfoByModel().check_task()

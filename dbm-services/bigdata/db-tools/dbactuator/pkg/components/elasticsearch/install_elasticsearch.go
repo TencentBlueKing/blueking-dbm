@@ -179,7 +179,7 @@ export JAVA_HOME=/data/esenv/es_1/jdk
 export CLASSPATH=".:$JAVA_HOME/lib:$JRE/lib:$CLASSPATH"
 export ES_HOME=/data/esenv/es_1
 export ES_CONF_DIR=$ES_HOME/config
-export PATH=${JAVA_HOME}/bin:${ES_HOME}/bin:${ES_HOME}/sbin:$PATH
+export PATH=/usr/local/bin:${JAVA_HOME}/bin:${ES_HOME}/bin:${ES_HOME}/sbin:$PATH
 export ES_USERNAME=%s
 export ES_PASSWORD=%s
 EOF

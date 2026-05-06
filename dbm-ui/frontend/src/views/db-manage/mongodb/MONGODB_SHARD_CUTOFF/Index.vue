@@ -80,8 +80,8 @@
                 {{ t('含n个同机关联集群', { n: item.host.related_clusters.length }) }}
                 <p
                   v-for="cluster in item.host.related_clusters"
-                  :key="cluster.id">
-                  -- {{ cluster.master_domain }}
+                  :key="cluster?.id">
+                  -- {{ cluster?.master_domain }}
                 </p>
               </div>
             </div>
@@ -93,7 +93,7 @@
             v-model="item.host.spec_config.id"
             :cluster-type="DBTypes.MONGODB"
             field="host.spec_config.id"
-            label="规格"
+            :label="t('规格')"
             :machine-type="item.host.machine_type"
             required
             :rowspan="item.rowspan"

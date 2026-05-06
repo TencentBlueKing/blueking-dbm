@@ -4,7 +4,7 @@ from collections import defaultdict
 from django.utils.translation import gettext as _
 
 from backend.db_meta.models import Cluster
-from backend.db_periodic_task.local_tasks.db_meta.sync_cluster_stat import query_capacity_for_clusters
+from backend.db_monitor.tasks import query_capacity_for_clusters
 from backend.flow.engine.bamboo.scene.mysql.common.statsdb_client import DB_QUERY_TEMPLATE, StatsDBClient
 
 logger = logging.getLogger("root")
@@ -42,6 +42,22 @@ class MigrateTask(object):
         # 'mount_point': '/data', 'host': 'x.x.x.x', 'used_percent_future': z}
         self.suggestion = ""  # 评估建议
 
+    def to_dict(self):
+        return {
+            "source": self.source,
+            "target": self.target,
+            "target_cluster_type": self.target_cluster_type,
+            "db_list": self.db_list,
+            "clone_db_list": self.clone_db_list,
+            "ignore_db_list": self.ignore_db_list,
+            "data_schema_grant": self.data_schema_grant,
+            "db_size": self.db_size,
+            "same_target_sum_size": self.same_target_sum_size,
+            "same_target_index": self.same_target_index,
+            "disk_size": self.disk_size,
+            "suggestion": self.suggestion,
+        }
+
     def assess_suggestion(self, total_db_size: int, factor: int = 1):
         self.same_target_sum_size = total_db_size
         disk_size = self.disk_size
@@ -70,7 +86,7 @@ def mysql_data_merge_disk_space(bk_biz_id: int, migrations: list = None, factor:
     disk_size, no_disk_stats = get_disk_size(bk_biz_id, targets)
     same_disk = same_target_host_disk(tasks, disk_size, no_disk_stats)
     calulate_disk_size(tasks, db_size, same_disk, factor)
-    return tasks
+    return [task.to_dict() for task in tasks]
 
 
 def calulate_disk_size(tasks: list, db_size: dict, same_disk: dict, factor: int = 1):
@@ -145,20 +161,23 @@ def parameters_from_data_migrate(migrations: list = None) -> (list, str, list, d
                 tasks.append(task)
                 continue
             tasks.append(task)
+        if info["db_list"]:
             db_placeholders = ",".join(["%s"] * len(info["db_list"]))
             task_placeholders = "(cluster_domain = %s and database_name IN ({}))".format(db_placeholders)
             placeholders.append(task_placeholders)
-            sql_params.append(task.source)
+            sql_params.append(Cluster.objects.get(id=info["source_cluster"]).immute_domain)
             sql_params.extend(info["db_list"])
     logger.info("placeholders: %s sql_params: %s targets: %s", " or ".join(placeholders), sql_params, targets)
     return tasks, " or ".join(placeholders), sql_params, targets
 
 
-def get_db_size(placeholders: str, sql_params: list = None) -> dict:
+def get_db_size(placeholders: str, sql_params: list) -> dict:
     """
     获取db大小
     """
     logger.info("query_db_size started")
+    if not sql_params:
+        return {}
     client = StatsDBClient()
     query_template = DB_QUERY_TEMPLATE.get("DBSIZE") % placeholders
     resp = client.query(query_template, sql_params)

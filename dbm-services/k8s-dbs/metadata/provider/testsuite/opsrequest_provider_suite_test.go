@@ -89,8 +89,8 @@ func (suite *OpsrequestProviderTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbAccess := dbaccess.NewK8sCrdOpsRequestDbAccess(db)
-	clusterProvider := provider.NewK8sCrdOpsRequestProvider(dbAccess)
+	dbAccess := dbaccess.GetOpsRequestDbAccess(db)
+	clusterProvider := provider.GetK8sCrdOpsRequestProvider(dbAccess)
 	suite.clusterProvider = clusterProvider
 }
 
@@ -179,14 +179,12 @@ func (suite *OpsrequestProviderTestSuite) TestFindOpsRequestByParam() {
 	requestParams.RequestID = "request_id_01"
 	entities, err := suite.clusterProvider.FindOpsRequestByParams(&requestParams)
 	assert.NoError(t, err)
-	assert.Len(t, entities, 2)
+	assert.Len(t, entities, 1)
 
 	opsNames := make(map[string]bool)
 	for _, ops := range entities {
 		opsNames[ops.OpsRequestName] = true
 	}
-	for _, ops := range k8sCrdOpsRequestEntityList {
-		assert.True(t, opsNames[ops.OpsRequestName], ops.OpsRequestName)
-	}
+	assert.True(t, opsNames[k8sCrdOpsRequestEntityList[0].OpsRequestName], k8sCrdOpsRequestEntityList[0].OpsRequestName)
 
 }

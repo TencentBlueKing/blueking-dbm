@@ -2,7 +2,9 @@ import type { HostInfo, InstanceListSpecConfig, InstanceRelatedCluster } from '@
 
 import { ClusterTypes } from '@common/const';
 
-export default class RiakInstance {
+import InstanceBase from '../_instanceBase';
+
+export default class RiakInstance extends InstanceBase {
   bk_cloud_id: number;
   bk_cloud_name: string;
   bk_cpu: number;
@@ -18,7 +20,6 @@ export default class RiakInstance {
   cluster_id: number;
   cluster_name: string;
   cluster_type: ClusterTypes;
-  create_at: string;
   db_module_id: number;
   db_module_name: string;
   host_info: HostInfo;
@@ -32,10 +33,10 @@ export default class RiakInstance {
   role: string;
   slave_domain: string;
   spec_config: InstanceListSpecConfig;
-  status: string;
   version: string;
 
   constructor(payload = {} as RiakInstance) {
+    super(payload);
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
@@ -47,7 +48,6 @@ export default class RiakInstance {
     this.cluster_id = payload.cluster_id;
     this.cluster_name = payload.cluster_name;
     this.cluster_type = payload.cluster_type;
-    this.create_at = payload.create_at;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
     this.bk_idc_city_name = payload.bk_idc_city_name || '';
@@ -65,7 +65,6 @@ export default class RiakInstance {
     this.role = payload.role;
     this.slave_domain = payload.slave_domain;
     this.spec_config = payload.spec_config;
-    this.status = payload.status;
     this.version = payload.version;
   }
 }

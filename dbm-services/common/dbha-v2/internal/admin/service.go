@@ -27,94 +27,70 @@ package admin
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"net"
-	"net/http"
-	"strings"
 	"sync"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/admin/api/open"
+	"dbm-services/common/dbha-v2/internal/admin/api/open/handler"
+	"dbm-services/common/dbha-v2/internal/admin/apm"
 	"dbm-services/common/dbha-v2/internal/admin/config"
-	"dbm-services/common/dbha-v2/internal/analysis/apm"
+	"dbm-services/common/dbha-v2/internal/admin/strategy"
 	"dbm-services/common/dbha-v2/pkg/constant"
 	"dbm-services/common/dbha-v2/pkg/discovery"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/haapm"
+	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/machine"
 	"dbm-services/common/dbha-v2/pkg/proto"
-	"dbm-services/common/go-pubpkg/apm/metric"
+	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
+	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 	"dbm-services/common/go-pubpkg/apm/trace"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/hako/durafmt"
-	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+	"github.com/swaggest/swgui"
+	"github.com/swaggest/swgui/v5emb"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/keepalive"
 )
 
-const (
-	Name = "admin"
-)
+// Name returns the process name from the current executable (same as Makefile binary name).
+func Name() string {
+	return "admin"
+}
 
+// Service is the admin service. It references AdminGrpcService and manages its lifecycle;
+// gRPC API is served by AdminGrpcService.
 type Service struct {
-	proto.UnimplementedAdminServiceServer
-
 	quit         chan struct{}
 	info         discovery.ServiceInfo
-	engine       *gin.Engine
-	httpApmSvr   *http.Server
+	apmSvr       *haapm.Server
 	discoveryCli *discovery.Client
 	regCli       *discovery.Registry
 	wg           sync.WaitGroup
+	db           *hamysql.GormDB
+	strategy     *strategy.Strategy
 	address      string
+	grpcSvc      *AdminGrpcService // gRPC API implementation, created and owned by Service
 	svr          *grpc.Server
-	logger       *zap.Logger // only for the gRPC
+	logger       *zap.Logger
+	gormLogger   logger.Logger
 }
 
-func (a *Service) Heartbeat(ctx context.Context, req *proto.HeartbeatRequest) (*proto.HeartbeatResponse, error) {
-	logger.Info("admin server heartbeat request(%v)", req)
-	return &proto.HeartbeatResponse{Errmsg: "success"}, nil
-}
-
-func (a *Service) WatchConfig(stream proto.AdminService_WatchConfigServer) error {
-	ctx := stream.Context()
-
-	for {
-		select {
-		case <-ctx.Done():
-			logger.Error("admin server exited due to canceled context")
-			return nil
-
-		default:
-			req, err := stream.Recv()
-			if err == io.EOF {
-				logger.Error("admin server exited. recv return errmsg(%v)", err)
-				return nil
-			}
-
-			if err != nil {
-				logger.Error("admin server exited. recv return errmsg(%v)", err)
-				return nil
-			}
-
-			logger.Debug("request:%v", req)
-			// NOTE: only test
-			err = stream.Send(&proto.ProbeConfigResponse{
-				Payload: "config respond",
-			})
-			if err != nil {
-				logger.Error("respond config request failed, errmsg(%v)", err)
-			}
-		}
-	}
-}
-
+// Run run admin service
 func (s *Service) Run(ctx context.Context) error {
-	s.info.Name = Name
+	ips, err := machine.GetLocalIPs()
+	if err != nil {
+		return err
+	}
+
+	s.info.Name = Name()
 	s.info.ID = uuid.New().String()
 	s.info.StartTime = time.Now().Local()
+	s.info.IPs = ips
 
 	// create discovery client
 	if err := s.createDiscovery(); err != nil {
@@ -131,6 +107,11 @@ func (s *Service) Run(ctx context.Context) error {
 		return err
 	}
 
+	// create web server
+	if err := s.createWebServer(); err != nil {
+		return err
+	}
+
 	if err := haapm.AppStartupMetric.Set(float64(s.info.StartTime.Unix())); err != nil {
 		logger.Warn("failed to update the startup time for this process, errmsg: %s", err)
 	}
@@ -139,7 +120,10 @@ func (s *Service) Run(ctx context.Context) error {
 		s.quit = make(chan struct{})
 	}
 
-	timerTimeout := 3 * time.Second
+	timerTimeout := config.Cfg.Discovery.ServiceTimerInterval
+	if timerTimeout == 0 {
+		timerTimeout = constant.DefaultServiceTimerInterval
+	}
 	timer := time.NewTimer(timerTimeout)
 	defer timer.Stop()
 
@@ -159,47 +143,62 @@ func (s *Service) Run(ctx context.Context) error {
 
 }
 
+// Close close admin service
 func (s *Service) Close() {
 	if s.svr != nil {
 		s.svr.Stop()
 		s.svr = nil
+	}
+	s.grpcSvc = nil
+
+	if s.apmSvr != nil {
+		_ = s.apmSvr.Stop()
+		s.apmSvr = nil
 	}
 
 	s.wg.Wait()
 }
 
 func (s *Service) createDiscovery() error {
-	cli, err := discovery.NewClientWithOptions(
-		discovery.OptionEndpoints(strings.Split(config.Cfg.Discovery.Endpoint, constant.Delimiter)),
+	discoveryTLSEnabled := config.Cfg.Discovery.CertFile != "" && config.Cfg.Discovery.KeyFile != ""
+	etcdEndpoints, err := discovery.ParseEtcdEndpoints(config.Cfg.Discovery.Endpoint, discoveryTLSEnabled)
+	if err != nil {
+		return err
+	}
+
+	opts := []discovery.Option{
+		discovery.OptionEndpoints(etcdEndpoints),
 		discovery.OptionUser(config.Cfg.Discovery.User),
 		discovery.OptionPassword(config.Cfg.Discovery.Password),
 		discovery.OptionServiceName(s.info.Name),
 		discovery.OptionServiceID(s.info.ID),
 		discovery.OptionLogger(s.logger),
-	)
+	}
 
+	if config.Cfg.Discovery.CertFile != "" {
+		opts = append(opts, discovery.OptionCertFile(config.Cfg.Discovery.CertFile))
+	}
+	if config.Cfg.Discovery.KeyFile != "" {
+		opts = append(opts, discovery.OptionKeyFile(config.Cfg.Discovery.KeyFile))
+	}
+	if config.Cfg.Discovery.TrustedCAFile != "" {
+		opts = append(opts, discovery.OptionTrustedCAFile(config.Cfg.Discovery.TrustedCAFile))
+	}
+
+	cli, err := discovery.NewClientWithOptions(opts...)
 	if err != nil {
 		return err
 	}
 
 	s.discoveryCli = cli
 
-	regCli, err := cli.CreateRegistry()
-	if err != nil {
-		return err
-	}
-
-	s.regCli = regCli
-
+	s.regCli = cli.CreateRegistry()
 	s.updateInfo()
 	return nil
 }
 
 func (s *Service) updateInfo() {
-	if s.info.UpdatedAt.IsZero() {
-		s.info.UpdatedAt = time.Now().Local()
-	}
-
+	s.info.UpdatedAt = time.Now().Local()
 	s.info.Uptime = durafmt.Parse(time.Now().Local().Sub(s.info.StartTime)).String()
 
 	data, err := json.Marshal(s.info)
@@ -208,7 +207,11 @@ func (s *Service) updateInfo() {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	updateTimeout := config.Cfg.Discovery.ServiceUpdateTimeout
+	if updateTimeout == 0 {
+		updateTimeout = constant.DefaultServiceUpdateTimeout
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), updateTimeout)
 	defer cancel()
 
 	if err = s.regCli.SetService(ctx, string(data)); err != nil {
@@ -216,64 +219,129 @@ func (s *Service) updateInfo() {
 	}
 }
 
+func (s *Service) createApmServer() error {
+	trace.Setup()
+	apm.InitAPM(s.info.ID, s.info.Name)
+
+	ep, err := hanet.Parse(config.Cfg.Apm.ListenAddress, "http")
+	if err != nil {
+		logger.Error("invalid admin apm listen address, errmsg: %s", err)
+		return gerrors.Newf(gerrors.InvalidConfiguration, "invalid admin apm listen address, errmsg: %s", err)
+	}
+
+	s.apmSvr, err = haapm.Serve(haapm.ServerConfig{
+		Addr:         ep.HostPort(),
+		Subsystem:    "dbha-v2-admin",
+		ReadTimeout:  config.Cfg.Apm.ReadTimeout,
+		WriteTimeout: config.Cfg.Apm.WriteTimeout,
+	})
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *Service) createGrpcServer() error {
-	kasp := keepalive.ServerParameters{
-		Time:    constant.DefaultServerPingTime,
-		Timeout: constant.DefaultPingTimeout,
+	s.grpcSvc = NewAdminGrpcService(s)
+	svr := s.grpcSvc.NewServer()
+	proto.RegisterAdminServiceServer(svr, s.grpcSvc)
+
+	ep, err := hanet.Parse(config.Cfg.Grpc.ListenAddress, "tcp")
+	if err != nil {
+		logger.Error("invalid admin grpc listen address, errmsg: %s", err)
+		return gerrors.Newf(gerrors.InvalidConfiguration, "invalid admin grpc listen address, errmsg: %s", err)
 	}
 
-	kacp := keepalive.EnforcementPolicy{
-		MinTime:             constant.DefaultKeepAliveMiniTime,
-		PermitWithoutStream: true,
-	}
-
-	svr := grpc.NewServer(
-		grpc.KeepaliveParams(kasp),
-		grpc.KeepaliveEnforcementPolicy(kacp),
-		grpc.MaxRecvMsgSize(constant.DefaultMaxReceiveMessageSize),
-		grpc.MaxSendMsgSize(constant.DefaultMaxSendMessageSize),
-	)
-
-	proto.RegisterAdminServiceServer(svr, s)
-	listen, err := net.Listen("tcp", s.address)
+	listen, err := net.Listen("tcp", ep.HostPort())
 	if err != nil {
 		return gerrors.New(gerrors.NetException, err.Error())
 	}
 
 	s.svr = svr
-	return s.svr.Serve(listen)
-}
-
-func (s *Service) createApmServer() error {
-	trace.Setup()
-
-	if s.engine == nil {
-		gin.SetMode(gin.ReleaseMode)
-		s.engine = gin.Default()
-		s.engine.Use(otelgin.Middleware("dbha-v2-admin"))
-	}
-
-	if s.httpApmSvr == nil {
-		s.httpApmSvr = &http.Server{
-			Handler:      s.engine,
-			Addr:         config.Cfg.Apm.ListenAddress,
-			ReadTimeout:  config.Cfg.Apm.ReadTimeout,
-			WriteTimeout: config.Cfg.Apm.WriteTimeout,
-		}
-	}
-
-	apm.InitAPM(s.info.ID, s.info.Name)
-	metric.NewPrometheus("dbha-v2-admin", apm.Metrics).Use(s.engine)
 
 	s.wg.Add(1)
 	go func() {
-		s.wg.Done()
-		if err := s.httpApmSvr.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatal("failed to run apm server, errmsg: %s", err)
+		defer s.wg.Done()
+		if err := s.svr.Serve(listen); err != nil {
+			logger.Fatal("failed to run grpc server, errmsg: %s", err)
 		}
-
-		logger.Info("exited from the apm server")
+		logger.Info("exited from the grpc server")
 	}()
 
+	return nil
+}
+
+func (s *Service) createWebServer() error {
+	// Initialize database connection
+	if err := s.createStorage(); err != nil {
+		return err
+	}
+
+	s.strategy = &strategy.Strategy{DB: s.db}
+
+	strategyHandler := handler.NewStrategyHandler(s.strategy)
+
+	ep, err := hanet.Parse(config.Cfg.Web.ListenAddress, "http")
+	if err != nil {
+		logger.Error("invalid admin web listen address, errmsg: %s", err)
+		return gerrors.Newf(gerrors.InvalidConfiguration, "invalid admin web listen address, errmsg: %s", err)
+	}
+
+	serverConfig := &hanet.GinServerConfig{
+		Host:         ep.Host,
+		Port:         ep.Port,
+		ReadTimeout:  config.Cfg.Web.ReadTimeout,
+		WriteTimeout: config.Cfg.Web.WriteTimeout,
+	}
+	server := hanet.NewGinHTTPServer(serverConfig)
+
+	// Set metric middleware for API requests
+	server.SetMetricMiddleware(apm.MetricMiddleware())
+
+	// register open api
+	open.RegisterOpenAPI(strategyHandler, server)
+
+	// add swagger api
+	server.SetSwaggerFileRoute(config.Cfg.DocFileDir + "/swagger.json")
+	hd := v5emb.NewHandlerWithConfig(swgui.Config{
+		Title:       "admin api doc",
+		SwaggerJSON: "/swagger.json",
+		BasePath:    "/swagger-ui",
+		ShowTopBar:  true,
+		HideCurl:    false,
+		JsonEditor:  true,
+	})
+	server.RegisterAPI(&hanet.ResetAPI{
+		Method:  hanet.HttpMethodGet,
+		Path:    "/swagger-ui/*any",
+		Handler: gin.WrapH(hd),
+	})
+	return server.Start()
+}
+
+func (s *Service) createStorage() error {
+	epoint, err := hanet.NewEndpoint(config.Cfg.Storage.Endpoint)
+	if err != nil {
+		logger.Error("invalid storage configuration, errmsg: %s", err)
+		return gerrors.Newf(gerrors.InvalidConfiguration, "invalid storage configuration, errmsg: %s", err)
+	}
+
+	db, err := hamysql.NewGormDB(
+		hamysql.OptionProto(epoint.Proto),
+		hamysql.OptionIP(epoint.Host),
+		hamysql.OptionPort(epoint.Port),
+		hamysql.OptionDBName(hamodel.DatabaseName),
+		hamysql.OptionUser(config.Cfg.Storage.User),
+		hamysql.OptionPassword(config.Cfg.Storage.Password),
+		hamysql.OptionLogger(s.gormLogger),
+	)
+
+	if err != nil {
+		logger.Warn("create mysql storage failed, errmsg: %s", err)
+		return err
+	}
+
+	s.db = db
 	return nil
 }

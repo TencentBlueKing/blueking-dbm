@@ -31,3 +31,7 @@ class GetMongoShardSerializer(serializers.Serializer):
         if attrs.get("shard_names"):
             attrs["shard_names"] = attrs["shard_names"].split(",")
         return attrs
+
+
+class ListAvailableVersionSerializer(serializers.Serializer):
+    cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField(), allow_empty=False)

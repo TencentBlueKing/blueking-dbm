@@ -61,11 +61,11 @@ func (c *collector) open() (*haprobe.DbEvent, error) {
 	)
 
 	if err != nil {
-		logger.Warn("create mysql db operator failed, %v", err)
+		logger.Warn("create mysql db operator failed, errmsg: %s", err)
 		event := &haprobe.DbEvent{
 			Name:       haprobe.DbEventNameDetectFailure,
 			Reason:     haprobe.DbEventNameReasonConnectionException,
-			DbTypeName: haprobe.DbTypeMysql,
+			DbTypeName: haprobe.DbTypeMySql,
 			Endpoint:   c.endpoint,
 			Message:    err.Error(),
 		}
@@ -79,7 +79,7 @@ func (c *collector) open() (*haprobe.DbEvent, error) {
 		event := &haprobe.DbEvent{
 			Name:       haprobe.DbEventNameDetectFailure,
 			Reason:     haprobe.DbEventNameReasonConnectionException,
-			DbTypeName: haprobe.DbTypeMysql,
+			DbTypeName: haprobe.DbTypeMySql,
 			Endpoint:   c.endpoint,
 			Message:    err.Error(),
 		}
@@ -104,7 +104,7 @@ func (c *collector) close() {
 func (c *collector) isTendbHaProxy() bool {
 	return c.accessLayer == haprobe.DbmMetadataAccessLayerTypeProxy &&
 		c.machineType == haprobe.DbmMetadataMachineTypeProxy &&
-		c.clusterType == haprobe.DbmMetadataClusterTypeTendb
+		c.clusterType == haprobe.DbmMetadataClusterTypeTendbha
 }
 
 func (c *collector) isTendbClusterProxy() bool {

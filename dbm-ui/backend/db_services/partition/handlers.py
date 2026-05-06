@@ -15,14 +15,24 @@ from django.utils.translation import gettext as _
 
 from backend.components import DRSApi
 from backend.components.mysql_partition.client import DBPartitionApi
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
 from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums.instance_inner_role import InstanceInnerRole
 from backend.db_meta.models import Cluster
-from backend.db_services.partition.constants import QUERY_DATABASE_FIELD_TYPE, QUERY_UNIQUE_FIELDS_SQL
+from backend.db_services.partition.constants import (
+    QUERY_DATABASE_FIELD_TYPE,
+    QUERY_UNIQUE_FIELDS_SQL,
+    Query_partition_info_SQL,
+    Query_shard_info_SQL,
+    Query_Tables_info_SQL,
+)
 from backend.db_services.partition.exceptions import (
     DBPartitionCreateException,
     DBPartitionInternalServerError,
     DBPartitionInvalidFieldException,
+    DBPartitionV2DRSAPIException,
+    DBPartitionV2ShardInfoException,
 )
 from backend.exceptions import ApiRequestError, ApiResultError
 from backend.ticket.constants import TicketType
@@ -258,3 +268,185 @@ class PartitionHandler(object):
         # 如果表没有主键 or 唯一键，需要提示用户分区执行会锁表
         if not index_data:
             return _("表没有主键或者唯一键，将表改造为分区表的过程中会锁表，会阻塞查询、删除、修改、添加、表结构变更等语句")
+
+    @classmethod
+    def check_partition_info(cls, cluster_id: int, config_id: int):
+        """
+        针对已有的分区配置，检查表的分区执行情况
+        @param cluster_id: 集群id
+        @param config_id: 配置id
+        @return: 分区执行情况
+        """
+        # 先查询集群地址
+        try:
+            cluster = Cluster.objects.get(id=cluster_id)
+        except Cluster.DoesNotExist:
+            raise DBPartitionInternalServerError(_("集群不存在：{}").format(cluster_id))
+
+        if cluster.cluster_type == ClusterType.TenDBCluster:
+            address = cluster.tendbcluster_ctl_primary_address()
+        elif cluster.cluster_type == ClusterType.TenDBHA:
+            address = cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER).ip_port
+        elif cluster.cluster_type == ClusterType.TenDBSingle:
+            address = cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.ORPHAN).ip_port
+        else:
+            raise DBPartitionInternalServerError(_("集群类型不支持：{}").format(cluster.cluster_type))
+
+        # 获取分区配置
+        partition_confs = cls.__get_partition_conf_by_config_id(cluster_id, config_id, cluster.cluster_type)
+        partition_conf = partition_confs["configs"][0]
+        dblike = partition_conf["dblike"]
+        tblike = partition_conf["tblike"]
+        # partition_column = partition_conf["partition_column"]
+        # partition_column_type = partition_conf["partition_column_type"]
+        # partition_time_interval = partition_conf["partition_time_interval"]
+        # partition_type = partition_conf["partition_type"]
+        # expire_time = partition_conf["expire_time"]
+
+        table_info = cls.__check_table_info(address, cluster.bk_cloud_id, cluster.cluster_type, dblike, tblike)
+        return table_info
+
+    @classmethod
+    def __get_partition_conf_by_config_id(cls, cluster_id: int, config_id: int, cluster_type: str):
+        """
+        根据配置id获取分区配置
+        @param cluster_id: 集群id
+        @param config_id: 配置id
+        @param cluster_type: 集群类型
+        @return: 分区配置
+        """
+        params = {
+            "name": "get_conf_by_id",
+            "cluster_type": cluster_type,
+            "query_args": {"cluster_id": cluster_id, "config_id": config_id},
+        }
+        try:
+            partition_conf = DBPartitionApi.partition_conf_query(params=params, raw=True)
+        except Exception as e:
+            raise DBPartitionInternalServerError(_("分区配置查询错误：{}").format(e))
+        if partition_conf["code"] != 0:
+            raise DBPartitionInternalServerError(_("分区配置查询错误：{}").format(partition_conf["message"]))
+        partition_conf = partition_conf["data"]
+        return partition_conf
+
+    @classmethod
+    def __check_table_info(cls, address: str, bk_cloud_id: int, cluster_type: str, dblike: str, tblike: str):
+        """
+        检查表信息
+        @param address: 地址
+        @param bk_cloud_id: 云区域id
+        @param cluster_type: 集群类型
+        @param dblike: 库名
+        @param tblike: 表名
+        @return: 表信息
+        """
+
+        if cluster_type == ClusterType.TenDBCluster:
+            table_info = cls.__check_tendbcluster_table_info(address, bk_cloud_id, dblike, tblike)
+        else:
+            pass
+        return table_info
+
+    @classmethod
+    def __get_is_partitiond_query_sql(cls, dblike: str, tblike: str):
+        """
+        获取查询语句
+        @param dblike: 库名
+        @param tblike: 表名
+        @return: 查询语句
+        """
+        # 判断 dblike 和 tblike 是否包含通配符 '%'
+        db_like_has_wildcard = "%" in dblike
+        tb_like_has_wildcard = "%" in tblike
+
+        if db_like_has_wildcard and tb_like_has_wildcard:
+            condition_sts = "TABLE_SCHEMA LIKE '{}' AND TABLE_NAME LIKE '{}'".format(dblike, tblike)
+            query_sql = Query_Tables_info_SQL.format(condition_sts=condition_sts)
+        elif db_like_has_wildcard and not tb_like_has_wildcard:
+            condition_sts = "TABLE_SCHEMA LIKE '{}' AND TABLE_NAME = '{}'".format(dblike, tblike)
+            query_sql = Query_Tables_info_SQL.format(condition_sts=condition_sts)
+        elif not db_like_has_wildcard and tb_like_has_wildcard:
+            condition_sts = "TABLE_SCHEMA = '{}' AND TABLE_NAME LIKE '{}'".format(dblike, tblike)
+            query_sql = Query_Tables_info_SQL.format(condition_sts=condition_sts)
+        else:
+            condition_sts = "TABLE_SCHEMA = '{}' AND TABLE_NAME = '{}'".format(dblike, tblike)
+            query_sql = Query_Tables_info_SQL.format(condition_sts=condition_sts)
+        return query_sql
+
+    @classmethod
+    def __check_tendbcluster_table_info(cls, address: str, bk_cloud_id: int, dblike: str, tblike: str) -> List:
+        """
+        查询tendbcluster表信息
+        @param address: 地址
+        @param bk_cloud_id: 云区域id
+        @param query_sql: 查询语句
+        @return: 表信息
+        返回列表，列表中每个元素是一个元祖，是排序后的表信息，元祖中第一个元素是分片id，第二个元素是表信息
+        表信息是一个字典，字典中包含以下键：
+        - db_address: 分片数据库地址
+        - shard_id: 分片id
+        - create_options: 创建选项
+        - table_schema: 表schema
+        - table_name: 表名
+        - partition_name: 分区名称
+        - partition_description: 分区描述
+        """
+        # 先查询shard信息
+        try:
+            shard_infos = DRSApi.short_rpc(
+                {
+                    "addresses": [address],
+                    "cmds": [Query_shard_info_SQL],
+                    "force": False,
+                    "bk_cloud_id": bk_cloud_id,
+                }
+            )
+        except Exception as e:
+            raise DBPartitionV2DRSAPIException(message=_("DRS API 调用异常：{}").format(e))
+
+        if shard_infos[0]["cmd_results"] is None:
+            raise DBPartitionV2ShardInfoException(message=_("分片信息查询错误：{}").format(shard_infos[0]["error_msg"]))
+
+        shard_info_list = shard_infos[0]["cmd_results"][0]["table_data"]
+        table_infos = {}
+
+        for shard_info in shard_info_list:
+            db_address = "{}{}{}".format(shard_info["Host"], IP_PORT_DIVIDER, shard_info["Port"])
+            shard_id = shard_info["Server_name"].split("SPT")[1]
+            new_dblike = "{}_{}".format(dblike, shard_id)
+            partitiond_query_sql = cls.__get_is_partitiond_query_sql(new_dblike, tblike)
+            partition_info_query_sql = Query_partition_info_SQL.format(dbname=new_dblike, tb=tblike)
+
+            try:
+                res = DRSApi.short_rpc(
+                    {
+                        "addresses": [db_address],
+                        "cmds": [partitiond_query_sql, partition_info_query_sql],
+                        "force": False,
+                        "bk_cloud_id": bk_cloud_id,
+                    }
+                )
+            except Exception as e:
+                table_infos[shard_info["Server_name"].split("SPT")[1]] = {"Exception": e}
+                continue
+
+            if res[0]["cmd_results"] is None:
+                table_infos[shard_info["Server_name"].split("SPT")[1]] = {"error": res[0]["error_msg"]}
+                continue
+
+            partitiond_query_result = res[0]["cmd_results"][0]["table_data"][0]
+            partition_info_result = res[0]["cmd_results"][1]["table_data"]
+            table_infos[shard_info["Server_name"].split("SPT")[1]] = {
+                "db_address": db_address,
+                "shard_id": shard_id,
+                "create_options": partitiond_query_result["CREATE_OPTIONS"],
+                "table_schema": partitiond_query_result["TABLE_SCHEMA"],
+                "table_name": partitiond_query_result["TABLE_NAME"],
+                "partition_name": [info["PARTITION_NAME"] for info in partition_info_result],
+                "partition_description": [info["PARTITION_DESCRIPTION"] for info in partition_info_result],
+            }
+        # 对table_infos的键做int转换后排序，避免'10'比'2'小的问题
+        # 排序后返回一个列表，列表中每个元素是一个元组，元组中第一个元素是键，第二个元素是值
+        sorted_table_infos = sorted(table_infos.items(), key=lambda x: int(x[0]))
+
+        return sorted_table_infos

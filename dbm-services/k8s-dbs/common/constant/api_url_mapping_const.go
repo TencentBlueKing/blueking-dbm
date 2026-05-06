@@ -19,9 +19,10 @@ limitations under the License.
 
 package constant
 
-var APIURLs = initAPIURLs()
+// URLToAPIName 将 URL 路径映射到 API 名称常量
+var URLToAPIName = initURLToAPIName()
 
-func initAPIURLs() map[string]string {
+func initURLToAPIName() map[string]string {
 	return map[string]string{
 		"/v4/dbs/addon/install":   APIAddonInstall,
 		"/v4/dbs/addon/uninstall": APIAddonUninstall,
@@ -31,7 +32,7 @@ func initAPIURLs() map[string]string {
 		"/v4/dbs/opsRequest/hscaling":   APIClusterHScaling,
 		"/v4/dbs/opsRequest/vexpansion": APIClusterVExpansion,
 		"/v4/dbs/opsRequest/start":      APIClusterStart,
-		"/v4/dbs/opsRequest/restart":    APIClusterReStart,
+		"/v4/dbs/opsRequest/restart":    APIClusterRestart,
 		"/v4/dbs/opsRequest/stop":       APIClusterStop,
 		"/v4/dbs/opsRequest/upgrade":    APIClusterUpgrade,
 		"/v4/dbs/opsRequest/expose":     APIClusterExpose,
@@ -41,6 +42,7 @@ func initAPIURLs() map[string]string {
 		"/v4/dbs/cluster/update":         APIClusterUpdate,
 		"/v4/dbs/cluster/partial_update": APIClusterPartialUpdate,
 		"/v4/dbs/cluster/service/info":   APIClusterServiceInfo,
+		"/v4/dbs/cluster/describe":       APIClusterDesc,
 
 		"/v4/dbs/k8s_cluster/namespace":  APIK8sNsCreate,
 		"/v4/dbs/k8s_cluster/pod/delete": APIK8sPodDelete,
@@ -53,10 +55,10 @@ func initAPIURLs() map[string]string {
 	}
 }
 
-// GetAPIURL 根据 API 常量获取对应的 URL
-func GetAPIURL(apiConst string) string {
-	if url, exists := APIURLs[apiConst]; exists {
-		return url
+// GetAPIName 根据 URL 路径获取对应的 API 名称常量
+func GetAPIName(urlPath string) string {
+	if name, exists := URLToAPIName[urlPath]; exists {
+		return name
 	}
 	return ""
 }

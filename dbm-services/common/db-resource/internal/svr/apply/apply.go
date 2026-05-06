@@ -644,9 +644,17 @@ func (o *SearchContext) MatchIntentionBkBiz(db *gorm.DB) {
 func (o *SearchContext) MatchRsType(db *gorm.DB) {
 	// 如果没有指定资源类型，表示只能选择无资源类型标签的资源
 	// 没有资源类型标签的资源可以被所有其他类型使用
-	if lo.IsEmpty(o.RsType) {
+	switch {
+	case lo.IsEmpty(o.RsType):
 		db.Where("rs_type = 'PUBLIC' ")
-	} else {
+	// 临时代码，后续需要删除
+	// ----------------------------
+	case o.RsType == "redis":
+		db.Where("rs_type = 'redis'")
+	case o.RsType == "mongodb":
+		db.Where("rs_type = 'mongodb'")
+	// ------ 临时代码结束 ------
+	default:
 		db.Where("rs_type in (?)", []string{"PUBLIC", o.RsType})
 	}
 }

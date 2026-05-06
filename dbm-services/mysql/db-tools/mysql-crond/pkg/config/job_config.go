@@ -2,12 +2,16 @@ package config
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"os/exec"
 	"path"
+	"slices"
 	"syscall"
+
+	"dbm-services/mysql/db-tools/mysql-crond/pkg"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/robfig/cron/v3"
@@ -139,11 +143,14 @@ func InitJobsConfig() error {
 	if err != nil {
 		if os.IsNotExist(err) {
 			slog.Info("init jobs config jobs-config file not found, try create it")
-			_, err := os.Create(RuntimeConfig.JobsConfigFile)
+			_f, err := os.Create(RuntimeConfig.JobsConfigFile)
 			if err != nil {
 				slog.Error("init jobs config create empty jobs-config file", slog.String("error", err.Error()))
 				return err
 			}
+			defer func() {
+				_ = _f.Close()
+			}()
 
 			err = os.Chown(RuntimeConfig.JobsConfigFile, JobsUserUid, JobsUserGid)
 			if err != nil {
@@ -165,11 +172,38 @@ func InitJobsConfig() error {
 	JobsConfig = &jobsConfig{}
 	err = yaml.Unmarshal(content, &JobsConfig)
 	if err != nil {
-		slog.Error("init jobs config", slog.String("error", err.Error()))
+		slog.Error("unmarshal jobs config", slog.String("error", err.Error()))
 		return err
 	}
 
+	bkBizId, err := pkg.GetBkBizId()
+	if err != nil {
+		slog.Error("bk_biz_id updater job", slog.String("err", err.Error()))
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+	JobsConfig.BkBizId = bkBizId
+
+	// 过滤掉 nil 的job，并按 name 去重
+	validJobs := make([]*ExternalJob, 0, len(JobsConfig.Jobs))
 	for _, j := range JobsConfig.Jobs {
+		if j == nil {
+			slog.Warn("skip nil job entry in config")
+			continue
+		}
+		if slices.ContainsFunc(validJobs, func(e *ExternalJob) bool { return e.Name == j.Name }) {
+			slog.Warn("skip duplicate job", slog.String("name", j.Name))
+			continue
+		}
+		validJobs = append(validJobs, j)
+	}
+	JobsConfig.Jobs = validJobs
+
+	slog.Info("init job config", slog.Any("jobs", JobsConfig))
+	for _, j := range JobsConfig.Jobs {
+		slog.Info("validate job", slog.Any("job", j))
 		err := j.validate()
 		if err != nil {
 			panic(err)

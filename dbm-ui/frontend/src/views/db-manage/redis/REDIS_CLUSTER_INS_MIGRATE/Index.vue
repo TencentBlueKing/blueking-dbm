@@ -31,6 +31,7 @@
           :config="batchInputConfig"
           @change="handleBatchInput" />
         <EditableTable
+          :key="tableKey"
           ref="editableTable"
           class="mt-16 mb-16"
           :model="formData.tableData">
@@ -42,7 +43,6 @@
               v-model="item.batchInstance"
               :selected="selected"
               :selected-map="selectedMap"
-              :tab-list-config="tabListConfig"
               @batch-edit="handleInstanceSelectChange" />
             <EditableColumn
               :append-rules="masterDomainRules"
@@ -65,10 +65,18 @@
               v-model="item.batchInstance.current_spec_id"
               :cluster-type="DBTypes.REDIS"
               field="batchInstance.current_spec_id"
-              label="规格" />
-            <!-- <CurrentVersionColumn
-              v-model="item.current_versions"
-              :cluster-id="Object.values(item.batchInstance.instances)?.[0]?.cluster_id" /> -->
+              :label="t('规格')" />
+            <ResourceTagColumn
+              v-model="item.labels"
+              @batch-edit="handleBatchEdit" />
+            <AvailableResourceColumn
+              :params="{
+                city: item.batchInstance.region,
+                for_bizs: [currentBizId, 0],
+                resource_types: [DBTypes.REDIS, 'PUBLIC'],
+                spec_id: item.batchInstance.current_spec_id,
+                labels: item.labels.map((item) => item.id).join(','),
+              }" />
             <OperationColumn
               :create-row-method="createRowData"
               :table-data="formData.tableData" />
@@ -104,19 +112,16 @@
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import RedisModel from '@services/model/redis/redis';
   import RedisInstanceModel from '@services/model/redis/redis-instance';
   import { type Redis } from '@services/model/ticket/ticket';
-  import { getRedisClusterList, getRedisInstances } from '@services/source/redis';
 
   import { useCreateTicket, useTicketDetail } from '@hooks';
 
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
-  import ManualInputHostContent from '@components/instance-selector/components/common/manual-content/Index.vue';
-  import { type PanelListType } from '@components/instance-selector/Index.vue';
-
   import BatchInput from '@views/db-manage/common/batch-input/Index.vue';
+  import AvailableResourceColumn from '@views/db-manage/common/toolbox-field/column/available-resource-column/Index.vue';
+  import ResourceTagColumn from '@views/db-manage/common/toolbox-field/column/resource-tag-column/Index.vue';
   import SpecColumn from '@views/db-manage/common/toolbox-field/column/spec-column/Index.vue';
   import TicketPayload, {
     createTickePayload,
@@ -125,6 +130,8 @@
     ArchitectureType,
     MigrateType,
   } from '@views/db-manage/redis/common/toolbox-common/migrate-form-items/Index.vue';
+
+  import { random } from '@utils';
 
   // import CurrentVersionColumn from './components/CurrentVersionColumn.vue';
   import InstanceColumn from './components/InstanceColumn.vue';
@@ -140,6 +147,7 @@
   interface IDataRow {
     batchInstance: ComponentProps<typeof InstanceColumn>['modelValue'];
     current_versions: string[];
+    labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     rowspan: number;
   }
 
@@ -157,7 +165,7 @@
   ];
 
   // 单据克隆
-  useTicketDetail<Redis.MigrateCluster>(TicketTypes.REDIS_CLUSTER_INS_MIGRATE, {
+  useTicketDetail<Redis.ResourcePool.MigrateCluster>(TicketTypes.REDIS_CLUSTER_INS_MIGRATE, {
     onSuccess(ticketDetail) {
       const { infos } = ticketDetail.details;
       Object.assign(formData, {
@@ -167,15 +175,16 @@
             batchInstance: {
               renderText: infoItem.migrate_instance,
             } as IDataRow['batchInstance'],
+            labels: (infoItem.resource_spec.backend_group.labels || []).map((item) => ({ id: Number(item) })),
           }),
         ),
       });
     },
   });
 
-  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{ infos: Redis.MigrateCluster['infos'] }>(
-    TicketTypes.REDIS_CLUSTER_INS_MIGRATE,
-  );
+  const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
+    infos: Redis.ResourcePool.MigrateCluster['infos'];
+  }>(TicketTypes.REDIS_CLUSTER_INS_MIGRATE);
 
   const initFormData = () => ({
     architectureType: ArchitectureType.CLUSTER,
@@ -184,16 +193,18 @@
     tableData: [createRowData()],
   });
 
-  const createRowData = (values = {} as Partial<IDataRow>) => ({
+  const createRowData = (values: DeepPartial<IDataRow> = {}) => ({
     batchInstance: Object.assign(
       {
         current_spec_id: 0,
         instances: {} as IDataRow['batchInstance']['instances'],
+        region: '',
         renderText: '',
       },
       values.batchInstance,
     ),
-    current_versions: values?.current_versions || [],
+    current_versions: (values?.current_versions || []) as string[],
+    labels: (values.labels || []) as IDataRow['labels'],
     rowspan: values?.rowspan || 1,
   });
 
@@ -208,80 +219,11 @@
     },
   ];
 
-  const formData = reactive(initFormData());
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
-  const tabListConfig = computed(
-    () =>
-      ({
-        RedisInstance: [
-          {
-            name: t('实例选择'),
-            tableConfig: {
-              firsrColumn: {
-                field: 'instance_address',
-                label: t('Master 实例'),
-                role: '',
-              },
-              getTableList: (params: ServiceParameters<typeof getRedisInstances>) =>
-                getRedisInstances({
-                  cluster_type: [
-                    ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-                    // ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-                    ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-                    // ClusterTypes.PREDIXY_REDIS_CLUSTER,
-                  ].join(','),
-                  role: 'redis_master',
-                  ...params,
-                }),
-              multiple: true,
-            },
-            topoConfig: {
-              countFunc: (data: RedisModel) => data.redis_master.length,
-              getTopoList: (params: ServiceParameters<typeof getRedisClusterList>) =>
-                getRedisClusterList({
-                  cluster_type: [
-                    ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-                    // ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-                    ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-                    // ClusterTypes.PREDIXY_REDIS_CLUSTER,
-                  ].join(','),
-                  ...params,
-                }),
-              totalCountFunc: (dataList: RedisModel[]) =>
-                dataList.reduce<number>((prevCount, item) => prevCount + item.redis_master.length, 0),
-            },
-          },
-          {
-            content: ManualInputHostContent,
-            manualConfig: {
-              fieldFormat: {
-                role: {
-                  master: 'redis_master',
-                },
-              },
-            },
-            tableConfig: {
-              firsrColumn: {
-                field: 'instance_address',
-                label: t('Master 实例'),
-                role: 'redis_master',
-              },
-              getTableList: (params: ServiceParameters<typeof getRedisInstances>) =>
-                getRedisInstances({
-                  cluster_type: [
-                    ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-                    // ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-                    ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-                    // ClusterTypes.PREDIXY_REDIS_CLUSTER,
-                  ].join(','),
-                  ...params,
-                }),
-              multiple: true,
-            },
-          },
-        ],
-      }) as unknown as Record<ClusterTypes, PanelListType>,
-  );
+  const tableKey = ref(random());
+
+  const formData = reactive(initFormData());
 
   const selected = computed(() =>
     formData.tableData
@@ -307,7 +249,12 @@
     });
 
     formData.tableData = [...formData.tableData.filter((item) => item.batchInstance.renderText), ...newList];
-    window.changeConfirm = true;
+  };
+
+  const handleBatchEdit = (value: string | number, field: string) => {
+    formData.tableData.forEach((item) => {
+      Object.assign(item, { [field]: value });
+    });
   };
 
   const handleBatchInput = (data: Record<string, any>[], isClear: boolean) => {
@@ -322,6 +269,7 @@
       return acc;
     }, []);
     if (isClear) {
+      tableKey.value = random();
       formData.tableData = [...newList];
     } else {
       formData.tableData = [...formData.tableData.filter((item) => item.batchInstance.renderText), ...newList];
@@ -364,14 +312,20 @@
               cluster_id: instance!.cluster_id,
               db_version: tableItem.current_versions,
               migrate_instance: instances.map((item) => item.instance_address).join(','),
-              // old_nodes: oldNodes,
               origin_old_nodes: oldNodes,
               resource_spec: {
                 backend_group: {
                   count: 1,
+                  label_names: tableItem.labels.map((item) => item.value),
+                  labels: tableItem.labels.map((item) => String(item.id)),
                   spec_id: instance!.spec_config.id,
                 },
               },
+              src_cluster: instances.map((instanceItem) => ({
+                cluster_id: instanceItem.cluster_id,
+                master_ins: `${instanceItem.ip}:${instanceItem.port}`,
+                slave_ins: `${instanceItem.slave.ip}:${instanceItem.slave.port}`,
+              })),
             };
           }),
         },
@@ -382,6 +336,5 @@
 
   const handleReset = () => {
     Object.assign(formData, initFormData());
-    window.changeConfirm = false;
   };
 </script>

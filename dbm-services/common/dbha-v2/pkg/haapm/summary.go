@@ -25,13 +25,14 @@
 package haapm
 
 import (
+	"sync"
+
 	"dbm-services/common/dbha-v2/pkg/gerrors"
-	"dbm-services/common/go-pubpkg/apm/metric"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// A HaSummary captures individual observations from an event or sample stream and
+// HaSummary A HaSummary captures individual observations from an event or sample stream and
 // summarizes them in a manner similar to traditional summary statistics: 1. sum
 // of observations, 2. observation count, 3. rank estimations.
 //
@@ -52,16 +53,32 @@ import (
 type HaSummary struct {
 	Error error
 
-	metric      *metric.Metric
+	mu          sync.Mutex
+	metric      *Metric
 	labelNames  []string
 	labelValues map[string]string
 }
 
-func (m *HaSummary) ToMetric() *metric.Metric {
-	return (*metric.Metric)(m.metric)
+// ToMetric returns the metric.
+func (m *HaSummary) ToMetric() *Metric {
+	return m.metric
 }
 
+// WithLabels returns a BoundSummary with fixed labels. For static resources, create once
+// and use the bound in business code so only Observe() is needed.
+func (m *HaSummary) WithLabels(labels map[string]string) *BoundSummary {
+	return &BoundSummary{summary: m, labels: copyLabels(labels)}
+}
+
+// UpdateLabel sets label values for the next Observe call.
+//
+// WARNING: This method is NOT atomic with the subsequent Observe call.
+// In concurrent code, use ObserveWithLabels instead, which performs the full
+// label-write + observe + reset atomically under a single lock.
 func (m *HaSummary) UpdateLabel(lvs map[string]string) *HaSummary {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	if m.Error != nil {
 		return m
 	}
@@ -86,11 +103,18 @@ func (m *HaSummary) UpdateLabel(lvs map[string]string) *HaSummary {
 	return m
 }
 
+// Observe adds a single observation to the summary.
 func (m *HaSummary) Observe(val float64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	defer m.reset()
 
 	if m.Error != nil {
 		return m.Error
+	}
+
+	if m.metric.Collector == nil {
+		return nil
 	}
 
 	if len(m.labelNames) == 0 {
@@ -107,6 +131,37 @@ func (m *HaSummary) Observe(val float64) error {
 	return m.Error
 }
 
+// ObserveWithLabels performs the full label-write + observe + reset atomically
+// under a single lock. This is the goroutine-safe entry point for concurrent code.
+func (m *HaSummary) ObserveWithLabels(labels map[string]string, val float64) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	defer m.reset()
+
+	if m.metric.Collector == nil {
+		return nil
+	}
+
+	if len(m.labelNames) == 0 {
+		m.metric.Collector.(prometheus.Summary).Observe(val)
+		return nil
+	}
+
+	for k, v := range labels {
+		if _, ok := m.labelValues[k]; !ok {
+			return gerrors.Newf(gerrors.InvalidParameter, "label is mismatched: %s", k)
+		}
+		m.labelValues[k] = v
+	}
+
+	if len(m.labelValues) != len(m.labelNames) {
+		return gerrors.New(gerrors.InvalidParameter, "label is mismatched")
+	}
+
+	m.metric.Collector.(*prometheus.SummaryVec).With(m.labelValues).Observe(val)
+	return nil
+}
+
 func (m *HaSummary) reset() {
 	m.labelValues = map[string]string{}
 	for _, name := range m.labelNames {
@@ -116,10 +171,10 @@ func (m *HaSummary) reset() {
 	m.Error = nil
 }
 
+// NewHaSummary creates a new HaSummary.
 func NewHaSummary(name, help string, labelNames ...string) *HaSummary {
 	summary := &HaSummary{}
-	summary.metric = &metric.Metric{
-		ID:          name,
+	summary.metric = &Metric{
 		Name:        name,
 		Description: help,
 	}
@@ -133,5 +188,6 @@ func NewHaSummary(name, help string, labelNames ...string) *HaSummary {
 	summary.labelNames = append(summary.labelNames, labelNames...)
 	summary.metric.Labels = summary.labelNames
 
+	summary.reset()
 	return summary
 }

@@ -15,7 +15,7 @@
 
   import { createBkrepoAccessToken } from '@services/source/storage';
 
-  import { downloadUrl } from '@utils';
+  import { downloadUrl, generateBkRepoDownloadUrl } from '@utils';
 
   interface Props {
     details: {
@@ -31,7 +31,7 @@
 
   const handleDownload = async (filePath: string) => {
     const tokenResult = await createBkrepoAccessToken({ file_path: filePath });
-    const url = `${tokenResult.url}/generic/temporary/download/${tokenResult.project}/${tokenResult.repo}/${tokenResult.path}?token=${tokenResult.token}&download=true`;
+    const url = generateBkRepoDownloadUrl(tokenResult);
     downloadUrl(url);
   };
 </script>

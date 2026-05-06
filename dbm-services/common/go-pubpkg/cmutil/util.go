@@ -12,6 +12,9 @@
 package cmutil
 
 import (
+	"os"
+	"os/user"
+	"strconv"
 	"strings"
 	"time"
 
@@ -137,4 +140,32 @@ func (g *GrepLines) MatchWords(keywords []string, linesRet int) (string, error) 
 	} else {
 		return "", errors.WithMessage(err, cmdStdErr)
 	}
+}
+
+func Chown(path string, user string, group string) error {
+	cmd := []string{"chown", user + "." + group, path}
+	_, logStdErr, err := ExecCommand(true, "", cmd[0], cmd[1:]...)
+	return errors.WithMessage(err, logStdErr)
+}
+
+func ChownNotUsingExec(path string, userName string, groupName string) error {
+	u, err := user.Lookup(userName)
+	if err != nil {
+		return errors.Wrapf(err, "lookup user %s", userName)
+	}
+	uid, err := strconv.Atoi(u.Uid)
+	if err != nil {
+		return errors.Wrapf(err, "parse uid %s", u.Uid)
+	}
+
+	g, err := user.LookupGroup(groupName)
+	if err != nil {
+		return errors.Wrapf(err, "lookup group %s", groupName)
+	}
+	gid, err := strconv.Atoi(g.Gid)
+	if err != nil {
+		return errors.Wrapf(err, "parse gid %s", g.Gid)
+	}
+
+	return errors.WithMessage(os.Chown(path, uid, gid), "os.Chown")
 }

@@ -21,6 +21,7 @@ from backend.bk_dataview.prometheus.handlers import pipeline_build_label_func, s
 from backend.db_meta.exceptions import ClusterExclusiveOperateException
 from backend.db_meta.models import Cluster
 from backend.db_meta.models.sqlserver_dts import SqlserverDtsInfo
+from backend.db_services.cmdb.biz import get_hcm_apply_resource_biz
 from backend.flow.models import FlowTree
 from backend.ticket import constants
 from backend.ticket.builders.common.base import fetch_cluster_ids
@@ -92,8 +93,8 @@ class InnerFlow(BaseTicketFlow):
 
     @property
     def _summary(self) -> str:
-        # TODO 可以给出具体失败的节点和原因
-        return _("任务{status_display}").format(status_display=constants.TicketFlowStatus.get_choice_label(self.status))
+        status = self.flow_obj.status
+        return _("任务{status_display}").format(status_display=constants.TicketFlowStatus.get_choice_label(status))
 
     @property
     def _status(self) -> str:
@@ -108,19 +109,7 @@ class InnerFlow(BaseTicketFlow):
             status = BAMBOO_STATE__TICKET_STATE_MAP.get(self.flow_tree.status, constants.TicketFlowStatus.RUNNING)
 
         # 根据流程状态映射todo的状态
-        todo_status = INNER_FLOW_TODO_STATUS_MAP.get(status, TodoStatus.TODO)
-        fail_todo = self.flow_obj.todo_of_flow.filter(type=TodoType.INNER_FAILED).first()
-        # 如果任务失败，且不存在todo，则创建一条
-        if not fail_todo and todo_status == TodoStatus.TODO:
-            self.create_failed_todo()
-        # 变更todo状态
-        if fail_todo and fail_todo.status != todo_status:
-            try:
-                local_request = local.request
-                operator = local_request.user.username if local_request else ""
-            except (AttributeError, Exception):
-                operator = ""
-            fail_todo.set_status(operator, todo_status)
+        self.set_inner_flow_todo(status)
 
         return self.flow_obj.update_status(status)
 
@@ -128,15 +117,28 @@ class InnerFlow(BaseTicketFlow):
     def _url(self) -> str:
         return f"{env.BK_SAAS_HOST}/{self.ticket.bk_biz_id}/task-history/detail/{self.root_id}"
 
-    def create_failed_todo(self):
-        Todo.objects.create(
-            name=_("【{}】单据任务执行失败，待处理").format(self.ticket.get_ticket_type_display()),
-            flow=self.flow_obj,
-            ticket=self.ticket,
-            type=TodoType.INNER_FAILED,
-            context=BaseTodoContext(self.flow_obj.id, self.ticket.id).to_dict(),
-            status=TodoStatus.TODO,
-        )
+    def set_inner_flow_todo(self, status):
+        """更新任务流程的todo状态"""
+        todo_status = INNER_FLOW_TODO_STATUS_MAP.get(status, TodoStatus.DONE_SUCCESS)
+        fail_todo = self.flow_obj.todo_of_flow.filter(type=TodoType.INNER_FAILED).first()
+        # 如果任务失败，且不存在todo，则创建一条
+        if not fail_todo and todo_status == TodoStatus.TODO:
+            Todo.objects.create(
+                name=_("【{}】单据任务执行失败，待处理").format(self.ticket.get_ticket_type_display()),
+                flow=self.flow_obj,
+                ticket=self.ticket,
+                type=TodoType.INNER_FAILED,
+                context=BaseTodoContext(self.flow_obj.id, self.ticket.id).to_dict(),
+                status=TodoStatus.TODO,
+            )
+        # 存在todo则变更状态
+        if fail_todo and fail_todo.status != todo_status:
+            try:
+                local_request = local.request
+                operator = local_request.user.username if local_request else ""
+            except (AttributeError, Exception):
+                operator = ""
+            fail_todo.set_status(operator, todo_status)
 
     def check_exclusive_operations(self):
         """判断执行互斥"""
@@ -189,6 +191,11 @@ class InnerFlow(BaseTicketFlow):
         except (Exception, ClusterExclusiveOperateException) as err:  # pylint: disable=broad-except
             # 处理互斥异常和非预期的异常
             self.run_error_status_handler(err)
+            # 记录AI日志分析
+            if env.ENABLE_DBM_AI:
+                from backend.dbm_aiagent.agent.services.log_analysis.tasks import ticket_flow_log_ai_analysis
+
+                ticket_flow_log_ai_analysis.apply_async(args=(root_id,))
             return
         else:
             # 记录inner flow的集群动作和实例动作
@@ -306,6 +313,18 @@ class HCMReplenishResourceTaskFlow(SimpleTaskFlow):
     海磊资源申请专属任务流程
     """
 
+    def run_lack_resource_status_handler(self, count, applied_count):
+        self.flow_obj.err_code = FlowErrCode.HCM_APPLY_LACK_RESOURCE_ERROR.value
+        self.flow_obj.err_msg = _("海磊资源申请不足，预期数量: {count}, 实际申请数量: {applied_count}").format(
+            count=count, applied_count=applied_count
+        )
+        return TicketFlowStatus.FAILED
+
+    @property
+    def url(self) -> str:
+        # 直接返回url构造(父类url方法因为有error msg会屏蔽路由跳转)
+        return super()._url
+
     @property
     def _status(self) -> str:
         if not self.flow_tree:
@@ -318,10 +337,17 @@ class HCMReplenishResourceTaskFlow(SimpleTaskFlow):
         # 如果流程已完成，但是补货数量不及预期，则仍然失败
         count = self.ticket.details["count"]
         applied_count = len(self.flow_obj.output_data[0]["values"]) if self.flow_obj.output_data else 0
+        # 更新补货错误信息
         if count != applied_count:
-            status = TicketFlowStatus.FAILED
+            status = self.run_lack_resource_status_handler(count, applied_count)
 
-        return self.flow_obj.update_status(status)
+        # 更新todo状态和flow_obj状态
+        self.set_inner_flow_todo(status)
+        if self.flow_obj.status != status:
+            self.flow_obj.status = status
+            self.flow_obj.save()
+
+        return status
 
     def _retry(self) -> Any:
         # 把flow_obj_id置空，则每次重试就会重新发起任务
@@ -334,7 +360,7 @@ class HCMReplenishResourceTaskFlow(SimpleTaskFlow):
 
         # 终止海磊申请单
         suborder_id = self.flow_obj.context.get("suborder_id")
-        bk_biz_id = self.ticket.bk_biz_id
+        bk_biz_id = get_hcm_apply_resource_biz()
         if suborder_id:
             try:
                 params = {"bk_biz_id": bk_biz_id, "suborder_id": [suborder_id]}

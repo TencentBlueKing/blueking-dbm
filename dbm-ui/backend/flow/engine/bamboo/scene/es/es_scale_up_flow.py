@@ -200,4 +200,4 @@ class EsScaleUpFlow(EsFlow):
         if sub_pipeline_access:
             es_pipeline.add_sub_pipeline(sub_pipeline_access)
 
-        es_pipeline.run_pipeline()
+        es_pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=[self.cluster_id])

@@ -84,11 +84,8 @@ class ResourceApplyFlow(BaseTicketFlow):
             return self.update_flow_status(constants.TicketFlowStatus.SUCCEEDED)
 
         if self.flow_obj.err_msg:
-            # 如果是其他情况引起的错误，则直接返回fail
-            if not self.flow_obj.todo_of_flow.exists():
-                return self.update_flow_status(constants.TicketFlowStatus.FAILED)
-            # 如果是资源申请的todo状态，则判断todo是否完成
-            if self.ticket.todo_of_ticket.exist_unfinished():
+            # 如果是资源申请的todo状态，则判断todo是否完成并且是否资源不足
+            if self.ticket.todo_of_ticket.exist_lack_unfinished():
                 return self.update_flow_status(constants.TicketFlowStatus.RUNNING)
             else:
                 return self.flow_obj.status
@@ -224,7 +221,7 @@ class ResourceApplyFlow(BaseTicketFlow):
             else [info["resource_spec"] for info in ticket_data["infos"]]
         )
         first_key_spec_id_map = {
-            role: spec["spec_id"]
+            f"{role}{spec['spec_id']}": spec["spec_id"]
             for resource in resource_specs
             for role, spec in resource.items()
             if spec.get("spec_id")
@@ -285,10 +282,13 @@ class ResourceApplyFlow(BaseTicketFlow):
         notify.send_msg.apply_async(args=(self.ticket.id,))
 
     def get_spec(self, group_name, source_spec_key_map, spec_map):
-        if source_spec_key_map.get(group_name):
-            return spec_map[source_spec_key_map[group_name]]
-        role = group_name.split("_", 1)[-1]
-        return spec_map.get(source_spec_key_map.get(role), None)
+        for spec_id in spec_map:
+            role_key = f"{group_name}{spec_id}"
+            if source_spec_key_map.get(role_key):
+                return spec_map[spec_id]
+            role = f"{group_name.split('_', 1)[-1]}{spec_id}"
+            if source_spec_key_map.get(role):
+                return spec_map[spec_id]
 
     def fetch_apply_params(self, ticket_data):
         """

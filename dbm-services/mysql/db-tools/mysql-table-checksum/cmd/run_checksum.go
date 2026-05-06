@@ -46,58 +46,24 @@ func generateRun(mode config.CheckMode, configPath string) error {
 	}()
 
 	switch ck.Config.InnerRole {
-	case config.RoleMaster:
-		err = lock.TryLock()
-		if err != nil {
-			slog.Error("another checksum already running", slog.String("error", err.Error()))
-			return err
-		}
-		slog.Info("run checksum on master start")
-		err = ck.Run()
-		if err != nil {
-			slog.Error("run checksum on master", slog.String("error", err.Error()))
-			return err
-		}
-		slog.Info("run checksum on master finish")
-		return nil
-	case config.RoleRepeater:
+	case config.RoleMaster, config.RoleRepeater:
 		err = lock.TryLock()
 		if err != nil {
 			slog.Error("another checksum already running", slog.String("error", err.Error()))
 			return err
 		}
 
-		slog.Info("run checksum on repeater start")
+		roleName := string(ck.Config.InnerRole)
+		slog.Info(fmt.Sprintf("run checksum on %s start", roleName))
 		err = ck.Run()
 		if err != nil {
-			slog.Error("run checksum on repeater", slog.String("error", err.Error()))
+			slog.Error(fmt.Sprintf("run checksum on %s", roleName), slog.String("error", err.Error()))
 			return err
 		}
-		if ck.Mode == config.GeneralMode {
-			slog.Info("run checksum on repeater to report start")
-			err = ck.Report()
-			if err != nil {
-				slog.Error("run report on repeater", slog.String("error", err.Error()))
-				return err
-			}
-			slog.Info("run checksum on repeater to report finish")
-		}
-		slog.Info("run checksum on repeater finish")
+		slog.Info(fmt.Sprintf("run checksum on %s finish", roleName))
 		return nil
 	case config.RoleSlave:
-		slog.Info("run checksum on slave")
-		if ck.Mode == config.DemandMode {
-			err = fmt.Errorf("checksum bill should not run on slave")
-			slog.Error("role is slave", slog.String("error", err.Error()))
-			return err
-		}
-		slog.Info("run checksum on slave to report start")
-		err = ck.Report()
-		if err != nil {
-			slog.Error("run report on slave", slog.String("error", err.Error()))
-			return err
-		}
-		slog.Info("run checksum on slave to report finish")
+		slog.Info("run checksum on slave nothing to do")
 		return nil
 	default:
 		err := fmt.Errorf("unknown instance inner role: %s", ck.Config.InnerRole)
@@ -109,16 +75,16 @@ func generateRun(mode config.CheckMode, configPath string) error {
 func updateConfig(configPath string) error {
 	sii, err := getSelfInfo()
 	if err != nil {
-		slog.Error("init config", slog.String("error", err.Error()))
-		return nil
+		slog.Error("update config", slog.String("error", err.Error()))
+		return nil // 获取实例信息失败时，保持原配置继续运行
 	}
-	slog.Info("init config", slog.Any("sii", sii))
+	slog.Info("update config", slog.Any("sii", sii))
 
 	config.ChecksumConfig.InnerRole = config.InnerRoleEnum(sii.InstanceInnerRole)
 
 	cf, err := os.OpenFile(configPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0777)
 	if err != nil {
-		slog.Error("init config", slog.String("error", err.Error()))
+		slog.Error("update config", slog.String("error", err.Error()))
 		return err
 	}
 	defer func() {
@@ -127,16 +93,16 @@ func updateConfig(configPath string) error {
 
 	b, err := yaml.Marshal(config.ChecksumConfig)
 	if err != nil {
-		slog.Error("init config", slog.String("error", err.Error()))
+		slog.Error("update config", slog.String("error", err.Error()))
 		return err
 	}
 
 	_, err = cf.WriteString(string(b) + "\n")
 	if err != nil {
-		slog.Error("init config", slog.String("error", err.Error()))
+		slog.Error("update config", slog.String("error", err.Error()))
 		return err
 	}
-	slog.Info("init config", slog.String("config", string(b)))
+	slog.Info("update config", slog.String("config", string(b)))
 	return nil
 }
 
@@ -148,18 +114,21 @@ func getSelfInfo() (sii *mysql.StorageInstanceInfo, err error) {
 	f, err := os.OpenFile(filePath, os.O_RDONLY, os.ModePerm)
 	if err != nil {
 		slog.Error(
-			"init config",
-			slog.String("err", err.Error()),
+			"get self info",
+			slog.String("error", err.Error()),
 			slog.String("filePath", filePath),
 		)
 		return nil, err
 	}
+	defer func() {
+		_ = f.Close()
+	}()
 
 	b, err := io.ReadAll(f)
 	if err != nil {
 		slog.Error(
-			"init config",
-			slog.String("err", err.Error()),
+			"get self info",
+			slog.String("error", err.Error()),
 		)
 		return nil, err
 	}
@@ -168,21 +137,23 @@ func getSelfInfo() (sii *mysql.StorageInstanceInfo, err error) {
 	err = json.Unmarshal(b, &siis)
 	if err != nil {
 		slog.Error(
-			"init config",
-			slog.String("err", err.Error()),
+			"get self info",
+			slog.String("error", err.Error()),
 		)
 		return nil, err
 	}
-	slog.Info("init config", slog.String("instance info", string(b)))
+	slog.Info("get self info", slog.String("instance info", string(b)))
 
-	idx := slices.IndexFunc(siis, func(ele mysql.StorageInstanceInfo) bool {
-		return ele.Ip == config.ChecksumConfig.Ip && ele.Port == config.ChecksumConfig.Port
-	})
+	idx := slices.IndexFunc(
+		siis, func(ele mysql.StorageInstanceInfo) bool {
+			return ele.Ip == config.ChecksumConfig.Ip && ele.Port == config.ChecksumConfig.Port
+		},
+	)
 	if idx < 0 {
 		err := fmt.Errorf("can't find %s:%d in %v", config.ChecksumConfig.Ip, config.ChecksumConfig.Port, siis)
 		slog.Error(
-			"init config",
-			slog.String("err", err.Error()),
+			"get self info",
+			slog.String("error", err.Error()),
 		)
 		return nil, err
 	}
