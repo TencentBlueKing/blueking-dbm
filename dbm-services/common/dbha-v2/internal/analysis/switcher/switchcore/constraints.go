@@ -39,7 +39,7 @@ const (
 // ClusterLevelSwitchMaxClusterConcurrency returns a positive cap for
 // parallel cluster-level switch workers.
 func ClusterLevelSwitchMaxClusterConcurrency() int {
-	n := config.Cfg.Workflow.ClusterLevelSwitchMaxClusterNum
+	n := config.Cfg.Workflow.SwitchFlow.ClusterLevelSwitchMaxClusterNum
 	if n <= 0 {
 		logger.Warn("max cluster number(%d) for cluster level switch is invalid, using default %d",
 			n, ClusterLevelSwitchDefaultMaxClusterNum)
@@ -51,7 +51,7 @@ func ClusterLevelSwitchMaxClusterConcurrency() int {
 // ClusterLevelSwitchMaxInstanceConcurrency returns the cap for
 // parallel per-instance work inside one cluster (e.g. pre-switch checks).
 func ClusterLevelSwitchMaxInstanceConcurrency() int {
-	n := config.Cfg.Workflow.ClusterLevelSwitchMaxInstanceNum
+	n := config.Cfg.Workflow.SwitchFlow.ClusterLevelSwitchMaxInstanceNum
 	if n <= 0 {
 		logger.Warn("clusterLevelSwitchMaxInstanceNum(%d) is invalid, using default %d",
 			n, ClusterLevelSwitchDefaultMaxInstanceNum)
@@ -63,7 +63,7 @@ func ClusterLevelSwitchMaxInstanceConcurrency() int {
 // DbmApiMaxConcurrentRequests returns the cap for
 // parallel in-flight DBM API calls (e.g. per-instance status update).
 func DbmApiMaxConcurrentRequests() int {
-	n := config.Cfg.Workflow.DbmApiMaxConcurrentRequests
+	n := config.Cfg.Workflow.SwitchFlow.DbmApiMaxConcurrentRequests
 	if n <= 0 {
 		logger.Warn("dbmApiMaxConcurrentRequests(%d) is invalid, using default %d",
 			n, DbmApiDefaultMaxConcurrentRequests)

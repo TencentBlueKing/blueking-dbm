@@ -37,24 +37,27 @@ var Cfg = Configuration{
 	Name:    "analysis",
 	PidFile: "./pids/analysis.pid",
 	Workflow: WorkflowConfig{
-		WorkerBusinessCount:              100,
-		LockBusinessWaitTimeout:          5 * time.Second,
-		ScanTimeout:                      60 * time.Second,
-		ScanInterval:                     3 * time.Second,
-		UpdateDbmCacheInterval:           10 * time.Second,
-		ReadDbMetaOffsetDuration:         -24 * time.Hour,
-		ReadDbMetricOffsetDuration:       -60 * time.Second,
-		ReadDbEventOffsetDuration:        -10 * time.Minute,
-		PopInterval:                      5 * time.Second,
-		PopSwitchSemSize:                 10,
-		WindowDuration:                   10 * time.Second,
-		InflightTTL:                      30 * time.Second,
-		SwitchTimeout:                    1 * time.Minute,
-		DbmApiMetadataHashCnt:            minDbmApiMetadataHashCnt,
-		ClusterLevelSwitchMaxClusterNum:  32,
-		ClusterLevelSwitchMaxInstanceNum: 64,
-		DbmApiMaxConcurrentRequests:      16,
-		EnableWhiteList:                  true,
+		WorkerBusinessCount:        100,
+		LockBusinessWaitTimeout:    5 * time.Second,
+		ScanTimeout:                60 * time.Second,
+		ScanInterval:               3 * time.Second,
+		UpdateDbmCacheInterval:     10 * time.Second,
+		ReadDbMetaOffsetDuration:   -24 * time.Hour,
+		ReadDbMetricOffsetDuration: -60 * time.Second,
+		ReadDbEventOffsetDuration:  -10 * time.Minute,
+		PopInterval:                5 * time.Second,
+		PopSwitchSemSize:           10,
+		WindowDuration:             10 * time.Second,
+		InflightTTL:                30 * time.Second,
+		SwitchTimeout:              1 * time.Minute,
+		DbmApiMetadataHashCnt:      minDbmApiMetadataHashCnt,
+		EnableWhiteList:            true,
+		SwitchFlow: SwitchFlowConfig{
+			ClusterLevelSwitchMaxClusterNum:  32,
+			ClusterLevelSwitchMaxInstanceNum: 64,
+			DbmApiMaxConcurrentRequests:      16,
+			SwitchLogWriteTimeout:            1 * time.Second,
+		},
 	},
 
 	Monitor: MonitorConfig{
@@ -88,36 +91,42 @@ type DbmApi struct {
 	Timeout time.Duration `yaml:"timeout" mapstructure:"timeout"`
 }
 
-// WorkflowConfig workflow's configuration
-type WorkflowConfig struct {
-	WorkerBusinessCount              int           `yaml:"workerBusinessCount"              mapstructure:"workerBusinessCount"`
-	LockBusinessWaitTimeout          time.Duration `yaml:"lockBusinessWaitTimeout"          mapstructure:"lockBusinessWaitTimeout"`
-	ScanTimeout                      time.Duration `yaml:"scanTimeout"                      mapstructure:"scanTimeout"`
-	ScanInterval                     time.Duration `yaml:"scanInterval"                     mapstructure:"scanInterval"`
-	UpdateDbmCacheInterval           time.Duration `yaml:"updateDbmCacheInterval"           mapstructure:"updateDbmCacheInterval"`
-	ReadDbMetaOffsetDuration         time.Duration `yaml:"readDbMetaOffsetDuration"         mapstructure:"readDbMetaOffsetDuration"`
-	ReadDbMetricOffsetDuration       time.Duration `yaml:"readDbMetricOffsetDuration"       mapstructure:"readDbMetricOffsetDuration"`
-	ReadDbEventOffsetDuration        time.Duration `yaml:"readDbEventOffsetDuration"        mapstructure:"readDbEventOffsetDuration"`
-	EnableSwitching                  bool          `yaml:"enableSwitching"                  mapstructure:"enableSwitching"`
-	EnableWhiteList                  bool          `yaml:"enableWhiteList"                  mapstructure:"enableWhiteList"`
-	WindowDuration                   time.Duration `yaml:"windowDuration"                   mapstructure:"windowDuration"`
-	PopInterval                      time.Duration `yaml:"popInterval"                      mapstructure:"popInterval"`
-	PopSwitchSemSize                 int           `yaml:"popSwitchSemSize"                 mapstructure:"popSwitchSemSize"`
-	InflightTTL                      time.Duration `yaml:"inflightTTL"                      mapstructure:"inflightTTL"`
-	SwitchTimeout                    time.Duration `yaml:"switchTimeout"                    mapstructure:"switchTimeout"`
-	DbmApiMetadataHashCnt            int           `yaml:"dbmApiMetadataHashCnt"            mapstructure:"dbmApiMetadataHashCnt"`
+// SwitchFlowConfig defines the configuration for the switch flow
+type SwitchFlowConfig struct {
 	DbmApiMaxConcurrentRequests      int           `yaml:"dbmApiMaxConcurrentRequests"      mapstructure:"dbmApiMaxConcurrentRequests"`
 	ClusterLevelSwitchMaxClusterNum  int           `yaml:"clusterLevelSwitchMaxClusterNum"  mapstructure:"clusterLevelSwitchMaxClusterNum"`
 	ClusterLevelSwitchMaxInstanceNum int           `yaml:"clusterLevelSwitchMaxInstanceNum" mapstructure:"clusterLevelSwitchMaxInstanceNum"`
-	DbmApiMetadata                   DbmApi        `yaml:"dbmApiMetadata"                   mapstructure:"dbmApiMetadata"`
-	DbmApiUpdateStatus               DbmApi        `yaml:"dbmApiUpdateStatus"               mapstructure:"dbmApiUpdateStatus"`
-	DbmApiSwapMysqlRole              DbmApi        `yaml:"dbmApiSwapMysqlRole"              mapstructure:"dbmApiSwapMysqlRole"`
-	DbmApiSwapTendisCluster          DbmApi        `yaml:"dbmApiSwapTendisCluster"          mapstructure:"dbmApiSwapTendisCluster"`
-	DbmApiDomainGet                  DbmApi        `yaml:"dbmApiDomainGet"                  mapstructure:"dbmApiDomainGet"`
-	DbmApiDomainDelete               DbmApi        `yaml:"dbmApiDomainDelete"               mapstructure:"dbmApiDomainDelete"`
-	DbmApiCLBDeregister              DbmApi        `yaml:"dbmApiCLBDeregister"              mapstructure:"dbmApiCLBDeregister"`
-	DbmApiPolarisUnbind              DbmApi        `yaml:"dbmApiPolarisUnbind"              mapstructure:"dbmApiPolarisUnbind"`
-	DbmApiDumperSwitch               DbmApi        `yaml:"dbmApiDumperSwitch"               mapstructure:"dbmApiDumperSwitch"`
+	SwitchLogWriteTimeout            time.Duration `yaml:"switchLogWriteTimeout"            mapstructure:"switchLogWriteTimeout"`
+}
+
+// WorkflowConfig workflow's configuration
+type WorkflowConfig struct {
+	WorkerBusinessCount        int              `yaml:"workerBusinessCount"        mapstructure:"workerBusinessCount"`
+	LockBusinessWaitTimeout    time.Duration    `yaml:"lockBusinessWaitTimeout"    mapstructure:"lockBusinessWaitTimeout"`
+	ScanTimeout                time.Duration    `yaml:"scanTimeout"                mapstructure:"scanTimeout"`
+	ScanInterval               time.Duration    `yaml:"scanInterval"               mapstructure:"scanInterval"`
+	UpdateDbmCacheInterval     time.Duration    `yaml:"updateDbmCacheInterval"     mapstructure:"updateDbmCacheInterval"`
+	ReadDbMetaOffsetDuration   time.Duration    `yaml:"readDbMetaOffsetDuration"   mapstructure:"readDbMetaOffsetDuration"`
+	ReadDbMetricOffsetDuration time.Duration    `yaml:"readDbMetricOffsetDuration" mapstructure:"readDbMetricOffsetDuration"`
+	ReadDbEventOffsetDuration  time.Duration    `yaml:"readDbEventOffsetDuration"  mapstructure:"readDbEventOffsetDuration"`
+	EnableSwitching            bool             `yaml:"enableSwitching"            mapstructure:"enableSwitching"`
+	EnableWhiteList            bool             `yaml:"enableWhiteList"            mapstructure:"enableWhiteList"`
+	WindowDuration             time.Duration    `yaml:"windowDuration"             mapstructure:"windowDuration"`
+	PopInterval                time.Duration    `yaml:"popInterval"                mapstructure:"popInterval"`
+	PopSwitchSemSize           int              `yaml:"popSwitchSemSize"           mapstructure:"popSwitchSemSize"`
+	InflightTTL                time.Duration    `yaml:"inflightTTL"                mapstructure:"inflightTTL"`
+	SwitchTimeout              time.Duration    `yaml:"switchTimeout"              mapstructure:"switchTimeout"`
+	DbmApiMetadataHashCnt      int              `yaml:"dbmApiMetadataHashCnt"      mapstructure:"dbmApiMetadataHashCnt"`
+	SwitchFlow                 SwitchFlowConfig `yaml:"switchflow"                 mapstructure:"switchflow"`
+	DbmApiMetadata             DbmApi           `yaml:"dbmApiMetadata"             mapstructure:"dbmApiMetadata"`
+	DbmApiUpdateStatus         DbmApi           `yaml:"dbmApiUpdateStatus"         mapstructure:"dbmApiUpdateStatus"`
+	DbmApiSwapMysqlRole        DbmApi           `yaml:"dbmApiSwapMysqlRole"        mapstructure:"dbmApiSwapMysqlRole"`
+	DbmApiSwapTendisCluster    DbmApi           `yaml:"dbmApiSwapTendisCluster"    mapstructure:"dbmApiSwapTendisCluster"`
+	DbmApiDomainGet            DbmApi           `yaml:"dbmApiDomainGet"            mapstructure:"dbmApiDomainGet"`
+	DbmApiDomainDelete         DbmApi           `yaml:"dbmApiDomainDelete"         mapstructure:"dbmApiDomainDelete"`
+	DbmApiCLBDeregister        DbmApi           `yaml:"dbmApiCLBDeregister"        mapstructure:"dbmApiCLBDeregister"`
+	DbmApiPolarisUnbind        DbmApi           `yaml:"dbmApiPolarisUnbind"        mapstructure:"dbmApiPolarisUnbind"`
+	DbmApiDumperSwitch         DbmApi           `yaml:"dbmApiDumperSwitch"         mapstructure:"dbmApiDumperSwitch"`
 }
 
 // MysqlDatabaseConfig mysql's configuration
