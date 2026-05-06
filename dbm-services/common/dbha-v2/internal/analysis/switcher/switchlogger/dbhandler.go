@@ -43,7 +43,7 @@ import (
 
 const (
 	// TCP dial deadline in DSN (go-sql-driver "timeout"; does not cap handshake/read alone).
-	SwitchLogDefaultDbConnectTimeout = 5 * time.Second
+	SwitchLogDefaultDbConnectTimeout = 3 * time.Second
 	// Bound for schema/table checks executed during Open (information_schema + USE + HasTable).
 	SwitchLogDefaultDbOpenCheckTimeout = 10 * time.Second
 	SwitchLogDefaultDbWriteTimeout     = 1 * time.Second
@@ -114,7 +114,12 @@ func NewLogToDbHandlerFromConfig() (*LogToDbHandler, error) {
 	if hdl.writeTimeout <= 0 {
 		hdl.writeTimeout = SwitchLogDefaultDbWriteTimeout
 	}
-	hdl.connectTimeout = SwitchLogDefaultDbConnectTimeout
+
+	hdl.connectTimeout = config.Cfg.Workflow.SwitchFlow.DbConnectTimeout
+	if hdl.connectTimeout <= 0 {
+		hdl.connectTimeout = SwitchLogDefaultDbConnectTimeout
+	}
+
 	hdl.openCheckTimeout = SwitchLogDefaultDbOpenCheckTimeout
 
 	return hdl, nil

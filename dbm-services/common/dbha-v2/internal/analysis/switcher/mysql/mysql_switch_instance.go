@@ -516,6 +516,7 @@ func ProxyRefreshBackends(proxyIp string, proxyAdminPort int, proxyUser string, 
 		hamysql.OptionUser(proxyUser),
 		hamysql.OptionPassword(proxyPasswd),
 		hamysql.OptionCharset(""),
+		hamysql.OptionTimeout(switchcore.DbConnectTimeout()),
 	)
 	if err != nil {
 		return gerrors.Newf(gerrors.Failure, "failed to connect proxy(%s:%d): %s", proxyIp, proxyAdminPort, err.Error())
@@ -651,6 +652,7 @@ func DoResetSlaveWithBinlogPos(
 		hamysql.OptionPort(slavePort),
 		hamysql.OptionUser(config.Cfg.Database.Mysql.User),
 		hamysql.OptionPassword(config.Cfg.Database.Mysql.Password),
+		hamysql.OptionTimeout(switchcore.DbConnectTimeout()),
 	)
 	if err != nil {
 		return "", 0, gerrors.Newf(gerrors.Failure,
@@ -720,6 +722,7 @@ func DoChangeMasterSteps(
 		hamysql.OptionPort(slavePort),
 		hamysql.OptionUser(config.Cfg.Database.Mysql.User),
 		hamysql.OptionPassword(config.Cfg.Database.Mysql.Password),
+		hamysql.OptionTimeout(switchcore.DbConnectTimeout()),
 	)
 	if err != nil {
 		return gerrors.Newf(gerrors.Failure,
