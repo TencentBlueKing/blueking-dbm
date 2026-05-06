@@ -16,6 +16,7 @@ from django.db import transaction
 from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import InstanceRole
+from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstanceTuple
 
 logger = logging.getLogger("flow")
@@ -37,6 +38,8 @@ def swap_primary_standby(bk_biz_id: int, cluster_id: int):
     try:
         # ── 1. 获取集群信息  ───────────────────────
         cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
+        if cluster.cluster_type != ClusterType.OraclePrimaryStandby.value:
+            raise ValueError(_("集群类型不是Oracle主备集群，是{}").format(cluster.cluster_type))
 
         storage_objs = cluster.storageinstance_set.all()
 
@@ -134,7 +137,6 @@ def swap_primary_standby(bk_biz_id: int, cluster_id: int):
         if master_entry:
             master_entry.storageinstance_set.remove(primary_inst)
             master_entry.storageinstance_set.add(standby_inst)
-            master_entry.save()
             logger.info(
                 _("[swap_primary_standby] entry {} 重新绑定到 {}:{}").format(
                     master_entry.entry,
@@ -146,7 +148,6 @@ def swap_primary_standby(bk_biz_id: int, cluster_id: int):
         if slave_entry:
             slave_entry.storageinstance_set.remove(standby_inst)
             slave_entry.storageinstance_set.add(primary_inst)
-            slave_entry.save()
             logger.info(
                 _("[swap_primary_standby] entry {} 重新绑定到 {}:{}").format(
                     slave_entry.entry,

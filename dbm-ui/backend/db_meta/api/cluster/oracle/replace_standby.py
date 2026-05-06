@@ -17,6 +17,7 @@ from django.utils.translation import gettext as _
 
 from backend.db_meta.api import machine, storage_instance
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, InstanceRole
+from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Cluster, ClusterEntry, Machine, StorageInstance, StorageInstanceTuple
 
 logger = logging.getLogger("flow")
@@ -37,6 +38,8 @@ def replace_standby(cluster_id: int, new_standby_ip: str, new_standby_port: int,
     try:
         # ── 1. 找集群 & primary & 旧 standby ─────────────────────────────────
         cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
+        if cluster.cluster_type != ClusterType.OraclePrimaryStandby.value:
+            raise ValueError(_("集群类型不是Oracle主备集群，是{}").format(cluster.cluster_type))
         bk_cloud_id = cluster.bk_cloud_id
         logger.info(_("找到集群: {}, 业务ID: {}, 云区域ID: {}").format(cluster.name, bk_biz_id, bk_cloud_id))
 
@@ -45,6 +48,7 @@ def replace_standby(cluster_id: int, new_standby_ip: str, new_standby_port: int,
 
         old_standby = cluster.storageinstance_set.get(instance_role=InstanceRole.STANDBY.value)
         old_machine = old_standby.machine
+        old_machine_cluster_type = old_machine.cluster_type
         logger.info(
             _("找到旧Standby实例: {}:{}, 机器ID: {}").format(old_standby.machine.ip, old_standby.port, old_machine.bk_host_id)
         )
@@ -70,6 +74,9 @@ def replace_standby(cluster_id: int, new_standby_ip: str, new_standby_port: int,
             )
 
             new_machine = Machine.objects.filter(ip=new_standby_ip, bk_cloud_id=bk_cloud_id).first()
+            # 为新机器设置 cluster_type
+            new_machine.cluster_type = old_machine_cluster_type
+            new_machine.save()
 
         logger.info(
             _("创建新机器: {}, 机器ID: {}, 规格ID: {}").format(new_standby_ip, new_machine.bk_host_id, old_machine.spec_id)
@@ -124,7 +131,6 @@ def replace_standby(cluster_id: int, new_standby_ip: str, new_standby_port: int,
             if entry.storageinstance_set.filter(id=old_standby.id).exists():
                 entry.storageinstance_set.remove(old_standby)
                 entry.storageinstance_set.add(new_standby)
-                entry.save()
                 logger.info(_("更新ClusterEntry DNS绑定: 从旧Standby切换到新Standby, Entry: {}").format(entry.entry))
 
         # ── 6. 更新 Cluster.storageinstance_set ──────────────────────────────
@@ -143,7 +149,9 @@ def replace_standby(cluster_id: int, new_standby_ip: str, new_standby_port: int,
             old_machine.delete()
             logger.info(_("删除旧机器: {}").format(old_machine.ip))
 
-        logger.info(_("Oracle主备替换完成，集群ID: {}, 新Standby: {}:{}").format(cluster_id, new_standby_ip, new_standby_port))
+        logger.info(
+            _("Oracle standby替换完成，集群ID: {}, 新Standby: {}:{}").format(cluster_id, new_standby_ip, new_standby_port)
+        )
 
     except Exception as e:
         logger.error(traceback.format_exc())

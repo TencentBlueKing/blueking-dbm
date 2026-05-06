@@ -77,6 +77,7 @@ ClusterTypeMachineTypeDefine = {
     ClusterType.TBinlogDumper: [MachineType.TBinlogDumper],
     ClusterType.Vm: [MachineType.VM_STORAGE, MachineType.VM_SELECT, MachineType.VM_INSERT, MachineType.VM_AUTH],
     ClusterType.OraclePrimaryStandby: [MachineType.ORACLE],
+    ClusterType.OracleSingleNone: [MachineType.ORACLE],
 }
 
 ClusterMachineAccessTypeDefine = {
