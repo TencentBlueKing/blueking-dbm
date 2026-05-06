@@ -132,7 +132,7 @@ def instances(
         f"bk_cloud_id: {bk_cloud_id}, "
         f"cluster_types: {cluster_types}, "
         f"hash_cnt: {hash_cnt}, "
-        f"hash_value: {hash_cnt}, "
+        f"hash_value: {hash_value}, "
         f"machine_only: {machine_only}"
     )
     logical_city_ids = request_validator.validated_integer_list(logical_city_ids)
