@@ -32,6 +32,7 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
+	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchcore"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger"
 	"dbm-services/common/dbha-v2/pkg/converter"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
@@ -449,6 +450,7 @@ func (op *TdbctlOperator) ConnectTdbctlNode(
 		hamysql.OptionPort(tdbctlPort),
 		hamysql.OptionUser(tdbctlUser),
 		hamysql.OptionPassword(tdbctlPassword),
+		hamysql.OptionTimeout(switchcore.DbConnectTimeout()),
 		hamysql.OptionSkipInitializeWithVersion(false),
 		hamysql.OptionDisableDatetimePrecision(true),
 		hamysql.OptionCharset(""),

@@ -32,6 +32,7 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
+	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchcore"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
@@ -125,7 +126,7 @@ func (checker *MySQLSlaveChecker) Check() error {
 		hamysql.OptionPort(port),
 		hamysql.OptionUser(config.Cfg.Database.Mysql.User),
 		hamysql.OptionPassword(config.Cfg.Database.Mysql.Password),
-		//hamysql.OptionTimeout(config.Cfg.Database.Mysql.Timeout),	// TODO: set timeout
+		hamysql.OptionTimeout(switchcore.DbConnectTimeout()),
 	)
 
 	if err != nil {

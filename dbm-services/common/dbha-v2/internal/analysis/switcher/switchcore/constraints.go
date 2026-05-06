@@ -25,6 +25,8 @@
 package switchcore
 
 import (
+	"time"
+
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/pkg/logger"
 )
@@ -34,6 +36,8 @@ const (
 	ClusterLevelSwitchDefaultMaxInstanceNum = 64
 
 	DbmApiDefaultMaxConcurrentRequests = 16
+
+	defaultDbConnectTimeout = 3 * time.Second
 )
 
 // ClusterLevelSwitchMaxClusterConcurrency returns a positive cap for
@@ -70,4 +74,13 @@ func DbmApiMaxConcurrentRequests() int {
 		return DbmApiDefaultMaxConcurrentRequests
 	}
 	return n
+}
+
+// DbConnectTimeout returns workflow.switchflow.dbConnectTimeout, or default when unset.
+func DbConnectTimeout() time.Duration {
+	d := config.Cfg.Workflow.SwitchFlow.DbConnectTimeout
+	if d <= 0 {
+		return defaultDbConnectTimeout
+	}
+	return d
 }

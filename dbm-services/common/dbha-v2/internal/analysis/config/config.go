@@ -57,6 +57,7 @@ var Cfg = Configuration{
 			ClusterLevelSwitchMaxInstanceNum: 64,
 			DbmApiMaxConcurrentRequests:      16,
 			SwitchLogWriteTimeout:            1 * time.Second,
+			DbConnectTimeout:                 3 * time.Second,
 		},
 	},
 
@@ -97,6 +98,7 @@ type SwitchFlowConfig struct {
 	ClusterLevelSwitchMaxClusterNum  int           `yaml:"clusterLevelSwitchMaxClusterNum"  mapstructure:"clusterLevelSwitchMaxClusterNum"`
 	ClusterLevelSwitchMaxInstanceNum int           `yaml:"clusterLevelSwitchMaxInstanceNum" mapstructure:"clusterLevelSwitchMaxInstanceNum"`
 	SwitchLogWriteTimeout            time.Duration `yaml:"switchLogWriteTimeout"            mapstructure:"switchLogWriteTimeout"`
+	DbConnectTimeout                 time.Duration `yaml:"dbConnectTimeout"                 mapstructure:"dbConnectTimeout"`
 }
 
 // WorkflowConfig workflow's configuration
