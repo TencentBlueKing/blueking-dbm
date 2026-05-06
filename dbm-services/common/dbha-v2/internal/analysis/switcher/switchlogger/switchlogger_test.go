@@ -69,7 +69,14 @@ func getEnvAsIntWithDefault(key string, defaultValue int) int {
 func TestLogToDbHandler(t *testing.T) {
 	for i := 1; i <= 3; i++ {
 		t.Run(fmt.Sprintf("Cycle test iteration %d", i), func(t *testing.T) {
-			handler := NewLogToDbHandler("tcp", testConfig.IP, testConfig.Port, testConfig.User, testConfig.Passwd)
+			handler := NewLogToDbHandler("tcp",
+				testConfig.IP,
+				testConfig.Port,
+				testConfig.User,
+				testConfig.Passwd,
+				SwitchLogDefaultDbWriteTimeout,
+				SwitchLogDefaultDbConnectTimeout,
+				SwitchLogDefaultDbOpenCheckTimeout)
 
 			// Open connection
 			err := handler.Open()

@@ -25,13 +25,61 @@
 package hamysql_test
 
 import (
+	"context"
+	"errors"
 	"log"
 	"os"
 	"strconv"
 	"testing"
+	"time"
 
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 )
+
+type timeoutTestConfig struct {
+	host           string
+	port           int
+	user           string
+	password       string
+	sqlText        string
+	connectTimeout time.Duration
+	execTimeout    time.Duration
+}
+
+func getTimeoutTestConfig(t *testing.T) timeoutTestConfig {
+	t.Helper()
+
+	host := os.Getenv("DBHA_MYSQL_TIMEOUT_HOST")
+	portStr := os.Getenv("DBHA_MYSQL_TIMEOUT_PORT")
+	user := os.Getenv("DBHA_MYSQL_TIMEOUT_USER")
+	password := os.Getenv("DBHA_MYSQL_TIMEOUT_PASSWORD")
+	sqlText := os.Getenv("DBHA_MYSQL_TIMEOUT_SQL")
+	connectTimeoutStr := os.Getenv("DBHA_MYSQL_CONNECT_TIMEOUT")
+	execTimeoutStr := os.Getenv("DBHA_MYSQL_EXEC_TIMEOUT")
+
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		t.Fatalf("invalid timeout port(%s), errmsg(%s)", portStr, err)
+	}
+	connectTimeout, err := time.ParseDuration(connectTimeoutStr)
+	if err != nil {
+		t.Fatalf("invalid connect timeout(%s), errmsg(%s)", connectTimeoutStr, err)
+	}
+	execTimeout, err := time.ParseDuration(execTimeoutStr)
+	if err != nil {
+		t.Fatalf("invalid exec timeout(%s), errmsg(%s)", execTimeoutStr, err)
+	}
+
+	return timeoutTestConfig{
+		host:           host,
+		port:           port,
+		user:           user,
+		password:       password,
+		sqlText:        sqlText,
+		connectTimeout: connectTimeout,
+		execTimeout:    execTimeout,
+	}
+}
 
 func TestNew(t *testing.T) {
 	endpoints := os.Getenv("DBHA_MYSQL_ENDPOINTS")
@@ -95,4 +143,90 @@ func TestSqlxDBForProxy(t *testing.T) {
 		t.Fatalf("failed to query version, errmsg: %s", err)
 	}
 	log.Println("proxy version: ", version[0])
+}
+
+func TestGormDBTimeout(t *testing.T) {
+	cfg := getTimeoutTestConfig(t)
+
+	log.Println("host:", cfg.host)
+	log.Println("port:", cfg.port)
+	log.Println("user:", cfg.user)
+	log.Println("password:", cfg.password)
+	log.Println("sql:", cfg.sqlText)
+	log.Println("connect timeout:", cfg.connectTimeout)
+	log.Println("exec timeout:", cfg.execTimeout)
+
+	start := time.Now()
+
+	db, err := hamysql.NewGormDB(
+		hamysql.OptionProto("tcp"),
+		hamysql.OptionIP(cfg.host),
+		hamysql.OptionPort(cfg.port),
+		hamysql.OptionUser(cfg.user),
+		hamysql.OptionPassword(cfg.password),
+		hamysql.OptionTimeout(cfg.connectTimeout),
+	)
+	if err != nil {
+		elapsed := time.Since(start)
+		log.Printf("gorm create failed, timeout=%t, err=%v, elapsed=%s",
+			os.IsTimeout(err) || errors.Is(err, context.DeadlineExceeded), err, elapsed)
+		return
+	}
+	defer db.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.execTimeout)
+	defer cancel()
+
+	err = db.DB().WithContext(ctx).Exec(cfg.sqlText).Error
+	elapsed := time.Since(start)
+	log.Printf("gorm exec success=%t, timeout=%t, ctxErr=%v, err=%v, elapsed=%s",
+		err == nil,
+		os.IsTimeout(err) || errors.Is(err, context.DeadlineExceeded) || errors.Is(ctx.Err(), context.DeadlineExceeded),
+		ctx.Err(),
+		err,
+		elapsed,
+	)
+}
+
+func TestSqlxDBTimeout(t *testing.T) {
+	cfg := getTimeoutTestConfig(t)
+
+	log.Println("host:", cfg.host)
+	log.Println("port:", cfg.port)
+	log.Println("user:", cfg.user)
+	log.Println("password:", cfg.password)
+	log.Println("sql:", cfg.sqlText)
+	log.Println("connect timeout:", cfg.connectTimeout)
+	log.Println("exec timeout:", cfg.execTimeout)
+
+	start := time.Now()
+
+	db, err := hamysql.NewSqlxDB(
+		hamysql.OptionProto("tcp"),
+		hamysql.OptionIP(cfg.host),
+		hamysql.OptionPort(cfg.port),
+		hamysql.OptionUser(cfg.user),
+		hamysql.OptionPassword(cfg.password),
+		hamysql.OptionTimeout(cfg.connectTimeout),
+	)
+	if err != nil {
+		elapsed := time.Since(start)
+		log.Printf("sqlx create failed, timeout=%t, err=%v, elapsed=%s",
+			os.IsTimeout(err) || errors.Is(err, context.DeadlineExceeded), err, elapsed)
+		return
+	}
+	defer db.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.execTimeout)
+	defer cancel()
+
+	_, err = db.DB().ExecContext(ctx, cfg.sqlText)
+	elapsed := time.Since(start)
+	log.Printf("sqlx exec success=%t, timeout=%t, ctxErr=%v, err=%v, elapsed=%s",
+		err == nil,
+		os.IsTimeout(err) || errors.Is(err, context.DeadlineExceeded) || errors.Is(ctx.Err(), context.DeadlineExceeded),
+		ctx.Err(),
+		err,
+		elapsed,
+	)
 }

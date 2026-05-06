@@ -429,7 +429,7 @@ func (m *Mysql) ClusterLevelSwitch(ctx context.Context, switchLoggers []switchlo
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, maxConcurrency)
 
-	// parallelize cluster-level switch (bounded by workflow.clusterLevelSwitchMaxClusterNum)
+	// parallelize cluster-level switch (bounded by workflow.switchflow.clusterLevelSwitchMaxClusterNum)
 	for clusterKey, instDataMap := range clusterGroup {
 		wg.Add(1)
 		sem <- struct{}{}

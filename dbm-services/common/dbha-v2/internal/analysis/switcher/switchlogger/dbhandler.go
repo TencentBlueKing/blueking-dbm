@@ -41,6 +41,14 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	// TCP dial deadline in DSN (go-sql-driver "timeout"; does not cap handshake/read alone).
+	SwitchLogDefaultDbConnectTimeout = 5 * time.Second
+	// Bound for schema/table checks executed during Open (information_schema + USE + HasTable).
+	SwitchLogDefaultDbOpenCheckTimeout = 10 * time.Second
+	SwitchLogDefaultDbWriteTimeout     = 1 * time.Second
+)
+
 // LogToDbHandler writes switch log to database
 type LogToDbHandler struct {
 	// the connection information of the switch log database
@@ -52,20 +60,38 @@ type LogToDbHandler struct {
 	Passwd string
 
 	// the mysql instance for writing switch log
-	logDb        *storage.DbhaData
-	mu           sync.Mutex
+	logDb *storage.DbhaData
+	// the mutex for concurrent write to database
+	mu sync.Mutex
+
+	// the timeout for writing switch log to database
 	writeTimeout time.Duration
+	// the timeout for connecting to the switch log database
+	connectTimeout time.Duration
+	// the timeout for checking if the switch log table exists
+	openCheckTimeout time.Duration
 }
 
 // NewLogToDbHandler creates a LogToDbHandler by the connection information
-func NewLogToDbHandler(proto string, ip string, port int, user string, passwd string) *LogToDbHandler {
+func NewLogToDbHandler(
+	proto string,
+	ip string,
+	port int,
+	user string,
+	passwd string,
+	writeTimeout time.Duration,
+	connectTimeout time.Duration,
+	openCheckTimeout time.Duration,
+) *LogToDbHandler {
 	return &LogToDbHandler{
-		Proto:        proto,
-		Ip:           ip,
-		Port:         port,
-		User:         user,
-		Passwd:       passwd,
-		writeTimeout: time.Second,
+		Proto:            proto,
+		Ip:               ip,
+		Port:             port,
+		User:             user,
+		Passwd:           passwd,
+		writeTimeout:     writeTimeout,
+		connectTimeout:   connectTimeout,
+		openCheckTimeout: openCheckTimeout,
 	}
 }
 
@@ -76,17 +102,26 @@ func NewLogToDbHandlerFromConfig() (*LogToDbHandler, error) {
 		return nil, gerrors.Newf(gerrors.InvalidConfiguration, "invalid storage configuration, %v", err)
 	}
 
-	return NewLogToDbHandler(
-		epoint.Proto,
-		epoint.Host,
-		epoint.Port,
-		config.Cfg.Storage.User,
-		config.Cfg.Storage.Password,
-	), nil
+	hdl := &LogToDbHandler{
+		Proto:  epoint.Proto,
+		Ip:     epoint.Host,
+		Port:   epoint.Port,
+		User:   config.Cfg.Storage.User,
+		Passwd: config.Cfg.Storage.Password,
+	}
+
+	hdl.writeTimeout = config.Cfg.Workflow.SwitchFlow.SwitchLogWriteTimeout
+	if hdl.writeTimeout <= 0 {
+		hdl.writeTimeout = SwitchLogDefaultDbWriteTimeout
+	}
+	hdl.connectTimeout = SwitchLogDefaultDbConnectTimeout
+	hdl.openCheckTimeout = SwitchLogDefaultDbOpenCheckTimeout
+
+	return hdl, nil
 }
 
-// CheckSwitchLogTableExists checks if the switch log table exists
-func (hdl *LogToDbHandler) CheckSwitchLogTableExists() error {
+// CheckSwitchLogTableExists checks if the switch log table exists (ctx bounds SQL execution).
+func (hdl *LogToDbHandler) CheckSwitchLogTableExists(ctx context.Context) error {
 	if hdl.logDb == nil {
 		return gerrors.Newf(gerrors.MysqlFailure, "mysql instance for writing switch log is nil")
 	}
@@ -96,7 +131,7 @@ func (hdl *LogToDbHandler) CheckSwitchLogTableExists() error {
 	// Check if database exists
 	var dbExists int
 	dbCheckSQL := fmt.Sprintf("SELECT 1 FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = '%s'", hamodel.DatabaseName)
-	if err := dbClient.Raw(dbCheckSQL).Scan(&dbExists).Error; err != nil {
+	if err := dbClient.WithContext(ctx).Raw(dbCheckSQL).Scan(&dbExists).Error; err != nil {
 		return gerrors.Newf(gerrors.MysqlFailure, "failed to check database(%s) existence on mysql(%s:%d), %s",
 			hamodel.DatabaseName, hdl.Ip, hdl.Port, err.Error())
 	}
@@ -107,10 +142,14 @@ func (hdl *LogToDbHandler) CheckSwitchLogTableExists() error {
 	}
 
 	// Use the database
-	dbhaDB := dbClient.Session(&gorm.Session{}).Exec("USE " + hamodel.DatabaseName)
+	dbhaDB := dbClient.WithContext(ctx).Session(&gorm.Session{}).Exec("USE " + hamodel.DatabaseName)
+	if dbhaDB.Error != nil {
+		return gerrors.Newf(gerrors.MysqlFailure,
+			"failed to use database %s on mysql(%s:%d), %s", hamodel.DatabaseName, hdl.Ip, hdl.Port, dbhaDB.Error.Error())
+	}
 
 	// Check if table exists
-	migrator := dbhaDB.Migrator()
+	migrator := dbhaDB.WithContext(ctx).Migrator()
 	if !migrator.HasTable(&hamodel.DbSwitchingLog{}) {
 		return gerrors.Newf(gerrors.MysqlFailure, "table %s does not exist in database %s on mysql(%s:%d)",
 			hamodel.DbSwitchingLogTableName, hamodel.DatabaseName, hdl.Ip, hdl.Port)
@@ -125,10 +164,12 @@ func (hdl *LogToDbHandler) Open() error {
 	}
 
 	db, err := hamysql.NewGormDB(
+		hamysql.OptionProto(hdl.Proto),
 		hamysql.OptionIP(hdl.Ip),
 		hamysql.OptionPort(hdl.Port),
 		hamysql.OptionUser(hdl.User),
 		hamysql.OptionPassword(hdl.Passwd),
+		hamysql.OptionTimeout(hdl.connectTimeout),
 	)
 	if err != nil {
 		errMsg := fmt.Sprintf("failed to connect mysql(%s:%d), %s", hdl.Ip, hdl.Port, err.Error())
@@ -140,7 +181,10 @@ func (hdl *LogToDbHandler) Open() error {
 		DB: db,
 	}
 
-	if err := hdl.CheckSwitchLogTableExists(); err != nil {
+	checkCtx, cancelCheck := context.WithTimeout(context.Background(), hdl.openCheckTimeout)
+	defer cancelCheck()
+
+	if err := hdl.CheckSwitchLogTableExists(checkCtx); err != nil {
 		// close the connection if table does not exist
 		hdl.Close()
 
@@ -172,10 +216,6 @@ func (hdl *LogToDbHandler) Append(record *hamodel.DbSwitchingLog) error {
 
 	if record == nil {
 		return gerrors.New(gerrors.InvalidParameter, "switch log record for db is nil")
-	}
-
-	if hdl.writeTimeout <= 0 {
-		hdl.writeTimeout = time.Second
 	}
 
 	// avoid concurrent write to database
