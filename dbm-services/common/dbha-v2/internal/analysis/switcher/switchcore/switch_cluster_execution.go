@@ -92,7 +92,7 @@ func SwitchSameClusterInstances(swCluster SwitchableCluster) (switchSuccess bool
 
 	// lock current cluster
 	clusterKey := GenerateClusterKey(swCluster.GetBkCloudID(), swCluster.GetClusterID())
-	unlock, lockErr := lockClusterWithTimeout(clusterLogFunc, clusterKey, defaultClusterLockTimeout)
+	unlock, lockErr := LockClusterWithTimeout(clusterLogFunc, clusterKey, ClusterLockTimeout())
 	if lockErr != nil {
 		return false, lockErr
 	}

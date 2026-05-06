@@ -51,7 +51,7 @@ func prepareForHostSwitch(ins SwitchableInstance) (needDoSwitch bool, retErr err
 
 	// lock cluster before check node status
 	clusterKey := GenerateClusterKey(ins.GetBkCloudID(), ins.GetClusterID())
-	unlock, err := lockClusterWithTimeout(ins.ReportLogf, clusterKey, defaultClusterLockTimeout)
+	unlock, err := LockClusterWithTimeout(ins.ReportLogf, clusterKey, ClusterLockTimeout())
 	if err != nil {
 		return false, err
 	}
@@ -70,7 +70,7 @@ func prepareForHostSwitch(ins SwitchableInstance) (needDoSwitch bool, retErr err
 func processForHostSwitch(ins SwitchableInstance) (processErr error) {
 	// lock cluster before do switch
 	clusterKey := GenerateClusterKey(ins.GetBkCloudID(), ins.GetClusterID())
-	unlock, err := lockClusterWithTimeout(ins.ReportLogf, clusterKey, defaultClusterLockTimeout)
+	unlock, err := LockClusterWithTimeout(ins.ReportLogf, clusterKey, ClusterLockTimeout())
 	if err != nil {
 		return err
 	}
