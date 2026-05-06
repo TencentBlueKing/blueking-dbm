@@ -26,34 +26,11 @@ package switchcore
 
 import (
 	"fmt"
-	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger"
-	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchmutex"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 )
-
-const defaultClusterLockTimeout = 10 * time.Second
-
-func lockClusterWithTimeout(logFunc switchlogger.SwitchLogFunc, clusterKey ClusterKey, timeout time.Duration) (func(), error) {
-	if clusterKey == "" {
-		return nil, gerrors.New(gerrors.Failure, "cluster key is empty")
-	}
-
-	logFunc(switchlogger.SwitchInfo, "try to acquire cluster lock: %s, timeout: %s", clusterKey, timeout)
-	mutex := switchmutex.Get(string(clusterKey))
-	if !mutex.TryLock(timeout) {
-		logFunc(switchlogger.SwitchError, "timeout to acquire cluster lock: %s", clusterKey)
-		return nil, gerrors.Newf(gerrors.Failure, "timeout to acquire cluster lock: %s", clusterKey)
-	}
-
-	logFunc(switchlogger.SwitchInfo, "successfully acquired cluster lock: %s", clusterKey)
-	return func() {
-		mutex.Unlock()
-		logFunc(switchlogger.SwitchInfo, "released cluster lock: %s", clusterKey)
-	}, nil
-}
 
 func checkBeforeSwitch(ins SwitchableInstance) (checkResult SwitchCheckCode, retErr error) {
 	checkRes, checkErr := ins.CheckBeforeSwitch()
@@ -113,7 +90,7 @@ func SwitchSingleInstance(ins SwitchableInstance) (switchSuccess bool, retErr er
 
 	// lock the cluster that the instance belongs to
 	clusterKey := GenerateClusterKey(ins.GetBkCloudID(), ins.GetClusterID())
-	unlock, lockErr := lockClusterWithTimeout(ins.ReportLogf, clusterKey, defaultClusterLockTimeout)
+	unlock, lockErr := LockClusterWithTimeout(ins.ReportLogf, clusterKey, ClusterLockTimeout())
 	if lockErr != nil {
 		retErr = lockErr
 		return false, retErr

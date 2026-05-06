@@ -28,6 +28,9 @@ import (
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
+	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger"
+	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchmutex"
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 )
 
@@ -37,7 +40,8 @@ const (
 
 	DbmApiDefaultMaxConcurrentRequests = 16
 
-	defaultDbConnectTimeout = 3 * time.Second
+	defaultDbConnectTimeout   = 3 * time.Second
+	defaultClusterLockTimeout = 60 * time.Second
 )
 
 // ClusterLevelSwitchMaxClusterConcurrency returns a positive cap for
@@ -83,4 +87,34 @@ func DbConnectTimeout() time.Duration {
 		return defaultDbConnectTimeout
 	}
 	return d
+}
+
+// ClusterLockTimeout returns workflow.switchflow.clusterLockTimeout, or default when unset.
+func ClusterLockTimeout() time.Duration {
+	d := config.Cfg.Workflow.SwitchFlow.ClusterLockTimeout
+	if d <= 0 {
+		return defaultClusterLockTimeout
+	}
+	return d
+}
+
+// LockClusterWithTimeout locks a cluster with a timeout.
+// It returns the unlock function and error.
+func LockClusterWithTimeout(logFunc switchlogger.SwitchLogFunc, clusterKey ClusterKey, timeout time.Duration) (func(), error) {
+	if clusterKey == "" {
+		return nil, gerrors.New(gerrors.Failure, "cluster key is empty")
+	}
+
+	logFunc(switchlogger.SwitchInfo, "try to acquire cluster lock: %s, timeout: %s", clusterKey, timeout)
+	mutex := switchmutex.Get(string(clusterKey))
+	if !mutex.TryLock(timeout) {
+		logFunc(switchlogger.SwitchError, "timeout to acquire cluster lock: %s", clusterKey)
+		return nil, gerrors.Newf(gerrors.Failure, "timeout to acquire cluster lock: %s", clusterKey)
+	}
+
+	logFunc(switchlogger.SwitchInfo, "successfully acquired cluster lock: %s", clusterKey)
+	return func() {
+		mutex.Unlock()
+		logFunc(switchlogger.SwitchInfo, "released cluster lock: %s", clusterKey)
+	}, nil
 }
