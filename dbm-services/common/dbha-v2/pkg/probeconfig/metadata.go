@@ -61,15 +61,25 @@ type ProbeRedisConfig struct {
 	Timeout  string `json:"timeout"`
 }
 
+// ProbeProxyAdminConfig carries proxy-admin harvester credentials/timing from admin to probe.
+// Interval / Timeout are YAML duration strings (e.g. "20s") emitted verbatim into probe.yaml.
+type ProbeProxyAdminConfig struct {
+	User     string `json:"user"`
+	Password string `json:"password"`
+	Interval string `json:"interval"`
+	Timeout  string `json:"timeout"`
+}
+
 // ProbeConfigPayload is the JSON payload returned by admin GetProbeConfig.
 // Probe parses it to render the final probe YAML (gse reporter + harvester credentials + db endpoints).
 // MySQL / Redis are pointers so admin can omit them when the requesting probe's metadata
 // has no matching cluster family.
 type ProbeConfigPayload struct {
-	Gse      GseConfig           `json:"gse"`
-	MySQL    *ProbeMySQLConfig   `json:"mysql,omitempty"`
-	Redis    *ProbeRedisConfig   `json:"redis,omitempty"`
-	Metadata []ProbeMetadataItem `json:"metadata"`
+	Gse        GseConfig              `json:"gse"`
+	MySQL      *ProbeMySQLConfig      `json:"mysql,omitempty"`
+	Redis      *ProbeRedisConfig      `json:"redis,omitempty"`
+	ProxyAdmin *ProbeProxyAdminConfig `json:"proxy_admin,omitempty"`
+	Metadata   []ProbeMetadataItem    `json:"metadata"`
 }
 
 // IsMySQLClusterType reports whether the cluster type belongs to the MySQL family

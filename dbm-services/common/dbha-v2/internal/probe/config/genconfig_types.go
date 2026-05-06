@@ -43,18 +43,22 @@ type probeReporterYAML struct {
 }
 
 // probeHarvesterYAML uses string for Interval/Timeout in YAML output; reuses DbEndpointConfig for Endpoints.
+type probeMySQLHarvesterYAML struct {
+	User      string             `yaml:"user"`
+	Password  string             `yaml:"password"`
+	Interval  string             `yaml:"interval"`
+	Endpoints []DbEndpointConfig `yaml:"endpoints"`
+}
+
+type probeRedisHarvesterYAML struct {
+	User      string             `yaml:"user"`
+	Password  string             `yaml:"password"`
+	Interval  string             `yaml:"interval"`
+	Timeout   string             `yaml:"timeout"`
+	Endpoints []DbEndpointConfig `yaml:"endpoints"`
+}
+
 type probeHarvesterYAML struct {
-	MySQL *struct {
-		User      string             `yaml:"user"`
-		Password  string             `yaml:"password"`
-		Interval  string             `yaml:"interval"`
-		Endpoints []DbEndpointConfig `yaml:"endpoints"`
-	} `yaml:"mysql,omitempty"`
-	Redis *struct {
-		User      string             `yaml:"user"`
-		Password  string             `yaml:"password"`
-		Interval  string             `yaml:"interval"`
-		Timeout   string             `yaml:"timeout"`
-		Endpoints []DbEndpointConfig `yaml:"endpoints"`
-	} `yaml:"redis,omitempty"`
+	MySQL *probeMySQLHarvesterYAML `yaml:"mysql,omitempty"`
+	Redis *probeRedisHarvesterYAML `yaml:"redis,omitempty"`
 }

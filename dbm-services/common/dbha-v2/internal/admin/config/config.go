@@ -145,22 +145,32 @@ type ProbeRedisConfig struct {
 	Timeout  time.Duration `yaml:"timeout"  mapstructure:"timeout"`
 }
 
+// ProbeProxyAdminConfig defaults for probe proxy-admin harvester; admin loads from YAML and
+// returns to probe only when the requesting probe node is strict proxy.
+type ProbeProxyAdminConfig struct {
+	User     string        `yaml:"user"     mapstructure:"user"`
+	Password string        `yaml:"password" mapstructure:"password"`
+	Interval time.Duration `yaml:"interval" mapstructure:"interval"`
+	Timeout  time.Duration `yaml:"timeout"  mapstructure:"timeout"`
+}
+
 // Configuration admin's configuration
 type Configuration struct {
-	Name       string           `yaml:"name"       mapstructure:"name"`
-	Version    string           `yaml:"version"    mapstructure:"version"`
-	PidFile    string           `yaml:"pidFile"    mapstructure:"pidFile"`
-	DocFileDir string           `yaml:"docFileDir" mapstructure:"docFileDir"`
-	Discovery  DiscoveryConfig  `yaml:"discovery"  mapstructure:"discovery"`
-	Apm        ApmConfig        `yaml:"apm"        mapstructure:"apm"`
-	Grpc       GrpcConfig       `yaml:"grpc"       mapstructure:"grpc"`
-	Web        WebConfig        `yaml:"web"        mapstructure:"web"`
-	DbmApis    []DbmApi         `yaml:"dbmApi"     mapstructure:"dbmApi"`
-	Storage    StorageConfig    `yaml:"storage"    mapstructure:"storage"`
-	Log        LogConfig        `yaml:"log"        mapstructure:"log"`
-	ProbeGse   ProbeGseConfig   `yaml:"probeGse"   mapstructure:"probeGse"`
-	ProbeMysql ProbeMysqlConfig `yaml:"probeMysql" mapstructure:"probeMysql"`
-	ProbeRedis ProbeRedisConfig `yaml:"probeRedis" mapstructure:"probeRedis"`
+	Name            string                `yaml:"name"            mapstructure:"name"`
+	Version         string                `yaml:"version"         mapstructure:"version"`
+	PidFile         string                `yaml:"pidFile"         mapstructure:"pidFile"`
+	DocFileDir      string                `yaml:"docFileDir"      mapstructure:"docFileDir"`
+	Discovery       DiscoveryConfig       `yaml:"discovery"       mapstructure:"discovery"`
+	Apm             ApmConfig             `yaml:"apm"             mapstructure:"apm"`
+	Grpc            GrpcConfig            `yaml:"grpc"            mapstructure:"grpc"`
+	Web             WebConfig             `yaml:"web"             mapstructure:"web"`
+	DbmApis         []DbmApi              `yaml:"dbmApi"          mapstructure:"dbmApi"`
+	Storage         StorageConfig         `yaml:"storage"         mapstructure:"storage"`
+	Log             LogConfig             `yaml:"log"             mapstructure:"log"`
+	ProbeGse        ProbeGseConfig        `yaml:"probeGse"        mapstructure:"probeGse"`
+	ProbeMysql      ProbeMysqlConfig      `yaml:"probeMysql"      mapstructure:"probeMysql"`
+	ProbeRedis      ProbeRedisConfig      `yaml:"probeRedis"      mapstructure:"probeRedis"`
+	ProbeProxyAdmin ProbeProxyAdminConfig `yaml:"probeProxyAdmin" mapstructure:"probeProxyAdmin"`
 }
 
 // clampProbeGseConnTimeout returns at least minProbeGseConnTimeout: empty,

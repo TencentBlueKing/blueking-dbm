@@ -74,23 +74,31 @@ func GenProbeConfig(ctx context.Context, db *hamysql.GormDB, bkCloudID int, ip s
 		Metadata: items,
 	}
 
-	hasMySQL, hasRedis := probeconfig.MetadataFamilies(items)
-	if hasMySQL {
-		payload.MySQL = &probeconfig.ProbeMySQLConfig{
-			User:     Cfg.ProbeMysql.User,
-			Password: Cfg.ProbeMysql.Password,
-			Interval: durationToYAMLString(Cfg.ProbeMysql.Interval),
-		}
-	}
-	if hasRedis {
-		payload.Redis = &probeconfig.ProbeRedisConfig{
-			User:     Cfg.ProbeRedis.User,
-			Password: Cfg.ProbeRedis.Password,
-			Interval: durationToYAMLString(Cfg.ProbeRedis.Interval),
-			Timeout:  durationToYAMLString(Cfg.ProbeRedis.Timeout),
-		}
-	}
+	applyAllHarvesterPayload(&payload)
+	return marshalProbeConfigPayload(payload)
+}
 
+func applyAllHarvesterPayload(payload *probeconfig.ProbeConfigPayload) {
+	payload.MySQL = &probeconfig.ProbeMySQLConfig{
+		User:     Cfg.ProbeMysql.User,
+		Password: Cfg.ProbeMysql.Password,
+		Interval: durationToYAMLString(Cfg.ProbeMysql.Interval),
+	}
+	payload.Redis = &probeconfig.ProbeRedisConfig{
+		User:     Cfg.ProbeRedis.User,
+		Password: Cfg.ProbeRedis.Password,
+		Interval: durationToYAMLString(Cfg.ProbeRedis.Interval),
+		Timeout:  durationToYAMLString(Cfg.ProbeRedis.Timeout),
+	}
+	payload.ProxyAdmin = &probeconfig.ProbeProxyAdminConfig{
+		User:     Cfg.ProbeProxyAdmin.User,
+		Password: Cfg.ProbeProxyAdmin.Password,
+		Interval: durationToYAMLString(Cfg.ProbeProxyAdmin.Interval),
+		Timeout:  durationToYAMLString(Cfg.ProbeProxyAdmin.Timeout),
+	}
+}
+
+func marshalProbeConfigPayload(payload probeconfig.ProbeConfigPayload) (string, error) {
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return "", gerrors.NewE(gerrors.InvalidJson, err)

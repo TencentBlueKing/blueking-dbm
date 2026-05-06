@@ -47,11 +47,11 @@ var Cfg = Configuration{
 
 // ClientConfig holds gRPC client tuning (ping, message sizes) and receiver reconnect settings for the probe agent.
 type ClientConfig struct {
-	PingTime                     time.Duration `yaml:"pingTime"                   mapstructure:"pingTime"`
-	PingTimeout                  time.Duration `yaml:"pingTimeout"                mapstructure:"pingTimeout"`
-	MaxReceiveMessageSize        int           `yaml:"maxReceiveMessageSize"      mapstructure:"maxReceiveMessageSize"`
-	MaxSendMessageSize           int           `yaml:"maxSendMessageSize"         mapstructure:"maxSendMessageSize"`
-	ReceiverReconnectInterval    time.Duration `yaml:"receiverReconnectInterval"  mapstructure:"receiverReconnectInterval"`
+	PingTime                     time.Duration `yaml:"pingTime"                     mapstructure:"pingTime"`
+	PingTimeout                  time.Duration `yaml:"pingTimeout"                  mapstructure:"pingTimeout"`
+	MaxReceiveMessageSize        int           `yaml:"maxReceiveMessageSize"        mapstructure:"maxReceiveMessageSize"`
+	MaxSendMessageSize           int           `yaml:"maxSendMessageSize"           mapstructure:"maxSendMessageSize"`
+	ReceiverReconnectInterval    time.Duration `yaml:"receiverReconnectInterval"    mapstructure:"receiverReconnectInterval"`
 	ReceiverMaxReconnectAttempts int           `yaml:"receiverMaxReconnectAttempts" mapstructure:"receiverMaxReconnectAttempts"`
 }
 
@@ -65,13 +65,13 @@ type ReporterConfig struct {
 
 // DbEndpointConfig db instance endpoint config
 type DbEndpointConfig struct {
-	Proto       string                             `yaml:"proto"       mapstructure:"proto"`
-	ClusterType haprobe.DbmMetadataClusterType     `yaml:"clusterType" mapstructure:"clusterType"`
-	MachineType haprobe.DbmMetadataMachineType     `yaml:"machineType" mapstructure:"machineType"`
-	AccessLayer haprobe.DbmMetadataAccessLayerType `yaml:"accessLayer" mapstructure:"accessLayer"`
-	Ip          string                             `yaml:"ip"          mapstructure:"ip"`
+	Proto       string                             `yaml:"proto"           mapstructure:"proto"`
+	ClusterType haprobe.DbmMetadataClusterType     `yaml:"clusterType"     mapstructure:"clusterType"`
+	MachineType haprobe.DbmMetadataMachineType     `yaml:"machineType"     mapstructure:"machineType"`
+	AccessLayer haprobe.DbmMetadataAccessLayerType `yaml:"accessLayer"     mapstructure:"accessLayer"`
+	Ip          string                             `yaml:"ip"              mapstructure:"ip"`
 	Ports       []string                           `yaml:"ports"       mapstructure:"ports"`
-	AdminPorts  []string                           `yaml:"adminPorts"  mapstructure:"adminPorts"`
+	AdminPorts  []string                           `yaml:"adminPorts"      mapstructure:"adminPorts"`
 }
 
 // MySqlHarvesterConfig MySQL harvester config
