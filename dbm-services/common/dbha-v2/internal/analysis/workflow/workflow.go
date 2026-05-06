@@ -63,6 +63,7 @@ var (
 const (
 	scanIntervalLimitMin = 5 * time.Second
 	popIntervalLimitMin  = 5 * time.Second
+	dbTableStatsInterval = 5 * time.Minute
 	readBatchCount       = 1000
 )
 
@@ -133,19 +134,8 @@ func New(cli *discovery.Client, db *hamysql.GormDB, disc *discovery.Discovery,
 
 // Run runs the workflow: starts dbm sync, instance watch, and the periodic business scan loop.
 func (w *Workflow) Run(ctx context.Context) error {
-	if config.Cfg.Workflow.ScanInterval < scanIntervalLimitMin {
-		logger.Warn("scan interval(%v) is too small, reset it to the default value(%v)",
-			config.Cfg.Workflow.ScanInterval, scanIntervalLimitMin)
-
-		config.Cfg.Workflow.ScanInterval = scanIntervalLimitMin
-	}
-
-	if config.Cfg.Workflow.PopInterval < popIntervalLimitMin {
-		logger.Warn("pop interval(%v) is too small, reset it to the default value(%v)",
-			config.Cfg.Workflow.PopInterval, popIntervalLimitMin)
-
-		config.Cfg.Workflow.PopInterval = popIntervalLimitMin
-	}
+	clampIntervalToMin("scan", &config.Cfg.Workflow.ScanInterval, scanIntervalLimitMin)
+	clampIntervalToMin("pop", &config.Cfg.Workflow.PopInterval, popIntervalLimitMin)
 
 	if err := w.dbmSync.Run(ctx); err != nil {
 		logger.Error("failed to run dbm metadata manager, errmsg: %s", err)
@@ -210,7 +200,51 @@ func (w *Workflow) Run(ctx context.Context) error {
 		}
 	}()
 
+	// DB table update stats timer: periodically count rows updated within dbTableStatsInterval,
+	// grouped by db_type, and report as gauges.
+	w.wg.Add(1)
+	go w.runDbTableStatsLoop(ctx)
+
 	return nil
+}
+
+// runDbTableStatsLoop periodically counts rows updated within dbTableStatsInterval
+// in the DbmMetadata and DbhaDataStatus tables, grouped by db_type,
+// and reports them as gauges. It exits on workflow quit or ctx cancellation.
+func (w *Workflow) runDbTableStatsLoop(ctx context.Context) {
+	defer w.wg.Done()
+
+	timer := time.NewTimer(dbTableStatsInterval)
+	defer timer.Stop()
+
+	for {
+		select {
+		case <-w.quit:
+			logger.Info("the db table stats loop exited(quit)")
+			return
+
+		case <-ctx.Done():
+			logger.Info("the db table stats loop exited(ctx done)")
+			return
+
+		case <-timer.C:
+			w.reportDbTableUpdatedStats(ctx)
+			timer.Reset(dbTableStatsInterval)
+		}
+	}
+}
+
+// clampIntervalToMin ensures the given interval is not smaller than the allowed minimum.
+// If it is, a warning is emitted and the interval is reset to the minimum in place.
+// name is used to label the interval in the log message (e.g. "scan", "pop").
+func clampIntervalToMin(name string, current *time.Duration, min time.Duration) {
+	if *current >= min {
+		return
+	}
+
+	logger.Warn("%s interval(%v) is too small, reset it to the default value(%v)",
+		name, *current, min)
+	*current = min
 }
 
 // Close closes the workflow.
@@ -559,6 +593,14 @@ func (w *Workflow) handleStrategySwitch(strategy *hamodel.DbSwitchingStrategy, g
 	logger.Info("trigger switching by strategyId: %d, switchId: %s, dbType: %s, cloudId: %d, instances: %d",
 		strategy.ID, req.SwitchID, group.DbType, group.BkCloudID, len(group.Instances))
 
+	// Report the triggering switching instance total
+	if err := apm.TriggerSwitchingInstanceTotal.AddWithLabels(map[string]string{
+		haapm.MetricLabelServiceID:   w.myServiceID,
+		haapm.MetricLabelServiceName: apm.MetricServerName,
+	}, float64(len(req.MySqlInstData))); err != nil {
+		logger.Warn("failed to update switching instance total metric, errmsg: %s", err)
+	}
+
 	w.switchExecutor.TriggerSwitching(group.DbType, req)
 
 	return true
@@ -609,4 +651,54 @@ func groupEntriesByCloudAndDbType(entries []*FailureWindowEntry) []*FailureGroup
 // instanceKey builds a unique instance identifier from cloud id, IP and port.
 func instanceKey[T any](bkCloudId int, ip string, port T) string {
 	return fmt.Sprintf("%d:%s:%v", bkCloudId, ip, port)
+}
+
+// reportDbTableUpdatedStats queries the DbmMetadata and DbhaDataStatus tables for
+// rows updated within the last dbTableStatsInterval, grouped by db_type,
+// and reports each group's count to the corresponding gauge metric.
+func (w *Workflow) reportDbTableUpdatedStats(ctx context.Context) {
+	qCtx, cancel := context.WithTimeout(ctx, config.Cfg.Storage.Timeout)
+	defer cancel()
+
+	// DbmMetadata
+	metaCounts, err := w.hadata.CountDbmMetadataUpdatedWithin(qCtx, dbTableStatsInterval)
+	if err != nil {
+		logger.Warn("failed to count DbmMetadata updated rows, errmsg: %s", err)
+		return
+	}
+	// Clear previous window's series so that instances that stopped updating won't keep their stale values.
+	apm.DbmMetadataUpdatedCount.Clear()
+	for _, item := range metaCounts {
+		if item.DbType == haprobe.DbTypeNone {
+			continue
+		}
+		if e := apm.DbmMetadataUpdatedCount.SetWithLabels(map[string]string{
+			haapm.MetricLabelServiceID:   w.myServiceID,
+			haapm.MetricLabelServiceName: apm.MetricServerName,
+			apm.MetricLabelDbType:        item.DbType.String(),
+		}, float64(item.Count)); e != nil {
+			logger.Warn("failed to report dbm_metadata_updated_count, dbType: %s, errmsg: %s", item.DbType, e)
+		}
+	}
+
+	// DbhaDataStatus
+	statusCounts, err := w.hadata.CountDbhaDataStatusUpdatedWithin(qCtx, dbTableStatsInterval)
+	if err != nil {
+		logger.Warn("failed to count DbhaDataStatus updated rows, errmsg: %s", err)
+		return
+	}
+	// Clear previous window's series so that instances that stopped updating won't keep their stale values.
+	apm.DbhaDataStatusUpdatedCount.Clear()
+	for _, item := range statusCounts {
+		if item.DbType == haprobe.DbTypeNone {
+			continue
+		}
+		if e := apm.DbhaDataStatusUpdatedCount.SetWithLabels(map[string]string{
+			haapm.MetricLabelServiceID:   w.myServiceID,
+			haapm.MetricLabelServiceName: apm.MetricServerName,
+			apm.MetricLabelDbType:        item.DbType.String(),
+		}, float64(item.Count)); e != nil {
+			logger.Warn("failed to report dbha_data_status_updated_count, dbType: %s, errmsg: %s", item.DbType, e)
+		}
+	}
 }

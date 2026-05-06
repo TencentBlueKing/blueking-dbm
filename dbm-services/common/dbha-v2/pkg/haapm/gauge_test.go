@@ -425,7 +425,7 @@ func TestHaGauge_UpdateLabel(t *testing.T) {
 }
 
 func TestHaGauge_Reset(t *testing.T) {
-	t.Run("reset after Set does NOT clear label values", func(t *testing.T) {
+	t.Run("reset after Set clears label values", func(t *testing.T) {
 		gauge := createTestGauge("test_gauge_reset1", "test help", "label1", "label2")
 
 		gauge.UpdateLabel(map[string]string{
@@ -439,39 +439,38 @@ func TestHaGauge_Reset(t *testing.T) {
 		err := gauge.Set(100.0)
 		require.NoError(t, err)
 
-		assert.Equal(t, "value1", gauge.labelValues["label1"])
-		assert.Equal(t, "value2", gauge.labelValues["label2"])
+		assert.Equal(t, "", gauge.labelValues["label1"])
+		assert.Equal(t, "", gauge.labelValues["label2"])
 		assert.Nil(t, gauge.Error)
 	})
 
-	t.Run("reset clears error state only", func(t *testing.T) {
+	t.Run("reset clears error state", func(t *testing.T) {
 		gauge := createTestGauge("test_gauge_reset2", "test help", "label1")
 
 		gauge.UpdateLabel(map[string]string{"label1": "value1"})
 		gauge.UpdateLabel(map[string]string{"invalid": "value"})
 		assert.NotNil(t, gauge.Error)
 
-		originalLabelValue := gauge.labelValues["label1"]
 		gauge.reset()
 
 		assert.Nil(t, gauge.Error)
-		assert.Equal(t, originalLabelValue, gauge.labelValues["label1"])
+		assert.Equal(t, "", gauge.labelValues["label1"])
 	})
 
-	t.Run("multiple operations preserve label values", func(t *testing.T) {
+	t.Run("multiple observations with reset", func(t *testing.T) {
 		gauge := createTestGauge("test_gauge_reset3", "test help", "service")
 
 		gauge.UpdateLabel(map[string]string{"service": "api"})
 		err := gauge.Set(10.0)
 		require.NoError(t, err)
-		assert.Equal(t, "api", gauge.labelValues["service"])
+		assert.Equal(t, "", gauge.labelValues["service"])
 
 		err = gauge.Inc()
 		require.NoError(t, err)
-		assert.Equal(t, "api", gauge.labelValues["service"])
+		assert.Equal(t, "", gauge.labelValues["service"])
 
 		err = gauge.Add(5.0)
 		require.NoError(t, err)
-		assert.Equal(t, "api", gauge.labelValues["service"])
+		assert.Equal(t, "", gauge.labelValues["service"])
 	})
 }

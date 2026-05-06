@@ -13,7 +13,8 @@
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
@@ -46,6 +47,7 @@ const (
 	DbhaStatusFieldAccessLayer     = "access_layer"
 	DbhaStatusFieldClusterType     = "cluster_type"
 	DbhaStatusFieldMachineType     = "machine_type"
+	DbhaStatusFieldDbTypeName      = "db_type_name"
 	DbhaStatusFieldDbIp            = "db_ip"
 	DbhaStatusFieldDbPort          = "db_port"
 	DbhaStatusFieldReportTimestamp = "report_timestamp"
@@ -56,7 +58,7 @@ const (
 	DbhaStatusFieldDeletedAt       = "deleted_at"
 )
 
-// DbhaData contains system and databases metrics
+// DbhaDataStatus contains system and databases metrics
 type DbhaDataStatus struct {
 	MachineID       string                             `gorm:"column:machine_id;primaryKey"`
 	BkCloudID       int                                `gorm:"column:bk_cloud_id;primaryKey"`
@@ -82,6 +84,7 @@ type DbhaDataStatus struct {
 	DeletedAt time.Time `gorm:"column:deleted_at"`
 }
 
+// NewDbhaData creates a new DbhaDataStatus
 func NewDbhaData(msg *haprobe.HarvestData) *DbhaDataStatus {
 	data := &DbhaDataStatus{}
 
@@ -115,6 +118,7 @@ func NewDbhaData(msg *haprobe.HarvestData) *DbhaDataStatus {
 	return data
 }
 
+// TableName returns the table name
 func (t DbhaDataStatus) TableName() string {
 	return DbhaDataStatusTableName
 }

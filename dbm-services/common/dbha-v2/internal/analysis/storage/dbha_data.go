@@ -32,6 +32,7 @@ import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
 // DbInstance represents a database instance identified by cloud ID, IP, and port.
@@ -216,4 +217,72 @@ func (ha *DbhaData) ReadBlackWhiteList(ctx context.Context, bkBizId int, bkCloud
 	}
 
 	return blackWhiteList, nil
+}
+
+// DbTypeUpdatedCount represents the count of rows grouped by db_type.
+type DbTypeUpdatedCount struct {
+	DbType haprobe.DbType `gorm:"column:db_type"`
+	Count  int64          `gorm:"column:cnt"`
+}
+
+// CountDbmMetadataUpdatedWithin counts the DbmMetadata rows updated within the given duration.
+func (ha *DbhaData) CountDbmMetadataUpdatedWithin(ctx context.Context,
+	offsetDuration time.Duration) ([]*DbTypeUpdatedCount, error) {
+
+	lastUpdateTime := time.Now().Local().Add(-offsetDuration)
+
+	type row struct {
+		ClusterType haprobe.DbmMetadataClusterType `gorm:"column:cluster_type"`
+		Count       int64                          `gorm:"column:cnt"`
+	}
+
+	var rows []row
+	err := ha.DB.DB().WithContext(ctx).Model(&hamodel.DbmMetadata{}).
+		Select(fmt.Sprintf("%s AS cluster_type, COUNT(*) AS cnt",
+			hamodel.DbmMetadataFieldClusterType,
+		)).
+		Where(fmt.Sprintf("%s > ?", hamodel.DbmMetadataFieldUpdatedAt), lastUpdateTime).
+		Group(hamodel.DbmMetadataFieldClusterType).
+		Scan(&rows).Error
+	if err != nil {
+		return nil, gerrors.NewE(gerrors.MysqlFailure, err)
+	}
+
+	counters := make(map[haprobe.DbType]int64, len(rows))
+	for _, r := range rows {
+		dbType := hamodel.DbmMetadata{ClusterType: r.ClusterType}.GetDbType()
+		counters[dbType] += r.Count
+	}
+
+	result := make([]*DbTypeUpdatedCount, 0, len(counters))
+	for k, cnt := range counters {
+		result = append(result, &DbTypeUpdatedCount{
+			DbType: k,
+			Count:  cnt,
+		})
+	}
+
+	return result, nil
+}
+
+// CountDbhaDataStatusUpdatedWithin counts the DbhaDataStatus rows updated within the given duration.
+func (ha *DbhaData) CountDbhaDataStatusUpdatedWithin(ctx context.Context,
+	offsetDuration time.Duration) ([]*DbTypeUpdatedCount, error) {
+
+	lastUpdateTime := time.Now().Local().Add(-offsetDuration)
+
+	var result []*DbTypeUpdatedCount
+
+	err := ha.DB.DB().WithContext(ctx).Model(&hamodel.DbhaDataStatus{}).
+		Select(fmt.Sprintf("%s AS db_type, COUNT(*) AS cnt",
+			hamodel.DbhaStatusFieldDbTypeName,
+		)).
+		Where(fmt.Sprintf("%s > ?", hamodel.DbhaStatusFieldUpdatedAt), lastUpdateTime).
+		Group(hamodel.DbhaStatusFieldDbTypeName).
+		Scan(&result).Error
+	if err != nil {
+		return nil, gerrors.NewE(gerrors.MysqlFailure, err)
+	}
+
+	return result, nil
 }

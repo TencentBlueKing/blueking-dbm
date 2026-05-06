@@ -81,6 +81,15 @@ func (s *Synchronizer) QueryMetadataFromDbm(ctx context.Context, bkCloudID int, 
 		return nil, errors.New("dbm client not initialized")
 	}
 
+	// Report DBM API query metadata ip count
+	if err := apm.DbmApiQueryMetadataIpCount.SetWithLabels(map[string]string{
+		apm.MetricLabelApiName:       apm.MetricApiNameQueryMetadata,
+		haapm.MetricLabelServiceID:   s.myServiceID,
+		haapm.MetricLabelServiceName: apm.MetricServerName,
+	}, float64(len(ips))); err != nil {
+		logger.Warn("failed to report dbm api query metadata ip count metric, errmsg: %s", err)
+	}
+
 	start := time.Now()
 	code, metadatas, err := s.cli.QueryMetadataFromDbm(ctx, bkCloudID, ips)
 	if err != nil {
@@ -112,6 +121,17 @@ func (s *Synchronizer) QueryMetadataFromDbm(ctx context.Context, bkCloudID int, 
 }
 
 func (s *Synchronizer) saveRespond(resp *dbm.Response) error {
+	start := time.Now()
+	defer func() {
+		// Report DBM metadata updated time consuming
+		if reportErr := apm.DbmMetadataSaveTimeConsumingMs.ObserveWithLabels(map[string]string{
+			haapm.MetricLabelServiceID:   s.myServiceID,
+			haapm.MetricLabelServiceName: apm.MetricServerName,
+		}, float64(time.Since(start).Milliseconds())); reportErr != nil {
+			logger.Warn("failed to report dbm metadata save time consuming metric, errmsg: %s", reportErr)
+		}
+	}()
+
 	datas := []*hamodel.DbmMetadata{}
 	for _, rsp := range resp.Data {
 		meta := &hamodel.DbmMetadata{
@@ -206,25 +226,7 @@ func (s *Synchronizer) syncMetadataFromDbm(ctx context.Context) error {
 		}
 	}
 
-	// Report DBM API sync metadata request duration
-	if reportErr := apm.DbmApiSyncMetadataTimeConsumingMs.ObserveWithLabels(map[string]string{
-		apm.MetricLabelApiName:       apm.MetricApiNameSyncMetadata,
-		haapm.MetricLabelServiceID:   s.myServiceID,
-		haapm.MetricLabelServiceName: apm.MetricServerName,
-	}, float64(time.Since(start).Milliseconds())); reportErr != nil {
-		logger.Warn("failed to report dbm api request time consuming metric, errmsg: %s", reportErr)
-	}
-
-	// Report DBM API request error if any error occurred
-	if hasError {
-		if reportErr := apm.DbmApiSyncMetadataErrorTotal.IncWithLabels(map[string]string{
-			apm.MetricLabelApiName:       apm.MetricApiNameSyncMetadata,
-			haapm.MetricLabelServiceID:   s.myServiceID,
-			haapm.MetricLabelServiceName: apm.MetricServerName,
-		}); reportErr != nil {
-			logger.Warn("failed to report dbm api request error metric, errmsg: %s", reportErr)
-		}
-	}
+	s.reportSyncedMetadata(start, hasError)
 
 	return nil
 }
@@ -287,4 +289,35 @@ func (s *Synchronizer) updateCache(ctx context.Context) error {
 	}()
 
 	return nil
+}
+
+func (s *Synchronizer) reportSyncedMetadata(start time.Time, hasError bool) {
+	// Report DBM API sync metadata total
+	if reportErr := apm.DbmApiSyncMetadataTotal.IncWithLabels(map[string]string{
+		apm.MetricLabelApiName:       apm.MetricApiNameSyncMetadata,
+		haapm.MetricLabelServiceID:   s.myServiceID,
+		haapm.MetricLabelServiceName: apm.MetricServerName,
+	}); reportErr != nil {
+		logger.Warn("failed to report dbm api sync metadata total metric, errmsg: %s", reportErr)
+	}
+
+	// Report DBM API sync metadata request duration
+	if reportErr := apm.DbmApiSyncMetadataTimeConsumingMs.ObserveWithLabels(map[string]string{
+		apm.MetricLabelApiName:       apm.MetricApiNameSyncMetadata,
+		haapm.MetricLabelServiceID:   s.myServiceID,
+		haapm.MetricLabelServiceName: apm.MetricServerName,
+	}, float64(time.Since(start).Milliseconds())); reportErr != nil {
+		logger.Warn("failed to report dbm api request time consuming metric, errmsg: %s", reportErr)
+	}
+
+	// Report DBM API request error if any error occurred
+	if hasError {
+		if reportErr := apm.DbmApiSyncMetadataErrorTotal.IncWithLabels(map[string]string{
+			apm.MetricLabelApiName:       apm.MetricApiNameSyncMetadata,
+			haapm.MetricLabelServiceID:   s.myServiceID,
+			haapm.MetricLabelServiceName: apm.MetricServerName,
+		}); reportErr != nil {
+			logger.Warn("failed to report dbm api request error metric, errmsg: %s", reportErr)
+		}
+	}
 }
