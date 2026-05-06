@@ -20,14 +20,10 @@ from backend.db_meta.models import ProxyInstance
 
 logger = logging.getLogger("root")
 
-# prefetch_related 分批大小，避免生成过大的 IN (list) 查询
-PREFETCH_BATCH_SIZE = 50
 
-
-def _prefetch_proxy_batch(proxy_ids: List[int]) -> List[ProxyInstance]:
-    """按给定的 ID 列表查询并预加载关联数据"""
-    return list(
-        ProxyInstance.objects.filter(id__in=proxy_ids).prefetch_related(
+def proxy_instance(proxies: QuerySet) -> List[Dict]:
+    proxies_list: List[ProxyInstance] = list(
+        proxies.prefetch_related(
             *_machine_prefetch(),
             "storageinstance",
             "storageinstance__machine",
@@ -36,21 +32,9 @@ def _prefetch_proxy_batch(proxy_ids: List[int]) -> List[ProxyInstance]:
             "bind_entry__polarisentrydetail_set",
             "bind_entry__proxyinstance_set",
             "bind_entry__proxyinstance_set__machine",
-            "cluster",
+            "cluster"
         )
     )
-
-
-def proxy_instance(proxies: QuerySet) -> List[Dict]:
-    # 先获取所有符合条件的 proxy ID，避免一次性 prefetch 产生过大的 IN (list) 查询
-    proxy_ids = list(proxies.values_list("id", flat=True))
-
-    # 分批 prefetch_related
-    proxies_list: List[ProxyInstance] = []
-    for i in range(0, len(proxy_ids), PREFETCH_BATCH_SIZE):
-        batch_ids = proxy_ids[i : i + PREFETCH_BATCH_SIZE]
-        proxies_list.extend(_prefetch_proxy_batch(batch_ids))
-
     res = []
     for ins in proxies_list:
         info = {
