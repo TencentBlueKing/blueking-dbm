@@ -22,6 +22,11 @@
  * SOFTWARE.
  */
 
+// Package mysql implements the MySQL harvester plugin used to collect status from
+// MySQL-family backends (TendbHA mysql storage, TendbHA mysql-proxy admin ports,
+// TendbCluster spider / spider-ctl). The plugin is driven by config.MySqlHarvesterConfig:
+// admin owns the credentials and Interval / Timeout, probe routes endpoints into either
+// the regular mysql instance or the dedicated mysqlProxyAdmin instance.
 package mysql
 
 import (
@@ -40,8 +45,9 @@ import (
 )
 
 const (
-	Name    = "mysql"
-	Version = "v1.0.0"
+	Name                = "mysql"
+	NameMySqlProxyAdmin = "mysqlProxyAdmin"
+	Version             = "v1.0.0"
 
 	MySqlConfigFileType  = "ini"
 	MySqlBindPort        = "mysql.port"
@@ -64,24 +70,40 @@ type MySql struct {
 	agentID   string
 	machineID string
 	serviceID string
+	name      string
 	wg        sync.WaitGroup
 	cfg       *config.MySqlHarvesterConfig
 	// key: the mysql endpoint
 	collectors map[string]*collector
 }
 
-// NewMySql constructor
+// NewMySql constructs a MySql harvester named Name; used for regular mysql storage / spider endpoints.
 func NewMySql(cfg *config.MySqlHarvesterConfig) (*MySql, error) {
-	msql := &MySql{
-		cfg: cfg,
-	}
-
-	return msql, nil
+	return newMySql(cfg, Name)
 }
 
-// Name returns the name of the plugin.
+// NewMySqlProxyAdmin constructs a MySql harvester named NameMySqlProxyAdmin; used for TendbHA
+// mysql-proxy admin ports so logs can distinguish it from the regular mysql plugin instance.
+func NewMySqlProxyAdmin(cfg *config.MySqlHarvesterConfig) (*MySql, error) {
+	return newMySql(cfg, NameMySqlProxyAdmin)
+}
+
+func newMySql(cfg *config.MySqlHarvesterConfig, name string) (*MySql, error) {
+	if name == "" {
+		name = Name
+	}
+	return &MySql{
+		cfg:  cfg,
+		name: name,
+	}, nil
+}
+
+// Name returns the plugin instance name (Name or NameMySqlProxyAdmin).
 func (m *MySql) Name() (string, error) {
-	return Name, nil
+	if m.name == "" {
+		return Name, nil
+	}
+	return m.name, nil
 }
 
 // Version returns the version of the plugin.
@@ -91,13 +113,13 @@ func (m *MySql) Version() (string, error) {
 
 // Close closes the plugin.
 func (m *MySql) Close() error {
-	logger.Info("MySQL harvester plugin closed successfully")
+	logger.Info("harvester plugin closed, name: %s", m.name)
 	return nil
 }
 
 // Harvest harvests data from the target instance.
 func (m *MySql) Harvest(ctx context.Context, machineID, serviceID string) (<-chan *plugin.HarvestData, error) {
-	logger.Info("start mysql harvest, interval time is: %v", m.cfg.Interval)
+	logger.Info("start mysql harvest, name: %s, interval: %s", m.name, m.cfg.Interval)
 
 	m.machineID = machineID
 	m.serviceID = serviceID
@@ -118,16 +140,14 @@ func (m *MySql) Harvest(ctx context.Context, machineID, serviceID string) (<-cha
 		for {
 			select {
 			case <-ctx.Done():
-				logger.Info("exit harvester(mysql)")
+				logger.Info("exit harvester, name: %s", m.name)
 				return
 
 			case <-timer.C:
 				wg := &sync.WaitGroup{}
 
-				// Start the collectors.
 				m.beginCollecting(wg, dataC)
 
-				// Wait for the collectors to stop.
 				wg.Wait()
 
 				timer.Reset(m.cfg.Interval)
@@ -147,6 +167,7 @@ func (m *MySql) makeCollector(epoint config.DbEndpointConfig, eport int) *collec
 
 	c.user = m.cfg.User
 	c.password = m.cfg.Password
+	c.timeout = m.cfg.Timeout
 
 	c.endpoint = &hanet.Endpoint{}
 	c.endpoint.Proto = epoint.Proto

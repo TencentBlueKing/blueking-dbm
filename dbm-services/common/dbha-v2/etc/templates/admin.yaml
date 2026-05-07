@@ -72,24 +72,26 @@ probeGse:
   # empty, invalid duration, or value strictly below 5s is normalized to 5s when admin loads config
   connTimeout: {{ADMIN_PROBE_GSE_CONN_TIMEOUT}}
 
-# Returned to probe via GetProbeConfig for every probe request.
-# Probe applies this config in non-strict-proxy runtime based on metadata.
+# Returned to probe via GetProbeConfig for every probe request. Probe routes per endpoint:
+#   - probeProxyAdmin used for endpoints where access_layer==proxy AND machine_type==proxy
+#     (TendbHA mysql-proxy admin port).
+#   - probeMysql used for other mysql-family endpoints (incl. spider admin/ctl).
+#   - probeRedis used for redis-family endpoints (incl. twemproxy/predixy admin ports).
+# interval/timeout: zero or below the minimum is auto-clamped at admin load
+# (interval minimum: 5s, timeout minimum: 1s). The value MUST be a valid Go duration
+# (e.g. "20s", "1m"); empty strings make admin config Load fail before clamping.
 probeMysql:
   user: "{{ADMIN_PROBE_MYSQL_USER}}"
   password: "{{ADMIN_PROBE_MYSQL_PASSWORD}}"
   interval: {{ADMIN_PROBE_MYSQL_INTERVAL}}
+  timeout: {{ADMIN_PROBE_MYSQL_TIMEOUT}}
 
-# Returned to probe via GetProbeConfig for every probe request.
-# Probe applies this config in non-strict-proxy runtime based on metadata.
 probeRedis:
   user: "{{ADMIN_PROBE_REDIS_USER}}"
   password: "{{ADMIN_PROBE_REDIS_PASSWORD}}"
   interval: {{ADMIN_PROBE_REDIS_INTERVAL}}
   timeout: {{ADMIN_PROBE_REDIS_TIMEOUT}}
 
-# Returned to probe via GetProbeConfig for every probe request.
-# Probe applies this config only in strict proxy runtime where all metadata entries satisfy:
-# access_layer == proxy AND machine_type == proxy.
 probeProxyAdmin:
   user: "{{ADMIN_PROBE_PROXY_ADMIN_USER}}"
   password: "{{ADMIN_PROBE_PROXY_ADMIN_PASSWORD}}"
@@ -101,5 +103,4 @@ log:
   level: {{COMMON_LOG_LEVEL}}
   fileCount: {{COMMON_LOG_FILE_COUNT}}
   fileSize: {{COMMON_LOG_FILE_SIZE}}
-
 

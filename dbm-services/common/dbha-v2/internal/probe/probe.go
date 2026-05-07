@@ -33,7 +33,6 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/probe/client"
 	"dbm-services/common/dbha-v2/internal/probe/config"
-	"dbm-services/common/dbha-v2/internal/probe/harvester"
 	"dbm-services/common/dbha-v2/internal/probe/harvester/plugin"
 	"dbm-services/common/dbha-v2/pkg/logger"
 )
@@ -44,7 +43,6 @@ type Probe struct {
 	machineID string
 	serviceID string
 	reporter  client.Reporter
-	plugins   []plugin.Plugin
 	quit      chan struct{}
 	wg        sync.WaitGroup
 }
@@ -102,35 +100,31 @@ func (p *Probe) runPlugin(ctx context.Context, plug plugin.Plugin) {
 	}
 }
 
+// startPlugin creates a plugin via factory and runs it in a goroutine.
+// A factory may return (nil, nil) to signal that the plugin is not configured
+// (e.g. probe yaml omits the corresponding harvester block); in that case startPlugin
+// silently skips so we never run a plugin with a nil cfg.
+func (p *Probe) startPlugin(ctx context.Context, dbType string, factory pluginFactory) {
+	plug, err := factory()
+	if err != nil {
+		logger.Warn("failed to create a new harvester, dbType: %s, errmsg: %s", dbType, err)
+		return
+	}
+	if plug == nil {
+		logger.Info("harvester not configured, skip, dbType: %s", dbType)
+		return
+	}
+	p.wg.Add(1)
+	go func() {
+		defer p.wg.Done()
+		p.runPlugin(ctx, plug)
+	}()
+}
+
 func (p *Probe) loadPlugins(ctx context.Context) error {
-	if p.plugins == nil {
-		p.plugins = make([]plugin.Plugin, 3)
+	for _, e := range pluginEntries {
+		p.startPlugin(ctx, e.name, e.factory)
 	}
-
-	if config.Cfg.Harvester.MySql != nil {
-		if plug, err := harvester.NewPluginMySql(config.Cfg.Harvester.MySql); err == nil {
-			p.wg.Add(1)
-			go func() {
-				defer p.wg.Done()
-				p.runPlugin(ctx, plug)
-			}()
-
-		} else {
-			logger.Warn("failed to create a new harvester, dbType: mysql, errmsg: %s", err)
-		}
-	}
-	if config.Cfg.Harvester.Redis != nil {
-		if plug, err := harvester.NewPluginRedis(config.Cfg.Harvester.Redis); err == nil {
-			p.wg.Add(1)
-			go func() {
-				defer p.wg.Done()
-				p.runPlugin(ctx, plug)
-			}()
-		} else {
-			logger.Warn("failed to create a new harvester, dbType: redis, errmsg: %s", err)
-		}
-	}
-
 	return nil
 }
 

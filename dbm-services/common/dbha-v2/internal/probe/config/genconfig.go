@@ -25,27 +25,49 @@
 package config
 
 import (
+	"sort"
 	"strconv"
 
+	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/probeconfig"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
 	"gopkg.in/yaml.v3"
 )
 
+// defaultProbeConfigVersion is the version string written into generated probe YAML
+// when the payload does not carry a specific version.
+const defaultProbeConfigVersion = "v2.0.0"
+
 // GenProbeYAML builds the full probe config YAML from the payload returned by admin
 // (gse reporter defaults, harvester credentials/timing, and per-cluster metadata).
 //
-// Harvester sections are emitted only when admin attached the matching credentials block
-// (payload.MySQL / payload.Redis) AND the metadata yields at least one matching endpoint.
-// MySQL / Redis credentials default to zero values; admin owns the source of truth.
+// Probe routes harvester usage per endpoint based on (access_layer, machine_type):
+//   - access_layer=proxy AND machine_type=proxy (TendbHA mysql-proxy): use payload.ProxyAdmin
+//     credentials and emit only admin ports under harvester.mysqlProxyAdmin.
+//   - other mysql-family endpoints (incl. spider admin/ctl): use payload.MySQL credentials
+//     under harvester.mysql.
+//   - redis-family endpoints (incl. twemproxy/predixy admin ports): use payload.Redis
+//     credentials under harvester.redis.
+//
+// When admin omits payload.ProxyAdmin (e.g. older admin), mysql-proxy endpoints fall back to
+// harvester.mysql with payload.MySQL credentials so the probe degrades to legacy behavior.
 func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
-	adminOnly := isStrictProxyRuntime(payload.Metadata)
-	mysqlEndpoints, redisEndpoints := buildEndpointsFromMetadata(payload.Metadata, adminOnly)
+	mysqlEndpoints, mysqlProxyAdminEndpoints, redisEndpoints := buildEndpointsFromMetadata(payload.Metadata)
+
+	if payload.ProxyAdmin == nil && len(mysqlProxyAdminEndpoints) > 0 {
+		logger.Info(
+			"payload missing proxy-admin creds, falling back to probeMysql for mysql-proxy admin ports, count: %d, hint: upgrade admin to enable proxy-admin block",
+			len(mysqlProxyAdminEndpoints),
+		)
+		mysqlEndpoints = append(mysqlEndpoints, mysqlProxyAdminEndpoints...)
+		mysqlProxyAdminEndpoints = nil
+		sortEndpoints(mysqlEndpoints)
+	}
 
 	cfg := probeYAML{
 		Name:    "probe",
-		Version: "v2.0.0",
+		Version: defaultProbeConfigVersion,
 		PidFile: "./pids/probe.pid",
 		Reporter: probeReporterYAML{
 			Name:        "gse",
@@ -64,60 +86,26 @@ func GenProbeYAML(payload probeconfig.ProbeConfigPayload) (string, error) {
 		},
 	}
 
-	if adminOnly && payload.ProxyAdmin != nil {
-		applyProxyAdminHarvesters(&cfg.Harvester, payload.ProxyAdmin, mysqlEndpoints, redisEndpoints)
-		return marshalProbeYAML(cfg)
-	}
-	applyRegularHarvesters(&cfg.Harvester, payload, mysqlEndpoints, redisEndpoints)
-
-	return marshalProbeYAML(cfg)
-}
-
-func isStrictProxyRuntime(items []probeconfig.ProbeMetadataItem) bool {
-	if len(items) == 0 {
-		return false
-	}
-	for _, item := range items {
-		if item.AccessLayer != string(haprobe.DbmMetadataAccessLayerTypeProxy) {
-			return false
-		}
-		if item.MachineType != string(haprobe.DbmMetadataMachineTypeProxy) {
-			return false
-		}
-	}
-	return true
-}
-
-func applyProxyAdminHarvesters(
-	harvester *probeHarvesterYAML,
-	cfg *probeconfig.ProbeProxyAdminConfig,
-	mysqlEndpoints []DbEndpointConfig,
-	redisEndpoints []DbEndpointConfig,
-) {
-	if len(mysqlEndpoints) > 0 {
-		harvester.MySQL = buildMySQLHarvester(cfg.User, cfg.Password, cfg.Interval, mysqlEndpoints)
-	}
-	if len(redisEndpoints) > 0 {
-		harvester.Redis = buildRedisHarvester(cfg.User, cfg.Password, cfg.Interval, cfg.Timeout, redisEndpoints)
-	}
-}
-
-func applyRegularHarvesters(
-	harvester *probeHarvesterYAML,
-	payload probeconfig.ProbeConfigPayload,
-	mysqlEndpoints []DbEndpointConfig,
-	redisEndpoints []DbEndpointConfig,
-) {
 	if payload.MySQL != nil && len(mysqlEndpoints) > 0 {
-		harvester.MySQL = buildMySQLHarvester(
+		cfg.Harvester.MySQL = buildMySQLHarvester(
 			payload.MySQL.User,
 			payload.MySQL.Password,
 			payload.MySQL.Interval,
+			payload.MySQL.Timeout,
 			mysqlEndpoints,
 		)
 	}
+	if payload.ProxyAdmin != nil && len(mysqlProxyAdminEndpoints) > 0 {
+		cfg.Harvester.MySQLProxyAdmin = buildMySQLHarvester(
+			payload.ProxyAdmin.User,
+			payload.ProxyAdmin.Password,
+			payload.ProxyAdmin.Interval,
+			payload.ProxyAdmin.Timeout,
+			mysqlProxyAdminEndpoints,
+		)
+	}
 	if payload.Redis != nil && len(redisEndpoints) > 0 {
-		harvester.Redis = buildRedisHarvester(
+		cfg.Harvester.Redis = buildRedisHarvester(
 			payload.Redis.User,
 			payload.Redis.Password,
 			payload.Redis.Interval,
@@ -125,18 +113,34 @@ func applyRegularHarvesters(
 			redisEndpoints,
 		)
 	}
+
+	return marshalProbeYAML(cfg)
+}
+
+// isMysqlProxyEndpoint reports whether a metadata entry is a TendbHA mysql-proxy node
+// (the only role that requires distinct proxy-admin credentials in this design):
+// mysql-family clusterType AND access_layer=proxy AND machine_type=proxy.
+// Spider / Twemproxy / Predixy proxies are intentionally excluded; they are probed with
+// regular probeMysql / probeRedis credentials via their AdminPorts. Non-mysql clusterType
+// with (proxy, proxy) is treated as malformed metadata and skipped from the proxy-admin route.
+func isMysqlProxyEndpoint(clusterType, machineType, accessLayer string) bool {
+	return probeconfig.IsMySQLClusterType(clusterType) &&
+		accessLayer == string(haprobe.DbmMetadataAccessLayerTypeProxy) &&
+		machineType == string(haprobe.DbmMetadataMachineTypeProxy)
 }
 
 func buildMySQLHarvester(
 	user string,
 	password string,
 	interval string,
+	timeout string,
 	endpoints []DbEndpointConfig,
 ) *probeMySQLHarvesterYAML {
 	return &probeMySQLHarvesterYAML{
 		User:      user,
 		Password:  password,
 		Interval:  interval,
+		Timeout:   timeout,
 		Endpoints: endpoints,
 	}
 }
@@ -165,29 +169,57 @@ func marshalProbeYAML(cfg probeYAML) (string, error) {
 	return string(out), nil
 }
 
-func buildEndpointsFromMetadata(
-	list []probeconfig.ProbeMetadataItem,
-	adminOnly bool,
-) (mysql, redis []DbEndpointConfig) {
-	type key struct {
-		ip          string
-		clusterType string
-		machineType string
-		accessLayer string
+// endpointKey is the dedup / grouping key used by buildEndpointsFromMetadata to
+// fold metadata items sharing the same (ip, cluster_type, machine_type, access_layer)
+// tuple into one DbEndpointConfig with merged Ports / AdminPorts.
+type endpointKey struct {
+	ip          string
+	clusterType string
+	machineType string
+	accessLayer string
+}
+
+// newEndpointKey extracts the grouping key from a metadata item.
+func newEndpointKey(m probeconfig.ProbeMetadataItem) endpointKey {
+	return endpointKey{
+		ip:          m.IP,
+		clusterType: m.ClusterType,
+		machineType: m.MachineType,
+		accessLayer: m.AccessLayer,
 	}
-	keys := make(map[key]struct{})
-	portsByKey := make(map[key][]string)
-	adminPortsByKey := make(map[key][]string)
+}
+
+// sortEndpointKeys sorts the keys in place by (ip, cluster_type, machine_type, access_layer)
+// so the rendered yaml is deterministic across runs.
+func sortEndpointKeys(keys []endpointKey) {
+	sort.Slice(keys, func(i, j int) bool {
+		if keys[i].ip != keys[j].ip {
+			return keys[i].ip < keys[j].ip
+		}
+		if keys[i].clusterType != keys[j].clusterType {
+			return keys[i].clusterType < keys[j].clusterType
+		}
+		if keys[i].machineType != keys[j].machineType {
+			return keys[i].machineType < keys[j].machineType
+		}
+		return keys[i].accessLayer < keys[j].accessLayer
+	})
+}
+
+// groupMetadataByEndpointKey folds raw metadata items into ports / adminPorts grouped by
+// endpointKey and returns the keys sorted for deterministic yaml output. Port 0 / AdminPort 0
+// entries are dropped here so callers don't have to special-case them again.
+func groupMetadataByEndpointKey(
+	list []probeconfig.ProbeMetadataItem,
+) ([]endpointKey, map[endpointKey][]string, map[endpointKey][]string) {
+	keys := make(map[endpointKey]struct{})
+	portsByKey := make(map[endpointKey][]string)
+	adminPortsByKey := make(map[endpointKey][]string)
 
 	for _, m := range list {
-		k := key{
-			ip:          m.IP,
-			clusterType: m.ClusterType,
-			machineType: m.MachineType,
-			accessLayer: m.AccessLayer,
-		}
+		k := newEndpointKey(m)
 		keys[k] = struct{}{}
-		if !adminOnly && m.Port > 0 {
+		if m.Port > 0 {
 			portsByKey[k] = append(portsByKey[k], strconv.Itoa(m.Port))
 		}
 		if m.AdminPort > 0 {
@@ -195,25 +227,61 @@ func buildEndpointsFromMetadata(
 		}
 	}
 
+	ordered := make([]endpointKey, 0, len(keys))
 	for k := range keys {
+		ordered = append(ordered, k)
+	}
+	sortEndpointKeys(ordered)
+	return ordered, portsByKey, adminPortsByKey
+}
+
+// buildEndpointsFromMetadata folds metadata items into three endpoint slices keyed by
+// (ip, cluster_type, machine_type, access_layer). It applies these rules:
+//   - port 0 entries are dropped silently (no "0" noise in yaml output)
+//   - mysql-proxy endpoints (access_layer=proxy AND machine_type=proxy) emit only AdminPorts
+//     and go to mysqlProxyAdmin; if they have no AdminPorts they are skipped
+//   - other mysql-family endpoints go to mysql with both Ports and AdminPorts
+//   - redis-family endpoints go to redis with both Ports and AdminPorts
+//   - unknown cluster types are skipped
+//
+// Output slices are sorted by (ip, cluster_type, machine_type, access_layer) for deterministic yaml.
+func buildEndpointsFromMetadata(
+	list []probeconfig.ProbeMetadataItem,
+) (mysql, mysqlProxyAdmin, redis []DbEndpointConfig) {
+	ordered, portsByKey, adminPortsByKey := groupMetadataByEndpointKey(list)
+
+	for _, k := range ordered {
+		ports := portsByKey[k]
 		adminPorts := adminPortsByKey[k]
-		if adminOnly && len(adminPorts) == 0 {
+		if len(ports) == 0 && len(adminPorts) == 0 {
 			continue
 		}
+
 		ep := DbEndpointConfig{
 			Proto:       "tcp",
 			ClusterType: haprobe.DbmMetadataClusterType(k.clusterType),
 			MachineType: haprobe.DbmMetadataMachineType(k.machineType),
 			AccessLayer: haprobe.DbmMetadataAccessLayerType(k.accessLayer),
 			Ip:          k.ip,
-			AdminPorts:  adminPorts,
 		}
 
-		// In proxy_admin_only mode, ports are intentionally omitted.
-		if !adminOnly {
-			ep.Ports = portsByKey[k]
+		if isMysqlProxyEndpoint(k.clusterType, k.machineType, k.accessLayer) {
+			if len(adminPorts) == 0 {
+				continue
+			}
+			if len(ports) > 0 {
+				logger.Debug(
+					"dropping data ports for mysql-proxy endpoint, ip: %s, dropped: %v",
+					k.ip, ports,
+				)
+			}
+			ep.AdminPorts = adminPorts
+			mysqlProxyAdmin = append(mysqlProxyAdmin, ep)
+			continue
 		}
 
+		ep.Ports = ports
+		ep.AdminPorts = adminPorts
 		switch {
 		case probeconfig.IsMySQLClusterType(k.clusterType):
 			mysql = append(mysql, ep)
@@ -221,5 +289,22 @@ func buildEndpointsFromMetadata(
 			redis = append(redis, ep)
 		}
 	}
-	return mysql, redis
+	return mysql, mysqlProxyAdmin, redis
+}
+
+// sortEndpoints sorts in-place by (ip, cluster_type, machine_type, access_layer) to
+// keep yaml output deterministic after merges (e.g. fallback path).
+func sortEndpoints(endpoints []DbEndpointConfig) {
+	sort.Slice(endpoints, func(i, j int) bool {
+		if endpoints[i].Ip != endpoints[j].Ip {
+			return endpoints[i].Ip < endpoints[j].Ip
+		}
+		if endpoints[i].ClusterType != endpoints[j].ClusterType {
+			return endpoints[i].ClusterType < endpoints[j].ClusterType
+		}
+		if endpoints[i].MachineType != endpoints[j].MachineType {
+			return endpoints[i].MachineType < endpoints[j].MachineType
+		}
+		return endpoints[i].AccessLayer < endpoints[j].AccessLayer
+	})
 }

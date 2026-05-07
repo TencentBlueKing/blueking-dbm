@@ -65,20 +65,24 @@ type ReporterConfig struct {
 
 // DbEndpointConfig db instance endpoint config
 type DbEndpointConfig struct {
-	Proto       string                             `yaml:"proto"           mapstructure:"proto"`
-	ClusterType haprobe.DbmMetadataClusterType     `yaml:"clusterType"     mapstructure:"clusterType"`
-	MachineType haprobe.DbmMetadataMachineType     `yaml:"machineType"     mapstructure:"machineType"`
-	AccessLayer haprobe.DbmMetadataAccessLayerType `yaml:"accessLayer"     mapstructure:"accessLayer"`
-	Ip          string                             `yaml:"ip"              mapstructure:"ip"`
+	Proto       string                             `yaml:"proto"       mapstructure:"proto"`
+	ClusterType haprobe.DbmMetadataClusterType     `yaml:"clusterType" mapstructure:"clusterType"`
+	MachineType haprobe.DbmMetadataMachineType     `yaml:"machineType" mapstructure:"machineType"`
+	AccessLayer haprobe.DbmMetadataAccessLayerType `yaml:"accessLayer" mapstructure:"accessLayer"`
+	Ip          string                             `yaml:"ip"          mapstructure:"ip"`
 	Ports       []string                           `yaml:"ports"       mapstructure:"ports"`
-	AdminPorts  []string                           `yaml:"adminPorts"      mapstructure:"adminPorts"`
+	AdminPorts  []string                           `yaml:"adminPorts"  mapstructure:"adminPorts"`
 }
 
-// MySqlHarvesterConfig MySQL harvester config
+// MySqlHarvesterConfig MySQL harvester config.
+// Timeout bounds both DSN dial timeout (go-sql-driver "timeout=..." DSN parameter) and per-query
+// context timeout (gorm WithContext) for every collector built from this block. Admin clamps the
+// upstream value at minProbeHarvesterTimeout before sending.
 type MySqlHarvesterConfig struct {
 	User      string             `yaml:"user"      mapstructure:"user"`
 	Password  string             `yaml:"password"  mapstructure:"password"`
 	Interval  time.Duration      `yaml:"interval"  mapstructure:"interval"`
+	Timeout   time.Duration      `yaml:"timeout"   mapstructure:"timeout"`
 	Endpoints []DbEndpointConfig `yaml:"endpoints" mapstructure:"endpoints"`
 }
 
@@ -91,10 +95,14 @@ type RedisHarvesterConfig struct {
 	Endpoints []DbEndpointConfig `yaml:"endpoints" mapstructure:"endpoints"`
 }
 
-// HarvesterConfig harvester config
+// HarvesterConfig harvester config.
+// MySqlProxyAdmin reuses MySqlHarvesterConfig but carries proxy-admin credentials and admin-port-only
+// endpoints; probe loads it as a separate MySQL plugin instance so proxy admin ports are probed with
+// distinct creds from regular mysql storage/spider endpoints.
 type HarvesterConfig struct {
-	MySql *MySqlHarvesterConfig
-	Redis *RedisHarvesterConfig
+	MySql           *MySqlHarvesterConfig `yaml:"mysql"           mapstructure:"mysql"`
+	MySqlProxyAdmin *MySqlHarvesterConfig `yaml:"mysqlProxyAdmin" mapstructure:"mysqlProxyAdmin"`
+	Redis           *RedisHarvesterConfig `yaml:"redis"           mapstructure:"redis"`
 }
 
 // LogConfig log configuration

@@ -45,11 +45,14 @@ type GseConfig struct {
 }
 
 // ProbeMySQLConfig carries MySQL harvester credentials/timing from admin to probe.
-// Interval is the YAML duration string (e.g. "20s") emitted verbatim into probe.yaml.
+// Interval / Timeout are YAML duration strings (e.g. "20s") emitted verbatim into probe.yaml.
+// Timeout bounds DSN dial timeout and per-query context timeout in the mysql harvester.
+// Admin clamps Timeout at minProbeHarvesterTimeout before sending.
 type ProbeMySQLConfig struct {
 	User     string `json:"user"`
 	Password string `json:"password"`
 	Interval string `json:"interval"`
+	Timeout  string `json:"timeout"`
 }
 
 // ProbeRedisConfig carries Redis harvester credentials/timing from admin to probe.
@@ -72,8 +75,9 @@ type ProbeProxyAdminConfig struct {
 
 // ProbeConfigPayload is the JSON payload returned by admin GetProbeConfig.
 // Probe parses it to render the final probe YAML (gse reporter + harvester credentials + db endpoints).
-// MySQL / Redis are pointers so admin can omit them when the requesting probe's metadata
-// has no matching cluster family.
+// Admin always populates MySQL / Redis / ProxyAdmin defaults; probe routes per endpoint based on
+// (access_layer, machine_type) when generating the final YAML. The credential blocks remain pointers
+// so older admin builds that omit a block still degrade gracefully on newer probes.
 type ProbeConfigPayload struct {
 	Gse        GseConfig              `json:"gse"`
 	MySQL      *ProbeMySQLConfig      `json:"mysql,omitempty"`
@@ -101,21 +105,4 @@ func IsRedisClusterType(ct string) bool {
 		return true
 	}
 	return false
-}
-
-// MetadataFamilies scans the metadata items once and reports whether MySQL / Redis families
-// are present, so admin can decide which credential blocks to attach to the payload.
-func MetadataFamilies(items []ProbeMetadataItem) (hasMySQL, hasRedis bool) {
-	for _, m := range items {
-		switch {
-		case IsMySQLClusterType(m.ClusterType):
-			hasMySQL = true
-		case IsRedisClusterType(m.ClusterType):
-			hasRedis = true
-		}
-		if hasMySQL && hasRedis {
-			return
-		}
-	}
-	return
 }

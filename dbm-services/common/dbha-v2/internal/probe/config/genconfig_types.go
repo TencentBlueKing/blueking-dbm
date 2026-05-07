@@ -47,6 +47,7 @@ type probeMySQLHarvesterYAML struct {
 	User      string             `yaml:"user"`
 	Password  string             `yaml:"password"`
 	Interval  string             `yaml:"interval"`
+	Timeout   string             `yaml:"timeout"`
 	Endpoints []DbEndpointConfig `yaml:"endpoints"`
 }
 
@@ -59,6 +60,7 @@ type probeRedisHarvesterYAML struct {
 }
 
 type probeHarvesterYAML struct {
-	MySQL *probeMySQLHarvesterYAML `yaml:"mysql,omitempty"`
-	Redis *probeRedisHarvesterYAML `yaml:"redis,omitempty"`
+	MySQL           *probeMySQLHarvesterYAML `yaml:"mysql,omitempty"`
+	MySQLProxyAdmin *probeMySQLHarvesterYAML `yaml:"mysqlProxyAdmin,omitempty"`
+	Redis           *probeRedisHarvesterYAML `yaml:"redis,omitempty"`
 }

@@ -52,6 +52,10 @@ var (
 	ConfigFilePath string
 )
 
+// DefaultGenConfigTimeout is the default deadline applied to gen-config when --timeout
+// is omitted or non-positive; covers the entire admin-endpoints fan-out.
+const DefaultGenConfigTimeout = 30 * time.Second
+
 // ProbeHealthInfo extends base process health with probe-specific db types (MySQL, Redis, etc.).
 type ProbeHealthInfo struct {
 	*process.HealthInfo
@@ -65,12 +69,21 @@ func procName() string {
 	return process.NameProbe
 }
 
+func mysqlHarvesterHasEndpoints(c *config.MySqlHarvesterConfig) bool {
+	return c != nil && len(c.Endpoints) > 0
+}
+
+func redisHarvesterHasEndpoints(c *config.RedisHarvesterConfig) bool {
+	return c != nil && len(c.Endpoints) > 0
+}
+
 func getConfiguredDbTypes() []haprobe.DbType {
 	var dbTypes []haprobe.DbType
-	if config.Cfg.Harvester.MySql != nil && len(config.Cfg.Harvester.MySql.Endpoints) > 0 {
+	if mysqlHarvesterHasEndpoints(config.Cfg.Harvester.MySql) ||
+		mysqlHarvesterHasEndpoints(config.Cfg.Harvester.MySqlProxyAdmin) {
 		dbTypes = append(dbTypes, haprobe.DbTypeMySql)
 	}
-	if config.Cfg.Harvester.Redis != nil && len(config.Cfg.Harvester.Redis.Endpoints) > 0 {
+	if redisHarvesterHasEndpoints(config.Cfg.Harvester.Redis) {
 		dbTypes = append(dbTypes, haprobe.DbTypeRedis)
 	}
 	return dbTypes
@@ -163,6 +176,10 @@ func GenConfigCmdRunE(cmd *cobra.Command, args []string) error {
 	localIP, _ := cmd.Flags().GetString("local-ip")
 	localIPInterface, _ := cmd.Flags().GetString("local-ip-interface")
 	outputPath, _ := cmd.Flags().GetString("output")
+	timeout, _ := cmd.Flags().GetDuration("timeout")
+	if timeout <= 0 {
+		timeout = DefaultGenConfigTimeout
+	}
 
 	if adminEndpointsStr == "" {
 		return fmt.Errorf("admin-endpoints is required")
@@ -184,7 +201,8 @@ func GenConfigCmdRunE(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("admin-endpoints has no valid address")
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
 	req := &proto.ProbeConfigRequest{
 		BkCloudId:   cloudID,
 		Ip:          localIP,

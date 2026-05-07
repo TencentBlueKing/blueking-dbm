@@ -39,6 +39,16 @@ import (
 // when probeGse.connTimeout is empty, invalid, or below this duration.
 const minProbeGseConnTimeout = 5 * time.Second
 
+// minProbeHarvesterInterval / minProbeHarvesterTimeout are lower bounds enforced at admin load
+// for ProbeMysql / ProbeRedis / ProbeProxyAdmin Interval / Timeout fields. Values that are zero or
+// below the minimum are normalized so probe never receives 0s and starts a zero-interval ticker.
+// Empty YAML values are not clamped here: viper's duration decoder rejects them and Load returns
+// an error before clamp runs, so callers must always supply a parseable Go duration string.
+const (
+	minProbeHarvesterInterval = 5 * time.Second
+	minProbeHarvesterTimeout  = 1 * time.Second
+)
+
 var Cfg = Configuration{
 	Name:    "admin",
 	PidFile: "./pids/admin.pid",
@@ -128,16 +138,21 @@ type ProbeGseConfig struct {
 	ConnTimeout string `yaml:"connTimeout" mapstructure:"connTimeout"`
 }
 
-// ProbeMysqlConfig defaults for probe MySQL harvester; admin loads from YAML and returns to probe
-// via GetProbeConfig only when the requesting probe's metadata contains MySQL clusters.
+// ProbeMysqlConfig defaults for probe MySQL harvester; admin loads from YAML and always returns
+// these defaults to every probe via GetProbeConfig. Probe routes harvester per endpoint based on
+// (access_layer, machine_type); these credentials are applied to all mysql-family endpoints
+// except TendbHA mysql-proxy (access_layer=proxy AND machine_type=proxy); includes spider admin/ctl.
 type ProbeMysqlConfig struct {
 	User     string        `yaml:"user"     mapstructure:"user"`
 	Password string        `yaml:"password" mapstructure:"password"`
 	Interval time.Duration `yaml:"interval" mapstructure:"interval"`
+	Timeout  time.Duration `yaml:"timeout"  mapstructure:"timeout"`
 }
 
-// ProbeRedisConfig defaults for probe Redis harvester; admin loads from YAML and returns to probe
-// via GetProbeConfig only when the requesting probe's metadata contains Redis clusters.
+// ProbeRedisConfig defaults for probe Redis harvester; admin loads from YAML and always returns
+// these defaults to every probe via GetProbeConfig. Probe routes harvester per endpoint based on
+// (access_layer, machine_type); these credentials are applied to all redis-family endpoints
+// (includes twemproxy/predixy admin ports).
 type ProbeRedisConfig struct {
 	User     string        `yaml:"user"     mapstructure:"user"`
 	Password string        `yaml:"password" mapstructure:"password"`
@@ -146,7 +161,9 @@ type ProbeRedisConfig struct {
 }
 
 // ProbeProxyAdminConfig defaults for probe proxy-admin harvester; admin loads from YAML and
-// returns to probe only when the requesting probe node is strict proxy.
+// always returns these defaults to every probe via GetProbeConfig. Probe routes harvester per
+// endpoint based on (access_layer, machine_type); these credentials are applied only to TendbHA
+// mysql-proxy endpoints (access_layer=proxy AND machine_type=proxy) and only their AdminPorts.
 type ProbeProxyAdminConfig struct {
 	User     string        `yaml:"user"     mapstructure:"user"`
 	Password string        `yaml:"password" mapstructure:"password"`
@@ -194,6 +211,34 @@ func clampProbeGseConnTimeout(raw string) string {
 	return s
 }
 
+// clampProbeHarvesterInterval returns at least minProbeHarvesterInterval; values that are zero
+// or below the minimum are normalized to the minimum. name is the harvester block label
+// (e.g. "probeMysql") used only for the warn log.
+func clampProbeHarvesterInterval(name string, d time.Duration) time.Duration {
+	if d < minProbeHarvesterInterval {
+		logger.Warn(
+			"probe harvester interval below minimum, normalizing, name: %s, given: %s, minimum: %s",
+			name, d, minProbeHarvesterInterval,
+		)
+		return minProbeHarvesterInterval
+	}
+	return d
+}
+
+// clampProbeHarvesterTimeout returns at least minProbeHarvesterTimeout; values that are zero
+// or below the minimum are normalized to the minimum. name is the harvester block label
+// (e.g. "probeRedis") used only for the warn log.
+func clampProbeHarvesterTimeout(name string, d time.Duration) time.Duration {
+	if d < minProbeHarvesterTimeout {
+		logger.Warn(
+			"probe harvester timeout below minimum, normalizing, name: %s, given: %s, minimum: %s",
+			name, d, minProbeHarvesterTimeout,
+		)
+		return minProbeHarvesterTimeout
+	}
+	return d
+}
+
 // Load loads admin configuration from file
 func Load(configFilePath string) error {
 	viper.SetConfigName("admin")
@@ -213,5 +258,13 @@ func Load(configFilePath string) error {
 	}
 
 	Cfg.ProbeGse.ConnTimeout = clampProbeGseConnTimeout(Cfg.ProbeGse.ConnTimeout)
+
+	Cfg.ProbeMysql.Interval = clampProbeHarvesterInterval("probeMysql", Cfg.ProbeMysql.Interval)
+	Cfg.ProbeMysql.Timeout = clampProbeHarvesterTimeout("probeMysql", Cfg.ProbeMysql.Timeout)
+	Cfg.ProbeRedis.Interval = clampProbeHarvesterInterval("probeRedis", Cfg.ProbeRedis.Interval)
+	Cfg.ProbeRedis.Timeout = clampProbeHarvesterTimeout("probeRedis", Cfg.ProbeRedis.Timeout)
+	Cfg.ProbeProxyAdmin.Interval = clampProbeHarvesterInterval("probeProxyAdmin", Cfg.ProbeProxyAdmin.Interval)
+	Cfg.ProbeProxyAdmin.Timeout = clampProbeHarvesterTimeout("probeProxyAdmin", Cfg.ProbeProxyAdmin.Timeout)
+
 	return nil
 }

@@ -83,6 +83,7 @@ func applyAllHarvesterPayload(payload *probeconfig.ProbeConfigPayload) {
 		User:     Cfg.ProbeMysql.User,
 		Password: Cfg.ProbeMysql.Password,
 		Interval: durationToYAMLString(Cfg.ProbeMysql.Interval),
+		Timeout:  durationToYAMLString(Cfg.ProbeMysql.Timeout),
 	}
 	payload.Redis = &probeconfig.ProbeRedisConfig{
 		User:     Cfg.ProbeRedis.User,

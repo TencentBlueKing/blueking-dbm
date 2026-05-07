@@ -25,6 +25,7 @@
 package mysql
 
 import (
+	"context"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/probe/harvester/base"
@@ -43,13 +44,23 @@ type collector struct {
 	accessLayer haprobe.DbmMetadataAccessLayerType
 	user        string
 	password    string
+	timeout     time.Duration
 	endpoint    *hanet.Endpoint
 	db          *hamysql.GormDB
 	isAdminNode bool
 }
 
+// queryCtx returns a context bounded by c.timeout; when c.timeout <= 0 it returns
+// context.Background plus a no-op cancel so callers can always defer cancel().
+func (c *collector) queryCtx() (context.Context, context.CancelFunc) {
+	if c.timeout <= 0 {
+		return context.Background(), func() {}
+	}
+	return context.WithTimeout(context.Background(), c.timeout)
+}
+
 func (c *collector) open() (*haprobe.DbEvent, error) {
-	db, err := hamysql.NewGormDB(
+	opts := []hamysql.Option{
 		hamysql.OptionProto(c.endpoint.Proto),
 		hamysql.OptionIP(c.endpoint.Host),
 		hamysql.OptionPort(c.endpoint.Port),
@@ -58,7 +69,11 @@ func (c *collector) open() (*haprobe.DbEvent, error) {
 		hamysql.OptionSkipInitializeWithVersion(false),
 		hamysql.OptionDisableDatetimePrecision(true),
 		hamysql.OptionCharset(""),
-	)
+	}
+	if c.timeout > 0 {
+		opts = append(opts, hamysql.OptionTimeout(c.timeout))
+	}
+	db, err := hamysql.NewGormDB(opts...)
 
 	if err != nil {
 		logger.Warn("create mysql db operator failed, errmsg: %s", err)
@@ -118,8 +133,11 @@ func (c *collector) isAdmin() bool {
 }
 
 func (c *collector) obtainTendbClusterProxyStatus() (*haprobe.MySqlSpiderCtlStatus, error) {
+	ctx, cancel := c.queryCtx()
+	defer cancel()
+
 	var routes []haprobe.MySqlSpiderCtlRoute
-	err := c.db.DB().Raw("select * from mysql.servers").Scan(&routes).Error
+	err := c.db.DB().WithContext(ctx).Raw("select * from mysql.servers").Scan(&routes).Error
 
 	if err != nil {
 		logger.Warn("failed to get MySQL spider routes, errmsg: %s", err)
@@ -127,7 +145,7 @@ func (c *collector) obtainTendbClusterProxyStatus() (*haprobe.MySqlSpiderCtlStat
 	}
 
 	var nodes []haprobe.MySqlSpiderCtlNode
-	err = c.db.DB().Raw("select * from information_schema.TDBCTL_NODES").Scan(&nodes).Error
+	err = c.db.DB().WithContext(ctx).Raw("select * from information_schema.TDBCTL_NODES").Scan(&nodes).Error
 
 	if err != nil {
 		logger.Warn("failed to get MySQL spider nodes, errmsg: %s", err)
@@ -143,8 +161,11 @@ func (c *collector) obtainTendbClusterProxyStatus() (*haprobe.MySqlSpiderCtlStat
 }
 
 func (c *collector) obtainTendbHaProxyStatus() (*haprobe.MySqlProxyStatus, error) {
+	ctx, cancel := c.queryCtx()
+	defer cancel()
+
 	var backends []haprobe.MySqlProxyBackend
-	err := c.db.DB().Raw("select * from backends").Scan(&backends).Error
+	err := c.db.DB().WithContext(ctx).Raw("select * from backends").Scan(&backends).Error
 
 	if err != nil {
 		logger.Warn("failed to get MySQL proxy status, errmsg: %s", err)
@@ -155,8 +176,11 @@ func (c *collector) obtainTendbHaProxyStatus() (*haprobe.MySqlProxyStatus, error
 }
 
 func (c *collector) obtainGlobalStatus() (*haprobe.MySqlGlobalStatus, error) {
+	ctx, cancel := c.queryCtx()
+	defer cancel()
+
 	var statusResults []globalStatus
-	err := c.db.DB().Raw("SHOW GLOBAL STATUS").Scan(&statusResults).Error
+	err := c.db.DB().WithContext(ctx).Raw("SHOW GLOBAL STATUS").Scan(&statusResults).Error
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +188,7 @@ func (c *collector) obtainGlobalStatus() (*haprobe.MySqlGlobalStatus, error) {
 	dbStatus := convertToMySqlStatus(statusResults)
 
 	var version string
-	err = c.db.DB().Raw("SELECT VERSION() as version").Scan(&version).Error
+	err = c.db.DB().WithContext(ctx).Raw("SELECT VERSION() as version").Scan(&version).Error
 	if err != nil {
 		logger.Warn("failed to get mysql version, errmsg: %s", err)
 		return nil, err
@@ -172,7 +196,7 @@ func (c *collector) obtainGlobalStatus() (*haprobe.MySqlGlobalStatus, error) {
 	dbStatus.Version = version
 
 	var portResult globalStatus
-	err = c.db.DB().Raw("SHOW VARIABLES LIKE 'port'").Scan(&portResult).Error
+	err = c.db.DB().WithContext(ctx).Raw("SHOW VARIABLES LIKE 'port'").Scan(&portResult).Error
 	if err != nil {
 		logger.Warn("failed to get mysql listen port, result: %s, errmsg: %s", portResult, err)
 		return nil, err
