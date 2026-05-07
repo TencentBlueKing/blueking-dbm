@@ -1,10 +1,10 @@
 {
   "bk_biz_id": 0,
-  "name": "MySQL int溢出告警",
+  "name": "TendbCluster int自增溢出告警",
   "db_type": "mysql",
   "details": {
     "bk_biz_id": "",
-    "name": "MySQL int溢出告警",
+    "name": "TendbCluster int自增溢出告警",
     "source": "dbm",
     "scenario": "component",
     "type": "monitor",
@@ -31,10 +31,9 @@
             "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.__default__.mysql_info_schema_auto_increment_column",
             "functions": [],
             "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
-            "agg_method": "AVG",
-            "agg_interval": 60,
+            "agg_method": "MAX",
+            "agg_interval": 300,
             "agg_dimension": [
-              "bk_target_service_instance_id",
               "app",
               "cluster_domain",
               "schema",
@@ -44,13 +43,13 @@
             ],
             "agg_condition": [
               {
-                "key": "instance_role",
+                "key": "cluster_type",
                 "value": [
-                  "backend_master"
+                  "tendbcluster"
                 ],
                 "method": "eq",
                 "condition": "and",
-                "dimension_name": "instance_role"
+                "dimension_name": "cluster type"
               }
             ],
             "metric_field": "mysql_info_schema_auto_increment_column",
@@ -64,10 +63,9 @@
             "metric_id": "bk_monitor.exporter_dbm_mysqld_exporter.__default__.mysql_info_schema_auto_increment_column_max",
             "functions": [],
             "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
-            "agg_method": "AVG",
-            "agg_interval": 60,
+            "agg_method": "MAX",
+            "agg_interval": 300,
             "agg_dimension": [
-              "bk_target_service_instance_id",
               "app",
               "cluster_domain",
               "schema",
@@ -77,13 +75,13 @@
             ],
             "agg_condition": [
               {
-                "key": "instance_role",
+                "key": "cluster_type",
                 "value": [
-                  "backend_master"
+                  "tendbcluster"
                 ],
                 "method": "eq",
                 "condition": "and",
-                "dimension_name": "instance_role"
+                "dimension_name": "cluster type"
               }
             ],
             "metric_field": "mysql_info_schema_auto_increment_column_max",
@@ -292,7 +290,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "AVG(mysql_info_schema_auto_increment_column) / AVG(mysql_info_schema_auto_increment_column_max) * 100",
-  "version": 26,
+  "version": 27,
   "alert_source": "time_series",
   "custom_conditions": []
 }
