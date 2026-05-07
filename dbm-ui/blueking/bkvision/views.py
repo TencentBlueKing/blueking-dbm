@@ -1,15 +1,19 @@
 # -*- coding:utf-8 -*-
 import json
+import logging
 
 import requests
-from blueapps.account.decorators import login_exempt
 from django.conf import settings
-from django.http import JsonResponse, HttpResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
+from django.http import HttpResponse, JsonResponse
+from rest_framework.decorators import action
 
-from blueking.bkvision.settings import PRE_PROCESS_FUNC, BKVISION_APIGW_URL
+from backend.bk_web import viewsets
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
+from blueking.bkvision.settings import BKVISION_APIGW_URL, PRE_PROCESS_FUNC
 from blueking.bkvision.utils import normalize_request_headers
+
+logger = logging.getLogger("root")
 
 
 def build_headers(request):
@@ -42,118 +46,93 @@ def proxy_request(request, path):
     )
 
 
-@login_exempt
-@csrf_exempt
-@require_http_methods(["POST"])
-def query_variable(request):
-    """获取变量数据"""
+class BkVisionViewSet(viewsets.SystemViewSet):
+    """BKVision 代理视图 - 需要平台管理权限"""
 
-    try:
-        return proxy_request(request, '/api/v1/variable/query/')
-    except Exception as e:
-        return JsonResponse({"result": False, "message": "query_variable exception: {}".format(e), "code": 400})
+    default_permission_class = [ResourceActionPermission([ActionEnum.PLATFORM_MANAGE])]
 
+    @action(methods=["POST"], detail=False)
+    def query_variable(self, request):
+        """获取变量数据"""
+        try:
+            return proxy_request(request, '/api/v1/variable/query/')
+        except Exception as e:
+            logger.exception("[bkvision] query_variable failed: %s", e)
+            return JsonResponse({"result": False, "message": "[bkvision] 服务异常，请稍后重试", "code": 400})
 
-@login_exempt
-@csrf_exempt
-@require_http_methods(["POST"])
-def test_variable(request):
-    """测试变量数据"""
+    @action(methods=["POST"], detail=False)
+    def test_variable(self, request):
+        """测试变量数据"""
+        try:
+            return proxy_request(request, '/api/v1/variable/test/')
+        except Exception as e:
+            logger.exception("[bkvision] test_variable failed: %s", e)
+            return JsonResponse({"result": False, "message": "[bkvision] 服务异常，请稍后重试", "code": 400})
 
-    try:
-        return proxy_request(request, '/api/v1/variable/test/')
-    except Exception as e:
-        return JsonResponse({"result": False, "message": "query_variable exception: {}".format(e), "code": 400})
+    @action(methods=["POST"], detail=False, url_path="preview_field_data/(?P<uid>\\w+)")
+    def preview_field_data(self, request, uid):
+        """获取字段数据"""
+        try:
+            return proxy_request(request, f'/api/v1/field/{uid}/preview_data/')
+        except Exception as e:
+            logger.exception("[bkvision] preview_field_data failed, uid=%s: %s", uid, e)
+            return JsonResponse({"result": False, "message": "[bkvision] 服务异常，请稍后重试", "code": 400})
 
+    @action(methods=["POST"], detail=False)
+    def query_datasource(self, request):
+        """查询数据源数据"""
+        try:
+            request = PRE_PROCESS_FUNC(request)
+            return proxy_request(request, '/api/v1/datasource/query/')
+        except Exception as e:
+            logger.exception("[bkvision] query_datasource failed: %s", e)
+            return JsonResponse({"result": False, "message": "[bkvision] 服务异常，请稍后重试", "code": 400})
 
-@login_exempt
-@csrf_exempt
-@require_http_methods(["POST"])
-def preview_field_data(request, uid):
-    """获取字段数据"""
+    @action(methods=["POST"], detail=False)
+    def query_dataset(self, request):
+        """查询数据集数据"""
+        try:
+            request = PRE_PROCESS_FUNC(request)
+            return proxy_request(request, '/api/v1/dataset/query/')
+        except Exception as e:
+            logger.exception("[bkvision] query_dataset failed: %s", e)
+            return JsonResponse({"result": False, "message": "[bkvision] 服务异常，请稍后重试", "code": 400})
 
-    try:
-        return proxy_request(request, f'/api/v1/field/{uid}/preview_data/')
-    except Exception as e:
-        return JsonResponse({"result": False, "message": "query_variable exception: {}".format(e), "code": 400})
+    @action(methods=["GET"], detail=False)
+    def query_meta(self, request):
+        """获取配置"""
+        try:
+            return proxy_request(request, '/api/v1/meta/query/')
+        except Exception as e:
+            logger.exception("[bkvision] query_meta failed: %s", e)
+            return JsonResponse({"result": False, "message": "[bkvision] 服务异常，请稍后重试", "code": 400})
 
+    @action(methods=["GET"], detail=False)
+    def get_panel(self, request):
+        """获取图表配置"""
+        try:
+            return proxy_request(request, '/api/v1/panel/')
+        except Exception as e:
+            logger.exception("[bkvision] get_panel failed: %s", e)
+            return JsonResponse({"result": False, "message": "[bkvision] 服务异常，请稍后重试", "code": 400})
 
-@login_exempt
-@csrf_exempt
-@require_http_methods(["POST"])
-def query_datasource(request):
-    """查询数据源数据"""
+    @action(methods=["GET"], detail=False)
+    def get_child_panels(self, request):
+        """获取子图列表"""
+        try:
+            return proxy_request(request, '/api/v1/panel/get_child_panels/')
+        except Exception as e:
+            logger.exception("[bkvision] get_child_panels failed: %s", e)
+            return JsonResponse({"result": False, "message": "[bkvision] 服务异常，请稍后重试", "code": 400})
 
-    try:
-        # 转发前的预处理hook
-        request = PRE_PROCESS_FUNC(request)
-        return proxy_request(request, '/api/v1/datasource/query/')
-    except Exception as e:
-        return JsonResponse({"result": False, "message": "query_datasource exception: {}".format(e), "code": 400})
-
-
-@login_exempt
-@csrf_exempt
-@require_http_methods(["POST"])
-def query_dataset(request):
-    """查询数据集数据"""
-
-    try:
-        # 转发前的预处理hook
-        request = PRE_PROCESS_FUNC(request)
-        return proxy_request(request, '/api/v1/dataset/query/')
-    except Exception as e:
-        return JsonResponse({"result": False, "message": "query_dataset exception: {}".format(e), "code": 400})
-
-
-@login_exempt
-@require_http_methods(["GET"])
-def query_meta(request):
-    """
-    获取配置
-        curl -X GET -H 'content-type: application/json' \
-            'http://127.0.0.1:8001/bkvision/api/v1/meta/query/?share_uid=FwchfLZSsoaBSzjpW7WBa7'
-    """
-    try:
-        return proxy_request(request, '/api/v1/meta/query/')
-    except Exception as e:
-        return JsonResponse({"result": False, "message": "query_meta exception: {}".format(e), "code": 400})
-
-
-@login_exempt
-@csrf_exempt
-@require_http_methods(["GET"])
-def get_panel(request):
-    """获取图表配置"""
-
-    try:
-        return proxy_request(request, '/api/v1/panel/')
-    except Exception as e:
-        return JsonResponse({"result": False, "message": "get_panel exception: {}".format(e), "code": 400})
-
-
-@login_exempt
-@csrf_exempt
-@require_http_methods(["GET"])
-def get_child_panels(request):
-    """获取子图列表"""
-
-    try:
-        return proxy_request(request, '/api/v1/panel/get_child_panels/')
-    except Exception as e:
-        return JsonResponse({"result": False, "message": "get_child_panels exception: {}".format(e), "code": 400})
-
-
-@login_exempt
-@csrf_exempt
-@require_http_methods(["GET"])
-def get_app_share_list(request):
-    """获取应用有权限的嵌入列表"""
-
-    try:
-        response = proxy_request(request, '/api/v1/share/get_app_share_list/')
-        datas = json.loads(response.content)["data"]
-        data = next((data["share"] for data in datas if data["name"] == "DBM内部环境"), [])
-        return JsonResponse({"result": True, "message": "", "data": data, "code": 200})
-    except Exception as e:
-        return JsonResponse({"result": False, "message": "get_app_share_list exception: {}".format(e), "code": 400})
+    @action(methods=["GET"], detail=False)
+    def get_app_share_list(self, request):
+        """获取应用有权限的嵌入列表"""
+        try:
+            response = proxy_request(request, '/api/v1/share/get_app_share_list/')
+            datas = json.loads(response.content)["data"]
+            data = next((data["share"] for data in datas if data["name"] == "DBM内部环境"), [])
+            return JsonResponse({"result": True, "message": "", "data": data, "code": 200})
+        except Exception as e:
+            logger.exception("[bkvision] get_app_share_list failed: %s", e)
+            return JsonResponse({"result": False, "message": "[bkvision] 服务异常，请稍后重试", "code": 400})
