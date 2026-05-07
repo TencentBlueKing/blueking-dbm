@@ -150,6 +150,8 @@ func UpsertConfigItems(db *gorm.DB, configsOp []*model.ConfigModelOp, revision s
 		afterImage := api.ConfItem{}
 		if c.OPType != constvar.OPTypeRemove {
 			afterImage = model.NewConfItemFromModel(c.Config)
+		} else {
+			c.OPType = "recover"
 		}
 		changes = append(changes, &model.ConfItemChangesModel{
 			BKBizID:     c.Config.BKBizID,
