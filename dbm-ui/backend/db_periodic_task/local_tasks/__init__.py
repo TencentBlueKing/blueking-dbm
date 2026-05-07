@@ -45,6 +45,7 @@ from backend.db_periodic_task.local_tasks.redis_backup_rollback import *
 from backend.db_periodic_task.local_tasks.redis_clusternodes_update import *
 from backend.db_periodic_task.local_tasks.redis_failover_drill import *
 from backend.db_periodic_task.local_tasks.redis_tasks import *
+from backend.db_periodic_task.local_tasks.sql_exec_duration_consume import *
 from backend.db_periodic_task.local_tasks.sqlserver import *
 from backend.db_periodic_task.local_tasks.ticket import *
 from backend.db_periodic_task.local_tasks.update_host_property import sync_machine_ip_cache, update_host_property
