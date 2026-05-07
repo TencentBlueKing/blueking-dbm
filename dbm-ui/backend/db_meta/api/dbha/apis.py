@@ -10,12 +10,13 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import validators
 from django.core.exceptions import ObjectDoesNotExist
-from django.db import transaction
+from django.db import connection, transaction
 from django.db.models import F, Q
 from django.utils.translation import gettext_lazy as _
 
@@ -187,8 +188,15 @@ def instances(
             bk_host_id_mod=hash_value
         )
 
-    flat_instances = flatten.storage_instance(storage_qs) + flatten.proxy_instance(proxy_qs)
-    disabled_dbha_cluster_ids = list(
+    if connection.in_atomic_block:
+        flat_instances = flatten.storage_instance(storage_qs) + flatten.proxy_instance(proxy_qs)
+    else:
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            storage_future = executor.submit(flatten.storage_instance, storage_qs)
+            proxy_future = executor.submit(flatten.proxy_instance, proxy_qs)
+            flat_instances = storage_future.result() + proxy_future.result()
+
+    disabled_dbha_cluster_ids = set(
         ClusterDBHAExt.objects.filter(end_time__gte=datetime.now()).values_list("cluster_id", flat=True)
     )
 
