@@ -72,6 +72,9 @@ class ExecuteEsActuatorScriptService(BkJobService):
             role=kwargs["es_role"],
             instance_num=kwargs["instance_num"],
             instance_name=kwargs["instance_name"],
+            rack_id=kwargs["rack_id"],
+            idc_id=kwargs["idc_id"],
+            sub_zone_id=kwargs["sub_zone_id"],
         )
         db_act_template["root_id"] = root_id
         db_act_template["node_id"] = node_id

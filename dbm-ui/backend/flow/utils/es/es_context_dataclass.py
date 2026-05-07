@@ -27,6 +27,9 @@ class EsActKwargs:
     instance_name: str = "all"  # 实例名称
     file_list: list = field(default_factory=list)  # 传入文件传输节点的文件名称列表，默认空字典
     cluster: dict = field(default_factory=dict)  # 集群信息
+    rack_id: str = None  # 机架id,默认值空不写入配置
+    idc_id: str = None  # 机房id,默认值空不写入配置
+    sub_zone_id: str = None  # 园区id,默认值空不写入配置
 
 
 @dataclass()
