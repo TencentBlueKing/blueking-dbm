@@ -95,12 +95,24 @@ def _find_missing_binlogs(
     all_terminal_entries: list[dict],
     success_entries: list[dict],
     tendis_type: str,
+    buffer_success_entries: Optional[list[dict]] = None,
 ) -> list[int]:
     """Find all binlog indexes that are not successfully backed up.
 
     Detects:
     - Failed uploads: indexes present in terminal entries but absent from success
     - Interior gaps: indexes between the observed min/max that appear in no entry
+
+    *buffer_success_entries* (optional) are successful uploads whose
+    binlog content time falls in one of the buffer hours (leading
+    day-before-yesterday last hour, or trailing today first hour).
+    Their indexes can fill GAPS -- indexes that would otherwise be
+    flagged as interior gaps in yesterday's range -- but they do NOT
+    override known FAILURES (indexes present in ``all_terminal_entries``
+    but absent from ``success_entries``), because a failed upload in
+    yesterday and a buffer-day file with a colliding index are
+    different binlog files.
+
     Returns a sorted list of missing indexes, or [-1] on parse error.
     """
     if not all_terminal_entries:
@@ -129,6 +141,17 @@ def _find_missing_binlogs(
             gap_end = all_indexes[i + 1]
             if gap_end > gap_start:
                 missing.update(range(gap_start, gap_end))
+
+    if buffer_success_entries:
+        buffer_indexes: set[int] = set()
+        for e in buffer_success_entries:
+            try:
+                buffer_indexes.add(_extract_binlog_index(e["file_name"], tendis_type))
+            except (IndexError, ValueError, KeyError):
+                pass
+        all_terminal_set = set(all_indexes)
+        fillable = buffer_indexes - all_terminal_set
+        missing -= fillable
 
     return sorted(missing)
 
@@ -201,7 +224,7 @@ class CheckBinlogBackupTask:
         batch_ops.delete_today_records()
 
         cluster_ids = list(self._get_cluster_ids(config))
-        start_time, end_time, analysis_end_local = self._yesterday_time_range()
+        start_time, end_time, analysis_start_local, analysis_end_local = self._yesterday_time_range()
         cluster_state_total = {
             ReportStateType.NORMAL.value: 0,
             ReportStateType.WARNING.value: 0,
@@ -216,7 +239,12 @@ class CheckBinlogBackupTask:
             for cluster in batch_clusters:
                 total_num += 1
                 rows = self._check_cluster_with_retry(
-                    cluster, start_time, end_time, config, analysis_end_local=analysis_end_local
+                    cluster,
+                    start_time,
+                    end_time,
+                    config,
+                    analysis_start_local=analysis_start_local,
+                    analysis_end_local=analysis_end_local,
                 )
                 if rows:
                     cluster_state_total[rows[0].state] += 1
@@ -271,13 +299,19 @@ class CheckBinlogBackupTask:
         config: RedisBackupCheckConfig,
         max_retries: int = 3,
         *,
+        analysis_start_local: Optional[datetime] = None,
         analysis_end_local: Optional[datetime] = None,
     ):
         last_error = None
         for attempt in range(max_retries):
             try:
                 return self._check_cluster(
-                    cluster, start_time, end_time, config, analysis_end_local=analysis_end_local
+                    cluster,
+                    start_time,
+                    end_time,
+                    config,
+                    analysis_start_local=analysis_start_local,
+                    analysis_end_local=analysis_end_local,
                 )
             except Exception as e:
                 logger.error(
@@ -299,6 +333,7 @@ class CheckBinlogBackupTask:
         end_time,
         config: RedisBackupCheckConfig,
         *,
+        analysis_start_local: Optional[datetime] = None,
         analysis_end_local: Optional[datetime] = None,
     ):
         report = RedisBackupClusterReport(cluster, self.subtype)
@@ -348,6 +383,7 @@ class CheckBinlogBackupTask:
                     port,
                     kvstorecount,
                     recently_switched=recently_switched.get(instance),
+                    analysis_start_local=analysis_start_local,
                     analysis_end_local=analysis_end_local,
                 )
             except Exception as e:
@@ -412,12 +448,14 @@ class CheckBinlogBackupTask:
         kvstorecount,
         *,
         recently_switched=None,
+        analysis_start_local: Optional[datetime] = None,
         analysis_end_local: Optional[datetime] = None,
     ):
         # The "no logs found" check is done against the raw query window
         # (pre-filter): if BKLog returned nothing at all for this instance
-        # within yesterday + 1h buffer, that itself is a strong abnormal
-        # signal regardless of content-time semantics.
+        # within the leading 1h buffer + yesterday + trailing 1h buffer
+        # window, that itself is a strong abnormal signal regardless of
+        # content-time semantics.
         if not bklogs:
             if recently_switched is not None:
                 report.append(
@@ -429,36 +467,46 @@ class CheckBinlogBackupTask:
                 report.append(ReportStateType.ABNORMAL.value, instance, "no logs found")
             return
 
-        # Failed-task verification runs against the full window so that a
-        # success arriving in the buffer (today 00:00-01:00) can still
-        # promote a corresponding ``to_backup_system_start`` from yesterday.
+        # Failed-task verification runs against the full window so that
+        # success entries arriving in either buffer hour can still
+        # promote a corresponding ``to_backup_system_start`` whose
+        # content time belongs to yesterday.
         api_confirmed = find_and_verify_failed_tasks(bklogs)
 
-        # Filter to entries whose binlog content time falls in yesterday.
-        # Today's first-hour entries (caught by the 1h buffer) are
-        # excluded so that gap detection never uses them as a max
-        # boundary -- avoiding day-boundary false positives where a
-        # late-uploaded yesterday seq looks like an interior gap between
-        # an earlier yesterday seq and a today seq.  The excluded
-        # entries will be re-checked tomorrow as part of "yesterday".
+        # Filter to entries whose binlog content time falls in
+        # yesterday's wall-clock day.  Today's first-hour entries
+        # (caught by the trailing 1h buffer) AND day-before-yesterday's
+        # last-hour entries (caught by the leading 1h buffer) are
+        # excluded so that gap detection never uses them as min/max
+        # boundaries -- avoiding day-boundary false positives where a
+        # late-uploaded neighbouring-day seq looks like an interior gap
+        # next to a real yesterday seq.  The excluded entries will be
+        # re-checked on the appropriate day's run.
         #
         # Timezone contract: both operands below are NAIVE local time.
         # ``_extract_binlog_timestamp`` returns naive local per the
         # backup-agent filename convention (YYYYMMDDHHMMSS in the local
-        # tz of the source host); ``analysis_end_local`` is naive local
-        # stripped from a Django timezone-aware ``localtime()``.  They
-        # are directly comparable only because both are local wall-clock.
-        # If a newly provisioned instance ever emits UTC timestamps in
-        # filenames, this comparison would silently mis-classify
-        # buffer-window entries -- revisit this contract then.
-        if analysis_end_local is not None:
+        # tz of the source host); ``analysis_start_local`` /
+        # ``analysis_end_local`` are naive local stripped from Django
+        # timezone-aware ``localtime()``.  They are directly comparable
+        # only because both are local wall-clock.  If a newly
+        # provisioned instance ever emits UTC timestamps in filenames,
+        # this comparison would silently mis-classify buffer-window
+        # entries -- revisit this contract then.
+        def _in_window(ts: Optional[datetime]) -> bool:
+            if ts is None:
+                return False
+            if analysis_start_local is not None and ts < analysis_start_local:
+                return False
+            if analysis_end_local is not None and ts >= analysis_end_local:
+                return False
+            return True
+
+        if analysis_start_local is not None or analysis_end_local is not None:
             yesterday_logs = [
                 e
                 for e in bklogs
-                if (
-                    (ts := _extract_binlog_timestamp(e.get("file_name", ""), cluster.cluster_type)) is not None
-                    and ts < analysis_end_local
-                )
+                if _in_window(_extract_binlog_timestamp(e.get("file_name", ""), cluster.cluster_type))
             ]
         else:
             yesterday_logs = bklogs
@@ -480,6 +528,23 @@ class CheckBinlogBackupTask:
                 instance,
                 len(api_promoted),
             )
+
+        # Buffer entries: in the BKLog query window but outside yesterday's
+        # wall-clock day (content time falls in the leading or trailing
+        # buffer hour).  Successful buffer uploads can fill what would
+        # otherwise look like interior gaps in yesterday's index range
+        # -- e.g. a binlog whose content time slipped into the leading
+        # buffer hour but whose index sits between two yesterday seqs.
+        # They never override a known yesterday-side failure (handled by
+        # `_find_missing_binlogs`).
+        yesterday_ids = {id(e) for e in yesterday_logs}
+        buffer_logs = [e for e in bklogs if id(e) not in yesterday_ids]
+        buffer_success_entries = [
+            e
+            for e in buffer_logs
+            if e.get("backup_status") == "to_backup_system_success"
+            or (e.get("backup_status") == "to_backup_system_start" and e.get("task_id", "") in api_confirmed)
+        ]
 
         all_files = {e.get("file_name", "") for e in all_terminal}
         success_files = {e.get("file_name", "") for e in success_entries}
@@ -504,6 +569,7 @@ class CheckBinlogBackupTask:
                 kvstore_filter = f"{ip}-{port}-{kv_idx}-"
                 kv_terminal = [e for e in all_terminal if kvstore_filter in e.get("file_name", "")]
                 kv_success = [e for e in success_entries if kvstore_filter in e.get("file_name", "")]
+                kv_buffer = [e for e in buffer_success_entries if kvstore_filter in e.get("file_name", "")]
 
                 if not kv_terminal:
                     continue
@@ -511,7 +577,12 @@ class CheckBinlogBackupTask:
                     kv_issues.append(f"kv{kv_idx}(all upload failed)")
                     continue
 
-                missing = _find_missing_binlogs(kv_terminal, kv_success, cluster.cluster_type)
+                missing = _find_missing_binlogs(
+                    kv_terminal,
+                    kv_success,
+                    cluster.cluster_type,
+                    buffer_success_entries=kv_buffer,
+                )
                 if missing:
                     kv_issues.append(f"kv{kv_idx}({_format_ranges(_compress_ranges(missing))})")
 
@@ -526,7 +597,12 @@ class CheckBinlogBackupTask:
             report.append(ReportStateType.WARNING.value, instance, ", ".join(parts))
 
         elif is_tendisssd_instance_type(cluster.cluster_type):
-            missing = _find_missing_binlogs(all_terminal, success_entries, cluster.cluster_type)
+            missing = _find_missing_binlogs(
+                all_terminal,
+                success_entries,
+                cluster.cluster_type,
+                buffer_success_entries=buffer_success_entries,
+            )
 
             if not missing:
                 report.append(ReportStateType.NORMAL.value, instance, "ok")
@@ -572,27 +648,39 @@ class CheckBinlogBackupTask:
 
     @staticmethod
     def _yesterday_time_range():
-        """Compute the BKLog query window and the gap-analysis cutoff.
+        """Compute the BKLog query window and the gap-analysis bounds.
 
-        Returns ``(query_start, query_end, analysis_end_local)``:
+        Returns ``(query_start, query_end, analysis_start_local, analysis_end_local)``:
 
         - ``query_start``/``query_end``: aware UTC bounds for the BKLog
-          ES query.  Window is ``[yesterday 00:00, today 01:00)`` local
-          time.  The 1h tail buffer is intentional -- it captures
-          binlogs whose **content** belongs to yesterday but whose
-          upload completed slightly after midnight (slow uploads,
-          backup-system retries, ES ingestion delay).
-        - ``analysis_end_local``: naive local ``datetime`` representing
-          today 00:00:00.  Used downstream to filter out entries whose
-          content time falls in today's first hour -- those entries are
-          today's data that happen to fall inside the buffer window and
-          should not participate in yesterday's gap detection.  They
-          will be re-checked tomorrow as part of "yesterday" then.
+          ES query.  Window is ``[yesterday 00:00 - 1h, today 00:00 + 1h)``
+          local time.  The symmetric 1h buffers are intentional:
+
+          * The trailing buffer captures binlogs whose **content**
+            belongs to yesterday but whose upload completed slightly
+            after midnight (slow uploads, backup-system retries, ES
+            ingestion delay).
+          * The leading buffer captures the mirror case at the start of
+            yesterday -- binlogs whose content belongs to
+            day-before-yesterday but whose upload arrived just after
+            yesterday 00:00.  Including them lets cross-day failed-task
+            promotion match ``to_backup_system_start`` ↔
+            ``to_backup_system_success`` pairs that straddle the
+            day-before-yesterday/yesterday boundary.
+        - ``analysis_start_local``/``analysis_end_local``: naive local
+          ``datetime`` bounds of yesterday's wall-clock day
+          (``[yesterday 00:00, today 00:00)``).  Used downstream to
+          drop entries whose content time falls in either buffer hour
+          from yesterday's gap detection -- those entries belong to a
+          neighbouring day and would otherwise create phantom min/max
+          boundaries.  They will be re-checked on the appropriate
+          day's run.
         """
         local_now = timezone.localtime()
         local_today_start = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
         local_yesterday_start = local_today_start - timedelta(days=1)
-        query_start = local_yesterday_start.astimezone(tz=timezone.utc)
+        query_start = local_yesterday_start.astimezone(tz=timezone.utc) - timedelta(hours=1)
         query_end = local_today_start.astimezone(tz=timezone.utc) + timedelta(hours=1)
+        analysis_start_local = local_yesterday_start.replace(tzinfo=None)
         analysis_end_local = local_today_start.replace(tzinfo=None)
-        return query_start, query_end, analysis_end_local
+        return query_start, query_end, analysis_start_local, analysis_end_local
