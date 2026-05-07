@@ -163,9 +163,19 @@ func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.R
 
 	start := time.Now()
 
-	// TODO: enable after evaluating actual switching latency,
-	// use config.Cfg.Workflow.SwitchTimeout to control switching timeout
-	rsp := sw.Switch(context.Background(), req)
+	switchTimeout := config.Cfg.Workflow.SwitchTimeout
+	if switchTimeout <= 0 {
+		switchTimeout = time.Minute
+	}
+
+	switchCtx, cancel := context.WithTimeout(context.Background(), switchTimeout)
+	defer cancel()
+
+	rsp := sw.Switch(switchCtx, req)
+	if errors.Is(switchCtx.Err(), context.DeadlineExceeded) {
+		logger.Warn("switching timeout, switchTimeout: %s, dbType: %s, switchID: %s", switchTimeout, dbType, req.SwitchID)
+	}
+
 	if rsp.Err == nil {
 		logger.Info("switching success for the database type: %s", dbType)
 	}
