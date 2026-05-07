@@ -191,11 +191,15 @@ class DBAdministratorHandler(object):
         """
         group_queryset = NoticeGroup.objects.filter(bk_biz_id=bk_biz_id)
         monitor_group_ids = group_queryset.values_list("monitor_group_id", flat=True)
-        BKMonitorV3Api.delete_user_groups({"ids": list(monitor_group_ids), "bk_biz_ids": [env.DBA_APP_BK_BIZ_ID]})
+        if monitor_group_ids:
+            BKMonitorV3Api.delete_user_groups({"ids": list(monitor_group_ids), "bk_biz_ids": [env.DBA_APP_BK_BIZ_ID]})
 
         dispatch_group = DispatchGroup.objects.filter(bk_biz_id=bk_biz_id)
-        monitor_dispatch_ids = dispatch_group.values_list("monitor_group_id", flat=True)
-        BKMonitorV3Api.delete_rule_group({"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "group_ids": list(monitor_dispatch_ids)})
+        monitor_dispatch_ids = dispatch_group.values_list("monitor_dispatch_id", flat=True)
+        if monitor_dispatch_ids:
+            BKMonitorV3Api.delete_rule_group(
+                {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "group_ids": list(monitor_dispatch_ids)}
+            )
 
         DBAdministrator.objects.filter(bk_biz_id=bk_biz_id).delete()
         group_queryset.delete()
