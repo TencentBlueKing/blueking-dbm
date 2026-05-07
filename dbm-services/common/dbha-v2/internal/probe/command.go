@@ -100,4 +100,9 @@ func init() {
 		"Preferred local interface name when auto-detecting --local-ip (default: use built-in default)",
 	)
 	GenConfigCmd.Flags().StringP("output", "o", "", "Output config file path (default: stdout)")
+	GenConfigCmd.Flags().Duration(
+		"timeout",
+		cmds.DefaultGenConfigTimeout,
+		"Timeout for fetching config from admin (non-positive falls back to default)",
+	)
 }

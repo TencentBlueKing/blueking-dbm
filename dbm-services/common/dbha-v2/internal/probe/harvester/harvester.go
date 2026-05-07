@@ -22,6 +22,9 @@
  * SOFTWARE.
  */
 
+// Package harvester wires concrete plugin constructors (mysql / mysqlProxyAdmin / redis)
+// under one importable surface so probe.loadPlugins doesn't depend on individual
+// harvester subpackages directly.
 package harvester
 
 import (
@@ -33,5 +36,8 @@ var (
 	// NewPluginMySql To avoid potential ambiguity caused by directly using 'mysql',
 	// the method for creating the mysql plugin has been renamed here.
 	NewPluginMySql = mysql.NewMySql
-	NewPluginRedis = redis.NewRedis
+	// NewPluginMySqlProxyAdmin creates a MySQL plugin instance dedicated to TendbHA mysql-proxy
+	// admin ports; the instance name is "mysqlProxyAdmin" so logs distinguish it from NewPluginMySql.
+	NewPluginMySqlProxyAdmin = mysql.NewMySqlProxyAdmin
+	NewPluginRedis           = redis.NewRedis
 )
