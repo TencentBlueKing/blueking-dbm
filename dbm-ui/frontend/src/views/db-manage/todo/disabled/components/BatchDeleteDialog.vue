@@ -142,6 +142,14 @@
       bk_biz_id: ticketItem[0].bk_biz_id,
       details: {
         cluster_ids: ticketItem.map((item) => item.id),
+        force: [
+          ClusterTypes.SQLSERVER,
+          ClusterTypes.TENDBCLUSTER,
+          ClusterTypes.TENDBHA,
+          ClusterTypes.TENDBSINGLE,
+        ].includes(ticketItem[0].cluster_type)
+          ? false
+          : undefined,
       },
       remark: '',
       ticket_type: ticketTypeMap[ticketItem[0].cluster_type],
