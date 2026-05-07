@@ -30,6 +30,7 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/marker"
 )
 
 // ExecuteSqlAtLocal TODO
@@ -109,7 +110,16 @@ func (e ExecuteSqlAtLocal) ExecuteSqlByMySQLClientOne(sqlfile string, db string,
 	command = command + " " + db + "<" + path.Join(e.WorkDir, sqlfile)
 	e.ErrFile = path.Join(e.WorkDir, fmt.Sprintf("%s.%s.err", sqlfile, db)) // 删除原有的时间戳方便调用方拼接
 	logger.Info("Run sql file %s", mysqlcomm.ClearSensitiveInformation(command))
+
+	// 通过 marker 协议向 stdout 发出 begin/end 事件，便于上游 (dbm-ui backend)
+	// 解析 log_content 切分出每个 db 的执行边界。详见 pkg/util/marker。
+	marker.Emit(marker.Event{Event: marker.EventExecDBBegin, DB: db})
 	err = e.ExecuteCommand(command, report)
+	endEv := marker.Event{Event: marker.EventExecDBEnd, DB: db}
+	if err != nil {
+		endEv.Err = err.Error()
+	}
+	marker.Emit(endEv)
 	if err != nil {
 		return err
 	}

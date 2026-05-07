@@ -28,6 +28,7 @@ from .mysql_db_table_size import MysqlDbTableSize
 from .mysql_inspect_ignore import MysqlInspectIgnore
 from .mysql_slowlog_ai_analysis import MysqlSlowlogAiAnalysis
 from .mysql_slowlog_detail import MysqlSlowlogDetail
+from .mysql_sql_exec_duration import MysqlSqlExecDuration
 from .mysqlbackup_check_report import MysqlBackupCheckReport
 from .redis_check_report import RedisCheckReport
 from .redis_rollback_exercise_report import RedisRollbackExerciseReport

@@ -80,6 +80,8 @@ def post_set_state_signal_handler(sender, node_id, to_state, version, root_id, *
 
     # 针对不同类型单据，调用个性化方法
     # 所有不同类型传入的参数这里是一致的
+    # 注：SQL 执行耗时入队（IMPORT_SQLFILE 类单据）通过装饰器风格收敛在
+    #     backend.flow.signal.sql_exec_duration_handler 中按 ticket_type 自动派发。
     logger.info("call_ticket_handler execute")
     call_ticket_handler(
         ticket_type=tree.ticket_type, node_id=node_id, root_id=root_id, ticket_id=tree.uid, status=to_state
