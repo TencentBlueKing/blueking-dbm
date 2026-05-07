@@ -25,6 +25,8 @@
 package switchcore
 
 import (
+	"context"
+	"errors"
 	"strings"
 
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
@@ -32,8 +34,32 @@ import (
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 )
 
-// CheckStatusForClusterSwitch checks the status of instances in the cluster
-func CheckStatusForClusterSwitch(swCluster SwitchableCluster) error {
+// errIfCtxDoneInClusterSwitch returns the error if ctx is non-nil
+// and the context is canceled or expired, otherwise nil.
+func errIfCtxDoneInClusterSwitch(ctx context.Context, swCluster SwitchableCluster) error {
+	if ctx == nil {
+		return nil
+	}
+
+	if err := ctx.Err(); err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			swCluster.ReportClusterLogf(switchlogger.SwitchError, "switching timeout: %s", err.Error())
+			return err
+		}
+
+		swCluster.ReportClusterLogf(switchlogger.SwitchError, "switching context done: %s", err.Error())
+		return err
+	}
+
+	return nil
+}
+
+// checkStatusForClusterSwitch checks the status of instances in the cluster
+func checkStatusForClusterSwitch(ctx context.Context, swCluster SwitchableCluster) error {
+	if err := errIfCtxDoneInClusterSwitch(ctx, swCluster); err != nil {
+		return err
+	}
+
 	insts := swCluster.GetSwitchInstances()
 	wrongStatusInsts := []string{}
 
@@ -56,9 +82,79 @@ func CheckStatusForClusterSwitch(swCluster SwitchableCluster) error {
 	return nil
 }
 
+// setStatusForClusterSwitch sets the status of instances in the cluster to unavailable.
+func setStatusForClusterSwitch(ctx context.Context, swCluster SwitchableCluster) error {
+	if err := errIfCtxDoneInClusterSwitch(ctx, swCluster); err != nil {
+		return err
+	}
+
+	if err := swCluster.SetInstanceUnavailable(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// doCheckBeforeClusterSwitch checks if the cluster is required to be switched.
+func doCheckBeforeClusterSwitch(ctx context.Context, swCluster SwitchableCluster) (SwitchCheckCode, error) {
+	if err := errIfCtxDoneInClusterSwitch(ctx, swCluster); err != nil {
+		return SwitchCheckUnpass, err
+	}
+
+	return swCluster.CheckBeforeSwitch()
+}
+
+// doSwitchInClusterSwitch calls the DoSwitch method of the switchable cluster and returns the error.
+func doSwitchInClusterSwitch(ctx context.Context, swCluster SwitchableCluster) error {
+	if err := errIfCtxDoneInClusterSwitch(ctx, swCluster); err != nil {
+		return err
+	}
+
+	if err := swCluster.DoSwitch(); err != nil {
+		retErr := gerrors.Newf(gerrors.Failure, "failed to do switch: %s", err.Error())
+		swCluster.ReportClusterLogf(switchlogger.SwitchError, "%s", retErr.Error())
+		return retErr
+	}
+
+	swCluster.ReportClusterLogf(switchlogger.SwitchInfo, "successfully do switch")
+	return nil
+}
+
+// doUpdateMetaInfoInClusterSwitch calls UpdateMetaInfo on the switchable cluster.
+func doUpdateMetaInfoInClusterSwitch(ctx context.Context, swCluster SwitchableCluster) error {
+	if err := errIfCtxDoneInClusterSwitch(ctx, swCluster); err != nil {
+		return err
+	}
+
+	if err := swCluster.UpdateMetaInfo(); err != nil {
+		retErr := gerrors.Newf(gerrors.Failure, "failed to update meta info: %s", err.Error())
+		swCluster.ReportClusterLogf(switchlogger.SwitchError, "%s", retErr.Error())
+		return retErr
+	}
+
+	swCluster.ReportClusterLogf(switchlogger.SwitchInfo, "successfully update meta info")
+	return nil
+}
+
+// doFinalInClusterSwitch calls DoFinal on the switchable cluster.
+func doFinalInClusterSwitch(ctx context.Context, swCluster SwitchableCluster) error {
+	if err := errIfCtxDoneInClusterSwitch(ctx, swCluster); err != nil {
+		return err
+	}
+
+	if err := swCluster.DoFinal(); err != nil {
+		retErr := gerrors.Newf(gerrors.Failure, "failed to do final step: %s", err.Error())
+		swCluster.ReportClusterLogf(switchlogger.SwitchError, "%s", retErr.Error())
+		return retErr
+	}
+
+	swCluster.ReportClusterLogf(switchlogger.SwitchInfo, "successfully do final step")
+	return nil
+}
+
 // SwitchSameClusterInstances switches instances in the same cluster.
 // It returns true if all instances are switched successfully, otherwise returns false.
-func SwitchSameClusterInstances(swCluster SwitchableCluster) (switchSuccess bool, retErr error) {
+func SwitchSameClusterInstances(ctx context.Context, swCluster SwitchableCluster) (switchSuccess bool, retErr error) {
 	// rollback when error occurs
 	defer func() {
 		if switchSuccess {
@@ -66,6 +162,11 @@ func SwitchSameClusterInstances(swCluster SwitchableCluster) (switchSuccess bool
 				"successfully switch cluster: %s", swCluster.GetClusterInfo())
 			return
 		}
+
+		if retErr == nil {
+			retErr = gerrors.New(gerrors.Failure, "unknown error occurred")
+		}
+
 		swCluster.ReportClusterLogf(switchlogger.SwitchError,
 			"failed to switch cluster: %s", swCluster.GetClusterInfo())
 
@@ -78,11 +179,15 @@ func SwitchSameClusterInstances(swCluster SwitchableCluster) (switchSuccess bool
 
 	swCluster.ReportClusterLogf(switchlogger.SwitchInfo, "start to switch cluster: %s", swCluster.GetClusterInfo())
 
-	if err := CheckStatusForClusterSwitch(swCluster); err != nil {
+	if err := checkStatusForClusterSwitch(ctx, swCluster); err != nil {
 		return false, err
 	}
 
-	if err := swCluster.SetInstanceUnavailable(); err != nil {
+	if err := setStatusForClusterSwitch(ctx, swCluster); err != nil {
+		return false, err
+	}
+
+	if err := errIfCtxDoneInClusterSwitch(ctx, swCluster); err != nil {
 		return false, err
 	}
 
@@ -98,7 +203,7 @@ func SwitchSameClusterInstances(swCluster SwitchableCluster) (switchSuccess bool
 	}
 	defer unlock()
 
-	checkRes, checkErr := swCluster.CheckBeforeSwitch()
+	checkRes, checkErr := doCheckBeforeClusterSwitch(ctx, swCluster)
 	if checkRes == SwitchCheckUnpass {
 		return false, checkErr
 	}
@@ -107,26 +212,17 @@ func SwitchSameClusterInstances(swCluster SwitchableCluster) (switchSuccess bool
 		return true, checkErr
 	}
 
-	if err := swCluster.DoSwitch(); err != nil {
-		retErr = gerrors.Newf(gerrors.Failure, "failed to do switch: %s", err.Error())
-		swCluster.ReportClusterLogf(switchlogger.SwitchError, "%s", retErr.Error())
-		return false, retErr
+	if err := doSwitchInClusterSwitch(ctx, swCluster); err != nil {
+		return false, err
 	}
-	swCluster.ReportClusterLogf(switchlogger.SwitchInfo, "successfully do switch")
 
-	if err := swCluster.UpdateMetaInfo(); err != nil {
-		retErr = gerrors.Newf(gerrors.Failure, "failed to update meta info: %s", err.Error())
-		swCluster.ReportClusterLogf(switchlogger.SwitchError, "%s", retErr.Error())
-		return false, retErr
+	if err := doUpdateMetaInfoInClusterSwitch(ctx, swCluster); err != nil {
+		return false, err
 	}
-	swCluster.ReportClusterLogf(switchlogger.SwitchInfo, "successfully update meta info")
 
-	if err := swCluster.DoFinal(); err != nil {
-		retErr = gerrors.Newf(gerrors.Failure, "failed to do final step: %s", err.Error())
-		swCluster.ReportClusterLogf(switchlogger.SwitchError, "%s", retErr.Error())
-		return false, retErr
+	if err := doFinalInClusterSwitch(ctx, swCluster); err != nil {
+		return false, err
 	}
-	swCluster.ReportClusterLogf(switchlogger.SwitchInfo, "successfully do final step")
 
 	return true, nil
 }

@@ -25,6 +25,8 @@
 package switchcore
 
 import (
+	"context"
+	"errors"
 	"fmt"
 
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
@@ -55,8 +57,117 @@ func checkBeforeSwitch(ins SwitchableInstance) (checkResult SwitchCheckCode, ret
 	return checkRes, retErr
 }
 
+// errIfCtxDoneInInstanceSwitch returns the error if ctx is non-nil
+// and the context is canceled or expired, otherwise nil.
+func errIfCtxDoneInInstanceSwitch(ctx context.Context, ins SwitchableInstance) error {
+	if ctx == nil {
+		return nil
+	}
+
+	if err := ctx.Err(); err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			ins.ReportLogf(switchlogger.SwitchError, "switching timeout: %s", err.Error())
+			return err
+		}
+
+		ins.ReportLogf(switchlogger.SwitchError, "switching context done: %s", err.Error())
+		return err
+	}
+
+	return nil
+}
+
+// checkStatusForInstanceSwitch validates instance status before switching.
+func checkStatusForInstanceSwitch(ctx context.Context, ins SwitchableInstance) error {
+	if err := errIfCtxDoneInInstanceSwitch(ctx, ins); err != nil {
+		return err
+	}
+
+	if (ins.GetStatus() != dbm.Running) && (ins.GetStatus() != dbm.Available) {
+		retErr := gerrors.Newf(gerrors.Failure, "pre-status check unpass for wrong status:%s", ins.GetStatus())
+		ins.ReportLogf(switchlogger.SwitchError, "%s", retErr.Error())
+		return retErr
+	}
+
+	ins.ReportLogf(switchlogger.SwitchInfo, "pre-status check pass with status:%s", ins.GetStatus())
+	return nil
+}
+
+// setStatusForInstanceSwitch sets the instance unavailable for switching.
+func setStatusForInstanceSwitch(ctx context.Context, ins SwitchableInstance) error {
+	if err := errIfCtxDoneInInstanceSwitch(ctx, ins); err != nil {
+		return err
+	}
+
+	if err := ins.SetInstanceUnavailable(); err != nil {
+		retErr := gerrors.Newf(gerrors.Failure, "failed to set instance unavailable: %s", err.Error())
+		ins.ReportLogf(switchlogger.SwitchError, "%s", retErr.Error())
+		return retErr
+	}
+
+	ins.ReportLogf(switchlogger.SwitchInfo, "successfully set instance unavailable")
+	return nil
+}
+
+// doCheckBeforeInstanceSwitch runs checkBeforeSwitch with ctx guard.
+func doCheckBeforeInstanceSwitch(ctx context.Context, ins SwitchableInstance) (SwitchCheckCode, error) {
+	if err := errIfCtxDoneInInstanceSwitch(ctx, ins); err != nil {
+		return SwitchCheckUnpass, err
+	}
+
+	return checkBeforeSwitch(ins)
+}
+
+// doSwitchInInstanceSwitch invokes DoSwitch after ctx guard.
+func doSwitchInInstanceSwitch(ctx context.Context, ins SwitchableInstance) error {
+	if err := errIfCtxDoneInInstanceSwitch(ctx, ins); err != nil {
+		return err
+	}
+
+	if err := ins.DoSwitch(); err != nil {
+		retErr := gerrors.Newf(gerrors.Failure, "failed to do switch: %s", err.Error())
+		ins.ReportLogf(switchlogger.SwitchError, "%s", retErr.Error())
+		return retErr
+	}
+
+	ins.ReportLogf(switchlogger.SwitchInfo, "successfully do switch")
+	return nil
+}
+
+// doUpdateMetaInfoInInstanceSwitch invokes UpdateMetaInfo after ctx guard.
+func doUpdateMetaInfoInInstanceSwitch(ctx context.Context, ins SwitchableInstance) error {
+	if err := errIfCtxDoneInInstanceSwitch(ctx, ins); err != nil {
+		return err
+	}
+
+	if err := ins.UpdateMetaInfo(); err != nil {
+		retErr := gerrors.Newf(gerrors.Failure, "failed to update meta info: %s", err.Error())
+		ins.ReportLogf(switchlogger.SwitchError, "%s", retErr.Error())
+		return retErr
+	}
+
+	ins.ReportLogf(switchlogger.SwitchInfo, "successfully update meta info")
+	return nil
+}
+
+// doFinalInInstanceSwitch invokes DoFinal after ctx guard.
+func doFinalInInstanceSwitch(ctx context.Context, ins SwitchableInstance) error {
+	if err := errIfCtxDoneInInstanceSwitch(ctx, ins); err != nil {
+		return err
+	}
+
+	if err := ins.DoFinal(); err != nil {
+		retErr := gerrors.Newf(gerrors.Failure, "failed to do final step: %s", err.Error())
+		ins.ReportLogf(switchlogger.SwitchError, "%s", retErr.Error())
+		return retErr
+	}
+
+	ins.ReportLogf(switchlogger.SwitchInfo, "successfully do final step")
+	return nil
+}
+
 // SwitchSingleInstance executes the standardized switching procedure for a single database instance.
-func SwitchSingleInstance(ins SwitchableInstance) (switchSuccess bool, retErr error) {
+func SwitchSingleInstance(ctx context.Context, ins SwitchableInstance) (switchSuccess bool, retErr error) {
 	ins.ReportLogf(switchlogger.SwitchInfo, "start to switch single instance: %s", ins.GetInstanceInfo())
 
 	// rollback when error occurs
@@ -65,6 +176,11 @@ func SwitchSingleInstance(ins SwitchableInstance) (switchSuccess bool, retErr er
 			ins.ReportLogf(switchlogger.SwitchInfo, "successfully switch single instance: %s", ins.GetInstanceInfo())
 			return
 		}
+
+		if retErr == nil {
+			retErr = gerrors.New(gerrors.Failure, "unknown error occurred")
+		}
+
 		ins.ReportLogf(switchlogger.SwitchError, "failed to switch single instance: %s", ins.GetInstanceInfo())
 
 		if rollbackErr := ins.RollBack(); rollbackErr != nil {
@@ -74,19 +190,17 @@ func SwitchSingleInstance(ins SwitchableInstance) (switchSuccess bool, retErr er
 		}
 	}()
 
-	if (ins.GetStatus() != dbm.Running) && (ins.GetStatus() != dbm.Available) {
-		retErr = gerrors.Newf(gerrors.Failure, "pre-status check unpass for wrong status:%s", ins.GetStatus())
-		ins.ReportLogf(switchlogger.SwitchError, "%s", retErr.Error())
-		return false, retErr
+	if err := checkStatusForInstanceSwitch(ctx, ins); err != nil {
+		return false, err
 	}
-	ins.ReportLogf(switchlogger.SwitchInfo, "pre-status check pass with status:%s", ins.GetStatus())
 
-	if err := ins.SetInstanceUnavailable(); err != nil {
-		retErr = gerrors.Newf(gerrors.Failure, "failed to set instance unavailable: %s", err.Error())
-		ins.ReportLogf(switchlogger.SwitchError, "%s", retErr.Error())
-		return false, retErr
+	if err := setStatusForInstanceSwitch(ctx, ins); err != nil {
+		return false, err
 	}
-	ins.ReportLogf(switchlogger.SwitchInfo, "successfully set instance unavailable")
+
+	if err := errIfCtxDoneInInstanceSwitch(ctx, ins); err != nil {
+		return false, err
+	}
 
 	// lock the cluster that the instance belongs to
 	clusterKey := GenerateClusterKey(ins.GetBkCloudID(), ins.GetClusterID())
@@ -97,35 +211,26 @@ func SwitchSingleInstance(ins SwitchableInstance) (switchSuccess bool, retErr er
 	}
 	defer unlock()
 
-	checkRes, checkErr := checkBeforeSwitch(ins)
+	checkRes, checkErr := doCheckBeforeInstanceSwitch(ctx, ins)
 	if checkRes == SwitchCheckUnpass {
 		return false, checkErr
 	}
 
 	if checkRes == SwitchNotNeeded {
-		return true, nil
+		return true, checkErr
 	}
 
-	if err := ins.DoSwitch(); err != nil {
-		retErr = gerrors.Newf(gerrors.Failure, "failed to do switch: %s", err.Error())
-		ins.ReportLogf(switchlogger.SwitchError, "%s", retErr.Error())
-		return false, retErr
+	if err := doSwitchInInstanceSwitch(ctx, ins); err != nil {
+		return false, err
 	}
-	ins.ReportLogf(switchlogger.SwitchInfo, "successfully do switch")
 
-	if err := ins.UpdateMetaInfo(); err != nil {
-		retErr = gerrors.Newf(gerrors.Failure, "failed to update meta info: %s", err.Error())
-		ins.ReportLogf(switchlogger.SwitchError, "%s", retErr.Error())
-		return false, retErr
+	if err := doUpdateMetaInfoInInstanceSwitch(ctx, ins); err != nil {
+		return false, err
 	}
-	ins.ReportLogf(switchlogger.SwitchInfo, "successfully update meta info")
 
-	if err := ins.DoFinal(); err != nil {
-		retErr = gerrors.Newf(gerrors.Failure, "failed to do final step: %s", err.Error())
-		ins.ReportLogf(switchlogger.SwitchError, "%s", retErr.Error())
-		return false, retErr
+	if err := doFinalInInstanceSwitch(ctx, ins); err != nil {
+		return false, err
 	}
-	ins.ReportLogf(switchlogger.SwitchInfo, "successfully do final step")
 
 	return true, nil
 }

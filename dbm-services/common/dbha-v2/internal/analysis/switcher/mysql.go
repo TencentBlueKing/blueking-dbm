@@ -201,7 +201,7 @@ func (m *Mysql) InstanceLevelSwitch(ctx context.Context, switchLoggers []switchl
 
 			swInst.SetSwitchLogger(switchLoggers)
 
-			if switchSuccess, swErr := switchcore.SwitchSingleInstance(swInst); !switchSuccess {
+			if switchSuccess, swErr := switchcore.SwitchSingleInstance(ctx, swInst); !switchSuccess {
 				errStr := "nil"
 				if swErr != nil {
 					errStr = swErr.Error()
@@ -377,7 +377,7 @@ func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogge
 				swInst.SetSwitchLogger(switchLoggers)
 			}
 
-			switchSuccess, errMap := switchcore.SwitchSameHostInstances(swInstMap)
+			switchSuccess, errMap := switchcore.SwitchSameHostInstances(ctx, swInstMap)
 			if switchSuccess {
 				swReporter.ReportSwitchLogf(switchlogger.SwitchSuccess, "successfully switched all instances on the current host")
 				return
@@ -451,7 +451,7 @@ func (m *Mysql) ClusterLevelSwitch(ctx context.Context, switchLoggers []switchlo
 
 			swCluster.SetSwitchLogger(switchLoggers)
 
-			switchSuccess, switchErr := switchcore.SwitchSameClusterInstances(swCluster)
+			switchSuccess, switchErr := switchcore.SwitchSameClusterInstances(ctx, swCluster)
 			if !switchSuccess {
 				swReporter.ReportSwitchLogf(switchlogger.SwitchFail,
 					"failed to switch current instance in cluster level, errmsg: %s",
