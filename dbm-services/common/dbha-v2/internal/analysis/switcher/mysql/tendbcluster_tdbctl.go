@@ -478,7 +478,10 @@ func (op *TdbctlOperator) SelectTdbctlNodes(
 	}
 
 	var tdbctlList []TdbctlNodeInfo
-	queryErr := tdbctlDB.DB().Raw(SelectTdbctlNodesSql).Scan(&tdbctlList).Error
+	gdb, cancel := switchcore.GormWithExecSqlTimeout(tdbctlDB)
+	defer cancel()
+
+	queryErr := gdb.Raw(SelectTdbctlNodesSql).Scan(&tdbctlList).Error
 	if queryErr != nil {
 		return nil, gerrors.Newf(gerrors.Failure,
 			"failed to execute sql(%s) on tdbctl(%s:%d), errmsg: %s",
@@ -513,7 +516,10 @@ func (op *TdbctlOperator) SelectRouteInfo(
 	}
 
 	var routeInfoList []TdbctlRouteInfo
-	queryErr := tdbctlDB.DB().Raw(SelectRouteInfoSql).Scan(&routeInfoList).Error
+	gdb, cancel := switchcore.GormWithExecSqlTimeout(tdbctlDB)
+	defer cancel()
+
+	queryErr := gdb.Raw(SelectRouteInfoSql).Scan(&routeInfoList).Error
 	if queryErr != nil {
 		return nil, gerrors.Newf(gerrors.Failure,
 			"failed to execute sql(%s) on tdbctl(%s:%d), errmsg: %s",
@@ -548,7 +554,10 @@ func (op *TdbctlOperator) TdbctlDropNode(
 	}
 
 	dropNodeSql := fmt.Sprintf(TdbctlDropNodeSql, nodeName)
-	result := tdbctlDB.DB().Exec(dropNodeSql)
+	gdb, cancel := switchcore.GormWithExecSqlTimeout(tdbctlDB)
+	defer cancel()
+
+	result := gdb.Exec(dropNodeSql)
 	if result.Error != nil {
 		return gerrors.Newf(gerrors.Failure,
 			"failed to execute sql(%s) on tdbctl(%s:%d), errmsg: %s",
@@ -581,7 +590,10 @@ func (op *TdbctlOperator) TdbctlFlushRouting(
 		flushRouteSql = TdbctlFlushRouteForceSql
 	}
 
-	if result := tdbctlDB.DB().Exec(flushRouteSql); result.Error != nil {
+	gdb, cancel := switchcore.GormWithExecSqlTimeout(tdbctlDB)
+	defer cancel()
+
+	if result := gdb.Exec(flushRouteSql); result.Error != nil {
 		errMsg := fmt.Sprintf(
 			"failed to execute sql(%s) on tdbctl(%s:%d), errmsg: %s",
 			flushRouteSql, tdbctlDB.Host(), tdbctlDB.Port(),
@@ -608,7 +620,10 @@ func (op *TdbctlOperator) execAlterNode(
 	alterNodeSQL := fmt.Sprintf(TdbctlAlterNodeSql, masterRoute.ServerName,
 		slaveRoute.Host, slaveRoute.Port, slaveRoute.UserName, slaveRoute.Password)
 
-	result := tdbctlDB.DB().Exec(alterNodeSQL)
+	gdb, cancel := switchcore.GormWithExecSqlTimeout(tdbctlDB)
+	defer cancel()
+
+	result := gdb.Exec(alterNodeSQL)
 	if result.Error != nil {
 		return gerrors.Newf(gerrors.Failure,
 			"failed to execute sql(%s) on tdbctl(%s:%d), errmsg: %s",
@@ -752,7 +767,10 @@ func (op *TdbctlOperator) TdbctlEnablePrimary(
 		enablePimarySql = TdbctlEnablePrimaryForceSql
 	}
 
-	if result := tdbctlDB.DB().Exec(enablePimarySql); result.Error != nil {
+	gdb, cancel := switchcore.GormWithExecSqlTimeout(tdbctlDB)
+	defer cancel()
+
+	if result := gdb.Exec(enablePimarySql); result.Error != nil {
 		op.Logf(switchlogger.SwitchWarn,
 			"when enabling primary, failed to execute sql(%s) on tdbctl(%s:%d), errmsg: %s",
 			enablePimarySql, tdbctlHost, tdbctlPort, result.Error.Error())

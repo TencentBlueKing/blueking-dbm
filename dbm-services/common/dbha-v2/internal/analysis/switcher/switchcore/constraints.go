@@ -25,6 +25,7 @@
 package switchcore
 
 import (
+	"context"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
@@ -32,6 +33,9 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchmutex"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
+
+	"gorm.io/gorm"
 )
 
 const (
@@ -42,6 +46,7 @@ const (
 
 	defaultDbConnectTimeout   = 3 * time.Second
 	defaultClusterLockTimeout = 60 * time.Second
+	defaultExecSqlTimeout     = 3 * time.Second
 )
 
 // ClusterLevelSwitchMaxClusterConcurrency returns a positive cap for
@@ -96,6 +101,21 @@ func ClusterLockTimeout() time.Duration {
 		return defaultClusterLockTimeout
 	}
 	return d
+}
+
+// ExecSqlTimeout returns workflow.switchflow.execSqlTimeout, or default when unset.
+func ExecSqlTimeout() time.Duration {
+	d := config.Cfg.Workflow.SwitchFlow.ExecSqlTimeout
+	if d <= 0 {
+		return defaultExecSqlTimeout
+	}
+	return d
+}
+
+// GormWithExecSqlTimeout returns db scoped to ExecSqlTimeout and the cancel func for its context deadline.
+func GormWithExecSqlTimeout(db *hamysql.GormDB) (*gorm.DB, context.CancelFunc) {
+	ctx, cancel := context.WithTimeout(context.Background(), ExecSqlTimeout())
+	return db.DBWithContext(ctx), cancel
 }
 
 // LockClusterWithTimeout locks a cluster with a timeout.

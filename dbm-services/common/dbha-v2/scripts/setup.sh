@@ -343,6 +343,7 @@ workflow:
     switchLogWriteTimeout: 1s
     dbConnectTimeout: 3s
     clusterLockTimeout: 60s
+    execSqlTimeout: 3s
 
   dbmApiMetadata:
     api: ${DBM_API_BASE}/apis/proxypass/dbmeta/dbha/instances

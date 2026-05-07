@@ -565,7 +565,10 @@ func DoShowSlaveStatus(slaveDB *hamysql.GormDB, reportLogf switchlogger.SwitchLo
 	showSlaveSQL := "SHOW SLAVE STATUS"
 
 	slaveStatus := &SlaveStatusInfo{}
-	err := slaveDB.DB().Raw(showSlaveSQL).Scan(slaveStatus).Error
+	gdb, cancel := switchcore.GormWithExecSqlTimeout(slaveDB)
+	defer cancel()
+
+	err := gdb.Raw(showSlaveSQL).Scan(slaveStatus).Error
 	if err != nil {
 		return nil, gerrors.Newf(gerrors.Failure,
 			"failed to execute '%s' on slave(%s:%d), errmsg: %s", showSlaveSQL, slaveIp, slavePort, err.Error())
@@ -586,7 +589,10 @@ func DoStopSlave(slaveDB *hamysql.GormDB, reportLogf switchlogger.SwitchLogFunc)
 	slavePort := slaveDB.Port()
 	stopSlaveSQL := "STOP SLAVE"
 
-	err := slaveDB.DB().Exec(stopSlaveSQL).Error
+	gdb, cancel := switchcore.GormWithExecSqlTimeout(slaveDB)
+	defer cancel()
+
+	err := gdb.Exec(stopSlaveSQL).Error
 	if err != nil {
 		return gerrors.Newf(gerrors.Failure,
 			"failed to execute '%s' on slave(%s:%d), errmsg: %s", stopSlaveSQL, slaveIp, slavePort, err.Error())
@@ -607,7 +613,10 @@ func DoShowMasterStatus(db *hamysql.GormDB, reportLogf switchlogger.SwitchLogFun
 	showMasterSQL := "SHOW MASTER STATUS"
 
 	masterStatus := &MasterStatusInfo{}
-	err := db.DB().Raw(showMasterSQL).Scan(masterStatus).Error
+	gdb, cancel := switchcore.GormWithExecSqlTimeout(db)
+	defer cancel()
+
+	err := gdb.Raw(showMasterSQL).Scan(masterStatus).Error
 	if err != nil {
 		return nil, gerrors.Newf(gerrors.Failure,
 			"failed to execute '%s' on mysql(%s:%d), errmsg: %s", showMasterSQL, slaveIp, slavePort, err.Error())
@@ -628,7 +637,10 @@ func DoResetSlave(slaveDB *hamysql.GormDB, reportLogf switchlogger.SwitchLogFunc
 	slavePort := slaveDB.Port()
 	resetSlaveSQL := "RESET SLAVE /*!50516 ALL */"
 
-	err := slaveDB.DB().Exec(resetSlaveSQL).Error
+	gdb, cancel := switchcore.GormWithExecSqlTimeout(slaveDB)
+	defer cancel()
+
+	err := gdb.Exec(resetSlaveSQL).Error
 	if err != nil {
 		return gerrors.Newf(gerrors.Failure,
 			"failed to execute '%s' on mysql(%s:%d), errmsg: %s", resetSlaveSQL, slaveIp, slavePort, err.Error())
@@ -696,7 +708,10 @@ func DoStartSlave(slaveDB *hamysql.GormDB, reportLogf switchlogger.SwitchLogFunc
 	slavePort := slaveDB.Port()
 	startSlaveSQL := "START SLAVE"
 
-	err := slaveDB.DB().Exec(startSlaveSQL).Error
+	gdb, cancel := switchcore.GormWithExecSqlTimeout(slaveDB)
+	defer cancel()
+
+	err := gdb.Exec(startSlaveSQL).Error
 	if err != nil {
 		return gerrors.Newf(gerrors.Failure,
 			"failed to execute '%s' on slave(%s:%d), errmsg: %s",
@@ -747,7 +762,10 @@ func DoChangeMasterSteps(
 			slaveIp, slavePort, slaveStatus.RelayMasterLogFile, slaveStatus.ExecMasterLogPos)
 	}
 
-	if err = slaveDB.DB().Exec(changeMasterSQL).Error; err != nil {
+	gdb, cancel := switchcore.GormWithExecSqlTimeout(slaveDB)
+	defer cancel()
+
+	if err = gdb.Exec(changeMasterSQL).Error; err != nil {
 		return gerrors.Newf(gerrors.Failure,
 			"failed to execute '%s' on node(%s:%d), errmsg: %s",
 			changeMasterSQL, slaveIp, slavePort, err.Error())
