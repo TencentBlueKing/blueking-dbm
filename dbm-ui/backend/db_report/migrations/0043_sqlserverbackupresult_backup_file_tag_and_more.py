@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("db_report", "0040_alter_mysqlinspectignore_unique_together"),
+        ("db_report", "0042_alter_kafkabrokeraffinityreport_cluster_type_and_more"),
     ]
 
     operations = [
