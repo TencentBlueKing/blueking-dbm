@@ -194,16 +194,9 @@ func (checker *MySQLSlaveChecker) CheckSqlReplicationDelay(slaveDB *hamysql.Gorm
 	port := slaveDB.Port()
 	allowSlowKBytes := AllowSlowBytes
 
-	var varQueryRes MySQLVariableResult
-	err := slaveDB.DB().Raw("show variables like 'max_binlog_size'").Scan(&varQueryRes).Error
+	maxBinlogSize, err := queryMaxBinlogSize(slaveDB)
 	if err != nil {
-		return gerrors.Newf(gerrors.Failure, "failed to query max_binlog_size from (%s:%d): %s", ip, port, err.Error())
-	}
-
-	maxBinlogSize, parseErr := strconv.ParseUint(varQueryRes.Value, 10, 64)
-	if parseErr != nil {
-		return gerrors.Newf(gerrors.Failure, "failed to parse max_binlog_size('%s') from (%s:%d): %s",
-			varQueryRes.Value, ip, port, parseErr.Error())
+		return err
 	}
 	checker.ReportLogf(switchlogger.SwitchInfo, "the max_binlog_size of slave node(%s:%d) is %dMB",
 		ip, port, maxBinlogSize/1024/1024)
@@ -267,6 +260,27 @@ func (checker *MySQLSlaveChecker) CheckSqlReplicationDelay(slaveDB *hamysql.Gorm
 	return nil
 }
 
+// queryMaxBinlogSize queries the max_binlog_size from the slave database
+func queryMaxBinlogSize(slaveDB *hamysql.GormDB) (uint64, error) {
+	ip := slaveDB.Host()
+	port := slaveDB.Port()
+	var varQueryRes MySQLVariableResult
+	gdb, cancel := switchcore.GormWithExecSqlTimeout(slaveDB)
+	defer cancel()
+
+	err := gdb.Raw("show variables like 'max_binlog_size'").Scan(&varQueryRes).Error
+	if err != nil {
+		return 0, gerrors.Newf(gerrors.Failure, "failed to query max_binlog_size from (%s:%d): %s", ip, port, err.Error())
+	}
+
+	maxBinlogSize, parseErr := strconv.ParseUint(varQueryRes.Value, 10, 64)
+	if parseErr != nil {
+		return 0, gerrors.Newf(gerrors.Failure, "failed to parse max_binlog_size('%s') from (%s:%d): %s",
+			varQueryRes.Value, ip, port, parseErr.Error())
+	}
+	return maxBinlogSize, nil
+}
+
 // GetSlaveTimeDelay retrieves slave replication delay information
 func (checker *MySQLSlaveChecker) GetSlaveTimeDelay(slaveDB *hamysql.GormDB) (int, int, error) {
 	if slaveDB == nil {
@@ -277,7 +291,10 @@ func (checker *MySQLSlaveChecker) GetSlaveTimeDelay(slaveDB *hamysql.GormDB) (in
 	port := slaveDB.Port()
 
 	slaveStatus := SlaveStatusInfo{}
-	err := slaveDB.DB().Raw("show slave status").Scan(&slaveStatus).Error
+	gdb1, cancel1 := switchcore.GormWithExecSqlTimeout(slaveDB)
+	defer cancel1()
+
+	err := gdb1.Raw("show slave status").Scan(&slaveStatus).Error
 	if err != nil {
 		return 0, 0, gerrors.Newf(gerrors.Failure, "failed to query slave status from node(%s:%d): %s",
 			ip, port, err.Error())
@@ -286,7 +303,10 @@ func (checker *MySQLSlaveChecker) GetSlaveTimeDelay(slaveDB *hamysql.GormDB) (in
 		ip, port, slaveStatus.MasterServerID)
 
 	delayInfo := SlaveTimeDelayInfo{}
-	err = slaveDB.DB().Raw(CheckDelaySQL, slaveStatus.MasterServerID).Scan(&delayInfo).Error
+	gdb2, cancel2 := switchcore.GormWithExecSqlTimeout(slaveDB)
+	defer cancel2()
+
+	err = gdb2.Raw(CheckDelaySQL, slaveStatus.MasterServerID).Scan(&delayInfo).Error
 	if err != nil {
 		return 0, 0, gerrors.Newf(gerrors.Failure, "failed to query slave time delay info from node(%s:%d): %s",
 			ip, port, err.Error())
@@ -309,13 +329,19 @@ func (checker *MySQLSlaveChecker) GetSlaveCheckSum(db *hamysql.GormDB) (int, int
 		checksumCnt, checksumFailCnt int
 	)
 
-	err := db.DB().Raw(CheckSumSQL).Scan(&checksumCnt).Error
+	gdb1, cancel1 := switchcore.GormWithExecSqlTimeout(db)
+	defer cancel1()
+
+	err := gdb1.Raw(CheckSumSQL).Scan(&checksumCnt).Error
 	if err != nil {
 		return 0, 0, gerrors.Newf(gerrors.Failure, "failed to get checksumCnt from node(%s:%d): %s",
 			ip, port, err.Error())
 	}
 
-	err = db.DB().Raw(CheckSumFailSQL).Scan(&checksumFailCnt).Error
+	gdb2, cancel2 := switchcore.GormWithExecSqlTimeout(db)
+	defer cancel2()
+
+	err = gdb2.Raw(CheckSumFailSQL).Scan(&checksumFailCnt).Error
 	if err != nil {
 		return checksumCnt, 0, gerrors.Newf(gerrors.Failure, "failed to get checksumFailCnt from node(%s:%d): %s",
 			ip, port, err.Error())
@@ -444,7 +470,10 @@ func HasUserCreatedDatabase(db *hamysql.GormDB, reportLogf switchlogger.SwitchLo
 	port := db.Port()
 
 	var databases []string
-	err := db.DB().Raw("show databases").Scan(&databases).Error
+	gdb, cancel := switchcore.GormWithExecSqlTimeout(db)
+	defer cancel()
+
+	err := gdb.Raw("show databases").Scan(&databases).Error
 	if err != nil {
 		return false, gerrors.Newf(gerrors.Failure, "failed to query databases from node(%s:%d): %s",
 			ip, port, err.Error())

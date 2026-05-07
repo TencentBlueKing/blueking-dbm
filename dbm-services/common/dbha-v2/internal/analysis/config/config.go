@@ -59,6 +59,7 @@ var Cfg = Configuration{
 			SwitchLogWriteTimeout:            1 * time.Second,
 			DbConnectTimeout:                 3 * time.Second,
 			ClusterLockTimeout:               60 * time.Second,
+			ExecSqlTimeout:                   3 * time.Second,
 		},
 	},
 
@@ -101,6 +102,7 @@ type SwitchFlowConfig struct {
 	SwitchLogWriteTimeout            time.Duration `yaml:"switchLogWriteTimeout"            mapstructure:"switchLogWriteTimeout"`
 	DbConnectTimeout                 time.Duration `yaml:"dbConnectTimeout"                 mapstructure:"dbConnectTimeout"`
 	ClusterLockTimeout               time.Duration `yaml:"clusterLockTimeout"               mapstructure:"clusterLockTimeout"`
+	ExecSqlTimeout                   time.Duration `yaml:"execSqlTimeout"                   mapstructure:"execSqlTimeout"`
 }
 
 // WorkflowConfig workflow's configuration

@@ -25,6 +25,8 @@
 package hamysql
 
 import (
+	"context"
+
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
 
@@ -161,4 +163,9 @@ func NewGormDBForTest(gormDB *gorm.DB) *GormDB {
 			db: gormDB,
 		},
 	}
+}
+
+// DBWithContext returns a new gorm.DB with the given context.
+func (db *GormDB) DBWithContext(ctx context.Context) *gorm.DB {
+	return db.db.WithContext(ctx)
 }

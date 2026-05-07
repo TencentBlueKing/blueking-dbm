@@ -177,7 +177,7 @@ func TestGormDBTimeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.execTimeout)
 	defer cancel()
 
-	err = db.DB().WithContext(ctx).Exec(cfg.sqlText).Error
+	err = db.DBWithContext(ctx).Exec(cfg.sqlText).Error
 	elapsed := time.Since(start)
 	log.Printf("gorm exec success=%t, timeout=%t, ctxErr=%v, err=%v, elapsed=%s",
 		err == nil,
