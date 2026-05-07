@@ -196,6 +196,9 @@ class EsActPayload(object):
                     "instances": kwargs["instance_num"],
                     "cluster_name": self.ticket_data["cluster_name"],
                     "role": kwargs["role"],
+                    "rack_id": kwargs["rack_id"],  # 机架id
+                    "idc_id": kwargs["idc_id"],  # 机房id
+                    "sub_zone_id": kwargs["sub_zone_id"],  # 园区id
                 },
             },
         }
