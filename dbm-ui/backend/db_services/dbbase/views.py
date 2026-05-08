@@ -504,15 +504,10 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         # mongodb实例列表副本集状态下拉筛选的数据来源
         if "mongodb_state" in data["instances_attrs"]:
             instance_ids = [*proxy_query.values_list("id", flat=True), *storage_queryset.values_list("id", flat=True)]
-            ext_instances = MongoDBStorageInstanceExt.objects.filter(instance_id__in=instance_ids).values(
-                "instance_id", "state"
+            ext_instances = (
+                MongoDBStorageInstanceExt.objects.filter(instance_id__in=instance_ids).distinct().values("state")
             )
-
-            ext_dict = {ext["instance_id"]: ext["state"] for ext in ext_instances}
-            instance_attrs["mongodb_state"] = [
-                {"value": ext_dict.get(instance_id, None), "text": ext_dict.get(instance_id, "--")}
-                for instance_id in instance_ids
-            ]
+            instance_attrs["mongodb_state"] = [{"value": ext["state"], "text": ext["state"]} for ext in ext_instances]
 
         if "role" in data["instances_attrs"]:
             cluster_type = data.get("cluster_type")
