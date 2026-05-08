@@ -1,30 +1,32 @@
 <template>
-  <Teleport to="#dbContentTitleAppend">
-    <BkPopover
-      placement="top"
-      :z-index="99999">
-      <div class="host-todo-page-title-icon">
-        <DbIcon type="attention" />
-      </div>
-      <template #content>
-        <div>{{ t('故障池主机：展示待我处理的故障主机，一般是uwork、xwork检测有异常的已下架主机') }}</div>
-        <div>{{ t('待回收池主机：展示待我处理的待回收主机，一般是检测为Windows、待裁撤主机的已下架主机') }}</div>
-      </template>
-    </BkPopover>
-  </Teleport>
-  <BkTab
-    v-model:active="modelValue"
-    class="host-todo-assist-tab"
-    type="unborder-card"
-    @change="handleChangeType">
-    <BkTabPanel
-      v-for="tab in renderTabs"
-      :key="tab.id"
-      :label="tab.name"
-      :name="tab.id"
-      :num="tab.count"
-      num-display-type="bracket" />
-  </BkTab>
+  <div>
+    <Teleport to="#dbContentTitleAppend">
+      <BkPopover
+        placement="top"
+        :z-index="99999">
+        <div class="host-todo-page-title-icon">
+          <DbIcon type="attention" />
+        </div>
+        <template #content>
+          <div>{{ t('故障池主机：展示待我处理的故障主机，一般是uwork、xwork检测有异常的已下架主机') }}</div>
+          <div>{{ t('待回收池主机：展示待我处理的待回收主机，一般是检测为Windows、待裁撤主机的已下架主机') }}</div>
+        </template>
+      </BkPopover>
+    </Teleport>
+    <BkTab
+      v-model:active="modelValue"
+      class="host-todo-assist-tab"
+      type="unborder-card"
+      @change="handleChangeType">
+      <BkTabPanel
+        v-for="tab in renderTabs"
+        :key="tab.id"
+        :label="tab.name"
+        :name="tab.id"
+        :num="tab.count"
+        num-display-type="bracket" />
+    </BkTab>
+  </div>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
