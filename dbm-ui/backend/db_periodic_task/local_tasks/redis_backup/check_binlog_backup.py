@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import time
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
@@ -206,6 +207,19 @@ def _get_cluster_config(domain_name: str, db_version: str, conf_type: str, names
     return data["content"]
 
 
+@dataclass(frozen=True)
+class AnalysisWindow:
+    """Yesterday's wall-clock day as a half-open interval ``[start, end)``"""
+
+    start: datetime
+    end: datetime
+
+    def contains(self, ts: Optional[datetime]) -> bool:
+        if ts is None:
+            return False
+        return self.start <= ts < self.end
+
+
 class CheckBinlogBackupTask:
     """Binlog backup check for TendisPlus and TendisSSD clusters.
 
@@ -224,7 +238,7 @@ class CheckBinlogBackupTask:
         batch_ops.delete_today_records()
 
         cluster_ids = list(self._get_cluster_ids(config))
-        start_time, end_time, analysis_start_local, analysis_end_local = self._yesterday_time_range()
+        start_time, end_time, analysis_window = self._yesterday_time_range()
         cluster_state_total = {
             ReportStateType.NORMAL.value: 0,
             ReportStateType.WARNING.value: 0,
@@ -243,8 +257,7 @@ class CheckBinlogBackupTask:
                     start_time,
                     end_time,
                     config,
-                    analysis_start_local=analysis_start_local,
-                    analysis_end_local=analysis_end_local,
+                    analysis_window=analysis_window,
                 )
                 if rows:
                     cluster_state_total[rows[0].state] += 1
@@ -299,8 +312,7 @@ class CheckBinlogBackupTask:
         config: RedisBackupCheckConfig,
         max_retries: int = 3,
         *,
-        analysis_start_local: Optional[datetime] = None,
-        analysis_end_local: Optional[datetime] = None,
+        analysis_window: Optional[AnalysisWindow] = None,
     ):
         last_error = None
         for attempt in range(max_retries):
@@ -310,8 +322,7 @@ class CheckBinlogBackupTask:
                     start_time,
                     end_time,
                     config,
-                    analysis_start_local=analysis_start_local,
-                    analysis_end_local=analysis_end_local,
+                    analysis_window=analysis_window,
                 )
             except Exception as e:
                 logger.error(
@@ -333,8 +344,7 @@ class CheckBinlogBackupTask:
         end_time,
         config: RedisBackupCheckConfig,
         *,
-        analysis_start_local: Optional[datetime] = None,
-        analysis_end_local: Optional[datetime] = None,
+        analysis_window: Optional[AnalysisWindow] = None,
     ):
         report = RedisBackupClusterReport(cluster, self.subtype)
 
@@ -383,8 +393,7 @@ class CheckBinlogBackupTask:
                     port,
                     kvstorecount,
                     recently_switched=recently_switched.get(instance),
-                    analysis_start_local=analysis_start_local,
-                    analysis_end_local=analysis_end_local,
+                    analysis_window=analysis_window,
                 )
             except Exception as e:
                 logger.error(
@@ -448,8 +457,7 @@ class CheckBinlogBackupTask:
         kvstorecount,
         *,
         recently_switched=None,
-        analysis_start_local: Optional[datetime] = None,
-        analysis_end_local: Optional[datetime] = None,
+        analysis_window: Optional[AnalysisWindow] = None,
     ):
         # The "no logs found" check is done against the raw query window
         # (pre-filter): if BKLog returned nothing at all for this instance
@@ -483,30 +491,22 @@ class CheckBinlogBackupTask:
         # next to a real yesterday seq.  The excluded entries will be
         # re-checked on the appropriate day's run.
         #
-        # Timezone contract: both operands below are NAIVE local time.
+        # Timezone contract: both operands compared via
+        # ``analysis_window.contains`` are NAIVE local time.
         # ``_extract_binlog_timestamp`` returns naive local per the
         # backup-agent filename convention (YYYYMMDDHHMMSS in the local
-        # tz of the source host); ``analysis_start_local`` /
-        # ``analysis_end_local`` are naive local stripped from Django
-        # timezone-aware ``localtime()``.  They are directly comparable
-        # only because both are local wall-clock.  If a newly
-        # provisioned instance ever emits UTC timestamps in filenames,
-        # this comparison would silently mis-classify buffer-window
-        # entries -- revisit this contract then.
-        def _in_window(ts: Optional[datetime]) -> bool:
-            if ts is None:
-                return False
-            if analysis_start_local is not None and ts < analysis_start_local:
-                return False
-            if analysis_end_local is not None and ts >= analysis_end_local:
-                return False
-            return True
-
-        if analysis_start_local is not None or analysis_end_local is not None:
+        # tz of the source host); ``analysis_window`` carries naive
+        # local bounds stripped from Django timezone-aware
+        # ``localtime()``.  They are directly comparable only because
+        # both are local wall-clock.  If a newly provisioned instance
+        # ever emits UTC timestamps in filenames, this comparison would
+        # silently mis-classify buffer-window entries -- revisit this
+        # contract then.
+        if analysis_window is not None:
             yesterday_logs = [
                 e
                 for e in bklogs
-                if _in_window(_extract_binlog_timestamp(e.get("file_name", ""), cluster.cluster_type))
+                if analysis_window.contains(_extract_binlog_timestamp(e.get("file_name", ""), cluster.cluster_type))
             ]
         else:
             yesterday_logs = bklogs
@@ -650,7 +650,7 @@ class CheckBinlogBackupTask:
     def _yesterday_time_range():
         """Compute the BKLog query window and the gap-analysis bounds.
 
-        Returns ``(query_start, query_end, analysis_start_local, analysis_end_local)``:
+        Returns ``(query_start, query_end, analysis_window)``:
 
         - ``query_start``/``query_end``: aware UTC bounds for the BKLog
           ES query.  Window is ``[yesterday 00:00 - 1h, today 00:00 + 1h)``
@@ -667,20 +667,21 @@ class CheckBinlogBackupTask:
             promotion match ``to_backup_system_start`` ↔
             ``to_backup_system_success`` pairs that straddle the
             day-before-yesterday/yesterday boundary.
-        - ``analysis_start_local``/``analysis_end_local``: naive local
-          ``datetime`` bounds of yesterday's wall-clock day
-          (``[yesterday 00:00, today 00:00)``).  Used downstream to
-          drop entries whose content time falls in either buffer hour
-          from yesterday's gap detection -- those entries belong to a
-          neighbouring day and would otherwise create phantom min/max
-          boundaries.  They will be re-checked on the appropriate
-          day's run.
+        - ``analysis_window``: naive-local ``AnalysisWindow`` bounding
+          yesterday's wall-clock day (``[yesterday 00:00, today 00:00)``).
+          Used downstream to drop entries whose content time falls in
+          either buffer hour from yesterday's gap detection -- those
+          entries belong to a neighbouring day and would otherwise
+          create phantom min/max boundaries.  They will be re-checked
+          on the appropriate day's run.
         """
         local_now = timezone.localtime()
         local_today_start = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
         local_yesterday_start = local_today_start - timedelta(days=1)
         query_start = local_yesterday_start.astimezone(tz=timezone.utc) - timedelta(hours=1)
         query_end = local_today_start.astimezone(tz=timezone.utc) + timedelta(hours=1)
-        analysis_start_local = local_yesterday_start.replace(tzinfo=None)
-        analysis_end_local = local_today_start.replace(tzinfo=None)
-        return query_start, query_end, analysis_start_local, analysis_end_local
+        analysis_window = AnalysisWindow(
+            start=local_yesterday_start.replace(tzinfo=None),
+            end=local_today_start.replace(tzinfo=None),
+        )
+        return query_start, query_end, analysis_window

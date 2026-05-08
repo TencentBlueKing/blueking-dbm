@@ -61,7 +61,7 @@ _DONT_CARE_TS = datetime(2024, 1, 1, 12, 0, 0)
 def _yesterday_start_local():
     """Yesterday 00:00 local time as a naive datetime.
 
-    Mirrors the production ``analysis_start_local``.  Tests derive
+    Mirrors the production ``analysis_window.start``.  Tests derive
     ``today_start = yesterday_start + timedelta(days=1)`` when they need
     the upper bound, so all timing anchors are expressed relative to
     the same reference point.
@@ -78,6 +78,18 @@ def _task_cls():
     from backend.db_periodic_task.local_tasks.redis_backup.check_binlog_backup import CheckBinlogBackupTask
 
     return CheckBinlogBackupTask
+
+
+def _analysis_window(start, end):
+    """Build an ``AnalysisWindow`` with a lazy import.
+
+    Mirrors the lazy-import pattern used elsewhere in this module to
+    avoid triggering the ``local_tasks/__init__.py`` chain at test
+    collection time.
+    """
+    from backend.db_periodic_task.local_tasks.redis_backup.check_binlog_backup import AnalysisWindow
+
+    return AnalysisWindow(start=start, end=end)
 
 
 def _report_cls():
@@ -146,8 +158,7 @@ def _run_check_instance(
     kvstorecount=None,
     ip="3.3.3.2",
     port="30000",
-    analysis_start_local=None,
-    analysis_end_local=None,
+    analysis_window=None,
 ):
     if cluster is None:
         cluster = _make_cluster()
@@ -162,8 +173,7 @@ def _run_check_instance(
             ip,
             port,
             kvstorecount,
-            analysis_start_local=analysis_start_local,
-            analysis_end_local=analysis_end_local,
+            analysis_window=analysis_window,
         )
     return report
 
@@ -329,7 +339,7 @@ def test_yesterday_real_gap_detected_with_filter():
         for idx in (1, 2, 4)
     ]
     with patch(_PATCH_IS_PLUS, return_value=False), patch(_PATCH_IS_SSD, return_value=True):
-        report = _run_check_instance(logs, analysis_end_local=today_start)
+        report = _run_check_instance(logs, analysis_window=_analysis_window(yesterday_start, today_start))
     records = report.records[ST.WARNING.value]
     assert len(records) == 1
     assert "seq gaps" in records[0]["msg"]
@@ -371,7 +381,7 @@ def test_filter_excludes_trailing_buffer(is_plus, kvstorecount):
             logs,
             cluster=cluster,
             kvstorecount=kvstorecount,
-            analysis_end_local=today_start,
+            analysis_window=_analysis_window(yesterday_start, today_start),
         )
     records = report.records[ST.NORMAL.value]
     assert len(records) == 1
@@ -409,8 +419,7 @@ def test_filter_excludes_leading_buffer():
     with patch(_PATCH_IS_PLUS, return_value=False), patch(_PATCH_IS_SSD, return_value=True):
         report = _run_check_instance(
             logs,
-            analysis_start_local=yesterday_start,
-            analysis_end_local=today_start,
+            analysis_window=_analysis_window(yesterday_start, today_start),
         )
     records = report.records[ST.NORMAL.value]
     assert len(records) == 1
@@ -469,7 +478,7 @@ def test_filter_retains_yesterday_late_content():
         ),
     ]
     with patch(_PATCH_IS_PLUS, return_value=False), patch(_PATCH_IS_SSD, return_value=True):
-        report = _run_check_instance(logs, analysis_end_local=today_start)
+        report = _run_check_instance(logs, analysis_window=_analysis_window(yesterday_start, today_start))
     records = report.records[ST.NORMAL.value]
     assert len(records) == 1
     assert records[0]["msg"] == "ok"
@@ -513,7 +522,7 @@ def test_filter_excludes_unparseable_filename():
         ),
     ]
     with patch(_PATCH_IS_PLUS, return_value=False), patch(_PATCH_IS_SSD, return_value=True):
-        report = _run_check_instance(logs, analysis_end_local=today_start)
+        report = _run_check_instance(logs, analysis_window=_analysis_window(yesterday_start, today_start))
     records = report.records[ST.NORMAL.value]
     assert len(records) == 1, f"unexpected report: {report.records}"
 
@@ -585,8 +594,7 @@ def test_buffer_leading_fills_gap_defensive(is_plus, kvstorecount):
             logs,
             cluster=cluster,
             kvstorecount=kvstorecount,
-            analysis_start_local=yesterday_start,
-            analysis_end_local=today_start,
+            analysis_window=_analysis_window(yesterday_start, today_start),
         )
     records = report.records[ST.NORMAL.value]
     assert len(records) == 1
@@ -647,8 +655,7 @@ def test_buffer_trailing_fills_gap_defensive(is_plus, kvstorecount):
             logs,
             cluster=cluster,
             kvstorecount=kvstorecount,
-            analysis_start_local=yesterday_start,
-            analysis_end_local=today_start,
+            analysis_window=_analysis_window(yesterday_start, today_start),
         )
     records = report.records[ST.NORMAL.value]
     assert len(records) == 1
@@ -710,8 +717,7 @@ def test_buffer_does_not_mask_yesterday_failure(is_plus, kvstorecount):
             logs,
             cluster=cluster,
             kvstorecount=kvstorecount,
-            analysis_start_local=yesterday_start,
-            analysis_end_local=today_start,
+            analysis_window=_analysis_window(yesterday_start, today_start),
         )
     records = report.records[ST.WARNING.value]
     assert len(records) == 1
