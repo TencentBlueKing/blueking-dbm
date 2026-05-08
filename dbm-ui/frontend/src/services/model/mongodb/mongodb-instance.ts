@@ -12,6 +12,22 @@ export default class MongodbInstance extends InstanceBase {
   static MONGODB_ENABLE = 'MONGODB_ENABLE';
   static MONGODB_INSTANCE_RELOAD = 'MONGODB_INSTANCE_RELOAD';
 
+  static mongodbStates = [
+    'STARTUP',
+    'PRIMARY',
+    'SECONDARY',
+    'RECOVERING',
+    'FATAL',
+    'STARTUP2',
+    'UNKNOWN',
+    'ARBITER',
+    'DOWN',
+    'ROLLBACK',
+    'REMOVED',
+    'NOT_INITIALIZED',
+    'OTHER',
+  ] as const;
+
   static operationIconMap = {
     [MongodbInstance.MONGODB_DESTROY]: t('删除中'),
     [MongodbInstance.MONGODB_DISABLE]: t('禁用中'),
@@ -25,11 +41,11 @@ export default class MongodbInstance extends InstanceBase {
     [MongodbInstance.MONGODB_ENABLE]: t('启用任务执行中'),
     [MongodbInstance.MONGODB_INSTANCE_RELOAD]: t('实例重启任务进行中'),
   };
-
   static statusMap: Record<string, string> = {
     running: t('正常'),
     unavailable: t('异常'),
   };
+
   static themes: Record<string, string> = {
     running: 'success',
   };
@@ -55,6 +71,7 @@ export default class MongodbInstance extends InstanceBase {
   ip: string;
   machine_type: string;
   master_domain: string;
+  mongodb_state: keyof typeof MongodbInstance.mongodbStates;
   operations: InstanceListOperation[];
   permission: {
     mongodb_view: boolean;
@@ -91,6 +108,7 @@ export default class MongodbInstance extends InstanceBase {
     this.permission = payload.permission || {};
     this.machine_type = payload.machine_type;
     this.master_domain = payload.master_domain;
+    this.mongodb_state = payload.mongodb_state;
     this.operations = payload.operations || [];
     this.port = payload.port;
     this.related_clusters = payload.related_clusters || [];

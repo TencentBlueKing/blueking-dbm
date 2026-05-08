@@ -114,6 +114,9 @@
           :selected-list="selectedList">
         </IpColumn>
       </template>
+      <template #mongodbState>
+        <MongodbStateColumn :cluster-type="ClusterTypes.MONGO_REPLICA_SET" />
+      </template>
     </InstanceTable>
   </div>
 </template>
@@ -137,6 +140,7 @@
     InstanceAddressColumn,
     InstanceDomainColumn,
     IpColumn,
+    MongodbStateColumn,
     OperationColumn,
   } from '@views/db-manage/common/instance-table/Index.vue';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
