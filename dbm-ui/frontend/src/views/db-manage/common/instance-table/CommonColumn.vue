@@ -17,6 +17,7 @@
       {{ row.role }}
     </template>
   </TableColumn>
+  <slot name="mongodbState" />
   <TableColumn
     col-key="version"
     :filter="columnFilter?.['version']"
@@ -75,6 +76,7 @@
 
   export interface Slots {
     ip: () => VNode;
+    mongodbState: () => VNode;
     relatedCluster: () => VNode;
   }
 
