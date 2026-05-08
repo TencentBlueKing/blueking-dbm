@@ -63,57 +63,58 @@
         ref="table"
         :container-height="contentHeight"
         :data-source="dataSource"
-        :height="contentHeight"
-        @column-filter="handleFilter">
-        <BkTableColumn
-          field="ip"
+        :filter-value="columnFilterValue"
+        row-key="ip"
+        @filter-change="handleFilterChange">
+        <TableColumn
+          col-key="ip"
           fixed="left"
-          label="IP"
-          :min-width="150" />
-        <BkTableColumn
-          field="bk_cloud_name"
-          :label="t('管控区域')"
-          :min-width="120" />
-        <BkTableColumn
-          field="agent_status"
-          :label="t('Agent 状态')"
-          :min-width="120">
-          <template #default="{ data }: { data: DbResourceModel }">
-            <HostAgentStatus :data="data.agent_status" />
+          :min-width="150"
+          title="IP" />
+        <TableColumn
+          col-key="bk_cloud_name"
+          :min-width="120"
+          :title="t('管控区域')" />
+        <TableColumn
+          col-key="agent_status"
+          :min-width="120"
+          :title="t('Agent 状态')">
+          <template #default="{ row }: { row: DbResourceModel }">
+            <HostAgentStatus :data="row.agent_status" />
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="bk_cpu"
-          :label="t('资源归属')"
-          :min-width="300">
-          <template #default="{ data }: { data: DbResourceModel }">
-            <ResourceHostOwner :data="data" />
+        </TableColumn>
+        <TableColumn
+          col-key="bk_cpu"
+          :min-width="300"
+          :title="t('资源归属')">
+          <template #default="{ row }: { row: DbResourceModel }">
+            <ResourceHostOwner :data="row" />
           </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="city"
-          :filter="filterOption.city"
-          :label="t('地域')"
-          :min-width="120" />
-        <BkTableColumn
-          field="sub_zone"
-          :filter="filterOption.sub_zone"
-          :label="t('园区')"
-          :min-width="120" />
-        <BkTableColumn
-          field="rack_id"
-          :label="t('机架')"
-          :min-width="120" />
-        <BkTableColumn
-          field="os_name"
-          :filter="filterOption.os_name"
-          :label="t('操作系统名称')"
-          :min-width="180" />
-        <BkTableColumn
-          field="device_class"
-          :filter="filterOption.device_class"
-          :label="t('机型')"
-          :min-width="120" />
+        </TableColumn>
+        <TableColumn
+          col-key="city"
+          :filter="filterOption['city']"
+          :min-width="120"
+          :title="t('地域')" />
+        <TableColumn
+          col-key="sub_zone"
+          :filter="filterOption['suz_zone']"
+          :min-width="120"
+          :title="t('园区')" />
+        <TableColumn
+          col-key="rack_id"
+          :min-width="120"
+          :title="t('机架')" />
+        <TableColumn
+          col-key="os_name"
+          :filter="filterOption['os_name']"
+          :min-width="180"
+          :title="t('操作系统名称')" />
+        <TableColumn
+          col-key="device_class"
+          :filter="filterOption['device_class']"
+          :min-width="120"
+          :title="t('机型')" />
       </DbTable>
     </div>
   </BkSideslider>
@@ -128,9 +129,11 @@
   import { listTag } from '@services/source/tag';
   import type { HostInfo } from '@services/types';
 
+  import DbTable from '@components/db-table/IndexNew.vue';
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
   import ResourceHostOwner from '@components/resource-host-owner/Index.vue';
-  import useSearchSelectData from '@components/resource-host-selector/hooks/use-search-select-data';
+
+  import useSearchSelectData from './hooks/use-search-select-data';
 
   interface Props {
     bizId?: number;
@@ -163,9 +166,10 @@
   const contentHeight = window.innerHeight * 0.8;
 
   const { t } = useI18n();
-  const dbTableRef = useTemplateRef('table');
-  const { columnFilterValue, filterOption, handleFilter } = useSearchSelectData(props);
+  const tableRef = useTemplateRef('table');
+  const filterOption = useSearchSelectData();
 
+  const columnFilterValue = ref<Record<string, string>>({});
   const machineNum = ref(0);
   const tagList = ref<ServiceReturnType<typeof listTag>['results']>([]);
   // 通用无标签
@@ -188,23 +192,35 @@
     },
   });
 
-  const dataSource = (params: ServiceParameters<typeof fetchList>) => {
+  const dataSource = async (params: ServiceParameters<typeof fetchList>) => {
     // 过滤掉通用无标签选项
     const labels = (props.params.labels || '')
       ?.split(',')
       .filter((item) => item !== '0')
       .join(',');
     noLimitTag.value = !labels;
-    return fetchList({
+    const dataList = await fetchList({
       ...params,
       ...props.params,
       bk_biz_id: undefined, // 资源池参数用for_biz,把db-table内置的bk_biz_id去掉
       city: props.params.city || undefined,
       labels: labels || undefined, // 不传即为不限制（即通用无标签）
-      spec_id: props.params.spec_id || undefined,
+      spec_id: props.params.spec_id ? String(props.params.spec_id) : undefined,
       subzone_ids: props.params.subzone_ids || undefined,
       subzones: props.params.subzones || undefined,
     });
+
+    machineNum.value = dataList.count;
+    return dataList;
+  };
+
+  const fetchData = () => {
+    tableRef.value!.fetchData(Object.assign({}, columnFilterValue.value));
+  };
+
+  const handleFilterChange = (filterValue: Record<string, string>) => {
+    columnFilterValue.value = filterValue;
+    fetchData();
   };
 
   watch(
@@ -220,12 +236,6 @@
     },
   );
 
-  watch(columnFilterValue, () => {
-    dbTableRef.value?.fetchData({
-      ...columnFilterValue,
-    });
-  });
-
   watch(isShow, () => {
     if (isShow.value) {
       setTimeout(() => {
@@ -234,10 +244,7 @@
             spec_id: props.params.spec_id,
           });
         }
-        dbTableRef.value?.getAllData().then((res: unknown[]) => {
-          machineNum.value = res.length;
-        });
-        dbTableRef.value?.fetchData();
+        fetchData();
       }, 100);
     }
   });
