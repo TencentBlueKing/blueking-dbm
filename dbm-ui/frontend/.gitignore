@@ -14,7 +14,6 @@ dist-ssr
 *.development
 .env.test
 .env.https
-yarn.lock
 build.yml
 
 # Editor directories and files
