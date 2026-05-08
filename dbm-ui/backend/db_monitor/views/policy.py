@@ -253,7 +253,9 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         policy_map = MonitorPolicy.objects.in_bulk(id_list=[info["policy_id"] for info in notify_groups])
         for info in notify_groups:
             policy = policy_map[info["policy_id"]]
-
+            notify_config = policy.notify_config
+            if self.validated_data.get("voice_notice"):
+                notify_config["voice_notice"] = self.validated_data["voice_notice"]
             # 批量替换等于平台策略的时候要走克隆
             if policy.target_level == "platform":
                 app_tag = app_cache.db_app_abbr or str(app_cache.bk_biz_id)
@@ -265,7 +267,7 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
                     "is_enabled": policy.is_enabled,
                     "name": f"DBM#{app_tag} {policy.name}",
                     "no_data_config": policy.no_data_config,
-                    "notify_config": policy.notify_config,
+                    "notify_config": notify_config,
                     "notify_rules": policy.notify_rules,
                     "parent_id": policy.id,
                     "policy_tag": "inner",
@@ -284,7 +286,7 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
                 }
                 policy.clone(params, username=request.user.username)
             else:
-                params = {"notify_groups": info["groups"]}
+                params = {"notify_groups": info["groups"], "notify_config": notify_config}
                 policy.update(params, username=request.user.username)
         return Response()
 
