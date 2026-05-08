@@ -29,7 +29,6 @@ from backend.db_monitor.constants import (
     DetectAlgEnum,
     OperatorEnum,
     TargetLevel,
-    UpdateNotifyGroupType,
 )
 from backend.db_monitor.exceptions import AutofixException
 from backend.db_monitor.mock_data import CALLBACK_REQUEST
@@ -270,11 +269,6 @@ class BatchUpdateMonitorPolicyNotifySerializer(serializers.Serializer):
 
     notify_groups = serializers.ListSerializer(help_text=_("告警组ID列表"), child=NoticeGroupInfoSerializer())
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
-    type = serializers.ChoiceField(
-        help_text=_("修改告警组类型"),
-        default=UpdateNotifyGroupType.APPEND,
-        choices=UpdateNotifyGroupType.get_choices(),
-    )
 
 
 class MonitorPolicyCloneSerializer(MonitorPolicyUpdateSerializer):
