@@ -117,6 +117,9 @@
           :selected-list="selectedList">
         </IpColumn>
       </template>
+      <template #mongodbState>
+        <MongodbStateColumn :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER" />
+      </template>
     </InstanceTable>
   </div>
 </template>
@@ -140,6 +143,7 @@
     InstanceAddressColumn,
     InstanceDomainColumn,
     IpColumn,
+    MongodbStateColumn,
     OperationColumn,
     ShardColumn,
   } from '@views/db-manage/common/instance-table/Index.vue';
