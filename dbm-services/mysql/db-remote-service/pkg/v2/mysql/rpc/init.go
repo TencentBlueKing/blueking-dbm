@@ -16,6 +16,8 @@ type MySQLRPCRequest struct {
 	Timezone       string   `form:"timezone" json:"timezone"`
 	Charset        string   `form:"charset" json:"charset"`
 	TraceId        string   `form:"trace_id" json:"trace_id"`
+	PreHookCmds    []string `form:"pre_hook_cmds" json:"pre_hook_cmds"`
+	SkipSetNames   bool     `form:"skip_set_names" json:"skip_set_names"`
 }
 
 func (c *MySQLRPCRequest) TrimSpace() {

@@ -8,10 +8,12 @@ type WSBaseRequest struct {
 }
 
 type WSConnectRequest struct {
-	Address  string `json:"address"`
-	Charset  string `json:"charset"`
-	Timezone string `json:"timezone"`
-	Timeout  int    `json:"timeout"`
+	Address      string   `json:"address"`
+	Charset      string   `json:"charset"`
+	Timezone     string   `json:"timezone"`
+	Timeout      int      `json:"timeout"`
+	PreHookCmds  []string `json:"pre_hook_cmds"`
+	SkipSetNames bool     `json:"skip_set_names"`
 }
 
 type WSCommandRequest struct {

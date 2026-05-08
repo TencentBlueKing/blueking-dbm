@@ -39,6 +39,8 @@ func makeHandler(endpoint string, account func() (user, password string)) gin.Ha
 			slog.String("addresses", strings.Join(req.Addresses, ",")),
 			slog.String("cmds", strings.Join(req.Cmds, ",")),
 			slog.Bool("force", req.Force),
+			slog.String("pre_hook_cmds", strings.Join(req.PreHookCmds, ",")),
+			slog.Bool("skip_set_names", req.SkipSetNames),
 		)
 
 		start := time.Now()
