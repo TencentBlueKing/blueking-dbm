@@ -27,6 +27,16 @@
     </template>
   </TableColumn>
   <TableColumn
+    v-if="[ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER].includes(clusterType)"
+    col-key="mongodb_state"
+    :filter="columnFilter?.['mongodb_state']"
+    :title="t('副本集状态')"
+    :width="150">
+    <template #default="{ row }: { row: MongodbInstanceModel }">
+      {{ row.mongodb_state || '--' }}
+    </template>
+  </TableColumn>
+  <TableColumn
     col-key="version"
     :filter="columnFilter?.['version']"
     :min-width="240"
@@ -124,9 +134,11 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import MongodbInstanceModel from '@services/model/mongodb/mongodb-instance';
+
   import { useInstanceColumnFilter, useUrlSearch } from '@hooks';
 
-  import type { ClusterTypes } from '@common/const';
+  import { ClusterTypes } from '@common/const';
 
   import ClusterInstanceStatus from '@components/cluster-instance-status/Index.vue';
 
@@ -152,6 +164,6 @@
   const { data: columnFilter } = useInstanceColumnFilter({
     cluster_id: props.clusterId,
     cluster_type: props.clusterType,
-    instance_attrs: ['role', 'version', 'bk_os_name', 'bk_sub_zone'] as const,
+    instance_attrs: ['role', 'version', 'bk_os_name', 'bk_sub_zone', 'mongodb_state'] as const,
   });
 </script>

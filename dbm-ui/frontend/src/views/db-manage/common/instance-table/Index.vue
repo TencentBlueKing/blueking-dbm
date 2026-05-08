@@ -30,6 +30,9 @@
         <template #ip>
           <slot name="ip" />
         </template>
+        <template #mongodbState>
+          <slot name="mongodbState" />
+        </template>
       </CommonColumn>
     </DbTable>
     <NewFeatureGuide
@@ -54,6 +57,7 @@
   import InstanceDomainColumn from './InstanceDomainColumn.vue';
   import IpColumn from './IpColumn.vue';
   import MasterDomainColumn from './MasterDomainColumn.vue';
+  import MongodbStateColumn from './MongodbStateColumn.vue';
   import OperationColumn from './OperationColumn.vue';
   import ShardColumn from './ShardColumn.vue';
 
@@ -64,6 +68,7 @@
     InstanceDomainColumn,
     IpColumn,
     MasterDomainColumn,
+    MongodbStateColumn,
     OperationColumn,
     ShardColumn,
   };
@@ -102,6 +107,7 @@
     domain: () => VNode;
     instanceAddress: () => VNode;
     ip: () => VNode;
+    mongodbState: () => VNode;
     operation: () => VNode;
     relatedCluster: () => VNode;
     shard: () => VNode;
