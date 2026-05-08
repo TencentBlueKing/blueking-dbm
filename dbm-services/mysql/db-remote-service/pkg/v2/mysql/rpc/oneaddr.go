@@ -12,7 +12,7 @@ func (c *MySQLRPCRequest) executeCmds(ctx context.Context, addr, user, password 
 	db, conn, connId, err := impl.Prepare(
 		ctx,
 		addr, user, password,
-		c.Timezone, c.Charset, c.ConnectTimeout,
+		c.Timezone, c.Charset, c.ConnectTimeout, c.PreHookCmds, c.SkipSetNames,
 	)
 	if err != nil {
 		slog.Error("v2 mysql prepare connection failed",

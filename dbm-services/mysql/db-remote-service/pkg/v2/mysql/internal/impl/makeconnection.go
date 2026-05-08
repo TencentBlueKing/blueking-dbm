@@ -14,40 +14,65 @@ import (
 )
 
 // makeConnection 创建数据库连接，处理 default 字符集的特殊逻辑
-func makeConnection(ctx context.Context, addr, user, password, timezone, charset string, timeout int) (*sqlx.DB, error) {
-	// 如果不是 default 字符集，直接连接
-	if charset != "default" {
-		return connectWithRetry(ctx, addr, user, password, timezone, charset, timeout)
+func makeConnection(ctx context.Context, addr, user, password, timezone, charset string, timeout int, preHookCmds []string, skipSetNames bool) (*sqlx.DB, error) {
+	if skipSetNames {
+		return connectWithRetry(ctx, addr, user, password, timezone, "", timeout, preHookCmds)
 	}
 
-	// 处理 default 字符集：先建立临时连接获取服务器字符集
-	tempDB, err := connectWithRetry(ctx, addr, user, password, timezone, "", timeout)
+	if charset != "default" {
+		return connectWithRetry(ctx, addr, user, password, timezone, charset, timeout, preHookCmds)
+	}
+
+	db, err := connectWithRetry(ctx, addr, user, password, timezone, "", timeout, preHookCmds)
 	if err != nil {
 		return nil, err
 	}
 
-	// 查询服务器字符集
 	var serverCharset string
-	err = tempDB.QueryRowContext(ctx, `SELECT @@character_set_server`).Scan(&serverCharset)
-	// 无论成功与否，都关闭临时连接
-	_ = tempDB.Close()
-
+	err = db.QueryRowContext(ctx, `SELECT @@character_set_server`).Scan(&serverCharset)
 	if err != nil {
+		_ = db.Close()
 		return nil, fmt.Errorf("query server charset failed: %w", err)
 	}
 
-	// 使用实际字符集重新连接
-	return connectWithRetry(ctx, addr, user, password, timezone, serverCharset, timeout)
+	slog.Info("mysql server charset", slog.String("addr", addr), slog.String("charset", serverCharset))
+	_, err = db.ExecContext(ctx, fmt.Sprintf("SET NAMES '%s'", serverCharset))
+	if err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("set names %s failed: %w", serverCharset, err)
+	}
+
+	return db, nil
 }
 
 // connectWithRetry 带重试的数据库连接（纯粹的连接逻辑，不处理 default 字符集）
-func connectWithRetry(ctx context.Context, addr, user, password, timezone, charset string, timeout int) (db *sqlx.DB, err error) {
-	dsn, safeDSN := buildDSN(addr, user, password, timezone, charset, timeout)
+func connectWithRetry(ctx context.Context, addr, user, password, timezone, charset string, timeout int, preHookCmds []string) (db *sqlx.DB, err error) {
+	dsn, safeDSN := buildDSN(addr, user, password, timezone, timeout)
 
 	err = retry.Do(
 		func() error {
 			db, err = sqlx.ConnectContext(ctx, "mysql", dsn)
-			return err
+			if err != nil {
+				return err
+			}
+
+			for _, cmd := range preHookCmds {
+				if _, execErr := db.ExecContext(ctx, cmd); execErr != nil {
+					_ = db.Close()
+					db = nil
+					return execErr
+				}
+			}
+
+			if charset != "" {
+				if _, execErr := db.ExecContext(ctx, fmt.Sprintf("SET NAMES '%s'", charset)); execErr != nil {
+					_ = db.Close()
+					db = nil
+					return execErr
+				}
+			}
+
+			return nil
 		},
 		retry.Context(ctx),
 		retry.Attempts(3),
@@ -55,7 +80,6 @@ func connectWithRetry(ctx context.Context, addr, user, password, timezone, chars
 		retry.DelayType(retry.FixedDelay),
 	)
 	if err != nil {
-		// 注意: 这里只能打 safeDSN, 真实 dsn 含明文密码绝不能进日志
 		slog.Error(
 			"v2 mysql failed to connect",
 			slog.String("error", err.Error()),
@@ -73,13 +97,10 @@ func connectWithRetry(ctx context.Context, addr, user, password, timezone, chars
 //
 // 任何对外可见的位置 (日志/metric/error message) 都只能用 safeDSN,
 // 真实 dsn 仅作为 sqlx.Connect 的入参.
-func buildDSN(addr, user, password, timezone, charset string, timeout int) (dsn, safeDSN string) {
+func buildDSN(addr, user, password, timezone string, timeout int) (dsn, safeDSN string) {
 	tail := fmt.Sprintf(`@tcp(%s)/?timeout=%ds`, addr, timeout)
 	if timezone != "" {
 		tail += fmt.Sprintf("&time_zone=%s", url.QueryEscape(fmt.Sprintf(`'%s'`, timezone)))
-	}
-	if charset != "" {
-		tail += fmt.Sprintf("&charset=%s", charset)
 	}
 
 	dsn = fmt.Sprintf(`%s:%s%s`, user, password, tail)

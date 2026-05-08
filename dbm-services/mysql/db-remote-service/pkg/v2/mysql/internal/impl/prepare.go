@@ -16,8 +16,8 @@ import (
 // 返回值约定:
 //   - 成功: db, conn, connID 都非空, 调用方需要在用完后调用 Clean
 //   - 失败: 全部为 nil/0, Prepare 内部已经清理了任何中间产物, 调用方不需要再调 Clean
-func Prepare(ctx context.Context, addr, user, password, timezone, charset string, timeout int) (*sqlx.DB, *sqlx.Conn, int64, error) {
-	db, err := makeConnection(ctx, addr, user, password, timezone, charset, timeout)
+func Prepare(ctx context.Context, addr, user, password, timezone, charset string, timeout int, preHookCmds []string, skipSetNames bool) (*sqlx.DB, *sqlx.Conn, int64, error) {
+	db, err := makeConnection(ctx, addr, user, password, timezone, charset, timeout, preHookCmds, skipSetNames)
 	if err != nil {
 		return nil, nil, 0, err
 	}

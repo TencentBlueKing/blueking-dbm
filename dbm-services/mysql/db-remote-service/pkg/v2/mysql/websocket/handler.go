@@ -153,7 +153,7 @@ func (s *wsSession) handleConnect(body json.RawMessage) ([]byte, error) {
 	s.db, s.conn, s.connID, err = impl.Prepare(
 		ctx,
 		connectReq.Address, s.user, s.password,
-		connectReq.Timezone, connectReq.Charset, connectReq.Timeout,
+		connectReq.Timezone, connectReq.Charset, connectReq.Timeout, connectReq.PreHookCmds, connectReq.SkipSetNames,
 	)
 	if err != nil {
 		slog.Error("v2 ws connect failed",
