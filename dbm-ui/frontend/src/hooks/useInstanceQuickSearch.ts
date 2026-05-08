@@ -10,7 +10,7 @@ import { ipPort, ipv4 } from '@common/regex';
 
 import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
-const instanceAttrs = ['role', 'version', 'bk_os_name', 'bk_sub_zone'] as const;
+const instanceAttrs = ['role', 'version', 'bk_os_name', 'bk_sub_zone', 'mongodb_state'] as const;
 
 export const useInstanceQuickSearch = (params: {
   cluster_id?: number;
@@ -123,6 +123,17 @@ export const useInstanceQuickSearch = (params: {
         id: 'role',
         name: t('部署角色'),
         remoteMethod: () => getBizInstanceAttrs('role'),
+        type: 'multiple',
+      },
+      // mongodb 专属过滤项
+      isMongo && {
+        id: 'mongodb_state',
+        // list: MongodbInstanceModel.mongodbStates.map((item) => ({
+        //   label: item,
+        //   value: item,
+        // })),
+        name: t('副本集状态'),
+        remoteMethod: () => getBizInstanceAttrs('mongodb_state'),
         type: 'multiple',
       },
       {

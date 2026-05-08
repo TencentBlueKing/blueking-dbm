@@ -44,9 +44,6 @@
           :selected-list="selectedList">
         </InstanceAddressColumn>
       </template>
-      <template #shard>
-        <ShardColumn :cluster-type="ClusterTypes.REDIS_CLUSTER" />
-      </template>
       <template #relatedCluster>
         <MasterDomainColumn
           :cluster-type="ClusterTypes.REDIS_CLUSTER"

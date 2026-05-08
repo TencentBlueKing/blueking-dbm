@@ -79,6 +79,20 @@ const baseFilter = {
     },
     showConfirmAndReset: true,
   },
+  // mongodb_state: {
+  //   component: markRaw(MultipleSelect),
+  //   popupProps: {
+  //     attach: 'body',
+  //     placement: 'bottom',
+  //   },
+  //   props: {
+  //     list: MongodbInstanceModel.mongodbStates.map((item) => ({
+  //       label: item,
+  //       value: item,
+  //     })),
+  //   },
+  //   showConfirmAndReset: true,
+  // },
   shard: {
     component: markRaw(MultipleInput),
     popupProps: {
