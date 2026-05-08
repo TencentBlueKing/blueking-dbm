@@ -248,17 +248,11 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
     def batch_update_notify_group(self, request, *args, **kwargs):
         notify_groups = self.validated_data["notify_groups"]
         bk_biz_id = self.validated_data["bk_biz_id"]
-        update_type = self.validated_data["type"]
         app_cache = AppCache.objects.filter(bk_biz_id=bk_biz_id).first()
         # 更新较慢考虑采用多线程方案
         policy_map = MonitorPolicy.objects.in_bulk(id_list=[info["policy_id"] for info in notify_groups])
         for info in notify_groups:
             policy = policy_map[info["policy_id"]]
-
-            # 如果是追加告警组，则告警组不发生变化的话就不做处理
-            if update_type == constants.UpdateNotifyGroupType.APPEND.value:
-                if set(policy.notify_groups) == set(info["groups"]):
-                    continue
 
             # 批量替换等于平台策略的时候要走克隆
             if policy.target_level == "platform":
