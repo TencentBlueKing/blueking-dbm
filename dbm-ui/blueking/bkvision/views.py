@@ -5,6 +5,8 @@ import logging
 import requests
 from django.conf import settings
 from django.http import HttpResponse, JsonResponse
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import action
 
 from backend.bk_web import viewsets
@@ -46,6 +48,7 @@ def proxy_request(request, path):
     )
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class BkVisionViewSet(viewsets.SystemViewSet):
     """BKVision 代理视图 - 需要平台管理权限"""
 
