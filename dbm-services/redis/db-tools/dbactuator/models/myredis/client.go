@@ -334,6 +334,18 @@ func (db *RedisClient) Info(section string) (infoRet map[string]string, err erro
 	return
 }
 
+// tendisTypeByRedisVersion 根据 'INFO server' 返回的 redis_version 字符串推断 redis 类型,
+// 返回 TendisTypeTendisplusInsance / TendisTypeTendisSSDInsance / TendisTypeRedisInstance.
+func tendisTypeByRedisVersion(redisVersion string) string {
+	if strings.Contains(redisVersion, "-rocksdb-") {
+		return consts.TendisTypeTendisplusInsance
+	}
+	if strings.Contains(redisVersion, "-TRedis-") {
+		return consts.TendisTypeTendisSSDInsance
+	}
+	return consts.TendisTypeRedisInstance
+}
+
 // GetTendisType 获取redis类型,返回RedisInstance or TendisplusInstance or TendisSSDInsance
 func (db *RedisClient) GetTendisType() (dbType string, err error) {
 	var infoRet map[string]string
@@ -341,14 +353,7 @@ func (db *RedisClient) GetTendisType() (dbType string, err error) {
 	if err != nil {
 		return
 	}
-	version := infoRet["redis_version"]
-	if strings.Contains(version, "-rocksdb-") {
-		dbType = consts.TendisTypeTendisplusInsance
-	} else if strings.Contains(version, "-TRedis-") {
-		dbType = consts.TendisTypeTendisSSDInsance
-	} else {
-		dbType = consts.TendisTypeRedisInstance
-	}
+	dbType = tendisTypeByRedisVersion(infoRet["redis_version"])
 	return
 }
 
@@ -1193,11 +1198,6 @@ func (db *RedisClient) ConfigRewrite() (string, error) {
 }
 
 func (db *RedisClient) needSaveConfigRewriteWorkaround() (bool, error) {
-	if consts.IsTendisplusInstanceDbType(db.DbType) || consts.IsTendisSSDInstanceDbType(db.DbType) {
-		mylog.Logger.Info("dbType:%s is tendisplus/tendisSSD,skip save config workaround,addr:%s",
-			db.DbType, db.Addr)
-		return false, nil
-	}
 	infoMap, err := db.Info("server")
 	if err != nil {
 		return false, err
@@ -1207,6 +1207,14 @@ func (db *RedisClient) needSaveConfigRewriteWorkaround() (bool, error) {
 		// 非 Redis 实例 (例如 predixy/twemproxy 等 proxy) 的 INFO 里不会有 redis_version 字段.
 		// 该 workaround 只针对 Redis < 6.2.2 的 CONFIG REWRITE bug, 对 proxy 不适用, 跳过即可.
 		mylog.Logger.Info("redis_version not found in info server,skip save config workaround,addr:%s", db.Addr)
+		return false, nil
+	}
+	// 通过 redis_version 实时识别 tendisplus / tendisSSD, 避免依赖 db.DbType
+	// (该字段在 NewRedisClient 中被强制改写为 RedisInstance, 不可信).
+	realDbType := tendisTypeByRedisVersion(redisVersion)
+	if consts.IsTendisplusInstanceDbType(realDbType) || consts.IsTendisSSDInstanceDbType(realDbType) {
+		mylog.Logger.Info("redis_version:%s -> dbType:%s is tendisplus/tendisSSD,skip save config workaround,addr:%s",
+			redisVersion, realDbType, db.Addr)
 		return false, nil
 	}
 	return needSaveConfigRewriteWorkaroundByVersion(redisVersion)
