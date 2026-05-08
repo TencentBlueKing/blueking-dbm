@@ -23,7 +23,7 @@ from .comm import DBCCModule, SyncType
 from .destroyed_status import DataStructureStatus, DestroyedStatus, MigrateStatus
 from .instance_inner_role import InstanceInnerRole
 from .instance_phase import InstancePhase
-from .instance_role import InstanceRole, TenDBClusterSpiderRole
+from .instance_role import InstanceRole, KubernetesInstanceRole, TenDBClusterSpiderRole
 from .instance_status import InstanceStatus
 from .machine_type import MachineType
 from .type_maps import (

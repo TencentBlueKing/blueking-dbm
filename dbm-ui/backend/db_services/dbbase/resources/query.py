@@ -595,7 +595,7 @@ class ListRetrieveResource(BaseListRetrieveResource, CommonExportQueryResourceMi
             cluster_queryset = cluster_queryset.order_by(query_params.get("ordering"))
 
         cluster_infos = cls._filter_cluster_hook(
-            bk_biz_id, cluster_queryset, proxy_queryset, storage_queryset, limit, offset
+            bk_biz_id, cluster_queryset, proxy_queryset, storage_queryset, limit, offset, **kwargs
         )
         return cluster_infos
 
