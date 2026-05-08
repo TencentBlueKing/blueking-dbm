@@ -31,13 +31,15 @@ class Node:
     status: str
 
     @staticmethod
-    def generate_node_id(ins: Union[StorageInstance, ProxyInstance, ClusterEntry]) -> str:
+    def generate_node_id(ins: Union[StorageInstance, ProxyInstance, ClusterEntry, dict]) -> str:
         if isinstance(ins, ClusterEntry):
             return ins.entry
+        elif isinstance(ins, dict):
+            return ins.get("pod_name")
         return "{}:{}".format(ins.machine.ip, ins.port)
 
     @staticmethod
-    def generate_node_type(ins: Union[StorageInstance, ProxyInstance, ClusterEntry]) -> str:
+    def generate_node_type(ins: Union[StorageInstance, ProxyInstance, ClusterEntry, dict]) -> str:
         if isinstance(ins, StorageInstance):
             return "{}::{}".format(ins.machine_type, ins.instance_role)
         elif isinstance(ins, ProxyInstance):
@@ -47,6 +49,9 @@ class Node:
             return ins.machine_type
         elif isinstance(ins, ClusterEntry):
             return "entry_{}".format(ins.cluster_entry_type)
+        # k8s类型集群
+        elif isinstance(ins, dict):
+            return ins.get("component_name", "")
 
     @staticmethod
     def generate_url(ins: Union[StorageInstance, ProxyInstance, ClusterEntry]) -> str:
@@ -79,15 +84,17 @@ class Node:
         return ""
 
     @staticmethod
-    def generate_status(ins: Union[StorageInstance, ProxyInstance, ClusterEntry]) -> str:
+    def generate_status(ins: Union[StorageInstance, ProxyInstance, ClusterEntry, dict]) -> str:
         if isinstance(ins, (StorageInstance, ProxyInstance)):
             return ins.status
+        elif isinstance(ins, dict):
+            return ins.get("status")
         else:
             return ins.cluster.status
 
     def __init__(
         self,
-        ins: Union[StorageInstance, ProxyInstance, ClusterEntry],
+        ins: Union[StorageInstance, ProxyInstance, ClusterEntry, dict],
         node_id: str = None,
         node_type: str = None,
         # url: str = None,
@@ -111,7 +118,7 @@ class Group:
         self.children_id = []
 
     @staticmethod
-    def generate_group_info(ins: Union[StorageInstance, ProxyInstance, ClusterEntry]) -> Tuple[str, str]:
+    def generate_group_info(ins: Union[StorageInstance, ProxyInstance, ClusterEntry, dict]) -> Tuple[str, str]:
         """
         :returns:
             Tuple(group_id, group_name)
@@ -125,6 +132,9 @@ class Group:
             group_name = ins.machine_type.capitalize()
         elif isinstance(ins, ClusterEntry):
             group_name = _("访问入口")
+        # k8s类型集群
+        elif isinstance(ins, dict):
+            group_name = ins.get("component_name", "")
 
         return node_id, group_name
 
@@ -213,7 +223,7 @@ class Graphic:
         return cluster.immute_domain
 
     def add_node(
-        self, ins: Union[StorageInstance, ProxyInstance, ClusterEntry], to_group: Optional[Group] = None
+        self, ins: Union[StorageInstance, ProxyInstance, ClusterEntry, dict], to_group: Optional[Group] = None
     ) -> (Node, Group):
         if to_group:
             node_grp = self.get_or_create_group(to_group.node_id, to_group.group_name)
