@@ -108,6 +108,12 @@ class TenDBClusterSpiderRole(StrStructuredEnum):
     SPIDER_CTL = EnumField("spider_ctl", _("spider_ctl"))
 
 
+class KubernetesInstanceRole(StrStructuredEnum):
+    SURREAL = EnumField("surreal", _("surreal"))
+    TIKV = EnumField("tikv", _("tikv"))
+    PD = EnumField("pd", _("pd"))
+
+
 # 集群类型与其对应的proxy管理端角色
 CLUSTER_TYPE_ADMIN_ROLE = {ClusterType.TenDBCluster: TenDBClusterSpiderRole.SPIDER_CTL}
 # 转换成django查询语句

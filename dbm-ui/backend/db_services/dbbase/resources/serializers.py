@@ -47,6 +47,10 @@ class ListResourceSLZ(serializers.Serializer):
     create_at__lte = serializers.DateTimeField(required=False, help_text=_("创建时间"))
 
 
+class ListKubernetesResourceSLZ(ListResourceSLZ):
+    bk_username = serializers.CharField(required=False, help_text=_("蓝鲸用户"))
+
+
 class ListMySQLResourceSLZ(ListResourceSLZ):
     master_domain = serializers.CharField(required=False)
     slave_domain = serializers.CharField(required=False)
@@ -116,6 +120,10 @@ class ListInstancesSerializer(InstanceAddressSerializer):
     role_exclude = serializers.CharField(help_text=_("需要过滤的角色"), required=False)
     mongodb_state = serializers.CharField(help_text=_("副本集状态"), required=False)
     shard = serializers.CharField(help_text=_("分片名"), required=False)
+    # k8s集群相关参数
+    bcs_cluster_name = serializers.CharField(help_text=_("k8s集群名称"), required=False)
+    namespace = serializers.CharField(help_text=_("命名空间"), required=False)
+    creator = serializers.CharField(required=False)
 
 
 class SqlserverListInstanceSerializer(ListInstancesSerializer):
