@@ -957,6 +957,7 @@ class MonitorPolicy(AuditedModel):
         # increasing or standard
         details["notice"]["config"]["interval_notify_mode"] = self.notify_config.get("interval_notify_mode")
         details["notice"]["config"]["notify_interval"] = self.notify_config.get("notify_interval")
+        details["notice"]["config"]["voice_notice"] = self.notify_config.get("voice_notice")
 
         return details
 
@@ -1241,6 +1242,7 @@ class MonitorPolicy(AuditedModel):
         result["notify_config"] = {
             "interval_notify_mode": details["notice"]["config"]["interval_notify_mode"],
             "notify_interval": details["notice"]["config"]["notify_interval"],
+            "voice_notice": details["notice"]["config"].get("voice_notice") or "parallel",
         }
 
         agg_info = []
