@@ -1,4 +1,4 @@
-FROM node:22.16.0-slim AS frontend-installer
+FROM node:24.15.0-slim AS frontend-installer
 
 RUN yarn config set registry https://mirrors.tencent.com/npm/
 
@@ -6,7 +6,7 @@ WORKDIR /frontend
 COPY frontend/package.json ./
 RUN node -v && \
     yarn cache clean --all --force && \
-    rm -rf node_modules yarn.lock && \
+    rm -rf node_modules && \
     yarn install --force
 
 FROM frontend-installer AS frontend-builder

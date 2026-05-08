@@ -23,14 +23,14 @@ export default () => {
         fullscreen: true,
         navName: t('我的待办'),
       },
-      beforeEnter: (to, from, next) => {
+      beforeEnter: (to) => {
         if (!to.params.assist) {
           // 设置默认值
           Object.assign(to.params, {
             assist: '0',
           });
         }
-        next();
+        return true;
       },
       component: () => import('@views/ticket-center/ticket-self-todo/Index.vue'),
     },
