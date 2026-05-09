@@ -11,6 +11,7 @@
 package partitionsvr
 
 import (
+	"dbm-services/common/go-pubpkg/logger"
 	reapi "dbm-services/common/reverseapi/apis/common"
 	recore "dbm-services/common/reverseapi/pkg/core"
 	"fmt"
@@ -52,6 +53,7 @@ func (e *PartitionResultReportEvent) EventBkBizId() int64 {
 }
 
 func ReportPartitionResult(result *PartitionResultReportEvent) (err error) {
+	logger.Info("ReportPartitionResult: %+v", result)
 	reportCore, err := recore.NewCore(int64(result.BkCloudId))
 	if err != nil {
 		return fmt.Errorf("report NewCore failed: %s", err.Error())
@@ -60,8 +62,10 @@ func ReportPartitionResult(result *PartitionResultReportEvent) (err error) {
 	resp, err := reapi.SyncReport(reportCore, result)
 	if err != nil {
 		if resp != nil {
+			logger.Error("reverseapi protocol error: %s", string(resp))
 			return fmt.Errorf("reverseapi protocol error: %s", string(resp))
 		}
+		logger.Error("report partition result failed: %s", err.Error())
 		return fmt.Errorf("report partition result failed: %s", err.Error())
 	}
 	return nil

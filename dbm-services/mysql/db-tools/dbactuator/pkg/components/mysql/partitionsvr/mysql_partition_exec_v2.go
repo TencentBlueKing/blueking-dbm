@@ -27,11 +27,12 @@ type PartitionExecComp struct {
 
 // PartitionExecParam 分区执行参数
 type PartitionExecParam struct {
-	Cluster      Cluster            `json:"cluster"`
-	Configs      []*PartitionConfig `json:"configs"`
-	Force        bool               `json:"force"`
-	PartialForce bool               `json:"partial_force"`
-	ErrorLogs    []error
+	Cluster       Cluster            `json:"cluster"`
+	Configs       []*PartitionConfig `json:"configs"`        // 分区配置
+	Force         bool               `json:"force"`          // 是否强制执行
+	PartialForce  bool               `json:"partial_force"`  // 是否部分强制执行 用于tendbcluster集群
+	IntervalCheck bool               `json:"interval_check"` // 是否开启间隔检查
+	ErrorLogs     []error
 }
 
 // PartitionConfig 分区配置
@@ -48,6 +49,7 @@ type PartitionConfig struct {
 	Phase                 string `json:"phase"`
 	ExtraPartition        int    `json:"extra_partition"`
 	ReservedPartition     int
+	IntervalCheck         bool `json:"interval_check"` // 是否开启间隔检查
 }
 
 type ForceInitInfo struct {
