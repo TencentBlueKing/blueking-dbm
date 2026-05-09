@@ -1327,6 +1327,7 @@ class RedisActPayload(object):
                 cluster_domain = kwargs["params"]["servers"][0].get("cluster_domain", "")
                 if cluster_domain:
                     cluster = Cluster.objects.get(immute_domain=cluster_domain)
+                    payload["nginx_addrs"] = list_nginx_addrs(bk_cloud_id=cluster.bk_cloud_id)
                     payload["redis_maxmemory_set"] = get_dbmon_maxmemory_config_by_cluster_ids([cluster.id])
 
         return {
@@ -1389,6 +1390,7 @@ class RedisActPayload(object):
         except Cluster.DoesNotExist:
             raise Exception("redis cluster {} does not exist".format(params["cluster_domain"]))
         payload = self.get_bkdbmon_payload_header(str(cluster.bk_biz_id))
+        payload["nginx_addrs"] = list_nginx_addrs(bk_cloud_id=cluster.bk_cloud_id)
         payload["redis_maxmemory_set"] = get_dbmon_maxmemory_config_by_cluster_ids([cluster.id])
         if params["is_stop"]:
             payload["servers"] = []
@@ -1413,11 +1415,12 @@ class RedisActPayload(object):
         cluster_list = query_cluster_by_hosts([ip])
         cluster_ids = set()
 
-        servers = []
+        bk_cloud_id, servers = 0, []
         cluster: Cluster = None
         for c in cluster_list:
             try:
                 cluster = Cluster.objects.get(id=c["cluster_id"])
+                bk_cloud_id = cluster.bk_cloud_id
             except Cluster.DoesNotExist:
                 raise Exception("redis cluster {} does not exist".format(c["cluster"]))
             if not is_stop:
@@ -1428,6 +1431,7 @@ class RedisActPayload(object):
             payload = self.get_bkdbmon_payload_header(str(kwargs["params"]["bk_biz_id"]))
         else:
             payload = self.get_bkdbmon_payload_header(str(cluster.bk_biz_id))
+            payload["nginx_addrs"] = list_nginx_addrs(bk_cloud_id=bk_cloud_id)
             payload["redis_maxmemory_set"] = get_dbmon_maxmemory_config_by_cluster_ids(list(cluster_ids))
         payload["servers"] = servers
         return {

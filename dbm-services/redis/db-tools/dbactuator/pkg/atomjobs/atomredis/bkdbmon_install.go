@@ -1,6 +1,7 @@
 package atomredis
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -51,6 +52,7 @@ type BkDbmonInstallParams struct {
 	RedisKeyLifecyckle       map[string]interface{} `json:"redis_keylife" mapstructure:"redis_keylife"`
 	RedisMaxmemorySet        map[string]interface{} `json:"redis_maxmemory_set" mapstructure:"redis_maxmemory_set"`
 	Servers                  []ConfServerItem       `json:"servers" yaml:"servers" validate:"required"`
+	NginxAddrs               []string               `json:"nginx_addrs" yaml:"nginx_addrs" `
 }
 
 // BkDbmonInstall bk-dbmon安装任务
@@ -161,6 +163,9 @@ func (job *BkDbmonInstall) Run() (err error) {
 		return
 	}
 
+	if err = job.RunInitNginx(); err != nil {
+		return
+	}
 	return
 }
 
@@ -528,5 +533,45 @@ func (job *BkDbmonInstall) Retry() uint {
 
 // Rollback rollback
 func (job *BkDbmonInstall) Rollback() error {
+	return nil
+}
+
+// Run 执行
+func (job *BkDbmonInstall) RunInitNginx() (err error) {
+	reverseConfig := common.GetResrveAPIConfig()
+	os.Remove(reverseConfig) // try remove old file.
+	// 以追加模式打开文件，如果文件不存在则创建
+	file, err := os.OpenFile(reverseConfig, os.O_TRUNC|os.O_CREATE|os.O_RDWR, 0755)
+	if err != nil {
+		job.runtime.Logger.Error("open file %s failed: %+v", reverseConfig, err)
+		return err
+	}
+	defer file.Close()
+
+	if _, err := util.RunBashCmd(fmt.Sprintf("chown -R mysql:mysql %s", reverseConfig), "",
+		nil, 10*time.Second); err != nil {
+		job.runtime.Logger.Warn("chown %s 2 mysql failed: %+v", reverseConfig, err)
+	}
+
+	// 创建带缓冲的写入器
+	writer := bufio.NewWriter(file)
+	// 写入每个字符串
+	for _, str := range job.params.NginxAddrs {
+		_, err := writer.WriteString(str + "\n")
+		job.runtime.Logger.Debug("write %s 2 file %s", str, reverseConfig)
+		if err != nil {
+			job.runtime.Logger.Error("write 2 file %s failed: %+v", reverseConfig, err)
+			return err
+		}
+	}
+
+	// 刷新缓冲区
+	err = writer.Flush()
+	if err != nil {
+		job.runtime.Logger.Error("flush file %s failed: %+v", reverseConfig, err)
+		return err
+	}
+
+	job.runtime.Logger.Info("job done.^_^")
 	return nil
 }
