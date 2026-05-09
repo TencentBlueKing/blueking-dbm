@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 from typing import Dict, List
 
 from backend.db_meta.enums import MachineType
@@ -15,9 +16,16 @@ from backend.db_monitor.models import MySQLDBHAEvent
 from backend.db_periodic_task.local_tasks.mysql_autofix.dbha.tendbcluster.remote_autofix import replace_remote
 from backend.db_periodic_task.local_tasks.mysql_autofix.dbha.tendbcluster.spider_autofix import replace_spider
 
+logger = logging.getLogger("celery.mysql_dbha_autofix")
+
 
 def autofix(cluster_ids: List[int], events_by_machine_type: Dict[str, List[MySQLDBHAEvent]]):
+    logger.info(
+        "[tendbcluster.autofix] cluster_ids=%s, machine_types=%s", cluster_ids, list(events_by_machine_type.keys())
+    )
+
     if MachineType.SPIDER in events_by_machine_type:
+        logger.info("[tendbcluster.autofix] dispatching replace_spider, cluster_ids=%s", cluster_ids)
         replace_spider(
             cluster_ids=cluster_ids,
             machine_type=MachineType.SPIDER,
@@ -25,6 +33,7 @@ def autofix(cluster_ids: List[int], events_by_machine_type: Dict[str, List[MySQL
         )
 
     if MachineType.REMOTE in events_by_machine_type:
+        logger.info("[tendbcluster.autofix] dispatching replace_remote, cluster_ids=%s", cluster_ids)
         replace_remote(
             cluster_ids=cluster_ids,
             machine_type=MachineType.REMOTE,

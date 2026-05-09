@@ -8,11 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 from typing import List
 
 from backend.db_meta.enums import MachineType
 from backend.db_meta.models import Cluster, Machine
 from backend.db_monitor.models import MySQLDBHAEvent
+
+logger = logging.getLogger("celery.mysql_dbha_autofix")
 
 
 def validate_machine_share(events: List[MySQLDBHAEvent]) -> List[MySQLDBHAEvent]:
@@ -32,8 +35,13 @@ def validate_machine_share(events: List[MySQLDBHAEvent]) -> List[MySQLDBHAEvent]
             else:
                 relate_clusters = Cluster.objects.filter(storageinstance__machine=machine)
 
-            print(relate_clusters)
-        except Exception as e:
-            print(e)
+            logger.debug(
+                "[validate_machine_share] check_id=%d, ip=%s, relate_clusters=%s",
+                ev.check_id,
+                ev.ip,
+                list(relate_clusters.values_list("pk", flat=True)),
+            )
+        except Exception:  # noqa
+            logger.exception("[validate_machine_share] failed for check_id=%d, ip=%s", ev.check_id, ev.ip)
 
     return res

@@ -8,10 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 from typing import List
 
 from backend.db_meta.models import Machine
 from backend.db_monitor.models import MySQLDBHAEvent
+
+logger = logging.getLogger("celery.mysql_dbha_autofix")
 
 
 def validate_spec(events: List[MySQLDBHAEvent]) -> List[MySQLDBHAEvent]:
@@ -22,6 +25,9 @@ def validate_spec(events: List[MySQLDBHAEvent]) -> List[MySQLDBHAEvent]:
     for ev in events:
         machine_obj = Machine.objects.get(bk_cloud_id=ev.bk_cloud_id, ip=ev.ip)
         if machine_obj.spec_id <= 0:
+            logger.warning(
+                "[validate_spec] spec missing: check_id=%d, ip=%s, bk_cloud_id=%d", ev.check_id, ev.ip, ev.bk_cloud_id
+            )
             ev.failed_validate_it("spec missing")
         else:
             res.append(ev)

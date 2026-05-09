@@ -286,6 +286,7 @@ class MonitorEventType(StrStructuredEnum):
     MYSQL_BACKUP_INSPECT_FAILED = EnumField("mysql-backup-inspect-failed", _("MySQL 备份巡检结果异常"))
     DRS_REQUEST_FAILED = EnumField("drs-request-failed", _("drs 请求异常"))
     MYSQL_DBHA_AUTOFIX_VALIDATE_FAILED = EnumField("mysql-dbha-autofix-validate-failed", _("MySQL DBHA 事件校验失败"))
+    MYSQL_DBHA_AUTOFIX_COMMIT_FAILED = EnumField("mysql-dbha-autofix-commit-failed", _("MySQL DBHA自愈提单异常"))
 
 
 UNIFY_QUERY_PARAMS = {

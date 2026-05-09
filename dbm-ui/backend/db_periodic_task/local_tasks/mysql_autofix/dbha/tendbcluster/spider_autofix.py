@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 import uuid
 from typing import List
 
@@ -21,6 +22,8 @@ from backend.db_monitor.dataclass import BaseEventBody, MonitorEvent
 from backend.db_monitor.models import MySQLDBHAAutofixTicketPriority, MySQLDBHAAutofixTicketStageQueue, MySQLDBHAEvent
 from backend.db_services.dbbase.constants import IpSource
 from backend.ticket.constants import TicketType
+
+logger = logging.getLogger("celery.mysql_dbha_autofix")
 
 
 def replace_spider(cluster_ids: List[int], machine_type: MachineType, events: List[MySQLDBHAEvent]):
@@ -41,7 +44,19 @@ def replace_spider(cluster_ids: List[int], machine_type: MachineType, events: Li
         elif spider_role == TenDBClusterSpiderRole.SPIDER_SLAVE:
             spider_slave_events.append(ev)
         else:
-            pass
+            logger.warning(
+                "[tendbcluster.replace_spider] unexpected spider_role=%s for ip=%s, port=%d",
+                spider_role,
+                ev.ip,
+                ev.port,
+            )
+
+    logger.info(
+        "[tendbcluster.replace_spider] cluster_ids=%s, spider_master_ips=%s, spider_slave_ips=%s",
+        cluster_ids,
+        [ev.ip for ev in spider_master_events],
+        [ev.ip for ev in spider_slave_events],
+    )
 
     if spider_master_events:
         replace_spider_by_role(
@@ -85,6 +100,12 @@ def replace_spider_by_role(
         spec_ids.add(p.machine.spec_id)
 
     if len(spec_ids) > 1:
+        logger.warning(
+            "[tendbcluster.replace_spider_by_role] inconsistent spec_ids=%s for cluster_ids=%s, spider_role=%s",
+            spec_ids,
+            cluster_ids,
+            spider_role,
+        )
         for ev in events:
             BKMonitorV3EventApi.send_event(
                 events=[
@@ -150,3 +171,12 @@ def replace_spider_by_role(
         )
 
     MySQLDBHAAutofixTicketStageQueue.objects.bulk_create(queue_to_create)
+    logger.info(
+        "[tendbcluster.replace_spider_by_role] queued: queue_uuid=%s, cluster_ids=%s, spider_role=%s, "
+        "ips=%s, priority=%s",
+        queue_uuid,
+        cluster_ids,
+        spider_role,
+        [ev.ip for ev in events],
+        priority,
+    )

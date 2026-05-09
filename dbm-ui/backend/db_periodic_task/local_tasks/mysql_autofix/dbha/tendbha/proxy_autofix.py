@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 import uuid
 from typing import List
 
@@ -21,6 +22,8 @@ from backend.db_monitor.dataclass import BaseEventBody, MonitorEvent
 from backend.db_monitor.models import MySQLDBHAAutofixTicketPriority, MySQLDBHAAutofixTicketStageQueue, MySQLDBHAEvent
 from backend.db_services.dbbase.constants import IpSource
 from backend.ticket.constants import TicketType
+
+logger = logging.getLogger("celery.mysql_dbha_autofix")
 
 
 def replace_proxy(cluster_ids: List[int], machine_type: MachineType, events: List[MySQLDBHAEvent]):
@@ -47,6 +50,11 @@ def replace_proxy(cluster_ids: List[int], machine_type: MachineType, events: Lis
     # 从上面 docstring 的分析
     # 这里都假定只有一台机器得了, 告警信息就发一台的
     if len(spec_ids) > 1:
+        logger.warning(
+            "[tendbha.replace_proxy] inconsistent spec_ids=%s for cluster_ids=%s, aborting",
+            spec_ids,
+            cluster_ids,
+        )
         BKMonitorV3EventApi.send_event(
             events=[
                 MonitorEvent(
@@ -110,3 +118,9 @@ def replace_proxy(cluster_ids: List[int], machine_type: MachineType, events: Lis
         )
 
     MySQLDBHAAutofixTicketStageQueue.objects.bulk_create(queue_to_create)
+    logger.info(
+        "[tendbha.replace_proxy] queued: queue_uuid=%s, cluster_ids=%s, ips=%s, priority=P1",
+        queue_uuid,
+        cluster_ids,
+        [ev.ip for ev in events],
+    )

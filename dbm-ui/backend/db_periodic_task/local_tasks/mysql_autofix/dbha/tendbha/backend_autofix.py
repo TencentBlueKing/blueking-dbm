@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 import uuid
 from typing import List
 
@@ -19,12 +20,17 @@ from backend.flow.consts import InstanceStatus
 from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.ticket.constants import TicketType
 
+logger = logging.getLogger("celery.mysql_dbha_autofix")
+
 
 def repair_ro_slaves_replicate(cluster_ids: List[int], machine_type: MachineType, events: List[MySQLDBHAEvent]):
     """
     events 的 check_id 应该是相同的
     表示 cluster_ids 的 master 发生了 dbha
     """
+    if not events:
+        return
+
     # 有可能, 共享了 master 机器的集群, 只有部分存在 ro slave
     infos = []
     for ev in events:
@@ -82,6 +88,11 @@ def repair_ro_slaves_replicate(cluster_ids: List[int], machine_type: MachineType
 
         # ToDo 异常处理 ?
         MySQLDBHAAutofixTicketStageQueue.objects.bulk_create(queue_to_create)
+        logger.info(
+            "[tendbha.repair_ro_slaves] queued: queue_uuid=%s, cluster_ids=%s, priority=P2",
+            queue_uuid,
+            cluster_ids,
+        )
 
 
 def replace_slave(cluster_ids: List[int], machine_type: MachineType, events: List[MySQLDBHAEvent]):
@@ -181,3 +192,10 @@ def replace_slave(cluster_ids: List[int], machine_type: MachineType, events: Lis
         )
 
     MySQLDBHAAutofixTicketStageQueue.objects.bulk_create(queue_to_create)
+    logger.info(
+        "[tendbha.replace_slave] queued: queue_uuid=%s, cluster_ids=%s, ips=%s, priority=%s",
+        queue_uuid,
+        cluster_ids,
+        ips,
+        priority,
+    )
