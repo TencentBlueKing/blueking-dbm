@@ -134,7 +134,7 @@
   const tableData = ref<IDataRow[]>([createRowData()]);
 
   const hasGrammarCheck = ref(false);
-  const grammarCheckResult = ref(false);
+  const grammarCheckResult = ref<boolean | string>(false);
 
   const localDbnames = computed(() => tableData.value[0]!.dbnames);
   const localIgnoreDbnames = computed(() => tableData.value[0]!.ignore_dbnames);
@@ -143,14 +143,18 @@
     if (localSqlFiles.value.length < 1) {
       return t('请添加 SQL');
     }
-
+    if (localDbnames.value.length < 1) {
+      return t('请添加变更 DB');
+    }
     if (!hasGrammarCheck.value) {
       return t('先执行语法检测');
+    }
+    if (typeof grammarCheckResult.value === 'string') {
+      return grammarCheckResult.value;
     }
     if (!grammarCheckResult.value) {
       return t('语法检测失败');
     }
-
     return false;
   });
 

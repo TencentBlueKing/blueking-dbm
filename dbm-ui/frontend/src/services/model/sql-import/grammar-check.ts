@@ -45,35 +45,52 @@ export default class GrammarCheck {
     this.syntax_fails = payload.syntax_fails || [];
   }
 
+  /**
+   * 是否有错误 拦截提交
+   */
   get isError() {
     if (this.skip_check) {
       return false;
     }
 
-    return this.syntax_fails.length > 0 || this.bancommand_warnings.length > 0 || this.highrisk_warnings.length > 0;
+    return this.syntax_fails.length > 0 || this.bancommand_warnings.length > 0;
+  }
+
+  /**
+   * 是否有警告 不拦截提交
+   */
+  get isWarning() {
+    if (this.skip_check) {
+      return false;
+    }
+
+    return this.highrisk_warnings.length > 0;
   }
 
   get messageList() {
-    const result: Array<{ line: number; message: string; type: 'warning' | 'error' }> = [];
-
-    this.bancommand_warnings.forEach((item) => {
-      result.push({
-        line: item.line,
-        message: item.warn_info,
-        type: 'error',
-      });
-    });
+    const result: Array<{ category: string; line: number; message: string; type: 'warning' | 'error' }> = [];
 
     this.syntax_fails.forEach((item) => {
       result.push({
+        category: 'syntax_error',
         line: item.line,
         message: item.error_msg,
         type: 'error',
       });
     });
 
+    this.bancommand_warnings.forEach((item) => {
+      result.push({
+        category: 'ban_command',
+        line: item.line,
+        message: item.warn_info,
+        type: 'error',
+      });
+    });
+
     this.highrisk_warnings.forEach((item) => {
       result.push({
+        category: 'high_risk',
         line: item.line,
         message: item.warn_info,
         type: 'warning',

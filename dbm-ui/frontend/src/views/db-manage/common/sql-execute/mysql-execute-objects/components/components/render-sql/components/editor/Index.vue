@@ -16,6 +16,7 @@
     ref="rootRef"
     class="sql-execute-editor"
     :class="{ 'is-full-screen': isFullscreen }">
+    <!-- 1. 顶部标题栏 — 固定高度 -->
     <div class="editor-layout-header">
       <span>{{ title }}</span>
       <div class="editro-action-box">
@@ -32,25 +33,17 @@
           @click="handleFullScreen" />
       </div>
     </div>
-    <BkResizeLayout
-      :border="false"
-      class="editor-resize-wrapper"
-      :initial-divide="resizeLayoutInitialDivide"
-      :max="300"
-      :min="48"
-      placement="bottom"
-      :style="resizeLayoutStyle">
-      <template #main>
-        <div
-          ref="editorRef"
-          style="height: 100%" />
-      </template>
-      <template #aside>
-        <RenderMessageList
-          class="editor-error"
-          :data="messageList" />
-      </template>
-    </BkResizeLayout>
+
+    <!-- 2. 中间编辑器区域 — 弹性填充 -->
+    <div
+      ref="editorRef"
+      class="editor-main-area" />
+
+    <!-- 3. 底部检查结果面板 — 可向上弹出/收起 -->
+    <RenderMessageList
+      class="editor-result-panel"
+      :data="messageList"
+      @goto-line="handleGotoLine" />
   </div>
 </template>
 <script setup lang="ts">
@@ -73,20 +66,18 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    // messageList: () => [],
     readonly: false,
-    // syntaxChecking: false,
   });
   const emits = defineEmits<Emits>();
 
   const rootRef = ref();
   const editorRef = ref();
 
-  const resizeLayoutStyle = ref();
   const isFullscreen = ref(false);
-  const resizeLayoutInitialDivide = ref(48);
 
   let editor: monaco.editor.IStandaloneCodeEditor;
+  let highlightDecoration: string[] = [];
+  let issueDecorations: string[] = [];
 
   watch(
     () => props.modelValue,
@@ -102,15 +93,53 @@
     },
   );
 
+  // 根据消息列表动态设置错误/警告行装饰（红色/黄色行号 + 波浪下划线）
   watch(
-    () => props.messageList.length,
-    () => {
-      if (props.messageList.length > 0) {
-        resizeLayoutInitialDivide.value = Math.min(32 + props.messageList.length * 28, 280);
-      } else {
-        resizeLayoutInitialDivide.value = 48;
-      }
+    () => props.messageList,
+    (list) => {
+      if (!editor) return;
+      const model = editor.getModel();
+      if (!model) return;
+
+      // 清除旧装饰
+      issueDecorations = editor.deltaDecorations(issueDecorations, []);
+
+      if (!model || list.length === 0) return;
+
+      const decorations: monaco.editor.IModelDeltaDecoration[] = [];
+      const lineCount = model.getLineCount();
+      list.forEach((item) => {
+        // Monaco 行号从 1 开始，需校验合法性
+        if (!Number.isInteger(item.line) || item.line < 1 || item.line > lineCount) return;
+        const maxCol = model.getLineMaxColumn(item.line);
+
+        if (item.type === 'error') {
+          decorations.push({
+            options: {
+              className: 'editor-line-error',
+              glyphMarginHoverMessage: { value: item.message },
+              isWholeLine: true,
+              lineNumberClassName: 'editor-line-no-error',
+              overviewRuler: { color: '#ea3636', position: monaco.editor.OverviewRulerLane.Left },
+            },
+            range: new monaco.Range(item.line, 1, item.line, maxCol),
+          });
+        } else if (item.type === 'warning') {
+          decorations.push({
+            options: {
+              glyphMarginHoverMessage: { value: item.message },
+              isWholeLine: true,
+              lineNumberClassName: 'editor-line-no-warn',
+              overviewRuler: { color: '#ffb648', position: monaco.editor.OverviewRulerLane.Left },
+            },
+            range: new monaco.Range(item.line, 1, item.line, maxCol),
+          });
+        }
+      });
+
+      issueDecorations = editor.deltaDecorations([], decorations);
     },
+    { deep: true },
   );
 
   const handleToggleScreenfull = () => {
@@ -146,14 +175,37 @@
     screenfull.toggle(rootRef.value);
   };
 
+  const handleGotoLine = (line: number) => {
+    if (!editor) return;
+    // 移除旧的高亮
+    if (highlightDecoration.length > 0) {
+      editor.deltaDecorations(highlightDecoration, []);
+    }
+    // 定位到目标行
+    const model = editor.getModel();
+    if (!model) return;
+    if (!Number.isInteger(line) || line < 1 || line > model.getLineCount()) return;
+    editor.revealLineInCenter(line);
+    // 添加高亮装饰（黄色背景 + 左侧竖线）
+    highlightDecoration = editor.deltaDecorations(
+      [],
+      [
+        {
+          options: {
+            className: 'editor-line-highlight',
+            isWholeLine: true,
+            lineNumberClassName: 'editor-line-no-highlight',
+          },
+          range: new monaco.Range(line, 1, line, model.getLineMaxColumn(line)),
+        },
+      ],
+    );
+    // 聚焦编辑器
+    editor.focus();
+  };
+
   onMounted(() => {
     nextTick(() => {
-      const offsetTop = 185;
-      const offsetBottom = 62;
-
-      resizeLayoutStyle.value = {
-        height: `${window.innerHeight - offsetTop - offsetBottom}px`,
-      };
       editor = monaco.editor.create(editorRef.value, {
         automaticLayout: true,
         language: 'sql',
@@ -190,22 +242,20 @@
 </script>
 <style lang="less" scoped>
   .sql-execute-editor {
-    position: relative;
+    display: flex;
+    flex-direction: column;
     z-index: 0;
     height: 100%;
+    overflow: hidden;
 
     &.is-full-screen {
-      display: flex;
       height: 100vh;
-      flex-direction: column;
-
-      .editor-resize-wrapper {
-        flex: 1;
-      }
     }
 
+    /* ===== 1. 顶部标题栏 — 固定高度 ===== */
     .editor-layout-header {
       display: flex;
+      flex-shrink: 0;
       align-items: center;
       height: 40px;
       padding-right: 16px;
@@ -225,14 +275,71 @@
       }
     }
 
-    .editor-resize-wrapper {
-      height: calc(100% - 40px) !important;
-      background: #212121;
+    /* ===== 2. 中间编辑器区域 — 弹性填充 ===== */
+    .editor-main-area {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      background: #1e1e1e;
     }
 
-    .editor-error {
+    /* ===== 3. 底部检查结果面板 — 向上弹出/收起 ===== */
+    .editor-result-panel {
+      flex-shrink: 0;
+      border-top: 1px solid #2d2d2d;
+      max-height: 280px;
+      overflow: hidden;
+      background: #252526;
+    }
+  }
+</style>
+<style lang="less">
+  /* === 错误行：红色行号 + 红色波浪下划线 === */
+  .editor-line-no-error {
+    color: #ff5757 !important;
+    font-weight: 600;
+  }
+
+  .editor-line-error {
+    // 红色波浪下划线（通过 inlineClassName 或 text-decoration 实现）
+    &::after {
+      content: '';
       position: absolute;
-      inset: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 2px;
+      background: repeating-linear-gradient(-45deg, transparent, transparent 3px, #f48771 3px, #f48771 4px);
+    }
+  }
+
+  /* === 警告行：黄色行号 === */
+  .editor-line-no-warn {
+    color: #ffb648 !important;
+  }
+
+  /* === 点击高亮行：黄色背景 + 左侧竖线 + 闪动动画 === */
+  .editor-line-highlight {
+    background-color: rgba(255, 220, 100, 0.18) !important;
+    box-shadow: inset 3px 0 0 0 #ffd54f;
+
+    animation: lineFlash 1.2s ease-out;
+  }
+
+  .editor-line-no-highlight {
+    color: #ffd54f !important;
+    font-weight: 600;
+  }
+
+  @keyframes lineFlash {
+    0% {
+      background-color: rgba(255, 220, 100, 0.55);
+    }
+    40% {
+      background-color: rgba(255, 220, 100, 0.55);
+    }
+    100% {
+      background-color: rgba(255, 220, 100, 0.18);
     }
   }
 </style>

@@ -68,7 +68,11 @@
         <template v-else>
           <Checking v-if="selectFileData.state === SqlFileModel.CHECKING" />
           <CheckSuccess
-            v-if="selectFileData.messageList.length < 1 && selectFileData.state !== SqlFileModel.CHECK_FAIL" />
+            v-if="
+              selectFileData.state === SqlFileModel.SUCCESS &&
+              selectFileData.messageList.filter((m) => m.type === 'error').length === 0 &&
+              selectFileData.messageList.filter((m) => m.type === 'warning').length === 0
+            " />
           <CheckError :data="selectFileData" />
         </template>
       </BkLoading>
@@ -121,7 +125,7 @@
     isShow: boolean;
   }
 
-  type Emits = (e: 'grammar-check', doCheck: boolean, checkPass: boolean) => void;
+  type Emits = (e: 'grammar-check', doCheck: boolean, result: boolean | string) => void;
 
   interface Expose {
     getFileData: () => Record<string, SqlFileModel>;
@@ -159,13 +163,29 @@
     window.changeConfirm = true;
     const uploadFileDataList = Object.values(uploadFileDataMap.value);
 
+    // 先赋值 modelValue 通过提交交互tooltip
+    modelValue.value = Object.keys(uploadFileDataMap.value);
+
+    // 统计所有文件中的 error 数量
+    let totalErrorNum = 0;
+    uploadFileDataList.forEach((item) => {
+      if (item.messageList?.length) {
+        totalErrorNum += item.messageList.filter((msg) => msg.type === 'error').length;
+      }
+    });
+
     if (
       _.some(uploadFileDataList, (item) => [SqlFileModel.CHECK_FAIL, SqlFileModel.UPLOAD_FAIL].includes(item.state))
     ) {
-      emits('grammar-check', false, false);
+      emits(
+        'grammar-check',
+        totalErrorNum > 0 ? true : false,
+        totalErrorNum > 0 ? t('请先修复n个错误后再提交', { n: totalErrorNum }) : false,
+      );
       return;
     }
 
+    // 赋值文件真实路径
     if (uploadFileNameList.value.length) {
       modelValue.value = uploadFileNameList.value.map((fileName) => uploadFileDataMap.value[fileName].realFilePath);
     }
@@ -285,6 +305,7 @@
         uploadFileNameList.value.forEach((fileName) => {
           uploadFileDataMap.value[fileName].uploadFailed();
         });
+        modelValue.value = [];
       })
       .finally(() => {
         uploadRef.value.value = '';

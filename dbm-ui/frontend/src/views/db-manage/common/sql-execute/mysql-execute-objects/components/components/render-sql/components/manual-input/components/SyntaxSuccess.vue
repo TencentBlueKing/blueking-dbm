@@ -14,10 +14,14 @@
 <template>
   <div class="sql-execute-syntax-success">
     <DbIcon type="check-line" />
-    <span>{{ $t('检测通过') }}</span>
+    <span>{{ t('检测通过') }}</span>
   </div>
 </template>
-<script setup lang="ts"></script>
+<script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
+  const { t } = useI18n();
+</script>
 <style lang="less">
   .sql-execute-syntax-success {
     display: flex;
