@@ -34,6 +34,11 @@ func (pc *PartitionConfig) ExecuteDropStatement(pd *PartitionDetail, conn *nativ
 		Statement: "",
 	}
 
+	if pc.Phase != "online" {
+		partitionStepInfo.Message = "Phase is off, no need to execute drop partition statement"
+		return partitionStepInfo
+	}
+
 	dropStatement, err := pc.GetDropStatement(pd, conn)
 
 	if err != nil {

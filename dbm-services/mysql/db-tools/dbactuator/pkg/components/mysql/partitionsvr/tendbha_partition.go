@@ -44,6 +44,9 @@ func (c *PartitionExecComp) TendbPartition() (err error) {
 
 	// 一个分区配置为维度，执行分区操作
 	for _, conf := range c.Params.Configs {
+		// 传参给每一个分区配置
+		conf.IntervalCheck = c.Params.IntervalCheck
+
 		sem <- struct{}{} // 占用一个并发槽
 		wg.Add(1)
 		go func(conf *PartitionConfig) {

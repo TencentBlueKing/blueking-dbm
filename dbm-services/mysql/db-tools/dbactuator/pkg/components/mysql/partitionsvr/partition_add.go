@@ -21,6 +21,17 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 )
 
+// PartitionBoundaryRow 单条分区在 information_schema 中的名称与边界描述
+type PartitionBoundaryRow struct {
+	Name           string
+	DescriptionRaw string
+}
+
+// intervalCheckOffsetDays 用于分区间隔检查的时间偏移（天）。
+// 作用：避免时区边界导致把“当前在用分区”误判为未来分区。
+// 取值为 1 时，通常可额外保留 1 个未来分区不参与本次检查。
+const intervalCheckOffsetDays = 1
+
 // addStmtContext 汇总“添加分区语句”构建过程中的中间态数据。
 // 仅在 GetAddStatement 内部使用，用于集中管理原先分散的局部变量，提升可读性与可维护性。
 type addStmtContext struct {
@@ -42,6 +53,16 @@ func (pc *PartitionConfig) ExecuteAddStatement(pd *PartitionDetail, conn *native
 		Statement: "",
 	}
 
+	// TODO: 增加判断当前分区间隔是否和下发的配置间隔一致
+	// 如果不一致，则需要先检查预留分区是否有数据，如果没有数据，则清理预留分区，之后再使用新的规则增加预留分区
+	if pc.IntervalCheck {
+		err := pc.CheckInterval(pd, conn)
+		if err != nil {
+			partitionStepInfo.Status = false
+			partitionStepInfo.Message = err.Error()
+			return partitionStepInfo
+		}
+	}
 	addStatement, err := pc.GetAddStatement(pd, conn)
 	if err != nil {
 		partitionStepInfo.Status = false
@@ -71,6 +92,239 @@ func (pc *PartitionConfig) ExecuteAddStatement(pd *PartitionDetail, conn *native
 	partitionStepInfo.Message = "success"
 
 	return partitionStepInfo
+}
+
+func (pc *PartitionConfig) CheckInterval(pd *PartitionDetail, conn *native.DbWorker) error {
+	/*
+		1. 获取未来预留分区
+		2. 获取未来预留分区的步长
+		3. 判断步长是否和下发 PartitionTimeInterval 一致
+		4. 如果一致，则返回 nil
+		5. 如果不一致，则检查预留分区是否有数据
+		6. 如果预留分区有数据，则返回 对应错误
+		7. 如果预留分区无数据，则清理预留分区，并应用新的间隔规则
+	*/
+
+	// 获取未来预留分区
+	rows, err := pc.GetPartitionsFromTodayOnward(pd, conn, intervalCheckOffsetDays)
+	if err != nil {
+		return fmt.Errorf("get future partitions from today onward: %w", err)
+	}
+	// 未来预留分区不足 2 个时，无法判定步长，也无需继续处理
+	if len(rows) < 2 {
+		return nil
+	}
+	// 相邻分区的 PARTITION_DESCRIPTION 步长与下发 PartitionTimeInterval 一致则视为检查通过
+	if pc.partitionStepsMatchConfig(rows) {
+		return nil
+	}
+	// 当前查询结果已全部是未来分区，直接全量检查这些未来分区是否有数据
+	futureNames := make([]string, 0, len(rows))
+	for _, r := range rows {
+		futureNames = append(futureNames, r.Name)
+	}
+	hasData, err := pc.HasDataInPartitions(pd, conn, futureNames)
+	if err != nil {
+		return fmt.Errorf("check if future partitions have data: %w", err)
+	}
+	if hasData {
+		return fmt.Errorf("Future partitions have data, cannot directly clean up and apply new interval rules. Please clean up and try again.")
+	}
+	// 未来预留分区无数据，直接清理
+	if err = pc.CleanupFuturePartitions(pd, conn, futureNames); err != nil {
+		return fmt.Errorf("cleanup future partitions: %w", err)
+	}
+	return nil
+}
+
+// GetPartitionsFromTodayOnward 查询“严格晚于边界表达式”的未来分区。
+// offsetDays 表示在“今天边界”基础上，额外偏移多少天（用于规避时区导致的边界误判）。
+// 结果按 PARTITION_DESCRIPTION 升序。
+func (pc *PartitionConfig) GetPartitionsFromTodayOnward(
+	pd *PartitionDetail,
+	conn *native.DbWorker,
+	offsetDays int,
+) ([]PartitionBoundaryRow, error) {
+
+	// 获取边界表达式
+	boundaryExpr, err := pc.GetIntervalCheckBoundaryExpr(offsetDays)
+	if err != nil {
+		return nil, err
+	}
+
+	// 查询未来预留分区
+	querySQL := fmt.Sprintf(
+		"SELECT "+
+			"PARTITION_NAME AS PARTITION_NAME, "+
+			"PARTITION_DESCRIPTION AS PARTITION_DESCRIPTION "+
+			"FROM "+
+			"INFORMATION_SCHEMA.PARTITIONS "+
+			"WHERE "+
+			"TABLE_SCHEMA = ? AND TABLE_NAME = ? AND PARTITION_DESCRIPTION > %s "+
+			"ORDER BY PARTITION_DESCRIPTION ASC;", boundaryExpr)
+
+	rows, err := conn.QueryWithArgs(querySQL, pd.DbName, pd.TbName)
+	if err != nil {
+		if strings.Contains(err.Error(), "not row found") {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	out := make([]PartitionBoundaryRow, 0, len(rows))
+	for _, row := range rows {
+		out = append(out, PartitionBoundaryRow{
+			Name:           row["PARTITION_NAME"].(string),
+			DescriptionRaw: row["PARTITION_DESCRIPTION"].(string),
+		})
+	}
+	return out, nil
+}
+
+// GetIntervalCheckBoundaryExpr 生成“检查分区间隔”专用边界表达式。
+// offsetDays 为在“今天边界”基础上额外偏移的天数（用于规避时区影响）。
+func (pc *PartitionConfig) GetIntervalCheckBoundaryExpr(offsetDays int) (string, error) {
+	if offsetDays < 0 {
+		return "", fmt.Errorf("offsetDays must be >= 0")
+	}
+
+	switch pc.PartitionType {
+	case 0:
+		return fmt.Sprintf("(TO_DAYS(now())+%d)", DiffOneDay+offsetDays), nil
+	case 1:
+		// type 1 3  name和description是同一天，但是list类型 不需要额外再加一天
+		return fmt.Sprintf("(TO_DAYS(now())+%d)", offsetDays), nil
+	case 3:
+		return fmt.Sprintf("DATE_FORMAT(date_add(now(),interval %d day),'%%Y%%m%%d')", offsetDays), nil
+	case 101:
+		// name和description是同一天，例如20060102的数据实际在p20060103中，所以需要额外加1天
+		return fmt.Sprintf("DATE_FORMAT(date_add(now(),interval %d day),'%%Y%%m%%d')", DiffOneDay+offsetDays), nil
+	case 4:
+		//  description 为 'YYYY-MM-DD'
+		return fmt.Sprintf(`DATE_FORMAT(date_add(now(),interval %d day),'\'%%Y-%%m-%%d\'')`, DiffOneDay+offsetDays), nil
+	case 5:
+		return fmt.Sprintf("UNIX_TIMESTAMP(date_add(curdate(),INTERVAL %d DAY))", DiffOneDay+offsetDays), nil
+	default:
+		return "", errno.NotSupportedPartitionType
+	}
+}
+
+// partitionStepsMatchConfig 校验相邻分区 PARTITION_DESCRIPTION 的步长是否等于下发的 PartitionTimeInterval（按各分区类型的语义）。
+func (pc *PartitionConfig) partitionStepsMatchConfig(rows []PartitionBoundaryRow) bool {
+	if len(rows) < 2 || pc.PartitionTimeInterval <= 0 {
+		return false
+	}
+	for i := 0; i < len(rows)-1; i++ {
+		if !pc.partitionStepMatches(rows[i].DescriptionRaw, rows[i+1].DescriptionRaw) {
+			return false
+		}
+	}
+	return true
+}
+
+func (pc *PartitionConfig) partitionStepMatches(desc1, desc2 string) bool {
+	switch pc.PartitionType {
+	case 0, 1:
+		v1, err1 := strconv.Atoi(strings.TrimSpace(desc1))
+		v2, err2 := strconv.Atoi(strings.TrimSpace(desc2))
+		if err1 != nil || err2 != nil {
+			return false
+		}
+		return v2-v1 == pc.PartitionTimeInterval
+	case 5:
+		v1, err1 := strconv.ParseInt(strings.TrimSpace(desc1), 10, 64)
+		v2, err2 := strconv.ParseInt(strings.TrimSpace(desc2), 10, 64)
+		if err1 != nil || err2 != nil {
+			return false
+		}
+		exp := int64(pc.PartitionTimeInterval) * 86400
+		return v2-v1 == exp
+	case 3, 101:
+		d1, err1 := time.Parse("20060102", strings.TrimSpace(desc1))
+		d2, err2 := time.Parse("20060102", strings.TrimSpace(desc2))
+		if err1 != nil || err2 != nil {
+			return false
+		}
+		days := int(d2.Sub(d1).Hours() / 24)
+		return days == pc.PartitionTimeInterval
+	case 4:
+		d1, err1 := parsePartitionDescType4(desc1)
+		d2, err2 := parsePartitionDescType4(desc2)
+		if err1 != nil || err2 != nil {
+			return false
+		}
+		days := int(d2.Sub(d1).Hours() / 24)
+		return days == pc.PartitionTimeInterval
+	default:
+		return false
+	}
+}
+
+func parsePartitionDescType4(raw string) (time.Time, error) {
+	s := strings.TrimSpace(raw)
+	s = strings.Trim(s, "'\"")
+	return time.ParseInLocation("2006-01-02", s, time.Local)
+}
+
+// HasDataInPartitions 判断指定分区列表中是否存在数据。
+// 返回 true 表示至少一个分区有数据，false 表示均无数据。
+func (pc *PartitionConfig) HasDataInPartitions(
+	pd *PartitionDetail,
+	conn *native.DbWorker,
+	partitionNames []string,
+) (bool, error) {
+	dbName := strings.ReplaceAll(pd.DbName, "`", "``")
+	tbName := strings.ReplaceAll(pd.TbName, "`", "``")
+
+	for _, partitionName := range partitionNames {
+		safePartitionName := strings.ReplaceAll(partitionName, "`", "``")
+		querySQL := fmt.Sprintf(
+			"SELECT 1 "+
+				"FROM `%s`.`%s` PARTITION (`%s`) "+
+				"LIMIT 1;",
+			dbName, tbName, safePartitionName,
+		)
+
+		_, err := conn.Query(querySQL)
+		if err != nil {
+			if strings.Contains(err.Error(), "not row found") {
+				continue
+			}
+			return false, err
+		}
+		// 查询到任意一行数据，说明该分区有数据
+		return true, nil
+	}
+	return false, nil
+}
+
+// CleanupFuturePartitions 清理指定未来预留分区。
+func (pc *PartitionConfig) CleanupFuturePartitions(
+	pd *PartitionDetail,
+	conn *native.DbWorker,
+	partitionNames []string,
+) error {
+	if len(partitionNames) == 0 {
+		return nil
+	}
+
+	dbName := strings.ReplaceAll(pd.DbName, "`", "``")
+	tbName := strings.ReplaceAll(pd.TbName, "`", "``")
+	quoted := make([]string, 0, len(partitionNames))
+	for _, name := range partitionNames {
+		safeName := strings.ReplaceAll(name, "`", "``")
+		quoted = append(quoted, fmt.Sprintf("`%s`", safeName))
+	}
+
+	dropSQL := fmt.Sprintf(
+		"ALTER TABLE `%s`.`%s` DROP PARTITION %s",
+		dbName, tbName, strings.Join(quoted, ","),
+	)
+	_, err := conn.ExecWithTimeout(
+		ExecTimeout,
+		fmt.Sprintf("set session lock_wait_timeout=%d; %s", LockWaitTimeout, dropSQL),
+	)
+	return err
 }
 
 func (pc *PartitionConfig) GetAddStatement(pd *PartitionDetail, conn *native.DbWorker) (string, error) {
