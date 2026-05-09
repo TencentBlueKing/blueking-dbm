@@ -3,6 +3,7 @@ package atomsys
 import (
 	"bufio"
 	"dbm-services/redis/db-tools/dbactuator/pkg/common"
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
 	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 	"encoding/json"
@@ -67,6 +68,12 @@ func (job *ReverseAPIConfig) Name() string {
 
 // Run 执行
 func (job *ReverseAPIConfig) Run() (err error) {
+	// 如果BkDbmonPath目录不存在，则跳过
+	if !util.FileExists(consts.BkDbmonPath) {
+		job.runtime.Logger.Warn("BkDbmonPath %s not exists, skip reverse config", consts.BkDbmonPath)
+		return nil
+	}
+
 	reverseConfig := common.GetResrveAPIConfig()
 	os.Remove(reverseConfig) // try remove old file.
 	// 以追加模式打开文件，如果文件不存在则创建
