@@ -25,6 +25,7 @@
 package dbm
 
 import (
+	"encoding/json"
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
@@ -87,6 +88,32 @@ type DbInstMetadata struct {
 	// and the access layer is storage.
 	ProxyInstanceSet []DbmMetadataProxyInstance `json:"proxyinstance_set"`
 	BinlogDumpers    []DbmMetadataBinlogDumper  `json:"tbinlogdumpers"`
+}
+
+// UnmarshalJSON unmarshals metadata and keeps role compatibility between instance_role and spider_role.
+func (d *DbInstMetadata) UnmarshalJSON(data []byte) error {
+	type alias DbInstMetadata
+
+	decoded := alias{}
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+
+	rolePayload := struct {
+		InstanceRole *DbmMetadataInstanceRole `json:"instance_role"`
+		SpiderRole   *DbmMetadataSpiderRole   `json:"spider_role"`
+	}{}
+	if err := json.Unmarshal(data, &rolePayload); err != nil {
+		return err
+	}
+
+	if decoded.InstanceRole == "" && rolePayload.SpiderRole != nil && *rolePayload.SpiderRole != "" {
+		decoded.InstanceRole = DbmMetadataInstanceRole(*rolePayload.SpiderRole)
+	}
+
+	*d = DbInstMetadata(decoded)
+
+	return nil
 }
 
 // ResponseCommonInfo defines the other info except "data" of response.
