@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 from typing import Dict, List
 
-from django.db.models import Aggregate, CharField, Count, IntegerField, Max, Min, Sum
+from django.db.models import Aggregate, CharField, Count, IntegerField, Max, Min, Q, Sum
 from django.utils import timezone
 
 from backend import env
@@ -225,6 +225,7 @@ def query_slowlog_aggregated(
     order_by="query_time_max",
     limit=10,
     query_sample=True,
+    exclude_system=True,
 ):
     """使用 Django ORM 实现慢日志聚合查询
         SELECT cluster_domain, instance_role, query_digest_md5,
@@ -270,13 +271,24 @@ def query_slowlog_aggregated(
         raise DBMMcpBaseException(msg=f"order_by field '{order_by}' is not allowed")
 
     try:
-        qs = (
-            MysqlSlowlogDetail.objects.filter(
-                cluster_domain=cluster_domain,
-                instance_role=instance_role,
-                log_time__gt=start_time,
-                log_time__lte=end_time,
+        base_filter = Q(
+            cluster_domain=cluster_domain,
+            instance_role=instance_role,
+            log_time__gt=start_time,
+            log_time__lte=end_time,
+        )
+        # 排除系统 SQL：username 为系统用户，或 query_digest_text 包含系统 schema
+        if exclude_system:
+            system_user_q = Q(username__in=["MONITOR", "yw"])
+            system_schema_q = (
+                Q(query_digest_text__contains="infodba_schema")
+                | Q(query_digest_text__contains="information_schema")
+                | Q(query_digest_text__contains="performance_schema")
             )
+            base_filter &= ~(system_user_q | system_schema_q)
+
+        qs = (
+            MysqlSlowlogDetail.objects.filter(base_filter)
             .values("cluster_domain", "instance_role", "query_digest_md5")
             .annotate(
                 time_window_min=Min("dteventtimestamp"),

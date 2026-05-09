@@ -50,6 +50,8 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_binlog_events import (
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_create_table import (
     ShowCreateTableInputSerializer,
     ShowCreateTableOutputSerializer,
+    ShowCreateTablesInputSerializer,
+    ShowCreateTablesOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_engine_status import (
     ShowInstanceEngineStatusInputSerializer,
@@ -110,6 +112,38 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
                 tablename=table_name,
             )
         )
+
+    @mcp_tools_api_decorator(
+        description=str(_("获取 tendbsingle, tendbha, tendbcluster 集群的表结构，可同时获取多个表的结构")),
+        request_slz=ShowCreateTablesInputSerializer,
+        response_slz=ShowCreateTablesOutputSerializer,
+        permission_classes=[McpClusterDetailPermission],
+        mcp_auth_parser=auth_parse_clusters,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.MYSQL_QUERY, DBMMcpTools.MYSQL_SLOWLOG],
+        name_prefix="mysql_query",
+    )
+    def show_create_tables(self, request, *args, **kwargs):
+        cluster_domain = self.get_param("cluster_domain")
+        table_names = self.get_param("table_names")
+
+        cluster_obj = Cluster.objects.get(immute_domain=cluster_domain)
+        create_sql_list = []
+        for table_name in table_names:
+            create_sql = show_create_table(
+                cluster_type=cluster_obj.cluster_type,
+                cluster_domain=cluster_domain,
+                dbname="",
+                tablename=table_name,
+            )
+            create_sql_list.append(
+                {
+                    "table_name": table_name,
+                    "create_sql": create_sql,
+                }
+            )
+
+        return Response(create_sql_list)
 
     @mcp_tools_api_decorator(
         description=str(_("查询 SQL 执行计划")),

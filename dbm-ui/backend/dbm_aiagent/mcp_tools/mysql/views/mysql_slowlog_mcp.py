@@ -13,22 +13,13 @@ import logging
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
-from backend.dbm_aiagent.agent.commands import MysqlSlowSqlTunerCommand
-from backend.dbm_aiagent.agent.handlers import AgentHandler
 from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clusters
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
-from backend.dbm_aiagent.mcp_tools.mysql.impl.mysql_slowlog import (
-    query_slow_log_detail,
-    query_slow_logs_by_metric,
-    query_slowlog_aggregated,
-)
+from backend.dbm_aiagent.mcp_tools.mysql.impl.mysql_slowlog import query_slow_logs_by_metric, query_slowlog_aggregated
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_slowlog import (
-    MysqlOneSlowlogInputSerializer,
     MysqlSlowlogInputSerializer,
     MysqlSlowlogOutputSerializer,
-    MysqlSlowTunerInputSerializer,
-    MysqlSlowTunerOutputSerializer,
     SlowlogAggregatedInputSerializer,
     SlowlogAggregatedOutputSerializer,
 )
@@ -98,6 +89,7 @@ class MySQLSlowlogMcpToolsViewSet(McpToolsViewSet):
         end_time = self.get_param("end_time")
         limit = self.get_param("limit")
         query_sample = self.get_param("query_sample")
+        exclude_system = self.get_param("exclude_system")
 
         return Response(
             query_slowlog_aggregated(
@@ -108,78 +100,6 @@ class MySQLSlowlogMcpToolsViewSet(McpToolsViewSet):
                 order_by=order_by,
                 limit=limit,
                 query_sample=query_sample,
+                exclude_system=exclude_system,
             )
         )
-
-    @mcp_tools_api_decorator(
-        description=str(
-            _(
-                "根据 query_digest 获取 mysql 某一条慢查询详情。返回的 slow_logs 结果里面字段解读如下：\n"
-                "query_digest_text: 是慢日志摘要文本，也叫 digest_text 或者 fingerprint;\n"
-                "query_digest_md5: 是慢日志摘要字段的 MD5 值，也叫 digest 或者 query_digest;\n"
-                "sql_text: 是慢日志的原始 SQL 文本，如果提到 sql 详情，或者 sql原文，指的就是这个字段;\n"
-                "db_name: 是慢日志涉及的数据库名;\n"
-                "table_name: 是慢日志涉及的表名;\n"
-                "rows_examined: 是慢日志扫描的行数，也叫 rows_scan;\n"
-            )
-        ),
-        request_slz=MysqlOneSlowlogInputSerializer,
-        response_slz=MysqlSlowlogOutputSerializer,
-        permission_classes=[McpClusterDetailPermission],
-        mcp_auth_parser=auth_parse_clusters,
-        tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.MYSQL_SLOWLOG],
-        name_prefix="mysql_slowlog",
-    )
-    def query_one_slow_log_detail(self, request, *args, **kwargs):
-        cluster_domain = self.get_param("cluster_domain")
-        query_digest_md5 = self.get_param("query_digest_md5")
-        start_time = self.get_param("start_time")
-        end_time = self.get_param("end_time")
-
-        return Response(
-            query_slow_log_detail(
-                cluster_domain=cluster_domain,
-                query_digest_md5=query_digest_md5,
-                start_time=start_time,
-                end_time=end_time,
-            )
-        )
-
-    @mcp_tools_api_decorator(
-        description=str(
-            _(
-                "分析某一条慢查询，返回优化建议。慢查询可以传入 sql_text 或者 query_digest_md5"
-                "会自动从 db 集群上获取表结构和查询计划，进行什么分析，并给出表结构或者 sql 的优化改造建议"
-            )
-        ),
-        request_slz=MysqlSlowTunerInputSerializer,
-        response_slz=MysqlSlowTunerOutputSerializer,
-        permission_classes=[McpClusterDetailPermission],
-        mcp_auth_parser=auth_parse_clusters,
-        tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.MYSQL_SLOWLOG],
-        name_prefix="mysql_slowlog",
-    )
-    def sql_tune(self, request, *args, **kwargs):
-        cluster_domain = self.get_param("cluster_domain")
-        db_name = self.get_param("db_name")
-        sql_text = self.get_param("sql_text")
-        query_digest_md5 = self.get_param("query_digest_md5")
-
-        try:
-            result = AgentHandler.ask_agent_with_command(
-                command=MysqlSlowSqlTunerCommand.command,
-                username="admin",
-                command_params={
-                    "sql_text": sql_text,
-                    "query_digest_md5": query_digest_md5,
-                    "cluster_domain": cluster_domain,
-                    "db_name": db_name,
-                },
-            )
-        except Exception as e:
-            logger.error(f"sql_tune error: {e}")
-            return Response({"error": str(e)})
-
-        return Response(result)

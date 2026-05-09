@@ -1,6 +1,10 @@
 package mysql
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/samber/lo"
+)
 
 // Response TODO
 type Response struct {
@@ -22,7 +26,7 @@ func (q *QueryTables) String() string {
 	for _, t := range *q {
 		parts = append(parts, t.String())
 	}
-	return strings.Join(parts, ",")
+	return strings.Join(lo.Uniq(parts), ",")
 }
 
 type TableRef struct {
