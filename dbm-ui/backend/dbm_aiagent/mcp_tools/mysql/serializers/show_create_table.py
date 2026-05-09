@@ -13,10 +13,24 @@ from rest_framework import serializers
 
 
 class ShowCreateTableInputSerializer(serializers.Serializer):
-    cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    db_name = serializers.CharField(help_text=_("库名，提供库名可以更准确的找到 table"))
-    table_name = serializers.CharField(help_text=_("表名"))
+    cluster_domain = serializers.CharField(help_text=_("集群域名"), required=True)
+    db_name = serializers.CharField(help_text=_("库名，提供库名可以更准确的找到 table. " "传空将会从 table_name 根据 . 来分隔提取 db_name"))
+    table_name = serializers.CharField(help_text=_("表名"), required=True)
 
 
 class ShowCreateTableOutputSerializer(serializers.Serializer):
     create_sql = serializers.CharField(help_text=_("表结构, 建表语句"))
+
+
+class ShowCreateTablesInputSerializer(serializers.Serializer):
+    cluster_domain = serializers.CharField(help_text=_("集群域名"), required=True)
+    table_names = serializers.ListField(child=serializers.CharField(), help_text=_("表名, db.table 格式"), required=True)
+
+
+class ShowCreateTablesRowSerializer(serializers.Serializer):
+    table_name = serializers.CharField(help_text=_("表名"))
+    create_sql = serializers.CharField(help_text=_("表结构, 建表语句"))
+
+
+class ShowCreateTablesOutputSerializer(serializers.Serializer):
+    data = ShowCreateTablesRowSerializer(many=True)

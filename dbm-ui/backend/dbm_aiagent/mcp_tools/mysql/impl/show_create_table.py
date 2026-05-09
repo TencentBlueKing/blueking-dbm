@@ -18,6 +18,10 @@ from backend.dbm_aiagent.mcp_tools.mysql.helpers.sql_safety import quote_ident
 
 
 def show_create_table(cluster_type: ClusterType, cluster_domain: str, dbname: str, tablename: str) -> Dict:
+    dbname = dbname.strip("`")
+    tablename = tablename.strip("`").strip(" ")
+    if "." in tablename:
+        dbname, tablename = tablename.split(".")
     raw_dbname = dbname  # noqa: F841
 
     bk_cloud_id, address, dbname = get_cloud_slave_address_and_dbname(

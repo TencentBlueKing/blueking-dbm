@@ -48,6 +48,7 @@ class SlowlogAggregatedInputSerializer(serializers.Serializer):
     start_time = serializers.DateTimeField(help_text=_("开始时间"))
     end_time = serializers.DateTimeField(help_text=_("结束时间"))
     query_sample = serializers.BooleanField(help_text=_("是否返回原始 sql 示例"), required=False, default=True)
+    exclude_system = serializers.BooleanField(help_text=_("是否排除系统自身产生的慢日志"), required=False, default=True)
 
 
 class SlowlogAggregatedRowSerializer(serializers.Serializer):

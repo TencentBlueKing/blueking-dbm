@@ -1,0 +1,292 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "target": {
+          "limit": 100,
+          "matchAny": false,
+          "tags": [],
+          "type": "dashboard"
+        },
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [
+        "慢查询"
+      ],
+      "targetBlank": false,
+      "title": "New link",
+      "tooltip": "",
+      "type": "dashboards",
+      "url": ""
+    }
+  ],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "type": "mysql",
+        "uid": "${DS_MYSQL-DBMPROD}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 22,
+        "w": 15,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "afterRender": "",
+        "content": "{{{analyze_result}}}",
+        "contentPartials": [],
+        "defaultContent": "The query didn't return any results.",
+        "editor": {
+          "format": "none",
+          "language": "markdown"
+        },
+        "editors": [],
+        "externalStyles": [],
+        "helpers": "",
+        "renderMode": "everyRow",
+        "styles": "",
+        "wrap": true
+      },
+      "pluginVersion": "5.7.0",
+      "targets": [
+        {
+          "dataset": "bk_dbm_stats_test",
+          "datasource": {
+            "type": "mysql",
+            "uid": "${DS_MYSQL-DBMPROD}"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT  analyze_result \nFROM bk_dbm_report.tb_mysql_slowlog_ai_analysis \nWHERE cluster_domain = '$cluster_domain'\nAND DATE_FORMAT(analyze_time, '%Y-%m-%d %T') = '$analyze_time'\nORDER BY id DESC\nLIMIT 1",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [
+                  {
+                    "name": "cluster_domain",
+                    "type": "functionParameter"
+                  }
+                ],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          },
+          "table": "tb_mysql_slow_log"
+        }
+      ],
+      "title": "Business Text Query",
+      "type": "marcusolsson-dynamictext-panel"
+    }
+  ],
+  "refresh": "",
+  "schemaVersion": 39,
+  "tags": [
+    "MySQL_AI_SLOWLOG"
+  ],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "datasource": {
+          "type": "bkmonitor-timeseries-datasource",
+          "uid": "${DS_蓝鲸监控_-_指标数据}"
+        },
+        "definition": "- Blueking Monitor - 维度",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "app",
+        "options": [],
+        "query": {
+          "metricConfig": {
+            "data_label": "exporter_dbm_mysqld_exporter",
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "group_by": "app",
+            "metric_field": "mysql_up",
+            "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+            "result_table_label": "component",
+            "where": []
+          },
+          "queryType": "dimension",
+          "variables": ""
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "bkmonitor-timeseries-datasource",
+          "uid": "${DS_蓝鲸监控_-_指标数据}"
+        },
+        "definition": "- Blueking Monitor - 维度",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "cluster_domain",
+        "options": [],
+        "query": {
+          "metricConfig": {
+            "data_label": "exporter_dbm_mysqld_exporter",
+            "data_source_label": "bk_monitor",
+            "data_type_label": "time_series",
+            "group_by": "cluster_domain",
+            "metric_field": "mysql_up",
+            "result_table_id": "exporter_dbm_mysqld_exporter.__default__",
+            "result_table_label": "component",
+            "where": [
+              {
+                "key": "app",
+                "method": "eq",
+                "value": [
+                  "$app"
+                ]
+              }
+            ]
+          },
+          "queryType": "dimension",
+          "variables": "$app"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "mysql",
+          "uid": "${DS_MYSQL-DBMPROD}"
+        },
+        "definition": "SELECT instance_role FROM bk_dbm_report.tb_mysql_slowlog_ai_analysis WHERE cluster_domain='$cluster_domain' \nORDER BY id desc LIMIT 10",
+        "hide": 0,
+        "includeAll": false,
+        "label": "instance_role",
+        "multi": false,
+        "name": "instance_role",
+        "options": [],
+        "query": "SELECT instance_role FROM bk_dbm_report.tb_mysql_slowlog_ai_analysis WHERE cluster_domain='$cluster_domain' \nORDER BY id desc LIMIT 10",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {},
+        "datasource": {
+          "type": "mysql",
+          "uid": "${DS_MYSQL-DBMPROD}"
+        },
+        "definition": "SELECT DATE_FORMAT(analyze_time, '%Y-%m-%d %T') FROM bk_dbm_report.tb_mysql_slowlog_ai_analysis WHERE cluster_domain='$cluster_domain' \nAND instance_role='$instance_role'\nORDER BY id desc LIMIT 10",
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "analyze_time",
+        "options": [],
+        "query": "SELECT DATE_FORMAT(analyze_time, '%Y-%m-%d %T') FROM bk_dbm_report.tb_mysql_slowlog_ai_analysis WHERE cluster_domain='$cluster_domain' \nAND instance_role='$instance_role'\nORDER BY id desc LIMIT 10",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "default",
+  "title": "MySQL慢查询AI分析",
+  "version": 17,
+  "weekStart": "",
+  "__inputs": [
+    {
+      "name": "DS_蓝鲸监控_-_指标数据",
+      "label": "蓝鲸监控 - 指标数据",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "bkmonitor-timeseries-datasource",
+      "pluginName": "蓝鲸监控 - 指标数据"
+    },
+    {
+      "name": "DS_MYSQL-DBMPROD",
+      "label": "mysql-dbmprod",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "mysql",
+      "pluginName": "mysql-dbmprod"
+    }
+  ],
+  "__requires": [
+    {
+      "type": "datasource",
+      "id": "bkmonitor-timeseries-datasource",
+      "name": "蓝鲸监控 - 指标数据"
+    },
+    {
+      "type": "datasource",
+      "id": "mysql",
+      "name": "mysql-dbmprod"
+    }
+  ]
+}
