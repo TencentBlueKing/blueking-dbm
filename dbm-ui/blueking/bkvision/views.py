@@ -7,6 +7,7 @@ from django.conf import settings
 from django.http import HttpResponse, JsonResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.decorators import action
 
 from backend.bk_web import viewsets
@@ -16,6 +17,13 @@ from blueking.bkvision.settings import BKVISION_APIGW_URL, PRE_PROCESS_FUNC
 from blueking.bkvision.utils import normalize_request_headers
 
 logger = logging.getLogger("root")
+
+
+class BkVisionCsrfExemptSessionAuthentication(SessionAuthentication):
+    """跳过 DRF 内置的 CSRF 校验，仅用于 BKVision 代理透传场景。"""
+
+    def enforce_csrf(self, request):
+        return
 
 
 def build_headers(request):
@@ -52,7 +60,16 @@ def proxy_request(request, path):
 class BkVisionViewSet(viewsets.SystemViewSet):
     """BKVision 代理视图 - 需要平台管理权限"""
 
+    authentication_classes = [BkVisionCsrfExemptSessionAuthentication]
     default_permission_class = [ResourceActionPermission([ActionEnum.PLATFORM_MANAGE])]
+
+    def initial(self, request, *args, **kwargs):
+        # 提前缓存 request.body 到 Django HttpRequest._body：
+        # 后续 IAM 权限审计 / DRF parser 会读 request.data 消费底层 stream，
+        # 若不预先缓存，视图里再访问 request.body 会抛 RawPostDataException。
+        if request.method not in ("GET", "HEAD", "OPTIONS"):
+            _ = request.body
+        super().initial(request, *args, **kwargs)
 
     @action(methods=["POST"], detail=False)
     def query_variable(self, request):
