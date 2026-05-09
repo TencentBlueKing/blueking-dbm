@@ -144,6 +144,5 @@ location /{{bk_biz_id}}/{{db_type}}/{{cluster_name}}/{{service_type}} {
 
 restart_nginx_tpl = """
 cd /usr/local/bkdb/nginx-portable
-./nginx-portable stop
-./nginx-portable start
+./nginx-portable reload
 """
