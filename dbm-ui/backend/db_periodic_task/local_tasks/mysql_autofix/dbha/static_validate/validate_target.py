@@ -8,10 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 from typing import List
 
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.db_monitor.models import MySQLDBHAEvent
+
+logger = logging.getLogger("celery.mysql_dbha_autofix")
 
 
 def validate_target(events: List[MySQLDBHAEvent]) -> List[MySQLDBHAEvent]:
@@ -24,10 +27,27 @@ def validate_target(events: List[MySQLDBHAEvent]) -> List[MySQLDBHAEvent]:
             ev.instance()
             res.append(ev)
         except Cluster.DoesNotExist:
+            logger.warning(
+                "[validate_target] cluster not found: check_id=%d, ip=%s, port=%d", ev.check_id, ev.ip, ev.port
+            )
             ev.failed_validate_it(f"cluster not found for {ev}")
         except ProxyInstance.DoesNotExist:
+            logger.warning(
+                "[validate_target] proxy instance not found: check_id=%d, ip=%s, port=%d, machine_type=%s",
+                ev.check_id,
+                ev.ip,
+                ev.port,
+                ev.machine_type,
+            )
             ev.failed_validate_it(f"unavailable online {ev.machine_type} not found for {ev}")
         except StorageInstance.DoesNotExist:
+            logger.warning(
+                "[validate_target] storage instance not found: check_id=%d, ip=%s, port=%d, machine_type=%s",
+                ev.check_id,
+                ev.ip,
+                ev.port,
+                ev.machine_type,
+            )
             ev.failed_validate_it(f"unavailable online {ev.machine_type} slave not found for {ev}")
 
     return res

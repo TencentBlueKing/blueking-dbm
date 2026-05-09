@@ -11,10 +11,13 @@ specific language governing permissions and limitations under the License.
 __all__ = ["aggregate_events"]
 
 import json
+import logging
 from collections import defaultdict
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 from backend.db_monitor.models import MySQLDBHAEvent
+
+logger = logging.getLogger("celery.mysql_dbha_autofix")
 
 
 def aggregate_events(events: List[MySQLDBHAEvent]) -> Dict[str, Dict[str, List[MySQLDBHAEvent]]]:
@@ -28,18 +31,18 @@ def aggregate_events(events: List[MySQLDBHAEvent]) -> Dict[str, Dict[str, List[M
       ...
     }
     """
+    if not events:
+        return {}
+
     res = {}
 
     aggregate_cluster_ids = defaultdict(set)
     for ev in events:
-        k = __event_aggregate_key(event=ev)
-        aggregate_cluster_ids[k].add(ev.cluster_id)
+        key = (ev.check_id, ev.machine_type)
+        aggregate_cluster_ids[key].add(ev.cluster_id)
 
-    for k, v in aggregate_cluster_ids.items():
-        check_id, machine_type = __restore_from_aggregate_key(k)
-        cluster_ids = list(v)
-        cluster_ids.sort()
-
+    for (check_id, machine_type), cluster_id_set in aggregate_cluster_ids.items():
+        cluster_ids = sorted(cluster_id_set)
         cluster_ids_str = json.dumps(cluster_ids)
 
         if cluster_ids_str not in res:
@@ -50,13 +53,12 @@ def aggregate_events(events: List[MySQLDBHAEvent]) -> Dict[str, Dict[str, List[M
 
         res[cluster_ids_str][machine_type].extend([e for e in events if e.check_id == check_id])
 
+        logger.info(
+            "[aggregate] check_id=%d, machine_type=%s, cluster_ids=%s",
+            check_id,
+            machine_type,
+            cluster_ids,
+        )
+
+    logger.info("[aggregate] result: %d groups, keys=%s", len(res), list(res.keys()))
     return res
-
-
-def __event_aggregate_key(event: MySQLDBHAEvent) -> str:
-    return f"{event.check_id}-{event.machine_type}"
-
-
-def __restore_from_aggregate_key(k: str) -> Tuple[int, str]:
-    split_key = k.split("-")
-    return int(split_key[0]), split_key[1]

@@ -10,12 +10,15 @@ specific language governing permissions and limitations under the License.
 """
 __all__ = ["filter_ready_events"]
 
+import logging
 from collections import defaultdict
-from typing import List, Tuple
+from typing import List
 
 from backend.db_meta.enums import MachineType
 from backend.db_meta.models import ProxyInstance, StorageInstance
 from backend.db_monitor.models import MySQLDBHAEvent
+
+logger = logging.getLogger("celery.mysql_dbha_autofix")
 
 
 def filter_ready_events(events: List[MySQLDBHAEvent]) -> List[MySQLDBHAEvent]:
@@ -30,30 +33,32 @@ def filter_ready_events(events: List[MySQLDBHAEvent]) -> List[MySQLDBHAEvent]:
 
     port_counter_dict = defaultdict(set)
     for ev in events:
-        port_counter_dict[__event_compound_key(ev)].add(ev.port)
+        key = (ev.check_id, ev.ip, ev.machine_type, ev.bk_cloud_id)
+        port_counter_dict[key].add(ev.port)
 
-    for k, v in port_counter_dict.items():
-        cnt = len(v)
-        check_id, ip, machine_type, bk_cloud_id = __restore_from_compound_key(k)
-
+    for (check_id, ip, machine_type, bk_cloud_id), ports in port_counter_dict.items():
         if machine_type in [MachineType.PROXY, MachineType.SPIDER]:
             insts = ProxyInstance.objects.filter(machine__ip=ip, machine__bk_cloud_id=bk_cloud_id)
         else:
             insts = StorageInstance.objects.filter(machine__ip=ip, machine__bk_cloud_id=bk_cloud_id)
 
-        if insts.count() != cnt:
+        expected_count = insts.count()
+        if expected_count != len(ports):
+            logger.info(
+                "[filter_ready] not ready: check_id=%d, ip=%s, machine_type=%s, bk_cloud_id=%d, "
+                "reported_ports=%s, expected_count=%d",
+                check_id,
+                ip,
+                machine_type,
+                bk_cloud_id,
+                ports,
+                expected_count,
+            )
             not_ready_check_ids.append(check_id)
 
     # 未准备好的 event 置空 af_uuid, 让它们可以在下一轮被选中
-    MySQLDBHAEvent.objects.filter(check_id__in=not_ready_check_ids, af_uuid=events[0].af_uuid).update(af_uuid="")
+    if not_ready_check_ids:
+        MySQLDBHAEvent.objects.filter(check_id__in=not_ready_check_ids, af_uuid=events[0].af_uuid).update(af_uuid="")
+        logger.info("[filter_ready] reset af_uuid for not_ready check_ids=%s", not_ready_check_ids)
 
     return [e for e in events if e.check_id not in not_ready_check_ids]
-
-
-def __event_compound_key(event: MySQLDBHAEvent) -> str:
-    return f"{event.check_id}-{event.ip}-{event.machine_type}-{event.bk_cloud_id}"
-
-
-def __restore_from_compound_key(k: str) -> Tuple[int, str, str, int]:
-    split_key = k.split("-")
-    return int(split_key[0]), split_key[1], split_key[2], int(split_key[3])

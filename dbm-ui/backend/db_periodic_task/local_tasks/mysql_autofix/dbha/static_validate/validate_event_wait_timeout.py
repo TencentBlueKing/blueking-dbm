@@ -9,11 +9,14 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import datetime
+import logging
 from typing import List
 
 from django.utils import timezone
 
 from backend.db_monitor.models import MySQLDBHAEvent
+
+logger = logging.getLogger("celery.mysql_dbha_autofix")
 
 
 def validate_event_wait_timeout(events: List[MySQLDBHAEvent]) -> List[MySQLDBHAEvent]:
@@ -26,6 +29,13 @@ def validate_event_wait_timeout(events: List[MySQLDBHAEvent]) -> List[MySQLDBHAE
         if ev.event_create_time >= timeout_line:
             res.append(ev)
         else:
+            logger.info(
+                "[validate_wait_timeout] event timed out: check_id=%d, ip=%s, port=%d, event_create_time=%s",
+                ev.check_id,
+                ev.ip,
+                ev.port,
+                ev.event_create_time,
+            )
             ev.failed_validate_it("wait timeout")
 
     return res

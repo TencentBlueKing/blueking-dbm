@@ -40,6 +40,8 @@ class MySQLDBHAAutofixTicketPriority(int, StructuredEnum):
 # 专门给自愈用的
 # python 搞不了 enum 继承, 就这么搞下算了
 TicketQueueUncommitStatus = "UNCOMMIT"
+TicketQueueWaitTimeout = "WAIT_TIMEOUT"
+TicketQueueCommitException = "COMMIT_EXCEPTION"
 
 
 class MySQLDBHAAutofixTicketStageQueue(AuditedModel):
@@ -73,6 +75,7 @@ class MySQLDBHAAutofixTicketStageQueue(AuditedModel):
     # 但是同一个单又会 insert 多行, 所以预生成一个唯一 id
     # 相同的 queue_uuid 只发起一次单据
     queue_uuid = models.CharField(max_length=256, help_text=_("单据队列uuid"))
+    error_message = models.TextField(help_text=_("提单失败的错误信息"), default="", blank=True)
 
     class Meta:
         indexes = [models.Index(fields=["status", "cluster_id"])]
