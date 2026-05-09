@@ -11,6 +11,13 @@
       ref="form"
       form-type="vertical"
       :model="formData">
+      <BkAlert
+        v-if="isSkippedAlertShow"
+        class="mb-8"
+        theme="warning"
+        :title="
+          t('已自动跳过 n 条不适用的策略（已包含本次选择的全部告警组），不受本次操作影响。', { n: skippedCount })
+        " />
       <BkFormItem
         :label="t('设置类型')"
         property="settingType"
@@ -70,10 +77,27 @@
             :value="item.value" />
         </BkSelect>
       </BkFormItem>
+      <VoiceNotice
+        v-if="isVoiceNoticeShow"
+        v-model="formData.voiceNotice" />
+      <div
+        v-if="changedSelected.length"
+        class="list-box mt-16">
+        <div class="list-title">{{ t('已选择以下 n 个策略', { n: changedSelected.length }) }}</div>
+        <div class="list-content">
+          <div
+            v-for="item in changedSelected"
+            :key="item.id"
+            class="list-item">
+            {{ item.nameDisplay }}
+          </div>
+        </div>
+      </div>
     </BkForm>
     <template #footer>
       <BkButton
         class="mr-8"
+        :disabled="changedSelected.length === 0"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -100,6 +124,8 @@
 
   import { messageSuccess } from '@utils';
 
+  import VoiceNotice from '../../common/VoiceNotice.vue';
+
   interface Props {
     alarmGroupList: SelectItem<number>[];
     alarmGroupNameMap: Record<string, string>;
@@ -120,6 +146,7 @@
   const initFormData = () => ({
     notifyGroups: [] as number[],
     settingType: 'append',
+    voiceNotice: 'parallel',
   });
 
   const settingTypes = [
@@ -141,6 +168,24 @@
     const groupItem = props.alarmGroupList.find((item) => item.label === `${DBTypeInfos[props.dbType].name}_DBA`)!;
     return groupItem?.value;
   });
+
+  const changedSelected = computed(() => {
+    if (formData.settingType === 'append') {
+      return props.selected.filter((selectedItem) => {
+        const beforeValue = selectedItem.isInnerReal ? [bizDefaultGroupId.value] : selectedItem.notify_groups;
+        const afterValue = _.uniq([
+          ...(selectedItem.isInnerReal ? [bizDefaultGroupId.value] : []),
+          ...selectedItem.notify_groups,
+          ...formData.notifyGroups,
+        ]);
+        return !_.isEqual(_.sortBy(beforeValue), _.sortBy(afterValue));
+      });
+    }
+    return props.selected;
+  });
+  const skippedCount = computed(() => props.selected.length - changedSelected.value.length);
+  const isSkippedAlertShow = computed(() => formData.settingType === 'append' && skippedCount.value > 0);
+  const isVoiceNoticeShow = computed(() => formData.settingType === 'replace' && formData.notifyGroups.length > 1);
 
   const alarmGroupSelectList = computed(() => {
     if (formData.settingType === 'append') {
@@ -166,7 +211,7 @@
         formData.notifyGroups = formData.notifyGroups.filter((item) => item !== bizDefaultGroupId.value);
       } else {
         const groups = formData.notifyGroups;
-        groups.splice(0, 1, bizDefaultGroupId.value);
+        groups.splice(0, 0, bizDefaultGroupId.value);
         formData.notifyGroups = groups;
       }
     },
@@ -199,7 +244,7 @@
       const { notifyGroups: pageNotifyGroups, settingType } = formData;
       const isAppend = settingType === 'append';
 
-      const paramNotifyGroups = props.selected.map((selectedItem) => {
+      const paramNotifyGroups = changedSelected.value.map((selectedItem) => {
         let groupIds = pageNotifyGroups;
         if (isAppend) {
           groupIds = _.uniq([
@@ -215,10 +260,18 @@
         };
       });
 
-      runBatchUpdateNotifyGroup({
+      const params = {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         notify_groups: paramNotifyGroups,
-      });
+      };
+
+      if (formData.settingType === 'replace') {
+        Object.assign(params, {
+          voice_notice: formData.notifyGroups.length > 1 ? formData.voiceNotice : 'parallel',
+        });
+      }
+
+      runBatchUpdateNotifyGroup(params);
     });
   };
 
@@ -240,6 +293,35 @@
     .radio-title {
       font-size: 14px;
       border-bottom: 1px dashed;
+    }
+
+    .list-box {
+      font-size: 12px;
+      border: 1px solid #eaebf0;
+      border-radius: 2px;
+
+      .list-title {
+        height: 32px;
+        padding: 0 16px;
+        line-height: 32px;
+        color: #313238;
+        background-color: #eaebf0;
+      }
+
+      .list-content {
+        max-height: 200px;
+        overflow: auto;
+
+        .list-item {
+          height: 32px;
+          padding: 0 16px;
+          line-height: 32px;
+
+          &:nth-child(even) {
+            background-color: #fafbfd;
+          }
+        }
+      }
     }
   }
 </style>

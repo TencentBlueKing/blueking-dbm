@@ -165,6 +165,10 @@
                 :value="item.value" />
             </BkSelect>
           </DbFormItem>
+          <VoiceNotice
+            v-if="formModel.notifyTarget.length > 1"
+            v-model="formModel.voiceNotice"
+            @change="handleDataChange" />
           <DbFormItem
             :label="t('通知间隔')"
             required>
@@ -247,6 +251,8 @@
 
   import { messageSuccess } from '@utils';
 
+  import VoiceNotice from '../common/VoiceNotice.vue';
+
   import MonitorTarget from './monitor-target/Index.vue';
 
   interface Props {
@@ -314,6 +320,7 @@
     notifyTarget: [] as number[],
     strategyName: '',
     testRules: [] as ComponentProps<typeof TestRules>['rules'],
+    voiceNotice: '',
   });
 
   const isConfirmLoading = computed(() => updateLoading.value || cloneLoading.value || isPrecheckLoading.value);
@@ -516,14 +523,26 @@
       const { aggInfo, detectsConfig, notifyConfig, testRules } = getConfirmValue();
 
       isNotifyGroupChanged.value = !_.isEqual(
-        props.data.notify_groups,
-        isInnerClone.value && _.isEqual(formModel.notifyTarget, getBizDefaultGroupIds()) ? [] : formModel.notifyTarget, // 真内置编辑默认是内置告警组，此时不判定为修改
+        {
+          notify_groups: props.data.notify_groups,
+          voice_notice: props.data.notify_config.voice_notice,
+        },
+        {
+          notify_groups:
+            isInnerClone.value && _.isEqual(formModel.notifyTarget, getBizDefaultGroupIds())
+              ? []
+              : formModel.notifyTarget, // 真内置编辑默认是内置告警组，此时不判定为修改
+          voice_notice: formModel.notifyTarget.length > 1 ? formModel.voiceNotice : 'parallel', // 告警组 ≥ 2 时才需要比较
+        },
       );
       isOtherChanged.value = !_.isEqual(rawDeepCloneData, {
         agg_info: deepNumberToStringSafe(aggInfo),
         detects_config: deepNumberToStringSafe(detectsConfig),
         no_data_config: deepNumberToStringSafe(_.cloneDeep(formModel.noDataConfig)),
-        notify_config: deepNumberToStringSafe(notifyConfig),
+        notify_config: deepNumberToStringSafe({
+          ...notifyConfig,
+          voice_notice: props.data.notify_config.voice_notice, // 语音拨打顺序，不作为自定义修改的判断条件
+        }),
         notify_rules: deepNumberToStringSafe(_.cloneDeep(formModel.notifyRules)),
         test_rules: deepNumberToStringSafe(testRules),
       });
@@ -580,6 +599,7 @@
             ? getBizDefaultGroupIds()
             : props.data.notify_groups.filter((id) => id in props.alarmGroupNameMap);
         formModel.noDataConfig = _.cloneDeep(props.data.no_data_config);
+        formModel.voiceNotice = props.data.notify_config.voice_notice || 'parallel';
 
         const detectsConfig = _.cloneDeep(props.data.detects_config) as unknown as UnwrapRef<
           typeof formModel
@@ -663,7 +683,10 @@
     return {
       aggInfo,
       detectsConfig,
-      notifyConfig,
+      notifyConfig: {
+        ...notifyConfig,
+        voice_notice: formModel.notifyTarget.length > 1 ? formModel.voiceNotice : 'parallel',
+      },
       testRules,
     };
   };

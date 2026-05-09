@@ -131,6 +131,7 @@ export const batchUpdateNotifyGroup = (params: {
     groups: number[];
     policy_id: number;
   }[];
+  voice_notice?: string;
 }) => http.post(`/apis/monitor/policy/batch_update_notify_group/`, params);
 
 // 克隆策略
