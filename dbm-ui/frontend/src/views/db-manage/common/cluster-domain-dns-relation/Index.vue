@@ -14,7 +14,7 @@
 <template>
   <span v-db-console="accessEntryDbConsole">
     <BkButton
-      v-if="isBizComponentDba"
+      v-if="isShowButton"
       :disabled="data.isOffline"
       text
       @click="() => (isShow = true)">
@@ -128,6 +128,8 @@
 
   import { useBizComponentDba } from '@hooks';
 
+  import { useUserProfile } from '@stores';
+
   import { ClusterTypes } from '@common/const';
 
   import RenderBindIps from './components/RenderBindIps.vue';
@@ -174,6 +176,9 @@
 
   const { t } = useI18n();
   const { isDba: isBizComponentDba } = useBizComponentDba(window.PROJECT_CONFIG.BIZ_ID, props.data.db_type);
+  const { isSuperuser } = useUserProfile();
+
+  const isShowButton = computed(() => isBizComponentDba.value || isSuperuser);
 
   const generateCellClass = (cell: { field: string }) => (cell.field === 'ips' ? 'entry-config-ips-column' : '');
 
