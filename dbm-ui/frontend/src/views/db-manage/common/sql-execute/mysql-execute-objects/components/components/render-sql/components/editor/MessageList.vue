@@ -14,72 +14,104 @@
 <template>
   <div
     v-if="data.length > 0"
-    class="sql-execute-error-message-list"
-    :class="statusClass">
-    <div class="message-total-wrapper">
-      <DbIcon
-        v-if="totalMap.errorNum > 0"
-        style="margin-right: 4px; color: #b34747"
-        type="delete-fill" />
-      <DbIcon
-        v-else
-        style="margin-right: 4px; color: #ff9c01"
-        type="early-warning" />
-      <I18nT
-        v-if="totalMap.errorNum"
-        keypath="检测失败_共n个错误"
-        tag="span">
-        <span style="color: #b34747">{{ totalMap.errorNum }}</span>
-      </I18nT>
-      <template v-if="totalMap.warningNum > 0">
-        <span v-if="totalMap.errorNum">，</span>
-        <I18nT
-          keypath="n个告警提示"
-          tag="span">
-          <span style="color: #ff9c01">{{ totalMap.warningNum }}</span>
-        </I18nT>
-      </template>
+    class="sql-error-message-list"
+    :class="[statusClass, { collapsed }]">
+    <!-- 可点击展开/收起的汇总栏 -->
+    <div
+      class="check-summary"
+      @click="handleToggleCollapse">
+      <div class="summary-text">
+        <span class="summary-label">{{ t('检查结果') }}：</span>
+        <template v-if="totalMap.errorNum > 0">
+          <span class="summary-count-error">{{ totalMap.errorNum }} {{ t('个错误') }}</span>
+        </template>
+        <template v-if="totalMap.warningNum > 0">
+          <span
+            v-if="totalMap.errorNum > 0"
+            class="summary-divider">
+            ·
+          </span>
+          <span class="summary-count-warn">{{ totalMap.warningNum }} {{ t('个风险提示') }}</span>
+        </template>
+      </div>
+      <div
+        class="summary-toggle"
+        :class="{ 'is-collapsed': collapsed }">
+        <span>{{ collapsed ? t('展开') : t('收起') }}</span>
+        <DbIcon
+          class="toggle-arrow"
+          type="bk-dbm-icon db-icon-down-shape" />
+      </div>
     </div>
-    <div class="message-list-wrapper">
+
+    <!-- 列表区域：随内容撑开，>5 条时限高内滚动 -->
+    <div
+      class="check-list-wrapper"
+      :style="listWrapperStyle">
       <div
         v-for="(item, index) in data"
         :key="index"
-        class="item-box">
-        <div class="item-head">
-          <DbIcon
-            v-if="item.type === 'error'"
-            style="color: #b34747"
-            type="delete-fill" />
-          <DbIcon
-            v-else
-            style="color: #e59e1e"
-            type="early-warning" />
-        </div>
-        <div>
-          <span>{{ item.message }}</span>
-          <span class="error-line-number">[{{ item.line }}]</span>
-        </div>
+        class="item-row"
+        :class="{ 'is-active': activeLine === item.line }"
+        @click="handleItemClick(item.line)">
+        <DbIcon
+          v-if="item.type === 'error'"
+          class="item-icon"
+          type="bk-dbm-icon db-icon-close-circle-shape" />
+        <DbIcon
+          v-else
+          class="item-icon item-icon--warning"
+          type="bk-dbm-icon db-icon-early-warning" />
+        <span
+          class="item-tag"
+          :class="`tag-${item.category}`">
+          {{ CATEGORY_MAP[item.category] || '' }}
+        </span>
+        <span class="item-message">{{ item.message }}</span>
+        <span class="item-line">[{{ t('行') }} {{ item.line }}]</span>
       </div>
     </div>
   </div>
   <div
     v-else
-    class="sql-execute-error-message-list success-message">
+    class="sql-error-message-list success-message">
+    <DbIcon
+      style="margin-right: 4px"
+      type="bk-dbm-icon db-icon-check-circle-fill" />
     {{ t('检测通过') }}
   </div>
 </template>
+
 <script setup lang="ts">
-  import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  export type IMessageList = Array<{ line: number; message: string; type: 'warning' | 'error' }>;
+  export type IMessageList = Array<{
+    category: string;
+    line: number;
+    message: string;
+    type: 'warning' | 'error';
+  }>;
 
   interface Props {
     data: IMessageList;
   }
 
   const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
+
   const { t } = useI18n();
+
+  type Emits = (e: 'goto-line', line: number) => void;
+
+  const activeLine = ref<number>(-1);
+  const collapsed = ref(false);
+
+  const CATEGORY_MAP = computed<Record<string, string>>(() => ({
+    ban_command: t('禁用命令'),
+    high_risk: t('高危变更'),
+    syntax_error: t('语法错误'),
+  }));
 
   const totalMap = computed(() => {
     let errorNum = 0;
@@ -91,77 +123,229 @@
         warningNum += 1;
       }
     });
-
-    return {
-      errorNum,
-      warningNum,
-    };
+    return { errorNum, warningNum };
   });
 
   const statusClass = computed(() => {
-    if (totalMap.value.errorNum > 0) {
-      return 'is-error';
-    }
-    if (totalMap.value.warningNum > 0) {
-      return 'is-warning';
-    }
+    if (totalMap.value.errorNum > 0) return 'is-error';
+    if (totalMap.value.warningNum > 0) return 'is-warning';
     return '';
   });
+
+  // 条目超过 5 条时限制高度，否则随内容撑开
+  const listWrapperStyle = computed(() => {
+    if (collapsed.value) return { display: 'none' };
+    return props.data.length > 5 ? { maxHeight: '220px' } : {};
+  });
+
+  const handleToggleCollapse = () => {
+    collapsed.value = !collapsed.value;
+  };
+
+  const handleItemClick = (line: number) => {
+    activeLine.value = line;
+    emits('goto-line', line);
+  };
 </script>
+
 <style lang="less">
-  .sql-execute-error-message-list {
-    position: relative;
-    height: 100%;
-    overflow-y: auto;
+  .sql-error-message-list {
+    display: flex;
+    flex-direction: column;
     font-size: 12px;
-    background: #212121;
-    border-left: 4px solid #b34747;
+    background: #252526;
+    border-top: 4px solid #ea3636;
 
     &.is-warning {
-      border-left-color: #ff9c01;
+      border-top-color: #ff9c01;
+    }
+
+    // 收起时列表区域折叠为 0，容器高度自动收缩
+    &.collapsed .check-list-wrapper {
+      display: none;
     }
 
     &.success-message {
       display: flex;
       padding: 8px 16px;
       color: #3fc06d;
-      border-left-color: #3fc06d;
       align-items: center;
+      justify-content: center;
+      height: 48px;
     }
 
-    .message-total-wrapper {
-      padding: 8px 16px;
-      color: #dcdee5;
+    /* ===== 汇总栏（可点击展开/收起，固定高度不随列表变化）===== */
+    .check-summary {
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      padding: 10px 16px;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.15s;
+
+      &:hover {
+        background: rgb(255 255 255 / 6%);
+      }
     }
 
-    .message-list-wrapper {
-      padding: 0 0 12px;
+    .summary-text {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #cccccc;
+    }
+
+    .summary-label {
+      color: #9d9d9d;
+      flex-shrink: 0;
+    }
+
+    .summary-count-error {
+      margin-left: 2px;
+      color: #ff6b6b;
+      font-weight: 600;
+    }
+
+    .summary-count-warn {
+      margin-left: 2px;
+      color: #ffb648;
+      font-weight: 600;
+    }
+
+    .summary-divider {
+      margin: 0 4px;
+      color: #6a6a6a;
+    }
+
+    .summary-toggle {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #9d9d9d;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    .toggle-arrow {
+      font-size: 12px;
+      transition: transform 0.2s ease;
+      color: #9d9d9d;
+    }
+
+    .is-collapsed .toggle-arrow {
+      transform: rotate(-90deg);
+    }
+
+    /* ===== 列表区域：flex 填充，>5 条限高内滚动 ===== */
+    .check-list-wrapper {
+      flex: 1;
+      min-height: 0;
       overflow-y: auto;
+      border-top: 1px solid #2d2d2d;
+      padding: 6px 0;
 
-      .item-box {
-        display: flex;
-        padding: 4px 20px 4px 0;
-        line-height: 16px;
-        color: #dcdee5;
-        cursor: pointer;
-        align-items: flex-start;
+      // >5 条时限制最大高度
+      &.has-limit {
+        max-height: 220px;
+      }
+
+      // 自定义滚动条（与原型一致）
+      &::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255 / 16%);
+        border-radius: 2px;
 
         &:hover {
-          background: #313238;
+          background: rgba(255, 255, 255 / 24%);
+        }
+      }
+
+      .item-row {
+        display: flex;
+        align-items: center;
+        padding: 6px 12px;
+        line-height: 20px;
+        cursor: pointer;
+        border-left: 2px solid transparent;
+        transition:
+          background 0.15s ease,
+          border-color 0.15s ease;
+
+        &:hover {
+          background: #2a2d2e;
+          border-left-color: #3a84ff;
+
+          .item-line {
+            color: #cccccc;
+          }
+
+          .item-message {
+            color: #ffffff;
+          }
         }
 
-        .item-head {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          height: 16px;
-          padding-right: 10px;
-          padding-left: 16px;
+        &:active {
+          background: #323436;
         }
 
-        .error-line-number {
-          padding-left: 4px;
-          color: #979ba5;
+        &.is-active {
+          background: rgb(58 132 255 / 10%);
+          border-left-color: #3a84ff;
+        }
+
+        // 图标 — 形状 + 颜色双编码
+        .item-icon {
+          flex-shrink: 0;
+          width: 14px;
+          height: 14px;
+          margin-right: 10px;
+          font-size: 14px;
+          color: #ea3636;
+
+          &--warning {
+            color: #ff9c01;
+          }
+        }
+
+        // 分类标签 — 中性灰色
+        .item-tag {
+          flex-shrink: 0;
+          margin-right: 8px;
+          padding: 1px 6px;
+          font-size: 11px;
+          line-height: 18px;
+          white-space: nowrap;
+          color: #9d9d9d;
+          background: rgba(255, 255, 255 / 8%);
+          border-radius: 2px;
+        }
+
+        // 详情文本
+        .item-message {
+          flex: 1;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          color: #d4d4d4;
+        }
+
+        // 行号
+        .item-line {
+          flex-shrink: 0;
+          margin-left: 6px;
+          color: #6a6a6a;
+          font-size: 11.5px;
         }
       }
     }

@@ -61,7 +61,7 @@
   const hasGrammarCheck = defineModel<boolean>('hasGrammarCheck', {
     required: true,
   });
-  const grammarCheckResult = defineModel<boolean>('grammarCheckResult', {
+  const grammarCheckResult = defineModel<boolean | string>('grammarCheckResult', {
     required: true,
   });
 
@@ -92,9 +92,9 @@
   };
 
   // 语法检测状态
-  const handleGrammarCheck = (doCheck: boolean, checkResult: boolean) => {
+  const handleGrammarCheck = (doCheck: boolean, result: boolean | string) => {
     hasGrammarCheck.value = doCheck;
-    grammarCheckResult.value = checkResult;
+    grammarCheckResult.value = result;
   };
 
   defineExpose<Expose>({
