@@ -339,6 +339,16 @@ func UpdateTbRpDetail(ids []int, status string) (int64, error) {
 	return db.RowsAffected, db.Error
 }
 
+// PreselectFromUnused CAS 将 Unused 的资源更新为目标状态(典型为 Preselected)。
+// 通过显式 status=Unused 条件，避免依赖驱动行为(rows-changed vs rows-matched)
+// 与表 schema(是否带 ON UPDATE CURRENT_TIMESTAMP) 隐式保护带来的不确定性。
+func PreselectFromUnused(ids []int, status string) (int64, error) {
+	db := DB.Self.Table(TbRpDetailName()).
+		Where("bk_host_id in (?) and status = ?", ids, Unused).
+		Update("status", status)
+	return db.RowsAffected, db.Error
+}
+
 // UpdateTbRpDetailStatusAtSelling TODO
 func UpdateTbRpDetailStatusAtSelling(ids []int, status string) error {
 	return DB.Self.Table(TbRpDetailName()).Where("bk_host_id in (?) and status = ? ", ids, Preselected).
@@ -365,7 +375,13 @@ type BatchGetTbDetailResult struct {
 	Summary map[string]interface{} `json:"summary"`
 }
 
-// BatchGetSatisfiedByAssetIds batch setting resource status
+// BatchGetSatisfiedByAssetIds batch setting resource status.
+//
+// 流程:
+//  1. 在同一事务内，对每个 item 执行 SetSatisfiedStatus 完成「纯 status CAS」
+//     (Preselected → 目标状态)，任一失败则整事务回滚；
+//  2. 全部 CAS 通过后，一次性批量刷新所有 host 的 consume_time，
+//     让同一批申请落账时间一致，并把状态机迁移与 bookkeeping 解耦。
 func BatchGetSatisfiedByAssetIds(elements []BatchGetTbDetail, mode string) (result []BatchGetTbDetailResult,
 	err error) {
 	db := DB.Self.Begin()
@@ -375,6 +391,7 @@ func BatchGetSatisfiedByAssetIds(elements []BatchGetTbDetail, mode string) (resu
 		}
 	}()
 	var d []TbRpDetail
+	var allHostIds []int
 	for _, v := range elements {
 		d, err = SetSatisfiedStatus(db, v.BkHostIds, mode)
 		if err != nil {
@@ -382,6 +399,26 @@ func BatchGetSatisfiedByAssetIds(elements []BatchGetTbDetail, mode string) (resu
 			return nil, err
 		}
 		result = append(result, BatchGetTbDetailResult{Item: v.Item, Data: d, Total: len(d)})
+		allHostIds = append(allHostIds, v.BkHostIds...)
+	}
+	if len(allHostIds) > 0 {
+		ar := db.Exec(
+			"update tb_rp_detail set consume_time=now() where bk_host_id in ?",
+			allHostIds,
+		)
+		if ar.Error != nil {
+			err = ar.Error
+			logger.Error("batch update consume_time failed: %v", err)
+			return nil, err
+		}
+		if int(ar.RowsAffected) != len(allHostIds) {
+			err = fmt.Errorf(
+				"batch update consume_time affected %d rows, expect %d",
+				ar.RowsAffected, len(allHostIds),
+			)
+			logger.Error("%s", err.Error())
+			return nil, err
+		}
 	}
 	err = db.Commit().Error
 	if err != nil {
@@ -391,7 +428,13 @@ func BatchGetSatisfiedByAssetIds(elements []BatchGetTbDetail, mode string) (resu
 	return
 }
 
-// SetSatisfiedStatus get resources that meet the conditions and update status
+// SetSatisfiedStatus 纯 CAS：仅当 status 仍为 Preselected 时才把行推进到目标状态
+// (Used / Prepoccupied)，用以防止并发申请下同一台机器被重复落账。
+//
+// 这里只更新 status 一列，consume_time 由调用方 (BatchGetSatisfiedByAssetIds)
+// 在所有 item CAS 通过后统一批量刷新，原因：
+//   - status UPDATE 的 RowsAffected 直接 = CAS 通过的行数，语义最清晰；
+//   - 同一批申请 consume_time 取同一个 NOW()，便于按申请单维度对账。
 func SetSatisfiedStatus(tx *gorm.DB, bkhostIds []int, status string) (result []TbRpDetail, err error) {
 	err = tx.Exec("select * from tb_rp_detail where bk_host_id in (?) for update", bkhostIds).Error
 	if err != nil {
@@ -403,16 +446,23 @@ func SetSatisfiedStatus(tx *gorm.DB, bkhostIds []int, status string) (result []T
 	}
 	if len(bkhostIds) != len(result) {
 		logger.Error("Get TbRpDetail is %v", result)
-		return nil, fmt.Errorf("required count is %d,But Only Get %d", len(bkhostIds), len(result))
+		return nil, fmt.Errorf("required count is %d, But Get %d (possible duplicate bk_host_id rows)",
+			len(bkhostIds), len(result))
 	}
-	rdb := tx.Exec("update tb_rp_detail set status=?,consume_time=now() where bk_host_id in ?", status, bkhostIds)
+	rdb := tx.Exec(
+		"update tb_rp_detail set status=? where bk_host_id in ? and status = ?",
+		status, bkhostIds, Preselected,
+	)
 	if rdb.Error != nil {
 		logger.Error("update status Failed,Error %v", rdb.Error)
 		return nil, rdb.Error
 	}
 	if int(rdb.RowsAffected) != len(bkhostIds) {
-		return nil, fmt.Errorf("required Update Instance count is %d,But Affected Rows Count Only %d", len(bkhostIds),
-			rdb.RowsAffected)
+		return nil, fmt.Errorf(
+			"required Update Instance count is %d, But Affected Rows Count Only %d "+
+				"(expect status=%s, possibly already allocated by another request)",
+			len(bkhostIds), rdb.RowsAffected, Preselected,
+		)
 	}
 	return result, nil
 }

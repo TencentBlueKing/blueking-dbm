@@ -299,6 +299,7 @@ func cycleApplySequential(param RequestInputParam) (pickers []*PickerObject, err
 // RollBackAllInstanceUnused reserve all instance unused
 func RollBackAllInstanceUnused(ms []*PickerObject) {
 	for _, m := range ms {
+		logger.Info("Rollback Satisfied Instance Status to Unused,HostIds %v", m.SatisfiedHostIds)
 		if err := m.RollbackUnusedInstance(); err != nil {
 			logger.Error(fmt.Sprintf("Rollback Satisfied Instance Status to Unused Failed,Error %s", err.Error()))
 		}

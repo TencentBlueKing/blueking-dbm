@@ -257,15 +257,20 @@ func (c *PickerObject) DebugDistributeLog() {
 	}
 }
 
-// PreselectedSatisfiedInstance preselect satisfied resource
+// PreselectedSatisfiedInstance preselect satisfied resource.
+// 仅允许将 status=Unused 的资源更新为 Preselected，
+// 通过 CAS 防止两个并发申请同时把同一台机器预选成功。
 func (c *PickerObject) PreselectedSatisfiedInstance() error {
-	affectRows, err := model.UpdateTbRpDetail(c.SatisfiedHostIds, model.Preselected)
+	affectRows, err := model.PreselectFromUnused(c.SatisfiedHostIds, model.Preselected)
 	if err != nil {
 		return err
 	}
 	if int(affectRows) != len(c.SatisfiedHostIds) {
-		return fmt.Errorf("update %d qualified resource to preselect,only %d real update status", len(c.SatisfiedHostIds),
-			affectRows)
+		return fmt.Errorf(
+			"update %d qualified resource to preselect, only %d real update status "+
+				"(expect status=%s, possibly already picked by another request)",
+			len(c.SatisfiedHostIds), affectRows, model.Unused,
+		)
 	}
 	return nil
 }
