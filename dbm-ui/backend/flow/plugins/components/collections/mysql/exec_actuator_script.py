@@ -74,8 +74,6 @@ class ExecuteDBActuatorScriptService(BkJobService):
         trans_data = data.get_one_of_inputs("trans_data")
         kwargs = data.get_one_of_inputs("kwargs")
 
-        hide_error = kwargs.get("hide_error", False)
-
         root_id = kwargs["root_id"]
         node_name = kwargs["node_name"]
         node_id = kwargs["node_id"]
@@ -83,7 +81,7 @@ class ExecuteDBActuatorScriptService(BkJobService):
         exec_ips = self.__get_exec_ips(kwargs=kwargs, trans_data=trans_data)
         if not exec_ips:
             self.log_error(_("该节点获取到执行ip信息为空，请联系系统管理员{}").format(exec_ips))
-            return False or hide_error
+            return False
 
         target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
 

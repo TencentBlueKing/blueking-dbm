@@ -15,7 +15,7 @@ from django.utils.translation import gettext as _
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryRole, ClusterType, InstanceStatus, MachineType, TenDBClusterSpiderRole
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, ProxyInstance
 from backend.flow.consts import AUTH_ADDRESS_DIVIDER, TDBCTL_USER, DnsOpType, PrivRole
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
@@ -583,6 +583,17 @@ def reduce_spiders_flow(
     @param spider_role: 本次操作的spider角色
     """
 
+    # ToDo 这里的代码有点重复了, 实际上这个函数就应该直接接收下面 2 个参数
+    # 但是因为没有全部修改, 所以先这样冗余一下
+    # 这种处理其实隐含了一个前提就是一个ip只能有一个port
+    available_spider_addresses = []
+    unavailable_spider_addresses = []
+    for pi in ProxyInstance.objects.filter(machine__ip__in=[i["ip"] for i in reduce_spiders], cluster=cluster):
+        if pi.status == InstanceStatus.UNAVAILABLE:
+            unavailable_spider_addresses.append(pi.ip_port)
+        else:
+            available_spider_addresses.append(pi.ip_port)
+
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 
     # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
@@ -615,32 +626,72 @@ def reduce_spiders_flow(
     # 卸载前先清理，避免出现误告
 
     # 下发spider安装介质包
-    sub_pipeline.add_act(
-        act_name=_("下发db-actuator介质"),
-        act_component_code=TransFileComponent.code,
-        kwargs=asdict(
-            DownloadMediaKwargs(
-                bk_cloud_id=cluster.bk_cloud_id,
-                exec_ip=[ip_info["ip"] for ip_info in reduce_spiders],
-                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-            )
-        ),
-    )
+    trans_actuator_acts = []
+    if available_spider_addresses:
+        trans_actuator_acts.append(
+            {
+                "act_name": _("下发db-actuator介质"),
+                "act_component_code": TransFileComponent.code,
+                "kwargs": asdict(
+                    DownloadMediaKwargs(
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        exec_ip=[addr.split(":")[0] for addr in available_spider_addresses],
+                        file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                    )
+                ),
+            }
+        )
+    if unavailable_spider_addresses:
+        trans_actuator_acts.append(
+            {
+                "act_name": _("unavailable 机器 下发db-actuator介质"),
+                "act_component_code": TransFileComponent.code,
+                "kwargs": asdict(
+                    DownloadMediaKwargs(
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        exec_ip=[addr.split(":")[0] for addr in unavailable_spider_addresses],
+                        file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                    )
+                ),
+                "error_ignorable": True,
+            }
+        )
 
-    exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in reduce_spiders]
+    sub_pipeline.add_parallel_acts(acts_list=trans_actuator_acts)
+
+    exec_act_kwargs.exec_ip = [ip_info["ip"] for ip_info in reduce_spiders]  # 这行留着，因为下面可能需要的
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clear_machine_crontab.__name__
-    sub_pipeline.add_act(
-        act_name=_("清理机器周边配置"),
-        act_component_code=SpiderRemoteClearMachineComponent.code,
-        kwargs=asdict(exec_act_kwargs),
-    )
+
+    clear_machine_acts = []
+    if available_spider_addresses:
+        exec_act_kwargs.exec_ip = [addr.split(":")[0] for addr in available_spider_addresses]
+        clear_machine_acts.append(
+            {
+                "act_name": _("清理机器周边配置"),
+                "act_component_code": SpiderRemoteClearMachineComponent.code,
+                "kwargs": asdict(exec_act_kwargs),
+            }
+        )
+
+    if unavailable_spider_addresses:
+        exec_act_kwargs.exec_ip = [addr.split(":")[0] for addr in unavailable_spider_addresses]
+        clear_machine_acts.append(
+            {
+                "act_name": _("清理unavailable机器周边配置"),
+                "act_component_code": SpiderRemoteClearMachineComponent.code,
+                "kwargs": asdict(exec_act_kwargs),
+                "error_ignorable": True,
+            }
+        )
+
+    sub_pipeline.add_parallel_acts(acts_list=clear_machine_acts)
 
     # 阶段2 卸载相关db组件
     acts_list = []
-    for spider in reduce_spiders:
-        exec_act_kwargs.exec_ip = spider["ip"]
-        exec_act_kwargs.cluster = {"spider_port": spider_port}
-        exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_uninstall_spider_payload.__name__
+    exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_uninstall_spider_payload.__name__
+    exec_act_kwargs.cluster = {"spider_port": spider_port}
+    for addr in available_spider_addresses:
+        exec_act_kwargs.exec_ip = addr.split(":")[0]
         acts_list.append(
             {
                 "act_name": _("卸载spider实例"),
@@ -648,11 +699,22 @@ def reduce_spiders_flow(
                 "kwargs": asdict(exec_act_kwargs),
             }
         )
+
+    for addr in unavailable_spider_addresses:
+        exec_act_kwargs.exec_ip = addr.split(":")[0]
+        acts_list.append(
+            {
+                "act_name": _("卸载unavailable spider实例"),
+                "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                "kwargs": asdict(exec_act_kwargs),
+                "error_ignorable": True,
+            }
+        )
+
     sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     # 阶段3 如果这次卸载的是spider-master，需要卸载对应的中控实例
     if spider_role == TenDBClusterSpiderRole.SPIDER_MASTER.value:
-
         # 回收对应ctl的路由信息，如果涉及到ctl primary，先切换，再回收
         reduce_ctls = cluster.proxyinstance_set.filter(machine__ip__in=[ip_info["ip"] for ip_info in reduce_spiders])
         sub_pipeline.add_sub_pipeline(
@@ -663,10 +725,10 @@ def reduce_spiders_flow(
 
         # 卸载ctl的进程
         acts_list = []
-        for ctl in reduce_spiders:
-            exec_act_kwargs.exec_ip = ctl["ip"]
-            exec_act_kwargs.cluster = {"spider_ctl_port": spider_admin_port}
-            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_uninstall_spider_ctl_payload.__name__
+        exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_uninstall_spider_ctl_payload.__name__
+        exec_act_kwargs.cluster = {"spider_ctl_port": spider_admin_port}
+        for addr in available_spider_addresses:
+            exec_act_kwargs.exec_ip = addr.split(":")[0]
             acts_list.append(
                 {
                     "act_name": _("卸载中控实例"),
@@ -674,6 +736,18 @@ def reduce_spiders_flow(
                     "kwargs": asdict(exec_act_kwargs),
                 }
             )
+
+        for addr in unavailable_spider_addresses:
+            exec_act_kwargs.exec_ip = addr.split(":")[0]
+            acts_list.append(
+                {
+                    "act_name": _("卸载unavailable中控实例"),
+                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                    "kwargs": asdict(exec_act_kwargs),
+                    "error_ignorable": True,
+                }
+            )
+
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     # 阶段4 清空相关集群元信息；相关的cmdb注册信息
