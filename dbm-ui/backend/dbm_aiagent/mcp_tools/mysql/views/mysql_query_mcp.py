@@ -14,8 +14,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
-from backend.db_meta.enums import MachineType
-from backend.db_meta.models import Cluster, Machine
+from backend.db_meta.enums import ClusterType, MachineType
+from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
 from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import (
     auth_parse_bizs,
     auth_parse_clusters,
@@ -23,7 +23,10 @@ from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import (
 )
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
-from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpNotSupportMachineTypeException
+from backend.dbm_aiagent.mcp_tools.exceptions import (
+    DBMMcpNotSupportClusterTypeException,
+    DBMMcpNotSupportMachineTypeException,
+)
 from backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_topo import mysql_cluster_topo
 from backend.dbm_aiagent.mcp_tools.mysql.impl.explain_sql import explain_sql
 from backend.dbm_aiagent.mcp_tools.mysql.impl.query_trx import query_long_running_trx
@@ -31,7 +34,12 @@ from backend.dbm_aiagent.mcp_tools.mysql.impl.show_binlog_events import show_bin
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_create_table import show_create_table
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_engine_status import show_engine_status
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_priv_template import show_biz_mysql_privilege_template
-from backend.dbm_aiagent.mcp_tools.mysql.impl.show_processlist import show_mysql_processlist, show_proxy_processlist
+from backend.dbm_aiagent.mcp_tools.mysql.impl.show_processlist import (
+    aggregate_processlist_by_type,
+    show_instance_processlist,
+    show_mysql_processlist,
+    show_proxy_processlist,
+)
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_status import mysql_show_slave_status, show_instance_status
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_variables import show_instance_variables
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.cluster_topo import (
@@ -62,6 +70,8 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_priv_template import (
     ShowBizMySQLPrivilegeTemplateOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_processlist import (
+    ShowInstanceProcessListAggregatedInputSerializer,
+    ShowInstanceProcessListAggregatedOutputSerializer,
     ShowInstanceProcessListInputSerializer,
     ShowMySQLInstanceProcessListOutputSerializer,
     ShowProxyProcessListOutputSerializer,
@@ -343,6 +353,53 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
                     bk_cloud_id=machine_obj.bk_cloud_id,
                     address=address,
                 ),
+            }
+        )
+
+    @mcp_tools_api_decorator(
+        description=str(_("""查询 mysql 某个实例连接情况, 返回是按照 aggregate_type 聚合 processlist 的结果，不是 processlist 原始信息""")),
+        request_slz=ShowInstanceProcessListAggregatedInputSerializer,
+        response_slz=ShowInstanceProcessListAggregatedOutputSerializer,
+        permission_classes=[McpClusterDetailPermission],
+        mcp_auth_parser=auth_parse_instances,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.MYSQL_METRICS],
+        name_prefix="",
+    )
+    def show_instance_processlist_aggregated(self, request, *args, **kwargs):
+        instance = self.get_param("instance")
+        aggregate_types = self.get_param("aggregate_type")
+        # 根据 instance(ip:port) 反查集群，instance 可能是存储层实例，也可能是接入层实例
+        ip, port = instance.split(":")
+
+        machine = Machine.objects.filter(ip=ip).first()
+        instance_obj = ProxyInstance.objects.filter(machine__ip=ip, port=int(port)).first()
+        if not instance_obj:
+            instance_obj = StorageInstance.objects.filter(machine__ip=ip, port=int(port)).first()
+
+        if not instance_obj:
+            raise ValueError(f"No cluster found for instance {instance}")
+        if instance_obj.cluster_type not in [ClusterType.TenDBSingle, ClusterType.TenDBHA, ClusterType.TenDBCluster]:
+            raise DBMMcpNotSupportClusterTypeException(cluster_type=instance_obj.cluster_type)
+
+        processlist_detail = show_instance_processlist(
+            instance, machine.bk_cloud_id, instance_obj.cluster_type, instance_obj.instance_role
+        )
+        aggregated = []
+        for aggregate_type in aggregate_types:
+            processlist_aggregated = aggregate_processlist_by_type(processlist_detail, aggregate_type)
+            aggregated.append(
+                {
+                    "processlist_aggregated": processlist_aggregated,
+                    "aggregate_type": aggregate_type,
+                }
+            )
+
+        return Response(
+            {
+                "processlist_summary": aggregated,
+                "instance_role": instance_obj.instance_role,
+                "total_count": len(processlist_detail),
             }
         )
 
