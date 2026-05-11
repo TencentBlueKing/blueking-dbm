@@ -262,9 +262,9 @@ func (param RequestInputParam) GetOperationInfo(requestId, mode string,
 // LockKey get lock key
 func (param RequestInputParam) LockKey() string {
 	if cmutil.IsEmpty(param.ResourceType) {
-		return fmt.Sprintf("dbrms:lock:bizid.%d", param.ForbizId)
+		return fmt.Sprintf("dbrms:lock:global")
 	}
-	return fmt.Sprintf("dbrms:lock:%s:bizid.%d", param.ResourceType, param.ForbizId)
+	return fmt.Sprintf("dbrms:lock:%s", param.ResourceType)
 }
 
 const (
