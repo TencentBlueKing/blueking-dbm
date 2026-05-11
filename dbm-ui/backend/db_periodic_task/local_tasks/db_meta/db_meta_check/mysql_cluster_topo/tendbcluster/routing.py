@@ -96,7 +96,7 @@ def _cluster_routing_check(c: Cluster) -> List[CheckResponse]:
 
     # 获取 primary tdbctl 地址
     try:
-        primary_tdbctl = c.tendbcluster_ctl_primary_address()
+        primary_tdbctl = c.tendbcluster_ctl_primary_address(v2=True)
     except Exception as e:
         bad.append(
             CheckResponse(
