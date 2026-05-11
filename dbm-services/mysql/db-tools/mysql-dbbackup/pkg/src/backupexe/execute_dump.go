@@ -153,7 +153,7 @@ func buildMetaInfo(cnf *config.BackupConfig, metaInfo *dbareport.IndexContent) e
 	binlogFormat, rowImage := mysqlconn.GetBinlogFormat(db)
 	sqlMode, _ := mysqlconn.GetSingleGlobalVar("sql_mode", db)
 
-	metaInfo.BackupType = cnfPub.BackupType
+	metaInfo.BackupType = strings.ToLower(cnfPub.BackupType)
 	metaInfo.BackupHost = cnfPub.MysqlHost
 	metaInfo.BackupPort = cnfPub.MysqlPort
 	metaInfo.MysqlRole = cnfPub.MysqlRole
