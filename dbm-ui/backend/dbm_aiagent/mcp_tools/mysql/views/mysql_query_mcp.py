@@ -363,8 +363,8 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_instances,
         tags=[DBMMCPTags.READ],
-        mcp=[DBMMcpTools.MYSQL_METRICS],
-        name_prefix="",
+        mcp=[DBMMcpTools.MYSQL_QUERY, DBMMcpTools.MYSQL_METRICS],
+        name_prefix="mysql_query",
     )
     def show_instance_processlist_aggregated(self, request, *args, **kwargs):
         instance = self.get_param("instance")

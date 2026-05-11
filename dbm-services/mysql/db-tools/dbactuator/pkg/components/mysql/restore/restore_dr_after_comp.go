@@ -76,7 +76,7 @@ func (r *RestoreDRAfterComp) Init() error {
 // chooseLoader 根据备份类型选择 PhysicalLoader 或 LogicalLoader
 func (r *RestoreDRAfterComp) chooseLoader() error {
 	indexObj := r.backupInfo.indexObj
-	backupType := r.backupInfo.backupType
+	backupType := strings.ToLower(r.backupInfo.backupType)
 
 	loaderUtil := &dbbackup_loader.LoaderUtil{
 		TgtInstance:   r.Params.TgtInstance,
