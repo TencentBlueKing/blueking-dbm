@@ -11,13 +11,6 @@
       ref="form"
       form-type="vertical"
       :model="formData">
-      <BkAlert
-        v-if="isSkippedAlertShow"
-        class="mb-8"
-        theme="warning"
-        :title="
-          t('已自动跳过 n 条不适用的策略（已包含本次选择的全部告警组），不受本次操作影响。', { n: skippedCount })
-        " />
       <BkFormItem
         :label="t('设置类型')"
         property="settingType"
@@ -77,14 +70,35 @@
             :value="item.value" />
         </BkSelect>
       </BkFormItem>
+      <BkAlert
+        v-if="isSkippedAlertShow"
+        class="mb-8"
+        theme="warning"
+        :title="
+          t('已自动跳过 n 条不适用的策略（已包含本次选择的全部告警组），不受本次操作影响。', { n: skippedCount })
+        " />
       <VoiceNotice
         v-if="isVoiceNoticeShow"
         v-model="formData.voiceNotice" />
-      <div
-        v-if="changedSelected.length"
-        class="list-box mt-16">
-        <div class="list-title">{{ t('已选择以下 n 个策略', { n: changedSelected.length }) }}</div>
-        <div class="list-content">
+      <div class="list-box mt-16">
+        <div class="list-title">{{ t('本次将影响以下 n 条策略', { n: previewCount }) }}</div>
+        <div
+          v-if="formData.settingType === 'append' && formData.notifyGroups.length === 0"
+          class="list-content">
+          <div class="list-item">
+            {{ t('请选择告警组后查看影响范围') }}
+          </div>
+        </div>
+        <div
+          v-else-if="formData.settingType === 'append' && changedSelected.length === 0"
+          class="list-content">
+          <div class="list-item">
+            {{ t('本次没有需要追加的策略') }}
+          </div>
+        </div>
+        <div
+          v-else
+          class="list-content">
           <div
             v-for="item in changedSelected"
             :key="item.id"
@@ -170,7 +184,7 @@
   });
 
   const changedSelected = computed(() => {
-    if (formData.settingType === 'append') {
+    if (formData.settingType === 'append' && formData.notifyGroups.length > 0) {
       return props.selected.filter((selectedItem) => {
         const beforeValue = selectedItem.isInnerReal ? [bizDefaultGroupId.value] : selectedItem.notify_groups;
         const afterValue = _.uniq([
@@ -186,6 +200,15 @@
   const skippedCount = computed(() => props.selected.length - changedSelected.value.length);
   const isSkippedAlertShow = computed(() => formData.settingType === 'append' && skippedCount.value > 0);
   const isVoiceNoticeShow = computed(() => formData.settingType === 'replace' && formData.notifyGroups.length > 1);
+  const previewCount = computed(() => {
+    if (formData.settingType === 'replace') {
+      return changedSelected.value.length;
+    }
+    if (formData.notifyGroups.length === 0) {
+      return 0;
+    }
+    return changedSelected.value.length;
+  });
 
   const alarmGroupSelectList = computed(() => {
     if (formData.settingType === 'append') {
@@ -204,15 +227,20 @@
     },
   });
 
+  watch(moduleValue, () => {
+    if (moduleValue.value) {
+      Object.assign(formData, initFormData());
+    }
+  });
+
   watch(
     () => formData.settingType,
     () => {
       if (formData.settingType === 'append') {
-        formData.notifyGroups = formData.notifyGroups.filter((item) => item !== bizDefaultGroupId.value);
+        formData.notifyGroups = [];
       } else {
-        const groups = formData.notifyGroups;
-        groups.splice(0, 0, bizDefaultGroupId.value);
-        formData.notifyGroups = groups;
+        formData.notifyGroups = [bizDefaultGroupId.value];
+        formData.voiceNotice = 'parallel';
       }
     },
     {
