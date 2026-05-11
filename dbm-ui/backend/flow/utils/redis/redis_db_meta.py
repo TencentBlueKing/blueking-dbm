@@ -1370,8 +1370,10 @@ class RedisDBMeta(object):
                 logger.info("cluster_slave_entry {} add {},remove {}".format(entry_obj, new_slave_obj, new_master_obj))
 
             # 修改模块
+            # RedisInstance 主从升级场景中同一主机可能同时归属多个集群模块;
+            # 增量转移避免覆盖式移动清掉其它集群的模块关系.
             RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(
-                [new_master_obj, new_slave_obj], is_increment=False
+                [new_master_obj, new_slave_obj], is_increment=True
             )
         CcManage(cluster.bk_biz_id, cluster.cluster_type).update_host_properties(bk_host_ids)
 

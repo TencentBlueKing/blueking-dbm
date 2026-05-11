@@ -13,16 +13,22 @@ Unit tests for the Redis rollback exercise trigger logic.
 Covers:
 - Pure helpers: _resolve_tendis_type, _cluster_type_has_binlog, _summarize_binlog,
   RedisRollbackExerciseConfig defaults.
-- Report.mark() state mapping including the new BACKUP_INVALID -> ABNORMAL transition.
+- Report.mark() state mapping including the BACKUP_INVALID -> ABNORMAL transition.
 - _instance_has_backup paths (cache, SSD happy/gap, Tendisplus kvstorecount, day iteration).
 - _validate_instance failure-kind dispatch.
+- SPECIFIED mode (_get_specified_instances / _pick_target_instances) dispatch,
+  biz allowlist filtering, and biz-only discovery.
+- Weighted random selection strategy: multiplicative weight multipliers and the
+  A-Res (Efraimidis-Spirakis) sampling algorithm.
 
 Source-module imports are done lazily through _base()/_exercise_cls()/etc. to avoid
 triggering ``backend.db_periodic_task.local_tasks/__init__.py`` at collection time
 (which calls ``register_periodic_task`` -> DB writes before pytest-django enables DB
-access). Same convention as ``tests/db_periodic_task/local_tasks/redis_backup/conftest.py``.
+access). Same convention as the sibling ``test_redis_rollback_exercise_repair.py``.
 """
+import random
 from datetime import timedelta
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -70,10 +76,19 @@ def _failure_kind():
     return _base().ValidationFailureKind
 
 
-def _make_exercise():
-    """Build a RedisRollbackExercise without touching SystemSettings."""
+def _mode_enum():
+    return _base().RedisRollbackExerciseMode
+
+
+def _make_exercise(**config_overrides):
+    """Build a RedisRollbackExercise without touching SystemSettings.
+
+    Optional kwargs are forwarded to RedisRollbackExerciseConfig so individual
+    tests can override fields (e.g. mode, specified_domains, weight multipliers).
+    """
     cls = _exercise_cls()
-    with patch.object(cls, "_init_config", return_value=_config_cls()()):
+    cfg = _config_cls()(**config_overrides)
+    with patch.object(cls, "_init_config", return_value=cfg):
         return cls()
 
 
@@ -92,6 +107,23 @@ def _make_cluster_mock(cluster_type: str, id_: int = 1):
     cluster.immute_domain = f"test-{cluster_type.lower()}.dba.db"
     cluster.major_version = "Redis-6"
     return cluster
+
+
+def _fake_cluster(cluster_id: int, bk_biz_id: int, immute_domain: str) -> MagicMock:
+    """Lightweight cluster mock for SPECIFIED-mode tests (only id/biz/domain matter)."""
+    cluster = MagicMock(name=f"Cluster<{immute_domain}>")
+    cluster.id = cluster_id
+    cluster.bk_biz_id = bk_biz_id
+    cluster.immute_domain = immute_domain
+    return cluster
+
+
+def _fake_selection(cluster: MagicMock) -> dict:
+    return {
+        "cluster": cluster,
+        "instance": SimpleNamespace(ip_port="m:1"),
+        "backup_check_instance": SimpleNamespace(ip_port="s:1"),
+    }
 
 
 def _make_full_backup_log(
@@ -620,3 +652,343 @@ class TestValidateInstance:
         rtp = timezone.now() + timedelta(hours=1)
         # Should not raise (aware datetime)
         assert isinstance(datetime2str(rtp), str)
+
+
+# ---------------------------------------------------------------------------
+# 5) SPECIFIED mode dispatch and discovery
+# ---------------------------------------------------------------------------
+
+
+class TestGetSpecifiedInstancesDomainsFilter:
+    """domains + specified_bizs allowlist filtering."""
+
+    def test_filters_domains_by_bizs(self):
+        """Domains whose cluster bk_biz_id is not in specified_bizs are skipped."""
+        in_biz = _fake_cluster(1, bk_biz_id=10, immute_domain="a.example.com")
+        out_biz = _fake_cluster(2, bk_biz_id=99, immute_domain="b.example.com")
+        domain_to_cluster = {"a.example.com": in_biz, "b.example.com": out_biz}
+
+        exercise = _make_exercise(
+            specified_domains=["a.example.com", "b.example.com"],
+            specified_bizs=[10, 11],
+        )
+
+        with (
+            patch(
+                f"{BASE_MODULE}.Cluster.objects.get",
+                side_effect=lambda immute_domain: domain_to_cluster[immute_domain],
+            ),
+            patch.object(
+                _exercise_cls(),
+                "_resolve_specified_cluster",
+                side_effect=lambda cluster: _fake_selection(cluster),
+            ),
+        ):
+            selected, skipped = exercise._get_specified_instances(num=10)
+
+        assert [item["cluster"] for item in selected] == [in_biz]
+        assert [cluster for cluster, _msg in skipped] == [out_biz]
+
+    def test_no_bizs_keeps_legacy_behavior(self):
+        """When specified_bizs is unset, every listed domain is selected (legacy)."""
+        c1 = _fake_cluster(1, bk_biz_id=10, immute_domain="a.example.com")
+        c2 = _fake_cluster(2, bk_biz_id=99, immute_domain="b.example.com")
+        domain_to_cluster = {"a.example.com": c1, "b.example.com": c2}
+
+        exercise = _make_exercise(specified_domains=["a.example.com", "b.example.com"])
+
+        with (
+            patch(
+                f"{BASE_MODULE}.Cluster.objects.get",
+                side_effect=lambda immute_domain: domain_to_cluster[immute_domain],
+            ),
+            patch.object(
+                _exercise_cls(),
+                "_resolve_specified_cluster",
+                side_effect=lambda cluster: _fake_selection(cluster),
+            ),
+        ):
+            selected, skipped = exercise._get_specified_instances(num=10)
+
+        assert [item["cluster"] for item in selected] == [c1, c2]
+        assert skipped == []
+
+    def test_records_skip_when_no_slave(self):
+        """A domain whose cluster has no slave is recorded as skipped."""
+        c1 = _fake_cluster(1, bk_biz_id=10, immute_domain="a.example.com")
+
+        exercise = _make_exercise(specified_domains=["a.example.com"])
+
+        with (
+            patch(f"{BASE_MODULE}.Cluster.objects.get", return_value=c1),
+            patch.object(_exercise_cls(), "_resolve_specified_cluster", return_value=None),
+        ):
+            selected, skipped = exercise._get_specified_instances(num=10)
+
+        assert selected == []
+        assert [cluster for cluster, _msg in skipped] == [c1]
+
+
+class TestGetSpecifiedInstancesBizDiscovery:
+    """Empty domains + specified_bizs discovery."""
+
+    def test_discovers_clusters_in_bizs(self):
+        """With no domains but specified_bizs set, discover ONLINE clusters in those bizs."""
+        c1 = _fake_cluster(1, bk_biz_id=10, immute_domain="a.example.com")
+        c2 = _fake_cluster(2, bk_biz_id=11, immute_domain="b.example.com")
+
+        exercise = _make_exercise(specified_bizs=[10, 11])
+
+        queryset = MagicMock()
+        queryset.filter.return_value = queryset
+        queryset.values_list.return_value = [(1, 10), (2, 11)]
+
+        with (
+            patch.object(
+                _exercise_cls(),
+                "_rollback_exercise_candidate_queryset",
+                return_value=queryset,
+            ),
+            patch.object(
+                _exercise_cls(),
+                "_weighted_random_selection",
+                return_value=[1, 2],
+            ),
+            patch(
+                f"{BASE_MODULE}.Cluster.objects.get",
+                side_effect=lambda id: {1: c1, 2: c2}[id],
+            ),
+            patch.object(
+                _exercise_cls(),
+                "_resolve_specified_cluster",
+                side_effect=lambda cluster: _fake_selection(cluster),
+            ),
+        ):
+            selected, skipped = exercise._get_specified_instances(num=5)
+
+        queryset.filter.assert_called_once_with(bk_biz_id__in={10, 11})
+        assert [item["cluster"] for item in selected] == [c1, c2]
+        assert skipped == []
+
+    def test_discovery_respects_num_cap(self):
+        """Discovery selects min(num, candidate_count) via weighted sampling."""
+        exercise = _make_exercise(specified_bizs=[10])
+
+        queryset = MagicMock()
+        queryset.filter.return_value = queryset
+        queryset.values_list.return_value = [(i, 10) for i in range(1, 6)]
+
+        captured = {}
+
+        def fake_weighted(pairs, count):
+            captured["count"] = count
+            return [pair[0] for pair in pairs[:count]]
+
+        with (
+            patch.object(
+                _exercise_cls(),
+                "_rollback_exercise_candidate_queryset",
+                return_value=queryset,
+            ),
+            patch.object(
+                _exercise_cls(),
+                "_weighted_random_selection",
+                side_effect=fake_weighted,
+            ),
+            patch(
+                f"{BASE_MODULE}.Cluster.objects.get",
+                side_effect=lambda id: _fake_cluster(id, 10, f"d{id}.example.com"),
+            ),
+            patch.object(
+                _exercise_cls(),
+                "_resolve_specified_cluster",
+                side_effect=lambda cluster: _fake_selection(cluster),
+            ),
+        ):
+            selected, _skipped = exercise._get_specified_instances(num=2)
+
+        assert captured["count"] == 2
+        assert len(selected) == 2
+
+    def test_discovery_empty_returns_empty(self):
+        """When no candidates exist in specified_bizs, return empty without raising."""
+        exercise = _make_exercise(specified_bizs=[10])
+
+        queryset = MagicMock()
+        queryset.filter.return_value = queryset
+        queryset.values_list.return_value = []
+
+        with patch.object(
+            _exercise_cls(),
+            "_rollback_exercise_candidate_queryset",
+            return_value=queryset,
+        ):
+            selected, skipped = exercise._get_specified_instances(num=5)
+
+        assert selected == []
+        assert skipped == []
+
+
+# ---------------------------------------------------------------------------
+# 6) Weighted random selection strategy
+# ---------------------------------------------------------------------------
+
+
+class TestWeightedSampleWithoutReplacement:
+    """Edge cases and weight-bias determinism for the A-Res sampling helper."""
+
+    def test_count_ge_len_returns_all_items_copy(self):
+        exercise = _make_exercise()
+        items = [1, 2, 3]
+        weights = [1.0, 1.0, 1.0]
+
+        result = exercise._weighted_sample_without_replacement(items, weights, len(items))
+
+        assert result == items
+        assert result is not items  # Defensive copy
+
+    def test_count_greater_than_len_returns_all_items(self):
+        exercise = _make_exercise()
+        items = [1, 2]
+        weights = [1.0, 1.0]
+
+        assert exercise._weighted_sample_without_replacement(items, weights, 10) == items
+
+    def test_count_zero_returns_empty(self):
+        exercise = _make_exercise()
+        items = [1, 2, 3]
+        weights = [1.0, 1.0, 1.0]
+
+        # count == 0 with non-empty items goes through the explicit `if count == 0` branch.
+        assert exercise._weighted_sample_without_replacement(items, weights, 0) == []
+
+    def test_zero_or_negative_weights_do_not_crash(self):
+        """Zero / negative weights are replaced by 1e-10 so log() never explodes."""
+        exercise = _make_exercise()
+        items = [1, 2, 3, 4]
+        weights = [0.0, -1.0, 1.0, 5.0]
+
+        result = exercise._weighted_sample_without_replacement(items, weights, 2)
+
+        assert len(result) == 2
+        assert set(result).issubset(set(items))
+
+    def test_heavy_weight_dominates_under_seed_sweep(self):
+        """A 1000x-weighted item should win count=1 selection on virtually every seed."""
+        exercise = _make_exercise()
+        items = [10, 20, 30, 40]
+        weights = [1.0, 1.0, 100.0, 1.0]
+        heavy_item = 30
+
+        wins = 0
+        trials = 50
+        for seed in range(trials):
+            random.seed(seed)
+            picked = exercise._weighted_sample_without_replacement(items, weights, 1)
+            if picked == [heavy_item]:
+                wins += 1
+
+        # Without weighting this would average ~12/50 (25%). With a 1000x edge it should
+        # essentially always win; we leave a small safety margin against floating-point edges.
+        assert wins >= 45, f"heavy item picked only {wins}/{trials} seeds"
+
+
+class TestWeightedRandomSelection:
+    """Verify the multiplicative weight strategy in _weighted_random_selection."""
+
+    @staticmethod
+    def _capture_weights(exercise):
+        """Patch _weighted_sample_without_replacement on the instance to capture the weights arg."""
+        captured: dict = {}
+
+        def _fake(items, weights, count):
+            captured["items"] = list(items)
+            captured["weights"] = list(weights)
+            captured["count"] = count
+            return list(items[:count])
+
+        return captured, patch.object(exercise, "_weighted_sample_without_replacement", side_effect=_fake)
+
+    @staticmethod
+    def _patch_reports(failed: set, not_exercised: set):
+        """Patch Report.get_previously_failed_clusters / get_not_exercised_clusters at the source module."""
+        return (
+            patch(
+                f"{BASE_MODULE}.Report.get_previously_failed_clusters",
+                return_value=(failed, MagicMock(name="failed_qs")),
+            ),
+            patch(
+                f"{BASE_MODULE}.Report.get_not_exercised_clusters",
+                return_value=(not_exercised, MagicMock(name="not_exercised_qs")),
+            ),
+        )
+
+    def test_default_multipliers_combined(self):
+        """Cluster in all three sets gets weight 2.0 * 3.0 * 2.0 = 12.0; baseline stays 1.0."""
+        # ids: 1 -> all-three, 2 -> none
+        exercise = _make_exercise(bizs_high_priority=[10])
+        captured, patch_sample = self._capture_weights(exercise)
+        patch_failed, patch_not_ex = self._patch_reports(failed={1}, not_exercised={1})
+
+        with patch_failed, patch_not_ex, patch_sample:
+            exercise._weighted_random_selection([(1, 10), (2, 99)], count=2)
+
+        assert captured["items"] == [1, 2]
+        assert captured["weights"] == pytest.approx([12.0, 1.0])
+
+    def test_partial_overlaps(self):
+        """High-priority only -> 2.0, failed only -> 3.0, not-exercised only -> 2.0."""
+        # 1 high-priority biz only, 2 previously failed only, 3 not exercised only, 4 none
+        exercise = _make_exercise(bizs_high_priority=[10])
+        captured, patch_sample = self._capture_weights(exercise)
+        patch_failed, patch_not_ex = self._patch_reports(failed={2}, not_exercised={3})
+
+        with patch_failed, patch_not_ex, patch_sample:
+            exercise._weighted_random_selection(
+                [(1, 10), (2, 99), (3, 99), (4, 99)],
+                count=4,
+            )
+
+        assert captured["weights"] == pytest.approx([2.0, 3.0, 2.0, 1.0])
+
+    def test_bizs_high_priority_none_does_not_raise(self):
+        """The `or []` fallback at the call site allows None/unset bizs_high_priority."""
+        exercise = _make_exercise()  # default: bizs_high_priority is None
+        captured, patch_sample = self._capture_weights(exercise)
+        patch_failed, patch_not_ex = self._patch_reports(failed=set(), not_exercised=set())
+
+        with patch_failed, patch_not_ex, patch_sample:
+            exercise._weighted_random_selection([(1, 10)], count=1)
+
+        assert captured["weights"] == pytest.approx([1.0])
+
+    def test_empty_input_short_circuits_before_report_calls(self):
+        """Empty cluster_id_biz_pairs returns [] without touching Report or sampling."""
+        exercise = _make_exercise()
+        captured, patch_sample = self._capture_weights(exercise)
+
+        with (
+            patch(f"{BASE_MODULE}.Report.get_previously_failed_clusters") as mock_failed,
+            patch(f"{BASE_MODULE}.Report.get_not_exercised_clusters") as mock_not_ex,
+            patch_sample,
+        ):
+            result = exercise._weighted_random_selection([], count=5)
+
+        assert result == []
+        mock_failed.assert_not_called()
+        mock_not_ex.assert_not_called()
+        assert captured == {}  # _weighted_sample_without_replacement was not invoked
+
+    def test_custom_multipliers_are_honored(self):
+        """Overriding weight_multiplier_high_priority_biz changes the captured weight."""
+        exercise = _make_exercise(
+            bizs_high_priority=[10],
+            weight_multiplier_high_priority_biz=5.0,
+        )
+        captured, patch_sample = self._capture_weights(exercise)
+        patch_failed, patch_not_ex = self._patch_reports(failed=set(), not_exercised=set())
+
+        with patch_failed, patch_not_ex, patch_sample:
+            exercise._weighted_random_selection([(1, 10), (2, 99)], count=2)
+
+        assert captured["weights"] == pytest.approx([5.0, 1.0])
