@@ -13,7 +13,7 @@ from typing import List
 from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.enums import InstanceInnerRole, TenDBClusterSpiderRole
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.check_response import CheckResponse
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.decorator import checker_wrapper
 from backend.db_report.enums import MetaCheckSubType
@@ -53,6 +53,7 @@ def _cluster_spider_access_remote(c: Cluster) -> List[CheckResponse]:
             continue
 
         right = []  # bind 关系正确的实例数
+        si: StorageInstance
         for si in pi.storageinstance.all():
             if si.instance_inner_role != can_access_remote_role:
                 bad.append(
