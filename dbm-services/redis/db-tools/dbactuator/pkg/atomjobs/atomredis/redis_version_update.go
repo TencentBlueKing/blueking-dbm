@@ -25,6 +25,20 @@ type RedisVersionUpdateParams struct {
 	Ports       []int  `json:"ports" validate:"required"`
 	Role        string `json:"role" validate:"required"` // redis_master or redis_slave
 	ClusterType string `json:"cluster_type"`
+	// FlushAfterUpgrade 为 true 时, 在 startRedis (新版本) 启动完成、AOF/RDB load 完毕后,
+	// 立刻向实例发送 flushall (cleanall / flushalldisk) 清空数据集. 用于 old_master 升级:
+	// 升级后会作为 new_slave 重做全量同步, 旧数据冗余.
+	//
+	// 之所以在 start 之后 flush (而不是 stop 之前):
+	//   - RedisInstance 主从架构, switch act 内部已 SHUTDOWN 旧 master,
+	//     升级 act 介入时实例已死, 没有"还活着的连接"可供 flush.
+	//   - 在 start 之后 flush 同时覆盖 Twemproxy 与 RedisInstance 两种路径, 行为统一.
+	//
+	// 仅以下三种 cluster_type 启用:
+	//   - TwemproxyRedisInstance
+	//   - RedisInstance
+	//   - TwemproxyTendisSSDInstance
+	FlushAfterUpgrade bool `json:"flush_after_upgrade"`
 }
 
 // RedisVersionUpdate TODO
@@ -158,6 +172,12 @@ func (job *RedisVersionUpdate) Run() (err error) {
 			if err != nil {
 				return err
 			}
+			if job.params.FlushAfterUpgrade {
+				err = job.flushDataAfterStart(port)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	}
 	// 当前 /usr/local/redis 指向版本已经是 目标版本
@@ -177,7 +197,7 @@ func (job *RedisVersionUpdate) Run() (err error) {
 		if err != nil {
 			return err
 		}
-		// 当前 redis 运行版本不是目标版本
+		// 当前 redis 运行版本不是目标版本: stop / start, start 之后按需 flushall.
 		err = job.stopRedis(port)
 		if err != nil {
 			return err
@@ -185,6 +205,12 @@ func (job *RedisVersionUpdate) Run() (err error) {
 		err = job.startRedis(port)
 		if err != nil {
 			return err
+		}
+		if job.params.FlushAfterUpgrade {
+			err = job.flushDataAfterStart(port)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -220,15 +246,17 @@ func (job *RedisVersionUpdate) upgradeRedisInstanceMaster() (err error) {
 		if err != nil {
 			return err
 		}
-		// 如果有实例在运行,先 stop 所有 redis
+		// 注: 走到这里时, switch act 内部的 tryShutdownMasterInstance 多半已把旧 master 关掉,
+		// CheckPortIsInUse 大概率返回 false; 这里仍兜底处理 "万一还活着" 的情况.
 		isAlive := false
 		for _, port := range job.params.Ports {
 			isAlive, _ = util.CheckPortIsInUse(job.params.IP, strconv.Itoa(port))
-			if isAlive {
-				err = job.stopRedis(port)
-				if err != nil {
-					return err
-				}
+			if !isAlive {
+				continue
+			}
+			err = job.stopRedis(port)
+			if err != nil {
+				return err
 			}
 		}
 		// 更新 /usr/local/redis 软链接
@@ -242,6 +270,12 @@ func (job *RedisVersionUpdate) upgradeRedisInstanceMaster() (err error) {
 		err = job.startRedis(port)
 		if err != nil {
 			return err
+		}
+		if job.params.FlushAfterUpgrade {
+			err = job.flushDataAfterStart(port)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -441,6 +475,190 @@ func (job *RedisVersionUpdate) checkAndBackupRedis(port int) (err error) {
 		return nil
 	}
 	return
+}
+
+// flushDataAfterStart 在 startRedis 之后, 用于 old_master 升级:
+// 升级后会作为 new_slave 重做全量同步
+//
+// 仅支持以下三种 cluster_type, 它们升级时依赖外部 (twemproxy 切换 / 主从对) 来重做全量同步:
+//   - TwemproxyRedisInstance       (twemproxy + cache redis)
+//   - RedisInstance                (cache redis 主从版)
+//   - TwemproxyTendisSSDInstance   (twemproxy + TendisSSD)
+//
+// 不支持: 原生 RedisCluster / PredixyRedisCluster / 各类 Tendisplus / 单机版 TendisSSDInstance,
+// 它们走自身 failover 协议或不需要 actuator 端 flush; 此处返回错误以暴露上游配置问题.
+//
+// 选用的命令:
+//   - cache (cleanall, 4.0+ 追加 ASYNC 参数避免阻塞主线程)
+//   - TendisSSD (flushalldisk)
+//
+// 调用前提: 调用方刚刚 startRedis 成功, 端口已 LISTEN; 实例可能仍在 AOF/RDB load 阶段
+// (返回 LOADING). 函数内部会先 INFO persistence 等待 loading=0 再发 flush.
+//
+// 调用时机: 此时 old_master 已完成域名 / proxy 切换, 不再承载客户端流量, 也尚未 slaveof new_master,
+// flush 不会向他处传播.
+func (job *RedisVersionUpdate) flushDataAfterStart(port int) error {
+	clusterType := job.params.ClusterType
+	switch clusterType {
+	case consts.TendisTypeTwemproxyRedisInstance,
+		consts.TendisTypeTwemproxyTendisSSDInstance,
+		consts.TendisTypeRedisInstance:
+	default:
+		return fmt.Errorf(
+			"flush after upgrade: cluster_type(%s) not allowed; only %s / %s / %s are supported (port %d)",
+			clusterType,
+			consts.TendisTypeTwemproxyRedisInstance,
+			consts.TendisTypeRedisInstance,
+			consts.TendisTypeTwemproxyTendisSSDInstance,
+			port)
+	}
+
+	addr := fmt.Sprintf("%s:%d", job.params.IP, port)
+	password, err := myredis.GetRedisPasswdFromConfFile(port)
+	if err != nil {
+		return fmt.Errorf("flush after upgrade: get pwd from conf failed,addr:%s,err:%v", addr, err)
+	}
+	cli, err := myredis.NewRedisClientWithTimeout(addr, password, 0,
+		consts.TendisTypeRedisInstance, 10*time.Second)
+	if err != nil {
+		return fmt.Errorf("flush after upgrade: connect %s failed,err:%v", addr, err)
+	}
+	defer cli.Close()
+
+	// 升级后第一次连上, 实例可能仍在 AOF / RDB load. 直接 flush 会被拒绝 (LOADING).
+	// 30 分钟与 isReplStateOK 等其他长等待保持一致, 兜得住大 AOF.
+	if err := job.waitForLoadingFinish(cli, 30*time.Minute); err != nil {
+		return fmt.Errorf("flush after upgrade: %v", err)
+	}
+	if err := job.validateFlushAfterUpgradeSafety(cli); err != nil {
+		return err
+	}
+
+	cmd, err := buildFlushAllCmd(clusterType, cli)
+	if err != nil {
+		return fmt.Errorf("flush after upgrade: build cmd for %s failed,err:%v", addr, err)
+	}
+
+	job.runtime.Logger.Info("flush after upgrade: addr=%s cmd=%v", addr, cmd)
+	result, err := cli.DoCommand(cmd, 0)
+	if err != nil {
+		return fmt.Errorf("flush after upgrade: addr=%s cmd=%v err=%v", addr, cmd, err)
+	}
+	resultStr, ok := result.(string)
+	if !ok || !strings.Contains(resultStr, "OK") {
+		return fmt.Errorf("flush after upgrade: addr=%s cmd=%v result=%+v not OK", addr, cmd, result)
+	}
+	if err := job.checkFlushAfterUpgradeResult(cli); err != nil {
+		return err
+	}
+	job.runtime.Logger.Info("flush after upgrade done: %s", addr)
+	return nil
+}
+
+// validateFlushAfterUpgradeSafety 做最后一道 actuator 侧保护:
+// 仅允许 old_master 升级 act 在实例已是 master 且没有 replica 连接时清档.
+func (job *RedisVersionUpdate) validateFlushAfterUpgradeSafety(cli *myredis.RedisClient) error {
+	if job.params.Role != consts.MetaRoleRedisMaster {
+		return fmt.Errorf("flush after upgrade: addr=%s job role(%s) not allowed, expect %s",
+			cli.Addr, job.params.Role, consts.MetaRoleRedisMaster)
+	}
+	repls, err := cli.Info("replication")
+	if err != nil {
+		return fmt.Errorf("flush after upgrade: addr=%s info replication failed,err:%v", cli.Addr, err)
+	}
+	role := repls["role"]
+	if role != consts.RedisMasterRole {
+		return fmt.Errorf("flush after upgrade: addr=%s redis role(%s) not allowed, expect %s",
+			cli.Addr, role, consts.RedisMasterRole)
+	}
+	connectedSlavesStr, ok := repls["connected_slaves"]
+	if !ok || connectedSlavesStr == "" {
+		return fmt.Errorf("flush after upgrade: addr=%s connected_slaves missing in info replication:%+v",
+			cli.Addr, repls)
+	}
+	connectedSlaves, err := strconv.Atoi(connectedSlavesStr)
+	if err != nil {
+		return fmt.Errorf("flush after upgrade: addr=%s connected_slaves(%s) invalid,err:%v",
+			cli.Addr, connectedSlavesStr, err)
+	}
+	if connectedSlaves != 0 {
+		return fmt.Errorf("flush after upgrade: addr=%s still has %d connected replicas, refuse to flush",
+			cli.Addr, connectedSlaves)
+	}
+	job.runtime.Logger.Info("flush after upgrade safety check passed: addr=%s role=%s connected_slaves=%d",
+		cli.Addr, role, connectedSlaves)
+	return nil
+}
+
+// checkFlushAfterUpgradeResult 与 redis_flush_data.go::RandomKey 的检查保持一致:
+// 清档后允许没有 key, 也允许 dbha agent 心跳 key.
+func (job *RedisVersionUpdate) checkFlushAfterUpgradeResult(cli *myredis.RedisClient) error {
+	key, err := cli.Randomkey()
+	if err != nil {
+		return fmt.Errorf("flush after upgrade: addr=%s randomkey check failed,err:%v", cli.Addr, err)
+	}
+	if key != "" && !strings.HasPrefix(key, "dbha:agent:") {
+		return fmt.Errorf("flush after upgrade: addr=%s randomkey check failed,key=%s", cli.Addr, key)
+	}
+	job.runtime.Logger.Info("flush after upgrade result check passed: addr=%s randomkey=%s", cli.Addr, key)
+	return nil
+}
+
+// waitForLoadingFinish 轮询 INFO persistence 直到 loading=0; 期间容忍 LOADING 错误.
+// 用于 startRedis (升级到新版本) 后, 实例仍在加载老 AOF/RDB 时, 等待加载完成再发命令.
+func (job *RedisVersionUpdate) waitForLoadingFinish(cli *myredis.RedisClient, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	const sleepInterval = 2 * time.Second
+	logged := false
+	for {
+		info, err := cli.Info("persistence")
+		if err != nil {
+			// 加载阶段对部分命令也可能返回 LOADING; INFO 一般允许, 但兜底处理一下.
+			if !strings.Contains(err.Error(), "LOADING") {
+				return fmt.Errorf("wait for loading: addr=%s info persistence err=%v", cli.Addr, err)
+			}
+		} else if info["loading"] == "0" {
+			if logged {
+				job.runtime.Logger.Info("wait for loading done: addr=%s, info.loading=%s", cli.Addr, info["loading"])
+			}
+			return nil
+		} else if info["loading"] == "" {
+			// loading 字段缺失视为非 cache redis (TendisSSD 没有 in-memory load 阶段), 直接通过.
+			job.runtime.Logger.Info("wait for loading: addr=%s loading field absent, assuming non-cache redis", cli.Addr)
+			return nil
+		} else {
+			// 仅在第一次发现仍在 loading 时打日志, 避免轮询期间刷屏.
+			if !logged {
+				job.runtime.Logger.Info("wait for loading: addr=%s loading=%s eta=%ss",
+					cli.Addr, info["loading"], info["loading_eta_seconds"])
+				logged = true
+			}
+		}
+		if time.Now().After(deadline) {
+			return fmt.Errorf("wait for loading: timeout(%v) addr=%s", timeout, cli.Addr)
+		}
+		time.Sleep(sleepInterval)
+	}
+}
+
+// buildFlushAllCmd 选取对应 cluster_type 的 flushall 命令 (rename 后).
+// cache 4.0+ 自动追加 ASYNC 以非阻塞清理 (与 redis_flush_data.go::FlushAll 行为一致).
+func buildFlushAllCmd(clusterType string, cli *myredis.RedisClient) ([]string, error) {
+	switch clusterType {
+	case consts.TendisTypeTwemproxyRedisInstance, consts.TendisTypeRedisInstance:
+		cmd := []string{consts.CacheFlushAllRename}
+		if v, err := cli.GetTendisVersion(); err == nil && v != "" {
+			majorStr := strings.SplitN(v, ".", 2)[0]
+			if major, convErr := strconv.Atoi(majorStr); convErr == nil && major >= 4 {
+				cmd = append(cmd, consts.ASYNC)
+			}
+		}
+		return cmd, nil
+	case consts.TendisTypeTwemproxyTendisSSDInstance:
+		return []string{consts.SSDFlushAllRename}, nil
+	default:
+		return nil, fmt.Errorf("unsupported cluster_type(%s)", clusterType)
+	}
 }
 
 func (job *RedisVersionUpdate) stopRedis(port int) (err error) {

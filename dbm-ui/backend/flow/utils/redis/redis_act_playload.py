@@ -2241,6 +2241,7 @@ class RedisActPayload(object):
                 "ports": params["ports"],
                 "role": params["role"],
                 "cluster_type": cluster_type,
+                "flush_after_upgrade": params.get("flush_after_upgrade", False),
             },
         }
 

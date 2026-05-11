@@ -35,7 +35,11 @@ type RedisClient struct {
 	nodesMu          *sync.Mutex                 // 写入/读取 AddrMapToNodes NodeIDMapToNodes 时加锁
 }
 
-const redisConfigRewriteSaveFixVersion = "6.2.2"
+const (
+	redisConfigRewriteSaveFixVersion = "6.2.2"
+	newConnMaxRetryDuration          = 3 * time.Minute
+	newConnRetrySleep                = 10 * time.Second
+)
 
 // NewRedisClient 建redis客户端
 func NewRedisClient(addr, passwd string, db int, dbType string) (conn *RedisClient, err error) {
@@ -123,23 +127,47 @@ func (db *RedisClient) newConn(timeout time.Duration) (err error) {
 		redisOpt.Password = db.Password
 		clusterOpt.Password = db.Password
 	}
-	if db.DbType == consts.TendisTypeRedisCluster {
-		db.ClusterClient = redis.NewClusterClient(clusterOpt)
-		_, err = db.ClusterClient.Ping(context.TODO()).Result()
-	} else {
-		db.InstanceClient = redis.NewClient(redisOpt)
-		_, err = db.InstanceClient.Ping(context.TODO()).Result()
+	ctx := context.TODO()
+	deadline := time.Now().Add(newConnMaxRetryDuration)
+	attempt := 0
+	var pingErr error
+	for {
+		attempt++
+		if db.DbType == consts.TendisTypeRedisCluster {
+			db.ClusterClient = redis.NewClusterClient(clusterOpt)
+			_, pingErr = db.ClusterClient.Ping(ctx).Result()
+		} else {
+			db.InstanceClient = redis.NewClient(redisOpt)
+			_, pingErr = db.InstanceClient.Ping(ctx).Result()
+		}
+
+		if pingErr != nil && strings.Contains(pingErr.Error(), "LOADING Redis is loading") {
+			mylog.Logger.Warn("redis:%s conn warn,err:%v", db.Addr, pingErr)
+			return nil
+		}
+		if pingErr == nil {
+			return nil
+		}
+		// 即将再睡一轮就会越过总预算时, 直接放弃, 避免 sleep 完才发现超时
+		if time.Now().Add(newConnRetrySleep).After(deadline) {
+			break
+		}
+		mylog.Logger.Error(
+			"redis new conn fail (attempt %d),sleep %s then retry.err:%v,addr:%s",
+			attempt, newConnRetrySleep, pingErr, db.Addr)
+		// 释放本轮失败的 client, 防止 goroutine / 连接泄漏
+		if db.ClusterClient != nil {
+			_ = db.ClusterClient.Close()
+			db.ClusterClient = nil
+		}
+		if db.InstanceClient != nil {
+			_ = db.InstanceClient.Close()
+			db.InstanceClient = nil
+		}
+		time.Sleep(newConnRetrySleep)
 	}
-	if err != nil && strings.Contains(err.Error(), "LOADING Redis is loading") {
-		mylog.Logger.Warn(fmt.Sprintf("redis:%s conn warn,err:%v", db.Addr, err))
-		err = nil
-	}
-	if err != nil {
-		errStr := fmt.Sprintf("redis new conn fail,sleep 10s then retry.err:%v,addr:%s", err, db.Addr)
-		mylog.Logger.Error(errStr)
-		return fmt.Errorf("redis new conn fail,err:%v addr:%s", err, db.Addr)
-	}
-	return
+	return fmt.Errorf("redis new conn fail after %d attempts (within %s budget),err:%v addr:%s",
+		attempt, newConnMaxRetryDuration, pingErr, db.Addr)
 }
 
 // RedisClusterConfigSetOnlyMasters run 'config set ' on all redis cluster running masters

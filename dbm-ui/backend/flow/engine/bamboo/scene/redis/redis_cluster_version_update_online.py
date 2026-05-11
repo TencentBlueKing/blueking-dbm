@@ -62,6 +62,15 @@ from backend.flow.utils.redis.redis_util import version_ge, version_gt
 
 logger = logging.getLogger("flow")
 
+# RedisCluster / Predixy* / Tendisplus 走自身 failover 协议或不需要 flush.
+# 这里的 "after upgrade" 指 actuator 在 startRedis (新版本) 加载完毕之后立即 flushall:
+# 与 dbactuator/pkg/atomjobs/atomredis/redis_version_update.go::flushDataAfterStart 保持对齐.
+_FLUSH_AFTER_UPGRADE_SUPPORTED_CLUSTER_TYPES = {
+    ClusterType.TendisTwemproxyRedisInstance.value,
+    ClusterType.TendisRedisInstance.value,
+    ClusterType.TwemproxyTendisSSDInstance.value,
+}
+
 
 @dataclass
 class _ClusterUpgradeCtx:
@@ -242,6 +251,12 @@ class RedisClusterVersionUpdateOnline(object):
         """非 TendisRedisInstance 的 Backend 升级合法性检查."""
         for cluster_id, target_pairs in self.cluster_versions_ips["Backend"].items():
             cluster = self._get_cluster(cluster_id)
+            if len(target_pairs) > 1:
+                raise Exception(
+                    _("集群 {} Backend 不允许在同一单据中升级到多个目标版本: {}").format(
+                        cluster.immute_domain, sorted(target_pairs.keys())
+                    )
+                )
             valid_versions = get_storage_version_names_by_cluster_type(cluster.cluster_type, True)
             for target_version, ips in target_pairs.items():
                 self._validate_backend_target_pair(cluster, valid_versions, target_version, ips)
@@ -494,7 +509,7 @@ class RedisClusterVersionUpdateOnline(object):
            │  └─ Predixy 架构
            └─ TendisRedisInstance 主从架构
 
-        2. 升级步骤详述
+        2. 升级步骤
            - 对于 RedisCluster 架构：
              1. 先升级所有指定的 Slave 节点
              2. 对指定的 Master (如果有) 实例发起主从切换或 Failover 操作
@@ -558,8 +573,12 @@ class RedisClusterVersionUpdateOnline(object):
         cluster_process_builder = SubBuilder(root_id=self.root_id, data=self.data)
         if version_pipelines:
             cluster_process_builder.add_parallel_sub_pipeline(sub_flow_list=version_pipelines)
-            self._add_freshing_version_act(
-                cluster_process_builder, cluster_meta_data, self.MetaUpdateOption.UPDATE_PROXY
+            self._add_data_update_tail_sub_pipeline(
+                cluster_process_builder,
+                parallel_acts=[
+                    self._build_freshing_version_act(cluster_meta_data, self.MetaUpdateOption.UPDATE_PROXY)
+                ],
+                sub_name=_("Proxy数据更新收尾"),
             )
         return cluster_process_builder.build_sub_process(_("集群{}-Proxy升级").format(cluster_meta_data["cluster_name"]))
 
@@ -582,16 +601,37 @@ class RedisClusterVersionUpdateOnline(object):
         trans_files = GetFileList(db_type=DBType.Redis)
 
         version_pipelines = []
+        target_major_versions = []
+        cc_update_acts = []
+        role_meta_acts = []
+        dbmon_reinstall_ips = set()
         for target_version, ips in version_pairs.items():
             target_major_version = get_major_version_by_version_name(target_version)
-            target_process = self._create_redis_cluster_upgrade_flow(
+            target_major_versions.append(target_major_version)
+            target_process, target_cc_update_acts, target_role_meta_acts = self._create_redis_cluster_upgrade_flow(
                 act_kwargs, cluster_meta_data, target_major_version, ips, trans_files
             )
             version_pipelines.append(target_process)
+            cc_update_acts.extend(target_cc_update_acts)
+            role_meta_acts.extend(target_role_meta_acts)
+            dbmon_reinstall_ips.update(ips)
 
         sub_builder = SubBuilder(root_id=self.root_id, data=self.data)
+        self._add_built_act(sub_builder, self._build_payload_init_act(cluster_meta_data))
         sub_builder.add_parallel_sub_pipeline(sub_flow_list=version_pipelines)
-        self._add_freshing_version_act(sub_builder, cluster_meta_data, self.MetaUpdateOption.UPDATE_STORAGE)
+        newest_version = self._get_newest_version(cluster_meta_data["major_version"], target_major_versions)
+        version_update_acts = [
+            self._build_cluster_major_version_act(cluster_meta_data, [cluster_id], newest_version),
+            self._build_freshing_version_act(cluster_meta_data, self.MetaUpdateOption.UPDATE_STORAGE),
+            *self._build_dbconfig_version_acts([cluster_meta_data], newest_version),
+        ]
+        self._add_backend_data_update_tail_sub_pipeline(
+            sub_builder,
+            cc_update_acts=cc_update_acts,
+            role_meta_acts=role_meta_acts,
+            version_update_acts=version_update_acts,
+        )
+        self._add_dbmon_reinstall_sub_pipeline(sub_builder, act_kwargs, cluster_meta_data, dbmon_reinstall_ips)
 
         return sub_builder.build_sub_process(sub_name=_("集群{}-Backend升级".format(cluster_meta_data["cluster_name"])))
 
@@ -636,8 +676,8 @@ class RedisClusterVersionUpdateOnline(object):
             trans_files=trans_files,
         )
 
-        # 初始化配置和下发介质包
-        self._add_initialization_acts(ctx)
+        # 下发介质包
+        self._add_media_transfer_act(ctx)
         # 卸载 dbmon
         self._add_dbmon_uninstall_act(ctx)
         # 升级 Slave 节点
@@ -652,23 +692,19 @@ class RedisClusterVersionUpdateOnline(object):
         elif is_twemproxy_proxy_type(cluster_type) and ctx.pairs_to_switch:
             self._handle_twemproxy_cluster_upgrade(ctx)
 
-        # 更新元数据（如果有切换发生）
+        cc_update_acts, role_meta_acts = [], []
+        # 构造元数据更新节点，由外层 Backend 数据更新收尾统一挂载到 dbmon 重装前
         if ctx.pairs_to_switch:
-            self._add_metadata_update_acts(ctx)
+            cc_update_acts, role_meta_acts = self._build_metadata_update_acts(ctx)
 
-        # 重装 dbmon
-        self._add_dbmon_reinstall_act(ctx)
-
-        return ctx.pipeline.build_sub_process(sub_name=_("目标版本-{}".format(target_major_version)))
-
-    def _add_initialization_acts(self, ctx: _ClusterUpgradeCtx):
-        """添加初始化配置和下发介质包的动作"""
-        ctx.pipeline.add_act(
-            act_name=_("初始化配置"),
-            act_component_code=GetRedisActPayloadComponent.code,
-            kwargs=asdict(ctx.act_kwargs),
+        return (
+            ctx.pipeline.build_sub_process(sub_name=_("目标版本-{}".format(target_major_version))),
+            cc_update_acts,
+            role_meta_acts,
         )
 
+    def _add_media_transfer_act(self, ctx: _ClusterUpgradeCtx):
+        """添加目标 IP 下发介质包的动作."""
         ctx.act_kwargs.exec_ip = list(ctx.ips)
         ctx.act_kwargs.file_list = ctx.trans_files.redis_cluster_version_update(ctx.target_major_version)
         ctx.pipeline.add_act(
@@ -776,8 +812,6 @@ class RedisClusterVersionUpdateOnline(object):
         self._add_slaveof_cleanup_acts(ctx)
         # 升级old_master
         self._add_old_master_upgrade_acts(ctx)
-        # 清档old_master
-        self._add_old_master_flush_acts(ctx)
         # old_master做new_slave
         self._add_master_to_slave_sync_acts(ctx)
 
@@ -819,7 +853,7 @@ class RedisClusterVersionUpdateOnline(object):
         )
         ctx.act_kwargs.get_redis_payload_func = RedisActPayload.redis_twemproxy_backends_4_scene.__name__
         ctx.pipeline.add_act(
-            act_name=_("Redis-{}-检查切换状态").format(first_master_ip),
+            act_name=_("{}-检查切换状态").format(first_master_ip),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(ctx.act_kwargs),
         )
@@ -875,39 +909,18 @@ class RedisClusterVersionUpdateOnline(object):
             # role 取当前运行态而非 act_name 暗示的目标态: 此时进程仍以 master 运行,
             # 降级到 slave 在后续 _add_master_to_slave_sync_acts 才发生, actuator 的 isAllInstanceMaster 据此校验.
             ctx.act_kwargs.cluster["role"] = InstanceRole.REDIS_MASTER.value
-            ctx.act_kwargs.cluster["cluster_type"] = ctx.cluster_meta_data["cluster_type"]
+            cluster_type = ctx.cluster_meta_data["cluster_type"]
+            ctx.act_kwargs.cluster["cluster_type"] = cluster_type
+            # 仅 TwemproxyRedisInstance / RedisInstance / TwemproxyTendisSSDInstance 三种支持
+            ctx.act_kwargs.cluster["flush_after_upgrade"] = (
+                cluster_type in _FLUSH_AFTER_UPGRADE_SUPPORTED_CLUSTER_TYPES
+            )
             ctx.act_kwargs.get_redis_payload_func = (
                 RedisActPayload.redis_cluster_version_update_online_payload.__name__
             )
             acts_list.append(
                 {
                     "act_name": _("new slave:{} 版本升级").format(ip),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(ctx.act_kwargs),
-                }
-            )
-        ctx.pipeline.add_parallel_acts(acts_list=acts_list)
-
-    def _add_old_master_flush_acts(self, ctx: _ClusterUpgradeCtx):
-        """添加清档old_master的动作"""
-        acts_list = []
-        for ip, ports in ctx.cluster_meta_data["master_ports"].items():
-            if ip not in ctx.ips:
-                continue
-            ctx.act_kwargs.exec_ip = ip
-            ctx.act_kwargs.cluster = {}
-            ctx.act_kwargs.cluster["domain_name"] = ctx.cluster_meta_data["immute_domain"]
-            ctx.act_kwargs.cluster["db_version"] = ctx.cluster_meta_data["major_version"]
-            ctx.act_kwargs.cluster["cluster_type"] = ctx.cluster_meta_data["cluster_type"]
-            ctx.act_kwargs.cluster["ip"] = ip
-            ctx.act_kwargs.cluster["ports"] = ports
-            ctx.act_kwargs.cluster["force"] = False
-            ctx.act_kwargs.cluster["db_list"] = [0]
-            ctx.act_kwargs.cluster["flushall"] = True
-            ctx.act_kwargs.get_redis_payload_func = RedisActPayload.redis_flush_data_payload.__name__
-            acts_list.append(
-                {
-                    "act_name": _("old_master:{} 清档").format(ip),
                     "act_component_code": ExecuteDBActuatorScriptComponent.code,
                     "kwargs": asdict(ctx.act_kwargs),
                 }
@@ -954,8 +967,8 @@ class RedisClusterVersionUpdateOnline(object):
             child_pipelines.append(sync_builder)
         ctx.pipeline.add_parallel_sub_pipeline(child_pipelines)
 
-    def _add_metadata_update_acts(self, ctx: _ClusterUpgradeCtx):
-        """添加元数据更新动作"""
+    def _build_metadata_update_acts(self, ctx: _ClusterUpgradeCtx) -> Tuple[List[Dict], List[Dict]]:
+        """构造切换后、dbmon 重装前必须完成的 CC 和主从元数据更新动作."""
         # 修改元数据指向(old_masters和proxy关系断开,new_master增加和proxy关系)
         # 更新 cluster.nosqlstoragesetdtl_set
         # new_masters 设置 instance_role 为 InstanceRole.REDIS_MASTER.value
@@ -999,11 +1012,11 @@ class RedisClusterVersionUpdateOnline(object):
                     }
                 )
         ctx.act_kwargs.cluster["meta_func_name"] = RedisDBMeta.tendis_switch_4_scene.__name__
-        ctx.pipeline.add_act(
-            act_name=_("Redis-元数据切换"),
-            act_component_code=RedisDBMetaComponent.code,
-            kwargs=asdict(ctx.act_kwargs),
-        )
+        cc_update_act = {
+            "act_name": _("CC信息更新"),
+            "act_component_code": RedisDBMetaComponent.code,
+            "kwargs": asdict(ctx.act_kwargs),
+        }
         # 主从元数据交换,StorageInstanceTuple中,master变slave,slave变master
         acts_list = []
         for master_ip, master_ports in cluster_meta_data["master_ports"].items():
@@ -1017,61 +1030,29 @@ class RedisClusterVersionUpdateOnline(object):
             ctx.act_kwargs.cluster["meta_func_name"] = RedisDBMeta.instances_failover_4_scene.__name__
             acts_list.append(
                 {
-                    "act_name": _("master:{}-slave:{}-主从交换".format(master_ip, slave_ip)),
+                    "act_name": _("old_master({})-old_slave({})-刷新集群元数据的主从信息".format(master_ip, slave_ip)),
                     "act_component_code": RedisDBMetaComponent.code,
                     "kwargs": asdict(ctx.act_kwargs),
                 }
             )
-        ctx.pipeline.add_parallel_acts(acts_list=acts_list)
+        return [cc_update_act], acts_list
 
-        # 更新元数据中集群版本
-        ctx.act_kwargs.cluster["bk_biz_id"] = bk_biz_id
-        ctx.act_kwargs.cluster["bk_cloud_id"] = cluster_meta_data["bk_cloud_id"]
-        ctx.act_kwargs.cluster["immute_domain"] = cluster_meta_data["immute_domain"]
-        ctx.act_kwargs.cluster["cluster_ids"] = [ctx.cluster_id]
-        # 版本记录为集群当中存在的最新版本
-        newest_version = (
-            ctx.target_major_version
-            if version_ge(ctx.target_major_version, cluster_meta_data["major_version"])
-            else cluster_meta_data["major_version"]
-        )
-        ctx.act_kwargs.cluster["db_version"] = newest_version
-        ctx.act_kwargs.cluster["meta_func_name"] = RedisDBMeta.redis_cluster_version_update.__name__
-        ctx.pipeline.add_act(
-            act_name=_("Redis-元数据更新集群版本"),
-            act_component_code=RedisDBMetaComponent.code,
-            kwargs=asdict(ctx.act_kwargs),
-        )
-
-        # 更新 dbconfig 中版本信息
-        ctx.act_kwargs.cluster = {
-            "bk_biz_id": bk_biz_id,
-            "cluster_domain": cluster_meta_data["immute_domain"],
-            "current_version": cluster_meta_data["major_version"],
-            "target_version": newest_version,
-            "cluster_type": cluster_meta_data["cluster_type"],
-        }
-        ctx.act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_version_update_dbconfig.__name__
-        ctx.pipeline.add_act(
-            act_name=_("Redis-更新dbconfig中集群版本"),
-            act_component_code=RedisConfigComponent.code,
-            kwargs=asdict(ctx.act_kwargs),
-        )
-
-    def _add_dbmon_reinstall_act(self, ctx: _ClusterUpgradeCtx):
-        """添加重装dbmon的动作"""
-        ctx.act_kwargs.cluster = {}
+    def _add_dbmon_reinstall_sub_pipeline(
+        self, pipeline, act_kwargs: ActKwargs, cluster_meta_data: Dict, ips: Set[str]
+    ):
+        """为指定 IP 重装 dbmon; dbmon payload 会在执行时按最新元数据动态生成."""
+        act_kwargs.cluster = {}
         sub_builder = ClusterIPsDbmonInstallAtomJob(
             self.root_id,
             self.data,
-            ctx.act_kwargs,
+            act_kwargs,
             {
-                "cluster_domain": ctx.cluster_meta_data["immute_domain"],
-                "ips": list(ctx.ips),
+                "cluster_domain": cluster_meta_data["immute_domain"],
+                "ips": sorted(ips),
                 "is_stop": False,
             },
         )
-        ctx.pipeline.add_sub_pipeline(sub_builder)
+        pipeline.add_sub_pipeline(sub_builder)
 
     def redisinstance_version_update_sub_flow(
         self,
@@ -1199,6 +1180,15 @@ class RedisClusterVersionUpdateOnline(object):
                 upgrade_master=upgrade_master,
             )
             self._add_instance_switch_and_master_upgrade(ctx)
+        else:
+            self._add_data_update_tail_sub_pipeline(
+                sub_pipeline,
+                parallel_acts=[
+                    self._build_freshing_version_act(per_cluster_meta[cid], self.MetaUpdateOption.UPDATE_STORAGE)
+                    for cid in cluster_ids
+                ],
+                sub_name=_("数据更新收尾"),
+            )
 
         # 8) 重装 dbmon (每台主机一次)
         restart_dbmon_acts = []
@@ -1214,13 +1204,6 @@ class RedisClusterVersionUpdateOnline(object):
                 }
             )
         sub_pipeline.add_parallel_acts(acts_list=restart_dbmon_acts)
-
-        # 9) 版本元数据刷新 (按 cluster_id 并发, 每个 cluster 一次 act)
-        self._add_freshing_version_acts_parallel(
-            sub_pipeline,
-            [per_cluster_meta[cid] for cid in cluster_ids],
-            self.MetaUpdateOption.UPDATE_STORAGE,
-        )
 
         return sub_pipeline.build_sub_process(
             sub_name=_("主从pair {}/{} 目标版本-{}").format(master_ip, slave_ip, target_major_version)
@@ -1258,7 +1241,7 @@ class RedisClusterVersionUpdateOnline(object):
         )
 
         # 7.2) 人工确认 (切换前)
-        sub_pipeline.add_act(act_name=_("Redis-人工确认(切换前)"), act_component_code=PauseComponent.code, kwargs={})
+        sub_pipeline.add_act(act_name=_("人工确认(切换前)"), act_component_code=PauseComponent.code, kwargs={})
 
         # 7.3) 域名切换: 用 precheck 校验过的 cluster_ids, 不再从 IP 反查 sibling
         act_kwargs.cluster = {
@@ -1299,7 +1282,7 @@ class RedisClusterVersionUpdateOnline(object):
             precheck_args.cluster["switch_info"] = cm["master_slave_ins_pairs"]
             precheck_acts.append(
                 {
-                    "act_name": _("切换检查-cluster_id:{}-{}-提升前的").format(cid, cm["immute_domain"]),
+                    "act_name": _("Slave-{}-提升前的切换检查").format(slave_ip),
                     "act_component_code": ExecuteDBActuatorScriptComponent.code,
                     "kwargs": asdict(precheck_args),
                 }
@@ -1319,7 +1302,7 @@ class RedisClusterVersionUpdateOnline(object):
             switch_args.cluster["switch_info"] = cm["master_slave_ins_pairs"]
             switch_acts.append(
                 {
-                    "act_name": _("cluster_id:{}-{}-slave提升为master").format(cid, cm["immute_domain"]),
+                    "act_name": _("Slave({})-提升为master").format(slave_ip),
                     "act_component_code": ExecuteDBActuatorScriptComponent.code,
                     "kwargs": asdict(switch_args),
                 }
@@ -1327,7 +1310,7 @@ class RedisClusterVersionUpdateOnline(object):
         sub_pipeline.add_parallel_acts(acts_list=switch_acts)
 
         # 7.6) 切换后再次人工确认: 让运维有机会检查集群状态 (新 master 可写 / client 流量切过去)
-        sub_pipeline.add_act(act_name=_("Redis-人工确认(切换后验证)"), act_component_code=PauseComponent.code, kwargs={})
+        sub_pipeline.add_act(act_name=_("人工确认(请验证流量已切到新master)"), act_component_code=PauseComponent.code, kwargs={})
 
         # 7.7) 升级 old master (此时已是 new_slave 角色)
         act_kwargs.cluster = {}
@@ -1337,54 +1320,18 @@ class RedisClusterVersionUpdateOnline(object):
         act_kwargs.cluster["db_version"] = target_major_version
         act_kwargs.cluster["role"] = InstanceRole.REDIS_MASTER.value
         act_kwargs.cluster["cluster_type"] = ctx.anchor_meta["cluster_type"]
+        act_kwargs.cluster["flush_after_upgrade"] = (
+            ctx.anchor_meta["cluster_type"] in _FLUSH_AFTER_UPGRADE_SUPPORTED_CLUSTER_TYPES
+        )
         act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_version_update_online_payload.__name__
         sub_pipeline.add_act(
-            act_name=_("new_slave:{} 版本升级至 {}").format(master_ip, target_major_version),
+            act_name=_("new_slave({})-版本升级至 {}").format(master_ip, target_major_version),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(act_kwargs),
         )
 
-        # 7.8) 元数据主从翻转: 只处理 precheck 范围内的 cluster_ids
-        act_kwargs.cluster = {
-            "cluster_ids": cluster_ids,
-            "meta_func_name": RedisDBMeta.update_meta_for_redis_instance_version_upgrade.__name__,
-        }
-        sub_pipeline.add_act(
-            act_name=_("cluster:{} 元数据master和slave互换").format(cluster_ids),
-            act_component_code=RedisDBMetaComponent.code,
-            kwargs=asdict(act_kwargs),
-        )
-
-        # 7.9) 清档 old_master (现在是 new_slave 的物理 IP), 为后续重建同步做准备
-        flush_acts = []
-        for cid in cluster_ids:
-            cm = per_cluster_meta[cid]
-            ports_on_master_ip = cm["master_ports"][master_ip]
-            act_kwargs.cluster = {
-                "domain_name": cm["immute_domain"],
-                "db_version": cm["major_version"],
-                "cluster_type": cm["cluster_type"],
-                "ip": master_ip,
-                "ports": ports_on_master_ip,
-                "force": False,
-                "db_list": [0],
-                "flushall": True,
-            }
-            act_kwargs.exec_ip = master_ip
-            act_kwargs.get_redis_payload_func = RedisActPayload.redis_flush_data_payload.__name__
-            flush_acts.append(
-                {
-                    "act_name": _("cluster_id:{}-{} old master:{} ports:{} 清档").format(
-                        cid, cm["immute_domain"], master_ip, ports_on_master_ip
-                    ),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(act_kwargs),
-                }
-            )
-        if flush_acts:
-            sub_pipeline.add_parallel_acts(acts_list=flush_acts)
-
-        # 7.10) 重建同步: old_master -> new_master, 每个 cluster 一条 sync 子流程
+        # 7.8) 重建同步: old_master -> new_master, 每个 cluster 一条 sync 子流程.
+        # 同步参数显式传入, 不依赖主从角色元数据已翻转.
         sync_pipelines = []
         for cid in cluster_ids:
             cm = per_cluster_meta[cid]
@@ -1421,57 +1368,177 @@ class RedisClusterVersionUpdateOnline(object):
         if sync_pipelines:
             sub_pipeline.add_parallel_sub_pipeline(sync_pipelines)
 
-        # 7.11) 更新集群版本 (meta + dbconfig)
+        # 7.9) 数据更新收尾: 先翻转主从元数据, 再并发刷新版本 / dbconfig / 实例版本.
         anchor_cm = ctx.anchor_meta
         newest_version = (
             target_major_version
             if version_ge(target_major_version, anchor_cm["major_version"])
             else anchor_cm["major_version"]
         )
-        act_kwargs.cluster = {
-            "bk_biz_id": anchor_cm["bk_biz_id"],
-            "bk_cloud_id": anchor_cm["bk_cloud_id"],
-            "cluster_ids": cluster_ids,
-            "db_version": newest_version,
-            "meta_func_name": RedisDBMeta.redis_cluster_version_update.__name__,
-        }
-        sub_pipeline.add_act(
-            act_name=_("Redis-元数据更新集群版本 cluster:{}").format(cluster_ids),
-            act_component_code=RedisDBMetaComponent.code,
-            kwargs=asdict(act_kwargs),
+        cluster_meta_list = [per_cluster_meta[cid] for cid in cluster_ids]
+        self._add_data_update_tail_sub_pipeline(
+            sub_pipeline,
+            ordered_acts=[self._build_redis_instance_role_meta_act(cluster_ids)],
+            parallel_acts=[
+                self._build_cluster_major_version_act(anchor_cm, cluster_ids, newest_version),
+                *self._build_dbconfig_version_acts(cluster_meta_list, newest_version),
+                *[
+                    self._build_freshing_version_act(meta, self.MetaUpdateOption.UPDATE_STORAGE)
+                    for meta in cluster_meta_list
+                ],
+            ],
+            sub_name=_("数据更新收尾"),
         )
 
-        dbconfig_acts = []
-        for cid in cluster_ids:
-            cm = per_cluster_meta[cid]
+    @staticmethod
+    def _get_newest_version(current_version: str, target_versions: List[str]) -> str:
+        """从当前版本和本次目标版本中取最大主版本."""
+        newest_version = current_version
+        for target_version in target_versions:
+            if version_ge(target_version, newest_version):
+                newest_version = target_version
+        return newest_version
+
+    @staticmethod
+    def _add_built_act(pipeline, act: Dict):
+        """将 _build_*_act 返回的 dict 挂到 pipeline 上."""
+        pipeline.add_act(
+            act_name=act["act_name"],
+            act_component_code=act["act_component_code"],
+            kwargs=act["kwargs"],
+        )
+
+    def _add_data_update_tail_sub_pipeline(
+        self,
+        pipeline,
+        ordered_acts: Optional[List[Dict]] = None,
+        parallel_acts: Optional[List[Dict]] = None,
+        sub_name: str = None,
+    ):
+        """把数据更新节点收口到单个尾部子流程中, 同时保留必要的串行/并行关系."""
+        ordered_acts = ordered_acts or []
+        parallel_acts = parallel_acts or []
+        if not ordered_acts and not parallel_acts:
+            return
+
+        tail_builder = SubBuilder(root_id=self.root_id, data=self.data)
+        for act in ordered_acts:
+            self._add_built_act(tail_builder, act)
+
+        if len(parallel_acts) == 1:
+            self._add_built_act(tail_builder, parallel_acts[0])
+        elif len(parallel_acts) > 1:
+            tail_builder.add_parallel_acts(acts_list=parallel_acts)
+
+        pipeline.add_sub_pipeline(tail_builder.build_sub_process(sub_name or _("数据更新收尾")))
+
+    def _add_backend_data_update_tail_sub_pipeline(
+        self,
+        pipeline,
+        cc_update_acts: Optional[List[Dict]] = None,
+        role_meta_acts: Optional[List[Dict]] = None,
+        version_update_acts: Optional[List[Dict]] = None,
+    ):
+        """非 RedisInstance backend 的统一数据更新收尾, 严格放在 dbmon 重装前."""
+        cc_update_acts = cc_update_acts or []
+        role_meta_acts = role_meta_acts or []
+        version_update_acts = version_update_acts or []
+        if not cc_update_acts and not role_meta_acts and not version_update_acts:
+            return
+
+        tail_builder = SubBuilder(root_id=self.root_id, data=self.data)
+        for act in cc_update_acts:
+            self._add_built_act(tail_builder, act)
+
+        if len(role_meta_acts) == 1:
+            self._add_built_act(tail_builder, role_meta_acts[0])
+        elif len(role_meta_acts) > 1:
+            tail_builder.add_parallel_acts(acts_list=role_meta_acts)
+
+        if len(version_update_acts) == 1:
+            self._add_built_act(tail_builder, version_update_acts[0])
+        elif len(version_update_acts) > 1:
+            tail_builder.add_parallel_acts(acts_list=version_update_acts)
+
+        pipeline.add_sub_pipeline(tail_builder.build_sub_process(_("Backend数据更新收尾")))
+
+    def _build_payload_init_act(self, cluster_meta_data: Dict) -> Dict:
+        """构造 payload 初始化节点, 供需要 RedisActPayload 的收尾组件使用."""
+        act_kwargs = self._make_act_kwargs()
+        act_kwargs.bk_cloud_id = cluster_meta_data["bk_cloud_id"]
+        act_kwargs.cluster.update(cluster_meta_data)
+        return {
+            "act_name": _("初始化配置"),
+            "act_component_code": GetRedisActPayloadComponent.code,
+            "kwargs": asdict(act_kwargs),
+        }
+
+    def _build_cluster_major_version_act(
+        self, cluster_meta_data: Dict, cluster_ids: List[int], db_version: str
+    ) -> Dict:
+        """构造集群 major_version 刷新 act."""
+        act_kwargs = self._make_act_kwargs()
+        act_kwargs.cluster = {
+            "bk_biz_id": cluster_meta_data["bk_biz_id"],
+            "bk_cloud_id": cluster_meta_data["bk_cloud_id"],
+            "cluster_ids": cluster_ids,
+            "db_version": db_version,
+            "meta_func_name": RedisDBMeta.redis_cluster_version_update.__name__,
+        }
+        return {
+            "act_name": _("刷新集群元数据的版本信息"),
+            "act_component_code": RedisDBMetaComponent.code,
+            "kwargs": asdict(act_kwargs),
+        }
+
+    def _build_dbconfig_version_acts(self, cluster_meta_list: List[Dict], target_version: str) -> List[Dict]:
+        """构造 dbconfig 版本迁移动作; 目标版本不变时不加 no-op 节点."""
+        acts = []
+        for cluster_meta_data in cluster_meta_list:
+            if cluster_meta_data["major_version"] == target_version:
+                continue
+            act_kwargs = self._make_act_kwargs()
             act_kwargs.cluster = {
-                "bk_biz_id": cm["bk_biz_id"],
-                "cluster_domain": cm["immute_domain"],
-                "current_version": cm["major_version"],
-                "target_version": newest_version,
-                "cluster_type": cm["cluster_type"],
+                "bk_biz_id": cluster_meta_data["bk_biz_id"],
+                "cluster_domain": cluster_meta_data["immute_domain"],
+                "current_version": cluster_meta_data["major_version"],
+                "target_version": target_version,
+                "cluster_type": cluster_meta_data["cluster_type"],
             }
             act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_version_update_dbconfig.__name__
-            dbconfig_acts.append(
+            acts.append(
                 {
-                    "act_name": _("cluster_id:{}-{}-dbconfig更新版本").format(cid, cm["immute_domain"]),
+                    "act_name": _("{}-dbconfig更新版本").format(cluster_meta_data["immute_domain"]),
                     "act_component_code": RedisConfigComponent.code,
                     "kwargs": asdict(act_kwargs),
                 }
             )
-        sub_pipeline.add_parallel_acts(acts_list=dbconfig_acts)
+        return acts
+
+    def _build_redis_instance_role_meta_act(self, cluster_ids: List[int]) -> Dict:
+        """构造 RedisInstance 主从角色元数据翻转 act."""
+        act_kwargs = self._make_act_kwargs()
+        act_kwargs.cluster = {
+            "cluster_ids": cluster_ids,
+            "meta_func_name": RedisDBMeta.update_meta_for_redis_instance_version_upgrade.__name__,
+        }
+        return {
+            "act_name": _("刷新集群元数据的主从信息"),
+            "act_component_code": RedisDBMetaComponent.code,
+            "kwargs": asdict(act_kwargs),
+        }
 
     def _build_freshing_version_act(self, cluster_meta_data, switch) -> Dict:
         """构造单个 cluster 的版本元数据刷新 act (不挂到 pipeline 上)."""
         valid_options = self.MetaUpdateOption.get_valid_options()
         if switch not in valid_options:
             raise Exception(_("未知的版本元数据更新对象: {} 可选的值: {}").format(switch, ", ".join(valid_options)))
-        act_kwargs = ActKwargs()
+        act_kwargs = self._make_act_kwargs()
         act_kwargs.cluster["cluster_id"] = cluster_meta_data["cluster_id"]
         act_kwargs.cluster["bk_biz_id"] = cluster_meta_data["bk_biz_id"]
         act_kwargs.cluster[switch] = True
         return {
-            "act_name": _("刷新版本元数据更新-cluster_id:{}-{}").format(cluster_meta_data["cluster_id"], switch),
+            "act_name": _("刷新实例元数据版本信息({})").format(switch),
             "act_component_code": RedisUpdateVersionComponent.code,
             "kwargs": asdict(act_kwargs),
         }

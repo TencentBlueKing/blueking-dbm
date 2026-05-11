@@ -78,7 +78,13 @@ class ValidationFailureKind(StrEnum):
 @dataclass
 class RedisRollbackExerciseConfig:
     """
-    Configuration of Redis rollback exericse
+    Configuration of Redis rollback exericse.
+
+    In SPECIFIED mode, ``specified_domains`` and ``specified_bizs`` combine as:
+    - domains set, bizs unset: exercise every listed domain (legacy behavior).
+    - domains set, bizs set: exercise only listed domains in those bizs.
+    - domains unset, bizs set: discover ONLINE candidate clusters in those bizs.
+    - domains unset, bizs unset: warn and skip.
     """
 
     # Meta Configs
@@ -88,6 +94,9 @@ class RedisRollbackExerciseConfig:
 
     # Mode - Specifed
     specified_domains: Optional[List[str]] = None  # Customed targets [clusters]
+    # Allowlist for SPECIFIED mode: filters specified_domains to clusters in these bizs;
+    # when specified_domains is empty, discovers ONLINE clusters in these bizs instead.
+    specified_bizs: Optional[List[int]] = None
 
     # Mode - Random
     batch_size: int = 2000  # Count of clusters to exercise each week
@@ -348,7 +357,7 @@ class RedisRollbackExercise:
         """
         match self.config.mode:
             case RedisRollbackExerciseMode.SPECIFIED:
-                return self._get_specified_instances(), []
+                return self._get_specified_instances(num)
             case RedisRollbackExerciseMode.RANDOM:
                 return self._consume_from_queue(num)
 
@@ -518,6 +527,25 @@ class RedisRollbackExercise:
         )
         return report
 
+    def _rollback_exercise_candidate_queryset(self):
+        """
+        Build the base Cluster queryset shared by random candidate calculation and
+        SPECIFIED-mode biz discovery: applies cluster/biz ignore lists, allowed
+        cluster types, and ONLINE phase filtering.
+        """
+        queryset = Cluster.objects.all()
+
+        if self.config.clusters_ignored:
+            queryset = queryset.exclude(id__in=self.config.clusters_ignored)
+
+        if self.config.bizs_ignored:
+            queryset = queryset.exclude(bk_biz_id__in=self.config.bizs_ignored)
+
+        if self.config.cluster_types:
+            queryset = queryset.filter(cluster_type__in=self.config.cluster_types)
+
+        return queryset.filter(phase=ClusterPhase.ONLINE.value)
+
     def _calculate_candidates(self) -> List[int]:
         """
         Filter from Cluster to get candidate cluster IDs
@@ -533,18 +561,7 @@ class RedisRollbackExercise:
         """
         logger.info(_("Calculating candidate clusters for rollback exercise"))
 
-        queryset = Cluster.objects.all()
-
-        if self.config.clusters_ignored:
-            queryset = queryset.exclude(id__in=self.config.clusters_ignored)
-
-        if self.config.bizs_ignored:
-            queryset = queryset.exclude(bk_biz_id__in=self.config.bizs_ignored)
-
-        if self.config.cluster_types:
-            queryset = queryset.filter(cluster_type__in=self.config.cluster_types)
-
-        queryset = queryset.filter(phase=ClusterPhase.ONLINE.value)
+        queryset = self._rollback_exercise_candidate_queryset()
 
         total_candidates = queryset.count()
         logger.info(_("Found {} total candidate clusters").format(total_candidates))
@@ -659,21 +676,94 @@ class RedisRollbackExercise:
 
         return [items[i] for i in top_k_indices]
 
-    def _get_specified_instances(self) -> List[dict]:
-        result = []
-        for domain in self.config.specified_domains:
-            cluster = Cluster.objects.get(immute_domain=domain)
-            slave_instance = (
-                cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.SLAVE).order_by("?").first()
+    def _resolve_specified_cluster(self, cluster: Cluster) -> Optional[dict]:
+        """
+        Resolve the slave/master pair for a cluster in SPECIFIED mode.
+
+        Returns a selection dict ready for ``_pick_target_instances`` consumers, or
+        ``None`` when no slave instance is available (caller should record a skip).
+        """
+        slave_instance = (
+            cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.SLAVE).order_by("?").first()
+        )
+        if not slave_instance:
+            return None
+        master_instance = slave_instance.as_receiver.get().ejector
+        logger.info(
+            _("Selected slave {} for backup check and its paired master {} for rollback from cluster {}").format(
+                slave_instance.ip_port, master_instance.ip_port, cluster.immute_domain
             )
-            master_instance = slave_instance.as_receiver.get().ejector
-            logger.info(
-                _("Selected slave {} for backup check and its paired master {} for rollback from cluster {}").format(
-                    slave_instance.ip_port, master_instance.ip_port, cluster.immute_domain
-                )
+        )
+        return {"cluster": cluster, "instance": master_instance, "backup_check_instance": slave_instance}
+
+    def _get_specified_instances(self, num: int) -> Tuple[List[dict], List[tuple]]:
+        """
+        Resolve target instances for SPECIFIED mode.
+
+        Behavior depends on ``specified_domains`` and ``specified_bizs``:
+        - domains set, bizs unset: exercise every listed domain (legacy behavior).
+        - domains set, bizs set: exercise domains whose cluster bk_biz_id is in
+          ``specified_bizs``; others are recorded as skipped.
+        - domains unset, bizs set: discover ONLINE candidate clusters in
+          ``specified_bizs`` (sharing the random-mode candidate filters) and
+          weighted-sample up to ``num`` so not-recently-exercised clusters are
+          favored.
+        - domains unset, bizs unset: nothing to do; warn and return empty.
+        """
+        result: List[dict] = []
+        skipped_clusters: List[tuple] = []
+        domains = self.config.specified_domains or []
+        bizs: Set[int] = set(self.config.specified_bizs or [])
+
+        if domains:
+            for domain in domains:
+                cluster = Cluster.objects.get(immute_domain=domain)
+                if bizs and cluster.bk_biz_id not in bizs:
+                    skip_msg = _("Cluster {} bk_biz_id {} not in specified_bizs {}").format(
+                        cluster.immute_domain, cluster.bk_biz_id, sorted(bizs)
+                    )
+                    skipped_clusters.append((cluster, skip_msg))
+                    continue
+                selection = self._resolve_specified_cluster(cluster)
+                if selection is None:
+                    skip_msg = _("Cluster {} has no slave instance").format(cluster.immute_domain)
+                    skipped_clusters.append((cluster, skip_msg))
+                    continue
+                result.append(selection)
+            return result, skipped_clusters
+
+        if not bizs:
+            logger.warning(_("SPECIFIED mode requires specified_domains or specified_bizs; both are empty, skipping"))
+            return result, skipped_clusters
+
+        queryset = self._rollback_exercise_candidate_queryset().filter(bk_biz_id__in=bizs)
+        all_pairs: List[Tuple[int, int]] = list(queryset.values_list("id", "bk_biz_id"))
+        if not all_pairs:
+            logger.warning(_("No candidate clusters found in specified_bizs {}").format(sorted(bizs)))
+            return result, skipped_clusters
+
+        random.shuffle(all_pairs)  # Mix order first to avoid database ordering bias
+        selected_ids = self._weighted_random_selection(all_pairs, min(num, len(all_pairs)))
+        logger.info(
+            _("Discovered {} clusters in specified_bizs {}, selected {} via weighted sampling").format(
+                len(all_pairs), sorted(bizs), len(selected_ids)
             )
-            result.append({"cluster": cluster, "instance": master_instance, "backup_check_instance": slave_instance})
-        return result
+        )
+
+        for cluster_id in selected_ids:
+            try:
+                cluster = Cluster.objects.get(id=cluster_id)
+            except Cluster.DoesNotExist:
+                logger.warning(_("Cluster {} no longer exists, skipping").format(cluster_id))
+                continue
+            selection = self._resolve_specified_cluster(cluster)
+            if selection is None:
+                skip_msg = _("Cluster {} has no slave instance").format(cluster.immute_domain)
+                skipped_clusters.append((cluster, skip_msg))
+                continue
+            result.append(selection)
+
+        return result, skipped_clusters
 
     def _consume_from_queue(self, num: int) -> Tuple[List[dict], List[tuple]]:
         """
