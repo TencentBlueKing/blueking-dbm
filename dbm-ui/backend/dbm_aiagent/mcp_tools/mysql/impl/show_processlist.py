@@ -8,8 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
+from typing import Dict, List
+
+import pandas
 
 from backend.components import DRSApi
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import ProxyInstance
 from backend.db_services.mysql.sqlparse import digest
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
@@ -358,4 +363,40 @@ def show_proxy_processlist(bk_cloud_id: int, address: str):
             }
         )
 
+    return res
+
+
+def show_instance_processlist(instance: str, bk_cloud_id: int, cluster_type, instance_role):
+    if instance_role == "proxy" and cluster_type == ClusterType.TenDBHA:
+        processlist_detail = show_proxy_processlist(bk_cloud_id, instance)
+        return processlist_detail
+
+    processlist_detail = show_mysql_processlist(bk_cloud_id, instance)
+    return processlist_detail
+
+
+def aggregate_processlist_by_type(processlist_detail: List, aggregate_type: str) -> Dict[str, str]:
+    if not processlist_detail:
+        return {}
+
+    df = pandas.DataFrame(processlist_detail)
+    res = {}
+    if aggregate_type == "group_by_user":
+        res["group_by_user_count"] = df["user"].value_counts().to_dict()
+    if aggregate_type == "group_by_state":
+        res["group_by_state_count"] = df["state"].value_counts().to_dict()
+    if aggregate_type == "group_by_command":
+        res["group_by_command_count"] = df["command"].value_counts().to_dict()
+    elif aggregate_type == "group_by_client_host":
+        res["group_by_client_host_count"] = df["access_source_address"].value_counts().to_dict()
+    elif aggregate_type == "longest_top_5":
+        # 按 time 时长排序，且排除 Command 为 Sleep 的
+        res["longest_top_5"] = json.loads(
+            df[df["command"] != "Sleep"]
+            .nlargest(5, "time")[["user", "db", "fingerprint", "time"]]
+            .to_json(orient="records")
+        )
+    else:
+        # aggregate_type == "group_by_fingerprint":
+        res["group_by_fingerprint_count"] = df["fingerprint"].value_counts().to_dict()
     return res
