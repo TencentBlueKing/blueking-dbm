@@ -15,11 +15,10 @@ from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
 
-from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryRole, TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException
-from backend.db_meta.models import Cluster
-from backend.flow.consts import MIN_SPIDER_MASTER_COUNT, MIN_SPIDER_SLAVE_COUNT, DnsOpType
+from backend.db_meta.models import Cluster, ProxyInstance
+from backend.flow.consts import MIN_SPIDER_MASTER_COUNT, MIN_SPIDER_SLAVE_COUNT, DnsOpType, InstanceStatus
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import reduce_spiders_flow
@@ -173,6 +172,15 @@ class TenDBClusterReduceNodesFlow(object):
             is_check_disaster_tolerance_level=is_check_disaster_tolerance_level,
         )
 
+        # 这种处理其实隐含了一个前提就是一个ip只能有一个port
+        available_spider_addresses = []
+        unavailable_spider_addresses = []
+        for pi in ProxyInstance.objects.filter(machine__ip__in=[i["ip"] for i in reduce_spiders], cluster=cluster):
+            if pi.status == InstanceStatus.UNAVAILABLE:
+                unavailable_spider_addresses.append(pi.ip_port)
+            else:
+                available_spider_addresses.append(pi.ip_port)
+
         # 拼接子流程全局变量
         sub_flow_context = {
             "uid": self.data["uid"],
@@ -189,19 +197,37 @@ class TenDBClusterReduceNodesFlow(object):
 
         # 预检测
         if is_check_process and not disable_manual_confirm:
-            sub_pipeline.add_act(
-                act_name=_("检测回收Spider端连接情况"),
-                act_component_code=CheckClientConnComponent.code,
-                kwargs=asdict(
-                    CheckClientConnKwargs(
-                        bk_cloud_id=cluster.bk_cloud_id,
-                        check_instances=[
-                            f"{i['ip']}{IP_PORT_DIVIDER}{cluster.proxyinstance_set.first().port}"
-                            for i in reduce_spiders
-                        ],
-                    )
-                ),
-            )
+            check_client_connection_acts = []
+            if available_spider_addresses:
+                check_client_connection_acts.append(
+                    {
+                        "act_name": _("检测回收Spider端连接情况"),
+                        "act_component_code": CheckClientConnComponent.code,
+                        "kwargs": asdict(
+                            CheckClientConnKwargs(
+                                bk_cloud_id=cluster.bk_cloud_id,
+                                check_instances=available_spider_addresses,
+                            )
+                        ),
+                    }
+                )
+
+            if unavailable_spider_addresses:
+                check_client_connection_acts.append(
+                    {
+                        "act_name": _("检测回收 Unavailable Spider端连接情况"),
+                        "act_component_code": CheckClientConnComponent.code,
+                        "kwargs": asdict(
+                            CheckClientConnKwargs(
+                                bk_cloud_id=cluster.bk_cloud_id,
+                                check_instances=unavailable_spider_addresses,
+                            )
+                        ),
+                        "error_ignorable": True,
+                    }
+                )
+
+            sub_pipeline.add_parallel_acts(check_client_connection_acts)
 
         entry_role = ClusterEntryRole.MASTER_ENTRY.value
         if reduce_spider_role == TenDBClusterSpiderRole.SPIDER_SLAVE.value:
