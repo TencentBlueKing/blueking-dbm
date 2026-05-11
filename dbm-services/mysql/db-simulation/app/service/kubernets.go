@@ -44,6 +44,8 @@ var Kcs KubeClientSets
 
 // DefaultUser default user
 const DefaultUser = "root"
+const InitialDelaySeconds = 6
+const PeriodSeconds = 5
 
 // FatalError 致命错误，表示不应该继续重试的错误
 type FatalError struct {
@@ -167,8 +169,8 @@ func (k *DbPodSets) getClusterPodContainerSpec() []v1.Container {
 							fmt.Sprintf("mysql -S/data1/mysqldata/mysql.sock -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 					},
 				},
-				InitialDelaySeconds: 3,
-				PeriodSeconds:       5,
+				InitialDelaySeconds: InitialDelaySeconds,
+				PeriodSeconds:       PeriodSeconds,
 			},
 		},
 	}
@@ -201,8 +203,8 @@ func (k *DbPodSets) getClusterPodContainerSpec() []v1.Container {
 							fmt.Sprintf("mysql -S/data1/mysqldata/mysql.sock -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 					},
 				},
-				InitialDelaySeconds: 3,
-				PeriodSeconds:       5,
+				InitialDelaySeconds: InitialDelaySeconds,
+				PeriodSeconds:       PeriodSeconds,
 			},
 		}
 		containers = append(containers, spiderContainer)
@@ -231,8 +233,8 @@ func (k *DbPodSets) getClusterPodContainerSpec() []v1.Container {
 						fmt.Sprintf("mysql -S/data1/mysqldata/mysql.sock -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 				},
 			},
-			InitialDelaySeconds: 3,
-			PeriodSeconds:       5,
+			InitialDelaySeconds: InitialDelaySeconds,
+			PeriodSeconds:       PeriodSeconds,
 		},
 	}
 	containers = append(containers, tdbctlContainer)
@@ -937,8 +939,8 @@ func (k *DbPodSets) CreateMySQLPod(mysqlVersion string, xlogger *logger.Logger) 
 								fmt.Sprintf("mysql -S/data1/mysqldata/mysql.sock -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
 						},
 					},
-					InitialDelaySeconds: 2,
-					PeriodSeconds:       5,
+					InitialDelaySeconds: InitialDelaySeconds,
+					PeriodSeconds:       PeriodSeconds,
 				},
 			}},
 		},

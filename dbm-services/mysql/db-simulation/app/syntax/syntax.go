@@ -355,7 +355,7 @@ func (tf *TmysqlParseFile) checkSysDbOpInOneFile(sqlFile, version string,
 		if cmutil.ElementNotInArry(res.Command, []string{SQLTypeCreateDb, SQLTypeUseDb}) &&
 			(res.DbName == "" || slices.Contains(sysdbs, res.DbName)) {
 			tf.result[sqlFile].BanWarnings = append(tf.result[sqlFile].BanWarnings, RiskInfo{
-				Line:     int64(res.QueryId),
+				Line:     res.Line,
 				Sqltext:  res.QueryString,
 				WarnInfo: fmt.Sprintf("不允许直接在系统库%v,操作", targetDbs),
 			})
@@ -445,7 +445,7 @@ func (tf *TmysqlParseFile) checkConflictUsedbInOneFile(sqlFile, version string,
 				tf.result[sqlFile] = &CheckInfo{}
 			}
 			tf.result[sqlFile].BanWarnings = append(tf.result[sqlFile].BanWarnings, RiskInfo{
-				Line:    int64(res.QueryId),
+				Line:    res.Line,
 				Sqltext: res.QueryString,
 				WarnInfo: fmt.Sprintf("表单中输入的变更对象%v可能存在多个,但是SQL文件显示的使用use %s,可能会造成SQL文件重复执行,请正确理解表单语义,修改后在提交",
 					dbNames,
@@ -748,14 +748,14 @@ func (c *CheckInfo) parseResult(rule *RuleItem, res ParseLineQueryBase, ver stri
 	if matched {
 		if rule.Ban {
 			c.BanWarnings = append(c.BanWarnings, RiskInfo{
-				Line:        int64(res.QueryId),
+				Line:        res.Line,
 				Sqltext:     res.QueryString,
 				CommandType: res.Command,
 				WarnInfo:    fmt.Sprintf("[%s]: %s", ver, err.Error()),
 			})
 		} else {
 			c.RiskWarnings = append(c.RiskWarnings, RiskInfo{
-				Line:        int64(res.QueryId),
+				Line:        res.Line,
 				Sqltext:     res.QueryString,
 				CommandType: res.Command,
 				WarnInfo:    fmt.Sprintf("[%s]: %s", ver, err.Error()),
@@ -839,7 +839,7 @@ func (t *TmysqlParse) getSyntaxErrorResult(res ParseLineQueryBase, mysqlVersion 
 		errMsg = fmt.Sprintf("[%s]: %s", fmt.Sprintf("MySQL-%s.%s", vl[0], vl[1]), res.ErrorMsg)
 	}
 	return FailedInfo{
-		Line:      int64(res.QueryId),
+		Line:      res.ErrorLine,
 		Sqltext:   res.QueryString,
 		ErrorCode: int64(res.ErrorCode),
 		ErrorMsg:  errMsg,
@@ -897,7 +897,7 @@ func (t *TmysqlParse) AnalyzeOne(inputfileName, mysqlVersion, dbtype string) (er
 		if res.IsSysDb() {
 			t.mu.Lock()
 			checkResult.BanWarnings = append(checkResult.BanWarnings, RiskInfo{
-				Line:     int64(res.QueryId),
+				Line:     res.Line,
 				Sqltext:  res.QueryString,
 				WarnInfo: fmt.Sprintf("禁止操作系统库: %s", res.DbName),
 			})
@@ -917,7 +917,7 @@ func (t *TmysqlParse) AnalyzeOne(inputfileName, mysqlVersion, dbtype string) (er
 			if _, ok := t.TendbClusterSyntaxCheckOptions.FastCheckMap[res.Command]; ok {
 				if t.IsDisabledOperation(res.Command) {
 					checkResult.BanWarnings = append(checkResult.BanWarnings, RiskInfo{
-						Line:        int64(res.QueryId),
+						Line:        res.Line,
 						Sqltext:     res.QueryString,
 						CommandType: res.Command,
 						WarnInfo:    fmt.Sprintf("禁止操作: %s,需要开始请找DBA协商", res.Command),
@@ -1014,7 +1014,7 @@ func (c *CheckInfo) runSpidercheck(ddlTbls map[string][]string, res ParseLineQue
 	}
 	if len(result.BanWarns) > 0 {
 		c.BanWarnings = append(c.BanWarnings, RiskInfo{
-			Line:        int64(res.QueryId),
+			Line:        res.Line,
 			Sqltext:     res.QueryString,
 			CommandType: res.Command,
 			WarnInfo:    prettyErrorsOutput(result.BanWarns),
@@ -1022,7 +1022,7 @@ func (c *CheckInfo) runSpidercheck(ddlTbls map[string][]string, res ParseLineQue
 	}
 	if len(result.RiskWarns) > 0 {
 		c.RiskWarnings = append(c.RiskWarnings, RiskInfo{
-			Line:        int64(res.QueryId),
+			Line:        res.Line,
 			Sqltext:     res.QueryString,
 			CommandType: res.Command,
 			WarnInfo:    prettyErrorsOutput(result.RiskWarns),
@@ -1090,7 +1090,7 @@ func (c *CheckInfo) runcheck(res ParseLineQueryBase, bs []byte, mysqlVersion str
 	}
 	if len(result.BanWarns) > 0 {
 		c.BanWarnings = append(c.BanWarnings, RiskInfo{
-			Line:        int64(res.QueryId),
+			Line:        res.Line,
 			Sqltext:     res.QueryString,
 			CommandType: res.Command,
 			WarnInfo:    prettyErrorsOutput(result.BanWarns),
@@ -1098,7 +1098,7 @@ func (c *CheckInfo) runcheck(res ParseLineQueryBase, bs []byte, mysqlVersion str
 	}
 	if len(result.RiskWarns) > 0 {
 		c.RiskWarnings = append(c.RiskWarnings, RiskInfo{
-			Line:        int64(res.QueryId),
+			Line:        res.Line,
 			Sqltext:     res.QueryString,
 			CommandType: res.Command,
 			WarnInfo:    prettyErrorsOutput(result.RiskWarns),
