@@ -38,7 +38,16 @@ def replace_spider(cluster_ids: List[int], machine_type: MachineType, events: Li
     spider_master_events = []
     spider_slave_events = []
     for ev in events:
-        spider_role = ProxyInstance.objects.get(machine__ip=ev.ip, port=ev.port).tendbclusterspiderext.spider_role
+        try:
+            spider_role = ProxyInstance.objects.get(machine__ip=ev.ip, port=ev.port).tendbclusterspiderext.spider_role
+        except Exception:  # noqa
+            logger.exception(
+                "[tendbcluster.replace_spider] failed to get spider_role for ip=%s, port=%d",
+                ev.ip,
+                ev.port,
+            )
+            continue
+
         if spider_role == TenDBClusterSpiderRole.SPIDER_MASTER:
             spider_master_events.append(ev)
         elif spider_role == TenDBClusterSpiderRole.SPIDER_SLAVE:
@@ -85,7 +94,15 @@ def replace_spider_by_role(
 
     spider_old_ip_list = []
     for ev in events:
-        m = Machine.objects.get(bk_cloud_id=ev.bk_cloud_id, ip=ev.ip)
+        try:
+            m = Machine.objects.get(bk_cloud_id=ev.bk_cloud_id, ip=ev.ip)
+        except Exception:  # noqa
+            logger.exception(
+                "[tendbcluster.replace_spider_by_role] failed to get machine for ip=%s, bk_cloud_id=%d",
+                ev.ip,
+                ev.bk_cloud_id,
+            )
+            continue
         spider_old_ip_list.append(
             {
                 "bk_cloud_id": ev.bk_cloud_id,
@@ -95,6 +112,13 @@ def replace_spider_by_role(
                 "port": ev.port,
             }
         )
+
+    if not spider_old_ip_list:
+        logger.warning(
+            "[tendbcluster.replace_spider_by_role] no valid ip_list built, skipping, cluster_ids=%s",
+            cluster_ids,
+        )
+        return
 
     for p in ProxyInstance.objects.filter(cluster__pk__in=cluster_ids, tendbclusterspiderext__spider_role=spider_role):
         spec_ids.add(p.machine.spec_id)

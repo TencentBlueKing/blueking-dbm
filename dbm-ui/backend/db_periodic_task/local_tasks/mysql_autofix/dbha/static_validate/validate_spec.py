@@ -23,13 +23,20 @@ def validate_spec(events: List[MySQLDBHAEvent]) -> List[MySQLDBHAEvent]:
     """
     res = []
     for ev in events:
-        machine_obj = Machine.objects.get(bk_cloud_id=ev.bk_cloud_id, ip=ev.ip)
-        if machine_obj.spec_id <= 0:
-            logger.warning(
-                "[validate_spec] spec missing: check_id=%d, ip=%s, bk_cloud_id=%d", ev.check_id, ev.ip, ev.bk_cloud_id
-            )
-            ev.failed_validate_it("spec missing")
-        else:
-            res.append(ev)
+        try:
+            machine_obj = Machine.objects.get(bk_cloud_id=ev.bk_cloud_id, ip=ev.ip)
+            if machine_obj.spec_id <= 0:
+                logger.warning(
+                    "[validate_spec] spec missing: check_id=%d, ip=%s, bk_cloud_id=%d",
+                    ev.check_id,
+                    ev.ip,
+                    ev.bk_cloud_id,
+                )
+                ev.failed_validate_it("spec missing")
+            else:
+                res.append(ev)
+        except Exception:  # noqa
+            logger.exception("[validate_spec] failed for check_id=%d, ip=%s", ev.check_id, ev.ip)
+            ev.failed_validate_it("spec validate error")
 
     return res

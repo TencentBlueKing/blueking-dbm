@@ -52,67 +52,82 @@ def mysql_dbha_af_tracking_tickets():
     跟踪单据状态
     没必要开事务, 因为只有一次迭代求值
     """
-    af_tickets = MySQLDBHAAutofixTicketStageQueue.objects.only("ticket_id", "status", "cluster_id").filter(
-        status__in=AF_TICKET_RUNNING
-    )
-    logger.info("[tracking] found %d running tickets", af_tickets.count())
+    try:
+        af_tickets = MySQLDBHAAutofixTicketStageQueue.objects.only("ticket_id", "status", "cluster_id").filter(
+            status__in=AF_TICKET_RUNNING
+        )
+        logger.info("[tracking] found %d running tickets", af_tickets.count())
+    except Exception:  # noqa
+        logger.exception("[tracking] failed to query running tickets")
+        return
 
     need_warning: List[MySQLDBHAAutofixTicketStageQueue] = []
     for aftk in af_tickets:
-        tk = Ticket.objects.get(pk=aftk.ticket_id)
+        try:
+            tk = Ticket.objects.get(pk=aftk.ticket_id)
 
-        tracked_status = aftk.status
-        current_status = tk.status
+            tracked_status = aftk.status
+            current_status = tk.status
 
-        # 只有状态变化了才更新, 省点 qps
-        if tracked_status != current_status:
-            logger.info(
-                "[tracking] ticket_id=%d status changed: %s -> %s, cluster_id=%d",
-                aftk.ticket_id,
-                tracked_status,
-                current_status,
-                aftk.cluster_id,
-            )
-            aftk.status = tk.status
-            aftk.save(update_fields=["status"])
-
-            # 如果单据状态变成了 failed
-            if current_status in [TicketStatus.FAILED, TicketStatus.RESOURCE_REPLENISH]:
-                logger.warning(
-                    "[tracking] ticket_id=%d failed with status=%s, cluster_id=%d",
+            # 只有状态变化了才更新, 省点 qps
+            if tracked_status != current_status:
+                logger.info(
+                    "[tracking] ticket_id=%d status changed: %s -> %s, cluster_id=%d",
                     aftk.ticket_id,
+                    tracked_status,
                     current_status,
                     aftk.cluster_id,
                 )
-                need_warning.append(aftk)
+                aftk.status = tk.status
+                aftk.save(update_fields=["status"])
+
+                # 如果单据状态变成了 failed
+                if current_status in [TicketStatus.FAILED, TicketStatus.RESOURCE_REPLENISH]:
+                    logger.warning(
+                        "[tracking] ticket_id=%d failed with status=%s, cluster_id=%d",
+                        aftk.ticket_id,
+                        current_status,
+                        aftk.cluster_id,
+                    )
+                    need_warning.append(aftk)
+        except Exception:  # noqa
+            logger.exception(
+                "[tracking] failed to process ticket_id=%d, cluster_id=%d", aftk.ticket_id, aftk.cluster_id
+            )
 
     monitor_events = []
     for failed_tk in need_warning:
-        cluster_obj = Cluster.objects.get(pk=failed_tk.cluster_id)
+        try:
+            cluster_obj = Cluster.objects.get(pk=failed_tk.cluster_id)
 
-        monitor_events.append(
-            MonitorEvent(
-                event_name=MonitorEventType.MYSQL_DBHA_AUTOFIX_TICKET_FAILED,
-                target=cluster_obj.immute_domain,
-                event=BaseEventBody(
-                    content=f"{cluster_obj.immute_domain} {failed_tk.machine_type} autofix ticket failed"
-                ),
-                dimension={
-                    "appid": cluster_obj.bk_biz_id,
-                    "cluster_domain": cluster_obj.immute_domain,
-                    "cluster_type": cluster_obj.cluster_type,
-                    "bk_cloud_id": cluster_obj.bk_cloud_id,
-                    "machine_type": failed_tk.machine_type,
-                    "ticket_id": failed_tk.ticket_id,
-                    "ticket_status": failed_tk.status,
-                },
-                timestamp=0,
+            monitor_events.append(
+                MonitorEvent(
+                    event_name=MonitorEventType.MYSQL_DBHA_AUTOFIX_TICKET_FAILED,
+                    target=cluster_obj.immute_domain,
+                    event=BaseEventBody(
+                        content=f"{cluster_obj.immute_domain} {failed_tk.machine_type} autofix ticket failed"
+                    ),
+                    dimension={
+                        "appid": cluster_obj.bk_biz_id,
+                        "cluster_domain": cluster_obj.immute_domain,
+                        "cluster_type": cluster_obj.cluster_type,
+                        "bk_cloud_id": cluster_obj.bk_cloud_id,
+                        "machine_type": failed_tk.machine_type,
+                        "ticket_id": failed_tk.ticket_id,
+                        "ticket_status": failed_tk.status,
+                    },
+                    timestamp=0,
+                )
             )
-        )
+        except Exception:  # noqa
+            logger.exception("[tracking] failed to build alert for cluster_id=%d", failed_tk.cluster_id)
 
     if monitor_events:
-        BKMonitorV3EventApi.send_event(events=monitor_events)
-        logger.info("[tracking] sent %d failure alert events", len(monitor_events))
+        try:
+            BKMonitorV3EventApi.send_event(events=monitor_events)
+            logger.info("[tracking] sent %d failure alert events", len(monitor_events))
+        except Exception:  # noqa
+            logger.exception("[tracking] failed to send %d alert events", len(monitor_events))
 
 
 def _exclude_by_cluster_ids(
@@ -147,45 +162,49 @@ def mysql_dbha_af_commiter():
     排除粒度是 queue_uuid(一张单据), 不是单行记录.
     因为一个 queue_uuid 可能对应多个集群(机器共享场景).
     """
-    with transaction.atomic():
-        uncommit_tickets = list(MySQLDBHAAutofixTicketStageQueue.objects.filter(status=TicketQueueUncommitStatus))
+    try:
+        with transaction.atomic():
+            uncommit_tickets = list(MySQLDBHAAutofixTicketStageQueue.objects.filter(status=TicketQueueUncommitStatus))
 
-        # 超过 48 小时未提交的单据标记为超时, 不再参与调度
-        timeout_threshold = timezone.now() - timedelta(hours=48)
-        timed_out = [ut for ut in uncommit_tickets if ut.create_at < timeout_threshold]
-        if timed_out:
-            timed_out_uuids = {ut.queue_uuid for ut in timed_out}
-            MySQLDBHAAutofixTicketStageQueue.objects.filter(queue_uuid__in=timed_out_uuids).update(
-                status=TicketQueueWaitTimeout
+            # 超过 48 小时未提交的单据标记为超时, 不再参与调度
+            timeout_threshold = timezone.now() - timedelta(hours=48)
+            timed_out = [ut for ut in uncommit_tickets if ut.create_at < timeout_threshold]
+            if timed_out:
+                timed_out_uuids = {ut.queue_uuid for ut in timed_out}
+                MySQLDBHAAutofixTicketStageQueue.objects.filter(queue_uuid__in=timed_out_uuids).update(
+                    status=TicketQueueWaitTimeout
+                )
+                logger.warning("[commiter] timed out queue_uuids (>48h): %s", timed_out_uuids)
+                uncommit_tickets = [ut for ut in uncommit_tickets if ut.queue_uuid not in timed_out_uuids]
+
+            tickets_by_priority = defaultdict(list)
+            for ut in uncommit_tickets:
+                tickets_by_priority[ut.priority].append(ut)
+
+            p1 = tickets_by_priority[MySQLDBHAAutofixTicketPriority.P1.value]
+            p2 = tickets_by_priority[MySQLDBHAAutofixTicketPriority.P2.value]
+            p3 = tickets_by_priority[MySQLDBHAAutofixTicketPriority.P3.value]
+
+            logger.info(
+                "[commiter] uncommit queue_uuids: p1=%s, p2=%s, p3=%s",
+                [ut.queue_uuid for ut in p1],
+                [ut.queue_uuid for ut in p2],
+                [ut.queue_uuid for ut in p3],
             )
-            logger.warning("[commiter] timed out queue_uuids (>48h): %s", timed_out_uuids)
-            uncommit_tickets = [ut for ut in uncommit_tickets if ut.queue_uuid not in timed_out_uuids]
 
-        tickets_by_priority = defaultdict(list)
-        for ut in uncommit_tickets:
-            tickets_by_priority[ut.priority].append(ut)
+            # 找出还有自愈单在跑的集群
+            busy_cluster_ids: Set[int] = set()
+            for pt in uncommit_tickets:
+                if MySQLDBHAAutofixTicketStageQueue.objects.filter(
+                    status__in=AF_TICKET_RUNNING, cluster_id=pt.cluster_id
+                ).exists():
+                    busy_cluster_ids.add(pt.cluster_id)
 
-        p1 = tickets_by_priority[MySQLDBHAAutofixTicketPriority.P1.value]
-        p2 = tickets_by_priority[MySQLDBHAAutofixTicketPriority.P2.value]
-        p3 = tickets_by_priority[MySQLDBHAAutofixTicketPriority.P3.value]
-
-        logger.info(
-            "[commiter] uncommit queue_uuids: p1=%s, p2=%s, p3=%s",
-            [ut.queue_uuid for ut in p1],
-            [ut.queue_uuid for ut in p2],
-            [ut.queue_uuid for ut in p3],
-        )
-
-        # 找出还有自愈单在跑的集群
-        busy_cluster_ids: Set[int] = set()
-        for pt in uncommit_tickets:
-            if MySQLDBHAAutofixTicketStageQueue.objects.filter(
-                status__in=AF_TICKET_RUNNING, cluster_id=pt.cluster_id
-            ).exists():
-                busy_cluster_ids.add(pt.cluster_id)
-
-        if busy_cluster_ids:
-            logger.info("[commiter] clusters with unfinished autofix: %s", busy_cluster_ids)
+            if busy_cluster_ids:
+                logger.info("[commiter] clusters with unfinished autofix: %s", busy_cluster_ids)
+    except Exception:  # noqa
+        logger.exception("[commiter] failed during query/transaction phase")
+        return
 
     # 第一轮排除: 集群还有自愈单在跑 → 关联的 queue_uuid 整体等待
     p1 = _exclude_by_cluster_ids(p1, busy_cluster_ids)
@@ -239,8 +258,8 @@ def mysql_dbha_af_schedule():
     用 uuid4 生成, uuid1 长太像了, 容易搞错
     """
     if mysql_dbha_af_schedule_lock.acquire(blocking=False):
+        af_uuid = uuid.uuid4().__str__()
         try:
-            af_uuid = uuid.uuid4().__str__()
             logger.info("[schedule] start, af_uuid=%s", af_uuid)
 
             # af_uuid 字段默认是 "", 不要用 is null 查询
@@ -296,8 +315,11 @@ def mysql_dbha_af_schedule():
                 )
 
             if monitor_events:
-                BKMonitorV3EventApi.send_event(events=monitor_events)
-                logger.info("[schedule] sent %d validation failure alerts", len(monitor_events))
+                try:
+                    BKMonitorV3EventApi.send_event(events=monitor_events)
+                    logger.info("[schedule] sent %d validation failure alerts", len(monitor_events))
+                except Exception:  # noqa
+                    logger.exception("[schedule] failed to send %d validation failure alerts", len(monitor_events))
 
             # 过滤掉机器所有实例没上报全的 event
             # 被排除的 event 留给下一轮
@@ -313,26 +335,37 @@ def mysql_dbha_af_schedule():
             logger.info("[schedule] aggregated into %d groups", len(agg_events))
 
             for k, v in agg_events.items():
-                cluster_ids = json.loads(k)
-                cluster_type = Cluster.objects.filter(pk__in=cluster_ids).only("cluster_type").first().cluster_type
-                logger.info(
-                    "[schedule] processing group: cluster_ids=%s, cluster_type=%s, machine_types=%s",
-                    cluster_ids,
-                    cluster_type,
-                    list(v.keys()),
-                )
-                if cluster_type == ClusterType.TenDBSingle:
-                    pass
-                elif cluster_type == ClusterType.TenDBHA:
-                    tendbha.autofix(cluster_ids=cluster_ids, events_by_machine_type=v)
-                elif cluster_type == ClusterType.TenDBCluster:
-                    tendbcluster.autofix(cluster_ids=cluster_ids, events_by_machine_type=v)
-                else:
-                    logger.warning(
-                        "[schedule] unexpected cluster_type=%s for cluster_ids=%s, skipping", cluster_type, cluster_ids
+                try:
+                    cluster_ids = json.loads(k)
+                    cluster_obj = Cluster.objects.filter(pk__in=cluster_ids).only("cluster_type").first()
+                    if cluster_obj is None:
+                        logger.warning("[schedule] no cluster found for cluster_ids=%s, skipping", cluster_ids)
+                        continue
+                    cluster_type = cluster_obj.cluster_type
+                    logger.info(
+                        "[schedule] processing group: cluster_ids=%s, cluster_type=%s, machine_types=%s",
+                        cluster_ids,
+                        cluster_type,
+                        list(v.keys()),
                     )
+                    if cluster_type == ClusterType.TenDBSingle:
+                        pass
+                    elif cluster_type == ClusterType.TenDBHA:
+                        tendbha.autofix(cluster_ids=cluster_ids, events_by_machine_type=v)
+                    elif cluster_type == ClusterType.TenDBCluster:
+                        tendbcluster.autofix(cluster_ids=cluster_ids, events_by_machine_type=v)
+                    else:
+                        logger.warning(
+                            "[schedule] unexpected cluster_type=%s for cluster_ids=%s, skipping",
+                            cluster_type,
+                            cluster_ids,
+                        )
+                except Exception:  # noqa
+                    logger.exception("[schedule] failed to process group: cluster_ids_key=%s", k)
 
             logger.info("[schedule] done, af_uuid=%s", af_uuid)
+        except Exception:  # noqa
+            logger.exception("[schedule] unexpected error, af_uuid=%s", af_uuid)
         finally:
             mysql_dbha_af_schedule_lock.release()
     else:

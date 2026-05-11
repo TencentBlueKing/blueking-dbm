@@ -34,30 +34,37 @@ def repair_ro_slaves_replicate(cluster_ids: List[int], machine_type: MachineType
     # 有可能, 共享了 master 机器的集群, 只有部分存在 ro slave
     infos = []
     for ev in events:
-        cluster_obj = Cluster.objects.only("pk", "bk_cloud_id").get(pk=ev.cluster_id, cluster_type=ev.cluster_type)
-        ro_slaves = (
-            cluster_obj.storageinstance_set.select_related("machine")
-            .only("port", "machine__ip")
-            .filter(is_stand_by=False, instance_role=InstanceRole.BACKEND_SLAVE, status=InstanceStatus.RUNNING)
-        )
-        if ro_slaves.exists():
-            # 不需要考虑一个集群有多个 event 的情况, 因为只会有一个 master
-            # 机器连续挂时, 第二次 dbha 是失败的, 不会触发自愈
-            # ToDo 理论上, 这里应该检查下 cluster 当前的 master 是不是真的和 event 的 new_master_xx 相同
-            infos.append(
-                {
-                    "bk_cloud_id": cluster_obj.bk_cloud_id,
-                    "cluster_id": cluster_obj.pk,
-                    "new_master_address": cluster_obj.storageinstance_set.select_related("machine")
-                    .only("port", "machine__ip")
-                    .get(is_stand_by=True, instance_role=InstanceRole.BACKEND_MASTER)
-                    .ip_port,
-                    "new_master_log_file": ev.new_master_log_file,
-                    "new_master_log_pos": ev.new_master_log_pos,
-                    "old_master_address": f"{ev.ip}:{ev.port}",
-                    "ro_slave_addresses": [rs.ip_port for rs in ro_slaves],
-                    "check_id": ev.check_id,
-                }
+        try:
+            cluster_obj = Cluster.objects.only("pk", "bk_cloud_id").get(pk=ev.cluster_id, cluster_type=ev.cluster_type)
+            ro_slaves = (
+                cluster_obj.storageinstance_set.select_related("machine")
+                .only("port", "machine__ip")
+                .filter(is_stand_by=False, instance_role=InstanceRole.BACKEND_SLAVE, status=InstanceStatus.RUNNING)
+            )
+            if ro_slaves.exists():
+                # 不需要考虑一个集群有多个 event 的情况, 因为只会有一个 master
+                # 机器连续挂时, 第二次 dbha 是失败的, 不会触发自愈
+                # ToDo 理论上, 这里应该检查下 cluster 当前的 master 是不是真的和 event 的 new_master_xx 相同
+                infos.append(
+                    {
+                        "bk_cloud_id": cluster_obj.bk_cloud_id,
+                        "cluster_id": cluster_obj.pk,
+                        "new_master_address": cluster_obj.storageinstance_set.select_related("machine")
+                        .only("port", "machine__ip")
+                        .get(is_stand_by=True, instance_role=InstanceRole.BACKEND_MASTER)
+                        .ip_port,
+                        "new_master_log_file": ev.new_master_log_file,
+                        "new_master_log_pos": ev.new_master_log_pos,
+                        "old_master_address": f"{ev.ip}:{ev.port}",
+                        "ro_slave_addresses": [rs.ip_port for rs in ro_slaves],
+                        "check_id": ev.check_id,
+                    }
+                )
+        except Exception:  # noqa
+            logger.exception(
+                "[tendbha.repair_ro_slaves] failed for check_id=%d, cluster_id=%d",
+                ev.check_id,
+                ev.cluster_id,
             )
 
     if infos:
@@ -135,7 +142,14 @@ def replace_slave(cluster_ids: List[int], machine_type: MachineType, events: Lis
 
     infos = []
     for ip in ips:
-        machine_obj = Machine.objects.get(bk_cloud_id=bk_cloud_id, ip=ip)
+        try:
+            machine_obj = Machine.objects.get(bk_cloud_id=bk_cloud_id, ip=ip)
+        except Exception:  # noqa
+            logger.exception(
+                "[tendbha.replace_slave] failed to get machine for ip=%s, bk_cloud_id=%d", ip, bk_cloud_id
+            )
+            continue
+
         ip_events = [ev for ev in events if ev.ip == ip]
         info = {
             "old_nodes": {"old_slave": []},
@@ -157,6 +171,10 @@ def replace_slave(cluster_ids: List[int], machine_type: MachineType, events: Lis
 
         info["old_nodes"]["old_slave"] = old_slaves
         infos.append(info)
+
+    if not infos:
+        logger.warning("[tendbha.replace_slave] no valid infos built, skipping, cluster_ids=%s", cluster_ids)
+        return
 
     dbas = events[0].dbas()
     queue_uuid = uuid.uuid4().__str__()
