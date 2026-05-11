@@ -33,7 +33,16 @@ def replace_remote(cluster_ids: List[int], machine_type: MachineType, events: Li
 
     infos = []
     for ip in ips:
-        machine_obj = Machine.objects.get(bk_cloud_id=bk_cloud_id, ip=ip)
+        try:
+            machine_obj = Machine.objects.get(bk_cloud_id=bk_cloud_id, ip=ip)
+        except Exception:  # noqa
+            logger.exception(
+                "[tendbcluster.replace_remote] failed to get machine for ip=%s, bk_cloud_id=%d",
+                ip,
+                bk_cloud_id,
+            )
+            continue
+
         ip_events = [ev for ev in events if ev.ip == ip]
         info: Dict[str, Any] = {
             "old_nodes": {"old_slave": []},
@@ -55,6 +64,10 @@ def replace_remote(cluster_ids: List[int], machine_type: MachineType, events: Li
 
         info["old_nodes"]["old_slave"] = old_slaves
         infos.append(info)
+
+    if not infos:
+        logger.warning("[tendbcluster.replace_remote] no valid infos built, skipping, cluster_ids=%s", cluster_ids)
+        return
 
     dbas = events[0].dbas()
     queue_uuid = uuid.uuid4().__str__()

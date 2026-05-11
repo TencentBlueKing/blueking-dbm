@@ -37,23 +37,27 @@ def filter_ready_events(events: List[MySQLDBHAEvent]) -> List[MySQLDBHAEvent]:
         port_counter_dict[key].add(ev.port)
 
     for (check_id, ip, machine_type, bk_cloud_id), ports in port_counter_dict.items():
-        if machine_type in [MachineType.PROXY, MachineType.SPIDER]:
-            insts = ProxyInstance.objects.filter(machine__ip=ip, machine__bk_cloud_id=bk_cloud_id)
-        else:
-            insts = StorageInstance.objects.filter(machine__ip=ip, machine__bk_cloud_id=bk_cloud_id)
+        try:
+            if machine_type in [MachineType.PROXY, MachineType.SPIDER]:
+                insts = ProxyInstance.objects.filter(machine__ip=ip, machine__bk_cloud_id=bk_cloud_id)
+            else:
+                insts = StorageInstance.objects.filter(machine__ip=ip, machine__bk_cloud_id=bk_cloud_id)
 
-        expected_count = insts.count()
-        if expected_count != len(ports):
-            logger.info(
-                "[filter_ready] not ready: check_id=%d, ip=%s, machine_type=%s, bk_cloud_id=%d, "
-                "reported_ports=%s, expected_count=%d",
-                check_id,
-                ip,
-                machine_type,
-                bk_cloud_id,
-                ports,
-                expected_count,
-            )
+            expected_count = insts.count()
+            if expected_count != len(ports):
+                logger.info(
+                    "[filter_ready] not ready: check_id=%d, ip=%s, machine_type=%s, bk_cloud_id=%d, "
+                    "reported_ports=%s, expected_count=%d",
+                    check_id,
+                    ip,
+                    machine_type,
+                    bk_cloud_id,
+                    ports,
+                    expected_count,
+                )
+                not_ready_check_ids.append(check_id)
+        except Exception:  # noqa
+            logger.exception("[filter_ready] failed to check check_id=%d, ip=%s", check_id, ip)
             not_ready_check_ids.append(check_id)
 
     # 未准备好的 event 置空 af_uuid, 让它们可以在下一轮被选中

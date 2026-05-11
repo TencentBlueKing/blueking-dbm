@@ -49,5 +49,8 @@ def validate_target(events: List[MySQLDBHAEvent]) -> List[MySQLDBHAEvent]:
                 ev.machine_type,
             )
             ev.failed_validate_it(f"unavailable online {ev.machine_type} slave not found for {ev}")
+        except Exception:  # noqa
+            logger.exception("[validate_target] unexpected error for check_id=%d, ip=%s", ev.check_id, ev.ip)
+            ev.failed_validate_it(f"validate target error for {ev}")
 
     return res

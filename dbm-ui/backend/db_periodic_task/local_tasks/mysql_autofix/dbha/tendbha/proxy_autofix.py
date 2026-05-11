@@ -38,10 +38,19 @@ def replace_proxy(cluster_ids: List[int], machine_type: MachineType, events: Lis
     proxy_infos = []
     # proxy 替换协议的这个 field 实际是机器级别
     for (bk_cloud_id, ip) in {(ev.bk_cloud_id, ev.ip) for ev in events}:
-        # for ev in events:
-        m = Machine.objects.get(bk_cloud_id=bk_cloud_id, ip=ip)
+        try:
+            m = Machine.objects.get(bk_cloud_id=bk_cloud_id, ip=ip)
+        except Exception:  # noqa
+            logger.exception(
+                "[tendbha.replace_proxy] failed to get machine for ip=%s, bk_cloud_id=%d", ip, bk_cloud_id
+            )
+            continue
         d = {"bk_cloud_id": bk_cloud_id, "ip": ip, "bk_host_id": m.bk_host_id, "bk_biz_id": m.bk_biz_id, "port": 0}
         proxy_infos.append(d)
+
+    if not proxy_infos:
+        logger.warning("[tendbha.replace_proxy] no valid proxy_infos built, skipping, cluster_ids=%s", cluster_ids)
+        return
 
     # 统计相关集群所有 proxy 的 spec id
     for p in ProxyInstance.objects.filter(cluster__pk__in=cluster_ids):
