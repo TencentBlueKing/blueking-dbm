@@ -559,7 +559,8 @@ class RedisClusterAddSlaveFlow(object):
                 sub_pipeline.build_sub_process(sub_name=_("Redis-{}-新建从库").format(cluster_info["immute_domain"]))
             )
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        return redis_pipeline.run_pipeline()
+        # return redis_pipeline.run_pipeline()
+        return redis_pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=cluster_ids)
 
     def precheck(self):
         """

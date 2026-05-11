@@ -38,6 +38,16 @@ class RedisSlowlog4InstInputSerializer(serializers.Serializer):
     port = serializers.IntegerField(help_text=_("实例端口"))
 
 
+class RedisSlowlogQueryInputSerializer(serializers.Serializer):
+    """Redis 慢查询日志查询输入序列化器"""
+
+    start_time = serializers.DateTimeField(help_text=_("开始时间"))
+    end_time = serializers.DateTimeField(help_text=_("结束时间"))
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    ip = serializers.CharField(help_text=_("主机IP，不传则查询整个集群的统计数据"), required=False, allow_null=True)
+    port = serializers.IntegerField(help_text=_("实例端口，配合IP使用，不传则查询整台机器"), required=False, allow_null=True)
+
+
 class RedisSlowlogEntrySerializer(serializers.Serializer):
     """Redis慢查询日志条目"""
 
@@ -134,6 +144,16 @@ class RedisBigkey4HostInputSerializer(serializers.Serializer):
     port = serializers.IntegerField(help_text=_("实例端口，不传则查询整台机器"), required=False, allow_null=True)
 
 
+class RedisBigkeyQueryInputSerializer(serializers.Serializer):
+    """Redis大key日志查询输入序列化器"""
+
+    start_time = serializers.DateTimeField(help_text=_("开始时间"))
+    end_time = serializers.DateTimeField(help_text=_("结束时间"))
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    ip = serializers.CharField(help_text=_("主机IP，不传则查询整个集群的统计数据"), required=False, allow_null=True)
+    port = serializers.IntegerField(help_text=_("实例端口，配合IP使用，不传则查询整台机器"), required=False, allow_null=True)
+
+
 class RedisBigkeyEntrySerializer(serializers.Serializer):
     """单条大key日志条目"""
 
@@ -202,6 +222,16 @@ class RedisServerlog4HostInputSerializer(serializers.Serializer):
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
     ip = serializers.CharField(help_text=_("主机IP"))
     port = serializers.IntegerField(help_text=_("实例端口，不传则查询整台机器"), required=False, allow_null=True)
+
+
+class RedisServerlogQueryInputSerializer(serializers.Serializer):
+    """Redis server log 查询输入序列化器"""
+
+    start_time = serializers.DateTimeField(help_text=_("开始时间"))
+    end_time = serializers.DateTimeField(help_text=_("结束时间"))
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    ip = serializers.CharField(help_text=_("主机IP，不传则查询整个集群的统计数据"), required=False, allow_null=True)
+    port = serializers.IntegerField(help_text=_("实例端口，配合IP使用，不传则查询整台机器"), required=False, allow_null=True)
 
 
 class RedisServerlogEntrySerializer(serializers.Serializer):

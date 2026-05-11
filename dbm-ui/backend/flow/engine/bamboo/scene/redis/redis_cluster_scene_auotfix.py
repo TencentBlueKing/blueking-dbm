@@ -207,8 +207,10 @@ class RedisClusterAutoFixSceneFlow(object):
     def start_redis_auotfix(self):
         redis_pipeline, act_kwargs = self.__init_builder(_("REDIS-故障自愈"))
         # sub_pipelines = []
+        cluster_ids = []
         for cluster_fix in self.data["infos"]:
             for cluster_id in cluster_fix["cluster_ids"]:
+                cluster_ids.append(int(cluster_id))
                 cluster_kwargs = deepcopy(act_kwargs)
                 cluster_info = self.get_cluster_info(self.data["bk_biz_id"], cluster_id)
                 flow_data = self.data
@@ -244,8 +246,8 @@ class RedisClusterAutoFixSceneFlow(object):
                     },
                 )
             # # #### 下架旧实例 ###################################################################### 完毕 ###
-
-        return redis_pipeline.run_pipeline()
+        return redis_pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=cluster_ids)
+        # return redis_pipeline.run_pipeline()
 
     # 组装&控制 集群替换流程
     def cluster_fix(self, flow_data, act_kwargs, fix_params):
