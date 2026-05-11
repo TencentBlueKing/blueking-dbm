@@ -692,3 +692,51 @@ def redis_memory_analysis(request, bk_biz_id, cluster_domain, ins):
 
     tk = Ticket.create_ticket(**ticket_param)
     return {"bill_id": tk.pk, "bill_url": tk.url}
+
+
+def redis_master_slave_switch(request, bk_biz_id, cluster_domain, master_ips):
+    """Redis集群主从切换（高危操作）"""
+    cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
+
+    # 去重，避免重复 IP 重复提单
+    unique_master_ips = list(dict.fromkeys(master_ips))
+
+    # 一次性批量查询集群下所有指定 master IP 对应的主从实例对，避免 N+1 查询
+    slave_tuples = StorageInstanceTuple.objects.select_related("ejector__machine", "receiver__machine").filter(
+        ejector__cluster=cluster_obj,
+        ejector__instance_role=InstanceRole.REDIS_MASTER.value,
+        ejector__machine__ip__in=unique_master_ips,
+    )
+
+    # 构建 master_ip -> slave_ip 映射
+    master_slave_map = {tuple_obj.ejector.machine.ip: tuple_obj.receiver.machine.ip for tuple_obj in slave_tuples}
+
+    # 一次性校验所有缺失的 IP，提供更友好的错误信息
+    missing_ips = [ip for ip in unique_master_ips if ip not in master_slave_map]
+    if missing_ips:
+        raise ValueError(f"集群 {cluster_domain} 中无法找到以下 master IP 对应的主从关系: {missing_ips}")
+
+    # 构建主从切换信息
+    switch_infos = [
+        {"redis_master": master_ip, "redis_slave": master_slave_map[master_ip]} for master_ip in unique_master_ips
+    ]
+
+    ticket_param = {
+        "bk_biz_id": bk_biz_id,
+        "creator": request.user.username,
+        "helpers": [],
+        "remark": "mcp redis master slave switch ticket (高危操作)",
+        "ticket_type": TicketType.REDIS_MASTER_SLAVE_SWITCH,
+        "details": {
+            "infos": [
+                {
+                    "cluster_ids": [cluster_obj.id],
+                    "pairs": switch_infos,
+                    "online_switch_type": "user_confirm",
+                }
+            ],
+        },
+    }
+
+    tk = Ticket.create_ticket(**ticket_param)
+    return {"bill_id": tk.pk, "bill_url": tk.url}

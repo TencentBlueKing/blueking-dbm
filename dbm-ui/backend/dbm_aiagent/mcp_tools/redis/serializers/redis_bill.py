@@ -90,3 +90,11 @@ class SubmitBillRedisVersionUpdateInputSerializer(SubmitBillRedisBaseInputSerial
     target_version = serializers.CharField(
         help_text="目标版本，格式为：twemproxy-0.4.1-v36|predixy-1.6.1|redis-6.2.7" "|tendisplus-2.7.6-rocksdb-v8.5.3"
     )
+
+
+class SubmitBillRedisMasterSlaveSwitchInputSerializer(SubmitBillRedisBaseInputSerializer):
+    """Redis主从切换序列化器"""
+
+    master_ips = serializers.ListField(
+        child=serializers.IPAddressField(), help_text=_("要切换的master IP列表"), min_length=1
+    )

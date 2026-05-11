@@ -521,8 +521,9 @@ class RedisBackendScaleFlow(object):
             需要注意： 这里得new_master/new_slave可以相同。需要提前处理一下
         """
         redis_pipeline = Builder(root_id=self.root_id, data=self.data)
-        sub_pipelines = []
+        sub_pipelines, cluster_ids = [], []
         for info in self.data["infos"]:
+            cluster_ids.append(int(info["cluster_id"]))
             cluster_info = self.get_cluster_info(
                 self.data["bk_biz_id"], info["cluster_id"], info.get("db_version", "")
             )
@@ -769,4 +770,5 @@ class RedisBackendScaleFlow(object):
             )
 
         redis_pipeline.add_parallel_sub_pipeline(sub_pipelines)
-        redis_pipeline.run_pipeline()
+        # redis_pipeline.run_pipeline()
+        redis_pipeline.run_pipeline_with_sidecar(check_ai_monitor_cluster_list=cluster_ids)

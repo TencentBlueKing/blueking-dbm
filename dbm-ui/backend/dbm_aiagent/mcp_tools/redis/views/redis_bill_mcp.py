@@ -22,6 +22,7 @@ from backend.dbm_aiagent.mcp_tools.redis.impl.redis_bill_impl import (
     redis_general_scale_down,
     redis_hotkey_analysis,
     redis_load_modules,
+    redis_master_slave_switch,
     redis_memory_analysis,
     redis_proxy_increase,
     redis_proxy_reduce,
@@ -41,6 +42,7 @@ from backend.dbm_aiagent.mcp_tools.redis.serializers.redis_bill import (
     SubmitBillRedisFullBackupInputSerializer,
     SubmitBillRedisKeyStatInputSerializer,
     SubmitBillRedisLoadModulesInputSerializer,
+    SubmitBillRedisMasterSlaveSwitchInputSerializer,
     SubmitBillRedisProxyReduceByIpInputSerializer,
     SubmitBillRedisProxyReduceOrIncreaseInputSerializer,
     SubmitBillRedisVersionUpdateInputSerializer,
@@ -282,6 +284,23 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         modules = self.get_param("modules")
 
         return Response(redis_load_modules(request, bk_biz_id, cluster_domain, modules))
+
+    @mcp_tools_api_decorator(
+        description=str(_("""Redis集群主从切换（高危操作）""")),
+        request_slz=SubmitBillRedisMasterSlaveSwitchInputSerializer,
+        response_slz=SubmitBillOutputSerializer,
+        permission_classes=[McpTicketToolPermission],
+        mcp_auth_parser=auth_parse_clusters,
+        tags=[DBMMCPTags.WRITE],
+        mcp=[DBMMcpTools.REDIS_BILL],
+        name_prefix="redis_bill",
+    )
+    def submit_bill_redis_master_slave_switch(self, request, *args, **kwargs):
+        bk_biz_id = self.get_param("bk_biz_id")
+        cluster_domain = self.get_param("cluster_domain")
+        master_ips = self.get_param("master_ips")
+
+        return Response(redis_master_slave_switch(request, bk_biz_id, cluster_domain, master_ips))
 
     # =========================== 集群常规操作类单据 end ===========================
 
