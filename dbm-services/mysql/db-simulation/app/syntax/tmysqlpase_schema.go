@@ -95,19 +95,19 @@ func init() {
 
 // ColDef mysql column definition
 type ColDef struct {
-	Type                string      `json:"type"`
-	ColName             string      `json:"col_name"`
-	DataType            string      `json:"data_type"`
-	FieldLength         int         `json:"field_length"`
-	Nullable            bool        `json:"nullable"`
-	DefaultVal          *DefaultVal `json:"default_val"`
-	AutoIncrement       bool        `json:"auto_increment"`
-	UniqueKey           bool        `json:"unique_key"`
-	PrimaryKey          bool        `json:"primary_key"`
-	Comment             string      `json:"comment"`
-	CharacterSet        string      `json:"character_set"`
-	Collate             string      `json:"collate"`
-	ReferenceDefinition interface{} `json:"reference_definition"`
+	Type                string               `json:"type"`
+	ColName             string               `json:"col_name"`
+	DataType            string               `json:"data_type"`
+	FieldLength         int                  `json:"field_length"`
+	Nullable            bool                 `json:"nullable"`
+	DefaultVal          *DefaultVal          `json:"default_val"`
+	AutoIncrement       bool                 `json:"auto_increment"`
+	UniqueKey           bool                 `json:"unique_key"`
+	PrimaryKey          bool                 `json:"primary_key"`
+	Comment             string               `json:"comment"`
+	CharacterSet        string               `json:"character_set"`
+	Collate             string               `json:"collate"`
+	ReferenceDefinition *ReferenceDefinition `json:"reference_definition"`
 }
 
 // IsNotAllowDefaultValCol tendbcluster 不允许某些类型的字段存在默认值的字段
@@ -150,6 +150,18 @@ type DefaultVal struct {
 	Value string `json:"value"`
 }
 
+// ReferenceDefinition foreign key reference definition
+// 对应 ColDef / KeyDef 中 reference_definition 字段，描述外键引用目标
+// JSON 中 ref_db / on_delete / on_update 可能为 null，按本文件其它可空字符串字段
+// （如 Comment / CharacterSet）的惯例统一用 string 接收 null（反序列化为 ""）
+type ReferenceDefinition struct {
+	RefDb      string   `json:"ref_db"`
+	RefTable   string   `json:"ref_table"`
+	RefColumns []string `json:"ref_columns"`
+	OnDelete   string   `json:"on_delete"`
+	OnUpdate   string   `json:"on_update"`
+}
+
 // KeyDef mysql index definition
 type KeyDef struct {
 	Type     string `json:"type"`
@@ -158,12 +170,12 @@ type KeyDef struct {
 		ColName string `json:"col_name"`
 		KeyLen  int    `json:"key_len"`
 	} `json:"key_parts"`
-	KeyAlg              string      `json:"key_alg"`
-	UniqueKey           bool        `json:"unique_key"`
-	PrimaryKey          bool        `json:"primary_key"`
-	Comment             string      `json:"comment"`
-	ForeignKey          bool        `json:"foreign_key"`
-	ReferenceDefinition interface{} `json:"reference_definition"`
+	KeyAlg              string               `json:"key_alg"`
+	UniqueKey           bool                 `json:"unique_key"`
+	PrimaryKey          bool                 `json:"primary_key"`
+	Comment             string               `json:"comment"`
+	ForeignKey          bool                 `json:"foreign_key"`
+	ReferenceDefinition *ReferenceDefinition `json:"reference_definition"`
 }
 
 // TableOption mysql table option definition
@@ -279,6 +291,8 @@ type ParseLineQueryBase struct {
 	MinMySQLVersion int    `json:"min_mysql_version"`
 	MaxMySQLVersion int    `json:"max_my_sql_version"`
 	HasSubQuery     bool   `json:"has_subquery,omitempty"`
+	Line            int64  `json:"line"`
+	ErrorLine       int64  `json:"error_line"`
 }
 
 // IsSysDb sql modify target db is sys db
@@ -372,6 +386,7 @@ type ParseIncludeTableBase struct {
 	Command   string `json:"command"`
 	DbName    string `json:"db_name"`
 	TableName string `json:"table_name"`
+	ErrorLine int64  `json:"error_line"`
 }
 
 type RenameTableResult struct {

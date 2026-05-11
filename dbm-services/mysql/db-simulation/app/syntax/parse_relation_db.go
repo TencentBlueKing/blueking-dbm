@@ -310,6 +310,58 @@ func (t *TmysqlParse) parseSpecialSQLFile(inputFileName, mysqlVersion string) (m
 		if lo.IsNotEmpty(baseRes.TableName) {
 			m[dbName] = append(m[dbName], baseRes.TableName)
 		}
+		// 额外解析 create_table / alter_table 中的外键引用 (reference_definition.ref_table)，
+		// 把被引用的目标表也纳入相关表集合，避免 dump 时漏掉外键依赖
+		if err = collectRefTables(line, dbName, baseRes.Command, m); err != nil {
+			return nil, err
+		}
 	}
 	return m, nil
+}
+
+// collectRefTables 解析 CREATE TABLE / ALTER TABLE 行中的外键引用，
+// 把被引用的表归并到对应库的相关表集合
+//   - 当 ref_db 为空时归属 currentDb（同库引用）；
+//   - 当 ref_db 非空时归属 ref_db（跨库引用）。
+//
+// 仅对 create_table / alter_table 做二次反序列化，其它命令直接跳过，避免无谓开销
+func collectRefTables(line []byte, currentDb, command string, m map[string][]string) error {
+	switch command {
+	case SQLTypeCreateTable:
+		var c CreateTableResult
+		if err := json.Unmarshal(line, &c); err != nil {
+			logger.Error("json unmarshal create_table line:%s failed %s", string(line), err.Error())
+			return err
+		}
+		for _, col := range c.CreateDefinitions.ColDefs {
+			addRefTable(m, currentDb, col.ReferenceDefinition)
+		}
+		for _, key := range c.CreateDefinitions.KeyDefs {
+			addRefTable(m, currentDb, key.ReferenceDefinition)
+		}
+	case SQLTypeAlterTable:
+		var a AlterTableResult
+		if err := json.Unmarshal(line, &a); err != nil {
+			logger.Error("json unmarshal alter_table line:%s failed %s", string(line), err.Error())
+			return err
+		}
+		for _, cmd := range a.AlterCommands {
+			addRefTable(m, currentDb, cmd.ColDef.ReferenceDefinition)
+			addRefTable(m, currentDb, cmd.KeyDef.ReferenceDefinition)
+		}
+	}
+	return nil
+}
+
+// addRefTable 将外键引用的目标表追加到 m
+// refDef 为 nil 或 RefTable 为空时跳过（没有外键引用）
+func addRefTable(m map[string][]string, currentDb string, refDef *ReferenceDefinition) {
+	if refDef == nil || refDef.RefTable == "" {
+		return
+	}
+	targetDb := refDef.RefDb
+	if targetDb == "" {
+		targetDb = currentDb
+	}
+	m[targetDb] = append(m[targetDb], refDef.RefTable)
 }
