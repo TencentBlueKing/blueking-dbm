@@ -145,7 +145,7 @@ func convertFromDBHA(list []*hamodel.DbmMetadata) []probeconfig.ProbeMetadataIte
 		out = append(out, probeconfig.ProbeMetadataItem{
 			IP:          m.IP,
 			Port:        m.Port,
-			AdminPort:   m.AdminPort,
+			AdminPort:   resolveAdminPort(m.AdminPort, string(m.InstanceRole)),
 			ClusterType: string(m.ClusterType),
 			MachineType: string(m.MachineType),
 			AccessLayer: string(m.AccessLayer),
@@ -161,13 +161,22 @@ func convertFromDBM(list []*dbm.DbInstMetadata) []probeconfig.ProbeMetadataItem 
 		out = append(out, probeconfig.ProbeMetadataItem{
 			IP:          m.IP,
 			Port:        m.Port,
-			AdminPort:   m.AdminPort,
+			AdminPort:   resolveAdminPort(m.AdminPort, string(m.InstanceRole)),
 			ClusterType: string(m.ClusterType),
 			MachineType: string(m.MachineType),
 			AccessLayer: string(m.AccessLayer),
 		})
 	}
 	return out
+}
+
+// resolveAdminPort drops admin port for spider_slave nodes so probe skips
+// admin-port rendering for them.
+func resolveAdminPort(adminPort int, instanceRole string) int {
+	if instanceRole == string(dbm.TenDBClusterProxySlave) {
+		return 0
+	}
+	return adminPort
 }
 
 // getMetadataFromDBHA queries t_dbm_metadata by bk_cloud_id and ip.
