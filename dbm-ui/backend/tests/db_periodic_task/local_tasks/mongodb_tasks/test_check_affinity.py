@@ -25,11 +25,13 @@ class TestCheckAffinityRules:
             disaster_tolerance_level=AffinityEnum.CROS_SUBZONE,
             zone_list={"1", "2"},
             actual_sub_zone_set={"1", "2"},
+            actual_region_set={"南京"},
             actual_rack_set={"11", "12"},
             component_nodes=[
                 {"actual_sub_zone": "1", "actual_rack": "11"},
                 {"actual_sub_zone": "2", "actual_rack": "12"},
             ],
+            cluster_region="南京",
         )
         assert ret["state"] == ReportStateType.NORMAL.value
         assert ret["msg"] == ""
@@ -39,11 +41,13 @@ class TestCheckAffinityRules:
             disaster_tolerance_level=AffinityEnum.CROS_SUBZONE,
             zone_list={"1", "2"},
             actual_sub_zone_set={"1", "3"},
+            actual_region_set={"南京"},
             actual_rack_set={"11", "12"},
             component_nodes=[
                 {"actual_sub_zone": "1", "actual_rack": "11"},
                 {"actual_sub_zone": "3", "actual_rack": "12"},
             ],
+            cluster_region="南京",
         )
         assert ret["state"] == ReportStateType.ABNORMAL.value
         assert "zone_list mismatch" in ret["msg"]
@@ -53,11 +57,13 @@ class TestCheckAffinityRules:
             disaster_tolerance_level=AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
             zone_list={"1"},
             actual_sub_zone_set={"1", "2"},
+            actual_region_set={"南京"},
             actual_rack_set={"11", "99"},
             component_nodes=[
                 {"actual_sub_zone": "1", "actual_rack": "11", "instance_role": "MONGO_DATA"},
                 {"actual_sub_zone": "2", "actual_rack": "99", "instance_role": "MONGO_BACKUP"},
             ],
+            cluster_region="南京",
         )
         assert ret["state"] == ReportStateType.ABNORMAL.value
         assert "at least 2 racks for non-backup nodes" in ret["msg"]
@@ -67,29 +73,32 @@ class TestCheckAffinityRules:
             disaster_tolerance_level=AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
             zone_list={"1"},
             actual_sub_zone_set={"1", "2"},
+            actual_region_set={"南京"},
             actual_rack_set={"11", "12", "99"},
             component_nodes=[
                 {"actual_sub_zone": "1", "actual_rack": "11", "instance_role": "MONGO_DATA"},
                 {"actual_sub_zone": "1", "actual_rack": "12", "instance_role": "MONGO_DATA"},
                 {"actual_sub_zone": "2", "actual_rack": "99", "instance_role": "MONGO_BACKUP"},
             ],
+            cluster_region="南京",
         )
         assert ret["state"] == ReportStateType.NORMAL.value
 
-    def test_empty_zone_list_returns_warning(self, check_affinity_module):
-        # NONE 不做 zone_list 提示；用跨园区等非 NONE 且允许空 zone_list 的场景验证告警
+    def test_cross_subzone_weak_allows_empty_zone_list(self, check_affinity_module):
         ret = check_affinity_module.CheckMongodbAffinityTask().check_affinity_rules(
-            disaster_tolerance_level=AffinityEnum.CROS_SUBZONE,
+            disaster_tolerance_level=AffinityEnum.CROSS_SUBZONE_WEAK,
             zone_list=set(),
             actual_sub_zone_set={"1", "2"},
+            actual_region_set={"南京"},
             actual_rack_set={"11", "12"},
             component_nodes=[
                 {"actual_sub_zone": "1", "actual_rack": "11"},
                 {"actual_sub_zone": "2", "actual_rack": "12"},
             ],
+            cluster_region="南京",
         )
-        assert ret["state"] == ReportStateType.WARNING.value
-        assert "zone_list is empty" in ret["msg"]
+        assert ret["state"] == ReportStateType.NORMAL.value
+        assert ret["msg"] == ""
 
 
 class TestTopologyHelpers:

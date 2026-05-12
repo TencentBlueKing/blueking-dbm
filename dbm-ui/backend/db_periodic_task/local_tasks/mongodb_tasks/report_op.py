@@ -125,16 +125,14 @@ class ClusterReport:
         cluster_status = True
         cluster_msg = f"{total_num} checks, normal: {normal_num}"
 
+        # 汇总状态. 如果已经有异常记录了，汇总状态标记为低级别，这样在页面上看会简单一点.
         if warning_num > 0:
-            cluster_status = False
-            cluster_state = ReportStateType.WARNING.value
             cluster_msg += f", warning: {warning_num}"
 
         if abnormal_num > 0:
-            cluster_status = False
-            cluster_state = ReportStateType.ABNORMAL.value
             cluster_msg += f", abnormal: {abnormal_num}"
 
+        # 整个集群没有记录，标记为异常
         if total_num == 0:
             cluster_status = False
             cluster_state = ReportStateType.ABNORMAL.value

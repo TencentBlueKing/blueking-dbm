@@ -18,7 +18,11 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import DBType
 from backend.db_report import mock_data
 from backend.db_report.enums import SWAGGER_TAG, ReportFieldFormat, ReportType
-from backend.db_report.enums.mongodb_check_sub_type import MongodbBackupCheckSubType, MongodbExporterCheckSubType
+from backend.db_report.enums.mongodb_check_sub_type import (
+    MongodbAffinityCheckSubType,
+    MongodbBackupCheckSubType,
+    MongodbExporterCheckSubType,
+)
 from backend.db_report.models.monogdb_check_report import MongodbBackupCheckReport
 from backend.db_report.register import register_report
 from backend.db_report.report_baseview import ReportBaseViewSet
@@ -33,6 +37,7 @@ class MongodbBackupCheckReportSerializer(serializers.ModelSerializer):
             "bk_biz_id",
             "cluster",
             "cluster_type",
+            "shard",
             "instance",
             "msg",
             "create_at",
@@ -122,6 +127,30 @@ class MongodbExporterCheckReportViewSet(MongodbBackupCheckReportBaseViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("MongoDB Exporter检查报告"),
+        responses={status.HTTP_200_OK: MongodbBackupCheckReportSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+
+@register_report(DBType.MongoDB)
+class MongodbAffinityCheckReportViewSet(MongodbBackupCheckReportBaseViewSet):
+    queryset = MongodbBackupCheckReport.objects.filter(subtype=MongodbAffinityCheckSubType.ClusterAffinity.value)
+    serializer_class = MongodbBackupCheckReportSerializer
+    report_type = ReportType.AFFINITY_CHECK
+    report_title = [
+        *MongodbBackupCheckReportBaseViewSet.report_title[:2],
+        {
+            "name": "shard",
+            "display_name": _("检查对象"),
+            "format": ReportFieldFormat.TEXT.value,
+        },
+        *MongodbBackupCheckReportBaseViewSet.report_title[2:],
+    ]
+
+    @common_swagger_auto_schema(
+        operation_summary=_("MongoDB 亲和性检查报告"),
         responses={status.HTTP_200_OK: MongodbBackupCheckReportSerializer()},
         tags=[SWAGGER_TAG],
     )
