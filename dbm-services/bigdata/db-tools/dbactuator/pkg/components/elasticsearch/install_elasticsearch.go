@@ -40,7 +40,7 @@ type InstallEsParams struct {
 	HTTPPort       int             `json:"http_port" `                      // http端口
 	MasterIP       string          `json:"master_ip"`                       // master ip, eg: ip1,ip2,ip3
 	MasterNodename string          `json:"master_nodename" `                // master ip, eg: ip1,ip2,ip3
-	JvmMem         string          `json:"jvm_mem"`                         //  eg: 10g
+	JvmMem         string          `json:"jvm_mem"`                         // eg: 10g
 	Host           string          `json:"host" validate:"required,ip" `
 	HotInstances   int             `json:"hot_instances"`   // 热节点实例数
 	ColdInstances  int             `json:"cold_instances" ` // 冷节点实例数
@@ -52,6 +52,9 @@ type InstallEsParams struct {
 	BkBizID        int             `json:"bk_biz_id"`
 	DbType         string          `json:"db_type"`
 	ServiceType    string          `json:"service_type"`
+	RackID         string          `json:"rack_id"`     // 机架id
+	IdcID          string          `json:"idc_id"`      // 机房id
+	SubZoneID      string          `json:"sub_zone_id"` // 园区id
 }
 
 // InitDirs TODO
@@ -74,18 +77,21 @@ type ESYaml struct {
 	ClusterName                           string `yaml:"cluster.name"` // cluster.name
 	NodeName                              string `yaml:"node.name"`    // node.name
 	NodeAttrTag                           string `yaml:"node.attr.tag"`
-	NetworkHost                           string `yaml:"network.host"`         // network.host
-	NetworkPublishhost                    string `yaml:"network.publish_host"` // network.publish_host
-	NodeData                              bool   `yaml:"node.data"`            //  node.data
-	NodeIngest                            bool   `yaml:"node.ingest"`          // node.Ingest
-	NodeMaster                            bool   `yaml:"node.master"`          //  node.master
+	NodeAttrRackID                        string `yaml:"node.attr.rack_id"`     // 机架id
+	NodeAttrIdcID                         string `yaml:"node.attr.idc_id"`      // 机房id
+	NodeAttrSubZoneID                     string `yaml:"node.attr.sub_zone_id"` //园区id
+	NetworkHost                           string `yaml:"network.host"`          // network.host
+	NetworkPublishhost                    string `yaml:"network.publish_host"`  // network.publish_host
+	NodeData                              bool   `yaml:"node.data"`             // node.data
+	NodeIngest                            bool   `yaml:"node.ingest"`           // node.Ingest
+	NodeMaster                            bool   `yaml:"node.master"`           // node.master
 	NodeMl                                bool   `yaml:"node.ml"`
 	HTTPPort                              int    `yaml:"http.port"`            //  http.port
 	PathData                              string `yaml:"path.data"`            // path.data
 	PathLogs                              string `yaml:"path.logs"`            // path.logs
 	DiscoverySeedHosts                    string `yaml:"discovery.seed_hosts"` // discovery.seed_hosts
 	ClusterInitialMasterNodes             string `yaml:"cluster.initial_master_nodes"`
-	Processors                            int    `yaml:"processors"` // rrocessors
+	Processors                            int    `yaml:"processors"` // processors
 	BootstrapMemoryLock                   bool   `yaml:"bootstrap.memory_lock"`
 	BootstrapSystemCallFilter             bool   `yaml:"bootstrap.system_call_filter"`
 	XpackMonitoringCollectionEnabled      bool   `yaml:"xpack.monitoring.collection.enabled"`
@@ -293,6 +299,9 @@ func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
 		port           = i.Params.HTTPPort
 		esBaseDir      = fmt.Sprintf("%s/elasticsearch-%s", cst.DefaulEsEnv, ver)
 		esConfig       = i.Params.EsConfigs
+		rackID         = i.Params.RackID
+		idcID          = i.Params.IdcID
+		subZoneID      = i.Params.SubZoneID
 	)
 	isMaster, isData := esutil.GetTfByRole(role)
 	roleSet := esutil.GetTfByRole8(role)
@@ -349,7 +358,7 @@ func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
 			}
 		}
 
-		logger.Info("Instanc [%d] path.data:: [%s] ", esdataDir)
+		logger.Info("Instance [%d] path.data:: [%s] ", ins, esdataDir)
 
 		// create log dir
 		eslogDir := fmt.Sprintf("%s%d", pathLog, ins)
@@ -385,6 +394,9 @@ func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
 			ClusterName:                           clusterName,
 			NodeName:                              nodeName,
 			NodeAttrTag:                           role,
+			NodeAttrRackID:                        rackID,
+			NodeAttrIdcID:                         idcID,
+			NodeAttrSubZoneID:                     subZoneID,
 			NetworkHost:                           nodeIP,
 			NetworkPublishhost:                    nodeIP,
 			NodeData:                              isData,
