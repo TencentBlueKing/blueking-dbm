@@ -51,8 +51,8 @@ const (
 // value_type_sub 会用于控件展示、合法性校验
 var ValueTypeSubRef = map[string][]string{
 	DTypeString: []string{
-		DTypeSubEmpty,  // 任意字符，等同于 DTypeSubString
-		DTypeSubString, // 任意字符
+		DTypeSubEmpty, // 任意字符，等同于 DTypeSubString
+		// DTypeSubString, // 任意字符
 		DTypeSubEnum,
 		DTypeSubEnums,
 		DTypeSubBytes,

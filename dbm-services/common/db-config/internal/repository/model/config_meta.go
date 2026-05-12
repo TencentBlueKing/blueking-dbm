@@ -15,18 +15,15 @@ func QueryConfigNames(namespace, confType, confFile, confName string) ([]*Config
 	var sqlRes *gorm.DB
 	var err error
 	confNames := make([]*ConfigNameDefModel, 0)
-	columns :=
-		"conf_name,value_type,value_type_sub,value_default,value_allowed,need_restart," +
-			"flag_readonly,flag_visible,flag_locked,flag_disable,flag_encrypt,need_restart,conf_name_lc,description"
+	columns := "conf_name,value_type,value_type_sub,value_default,value_allowed," +
+		"flag_readonly,flag_visible,flag_locked,flag_disable,flag_encrypt," +
+		"need_restart,conf_name_lc,description"
 	sqlRes = DB.Self.Debug().Model(ConfigNameDefModel{}).Select(columns).
-		Where("conf_type = ? and conf_file = ?  and flag_locked = 0 and flag_visible = 0 ",
-			confType, confFile)
+		Where("namespace = ? and conf_type = ? and conf_file = ? ",
+			namespace, confType, confFile)
 	if confName != "" {
 		confName = confName + "%"
 		sqlRes = sqlRes.Where("conf_name like ?", confName)
-	}
-	if namespace != "" {
-		sqlRes = sqlRes.Where("namespace = ?", namespace)
 	}
 	if err = sqlRes.Find(&confNames).Error; err != nil {
 		if err != gorm.ErrRecordNotFound {
@@ -50,18 +47,15 @@ func QueryConfigNamesPlat(namespace, confType, confFile, confName string) ([]*Co
 	var sqlRes *gorm.DB
 	var err error
 	confNames := make([]*ConfigNameDefModel, 0)
-	columns :=
-		"conf_name,value_type,value_type_sub,value_default,value_allowed,need_restart," +
-			"flag_readonly,flag_visible,flag_locked,flag_disable,flag_encrypt,flag_status,need_restart,stage,conf_name_lc,description"
+	columns := "conf_name,value_type,value_type_sub,value_default,value_allowed," +
+		"flag_readonly,flag_visible,flag_locked,flag_disable,flag_encrypt," +
+		"need_restart,conf_name_lc,description"
 	sqlRes = DB.Self.Debug().Model(ConfigNameDefModel{}).Select(columns).
-		Where("conf_type = ? and conf_file = ? and flag_visible = 1 ",
-			confType, confFile)
+		Where("namespace = ? and conf_type = ? and conf_file = ? ",
+			namespace, confType, confFile)
 	if confName != "" {
 		confName = confName + "%"
 		sqlRes = sqlRes.Where("conf_name like ?", confName)
-	}
-	if namespace != "" {
-		sqlRes = sqlRes.Where("namespace = ?", namespace)
 	}
 	if err := sqlRes.Find(&confNames).Error; err != nil {
 		if err != gorm.ErrRecordNotFound {
