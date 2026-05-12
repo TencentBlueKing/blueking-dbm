@@ -62,6 +62,7 @@ func UpsertConfigItems(db *gorm.DB, configsOp []*model.ConfigModelOp, revision s
 	configsDel := make([]*model.ConfigModel, 0)
 	// 记录 update/delete 操作的 before_image，需要在实际操作前查询
 	beforeImages := make(map[string]api.ConfItem, 0)
+	upLevelConfValues := make(map[string]string, 0)
 	for _, c := range configsOp {
 		if c.OPType == constvar.OPTypeRemoveRef || c.OPType == constvar.OPTypeRemove {
 			// remove 不检验 平台值是否存在
@@ -102,6 +103,10 @@ func UpsertConfigItems(db *gorm.DB, configsOp []*model.ConfigModelOp, revision s
 			} else {
 				before = *beforeModels[0]
 				beforeImages[c.Config.ConfName] = model.NewConfItemFromModel(&before)
+				if before.UpLevelValue != nil {
+					// 这里给 recover 操作，也记录恢复默认后的 新值。recover 操作是删除当前级别的旧值
+					upLevelConfValues[c.Config.ConfName] = before.UpLevelValue["conf_value"]
+				}
 			}
 		}
 		c.Config.UpdatedRevision = revision
@@ -152,6 +157,7 @@ func UpsertConfigItems(db *gorm.DB, configsOp []*model.ConfigModelOp, revision s
 			afterImage = model.NewConfItemFromModel(c.Config)
 		} else {
 			c.OPType = "recover"
+			afterImage.ConfValue = upLevelConfValues[c.Config.ConfName]
 		}
 		changes = append(changes, &model.ConfItemChangesModel{
 			BKBizID:     c.Config.BKBizID,
@@ -257,17 +263,13 @@ func GetMergedConfig(db *gorm.DB, s *api.BaseConfigNode, upLevelInfo *api.UpLeve
 			}
 		}
 	}
-	/*
-		upLevelName, _ := QueryParentLevelName(s.BaseConfFileDef, s.LevelName)
-		if upLevelName == constvar.LevelModule {
-		}
-	*/
+
 	configs, err := model.GetSimpleConfig(db, s, upLevelInfo, options)
 	if err != nil {
 		return nil, err
 	}
 	if s.LevelName != constvar.LevelPlat {
-		upConfigs, _ := MergeConfig2(configs, s.LevelName, options.View)
+		upConfigs, _ := MergeConfigLevelUp(configs, s.LevelName, options.View)
 		confMap := make(map[string]*model.ConfigModel)
 		for _, cg := range upConfigs {
 			confMap[cg.ConfName] = cg

@@ -78,7 +78,7 @@ func MergeConfig(configs []*model.ConfigModel, view string) ([]*model.ConfigMode
 	return configItems, nil
 }
 
-func MergeConfig2(configs []*model.ConfigModel, levelExclude string, view string) ([]*model.ConfigModel, error) {
+func MergeConfigLevelUp(configs []*model.ConfigModel, levelExclude string, view string) ([]*model.ConfigModel, error) {
 	// ConfigLevelKeys := ConfigLevelMap
 	// ConfigUniqueKeys := []string{"bk_biz_id", "conf_type", "conf_name", "namespace"}
 	// viewTmp := strings.Split(view, ".")
