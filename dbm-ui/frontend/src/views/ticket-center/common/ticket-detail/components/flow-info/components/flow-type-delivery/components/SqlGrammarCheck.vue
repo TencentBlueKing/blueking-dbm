@@ -108,12 +108,10 @@
       </div>
       <div class="editor-layout-right">
         <RenderFileContent
-          :db-types="DBTypes.MYSQL"
-          :execute-object="currentFileExecuteObject"
+          :grammar-check-info="currentFileGrammarCheckInfo"
           :model-value="currentFileContent"
           readonly
-          :title="selectFileName"
-          :version-list="versionList" />
+          :title="selectFileName" />
       </div>
     </div>
   </BkSideslider>
@@ -124,8 +122,6 @@
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
   import { batchFetchFile } from '@services/source/storage';
-
-  import { DBTypes } from '@common/const';
 
   import RenderFileContent from '@views/ticket-center/common/ticket-detail/components/common/SqlFileContent.vue';
   import RenderFileList from '@views/ticket-center/common/ticket-detail/components/common/SqlFileList.vue';
@@ -141,9 +137,6 @@
   const { t } = useI18n();
 
   const renderFileCount = 3;
-
-  const { cluster_ids: clusterIds, clusters } = props.ticketDetail.details;
-  const versionList = _.uniq(clusterIds.map((clusterId) => clusters[clusterId].major_version));
 
   const isShowCollapse = ref(false);
   const isShowSqlFile = ref(false);
@@ -174,6 +167,16 @@
 
   const currentFileExecuteObject = computed(() =>
     _.find(props.ticketDetail.details.execute_objects, (item) => item.sql_files.includes(selectFileName.value)),
+  );
+
+  // 当前选中文件的语法检查结果
+  const currentFileGrammarCheckInfo = computed(
+    () =>
+      props.ticketDetail.details.grammar_check_info[selectFileName.value] || {
+        bancommand_warnings: [],
+        highrisk_warnings: [],
+        syntax_fails: [],
+      },
   );
 
   const handleToggleShowMore = () => {
@@ -224,6 +227,10 @@
 
     .collapse-dropdown-icon-active {
       transform: rotate(-180deg);
+    }
+
+    .bk-button .bk-button-text {
+      display: initial;
     }
   }
 

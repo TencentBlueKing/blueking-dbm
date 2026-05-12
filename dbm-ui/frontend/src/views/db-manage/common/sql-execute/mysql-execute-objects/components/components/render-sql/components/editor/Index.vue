@@ -49,7 +49,6 @@
 <script setup lang="ts">
   import * as monaco from 'monaco-editor';
   import screenfull from 'screenfull';
-  import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
   import RenderMessageList, { type IMessageList } from './MessageList.vue';
 
