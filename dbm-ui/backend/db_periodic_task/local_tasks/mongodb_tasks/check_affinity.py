@@ -11,14 +11,17 @@ specific language governing permissions and limitations under the License.
 import logging
 import time
 from datetime import timedelta
-from math import ceil
 
 from django.db.models import Q
 from django.utils import timezone
 
-from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine
+from backend.db_periodic_task.local_tasks.mongodb_tasks.check_affinity_standalone import ABNORMAL, NORMAL, WARNING
+from backend.db_periodic_task.local_tasks.mongodb_tasks.check_affinity_standalone import (
+    check_affinity_rules as shared_check_affinity_rules,
+)
+from backend.db_periodic_task.local_tasks.mongodb_tasks.check_affinity_standalone import err
 from backend.db_periodic_task.local_tasks.mongodb_tasks.report_op import ClusterReport, RecordBatchOps, addr, dev_debug
 from backend.db_report.enums import ReportStateType
 from backend.db_report.enums.mongodb_check_sub_type import MongodbAffinityCheckSubType
@@ -26,26 +29,6 @@ from backend.db_report.repo.task_record_repo import get_report_day_from_time
 from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoRepository
 
 logger = logging.getLogger("root")
-MAJORITY_ELECTION_DISTRI = "MAJORITY_ELECTION_DISTRI"
-
-
-def is_backup_role(value: str) -> bool:
-    role = str(value or "").strip().upper()
-    return role == "BACKUP" or "MONGO_BACKUP" in role
-
-
-def err(code: str, message: str) -> str:
-    return f"code={code} {message}"
-
-
-def affinity_display_name(affinity: str) -> str:
-    if not affinity:
-        return affinity
-    try:
-        return f"{affinity}({AffinityEnum.get_choice_label(affinity)})"
-    except Exception:  # noqa: BLE001
-        pass
-    return affinity
 
 
 def is_shardsvr_set(set_name: str) -> bool:
@@ -156,10 +139,14 @@ class CheckMongodbAffinityTask:
             return cluster_report.make_records()
 
         cluster_def = (
-            Cluster.objects.filter(id=cluster.cluster_id).values("disaster_tolerance_level", "zone_list").first() or {}
+            Cluster.objects.filter(id=cluster.cluster_id)
+            .values("disaster_tolerance_level", "zone_list", "region")
+            .first()
+            or {}
         )
         disaster_tolerance_level = cluster_def.get("disaster_tolerance_level", "") or ""
         zone_list = normalize_to_str_set(cluster_def.get("zone_list") or [])
+        cluster_region = str(cluster_def.get("region", "") or "")
 
         topology_result = collect_topology_by_set(nodes, is_sharded_cluster=cluster.is_sharded_cluster())
         skip_member_count_check = self.ignore_member_count_check(cluster)
@@ -190,8 +177,10 @@ class CheckMongodbAffinityTask:
                 disaster_tolerance_level=disaster_tolerance_level,
                 zone_list=zone_list,
                 actual_sub_zone_set=result["sub_zone_set"],
+                actual_region_set=result["region_set"],
                 actual_rack_set=result["rack_set"],
                 component_nodes=result["nodes"],
+                cluster_region=cluster_region,
             )
 
             if check_result["msg"]:
@@ -213,216 +202,24 @@ class CheckMongodbAffinityTask:
         actual_sub_zone_set: set[str],
         actual_rack_set: set[str],
         component_nodes: list[dict],
+        actual_region_set: set[str] | None = None,
+        cluster_region: str = "",
     ) -> dict:
-        warnings = []
-        errors = []
-        affinity_name = affinity_display_name(disaster_tolerance_level)
-        non_backup_nodes = [node for node in component_nodes if not is_backup_role(node.get("instance_role", ""))]
-        non_backup_sub_zone_set = {
-            node.get("actual_sub_zone", "") for node in non_backup_nodes if node.get("actual_sub_zone", "")
+        state, reasons = shared_check_affinity_rules(
+            disaster_tolerance_level=disaster_tolerance_level,
+            cluster_region=cluster_region,
+            zone_list=zone_list,
+            actual_sub_zone_set=actual_sub_zone_set,
+            actual_region_set=actual_region_set or set(),
+            actual_rack_set=actual_rack_set,
+            component_nodes=component_nodes,
+        )
+        state_map = {
+            NORMAL: ReportStateType.NORMAL.value,
+            WARNING: ReportStateType.WARNING.value,
+            ABNORMAL: ReportStateType.ABNORMAL.value,
         }
-        non_backup_rack_set = {node.get("actual_rack", "") for node in non_backup_nodes if node.get("actual_rack", "")}
-        if not zone_list and disaster_tolerance_level not in ("", AffinityEnum.NONE):
-            warnings.append(err("zone_list_empty", "zone_list is empty"))
-        elif (
-            disaster_tolerance_level == AffinityEnum.SAME_SUBZONE_CROSS_SWTICH and zone_list != non_backup_sub_zone_set
-        ) or (disaster_tolerance_level != AffinityEnum.SAME_SUBZONE_CROSS_SWTICH and zone_list != actual_sub_zone_set):
-            actual_zone_set = (
-                non_backup_sub_zone_set
-                if disaster_tolerance_level == AffinityEnum.SAME_SUBZONE_CROSS_SWTICH
-                else actual_sub_zone_set
-            )
-            errors.append(
-                err(
-                    "zone_list_mismatch",
-                    f"zone_list mismatch, expected(sorted)={sorted(zone_list)}, actual(sorted)={sorted(actual_zone_set)}",
-                )
-            )
-
-        zone_counter = {}
-        rack_counter = {}
-        for node in component_nodes:
-            zone = node.get("actual_sub_zone", "")
-            rack = node.get("actual_rack", "")
-            if not zone:
-                continue
-            zone_counter[zone] = zone_counter.get(zone, 0) + 1
-            if rack:
-                rack_counter[rack] = rack_counter.get(rack, 0) + 1
-        node_num = sum(zone_counter.values())
-
-        if disaster_tolerance_level == AffinityEnum.SAME_SUBZONE:
-            if len(zone_list) != 1:
-                errors.append(
-                    err(
-                        "zone_list_required_single",
-                        f"config_error: affinity {affinity_name} requires zone_list to have exactly 1 value, "
-                        f"actual={sorted(zone_list)}",
-                    )
-                )
-            if len(actual_sub_zone_set) != 1:
-                errors.append(
-                    err(
-                        "same_subzone_violation",
-                        f"affinity {affinity_name} requires single sub_zone, actual={sorted(actual_sub_zone_set)}",
-                    )
-                )
-        elif disaster_tolerance_level == AffinityEnum.SAME_SUBZONE_CROSS_SWTICH:
-            if len(zone_list) != 1:
-                errors.append(
-                    err(
-                        "zone_list_required_single",
-                        f"config_error: affinity {affinity_name} requires zone_list to have exactly 1 value, "
-                        f"actual={sorted(zone_list)}",
-                    )
-                )
-            if len(non_backup_sub_zone_set) != 1:
-                errors.append(
-                    err(
-                        "same_subzone_cross_zone_violation",
-                        f"affinity {affinity_name} requires single sub_zone for non-backup nodes, "
-                        f"actual={sorted(non_backup_sub_zone_set)}",
-                    )
-                )
-            if len(non_backup_rack_set) < 2:
-                errors.append(
-                    err(
-                        "same_subzone_cross_rack_violation",
-                        f"affinity {affinity_name} requires at least 2 racks for non-backup nodes, "
-                        f"actual={sorted(non_backup_rack_set)}",
-                    )
-                )
-        elif disaster_tolerance_level == AffinityEnum.CROS_SUBZONE:
-            if len(actual_sub_zone_set) < 2:
-                errors.append(
-                    err(
-                        "cross_subzone_min_violation",
-                        f"affinity {affinity_name} requires at least 2 sub_zones, actual={sorted(actual_sub_zone_set)}",
-                    )
-                )
-        elif disaster_tolerance_level == AffinityEnum.CROSS_SUBZONE_STRONG:
-            zone_count_violation = len(actual_sub_zone_set) < 3
-            zone_tolerance_violation = node_num > 0 and max(zone_counter.values() or [0]) > ceil(node_num / 3)
-            if zone_count_violation or zone_tolerance_violation:
-                reasons = []
-                if zone_count_violation:
-                    reasons.append("requires at least 3 sub_zones")
-                if zone_tolerance_violation:
-                    reasons.append("zone tolerance(1/3) violated")
-                errors.append(
-                    err(
-                        "strong_zone_constraint_violation",
-                        f"affinity {affinity_name} {' and '.join(reasons)}, "
-                        f"actual={sorted(actual_sub_zone_set)}, zone_counts={zone_counter}",
-                    )
-                )
-            rack_count_violation = node_num > 1 and len(rack_counter) < 2
-            rack_tolerance_violation = node_num > 0 and max(rack_counter.values() or [0]) > ceil(node_num / 2)
-            if rack_count_violation or rack_tolerance_violation:
-                reasons = []
-                if rack_count_violation:
-                    reasons.append("requires at least 2 racks")
-                if rack_tolerance_violation:
-                    reasons.append("rack tolerance(1/2) violated")
-                errors.append(
-                    err(
-                        "strong_rack_constraint_violation",
-                        f"affinity {affinity_name} {' and '.join(reasons)}, rack_counts={rack_counter}",
-                    )
-                )
-        elif disaster_tolerance_level == AffinityEnum.CROSS_SUBZONE_WEAK:
-            zone_count_violation = len(actual_sub_zone_set) < 2
-            zone_tolerance_violation = node_num > 0 and max(zone_counter.values() or [0]) > ceil(node_num / 2)
-            if zone_count_violation or zone_tolerance_violation:
-                reasons = []
-                if zone_count_violation:
-                    reasons.append("requires at least 2 sub_zones")
-                if zone_tolerance_violation:
-                    reasons.append("zone tolerance(1/2) violated")
-                errors.append(
-                    err(
-                        "weak_zone_constraint_violation",
-                        f"affinity {affinity_name} {' and '.join(reasons)}, "
-                        f"actual={sorted(actual_sub_zone_set)}, zone_counts={zone_counter}",
-                    )
-                )
-            rack_count_violation = node_num > 1 and len(rack_counter) < 2
-            rack_tolerance_violation = node_num > 0 and max(rack_counter.values() or [0]) > ceil(node_num / 2)
-            if rack_count_violation or rack_tolerance_violation:
-                reasons = []
-                if rack_count_violation:
-                    reasons.append("requires at least 2 racks")
-                if rack_tolerance_violation:
-                    reasons.append("rack tolerance(1/2) violated")
-                errors.append(
-                    err(
-                        "weak_rack_constraint_violation",
-                        f"affinity {affinity_name} {' and '.join(reasons)}, rack_counts={rack_counter}",
-                    )
-                )
-        elif disaster_tolerance_level == MAJORITY_ELECTION_DISTRI:
-            if len(actual_sub_zone_set) < 2:
-                errors.append(
-                    err(
-                        "majority_min_zone_violation",
-                        f"affinity {affinity_name} requires at least 2 sub_zones, actual={sorted(actual_sub_zone_set)}",
-                    )
-                )
-            if node_num > 0 and max(zone_counter.values() or [0]) > ceil(node_num / 2):
-                errors.append(
-                    err(
-                        "majority_zone_violation",
-                        f"affinity {affinity_name} zone majority violated, zone_counts={zone_counter}",
-                    )
-                )
-            if node_num > 1 and max(rack_counter.values() or [0]) > 1:
-                errors.append(
-                    err(
-                        "majority_rack_unique_violation",
-                        f"affinity {affinity_name} same rack cannot host more than 1 node, rack_counts={rack_counter}",
-                    )
-                )
-            if zone_counter:
-                zone_values = sorted(zone_counter.values())
-                if zone_values[-1] - zone_values[0] > 1:
-                    errors.append(
-                        err(
-                            "majority_balance_violation",
-                            f"affinity {affinity_name} zone distribution should be near-even, zone_counts={zone_counter}",
-                        )
-                    )
-        elif disaster_tolerance_level == AffinityEnum.CROSS_RACK:
-            if len(actual_rack_set) < 2:
-                errors.append(
-                    err(
-                        "cross_rack_violation",
-                        f"affinity {affinity_name} requires at least 2 racks, actual={sorted(actual_rack_set)}",
-                    )
-                )
-        elif disaster_tolerance_level == AffinityEnum.NONE:
-            pass
-        elif disaster_tolerance_level == AffinityEnum.MAX_EACH_ZONE_EQUAL:
-            if zone_counter:
-                zone_values = sorted(zone_counter.values())
-                if zone_values[-1] - zone_values[0] > 1:
-                    errors.append(
-                        err(
-                            "zone_equal_violation",
-                            f"affinity {affinity_name} requires near-equal zone distribution, zone_counts={zone_counter}",
-                        )
-                    )
-        elif not disaster_tolerance_level:
-            warnings.append(err("affinity_empty", "disaster_tolerance_level is empty"))
-        else:
-            warnings.append(
-                err("affinity_unsupported", f"unsupported disaster_tolerance_level: {disaster_tolerance_level}")
-            )
-
-        if errors:
-            return {"state": ReportStateType.ABNORMAL.value, "msg": "; ".join(errors)}
-        if warnings:
-            return {"state": ReportStateType.WARNING.value, "msg": "; ".join(warnings)}
-        return {"state": ReportStateType.NORMAL.value, "msg": ""}
+        return {"state": state_map.get(state, state), "msg": "; ".join(reasons)}
 
 
 def get_all_nodes(cluster: MongoDBCluster) -> list:
@@ -450,7 +247,7 @@ def collect_topology_by_set(nodes: list, is_sharded_cluster: bool = False) -> di
     machine_map = {}
     for cloud_id in cloud_set:
         machine_rows = Machine.objects.filter(ip__in=ip_list, bk_cloud_id=cloud_id).values(
-            "ip", "bk_sub_zone_id", "bk_rack_id", "bk_cloud_id"
+            "ip", "bk_sub_zone_id", "bk_rack_id", "bk_cloud_id", "bk_city__bk_idc_city_name"
         )
         for row in machine_rows:
             machine_map[(row["ip"], row["bk_cloud_id"])] = row
@@ -459,7 +256,14 @@ def collect_topology_by_set(nodes: list, is_sharded_cluster: bool = False) -> di
         set_name = node.set_name or "unknown"
         topology_by_set.setdefault(
             set_name,
-            {"sub_zone_set": set(), "rack_set": set(), "set_sample": "", "missing_messages": [], "nodes": []},
+            {
+                "sub_zone_set": set(),
+                "region_set": set(),
+                "rack_set": set(),
+                "set_sample": "",
+                "missing_messages": [],
+                "nodes": [],
+            },
         )
         if not topology_by_set[set_name]["set_sample"]:
             topology_by_set[set_name]["set_sample"] = addr(node)
@@ -481,7 +285,10 @@ def collect_topology_by_set(nodes: list, is_sharded_cluster: bool = False) -> di
             continue
         sub_zone = str(machine.get("bk_sub_zone_id"))
         rack = str(machine.get("bk_rack_id"))
+        region = str(machine.get("bk_city__bk_idc_city_name") or "")
         topology_by_set[set_name]["sub_zone_set"].add(sub_zone)
+        if region:
+            topology_by_set[set_name]["region_set"].add(region)
         topology_by_set[set_name]["rack_set"].add(rack)
         topology_by_set[set_name]["nodes"].append(
             {
@@ -504,9 +311,17 @@ def collect_topology_by_set(nodes: list, is_sharded_cluster: bool = False) -> di
         group_key = build_shardsvr_group_key(result["nodes"])
         grouped_topology.setdefault(
             group_key,
-            {"sub_zone_set": set(), "rack_set": set(), "set_sample": "", "missing_messages": [], "nodes": []},
+            {
+                "sub_zone_set": set(),
+                "region_set": set(),
+                "rack_set": set(),
+                "set_sample": "",
+                "missing_messages": [],
+                "nodes": [],
+            },
         )
         grouped_topology[group_key]["sub_zone_set"].update(result["sub_zone_set"])
+        grouped_topology[group_key]["region_set"].update(result["region_set"])
         grouped_topology[group_key]["rack_set"].update(result["rack_set"])
         grouped_topology[group_key]["missing_messages"].extend(result["missing_messages"])
         grouped_topology[group_key]["nodes"].extend(result["nodes"])

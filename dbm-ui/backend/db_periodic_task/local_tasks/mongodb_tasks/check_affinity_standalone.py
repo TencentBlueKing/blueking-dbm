@@ -26,6 +26,9 @@ from math import ceil
 from pathlib import Path
 from typing import Any
 
+# 此处和from backend.configuration.constants import AffinityEnum保持一致
+# 需要以standalone方式运行,所以这里重新定义一次
+
 SAME_SUBZONE_CROSS_SWTICH = "SAME_SUBZONE_CROSS_SWTICH"
 SAME_SUBZONE = "SAME_SUBZONE"
 CROS_SUBZONE = "CROS_SUBZONE"

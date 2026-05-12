@@ -23,6 +23,24 @@ def test_cross_switch_allows_backup_outside_zone():
     assert reasons == []
 
 
+def test_cross_subzone_weak_allows_empty_zone_list():
+    module = importlib.import_module("backend.db_periodic_task.local_tasks.mongodb_tasks.check_affinity_standalone")
+    state, reasons = module.check_affinity_rules(
+        disaster_tolerance_level=module.CROSS_SUBZONE_WEAK,
+        cluster_region=_("南京"),
+        zone_list=set(),
+        actual_sub_zone_set={"1", "2"},
+        actual_region_set={_("南京")},
+        actual_rack_set={"11", "12"},
+        component_nodes=[
+            {"actual_sub_zone": "1", "actual_rack": "11"},
+            {"actual_sub_zone": "2", "actual_rack": "12"},
+        ],
+    )
+    assert state == module.NORMAL
+    assert reasons == []
+
+
 def test_print_result_sharded_only_mongos_when_only_mongos_issue(capsys):
     module = importlib.import_module("backend.db_periodic_task.local_tasks.mongodb_tasks.check_affinity_standalone")
     item = module.ClusterEval(
