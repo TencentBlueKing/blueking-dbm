@@ -67,7 +67,16 @@
           :class="`tag-${item.category}`">
           {{ CATEGORY_MAP[item.category] || '' }}
         </span>
-        <span class="item-message">{{ item.message }}</span>
+        <span
+          :ref="(el: any) => setMessageRef(el, index)"
+          v-bk-tooltips="{
+            disabled: !isOverflowMap[index],
+            content: item.message,
+          }"
+          class="item-message"
+          @mouseenter="handleMessageEnter(index)">
+          {{ item.message }}
+        </span>
         <span class="item-line">[{{ t('行') }} {{ item.line }}]</span>
       </div>
     </div>
@@ -101,6 +110,30 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
+  // 记录每一行 message 是否溢出
+  const isOverflowMap = ref<Record<number, boolean>>({});
+
+  // 鼠标进入时检测是否溢出，仅溢出时才启用 tooltip
+  const handleMessageEnter = (index: number) => {
+    const el = messageRefMap.get(index);
+    if (!el) return;
+    isOverflowMap.value = {
+      ...isOverflowMap.value,
+      [index]: el.offsetWidth < el.scrollWidth,
+    };
+  };
+
+  // 缓存每个 message span 的 DOM 引用
+  const messageRefMap = new Map<number, HTMLElement>();
+
+  const setMessageRef = (el: any, index: number) => {
+    if (el) {
+      messageRefMap.set(index, el.$el ?? el);
+    } else {
+      messageRefMap.delete(index);
+    }
+  };
 
   type Emits = (e: 'goto-line', line: number) => void;
 

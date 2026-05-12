@@ -1,15 +1,28 @@
 <template>
   <div class="flow-type-delivery-sql-grammar-check">
-    <I18nT
-      keypath="共n个文件，含有m个高危语句"
-      tag="div">
-      <span style="font-weight: 700; color: #63656e">
-        {{ executeSqlFileList.length }}
-      </span>
-      <span style="font-weight: 700; color: #ea3636">
-        {{ totalWarnCount }}
-      </span>
-    </I18nT>
+    <!-- 有高危语句 -->
+    <template v-if="totalWarnCount > 0">
+      <I18nT
+        keypath="共n个文件，包含m个高危语句"
+        tag="div">
+        <span style="font-weight: 700; color: #63656e">
+          {{ executeSqlFileList.length }}
+        </span>
+        <span style="font-weight: 700; color: #ff9c01">
+          {{ totalWarnCount }}
+        </span>
+      </I18nT>
+    </template>
+    <!-- 无高危语句 -->
+    <template v-else>
+      <I18nT
+        keypath="共n个文件，无高危语句"
+        tag="div">
+        <span style="font-weight: 700; color: #63656e">
+          {{ executeSqlFileList.length }}
+        </span>
+      </I18nT>
+    </template>
     <div
       v-for="fileName in renderSqlFileList"
       :key="fileName">
@@ -23,24 +36,22 @@
           {{ getSQLFilename(fileName) }}
         </span>
 
-        <span v-if="ticketDetail.details.grammar_check_info[fileName].highrisk_warnings?.length > 0">
-          <span>，</span>
-          <span style="color: #ff9c01">{{ t('跳过检查') }}</span>
+        <template v-if="totalWarnCount > 0">
           <span>，</span>
           <I18nT
-            keypath="含有n个高危语句"
+            v-if="ticketDetail.details.grammar_check_info[fileName].highrisk_warnings?.length > 0"
+            keypath="包含n个高危语句"
             scope="global">
-            <span class="danger-count">
+            <span style="color: #ff9c01; font-weight: 700">
               {{ ticketDetail.details.grammar_check_info[fileName].highrisk_warnings.length }}
             </span>
           </I18nT>
-        </span>
-        <span v-else>
-          <span>，</span>
-          <span style="color: #2dcb56">{{ t('检查通过') }}</span>
+          <span v-else>，{{ t('无高危语句') }}</span>
+        </template>
+        <template v-else>
           <span>，</span>
           {{ t('无高危语句') }}
-        </span>
+        </template>
       </BkButton>
     </div>
     <div v-if="isShowMore">
@@ -206,12 +217,6 @@
     gap: 8px;
     flex-direction: column;
 
-    .danger-count {
-      display: inline-block;
-      font-weight: 700;
-      color: #ea3636;
-    }
-
     .collapse-dropdown-icon {
       transform: rotate(0);
       transition: all 0.5s;
@@ -237,6 +242,8 @@
         position: relative;
         height: 100%;
         flex: 1;
+        min-width: 0;
+        overflow-x: hidden;
       }
     }
   }
