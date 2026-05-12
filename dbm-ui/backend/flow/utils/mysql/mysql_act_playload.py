@@ -1331,6 +1331,39 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
+    def get_add_spider_routing_payload(self, **kwargs):
+        """
+        拼接给已有 tendb cluster 集群添加 spider 节点路由的 payload。
+        对应 dbactuator 子命令: spiderctl add-spider-routing
+        - exec_ip 必须是中控 primary 节点本机 (子命令本身会做 PreCheck)
+        - tdbctl_pass 仅在 add_spider_role == spider_master 时必填,
+          上游编排时统一从 self.cluster 透传过来。
+        """
+
+        tdbctl_account = self.account | {
+            "tdbctl_pwd": self.read_ctl_pass_from_ctl_primary(
+                f'{kwargs["ip"]}{IP_PORT_DIVIDER}{kwargs["ctl_primary_port"]}', self.bk_cloud_id
+            ),
+            "tdbctl_user": TDBCTL_USER,
+        }
+        return {
+            "db_type": DBActuatorTypeEnum.SpiderCtl.value,
+            "action": DBActuatorActionEnum.SpiderAddSpiderRouting.value,
+            "payload": {
+                "general": {"runtime_account": tdbctl_account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "port": kwargs["ctl_primary_port"],
+                    "spider_port": kwargs["spider_port"],
+                    "admin_port": kwargs["admin_port"],
+                    "add_spiders": [i["ip"] for i in kwargs["add_spiders"]],
+                    "add_spider_role": kwargs["add_spider_role"],
+                    "spider_user": kwargs["spider_user"],
+                    "spider_pass": kwargs["spider_pass"],
+                },
+            },
+        }
+
     def get_init_tdbctl_routing_payload(self, **kwargs):
         """
         拼接初始化spider集群节点关系的payload参数。

@@ -16,8 +16,9 @@ from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryRole, ClusterType, InstanceStatus, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, ProxyInstance
-from backend.flow.consts import AUTH_ADDRESS_DIVIDER, TDBCTL_USER, DnsOpType, PrivRole
+from backend.flow.consts import AUTH_ADDRESS_DIVIDER, DnsOpType, PrivRole
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.common.download_file import add_db_actuator_download_to_pipeline
 from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow, init_machine_sub_flow
@@ -31,7 +32,7 @@ from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDn
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.sync_master import SyncMasterComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
-from backend.flow.plugins.components.collections.spider.add_spider_routing import AddSpiderRoutingComponent
+from backend.flow.plugins.components.collections.spider.add_spider_system_user import AddSpiderSystemUserComponent
 from backend.flow.plugins.components.collections.spider.check_tdbctl_secondary_health import (
     CheckTDBCTlSecondaryHealthComponent,
 )
@@ -56,6 +57,7 @@ from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.spider.get_spider_incr import get_spider_master_incr
 from backend.flow.utils.spider.spider_act_dataclass import (
     AddSpiderRoutingKwargs,
+    AddSpiderRoutingSubFlowParam,
     CtlSwitchToSlaveKwargs,
     DropSpiderRoutingKwargs,
 )
@@ -65,6 +67,83 @@ from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 """
 定义一些TenDB cluster流程上可能会用到的子流程，以便于减少代码的重复率
 """
+
+
+def add_spider_routing_sub_flow(
+    root_id: str,
+    parent_global_data: dict,
+    param: AddSpiderRoutingSubFlowParam,
+):
+    """
+    封装"对已有 TenDB Cluster 添加 spider 节点路由"的公共子流程, 包含三步:
+      1) 添加 spider 内置账号 (走 dbm-ui 中央 DBPrivManagerApi, 无法下沉);
+      2) 下发 dbactuator 到中控 primary 节点;
+      3) 在中控 primary 本机执行 spiderctl add-spider-routing 子命令完成
+         create node + flush routing (子命令内部带 tc_is_primary PreCheck)。
+
+    @param root_id: 上层流程的 root_id
+    @param parent_global_data: 上层流程的全局只读上下文
+    @param param: 见 AddSpiderRoutingSubFlowParam 字段说明
+    """
+    cluster = param.cluster
+    role_value = (
+        param.add_spider_role.value
+        if isinstance(param.add_spider_role, TenDBClusterSpiderRole)
+        else str(param.add_spider_role)
+    )
+
+    sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
+
+    # 1) 添加 spider 内置账号 (中央 DBPriv 授权, 必须在 dbm-ui 进程中执行)
+    sub_pipeline.add_act(
+        act_name=_("添加spider内置账号"),
+        act_component_code=AddSpiderSystemUserComponent.code,
+        kwargs=asdict(
+            AddSpiderRoutingKwargs(
+                cluster_id=cluster.id,
+                add_spiders=param.add_spiders,
+                add_spider_role=param.add_spider_role,
+                user=param.spider_user,
+                passwd=param.spider_pass,
+            )
+        ),
+    )
+
+    # 计算中控 primary 信息, 作为后续 actor 的 exec_ip
+    ctl_primary_addr = cluster.tendbcluster_ctl_primary_address()
+    ctl_primary_ip, ctl_primary_port = ctl_primary_addr.split(IP_PORT_DIVIDER)
+
+    # 2) 下发 dbactuator 到中控 primary
+    add_db_actuator_download_to_pipeline(
+        pipeline=sub_pipeline,
+        bk_cloud_id=cluster.bk_cloud_id,
+        exec_ip=ctl_primary_ip,
+    )
+
+    # 3) 在中控 primary 本机执行 spiderctl add-spider-routing
+    spider_inst = cluster.proxyinstance_set.first()
+    add_routing_act_kwargs = ExecActuatorKwargs(
+        cluster_type=ClusterType.TenDBCluster,
+        bk_cloud_id=cluster.bk_cloud_id,
+        exec_ip=ctl_primary_ip,
+        component_kwargs={
+            "ctl_primary_port": int(ctl_primary_port),
+            "spider_port": spider_inst.port,
+            "admin_port": spider_inst.admin_port,
+            "add_spiders": param.add_spiders,
+            "add_spider_role": role_value,
+            "spider_user": param.spider_user,
+            "spider_pass": param.spider_pass,
+        },
+        get_mysql_payload_func=MysqlActPayload.get_add_spider_routing_payload.__name__,
+    )
+    sub_pipeline.add_act(
+        act_name=_("添加对应路由关系"),
+        act_component_code=ExecuteDBActuatorScriptComponent.code,
+        kwargs=asdict(add_routing_act_kwargs),
+    )
+
+    return sub_pipeline.build_sub_process(sub_name=_("集群[{}]添加spider节点路由[{}]".format(cluster.name, role_value)))
 
 
 def add_spider_slaves_sub_flow(
@@ -200,19 +279,18 @@ def add_spider_slaves_sub_flow(
         )
     sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
-    # 阶段5 下发actor，并执行spider-slave 路由初始化
-    sub_pipeline.add_act(
-        act_name=_("添加对应路由关系"),
-        act_component_code=AddSpiderRoutingComponent.code,
-        kwargs=asdict(
-            AddSpiderRoutingKwargs(
-                cluster_id=cluster.id,
+    # 阶段5 添加 spider 内置账号 + 路由 (封装为公共子流程, 见 add_spider_routing_sub_flow)
+    sub_pipeline.add_sub_pipeline(
+        sub_flow=add_spider_routing_sub_flow(
+            root_id=root_id,
+            parent_global_data=parent_global_data,
+            param=AddSpiderRoutingSubFlowParam(
+                cluster=cluster,
                 add_spiders=add_spider_slaves,
-                add_spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value,
-                user=TDBCTL_USER,
-                passwd=tdbctl_pass,
-            )
-        ),
+                add_spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE,
+                spider_pass=tdbctl_pass,
+            ),
+        )
     )
 
     if is_clone_user:
@@ -422,19 +500,19 @@ def add_spider_masters_sub_flow(
             )
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
-    # 阶段6 执行spider-master 路由初始化, 内置账号密码随机生成，不需要平台来维护，避免误操作影响
-    sub_pipeline.add_act(
-        act_name=_("添加对应路由关系"),
-        act_component_code=AddSpiderRoutingComponent.code,
-        kwargs=asdict(
-            AddSpiderRoutingKwargs(
-                cluster_id=cluster.id,
+    # 阶段6 添加 spider 内置账号 + 路由 (封装为公共子流程, 见 add_spider_routing_sub_flow)
+    # mysql.servers 兜底读出共享密码, 与 Python 旧版 _read_ctl_pass 等价。
+    sub_pipeline.add_sub_pipeline(
+        sub_flow=add_spider_routing_sub_flow(
+            root_id=root_id,
+            parent_global_data=parent_global_data,
+            param=AddSpiderRoutingSubFlowParam(
+                cluster=cluster,
                 add_spiders=add_spider_masters,
                 add_spider_role=role,
-                user=TDBCTL_USER,
-                passwd=tdbctl_pass,
-            )
-        ),
+                spider_pass=tdbctl_pass,
+            ),
+        )
     )
 
     # 这里获取集群内running状态的spider节点作为这次克隆权限的依据

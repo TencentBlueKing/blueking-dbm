@@ -1,7 +1,9 @@
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from backend.db_meta.enums import TenDBClusterSpiderRole
+from backend.db_meta.models import Cluster
+from backend.flow.consts import TDBCTL_USER
 
 
 @dataclass()
@@ -114,3 +116,28 @@ class SwitchRemoteShardRoutingKwargs:
 
     cluster_id: int
     switch_remote_shard: Optional[List[InstanceServerName]]
+
+
+@dataclass
+class AddSpiderRoutingSubFlowParam:
+    """
+    add_spider_routing_sub_flow 的入参数据结构。
+
+    @param cluster: 待操作的集群对象, 用于推导 bk_cloud_id / ctl_primary 等。
+    @param add_spiders: 待添加的 spider 节点列表, 元素形如 {"ip": "x.x.x.x", "bk_host_id": 123, ...}。
+    @param add_spider_role: 待添加节点的角色, 取值范围 TenDBClusterSpiderRole 中的:
+                            spider_master / spider_slave / spider_mnt。
+                            支持传入枚举或字符串两种形式, 子流程内部会自动归一化。
+    @param spider_pass: spider 端口内置账号 (TDBCTL_USER) 的密码; 通常是上层流程为本批节点
+                        新生成的随机串, 必填。
+    @param spider_user: spider 端口内置账号名, 默认即 TDBCTL_USER, 一般不需要覆盖。
+    @param tdbctl_pass: 中控之间互相连接的共享密码; 仅 spider_master 角色需要,
+                        留空时 dbactuator 会从中控本机 mysql.servers 兜底读取
+                        (等价于 Python 旧版 _read_ctl_pass)。
+    """
+
+    cluster: Cluster
+    add_spiders: List[Dict]
+    add_spider_role: str
+    spider_pass: str
+    spider_user: str = TDBCTL_USER
