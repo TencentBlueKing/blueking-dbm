@@ -282,7 +282,7 @@ func (s *restoreJob) Init(runtime *jobruntime.JobGenericRuntime) error {
 	s.OsUser = ""
 
 	if err := s.checkParams(); err != nil {
-		s.runtime.Logger.Error(err.Error())
+		s.runtime.Logger.Error("%s", err.Error())
 		return err
 	}
 
@@ -318,7 +318,7 @@ func (s *restoreJob) Init(runtime *jobruntime.JobGenericRuntime) error {
 func (s *restoreJob) checkParams() error {
 	if err := json.Unmarshal([]byte(s.runtime.PayloadDecoded), &s.param); err != nil {
 		err = errors.Wrap(err, "payload json.Unmarshal failed")
-		s.runtime.Logger.Error(err.Error())
+		s.runtime.Logger.Error("%s", err.Error())
 		return err
 	}
 

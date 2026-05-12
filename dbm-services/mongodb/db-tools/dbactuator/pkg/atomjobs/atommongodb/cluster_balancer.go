@@ -109,7 +109,7 @@ func (b *Balancer) checkParams() error {
 	validate := validator.New()
 	b.runtime.Logger.Info("start to validate parameters of clusterBalancer")
 	if err := validate.Struct(b.ConfParams); err != nil {
-		b.runtime.Logger.Error(fmt.Sprintf("validate parameters of clusterBalancer fail, error:%s", err))
+		b.runtime.Logger.Error("validate parameters of clusterBalancer fail, error:%s", err)
 		return fmt.Errorf("validate parameters of clusterBalancer fail, error:%s", err)
 	}
 	b.runtime.Logger.Info("validate parameters of clusterBalancer successfully")

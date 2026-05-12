@@ -313,10 +313,9 @@ func (s *backupJob) doLogicalBackup() error {
 		}
 		for _, ns := range dbColList {
 			if len(ns.Col) == 0 {
-				s.runtime.Logger.Info(fmt.Sprintf("db %q has no matched collection", ns.Db))
+				s.runtime.Logger.Info("db %q has no matched collection", ns.Db)
 			} else {
-				s.runtime.Logger.Info(fmt.Sprintf("db %q has %d matched collection: %q", ns.Db,
-					len(ns.Col), strings.Join(ns.Col, ",")))
+				s.runtime.Logger.Info("db %q has %d matched collection: %q", ns.Db, len(ns.Col), strings.Join(ns.Col, ","))
 			}
 		}
 
@@ -492,7 +491,7 @@ func (s *backupJob) Init(runtime *jobruntime.JobGenericRuntime) error {
 	}
 	if err := json.Unmarshal([]byte(s.runtime.PayloadDecoded), &s.ConfParams); err != nil {
 		tmpErr := errors.Wrap(err, "payload json.Unmarshal failed")
-		s.runtime.Logger.Error(tmpErr.Error())
+		s.runtime.Logger.Error("%s", tmpErr.Error())
 		return tmpErr
 	}
 

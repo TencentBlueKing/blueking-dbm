@@ -98,7 +98,7 @@ func SplitLargeFile(file, splitTargetSize string, rmOrigin bool) (splitedFiles [
 	fileBase = fileBase + ".split."
 	splitCmd := fmt.Sprintf(`cd %s && split --verbose -a 3 -b %s -d %s %s|grep -i --only-match -E "%s[0-9]+"`,
 		fileDir, splitTargetSize, file, fileBase, fileBase)
-	mylog.Logger.Info(splitCmd)
+	mylog.Logger.Info("%s", splitCmd)
 	cmdRet, err = RunBashCmd(splitCmd, "", nil, 6*time.Hour)
 	if err != nil {
 		return
@@ -113,7 +113,7 @@ func SplitLargeFile(file, splitTargetSize string, rmOrigin bool) (splitedFiles [
 	}
 	if rmOrigin {
 		err = os.Remove(file)
-		mylog.Logger.Info(fmt.Sprintf("rm %s", file))
+		mylog.Logger.Info("rm %s", file)
 		if err != nil {
 			err = fmt.Errorf("os.Remove fail,err:%v,file:%s", err, file)
 			return
@@ -141,7 +141,7 @@ func TarADir(originDir, tarSaveDir string, rmOrigin bool) (tarFile string, err e
 	} else {
 		tarCmd = fmt.Sprintf(`tar -cf %s  -C %s %s`, tarFile, baseDir, basename)
 	}
-	mylog.Logger.Info(tarCmd)
+	mylog.Logger.Info("%s", tarCmd)
 	_, err = RunBashCmd(tarCmd, "", nil, 6*time.Hour)
 	if err != nil {
 		return
@@ -199,7 +199,7 @@ func UnionSplitFiles(dir string, splitFiles []string) (tarfile string, err error
 	} else {
 		cmd01 = fmt.Sprintf("cd %s && cat %s.split* > %s", dir, prefix, tarfile)
 	}
-	mylog.Logger.Info(cmd01)
+	mylog.Logger.Info("%s", cmd01)
 	_, err = RunBashCmd(cmd01, "", nil, 2*time.Hour)
 	tarfile = filepath.Join(dir, tarfile)
 	return

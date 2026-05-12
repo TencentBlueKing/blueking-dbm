@@ -78,8 +78,7 @@ func (s *MongoStartProcess) Init(runtime *jobruntime.JobGenericRuntime) error {
 
 	// 获取MongoDB配置文件参数
 	if err := json.Unmarshal([]byte(s.runtime.PayloadDecoded), &s.ConfParams); err != nil {
-		s.runtime.Logger.Error(fmt.Sprintf(
-			"get parameters of mongo restart fail by json.Unmarshal, error:%s", err))
+		s.runtime.Logger.Error("get parameters of mongo restart fail by json.Unmarshal, error:%s", err)
 		return fmt.Errorf("get parameters of mongo restart fail by json.Unmarshal, error:%s", err)
 	}
 
@@ -104,7 +103,7 @@ func (s *MongoStartProcess) checkParams() error {
 	validate := validator.New()
 	s.runtime.Logger.Info("start to validate parameters of restart")
 	if err := validate.Struct(s.ConfParams); err != nil {
-		s.runtime.Logger.Error(fmt.Sprintf("validate parameters of restart fail, error:%s", err))
+		s.runtime.Logger.Error("validate parameters of restart fail, error:%s", err)
 		return fmt.Errorf("validate parameters of restart fail, error:%s", err)
 	}
 	s.runtime.Logger.Info("validate parameters of restart successfully")

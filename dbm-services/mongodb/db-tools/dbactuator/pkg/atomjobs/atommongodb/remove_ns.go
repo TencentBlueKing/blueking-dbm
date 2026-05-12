@@ -161,7 +161,7 @@ func (s *removeNsJob) backupIndex() (err error) {
 			} else {
 
 			}
-			s.runtime.Logger.Info(fmt.Sprintf("backup index for %s.%s ", ns.Db, col))
+			s.runtime.Logger.Info("backup index for %s.%s ", ns.Db, col)
 			s.tmp.NsIndex[ns.Db+"."+col] = rows
 
 			indexView2 := client.Database(ns.Db).Collection(col).Indexes()
@@ -171,7 +171,7 @@ func (s *removeNsJob) backupIndex() (err error) {
 	}
 	s.runtime.Logger.Info("backup index done")
 	v, _ := json.Marshal(s.tmp.NsIndex)
-	s.runtime.Logger.Info(fmt.Sprintf("backupIndex: %s", v))
+	s.runtime.Logger.Info("backupIndex: %s", v)
 	return nil
 }
 
@@ -196,7 +196,7 @@ func (s *removeNsJob) restoreIndex() (err error) {
 			}
 
 			models := make([]mongo.IndexModel, 0)
-			s.runtime.Logger.Info(fmt.Sprintf("restore index for %s.%s ", ns.Db, col))
+			s.runtime.Logger.Info("restore index for %s.%s ", ns.Db, col)
 			for _, spec := range v {
 				models = append(models, newIndexModelFromSpec(spec))
 			}
@@ -205,7 +205,7 @@ func (s *removeNsJob) restoreIndex() (err error) {
 			if err != nil {
 				return errors.Wrap(err, fmt.Sprintf("CreateMany for %s.%s", ns.Db, col))
 			} else {
-				s.runtime.Logger.Info(fmt.Sprintf("CreateMany for %s.%s, ret:%+v", ns.Db, col, createdIndexes))
+				s.runtime.Logger.Info("CreateMany for %s.%s, ret:%+v", ns.Db, col, createdIndexes)
 			}
 		}
 
@@ -326,13 +326,12 @@ func (s *removeNsJob) getNsList() (err error) {
 
 	for _, ns := range s.tmp.NsList {
 		if len(ns.Col) == 0 {
-			s.runtime.Logger.Info(fmt.Sprintf("db %q has no matched collection", ns.Db))
+			s.runtime.Logger.Info("db %q has no matched collection", ns.Db)
 		} else {
-			s.runtime.Logger.Info(fmt.Sprintf("db %q has %d matched collection: %q", ns.Db,
-				len(ns.Col), strings.Join(ns.Col, ",")))
+			s.runtime.Logger.Info("db %q has %d matched collection: %q", ns.Db, len(ns.Col), strings.Join(ns.Col, ","))
 		}
 	}
-	s.runtime.Logger.Info(fmt.Sprintf("matched count: db:%d collection:%d", dbCount, colCount))
+	s.runtime.Logger.Info("matched count: db:%d collection:%d", dbCount, colCount)
 	return nil
 }
 
@@ -355,7 +354,7 @@ func (s *removeNsJob) Init(runtime *jobruntime.JobGenericRuntime) error {
 
 	if err := json.Unmarshal([]byte(s.runtime.PayloadDecoded), &s.ConfParams); err != nil {
 		tmpErr := errors.Wrap(err, "payload json.Unmarshal failed")
-		s.runtime.Logger.Error(tmpErr.Error())
+		s.runtime.Logger.Error("%s", tmpErr.Error())
 		return tmpErr
 	}
 
@@ -373,7 +372,7 @@ func (s *removeNsJob) Init(runtime *jobruntime.JobGenericRuntime) error {
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("Connect to %s:%d failed", s.ConfParams.IP, s.ConfParams.Port))
 	}
-	s.runtime.Logger.Info(fmt.Sprintf("Connect to %s:%d success", s.ConfParams.IP, s.ConfParams.Port))
+	s.runtime.Logger.Info("Connect to %s:%d success", s.ConfParams.IP, s.ConfParams.Port)
 
 	return nil
 }

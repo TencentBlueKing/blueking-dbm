@@ -124,12 +124,12 @@ func (r *JobGenericRuntime) OutputPipeContextData() {
 	tmpBytes, err := json.Marshal(r.PipeContextData)
 	if err != nil {
 		r.Err = fmt.Errorf("json.Marshal PipeContextData failed,err:%v", err)
-		r.Logger.Error(r.Err.Error())
+		r.Logger.Error("%s", r.Err.Error())
 		return
 	}
 	// decode函数: base64.StdEncoding.DecodeString
 	base64Ret := base64.StdEncoding.EncodeToString(tmpBytes)
-	r.PrintToStdout("<ctx>" + base64Ret + "</ctx>")
+	r.PrintToStdout("<ctx>%s</ctx>", base64Ret)
 }
 
 // StartHeartbeat 开始心跳
@@ -142,7 +142,7 @@ func (r *JobGenericRuntime) StartHeartbeat(period time.Duration) {
 			select {
 			case <-ticker.C:
 				heartbeatTime = time.Now().Local().Format(consts.UnixtimeLayout)
-				r.PrintToStdout("[" + heartbeatTime + "]heartbeat\n")
+				r.PrintToStdout("[%s]heartbeat\n", heartbeatTime)
 			case <-r.ctx.Done():
 				r.Logger.Info("stop heartbeat")
 				return

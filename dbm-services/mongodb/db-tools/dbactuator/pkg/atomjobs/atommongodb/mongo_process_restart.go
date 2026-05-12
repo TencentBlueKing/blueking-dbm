@@ -126,8 +126,7 @@ func (r *MongoRestart) Init(runtime *jobruntime.JobGenericRuntime) error {
 
 	// 获取MongoDB配置文件参数
 	if err := json.Unmarshal([]byte(r.runtime.PayloadDecoded), &r.ConfParams); err != nil {
-		r.runtime.Logger.Error(fmt.Sprintf(
-			"get parameters of mongo restart fail by json.Unmarshal, error:%s", err))
+		r.runtime.Logger.Error("get parameters of mongo restart fail by json.Unmarshal, error:%s", err)
 		return fmt.Errorf("get parameters of mongo restart fail by json.Unmarshal, error:%s", err)
 	}
 
@@ -152,7 +151,7 @@ func (r *MongoRestart) checkParams() error {
 	validate := validator.New()
 	r.runtime.Logger.Info("start to validate parameters of restart")
 	if err := validate.Struct(r.ConfParams); err != nil {
-		r.runtime.Logger.Error(fmt.Sprintf("validate parameters of restart fail, error:%s", err))
+		r.runtime.Logger.Error("validate parameters of restart fail, error:%s", err)
 		return fmt.Errorf("validate parameters of restart fail, error:%s", err)
 	}
 	r.runtime.Logger.Info("validate parameters of restart successfully")
@@ -197,14 +196,11 @@ func (r *MongoRestart) changeConfigDb() error {
 	authConfFile, err := os.OpenFile(r.AuthConfFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, DefaultPerm)
 	defer authConfFile.Close()
 	if err != nil {
-		r.runtime.Logger.Error(
-			fmt.Sprintf("create auth config file fail, error:%s", err))
+		r.runtime.Logger.Error("create auth config file fail, error:%s", err)
 		return fmt.Errorf("create auth config file fail, error:%s", err)
 	}
 	if _, err = authConfFile.WriteString(string(authConfFileContent)); err != nil {
-		r.runtime.Logger.Error(
-			fmt.Sprintf("change configDB value of auth config file write content fail, error:%s",
-				err))
+		r.runtime.Logger.Error("change configDB value of auth config file write content fail, error:%s", err)
 		return fmt.Errorf("change configDB value of auth config file write content fail, error:%s",
 			err)
 	}
@@ -213,13 +209,11 @@ func (r *MongoRestart) changeConfigDb() error {
 	noAuthConfFile, err := os.OpenFile(r.NoAuthConfFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, DefaultPerm)
 	defer noAuthConfFile.Close()
 	if err != nil {
-		r.runtime.Logger.Error(fmt.Sprintf("create no auth config file fail, error:%s", err))
+		r.runtime.Logger.Error("create no auth config file fail, error:%s", err)
 		return fmt.Errorf("create no auth config file fail, error:%s", err)
 	}
 	if _, err = noAuthConfFile.WriteString(string(noAuthConfFileContent)); err != nil {
-		r.runtime.Logger.Error(
-			fmt.Sprintf("change configDB value of no auth config file write content fail, error:%s",
-				err))
+		r.runtime.Logger.Error("change configDB value of no auth config file write content fail, error:%s", err)
 		return fmt.Errorf("change configDB value of no auth config file write content fail, error:%s",
 			err)
 	}
@@ -238,7 +232,7 @@ func (r *MongoRestart) changeCacheSizeGB() error {
 	r.runtime.Logger.Info("start to check mongo version")
 	version, err := common.CheckMongoVersion(r.BinDir, "mongod")
 	if err != nil {
-		r.runtime.Logger.Error(fmt.Sprintf("check mongo version fail, error:%s", err))
+		r.runtime.Logger.Error("check mongo version fail, error:%s", err)
 		return fmt.Errorf("check mongo version fail, error:%s", err)
 	}
 	mainVersion, _ := strconv.Atoi(strings.Split(version, ".")[0])
@@ -268,14 +262,11 @@ func (r *MongoRestart) changeCacheSizeGB() error {
 			authConfFile, err := os.OpenFile(r.AuthConfFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, DefaultPerm)
 			defer authConfFile.Close()
 			if err != nil {
-				r.runtime.Logger.Error(
-					fmt.Sprintf("create auth config file fail, error:%s", err))
+				r.runtime.Logger.Error("create auth config file fail, error:%s", err)
 				return fmt.Errorf("create auth config file fail, error:%s", err)
 			}
 			if _, err = authConfFile.WriteString(string(authConfFileContent)); err != nil {
-				r.runtime.Logger.Error(
-					fmt.Sprintf("change CacheSizeGB value of auth config file write content fail, error:%s",
-						err))
+				r.runtime.Logger.Error("change CacheSizeGB value of auth config file write content fail, error:%s", err)
 				return fmt.Errorf("change CacheSizeGB value of auth config file write content fail, error:%s",
 					err)
 			}
@@ -284,13 +275,11 @@ func (r *MongoRestart) changeCacheSizeGB() error {
 			noAuthConfFile, err := os.OpenFile(r.NoAuthConfFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, DefaultPerm)
 			defer noAuthConfFile.Close()
 			if err != nil {
-				r.runtime.Logger.Error(fmt.Sprintf("create no auth config file fail, error:%s", err))
+				r.runtime.Logger.Error("create no auth config file fail, error:%s", err)
 				return fmt.Errorf("create no auth config file fail, error:%s", err)
 			}
 			if _, err = noAuthConfFile.WriteString(string(noAuthConfFileContent)); err != nil {
-				r.runtime.Logger.Error(
-					fmt.Sprintf("change CacheSizeGB value of no auth config file write content fail, error:%s",
-						err))
+				r.runtime.Logger.Error("change CacheSizeGB value of no auth config file write content fail, error:%s", err)
 				return fmt.Errorf("change CacheSizeGB value of no auth config file write content fail, error:%s",
 					err)
 			}
@@ -397,7 +386,7 @@ func (r *MongoRestart) shutdown() error {
 		30*time.Second,
 		false,
 	); err != nil {
-		r.runtime.Logger.Error(fmt.Sprintf("shutdown %s fail, error:%s", r.ConfParams.InstanceType, err))
+		r.runtime.Logger.Error("shutdown %s fail, error:%s", r.ConfParams.InstanceType, err)
 		return fmt.Errorf("shutdown %s fail, error:%s", r.ConfParams.InstanceType, err)
 	}
 	r.runtime.Logger.Info("shutdown %s successfully", r.ConfParams.InstanceType)

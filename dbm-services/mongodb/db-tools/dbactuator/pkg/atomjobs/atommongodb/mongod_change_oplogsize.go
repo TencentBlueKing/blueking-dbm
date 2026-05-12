@@ -104,8 +104,7 @@ func (c *MongoDChangeOplogSize) Init(runtime *jobruntime.JobGenericRuntime) erro
 
 	// 获取MongoDB配置文件参数
 	if err := json.Unmarshal([]byte(c.runtime.PayloadDecoded), &c.ConfParams); err != nil {
-		c.runtime.Logger.Error(fmt.Sprintf(
-			"get parameters of mongoDChangeOplogSize fail by json.Unmarshal, error:%s", err))
+		c.runtime.Logger.Error("get parameters of mongoDChangeOplogSize fail by json.Unmarshal, error:%s", err)
 		return fmt.Errorf("get parameters of mongoDChangeOplogSize fail by json.Unmarshal, error:%s", err)
 	}
 	// 获取路径
@@ -122,14 +121,12 @@ func (c *MongoDChangeOplogSize) Init(runtime *jobruntime.JobGenericRuntime) erro
 	info, err := common.AuthGetPrimaryInfo(c.Mongo, c.ConfParams.AdminUsername, c.ConfParams.AdminPassword,
 		c.ConfParams.IP, c.ConfParams.Port)
 	if err != nil {
-		c.runtime.Logger.Error(fmt.Sprintf(
-			"get primary db info of mongoDChangeOplogSize fail, error:%s", err))
+		c.runtime.Logger.Error("get primary db info of mongoDChangeOplogSize fail, error:%s", err)
 		return fmt.Errorf("get primary db info of mongoDChangeOplogSize fail, error:%s", err)
 	}
 	// 判断info是否为null
 	if info == "" {
-		c.runtime.Logger.Error(fmt.Sprintf(
-			"get primary db info of mongoDChangeOplogSize fail, error:%s", err))
+		c.runtime.Logger.Error("get primary db info of mongoDChangeOplogSize fail, error:%s", err)
 		return fmt.Errorf("get primary db info of mongoDChangeOplogSize fail, error:%s", err)
 	}
 	getInfo := strings.Split(info, ":")
@@ -139,7 +136,7 @@ func (c *MongoDChangeOplogSize) Init(runtime *jobruntime.JobGenericRuntime) erro
 	// 获取mongo版本
 	version, err := common.CheckMongoVersion(c.BinDir, "mongod")
 	if err != nil {
-		c.runtime.Logger.Error(fmt.Sprintf("check mongo version fail, error:%s", err))
+		c.runtime.Logger.Error("check mongo version fail, error:%s", err)
 		return fmt.Errorf("check mongo version fail, error:%s", err)
 	}
 	c.MainVersion, _ = strconv.Atoi(strings.Split(version, ".")[0])
@@ -305,14 +302,11 @@ db.temp.drop();`
 	script, err := os.OpenFile(c.ScriptFilePath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, DefaultPerm)
 	defer script.Close()
 	if err != nil {
-		c.runtime.Logger.Error(
-			fmt.Sprintf("create script file fail, error:%s", err))
+		c.runtime.Logger.Error("create script file fail, error:%s", err)
 		return fmt.Errorf("create script file fail, error:%s", err)
 	}
 	if _, err = script.WriteString(scriptContent); err != nil {
-		c.runtime.Logger.Error(
-			fmt.Sprintf("script file write content fail, error:%s",
-				err))
+		c.runtime.Logger.Error("script file write content fail, error:%s", err)
 		return fmt.Errorf("script file write content fail, error:%s",
 			err)
 	}

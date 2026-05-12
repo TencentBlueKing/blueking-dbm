@@ -54,7 +54,7 @@ func (s *helloJob) Init(runtime *jobruntime.JobGenericRuntime) error {
 	}
 	if err := json.Unmarshal([]byte(s.runtime.PayloadDecoded), &s.ConfParams); err != nil {
 		tmpErr := errors.Wrap(err, "payload json.Unmarshal failed")
-		s.runtime.Logger.Error(tmpErr.Error())
+		s.runtime.Logger.Error("%s", tmpErr.Error())
 		return tmpErr
 	}
 

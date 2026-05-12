@@ -26,10 +26,10 @@ type FileServerInfo struct {
 // targetURL: 仓库文件完整路径
 func UploadFile(filepath string, targetURL string, username string, password string) (*http.Response, error) {
 
-	userMsg := fmt.Sprintf(username + ":" + password)
+	userMsg := username + ":" + password
 	token := base64.StdEncoding.EncodeToString([]byte(userMsg))
 	msg := fmt.Sprintf("start upload files from  %s to %s", filepath, targetURL)
-	mylog.Logger.Info(msg)
+	mylog.Logger.Info("%s", msg)
 	bodyBuf := bytes.NewBufferString("")
 	bodyWriter := multipart.NewWriter(bodyBuf)
 
@@ -69,8 +69,8 @@ func UploadFile(filepath string, targetURL string, username string, password str
 // targetURL: 仓库文件完整路径
 func DownloadFile(filepath string, targetURL string, username string, password string) (err error) {
 	msg := fmt.Sprintf("start download files from %s to %s", targetURL, filepath)
-	mylog.Logger.Info(msg)
-	userMsg := fmt.Sprintf(username + ":" + password)
+	mylog.Logger.Info("%s", msg)
+	userMsg := username + ":" + password
 	token := base64.StdEncoding.EncodeToString([]byte(userMsg))
 	outFile, err := os.Create(filepath)
 	if err != nil {
