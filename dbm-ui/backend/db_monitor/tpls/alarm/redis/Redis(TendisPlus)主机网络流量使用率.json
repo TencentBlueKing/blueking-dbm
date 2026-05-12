@@ -28,7 +28,7 @@
             "alias": "a",
             "metric_id": "",
             "functions": [],
-            "promql": "100 * (max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (max_over_time(bkmonitor:dbm_system:net:speed_recv{device_name=\"eth1\",cluster_type=\"PredixyTendisplusCluster\"}[1m])) + max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (max_over_time(bkmonitor:dbm_system:net:speed_sent{device_name=\"eth1\",cluster_type=\"PredixyTendisplusCluster\"}[1m]))) / sum by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_type=\"PredixyTendisplusCluster\"}[1m])) / (96 * 1024 * 1024) and sum by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_type=\"PredixyTendisplusCluster\"}[1m])) <= 2 or (100 * (max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (max_over_time(bkmonitor:dbm_system:net:speed_recv{device_name=\"eth1\",cluster_type=\"PredixyTendisplusCluster\"}[1m])) + max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (max_over_time(bkmonitor:dbm_system:net:speed_sent{device_name=\"eth1\",cluster_type=\"PredixyTendisplusCluster\"}[1m]))) / sum by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_type=\"PredixyTendisplusCluster\"}[1m])) / (48 * 1024 * 1024) and sum by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_type=\"PredixyTendisplusCluster\"}[1m])) > 2)",
+            "promql": "(((max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_recv{cluster_type=\"PredixyTendisplusCluster\", device_name=\"eth1\"}[1m])) + max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_sent{cluster_type=\"PredixyTendisplusCluster\", device_name=\"eth1\"}[1m]))) * 100) / (((count by(ip, bk_target_cloud_id) (group by(ip, bk_target_cloud_id, device_name) (bkmonitor:dbm_system:cpu_detail:usage{cluster_type=\"PredixyTendisplusCluster\"})) <= 2) * (96 * 1024 * 1024)) or ((count by(ip, bk_target_cloud_id) (group by(ip, bk_target_cloud_id, device_name) (bkmonitor:dbm_system:cpu_detail:usage{cluster_type=\"PredixyTendisplusCluster\"})) > 2) * (48 * 1024 * 1024))))",
             "agg_interval": 60,
             "name": ""
           }
@@ -258,7 +258,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "[TendisPlus]主机网络流量使用率",
-  "version": 3,
+  "version": 4,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-07-23T16:36:12+08:00"

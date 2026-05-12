@@ -110,7 +110,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -256,7 +257,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -404,7 +406,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -549,7 +552,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -842,7 +846,7 @@
                 }
               ],
               "refId": "A",
-              "source": "(\n  100 * (\n    max by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:net:speed_recv{\n          cluster_domain=\"$cluster_domain\",\n          device_name=\"eth1\",\n          instance_role=~\"$instance_role\"\n        }\n      \n    ) +\n    max by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:net:speed_sent{\n          cluster_domain=\"$cluster_domain\",\n          device_name=\"eth1\",\n          instance_role=~\"$instance_role\"\n        }\n      \n    )\n  ) /  (96 * 1024 * 1024)  / \n  sum by(ip, bk_target_cloud_id, instance_role) (\n       bkmonitor:dbm_system:cpu_detail:usage{\n        cluster_domain=\"$cluster_domain\",\n        instance_role=~\"$instance_role\"\n      } \n  )   and\n    sum by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:cpu_detail:usage{\n          cluster_domain=\"$cluster_domain\",\n          instance_role=~\"$instance_role\"\n        } \n    ) <= 2\n   or\n  (\n    100 * (\n      max by(ip, bk_target_cloud_id, instance_role) (\n          bkmonitor:dbm_system:net:speed_recv{\n            cluster_domain=\"$cluster_domain\",\n            device_name=\"eth1\",\n            instance_role=~\"$instance_role\"\n          } \n      ) +\n      max by(ip, bk_target_cloud_id, instance_role) (\n          bkmonitor:dbm_system:net:speed_sent{\n            cluster_domain=\"$cluster_domain\",\n            device_name=\"eth1\",\n            instance_role=~\"$instance_role\"\n          } \n      )\n    ) / (48 * 1024 * 1024)/\n    sum by(ip, bk_target_cloud_id, instance_role) (\n         bkmonitor:dbm_system:cpu_detail:usage{\n          cluster_domain=\"$cluster_domain\",\n          instance_role=~\"$instance_role\"\n        } \n    )  and \n\n    sum by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:cpu_detail:usage{\n          cluster_domain=\"$cluster_domain\",\n          instance_role=~\"$instance_role\"\n        } \n    ) > 2\n  )\n)",
+              "source": " # 1. 计算分子：(网络接收速率 + 网络发送速率) * 100\n (\n    (\n      max by(ip, bk_target_cloud_id,instance_role) (max_over_time(bkmonitor:dbm_system:net:speed_recv{cluster_domain=\"$cluster_domain\", device_name=\"eth1\", instance_role=~\"$instance_role\"}[1m]))\n      +\n      max by(ip, bk_target_cloud_id,instance_role) (max_over_time(bkmonitor:dbm_system:net:speed_sent{cluster_domain=\"$cluster_domain\", device_name=\"eth1\", instance_role=~\"$instance_role\"}[1m]))\n    ) * 100\n  )\n  /\n  # 2. 计算分母：(去重后的核心数 * 对应基准带宽)\n  (\n    # 逻辑 A：核心数 <= 2，用 96M 基准\n    (\n      count by(ip, bk_target_cloud_id,instance_role) (group by(ip, bk_target_cloud_id, device_name,instance_role) (bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\", instance_role=~\"$instance_role\"})) <= 2\n    ) * (96 * 1024 * 1024)\n    or\n    # 逻辑 B：核心数 > 2，用 48M 基准\n    (\n      count by(ip, bk_target_cloud_id,instance_role) (group by(ip, bk_target_cloud_id, device_name,instance_role) (bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\", instance_role=~\"$instance_role\"})) > 2\n    ) * (48 * 1024 * 1024)\n  )",
               "step": "1m",
               "type": "range"
             },
@@ -1160,7 +1164,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -1364,7 +1369,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -1568,7 +1574,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -4913,7 +4920,7 @@
   "timezone": "browser",
   "title": "mongoreplicaset",
   "uid": "MongoReplicaSet",
-  "version": 93,
+  "version": 97,
   "weekStart": "",
   "__inputs": [
     {
