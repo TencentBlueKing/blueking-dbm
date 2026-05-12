@@ -132,7 +132,13 @@ func New(cli *discovery.Client, db *hamysql.GormDB, disc *discovery.Discovery,
 	wflow.detectorHandler = NewDetectorHandler(wflow.alarm, wflow.windowMgr, myServiceID)
 	wflow.businessChecker = NewBusinessChecker(&wflow.StatusParser, wflow.detectorHandler)
 
-	wflow.popSwitchSem = make(chan struct{}, popSwitchSemSize)
+	semSize := config.Cfg.Workflow.PopSwitchSemSize
+	if semSize <= 0 {
+		logger.Warn("the pop-switch semaphore size(%d) is too small, reset it to the default value(%d)", semSize, popSwitchSemSize)
+		semSize = popSwitchSemSize
+	}
+	logger.Info("the pop-switch semaphore size is: %d", semSize)
+	wflow.popSwitchSem = make(chan struct{}, semSize)
 	wflow.lockTracker = NewInProcessLockTracker()
 
 	return wflow, nil
@@ -382,7 +388,12 @@ func (w *Workflow) PopAndSwitch(ctx context.Context) {
 	assigned := w.instanceDiscovery.AssignedBizIDs(bizIDs)
 
 	for _, bizID := range assigned {
-		w.popSwitchSem <- struct{}{}
+		select {
+		case w.popSwitchSem <- struct{}{}:
+		default:
+			logger.Debug("popSwitchSem is full, waiting for a slot, bizId: %d", bizID)
+			w.popSwitchSem <- struct{}{}
+		}
 
 		go func(bizId int) {
 			defer func() { <-w.popSwitchSem }()
