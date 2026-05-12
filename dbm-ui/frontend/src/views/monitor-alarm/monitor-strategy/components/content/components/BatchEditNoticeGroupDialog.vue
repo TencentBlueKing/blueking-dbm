@@ -2,7 +2,8 @@
   <BkDialog
     v-model:is-show="moduleValue"
     class="batch-edit-notice-group-dialog"
-    quick-close>
+    quick-close
+    :width="500">
     <template #header>
       <span>{{ t('批量设置告警组') }}</span>
       <span class="sub-title">{{ t('已选n个策略', { n: selected.length }) }}</span>
@@ -74,9 +75,7 @@
         v-if="isSkippedAlertShow"
         class="mb-8"
         theme="warning"
-        :title="
-          t('已自动跳过 n 条不适用的策略（已包含本次选择的全部告警组），不受本次操作影响。', { n: skippedCount })
-        " />
+        :title="t('自动跳过 n 条策略（已包含本次选择的全部告警组），不受本次操作影响。', { n: skippedCount })" />
       <VoiceNotice
         v-if="isVoiceNoticeShow"
         v-model="formData.voiceNotice" />
