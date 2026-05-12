@@ -59,6 +59,15 @@ func setupEnableSwitchingForTest(t *testing.T) {
 	})
 }
 
+func setupEnableWhiteListForTest(t *testing.T) {
+	t.Helper()
+	old := config.Cfg.Workflow.EnableWhiteList
+	config.Cfg.Workflow.EnableWhiteList = true
+	t.Cleanup(func() {
+		config.Cfg.Workflow.EnableWhiteList = old
+	})
+}
+
 func newWorkflowForHandleFailureGroupTests(t *testing.T, dbmClient *dbm.Client) *Workflow {
 	t.Helper()
 	td := testutil.NewTestDbhaData(t)
@@ -265,26 +274,29 @@ func TestMarkDoneAllReleasesAllKeys(t *testing.T) {
 	}
 }
 
-func TestFilterWhitelistedInstances_NoWhitelistRemovesNothing(t *testing.T) {
+func TestFilterWhitelistedInstances_NoWhitelistNotifiesAll(t *testing.T) {
 	setupEnableSwitchingForTest(t)
+	setupEnableWhiteListForTest(t)
 	w := newWorkflowForHandleFailureGroupTests(t, nil)
 	group := buildSingleFailureGroup()
 	req := &switcher.Request{
 		DbType: haprobe.DbTypeMySql,
 		MySqlInstData: []*dbm.DbInstMetadata{
-			{BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Status: dbm.Available},
+			{BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "test-cluster", Status: dbm.Available},
 		},
 	}
 
 	w.filterWhitelistedInstances(context.Background(), group, req)
 
-	if len(req.MySqlInstData) != 1 {
-		t.Fatalf("expected 1 instance remaining, got %d", len(req.MySqlInstData))
+	// whitelist is empty: no instance is authorised to switch, all are notified
+	if len(req.MySqlInstData) != 0 {
+		t.Fatalf("expected 0 instances remaining (no whitelist, all notified), got %d", len(req.MySqlInstData))
 	}
 }
 
-func TestFilterWhitelistedInstances_WhitelistedInstanceRemoved(t *testing.T) {
+func TestFilterWhitelistedInstances_WhitelistedInstanceKept(t *testing.T) {
 	setupEnableSwitchingForTest(t)
+	setupEnableWhiteListForTest(t)
 	w := newWorkflowForHandleFailureGroupTests(t, nil)
 
 	testutil.InsertBlackWhiteList(t, w.hadata,
@@ -308,13 +320,15 @@ func TestFilterWhitelistedInstances_WhitelistedInstanceRemoved(t *testing.T) {
 
 	w.filterWhitelistedInstances(context.Background(), group, req)
 
-	if len(req.MySqlInstData) != 0 {
-		t.Fatalf("expected 0 instances remaining (whitelisted), got %d", len(req.MySqlInstData))
+	// whitelisted instance is kept for switching
+	if len(req.MySqlInstData) != 1 {
+		t.Fatalf("expected 1 instance remaining (whitelisted, kept for switching), got %d", len(req.MySqlInstData))
 	}
 }
 
 func TestFilterWhitelistedInstances_PartialWhitelisted(t *testing.T) {
 	setupEnableSwitchingForTest(t)
+	setupEnableWhiteListForTest(t)
 	w := newWorkflowForHandleFailureGroupTests(t, nil)
 
 	testutil.InsertBlackWhiteList(t, w.hadata,
@@ -339,16 +353,19 @@ func TestFilterWhitelistedInstances_PartialWhitelisted(t *testing.T) {
 
 	w.filterWhitelistedInstances(context.Background(), group, req)
 
+	// only the whitelisted instance (ClusterID=200) is kept for switching;
+	// the non-whitelisted instance (ClusterID=300) is filtered out and notified
 	if len(req.MySqlInstData) != 1 {
 		t.Fatalf("expected 1 instance remaining, got %d", len(req.MySqlInstData))
 	}
-	if req.MySqlInstData[0].ClusterID != 300 {
-		t.Fatalf("expected remaining instance clusterId=300, got %d", req.MySqlInstData[0].ClusterID)
+	if req.MySqlInstData[0].ClusterID != 200 {
+		t.Fatalf("expected remaining instance clusterId=200, got %d", req.MySqlInstData[0].ClusterID)
 	}
 }
 
-func TestFilterWhitelistedInstances_V1SwitchVersionNotFiltered(t *testing.T) {
+func TestFilterWhitelistedInstances_V1SwitchVersionNotWhitelisted(t *testing.T) {
 	setupEnableSwitchingForTest(t)
+	setupEnableWhiteListForTest(t)
 	w := newWorkflowForHandleFailureGroupTests(t, nil)
 
 	testutil.InsertBlackWhiteList(t, w.hadata,
@@ -372,13 +389,15 @@ func TestFilterWhitelistedInstances_V1SwitchVersionNotFiltered(t *testing.T) {
 
 	w.filterWhitelistedInstances(context.Background(), group, req)
 
-	if len(req.MySqlInstData) != 1 {
-		t.Fatalf("expected 1 instance remaining (v1 switch version not filtered), got %d", len(req.MySqlInstData))
+	// whitelist is empty (v1 excluded): instance is treated as non-whitelisted, notify only
+	if len(req.MySqlInstData) != 0 {
+		t.Fatalf("expected 0 instances remaining (v1 excluded, whitelist empty, notify only), got %d", len(req.MySqlInstData))
 	}
 }
 
-func TestFilterWhitelistedInstances_DisabledWhitelistNotFiltered(t *testing.T) {
+func TestFilterWhitelistedInstances_DisabledWhitelistNotWhitelisted(t *testing.T) {
 	setupEnableSwitchingForTest(t)
+	setupEnableWhiteListForTest(t)
 	w := newWorkflowForHandleFailureGroupTests(t, nil)
 
 	testutil.InsertBlackWhiteList(t, w.hadata,
@@ -402,13 +421,38 @@ func TestFilterWhitelistedInstances_DisabledWhitelistNotFiltered(t *testing.T) {
 
 	w.filterWhitelistedInstances(context.Background(), group, req)
 
+	// whitelist is empty (disabled excluded): instance is treated as non-whitelisted, notify only
+	if len(req.MySqlInstData) != 0 {
+		t.Fatalf("expected 0 instances remaining (disabled excluded, whitelist empty, notify only), got %d", len(req.MySqlInstData))
+	}
+}
+
+func TestFilterWhitelistedInstances_WhiteListDisabledSkipsFiltering(t *testing.T) {
+	setupEnableSwitchingForTest(t)
+	w := newWorkflowForHandleFailureGroupTests(t, nil)
+
+	// whitelist feature is disabled: filtering is skipped, all instances proceed to switching
+	config.Cfg.Workflow.EnableWhiteList = false
+
+	group := buildSingleFailureGroup()
+	req := &switcher.Request{
+		DbType: haprobe.DbTypeMySql,
+		MySqlInstData: []*dbm.DbInstMetadata{
+			{BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "test-cluster", Status: dbm.Available},
+		},
+	}
+
+	w.filterWhitelistedInstances(context.Background(), group, req)
+
+	// whitelist disabled: req.MySqlInstData is unchanged, all instances proceed to switching
 	if len(req.MySqlInstData) != 1 {
-		t.Fatalf("expected 1 instance remaining (disabled whitelist not filtered), got %d", len(req.MySqlInstData))
+		t.Fatalf("expected 1 instance remaining (whitelist disabled, filtering skipped), got %d", len(req.MySqlInstData))
 	}
 }
 
 func TestFilterWhitelistedInstances_SwitchingDisabledSkipsFiltering(t *testing.T) {
 	setupEnableSwitchingForTest(t)
+	setupEnableWhiteListForTest(t)
 	w := newWorkflowForHandleFailureGroupTests(t, nil)
 
 	testutil.InsertBlackWhiteList(t, w.hadata,
@@ -422,7 +466,7 @@ func TestFilterWhitelistedInstances_SwitchingDisabledSkipsFiltering(t *testing.T
 		},
 	)
 
-	// Disable switching
+	// switching is disabled: filtering is skipped, req.MySqlInstData is unchanged
 	config.Cfg.Workflow.EnableSwitching = false
 
 	group := buildSingleFailureGroup()
@@ -437,5 +481,38 @@ func TestFilterWhitelistedInstances_SwitchingDisabledSkipsFiltering(t *testing.T
 
 	if len(req.MySqlInstData) != 1 {
 		t.Fatalf("expected 1 instance remaining (switching disabled), got %d", len(req.MySqlInstData))
+	}
+}
+
+func TestFilterWhitelistedInstances_NoneWhitelisted(t *testing.T) {
+	setupEnableSwitchingForTest(t)
+	setupEnableWhiteListForTest(t)
+	w := newWorkflowForHandleFailureGroupTests(t, nil)
+
+	testutil.InsertBlackWhiteList(t, w.hadata,
+		&hamodel.DbBlackWhiteList{
+			BkBizID:       100,
+			BkCloudID:     1,
+			ClusterID:     999,
+			ClusterName:   "other-cluster",
+			SwitchVersion: hamodel.SwitchVersionV2,
+			Status:        hamodel.StatusTypeEnabled,
+		},
+	)
+
+	group := buildSingleFailureGroup()
+	req := &switcher.Request{
+		DbType: haprobe.DbTypeMySql,
+		MySqlInstData: []*dbm.DbInstMetadata{
+			{BkCloudID: 1, IP: "127.0.0.10", Port: 3306, ClusterID: 200, Cluster: "unmatched-cluster", Status: dbm.Available},
+		},
+	}
+
+	w.filterWhitelistedInstances(context.Background(), group, req)
+
+	// no instance matches the whitelist: req.MySqlInstData is cleared,
+	// and a notification alarm is sent for the non-whitelisted instance
+	if len(req.MySqlInstData) != 0 {
+		t.Fatalf("expected 0 instances remaining (none whitelisted), got %d", len(req.MySqlInstData))
 	}
 }

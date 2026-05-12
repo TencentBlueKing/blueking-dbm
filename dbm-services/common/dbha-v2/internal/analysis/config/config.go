@@ -54,6 +54,7 @@ var Cfg = Configuration{
 		ClusterLevelSwitchMaxClusterNum:  32,
 		ClusterLevelSwitchMaxInstanceNum: 64,
 		DbmApiMaxConcurrentRequests:      16,
+		EnableWhiteList:                  true,
 	},
 
 	Monitor: MonitorConfig{
@@ -98,6 +99,7 @@ type WorkflowConfig struct {
 	ReadDbMetricOffsetDuration       time.Duration `yaml:"readDbMetricOffsetDuration"       mapstructure:"readDbMetricOffsetDuration"`
 	ReadDbEventOffsetDuration        time.Duration `yaml:"readDbEventOffsetDuration"        mapstructure:"readDbEventOffsetDuration"`
 	EnableSwitching                  bool          `yaml:"enableSwitching"                  mapstructure:"enableSwitching"`
+	EnableWhiteList                  bool          `yaml:"enableWhiteList"                  mapstructure:"enableWhiteList"`
 	WindowDuration                   time.Duration `yaml:"windowDuration"                   mapstructure:"windowDuration"`
 	PopInterval                      time.Duration `yaml:"popInterval"                      mapstructure:"popInterval"`
 	PopSwitchSemSize                 int           `yaml:"popSwitchSemSize"                 mapstructure:"popSwitchSemSize"`
