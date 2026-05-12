@@ -126,6 +126,7 @@ export default class MonitorPolicy {
   notify_config: {
     interval_notify_mode: string;
     notify_interval: number; // 单位秒
+    voice_notice: string;
   };
   notify_groups: number[]; // 告警组ID列表
   notify_rules: string[];
@@ -210,14 +211,12 @@ export default class MonitorPolicy {
   }
 
   get isChild() {
-    // return this.bk_biz_id !== 0 && ![MonitorTargetLevel.BIZ, MonitorTargetLevel.PLATFORM].includes(this.target_level);
     return (
       ![MonitorTargetLevel.BIZ, MonitorTargetLevel.PLATFORM].includes(this.target_level) && this.policy_tag === 'subord'
     );
   }
 
   get isCustom() {
-    // return this.bk_biz_id !== 0 && this.target_level === MonitorTargetLevel.BIZ;
     return this.target_level === MonitorTargetLevel.BIZ && this.policy_tag === 'custom';
   }
 
@@ -226,7 +225,6 @@ export default class MonitorPolicy {
   }
 
   get isInnerReal() {
-    // return this.bk_biz_id === 0 && this.target_level === MonitorTargetLevel.PLATFORM;
     return this.target_level === MonitorTargetLevel.PLATFORM && this.policy_tag === 'inner';
   }
 

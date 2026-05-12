@@ -47,7 +47,7 @@
   import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
 
   interface Props {
-    data: MonitorPolicyModel['notify_config'];
+    data: Omit<MonitorPolicyModel['notify_config'], 'voice_notice'>;
   }
 
   type Emits = (e: 'change') => void;

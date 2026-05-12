@@ -330,7 +330,10 @@
       detects_config: detectsConfig,
       is_enabled: formModel.isEnabled,
       no_data_config: formModel.noDataConfig,
-      notify_config: notifyConfig,
+      notify_config: {
+        ...props.data.notify_config,
+        ...notifyConfig,
+      },
       notify_groups: props.data.notify_groups,
       notify_rules: formModel.notifyRules,
       policy_tag: 'inner' as const,
