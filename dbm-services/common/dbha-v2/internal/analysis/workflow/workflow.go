@@ -65,6 +65,7 @@ const (
 	popIntervalLimitMin  = 5 * time.Second
 	dbTableStatsInterval = 5 * time.Minute
 	readBatchCount       = 1000
+	popSwitchSemSize     = 10
 )
 
 // Workflow represents the workflow engine for DBHA.
@@ -90,6 +91,8 @@ type Workflow struct {
 	detectorHandler   *DetectorHandler
 	businessChecker   *BusinessChecker
 	windowMgr         *BizWindowManager
+	popSwitchSem      chan struct{}
+	lockTracker       *InProcessLockTracker // makes the per-biz etcd switch lock reentrant within this AM
 }
 
 // New creates a workflow instance. discovery and registryPrefix are used to list and watch
@@ -129,6 +132,9 @@ func New(cli *discovery.Client, db *hamysql.GormDB, disc *discovery.Discovery,
 	wflow.detectorHandler = NewDetectorHandler(wflow.alarm, wflow.windowMgr, myServiceID)
 	wflow.businessChecker = NewBusinessChecker(&wflow.StatusParser, wflow.detectorHandler)
 
+	wflow.popSwitchSem = make(chan struct{}, popSwitchSemSize)
+	wflow.lockTracker = NewInProcessLockTracker()
+
 	return wflow, nil
 }
 
@@ -166,10 +172,9 @@ func (w *Workflow) Run(ctx context.Context) error {
 				return
 
 			case <-timer.C:
-				logger.Debug("the workflow begins to scan the businesses")
-				w.ScanBusinesses(ctx)
-				logger.Debug("the workflow will scan the businesses, after: %v", config.Cfg.Workflow.ScanInterval)
 				timer.Reset(config.Cfg.Workflow.ScanInterval)
+				logger.Debug("the workflow begins to scan the businesses, next scan after: %v", config.Cfg.Workflow.ScanInterval)
+				w.ScanBusinesses(ctx)
 			}
 		}
 	}()
@@ -366,8 +371,6 @@ func (w *Workflow) ScanBusinesses(ctx context.Context) {
 // Each business acquires an independent SwitchLock to prevent multiple AM instances from
 // switching the same business simultaneously. SwitchLock is independent of ScanLock.
 func (w *Workflow) PopAndSwitch(ctx context.Context) {
-	start := time.Now()
-
 	qCtx, cancel := context.WithTimeout(ctx, config.Cfg.Storage.Timeout)
 	bizIDs, err := w.hadata.GetBizIDs(qCtx)
 	cancel()
@@ -377,31 +380,17 @@ func (w *Workflow) PopAndSwitch(ctx context.Context) {
 	}
 
 	assigned := w.instanceDiscovery.AssignedBizIDs(bizIDs)
-	wg := sync.WaitGroup{}
-	sem := make(chan struct{}, 10)
 
 	for _, bizID := range assigned {
-		sem <- struct{}{}
-		wg.Add(1)
+		w.popSwitchSem <- struct{}{}
 
 		go func(bizId int) {
-			defer wg.Done()
-			defer func() { <-sem }()
+			defer func() { <-w.popSwitchSem }()
 
 			safe.Run(func() {
 				w.popAndSwitchForBiz(ctx, bizId)
 			}, safe.WithLabel("PopAndSwitch"))
 		}(bizID)
-	}
-
-	wg.Wait()
-
-	// report the pop-switch time consuming
-	if err := apm.PopSwitchTimeConsumingMs.ObserveWithLabels(map[string]string{
-		haapm.MetricLabelServiceID:   w.myServiceID,
-		haapm.MetricLabelServiceName: apm.MetricServerName,
-	}, float64(time.Since(start).Milliseconds())); err != nil {
-		logger.Warn("failed to report the pop-switch time consuming, errmsg: %s", err)
 	}
 
 	// report the pop-switch business total
@@ -413,11 +402,23 @@ func (w *Workflow) PopAndSwitch(ctx context.Context) {
 	}
 }
 
-// popAndSwitchForBiz performs pop-and-switch for a single business:
-// acquires SwitchLock, pops matured entries, marks all instances as inflight,
-// groups by (BkCloudID, DbType), matches strategies, and triggers switching or notification.
+// popAndSwitchForBiz runs one switching pass for a single business:
+// acquires the switch lock via lockTracker (reentrant within this AM, mutually
+// exclusive across AMs), pops matured entries, marks instances as inflight,
+// groups by (BkCloudID, DbType), and dispatches each group for switching.
 func (w *Workflow) popAndSwitchForBiz(ctx context.Context, bizId int) {
-	_, unlock, err := w.metadataReader.AcquireSwitchLock(ctx, bizId)
+	start := time.Now()
+	defer func() {
+		// report the pop-switch business time consuming
+		if err := apm.PopSwitchTimeConsumingMs.ObserveWithLabels(map[string]string{
+			haapm.MetricLabelServiceID:   w.myServiceID,
+			haapm.MetricLabelServiceName: apm.MetricServerName,
+		}, float64(time.Since(start).Milliseconds())); err != nil {
+			logger.Warn("failed to report the pop-switch time consuming, errmsg: %s", err)
+		}
+	}()
+
+	unlock, err := w.lockTracker.Acquire(ctx, w.metadataReader, bizId)
 	if err != nil {
 		logger.Debug("skip pop-switch for biz %d, unable to acquire switch lock, errmsg: %s", bizId, err)
 		return
@@ -670,7 +671,7 @@ func (w *Workflow) reportDbTableUpdatedStats(ctx context.Context) {
 	apm.DbmMetadataUpdatedCount.Clear()
 	for _, item := range metaCounts {
 		if item.DbType == haprobe.DbTypeNone {
-			continue
+			item.DbType = haprobe.DbTypeUnknown
 		}
 		if e := apm.DbmMetadataUpdatedCount.SetWithLabels(map[string]string{
 			haapm.MetricLabelServiceID:   w.myServiceID,
@@ -691,7 +692,7 @@ func (w *Workflow) reportDbTableUpdatedStats(ctx context.Context) {
 	apm.DbhaDataStatusUpdatedCount.Clear()
 	for _, item := range statusCounts {
 		if item.DbType == haprobe.DbTypeNone {
-			continue
+			item.DbType = haprobe.DbTypeUnknown
 		}
 		if e := apm.DbhaDataStatusUpdatedCount.SetWithLabels(map[string]string{
 			haapm.MetricLabelServiceID:   w.myServiceID,

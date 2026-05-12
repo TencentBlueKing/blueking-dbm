@@ -141,9 +141,18 @@ const (
 type DbType string
 
 const (
-	DbTypeNone  DbType = ""
-	DbTypeMySql DbType = "mysql"
-	DbTypeRedis DbType = "redis"
+	DbTypeNone      DbType = ""
+	DbTypeUnknown   DbType = "unknown"
+	DbTypeMySql     DbType = "mysql"
+	DbTypeRedis     DbType = "redis"
+	DbTypeSqlServer DbType = "sqlserver"
+	DbTypeMongo     DbType = "mongo"
+	DbTypeRiak      DbType = "riak"
+	DbTypeHdfs      DbType = "hdfs"
+	DbTypeEs        DbType = "es"
+	DbTypeKafka     DbType = "kafka"
+	DbTypeDoris     DbType = "doris"
+	DbTypePulsar    DbType = "pulsar"
 )
 
 func (t DbType) String() string {
