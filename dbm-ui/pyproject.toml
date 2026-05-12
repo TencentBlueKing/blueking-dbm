@@ -7,7 +7,7 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = ">=3.11.10,<3.12"
-Django = "4.2.27"
+Django = "4.2.30"
 djangorestframework = "^3.15.0"
 PyMySQL = "1.1.1"
 requests = "2.32.5"
@@ -99,8 +99,8 @@ pytest-django = "3.9.0"
 mock = "3.0.5"
 coverage = "4.5.3"
 requests-mock = "1.9.3"
-black = "22.3.0"
-isort = "5.7.0"
+black = "^24.3.0"
+isort = "^5.13.0"
 
 [tool.black]
 exclude = '''
