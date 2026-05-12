@@ -481,7 +481,7 @@ func (w *Workflow) handleFailureGroup(ctx context.Context, group *FailureGroup) 
 
 	w.filterWhitelistedInstances(ctx, group, req)
 	if !req.HasDbInstMetadata() {
-		logger.Info("all instances are whitelisted, notify only, cloudId: %d, dbType: %s",
+		logger.Info("no whitelisted instances remain, notify only, cloudId: %d, dbType: %s",
 			group.BkCloudID, group.DbType)
 		return
 	}
@@ -517,10 +517,14 @@ func (w *Workflow) handleStrategyNotify(strategy *hamodel.DbSwitchingStrategy, g
 	return true
 }
 
-// filterWhitelistedInstances filters out instances that are in the whitelist from the switch request.
-// Whitelisted instances are removed from the request and a notification alarm is sent for them.
-// The remaining instances will continue through the normal strategy matching and switching flow.
+// filterWhitelistedInstances retains only whitelisted instances in the switch request.
+// Non-whitelisted instances are removed from the request and a notification alarm is sent for them.
+// Only whitelisted instances will proceed to the actual switching flow.
 func (w *Workflow) filterWhitelistedInstances(ctx context.Context, group *FailureGroup, req *switcher.Request) {
+	if !config.Cfg.Workflow.EnableWhiteList {
+		logger.Warn("whitelist is disabled, skip filtering whitelisted instances")
+		return
+	}
 	if !config.Cfg.Workflow.EnableSwitching {
 		logger.Warn("switching operation is disabled, skip filtering whitelisted instances")
 		return
@@ -542,10 +546,6 @@ func (w *Workflow) filterWhitelistedInstances(ctx context.Context, group *Failur
 		return
 	}
 
-	if len(whiteList) == 0 {
-		return
-	}
-
 	whiteListMap := make(map[int]*hamodel.DbBlackWhiteList, len(whiteList))
 	for _, item := range whiteList {
 		whiteListMap[item.ClusterID] = item
@@ -556,28 +556,29 @@ func (w *Workflow) filterWhitelistedInstances(ctx context.Context, group *Failur
 
 	for _, meta := range req.MySqlInstData {
 		if _, exists := whiteListMap[meta.ClusterID]; exists {
-			logger.Info("instance is in the whitelist, skip switching, clusterId: %d, clusterName: %s, ip: %s, port: %d",
-				meta.ClusterID, meta.Cluster, meta.IP, meta.Port)
 			whitelistedMetas = append(whitelistedMetas, meta)
 			continue
 		}
+		logger.Info("instance is not in the whitelist, notify only, clusterId: %d, clusterName: %s, ip: %s, port: %d",
+			meta.ClusterID, meta.Cluster, meta.IP, meta.Port)
 		remaining = append(remaining, meta)
 	}
 
-	if len(whitelistedMetas) == 0 {
+	// only whitelisted instances proceed to switching
+	req.MySqlInstData = whitelistedMetas
+
+	if len(remaining) == 0 {
 		return
 	}
 
-	req.MySqlInstData = remaining
-
-	// if there are whitelisted instances, send a notification alarm
-	clusterInfos := make([]string, 0, len(whitelistedMetas))
-	for _, meta := range whitelistedMetas {
+	// send a notification alarm for non-whitelisted instances
+	clusterInfos := make([]string, 0, len(remaining))
+	for _, meta := range remaining {
 		clusterInfos = append(clusterInfos, fmt.Sprintf("%d:%s", meta.ClusterID, meta.Cluster))
 	}
 	log := fmt.Sprintf(
-		"found %d whitelisted instance(s), execute notification only, bkBizId: %d, bkCloudId: %d, dbType: %s, clusters: [%s]",
-		len(whitelistedMetas), bkBizID, group.BkCloudID, group.DbType, strings.Join(clusterInfos, ", "))
+		"found %d not whitelisted instance(s), execute notification only, bkBizId: %d, bkCloudId: %d, dbType: %s, clusters: [%s]",
+		len(remaining), bkBizID, group.BkCloudID, group.DbType, strings.Join(clusterInfos, ", "))
 	logger.Info("%s", log)
 	w.alarm.TriggerWithBizId(bkBizID, log)
 }
