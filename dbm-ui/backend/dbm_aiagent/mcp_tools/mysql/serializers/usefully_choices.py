@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext as _
 
-from backend.db_meta.enums import ClusterType, InstanceRole, MachineType, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, MachineType, TenDBClusterSpiderRole
 
 mysql_cluster_type_choices = [
     (ClusterType.TenDBSingle.value, ClusterType.TenDBSingle.name),
@@ -31,6 +31,13 @@ mysql_instance_role_choices = [
     (InstanceRole.REMOTE_MASTER.value, InstanceRole.REMOTE_MASTER.name),
     (InstanceRole.REMOTE_SLAVE.value, InstanceRole.REMOTE_SLAVE.name),
     (TenDBClusterSpiderRole.SPIDER_MASTER, TenDBClusterSpiderRole.SPIDER_MASTER.name),
+]
+
+# 容量采集场景使用的角色（覆盖 tendbsingle 的 orphan、tendbha/tendbcluster 的 master/slave）
+mysql_capacity_inner_role_choices = [
+    (InstanceInnerRole.SLAVE.value, InstanceInnerRole.SLAVE.name),
+    (InstanceInnerRole.MASTER.value, InstanceInnerRole.MASTER.name),
+    (InstanceInnerRole.ORPHAN.value, InstanceInnerRole.ORPHAN.name),
 ]
 
 # mysql_slave_status_masks = [

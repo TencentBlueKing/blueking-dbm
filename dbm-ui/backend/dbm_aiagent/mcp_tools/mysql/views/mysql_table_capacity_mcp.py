@@ -76,8 +76,9 @@ class MySQLTableCapacityMcpToolsViewSet(McpToolsViewSet):
     @mcp_tools_api_decorator(
         description=str(
             _(
-                "查询 tendbsingle, tendbha, tendbcluster 集群中指定数据库下某些表的大小。"
-                "table_names 传 ['*'] 则查询该库下所有表大小。"
+                "查询 tendbsingle, tendbha, tendbcluster 集群中表的大小。"
+                "database_name 可选，传则查询指定库下的表，不传则跨集群下所有库查询符合 table_names 的表。"
+                "table_names 传 ['*'] 则查询所有表大小。"
                 "tendbcluster 集群会自动将各分片数据汇总，返回的是逻辑表的总大小。"
                 "返回的 table_size 单位是字节(bytes)。"
                 "limit 按表名字典序截取（默认 50)；top_n 按表大小降序截取，与 limit 互斥；"

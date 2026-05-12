@@ -135,8 +135,8 @@ def query_database_size(
 def query_table_size(
     cluster_domain: str,
     instance_role: str,
-    database_name: str,
     table_names: List[str],
+    database_name: Optional[str] = None,
     base_time: Optional[timezone.datetime] = None,
     limit: Optional[int] = None,
     top_n: Optional[int] = None,
@@ -147,6 +147,9 @@ def query_table_size(
     tendbcluster 有分片概念，需要把同一个小时里各分片的同名表数据 sum 起来。
     按 (database_name, table_name, dteventtimehour) 分组 sum(table_size)，
     然后取每个表最新一个小时的数据作为结果。
+
+    database_name 为空时表示跨集群下所有库查询符合 table_names 的表，此时去重和
+    排序均按 (database_name, table_name) 复合维度处理，避免不同库下同名表被合并。
     """
     # 计算时间范围：[base_time - 48h, base_time]
     if not base_time:
@@ -157,10 +160,12 @@ def query_table_size(
         qs = MysqlDbTableSize.objects.filter(
             cluster_domain=cluster_domain,
             instance_role=instance_role,
-            database_name=database_name,
             dteventtimehour__gte=start_time,
             dteventtimehour__lte=base_time,
         )
+
+        if database_name:
+            qs = qs.filter(database_name=database_name)
 
         # 如果指定了表名，则过滤
         if table_names and table_names != ["*"]:
@@ -173,20 +178,20 @@ def query_table_size(
                 table_size=Sum("table_size"),
                 latest_report_time=Max("report_time"),
             )
-            .order_by("table_name", "-dteventtimehour")
+            .order_by("database_name", "table_name", "-dteventtimehour")
         )
         all_rows = list(qs)
     except Exception as e:
         raise DBMMcpBaseException(msg=f"query table size failed: {e}")
 
-    # 对每个 table_name 只保留最新一个小时的数据
+    # 对每个 (database_name, table_name) 只保留最新一个小时的数据
     seen_tables = set()
     result: List[Dict] = []
     for item in all_rows:
-        tbl_name = item["table_name"]
-        if tbl_name in seen_tables:
+        key = (item["database_name"], item["table_name"])
+        if key in seen_tables:
             continue
-        seen_tables.add(tbl_name)
+        seen_tables.add(key)
 
         # 将时间字段转为字符串
         if item.get("dteventtimehour") and hasattr(item["dteventtimehour"], "strftime"):
