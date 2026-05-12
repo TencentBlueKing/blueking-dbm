@@ -23,10 +23,9 @@
   const route = useRoute();
   const router = useRouter();
 
-  const bizStore = useGlobalBizs();
+  const { bizs: bizList } = useGlobalBizs();
 
-  const bizList = computed(() => bizStore.bizs.filter((item) => item.status === 'managed'));
-  const currentBiz = computed(() => _.find(bizStore.bizs, (item) => item.bk_biz_id === window.PROJECT_CONFIG.BIZ_ID));
+  const currentBiz = computed(() => _.find(bizList, (item) => item.bk_biz_id === window.PROJECT_CONFIG.BIZ_ID));
 
   const handleAppChange = (appInfo: IAppItem) => {
     const { bk_biz_id: bkBizId } = appInfo;
