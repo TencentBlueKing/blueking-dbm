@@ -46,6 +46,7 @@ var Cfg = Configuration{
 		ReadDbMetricOffsetDuration:       -60 * time.Second,
 		ReadDbEventOffsetDuration:        -10 * time.Minute,
 		PopInterval:                      5 * time.Second,
+		PopSwitchSemSize:                 10,
 		WindowDuration:                   10 * time.Second,
 		InflightTTL:                      30 * time.Second,
 		SwitchTimeout:                    1 * time.Minute,
@@ -99,6 +100,7 @@ type WorkflowConfig struct {
 	EnableSwitching                  bool          `yaml:"enableSwitching"                  mapstructure:"enableSwitching"`
 	WindowDuration                   time.Duration `yaml:"windowDuration"                   mapstructure:"windowDuration"`
 	PopInterval                      time.Duration `yaml:"popInterval"                      mapstructure:"popInterval"`
+	PopSwitchSemSize                 int           `yaml:"popSwitchSemSize"                 mapstructure:"popSwitchSemSize"`
 	InflightTTL                      time.Duration `yaml:"inflightTTL"                      mapstructure:"inflightTTL"`
 	SwitchTimeout                    time.Duration `yaml:"switchTimeout"                    mapstructure:"switchTimeout"`
 	DbmApiMetadataHashCnt            int           `yaml:"dbmApiMetadataHashCnt"            mapstructure:"dbmApiMetadataHashCnt"`
