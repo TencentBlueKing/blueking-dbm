@@ -478,6 +478,7 @@ class DBActuatorActionEnum(StrStructuredEnum):
     MysqlClearSurroundingConfig = EnumField("clear-inst-config", _("mysql实例的周边配置清理"))
     SpiderInitClusterRouting = EnumField("init-cluster-routing", _("初始化spider集群节点关系"))
     SpiderAddTmpNode = EnumField("add-tmp-spider", _("添加spider临时节点"))
+    SpiderAddSpiderRouting = EnumField("add-spider-routing", _("添加spider节点路由(中控primary本机执行)"))
     RestartSpider = EnumField("restart-spider", _("restart-spider"))
     AddSlaveClusterRouting = EnumField("add-slave-cluster-routing", _("添加spider-slave集群的相关路由信息"))
     MySQLBackupDemand = EnumField("backup-demand", _("mysql备份请求"))

@@ -13,7 +13,7 @@ import logging
 import re
 
 from backend import env
-from backend.components import DBConfigApi, DBPrivManagerApi
+from backend.components import DBConfigApi, DBPrivManagerApi, DRSApi
 from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
 from backend.constants import IP_RE_PATTERN
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
@@ -109,6 +109,34 @@ class PayloadHandler(object):
             "repl_pwd": base64.b64decode(data[0]["password"]).decode("utf-8"),
             "repl_user": data[0]["username"],
         }
+
+    @staticmethod
+    def read_ctl_pass_from_ctl_primary(ctl_master: str, bk_cloud_id: int) -> str:
+        """
+        获取第一次集群部署中控的密码，保证同一集群的所有中控访问的账号密码是一致的，
+        避免中控同步出现复制冲突。通用方法：通过 DRS 查询当前 ctl-primary 的
+        mysql.servers 表，取 Server_name like 'TDBCTL%' 的 Password。
+
+        @param ctl_master: 中控 primary 的 "ip:port" 地址
+        @param bk_cloud_id: 云区域 ID
+        @return: 成功返回密码字符串；失败或结果为空时返回空串 ""
+        """
+        res = DRSApi.rpc(
+            {
+                "addresses": [f"{ctl_master}"],
+                "cmds": ["select Password as result from mysql.servers where Server_name like 'TDBCTL%' limit 1"],
+                "force": False,
+                "bk_cloud_id": bk_cloud_id,
+            }
+        )
+        if res[0]["error_msg"]:
+            raise Exception(f"read ctl pass failed:[{res[0]['error_msg']}]")
+
+        table_data = res[0]["cmd_results"][0]["table_data"]
+        if not table_data:
+            raise Exception("read ctl pass failed: empty result from mysql.servers")
+
+        return table_data[0]["result"]
 
     @staticmethod
     def get_mysql_static_account() -> dict:
