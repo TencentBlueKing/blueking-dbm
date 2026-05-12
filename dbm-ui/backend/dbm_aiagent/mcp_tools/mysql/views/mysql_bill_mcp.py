@@ -8,14 +8,17 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext as _
 from rest_framework.response import Response
 
+from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import Cluster
 from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clusters
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpNoneBillSubmittedException, DBMMcpUsernameNotFoundException
 from backend.dbm_aiagent.mcp_tools.mysql.auth_parser.bill import auth_parse_mysql_tdbctl_upgrade_ticket
+from backend.dbm_aiagent.mcp_tools.mysql.helpers.assert_clustertype import assert_cluster_type
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_apply_priv import bill_apply_priv
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_db_table_backup import bill_db_table_backup
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_fullbackup import mysql_full_backup
@@ -76,6 +79,10 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         backup_type = self.get_param("backup_type")
         cluster_domain = self.get_param("cluster_domain")
 
+        assert_cluster_type(
+            Cluster.objects.get(immute_domain=cluster_domain), [ClusterType.TenDBHA, ClusterType.TenDBCluster]
+        )
+
         username = request.user.username
         if not username:
             raise DBMMcpUsernameNotFoundException()
@@ -101,6 +108,10 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         cluster_domain = self.get_param("cluster_domain")
         include_dbs = self.get_param("include_dbs")
         ignore_dbs = self.get_param("ignore_dbs")
+
+        assert_cluster_type(
+            Cluster.objects.get(immute_domain=cluster_domain), [ClusterType.TenDBHA, ClusterType.TenDBCluster]
+        )
 
         username = request.user.username
         if not username:
@@ -144,6 +155,11 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         dbnames = self.get_param("dbnames")
         apply_source_ips = self.get_param("apply_source_ips")
 
+        assert_cluster_type(
+            Cluster.objects.get(immute_domain=cluster_domain),
+            [ClusterType.TenDBSingle, ClusterType.TenDBHA, ClusterType.TenDBCluster],
+        )
+
         username = request.user.username
         if not username:
             raise DBMMcpUsernameNotFoundException()
@@ -173,6 +189,11 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
     def submit_bill_mysql_standardize(self, request, *args, **kwargs):
         bk_biz_id = self.get_param("bk_biz_id")
         cluster_domains = self.get_param("cluster_domains")
+
+        assert_cluster_type(
+            Cluster.objects.filter(immute_domain__in=cluster_domains),
+            [ClusterType.TenDBSingle, ClusterType.TenDBHA, ClusterType.TenDBCluster],
+        )
 
         with_instance_standardize = self.get_param("with_instance_standardize", False)
         with_cc_standardize = self.get_param("with_cc_standardize", False)
@@ -213,6 +234,11 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         cluster_domain = self.get_param("cluster_domain")
         source_dbname = self.get_param("source_dbname")
         target_dbname = self.get_param("target_dbname")
+
+        assert_cluster_type(
+            Cluster.objects.get(immute_domain=cluster_domain),
+            [ClusterType.TenDBSingle, ClusterType.TenDBHA, ClusterType.TenDBCluster],
+        )
 
         username = request.user.username
         if not username:
@@ -259,6 +285,8 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         cluster_ids = self.get_param("cluster_ids", None)
         version = self.get_param("version", None)
 
+        assert_cluster_type(Cluster.objects.filter(id__in=cluster_ids), [ClusterType.TenDBCluster])
+
         username = request.user.username
         if not username:
             raise DBMMcpUsernameNotFoundException()
@@ -287,6 +315,8 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         cluster_domains = list({d.strip() for d in self.get_param("cluster_domains")})
         ips = list({addr.strip() for addr in self.get_param("ips")})
 
+        assert_cluster_type(Cluster.objects.filter(immute_domain__in=cluster_domains), [ClusterType.TenDBHA])
+
         return Response(bill_proxy_replace(cluster_domains=cluster_domains, ips=ips))
 
     @mcp_tools_api_decorator(
@@ -302,6 +332,8 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
     def submit_bill_backend_slave_replace(self, request, *args, **kwargs):
         cluster_domains = list({d.strip() for d in self.get_param("cluster_domains")})
         ips = list({addr.strip() for addr in self.get_param("ips")})
+
+        assert_cluster_type(Cluster.objects.filter(immute_domain__in=cluster_domains), [ClusterType.TenDBHA])
 
         return Response(bill_backend_slave_replace(cluster_domains=cluster_domains, ips=ips))
 
@@ -319,6 +351,8 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         cluster_domain = self.get_param("cluster_domain")
         ips = list({addr.strip() for addr in self.get_param("ips")})
 
+        assert_cluster_type(Cluster.objects.get(immute_domain=cluster_domain), [ClusterType.TenDBCluster])
+
         return Response(bill_spider_replace(cluster_domain=cluster_domain, ips=ips))
 
     @mcp_tools_api_decorator(
@@ -334,6 +368,8 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
     def submit_bill_remote_slave_replace(self, request, *args, **kwargs):
         cluster_domain = self.get_param("cluster_domain")
         ips = list({addr.strip() for addr in self.get_param("ips")})
+
+        assert_cluster_type(Cluster.objects.get(immute_domain=cluster_domain), [ClusterType.TenDBCluster])
 
         return Response(bill_remote_replace(cluster_domain=cluster_domain, ips=ips))
 
@@ -355,6 +391,8 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         cluster_domains = list({d.strip() for d in self.get_param("cluster_domains")})
         ips = list({addr.strip() for addr in self.get_param("ips")})
 
+        assert_cluster_type(Cluster.objects.filter(immute_domain__in=cluster_domains), [ClusterType.TenDBHA])
+
         return Response(bill_tendbha_master_slave_switch(cluster_domains=cluster_domains, ips=ips))
 
     @mcp_tools_api_decorator(
@@ -370,5 +408,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
     def submit_bill_tendbcluster_master_slave_switch(self, request, *args, **kwargs):
         cluster_domain = self.get_param("cluster_domain")
         ips = list({addr.strip() for addr in self.get_param("ips")})
+
+        assert_cluster_type(Cluster.objects.get(immute_domain=cluster_domain), [ClusterType.TenDBCluster])
 
         return Response(bill_tendbcluster_master_slave_switch(cluster_domain, ips))

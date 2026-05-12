@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext as _
 from rest_framework.response import Response
 
 from backend.db_meta.enums import ClusterType, MachineType
@@ -27,6 +27,7 @@ from backend.dbm_aiagent.mcp_tools.exceptions import (
     DBMMcpNotSupportClusterTypeException,
     DBMMcpNotSupportMachineTypeException,
 )
+from backend.dbm_aiagent.mcp_tools.mysql.helpers.assert_clustertype import assert_cluster_type
 from backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_topo import mysql_cluster_topo
 from backend.dbm_aiagent.mcp_tools.mysql.impl.explain_sql import explain_sql
 from backend.dbm_aiagent.mcp_tools.mysql.impl.query_trx import query_long_running_trx
@@ -113,6 +114,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         table_name = self.get_param("table_name")
 
         cluster_obj = Cluster.objects.get(immute_domain=cluster_domain)
+        assert_cluster_type(cluster_obj, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
 
         return Response(
             show_create_table(
@@ -138,6 +140,8 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         table_names = self.get_param("table_names")
 
         cluster_obj = Cluster.objects.get(immute_domain=cluster_domain)
+        assert_cluster_type(cluster_obj, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
+
         create_sql_list = []
         for table_name in table_names:
             create_sql = show_create_table(
@@ -171,6 +175,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         query_sql = self.get_param("query_sql")
 
         cluster_obj = Cluster.objects.get(immute_domain=cluster_domain)
+        assert_cluster_type(cluster_obj, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
 
         return Response(
             explain_sql(
@@ -195,6 +200,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         cluster_domain = self.get_param("cluster_domain")
 
         cluster_obj = Cluster.objects.get(immute_domain=cluster_domain)
+        assert_cluster_type(cluster_obj, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
 
         return Response(
             {
@@ -222,6 +228,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         address = self.get_param("address")
 
         machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
 
         return Response(
             {
@@ -249,6 +256,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         address = self.get_param("address")
 
         machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
 
         return Response(
             {
@@ -276,6 +284,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         address = self.get_param("address")
 
         machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
 
         return Response(
             {
@@ -296,6 +305,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
     def show_biz_mysql_privilege_template(self, request, *args, **kwargs):
         bk_biz_id = self.get_param("bk_biz_id")
         cluster_type = self.get_param("cluster_type")
+        assert_cluster_type(cluster_type, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
 
         return Response(
             {
@@ -320,6 +330,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         address = self.get_param("address")
 
         machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
 
         return Response(
             {
@@ -346,6 +357,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         address = self.get_param("address")
 
         machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
 
         return Response(
             {
@@ -372,7 +384,9 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         # 根据 instance(ip:port) 反查集群，instance 可能是存储层实例，也可能是接入层实例
         ip, port = instance.split(":")
 
-        machine = Machine.objects.filter(ip=ip).first()
+        machine: Machine = Machine.objects.filter(ip=ip).first()
+        assert_cluster_type(machine, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
+
         instance_obj = ProxyInstance.objects.filter(machine__ip=ip, port=int(port)).first()
         if not instance_obj:
             instance_obj = StorageInstance.objects.filter(machine__ip=ip, port=int(port)).first()
@@ -418,6 +432,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         address = self.get_param("address")
 
         machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
 
         return Response(
             {
@@ -450,6 +465,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         names = self.get_param("variable_names")
 
         machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
 
         return Response(
             {
@@ -484,6 +500,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         names = self.get_param("status_names")
 
         machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
 
         return Response(
             {
@@ -512,6 +529,8 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         engine = self.get_param("engine")
 
         machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
+
         return Response(show_engine_status(bk_cloud_id, address, engine, machine_obj.machine_type))
 
     @mcp_tools_api_decorator(
@@ -538,6 +557,8 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         limit_row_count = self.get_param("limit_row_count")
 
         machine_obj = _validate_and_get_machine(bk_cloud_id, address)
+        assert_cluster_type(machine_obj, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
+
         return Response(
             run_show_binlog_events(
                 bk_cloud_id=machine_obj.bk_cloud_id,
