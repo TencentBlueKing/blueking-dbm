@@ -33,7 +33,7 @@ func NewJobGenericManager(uid, rootID, nodeID, versionID, payload, payloadFormat
 	runtime, err := jobruntime.NewJobGenericRuntime(uid, rootID, nodeID, versionID,
 		payload, payloadFormat, atomJobs, baseDir)
 	if err != nil {
-		log.Panicf(err.Error())
+		log.Panic(err)
 	}
 	ret = &JobGenericManager{
 		runtime: runtime,
@@ -43,7 +43,7 @@ func NewJobGenericManager(uid, rootID, nodeID, versionID, payload, payloadFormat
 
 // PrintVersion 打印版本信息
 func (m *JobGenericManager) PrintVersion(versionInfo string) {
-	m.runtime.Logger.Info(versionInfo)
+	m.runtime.Logger.Info("%s", versionInfo)
 }
 
 // LoadAtomJobs 加载子任务
@@ -51,7 +51,7 @@ func (m *JobGenericManager) LoadAtomJobs() (err error) {
 	defer func() {
 		// err最后输出到标准错误
 		if err != nil {
-			m.runtime.PrintToStderr(err.Error())
+			m.runtime.PrintToStderr("%s", err.Error())
 		}
 	}()
 	defer func() {
@@ -62,7 +62,7 @@ func (m *JobGenericManager) LoadAtomJobs() (err error) {
 	m.runtime.AtomJobList = strings.TrimSpace(m.runtime.AtomJobList)
 	if m.runtime.AtomJobList == "" {
 		err = fmt.Errorf("atomJobList(%s) cannot be empty", m.runtime.AtomJobList)
-		m.runtime.Logger.Error(err.Error())
+		m.runtime.Logger.Error("%s", err.Error())
 		return
 	}
 	jobList := strings.Split(m.runtime.AtomJobList, ",")
@@ -74,11 +74,11 @@ func (m *JobGenericManager) LoadAtomJobs() (err error) {
 		atom := m.GetAtomJobInstance(atomName)
 		if atom == nil {
 			err = fmt.Errorf("atomJob(%s) not found", atomName)
-			m.runtime.Logger.Error(err.Error())
+			m.runtime.Logger.Error("%s", err.Error())
 			return
 		}
 		m.Runners = append(m.Runners, atom)
-		m.runtime.Logger.Info(fmt.Sprintf("atomJob:%s instance load success", atomName))
+		m.runtime.Logger.Info("atomJob:%s instance load success", atomName)
 	}
 	return
 }
@@ -88,7 +88,7 @@ func (m *JobGenericManager) RunAtomJobs() (err error) {
 	defer func() {
 		// err最后输出到标准错误
 		if err != nil {
-			m.runtime.PrintToStderr(err.Error() + "\n")
+			m.runtime.PrintToStderr("%s", err.Error()+"\n")
 		}
 	}()
 	defer func() {
@@ -103,20 +103,20 @@ func (m *JobGenericManager) RunAtomJobs() (err error) {
 
 	for _, runner := range m.Runners {
 		name := util.GetTypeName(runner)
-		m.runtime.Logger.Info(fmt.Sprintf("begin to run %s init", name))
+		m.runtime.Logger.Info("begin to run %s init", name)
 		if err = runner.Init(m.runtime); err != nil {
-			m.runtime.Logger.Error(fmt.Sprintf("runner %s init failed, err:%s", name, err))
+			m.runtime.Logger.Error("runner %s init failed, err:%s", name, err)
 			return
 		}
-		m.runtime.Logger.Info(fmt.Sprintf("begin to run %s", name))
+		m.runtime.Logger.Info("begin to run %s", name)
 		err = runner.Run()
 		if err != nil {
-			m.runtime.Logger.Error(fmt.Sprintf("runner %s run failed,err: %s", name, err))
+			m.runtime.Logger.Error("runner %s run failed,err: %s", name, err)
 			return
 		}
-		m.runtime.Logger.Info(fmt.Sprintf("finished run %s", name))
+		m.runtime.Logger.Info("finished run %s", name)
 	}
-	m.runtime.Logger.Info(fmt.Sprintf("run all atomJobList:%s success", m.runtime.AtomJobList))
+	m.runtime.Logger.Info("run all atomJobList:%s success", m.runtime.AtomJobList)
 
 	m.runtime.OutputPipeContextData()
 	return

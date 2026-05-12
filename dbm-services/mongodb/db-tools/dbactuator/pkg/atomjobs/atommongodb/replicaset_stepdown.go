@@ -76,8 +76,7 @@ func (s *StepDown) Init(runtime *jobruntime.JobGenericRuntime) error {
 
 	// 获取MongoDB配置文件参数
 	if err := json.Unmarshal([]byte(s.runtime.PayloadDecoded), &s.ConfParams); err != nil {
-		s.runtime.Logger.Error(fmt.Sprintf(
-			"get parameters of stepDown fail by json.Unmarshal, error:%s", err))
+		s.runtime.Logger.Error("get parameters of stepDown fail by json.Unmarshal, error:%s", err)
 		return fmt.Errorf("get parameters of stepDown fail by json.Unmarshal, error:%s", err)
 	}
 
@@ -85,8 +84,7 @@ func (s *StepDown) Init(runtime *jobruntime.JobGenericRuntime) error {
 	info, err := common.AuthGetPrimaryInfo(s.Mongo, s.ConfParams.AdminUsername, s.ConfParams.AdminPassword,
 		s.ConfParams.IP, s.ConfParams.Port)
 	if err != nil {
-		s.runtime.Logger.Error(fmt.Sprintf(
-			"get primary db info of stepDown fail, error:%s", err))
+		s.runtime.Logger.Error("get primary db info of stepDown fail, error:%s", err)
 		return fmt.Errorf("get primary db info of stepDown fail, error:%s", err)
 	}
 	getInfo := strings.Split(info, ":")
@@ -108,7 +106,7 @@ func (s *StepDown) checkParams() error {
 	validate := validator.New()
 	s.runtime.Logger.Info("start to validate parameters of stepDown")
 	if err := validate.Struct(s.ConfParams); err != nil {
-		s.runtime.Logger.Error(fmt.Sprintf("validate parameters of stepDown fail, error:%s", err))
+		s.runtime.Logger.Error("validate parameters of stepDown fail, error:%s", err)
 		return fmt.Errorf("validate parameters of stepDown fail, error:%s", err)
 	}
 	return nil

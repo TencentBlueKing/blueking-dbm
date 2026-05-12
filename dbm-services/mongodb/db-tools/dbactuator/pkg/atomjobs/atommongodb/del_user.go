@@ -86,8 +86,7 @@ func (d *DelUser) Init(runtime *jobruntime.JobGenericRuntime) error {
 
 	// 获取MongoDB配置文件参数
 	if err := json.Unmarshal([]byte(d.runtime.PayloadDecoded), &d.ConfParams); err != nil {
-		d.runtime.Logger.Error(fmt.Sprintf(
-			"get parameters of deleteUser fail by json.Unmarshal, error:%s", err))
+		d.runtime.Logger.Error("get parameters of deleteUser fail by json.Unmarshal, error:%s", err)
 		return fmt.Errorf("get parameters of deleteUser fail by json.Unmarshal, error:%s", err)
 	}
 
@@ -99,8 +98,7 @@ func (d *DelUser) Init(runtime *jobruntime.JobGenericRuntime) error {
 		info, err := common.AuthGetPrimaryInfo(d.Mongo, d.ConfParams.AdminUsername, d.ConfParams.AdminPassword,
 			d.ConfParams.IP, d.ConfParams.Port)
 		if err != nil {
-			d.runtime.Logger.Error(fmt.Sprintf(
-				"get primary db info of addUser fail, error:%s", err))
+			d.runtime.Logger.Error("get primary db info of addUser fail, error:%s", err)
 			return fmt.Errorf("get primary db info of addUser fail, error:%s", err)
 		}
 		getInfo := strings.Split(info, ":")
@@ -123,7 +121,7 @@ func (d *DelUser) checkParams() error {
 	validate := validator.New()
 	d.runtime.Logger.Info("start to validate parameters of deleteUser")
 	if err := validate.Struct(d.ConfParams); err != nil {
-		d.runtime.Logger.Error(fmt.Sprintf("validate parameters of deleteUser fail, error:%s", err))
+		d.runtime.Logger.Error("validate parameters of deleteUser fail, error:%s", err)
 		return fmt.Errorf("validate parameters of deleteUser fail, error:%s", err)
 	}
 	d.runtime.Logger.Info("validate parameters of deleteUser successfully")
@@ -145,7 +143,7 @@ func (d *DelUser) makeScriptContent() error {
 	}
 	version, err := common.CheckMongoVersion(d.BinDir, mongoName)
 	if err != nil {
-		d.runtime.Logger.Error(fmt.Sprintf("check mongo version fail, error:%s", err))
+		d.runtime.Logger.Error("check mongo version fail, error:%s", err)
 		return fmt.Errorf("check mongo version fail, error:%s", err)
 	}
 	mainVersion, _ := strconv.Atoi(strings.Split(version, ".")[0])
@@ -170,7 +168,7 @@ func (d *DelUser) execScript() error {
 		return err
 	}
 	if flag == false {
-		d.runtime.Logger.Error(fmt.Sprintf("user:%s is not existed", d.ConfParams.Username))
+		d.runtime.Logger.Error("user:%s is not existed", d.ConfParams.Username)
 		return fmt.Errorf("user:%s is not existed", d.ConfParams.Username)
 	}
 
@@ -184,7 +182,7 @@ func (d *DelUser) execScript() error {
 		cmd,
 		"", nil,
 		60*time.Second); err != nil {
-		d.runtime.Logger.Error(fmt.Sprintf("execute addUser script fail, error:%s", err))
+		d.runtime.Logger.Error("execute addUser script fail, error:%s", err)
 		return fmt.Errorf("execute addUser script fail, error:%s", err)
 	}
 
@@ -197,7 +195,7 @@ func (d *DelUser) execScript() error {
 		return err
 	}
 	if flag == true {
-		d.runtime.Logger.Error(fmt.Sprintf("delete user:%s fail, error:%s", d.ConfParams.Username, err))
+		d.runtime.Logger.Error("delete user:%s fail, error:%s", d.ConfParams.Username, err)
 		return fmt.Errorf("delete user:%s fail, error:%s", d.ConfParams.Username, err)
 	}
 	d.runtime.Logger.Info("execute deleteUser script successfully")

@@ -87,8 +87,7 @@ func (v *MongoSetFCV) Init(runtime *jobruntime.JobGenericRuntime) error {
 
 	// 获取MongoDB配置文件参数
 	if err := json.Unmarshal([]byte(v.runtime.PayloadDecoded), &v.ConfParams); err != nil {
-		v.runtime.Logger.Error("%s", fmt.Sprintf(
-			"get parameters of mongo restart fail by json.Unmarshal, error:%s", err))
+		v.runtime.Logger.Error("get parameters of mongo restart fail by json.Unmarshal, error:%s", err)
 		return fmt.Errorf("get parameters of setting fcv fail by json.Unmarshal, error:%w", err)
 	}
 	v.ExecIP = v.ConfParams.IP
@@ -98,8 +97,7 @@ func (v *MongoSetFCV) Init(runtime *jobruntime.JobGenericRuntime) error {
 		info, err := common.AuthGetPrimaryInfo(v.Mongo, v.ConfParams.AdminUsername, v.ConfParams.AdminPassword,
 			v.ConfParams.IP, v.ConfParams.Port)
 		if err != nil {
-			v.runtime.Logger.Error("%s", fmt.Sprintf(
-				"get primary db info of setting fcv fail, error:%s", err))
+			v.runtime.Logger.Error("get primary db info of setting fcv fail, error:%s", err)
 			return fmt.Errorf("get primary db info of setting fcv fail, error:%w", err)
 		}
 		// 判断info是否为null
@@ -129,7 +127,7 @@ func (v *MongoSetFCV) checkParams() error {
 	validate := validator.New()
 	v.runtime.Logger.Info("start to validate parameters of setting fcv")
 	if err := validate.Struct(v.ConfParams); err != nil {
-		v.runtime.Logger.Error("%s", fmt.Sprintf("validate parameters of setting fcv fail, error:%s", err))
+		v.runtime.Logger.Error("validate parameters of setting fcv fail, error:%s", err)
 		return fmt.Errorf("validate parameters of setting fcv fail, error:%w", err)
 	}
 	v.runtime.Logger.Info("validate parameters of setting fcv successfully")
@@ -179,7 +177,7 @@ func (v *MongoSetFCV) setParam() error {
 	}
 	setFcvByte, err := json.Marshal(setFcv)
 	if err != nil {
-		v.runtime.Logger.Error("%s", fmt.Sprintf("marshal setFcv fail, error:%s", err))
+		v.runtime.Logger.Error("marshal setFcv fail, error:%s", err)
 		return fmt.Errorf("marshal setFcv fail: %w", err)
 	}
 	evalScript := "db.adminCommand(" + string(setFcvByte) + ")"

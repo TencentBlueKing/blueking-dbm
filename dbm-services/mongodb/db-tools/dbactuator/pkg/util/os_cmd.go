@@ -100,7 +100,7 @@ func SetOSUserPassword(user, password string) error {
 	}()
 	if output, err := cmd.CombinedOutput(); err != nil {
 		err = fmt.Errorf("run chpasswd failed, output:%s, err:%w", string(output), err)
-		mylog.Logger.Error(err.Error())
+		mylog.Logger.Error("%s", err.Error())
 		return err
 	}
 	return nil

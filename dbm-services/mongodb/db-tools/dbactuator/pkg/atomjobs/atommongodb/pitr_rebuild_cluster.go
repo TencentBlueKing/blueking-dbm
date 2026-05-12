@@ -73,7 +73,7 @@ func (s *PitrRebuildClusterJob) Init(runtime *jobruntime.JobGenericRuntime) erro
 	}
 	if err := json.Unmarshal([]byte(s.runtime.PayloadDecoded), &s.ConfParams); err != nil {
 		tmpErr := errors.Wrap(err, "payload json.Unmarshal failed")
-		s.runtime.Logger.Error(tmpErr.Error())
+		s.runtime.Logger.Error("%s", tmpErr.Error())
 		return tmpErr
 	}
 	return nil
@@ -132,8 +132,8 @@ func (s *PitrRebuildClusterJob) updateConfigsvr() error {
 	opts := options.Update().SetUpsert(true)
 	_, err = cli.Database("config").Collection("settings").UpdateOne(
 		context.TODO(),
-		bson.D{{"_id", "balancer"}},
-		bson.D{{"$set", bson.M{"_id": "balancer", "stopped": true, "mode": "full"}}},
+		bson.D{{Key: "_id", Value: "balancer"}},
+		bson.D{{Key: "$set", Value: bson.M{"_id": "balancer", "stopped": true, "mode": "full"}}},
 		opts,
 	)
 	if err != nil {
@@ -159,7 +159,11 @@ func (s *PitrRebuildClusterJob) updateConfigsvr() error {
 		}
 		_, err = cli.Database("config").Collection("shards").InsertOne(
 			context.TODO(),
-			bson.D{{"_id", srcShard.SetName}, {"host", dstHost}, {"state", 1}},
+			bson.D{
+				{Key: "_id", Value: srcShard.SetName},
+				{Key: "host", Value: dstHost},
+				{Key: "state", Value: 1},
+			},
 		)
 		if err != nil {
 			return errors.Wrap(err, "update config shard")
@@ -225,20 +229,20 @@ func (s *PitrRebuildClusterJob) updateShardsvr() error {
 	}
 	s.runtime.Logger.Info("fetch all system.version success, count: %d", len(rows))
 	for _, json := range rows {
-		s.runtime.Logger.Info(json)
+		s.runtime.Logger.Info("%s", json)
 	}
 
 	// db.system.version.deleteOne( { _id: "minOpTimeRecovery" } )
 	_, err = cli.Database("admin").Collection("system.version").DeleteOne(
 		context.TODO(),
-		bson.D{{"_id", "minOpTimeRecovery"}}, nil)
+		bson.D{{Key: "_id", Value: "minOpTimeRecovery"}}, nil)
 
 	if err != nil {
 		return errors.Wrap(err, "delete minOpTimeRecovery")
 	}
 
 	ret := cli.Database("admin").Collection("system.version").FindOne(context.TODO(),
-		bson.D{{"_id", "shardIdentity"}})
+		bson.D{{Key: "_id", Value: "shardIdentity"}})
 
 	if ret.Err() != nil && !errors.Is(ret.Err(), mongo.ErrNoDocuments) {
 		return errors.Wrap(ret.Err(), "find shardIdentity")
@@ -265,9 +269,9 @@ func (s *PitrRebuildClusterJob) updateShardsvr() error {
 	// update shardName in admin.system.version
 	_, err = cli.Database("admin").Collection("system.version").UpdateOne(
 		context.TODO(),
-		bson.D{{"_id", "shardIdentity"}},
-		bson.D{{"$set", bson.D{
-			{"shardName", s.ConfParams.SrcShard.SetName},
+		bson.D{{Key: "_id", Value: "shardIdentity"}},
+		bson.D{{Key: "$set", Value: bson.D{
+			{Key: "shardName", Value: s.ConfParams.SrcShard.SetName},
 		}}}, nil)
 
 	if err != nil {

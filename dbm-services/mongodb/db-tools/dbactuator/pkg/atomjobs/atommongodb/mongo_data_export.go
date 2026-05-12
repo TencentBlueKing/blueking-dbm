@@ -105,7 +105,7 @@ func (s *mongoDataExport) Init(runtime *jobruntime.JobGenericRuntime) error {
 	// Parse parameters from payload
 	if err := json.Unmarshal([]byte(s.runtime.PayloadDecoded), &s.ConfParams); err != nil {
 		tmpErr := errors.Wrap(err, "payload json.Unmarshal failed")
-		s.runtime.Logger.Error(tmpErr.Error())
+		s.runtime.Logger.Error("%s", tmpErr.Error())
 		return tmpErr
 	}
 

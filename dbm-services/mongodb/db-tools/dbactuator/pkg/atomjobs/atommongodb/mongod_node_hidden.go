@@ -114,7 +114,7 @@ func (n *NodeHidden) checkParams() error {
 	validate := validator.New()
 	n.runtime.Logger.Info("start to validate parameters of nodeHidden")
 	if err := validate.Struct(n.ConfParams); err != nil {
-		n.runtime.Logger.Error(fmt.Sprintf("validate parameters of nodeHidden fail, error:%s", err))
+		n.runtime.Logger.Error("validate parameters of nodeHidden fail, error:%s", err)
 		return fmt.Errorf("validate parameters of nodeHidden fail, error:%s", err)
 	}
 	n.runtime.Logger.Info("validate parameters of nodeHidden successfully")

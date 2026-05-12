@@ -86,7 +86,7 @@ func (pkg *DbToolsMediaPkg) Install() (err error) {
 	if overrideLocal {
 		// 最新介质覆盖本地
 		untarCmd := fmt.Sprintf("tar -zxf %s -C %s", installToolTar, backupDir)
-		mylog.Logger.Info(untarCmd)
+		mylog.Logger.Info("%s", untarCmd)
 		_, err = util.RunBashCmd(untarCmd, "", nil, 10*time.Minute)
 		if err != nil {
 			return
@@ -94,14 +94,14 @@ func (pkg *DbToolsMediaPkg) Install() (err error) {
 	}
 	if !util.FileExists(filepath.Join(backupDir, toolsName)) { // 如 /data/dbbak/dbtools 目录不存在
 		err = fmt.Errorf("dir:%s not exists", filepath.Join(backupDir, toolsName))
-		mylog.Logger.Error(err.Error())
+		mylog.Logger.Error("%s", err.Error())
 		return
 	}
 	if util.FileExists(consts.DbToolsPath) {
 		realLink, err = filepath.EvalSymlinks(consts.DbToolsPath)
 		if err != nil {
 			err = fmt.Errorf("filepath.EvalSymlinks %s fail,err:%v", consts.DbToolsPath, err)
-			mylog.Logger.Error(err.Error())
+			mylog.Logger.Error("%s", err.Error())
 			return err
 		}
 		if realLink == filepath.Join(backupDir, toolsName) { // /home/mysql/dbtools 已经是指向 /data/dbbak/dbtools 的软连接
@@ -113,13 +113,13 @@ func (pkg *DbToolsMediaPkg) Install() (err error) {
 		err = os.Symlink(filepath.Join(backupDir, toolsName), consts.DbToolsPath)
 		if err != nil {
 			err = fmt.Errorf("os.Symlink %s -> %s fail,err:%s", consts.DbToolsPath, filepath.Join(backupDir, toolsName), err)
-			mylog.Logger.Error(err.Error())
+			mylog.Logger.Error("%s", err.Error())
 			return
 		}
 		mylog.Logger.Info("create softLink success,%s -> %s", consts.DbToolsPath, filepath.Join(backupDir, toolsName))
 	}
 	cpCmd := fmt.Sprintf("cp %s %s", installToolTar, bakdirToolsTar)
-	mylog.Logger.Info(cpCmd)
+	mylog.Logger.Info("%s", cpCmd)
 	_, err = util.RunBashCmd(cpCmd, "", nil, 10*time.Minute)
 	if err != nil {
 		return
