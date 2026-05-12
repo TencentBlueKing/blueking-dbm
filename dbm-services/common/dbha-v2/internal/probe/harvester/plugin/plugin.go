@@ -37,7 +37,6 @@ type HarvestData haprobe.HarvestData
 // Plugin probe plugin interface
 type Plugin interface {
 	Name() (string, error)
-	Version() (string, error)
 	Harvest(ctx context.Context, machineID, serviceID string) (<-chan *HarvestData, error)
 	Close() error
 }
@@ -51,10 +50,6 @@ type UnimplementedMethod struct {
 }
 
 func (u *UnimplementedMethod) Name() (string, error) {
-	return "unknow", gerrors.New(gerrors.Unimplemented, "unimplemented method")
-}
-
-func (u *UnimplementedMethod) Version() (string, error) {
 	return "unknow", gerrors.New(gerrors.Unimplemented, "unimplemented method")
 }
 

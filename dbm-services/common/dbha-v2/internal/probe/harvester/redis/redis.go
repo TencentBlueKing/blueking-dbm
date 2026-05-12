@@ -42,8 +42,7 @@ import (
 )
 
 const (
-	Name    = "redis"
-	Version = "v1.0.0"
+	Name = "redis"
 
 	RedisConnectionProto = "tcp"
 )
@@ -79,11 +78,6 @@ func NewRedis(cfg *config.RedisHarvesterConfig) (*Redis, error) {
 // Name returns the name of the plugin.
 func (r *Redis) Name() (string, error) {
 	return Name, nil
-}
-
-// Version returns the version of the plugin.
-func (r *Redis) Version() (string, error) {
-	return Version, nil
 }
 
 // Close closes the plugin.

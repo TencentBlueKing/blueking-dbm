@@ -47,7 +47,6 @@ import (
 const (
 	Name                = "mysql"
 	NameMySqlProxyAdmin = "mysqlProxyAdmin"
-	Version             = "v1.0.0"
 
 	MySqlConfigFileType  = "ini"
 	MySqlBindPort        = "mysql.port"
@@ -104,11 +103,6 @@ func (m *MySql) Name() (string, error) {
 		return Name, nil
 	}
 	return m.name, nil
-}
-
-// Version returns the version of the plugin.
-func (m *MySql) Version() (string, error) {
-	return Version, nil
 }
 
 // Close closes the plugin.

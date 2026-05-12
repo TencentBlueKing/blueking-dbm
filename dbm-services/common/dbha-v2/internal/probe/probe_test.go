@@ -41,8 +41,7 @@ type fakePlugin struct {
 	started chan struct{}
 }
 
-func (f *fakePlugin) Name() (string, error)    { return f.name, nil }
-func (f *fakePlugin) Version() (string, error) { return "test", nil }
+func (f *fakePlugin) Name() (string, error) { return f.name, nil }
 
 func (f *fakePlugin) Harvest(ctx context.Context, _, _ string) (<-chan *plugin.HarvestData, error) {
 	if f.started != nil {
