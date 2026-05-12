@@ -15,7 +15,7 @@
   <div
     v-if="data.length > 0"
     class="sql-error-message-list"
-    :class="[statusClass, { collapsed: modelValue }]">
+    :class="[statusClass, { collapsed }]">
     <!-- 可点击展开/收起的汇总栏 -->
     <div
       class="check-summary"
@@ -36,8 +36,8 @@
       </div>
       <div
         class="summary-toggle"
-        :class="{ 'is-collapsed': modelValue }">
-        <span>{{ modelValue ? t('展开') : t('收起') }}</span>
+        :class="{ 'is-collapsed': collapsed }">
+        <span>{{ collapsed ? t('展开') : t('收起') }}</span>
         <DbIcon
           class="toggle-arrow"
           type="bk-dbm-icon db-icon-down-shape" />
@@ -103,18 +103,16 @@
 
   interface Props {
     data: IMessageList;
-    modelValue: boolean;
   }
 
-  interface Emits {
-    (e: 'update:modelValue', value: boolean): void;
-    (e: 'goto-line', line: number): void;
-  }
+  type Emits = (e: 'goto-line', line: number) => void;
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
+  const collapsed = ref(false);
 
   // 记录每一行 message 是否溢出
   const isOverflowMap = ref<Record<number, boolean>>({});
@@ -169,12 +167,12 @@
 
   // 条目超过 5 条时限制高度，否则随内容撑开
   const listWrapperStyle = computed(() => {
-    if (props.modelValue) return { display: 'none' };
+    if (collapsed.value) return { display: 'none' };
     return props.data.length > 5 ? { maxHeight: '220px' } : {};
   });
 
   const handleToggleCollapse = () => {
-    emits('update:modelValue', !props.modelValue);
+    collapsed.value = !collapsed.value;
   };
 
   const handleItemClick = (line: number) => {

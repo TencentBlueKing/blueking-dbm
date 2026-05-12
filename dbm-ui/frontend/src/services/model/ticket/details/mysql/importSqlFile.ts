@@ -21,7 +21,19 @@ export interface ImportSqlFile extends DetailBase {
   grammar_check_info: Record<
     string,
     {
+      bancommand_warnings: {
+        command_type: string;
+        line: number;
+        sqltext: string;
+        warn_info: string;
+      }[];
       highrisk_warnings: {
+        command_type: string;
+        line: number;
+        sqltext: string;
+        warn_info: string;
+      }[];
+      syntax_fails: {
         command_type: string;
         line: number;
         sqltext: string;
