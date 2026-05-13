@@ -17,6 +17,7 @@ from backend.components.kubernetes.client import KubernetesApi
 from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.query import CommonExportQueryResourceMixin, ResourceList
+from backend.db_services.kubernetes.utils import offset_to_page
 
 
 class KubernetesBaseExportQueryResourceMixin(CommonExportQueryResourceMixin):
@@ -27,7 +28,6 @@ class KubernetesBaseExportQueryResourceMixin(CommonExportQueryResourceMixin):
         """
         更新的headers列表数据
         """
-        # 大数据不需要从域名/模块字段值
         filtered_headers = list(filter(lambda header: header["id"] not in ["slave_domain", "db_module_name"], headers))
         return filtered_headers, kwargs["extra_headers"]
 
@@ -101,23 +101,13 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
         """将集群对象转为可序列化的 dict 结构"""
 
         cluster_detail = KubernetesApi.cluster_detail({"cluster_id": cluster.id}, use_admin=True)
-        bcs_cluster_name = cluster_detail.get("k8sClusterConfig", {}).get("clusterName", "")
+        k8s_cluster_name = cluster_detail.get("k8sClusterConfig", {}).get("clusterName", "")
         namespace = cluster_detail.get("namespace", "")
-        cluster_describe = KubernetesApi.cluster_describe(
-            {
-                "k8sClusterName": bcs_cluster_name,
-                "clusterName": cluster.name,
-                "namespace": namespace,
-                "bk_username": kwargs["bk_username"],
-            },
-            use_admin=True,
-        )
 
         cluster_extra_info = {
-            "bcs_cluster_name": bcs_cluster_name,
+            "k8s_cluster_name": k8s_cluster_name,
             "namespace": namespace,
             "components": cluster_detail.get("addonInfo", {}).get("topology", {}).get("components", []),
-            "component_list": cluster_describe.get("spec", {}).get("componentList", []),
         }
         cluster_info = super()._to_cluster_representation(
             cluster,
@@ -154,7 +144,7 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
         @param filter_params_map: 过滤参数map
         """
         data = {
-            "k8sClusterName": query_params["bcs_cluster_name"],
+            "k8sClusterName": query_params["k8s_cluster_name"],
             "clusterName": query_params["cluster_name"],
             "namespace": query_params["namespace"],
             "componentName": query_params["role"],
@@ -164,42 +154,18 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
         return ResourceList(**res)
 
     @classmethod
-    def get_operation_log(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> ResourceList:
-        """查询集群列表，补充公共字段"""
-        query_field_map = {
-            "bcs_cluster_name": "k8sClusterName",
-            "cluster_name": "clusterName",
-            "namespace": "namespace",
-            "creator": "creator",
-            "request_type": "requestType",
-            "keyword": "requestParams",
-        }
-
-        data = {query_field_map[k]: v for k, v in query_params.items() if k in query_field_map}
-        data.update({"page": offset // limit + 1, "limit": limit})
-        res = KubernetesApi.cluster_operation_log(data, use_admin=True)
-        return ResourceList(**res)
-
-    @classmethod
-    def restart_component(cls, query_params):
-        data = {
-            "k8sClusterName": query_params["bcs_cluster_name"],
-            "clusterName": query_params["cluster_name"],
-            "namespace": query_params["namespace"],
-            "restart": query_params["restart"],
-        }
-        res = KubernetesApi.restart_component(data, use_admin=True)
-
+    def retrieve_ins(cls, query_params) -> dict:
+        res = KubernetesApi.pod_detail(query_params, use_admin=True)
         return res
 
     @classmethod
-    def hscaling_component(cls, query_params):
-        data = {
-            "k8sClusterName": query_params["bcs_cluster_name"],
-            "clusterName": query_params["cluster_name"],
-            "namespace": query_params["namespace"],
-            "horizontalScaling": query_params["horizontal_scaling"],
-        }
-        res = KubernetesApi.hscaling_component(data, use_admin=True)
+    def get_operation_log(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> ResourceList:
+        """查询集群列表，补充公共字段"""
+        query_params = offset_to_page(query_params)
+        res = KubernetesApi.cluster_operation_log(query_params, use_admin=True)
+        return ResourceList(**res)
 
+    @classmethod
+    def get_component_spec(cls, query_params):
+        res = KubernetesApi.cluster_describe(query_params, use_admin=True)
         return res

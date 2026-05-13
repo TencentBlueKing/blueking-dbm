@@ -9,16 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.urls import path
-from rest_framework.routers import DefaultRouter
 
-from .views import ListResourceViewSet
-
-router = DefaultRouter(trailing_slash=True)
-
-urlpatterns = [
-    # 提供资源(集群)通用属性的查询
-    path("resources/", ListResourceViewSet.as_view({"get": "list"})),
-]
-
-urlpatterns += router.urls
+def offset_to_page(params: dict) -> dict:
+    """将 offset/limit 转换为 page/limit 并返回新 dict"""
+    offset = params.pop("offset", 0)
+    params["page"] = offset // params["limit"] + 1
+    return params

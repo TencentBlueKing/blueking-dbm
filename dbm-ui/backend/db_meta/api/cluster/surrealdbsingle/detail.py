@@ -19,7 +19,7 @@ from backend.db_meta.models import Cluster
 
 def scan_cluster(
     cluster: Cluster,
-    bcs_cluster_name: str,
+    k8s_cluster_name: str,
     namespace: str,
 ) -> Graphic:
     clb_dns = cluster.clusterentry_set.filter(cluster_entry_type=ClusterEntryType.CLBDNS).first()
@@ -35,7 +35,7 @@ def scan_cluster(
 
     def get_instances(instance_role):
         data = {
-            "k8sClusterName": bcs_cluster_name,
+            "k8sClusterName": k8s_cluster_name,
             "clusterName": cluster.name,
             "namespace": namespace,
             "componentName": instance_role,
