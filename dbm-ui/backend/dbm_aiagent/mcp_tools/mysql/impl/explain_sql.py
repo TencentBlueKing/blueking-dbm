@@ -22,14 +22,17 @@ def explain_sql(cluster_type: ClusterType, cluster_domain: str, dbname: str, que
     # 以便在只读账号下也能拿到执行计划
     explained_sql, was_rewritten = sanitize_select_sql(query_sql)
 
+    # 如果是 spider集群， db_name 会添加分片信息
     bk_cloud_id, address, dbname = get_cloud_slave_address_and_dbname(
         cluster_type=cluster_type, cluster_domain=cluster_domain, dbname=dbname
     )
-
+    cmds = [f"EXPLAIN {explained_sql}"]
+    if dbname:
+        cmds.insert(0, f"USE {quote_ident(dbname)}")
     drs_raw_res = DRSApi.v2_webconsole_rpc(
         {
             "addresses": [address],
-            "cmds": [f"USE {quote_ident(dbname)}", f"EXPLAIN {explained_sql}"],
+            "cmds": cmds,
             "force": False,
             "bk_cloud_id": bk_cloud_id,
             "query_timeout": 10,
@@ -50,6 +53,7 @@ def explain_sql(cluster_type: ClusterType, cluster_domain: str, dbname: str, que
 
     return {
         "explain_result": explain_sql_res["table_data"][0],
-        "explained_sql": explained_sql,
+        # sql 原文可能很大，mcp返回会超长，占用上下文。先不返回了
+        # "explained_sql": explained_sql,
         "rewritten": was_rewritten,
     }

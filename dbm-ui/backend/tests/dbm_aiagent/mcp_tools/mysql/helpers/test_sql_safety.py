@@ -310,3 +310,140 @@ class TestSanitizeSelectSql:
     def test_other_admin_or_unsupported_statements_rejected(self, sql):
         with pytest.raises(DBMMcpUnsafeSQLException):
             sanitize_select_sql(sql)
+
+
+class TestRewriteSpiderDbname:
+    """``rewrite_spider_dbname=True`` 时将 dbname.tablename 改写为 dbname_0.tablename"""
+
+    @pytest.mark.parametrize(
+        "sql,expected",
+        [
+            # 基本改写：单表带库名前缀
+            (
+                "SELECT * FROM mydb.users WHERE id = 1",
+                "SELECT * FROM mydb_0.users WHERE id = 1",
+            ),
+            # 多表 JOIN 均改写
+            (
+                "SELECT a.id FROM db1.t1 AS a JOIN db2.t2 AS b ON a.id = b.id",
+                "SELECT a.id FROM db1_0.t1 AS a JOIN db2_0.t2 AS b ON a.id = b.id",
+            ),
+            # 子查询中的库名也改写
+            (
+                "SELECT * FROM (SELECT id FROM app.orders) AS sub",
+                "SELECT * FROM (SELECT id FROM app_0.orders) AS sub",
+            ),
+            # 不带库名前缀的表不受影响
+            (
+                "SELECT * FROM users WHERE id = 1",
+                "SELECT * FROM users WHERE id = 1",
+            ),
+            # 混合：有库名前缀和无库名前缀的表（含列引用中的 dbname.table.column）
+            (
+                "SELECT * FROM mydb.t1 JOIN t2 ON mydb.t1.id = t2.id",
+                "SELECT * FROM mydb_0.t1 JOIN t2 ON mydb_0.t1.id = t2.id",
+            ),
+        ],
+    )
+    def test_rewrite_user_db(self, sql, expected):
+        out, rewritten = sanitize_select_sql(sql, rewrite_spider_dbname=True)
+        assert rewritten is False
+        assert out == expected
+
+    @pytest.mark.parametrize(
+        "sql",
+        [
+            # 系统库不改写
+            "SELECT * FROM mysql.user",
+            "SELECT * FROM sys.schema_table_statistics",
+            "SELECT * FROM information_schema.tables",
+            "SELECT * FROM performance_schema.threads",
+            "SELECT * FROM test.t1",
+            "SELECT * FROM infodba_schema.checksum",
+        ],
+    )
+    def test_skip_system_dbs(self, sql):
+        out, rewritten = sanitize_select_sql(sql, rewrite_spider_dbname=True)
+        assert rewritten is False
+        # 系统库名不应被追加 _0 后缀
+        assert "_0." not in out
+
+    @pytest.mark.parametrize(
+        "sql,expected",
+        [
+            # 系统库与用户库混合：只改写用户库
+            (
+                "SELECT a.* FROM mydb.t1 AS a JOIN information_schema.tables AS b ON a.name = b.TABLE_NAME",
+                "SELECT a.* FROM mydb_0.t1 AS a JOIN information_schema.tables AS b ON a.name = b.TABLE_NAME",
+            ),
+            (
+                "SELECT * FROM mysql.user AS u JOIN app.accounts AS a ON u.User = a.username",
+                "SELECT * FROM mysql.user AS u JOIN app_0.accounts AS a ON u.User = a.username",
+            ),
+        ],
+    )
+    def test_mixed_system_and_user_dbs(self, sql, expected):
+        out, rewritten = sanitize_select_sql(sql, rewrite_spider_dbname=True)
+        assert rewritten is False
+        assert out == expected
+
+    @pytest.mark.parametrize(
+        "sql,expected",
+        [
+            # DML 改写 + Spider 库名改写同时生效
+            (
+                "UPDATE mydb.users SET name = 'x' WHERE id = 1",
+                "SELECT * FROM mydb_0.users WHERE id = 1",
+            ),
+            (
+                "DELETE FROM mydb.orders WHERE status = 'expired'",
+                "SELECT * FROM mydb_0.orders WHERE status = 'expired'",
+            ),
+            (
+                "INSERT INTO mydb.t1 (a) SELECT a FROM mydb.t2 WHERE b > 0",
+                "SELECT a FROM mydb_0.t2 WHERE b > 0",
+            ),
+        ],
+    )
+    def test_rewrite_with_dml(self, sql, expected):
+        out, rewritten = sanitize_select_sql(sql, rewrite_spider_dbname=True)
+        assert rewritten is True
+        assert out == expected
+
+    def test_rewrite_spider_dbname_false_no_change(self):
+        """rewrite_spider_dbname=False（默认）时不改写库名"""
+        sql = "SELECT * FROM mydb.users WHERE id = 1"
+        out, rewritten = sanitize_select_sql(sql, rewrite_spider_dbname=False)
+        assert rewritten is False
+        assert "mydb.users" in out or "`mydb`.`users`" in out
+        assert "mydb_0" not in out
+
+    @pytest.mark.parametrize(
+        "sql,expected",
+        [
+            # 系统库名大小写不敏感
+            (
+                "SELECT * FROM MySQL.user",
+                "SELECT * FROM MySQL.user",
+            ),
+            (
+                "SELECT * FROM INFORMATION_SCHEMA.TABLES",
+                "SELECT * FROM INFORMATION_SCHEMA.TABLES",
+            ),
+            (
+                "SELECT * FROM Performance_Schema.threads",
+                "SELECT * FROM Performance_Schema.threads",
+            ),
+        ],
+    )
+    def test_system_db_case_insensitive(self, sql, expected):
+        out, rewritten = sanitize_select_sql(sql, rewrite_spider_dbname=True)
+        assert rewritten is False
+        assert "_0." not in out
+
+    def test_union_with_spider_rewrite(self):
+        """UNION 查询中的库名也应被改写"""
+        sql = "SELECT id FROM db1.t1 UNION SELECT id FROM db2.t2"
+        out, _ = sanitize_select_sql(sql, rewrite_spider_dbname=True)
+        assert "db1_0" in out
+        assert "db2_0" in out
