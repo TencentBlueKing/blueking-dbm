@@ -55,7 +55,7 @@ TODO_DIR = f"{env.BK_SAAS_HOST}/ticket-self-todo"
 MASS_CONTEXT_TEMPLATE = _("\n待办人数：{} 人\n待办总数：{}条\n\n{}\n")
 
 # ONE_ON_ONE_CONTEXT_TEMPLATE = _("\n你有以下待办事项待处理：\n\n{}\n")
-ONE_ON_ONE_CONTEXT_TEMPLATE = _("\n待办总数：{} 条\n\n{}\n\n")
+ONE_ON_ONE_CONTEXT_TEMPLATE = _("\nHi，{}\n\n您在「DBM」共有 {} 条待办待处理：\n\n{}\n\n")
 
 
 class CalcPersonalTodoClass:
@@ -144,6 +144,7 @@ class CalcPersonalTodoClass:
         conditions = []
         biz_cluster_type_query_string = " OR ".join(set(biz_cluster_type_conditions))
         conditions.append(f"({biz_cluster_type_query_string})")
+        conditions.append('status: "ABNORMAL"')
         params["query_string"] = " AND ".join(conditions)
         data = BKMonitorV3Api.search_alert(params)
         return data["overview"].get("count", 0)
@@ -188,28 +189,35 @@ def get_todo_context(count, text):
 def get_mass_context(user_infos):
     """组装群聊的待办模板"""
     all_total = 0
+    max_len = 1000
     user_contexts = ""
+    receivers = []
+    contexts = []
+    all_user_count = len(user_infos)
     for username in user_infos:
+        all_user_count -= 1
+        receivers.append(username)
         context_list = [context for context in user_infos[username]["context_list"] if context]
         all_total += user_infos[username]["count"]
         user_context = "，".join(context_list)
         user_contexts += f"{username}：{user_context}\n"
 
-    if not all_total:
-        return ""
+        if len(user_contexts) > max_len or all_user_count == 0:
+            at_list = "".join([f"<@{staff}>" for staff in receivers])
+            user_contexts += "\n" + at_list
+            contexts.append(MASS_CONTEXT_TEMPLATE.format(len(receivers), all_total, user_contexts))
+            receivers = []
+            user_contexts = ""
+            all_total = 0
+    return contexts
 
-    receivers = user_infos.keys()
-    at_list = "".join([f"<@{staff}>" for staff in receivers])
-    user_contexts += "\n" + at_list
-    return MASS_CONTEXT_TEMPLATE.format(len(user_infos), all_total, user_contexts)
 
-
-def get_single_context(detail):
+def get_single_context(detail, username):
     """组装个人的待办模板"""
     context_list = detail["context_list"]
     context_list = [context for context in context_list if context]
     context = "\n".join(context_list)
-    return ONE_ON_ONE_CONTEXT_TEMPLATE.format(detail.get("count"), context)
+    return ONE_ON_ONE_CONTEXT_TEMPLATE.format(username, detail.get("count"), context)
 
 
 def get_dba_infos():
@@ -304,12 +312,14 @@ def send_todo_remind():
 
     # 如果有群里，则发送群聊消息
     if MsgType.WECOM_ROBOT.value in send_types:
-        mass_context = get_mass_context(dba_user)
-        if mass_context:
+
+        mass_contexts = get_mass_context(dba_user)
+        if mass_contexts:
             receivers = [
                 conf["value"] for conf in todo_remind_conf["notice"] if conf["type"] == MsgType.WECOM_ROBOT.value
             ][0].split(",")
-            send_msg(REMIND_TITLE, mass_context, receivers, MsgType.WECOM_ROBOT)
+            for mass_context in mass_contexts:
+                send_msg(REMIND_TITLE, mass_context, receivers, MsgType.WECOM_ROBOT)
 
         # 发送完群聊剔除对应的类型
         send_types.remove(MsgType.WECOM_ROBOT)
@@ -320,7 +330,7 @@ def send_todo_remind():
     # 对剩下的通知类型进行通知，有待办的用户都会通知到
     dba_user.update(no_dba_user)
     for username in dba_user:
-        ordinary_context = get_single_context(dba_user[username])
+        ordinary_context = get_single_context(dba_user[username], username)
         if not ordinary_context:
             continue
         try:
