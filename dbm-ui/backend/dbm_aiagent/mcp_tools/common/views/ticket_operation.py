@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 import time
 
+from django.http import HttpRequest
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
@@ -27,6 +28,7 @@ from backend.dbm_aiagent.mcp_tools.common.serializers.ticket_manipulate import (
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBadTicketStatusException, DBMMcpBaseException
+from backend.dbm_aiagent.mcp_tools.typing import BizIdList
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.iam_app.handlers.drf_perm.mcp import McpDBManagePermission
@@ -41,13 +43,40 @@ logger = logging.getLogger("root")
 class TicketOperationMcpToolsViewSet(McpToolsViewSet):
     default_permission_class = [DBManagePermission()]
 
+    @staticmethod
+    def ticket_list_auth_helper(request: HttpRequest, *args, **kwargs) -> BizIdList:
+        from backend.db_meta.models import Cluster
+        from backend.ticket.models import Ticket
+
+        data = request.query_params if request.method == "GET" else request.data
+
+        if data.get("bk_biz_id"):
+            return [data.get("bk_biz_id")]
+
+        if data.get("cluster_domains"):
+            cluster_domains = data.get("cluster_domains")
+            cluster_domains = cluster_domains if isinstance(cluster_domains, list) else [cluster_domains]
+            return list(
+                Cluster.objects.filter(immute_domain__in=cluster_domains)
+                .values_list("bk_biz_id", flat=True)
+                .distinct()
+            )
+
+        ticket_ids = data.get("ticket_ids")
+        if ticket_ids:
+            ticket_ids = ticket_ids if isinstance(ticket_ids, list) else [ticket_ids]
+            biz_ids = list(Ticket.objects.filter(id__in=ticket_ids).values_list("bk_biz_id", flat=True).distinct())
+            return biz_ids
+
+        raise DBMMcpBaseException(msg="bk_biz_id, ticket_ids and cluster_domains must input at least 1")
+
     @mcp_tools_api_decorator(
         description=str(_("""查询单据列表, 每个单据一行返回结果, 单据参数是个 json, 搞的好看点""")),
         request_slz=TicketListInputSerializer,
         response_slz=TicketListOutputSerializer,
         tags=[DBMMCPTags.READ],
         permission_classes=[McpDBManagePermission],
-        mcp_auth_parser=auth_parse_ticket_biz,
+        mcp_auth_parser=ticket_list_auth_helper,
         mcp=[DBMMcpTools.TICKET_OP, DBMMcpTools.DBM_PUBLIC_MARKET],
         name_prefix="ticket_op",
     )
