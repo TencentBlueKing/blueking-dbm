@@ -165,7 +165,7 @@ func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.R
 
 	switchTimeout := config.Cfg.Workflow.SwitchTimeout
 	if switchTimeout <= 0 {
-		switchTimeout = time.Minute
+		switchTimeout = 10 * time.Minute
 	}
 
 	switchCtx, cancel := context.WithTimeout(context.Background(), switchTimeout)

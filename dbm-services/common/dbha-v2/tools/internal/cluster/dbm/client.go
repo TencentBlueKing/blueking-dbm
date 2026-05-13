@@ -30,6 +30,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
@@ -41,26 +42,37 @@ const updateStatusBatchSize = 20
 
 // Client provides an HTTP client for communicating with the DBM
 type Client struct {
-	cli *hanet.HttpClient
+	cli     *hanet.HttpClient
+	cliOnce sync.Once
+}
+
+func (c *Client) getHttpClient() *hanet.HttpClient {
+	c.cliOnce.Do(func() {
+		if c.cli == nil {
+			c.cli = hanet.NewHttpClientWithHeaders(map[string]string{
+				"Content-Type": "application/json",
+			})
+		}
+	})
+
+	return c.cli
+}
+
+func (c *Client) getRequestClientWithTimeout(timeout time.Duration) *hanet.HttpClient {
+	return c.getHttpClient().Clone().SetTimeout(timeout)
 }
 
 // SendRequest sends HTTP request to DBM API with specified method and timeout
 func (c *Client) SendRequest(url string, method hanet.HttpMethod, req any,
 	timeout time.Duration) ([]byte, error) {
-	if c.cli == nil {
-		c.cli = hanet.NewHttpClientWithHeaders(map[string]string{
-			"Content-Type": "application/json",
-		})
-	}
-
-	c.cli.SetTimeout(timeout)
+	cli := c.getRequestClientWithTimeout(timeout)
 
 	data, err := json.Marshal(&req)
 	if err != nil {
 		return nil, gerrors.NewE(gerrors.InvalidParameter, err)
 	}
 
-	code, resp, err := c.cli.Request(context.Background(), url, method, data)
+	code, resp, err := cli.Request(context.Background(), url, method, data)
 	if err != nil {
 		return nil, err
 	}
@@ -133,13 +145,9 @@ func (c *Client) requestMetadata(ctx context.Context, req *MetadataRequest) (*Me
 		return nil, err
 	}
 
-	if c.cli == nil {
-		c.cli = hanet.NewHttpClientWithHeaders(map[string]string{
-			"Content-Type": "application/json",
-		})
-	}
+	cli := c.getRequestClientWithTimeout(config.ClusterConfig.DbmServices.DbmApiMetadata.Timeout)
 
-	code, resp, err := c.cli.Post(ctx, config.ClusterConfig.DbmServices.DbmApiMetadata.Api, data)
+	code, resp, err := cli.Post(ctx, config.ClusterConfig.DbmServices.DbmApiMetadata.Api, data)
 	if err != nil {
 		return nil, err
 	}
