@@ -26,6 +26,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"dbm-services/common/dbha-v2/internal/probe"
 
@@ -33,6 +34,18 @@ import (
 )
 
 func main() {
+	pingAddr, enabled, err := probe.ExtractPingHTTPAddrFromArgs(os.Args[1:])
+	if err != nil {
+		fmt.Println("failed to execute probe. errmsg:", err.Error())
+		return
+	}
+	if enabled {
+		if err := probe.RunKeepaliveMode(pingAddr, os.Args[1:]); err != nil {
+			fmt.Println("failed to execute probe. errmsg:", err.Error())
+		}
+		return
+	}
+
 	rootCmd := &cobra.Command{
 		Use:           "probe",
 		Short:         "DBHA Probe",
@@ -42,6 +55,12 @@ func main() {
 	}
 
 	rootCmd.PersistentFlags().StringVarP(&probe.ConfigFilePath, "config", "c", "./etc/probe.yaml", "")
+	rootCmd.PersistentFlags().StringVar(
+		&probe.PingHTTPAddr,
+		"ping-http-addr",
+		"",
+		"Ping HTTP server listen address (e.g. 127.0.0.1:18080)",
+	)
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
 
 	rootCmd.AddCommand(probe.VersionCmd)

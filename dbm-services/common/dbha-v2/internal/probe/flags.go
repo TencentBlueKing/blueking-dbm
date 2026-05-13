@@ -28,6 +28,7 @@ import "dbm-services/common/dbha-v2/internal/probe/cmds"
 
 var (
 	ConfigFilePath = ""
+	PingHTTPAddr   = ""
 )
 
 func init() {
