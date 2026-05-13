@@ -19,6 +19,7 @@ from backend.db_services.kubernetes.resources.views import KubernetesResourceVie
 from backend.db_services.kubernetes.surrealdb import constants
 from backend.db_services.kubernetes.surrealdb.surrealdbha import yasg_slz
 from backend.db_services.kubernetes.surrealdb.surrealdbha.query import SurrealDBHaListRetrieveResource
+from backend.iam_app.dataclass.actions import ActionEnum
 
 
 @method_decorator(
@@ -76,4 +77,13 @@ class SurrealDBHaResourceViewSet(KubernetesResourceViewSet):
     query_serializer_class = serializers.ListKubernetesResourceSLZ
     db_type = DBType.K8sSurrealdb
 
-    list_perm_actions = []
+    list_perm_actions = [
+        ActionEnum.K8S_SURREAL_APPLY,
+        ActionEnum.K8S_SURREAL_MODIFY,
+        ActionEnum.K8S_SURREAL_DESTROY,
+        ActionEnum.K8S_SURREAL_START,
+        ActionEnum.K8S_SURREAL_STOP,
+        ActionEnum.K8S_SURREAL_RESTART,
+        ActionEnum.K8S_SURREAL_POD_DELETE,
+        ActionEnum.K8S_SURREAL_SCALE,
+    ]

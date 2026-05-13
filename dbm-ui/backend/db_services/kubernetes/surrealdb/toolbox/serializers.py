@@ -39,3 +39,44 @@ class GetAddonSpecPlanSerializer(serializers.Serializer):
             "addonType": "surrealdb",
             "addonVersion": "1.0.0",
         }
+
+
+class K8sOperateBaseSerializer(serializers.Serializer):
+    k8sClusterName = serializers.CharField(help_text=_("k8s集群名称"))
+    namespace = serializers.CharField(help_text=_("命名空间"))
+    clusterName = serializers.CharField(help_text=_("集群名称"))
+
+
+class KubernetesRestartSerializer(K8sOperateBaseSerializer):
+    """组件重启序列化器"""
+
+    restart = serializers.ListSerializer(child=serializers.JSONField(), help_text=_("组件列表"))
+
+
+class KubernetesHscalingSerializer(K8sOperateBaseSerializer):
+    """组件水平扩容序列化器"""
+
+    horizontalScaling = serializers.ListSerializer(child=serializers.JSONField(), help_text=_("水平扩缩资源详情"))
+
+
+class KubernetesVscalingSerializer(K8sOperateBaseSerializer):
+    """组件垂直扩容 磁盘扩容 修改组件配置 序列化器"""
+
+    componentList = serializers.ListSerializer(child=serializers.JSONField(), help_text=_("组件列表"))
+
+
+class KubernetesDeletePodSerializer(K8sOperateBaseSerializer):
+    """组件pod删除序列化器"""
+
+    podName = serializers.CharField(help_text=_("组件实例名称"))
+
+
+class KubernetesComponentConfigPodSerializer(K8sOperateBaseSerializer):
+    componentName = serializers.CharField(help_text=_("组件名称"))
+
+
+class KubernetesPodLogSerializer(K8sOperateBaseSerializer):
+    componentName = serializers.CharField(help_text=_("组件名称"))
+    podName = serializers.CharField(help_text=_("组件实例名称"))
+    limit = serializers.IntegerField(help_text=_("分页限制"), required=False, default=10)
+    offset = serializers.IntegerField(help_text=_("分页起始"), required=False, default=0)
