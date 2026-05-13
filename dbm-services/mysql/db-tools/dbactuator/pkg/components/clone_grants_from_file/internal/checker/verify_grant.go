@@ -31,8 +31,13 @@ func VerifyGrantPrivFile(conn *sqlx.Conn, filePath string, dstVer int64) error {
 	var mismatches []string
 
 	for userHost, scopeMap := range expected {
-		parts := strings.SplitN(userHost, "@", 2)
-		user, host := parts[0], parts[1]
+		parts := strings.SplitN(userHost, "@", -1)
+		if len(parts) < 2 {
+			logger.Error("invalid user host: %s", userHost)
+			return fmt.Errorf("invalid user host: %s", userHost)
+		}
+		user := strings.Join(parts[:len(parts)-1], "@")
+		host := parts[len(parts)-1]
 
 		actual, queryErr := queryShowGrants(ctx, conn, user, host)
 		if queryErr != nil {
@@ -45,7 +50,9 @@ func VerifyGrantPrivFile(conn *sqlx.Conn, filePath string, dstVer int64) error {
 				if missing, verifyErr := verifyAllStaticPrivs(ctx, conn, user, host); verifyErr != nil {
 					return fmt.Errorf("query error: verify ALL static privs for %s: %w", userHost, verifyErr)
 				} else if len(missing) > 0 {
-					mismatches = append(mismatches, fmt.Sprintf("%s: scope *.* static privs not 'Y': %v", userHost, missing))
+					mismatches = append(
+						mismatches, fmt.Sprintf("%s: scope *.* static privs not 'Y': %v", userHost, missing),
+					)
 				}
 
 				if exp.grantOption {
