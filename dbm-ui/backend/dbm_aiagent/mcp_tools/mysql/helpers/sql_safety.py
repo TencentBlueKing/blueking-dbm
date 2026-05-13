@@ -33,6 +33,23 @@ from sqlglot import exp
 
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpUnsafeIdentifierException, DBMMcpUnsafeSQLException
 
+# ---------- Spider 分片库名改写 ----------
+
+# Spider 中间件分片后缀，dbname 改写为 dbname{_SPIDER_SHARD_SUFFIX}
+_SPIDER_SHARD_SUFFIX = "_0"
+
+# 系统库白名单：这些库名不做 Spider 分片改写
+_SPIDER_REWRITE_SKIP_DBS = frozenset(
+    {
+        "mysql",
+        "sys",
+        "information_schema",
+        "performance_schema",
+        "test",
+        "infodba_schema",
+    }
+)
+
 # ---------- 标识符 ----------
 
 # MySQL 标识符的最大字节长度（与 information_schema 一致）
@@ -187,13 +204,18 @@ _DANGEROUS_FUNCTIONS = frozenset(
 )
 
 
-def sanitize_select_sql(query_sql: str) -> Tuple[str, bool]:
+def sanitize_select_sql(query_sql: str, rewrite_spider_dbname: bool = False) -> Tuple[str, bool]:
     """校验用户提交的 SQL 并归一化为可被 EXPLAIN 的 SELECT。
 
     返回 ``(sanitized_sql, was_rewritten)``：
 
     - ``sanitized_sql``：归一化后的 SELECT 字符串，调用方加 ``EXPLAIN `` 前缀即可下发。
     - ``was_rewritten``：用户传入的语句是否被改写（UPDATE/DELETE/INSERT...SELECT 都会被改写）。
+
+    参数：
+
+    - ``rewrite_spider_dbname``：若为 True，将 SQL 中 ``dbname.tablename`` 形式的库名
+      改写为 ``dbname_0.tablename``（系统库除外），用于 Spider 中间件场景下路由到分片实例。
     """
     if not query_sql or not query_sql.strip():
         raise DBMMcpUnsafeSQLException(msg="empty sql")
@@ -235,7 +257,39 @@ def sanitize_select_sql(query_sql: str) -> Tuple[str, bool]:
                 raise DBMMcpUnsafeSQLException(msg=f"forbidden function: {node.name}")
 
     rewritten_ast, was_rewritten = _rewrite_to_select(root)
+
+    # Spider 分片库名改写：dbname.tablename → dbname_0.tablename（系统库除外）
+    if rewrite_spider_dbname:
+        _rewrite_spider_db(rewritten_ast)
+
     return rewritten_ast.sql(dialect="mysql"), was_rewritten
+
+
+def _rewrite_spider_db(ast: exp.Expression) -> None:
+    """将 AST 中所有 dbname.tablename 的库名改写为 dbname{_SPIDER_SHARD_SUFFIX}。
+
+    同时处理：
+    - FROM/JOIN 子句中的 Table 节点（dbname.tablename）
+    - ON/WHERE/SELECT 等子句中的 Column 节点（dbname.tablename.column）
+
+    系统库（mysql/sys/information_schema/performance_schema/test/infodba_schema）不改写。
+    直接原地修改 AST，无返回值。
+    """
+    # 改写 Table 节点中的 db
+    for table in ast.find_all(exp.Table):
+        db = table.args.get("db")
+        if db and isinstance(db, exp.Identifier):
+            original_name = db.this
+            if original_name.lower() not in _SPIDER_REWRITE_SKIP_DBS:
+                db.set("this", f"{original_name}{_SPIDER_SHARD_SUFFIX}")
+
+    # 改写 Column 节点中的 db（如 mydb.t1.id 中的 mydb）
+    for col in ast.find_all(exp.Column):
+        db = col.args.get("db")
+        if db and isinstance(db, exp.Identifier):
+            original_name = db.this
+            if original_name.lower() not in _SPIDER_REWRITE_SKIP_DBS:
+                db.set("this", f"{original_name}{_SPIDER_SHARD_SUFFIX}")
 
 
 def _rewrite_to_select(root: exp.Expression) -> Tuple[exp.Expression, bool]:
