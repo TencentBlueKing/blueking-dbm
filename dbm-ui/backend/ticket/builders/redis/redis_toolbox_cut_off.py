@@ -116,7 +116,7 @@ class RedisClusterCutOffResourceParamBuilder(BaseOperateResourceParamBuilder):
         super().post_callback()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_CUTOFF, is_apply=True, is_recycle=True)
+@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_CUTOFF, is_apply=True, is_recycle=True, async_build=True)
 class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisClusterCutOffDetailSerializer
     inner_flow_builder = RedisClusterCutOffParamBuilder

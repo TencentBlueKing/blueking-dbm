@@ -497,3 +497,21 @@ def create_monitor_grafana(bk_biz_id, cluster_type):
 
         except ApiResultError as e:
             logger.error(_("grafana import error, file name is {}, {}").format(yaml_name, e))
+
+
+@shared_task
+def async_run_flow(flow_id):
+    """异步构建并执行 inner flow 的 pipeline tree"""
+    from backend.ticket.flow_manager.manager import TicketFlowManager
+    from backend.ticket.models import Flow
+
+    logger.info("async_run_inner_flow start: flow_id=%s", flow_id)
+
+    flow = Flow.objects.get(id=flow_id)
+    inner_flow = TicketFlowManager.get_ticket_flow_cls(flow.flow_type)(flow)
+
+    try:
+        inner_flow._run()  # noqa
+    except Exception as err:  # pylint: disable=broad-except
+        inner_flow.run_error_status_handler(err)
+        return

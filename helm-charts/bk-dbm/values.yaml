@@ -97,7 +97,8 @@ dbm:
     tag: ""
 
   terminationGracePeriodSeconds:
-    worker: 60
+    execute: 3600
+    schedule: 300
 
   serviceAccount:
     # Specifies whether a service account should be created

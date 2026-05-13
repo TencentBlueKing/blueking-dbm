@@ -2,14 +2,14 @@
 apiVersion: autoscaling/v2beta1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ include "dbm.pipeline-worker.fullname" . }}
+  name: {{ include "dbm.pipeline-schedule.fullname" . }}
   labels:
     {{- include "bk-dbm.labels" . | nindent 4 }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ include "dbm.pipeline-worker.fullname" . }}
+    name: {{ include "dbm.pipeline-schedule.fullname" . }}
   minReplicas: {{ .Values.saas.pipelineWorker.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.saas.pipelineWorker.autoscaling.maxReplicas }}
   metrics:
