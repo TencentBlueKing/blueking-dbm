@@ -42,11 +42,11 @@ const (
 	ClusterLevelSwitchDefaultMaxClusterNum  = 32
 	ClusterLevelSwitchDefaultMaxInstanceNum = 64
 
-	DbmApiDefaultMaxConcurrentRequests = 16
+	DbmApiDefaultMaxConcurrentRequests = 8
 
 	defaultDbConnectTimeout   = 3 * time.Second
 	defaultClusterLockTimeout = 60 * time.Second
-	defaultExecSqlTimeout     = 3 * time.Second
+	defaultExecSqlTimeout     = 6 * time.Second
 )
 
 // ClusterLevelSwitchMaxClusterConcurrency returns a positive cap for
