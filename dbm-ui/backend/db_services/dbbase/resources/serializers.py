@@ -119,9 +119,8 @@ class ListInstancesSerializer(InstanceAddressSerializer):
     # 额外过滤角色参数
     role_exclude = serializers.CharField(help_text=_("需要过滤的角色"), required=False)
     # k8s集群相关参数
-    bcs_cluster_name = serializers.CharField(help_text=_("k8s集群名称"), required=False)
+    k8s_cluster_name = serializers.CharField(help_text=_("k8s集群名称"), required=False)
     namespace = serializers.CharField(help_text=_("命名空间"), required=False)
-    creator = serializers.CharField(required=False)
 
 
 class SqlserverListInstanceSerializer(ListInstancesSerializer):

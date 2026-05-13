@@ -13,50 +13,31 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 
-class NodeListSerializer(serializers.Serializer):
-    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
-    ip = serializers.CharField(help_text=_("ip"), required=False)
-    node_type = serializers.CharField(help_text=_("实例角色"), required=False)
-    agent_status = serializers.CharField(help_text=_("Agent状态"), required=False)
-    ordering = serializers.CharField(help_text=_("排序字段"), default="create_at")
-
-    def validate_ordering(self, value):
-        """验证排序字段是否合法。"""
-        allowed_orderings = ["create_at", "node_count", "-create_at", "-node_count"]
-        field_cleaned = value.replace("-", "")  # 移除可能的降序标识符
-
-        if field_cleaned not in allowed_orderings:
-            raise serializers.ValidationError(_("排序参数只能是 'create_at' 或 'node_count'。"))
-
-        return value
-
-
 class ClusterOperationLogSerializer(serializers.Serializer):
     limit = serializers.IntegerField(help_text=_("分页限制"), required=False, default=10)
     offset = serializers.IntegerField(help_text=_("分页起始"), required=False, default=0)
-    bcs_cluster_name = serializers.CharField(help_text=_("k8s集群名称"))
-    cluster_name = serializers.CharField(help_text=_("集群名称"))
+    k8sClusterName = serializers.CharField(help_text=_("k8s集群名称"))
+    clusterName = serializers.CharField(help_text=_("集群名称"))
     namespace = serializers.CharField(help_text=_("命名空间"))
     creator = serializers.CharField(help_text=_("操作人"), required=False)
-    request_type = serializers.CharField(help_text=_("操作类型"), required=False)
-    keyword = serializers.CharField(help_text=_("操作内容"), required=False)
+    requestType = serializers.CharField(help_text=_("操作类型"), required=False)
+    requestParams = serializers.CharField(help_text=_("操作内容"), required=False)
 
 
 class KubernetesTopoGraphSerializer(serializers.Serializer):
-    bcs_cluster_name = serializers.CharField(help_text=_("k8s集群名称"))
+    k8sClusterName = serializers.CharField(help_text=_("k8s集群名称"))
     namespace = serializers.CharField(help_text=_("命名空间"))
 
 
-class KubernetesRestartSerializer(serializers.Serializer):
-    bcs_cluster_name = serializers.CharField(help_text=_("k8s集群名称"))
+class KubernetesComponentSpecSerializer(serializers.Serializer):
+    k8sClusterName = serializers.CharField(help_text=_("k8s集群名称"))
     namespace = serializers.CharField(help_text=_("命名空间"))
-    cluster_name = serializers.CharField(help_text=_("集群名称"))
-    restart = serializers.ListSerializer(child=serializers.JSONField(), help_text=_("组件列表"))
+    clusterName = serializers.CharField(help_text=_("集群名称"))
 
 
-class KubernetesHscalingSerializer(serializers.Serializer):
-    bcs_cluster_name = serializers.CharField(help_text=_("k8s集群名称"))
+class KubernetesRetrieveInstancesSerializer(serializers.Serializer):
+    k8sClusterName = serializers.CharField(help_text=_("k8s集群名称"))
     namespace = serializers.CharField(help_text=_("命名空间"))
-    cluster_name = serializers.CharField(help_text=_("集群名称"))
-    horizontal_scaling = serializers.ListSerializer(child=serializers.JSONField(), help_text=_("水平扩缩资源详情"))
+    clusterName = serializers.CharField(help_text=_("集群名称"))
+    componentName = serializers.CharField(help_text=_("组件名称"))
+    podName = serializers.CharField(help_text=_("组件实例名称"))
