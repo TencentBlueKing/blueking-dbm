@@ -37,7 +37,8 @@
             required>
             <BkSwitcher
               v-model="formData.isEnable"
-              theme="primary" />
+              theme="primary"
+              @change="handleEnableChange" />
           </DbFormItem>
           <DbFormItem
             :label="t('提醒时间')"
@@ -61,18 +62,57 @@
             </div>
           </DbFormItem>
           <DbFormItem
-            :label="t('通知方式')"
+            :label="t('通知渠道')"
             property="notice"
             required
             :rules="noticeRules">
-            <BkTable
-              align="center"
-              border="full"
-              class="notice-table"
-              :columns="columns"
-              :data="formData.notice"
-              header-align="center">
-            </BkTable>
+            <div class="channel-config">
+              <!-- 个人通知（全员） -->
+              <div class="channel-group">
+                <div class="channel-group-head">
+                  <span class="channel-group-title-text">{{ t('个人通知（全员）') }}</span>
+                  <span class="channel-group-inline-desc">
+                    {{ t('面向所有有待办的用户，按人发送个性化汇总；与是否启用群聊无关。') }}
+                  </span>
+                </div>
+                <div class="personal-channels">
+                  <BkCheckbox
+                    v-for="item in personalChannelList"
+                    :key="item.type"
+                    v-model="formData.notice.checkbox[item.type]"
+                    class="channel-check-label"
+                    :disabled="!formData.isEnable"
+                    @change="handleCheckboxChange">
+                    <img
+                      class="channel-icon"
+                      :src="`data:image/png;base64,${item.icon}`" />
+                    {{ item.label }}
+                  </BkCheckbox>
+                </div>
+              </div>
+              <!-- 企微群聊（仅 DBA） -->
+              <div class="channel-group">
+                <div class="channel-group-head">
+                  <span class="channel-group-title-text">{{ t('企微群聊（仅 DBA）') }}</span>
+                  <span class="channel-group-inline-desc">{{
+                    t('仅汇总 DBA 待办并发送到所填群聊，不包含普通用户。')
+                  }}</span>
+                </div>
+                <div class="group-channel-row mb-12">
+                  <span class="group-field-label">{{ t('企微群聊 ID') }}</span>
+                  <BkInput
+                    v-model="formData.notice.input[MessageTypes.WECOM_ROBOT]"
+                    class="group-input-wrap"
+                    clearable
+                    :disabled="!formData.isEnable"
+                    :placeholder="t('请输入群聊 ID，多个用英文逗号分隔')" />
+                  <DbIcon
+                    v-bk-tooltips="{ content: t('填写企微群聊 ID，多个群 ID 用英文逗号分隔') }"
+                    class="group-help-icon"
+                    type="attention" />
+                </div>
+              </div>
+            </div>
           </DbFormItem>
         </DbForm>
       </BkCard>
@@ -112,16 +152,9 @@
   import { getAlarmGroupNotifyList } from '@services/source/monitorNoticeGroup';
   import { getTodoRemind, updateTodoRemind } from '@services/source/todoRemind';
 
-  import { InputMessageTypes, MessageTipMap, MessageTypes } from '@common/const';
+  import { InputMessageTypes, MessageTypes } from '@common/const';
 
   import { messageSuccess } from '@utils';
-
-  type AlarmGroupNotify = ServiceReturnType<typeof getAlarmGroupNotifyList>;
-
-  interface DataRow {
-    checkbox: Record<string, boolean>;
-    input: Record<string, string>;
-  }
 
   const { t } = useI18n();
 
@@ -130,94 +163,36 @@
   const formData = reactive({
     dayOfWeek: false,
     isEnable: false,
-    notice: [] as DataRow[],
+    notice: {
+      checkbox: {} as Record<string, boolean>,
+      input: {} as Record<string, string>,
+    },
     remindTime: '10:00',
   });
 
   const DefaultMessageTypeList = [MessageTypes.RTX];
+
+  // 个人通知渠道列表（checkbox类型）
+  const personalChannelList = computed(() => {
+    return (alarmGroupNotifyList.value || []).filter((item) =>
+      [MessageTypes.MAIL, MessageTypes.RTX].includes(item.type as MessageTypes),
+    );
+  });
+
   const noticeRules = [
     {
       message: t('请至少启用一种通知渠道'),
       required: true,
       trigger: 'change',
-      validator: (value: DataRow[]) => {
-        const tableItem = value[0];
-        return (
-          Object.values(tableItem.checkbox).some((item) => item) || Object.values(tableItem.input).some((item) => item)
-        );
+      validator: () => {
+        if (formData.isEnable) {
+          const { checkbox, input } = formData.notice;
+          return Object.values(checkbox).some((item) => item) || Object.values(input).some((item) => item);
+        }
+        return true;
       },
     },
   ];
-  const columns = computed(() => {
-    // input 类型的放最后
-    const activeTypeMap = (alarmGroupNotifyList.value || []).reduce<{
-      checkbox: AlarmGroupNotify;
-      input: AlarmGroupNotify;
-    }>(
-      (prevMap, item) => {
-        if ([MessageTypes.MAIL, MessageTypes.RTX, MessageTypes.WECOM_ROBOT].includes(item.type as MessageTypes)) {
-          if (InputMessageTypes.includes(item.type)) {
-            Object.assign(prevMap.input, prevMap.input.concat(item));
-          } else {
-            Object.assign(prevMap.checkbox, prevMap.checkbox.concat(item));
-          }
-        }
-        return prevMap;
-      },
-      {
-        checkbox: [],
-        input: [],
-      },
-    );
-
-    const nofityColumns = [...activeTypeMap.checkbox, ...activeTypeMap.input].map((item) => {
-      const isInputType = InputMessageTypes.includes(item.type);
-      const messageTip = MessageTipMap[item.type];
-      return {
-        field: item.type,
-        minWidth: isInputType ? 320 : 120,
-        render: ({ data }: { data: DataRow }) => {
-          if (isInputType) {
-            return (
-              <bk-input
-                v-model={data.input[item.type]}
-                disabled={!formData.isEnable}
-                placeholder={t('请输入群ID')}
-              />
-            );
-          }
-          return (
-            <bk-checkbox
-              v-model={data.checkbox[item.type]}
-              disabled={!formData.isEnable}
-            />
-          );
-        },
-        renderHead: () => (
-          <div class='message-type-head'>
-            <img
-              height='20'
-              src={`data:image/png;base64,${item.icon}`}
-              width='20'
-            />
-            <span class='ml-4'>{item.label}</span>
-            {messageTip && (
-              <db-icon
-                v-bk-tooltips={{
-                  content: messageTip,
-                }}
-                class='message-type-head-tip ml-4'
-                type='attention'
-              />
-            )}
-          </div>
-        ),
-        showOverflowTooltip: false,
-      };
-    });
-
-    return nofityColumns;
-  });
 
   const {
     data: todoRemindData,
@@ -304,12 +279,10 @@
       Object.assign(formData, {
         dayOfWeek: remindTime.day_of_week ? true : false,
         isEnable: isEnable,
-        notice: [
-          {
-            checkbox: initSetting.checkbox,
-            input: initSetting.input,
-          },
-        ],
+        notice: {
+          checkbox: initSetting.checkbox,
+          input: initSetting.input,
+        },
         remindTime: `${remindTime.hour}:${remindTime.minute}`,
       });
     }
@@ -322,12 +295,20 @@
     runGetAlarmGroupNotifyList({});
   };
 
+  const handleEnableChange = () => {
+    formRef.value!.validate('notice');
+  };
+
+  const handleCheckboxChange = () => {
+    formRef.value!.validate('notice');
+  };
+
   const handleSave = async () => {
     await formRef.value!.validate();
 
     const { dayOfWeek, isEnable, notice, remindTime } = formData;
     const [hour, minute] = remindTime.split(':');
-    const { checkbox, input } = notice[0];
+    const { checkbox, input } = notice;
     const checkboxNotice = Object.entries(checkbox)
       .filter(([, value]) => value)
       .map(([type]) => ({
@@ -407,6 +388,99 @@
             border-radius: 0 2px 2px 0;
           }
         }
+      }
+
+      // 通知渠道配置样式
+      .channel-config {
+        width: 100%;
+        max-width: 700px;
+      }
+
+      .channel-group {
+        margin-top: 6px;
+
+        &:not(:first-child) {
+          padding-top: 20px;
+          margin-top: 20px;
+          border-top: 1px solid #f0f1f5;
+        }
+      }
+
+      .channel-group-head {
+        margin-bottom: 12px;
+        font-size: 13px;
+        line-height: 1.65;
+        color: #313238;
+      }
+
+      .channel-group-title-text {
+        font-weight: 600;
+        color: #313238;
+      }
+
+      .channel-group-inline-desc {
+        margin-left: 8px;
+        font-size: 12px;
+        font-weight: normal;
+        color: #979ba5;
+      }
+
+      .personal-channels {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 24px;
+      }
+
+      .channel-check-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: #313238;
+        cursor: pointer;
+
+        .bk-checkbox-label {
+          display: flex;
+          margin-left: 2px;
+          align-items: center;
+        }
+
+        .channel-icon {
+          width: 16px;
+          height: 16px;
+          flex-shrink: 0;
+          margin-right: 4px;
+        }
+      }
+
+      .group-channel-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .group-field-label {
+        font-size: 12px;
+        color: #63656e;
+        flex-shrink: 0;
+      }
+
+      .group-input-wrap {
+        flex: 1;
+        max-width: 480px;
+        min-width: 200px;
+      }
+
+      .group-help-icon {
+        font-size: 14px;
+        color: #979ba5;
+        flex-shrink: 0;
+      }
+
+      .bk-form-item.is-error .bk-input {
+        border-color: #c4c6cc;
       }
 
       .notice-table {
