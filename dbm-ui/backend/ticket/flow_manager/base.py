@@ -18,6 +18,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils.translation import gettext as _
 
+from backend import env
 from backend.constants import DEFAULT_SYSTEM_USER
 from backend.ticket import constants
 from backend.ticket.builders.common.base import fetch_cluster_ids, fetch_instance_ids
@@ -141,6 +142,12 @@ class BaseTicketFlow(ABC):
             self.run_status_handler(flow_obj_id=self.flow_obj.flow_obj_id)
         else:
             logger.error(traceback.format_exc())
+
+        # 记录AI错误日志分析
+        if env.ENABLE_DBM_AI:
+            from backend.dbm_aiagent.agent.services.log_analysis.tasks import ticket_flow_log_ai_analysis
+
+            ticket_flow_log_ai_analysis.apply_async(args=(self.flow_obj.id,))
 
     def run_status_handler(self, flow_obj_id: str):
         """run成功时，更新相关状态为RUNNING中"""

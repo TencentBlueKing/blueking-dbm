@@ -37,6 +37,7 @@ from backend.flow.models import FlowNode, FlowTree, StateType
 from backend.flow.plugins.components.collections.common.create_random_job_user import AddTempUserForClusterComponent
 from backend.flow.plugins.components.collections.common.drop_random_job_user import DropTempUserForClusterComponent
 from backend.flow.plugins.components.collections.common.empty_node import EmptyNodeComponent
+from backend.flow.utils.decorators import guard_ticket_revoked, is_ticket_inactive
 from backend.ticket.constants import TicketType
 
 
@@ -386,10 +387,11 @@ class Builder(object):
         # 重新声明一个流程对象
         pipeline = Builder(root_id=self.root_id, data=self.data)
         pipeline.add_parallel_sub_pipeline(sub_flow_list=[ai_monitor_sub_process, sub_process])
-        pipeline.run_pipeline(init_trans_data_class=init_trans_data_class)
+        result = pipeline.run_pipeline(init_trans_data_class=init_trans_data_class)
 
-        return True
+        return result
 
+    @guard_ticket_revoked
     def run_pipeline(
         self,
         init_trans_data_class: Optional[Any] = None,
@@ -424,8 +426,13 @@ class Builder(object):
         insensitive_data = self.hide_sensitive_data(pipeline_copy)
 
         # 考虑到有些任务没有单据关联，因此uid一般为root_id，此时创建FlowTree的时候uid应该为null
-        # 讲流程信息录入到FLowTree表
         uid = self.data.get("uid") if isinstance(self.data.get("uid"), int) else None
+
+        # 如果单据非法状态 or 流程树已创建，则跳过本次流程执行
+        if is_ticket_inactive(uid) or FlowTree.objects.filter(root_id=self.root_id).exists():
+            return False
+
+        # 将流程信息录入到FLowTree表
         FlowTree.objects.create(
             uid=uid,
             ticket_type=self.data["ticket_type"],

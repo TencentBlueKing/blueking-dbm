@@ -715,6 +715,8 @@ class BuilderFactory:
     recycle_ticket_type = []
     # 敏感类单据集合
     sensitive_ticket_type = []
+    # 异步编排单据集合
+    async_build_ticket_type = []
     # 单据与集群状态的映射
     ticket_type__cluster_phase = {}
     # 单据和权限动作/资源类型的映射
@@ -750,12 +752,14 @@ class BuilderFactory:
                 logger.warning(f"Builder [{ticket_type}] already exists. Will replace it")
             cls.registry[ticket_type] = wrapped_class
 
-            if kwargs.get("is_apply") and kwargs.get("is_apply") not in cls.apply_ticket_type:
+            if kwargs.get("is_apply") and ticket_type not in cls.apply_ticket_type:
                 cls.apply_ticket_type.append(ticket_type)
-            if kwargs.get("is_recycle") and kwargs.get("is_recycle") not in cls.recycle_ticket_type:
+            if kwargs.get("is_recycle") and ticket_type not in cls.recycle_ticket_type:
                 cls.recycle_ticket_type.append(ticket_type)
-            if kwargs.get("is_sensitive") and kwargs.get("is_sensitive") not in cls.sensitive_ticket_type:
+            if kwargs.get("is_sensitive") and ticket_type not in cls.sensitive_ticket_type:
                 cls.sensitive_ticket_type.append(ticket_type)
+            if kwargs.get("async_build") and ticket_type not in cls.async_build_ticket_type:
+                cls.async_build_ticket_type.append(ticket_type)
             if kwargs.get("phase"):
                 cls.ticket_type__cluster_phase[ticket_type] = kwargs["phase"]
             if hasattr(ActionEnum, ticket_type) or kwargs.get("iam"):
@@ -787,6 +791,26 @@ class BuilderFactory:
         """创建构造器实例"""
         builder_cls = cls.get_builder_cls(ticket.ticket_type)
         return builder_cls(ticket)
+
+    @classmethod
+    def is_async_build_ticket(cls, ticket_type: str):
+        """判断是否为异步编排单据"""
+        return ticket_type in cls.async_build_ticket_type
+
+    @classmethod
+    def is_apply_ticket(cls, ticket_type: str):
+        """判断是否为部署类单据"""
+        return ticket_type in cls.apply_ticket_type
+
+    @classmethod
+    def is_recycle_ticket(cls, ticket_type: str):
+        """判断是否为回收类单据"""
+        return ticket_type in cls.recycle_ticket_type
+
+    @classmethod
+    def is_sensitive_ticket(cls, ticket_type: str):
+        """判断是否为敏感类单据"""
+        return ticket_type in cls.sensitive_ticket_type
 
 
 def register_all_builders():

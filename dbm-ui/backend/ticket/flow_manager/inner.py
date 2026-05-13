@@ -10,9 +10,11 @@ specific language governing permissions and limitations under the License.
 """
 import importlib
 import logging
+import signal
 from datetime import datetime
 from typing import Any, Dict, Union
 
+from celery import current_app
 from django.db import transaction
 from django.utils.translation import gettext as _
 
@@ -25,6 +27,7 @@ from backend.db_meta.models.sqlserver_dts import SqlserverDtsInfo
 from backend.db_services.cmdb.biz import get_hcm_apply_resource_biz
 from backend.flow.models import FlowTree
 from backend.ticket import constants
+from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.constants import (
     BAMBOO_STATE__TICKET_STATE_MAP,
@@ -38,6 +41,7 @@ from backend.ticket.constants import (
 )
 from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.models import Flow, Todo
+from backend.ticket.tasks.ticket_tasks import async_run_flow
 from backend.ticket.todos import BaseTodoContext
 from backend.utils.basic import generate_root_id
 from backend.utils.local import local
@@ -116,6 +120,8 @@ class InnerFlow(BaseTicketFlow):
 
     @property
     def _url(self) -> str:
+        if not self.flow_tree:
+            return ""
         return f"{env.BK_SAAS_HOST}/{self.ticket.bk_biz_id}/task-history/detail/{self.root_id}"
 
     def set_inner_flow_todo(self, status):
@@ -192,15 +198,15 @@ class InnerFlow(BaseTicketFlow):
             self.check_exclusive_operations()
             # flow回调前置钩子函数
             self.callback(callback_type=FlowCallbackType.PRE_CALLBACK.value)
-            self._run()
+            # 根据单据类型决定：同步编排/异步编排
+            if BuilderFactory.is_async_build_ticket(self.ticket.ticket_type):
+                task = async_run_flow.apply_async(args=(self.flow_obj.id,))
+                self.flow_obj.update_details(build_task_id=task.id)
+            else:
+                self._run()
         except (Exception, ClusterExclusiveOperateException) as err:  # pylint: disable=broad-except
             # 处理互斥异常和非预期的异常
             self.run_error_status_handler(err)
-            # 记录AI日志分析
-            if env.ENABLE_DBM_AI:
-                from backend.dbm_aiagent.agent.services.log_analysis.tasks import ticket_flow_log_ai_analysis
-
-                ticket_flow_log_ai_analysis.apply_async(args=(root_id,))
             return
         else:
             # 记录inner flow的集群动作和实例动作
@@ -225,16 +231,22 @@ class InnerFlow(BaseTicketFlow):
         super()._retry()
 
     def _revoke(self, operator, remark="") -> Any:
+        from backend.db_services.taskflow.handlers import TaskFlowHandler
+
         # 刷新flow和单据状态 --> 终止
         self.flush_revoke_status_handler(operator, remark)
         # 停止相关联的todo
         todos = Todo.objects.filter(ticket=self.ticket, flow=self.flow_obj, status=TodoStatus.TODO)
         todos.update(status=TodoStatus.DONE_FAILED, done_by=operator)
         # 终止正在运行的pipeline
-        from backend.db_services.taskflow.handlers import TaskFlowHandler
-
         if FlowTree.objects.filter(root_id=self.flow_obj.flow_obj_id).exists():
             TaskFlowHandler(self.flow_obj.flow_obj_id).revoke_pipeline(operator, remark)
+            return
+        # 如果不存在flow tree，说明流程还在编排，则终止编排任务
+        build_task_id = self.flow_obj.details.get("build_task_id")
+        if build_task_id:
+            current_app.control.revoke(build_task_id, terminate=True, signal=signal.SIGTERM)
+            return
 
 
 class QuickInnerFlow(InnerFlow):
