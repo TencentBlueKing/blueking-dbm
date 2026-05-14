@@ -56,6 +56,10 @@ type TbRpDetailArchive struct {
 	SubZone string `gorm:"column:sub_zone;type:varchar(32);not null" json:"sub_zone"`
 	//  园区ID cc_device_szone_id
 	SubZoneID string `gorm:"column:sub_zone_id;type:varchar(64);not null" json:"sub_zone_id"`
+	//  IDC 名称 cc idc_name
+	IDCName string `gorm:"column:idc_name;type:varchar(128);not null;default:'';comment:'IDC名称'" json:"idc_name"`
+	//  IDC ID cc idc_id
+	IDCID int `gorm:"column:idc_id;type:int(11);not null;default:0;comment:'IDC ID'" json:"idc_id"`
 	//  存放机架ID,判断是否是同机架
 	RackID string `gorm:"column:rack_id;type:varchar(64);not null" json:"rack_id"`
 	//  网络设备ID, 判断是同交换机
@@ -85,13 +89,13 @@ func initarchive() {
 		(id, bk_cloud_id, bk_biz_id, dedicated_biz, rs_type, bk_host_id, ip, asset_id, 
 		device_class, svr_type_name, cpu_num, dram_cap, storage_device, total_storage_cap, 
 		total_data_storage_cap, os_type, os_bit, os_version, os_name, os_name_origin, 
-		raid, city_id, city, sub_zone, sub_zone_id, rack_id, net_device_id, labels, 
+		raid, city_id, city, sub_zone, sub_zone_id, idc_name, idc_id, rack_id, net_device_id, labels, 
 		is_init, is_idle, status, bk_agent_id, gse_agent_status_code, agent_status_update_time, 
 		operator, consume_time, update_time, create_time) 
 		select id, bk_cloud_id, bk_biz_id, dedicated_biz, rs_type, bk_host_id, ip, asset_id, 
 		device_class, svr_type_name, cpu_num, dram_cap, storage_device, total_storage_cap, 
 		total_data_storage_cap, os_type, os_bit, os_version, os_name, os_name_origin, 
-		raid, city_id, city, sub_zone, sub_zone_id, rack_id, net_device_id, labels, 
+		raid, city_id, city, sub_zone, sub_zone_id, idc_name, idc_id, rack_id, net_device_id, labels, 
 		is_init, is_idle, status, bk_agent_id, gse_agent_status_code, agent_status_update_time, 
 		operator, consume_time, update_time, create_time 
 		from tb_rp_detail where status = ?`, Used).Error; err != nil {
@@ -127,13 +131,13 @@ func ArchiveResource(ids []int) (err error) {
 		(id, bk_cloud_id, bk_biz_id, dedicated_biz, rs_type, bk_host_id, ip, asset_id, 
 		device_class, svr_type_name, cpu_num, dram_cap, storage_device, total_storage_cap, 
 		total_data_storage_cap, os_type, os_bit, os_version, os_name, os_name_origin, 
-		raid, city_id, city, sub_zone, sub_zone_id, rack_id, net_device_id, labels, 
+		raid, city_id, city, sub_zone, sub_zone_id, idc_name, idc_id, rack_id, net_device_id, labels, 
 		is_init, is_idle, status, bk_agent_id, gse_agent_status_code, agent_status_update_time, 
 		operator, consume_time, update_time, create_time) 
 		select id, bk_cloud_id, bk_biz_id, dedicated_biz, rs_type, bk_host_id, ip, asset_id, 
 		device_class, svr_type_name, cpu_num, dram_cap, storage_device, total_storage_cap, 
 		total_data_storage_cap, os_type, os_bit, os_version, os_name, os_name_origin, 
-		raid, city_id, city, sub_zone, sub_zone_id, rack_id, net_device_id, labels, 
+		raid, city_id, city, sub_zone, sub_zone_id, idc_name, idc_id, rack_id, net_device_id, labels, 
 		is_init, is_idle, status, bk_agent_id, gse_agent_status_code, agent_status_update_time, 
 		operator, consume_time, update_time, create_time 
 		from tb_rp_detail where id in ? and status = ?`, ids, Used).Error; err != nil {

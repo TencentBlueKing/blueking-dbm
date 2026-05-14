@@ -91,6 +91,8 @@ func InitCCClient() {
 		"bk_os_bit",
 		"bk_os_version",
 		"bk_os_name",
+		"idc_id",
+		"idc_name",
 	}
 }
 
