@@ -45,7 +45,7 @@
     "@xterm/addon-web-links": "0.12.0",
     "@xterm/xterm": "6.0.0",
     "axios": "1.16.0",
-    "bkui-vue": "2.1.0-beta.9",
+    "bkui-vue": "2.1.0-beta.11",
     "date-fns": "4.1.0",
     "dayjs": "1.11.20",
     "dompurify": "3.4.2",
