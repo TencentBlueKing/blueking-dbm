@@ -68,10 +68,16 @@ func (k *K8sCrdStorageAddonDbAccessImpl) FindVersionsByParams(params *metaentity
 	error,
 ) {
 	var versions []*metamodel.AddonVersionModel
-	if err := k.db.Model(&metamodel.K8sCrdStorageAddonModel{}).
-		Where(params).
-		Find(&versions).
-		Limit(commconst.MaxFetchSize).Error; err != nil {
+	query := k.db.Model(&metamodel.K8sCrdStorageAddonModel{})
+	if params.AddonCategory != "" {
+		query = query.Where("addon_category = ?", params.AddonCategory)
+	}
+	if params.AddonType != "" {
+		query = query.Where("addon_type = ?", params.AddonType)
+	}
+	if err := query.
+		Limit(commconst.MaxFetchSize).
+		Find(&versions).Error; err != nil {
 		return nil, errors.Wrapf(err, "failed to list addon versions with params %+v", params)
 	}
 	return versions, nil
