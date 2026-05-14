@@ -27,12 +27,9 @@ package workflow
 import (
 	"fmt"
 	"sort"
-	"strconv"
 	"sync"
 	"time"
 
-	"dbm-services/common/dbha-v2/internal/analysis/apm"
-	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
@@ -166,6 +163,17 @@ func (m *BizWindowManager) getOrCreateWindowLocked(bizId int) *slidingWindow {
 	return w
 }
 
+// WindowLen returns the number of entries in the window for the given BizID.
+// It is safe to call concurrently.
+func (m *BizWindowManager) WindowLen(bizId int) int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if w, ok := m.windows[bizId]; ok {
+		return w.len()
+	}
+	return 0
+}
+
 // slidingWindow is a time-based sliding window that caches detection failure events.
 // Same DB instance (BkCloudID, IP, Port, DbType) is merged and Count is incremented on push.
 // pop returns only entries that have slid out of the window (FirstAt + windowDuration < now).
@@ -197,15 +205,6 @@ func (w *slidingWindow) push(inst *FailureInstanceInfo, at time.Time) {
 		return
 	}
 
-	// Report sliding window size metric
-	if err := apm.SlidingWindowSize.AddWithLabels(map[string]string{
-		haapm.MetricLabelServiceID:   w.myServiceID,
-		haapm.MetricLabelServiceName: apm.MetricServerName,
-		apm.MetricLabelBizID:         strconv.Itoa(w.bizId),
-	}, 1); err != nil {
-		logger.Warn("failed to report sliding window size metric, errmsg: %s", err)
-	}
-
 	w.byKey[key] = &FailureWindowEntry{
 		FailureInstanceInfo: *inst,
 		Count:               1,
@@ -223,17 +222,6 @@ func (w *slidingWindow) pop(now time.Time) []*FailureWindowEntry {
 		if e.FirstAt.Before(cutoff) {
 			result = append(result, e)
 			delete(w.byKey, k)
-		}
-	}
-
-	if len(result) > 0 {
-		// Report sliding window size metric
-		if err := apm.SlidingWindowSize.AddWithLabels(map[string]string{
-			haapm.MetricLabelServiceID:   w.myServiceID,
-			haapm.MetricLabelServiceName: apm.MetricServerName,
-			apm.MetricLabelBizID:         strconv.Itoa(w.bizId),
-		}, float64(-len(result))); err != nil {
-			logger.Warn("failed to report sliding window size metric, errmsg: %s", err)
 		}
 	}
 

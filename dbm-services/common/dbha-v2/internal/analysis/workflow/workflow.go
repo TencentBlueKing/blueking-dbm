@@ -29,6 +29,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -402,6 +403,18 @@ func (w *Workflow) PopAndSwitch(ctx context.Context) {
 				w.popAndSwitchForBiz(ctx, bizId)
 			}, safe.WithLabel("PopAndSwitch"))
 		}(bizID)
+	}
+
+	// report the sliding window size
+	apm.SlidingWindowSize.Clear()
+	for _, bizId := range assigned {
+		if err := apm.SlidingWindowSize.SetWithLabels(map[string]string{
+			haapm.MetricLabelServiceID:   w.myServiceID,
+			haapm.MetricLabelServiceName: apm.MetricServerName,
+			apm.MetricLabelBizID:         strconv.Itoa(bizId),
+		}, float64(w.windowMgr.WindowLen(bizId))); err != nil {
+			logger.Warn("failed to report sliding window size, bizId: %d, errmsg: %s", bizId, err)
+		}
 	}
 
 	// report the pop-switch business total
