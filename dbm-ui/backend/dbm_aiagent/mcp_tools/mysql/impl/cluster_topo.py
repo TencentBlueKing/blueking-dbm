@@ -130,6 +130,7 @@ def __tendbha_topo(cluster_obj: Cluster) -> Dict:
                 "status": p.status,
                 "phase": p.phase,
                 "machine_type": p.machine_type,
+                "role": "",
                 # "bk_cloud_id": p.machine.bk_cloud_id,
                 "bk_idc_id": p.machine.bk_idc_id,
                 "bk_idc_name": p.machine.bk_idc_name,
@@ -229,6 +230,7 @@ def __tendbcluster_topo(cluster_obj: Cluster) -> Dict:
                 "status": p.status,
                 "phase": p.phase,
                 "machine_type": p.machine_type,
+                "role": p.tendbclusterspiderext.spider_role,
                 # "bk_cloud_id": p.machine.bk_cloud_id,
                 "bk_idc_id": p.machine.bk_idc_id,
                 "bk_idc_name": p.machine.bk_idc_name,
@@ -237,7 +239,7 @@ def __tendbcluster_topo(cluster_obj: Cluster) -> Dict:
                 "bk_sub_zone_id": p.machine.bk_sub_zone_id,
                 "bk_sub_zone": p.machine.bk_sub_zone,
             }
-            for p in cluster_obj.proxyinstance_set.all()
+            for p in cluster_obj.proxyinstance_set.select_related("tendbclusterspiderext", "machine").all()
         ],
         "storage_instance_replicate_sets": storage_instance_replicate_sets,
     }
