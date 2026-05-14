@@ -223,6 +223,13 @@ func openDB(username, password, addr, name string) *gorm.DB {
 	if err != nil {
 		logger.Fatal("Database connection failed. Database name: %s, error: %v", name, err)
 	}
+	sqlDB, err := db.DB()
+	if err != nil {
+		logger.Fatal("get sql.DB failed. Database name: %s, error: %v", name, err)
+	}
+	sqlDB.SetMaxOpenConns(config.AppConfig.Db.MaxOpenConns)
+	sqlDB.SetMaxIdleConns(config.AppConfig.Db.MaxIdleConns)
+	sqlDB.SetConnMaxLifetime(time.Duration(config.AppConfig.Db.MaxLifetime) * time.Hour)
 	return db
 }
 

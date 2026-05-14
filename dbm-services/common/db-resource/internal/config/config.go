@@ -79,10 +79,33 @@ type AgentConfig struct {
 
 // Db config
 type Db struct {
-	Name     string `yaml:"name"`
-	Addr     string `yaml:"addr"`
-	UserName string `yaml:"username"`
-	PassWord string `yaml:"password"`
+	Name         string `yaml:"name"`
+	Addr         string `yaml:"addr"`
+	UserName     string `yaml:"username"`
+	PassWord     string `yaml:"password"`
+	MaxOpenConns int    `yaml:"maxOpenConns"`
+	MaxIdleConns int    `yaml:"maxIdleConns"`
+	MaxLifetime  int    `yaml:"maxLifetime"` // 单位：小时
+}
+
+// 数据库连接池默认值
+const (
+	defaultMaxOpenConns = 200
+	defaultMaxIdleConns = 20
+	defaultMaxLifetime  = 1 // 小时
+)
+
+// SetDefaults 为零值字段填充默认值
+func (c *Db) SetDefaults() {
+	if c.MaxOpenConns <= 0 {
+		c.MaxOpenConns = defaultMaxOpenConns
+	}
+	if c.MaxIdleConns <= 0 {
+		c.MaxIdleConns = defaultMaxIdleConns
+	}
+	if c.MaxLifetime <= 0 {
+		c.MaxLifetime = defaultMaxLifetime
+	}
 }
 
 // LoggerConfig 日志配置
@@ -129,4 +152,6 @@ func InitConfig() {
 	if err := viper.Unmarshal(&AppConfig); err != nil {
 		logger.Fatal("unmarshal configuration failed: %v", err)
 	}
+	AppConfig.Db.SetDefaults()
+	AppConfig.CmdbDb.SetDefaults()
 }
