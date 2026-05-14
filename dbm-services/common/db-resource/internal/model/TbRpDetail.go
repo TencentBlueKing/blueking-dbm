@@ -88,6 +88,10 @@ type TbRpDetail struct {
 	SubZone string `gorm:"column:sub_zone;type:varchar(32);not null" json:"sub_zone"`
 	//  园区ID cc_device_szone_id
 	SubZoneID string `gorm:"column:sub_zone_id;type:varchar(64);not null" json:"sub_zone_id"`
+	//  IDC 名称 cc idc_name
+	IDCName string `gorm:"column:idc_name;type:varchar(128);not null;default:'';comment:'IDC名称'" json:"idc_name"`
+	//  IDC ID cc idc_id
+	IDCID int `gorm:"column:idc_id;type:int(11);not null;default:0;comment:'IDC ID'" json:"idc_id"`
 	//  存放机架ID,判断是否是同机架
 	RackID string `gorm:"column:rack_id;type:varchar(64);not null" json:"rack_id"`
 	//  网络设备ID, 判断是同交换机

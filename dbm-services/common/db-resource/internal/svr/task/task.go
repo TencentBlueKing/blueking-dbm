@@ -241,7 +241,7 @@ func AsyncBkCmdbAttributes() (err error) {
 	for bizId, hosts := range bizHostMap {
 		ccInfos, _, err := bk.BatchQueryHostsInfo(bizId, hosts)
 		if err != nil {
-			logger.Warn("query machine hardinfo from cmdb failed %s", err.Error())
+			logger.Warn("query machine host info from cmdb failed %s", err.Error())
 			continue
 		}
 		for _, ccInfo := range ccInfos {
@@ -258,6 +258,8 @@ func AsyncBkCmdbAttributes() (err error) {
 						"os_name":           util.CleanOsName(ccInfo.OSName),
 						"os_version":        ccInfo.BkOsVersion,
 						"os_name_origin":    ccInfo.OSName,
+						"idc_id":            ccInfo.IDCID,
+						"idc_name":          ccInfo.IDC,
 					}).Error
 				if err != nil {
 					logger.Warn("request cmdb api failed %s", err.Error())
@@ -305,7 +307,7 @@ func SyncOsNameInfo() (err error) {
 	return nil
 }
 
-// FlushNetDeviceInfo TODO
+// FlushNetDeviceInfo 刷新网络设备信息
 func FlushNetDeviceInfo() (err error) {
 	var rsList []model.TbRpDetail
 	err = model.DB.Self.Table(model.TbRpDetailName()).Find(&rsList).Error
