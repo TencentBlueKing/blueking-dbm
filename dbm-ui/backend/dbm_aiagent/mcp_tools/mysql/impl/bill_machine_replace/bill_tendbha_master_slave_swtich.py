@@ -27,7 +27,7 @@ from backend.ticket.models import Ticket
 @bill_response_wrapper
 def bill_tendbha_master_slave_switch(cluster_domains: List[str], ips: List[str]):
     if not len(ips) == 1:
-        raise
+        raise Exception("expected exactly 1 ip, but found: {}".format(ips))
 
     ip = ips[0]
 
@@ -43,7 +43,9 @@ def bill_tendbha_master_slave_switch(cluster_domains: List[str], ips: List[str])
         slave_ips.add(ele.receiver.machine.ip)
 
     if not len(slave_ips) == 1:
-        raise
+        raise Exception(
+            "masters on {} should have all slaves on a single ip, but found: {}".format(ip, sorted(slave_ips))
+        )
 
     master_machine_obj = Machine.objects.get(bk_cloud_id=bk_cloud_id, ip=ip)
     slave_machine_obj = Machine.objects.get(bk_cloud_id=bk_cloud_id, ip=list(slave_ips)[0])

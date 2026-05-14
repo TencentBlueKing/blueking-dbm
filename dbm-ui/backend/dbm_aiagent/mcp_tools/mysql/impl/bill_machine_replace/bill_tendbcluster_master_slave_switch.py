@@ -40,7 +40,11 @@ def bill_tendbcluster_master_slave_switch(cluster_domain: str, ips: List[str]):
         slave_ips.add(ele.receiver.machine.ip)
 
     if not len(slave_ips) == len(ips):
-        raise
+        raise Exception(
+            "expected {} slave ips matching master ips {}, but found: {}".format(
+                len(ips), sorted(ips), sorted(slave_ips)
+            )
+        )
 
     infos = []
     for ele in tps.values_list("ejector__machine__ip", "receiver__machine__ip").distinct():
