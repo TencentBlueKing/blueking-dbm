@@ -21,7 +21,7 @@ const path = '/apis/configs';
 /**
  * 参数配置项
  */
-interface ParameterConfigItem {
+export interface ParameterConfigItem {
   conf_name: string;
   conf_name_lc?: string;
   conf_value?: string;

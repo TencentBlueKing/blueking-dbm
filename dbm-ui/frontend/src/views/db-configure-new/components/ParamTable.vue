@@ -49,23 +49,30 @@
           </span>
         </BkPopConfirm>
       </div>
-      <DbQuickSearch
-        v-model="paramSearchValue"
-        :data="paramQuickSearchData"
-        :placeholder="t('搜索参数名_当前值_允许值_重启生效')"
-        style="width: 500px"
-        @change="handleParamSearchChange" />
+      <div class="param-operations-right">
+        <BkCheckbox
+          v-model="showCustomOnly"
+          @change="refreshTable">
+          {{ t('仅显示自定义') }}
+        </BkCheckbox>
+        <DbQuickSearch
+          v-model="paramSearchValue"
+          :data="paramQuickSearchData"
+          :placeholder="t('搜索参数名_当前值_允许值_重启生效')"
+          style="width: 500px"
+          @change="handleParamSearchChange" />
+      </div>
     </div>
     <DbTable
       ref="paramTableRef"
       :data-source="paramDataSource"
-      :disable-select-method="(row: any) => row.flag_readonly === 1"
       :filter-value="filterValue"
       :fixed-pagination="fixedPagination"
       :row-key="rowKey"
       :selectable="selectable"
       @clear-search="handleParamSearchChange"
       @filter-change="handleFilterChange"
+      @request-success="handleRequestSuccess"
       @selection="handleSelectionChange">
       <TableColumn
         col-key="conf_name"
@@ -95,6 +102,12 @@
               :data-conf-name="row.conf_name"
               :data-description="row.description"
               type="bk-dbm-icon db-icon-attention" />
+            <BkTag
+              v-if="row.op_type === 'add'"
+              class="ml-8"
+              theme="success">
+              NEW
+            </BkTag>
           </template>
         </template>
       </TableColumn>
@@ -117,11 +130,27 @@
         <template #default="{ row, rowIndex }">
           <!-- 新增行 -->
           <template v-if="rowIndex === 0 && isAddingRow">
-            <ValueEditor
-              v-model="newRow.conf_value"
-              :value-allowed="selectedParamInfo?.value_allowed || ''"
-              :value-default="selectedParamInfo?.value_default || ''"
-              :value-type-sub="selectedParamInfo?.value_type_sub || ''" />
+            <div class="inline-edit-cell">
+              <ValueEditor
+                v-model="newRow.conf_value"
+                :disabled="!selectedParamInfo"
+                :value-allowed="selectedParamInfo?.value_allowed || ''"
+                :value-default="selectedParamInfo?.value_default || ''"
+                :value-type-sub="selectedParamInfo?.value_type_sub || ''" />
+              <BkButton
+                class="inline-edit-cell-confirm"
+                size="small"
+                theme="primary"
+                @click="handleConfirmAdd">
+                <DbIcon type="check-line" />
+              </BkButton>
+              <BkButton
+                class="inline-edit-cell-cancel"
+                size="small"
+                @click="handleCancelAdd">
+                <DbIcon type="close" />
+              </BkButton>
+            </div>
           </template>
           <!-- 编辑模式 -->
           <template v-else-if="editingRowKey === row[rowKey]">
@@ -172,12 +201,30 @@
         :title="t('允许值')"
         :width="300">
         <template #default="{ row, rowIndex }">
-          <span v-if="rowIndex === 0 && isAddingRow">
-            {{ selectedParamInfo?.value_allowed || '--' }}
-          </span>
-          <span v-else>
-            {{ row.value_allowed || '--' }}
-          </span>
+          <!-- 新增行 -->
+          <template v-if="rowIndex === 0 && isAddingRow">
+            <template v-if="selectedParamInfo?.value_type_sub && selectedParamInfo?.value_type_sub !== 'STRING'">
+              <BkTag>{{ selectedParamInfo.value_type_sub }}</BkTag>
+              <span class="ml-4">{{ selectedParamInfo.value_allowed || '--' }}</span>
+            </template>
+            <span
+              v-else
+              class="no-constraint-text">
+              {{ t('无约束') }}
+            </span>
+          </template>
+          <!-- 普通行 -->
+          <template v-else>
+            <template v-if="row.value_type_sub && row.value_type_sub !== 'STRING'">
+              <BkTag>{{ row.value_type_sub }}</BkTag>
+              <span class="ml-4">{{ row.value_allowed || '--' }}</span>
+            </template>
+            <span
+              v-else
+              class="no-constraint-text">
+              {{ t('无约束') }}
+            </span>
+          </template>
         </template>
       </TableColumn>
       <!-- <TableColumn
@@ -214,22 +261,10 @@
         :title="t('操作')"
         :width="150">
         <template #default="{ row, rowIndex }: { row: ConfItem, rowIndex: number }">
-          <template v-if="rowIndex === 0 && isAddingRow">
-            <BkButton
-              class="mr-8"
-              text
-              theme="primary"
-              @click="handleConfirmAdd">
-              {{ t('确定') }}
-            </BkButton>
-            <BkButton
-              text
-              theme="primary"
-              @click="handleCancelAdd">
-              {{ t('取消') }}
-            </BkButton>
+          <!-- 编辑/新增状态下不显示操作按钮（已移至当前值列） -->
+          <template v-if="isAddingRow && rowIndex === 0 || editingRowKey === row[rowKey as keyof ConfItem]">
+            --
           </template>
-          <template v-else-if="editingRowKey === row[rowKey as keyof ConfItem]"> -- </template>
           <template v-else>
             <BkButton
               v-if="row.flag_readonly !== 1"
@@ -393,6 +428,9 @@
     isShow: false,
   });
 
+  // 仅显示自定义
+  const showCustomOnly = ref(false);
+
   /** 重置编辑状态 */
   const resetEditingState = () => {
     editingRowKey.value = '';
@@ -490,12 +528,10 @@
       data = data.filter((item) => values.includes(String(item.need_restart)));
     }
 
-    // flag_locked： 值锁定（即将废弃）
-    // flag_readonly：业务不可修改(业务只读)
-    // flag_visible：写入配置文件(业务默认可见)
-    // need_restart：是否重启生效
-    // 过滤掉不可见的参数
-    data = data.filter((item) => item.flag_visible === 1);
+    // 仅显示自定义
+    if (showCustomOnly.value && !isAddingRow.value) {
+      data = data.filter((item) => !!item.stage);
+    }
 
     // 如果正在新增行，在首行插入空行
     if (isAddingRow.value) {
@@ -546,18 +582,33 @@
   const { run: fetchConfigNames } = useRequest(getConfigNames, {
     manual: true,
     onSuccess(res) {
-      availableParams.value = res;
+      // 过滤掉已在当前配置列表中存在的参数，避免重复添加
+      const existNames = new Set(allConfItems.value.map((item) => item.conf_name));
+      availableParams.value = res.filter((p) => !existNames.has(p.conf_name));
     },
   });
 
-  /** 恢复默认 - 全部或选中行 */
+  /** 恢复默认 - 本地移除 stage 标签 */
+  const handleRestoreDefaultLocal = (confNames: string[]) => {
+    confNames.forEach((name) => {
+      const target = allConfItems.value.find((item) => item.conf_name === name);
+      if (target) {
+        delete target.stage;
+      }
+    });
+    refreshTable();
+    emit('change');
+  };
+
+  /** 恢复默认 - 调用接口后仅本地更新 */
   const { run: runRecoverDefault } = useRequest(recoverDefaultConfigItem, {
     manual: true,
-    onSuccess() {
-      // 恢复成功后重新获取数据
-      loading.value = true;
-      fetchLevelConfig(fetchParams.value);
-      emit('change');
+    onSuccess(_data, params) {
+      messageSuccess(t('操作成功'));
+      const names = (params as any[])?.[0]?.conf_names as string[] | undefined;
+      if (names) {
+        handleRestoreDefaultLocal(names);
+      }
     },
   });
 
@@ -587,8 +638,12 @@
     selectedRows.value = list;
   };
 
-  /** 添加参数 */
+  /** 添加参数（若有未完成的编辑，先丢弃） */
   const handleAddParam = () => {
+    // 如果有正在进行的行内编辑，先重置
+    if (editingRowKey.value) {
+      resetEditingState();
+    }
     isAddingRow.value = true;
     newRow.value = { conf_name: '', conf_value: '' };
     selectedParamInfo.value = null;
@@ -599,6 +654,11 @@
   const handleFilterChange = (val: Record<string, string>) => {
     filterValue.value = val;
     refreshTable();
+  };
+
+  /** 数据请求成功后重新初始化 tippy（含分页切换场景） */
+  const handleRequestSuccess = () => {
+    setTimeout(() => initDescriptionTippy(), 100);
   };
 
   /** 监听新增行选择参数变化 */
@@ -648,7 +708,7 @@
     saveLoading.value = true;
     try {
       await updateBusinessConfig(buildUpdateParams([{ ...paramInfo, conf_value: confValue, op_type: 'add' }]));
-      fetchLevelConfig(fetchParams.value);
+      messageSuccess(t('操作成功'));
       emit('change');
     } finally {
       saveLoading.value = false;
@@ -662,8 +722,16 @@
     refreshTable();
   };
 
-  /** 开始行内编辑 */
+  /** 开始行内编辑（若有未完成的新增或编辑，先丢弃） */
   const handleStartEdit = (row: ConfItem) => {
+    // 如果正在新增行，先取消
+    if (isAddingRow.value) {
+      handleCancelAdd();
+    }
+    // 如果已有其他行在编辑，先重置
+    if (editingRowKey.value && editingRowKey.value !== row[rowKeyField.value]) {
+      resetEditingState();
+    }
     editingRowKey.value = row[rowKeyField.value] as any;
     // 加密参数不带入原值，由用户输入新值
     if (row.flag_encrypt === 1) {
@@ -702,7 +770,6 @@
       try {
         await updateBusinessConfig(buildUpdateParams([target]));
         messageSuccess(target.stage ? t('操作成功_参数已修改') : t('操作成功_参数已转为自定义'));
-        fetchLevelConfig(fetchParams.value);
         emit('change');
       } finally {
         saveLoading.value = false;
@@ -817,6 +884,12 @@
     gap: 8px;
   }
 
+  .param-operations-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
   .inline-edit-cell {
     display: flex;
     align-items: center;
@@ -896,6 +969,10 @@
     font-size: 16px;
     color: #ff5656;
     background: #ffebeb;
+  }
+
+  .no-constraint-text {
+    color: #c4c6cc;
   }
 
   :deep(tr:hover) .value-cell-edit {

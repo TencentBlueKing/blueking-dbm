@@ -13,6 +13,15 @@
 
 <template>
   <BkLoading :loading="loading">
+    <BkAlert
+      class="mb-16"
+      closable
+      theme="info"
+      :title="
+        t(
+          '新建模块的参数默认继承业务级当前值；所有修改在草稿态，点「创建模块」时与模块信息一起原子提交，提交前可随时取消。',
+        )
+      " />
     <div class="param-operations mb-16">
       <div class="param-operations-left">
         <BkButton
@@ -26,34 +35,20 @@
           @click="handleBatchEdit">
           {{ t('批量编辑') }}
         </BkButton>
-        <BkPopConfirm
-          :cancel-text="t('取消')"
-          :confirm-text="t('确认恢复')"
-          :title="t('确认批量恢复 n 个参数默认值？', { n: selectedRows.filter((item) => item.stage).length })"
-          trigger="click"
-          :width="275"
-          @confirm="handleRestoreDefault">
-          <template #content>
-            <div
-              class="mb-16"
-              style="line-height: 20px">
-              <p>
-                {{ t('恢复后，该参数的值降默认继承父级的值，随父级内容变化') }}
-              </p>
-            </div>
+        <I18nT
+          v-if="changedCount > 0"
+          keypath="共修改n个参数"
+          tag="span">
+          <template #n>
+            <span style="font-weight: 700; color: #f59500">{{ changedCount }}</span>
           </template>
-          <span @click.stop>
-            <BkButton :disabled="selectedRows.every((item) => !item.stage)">
-              {{ t('恢复默认') }}
-            </BkButton>
-          </span>
-        </BkPopConfirm>
+        </I18nT>
       </div>
       <div class="param-operations-right">
         <BkCheckbox
-          v-model="showCustomOnly"
+          v-model="showChangedOnly"
           @change="refreshTable">
-          {{ t('仅显示自定义') }}
+          {{ t('仅显示已修改') }}
         </BkCheckbox>
         <DbQuickSearch
           v-model="paramSearchValue"
@@ -69,11 +64,11 @@
       :disable-select-method="(row: any) => row.flag_readonly === 1"
       :filter-value="filterValue"
       :fixed-pagination="fixedPagination"
+      :row-class-name="getRowClassName"
       :row-key="rowKey"
       :selectable="selectable"
       @clear-search="handleParamSearchChange"
       @filter-change="handleFilterChange"
-      @request-success="handleRequestSuccess"
       @selection="handleSelectionChange">
       <TableColumn
         col-key="conf_name"
@@ -106,6 +101,7 @@
             <BkTag
               v-if="row.op_type === 'add'"
               class="ml-8"
+              size="small"
               theme="success">
               NEW
             </BkTag>
@@ -127,7 +123,7 @@
         col-key="conf_value"
         ellipsis
         :title="t('当前值')"
-        :width="200">
+        :width="300">
         <template #default="{ row, rowIndex }">
           <!-- 新增行 -->
           <template v-if="rowIndex === 0 && isAddingRow">
@@ -140,7 +136,6 @@
                 :value-type-sub="selectedParamInfo?.value_type_sub || ''" />
               <BkButton
                 class="inline-edit-cell-confirm"
-                :loading="saveLoading"
                 size="small"
                 theme="primary"
                 @click="handleConfirmAdd">
@@ -164,7 +159,6 @@
                 :value-type-sub="row.value_type_sub || ''" />
               <BkButton
                 class="inline-edit-cell-confirm"
-                :loading="saveLoading"
                 size="small"
                 theme="primary"
                 @click="handleConfirmEdit">
@@ -181,12 +175,6 @@
           <template v-else>
             <span class="value-cell">
               <span class="value-cell-text">{{ row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--') }}</span>
-              <BkTag
-                v-if="row.stage"
-                size="small"
-                theme="warning">
-                {{ t('自定义') }}
-              </BkTag>
               <DbIcon
                 v-if="row.flag_readonly !== 1"
                 v-bk-tooltips="{ content: t('编辑参数') }"
@@ -201,7 +189,7 @@
         col-key="value_allowed"
         ellipsis
         :title="t('允许值')"
-        :width="200">
+        :width="300">
         <template #default="{ row, rowIndex }">
           <!-- 新增行 -->
           <template v-if="rowIndex === 0 && isAddingRow">
@@ -276,13 +264,6 @@
               @click="handleStartEdit(row)">
               {{ t('编辑') }}
             </BkButton>
-            <BkButton
-              v-if="row.stage"
-              text
-              theme="primary"
-              @click="handleShowRestoreInfoBox(row)">
-              {{ t('恢复默认') }}
-            </BkButton>
           </template>
         </template>
       </TableColumn>
@@ -291,32 +272,22 @@
     <!-- 批量编辑侧滑 -->
     <BatchEditSideslider
       v-model:is-show="batchEditConfig.isShow"
-      :cluster="cluster"
-      :conf-type="confType"
       :data="selectedRows"
-      :version="version"
+      :fetch-params="fetchParams"
       @saved="handleBatchEditSaved" />
   </BkLoading>
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
   import _ from 'lodash';
   import type { Instance } from 'tippy.js';
-  import { useI18n } from 'vue-i18n';
+  import { I18nT, useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import {
-    getConfigNames,
-    getLevelConfig,
-    recoverDefaultConfigItem,
-    updateBusinessConfig,
-    validateConfItems,
-  } from '@services/source/configs';
+  import { getConfigNames, getLevelConfig, updateBusinessConfig, validateConfItems } from '@services/source/configs';
 
   import { useGlobalBizs } from '@stores';
 
-  import type { ClusterTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
   import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
@@ -324,23 +295,14 @@
 
   import ValueEditor from '@views/db-configure-new/components/ValueEditor.vue';
 
-  import { messageSuccess } from '@utils';
-
   import BatchEditSideslider from './BatchEditSideslider.vue';
 
   type LevelConfigResult = ServiceReturnType<typeof getLevelConfig>;
 
-  export type ConfItem = {
-    /** 自定义标记 */
-    stage?: string;
-  } & LevelConfigResult['conf_items'][number];
+  export type ConfItem = {} & LevelConfigResult['conf_items'][number];
 
   export interface Props {
-    cluster: {
-      cluster_type: ClusterTypes;
-      id: number;
-      master_domain: string;
-    };
+    clusterType: string;
     /** 配置名称（用于保存时） */
     configName?: string;
     confType: string;
@@ -369,12 +331,9 @@
     selectable: false,
   });
 
-  const emit = defineEmits<(e: 'change') => void>();
-
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
 
-  const saveLoading = ref(false);
   const allConfItems = ref<ConfItem[]>([]);
   const originConfItems = ref<ConfItem[]>([]);
   const availableParams = ref<ConfItem[]>([]);
@@ -440,8 +399,8 @@
     isShow: false,
   });
 
-  // 仅显示自定义
-  const showCustomOnly = ref(false);
+  // 仅显示已修改
+  const showChangedOnly = ref(false);
 
   /** 重置编辑状态 */
   const resetEditingState = () => {
@@ -449,6 +408,15 @@
     editingValue.value = '';
     editingOriginValue.value = '';
     refreshTable();
+  };
+
+  /** 获取行样式名（修改项行添加 class） */
+  const getRowClassName = ({ row }: { row: ConfItem }) => {
+    const origin = originConfItems.value.find((o) => o.conf_name === row.conf_name);
+    if (origin && row.conf_value !== origin.conf_value) {
+      return 'row-modified';
+    }
+    return '';
   };
 
   /** 刷新表格数据 */
@@ -507,7 +475,7 @@
     level_info: props.levelInfo,
     level_name: props.levelName as any,
     level_value: props.levelValue ?? globalBizsStore.currentBizId,
-    meta_cluster_type: props.cluster.cluster_type,
+    meta_cluster_type: props.clusterType,
     version: props.version,
   }));
 
@@ -541,9 +509,10 @@
       data = data.filter((item) => values.includes(String(item.need_restart)));
     }
 
-    // 仅显示自定义
-    if (showCustomOnly.value && !isAddingRow.value) {
-      data = data.filter((item) => !!item.stage);
+    // 仅显示已修改
+    if (showChangedOnly.value && !isAddingRow.value) {
+      const changedNames = new Set(getChangedItems().map((i) => i.conf_name));
+      data = data.filter((item) => changedNames.has(item.conf_name));
     }
 
     // 如果正在新增行，在首行插入空行
@@ -587,6 +556,8 @@
       originConfItems.value = _.cloneDeep(res.conf_items || []);
       // 服务端数据已包含最新变更，清空本地新增缓存
       pendingAddedItems.value = [];
+      // 服务端数据已包含最新变更，清空本地新增缓存
+      pendingAddedItems.value = [];
       nextTick(() => {
         paramTableRef.value?.fetchData({}, true);
       });
@@ -603,30 +574,6 @@
     },
   });
 
-  /** 恢复默认 - 本地移除 stage 标签 */
-  const handleRestoreDefaultLocal = (confNames: string[]) => {
-    confNames.forEach((name) => {
-      const target = allConfItems.value.find((item) => item.conf_name === name);
-      if (target) {
-        delete target.stage;
-      }
-    });
-    refreshTable();
-    emit('change');
-  };
-
-  /** 恢复默认 - 调用接口后仅本地更新 */
-  const { run: runRecoverDefault } = useRequest(recoverDefaultConfigItem, {
-    manual: true,
-    onSuccess(_data, params) {
-      messageSuccess(t('操作成功'));
-      const names = (params as any[])?.[0]?.conf_names as string[] | undefined;
-      if (names) {
-        handleRestoreDefaultLocal(names);
-      }
-    },
-  });
-
   // 监听 version 变化重新获取数据
   watch(
     () => props.version,
@@ -635,7 +582,7 @@
         fetchLevelConfig(fetchParams.value);
         fetchConfigNames({
           conf_type: props.confType,
-          meta_cluster_type: props.cluster.cluster_type,
+          meta_cluster_type: props.clusterType,
           version: props.version,
         });
       }
@@ -671,11 +618,6 @@
     refreshTable();
   };
 
-  /** 数据请求成功后重新初始化 tippy（含分页切换场景） */
-  const handleRequestSuccess = () => {
-    setTimeout(() => initDescriptionTippy(), 100);
-  };
-
   /** 监听新增行选择参数变化 */
   watch(
     () => newRow.value.conf_name,
@@ -690,29 +632,13 @@
   );
 
   /** 确认新增 */
-  const handleConfirmAdd = async () => {
+  const handleConfirmAdd = () => {
     if (!newRow.value.conf_name) return;
 
     const paramInfo = availableParams.value.find((p) => p.conf_name === newRow.value.conf_name);
     if (!paramInfo) return;
 
     const confValue = newRow.value.conf_value || paramInfo.conf_value || '';
-
-    // 后端校验合法性
-    try {
-      await validateConfItems([
-        {
-          conf_name: paramInfo.conf_name,
-          op_type: 'add',
-          value_allowed: paramInfo.value_allowed,
-          value_default: confValue,
-          value_type: paramInfo.value_type ?? '',
-          value_type_sub: paramInfo.value_type_sub ?? '',
-        },
-      ]);
-    } catch {
-      return;
-    }
 
     // 追加到 pending 列表末尾，不破坏原始数据排序
     pendingAddedItems.value.push({
@@ -721,15 +647,8 @@
       op_type: 'add',
     });
 
-    saveLoading.value = true;
-    try {
-      await updateBusinessConfig(buildUpdateParams([{ ...paramInfo, conf_value: confValue, op_type: 'add' }]));
-      messageSuccess(t('操作成功'));
-      emit('change');
-    } finally {
-      saveLoading.value = false;
-    }
     isAddingRow.value = false;
+    refreshTable();
   };
 
   /** 取消新增 */
@@ -769,36 +688,11 @@
   };
 
   /** 确认编辑 */
-  const handleConfirmEdit = async () => {
+  const handleConfirmEdit = () => {
     const target = allConfItems.value.find((item) => item[rowKeyField.value] === editingRowKey.value);
     if (target) {
       target.conf_value = editingValue.value;
       target.op_type = 'update';
-
-      // 后端校验合法性
-      try {
-        await validateConfItems([
-          {
-            conf_name: target.conf_name,
-            op_type: 'update',
-            value_allowed: target.value_allowed,
-            value_default: editingValue.value,
-            value_type: target.value_type ?? '',
-            value_type_sub: target.value_type_sub ?? '',
-          },
-        ]);
-      } catch {
-        return;
-      }
-
-      saveLoading.value = true;
-      try {
-        await updateBusinessConfig(buildUpdateParams([target]));
-        messageSuccess(target.stage ? t('操作成功_参数已修改') : t('操作成功_参数已转为自定义'));
-        emit('change');
-      } finally {
-        saveLoading.value = false;
-      }
     }
     resetEditingState();
   };
@@ -818,56 +712,63 @@
     batchEditConfig.isShow = true;
   };
 
-  const handleRestoreDefault = () => {
-    const targets = selectedRows.value.length > 0 ? selectedRows.value : allConfItems.value;
-    const confNames = targets.map((r) => r.conf_name);
-    runRecoverDefault({
-      bk_biz_id: globalBizsStore.currentBizId,
-      conf_file: props.version,
-      conf_names: confNames,
-      conf_type: props.confType,
-      level_name: props.levelName || 'app',
-      level_value: String(props.levelValue ?? globalBizsStore.currentBizId),
-      meta_cluster_type: props.cluster.cluster_type,
+  /** 批量编辑保存回调 - 前端暂存变更 */
+  const handleBatchEditSaved = (changedItems: ConfItem[]) => {
+    changedItems.forEach((changedItem) => {
+      const target = allConfItems.value.find((item) => item.conf_name === changedItem.conf_name);
+      if (target) {
+        target.conf_value = changedItem.conf_value;
+        target.op_type = 'update';
+      }
     });
-  };
-
-  /** 恢复单行默认 */
-  const handleShowRestoreInfoBox = (row: ConfItem) => {
-    const originItem = originConfItems.value.find((o) => o.conf_name === row.conf_name);
-    InfoBox({
-      cancelText: t('取消'),
-      confirmText: t('确认'),
-      content: () =>
-        h('div', { class: 'param-restore-content' }, [
-          h('p', `${t('参数名')}：${row.conf_name}`),
-          h('p', `${t('当前值')}：${row.conf_value} → ${originItem?.value_default ?? '--'}`),
-          h('p', t('恢复后该参数重新继承父级配置，随父级配置更新而自动同步')),
-        ]),
-      contentAlign: 'left',
-      extCls: 'param-restore-infobox',
-      infoType: 'warning',
-      onConfirm() {
-        runRecoverDefault({
-          bk_biz_id: globalBizsStore.currentBizId,
-          conf_file: props.version,
-          conf_names: [row.conf_name],
-          conf_type: props.confType,
-          level_name: props.levelName || 'app',
-          level_value: String(props.levelValue ?? globalBizsStore.currentBizId),
-          meta_cluster_type: props.cluster.cluster_type,
-        });
-      },
-      title: t('确认恢复为默认值？'),
-    });
+    refreshTable();
   };
 
   /** 是否有变更 */
   const hasChange = () => pendingAddedItems.value.length > 0 || !_.isEqual(allConfItems.value, originConfItems.value);
 
-  /** 回车确认 */
-  const handleEnter = (e: KeyboardEvent) => {
-    if (e.key === 'Enter') handleConfirmEdit();
+  /** 获取变更的参数列表 */
+  const getChangedItems = () => {
+    const changedItems: ConfItem[] = [];
+
+    allConfItems.value.forEach((item) => {
+      const origin = originConfItems.value.find((o) => o.conf_name === item.conf_name);
+      if (!origin) {
+        // 新增的参数
+        changedItems.push({ ...item, op_type: 'add' });
+      } else if (origin.conf_value !== item.conf_value) {
+        // 修改的参数
+        changedItems.push({ ...item, op_type: 'update' });
+      }
+    });
+
+    return changedItems;
+  };
+
+  /** 获取已修改项数量 */
+  const changedCount = computed(() => getChangedItems().length);
+
+  /** 获取总参数数量 */
+  const totalCount = computed(() => allConfItems.value.length + pendingAddedItems.value.length);
+
+  /** 绑定参数配置（由父组件在创建模块成功后调用） */
+  const bindConfigParameters = async () => {
+    const changedItems = getChangedItems();
+    if (changedItems.length === 0) return;
+
+    // 后端校验合法性
+    await validateConfItems(
+      changedItems.map((item) => ({
+        conf_name: item.conf_name,
+        op_type: item.op_type as 'add' | 'update',
+        value_allowed: item.value_allowed,
+        value_default: item.conf_value ?? '',
+        value_type: item.value_type ?? '',
+        value_type_sub: item.value_type_sub ?? '',
+      })),
+    );
+
+    await updateBusinessConfig(buildUpdateParams(changedItems));
   };
 
   /** 重置 */
@@ -880,6 +781,13 @@
     tippyInstances.length = 0;
   };
 
+  /** 回车确认 */
+  const handleEnter = (e: KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleConfirmEdit();
+    }
+  };
+
   onMounted(() => {
     document.addEventListener('keydown', handleEnter);
   });
@@ -890,15 +798,12 @@
     tippyInstances.length = 0;
   });
 
-  /** 批量编辑保存成功 */
-  const handleBatchEditSaved = () => {
-    messageSuccess('保存成功');
-    fetchLevelConfig(fetchParams.value);
-  };
-
   defineExpose({
+    bindConfigParameters,
+    changedCount,
     handleReset,
     hasChange,
+    totalCount,
   });
 </script>
 
@@ -911,6 +816,7 @@
 
   .param-operations-left {
     display: flex;
+    align-items: center;
     gap: 8px;
   }
 
@@ -950,6 +856,10 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
+  }
+
+  :deep(.row-modified td:nth-child(2)) {
+    background: #fdf4e8 !important;
   }
 
   .value-cell-text {
@@ -1047,27 +957,6 @@
       line-height: 22px;
       color: #63656e;
       word-break: break-word;
-    }
-  }
-
-  .param-restore-infobox {
-    .param-restore-content {
-      padding: 16px 24px;
-      background: #fafbfd;
-      border-radius: 2px;
-      font-size: 13px;
-      line-height: 22px;
-      color: #63656e;
-    }
-
-    p {
-      margin-bottom: 6px;
-
-      &:last-child {
-        margin-bottom: 0;
-        margin-top: 10px;
-        padding-top: 10px;
-      }
     }
   }
 </style>

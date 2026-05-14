@@ -13,16 +13,26 @@
 
 <template>
   <SmartAction :offset-target="getSmartActionOffsetTarget">
+    <BkAlert
+      class="mb-16"
+      closable
+      theme="info"
+      :title="
+        t(
+          '新建模块的参数默认继承业务级当前值；所有修改在草稿态，点「创建模块」时与模块信息一起原子提交，提交前可随时取消。',
+        )
+      " />
     <DbForm
       ref="formRef"
       class="create-module-page db-scroll-y"
-      :label-width="240"
+      :label-width="168"
       :model="formData">
-      <!-- 模块信息 -->
+      <!-- 模块信息 & 绑定数据库配置（紧凑布局） -->
       <DbCard
         mode="collapse"
         :title="t('模块信息')">
         <BkFormItem
+          class="form-item-name"
           :label="t('模块名称')"
           property="alias_name"
           required
@@ -31,54 +41,48 @@
             v-model="formData.alias_name"
             :placeholder="t('由英文字母_数字_连字符_组成')" />
         </BkFormItem>
+        <BkFormItem
+          :label="t('数据库信息')"
+          required>
+          <div class="db-config-row">
+            <BkTag
+              class="db-type-tag"
+              theme="info"
+              type="stroke">
+              <template #icon>
+                <DbIcon
+                  class="mr-4"
+                  type="sqlserver" />
+              </template>
+              {{ ticketInfo.name }}
+            </BkTag>
+            <DbVersionSelect
+              v-model="formData.version"
+              class="version-select-inline"
+              :db-type="DBTypes.SQLSERVER"
+              :meta-cluster-type="ticketInfo.type" />
+            <BkSelect
+              v-model="formData.character_set"
+              class="charset-select-inline"
+              :clearable="false"
+              filterable
+              :placeholder="t('请选择字符集')"
+              :prefix="t('字符集')">
+              <BkOption
+                v-for="(item, index) of characterSets"
+                :key="index"
+                :label="item"
+                :value="item" />
+            </BkSelect>
+          </div>
+        </BkFormItem>
       </DbCard>
 
-      <!-- 绑定数据库配置 -->
+      <!-- SQLServer 额外配置 -->
       <DbCard
         class="mt-16"
         mode="collapse"
         :title="t('绑定数据库配置')">
-        <BkFormItem
-          :label="t('数据库类型')"
-          required>
-          <BkTag
-            class="db-type-tag"
-            theme="info"
-            type="stroke">
-            <template #icon>
-              <DbIcon
-                class="mr-4"
-                type="sqlserver" />
-            </template>
-            {{ ticketInfo.name }}
-          </BkTag>
-        </BkFormItem>
-        <BkFormItem
-          :label="t('数据库版本')"
-          property="version"
-          required>
-          <DeployVersion
-            v-model="formData.version"
-            :db-type="DBTypes.SQLSERVER"
-            :placeholder="t('请选择数据库版本')"
-            query-key="sqlserver" />
-        </BkFormItem>
-        <BkFormItem
-          :label="t('字符集')"
-          property="character_set"
-          required>
-          <BkSelect
-            v-model="formData.character_set"
-            :clearable="false"
-            filterable
-            :placeholder="t('请选择字符集')">
-            <BkOption
-              v-for="(item, index) in characterSets"
-              :key="index"
-              :label="item"
-              :value="item" />
-          </BkSelect>
-        </BkFormItem>
         <BkFormItem
           :label="t('操作系统版本')"
           property="operatingSystemVersion"
@@ -184,9 +188,7 @@
 
   import { DBTypes, sqlServerType, type SqlServerTypeString } from '@common/const';
 
-  import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
-
-  import { messageSuccess } from '@utils';
+  import DbVersionSelect from './components/DbVersionSelect.vue';
 
   const { t } = useI18n();
   const router = useRouter();
@@ -259,30 +261,24 @@
   // 创建模块 + 绑定配置
   let latestModuleId = 0;
 
-  const { run: runSaveModuleDeploy } = useRequest(saveModulesDeployInfo, {
-    manual: true,
-    onSuccess() {
-      messageSuccess(t('创建DB模块并绑定数据库配置成功'));
-      window.changeConfirm = false;
-      router.push({
-        name: 'DbConfigureList',
-        params: {
-          clusterType: ticketInfo.type,
-        },
-        query: {
-          parentId: `app-${bizId}`,
-          treeId: latestModuleId ? `module-${latestModuleId}` : '',
-        },
-      });
-    },
-  });
+  /** 提交 */
+  const handleSubmit = async () => {
+    isSubmitting.value = true;
+    try {
+      await formRef.value?.validate();
 
-  const { run: runCreateModules } = useRequest(createModules, {
-    manual: true,
-    onSuccess(res) {
-      if (res.db_module_id) {
-        latestModuleId = res.db_module_id;
-        runSaveModuleDeploy({
+      // 新建模块
+      const createResult = await createModules({
+        alias_name: formData.alias_name,
+        biz_id: bizId,
+        cluster_type: ticketInfo.type,
+        db_module_name: formData.alias_name,
+      });
+      if (createResult.db_module_id) {
+        latestModuleId = createResult.db_module_id;
+
+        // 绑定数据库配置
+        await saveModulesDeployInfo({
           bk_biz_id: bizId,
           conf_items: [
             {
@@ -324,28 +320,28 @@
           ],
           conf_type: 'deploy',
           level_name: 'module',
-          level_value: res.db_module_id,
+          level_value: createResult.db_module_id,
           meta_cluster_type: ticketInfo.type,
           version: 'deploy_info',
         });
       }
-    },
-  });
 
-  /** 提交 */
-  const handleSubmit = async () => {
-    isSubmitting.value = true;
-    try {
-      await formRef.value?.validate();
-      await runCreateModules({
-        alias_name: formData.alias_name,
-        biz_id: bizId,
-        cluster_type: ticketInfo.type,
-        db_module_name: formData.alias_name,
+      window.changeConfirm = false;
+
+      router.push({
+        name: 'DbConfigureList',
+        params: {
+          clusterType: ticketInfo.type,
+        },
+        query: {
+          parentId: `app-${bizId}`,
+          treeId: latestModuleId ? `module-${latestModuleId}` : '',
+        },
       });
-    } finally {
-      isSubmitting.value = false;
+    } catch (e) {
+      console.log(e);
     }
+    isSubmitting.value = false;
   };
 
   /** 重置 */
@@ -397,7 +393,23 @@
     padding-bottom: 20px;
 
     :deep(.bk-form-item) {
-      max-width: 760px;
+      max-width: 690px;
+    }
+  }
+
+  .db-config-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .version-select-inline,
+    .charset-select-inline {
+      width: auto;
+      min-width: 160px;
+    }
+
+    .charset-select-inline {
+      min-width: 140px;
     }
   }
 

@@ -18,11 +18,12 @@
       class="create-module-page db-scroll-y"
       :label-width="168"
       :model="formData">
-      <!-- 模块信息 -->
+      <!-- 模块信息 & 绑定数据库配置（紧凑布局） -->
       <DbCard
         mode="collapse"
         :title="t('模块信息')">
         <BkFormItem
+          class="form-item-name"
           :label="t('模块名称')"
           property="alias_name"
           required
@@ -32,58 +33,48 @@
             :placeholder="t('由英文字母_数字_连字符_组成')"
             :readonly="isReadonly" />
         </BkFormItem>
-      </DbCard>
-
-      <!-- 绑定数据库配置 -->
-      <DbCard
-        class="mt-16"
-        mode="collapse"
-        :title="t('绑定数据库配置')">
         <BkFormItem
-          :label="t('数据库类型')"
+          :label="t('数据库信息')"
           required>
-          <BkTag
-            class="db-type-tag"
-            theme="info"
-            type="stroke">
-            <template #icon>
-              <i class="db-icon-mysql mr-5" />
-            </template>
-            {{ ticketInfo.name }}
-          </BkTag>
-        </BkFormItem>
-        <BkFormItem
-          :label="t('数据库版本')"
-          property="db_version"
-          required>
-          <DeployVersion
-            v-model="formData.db_version"
-            :db-type="DBTypes.MYSQL"
-            :placeholder="t('请选择数据库版本')"
-            query-key="mysql" />
-        </BkFormItem>
-        <BkFormItem
-          :label="t('字符集')"
-          property="charset"
-          required>
-          <BkSelect
-            v-model="formData.charset"
-            :clearable="false"
-            :disabled="isBindSuccessfully"
-            filterable
-            :placeholder="t('请选择字符集')">
-            <BkOption
-              v-for="(item, index) in characterSets"
-              :key="index"
-              :label="item"
-              :value="item" />
-          </BkSelect>
+          <div class="db-config-row">
+            <BkTag
+              class="db-type-tag"
+              theme="info"
+              type="stroke">
+              <template #icon>
+                <i class="db-icon-mysql mr-5" />
+              </template>
+              {{ ticketInfo.name }}
+            </BkTag>
+            <DbVersionSelect
+              v-model="formData.db_version"
+              :bk-biz-id="bizId"
+              class="version-select-inline"
+              :db-type="DBTypes.MYSQL"
+              :meta-cluster-type="ticketInfo.type"
+              @conf-tabs-change="handleConfTabsChange" />
+            <BkSelect
+              v-model="formData.charset"
+              class="charset-select-inline"
+              :clearable="false"
+              :disabled="isBindSuccessfully"
+              filterable
+              :placeholder="t('请选择字符集')"
+              :prefix="t('字符集')">
+              <BkOption
+                v-for="(item, index) of characterSets"
+                :key="index"
+                :label="item"
+                :value="item" />
+            </BkSelect>
+          </div>
         </BkFormItem>
       </DbCard>
 
       <!-- 参数配置 — 四个 Tab -->
       <div class="param-config-wrapper">
         <BkTab
+          :key="tabRenderKey"
           v-model:active="activeConfType"
           type="card-tab">
           <BkTabPanel
@@ -91,7 +82,7 @@
             :key="tab.conf_file"
             :label="tab.name"
             :name="tab.conf_file"
-            render-directive="if">
+            render-directive="show">
             <ParamTable
               :ref="(el: any) => setTableRef(tab.name, el)"
               :cluster-type="ticketInfo.type"
@@ -121,6 +112,15 @@
         @click="handleCancel">
         {{ t('取消') }}
       </BkButton>
+      <I18nT
+        v-if="totalChangedCount > 0"
+        class="total-change-stats"
+        keypath="共修改n个参数"
+        tag="span">
+        <template #n>
+          <span class="change-count">{{ totalChangedCount }}</span>
+        </template>
+      </I18nT>
     </template>
   </SmartAction>
   <Teleport to="#dbContentTitleAppend">
@@ -131,18 +131,18 @@
 <script setup lang="ts">
   import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
-  import { useI18n } from 'vue-i18n';
+  import { I18nT, useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { createModules } from '@services/source/cmdb';
-  import { getListClusterModuleConfFiles, getModuleDetail, saveModulesDeployInfo } from '@services/source/configs';
+  import { getModuleDetail, saveModulesDeployInfo } from '@services/source/configs';
 
   import { useGlobalBizs } from '@stores';
 
   import { DBTypes, mysqlType, type MysqlTypeString } from '@common/const';
 
-  import ParamTable from '@views/db-configure-new/components/ParamTable.vue';
-  import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
+  import DbVersionSelect, { type ConfTabItem } from './components/DbVersionSelect.vue';
+  import ParamTable from './components/ParamTable.vue';
 
   const { t } = useI18n();
   const router = useRouter();
@@ -208,27 +208,18 @@
     ],
   };
 
-  // 参数配置 Tab
-  const activeConfType = ref('dbconf');
-  const { data: confTabs, run: fetchConfTabs } = useRequest(getListClusterModuleConfFiles, {
-    manual: true,
-  });
+  // 参数配置 Tab — 用 db_version 作为渲染 key，版本切换时强制重建整个 BkTab 及其子组件
+  const activeConfType = ref('');
+  const tabRenderKey = computed(() => formData.db_version || 'init');
+  const confTabs = ref<ConfTabItem[]>([]);
 
-  watch(
-    () => formData.db_version,
-    () => {
-      if (formData.db_version) {
-        fetchConfTabs({
-          bk_biz_id: bizId,
-          deploy_versions: JSON.stringify({
-            db_version: formData.db_version,
-          }),
-          meta_cluster_type: ticketInfo.type,
-        });
-      }
-    },
-    { immediate: true },
-  );
+  /** 接收 DbVersionSelect 组件传递的配置 Tab 列表 */
+  const handleConfTabsChange = (tabs: ConfTabItem[]) => {
+    confTabs.value = tabs;
+    if (tabs.length && !tabs.some((tab) => tab.conf_file === activeConfType.value)) {
+      activeConfType.value = tabs[0].conf_file;
+    }
+  };
 
   // 每个 confType 对应一个 ParamTable 实例
   const tableRefs = ref<Record<string, InstanceType<typeof ParamTable>>>({});
@@ -237,6 +228,11 @@
       tableRefs.value[name] = el;
     }
   };
+
+  /** 所有 Tab 的总计已修改数量 */
+  const totalChangedCount = computed(() =>
+    Object.values(tableRefs.value).reduce((sum, ref) => sum + (ref?.changedCount ?? 0), 0),
+  );
 
   /** 提交 */
   const handleSubmit = async () => {
@@ -361,12 +357,24 @@
     }
   }
 
+  .db-config-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .version-select-inline,
+    .charset-select-inline {
+      width: auto;
+      min-width: 160px;
+    }
+  }
+
   .param-config-wrapper {
     margin-top: 16px;
     background: #fff;
 
     :deep(.bk-tab-content) {
-      padding: 16px;
+      padding: 16px 16px 0;
     }
   }
 
@@ -375,6 +383,19 @@
     color: @primary-color;
     background: white;
     border: 1px solid @border-primary;
+  }
+
+  .total-change-stats {
+    margin-left: 16px;
+    font-size: 13px;
+    line-height: 20px;
+    color: #63656e;
+
+    .change-count {
+      margin: 0 2px;
+      font-weight: 700;
+      color: #f59500;
+    }
   }
 
   .create-module-nav-desc {

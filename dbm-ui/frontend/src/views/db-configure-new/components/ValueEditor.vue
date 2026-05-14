@@ -17,7 +17,9 @@
     v-if="typeSub === ConstraintType.ENUM"
     ref="enumSelectRef"
     :clearable="false"
+    :disabled="props.disabled"
     :model-value="modelValue"
+    :style="{ flex: 1 }"
     @change="handleChange">
     <BkOption
       v-for="opt in options"
@@ -31,8 +33,10 @@
     v-else-if="typeSub === ConstraintType.ENUMS"
     ref="enumSMultipleSelectRef"
     :clearable="false"
+    :disabled="props.disabled"
     :model-value="enumSValue"
     multiple
+    :style="{ flex: 1 }"
     @change="handleEnumSChange">
     <BkOption
       v-for="opt in options"
@@ -46,6 +50,7 @@
     v-else-if="typeSub === ConstraintType.RANGE"
     ref="numberInputRef"
     v-model="modelValue"
+    :disabled="props.disabled"
     type="number" />
 
   <!-- 多行文本框 (JSON / MAP / LIST) -->
@@ -53,6 +58,7 @@
     v-else-if="isMultiLineType(typeSub)"
     ref="textareaRef"
     v-model="modelValue"
+    :disabled="props.disabled"
     type="textarea" />
 
   <!-- 文本输入框 / 密码输入框（BYTES / DURATION / REGEX / GOVALIDATE / 无约束 / 加密参数） -->
@@ -60,12 +66,14 @@
     v-else
     ref="textInputRef"
     v-model="modelValue"
-    :placeholder="props.isEncrypted ? '请输入新值' : undefined"
+    :disabled="props.disabled"
+    :placeholder="props.disabled ? t('请先选择参数') : props.isEncrypted ? '请输入新值' : undefined"
     :type="props.isEncrypted ? 'password' : 'text'" />
 </template>
 
 <script setup lang="ts">
   import { computed, nextTick, onMounted, ref } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import { batchSplitRegex } from '@common/regex';
 
@@ -77,6 +85,8 @@
   }
 
   interface Props {
+    /** 是否禁用 */
+    disabled?: boolean;
     /** 是否为加密参数 */
     isEncrypted?: boolean;
     /** 约束值（用于下拉选项） */
@@ -88,6 +98,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    disabled: false,
     isEncrypted: false,
     valueAllowed: '',
     valueDefault: '',
@@ -97,6 +108,8 @@
   const modelValue = defineModel<string>({
     default: '',
   });
+
+  const { t } = useI18n();
 
   const typeSub = computed(() => props.valueTypeSub?.toUpperCase() || '');
 
