@@ -14,7 +14,6 @@ from dataclasses import asdict
 from django.db.models import Q
 from django.utils.translation import gettext as _
 
-from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import StorageInstance
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -23,7 +22,9 @@ from backend.flow.utils.mysql.mysql_act_dataclass import CheckProcesslistKwargs,
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
 
-def uninstall_instance_sub_flow(root_id: str, ticket_data: dict, ip: str, ports: list = None):
+def uninstall_instance_sub_flow(
+    root_id: str, ticket_data: dict, ip: str, ports: list = None, need_check_client_connect=True, error_ignorable=False
+):
     """
     卸载storage指定ip ports下的实例
     @param root_id: flow流程的 root_id
@@ -42,7 +43,7 @@ def uninstall_instance_sub_flow(root_id: str, ticket_data: dict, ip: str, ports:
     sub_pipeline_list = []
     for storage in storage_instances:
         uninstall_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
-        if storage.cluster_type != ClusterType.TenDBSingle:
+        if need_check_client_connect:
             uninstall_pipeline.add_act(
                 act_name=_("检查实例链接{}").format(storage.ip_port),
                 act_component_code=MySQLCheckProcesslistComponent.code,
@@ -54,6 +55,7 @@ def uninstall_instance_sub_flow(root_id: str, ticket_data: dict, ip: str, ports:
                         only_show_processlist=True,
                     )
                 ),
+                error_ignorable=error_ignorable,
             )
         cluster = {"uninstall_ip": ip, "bk_cloud_id": ticket_data["bk_cloud_id"], "backend_port": storage.port}
         uninstall_pipeline.add_act(
@@ -67,6 +69,7 @@ def uninstall_instance_sub_flow(root_id: str, ticket_data: dict, ip: str, ports:
                     get_mysql_payload_func=MysqlActPayload.get_uninstall_mysql_payload.__name__,
                 )
             ),
+            error_ignorable=error_ignorable,
         )
         sub_pipeline_list.append(uninstall_pipeline.build_sub_process(sub_name=_(" {} 卸载实例".format(storage.ip_port))))
     sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipeline_list)
