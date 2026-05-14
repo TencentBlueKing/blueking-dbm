@@ -181,6 +181,9 @@ class CheckMongodbAffinityTask:
                 actual_rack_set=result["rack_set"],
                 component_nodes=result["nodes"],
                 cluster_region=cluster_region,
+                # same as single_node tag: skip min sub_zone counts for CROS_SUBZONE /
+                # CROSS_SUBZONE_STRONG / CROSS_SUBZONE_WEAK / MAJORITY_ELECTION_DISTRI
+                has_single_node_tag=skip_member_count_check,
             )
 
             if check_result["msg"]:
@@ -204,7 +207,14 @@ class CheckMongodbAffinityTask:
         component_nodes: list[dict],
         actual_region_set: set[str] | None = None,
         cluster_region: str = "",
+        has_single_node_tag: bool = False,
     ) -> dict:
+        """Delegate to ``check_affinity_standalone.check_affinity_rules``.
+
+        When ``has_single_node_tag`` is True, the shared rules skip minimum sub_zone count
+        checks for ``CROS_SUBZONE``, ``CROSS_SUBZONE_STRONG``, ``CROSS_SUBZONE_WEAK``, and
+        ``MAJORITY_ELECTION_DISTRI`` (see that function's docstring).
+        """
         state, reasons = shared_check_affinity_rules(
             disaster_tolerance_level=disaster_tolerance_level,
             cluster_region=cluster_region,
@@ -213,6 +223,7 @@ class CheckMongodbAffinityTask:
             actual_region_set=actual_region_set or set(),
             actual_rack_set=actual_rack_set,
             component_nodes=component_nodes,
+            has_single_node_tag=has_single_node_tag,
         )
         state_map = {
             NORMAL: ReportStateType.NORMAL.value,
@@ -247,7 +258,11 @@ def collect_topology_by_set(nodes: list, is_sharded_cluster: bool = False) -> di
     machine_map = {}
     for cloud_id in cloud_set:
         machine_rows = Machine.objects.filter(ip__in=ip_list, bk_cloud_id=cloud_id).values(
-            "ip", "bk_sub_zone_id", "bk_rack_id", "bk_cloud_id", "bk_city__bk_idc_city_name"
+            "ip",
+            "bk_sub_zone_id",
+            "bk_rack_id",
+            "bk_cloud_id",
+            "bk_city__logical_city__name",
         )
         for row in machine_rows:
             machine_map[(row["ip"], row["bk_cloud_id"])] = row
@@ -285,10 +300,14 @@ def collect_topology_by_set(nodes: list, is_sharded_cluster: bool = False) -> di
             continue
         sub_zone = str(machine.get("bk_sub_zone_id"))
         rack = str(machine.get("bk_rack_id"))
-        region = str(machine.get("bk_city__bk_idc_city_name") or "")
+        region = str(machine.get("bk_city__logical_city__name") or "").strip()
+        if not region:
+            topology_by_set[set_name]["missing_messages"].append(
+                {"instance": addr(node), "msg": "logical_city name is empty for machine bk_city"}
+            )
+            continue
         topology_by_set[set_name]["sub_zone_set"].add(sub_zone)
-        if region:
-            topology_by_set[set_name]["region_set"].add(region)
+        topology_by_set[set_name]["region_set"].add(region)
         topology_by_set[set_name]["rack_set"].add(rack)
         topology_by_set[set_name]["nodes"].append(
             {
