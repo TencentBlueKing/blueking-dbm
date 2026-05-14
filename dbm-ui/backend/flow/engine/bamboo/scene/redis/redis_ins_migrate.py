@@ -322,7 +322,7 @@ class RedisSingleInsMigrateFlow(object):
                         DownloadBackupClientKwargs(
                             bk_cloud_id=self.data["bk_cloud_id"],
                             bk_biz_id=int(self.data["bk_biz_id"]),
-                            download_host_list=dest_ips,
+                            ip_list=dest_ips,
                         ),
                     ),
                 }

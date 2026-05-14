@@ -222,7 +222,7 @@ class MySQLMigrateSingleFlow(object):
                     DownloadBackupClientKwargs(
                         bk_cloud_id=cluster_class.bk_cloud_id,
                         bk_biz_id=cluster_class.bk_biz_id,
-                        download_host_list=[self.data["new_orphan_ip"]],
+                        ip_list=[self.data["new_orphan_ip"]],
                     )
                 ),
             )
