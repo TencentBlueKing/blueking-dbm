@@ -4,8 +4,8 @@
 MongoDB affinity offline checker (no Django dependency).
 
 Workflow:
-1) Export JSON snapshots from MySQL (read-only):
-   bash dump_affinity_json.sh
+1) Export JSON snapshots from MySQL (read-only), **without** importing this repo:
+   `dbm-ui/.cycscript/dump_affinity_json.sh` (uses `mysql` + `python3` stdlib only).
 2) Run this script with the exported JSON files.
 
 Run:
@@ -14,6 +14,9 @@ Run:
     --cluster-nodes-json cluster_nodes.json \
     --subzones-json subzones.json \
     --cities-json cities.json
+
+Affinity region uses **logical city name** only (`logical_city_name` in JSON; online: `BKCity.logical_city.name`).
+IDC city names are not used for region comparison.
 """
 
 from __future__ import annotations
@@ -170,7 +173,16 @@ def check_affinity_rules(  # noqa: C901
     actual_rack_set: set[str],
     component_nodes: list[dict[str, str]],
     zone_name_map: dict[str, str] | None = None,
+    has_single_node_tag: bool = False,
 ) -> tuple[str, list[str]]:
+    """Evaluate affinity for one component (sub_zone / region / rack / zone_list rules).
+
+    When ``has_single_node_tag`` is True, skip **only** the minimum sub_zone **count**
+    checks for: ``CROS_SUBZONE`` (>=2 zones), ``CROSS_SUBZONE_STRONG`` (>=3 zones),
+    ``CROSS_SUBZONE_WEAK`` (>=2 zones), ``MAJORITY_ELECTION_DISTRI`` (>=2 zones).
+    Zone tolerance, rack rules, region, zone_list, etc. still apply. Member-count checks
+    are enforced in callers (``evaluate`` / ``CheckMongodbAffinityTask``), not here.
+    """
     warnings = []
     errors = []
     is_none = disaster_tolerance_level == NONE
@@ -279,7 +291,7 @@ def check_affinity_rules(  # noqa: C901
                 )
             )
     elif disaster_tolerance_level == CROS_SUBZONE:
-        if len(actual_sub_zone_set) < 2:
+        if len(actual_sub_zone_set) < 2 and not has_single_node_tag:
             errors.append(
                 err(
                     "cross_subzone_min_violation",
@@ -287,7 +299,7 @@ def check_affinity_rules(  # noqa: C901
                 )
             )
     elif disaster_tolerance_level == CROSS_SUBZONE_STRONG:
-        zone_count_violation = len(actual_sub_zone_set) < 3
+        zone_count_violation = len(actual_sub_zone_set) < 3 and not has_single_node_tag
         zone_tolerance_violation = node_num > 0 and max(zone_counter.values() or [0]) > ceil(node_num / 3)
         if zone_count_violation or zone_tolerance_violation:
             reasons = []
@@ -317,7 +329,7 @@ def check_affinity_rules(  # noqa: C901
                 )
             )
     elif disaster_tolerance_level == CROSS_SUBZONE_WEAK:
-        zone_count_violation = len(actual_sub_zone_set) < 2
+        zone_count_violation = len(actual_sub_zone_set) < 2 and not has_single_node_tag
         zone_tolerance_violation = node_num > 0 and max(zone_counter.values() or [0]) > ceil(node_num / 2)
         if zone_count_violation or zone_tolerance_violation:
             reasons = []
@@ -347,7 +359,7 @@ def check_affinity_rules(  # noqa: C901
                 )
             )
     elif disaster_tolerance_level == MAJORITY_ELECTION_DISTRI:
-        if len(actual_sub_zone_set) < 2:
+        if len(actual_sub_zone_set) < 2 and not has_single_node_tag:
             errors.append(
                 err(
                     "majority_min_zone_violation",
@@ -413,28 +425,44 @@ def check_affinity_rules(  # noqa: C901
     return NORMAL, []
 
 
+def _build_logical_region_map(rows: list[dict[str, Any]], id_key: str) -> dict[str, str]:
+    """Map id_key -> logical_city_name for rows with non-empty logical_city_name."""
+    mapping: dict[str, str] = {}
+    for row in rows:
+        row_id = row.get(id_key)
+        if row_id in [None, ""]:
+            continue
+        name = str(row.get("logical_city_name") or "").strip()
+        if name:
+            mapping[str(row_id)] = name
+    return mapping
+
+
+def build_city_logical_region_map(cities: list[dict[str, Any]]) -> dict[str, str]:
+    """bk_city_id -> logical city name. Only rows with non-empty logical_city_name."""
+    return _build_logical_region_map(cities, "bk_city_id")
+
+
+def build_subzone_logical_region_map(subzones: list[dict[str, Any]]) -> dict[str, str]:
+    """bk_sub_zone_id -> logical city name. Only rows with non-empty logical_city_name."""
+    return _build_logical_region_map(subzones, "bk_sub_zone_id")
+
+
 def evaluate(  # noqa: C901
     cluster_defs: list[dict[str, Any]],
     cluster_nodes: list[dict[str, Any]],
     subzones: list[dict[str, Any]],
     cities: list[dict[str, Any]],
 ) -> list[ClusterEval]:
-    city_region_map = {}
-    for row in cities:
-        city_id = row.get("bk_city_id")
-        if city_id in [None, ""]:
-            continue
-        city_region_map[str(city_id)] = str(row.get("bk_idc_city_name", "") or "")
+    city_region_map = build_city_logical_region_map(cities)
 
-    subzone_region_map = {}
-    subzone_name_map = {}
+    subzone_region_map = build_subzone_logical_region_map(subzones)
+    subzone_name_map: dict[str, str] = {}
     for row in subzones:
         zone_id = row.get("bk_sub_zone_id")
         if zone_id in [None, ""]:
             continue
-        zone_id_str = str(zone_id)
-        subzone_region_map[zone_id_str] = str(row.get("bk_idc_city_name", "") or "")
-        subzone_name_map[zone_id_str] = str(row.get("bk_sub_zone", "") or "")
+        subzone_name_map[str(zone_id)] = str(row.get("bk_sub_zone", "") or "")
 
     eval_map: dict[int, ClusterEval] = {}
     for row in cluster_defs:
@@ -491,7 +519,7 @@ def evaluate(  # noqa: C901
                 err(
                     "node_region_mapping_missing",
                     f"node {row.get('ip','')}:{row.get('port','')} set={row.get('set_name','')} "
-                    "has no region mapping by machine.bk_city_id or subzones.json",
+                    "has no logical_city_name mapping for bk_sub_zone_id or bk_city_id in subzones/cities json",
                 )
             )
         else:
@@ -537,7 +565,7 @@ def evaluate(  # noqa: C901
                 comp.reasons.append(
                     err(
                         "node_region_mapping_missing",
-                        f"node {row.get('ip','')}:{row.get('port','')} has no region mapping by subzones/cities json",
+                        f"node {row.get('ip','')}:{row.get('port','')} has no logical_city_name in subzones/cities json",
                     )
                 )
             else:
@@ -615,6 +643,8 @@ def evaluate(  # noqa: C901
                     )
                     continue
 
+            # has_single_node_tag: skip min sub_zone count for CROS_SUBZONE / CROSS_SUBZONE_STRONG /
+            # CROSS_SUBZONE_WEAK / MAJORITY_ELECTION_DISTRI (see check_affinity_rules docstring).
             comp_state, comp_reasons = check_affinity_rules(
                 disaster_tolerance_level=item.affinity,
                 cluster_region=item.cluster_region,
@@ -624,6 +654,7 @@ def evaluate(  # noqa: C901
                 actual_rack_set=comp.racks,
                 component_nodes=comp.nodes,
                 zone_name_map=subzone_name_map,
+                has_single_node_tag=item.has_single_node_tag,
             )
             component_states.append(comp_state)
             for reason in comp_reasons:
