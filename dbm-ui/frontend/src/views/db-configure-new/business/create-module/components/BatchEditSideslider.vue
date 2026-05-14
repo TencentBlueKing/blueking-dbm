@@ -17,12 +17,12 @@
     class="config-edit-diff-sideslider"
     :is-show="isShow"
     render-directive="if"
-    width="1300"
+    width="70%"
     @closed="handleClose">
     <template #header>
-      {{ t('批量编辑_clusterType_参数', { clusterType: clusterTypeLabel }) }}
+      {{ t('批量编辑参数') }}
       <span class="batch-edit-subtitle">
-        {{ clusterDomain }}
+        {{ fetchParams.version || '' }}
       </span>
       <span class="batch-edit-count ml-40">
         {{ t('已选 : n 个参数', { n: editItems.length }) }}
@@ -74,10 +74,6 @@
             ellipsis
             :title="t('参数名')"
             :width="240" />
-          <!-- <TableColumn
-            col-key="value_default"
-            :title="t('默认值')"
-            :width="150" /> -->
           <TableColumn
             col-key="conf_value"
             :title="t('当前值')"
@@ -85,7 +81,7 @@
             <template #default="{ row }">
               <ValueEditor
                 v-model="row.conf_value"
-                :value-allowed="row.value_allowed || ''"
+                :value-default="row.conf_value"
                 :value-type-sub="row.value_type_sub || ''" />
             </template>
           </TableColumn>
@@ -195,7 +191,6 @@
         </BkButton>
         <BkButton
           class="mr-8"
-          :loading="submitLoading"
           theme="primary"
           @click="handleSave">
           {{ t('保存') }}
@@ -215,14 +210,7 @@
 
   import { PrimaryTable } from '@blueking/tdesign-ui';
 
-  import { updateBusinessConfig, validateConfItems } from '@services/source/configs';
-
   import { useBeforeClose } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
-
-  import type { ClusterTypes } from '@common/const';
-  import { clusterTypeInfos, ConfLevels } from '@common/const';
 
   import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
 
@@ -231,19 +219,15 @@
   import type { ConfItem } from './ParamTable.vue';
 
   interface Props {
-    cluster: {
-      cluster_type: ClusterTypes;
-      id: number;
-      master_domain: string;
-    };
-    confType: string;
     data: ConfItem[];
-    version: string;
+    /** 提交参数 */
+    fetchParams: Record<string, any>;
   }
 
   const props = defineProps<Props>();
+
   const emit = defineEmits<{
-    (e: 'saved'): void;
+    (e: 'saved', changedItems: ConfItem[]): void;
     (e: 'close'): void;
   }>();
 
@@ -252,11 +236,9 @@
   });
 
   const { t } = useI18n();
-  const globalBizsStore = useGlobalBizs();
   const handleBeforeClose = useBeforeClose();
 
   const currentStep = ref(1);
-  const submitLoading = ref(false);
   const editItems = ref<ConfItem[]>([]);
   const originItems = ref<ConfItem[]>([]);
   const filterValue = ref<Record<string, string>>({});
@@ -270,11 +252,6 @@
     const target = e.target as HTMLElement;
     overflowMap.value[key] = target.scrollWidth > target.clientWidth;
   };
-
-  const clusterTypeLabel = computed(
-    () => clusterTypeInfos[props.cluster.cluster_type]?.name || props.cluster.cluster_type,
-  );
-  const clusterDomain = computed(() => props.cluster.master_domain);
 
   // 根据筛选条件过滤后的数据
   const filteredEditItems = computed(() => {
@@ -352,7 +329,7 @@
     currentStep.value = 1;
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     const changedItems = editItems.value
       .filter((item) => {
         const origin = originItems.value.find((o) => o.conf_name === item.conf_name);
@@ -368,42 +345,9 @@
       return;
     }
 
-    // 后端校验合法性
-    try {
-      await validateConfItems(
-        changedItems.map((item) => ({
-          conf_name: item.conf_name,
-          op_type: item.op_type,
-          value_allowed: item.value_allowed,
-          value_default: item.conf_value ?? '',
-          value_type: item.value_type ?? '',
-          value_type_sub: item.value_type_sub ?? '',
-        })),
-      );
-    } catch {
-      return;
-    }
-
-    submitLoading.value = true;
-    try {
-      await updateBusinessConfig({
-        bk_biz_id: globalBizsStore.currentBizId,
-        conf_items: changedItems,
-        conf_type: props.confType,
-        confirm: 0,
-        description: '',
-        level_name: ConfLevels.CLUSTER,
-        level_value: props.cluster.id,
-        meta_cluster_type: props.cluster.cluster_type,
-        name: '',
-        publish_description: '',
-        version: props.version,
-      });
-      emit('saved');
-      handleClose();
-    } finally {
-      submitLoading.value = false;
-    }
+    // 前端暂存，通知父组件变更数据
+    emit('saved', changedItems);
+    handleClose();
   };
 
   const handleClose = () => {

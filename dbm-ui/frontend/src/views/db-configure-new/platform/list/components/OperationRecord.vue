@@ -169,16 +169,16 @@
                   disabled
                   :model-value="beforeCheckboxValues">
                   <BkCheckbox label="flag_visible">
-                    {{ t('写入配置文件') }}
+                    {{ t('业务默认可见') }}
                   </BkCheckbox>
                   <BkCheckbox label="flag_readonly">
-                    {{ t('业务可修改') }}
+                    {{ t('业务可编辑') }}
                   </BkCheckbox>
                   <BkCheckbox label="need_restart">
                     {{ t('重启生效') }}
                   </BkCheckbox>
                   <BkCheckbox label="flag_encrypt">
-                    {{ t('值加密') }}
+                    {{ t('加密存储') }}
                   </BkCheckbox>
                 </BkCheckboxGroup>
               </td>
@@ -187,16 +187,16 @@
                   disabled
                   :model-value="afterCheckboxValues">
                   <BkCheckbox label="flag_visible">
-                    {{ t('写入配置文件') }}
+                    {{ t('业务默认可见') }}
                   </BkCheckbox>
                   <BkCheckbox label="flag_readonly">
-                    {{ t('业务可修改') }}
+                    {{ t('业务可编辑') }}
                   </BkCheckbox>
                   <BkCheckbox label="need_restart">
                     {{ t('重启生效') }}
                   </BkCheckbox>
                   <BkCheckbox label="flag_encrypt">
-                    {{ t('值加密') }}
+                    {{ t('加密存储') }}
                   </BkCheckbox>
                 </BkCheckboxGroup>
               </td>
@@ -274,6 +274,7 @@
 
   const operateTypeThemeMap: Record<string, { text: string; theme: TagTheme }> = {
     add: { text: t('新增参数'), theme: 'success' },
+    recover: { text: t('恢复默认'), theme: 'info' },
     remove: { text: t('删除参数'), theme: 'danger' },
     update: { text: t('修改参数'), theme: 'warning' },
     upsert: { text: t('新增参数'), theme: 'success' },

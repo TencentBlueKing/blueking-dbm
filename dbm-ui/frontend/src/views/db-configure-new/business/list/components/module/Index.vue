@@ -68,52 +68,31 @@
             </BkPopConfirm>
           </div>
         </template>
-        <BkForm class="module-info-form">
-          <div class="module-info-form-row">
-            <BkFormItem :label="t('模块名称：')">
-              {{ moduleInfo.moduleName || '--' }}
-            </BkFormItem>
-            <BkFormItem :label="t('模块 ID：')">
-              {{ moduleInfo.moduleId || '--' }}
-            </BkFormItem>
-          </div>
-          <div class="module-info-form-row">
-            <BkFormItem :label="t('存储层版本：')">
-              {{ moduleInfo.version || '--' }}
-            </BkFormItem>
-            <BkFormItem :label="t('字符集：')">
-              {{ moduleInfo.charset || '--' }}
-            </BkFormItem>
-          </div>
-          <div class="module-info-form-row">
-            <BkFormItem :label="t('最近更新人：')">
-              {{ moduleInfo.updatedBy || '--' }}
-            </BkFormItem>
-            <BkFormItem :label="t('更新时间：')">
-              {{ moduleInfo.updatedAt || '--' }}
-            </BkFormItem>
-          </div>
-          <div class="module-info-form-row">
-            <BkFormItem :label="t('关联集群：')">
-              <span class="related-clusters">
-                <span
-                  v-overflow-tips="{ content: moduleInfo.relatedClusters, placement: 'top' }"
-                  class="related-clusters-text text-overflow">
-                  {{ moduleInfo.relatedClusters || '--' }}
-                </span>
-                <template v-if="moduleInfo.relatedClusterCount > 0">
-                  <span class="related-clusters-count">
-                    {{ t('共') }} {{ moduleInfo.relatedClusterCount }} {{ t('个') }}
-                  </span>
-                  <DbIcon
-                    class="related-clusters-copy"
-                    type="bk-dbm-icon db-icon-copy"
-                    @click="handleCopyClusters" />
-                </template>
-              </span>
-            </BkFormItem>
-          </div>
-        </BkForm>
+        <div class="module-info-bar">
+          <span class="module-info-item">
+            <span class="module-info-label">{{ t('ID') }}：</span>{{ moduleInfo.moduleId || '--' }}
+          </span>
+          <span class="module-info-item">
+            <span class="module-info-label">{{ t('存储层版本') }}：</span>{{ moduleInfo.version || '--' }}
+          </span>
+          <span class="module-info-item">
+            <span class="module-info-label">{{ t('字符集') }}：</span>{{ moduleInfo.charset || '--' }}
+          </span>
+          <span class="module-info-item related-clusters-wrapper">
+            <span class="module-info-label">{{ t('关联集群') }}：</span>
+            <span
+              v-if="moduleInfo.relatedClusterCount > 0"
+              ref="relatedClustersRef"
+              class="related-clusters-count">
+              {{ moduleInfo.relatedClusterCount }}
+            </span>
+            <span v-else>--</span>
+          </span>
+          <span class="module-info-item">
+            <span class="module-info-label">{{ t('最近更新') }}：</span>{{ moduleInfo.updatedBy || '--' }} /
+            {{ moduleInfo.updatedAt || '--' }}
+          </span>
+        </div>
       </DbCard>
 
       <!-- 参数配置 / 操作记录 tabs -->
@@ -141,7 +120,7 @@
                 level-name="module"
                 :level-value="moduleInfo.moduleId"
                 selectable
-                :version="moduleInfo.version" />
+                :version="tab.conf_file" />
             </template>
           </ConfTab>
         </BkTabPanel>
@@ -159,6 +138,7 @@
 </template>
 
 <script setup lang="ts">
+  import type { Instance } from 'tippy.js';
   import type { ComputedRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -167,6 +147,7 @@
   import { deleteModuleConfig, getLevelConfig } from '@services/source/configs';
 
   import { clusterTypeInfos, ClusterTypes, ConfLevels, DBTypes } from '@common/const';
+  import { dbTippy } from '@common/tippy';
 
   import type { TreeData, TreeState } from '@views/db-configure-new/common/types';
   import ConfTab from '@views/db-configure-new/components/ConfTab.vue';
@@ -229,9 +210,52 @@
 
     const children = treeNode.value.children || [];
     const clusterNodes = children.filter((child) => child.levelType === ConfLevels.CLUSTER);
-    moduleInfo.relatedClusterCount = clusterNodes.length;
-    moduleInfo.relatedClusters = clusterNodes.map((node) => node.name).join(', ');
+
+    if (clusterNodes.length > 0) {
+      moduleInfo.relatedClusterCount = clusterNodes.length;
+      moduleInfo.relatedClusters = clusterNodes.map((node) => node.name).join(', ');
+    } else {
+      moduleInfo.relatedClusterCount = 0;
+      moduleInfo.relatedClusters = '';
+    }
   };
+
+  /** 关联集群 tooltip 纵向展示 */
+  const relatedClustersRef = ref<HTMLElement>();
+  let relatedClustersTippy: Instance | null = null;
+
+  const relatedClustersTooltip = computed(() => {
+    if (!moduleInfo.relatedClusters) return '';
+    const items = moduleInfo.relatedClusters.split(', ');
+    return `
+      <div class="related-clusters-tooltip">
+        <div class="related-clusters-list">
+          ${items.map((name) => `<div class="related-cluster-item">${name}</div>`).join('')}
+        </div>
+      </div>
+    `;
+  });
+
+  watch(
+    [relatedClustersRef, relatedClustersTooltip],
+    ([el, content]) => {
+      relatedClustersTippy?.destroy();
+      if (el && content) {
+        relatedClustersTippy = dbTippy(el, {
+          allowHTML: true,
+          appendTo: () => document.body,
+          arrow: true,
+          content,
+          hideOnClick: true,
+          interactive: true,
+          placement: 'top',
+          trigger: 'mouseenter click',
+          zIndex: 9999,
+        });
+      }
+    },
+    { immediate: true },
+  );
 
   /** 监听树节点变化 */
   watch(
@@ -259,13 +283,6 @@
     },
     { deep: true, immediate: true },
   );
-
-  /** 复制关联集群 */
-  const handleCopyClusters = () => {
-    if (moduleInfo.relatedClusters) {
-      navigator.clipboard.writeText(moduleInfo.relatedClusters);
-    }
-  };
 
   /** 克隆模块 */
   const handleCloneModule = () => {
@@ -295,6 +312,10 @@
       meta_cluster_type: clusterType.value,
     });
   };
+
+  onUnmounted(() => {
+    relatedClustersTippy?.destroy();
+  });
 </script>
 
 <style lang="less" scoped>
@@ -317,45 +338,28 @@
     align-items: center;
   }
 
-  .module-info-form {
+  .module-info-bar {
     display: flex;
-    flex-direction: column;
-    padding: 16px 24px;
+    align-items: center;
+    gap: 32px;
+    padding: 12px 24px;
   }
 
-  .module-info-form-row {
-    display: flex;
-    width: 100%;
-
-    :deep(.bk-form-item) {
-      flex: 1;
-      margin-bottom: 0;
-    }
-  }
-
-  .related-clusters {
+  .module-info-item {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    max-width: 100%;
-  }
-
-  .related-clusters-text {
-    max-width: 400px;
-  }
-
-  .related-clusters-count {
-    flex-shrink: 0;
     font-size: 12px;
-    color: #ff9c01;
+    line-height: 20px;
     white-space: nowrap;
   }
 
-  .related-clusters-copy {
-    flex-shrink: 0;
-    font-size: 14px;
-    color: #3a84ff;
-    cursor: pointer;
+  .related-clusters-wrapper {
+    .related-clusters-count {
+      margin-left: 4px;
+      font-weight: 700;
+      color: #3a84ff;
+      cursor: default;
+    }
   }
 
   .module-top-tab {
@@ -387,5 +391,21 @@
     background: #fff;
     margin-top: 16px;
     padding-top: 16px;
+  }
+</style>
+
+<style lang="less">
+  .related-clusters-tooltip {
+    padding: 8px 0;
+
+    .related-clusters-list {
+      max-height: 240px;
+      overflow-y: auto;
+      padding: 0 12px;
+    }
+
+    .related-cluster-item {
+      line-height: 28px;
+    }
   }
 </style>

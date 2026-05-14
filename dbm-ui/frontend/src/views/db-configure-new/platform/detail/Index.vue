@@ -35,7 +35,8 @@
             :data-source="paramDataSource"
             row-key="conf_name"
             @clear-search="handleQuickSearchChange"
-            @filter-change="handleFilterChange">
+            @filter-change="handleFilterChange"
+            @request-success="handleRequestSuccess">
             <TableColumn
               col-key="conf_name"
               ellipsis
@@ -69,7 +70,7 @@
               :title="t('平台默认值')"
               :width="180">
               <template #default="{ row }">
-                {{ row.value_default ?? '' }}
+                {{ row.flag_encrypt === 1 ? '******' : row.value_default }}
               </template>
             </TableColumn>
             <TableColumn
@@ -78,8 +79,8 @@
               :title="t('允许值')"
               :width="220">
               <template #default="{ row }">
-                <template v-if="row.value_type_sub">
-                  <BkTag v-if="row.value_type_sub">{{ row.value_type_sub }}</BkTag>
+                <template v-if="row.value_type_sub && row.value_type_sub !== 'STRING'">
+                  <BkTag>{{ row.value_type_sub }}</BkTag>
                   <span class="ml-4">{{ row.value_allowed || '--' }}</span>
                 </template>
                 <span
@@ -95,11 +96,7 @@
               :title="t('数据类型')"
               :width="100">
               <template #default="{ row }">
-                <BkTag
-                  v-if="row.value_type"
-                  :theme="
-                    (valueTypeThemeMap[row.value_type] as '' | 'success' | 'warning' | 'danger' | 'info') || 'info'
-                  ">
+                <BkTag v-if="row.value_type">
                   {{ row.value_type }}
                 </BkTag>
                 <span v-else>--</span>
@@ -111,7 +108,7 @@
               :width="120">
               <template #title>
                 <span
-                  v-bk-tooltips="t('生成配置是否将参数写入到配置文件')"
+                  v-bk-tooltips="t('是否在业务配置页默认带出该参数；关闭后业务仍可通过「添加参数」主动加入')"
                   class="column-title-tips">
                   {{ t('业务默认可见') }}
                 </span>
@@ -126,7 +123,7 @@
               :width="120">
               <template #title>
                 <span
-                  v-bk-tooltips="t('在业务空间下是否可调整参数值')"
+                  v-bk-tooltips="t('控制业务侧是否可编辑该参数数值')"
                   class="column-title-tips">
                   {{ t('业务可编辑') }}
                 </span>
@@ -141,7 +138,7 @@
               :width="100">
               <template #title>
                 <span
-                  v-bk-tooltips="t('修改参数值后是否需要重启进程')"
+                  v-bk-tooltips="t('预留配置下发场景；后续下发的存量实例后，是否需要重启实例生效')"
                   class="column-title-tips">
                   {{ t('重启生效') }}
                 </span>
@@ -156,7 +153,7 @@
               :width="100">
               <template #title>
                 <span
-                  v-bk-tooltips="t('参数值显示为*号')"
+                  v-bk-tooltips="t('参数值加密存储，并在页面固定展示为 6 位星号')"
                   class="column-title-tips">
                   {{ t('加密存储') }}
                 </span>
@@ -298,7 +295,7 @@
               <BkInput
                 v-model="addParamForm.value_allowed"
                 :disabled="isValueAllowedDisabled"
-                :placeholder="t('请输入')" />
+                :placeholder="isValueAllowedDisabled ? valueAllowedPlaceholder : t('请输入')" />
               <p class="form-item-tips">{{ t('填写示例') }}：{{ valueAllowedExample }}</p>
             </BkFormItem>
           </div>
@@ -418,7 +415,6 @@
     getConfigNames,
     getListConfNameTypes,
     getListConfTypes,
-    validateConfItems,
   } from '@services/source/configs';
 
   import { dbTippy } from '@common/tippy';
@@ -478,7 +474,7 @@
     flag_empty_string: false,
     flag_encrypt: false,
     flag_readonly_inverse: true, // UI 展示反转：勾选=业务可修改 → flag_readonly=0
-    flag_visible: true, // 默认勾选：写入配置文件
+    flag_visible: true, // 默认勾选：业务默认可见
     need_restart: false,
     value_allowed: '',
     value_default: '',
@@ -491,15 +487,6 @@
 
   // 是否为标准 DB 配置，此类配置隐藏「显示名」列
   const isStandardDbConfig = computed(() => ['dbconf', 'proxyconf'].includes(confType));
-
-  // 数据类型对应的 Tag theme
-  const valueTypeThemeMap: Record<string, string> = {
-    BOOL: '',
-    FLOAT: 'success',
-    INT: 'warning',
-    NUMBER: 'danger',
-    STRING: 'info',
-  };
 
   // 数据类型过滤选项（来源：list_conf_name_types 接口的 key 列表）
   const valueTypeFilter = computed(() => ({
@@ -533,7 +520,12 @@
     if (!addParamForm.value_type) return [];
     const isString = addParamForm.value_type === 'STRING';
     const list = (confNameTypeMap.value[addParamForm.value_type] || [])
-      .filter((v) => isString || v) // 非 STRING 类型过滤掉空字符串（无约束选项）
+      .filter((v) => {
+        // STRING 类型下隐藏 STRING 选项（它和空字符串/无约束是一个意思）
+        if (isString && v === 'STRING') return false;
+        // 非 STRING 类型过滤掉空字符串（无约束选项）
+        return isString || v;
+      })
       .map((v) => ({
         label: v || NO_CONSTRAINT,
         value: v || NO_CONSTRAINT,
@@ -552,13 +544,14 @@
   });
   // 业务配置规则 Checkbox
   const bizRuleCheckboxKeys = ['flag_visible', 'flag_readonly_inverse', 'need_restart'] as const;
-  const bizRuleCheckboxValue = computed(() =>
-    bizRuleCheckboxKeys.filter((key) => addParamForm[key]),
-  );
+  const bizRuleCheckboxValue = computed(() => bizRuleCheckboxKeys.filter((key) => addParamForm[key]));
+
+  // 不需要填写允许值的约束类型（由后端校验合法性）
+  const NO_VALUE_ALLOWED_TYPES = ['JSON', 'MAP', 'LIST', 'REGEX', 'GOVALIDATE', NO_CONSTRAINT];
 
   // 允许值字段状态
-  const isValueAllowedDisabled = computed(() => addParamForm.value_type_sub === NO_CONSTRAINT);
-  const isValueAllowedRequired = computed(() => addParamForm.value_type_sub !== NO_CONSTRAINT);
+  const isValueAllowedDisabled = computed(() => NO_VALUE_ALLOWED_TYPES.includes(addParamForm.value_type_sub));
+  const isValueAllowedRequired = computed(() => !NO_VALUE_ALLOWED_TYPES.includes(addParamForm.value_type_sub));
 
   // 是否显示"设为空字符串"复选框：STRING + 无约束 + 未加密
   const showEmptyStringCheckbox = computed(
@@ -577,15 +570,37 @@
     },
   );
 
-  // 允许值填写示例
-  const valueAllowedExample = computed(() => {
-    const exampleMap: Record<string, string> = {
-      ENUM: 'ON| OFF',
-      ENUMS: 'TABLE_SCAN,INDEX_SCAN',
-      RANGE: '[1, 1000]',
-      REGEX: '.*',
+  // 允许值置灰时的占位文字
+  const valueAllowedPlaceholder = computed(() => {
+    const placeholderMap: Record<string, string> = {
+      GOVALIDATE: t('合法的 validator 标签'),
+      JSON: t('合法的 JSON'),
+      LIST: t('合法的 JSON 数组'),
+      MAP: t('合法的 JSON 对象'),
+      REGEX: t('合法的正则表达式'),
     };
-    return exampleMap[addParamForm.value_type_sub] || '--';
+    return placeholderMap[addParamForm.value_type_sub] || t('无约束');
+  });
+
+  // 允许值填写示例（根据数据类型 + 约束类型组合）
+  const valueAllowedExample = computed(() => {
+    const key = `${addParamForm.value_type}_${addParamForm.value_type_sub}`;
+    const exampleMap: Record<string, string> = {
+      BOOL_ENUM: t(
+        '填写示例：ON|OFF / true|false / 1|0；本质是 2 个候选值的 ENUM，候选值以「|」分隔，业务取值仅能单选',
+      ),
+      FLOAT_ENUM: t('填写示例：0.1|0.5|1.0；候选值以「|」分隔，业务取值仅能单选'),
+      FLOAT_RANGE: t('填写示例：[0.0,1.0]；格式 [min,max]，业务取值需满足 min ≤ 值 ≤ max（两端均包含）'),
+      INT_ENUM: t('填写示例：1|4|8；候选值以「|」分隔，业务取值仅能单选'),
+      INT_RANGE: t('填写示例：[0,99]；格式 [min,max]，业务取值需满足 min ≤ 值 ≤ max（两端均包含）'),
+      NUMBER_ENUM: t('填写示例：1|4|8；候选值以「|」分隔，业务取值仅能单选'),
+      NUMBER_RANGE: t('填写示例：[0,99]；格式 [min,max]，业务取值需满足 min ≤ 值 ≤ max（两端均包含）'),
+      STRING_BYTES: t('填写示例：[1024,1g]；单位 k(KB) / m(MB) / g(GB)，无单位则为字节'),
+      STRING_DURATION: t('填写示例：[1m,60m]；单位 s(秒) / m(分) / h(小时) / d(天 = 24 小时)'),
+      STRING_ENUM: t('填写示例：ROW|MIXED|STATEMENT；候选值以「|」分隔，业务取值仅能单选'),
+      STRING_ENUMS: t('填写示例：read,write,admin；候选值以英文「,」分隔，业务取值可多选'),
+    };
+    return exampleMap[key] || '--';
   });
 
   // 获取 confType 对应的显示名称
@@ -671,15 +686,30 @@
     setTimeout(() => initDescriptionTippy(), 300);
   };
 
+  /** 数据请求成功后重新初始化 tippy（含分页切换场景） */
+  const handleRequestSuccess = () => {
+    setTimeout(() => initDescriptionTippy(), 100);
+  };
+
   // 数据类型变更：清空约束类型和允许值
   const handleValueTypeChange = () => {
     addParamForm.value_type_sub = '';
     addParamForm.value_allowed = '';
   };
 
-  // 约束类型选择前校验：允许值有值时阻止选 [无约束]
+  // 约束类型选项变更：仅剩一项时自动选中（如 BOOL→ENUM，STRING→无约束）
+  watch(
+    () => valueTypeSubOptions.value,
+    (options) => {
+      if (options.length === 1 && !addParamForm.value_type_sub) {
+        addParamForm.value_type_sub = options[0].value;
+      }
+    },
+  );
+
+  // 约束类型变更：切换到不需要允许值的类型时清空允许值
   const handleValueTypeSubChange = (value: string) => {
-    if (value === NO_CONSTRAINT && addParamForm.value_allowed) {
+    if (NO_VALUE_ALLOWED_TYPES.includes(value) && addParamForm.value_allowed) {
       addParamForm.value_allowed = '';
     }
   };
@@ -688,6 +718,7 @@
   const handleSecurityCheckboxChange = (values: string[]) => {
     addParamForm.flag_encrypt = values.includes('flag_encrypt');
   };
+
   // 业务配置规则 Checkbox 变更
   const handleBizRuleCheckboxChange = (values: string[]) => {
     bizRuleCheckboxKeys.forEach((key) => {
@@ -725,26 +756,6 @@
   const handleAddParamConfirm = async () => {
     try {
       await addFormRef.value?.validate();
-    } catch {
-      return;
-    }
-
-    // 后端校验合法性（Body 直接传数组）
-    try {
-      await validateConfItems([
-        {
-          conf_name: addParamForm.conf_name,
-          flag_encrypt: addParamForm.flag_encrypt ? 1 : 0,
-          flag_readonly: addParamForm.flag_readonly_inverse ? 0 : 1,
-          flag_visible: addParamForm.flag_visible ? 1 : 0,
-          need_restart: addParamForm.need_restart ? 1 : 0,
-          op_type: isEditMode.value ? 'update' : 'add',
-          value_allowed: addParamForm.value_allowed,
-          value_default: addParamForm.value_default,
-          value_type: addParamForm.value_type,
-          value_type_sub: addParamForm.value_type_sub === NO_CONSTRAINT ? '' : addParamForm.value_type_sub,
-        },
-      ]);
     } catch {
       return;
     }
@@ -788,7 +799,9 @@
       conf_name: row.conf_name,
       conf_name_lc: row.conf_name_lc ?? '',
       description: row.description,
-      flag_empty_string: !row.value_default && row.value_type === 'STRING' && !row.value_type_sub,
+      // 历史兼容：STRING 类型的约束类型为 STRING 时，等同于无约束
+      flag_empty_string:
+        !row.value_default && row.value_type === 'STRING' && (!row.value_type_sub || row.value_type_sub === 'STRING'),
       flag_encrypt: row.flag_encrypt === 1,
       flag_readonly_inverse: row.flag_readonly === 0,
       flag_visible: row.flag_visible === 1,
@@ -796,7 +809,8 @@
       value_allowed: row.value_allowed ?? '',
       value_default: row.value_default ?? '',
       value_type: row.value_type ?? '',
-      value_type_sub: row.value_type_sub ?? '',
+      // 历史兼容：STRING 类型的约束类型为 STRING 时，等同于无约束
+      value_type_sub: row.value_type_sub === 'STRING' ? NO_CONSTRAINT : (row.value_type_sub ?? ''),
     });
     isShowAddParam.value = true;
   };

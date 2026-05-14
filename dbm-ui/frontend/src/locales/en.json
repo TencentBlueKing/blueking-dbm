@@ -5251,9 +5251,6 @@
   "修改前": "Before",
   "修改后": "After",
   "其他配置": "Other Config",
-  "写入配置文件": "Write to Config File",
-  "业务可修改": "Business Modifiable",
-  "值加密": "Value Encrypted",
   "新增参数": "Add Parameter",
   "删除参数": "Delete Parameter",
   "数据类型": "Data Type",
@@ -5296,5 +5293,6 @@
   "模块 ID": "Module ID",
   "存储层版本": "Storage Engine Version",
   "设为空字符串": "Set as empty string",
+  "共修改n个参数": "Modified {n} parameters",
   "这行勿动！新增翻译请在上一行添加！": ""
 }
