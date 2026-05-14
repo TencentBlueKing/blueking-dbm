@@ -229,8 +229,9 @@ func (job *HotkeyAnalysis) Analysis(port, recordId int) {
 		}
 		defer file.Close()
 
-		// 创建一个 Scanner 对象
+		// 创建一个 Scanner 对象，增大 buffer 避免 token too long 错误
 		scanner := bufio.NewScanner(file)
+		scanner.Buffer(make([]byte, 0, 1024*1024), 10*1024*1024)
 
 		// 按行读取文件内容
 		for scanner.Scan() {
@@ -265,11 +266,9 @@ func (job *HotkeyAnalysis) Analysis(port, recordId int) {
 				hotkeyMap[key].CmdCount[cmd]++
 			}
 		}
-
-		// 检查是否在读取过程中发生错误
+		// 如果仍然出现 token too long 错误，忽略并继续处理下一个文件
 		if err := scanner.Err(); err != nil {
-			job.errChan <- err
-			return
+			job.runtime.Logger.Warn("scanner error: %s", err.Error())
 		}
 	}
 
