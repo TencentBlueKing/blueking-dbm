@@ -20,7 +20,7 @@ from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER, IP_PORT_DIVIDER_FOR_DNS
 from backend.db_meta.enums import InstanceInnerRole, InstancePhase, InstanceStatus
 from backend.db_meta.exceptions import InstanceNotExistException
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -150,6 +150,15 @@ class MySQLRestoreSlaveRemoteFlow(object):
             if "bk_new_slave" in self.data.keys():
                 bk_host_ids.append(self.data["bk_new_slave"]["bk_host_id"])
             tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+
+            has_unavailable_instance = StorageInstance.objects.filter(
+                machine__ip=self.data["old_slave_ip"],
+                instance_inner_role=InstanceInnerRole.SLAVE.value,
+                status=InstanceStatus.UNAVAILABLE.value,
+                machine__bk_cloud_id=self.data["bk_cloud_id"],
+                bk_biz_id=self.data["bk_biz_id"],
+            ).exists()
+
             #  获取信息
             # 整机安装数据库
             master = cluster_class.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
@@ -317,6 +326,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                                 port=master.port,
                             )
                         ),
+                        error_ignorable=has_unavailable_instance,
                     )
                     switch_sub_pipeline_list.append(switch_sub_pipeline.build_sub_process(sub_name=_("切换到新从节点")))
 
@@ -349,6 +359,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                             file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
                         )
                     ),
+                    error_ignorable=has_unavailable_instance,
                 )
                 uninstall_svr_sub_pipeline.add_act(
                     act_name=_("清理机器配置"),
@@ -359,6 +370,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                             bk_cloud_id=cluster_class.bk_cloud_id,
                         )
                     ),
+                    error_ignorable=has_unavailable_instance,
                 )
                 uninstall_svr_sub_pipeline.add_sub_pipeline(
                     sub_flow=uninstall_instance_sub_flow(
@@ -366,6 +378,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                         ticket_data=copy.deepcopy(self.data),
                         ip=self.data["old_slave_ip"],
                         ports=self.data["ports"],
+                        error_ignorable=has_unavailable_instance,
                     )
                 )
                 uninstall_svr_sub_pipeline_list.append(

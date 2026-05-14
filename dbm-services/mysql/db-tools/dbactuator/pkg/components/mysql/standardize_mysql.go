@@ -102,9 +102,9 @@ func (c *StandardizeMySQLComp) ClearOldCrontab() error {
 	if err != nil {
 		logger.Error("clear mysql crontab failed: %s", err.Error())
 		return err
-	} else {
-		logger.Info("clear mysql crontab success")
 	}
+
+	logger.Info("clear mysql crontab success")
 	return nil
 }
 
@@ -114,8 +114,9 @@ func (c *StandardizeMySQLComp) DropOldAccounts() error {
 		c.GeneralParam.RuntimeAccountParam.MonitorAccessAllUser,
 		c.GeneralParam.RuntimeAccountParam.YwUser,
 		c.GeneralParam.RuntimeAccountParam.DbBackupUser,
-		c.Params.SuperAccount.User,
-		c.Params.DBHAAccount.User,
+		// 不再 drop 这两个账号, 因为高危
+		//c.Params.SuperAccount.User,
+		//c.Params.DBHAAccount.User,
 		c.Params.PartitionYWAccount.User,
 	}
 	logger.Info("accounts: %s will be drop", accountsToDrop)

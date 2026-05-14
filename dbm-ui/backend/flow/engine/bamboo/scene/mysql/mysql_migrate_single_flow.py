@@ -470,12 +470,15 @@ class MySQLMigrateSingleFlow(object):
                     )
                 ),
             )
+            # TenDBSingle 迁移在前面的流程中已经关闭了 DB 进程
+            # 所以下架时不再需要检查客户端连接
             uninstall_svr_sub_pipeline.add_sub_pipeline(
                 sub_flow=uninstall_instance_sub_flow(
                     root_id=self.root_id,
                     ticket_data=copy.deepcopy(self.data),
                     ip=master_model.machine.ip,
                     ports=self.data["ports"],
+                    need_check_client_connect=False,
                 )
             )
             uninstall_svr_sub_pipeline_list = [
