@@ -115,6 +115,7 @@ class ListInstancesSerializer(InstanceAddressSerializer):
     # 额外过滤角色参数
     role_exclude = serializers.CharField(help_text=_("需要过滤的角色"), required=False)
     mongodb_state = serializers.CharField(help_text=_("副本集状态"), required=False)
+    shard = serializers.CharField(help_text=_("分片名"), required=False)
 
 
 class SqlserverListInstanceSerializer(ListInstancesSerializer):
