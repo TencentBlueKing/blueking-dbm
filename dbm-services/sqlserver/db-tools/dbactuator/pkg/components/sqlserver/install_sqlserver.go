@@ -546,6 +546,16 @@ func (i *InstallSqlServerComp) InitUsers() (err error) {
 			return err
 		}
 
+		// drs_sys_read账号, 授权
+		DataReadGrantCmd := fmt.Sprintf(
+			cst.GRANT_DATA_READ_SQL,
+			i.GeneralParam.RuntimeAccountParam.DRSDataReadUser,
+		)
+		if _, err := dbWork.Exec(DataReadGrantCmd); err != nil {
+			logger.Error("init drs_data_read-grant failed %v", err)
+			return err
+		}
+
 		// 初始化drs_sys_read账号
 		if err := dbWork.CreateLoginUser(
 			i.GeneralParam.RuntimeAccountParam.DRSSysReadUser,
@@ -555,7 +565,7 @@ func (i *InstallSqlServerComp) InitUsers() (err error) {
 			logger.Error("init drs_sys_read login failed %v", err)
 			return err
 		}
-		// mssql_exporter账号, 授权
+		// drs_sys_read账号, 授权
 		SysRaedGrantCmd := fmt.Sprintf(
 			cst.GRANT_DRS_SYS_READ_SQL,
 			i.GeneralParam.RuntimeAccountParam.DRSSysReadUser,

@@ -41,6 +41,7 @@ func (c *SqlserverRPCEmbed) InitExecuteParseCommands() []string {
 		"drop user",
 		"alter authorization",
 		"exec sp_addrolemember",
+		"set showplan_xml",
 	}
 }
 

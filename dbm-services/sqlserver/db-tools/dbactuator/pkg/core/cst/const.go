@@ -363,6 +363,12 @@ var (
 `
 )
 
+// mssql_data_read_drs 账号初始化
+var GRANT_DATA_READ_SQL = `
+use [master] 
+GRANT VIEW SERVER STATE TO [%s]
+`
+
 // 导出系统库一些配置专用的SQL
 var (
 	BACKUP_FILTER_SQL   = `SELECT [NAME] FROM [%s].[dbo].[BACKUP_FILTER];`
