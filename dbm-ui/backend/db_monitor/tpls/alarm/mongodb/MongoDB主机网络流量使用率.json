@@ -28,7 +28,7 @@
             "alias": "a",
             "metric_id": "",
             "functions": [],
-            "promql": "100 * (max by (metric_label_list_by_ip) (max_over_time(bkmonitor:dbm_system:net:speed_recv{device_name=\"eth1\",cluster_type=~\"MongoReplicaSet|MongoShardedCluster\"}[1m])) + max by (metric_label_list_by_ip) (max_over_time(bkmonitor:dbm_system:net:speed_sent{device_name=\"eth1\",cluster_type=~\"MongoReplicaSet|MongoShardedCluster\"}[1m]))) / sum by (metric_label_list_by_ip) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_type=~\"MongoReplicaSet|MongoShardedCluster\"}[1m])) / (96 * 1024 * 1024) and sum by (metric_label_list_by_ip) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_type=~\"MongoReplicaSet|MongoShardedCluster\"}[1m])) <= 2 or (100 * (max by (metric_label_list_by_ip) (max_over_time(bkmonitor:dbm_system:net:speed_recv{device_name=\"eth1\",cluster_type=~\"MongoReplicaSet|MongoShardedCluster\"}[1m])) + max by (metric_label_list_by_ip) (max_over_time(bkmonitor:dbm_system:net:speed_sent{device_name=\"eth1\",cluster_type=~\"MongoReplicaSet|MongoShardedCluster\"}[1m]))) / sum by (metric_label_list_by_ip) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_type=~\"MongoReplicaSet|MongoShardedCluster\"}[1m])) / (48 * 1024 * 1024) and sum by (metric_label_list_by_ip) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_type=~\"MongoReplicaSet|MongoShardedCluster\"}[1m])) > 2)",
+            "promql": "(((max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (max_over_time(bkmonitor:dbm_system:net:speed_recv{cluster_type=~\"MongoReplicaSet|MongoShardedCluster\", device_name=\"eth1\"}[1m])) + max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (max_over_time(bkmonitor:dbm_system:net:speed_sent{cluster_type=~\"MongoReplicaSet|MongoShardedCluster\", device_name=\"eth1\"}[1m]))) * 100) / (((count by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (group by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid, device_name) (bkmonitor:dbm_system:cpu_detail:usage{cluster_type=~\"MongoReplicaSet|MongoShardedCluster\"})) <= 2) * (96 * 1024 * 1024)) or ((count by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (group by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid, device_name) (bkmonitor:dbm_system:cpu_detail:usage{cluster_type=~\"MongoReplicaSet|MongoShardedCluster\"})) > 2) * (48 * 1024 * 1024))))",
             "agg_interval": 60,
             "name": ""
           }
@@ -258,7 +258,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "主机网络流量使用率",
-  "version": 2,
+  "version": 3,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-11-28T17:51:39+08:00"

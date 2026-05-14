@@ -28,7 +28,7 @@
             "alias": "a",
             "metric_id": "",
             "functions": [],
-            "promql": "(((max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_recv{cluster_type=\"TwemproxyRedisInstance\", device_name=\"eth1\"}[1m])) + max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_sent{cluster_type=\"TwemproxyRedisInstance\", device_name=\"eth1\"}[1m]))) * 100) / (((count by(ip, bk_target_cloud_id) (group by(ip, bk_target_cloud_id, device_name) (bkmonitor:dbm_system:cpu_detail:usage{cluster_type=\"TwemproxyRedisInstance\"})) <= 2) * (96 * 1024 * 1024)) or ((count by(ip, bk_target_cloud_id) (group by(ip, bk_target_cloud_id, device_name) (bkmonitor:dbm_system:cpu_detail:usage{cluster_type=\"TwemproxyRedisInstance\"})) > 2) * (48 * 1024 * 1024))))",
+            "promql": "(((max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (max_over_time(bkmonitor:dbm_system:net:speed_recv{cluster_type=\"TwemproxyRedisInstance\", device_name=\"eth1\"}[1m])) + max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (max_over_time(bkmonitor:dbm_system:net:speed_sent{cluster_type=\"TwemproxyRedisInstance\", device_name=\"eth1\"}[1m]))) * 100) / (((count by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (group by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid, device_name) (bkmonitor:dbm_system:cpu_detail:usage{cluster_type=\"TwemproxyRedisInstance\"})) <= 2) * (96 * 1024 * 1024)) or ((count by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (group by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid, device_name) (bkmonitor:dbm_system:cpu_detail:usage{cluster_type=\"TwemproxyRedisInstance\"})) > 2) * (48 * 1024 * 1024))))",
             "agg_interval": 60,
             "name": ""
           }
@@ -258,7 +258,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "[TendisCache]主机网络流量使用率",
-  "version": 4,
+  "version": 5,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-07-23T16:36:12+08:00"
