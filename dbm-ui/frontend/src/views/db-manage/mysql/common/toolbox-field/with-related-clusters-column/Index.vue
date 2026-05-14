@@ -180,7 +180,7 @@
       message: '',
       trigger: 'blur',
       validator: (value: string) => {
-        const target = clusterMap.value[value].master_domain;
+        const target = clusterMap.value[value]?.master_domain;
         if (target && target !== value) {
           return t('目标集群是集群target的关联集群_请勿重复添加', { target });
         }
