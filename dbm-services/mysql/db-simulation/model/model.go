@@ -83,6 +83,9 @@ func openDB(username, password, addr, name string) *gorm.DB {
 		log.Fatalf("connect to mysql failed %s", err.Error())
 		return nil
 	}
+	dbc.SetMaxOpenConns(config.GAppConfig.DbConf.MaxOpenConns)
+	dbc.SetMaxIdleConns(config.GAppConfig.DbConf.MaxIdleConns)
+	dbc.SetConnMaxLifetime(time.Duration(config.GAppConfig.DbConf.MaxLifetime) * time.Hour)
 	db, err := gorm.Open(mysql.New(mysql.Config{
 		Conn: dbc,
 	}), &gorm.Config{
