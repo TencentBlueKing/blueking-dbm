@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Dict
 
+from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import ConfType, LevelName
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
@@ -31,6 +32,8 @@ class UpsertDBConfigItems:
         self.spider_version = spider_version
         self.cluster_type = ""
 
+        if cluster_domain == "":
+            return
         cluster_obj = Cluster.objects.filter(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)[0]
         self.cluster_id = cluster_obj.id
         if self.db_module_id == -1:
@@ -145,3 +148,50 @@ class UpsertDBConfigItems:
         if self.spider_version and upsert_config_data.conf_items:
             print(cluster_conf_dict)
             DBConfigHandler(base_conf).upsert_level_config(dbconfig_level_data, upsert_config_data)
+
+    def save_backup_client_config(self, bk_cloud_id, backup_client_conf: Dict):
+        """
+        保存备份客户端配置（cosinfo.toml）
+        :param bk_cloud_id: 云区域ID
+        :param backup_client_conf: 备份客户端配置字典，支持以下字段：
+            - region: cos区域，如 "ap-hongkong"
+            - bucket_name: cos桶名称
+            - secret_id: cos密钥ID
+            - secret_key: cos密钥Key
+            - endpoint: cos端点地址
+            - storage_type: 存储类型
+        do not need cluster_domain
+        """
+        # 配置项名称与 conf_name 的映射关系
+        conf_name_map = {
+            "storage_type": "cos_auth.storage_type",
+            "bucket_name": "cos_auth.bucket_name",
+            "region": "cos_auth.region",
+            "secret_id": "cos_auth.secret_id",
+            "secret_key": "cos_auth.secret_key",
+            "endpoint": "cos_auth.endpoint",
+        }
+
+        conf_items = []
+        for key, value in backup_client_conf.items():
+            if key in conf_name_map:
+                conf_items.append(
+                    {
+                        "conf_name": conf_name_map[key],
+                        "op_type": "update",
+                        "conf_value": str(value),
+                    }
+                )
+
+        if not conf_items:
+            return
+
+        DBConfigApi.save_conf_item(
+            {
+                "conf_file_info": {"conf_file": "cosinfo.toml", "conf_type": "backup_client", "namespace": "common"},
+                "bk_biz_id": str(self.bk_biz_id),
+                "level_name": "bk_cloud_id",
+                "level_value": str(bk_cloud_id),
+                "conf_items": conf_items,
+            }
+        )

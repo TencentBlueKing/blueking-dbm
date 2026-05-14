@@ -69,7 +69,7 @@ def trans_common_files(
                     DownloadBackupClientKwargs(
                         bk_cloud_id=bk_cloud_id,
                         bk_biz_id=bk_biz_id,
-                        download_host_list=ips,
+                        ip_list=ips,
                     )
                 ),
             }

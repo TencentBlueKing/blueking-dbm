@@ -227,7 +227,7 @@ class RedisClusterMigrateLoadFlow(object):
                         DownloadBackupClientKwargs(
                             bk_cloud_id=self.data["bk_cloud_id"],
                             bk_biz_id=int(self.data["bk_biz_id"]),
-                            download_host_list=all_ips,
+                            ip_list=all_ips,
                         ),
                     ),
                 }
@@ -676,7 +676,7 @@ class RedisInsMigrateLoadFlow(object):
                             DownloadBackupClientKwargs(
                                 bk_cloud_id=self.data["bk_cloud_id"],
                                 bk_biz_id=int(self.data["bk_biz_id"]),
-                                download_host_list=all_ip,
+                                ip_list=all_ip,
                             ),
                         ),
                     }

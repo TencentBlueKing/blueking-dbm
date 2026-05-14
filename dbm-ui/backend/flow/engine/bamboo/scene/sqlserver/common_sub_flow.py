@@ -897,7 +897,7 @@ def install_surrounding_apps_sub_flow(
                     DownloadBackupClientKwargs(
                         bk_cloud_id=bk_cloud_id,
                         bk_biz_id=bk_biz_id,
-                        download_host_list=unique_ips,
+                        ip_list=unique_ips,
                     )
                 ),
             }

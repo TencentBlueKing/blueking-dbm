@@ -185,7 +185,7 @@ class TenDBRemoteSlaveRecoverFlow(object):
                 kwargs=asdict(
                     DownloadBackupClientKwargs(
                         bk_cloud_id=cluster_class.bk_cloud_id,
-                        download_host_list=[cluster["new_slave_ip"]],
+                        ip_list=[cluster["new_slave_ip"]],
                         bk_biz_id=cluster_class.bk_biz_id,
                     )
                 ),

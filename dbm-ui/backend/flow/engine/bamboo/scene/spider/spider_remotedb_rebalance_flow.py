@@ -212,7 +212,7 @@ class TenDBRemoteRebalanceFlow(object):
                         DownloadBackupClientKwargs(
                             bk_cloud_id=cluster_class.bk_cloud_id,
                             bk_biz_id=int(cluster_class.bk_biz_id),
-                            download_host_list=[cluster["new_master_ip"], cluster["new_slave_ip"]],
+                            ip_list=[cluster["new_master_ip"], cluster["new_slave_ip"]],
                         )
                     ),
                 )

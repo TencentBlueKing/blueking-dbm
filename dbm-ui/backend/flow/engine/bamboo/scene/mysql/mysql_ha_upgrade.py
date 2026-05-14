@@ -727,7 +727,7 @@ def build_install_slave_sub_pipeline(
             DownloadBackupClientKwargs(
                 bk_cloud_id=cluster.bk_cloud_id,
                 bk_biz_id=int(cluster.bk_biz_id),
-                download_host_list=[new_slave_ip],
+                ip_list=[new_slave_ip],
             )
         ),
     )
@@ -991,7 +991,7 @@ def build_install_ms_pair_sub_pipeline(
             DownloadBackupClientKwargs(
                 bk_cloud_id=cluster.bk_cloud_id,
                 bk_biz_id=int(cluster.bk_biz_id),
-                download_host_list=[new_master_ip, new_slave_ip],
+                ip_list=[new_master_ip, new_slave_ip],
             )
         ),
     )

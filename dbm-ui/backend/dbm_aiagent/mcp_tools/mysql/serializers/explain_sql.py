@@ -14,8 +14,8 @@ from rest_framework import serializers
 
 class ExplainSQLInputSerializer(serializers.Serializer):
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
-    db_name = serializers.CharField(help_text=_("库名, 为空时会自动使用 query_sql 里面的库名"))
-    query_sql = serializers.CharField(help_text=_("需要查询执行计划的 SQL 语句"))
+    db_name = serializers.CharField(help_text=_("库名, 为空时会自动使用 query_sql 里面的库名"), required=False)
+    query_sql = serializers.CharField(help_text=_("需要查询执行计划的 SQL 语句，不需要带 explain"))
 
 
 class ExplainSQLOutputSerializer(serializers.Serializer):
