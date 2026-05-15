@@ -29,7 +29,11 @@
         <BkPopConfirm
           :cancel-text="t('取消')"
           :confirm-text="t('确认恢复')"
-          :title="t('确认批量恢复 n 个参数默认值？', { n: selectedRows.filter((item) => item.stage).length })"
+          :title="
+            t('确认批量恢复 n 个参数默认值？', {
+              n: selectedRows.filter((item) => item.level_name === levelName).length,
+            })
+          "
           trigger="click"
           :width="275"
           @confirm="handleRestoreDefault">
@@ -43,7 +47,7 @@
             </div>
           </template>
           <span @click.stop>
-            <BkButton :disabled="selectedRows.every((item) => !item.stage)">
+            <BkButton :disabled="selectedRows.every((item) => item.level_name !== levelName)">
               {{ t('恢复默认') }}
             </BkButton>
           </span>
@@ -276,7 +280,7 @@
               {{ t('编辑') }}
             </BkButton>
             <BkButton
-              v-if="row.stage"
+              v-if="row.level_name === levelName"
               text
               theme="primary"
               @click="handleShowRestoreInfoBox(row)">
@@ -325,10 +329,7 @@
 
   type LevelConfigResult = ServiceReturnType<typeof getLevelConfig>;
 
-  export type ConfItem = {
-    /** 自定义标记 */
-    stage?: string;
-  } & LevelConfigResult['conf_items'][number];
+  export type ConfItem = LevelConfigResult['conf_items'][number];
 
   export interface Props {
     clusterType: string;
@@ -531,7 +532,7 @@
 
     // 仅显示自定义
     if (showCustomOnly.value && !isAddingRow.value) {
-      data = data.filter((item) => !!item.stage);
+      data = data.filter((item) => item.level_name === props.levelName);
     }
 
     // 如果正在新增行，在首行插入空行
@@ -770,7 +771,9 @@
       saveLoading.value = true;
       try {
         await updateBusinessConfig(buildUpdateParams([target]));
-        messageSuccess(target.stage ? t('操作成功_参数已修改') : t('操作成功_参数已转为自定义'));
+        messageSuccess(
+          target.level_name === props.levelName ? t('操作成功_参数已修改') : t('操作成功_参数已转为自定义'),
+        );
         fetchLevelConfig(fetchParams.value);
         emit('change');
       } finally {
