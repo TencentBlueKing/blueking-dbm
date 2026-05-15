@@ -85,10 +85,10 @@
   <div
     v-else
     class="sql-error-message-list success-message">
-    <DbIcon
-      style="margin-right: 4px"
-      type="bk-dbm-icon db-icon-check-circle-fill" />
-    {{ t('检测通过') }}
+    <div class="success-summary">
+      <span class="summary-label">{{ t('检查结果') }}：</span>
+      <span class="summary-success-text">{{ t('检测通过') }}</span>
+    </div>
   </div>
 </template>
 <script setup lang="ts">
@@ -198,11 +198,19 @@
 
     &.success-message {
       display: flex;
-      padding: 8px 16px;
-      color: #3fc06d;
-      align-items: center;
-      justify-content: center;
       height: 48px;
+      padding: 10px 16px;
+    }
+
+    .success-summary {
+      display: flex;
+      gap: 4px;
+      line-height: 28px;
+    }
+
+    .summary-success-text {
+      color: #3fc06d;
+      font-weight: 600;
     }
 
     /* ===== 汇总栏（可点击展开/收起，固定高度不随列表变化）===== */

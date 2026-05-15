@@ -154,6 +154,7 @@
     :execute-object="currentExecuteObject"
     :path="ticketDetails.details.path"
     :select-file-name="selectFileName"
+    :ticket-detail="ticketDetails"
     :version-list="versionList"
     :whole-file-list="uploadFileList" />
 </template>
