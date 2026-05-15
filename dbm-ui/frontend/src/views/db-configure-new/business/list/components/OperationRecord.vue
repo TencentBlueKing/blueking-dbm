@@ -124,6 +124,20 @@
 
   import DbTable from '@components/db-table/IndexNew.vue';
 
+  interface Props {
+    confFile?: string;
+    confType?: string;
+    levelName?: string;
+    levelValue?: number;
+  }
+
+  const props = withDefaults(defineProps<Props>(), {
+    confFile: '',
+    confType: '',
+    levelName: '',
+    levelValue: undefined,
+  });
+
   const { t } = useI18n();
   const activeClusterType = inject<Ref<string>>('activeClusterType');
 
@@ -208,6 +222,10 @@
     }
     const res = await getConfigItemChanges({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      conf_file: props.confFile || undefined,
+      conf_type: props.confType || undefined,
+      level_name: props.levelName || undefined,
+      level_value: props.levelValue,
       namespace: activeClusterType.value,
     });
 

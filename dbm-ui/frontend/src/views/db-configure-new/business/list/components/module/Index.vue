@@ -129,7 +129,9 @@
           name="operationRecord"
           render-directive="if">
           <div class="module-operation-record">
-            <OperationRecord />
+            <OperationRecord
+              level-name="module"
+              :level-value="moduleInfo.moduleId" />
           </div>
         </BkTabPanel>
       </BkTab>
@@ -142,7 +144,7 @@
   import type { ComputedRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import { useRoute } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import { deleteModuleConfig, getLevelConfig } from '@services/source/configs';
 
@@ -156,9 +158,10 @@
 
   import { messageSuccess } from '@utils';
 
-  import OperationRecord from '../biz/components/OperationRecord.vue';
+  import OperationRecord from '../OperationRecord.vue';
 
   const route = useRoute();
+  const router = useRouter();
   const { t } = useI18n();
 
   const treeState = reactive<TreeState>({
@@ -186,7 +189,17 @@
   });
 
   /** 顶部 tabs: 参数配置 / 操作记录 */
-  const activeTopTab = ref('paramConfig');
+  const activeTopTab = ref((route.query.topTab as string) || 'paramConfig');
+
+  /** 同步顶部 tab 到 URL */
+  watch(activeTopTab, (value) => {
+    router.replace({
+      query: {
+        ...route.query,
+        topTab: value || undefined,
+      },
+    });
+  });
 
   /** 获取模块部署信息 */
   const { loading, run: fetchModuleConfig } = useRequest(getLevelConfig, {

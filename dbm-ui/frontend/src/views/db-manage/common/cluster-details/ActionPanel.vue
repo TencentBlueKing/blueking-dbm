@@ -126,8 +126,7 @@
                   :label="t('操作记录')"
                   name="configRecord">
                   <ConfigOperationRecord
-                    :cluster-id="clusterData.id"
-                    :cluster-type="clusterData.cluster_type" />
+                    :cluster="clusterData" />
                 </BkTabPanel>
                 <BkTabPanel
                   :label="t('单据记录')"

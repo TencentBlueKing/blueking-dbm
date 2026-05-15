@@ -148,21 +148,6 @@
               </template>
             </TableColumn>
             <TableColumn
-              col-key="flag_encrypt"
-              :filter="boolFilter"
-              :width="100">
-              <template #title>
-                <span
-                  v-bk-tooltips="t('参数值加密存储，并在页面固定展示为 6 位星号')"
-                  class="column-title-tips">
-                  {{ t('加密存储') }}
-                </span>
-              </template>
-              <template #default="{ row }">
-                {{ row.flag_encrypt === 1 ? t('是') : t('否') }}
-              </template>
-            </TableColumn>
-            <TableColumn
               col-key="operation"
               fixed="right"
               :title="t('操作')"
@@ -302,24 +287,17 @@
 
           <!-- 默认值与安全 -->
           <div class="form-section">
-            <div class="form-section-title">{{ t('默认值与安全') }}</div>
-            <BkCheckboxGroup
-              :model-value="securityCheckboxValue"
-              @change="handleSecurityCheckboxChange">
-              <BkCheckbox label="flag_encrypt">
-                {{ t('加密存储') }}
-                <span class="checkbox-desc">{{ t('参数值加密存储，并在页面固定展示为 6 位星号') }}</span>
-              </BkCheckbox>
-            </BkCheckboxGroup>
+            <div class="form-section-title">{{ t('默认值') }}</div>
             <BkFormItem
+              :key="`default-${addParamForm.flag_empty_string}`"
               :label="t('平台默认值')"
               property="value_default"
-              required>
+              :required="!addParamForm.flag_empty_string">
               <div class="default-value-row">
                 <BkInput
                   v-model="addParamForm.value_default"
-                  :placeholder="t('请输入')"
-                  :type="addParamForm.flag_encrypt ? 'password' : 'text'" />
+                  :disabled="addParamForm.flag_empty_string"
+                  :placeholder="addParamForm.flag_empty_string ? t('空字符串') : t('请输入')" />
                 <BkCheckbox
                   v-if="showEmptyStringCheckbox"
                   v-model="addParamForm.flag_empty_string"
@@ -537,11 +515,6 @@
     });
   });
 
-  // 安全组 Checkbox（加密存储）
-  const securityCheckboxValue = computed(() => {
-    const keys: (keyof typeof addParamForm & string)[] = ['flag_encrypt'];
-    return keys.filter((key) => addParamForm[key]);
-  });
   // 业务配置规则 Checkbox
   const bizRuleCheckboxKeys = ['flag_visible', 'flag_readonly_inverse', 'need_restart'] as const;
   const bizRuleCheckboxValue = computed(() => bizRuleCheckboxKeys.filter((key) => addParamForm[key]));
@@ -691,32 +664,26 @@
     setTimeout(() => initDescriptionTippy(), 100);
   };
 
-  // 数据类型变更：清空约束类型和允许值
+  // 数据类型变更：BOOL 自动选中 ENUM；STRING 自动选中"无约束"；其它类型留空
   const handleValueTypeChange = () => {
-    addParamForm.value_type_sub = '';
-    addParamForm.value_allowed = '';
+    const vt = addParamForm.value_type;
+    if (vt === 'BOOL') {
+      addParamForm.value_type_sub = 'ENUM';
+      addParamForm.value_allowed = '';
+    } else if (vt === 'STRING') {
+      addParamForm.value_type_sub = NO_CONSTRAINT;
+      addParamForm.value_allowed = '';
+    } else {
+      addParamForm.value_type_sub = '';
+      addParamForm.value_allowed = '';
+    }
   };
-
-  // 约束类型选项变更：仅剩一项时自动选中（如 BOOL→ENUM，STRING→无约束）
-  watch(
-    () => valueTypeSubOptions.value,
-    (options) => {
-      if (options.length === 1 && !addParamForm.value_type_sub) {
-        addParamForm.value_type_sub = options[0].value;
-      }
-    },
-  );
 
   // 约束类型变更：切换到不需要允许值的类型时清空允许值
   const handleValueTypeSubChange = (value: string) => {
     if (NO_VALUE_ALLOWED_TYPES.includes(value) && addParamForm.value_allowed) {
       addParamForm.value_allowed = '';
     }
-  };
-
-  // 安全组 Checkbox 变更（加密存储）
-  const handleSecurityCheckboxChange = (values: string[]) => {
-    addParamForm.flag_encrypt = values.includes('flag_encrypt');
   };
 
   // 业务配置规则 Checkbox 变更

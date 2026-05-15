@@ -163,7 +163,7 @@
             </template>
             <!-- checkbox 类型字段 -->
             <tr v-if="!onlyShowChanged || hasCheckboxChanged">
-              <td>{{ t('其他配置') }}</td>
+              <td>{{ t('业务配置规则') }}</td>
               <td>
                 <BkCheckboxGroup
                   disabled
@@ -341,7 +341,7 @@
     { key: 'value_type', label: t('数据类型') },
     { key: 'value_type_sub', label: t('约束类型') },
     { key: 'value_allowed', label: t('允许值') },
-    { key: 'value_default', label: t('默认值') },
+    { key: 'value_default', label: t('平台默认值') },
     { key: 'description', label: t('描述') },
   ];
 

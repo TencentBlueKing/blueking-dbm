@@ -127,7 +127,11 @@
   import DbTable from '@components/db-table/IndexNew.vue';
 
   interface Props {
-    clusterType: ClusterTypes;
+    cluster: {
+      cluster_type: ClusterTypes;
+      id: number;
+      master_domain: string;
+    };
   }
 
   const props = defineProps<Props>();
@@ -212,7 +216,9 @@
   const dataSource = async (params: { limit: number; offset: number }) => {
     const res = await getConfigItemChanges({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      namespace: props.clusterType,
+      level_name: 'cluster',
+      level_value: props.cluster.master_domain,
+      namespace: props.cluster.cluster_type,
     });
 
     // 前端过滤
