@@ -31,7 +31,7 @@
           :cluster="cluster"
           :conf-type="tab.conf_type"
           level-name="cluster"
-          :level-value="cluster.id"
+          :level-value="cluster.master_domain"
           selectable
           :version="tab.conf_file" />
       </BkTabPanel>

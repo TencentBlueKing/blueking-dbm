@@ -28,7 +28,7 @@
 
 <script setup lang="ts">
   import { useRequest } from 'vue-request';
-  import { useRoute } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import { getListClusterModuleConfFiles } from '@services/source/configs';
 
@@ -42,17 +42,30 @@
   const props = defineProps<Props>();
 
   const route = useRoute();
+  const router = useRouter();
 
   const clusterType = computed(() => (route.params.clusterType as ClusterTypes) || ClusterTypes.TENDBSINGLE);
 
-  const activeTab = ref('');
+  const activeTab = ref((route.query.confFile as string) || '');
   const confTabs = ref<ServiceReturnType<typeof getListClusterModuleConfFiles>>([]);
+
+  /** 同步 confFile 到 URL */
+  watch(activeTab, (value) => {
+    router.replace({
+      query: {
+        ...route.query,
+        confFile: value || undefined,
+      },
+    });
+  });
 
   const { run: fetchConfTabs } = useRequest(getListClusterModuleConfFiles, {
     manual: true,
     onSuccess(res) {
       confTabs.value = res;
-      activeTab.value = res[0]?.conf_file || '';
+      if (!activeTab.value && res.length > 0) {
+        activeTab.value = res[0].conf_file || '';
+      }
     },
   });
 

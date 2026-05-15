@@ -106,7 +106,7 @@ export function getLevelConfig(
       module?: string;
     };
     level_name?: string;
-    level_value?: number;
+    level_value?: number | string;
     meta_cluster_type: string;
     version?: string;
   },
@@ -271,7 +271,7 @@ export function updateBusinessConfig(params: {
   description: string;
   level_info?: any;
   level_name: string;
-  level_value: number;
+  level_value: number | string;
   meta_cluster_type: string;
   name: string;
   publish_description?: string;
@@ -350,6 +350,8 @@ export function getConfigItemChanges(params: {
   conf_file?: string;
   conf_name?: string;
   conf_type?: string;
+  level_name?: string;
+  level_value?: number | string;
   limit?: number;
   namespace: string;
   offset?: number;

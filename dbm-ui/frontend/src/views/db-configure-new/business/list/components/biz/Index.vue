@@ -35,23 +35,35 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import { useRoute } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import { getListConfTypes } from '@services/source/configs';
 
   import { ClusterTypes } from '@common/const';
 
+  import OperationRecord from '../OperationRecord.vue';
+
   import ConfigDatabase from './components/ConfigDatabase.vue';
-  import OperationRecord from './components/OperationRecord.vue';
 
   const props = defineProps<{
     clusterType?: ClusterTypes;
   }>();
 
   const route = useRoute();
+  const router = useRouter();
   const { t } = useI18n();
 
-  const activeConfType = ref((route.params.confType as string) || '');
+  const activeConfType = ref((route.query.confType as string) || (route.params.confType as string) || '');
+
+  /** 同步 confType 到 URL */
+  watch(activeConfType, (value) => {
+    router.replace({
+      query: {
+        ...route.query,
+        confType: value || undefined,
+      },
+    });
+  });
 
   const confTypeTabs = ref<ServiceReturnType<typeof getListConfTypes>>([]);
 

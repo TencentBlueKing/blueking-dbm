@@ -17,7 +17,7 @@
     class="config-edit-diff-sideslider"
     :is-show="isShow"
     render-directive="if"
-    width="1300"
+    :width="900"
     @closed="handleClose">
     <template #header>
       {{ t('批量编辑_clusterType_参数', { clusterType: clusterTypeLabel }) }}
@@ -393,7 +393,7 @@
         confirm: 0,
         description: '',
         level_name: ConfLevels.CLUSTER,
-        level_value: props.cluster.id,
+        level_value: props.cluster.master_domain,
         meta_cluster_type: props.cluster.cluster_type,
         name: '',
         publish_description: '',

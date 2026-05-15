@@ -106,6 +106,7 @@
             <BkTag
               v-if="row.op_type === 'add'"
               class="ml-8"
+              size="small"
               theme="success">
               NEW
             </BkTag>
@@ -182,7 +183,7 @@
             <span class="value-cell">
               <span class="value-cell-text">{{ row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--') }}</span>
               <BkTag
-                v-if="row.stage"
+                v-if="row.level_name === levelName"
                 size="small"
                 theme="warning">
                 {{ t('自定义') }}
@@ -351,7 +352,7 @@
     /** 层级名称 */
     levelName?: string;
     /** 层级值 */
-    levelValue?: number;
+    levelValue?: number | string;
     /** 行唯一标识字段 */
     rowKey?: string;
     /** 是否支持行选择（批量编辑） */
@@ -597,33 +598,27 @@
   const { run: fetchConfigNames } = useRequest(getConfigNames, {
     manual: true,
     onSuccess(res) {
-      // 过滤掉已在当前配置列表中存在的参数，避免重复添加
-      const existNames = new Set(allConfItems.value.map((item) => item.conf_name));
-      availableParams.value = res.filter((p) => !existNames.has(p.conf_name));
+      filterAvailableParams(res);
     },
   });
 
-  /** 恢复默认 - 本地移除 stage 标签 */
-  const handleRestoreDefaultLocal = (confNames: string[]) => {
-    confNames.forEach((name) => {
-      const target = allConfItems.value.find((item) => item.conf_name === name);
-      if (target) {
-        delete target.stage;
-      }
-    });
-    refreshTable();
-    emit('change');
+  /**
+   * 从全量配置名列表中过滤掉已存在于当前配置的参数，
+   * 避免下拉选项中出现可添加但实际已存在的重复项。
+   * 在接口返回和点击"添加参数"时均需调用。
+   */
+  const filterAvailableParams = (allNames: ConfItem[]) => {
+    const existNames = new Set(allConfItems.value.map((item) => item.conf_name));
+    availableParams.value = allNames.filter((p) => !existNames.has(p.conf_name));
   };
 
-  /** 恢复默认 - 调用接口后仅本地更新 */
+  /** 恢复默认 */
   const { run: runRecoverDefault } = useRequest(recoverDefaultConfigItem, {
     manual: true,
-    onSuccess(_data, params) {
+    onSuccess() {
       messageSuccess(t('操作成功'));
-      const names = (params as any[])?.[0]?.conf_names as string[] | undefined;
-      if (names) {
-        handleRestoreDefaultLocal(names);
-      }
+      fetchLevelConfig(fetchParams.value);
+      emit('change');
     },
   });
 
@@ -663,6 +658,12 @@
     newRow.value = { conf_name: '', conf_value: '' };
     selectedParamInfo.value = null;
     refreshTable();
+    // 重新拉取可选参数名并根据当前配置列表过滤（排除已存在项）
+    fetchConfigNames({
+      conf_type: props.confType,
+      meta_cluster_type: props.cluster.cluster_type,
+      version: props.version,
+    });
   };
 
   /** 过滤器变化 */
@@ -795,6 +796,7 @@
       try {
         await updateBusinessConfig(buildUpdateParams([target]));
         messageSuccess(target.stage ? t('操作成功_参数已修改') : t('操作成功_参数已转为自定义'));
+        fetchLevelConfig(fetchParams.value);
         emit('change');
       } finally {
         saveLoading.value = false;
