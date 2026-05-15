@@ -64,7 +64,7 @@ class BackupClientInstaller:
         backup_config = self._get_download_config(bk_cloud_id=bk_cloud_id)
 
         params = {
-            "host_list": [{"bk_cloud_id": bk_cloud_id, "ip": ip} for ip in ip_list],
+            "host_list": [{"bk_cloud_id": bk_cloud_id, "bk_biz_id": self.bk_biz_id, "ip": ip} for ip in ip_list],
             "file_tag": "",  # not set tag by client
             "cos_info_render": {
                 "auth_path": f"/home/{self.backup_os_user}/.cosinfo.toml",
