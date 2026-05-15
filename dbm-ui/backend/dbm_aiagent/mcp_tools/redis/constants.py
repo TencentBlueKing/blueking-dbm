@@ -170,7 +170,7 @@ METRIC_REGISTRY = {
             "))"
         ),
         "aggregation": {
-            "overall": AggFunction.MAX,
+            "overall": AggFunction.SUM,
             "stats": [AggFunction.MIN, AggFunction.MAX, AggFunction.AVG, AggFunction.STDDEV],
         },
         "supported_group_by": [MetricsGroupBy.CLUSTER_DOMAIN, MetricsGroupBy.IP, MetricsGroupBy.INSTANCE],
@@ -349,7 +349,7 @@ METRIC_REGISTRY = {
             "))"
         ),
         "aggregation": {
-            "overall": AggFunction.MAX,
+            "overall": AggFunction.SUM,
             "stats": [AggFunction.MIN, AggFunction.MAX, AggFunction.AVG, AggFunction.STDDEV],
         },
         "supported_group_by": [MetricsGroupBy.CLUSTER_DOMAIN, MetricsGroupBy.IP, MetricsGroupBy.INSTANCE],
@@ -534,7 +534,7 @@ METRIC_REGISTRY = {
             "))"
         ),
         "aggregation": {
-            "overall": AggFunction.MAX,
+            "overall": AggFunction.SUM,
             "stats": [AggFunction.MIN, AggFunction.MAX, AggFunction.AVG, AggFunction.STDDEV],
         },
         "supported_group_by": [MetricsGroupBy.CLUSTER_DOMAIN, MetricsGroupBy.IP, MetricsGroupBy.INSTANCE],

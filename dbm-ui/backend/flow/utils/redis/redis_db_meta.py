@@ -42,6 +42,7 @@ from backend.db_meta.models import (
     CLBEntryDetail,
     Cluster,
     ClusterEntry,
+    ClusterMonitorTopo,
     Machine,
     PolarisEntryDetail,
     ProxyInstance,
@@ -100,6 +101,9 @@ class RedisDBMeta(object):
             return getattr(self, function_name)()
 
         logger.error(_("找不到单据类型需要查询的cmdb函数，请联系系统管理员"))
+
+    def _get_install_cluster_type(self) -> str:
+        return self.cluster.get("cluster_type") or self.ticket_data.get("cluster_type") or ""
 
     def proxy_install(self) -> bool:
         """
@@ -249,10 +253,7 @@ class RedisDBMeta(object):
         ips = [self.cluster["master_ip"], self.cluster["slave_ip"]]
         m = Machine.objects.filter(ip__in=ips).values("ip")
         if len(m) != 2:
-            if "cluster_type" in self.ticket_data:
-                cluster_type = self.ticket_data["cluster_type"]
-            else:
-                cluster_type = self.cluster["cluster_type"]
+            cluster_type = self._get_install_cluster_type()
 
             if is_redis_instance_type(cluster_type):
                 machine_type = MachineType.TENDISCACHE.value
@@ -306,11 +307,8 @@ class RedisDBMeta(object):
         else:
             bk_cloud_id = self.cluster["bk_cloud_id"]
 
-        machines, ins, cluster_type = [], [], ""
-        if "cluster_type" in self.ticket_data:
-            cluster_type = self.ticket_data["cluster_type"]
-        else:
-            cluster_type = self.cluster["cluster_type"]
+        machines, ins = [], []
+        cluster_type = self._get_install_cluster_type()
 
         if is_redis_instance_type(cluster_type):
             machine_type = MachineType.TENDISCACHE.value
@@ -855,6 +853,35 @@ class RedisDBMeta(object):
             cluster = Cluster.objects.get(
                 bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
             )
+            available_machine_types = list(
+                ClusterMonitorTopo.objects.filter(cluster_id=cluster.id)
+                .values_list("machine_type", flat=True)
+                .distinct()
+            )
+            missing_type_instances = {}
+            for receiver_obj in receiver_objs:
+                if receiver_obj.machine_type not in available_machine_types:
+                    missing_type_instances.setdefault(receiver_obj.machine_type, []).append(
+                        "{}{}{}".format(receiver_obj.machine.ip, IP_PORT_DIVIDER, receiver_obj.port)
+                    )
+            if missing_type_instances:
+                temp_details = "; ".join(
+                    [
+                        "machine_type={}, instances={}".format(machine_type, instances)
+                        for machine_type, instances in missing_type_instances.items()
+                    ]
+                )
+                raise Exception(
+                    _(
+                        "Redis数据构造临时节点无法转移到源集群CC模块: cluster_id={}, domain={}, "
+                        "临时实例及machine_type={}, 源集群可用machine_type={}".format(
+                            cluster.id,
+                            cluster.immute_domain,
+                            temp_details,
+                            sorted(available_machine_types),
+                        )
+                    )
+                )
             RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(receiver_objs)
         return True
 

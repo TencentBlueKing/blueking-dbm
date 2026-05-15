@@ -6,6 +6,8 @@ import pytest
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure import RedisDataStructureFlow
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure_task_delete import RedisDataStructureTaskDeleteFlow
+from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
 
 
@@ -68,6 +70,54 @@ def test_get_backup_instance_by_bklog_accepts_non_contiguous_slots(mock_handler_
     ]
 
 
+@patch("backend.flow.engine.bamboo.scene.redis.redis_data_structure.GetFileList")
+@patch("backend.flow.engine.bamboo.scene.redis.redis_data_structure.SubBuilder")
+def test_init_builder_uses_isolated_cluster_global_data(mock_sub_builder, mock_get_file_list):
+    mock_sub_builder.return_value = MagicMock()
+    mock_get_file_list.return_value = MagicMock(redis_base=MagicMock(return_value=[]))
+
+    source_ticket_data = {
+        "uid": "uid-1",
+        "bk_biz_id": 3,
+        "ticket_type": "REDIS_DATA_STRUCTURE",
+        "infos": [{"cluster_id": 1}, {"cluster_id": 2}],
+    }
+    cluster_infos = [
+        {
+            "cluster_type": ClusterType.TendisPredixyTendisplusCluster.value,
+            "bk_biz_id": 100,
+            "bk_cloud_id": 0,
+            "immute_domain": "plus.test.dba.db",
+            "domain_name": "plus.test.dba.db",
+        },
+        {
+            "cluster_type": ClusterType.TendisRedisInstance.value,
+            "bk_biz_id": 200,
+            "bk_cloud_id": 0,
+            "immute_domain": "cache.test.dba.db",
+            "domain_name": "cache.test.dba.db",
+        },
+    ]
+
+    flow = RedisDataStructureFlow(root_id="root-1", data=source_ticket_data)
+    with patch.object(RedisDataStructureFlow, "_RedisDataStructureFlow__get_cluster_info", side_effect=cluster_infos):
+        _, first_kwargs, first_global_data = flow._RedisDataStructureFlow__init_builder(
+            "REDIS_DATA_STRUCTURE", {"cluster_id": 1}
+        )
+        _, second_kwargs, second_global_data = flow._RedisDataStructureFlow__init_builder(
+            "REDIS_DATA_STRUCTURE", {"cluster_id": 2}
+        )
+
+    assert "cluster_type" not in source_ticket_data
+    assert first_global_data is not second_global_data
+    assert first_global_data["bk_biz_id"] == 3
+    assert second_global_data["bk_biz_id"] == 3
+    assert first_global_data["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value
+    assert second_global_data["cluster_type"] == ClusterType.TendisRedisInstance.value
+    assert first_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value
+    assert second_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value
+
+
 @pytest.mark.parametrize("is_drill", [True, False])
 @patch("backend.flow.engine.bamboo.scene.redis.redis_data_structure.GetFileList")
 @patch("backend.flow.engine.bamboo.scene.redis.redis_data_structure.redis_backupfile_download")
@@ -107,6 +157,14 @@ def test_build_cluster_data_structure_installs_dbmon_only_when_not_drill(
     act_kwargs = ActKwargs()
     act_kwargs.cluster = dict(cluster_info)
     act_kwargs.bk_cloud_id = 0
+    cluster_global_data = {
+        "uid": "uid-1",
+        "bk_biz_id": 3,
+        "ticket_type": "REDIS_DATA_STRUCTURE",
+        "cluster_type": ClusterType.TendisTwemproxyRedisInstance.value,
+        "is_rollback_drill": is_drill,
+        "skip_mannual_confirm": True,
+    }
 
     flow = RedisDataStructureFlow(
         root_id="root-1",
@@ -131,7 +189,7 @@ def test_build_cluster_data_structure_installs_dbmon_only_when_not_drill(
     with patch.object(
         RedisDataStructureFlow,
         "_RedisDataStructureFlow__init_builder",
-        return_value=(pipeline, act_kwargs),
+        return_value=(pipeline, act_kwargs, cluster_global_data),
     ), patch.object(
         RedisDataStructureFlow,
         "_RedisDataStructureFlow__get_cluster_config",
@@ -150,10 +208,15 @@ def test_build_cluster_data_structure_installs_dbmon_only_when_not_drill(
     assert mock_install_atom.called, "RedisBatchInstallAtomJob should be invoked once per redis host"
     expected_install_dbmon = not is_drill
     for call in mock_install_atom.call_args_list:
+        assert call.args[1] is cluster_global_data
+        assert call.args[1]["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value
         assert call.kwargs["to_install_dbmon"] is expected_install_dbmon, (
             f"to_install_dbmon must be {expected_install_dbmon} when is_drill={is_drill}, "
             f"got {call.kwargs.get('to_install_dbmon')!r}"
         )
+    component_codes = [call.kwargs.get("act_component_code") for call in pipeline.add_act.call_args_list]
+    assert (AddAlarmShieldComponent.code in component_codes) is (not is_drill)
+    assert (DisableAlarmShieldComponent.code in component_codes) is (not is_drill)
 
 
 @pytest.mark.parametrize("is_drill", [True, False])

@@ -18,16 +18,21 @@ from bamboo_engine.api import EngineAPIResult
 from backend.flow.consts import StateType
 from backend.flow.plugins.components.collections.redis.redis_rollback_exercise import (
     CHILD2RUNNER_CACHE_PREFIX,
+    RedisExerciseBestEffortCleanupService,
     RedisExerciseFlowRunnerService,
 )
 
 
 class FakeData:
-    def __init__(self, outputs=None):
+    def __init__(self, outputs=None, inputs=None):
         self.outputs = SimpleNamespace(**(outputs or {}))
+        self.inputs = SimpleNamespace(**(inputs or {}))
 
     def get_one_of_outputs(self, key):
         return getattr(self.outputs, key, None)
+
+    def get_one_of_inputs(self, key):
+        return getattr(self.inputs, key, None)
 
 
 def _build_schedule_data(start_delta_seconds=10, polling_timeout=3600, child_root_id="child_root_id"):
@@ -367,3 +372,187 @@ def test_execute_without_report_id_skips_report_update():
 
     assert result is True
     mock_filter.return_value.update.assert_not_called()
+
+
+# ==================== Best-effort cleanup guards ====================
+
+
+def _cleanup_service():
+    service = RedisExerciseBestEffortCleanupService()
+    service.log_info = MagicMock()
+    service.log_warning = MagicMock()
+    return service
+
+
+def _cleanup_global_data():
+    return {
+        "uid": 123,
+        "bk_biz_id": 3,
+        "infos": [
+            {
+                "cluster_id": 101,
+                "instance_ip": "1.1.1.4",
+                "instance_port": 30000,
+                "redis": [{"ip": "1.1.1.3"}],
+            }
+        ],
+    }
+
+
+def _storage_instance(port, cluster_ids=None):
+    cluster = SimpleNamespace(values_list=MagicMock(return_value=cluster_ids or []))
+    return SimpleNamespace(port=port, cluster=cluster)
+
+
+def _rollback_task(temp_range=None, prod_range=None, pairs=None):
+    return SimpleNamespace(
+        id=1,
+        temp_instance_range=temp_range if temp_range is not None else ["1.1.1.3:30000"],
+        prod_instance_range=prod_range if prod_range is not None else ["1.1.1.4:30000"],
+        prod_temp_instance_pairs=pairs if pairs is not None else [["1.1.1.4:30000", "1.1.1.3:30000"]],
+    )
+
+
+@patch(
+    "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.TbTendisRollbackTasks.objects.filter"
+)
+@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.StorageInstance.objects.filter")
+@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.Cluster.objects.get")
+def test_cleanup_targets_use_rollback_task_ports_not_all_storage_ports(
+    mock_cluster_get, mock_storage_filter, mock_task_filter
+):
+    mock_cluster_get.return_value = SimpleNamespace(id=101, bk_cloud_id=0)
+    mock_storage_filter.return_value = [_storage_instance(30000), _storage_instance(39999)]
+    mock_task_filter.return_value = [
+        _rollback_task(
+            temp_range=["1.1.1.3:30001", "2.2.2.2:30000", "1.1.1.3:30000"],
+            prod_range=["1.1.1.4:30000", "1.1.1.4:30001"],
+            pairs=[
+                ["1.1.1.4:30000", "1.1.1.3:30000"],
+                ["1.1.1.4:30001", "1.1.1.3:30001"],
+                ["1.1.1.4:30002", "2.2.2.2:30000"],
+            ],
+        )
+    ]
+
+    cleanup_hosts = _cleanup_service()._collect_cleanup_hosts(_cleanup_global_data())
+
+    assert cleanup_hosts == [{"ip": "1.1.1.3", "bk_cloud_id": 0, "ports": [30000, 30001]}]
+    mock_task_filter.assert_called_once_with(related_rollback_bill_id=123, bk_biz_id=3, prod_cluster_id=101)
+
+
+@patch(
+    "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.TbTendisRollbackTasks.objects.filter"
+)
+@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.StorageInstance.objects.filter")
+@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.Cluster.objects.get")
+def test_cleanup_targets_allow_expected_source_cluster_binding(
+    mock_cluster_get, mock_storage_filter, mock_task_filter
+):
+    mock_cluster_get.return_value = SimpleNamespace(id=101, bk_cloud_id=0)
+    mock_storage_filter.return_value = [_storage_instance(30000, cluster_ids=[101])]
+    mock_task_filter.return_value = [_rollback_task()]
+
+    cleanup_hosts = _cleanup_service()._collect_cleanup_hosts(_cleanup_global_data())
+
+    assert cleanup_hosts == [{"ip": "1.1.1.3", "bk_cloud_id": 0, "ports": [30000]}]
+
+
+@patch(
+    "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.TbTendisRollbackTasks.objects.filter"
+)
+@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.StorageInstance.objects.filter")
+@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.Cluster.objects.get")
+def test_cleanup_targets_skip_unexpected_cluster_bound_storage(
+    mock_cluster_get, mock_storage_filter, mock_task_filter
+):
+    mock_cluster_get.return_value = SimpleNamespace(id=101, bk_cloud_id=0)
+    mock_storage_filter.return_value = [_storage_instance(30000, cluster_ids=[202])]
+    mock_task_filter.return_value = [_rollback_task()]
+
+    cleanup_hosts = _cleanup_service()._collect_cleanup_hosts(_cleanup_global_data())
+
+    assert cleanup_hosts == []
+    mock_task_filter.assert_not_called()
+
+
+@patch(
+    "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.TbTendisRollbackTasks.objects.filter"
+)
+@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.StorageInstance.objects.filter")
+@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.Cluster.objects.get")
+def test_cleanup_targets_skip_when_no_matching_rollback_task(mock_cluster_get, mock_storage_filter, mock_task_filter):
+    mock_cluster_get.return_value = SimpleNamespace(id=101, bk_cloud_id=0)
+    mock_storage_filter.return_value = []
+    mock_task_filter.return_value = [
+        _rollback_task(temp_range=["2.2.2.2:30000"], pairs=[["1.1.1.4:30000", "2.2.2.2:30000"]])
+    ]
+
+    cleanup_hosts = _cleanup_service()._collect_cleanup_hosts(_cleanup_global_data())
+
+    assert cleanup_hosts == []
+
+
+@patch(
+    "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.TbTendisRollbackTasks.objects.filter"
+)
+@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.StorageInstance.objects.filter")
+@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.Cluster.objects.get")
+def test_cleanup_targets_exclude_source_prod_addresses(mock_cluster_get, mock_storage_filter, mock_task_filter):
+    mock_cluster_get.return_value = SimpleNamespace(id=101, bk_cloud_id=0)
+    mock_storage_filter.return_value = []
+    mock_task_filter.return_value = [
+        _rollback_task(
+            temp_range=["1.1.1.3:30000", "1.1.1.3:30001"],
+            prod_range=["1.1.1.4:30000", "1.1.1.3:30001"],
+            pairs=[
+                ["1.1.1.4:30000", "1.1.1.3:30000"],
+                ["1.1.1.3:30001", "1.1.1.3:30001"],
+            ],
+        )
+    ]
+
+    cleanup_hosts = _cleanup_service()._collect_cleanup_hosts(_cleanup_global_data())
+
+    assert cleanup_hosts == [{"ip": "1.1.1.3", "bk_cloud_id": 0, "ports": [30000]}]
+
+
+@patch(
+    "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.TbTendisRollbackTasks.objects.filter"
+)
+@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.StorageInstance.objects.filter")
+@patch("backend.flow.plugins.components.collections.redis.redis_rollback_exercise.Cluster.objects.get")
+def test_cleanup_targets_require_prod_temp_pairs(mock_cluster_get, mock_storage_filter, mock_task_filter):
+    mock_cluster_get.return_value = SimpleNamespace(id=101, bk_cloud_id=0)
+    mock_storage_filter.return_value = []
+    mock_task_filter.return_value = [_rollback_task(pairs=[])]
+
+    cleanup_hosts = _cleanup_service()._collect_cleanup_hosts(_cleanup_global_data())
+
+    assert cleanup_hosts == []
+
+
+def test_cleanup_script_removes_only_allowlisted_work_dirs():
+    script = RedisExerciseBestEffortCleanupService._build_cleanup_script(
+        [{"ip": "1.1.1.3", "bk_cloud_id": 0, "ports": [30000, 30001]}]
+    )
+
+    assert "30000 30001" in script
+    assert "39999" not in script
+    assert "/data/redis/*" not in script
+    assert "/data1/redis/*" not in script
+    assert 'pkill -f "$inst_dir"' in script
+    assert "pkill -f redis-server || true" not in script
+    assert "pkill -f predixy || true" not in script
+    assert "tendis[a-z_+-]*" in script
+    assert "/data/predixy/[0-9]*" in script
+    assert "/data1/predixy/[0-9]*" in script
+    assert "twemproxy-0.2.4" in script
+    assert 'grep -RqsE "$backend_pattern" "$proxy_dir"' in script
+    assert "Unsafe proxy work dir $proxy_dir, skip" in script
+    assert 'rm -rf -- "$proxy_dir"' in script
+    assert "Unsafe redis work dir $inst_dir, skip" in script
+    assert 'rm -rf -- "$inst_dir"' in script
+    assert "lsof" not in script
+    assert "Allowlisted redis process still exists" in script
+    assert 'case "$current_ip" in' in script
