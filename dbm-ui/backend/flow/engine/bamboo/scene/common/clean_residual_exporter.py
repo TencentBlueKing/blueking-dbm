@@ -11,8 +11,9 @@ specific language governing permissions and limitations under the License.
 import shlex
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
+from bamboo_engine.builder import SubProcess
 from django.utils.translation import gettext as _
 
 from backend import env
@@ -84,10 +85,14 @@ def _build_shell_command(config: DBShellConfig, base_dir: str) -> str:
     )
 
 
-def _add_sub_pipeline(p: Builder, clean_act_name: str, clean_kwargs: Dict[str, object], sub_name: str) -> None:
+def _build_sub_process(p: Builder, clean_act_name: str, clean_kwargs: Dict[str, object], sub_name: str) -> SubProcess:
     sub_p = SubBuilder(root_id=p.root_id, data=p.data)
     sub_p.add_act(act_name=clean_act_name, act_component_code=ExecuteShellScriptComponent.code, kwargs=clean_kwargs)
-    p.add_sub_pipeline(sub_p.build_sub_process(sub_name=sub_name))
+    return sub_p.build_sub_process(sub_name=sub_name)
+
+
+def _add_sub_pipeline(p: Builder, clean_act_name: str, clean_kwargs: Dict[str, object], sub_name: str) -> None:
+    p.add_sub_pipeline(_build_sub_process(p, clean_act_name, clean_kwargs, sub_name))
 
 
 def gse_agent_base_dir_from_beat_path() -> str:
@@ -122,24 +127,35 @@ def _build_act_config(bk_cloud_id: int, iplist: List[str], base_dir: str, config
     )
 
 
-def add_clean_residual_exporter_acts(
-    p: Builder, db_type: str, bk_cloud_id: int, bk_biz_id: int, iplist: List[str]
-) -> None:
+def build_clean_residual_exporter_sub_process(p: Builder, bk_cloud_id: int, iplist: List[str]) -> Optional[SubProcess]:
     """
-    Add clean residual exporter acts by db type.
+    构建 exporter 残留清理子流程并返回 SubProcess，不挂载到主流程。
+    调用方可自由决定串行 (add_sub_pipeline) 或并行 (add_parallel_sub_pipeline) 编排。
+    iplist 为空时返回 None。
     """
     if not iplist:
-        return
-    # Keep db_type/bk_biz_id arguments for caller compatibility,
-    # but cleanup behavior is now unified for all db types.
+        return None
 
     base_dir = gse_agent_base_dir_from_beat_path()
     clean_act_name, clean_kwargs, sub_name = _build_act_config(
         bk_cloud_id=bk_cloud_id, iplist=iplist, base_dir=base_dir, config=UNIFIED_DB_SHELL_CONFIG
     )
-    _add_sub_pipeline(
+    return _build_sub_process(
         p=p,
         clean_act_name=clean_act_name,
         clean_kwargs=clean_kwargs,
         sub_name=sub_name,
     )
+
+
+def add_clean_residual_exporter_acts(
+    p: Builder, db_type: str, bk_cloud_id: int, bk_biz_id: int, iplist: List[str]
+) -> None:
+    """
+    Add clean residual exporter acts by db type.
+
+    保留 db_type / bk_biz_id 参数维持向后兼容；当前清理行为对所有 db 类型一致。
+    """
+    sub = build_clean_residual_exporter_sub_process(p=p, bk_cloud_id=bk_cloud_id, iplist=iplist)
+    if sub is not None:
+        p.add_sub_pipeline(sub)

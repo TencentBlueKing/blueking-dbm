@@ -31,7 +31,8 @@ from backend.db_services.dbbase.constants import IpDest
 from backend.db_services.ipchooser.constants import BK_OS_CODE__TYPE, BkOsType
 from backend.flow.consts import LINUX_ADMIN_USER_FOR_CHECK, WINDOW_ADMIN_USER_FOR_CHECK
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
-from backend.flow.engine.bamboo.scene.common.clean_residual_exporter import add_clean_residual_exporter_acts
+from backend.flow.engine.bamboo.scene.common.clean_local_mysql_client import build_clean_local_mysql_client_sub_process
+from backend.flow.engine.bamboo.scene.common.clean_residual_exporter import build_clean_residual_exporter_sub_process
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
 from backend.flow.plugins.components.collections.common.resource_replenish import HCMResourceReplenishComponent
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
@@ -398,13 +399,28 @@ class ImportResourceInitStepFlow(object):
             elif db_type == DBType.Sqlserver:
                 logger.info("machine_idle_check_flow: db_type is sqlserver, skip exporter cleanup")
             else:
-                add_clean_residual_exporter_acts(
+                # 两个清理子流程互相独立（一个清 exporter 残留，一个清本地 mysql 客户端会话），
+                # 没有顺序依赖，故并行编排以缩短整体流程耗时。
+                cleanup_sub_processes = []
+                exporter_sub = build_clean_residual_exporter_sub_process(
                     p=p,
-                    db_type=db_type,
                     bk_cloud_id=self.data.get("bk_cloud_id", 0),
-                    bk_biz_id=get_resource_biz(),
                     iplist=self.data.get("sa_check_ips", []),
                 )
+                if exporter_sub is not None:
+                    cleanup_sub_processes.append(exporter_sub)
+                # 额外清理：杀掉残留的本地 mysql 命令行客户端（通过 socket 连接的会话），
+                # 避免遗留的 DBA 交互会话阻塞后续 SA 空闲检查；
+                # 非 mysql 主机上 pgrep -x mysql 匹配不到任何进程，会直接 exit 0，无副作用。
+                mysql_client_sub = build_clean_local_mysql_client_sub_process(
+                    p=p,
+                    bk_cloud_id=self.data.get("bk_cloud_id", 0),
+                    iplist=self.data.get("sa_check_ips", []),
+                )
+                if mysql_client_sub is not None:
+                    cleanup_sub_processes.append(mysql_client_sub)
+                if cleanup_sub_processes:
+                    p.add_parallel_sub_pipeline(sub_flow_list=cleanup_sub_processes)
 
         kwargs = InitCheckForResourceKwargs(
             ips=self.data["sa_check_ips"],
