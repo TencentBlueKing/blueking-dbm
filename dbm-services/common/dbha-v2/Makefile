@@ -83,6 +83,13 @@ SERVER_SNIPPETS  = receiver_source_probe.yaml receiver_source_kafka.yaml \
 PROBE_TEMPLATES  = probe.yaml
 PROBE_SNIPPETS   = probe_mysql_shard.yaml probe_redis_shard.yaml
 
+GUARD_UTILS_LIB = scripts/lib/guard-utils.sh
+SERVER_SCRIPTS  = scripts/setup.sh scripts/start-server.sh scripts/stop-server.sh \
+                  scripts/deploy.sh scripts/render_configs.py
+PROBE_SCRIPTS   = scripts/start-probe.sh scripts/stop-probe.sh \
+                  scripts/start-probe-keepalive.sh scripts/stop-probe-keepalive.sh \
+                  scripts/deploy.sh scripts/render_configs.py
+
 # build target
 
 all: proto admin analysis receiver probe toolkits
@@ -142,9 +149,11 @@ package-server: admin analysis receiver toolkits
 		$(SERVER_PKG_DIR)/toolkits
 	@cp $(addprefix $(BUILD_DIR)/,$(SERVER_BINS)) $(SERVER_PKG_DIR)/bin/
 	@cp $(BUILD_DIR)/$(BIN_PREFIX)cluster $(SERVER_PKG_DIR)/toolkits/
-	@cp scripts/setup.sh scripts/start-server.sh scripts/stop-server.sh \
-		scripts/deploy.sh scripts/render_configs.py $(SERVER_PKG_DIR)/
+	@cp $(SERVER_SCRIPTS) $(SERVER_PKG_DIR)/
 	@chmod +x $(SERVER_PKG_DIR)/render_configs.py
+	@mkdir -p $(SERVER_PKG_DIR)/lib
+	@cp $(GUARD_UTILS_LIB) $(SERVER_PKG_DIR)/lib/
+	@chmod +x $(SERVER_PKG_DIR)/lib/guard-utils.sh
 	@mkdir -p $(SERVER_PKG_DIR)/etc/templates/snippets
 	@cp $(addprefix etc/templates/,$(SERVER_TEMPLATES)) \
 		$(SERVER_PKG_DIR)/etc/templates/
@@ -164,9 +173,11 @@ package-probe: probe
 	@mkdir -p $(PROBE_PKG_DIR)/bin $(PROBE_PKG_DIR)/etc \
 		$(PROBE_PKG_DIR)/logs $(PROBE_PKG_DIR)/pids
 	@cp $(addprefix $(BUILD_DIR)/,$(PROBE_BINS)) $(PROBE_PKG_DIR)/bin/
-	@cp scripts/start-probe.sh scripts/stop-probe.sh \
-		scripts/deploy.sh scripts/render_configs.py $(PROBE_PKG_DIR)/
+	@cp $(PROBE_SCRIPTS) $(PROBE_PKG_DIR)/
 	@chmod +x $(PROBE_PKG_DIR)/render_configs.py
+	@mkdir -p $(PROBE_PKG_DIR)/lib
+	@cp $(GUARD_UTILS_LIB) $(PROBE_PKG_DIR)/lib/
+	@chmod +x $(PROBE_PKG_DIR)/lib/guard-utils.sh
 	@mkdir -p $(PROBE_PKG_DIR)/etc/templates/snippets
 	@cp $(addprefix etc/templates/,$(PROBE_TEMPLATES)) \
 		$(PROBE_PKG_DIR)/etc/templates/
