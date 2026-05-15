@@ -71,13 +71,12 @@
             <SyntaxError
               v-else-if="selectFileData.state === SqlFileModel.UPLOAD_FAIL"
               class="syntax-error" />
-            <SyntaxSuccess
+            <MessageList
               v-else-if="
                 selectFileData.state === SqlFileModel.SUCCESS &&
                 selectFileData.messageList.filter((m) => m.type === 'error').length === 0 &&
                 selectFileData.messageList.filter((m) => m.type === 'warning').length === 0
-              "
-              class="syntax-success" />
+              " />
           </template>
         </template>
       </BkLoading>
@@ -108,12 +107,12 @@
   import SqlFileModel from '@views/db-manage/common/model/sql-file/SqlFile';
 
   import Editor from '../editor/Index.vue';
+  import MessageList from '../editor/MessageList.vue';
   import useEditableFileContent from '../hooks/useEditableFileContent';
   import RenderFileList from '../RenderFileList.vue';
 
   import SyntaxChecking from './components/SyntaxChecking.vue';
   import SyntaxError from './components/SyntaxError.vue';
-  import SyntaxSuccess from './components/SyntaxSuccess.vue';
 
   interface Props {
     clusterVersionList: string[];

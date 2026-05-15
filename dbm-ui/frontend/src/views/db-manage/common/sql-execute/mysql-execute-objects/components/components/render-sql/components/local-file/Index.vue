@@ -67,7 +67,7 @@
         </div>
         <template v-else>
           <Checking v-if="selectFileData.state === SqlFileModel.CHECKING" />
-          <CheckSuccess
+          <MessageList
             v-if="
               selectFileData.state === SqlFileModel.SUCCESS &&
               selectFileData.messageList.filter((m) => m.type === 'error').length === 0 &&
@@ -111,12 +111,12 @@
   import SqlFileModel from '@views/db-manage/common/model/sql-file/SqlFile';
 
   import Editor from '../editor/Index.vue';
+  import MessageList from '../editor/MessageList.vue';
   import useEditableFileContent from '../hooks/useEditableFileContent';
   import RenderFileList from '../RenderFileList.vue';
 
   import CheckError from './components/CheckError.vue';
   import Checking from './components/Checking.vue';
-  import CheckSuccess from './components/CheckSuccess.vue';
 
   interface Props {
     clusterVersionList: string[];
