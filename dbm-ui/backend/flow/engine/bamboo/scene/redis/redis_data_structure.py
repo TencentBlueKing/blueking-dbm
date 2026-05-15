@@ -133,28 +133,29 @@ class RedisDataStructureFlow(object):
         Can be embedded into another pipeline (e.g. rollback exercise)
         without spawning a separate FlowTree.
         """
-        is_drill = self.data.get("is_rollback_drill", False)
         logger.info("redis_data_structure_flow info:{}".format(info))
-        redis_pipeline, act_kwargs = self.__init_builder(_("REDIS_DATA_STRUCTURE"), info)
+        redis_pipeline, act_kwargs, cluster_ticket_data = self.__init_builder(_("REDIS_DATA_STRUCTURE"), info)
+        is_drill = cluster_ticket_data.get("is_rollback_drill", False)
         cluster_type = act_kwargs.cluster["cluster_type"]
 
-        # 屏蔽临时主机告警，避免数据构造期间临时实例上报噪声告警
         temp_host_ips = [host["ip"] for host in info["redis"]]
-        shield_duration_seconds = int(self.data.get("alarm_shield_duration_seconds", 2 * 3600))
-        shield_kwargs = deepcopy(act_kwargs)
-        redis_pipeline.add_act(
-            act_name=_("屏蔽临时主机告警-{}").format(temp_host_ips),
-            act_component_code=AddAlarmShieldComponent.code,
-            kwargs={
-                **asdict(shield_kwargs),
-                "description": _("Redis数据构造-屏蔽告警-{}").format(act_kwargs.cluster["domain_name"]),
-                "dimensions": [
-                    {"name": "appid", "values": [str(act_kwargs.cluster["bk_biz_id"])]},
-                    {"name": "bk_target_ip", "values": temp_host_ips},
-                ],
-                "duration_seconds": shield_duration_seconds,
-            },
-        )
+        if not is_drill:
+            # 屏蔽临时主机告警，避免数据构造期间临时实例上报噪声告警
+            shield_duration_seconds = int(cluster_ticket_data.get("alarm_shield_duration_seconds", 2 * 3600))
+            shield_kwargs = deepcopy(act_kwargs)
+            redis_pipeline.add_act(
+                act_name=_("屏蔽临时主机告警-{}").format(temp_host_ips),
+                act_component_code=AddAlarmShieldComponent.code,
+                kwargs={
+                    **asdict(shield_kwargs),
+                    "description": _("Redis数据构造-屏蔽告警-{}").format(act_kwargs.cluster["domain_name"]),
+                    "dimensions": [
+                        {"name": "appid", "values": [str(act_kwargs.cluster["bk_biz_id"])]},
+                        {"name": "bk_target_ip", "values": temp_host_ips},
+                    ],
+                    "duration_seconds": shield_duration_seconds,
+                },
+            )
         # 获取 kvstorecount
         redis_config = self.__get_cluster_config(
             str(act_kwargs.cluster["bk_biz_id"]),
@@ -167,7 +168,7 @@ class RedisDataStructureFlow(object):
         if is_tendisplus_instance_type(act_kwargs.cluster["cluster_type"]):
             logger.info("redis_data_structure_flow kvstorecount:{}".format(redis_config["kvstorecount"]))
             act_kwargs.cluster["kvstorecount"] = redis_config["kvstorecount"]
-        act_kwargs.cluster["ticket_type"] = self.data["ticket_type"]
+        act_kwargs.cluster["ticket_type"] = cluster_ticket_data["ticket_type"]
 
         cluster_kwargs = deepcopy(act_kwargs)
         # 源节点列表
@@ -226,7 +227,7 @@ class RedisDataStructureFlow(object):
             instance_numb = avg + 1 if index < remainder else avg
             sub_builder = RedisBatchInstallAtomJob(
                 self.root_id,
-                self.data,  # ticket-based biz id
+                cluster_ticket_data,  # ticket/global data scoped to current cluster
                 act_kwargs,  # cluster-based biz id
                 {
                     "ip": new_master,
@@ -303,7 +304,7 @@ class RedisDataStructureFlow(object):
             kwargs=asdict(
                 DownloadBackupClientKwargs(
                     bk_cloud_id=act_kwargs.cluster["bk_cloud_id"],
-                    bk_biz_id=int(self.data["bk_biz_id"]),
+                    bk_biz_id=int(cluster_ticket_data["bk_biz_id"]),
                     ip_list=new_master_list,
                 ),
             ),
@@ -362,7 +363,7 @@ class RedisDataStructureFlow(object):
             # 这里可以一次下载，不用按端口分批下载
             sub_builder = redis_backupfile_download(
                 self.root_id,
-                self.data,
+                cluster_ticket_data,
                 info,
                 {
                     "source_ip": data_params["source_ip"],
@@ -395,7 +396,7 @@ class RedisDataStructureFlow(object):
         # # ### cc 转移机器模块完成 ############################################################
 
         # 人工确认文件下发完成的节点
-        if not self.data.get("skip_mannual_confirm", False):
+        if not cluster_ticket_data.get("skip_mannual_confirm", False):
             redis_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
         # ### 如果是tendisplus,需要构建tendis cluster关系 ############################################################
@@ -442,12 +443,13 @@ class RedisDataStructureFlow(object):
             act_name=_("写入构造记录元数据"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
         )
 
-        # 解除临时主机告警屏蔽
-        redis_pipeline.add_act(
-            act_name=_("解除临时主机告警屏蔽-{}").format(temp_host_ips),
-            act_component_code=DisableAlarmShieldComponent.code,
-            kwargs=asdict(act_kwargs),
-        )
+        if not is_drill:
+            # 解除临时主机告警屏蔽
+            redis_pipeline.add_act(
+                act_name=_("解除临时主机告警屏蔽-{}").format(temp_host_ips),
+                act_component_code=DisableAlarmShieldComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
 
         return redis_pipeline.build_sub_process(sub_name=_("集群[{}]数据构造").format(act_kwargs.cluster["domain_name"]))
 
@@ -730,10 +732,11 @@ class RedisDataStructureFlow(object):
         logger.info(_("__init_builder_cluster_info: {}".format(cluster_info)))
 
         ticket_bk_biz_id = self.data["bk_biz_id"]
-        self.data.update(cluster_info)
-        self.data["bk_biz_id"] = ticket_bk_biz_id  # 保留原始业务ID
+        cluster_ticket_data = deepcopy(self.data)
+        cluster_ticket_data.update(cluster_info)
+        cluster_ticket_data["bk_biz_id"] = ticket_bk_biz_id  # 保留原始业务ID
 
-        redis_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
+        redis_pipeline = SubBuilder(root_id=self.root_id, data=cluster_ticket_data)
         trans_files = GetFileList(db_type=DBType.Redis)
         act_kwargs = ActKwargs()
         act_kwargs.set_trans_data_dataclass = RedisDataStructureContext.__name__
@@ -749,7 +752,7 @@ class RedisDataStructureFlow(object):
         redis_pipeline.add_act(
             act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
         )
-        return redis_pipeline, act_kwargs
+        return redis_pipeline, act_kwargs, cluster_ticket_data
 
     def __get_cluster_config(
         self, bk_biz_id: str, domain_name: str, db_version: str, conf_type: str, namespace: str

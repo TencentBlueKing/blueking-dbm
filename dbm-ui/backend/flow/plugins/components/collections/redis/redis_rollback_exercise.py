@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging
+import shlex
 from datetime import datetime
 from typing import Optional
 
@@ -353,20 +354,12 @@ class RedisExerciseFlowRunnerComponent(Component):
     bound_service = RedisExerciseFlowRunnerService
 
 
-_KILL_SCRIPT = (
-    "pkill -f redis-server || true; "
-    "pkill -f tendisplus || true; "
-    "pkill -f nutcracker || true; "
-    "pkill -f predixy || true"
-)
-
-
 class RedisExerciseBestEffortCleanupService(RedisLogCapturingService, BkJobService):
     """Best-effort cleanup for exercise failures.
 
     Runs at the main pipeline level after all per-cluster sub-flows complete.
     Uses BkJobService's built-in __need_schedule__ + _schedule polling to:
-      1. Submit a pkill job targeting all temp hosts (_execute_inner_captured)
+      1. Submit a guarded per-port cleanup job targeting temp hosts (_execute_inner_captured)
       2. Poll until the job completes (_schedule from BkJobService)
       3. After job completes: decommission metadata, clean TbTendisRollbackTasks,
          reconcile reports (last, to capture as many logs as possible)
@@ -377,47 +370,284 @@ class RedisExerciseBestEffortCleanupService(RedisLogCapturingService, BkJobServi
     __need_schedule__ = True
     interval = StaticIntervalGenerator(5)
 
-    def _execute_inner_captured(self, data, parent_data) -> bool:
-        global_data = data.get_one_of_inputs("global_data")
-        infos = global_data.get("infos", [])
+    @staticmethod
+    def _parse_ip_port(instance):
+        if not isinstance(instance, str):
+            return None
+        ip, sep, port = instance.rpartition(":")
+        if not sep:
+            return None
+        try:
+            return ip, int(port)
+        except (TypeError, ValueError):
+            return None
 
-        self.log_info(_("Step 1/4: Collecting cleanup targets from StorageInstance metadata"))
+    @classmethod
+    def _parse_instance_set(cls, instances) -> set:
+        parsed = set()
+        if isinstance(instances, dict):
+            iterator = []
+            for key, value in instances.items():
+                if isinstance(key, str):
+                    iterator.append(key)
+                if isinstance(value, (list, tuple, set)):
+                    iterator.extend(value)
+                else:
+                    iterator.append(value)
+        elif isinstance(instances, (list, tuple, set)):
+            iterator = instances
+        else:
+            iterator = []
+
+        for instance in iterator:
+            parsed_instance = cls._parse_ip_port(instance)
+            if parsed_instance:
+                parsed.add(parsed_instance)
+        return parsed
+
+    @classmethod
+    def _parse_prod_temp_pairs(cls, pairs) -> tuple:
+        prod_addrs, temp_addrs = set(), set()
+        if isinstance(pairs, dict):
+            iterator = pairs.items()
+        elif isinstance(pairs, (list, tuple, set)):
+            iterator = pairs
+        else:
+            iterator = []
+
+        for pair in iterator:
+            if not isinstance(pair, (list, tuple)) or len(pair) < 2:
+                continue
+            prod_addr = cls._parse_ip_port(pair[0])
+            temp_addr = cls._parse_ip_port(pair[1])
+            if prod_addr:
+                prod_addrs.add(prod_addr)
+            if temp_addr:
+                temp_addrs.add(temp_addr)
+        return prod_addrs, temp_addrs
+
+    def _get_task_temp_ports(self, ticket_id, bk_biz_id, cluster_id, temp_host_ip: str) -> list:
+        if not ticket_id or not bk_biz_id or not cluster_id:
+            return []
+        tasks = TbTendisRollbackTasks.objects.filter(
+            related_rollback_bill_id=ticket_id,
+            bk_biz_id=bk_biz_id,
+            prod_cluster_id=cluster_id,
+        )
+        ports = set()
+        for task in tasks:
+            task_temp_addrs = self._parse_instance_set(task.temp_instance_range)
+            task_prod_addrs = self._parse_instance_set(task.prod_instance_range)
+            pair_prod_addrs, pair_temp_addrs = self._parse_prod_temp_pairs(task.prod_temp_instance_pairs)
+            if not pair_temp_addrs:
+                self.log_warning(
+                    _("Rollback task {} has no prod/temp instance pairs, skipping work-dir cleanup").format(task.id)
+                )
+                continue
+
+            allowed_temp_addrs = task_temp_addrs & pair_temp_addrs
+            unsafe_addrs = allowed_temp_addrs & (task_prod_addrs | pair_prod_addrs)
+            if unsafe_addrs:
+                self.log_warning(
+                    _("Rollback task {} temp addresses overlap source/prod addresses {}, skipping them").format(
+                        task.id, sorted("{}:{}".format(ip, port) for ip, port in unsafe_addrs)
+                    )
+                )
+                allowed_temp_addrs -= unsafe_addrs
+
+            for ip, port in allowed_temp_addrs:
+                if ip == temp_host_ip:
+                    ports.add(port)
+        return sorted(ports)
+
+    def _collect_cleanup_hosts(self, global_data: dict) -> list:
+        ticket_id = global_data.get("uid")
+        ticket_bk_biz_id = global_data.get("bk_biz_id")
         cleanup_hosts = []
-        for info in infos:
+
+        for info in global_data.get("infos", []):
             resource_applied = info.get("redis", [])
             if not resource_applied:
                 continue
             temp_host_ip = resource_applied[0]["ip"]
-            cluster = Cluster.objects.get(id=info["cluster_id"])
-            bk_cloud_id = cluster.bk_cloud_id
 
-            instances = StorageInstance.objects.filter(machine__ip=temp_host_ip, machine__bk_cloud_id=bk_cloud_id)
-            if not instances.exists():
-                cleanup_hosts.append({"ip": temp_host_ip, "bk_cloud_id": bk_cloud_id, "ports": []})
-                self.log_warning(
-                    _("No StorageInstance on {}, but will still send kill job in case processes are running").format(
-                        temp_host_ip
+            try:
+                cluster = Cluster.objects.get(id=info["cluster_id"])
+            except Exception as e:
+                self.log_warning(_("Failed to load cluster {}: {}").format(info.get("cluster_id"), e))
+                continue
+
+            instances = list(
+                StorageInstance.objects.filter(machine__ip=temp_host_ip, machine__bk_cloud_id=cluster.bk_cloud_id)
+            )
+            has_unexpected_cluster_binding = False
+            for inst in instances:
+                bound_cluster_ids = set(inst.cluster.values_list("id", flat=True))
+                unexpected_cluster_ids = bound_cluster_ids - {cluster.id}
+                if unexpected_cluster_ids:
+                    self.log_warning(
+                        _(
+                            "StorageInstance {}:{} is associated with unexpected cluster(s) {}, "
+                            "skipping cleanup to protect production data"
+                        ).format(temp_host_ip, inst.port, sorted(unexpected_cluster_ids))
                     )
+                    has_unexpected_cluster_binding = True
+                    break
+            if has_unexpected_cluster_binding:
+                continue
+
+            ports = self._get_task_temp_ports(ticket_id, ticket_bk_biz_id, cluster.id, temp_host_ip)
+            source_instance = self._parse_ip_port("{}:{}".format(info.get("instance_ip"), info.get("instance_port")))
+            if source_instance and source_instance[0] == temp_host_ip and source_instance[1] in ports:
+                self.log_warning(
+                    _(
+                        "Cleanup target {}:{} matches the drill source instance, "
+                        "removing it from work-dir cleanup targets"
+                    ).format(source_instance[0], source_instance[1])
+                )
+                ports = [port for port in ports if port != source_instance[1]]
+            if not ports:
+                self.log_warning(
+                    _("No rollback task temp ports found for {}, skipping work-dir cleanup").format(temp_host_ip)
                 )
                 continue
 
-            has_cluster_binding = False
-            for inst in instances:
-                if inst.cluster.count() > 0:
-                    self.log_warning(
-                        _(
-                            "StorageInstance {}:{} is associated with a cluster, "
-                            "skipping cleanup to protect production data"
-                        ).format(temp_host_ip, inst.port)
-                    )
-                    has_cluster_binding = True
-                    break
-            if has_cluster_binding:
-                continue
+            cleanup_hosts.append({"ip": temp_host_ip, "bk_cloud_id": cluster.bk_cloud_id, "ports": ports})
+            self.log_info(
+                _("Will clean up {} in bk_cloud_id {} (ports: {})").format(temp_host_ip, cluster.bk_cloud_id, ports)
+            )
 
-            ports = list(instances.values_list("port", flat=True))  # len(ports) should be 1
-            cleanup_hosts.append({"ip": temp_host_ip, "bk_cloud_id": bk_cloud_id, "ports": ports})
-            self.log_info(_("Will clean up {} (ports: {})").format(temp_host_ip, ports))
+        return cleanup_hosts
+
+    @staticmethod
+    def _build_cleanup_script(cleanup_hosts: list) -> str:
+        host_cases = []
+        for host in cleanup_hosts:
+            ports = " ".join(str(port) for port in sorted(host["ports"]))
+            host_cases.append(
+                "    {}) cleanup_ports={}; matched_ip={}; break ;;".format(
+                    shlex.quote(host["ip"]),
+                    shlex.quote(ports),
+                    shlex.quote(host["ip"]),
+                )
+            )
+        case_body = "\n".join(host_cases) or "    *) cleanup_ports='' ;;"
+
+        return """current_ips="$(hostname -I 2>/dev/null || true)"
+if command -v ip >/dev/null 2>&1; then
+  current_ips="$current_ips $(ip -o -4 addr show 2>/dev/null | awk '{{print $4}}' | cut -d/ -f1 || true)"
+fi
+cleanup_ports=""
+matched_ip=""
+for current_ip in $current_ips; do
+  case "$current_ip" in
+{case_body}
+  esac
+done
+
+if [ -z "$cleanup_ports" ]; then
+  echo "No allowlisted redis work dirs for this host, skip work-dir cleanup"
+  exit 0
+fi
+
+if [ -n "$REDIS_DATA_DIR" ]; then
+  data_root="$REDIS_DATA_DIR"
+elif [ -d /data1/redis ]; then
+  data_root="/data1"
+elif [ -d /data/redis ]; then
+  data_root="/data"
+else
+  echo "No redis data dir found on $matched_ip, skip work-dir cleanup"
+  exit 0
+fi
+
+redis_dir="$data_root/redis"
+backend_pattern=""
+for port in $cleanup_ports; do
+  if [ -z "$backend_pattern" ]; then
+    backend_pattern="$matched_ip:$port"
+  else
+    backend_pattern="$backend_pattern|$matched_ip:$port"
+  fi
+done
+
+for port in $cleanup_ports; do
+  case "$port" in
+    ""|*[!0-9]*)
+      echo "Skip invalid redis port: $port"
+      continue
+      ;;
+  esac
+
+  inst_dir="$redis_dir/$port"
+  case "$inst_dir" in
+    "$redis_dir"/[0-9]*) ;;
+    *)
+      echo "Unsafe redis work dir $inst_dir, skip"
+      continue
+      ;;
+  esac
+
+  if [ ! -d "$inst_dir" ]; then
+    echo "Redis work dir $inst_dir does not exist, skip"
+    continue
+  fi
+
+  conf_file="$inst_dir/redis.conf"
+  if [ -f "$conf_file" ] && ! grep -Eq "^[[:space:]]*port[[:space:]]+$port([[:space:]]|$)" "$conf_file"; then
+    echo "Redis work dir $inst_dir has mismatched redis.conf port, skip"
+    continue
+  fi
+
+  echo "Stop allowlisted redis processes for $inst_dir / port $port"
+  pkill -f "$inst_dir" 2>/dev/null || true
+  pkill -f "(redis-server|tendis[a-z_+-]*).*[.:]$port([^0-9]|$)" 2>/dev/null || true
+  pkill -f "$data_root/(predixy|twemproxy-0.2.4)/[0-9]+/" 2>/dev/null || true
+  sleep 3
+
+  if ps -ef | grep -E "($inst_dir|(redis-server|tendis[a-z_+-]*).*[.:]$port([^0-9]|$))" | grep -v grep; then
+    echo "Allowlisted redis process still exists for port $port, skip $inst_dir"
+    continue
+  fi
+
+  echo "Remove allowlisted redis work dir $inst_dir"
+  rm -rf -- "$inst_dir"
+done
+
+for proxy_dir in /data1/predixy/[0-9]* /data/predixy/[0-9]* /data1/twemproxy-0.2.4/[0-9]* /data/twemproxy-0.2.4/[0-9]*; do
+  [ -d "$proxy_dir" ] || continue
+  case "$proxy_dir" in
+    /data1/predixy/[0-9]*|/data/predixy/[0-9]*|/data1/twemproxy-0.2.4/[0-9]*|/data/twemproxy-0.2.4/[0-9]*) ;;
+    *)
+      echo "Unsafe proxy work dir $proxy_dir, skip"
+      continue
+      ;;
+  esac
+  if ! grep -RqsE "$backend_pattern" "$proxy_dir"; then
+    echo "Proxy work dir $proxy_dir does not reference allowlisted backends, skip"
+    continue
+  fi
+
+  echo "Stop allowlisted proxy process for $proxy_dir"
+  pkill -f "$proxy_dir/" 2>/dev/null || true
+  sleep 2
+  if ps -ef | grep -F "$proxy_dir/" | grep -v grep; then
+    echo "Proxy process still exists for $proxy_dir, skip removal"
+    continue
+  fi
+
+  echo "Remove allowlisted proxy work dir $proxy_dir"
+  rm -rf -- "$proxy_dir"
+done
+""".format(
+            case_body=case_body,
+        )
+
+    def _execute_inner_captured(self, data, parent_data) -> bool:
+        global_data = data.get_one_of_inputs("global_data") or {}
+
+        self.log_info(_("Step 1/4: Collecting cleanup targets from rollback task metadata"))
+        cleanup_hosts = self._collect_cleanup_hosts(global_data)
 
         data.outputs.cleanup_hosts = cleanup_hosts
 
@@ -432,7 +662,7 @@ class RedisExerciseBestEffortCleanupService(RedisLogCapturingService, BkJobServi
             "bk_scope_type": "biz_set",
             "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": "DBM_drill_cleanup",
-            "script_content": base64_encode(_KILL_SCRIPT),
+            "script_content": base64_encode(self._build_cleanup_script(cleanup_hosts)),
             "script_language": 1,
             "target_server": {"ip_list": target_ips},
         }
