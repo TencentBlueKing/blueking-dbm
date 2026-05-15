@@ -13,6 +13,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, Union
 
+from django.db import transaction
 from django.utils.translation import gettext as _
 
 from backend import env
@@ -120,25 +121,29 @@ class InnerFlow(BaseTicketFlow):
     def set_inner_flow_todo(self, status):
         """更新任务流程的todo状态"""
         todo_status = INNER_FLOW_TODO_STATUS_MAP.get(status, TodoStatus.DONE_SUCCESS)
-        fail_todo = self.flow_obj.todo_of_flow.filter(type=TodoType.INNER_FAILED).first()
-        # 如果任务失败，且不存在todo，则创建一条
-        if not fail_todo and todo_status == TodoStatus.TODO:
-            Todo.objects.create(
-                name=_("【{}】单据任务执行失败，待处理").format(self.ticket.get_ticket_type_display()),
-                flow=self.flow_obj,
-                ticket=self.ticket,
-                type=TodoType.INNER_FAILED,
-                context=BaseTodoContext(self.flow_obj.id, self.ticket.id).to_dict(),
-                status=TodoStatus.TODO,
-            )
-        # 存在todo则变更状态
-        if fail_todo and fail_todo.status != todo_status:
-            try:
-                local_request = local.request
-                operator = local_request.user.username if local_request else ""
-            except (AttributeError, Exception):
-                operator = ""
-            fail_todo.set_status(operator, todo_status)
+        with transaction.atomic():
+            flow = Flow.objects.select_for_update().get(pk=self.flow_obj.pk)
+            fail_todo = flow.todo_of_flow.filter(type=TodoType.INNER_FAILED).first()
+
+            # 如果任务失败，且不存在todo，则创建一条
+            if not fail_todo and todo_status == TodoStatus.TODO:
+                Todo.objects.create(
+                    name=_("【{}】单据任务执行失败，待处理").format(self.ticket.get_ticket_type_display()),
+                    flow=flow,
+                    ticket=self.ticket,
+                    type=TodoType.INNER_FAILED,
+                    context=BaseTodoContext(flow.id, self.ticket.id).to_dict(),
+                    status=TodoStatus.TODO,
+                )
+
+            # 存在todo 且状态需要变更，则更新状态
+            if fail_todo and fail_todo.status != todo_status:
+                try:
+                    local_request = local.request
+                    operator = local_request.user.username if local_request else ""
+                except (AttributeError, Exception):
+                    operator = ""
+                fail_todo.set_status(operator, todo_status)
 
     def check_exclusive_operations(self):
         """判断执行互斥"""
