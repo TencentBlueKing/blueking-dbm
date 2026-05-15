@@ -37,7 +37,8 @@
             required>
             <BkSwitcher
               v-model="formData.isEnable"
-              theme="primary" />
+              theme="primary"
+              @change="handleEnableChange" />
           </DbFormItem>
           <DbFormItem
             :label="t('提醒时间')"
@@ -184,8 +185,11 @@
       required: true,
       trigger: 'change',
       validator: () => {
-        const { checkbox, input } = formData.notice;
-        return Object.values(checkbox).some((item) => item) || Object.values(input).some((item) => item);
+        if (formData.isEnable) {
+          const { checkbox, input } = formData.notice;
+          return Object.values(checkbox).some((item) => item) || Object.values(input).some((item) => item);
+        }
+        return true;
       },
     },
   ];
@@ -289,6 +293,10 @@
   const getData = () => {
     runGetTodoRemind();
     runGetAlarmGroupNotifyList({});
+  };
+
+  const handleEnableChange = () => {
+    formRef.value!.validate('notice');
   };
 
   const handleCheckboxChange = () => {
@@ -469,6 +477,10 @@
         font-size: 14px;
         color: #979ba5;
         flex-shrink: 0;
+      }
+
+      .bk-form-item.is-error .bk-input {
+        border-color: #c4c6cc;
       }
 
       .notice-table {
