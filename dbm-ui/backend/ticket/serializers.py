@@ -203,6 +203,11 @@ class TicketFlowSerializer(TranslationSerializerMixin, serializers.ModelSerializ
     def get_flow_type_display(self, obj):
         # 暂停节点的flow描述返回单据类型，供前端渲染
         if obj.flow_type == FlowType.PAUSE.value:
+            next_flow = Flow.objects.filter(
+                ticket=obj.ticket, id__gt=obj.id, flow_type=FlowType.INNER_FLOW.value
+            ).first()
+            if next_flow:
+                return next_flow.flow_alias or obj.get_flow_type_display()
             return obj.ticket.get_ticket_type_display()
         return obj.flow_alias or obj.get_flow_type_display()
 
