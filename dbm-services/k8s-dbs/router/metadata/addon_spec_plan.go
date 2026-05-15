@@ -35,8 +35,7 @@ func BuildAddonSpecPlanMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	addonSpecPlanMetaController := buildAddonSpecPlanController(db)
 	addonSpecPlanMetaGroup := metaRouter.Group("/addon_spec_plan")
 	{
-		addonSpecPlanMetaGroup.GET("", addonSpecPlanMetaController.ListAddonSpecPlans)
-		addonSpecPlanMetaGroup.GET("/:id", addonSpecPlanMetaController.GetAddonSpecPlan)
+		addonSpecPlanMetaGroup.GET("", addonSpecPlanMetaController.GetAddonSpecPlan)
 		addonSpecPlanMetaGroup.DELETE("/:id", addonSpecPlanMetaController.DeleteAddonSpecPlan)
 		addonSpecPlanMetaGroup.POST("", addonSpecPlanMetaController.CreateAddonSpecPlan)
 		addonSpecPlanMetaGroup.PUT("/:id", addonSpecPlanMetaController.UpdateAddonSpecPlan)
@@ -46,7 +45,16 @@ func BuildAddonSpecPlanMetaRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 // buildAddonController 构建 Addon Controller
 func buildAddonSpecPlanController(db *gorm.DB) *metacontroller.AddonSpecPlanController {
 	addonSpecPlanMetaDbAccess := metadbaccess.GetAddonSpecPlanDbAccess(db)
-	addonSpecPlanMetaProvider := metaprovider.GetAddonSpecPlanProvider(addonSpecPlanMetaDbAccess)
+	storageAddonDbAccess := metadbaccess.GetStorageAddonDbAccess(db)
+	componentSpecPlanDbAccess := metadbaccess.GetComponentSpecPlanDbAccess(db)
+
+	specPlanProviderBuilder := metaprovider.AddonSpecPlanProviderBuilder{}
+	addonSpecPlanMetaProvider := metaprovider.GetAddonSpecPlanProvider(
+		specPlanProviderBuilder.WithSpecPlanDbAccess(addonSpecPlanMetaDbAccess),
+		specPlanProviderBuilder.WithStorageAddonDbAccess(storageAddonDbAccess),
+		specPlanProviderBuilder.WithComponentSpecPlanDbAccess(componentSpecPlanDbAccess),
+	)
+
 	addonSpecPlanMetaController := metacontroller.NewAddonSpecPlanController(addonSpecPlanMetaProvider)
 	return addonSpecPlanMetaController
 }

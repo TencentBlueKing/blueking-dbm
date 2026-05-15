@@ -70,8 +70,12 @@ func (suite *AddonSpecPlanProviderTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dbAccess := dbaccess.GetAddonSpecPlanDbAccess(db)
-	suite.addonSpecPlanProvider = provider.GetAddonSpecPlanProvider(dbAccess)
+	specPlanProviderBuilder := provider.AddonSpecPlanProviderBuilder{}
+	suite.addonSpecPlanProvider = provider.GetAddonSpecPlanProvider(
+		specPlanProviderBuilder.WithSpecPlanDbAccess(dbaccess.GetAddonSpecPlanDbAccess(db)),
+		specPlanProviderBuilder.WithStorageAddonDbAccess(dbaccess.GetStorageAddonDbAccess(db)),
+		specPlanProviderBuilder.WithComponentSpecPlanDbAccess(dbaccess.GetComponentSpecPlanDbAccess(db)),
+	)
 }
 
 func (suite *AddonSpecPlanProviderTestSuite) TearDownSuite() {

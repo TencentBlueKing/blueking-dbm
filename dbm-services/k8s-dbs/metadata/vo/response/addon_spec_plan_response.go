@@ -37,3 +37,24 @@ type AddonSpecPlanResponse struct {
 	UpdatedBy      string                 `json:"updatedBy"`
 	UpdatedAt      commtypes.JSONDatetime `json:"updatedAt"`
 }
+
+// ComponentSpecBriefResponse 套餐组件简要信息
+type ComponentSpecBriefResponse struct {
+	ID            uint64 `json:"id"`
+	ComponentName string `json:"componentName"`
+	CPUCores      *int   `json:"cpuCores"`
+	MemoryGb      *int   `json:"memoryGb"`
+	DiskSizeGb    *int   `json:"diskSizeGb"`
+}
+
+// AddonSpecPlanDetailResponse addon 套餐配置（含组件）的详情响应
+type AddonSpecPlanDetailResponse struct {
+	ID             uint64                       `json:"id"`
+	AddonType      string                       `json:"addonType"`
+	AddonVersion   string                       `json:"addonVersion"`
+	AddonTopology  string                       `json:"addonTopology"`
+	DbmClusterType string                       `json:"dbmClusterType"`
+	SpecLevel      string                       `json:"specLevel"`
+	SpecLevelAlias string                       `json:"specLevelAlias"`
+	Components     []ComponentSpecBriefResponse `json:"components"`
+}

@@ -23,11 +23,18 @@ import (
 	commentity "k8s-dbs/common/entity"
 )
 
-// AddonSpecPlanRequest represents the request data structure of addon spec plan.
+// AddonSpecPlanRequest 新增存储套餐配置请求结构体
 type AddonSpecPlanRequest struct {
 	AddonID           uint64 `json:"addonId"`
 	AddonTopology     string `json:"addonTopology"`
 	SpecLevel         string `json:"specLevel"`
 	SpecLevelAlias    string `json:"specLevelAlias"`
 	commentity.BKAuth `json:",inline"`
+}
+
+// GetAddonSpecPlanRequest 获取存储套餐配置请求结构体
+type GetAddonSpecPlanRequest struct {
+	AddonType     string `json:"addonType" form:"addonType"`
+	AddonVersion  string `json:"addonVersion" form:"addonVersion"`
+	AddonTopology string `json:"addonTopology" form:"addonTopology"`
 }
