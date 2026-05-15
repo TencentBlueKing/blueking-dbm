@@ -10,6 +10,8 @@
 - `start-server.sh`: 启动 server 侧服务（admin/receiver/analysis）
 - `stop-server.sh`: 停止 server 侧服务（admin/receiver/analysis）
 - `start-probe.sh`: 启动 probe 服务
+- `start-probe-keepalive.sh`: 后台启动 probe keepalive 模式（ping-only）
+- `stop-probe-keepalive.sh`: 停止 keepalive 模式并注销 crontab 守护
 - `stop-probe.sh`: 停止 probe 服务
 - `install-libs.sh`: 安装构建依赖（abseil/protobuf/protoc 插件）
 - `devenv.rc`: 本地开发环境变量示例
@@ -91,11 +93,13 @@ python3 scripts/render_configs.py --module server \
   - 安装/更新 `admin.yaml`、`receiver.yaml`、`analysis.yaml`
   - 安装 `setup.sh`、`start-server.sh`、`stop-server.sh`、`deploy.sh`
   - 处理 `toolkits/`（部署与备份）
+  - 依赖 `lib/guard-utils.sh`，发布包需包含 `lib/` 目录
 - `probe`:
   - 安装/更新 `dbha-probe`
   - 安装/更新 `probe.yaml`
-  - 安装 `start-probe.sh`、`stop-probe.sh`、`deploy.sh`
+  - 安装 `start-probe.sh`、`stop-probe.sh`、`start-probe-keepalive.sh`、`stop-probe-keepalive.sh`、`deploy.sh`
   - 不安装 `setup.sh`，不处理 `toolkits/`
+  - 依赖 `lib/guard-utils.sh`，发布包需包含 `scripts/lib/` 目录
 
 ### 示例
 
@@ -133,21 +137,70 @@ cd /usr/local/dbha-v2
 ## start-server.sh / stop-server.sh
 
 用于批量管理 server 侧三个服务：`admin`、`receiver`、`analysis`。
+脚本会注册/注销 crontab 守护，并在执行时同时打屏和写系统日志：
+`${DBHA_LOG_ROOT:-${XDG_STATE_HOME:-$HOME/.local/state}/dbha-v2/logs}/dbha-v2-admin.log`、
+`${DBHA_LOG_ROOT:-${XDG_STATE_HOME:-$HOME/.local/state}/dbha-v2/logs}/dbha-v2-receiver.log`、
+`${DBHA_LOG_ROOT:-${XDG_STATE_HOME:-$HOME/.local/state}/dbha-v2/logs}/dbha-v2-analysis.log`。
+`start-server.sh` 支持 `--service` 精确启动单个服务，并对空值/越界参数直接报错退出。
 
 ```bash
 cd /usr/local/dbha-v2
 ./start-server.sh
 ./stop-server.sh
+
+# 仅启动单个服务
+./start-server.sh --service admin
+./start-server.sh --from-cron --service receiver
 ```
 
-## start-probe.sh / stop-probe.sh
+`--service` 错误示例：
 
-用于管理 probe 服务。
+```bash
+# invalid
+./start-server.sh --service
+./start-server.sh --service --from-cron
+```
+
+## start-probe.sh / stop-probe.sh / start-probe-keepalive.sh / stop-probe-keepalive.sh
+
+用于管理 probe 服务。`start-probe-keepalive.sh` 和 `stop-probe-keepalive.sh` 用于 keepalive 模式外部托管。
+keepalive 启动后会注册每分钟巡检的 crontab 守护项（单实例覆盖），进程异常退出后自动拉起。
+`--ping-http-addr` 必须是 `host:port` 或 `[host]:port` 格式，端口范围 `1-65535`；IPv6 地址须使用方括号格式。
+keepalive 启动后会执行短轮询存活校验（进程存在 + 参数命中 + 目标进程校验）；校验失败会自动清理 PID/ADDR 状态文件并返回失败。
+keepalive 停止时会先终止目标进程并复查，再清理状态文件，避免遗留孤儿进程。
+`start-probe.sh` / `stop-probe.sh` 也会注册/注销 probe 常驻守护，并将关键步骤同时打屏和写入
+`${DBHA_LOG_ROOT:-${XDG_STATE_HOME:-$HOME/.local/state}/dbha-v2/logs}/dbha-v2-probe.log`。
+所有 start/stop 脚本的 crontab 注销均按 marker 精确过滤后回写，不执行全量删除操作。
+guard 进程识别基于 `ps args` 子串启发式（匹配 `daemon-start -c <配置文件路径>`），如自定义启动方式需保持该参数形态；可用 `ps -ef | grep dbha-` 与 `crontab -l | grep DBHA_V2_` 核对。
 
 ```bash
 cd /usr/local/dbha-v2
 ./start-probe.sh
+./start-probe-keepalive.sh --ping-http-addr 127.0.0.1:18080
+./stop-probe-keepalive.sh
 ./stop-probe.sh
+```
+
+地址参数示例：
+
+```bash
+# valid
+./start-probe-keepalive.sh --ping-http-addr 127.0.0.1:18080
+./start-probe-keepalive.sh --ping-http-addr localhost:5001
+./start-probe-keepalive.sh --ping-http-addr [::1]:18080
+
+# invalid
+./start-probe-keepalive.sh --ping-http-addr 127.0.0.1
+./start-probe-keepalive.sh --ping-http-addr 1.1.1.1:70000
+./start-probe-keepalive.sh --ping-http-addr ::1:18080
+```
+
+keepalive 校验：
+
+```bash
+curl http://127.0.0.1:18080/ping
+ps -ef | grep dbha-v2-keepalive
+crontab -l | grep DBHA_PROBE_KEEPALIVE_GUARD
 ```
 
 ## install-libs.sh

@@ -35,6 +35,8 @@ readonly SERVER_SCRIPT_FILES=(
 
 readonly PROBE_SCRIPT_FILES=(
     start-probe.sh
+    start-probe-keepalive.sh
+    stop-probe-keepalive.sh
     stop-probe.sh
     deploy.sh
     render_configs.py
@@ -49,8 +51,6 @@ readonly SERVER_CONF_FILES=(
 readonly PROBE_CONF_FILES=(
     probe.yaml
 )
-
-readonly RUNTIME_DIRS=(logs pids)
 
 #---------------------------------------------------------------
 # Helpers
@@ -144,6 +144,10 @@ validate_source() {
     done
     if [ ${#missing[@]} -gt 0 ]; then
         error "source missing binaries: ${missing[*]}"
+    fi
+
+    if [ ! -f "${src}/lib/guard-utils.sh" ]; then
+        error "source missing required lib script: lib/guard-utils.sh"
     fi
 }
 
@@ -294,6 +298,39 @@ deploy_scripts() {
     info "scripts deployed to ${tgt}/"
 }
 
+deploy_lib() {
+    local src="$1" tgt="$2"
+    if [ ! -d "${src}/lib" ]; then
+        error "source missing lib/ directory: ${src}/lib"
+    fi
+
+    local lib_files lib_scripts target_scripts
+    shopt -s nullglob
+    lib_files=("${src}/lib/"*)
+    lib_scripts=("${src}/lib/"*.sh)
+    shopt -u nullglob
+
+    if [ ${#lib_files[@]} -eq 0 ]; then
+        error "source lib directory is empty: ${src}/lib"
+    fi
+    if [ ${#lib_scripts[@]} -eq 0 ]; then
+        error "source lib directory missing shell scripts: ${src}/lib"
+    fi
+
+    info "deploying lib files ..."
+    mkdir -p "${tgt}/lib"
+    cp -f "${lib_files[@]}" "${tgt}/lib/"
+
+    shopt -s nullglob
+    target_scripts=("${tgt}/lib/"*.sh)
+    shopt -u nullglob
+    if [ ${#target_scripts[@]} -gt 0 ]; then
+        chmod +x "${target_scripts[@]}"
+    fi
+
+    info "lib files deployed to ${tgt}/lib/"
+}
+
 deploy_configs() {
     local src="$1" tgt="$2" module="$3"
     if [ ! -d "${src}/etc" ]; then
@@ -326,13 +363,6 @@ deploy_configs() {
     info "configs deployed to ${tgt}/etc/"
 }
 
-create_runtime_dirs() {
-    local tgt="$1"
-    for d in "${RUNTIME_DIRS[@]}"; do
-        mkdir -p "${tgt}/${d}"
-    done
-}
-
 #---------------------------------------------------------------
 # Mode: install
 #---------------------------------------------------------------
@@ -355,10 +385,10 @@ do_install() {
     fi
 
     mkdir -p "${tgt}"
-    create_runtime_dirs "${tgt}"
     deploy_binaries "${src}" "${tgt}" "${module}"
     deploy_toolkits "${src}" "${tgt}" "${module}"
     deploy_scripts  "${src}" "${tgt}" "${module}"
+    deploy_lib      "${src}" "${tgt}"
     deploy_configs  "${src}" "${tgt}" "${module}"
 
     echo ""
@@ -405,7 +435,7 @@ do_update() {
     deploy_binaries "${src}" "${tgt}" "${module}"
     deploy_toolkits "${src}" "${tgt}" "${module}"
     deploy_scripts  "${src}" "${tgt}" "${module}"
-    create_runtime_dirs "${tgt}"
+    deploy_lib      "${src}" "${tgt}"
 
     if [ "${restart}" = "yes" ]; then
         start_services "${tgt}" "${module}"
