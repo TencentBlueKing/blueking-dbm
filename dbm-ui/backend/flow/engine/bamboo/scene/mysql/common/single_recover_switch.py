@@ -18,7 +18,7 @@ from backend.db_meta.models import Cluster
 from backend.flow.consts import TendbSingleRestoreType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
+from backend.flow.engine.bamboo.scene.mysql.clone_grants_from_file import clone_grants_from_file_subflow
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay import MySQLCheckSlaveDelayComponent
@@ -30,7 +30,6 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     DownloadMediaKwargs,
     ExecActuatorKwargs,
     ExecuteRdsKwargs,
-    InstanceUserCloneKwargs,
     RecycleDnsRecordKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
@@ -103,11 +102,18 @@ def single_migrate_switch_sub_flow(
             ),
         )
 
-    sub_pipeline.add_act(
-        act_name=_("克隆权限"),
-        act_component_code=CloneUserComponent.code,
-        kwargs=asdict(InstanceUserCloneKwargs(clone_data=clone_data)),
-    )
+    if len(clone_data) > 0:
+        for ele in clone_data:
+            sub_pipeline.add_sub_pipeline(
+                sub_flow=clone_grants_from_file_subflow(
+                    root_id=root_id,
+                    data=copy.deepcopy(ticket_data),
+                    bk_cloud_id=cluster.bk_cloud_id,
+                    bk_biz_id=cluster.bk_biz_id,
+                    source_address=ele["source"],
+                    dest_addresses=[new_orphan],
+                )
+            )
 
     sub_pipeline.add_act(
         act_name=_("源节点{} set global read_only=ON ").format(old_orphan_storage.ip_port),
