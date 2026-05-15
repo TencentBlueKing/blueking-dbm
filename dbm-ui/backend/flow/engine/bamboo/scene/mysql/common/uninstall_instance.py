@@ -14,6 +14,7 @@ from dataclasses import asdict
 from django.db.models import Q
 from django.utils.translation import gettext as _
 
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import StorageInstance
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -41,18 +42,19 @@ def uninstall_instance_sub_flow(root_id: str, ticket_data: dict, ip: str, ports:
     sub_pipeline_list = []
     for storage in storage_instances:
         uninstall_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
-        uninstall_pipeline.add_act(
-            act_name=_("检查实例链接{}").format(storage.ip_port),
-            act_component_code=MySQLCheckProcesslistComponent.code,
-            kwargs=asdict(
-                CheckProcesslistKwargs(
-                    bk_cloud_id=ticket_data["bk_cloud_id"],
-                    instance_ip=storage.machine.ip,
-                    instance_port=storage.port,
-                    only_show_processlist=True,
-                )
-            ),
-        )
+        if storage.cluster_type != ClusterType.TenDBSingle:
+            uninstall_pipeline.add_act(
+                act_name=_("检查实例链接{}").format(storage.ip_port),
+                act_component_code=MySQLCheckProcesslistComponent.code,
+                kwargs=asdict(
+                    CheckProcesslistKwargs(
+                        bk_cloud_id=ticket_data["bk_cloud_id"],
+                        instance_ip=storage.machine.ip,
+                        instance_port=storage.port,
+                        only_show_processlist=True,
+                    )
+                ),
+            )
         cluster = {"uninstall_ip": ip, "bk_cloud_id": ticket_data["bk_cloud_id"], "backend_port": storage.port}
         uninstall_pipeline.add_act(
             act_name=_("卸载实例 {}".format(storage.ip_port)),
