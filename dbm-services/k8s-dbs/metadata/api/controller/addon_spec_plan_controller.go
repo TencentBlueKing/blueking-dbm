@@ -40,8 +40,12 @@ type AddonSpecPlanController struct {
 }
 
 // NewAddonSpecPlanController creates a new instance of AddonSpecPlanController.
-func NewAddonSpecPlanController(addonSpecPlanProvider provider.AddonSpecPlanProvider) *AddonSpecPlanController {
-	return &AddonSpecPlanController{addonSpecPlanProvider}
+func NewAddonSpecPlanController(
+	addonSpecPlanProvider provider.AddonSpecPlanProvider,
+) *AddonSpecPlanController {
+	return &AddonSpecPlanController{
+		addonSpecPlanProvider: addonSpecPlanProvider,
+	}
 }
 
 // ListAddonSpecPlans 获取 addon spec plan 列表
@@ -65,22 +69,29 @@ func (a *AddonSpecPlanController) ListAddonSpecPlans(ctx *gin.Context) {
 	coreentity.SuccessResponse(ctx, data, commconst.Success)
 }
 
-// GetAddonSpecPlan 获取 addon spec plan 详情
+// GetAddonSpecPlan 获取 addon spec plan 详情列表（含关联的组件套餐信息）
 func (a *AddonSpecPlanController) GetAddonSpecPlan(ctx *gin.Context) {
 	ctx.Set(commconst.APIName, commconst.APIMetaAddonSpecPlanDetail)
-	idParam := ctx.Param("id")
-	id, err := strconv.ParseUint(idParam, 10, 64)
+	var req metareq.GetAddonSpecPlanRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
+		return
+	}
+	detailEntities, err := a.addonSpecPlanProvider.FindSpecPlanDetails(&metaentity.AddonSpecPlanDetailQueryParams{
+		AddonType:     req.AddonType,
+		AddonVersion:  req.AddonVersion,
+		AddonTopology: req.AddonTopology,
+	})
 	if err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}
-	specPlanEntity, err := a.addonSpecPlanProvider.FindSpecPlanByID(id)
-	if err != nil {
-		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
+	if len(detailEntities) == 0 {
+		coreentity.SuccessResponse(ctx, nil, commconst.Success)
 		return
 	}
-	var data metaresp.AddonSpecPlanResponse
-	if err := copier.Copy(&data, specPlanEntity); err != nil {
+	var data []metaresp.AddonSpecPlanDetailResponse
+	if err := copier.Copy(&data, &detailEntities); err != nil {
 		coreentity.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
 		return
 	}

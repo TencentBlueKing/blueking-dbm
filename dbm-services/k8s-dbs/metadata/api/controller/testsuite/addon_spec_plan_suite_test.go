@@ -70,15 +70,19 @@ func (suite *AddonSpecPlanControllerTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	suite.addonSpecPlanController = controller.NewAddonSpecPlanController(
-		provider.GetAddonSpecPlanProvider(dbaccess.GetAddonSpecPlanDbAccess(db)),
+	specPlanProviderBuilder := provider.AddonSpecPlanProviderBuilder{}
+	specPlanProvider := provider.GetAddonSpecPlanProvider(
+		specPlanProviderBuilder.WithSpecPlanDbAccess(dbaccess.GetAddonSpecPlanDbAccess(db)),
+		specPlanProviderBuilder.WithStorageAddonDbAccess(dbaccess.GetStorageAddonDbAccess(db)),
+		specPlanProviderBuilder.WithComponentSpecPlanDbAccess(dbaccess.GetComponentSpecPlanDbAccess(db)),
 	)
+	suite.addonSpecPlanController = controller.NewAddonSpecPlanController(specPlanProvider)
 
 	suite.router = gin.New()
 	api := suite.router.Group("/api/metadata")
 	{
 		api.GET("/addon-spec-plans", suite.addonSpecPlanController.ListAddonSpecPlans)
-		api.GET("/addon-spec-plans/:id", suite.addonSpecPlanController.GetAddonSpecPlan)
+		api.GET("/addon-spec-plans/detail", suite.addonSpecPlanController.GetAddonSpecPlan)
 		api.POST("/addon-spec-plans", suite.addonSpecPlanController.CreateAddonSpecPlan)
 		api.PUT("/addon-spec-plans/:id", suite.addonSpecPlanController.UpdateAddonSpecPlan)
 		api.DELETE("/addon-spec-plans/:id", suite.addonSpecPlanController.DeleteAddonSpecPlan)
@@ -114,9 +118,9 @@ func (suite *AddonSpecPlanControllerTestSuite) TestCreateAndGet() {
 	assert.NoError(t, err)
 	assert.Equal(t, commconst.Success, int(createResp["code"].(float64)))
 
-	// Get by ID
+	// Get detail by query params
 	w = httptest.NewRecorder()
-	req, _ = http.NewRequest("GET", "/api/metadata/addon-spec-plans/1", nil)
+	req, _ = http.NewRequest("GET", "/api/metadata/addon-spec-plans/detail", nil)
 	suite.router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
