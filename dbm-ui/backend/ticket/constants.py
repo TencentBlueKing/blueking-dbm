@@ -257,6 +257,8 @@ class TicketType(StrStructuredEnum):
     MYSQL_PROXY_MIGRATE = TicketEnumField("MYSQL_PROXY_MIGRATE", _("MySQL 按集群Proxy迁移"), _("集群维护"))  # noqa
     MYSQL_PROXY_MIGRATE_INS = TicketEnumField("MYSQL_PROXY_MIGRATE_INS", _("MySQL 按实例Proxy迁移"),
                                               _("集群维护"))  # noqa
+    MYSQL_PROXY_REBUILD = TicketEnumField("MYSQL_PROXY_REBUILD", _("MySQL Proxy原地重建"), _("集群维护"), register_iam=False)
+
     MYSQL_PROXY_REDUCE = TicketEnumField("MYSQL_PROXY_REDUCE", _("MySQL 减少Proxy"), _("集群维护"))
     MYSQL_SINGLE_DESTROY = TicketEnumField("MYSQL_SINGLE_DESTROY", _("MySQL 单节点删除"), register_iam=False)
     MYSQL_SINGLE_ENABLE = TicketEnumField("MYSQL_SINGLE_ENABLE", _("MySQL 单节点启用"), register_iam=False)
@@ -358,6 +360,10 @@ class TicketType(StrStructuredEnum):
                                                  _("集群维护"))  # noqa
     TENDBCLUSTER_SPIDER_UPGRADE = TicketEnumField("TENDBCLUSTER_SPIDER_UPGRADE", _("TenDB Cluster Spider迁移升级"),
                                                   _("集群维护"))  # noqa
+    TENDBCLUSTER_SPIDER_REBUILD = TicketEnumField("TENDBCLUSTER_SPIDER_REBUILD", _("TenDB Cluster Spider原地重建"),
+                                                  _("集群维护"))  # noqa
+    TENDBCLUSTER_SPIDER_LAYER_DR = TicketEnumField("TENDBCLUSTER_SPIDER_LAYER_DR", _("TenDB Cluster Spider故障重建"),
+                                                   _("集群维护"))  # noqa
     TENDBCLUSTER_IMPORT_SQLFILE = TicketEnumField("TENDBCLUSTER_IMPORT_SQLFILE", _("TenDB Cluster 变更SQL执行"),
                                                   _("SQL 任务"))  # noqa
     TENDBCLUSTER_MIGRATE_UPGRADE = TicketEnumField("TENDBCLUSTER_MIGRATE_UPGRADE", _("TenDB Cluster 存储层迁移升级"),

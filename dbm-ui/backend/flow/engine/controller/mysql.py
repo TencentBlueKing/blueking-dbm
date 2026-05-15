@@ -102,6 +102,9 @@ class MySQLController(BaseController):
     mysql实例相关调用
     """
 
+    def placeholder(self):
+        pass
+
     @revoke_with(MySQLSingleApplyRevokeFlow)
     def mysql_single_apply_scene(self):
         """

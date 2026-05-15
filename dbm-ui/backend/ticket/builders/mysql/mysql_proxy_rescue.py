@@ -9,85 +9,50 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import MachineType
+from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, InstanceInfoSerializer
 from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
-class MySQLProxyRescueDetailSerializer(MySQLBaseOperateDetailSerializer):
-    """
-    MySQL Proxy 救援工单参数序列化器（多集群模式）
+class MysqlProxyRescueDetailSerializer(MySQLBaseOperateDetailSerializer):
+    class ClusterInfoSerializer(serializers.Serializer):
+        class OldProxySerializer(serializers.Serializer):
+            proxy = serializers.ListSerializer(child=InstanceInfoSerializer())
 
-    支持同时救援多个集群，每条 info 对应一个集群：
-    - 有旧 Proxy 元数据：所有原 Proxy 必须不可用
-    - 没有旧 Proxy 元数据：需在 info 中提供 proxy_port
-    """
+        old_nodes = OldProxySerializer(help_text=_("旧Proxy实例信息"))
+        resource_spec = serializers.JSONField(help_text=_("资源规格"))
+        cluster_id = serializers.IntegerField(help_text=_("集群 ID"))
+        proxy_version = serializers.CharField(max_length=64, help_text=_("Proxy 版本号"))
+        auto_cleanup_old_proxies = serializers.BooleanField(help_text=_("是否自动清理旧 Proxy"))
 
-    class RescueInfoSerializer(serializers.Serializer):
-        """单个集群的救援参数"""
-
-        class NewProxySerializer(serializers.Serializer):
-            """新 Proxy 机器信息"""
-
-            ip = serializers.IPAddressField(help_text=_("机器IP地址"), required=True)
-            bk_host_id = serializers.IntegerField(help_text=_("主机ID"), required=True)
-            bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"), required=True)
-            bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=True)
-            spec = serializers.JSONField(help_text=_("机器规格（需包含 id 字段，用于 DBMeta 记录）"), required=True)
-
-        cluster_id = serializers.IntegerField(help_text=_("需要救援的集群ID"), required=True)
-        new_proxies = serializers.ListField(
-            help_text=_("新 Proxy 机器列表"), child=NewProxySerializer(), min_length=1, required=True
-        )
-        # 无旧 Proxy 元数据时必填
-        proxy_port = serializers.IntegerField(
-            help_text=_("Proxy 端口（集群没有旧 Proxy 元数据时此参数必填）"),
-            required=False,
-            min_value=3306,
-            max_value=65535,
-        )
-        # 可选：指定版本则使用，否则自动推断
-        proxy_version = serializers.CharField(
-            help_text=_("Proxy 版本（可选，指定则使用该版本，否则自动从旧 Proxy 获取或使用最新版本）"),
-            required=False,
-            allow_blank=True,
-            max_length=64,
-        )
-        # 人工确认后是否自动下架旧 Proxy
-        auto_cleanup_old_proxies = serializers.BooleanField(
-            help_text=_("人工确认后是否自动下架旧 Proxy"), required=False, default=True
-        )
-
-    infos = serializers.ListField(
-        help_text=_("救援信息列表，每条对应一个集群"),
-        child=RescueInfoSerializer(),
-        min_length=1,
+    infos = serializers.ListField(help_text=_("重建 Proxy 集群列表"), child=ClusterInfoSerializer())
+    ip_source = serializers.ChoiceField(
+        help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL.value
     )
 
 
-class MySQLProxyRescueFlowParamBuilder(builders.FlowParamBuilder):
-    """MySQL Proxy 救援流程参数构建器"""
-
+class MysqlProxyRescueParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_proxy_rescue_scene
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_PROXY_RESCUE, is_apply=True)
-class MySQLProxyRescueFlowBuilder(BaseMySQLHATicketFlowBuilder):
-    """
-    MySQL Proxy 救援流程构建器（多集群模式）
+class MysqlProxySwitchResourceParamBuilder(BaseOperateResourceParamBuilder):
+    def format(self):
+        self.patch_info_common_affinity(
+            role="new_proxies", remain_machine_type=MachineType.PROXY, replace_key="proxy", tolerance=0.5
+        )
 
-    每个集群作为独立子流程并行执行：
-    1. 上架新 Proxy 实例
-    2. 配置 Proxy 后端
-    3. 从 Master 恢复白名单
-    4. 更新域名/CLB 解析
-    5. 人工确认
-    6. （可选）下架旧 Proxy
-    """
 
-    serializer = MySQLProxyRescueDetailSerializer
-    inner_flow_builder = MySQLProxyRescueFlowParamBuilder
+@builders.BuilderFactory.register(TicketType.MYSQL_PROXY_RESCUE)
+class MysqlProxyRescueFlowBuilder(BaseMySQLHATicketFlowBuilder):
+    serializer = MysqlProxyRescueDetailSerializer
+    inner_flow_builder = MysqlProxyRescueParamBuilder
+    inner_flow_name = _("Mysql Proxy故障重建执行")
+    resource_batch_apply_builder = MysqlProxySwitchResourceParamBuilder
+    validator = None
