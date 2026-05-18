@@ -732,6 +732,13 @@ class TicketType(StrStructuredEnum):
     K8S_SURREALDB_DELETE = TicketEnumField("K8S_SURREALDB_DELETE", _("SurrealDB 集群卸载"), register_iam=False)
     K8S_SURREALDB_RESTART = TicketEnumField("K8S_SURREALDB_RESTART", _("SurrealDB 集群重启"), register_iam=False)
 
+    # QDRANT
+    K8S_QDRANT_HA_APPLY = TicketEnumField("K8S_QDRANT_HA_APPLY", _("Qdrant 集群部署"), register_iam=False)
+    K8S_QDRANT_ENABLE = TicketEnumField("K8S_QDRANT_ENABLE", _("Qdrant 集群启动"), register_iam=False)
+    K8S_QDRANT_DISABLE = TicketEnumField("K8S_QDRANT_DISABLE", _("Qdrant 集群停止"), register_iam=False)
+    K8S_QDRANT_DELETE = TicketEnumField("K8S_QDRANT_DELETE", _("Qdrant 集群卸载"), register_iam=False)
+    K8S_QDRANT_RESTART = TicketEnumField("K8S_QDRANT_RESTART", _("Qdrant 集群重启"), register_iam=False)
+
     # 资源池
     RESOURCE_IMPORT = EnumField("RESOURCE_IMPORT", _("主机导入资源池"))
     ADMIN_PASSWORD_MODIFY = EnumField("ADMIN_PASSWORD_MODIFY", _("临时密码修改"))
