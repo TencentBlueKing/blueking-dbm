@@ -103,7 +103,7 @@ type MySQLSwitchCluster struct {
 func (cluster *MySQLSwitchCluster) SetStandbySlaveMap() {
 	standbySlaveMap := map[switchcore.MetadataKey]*dbm.DbmMetadataSlaveInfo{}
 	for instKey, instData := range cluster.SwitchInstances {
-		if instData.InstanceRole != dbm.MySQLStorageMaster {
+		if instData.InstanceRole != haprobe.MySQLStorageMaster {
 			continue
 		}
 
@@ -199,18 +199,18 @@ func (cluster *MySQLSwitchCluster) CheckMySQLBackend(instKey switchcore.Metadata
 	}
 
 	switch instData.InstanceRole {
-	case dbm.MySQLStorageSlave:
+	case haprobe.MySQLStorageSlave:
 		cluster.BackendSlaveKeyList = append(cluster.BackendSlaveKeyList, instKey)
 		cluster.ReportLogf(instKey, switchlogger.SwitchInfo,
 			"check result before switch: switch required, this is a slave node")
 		return nil
 
-	case dbm.MySQLStorageRepeater:
+	case haprobe.MySQLStorageRepeater:
 		cluster.ReportLogf(instKey, switchlogger.SwitchWarn,
 			"check result before switch: no need to switch, dbha doesn't support repeater")
 		return nil
 
-	case dbm.MySQLStorageMaster:
+	case haprobe.MySQLStorageMaster:
 		if err := cluster.CheckMySQLStorageMaster(instKey); err != nil {
 			return err
 		}
@@ -500,7 +500,7 @@ func (cluster *MySQLSwitchCluster) UpdateMetaInfo() error {
 			continue
 		}
 
-		if instData.InstanceRole != dbm.MySQLStorageMaster {
+		if instData.InstanceRole != haprobe.MySQLStorageMaster {
 			cluster.ReportLogf(instKey, switchlogger.SwitchInfo,
 				"nothing to do for the instance role(%s) when updating meta info", instData.InstanceRole)
 			continue
@@ -547,7 +547,7 @@ func (cluster *MySQLSwitchCluster) DoFinal() error {
 			continue
 		}
 
-		if instData.InstanceRole != dbm.MySQLStorageMaster {
+		if instData.InstanceRole != haprobe.MySQLStorageMaster {
 			cluster.ReportLogf(instKey, switchlogger.SwitchInfo, "nothing to do for the instance role(%s) when doing final step",
 				instData.InstanceRole)
 			continue

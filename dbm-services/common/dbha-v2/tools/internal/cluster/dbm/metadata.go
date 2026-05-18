@@ -27,19 +27,8 @@ package dbm
 // the "status" in metadata.
 type DbmMetadataStatus string
 
-// the "instance_role" in metadata.
-type DbmMetadataInstanceRole string
-
 const (
 	StatusRunning     DbmMetadataStatus = "running"
 	StatusUnavailable DbmMetadataStatus = "unavailable"
 	StatusAvailable   DbmMetadataStatus = "available"
-
-	MySQLStorageMaster       DbmMetadataInstanceRole = "backend_master"
-	MySQLStorageSlave        DbmMetadataInstanceRole = "backend_slave"
-	MySQLStorageRepeater     DbmMetadataInstanceRole = "backend_repeater"
-	TenDBClusterRemoteMaster DbmMetadataInstanceRole = "remote_master"
-	TenDBClusterRemoteSlave  DbmMetadataInstanceRole = "remote_slave"
-
-	EmptyInstanceRole DbmMetadataInstanceRole = ""
 )

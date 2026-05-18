@@ -31,6 +31,7 @@ import (
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 	"dbm-services/common/dbha-v2/tools/internal/cluster/config"
 	"dbm-services/common/dbha-v2/tools/internal/cluster/dbm"
 )
@@ -419,7 +420,7 @@ func (hdl *MysqlClusterHandler) switchAllProxiesBackend(proxyList []config.Proxy
 }
 
 func (hdl *MysqlClusterHandler) findSlaveOfTargetRole(slaveList []config.InstanceAddress,
-	targetRole dbm.DbmMetadataInstanceRole) (string, int, error) {
+	targetRole haprobe.DbmMetadataInstanceRole) (string, int, error) {
 	for _, slave := range slaveList {
 		slaveRole, err := hdl.dbmClient.QueryInstanceRole(slave.Host, slave.Port)
 		if err != nil {
@@ -444,8 +445,8 @@ func (hdl *MysqlClusterHandler) correctBackendRole(cluster *config.MysqlCluster)
 			masterHost, masterPort, err.Error())
 	}
 
-	if masterRole != dbm.MySQLStorageMaster {
-		curMasterHost, curMasterPort, err := hdl.findSlaveOfTargetRole(cluster.Slave, dbm.MySQLStorageMaster)
+	if masterRole != haprobe.MySQLStorageMaster {
+		curMasterHost, curMasterPort, err := hdl.findSlaveOfTargetRole(cluster.Slave, haprobe.MySQLStorageMaster)
 		if err != nil {
 			return gerrors.Newf(gerrors.Failure, "failed to find swap target: %s", err.Error())
 		}
@@ -463,8 +464,9 @@ func (hdl *MysqlClusterHandler) correctBackendRole(cluster *config.MysqlCluster)
 				slave.Host, slave.Port, err.Error())
 		}
 
-		if slaveRole != dbm.MySQLStorageSlave {
-			return gerrors.Newf(gerrors.Failure, "slave(%s:%d) role is not %s", slave.Host, slave.Port, dbm.MySQLStorageSlave)
+		if slaveRole != haprobe.MySQLStorageSlave {
+			return gerrors.Newf(gerrors.Failure, "slave(%s:%d) role is not %s",
+				slave.Host, slave.Port, haprobe.MySQLStorageSlave)
 		}
 	}
 

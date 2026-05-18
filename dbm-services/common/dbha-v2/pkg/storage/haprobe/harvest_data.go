@@ -104,6 +104,35 @@ const (
 	DbmMetadataMachineTypePulsarZookeeper  DbmMetadataMachineType = "pulsar_zookeeper"
 )
 
+// DbmMetadataInstanceRole the instance role for the metadata.
+type DbmMetadataInstanceRole string
+
+const (
+	// mysql instance role
+	MySQLStorageMaster   DbmMetadataInstanceRole = "backend_master"
+	MySQLStorageSlave    DbmMetadataInstanceRole = "backend_slave"
+	MySQLStorageRepeater DbmMetadataInstanceRole = "backend_repeater"
+
+	// tendbcluster instance role
+	TenDBClusterStorageMaster DbmMetadataInstanceRole = "remote_master"
+	TenDBClusterStorageSlave  DbmMetadataInstanceRole = "remote_slave"
+	TenDBClusterProxyMaster   DbmMetadataInstanceRole = "spider_master"
+	TenDBClusterProxySlave    DbmMetadataInstanceRole = "spider_slave"
+)
+
+// String returns the string representation of DbmMetadataInstanceRole.
+func (d DbmMetadataInstanceRole) String() string {
+	return string(d)
+}
+
+// DbmMetadataSpiderRole the spider role for the metadata.
+type DbmMetadataSpiderRole string
+
+const (
+	TenDBClusterSpiderMaster DbmMetadataSpiderRole = "spider_master"
+	TenDBClusterSpiderSlave  DbmMetadataSpiderRole = "spider_slave"
+)
+
 // HarvestBaseData represents the base data collected by harvester
 type HarvestBaseData struct {
 	SequenceID      uint64                     `json:"sequence_id,omitempty"`

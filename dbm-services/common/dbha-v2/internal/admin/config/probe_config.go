@@ -39,6 +39,7 @@ import (
 	"dbm-services/common/dbha-v2/pkg/probeconfig"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
 	"gorm.io/gorm"
 )
@@ -173,7 +174,7 @@ func convertFromDBM(list []*dbm.DbInstMetadata) []probeconfig.ProbeMetadataItem 
 // resolveAdminPort drops admin port for spider_slave nodes so probe skips
 // admin-port rendering for them.
 func resolveAdminPort(adminPort int, instanceRole string) int {
-	if instanceRole == string(dbm.TenDBClusterProxySlave) {
+	if instanceRole == string(haprobe.TenDBClusterProxySlave) {
 		return 0
 	}
 	return adminPort

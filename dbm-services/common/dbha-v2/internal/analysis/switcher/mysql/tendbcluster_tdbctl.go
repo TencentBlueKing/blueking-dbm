@@ -65,11 +65,11 @@ const (
 
 // SpiderInstanceInfo represents spider node information in TenDBCluster
 type SpiderInstanceInfo struct {
-	IP         string                    `json:"ip"`
-	Port       int                       `json:"port"`
-	AdminPort  int                       `json:"admin_port"`
-	SpiderRole dbm.DbmMetadataSpiderRole `json:"spider_role"`
-	Status     dbm.DbmMetadataStatus     `json:"status"`
+	IP         string                        `json:"ip"`
+	Port       int                           `json:"port"`
+	AdminPort  int                           `json:"admin_port"`
+	SpiderRole haprobe.DbmMetadataSpiderRole `json:"spider_role"`
+	Status     dbm.DbmMetadataStatus         `json:"status"`
 }
 
 // TdbctlRouteInfo represents route information in mysql.servers
@@ -357,7 +357,7 @@ func (op *TdbctlOperator) QuerySpiderNodesOfCluster(
 // QueryTdbctlNodesOfCluster query all tdbctl nodes of current cluster from any tdbctl node
 func (op *TdbctlOperator) QueryTdbctlNodesOfCluster() error {
 	for _, curSpider := range op.SpiderNodes {
-		if curSpider.SpiderRole != dbm.TenDBClusterSpiderMaster {
+		if curSpider.SpiderRole != haprobe.TenDBClusterSpiderMaster {
 			op.Logf(switchlogger.SwitchWarn,
 				"Not a spider master node(%s:%d), skip querying tdbctl nodes",
 				curSpider.IP, curSpider.Port)
@@ -931,7 +931,7 @@ func (op *TdbctlOperator) HandleInvolvedPrimaryTdbctl() error {
 func (op *TdbctlOperator) DropBrokenSpiderRoutes(
 	primaryTdbctlDB *hamysql.GormDB,
 	spiderIP string, spiderPort int, spiderAdminPort int,
-	spiderRole dbm.DbmMetadataSpiderRole,
+	spiderRole haprobe.DbmMetadataSpiderRole,
 ) error {
 	curSpiderRoute, curSpiderExists := op.GetRouteInfoFromCache(
 		spiderIP, spiderPort)
@@ -960,7 +960,7 @@ func (op *TdbctlOperator) DropBrokenSpiderRoutes(
 		return err
 	}
 
-	if spiderRole == dbm.TenDBClusterSpiderSlave {
+	if spiderRole == haprobe.TenDBClusterSpiderSlave {
 		op.Logf(switchlogger.SwitchInfo,
 			"spider_slave(%s:%d) does not have corresponding tdbctl, "+
 				"skip deleting tdbctl route",

@@ -60,7 +60,7 @@ type BaseSwitchInstance struct {
 	ClusterID    int
 	ClusterType  haprobe.DbmMetadataClusterType
 	MachineType  haprobe.DbmMetadataMachineType
-	InstanceRole dbm.DbmMetadataInstanceRole
+	InstanceRole haprobe.DbmMetadataInstanceRole
 
 	// Http client for DBM
 	DbmClient *dbm.Client
@@ -79,8 +79,8 @@ func (sw *BaseSwitchInstance) GetApp() string {
 }
 
 // GetInstanceRole returns the role of this instance
-func (sw *BaseSwitchInstance) GetInstanceRole() dbm.DbmMetadataInstanceRole {
-	return dbm.DbmMetadataInstanceRole(InstanceRoleNotAvailable)
+func (sw *BaseSwitchInstance) GetInstanceRole() haprobe.DbmMetadataInstanceRole {
+	return haprobe.DbmMetadataInstanceRole(InstanceRoleNotAvailable)
 }
 
 // GetInstanceInfo returns formatted instance information string
