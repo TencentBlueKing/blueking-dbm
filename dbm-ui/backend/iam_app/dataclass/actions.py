@@ -651,7 +651,7 @@ class ActionEnum:
         id="mysql_partition_import",
         name=_("MySQL 分区策略导入"),
         name_en="mysql_partition_import",
-        type="import",
+        type="manage",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),

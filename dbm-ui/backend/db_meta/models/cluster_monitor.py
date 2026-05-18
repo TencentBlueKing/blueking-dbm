@@ -171,6 +171,7 @@ INSTANCE_BKLOG_PLUGINS = {
             ],
         },
     },
+    # mysql和tendbcluster归为一类
     DBType.MySQL: {
         MachineType.BACKEND: {
             "name": "mysql",
@@ -199,8 +200,6 @@ INSTANCE_BKLOG_PLUGINS = {
             ],
         },
         MachineType.PROXY: {"name": "proxy", "plugin_ids": ["mixed_report", "backup_stm_log"]},
-    },
-    DBType.TenDBCluster: {
         MachineType.SPIDER: {
             "name": "spider",
             "plugin_ids": [

@@ -81,6 +81,7 @@ class ResourceApplyErrCode(IntStructuredEnum):
     RESOURCE_LOCK_FAIL = EnumField(60002, _("获取资源所失败"))
     RESOURCE_PARAMS_INVALID = EnumField(60003, _("参数合法性校验失败"))
     RESOURCE_MACHINE_FAIL = EnumField(60004, _("锁定返回机器失败"))
+    RESOURCE_DELETE_FAIL = EnumField(60005, _("资源删除失败"))
 
 
 TODO_DONE_STATUS = [TodoStatus.DONE_SUCCESS, TodoStatus.DONE_FAILED]
