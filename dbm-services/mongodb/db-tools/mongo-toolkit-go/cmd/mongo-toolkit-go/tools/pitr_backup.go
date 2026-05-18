@@ -7,6 +7,7 @@ import (
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/toolkit/pitr"
 	"errors"
 	"fmt"
+	"os"
 	osuser "os/user"
 	"path/filepath"
 
@@ -14,6 +15,11 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
+
+// ExitCodeBackupLocked 表示备份未启动的原因是同 port 上已有备份在跑（flock 拿不到锁）。
+// dbmon 侧依据该退出码区分"锁冲突跳过"与"真失败"，避免误报警。
+// 75 复用 sysexits.h 中 EX_TEMPFAIL 的语义：服务暂不可用，稍后重试。
+const ExitCodeBackupLocked = 75
 
 /*
 发起PITR备份. 该命令会在本地执行mongodump命令, 生成备份文件.
@@ -107,10 +113,13 @@ func backupMain() {
 
 	lockHandle, err := getLock("pit_backup", port)
 	if err != nil {
-		log.Fatalf("get lock failed, err: %v, opType: %s, port: %s", err, "pit_backup", port)
-	} else {
-		log.Infof("get lock success, opType: %s, port: %s", "pit_backup", port)
+		// 上一轮备份仍在跑（或锁文件被其他进程占用），属于预期跳过场景。
+		// 用 ExitCodeBackupLocked 退出，dbmon 据此只打 INFO，不当作备份失败上报。
+		log.Warnf("get lock failed, another backup is running, err: %v, opType: %s, port: %s",
+			err, "pit_backup", port)
+		os.Exit(ExitCodeBackupLocked)
 	}
+	log.Infof("get lock success, opType: %s, port: %s", "pit_backup", port)
 
 	var backupOpt = pitr.BackupOption{
 		MongoHost:              connObj,

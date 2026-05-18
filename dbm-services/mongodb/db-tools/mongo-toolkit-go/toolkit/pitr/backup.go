@@ -154,16 +154,6 @@ func MakeTmpdir(dir string, backup_type string) (string, error) {
 	}
 }
 
-// DoCommand as func name
-func DoCommand(bin string, args ...string) (bytes.Buffer, bytes.Buffer, error) {
-	cmd := exec.Command(bin, args...)
-	var outb, errb bytes.Buffer
-	cmd.Stdout = &outb
-	cmd.Stderr = &errb
-	err := cmd.Run()
-	return outb, errb, err
-}
-
 // ExecResult as func name
 type ExecResult struct {
 	Start   time.Time
@@ -178,12 +168,20 @@ func DoCommandV2(bin string, args ...string) (*ExecResult, error) {
 	var ret = ExecResult{}
 	ret.Start = time.Now()
 	cmd := exec.Command(bin, args...)
+	setChildDeathSignal(cmd)
 	cmd.Stdout = &ret.Stdout
 	cmd.Stderr = &ret.Stderr
 	err := cmd.Run()
 	ret.End = time.Now()
 	ret.Cmdline = fmt.Sprintf("%s %s", bin, strings.Join(args, " "))
 	return &ret, err
+}
+
+// DoCommand 是 DoCommandV2 的轻量包装：丢掉时间/cmdline，仅返回 stdout/stderr/err。
+// 保留兼容是为了减少改动面，新代码请直接用 DoCommandV2。
+func DoCommand(bin string, args ...string) (bytes.Buffer, bytes.Buffer, error) {
+	ret, err := DoCommandV2(bin, args...)
+	return ret.Stdout, ret.Stderr, err
 }
 
 // GetVersion Get mongo version by mongo shell
@@ -262,6 +260,9 @@ func DoBackupFull(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 	if err != nil {
 		return nil, err
 	}
+	// 防孤儿 mongodump：本进程异常退出时 kernel 直接 SIGKILL 子进程，
+	// 否则会被 reparent 到 init 继续跑，触发 port 维度的并发 mongodump。
+	setChildDeathSignal(exec1.ExecHandle)
 	defer exec1.CancelFunc()
 	cmdList = append(cmdList, exec1)
 
@@ -272,6 +273,7 @@ func DoBackupFull(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 		if err != nil {
 			return nil, err
 		}
+		setChildDeathSignal(exec2.ExecHandle)
 		defer exec2.CancelFunc()
 		cmd1Output, err := exec1.ExecHandle.StdoutPipe()
 		if err != nil {
@@ -429,6 +431,9 @@ func DoBackupIncr(connInfo *mymongo.MongoHost, backupType, dir string, zip bool,
 	if err != nil {
 		return nil, err
 	}
+	// 防孤儿 mongodump：本进程异常退出时 kernel 直接 SIGKILL 子进程，
+	// 否则会被 reparent 到 init 继续跑，触发 port 维度的并发 mongodump。
+	setChildDeathSignal(exec1.ExecHandle)
 	defer exec1.CancelFunc()
 	cmdList = append(cmdList, exec1)
 
