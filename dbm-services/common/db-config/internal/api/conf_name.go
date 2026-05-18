@@ -11,9 +11,9 @@ import (
 
 // ConfNameChangesQueryReq 查询 conf_name_def 变更历史的请求参数
 type ConfNameChangesQueryReq struct {
-	Namespace string `json:"namespace" form:"namespace" binding:"required"`
-	ConfType  string `json:"conf_type" form:"conf_type"`
-	ConfFile  string `json:"conf_file" form:"conf_file"`
+	Namespace string   `json:"namespace" form:"namespace" binding:"required"`
+	ConfType  []string `json:"conf_type" form:"conf_type"`
+	ConfFile  []string `json:"conf_file" form:"conf_file"`
 	// Limit 当>0 时启用后端分页。每页返回条数
 	Limit int `json:"limit"`
 	// Offset 当>0 时启用后端分页。偏移量表示第几页

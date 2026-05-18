@@ -1,6 +1,7 @@
 package simpleconfig
 
 import (
+	"errors"
 	"fmt"
 
 	"bk-dbconfig/internal/api"
@@ -10,7 +11,7 @@ import (
 	"bk-dbconfig/pkg/core/logger"
 
 	"github.com/jinzhu/copier"
-	"github.com/pkg/errors"
+	errs "github.com/pkg/errors"
 	"gorm.io/gorm"
 )
 
@@ -21,8 +22,12 @@ func ConfigNamesBatchUpsert(db *gorm.DB, cf api.BaseConfFileDef, confNames []*ap
 	deletes := make([]*model.ConfigNameDefModel, 0)
 	upserts := make([]*model.ConfigNameDefModel, 0)
 
+	// 修改 readonly=1 或者删除操作，需要检查配置项是否有被使用
+	var needCheckInherit []string
+
 	// 目前只允许 update 这几个属性 "value_default", "value_allowed", "flag_status", "flag_locked"，
 	// 见 ConfigNamesBatchUpdate
+
 	for _, cn := range confNames {
 		confName := &model.ConfigNameDefModel{}
 		_ = copier.Copy(confName, cn.ConfNameDef)
@@ -34,12 +39,36 @@ func ConfigNamesBatchUpsert(db *gorm.DB, cf api.BaseConfFileDef, confNames []*ap
 			adds = append(adds, confName)
 		} else if cn.OPType == constvar.OPTypeUpdate {
 			updates = append(updates, confName)
+			if cn.FlagReadonly == 1 {
+				needCheckInherit = append(needCheckInherit, cn.ConfName)
+			}
 		} else if cn.OPType == constvar.OPTypeRemove {
 			deletes = append(deletes, confName)
+			needCheckInherit = append(needCheckInherit, cn.ConfName)
 		} else if cn.OPType == constvar.OPTypeUpsert {
 			upserts = append(upserts, confName)
+			if cn.FlagReadonly == 1 {
+				needCheckInherit = append(needCheckInherit, cn.ConfName)
+			}
 		} else {
 			return fmt.Errorf("invalid op_type %s for %s", cn.OPType, cn.ConfName)
+		}
+	}
+	if len(needCheckInherit) > 0 {
+		configNodes, err := CheckConfigInherit(db, cf, needCheckInherit)
+		if err != nil {
+			return err
+		}
+		var errsMsg error
+		var idList []uint64
+		for _, cn := range configNodes {
+			errMsg := fmt.Errorf("%s(=%s) is used by %s=%s (bk_biz_id=%s)",
+				cn.ConfName, cn.ConfValue, cn.LevelName, cn.LevelValue, cn.BKBizID)
+			errsMsg = errors.Join(errsMsg, errMsg)
+			idList = append(idList, cn.ID)
+		}
+		if errsMsg != nil {
+			return errors.Join(errsMsg, fmt.Errorf("\nid list %v", idList))
 		}
 	}
 	err := db.Transaction(func(tx *gorm.DB) error {
@@ -66,6 +95,18 @@ func ConfigNamesBatchUpsert(db *gorm.DB, cf api.BaseConfFileDef, confNames []*ap
 		return nil
 	})
 	return err
+}
+
+func CheckConfigInherit(db *gorm.DB, cf api.BaseConfFileDef,
+	confNames []string) (configNodes []model.ConfigModel, err error) {
+	//var configNodes []model.ConfigModel
+	err = db.Model(&model.ConfigModel{}).Where("namespace = ? AND conf_type = ? AND conf_file = ? "+
+		"AND conf_name IN ?",
+		cf.Namespace, cf.ConfType, cf.ConfFile, confNames).Find(&configNodes).Error
+	if err != nil {
+		return nil, err
+	}
+	return configNodes, nil
 }
 
 // UpsertConfigFilePlat TODO
@@ -114,7 +155,7 @@ func UpsertConfigFilePlat(r *api.UpsertConfFilePlatReq, clientOPType, opUser str
 		for _, conf := range configsRefDiff {
 			names = append(names, conf.Config.ConfName)
 		}
-		return nil, errors.WithMessagef(errno.ErrConflictWithLowerConfigLevel, "%v", names)
+		return nil, errs.WithMessagef(errno.ErrConflictWithLowerConfigLevel, "%v", names)
 	}
 
 	txErr := model.DB.Self.Transaction(func(tx *gorm.DB) error {
