@@ -3138,6 +3138,28 @@ class ActionEnum:
     )
 
     # --- K8s Qdrant (k8s_qdrant) ---
+    K8S_QDRANT_VIEW = ActionMeta(
+        id="k8s_qdrant_view",
+        name=_("K8s Qdrant 集群详情查看"),
+        name_en="k8s_qdrant_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.K8S_QDRANT],
+        group=_("K8s数据库"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+    )
+    K8S_QDRANT_EDIT = ActionMeta(
+        id="k8s_qdrant_edit",
+        name=_("K8s Qdrant 集群编辑"),
+        name_en="k8s_qdrant_edit",
+        type="edit",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.K8S_QDRANT],
+        group=_("K8s数据库"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+    )
     K8S_QDRANT_APPLY = ActionMeta(
         id="k8s_qdrant_apply",
         name=_("K8s Qdrant 集群部署"),
@@ -3160,7 +3182,7 @@ class ActionEnum:
     )
     K8S_QDRANT_DESTROY = ActionMeta(
         id="k8s_qdrant_destroy",
-        name=_("K8s Qdrant 集群删除"),
+        name=_("K8s Qdrant 集群销毁"),
         name_en="k8s_qdrant_destroy",
         type="execute",
         related_actions=[DB_MANAGE.id],
