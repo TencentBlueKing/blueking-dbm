@@ -8,15 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.urls import include, path
 
-urlpatterns = [
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.kubernetes.resources.urls")),
-    path("bizs/<int:bk_biz_id>/surrealdbha/", include("backend.db_services.kubernetes.surrealdb.surrealdbha.urls")),
-    path(
-        "bizs/<int:bk_biz_id>/surrealdbsingle/",
-        include("backend.db_services.kubernetes.surrealdb.surrealdbsingle.urls"),
-    ),
-    path("bizs/<int:bk_biz_id>/qdrantha/", include("backend.db_services.kubernetes.qdrant.urls")),
-    path("", include("backend.db_services.kubernetes.surrealdb.toolbox.urls")),
-]
+from rest_framework.routers import DefaultRouter
+
+from backend.db_services.kubernetes.qdrant.views import QdrantHaResourceViewSet
+
+router = DefaultRouter(trailing_slash=True)
+router.register(r"qdrantha_resources", QdrantHaResourceViewSet, basename="qdrantha_resources")
+
+urlpatterns = router.urls
