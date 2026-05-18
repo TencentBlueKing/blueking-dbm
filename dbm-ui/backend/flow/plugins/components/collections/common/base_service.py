@@ -29,6 +29,7 @@ from backend.components.sops.client import BkSopsApi
 from backend.core.translation.constants import Language
 from backend.flow.consts import DEFAULT_FLOW_CACHE_EXPIRE_TIME, SUCCESS_LIST, JobOperationCode, WriteContextOpType
 from backend.flow.engine.bamboo.engine import BambooEngine
+from backend.flow.utils.bk_job_record import record_flow_exec_ips, resolve_ticket_id_from_global_data
 from backend.ticket.models import Flow
 from backend.utils.excel import ExcelHandler
 from backend.utils.redis import RedisConn
@@ -248,6 +249,30 @@ class BkJobService(BaseService, metaclass=ABCMeta):
     # 仅针对失败IP重试
     only_failed_retry = False
 
+    def _try_record_flow_exec_ips(self, data) -> None:
+        """
+        _execute 成功且 outputs.exec_ips 已赋值时，写入 flow_exec_ip_record。
+        子类在下发 Job 后需设置 data.outputs.exec_ips（与 _schedule 轮询逻辑一致）。
+        """
+        try:
+            exec_ips = data.get_one_of_outputs("exec_ips")
+            if not exec_ips:
+                return
+            kwargs = data.get_one_of_inputs("kwargs") or {}
+            root_id = kwargs.get("root_id")
+            bk_cloud_id = kwargs.get("bk_cloud_id")
+            if root_id is None or bk_cloud_id is None:
+                return
+            global_data = data.get_one_of_inputs("global_data")
+            record_flow_exec_ips(
+                ticket_id=resolve_ticket_id_from_global_data(global_data),
+                root_id=root_id,
+                bk_cloud_id=bk_cloud_id,
+                exec_ips=exec_ips,
+            )
+        except Exception as e:
+            self.log_warning(_("写入流程执行IP关系失败(已忽略,不影响任务执行): {}").format(str(e)))
+
     @staticmethod
     def __status__(instance_id: str) -> Optional[Dict]:
         """
@@ -358,8 +383,10 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         if self.only_failed_retry and outputs.get("job_execute") is False:
             execute_info = outputs["job_execute_info"]
             return self._execute_fail_job(data, execute_info["job_instance_id"], execute_info["step_instance_id"])
-        else:
-            return super().execute(data, parent_data)
+        result = super().execute(data, parent_data)
+        if result:
+            self._try_record_flow_exec_ips(data)
+        return result
 
     def _schedule(self, data, parent_data, callback_data=None) -> bool:
         ext_result = data.get_one_of_outputs("ext_result")

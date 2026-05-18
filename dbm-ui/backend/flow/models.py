@@ -114,7 +114,10 @@ class FlowWithAITaskGuardianReport(models.Model):
     last_send_time = models.DateTimeField(_("最后一次推送时间"), null=True, blank=True)
     last_risk_level = models.CharField(_("最后一次推送的风险等级"), max_length=20, default="", blank=True)
     last_report_content = models.TextField(
-        _("最后一次推送的风险报告内容"), default="", blank=True, help_text=_("存储上一次推送的完整风险报告，用于与本次报告进行AI语义比对，判断是否为同一风险")
+        _("最后一次推送的风险报告内容"),
+        default="",
+        blank=True,
+        help_text=_("存储上一次推送的完整风险报告，用于与本次报告进行AI语义比对，判断是否为同一风险"),
     )
     no_risk_streak = models.IntegerField(_("连续无风险检测次数"), default=0, help_text=_("连续N次检测无风险后重置退避计数器"))
 
@@ -280,7 +283,11 @@ class FlowBkJobInstance(models.Model):
     root_id = models.CharField(_("流程任务ID"), max_length=33, db_index=True)
     job_instance_id = models.BigIntegerField(_("蓝鲸作业实例ID"), db_index=True)
     step_instance_id = models.BigIntegerField(
-        _("蓝鲸步骤实例ID"), null=True, blank=True, db_index=True, help_text=_("可选，尽力从任务返回或 job 状态接口解析")
+        _("蓝鲸步骤实例ID"),
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=_("可选，尽力从任务返回或 job 状态接口解析"),
     )
     node_id = models.CharField(_("节点ID"), max_length=33)
     version_id = models.CharField(_("版本ID"), max_length=33, blank=True, default="")
@@ -304,4 +311,35 @@ class FlowBkJobInstance(models.Model):
                 fields=["root_id", "node_id", "version_id"],
                 name="flow_bk_jobinst_rnv_idx",
             ),
+        ]
+
+
+class FlowExecIpRecord(models.Model):
+    """
+    扁平化记录 (ip, bk_cloud_id, ticket_id, root_id) 关联关系
+    用途：按 IP 反查"该机器在哪些单据/流程中被操作过"，避免依赖 FlowBkJobInstance.exec_ips JSON 查询
+    ticket_id 可为空：直接调起任务、不经过单据时为 NULL（与 FlowTree/FlowBkJobInstance 保持一致语义）
+
+    唯一键为 (bk_cloud_id, ip, root_id)，不含 ticket_id：同一 root_id 至多对应一个单据或无单据，
+    且 MySQL 唯一索引对 NULL 列不互斥，把可空的 ticket_id 放进唯一键会导致同流程同 IP 重复落库。
+    不含 node_id：多节点重复写同一 IP 时由 ignore_conflicts 静默跳过。
+    """
+
+    ticket_id = models.PositiveIntegerField(_("单据ID"), null=True, blank=True, db_index=True)
+    root_id = models.CharField(_("流程任务ID"), max_length=33, db_index=True)
+    bk_cloud_id = models.IntegerField(_("云区域ID"), default=0)
+    ip = models.CharField(_("执行目标IP"), max_length=LEN_NORMAL)
+    created_at = models.DateTimeField(_("创建时间"), auto_now_add=True, blank=True)
+
+    class Meta:
+        db_table = "flow_exec_ip_record"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["bk_cloud_id", "ip", "root_id"],
+                name="flow_exec_ip_uniq",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["bk_cloud_id", "ip"], name="flow_exec_ip_cloud_ip_idx"),
+            models.Index(fields=["ip", "ticket_id"], name="flow_exec_ip_ip_ticket_idx"),
         ]

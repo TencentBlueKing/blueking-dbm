@@ -62,5 +62,6 @@ class TestTransFileComponent(MySQLSingleApplyComponentTest, TestCase):
                     "job_instance_id": JOB_INSTANCE_ID,
                     "step_instance_id": STEP_INSTANCE_ID,
                 },
-            }
+            },
+            "exec_ips": ["1.1.1.1"],
         }
