@@ -34,6 +34,7 @@ import (
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 	"dbm-services/common/dbha-v2/tools/internal/cluster/config"
 	"dbm-services/common/dbha-v2/tools/internal/cluster/dbm"
 )
@@ -277,7 +278,7 @@ func (hdl *TenDBClusterHandler) correctRemoteDBRole(cluster *config.TenDBCluster
 				return
 			}
 
-			if masterRole != dbm.TenDBClusterRemoteMaster {
+			if masterRole != haprobe.TenDBClusterStorageMaster {
 				if err := hdl.dbmClient.SwapMySQLRole(remoteSlave.Host, remoteSlave.Port, masterHost, masterPort); err != nil {
 					errCh <- gerrors.Newf(gerrors.Failure, "failed to swap role of (%s:%d) and (%s:%d), errmsg: %s",
 						remoteSlave.Host, remoteSlave.Port, masterHost, masterPort, err.Error())
@@ -292,9 +293,9 @@ func (hdl *TenDBClusterHandler) correctRemoteDBRole(cluster *config.TenDBCluster
 				return
 			}
 
-			if slaveRole != dbm.TenDBClusterRemoteSlave {
+			if slaveRole != haprobe.TenDBClusterStorageSlave {
 				errCh <- gerrors.Newf(gerrors.Failure, "slave(%s:%d) role is not %s", remoteSlave.Host,
-					remoteSlave.Port, dbm.TenDBClusterRemoteSlave)
+					remoteSlave.Port, haprobe.TenDBClusterStorageSlave)
 			}
 		}(remoteSlave)
 	}

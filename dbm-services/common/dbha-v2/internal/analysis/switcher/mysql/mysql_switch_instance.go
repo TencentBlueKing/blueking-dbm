@@ -163,7 +163,7 @@ func NewMySQLSwitchInstance(metadata *dbm.DbInstMetadata) (switchcore.Switchable
 		res := &MySQLStorageSwitchInstance{
 			MySQLBaseSwitchInstance: mysqlBaseInstance,
 		}
-		if metadata.InstanceRole == dbm.MySQLStorageMaster {
+		if metadata.InstanceRole == haprobe.MySQLStorageMaster {
 			res.SetStandbySlave(metadata.Receiver)
 		}
 		return res, nil
@@ -316,13 +316,13 @@ func (sw *MySQLStorageSwitchInstance) CheckMySQLStorageMaster() (switchcore.Swit
 // CheckBeforeSwitch performs pre-switch validation checks
 func (sw *MySQLStorageSwitchInstance) CheckBeforeSwitch() (switchcore.SwitchCheckCode, error) {
 	switch sw.InstanceRole {
-	case dbm.MySQLStorageSlave:
+	case haprobe.MySQLStorageSlave:
 		sw.ReportLogf(switchlogger.SwitchInfo, "this is a slave node, no need to check")
 		return switchcore.SwitchRequired, nil
-	case dbm.MySQLStorageRepeater:
+	case haprobe.MySQLStorageRepeater:
 		sw.ReportLogf(switchlogger.SwitchWarn, "this is a repeater, dbha don't support")
 		return switchcore.SwitchNotNeeded, nil
-	case dbm.MySQLStorageMaster:
+	case haprobe.MySQLStorageMaster:
 		return sw.CheckMySQLStorageMaster()
 	default:
 		err := gerrors.Newf(gerrors.Failure, "invalid instance role: %s", sw.InstanceRole)
@@ -415,10 +415,10 @@ func (sw *MySQLStorageSwitchInstance) DoSlaveSwitch() error {
 // DoSwitch performs the actual switch for MySQL backend nodes
 func (sw *MySQLStorageSwitchInstance) DoSwitch() error {
 	switch sw.InstanceRole {
-	case dbm.MySQLStorageSlave:
+	case haprobe.MySQLStorageSlave:
 		return sw.DoSlaveSwitch()
 
-	case dbm.MySQLStorageMaster:
+	case haprobe.MySQLStorageMaster:
 		return sw.DoMasterSwitch()
 
 	default:
@@ -429,7 +429,7 @@ func (sw *MySQLStorageSwitchInstance) DoSwitch() error {
 
 // UpdateMetaInfo swaps roles of backend master and slave
 func (sw *MySQLStorageSwitchInstance) UpdateMetaInfo() error {
-	if sw.InstanceRole != dbm.MySQLStorageMaster {
+	if sw.InstanceRole != haprobe.MySQLStorageMaster {
 		sw.ReportLogf(switchlogger.SwitchInfo, "nothing to do for the instance role(%s) when updating meta info",
 			sw.InstanceRole)
 		return nil
@@ -453,7 +453,7 @@ func (sw *MySQLStorageSwitchInstance) DoFinal() error {
 	sw.ReportLogf(switchlogger.SwitchInfo, "tbinlogdumpers info of current mysql: %s",
 		GetBinlogDumperInfo(sw.BinlogDumperSet))
 
-	if (sw.InstanceRole != dbm.MySQLStorageMaster) || len(sw.BinlogDumperSet) == 0 {
+	if (sw.InstanceRole != haprobe.MySQLStorageMaster) || len(sw.BinlogDumperSet) == 0 {
 		sw.ReportLogf(switchlogger.SwitchInfo, "no need to switch tbinlogdumper for current mysql")
 		return nil
 	}

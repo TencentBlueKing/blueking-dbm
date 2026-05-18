@@ -57,12 +57,12 @@ type DbInstMetadata struct {
 	Cluster            string                             `json:"cluster"`
 	AccessLayer        haprobe.DbmMetadataAccessLayerType `json:"access_layer"`
 	MachineType        haprobe.DbmMetadataMachineType     `json:"machine_type"`
-	InstanceRole       DbmMetadataInstanceRole            `json:"instance_role"`
+	InstanceRole       haprobe.DbmMetadataInstanceRole    `json:"instance_role"`
 	InstanceInnerRole  string                             `json:"instance_inner_role"`
 	ClusterID          int                                `json:"cluster_id"`
 	ClusterType        haprobe.DbmMetadataClusterType     `json:"cluster_type"`
 	Status             DbmMetadataStatus                  `json:"status"`
-	SpiderRole         DbmMetadataSpiderRole              `json:"spider_role"`
+	SpiderRole         haprobe.DbmMetadataSpiderRole      `json:"spider_role"`
 	IsStandBy          bool                               `json:"is_stand_by"`
 
 	// The storage instance will be set when the cluster type is tendbha and the access layer is storage.
@@ -100,15 +100,15 @@ func (d *DbInstMetadata) UnmarshalJSON(data []byte) error {
 	}
 
 	rolePayload := struct {
-		InstanceRole *DbmMetadataInstanceRole `json:"instance_role"`
-		SpiderRole   *DbmMetadataSpiderRole   `json:"spider_role"`
+		InstanceRole *haprobe.DbmMetadataInstanceRole `json:"instance_role"`
+		SpiderRole   *haprobe.DbmMetadataSpiderRole   `json:"spider_role"`
 	}{}
 	if err := json.Unmarshal(data, &rolePayload); err != nil {
 		return err
 	}
 
 	if decoded.InstanceRole == "" && rolePayload.SpiderRole != nil && *rolePayload.SpiderRole != "" {
-		decoded.InstanceRole = DbmMetadataInstanceRole(*rolePayload.SpiderRole)
+		decoded.InstanceRole = haprobe.DbmMetadataInstanceRole(*rolePayload.SpiderRole)
 	}
 
 	*d = DbInstMetadata(decoded)
