@@ -23,4 +23,10 @@ var (
 	// ErresourceLockReturn TODO
 	ErresourceLockReturn = Errno{Code: 6004, CNMessage: "锁定机器,返回机器失败",
 		Message: "failed to lock the machine and return the machine"}
+	// ErrHostIdNotFound 待操作的主机 ID 在资源池中不存在
+	ErrHostIdNotFound = Errno{Code: 60005, CNMessage: "主机 ID 在资源池中不存在",
+		Message: "host id not found in resource pool"}
+	// ErrHostInUse 待操作的主机正处于已被占用的状态(Preselected/Prepoccupied/Used/UsedByOther),不允许执行变更操作
+	ErrHostInUse = Errno{Code: 60006, CNMessage: "主机已被占用,不允许执行该操作",
+		Message: "host is in use, operation is not allowed"}
 )

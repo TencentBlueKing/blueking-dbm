@@ -361,6 +361,27 @@ func DeleteTbRpDetail(ids []int) (int64, error) {
 	return db.RowsAffected, db.Error
 }
 
+// GetExistTbRpDetailHostIds 查询入参 ids 中实际存在于资源池的 bk_host_id 列表
+func GetExistTbRpDetailHostIds(ids []int) ([]int, error) {
+	var existIds []int
+	err := DB.Self.Table(TbRpDetailName()).
+		Where("bk_host_id in (?)", ids).
+		Pluck("bk_host_id", &existIds).Error
+	return existIds, err
+}
+
+// InUseStatusList 资源池中视为"已被占用"的状态集合,这些状态下的主机不可被删除
+var InUseStatusList = []string{Preselected, Prepoccupied, Used, UsedByOther}
+
+// GetInUseTbRpDetailHostIds 查询入参 ids 中处于"已被占用"状态(Preselected/Prepoccupied/Used/UsedByOther)的 bk_host_id 列表
+func GetInUseTbRpDetailHostIds(ids []int) ([]int, error) {
+	var inUseIds []int
+	err := DB.Self.Table(TbRpDetailName()).
+		Where("bk_host_id in (?) and status in (?)", ids, InUseStatusList).
+		Pluck("bk_host_id", &inUseIds).Error
+	return inUseIds, err
+}
+
 // BatchGetTbDetail TODO
 type BatchGetTbDetail struct {
 	Item      string `json:"item"`
