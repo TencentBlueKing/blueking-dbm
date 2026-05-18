@@ -140,19 +140,45 @@ class ImportResourceInitStepFlow(object):
             account_name = LINUX_ADMIN_USER_FOR_CHECK
 
         # 执行空闲检查
-        if env.SA_RECYCLE_IDLE_CHECK_TEMPLATE_ID or env.SA_CHECK_TEMPLATE_ID:
-            p.add_act(
-                act_name=_("执行sa空闲检查(严格)") if env.SA_RECYCLE_IDLE_CHECK_TEMPLATE_ID else _("执行sa空闲检查"),
-                act_component_code=CheckMachineIdleComponent.code,
-                kwargs=asdict(
-                    InitCheckForResourceKwargs(
-                        ips=[host["ip"] for host in host_list],
-                        bk_biz_id=bk_biz_id,
-                        account_name=account_name,
-                        strict_idle_check=bool(env.SA_RECYCLE_IDLE_CHECK_TEMPLATE_ID),
-                    )
-                ),
+        # 严格空闲检查（SA_RECYCLE_IDLE_CHECK_TEMPLATE_ID）与标准空闲检查（SA_CHECK_TEMPLATE_ID）
+        # 调用的是相互独立的标准运维模板，没有顺序依赖。两者都配置时并行执行以缩短整体耗时；
+        # 仅配置其一时只跑对应那一个；都未配置则跳过。
+        idle_check_ips = [host["ip"] for host in host_list]
+        idle_check_acts = []
+        if env.SA_RECYCLE_IDLE_CHECK_TEMPLATE_ID:
+            idle_check_acts.append(
+                {
+                    "act_name": _("执行sa空闲检查(严格)"),
+                    "act_component_code": CheckMachineIdleComponent.code,
+                    "kwargs": asdict(
+                        InitCheckForResourceKwargs(
+                            ips=idle_check_ips,
+                            bk_biz_id=bk_biz_id,
+                            account_name=account_name,
+                            strict_idle_check=True,
+                        )
+                    ),
+                }
             )
+        if env.SA_CHECK_TEMPLATE_ID:
+            idle_check_acts.append(
+                {
+                    "act_name": _("执行sa空闲检查"),
+                    "act_component_code": CheckMachineIdleComponent.code,
+                    "kwargs": asdict(
+                        InitCheckForResourceKwargs(
+                            ips=idle_check_ips,
+                            bk_biz_id=bk_biz_id,
+                            account_name=account_name,
+                            strict_idle_check=False,
+                        )
+                    ),
+                }
+            )
+        if len(idle_check_acts) >= 2:
+            p.add_parallel_acts(acts_list=idle_check_acts)
+        elif idle_check_acts:
+            p.add_act(**idle_check_acts[0])
 
         # 在执行sa初始化
         if env.SA_INIT_TEMPLATE_ID:
