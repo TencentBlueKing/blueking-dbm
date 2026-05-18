@@ -82,7 +82,9 @@ class AgentHandler:
         # 主智能体直接询问，子智能体走快捷指令切换询问
         content_params = {"session_code": session_code, "role": "user", "content": content}
         if agent_code != DBMAgentCode.DBM:
-            content_property = {"extra": {"command": agent_code, "rendered_content": content}}
+            # 特殊：为了统计工时，这里加上command名称
+            rendered_content = f"comment：{agent_code}\n" + content
+            content_property = {"extra": {"command": agent_code, "rendered_content": rendered_content}}
             content_params.update(property=content_property, content=str(DBMAgentCode.get_choice_label(agent_code)))
         resp = client.api.create_chat_session_content(json=content_params, headers={"X-BKAIDEV-USER": username})
 
