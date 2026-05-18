@@ -38,6 +38,17 @@ type BackupTaskOption struct {
 type BackupTask struct {
 }
 
+// exitCodeBackupLocked 与 mongo-toolkit-go 的 tools.ExitCodeBackupLocked 对齐。
+// 子进程拿不到 port 维度的 flock 时返回该退出码，dbmon 据此识别"上一轮还在跑、本轮跳过"，
+// 只打 INFO 日志，不当作备份失败上报。
+const exitCodeBackupLocked = 75
+
+// backupCmdTimeout 单次备份命令执行超时。
+// 历史值为 48h，对大实例（高数据量、归档 + 上传备份系统）会被强制中断。
+// 调整为 7d，与 dbmon 自身 dump.log 保留 15d、report 保留 90d 的清理周期对齐，
+// 留足以正常完成的窗口；真正卡死的进程仍可通过 flock 互斥被下一轮跳过。
+const backupCmdTimeout = time.Hour * 24 * 7
+
 // NewBackupTask 创建任务
 func NewBackupTask() *BackupTask {
 	return &BackupTask{}
@@ -88,13 +99,20 @@ func (task *BackupTask) Do(option *BackupTaskOption, logger *zap.Logger) error {
 	cmdLine := cb.GetCmdLine2(false)
 	logger.Info(fmt.Sprintf("cmdLine: %s", cmdLine))
 
-	o, err := cb.Run(time.Hour * 24 * 2)
+	o, err := cb.Run(backupCmdTimeout)
 	logger.Info(
 		fmt.Sprintf("Exec %s cost %0.1f Seconds, stdout: %s, stderr %s",
 			cmdLine,
 			o.End.Sub(o.Start).Seconds(),
 			o.GetStdout(),
 			o.GetStderr()))
+
+	if err != nil && o.ExitCode == exitCodeBackupLocked {
+		logger.Info(fmt.Sprintf(
+			"skip backup: another backup is still running on %s:%s (exit=%d)",
+			option.Host, option.Port, o.ExitCode))
+		return nil
+	}
 
 	return err
 }
