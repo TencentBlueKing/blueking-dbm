@@ -8,15 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.urls import include, path
 
-urlpatterns = [
-    path("bizs/<int:bk_biz_id>/", include("backend.db_services.kubernetes.resources.urls")),
-    path("bizs/<int:bk_biz_id>/surrealdbha/", include("backend.db_services.kubernetes.surrealdb.surrealdbha.urls")),
-    path(
-        "bizs/<int:bk_biz_id>/surrealdbsingle/",
-        include("backend.db_services.kubernetes.surrealdb.surrealdbsingle.urls"),
-    ),
-    path("bizs/<int:bk_biz_id>/qdrantha/", include("backend.db_services.kubernetes.qdrant.urls")),
-    path("", include("backend.db_services.kubernetes.surrealdb.toolbox.urls")),
-]
+from backend.configuration.constants import DBType
+from backend.db_meta.enums import ClusterType
+from backend.ticket.builders import TicketFlowBuilder
+from backend.ticket.builders.common.base import SurrealDBTicketFlowBuilderPatchMixin
+
+
+class BaseQdrantTicketFlowBuilder(SurrealDBTicketFlowBuilderPatchMixin, TicketFlowBuilder):
+    group = DBType.K8sQdrant.value
+    cluster_types = [ClusterType.K8sQdrantHa.value]
