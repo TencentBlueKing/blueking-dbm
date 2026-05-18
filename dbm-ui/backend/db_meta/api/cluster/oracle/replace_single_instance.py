@@ -19,6 +19,8 @@ from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, InstanceRo
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Cluster, ClusterEntry, Machine, StorageInstance
 
+from . import change_password
+
 logger = logging.getLogger("flow")
 
 
@@ -150,6 +152,9 @@ def replace_single_instance(
             logger.info(_("旧机器 {} 上仍有其他实例，跳过机器删除").format(old_ip))
 
         logger.info(_("Oracle单实例机器替换完成，集群ID: {}, 新PRIMARY: {}:{}").format(cluster_id, new_ip, new_port))
+
+        # ── 7. 密码修改 ────────────────────────────
+        change_password.ip_change_password(old_ip, old_port, new_ip, new_port, bk_cloud_id)
 
     except Cluster.DoesNotExist:
         raise Exception(
