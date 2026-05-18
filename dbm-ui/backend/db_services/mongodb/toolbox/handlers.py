@@ -8,8 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Dict, List, Set
 
+from typing import Any, Dict, List, Set
+
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models import Q
 from django.utils.translation import gettext as _
 from rest_framework import serializers
@@ -20,6 +22,8 @@ from backend.db_meta.models import Cluster, NosqlStorageSetDtl
 from backend.db_package.models import Package
 from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler
 from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
+from backend.db_services.mongodb.toolbox.constants import MONGODB_SCRIPT_PATH
+from backend.db_services.mysql.sql_import.handlers import SQLHandler as MySQLSQLHandler
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_upgrade_version import MONGODB_MAJOR_MINOR_UPGRADE_CHAIN
 from backend.flow.utils.mongodb.version_utils import normalize_mongodb_full_version
@@ -32,6 +36,25 @@ class ToolboxHandler(ClusterServiceHandler):
 
     def __init__(self, bk_biz_id: int):
         super().__init__(bk_biz_id)
+
+    @classmethod
+    def upload_script_file(
+        cls, bk_biz_id: int, script_content: str = None, script_files: List[InMemoryUploadedFile] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        将sql文本或者sql文件上传到制品库
+        @param bk_biz_id: 业务ID
+        @param sql_content: sql 语句内容
+        @param sql_files: sql 语句文件
+        """
+        # 逻辑同mysql的sql文件上传，直接复用即可
+        upload_sql_path = MONGODB_SCRIPT_PATH.format(biz=bk_biz_id)
+        sql_file_info_list = MySQLSQLHandler.upload_sql_file(upload_sql_path, script_content, script_files)
+        for sql_file_info in sql_file_info_list:
+            sql_file_info["raw_file_name"] = sql_file_info["sql_path"].split("/")[-1]
+            sql_file_info["script_path"] = sql_file_info.pop("sql_path")
+            sql_file_info["script_content"] = sql_file_info.pop("sql_content")
+        return sql_file_info_list
 
     @staticmethod
     def _extract_major_minor(version: str) -> str:
