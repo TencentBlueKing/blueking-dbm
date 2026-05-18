@@ -8,13 +8,17 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import os.path
+import uuid
 from typing import Dict, List, Set
 
+from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.db.models import Q
 from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from backend.configuration.constants import DBType
+from backend.core.storages.storage import get_storage
 from backend.db_meta.enums import ClusterType, MachineType, MachineTypeInstanceRoleMap
 from backend.db_meta.models import Cluster, NosqlStorageSetDtl
 from backend.db_package.models import Package
@@ -32,6 +36,110 @@ class ToolboxHandler(ClusterServiceHandler):
 
     def __init__(self, bk_biz_id: int):
         super().__init__(bk_biz_id)
+
+    @staticmethod
+    def upload_script_file(
+        bkrepo_path: str, script_content: List[str] = None, script_file_list: List[InMemoryUploadedFile] = None
+    ) -> List[Dict[str, any]]:
+        """
+        - 将脚本文本或者脚本文件上传到制品库
+        @param bkrepo_path: 脚本文件路径前缀
+        @param script_content: 脚本语句内容列表
+        @param script_file_list: 脚本语句文件
+        """
+        storage = get_storage(file_overwrite=False)
+
+        # 初始化script_file_list
+        if script_file_list is None:
+            script_file_list = []
+
+        # 如果上传的是脚本内容列表, 则为每个内容创建内存文件
+        if script_content:
+            from io import BytesIO
+
+            for i, content in enumerate(script_content):
+                if not content:
+                    continue
+
+                content_bytes = content.encode("utf-8")
+                # 使用with语句确保BytesIO资源正确管理
+                with BytesIO(content_bytes) as script_file:
+                    # 生成唯一文件名
+                    file_name = f"script_{uuid.uuid4().hex[:8]}_{i}.js"
+
+                    # 创建InMemoryUploadedFile对象
+                    memory_file = InMemoryUploadedFile(
+                        file=script_file,
+                        field_name="script_file",
+                        name=file_name,
+                        content_type="application/javascript",
+                        size=len(content_bytes),
+                        charset="utf-8",
+                    )
+                    script_file_list.append(memory_file)
+
+        script_file_info_list: List[Dict[str, any]] = []
+        for script_file in script_file_list:
+            script_file_info: Dict[str, any] = {}
+            with script_file as file:
+                # 构建完整的文件路径
+                script_path = storage.save(name=os.path.join(bkrepo_path, file.name.split("/")[-1]), content=file)
+
+                # 恢复文件指针为文件头
+                file.seek(0)
+                # 读取文件内容
+                content_bytes = file.read()
+                script_content = content_bytes.decode("utf-8", errors="replace")
+
+                script_file_info.update(
+                    script_path=script_path, script_content=script_content, raw_file_name=file.name
+                )
+
+            script_file_info_list.append(script_file_info)
+
+        return script_file_info_list
+
+    def check_mongo_script_syntax(
+        self,
+        script_content: List[str] = None,
+        script_filenames: List[str] = None,
+        script_files: List[InMemoryUploadedFile] = None,
+    ) -> Dict[str, any]:
+        """
+        MongoDB脚本语法检查
+        @param script_content: 脚本内容列表
+        @param script_filenames: 脚本文件名(在制品库的路径，说明已经在制品库上传好了)
+        @param script_files: 脚本文件
+        """
+        from backend.db_services.mongodb.toolbox.constants import MONGODB_SCRIPT_PATH
+
+        # 构建完整的脚本文件路径
+        script_path = MONGODB_SCRIPT_PATH.format(biz=self.bk_biz_id)
+
+        if script_filenames:
+            script_file_info_list = []
+            for filename in script_filenames:
+                # 安全验证：防止路径遍历攻击
+                # 1. 禁止路径遍历（禁止所有包含'..'的情况）
+                if ".." in filename:
+                    raise serializers.ValidationError(_("文件名[{}]包含非法路径遍历符'..'，可能存在安全风险").format(filename))
+                # 2. 检查是否是绝对路径或Windows绝对路径
+                if filename.startswith("/") or (
+                    len(filename) >= 2
+                    and filename[1] == ":"
+                    and (filename[0].isalpha() and filename[0].upper() in "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+                ):
+                    raise serializers.ValidationError(_("文件名[{}]不能是绝对路径").format(filename))
+                # 3. 确保是纯文件名，移除路径前缀
+                if "/" in filename or "\\" in filename:
+                    filename = os.path.basename(filename)
+
+                script_file_info_list.append({"script_path": script_path + "/" + filename})
+        else:
+            script_file_info_list = self.upload_script_file(script_path, script_content, script_files)
+
+        # 统一返回格式：如果是单个文件，也包装在scripts字段中
+        return {"scripts": script_file_info_list}
 
     @staticmethod
     def _extract_major_minor(version: str) -> str:
