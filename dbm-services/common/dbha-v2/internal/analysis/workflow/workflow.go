@@ -135,7 +135,8 @@ func New(cli *discovery.Client, db *hamysql.GormDB, disc *discovery.Discovery,
 
 	semSize := config.Cfg.Workflow.PopSwitchSemSize
 	if semSize <= 0 {
-		logger.Warn("the pop-switch semaphore size(%d) is too small, reset it to the default value(%d)", semSize, popSwitchSemSize)
+		logger.Warn("the pop-switch semaphore size(%d) is too small, reset it to the default value(%d)",
+			semSize, popSwitchSemSize)
 		semSize = popSwitchSemSize
 	}
 	logger.Info("the pop-switch semaphore size is: %d", semSize)
