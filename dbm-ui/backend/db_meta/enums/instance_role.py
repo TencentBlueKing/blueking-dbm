@@ -100,6 +100,9 @@ class InstanceRole(StrStructuredEnum):
     PD = EnumField("pd", _("pd"))
     TIKV = EnumField("tikv", _("tikv"))
 
+    # K8S Qdrant
+    QDRANT = EnumField("qdrant", _("qdrant"))
+
 
 class TenDBClusterSpiderRole(StrStructuredEnum):
     # 主集群的接入层
