@@ -27,13 +27,17 @@ package dbm
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
+	"dbm-services/common/dbha-v2/internal/analysis/apm"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
+	"dbm-services/common/dbha-v2/pkg/haapm"
 	"dbm-services/common/dbha-v2/pkg/hanet"
 	"dbm-services/common/dbha-v2/pkg/logger"
 )
@@ -76,7 +80,9 @@ func (c *Client) SendRequest(url string, method hanet.HttpMethod, req any,
 		return nil, gerrors.NewE(gerrors.InvalidParameter, err)
 	}
 
+	start := time.Now()
 	code, resp, err := cli.Request(context.Background(), url, method, data)
+	c.ReportAPIMetric(start, url, method, code, err)
 	if err != nil {
 		logger.Warn("failed to send http %s request to dbm, errmsg: %s", method, err)
 		return nil, err
@@ -100,7 +106,9 @@ func (c *Client) RequestMetadata(ctx context.Context, req *Request) (int, *Respo
 
 	cli := c.getRequestClientWithTimeout(config.Cfg.Workflow.DbmApiMetadata.Timeout)
 
+	start := time.Now()
 	code, resp, err := cli.Post(ctx, config.Cfg.Workflow.DbmApiMetadata.Api, data)
+	c.ReportAPIMetric(start, config.Cfg.Workflow.DbmApiMetadata.Api, hanet.HttpMethodPost, code, err)
 	if err != nil {
 		return code, nil, err
 	}
@@ -439,4 +447,34 @@ func (c *Client) SwitchBinlogDumper(bkCloudId int, app string, switchInfos []Dum
 	// TODO: parse response and check if result is success
 
 	return nil
+}
+
+// ReportAPIMetric reports API metric
+func (c *Client) ReportAPIMetric(start time.Time, url string, method hanet.HttpMethod, code int, err error) {
+	if err != nil {
+		var gerr *gerrors.Error
+		if errors.As(err, &gerr) {
+			code = gerr.Code()
+		}
+
+		// Report third-party API request error
+		if err := apm.ThirdPartyApiRequestErrorTotal.IncWithLabels(map[string]string{
+			apm.MetricLabelURL:           url,
+			apm.MetricLabelMethod:        method.String(),
+			apm.MetricLabelStatusCode:    strconv.Itoa(code),
+			haapm.MetricLabelServiceName: apm.MetricServerName,
+		}); err != nil {
+			logger.Warn("failed to report third-party api request error metric, errmsg: %s", err)
+		}
+	}
+
+	// Report third-party API request time consuming
+	if err := apm.ThirdPartyApiRequestTimeConsumingMs.ObserveWithLabels(map[string]string{
+		apm.MetricLabelURL:           url,
+		apm.MetricLabelMethod:        method.String(),
+		apm.MetricLabelStatusCode:    strconv.Itoa(code),
+		haapm.MetricLabelServiceName: apm.MetricServerName,
+	}, float64(time.Since(start).Milliseconds())); err != nil {
+		logger.Warn("failed to report third-party api request time consuming metric, errmsg: %s", err)
+	}
 }

@@ -34,6 +34,8 @@ const (
 	MetricLabelDbType      = "db_type"
 	MetricLabelQueryType   = "query_type"
 	MetricLabelApiName     = "api_name"
+	MetricLabelURL         = "url"
+	MetricLabelMethod      = "method"
 	MetricLabelStatusCode  = "status_code"
 	MetricLabelBizID       = "biz_id"
 
@@ -81,6 +83,10 @@ var (
 	DbQueryTimeConsumingMs *haapm.HaHistogram
 	DbQueryErrorTotal      *haapm.HaCounter
 
+	// ThirdPartyAPI*
+	ThirdPartyApiRequestTimeConsumingMs *haapm.HaHistogram
+	ThirdPartyApiRequestErrorTotal      *haapm.HaCounter
+
 	// DBM API*
 	DbmApiSyncMetadataTotal            *haapm.HaCounter
 	DbmApiSyncMetadataTimeConsumingMs  *haapm.HaHistogram
@@ -108,6 +114,7 @@ func init() {
 	initMySQLMetrics()
 	initRedisMetrics()
 	initDBMetrics()
+	initThirdPartyApiMetrics()
 	initDbmApiMetrics()
 	initDetectorMetrics()
 	initDbTableUpdatedMetrics()
@@ -270,6 +277,25 @@ func initDBMetrics() {
 	)
 }
 
+func initThirdPartyApiMetrics() {
+	// Third-party API request time consuming histogram
+	ThirdPartyApiRequestTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
+		"third_party_api_request_time_consuming_ms",
+		"Time consuming of third-party API requests in milliseconds",
+		haapm.DefaultDurationBuckets,
+		MetricLabelURL, MetricLabelMethod, MetricLabelStatusCode,
+		haapm.MetricLabelServiceName,
+	)
+
+	// Third-party API request error counter
+	ThirdPartyApiRequestErrorTotal = haapm.NewHaCounter(
+		"third_party_api_request_error_total",
+		"Total number of third-party API request errors",
+		MetricLabelURL, MetricLabelMethod, MetricLabelStatusCode,
+		haapm.MetricLabelServiceName,
+	)
+}
+
 func initDbmApiMetrics() {
 	// DBM API sync metadata total counter
 	DbmApiSyncMetadataTotal = haapm.NewHaCounter(
@@ -392,6 +418,8 @@ func InitAPM(serviceID, serviceName string) {
 		SwitchingTimeConsumingMs,
 		DbQueryTimeConsumingMs,
 		DbQueryErrorTotal,
+		ThirdPartyApiRequestTimeConsumingMs,
+		ThirdPartyApiRequestErrorTotal,
 		DbmApiSyncMetadataTotal,
 		DbmApiSyncMetadataTimeConsumingMs,
 		DbmApiSyncMetadataErrorTotal,

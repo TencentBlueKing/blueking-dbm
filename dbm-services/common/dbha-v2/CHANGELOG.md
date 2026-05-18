@@ -12,3 +12,4 @@
 - 【优化】切换时访问DBM的并发请求上限（`switchflow.dbmApiMaxConcurrentRequests`）由 16 调整为 8。  
 - 【修复】cluster 工具在并行调用 DBM 时，因共用 HTTP 客户端致使各请求超时参数相互覆盖的问题。
 - 【修复】滑动窗口 metric 统计的数据残留问题。
+- 【新增】DBM API 调用统计。
