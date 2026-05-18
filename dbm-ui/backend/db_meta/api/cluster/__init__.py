@@ -19,6 +19,7 @@ from . import (
     mongorepset,
     nosqlcomm,
     pulsar,
+    qdrantha,
     riak,
     sqlserverha,
     sqlserversingle,

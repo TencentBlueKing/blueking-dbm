@@ -31,7 +31,7 @@ K8S_CLUSTER_TYPES = [
     ClusterType.K8sGreptimedbHa,
 ]
 
-# 每种 K8s 存储类型下的操作后缀（与 ActionMeta 中 id 一致，不含跨类型的 k8s_addon_manage）
+# 每种 K8s 存储类型下的基础操作后缀（不含 view/edit 与跨类型的 k8s_addon_manage）
 K8S_ACTION_SUFFIXES = [
     "apply",
     "modify",
@@ -199,9 +199,9 @@ class TestK8sActionIds:
                 assert pattern.match(action_id), f"{action_id!r} does not match expected pattern"
 
     def test_k8s_actions_count(self):
-        """_all_actions 中以 k8s_ 开头的 action 为 6×9 + addon_manage 共 55 个"""
+        """_all_actions 中以 k8s_ 开头的 action 为 59 个（含 surrealdb/qdrant 的 view/edit 与 addon_manage）"""
         k8s_actions = [aid for aid in _all_actions if aid.startswith("k8s_")]
-        assert len(k8s_actions) == 57, f"Expected 55 K8s actions, got {len(k8s_actions)}: {k8s_actions}"
+        assert len(k8s_actions) == 59, f"Expected 59 K8s actions, got {len(k8s_actions)}: {k8s_actions}"
 
     @pytest.mark.parametrize(
         "cluster_type_prefix",
@@ -215,12 +215,12 @@ class TestK8sActionIds:
         ],
     )
     def test_each_cluster_type_has_9_actions(self, cluster_type_prefix):
-        """每种 K8s 集群类型恰好有 9 个 action"""
+        """每种 K8s 集群类型 action 数符合定义：多数 9 个，SurrealDB/Qdrant 含 view/edit 为 11 个"""
         matching = [aid for aid in _all_actions if aid.startswith(f"{cluster_type_prefix}_")]
         assert len(matching) in [
             9,
             11,
-        ], f"{cluster_type_prefix} should have 9 actions, got {len(matching)}: {matching}"
+        ], f"{cluster_type_prefix} should have 9 or 11 actions, got {len(matching)}: {matching}"
 
     def test_apply_actions_have_business_resource(self):
         """apply 类 action 的 related_resource_types 包含 BUSINESS"""
