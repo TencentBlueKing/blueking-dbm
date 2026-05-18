@@ -43,11 +43,11 @@ func ConfNameChangesCreate(db *gorm.DB, changes []*ConfNameChangesModel) error {
 func QueryConfNameChanges(db *gorm.DB, req *api.ConfNameChangesQueryReq) ([]*ConfNameChangesModel, error) {
 	var changes []*ConfNameChangesModel
 	query := db.Where("namespace = ?", req.Namespace)
-	if req.ConfType != "" {
-		query = query.Where("conf_type = ?", req.ConfType)
+	if len(req.ConfType) > 0 {
+		query = query.Where("conf_type in ?", req.ConfType)
 	}
-	if req.ConfFile != "" {
-		query = query.Where("conf_file = ?", req.ConfFile)
+	if len(req.ConfFile) > 0 {
+		query = query.Where("conf_file in ?", req.ConfFile)
 	}
 	if req.Limit > 0 {
 		query = query.Limit(req.Limit)

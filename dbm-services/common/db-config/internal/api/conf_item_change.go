@@ -11,12 +11,12 @@ import (
 
 // ConfItemChangesQueryReq 查询 conf_item 变更历史的请求参数
 type ConfItemChangesQueryReq struct {
-	BKBizID    string `json:"bk_biz_id" form:"bk_biz_id" binding:"required"`
-	Namespace  string `json:"namespace" form:"namespace" binding:"required"`
-	ConfType   string `json:"conf_type" form:"conf_type"`
-	ConfFile   string `json:"conf_file" form:"conf_file"`
-	LevelName  string `json:"level_name" form:"level_name"`
-	LevelValue string `json:"level_value" form:"level_value"`
+	BKBizID    string   `json:"bk_biz_id" form:"bk_biz_id" binding:"required"`
+	Namespace  string   `json:"namespace" form:"namespace" binding:"required"`
+	ConfType   []string `json:"conf_type" form:"conf_type"`
+	ConfFile   []string `json:"conf_file" form:"conf_file"`
+	LevelName  string   `json:"level_name" form:"level_name"`
+	LevelValue string   `json:"level_value" form:"level_value"`
 	// Limit 当>0 时启用后端分页。每页返回条数
 	Limit int `json:"limit"`
 	// Offset 当>0 时启用后端分页。偏移量表示第几页

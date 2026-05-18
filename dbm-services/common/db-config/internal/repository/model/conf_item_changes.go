@@ -56,11 +56,11 @@ func ConfItemChangesCreate(db *gorm.DB, changes []*ConfItemChangesModel) error {
 func QueryConfItemChanges(db *gorm.DB, req *api.ConfItemChangesQueryReq) ([]*ConfItemChangesModel, error) {
 	var changes []*ConfItemChangesModel
 	query := db.Where("bk_biz_id = ? AND namespace = ?", req.BKBizID, req.Namespace)
-	if req.ConfType != "" {
-		query = query.Where("conf_type = ?", req.ConfType)
+	if len(req.ConfType) > 0 {
+		query = query.Where("conf_type in ?", req.ConfType)
 	}
-	if req.ConfFile != "" {
-		query = query.Where("conf_file = ?", req.ConfFile)
+	if len(req.ConfFile) > 0 {
+		query = query.Where("conf_file in ?", req.ConfFile)
 	}
 	if req.LevelName != "" {
 		query = query.Where("level_name = ?", req.LevelName)
