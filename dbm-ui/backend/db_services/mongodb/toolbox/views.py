@@ -22,6 +22,7 @@ from backend.db_services.mongodb.toolbox.serializers import (
     GetMongoTcpResultSerializer,
     ListAvailableVersionSerializer,
     MongoExecuteTcpCmdSerializer,
+    MongoScriptSyntaxCheckSerializer,
 )
 from backend.iam_app.dataclass import ActionEnum, ResourceEnum
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
@@ -37,6 +38,17 @@ class ToolboxViewSet(BaseClusterViewSet):
         ]
     }
     default_permission_class = [DBManagePermission()]
+
+    @common_swagger_auto_schema(
+        operation_summary=_("检查MongoDB脚本语法"),
+        request_body=MongoScriptSyntaxCheckSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=MongoScriptSyntaxCheckSerializer)
+    def check_mongo_script_syntax(self, request, bk_biz_id, **kwargs):
+        """检查MongoDB脚本语法"""
+        data = self.params_validate(self.get_serializer_class())
+        return Response(ToolboxHandler.upload_script_file(**data, bk_biz_id=bk_biz_id))
 
     @common_swagger_auto_schema(
         operation_summary=_("执行集群来源指令"),
