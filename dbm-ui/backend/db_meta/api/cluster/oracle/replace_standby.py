@@ -20,6 +20,8 @@ from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, InstanceRo
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Cluster, ClusterEntry, Machine, StorageInstance, StorageInstanceTuple
 
+from . import change_password
+
 logger = logging.getLogger("flow")
 
 
@@ -151,6 +153,11 @@ def replace_standby(cluster_id: int, new_standby_ip: str, new_standby_port: int,
 
         logger.info(
             _("Oracle standby替换完成，集群ID: {}, 新Standby: {}:{}").format(cluster_id, new_standby_ip, new_standby_port)
+        )
+
+        # ── 8. 密码修改 ────────────────────────────
+        change_password.ip_change_password(
+            old_standby_ip, old_standby_port, new_standby_ip, new_standby_port, bk_cloud_id
         )
 
     except Exception as e:
