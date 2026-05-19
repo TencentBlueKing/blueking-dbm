@@ -24,8 +24,17 @@ from backend.ticket.models import Flow, Ticket
 
 
 class HCMResourceReplenishService(BaseService):
+    """
+    海磊申请补货原子节点，具体流程：
+    1. 先查询有容量的机型，一个都没有就返回错误
+    2. execute要么新建单，要么就修改需求单重试，从0开始遍历。
+    3. schedule发现没货，总是修改需求单重试，从execute获得的index开始遍历
+    """
+
     __need_schedule__ = True
     interval = StaticIntervalGenerator(10)
+    # 候选机型数量，先固定为3
+    CANDIDATE_DEVICE_NUM = 3
 
     def __get_ticket_flow(self, global_data):
         try:
@@ -35,6 +44,41 @@ class HCMResourceReplenishService(BaseService):
         except (Ticket.DoesNotExist, Flow.DoesNotExist):
             raise Exception(_("关联单据/flow不存在，推测此流程已结束/已废弃，建议终止任务"))
 
+    def __do_create_apply(self, bk_biz_id, ticket, spec, kwargs, apply_count, device_index):
+        return HCMApi.create_apply(
+            bk_biz_id=bk_biz_id,
+            username=ticket.creator,
+            city=kwargs["city"],
+            subzone=kwargs["subzone"],
+            os_name=kwargs["os_name"],
+            device_types=spec.device_class,
+            disk=[{"disk_type": s["type"], "disk_size": s["min"]} for s in spec.storage_spec if s.get("min")],
+            count=apply_count,
+            ticket_id=ticket.id,
+            device_index=device_index,
+        )
+
+    def __do_modify_apply(self, suborder_id, bk_biz_id, ticket, spec, kwargs, apply_count, device_index):
+        return HCMApi.modify_apply(
+            suborder_id=suborder_id,
+            bk_biz_id=bk_biz_id,
+            username=ticket.creator,
+            subzone=kwargs["subzone"],
+            os_name=kwargs["os_name"],
+            device_types=spec.device_class,
+            disk=[{"disk_type": s["type"], "disk_size": s["min"]} for s in spec.storage_spec if s.get("min")],
+            count=apply_count,
+            device_index=device_index,
+        )
+
+    def __find_candidate_device(self, spec, kwargs, candidate_index):
+        for index in range(candidate_index, min(len(spec.device_class), self.CANDIDATE_DEVICE_NUM)):
+            capacity = HCMApi.get_cvm_device_capacity(spec.device_class[index], kwargs["subzone"])
+            if capacity > 0:
+                return index
+
+        return -1
+
     def _execute(self, data, parent_data):
         global_data = data.get_one_of_inputs("global_data")
         kwargs = data.get_one_of_inputs("kwargs")
@@ -42,7 +86,7 @@ class HCMResourceReplenishService(BaseService):
 
         # 获取当前单据信息和申请补货信息
         ticket, flow = self.__get_ticket_flow(global_data)
-        city, subzone, os_name, count = kwargs["city"], kwargs["subzone"], kwargs["os_name"], kwargs["count"]
+        count = kwargs["count"]
         spec = Spec.objects.get(spec_id=kwargs["spec_id"])
 
         # 修正补货数量，排除已经申请的机器
@@ -57,40 +101,38 @@ class HCMResourceReplenishService(BaseService):
             self.log_error(_("该规格{}不存在机型，无法进行资源补货").format(spec.spec_name))
             return False
 
+        # 查询有容量申请的机型
+        device_index = self.__find_candidate_device(spec, kwargs, 0)
+        if device_index < 0:
+            self.log_error(_("在所有候选机型中，都没有库存容量，请稍后重试"))
+            return False
+
         # 第一次申请发起新的申请单，如果已有申请单，则重试申请。
         apply_id, suborder_id = flow.context.get("apply_id"), flow.context.get("suborder_id")
         if not suborder_id:
-            apply_id = HCMApi.create_apply(
-                bk_biz_id=bk_biz_id,
-                username=ticket.creator,
-                city=city,
-                subzone=subzone,
-                os_name=os_name,
-                device_types=spec.device_class,
-                disk=[{"disk_type": s["type"], "disk_size": s["min"]} for s in spec.storage_spec if s.get("min")],
-                count=apply_count,
-                ticket_id=ticket.id,
-            )
+            apply_id = self.__do_create_apply(bk_biz_id, ticket, spec, kwargs, apply_count, device_index)
         else:
             # 先判断单据状态，如果已经非失败暂停，则不进行重试(可能是在海磊平台操作了)
             apply_ticket = HCMApi.get_apply_status(params={"order_id": apply_id}, use_admin=True)["info"][0]
             if apply_ticket["stage"] != "SUSPEND":
                 self.log_info(_("单据{}状态为{}，非失败暂停状态跳过重试").format(apply_id, apply_ticket["stage"]))
             else:
-                HCMApi.update_ticket_apply_start(
-                    {"bk_biz_id": bk_biz_id, "suborder_id": [suborder_id]}, use_admin=True
-                )
+                self.__do_modify_apply(suborder_id, bk_biz_id, ticket, spec, kwargs, apply_count, device_index)
 
         self.log_info(_("海磊资源单发起成功，单号: {}").format(apply_id))
         data.outputs.apply_id = apply_id
+        data.outputs.device_index = device_index
         return True
 
     def _schedule(self, data, parent_data, callback_data=None):
         global_data = data.get_one_of_inputs("global_data")
+        kwargs = data.get_one_of_inputs("kwargs")
         apply_id = data.get_one_of_outputs("apply_id")
         apply_count = data.get_one_of_outputs("apply_count")
+        device_index = data.get_one_of_outputs("device_index")
         ticket, flow = self.__get_ticket_flow(global_data)
         bk_biz_id = get_hcm_apply_resource_biz()
+        spec = Spec.objects.get(spec_id=kwargs["spec_id"])
 
         if not apply_count:
             self.finish_schedule()
@@ -116,9 +158,16 @@ class HCMResourceReplenishService(BaseService):
             params={"order_id": apply_id, "suborder_id": suborder_id}, use_admin=True
         )["info"]
 
+        # 当前机型没有申请到任何资源，则更换机型进行再次申请
         if not apply_detail:
-            self.log_error(_("没有申请到任何资源，流程退出"))
-            return False
+            device_index = self.__find_candidate_device(spec, kwargs, device_index + 1)
+            if device_index < 0:
+                self.log_error(_("在所有候选机型中，都没有库存容量，请稍后重试"))
+                return False
+            else:
+                self.__do_modify_apply(suborder_id, bk_biz_id, ticket, spec, kwargs, apply_count, device_index)
+                data.outputs.device_index = device_index
+                return True
 
         # 格式化申请的主机信息
         host_ips = [host["ip"] for host in apply_detail]

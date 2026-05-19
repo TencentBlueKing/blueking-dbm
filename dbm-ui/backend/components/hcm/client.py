@@ -52,6 +52,11 @@ class _HCMApi(BaseApi):
             url="/api/v1/woa/bizs/{bk_biz_id}/task/create/apply",
             description=_("创建业务下的资源申请单据"),
         )
+        self.modify_biz_apply = self.generate_data_api(
+            method="POST",
+            url="/api/v1/woa/system/bizs/{bk_biz_id}/task/modify/apply",
+            description=_("修改业务下的资源申请单据"),
+        )
         self.get_apply_status = self.generate_data_api(
             method="GET",
             url="/api/v1/task/get_apply_status/{order_id}",
@@ -61,6 +66,11 @@ class _HCMApi(BaseApi):
             method="POST",
             url="/api/v1/task/get_apply_device",
             description=_("资源申请已交付机器列表查询"),
+        )
+        self.get_cvm_capacity = self.generate_data_api(
+            method="POST",
+            url="/api/v1/woa/system/config/findmany/cvm/capacity",
+            description=_("获取CVM最大申请容量"),
         )
         self.update_ticket_apply_terminate = self.generate_data_api(
             method="POST",
@@ -137,6 +147,7 @@ class _HCMApi(BaseApi):
         disk: list,
         count: int,
         ticket_id: int = None,
+        device_index: int = 0,
     ):
         """
         HCM资源申请规则：
@@ -179,9 +190,6 @@ class _HCMApi(BaseApi):
         except BKSubzone.DoesNotExist:
             raise DataAPIException(_("BKSubzone未找到可用区记录: {}").format(subzone))
 
-        # 申请的机型是给定机型列表的首位
-        apply_device_type = device_types[0]
-
         # 根据操作系统名称获取镜像ID
         image_id = hcm_image_map.get(os_name.strip().lower())
         if not image_id:
@@ -199,7 +207,7 @@ class _HCMApi(BaseApi):
                 "zone": bk_subzone.bk_cloud_zone,
                 # 按机型申请
                 "resource_mode": 0,
-                "device_type": apply_device_type,
+                "device_type": device_types[device_index],
                 "image_id": image_id,
                 # 操作系统盘默认高性能云盘-50G
                 "system_disk": {"disk_type": "CLOUD_PREMIUM", "disk_size": 50},
@@ -225,6 +233,87 @@ class _HCMApi(BaseApi):
         }
         ticket_id = self.create_biz_apply(params=apply_params, use_admin=True)["order_id"]
         return ticket_id
+
+    def modify_apply(
+        self,
+        suborder_id: str,
+        bk_biz_id: str,
+        username: str,
+        subzone: str,
+        os_name: str,
+        device_types: list,
+        disk: list,
+        count: int,
+        device_index: int = 0,
+    ):
+        """
+        HCM修改机型重新申请
+        """
+        bk_biz_id = get_hcm_apply_resource_biz()
+        hcm_image_map = SystemSettings.get_setting_value(SystemSettingsEnum.HCM_OS_NAME_IMAGE_MAP, default={})
+        hcm_image_map = {key.strip().lower(): value for key, value in hcm_image_map.items()}
+
+        # 查询云可用区和云地域
+        try:
+            bk_subzone = BKSubzone.objects.get(bk_sub_zone=subzone)
+        except BKSubzone.DoesNotExist:
+            raise DataAPIException(_("BKSubzone未找到可用区记录: {}").format(subzone))
+
+        # 根据操作系统名称获取镜像ID
+        image_id = hcm_image_map.get(os_name.strip().lower())
+        if not image_id:
+            raise DataAPIException(_("未找到操作系统{}对应的镜像ID").format(os_name))
+
+        # 组装修改需求参数，主要是修改机型
+        suborder_spec_params = {
+            "region": bk_subzone.bk_cloud_region,
+            "zone": bk_subzone.bk_cloud_zone,
+            "device_type": device_types[device_index],
+            "image_id": image_id,
+            # 操作系统盘默认高性能云盘-50G
+            "system_disk": {"disk_type": "CLOUD_PREMIUM", "disk_size": 50},
+            "data_disk": [
+                {"disk_type": HCM_DISK_CLASS_MAP[d["disk_type"]], "disk_size": d["disk_size"], "disk_num": 1}
+                for d in disk
+                if d["disk_type"] in HCM_DISK_CLASS_MAP
+            ],
+        }
+        modify_apply_params = {
+            "bk_biz_id": bk_biz_id,
+            "suborder_id": suborder_id,
+            "bk_username": username,
+            "replicas": count,
+            "spec": suborder_spec_params,
+            "remark": _("DBM资源补货申请修改，新机型: {}").format(device_types[device_index]),
+        }
+        self.modify_biz_apply(params=modify_apply_params, use_admin=True)
+
+    def get_cvm_device_capacity(self, device_type: str, subzone: str) -> int:
+        """
+        获取CVM机型的容量
+        :param device_type: 机型
+        :param subzone: 机器园区
+        :return: 预估最大容量
+        """
+        # 查询云可用区和云地域
+        try:
+            bk_subzone = BKSubzone.objects.get(bk_sub_zone=subzone)
+        except BKSubzone.DoesNotExist:
+            raise DataAPIException(_("BKSubzone未找到可用区记录: {}").format(subzone))
+
+        capacity_params = {
+            # 固定查询滚服项目，计费模式：包年包月，36个月
+            "require_type": 6,
+            "charge_type": "PREPAID",
+            "device_types": [device_type],
+            "region": bk_subzone.bk_cloud_region,
+            "zones": [bk_subzone.bk_cloud_zone],
+        }
+        resp = self.get_cvm_capacity(params=capacity_params, use_admin=True)
+        # 未查询到任何资源，直接返回0
+        if "info" not in resp or not len(resp["info"]):
+            return 0
+        return resp["info"][0]["max_num"]
 
 
 HCMApi = _HCMApi()
