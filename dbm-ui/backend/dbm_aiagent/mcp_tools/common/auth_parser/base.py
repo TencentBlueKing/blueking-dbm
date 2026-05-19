@@ -59,18 +59,34 @@ def auth_parse_clusters(request: HttpRequest, *args, **kwargs) -> ClusterIdList:
     """
     解析集群列表 - 获取集群列表鉴权
     request 接收params:
+    - cluster_id: 集群 ID（与 cluster_domain/cluster_domains 二选一）
     - cluster_domain: 集群域名
     - cluster_domains: 集群域名列表
     """
     from backend.db_meta.models import Cluster
 
     data = request.query_params if request.method == "GET" else request.data
-    if "cluster_domain" not in data and "cluster_domains" not in data:
-        raise ValueError("cluster_domain is required")
+    cluster_id = data.get("cluster_id")
+    cluster_domain = data.get("cluster_domain")
+    cluster_domains = data.get("cluster_domains")
 
-    data = data.get("cluster_domain") or data.get("cluster_domains")
-    data = data if isinstance(data, list) else [data]
-    cluster_ids = list(Cluster.objects.filter(immute_domain__in=data).values_list("id", flat=True))
+    has_id = cluster_id is not None
+    has_domain = cluster_domain is not None or cluster_domains is not None
+    if not has_id and not has_domain:
+        raise ValueError("cluster_id or cluster_domain is required")
+    if has_id and has_domain:
+        raise ValueError("cluster_id and cluster_domain cannot be provided at the same time")
+
+    if has_id:
+        cluster_ids = [int(cluster_id)] if not isinstance(cluster_id, list) else [int(x) for x in cluster_id]
+        exists_ids = set(Cluster.objects.filter(id__in=cluster_ids).values_list("id", flat=True))
+        if not exists_ids or len(exists_ids) != len(set(cluster_ids)):
+            raise ValueError("parse error, no clusters found for the given cluster_id")
+        return cluster_ids
+
+    domains = cluster_domain or cluster_domains
+    domains = domains if isinstance(domains, list) else [domains]
+    cluster_ids = list(Cluster.objects.filter(immute_domain__in=domains).values_list("id", flat=True))
 
     if not cluster_ids:
         raise ValueError("parse error, no clusters found for the given params")

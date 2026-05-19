@@ -30,6 +30,7 @@ from backend.dbm_aiagent.mcp_tools.exceptions import (
 from backend.dbm_aiagent.mcp_tools.mysql.helpers.assert_clustertype import assert_cluster_type
 from backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_topo import mysql_cluster_topo
 from backend.dbm_aiagent.mcp_tools.mysql.impl.explain_sql import explain_sql
+from backend.dbm_aiagent.mcp_tools.mysql.impl.query_table_data_free import query_table_data_free
 from backend.dbm_aiagent.mcp_tools.mysql.impl.query_trx import query_long_running_trx
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_binlog_events import show_binlog_events as run_show_binlog_events
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_create_table import show_create_table
@@ -50,6 +51,10 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.cluster_topo import (
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.explain_sql import (
     ExplainSQLInputSerializer,
     ExplainSQLOutputSerializer,
+)
+from backend.dbm_aiagent.mcp_tools.mysql.serializers.query_table_data_free import (
+    QueryTableDataFreeInputSerializer,
+    QueryTableDataFreeOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.query_trx import QueryLongRunningTrxOutputSerializer
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.show_binlog_events import (
@@ -568,6 +573,44 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
                 from_pos=from_pos,
                 limit_offset=limit_offset,
                 limit_row_count=limit_row_count,
+            )
+        )
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                "查询 MySQL 表空洞碎片（information_schema.tables.data_free）。"
+                "仅返回空洞大于 10GB 的表，按 data_free 降序排列。"
+                "TenDBCluster 会分别查询各 remote slave 分片后按逻辑库表汇聚。"
+                "cluster_id 与 cluster_domain 二选一。"
+            )
+        ),
+        request_slz=QueryTableDataFreeInputSerializer,
+        response_slz=QueryTableDataFreeOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.MYSQL_QUERY],
+        permission_classes=[McpClusterDetailPermission],
+        mcp_auth_parser=auth_parse_clusters,
+        name_prefix="mysql_query",
+    )
+    def query_table_data_free(self, request, *args, **kwargs):
+        cluster_id = self.get_param("cluster_id")
+        cluster_domain = self.get_param("cluster_domain")
+        dbname = self.get_param("dbname") or ""
+        table_names = self.get_param("table_names")
+
+        if cluster_id is not None:
+            cluster_obj = Cluster.objects.get(id=cluster_id)
+        else:
+            cluster_obj = Cluster.objects.get(immute_domain=cluster_domain)
+
+        assert_cluster_type(cluster_obj, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
+
+        return Response(
+            query_table_data_free(
+                cluster_id=cluster_obj.id,
+                dbname=dbname,
+                table_names=table_names,
             )
         )
 
