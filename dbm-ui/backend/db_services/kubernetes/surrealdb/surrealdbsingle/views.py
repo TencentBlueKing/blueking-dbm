@@ -78,12 +78,15 @@ class SurrealDBSingleResourceViewSet(KubernetesResourceViewSet):
     db_type = DBType.K8sSurrealdb
 
     list_perm_actions = [
-        ActionEnum.K8S_SURREAL_APPLY,
-        ActionEnum.K8S_SURREAL_MODIFY,
-        ActionEnum.K8S_SURREAL_DESTROY,
-        ActionEnum.K8S_SURREAL_START,
-        ActionEnum.K8S_SURREAL_STOP,
-        ActionEnum.K8S_SURREAL_RESTART,
-        ActionEnum.K8S_SURREAL_POD_DELETE,
-        ActionEnum.K8S_SURREAL_SCALE,
+        ActionEnum.K8S_SURREALDB_VIEW,
+        ActionEnum.K8S_SURREALDB_EDIT,
+        ActionEnum.K8S_SURREALDB_APPLY,
+        ActionEnum.K8S_SURREALDB_MODIFY,
+        ActionEnum.K8S_SURREALDB_DESTROY,
+        ActionEnum.K8S_SURREALDB_START,
+        ActionEnum.K8S_SURREALDB_STOP,
+        ActionEnum.K8S_SURREALDB_RESTART,
+        ActionEnum.K8S_SURREALDB_POD_DELETE,
+        ActionEnum.K8S_SURREALDB_SCALE,
     ]
+    list_instance_perm_actions = [ActionEnum.K8S_SURREALDB_VIEW]

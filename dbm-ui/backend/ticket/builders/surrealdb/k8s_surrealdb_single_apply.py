@@ -34,7 +34,7 @@ class K8sSurrealDBSingleApplyFlowParamBuilder(K8sSurrealDBApplyFlowParamBuilder)
     TicketType.K8S_SURREALDB_SINGLE_APPLY,
     is_apply=True,
     cluster_type=ClusterType.K8sSurrealdbSingle,
-    iam=ActionEnum.K8S_SURREAL_APPLY,
+    iam=ActionEnum.K8S_SURREALDB_APPLY,
 )
 class K8sSurrealDBApplyFlowBuilder(BaseSurrealDBTicketFlowBuilder):
     serializer = K8sSurrealDBSingleApplyDetailSerializer
