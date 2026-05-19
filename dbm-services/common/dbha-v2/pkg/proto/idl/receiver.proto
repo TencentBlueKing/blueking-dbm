@@ -37,4 +37,5 @@ message ReceiverResponse {
 
 service ReceiverService {
     rpc PushData(stream ReceiverRequest) returns (ReceiverResponse) {}
+    rpc PushDataUnary(ReceiverRequest) returns (ReceiverResponse);
 }
