@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from backend.db_meta.api.cluster.surrealdbsingle.detail import scan_cluster
-from backend.db_meta.enums.cluster_type import ClusterType
+from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.kubernetes.resources.query import KubernetesBaseListRetrieveResource
@@ -18,7 +18,7 @@ from backend.db_services.kubernetes.resources.query import KubernetesBaseListRet
 @register_resource_decorator()
 class SurrealDBSingleListRetrieveResource(KubernetesBaseListRetrieveResource):
     cluster_types = [ClusterType.K8sSurrealdbSingle]
-    instance_roles = []
+    instance_roles = [InstanceRole.SURREAL]
     fields = [
         *KubernetesBaseListRetrieveResource.fields,
     ]

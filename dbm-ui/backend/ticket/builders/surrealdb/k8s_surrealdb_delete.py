@@ -30,7 +30,7 @@ class K8sSurrealDBDeleteFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(
-    TicketType.K8S_SURREALDB_DELETE, phase=ClusterPhase.DESTROY, iam=ActionEnum.K8S_SURREAL_DESTROY
+    TicketType.K8S_SURREALDB_DELETE, phase=ClusterPhase.DESTROY, iam=ActionEnum.K8S_SURREALDB_DESTROY
 )
 class K8sSurrealDBDeleteFlowBuilder(BaseSurrealDBTicketFlowBuilder):
     serializer = K8sSurrealDBDeleteDetailSerializer
