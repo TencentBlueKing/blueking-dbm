@@ -6,7 +6,7 @@
 <script setup lang="ts">
   import { computed, useAttrs } from 'vue';
 
-  import RenderEntry from './entry.vue';
+  import RenderEntry from './Entry.vue';
   import RenderInstance from './Instance.vue';
   import Machine from './Machine.vue';
   import RenderTask from './Task.vue';

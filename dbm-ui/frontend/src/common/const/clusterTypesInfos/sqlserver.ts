@@ -10,6 +10,7 @@ export const sqlserver: ClusterTypeInfo = {
   [ClusterTypes.SQLSERVER_HA]: {
     dbType: DBTypes.SQLSERVER,
     id: ClusterTypes.SQLSERVER_HA,
+    listRouteName: 'SqlServerHaClusterList',
     machineList: [
       {
         id: MachineTypes.SQLSERVER,
@@ -23,6 +24,7 @@ export const sqlserver: ClusterTypeInfo = {
   [ClusterTypes.SQLSERVER_SINGLE]: {
     dbType: DBTypes.SQLSERVER,
     id: ClusterTypes.SQLSERVER_SINGLE,
+    listRouteName: 'SqlServerSingle',
     machineList: [
       {
         id: MachineTypes.SQLSERVER,
