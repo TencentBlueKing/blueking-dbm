@@ -48,7 +48,8 @@ def ticket_list(
     #         'pk', flat=True)
 
     want_tickets = []
-    for t in Ticket.objects.filter(q):
+    tickets_qs = Ticket.objects.prefetch_related("flows", "todo_of_ticket").filter(q)
+    for t in tickets_qs:
         creator = t.creator
         helpers = t.helpers
         # if not (username == creator or username in helpers):
@@ -71,24 +72,8 @@ def ticket_list(
             )
         relate_cluster_domains = [v["immute_domain"] for k, v in t.details.get("clusters", {}).items()]
 
-        if want_cluster_domains:  # 这里要保持这样, 当输入的域名实际不对时, 就不会返回东西
-            if bool(set(relate_cluster_domains) & set(want_cluster_domains)):
-                want_tickets.append(
-                    {
-                        "ticket_id": t.pk,
-                        "ticket_type": TicketType.get_choice_label(t.ticket_type),
-                        "creator": creator,
-                        "helpers": helpers[:2],
-                        "status": t.status,
-                        "relate_clusters": "\n".join(relate_cluster_domains),
-                        "created_at": t.create_at,
-                        "ticket_param": rebuild_ticket_param(t),
-                        "current_flow": current_flow,
-                        "cost_time_seconds": t.get_cost_time(),
-                        "msgs": msgs,
-                    }
-                )
-        else:
+        include_want_cluster_domains = bool(set(relate_cluster_domains) & set(want_cluster_domains))
+        if not want_cluster_domains or (want_cluster_domains and include_want_cluster_domains):
             want_tickets.append(
                 {
                     "ticket_id": t.pk,
@@ -100,6 +85,7 @@ def ticket_list(
                     "created_at": t.create_at,
                     "ticket_param": rebuild_ticket_param(t),
                     "current_flow": current_flow,
+                    "todos": get_ticket_todos(t),
                     "cost_time_seconds": t.get_cost_time(),
                     "msgs": msgs,
                 }
@@ -124,3 +110,17 @@ def rebuild_ticket_param(tk: Ticket):
             raise e
     else:
         return ""
+
+
+def get_ticket_todos(tk: Ticket):
+    todos = [
+        {
+            "todo_id": todo.id,
+            "todo_type": todo.type,
+            "name": todo.name,
+            "operators": todo.operators,
+            "helpers": todo.helpers,
+        }
+        for todo in tk.todo_of_ticket.all()
+    ]
+    return todos
