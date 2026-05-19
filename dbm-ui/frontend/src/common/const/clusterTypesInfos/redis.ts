@@ -10,6 +10,7 @@ export const redis: ClusterTypeInfo = {
   [ClusterTypes.PREDIXY_REDIS_CLUSTER]: {
     dbType: DBTypes.REDIS,
     id: ClusterTypes.PREDIXY_REDIS_CLUSTER,
+    listRouteName: 'DatabaseRedisList',
     machineList: [
       {
         id: MachineTypes.REDIS_TENDIS_CACHE,
@@ -27,6 +28,7 @@ export const redis: ClusterTypeInfo = {
   [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: {
     dbType: DBTypes.REDIS,
     id: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+    listRouteName: 'DatabaseRedisList',
     machineList: [
       {
         id: MachineTypes.REDIS_TENDIS_PLUS,
@@ -44,6 +46,7 @@ export const redis: ClusterTypeInfo = {
   [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: {
     dbType: DBTypes.REDIS,
     id: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+    listRouteName: 'DatabaseRedisList',
     machineList: [
       {
         id: MachineTypes.REDIS_TENDIS_CACHE,
@@ -61,6 +64,7 @@ export const redis: ClusterTypeInfo = {
   [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: {
     dbType: DBTypes.REDIS,
     id: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+    listRouteName: 'DatabaseRedisList',
     machineList: [
       {
         id: MachineTypes.REDIS_TENDIS_CACHE,
@@ -79,6 +83,7 @@ export const redis: ClusterTypeInfo = {
   [ClusterTypes.REDIS_INSTANCE]: {
     dbType: DBTypes.REDIS,
     id: ClusterTypes.REDIS_INSTANCE,
+    listRouteName: 'DatabaseRedisHaList',
     machineList: [
       {
         id: MachineTypes.REDIS_TENDIS_CACHE,
