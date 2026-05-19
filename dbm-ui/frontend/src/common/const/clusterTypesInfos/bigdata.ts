@@ -10,6 +10,7 @@ export const bigdata: ClusterTypeInfo = {
   [ClusterTypes.DORIS]: {
     dbType: DBTypes.DORIS,
     id: ClusterTypes.DORIS,
+    listRouteName: 'DorisList',
     machineList: [
       {
         id: MachineTypes.DORIS_FOLLOWER,
@@ -31,6 +32,7 @@ export const bigdata: ClusterTypeInfo = {
   [ClusterTypes.ES]: {
     dbType: DBTypes.ES,
     id: ClusterTypes.ES,
+    listRouteName: 'EsList',
     machineList: [
       {
         id: MachineTypes.ES_MASTER,
@@ -52,6 +54,7 @@ export const bigdata: ClusterTypeInfo = {
   [ClusterTypes.HDFS]: {
     dbType: DBTypes.HDFS,
     id: ClusterTypes.HDFS,
+    listRouteName: 'HdfsList',
     machineList: [
       {
         id: MachineTypes.HDFS_DATANODE,
@@ -69,6 +72,7 @@ export const bigdata: ClusterTypeInfo = {
   [ClusterTypes.INFLUXDB]: {
     dbType: DBTypes.INFLUXDB,
     id: ClusterTypes.INFLUXDB,
+    listRouteName: 'InfluxDBInstDetails',
     machineList: [
       {
         id: MachineTypes.INFLUXDB,
@@ -82,6 +86,7 @@ export const bigdata: ClusterTypeInfo = {
   [ClusterTypes.KAFKA]: {
     dbType: DBTypes.KAFKA,
     id: ClusterTypes.KAFKA,
+    listRouteName: 'KafkaList',
     machineList: [
       {
         id: MachineTypes.KAFKA_ZOOKEEPER,
@@ -99,6 +104,7 @@ export const bigdata: ClusterTypeInfo = {
   [ClusterTypes.PULSAR]: {
     dbType: DBTypes.PULSAR,
     id: ClusterTypes.PULSAR,
+    listRouteName: 'PulsarList',
     machineList: [
       {
         id: MachineTypes.PULSAR_BOOKKEEPER,
@@ -120,6 +126,7 @@ export const bigdata: ClusterTypeInfo = {
   [ClusterTypes.RIAK]: {
     dbType: DBTypes.RIAK,
     id: ClusterTypes.RIAK,
+    listRouteName: 'RiakList',
     machineList: [
       {
         id: MachineTypes.RIAK,
