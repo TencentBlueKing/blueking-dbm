@@ -10,6 +10,7 @@ export const mongodb: ClusterTypeInfo = {
   [ClusterTypes.MONGO_REPLICA_SET]: {
     dbType: DBTypes.MONGODB,
     id: ClusterTypes.MONGO_REPLICA_SET,
+    listRouteName: 'MongoDBReplicaSetList',
     machineList: [
       {
         id: MachineTypes.MONGODB,
@@ -23,6 +24,7 @@ export const mongodb: ClusterTypeInfo = {
   [ClusterTypes.MONGO_SHARED_CLUSTER]: {
     dbType: DBTypes.MONGODB,
     id: ClusterTypes.MONGO_SHARED_CLUSTER,
+    listRouteName: 'MongoDBSharedClusterList',
     machineList: [
       {
         id: MachineTypes.MONGOS,

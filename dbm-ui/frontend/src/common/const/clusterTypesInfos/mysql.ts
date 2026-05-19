@@ -10,6 +10,7 @@ export const mysql: ClusterTypeInfo = {
   [ClusterTypes.TENDBSINGLE]: {
     dbType: DBTypes.MYSQL,
     id: ClusterTypes.TENDBSINGLE,
+    listRouteName: 'DatabaseTendbsingle',
     machineList: [
       {
         id: MachineTypes.MYSQL_PROXY,
@@ -28,6 +29,7 @@ export const mysql: ClusterTypeInfo = {
   [ClusterTypes.TENDBHA]: {
     dbType: DBTypes.MYSQL,
     id: ClusterTypes.TENDBHA,
+    listRouteName: 'DatabaseTendbha',
     machineList: [
       {
         id: MachineTypes.MYSQL_PROXY,
@@ -46,6 +48,7 @@ export const mysql: ClusterTypeInfo = {
   [ClusterTypes.TENDBCLUSTER]: {
     dbType: DBTypes.TENDBCLUSTER,
     id: ClusterTypes.TENDBCLUSTER,
+    listRouteName: 'tendbClusterList',
     machineList: [
       {
         id: MachineTypes.TENDBCLUSTER_PROXY,
