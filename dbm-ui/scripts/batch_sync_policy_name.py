@@ -71,6 +71,7 @@ def sync_policy_name():
             old_name = policy_obj.name
             policy_obj.name = new_name
             policy_obj.details["name"] = new_name
+            policy_obj.details["is_enabled"] = policy_obj.is_enabled
 
             try:
                 policy_obj.save()
