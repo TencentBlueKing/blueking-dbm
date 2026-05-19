@@ -143,15 +143,20 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
         @param offset: 分页查询, 当前页的偏移数
         @param filter_params_map: 过滤参数map
         """
+        result = {"count": 0, "data": []}
         data = {
             "k8sClusterName": query_params["k8s_cluster_name"],
             "clusterName": query_params["cluster_name"],
             "namespace": query_params["namespace"],
-            "componentName": query_params["role"],
+            # "componentName": query_params["role"],
         }
-        res = KubernetesApi.component_pods(data, use_admin=True)
+        for role in cls.instance_roles:
+            data["componentName"] = role
 
-        return ResourceList(**res)
+        res = KubernetesApi.component_pods(data, use_admin=True)
+        result["count"] += res.get("count", 0)
+        result["data"].extend(res.get("data", []))
+        return ResourceList(**result)
 
     @classmethod
     def retrieve_ins(cls, query_params) -> dict:
