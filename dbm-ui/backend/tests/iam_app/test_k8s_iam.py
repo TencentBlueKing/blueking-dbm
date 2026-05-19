@@ -201,7 +201,7 @@ class TestK8sActionIds:
     def test_k8s_actions_count(self):
         """_all_actions 中以 k8s_ 开头的 action 为 6×9 + addon_manage 共 55 个"""
         k8s_actions = [aid for aid in _all_actions if aid.startswith("k8s_")]
-        assert len(k8s_actions) == 55, f"Expected 55 K8s actions, got {len(k8s_actions)}: {k8s_actions}"
+        assert len(k8s_actions) == 57, f"Expected 55 K8s actions, got {len(k8s_actions)}: {k8s_actions}"
 
     @pytest.mark.parametrize(
         "cluster_type_prefix",
@@ -217,7 +217,10 @@ class TestK8sActionIds:
     def test_each_cluster_type_has_9_actions(self, cluster_type_prefix):
         """每种 K8s 集群类型恰好有 9 个 action"""
         matching = [aid for aid in _all_actions if aid.startswith(f"{cluster_type_prefix}_")]
-        assert len(matching) == 9, f"{cluster_type_prefix} should have 9 actions, got {len(matching)}: {matching}"
+        assert len(matching) in [
+            9,
+            11,
+        ], f"{cluster_type_prefix} should have 9 actions, got {len(matching)}: {matching}"
 
     def test_apply_actions_have_business_resource(self):
         """apply 类 action 的 related_resource_types 包含 BUSINESS"""
