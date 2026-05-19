@@ -88,9 +88,12 @@
   </div>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { getBizs } from '@services/source/cmdb';
+
+  import { DBTypeInfos } from '@/common/const';
 
   interface Props {
     bizList: ServiceReturnType<typeof getBizs>;
@@ -136,56 +139,10 @@
   ];
 
   // name 需按字母序排序
-  const dbList = [
-    {
-      id: 'es',
-      name: 'ElasticSearch',
-    },
-    {
-      id: 'hdfs',
-      name: 'HDFS',
-    },
-    {
-      id: 'influxDB',
-      name: 'influxDB',
-    },
-    {
-      id: 'kafka',
-      name: 'Kafka',
-    },
-    {
-      id: 'mysql',
-      name: 'MySQL',
-    },
-    {
-      id: 'pulsar',
-      name: 'Pulsar',
-    },
-    {
-      id: 'redis',
-      name: 'Redis',
-    },
-    {
-      id: 'riak',
-      name: 'Riak',
-    },
-    {
-      id: 'tendbcluster',
-      name: 'Tendb Cluster',
-    },
-    {
-      id: 'sqlserver',
-      name: 'SqlServer',
-    },
-    {
-      id: 'mongodb',
-      name: 'MongoDB',
-    },
-    {
-      id: 'doris',
-      name: 'Doris',
-    },
-  ];
+  const dbList = _.sortBy(
+    Object.values(DBTypeInfos).map((item) => ({ id: item.id, name: item.name })),
+    'name',
+  );
 
   const isAllDbTypes = computed(() => modelValue.value.db_types.length === 0);
   const isAllResourceType = computed(() => modelValue.value.resource_types.length === 0);
