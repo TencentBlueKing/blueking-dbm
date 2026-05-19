@@ -144,8 +144,12 @@ DEFAULT_REDIS_SYSTEM_CMDS = [
 
 # twemproxy seg总数
 DEFAULT_TWEMPROXY_SEG_TOTOL_NUM = 420000
+# predixy standalone seg总数
+DEFAULT_PREDIXY_STANDALONE_SEG_TOTOL_NUM = 420000
 # twemproxy seg 最小值
 DEFAULT_TWEMPROXY_SEG_MIN_NUM = 0
+# predixy standalone seg 最小值
+DEFAULT_PREDIXY_STANDALONE_SEG_MIN_NUM = 0
 
 
 # JOB操作类型code

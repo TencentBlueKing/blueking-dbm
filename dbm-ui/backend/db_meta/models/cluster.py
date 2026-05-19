@@ -152,6 +152,7 @@ class Cluster(AuditedModel):
         if self.cluster_type in [
             ClusterType.TendisPredixyRedisCluster,
             ClusterType.TendisPredixyTendisplusCluster,
+            ClusterType.TendisPredixyTendisplusInstance,
         ]:
             return PredixyVersion.PredixyLatest
         if self.cluster_type in [

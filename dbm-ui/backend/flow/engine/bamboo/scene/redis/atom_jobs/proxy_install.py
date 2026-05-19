@@ -133,6 +133,7 @@ def ProxyBatchInstallAtomJob(
     # 安装proxy实例
     if act_kwargs.cluster["cluster_type"] in [
         ClusterType.TendisPredixyTendisplusCluster.value,
+        ClusterType.TendisPredixyTendisplusInstance.value,
         ClusterType.TendisPredixyRedisCluster.value,
     ]:
         act_kwargs.cluster["ip"] = exec_ip
@@ -144,6 +145,7 @@ def ProxyBatchInstallAtomJob(
         act_kwargs.cluster["port"] = param["proxy_port"]
         act_kwargs.cluster["servers"] = param["servers"]
         act_kwargs.cluster["load_modules"] = load_modules
+        act_kwargs.cluster["databases"] = str(param.get("databases", ""))  # PredixyTendisplusInstance
         act_kwargs.get_redis_payload_func = RedisActPayload.get_install_predixy_payload.__name__
     else:
         act_kwargs.cluster["ip"] = exec_ip

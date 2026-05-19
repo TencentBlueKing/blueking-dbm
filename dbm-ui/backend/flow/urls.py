@@ -193,6 +193,7 @@ from backend.flow.views.pulsar_scale_up import ScaleUpPulsarSceneApiView
 from backend.flow.views.pulsar_shrink import ShrinkPulsarSceneApiView
 from backend.flow.views.redis_cluster import (
     InstallPredixyClusterSceneApiView,
+    InstallPredixyTendisPlusInsSceneApiView,
     InstallRedisInstanceSceneApiView,
     InstallTwemproxyClusterSceneApiView,
     RedisAddDtsServerSceneApiView,
@@ -317,6 +318,7 @@ urlpatterns = [
     url(r"^scene/install_redis_cache_cluster_apply$", InstallTwemproxyClusterSceneApiView.as_view()),
     url(r"^scene/install_redis_ssd_cluster_apply$", InstallTwemproxyClusterSceneApiView.as_view()),
     url(r"^scene/install_tendisplus_cluster_apply$", InstallPredixyClusterSceneApiView.as_view()),
+    url(r"^scene/install_predixy_tendisplus_ins_apply$", InstallPredixyTendisPlusInsSceneApiView.as_view()),
     url(r"^scene/install_redis_cluster_apply$", InstallPredixyClusterSceneApiView.as_view()),
     url(r"^scene/install_redis_instance_apply$", InstallRedisInstanceSceneApiView.as_view()),
     url(r"^scene/redis_keys_extract$", RedisKeysExtractSceneApiView.as_view()),

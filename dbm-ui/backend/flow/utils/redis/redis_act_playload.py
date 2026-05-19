@@ -95,6 +95,7 @@ twemproxy_cluster_type_list = [
 ]
 predixy_cluster_type_list = [
     ClusterType.TendisPredixyTendisplusCluster.value,
+    ClusterType.TendisPredixyTendisplusInstance.value,
     ClusterType.TendisPredixyRedisCluster.value,
 ]
 cache_cluster_type_list = [
@@ -816,7 +817,14 @@ class RedisActPayload(object):
             for set in redis_master_set:
                 ip_port, seg_range = str.split(set)
                 servers.append("{} {} {} {}".format(ip_port, cluster.name, seg_range, 1))
+        elif cluster.cluster_type in [
+            ClusterType.TendisPredixyTendisplusCluster.value,
+            ClusterType.TendisPredixyTendisplusInstance.value,
+        ]:
+            # standalone主从模式：predixy只路由到master节点，使用StandaloneServerPool
+            servers = redis_master_set
         else:
+            # cluster模式：predixy路由到所有节点(master+slave)，使用ClusterServerPool
             servers = redis_master_set + redis_slave_set
 
         # 从dbconfig中获取load_modules
@@ -1463,7 +1471,10 @@ class RedisActPayload(object):
             self.redis_pkg = Package.get_latest_package(
                 version=db_version, pkg_type=MediumEnum.Redis, db_type=DBType.Redis
             )
-        elif cluster_type == ClusterType.TendisPredixyTendisplusCluster.value:
+        elif cluster_type in [
+            ClusterType.TendisPredixyTendisplusCluster.value,
+            ClusterType.TendisPredixyTendisplusInstance.value,
+        ]:
             self.redis_pkg = Package.get_latest_package(
                 version=db_version, pkg_type=MediumEnum.TendisPlus, db_type=DBType.Redis
             )

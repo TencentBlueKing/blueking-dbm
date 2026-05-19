@@ -26,6 +26,7 @@ class ClusterType(StrStructuredEnum):
     RedisCluster = EnumField("redis", _("Redis"))
     TendisPredixyRedisCluster = EnumField("PredixyRedisCluster", _("RedisCluster集群"))
     TendisPredixyTendisplusCluster = EnumField("PredixyTendisplusCluster", _("Tendisplus存储版集群"))
+    TendisPredixyTendisplusInstance = EnumField("PredixyTendisplusInstance", _("Tendisplus存储版主从集群"))
     TendisTwemproxyRedisInstance = EnumField("TwemproxyRedisInstance", _("TendisCache集群"))
     TwemproxyTendisSSDInstance = EnumField("TwemproxyTendisSSDInstance", _("TendisSSD集群"))
     TendisTwemproxyTendisplusIns = EnumField("TwemproxyTendisplusInstance", _("Tendis存储版集群"))
@@ -79,6 +80,7 @@ class ClusterType(StrStructuredEnum):
                 cls.RedisCluster,
                 cls.TendisPredixyRedisCluster,
                 cls.TendisPredixyTendisplusCluster,
+                cls.TendisPredixyTendisplusInstance,
                 cls.TendisTwemproxyRedisInstance,
                 cls.TwemproxyTendisSSDInstance,
                 cls.TendisTwemproxyTendisplusIns,
@@ -125,6 +127,7 @@ class ClusterType(StrStructuredEnum):
             cls.RedisCluster,
             cls.TendisPredixyRedisCluster,
             cls.TendisPredixyTendisplusCluster,
+            cls.TendisPredixyTendisplusInstance,
             cls.TendisTwemproxyRedisInstance,
             cls.TwemproxyTendisSSDInstance,
             cls.TendisTwemproxyTendisplusIns,
@@ -152,6 +155,7 @@ class ClusterType(StrStructuredEnum):
             cls.TwemproxyTendisSSDInstance.value,
             cls.TendisTendisSSDInstance.value,
             cls.TendisPredixyTendisplusCluster.value,
+            cls.TendisPredixyTendisplusInstance.value,
             cls.TendisTwemproxyTendisplusIns.value,
         ]
 

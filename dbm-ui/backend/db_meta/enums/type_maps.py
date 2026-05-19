@@ -56,6 +56,7 @@ ClusterTypeMachineTypeDefine = {
     ClusterType.TendisRedisInstance: [MachineType.TENDISCACHE],
     ClusterType.TendisPredixyRedisCluster: [MachineType.PREDIXY, MachineType.TENDISCACHE],
     ClusterType.TendisPredixyTendisplusCluster: [MachineType.PREDIXY, MachineType.TENDISPLUS],
+    ClusterType.TendisPredixyTendisplusInstance: [MachineType.PREDIXY, MachineType.TENDISPLUS],
     ClusterType.TendisTwemproxyRedisInstance: [MachineType.TWEMPROXY, MachineType.TENDISCACHE],
     ClusterType.TwemproxyTendisSSDInstance: [MachineType.TWEMPROXY, MachineType.TENDISSSD],
     ClusterType.TendisTwemproxyTendisplusIns: [MachineType.TWEMPROXY, MachineType.TENDISPLUS],
@@ -85,6 +86,10 @@ ClusterMachineAccessTypeDefine = {
         AccessLayer.STORAGE: MachineType.REDIS,
     },
     ClusterType.TendisPredixyTendisplusCluster: {
+        AccessLayer.PROXY: MachineType.PREDIXY,
+        AccessLayer.STORAGE: MachineType.TENDISPLUS,
+    },
+    ClusterType.TendisPredixyTendisplusInstance: {
         AccessLayer.PROXY: MachineType.PREDIXY,
         AccessLayer.STORAGE: MachineType.TENDISPLUS,
     },
