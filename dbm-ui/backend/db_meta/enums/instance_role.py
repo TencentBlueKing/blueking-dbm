@@ -95,6 +95,11 @@ class InstanceRole(StrStructuredEnum):
     PRIMARY = EnumField("primary", _("primary"))
     STANDBY = EnumField("standby", _("standby"))
 
+    # K8S Surrealdb
+    SURREAL = EnumField("surreal", _("surreal"))
+    PD = EnumField("pd", _("pd"))
+    TIKV = EnumField("tikv", _("tikv"))
+
 
 class TenDBClusterSpiderRole(StrStructuredEnum):
     # 主集群的接入层
