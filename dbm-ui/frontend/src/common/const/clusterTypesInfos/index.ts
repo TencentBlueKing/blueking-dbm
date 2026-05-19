@@ -14,6 +14,7 @@ import { sqlserver } from './sqlserver';
 interface ClusterTypeInfoItem {
   dbType: DBTypes;
   id: ClusterTypes;
+  listRouteName: string;
   machineList: {
     id: MachineTypes;
     name: string;
