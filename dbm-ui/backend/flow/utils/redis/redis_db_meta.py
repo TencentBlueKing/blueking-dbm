@@ -26,6 +26,7 @@ from backend.db_meta.api.cluster.nosqlcomm.create_cluster import update_cluster_
 from backend.db_meta.api.cluster.rediscluster.handler import RedisClusterHandler
 from backend.db_meta.api.cluster.tendiscache.handler import TendisCacheClusterHandler
 from backend.db_meta.api.cluster.tendispluscluster.handler import TendisPlusClusterHandler
+from backend.db_meta.api.cluster.tendisplusinstance.handler import TendisPredixyTendisplusInstanceHandler
 from backend.db_meta.api.cluster.tendissingle.handler import TendisSingleHandler
 from backend.db_meta.api.cluster.tendisssd.handler import TendisSSDClusterHandler
 from backend.db_meta.enums import (
@@ -53,6 +54,7 @@ from backend.db_services.dbbase.constants import IP_PORT_DIVIDER, SPACE_DIVIDER
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.db_services.redis.slots_migrate.models import TbTendisSlotsMigrateRecord
 from backend.db_services.redis.util import (
+    is_predixy_proxy_type,
     is_redis_cluster_protocal,
     is_redis_instance_type,
     is_tendisplus_instance_type,
@@ -513,33 +515,51 @@ class RedisDBMeta(object):
         proxies = [{"ip": proxy_ip, "port": proxy_port} for proxy_ip in self.cluster["new_proxy_ips"]]
 
         storages = []
-        for server in self.cluster["servers"]:
-            ip_port, _, seg_range, _ = server.split(SPACE_DIVIDER)
-            ip, port = ip_port.split(IP_PORT_DIVIDER)
-            storages.append({"ip": ip, "port": port, "seg_range": seg_range})
+        if is_predixy_proxy_type(self.cluster["cluster_type"]):
+            for server in self.cluster["servers"]:
+                ip_port, seg_range = server.split(SPACE_DIVIDER)
+                ip, port = ip_port.split(IP_PORT_DIVIDER)
+                storages.append({"ip": ip, "port": port, "seg_range": seg_range})
+        else:
+            for server in self.cluster["servers"]:
+                ip_port, _, seg_range, _ = server.split(SPACE_DIVIDER)
+                ip, port = ip_port.split(IP_PORT_DIVIDER)
+                storages.append({"ip": ip, "port": port, "seg_range": seg_range})
         if self.cluster["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
             handler = TendisCacheClusterHandler
         elif self.cluster["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance.value:
             handler = TendisSSDClusterHandler
+        elif self.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusInstance.value:
+            handler = TendisPredixyTendisplusInstanceHandler
         else:
             raise Exception("unknown cluster type")
-        handler.create(
-            **{
-                "bk_biz_id": self.cluster["bk_biz_id"],
-                "bk_cloud_id": self.cluster["bk_cloud_id"],
-                "name": self.cluster["cluster_name"],
-                "alias": self.cluster["cluster_alias"],
-                "major_version": self.cluster["db_version"],
-                "immute_domain": self.cluster["immute_domain"],
-                "db_module_id": DEFAULT_DB_MODULE_ID,
-                "proxies": proxies,
-                "storages": storages,
-                "creator": self.cluster["created_by"],
-                "region": self.cluster.get("region", ""),
-                "disaster_tolerance_level": self.cluster.get("disaster_tolerance_level", ""),
-                "zone_list": self.cluster.get("zone_list", []),
-            }
-        )
+
+        # 构建 ip_port_storages 用于写入分片规则到 db_meta_nosqlstoragesetdtl 表
+        ip_port_storages = {}
+        for s in storages:
+            key = "{}{}{}".format(s["ip"], IP_PORT_DIVIDER, s["port"])
+            ip_port_storages[key] = {"seg_range": s["seg_range"]}
+
+        # 只有 TendisPredixyTendisplusInstance 类型才需要 ip_port_storages 参数
+        create_params = {
+            "bk_biz_id": self.cluster["bk_biz_id"],
+            "bk_cloud_id": self.cluster["bk_cloud_id"],
+            "name": self.cluster["cluster_name"],
+            "alias": self.cluster["cluster_alias"],
+            "major_version": self.cluster["db_version"],
+            "immute_domain": self.cluster["immute_domain"],
+            "db_module_id": DEFAULT_DB_MODULE_ID,
+            "proxies": proxies,
+            "storages": storages,
+            "creator": self.cluster["created_by"],
+            "region": self.cluster.get("region", ""),
+            "disaster_tolerance_level": self.cluster.get("disaster_tolerance_level", ""),
+            "zone_list": self.cluster.get("zone_list", []),
+        }
+        if self.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusInstance.value:
+            create_params["ip_port_storages"] = ip_port_storages
+
+        handler.create(**create_params)
         return True
 
     def redis_origin_make_cluster(self) -> bool:

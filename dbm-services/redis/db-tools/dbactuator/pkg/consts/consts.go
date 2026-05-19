@@ -8,6 +8,8 @@ const (
 	TendisTypePredixyRedisCluster = "PredixyRedisCluster"
 	// TendisTypePredixyTendisplusCluster predixy + TendisplusCluster架构
 	TendisTypePredixyTendisplusCluster = "PredixyTendisplusCluster"
+	// TendisTypePredixyTendisplusInstance predixy + TendisplusInstance架构(Standalone模式)
+	TendisTypePredixyTendisplusInstance = "PredixyTendisplusInstance"
 	// TendisTypeTwemproxyRedisInstance twemproxy + RedisInstance架构
 	TendisTypeTwemproxyRedisInstance = "TwemproxyRedisInstance"
 	// TendisTypeTwemproxyTendisplusInstance twemproxy+ TendisplusInstance架构
@@ -309,7 +311,8 @@ func IsTwemproxyClusterType(dbType string) bool {
 // IsPredixyClusterType 检查proxy是否为Predixy
 func IsPredixyClusterType(dbType string) bool {
 	if dbType == TendisTypePredixyRedisCluster ||
-		dbType == TendisTypePredixyTendisplusCluster {
+		dbType == TendisTypePredixyTendisplusCluster ||
+		dbType == TendisTypePredixyTendisplusInstance {
 		return true
 	}
 	return false
@@ -320,7 +323,8 @@ func IsTendisplusInstanceDbType(dbType string) bool {
 	if dbType == TendisTypePredixyTendisplusCluster ||
 		dbType == TendisTypeTwemproxyTendisplusInstance ||
 		dbType == TendisTypeTendisplusInsance ||
-		dbType == TendisTypeTendisplusCluster {
+		dbType == TendisTypeTendisplusCluster ||
+		dbType == TendisTypePredixyTendisplusInstance {
 		return true
 	}
 	return false
@@ -348,7 +352,8 @@ func IsTendisSSDInstanceDbType(dbType string) bool {
 // IsAllowFlushMoreDB 是否支持flush 多DB
 func IsAllowFlushMoreDB(dbType string) bool {
 	if dbType == TendisTypeRedisInstance ||
-		dbType == TendisTypeTendisplusInsance {
+		dbType == TendisTypeTendisplusInsance ||
+		dbType == TendisTypePredixyTendisplusInstance {
 		return true
 	}
 	return false
@@ -359,7 +364,8 @@ func IsAllowRandomkey(dbType string) bool {
 	if dbType == TendisTypePredixyTendisplusCluster ||
 		dbType == TendisTypeTwemproxyTendisplusInstance ||
 		dbType == TendisTypeTendisplusInsance ||
-		dbType == TendisTypeTendisplusCluster {
+		dbType == TendisTypeTendisplusCluster ||
+		dbType == TendisTypePredixyTendisplusInstance {
 		return false
 	}
 	return true

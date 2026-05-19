@@ -1,0 +1,123 @@
+Bind {{HOST}}:{{PORT}}
+#Bind 127.0.0.1:{{PORT}}
+
+WorkerThreads 4
+
+Authority {
+    Auth "{{PASSWD}}" {
+        Mode write
+    }
+}
+
+Log /data/predixy/{{PORT}}/logs/log
+LogRotate 1d
+
+StandaloneServerPool {
+    Databases 16
+    Hash fnv1a_64
+    HashTag "{}"
+    Distribution modula
+    RefreshMethod manual
+    ServerTimeout 1
+    ServerRetryTimeout 1
+    KeepAlive 120
+    Masters {
+        {{MASTERS}}
+    }
+}
+
+LatencyMonitor all {
+        Commands {
+                + all
+        }
+        TimeSpan {
+                + 100
+                + 500
+                + 1000
+                + 5000
+                + 10000
+        }
+}
+
+
+CustomCommand {
+  redis_util.safehincrby {
+    MinArgs 4
+    MaxArgs 4
+ }
+  redis_util.hincrclamp {
+    MinArgs 6
+    MaxArgs 6
+ }
+redis_util.hmsetnx {
+  MinArgs 4
+  MaxArgs 9999
+}
+  redis_util.clamp {
+    Mode write
+    MinArgs 4
+    MaxArgs 4
+  }
+
+  redis_util.incrclamp {
+    Mode write
+    MinArgs 5
+    MaxArgs 5
+  }
+
+  redis_util.decrclamp {
+    Mode write
+    MinArgs 5
+    MaxArgs 5
+  }
+  redis_lock.acquire {
+    Mode write
+    MinArgs 4
+    MaxArgs 4
+  }
+  redis_lock.release {
+    Mode write
+    MinArgs 3
+    MaxArgs 3
+  }
+  cl.throttle {
+    Mode write
+    MinArgs 5
+    MaxArgs 6
+  }
+
+  bf.exists {
+    Mode read
+    MinArgs 3
+    MaxArgs 3
+  }
+
+  bf.mexists {
+    Mode read
+    MinArgs 3
+    MaxArgs 9999
+  }
+  bf.add {
+    Mode write
+    MinArgs 3
+    MaxArgs 3
+  }
+  bf.madd {
+    Mode write
+    MinArgs 3
+    MaxArgs 9999
+  }
+
+  bf.reserve {
+    Mode write
+    MinArgs 4
+    MaxArgs 20
+  }
+
+  bf.debug {
+    Mode read
+    MinArgs 2
+    MaxArgs 2
+  }
+
+}

@@ -34,6 +34,7 @@ def is_tendisplus_instance_type(cluster_type: str) -> bool:
         ClusterType.TendisTwemproxyTendisplusIns,
         ClusterType.TendisTendisplusInsance,
         ClusterType.TendisTendisplusCluster,
+        ClusterType.TendisPredixyTendisplusInstance,
     ]
 
 
@@ -62,6 +63,7 @@ def is_predixy_proxy_type(cluster_type: str) -> bool:
     return cluster_type in [
         ClusterType.TendisPredixyRedisCluster,
         ClusterType.TendisPredixyTendisplusCluster,
+        ClusterType.TendisPredixyTendisplusInstance,
     ]
 
 
@@ -101,6 +103,7 @@ def is_support_redis_auotfix(cluster_type: str) -> bool:
         ClusterType.TendisTwemproxyRedisInstance.value,
         ClusterType.TwemproxyTendisSSDInstance.value,
         ClusterType.TendisPredixyTendisplusCluster.value,
+        ClusterType.TendisPredixyTendisplusInstance.value,
         ClusterType.TendisPredixyRedisCluster.value,
         ClusterType.TendisRedisInstance.value,
         ClusterType.MongoShardedCluster.value,
