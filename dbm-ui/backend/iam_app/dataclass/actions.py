@@ -2748,7 +2748,29 @@ class ActionEnum:
     # -----------------------------------------------------------------------
 
     # --- K8s SurrealDB ---
-    K8S_SURREAL_APPLY = ActionMeta(
+    K8S_SURREALDB_VIEW = ActionMeta(
+        id="k8s_surrealdb_view",
+        name=_("K8s SurrealDB 集群详情查看"),
+        name_en="k8s_surrealdb_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.K8S_SURREALDB],
+        group=_("K8s数据库"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+    )
+    K8S_SURREALDB_EDIT = ActionMeta(
+        id="k8s_surrealdb_edit",
+        name=_("K8s SurrealDB 集群编辑"),
+        name_en="k8s_surrealdb_edit",
+        type="edit",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.K8S_SURREALDB],
+        group=_("K8s数据库"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+    )
+    K8S_SURREALDB_APPLY = ActionMeta(
         id="k8s_surrealdb_apply",
         name=_("K8s SurrealDB 集群部署"),
         name_en="k8s_surrealdb_apply",
@@ -2758,7 +2780,7 @@ class ActionEnum:
         group=_("K8s数据库"),
         subgroup=_("SurrealDB集群管理"),
     )
-    K8S_SURREAL_MODIFY = ActionMeta(
+    K8S_SURREALDB_MODIFY = ActionMeta(
         id="k8s_surrealdb_modify",
         name=_("K8s SurrealDB 集群变更"),
         name_en="k8s_surrealdb_modify",
@@ -2768,7 +2790,7 @@ class ActionEnum:
         group=_("K8s数据库"),
         subgroup=_("SurrealDB集群管理"),
     )
-    K8S_SURREAL_DESTROY = ActionMeta(
+    K8S_SURREALDB_DESTROY = ActionMeta(
         id="k8s_surrealdb_destroy",
         name=_("K8s SurrealDB 集群删除"),
         name_en="k8s_surrealdb_destroy",
@@ -2778,7 +2800,7 @@ class ActionEnum:
         group=_("K8s数据库"),
         subgroup=_("SurrealDB集群管理"),
     )
-    K8S_SURREAL_START = ActionMeta(
+    K8S_SURREALDB_START = ActionMeta(
         id="k8s_surrealdb_start",
         name=_("K8s SurrealDB 集群启动"),
         name_en="k8s_surrealdb_start",
@@ -2788,7 +2810,7 @@ class ActionEnum:
         group=_("K8s数据库"),
         subgroup=_("SurrealDB集群管理"),
     )
-    K8S_SURREAL_STOP = ActionMeta(
+    K8S_SURREALDB_STOP = ActionMeta(
         id="k8s_surrealdb_stop",
         name=_("K8s SurrealDB 集群停止"),
         name_en="k8s_surrealdb_stop",
@@ -2798,7 +2820,7 @@ class ActionEnum:
         group=_("K8s数据库"),
         subgroup=_("SurrealDB集群管理"),
     )
-    K8S_SURREAL_RESTART = ActionMeta(
+    K8S_SURREALDB_RESTART = ActionMeta(
         id="k8s_surrealdb_restart",
         name=_("K8s SurrealDB 集群重启"),
         name_en="k8s_surrealdb_restart",
@@ -2808,7 +2830,7 @@ class ActionEnum:
         group=_("K8s数据库"),
         subgroup=_("SurrealDB集群管理"),
     )
-    K8S_SURREAL_POD_DELETE = ActionMeta(
+    K8S_SURREALDB_POD_DELETE = ActionMeta(
         id="k8s_surrealdb_pod_delete",
         name=_("K8s SurrealDB Pod删除"),
         name_en="k8s_surrealdb_pod_delete",
@@ -2818,7 +2840,7 @@ class ActionEnum:
         group=_("K8s数据库"),
         subgroup=_("SurrealDB集群管理"),
     )
-    K8S_SURREAL_SCALE = ActionMeta(
+    K8S_SURREALDB_SCALE = ActionMeta(
         id="k8s_surrealdb_scale",
         name=_("K8s SurrealDB 集群扩缩容"),
         name_en="k8s_surrealdb_scale",
@@ -2828,7 +2850,7 @@ class ActionEnum:
         group=_("K8s数据库"),
         subgroup=_("SurrealDB集群管理"),
     )
-    K8S_SURREAL_UPGRADE = ActionMeta(
+    K8S_SURREALDB_UPGRADE = ActionMeta(
         id="k8s_surrealdb_upgrade",
         name=_("K8s SurrealDB 集群版本升级"),
         name_en="k8s_surrealdb_upgrade",
