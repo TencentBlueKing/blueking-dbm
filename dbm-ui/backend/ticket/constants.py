@@ -35,7 +35,7 @@ class TodoType(StrStructuredEnum):
     ITSM = EnumField("ITSM", _("主流程-单据审批"))
     APPROVE = EnumField("APPROVE", _("主流程-人工确认"))
     INNER_FAILED = EnumField("INNER_FAILED", _("主流程-失败后待确认"))
-    INNER_APPROVE = EnumField("INNER_APPROVE", _("自动化流程-人工确认"))
+    INNER_APPROVE = EnumField("INNER_APPROVE", _("流程待继续-人工确认"))
     RESOURCE_REPLENISH = EnumField("RESOURCE_REPLENISH", _("资源池补货"))
     RESOURCE_HCM_REPLENISH = EnumField("RESOURCE_HCM_REPLENISH", _("海磊-主机资源补货"))
     TIMER = EnumField("TIMER", _("定时"))

@@ -17,7 +17,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.test import APIClient
 
 from backend import env
-from backend.db_dirty.constants import MachineEventType
+from backend.db_dirty.constants import MachineEventType, PoolType
+from backend.db_dirty.models import DirtyMachine
 from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 from backend.db_meta.models import Spec
 from backend.db_meta.models.machine import DeviceClass
@@ -272,17 +273,23 @@ class TestDBResourceViewSet:
         """测试资源删除 - 转移故障池"""
         mock_delete.return_value = {"result": True}
 
+        # 视图前置校验: 主机必须存在 DirtyMachine 且 pool=Resource
+        dirty = DirtyMachine.objects.create(bk_host_id=10001, bk_cloud_id=0, ip="1.1.1.1", pool=PoolType.Resource)
+
         url = "/apis/dbresource/resource/delete/"
         data = {
             "hosts": [{"bk_host_id": 10001, "bk_biz_id": constant.BK_BIZ_ID, "ip": "1.1.1.1", "bk_cloud_id": 0}],
             "event": MachineEventType.ToFault,
             "remark": "test delete",
         }
-        response = client.post(url, data=data, content_type="application/json")
+        try:
+            response = client.post(url, data=data, content_type="application/json")
 
-        assert response.status_code == status.HTTP_200_OK
-        assert mock_trigger.called
-        assert mock_delete.called
+            assert response.status_code == status.HTTP_200_OK
+            assert mock_trigger.called
+            assert mock_delete.called
+        finally:
+            dirty.delete()
 
     @patch("backend.components.dbresource.client.DBResourceApi.resource_delete")
     @patch("backend.db_dirty.models.MachineEvent.hosts_can_return")
@@ -293,18 +300,24 @@ class TestDBResourceViewSet:
         mock_can_return.return_value = (True, "")
         mock_delete.return_value = {"result": True}
 
+        # 视图前置校验: 主机必须存在 DirtyMachine 且 pool=Resource
+        dirty = DirtyMachine.objects.create(bk_host_id=10001, bk_cloud_id=0, ip="1.1.1.1", pool=PoolType.Resource)
+
         url = "/apis/dbresource/resource/delete/"
         data = {
             "hosts": [{"bk_host_id": 10001, "bk_biz_id": constant.BK_BIZ_ID, "ip": "1.1.1.1", "bk_cloud_id": 0}],
             "event": MachineEventType.UndoImport,
             "remark": "undo import",
         }
-        response = client.post(url, data=data, content_type="application/json")
+        try:
+            response = client.post(url, data=data, content_type="application/json")
 
-        assert response.status_code == status.HTTP_200_OK
-        assert mock_can_return.called
-        assert mock_trigger.called
-        assert mock_transfer.called
+            assert response.status_code == status.HTTP_200_OK
+            assert mock_can_return.called
+            assert mock_trigger.called
+            assert mock_transfer.called
+        finally:
+            dirty.delete()
 
     @patch("backend.components.dbresource.client.DBResourceApi.resource_batch_update")
     def test_resource_update(self, mock_update):
