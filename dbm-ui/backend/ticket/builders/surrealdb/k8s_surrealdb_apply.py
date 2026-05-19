@@ -50,7 +50,7 @@ class K8sSurrealDBApplyFlowParamBuilder(builders.FlowParamBuilder):
     TicketType.K8S_SURREALDB_APPLY,
     is_apply=True,
     cluster_type=ClusterType.K8sSurrealdbHa,
-    iam=ActionEnum.K8S_SURREAL_APPLY,
+    iam=ActionEnum.K8S_SURREALDB_APPLY,
 )
 class K8sSurrealDBApplyFlowBuilder(BaseSurrealDBTicketFlowBuilder):
     serializer = K8sSurrealDBApplyDetailSerializer
