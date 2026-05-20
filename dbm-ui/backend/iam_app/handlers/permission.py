@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 import itertools
 import logging
+import time
 from functools import wraps
 from typing import Any, Callable, Dict, List, Tuple, Union
 
@@ -30,6 +31,7 @@ from iam.exceptions import AuthAPIError
 from iam.iam import logger as iam_logger
 from iam.meta import setup_action, setup_resource, setup_system
 from iam.utils import gen_perms_apply_data
+from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from backend import env
 from backend.env import BK_IAM_SYSTEM_ID
@@ -48,6 +50,9 @@ class Permission(object):
     """
     权限中心鉴权和无权限申请的通用封装
     """
+
+    IAM_IS_ALLOWED_MAX_RETRIES = 3
+    IAM_IS_ALLOWED_RETRY_INTERVAL_SECONDS = 0.2
 
     def __init__(self, username: str = "", request=None):
         if username:
@@ -194,11 +199,28 @@ class Permission(object):
             resources = []
 
         request = self.make_request(action, resources)
-        try:
-            permission = self._iam.is_allowed(request)
-        except AuthAPIError as e:
-            logger.exception(f"IAM AuthAPIError: {e}")
-            permission = False
+        permission = False
+        for retry in range(self.IAM_IS_ALLOWED_MAX_RETRIES):
+            try:
+                permission = self._iam.is_allowed(request)
+                break
+            except RequestsConnectionError as e:
+                # 兼容 IAM 网关偶发的 RemoteDisconnected，进行快速重试。
+                if "RemoteDisconnected" in str(e) and retry < self.IAM_IS_ALLOWED_MAX_RETRIES - 1:
+                    logger.warning(
+                        "IAM ConnectionError(RemoteDisconnected), retry %s/%s: %s",
+                        retry + 1,
+                        self.IAM_IS_ALLOWED_MAX_RETRIES,
+                        e,
+                    )
+                    time.sleep(self.IAM_IS_ALLOWED_RETRY_INTERVAL_SECONDS)
+                    continue
+
+                logger.exception(f"IAM ConnectionError: {e}")
+                break
+            except AuthAPIError as e:
+                logger.exception(f"IAM AuthAPIError: {e}")
+                break
 
         if not permission and is_raise_exception:
             data, url = self.get_apply_data([action], [resources])
