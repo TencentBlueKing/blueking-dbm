@@ -216,5 +216,6 @@ def cache_appcache_data(sender, **kwargs):
         timeout = 60 * 30
         cache.set("appcache_list", appcache_list, timeout=timeout)
         cache.set("appcache_dict", appcache_dict, timeout=timeout)
+        return {"appcache_list": appcache_list, "appcache_dict": appcache_dict}
     except Exception as e:
         logger.info(f"cache_appcache error: {e}")
