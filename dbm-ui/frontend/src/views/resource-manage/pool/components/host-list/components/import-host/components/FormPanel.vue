@@ -113,11 +113,18 @@
             <BkSelect
               v-model="formData.resource_type"
               filterable>
-              <BkOption
-                v-for="item in dbTypeList"
-                :key="item.id"
-                :label="item.name"
-                :value="item.id" />
+              <BkOptionGroup group-style="divider">
+                <BkOption
+                  v-for="item in resourceDbTypes"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value" />
+              </BkOptionGroup>
+              <BkOptionGroup group-style="divider">
+                <BkOption
+                  :label="specialOptionLabelMap[SpecialOptions.PUBLIC]"
+                  :value="SpecialOptions.PUBLIC" />
+              </BkOptionGroup>
             </BkSelect>
           </div>
         </BkFormItem>
@@ -142,11 +149,12 @@
   import { useRequest } from 'vue-request';
 
   import { getBizs } from '@services/source/cmdb';
-  import { fetchDbTypeList } from '@services/source/infras';
   import { listTag } from '@services/source/tag';
   import type { HostInfo } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
+
+  import { resourceDbTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
 
   import DbAppSelect from '@components/db-app-select/Index.vue';
 
@@ -184,23 +192,10 @@
     resource_type: '',
   });
 
-  const dbTypeList = shallowRef<ServiceReturnType<typeof fetchDbTypeList>>([]);
   const tagList = shallowRef<ServiceReturnType<typeof listTag>['results']>([]);
   const currentApp = shallowRef(
     formData.for_biz !== undefined ? globalBizsStore.bizIdMap.get(formData.for_biz) : undefined,
   );
-
-  useRequest(fetchDbTypeList, {
-    onSuccess(data) {
-      dbTypeList.value = [
-        {
-          id: 'PUBLIC',
-          name: t('通用'),
-        },
-        ...data,
-      ];
-    },
-  });
 
   watch(
     () => formData.for_biz,

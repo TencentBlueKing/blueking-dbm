@@ -3,21 +3,23 @@
     v-model="localValue"
     :clearable="false"
     @change="handleChange">
-    <BkOption
-      v-for="item in dbTypeList"
-      :key="item.id"
-      :label="item.name"
-      :value="item.id" />
+    <BkOptionGroup group-style="divider">
+      <BkOption
+        v-for="item in resourceDbTypes"
+        :key="item.value"
+        :label="item.label"
+        :value="item.value" />
+    </BkOptionGroup>
+    <BkOptionGroup group-style="divider">
+      <BkOption
+        :label="specialOptionLabelMap[SpecialOptions.PUBLIC]"
+        :value="SpecialOptions.PUBLIC" />
+    </BkOptionGroup>
   </BkSelect>
 </template>
 
 <script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
-
-  import { fetchDbTypeList } from '@services/source/infras';
-
-  import { DBTypes } from '@common/const';
+  import { DBTypes, resourceDbTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
 
   interface Props {
     model: Record<string, string>;
@@ -29,21 +31,7 @@
 
   const emits = defineEmits<Emits>();
 
-  const { t } = useI18n();
-
   const localValue = ref<string>(DBTypes.REDIS);
-  const dbTypeList = shallowRef<
-    {
-      id: string;
-      name: string;
-    }[]
-  >([]);
-
-  useRequest(fetchDbTypeList, {
-    onSuccess(data) {
-      dbTypeList.value = data.concat({ id: 'PUBLIC', name: t('通用') });
-    },
-  });
 
   watch(
     () => props.model,
