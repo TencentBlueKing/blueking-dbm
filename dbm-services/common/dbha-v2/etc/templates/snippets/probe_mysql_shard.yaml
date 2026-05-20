@@ -9,6 +9,7 @@
       - proto: {{PROBE_MYSQL_EP_PROTO}}
         clusterType: "{{PROBE_MYSQL_EP_CLUSTER_TYPE}}"
         machineType: "{{PROBE_MYSQL_EP_MACHINE_TYPE}}"
+        instanceRole: "{{PROBE_MYSQL_EP_INSTANCE_ROLE}}"
         accessLayer: "{{PROBE_MYSQL_EP_ACCESS_LAYER}}"
         ip: {{PROBE_MYSQL_EP_IP}}
 
