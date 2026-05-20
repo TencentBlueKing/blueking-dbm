@@ -150,15 +150,6 @@ class MySQLRestoreSlaveRemoteFlow(object):
             if "bk_new_slave" in self.data.keys():
                 bk_host_ids.append(self.data["bk_new_slave"]["bk_host_id"])
             tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-
-            has_unavailable_instance = StorageInstance.objects.filter(
-                machine__ip=self.data["old_slave_ip"],
-                instance_inner_role=InstanceInnerRole.SLAVE.value,
-                status=InstanceStatus.UNAVAILABLE.value,
-                machine__bk_cloud_id=self.data["bk_cloud_id"],
-                bk_biz_id=self.data["bk_biz_id"],
-            ).exists()
-
             #  获取信息
             # 整机安装数据库
             master = cluster_class.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
@@ -284,6 +275,13 @@ class MySQLRestoreSlaveRemoteFlow(object):
             switch_sub_pipeline_list = []
             uninstall_svr_sub_pipeline_list = []
             if not self.add_slave_only:
+                has_unavailable_instance = StorageInstance.objects.filter(
+                    machine__ip=self.data.get("old_slave_ip", None),
+                    instance_inner_role=InstanceInnerRole.SLAVE.value,
+                    status=InstanceStatus.UNAVAILABLE.value,
+                    machine__bk_cloud_id=self.data["bk_cloud_id"],
+                    bk_biz_id=self.data["bk_biz_id"],
+                ).exists()
                 for cluster_id in self.data["cluster_ids"]:
                     cluster_model = Cluster.objects.get(id=cluster_id)
                     switch_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
