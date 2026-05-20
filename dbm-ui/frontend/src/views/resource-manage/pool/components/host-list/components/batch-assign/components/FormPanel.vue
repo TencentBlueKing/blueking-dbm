@@ -48,11 +48,18 @@
         property="resource_type"
         required>
         <BkSelect v-model="formData.resource_type">
-          <BkOption
-            v-for="item in dbTypeList"
-            :key="item.id"
-            :label="item.name"
-            :value="item.id" />
+          <BkOptionGroup group-style="divider">
+            <BkOption
+              v-for="item in resourceDbTypes"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value" />
+          </BkOptionGroup>
+          <BkOptionGroup group-style="divider">
+            <BkOption
+              :label="specialOptionLabelMap[SpecialOptions.PUBLIC]"
+              :value="SpecialOptions.PUBLIC" />
+          </BkOptionGroup>
         </BkSelect>
       </BkFormItem>
       <BkFormItem
@@ -75,11 +82,12 @@
 
   import DbResourceModel from '@services/model/db-resource/DbResource';
   import { getBizs } from '@services/source/cmdb';
-  import { fetchDbTypeList } from '@services/source/infras';
   import { listTag } from '@services/source/tag';
   import type { BizItem } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
+
+  import { DBTypeInfos, DBTypes, resourceDbTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
 
   import DbAppSelect from '@components/db-app-select/Index.vue';
 
@@ -130,7 +138,6 @@
     formData.for_biz !== undefined ? globalBizsStore.bizIdMap.get(formData.for_biz) : undefined,
   );
   const bizList = shallowRef<ServiceReturnType<typeof getBizs>>([]);
-  const dbTypeList = shallowRef<ServiceReturnType<typeof fetchDbTypeList>>([]);
   const tagList = shallowRef<ServiceReturnType<typeof listTag>['results']>([]);
 
   useRequest(getBizs, {
@@ -140,18 +147,6 @@
           bk_biz_id: 0,
           display_name: t('公共资源池'),
         } as BizItem,
-        ...data,
-      ];
-    },
-  });
-
-  useRequest(fetchDbTypeList, {
-    onSuccess(data) {
-      dbTypeList.value = [
-        {
-          id: 'PUBLIC',
-          name: t('通用'),
-        },
         ...data,
       ];
     },
@@ -178,7 +173,7 @@
     getMessageInfo() {
       return {
         bizName: currentApp.value?.name || '',
-        dbName: dbTypeList.value.find((item) => item.id === formData.resource_type)?.name || '',
+        dbName: DBTypeInfos[formData.resource_type as DBTypes].name,
         labelName: tagSelectorRef.value?.getLabelNames() || [],
       };
     },

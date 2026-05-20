@@ -3,12 +3,18 @@ import { useI18n } from 'vue-i18n';
 import { useRequest } from 'vue-request';
 
 import { fetchDeviceClass, fetchMountPoints, getOsTypeList } from '@services/source/dbresourceResource';
-import { fetchDbTypeList, getCommonCities, getInfrasSubzonesByCity } from '@services/source/infras';
+import { getCommonCities, getInfrasSubzonesByCity } from '@services/source/infras';
 import { getCloudList, searchDeviceClass } from '@services/source/ipchooser';
 
 import { useGlobalBizs } from '@stores';
 
-import { DeviceClass, deviceClassDisplayMap } from '@common/const';
+import {
+  DeviceClass,
+  deviceClassDisplayMap,
+  resourceDbTypes,
+  specialOptionLabelMap,
+  SpecialOptions,
+} from '@common/const';
 
 import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
 
@@ -23,91 +29,105 @@ export default (props: any) => {
       {
         id: 'hosts',
         name: 'IP',
+        type: 'multiple-input',
       },
       {
-        children: globalBizsStore.bizs.map((item) => ({
-          id: `${item.bk_biz_id}`,
-          name: item.name,
-        })),
         id: 'for_biz',
-        name: t('所属业务'),
-      },
-      {
-        children: [{ id: 'PUBLIC', name: t('通用') }].concat(dbTypeList.value ?? []),
-        id: 'resource_type',
-        name: t('所属DB类型'),
-      },
-      {
-        children: cloudList.value?.map((item) => ({
-          id: `${item.bk_cloud_id}`,
-          name: item.bk_cloud_name,
+        list: globalBizsStore.bizs.map((item) => ({
+          label: item.name,
+          value: `${item.bk_biz_id}`,
         })),
-        id: 'bk_cloud_ids',
-        name: t('管控区域'),
+        name: t('所属业务'),
+        type: 'single',
       },
       {
-        children: [
+        id: 'resource_type',
+        list: resourceDbTypes.concat({
+          label: specialOptionLabelMap[SpecialOptions.PUBLIC],
+          value: SpecialOptions.PUBLIC,
+        }),
+        name: t('所属DB类型'),
+        type: 'single',
+      },
+      {
+        id: 'bk_cloud_ids',
+        list: cloudList.value?.map((item) => ({
+          label: item.bk_cloud_name,
+          value: `${item.bk_cloud_id}`,
+        })),
+        name: t('管控区域'),
+        type: 'multiple',
+      },
+      {
+        id: 'agent_status',
+        list: [
           {
-            id: '1',
-            name: t('正常'),
+            label: t('正常'),
+            value: '1',
           },
           {
-            id: '0',
-            name: t('异常'),
+            label: t('异常'),
+            value: '0',
           },
         ],
-        id: 'agent_status',
         name: t('Agent 状态'),
+        type: 'single',
       },
       {
-        children: osTypeList.value?.map((item) => ({
-          id: item,
-          name: item,
-        })),
         id: 'mount_point',
+        list: osTypeList.value?.map((item) => ({
+          label: item,
+          value: item,
+        })),
         name: t('操作系统类型'),
+        type: 'single',
       },
       {
-        children: mountPointList.value?.map((item) => ({
-          id: item,
-          name: item,
-        })),
         id: 'mount_point',
-        name: t('磁盘挂载点'),
+        list: mountPointList.value?.map((item) => ({
+          label: item,
+          value: item,
+        })),
+        name: t('数据盘挂载点'),
+        type: 'single',
       },
       {
-        children: diskTypeList.value
+        id: 'disk_type',
+        list: diskTypeList.value
           ?.filter((item) => item !== 'ALL')
           .map((item) => ({
-            id: item,
-            name: deviceClassDisplayMap[item as DeviceClass],
+            label: deviceClassDisplayMap[item as DeviceClass],
+            value: item,
           })),
-        id: 'disk_type',
-        name: t('磁盘类型'),
+        name: t('数据盘类型'),
+        type: 'single',
       },
       {
-        children: cityList.value?.map((item) => ({
-          id: item.city_code,
-          name: item.city_name,
-        })),
         id: 'city',
+        list: cityList.value?.map((item) => ({
+          label: item.city_name,
+          value: item.city_code,
+        })),
         name: t('地域'),
+        type: 'multiple',
       },
       {
-        children: subzoneList.value?.map((item) => ({
-          id: `${item.bk_sub_zone_id}`,
-          name: item.bk_sub_zone,
-        })),
         id: 'sub_zone',
+        list: subzoneList.value?.map((item) => ({
+          label: item.bk_sub_zone,
+          value: `${item.bk_sub_zone_id}`,
+        })),
         name: t('园区'),
+        type: 'multiple',
       },
       {
-        children: deviceClassList.value?.map((item) => ({
-          id: `${item.id}`,
-          name: item.device_type,
-        })),
         id: 'device_class',
+        list: deviceClassList.value?.map((item) => ({
+          label: item.device_type,
+          value: `${item.id}`,
+        })),
         name: t('机型'),
+        type: 'multiple',
       },
     ];
 
@@ -133,10 +153,6 @@ export default (props: any) => {
         offset: 0,
       },
     ],
-    initialData: [],
-  });
-
-  const { data: dbTypeList } = useRequest(fetchDbTypeList, {
     initialData: [],
   });
 
