@@ -16,9 +16,9 @@ import _ from 'lodash';
 import { getBizs } from '@services/source/cmdb';
 import { fetchMountPoints } from '@services/source/dbresourceResource';
 import { getResourceSpec } from '@services/source/dbresourceSpec';
-import { fetchDbTypeList } from '@services/source/infras';
 import { getCloudList } from '@services/source/ipchooser';
 
+import { resourceDbTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
 import { ipv4 } from '@common/regex';
 
 import { t } from '@locales/index';
@@ -162,14 +162,20 @@ export default {
   },
   resource_type: {
     component: 'resource_type',
-    getNameByKey: (value: string, item: { id: string; name: string }) => {
-      if (value === item.id) {
-        return item.name;
+    getNameByKey: (value: string, item: { label: string; value: string }) => {
+      if (value === item.value) {
+        return item.label;
       }
       return undefined;
     },
     label: t('所属DB类型'),
-    service: fetchDbTypeList,
+    service: () =>
+      Promise.resolve(
+        resourceDbTypes.concat({
+          label: specialOptionLabelMap[SpecialOptions.PUBLIC],
+          value: SpecialOptions.PUBLIC,
+        }),
+      ),
     type: 'string',
   },
   spec_id: {
