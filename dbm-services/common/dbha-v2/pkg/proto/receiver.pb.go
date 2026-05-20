@@ -162,9 +162,8 @@ const file_receiver_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\">\n" +
 	"\x10ReceiverResponse\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\x05R\x04code\x12\x16\n" +
-	"\x06errmsg\x18\x02 \x01(\tR\x06errmsg2|\n" +
-	"\x0fReceiverService\x123\n" +
-	"\bPushData\x12\x10.ReceiverRequest\x1a\x11.ReceiverResponse\"\x00(\x01\x124\n" +
+	"\x06errmsg\x18\x02 \x01(\tR\x06errmsg2G\n" +
+	"\x0fReceiverService\x124\n" +
 	"\rPushDataUnary\x12\x10.ReceiverRequest\x1a\x11.ReceiverResponseB\tZ\a.;protob\x06proto3"
 
 var (
@@ -187,12 +186,10 @@ var file_receiver_proto_goTypes = []any{
 }
 var file_receiver_proto_depIdxs = []int32{
 	2, // 0: ReceiverRequest.headers:type_name -> ReceiverRequest.HeadersEntry
-	0, // 1: ReceiverService.PushData:input_type -> ReceiverRequest
-	0, // 2: ReceiverService.PushDataUnary:input_type -> ReceiverRequest
-	1, // 3: ReceiverService.PushData:output_type -> ReceiverResponse
-	1, // 4: ReceiverService.PushDataUnary:output_type -> ReceiverResponse
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
+	0, // 1: ReceiverService.PushDataUnary:input_type -> ReceiverRequest
+	1, // 2: ReceiverService.PushDataUnary:output_type -> ReceiverResponse
+	2, // [2:3] is the sub-list for method output_type
+	1, // [1:2] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
