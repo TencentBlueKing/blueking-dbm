@@ -60,6 +60,12 @@ var Cfg = Configuration{
 			DbConnectTimeout:                 3 * time.Second,
 			ClusterLockTimeout:               60 * time.Second,
 			ExecSqlTimeout:                   6 * time.Second,
+			AllowedIgnoreCheckSum:            false,
+			AllowedIgnoreSlaveDelay:          false,
+			AllowedSlowBytes:                 0,
+			AllowedMaxChecksumFailCnt:        2,
+			AllowedMaxHeartbeatDelay:         600,
+			AllowedMaxIODelay:                300,
 		},
 	},
 
@@ -103,6 +109,12 @@ type SwitchFlowConfig struct {
 	DbConnectTimeout                 time.Duration `yaml:"dbConnectTimeout"                 mapstructure:"dbConnectTimeout"`
 	ClusterLockTimeout               time.Duration `yaml:"clusterLockTimeout"               mapstructure:"clusterLockTimeout"`
 	ExecSqlTimeout                   time.Duration `yaml:"execSqlTimeout"                   mapstructure:"execSqlTimeout"`
+	AllowedIgnoreCheckSum            bool          `yaml:"slaveAllowedIgnoreCheckSum"       mapstructure:"slaveAllowedIgnoreCheckSum"`
+	AllowedIgnoreSlaveDelay          bool          `yaml:"slaveAllowedIgnoreSlaveDelay"     mapstructure:"slaveAllowedIgnoreSlaveDelay"`
+	AllowedSlowBytes                 int           `yaml:"slaveAllowedSlowBytes"            mapstructure:"slaveAllowedSlowBytes"`
+	AllowedMaxChecksumFailCnt        int           `yaml:"slaveAllowedMaxChecksumFailCnt"   mapstructure:"slaveAllowedMaxChecksumFailCnt"`
+	AllowedMaxHeartbeatDelay         int           `yaml:"slaveAllowedMaxHeartbeatDelay"    mapstructure:"slaveAllowedMaxHeartbeatDelay"`
+	AllowedMaxIODelay                int           `yaml:"slaveAllowedMaxIODelay"           mapstructure:"slaveAllowedMaxIODelay"`
 }
 
 // WorkflowConfig workflow's configuration
