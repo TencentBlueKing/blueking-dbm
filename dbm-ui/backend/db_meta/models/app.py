@@ -96,11 +96,12 @@ class AppCache(AuditedModel):
     def get_appcache(cls, key):
         if key not in ["appcache_list", "appcache_dict"]:
             raise ValueError(_("缓存key不存在，请检查key是否为appcache_dict/appcache_list"))
-        if not cache.get(key):
+        data = cache.get(key)
+        if not data:
             from backend.db_meta.utils import cache_appcache_data
 
-            cache_appcache_data(cls)
-        return cache.get(key)
+            data = cache_appcache_data(cls).get(key)
+        return data
 
     @classmethod
     def get_choices(cls):
