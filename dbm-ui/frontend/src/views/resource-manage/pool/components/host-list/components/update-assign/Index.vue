@@ -34,11 +34,18 @@
         property="resource_type"
         required>
         <BkSelect v-model="formData.resource_type">
-          <BkOption
-            v-for="item in dbTypeList"
-            :key="item.id"
-            :label="item.name"
-            :value="item.id" />
+          <BkOptionGroup group-style="divider">
+            <BkOption
+              v-for="item in resourceDbTypes"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value" />
+          </BkOptionGroup>
+          <BkOptionGroup group-style="divider">
+            <BkOption
+              :label="specialOptionLabelMap[SpecialOptions.PUBLIC]"
+              :value="SpecialOptions.PUBLIC" />
+          </BkOptionGroup>
         </BkSelect>
       </BkFormItem>
       <BkFormItem
@@ -76,12 +83,18 @@
   import DbResourceModel from '@services/model/db-resource/DbResource';
   import { getBizs } from '@services/source/cmdb';
   import { updateResource } from '@services/source/dbresourceResource';
-  import { fetchDbTypeList } from '@services/source/infras';
   import type { BizItem } from '@services/types';
 
   import { useGlobalBizs, useSystemEnviron } from '@stores';
 
-  import { MachineEvents } from '@common/const';
+  import {
+    DBTypeInfos,
+    DBTypes,
+    MachineEvents,
+    resourceDbTypes,
+    specialOptionLabelMap,
+    SpecialOptions,
+  } from '@common/const';
 
   import DbAppSelect from '@components/db-app-select/Index.vue';
 
@@ -117,7 +130,6 @@
     resource_type: '',
   });
   const bizList = shallowRef<ServiceReturnType<typeof getBizs>>([]);
-  const dbTypeList = shallowRef<ServiceReturnType<typeof fetchDbTypeList>>([]);
 
   const isBusiness = route.name === 'BizResourcePool';
   const defaultBizId = systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ;
@@ -153,18 +165,6 @@
     },
   });
 
-  useRequest(fetchDbTypeList, {
-    onSuccess(data) {
-      dbTypeList.value = [
-        {
-          id: 'PUBLIC',
-          name: t('通用'),
-        },
-        ...data,
-      ];
-    },
-  });
-
   const { loading: isUpdating, run: runUpdate } = useRequest(updateResource, {
     manual: true,
     onSuccess() {
@@ -184,7 +184,7 @@
     const bizBefore = props.editData.forBizDisplay;
     const bizAfter = currentApp.value?.name || '';
     const dbBefore = props.editData.resourceTypeDisplay;
-    const dbAfter = dbTypeList.value.find((item) => item.id === formData.resource_type)?.name || '';
+    const dbAfter = DBTypeInfos[formData.resource_type as DBTypes].name || '';
     const tagBefore = props.editData.labels.map((labelItem) => labelItem.name).join('，') || '';
     const tagAfter = tagSelectorRef.value?.getLabelNames().join('，') || '';
 
