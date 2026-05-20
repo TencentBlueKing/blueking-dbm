@@ -324,10 +324,22 @@ class OpRecordSerializer(serializers.Serializer):
     op_status = serializers.ChoiceField(help_text=_("操作状态"), choices=TicketStatus.get_choices(), required=False)
 
     def to_representation(self, instance):
+        ticket = instance.ticket
+        # 使用预取的数据，如果没有预取则降级处理（防止报错）
+        if hasattr(ticket, "prefetched_running_todos"):
+            running_todos = ticket.prefetched_running_todos
+        else:
+            # 兜底：如果没有预取，需要查库
+            running_todos = [todo for todo in ticket.todo_of_ticket.all() if todo.status == TodoStatus.TODO]
+
+        inner_todo_list = [todo for todo in running_todos if todo.type == TodoType.INNER_APPROVE]
+        status = ticket.status
+        if status == TicketStatus.RUNNING and inner_todo_list:
+            status = TicketStatus.INNER_TODO
         return {
             "create_at": instance.create_at,
             "op_type": TicketType.get_choice_label(instance.ticket.ticket_type),
-            "op_status": instance.ticket.status,
+            "op_status": status,
             "ticket_id": instance.ticket.id,
             "creator": instance.creator,
         }
