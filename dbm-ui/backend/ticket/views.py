@@ -13,7 +13,7 @@ from collections import Counter
 from typing import Dict, List
 
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Count, Prefetch, Q
 from django.utils.translation import gettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, status
@@ -611,7 +611,15 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         methods=["GET"],
         detail=False,
         serializer_class=ClusterModifyOpSerializer,
-        queryset=ClusterOperateRecord.objects.select_related("ticket").order_by("-create_at"),
+        queryset=ClusterOperateRecord.objects.select_related("ticket")
+        .prefetch_related(
+            Prefetch(
+                "ticket__todo_of_ticket",
+                queryset=Todo.objects.filter(status=TodoStatus.TODO),
+                to_attr="prefetched_running_todos",
+            )
+        )
+        .order_by("-create_at"),
         filter_class=ClusterOpRecordListFilter,
     )
     def get_cluster_operate_records(self, request, *args, **kwargs):
