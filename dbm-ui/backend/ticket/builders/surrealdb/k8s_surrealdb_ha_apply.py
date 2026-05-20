@@ -30,7 +30,7 @@ class K8sSurrealDBApplyDetailSerializer(TicketBaseValidateSerializerMixin, seria
     remark = serializers.CharField(help_text=_("备注"), required=False, allow_blank=True, default="")
     db_app_abbr = serializers.CharField(help_text=_("应用缩写"))
     bk_biz_name = serializers.CharField(help_text=_("业务名称"))
-    bk_cloud_region = serializers.CharField(help_text=_("云区域"))
+    bk_cloud_region = serializers.CharField(help_text=_("云区域"), required=False, default="")
     k8s_cluster_name = serializers.CharField(help_text=_("K8s 集群名称"))
     major_version = serializers.CharField(help_text=_("主版本号"))
     db_version = serializers.CharField(help_text=_("数据库版本"))
@@ -47,7 +47,7 @@ class K8sSurrealDBApplyFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(
-    TicketType.K8S_SURREALDB_APPLY,
+    TicketType.K8S_SURREALDB_HA_APPLY,
     is_apply=True,
     cluster_type=ClusterType.K8sSurrealdbHa,
     iam=ActionEnum.K8S_SURREALDB_APPLY,
