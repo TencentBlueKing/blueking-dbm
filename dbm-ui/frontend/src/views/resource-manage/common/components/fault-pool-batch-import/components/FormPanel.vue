@@ -40,11 +40,18 @@
         property="resource_type"
         required>
         <BkSelect v-model="formData.resource_type">
-          <BkOption
-            v-for="item in dbTypeList"
-            :key="item.id"
-            :label="item.name"
-            :value="item.id" />
+          <BkOptionGroup group-style="divider">
+            <BkOption
+              v-for="item in resourceDbTypes"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value" />
+          </BkOptionGroup>
+          <BkOptionGroup group-style="divider">
+            <BkOption
+              :label="specialOptionLabelMap[SpecialOptions.PUBLIC]"
+              :value="SpecialOptions.PUBLIC" />
+          </BkOptionGroup>
         </BkSelect>
       </BkFormItem>
       <BkFormItem
@@ -64,11 +71,12 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { fetchDbTypeList } from '@services/source/infras';
   import { listTag } from '@services/source/tag';
   import type { BizItem } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
+
+  import { resourceDbTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
 
   import TagSelector from '@views/resource-manage/pool/components/tag-selector/Index.vue';
 
@@ -93,7 +101,6 @@
     resource_type: '',
   });
 
-  const dbTypeList = shallowRef<ServiceReturnType<typeof fetchDbTypeList>>([]);
   const tagList = shallowRef<ServiceReturnType<typeof listTag>['results']>([]);
 
   const bizList = computed(() => [
@@ -103,18 +110,6 @@
     } as BizItem,
     ...globalBizsStore.bizs,
   ]);
-
-  useRequest(fetchDbTypeList, {
-    onSuccess(data) {
-      dbTypeList.value = [
-        {
-          id: 'PUBLIC',
-          name: t('通用'),
-        },
-        ...data,
-      ];
-    },
-  });
 
   useRequest(listTag, {
     defaultParams: [

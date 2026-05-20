@@ -38,3 +38,17 @@ export const DBTypeInfos = {
   ...sqlserver,
   ...oracle,
 } as RequiredInfoType;
+
+const excludeDbTypeMap = Object.fromEntries([DBTypes.INFLUXDB, DBTypes.TENDBCLUSTER].map((item) => [item, true]));
+export const resourceDbTypes = Object.values(DBTypeInfos)
+  .filter((item) => !excludeDbTypeMap[item.id])
+  .map((item) => ({
+    label: item.name,
+    value: item.id as string,
+  }))
+  .concat([
+    {
+      label: 'Vm',
+      value: 'vm',
+    },
+  ]);
