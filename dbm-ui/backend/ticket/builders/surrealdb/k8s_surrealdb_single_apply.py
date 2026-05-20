@@ -15,7 +15,7 @@ from backend.db_meta.enums import ClusterType
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.surrealdb.base import BaseSurrealDBTicketFlowBuilder
-from backend.ticket.builders.surrealdb.k8s_surrealdb_apply import (
+from backend.ticket.builders.surrealdb.k8s_surrealdb_ha_apply import (
     K8sSurrealDBApplyDetailSerializer,
     K8sSurrealDBApplyFlowParamBuilder,
 )
