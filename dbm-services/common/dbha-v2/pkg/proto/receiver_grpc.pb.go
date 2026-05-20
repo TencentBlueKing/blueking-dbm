@@ -43,7 +43,6 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ReceiverService_PushData_FullMethodName      = "/ReceiverService/PushData"
 	ReceiverService_PushDataUnary_FullMethodName = "/ReceiverService/PushDataUnary"
 )
 
@@ -51,7 +50,6 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ReceiverServiceClient interface {
-	PushData(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[ReceiverRequest, ReceiverResponse], error)
 	PushDataUnary(ctx context.Context, in *ReceiverRequest, opts ...grpc.CallOption) (*ReceiverResponse, error)
 }
 
@@ -62,19 +60,6 @@ type receiverServiceClient struct {
 func NewReceiverServiceClient(cc grpc.ClientConnInterface) ReceiverServiceClient {
 	return &receiverServiceClient{cc}
 }
-
-func (c *receiverServiceClient) PushData(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[ReceiverRequest, ReceiverResponse], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &ReceiverService_ServiceDesc.Streams[0], ReceiverService_PushData_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[ReceiverRequest, ReceiverResponse]{ClientStream: stream}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type ReceiverService_PushDataClient = grpc.ClientStreamingClient[ReceiverRequest, ReceiverResponse]
 
 func (c *receiverServiceClient) PushDataUnary(ctx context.Context, in *ReceiverRequest, opts ...grpc.CallOption) (*ReceiverResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -90,7 +75,6 @@ func (c *receiverServiceClient) PushDataUnary(ctx context.Context, in *ReceiverR
 // All implementations must embed UnimplementedReceiverServiceServer
 // for forward compatibility.
 type ReceiverServiceServer interface {
-	PushData(grpc.ClientStreamingServer[ReceiverRequest, ReceiverResponse]) error
 	PushDataUnary(context.Context, *ReceiverRequest) (*ReceiverResponse, error)
 	mustEmbedUnimplementedReceiverServiceServer()
 }
@@ -102,9 +86,6 @@ type ReceiverServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedReceiverServiceServer struct{}
 
-func (UnimplementedReceiverServiceServer) PushData(grpc.ClientStreamingServer[ReceiverRequest, ReceiverResponse]) error {
-	return status.Error(codes.Unimplemented, "method PushData not implemented")
-}
 func (UnimplementedReceiverServiceServer) PushDataUnary(context.Context, *ReceiverRequest) (*ReceiverResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method PushDataUnary not implemented")
 }
@@ -128,13 +109,6 @@ func RegisterReceiverServiceServer(s grpc.ServiceRegistrar, srv ReceiverServiceS
 	}
 	s.RegisterService(&ReceiverService_ServiceDesc, srv)
 }
-
-func _ReceiverService_PushData_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(ReceiverServiceServer).PushData(&grpc.GenericServerStream[ReceiverRequest, ReceiverResponse]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type ReceiverService_PushDataServer = grpc.ClientStreamingServer[ReceiverRequest, ReceiverResponse]
 
 func _ReceiverService_PushDataUnary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ReceiverRequest)
@@ -166,12 +140,6 @@ var ReceiverService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ReceiverService_PushDataUnary_Handler,
 		},
 	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "PushData",
-			Handler:       _ReceiverService_PushData_Handler,
-			ClientStreams: true,
-		},
-	},
+	Streams:  []grpc.StreamDesc{},
 	Metadata: "receiver.proto",
 }
