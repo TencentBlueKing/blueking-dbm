@@ -113,7 +113,7 @@ func InitSinkerConfig(mainConfFile string) ([]*SinkerConfig, error) {
 			if s.StrictSchema == nil {
 				s.StrictSchema = &cst.PtrTrue
 			}
-			name := fmt.Sprintf("%s-%s", s.Topic, s.GroupIdSuffix)
+			name := fmt.Sprintf("%s-%s-%d", s.Topic, s.GroupIdSuffix, s.BkDataId)
 			if _, ok := checkDup[name]; ok {
 				return nil, fmt.Errorf("duplicate sinker name %s", name)
 			}
