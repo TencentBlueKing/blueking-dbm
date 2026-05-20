@@ -24,30 +24,9 @@
 
 package haprobe
 
-var _ DBTyper = (*MySqlStatus)(nil)
-
-// MySqlStatus MySQL status
-type MySqlStatus struct {
-	// Spider Controller Status
-	SpiderCtlStatus *MySqlSpiderCtlStatus `json:"spider_ctl_status,omitempty"`
-
-	// Proxy Status
-	ProxyStatus *MySqlProxyStatus `json:"proxy_status,omitempty"`
-
-	// Global Status
-	GlobalStatus *MySqlGlobalStatus `json:"global_status,omitempty"`
-
-	// Heartbeat Status
-	HeartbeatStatus *MySqlHeartbeatStatus `json:"heartbeat_status,omitempty"`
-
-	// Slave Status
-	SlaveStatus *MySqlSlaveStatus `json:"slave_status,omitempty"`
-
-	// Storage Engines
-	InnoDB *InnoDBStatus `json:"innodb,omitempty"`
-}
-
-// GetDbType Return the Db type name, this function name can't be changed.
-func (m MySqlStatus) GetDbType() DbType {
-	return DbTypeMySql
+// MySqlHeartbeatStatus reports heartbeat status for the instance.
+type MySqlHeartbeatStatus struct {
+	WriteSuccess       bool   `json:"write_success"`
+	WriteFailureReason string `json:"write_failure_reason"`
+	HeartbeatDelay     uint64 `json:"heartbeat_delay"`
 }

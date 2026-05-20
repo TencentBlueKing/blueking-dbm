@@ -29,12 +29,13 @@ import "dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
 // ProbeMetadataItem is a single instance metadata entry for probe config generation (ip, port, cluster type, etc.).
 type ProbeMetadataItem struct {
-	IP          string `json:"ip"`
-	Port        int    `json:"port"`
-	AdminPort   int    `json:"admin_port"`
-	ClusterType string `json:"cluster_type"`
-	MachineType string `json:"machine_type"`
-	AccessLayer string `json:"access_layer"`
+	IP           string `json:"ip"`
+	Port         int    `json:"port"`
+	AdminPort    int    `json:"admin_port"`
+	ClusterType  string `json:"cluster_type"`
+	MachineType  string `json:"machine_type"`
+	InstanceRole string `json:"instance_role"`
+	AccessLayer  string `json:"access_layer"`
 }
 
 // GseConfig carries GSE reporter defaults from admin to probe (loaded from admin YAML).
@@ -76,7 +77,8 @@ type ProbeProxyAdminConfig struct {
 // ProbeConfigPayload is the JSON payload returned by admin GetProbeConfig.
 // Probe parses it to render the final probe YAML (gse reporter + harvester credentials + db endpoints).
 // Admin always populates MySQL / Redis / ProxyAdmin defaults; probe routes per endpoint based on
-// (access_layer, machine_type) when generating the final YAML. The credential blocks remain pointers
+// (access_layer, machine_type) when generating the final YAML, and merges ports by endpoint key
+// (ip, cluster_type, machine_type, instance_role, access_layer). The credential blocks remain pointers
 // so older admin builds that omit a block still degrade gracefully on newer probes.
 type ProbeConfigPayload struct {
 	Gse        GseConfig              `json:"gse"`

@@ -26,6 +26,7 @@ package mysql
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/probe/harvester/base"
@@ -39,15 +40,16 @@ import (
 type collector struct {
 	base.Collector
 
-	clusterType haprobe.DbmMetadataClusterType
-	machineType haprobe.DbmMetadataMachineType
-	accessLayer haprobe.DbmMetadataAccessLayerType
-	user        string
-	password    string
-	timeout     time.Duration
-	endpoint    *hanet.Endpoint
-	db          *hamysql.GormDB
-	isAdminNode bool
+	clusterType  haprobe.DbmMetadataClusterType
+	machineType  haprobe.DbmMetadataMachineType
+	accessLayer  haprobe.DbmMetadataAccessLayerType
+	instanceRole haprobe.DbmMetadataInstanceRole
+	user         string
+	password     string
+	timeout      time.Duration
+	endpoint     *hanet.Endpoint
+	db           *hamysql.GormDB
+	isAdminNode  bool
 }
 
 // queryCtx returns a context bounded by c.timeout; when c.timeout <= 0 it returns
@@ -241,4 +243,226 @@ func (c *collector) obtainHostStatus() (*haprobe.HostMetric, error) {
 	}
 
 	return hostStatus, nil
+}
+
+// hasSessionVariableLike reports whether SHOW SESSION VARIABLES LIKE pattern returned any rows.
+// MariaDB (and some MySQL builds) do not accept bound parameters in SHOW ... LIKE, so the pattern
+// is embedded as a single-quoted literal; patterns containing ' are not escaped.
+func (c *collector) hasSessionVariableLike(ctx context.Context, pattern string) (bool, error) {
+	var list []globalStatus
+	sql := fmt.Sprintf("SHOW SESSION VARIABLES LIKE '%s'", pattern)
+	if err := c.db.DB().WithContext(ctx).Raw(sql).Scan(&list).Error; err != nil {
+		return false, err
+	}
+	return len(list) > 0, nil
+}
+
+// disableSessionForwarding disables session forwarding for the spider and tdbctl
+func (c *collector) disableSpiderSessionForwarding() error {
+	if c.machineType != haprobe.DbmMetadataMachineTypeSpider {
+		return nil
+	}
+
+	ctx, cancel := c.queryCtx()
+	defer cancel()
+
+	if c.isAdmin() { // for tdbctl
+		err := c.db.DB().WithContext(ctx).Exec("SET SESSION tc_admin=OFF").Error
+		if err != nil {
+			logger.Warn("failed to set session tc_admin to OFF, errmsg: %s", err)
+			return err
+		}
+	}
+
+	if !c.isAdmin() { // for spider
+		has, err := c.hasSessionVariableLike(ctx, "ddl_execute_by_ctl")
+		if err != nil {
+			logger.Warn("failed to check if ddl_execute_by_ctl exists, errmsg: %s", err)
+			return err
+		}
+
+		if !has {
+			return nil
+		}
+
+		if err := c.db.DB().WithContext(ctx).Exec("SET SESSION ddl_execute_by_ctl=OFF").Error; err != nil {
+			logger.Warn("failed to set session ddl_execute_by_ctl to OFF, errmsg: %s", err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+// hasReplInfo return true if result set from SHOW SLAVE STATUS is not empty.
+func (c *collector) hasReplInfo() (bool, error) {
+	ctx, cancel := c.queryCtx()
+	defer cancel()
+
+	rows, err := c.db.DB().WithContext(ctx).Raw("SHOW SLAVE STATUS").Rows()
+	if err != nil {
+		logger.Warn("failed to run SHOW SLAVE STATUS, errmsg: %s", err)
+		return false, err
+	}
+	defer rows.Close()
+
+	// Treat as replica when SHOW SLAVE STATUS returns at least one row.
+	if !rows.Next() {
+		return false, rows.Err()
+	}
+	return true, nil
+}
+
+// isSlave returns whether the mysql instance is a slave.
+func (c *collector) isSlave() bool {
+	switch c.machineType {
+	case haprobe.DbmMetadataMachineTypeProxy:
+		return false
+
+	case haprobe.DbmMetadataMachineTypeBackend:
+		if c.instanceRole == haprobe.MySQLStorageSlave {
+			return true
+		}
+
+		// Notice: backend repeater is not treated as slave
+		return false
+
+	case haprobe.DbmMetadataMachineTypeSpider:
+		if c.isAdmin() {
+			isSlave, _ := c.hasReplInfo()
+			return isSlave
+		}
+		return false
+
+	case haprobe.DbmMetadataMachineTypeRemote:
+		if c.instanceRole == haprobe.TenDBClusterStorageSlave {
+			return true
+		}
+		return false
+
+	default:
+		return false
+	}
+}
+
+func (c *collector) obtainHeartbeatStatus(writeBinlog bool) (*haprobe.MySqlHeartbeatStatus, error) {
+	heartbeatStatus := &haprobe.MySqlHeartbeatStatus{
+		WriteSuccess:       false,
+		WriteFailureReason: "unknown error",
+		HeartbeatDelay:     365 * 24 * 60 * 60,
+	}
+
+	ctx, cancel := c.queryCtx()
+	defer cancel()
+
+	sqlBinLog := "OFF"
+	if writeBinlog {
+		sqlBinLog = "ON"
+	}
+
+	// set session sql_log_bin
+	if err := c.db.DB().WithContext(ctx).Exec(
+		fmt.Sprintf("SET SESSION sql_log_bin=%s", sqlBinLog)).Error; err != nil {
+		logger.Warn("failed to set session sql_log_bin to %s, errmsg: %s", sqlBinLog, err)
+		heartbeatStatus.WriteFailureReason = err.Error()
+		return heartbeatStatus, err
+	}
+
+	// query server_id
+	var serverId string
+	err := c.db.DB().WithContext(ctx).Raw("SELECT @@server_id").Scan(&serverId).Error
+	if err != nil {
+		logger.Warn("failed to get mysql server id, errmsg: %s", err)
+		heartbeatStatus.WriteFailureReason = err.Error()
+		return heartbeatStatus, err
+	}
+
+	// set session transaction isolation level to repeatable read
+	if err := c.db.DB().WithContext(ctx).Exec(
+		"SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ").Error; err != nil {
+		logger.Warn("failed to set session transaction isolation level to repeatable read, errmsg: %s", err)
+		heartbeatStatus.WriteFailureReason = err.Error()
+		return heartbeatStatus, err
+	}
+
+	// set session binlog format to statement
+	if err := c.db.DB().WithContext(ctx).Exec(
+		"SET SESSION binlog_format='STATEMENT'").Error; err != nil {
+		logger.Warn("failed to set session binlog format to statement, errmsg: %s", err)
+		heartbeatStatus.WriteFailureReason = err.Error()
+		return heartbeatStatus, err
+	}
+
+	// insert heartbeat
+	writeSuccess := true
+	writeFailureReason := ""
+	writeErr := c.db.DB().WithContext(ctx).Exec(`
+		REPLACE INTO infodba_schema.master_slave_heartbeat
+		(master_server_id, slave_server_id, master_time, slave_time, delay_sec) 
+		VALUES(?, @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate()))`, serverId).Error
+	if writeErr != nil {
+		logger.Warn("failed to insert heartbeat, errmsg: %s", writeErr)
+		writeSuccess = false
+		writeFailureReason = writeErr.Error()
+	}
+	heartbeatStatus.WriteSuccess = writeSuccess
+	heartbeatStatus.WriteFailureReason = writeFailureReason
+
+	// query heartbeat delay
+	var heartbeatDelay uint64
+	queryErr := c.db.DB().WithContext(ctx).Raw(`
+		SELECT convert((unix_timestamp(now())-unix_timestamp(master_time)), UNSIGNED) as heartbeat_delay 
+		FROM infodba_schema.master_slave_heartbeat 
+		WHERE master_server_id = ? and slave_server_id = ?`, serverId, serverId).Scan(&heartbeatDelay).Error
+	if queryErr != nil {
+		logger.Warn("failed to query heartbeat delay, errmsg: %s", queryErr)
+		heartbeatDelay = 365 * 24 * 60 * 60
+	}
+	heartbeatStatus.HeartbeatDelay = heartbeatDelay
+
+	return heartbeatStatus, nil
+}
+
+func (c *collector) obtainSlaveStatus() (*haprobe.MySqlSlaveStatus, error) {
+	ctx, cancel := c.queryCtx()
+	defer cancel()
+
+	var slaveInfo slaveStatus
+	if err := c.db.DB().WithContext(ctx).Raw("SHOW SLAVE STATUS").Scan(&slaveInfo).Error; err != nil {
+		logger.Warn("failed to run SHOW SLAVE STATUS, errmsg: %s", err)
+		return nil, err
+	}
+
+	const fallbackDelaySec = uint64(365 * 24 * 60 * 60)
+	ret := &haprobe.MySqlSlaveStatus{
+		MasterHost:          slaveInfo.MasterHost,
+		MasterPort:          slaveInfo.MasterPort,
+		SlaveIORunning:      slaveInfo.SlaveIORunning,
+		SlaveSQLRunning:     slaveInfo.SlaveSQLRunning,
+		SecondsBehindMaster: slaveInfo.SecondsBehindMaster,
+		MasterServerId:      slaveInfo.MasterServerId,
+		HeartbeatDelay:      fallbackDelaySec,
+		LastIODelay:         fallbackDelaySec,
+	}
+
+	// Optional delays from infodba_schema.master_slave_heartbeat.
+	var hb struct {
+		HeartbeatDelay uint64 `gorm:"column:heartbeat_delay"`
+		LastIODelay    uint64 `gorm:"column:last_io_delay"`
+	}
+
+	queryErr := c.db.DB().WithContext(ctx).Raw(`
+		SELECT CONVERT(UNIX_TIMESTAMP(NOW()) - UNIX_TIMESTAMP(master_time), UNSIGNED) AS heartbeat_delay,
+		       CAST(IFNULL(delay_sec, 0) AS UNSIGNED) AS last_io_delay
+		FROM infodba_schema.master_slave_heartbeat
+		WHERE master_server_id = ? AND slave_server_id = @@server_id`,
+		slaveInfo.MasterServerId).Scan(&hb).Error
+	if queryErr != nil {
+		logger.Warn("failed to query slave delay, errmsg: %s", queryErr)
+	} else {
+		ret.HeartbeatDelay = hb.HeartbeatDelay
+		ret.LastIODelay = hb.LastIODelay
+	}
+
+	return ret, nil
 }

@@ -170,26 +170,28 @@ func marshalProbeYAML(cfg probeYAML) (string, error) {
 }
 
 // endpointKey is the dedup / grouping key used by buildEndpointsFromMetadata to
-// fold metadata items sharing the same (ip, cluster_type, machine_type, access_layer)
+// fold metadata items sharing the same (ip, cluster_type, machine_type, instance_role, access_layer)
 // tuple into one DbEndpointConfig with merged Ports / AdminPorts.
 type endpointKey struct {
-	ip          string
-	clusterType string
-	machineType string
-	accessLayer string
+	ip           string
+	clusterType  string
+	machineType  string
+	instanceRole string
+	accessLayer  string
 }
 
 // newEndpointKey extracts the grouping key from a metadata item.
 func newEndpointKey(m probeconfig.ProbeMetadataItem) endpointKey {
 	return endpointKey{
-		ip:          m.IP,
-		clusterType: m.ClusterType,
-		machineType: m.MachineType,
-		accessLayer: m.AccessLayer,
+		ip:           m.IP,
+		clusterType:  m.ClusterType,
+		machineType:  m.MachineType,
+		instanceRole: m.InstanceRole,
+		accessLayer:  m.AccessLayer,
 	}
 }
 
-// sortEndpointKeys sorts the keys in place by (ip, cluster_type, machine_type, access_layer)
+// sortEndpointKeys sorts the keys in place by (ip, cluster_type, machine_type, instance_role, access_layer)
 // so the rendered yaml is deterministic across runs.
 func sortEndpointKeys(keys []endpointKey) {
 	sort.Slice(keys, func(i, j int) bool {
@@ -201,6 +203,9 @@ func sortEndpointKeys(keys []endpointKey) {
 		}
 		if keys[i].machineType != keys[j].machineType {
 			return keys[i].machineType < keys[j].machineType
+		}
+		if keys[i].instanceRole != keys[j].instanceRole {
+			return keys[i].instanceRole < keys[j].instanceRole
 		}
 		return keys[i].accessLayer < keys[j].accessLayer
 	})
@@ -236,7 +241,7 @@ func groupMetadataByEndpointKey(
 }
 
 // buildEndpointsFromMetadata folds metadata items into three endpoint slices keyed by
-// (ip, cluster_type, machine_type, access_layer). It applies these rules:
+// (ip, cluster_type, machine_type, instance_role, access_layer). It applies these rules:
 //   - port 0 entries are dropped silently (no "0" noise in yaml output)
 //   - mysql-proxy endpoints (access_layer=proxy AND machine_type=proxy) emit only AdminPorts
 //     and go to mysqlProxyAdmin; if they have no AdminPorts they are skipped
@@ -244,7 +249,7 @@ func groupMetadataByEndpointKey(
 //   - redis-family endpoints go to redis with both Ports and AdminPorts
 //   - unknown cluster types are skipped
 //
-// Output slices are sorted by (ip, cluster_type, machine_type, access_layer) for deterministic yaml.
+// Output slices are sorted by (ip, cluster_type, machine_type, instance_role, access_layer) for deterministic yaml.
 func buildEndpointsFromMetadata(
 	list []probeconfig.ProbeMetadataItem,
 ) (mysql, mysqlProxyAdmin, redis []DbEndpointConfig) {
@@ -258,11 +263,12 @@ func buildEndpointsFromMetadata(
 		}
 
 		ep := DbEndpointConfig{
-			Proto:       "tcp",
-			ClusterType: haprobe.DbmMetadataClusterType(k.clusterType),
-			MachineType: haprobe.DbmMetadataMachineType(k.machineType),
-			AccessLayer: haprobe.DbmMetadataAccessLayerType(k.accessLayer),
-			Ip:          k.ip,
+			Proto:        "tcp",
+			ClusterType:  haprobe.DbmMetadataClusterType(k.clusterType),
+			MachineType:  haprobe.DbmMetadataMachineType(k.machineType),
+			InstanceRole: haprobe.DbmMetadataInstanceRole(k.instanceRole),
+			AccessLayer:  haprobe.DbmMetadataAccessLayerType(k.accessLayer),
+			Ip:           k.ip,
 		}
 
 		if isMysqlProxyEndpoint(k.clusterType, k.machineType, k.accessLayer) {
@@ -292,7 +298,7 @@ func buildEndpointsFromMetadata(
 	return mysql, mysqlProxyAdmin, redis
 }
 
-// sortEndpoints sorts in-place by (ip, cluster_type, machine_type, access_layer) to
+// sortEndpoints sorts in-place by (ip, cluster_type, machine_type, instance_role, access_layer) to
 // keep yaml output deterministic after merges (e.g. fallback path).
 func sortEndpoints(endpoints []DbEndpointConfig) {
 	sort.Slice(endpoints, func(i, j int) bool {
@@ -304,6 +310,9 @@ func sortEndpoints(endpoints []DbEndpointConfig) {
 		}
 		if endpoints[i].MachineType != endpoints[j].MachineType {
 			return endpoints[i].MachineType < endpoints[j].MachineType
+		}
+		if endpoints[i].InstanceRole != endpoints[j].InstanceRole {
+			return endpoints[i].InstanceRole < endpoints[j].InstanceRole
 		}
 		return endpoints[i].AccessLayer < endpoints[j].AccessLayer
 	})
