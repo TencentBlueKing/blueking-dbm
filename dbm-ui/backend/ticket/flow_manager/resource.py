@@ -143,7 +143,7 @@ class ResourceApplyFlow(BaseTicketFlow):
                 "bk_cloud_id": host["bk_cloud_id"],
                 "host_id": host["bk_host_id"],
                 "bk_host_id": host["bk_host_id"],
-                "bk_idc_id": host["idc_id"],
+                "bk_idc_id": host.get("idc_id"),
                 # 补充机器的内存，cpu，磁盘和操作系统信息。(bk_disk的单位是GB, bk_mem的单位是MB)
                 "bk_cpu": host["cpu_num"],
                 "bk_disk": host["total_storage_cap"],
