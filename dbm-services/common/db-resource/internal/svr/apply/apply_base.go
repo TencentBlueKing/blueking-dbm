@@ -264,7 +264,7 @@ func (param RequestInputParam) LockKey() string {
 	if cmutil.IsEmpty(param.ResourceType) {
 		return fmt.Sprintf("dbrms:lock:global")
 	}
-	return fmt.Sprintf("dbrms:lock:%s", param.ResourceType)
+	return fmt.Sprintf("dbrms:lock:%s", model.NormalizeResourceType(param.ResourceType))
 }
 
 const (

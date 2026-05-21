@@ -53,16 +53,16 @@ func TestResourceTools_InferResourceType(t *testing.T) {
 		expectedResult func(*testing.T, *ResourceTypeInferenceResult, error)
 	}{
 		{
-			name: "MySQL to TenDBCluster - Success with available resources",
+			name: "MySQL request checks normalized mysql pool - Success with available resources",
 			args: map[string]interface{}{
 				"current_resource_type": "mysql",
 				"bk_cloud_id":           float64(0),
 				"city":                  "深圳",
 			},
 			mockSetup: func(mock sqlmock.Sqlmock) {
-				// Mock count query
+				// Mock count query（与 MatchRsType 一致：PUBLIC + mysql）
 				mock.ExpectQuery("SELECT count\\(\\*\\) FROM `tb_rp_detail`").
-					WithArgs(0, model.Unused, bk.GseAlive, "tendbcluster", "深圳").
+					WithArgs(0, model.Unused, bk.GseAlive, "PUBLIC", "mysql", "深圳").
 					WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(5))
 
 				// Mock distribution query - sub zone stats
@@ -84,12 +84,13 @@ func TestResourceTools_InferResourceType(t *testing.T) {
 				assert.NoError(t, err)
 				assert.NotNil(t, result)
 				assert.Equal(t, "mysql", result.CurrentResourceType)
-				assert.Equal(t, "tendbcluster", result.AlternativeResourceType)
+				assert.Equal(t, "mysql", result.AlternativeResourceType)
 				assert.True(t, result.AlternativeAvailable)
 				assert.Equal(t, 5, result.AlternativeCount)
 				assert.True(t, result.Verified)
 				assert.Equal(t, "high", result.Confidence)
-				assert.Contains(t, result.Suggestion, "强烈建议")
+				assert.Contains(t, result.Suggestion, "PUBLIC")
+				assert.Contains(t, result.Suggestion, "完全符合申请条件")
 			},
 		},
 		{
@@ -102,9 +103,9 @@ func TestResourceTools_InferResourceType(t *testing.T) {
 				"mem_min":               float64(8192),
 			},
 			mockSetup: func(mock sqlmock.Sqlmock) {
-				// Mock count query
+				// Mock count query（与 MatchRsType 一致：PUBLIC + mysql）
 				mock.ExpectQuery("SELECT count\\(\\*\\) FROM `tb_rp_detail`").
-					WithArgs(0, model.Unused, bk.GseAlive, "mysql", 4, 8, 8192).
+					WithArgs(0, model.Unused, bk.GseAlive, "PUBLIC", "mysql", 4, 8, 8192).
 					WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(10))
 
 				// Mock distribution queries
@@ -128,26 +129,26 @@ func TestResourceTools_InferResourceType(t *testing.T) {
 			},
 		},
 		{
-			name: "No available resources in alternative type",
+			name: "No available resources in normalized mysql pool",
 			args: map[string]interface{}{
 				"current_resource_type": "mysql",
 				"bk_cloud_id":           float64(0),
 			},
 			mockSetup: func(mock sqlmock.Sqlmock) {
-				// Mock count query returning 0
+				// Mock count query returning 0（PUBLIC + mysql）
 				mock.ExpectQuery("SELECT count\\(\\*\\) FROM `tb_rp_detail`").
-					WithArgs(0, model.Unused, bk.GseAlive, "tendbcluster").
+					WithArgs(0, model.Unused, bk.GseAlive, "PUBLIC", "mysql").
 					WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 			},
 			expectedResult: func(t *testing.T, result *ResourceTypeInferenceResult, err error) {
 				assert.NoError(t, err)
 				assert.NotNil(t, result)
 				assert.Equal(t, "mysql", result.CurrentResourceType)
-				assert.Equal(t, "tendbcluster", result.AlternativeResourceType)
+				assert.Equal(t, "mysql", result.AlternativeResourceType)
 				assert.False(t, result.AlternativeAvailable)
 				assert.Equal(t, 0, result.AlternativeCount)
-				assert.Contains(t, result.Suggestion, "没有符合条件的可用资源")
-				assert.Equal(t, "both resource types have no available resources matching the criteria", result.FailureReason)
+				assert.Contains(t, result.Suggestion, "未匹配到可用资源")
+				assert.Equal(t, "no available resources in PUBLIC or normalized pool matching the criteria", result.FailureReason)
 			},
 		},
 		{
@@ -188,6 +189,31 @@ func TestResourceTools_InferResourceType(t *testing.T) {
 			assert.NoError(t, mock.ExpectationsWereMet())
 		})
 	}
+}
+
+// TestExtensibleInferResourceType_DelegatesWhenNoAlternatives 默认无跨池 alternatives 时与 infer_resource_type 一致
+func TestExtensibleInferResourceType_DelegatesWhenNoAlternatives(t *testing.T) {
+	db, mock := setupTestDB(t)
+	defer func() {
+		sqlDB, _ := db.DB()
+		sqlDB.Close()
+	}()
+	mock.ExpectQuery("SELECT count\\(\\*\\) FROM `tb_rp_detail`").
+		WithArgs(0, model.Unused, bk.GseAlive, "PUBLIC", "mysql").
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+
+	tools := &ResourceTools{db: db}
+	args := map[string]interface{}{
+		"current_resource_type": "mysql",
+		"bk_cloud_id":           float64(0),
+	}
+	result, err := tools.extensibleInferResourceType(args)
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Empty(t, result.Error)
+	assert.False(t, result.AlternativeAvailable)
+	assert.Equal(t, "no available resources in PUBLIC or normalized pool matching the criteria", result.FailureReason)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 // TestValidateResourceTypeInferenceParams tests parameter validation
@@ -303,7 +329,7 @@ func TestValidateResourceTypeInferenceParams(t *testing.T) {
 	}
 }
 
-// TestResourceTypeMapping tests resource type mapping functions
+// TestResourceTypeMapping 遗留 resourceTypeMapping 已为空，不再提供 mysql/tendbcluster 互换
 func TestResourceTypeMapping(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -311,24 +337,9 @@ func TestResourceTypeMapping(t *testing.T) {
 		expected     string
 		shouldExist  bool
 	}{
-		{
-			name:         "MySQL to TenDBCluster",
-			resourceType: "mysql",
-			expected:     "tendbcluster",
-			shouldExist:  true,
-		},
-		{
-			name:         "TenDBCluster to MySQL",
-			resourceType: "tendbcluster",
-			expected:     "mysql",
-			shouldExist:  true,
-		},
-		{
-			name:         "Unknown resource type",
-			resourceType: "unknown",
-			expected:     "",
-			shouldExist:  false,
-		},
+		{name: "MySQL has no legacy swap entry", resourceType: "mysql", expected: "", shouldExist: false},
+		{name: "TenDBCluster has no legacy swap entry", resourceType: "tendbcluster", expected: "", shouldExist: false},
+		{name: "Unknown resource type", resourceType: "unknown", expected: "", shouldExist: false},
 	}
 
 	for _, tt := range tests {
@@ -431,12 +442,12 @@ func TestQueryOptimizer(t *testing.T) {
 func TestStandardAnalysisResult(t *testing.T) {
 	result := &ResourceTypeInferenceResult{
 		CurrentResourceType:     "mysql",
-		AlternativeResourceType: "tendbcluster",
+		AlternativeResourceType: "mysql",
 		AlternativeAvailable:    true,
 		AlternativeCount:        5,
 		Verified:                true,
 		Confidence:              "high",
-		Suggestion:              "建议使用 tendbcluster",
+		Suggestion:              "在 rs_type 为 PUBLIC 或 mysql（与申请 MatchRsType 一致）的机器上，当前条件下有 5 台可用",
 		Metrics: &QueryMetrics{
 			QueryDuration: 100 * time.Millisecond,
 			CacheHit:      false,
@@ -447,7 +458,7 @@ func TestStandardAnalysisResult(t *testing.T) {
 
 	assert.Equal(t, "resource_type_inference", standardResult.AnalysisType)
 	assert.Equal(t, "success", standardResult.Status)
-	assert.Contains(t, standardResult.Summary, "tendbcluster")
+	assert.Contains(t, standardResult.Summary, "PUBLIC")
 	assert.Contains(t, standardResult.Summary, "5 台可用资源")
 	assert.Equal(t, "high", standardResult.Metadata.Confidence)
 	assert.True(t, len(standardResult.Recommendations) > 0)
@@ -455,7 +466,7 @@ func TestStandardAnalysisResult(t *testing.T) {
 	// Check recommendation
 	rec := standardResult.Recommendations[0]
 	assert.Equal(t, "resource_type_change", rec.Type)
-	assert.Contains(t, rec.Title, "tendbcluster")
+	assert.Contains(t, rec.Title, "PUBLIC")
 }
 
 // TestExtensibleResourceTypeRegistry tests the extensible registry functionality
@@ -466,6 +477,12 @@ func TestExtensibleResourceTypeRegistry(t *testing.T) {
 		validationRules: make(map[string]ValidationRule),
 		transformRules:  make(map[string]TransformRule),
 	}
+
+	t.Run("Default mysql has no cross-pool alternatives", func(t *testing.T) {
+		alternatives, exists := registry.GetAlternativeResourceTypes("mysql")
+		assert.True(t, exists)
+		assert.Empty(t, alternatives)
+	})
 
 	t.Run("Register new resource type", func(t *testing.T) {
 		err := registry.RegisterResourceType(
@@ -487,6 +504,7 @@ func TestExtensibleResourceTypeRegistry(t *testing.T) {
 		rule, exists := registry.GetCompatibilityInfo("mysql", "tendbcluster")
 		assert.True(t, exists)
 		assert.Equal(t, "high", rule.Level)
+		assert.Contains(t, rule.Conditions[0], "request_alias")
 	})
 
 	t.Run("Update mapping config", func(t *testing.T) {
