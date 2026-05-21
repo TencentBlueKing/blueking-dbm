@@ -13,10 +13,12 @@
 
 <template>
   <InfoList>
-    <InfoItem :label="t('集群类型:')">
+    <InfoItem :label="t('集群类型')">
       {{ clusterTypeInfos[ticketDetails.details.cluster_type].name }}
     </InfoItem>
-    <InfoItem :label="t('目标集群与构造设置:')">
+    <InfoItem
+      :label="t('目标集群与构造设置')"
+      style="flex: 0 0 100%">
       <TicketInfoTable
         :data="ticketDetails.details.cluster_ids.map((item) => ({ clusterId: item }))"
         row-key="clusterId">
@@ -48,10 +50,10 @@
         </TicketInfoTableColumn>
       </TicketInfoTable>
     </InfoItem>
-    <InfoItem :label="t('构造新主机规格:')">
+    <InfoItem :label="t('构造新主机规格')">
       {{ ticketDetails.details.specs[ticketDetails.details.resource_spec.mongodb.spec_id].name }}
     </InfoItem>
-    <InfoItem :label="t('每台主机构造 Shard 数量:')">
+    <InfoItem :label="t('每台主机构造 Shard 数量')">
       {{ ticketDetails.details.instance_per_host }}
     </InfoItem>
   </InfoList>
