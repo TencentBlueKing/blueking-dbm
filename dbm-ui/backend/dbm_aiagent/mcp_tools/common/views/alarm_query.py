@@ -59,9 +59,9 @@ class MonitorQueryMcpToolsViewSet(McpToolsViewSet):
         permission_classes=[McpClusterDetailPermission],
         mcp_auth_parser=auth_parse_clusters,
         mcp=[DBMMcpTools.MYSQL_METRICS],
-        name_prefix="",
+        name_prefix="alarm",
     )
-    def alarm_query_with_status(self, request, *args, **kwargs):
+    def query_with_status(self, request, *args, **kwargs):
         bk_biz_id = int(self.get_param("bk_biz_id"))
         cluster_domains = self.get_param("cluster_domains")
         start_time = self.get_param("start_time")

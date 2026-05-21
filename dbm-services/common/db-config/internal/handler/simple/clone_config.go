@@ -42,6 +42,37 @@ func (cf *Config) CloneModuleConfig(ctx *gin.Context) {
 	return
 }
 
+// ModuleCloneQuery godoc
+//
+// @Summary      克隆模块配置的查询对比结果
+// @Description  克隆模块配置的查询对比结果
+// @Tags         config_item
+// @Accept       json
+// @Produce      json
+// @Param        body body     api.CloneModuleConfigReq true  "change bk_biz_id for clusters"
+// @Success      200  {object}  api.CloneModuleQueryConfigResp
+// @Failure      400  {object}  api.HTTPClientErrResp
+// @Router       /bkconfig/v1/module/clonequery [post]
+func (cf *Config) ModuleCloneQuery(ctx *gin.Context) {
+	var r api.CloneModuleConfigReq
+	var err error
+	if err = ctx.BindJSON(&r); err != nil {
+		handler.SendResponse(ctx, err, nil)
+		return
+	}
+	if err := validate.GoValidateStruct(r, false); err != nil {
+		handler.SendResponse(ctx, err, nil)
+		return
+	}
+	resp, txErr := simpleconfig.ModuleCloneQuery(&r, model.DB.Self)
+	if txErr != nil {
+		handler.SendResponse(ctx, txErr, nil)
+		return
+	}
+	handler.SendResponse(ctx, nil, resp)
+	return
+}
+
 // DeleteModuleConfig godoc
 //
 // @Summary      删除模块配置
@@ -80,6 +111,7 @@ func (cf *Config) DeleteModuleConfig(ctx *gin.Context) {
 // @Accept       json
 // @Produce      json
 // @Param        body body     api.CloneClusterConfigReq  true  "change bk_biz_id for clusters"
+// @Success      200  {object}  api.GetConfigItemsResp
 // @Failure      400  {object}  api.HTTPClientErrResp
 // @Router       /bkconfig/v1/confitem/clonecluster [post]
 func (cf *Config) CloneClusterConfig(ctx *gin.Context) {
