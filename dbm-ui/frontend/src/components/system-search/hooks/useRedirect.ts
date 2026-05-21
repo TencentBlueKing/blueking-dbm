@@ -13,31 +13,14 @@
 
 import { useLocation } from '@hooks';
 
+import { clusterTypeInfos } from '@common/const';
+
 export const useRedirect = () => {
   const location = useLocation();
 
-  const routerNameMap = {
-    doris: 'DorisList',
-    es: 'EsList',
-    hdfs: 'HdfsList',
-    influxdb: 'InfluxDBInstDetails',
-    kafka: 'KafkaList',
-    MongoReplicaSet: 'MongoDBReplicaSetList',
-    MongoShardedCluster: 'MongoDBSharedClusterList',
-    PredixyRedisCluster: 'DatabaseRedisList',
-    PredixyTendisplusCluster: 'DatabaseRedisList',
-    pulsar: 'PulsarList',
-    redis: 'DatabaseRedisList',
-    RedisInstance: 'DatabaseRedisHaList',
-    riak: 'RiakList',
-    sqlserver_ha: 'SqlServerHaClusterList',
-    sqlserver_single: 'SqlServerSingle',
-    tendbcluster: 'tendbClusterList',
-    tendbha: 'DatabaseTendbha',
-    tendbsingle: 'DatabaseTendbsingle',
-    TwemproxyRedisInstance: 'DatabaseRedisList',
-    TwemproxyTendisSSDInstance: 'DatabaseRedisList',
-  } as Record<string, string>;
+  const routerNameMap = Object.fromEntries(
+    Object.values(clusterTypeInfos).map((item) => [item.id, item.listRouteName]),
+  );
 
   return (clusterType: string, queryParams: Record<string, any>, bizId: number) => {
     if (!routerNameMap[clusterType]) {

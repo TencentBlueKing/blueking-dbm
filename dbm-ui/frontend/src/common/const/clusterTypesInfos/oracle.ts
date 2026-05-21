@@ -9,6 +9,7 @@ export const oracle: ClusterTypeInfo = {
   [ClusterTypes.ORACLE_PRIMARY_STANDBY]: {
     dbType: DBTypes.ORACLE,
     id: ClusterTypes.ORACLE_PRIMARY_STANDBY,
+    listRouteName: 'OracleHaClusterList',
     machineList: [],
     moduleId: 'oracle',
     name: t('Oracle 主从'),
@@ -17,6 +18,7 @@ export const oracle: ClusterTypeInfo = {
   [ClusterTypes.ORACLE_SINGLE_NONE]: {
     dbType: DBTypes.ORACLE,
     id: ClusterTypes.ORACLE_SINGLE_NONE,
+    listRouteName: 'OracleSingleClusterList',
     machineList: [],
     moduleId: 'oracle',
     name: t('Oracle 单节点'),
