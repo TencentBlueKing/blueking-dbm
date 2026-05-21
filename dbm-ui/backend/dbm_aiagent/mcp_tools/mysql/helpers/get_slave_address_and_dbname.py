@@ -13,6 +13,7 @@ from typing import Tuple
 
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster
+from backend.db_meta.models.storage_set_dtl import TenDBClusterStorageSet
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
 
 
@@ -26,12 +27,11 @@ def get_cloud_slave_address_and_dbname(
     elif cluster_type == ClusterType.TenDBHA:
         address = cluster_obj.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.SLAVE).first().ip_port
     else:
-        one_remove_slave = cluster_obj.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.SLAVE).first()
-        address = one_remove_slave.ip_port
+        # 取第 0 分片的 slave instance，跟 sanitize_select_sql 里面改写的分片一致
+        storage_set = TenDBClusterStorageSet.objects.get(cluster=cluster_obj, shard_id=0)
+        one_remote_slave = storage_set.storage_instance_tuple.receiver
+        address = one_remote_slave.ip_port
 
-        # one_storageinstance_tuple = StorageInstanceTuple.objects.get(receiver=one_remove_slave)
-        # shard_id = one_storageinstance_tuple.tendbclusterstorageset.shard_id
-        # 固定位 0 分片就行，跟 sanitize_select_sql 里面改写的分片一致
         if dbname:
             dbname = f"{dbname}_0"
 

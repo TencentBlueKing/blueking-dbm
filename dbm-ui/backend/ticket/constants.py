@@ -35,7 +35,7 @@ class TodoType(StrStructuredEnum):
     ITSM = EnumField("ITSM", _("主流程-单据审批"))
     APPROVE = EnumField("APPROVE", _("主流程-人工确认"))
     INNER_FAILED = EnumField("INNER_FAILED", _("主流程-失败后待确认"))
-    INNER_APPROVE = EnumField("INNER_APPROVE", _("自动化流程-人工确认"))
+    INNER_APPROVE = EnumField("INNER_APPROVE", _("流程待继续-人工确认"))
     RESOURCE_REPLENISH = EnumField("RESOURCE_REPLENISH", _("资源池补货"))
     RESOURCE_HCM_REPLENISH = EnumField("RESOURCE_HCM_REPLENISH", _("海磊-主机资源补货"))
     TIMER = EnumField("TIMER", _("定时"))
@@ -81,6 +81,7 @@ class ResourceApplyErrCode(IntStructuredEnum):
     RESOURCE_LOCK_FAIL = EnumField(60002, _("获取资源所失败"))
     RESOURCE_PARAMS_INVALID = EnumField(60003, _("参数合法性校验失败"))
     RESOURCE_MACHINE_FAIL = EnumField(60004, _("锁定返回机器失败"))
+    RESOURCE_DELETE_FAIL = EnumField(60005, _("资源删除失败"))
 
 
 TODO_DONE_STATUS = [TodoStatus.DONE_SUCCESS, TodoStatus.DONE_FAILED]

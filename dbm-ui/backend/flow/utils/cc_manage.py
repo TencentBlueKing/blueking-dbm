@@ -736,7 +736,9 @@ def trigger_operate_collector(
     # 在多个集群同时部署的时候，可能存在不同管控业务在一个滑动窗口下发采集器
     # 因此聚合管控业务和实例，后续按照管控业务维度下发采集器
     # 按照管控业务发起任务下发
+    # 注：这里mysql和tendbcluster采集ID一致，为避免重复下发，将dbtype认为是mysql
     hosting_biz = BizSettings.get_exact_hosting_biz(ins.bk_biz_id, ins.cluster_type)
+    db_type = DBType.MySQL if db_type == DBType.TenDBCluster else db_type
     cache_key = format_operate_collector_cache_key(hosting_biz, db_type, machine_type, action)
 
     # 这里先推入下发任务，再将任务加入任务列表，保证执行一致性

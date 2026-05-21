@@ -78,6 +78,14 @@ class InstallPredixyClusterSceneApiView(FlowTestView):
         return Response({"root_id": root_id})
 
 
+class InstallPredixyTendisPlusInsSceneApiView(FlowTestView):
+    @staticmethod
+    def post(request):
+        root_id = generate_root_id()
+        RedisController(root_id=root_id, ticket_data=request.data).predixy_tendisplus_ins_apply_scene()
+        return Response({"root_id": root_id})
+
+
 class InstallRedisInstanceSceneApiView(FlowTestView):
     @staticmethod
     def post(request):

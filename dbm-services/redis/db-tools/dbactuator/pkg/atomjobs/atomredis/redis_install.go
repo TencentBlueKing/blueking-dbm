@@ -501,8 +501,6 @@ func (job *RedisInstall) getRedisConfTemplate() error {
 			value = strconv.Itoa(util.GetTendisplusExeWorkPoolSize())
 		} else if lower_key == "rocks.max_background_jobs" {
 			value = strconv.Itoa(util.GetTendisplusMaxBGJobs())
-		} else if lower_key == "incrpushthreadnum" {
-			value = strconv.Itoa(util.GetIncrPushThreadnum())
 		} else if lower_key == "rocks.max_background_compactions" {
 			value = strconv.Itoa(util.GetMaxBgCompactions())
 		} else if lower_key == "migratesenderthreadnum" {

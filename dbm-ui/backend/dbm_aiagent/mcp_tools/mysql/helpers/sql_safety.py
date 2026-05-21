@@ -58,6 +58,36 @@ _MAX_IDENT_BYTES = 64
 # 这些字符要么不可能出现在合法库表名里（控制字符 / NUL），要么会破坏反引号包裹（反引号自身）
 _FORBIDDEN_IDENT_CHARS = ("\x00", "\n", "\r", "\t", "`")
 
+# 字符串字面量场景下的禁用字符：NUL / 换行 / 回车（合法库表名里不会出现）
+_FORBIDDEN_STRING_LITERAL_CHARS = ("\x00", "\n", "\r")
+
+
+def quote_string_literal(value: str) -> str:
+    """把库/表名等用户输入安全地包裹为 MySQL 字符串字面量 ``'value'``。
+
+    用于 WHERE 子句里 ``table_schema = 'xxx'`` / ``table_name IN ('a','b')`` 这种**值比较**
+    场景，注意与 ``quote_ident`` 的区别：后者用反引号包裹，是**标识符引用**，不能用作字符串值。
+
+    校验：
+
+    - 拒绝空字符串
+    - 拒绝长度 > 64 字节（与 MySQL 标识符上限一致）
+    - 拒绝 NUL / ``\\n`` / ``\\r``
+    - 转义反斜杠和单引号（``\\`` → ``\\\\``，``'`` → ``''``），同时挡住单引号转义与字符串拼接绕过
+    """
+    if not value:
+        raise DBMMcpUnsafeIdentifierException(msg="empty string literal")
+
+    if len(value.encode("utf-8")) > _MAX_IDENT_BYTES:
+        raise DBMMcpUnsafeIdentifierException(msg=f"string literal too long (>64 bytes): {value!r}")
+
+    for bad in _FORBIDDEN_STRING_LITERAL_CHARS:
+        if bad in value:
+            raise DBMMcpUnsafeIdentifierException(msg=f"invalid character in string literal: {value!r}")
+
+    escaped = value.replace("\\", "\\\\").replace("'", "''")
+    return f"'{escaped}'"
+
 
 def quote_ident(name: str) -> str:
     """把库/表名安全地包裹为反引号形式。

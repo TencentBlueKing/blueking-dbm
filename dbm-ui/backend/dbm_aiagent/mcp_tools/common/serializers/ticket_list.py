@@ -13,7 +13,7 @@ from datetime import timedelta
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.ticket.constants import TicketStatus, TicketType
+from backend.ticket.constants import TicketStatus, TicketType, TodoType
 
 
 class TicketListInputSerializer(serializers.Serializer):
@@ -30,6 +30,14 @@ class TicketListInputSerializer(serializers.Serializer):
     time_duration = serializers.DurationField(help_text=_("单据查询时间范围"), default=timedelta(days=2))
 
 
+class TodoInfoSerializer(serializers.Serializer):
+    todo_id = serializers.IntegerField(help_text=_("代办 ID"))
+    todo_type = serializers.ChoiceField(choices=TodoType.get_choices(), help_text=_("代办类型"))
+    name = serializers.CharField(help_text=_("代办名称"))
+    operators = serializers.ListField(child=serializers.CharField(), help_text=_("处理人列表"))
+    helpers = serializers.ListField(child=serializers.CharField(), help_text=_("协助人列表"))
+
+
 class TicketInfoSerializer(serializers.Serializer):
     ticket_id = serializers.IntegerField(help_text=_("单据 ID"))
     ticket_type = serializers.ChoiceField(choices=TicketType.get_labels(), help_text=_("单据类型"))
@@ -42,6 +50,7 @@ class TicketInfoSerializer(serializers.Serializer):
     current_flow = serializers.CharField(help_text=_("当前流程"))
     cost_time_seconds = serializers.IntegerField(help_text=_("单据耗时（秒）"))
     msgs = serializers.ListField(child=serializers.CharField(), help_text=_("单据消息"))
+    todos = serializers.ListField(child=TodoInfoSerializer(), help_text=_("单据代办信息"))
 
 
 class TicketListOutputSerializer(serializers.Serializer):

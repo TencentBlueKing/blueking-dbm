@@ -2474,6 +2474,37 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "mysql_partition_import",
+                "name": "MySQL 分区策略导入",
+                "name_en": "mysql_partition_import",
+                "type": "manage",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "分区管理",
+                "description": "MySQL 分区策略导入",
+                "description_en": "mysql_partition_import"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "mysql_partition",
                 "name": "MySQL 分区",
                 "name_en": "MYSQL_PARTITION",
@@ -10498,35 +10529,6 @@
         {
             "operation": "upsert_action",
             "data": {
-                "id": "mysql_partition_v2",
-                "name": "MySQL 分区v2",
-                "name_en": "MYSQL_PARTITION_V2",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "mysql",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "mysql_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "MySQL",
-                "subgroup": "分区管理v2",
-                "description": "MySQL 分区v2",
-                "description_en": "MYSQL_PARTITION_V2"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
                 "id": "mysql_rollback_cluster",
                 "name": "MySQL 定点构造",
                 "name_en": "MYSQL_ROLLBACK_CLUSTER",
@@ -11218,6 +11220,35 @@
                 "subgroup": "数据处理",
                 "description": "TenDB Cluster 数据校验修复",
                 "description_en": "TENDBCLUSTER_CHECKSUM"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "tendbcluster_partition_v2",
+                "name": "TenDB Cluster 分区管理v2",
+                "name_en": "TENDBCLUSTER_PARTITION_V2",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "tendbcluster",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "tendbcluster_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "TenDBCluster",
+                "subgroup": "分区管理v2",
+                "description": "TenDB Cluster 分区管理v2",
+                "description_en": "TENDBCLUSTER_PARTITION_V2"
             }
         },
         {
@@ -15515,6 +15546,64 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "mongodb_cluster_standardize",
+                "name": "MongoDB 集群标准化",
+                "name_en": "MONGODB_CLUSTER_STANDARDIZE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mongodb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mongodb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MongoDB",
+                "subgroup": "工具箱",
+                "description": "MongoDB 集群标准化",
+                "description_en": "MONGODB_CLUSTER_STANDARDIZE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mongodb_upgrade_version",
+                "name": "MongoDB 版本升级",
+                "name_en": "MONGODB_UPGRADE_VERSION",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mongodb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mongodb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MongoDB",
+                "subgroup": "工具箱",
+                "description": "MongoDB 版本升级",
+                "description_en": "MONGODB_UPGRADE_VERSION"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "vm_scale_up",
                 "name": "VM 集群扩容",
                 "name_en": "VM_SCALE_UP",
@@ -16104,6 +16193,9 @@
                                     "id": "mysql_partition_enable_disable"
                                 },
                                 {
+                                    "id": "mysql_partition_import"
+                                },
+                                {
                                     "id": "mysql_partition"
                                 }
                             ]
@@ -16282,15 +16374,6 @@
                                 },
                                 {
                                     "id": "tbinlogdumper_reduce_nodes"
-                                }
-                            ]
-                        },
-                        {
-                            "name": "分区管理v2",
-                            "name_en": "分区管理v2",
-                            "actions": [
-                                {
-                                    "id": "mysql_partition_v2"
                                 }
                             ]
                         },
@@ -16502,6 +16585,15 @@
                                 },
                                 {
                                     "id": "tendbcluster_spider_slave_apply"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "分区管理v2",
+                            "name_en": "分区管理v2",
+                            "actions": [
+                                {
+                                    "id": "tendbcluster_partition_v2"
                                 }
                             ]
                         },
@@ -17327,6 +17419,18 @@
                                     "id": "mongodb_shard_migrate"
                                 }
                             ]
+                        },
+                        {
+                            "name": "工具箱",
+                            "name_en": "工具箱",
+                            "actions": [
+                                {
+                                    "id": "mongodb_cluster_standardize"
+                                },
+                                {
+                                    "id": "mongodb_upgrade_version"
+                                }
+                            ]
                         }
                     ]
                 },
@@ -17928,6 +18032,9 @@
                             "id": "mysql_partition_enable_disable"
                         },
                         {
+                            "id": "mysql_partition_import"
+                        },
+                        {
                             "id": "mysql_partition"
                         },
                         {
@@ -18411,6 +18518,39 @@
                             "id": "ip_whitelist_manage"
                         },
                         {
+                            "id": "mysql_manage"
+                        },
+                        {
+                            "id": "tendbcluster_manage"
+                        },
+                        {
+                            "id": "redis_manage"
+                        },
+                        {
+                            "id": "es_manage"
+                        },
+                        {
+                            "id": "doris_manage"
+                        },
+                        {
+                            "id": "kafka_manage"
+                        },
+                        {
+                            "id": "hdfs_manage"
+                        },
+                        {
+                            "id": "pulsar_manage"
+                        },
+                        {
+                            "id": "mongodb_manage"
+                        },
+                        {
+                            "id": "sqlserver_manage"
+                        },
+                        {
+                            "id": "oracle_manage"
+                        },
+                        {
                             "id": "mysql_add_slave"
                         },
                         {
@@ -18457,9 +18597,6 @@
                         },
                         {
                             "id": "mysql_checksum"
-                        },
-                        {
-                            "id": "mysql_partition_v2"
                         },
                         {
                             "id": "mysql_rollback_cluster"
@@ -18532,6 +18669,9 @@
                         },
                         {
                             "id": "tendbcluster_checksum"
+                        },
+                        {
+                            "id": "tendbcluster_partition_v2"
                         },
                         {
                             "id": "tendbcluster_master_fail_over"
@@ -18978,6 +19118,12 @@
                             "id": "mongodb_instance_fix_status"
                         },
                         {
+                            "id": "mongodb_cluster_standardize"
+                        },
+                        {
+                            "id": "mongodb_upgrade_version"
+                        },
+                        {
                             "id": "vm_scale_up"
                         },
                         {
@@ -19054,6 +19200,9 @@
                         },
                         {
                             "id": "mysql_partition_enable_disable"
+                        },
+                        {
+                            "id": "mysql_partition_import"
                         },
                         {
                             "id": "mysql_partition"
@@ -19527,6 +19676,10 @@
                                 "required": true
                             },
                             {
+                                "id": "mysql_partition_import",
+                                "required": true
+                            },
+                            {
                                 "id": "mysql_partition",
                                 "required": true
                             },
@@ -19640,10 +19793,6 @@
                             },
                             {
                                 "id": "mysql_checksum",
-                                "required": true
-                            },
-                            {
-                                "id": "mysql_partition_v2",
                                 "required": true
                             },
                             {
@@ -19872,6 +20021,10 @@
                             },
                             {
                                 "id": "tendbcluster_checksum",
+                                "required": true
+                            },
+                            {
+                                "id": "tendbcluster_partition_v2",
                                 "required": true
                             },
                             {
@@ -20734,6 +20887,14 @@
                             },
                             {
                                 "id": "mongodb_instance_fix_status",
+                                "required": true
+                            },
+                            {
+                                "id": "mongodb_cluster_standardize",
+                                "required": true
+                            },
+                            {
+                                "id": "mongodb_upgrade_version",
                                 "required": true
                             }
                         ]

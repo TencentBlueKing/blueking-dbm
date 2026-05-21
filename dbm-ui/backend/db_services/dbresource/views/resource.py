@@ -24,8 +24,8 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components.dbresource.client import DBResourceApi
 from backend.components.hcm.client import HCMApi
 from backend.components.xwork.client import XworkApi
-from backend.db_dirty.constants import MachineEventType
-from backend.db_dirty.models import MachineEvent
+from backend.db_dirty.constants import MachineEventType, PoolType
+from backend.db_dirty.models import DirtyMachine, MachineEvent
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.machine import DeviceClass
 from backend.db_services.dbresource.constants import RESOURCE_IMPORT_TASK_FIELD, SWAGGER_TAG
@@ -339,6 +339,13 @@ class DBResourceViewSet(viewsets.SystemViewSet):
 
         bk_host_ids = [host["bk_host_id"] for host in data["hosts"]]
 
+        # 检查主机数量 & 仍处于资源池
+        hosts_qs = DirtyMachine.objects.filter(bk_host_id__in=bk_host_ids)
+        if hosts_qs.count() != len(bk_host_ids):
+            raise ResourceReturnException(_("删除主机部分不存在资源池，请重新操作"))
+        if list(set(hosts_qs.values_list("pool", flat=True))) != [PoolType.Resource]:
+            raise ResourceReturnException(_("请保证删除的主机处于资源池中"))
+
         if data["event"] == MachineEventType.UndoImport:
             # 撤销导入需要判断机器是否可退回
             ok, message = MachineEvent.hosts_can_return(bk_host_ids)
@@ -357,8 +364,12 @@ class DBResourceViewSet(viewsets.SystemViewSet):
                 env.DBA_APP_BK_BIZ_ID, data["hosts"], data["event"], operator, remark=data["remark"]
             )
             Todo.host_todo_trigger(bk_host_ids, [operator], data["event"], None)
-        # 删除资源
-        resp = DBResourceApi.resource_delete(params={"bk_host_ids": bk_host_ids})
+
+        # 调用资源池api删除资源
+        resp = DBResourceApi.resource_delete(params={"bk_host_ids": bk_host_ids}, raw=True)
+        if resp["code"]:
+            raise ResourceReturnException(_("资源删除失败，错误信息: {}").format(resp.get("message")))
+
         return Response(resp)
 
     @common_swagger_auto_schema(

@@ -54,6 +54,7 @@ from backend.flow.engine.bamboo.scene.redis.redis_predixy_cluster_apply_flow imp
 from backend.flow.engine.bamboo.scene.redis.redis_predixy_config_servers_rewrite import (
     RedisPredixyConfigServersRewriteFlow,
 )
+from backend.flow.engine.bamboo.scene.redis.redis_predixy_tendisplus_ins_flow import PredixyTendisPlusInsApplyFlow
 from backend.flow.engine.bamboo.scene.redis.redis_proxy_fast_recover import RedisProxyFastRecoverFlow
 from backend.flow.engine.bamboo.scene.redis.redis_proxy_scale import RedisProxyScaleFlow
 from backend.flow.engine.bamboo.scene.redis.redis_remove_dts_server import RedisRemoveDtsServerFlow
@@ -94,6 +95,13 @@ class RedisController(BaseController):
         """
         flow = TendisPlusApplyFlow(root_id=self.root_id, data=self.ticket_data)
         flow.deploy_predixy_cluster_flow()
+
+    def predixy_tendisplus_ins_apply_scene(self):
+        """
+        predixy + tendisplus 主从模式集群部署场景
+        """
+        flow = PredixyTendisPlusInsApplyFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.deploy_predixy_tendisplus_ins_flow()
 
     def redis_instance_apply_scene(self):
         """

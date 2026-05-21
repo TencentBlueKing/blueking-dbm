@@ -33,6 +33,9 @@ func (c *MachineResourceHandler) AddLabels(r *rf.Context) {
 		logger.Error("Prepare Error %s", err.Error())
 		return
 	}
+	if c.validateBkHostIdsForMutation(r, input.BkHostIds) {
+		return
+	}
 	var resources []model.TbRpDetail
 	if err := model.DB.Self.Table("tb_rp_detail").Where("bk_host_id in (?)", input.BkHostIds).
 		Find(&resources).Error; err != nil {

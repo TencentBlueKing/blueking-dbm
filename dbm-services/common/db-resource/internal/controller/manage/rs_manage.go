@@ -21,6 +21,7 @@ import (
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/db-resource/internal/svr/bk"
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/common/go-pubpkg/logger"
 
 	rf "github.com/gin-gonic/gin"
@@ -70,11 +71,58 @@ type MachineDeleteInputParam struct {
 	BkHostIds []int `json:"bk_host_ids"  binding:"required"`
 }
 
+// MissingBkHostIdsResp 资源池中缺失的 bk_host_id 列表
+type MissingBkHostIdsResp struct {
+	MissingBkHostIds []int `json:"missing_bk_host_ids"`
+}
+
+// InUseBkHostIdsResp 处于"已被占用"状态因而被拒绝变更的 bk_host_id 列表
+type InUseBkHostIdsResp struct {
+	InUseBkHostIds []int `json:"in_use_bk_host_ids"`
+}
+
+// validateBkHostIdsForMutation 主机变更操作(删除/编辑)前的统一预校验
+//
+// 校验项:
+//  1. 存在性: bk_host_ids 必须全部存在于资源池, 缺失任一则直接报错
+//  2. 在用状态: 不允许变更处于 Preselected/Prepoccupied/Used/UsedByOther 状态的主机
+//
+// 返回 true 表示校验失败且已通过 SendResponse 返回错误,调用方应立即 return,不再执行后续逻辑.
+func (c *MachineResourceHandler) validateBkHostIdsForMutation(r *rf.Context, bkHostIds []int) (rejected bool) {
+	existIds, err := model.GetExistTbRpDetailHostIds(bkHostIds)
+	if err != nil {
+		logger.Error("failed to query existing bk_host_ids:%s", err.Error())
+		c.SendResponse(r, err, nil)
+		return true
+	}
+	missingIds := lo.Without(bkHostIds, existIds...)
+	if len(missingIds) > 0 {
+		logger.Error("bk_host_ids not found in resource pool: %v", missingIds)
+		c.SendResponse(r, errno.ErrHostIdNotFound, MissingBkHostIdsResp{MissingBkHostIds: missingIds})
+		return true
+	}
+	inUseIds, err := model.GetInUseTbRpDetailHostIds(bkHostIds)
+	if err != nil {
+		logger.Error("failed to query in-use bk_host_ids:%s", err.Error())
+		c.SendResponse(r, err, nil)
+		return true
+	}
+	if len(inUseIds) > 0 {
+		logger.Error("bk_host_ids are in use, mutation rejected: %v", inUseIds)
+		c.SendResponse(r, errno.ErrHostInUse, InUseBkHostIdsResp{InUseBkHostIds: inUseIds})
+		return true
+	}
+	return false
+}
+
 // Delete 删除主机
 func (c *MachineResourceHandler) Delete(r *rf.Context) {
 	var input MachineDeleteInputParam
 	if err := c.Prepare(r, &input); err != nil {
 		logger.Error("Prepare Error %s", err.Error())
+		return
+	}
+	if c.validateBkHostIdsForMutation(r, input.BkHostIds) {
 		return
 	}
 	affect_row, err := model.DeleteTbRpDetail(input.BkHostIds)
@@ -103,6 +151,9 @@ func (c *MachineResourceHandler) BatchUpdate(r *rf.Context) {
 	var err error
 	if err = c.Prepare(r, &input); err != nil {
 		logger.Error("Prepare Error %s", err.Error())
+		return
+	}
+	if c.validateBkHostIdsForMutation(r, input.BkHostIds) {
 		return
 	}
 	// update for biz
@@ -208,6 +259,10 @@ func (c *MachineResourceHandler) Update(r *rf.Context) {
 		return
 	}
 	logger.Debug(fmt.Sprintf("get params %v", input.Data))
+	bkHostIds := lo.Map(input.Data, func(v MachineResource, _ int) int { return v.BkHostID })
+	if c.validateBkHostIdsForMutation(r, bkHostIds) {
+		return
+	}
 	tx := model.DB.Self.Begin()
 	for _, v := range input.Data {
 		updateMap, err := v.getUpdateMap()

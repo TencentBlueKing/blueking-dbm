@@ -814,7 +814,7 @@ func (job *ClusterMigrateSlots) MigrateSpecificSlots(srcAddr,
 		return
 	}
 	// RedisCluster 按数量迁移时，不需要检查 slot 归属（reshard 会自动从 src 选择 slot）
-	if migrateCount == 0 {
+	if !job.isRedisInstance() {
 		allBelong, notBelongList, err := job.params.SrcNode.redisCli.IsSlotsBelongMaster(srcAddr, slots)
 		if err != nil {
 			job.Err = err
@@ -824,6 +824,7 @@ func (job *ClusterMigrateSlots) MigrateSpecificSlots(srcAddr,
 		if allBelong == false {
 			err = fmt.Errorf("MigrateSpecificSlots slots:%s not belong to srcNode:%s",
 				myredis.ConvertSlotToShellFormat(notBelongList), srcAddr)
+			job.Err = err
 			job.runtime.Logger.Error(err.Error())
 			return
 		}
