@@ -143,6 +143,7 @@
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
+    city_code: string;
     cluster_ids: number[];
     instance_per_host: number;
     resource_spec: {
@@ -187,6 +188,7 @@
     }
     createTicketRun({
       details: {
+        city_code: formData.tableData[0].cluster.region,
         cluster_ids: formData.tableData.map((item) => item.cluster.id),
         instance_per_host: formData.shardNum,
         resource_spec: resourceSpec,
