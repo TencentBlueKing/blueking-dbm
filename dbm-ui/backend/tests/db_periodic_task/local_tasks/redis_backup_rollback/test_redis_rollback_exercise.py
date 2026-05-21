@@ -514,10 +514,13 @@ class TestValidateInstance:
         exercise = _make_exercise()
         cluster = _make_cluster_mock(ClusterType.TwemproxyTendisSSDInstance.value)
 
-        with patch.object(
-            _exercise_cls(),
-            "_instance_has_backup",
-            return_value=(False, None, None, None, None, "no full backup"),
+        with (
+            patch.object(
+                _exercise_cls(),
+                "_instance_has_backup",
+                return_value=(False, None, None, None, None, "no full backup"),
+            ),
+            patch.object(_exercise_cls(), "_recent_master_slave_switch_hours", return_value=None),
         ):
             (
                 is_valid,
@@ -538,6 +541,62 @@ class TestValidateInstance:
         assert failure_kind == _failure_kind().BACKUP_INVALID
         assert full_backup is None and days_used is None and rtp is None and binlog_summary is None
         assert fail_reason and "no full backup" in fail_reason
+
+    def test_backup_missing_after_recent_switch_returns_env_skipped(self):
+        exercise = _make_exercise()
+        cluster = _make_cluster_mock(ClusterType.TwemproxyTendisSSDInstance.value)
+        backup_check_instance = SimpleNamespace(ip_port="3.3.3.3:30000")
+
+        with (
+            patch.object(
+                _exercise_cls(),
+                "_instance_has_backup",
+                return_value=(False, None, None, None, None, "no full backup"),
+            ),
+            patch.object(_exercise_cls(), "_recent_master_slave_switch_hours", return_value=6),
+        ):
+            (
+                is_valid,
+                full_backup,
+                days_used,
+                rtp,
+                binlog_summary,
+                fail_reason,
+                failure_kind,
+            ) = exercise._validate_instance(
+                instance_ip="3.3.3.3",
+                instance_port=30000,
+                cluster=cluster,
+                rollback_days=[1],
+                backup_check_instance=backup_check_instance,
+            )
+
+        assert is_valid is False
+        assert failure_kind == _failure_kind().ENV_SKIPPED
+        assert full_backup is None and days_used is None and rtp is None and binlog_summary is None
+        assert "possible recent master-slave switch" in fail_reason
+        assert "6h ago" in fail_reason
+        assert "backup file may be missing" in fail_reason
+
+    def test_recent_master_slave_switch_uses_latest_receiver_tuple(self):
+        tuple_qs = MagicMock()
+        tuple_qs.order_by.return_value.first.return_value = SimpleNamespace(
+            create_at=timezone.now() - timedelta(seconds=1)
+        )
+        slave_instance = SimpleNamespace(as_receiver=tuple_qs)
+
+        switch_hours = _exercise_cls()._recent_master_slave_switch_hours(slave_instance)
+
+        assert switch_hours == 0
+        tuple_qs.order_by.assert_called_once_with("-create_at")
+
+    def test_recent_master_slave_switch_returns_none_without_receiver_tuple(self):
+        tuple_qs = MagicMock()
+        tuple_qs.order_by.return_value.first.return_value = None
+        slave_instance = SimpleNamespace(as_receiver=tuple_qs)
+
+        assert _exercise_cls()._recent_master_slave_switch_hours(slave_instance) is None
+        tuple_qs.order_by.assert_called_once_with("-create_at")
 
     def test_temp_instance_present_returns_env_skipped(self):
         exercise = _make_exercise()

@@ -195,7 +195,6 @@ class RedisRollbackExerciseContext:
 
     alarm_shield_id: int = None  # 告警屏蔽ID
     task_msg: list = field(default_factory=list)  # 执行情况
-    error_occurred: bool = False  # 发生异常
 
 
 @dataclass()
