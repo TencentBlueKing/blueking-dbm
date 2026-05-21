@@ -28,11 +28,13 @@ from backend.db_report.models import RedisRollbackExerciseReport as Report
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
+from backend.flow.engine.bamboo.scene.common.machine_os_init import RecycleOutputContext
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure import RedisDataStructureFlow
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure_task_delete import RedisDataStructureTaskDeleteFlow
 from backend.flow.models import FlowTree
 from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldService
 from backend.flow.plugins.components.collections.common.base_service import BaseService, BkJobService
+from backend.flow.utils.base.flow_output import FlowOutputHandler
 from backend.flow.utils.redis import redis_context_dataclass as flow_context
 from backend.flow.utils.redis.redis_context_dataclass import RedisRollbackExerciseContext
 from backend.flow.utils.redis.redis_script_template import redis_fast_execute_script_common_kwargs
@@ -85,11 +87,9 @@ class RedisLogCapturingService(BaseService):
         self._append_to_task_info(msg, "warning")
 
     def log_error(self, msg: str):
-        """Override to auto-capture error logs and set error_occurred flag"""
+        """Override to auto-capture error logs"""
         super().log_error(msg)
         self._append_to_task_info(msg, "error")
-        if self.trans_data is not None:
-            self.trans_data.error_occurred = True
 
     def log_debug(self, msg: str):
         """Override to auto-capture debug logs"""
@@ -352,6 +352,67 @@ class RedisExerciseFlowRunnerComponent(Component):
     name = __name__
     code = "redis_exercise_flow_runner"
     bound_service = RedisExerciseFlowRunnerService
+
+
+class RedisExerciseRevokeAppliedHostsService(RedisLogCapturingService):
+    """Publish rollback exercise resource hosts for the standard RECYCLE_APPLY_HOST flow."""
+
+    @staticmethod
+    def _normalize_recycle_host(host: dict) -> Optional[dict]:
+        if not isinstance(host, dict):
+            return None
+
+        ip = host.get("ip")
+        bk_cloud_id = host.get("bk_cloud_id")
+        bk_host_id = host.get("bk_host_id") or host.get("host_id")
+        if not (ip and bk_cloud_id is not None and bk_host_id is not None):
+            return None
+
+        return {
+            "ip": ip,
+            "bk_cloud_id": bk_cloud_id,
+            "bk_host_id": bk_host_id,
+            "remark": host.get("remark", _("Redis rollback exercise revoked")),
+        }
+
+    @classmethod
+    def _collect_recycle_hosts(cls, infos: list) -> list:
+        hosts_by_id = {}
+        for info in infos or []:
+            for host in info.get("redis", []) or []:
+                normalized = cls._normalize_recycle_host(host)
+                if normalized is not None:
+                    host_id = normalized["bk_host_id"]
+                    if host_id not in hosts_by_id:
+                        hosts_by_id[host_id] = normalized
+                    else:
+                        hosts_by_id[host_id].update(
+                            {
+                                key: value
+                                for key, value in normalized.items()
+                                if value and not hosts_by_id[host_id].get(key)
+                            }
+                        )
+        return list(hosts_by_id.values())
+
+    def _execute_inner_captured(self, data, parent_data) -> bool:
+        global_data = data.get_one_of_inputs("global_data") or {}
+        recycle_hosts = self._collect_recycle_hosts(global_data.get("infos", []))
+        if not recycle_hosts:
+            self.log_info(_("No applied redis hosts found for revoke recycle output"))
+        else:
+            self.log_info(_("Published {} redis host(s) for revoke recycle").format(len(recycle_hosts)))
+
+        FlowOutputHandler(RecycleOutputContext.ToResourceSerializer).insert_data(
+            global_data["job_root_id"], recycle_hosts
+        )
+        return True
+
+
+class RedisExerciseRevokeAppliedHostsComponent(Component):
+    name = __name__
+    code = "redis_exercise_revoke_applied_hosts"
+    bound_service = RedisExerciseRevokeAppliedHostsService
 
 
 class RedisExerciseBestEffortCleanupService(RedisLogCapturingService, BkJobService):
