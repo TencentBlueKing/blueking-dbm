@@ -454,6 +454,23 @@ class ActKwargs:
             "file_target_path": self.file_path + "/install",
         }
 
+    def get_send_script_kwargs(self):
+        """下发脚本文件的kwargs"""
+
+        uid = self.payload["uid"]
+        sql_files_full_path_list = [
+            "{}/{}/{}/{}".format(env.BKREPO_PROJECT, env.BKREPO_BUCKET, self.payload["path"], file)
+            for file in self.payload["script_files"]
+        ]
+        exec_ips = [host["ip"] for host in self.payload["hosts"]]
+        return {
+            "exec_account": ExecuteShellScriptUser.Oracle.value,
+            "file_list": sql_files_full_path_list,
+            "ip_list": self.payload["hosts"],
+            "exec_ips": exec_ips,
+            "file_target_path": "{}/install/dbactuator-{}".format(self.file_path, str(uid)),
+        }
+
     def get_create_dir_kwargs(self) -> dict:
         """创建dbactuator执行目录的kwargs"""
 
@@ -848,6 +865,8 @@ class ActKwargs:
                 "action": MongoDBActuatorActionEnum.MongoExecuteScript,
                 "file_path": self.file_path,
                 "payload": {
+                    "taskid": str(self.payload["uid"]),
+                    "scriptFile": False,
                     "ip": self.replicaset_info["nodes"][0]["ip"],
                     "port": self.replicaset_info["port"],
                     "script": script,
@@ -1011,7 +1030,7 @@ class ActKwargs:
                 },
             }
 
-    def get_exec_script_kwargs(self, cluster_id: int, admin_user: str, script: dict) -> dict:
+    def get_exec_script_kwargs(self, cluster_id: int, admin_user: str) -> dict:
         """执行脚本"""
 
         db_type = ""
@@ -1028,10 +1047,11 @@ class ActKwargs:
                 "action": MongoDBActuatorActionEnum.MongoExecuteScript,
                 "file_path": self.file_path,
                 "payload": {
+                    "scriptFile": True,
+                    "taskid": str(self.payload["uid"]),
                     "ip": self.payload["hosts"][0]["ip"],
                     "port": self.payload["port"],
-                    "script": script["script_content"],
-                    "scriptName": script["script_name"],
+                    "scriptNameList": self.payload["script_files"],
                     "Type": db_type,
                     "secondary": False,
                     "adminUsername": admin_user,
@@ -2175,6 +2195,8 @@ class ActKwargs:
                 "action": MongoDBActuatorActionEnum.MongoExecuteScript,
                 "file_path": self.file_path,
                 "payload": {
+                    "taskid": str(self.payload["uid"]),
+                    "scriptFile": False,
                     "ip": ip,
                     "port": self.payload["mongos"]["port"],
                     "script": mongodb_script_template.mongodb_cluster_inti_js_script,
