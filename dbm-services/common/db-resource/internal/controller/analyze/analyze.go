@@ -122,7 +122,7 @@ func (c *AnalyzeHandler) QuickAnalyzeResource(r *gin.Context) {
 		"disk_mount_point": param.DiskMountPoint,
 		"disk_min_size":    float64(param.DiskMinSize),
 		"disk_type":        param.DiskType,
-		"resource_type":    param.ResourceType,
+		"resource_type":    model.NormalizeResourceType(param.ResourceType),
 		"request_count":    float64(param.RequestCount),
 	}
 
