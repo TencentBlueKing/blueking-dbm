@@ -572,16 +572,16 @@ func (w *Workflow) filterWhitelistedInstances(ctx context.Context, group *Failur
 		return
 	}
 
-	whiteListMap := make(map[int]*hamodel.DbBlackWhiteList, len(whiteList))
+	whiteListMap := make(map[string]*hamodel.DbBlackWhiteList, len(whiteList))
 	for _, item := range whiteList {
-		whiteListMap[item.ClusterID] = item
+		whiteListMap[item.ClusterName] = item
 	}
 
 	whitelistedMetas := make([]*dbm.DbInstMetadata, 0)
 	remaining := make([]*dbm.DbInstMetadata, 0)
 
 	for _, meta := range req.MySqlInstData {
-		if _, exists := whiteListMap[meta.ClusterID]; exists {
+		if _, exists := whiteListMap[meta.Cluster]; exists {
 			whitelistedMetas = append(whitelistedMetas, meta)
 			continue
 		}
