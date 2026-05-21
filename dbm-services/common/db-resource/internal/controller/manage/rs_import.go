@@ -291,9 +291,9 @@ func buildTbRpItem(h *cc.Host, forBizId, bkbizId, bkCloudId int, rsType string, 
 
 func dealEmptyRs(rsType string) string {
 	if lo.IsEmpty(rsType) {
-		return model.PUBLIC_RESOURCE_DBTYEP
+		return model.RESOURCE_TYPE_PUBLIC
 	}
-	return rsType
+	return model.NormalizeResourceType(rsType)
 }
 
 // ImportMachineWithDiffInfoParam 导入主机信息
