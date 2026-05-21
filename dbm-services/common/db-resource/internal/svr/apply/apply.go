@@ -89,7 +89,7 @@ func applyGroupsInSameLocation(param RequestInputParam) (pickers []*PickerObject
 		for _, v := range resourceReqList {
 			s := &SearchContext{
 				IntentionBkBizId:  param.ForbizId,
-				RsType:            param.ResourceType,
+				RsType:            model.NormalizeResourceType(param.ResourceType),
 				ObjectDetail:      &v,
 				IdcCitys:          idcCitys,
 				SpecialHostIds:    v.Hosts.GetBkHostIds(),
@@ -127,7 +127,7 @@ func getGroupcampusNice(param RequestInputParam, resourceReqList []ObjectDetail,
 	for _, v := range resourceReqList {
 		s := &SearchContext{
 			IntentionBkBizId: param.ForbizId,
-			RsType:           param.ResourceType,
+			RsType:           model.NormalizeResourceType(param.ResourceType),
 			ObjectDetail:     &v,
 			IdcCitys:         idcCitys,
 			SpecialHostIds:   v.Hosts.GetBkHostIds(),
@@ -270,7 +270,7 @@ func cycleApplySequential(param RequestInputParam) (pickers []*PickerObject, err
 		}
 		s := &SearchContext{
 			IntentionBkBizId: param.ForbizId,
-			RsType:           param.ResourceType,
+			RsType:           model.NormalizeResourceType(param.ResourceType),
 			ObjectDetail:     &v,
 			IdcCitys:         idcCites,
 			SpecialHostIds:   v.Hosts.GetBkHostIds(),
@@ -647,16 +647,16 @@ func (o *SearchContext) MatchRsType(db *gorm.DB) {
 	// 没有资源类型标签的资源可以被所有其他类型使用
 	switch {
 	case lo.IsEmpty(o.RsType):
-		db.Where("rs_type = 'PUBLIC' ")
-	// 临时代码，后续需要删除
+		db.Where("rs_type = ? ", model.RESOURCE_TYPE_PUBLIC)
+	// 临时代码，后续需要删除 redis/mongodb 不匹配公共资源池的机器
 	// ----------------------------
-	case o.RsType == "redis":
-		db.Where("rs_type = 'redis'")
-	case o.RsType == "mongodb":
-		db.Where("rs_type = 'mongodb'")
+	case o.RsType == model.RESOURCE_TYPE_REDIS:
+		db.Where("rs_type = ? ", model.RESOURCE_TYPE_REDIS)
+	case o.RsType == model.RESOURCE_TYPE_MONGODB:
+		db.Where("rs_type = ? ", model.RESOURCE_TYPE_MONGODB)
 	// ------ 临时代码结束 ------
 	default:
-		db.Where("rs_type in (?)", []string{"PUBLIC", o.RsType})
+		db.Where("rs_type in (?)", []string{model.RESOURCE_TYPE_PUBLIC, o.RsType})
 	}
 }
 
