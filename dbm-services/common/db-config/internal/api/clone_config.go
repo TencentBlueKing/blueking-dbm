@@ -24,3 +24,13 @@ type DeleteModuleConfigReq struct {
 	BkBizID    string `json:"bk_biz_id" binding:"required"`
 	Namespace  string `json:"namespace" binding:"required"`
 }
+
+type CloneModuleQueryConfigResp struct {
+	GetConfigItemsResp
+	// ConfNamesDeprecated 目标模块中废弃的配置项
+	ConfNamesDeprecated []string `json:"conf_names_deprecated"`
+	// ConfNamesValueModified 源模块修改过的自定义配置项
+	ConfNamesValueModified []string `json:"conf_names_value_modified"`
+	// ConfNamesValueDiff 源模块和目标模块 默认配置项差异
+	ConfNamesValueDiff map[string]interface{} `json:"conf_names_value_diff"`
+}
