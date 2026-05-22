@@ -74,6 +74,14 @@ class ResourceImportSerializer(serializers.Serializer):
         if exist_hosts:
             raise serializers.ValidationError(_("导入失败，主机{}存在元数据，请检查后重新导入").format(exist_hosts))
 
+        # 如果主机存在同云区域的重复IP，则拒绝导入
+        ip_cloud_tuples = [(host["ip"], host["bk_cloud_id"]) for host in attrs["hosts"]]
+        ips = [ip for ip, bk_cloud_id in ip_cloud_tuples]
+        exist_hosts = list(Machine.objects.filter(ip__in=ips).values("ip", "bk_cloud_id"))
+        for host in exist_hosts:
+            if (host["ip"], host["bk_cloud_id"]) in ip_cloud_tuples:
+                raise serializers.ValidationError(_("导入失败，主机{}存在云区域重复IP，请检查后重新导入").format(host["ip"]))
+
         dissolved_switch = SystemSettings.get_setting_value(
             key=SystemSettingsEnum.HOST_DISSOLVED_SWITCH, default=False
         )
