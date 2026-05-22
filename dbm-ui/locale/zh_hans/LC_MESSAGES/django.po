@@ -22859,6 +22859,18 @@ msgstr "无法找到Manager处理类型,请联系系统管理员:{}"
 msgid "该节点获取到执行ip信息为空，请联系系统管理员"
 msgstr "该节点获取到执行ip信息为空，请联系系统管理员"
 
+#: backend/flow/plugins/components/collections/qdrant/apply_k8s_qdrant_clb.py
+msgid "未找到与集群名称 {} 匹配的区域信息"
+msgstr "未找到与集群名称 {} 匹配的区域信息"
+
+#: backend/flow/plugins/components/collections/qdrant/get_k8s_qdrant_clb_detail.py
+msgid "获取CLB详情失败"
+msgstr "Failed to get CLB details"
+
+#: backend/flow/plugins/components/collections/qdrant/qdrant_dns_manage.py
+msgid "CLB详情缺少LoadBalancerVips"
+msgstr "CLB details missing LoadBalancerVips"
+
 #: backend/flow/plugins/components/collections/common/check_resolv_conf.py:100
 #: backend/flow/plugins/components/collections/common/check_resolv_conf.py:102
 msgid "/etc/resolv.conf 不为空 {}"
@@ -28192,6 +28204,18 @@ msgstr "域名绑定CLB"
 #: backend/ticket/builders/redis/plugin_dns_unbind_clb.py:42
 msgid "域名接绑CLB"
 msgstr "域名接绑CLB"
+
+#: backend/flow/engine/bamboo/scene/qdrant/qdrant_apply_flow.py
+msgid "查询CLB详情"
+msgstr "查询CLB详情"
+
+#: backend/flow/engine/bamboo/scene/qdrant/qdrant_apply_flow.py
+msgid "暴露服务"
+msgstr "暴露服务"
+
+#: backend/flow/engine/bamboo/scene/qdrant/qdrant_apply_flow.py
+msgid "回写集群ID"
+msgstr "Write back ClusterId"
 
 #: backend/ticket/builders/redis/redis_backup.py:67
 msgid "集群备份"
