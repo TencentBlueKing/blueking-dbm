@@ -66,12 +66,10 @@ class K8sQdrantApplyDetailSerializer(TicketBaseValidateSerializerMixin, serializ
 
     creator = serializers.CharField(help_text=_("申请人"))
     remark = serializers.CharField(help_text=_("备注"), required=False, allow_blank=True, default="")
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
-    ticket_type = serializers.CharField(help_text=_("单据类型"))
     db_app_abbr = serializers.CharField(help_text=_("应用名称"))
     bk_biz_name = serializers.CharField(help_text=_("业务名称"))
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
-    bk_cloud_region = serializers.CharField(help_text=_("云区域名称"))
+    bk_cloud_region = serializers.CharField(help_text=_("云区域名称"), allow_blank=True)
     city_code = serializers.CharField(help_text=_("城市编码"))
     k8s_cluster_name = serializers.CharField(help_text=_("集群名称"))
     major_version = serializers.CharField(help_text=_("主版本号"))
