@@ -22,6 +22,7 @@ from .dbconfig.client import DBConfigApi
 from .dns.client import DnsApi
 from .itsm.client import ItsmApi
 from .job.client import JobApi
+from .kubernetes.client import KubernetesApi
 from .mysql_priv_manager.client import DBPrivManagerApi
 from .mysqldtsapi.client import MySQLDTSApi
 from .usermanage.client import UserManagerApi
@@ -48,6 +49,7 @@ __all__ = [
     "NameServiceApi",
     "BKBaseApi",
     "MySQLDTSApi",
+    "KubernetesApi",
 ]
 
 
