@@ -104,7 +104,7 @@ func TestMatchProxyBackendSimultaneous_SingleClusterBothTypes(t *testing.T) {
 			ClusterID:    100,
 			ClusterType:  haprobe.DbmMetadataClusterTypeTendbha,
 			MachineType:  haprobe.DbmMetadataMachineTypeBackend,
-			InstanceRole: haprobe.MySQLStorageMaster.String(),
+			InstanceRole: haprobe.MySQLStorageMaster,
 		},
 	}
 	count := MatchProxyBackendSimultaneous(instances)
@@ -126,7 +126,7 @@ func TestMatchProxyBackendSimultaneous_SingleClusterOnlyProxy(t *testing.T) {
 
 func TestMatchProxyBackendSimultaneous_SingleClusterOnlyBackend(t *testing.T) {
 	instances := []FailureInstanceInfo{
-		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: haprobe.MySQLStorageMaster.String()},
+		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: haprobe.MySQLStorageMaster},
 	}
 	count := MatchProxyBackendSimultaneous(instances)
 	if count != 0 {
@@ -138,7 +138,7 @@ func TestMatchProxyBackendSimultaneous_BackendButNotMaster(t *testing.T) {
 	// proxy + backend (but InstanceRole is not backend_master) => not matched
 	instances := []FailureInstanceInfo{
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeProxy},
-		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: haprobe.MySQLStorageSlave.String()},
+		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: haprobe.MySQLStorageSlave},
 	}
 	count := MatchProxyBackendSimultaneous(instances)
 	if count != 0 {
@@ -151,13 +151,13 @@ func TestMatchProxyBackendSimultaneous_MultipleClustersPartialMatch(t *testing.T
 		// cluster 100: proxy + backend master => matched
 		{BkCloudID: 1, ClusterID: 100, ClusterType: haprobe.DbmMetadataClusterTypeTendbha, MachineType: haprobe.DbmMetadataMachineTypeProxy},
 		{BkCloudID: 1, ClusterID: 100, ClusterType: haprobe.DbmMetadataClusterTypeTendbha, MachineType: haprobe.DbmMetadataMachineTypeBackend,
-			InstanceRole: haprobe.MySQLStorageMaster.String()},
+			InstanceRole: haprobe.MySQLStorageMaster},
 		// cluster 200: only proxy => not matched
 		{BkCloudID: 1, ClusterID: 200, ClusterType: haprobe.DbmMetadataClusterTypeTendbha, MachineType: haprobe.DbmMetadataMachineTypeProxy},
 		// cluster 300: proxy + backend master => matched
 		{BkCloudID: 1, ClusterID: 300, ClusterType: haprobe.DbmMetadataClusterTypeTendbha, MachineType: haprobe.DbmMetadataMachineTypeProxy},
 		{BkCloudID: 1, ClusterID: 300, ClusterType: haprobe.DbmMetadataClusterTypeTendbha, MachineType: haprobe.DbmMetadataMachineTypeBackend,
-			InstanceRole: haprobe.MySQLStorageMaster.String()},
+			InstanceRole: haprobe.MySQLStorageMaster},
 	}
 	count := MatchProxyBackendSimultaneous(instances)
 	if count != 2 {
@@ -169,7 +169,7 @@ func TestMatchProxyBackendSimultaneous_DifferentCloudsSameCluster(t *testing.T) 
 	// different BkCloudID with same ClusterID should not be merged into the same cluster
 	instances := []FailureInstanceInfo{
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeProxy},
-		{BkCloudID: 2, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: haprobe.MySQLStorageMaster.String()},
+		{BkCloudID: 2, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: haprobe.MySQLStorageMaster},
 	}
 	count := MatchProxyBackendSimultaneous(instances)
 	if count != 0 {
@@ -185,11 +185,11 @@ func TestMatchProxyBackendSimultaneous_MultipleProxiesAndBackends(t *testing.T) 
 		{BkCloudID: 1, ClusterID: 100, IP: "127.0.0.2", ClusterType: haprobe.DbmMetadataClusterTypeTendbha,
 			MachineType: haprobe.DbmMetadataMachineTypeProxy},
 		{BkCloudID: 1, ClusterID: 100, IP: "127.0.0.3", ClusterType: haprobe.DbmMetadataClusterTypeTendbha,
-			MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: haprobe.MySQLStorageMaster.String()},
+			MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: haprobe.MySQLStorageMaster},
 		{BkCloudID: 1, ClusterID: 100, IP: "127.0.0.4", ClusterType: haprobe.DbmMetadataClusterTypeTendbha,
-			MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: haprobe.MySQLStorageMaster.String()},
+			MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: haprobe.MySQLStorageMaster},
 		{BkCloudID: 1, ClusterID: 100, IP: "127.0.0.5", ClusterType: haprobe.DbmMetadataClusterTypeTendbha,
-			MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: haprobe.MySQLStorageMaster.String()},
+			MachineType: haprobe.DbmMetadataMachineTypeBackend, InstanceRole: haprobe.MySQLStorageMaster},
 	}
 	count := MatchProxyBackendSimultaneous(instances)
 	if count != 1 {
@@ -213,7 +213,7 @@ func TestMatchSpiderRemoteMasterSimultaneous_SingleClusterBothTypes(t *testing.T
 		{BkCloudID: 1, ClusterID: 100, ClusterType: haprobe.DbmMetadataClusterTypeTendbCluster,
 			MachineType: haprobe.DbmMetadataMachineTypeSpider},
 		{BkCloudID: 1, ClusterID: 100, ClusterType: haprobe.DbmMetadataClusterTypeTendbCluster,
-			MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster.String()},
+			MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster},
 	}
 	count := MatchSpiderRemoteMasterSimultaneous(instances)
 	if count != 1 {
@@ -234,7 +234,7 @@ func TestMatchSpiderRemoteMasterSimultaneous_SingleClusterOnlySpider(t *testing.
 
 func TestMatchSpiderRemoteMasterSimultaneous_SingleClusterOnlyRemoteMaster(t *testing.T) {
 	instances := []FailureInstanceInfo{
-		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster.String()},
+		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster},
 	}
 	count := MatchSpiderRemoteMasterSimultaneous(instances)
 	if count != 0 {
@@ -246,7 +246,7 @@ func TestMatchSpiderRemoteMasterSimultaneous_RemoteButNotMaster(t *testing.T) {
 	// spider + remote (but InstanceRole is not remote_master) => not matched
 	instances := []FailureInstanceInfo{
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeSpider},
-		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageSlave.String()},
+		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageSlave},
 	}
 	count := MatchSpiderRemoteMasterSimultaneous(instances)
 	if count != 0 {
@@ -260,14 +260,14 @@ func TestMatchSpiderRemoteMasterSimultaneous_MultipleClustersPartialMatch(t *tes
 		{BkCloudID: 1, ClusterID: 100, ClusterType: haprobe.DbmMetadataClusterTypeTendbCluster,
 			MachineType: haprobe.DbmMetadataMachineTypeSpider},
 		{BkCloudID: 1, ClusterID: 100, ClusterType: haprobe.DbmMetadataClusterTypeTendbCluster,
-			MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster.String()},
+			MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster},
 		// cluster 200: only spider => not matched
 		{BkCloudID: 1, ClusterID: 200, ClusterType: haprobe.DbmMetadataClusterTypeTendbCluster, MachineType: haprobe.DbmMetadataMachineTypeSpider},
 		// cluster 300: spider + remote master => matched
 		{BkCloudID: 1, ClusterID: 300, ClusterType: haprobe.DbmMetadataClusterTypeTendbCluster,
 			MachineType: haprobe.DbmMetadataMachineTypeSpider},
 		{BkCloudID: 1, ClusterID: 300, ClusterType: haprobe.DbmMetadataClusterTypeTendbCluster,
-			MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster.String()},
+			MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster},
 	}
 	count := MatchSpiderRemoteMasterSimultaneous(instances)
 	if count != 2 {
@@ -279,7 +279,7 @@ func TestMatchSpiderRemoteMasterSimultaneous_DifferentCloudsSameCluster(t *testi
 	// different BkCloudID with same ClusterID should not be merged into the same cluster
 	instances := []FailureInstanceInfo{
 		{BkCloudID: 1, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeSpider},
-		{BkCloudID: 2, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster.String()},
+		{BkCloudID: 2, ClusterID: 100, MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster},
 	}
 	count := MatchSpiderRemoteMasterSimultaneous(instances)
 	if count != 0 {
@@ -295,9 +295,9 @@ func TestMatchSpiderRemoteMasterSimultaneous_MultipleInstancesSameCluster(t *tes
 		{BkCloudID: 1, ClusterID: 100, IP: "127.0.0.2", ClusterType: haprobe.DbmMetadataClusterTypeTendbCluster,
 			MachineType: haprobe.DbmMetadataMachineTypeSpider},
 		{BkCloudID: 1, ClusterID: 100, IP: "127.0.0.3", ClusterType: haprobe.DbmMetadataClusterTypeTendbCluster,
-			MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster.String()},
+			MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster},
 		{BkCloudID: 1, ClusterID: 100, IP: "127.0.0.4", ClusterType: haprobe.DbmMetadataClusterTypeTendbCluster,
-			MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster.String()},
+			MachineType: haprobe.DbmMetadataMachineTypeRemote, InstanceRole: haprobe.TenDBClusterStorageMaster},
 	}
 	count := MatchSpiderRemoteMasterSimultaneous(instances)
 	if count != 1 {

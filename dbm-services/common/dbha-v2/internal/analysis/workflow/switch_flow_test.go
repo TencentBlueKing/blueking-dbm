@@ -199,7 +199,7 @@ func TestMatchStrategyForGroup_SpecialStrategyMatched(t *testing.T) {
 				ClusterID:    10,
 				ClusterType:  haprobe.DbmMetadataClusterTypeTendbha,
 				MachineType:  haprobe.DbmMetadataMachineTypeBackend,
-				InstanceRole: haprobe.MySQLStorageMaster.String(),
+				InstanceRole: haprobe.MySQLStorageMaster,
 			},
 		},
 	}
@@ -502,7 +502,7 @@ func TestMatchStrategyForGroup_NormalAndSpecialBothMatchedChooseHigherPriority(t
 				ClusterID:    10,
 				ClusterType:  haprobe.DbmMetadataClusterTypeTendbha,
 				MachineType:  haprobe.DbmMetadataMachineTypeBackend,
-				InstanceRole: haprobe.MySQLStorageMaster.String(),
+				InstanceRole: haprobe.MySQLStorageMaster,
 				EventName:    haprobe.DbEventNameDetectFailure,
 			},
 		},
@@ -700,7 +700,7 @@ func TestMatchStrategyForGroup_DbEventNameTendbhaProxyBackendFailure(t *testing.
 				EventName:    haprobe.DbEventNameTendbhaProxyBackendFailure,
 				ClusterType:  haprobe.DbmMetadataClusterTypeTendbha,
 				MachineType:  haprobe.DbmMetadataMachineTypeBackend,
-				InstanceRole: haprobe.MySQLStorageMaster.String(),
+				InstanceRole: haprobe.MySQLStorageMaster,
 			},
 			{
 				BkBizID:     21,
@@ -717,7 +717,7 @@ func TestMatchStrategyForGroup_DbEventNameTendbhaProxyBackendFailure(t *testing.
 				EventName:    haprobe.DbEventNameTendbhaProxyBackendFailure,
 				ClusterType:  haprobe.DbmMetadataClusterTypeTendbha,
 				MachineType:  haprobe.DbmMetadataMachineTypeBackend,
-				InstanceRole: haprobe.MySQLStorageMaster.String(),
+				InstanceRole: haprobe.MySQLStorageMaster,
 			},
 			{
 				BkBizID:     21,
@@ -829,7 +829,7 @@ func TestMatchStrategyForGroup_DbEventNameTendbclusterSpiderRemoteFailure(t *tes
 				EventName:    haprobe.DbEventNameTendbclusterSpiderRemoteFailure,
 				ClusterType:  haprobe.DbmMetadataClusterTypeTendbCluster,
 				MachineType:  haprobe.DbmMetadataMachineTypeRemote,
-				InstanceRole: haprobe.TenDBClusterStorageMaster.String(),
+				InstanceRole: haprobe.TenDBClusterStorageMaster,
 			},
 			{
 				BkBizID:     21,
@@ -846,7 +846,7 @@ func TestMatchStrategyForGroup_DbEventNameTendbclusterSpiderRemoteFailure(t *tes
 				EventName:    haprobe.DbEventNameTendbclusterSpiderRemoteFailure,
 				ClusterType:  haprobe.DbmMetadataClusterTypeTendbCluster,
 				MachineType:  haprobe.DbmMetadataMachineTypeRemote,
-				InstanceRole: haprobe.TenDBClusterStorageMaster.String(),
+				InstanceRole: haprobe.TenDBClusterStorageMaster,
 			},
 		},
 	}

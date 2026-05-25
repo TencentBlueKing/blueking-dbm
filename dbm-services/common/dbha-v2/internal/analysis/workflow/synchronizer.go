@@ -149,7 +149,7 @@ func (s *Synchronizer) saveRespond(resp *dbm.Response) error {
 			MachineType:     rsp.MachineType,
 			AccessLayer:     rsp.AccessLayer,
 			Status:          string(rsp.Status),
-			InstanceRole:    string(rsp.InstanceRole),
+			InstanceRole:    rsp.InstanceRole,
 		}
 
 		if rsp.Receiver != nil {
