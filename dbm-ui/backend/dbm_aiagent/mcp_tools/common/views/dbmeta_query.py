@@ -15,6 +15,8 @@ from rest_framework.response import Response
 
 from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterType
+from backend.db_meta.models.machine import Machine
+from backend.db_meta.models.spec import Spec
 from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_bizs
 from backend.dbm_aiagent.mcp_tools.common.impl.list_biz_clusters import list_biz_clusters
 from backend.dbm_aiagent.mcp_tools.common.impl.list_biz_dbmodules import list_biz_dbmodules
@@ -32,6 +34,11 @@ from backend.dbm_aiagent.mcp_tools.common.serializers.list_cluster_type import L
 from backend.dbm_aiagent.mcp_tools.common.serializers.list_dbmodule import (
     ListDBModulesInputSerializer,
     ListDBModulesOutputSerializer,
+)
+from backend.dbm_aiagent.mcp_tools.common.serializers.list_machine_info import (
+    ListMachineInfoInputSerializer,
+    ListMachineInfoOutputSerializer,
+    MachineInfoSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
@@ -102,12 +109,8 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
         if not username:
             raise DBMMcpUsernameNotFoundException()
 
-        if DBAdministrator.is_dba(username):
-            pass
-        else:
-            pass
-
-        if not (ips or instances or cluster_domains):
+        # 非DBA用户必须传入ips, instances, cluster_domains
+        if not DBAdministrator.is_dba(username) and not (ips or instances or cluster_domains):
             raise Exception("ips, instances, cluster_domains at least one")
 
         res = list_biz_clusters(
@@ -139,3 +142,46 @@ class DBMetaQueryMcpToolsViewSet(McpToolsViewSet):
         res = list_bizs_base_info(bk_biz_ids=bk_biz_ids, app_abbrs=app_abbrs)
 
         return Response({"bizs": res})
+
+    @mcp_tools_api_decorator(
+        description=str(_("获取机器信息")),
+        request_slz=ListMachineInfoInputSerializer,
+        response_slz=ListMachineInfoOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.DBMETA_QUERY, DBMMcpTools.DBM_PUBLIC_MARKET],
+        name_prefix="dbmeta_query",
+        permission_classes=[],
+        mcp_auth_parser=None,
+    )
+    def list_machine_info(self, request, *args, **kwargs):
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        ips = self.get_param("ips")
+
+        if not ips:
+            raise Exception("ips is required")
+
+        if bk_cloud_id is None:
+            machines = Machine.objects.filter(ip__in=ips)
+        else:
+            machines = Machine.objects.filter(bk_cloud_id=bk_cloud_id, ip__in=ips)
+
+        found_ips = set(machines.values_list("ip", flat=True))
+        not_found_ips = [ip for ip in ips if ip not in found_ips]
+
+        ip_cloud_map = {}
+        for m in machines:
+            ip_cloud_map.setdefault(m.ip, set()).add(m.bk_cloud_id)
+        ambiguous_ips = [
+            {"ip": ip, "bk_cloud_ids": sorted(cloud_ids)}
+            for ip, cloud_ids in ip_cloud_map.items()
+            if len(cloud_ids) > 1
+        ]
+
+        spec_ids = set(machines.values_list("spec_id", flat=True))
+        spec_map = {s.spec_id: s.get_spec_info() for s in Spec.objects.filter(spec_id__in=spec_ids)}
+
+        data = MachineInfoSerializer(machines, many=True).data
+        for item in data:
+            item["spec_config"] = spec_map.get(item["spec_id"], item["spec_config"])
+
+        return Response({"machines": data, "not_found_ips": not_found_ips, "ambiguous_ips": ambiguous_ips})
