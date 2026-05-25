@@ -25,6 +25,7 @@ from backend.db_services.kubernetes.resources.serializers import (
     KubernetesRetrieveInstancesSerializer,
     KubernetesTopoGraphSerializer,
 )
+from backend.iam_app.handlers.permission import Permission
 
 
 @method_decorator(
@@ -38,6 +39,22 @@ class ListResourceViewSet(BaseListResourceViewSet):
 class KubernetesResourceViewSet(ResourceViewSet):
     query_class = KubernetesBaseListRetrieveResource
     retrieve_instances_slz = KubernetesRetrieveInstancesSerializer
+
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["id"],
+        data_field=lambda d: d["results"],
+        action_filed=lambda d: d["view_class"].list_perm_actions,
+    )
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: d["view_class"]._external_perm_param_field(d),
+        action_filed=lambda d: d["view_class"].list_external_perm_actions,
+    )
+    def list(self, request, bk_biz_id: int):
+        """查询集群列表"""
+        query_params = self.params_validate(self.query_serializer_class)
+        query_params.setdefault("bk_username", request.user.username)
+        data = self.paginator.paginate_list(request, bk_biz_id, self.query_class.list_clusters, query_params)
+        return self.get_paginated_response(data)
 
     @action(methods=["GET"], detail=False, url_path="retrieve_instance")
     def retrieve_instance(self, request, bk_biz_id: int):
@@ -54,7 +71,15 @@ class KubernetesResourceViewSet(ResourceViewSet):
     )
     def get_operation_log(self, request, *args, **kwargs):
         """获取集群操作日志"""
-        data = self.params_validate(self.get_serializer_class())
+        # 使用 query_params.dict() 获取参数，格式 (requestType=RestartCluster,CStopCluster)
+        # 会在 MultiValueCharField 中自动转换为列表
+        query_params = request.query_params.dict()
+
+        # 验证参数
+        serializer = self.get_serializer(data=query_params)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
         data = self.paginator.paginate_list(request, data["bk_biz_id"], self.query_class.get_operation_log, data)
         return self.get_paginated_response(data)
 
@@ -69,6 +94,15 @@ class KubernetesResourceViewSet(ResourceViewSet):
         return Response(
             self.query_class.get_topo_graph(bk_biz_id, cluster_id, data["k8sClusterName"], data["namespace"])
         )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取区域列表"),
+        tags=[constants.RESOURCE_TAG],
+    )
+    @action(methods=["GET"], detail=False, url_path="get_regions")
+    def get_regions(self, request, *args, **kwargs):
+        """获取区域列表"""
+        return Response(self.query_class.get_regions())
 
     @common_swagger_auto_schema(
         operation_summary=_("获取集群组件规格"),
