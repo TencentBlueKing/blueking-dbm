@@ -49,8 +49,11 @@ const (
 	QueryBatchSize        = 1000             // 查询批次大小
 )
 
-// 资源类型映射关系（遗留兜底）。mysql 与 tendbcluster 已合并为库内同一池，不再在此处配置互换。
-var resourceTypeMapping = map[string]string{}
+// 资源类型映射关系 - 可配置和可扩展
+var resourceTypeMapping = map[string]string{
+	ResourceTypeMySQL:        ResourceTypeTenDBCluster,
+	ResourceTypeTenDBCluster: ResourceTypeMySQL,
+}
 
 // 支持推测的资源类型集合 - 可配置
 var supportedResourceTypes = map[string]bool{
@@ -1109,7 +1112,6 @@ func (t *ResourceTools) QueryPoolStats(args map[string]interface{}) (*PoolStats,
 	diskMinSize, _ := args["disk_min_size"].(float64)
 	diskMaxSize, _ := args["disk_max_size"].(float64)
 	resourceType, _ := args["resource_type"].(string)
-	resourceType = model.NormalizeResourceType(resourceType)
 	result := &PoolStats{
 		ByCity:    make(map[string]int),
 		BySubZone: make(map[string]int),
@@ -1142,9 +1144,9 @@ func (t *ResourceTools) QueryPoolStats(args map[string]interface{}) (*PoolStats,
 		baseQuery = baseQuery.Where(model.JSONQuery("labels").JointOrContains(labelStrs))
 	}
 	if resourceType != "" {
-		baseQuery = baseQuery.Where("rs_type IN (?)", []string{model.RESOURCE_TYPE_PUBLIC, resourceType})
+		baseQuery = baseQuery.Where("rs_type IN (?)", []string{"PUBLIC", resourceType})
 	} else {
-		baseQuery = baseQuery.Where("rs_type = ?", model.RESOURCE_TYPE_PUBLIC)
+		baseQuery = baseQuery.Where("rs_type = 'PUBLIC'")
 	}
 	// 磁盘过滤
 	if diskMountPoint != "" {
@@ -1261,7 +1263,6 @@ func (t *ResourceTools) CheckMatchConditions(args map[string]interface{}) (*Matc
 	diskMaxSize, _ := args["disk_max_size"].(float64)
 	diskType, _ := args["disk_type"].(string)
 	resourceType, _ := args["resource_type"].(string)
-	resourceType = model.NormalizeResourceType(resourceType)
 	labels, _ := args["labels"].([]interface{})
 
 	// 解析 device_class 参数
@@ -1387,9 +1388,9 @@ func (t *ResourceTools) CheckMatchConditions(args map[string]interface{}) (*Matc
 			desc: fmt.Sprintf("资源类型(%s)", resourceType),
 			applyFn: func(db *gorm.DB) *gorm.DB {
 				if resourceType == "" {
-					return db.Where("rs_type = ?", model.RESOURCE_TYPE_PUBLIC)
+					return db.Where("rs_type = 'PUBLIC'")
 				}
-				return db.Where("rs_type IN (?)", []string{model.RESOURCE_TYPE_PUBLIC, resourceType})
+				return db.Where("rs_type IN (?)", []string{"PUBLIC", resourceType})
 			},
 			skip:       false,
 			isCritical: true,
@@ -2087,12 +2088,6 @@ func (t *ResourceTools) AnalyzeRsTypeIssues(args map[string]interface{}) (*RsTyp
 	bkCloudID := getBkCloudID(args)
 	city, _ := args["city"].(string)
 	requestedType, _ := args["requested_type"].(string)
-	if requestedType == "" {
-		if rt, ok := args["resource_type"].(string); ok {
-			requestedType = rt
-		}
-	}
-	requestedType = model.NormalizeResourceType(requestedType)
 	cpuMin, _ := args["cpu_min"].(float64)
 	memMin, _ := args["mem_min"].(float64)
 	diskMountPoint, _ := args["disk_mount_point"].(string)
@@ -2182,7 +2177,7 @@ func (t *ResourceTools) AnalyzeRsTypeIssues(args map[string]interface{}) (*RsTyp
 
 	for _, s := range typeStats {
 		result.TypeDistribution[s.RsType] = s.Count
-		if s.RsType == model.RESOURCE_TYPE_PUBLIC {
+		if s.RsType == "PUBLIC" {
 			result.PublicCount = s.Count
 		}
 	}
@@ -2201,7 +2196,7 @@ func (t *ResourceTools) AnalyzeRsTypeIssues(args map[string]interface{}) (*RsTyp
 	if requestedType != "" {
 		targetLower := strings.ToLower(requestedType)
 		for rsType := range result.TypeDistribution {
-			if rsType == requestedType || rsType == model.RESOURCE_TYPE_PUBLIC {
+			if rsType == requestedType || rsType == "PUBLIC" {
 				continue
 			}
 			// 检查大小写不一致
@@ -2328,7 +2323,6 @@ func (t *ResourceTools) AnalyzeAffinityIssues(args map[string]interface{}) (*Aff
 		}
 	}
 	resourceType, _ := args["resource_type"].(string)
-	resourceType = model.NormalizeResourceType(resourceType)
 	labels, _ := args["labels"].([]interface{})
 	diskMountPoint, _ := args["disk_mount_point"].(string)
 	diskType, _ := args["disk_type"].(string)
@@ -2402,9 +2396,9 @@ func (t *ResourceTools) AnalyzeAffinityIssues(args map[string]interface{}) (*Aff
 	}
 	// 资源类型过滤
 	if resourceType != "" {
-		baseQuery = baseQuery.Where("rs_type IN (?)", []string{model.RESOURCE_TYPE_PUBLIC, resourceType})
+		baseQuery = baseQuery.Where("rs_type IN (?)", []string{"PUBLIC", resourceType})
 	} else {
-		baseQuery = baseQuery.Where("rs_type = ?", model.RESOURCE_TYPE_PUBLIC)
+		baseQuery = baseQuery.Where("rs_type = 'PUBLIC'")
 	}
 	// 标签过滤
 	if len(labels) > 0 {
@@ -2519,9 +2513,9 @@ func (t *ResourceTools) AnalyzeAffinityIssues(args map[string]interface{}) (*Aff
 		if len(deviceClasses) > 0 {
 			relaxedQuery := baseRelaxedQuery
 			if resourceType != "" {
-				relaxedQuery = relaxedQuery.Where("rs_type IN (?)", []string{model.RESOURCE_TYPE_PUBLIC, resourceType})
+				relaxedQuery = relaxedQuery.Where("rs_type IN (?)", []string{"PUBLIC", resourceType})
 			} else {
-				relaxedQuery = relaxedQuery.Where("rs_type = ?", model.RESOURCE_TYPE_PUBLIC)
+				relaxedQuery = relaxedQuery.Where("rs_type = 'PUBLIC'")
 			}
 			// 放宽 device_class 后，如果有 cpu/mem 条件，则应用 cpu/mem（因为 device_class 和 cpu/mem 互斥）
 			if cpuMin > 0 {
@@ -2646,9 +2640,9 @@ func (t *ResourceTools) AnalyzeAffinityIssues(args map[string]interface{}) (*Aff
 				}
 			}
 			if resourceType != "" {
-				relaxedQuery = relaxedQuery.Where("rs_type IN (?)", []string{model.RESOURCE_TYPE_PUBLIC, resourceType})
+				relaxedQuery = relaxedQuery.Where("rs_type IN (?)", []string{"PUBLIC", resourceType})
 			} else {
-				relaxedQuery = relaxedQuery.Where("rs_type = ?", model.RESOURCE_TYPE_PUBLIC)
+				relaxedQuery = relaxedQuery.Where("rs_type = 'PUBLIC'")
 			}
 			// 不应用磁盘和 labels 过滤
 			var relaxedMachines []model.TbRpDetail
@@ -2696,9 +2690,9 @@ func (t *ResourceTools) AnalyzeAffinityIssues(args map[string]interface{}) (*Aff
 				}
 			}
 			if resourceType != "" {
-				relaxedQuery = relaxedQuery.Where("rs_type IN (?)", []string{model.RESOURCE_TYPE_PUBLIC, resourceType})
+				relaxedQuery = relaxedQuery.Where("rs_type IN (?)", []string{"PUBLIC", resourceType})
 			} else {
-				relaxedQuery = relaxedQuery.Where("rs_type = ?", model.RESOURCE_TYPE_PUBLIC)
+				relaxedQuery = relaxedQuery.Where("rs_type = 'PUBLIC'")
 			}
 			if diskMountPoint != "" {
 				if diskMaxSize > 0 && diskMinSize > 0 {
@@ -3052,7 +3046,6 @@ func (t *ResourceTools) VerifyPrediction(args map[string]interface{}) (*VerifyPr
 	cpuMin, _ := args["cpu_min"].(float64)
 	memMin, _ := args["mem_min"].(float64)
 	resourceType, _ := args["resource_type"].(string)
-	resourceType = model.NormalizeResourceType(resourceType)
 	requestCount, _ := args["request_count"].(float64)
 	suggestionType, _ := args["suggestion_type"].(string)
 
@@ -3132,10 +3125,10 @@ func (t *ResourceTools) VerifyPrediction(args map[string]interface{}) (*VerifyPr
 	}
 
 	if resourceType != "" {
-		query = query.Where("rs_type IN (?)", []string{model.RESOURCE_TYPE_PUBLIC, resourceType})
+		query = query.Where("rs_type IN (?)", []string{"PUBLIC", resourceType})
 		queryDesc += fmt.Sprintf(", 类型=PUBLIC或%s", resourceType)
 	} else {
-		query = query.Where("rs_type = ?", model.RESOURCE_TYPE_PUBLIC)
+		query = query.Where("rs_type = 'PUBLIC'")
 		queryDesc += ", 类型=PUBLIC"
 	}
 
@@ -3189,9 +3182,9 @@ func (t *ResourceTools) VerifyPrediction(args map[string]interface{}) (*VerifyPr
 			}
 		}
 		if resourceType != "" {
-			baseQuery = baseQuery.Where("rs_type IN (?)", []string{model.RESOURCE_TYPE_PUBLIC, resourceType})
+			baseQuery = baseQuery.Where("rs_type IN (?)", []string{"PUBLIC", resourceType})
 		} else {
-			baseQuery = baseQuery.Where("rs_type = ?", model.RESOURCE_TYPE_PUBLIC)
+			baseQuery = baseQuery.Where("rs_type = 'PUBLIC'")
 		}
 		result.DiskMatchDetail = t.analyzeDiskSpecMatches(baseQuery, diskSpecs)
 
@@ -3611,13 +3604,13 @@ type ResourceTypeDetail struct {
 func (t *ResourceTools) inferResourceTypeToolDef() ToolDefinition {
 	return NewFunctionTool(
 		"infer_resource_type",
-		"当 mysql 或 tendbcluster 相关资源申请失败时，辅助判断库内是否仍有可用机。资源池中二者已统一为 rs_type=mysql；申请侧仍可能传入 tendbcluster（兼容旧参数）。本工具在相同筛选条件下按与申请接口 MatchRsType 一致的方式统计：rs_type IN (PUBLIC, 归一化后的 mysql)。",
+		"当MySQL或TenDBCluster资源申请失败时，推测是否可以使用另一种资源类型。MySQL和TenDBCluster资源本质上是兼容的，用户可能记不清资源归属于哪个类型。该工具会检查替代资源类型是否有可用资源，并提供推测建议。",
 		map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
 				"current_resource_type": map[string]interface{}{
 					"type":        "string",
-					"description": "申请失败时所填资源类型；支持 mysql 或 tendbcluster（后者仅为请求参数兼容，与 mysql 共用 mysql 资源池）",
+					"description": "当前申请失败的资源类型，支持 'mysql' 或 'tendbcluster'",
 					"enum":        []string{"mysql", "tendbcluster"},
 				},
 				"bk_cloud_id": map[string]interface{}{
@@ -3691,11 +3684,14 @@ func (t *ResourceTools) inferResourceTypeToolDef() ToolDefinition {
 	)
 }
 
-// inferResourceType 执行资源类型推测（与申请 MatchRsType 默认分支一致：PUBLIC + 归一化 rs_type）
+// inferResourceType 执行资源类型推测
 func (t *ResourceTools) inferResourceType(args map[string]interface{}) (*ResourceTypeInferenceResult, error) {
+	// 初始化结果
 	result := &ResourceTypeInferenceResult{
 		AlternativeDistribution: make(map[string]interface{}),
 	}
+
+	// 参数验证
 	if err := validateResourceTypeInferenceParams(args); err != nil {
 		result.Error = err.Error()
 		result.Verified = false
@@ -3703,27 +3699,30 @@ func (t *ResourceTools) inferResourceType(args map[string]interface{}) (*Resourc
 		result.FailureReason = "parameter validation failed"
 		return result, err
 	}
-	currentType := args["current_resource_type"].(string)
-	poolRsType := model.NormalizeResourceType(currentType)
-	return t.inferResourceTypeForApplyPool(args, currentType, poolRsType)
-}
 
-// inferResourceTypeForApplyPool 按与 SearchContext.MatchRsType 默认规则一致的 rs_type 集合做库存推测
-func (t *ResourceTools) inferResourceTypeForApplyPool(
-	args map[string]interface{},
-	currentType string,
-	poolRsType string,
-) (*ResourceTypeInferenceResult, error) {
-	result := &ResourceTypeInferenceResult{
-		AlternativeDistribution: make(map[string]interface{}),
-		CurrentResourceType:     currentType,
-		AlternativeResourceType: poolRsType,
-	}
+	// 提取参数
+	currentType := args["current_resource_type"].(string)
+
+	// 提取 bk_cloud_id，直接断言为 int
 	bkCloudID := getBkCloudID(args)
-	rsTypes := []string{model.RESOURCE_TYPE_PUBLIC, poolRsType}
+
+	result.CurrentResourceType = currentType
+
+	// 获取替代资源类型
+	alternativeType, exists := getAlternativeResourceType(currentType)
+	if !exists {
+		result.Error = fmt.Sprintf("no alternative resource type found for '%s'", currentType)
+		result.Verified = true
+		result.Confidence = "high"
+		result.FailureReason = "no alternative resource type mapping"
+		return result, fmt.Errorf("no alternative resource type found for '%s'", currentType)
+	}
+	result.AlternativeResourceType = alternativeType
+
+	// 构建查询条件（使用相同的申请条件）
 	query := t.db.Table(model.TbRpDetailName()).
-		Where("bk_cloud_id = ? AND status = ? AND gse_agent_status_code = ? AND rs_type IN ?",
-			bkCloudID, model.Unused, bk.GseAlive, rsTypes)
+		Where("bk_cloud_id = ? AND status = ? AND gse_agent_status_code = ? AND rs_type = ?",
+			bkCloudID, model.Unused, bk.GseAlive, alternativeType)
 
 	// 应用查询优化
 	optimizedQuery, optimizations := t.optimizeQuery(query, args)
@@ -3765,7 +3764,7 @@ func (t *ResourceTools) inferResourceTypeForApplyPool(
 
 	// 如果有可用资源，获取分布信息
 	if totalCount > 0 {
-		distribution, err := t.getResourceDistribution(optimizedQuery.WithContext(ctx), poolRsType)
+		distribution, err := t.getResourceDistribution(optimizedQuery.WithContext(ctx), alternativeType)
 		if err != nil {
 			// 分布信息获取失败不影响主要结果，但要记录错误
 			result.Error = fmt.Sprintf("failed to get distribution details: %v", err)
@@ -3782,7 +3781,7 @@ func (t *ResourceTools) inferResourceTypeForApplyPool(
 		result.Confidence = confidence
 
 		// 根据验证结果生成建议
-		result.Suggestion = t.generateSuggestion(poolRsType, int(totalCount), confidence, verified)
+		result.Suggestion = t.generateSuggestion(alternativeType, int(totalCount), confidence, verified)
 
 		// 添加性能指标
 		if result.Metrics == nil {
@@ -3791,10 +3790,11 @@ func (t *ResourceTools) inferResourceTypeForApplyPool(
 		result.Metrics.OptimizationsUsed = optimizations
 		result.Metrics.DatabaseQueries = 2 // Count查询 + 分布查询
 	} else {
+		// 两种资源类型都没有可用资源的情况
 		result.Verified = true
 		result.Confidence = "high"
-		result.Suggestion = t.generateNoResourceSuggestion(currentType, poolRsType, args)
-		result.FailureReason = "no available resources in PUBLIC or normalized pool matching the criteria"
+		result.Suggestion = t.generateNoResourceSuggestion(currentType, alternativeType, args)
+		result.FailureReason = "both resource types have no available resources matching the criteria"
 
 		// 提供一些可能的解决方案
 		result.AlternativeDistribution = map[string]interface{}{
@@ -3881,30 +3881,28 @@ func (t *ResourceTools) applyOptionalConditions(query *gorm.DB, args map[string]
 	return query, nil
 }
 
-// generateSuggestion 生成推测建议（poolRsType 为库内归一化后的业务 rs_type，与 PUBLIC 组合匹配申请逻辑）
-func (t *ResourceTools) generateSuggestion(poolRsType string, count int, confidence string, verified bool) string {
-	poolDesc := fmt.Sprintf("PUBLIC 或 %s（与申请 MatchRsType 一致）", poolRsType)
+// generateSuggestion 生成推测建议
+func (t *ResourceTools) generateSuggestion(alternativeType string, count int, confidence string, verified bool) string {
 	if !verified {
-		return fmt.Sprintf("在 rs_type 为 %s 的机器上，当前条件下约有 %d 台可用，但推测结果需要进一步验证", poolDesc, count)
+		return fmt.Sprintf("可以尝试使用资源类型 '%s'，该类型有 %d 台可用资源，但推测结果需要进一步验证", alternativeType, count)
 	}
 
 	switch confidence {
 	case "high":
-		return fmt.Sprintf("在 rs_type 为 %s 的机器上，当前条件下有 %d 台可用，完全符合申请条件", poolDesc, count)
+		return fmt.Sprintf("强烈建议尝试使用资源类型 '%s'，该类型有 %d 台可用资源，完全符合申请条件", alternativeType, count)
 	case "medium":
-		return fmt.Sprintf("在 rs_type 为 %s 的机器上，当前条件下有 %d 台可用，基本符合申请条件", poolDesc, count)
+		return fmt.Sprintf("建议尝试使用资源类型 '%s'，该类型有 %d 台可用资源，基本符合申请条件", alternativeType, count)
 	case "low":
-		return fmt.Sprintf("在 rs_type 为 %s 的机器上，当前条件下有 %d 台可用，但匹配度较低，建议调整申请条件", poolDesc, count)
+		return fmt.Sprintf("可以尝试使用资源类型 '%s'，该类型有 %d 台可用资源，但匹配度较低，建议调整申请条件", alternativeType, count)
 	default:
-		return fmt.Sprintf("在 rs_type 为 %s 的机器上，当前条件下有 %d 台可用", poolDesc, count)
+		return fmt.Sprintf("可以尝试使用资源类型 '%s'，该类型有 %d 台可用资源", alternativeType, count)
 	}
 }
 
-// generateNoResourceSuggestion 生成无资源时的建议（poolRsType 为库内归一化后的业务 rs_type）
-func (t *ResourceTools) generateNoResourceSuggestion(currentType, poolRsType string, args map[string]interface{}) string {
+// generateNoResourceSuggestion 生成无资源时的建议
+func (t *ResourceTools) generateNoResourceSuggestion(currentType, alternativeType string, args map[string]interface{}) string {
 	suggestions := []string{
-		fmt.Sprintf("申请侧资源类型为 '%s'；与申请一致的可匹配 rs_type 为 PUBLIC 或 '%s'。在当前筛选条件下未匹配到可用资源",
-			currentType, poolRsType),
+		fmt.Sprintf("当前资源类型 '%s' 和替代资源类型 '%s' 都没有符合条件的可用资源", currentType, alternativeType),
 	}
 
 	// 根据申请条件提供具体建议
@@ -4019,7 +4017,6 @@ func isValidDiskType(diskType string) bool {
 
 // getResourceDistribution 获取资源分布信息
 func (t *ResourceTools) getResourceDistribution(query *gorm.DB, resourceType string) (map[string]interface{}, error) {
-	resourceType = model.NormalizeResourceType(resourceType)
 	distribution := make(map[string]interface{})
 
 	// 检查查询对象是否有效
@@ -4475,12 +4472,12 @@ func generateAnalysisSummary(result *ResourceTypeInferenceResult) string {
 	}
 
 	if result.AlternativeAvailable {
-		return fmt.Sprintf("在与申请一致的 rs_type（PUBLIC 或 '%s'）范围内，发现 %d 台可用资源，置信度：%s",
+		return fmt.Sprintf("发现替代资源类型 '%s' 有 %d 台可用资源，置信度：%s",
 			result.AlternativeResourceType, result.AlternativeCount, result.Confidence)
 	}
 
-	return fmt.Sprintf("在与申请一致的 rs_type（PUBLIC 或 '%s'）范围内，申请侧类型 '%s' 当前条件下未匹配到可用资源",
-		result.AlternativeResourceType, result.CurrentResourceType)
+	return fmt.Sprintf("当前资源类型 '%s' 和替代资源类型 '%s' 都没有可用资源",
+		result.CurrentResourceType, result.AlternativeResourceType)
 }
 
 // generateResourceTypeDetails 生成资源类型详细信息
@@ -4503,31 +4500,51 @@ func generateResourceTypeDetails(result *ResourceTypeInferenceResult) *ResourceT
 
 // assessCompatibility 评估兼容性
 func assessCompatibility(currentType, alternativeType string) string {
-	if model.NormalizeResourceType(currentType) == model.NormalizeResourceType(alternativeType) {
-		return "high"
+	if (currentType == ResourceTypeMySQL && alternativeType == ResourceTypeTenDBCluster) ||
+		(currentType == ResourceTypeTenDBCluster && alternativeType == ResourceTypeMySQL) {
+		return "high" // MySQL和TenDBCluster高度兼容
 	}
 	return "unknown"
 }
 
 // assessMigrationCost 评估迁移成本
 func assessMigrationCost(currentType, alternativeType string) string {
-	if model.NormalizeResourceType(currentType) == model.NormalizeResourceType(alternativeType) {
-		return "none"
+	if (currentType == ResourceTypeMySQL && alternativeType == ResourceTypeTenDBCluster) ||
+		(currentType == ResourceTypeTenDBCluster && alternativeType == ResourceTypeMySQL) {
+		return "low" // MySQL和TenDBCluster迁移成本低
 	}
 	return "unknown"
 }
 
 // analyzeResourceTypeTradeoffs 分析资源类型的优劣势
 func analyzeResourceTypeTradeoffs(currentType, alternativeType string) (advantages []string, disadvantages []string) {
-	if model.NormalizeResourceType(currentType) == model.NormalizeResourceType(alternativeType) {
-		return []string{
-				"与资源申请 MatchRsType 一致：可匹配 rs_type 为 PUBLIC 或归一化后的业务类型",
-				"mysql 与 tendbcluster 请求参数对库内资源池等效",
-			},
-			[]string{"若仍申请失败，需检查 CPU、地域、机型、磁盘等其它条件是否过严"}
+	switch {
+	case currentType == ResourceTypeMySQL && alternativeType == ResourceTypeTenDBCluster:
+		advantages = []string{
+			"支持分布式架构，可扩展性更强",
+			"适合大规模数据处理场景",
+			"提供更好的高可用性支持",
+		}
+		disadvantages = []string{
+			"配置相对复杂",
+			"运维成本可能略高",
+			"对于简单应用可能过度设计",
+		}
+	case currentType == ResourceTypeTenDBCluster && alternativeType == ResourceTypeMySQL:
+		advantages = []string{
+			"配置简单，易于管理",
+			"适合中小规模应用",
+			"运维成本相对较低",
+		}
+		disadvantages = []string{
+			"扩展性有限",
+			"不适合大规模分布式场景",
+			"高可用性配置相对复杂",
+		}
+	default:
+		advantages = []string{"资源可用"}
+		disadvantages = []string{"兼容性需要进一步评估"}
 	}
-	advantages = []string{"资源可用"}
-	disadvantages = []string{"兼容性需要进一步评估"}
 	return
 }
 
@@ -4555,20 +4572,13 @@ func generateRecommendations(result *ResourceTypeInferenceResult) []Recommendati
 		if result.Confidence == "high" {
 			priority = "high"
 		}
-		sameNormalized := model.NormalizeResourceType(result.CurrentResourceType) == result.AlternativeResourceType
-		title := fmt.Sprintf("在 PUBLIC 或 '%s' 范围内存在可用资源", result.AlternativeResourceType)
-		action := fmt.Sprintf("保持 resource_type 为 '%s' 或与库内等效的 mysql/tendbcluster；若申请仍失败请收紧/放宽其它筛选与亲和条件",
-			result.CurrentResourceType)
-		if !sameNormalized {
-			action = fmt.Sprintf("可将申请 resource_type 与库内归一化类型对齐（当前库内业务 rs_type 为 '%s'）", result.AlternativeResourceType)
-		}
 
 		recommendations = append(recommendations, Recommendation{
 			Type:        "resource_type_change",
 			Priority:    priority,
-			Title:       title,
+			Title:       fmt.Sprintf("使用替代资源类型 '%s'", result.AlternativeResourceType),
 			Description: result.Suggestion,
-			Action:      action,
+			Action:      fmt.Sprintf("将资源申请的类型从 '%s' 改为 '%s'", result.CurrentResourceType, result.AlternativeResourceType),
 			Impact:      fmt.Sprintf("可以获得 %d 台可用资源", result.AlternativeCount),
 			Parameters: map[string]interface{}{
 				"alternative_type": result.AlternativeResourceType,
@@ -4598,8 +4608,8 @@ func generateRecommendations(result *ResourceTypeInferenceResult) []Recommendati
 			Type:        "parameter_adjustment",
 			Priority:    "high",
 			Title:       "调整资源申请条件",
-			Description: "在 PUBLIC 与归一化业务 rs_type 范围内仍无可用资源，建议调整申请条件",
-			Action:      "放宽CPU、内存、地域或其它限制条件",
+			Description: "当前条件下两种资源类型都没有可用资源，建议调整申请条件",
+			Action:      "放宽CPU、内存、地域或其他限制条件",
 			Impact:      "增加找到可用资源的可能性",
 			Parameters:  map[string]interface{}{"failure_reason": result.FailureReason},
 		})
@@ -4657,29 +4667,28 @@ func (result *ResourceTypeInferenceResult) formatForLLMAnalysis() map[string]int
 // getDefaultMappingConfig 获取默认映射配置
 func getDefaultMappingConfig() *ResourceTypeMappingConfig {
 	return &ResourceTypeMappingConfig{
-		// 无「另一 rs_type 池」可枚举；与 infer_resource_type 单次 PUBLIC+归一化池一致
 		Mappings: map[string][]string{
-			ResourceTypeMySQL:        {},
-			ResourceTypeTenDBCluster: {},
+			ResourceTypeMySQL:        {ResourceTypeTenDBCluster},
+			ResourceTypeTenDBCluster: {ResourceTypeMySQL},
 		},
 		CompatibilityRules: map[string]CompatibilityRule{
 			fmt.Sprintf("%s->%s", ResourceTypeMySQL, ResourceTypeTenDBCluster): {
 				Level:       "high",
-				Conditions:  []string{"request_alias_same_canonical_pool"},
-				Limitations: []string{"库内 rs_type 已统一为 mysql；申请侧 mysql/tendbcluster 仅参数别名"},
+				Conditions:  []string{"same_engine", "compatible_version"},
+				Limitations: []string{"configuration_complexity"},
 			},
 			fmt.Sprintf("%s->%s", ResourceTypeTenDBCluster, ResourceTypeMySQL): {
 				Level:       "high",
-				Conditions:  []string{"request_alias_same_canonical_pool"},
-				Limitations: []string{"库内 rs_type 已统一为 mysql；申请侧 mysql/tendbcluster 仅参数别名"},
+				Conditions:  []string{"same_engine", "compatible_version"},
+				Limitations: []string{"scalability_reduction"},
 			},
 		},
 		MigrationCosts: map[string]map[string]string{
 			ResourceTypeMySQL: {
-				ResourceTypeTenDBCluster: "none",
+				ResourceTypeTenDBCluster: "low",
 			},
 			ResourceTypeTenDBCluster: {
-				ResourceTypeMySQL: "none",
+				ResourceTypeMySQL: "low",
 			},
 		},
 		Priorities: map[string]int{
@@ -4891,17 +4900,13 @@ func (registry *ResourceTypeRegistry) GetSupportedResourceTypes() []string {
 	return types
 }
 
-// extensibleInferResourceType 可扩展的资源类型推测（支持多个替代类型）。
-// 当注册表未配置跨类型 alternatives（如 mysql/tendbcluster 已合并为单池）时，回退为与 infer_resource_type 相同的单次 PUBLIC+归一化池推断。
+// extensibleInferResourceType 可扩展的资源类型推测（支持多个替代类型）
 func (t *ResourceTools) extensibleInferResourceType(args map[string]interface{}) (*ResourceTypeInferenceResult, error) {
 	currentType := args["current_resource_type"].(string)
 
 	// 获取所有可能的替代资源类型
 	alternatives, exists := globalResourceTypeRegistry.GetAlternativeResourceTypes(currentType)
 	if !exists || len(alternatives) == 0 {
-		if isResourceTypeSupported(currentType) {
-			return t.inferResourceType(args)
-		}
 		return &ResourceTypeInferenceResult{
 			CurrentResourceType: currentType,
 			Error:               fmt.Sprintf("no alternative resource types found for '%s'", currentType),
@@ -4953,19 +4958,26 @@ func (t *ResourceTools) extensibleInferResourceType(args map[string]interface{})
 	return bestResult, nil
 }
 
-// inferResourceTypeForSpecificAlternative 为可扩展注册表中的某一替代类型执行推测（库内 rs_type 已归一化）
+// inferResourceTypeForSpecificAlternative 为特定替代类型执行推测
 func (t *ResourceTools) inferResourceTypeForSpecificAlternative(args map[string]interface{}, alternativeType string) (*ResourceTypeInferenceResult, error) {
-	if err := validateResourceTypeInferenceParams(args); err != nil {
-		result := &ResourceTypeInferenceResult{AlternativeDistribution: make(map[string]interface{})}
-		result.Error = err.Error()
-		result.Verified = false
-		result.Confidence = "low"
-		result.FailureReason = "parameter validation failed"
-		return result, err
+	// 临时修改参数中的替代类型
+	originalArgs := make(map[string]interface{})
+	for k, v := range args {
+		originalArgs[k] = v
 	}
-	currentType := args["current_resource_type"].(string)
-	poolRsType := model.NormalizeResourceType(alternativeType)
-	return t.inferResourceTypeForApplyPool(args, currentType, poolRsType)
+
+	// 模拟单一替代类型的推测
+	tempMapping := resourceTypeMapping
+	resourceTypeMapping = map[string]string{
+		args["current_resource_type"].(string): alternativeType,
+	}
+
+	result, err := t.inferResourceType(args)
+
+	// 恢复原始映射
+	resourceTypeMapping = tempMapping
+
+	return result, err
 }
 
 // calculateMatchScore 计算匹配分数

@@ -92,8 +92,8 @@ type DbmSpecParam struct {
 func (m DbmSpecParam) getQueryParam(enableSpec bool) map[string]string {
 	p := make(map[string]string)
 	if m.DbType != nil {
-		if *m.DbType != model.RESOURCE_TYPE_PUBLIC {
-			p["spec_db_type"] = model.NormalizeResourceType(*m.DbType)
+		if *m.DbType != model.PUBLIC_RESOURCE_DBTYEP {
+			p["spec_db_type"] = *m.DbType
 		}
 	}
 	if lo.IsNotEmpty(m.MachineType) {
@@ -231,9 +231,9 @@ func (r ResourDistributionParam) dbFilter(db *gorm.DB) (err error) {
 		db.Where("dedicated_biz = ? ", *r.ForBiz)
 	}
 	if r.SpecParam.DbType != nil {
-		db.Where("rs_type  = ?", model.NormalizeResourceType(*r.SpecParam.DbType))
+		db.Where("rs_type  = ?", *r.SpecParam.DbType)
 	}
-	if r.SpecParam.DbType != nil && strings.Contains(strings.ToLower(*r.SpecParam.DbType), "sqlserver") {
+	if strings.Contains(strings.ToLower(*r.SpecParam.DbType), "sqlserver") {
 		db.Where("os_type = ? ", model.WindowsOs)
 	} else {
 		db.Where("os_type = ? ", model.LinuxOs)

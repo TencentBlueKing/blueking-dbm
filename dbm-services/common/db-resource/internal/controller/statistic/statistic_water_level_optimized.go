@@ -85,9 +85,7 @@ func (h *WaterLevelHandlerOptimized) WaterLevelStatisticOptimized(c *gin.Context
 	specRsTypeMapList := make(map[string][]dbmapi.DbmSpec, len(specList))
 	for _, spec := range specList {
 		specMap[spec.SpecId] = spec
-		// 与资源池一致：规格上可能仍为 tendbcluster，库内 rs_type 已归并为 mysql
-		rsKey := model.NormalizeResourceType(spec.SpecClusterType)
-		specRsTypeMapList[rsKey] = append(specRsTypeMapList[rsKey], spec)
+		specRsTypeMapList[spec.SpecClusterType] = append(specRsTypeMapList[spec.SpecClusterType], spec)
 	}
 	var response []WaterLevelStatisticResponse
 	logger.Info("specRsTypeMapList: %+v", specRsTypeMapList)
@@ -159,7 +157,7 @@ func (h *WaterLevelHandlerOptimized) processInBatches(specList []dbmapi.DbmSpec,
 		var machines []MachineBasicInfo
 		err := model.DB.Self.Table(model.TbRpDetailName()).
 			Select("bk_host_id, city, sub_zone_id, sub_zone, os_name, os_name_origin, cpu_num, dram_cap, device_class, storage_device").
-			Where("dedicated_biz = 0 AND status = ? AND id > ? AND rs_type = ? and city != ''", model.Unused, lastID, model.NormalizeResourceType(rsType)).
+			Where("dedicated_biz = 0 AND status = ? AND id > ? AND rs_type = ? and city != ''", model.Unused, lastID, rsType).
 			Order("id ASC").
 			Limit(batchSize).
 			Find(&machines).Error
@@ -359,9 +357,7 @@ func (h *WaterLevelHandlerOptimized) WaterLevelStatisticBySpec(c *gin.Context) {
 	specRsTypeMapList := make(map[string][]dbmapi.DbmSpec, len(specList))
 	for _, spec := range specList {
 		specMap[spec.SpecId] = spec
-		// 与资源池一致：规格上可能仍为 tendbcluster，库内 rs_type 已归并为 mysql
-		rsKey := model.NormalizeResourceType(spec.SpecClusterType)
-		specRsTypeMapList[rsKey] = append(specRsTypeMapList[rsKey], spec)
+		specRsTypeMapList[spec.SpecClusterType] = append(specRsTypeMapList[spec.SpecClusterType], spec)
 	}
 
 	// 聚合结果 map: "city|sub_zone_id|spec_id|os_name" -> WaterLevelResultItem
@@ -473,10 +469,9 @@ func (h *WaterLevelHandlerOptimized) getSpecList() ([]dbmapi.DbmSpec, error) {
 func (h *WaterLevelHandlerOptimized) queryMachinesBySpec(spec dbmapi.DbmSpec, rsType string) ([]MachineBasicInfo, error) {
 	var machines []MachineBasicInfo
 
-	effectiveRsType := model.NormalizeResourceType(rsType)
 	db := model.DB.Self.Table(model.TbRpDetailName()).
 		Select("bk_host_id, city, sub_zone_id, sub_zone, os_name, os_name_origin, cpu_num, dram_cap, device_class, storage_device").
-		Where("dedicated_biz = ? AND status = ? AND rs_type in (?) and city != ''", model.PUBLIC_RESOURCE_BIZ, model.Unused, []string{effectiveRsType, model.RESOURCE_TYPE_PUBLIC})
+		Where("dedicated_biz = ? AND status = ? AND rs_type in (?) and city != ''", model.PUBLIC_RESOURCE_BIZ, model.Unused, []string{rsType, model.PUBLIC_RESOURCE_DBTYEP})
 
 	// 根据规格条件构建查询
 	db = h.buildSpecQueryConditions(db, spec)
