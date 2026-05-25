@@ -227,7 +227,7 @@ func (v UpdateRsMeta) getUpdateMap() (updateMap map[string]interface{}, err erro
 		updateMap["dedicated_biz"] = v.ForBiz
 	}
 	if v.RsType != nil {
-		updateMap["rs_type"] = model.NormalizeResourceType(*v.RsType)
+		updateMap["rs_type"] = v.RsType
 	}
 	if v.DeviceClass != nil {
 		updateMap["device_class"] = v.DeviceClass

@@ -42,46 +42,11 @@ const (
 )
 
 const (
+	// PUBLIC_RESOURCE_DBTYEP 公共资源DB类型
+	PUBLIC_RESOURCE_DBTYEP = "PUBLIC"
 	// PUBLIC_RESOURCE_BIZ  公共资源业务ID
 	PUBLIC_RESOURCE_BIZ = 0
 )
-
-// 资源类型
-const (
-	RESOURCE_TYPE_PUBLIC       = "PUBLIC"
-	RESOURCE_TYPE_MYSQL        = "mysql"
-	RESOURCE_TYPE_TENDBCLUSTER = "tendbcluster"
-	RESOURCE_TYPE_REDIS        = "redis"
-	RESOURCE_TYPE_MONGODB      = "mongodb"
-)
-
-// NormalizeResourceType maps legacy API values to the canonical rs_type stored in DB.
-// External callers may still send RESOURCE_TYPE_TENDBCLUSTER; matching and writes use RESOURCE_TYPE_MYSQL.
-func NormalizeResourceType(rsType string) string {
-	if rsType == RESOURCE_TYPE_TENDBCLUSTER {
-		return RESOURCE_TYPE_MYSQL
-	}
-	return rsType
-}
-
-// NormalizeResourceTypes applies NormalizeResourceType to each element and returns a de-duplicated slice
-// in first-seen order.
-func NormalizeResourceTypes(rsTypes []string) []string {
-	if len(rsTypes) == 0 {
-		return []string{}
-	}
-	seen := make(map[string]struct{}, len(rsTypes))
-	out := make([]string, 0, len(rsTypes))
-	for _, t := range rsTypes {
-		n := NormalizeResourceType(t)
-		if _, ok := seen[n]; ok {
-			continue
-		}
-		seen[n] = struct{}{}
-		out = append(out, n)
-	}
-	return out
-}
 
 // TbRpDetail  机器资源明细表
 // nolint

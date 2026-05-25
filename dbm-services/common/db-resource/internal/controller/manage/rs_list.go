@@ -212,13 +212,13 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) (err error) {
 		db.Where("bk_cloud_id in (?) ", c.BkCloudIds)
 	}
 	if c.RsType != nil {
-		db.Where("rs_type = ? ", model.NormalizeResourceType(*c.RsType))
+		db.Where("rs_type = ? ", c.RsType)
 	}
 	if c.ForBiz != nil {
 		db.Where("dedicated_biz = ?", c.ForBiz)
 	}
 	if len(c.RsTypes) > 0 {
-		db.Where("rs_type in (?) ", model.NormalizeResourceTypes(c.RsTypes))
+		db.Where("rs_type in (?) ", c.RsTypes)
 	}
 	if len(c.ForBizs) > 0 {
 		db.Where("dedicated_biz in (?) ", c.ForBizs)
