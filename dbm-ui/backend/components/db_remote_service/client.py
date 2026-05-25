@@ -24,6 +24,23 @@ class _DRSApi(object):
     DRS_TIMEOUT = 6 * 60 * 60
     DRS_SHORT_TIMEOUT = 10
 
+    # SQLServer RPC 默认 connect_timeout（秒）。
+    # DRS 后端默认值是 2s，跨云/跨地域链路偶发 "context deadline exceeded"，
+    # 这里在客户端侧统一抬高，调用方仍可通过 params["connect_timeout"] 覆盖。
+    SQLSERVER_DEFAULT_CONNECT_TIMEOUT = 5
+
+    @classmethod
+    def _inject_sqlserver_connect_timeout(cls, params):
+        """
+        SQLServer RPC 的 before_request 钩子：当调用方未显式传 connect_timeout
+        （或传了非正值）时，补上统一的默认值。
+        """
+        if not isinstance(params, dict):
+            return params
+        if int(params.get("connect_timeout") or 0) <= 0:
+            params["connect_timeout"] = cls.SQLSERVER_DEFAULT_CONNECT_TIMEOUT
+        return params
+
     def __init__(self):
         ssl_flag = True
 
@@ -129,6 +146,7 @@ class _DRSApi(object):
             module=self.MODULE,
             ssl=ssl_flag,
             description=_("sqlserver 远程执行"),
+            before_request=self._inject_sqlserver_connect_timeout,
         )
 
         self.sqlserver_data_read_rpc = ProxyAPI(
@@ -138,6 +156,7 @@ class _DRSApi(object):
             module=self.MODULE,
             ssl=ssl_flag,
             description=_("sqlserver 远程执行(业务库数据只读账号)"),
+            before_request=self._inject_sqlserver_connect_timeout,
         )
 
         self.sqlserver_sys_read_rpc = ProxyAPI(
@@ -147,6 +166,7 @@ class _DRSApi(object):
             module=self.MODULE,
             ssl=ssl_flag,
             description=_("sqlserver 远程执行(业务库数据只读账号)"),
+            before_request=self._inject_sqlserver_connect_timeout,
         )
 
         self.webconsole_rpc = ProxyAPI(

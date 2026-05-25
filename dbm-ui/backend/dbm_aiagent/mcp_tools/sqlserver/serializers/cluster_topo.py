@@ -20,4 +20,16 @@ class SQLServerTopoInputSerializer(serializers.Serializer):
 class SQLServerTopoOutputSerializer(serializers.Serializer):
     cluster_type = serializers.CharField(help_text=_("集群类型"))
     cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    region = serializers.CharField(help_text=_("地域"))
+    tolerance_level = serializers.IntegerField(help_text=_("容灾级别"))
+    time_zone = serializers.CharField(help_text=_("时区"))
+    sync_mode = serializers.CharField(help_text=_("数据同步模式, 仅 SQLServer_ha 有效"), required=False, default=None)
     storage = MySQLStorageInstanceSerializer(help_text=_("存储层实例信息"))
+
+
+class SqlserverStorageInstanceSerializer(MySQLStorageInstanceSerializer):
+    """
+    sqlserver 实例返回格式
+    """
+
+    version = serializers.CharField(help_text=_("实例版本"))
