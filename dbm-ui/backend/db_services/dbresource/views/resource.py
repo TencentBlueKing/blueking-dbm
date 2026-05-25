@@ -8,8 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import itertools
-from collections import defaultdict
 from typing import Dict, List
 
 from django.utils.translation import gettext_lazy as _
@@ -24,12 +22,10 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components.dbresource.client import DBResourceApi
 from backend.components.hcm.client import HCMApi
 from backend.components.xwork.client import XworkApi
-from backend.db_dirty.constants import MachineEventType, PoolType
-from backend.db_dirty.models import DirtyMachine, MachineEvent
+from backend.db_dirty.models import MachineEvent
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.machine import DeviceClass
 from backend.db_services.dbresource.constants import RESOURCE_IMPORT_TASK_FIELD, SWAGGER_TAG
-from backend.db_services.dbresource.exceptions import ResourceReturnException
 from backend.db_services.dbresource.filters import DeviceClassFilter
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.dbresource.serializers import (  # CheckFaultHostsSerializer,
@@ -57,20 +53,17 @@ from backend.db_services.dbresource.serializers import (  # CheckFaultHostsSeria
     SpecCountResourceResponseSerializer,
     SpecCountResourceSerializer,
 )
-from backend.db_services.ipchooser.constants import BkOsType, ModeType
+from backend.db_services.ipchooser.constants import BkOsType
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
-from backend.db_services.ipchooser.handlers.topo_handler import TopoHandler
-from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.ipchooser.types import ScopeList
 from backend.flow.consts import FAILED_STATES, SUCCEED_STATES
 from backend.flow.models import FlowTree
-from backend.flow.utils.cc_manage import CcManage
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
 from backend.iam_app.handlers.permission import Permission
 from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, TicketStatus, TicketType
-from backend.ticket.models import Ticket, Todo
+from backend.ticket.models import Ticket
 from backend.utils.redis import RedisConn
 
 
@@ -132,19 +125,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         bk_biz_id = params.pop("bk_biz_id")
 
         # 查询DBA空闲机模块的meta，构造查询空闲机参数的node_list
-        scope_list: ScopeList = [{"scope_id": bk_biz_id, "scope_type": "biz", "bk_biz_id": bk_biz_id}]
-        trees: List[Dict] = TopoHandler.trees(all_scope=True, mode=ModeType.IDLE_ONLY.value, scope_list=scope_list)
-        node_list: ScopeList = [
-            {"instance_id": trees[0]["instance_id"], "meta": trees[0]["meta"], "object_id": "module"}
-        ]
-        params.update(readable_node_list=node_list)
-
-        # 查询DBA业务下的空闲机，并排除掉已经在资源池的空闲机
-        resource_hosts = DBResourceApi.resource_list_all()["details"] or []
-        resource_host_ids = [host["bk_host_id"] for host in resource_hosts]
-        host_infos = TopoHandler.query_hosts(**params)
-        for host in host_infos["data"]:
-            host.update(occupancy=(host["host_id"] in resource_host_ids))
+        host_infos = ResourceHandler.list_dba_hosts(params, bk_biz_id)
 
         return Response(host_infos)
 
@@ -183,40 +164,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     @action(detail=False, methods=["POST"], url_path="import", serializer_class=ResourceImportSerializer)
     def resource_import(self, request):
         data = self.params_validate(self.get_serializer_class())
-        host_ids = [host["host_id"] for host in data.pop("hosts")]
-
-        # 查询主机信息，并按照集群类型聚合
-        host_infos = ResourceQueryHelper.search_cc_hosts(role_host_ids=host_ids)
-        os_hosts = defaultdict(list)
-        for host in host_infos:
-            host.update(ip=host["bk_host_innerip"], host_id=host["bk_host_id"], city_name=host.get("idc_city_name"))
-            os_hosts[host["bk_os_type"]].append(host)
-
-        # 按照集群类型分别导入
-        ticket_ids = []
-        for os_type, hosts in os_hosts.items():
-            # 补充必要的单据参数
-            data.update(
-                ticket_type=TicketType.RESOURCE_IMPORT,
-                created_by=request.user.username,
-                uid=None,
-                hosts=hosts,
-                operator=request.user.username,
-                os_type=os_type,
-            )
-            # 目前产品上重导入只允许从故障池转入资源池
-            remark = _("故障池主机转回资源池") if data.get("return_resource") else ""
-            # 创建资源导入单据
-            ticket = Ticket.create_ticket(
-                ticket_type=TicketType.RESOURCE_IMPORT,
-                creator=request.user.username,
-                bk_biz_id=data["bk_biz_id"],
-                remark=remark,
-                details=data,
-            )
-            ticket_ids.append(ticket.id)
-
-        return Response({"ticket_ids": ticket_ids})
+        return Response({"ticket_ids": ResourceHandler.resource_import(data, request.user.username)})
 
     @common_swagger_auto_schema(
         operation_summary=_("查询资源导入任务"),
@@ -335,40 +283,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     @action(detail=False, methods=["POST"], url_path="delete", serializer_class=ResourceDeleteSerializer)
     def resource_delete(self, request):
         data = self.params_validate(self.get_serializer_class())
-        operator = request.user.username
-
-        bk_host_ids = [host["bk_host_id"] for host in data["hosts"]]
-
-        # 检查主机数量 & 仍处于资源池
-        hosts_qs = DirtyMachine.objects.filter(bk_host_id__in=bk_host_ids)
-        if hosts_qs.count() != len(bk_host_ids):
-            raise ResourceReturnException(_("删除主机部分不存在资源池，请重新操作"))
-        if list(set(hosts_qs.values_list("pool", flat=True))) != [PoolType.Resource]:
-            raise ResourceReturnException(_("请保证删除的主机处于资源池中"))
-
-        if data["event"] == MachineEventType.UndoImport:
-            # 撤销导入需要判断机器是否可退回
-            ok, message = MachineEvent.hosts_can_return(bk_host_ids)
-            if not ok:
-                raise ResourceReturnException(message)
-
-            # 从资源池删除机器，并退回各个业务的空闲机。这里主机的业务ID就是导入时的来源业务
-            biz_hosts_groups = itertools.groupby(data["hosts"], key=lambda x: x["bk_biz_id"])
-            for bk_biz_id, hosts in biz_hosts_groups:
-                hosts = list(hosts)
-                MachineEvent.host_event_trigger(bk_biz_id, hosts, data["event"], operator, remark=data["remark"])
-                CcManage.transfer_host_to_idlemodule_across_biz(bk_biz_id, [host["bk_host_id"] for host in hosts])
-        else:
-            # 转移故障池/待回收池则仅记录主机事件
-            MachineEvent.host_event_trigger(
-                env.DBA_APP_BK_BIZ_ID, data["hosts"], data["event"], operator, remark=data["remark"]
-            )
-            Todo.host_todo_trigger(bk_host_ids, [operator], data["event"], None)
-
-        # 调用资源池api删除资源
-        resp = DBResourceApi.resource_delete(params={"bk_host_ids": bk_host_ids}, raw=True)
-        if resp["code"]:
-            raise ResourceReturnException(_("资源删除失败，错误信息: {}").format(resp.get("message")))
+        resp = ResourceHandler.resource_delete(data, request.user.username)
 
         return Response(resp)
 
