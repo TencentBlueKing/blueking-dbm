@@ -116,17 +116,6 @@
           </template>
         </template>
       </TableColumn>
-      <!-- <TableColumn
-        col-key="value_default"
-        :title="t('默认值')"
-        :width="150">
-        <template #default="{ row, rowIndex }">
-          <template v-if="rowIndex === 0 && isAddingRow"> -- </template>
-          <template v-else>
-            {{ row.value_default ?? '--' }}
-          </template>
-        </template>
-      </TableColumn> -->
       <TableColumn
         col-key="conf_value"
         ellipsis
@@ -185,7 +174,7 @@
             <span class="value-cell">
               <span class="value-cell-text">{{ row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--') }}</span>
               <BkTag
-                v-if="row.level_name === levelName"
+                v-if="row.level_name === levelName || row.op_type === 'add'"
                 size="small"
                 theme="warning">
                 {{ t('自定义') }}
@@ -232,20 +221,6 @@
           </template>
         </template>
       </TableColumn>
-      <!-- <TableColumn
-        col-key="description"
-        ellipsis
-        :title="t('描述')"
-        :width="150">
-        <template #default="{ row, rowIndex }">
-          <template v-if="rowIndex === 0 && isAddingRow">
-            {{ selectedParamInfo?.description || '--' }}
-          </template>
-          <template v-else>
-            {{ row.description || '--' }}
-          </template>
-        </template>
-      </TableColumn> -->
       <TableColumn
         col-key="need_restart"
         :filter="needRestartFilter"
@@ -270,7 +245,7 @@
           <template v-if="isAddingRow && rowIndex === 0 || editingRowKey === row[rowKey as keyof ConfItem]">
             --
           </template>
-          <template v-else>
+          <template v-else-if="row.flag_readonly !== 1 || row.level_name === levelName">
             <BkButton
               v-if="row.flag_readonly !== 1"
               class="mr-16"
@@ -287,6 +262,7 @@
               {{ t('恢复默认') }}
             </BkButton>
           </template>
+          <template v-else> -- </template>
         </template>
       </TableColumn>
     </DbTable>

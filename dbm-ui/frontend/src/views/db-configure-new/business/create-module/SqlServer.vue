@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <SmartAction :offset-target="getSmartActionOffsetTarget">
+  <SmartAction>
     <BkAlert
       class="mb-16"
       closable
@@ -40,6 +40,7 @@
           <BkInput
             v-model="formData.alias_name"
             :placeholder="t('由英文字母_数字_连字符_组成')" />
+          <div class="form-item-tips">{{ t('模块名由英文字母、数字、连字符-组成；同时也会参与集群域名生成') }}</div>
         </BkFormItem>
         <BkFormItem
           :label="t('数据库信息')"
@@ -194,8 +195,6 @@
   const router = useRouter();
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
-
-  const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const ticketInfo = sqlServerType[route.params.ticketType as SqlServerTypeString];
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
@@ -418,6 +417,13 @@
     color: @primary-color;
     background: white;
     border: 1px solid @border-primary;
+  }
+
+  .form-item-tips {
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 20px;
+    color: #979ba5;
   }
 
   .input-box {
