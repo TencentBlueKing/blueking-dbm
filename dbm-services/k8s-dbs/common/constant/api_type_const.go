@@ -43,6 +43,12 @@ const (
 	APIAddonUpgrade   = "v4_dbs_addon_upgrade"
 )
 
+// APIClb clb接口
+const (
+	APIClbCreate = "v4_dbs_clb_create"
+	APIClbGet    = "v4_dbs_clb_get"
+)
+
 // APIClusterCreate 集群管理相关接口标识
 const (
 	APIClusterVScaling      = "v4_dbs_cluster_vscaling"

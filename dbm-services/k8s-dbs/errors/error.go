@@ -106,6 +106,12 @@ const (
 	UpgradeAddonError
 )
 
+// CLB 操作异常
+const (
+	CreateClbError ErrorCode = iota + 1532600
+	GetClbError
+)
+
 // 定义错误码对于的message
 var codeTag = map[ErrorCode]string{
 	// 纳管系统内置异常
@@ -161,6 +167,10 @@ var codeTag = map[ErrorCode]string{
 	InstallAddonError:   "插件安装失败",
 	UninstallAddonError: "插件卸载失败",
 	UpgradeAddonError:   "插件更新失败",
+
+	// CLB 操作异常
+	CreateClbError: "创建 CLB 失败",
+	GetClbError:    "获取 CLB 信息失败",
 
 	// 组件操作异常
 	DescribeComponentError: "查询组件失败",
