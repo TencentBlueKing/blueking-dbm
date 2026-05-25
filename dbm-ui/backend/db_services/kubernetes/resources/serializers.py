@@ -13,15 +13,41 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 
+class MultiValueCharField(serializers.ListField):
+    """
+    支持多种格式的多值字符字段
+
+    支持的格式:
+    - CSV 格式: ?requestType=RestartCluster,CStopCluster
+    - 多值格式: ?requestType=RestartCluster&requestType=CStopCluster
+    """
+
+    def to_internal_value(self, data):
+        """处理 CSV 格式的字符串，将其转换为列表"""
+        if isinstance(data, str):
+            # 按逗号分割 CSV 格式
+            data = [item.strip() for item in data.split(",") if item.strip()]
+        return super().to_internal_value(data)
+
+
 class ClusterOperationLogSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     limit = serializers.IntegerField(help_text=_("分页限制"), required=False, default=10)
     offset = serializers.IntegerField(help_text=_("分页起始"), required=False, default=0)
     k8sClusterName = serializers.CharField(help_text=_("k8s集群名称"))
     clusterName = serializers.CharField(help_text=_("集群名称"))
     namespace = serializers.CharField(help_text=_("命名空间"))
     creator = serializers.CharField(help_text=_("操作人"), required=False)
-    requestType = serializers.CharField(help_text=_("操作类型"), required=False)
+    requestType = MultiValueCharField(
+        child=serializers.CharField(),
+        help_text=_("操作类型"),
+        required=False,
+        allow_empty=True,
+        default=list,
+    )
     requestParams = serializers.CharField(help_text=_("操作内容"), required=False)
+    startTime = serializers.CharField(help_text=_("开始时间"), required=False)
+    endTime = serializers.CharField(help_text=_("结束时间"), required=False)
 
 
 class KubernetesTopoGraphSerializer(serializers.Serializer):
