@@ -10,23 +10,26 @@ specific language governing permissions and limitations under the License.
 """
 
 from django.utils.translation import gettext_lazy as _
-from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterPhase, ClusterType
-from backend.flow.engine.controller.qdrant_temp import QdrantController
+from backend.flow.engine.controller.qdrant import QdrantController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import TicketBaseValidateSerializerMixin
 from backend.ticket.builders.qdrant.base import BaseQdrantTicketFlowBuilder
+from backend.ticket.builders.qdrant.enums import QdrantOperationType
+from backend.ticket.builders.qdrant.k8s_qdrant_delete import K8sQdrantDeleteFlowParamBuilder, K8sQdrantDeleteSerializer
 from backend.ticket.constants import TicketType
 
 
-class K8sQdrantDisableSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
-    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+class K8sQdrantDisableSerializer(K8sQdrantDeleteSerializer):
+    pass
 
 
-class K8sQdrantDisableFlowParamBuilder(builders.FlowParamBuilder):
-    controller = QdrantController.placeholder
+class K8sQdrantDisableFlowParamBuilder(K8sQdrantDeleteFlowParamBuilder):
+    controller = QdrantController.qdrant_disable_scene
+
+    def format_ticket_data(self):
+        super().format_ticket_data()
 
 
 @builders.BuilderFactory.register(
@@ -41,3 +44,4 @@ class K8sQdrantDisableFlowBuilder(BaseQdrantTicketFlowBuilder):
     inner_flow_name = _("Qdrant集群停止执行")
     default_need_itsm = True
     default_need_manual_confirm = True
+    operation_type = QdrantOperationType.StopCluster
