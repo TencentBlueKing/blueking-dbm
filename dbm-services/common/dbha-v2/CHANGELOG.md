@@ -2,8 +2,10 @@
 
 ## v2.0.0-beta.7
 - 【新增】Probe 维护/查询 `master_slave_heartbeat`，上报mysql实例心跳状态以及mysql slave的心跳延迟。
+- 【新增】将切换请求的快照写入单独的日志文件中。
 - 【优化】将 `DbmMetadataInstanceRole`、`DbmMetadataSpiderRole` 从 `internal/analysis/dbm` 迁至 `pkg/storage/haprobe`，便于统一引用。
 - 【优化】对于切换流程中对mysql slave的延迟、checksum等检查项，支持在配置文件中设置相关参数。
+- 【优化】移除切换日志中的密码明文。
 - 【修复】过滤白名单集群字段改为 clusterName, 与 v1 保持一致。
 
 ## v2.0.0-beta.6
