@@ -12,16 +12,14 @@
 -->
 
 <template>
-  <SmartAction :offset-target="getSmartActionOffsetTarget">
+  <SmartAction>
     <DbForm
       ref="formRef"
       class="create-module-page db-scroll-y"
       :label-width="168"
       :model="formData">
       <!-- 模块信息 & 绑定数据库配置（紧凑布局） -->
-      <DbCard
-        mode="collapse"
-        :title="t('模块信息')">
+      <div class="module-info-card">
         <BkFormItem
           class="form-item-name"
           :label="t('模块名称')"
@@ -32,6 +30,7 @@
             v-model="formData.alias_name"
             :placeholder="t('由英文字母_数字_连字符_组成')"
             :readonly="isReadonly" />
+          <div class="form-item-tips">{{ t('模块名由英文字母、数字、连字符-组成；同时也会参与集群域名生成') }}</div>
         </BkFormItem>
         <BkFormItem
           :label="t('数据库信息')"
@@ -48,11 +47,8 @@
             </BkTag>
             <DbVersionSelect
               v-model="formData.db_version"
-              :bk-biz-id="bizId"
               class="version-select-inline"
-              :db-type="DBTypes.MYSQL"
-              :meta-cluster-type="ticketInfo.type"
-              @conf-tabs-change="handleConfTabsChange" />
+              :db-type="DBTypes.MYSQL" />
             <BkSelect
               v-model="formData.charset"
               class="charset-select-inline"
@@ -69,7 +65,7 @@
             </BkSelect>
           </div>
         </BkFormItem>
-      </DbCard>
+      </div>
 
       <!-- 参数配置 — 四个 Tab -->
       <div class="param-config-wrapper">
@@ -80,9 +76,14 @@
           <BkTabPanel
             v-for="tab of confTabs"
             :key="tab.conf_file"
-            :label="tab.name"
             :name="tab.conf_file"
             render-directive="show">
+            <template #label>
+              {{ tab.name }}
+              <span
+                v-if="(tabChangedCountMap[tab.conf_file] ?? 0) > 0"
+                class="tab-modified-dot" />
+            </template>
             <ParamTable
               :ref="(el: any) => setTableRef(tab.name, el)"
               :cluster-type="ticketInfo.type"
@@ -112,15 +113,17 @@
         @click="handleCancel">
         {{ t('取消') }}
       </BkButton>
-      <I18nT
-        v-if="totalChangedCount > 0"
-        class="total-change-stats"
-        keypath="共修改n个参数"
-        tag="span">
-        <template #n>
-          <span class="change-count">{{ totalChangedCount }}</span>
-        </template>
-      </I18nT>
+      <template v-if="totalChangedCount > 0">
+        <I18nT
+          class="total-change-stats"
+          keypath="总计已修改n项"
+          tag="span">
+          <template #n>
+            <span class="change-count">{{ totalChangedCount }}</span>
+          </template>
+        </I18nT>
+        <span class="stats-tips">{{ t('提交后将固化为自定义_不再随业务变化') }}</span>
+      </template>
     </template>
   </SmartAction>
   <Teleport to="#dbContentTitleAppend">
@@ -135,21 +138,21 @@
   import { useRequest } from 'vue-request';
 
   import { createModules } from '@services/source/cmdb';
-  import { getModuleDetail, saveModulesDeployInfo } from '@services/source/configs';
+  import { getListClusterModuleConfFiles, getModuleDetail, saveModulesDeployInfo } from '@services/source/configs';
 
   import { useGlobalBizs } from '@stores';
 
   import { DBTypes, mysqlType, type MysqlTypeString } from '@common/const';
 
-  import DbVersionSelect, { type ConfTabItem } from './components/DbVersionSelect.vue';
+  import { random } from '@utils';
+
+  import DbVersionSelect from './components/DbVersionSelect.vue';
   import ParamTable from './components/ParamTable.vue';
 
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
-
-  const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const ticketType = route.params.type as MysqlTypeString;
   const ticketInfo = mysqlType[ticketType];
@@ -209,17 +212,30 @@
   };
 
   // 参数配置 Tab — 用 db_version 作为渲染 key，版本切换时强制重建整个 BkTab 及其子组件
-  const activeConfType = ref('');
-  const tabRenderKey = computed(() => formData.db_version || 'init');
-  const confTabs = ref<ConfTabItem[]>([]);
+  const activeConfType = ref('dbconf');
+  const tabRenderKey = ref(random());
+  const confTabs = ref<ServiceReturnType<typeof getListClusterModuleConfFiles>>([]);
 
-  /** 接收 DbVersionSelect 组件传递的配置 Tab 列表 */
-  const handleConfTabsChange = (tabs: ConfTabItem[]) => {
-    confTabs.value = tabs;
-    if (tabs.length && !tabs.some((tab) => tab.conf_file === activeConfType.value)) {
-      activeConfType.value = tabs[0].conf_file;
-    }
-  };
+  const { run: fetchConfTabs } = useRequest(getListClusterModuleConfFiles, {
+    manual: true,
+    onSuccess(res) {
+      const rawConfTabs = res || [];
+      rawConfTabs[0] = { conf_file: formData.db_version, conf_type: 'dbconf', name: formData.db_version };
+      confTabs.value = rawConfTabs;
+      tabRenderKey.value = random();
+    },
+  });
+
+  watch(
+    () => formData.db_version,
+    () => {
+      fetchConfTabs({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        deploy_versions: JSON.stringify({ db_version: formData.db_version }),
+        meta_cluster_type: ticketInfo.type,
+      });
+    },
+  );
 
   // 每个 confType 对应一个 ParamTable 实例
   const tableRefs = ref<Record<string, InstanceType<typeof ParamTable>>>({});
@@ -233,6 +249,16 @@
   const totalChangedCount = computed(() =>
     Object.values(tableRefs.value).reduce((sum, ref) => sum + (ref?.changedCount ?? 0), 0),
   );
+
+  /** 每个 Tab 的已修改数量（用于 Tab 小黄点） */
+  const tabChangedCountMap = computed(() => {
+    const map: Record<string, number> = {};
+    confTabs.value.forEach((tab) => {
+      const tableRef = tableRefs.value[tab.name];
+      map[tab.conf_file] = tableRef?.changedCount ?? 0;
+    });
+    return map;
+  });
 
   /** 提交 */
   const handleSubmit = async () => {
@@ -357,6 +383,12 @@
     }
   }
 
+  .module-info-card {
+    padding: 24px;
+    background: #fff;
+    border-radius: 2px;
+  }
+
   .db-config-row {
     display: flex;
     align-items: center;
@@ -367,6 +399,13 @@
       width: auto;
       min-width: 160px;
     }
+  }
+
+  .form-item-tips {
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 20px;
+    color: #979ba5;
   }
 
   .param-config-wrapper {
@@ -396,6 +435,22 @@
       font-weight: 700;
       color: #f59500;
     }
+  }
+
+  .stats-tips {
+    margin-left: 8px;
+    font-size: 12px;
+    line-height: 20px;
+    color: #979ba5;
+  }
+
+  .tab-modified-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-left: 4px;
+    background: #f59500;
+    border-radius: 50%;
   }
 
   .create-module-nav-desc {

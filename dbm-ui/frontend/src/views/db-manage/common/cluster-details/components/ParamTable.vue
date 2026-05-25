@@ -29,7 +29,11 @@
         <BkPopConfirm
           :cancel-text="t('取消')"
           :confirm-text="t('确认恢复')"
-          :title="t('确认批量恢复 n 个参数默认值？', { n: selectedRows.filter((item) => item.level_name === levelName).length })"
+          :title="
+            t('确认批量恢复 n 个参数默认值？', {
+              n: selectedRows.filter((item) => item.level_name === levelName).length,
+            })
+          "
           trigger="click"
           :width="275"
           @confirm="handleRestoreDefault">
@@ -113,17 +117,6 @@
           </template>
         </template>
       </TableColumn>
-      <!-- <TableColumn
-        col-key="value_default"
-        :title="t('默认值')"
-        :width="150">
-        <template #default="{ row, rowIndex }">
-          <template v-if="rowIndex === 0 && isAddingRow"> -- </template>
-          <template v-else>
-            {{ row.value_default ?? '--' }}
-          </template>
-        </template>
-      </TableColumn> -->
       <TableColumn
         col-key="conf_value"
         ellipsis
@@ -230,20 +223,6 @@
           </template>
         </template>
       </TableColumn>
-      <!-- <TableColumn
-        col-key="description"
-        ellipsis
-        :title="t('描述')"
-        :width="150">
-        <template #default="{ row, rowIndex }">
-          <template v-if="rowIndex === 0 && isAddingRow">
-            {{ selectedParamInfo?.description || '--' }}
-          </template>
-          <template v-else>
-            {{ row.description || '--' }}
-          </template>
-        </template>
-      </TableColumn> -->
       <TableColumn
         col-key="need_restart"
         :filter="needRestartFilter"
@@ -268,7 +247,7 @@
           <template v-if="isAddingRow && rowIndex === 0 || editingRowKey === row[rowKey as keyof ConfItem]">
             --
           </template>
-          <template v-else>
+          <template v-else-if="row.flag_readonly !== 1 || row.level_name === levelName">
             <BkButton
               v-if="row.flag_readonly !== 1"
               class="mr-16"
@@ -285,6 +264,7 @@
               {{ t('恢复默认') }}
             </BkButton>
           </template>
+          <template v-else> -- </template>
         </template>
       </TableColumn>
     </DbTable>
@@ -386,7 +366,6 @@
   const paramSearchValue = ref<Record<string, any>>({});
   const paramQuickSearchData = [
     { id: 'conf_name', name: t('参数名'), type: 'input' as const },
-    // { id: 'value_default', name: t('默认值'), type: 'input' as const },
     { id: 'conf_value', name: t('当前值'), type: 'input' as const },
     { id: 'value_allowed', name: t('允许值'), type: 'input' as const },
     {
@@ -792,7 +771,9 @@
       saveLoading.value = true;
       try {
         await updateBusinessConfig(buildUpdateParams([target]));
-        messageSuccess(target.level_name === props.levelName ? t('操作成功_参数已修改') : t('操作成功_参数已转为自定义'));
+        messageSuccess(
+          target.level_name === props.levelName ? t('操作成功_参数已修改') : t('操作成功_参数已转为自定义'),
+        );
         fetchLevelConfig(fetchParams.value);
         emit('change');
       } finally {

@@ -35,21 +35,24 @@
           @click="handleBatchEdit">
           {{ t('批量编辑') }}
         </BkButton>
-        <I18nT
+        <div
           v-if="changedCount > 0"
-          keypath="共修改n个参数"
-          tag="span">
-          <template #n>
-            <span style="font-weight: 700; color: #f59500">{{ changedCount }}</span>
-          </template>
-        </I18nT>
+          class="only-changed">
+          <I18nT
+            keypath="已修改n项"
+            tag="span">
+            <template #n>
+              <span style="font-weight: 700; color: #f59500">{{ changedCount }}</span>
+            </template>
+          </I18nT>
+          <BkCheckbox
+            v-model="showChangedOnly"
+            @change="refreshTable">
+            {{ t('仅显示已修改') }}
+          </BkCheckbox>
+        </div>
       </div>
       <div class="param-operations-right">
-        <BkCheckbox
-          v-model="showChangedOnly"
-          @change="refreshTable">
-          {{ t('仅显示已修改') }}
-        </BkCheckbox>
         <DbQuickSearch
           v-model="paramSearchValue"
           :data="paramQuickSearchData"
@@ -108,17 +111,6 @@
           </template>
         </template>
       </TableColumn>
-      <!-- <TableColumn
-        col-key="value_default"
-        :title="t('默认值')"
-        :width="150">
-        <template #default="{ row, rowIndex }">
-          <template v-if="rowIndex === 0 && isAddingRow"> -- </template>
-          <template v-else>
-            {{ row.value_default ?? '--' }}
-          </template>
-        </template>
-      </TableColumn> -->
       <TableColumn
         col-key="conf_value"
         ellipsis
@@ -217,20 +209,6 @@
           </template>
         </template>
       </TableColumn>
-      <!-- <TableColumn
-        col-key="description"
-        ellipsis
-        :title="t('描述')"
-        :width="150">
-        <template #default="{ row, rowIndex }">
-          <template v-if="rowIndex === 0 && isAddingRow">
-            {{ selectedParamInfo?.description || '--' }}
-          </template>
-          <template v-else>
-            {{ row.description || '--' }}
-          </template>
-        </template>
-      </TableColumn> -->
       <TableColumn
         col-key="need_restart"
         :filter="needRestartFilter"
@@ -347,7 +325,6 @@
   const paramSearchValue = ref<Record<string, any>>({});
   const paramQuickSearchData = [
     { id: 'conf_name', name: t('参数名'), type: 'input' as const },
-    // { id: 'value_default', name: t('默认值'), type: 'input' as const },
     { id: 'conf_value', name: t('当前值'), type: 'input' as const },
     { id: 'value_allowed', name: t('允许值'), type: 'input' as const },
     {
@@ -481,8 +458,14 @@
 
   /** 参数数据源函数 */
   const paramDataSource = (params: { limit: number; offset: number }) => {
-    // 合并本地新增项（排在前面）+ 服务端数据
+    // 合并本地新增项（排在前面）+ 服务端数据，按 conf_name 去重
     let data = [...pendingAddedItems.value, ...allConfItems.value];
+    const seen = new Set<string>();
+    data = data.filter((item) => {
+      if (seen.has(item.conf_name)) return false;
+      seen.add(item.conf_name);
+      return true;
+    });
 
     // 前端搜索过滤
     const filters = paramSearchValue.value;
@@ -509,9 +492,12 @@
       data = data.filter((item) => values.includes(String(item.need_restart)));
     }
 
-    // 仅显示已修改
+    // 仅显示已修改（包括新增和已修改的参数）
     if (showChangedOnly.value && !isAddingRow.value) {
-      const changedNames = new Set(getChangedItems().map((i) => i.conf_name));
+      const changedNames = new Set([
+        ...getChangedItems().map((i) => i.conf_name),
+        ...pendingAddedItems.value.map((i) => i.conf_name),
+      ]);
       data = data.filter((item) => changedNames.has(item.conf_name));
     }
 
@@ -554,8 +540,6 @@
     onSuccess(res) {
       allConfItems.value = res.conf_items || [];
       originConfItems.value = _.cloneDeep(res.conf_items || []);
-      // 服务端数据已包含最新变更，清空本地新增缓存
-      pendingAddedItems.value = [];
       // 服务端数据已包含最新变更，清空本地新增缓存
       pendingAddedItems.value = [];
       nextTick(() => {
@@ -731,13 +715,15 @@
   const getChangedItems = () => {
     const changedItems: ConfItem[] = [];
 
+    // 新增的参数（来自本地待提交列表）
+    pendingAddedItems.value.forEach((item) => {
+      changedItems.push({ ...item, op_type: 'add' });
+    });
+
+    // 已修改的参数（与服务端初始值对比）
     allConfItems.value.forEach((item) => {
       const origin = originConfItems.value.find((o) => o.conf_name === item.conf_name);
-      if (!origin) {
-        // 新增的参数
-        changedItems.push({ ...item, op_type: 'add' });
-      } else if (origin.conf_value !== item.conf_value) {
-        // 修改的参数
+      if (origin && origin.conf_value !== item.conf_value) {
         changedItems.push({ ...item, op_type: 'update' });
       }
     });
@@ -817,7 +803,17 @@
   .param-operations-left {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 16px;
+
+    .only-changed {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      :deep(.bk-checkbox) {
+        display: flex;
+      }
+    }
   }
 
   .param-operations-right {

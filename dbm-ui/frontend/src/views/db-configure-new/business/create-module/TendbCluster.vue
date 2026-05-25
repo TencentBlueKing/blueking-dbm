@@ -12,16 +12,14 @@
 -->
 
 <template>
-  <SmartAction :offset-target="getSmartActionOffsetTarget">
+  <SmartAction>
     <DbForm
       ref="formRef"
       class="create-module-page db-scroll-y"
       :label-width="168"
       :model="formData">
       <!-- 模块信息 & 绑定数据库配置（紧凑布局） -->
-      <DbCard
-        mode="collapse"
-        :title="t('模块信息')">
+      <div class="module-info-card">
         <BkFormItem
           class="form-item-name"
           :label="t('模块名称')"
@@ -32,6 +30,7 @@
             v-model="formData.alias_name"
             :placeholder="t('由英文字母_数字_连字符_组成')"
             :readonly="isReadonly" />
+          <div class="form-item-tips">{{ t('模块名由英文字母、数字、连字符-组成；同时也会参与集群域名生成') }}</div>
         </BkFormItem>
         <BkFormItem
           :label="t('数据库信息')"
@@ -49,16 +48,13 @@
             <DbVersionSelect
               v-model="formData.db_version"
               class="version-select-inline"
-              :db-type="DBTypes.MYSQL"
-              :meta-cluster-type="ClusterTypes.TENDBCLUSTER"
-              @conf-tabs-change="handleConfTabsChange" />
+              :db-type="DBTypes.MYSQL" />
             <DbVersionSelect
               v-model="formData.spider_version"
               class="version-select-inline"
               :db-type="DBTypes.MYSQL"
-              :meta-cluster-type="ClusterTypes.TENDBCLUSTER"
-              :placeholder="t('请选择xx', [t('Spider版本')])"
-              :prefix="t('Spider版本')"
+              :placeholder="t('请选择xx', [t('接入层版本')])"
+              :prefix="t('接入层版本')"
               query-key="spider" />
             <BkSelect
               v-model="formData.charset"
@@ -76,25 +72,35 @@
             </BkSelect>
           </div>
         </BkFormItem>
-      </DbCard>
+      </div>
 
       <!-- 参数配置 -->
       <div class="param-config-wrapper">
         <BkTab
-          :key="tabRenderKey"
           v-model:active="activeConfType"
           type="card-tab">
           <BkTabPanel
             v-for="tab of confTabs"
             :key="tab.conf_file"
-            :label="tab.name"
             :name="tab.conf_file"
             render-directive="show">
+            <template #label>
+              {{ tab.name }}
+              <span
+                v-if="(tabChangedCountMap[tab.conf_file] ?? 0) > 0"
+                class="tab-modified-dot" />
+            </template>
             <ParamTable
               :ref="(el: any) => setTableRef(tab.name, el)"
               cluster-type="tendbcluster"
               :conf-type="tab.conf_type"
-              :version="tab.conf_type === 'proxyconf' ? formData.spider_version : formData.db_version" />
+              :version="
+                tab.conf_type === 'proxyconf'
+                  ? formData.spider_version
+                  : tab.conf_type === 'dbconf'
+                    ? formData.db_version
+                    : tab.conf_file
+              " />
           </BkTabPanel>
         </BkTab>
       </div>
@@ -119,15 +125,17 @@
         @click="handleCancel">
         {{ t('取消') }}
       </BkButton>
-      <I18nT
-        v-if="totalChangedCount > 0"
-        class="total-change-stats"
-        keypath="共修改n个参数"
-        tag="span">
-        <template #n>
-          <span class="change-count">{{ totalChangedCount }}</span>
-        </template>
-      </I18nT>
+      <template v-if="totalChangedCount > 0">
+        <I18nT
+          class="total-change-stats"
+          keypath="总计已修改n项"
+          tag="span">
+          <template #n>
+            <span class="change-count">{{ totalChangedCount }}</span>
+          </template>
+        </I18nT>
+        <span class="stats-tips">{{ t('提交后将固化为自定义_不再随业务变化') }}</span>
+      </template>
     </template>
   </SmartAction>
   <Teleport to="#dbContentTitleAppend">
@@ -142,21 +150,21 @@
   import { useRequest } from 'vue-request';
 
   import { createModules } from '@services/source/cmdb';
-  import { getModuleDetail, saveModulesDeployInfo } from '@services/source/configs';
+  import { getListClusterModuleConfFiles, getModuleDetail, saveModulesDeployInfo } from '@services/source/configs';
 
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
-  import DbVersionSelect, { type ConfTabItem } from './components/DbVersionSelect.vue';
+  import { random } from '@utils';
+
+  import DbVersionSelect from './components/DbVersionSelect.vue';
   import ParamTable from './components/ParamTable.vue';
 
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
-
-  const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
 
@@ -215,17 +223,35 @@
   };
 
   // 参数配置 Tab — 用版本组合作为渲染 key，版本切换时强制重建 BkTab 及子组件
-  const activeConfType = ref('');
-  const tabRenderKey = computed(() => `${formData.db_version}_${formData.spider_version}` || 'init');
-  const confTabs = ref<ConfTabItem[]>([]);
+  const activeConfType = ref('dbconf');
+  const tabRenderKey = ref(random());
+  const confTabs = ref<ServiceReturnType<typeof getListClusterModuleConfFiles>>([]);
 
-  /** 接收 DbVersionSelect 组件传递的配置 Tab 列表 */
-  const handleConfTabsChange = (tabs: ConfTabItem[]) => {
-    confTabs.value = tabs;
-    if (tabs.length && !tabs.some((tab) => tab.conf_file === activeConfType.value)) {
-      activeConfType.value = tabs[0].conf_file;
-    }
-  };
+  const { run: fetchConfTabs } = useRequest(getListClusterModuleConfFiles, {
+    manual: true,
+    onSuccess(res) {
+      const rawConfTabs = res || [];
+      rawConfTabs[0] = { conf_file: formData.db_version, conf_type: 'dbconf', name: formData.db_version };
+      rawConfTabs[1] = {
+        conf_file: formData.spider_version,
+        conf_type: 'proxyconf',
+        name: formData.spider_version,
+      };
+      confTabs.value = rawConfTabs;
+      tabRenderKey.value = random();
+    },
+  });
+
+  watch(
+    () => [formData.db_version, formData.spider_version],
+    () => {
+      fetchConfTabs({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        deploy_versions: JSON.stringify({ db_version: formData.db_version }),
+        meta_cluster_type: ClusterTypes.TENDBCLUSTER,
+      });
+    },
+  );
 
   // 每个 confType 对应一个 ParamTable 实例
   const tableRefs = ref<Record<string, InstanceType<typeof ParamTable>>>({});
@@ -239,6 +265,16 @@
   const totalChangedCount = computed(() =>
     Object.values(tableRefs.value).reduce((sum, ref) => sum + (ref?.changedCount ?? 0), 0),
   );
+
+  /** 每个 Tab 的已修改数量（用于 Tab 小黄点） */
+  const tabChangedCountMap = computed(() => {
+    const map: Record<string, number> = {};
+    confTabs.value.forEach((tab) => {
+      const tableRef = tableRefs.value[tab.name];
+      map[tab.conf_file] = tableRef?.changedCount ?? 0;
+    });
+    return map;
+  });
 
   /** 提交 */
   const handleSubmit = async () => {
@@ -369,6 +405,12 @@
     }
   }
 
+  .module-info-card {
+    padding: 24px;
+    background: #fff;
+    border-radius: 2px;
+  }
+
   .db-config-row {
     display: flex;
     align-items: center;
@@ -408,6 +450,29 @@
       font-weight: 700;
       color: #f59500;
     }
+  }
+
+  .stats-tips {
+    margin-left: 4px;
+    font-size: 12px;
+    line-height: 20px;
+    color: #979ba5;
+  }
+
+  .form-item-tips {
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 20px;
+    color: #979ba5;
+  }
+
+  .tab-modified-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-left: 4px;
+    background: #f59500;
+    border-radius: 50%;
   }
 
   .create-module-nav-desc {

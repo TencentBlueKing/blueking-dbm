@@ -120,18 +120,31 @@ export const useTreeData = (treeState: TreeState) => {
    * selected default tree node
    */
   const treeRef = ref();
+  const findTreeNodeById = (nodes: TreeData[], targetTreeId: string): TreeData | undefined => {
+    for (const node of nodes) {
+      if (node.treeId === targetTreeId) {
+        return node;
+      }
+      if (node.children?.length) {
+        const found = findTreeNodeById(node.children, targetTreeId);
+        if (found) return found;
+      }
+    }
+    return undefined;
+  };
   const setDefaultNode = () => {
     const { data = [] } = treeRef.value.getData();
-    const { treeId } = route.params;
-    let node = data[0];
-    if (treeId) {
-      const treeNode = data.find((item: TreeData) => item.treeId === treeId);
-      treeNode && (node = treeNode);
+    // 从 query 参数获取 treeId 和 parentId（URL 格式为 ?parentId=app-3&treeId=module-39）
+    const { treeId: queryTreeId } = route.query;
+    let node = data[0] as TreeData | undefined;
+    if (queryTreeId) {
+      const targetNode = findTreeNodeById(data, String(queryTreeId));
+      if (targetNode) node = targetNode;
     }
     // eslint-disable-next-line no-param-reassign
     treeState.selected = node;
     // eslint-disable-next-line no-param-reassign
-    [treeState.activeNode] = treeState.data;
+    treeState.activeNode = node;
   };
 
   /**

@@ -281,7 +281,7 @@
                 v-model="addParamForm.value_allowed"
                 :disabled="isValueAllowedDisabled"
                 :placeholder="isValueAllowedDisabled ? valueAllowedPlaceholder : t('请输入')" />
-              <p class="form-item-tips">{{ t('填写示例') }}：{{ valueAllowedExample }}</p>
+              <p class="form-item-tips">{{ valueAllowedExample }}</p>
             </BkFormItem>
           </div>
 
@@ -305,7 +305,7 @@
                   {{ t('设为空字符串') }}
                 </BkCheckbox>
               </div>
-              <p class="form-item-tips">{{ t('可为空_表示不设置平台默认值_如填写需符合允许值规则') }}</p>
+              <p class="form-item-tips">{{ defaultValueHint }}</p>
             </BkFormItem>
           </div>
 
@@ -354,6 +354,7 @@
       <template #footer>
         <BkButton
           class="mr-8"
+          :disabled="!isAddParamFormDirty"
           :loading="submitLoading"
           theme="primary"
           @click="handleAddParamConfirm">
@@ -460,6 +461,22 @@
     value_type_sub: '',
   });
 
+  // 表单快照（用于判断是否有修改）
+  const formSnapshot = ref<Record<string, any> | null>(null);
+
+  /** 表单是否有修改（与快照对比） */
+  const isAddParamFormDirty = computed(() => {
+    if (!formSnapshot.value) return false;
+    return Object.keys(formSnapshot.value).some((key) => {
+      return (addParamForm as Record<string, any>)[key] !== formSnapshot.value![key];
+    });
+  });
+
+  /** 记录当前表单为快照 */
+  const saveFormSnapshot = () => {
+    formSnapshot.value = { ...addParamForm };
+  };
+
   const confNameTypeMap = ref<Record<string, string[]>>({});
   const availableParams = ref<ServiceReturnType<typeof getConfigNames>>([]);
 
@@ -534,6 +551,28 @@
       !addParamForm.flag_encrypt,
   );
 
+  // 平台默认值的动态提示文案（根据数据类型和约束类型切换）
+  const defaultValueHint = computed(() => {
+    // 场景1: 勾选「设为空字符串」
+    if (addParamForm.flag_empty_string) return t('平台默认值为显式空字符串');
+
+    const vt = addParamForm.value_type;
+    const vts = addParamForm.value_type_sub;
+
+    // 场景2: STRING + 无约束
+    if (vt === 'STRING' && (vts === NO_CONSTRAINT || !vts)) {
+      return t('任意STRING值均可_可勾选「设为空字符串」将默认值显式置为空串');
+    }
+
+    // 场景4: STRING + REGEX/JSON/MAP/LIST/GOVALIDATE（由后端校验）
+    if (vt === 'STRING' && ['GOVALIDATE', 'JSON', 'LIST', 'MAP', 'REGEX'].includes(vts)) {
+      return t('需符合STRING类型_保存时由后端按约束类型校验合法性', { constraintType: vts });
+    }
+
+    // 场景3: BOOL/INT/FLOAT/NUMBER 全部 + STRING 的 ENUM/ENUMS/BYTES/DURATION
+    return t('需符合允许值范围_不符规则保存将失败');
+  });
+
   watch(
     () => addParamForm.flag_empty_string,
     (val) => {
@@ -559,19 +598,17 @@
   const valueAllowedExample = computed(() => {
     const key = `${addParamForm.value_type}_${addParamForm.value_type_sub}`;
     const exampleMap: Record<string, string> = {
-      BOOL_ENUM: t(
-        '填写示例：ON|OFF / true|false / 1|0；本质是 2 个候选值的 ENUM，候选值以「|」分隔，业务取值仅能单选',
-      ),
-      FLOAT_ENUM: t('填写示例：0.1|0.5|1.0；候选值以「|」分隔，业务取值仅能单选'),
-      FLOAT_RANGE: t('填写示例：[0.0,1.0]；格式 [min,max]，业务取值需满足 min ≤ 值 ≤ max（两端均包含）'),
-      INT_ENUM: t('填写示例：1|4|8；候选值以「|」分隔，业务取值仅能单选'),
-      INT_RANGE: t('填写示例：[0,99]；格式 [min,max]，业务取值需满足 min ≤ 值 ≤ max（两端均包含）'),
-      NUMBER_ENUM: t('填写示例：1|4|8；候选值以「|」分隔，业务取值仅能单选'),
-      NUMBER_RANGE: t('填写示例：[0,99]；格式 [min,max]，业务取值需满足 min ≤ 值 ≤ max（两端均包含）'),
-      STRING_BYTES: t('填写示例：[1024,1g]；单位 k(KB) / m(MB) / g(GB)，无单位则为字节'),
-      STRING_DURATION: t('填写示例：[1m,60m]；单位 s(秒) / m(分) / h(小时) / d(天 = 24 小时)'),
-      STRING_ENUM: t('填写示例：ROW|MIXED|STATEMENT；候选值以「|」分隔，业务取值仅能单选'),
-      STRING_ENUMS: t('填写示例：read,write,admin；候选值以英文「,」分隔，业务取值可多选'),
+      BOOL_ENUM: t('填写示例_BOOL_ENUM'),
+      FLOAT_ENUM: t('填写示例_FLOAT_ENUM'),
+      FLOAT_RANGE: t('填写示例_FLOAT_RANGE'),
+      INT_ENUM: t('填写示例_INT_ENUM'),
+      INT_RANGE: t('填写示例_INT_RANGE'),
+      NUMBER_ENUM: t('填写示例_NUMBER_ENUM'),
+      NUMBER_RANGE: t('填写示例_NUMBER_RANGE'),
+      STRING_BYTES: t('填写示例_STRING_BYTES'),
+      STRING_DURATION: t('填写示例_STRING_DURATION'),
+      STRING_ENUM: t('填写示例_STRING_ENUM'),
+      STRING_ENUMS: t('填写示例_STRING_ENUMS'),
     };
     return exampleMap[key] || '--';
   });
@@ -710,6 +747,7 @@
       value_type: '',
       value_type_sub: '',
     });
+    saveFormSnapshot();
     isShowAddParam.value = true;
   };
 
@@ -779,6 +817,7 @@
       // 历史兼容：STRING 类型的约束类型为 STRING 时，等同于无约束
       value_type_sub: row.value_type_sub === 'STRING' ? NO_CONSTRAINT : (row.value_type_sub ?? ''),
     });
+    saveFormSnapshot();
     isShowAddParam.value = true;
   };
 
