@@ -11,9 +11,12 @@ specific language governing permissions and limitations under the License.
 import itertools
 import json
 import logging
+import threading
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List
 
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Prefetch, Q
 from django.forms import model_to_dict
@@ -326,15 +329,28 @@ class TicketHandler:
         """
         from backend.ticket.serializers import TodoSerializer
 
+        locks = defaultdict(threading.Lock)
         results = []
-        for operation in operations:
+
+        def process_single(operation):
             todo_id, params = operation["todo_id"], operation["params"]
-            todo = Todo.objects.get(id=todo_id)
-            if action == TodoActionType.DELIVER:
-                TodoActorFactory.actor(todo).deliver(user, action, params)
-            else:
-                TodoActorFactory.actor(todo).process(user, action, params)
-            results.append(todo)
+            with locks[todo_id]:  # 相同todo 串行化
+                todo = Todo.objects.get(id=todo_id)
+                if action == TodoActionType.DELIVER:
+                    TodoActorFactory.actor(todo).deliver(user, action, params)
+                else:
+                    TodoActorFactory.actor(todo).process(user, action, params)
+                return todo
+
+        with ThreadPoolExecutor(max_workers=settings.CONCURRENT_NUMBER) as executor:
+            future_to_op = {executor.submit(process_single, op): op for op in operations}
+
+            for future in as_completed(future_to_op):
+                try:
+                    res = future.result()
+                    results.append(res)
+                except Exception as e:
+                    logger.error(_("操作todo任务失败: {}").format(e))
         return TodoSerializer(results, many=True).data
 
     @classmethod

@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import concurrent.futures
 import logging
 from unittest.mock import MagicMock, patch
 
@@ -613,10 +614,28 @@ class TestTicketHandlerFlowOperations:
 class TestTicketHandlerTodoOperations:
     """测试 TicketHandler 待办操作方法"""
 
+    @patch("backend.ticket.handler.ThreadPoolExecutor")
     @patch("backend.ticket.handler.TodoActorFactory.actor")
-    def test_batch_process_todo_approve(self, mock_actor, init_todo):
+    def test_batch_process_todo_approve(self, mock_actor, mock_executor, init_todo):
         """测试批量处理待办 - 审批动作"""
         _, _, todo = init_todo
+
+        mock_executor_instance = MagicMock()
+        mock_executor.return_value = mock_executor_instance
+        mock_executor_instance.__enter__.return_value = mock_executor_instance
+
+        # 用真实的 Future 构造同步 submit
+        def fake_submit(fn, *args, **kwargs):
+            future = concurrent.futures.Future()
+            try:
+                result = fn(*args, **kwargs)
+                future.set_result(result)
+            except Exception as e:
+                future.set_exception(e)
+            return future
+
+        mock_executor_instance.submit = fake_submit
+
         mock_actor_instance = MagicMock()
         mock_actor.return_value = mock_actor_instance
 
@@ -638,10 +657,28 @@ class TestTicketHandlerTodoOperations:
         mock_actor.assert_called_once()
         mock_actor_instance.process.assert_called_once_with("admin", TodoActionType.APPROVE, {"message": "approved"})
 
+    @patch("backend.ticket.handler.ThreadPoolExecutor")
     @patch("backend.ticket.handler.TodoActorFactory.actor")
-    def test_batch_process_todo_deliver(self, mock_actor, init_todo):
+    def test_batch_process_todo_deliver(self, mock_actor, mock_executor, init_todo):
         """测试批量处理待办 - 转单动作"""
         _, _, todo = init_todo
+
+        mock_executor_instance = MagicMock()
+        mock_executor.return_value = mock_executor_instance
+        mock_executor_instance.__enter__.return_value = mock_executor_instance
+
+        # 用真实的 Future 构造同步 submit
+        def fake_submit(fn, *args, **kwargs):
+            future = concurrent.futures.Future()
+            try:
+                result = fn(*args, **kwargs)
+                future.set_result(result)
+            except Exception as e:
+                future.set_exception(e)
+            return future
+
+        mock_executor_instance.submit = fake_submit
+
         mock_actor_instance = MagicMock()
         mock_actor.return_value = mock_actor_instance
 
