@@ -1851,7 +1851,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         binlog_start_file = self.cluster["binlog_start_file"]
         binlog_start_pos = int(self.cluster["binlog_start_pos"])
         simple_binlog_files = False
-        if len(self.cluster["binlog_files_list"]) > 2000:
+        if len(self.cluster["binlog_files_list"]) > 1000:
             # 超过1000个日志,为了避免payload信息过长,只传首尾
             simple_binlog_files = True
             binlog_files_list = [self.cluster["binlog_start_file"], self.cluster["binlog_files_list"][0]]
