@@ -13,20 +13,30 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterPhase, ClusterType
-from backend.flow.engine.controller.qdrant_temp import QdrantController
+from backend.db_meta.models import Cluster
+from backend.flow.engine.controller.qdrant import QdrantController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import TicketBaseValidateSerializerMixin
 from backend.ticket.builders.qdrant.base import BaseQdrantTicketFlowBuilder
+from backend.ticket.builders.qdrant.enums import QdrantOperationType
 from backend.ticket.constants import TicketType
 
 
 class K8sQdrantDeleteSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    clusters = serializers.DictField(help_text=_("集群信息"), required=False, default=dict)
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        cluster_id = attrs["cluster_id"]
+        if not Cluster.objects.filter(id=cluster_id, cluster_type=ClusterType.K8sQdrantHa).exists():
+            raise serializers.ValidationError(_("Qdrant集群不存在或集群类型不正确: cluster_id={}").format(cluster_id))
+        return attrs
 
 
 class K8sQdrantDeleteFlowParamBuilder(builders.FlowParamBuilder):
-    controller = QdrantController.placeholder
+    controller = QdrantController.qdrant_delete_scene
 
 
 @builders.BuilderFactory.register(
@@ -41,3 +51,4 @@ class K8sQdrantDeleteFlowBuilder(BaseQdrantTicketFlowBuilder):
     inner_flow_name = _("Qdrant集群卸载执行")
     default_need_itsm = True
     default_need_manual_confirm = True
+    operation_type = QdrantOperationType.DeleteCluster
