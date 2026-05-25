@@ -22,7 +22,7 @@ class _KubernetesApi(BaseApi):
     def __init__(self):
         self.cluster_detail = self.generate_data_api(
             method="GET",
-            url="/v4/dbs/metadata/cluster/{cluster_id}/",
+            url="/v4/dbs/metadata/cluster/dbm/{cluster_id}/",
             description=_("获取集群详情"),
         )
         self.bcs_regions = self.generate_data_api(
@@ -56,7 +56,7 @@ class _KubernetesApi(BaseApi):
             description=_("获取集群信息"),
         )
         self.cluster_operation_log = self.generate_data_api(
-            method="POST",
+            method="GET",
             url="/v4/dbs/metadata/cluster_operation_log",
             description=_("获取集群操作日志"),
         )
@@ -82,7 +82,7 @@ class _KubernetesApi(BaseApi):
         )
         self.delete_component = self.generate_data_api(
             method="POST",
-            url="/v4/dbs/cluster/delete",
+            url="/v4/dbs/k8s_cluster/pod/delete",
             description=_("组件实例删除"),
         )
         self.component_config = self.generate_data_api(
@@ -149,6 +149,9 @@ class _KubernetesApi(BaseApi):
         )
         self.update_log_ticket_id = self.generate_data_api(
             method="PUT", url="/v4/dbs/metadata/cluster_operation_log", description=_("修改dbs log单据ID")
+        )
+        self.add_operation_log = self.generate_data_api(
+            method="POST", url="/v4/dbs/metadata/cluster_operation_log", description=_("添加操作日志")
         )
 
 
