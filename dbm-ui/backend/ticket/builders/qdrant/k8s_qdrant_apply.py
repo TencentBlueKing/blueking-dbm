@@ -14,12 +14,14 @@ import re
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.components.kubernetes.client import KubernetesApi
 from backend.db_meta.enums import ClusterType
-from backend.flow.engine.controller.qdrant_temp import QdrantController
+from backend.flow.engine.controller.qdrant import QdrantController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import TicketBaseValidateSerializerMixin
 from backend.ticket.builders.qdrant.base import BaseQdrantTicketFlowBuilder
+from backend.ticket.builders.qdrant.enums import QdrantOperationType
 from backend.ticket.constants import TicketType
 
 
@@ -81,7 +83,7 @@ class K8sQdrantApplyDetailSerializer(TicketBaseValidateSerializerMixin, serializ
 
 
 class K8sQdrantApplyFlowParamBuilder(builders.FlowParamBuilder):
-    controller = QdrantController.placeholder
+    controller = QdrantController.qdrant_apply_scene
 
 
 @builders.BuilderFactory.register(
@@ -94,3 +96,24 @@ class K8sQdrantApplyFlowBuilder(BaseQdrantTicketFlowBuilder):
     serializer = K8sQdrantApplyDetailSerializer
     inner_flow_builder = K8sQdrantApplyFlowParamBuilder
     inner_flow_name = _("Qdrant部署执行")
+
+    # apply 场景的操作日志由本类自行写入(operation_type 为 CreateCluster)，
+    # 关闭基类的隐式日志，避免重复记录
+    enable_operation_log = False
+
+    def patch_ticket_detail(self):
+        # 调用 super() 完成单据详情的保存(基类真正的写库逻辑)，但基类在 enable_operation_log=False
+        # 时不会自动写操作日志；apply 场景的操作类型(CreateCluster)与基类不同，由本方法自行写入，
+        # 因此即便将来误改基类的 operation_type enable_operation_log 也不会造成重复日志
+        super().patch_ticket_detail()
+        # Todo: 后期操作记录全部由dba或dbm记录
+        name_space = "{}-{}-{}".format("qd", self.ticket.details["db_app_abbr"], self.ticket.bk_biz_id)
+        data = {
+            "ticketId": self.ticket.id,
+            "clusterName": self.ticket.details["cluster_name"],
+            "k8sClusterName": self.ticket.details["k8s_cluster_name"],
+            "nameSpace": name_space,
+            "requestType": QdrantOperationType.CreateCluster,
+            "bk_username": self.ticket.creator,
+        }
+        KubernetesApi.add_operation_log(data, use_admin=True)
