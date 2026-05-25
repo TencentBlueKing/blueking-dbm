@@ -3,6 +3,8 @@ package dbm
 import (
 	"encoding/json"
 	"testing"
+
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
 func TestDbInstMetadataUnmarshalJSONRoleCompatibility(t *testing.T) {
@@ -11,50 +13,50 @@ func TestDbInstMetadataUnmarshalJSONRoleCompatibility(t *testing.T) {
 	testCases := []struct {
 		name                 string
 		payload              map[string]any
-		expectedInstanceRole DbmMetadataInstanceRole
-		expectedSpiderRole   DbmMetadataSpiderRole
+		expectedInstanceRole haprobe.DbmMetadataInstanceRole
+		expectedSpiderRole   haprobe.DbmMetadataSpiderRole
 	}{
 		{
 			name: "only instance role",
 			payload: map[string]any{
-				"instance_role": MySQLStorageMaster,
+				"instance_role": haprobe.MySQLStorageMaster,
 				"ip":            "127.0.0.1",
 				"port":          20000,
 			},
-			expectedInstanceRole: MySQLStorageMaster,
+			expectedInstanceRole: haprobe.MySQLStorageMaster,
 			expectedSpiderRole:   "",
 		},
 		{
 			name: "only spider role",
 			payload: map[string]any{
-				"spider_role": TenDBClusterSpiderMaster,
+				"spider_role": haprobe.TenDBClusterSpiderMaster,
 				"ip":          "127.0.0.1",
 				"port":        20000,
 			},
-			expectedInstanceRole: TenDBClusterProxyMaster,
-			expectedSpiderRole:   TenDBClusterSpiderMaster,
+			expectedInstanceRole: haprobe.TenDBClusterProxyMaster,
+			expectedSpiderRole:   haprobe.TenDBClusterSpiderMaster,
 		},
 		{
 			name: "both roles with same value",
 			payload: map[string]any{
-				"instance_role": TenDBClusterProxySlave,
-				"spider_role":   TenDBClusterSpiderSlave,
+				"instance_role": haprobe.TenDBClusterProxySlave,
+				"spider_role":   haprobe.TenDBClusterSpiderSlave,
 				"ip":            "127.0.0.1",
 				"port":          20000,
 			},
-			expectedInstanceRole: TenDBClusterProxySlave,
-			expectedSpiderRole:   TenDBClusterSpiderSlave,
+			expectedInstanceRole: haprobe.TenDBClusterProxySlave,
+			expectedSpiderRole:   haprobe.TenDBClusterSpiderSlave,
 		},
 		{
 			name: "both roles conflict",
 			payload: map[string]any{
-				"instance_role": MySQLStorageMaster,
-				"spider_role":   TenDBClusterSpiderSlave,
+				"instance_role": haprobe.MySQLStorageMaster,
+				"spider_role":   haprobe.TenDBClusterSpiderSlave,
 				"ip":            "127.0.0.1",
 				"port":          20000,
 			},
-			expectedInstanceRole: MySQLStorageMaster,
-			expectedSpiderRole:   TenDBClusterSpiderSlave,
+			expectedInstanceRole: haprobe.MySQLStorageMaster,
+			expectedSpiderRole:   haprobe.TenDBClusterSpiderSlave,
 		},
 		{
 			name: "both roles missing",

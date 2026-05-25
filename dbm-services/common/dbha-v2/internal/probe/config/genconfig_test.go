@@ -75,13 +75,14 @@ type parsedRedisHarvester struct {
 }
 
 type parsedDbEndpoint struct {
-	Proto       string   `yaml:"proto"`
-	ClusterType string   `yaml:"clusterType"`
-	MachineType string   `yaml:"machineType"`
-	AccessLayer string   `yaml:"accessLayer"`
-	Ip          string   `yaml:"ip"`
-	Ports       []string `yaml:"ports,omitempty"`
-	AdminPorts  []string `yaml:"adminPorts,omitempty"`
+	Proto        string   `yaml:"proto"`
+	ClusterType  string   `yaml:"clusterType"`
+	MachineType  string   `yaml:"machineType"`
+	InstanceRole string   `yaml:"instanceRole,omitempty"`
+	AccessLayer  string   `yaml:"accessLayer"`
+	Ip           string   `yaml:"ip"`
+	Ports        []string `yaml:"ports,omitempty"`
+	AdminPorts   []string `yaml:"adminPorts,omitempty"`
 }
 
 func renderAndParse(t *testing.T, payload probeconfig.ProbeConfigPayload) parsedYAML {

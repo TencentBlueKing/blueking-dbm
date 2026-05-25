@@ -158,6 +158,7 @@ func (m *MySql) makeCollector(epoint config.DbEndpointConfig, eport int) *collec
 	c.accessLayer = epoint.AccessLayer
 	c.machineType = epoint.MachineType
 	c.clusterType = epoint.ClusterType
+	c.instanceRole = epoint.InstanceRole
 
 	c.user = m.cfg.User
 	c.password = m.cfg.Password
@@ -263,6 +264,7 @@ func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 		return
 	}
 
+	// Proxy admin port is not MySQL; special-case and return early.
 	if c.isTendbHaProxy() && c.isAdmin() {
 		dbStatus, err := c.obtainTendbHaProxyStatus()
 		if err != nil {
@@ -274,6 +276,13 @@ func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 		return
 	}
 
+	// disable session forwarding
+	if err := c.disableSpiderSessionForwarding(); err != nil {
+		logger.Warn("failed to disable spider session forwarding, errmsg: %s", err)
+		return
+	}
+
+	// special case for tdbctl
 	if c.isTendbClusterProxy() && c.isAdmin() {
 		dbStatus, err := c.obtainTendbClusterProxyStatus()
 		if err != nil {
@@ -284,12 +293,36 @@ func (m *MySql) collecting(c *collector, dataC chan<- *plugin.HarvestData) {
 		status.SpiderCtlStatus = dbStatus
 	}
 
-	// Get the global status.
-	// TendbHa and TendbCluster both support the global status.
-	if dbStatus, err := c.obtainGlobalStatus(); err != nil {
+	c.collectCommonStatus(status)
+}
+
+// collectCommonStatus collects the common status for all mysql instances.
+func (c *collector) collectCommonStatus(status *haprobe.MySqlStatus) {
+	dbStatus, err := c.obtainGlobalStatus()
+	if err != nil {
 		logger.Warn("failed to obtain the MySQL status, errmsg: %s", err)
-	} else {
-		status.GlobalStatus = dbStatus
+		return
+	}
+
+	status.GlobalStatus = dbStatus
+
+	isSlave := c.isSlave()
+
+	heartbeatStatus, err := c.obtainHeartbeatStatus(!isSlave)
+	if err != nil {
+		logger.Warn("failed to obtain the heartbeat status, errmsg: %s", err)
+		return
+	}
+
+	status.HeartbeatStatus = heartbeatStatus
+
+	if isSlave {
+		slaveStatus, err := c.obtainSlaveStatus()
+		if err != nil {
+			logger.Warn("failed to obtain the slave status, errmsg: %s", err)
+			return
+		}
+		status.SlaveStatus = slaveStatus
 	}
 }
 

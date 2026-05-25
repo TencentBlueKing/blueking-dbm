@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+import time
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 from typing import Dict
@@ -47,12 +48,26 @@ TODO_TYPE_CONTEXT = {
     "TIMER": _("定时中"),
 }
 
+CATEGORY_MAP = {
+    DBType.MySQL.value: "storage",
+    DBType.TenDBCluster.value: "storage",
+    DBType.Sqlserver.value: "storage",
+    DBType.Redis.value: "memory",
+    DBType.MongoDB.value: "memory",
+    DBType.Oracle.value: "memory",
+    DBType.Es.value: "big_data",
+    DBType.Kafka.value: "big_data",
+    DBType.Doris.value: "big_data",
+    DBType.Hdfs.value: "big_data",
+    DBType.Pulsar.value: "big_data",
+}
+
 REMIND_TITLE = _("「DBM」：每日待办提醒")
 
 TODO_DIR = f"{env.BK_SAAS_HOST}/ticket-self-todo"
 
 # MASS_CONTEXT_TEMPLATE = _("\n以下 DBA 有待办事项待处理：\n\n{}\n\n共 {} 人，{} 项待办\n")
-MASS_CONTEXT_TEMPLATE = _("\n待办人数：{} 人\n待办总数：{}条\n\n{}\n")
+MASS_CONTEXT_TEMPLATE = _("\n本条消息涉及DBA：{} 人\n待办总数：{}条\n\n{}\n")
 
 # ONE_ON_ONE_CONTEXT_TEMPLATE = _("\n你有以下待办事项待处理：\n\n{}\n")
 ONE_ON_ONE_CONTEXT_TEMPLATE = _("\nHi，{}\n\n您在「DBM」共有 {} 条待办待处理：\n\n{}\n\n")
@@ -186,29 +201,57 @@ def get_todo_context(count, text):
     return ""
 
 
-def get_mass_context(user_infos):
-    """组装群聊的待办模板"""
-    all_total = 0
-    max_len = 1000
-    user_contexts = ""
-    receivers = []
-    contexts = []
-    all_user_count = len(user_infos)
-    for username in user_infos:
-        all_user_count -= 1
-        receivers.append(username)
-        context_list = [context for context in user_infos[username]["context_list"] if context]
-        all_total += user_infos[username]["count"]
-        user_context = "，".join(context_list)
-        user_contexts += f"{username}：{user_context}\n"
+def get_db_type_dba_group(user_infos, groups):
+    """按组件性质划分dba人员组，对已经计算出结果的dba人员进行分组"""
+    storage_set = groups.get("storage", set())
+    memory_set = groups.get("memory", set())
+    big_data_set = groups.get("big_data", set())
 
-        if len(user_contexts) > max_len or all_user_count == 0:
-            at_list = "".join([f"<@{staff}>" for staff in receivers])
-            user_contexts += "\n" + at_list
-            contexts.append(MASS_CONTEXT_TEMPLATE.format(len(receivers), all_total, user_contexts))
-            receivers = []
-            user_contexts = ""
-            all_total = 0
+    storage_group = {}
+    memory_group = {}
+    big_data_group = {}
+    other_group = {}
+
+    # 人员划分到各自对应的组里， 目前分四个组
+    for username, info in user_infos.items():
+        if username in storage_set:
+            storage_group[username] = info
+        elif username in memory_set:
+            memory_group[username] = info
+        elif username in big_data_set:
+            big_data_group[username] = info
+        else:
+            other_group[username] = info
+
+    return [storage_group, memory_group, big_data_group, other_group]
+
+
+def get_mass_context(user_infos, groups):
+    """组装群聊的待办模板"""
+    db_type_groups = get_db_type_dba_group(user_infos, groups)
+    contexts = []
+    # 按不同的组件架构发送通知
+    for db_type_group in db_type_groups:
+        all_total = 0
+        max_len = 800
+        user_contexts = ""
+        receivers = []
+        all_user_count = len(db_type_group)
+        for username in db_type_group:
+            all_user_count -= 1
+            receivers.append(username)
+            context_list = [context for context in db_type_group[username]["context_list"] if context]
+            all_total += db_type_group[username]["count"]
+            user_context = "，".join(context_list)
+            user_contexts += f"{username}：{user_context}\n"
+
+            if len(user_contexts) > max_len or all_user_count == 0:
+                at_list = "".join([f"<@{staff}>" for staff in receivers])
+                user_contexts += "\n" + at_list
+                contexts.append(MASS_CONTEXT_TEMPLATE.format(len(receivers), all_total, user_contexts))
+                receivers = []
+                user_contexts = ""
+                all_total = 0
     return contexts
 
 
@@ -312,14 +355,21 @@ def send_todo_remind():
 
     # 如果有群里，则发送群聊消息
     if MsgType.WECOM_ROBOT.value in send_types:
+        groups = defaultdict(set)
+        # dba人员表按组件架构做分组
+        for admin in DBAdministrator.objects.all():
+            category = CATEGORY_MAP.get(admin.db_type, "other")
+            groups[category].update(admin.users)
 
-        mass_contexts = get_mass_context(dba_user)
+        mass_contexts = get_mass_context(dba_user, groups)
         if mass_contexts:
             receivers = [
                 conf["value"] for conf in todo_remind_conf["notice"] if conf["type"] == MsgType.WECOM_ROBOT.value
             ][0].split(",")
             for mass_context in mass_contexts:
                 send_msg(REMIND_TITLE, mass_context, receivers, MsgType.WECOM_ROBOT)
+                # 防止发送频率过快被限
+                time.sleep(0.5)
 
         # 发送完群聊剔除对应的类型
         send_types.remove(MsgType.WECOM_ROBOT)

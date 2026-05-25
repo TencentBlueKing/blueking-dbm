@@ -28,7 +28,6 @@ import (
 	"fmt"
 	"sort"
 
-	"dbm-services/common/dbha-v2/internal/analysis/dbm"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchcore"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
@@ -75,7 +74,7 @@ func MatchProxyBackendSimultaneous(instances []FailureInstanceInfo) int {
 				hasProxy = true
 			}
 			if inst.MachineType == haprobe.DbmMetadataMachineTypeBackend &&
-				inst.InstanceRole == dbm.MySQLStorageMaster.String() {
+				inst.InstanceRole == haprobe.MySQLStorageMaster.String() {
 				hasBackendMaster = true
 			}
 			if hasProxy && hasBackendMaster {
@@ -114,7 +113,7 @@ func MatchSpiderRemoteMasterSimultaneous(instances []FailureInstanceInfo) int {
 				hasSpider = true
 			}
 			if inst.MachineType == haprobe.DbmMetadataMachineTypeRemote &&
-				inst.InstanceRole == dbm.TenDBClusterStorageMaster.String() {
+				inst.InstanceRole == haprobe.TenDBClusterStorageMaster.String() {
 				hasRemoteMaster = true
 			}
 			if hasSpider && hasRemoteMaster {

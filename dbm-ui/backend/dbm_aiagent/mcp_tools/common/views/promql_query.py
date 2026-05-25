@@ -65,7 +65,7 @@ def query_promql_metrics_with_instances(cluster_domain, instance, p: PromQLQuery
             p.group_by.append("instance")
 
     promql_dict = p.prepare_promql()
-    expr = promql_dict.pop("expression")
+    expr = promql_dict.pop("expression", None)
     return execute_promql(
         prom_queries=promql_dict, expr=expr, start_time=p.start_time, end_time=p.end_time, step=p.step
     )

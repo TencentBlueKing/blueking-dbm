@@ -39,6 +39,7 @@ import (
 	"dbm-services/common/dbha-v2/pkg/probeconfig"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
 	"gorm.io/gorm"
 )
@@ -143,12 +144,13 @@ func convertFromDBHA(list []*hamodel.DbmMetadata) []probeconfig.ProbeMetadataIte
 	out := make([]probeconfig.ProbeMetadataItem, 0, len(list))
 	for _, m := range list {
 		out = append(out, probeconfig.ProbeMetadataItem{
-			IP:          m.IP,
-			Port:        m.Port,
-			AdminPort:   resolveAdminPort(m.AdminPort, string(m.InstanceRole)),
-			ClusterType: string(m.ClusterType),
-			MachineType: string(m.MachineType),
-			AccessLayer: string(m.AccessLayer),
+			IP:           m.IP,
+			Port:         m.Port,
+			AdminPort:    resolveAdminPort(m.AdminPort, m.InstanceRole),
+			ClusterType:  string(m.ClusterType),
+			MachineType:  string(m.MachineType),
+			InstanceRole: m.InstanceRole,
+			AccessLayer:  string(m.AccessLayer),
 		})
 	}
 	return out
@@ -159,12 +161,13 @@ func convertFromDBM(list []*dbm.DbInstMetadata) []probeconfig.ProbeMetadataItem 
 	out := make([]probeconfig.ProbeMetadataItem, 0, len(list))
 	for _, m := range list {
 		out = append(out, probeconfig.ProbeMetadataItem{
-			IP:          m.IP,
-			Port:        m.Port,
-			AdminPort:   resolveAdminPort(m.AdminPort, string(m.InstanceRole)),
-			ClusterType: string(m.ClusterType),
-			MachineType: string(m.MachineType),
-			AccessLayer: string(m.AccessLayer),
+			IP:           m.IP,
+			Port:         m.Port,
+			AdminPort:    resolveAdminPort(m.AdminPort, string(m.InstanceRole)),
+			ClusterType:  string(m.ClusterType),
+			MachineType:  string(m.MachineType),
+			InstanceRole: string(m.InstanceRole),
+			AccessLayer:  string(m.AccessLayer),
 		})
 	}
 	return out
@@ -173,7 +176,7 @@ func convertFromDBM(list []*dbm.DbInstMetadata) []probeconfig.ProbeMetadataItem 
 // resolveAdminPort drops admin port for spider_slave nodes so probe skips
 // admin-port rendering for them.
 func resolveAdminPort(adminPort int, instanceRole string) int {
-	if instanceRole == string(dbm.TenDBClusterProxySlave) {
+	if instanceRole == string(haprobe.TenDBClusterProxySlave) {
 		return 0
 	}
 	return adminPort

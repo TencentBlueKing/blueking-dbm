@@ -116,7 +116,6 @@ class RedisRollbackExerciseFlow(object):
         at the main pipeline level always runs.
         """
         cluster_id = info["cluster_id"]
-        cluster = Cluster.objects.get(id=cluster_id)
         instance_ip = info["instance_ip"]
         instance_port = info["instance_port"]
         report_id = info["report_id"]
@@ -128,6 +127,14 @@ class RedisRollbackExerciseFlow(object):
         error_ignorable = config.get("error_ignorable", True)
 
         report = Report.objects.get(id=report_id)
+        try:
+            cluster = Cluster.objects.get(id=cluster_id)
+        except Cluster.DoesNotExist:
+            task_message = _("源集群 {} 不存在，跳过回档演练").format(cluster_id)
+            logger.warning(task_message)
+            report.mark(TaskStage.SKIPPED, task_message=task_message)
+            return None
+
         if not resource_applied or len(resource_applied) != 1:
             logger.warning(_("Resource applied is abnormal: {}").format(resource_applied or "None"))
             report.mark(TaskStage.RESOURCE_APPLI_FAILED, task_message=_("资源申请异常"))

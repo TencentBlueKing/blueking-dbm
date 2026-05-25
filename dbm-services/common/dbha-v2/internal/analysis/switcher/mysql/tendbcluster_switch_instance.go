@@ -67,7 +67,7 @@ func NewTendbClusterSwitchInstance(metadata *dbm.DbInstMetadata) (switchcore.Swi
 		res := &TenDBClusterRemoteSwitchInstance{
 			TenDBClusterBaseSwitchInstance: tendbClusterBaseInstance,
 		}
-		if metadata.InstanceRole == dbm.TenDBClusterStorageMaster {
+		if metadata.InstanceRole == haprobe.TenDBClusterStorageMaster {
 			res.SetStandbySlave(metadata.Receiver)
 		}
 		return res, nil
@@ -99,12 +99,12 @@ type TenDBClusterSpiderSwitchInstance struct {
 
 	// The following are instance metadata information from DBM
 
-	SpiderRole dbm.DbmMetadataSpiderRole
+	SpiderRole haprobe.DbmMetadataSpiderRole
 }
 
 // GetInstanceRole returns the role of this instance
-func (sw *TenDBClusterSpiderSwitchInstance) GetInstanceRole() dbm.DbmMetadataInstanceRole {
-	return dbm.DbmMetadataInstanceRole(sw.SpiderRole)
+func (sw *TenDBClusterSpiderSwitchInstance) GetInstanceRole() haprobe.DbmMetadataInstanceRole {
+	return haprobe.DbmMetadataInstanceRole(sw.SpiderRole)
 }
 
 // GetInstanceInfo returns instance information as string
@@ -119,7 +119,7 @@ func (sw *TenDBClusterSpiderSwitchInstance) GetInstanceInfo() string {
 // InitTdbctlHelper initializes the tdbctl helper
 func (sw *TenDBClusterSpiderSwitchInstance) InitTdbctlHelper() error {
 	brokenSpiderMasters := []BrokenSpiderMasterInfo{}
-	if sw.SpiderRole == dbm.TenDBClusterSpiderMaster {
+	if sw.SpiderRole == haprobe.TenDBClusterSpiderMaster {
 		brokenSpiderMasters = append(brokenSpiderMasters, BrokenSpiderMasterInfo{
 			BkCloudID: sw.BkCloudID,
 			IP:        sw.IP,
@@ -134,11 +134,11 @@ func (sw *TenDBClusterSpiderSwitchInstance) InitTdbctlHelper() error {
 // CheckBeforeSwitch check slave before switch
 func (sw *TenDBClusterSpiderSwitchInstance) CheckBeforeSwitch() (switchcore.SwitchCheckCode, error) {
 	switch sw.SpiderRole {
-	case dbm.TenDBClusterSpiderMaster:
+	case haprobe.TenDBClusterSpiderMaster:
 		sw.ReportLogf(switchlogger.SwitchInfo, "this is a spider master node, no need to check")
 		return switchcore.SwitchRequired, nil
 
-	case dbm.TenDBClusterSpiderSlave:
+	case haprobe.TenDBClusterSpiderSlave:
 		sw.ReportLogf(switchlogger.SwitchInfo, "this is a spider slave node, no need to check")
 		return switchcore.SwitchRequired, nil
 
@@ -273,11 +273,11 @@ func (sw *TenDBClusterRemoteSwitchInstance) CheckTenDBClusterStorageMaster() (sw
 func (sw *TenDBClusterRemoteSwitchInstance) CheckBeforeSwitch() (switchcore.SwitchCheckCode, error) {
 	switch sw.InstanceRole {
 	// Notice: remote slave node is not required to be switched
-	case dbm.TenDBClusterStorageSlave:
+	case haprobe.TenDBClusterStorageSlave:
 		sw.ReportLogf(switchlogger.SwitchInfo, "this is a slave node, no need to check")
 		return switchcore.SwitchNotNeeded, nil
 
-	case dbm.TenDBClusterStorageMaster:
+	case haprobe.TenDBClusterStorageMaster:
 		return sw.CheckTenDBClusterStorageMaster()
 
 	default:

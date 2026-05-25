@@ -66,13 +66,14 @@ type ReporterConfig struct {
 
 // DbEndpointConfig db instance endpoint config
 type DbEndpointConfig struct {
-	Proto       string                             `yaml:"proto"       mapstructure:"proto"`
-	ClusterType haprobe.DbmMetadataClusterType     `yaml:"clusterType" mapstructure:"clusterType"`
-	MachineType haprobe.DbmMetadataMachineType     `yaml:"machineType" mapstructure:"machineType"`
-	AccessLayer haprobe.DbmMetadataAccessLayerType `yaml:"accessLayer" mapstructure:"accessLayer"`
-	Ip          string                             `yaml:"ip"          mapstructure:"ip"`
-	Ports       []string                           `yaml:"ports"       mapstructure:"ports"`
-	AdminPorts  []string                           `yaml:"adminPorts"  mapstructure:"adminPorts"`
+	Proto        string                             `yaml:"proto"        mapstructure:"proto"`
+	ClusterType  haprobe.DbmMetadataClusterType     `yaml:"clusterType"  mapstructure:"clusterType"`
+	MachineType  haprobe.DbmMetadataMachineType     `yaml:"machineType"  mapstructure:"machineType"`
+	InstanceRole haprobe.DbmMetadataInstanceRole    `yaml:"instanceRole" mapstructure:"instanceRole"`
+	AccessLayer  haprobe.DbmMetadataAccessLayerType `yaml:"accessLayer"  mapstructure:"accessLayer"`
+	Ip           string                             `yaml:"ip"           mapstructure:"ip"`
+	Ports        []string                           `yaml:"ports"        mapstructure:"ports"`
+	AdminPorts   []string                           `yaml:"adminPorts"   mapstructure:"adminPorts"`
 }
 
 // MySqlHarvesterConfig MySQL harvester config.

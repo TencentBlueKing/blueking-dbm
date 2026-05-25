@@ -35,6 +35,7 @@ import (
 
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/hanet"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 	"dbm-services/common/dbha-v2/tools/internal/cluster/config"
 )
 
@@ -190,19 +191,19 @@ func (c *Client) QueryMetadataFromDbm(bkCloudId int, ips []string) ([]*DbInstMet
 }
 
 // QueryInstanceRole queries instance role from DBM
-func (c *Client) QueryInstanceRole(ip string, port int) (DbmMetadataInstanceRole, error) {
+func (c *Client) QueryInstanceRole(ip string, port int) (haprobe.DbmMetadataInstanceRole, error) {
 	metadataList, err := c.QueryMetadataFromDbm(0, []string{ip})
 	if err != nil {
-		return EmptyInstanceRole, err
+		return "", err
 	}
 
 	for _, metadata := range metadataList {
 		if metadata.IP == ip && metadata.Port == port {
-			return DbmMetadataInstanceRole(metadata.InstanceRole), nil
+			return haprobe.DbmMetadataInstanceRole(metadata.InstanceRole), nil
 		}
 	}
 
-	return EmptyInstanceRole, gerrors.Newf(gerrors.Failure, "failed to find instance (%s:%d)", ip, port)
+	return "", gerrors.Newf(gerrors.Failure, "failed to find instance (%s:%d)", ip, port)
 }
 
 // SwapMySQLRole swaps master-slave roles between two MySQL instances

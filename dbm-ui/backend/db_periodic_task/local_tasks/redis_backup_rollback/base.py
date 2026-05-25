@@ -26,6 +26,7 @@ from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.enums import ClusterPhase, DestroyedStatus, InstanceInnerRole
 from backend.db_meta.models import Cluster, StorageInstance
+from backend.db_periodic_task.local_tasks.redis_backup.config import RedisBackupCheckConfig
 from backend.db_report.enums import RedisRollbackExerciseTaskStage as TaskStage
 from backend.db_report.models import RedisRollbackExerciseReport as Report
 from backend.db_services.redis.rollback.handlers import DataStructureHandler
@@ -216,6 +217,7 @@ class RedisRollbackExercise:
                     backup_check_instance.port,
                     cluster,
                     rollback_days=self.config.rollback_days,
+                    backup_check_instance=backup_check_instance,
                 )
 
                 if is_valid:
@@ -362,15 +364,21 @@ class RedisRollbackExercise:
                 return self._consume_from_queue(num)
 
     def _validate_instance(
-        self, instance_ip: str, instance_port: int, cluster: Cluster, rollback_days: List[int]
+        self,
+        instance_ip: str,
+        instance_port: int,
+        cluster: Cluster,
+        rollback_days: List[int],
+        backup_check_instance: Optional[StorageInstance] = None,
     ) -> tuple:
         """
         Validate if instance is suitable for rollback exercise.
 
         Validations:
         1. Backup availability (full backup + binlog when applicable)
-        2. No existing temp instance (not destroyed) in tb_tendis_rollback_tasks
-        3. No undone conflicting ticket
+        2. Recent master-slave switch downgrades missing backup to skipped
+        3. No existing temp instance (not destroyed) in tb_tendis_rollback_tasks
+        4. No undone conflicting ticket
 
         Returns:
             tuple: (is_valid, full_backup_log, days_used, recovery_time_point,
@@ -400,6 +408,13 @@ class RedisRollbackExercise:
             fail_reason = _("Instance {}:{} - No valid backup across rollback days {}: {}").format(
                 instance_ip, instance_port, rollback_days, backup_fail_reason or _("unknown")
             )
+            switch_hours = self._recent_master_slave_switch_hours(backup_check_instance)
+            if switch_hours is not None:
+                fail_reason = _(
+                    "{} (possible recent master-slave switch, {}h ago; backup file may be missing)"
+                ).format(fail_reason, switch_hours)
+                return False, None, None, None, None, fail_reason, ValidationFailureKind.ENV_SKIPPED
+            # No recent switch — genuine backup missing.
             return False, None, None, None, None, fail_reason, ValidationFailureKind.BACKUP_INVALID
 
         # 2. Temp instance check
@@ -433,6 +448,22 @@ class RedisRollbackExercise:
             return False, None, None, None, None, fail_reason, ValidationFailureKind.ENV_SKIPPED
 
         return True, full_backup, days_used, recovery_time_point, binlog_summary, None, None
+
+    @staticmethod
+    def _recent_master_slave_switch_hours(slave_instance: Optional[StorageInstance]) -> Optional[int]:
+        """Return tuple age in hours when the slave was attached after a recent switch."""
+        if slave_instance is None:
+            return None
+
+        tuple_obj = slave_instance.as_receiver.order_by("-create_at").first()
+        if tuple_obj is None:
+            return None
+
+        threshold_hours = RedisBackupCheckConfig.from_settings().min_instance_age_hours
+        tuple_age = django_timezone.now() - tuple_obj.create_at
+        if tuple_age < timedelta(hours=threshold_hours):
+            return int(tuple_age.total_seconds() // 3600)
+        return None
 
     def _create_ticket(self, valid_instances: List[dict]):
         """

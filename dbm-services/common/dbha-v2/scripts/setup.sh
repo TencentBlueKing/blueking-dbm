@@ -344,6 +344,12 @@ workflow:
     dbConnectTimeout: 3s
     clusterLockTimeout: 60s
     execSqlTimeout: 6s
+    slaveAllowedIgnoreCheckSum: false
+    slaveAllowedIgnoreSlaveDelay: false
+    slaveAllowedSlowBytes: 0
+    slaveAllowedMaxChecksumFailCnt: 2
+    slaveAllowedMaxHeartbeatDelay: 600
+    slaveAllowedMaxIODelay: 300
 
   dbmApiMetadata:
     api: ${DBM_API_BASE}/apis/proxypass/dbmeta/dbha/instances

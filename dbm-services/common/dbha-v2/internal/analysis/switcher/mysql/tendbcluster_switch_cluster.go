@@ -106,7 +106,7 @@ type TenDBClusterSwitchCluster struct {
 func (cluster *TenDBClusterSwitchCluster) SetStandbySlaveMap() {
 	standbySlaveMap := map[switchcore.MetadataKey]*dbm.DbmMetadataSlaveInfo{}
 	for instKey, instData := range cluster.SwitchInstances {
-		if instData.InstanceRole != dbm.TenDBClusterStorageMaster {
+		if instData.InstanceRole != haprobe.TenDBClusterStorageMaster {
 			continue
 		}
 
@@ -220,13 +220,13 @@ func (cluster *TenDBClusterSwitchCluster) checkRemoteNode(instKey switchcore.Met
 
 	switch instData.InstanceRole {
 	// Notice: remote slave node is not required to be switched
-	case dbm.TenDBClusterStorageSlave:
+	case haprobe.TenDBClusterStorageSlave:
 		// cluster.RemoteSlaveKeyList = append(cluster.RemoteSlaveKeyList, instKey)
 		cluster.ReportLogf(instKey, switchlogger.SwitchInfo,
 			"check result before switch: no need to switch, this is a remote slave node")
 		return nil
 
-	case dbm.TenDBClusterStorageMaster:
+	case haprobe.TenDBClusterStorageMaster:
 		if err := cluster.CheckRemoteMaster(instKey); err != nil {
 			return err
 		}
@@ -445,7 +445,7 @@ func (cluster *TenDBClusterSwitchCluster) initTdbctlHelper() {
 	brokenSpiderMasters := []BrokenSpiderMasterInfo{}
 	for _, instKey := range cluster.SpiderKeyList {
 		instData, exists := cluster.SwitchInstances[instKey]
-		if !exists || (instData.SpiderRole != dbm.TenDBClusterSpiderMaster) {
+		if !exists || (instData.SpiderRole != haprobe.TenDBClusterSpiderMaster) {
 			continue
 		}
 		brokenSpiderMasters = append(brokenSpiderMasters, BrokenSpiderMasterInfo{

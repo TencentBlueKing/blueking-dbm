@@ -33,35 +33,6 @@ const (
 	Available   DbmMetadataStatus = "available"
 )
 
-// the "instance_role" in metadata.
-type DbmMetadataInstanceRole string
-
-const (
-	// mysql instance role
-	MySQLStorageMaster   DbmMetadataInstanceRole = "backend_master"
-	MySQLStorageSlave    DbmMetadataInstanceRole = "backend_slave"
-	MySQLStorageRepeater DbmMetadataInstanceRole = "backend_repeater"
-
-	// tendbcluster instance role
-	TenDBClusterStorageMaster DbmMetadataInstanceRole = "remote_master"
-	TenDBClusterStorageSlave  DbmMetadataInstanceRole = "remote_slave"
-	TenDBClusterProxyMaster   DbmMetadataInstanceRole = "spider_master"
-	TenDBClusterProxySlave    DbmMetadataInstanceRole = "spider_slave"
-)
-
-// String returns the string representation of DbmMetadataInstanceRole.
-func (d DbmMetadataInstanceRole) String() string {
-	return string(d)
-}
-
-// the "spider_role" in metadata.
-type DbmMetadataSpiderRole string
-
-const (
-	TenDBClusterSpiderMaster DbmMetadataSpiderRole = "spider_master"
-	TenDBClusterSpiderSlave  DbmMetadataSpiderRole = "spider_slave"
-)
-
 // DbmMetadataSlaveInfo defined "receiver" info in metadata.
 type DbmMetadataSlaveInfo struct {
 	Ip        string            `json:"ip"`
