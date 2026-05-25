@@ -269,7 +269,7 @@
     ).then((res) => {
       res.forEach((data, index) => {
         tableData.value[index].backupRecord = data;
-        tableData.value[index].backupTime = data?.backup_time;
+        tableData.value[index].backupTime = formData.value.backup_time;
       });
     });
   };
@@ -282,11 +282,17 @@
     flush() {
       setTimeout(() => {
         // 需要更新的行索引
-        const targetRow: number[] = [];
+        const targetRow: {
+          backupTime: string;
+          rowIndex: number;
+        }[] = [];
         const taskList: Promise<BackupLogRecordModel>[] = [];
         tableData.value.forEach((rowData, rowIndex) => {
           if (rowData.cluster.id) {
-            targetRow.push(rowIndex);
+            targetRow.push({
+              backupTime: rowData.backupTime,
+              rowIndex,
+            });
             taskList.push(
               queryLatestTimeBackupLog({
                 backup_source: props.backupSource,
@@ -301,8 +307,9 @@
 
         Promise.all(taskList).then((res) => {
           res.forEach((data, index) => {
-            tableData.value[targetRow[index]].backupRecord = data;
-            tableData.value[targetRow[index]].backupTime = data?.backup_time;
+            const { backupTime, rowIndex } = targetRow[index];
+            tableData.value[rowIndex].backupRecord = data;
+            tableData.value[rowIndex].backupTime = backupTime;
           });
         });
       }, 1000);
