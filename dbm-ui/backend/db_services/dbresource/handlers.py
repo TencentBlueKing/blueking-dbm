@@ -17,19 +17,25 @@ from typing import Any, Dict, List
 from celery import shared_task
 from django.utils.translation import gettext as _
 
+from backend import env
 from backend.components import CCApi
 from backend.components.dbresource.client import DBResourceApi
 from backend.components.gse.client import GseApi
 from backend.configuration.constants import COST_ESTIMATE_TEMPLATE, DBType, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
+from backend.db_dirty.constants import MachineEventType, PoolType
 from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 from backend.db_meta.models import AppCache, Machine, Spec, Tag
-from backend.db_services.dbresource.exceptions import SpecOperateException
+from backend.db_services.dbresource.exceptions import ResourceReturnException, SpecOperateException
 from backend.db_services.dbresource.models import ResourceReplenishRecord
+from backend.db_services.ipchooser.constants import ModeType
+from backend.db_services.ipchooser.handlers.topo_handler import TopoHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
+from backend.db_services.ipchooser.types import ScopeList
+from backend.flow.utils.cc_manage import CcManage
 from backend.ticket.constants import TicketType
-from backend.ticket.models import Ticket
+from backend.ticket.models import Ticket, Todo
 from backend.utils.cache import func_cache_decorator
 from backend.utils.excel import ExcelHandler
 
@@ -778,6 +784,99 @@ class ResourceHandler(object):
         wb = ExcelHandler.serialize(data_list, headers=headers, match_header=True)
 
         return ExcelHandler.response(wb, "dbm_resource_list.xlsx")
+
+    @classmethod
+    def list_dba_hosts(cls, params, bk_biz_id):
+        scope_list: ScopeList = [{"scope_id": bk_biz_id, "scope_type": "biz", "bk_biz_id": bk_biz_id}]
+        trees: List[Dict] = TopoHandler.trees(all_scope=True, mode=ModeType.IDLE_ONLY.value, scope_list=scope_list)
+        node_list: ScopeList = [
+            {"instance_id": trees[0]["instance_id"], "meta": trees[0]["meta"], "object_id": "module"}
+        ]
+        params.update(readable_node_list=node_list)
+        host_infos = TopoHandler.query_hosts(**params)
+
+        # 查询DBA业务下的空闲机，并排除掉已经在资源池的空闲机
+        resource_hosts = DBResourceApi.resource_list_all()["details"] or []
+        resource_host_ids = [host["bk_host_id"] for host in resource_hosts]
+
+        for host in host_infos["data"]:
+            host.update(occupancy=(host["host_id"] in resource_host_ids))
+        return host_infos
+
+    @classmethod
+    def resource_import(cls, data, username):
+        host_ids = [host["host_id"] for host in data.pop("hosts")]
+
+        # 查询主机信息，并按照集群类型聚合
+        host_infos = ResourceQueryHelper.search_cc_hosts(role_host_ids=host_ids)
+        os_hosts = defaultdict(list)
+        for host in host_infos:
+            host.update(ip=host["bk_host_innerip"], host_id=host["bk_host_id"], city_name=host.get("idc_city_name"))
+            os_hosts[host["bk_os_type"]].append(host)
+
+        # 按照集群类型分别导入
+        ticket_ids = []
+        for os_type, hosts in os_hosts.items():
+            # 补充必要的单据参数
+            data.update(
+                ticket_type=TicketType.RESOURCE_IMPORT,
+                created_by=username,
+                uid=None,
+                hosts=hosts,
+                operator=username,
+                os_type=os_type,
+            )
+            # 目前产品上重导入只允许从故障池转入资源池
+            remark = _("故障池主机转回资源池") if data.get("return_resource") else ""
+            # 创建资源导入单据
+            ticket = Ticket.create_ticket(
+                ticket_type=TicketType.RESOURCE_IMPORT,
+                creator=username,
+                bk_biz_id=data["bk_biz_id"],
+                remark=remark,
+                details=data,
+            )
+            ticket_ids.append(ticket.id)
+        return ticket_ids
+
+    @classmethod
+    def resource_delete(cls, data, username, hosts_qs=None):
+        from backend.db_dirty.models import DirtyMachine, MachineEvent
+
+        bk_host_ids = [host["bk_host_id"] for host in data["hosts"]]
+
+        # 检查主机数量 & 仍处于资源池
+        if not hosts_qs:
+            hosts_qs = DirtyMachine.objects.filter(bk_host_id__in=bk_host_ids)
+        if hosts_qs.count() != len(bk_host_ids):
+            raise ResourceReturnException(_("删除主机部分不存在资源池，请重新操作"))
+        if list(set(hosts_qs.values_list("pool", flat=True))) != [PoolType.Resource]:
+            raise ResourceReturnException(_("请保证删除的主机处于资源池中"))
+
+        if data["event"] == MachineEventType.UndoImport:
+            # 撤销导入需要判断机器是否可退回
+            ok, message = MachineEvent.hosts_can_return(bk_host_ids)
+            if not ok:
+                raise ResourceReturnException(message)
+
+            # 从资源池删除机器，并退回各个业务的空闲机。这里主机的业务ID就是导入时的来源业务
+            biz_hosts_groups = itertools.groupby(data["hosts"], key=lambda x: x["bk_biz_id"])
+            for bk_biz_id, hosts in biz_hosts_groups:
+                hosts = list(hosts)
+                MachineEvent.host_event_trigger(bk_biz_id, hosts, data["event"], username, remark=data["remark"])
+                CcManage.transfer_host_to_idlemodule_across_biz(bk_biz_id, [host["bk_host_id"] for host in hosts])
+        else:
+            # 转移故障池/待回收池则仅记录主机事件
+            MachineEvent.host_event_trigger(
+                env.DBA_APP_BK_BIZ_ID, data["hosts"], data["event"], username, remark=data["remark"]
+            )
+            Todo.host_todo_trigger(bk_host_ids, [username], data["event"], None)
+
+        # 调用资源池api删除资源
+        resp = DBResourceApi.resource_delete(params={"bk_host_ids": bk_host_ids}, raw=True)
+        if resp["code"]:
+            raise ResourceReturnException(_("资源删除失败，错误信息: {}").format(resp.get("message")))
+        return resp
 
 
 @shared_task
