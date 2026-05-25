@@ -177,3 +177,16 @@ class ToolboxViewSet(viewsets.SystemViewSet):
         validated_data = self.params_validate(self.get_serializer_class())
         validated_data = offset_to_page(validated_data)
         return Response(KubernetesApi.pod_log(validated_data, use_admin=True))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取区域列表"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, url_path="get_regions")
+    def get_regions(self, request, *args, **kwargs):
+        """获取区域列表
+
+        调用 Kubernetes API 获取可用的区域列表
+        """
+        regions = KubernetesApi.get_regions(use_admin=True)
+        return Response(regions)
