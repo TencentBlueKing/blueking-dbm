@@ -10,23 +10,27 @@ specific language governing permissions and limitations under the License.
 """
 
 from django.utils.translation import gettext_lazy as _
-from rest_framework import serializers
 
+from backend.components.kubernetes.client import KubernetesApi
 from backend.db_meta.enums import ClusterPhase, ClusterType
-from backend.flow.engine.controller.qdrant_temp import QdrantController
+from backend.flow.engine.controller.qdrant import QdrantController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import TicketBaseValidateSerializerMixin
 from backend.ticket.builders.qdrant.base import BaseQdrantTicketFlowBuilder
+from backend.ticket.builders.qdrant.enums import QdrantOperationType
+from backend.ticket.builders.qdrant.k8s_qdrant_delete import K8sQdrantDeleteFlowParamBuilder, K8sQdrantDeleteSerializer
 from backend.ticket.constants import TicketType
 
 
-class K8sQdrantEnableSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
-    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+class K8sQdrantEnableSerializer(K8sQdrantDeleteSerializer):
+    pass
 
 
-class K8sQdrantEnableFlowParamBuilder(builders.FlowParamBuilder):
-    controller = QdrantController.placeholder
+class K8sQdrantEnableFlowParamBuilder(K8sQdrantDeleteFlowParamBuilder):
+    controller = QdrantController.qdrant_enable_scene
+
+    def format_ticket_data(self):
+        super().format_ticket_data()
 
 
 @builders.BuilderFactory.register(
@@ -39,3 +43,23 @@ class K8sQdrantEnableFlowBuilder(BaseQdrantTicketFlowBuilder):
     serializer = K8sQdrantEnableSerializer
     inner_flow_builder = K8sQdrantEnableFlowParamBuilder
     inner_flow_name = _("Qdrant集群启动执行")
+
+    def patch_ticket_detail(self):
+        super().patch_ticket_detail()
+        # Todo: 后期操作记录全部由dba或dbm记录
+        cluster_detail = KubernetesApi.cluster_detail(
+            {"cluster_id": self.ticket.details["cluster_id"]}, use_admin=True
+        )
+        name_space = cluster_detail.get("namespace")
+        k8s_cluster_name = cluster_detail.get("k8sClusterConfig", {}).get("clusterName", "")
+        for cluster_id, cluster_info in self.ticket.details["clusters"].items():
+            cluster_name = cluster_info.get("name")
+            data = {
+                "ticketId": self.ticket.id,
+                "clusterName": cluster_name,
+                "k8sClusterName": k8s_cluster_name,
+                "nameSpace": name_space,
+                "requestType": QdrantOperationType.StartCluster,
+                "bk_username": self.ticket.creator,
+            }
+            KubernetesApi.add_operation_log(data, use_admin=True)

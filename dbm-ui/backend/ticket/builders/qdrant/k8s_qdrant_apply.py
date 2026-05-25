@@ -14,12 +14,14 @@ import re
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.components.kubernetes.client import KubernetesApi
 from backend.db_meta.enums import ClusterType
-from backend.flow.engine.controller.qdrant_temp import QdrantController
+from backend.flow.engine.controller.qdrant import QdrantController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import TicketBaseValidateSerializerMixin
 from backend.ticket.builders.qdrant.base import BaseQdrantTicketFlowBuilder
+from backend.ticket.builders.qdrant.enums import QdrantOperationType
 from backend.ticket.constants import TicketType
 
 
@@ -81,7 +83,7 @@ class K8sQdrantApplyDetailSerializer(TicketBaseValidateSerializerMixin, serializ
 
 
 class K8sQdrantApplyFlowParamBuilder(builders.FlowParamBuilder):
-    controller = QdrantController.placeholder
+    controller = QdrantController.qdrant_apply_scene
 
 
 @builders.BuilderFactory.register(
@@ -94,3 +96,17 @@ class K8sQdrantApplyFlowBuilder(BaseQdrantTicketFlowBuilder):
     serializer = K8sQdrantApplyDetailSerializer
     inner_flow_builder = K8sQdrantApplyFlowParamBuilder
     inner_flow_name = _("Qdrant部署执行")
+
+    def patch_ticket_detail(self):
+        super().patch_ticket_detail()
+        # Todo: 后期操作记录全部由dba或dbm记录
+        name_space = "{}-{}-{}".format("qd", self.ticket.details["db_app_abbr"], self.ticket.bk_biz_id)
+        data = {
+            "ticketId": self.ticket.id,
+            "clusterName": self.ticket.details["cluster_name"],
+            "k8sClusterName": self.ticket.details["k8s_cluster_name"],
+            "nameSpace": name_space,
+            "requestType": QdrantOperationType.CreateCluster,
+            "bk_username": self.ticket.creator,
+        }
+        KubernetesApi.add_operation_log(data, use_admin=True)

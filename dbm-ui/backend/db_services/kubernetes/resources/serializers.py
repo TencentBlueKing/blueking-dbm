@@ -14,6 +14,7 @@ from rest_framework import serializers
 
 
 class ClusterOperationLogSerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     limit = serializers.IntegerField(help_text=_("分页限制"), required=False, default=10)
     offset = serializers.IntegerField(help_text=_("分页起始"), required=False, default=0)
     k8sClusterName = serializers.CharField(help_text=_("k8s集群名称"))
@@ -22,6 +23,8 @@ class ClusterOperationLogSerializer(serializers.Serializer):
     creator = serializers.CharField(help_text=_("操作人"), required=False)
     requestType = serializers.CharField(help_text=_("操作类型"), required=False)
     requestParams = serializers.CharField(help_text=_("操作内容"), required=False)
+    startTime = serializers.CharField(help_text=_("开始时间"), required=False)
+    endTime = serializers.CharField(help_text=_("结束时间"), required=False)
 
 
 class KubernetesTopoGraphSerializer(serializers.Serializer):

@@ -18,6 +18,7 @@ from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.query import CommonExportQueryResourceMixin, ResourceList
 from backend.db_services.kubernetes.utils import offset_to_page
+from backend.ticket.constants import TicketType
 
 
 class KubernetesBaseExportQueryResourceMixin(CommonExportQueryResourceMixin):
@@ -144,18 +145,75 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
         @param filter_params_map: 过滤参数map
         """
         result = {"count": 0, "data": []}
-        data = {
-            "k8sClusterName": query_params["k8s_cluster_name"],
-            "clusterName": query_params["cluster_name"],
-            "namespace": query_params["namespace"],
-            # "componentName": query_params["role"],
-        }
-        for role in cls.instance_roles:
-            data["componentName"] = role
 
-        res = KubernetesApi.component_pods(data, use_admin=True)
-        result["count"] += res.get("count", 0)
-        result["data"].extend(res.get("data", []))
+        # 支持多集群查询：解析集群参数，支持逗号分隔的多值或列表
+        cluster_names = query_params.get("cluster_name", "")
+        k8s_cluster_names = query_params.get("k8s_cluster_name", "")
+        namespaces = query_params.get("namespace", "")
+
+        # 解析多值参数（支持逗号分隔的字符串或列表）
+        cluster_name_list = cluster_names.split(",") if isinstance(cluster_names, str) else (cluster_names or [])
+        k8s_cluster_name_list = (
+            k8s_cluster_names.split(",") if isinstance(k8s_cluster_names, str) else (k8s_cluster_names or [])
+        )
+        namespace_list = namespaces.split(",") if isinstance(namespaces, str) else (namespaces or [])
+
+        # 批量反查 cluster_id，用于权限字段嵌入(viewsets.list_instances 的 id_field=lambda d: d["cluster_id"])
+        # 构建 cluster_name -> cluster_id 的映射
+        cluster_id_map = {}
+        cluster_ids = query_params.get("cluster_id")
+        if cluster_ids:
+            # 如果传入了 cluster_id，支持多选（逗号分隔或列表）
+            id_list = cluster_ids.split(",") if isinstance(cluster_ids, str) else cluster_ids
+            clusters = Cluster.objects.filter(bk_biz_id=bk_biz_id, id__in=id_list).only("id", "name")
+            cluster_id_map = {c.name: c.id for c in clusters}
+        else:
+            # 通过集群名反查，支持多选
+            if cluster_name_list:
+                clusters = Cluster.objects.filter(bk_biz_id=bk_biz_id, name__in=cluster_name_list).only("id", "name")
+                cluster_id_map = {c.name: c.id for c in clusters}
+
+        # 构建查询集群列表：如果有多集群，循环查询；否则按原逻辑查询
+        # 如果未配置 instance_roles，则按一次不带 componentName 的请求处理
+        roles = cls.instance_roles or [None]
+
+        # 确定需要查询的集群列表
+        if not cluster_name_list:
+            # 没有指定集群，不查询
+            return ResourceList(**result)
+
+        for idx, cluster_name in enumerate(cluster_name_list):
+            # 获取当前集群对应的 k8s_cluster_name 和 namespace（如果有多值则按索引对应，否则共用）
+            k8s_cluster_name = (
+                k8s_cluster_name_list[idx]
+                if idx < len(k8s_cluster_name_list)
+                else (k8s_cluster_name_list[0] if k8s_cluster_name_list else "")
+            )
+            namespace = (
+                namespace_list[idx] if idx < len(namespace_list) else (namespace_list[0] if namespace_list else "")
+            )
+
+            data = {
+                "k8sClusterName": k8s_cluster_name,
+                "clusterName": cluster_name,
+                "namespace": namespace,
+            }
+
+            # 获取当前集群的 cluster_id
+            current_cluster_id = cluster_id_map.get(cluster_name)
+
+            for role in roles:
+                if role is not None:
+                    data["componentName"] = role
+                res = KubernetesApi.component_pods(data, use_admin=True) or {}
+                result["count"] += res.get("count", 0)
+                pods = res.get("result") or []
+                # 给每条 pod 数据补充 cluster_id，供权限装饰器(id_field=lambda d: d["cluster_id"])使用
+                # 每个 pod 关联它所属的集群 ID
+                for pod in pods:
+                    pod["cluster_id"] = current_cluster_id
+                result["data"].extend(pods)
+
         return ResourceList(**result)
 
     @classmethod
@@ -166,9 +224,35 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
     @classmethod
     def get_operation_log(cls, bk_biz_id: int, query_params: Dict, limit: int, offset: int) -> ResourceList:
         """查询集群列表，补充公共字段"""
+        from backend.ticket.models import Ticket
+
         query_params = offset_to_page(query_params)
         res = KubernetesApi.cluster_operation_log(query_params, use_admin=True)
-        return ResourceList(**res)
+
+        # 获取所有操作日志的 ticket_id
+        operation_logs = res.get("result") or []
+        ticket_ids = [log.get("ticketId") for log in operation_logs if log.get("ticketId")]
+        ticket_ids = list(set(filter(None, ticket_ids)))  # 去重并过滤空值
+
+        # 批量查询 Ticket 信息
+        tickets = Ticket.objects.filter(id__in=ticket_ids).values("id", "status", "ticket_type")
+        ticket_map = {ticket["id"]: ticket for ticket in tickets}
+
+        # 为每条操作日志补充 ticket_status、ticket_type 和 ticket_type_display 字段
+        for log in operation_logs:
+            ticket_id = log.get("ticketId")
+            if ticket_id and ticket_id in ticket_map:
+                ticket = ticket_map[ticket_id]
+                log["ticket_status"] = ticket["status"]
+                log["ticket_type"] = ticket["ticket_type"]
+                # 获取单据类型的中文显示名
+                log["ticket_type_display"] = TicketType.get_choice_label(ticket["ticket_type"])
+            else:
+                log["ticket_status"] = None
+                log["ticket_type"] = None
+                log["ticket_type_display"] = None
+
+        return ResourceList(count=res.get("count", 0), data=operation_logs)
 
     @classmethod
     def get_component_spec(cls, query_params):

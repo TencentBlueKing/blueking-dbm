@@ -45,6 +45,7 @@ class K8sOperateBaseSerializer(serializers.Serializer):
     k8sClusterName = serializers.CharField(help_text=_("k8s集群名称"))
     namespace = serializers.CharField(help_text=_("命名空间"))
     clusterName = serializers.CharField(help_text=_("集群名称"))
+    bk_username = serializers.CharField(help_text=_("用户名"))
 
 
 class KubernetesRestartSerializer(K8sOperateBaseSerializer):
@@ -78,5 +79,6 @@ class KubernetesComponentConfigPodSerializer(K8sOperateBaseSerializer):
 class KubernetesPodLogSerializer(K8sOperateBaseSerializer):
     componentName = serializers.CharField(help_text=_("组件名称"))
     podName = serializers.CharField(help_text=_("组件实例名称"))
+    container = serializers.CharField(help_text=_("容器名称"))
     limit = serializers.IntegerField(help_text=_("分页限制"), required=False, default=10)
     offset = serializers.IntegerField(help_text=_("分页起始"), required=False, default=0)

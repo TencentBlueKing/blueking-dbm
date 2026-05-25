@@ -25,6 +25,8 @@ from backend.db_services.kubernetes.resources.serializers import (
     KubernetesRetrieveInstancesSerializer,
     KubernetesTopoGraphSerializer,
 )
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.drf_perm.cluster import ClusterDetailPermission
 
 
 @method_decorator(
@@ -38,6 +40,16 @@ class ListResourceViewSet(BaseListResourceViewSet):
 class KubernetesResourceViewSet(ResourceViewSet):
     query_class = KubernetesBaseListRetrieveResource
     retrieve_instances_slz = KubernetesRetrieveInstancesSerializer
+
+    def _get_custom_permissions(self):
+        """
+        K8s 资源视图的权限控制
+        retrieve_instance 不需要 ClusterDetailPermission（因为 K8s 实例通过
+        k8sClusterName + clusterName + podName 查询，不依赖 cluster_id）
+        """
+        if self.detail:
+            return [ClusterDetailPermission()]
+        return [DBManagePermission()]
 
     @action(methods=["GET"], detail=False, url_path="retrieve_instance")
     def retrieve_instance(self, request, bk_biz_id: int):
