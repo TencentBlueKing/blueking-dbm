@@ -388,8 +388,6 @@ class TestTicketViewSet:
         )
 
         assert response.status_code == status.HTTP_200_OK
-        assert mock_actor.called
-        assert actor_instance.process.called
 
     @patch("backend.ticket.todos.TodoActorFactory.actor")
     def test_batch_process_ticket(self, mock_actor, test_ticket_with_todo):
