@@ -12,8 +12,9 @@ import logging
 import math
 import time
 from collections import defaultdict
-from typing import List
+from typing import List, Optional
 
+from django.db.models import QuerySet
 from django.utils.translation import gettext as _
 
 from backend.components import CCApi
@@ -45,6 +46,7 @@ class DBDirtyMachineHandler(object):
         target: PoolType,
         remark: str = "",
         hcm_recycle: bool = False,
+        recycle_hosts: Optional[QuerySet] = None,
     ):
         """
         将主机转移待回收/故障池模块
@@ -54,9 +56,11 @@ class DBDirtyMachineHandler(object):
         @param target: 主机去向
         @param remark: 备注
         @param hcm_recycle: 是否在hcm创建回收单据，仅针对主机回收场景
+        @param recycle_hosts: 主机集合
         """
         bk_biz_id = get_resource_biz()
-        recycle_hosts = DirtyMachine.objects.filter(bk_host_id__in=bk_host_ids)
+        if not recycle_hosts:
+            recycle_hosts = DirtyMachine.objects.filter(bk_host_id__in=bk_host_ids)
         hosts = [{"bk_host_id": host.bk_host_id} for host in recycle_hosts]
         recycle_id = None
 
@@ -85,6 +89,11 @@ class DBDirtyMachineHandler(object):
             message = _("主机转移成功！")
             MachineEvent.host_event_trigger(bk_biz_id, hosts, MachineEventType.ToFault, operator, remark=remark)
             Todo.host_todo_trigger(bk_host_ids, [operator], MachineEventType.ToFault, None)
+
+            # 调用资源池api删除资源
+            resp = DBResourceApi.resource_delete(params={"bk_host_ids": bk_host_ids}, raw=True)
+            if resp["code"]:
+                raise PoolTransferException(_("资源删除失败，错误信息: {}").format(resp.get("message")))
         else:
             raise PoolTransferException(_("{}--->{}转移不合法").format(source, target))
 
