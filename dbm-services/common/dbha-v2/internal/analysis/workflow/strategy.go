@@ -74,7 +74,7 @@ func MatchProxyBackendSimultaneous(instances []FailureInstanceInfo) int {
 				hasProxy = true
 			}
 			if inst.MachineType == haprobe.DbmMetadataMachineTypeBackend &&
-				inst.InstanceRole == haprobe.MySQLStorageMaster.String() {
+				inst.InstanceRole == haprobe.MySQLStorageMaster {
 				hasBackendMaster = true
 			}
 			if hasProxy && hasBackendMaster {
@@ -113,7 +113,7 @@ func MatchSpiderRemoteMasterSimultaneous(instances []FailureInstanceInfo) int {
 				hasSpider = true
 			}
 			if inst.MachineType == haprobe.DbmMetadataMachineTypeRemote &&
-				inst.InstanceRole == haprobe.TenDBClusterStorageMaster.String() {
+				inst.InstanceRole == haprobe.TenDBClusterStorageMaster {
 				hasRemoteMaster = true
 			}
 			if hasSpider && hasRemoteMaster {

@@ -149,7 +149,7 @@ func convertFromDBHA(list []*hamodel.DbmMetadata) []probeconfig.ProbeMetadataIte
 			AdminPort:    resolveAdminPort(m.AdminPort, m.InstanceRole),
 			ClusterType:  string(m.ClusterType),
 			MachineType:  string(m.MachineType),
-			InstanceRole: m.InstanceRole,
+			InstanceRole: string(m.InstanceRole),
 			AccessLayer:  string(m.AccessLayer),
 		})
 	}
@@ -163,7 +163,7 @@ func convertFromDBM(list []*dbm.DbInstMetadata) []probeconfig.ProbeMetadataItem 
 		out = append(out, probeconfig.ProbeMetadataItem{
 			IP:           m.IP,
 			Port:         m.Port,
-			AdminPort:    resolveAdminPort(m.AdminPort, string(m.InstanceRole)),
+			AdminPort:    resolveAdminPort(m.AdminPort, m.InstanceRole),
 			ClusterType:  string(m.ClusterType),
 			MachineType:  string(m.MachineType),
 			InstanceRole: string(m.InstanceRole),
@@ -175,8 +175,8 @@ func convertFromDBM(list []*dbm.DbInstMetadata) []probeconfig.ProbeMetadataItem 
 
 // resolveAdminPort drops admin port for spider_slave nodes so probe skips
 // admin-port rendering for them.
-func resolveAdminPort(adminPort int, instanceRole string) int {
-	if instanceRole == string(haprobe.TenDBClusterProxySlave) {
+func resolveAdminPort(adminPort int, instanceRole haprobe.DbmMetadataInstanceRole) int {
+	if instanceRole == haprobe.TenDBClusterProxySlave {
 		return 0
 	}
 	return adminPort

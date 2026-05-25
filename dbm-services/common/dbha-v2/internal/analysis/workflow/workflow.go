@@ -94,12 +94,13 @@ type Workflow struct {
 	windowMgr         *BizWindowManager
 	popSwitchSem      chan struct{}
 	lockTracker       *InProcessLockTracker // makes the per-biz etcd switch lock reentrant within this AM
+	swSnapshotLogger  logger.Logger         // switching-snapshot-* log file; nil disables file snapshots
 }
 
 // New creates a workflow instance. discovery and registryPrefix are used to list and watch
 // same-module analysis instances for business sharding; myServiceID is this instance's ID.
 func New(cli *discovery.Client, db *hamysql.GormDB, disc *discovery.Discovery,
-	registryPrefix string, myServiceID string) (*Workflow, error) {
+	registryPrefix string, myServiceID string, swSnapshotLogger logger.Logger) (*Workflow, error) {
 
 	wflow := &Workflow{
 		hadata: &storage.DbhaData{
@@ -116,11 +117,12 @@ func New(cli *discovery.Client, db *hamysql.GormDB, disc *discovery.Discovery,
 			haprobe.DbTypeMySql: &switcher.Mysql{},
 		},
 
-		discoveryCli:   cli,
-		discovery:      disc,
-		registryPrefix: registryPrefix,
-		myServiceID:    myServiceID,
-		quit:           make(chan struct{}, 1),
+		discoveryCli:     cli,
+		discovery:        disc,
+		registryPrefix:   registryPrefix,
+		myServiceID:      myServiceID,
+		swSnapshotLogger: swSnapshotLogger,
+		quit:             make(chan struct{}, 1),
 	}
 
 	wflow.alarm = NewAlarmNotifier()
@@ -627,6 +629,8 @@ func (w *Workflow) handleStrategySwitch(strategy *hamodel.DbSwitchingStrategy, g
 	}, float64(len(req.MySqlInstData))); err != nil {
 		logger.Warn("failed to update switching instance total metric, errmsg: %s", err)
 	}
+
+	WriteSwitchSnapshot(strategy, group, req, w.swSnapshotLogger)
 
 	w.switchExecutor.TriggerSwitching(group.DbType, req)
 

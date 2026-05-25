@@ -108,10 +108,15 @@ func Run(cmd *cobra.Command, args []string) error {
 
 	gormLogger := logger.NewZapLogger(gormLogCfg)
 
+	// switching snapshot lines: SwitchID + JSON payload (same rotation as main log)
+	snapshotLogCfg := logCfg
+	snapshotLogCfg.FileName = filepath.Join(logDir, "switching-snapshot-"+logBasename)
+	snapshotLogger := logger.NewZapLogger(snapshotLogCfg)
+
 	logger.Debug("analysis startup config, log_path: %s, log_level: %s", config.Cfg.Log.Path, config.Cfg.Log.Level)
 
 	ctx := context.Background()
-	svr := &Service{etcdLogger: etcdLogger.OriginLogger(), gormLogger: gormLogger}
+	svr := &Service{etcdLogger: etcdLogger.OriginLogger(), gormLogger: gormLogger, swSnapshotLogger: snapshotLogger}
 
 	setupGracefulShutdown(svr)
 

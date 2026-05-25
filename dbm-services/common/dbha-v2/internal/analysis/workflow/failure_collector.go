@@ -30,18 +30,18 @@ import (
 
 // FailureInstanceInfo represents one instance that detector marked as failure (needs switching).
 type FailureInstanceInfo struct {
-	BkCloudID       int
-	IP              string
-	Port            int
-	BkBizID         int
-	Cluster         string
-	ClusterID       int
-	DbType          haprobe.DbType
-	EventName       haprobe.DbEventName            // failure event name for each instance
-	EventNameReason haprobe.DbEventNameReason      // event reason, for logging only, not used in strategy matching
-	ClusterType     haprobe.DbmMetadataClusterType // cluster type (needed for special strategy matching)
-	MachineType     haprobe.DbmMetadataMachineType // machine type (needed for special strategy matching)
-	InstanceRole    string                         // instance role, e.g. remote_master
+	BkCloudID       int                             `json:"bk_cloud_id"`
+	IP              string                          `json:"ip"`
+	Port            int                             `json:"port"`
+	BkBizID         int                             `json:"bk_biz_id"`
+	Cluster         string                          `json:"cluster"`
+	ClusterID       int                             `json:"cluster_id"`
+	DbType          haprobe.DbType                  `json:"db_type"`
+	EventName       haprobe.DbEventName             `json:"event_name"`
+	EventNameReason haprobe.DbEventNameReason       `json:"event_name_reason"`
+	ClusterType     haprobe.DbmMetadataClusterType  `json:"cluster_type"`
+	MachineType     haprobe.DbmMetadataMachineType  `json:"machine_type"`
+	InstanceRole    haprobe.DbmMetadataInstanceRole `json:"instance_role"`
 }
 
 // FailureGroup groups failure instances by (BkCloudID, DbType) for batch switching.
