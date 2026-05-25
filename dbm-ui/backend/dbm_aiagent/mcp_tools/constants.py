@@ -57,6 +57,7 @@ class DBMMcpTools(StrStructuredEnum):
     AI_REPORT = EnumField("ai-report", _("AI分析报告"))
     # MARKET
     DBM_PUBLIC_MARKET = EnumField("dbm-public-market", _("DBM公共服务"))
+    RESOURCE_POOL = EnumField("resource-pool", "resource-pool")
 
 
 class DBMMCPTags(StrStructuredEnum):
