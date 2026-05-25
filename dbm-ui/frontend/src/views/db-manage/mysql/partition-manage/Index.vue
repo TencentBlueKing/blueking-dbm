@@ -18,9 +18,11 @@
       <BkDropdown
         class="batch-operation ml-8"
         :popover-options="{
+          clickContentAutoHide: true,
+          boundary: 'body',
           renderDirective: 'show',
-          hideIgnoreReference: true,
-        }">
+        }"
+        trigger="click">
         <template #default="{ popoverShow }">
           <BkButton>
             {{ t('导出') }}
@@ -57,11 +59,13 @@
           content: t('请选择策略'),
         }"
         class="batch-operation ml-8"
-        :disabled="disabled"
         :popover-options="{
+          clickContentAutoHide: true,
+          boundary: 'body',
           renderDirective: 'show',
-          hideIgnoreReference: true,
-        }">
+          disableOutsideClick: disabled,
+        }"
+        trigger="click">
         <template #default="{ popoverShow }">
           <BkButton :disabled="disabled">
             {{ t('批量操作') }}
@@ -125,9 +129,9 @@
       :row-class="getRowClass"
       row-key="id"
       selectable
+      @bk-ui-settings-change="updateTableSettings"
       @clear-search="handleClearSearch"
-      @selection="handleTableSelection"
-      @setting-change="handleSettingChange">
+      @selection="handleTableSelection">
       <TableColumn
         col-key="id"
         fixed="left"
@@ -247,7 +251,7 @@
         col-key="operation"
         fixed="right"
         :title="t('操作')"
-        :width="200">
+        :width="130">
         <template #default="{ row }: { row: PartitionModel }">
           <!-- 执行按钮 -->
           <AuthButton
@@ -362,9 +366,9 @@
     getList,
   } from '@services/source/partitionManage';
 
-  import { useTicketMessage } from '@hooks';
+  import { useTableSettings, useTicketMessage } from '@hooks';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, UserPersonalSettings } from '@common/const';
 
   import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
@@ -375,11 +379,28 @@
   import ExcelImport from './components/excel-import/Index.vue';
   import FailLog from './components/fail-log/Index.vue';
   import PartitionOperation from './components/Operation.vue';
-  import useTableSetting from './hooks/useTableSetting';
 
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
-  const { handleChange: handleSettingChange, setting: tableSetting } = useTableSetting();
+
+  const { settings: tableSetting, updateTableSettings } = useTableSettings(
+    UserPersonalSettings.PARTITION_TABLE_SETTINGS,
+    {
+      checked: [
+        'id',
+        'immute_domain',
+        'dblike',
+        'tblike',
+        'partition_column',
+        'partition_column_type',
+        'partition_time_interval',
+        'expire_time',
+        'status',
+        'execute_time',
+        'operation',
+      ],
+    },
+  );
 
   const tableRef = ref();
   const searchValue = ref<Record<string, string>>({});

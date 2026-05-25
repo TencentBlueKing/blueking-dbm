@@ -36,13 +36,14 @@ export const useTableSettings = (key: string, defaultSettings: Settings) => {
   /**
    * 更新表头设置
    */
-  const updateTableSettings = (payload: { columns: string[]; fontSize: string; rowSize: string }) => {
+  const updateTableSettings = (payload?: { checked?: string[]; size?: string }) => {
+    if (!payload) return;
+    
     userProfileStore.updateProfile({
       label: key,
       values: {
-        checked: payload.columns,
-        fontSize: payload.fontSize,
-        rowSize: payload.rowSize,
+        checked: payload.checked,
+        size: payload.size,
       },
     });
   };
