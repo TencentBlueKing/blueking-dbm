@@ -32,6 +32,7 @@ import (
 	"dbm-services/common/dbha-v2/internal/probe/config"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/machine"
 )
 
 // BaseInfo holds agent identity info used by clients.
@@ -53,6 +54,11 @@ func NewReporter(cfg config.ReporterConfig) (Reporter, error) {
 	switch strings.ToLower(cfg.Name) {
 	case strings.ToLower(NameGSE):
 		return NewGSEClient(cfg, logger.Log())
+
+	case strings.ToLower(NameGRPC):
+		ctx := context.Background()
+		clientID, _ := machine.ID()
+		return NewReceiverClient(ctx, cfg.Endpoint, clientID)
 
 	default:
 		return nil, gerrors.Newf(gerrors.Unknown, "unknown reporter(%s)", cfg.Name)

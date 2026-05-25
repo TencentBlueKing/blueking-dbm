@@ -25,8 +25,6 @@
 package client
 
 import (
-	"io"
-	"math/rand"
 	"sync"
 	"time"
 
@@ -38,16 +36,16 @@ import (
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 )
+
+var NameGRPC = "GRPC"
 
 // ReceiverClient is the gRPC client for the receiver service.
 type ReceiverClient struct {
 	conn                 *grpc.ClientConn
 	client               proto.ReceiverServiceClient
-	stream               proto.ReceiverService_PushDataClient
 	wg                   sync.WaitGroup
 	ctx                  context.Context
 	cancel               context.CancelFunc
@@ -123,186 +121,41 @@ func NewReceiverClient(ctx context.Context, endpoints string, clientId string) (
 	return r, nil
 }
 
-func (r *ReceiverClient) createStream() error {
-	r.mutex.RLock()
+func (r *ReceiverClient) Name() string {
+	return NameGRPC
+}
+
+func (r *ReceiverClient) Post(ctx context.Context, content []byte) error {
+	r.mutex.Lock()
 	if r.closed {
-		r.mutex.RUnlock()
-		return gerrors.New(gerrors.Failure, "the grpc client is closed")
-	}
-	r.mutex.RUnlock()
-
-	stream, err := r.client.PushData(r.ctx)
-	if err != nil {
-		return gerrors.New(gerrors.Failure, err.Error())
-	}
-
-	r.mutex.Lock()
-	r.stream = stream
-	r.reconnectAttempts = 0
-	r.mutex.Unlock()
-
-	r.wg.Add(1)
-	go r.monitorConnection()
-
-	return nil
-}
-
-func (r *ReceiverClient) handleDisconnect() {
-	defer r.wg.Done()
-
-	r.mutex.Lock()
-	if r.closed || r.reconnecting {
 		r.mutex.Unlock()
-		return
+		return gerrors.New(gerrors.GrpcFailure, "receiver client closed, failed to post messages")
 	}
-
-	r.reconnecting = true
 	r.mutex.Unlock()
 
-	defer func() {
-		r.mutex.Lock()
-		r.reconnecting = false
-		r.mutex.Unlock()
-	}()
-
-	r.mutex.Lock()
-	r.reconnectAttempts++
-	reconnectAttempts := r.reconnectAttempts
-	maxAttempts := r.maxReconnectAttempts
-	r.mutex.Unlock()
-
-	if maxAttempts > 0 && reconnectAttempts > maxAttempts {
-		logger.Warn("max reconnect attempts(%d) reached, giving up.", maxAttempts)
-		return
-	}
-
-	// THe exponential backoff algorithm calculates the reconnection interval.
-	backoffInterval := r.reconnectInterval * time.Duration(1<<uint(reconnectAttempts-1))
-	// Add some randomness to avoid the stampede effect.
-	backoffInterval = backoffInterval + time.Duration(rand.Int63n(int64(backoffInterval/2)))
-	logger.Info("reconnect attempt(%d) in (%d)", reconnectAttempts, backoffInterval)
-	time.Sleep(backoffInterval)
-
-	// retry
-	logger.Info("receiver client attempting to reconnect...")
-	err := r.createStream()
-	if err != nil {
-		logger.Warn("receiver client reconnect failed, errmsg: %s", err)
-		r.wg.Add(1)
-		go r.handleDisconnect()
-		return
-	}
-
-	logger.Info("receiver client reconnect successful")
-}
-
-func (r *ReceiverClient) getConnectionState() connectivity.State {
-	r.mutex.RLock()
-	defer r.mutex.RUnlock()
-
-	if r.conn == nil {
-		return connectivity.Shutdown
-	}
-
-	return r.conn.GetState()
-}
-
-func (r *ReceiverClient) monitorConnection() {
-	defer r.wg.Done()
-
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-r.ctx.Done():
-			logger.Info("receiver client exited.")
-			r.mutex.Lock()
-			r.closed = true
-			r.mutex.Unlock()
-			return
-
-		case <-ticker.C:
-			r.mutex.RLock()
-			if r.closed {
-				r.mutex.RUnlock()
-				return
-			}
-			r.mutex.RUnlock()
-
-			state := r.getConnectionState()
-			if state == connectivity.TransientFailure || state == connectivity.Shutdown {
-				logger.Warn("connection state(%s), starting reconnecting", state.String())
-				r.wg.Add(1)
-				go r.handleDisconnect()
-				return
-			}
-
-			if state == connectivity.Idle {
-				err := r.register()
-				if err == nil {
-					return
-				}
-
-				if e, ok := err.(*gerrors.Error); ok && !e.HasCode(gerrors.NetException) {
-					return
-				}
-
-				logger.Warn("connection state(%s), starting reconnecting", state.String())
-				r.wg.Add(1)
-				go r.handleDisconnect()
-				return
-			}
-		}
-	}
-}
-
-func (r *ReceiverClient) register() error {
-	msg := &proto.ReceiverRequest{}
-
-	r.mutex.RLock()
-	if r.stream == nil {
-		r.mutex.RUnlock()
-		if err := r.createStream(); err != nil {
-			return err
-		}
-		r.mutex.RLock()
-	}
-	defer r.mutex.RUnlock()
-
-	if err := r.stream.Send(msg); err != nil {
-		if err == io.EOF {
-			return gerrors.New(gerrors.NetException, err.Error())
-		}
-
-		return gerrors.New(gerrors.NetException, err.Error())
-	}
-
-	return nil
-}
-
-// SendMessage sends content to the receiver.
-func (r *ReceiverClient) SendMessage(content []byte) error {
-	r.mutex.RLock()
-	if r.closed {
-		r.mutex.RUnlock()
-		return gerrors.New(gerrors.NetException, "client is closed")
-	}
-
-	if r.stream == nil {
-		r.mutex.RUnlock()
-		if err := r.createStream(); err != nil {
-			return err
-		}
-		r.mutex.RLock()
-	}
-	defer r.mutex.RUnlock()
-
-	msg := &proto.ReceiverRequest{
+	req := &proto.ReceiverRequest{
 		Payload: content,
 	}
 
-	return r.stream.Send(msg)
+	res, err := r.client.PushDataUnary(ctx, req)
+	if err != nil {
+		if res != nil {
+			return gerrors.Newf(gerrors.GrpcFailure,
+				"failed to post messages to receiver, grpc err: %s, receiver errmsg: %s",
+				err, res.Errmsg)
+		}
+		return gerrors.New(gerrors.GrpcFailure, err.Error())
+	}
+
+	return nil
+}
+
+func (r *ReceiverClient) GetBaseInfo() BaseInfo {
+	bkCloudID := config.Cfg.Reporter.BkCloudID
+
+	return BaseInfo{
+		BkCloudID: bkCloudID,
+	}
 }
 
 // Close closes the receiver client and connection.
@@ -314,14 +167,6 @@ func (r *ReceiverClient) Close() {
 	}
 	r.closed = true
 	r.mutex.Unlock()
-
-	// close stream
-	if r.stream != nil {
-		_, err := r.stream.CloseAndRecv()
-		if err != nil {
-			logger.Error("receiver client close and recv failed, errmsg: %s", err)
-		}
-	}
 
 	// close connection
 	if r.conn != nil {
