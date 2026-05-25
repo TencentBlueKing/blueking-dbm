@@ -531,16 +531,15 @@ func (op *TdbctlOperator) SelectRouteInfo(
 		return nil, gerrors.New(gerrors.Failure, "no server found")
 	}
 
-	routesStr, convertErr := converter.ToJsonStr(routeInfoList)
-	if convertErr != nil {
-		logger.Warn("failed to convert routes to json, err: %s",
-			convertErr.Error())
-		routesStr = fmt.Sprintf("%v", routeInfoList)
+	routesForLog := make([]TdbctlRouteInfo, len(routeInfoList))
+	for i, route := range routeInfoList {
+		routesForLog[i] = route
+		routesForLog[i].Password = "[secret]"
 	}
 
 	op.Logf(switchlogger.SwitchInfo,
 		"successfully queried routes from tdbctl node(%s:%d): %s",
-		tdbctlDB.Host(), tdbctlDB.Port(), routesStr)
+		tdbctlDB.Host(), tdbctlDB.Port(), converter.ToStrIgnoreErr(routesForLog))
 
 	return routeInfoList, nil
 }
@@ -619,6 +618,8 @@ func (op *TdbctlOperator) execAlterNode(
 
 	alterNodeSQL := fmt.Sprintf(TdbctlAlterNodeSql, masterRoute.ServerName,
 		slaveRoute.Host, slaveRoute.Port, slaveRoute.UserName, slaveRoute.Password)
+	sqlForLog := fmt.Sprintf(TdbctlAlterNodeSql, masterRoute.ServerName,
+		slaveRoute.Host, slaveRoute.Port, slaveRoute.UserName, "<secret>")
 
 	gdb, cancel := switchcore.GormWithExecSqlTimeout(tdbctlDB)
 	defer cancel()
@@ -627,7 +628,7 @@ func (op *TdbctlOperator) execAlterNode(
 	if result.Error != nil {
 		return gerrors.Newf(gerrors.Failure,
 			"failed to execute sql(%s) on tdbctl(%s:%d), errmsg: %s",
-			alterNodeSQL, tdbctlDB.Host(), tdbctlDB.Port(),
+			sqlForLog, tdbctlDB.Host(), tdbctlDB.Port(),
 			result.Error.Error())
 	}
 
