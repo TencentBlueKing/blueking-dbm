@@ -10,23 +10,26 @@ specific language governing permissions and limitations under the License.
 """
 
 from django.utils.translation import gettext_lazy as _
-from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterPhase, ClusterType
-from backend.flow.engine.controller.qdrant_temp import QdrantController
+from backend.flow.engine.controller.qdrant import QdrantController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import TicketBaseValidateSerializerMixin
 from backend.ticket.builders.qdrant.base import BaseQdrantTicketFlowBuilder
+from backend.ticket.builders.qdrant.enums import QdrantOperationType
+from backend.ticket.builders.qdrant.k8s_qdrant_delete import K8sQdrantDeleteFlowParamBuilder, K8sQdrantDeleteSerializer
 from backend.ticket.constants import TicketType
 
 
-class K8sQdrantEnableSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
-    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+class K8sQdrantEnableSerializer(K8sQdrantDeleteSerializer):
+    pass
 
 
-class K8sQdrantEnableFlowParamBuilder(builders.FlowParamBuilder):
-    controller = QdrantController.placeholder
+class K8sQdrantEnableFlowParamBuilder(K8sQdrantDeleteFlowParamBuilder):
+    controller = QdrantController.qdrant_enable_scene
+
+    def format_ticket_data(self):
+        super().format_ticket_data()
 
 
 @builders.BuilderFactory.register(
@@ -39,3 +42,4 @@ class K8sQdrantEnableFlowBuilder(BaseQdrantTicketFlowBuilder):
     serializer = K8sQdrantEnableSerializer
     inner_flow_builder = K8sQdrantEnableFlowParamBuilder
     inner_flow_name = _("Qdrant集群启动执行")
+    operation_type = QdrantOperationType.StartCluster
