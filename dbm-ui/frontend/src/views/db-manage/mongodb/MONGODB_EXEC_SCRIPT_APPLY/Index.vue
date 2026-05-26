@@ -76,17 +76,18 @@
     cluster_ids: [],
     execute_db_infos: [],
     execute_sqls: [] as string[],
-    import_mode: 'manual',
+    import_mode: 'manual' as const,
     payload: createTickePayload(),
   });
 
   const { t } = useI18n();
 
-  const formRef = ref();
-  const sqlFileRef = ref();
-  const formData = reactive(createDefaultData());
+  const formRef = useTemplateRef('formRef');
+  const sqlFileRef = useTemplateRef('sqlFileRef');
 
   const resetFormKey = ref(0);
+
+  const formData = reactive(createDefaultData());
 
   const isAbleSubmit = computed(() => formData.cluster_ids.length > 0 && formData.execute_sqls.length > 0);
 
@@ -101,15 +102,12 @@
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
     cluster_ids: number[];
     mode: string;
-    scripts: {
-      content: string;
-      name: string;
-    }[];
+    script_files: string[];
   }>(TicketTypes.MONGODB_EXEC_SCRIPT_APPLY);
 
   const handleSubmit = async () => {
-    await formRef.value.validate();
-    const executeInfo = sqlFileRef.value.getValue();
+    await formRef.value!.validate();
+    const executeInfo = sqlFileRef.value!.getValue();
 
     createTicketRun({
       details: {
