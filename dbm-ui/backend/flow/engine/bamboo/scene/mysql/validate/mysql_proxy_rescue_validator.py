@@ -81,7 +81,7 @@ class MySQLProxyRescueValidator(MysqlBaseValidator):
         """校验指定集群所有原有 Proxy 都不可用"""
         cluster_id = info["cluster_id"]
         try:
-            cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=self.data["bk_biz_id"])
+            cluster = Cluster.objects.get(id=cluster_id)
         except Cluster.DoesNotExist:
             return []
 
@@ -117,7 +117,7 @@ class MySQLProxyRescueValidator(MysqlBaseValidator):
         """参数完整性检查：无旧 Proxy 元数据时 proxy_port 为必填"""
         cluster_id = info["cluster_id"]
         try:
-            cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=self.data["bk_biz_id"])
+            cluster = Cluster.objects.get(id=cluster_id)
         except Cluster.DoesNotExist:
             return []
 
@@ -133,7 +133,7 @@ class MySQLProxyRescueValidator(MysqlBaseValidator):
         """校验指定集群 Master 实例存在"""
         cluster_id = info["cluster_id"]
         try:
-            cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=self.data["bk_biz_id"])
+            cluster = Cluster.objects.get(id=cluster_id)
         except Cluster.DoesNotExist:
             return []
 
