@@ -46,4 +46,8 @@ func RegisterRouter(engine *gin.Engine) {
 	p2.POST("/del_conf", v2.DelConf)
 	p2.POST("/disable_partition", v2.DisablePartition)
 	p2.POST("/enable_partition", v2.EnablePartition)
+	p2.POST("/disable_partition_cluster", v2.DisablePartitionByCluster)
+	p2.POST("/enable_partition_cluster", v2.EnablePartitionByCluster)
+	p2.POST("/cluster_del_conf", v2.DeletePartitionByCluster)
+
 }

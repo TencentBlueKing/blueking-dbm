@@ -70,7 +70,7 @@ def decommission(cluster: Cluster):
     # 删除集群相关的配置模板
     TendbOpenAreaConfig.objects.filter(source_cluster_id=cluster.id).delete()
     try:
-        DBPartitionApi.cluster_del_conf(
+        DBPartitionApi.cluster_del_conf_v2(
             params={"cluster_type": cluster.cluster_type, "bk_biz_id": cluster.bk_biz_id, "cluster_ids": [cluster.id]}
         )
     except Exception as e:  # noqa

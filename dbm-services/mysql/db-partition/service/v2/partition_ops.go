@@ -13,6 +13,8 @@ import (
 	"dbm-services/mysql/db-partition/service"
 
 	"golang.org/x/exp/slog"
+	"gorm.io/gorm"
+	glogger "gorm.io/gorm/logger"
 )
 
 // CreatePartitionsConfig v2 创建分区配置（逻辑独立实现），返回完整配置列表（包含 config_id）
@@ -89,7 +91,7 @@ func UpdatePartitionsConfig(input *service.CreatePartitionsInput) (error, []serv
 				continue
 			}
 
-			service.CreateManageLog(tbName, logTbName, partitionConfig.ID, "Update", input.Updator)
+			service.CreateManageLog(tbName, logTbName, partitionConfig.ID, opUpdate, input.Updator)
 
 			if ContainsMapV2(Slice2MapV2([]int{1, 3, 4}), partitionConfig.PartitionType) {
 				if input.PartitionColumn != partitionConfig.PartitionColumn ||
@@ -155,7 +157,7 @@ func DeletePartitionsConfig(input *service.DeletePartitionConfigByIds) error {
 	}
 
 	for _, configID := range input.Ids {
-		service.CreateManageLog(tbName, logTbName, configID, "Delete", input.Operator)
+		service.CreateManageLog(tbName, logTbName, configID, opDelete, input.Operator)
 	}
 
 	result := model.DB.Self.Table(tbName).
@@ -175,7 +177,7 @@ func DisablePartition(input *service.DisablePartitionInput) error {
 	if len(input.Ids) == 0 {
 		return errno.ConfigIdIsEmpty
 	}
-	return updatePhaseByIDsV2(input.ClusterType, "offline", "Disable", input.Operator, input.Ids)
+	return updatePhaseByIDsV2(input.ClusterType, phaseOffline, opDisable, input.Operator, input.Ids)
 }
 
 // EnablePartition v2 启用分区（逻辑独立实现）
@@ -183,7 +185,63 @@ func EnablePartition(input *service.EnablePartitionInput) error {
 	if len(input.Ids) == 0 {
 		return errno.ConfigIdIsEmpty
 	}
-	return updatePhaseByIDsV2(input.ClusterType, "online", "Enable", input.Operator, input.Ids)
+	return updatePhaseByIDsV2(input.ClusterType, phaseOnline, opEnable, input.Operator, input.Ids)
+}
+
+// DisablePartitionByCluster v2 集群维度禁用分区（phase=offlinewithclu）
+func DisablePartitionByCluster(input *service.DisablePartitionInput) error {
+	if len(input.ClusterIds) == 0 {
+		return errno.ConfigIdIsEmpty
+	}
+	return updatePhaseByClusterIDsV2(input.ClusterType, input.BkBizId, input.ClusterIds, phaseOfflineWithClu, opDisableByCluster, input.Operator)
+}
+
+// EnablePartitionByCluster v2 集群维度启用分区（phase=online）
+func EnablePartitionByCluster(input *service.EnablePartitionInput) error {
+	if len(input.ClusterIds) == 0 {
+		return errno.ConfigIdIsEmpty
+	}
+	// EnablePartitionInput 未携带 bk_biz_id，保持与 v1 一致：按 cluster_id 更新
+	return updatePhaseByClusterIDsV2(input.ClusterType, 0, input.ClusterIds, phaseOnline, opEnableByCluster, input.Operator)
+}
+
+// DeletePartitionsConfigByCluster v2 通过 cluster_id 删除分区配置
+func DeletePartitionsConfigByCluster(input *service.DeletePartitionConfigByClusterIds) (err error, info string) {
+	if input.BkBizId == 0 {
+		return errno.BkBizIdIsEmpty, ""
+	}
+	if len(input.ClusterIds) == 0 {
+		return errno.ConfigIdIsEmpty, ""
+	}
+
+	tbName, logTbName, err := resolvePartitionTablesV2(input.ClusterType)
+	if err != nil {
+		return err, ""
+	}
+
+	// 删除前写管理日志（CreateManageLogByCluster 内部自行查询，与下方 Delete 无关）
+	service.CreateManageLogByCluster(input.BkBizId, input.ClusterIds, tbName, logTbName, opDeleteByCluster, input.Operator)
+
+	sqlLogger := glogger.Default.LogMode(glogger.Info)
+	slog.Info("v2 DeletePartitionsConfigByCluster start",
+		"table", tbName,
+		"bk_biz_id", input.BkBizId,
+		"cluster_ids", input.ClusterIds,
+		"cluster_type", input.ClusterType)
+
+	result := model.DB.Self.Session(&gorm.Session{Logger: sqlLogger}).Table(tbName).
+		Where("cluster_id in ? and bk_biz_id = ?", input.ClusterIds, input.BkBizId).
+		Delete(&service.PartitionConfig{})
+	if result.Error != nil {
+		slog.Error("v2 DeletePartitionsConfigByCluster delete failed", "error", result.Error)
+		return result.Error, ""
+	}
+	slog.Info("v2 DeletePartitionsConfigByCluster delete done", "rows_affected", result.RowsAffected)
+
+	if result.RowsAffected == 0 {
+		return nil, "该集群无分区配置，无需清理分区策略。"
+	}
+	return nil, "分区配置信息删除成功！"
 }
 
 // updatePhaseByIDsV2 根据配置 ID 批量更新 phase，并记录管理日志
@@ -200,6 +258,55 @@ func updatePhaseByIDsV2(clusterType, phase, action, operator string, ids []int) 
 	}
 	for _, id := range ids {
 		service.CreateManageLog(tbName, logTbName, id, action, operator)
+	}
+	return nil
+}
+
+// updatePhaseByClusterIDsV2 根据 cluster_id 批量更新 phase，并记录管理日志
+func updatePhaseByClusterIDsV2(clusterType string, bkBizID int64, clusterIDs []int, phase, action, operator string) error {
+	tbName, logTbName, err := resolvePartitionTablesV2(clusterType)
+	if err != nil {
+		return err
+	}
+
+	db := model.DB.Self.Table(tbName)
+	if bkBizID > 0 {
+		db = db.Where("bk_biz_id = ?", bkBizID)
+	}
+	sqlLogger := glogger.Default.LogMode(glogger.Info)
+
+	slog.Info("v2 updatePhaseByClusterIDs start",
+		"table", tbName,
+		"bk_biz_id", bkBizID,
+		"cluster_ids", clusterIDs,
+		"phase", phase,
+		"action", action)
+
+	// 先查出受影响的 config_id，便于写 manage log。
+	// 注意：Find 与 Update 必须各自 Session()，不能共用同一链；
+	// 若先 db.Select("id").Find() 再 db.Update()，Select 会残留在链上导致 UPDATE 不生效。
+	var ids []struct{ ID int }
+	findResult := db.Session(&gorm.Session{Logger: sqlLogger}).
+		Select("id").Where("cluster_id in ?", clusterIDs).Find(&ids)
+	if findResult.Error != nil {
+		slog.Error("v2 updatePhaseByClusterIDs select config_id failed", "error", findResult.Error)
+		return findResult.Error
+	}
+	slog.Info("v2 updatePhaseByClusterIDs select config_id done",
+		"rows", findResult.RowsAffected,
+		"config_count", len(ids))
+
+	// 更新 phase
+	updateResult := db.Session(&gorm.Session{Logger: sqlLogger}).
+		Where("cluster_id in ?", clusterIDs).Update("phase", phase)
+	if updateResult.Error != nil {
+		slog.Error("v2 updatePhaseByClusterIDs update phase failed", "error", updateResult.Error)
+		return updateResult.Error
+	}
+	slog.Info("v2 updatePhaseByClusterIDs update phase done", "rows_affected", updateResult.RowsAffected)
+
+	for _, row := range ids {
+		service.CreateManageLog(tbName, logTbName, row.ID, action, operator)
 	}
 	return nil
 }
@@ -298,14 +405,14 @@ func insertPartitionConfigsV2(
 		PartitionColumn:       input.PartitionColumn,
 		PartitionColumnType:   input.PartitionColumnType,
 		ReservedPartition:     reservedPartition,
-		ExtraPartition:        15,
+		ExtraPartition:        extraPartitionDefault,
 		PartitionTimeInterval: input.PartitionTimeInterval,
 		PartitionType:         partitionType,
 		ExpireTime:            input.ExpireTime,
 		TimeZone:              input.TimeZone,
 		Creator:               input.Creator,
 		Updator:               input.Updator,
-		Phase:                 "online",
+		Phase:                 phaseOnline,
 		CreateTime:            time.Now(),
 		UpdateTime:            time.Now(),
 	}
@@ -323,7 +430,7 @@ func insertPartitionConfigsV2(
 			}
 
 			configs = append(configs, cfg)
-			service.CreateManageLog(tbName, logTbName, cfg.ID, "Insert", input.Creator)
+			service.CreateManageLog(tbName, logTbName, cfg.ID, opInsert, input.Creator)
 		}
 	}
 

@@ -62,7 +62,7 @@ class _PartitionApi(BaseApi):
         self.enable_partition_cluster = self.generate_data_api(
             method="POST",
             url="partition/enable_partition_cluster",
-            description=_("禁用分区"),
+            description=_("开启分区"),
         )
         self.disable_partition_cluster = self.generate_data_api(
             method="POST",
@@ -121,6 +121,24 @@ class _PartitionApi(BaseApi):
             method="POST",
             url="partition/v2/disable_partition",
             description=_("禁用分区v2"),
+        )
+        # v2 集群删除后清理对应分区配置
+        self.cluster_del_conf_v2 = self.generate_data_api(
+            method="POST",
+            url="partition/v2/cluster_del_conf",
+            description=_("cluster_del_conf_v2"),
+        )
+        # v2 集群启用后开启对应分区
+        self.enable_partition_cluster_v2 = self.generate_data_api(
+            method="POST",
+            url="partition/v2/enable_partition_cluster",
+            description=_("开启分区"),
+        )
+        # v2 集群禁用后禁用对应分区
+        self.disable_partition_cluster_v2 = self.generate_data_api(
+            method="POST",
+            url="partition/v2/disable_partition_cluster",
+            description=_("禁用分区"),
         )
 
 
