@@ -15,12 +15,35 @@ export default function useSearch() {
   const searchSelectData = computed(() => {
     const list: QuickSearchProps['data'] = [
       {
-        id: 'full_version',
-        name: t('版本号'),
-      },
-      {
         id: 'name',
         name: t('版本名'),
+      },
+      {
+        id: 'phase',
+        list: [
+          {
+            label: 'Alpha',
+            value: 'alpha',
+          },
+          {
+            label: 'Beta',
+            value: 'beta',
+          },
+          {
+            label: 'RC',
+            value: 'rc',
+          },
+          {
+            label: 'Release',
+            value: 'release',
+          },
+        ],
+        name: t('版本阶段'),
+        type: 'multiple',
+      },
+      {
+        id: 'full_version',
+        name: t('版本号'),
       },
       {
         id: 'enable',
