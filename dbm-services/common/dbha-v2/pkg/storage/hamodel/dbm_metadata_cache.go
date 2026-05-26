@@ -117,7 +117,7 @@ type DbmMetadata struct {
 	MachineType      haprobe.DbmMetadataMachineType     `gorm:"column:machine_type"`
 	AccessLayer      haprobe.DbmMetadataAccessLayerType `gorm:"column:access_layer"`
 	Status           string                             `gorm:"column:status"`
-	InstanceRole     string                             `gorm:"column:instance_role"`
+	InstanceRole     haprobe.DbmMetadataInstanceRole    `gorm:"column:instance_role"`
 	Receiver         string                             `gorm:"column:receiver;type:mediumtext"`
 	BindEntry        string                             `gorm:"column:bind_entry;type:mediumtext"`
 	ProxyInstanceSet string                             `gorm:"column:proxy_insts;type:mediumtext"`

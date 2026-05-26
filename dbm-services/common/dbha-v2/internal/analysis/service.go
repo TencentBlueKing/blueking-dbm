@@ -60,17 +60,18 @@ func Name() string {
 
 // Service is the analysis service runtime.
 type Service struct {
-	quit         chan struct{}
-	info         discovery.ServiceInfo
-	apmSvr       *haapm.Server
-	discoveryCli *discovery.Client
-	discovery    *discovery.Discovery
-	regCli       *discovery.Registry
-	wflow        *workflow.Workflow
-	db           *hamysql.GormDB
-	wg           sync.WaitGroup
-	etcdLogger   *zap.Logger
-	gormLogger   logger.Logger
+	quit             chan struct{}
+	info             discovery.ServiceInfo
+	apmSvr           *haapm.Server
+	discoveryCli     *discovery.Client
+	discovery        *discovery.Discovery
+	regCli           *discovery.Registry
+	wflow            *workflow.Workflow
+	db               *hamysql.GormDB
+	wg               sync.WaitGroup
+	etcdLogger       *zap.Logger
+	gormLogger       logger.Logger
+	swSnapshotLogger logger.Logger
 }
 
 // Run starts analysis service components and blocks until context cancelled or service closed.
@@ -292,7 +293,8 @@ func (s *Service) createNotifier() error {
 }
 
 func (s *Service) createWorkflow(ctx context.Context) error {
-	wflow, err := workflow.New(s.discoveryCli, s.db, s.discovery, s.discoveryCli.GetSelfPrefix(), s.info.ID)
+	wflow, err := workflow.New(s.discoveryCli, s.db, s.discovery, s.discoveryCli.GetSelfPrefix(),
+		s.info.ID, s.swSnapshotLogger)
 	if err != nil {
 		return err
 	}

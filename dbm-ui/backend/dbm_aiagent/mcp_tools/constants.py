@@ -51,6 +51,7 @@ class DBMMcpTools(StrStructuredEnum):
     TASKFLOW_QUERY = EnumField("taskflow-query", _("任务流查询"))
     KAFKA_TOOLBOX = EnumField("kafka-toolbox", "kafka-toolbox")
     PROMQL_QUERY = EnumField("promql-query", _("通用PromQL指标查询"))
+    AI_REPORT = EnumField("ai-report", _("AI分析报告"))
     # MARKET
     DBM_PUBLIC_MARKET = EnumField("dbm-public-market", _("DBM公共服务"))
 

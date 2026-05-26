@@ -13,13 +13,13 @@ from rest_framework import serializers
 
 
 class ShowInstanceStatusesInputSerializer(serializers.Serializer):
-    bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"), default=None)
-    address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"), required=True)
+    address = serializers.CharField(help_text=_("ip:port 形式的实例地址"), required=True)
 
 
 class ShowInstanceSlaveStatusInputSerializer(serializers.Serializer):
-    bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"), default=None)
-    address = serializers.CharField(help_text=_("ip:port 形式的实例地址"))
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"), required=True)
+    address = serializers.CharField(help_text=_("ip:port 形式的实例地址"), required=True)
 
 
 class InstanceRuntimeStatusSerializer(serializers.Serializer):
