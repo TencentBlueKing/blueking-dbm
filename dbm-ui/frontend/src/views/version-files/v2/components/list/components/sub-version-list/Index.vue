@@ -8,23 +8,38 @@
         type="empty" />
     </div>
     <template v-else>
-      <div class="title-operate-main">
+      <div
+        v-if="versionSeriesList && versionSeriesList.length"
+        class="title-operate-main">
         <div class="title-operate-left">
-          <template v-if="dbType === DBTypes.MYSQL">
-            <div class="main-title">{{ releaseVersion?.name }}（{{ dbVersionListCount }}）</div>
-            <BkTag style="margin-right: auto">{{ t('发行版') }}</BkTag>
-          </template>
-          <BkButton
+          <AuthButton
+            action-id="package_manage"
+            :permission="commonPermission"
+            :resource="dbType"
             theme="primary"
             @click="handleAddVersion">
-            {{ t('添加版本') }}
-          </BkButton>
+            <DbIcon type="add" />
+            <span class="ml-6">{{ t('添加版本') }}</span>
+          </AuthButton>
+          <div
+            v-if="isPureMysql"
+            class="main-title ml-12">
+            {{ releaseVersion?.name }}
+          </div>
+          <I18nT
+            class="ml-12"
+            keypath="共n个版本"
+            tag="span">
+            <template #n>
+              <BkTag radius="12px">{{ dbVersionListCount }}</BkTag>
+            </template>
+          </I18nT>
         </div>
         <DbQuickSearch
           :key="renderSearchKey"
           v-model="searchValue"
           :data="searchSelectData"
-          :placeholder="t('搜索版本号，版本名，操作系统限制，版本文件，是否启用，描述，更新人')"
+          :placeholder="t('搜索版本名，版本阶段，版本号，是否启用，描述，更新人')"
           style="width: 670px"
           unique-select
           value-split-code=","
@@ -36,13 +51,16 @@
         class="versions-list-main">
         <TableList
           ref="subVersionRefs"
+          :db-type="dbType"
+          :permission="commonPermission"
           :version-series-list="versionSeriesList"
           @add-new-version="handleAddNewDbVersion"
           @delete-version-series="handleDeleteVersionSeries"
           @edit-db-version="(data) => handleEditDbVersion(data)"
           @filter-value-change="handleFilterValueChange"
           @list-change="handleTableListChange"
-          @refresh-release-list="() => emits('refreshReleaseList')" />
+          @refresh-release-list="() => emits('refreshReleaseList')"
+          @refresh-version-list="fetchVersionSeriesList" />
       </div>
       <div v-else>
         <BkException
@@ -50,13 +68,16 @@
           type="empty">
           <span>{{ t('暂无版本') }}</span>
           <span class="ml-4 mr-4">,</span>
-          <BkButton
+          <AuthButton
+            action-id="package_manage"
+            :permission="commonPermission"
+            :resource="dbType"
             size="small"
             text
             theme="primary"
             @click="handleAddVersion">
             {{ t('立即添加') }}
-          </BkButton>
+          </AuthButton>
         </BkException>
       </div>
     </template>
@@ -66,11 +87,10 @@
     :db-type="dbType"
     :db-version="currentDbVersion"
     :is-edit="isEditVersion"
-    :pkg-label="pkgLabel"
     :pkg-type="pkgType"
-    :release-label="releaseLabel"
     :release-version="releaseVersion"
     :version-series-id="currentVersionSeriesId"
+    @add-version="handleAddVersionSuccess"
     @success="handleEditVersionSuccess" />
 </template>
 <script setup lang="ts">
@@ -82,8 +102,6 @@
   import ReleaseVersionModel from '@services/model/version-file/release-version';
   import { getVersionSeriesList } from '@services/source/version';
 
-  import { DBTypes } from '@common/const';
-
   // import ScrollFaker from '@components/scroll-faker/Index.vue';
   import EditVersion from './components/edit-version/Index.vue';
   import TableList from './components/table-list/Index.vue';
@@ -92,7 +110,6 @@
 
   interface Props {
     dbType: string;
-    pkgLabelMap: Record<string, string>;
     pkgType: string;
     releaseVersion?: ReleaseVersionModel;
   }
@@ -123,10 +140,8 @@
   const dbVersionListCount = ref(0);
   const currentDbVersion = ref<DbVersionModel>();
 
-  const releaseLabel = computed(() =>
-    props.releaseVersion?.name ? t('发行版：x', { x: props.releaseVersion.name }) : '',
-  );
-  const pkgLabel = computed(() => props.pkgLabelMap[props.releaseVersion?.pkg_type || '']);
+  const isPureMysql = computed(() => props.dbType === 'mysql' && props.pkgType === 'mysql');
+  const commonPermission = computed(() => props.releaseVersion?.permission.package_manage || false);
 
   const { data: versionSeriesList, run: runGetVersionSeriesList } = useRequest(getVersionSeriesList, {
     manual: true,
@@ -159,6 +174,10 @@
       immediate: true,
     },
   );
+
+  const handleAddVersionSuccess = () => {
+    emits('refreshReleaseList');
+  };
 
   const handleDeleteVersionSeries = () => {
     fetchVersionSeriesList();
@@ -278,7 +297,6 @@
         display: flex;
         margin-right: 8px;
         align-items: center;
-        justify-content: space-between;
 
         .main-title {
           font-size: 16px;

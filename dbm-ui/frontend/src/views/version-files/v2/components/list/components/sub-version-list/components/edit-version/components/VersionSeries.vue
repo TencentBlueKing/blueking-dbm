@@ -3,7 +3,8 @@
     v-model="localValue"
     :clearable="false"
     :disabled="!!versionSeriesId"
-    filterable>
+    filterable
+    @change="handleValueChange">
     <BkOption
       v-for="system in seriesList"
       :key="system.value"
@@ -22,6 +23,7 @@
     <template #extension>
       <EditSeries
         :distribution-id="distributionId"
+        :existed-list="existedNames"
         @confirm="handleConfirm">
         <div class="default-display-main">
           <DbIcon
@@ -46,10 +48,21 @@
     versionSeriesId?: number;
   }
 
+  interface Exposes {
+    getCurrentLabel: () => string;
+  }
+
+  interface Emits {
+    (e: 'addVersion'): void;
+    (e: 'valueChange'): void;
+  }
+
   const props = withDefaults(defineProps<Props>(), {
     distributionId: undefined,
     versionSeriesId: undefined,
   });
+
+  const emits = defineEmits<Emits>();
 
   const localValue = defineModel<number | undefined>({
     default: undefined,
@@ -60,6 +73,11 @@
   const editInputRef = ref();
   const isEdit = ref(false);
   const seriesList = ref<{ isNew?: boolean; label: string; value: number }[]>([]);
+
+  const existedNames = computed(() => seriesList.value.map((item) => item.label.toLocaleLowerCase()));
+  const currentVersionLabel = computed(
+    () => seriesList.value.find((item) => item.value === localValue.value)?.label || '',
+  );
 
   const { run: runGetVersionSeriesList } = useRequest(getVersionSeriesList, {
     manual: true,
@@ -94,6 +112,10 @@
     },
   );
 
+  const handleValueChange = () => {
+    emits('valueChange');
+  };
+
   const handleConfirm = (id: number, name: string) => {
     seriesList.value.push({
       isNew: true,
@@ -103,7 +125,14 @@
     nextTick(() => {
       localValue.value = id;
     });
+    emits('addVersion');
   };
+
+  defineExpose<Exposes>({
+    getCurrentLabel() {
+      return currentVersionLabel.value;
+    },
+  });
 </script>
 <style lang="less">
   .default-display-main {
