@@ -51,7 +51,12 @@ type SwitchExecutor struct {
 }
 
 // NewSwitchExecutor creates a SwitchExecutor.
-func NewSwitchExecutor(hadata *storage.DbhaData, dbmSync *Synchronizer, switchers map[haprobe.DbType]switcher.Switcher, serviceID string) *SwitchExecutor {
+func NewSwitchExecutor(
+	hadata *storage.DbhaData,
+	dbmSync *Synchronizer,
+	switchers map[haprobe.DbType]switcher.Switcher,
+	serviceID string,
+) *SwitchExecutor {
 	return &SwitchExecutor{hadata: hadata, dbmSync: dbmSync, switchers: switchers, myServiceID: serviceID}
 }
 
@@ -101,7 +106,10 @@ func (e *SwitchExecutor) CreateRequestWithGroup(ctx context.Context, group *Fail
 // (normal strategies count instances by event name, special strategies invoke registered match functions),
 // adds strategies meeting the triggerCount threshold to the candidate list, and returns the highest
 // priority strategy after sorting (biz-level first > lower priority value first).
-func (e *SwitchExecutor) MatchStrategyForGroup(ctx context.Context, group *FailureGroup) (matched bool, strategy *hamodel.DbSwitchingStrategy) {
+func (e *SwitchExecutor) MatchStrategyForGroup(
+	ctx context.Context,
+	group *FailureGroup,
+) (matched bool, strategy *hamodel.DbSwitchingStrategy) {
 	if len(group.Instances) == 0 {
 		return false, nil
 	}
@@ -129,7 +137,7 @@ func (e *SwitchExecutor) MatchStrategyForGroup(ctx context.Context, group *Failu
 		if matchFunc := GetSpecialMatchFunc(s.TriggerEventName); matchFunc != nil {
 			count = matchFunc(group.Instances)
 		} else {
-			// normal strategy: count instances matching the event name in the group
+			// normal strategy: count instances by event name only; reason is for logging/auditing only.
 			count = CountInstancesByEventName(group.Instances, s.TriggerEventName)
 		}
 
@@ -150,8 +158,8 @@ func (e *SwitchExecutor) MatchStrategyForGroup(ctx context.Context, group *Failu
 
 // TriggerSwitching runs the switcher for the given db type and posts success/failure alarms.
 func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.Request) {
-	if !config.Cfg.Workflow.EnableSwitching {
-		logger.Warn("switching operation is disabled")
+	if isSwitchDisabledDbType(dbType) {
+		logger.Warn("switching operation is disabled by configuration, dbType: %s", dbType)
 		return
 	}
 
@@ -180,9 +188,10 @@ func (e *SwitchExecutor) TriggerSwitching(dbType haprobe.DbType, req *switcher.R
 		logger.Info("switching success for the database type: %s", dbType)
 	}
 
+	alarmEvents := sw.AlarmEvents()
 	e.reportSwitchingMetrics(start, req, rsp, dbType)
-	e.postSuccessAlarms(req, rsp, dbType)
-	e.postFailureAlarms(rsp, dbType)
+	e.postSuccessAlarms(req, rsp, dbType, alarmEvents.Success)
+	e.postFailureAlarms(rsp, dbType, alarmEvents.Failure)
 }
 
 func (e *SwitchExecutor) reportSwitchingMetrics(start time.Time, req *switcher.Request,
@@ -215,8 +224,17 @@ func (e *SwitchExecutor) reportSwitchingMetrics(start time.Time, req *switcher.R
 	}
 }
 
-func (e *SwitchExecutor) postSuccessAlarms(req *switcher.Request, rsp *switcher.Response,
-	dbType haprobe.DbType) {
+func (e *SwitchExecutor) postSuccessAlarms(
+	req *switcher.Request,
+	rsp *switcher.Response,
+	dbType haprobe.DbType,
+	successEvent haprobe.DbEventName,
+) {
+	if successEvent == "" {
+		logger.Warn("empty success alarm event, dbType: %s", dbType)
+		return
+	}
+
 	for _, inst := range req.GetDbInstMetadata() {
 		instKey := switchcore.GenerateMetadataKey(inst.BkCloudID, inst.IP, inst.Port)
 		if _, exists := rsp.MySqlFailureInsts[instKey]; exists {
@@ -224,7 +242,7 @@ func (e *SwitchExecutor) postSuccessAlarms(req *switcher.Request, rsp *switcher.
 		}
 
 		monitorEvent := &monitor.EventData{
-			Name:      string(haprobe.DbEventNameMysqlSwitchSuccessV1),
+			Name:      string(successEvent),
 			Target:    string(instKey),
 			Timestamp: uint64(time.Now().UnixMilli()),
 		}
@@ -234,7 +252,7 @@ func (e *SwitchExecutor) postSuccessAlarms(req *switcher.Request, rsp *switcher.
 		monitorEvent.Dimension.IP = inst.IP
 		monitorEvent.Dimension.Port = inst.Port
 		monitorEvent.Dimension.DbTypeName = dbType
-		monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchSuccessV1
+		monitorEvent.Dimension.DbEventName = successEvent
 
 		if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
 			logger.Warn(
@@ -246,10 +264,19 @@ func (e *SwitchExecutor) postSuccessAlarms(req *switcher.Request, rsp *switcher.
 	}
 }
 
-func (e *SwitchExecutor) postFailureAlarms(rsp *switcher.Response, dbType haprobe.DbType) {
+func (e *SwitchExecutor) postFailureAlarms(
+	rsp *switcher.Response,
+	dbType haprobe.DbType,
+	failureEvent haprobe.DbEventName,
+) {
+	if failureEvent == "" {
+		logger.Warn("empty failure alarm event, dbType: %s", dbType)
+		return
+	}
+
 	for instKey, inst := range rsp.GetFailureInsts() {
 		monitorEvent := &monitor.EventData{
-			Name:      string(haprobe.DbEventNameMysqlSwitchFailureV1),
+			Name:      string(failureEvent),
 			Target:    string(instKey),
 			Timestamp: uint64(time.Now().UnixMilli()),
 		}
@@ -259,7 +286,7 @@ func (e *SwitchExecutor) postFailureAlarms(rsp *switcher.Response, dbType haprob
 		monitorEvent.Dimension.IP = inst.IP
 		monitorEvent.Dimension.Port = inst.Port
 		monitorEvent.Dimension.DbTypeName = dbType
-		monitorEvent.Dimension.DbEventName = haprobe.DbEventNameMysqlSwitchFailureV1
+		monitorEvent.Dimension.DbEventName = failureEvent
 
 		if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
 			logger.Warn("switching failure, failed to post the alarm, inst: %s, errmsg: %s", instKey, err)

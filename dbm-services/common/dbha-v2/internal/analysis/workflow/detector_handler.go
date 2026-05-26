@@ -79,6 +79,17 @@ func (h *DetectorHandler) ProcessResponse(resp *detector.Response) error {
 		return nil
 	}
 
+	if resp.DbEventName == haprobe.DbEventNameDetectRedisAuthFailureV1 {
+		content := fmt.Sprintf(
+			"redis auth failure detected, host: %d:%s:%d",
+			resp.Meta.BkCloudID,
+			resp.Meta.IP,
+			resp.Meta.Port,
+		)
+		h.alarm.TriggerWithDetectorResponse("", "", content, gerrors.Failure.Int(), resp)
+		return nil
+	}
+
 	if resp.SshResp.ExitCode != 0 {
 		content := fmt.Sprintf("%s, errmsg: %s", resp.SshResp.Data, resp.SshResp.ErrMsg)
 		h.alarm.TriggerWithDetectorResponse("", "", content, resp.SshResp.ExitCode, resp)

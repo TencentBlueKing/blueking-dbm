@@ -102,6 +102,26 @@ type SwapMySQLRoleRequest struct {
 	Payloads     []SwapMySQLRolePayload `json:"payloads"`
 }
 
+// SwapTendisClusterInstance represents a redis/tendis instance for role swapping.
+type SwapTendisClusterInstance struct {
+	IP   string `json:"ip"`
+	Port int    `json:"port"`
+}
+
+// SwapTendisClusterPayload contains the old/new master and cluster domain.
+type SwapTendisClusterPayload struct {
+	Master SwapTendisClusterInstance `json:"master"`
+	Slave  SwapTendisClusterInstance `json:"slave"`
+	Domain string                    `json:"domain"`
+}
+
+// SwapTendisClusterRequest represents the request for swapping tendis cluster role metadata.
+type SwapTendisClusterRequest struct {
+	BkCloudID    int                      `json:"bk_cloud_id"`
+	DbCloudToken string                   `json:"db_cloud_token"`
+	Payload      SwapTendisClusterPayload `json:"payload"`
+}
+
 // DumperSwitchInstance represents the instance information for binlog dumper switching
 type DumperSwitchInstance struct {
 	Ip             string `json:"ip"`

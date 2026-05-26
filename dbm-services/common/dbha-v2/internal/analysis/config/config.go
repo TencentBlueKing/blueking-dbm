@@ -26,9 +26,12 @@
 package config
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
 	"github.com/spf13/viper"
 )
@@ -102,19 +105,19 @@ type DbmApi struct {
 
 // SwitchFlowConfig defines the configuration for the switch flow
 type SwitchFlowConfig struct {
-	DbmApiMaxConcurrentRequests      int           `yaml:"dbmApiMaxConcurrentRequests"      mapstructure:"dbmApiMaxConcurrentRequests"`
-	ClusterLevelSwitchMaxClusterNum  int           `yaml:"clusterLevelSwitchMaxClusterNum"  mapstructure:"clusterLevelSwitchMaxClusterNum"`
-	ClusterLevelSwitchMaxInstanceNum int           `yaml:"clusterLevelSwitchMaxInstanceNum" mapstructure:"clusterLevelSwitchMaxInstanceNum"`
-	SwitchLogWriteTimeout            time.Duration `yaml:"switchLogWriteTimeout"            mapstructure:"switchLogWriteTimeout"`
-	DbConnectTimeout                 time.Duration `yaml:"dbConnectTimeout"                 mapstructure:"dbConnectTimeout"`
-	ClusterLockTimeout               time.Duration `yaml:"clusterLockTimeout"               mapstructure:"clusterLockTimeout"`
-	ExecSqlTimeout                   time.Duration `yaml:"execSqlTimeout"                   mapstructure:"execSqlTimeout"`
-	AllowedIgnoreCheckSum            bool          `yaml:"slaveAllowedIgnoreCheckSum"       mapstructure:"slaveAllowedIgnoreCheckSum"`
-	AllowedIgnoreSlaveDelay          bool          `yaml:"slaveAllowedIgnoreSlaveDelay"     mapstructure:"slaveAllowedIgnoreSlaveDelay"`
-	AllowedSlowBytes                 int           `yaml:"slaveAllowedSlowBytes"            mapstructure:"slaveAllowedSlowBytes"`
-	AllowedMaxChecksumFailCnt        int           `yaml:"slaveAllowedMaxChecksumFailCnt"   mapstructure:"slaveAllowedMaxChecksumFailCnt"`
-	AllowedMaxHeartbeatDelay         int           `yaml:"slaveAllowedMaxHeartbeatDelay"    mapstructure:"slaveAllowedMaxHeartbeatDelay"`
-	AllowedMaxIODelay                int           `yaml:"slaveAllowedMaxIODelay"           mapstructure:"slaveAllowedMaxIODelay"`
+	DbmApiMaxConcurrentRequests      int           `mapstructure:"dbmApiMaxConcurrentRequests"`
+	ClusterLevelSwitchMaxClusterNum  int           `mapstructure:"clusterLevelSwitchMaxClusterNum"`
+	ClusterLevelSwitchMaxInstanceNum int           `mapstructure:"clusterLevelSwitchMaxInstanceNum"`
+	SwitchLogWriteTimeout            time.Duration `mapstructure:"switchLogWriteTimeout"`
+	DbConnectTimeout                 time.Duration `mapstructure:"dbConnectTimeout"`
+	ClusterLockTimeout               time.Duration `mapstructure:"clusterLockTimeout"`
+	ExecSqlTimeout                   time.Duration `mapstructure:"execSqlTimeout"`
+	AllowedIgnoreCheckSum            bool          `mapstructure:"slaveAllowedIgnoreCheckSum"`
+	AllowedIgnoreSlaveDelay          bool          `mapstructure:"slaveAllowedIgnoreSlaveDelay"`
+	AllowedSlowBytes                 int           `mapstructure:"slaveAllowedSlowBytes"`
+	AllowedMaxChecksumFailCnt        int           `mapstructure:"slaveAllowedMaxChecksumFailCnt"`
+	AllowedMaxHeartbeatDelay         int           `mapstructure:"slaveAllowedMaxHeartbeatDelay"`
+	AllowedMaxIODelay                int           `mapstructure:"slaveAllowedMaxIODelay"`
 }
 
 // WorkflowConfig workflow's configuration
@@ -127,7 +130,7 @@ type WorkflowConfig struct {
 	ReadDbMetaOffsetDuration   time.Duration    `yaml:"readDbMetaOffsetDuration"   mapstructure:"readDbMetaOffsetDuration"`
 	ReadDbMetricOffsetDuration time.Duration    `yaml:"readDbMetricOffsetDuration" mapstructure:"readDbMetricOffsetDuration"`
 	ReadDbEventOffsetDuration  time.Duration    `yaml:"readDbEventOffsetDuration"  mapstructure:"readDbEventOffsetDuration"`
-	EnableSwitching            bool             `yaml:"enableSwitching"            mapstructure:"enableSwitching"`
+	DisabledDB                 []haprobe.DbType `yaml:"disabledDB"                 mapstructure:"disabledDB"`
 	EnableWhiteList            bool             `yaml:"enableWhiteList"            mapstructure:"enableWhiteList"`
 	WindowDuration             time.Duration    `yaml:"windowDuration"             mapstructure:"windowDuration"`
 	PopInterval                time.Duration    `yaml:"popInterval"                mapstructure:"popInterval"`
@@ -236,6 +239,12 @@ func Load(configFilePath string) error {
 		return err
 	}
 
+	normalizedDisabledDB, normalizeErr := normalizeAndValidateDisabledDB(Cfg.Workflow.DisabledDB)
+	if normalizeErr != nil {
+		return normalizeErr
+	}
+	Cfg.Workflow.DisabledDB = normalizedDisabledDB
+
 	Cfg.Workflow.DbmApiMetadataHashCnt = clampDbmApiMetadataHashCnt(Cfg.Workflow.DbmApiMetadataHashCnt)
 	return nil
 }
@@ -256,6 +265,35 @@ func clampDbmApiMetadataHashCnt(hashCnt int) int {
 	}
 
 	return hashCnt
+}
+
+func normalizeAndValidateDisabledDB(values []haprobe.DbType) ([]haprobe.DbType, error) {
+	if len(values) == 0 {
+		return nil, nil
+	}
+
+	unique := map[haprobe.DbType]struct{}{}
+	normalized := make([]haprobe.DbType, 0, len(values))
+
+	for _, raw := range values {
+		dbType := haprobe.DbType(strings.TrimSpace(strings.ToLower(raw.String())))
+		if dbType == "" {
+			continue
+		}
+
+		if !haprobe.IsSwitchControllableDbType(dbType) {
+			return nil, fmt.Errorf("invalid workflow.disabledDB value: %s", raw)
+		}
+
+		if _, exists := unique[dbType]; exists {
+			continue
+		}
+
+		unique[dbType] = struct{}{}
+		normalized = append(normalized, dbType)
+	}
+
+	return normalized, nil
 }
 
 func init() {

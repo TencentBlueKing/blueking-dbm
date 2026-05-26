@@ -28,7 +28,12 @@ workflow:
   readDbMetaOffsetDuration: {{ANALYSIS_WORKFLOW_READ_DB_META_OFFSET_DURATION}}
   readDbMetricOffsetDuration: {{ANALYSIS_WORKFLOW_READ_DB_METRIC_OFFSET_DURATION}}
   readDbEventOffsetDuration: {{ANALYSIS_WORKFLOW_READ_DB_EVENT_OFFSET_DURATION}}
-  enableSwitching: {{ANALYSIS_WORKFLOW_ENABLE_SWITCHING}}
+  # disabledDB: db types disabled for switching (detection/alarm still active).
+  # allowed values: mysql, redis, sqlserver, mongo, riak, hdfs, es, kafka, doris, pulsar
+  # note: switch execution still depends on whether a corresponding switcher is implemented.
+  disabledDB:
+    - mysql
+    - redis
   enableWhiteList: {{ANALYSIS_WORKFLOW_ENABLE_WHITE_LIST}}
   popInterval: {{ANALYSIS_WORKFLOW_POP_INTERVAL}}
   popSwitchSemSize: {{ANALYSIS_WORKFLOW_POP_SWITCH_SEM_SIZE}}

@@ -32,6 +32,7 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
+	switcherpkg "dbm-services/common/dbha-v2/internal/analysis/switcher"
 	"dbm-services/common/dbha-v2/internal/analysis/testutil"
 	"dbm-services/common/dbha-v2/pkg/storage/hamodel"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
@@ -860,5 +861,65 @@ func TestMatchStrategyForGroup_DbEventNameTendbclusterSpiderRemoteFailure(t *tes
 	}
 	if strategy.Name != "target-tendbha-spider-remote-failure" {
 		t.Errorf("expected strategy name 'target-tendbha-spider-remote-failure', got %q", strategy.Name)
+	}
+}
+
+type fakeSwitcher struct {
+	called bool
+}
+
+func (f *fakeSwitcher) DbTypeName() haprobe.DbType {
+	return haprobe.DbTypeMySql
+}
+
+func (f *fakeSwitcher) AlarmEvents() switcherpkg.AlarmEvents {
+	return switcherpkg.AlarmEvents{
+		Success: haprobe.DbEventNameMysqlSwitchSuccessV1,
+		Failure: haprobe.DbEventNameMysqlSwitchFailureV1,
+	}
+}
+
+func (f *fakeSwitcher) Switch(ctx context.Context, req *switcherpkg.Request) *switcherpkg.Response {
+	f.called = true
+	return &switcherpkg.Response{}
+}
+
+func TestTriggerSwitching_DisabledDbTypeSkipsSwitch(t *testing.T) {
+	oldDisabledDB := config.Cfg.Workflow.DisabledDB
+	config.Cfg.Workflow.DisabledDB = []haprobe.DbType{haprobe.DbTypeRedis}
+	t.Cleanup(func() {
+		config.Cfg.Workflow.DisabledDB = oldDisabledDB
+	})
+
+	fake := &fakeSwitcher{}
+	executor := &SwitchExecutor{
+		switchers: map[haprobe.DbType]switcherpkg.Switcher{
+			haprobe.DbTypeRedis: fake,
+		},
+	}
+
+	executor.TriggerSwitching(haprobe.DbTypeRedis, &switcherpkg.Request{})
+	if fake.called {
+		t.Fatal("expected redis switcher not called when redis is disabled")
+	}
+}
+
+func TestTriggerSwitching_EnabledDbTypeCallsSwitch(t *testing.T) {
+	oldDisabledDB := config.Cfg.Workflow.DisabledDB
+	config.Cfg.Workflow.DisabledDB = []haprobe.DbType{haprobe.DbTypeRedis}
+	t.Cleanup(func() {
+		config.Cfg.Workflow.DisabledDB = oldDisabledDB
+	})
+
+	fake := &fakeSwitcher{}
+	executor := &SwitchExecutor{
+		switchers: map[haprobe.DbType]switcherpkg.Switcher{
+			haprobe.DbTypeMySql: fake,
+		},
+	}
+
+	executor.TriggerSwitching(haprobe.DbTypeMySql, &switcherpkg.Request{})
+	if !fake.called {
+		t.Fatal("expected mysql switcher called when mysql is not disabled")
 	}
 }

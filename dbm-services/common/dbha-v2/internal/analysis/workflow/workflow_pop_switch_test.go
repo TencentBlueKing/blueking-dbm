@@ -50,12 +50,12 @@ func setupMetadataAPIForTest(t *testing.T, serverURL string) {
 	})
 }
 
-func setupEnableSwitchingForTest(t *testing.T) {
+func setupDisabledDBForTest(t *testing.T, disabled []haprobe.DbType) {
 	t.Helper()
-	old := config.Cfg.Workflow.EnableSwitching
-	config.Cfg.Workflow.EnableSwitching = true
+	old := append([]haprobe.DbType(nil), config.Cfg.Workflow.DisabledDB...)
+	config.Cfg.Workflow.DisabledDB = append([]haprobe.DbType(nil), disabled...)
 	t.Cleanup(func() {
-		config.Cfg.Workflow.EnableSwitching = old
+		config.Cfg.Workflow.DisabledDB = old
 	})
 }
 
@@ -275,7 +275,7 @@ func TestMarkDoneAllReleasesAllKeys(t *testing.T) {
 }
 
 func TestFilterWhitelistedInstances_NoWhitelistNotifiesAll(t *testing.T) {
-	setupEnableSwitchingForTest(t)
+	setupDisabledDBForTest(t, nil)
 	setupEnableWhiteListForTest(t)
 	w := newWorkflowForHandleFailureGroupTests(t, nil)
 	group := buildSingleFailureGroup()
@@ -295,7 +295,7 @@ func TestFilterWhitelistedInstances_NoWhitelistNotifiesAll(t *testing.T) {
 }
 
 func TestFilterWhitelistedInstances_WhitelistedInstanceKept(t *testing.T) {
-	setupEnableSwitchingForTest(t)
+	setupDisabledDBForTest(t, nil)
 	setupEnableWhiteListForTest(t)
 	w := newWorkflowForHandleFailureGroupTests(t, nil)
 
@@ -327,7 +327,7 @@ func TestFilterWhitelistedInstances_WhitelistedInstanceKept(t *testing.T) {
 }
 
 func TestFilterWhitelistedInstances_PartialWhitelisted(t *testing.T) {
-	setupEnableSwitchingForTest(t)
+	setupDisabledDBForTest(t, nil)
 	setupEnableWhiteListForTest(t)
 	w := newWorkflowForHandleFailureGroupTests(t, nil)
 
@@ -364,7 +364,7 @@ func TestFilterWhitelistedInstances_PartialWhitelisted(t *testing.T) {
 }
 
 func TestFilterWhitelistedInstances_V1SwitchVersionNotWhitelisted(t *testing.T) {
-	setupEnableSwitchingForTest(t)
+	setupDisabledDBForTest(t, nil)
 	setupEnableWhiteListForTest(t)
 	w := newWorkflowForHandleFailureGroupTests(t, nil)
 
@@ -396,7 +396,7 @@ func TestFilterWhitelistedInstances_V1SwitchVersionNotWhitelisted(t *testing.T) 
 }
 
 func TestFilterWhitelistedInstances_DisabledWhitelistNotWhitelisted(t *testing.T) {
-	setupEnableSwitchingForTest(t)
+	setupDisabledDBForTest(t, nil)
 	setupEnableWhiteListForTest(t)
 	w := newWorkflowForHandleFailureGroupTests(t, nil)
 
@@ -423,12 +423,15 @@ func TestFilterWhitelistedInstances_DisabledWhitelistNotWhitelisted(t *testing.T
 
 	// whitelist is empty (disabled excluded): instance is treated as non-whitelisted, notify only
 	if len(req.MySqlInstData) != 0 {
-		t.Fatalf("expected 0 instances remaining (disabled excluded, whitelist empty, notify only), got %d", len(req.MySqlInstData))
+		t.Fatalf(
+			"expected 0 instances remaining (disabled excluded, whitelist empty, notify only), got %d",
+			len(req.MySqlInstData),
+		)
 	}
 }
 
 func TestFilterWhitelistedInstances_WhiteListDisabledSkipsFiltering(t *testing.T) {
-	setupEnableSwitchingForTest(t)
+	setupDisabledDBForTest(t, nil)
 	w := newWorkflowForHandleFailureGroupTests(t, nil)
 
 	// whitelist feature is disabled: filtering is skipped, all instances proceed to switching
@@ -451,7 +454,7 @@ func TestFilterWhitelistedInstances_WhiteListDisabledSkipsFiltering(t *testing.T
 }
 
 func TestFilterWhitelistedInstances_SwitchingDisabledSkipsFiltering(t *testing.T) {
-	setupEnableSwitchingForTest(t)
+	setupDisabledDBForTest(t, nil)
 	setupEnableWhiteListForTest(t)
 	w := newWorkflowForHandleFailureGroupTests(t, nil)
 
@@ -467,7 +470,7 @@ func TestFilterWhitelistedInstances_SwitchingDisabledSkipsFiltering(t *testing.T
 	)
 
 	// switching is disabled: filtering is skipped, req.MySqlInstData is unchanged
-	config.Cfg.Workflow.EnableSwitching = false
+	config.Cfg.Workflow.DisabledDB = []haprobe.DbType{haprobe.DbTypeMySql}
 
 	group := buildSingleFailureGroup()
 	req := &switcher.Request{
@@ -485,7 +488,7 @@ func TestFilterWhitelistedInstances_SwitchingDisabledSkipsFiltering(t *testing.T
 }
 
 func TestFilterWhitelistedInstances_NoneWhitelisted(t *testing.T) {
-	setupEnableSwitchingForTest(t)
+	setupDisabledDBForTest(t, nil)
 	setupEnableWhiteListForTest(t)
 	w := newWorkflowForHandleFailureGroupTests(t, nil)
 

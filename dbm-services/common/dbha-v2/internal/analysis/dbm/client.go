@@ -134,7 +134,11 @@ func (c *Client) RequestMetadata(ctx context.Context, req *Request) (int, *Respo
 }
 
 // QueryMetadataFromDbm queries metadata from DBM
-func (c *Client) QueryMetadataFromDbm(ctx context.Context, bkCloudId int, ips []string) (int, []*DbInstMetadata, error) {
+func (c *Client) QueryMetadataFromDbm(
+	ctx context.Context,
+	bkCloudId int,
+	ips []string,
+) (int, []*DbInstMetadata, error) {
 
 	req := DefaultRequest
 	req.BkCloudId = bkCloudId
@@ -409,6 +413,77 @@ func (c *Client) SwapMySQLRole(bkCloudId int, masterIp string, masterPort int, s
 	swapResp := &SwapRoleRespond{}
 	if err := json.Unmarshal(response, swapResp); err != nil {
 		return err
+	}
+
+	if !swapResp.Result {
+		return gerrors.Newf(gerrors.Failure, "request failed: %s", swapResp.Message)
+	}
+
+	return nil
+}
+
+// SwapTendisCluster swaps tendis/redis master-slave role metadata in DBM.
+func (c *Client) SwapTendisCluster(
+	bkCloudId int, domain string, masterIp string, masterPort int, slaveIp string, slavePort int,
+) error {
+	req := SwapTendisClusterRequest{
+		BkCloudID:    bkCloudId,
+		DbCloudToken: config.Cfg.Workflow.DbmApiSwapTendisCluster.Token,
+		Payload: SwapTendisClusterPayload{
+			Master: SwapTendisClusterInstance{
+				IP:   masterIp,
+				Port: masterPort,
+			},
+			Slave: SwapTendisClusterInstance{
+				IP:   slaveIp,
+				Port: slavePort,
+			},
+			Domain: domain,
+		},
+	}
+
+	logger.Debug(
+		"swap tendis cluster request, bk_cloud_id: %d, domain: %s, master: %s:%d, slave: %s:%d",
+		bkCloudId,
+		domain,
+		masterIp,
+		masterPort,
+		slaveIp,
+		slavePort,
+	)
+
+	response, err := c.SendRequest(
+		config.Cfg.Workflow.DbmApiSwapTendisCluster.Api,
+		hanet.HttpMethodPost,
+		req,
+		config.Cfg.Workflow.DbmApiSwapTendisCluster.Timeout,
+	)
+	if err != nil {
+		logger.Error(
+			"failed to swap tendis cluster role, domain: %s, master: %s:%d, slave: %s:%d, errmsg: %s",
+			domain,
+			masterIp,
+			masterPort,
+			slaveIp,
+			slavePort,
+			err.Error(),
+		)
+		return err
+	}
+
+	logger.Debug(
+		"swap tendis cluster response, domain: %s, master: %s:%d, slave: %s:%d, resp_len: %d",
+		domain,
+		masterIp,
+		masterPort,
+		slaveIp,
+		slavePort,
+		len(response),
+	)
+
+	swapResp := &SwapRoleRespond{}
+	if err := json.Unmarshal(response, swapResp); err != nil {
+		return gerrors.Newf(gerrors.InvalidJson, "failed to unmarshal swap tendis response, errmsg: %s", err.Error())
 	}
 
 	if !swapResp.Result {

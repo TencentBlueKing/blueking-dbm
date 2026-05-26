@@ -113,9 +113,7 @@ func New(cli *discovery.Client, db *hamysql.GormDB, disc *discovery.Discovery,
 			myServiceID:  myServiceID,
 		},
 
-		switchers: map[haprobe.DbType]switcher.Switcher{
-			haprobe.DbTypeMySql: &switcher.Mysql{},
-		},
+		switchers: map[haprobe.DbType]switcher.Switcher{},
 
 		discoveryCli:     cli,
 		discovery:        disc,
@@ -131,7 +129,6 @@ func New(cli *discovery.Client, db *hamysql.GormDB, disc *discovery.Discovery,
 
 	wflow.windowMgr = NewBizWindowManager(config.Cfg.Workflow.WindowDuration, config.Cfg.Workflow.InflightTTL, myServiceID)
 	wflow.metadataReader = NewMetadataReader(wflow.hadata, wflow.discoveryCli, myServiceID)
-	wflow.switchExecutor = NewSwitchExecutor(wflow.hadata, wflow.dbmSync, wflow.switchers, myServiceID)
 	wflow.detectorHandler = NewDetectorHandler(wflow.alarm, wflow.windowMgr, myServiceID)
 	wflow.businessChecker = NewBusinessChecker(&wflow.StatusParser, wflow.detectorHandler)
 
@@ -144,6 +141,21 @@ func New(cli *discovery.Client, db *hamysql.GormDB, disc *discovery.Discovery,
 	logger.Info("the pop-switch semaphore size is: %d", semSize)
 	wflow.popSwitchSem = make(chan struct{}, semSize)
 	wflow.lockTracker = NewInProcessLockTracker()
+
+	registry, err := switcher.NewDefaultRegistry()
+	if err != nil {
+		return nil, err
+	}
+
+	wflow.switchers = registry.BuildEnabled(config.Cfg.Workflow.DisabledDB)
+	enabledDbTypes := make([]string, 0, len(wflow.switchers))
+	for dbType := range wflow.switchers {
+		enabledDbTypes = append(enabledDbTypes, string(dbType))
+	}
+	sort.Strings(enabledDbTypes)
+	logger.Info("registered switchers, enabledDbTypes: [%s]", strings.Join(enabledDbTypes, ", "))
+
+	wflow.switchExecutor = NewSwitchExecutor(wflow.hadata, wflow.dbmSync, wflow.switchers, myServiceID)
 
 	return wflow, nil
 }
@@ -553,8 +565,9 @@ func (w *Workflow) filterWhitelistedInstances(ctx context.Context, group *Failur
 		logger.Warn("whitelist is disabled, skip filtering whitelisted instances")
 		return
 	}
-	if !config.Cfg.Workflow.EnableSwitching {
-		logger.Warn("switching operation is disabled, skip filtering whitelisted instances")
+	if isSwitchDisabledDbType(group.DbType) {
+		logger.Warn("db type switching is disabled by configuration, skip filtering whitelisted instances, dbType: %s",
+			group.DbType)
 		return
 	}
 
@@ -605,13 +618,18 @@ func (w *Workflow) filterWhitelistedInstances(ctx context.Context, group *Failur
 		clusterInfos = append(clusterInfos, fmt.Sprintf("%d:%s", meta.ClusterID, meta.Cluster))
 	}
 	log := fmt.Sprintf(
-		"found %d not whitelisted instance(s), execute notification only, bkBizId: %d, bkCloudId: %d, dbType: %s, clusters: [%s]",
+		"found %d not whitelisted instance(s), execute notification only, "+
+			"bkBizId: %d, bkCloudId: %d, dbType: %s, clusters: [%s]",
 		len(remaining), bkBizID, group.BkCloudID, group.DbType, strings.Join(clusterInfos, ", "))
 	logger.Info("%s", log)
 	w.alarm.TriggerWithBizId(bkBizID, log)
 }
 
-func (w *Workflow) handleStrategySwitch(strategy *hamodel.DbSwitchingStrategy, group *FailureGroup, req *switcher.Request) bool {
+func (w *Workflow) handleStrategySwitch(
+	strategy *hamodel.DbSwitchingStrategy,
+	group *FailureGroup,
+	req *switcher.Request,
+) bool {
 	if strategy.Action != hamodel.ActionTypeSwitch {
 		return false
 	}

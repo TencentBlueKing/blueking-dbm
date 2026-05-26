@@ -51,8 +51,11 @@ const (
 
 // DoubleCheckTask represents the double-check task.
 type DoubleCheckTask struct {
-	Meta   *hamodel.DbmMetadata
-	DbType haprobe.DbType
+	Meta              *hamodel.DbmMetadata
+	DbType            haprobe.DbType
+	DbEventName       haprobe.DbEventName
+	DbEventNameReason haprobe.DbEventNameReason
+	KeepOriginalEvent bool
 }
 
 // Response represents the response of the detector.
@@ -85,6 +88,9 @@ func (d *Detector) Detect(dbInsts []DoubleCheckTask) error {
 		task := &detectorTask{
 			meta:      inst.Meta,
 			dbType:    inst.DbType,
+			eventName: inst.DbEventName,
+			reason:    inst.DbEventNameReason,
+			keepEvent: inst.KeepOriginalEvent,
 			serviceID: d.ServiceID,
 			sshCli: &Ssh{
 				ip:       inst.Meta.IP,
@@ -135,6 +141,9 @@ func (d *Detector) WaitResponses() []*Response {
 type detectorTask struct {
 	meta      *hamodel.DbmMetadata
 	dbType    haprobe.DbType
+	eventName haprobe.DbEventName
+	reason    haprobe.DbEventNameReason
+	keepEvent bool
 	resp      *Response
 	sshCli    *Ssh
 	serviceID string
@@ -149,8 +158,13 @@ func (d *detectorTask) run(cmd string) {
 		Meta:              d.meta,
 		DbType:            d.dbType,
 		Id:                d.sshCli.Id(),
-		DbEventName:       haprobe.DbEventNameProbeOffline,
-		DbEventNameReason: haprobe.DbEventNameReasonMissedProbe,
+		DbEventName:       d.eventName,
+		DbEventNameReason: d.reason,
+	}
+
+	if !d.keepEvent {
+		resp.DbEventName = haprobe.DbEventNameProbeOffline
+		resp.DbEventNameReason = haprobe.DbEventNameReasonMissedProbe
 	}
 
 	start := time.Now()

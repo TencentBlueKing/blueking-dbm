@@ -75,9 +75,11 @@ func (c *collector) open(ctx context.Context) (*haprobe.DbEvent, error) {
 
 	if err := c.rdb.Ping(ctx).Err(); err != nil {
 		logger.Warn("failed to connect to redis, endpoint: %s, errmsg: %s", addr, err)
+		eventName, reason := ClassifyConnectionError(err)
+
 		event := &haprobe.DbEvent{
-			Name:       haprobe.DbEventNameDetectFailure,
-			Reason:     haprobe.DbEventNameReasonConnectionException,
+			Name:       eventName,
+			Reason:     reason,
 			DbTypeName: haprobe.DbTypeRedis,
 			Endpoint:   c.endpoint,
 			Message:    err.Error(),

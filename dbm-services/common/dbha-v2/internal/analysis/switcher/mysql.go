@@ -53,6 +53,14 @@ func (m *Mysql) DbTypeName() haprobe.DbType {
 	return haprobe.DbTypeMySql
 }
 
+// AlarmEvents returns mysql switch success/failure event names.
+func (m *Mysql) AlarmEvents() AlarmEvents {
+	return AlarmEvents{
+		Success: haprobe.DbEventNameMysqlSwitchSuccessV1,
+		Failure: haprobe.DbEventNameMysqlSwitchFailureV1,
+	}
+}
+
 // NewSwitchInstance creates a MySQL switch instance according to the provided metadata
 func (m *Mysql) NewSwitchInstance(metadata *dbm.DbInstMetadata, switchID string, actionScope hamodel.ActionScopeType) (
 	switchableInstance switchcore.SwitchableInstance, retErr error) {
@@ -161,7 +169,11 @@ func (m *Mysql) NewSwitchLogger() ([]switchlogger.DbSwitchLogger, error) {
 }
 
 // InstanceLevelSwitch handles MySQL instance switching operations
-func (m *Mysql) InstanceLevelSwitch(ctx context.Context, switchLoggers []switchlogger.DbSwitchLogger, req *Request) *Response {
+func (m *Mysql) InstanceLevelSwitch(
+	ctx context.Context,
+	switchLoggers []switchlogger.DbSwitchLogger,
+	req *Request,
+) *Response {
 	start := time.Now()
 
 	rsp := &Response{
@@ -332,7 +344,11 @@ func (m *Mysql) checkHostInstanceCompleteness(ctx context.Context, host switchco
 }
 
 // HostLevelSwitch handles MySQL host switching operations
-func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogger.DbSwitchLogger, req *Request) *Response {
+func (m *Mysql) HostLevelSwitch(
+	ctx context.Context,
+	switchLoggers []switchlogger.DbSwitchLogger,
+	req *Request,
+) *Response {
 	start := time.Now()
 
 	rsp := &Response{
@@ -410,7 +426,11 @@ func (m *Mysql) HostLevelSwitch(ctx context.Context, switchLoggers []switchlogge
 }
 
 // ClusterLevelSwitch handles MySQL cluster switching operations
-func (m *Mysql) ClusterLevelSwitch(ctx context.Context, switchLoggers []switchlogger.DbSwitchLogger, req *Request) *Response {
+func (m *Mysql) ClusterLevelSwitch(
+	ctx context.Context,
+	switchLoggers []switchlogger.DbSwitchLogger,
+	req *Request,
+) *Response {
 	start := time.Now()
 
 	rsp := &Response{
@@ -476,7 +496,12 @@ func (m *Mysql) ClusterLevelSwitch(ctx context.Context, switchLoggers []switchlo
 }
 
 // reportMysqlSwitchingMetrics reports the switching time consuming, success total and error total metrics
-func (m *Mysql) reportMysqlSwitchingMetrics(timeConsumingMetric *haapm.HaHistogram, start time.Time, req *Request, rsp *Response) {
+func (m *Mysql) reportMysqlSwitchingMetrics(
+	timeConsumingMetric *haapm.HaHistogram,
+	start time.Time,
+	req *Request,
+	rsp *Response,
+) {
 
 	// report the mysql switching time consuming
 	if err := timeConsumingMetric.ObserveWithLabels(map[string]string{

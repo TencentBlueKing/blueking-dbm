@@ -73,7 +73,14 @@ const (
 // DbEventNameMap db event name map
 var DbEventNameMap = map[DbEventName]DbEventName{
 	DbEventNameDetectFailure:                   DbEventNameDetectFailure,
+	DbEventNameDetectDbFailureV1:               DbEventNameDetectDbFailureV1,
+	DbEventNameDetectSshFailureV1:              DbEventNameDetectSshFailureV1,
+	DbEventNameDetectSshAuthFailureV1:          DbEventNameDetectSshAuthFailureV1,
+	DbEventNameDetectRedisAuthFailureV1:        DbEventNameDetectRedisAuthFailureV1,
 	DbEventNameDoubleCheckSshFailureV1:         DbEventNameDoubleCheckSshFailureV1,
+	DbEventNameDoubleCheckAuthFailureV1:        DbEventNameDoubleCheckAuthFailureV1,
+	DbEventNameRedisSwitchSuccessV1:            DbEventNameRedisSwitchSuccessV1,
+	DbEventNameRedisSwitchFailureV1:            DbEventNameRedisSwitchFailureV1,
 	DbEventNameTendbhaProxyBackendFailure:      DbEventNameTendbhaProxyBackendFailure,
 	DbEventNameTendbclusterSpiderRemoteFailure: DbEventNameTendbclusterSpiderRemoteFailure,
 	DbEventNameProbeOffline:                    DbEventNameProbeOffline,
@@ -82,7 +89,14 @@ var DbEventNameMap = map[DbEventName]DbEventName{
 // DbEventNameList db event name list
 var DbEventNameList = []DbEventName{
 	DbEventNameDetectFailure,
+	DbEventNameDetectDbFailureV1,
+	DbEventNameDetectSshFailureV1,
+	DbEventNameDetectSshAuthFailureV1,
+	DbEventNameDetectRedisAuthFailureV1,
 	DbEventNameDoubleCheckSshFailureV1,
+	DbEventNameDoubleCheckAuthFailureV1,
+	DbEventNameRedisSwitchSuccessV1,
+	DbEventNameRedisSwitchFailureV1,
 	DbEventNameTendbhaProxyBackendFailure,
 	DbEventNameTendbclusterSpiderRemoteFailure,
 	DbEventNameProbeOffline,
@@ -157,6 +171,31 @@ const (
 
 func (t DbType) String() string {
 	return string(t)
+}
+
+// DisabledDBSupportedEnum defines all db types supported by workflow switching disable control.
+var DisabledDBSupportedEnum = []DbType{
+	DbTypeMySql,
+	DbTypeRedis,
+	DbTypeSqlServer,
+	DbTypeMongo,
+	DbTypeRiak,
+	DbTypeHdfs,
+	DbTypeEs,
+	DbTypeKafka,
+	DbTypeDoris,
+	DbTypePulsar,
+}
+
+// IsSwitchControllableDbType returns whether db type can be controlled by disabledDB.
+func IsSwitchControllableDbType(dbType DbType) bool {
+	for _, supported := range DisabledDBSupportedEnum {
+		if supported == dbType {
+			return true
+		}
+	}
+
+	return false
 }
 
 // DbEvent Include some exception events

@@ -80,6 +80,28 @@ func TestCountInstancesByEventName_NoMatch(t *testing.T) {
 	}
 }
 
+func TestCountInstancesByEventName_ReasonIgnored(t *testing.T) {
+	instances := []FailureInstanceInfo{
+		{
+			EventName:       haprobe.DbEventNameDetectRedisAuthFailureV1,
+			EventNameReason: haprobe.DbEventNameReasonAuthException,
+		},
+		{
+			EventName:       haprobe.DbEventNameDetectRedisAuthFailureV1,
+			EventNameReason: haprobe.DbEventNameReasonConnectionException,
+		},
+		{
+			EventName:       haprobe.DbEventNameDetectRedisAuthFailureV1,
+			EventNameReason: haprobe.DbEventNameReasonAuthException,
+		},
+	}
+
+	count := CountInstancesByEventName(instances, haprobe.DbEventNameDetectRedisAuthFailureV1)
+	if count != 3 {
+		t.Errorf("expected 3, got %d", count)
+	}
+}
+
 // ============================================================
 // 2. MatchProxyBackendSimultaneous tests
 // ============================================================

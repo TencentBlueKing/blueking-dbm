@@ -44,6 +44,19 @@ var (
 	ErrSwitchPartialSuccess = gerrors.Newf(gerrors.Failure, "the switching achieved partial success")
 )
 
+// Switcher defines the interface for database switching implementations
+type Switcher interface {
+	DbTypeName() haprobe.DbType
+	AlarmEvents() AlarmEvents
+	Switch(ctx context.Context, req *Request) *Response
+}
+
+// AlarmEvents defines success/failure monitor event names for one db type.
+type AlarmEvents struct {
+	Success haprobe.DbEventName
+	Failure haprobe.DbEventName
+}
+
 // Request contains all data needed for database switching operation
 type Request struct {
 	SwitchID      string
@@ -106,12 +119,6 @@ func (rsp *Response) AddFailureInst(instKey switchcore.MetadataKey, inst *dbm.Db
 		rsp.MySqlFailureInsts = map[switchcore.MetadataKey]*dbm.DbInstMetadata{}
 	}
 	rsp.MySqlFailureInsts[instKey] = inst
-}
-
-// Switcher defines the interface for database switching implementations
-type Switcher interface {
-	DbTypeName() haprobe.DbType
-	Switch(ctx context.Context, req *Request) *Response
 }
 
 // SwitchReporter is the reporter for database switching operations

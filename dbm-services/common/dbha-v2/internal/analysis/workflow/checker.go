@@ -67,8 +67,11 @@ func (c *BusinessChecker) CheckEventWithBizId(bizId int, dbEvents []*haprobe.DbE
 
 		logger.Warn("recheck the db-inst: %s", key)
 		badInsts = append(badInsts, detector.DoubleCheckTask{
-			Meta:   meta,
-			DbType: event.DbTypeName,
+			Meta:              meta,
+			DbType:            event.DbTypeName,
+			DbEventName:       event.Name,
+			DbEventNameReason: event.Reason,
+			KeepOriginalEvent: true,
 		})
 	}
 
@@ -76,7 +79,10 @@ func (c *BusinessChecker) CheckEventWithBizId(bizId int, dbEvents []*haprobe.DbE
 }
 
 // CheckDbHosts parses host status and invokes checkDbEventsFunc with the resulting events.
-func (c *BusinessChecker) CheckDbHosts(dbHosts []*haprobe.HostMetric, checkDbEventsFunc func(dbEvents []*haprobe.DbEvent)) {
+func (c *BusinessChecker) CheckDbHosts(
+	dbHosts []*haprobe.HostMetric,
+	checkDbEventsFunc func(dbEvents []*haprobe.DbEvent),
+) {
 	dbEvents, err := c.parser.ParseHostStatus(dbHosts)
 	if err != nil {
 		logger.Warn("failed to parse the host status, errmsg: %s", err)
@@ -103,8 +109,12 @@ func (c *BusinessChecker) CheckDbStatus(dbStatusVals []parser.DBTyperWrapper,
 }
 
 // CheckMissedProbe finds instances with no probe and runs liveness double check.
-func (c *BusinessChecker) CheckMissedProbe(bizId int, dbStatus []*hamodel.DbhaDataStatus, skipDbInsts map[string]*hamodel.SkipDbInstance,
-	metaInsts map[string]*hamodel.DbmMetadata) {
+func (c *BusinessChecker) CheckMissedProbe(
+	bizId int,
+	dbStatus []*hamodel.DbhaDataStatus,
+	skipDbInsts map[string]*hamodel.SkipDbInstance,
+	metaInsts map[string]*hamodel.DbmMetadata,
+) {
 	dbMetricKeys := map[string]struct{}{}
 	for _, dbStat := range dbStatus {
 		key := instanceKey(dbStat.BkCloudID, dbStat.DbIp, dbStat.DbPort)

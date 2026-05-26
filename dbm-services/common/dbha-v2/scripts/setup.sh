@@ -335,7 +335,9 @@ workflow:
   readDbMetaOffsetDuration: -24h
   readDbMetricOffsetDuration: -60s
   readDbEventOffsetDuration: -10m
-  enableSwitching: true
+  disabledDB:
+    - mysql
+    - redis
   switchflow:
     clusterLevelSwitchMaxClusterNum: 32
     clusterLevelSwitchMaxInstanceNum: 64
