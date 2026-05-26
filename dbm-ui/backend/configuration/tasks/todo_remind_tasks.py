@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import concurrent.futures
 import logging
 import time
 from collections import Counter, defaultdict
@@ -298,6 +299,45 @@ def send_msg(title, context, receivers, msg_type):
         CmsiHandler(title, context, receivers).send_msg(MsgType.MAIL.value, context=None)
 
 
+def _process_user_chunk(
+    user_chunk,
+    dba_infos,
+    user_todo_map,
+    todo_types,
+):
+    """
+    处理一批用户，返回该批次中的 dba 和非 dba 用户待办信息
+    """
+    local_dba = {}
+    local_no_dba = {}
+
+    for user in user_chunk:
+        user_all_todo_info = {"count": 0, "context_list": []}
+        is_dba = user.username in dba_infos
+
+        todo_funcs = user_todo_map["dba" if is_dba else "ordinary"]
+
+        for todo_func in todo_funcs:
+            func_name = f"get_{todo_func}_count"
+            if not hasattr(CalcPersonalTodoClass, func_name):
+                continue
+
+            count_info = getattr(CalcPersonalTodoClass, func_name)(user.username, dba_infos.get(user.username, []))
+            if isinstance(count_info, int):
+                user_all_todo_info["count"] += count_info
+            elif isinstance(count_info, dict):
+                user_all_todo_info["count"] += sum(count_info.values())
+            user_all_todo_info["context_list"].append(get_todo_context(count_info, todo_types[todo_func]))
+
+        if user_all_todo_info["count"]:
+            if is_dba:
+                local_dba[user.username] = user_all_todo_info
+            else:
+                local_no_dba[user.username] = user_all_todo_info
+
+    return local_dba, local_no_dba
+
+
 @shared_task
 def send_todo_remind():
 
@@ -313,45 +353,28 @@ def send_todo_remind():
     if not send_types:
         return
 
-    users = User.objects.all()
+    users = list(User.objects.all())
     user_todo_map = SystemSettings.get_setting_value(
         SystemSettingsEnum.DBM_USER_TODO_TYPE_MAP, default=DBM_USER_TODO_TYPE_MAP_DEFAULT
     )
     todo_types = user_todo_map["types"]
+    dba_infos = get_dba_infos()
+    # 将用户列表均匀分成10份（若不足10人则每人一份）
+    num_threads = 10
+    chunk_size = max(1, len(users) // num_threads)
+    user_chunks = [users[i : i + chunk_size] for i in range(0, len(users), chunk_size)]
 
     dba_user = {}
     no_dba_user = {}
-
-    dba_infos = get_dba_infos()
-
-    # 对每个用户进行待办查询，有待办则发送通知
-    for user in users:
-        user_all_todo_info = {"count": 0, "context_list": []}
-        is_dba = True if user.username in dba_infos else False
-
-        todo_funcs = user_todo_map["dba" if is_dba else "ordinary"]
-
-        # 每个用户对应需要收集的待办信息，收集总数以及待办模板
-        for todo_func in todo_funcs:
-            func_name = f"get_{todo_func}_count"
-            if not hasattr(CalcPersonalTodoClass, func_name):
-                continue
-
-            count_info = getattr(CalcPersonalTodoClass, func_name)(user.username, dba_infos.get(user.username, []))
-            if isinstance(count_info, int):
-                user_all_todo_info["count"] += count_info
-            elif isinstance(count_info, dict):
-                user_all_todo_info["count"] += sum(count_info.values())
-            user_all_todo_info["context_list"].append(get_todo_context(count_info, todo_types[todo_func]))
-
-        # 如果没有待办数量则跳过
-        if not user_all_todo_info["count"]:
-            continue
-
-        if is_dba:
-            dba_user[user.username] = user_all_todo_info
-        else:
-            no_dba_user[user.username] = user_all_todo_info
+    # 多线程执行
+    with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
+        futures = [
+            executor.submit(_process_user_chunk, chunk, dba_infos, user_todo_map, todo_types) for chunk in user_chunks
+        ]
+        for future in concurrent.futures.as_completed(futures):
+            local_dba, local_no_dba = future.result()
+            dba_user.update(local_dba)
+            no_dba_user.update(local_no_dba)
 
     # 如果有群里，则发送群聊消息
     if MsgType.WECOM_ROBOT.value in send_types:
