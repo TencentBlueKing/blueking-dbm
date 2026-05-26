@@ -22,7 +22,9 @@ import { getBusinessHref } from '@utils';
 export const useTicketMessage = (
   params: {
     isCurrentBiz?: boolean;
-  } = {},
+  } = {
+    isCurrentBiz: true,
+  },
 ) => {
   const { t } = useI18n();
   const router = useRouter();
