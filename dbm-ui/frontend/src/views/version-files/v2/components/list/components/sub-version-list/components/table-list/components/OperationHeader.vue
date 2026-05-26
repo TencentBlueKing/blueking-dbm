@@ -4,63 +4,76 @@
     class="title-operate">
     <div class="title-main">
       <span>{{ versionName }}</span>
-      <span class="ml-4 mr-4">(</span>
-      <span>{{ dbVersionListCount }}</span>
-      <span class="ml-4 mr-4">)</span>
+      <BkTag
+        class="ml-12"
+        radius="12px">
+        {{ dbVersionListCount }}
+      </BkTag>
     </div>
-    <div class="operate-main">
-      <BkButton
-        class="ml-8"
-        size="small"
-        @click.stop="handleAddVersion">
-        {{ t('添加版本') }}
-      </BkButton>
-      <div class="more-operate">
-        <div
-          class="icon-wrapper"
-          @click.stop="handleShowOperatePanel">
-          <DbIcon type="more" />
-        </div>
-        <div></div>
-        <div
-          v-show="isShowOperatePanel"
-          v-clickoutside="handleClickOutside"
-          class="operate-panel-list"
-          :style="{
-            top: `${operatePanelPosition.top}px`,
-            left: `${operatePanelPosition.left}px`,
-          }">
+    <div class="more-operate">
+      <div
+        class="icon-wrapper"
+        @click.stop="handleShowOperatePanel">
+        <DbIcon type="more" />
+      </div>
+      <div
+        v-show="isShowOperatePanel"
+        v-clickoutside="handleClickOutside"
+        class="operate-panel-list"
+        :style="{
+          top: `${operatePanelPosition.top}px`,
+          left: `${operatePanelPosition.left}px`,
+        }">
+        <AuthTemplate
+          action-id="package_manage"
+          :permission="permission"
+          :resource="dbType">
+          <div
+            class="operate-item add-veriosn"
+            @click.stop="handleAddVersion">
+            {{ t('添加版本') }}
+          </div>
+        </AuthTemplate>
+        <AuthTemplate
+          action-id="package_manage"
+          :permission="permission"
+          :resource="dbType">
           <div
             class="operate-item"
             @click.stop="handleEditName">
-            {{ t('编辑') }}
+            {{ t('编辑系列') }}
           </div>
-          <BkPopConfirm
-            :confirm-config="{
-              theme: 'danger',
-              loading: deleteVersionSeriesLoading,
-            }"
-            :confirm-text="t('删除')"
-            :content="t('删除操作无法撤回，请谨慎操作！')"
-            :disabled="dbVersionListCount > 0"
-            placement="bottom"
-            :title="t('确认删除该版本系列？')"
-            trigger="click"
-            width="280"
-            @confirm="handleDeleteVersionSeries">
+        </AuthTemplate>
+        <BkPopConfirm
+          :confirm-config="{
+            theme: 'danger',
+            loading: deleteVersionSeriesLoading,
+          }"
+          :confirm-text="t('删除')"
+          :content="t('删除操作无法撤回，请谨慎操作！')"
+          :disabled="dbVersionListCount > 0"
+          placement="bottom"
+          :title="t('确认删除该版本系列？')"
+          trigger="click"
+          width="280"
+          @confirm="handleDeleteVersionSeries">
+          <AuthTemplate
+            action-id="package_manage"
+            :permission="permission"
+            :resource="dbType">
             <div
               v-bk-tooltips="{
-                content: t('当前系列包含版本内容，无法删除'),
+                content: t('该版本系列下存在 n 个版本，请删除后再操作', { n: dbVersionListCount }),
                 placement: 'right',
                 disabled: dbVersionListCount === 0,
               }"
               class="operate-item"
               :class="{ 'is-disabled': dbVersionListCount > 0 }"
               @click.stop>
-              {{ t('删除') }}
+              {{ t('删除系列') }}
             </div>
-          </BkPopConfirm>
-        </div>
+          </AuthTemplate>
+        </BkPopConfirm>
       </div>
     </div>
   </div>
@@ -70,6 +83,7 @@
     class="operation-header-edit-series-main"
     :data="versionName"
     :distribution-id="data?.distribution"
+    :existed-list="existedVersionNameList"
     mode="update"
     :series-id="data?.id"
     @confirm="handleConfirmChangeVersionName" />
@@ -90,17 +104,21 @@
       id: number;
       name: string;
     };
+    dbType: string;
     dbVersionListCount?: number;
+    existedVersionNameList: string[];
+    permission?: boolean;
   }
 
   interface Emits {
     (e: 'addNewVersion'): void;
-    (e: 'deleteVersionSeries'): void;
+    (e: 'editVersionSeries'): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     data: undefined,
     dbVersionListCount: 0,
+    permission: true,
   });
 
   const emits = defineEmits<Emits>();
@@ -118,8 +136,8 @@
   const { loading: deleteVersionSeriesLoading, run: runDeleteVersionSeries } = useRequest(deleteVersionSeries, {
     manual: true,
     onSuccess: () => {
-      messageSuccess(t('删除成功'));
-      emits('deleteVersionSeries');
+      messageSuccess(t('操作成功'));
+      emits('editVersionSeries');
     },
   });
 
@@ -142,6 +160,7 @@
 
   const handleConfirmChangeVersionName = (id: number, name: string) => {
     versionName.value = name;
+    emits('editVersionSeries');
   };
 
   const handleEditName = () => {
@@ -178,59 +197,59 @@
       color: #313238;
     }
 
-    .operate-main {
+    .more-operate {
+      position: relative;
       display: flex;
-      align-items: center;
+      width: 26px;
+      height: 26px;
+      margin-left: 4px;
 
-      .more-operate {
-        position: relative;
+      .icon-wrapper {
         display: flex;
         width: 26px;
         height: 26px;
-        margin-left: 4px;
+        border-radius: 2px;
+        align-items: center;
+        justify-content: center;
 
-        .icon-wrapper {
-          width: 26px;
-          height: 26px;
-          border-radius: 2px;
+        &:hover {
+          background: #dcdee5;
+        }
+      }
+
+      .operate-panel-list {
+        position: fixed;
+        // top: 30px;
+        // left: 10px;
+        z-index: 999999;
+        width: 120px;
+        background: #fff;
+        border: 1px solid #dcdee5;
+        border-radius: 2px;
+        box-shadow: 0 2px 6px 0 #0000001a;
+
+        .operate-item {
           display: flex;
+          width: 100%;
+          height: 32px;
+          padding: 0 12px;
+          font-size: 12px;
+          color: #4d4f56;
+          cursor: pointer;
           align-items: center;
-          justify-content: center;
 
           &:hover {
-            background: #dcdee5;
+            background: #f5f7fa;
           }
-        }
 
-        .operate-panel-list {
-          position: fixed;
-          // top: 30px;
-          // left: 10px;
-          z-index: 999999;
-          width: 60px;
-          background: #fff;
-          border: 1px solid #dcdee5;
-          border-radius: 2px;
-          box-shadow: 0 2px 6px 0 #0000001a;
+          &.is-disabled {
+            color: #c4c6cc;
+            cursor: not-allowed;
+          }
 
-          .operate-item {
-            display: flex;
-            width: 100%;
+          &.add-veriosn {
             height: 32px;
-            padding: 0 12px;
-            font-size: 12px;
-            color: #4d4f56;
-            cursor: pointer;
-            align-items: center;
-
-            &:hover {
-              background: #f5f7fa;
-            }
-
-            &.is-disabled {
-              color: #c4c6cc;
-              cursor: not-allowed;
-            }
+            border-bottom: solid 1px #f0f1f5;
           }
         }
       }

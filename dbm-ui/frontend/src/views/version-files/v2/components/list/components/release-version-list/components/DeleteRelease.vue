@@ -12,15 +12,22 @@
     trigger="click"
     width="280"
     @confirm="handleDeleteRelease">
-    <DbIcon
-      v-bk-tooltips="{
-        content: data?.isDeleteDisabled ? t('存在版本内容，无法删除') : t('删除'),
-        disabled: !data?.isDeleteDisabled,
-      }"
-      class="edit-icon"
-      :class="{ 'is-disabled': data?.isDeleteDisabled }"
-      type="delete"
-      @click.stop />
+    <AuthTemplate
+      action-id="package_manage"
+      :permission="data?.permission.package_manage"
+      :resource="dbType">
+      <DbIcon
+        v-bk-tooltips="{
+          content: data?.isDeleteDisabled
+            ? t('该发行版下存在 n 个版本，请删除后再操作', { n: data.dbversion_count })
+            : t('删除'),
+          disabled: !data?.isDeleteDisabled,
+        }"
+        class="edit-icon"
+        :class="{ 'is-disabled': data?.isDeleteDisabled }"
+        type="delete"
+        @click.stop />
+    </AuthTemplate>
   </BkPopConfirm>
 </template>
 <script setup lang="ts">
@@ -50,7 +57,7 @@
   const { loading: deleteReleaseVersionLoading, run: runDeleteReleaseVersion } = useRequest(deleteReleaseVersion, {
     manual: true,
     onSuccess() {
-      messageSuccess(t('删除成功'));
+      messageSuccess(t('操作成功'));
       emits('success');
     },
   });

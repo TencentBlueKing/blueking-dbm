@@ -1,7 +1,7 @@
 <template>
   <div class="list-main">
     <ReleaseVersionList
-      v-if="dbType === DBTypes.MYSQL"
+      v-if="isPureMysql"
       :key="renderKey"
       ref="releaseVersionListRef"
       :db-type="dbType"
@@ -12,7 +12,6 @@
     <SubVersionList
       ref="subVersionListRef"
       :db-type="dbType"
-      :pkg-label-map="pkgLabelMap"
       :pkg-type="pkgType"
       :release-version="activeReleaseVersion"
       @refresh-release-list="handleRefreshReleaseList" />
@@ -24,9 +23,7 @@
   import ReleaseVersionModel from '@services/model/version-file/release-version';
   import { getReleaseVersionList } from '@services/source/version';
 
-  import { DBTypes } from '@common/const';
-
-  import type { TabItem } from '../Index.vue';
+  import type { TabItem } from '../../Index.vue';
 
   import ReleaseVersionList from './components/release-version-list/Index.vue';
   import SubVersionList from './components/sub-version-list/Index.vue';
@@ -45,6 +42,7 @@
   const activeReleaseVersion = ref<ReleaseVersionModel>();
 
   const renderKey = computed(() => `${props.dbType}-${props.pkgType}`);
+  const isPureMysql = computed(() => props.dbType === 'mysql' && props.pkgType === 'mysql');
 
   const { run: runGetReleaseList } = useRequest(getReleaseVersionList, {
     manual: true,
@@ -57,7 +55,7 @@
     () => [props.dbType, props.pkgType],
     () => {
       activeReleaseVersion.value = undefined;
-      if (props.dbType !== 'mysql') {
+      if (!isPureMysql.value) {
         const pkgList = props.tabs.find((item) => item.name === props.dbType)?.children.map((item) => item.name);
         if (pkgList?.includes(props.pkgType)) {
           runGetReleaseList({

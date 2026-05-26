@@ -23,7 +23,7 @@
           </BkMenuItem>
           <BkMenuItem
             v-show="false"
-            key="PlatformVersionFilesV2">
+            key="PlatformVersionFilesV1">
             <template #icon>
               <DbIcon type="version" />
             </template>

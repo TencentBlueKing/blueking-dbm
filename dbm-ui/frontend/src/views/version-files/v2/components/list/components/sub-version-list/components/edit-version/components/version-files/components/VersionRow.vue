@@ -11,11 +11,16 @@
       <BkSelect
         v-model="localData.permit_os_type"
         :clearable="false"
-        @change="(value)=> handleSystemChange(value)">
+        ext-cls="version-files-version-row-select"
+        @change="(value) => handleOsTypeChange(value)">
         <BkOption
           v-for="system in systemList"
-          :disabled="selectedAllSystems.has(system.value) && selectedAllVersions[system.value]?.has('all')"
           :key="system.value"
+          v-bk-tooltips="{
+            content: t('该 OS 已被其它文件占用'),
+            disabled: !(selectedAllSystems.has(system.value) && selectedAllVersions[system.value]?.has('all')),
+          }"
+          :disabled="selectedAllSystems.has(system.value) && selectedAllVersions[system.value]?.has('all')"
           :label="system.label"
           :value="system.value" />
       </BkSelect>
@@ -29,8 +34,8 @@
         multiple
         multiple-mode="tag"
         show-all
-        @change="handleVersionChange"
-        @toggle="handleVersionToggle">
+        @change="handleOsVersionChange"
+        @toggle="handleOsVersionToggle">
         <template #trigger>
           <div
             class="version-display-trigger"
@@ -79,8 +84,12 @@
         </template>
         <BkOption
           v-for="version in versionList"
-          :disabled="selectedAllVersions[localData.permit_os_type]?.has(version.value)"
           :key="version.value"
+          v-bk-tooltips="{
+            content: t('该 OS 版本已被其它文件占用'),
+            disabled: !selectedAllVersions[localData.permit_os_type]?.has(version.value),
+          }"
+          :disabled="selectedAllVersions[localData.permit_os_type]?.has(version.value)"
           :label="version.label"
           :value="version.value" />
       </BkSelect>
@@ -117,13 +126,15 @@
       size: number;
     };
     isApplied?: boolean;
+    isOnlyOneFile: boolean;
     selectedSystems: Set<string>;
     selectedVersions: Record<string, Set<string>>;
   }
 
   interface Emits {
     (e: 'delete'): void;
-    (e: 'systemVersionChange'): void;
+    (e: 'systemOsTypeChange', isInit: boolean): void;
+    (e: 'systemOsVersionChange'): void;
   }
 
   interface Exposes {
@@ -182,7 +193,7 @@
         localData.value.permit_os_type = props.data.permit_os_type || '';
         if (localData.value.permit_os_type) {
           setTimeout(() => {
-            handleSystemChange(localData.value.permit_os_type, true);
+            handleOsTypeChange(localData.value.permit_os_type, true);
           });
         }
       }
@@ -199,19 +210,22 @@
         selectedAllSystems.value = props.selectedSystems;
         selectedAllVersions.value = props.selectedVersions;
         if (localData.value.permit_os.length > 0) {
-          if (props.selectedVersions[localData.value.permit_os_type]?.has('all') && !localData.value.permit_os.includes('all')) {
+          if (
+            props.selectedVersions[localData.value.permit_os_type]?.has('all') &&
+            !localData.value.permit_os.includes('all')
+          ) {
             localData.value.permit_os_type = '';
             localData.value.permit_os = [];
             versionList.value = [];
-            emits('systemVersionChange');
+            emits('systemOsTypeChange', true);
             return;
           }
 
           const localSelectedVersions = _.cloneDeep(props.selectedVersions);
           if (localSelectedVersions[localData.value.permit_os_type]?.size > 0) {
-            localData.value.permit_os.forEach(item => {
+            localData.value.permit_os.forEach((item) => {
               localSelectedVersions[localData.value.permit_os_type].delete(item);
-            })
+            });
           }
           selectedAllVersions.value = localSelectedVersions;
         }
@@ -222,9 +236,9 @@
     },
   );
 
-  const handleSystemChange = (value: string, isInit = false) => {
+  const handleOsTypeChange = (value: string, isInit = false) => {
     nextTick(() => {
-      emits('systemVersionChange');
+      emits('systemOsTypeChange', isInit);
     });
     if (existVersionList.value.length > 0) {
       const exisetVersionSet = new Set(existVersionList.value);
@@ -244,13 +258,18 @@
       value: item,
     }));
     if (!isInit) {
+      if (props.isOnlyOneFile) {
+        localData.value.permit_os = ['all'];
+        return;
+      }
       localData.value.permit_os = [];
     }
   };
 
-  const handleVersionChange = () => {
+  const handleOsVersionChange = () => {
+    emits('systemOsVersionChange');
     nextTick(() => {
-      emits('systemVersionChange');
+      emits('systemOsTypeChange', false);
     });
   };
 
@@ -260,14 +279,14 @@
     }
   };
 
-  const handleVersionToggle = (isShow: boolean) => {
+  const handleOsVersionToggle = (isShow: boolean) => {
     isShowVersionPanel.value = isShow;
   };
 
   const handleVersionDelete = (index: number) => {
     localData.value.permit_os.splice(index, 1);
     nextTick(() => {
-      emits('systemVersionChange');
+      emits('systemOsTypeChange', false);
     });
   };
 
@@ -394,5 +413,9 @@
         border-color: #ea3636;
       }
     }
+  }
+
+  .version-files-version-row-select {
+    z-index: 99999;
   }
 </style>
