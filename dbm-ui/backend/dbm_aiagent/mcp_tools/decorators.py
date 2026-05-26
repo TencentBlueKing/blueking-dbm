@@ -17,6 +17,8 @@ from typing import Callable, Optional, Type
 
 from apigw_manager.drf.utils import gen_apigateway_resource_config
 from apigw_manager.plugin.config import build_bk_header_rewrite
+from django.db import models, transaction
+from django.utils import timezone
 from django.utils.translation import gettext as _
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
@@ -25,12 +27,25 @@ from rest_framework.exceptions import PermissionDenied
 
 from backend import env
 from backend.dbm_aiagent.mcp_tools.constants import DBMMcpTools
+from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpCalleePlanException
+from backend.dbm_aiagent.models.mcp_callee_plan import McpCalleePlan, McpCalleePlanStatus
 from backend.ticket.models import Ticket
 
 logger = logging.getLogger("root")
 
 # 全局注册表：存储 MCP 工具名称到 operation_id 列表的映射
 MCP_TOOLS_REGISTRY: defaultdict[str, list[str]] = defaultdict(list)
+
+
+def default_mcp_callee_plan_checker(plan_slz: serializers.Serializer, requested_slz: serializers.Serializer):
+    """默认计划校验回调：对比计划参数与请求参数的序列化结果"""
+    if plan_slz.data != requested_slz.data:
+        raise Exception(
+            f"The request parameters do not match those registered in the plan. "
+            f"plan params: {plan_slz.data}, but received: {requested_slz.data}. "
+            f"You must call this tool with exactly the same parameters you announced, "
+            f"or create a new plan via `register_callee_plan` with the correct parameters."
+        )
 
 
 def _extract_agent_type_and_mcp_type(func: Callable) -> tuple[str, str]:
@@ -78,6 +93,11 @@ def mcp_tools_api_decorator(  # noqa: C901
     app_verified_required: bool = True,
     none_schema: bool = False,
     enable: bool = True,
+    # 启用 MCP 计划特性
+    enable_callee_plan: bool = False,
+    callee_plan_checker: Optional[
+        Callable[[serializers.Serializer, serializers.Serializer], None]
+    ] = default_mcp_callee_plan_checker,
 ):
     """
     MCP 工具 API 装饰器
@@ -212,6 +232,10 @@ def mcp_tools_api_decorator(  # noqa: C901
                 )
                 check_permissions(self, request, resolved_permission_classes)
 
+                # 校验 callee 计划
+                if enable_callee_plan:
+                    _check_callee_plan(operation_id, request, request_slz, callee_plan_checker)
+
                 # 调用 reference_view 的处理逻辑
                 return reference_view(self, request, *args, **kwargs)
 
@@ -224,6 +248,11 @@ def mcp_tools_api_decorator(  # noqa: C901
             def wrapper(self, request, *args, **kwargs):
                 resolved_permission_classes = resolve_permission_classes(self, self.action)
                 check_permissions(self, request, resolved_permission_classes)
+
+                # 校验 callee 计划
+                if enable_callee_plan:
+                    _check_callee_plan(operation_id, request, request_slz, callee_plan_checker)
+
                 return func(self, request, *args, **kwargs)
 
             decorated_func = schema_decorator(wrapper)
@@ -245,3 +274,64 @@ def bill_response_wrapper(func):
             raise Exception("unexpected exception in bill wrapper")
 
     return wrapper
+
+
+@transaction.atomic
+def _check_callee_plan(callee_mcp_id, request, request_slz, checker):
+    """框架内部调用：查询计划记录，构造序列化器实例，再调用 checker 校验"""
+    now = timezone.now()
+
+    McpCalleePlan.objects.filter(
+        status=McpCalleePlanStatus.APPROVED,
+        time_window_end__lt=now,
+    ).update(status=McpCalleePlanStatus.EXPIRED)
+
+    username = request.user.username
+
+    callee_plan = (
+        McpCalleePlan.objects.select_for_update()
+        .filter(
+            username=username,
+            callee_mcp_id=callee_mcp_id,
+            status=McpCalleePlanStatus.APPROVED,
+            time_window_start__lte=now,
+            time_window_end__gte=now,
+        )
+        .first()
+    )
+
+    if not callee_plan:
+        raise DBMMcpCalleePlanException(
+            msg=f"No approved plan found for `{callee_mcp_id}`. "
+            f"Before calling this tool, you MUST first announce your execution plan "
+            f"by calling the `register_callee_plan` tool with "
+            f'callee_mcp_id="{callee_mcp_id}" and the parameters you intend to use. '
+            f"After the plan is approved, retry this call."
+        )
+
+    slz_planned = request_slz(data=callee_plan.params)
+    slz_planned.is_valid(raise_exception=True)
+
+    slz_requested = request_slz(data=request.data)
+    slz_requested.is_valid(raise_exception=True)
+
+    try:
+        checker(slz_planned, slz_requested)
+    except Exception as e:
+        raise DBMMcpCalleePlanException(
+            msg=f"The parameters in this request do not match those registered in the plan. "
+            f"Detail: {e}. "
+            f"You must call this tool with exactly the same parameters you announced, "
+            f"or create a new plan via `register_callee_plan` with the correct parameters."
+        )
+
+    if callee_plan.current_call_count >= callee_plan.max_call_count:
+        raise DBMMcpCalleePlanException(
+            msg=f"The plan for `{callee_mcp_id}` has reached its maximum call count "
+            f"({callee_plan.current_call_count}/{callee_plan.max_call_count}). "
+            f"To continue, create a new plan by calling `register_callee_plan` again."
+        )
+
+    callee_plan.current_call_count = models.F("current_call_count") + 1
+    callee_plan.save(update_fields=["current_call_count"])
+    callee_plan.refresh_from_db()

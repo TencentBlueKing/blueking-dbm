@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from typing import Dict, Optional
 
 from backend.flow.engine.bamboo.scene.common.machine_os_init import ImportResourceInitStepFlow
+from backend.flow.engine.bamboo.scene.common.register_mcp_callee_plan_flow import RegisterMcpCalleePlanFlow
 
 
 class BaseController:
@@ -44,3 +45,7 @@ class BaseController:
     def resource_hcm_replenish_flow(self):
         flow = ImportResourceInitStepFlow(root_id=self.root_id, data=self.ticket_data)
         flow.resource_hcm_replenish_flow()
+
+    def register_mcp_callee_plan(self):
+        flow = RegisterMcpCalleePlanFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.register_plan_flow()

@@ -88,3 +88,9 @@ class DBMMcpUnsafeIdentifierException(DBMMcpBaseException):
     ERROR_CODE = "012"
     MESSAGE = _("不安全的标识符")
     MESSAGE_TPL = _("{msg}")
+
+
+class DBMMcpCalleePlanException(DBMMcpBaseException):
+    ERROR_CODE = "013"
+    MESSAGE = _("MCP 计划异常")
+    MESSAGE_TPL = _("{msg}")

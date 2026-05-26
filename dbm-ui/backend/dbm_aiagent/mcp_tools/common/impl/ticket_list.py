@@ -109,7 +109,7 @@ def rebuild_ticket_param(tk: Ticket):
             logger.error(f"extract_by_schema error: {e}")
             raise e
     else:
-        return ""
+        return tk.details
 
 
 def get_ticket_todos(tk: Ticket):
