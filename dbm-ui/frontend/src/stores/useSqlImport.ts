@@ -13,6 +13,7 @@
 
 import { defineStore } from 'pinia';
 
+import { checkMongoScriptSyntax } from '@services/source/mongodbToolbox';
 import { grammarCheck as mysqlGrammarCheck } from '@services/source/mysqlSqlImport';
 import { grammarCheck as oracleGrammarCheck } from '@services/source/oracleSqlImport';
 import { grammarCheck as sqlserverGrammarCheck } from '@services/source/sqlserverSqlImport';
@@ -27,6 +28,7 @@ export const useSqlImport = defineStore('useSqlImport', {
   getters: {
     grammarCheckHandle: (state) => {
       const grammarCheckMap = {
+        [DBTypes.MONGODB]: checkMongoScriptSyntax,
         [DBTypes.MYSQL]: mysqlGrammarCheck,
         [DBTypes.ORACLE]: oracleGrammarCheck,
         [DBTypes.SQLSERVER]: sqlserverGrammarCheck,

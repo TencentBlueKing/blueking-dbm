@@ -12,255 +12,428 @@
 -->
 
 <template>
-  <BkFormItem
-    :label="t('脚本文件')"
-    property="execute_sqls"
-    required>
-    <div class="sql-execute-local-file">
-      <div style="margin-bottom: 16px">
-        <BkButton @click="handleSelectLocalFile">
+  <BkResizeLayout
+    :border="false"
+    class="sql-execute-file-local-file"
+    :initial-divide="300"
+    :min="240">
+    <template #aside>
+      <RenderFileList
+        v-model="selectFileName"
+        v-model:filename-list="uploadFileNameList"
+        :file-data="uploadFileDataMap"
+        @after-sort="handleFileSortChange"
+        @remove="handleRemove">
+        <div
+          key="upload"
+          class="upload-btn"
+          @click="handleSelectLocalFile">
           <DbIcon
-            style="margin-right: 3px"
-            type="add" />
-          <span>{{ t('添加文件') }}</span>
-        </BkButton>
-        <span style="margin-left: 12px; font-size: 12px; color: #8a8f99">
-          {{ t('上传_js文件，由上至下执行，可拖动文件调整执行顺序件') }}
-        </span>
-      </div>
-      <div
+            class="mr-4"
+            type="import" />
+          {{ t('点击上传') }}
+        </div>
+      </RenderFileList>
+    </template>
+    <template #main>
+      <BkLoading
         v-if="uploadFileNameList.length > 0"
-        class="editor-layout">
-        <div class="editor-layout-left">
-          <RenderFileList
-            v-model="selectFileName"
-            :data="uploadFileNameList"
-            :file-data="uploadFileDataMap"
-            @after-sort="handleFileSortChange"
-            @remove="handleRemove" />
+        class="content-loading"
+        :loading="selectFileData.state === SqlFileModel.CHECKING || isContentLoading"
+        :opacity="0.3">
+        <Editor
+          :key="renderKey"
+          :message-list="selectFileData.messageList"
+          :model-value="selectFileData.content"
+          readonly
+          :title="selectFileName" />
+        <div
+          v-if="selectFileData.state === SqlFileModel.UNCHEKED"
+          class="footer-action">
+          <BkButton
+            v-bk-tooltips="{
+              content: t('请先选择文件'),
+              disabled: !grammarCheckDisabled,
+            }"
+            :disabled="grammarCheckDisabled"
+            size="small"
+            theme="primary"
+            @click="handleGrammarCheck">
+            <DbIcon type="right-shape" />
+            <span class="ml-4">{{ t('语法检测') }}</span>
+          </BkButton>
         </div>
-        <div class="editor-layout-right">
-          <!-- <BkLoading
-            class="content-loading"
-            :loading="isContentLoading"> -->
-          <Editor
-            v-model="currentSelectFileData.content"
-            :message-list="[]"
-            readonly
-            :title="selectFileName"
-            @change="triggerChange" />
-          <!-- </BkLoading> -->
-        </div>
+        <template v-else>
+          <Checking v-if="selectFileData.state === SqlFileModel.CHECKING" />
+          <MessageList
+            v-if="
+              selectFileData.state === SqlFileModel.SUCCESS &&
+              selectFileData.messageList.filter((m: { type: string }) => m.type === 'error').length === 0 &&
+              selectFileData.messageList.filter((m: { type: string }) => m.type === 'warning').length === 0
+            "
+            :data="selectFileData.messageList"
+            model-value />
+          <CheckError :data="selectFileData" />
+        </template>
+      </BkLoading>
+      <div
+        v-else
+        style="
+          display: flex;
+          height: 100%;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          color: #c4c6cc;
+        ">
+        <DbIcon
+          class="mr-4"
+          type="attention" />
+        {{ t('请选择本地脚本文件') }}
       </div>
-      <input
-        ref="uploadRef"
-        accept=".js"
-        multiple
-        style="position: absolute; width: 0; height: 0"
-        type="file"
-        @change="handlePreviewFile" />
-    </div>
-  </BkFormItem>
+    </template>
+  </BkResizeLayout>
+  <input
+    ref="uploadRef"
+    accept=".js"
+    multiple
+    style="position: absolute; width: 0; height: 0"
+    type="file"
+    @change="handleStartUpdate" />
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
+  import { onActivated, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type { Mongodb } from '@services/model/ticket/ticket';
+  import { useSqlImport } from '@stores';
 
-  import { useTicketDetail } from '@hooks';
-
-  import { TicketTypes } from '@common/const';
+  import SqlFileModel from '@views/db-manage/common/model/sql-file/SqlFile';
 
   import Editor from '../editor/Index.vue';
+  import MessageList from '../editor/MessageList.vue';
+  import useEditableFileContent from '../hooks/useEditableFileContent';
+  import RenderFileList from '../RenderFileList.vue';
 
-  import RenderFileList, { createFileData, type IFileData } from './components/FileList.vue';
+  import CheckError from './components/CheckError.vue';
+  import Checking from './components/Checking.vue';
 
-  type Emits = (e: 'change', value: string[]) => void;
+  type Emits = {
+    (e: 'change', value: string[]): void;
+    (e: 'grammar-check', doCheck: boolean, result: boolean | string): void;
+  };
 
-  interface Exposes {
-    getValue: () => { content: string; name: string }[];
+  interface Expose {
+    getFileData: () => Record<string, SqlFileModel>;
+    getValue: () => string[];
+    setInit: (cacheData: Record<string, SqlFileModel>) => void;
+    setStateToUncheck: () => void;
   }
 
   const emits = defineEmits<Emits>();
 
+  const modelValue = defineModel<string[]>({
+    default: () => [],
+  });
+  const { grammarCheckHandle } = useSqlImport();
   const { t } = useI18n();
 
-  useTicketDetail<Mongodb.ExecScriptApply>(TicketTypes.MONGODB_EXEC_SCRIPT_APPLY, {
-    onSuccess(ticketDetail) {
-      const { details } = ticketDetail;
-      uploadFileNameList.value = details.scripts.map((item) => item.name);
-      uploadFileDataMap.value = Object.fromEntries(
-        details.scripts.map((item) => [
-          item.name,
-          createFileData({
-            file: new File([item.content], item.name),
-          }),
-        ]),
-      );
-      selectFileName.value = uploadFileNameList.value[0];
+  const {
+    fileDataMap: uploadFileDataMap,
+    fileNameList: uploadFileNameList,
+    isContentLoading,
+    selectFileData,
+    selectFileName,
+  } = useEditableFileContent();
 
-      triggerChange();
-    },
-  });
+  const uploadRef = ref();
+  const renderKey = ref(1);
 
-  const uploadRef = useTemplateRef('uploadRef');
-
-  // const isContentLoading = ref(false);
-  const selectFileName = ref('');
-  const uploadFileDataMap = ref<Record<string, IFileData>>({});
-
-  const uploadFileNameList = shallowRef<Array<string>>([]);
-
-  // 当前选择文件数据
-  const currentSelectFileData = computed(() => uploadFileDataMap.value[selectFileName.value]);
-
-  // 文件结果
-  const getResultValue = () =>
-    uploadFileNameList.value.map((localFileName) => ({
-      content: uploadFileDataMap.value[localFileName].content,
-      name: localFileName,
-    }));
-
-  watch(
-    uploadFileNameList,
-    () => {
-      if (uploadFileNameList.value.length > 0) {
-        uploadFileNameList.value.forEach((item) => {
-          getFileContent(uploadFileDataMap.value[item]);
-        });
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
+  const grammarCheckDisabled = computed(() => uploadFileNameList.value.length === 0);
 
   const triggerChange = () => {
-    const list = getResultValue();
-    emits(
-      'change',
-      list.map((item) => item.content),
-    );
-  };
+    window.changeConfirm = true;
+    const uploadFileDataList = Object.values(uploadFileDataMap.value);
 
-  const getFileContent = (fileInfo: IFileData) =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = function (evt) {
-        if (evt?.target?.readyState === FileReader.DONE) {
-          Object.assign(fileInfo, {
-            content: evt.target.result,
-          });
-          resolve(evt.target.result);
-        } else {
-          reject();
-        }
-      };
-      reader.readAsText(fileInfo.file!);
+    // 先赋值 modelValue 通过提交交互tooltip
+    modelValue.value = Object.keys(uploadFileDataMap.value);
+    emits('change', modelValue.value);
+
+    // 统计所有文件中的 error 数量
+    let totalErrorNum = 0;
+    uploadFileDataList.forEach((item) => {
+      if (item.messageList?.length) {
+        totalErrorNum += item.messageList.filter((msg) => msg.type === 'error').length;
+      }
     });
+
+    if (
+      _.some(uploadFileDataList, (item) => [SqlFileModel.CHECK_FAIL, SqlFileModel.UPLOAD_FAIL].includes(item.state))
+    ) {
+      emits(
+        'grammar-check',
+        totalErrorNum > 0 ? true : false,
+        totalErrorNum > 0 ? t('请先修复n个错误后再提交', { n: totalErrorNum }) : false,
+      );
+      return;
+    }
+
+    // 赋值文件真实路径
+    if (uploadFileNameList.value.length) {
+      const fileNameList = uploadFileNameList.value.map(
+        (fileName) => uploadFileDataMap.value[fileName].realFilePath || fileName,
+      );
+      emits('change', fileNameList);
+    }
+
+    emits('grammar-check', true, true);
+  };
 
   // 开始选择本地文件
   const handleSelectLocalFile = () => {
-    uploadRef.value!.click();
+    uploadRef.value.click();
   };
 
-  // 开始预览本地文件
-  const handlePreviewFile = (event: Event) => {
+  const getFileContent = (fileInfo: SqlFileModel): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      if (!fileInfo.file) {
+        reject(new Error('No file provided'));
+        return;
+      }
+
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        resolve(result);
+      };
+
+      reader.onerror = () => {
+        reject(new Error('Failed to read file'));
+      };
+
+      reader.readAsText(fileInfo.file);
+    });
+  };
+
+  // 开始上传本地文件
+  const handleStartUpdate = (event: Event) => {
     const { files = [] } = event.target as HTMLInputElement;
     if (!files) {
       return;
     }
-    const fileNameList: Array<string> = [];
-    const fileDataMap = {} as Record<string, IFileData>;
+    const isAutoUpload = true;
+    const fileNameList: string[] = [];
+    const currentFileDataMap = {} as Record<string, SqlFileModel>;
+    const params = new FormData();
 
-    Array.from(files).forEach((curFile) => {
+    Array.from(files).forEach((curFile, fileIndex) => {
       fileNameList.push(curFile.name);
-      fileDataMap[curFile.name] = createFileData({
+      currentFileDataMap[curFile.name] = new SqlFileModel({
         file: curFile,
       });
+
+      if (isAutoUpload) {
+        currentFileDataMap[curFile.name].grammarCheckStart();
+
+        // 上传文件大小限制 1GB (1024 * 1024 * 1024 = 1073741824)
+        // if (curFile.size > 1073741824) {
+        //   currentFileDataMap[curFile.name].uploadFailed({
+        //     content: '//',
+        //     realFilePath: '/',
+        //     uploadErrorMessage: t('文件上传失败——文件大小超过限制（最大为1GB）'),
+        //   });
+        //   return;
+        // }
+        params.append(`script_files[${fileIndex}]`, curFile);
+      } else {
+        getFileContent(currentFileDataMap[curFile.name]).then((fileContent) => {
+          Object.assign(currentFileDataMap[curFile.name], { content: fileContent });
+          renderKey.value = renderKey.value + 1;
+        });
+      }
     });
 
-    uploadFileNameList.value = _.uniq([...uploadFileNameList.value, ...fileNameList]);
-    uploadFileDataMap.value = {
-      ...uploadFileDataMap.value,
-      ...fileDataMap,
-    };
+    // 同名文件覆盖(用新文件覆盖旧文件)
+    uploadFileNameList.value = _.uniq(uploadFileNameList.value.concat(fileNameList));
+    Object.assign(uploadFileDataMap.value, currentFileDataMap);
 
+    // 初始上传没有选中文件，默认选中第一个
     if (!selectFileName.value || !uploadFileDataMap.value[selectFileName.value]) {
       const [firstFileName] = fileNameList;
       selectFileName.value = firstFileName;
     }
-    triggerChange();
+
+    if (!isAutoUpload) {
+      triggerChange();
+      return;
+    }
+
+    grammarCheckHandle(params)
+      .then((data) => {
+        Object.entries(data).forEach(([, grammarCheckResult]) => {
+          const result = {
+            [grammarCheckResult.sql_path]: grammarCheckResult,
+          };
+          if (grammarCheckResult.isError) {
+            uploadFileDataMap.value[grammarCheckResult.raw_file_name]!.grammarCheckFailed(result);
+          } else {
+            uploadFileDataMap.value[grammarCheckResult.raw_file_name]!.grammarCheckSuccessed(result);
+          }
+        });
+      })
+      .catch(() => {
+        uploadFileNameList.value.forEach((fileName) => {
+          uploadFileDataMap.value[fileName].uploadFailed();
+        });
+        modelValue.value = [];
+      })
+      .finally(() => {
+        uploadRef.value.value = '';
+        triggerChange();
+      });
+  };
+
+  const handleGrammarCheck = () => {
+    const currentFileData = uploadFileDataMap.value[selectFileName.value];
+    const params = new FormData();
+
+    params.append('script_files[0]', currentFileData.file!);
+
+    currentFileData.grammarCheckStart();
+    grammarCheckHandle(params)
+      .then((data) => {
+        const [fileCheckResult] = Object.values(data);
+
+        if (!fileCheckResult) {
+          currentFileData.uploadFailed();
+          return Promise.reject();
+        }
+
+        if (fileCheckResult.isError) {
+          currentFileData.grammarCheckFailed(data);
+        } else {
+          currentFileData.grammarCheckSuccessed(data);
+        }
+      })
+      .catch(() => {
+        currentFileData.uploadFailed();
+        emits('grammar-check', true, false);
+      })
+      .finally(() => {
+        triggerChange();
+      });
   };
 
   // 文件排序
-  const handleFileSortChange = (list: string[]) => {
-    uploadFileNameList.value = list;
+  const handleFileSortChange = () => {
     triggerChange();
   };
 
   // 删除文件
-  const handleRemove = (fileName: string, index: number) => {
-    const fileList = [...uploadFileNameList.value];
+  const handleRemove = (fileName: string) => {
     const lastUploadFileDataMap = { ...uploadFileDataMap.value };
 
-    fileList.splice(index, 1);
-    uploadFileNameList.value = fileList;
     delete lastUploadFileDataMap[fileName];
     uploadFileDataMap.value = lastUploadFileDataMap;
 
-    if (fileName === selectFileName.value && fileList.length > 0) {
-      [selectFileName.value] = fileList;
+    // 如果删除的是当前选中的文件，则重新选择第一个文件
+    if (fileName === selectFileName.value && uploadFileNameList.value.length > 0) {
+      [selectFileName.value] = uploadFileNameList.value;
+    } else {
+      selectFileName.value = '';
     }
     triggerChange();
   };
 
-  defineExpose<Exposes>({
-    getValue: () => getResultValue(),
+  onActivated(() => {
+    triggerChange();
+    setTimeout(() => {
+      window.changeConfirm = false;
+    });
+  });
+
+  defineExpose<Expose>({
+    getFileData() {
+      return Object.fromEntries(
+        uploadFileNameList.value.map((fileName) => [fileName, uploadFileDataMap.value[fileName]]),
+      );
+    },
+    getValue() {
+      return uploadFileNameList.value.map((fileName) => uploadFileDataMap.value[fileName].realFilePath);
+    },
+    setInit(cacheData: Record<string, SqlFileModel>) {
+      uploadFileDataMap.value = cacheData;
+      uploadFileNameList.value = Object.keys(cacheData);
+      [selectFileName.value] = uploadFileNameList.value;
+      emits('grammar-check', true, true);
+    },
+    setStateToUncheck() {
+      Object.values(uploadFileDataMap.value).forEach((item) => {
+        item.reEdit();
+      });
+      emits('grammar-check', false, false);
+    },
   });
 </script>
 <style lang="less">
-  .sql-execute-local-file {
-    .label-tips {
-      position: absolute;
-      top: 0;
-      padding-left: 16px;
-      font-weight: normal;
-      color: @gray-color;
+  .sql-execute-file-local-file {
+    height: 100%;
+    background: #1a1a1a;
+
+    .bk-resize-layout-aside {
+      border: none !important;
     }
 
-    .editor-layout {
+    .editor-error-tips {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      padding-left: 16px;
+      background: #212121;
+      border-left: 4px solid #b34747;
+      border-radius: 0 0 2px 2px;
+    }
+
+    .content-loading {
+      position: relative;
+      height: 100%;
+
+      .bk-loading-mask {
+        background: transparent !important;
+      }
+    }
+
+    .upload-btn {
       display: flex;
-      height: 500px;
-      background: #2e2e2e;
+      height: 36px;
+      padding: 0 8px;
+      font-size: 12px;
+      color: #c4c6cc;
+      cursor: pointer;
+      background: rgb(255 255 255 / 8%);
+      border-radius: 2px;
+      align-items: center;
+      justify-content: center;
 
-      .editor-layout-left {
-        width: 238px;
+      &:hover {
+        background: rgb(255 255 255 / 20%);
       }
+    }
 
-      .editor-layout-right {
-        position: relative;
-        height: 100%;
-        flex: 1;
-
-        .editor-error-tips {
-          position: absolute;
-          right: 0;
-          bottom: 0;
-          left: 0;
-          padding-left: 16px;
-          background: #212121;
-          border-left: 4px solid #b34747;
-          border-radius: 0 0 2px 2px;
-        }
-
-        .content-loading {
-          .bk-loading-mask {
-            background: transparent !important;
-          }
-        }
-      }
+    .footer-action {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 1;
+      display: flex;
+      height: 48px;
+      padding-left: 16px;
+      background: #212121;
+      border-radius: 0 0 2px 2px;
+      align-items: center;
     }
   }
 </style>

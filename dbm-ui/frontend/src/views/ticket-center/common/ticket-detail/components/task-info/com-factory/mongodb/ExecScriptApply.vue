@@ -56,34 +56,40 @@
     :width="960"
     :z-index="99999"
     @closed="handleClose">
-    <div
-      v-if="uploadFileList.length > 1"
-      class="editor-layout">
-      <div class="editor-layout-left">
-        <RenderFileList
-          v-model="selectFileName"
-          :data="uploadFileList" />
+    <BkLoading
+      :loading="isContentLoading"
+      style="height: 100%">
+      <div
+        v-if="uploadFileList.length > 1"
+        class="editor-layout">
+        <div class="editor-layout-left">
+          <RenderFileList
+            v-model="selectFileName"
+            :data="uploadFileList" />
+        </div>
+        <div class="editor-layout-right">
+          <RenderFileContent
+            :model-value="currentFileContent"
+            readonly
+            :title="selectFileName" />
+        </div>
       </div>
-      <div class="editor-layout-right">
+      <template v-else>
         <RenderFileContent
           :model-value="currentFileContent"
           readonly
-          :title="selectFileName" />
-      </div>
-    </div>
-    <template v-else>
-      <RenderFileContent
-        :model-value="currentFileContent"
-        readonly
-        :title="uploadFileList.toString()" />
-    </template>
+          :title="uploadFileList.toString()" />
+      </template>
+    </BkLoading>
   </BkSideslider>
 </template>
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
+  import { batchFetchFile } from '@services/source/storage.ts';
 
   import { TicketTypes } from '@common/const';
 
@@ -119,21 +125,54 @@
 
   const currentFileContent = computed(() => fileContentMap.value[selectFileName.value] || '');
 
+  const { loading: isContentLoading, run: runBatchFetchFile } = useRequest(
+    () => {
+      const { path, script_files: scriptFiles } = props.ticketDetails.details;
+      const filePathList = scriptFiles.reduce<string[]>((result, item) => {
+        result.push([path, item].join('/'));
+        return result;
+      }, []);
+
+      return batchFetchFile({
+        file_path_list: filePathList,
+      });
+    },
+    {
+      manual: true,
+      onSuccess(result) {
+        fileContentMap.value = result.reduce<Record<string, string>>((result, fileInfo) => {
+          const fileName = fileInfo.path.split('/').pop() as string;
+          return Object.assign(result, {
+            [fileName]: fileInfo.content,
+          });
+        }, {});
+        uploadFileList.value = Object.keys(fileContentMap.value);
+        selectFileName.value = uploadFileList.value[0];
+      },
+    },
+  );
+
   // 查看日志详情
   const handleClickFile = () => {
     const { scripts } = props.ticketDetails.details;
-    isShow.value = true;
-    uploadFileList.value = scripts.map((item) => item.name);
 
-    fileContentMap.value = scripts.reduce(
-      (result, fileInfo) =>
-        Object.assign(result, {
-          [fileInfo.name]: fileInfo.content,
-        }),
-      {} as Record<string, string>,
-    );
+    if (scripts) {
+      isShow.value = true;
+      uploadFileList.value = scripts.map((item) => item.name);
 
-    selectFileName.value = scripts[0].name;
+      fileContentMap.value = scripts.reduce(
+        (result, fileInfo) =>
+          Object.assign(result, {
+            [fileInfo.name]: fileInfo.content,
+          }),
+        {} as Record<string, string>,
+      );
+
+      selectFileName.value = scripts[0].name;
+    } else {
+      isShow.value = true;
+      runBatchFetchFile();
+    }
   };
 
   const handleClose = () => {
