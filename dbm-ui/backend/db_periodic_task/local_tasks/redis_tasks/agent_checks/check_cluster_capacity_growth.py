@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from typing import Callable, ClassVar
 
 from blueapps.core.celery.celery import app
+from django.utils import timezone
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
@@ -21,13 +22,16 @@ from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.redis_tasks.agent_checks.base import (
     DEFAULT_AGENT_HARD_TIME_LIMIT_SECONDS,
     DEFAULT_AGENT_SOFT_TIME_LIMIT_SECONDS,
+    SKIP_REPORT_MSG_PREFIX,
     BaseCheckConfig,
     BaseRedisAgentCheckTask,
     execute_agent_check,
 )
+from backend.db_report.enums import ReportStateType
 from backend.db_report.enums.redis_sub_type import RedisCheckSubType
 from backend.dbm_aiagent.agent.constants import DBMAgentCode
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum
+from backend.flow.utils.redis.redis_report_utils import RedisReportWriter
 
 logger = logging.getLogger("root")
 
@@ -80,6 +84,23 @@ class CheckClusterCapacityGrowthTask(BaseRedisAgentCheckTask):
 
     def get_celery_task(self) -> Callable:
         return check_cluster_capacity_growth_task
+
+    def persist_extra_skip_report(self, cluster: Cluster, reason: str) -> None:
+        report_day = int(timezone.now().strftime("%Y%m%d"))
+        RedisReportWriter().write_redis_report(
+            cluster_id=cluster.id,
+            subtype=self.subtype.value,
+            cluster=cluster.immute_domain,
+            cluster_type=cluster.cluster_type,
+            bk_biz_id=cluster.bk_biz_id,
+            bk_cloud_id=cluster.bk_cloud_id,
+            report_day=report_day,
+            creator="",
+            state=ReportStateType.NORMAL.value,
+            msg=f"{SKIP_REPORT_MSG_PREFIX} {reason}",
+            shard="all",
+            instance="all",
+        )
 
     def extra_skip_check(self, cluster: Cluster) -> tuple[bool, str]:
         """Skip clusters whose maxmemory-policy enables eviction.

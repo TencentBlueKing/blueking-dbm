@@ -98,6 +98,7 @@ OUTCOME_SKIPPED = "skipped"  # cluster skipped pre-agent; specific cause in the 
 OUTCOME_DISPATCH_OK = "dispatch_ok"
 OUTCOME_DISPATCH_FAILED = "dispatch_failed"
 OUTCOME_DISPATCH_DEDUP_SKIPPED = "dispatch_dedup_skipped"
+SKIP_REPORT_MSG_PREFIX = "skipped:"
 
 PRIORITY_ALARM_DAILY_DOMAIN_CACHE_KEY_PREFIX = "redis_agent_check_priority_alarm_domains"
 PRIORITY_ALARM_DAILY_DOMAIN_CACHE_LOCK_KEY_PREFIX = "redis_agent_check_priority_alarm_domains_lock"
@@ -420,6 +421,10 @@ class BaseRedisAgentCheckTask(ABC):
         the fleet.
         """
         return False, ""
+
+    def persist_extra_skip_report(self, cluster: Cluster, reason: str) -> None:
+        """Persist subclass-specific skip evidence. Default: no report."""
+        return None
 
     def _has_extra_skip_check(self) -> bool:
         """True iff a subclass actually overrides ``extra_skip_check``.
@@ -878,6 +883,15 @@ class BaseRedisAgentCheckTask(ABC):
                     OUTCOME_SKIPPED,
                     reason,
                 )
+                try:
+                    self.persist_extra_skip_report(cluster, reason)
+                except Exception as exc:
+                    logger.warning(
+                        "%s: cluster_id=%s persist_extra_skip_report raised: %s",
+                        task_name,
+                        cluster_id,
+                        exc,
+                    )
         return skipped_ids
 
     def start(self) -> int:

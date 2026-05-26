@@ -222,10 +222,10 @@ func (s *mongoDataExport) Run() error {
 		return err
 	}
 
-	// Upload tar file to bkrepo.
+	// Upload archive file to bkrepo.
 	if err := s.ConfParams.UploadDetail.Upload(s.OutputPath); err != nil {
-		s.runtime.Logger.Error("Failed to upload result tar file: %v", err)
-		return errors.Wrap(err, "uploadTarFile")
+		s.runtime.Logger.Error("Failed to upload result archive file: %v", err)
+		return errors.Wrap(err, "uploadArchiveFile")
 	}
 	s.runtime.Logger.Info("Upload to to %s successfully", s.ConfParams.UploadDetail.FileServer.URL)
 
@@ -256,7 +256,7 @@ func (s *mongoDataExport) doDumpData(outputPath string) error {
 	return err
 }
 
-// Upload uploads "<filename>.tar" to bkrepo
+// Upload uploads the exported archive to bkrepo.
 func (c UploadBkRepoParam) Upload(filePath string) (err error) {
 	if reflect.DeepEqual(c.FileServer, FileServer{}) {
 		return fmt.Errorf("file server is empty")
@@ -441,17 +441,20 @@ func (s *mongoDataExport) validateParams() error {
 
 // compressOutput compresses the outputPath and then remove it
 func (s *mongoDataExport) compressOutput(outputPath string) error {
-	// Create tar file
+	// Create gzip-compressed tar file.
 	targetFolder := path.Base(outputPath)
-	tarFile := fmt.Sprintf("%s.tar", targetFolder)
+	tarFile := fmt.Sprintf("%s.tar.gz", targetFolder)
 	tarPath := path.Join(path.Dir(outputPath), tarFile)
 
-	tarCmd := mycmd.New("tar", "cvf", tarPath, "-C", path.Dir(outputPath), targetFolder)
+	tarCmd := mycmd.New("tar", "czvf", tarPath, "-C", path.Dir(outputPath), targetFolder)
 	execResult, err := tarCmd.Run(time.Hour * 2)
 	s.runtime.Logger.Info("exec cmd: %q, exitCode:%d, err:%v", tarCmd.GetCmdLine2(true), execResult.ExitCode, err)
 
 	if execResult.ExitCode != 0 {
-		return errors.Wrap(err, "tar compression failed")
+		if err != nil {
+			return errors.Wrap(err, "tar compression failed")
+		}
+		return errors.Errorf("tar compression failed, exitCode:%d", execResult.ExitCode)
 	}
 
 	// Remove original directory after successful compression

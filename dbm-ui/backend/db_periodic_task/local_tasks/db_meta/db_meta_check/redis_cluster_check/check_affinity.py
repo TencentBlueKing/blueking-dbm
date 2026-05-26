@@ -376,7 +376,7 @@ class RedisAffinityChecker:
         """
         target_subzone_id = expected_subzone_id
         if target_subzone_id is None:
-            target_subzone_id, _ = max(
+            target_subzone_id, _x = max(
                 sorted(machines_map.items(), key=lambda item: str(item[0])),
                 key=lambda item: item[1],
             )
@@ -386,7 +386,7 @@ class RedisAffinityChecker:
         replace_count = total_proxy_count - target_subzone_count
 
         non_target_ips = []
-        for (subzone_id, _), ips in sorted(ips_map.items(), key=lambda item: (str(item[0][0]), str(item[0][1]))):
+        for (subzone_id, _x), ips in sorted(ips_map.items(), key=lambda item: (str(item[0][0]), str(item[0][1]))):
             if subzone_id != target_subzone_id:
                 non_target_ips.extend(sorted(ips))
 
@@ -439,15 +439,20 @@ class RedisAffinityChecker:
         slave_obj: StorageInstance,
         affinity_level: str,
         target_rule_desc: str,
+        machines_to_move: Optional[List[Tuple[str, StorageInstance]]] = None,
     ) -> str:
         """
-        Suggest replacing/migrating slave machine for master-slave topology violations.
+        Suggest replacing/migrating the wrongly placed machine for master-slave topology violations.
         """
-        return _("后端主从对 ({}, {}) 不满足亲和级别 '{}'，请将副节点机器 {} 替换或迁移到 {}").format(
+        machines_to_move = machines_to_move or [(_("副节点"), slave_obj)]
+        machine_desc = str(_(" 和 ")).join(
+            _("{}机器 {}").format(role, storage_obj.machine.ip) for role, storage_obj in machines_to_move
+        )
+        return _("后端主从对 ({}, {}) 不满足亲和级别 '{}'，请将{} 替换或迁移到 {}").format(
             master_obj.machine.ip,
             slave_obj.machine.ip,
             affinity_level,
-            slave_obj.machine.ip,
+            machine_desc,
             target_rule_desc,
         )
 
@@ -719,11 +724,19 @@ class RedisAffinityChecker:
                 if expected_display
                 else _("与主节点 {} 位于同一园区且不同机架").format(master_obj.machine.ip)
             )
+            machines_to_move = None
+            if expected_subzone_id is not None:
+                machines_to_move = []
+                if master_subzone_id != expected_subzone_id:
+                    machines_to_move.append((_("主节点"), master_obj))
+                if slave_subzone_id != expected_subzone_id:
+                    machines_to_move.append((_("副节点"), slave_obj))
             suggestion = cls._build_backend_replace_slave_suggestion(
                 master_obj=master_obj,
                 slave_obj=slave_obj,
                 affinity_level=AffinityEnum.SAME_SUBZONE_CROSS_SWTICH.value,
                 target_rule_desc=target_rule_desc,
+                machines_to_move=machines_to_move,
             )
             return cls._append_suggestion(violation_msg, suggestion)
 
@@ -741,6 +754,7 @@ class RedisAffinityChecker:
                 slave_obj=slave_obj,
                 affinity_level=AffinityEnum.SAME_SUBZONE_CROSS_SWTICH.value,
                 target_rule_desc=_("园区({}) 且不同机架").format(expected_subzone_display),
+                machines_to_move=[(_("主节点"), master_obj), (_("副节点"), slave_obj)],
             )
             return cls._append_suggestion(violation_msg, suggestion)
 

@@ -25,6 +25,7 @@ from backend.db_meta.api.cluster.nosqlcomm.decommission import decommission_inst
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_report.enums import RedisRollbackExerciseTaskStage as TaskStage
 from backend.db_report.models import RedisRollbackExerciseReport as Report
+from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
@@ -368,12 +369,29 @@ class RedisExerciseRevokeAppliedHostsService(RedisLogCapturingService):
         if not (ip and bk_cloud_id is not None and bk_host_id is not None):
             return None
 
-        return {
+        normalized = {
             "ip": ip,
             "bk_cloud_id": bk_cloud_id,
             "bk_host_id": bk_host_id,
             "remark": host.get("remark", _("Redis rollback exercise revoked")),
         }
+        return normalized
+
+    @staticmethod
+    def _standardize_recycle_hosts(recycle_hosts: list) -> list:
+        if not recycle_hosts:
+            return []
+
+        remarks = {host["bk_host_id"]: host.get("remark", "") for host in recycle_hosts}
+        standardized_hosts = ResourceHandler.standardized_resource_host(recycle_hosts)
+        if len(standardized_hosts) < len(recycle_hosts):
+            missing_host_ids = {host["bk_host_id"] for host in recycle_hosts} - {
+                host["bk_host_id"] for host in standardized_hosts
+            }
+            logger.warning("Recycle hosts dropped after CMDB normalization: %s", sorted(missing_host_ids))
+        for host in standardized_hosts:
+            host["remark"] = remarks.get(host["bk_host_id"], "")
+        return standardized_hosts
 
     @classmethod
     def _collect_recycle_hosts(cls, infos: list) -> list:
@@ -393,7 +411,7 @@ class RedisExerciseRevokeAppliedHostsService(RedisLogCapturingService):
                                 if value and not hosts_by_id[host_id].get(key)
                             }
                         )
-        return list(hosts_by_id.values())
+        return cls._standardize_recycle_hosts(list(hosts_by_id.values()))
 
     def _execute_inner_captured(self, data, parent_data) -> bool:
         global_data = data.get_one_of_inputs("global_data") or {}
@@ -521,8 +539,12 @@ class RedisExerciseBestEffortCleanupService(RedisLogCapturingService, BkJobServi
                     ports.add(port)
         return sorted(ports)
 
+    @staticmethod
+    def _get_rollback_task_ticket_id(global_data: dict):
+        return global_data.get("parent_ticket") or global_data.get("uid")
+
     def _collect_cleanup_hosts(self, global_data: dict) -> list:
-        ticket_id = global_data.get("uid")
+        ticket_id = self._get_rollback_task_ticket_id(global_data)
         ticket_bk_biz_id = global_data.get("bk_biz_id")
         cleanup_hosts = []
 
@@ -743,7 +765,7 @@ done
             return result
 
         global_data = data.get_one_of_inputs("global_data")
-        ticket_id = global_data.get("uid")
+        ticket_id = self._get_rollback_task_ticket_id(global_data)
         cleanup_hosts = data.get_one_of_outputs("cleanup_hosts") or []
 
         self.log_info(_("Step 3/4: Decommissioning StorageInstance metadata"))

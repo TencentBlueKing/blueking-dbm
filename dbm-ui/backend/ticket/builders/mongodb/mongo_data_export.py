@@ -59,6 +59,7 @@ class MongoDBDataExportDetailSerializer(BaseMongoDBOperateDetailSerializer):
 
 class MongoDBDataExportFlowParamBuilder(BaseMongoOperateFlowParamBuilder):
     controller = MongoDBController.mongo_data_export
+    ARCHIVE_SUFFIXES = (".tar.gz", ".tar")
 
     def format_ticket_data(self):
         def pop_if_empty(export_options: dict, key: str):
@@ -83,20 +84,27 @@ class MongoDBDataExportFlowParamBuilder(BaseMongoOperateFlowParamBuilder):
         if not flow or flow.status != TicketFlowStatus.SUCCEEDED:
             return
 
-        _, files = MediumHandler().storage.listdir(MONGODB_DATA_EXPORT_PATH.format(biz=self.ticket.bk_biz_id))
+        result_dir = MONGODB_DATA_EXPORT_PATH.format(biz=self.ticket.bk_biz_id)
+        _status, files = MediumHandler().storage.listdir(result_dir)
         file_name_size_map = {file["name"]: file["size"] for file in files}
         cluster_results = {}
         for info in flow.details["ticket_data"]["infos"]:
             cluster_id = info["cluster_id"]
-            result_file_path = "{}/{}.tar".format(
-                MONGODB_DATA_EXPORT_PATH.format(biz=self.ticket.bk_biz_id), info["filename"]
-            )
+            result_file_name = self._get_result_file_name(info["filename"], file_name_size_map)
+            result_file_path = "{}/{}".format(result_dir, result_file_name)
             cluster_results[cluster_id] = {
                 "file_path": result_file_path,
                 "file_name": info["filename"],
-                "size": file_name_size_map.get(f"{info['filename']}.tar"),
+                "size": file_name_size_map.get(result_file_name),
             }
         self.ticket.update_details(exported_files=cluster_results)
+
+    def _get_result_file_name(self, file_name: str, file_name_size_map: dict) -> str:
+        for suffix in self.ARCHIVE_SUFFIXES:
+            result_file_name = f"{file_name}{suffix}"
+            if result_file_name in file_name_size_map:
+                return result_file_name
+        return f"{file_name}{self.ARCHIVE_SUFFIXES[0]}"
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_DATA_EXPORT)

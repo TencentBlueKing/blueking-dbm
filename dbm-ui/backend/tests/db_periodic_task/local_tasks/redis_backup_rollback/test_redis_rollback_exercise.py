@@ -47,6 +47,7 @@ pytestmark = pytest.mark.django_db
 
 # String path used by `patch(...)` decorators below — `patch` resolves lazily.
 BASE_MODULE = "backend.db_periodic_task.local_tasks.redis_backup_rollback.base"
+CONFIG_MODULE = "backend.db_services.redis.rollback.config"
 
 # Aware ISO timestamps so str2datetime's aware_check passes.
 FULL_BK_UPTIME = "2026-04-15T05:01:23+08:00"
@@ -109,11 +110,12 @@ def _make_cluster_mock(cluster_type: str, id_: int = 1):
     return cluster
 
 
-def _fake_cluster(cluster_id: int, bk_biz_id: int, immute_domain: str) -> MagicMock:
+def _fake_cluster(cluster_id: int, bk_biz_id: int, immute_domain: str, bk_cloud_id: int = 0) -> MagicMock:
     """Lightweight cluster mock for SPECIFIED-mode tests (only id/biz/domain matter)."""
     cluster = MagicMock(name=f"Cluster<{immute_domain}>")
     cluster.id = cluster_id
     cluster.bk_biz_id = bk_biz_id
+    cluster.bk_cloud_id = bk_cloud_id
     cluster.immute_domain = immute_domain
     return cluster
 
@@ -239,6 +241,41 @@ class TestPureHelpers:
         cfg = _config_cls()()
         assert cfg.binlog_replay_minutes == 1430
         assert cfg.no_binlog_offset_minutes == 30
+        assert cfg.bk_cloud_ids is None
+
+    def test_config_from_settings_ignores_unknown_keys(self):
+        """shell_plus-friendly loader should tolerate stale keys in SystemSettings."""
+        with patch(
+            f"{CONFIG_MODULE}.SystemSettings.get_setting_value",
+            return_value={"enabled": True, "max_instances": 3, "bk_cloud_ids": [0, 2000000], "stale_key": "ignored"},
+        ) as mock_get:
+            cfg = _config_cls().from_settings()
+
+        assert cfg.enabled is True
+        assert cfg.max_instances == 3
+        assert cfg.bk_cloud_ids == [0, 2000000]
+        assert not hasattr(cfg, "stale_key")
+        mock_get.assert_called_once()
+
+    def test_config_from_settings_non_dict_uses_defaults(self):
+        with patch(f"{CONFIG_MODULE}.SystemSettings.get_setting_value", return_value="bad"):
+            cfg = _config_cls().from_settings()
+
+        assert cfg == _config_cls()()
+
+    def test_config_save_to_settings(self):
+        cfg = _config_cls()(enabled=True, max_instances=7)
+
+        with patch(f"{CONFIG_MODULE}.SystemSettings.insert_setting_value") as mock_insert:
+            cfg.save_to_settings(user="tester")
+
+        mock_insert.assert_called_once()
+        call_kwargs = mock_insert.call_args.kwargs
+        assert call_kwargs["key"] == "REDIS_ROLLBACK_EXERCISE"
+        assert call_kwargs["value_type"] == "dict"
+        assert call_kwargs["user"] == "tester"
+        assert call_kwargs["value"]["enabled"] is True
+        assert call_kwargs["value"]["max_instances"] == 7
 
 
 # ---------------------------------------------------------------------------
@@ -520,8 +557,11 @@ class TestValidateInstance:
                 "_instance_has_backup",
                 return_value=(False, None, None, None, None, "no full backup"),
             ),
+            patch(f"{BASE_MODULE}.TbTendisRollbackTasks.objects.filter") as mock_temp_filter,
+            patch(f"{BASE_MODULE}.ClusterOperateRecord.objects.has_exclusive_operations_with_lock", return_value=[]),
             patch.object(_exercise_cls(), "_recent_master_slave_switch_hours", return_value=None),
         ):
+            mock_temp_filter.return_value.exists.return_value = False
             (
                 is_valid,
                 full_backup,
@@ -553,8 +593,11 @@ class TestValidateInstance:
                 "_instance_has_backup",
                 return_value=(False, None, None, None, None, "no full backup"),
             ),
+            patch(f"{BASE_MODULE}.TbTendisRollbackTasks.objects.filter") as mock_temp_filter,
+            patch(f"{BASE_MODULE}.ClusterOperateRecord.objects.has_exclusive_operations_with_lock", return_value=[]),
             patch.object(_exercise_cls(), "_recent_master_slave_switch_hours", return_value=6),
         ):
+            mock_temp_filter.return_value.exists.return_value = False
             (
                 is_valid,
                 full_backup,
@@ -602,14 +645,11 @@ class TestValidateInstance:
         exercise = _make_exercise()
         cluster = _make_cluster_mock(ClusterType.TwemproxyTendisSSDInstance.value)
 
-        rtp = timezone.now() + timedelta(hours=1)
-        backup_ok = (True, _make_full_backup_log(), 1, rtp, {"count": 2, "total_size_bytes": 300}, None)
-
         temp_qs = MagicMock()
         temp_qs.exists.return_value = True
 
         with (
-            patch.object(_exercise_cls(), "_instance_has_backup", return_value=backup_ok),
+            patch.object(_exercise_cls(), "_instance_has_backup") as mock_has_backup,
             patch(f"{BASE_MODULE}.TbTendisRollbackTasks") as mock_temp_model,
         ):
             mock_temp_model.objects.filter.return_value = temp_qs
@@ -622,33 +662,29 @@ class TestValidateInstance:
             )
 
         assert is_valid is False
-        assert failure_kind == _failure_kind().ENV_SKIPPED
+        assert failure_kind == _failure_kind().ENV_SUPPRESSED
         assert "temp instances" in fail_reason
+        mock_has_backup.assert_not_called()
 
-    def test_undone_ticket_returns_env_skipped(self):
+    def test_exclusive_ticket_returns_env_suppressed(self):
         exercise = _make_exercise()
         cluster = _make_cluster_mock(ClusterType.TwemproxyTendisSSDInstance.value)
-
-        rtp = timezone.now() + timedelta(hours=1)
-        backup_ok = (True, _make_full_backup_log(), 1, rtp, {"count": 2, "total_size_bytes": 300}, None)
 
         temp_qs = MagicMock()
         temp_qs.exists.return_value = False
 
-        # ClusterOperateRecord -> .filter().select_related().first()
-        undone = MagicMock()
-        undone.ticket.ticket_type = "REDIS_DATA_STRUCTURE"
-        undone.ticket.id = 999
-        cluster_qs = MagicMock()
-        cluster_qs.select_related.return_value.first.return_value = undone
+        exclusive_ticket = SimpleNamespace(ticket_type="REDIS_DATA_STRUCTURE", id=999)
+        exclusive_infos = [{"exclusive_ticket": exclusive_ticket, "root_id": "root-1"}]
 
         with (
-            patch.object(_exercise_cls(), "_instance_has_backup", return_value=backup_ok),
+            patch.object(_exercise_cls(), "_instance_has_backup") as mock_has_backup,
             patch(f"{BASE_MODULE}.TbTendisRollbackTasks") as mock_temp_model,
-            patch(f"{BASE_MODULE}.ClusterOperateRecord") as mock_record_model,
+            patch(
+                f"{BASE_MODULE}.ClusterOperateRecord.objects.has_exclusive_operations_with_lock",
+                return_value=exclusive_infos,
+            ) as mock_exclusive,
         ):
             mock_temp_model.objects.filter.return_value = temp_qs
-            mock_record_model.objects.filter.return_value = cluster_qs
 
             is_valid, _, _, _, _, fail_reason, failure_kind = exercise._validate_instance(
                 instance_ip="3.3.3.3",
@@ -658,8 +694,10 @@ class TestValidateInstance:
             )
 
         assert is_valid is False
-        assert failure_kind == _failure_kind().ENV_SKIPPED
-        assert "undone" in fail_reason and "999" in fail_reason
+        assert failure_kind == _failure_kind().ENV_SUPPRESSED
+        assert "exclusive active tickets" in fail_reason and "999" in fail_reason
+        mock_exclusive.assert_called_once()
+        mock_has_backup.assert_not_called()
 
     def test_all_clear_returns_valid(self):
         exercise = _make_exercise()
@@ -672,16 +710,13 @@ class TestValidateInstance:
 
         temp_qs = MagicMock()
         temp_qs.exists.return_value = False
-        cluster_qs = MagicMock()
-        cluster_qs.select_related.return_value.first.return_value = None
 
         with (
             patch.object(_exercise_cls(), "_instance_has_backup", return_value=backup_ok),
             patch(f"{BASE_MODULE}.TbTendisRollbackTasks") as mock_temp_model,
-            patch(f"{BASE_MODULE}.ClusterOperateRecord") as mock_record_model,
+            patch(f"{BASE_MODULE}.ClusterOperateRecord.objects.has_exclusive_operations_with_lock", return_value=[]),
         ):
             mock_temp_model.objects.filter.return_value = temp_qs
-            mock_record_model.objects.filter.return_value = cluster_qs
 
             (
                 is_valid,
@@ -714,7 +749,66 @@ class TestValidateInstance:
 
 
 # ---------------------------------------------------------------------------
-# 5) SPECIFIED mode dispatch and discovery
+# 5) start() report creation behavior
+# ---------------------------------------------------------------------------
+
+
+class TestStartReportSuppression:
+    """Verify start() skips noisy report rows only for explicitly suppressed failures."""
+
+    @staticmethod
+    def _selected_item():
+        cluster = _make_cluster_mock(ClusterType.TwemproxyTendisSSDInstance.value)
+        instance = SimpleNamespace(
+            machine=SimpleNamespace(ip="3.3.3.3"),
+            port=30000,
+            ip_port="3.3.3.3:30000",
+        )
+        return {"cluster": cluster, "instance": instance, "backup_check_instance": instance}
+
+    def test_start_does_not_create_report_for_suppressed_skip(self):
+        exercise = _make_exercise(enabled=True)
+        selected_item = self._selected_item()
+
+        with (
+            patch.object(exercise, "_pick_target_instances", return_value=([selected_item], [])),
+            patch.object(
+                exercise,
+                "_validate_instance",
+                return_value=(False, None, None, None, None, "cluster busy", _failure_kind().ENV_SUPPRESSED),
+            ),
+            patch.object(exercise, "_create_report") as mock_create_report,
+        ):
+            exercise.start()
+
+        mock_create_report.assert_not_called()
+
+    def test_start_creates_report_for_backup_invalid(self):
+        exercise = _make_exercise(enabled=True)
+        selected_item = self._selected_item()
+        report = MagicMock()
+
+        with (
+            patch.object(exercise, "_pick_target_instances", return_value=([selected_item], [])),
+            patch.object(
+                exercise,
+                "_validate_instance",
+                return_value=(False, None, None, None, None, "missing backup", _failure_kind().BACKUP_INVALID),
+            ),
+            patch.object(exercise, "_create_report", return_value=report) as mock_create_report,
+        ):
+            exercise.start()
+
+        mock_create_report.assert_called_once_with(selected_item["cluster"], selected_item["instance"])
+        report.mark.assert_called_once_with(
+            TaskStage.BACKUP_INVALID,
+            task_message=report.mark.call_args.kwargs["task_message"],
+        )
+        assert "missing backup" in report.mark.call_args.kwargs["task_message"]
+
+
+# ---------------------------------------------------------------------------
+# 6) SPECIFIED mode dispatch and discovery
 # ---------------------------------------------------------------------------
 
 
@@ -747,6 +841,34 @@ class TestGetSpecifiedInstancesDomainsFilter:
 
         assert [item["cluster"] for item in selected] == [in_biz]
         assert [cluster for cluster, _msg in skipped] == [out_biz]
+
+    def test_filters_domains_by_bk_cloud_ids(self):
+        """Domains outside bk_cloud_ids are skipped even when explicitly configured."""
+        in_cloud = _fake_cluster(1, bk_biz_id=10, bk_cloud_id=0, immute_domain="a.example.com")
+        out_cloud = _fake_cluster(2, bk_biz_id=10, bk_cloud_id=2000000, immute_domain="b.example.com")
+        domain_to_cluster = {"a.example.com": in_cloud, "b.example.com": out_cloud}
+
+        exercise = _make_exercise(
+            specified_domains=["a.example.com", "b.example.com"],
+            bk_cloud_ids=[0],
+        )
+
+        with (
+            patch(
+                f"{BASE_MODULE}.Cluster.objects.get",
+                side_effect=lambda immute_domain: domain_to_cluster[immute_domain],
+            ),
+            patch.object(
+                _exercise_cls(),
+                "_resolve_specified_cluster",
+                side_effect=lambda cluster: _fake_selection(cluster),
+            ),
+        ):
+            selected, skipped = exercise._get_specified_instances(num=10)
+
+        assert [item["cluster"] for item in selected] == [in_cloud]
+        assert [cluster for cluster, _msg in skipped] == [out_cloud]
+        assert "bk_cloud_id" in skipped[0][1]
 
     def test_no_bizs_keeps_legacy_behavior(self):
         """When specified_bizs is unset, every listed domain is selected (legacy)."""

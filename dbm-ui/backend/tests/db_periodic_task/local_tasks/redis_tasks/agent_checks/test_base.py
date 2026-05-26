@@ -322,7 +322,7 @@ class TestApplyExtraSkipCheck:
 
     _CLUSTER = "backend.db_periodic_task.local_tasks.redis_tasks.agent_checks.base.Cluster"
 
-    def _make_task_with_override(self, base, hook):
+    def _make_task_with_override(self, base, hook, persist_hook=None):
         """Return a task whose ``extra_skip_check`` is the supplied hook.
 
         Bypasses ``__init__`` so we don't need a populated config; the
@@ -344,6 +344,9 @@ class TestApplyExtraSkipCheck:
 
             extra_skip_check = hook
 
+        if persist_hook is not None:
+            _Task.persist_extra_skip_report = persist_hook
+
         return _Task.__new__(_Task)
 
     def test_default_hook_returns_no_skip(self, base, fake_task_instance):
@@ -352,6 +355,7 @@ class TestApplyExtraSkipCheck:
         task = fake_task_instance()
         assert task._has_extra_skip_check() is False
         assert task.extra_skip_check(MagicMock()) == (False, "")
+        assert task.persist_extra_skip_report(MagicMock(), "reason") is None
 
     def test_no_override_short_circuits(self, base, fake_task_instance):
         # When the subclass doesn't override, we must not even hit the ORM.
@@ -386,6 +390,71 @@ class TestApplyExtraSkipCheck:
         assert skipped == {2, 3}
         assert "policy-skip-2" in caplog.text
         assert "policy-skip-3" in caplog.text
+
+    def test_override_persists_skipped_clusters(self, base):
+        calls = []
+
+        def persist(self, cluster, reason):
+            calls.append((cluster.id, reason))
+
+        task = self._make_task_with_override(
+            base,
+            lambda self, cluster: (cluster.id == 2, f"policy-skip-{cluster.id}"),
+            persist_hook=persist,
+        )
+        clusters = [SimpleNamespace(id=1), SimpleNamespace(id=2)]
+        with patch(self._CLUSTER) as cluster_cls:
+            cluster_cls.objects.filter.return_value = clusters
+            skipped = task._apply_extra_skip_check(
+                task_name="X",
+                page_ids=[1, 2],
+                page_busy_ids=set(),
+                has_extra_skip=True,
+            )
+
+        assert skipped == {2}
+        assert calls == [(2, "policy-skip-2")]
+
+    def test_override_does_not_persist_non_skipped_clusters(self, base):
+        persist = MagicMock()
+        task = self._make_task_with_override(
+            base,
+            lambda self, cluster: (False, ""),
+            persist_hook=persist,
+        )
+        with patch(self._CLUSTER) as cluster_cls:
+            cluster_cls.objects.filter.return_value = [SimpleNamespace(id=1)]
+            skipped = task._apply_extra_skip_check(
+                task_name="X",
+                page_ids=[1],
+                page_busy_ids=set(),
+                has_extra_skip=True,
+            )
+
+        assert skipped == set()
+        persist.assert_not_called()
+
+    def test_persist_exception_keeps_cluster_skipped(self, base, caplog):
+        def persist(self, _cluster, _reason):
+            raise RuntimeError("report db down")
+
+        task = self._make_task_with_override(
+            base,
+            lambda self, cluster: (True, "policy-skip"),
+            persist_hook=persist,
+        )
+        with patch(self._CLUSTER) as cluster_cls:
+            cluster_cls.objects.filter.return_value = [SimpleNamespace(id=1)]
+            caplog.set_level("WARNING")
+            skipped = task._apply_extra_skip_check(
+                task_name="X",
+                page_ids=[1],
+                page_busy_ids=set(),
+                has_extra_skip=True,
+            )
+
+        assert skipped == {1}
+        assert "persist_extra_skip_report raised" in caplog.text
 
     def test_override_only_fetches_non_busy_ids(self, base):
         # Avoid wasting a Cluster.objects.filter on rows we already know
@@ -438,6 +507,84 @@ class TestApplyExtraSkipCheck:
                 has_extra_skip=True,
             )
         assert skipped == set()
+
+
+# ---------------------------------------------------------------------------
+# BaseRedisAgentCheckTask.get_clusters_to_check
+# ---------------------------------------------------------------------------
+class TestGetClustersToCheck:
+    _CLUSTER = "backend.db_periodic_task.local_tasks.redis_tasks.agent_checks.base.Cluster"
+    _CLUSTER_OPERATE_RECORD = "backend.db_periodic_task.local_tasks.redis_tasks.agent_checks.base.ClusterOperateRecord"
+
+    @pytest.mark.django_db
+    def test_skip_reports_use_normal_window(self, base, fake_task_instance):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from backend.db_report.enums import ReportStateType
+        from backend.db_report.models import RedisCheckReport
+
+        task = fake_task_instance(
+            batch_size=10,
+            candidate_page_size=10,
+            max_candidate_scan=10,
+            normal_skip_days=30,
+            selection_strategy="sequential",
+        )
+
+        class _FakeClusterQuerySet:
+            def __init__(self, candidate_ids):
+                self.candidate_ids = candidate_ids
+                self.excluded_ids = set()
+
+            def exclude(self, **kwargs):
+                self.excluded_ids.update(kwargs.get("id__in", set()))
+                return self
+
+            def order_by(self, *_args):
+                return self
+
+            def values_list(self, *_args, **_kwargs):
+                return [cid for cid in self.candidate_ids if cid not in self.excluded_ids]
+
+        def _create_report(cluster_id, msg, created_at, state=ReportStateType.NORMAL.value):
+            report = RedisCheckReport.objects.create(
+                cluster_id=cluster_id,
+                subtype=task.subtype.value,
+                report_day=int(created_at.strftime("%Y%m%d")),
+                cluster=f"cluster-{cluster_id}.db",
+                cluster_type="TwemproxyRedisInstance",
+                bk_biz_id=1001,
+                bk_cloud_id=0,
+                shard="all",
+                instance="all",
+                status=True,
+                state=state,
+                msg=msg,
+                creator="",
+                updater="",
+            )
+            RedisCheckReport.objects.filter(id=report.id).update(create_at=created_at, update_at=created_at)
+
+        now = timezone.now()
+        _create_report(1, f"{base.SKIP_REPORT_MSG_PREFIX} maxmemory-policy=allkeys-lru enables eviction", now)
+        _create_report(
+            2,
+            f"{base.SKIP_REPORT_MSG_PREFIX} maxmemory-policy=volatile-lru enables eviction",
+            now - timedelta(hours=25),
+        )
+        _create_report(3, "agent reported no capacity growth risk", now - timedelta(hours=25))
+
+        fake_cluster_qs = _FakeClusterQuerySet(candidate_ids=[1, 2, 3, 4])
+        with (
+            patch(self._CLUSTER) as cluster_cls,
+            patch(self._CLUSTER_OPERATE_RECORD) as operate_record_cls,
+        ):
+            cluster_cls.objects.filter.return_value = fake_cluster_qs
+            operate_record_cls.objects.filter.return_value.filter.return_value.values_list.return_value = []
+
+            assert task.get_clusters_to_check() == [4]
 
 
 # ---------------------------------------------------------------------------
