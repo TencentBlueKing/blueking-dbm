@@ -15,6 +15,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.views import (
     MySQLConfigUpdateMcpToolsViewSet,
     MySQLMetricsMcpToolsViewSet,
     MySQLQueryMcpToolsViewSet,
+    MySQLSensitiveMcpViewSet,
     MySQLSlowlogMcpToolsViewSet,
     MySQLTableCapacityMcpToolsViewSet,
     SqlSyntaxCheckMcpViewSet,
@@ -29,4 +30,5 @@ routers.register(r"", SqlSyntaxCheckMcpViewSet, basename="mcp-sql-syntax-check")
 routers.register(r"", MySQLMetricsMcpToolsViewSet, basename="mcp-mysql-metrics")
 routers.register(r"", MySQLConfigUpdateMcpToolsViewSet, basename="mcp-mysql-config-update")
 routers.register(r"", MySQLTableCapacityMcpToolsViewSet, basename="mcp-mysql-table-capacity")
+routers.register(r"", MySQLSensitiveMcpViewSet, basename="mcp-mysql-sensitive")
 urlpatterns = routers.urls

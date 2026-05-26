@@ -8,11 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .mysql_bill_mcp import MySQLBillMcpToolsViewSet
-from .mysql_config_update import MySQLConfigUpdateMcpToolsViewSet
-from .mysql_metrics_mcp import MySQLMetricsMcpToolsViewSet
-from .mysql_query_mcp import MySQLQueryMcpToolsViewSet
-from .mysql_sensitive_mcp import MySQLSensitiveMcpViewSet
-from .mysql_slowlog_mcp import MySQLSlowlogMcpToolsViewSet
-from .mysql_table_capacity_mcp import MySQLTableCapacityMcpToolsViewSet
-from .sql_syntax_check_mcp import SqlSyntaxCheckMcpViewSet
+from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
+
+
+class KillConnectionInputSerializer(serializers.Serializer):
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"))
+    address = serializers.CharField(help_text=_("实例地址, ip:port 格式"))
+    connection_id = serializers.IntegerField(help_text=_("要杀死的连接 ID"))

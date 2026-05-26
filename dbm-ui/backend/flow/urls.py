@@ -153,8 +153,8 @@ from backend.flow.views.mysql_partition import MysqlPartitionSceneApiView
 from backend.flow.views.mysql_partition_cron import MysqlPartitionCronSceneApiView
 from backend.flow.views.mysql_porxy_reduce import ReduceMySQLProxySceneApiView
 from backend.flow.views.mysql_proxy_add import AddMySQLProxySceneApiView
-from backend.flow.views.mysql_proxy_rescue import RescueMySQLProxySceneApiView
 from backend.flow.views.mysql_proxy_rebuild import RebuildMySQLProxySceneApiView
+from backend.flow.views.mysql_proxy_rescue import RescueMySQLProxySceneApiView
 from backend.flow.views.mysql_proxy_switch import SwitchMySQLProxySceneApiView
 from backend.flow.views.mysql_proxy_upgrade import UpgradeMySQLProxySceneApiView
 from backend.flow.views.mysql_pt_table_sync import MySQLPtTableSyncApiView
