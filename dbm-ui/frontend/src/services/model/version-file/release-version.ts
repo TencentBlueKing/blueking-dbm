@@ -6,6 +6,9 @@ export default class ReleaseVersion {
   engine: string;
   id: number;
   name: string;
+  permission: {
+    package_manage: boolean;
+  };
   pkg_type: string;
   update_at: string;
   updater: string;
@@ -19,6 +22,7 @@ export default class ReleaseVersion {
     this.engine = payload.engine;
     this.id = payload.id;
     this.name = payload.name;
+    this.permission = payload.permission;
     this.pkg_type = payload.pkg_type;
     this.updater = payload.updater;
     this.update_at = payload.update_at;

@@ -2,9 +2,9 @@
   <table class="version-files-table">
     <thead>
       <tr>
-        <th style="width: 340px">{{ t('文件名') }}</th>
-        <th style="width: 152px">{{ t('适用的操作系统') }}</th>
-        <th style="width: 356px">{{ t('操作系统版本') }}</th>
+        <th style="width: 340px">{{ t('文件') }}</th>
+        <th style="width: 152px">OS</th>
+        <th style="width: 356px">{{ t('OS版本') }}</th>
         <th style="width: 64px"></th>
       </tr>
     </thead>
@@ -16,16 +16,19 @@
         :able-to-delete="tableData.length > 1"
         :data="item"
         :is-applied="isApplied"
+        :is-only-one-file="isOnlyOneFile"
         :selected-systems="selectedSystems"
         :selected-versions="selectedVersions"
-        @system-version-change="handleSystemVersionChange"
-        @delete="() => handleDeleteRow(index)">
+        @delete="() => handleDeleteRow(index)"
+        @system-os-type-change="handleOsTypeChange"
+        @system-os-version-change="handleOsVersionChange">
       </VersionRow>
     </tbody>
   </table>
   <UploadFile
     :db-type="dbType"
     :pkg-type="pkgType"
+    :uploaded-file-names="uploadedFileNames"
     :version="version"
     @success="handleAdd" />
 </template>
@@ -45,6 +48,8 @@
     version: string;
   }
 
+  type Emits = (e: 'valueChange') => void;
+
   interface Exposes {
     getValue: () => ReturnType<InstanceType<typeof VersionRow>['getValue']>[] | null;
   }
@@ -53,6 +58,8 @@
     data: undefined,
     isApplied: false,
   });
+
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
@@ -71,6 +78,9 @@
     }[]
   >([]);
 
+  const uploadedFileNames = computed(() => tableData.value.map((item) => item.name));
+  const isOnlyOneFile = computed(() => tableData.value.length === 1);
+
   watch(
     () => props.data,
     () => {
@@ -84,7 +94,10 @@
     { immediate: true },
   );
 
-  const handleSystemVersionChange = () => {
+  const handleOsTypeChange = (isInit: boolean) => {
+    if (!isInit) {
+      emits('valueChange');
+    }
     selectedSystems.value.clear();
     selectedVersions.value = {};
     versionRowRefs.value.forEach((item) => {
@@ -104,6 +117,10 @@
     });
   };
 
+  const handleOsVersionChange = () => {
+    emits('valueChange');
+  };
+
   const handleAdd = (fileInfo: { md5: string; name: string; path: string; size: number }) => {
     tableData.value.push({
       ...fileInfo,
@@ -113,6 +130,7 @@
 
   const handleDeleteRow = (index: number) => {
     tableData.value.splice(index, 1);
+    emits('valueChange');
   };
 
   defineExpose<Exposes>({

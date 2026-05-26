@@ -1,16 +1,15 @@
 <template>
-  <BkButton
-    v-bk-tooltips="{
-      content: t('未启用的版本无法设置'),
-      disabled: data.enable,
-    }"
-    class="set-recommended"
-    :disabled="!data.enable"
-    :loading="updateDbVersionLoading"
-    size="small"
-    @click="handleSetRecommended">
-    {{ t('设为推荐版本') }}
-  </BkButton>
+  <AuthTemplate
+    action-id="package_manage"
+    :permission="permission"
+    :resource="dbType">
+    <DbIcon
+      v-bk-tooltips="{ content: toolTipContent }"
+      class="set-recommended mr-6"
+      :class="[{ 'is-recommended': data.recommend, 'is-disabled': !data.enable }]"
+      :type="data.recommend ? 'star-fill' : 'star'"
+      @click="handleSetRecommended" />
+  </AuthTemplate>
 </template>
 
 <script setup lang="ts">
@@ -23,32 +22,48 @@
   import { messageSuccess } from '@utils';
 
   interface Props {
-    data?: DbVersionModel;
+    data: DbVersionModel;
+    dbType: string;
+    permission: boolean;
   }
 
   type Emits = (e: 'success') => void;
 
-  const props = withDefaults(defineProps<Props>(), {
-    data: undefined,
-  });
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
-  const { loading: updateDbVersionLoading, run: runUpdateDbVersion } = useRequest(updateDbVersion, {
+  const toolTipContent = computed(() => {
+    if (!props.data.enable) {
+      return t('未启用的版本无法设置');
+    }
+
+    if (props.data.recommend) {
+      return t('当前推荐版本，点击取消');
+    }
+
+    return t('设为推荐版本');
+  });
+
+  const { run: runUpdateDbVersion } = useRequest(updateDbVersion, {
     manual: true,
     onSuccess: () => {
-      messageSuccess(t('更新成功'));
+      messageSuccess(t('操作成功'));
       emits('success');
     },
   });
 
   const handleSetRecommended = () => {
+    if (!props.data.enable) {
+      return;
+    }
+
     runUpdateDbVersion({
       id: props.data!.id,
       phase: props.data!.phase,
-      recommend: true,
+      recommend: !props.data.recommend,
     });
   };
 </script>
