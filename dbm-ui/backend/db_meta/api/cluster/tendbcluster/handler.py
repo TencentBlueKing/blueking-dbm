@@ -288,6 +288,24 @@ class TenDBClusterClusterHandler(ClusterHandler):
 
     @classmethod
     @transaction.atomic
+    def modify_spider_status(
+        cls,
+        cluster_id: int,
+        replace_spiders: list,
+        op_status: InstanceStatus,
+    ):
+        """
+        修改指定spider节点的instance_status状态
+        @param cluster_id: 集群id
+        @param replace_spiders: 需要修改状态的spider列表，每个元素需包含 "ip" 字段
+        @param op_status: 需要修改的目标状态
+        """
+        cluster = Cluster.objects.get(id=cluster_id)
+        ips = [info["ip"] for info in replace_spiders]
+        cluster.proxyinstance_set.filter(machine__ip__in=ips).update(status=op_status)
+
+    @classmethod
+    @transaction.atomic
     def remote_switch(cls, cluster_id: int, switch_tuples: list, force: bool):
         """
         对已有集群的remote存储对进行切换记录

@@ -144,6 +144,7 @@ class TenDBClusterReduceNodesFlow(object):
         is_check_disaster_tolerance_level: bool = True,
         is_check_process: bool = True,
         disable_manual_confirm: bool = False,
+        is_rebuild: bool = False,
     ):
         """
         根据cluster维度处理缩容子流程
@@ -153,6 +154,9 @@ class TenDBClusterReduceNodesFlow(object):
         @param spider_reduced_to_count_snapshot 单据传入的剩余spider实例数量快照
         @param is_check_min_count 是否要做下架后spider角色的数量的检测，默认是检测的。但特殊情况可以不检测，比如替换spider实例
         @param is_check_disaster_tolerance_level: 是否评估缩容后的是否满足容灾要求，默认是检测的。但特殊情况可以不检测，比如替换spider实例
+        @param is_check_process: 是否需要检测spider端连接情况，默认是检测的。如果用户不做检测，可以设置为False
+        @param disable_manual_confirm: 是否禁用人工确认，默认是不禁用的。但特殊情况可以禁用，比如自愈所产生的替换单据
+        @param is_rebuild: 是否是重建场景，默认是False, 非重建场景
         """
         # 获取对应集群相关对象
         try:
@@ -268,6 +272,7 @@ class TenDBClusterReduceNodesFlow(object):
                 root_id=self.root_id,
                 parent_global_data=sub_flow_context,
                 spider_role=reduce_spider_role,
+                is_rebuild=is_rebuild,
             )
         )
         return sub_pipeline.build_sub_process(

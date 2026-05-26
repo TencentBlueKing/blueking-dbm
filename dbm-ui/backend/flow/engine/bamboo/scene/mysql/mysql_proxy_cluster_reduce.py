@@ -92,7 +92,7 @@ class MySQLProxyClusterReduceFlow(object):
         7：卸载proxy周边配置 （实例级别操作）
         8：卸载proxy实例 （实例级别操作）
         9：删除元数据 （实例级别操作）
-        20：清理机器级别数据（整机级别操作）
+        10：清理机器级别数据（整机级别操作）
         """
 
         mysql_proxy_cluster_reduce_pipeline = Builder(root_id=self.root_id, data=self.data)

@@ -65,7 +65,7 @@ func (m MachineResourceHandler) SpecSum(r *gin.Context) {
 		var count int64
 		s := &apply.SearchContext{
 			IntentionBkBizId: input.ForbizId,
-			RsType:           input.ResourceType,
+			RsType:           model.NormalizeResourceType(input.ResourceType),
 			IdcCitys:         idcCitys,
 			ObjectDetail: &apply.ObjectDetail{
 				GroupMark:    item.GroupMark,

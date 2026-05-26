@@ -154,6 +154,7 @@ from backend.flow.views.mysql_partition_cron import MysqlPartitionCronSceneApiVi
 from backend.flow.views.mysql_porxy_reduce import ReduceMySQLProxySceneApiView
 from backend.flow.views.mysql_proxy_add import AddMySQLProxySceneApiView
 from backend.flow.views.mysql_proxy_rescue import RescueMySQLProxySceneApiView
+from backend.flow.views.mysql_proxy_rebuild import RebuildMySQLProxySceneApiView
 from backend.flow.views.mysql_proxy_switch import SwitchMySQLProxySceneApiView
 from backend.flow.views.mysql_proxy_upgrade import UpgradeMySQLProxySceneApiView
 from backend.flow.views.mysql_pt_table_sync import MySQLPtTableSyncApiView
@@ -254,6 +255,7 @@ from backend.flow.views.spider_cluster_rename_database import TenDBClusterRename
 from backend.flow.views.spider_cluster_truncate_database import TenDBClusterTruncateDatabaseView
 from backend.flow.views.spider_partition import SpiderPartitionSceneApiView
 from backend.flow.views.spider_partition_cron import SpiderPartitionCronSceneApiView
+from backend.flow.views.spider_rebuild_nodes import RebuildSpiderNodesSceneApiView
 from backend.flow.views.spider_reduce_mnt import ReduceSpiderMNTSceneApiView
 from backend.flow.views.spider_reduce_nodes import ReduceSpiderNodesSceneApiView
 from backend.flow.views.spider_schema_check import SpiderSchemaCheckSceneApiView
@@ -447,6 +449,7 @@ urlpatterns = [
     url(r"^scene/rescue_mysql_proxy$", RescueMySQLProxySceneApiView.as_view()),
     url(r"^scene/reduce_mysql_proxy$", ReduceMySQLProxySceneApiView.as_view()),
     url(r"^scene/add_mysql_proxy$", AddMySQLProxySceneApiView.as_view()),
+    url(r"^scene/rebuild_mysql_proxy$", RebuildMySQLProxySceneApiView.as_view()),
     url(r"^scene/install_influxdb$", InstallInfluxdbSceneApiView.as_view()),
     url(r"^scene/enable_influxdb$", EnableInfluxdbSceneApiView.as_view()),
     url(r"^scene/disable_influxdb$", DisableInfluxdbSceneApiView.as_view()),
@@ -482,8 +485,6 @@ urlpatterns = [
     url(r"^scene/tendbha_db_table_backup", MySQLHADBTableBackup.as_view()),
     url(r"^scene/install_hdfs$", InstallHdfsSceneApiView.as_view()),
     url(r"^scene/import_sqlfile$", ImportSQLFileSceneApiView.as_view()),
-    url(r"^scene/switch_mysql_proxy$", SwitchMySQLProxySceneApiView.as_view()),
-    url(r"^scene/add_mysql_proxy$", AddMySQLProxySceneApiView.as_view()),
     url(r"^scene/mysql_failover_drill$", MysqlFailoverDrillSceneApiView.as_view()),
     # 从节点数据恢复(接入备份系统)
     url(r"^scene/restore_slave_remote$", RestoreMysqlSlaveRemoteSceneApiView.as_view()),
@@ -561,6 +562,8 @@ urlpatterns = [
     url(r"^scene/tendbcluster_full_backup$", TenDBClusterFullBackupView.as_view()),
     # spider 减少
     url(r"^scene/reduce_spider_nodes$", ReduceSpiderNodesSceneApiView.as_view()),
+    # spider 重建
+    url(r"^scene/rebuild_spider_nodes$", RebuildSpiderNodesSceneApiView.as_view()),
     # riak
     url(r"^scene/riak_cluster_apply$", RiakApplySceneApiView.as_view()),
     url(r"^scene/tendbcluster_flashback$", TenDBClusterFlashbackView.as_view()),

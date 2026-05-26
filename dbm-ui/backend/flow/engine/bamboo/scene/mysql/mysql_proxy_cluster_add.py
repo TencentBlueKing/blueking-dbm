@@ -139,21 +139,62 @@ class MySQLProxyClusterAddFlow(object):
     def add_mysql_cluster_proxy_flow(self):
         """
         定义mysql集群添加proxy实例流程
+
+        流程设计总览：
+        ┌─────────────────────────────────────────────────────────────────────┐
+        │ 主流水线：按 self.data["infos"] 的每一行（一组 cluster_ids + 一组   │
+        │ new_proxies）构造一个子流程，所有子流程之间【并行】执行。           │
+        │                                                                     │
+        │ 单个子流程顺序如下：                                                │
+        │   0. 准备阶段：                                                     │
+        │      - 计算 target_proxy_pkg_id（proxy 安装介质，按集群内已有 proxy│
+        │        的版本决定，要求集群内 proxy 版本必须统一）                  │
+        │      - 计算 proxy_ports（每个集群已有 proxy 的端口，新 proxy 沿用）│
+        │      - init_machine_sub_flow：新机器系统初始化（sys_init / 环境   │
+        │        检查 / yum 安装 perl 等）                                    │
+        │                                                                     │
+        │   阶段1【机器维度】安装 proxy（一次性完成，多个集群共享）：         │
+        │      1.1 下发 proxy 安装介质到所有新机器                            │
+        │      1.2 在每台新机器上并行安装 proxy 实例（按 proxy_ports 多端口  │
+        │          一次性部署，因为这些集群在同一组机器上共享）               │
+        │                                                                     │
+        │   阶段2【集群维度】把新 proxy 接入每一个集群（集群之间并行）：      │
+        │      2.1 set_backend：新 proxy 配置后端 MySQL 实例（写 proxy 的    │
+        │          backend 列表）                                             │
+        │      2.2 克隆 proxy 用户白名单：从已有 proxy 拷贝用户白名单到新    │
+        │          proxy（让新 proxy 接受前端客户端连接）                     │
+        │      2.3 集群对新 proxy 添加权限：在后端 MySQL 上为新 proxy 的 IP  │
+        │          创建访问账号（让后端允许新 proxy 连入）                    │
+        │      2.4 访问入口管理（DNS/CLB/北极星）：把新 proxy IP 加入到集群  │
+        │          的访问入口中                                               │
+        │                                                                     │
+        │   阶段3：写入 db_meta 元信息（把新 proxy 注册到 DBM 元数据中）      │
+        │                                                                     │
+        │   阶段4：部署周边工具（DBAToolKit / MySQLCrond / MySQLMonitor）     │
+        │                                                                     │
+        │ 最后通过 run_pipeline_with_sidecar 启动流水线，并开启 AI 监控值守。│
+        └─────────────────────────────────────────────────────────────────────┘
         """
 
+        # 构建主流水线
         mysql_proxy_cluster_add_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
 
         # 多集群操作时循环加入集群proxy下架子流程
+        # 每个 info 对应前端一行：一组 cluster_ids 共享同一组 new_proxies 机器
         for info in self.data["infos"]:
+            # ---------- 准备阶段 ----------
             # 拼接子流程需要全局参数
             # 获取第一个集群信息，作为按照介质包的依据，因为校验通过后 info["cluster_ids"] 属于同组共享集群，理论上版本都一致
             info["target_proxy_pkg_id"] = self.get_proxy_pkg_id_for_cluster(info["cluster_ids"][0])
 
+            # 深拷贝 data 作为子流程上下文，剥离 infos 避免上下文过大
             sub_flow_context = copy.deepcopy(self.data)
             sub_flow_context.pop("infos")
 
             # 计算它的部署端口范围
+            # 新 proxy 机器上需要部署的端口列表 = 所有目标集群已有 proxy 的端口集合
+            # 因为同一台新 proxy 机器可能同时加入多个集群，每个集群对应一个端口
             sub_flow_context["proxy_ports"] = self.__get_proxy_install_ports(cluster_ids=info["cluster_ids"])
 
             # 声明子流程，按照前端每一行的维度，并发执行
@@ -166,6 +207,7 @@ class MySQLProxyClusterAddFlow(object):
             )
 
             # 初始新机器
+            # 对新加入的 proxy 机器做基础系统初始化：操作系统检查、环境准备、安装 perl 等依赖
             sub_pipeline.add_sub_pipeline(
                 sub_flow=init_machine_sub_flow(
                     uid=sub_flow_context["uid"],
@@ -178,9 +220,12 @@ class MySQLProxyClusterAddFlow(object):
                 )
             )
 
+            # ==================== 阶段1：机器维度 安装 proxy ====================
             # 阶段1 已机器维度，安装先上架的proxy实例
             # 获取第一个集群信息，作为按照介质包的依据，因为校验通过后 info["cluster_ids"] 属于同组共享集群，理论上版本都一致
             info["target_proxy_pkg_id"] = self.get_proxy_pkg_id_for_cluster(info["cluster_ids"][0])
+
+            # 阶段1.1：下发 proxy 安装介质（二进制包）到所有新 proxy 机器
             sub_pipeline.add_act(
                 act_name=_("下发proxy安装介质"),
                 act_component_code=TransFileComponent.code,
@@ -194,8 +239,9 @@ class MySQLProxyClusterAddFlow(object):
                     )
                 ),
             )
-            # 安装proxy实例，并发处理
+            # 阶段1.2：安装proxy实例，并发处理
             # 根据计算好的pkg_id，获取介质包
+            # 每台新机器上按 proxy_ports 一次性部署多个端口的 proxy 实例（机器之间并行）
             acts_list = []
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_proxy_for_add_payload.__name__
             for new_proxy in info["new_proxies"]:
@@ -211,7 +257,9 @@ class MySQLProxyClusterAddFlow(object):
 
             sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
+            # ==================== 阶段2：集群维度 将新 proxy 接入各集群 ====================
             # 阶段2 根据需要添加的proxy的集群，依次添加
+            # 每个集群对应一个独立的子子流程，集群之间【并行】执行
             add_proxy_sub_list = []
             for cluster_id in info["cluster_ids"]:
                 # 拼接子流程需要全局参数
@@ -225,6 +273,9 @@ class MySQLProxyClusterAddFlow(object):
                     raise ClusterNotExistException(
                         cluster_id=cluster_id, bk_biz_id=int(self.data["bk_biz_id"]), message=_("集群不存在")
                     )
+                # 取一个 RUNNING 状态的已有 proxy 作为"模板 proxy"，用于：
+                #   - 确定新 proxy 的端口（template_proxy.port）
+                #   - 作为克隆白名单 / 克隆后端权限 的来源
                 template_proxy = ProxyInstance.objects.filter(
                     cluster=cluster, status=InstanceStatus.RUNNING.value
                 ).all()[0]
@@ -232,11 +283,16 @@ class MySQLProxyClusterAddFlow(object):
                 # 针对集群维度声明子流程
                 add_proxy_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_sub_flow_context))
 
+                # 为当前集群收集 3 组并行动作：
+                #   set_backend_acts_list     ：新 proxy 写入 backend 信息
+                #   clone_user_acts_list      ：克隆 proxy 层的用户白名单
+                #   add_proxy_user_acts_list  ：在后端 MySQL 上授权给新 proxy IP
                 set_backend_acts_list = []
                 clone_user_acts_list = []
                 add_proxy_user_acts_list = []
 
                 for new_proxy in info["new_proxies"]:
+                    # 动作A：让新 proxy 感知到后端 MySQL（写 proxy 自己的 backends）
                     set_backend_acts_list.append(
                         {
                             "act_name": _("新的proxy配置后端实例[{}:{}]".format(new_proxy["ip"], template_proxy.port)),
@@ -251,6 +307,8 @@ class MySQLProxyClusterAddFlow(object):
                             ),
                         }
                     )
+                    # 动作B：从集群内已有 proxy 克隆用户白名单到新 proxy
+                    #        （让前端客户端可以通过新 proxy 访问）
                     clone_user_acts_list.append(
                         {
                             "act_name": _("克隆proxy用户白名单[{}:{}]".format(new_proxy["ip"], template_proxy.port)),
@@ -264,6 +322,9 @@ class MySQLProxyClusterAddFlow(object):
                         }
                     )
 
+                    # 动作C：在后端 MySQL 上为新 proxy 的 IP 创建访问权限
+                    #        （参考 origin_proxy_host 的授权，复制一份给 target_proxy_host）
+                    #        否则后端 MySQL 会拒绝新 proxy 的连接
                     add_proxy_user_acts_list.append(
                         {
                             "act_name": _("集群对新的proxy添加权限[{}:{}]".format(new_proxy["ip"], template_proxy.port)),
@@ -285,6 +346,7 @@ class MySQLProxyClusterAddFlow(object):
                 add_proxy_sub_pipeline.add_parallel_acts(acts_list=add_proxy_user_acts_list)
 
                 # 阶段2.4: 新proxy实例，做访问入口添加处理
+                # 将新 proxy 的 IP 添加到集群的访问入口（DNS、CLB、北极星等）
                 entry_sub_process = BuildEntrysManageSubflow(
                     root_id=self.root_id,
                     ticket_data=self.data,
@@ -303,9 +365,12 @@ class MySQLProxyClusterAddFlow(object):
                     )
                 )
 
+            # 多个集群的"接入"子流程并行执行（互不影响）
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=add_proxy_sub_list)
 
+            # ==================== 阶段3：写 db_meta 元信息 ====================
             # 阶段3：拼接db-meta的新ip信息到私有变量cluster, 兼容同一台proxy机器属于不同cluster的录入场景
+            # 将新增 proxy 实例正式注册到 DBM 元数据中（ProxyInstance、Machine、Cluster 关联等）
             sub_pipeline.add_act(
                 act_name=_("添加db_meta元信息"),
                 act_component_code=MySQLDBMetaComponent.code,
@@ -323,7 +388,14 @@ class MySQLProxyClusterAddFlow(object):
                 ),
             )
 
+            # ==================== 阶段4：部署周边工具 ====================
             # 阶段4：新proxy实例，添加周边程序
+            # 给新 proxy 实例部署周边工具：
+            #   - DBAToolKit  ：DBA 工具包
+            #   - MySQLCrond  ：定时任务调度器
+            #   - MySQLMonitor：监控采集器
+            # 注意：with_actuator=False / with_bk_plugin=False / with_collect_sysinfo=False
+            # 表示此阶段只装周边，不再重复做 actuator 下发、bk 插件安装、系统信息采集
             sub_pipeline.add_sub_pipeline(
                 sub_flow=standardize_mysql_cluster_subflow(
                     root_id=self.root_id,
@@ -352,9 +424,12 @@ class MySQLProxyClusterAddFlow(object):
                 )
             )
 
+        # 所有 info 行对应的子流程并行执行
         mysql_proxy_cluster_add_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         # mysql_proxy_cluster_add_pipeline.run_pipeline(init_trans_data_class=SystemInfoContext())
         # 启动接入单据值守监听
+        # run_pipeline_with_sidecar：在流水线运行时同时启动 AI 监控 sidecar，
+        # 传入受影响的 cluster_id 集合，用于对这些集群做异常监控值守
         mysql_proxy_cluster_add_pipeline.run_pipeline_with_sidecar(
             init_trans_data_class=SystemInfoContext(),
             check_ai_monitor_cluster_list=list({cid for info in self.data["infos"] for cid in info["cluster_ids"]}),
