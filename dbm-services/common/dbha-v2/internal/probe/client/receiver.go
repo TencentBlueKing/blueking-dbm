@@ -138,15 +138,15 @@ func (r *ReceiverClient) Post(ctx context.Context, content []byte) error {
 	}
 
 	res, err := r.client.PushDataUnary(ctx, req)
-	if err != nil {
-		if res != nil {
-			return gerrors.Newf(gerrors.GrpcFailure,
-				"failed to post messages to receiver, grpc err: %s, receiver errmsg: %s",
-				err, res.Errmsg)
-		}
-		return gerrors.New(gerrors.GrpcFailure, err.Error())
+	if err == nil {
+		return nil
 	}
-	return nil
+	if res != nil {
+		return gerrors.Newf(gerrors.GrpcFailure,
+			"failed to post messages to receiver, grpc err: %s, receiver errmsg: %s",
+			err, res.Errmsg)
+	}
+	return gerrors.New(gerrors.GrpcFailure, err.Error())
 }
 
 func (r *ReceiverClient) GetBaseInfo() BaseInfo {
