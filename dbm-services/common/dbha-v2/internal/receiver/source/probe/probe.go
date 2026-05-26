@@ -27,7 +27,6 @@ package probe
 
 import (
 	"context"
-	"io"
 	"net"
 	"sync"
 
@@ -41,7 +40,6 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
-	"google.golang.org/grpc/peer"
 )
 
 // Probe is a gRPC receiver server that accepts probe data streams and dispatches them to configured sinkers.
@@ -63,49 +61,6 @@ func NewProbeServer(cfg config.SourceConfig, outputers []sink.Sinker) (*Probe, e
 	}
 
 	return &Probe{cfg: cfg, ep: ep, savers: outputers}, nil
-}
-
-// PushData handles a client push stream until the context is canceled, EOF,
-// or a receive error; it returns nil in those cases.
-func (p *Probe) PushData(stream proto.ReceiverService_PushDataServer) error {
-	ctx := stream.Context()
-	addr, ok := peer.FromContext(ctx)
-
-	clientId := ""
-	if ok {
-		clientId = addr.Addr.String()
-	}
-
-	connHandler := &connectionHandler{
-		savers:     p.savers,
-		bufferSize: p.cfg.BufferSize,
-	}
-	connHandler.run()
-	defer connHandler.close()
-
-	for {
-		select {
-		case <-ctx.Done():
-			logger.Error("receiver server exited due to canceled context")
-			return nil
-
-		default:
-			req, err := stream.Recv()
-			if err == io.EOF {
-				logger.Error("receiver server exited, errmsg: %s", err)
-				return nil
-			}
-
-			if err != nil {
-				logger.Error("receiver server exited, errmsg: %s", err)
-				return nil
-			}
-
-			if err := connHandler.postEvent(req); err != nil {
-				logger.Warn("handle the client event data failed, client: %s, errmsg: %s", clientId, err)
-			}
-		}
-	}
 }
 
 // Run starts the gRPC server and blocks until Serve returns or the listener fails.
