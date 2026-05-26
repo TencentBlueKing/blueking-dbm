@@ -94,7 +94,7 @@ type GoApplyBinlog struct {
 	WorkID  string `json:"work_id" example:"123456"`
 	// 仅解析 binlog，不做导入
 	ParseOnly bool `json:"parse_only"`
-	// 解析的并发度，默认 1
+	// 解析的并发度，默认 1，是机器全局的
 	ParseConcurrency int `json:"parse_concurrency"`
 
 	// 如果启用 quick_mode，解析 binlog 时根据 filter databases 等选项过滤 row event，对 query event 会全部保留 。
@@ -349,7 +349,7 @@ func (r *GoApplyBinlog) Init() error {
 	}
 
 	if r.ParseConcurrency == 0 {
-		r.ParseConcurrency = 1
+		r.ParseConcurrency = 4
 	}
 	// 检查目标实例连接性
 	if r.BinlogOpt.Flashback || !r.ParseOnly {

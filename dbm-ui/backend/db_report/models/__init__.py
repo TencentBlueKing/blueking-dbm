@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from .affinity_check_report import AffinityCheckReport
+from .ai_analysis_report import AiAnalysisReport
 from .checksum_check_report import ChecksumCheckReport, ChecksumInstance
 from .dbmon_heartbeat_report import DbmonHeartbeatReport
 from .es_account_report import EsAccountReport

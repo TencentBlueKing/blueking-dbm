@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 from rest_framework.routers import DefaultRouter
 
 from backend.dbm_aiagent.mcp_tools.common.views import (
+    AiReportMcpToolsViewSet,
     DBMetaQueryMcpToolsViewSet,
     DBMetaUpdateMcpToolsViewSet,
     HostDecommissionQueryMcpToolsViewSet,
@@ -31,4 +32,5 @@ routers.register(r"", MonitorQueryMcpToolsViewSet, basename="mcp-monitor-query")
 routers.register(r"", HostDecommissionQueryMcpToolsViewSet, basename="mcp-host-decommission-query")
 routers.register(r"", TaskflowQueryMcpToolsViewSet, basename="mcp-taskflow-query")
 routers.register(r"", PromQLQueryMcpToolsViewSet, basename="mcp-promql-query")
+routers.register(r"", AiReportMcpToolsViewSet, basename="mcp-ai-report")
 urlpatterns = routers.urls

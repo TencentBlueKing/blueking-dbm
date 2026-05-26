@@ -91,8 +91,8 @@ class PromQLQueryMcpToolsViewSet(McpToolsViewSet):
         name_prefix="promql",
     )
     def query_metrics_with_roles(self, request, *args, **kwargs):
-        cluster_domain = (self.get_param("cluster_domain"),)
-        instance_role = (self.get_param("instance_role"),)
+        cluster_domain = self.get_param("cluster_domain")
+        instance_role = self.get_param("instance_role")
         p = PromQLQueryBuilder(
             alias="A",
             metric_name=self.get_param("metric_name"),
