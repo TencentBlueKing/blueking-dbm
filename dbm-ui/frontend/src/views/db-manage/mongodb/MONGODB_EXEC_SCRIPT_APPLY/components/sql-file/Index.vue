@@ -14,8 +14,13 @@
 <template>
   <BkFormItem
     :label="t('脚本来源')"
-    required>
-    <BkRadioGroup v-model="importMode">
+    property="import_mode"
+    required
+    :rules="rules">
+    <BkRadioGroup
+      v-model="importMode"
+      class="mb-8"
+      @change="handleImportModeChange">
       <BkRadioButton
         label="manual"
         style="width: 140px">
@@ -27,76 +32,135 @@
         {{ t('脚本文件') }}
       </BkRadioButton>
     </BkRadioGroup>
+    <KeepAlive>
+      <Component
+        :is="renderCom"
+        ref="fileRef"
+        v-model="modelValue"
+        v-bind="attrs"
+        @change="handleContentChange"
+        @grammar-check="handleGrammarCheck" />
+    </KeepAlive>
   </BkFormItem>
-  <KeepAlive>
-    <Component
-      :is="renderCom"
-      ref="fileRef"
-      @change="handleContentChange" />
-  </KeepAlive>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import GrammarCheckModel from '@services/model/sql-import/grammar-check';
   import type { Mongodb } from '@services/model/ticket/ticket';
 
   import { useTicketDetail } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { useSqlImport } from '@stores';
+
+  import { DBTypes, TicketTypes } from '@common/const';
+
+  import type SqlFile from '@views/db-manage/common/model/sql-file/SqlFile';
+  import SqlFileModel from '@views/db-manage/common/model/sql-file/SqlFile';
+
+  import { getSQLFilename } from '@utils';
 
   import LocalFile from './local-file/Index.vue';
   import ManualInput from './manual-input/Index.vue';
 
-  interface Exposes {
+  interface Expose {
+    getFileData: () => Record<string, SqlFile>;
     getValue: () => {
       mode: string;
-      scripts: {
-        content: string;
-        name: string;
-      }[];
+      script_files: string[];
     };
+    setInit: (cacheData: Record<string, SqlFile>) => void;
   }
 
-  const modelValue = defineModel<string[]>();
-  const importMode = defineModel<string>('importMode', {
-    default: 'manual',
+  const modelValue = defineModel<string[]>({
+    default: () => [],
+  });
+  const importMode = defineModel<'manual' | 'file'>('importMode', {
+    required: true,
   });
 
   const { t } = useI18n();
-
-  useTicketDetail<Mongodb.ExecScriptApply>(TicketTypes.MONGODB_EXEC_SCRIPT_APPLY, {
-    onSuccess(ticketDetail) {
-      const { details } = ticketDetail;
-      importMode.value = details.mode;
-    },
-  });
-
-  const fileRef = useTemplateRef('fileRef');
 
   const comMap = {
     file: LocalFile,
     manual: ManualInput,
   };
 
-  const renderCom = computed(() => comMap[importMode.value as keyof typeof comMap]);
+  const attrs = useAttrs();
+  const { updateDbType } = useSqlImport();
 
+  updateDbType(DBTypes.MONGODB);
+
+  useTicketDetail<Mongodb.ExecScriptApply>(TicketTypes.MONGODB_EXEC_SCRIPT_APPLY, {
+    onSuccess(ticketDetail) {
+      importMode.value = ticketDetail.details.mode;
+      // updateUploadFilePath(ticketDetail.details.path);
+
+      nextTick(() => {
+        const sqlFileCache = (ticketDetail.details?.script_files || []).reduce<Record<string, SqlFileModel>>(
+          (prev, realFileName) => {
+            const localFileName = getSQLFilename(realFileName);
+            const sqlFile = new SqlFileModel();
+            sqlFile.grammarCheckStart();
+            sqlFile.grammarCheckSuccessed({ [realFileName]: new GrammarCheckModel() });
+            return Object.assign(prev, { [localFileName]: sqlFile });
+          },
+          {},
+        );
+        fileRef.value!.setInit(sqlFileCache);
+      });
+    },
+  });
+
+  const rules = [
+    {
+      required: true,
+      validator() {
+        if (!hasGrammarCheck.value) {
+          return t('先执行语法检测');
+        }
+        if (!grammarCheckResult.value) {
+          return t('语法检测失败');
+        }
+        return true;
+      },
+    },
+  ];
+
+  const fileRef = ref<InstanceType<typeof LocalFile>>();
+  const hasGrammarCheck = ref(false);
+  const grammarCheckResult = ref<boolean | string>(false);
+
+  const renderCom = computed(() => comMap[importMode.value]);
+
+  // 文件来源改变时需要重置文件列表和语法检测
+  const handleImportModeChange = () => {
+    modelValue.value = [];
+  };
+
+  // 内容变更处理
   const handleContentChange = (value: string[]) => {
     modelValue.value = value;
   };
 
-  defineExpose<Exposes>({
-    getValue: () => ({
-      mode: importMode.value,
-      scripts: fileRef.value!.getValue(),
-    }),
+  // 语法检测状态
+  const handleGrammarCheck = (doCheck: boolean, checkResult: boolean | string) => {
+    hasGrammarCheck.value = doCheck;
+    grammarCheckResult.value = checkResult;
+  };
+
+  defineExpose<Expose>({
+    getFileData() {
+      return fileRef.value!.getFileData();
+    },
+    getValue() {
+      return {
+        mode: importMode.value,
+        script_files: fileRef.value!.getValue(),
+      };
+    },
+    setInit(cacheData: Record<string, SqlFile>) {
+      fileRef.value!.setInit(cacheData);
+    },
   });
 </script>
-<style lang="less" scoped>
-  .label-tips {
-    position: absolute;
-    top: 0;
-    padding-left: 16px;
-    font-weight: normal;
-    color: @gray-color;
-  }
-</style>

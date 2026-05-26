@@ -68,7 +68,10 @@
     title: string;
   }
 
-  type Emits = (e: 'change', value: string) => void;
+  interface Emits {
+    (e: 'change', value: string): void;
+    (e: 'validate', isPass: boolean): void;
+  }
 
   const props = withDefaults(defineProps<Props>(), {
     messageList: () => [],
@@ -156,6 +159,25 @@
       const value = editor.getValue();
       modelValue.value = value;
       emits('change', value);
+
+      // const currentModel = editor.getModel();
+      // if (currentModel) {
+      //   monaco.editor.onDidChangeMarkers((uris) => {
+      //     uris.forEach((resource) => {
+      //       // 确保是当前编辑器的模型
+      //       if (resource.toString() === currentModel.uri.toString()) {
+      //         const markers = monaco.editor.getModelMarkers({
+      //           resource: resource,
+      //         });
+
+      //         // 分类显示错误和警告
+      //         const errors = markers.filter((m) => m.severity === monaco.MarkerSeverity.Error);
+      //         const warnings = markers.filter((m) => m.severity === monaco.MarkerSeverity.Warning);
+      //         emits('validate', errors.length === 0 && warnings.length === 0);
+      //       }
+      //     });
+      //   });
+      // }
     });
     screenfull.on('change', handleToggleScreenfull);
     window.addEventListener('resize', handleReize);
