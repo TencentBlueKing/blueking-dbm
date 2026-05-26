@@ -28,7 +28,7 @@
               :class="{ 'is-active': item.sessionCode === activeSessionCode }"
               @click="handleSelect(item.sessionCode)">
               <span class="chat-history-item-name">{{ item.sessionName }}</span>
-              <span class="chat-history-item-time">{{ formatDateTime(item.updatedAt) }}</span>
+              <span class="chat-history-item-time">{{ formatDateTime(item.updatedAt!) }}</span>
             </BkDropdownItem>
           </template>
           <div
@@ -49,7 +49,7 @@
   interface Props {
     activeSessionCode?: string;
     isLoading?: boolean;
-    sessionList?: { sessionCode: string; sessionName: string; updatedAt: string }[];
+    sessionList?: { sessionCode: string; sessionName: string; updatedAt?: string }[];
   }
 
   type Emits = (e: 'select', sessionCode: string) => void;
