@@ -11,6 +11,7 @@ from backend.flow.engine.bamboo.scene.redis.revoke.redis_rollback_exercise_revok
 from backend.flow.engine.controller.redis import RedisController
 from backend.flow.plugins.components.collections.redis.redis_rollback_exercise import (
     RedisExerciseBestEffortCleanupComponent,
+    RedisExerciseBestEffortCleanupService,
     RedisExerciseRevokeAppliedHostsComponent,
     RedisExerciseRevokeAppliedHostsService,
 )
@@ -94,13 +95,21 @@ def test_redis_rollback_revoke_flow_runs_best_effort_before_recycle_output():
 
     builder = FakeBuilder.instances[0]
     assert builder.root_id == "revoke-root"
-    assert builder.data["uid"] == 123
+    assert builder.data["uid"] == 999
+    assert builder.data["parent_ticket"] == 123
     assert [act["act_component_code"] for act in builder.acts] == [
         RedisExerciseBestEffortCleanupComponent.code,
         RedisExerciseRevokeAppliedHostsComponent.code,
     ]
     assert builder.acts[0]["extra"]["error_ignorable"] is True
     assert isinstance(builder.run_kwargs["init_trans_data_class"], RedisRollbackExerciseContext)
+
+
+def test_best_effort_cleanup_uses_parent_ticket_for_rollback_tasks():
+    service = RedisExerciseBestEffortCleanupService()
+
+    assert service._get_rollback_task_ticket_id({"uid": 999, "parent_ticket": 123}) == 123
+    assert service._get_rollback_task_ticket_id({"uid": 999}) == 999
 
 
 def test_revoke_applied_hosts_service_outputs_unique_redis_hosts():
@@ -116,7 +125,6 @@ def test_revoke_applied_hosts_service_outputs_unique_redis_hosts():
                                 "ip": "1.1.1.1",
                                 "bk_cloud_id": 0,
                                 "bk_host_id": 101,
-                                "city": "sz",
                             }
                         ]
                     },
@@ -127,11 +135,36 @@ def test_revoke_applied_hosts_service_outputs_unique_redis_hosts():
         }
     )
 
+    standardized_hosts = [
+        {
+            "ip": "1.1.1.1",
+            "bk_cloud_id": 0,
+            "bk_host_id": 101,
+            "city": "sz",
+            "sub_zone": "sz-a",
+            "rack_id": "rack-1",
+            "os_name": "linux",
+            "device_class": "S5",
+        }
+    ]
     with patch(
         "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.FlowOutputHandler"
-    ) as handler:
+    ) as handler, patch(
+        "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.ResourceHandler"
+    ) as resource_handler:
+        resource_handler.standardized_resource_host.return_value = standardized_hosts
         service._execute_inner_captured(data, parent_data=None)
 
+    resource_handler.standardized_resource_host.assert_called_once_with(
+        [
+            {
+                "ip": "1.1.1.1",
+                "bk_cloud_id": 0,
+                "bk_host_id": 101,
+                "remark": "Redis rollback exercise revoked",
+            }
+        ]
+    )
     handler.return_value.insert_data.assert_called_once()
     root_id, hosts = handler.return_value.insert_data.call_args.args
     assert root_id == "root-1"
@@ -141,8 +174,33 @@ def test_revoke_applied_hosts_service_outputs_unique_redis_hosts():
             "bk_cloud_id": 0,
             "bk_host_id": 101,
             "remark": "Redis rollback exercise revoked",
+            "city": "sz",
+            "sub_zone": "sz-a",
+            "rack_id": "rack-1",
+            "os_name": "linux",
+            "device_class": "S5",
         }
     ]
+
+
+def test_revoke_applied_hosts_service_warns_when_cmdb_drops_hosts(caplog):
+    caplog.set_level("WARNING")
+    recycle_hosts = [
+        {"ip": "1.1.1.1", "bk_cloud_id": 0, "bk_host_id": 101, "remark": "keep"},
+        {"ip": "2.2.2.2", "bk_cloud_id": 0, "bk_host_id": 102, "remark": "missing"},
+    ]
+
+    with patch(
+        "backend.flow.plugins.components.collections.redis.redis_rollback_exercise.ResourceHandler"
+    ) as resource_handler:
+        resource_handler.standardized_resource_host.return_value = [
+            {"ip": "1.1.1.1", "bk_cloud_id": 0, "bk_host_id": 101}
+        ]
+
+        hosts = RedisExerciseRevokeAppliedHostsService._standardize_recycle_hosts(recycle_hosts)
+
+    assert hosts == [{"ip": "1.1.1.1", "bk_cloud_id": 0, "bk_host_id": 101, "remark": "keep"}]
+    assert "Recycle hosts dropped after CMDB normalization: [102]" in caplog.text
 
 
 def test_revoke_applied_hosts_service_outputs_empty_table_when_no_redis_hosts():

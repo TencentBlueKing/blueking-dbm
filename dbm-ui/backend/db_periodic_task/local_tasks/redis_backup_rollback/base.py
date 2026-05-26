@@ -14,7 +14,6 @@ import json
 import logging
 import math
 import random
-from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import StrEnum
 from typing import List, Optional, Set, Tuple
@@ -29,6 +28,7 @@ from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_periodic_task.local_tasks.redis_backup.config import RedisBackupCheckConfig
 from backend.db_report.enums import RedisRollbackExerciseTaskStage as TaskStage
 from backend.db_report.models import RedisRollbackExerciseReport as Report
+from backend.db_services.redis.rollback.config import RedisRollbackExerciseConfig, RedisRollbackExerciseMode
 from backend.db_services.redis.rollback.handlers import DataStructureHandler
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
 from backend.db_services.redis.util import (
@@ -39,8 +39,8 @@ from backend.db_services.redis.util import (
 from backend.exceptions import AppBaseException
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum
 from backend.ticket.builders.common.base import ClusterType, IpSource
-from backend.ticket.constants import TICKET_RUNNING_STATUS_SET, TicketType
-from backend.ticket.models import ClusterOperateRecord, SystemSettings, Ticket
+from backend.ticket.constants import TicketType
+from backend.ticket.models import ClusterOperateRecord, Ticket
 from backend.utils.redis import RedisConn
 from backend.utils.time import datetime2str, str2datetime
 
@@ -60,84 +60,17 @@ REDIS_LOCK_TIMEOUT = 600  # 10 minutes
 RPUSH_BATCH_SIZE = 500
 
 
-class RedisRollbackExerciseMode(StrEnum):
-    SPECIFIED = "specified"
-    RANDOM = "random"
-
-
 class ValidationFailureKind(StrEnum):
     """Why a candidate failed pre-flight validation.
 
     BACKUP_INVALID is treated as ABNORMAL on the report (real data-protection issue);
     ENV_SKIPPED is treated as SKIPPED -> WARNING (transient/environmental).
+    ENV_SUPPRESSED is logged only because it is expected busy-cluster noise.
     """
 
     BACKUP_INVALID = "backup_invalid"
     ENV_SKIPPED = "env_skipped"
-
-
-@dataclass
-class RedisRollbackExerciseConfig:
-    """
-    Configuration of Redis rollback exericse.
-
-    In SPECIFIED mode, ``specified_domains`` and ``specified_bizs`` combine as:
-    - domains set, bizs unset: exercise every listed domain (legacy behavior).
-    - domains set, bizs set: exercise only listed domains in those bizs.
-    - domains unset, bizs set: discover ONLINE candidate clusters in those bizs.
-    - domains unset, bizs unset: warn and skip.
-    """
-
-    # Meta Configs
-    enabled: bool = False
-    mode: RedisRollbackExerciseMode = RedisRollbackExerciseMode.RANDOM
-    bk_biz_id: int = 0  # The biz where the drill ticket locates
-
-    # Mode - Specifed
-    specified_domains: Optional[List[str]] = None  # Customed targets [clusters]
-    # Allowlist for SPECIFIED mode: filters specified_domains to clusters in these bizs;
-    # when specified_domains is empty, discovers ONLINE clusters in these bizs instead.
-    specified_bizs: Optional[List[int]] = None
-
-    # Mode - Random
-    batch_size: int = 2000  # Count of clusters to exercise each week
-    bizs_high_priority: Optional[List[int]] = None  # Customed bizs with high priority
-    clusters_ignored: Optional[List[int]] = None  # Customed clusters(id) to ignore
-    bizs_ignored: Optional[List[int]] = None  # Customed bizs to ignore
-    cluster_types: List[str] = field(
-        default_factory=lambda: [
-            ClusterType.TendisTwemproxyRedisInstance.value,  # TendisCache 集群
-            ClusterType.TwemproxyTendisSSDInstance.value,  # TendisSSD 集群
-            ClusterType.TendisRedisInstance.value,  # Redis 主从
-            ClusterType.TendisPredixyRedisCluster.value,
-            ClusterType.TendisPredixyTendisplusCluster.value,
-        ]
-    )  # Customed ClusterTypes to exercise
-
-    # Weighted selection: probability multipliers (how many times more likely to be selected)
-    # Combined effect is multiplicative, e.g., high_priority + failed = 2.0 * 3.0 = 6x more likely
-    weight_multiplier_high_priority_biz: float = 2.0  # 2x more likely than default
-    weight_multiplier_previously_failed: float = 3.0  # 3x more likely than default
-    weight_multiplier_not_exercised: float = 2.0  # 2x more likely for clusters not exercised recently
-    not_exercised_days_threshold: int = 180  # Days threshold for "not exercised" status
-
-    # Error handling
-    error_ignorable: bool = True  # Continue exercising other clusters when one rollback fails
-
-    # Extra
-    max_instances: int = 10  # Each round
-    rollback_days: List[int] = field(default_factory=lambda: [0.1, 0.2, 0.3, 0.4, 0.5, 1, 2])  # Rollback days
-    polling_interval: int = 10  # sec
-    polling_timeout: int = 3600  # sec
-
-    # Recovery time-point offset (after the chosen full backup uptime).
-    # SSD / Tendisplus default ~23h50m so we exercise almost a full day of binlog
-    # (daily full backup at ~05:00 -> rollback target lands ~04:50 of next day,
-    # safely before the next full backup window).
-    binlog_replay_minutes: int = 1430
-    # Cluster types without binlog (cache / redis main-slave / predixy redis cluster)
-    # only need a small offset past the full backup uptime.
-    no_binlog_offset_minutes: int = 30
+    ENV_SUPPRESSED = "env_suppressed"
 
 
 class RedisRollbackExercise:
@@ -150,8 +83,7 @@ class RedisRollbackExercise:
 
     def _init_config(self) -> RedisRollbackExerciseConfig:
         """Initialize configuration from system settings"""
-        config_dict = SystemSettings.get_setting_value("REDIS_ROLLBACK_EXERCISE", {})
-        config = RedisRollbackExerciseConfig(**config_dict) if config_dict else RedisRollbackExerciseConfig()
+        config = RedisRollbackExerciseConfig.from_settings()
         logger.info(_("Redis rollback exercise settings: {}").format(config))
         return config
 
@@ -201,8 +133,6 @@ class RedisRollbackExercise:
                 "backup_check_instance", instance
             )  # Slave for backup check
 
-            report = self._create_report(cluster, instance)
-
             try:
                 (
                     is_valid,
@@ -219,49 +149,9 @@ class RedisRollbackExercise:
                     rollback_days=self.config.rollback_days,
                     backup_check_instance=backup_check_instance,
                 )
-
-                if is_valid:
-                    report.backup_info = json.dumps(
-                        {
-                            "full_backup": full_backup,
-                            "binlog_summary": binlog_summary,
-                            "recovery_time_point": datetime2str(recovery_time_point),
-                            "tendis_type": self._resolve_tendis_type(cluster.cluster_type),
-                            "kvstorecount": (
-                                self._get_kvstorecount(cluster)
-                                if is_tendisplus_instance_type(cluster.cluster_type)
-                                else None
-                            ),
-                        },
-                        indent=2,
-                        ensure_ascii=False,
-                    )
-                    report.save(update_fields=["backup_info", "update_at"])
-
-                    valid_instances.append(
-                        {
-                            "cluster": cluster,
-                            "instance": instance,
-                            "full_backup": full_backup,
-                            "days_used": days_used,
-                            "recovery_time_point": recovery_time_point,
-                            "binlog_summary": binlog_summary,
-                            "report": report,
-                        }
-                    )
-                else:
-                    stage = (
-                        TaskStage.BACKUP_INVALID
-                        if failure_kind == ValidationFailureKind.BACKUP_INVALID
-                        else TaskStage.SKIPPED
-                    )
-                    report.mark(
-                        stage,
-                        task_message=_fmt_task_msg(_("Validation failed: {}").format(fail_reason)),
-                    )
-
             except AppBaseException as e:
                 logger.exception(_("Backup validation error for instance {} {}").format(instance.ip_port, str(e)))
+                report = self._create_report(cluster, instance)
                 report.mark(
                     TaskStage.BACKUP_INVALID,
                     task_message=_fmt_task_msg(_("Backup validation error: {}").format(str(e))),
@@ -269,11 +159,57 @@ class RedisRollbackExercise:
                 continue
             except Exception as e:
                 logger.exception(_("Error validating instance {} {}").format(instance.ip_port, str(e)))
+                report = self._create_report(cluster, instance)
                 report.mark(
                     TaskStage.SKIPPED,
                     task_message=_fmt_task_msg(_("Exception during validation: {}").format(str(e))),
                 )
                 continue
+
+            if is_valid:
+                report = self._create_report(cluster, instance)
+                report.backup_info = json.dumps(
+                    {
+                        "full_backup": full_backup,
+                        "binlog_summary": binlog_summary,
+                        "recovery_time_point": datetime2str(recovery_time_point),
+                        "tendis_type": self._resolve_tendis_type(cluster.cluster_type),
+                        "kvstorecount": (
+                            self._get_kvstorecount(cluster)
+                            if is_tendisplus_instance_type(cluster.cluster_type)
+                            else None
+                        ),
+                    },
+                    indent=2,
+                    ensure_ascii=False,
+                )
+                report.save(update_fields=["backup_info", "update_at"])
+
+                valid_instances.append(
+                    {
+                        "cluster": cluster,
+                        "instance": instance,
+                        "full_backup": full_backup,
+                        "days_used": days_used,
+                        "recovery_time_point": recovery_time_point,
+                        "binlog_summary": binlog_summary,
+                        "report": report,
+                    }
+                )
+                continue
+
+            if failure_kind == ValidationFailureKind.ENV_SUPPRESSED:
+                logger.info(_("Validation skipped without report: {}").format(fail_reason))
+                continue
+
+            report = self._create_report(cluster, instance)
+            stage = (
+                TaskStage.BACKUP_INVALID if failure_kind == ValidationFailureKind.BACKUP_INVALID else TaskStage.SKIPPED
+            )
+            report.mark(
+                stage,
+                task_message=_fmt_task_msg(_("Validation failed: {}").format(fail_reason)),
+            )
 
         if not valid_instances:
             logger.info(_("No instances with valid backup found"))
@@ -375,10 +311,10 @@ class RedisRollbackExercise:
         Validate if instance is suitable for rollback exercise.
 
         Validations:
-        1. Backup availability (full backup + binlog when applicable)
-        2. Recent master-slave switch downgrades missing backup to skipped
-        3. No existing temp instance (not destroyed) in tb_tendis_rollback_tasks
-        4. No undone conflicting ticket
+        1. No existing temp instance (not destroyed) in tb_tendis_rollback_tasks
+        2. No undone conflicting ticket
+        3. Backup availability (full backup + binlog when applicable)
+        4. Recent master-slave switch downgrades missing backup to skipped
 
         Returns:
             tuple: (is_valid, full_backup_log, days_used, recovery_time_point,
@@ -387,10 +323,35 @@ class RedisRollbackExercise:
             ``failure_kind`` is a ``ValidationFailureKind`` (or None when valid):
             - BACKUP_INVALID -> caller should mark report as BACKUP_INVALID (ABNORMAL)
             - ENV_SKIPPED    -> caller should mark report as SKIPPED (WARNING)
+            - ENV_SUPPRESSED -> caller should log only, without report noise
         """
         cluster_id = cluster.id
 
-        # 1. Backup check (full + binlog when applicable)
+        # 1. Temp instance check
+        existing_temp_instances = TbTendisRollbackTasks.objects.filter(
+            prod_cluster_id=cluster_id,
+            destroyed_status__in=[DestroyedStatus.NOT_DESTROYED, DestroyedStatus.DESTROYING],
+        )
+        if existing_temp_instances.exists():
+            fail_reason = _("Cluster {} has existing temp instances (not destroyed)").format(cluster_id)
+            return False, None, None, None, None, fail_reason, ValidationFailureKind.ENV_SUPPRESSED
+
+        # 2. Undone exclusive ticket check
+        exclusive_infos = ClusterOperateRecord.objects.has_exclusive_operations_with_lock(
+            TicketType.REDIS_ROLLBACK_EXERCISE,
+            cluster_id,
+        )
+        if exclusive_infos:
+            exclusive_tickets = [
+                "{}({})".format(info["exclusive_ticket"].ticket_type, info["exclusive_ticket"].id)
+                for info in exclusive_infos
+            ]
+            fail_reason = _("Cluster {} has exclusive active tickets: {}").format(
+                cluster_id, ", ".join(exclusive_tickets)
+            )
+            return False, None, None, None, None, fail_reason, ValidationFailureKind.ENV_SUPPRESSED
+
+        # 3. Backup check (full + binlog when applicable)
         (
             has_backup,
             full_backup,
@@ -416,36 +377,6 @@ class RedisRollbackExercise:
                 return False, None, None, None, None, fail_reason, ValidationFailureKind.ENV_SKIPPED
             # No recent switch — genuine backup missing.
             return False, None, None, None, None, fail_reason, ValidationFailureKind.BACKUP_INVALID
-
-        # 2. Temp instance check
-        existing_temp_instances = TbTendisRollbackTasks.objects.filter(
-            prod_cluster_id=cluster_id,
-            destroyed_status__in=[DestroyedStatus.NOT_DESTROYED, DestroyedStatus.DESTROYING],
-        )
-        if existing_temp_instances.exists():
-            fail_reason = _("Cluster {} has existing temp instances (not destroyed)").format(cluster_id)
-            return False, None, None, None, None, fail_reason, ValidationFailureKind.ENV_SKIPPED
-
-        # 3. Undone ticket check
-        conflicting_ticket_type = [
-            TicketType.REDIS_ROLLBACK_EXERCISE,
-            TicketType.REDIS_DATA_STRUCTURE,
-            TicketType.REDIS_DATA_STRUCTURE_TASK_DELETE,
-        ]
-        undone_record = (
-            ClusterOperateRecord.objects.filter(
-                cluster_id=cluster_id,
-                ticket__ticket_type__in=conflicting_ticket_type,
-                ticket__status__in=TICKET_RUNNING_STATUS_SET,
-            )
-            .select_related("ticket")
-            .first()
-        )
-        if undone_record:
-            fail_reason = _("Cluster {} has undone {} ticket {}").format(
-                cluster_id, undone_record.ticket.ticket_type, undone_record.ticket.id
-            )
-            return False, None, None, None, None, fail_reason, ValidationFailureKind.ENV_SKIPPED
 
         return True, full_backup, days_used, recovery_time_point, binlog_summary, None, None
 
@@ -571,6 +502,9 @@ class RedisRollbackExercise:
 
         if self.config.bizs_ignored:
             queryset = queryset.exclude(bk_biz_id__in=self.config.bizs_ignored)
+
+        if self.config.bk_cloud_ids:
+            queryset = queryset.filter(bk_cloud_id__in=self.config.bk_cloud_ids)
 
         if self.config.cluster_types:
             queryset = queryset.filter(cluster_type__in=self.config.cluster_types)
@@ -745,6 +679,7 @@ class RedisRollbackExercise:
         skipped_clusters: List[tuple] = []
         domains = self.config.specified_domains or []
         bizs: Set[int] = set(self.config.specified_bizs or [])
+        bk_cloud_ids: Set[int] = set(self.config.bk_cloud_ids or [])
 
         if domains:
             for domain in domains:
@@ -752,6 +687,12 @@ class RedisRollbackExercise:
                 if bizs and cluster.bk_biz_id not in bizs:
                     skip_msg = _("Cluster {} bk_biz_id {} not in specified_bizs {}").format(
                         cluster.immute_domain, cluster.bk_biz_id, sorted(bizs)
+                    )
+                    skipped_clusters.append((cluster, skip_msg))
+                    continue
+                if bk_cloud_ids and cluster.bk_cloud_id not in bk_cloud_ids:
+                    skip_msg = _("Cluster {} bk_cloud_id {} not in bk_cloud_ids {}").format(
+                        cluster.immute_domain, cluster.bk_cloud_id, sorted(bk_cloud_ids)
                     )
                     skipped_clusters.append((cluster, skip_msg))
                     continue
@@ -828,6 +769,12 @@ class RedisRollbackExercise:
             try:
                 cluster_id = int(candidate_data)
                 cluster = Cluster.objects.get(id=cluster_id)
+                if self.config.bk_cloud_ids and cluster.bk_cloud_id not in self.config.bk_cloud_ids:
+                    skip_msg = _("Cluster {} bk_cloud_id {} not in bk_cloud_ids {}").format(
+                        cluster.immute_domain, cluster.bk_cloud_id, sorted(self.config.bk_cloud_ids)
+                    )
+                    skipped_clusters.append((cluster, skip_msg))
+                    continue
                 if cluster.phase != ClusterPhase.ONLINE.value:
                     skip_msg = _("Cluster {} is offline (phase: {})").format(cluster.immute_domain, cluster.phase)
                     skipped_clusters.append((cluster, skip_msg))

@@ -38,6 +38,7 @@ def fake_cluster():
     return SimpleNamespace(
         id=42,
         bk_biz_id=1001,
+        bk_cloud_id=0,
         immute_domain="cache.test.db",
         major_version="Redis-6",
         cluster_type="TwemproxyRedisInstance",
@@ -122,3 +123,41 @@ class TestExtraSkipCheckOverride:
         assert skipped is True
         assert policy in reason
         assert "eviction" in reason
+
+
+# ---------------------------------------------------------------------------
+# CheckClusterCapacityGrowthTask.persist_extra_skip_report
+# ---------------------------------------------------------------------------
+class TestPersistExtraSkipReport:
+    @pytest.mark.django_db
+    def test_creates_normal_skip_report(self, cap_growth, task, fake_cluster):
+        from backend.db_report.enums import ReportStateType
+        from backend.db_report.models import RedisCheckReport
+
+        reason = "maxmemory-policy=allkeys-lru enables eviction"
+        existing_report_ids = set(
+            RedisCheckReport.objects.filter(cluster_id=fake_cluster.id, subtype=task.subtype.value).values_list(
+                "id", flat=True
+            )
+        )
+        task.persist_extra_skip_report(fake_cluster, reason)
+
+        current_report_ids = set(
+            RedisCheckReport.objects.filter(cluster_id=fake_cluster.id, subtype=task.subtype.value).values_list(
+                "id", flat=True
+            )
+        )
+        report = RedisCheckReport.objects.get(
+            cluster_id=fake_cluster.id,
+            subtype=task.subtype.value,
+            id__in=current_report_ids - existing_report_ids,
+        )
+        assert report.cluster == fake_cluster.immute_domain
+        assert report.cluster_type == fake_cluster.cluster_type
+        assert report.bk_biz_id == fake_cluster.bk_biz_id
+        assert report.bk_cloud_id == fake_cluster.bk_cloud_id
+        assert report.shard == "all"
+        assert report.instance == "all"
+        assert report.status is True
+        assert report.state == ReportStateType.NORMAL.value
+        assert report.msg == f"{cap_growth.SKIP_REPORT_MSG_PREFIX} {reason}"

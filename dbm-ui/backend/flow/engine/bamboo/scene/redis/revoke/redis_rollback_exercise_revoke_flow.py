@@ -26,8 +26,6 @@ class RedisRollbackExerciseRevokeFlow(RevokeFlowBase):
 
     def revoke_flow(self):
         ticket_data = copy.deepcopy(self.data)
-        if ticket_data.get("parent_ticket"):
-            ticket_data["uid"] = ticket_data["parent_ticket"]
 
         revoke_pipeline = Builder(root_id=self.root_id, data=ticket_data)
         revoke_pipeline.add_act(

@@ -10,7 +10,9 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
+from functools import cached_property
 
+from django.db.models import OuterRef, Subquery
 from django.utils.translation import gettext as _
 from rest_framework import serializers
 
@@ -20,7 +22,10 @@ from backend.db_report.models import RedisRollbackExerciseReport
 from backend.db_report.register import register_drill_report
 from backend.db_report.serializers import ReportCommonFieldSerializerMixin
 from backend.db_report.views.revover_drill_report_view import RecoverDrillTaskViewSet
+from backend.db_services.redis.rollback.config import RedisRollbackExerciseConfig
 from backend.env import BK_SAAS_HOST
+from backend.ticket.constants import FlowType
+from backend.ticket.models import Flow
 
 logger = logging.getLogger("root")
 
@@ -32,7 +37,7 @@ class RedisRecoverDrillTaskSerializer(serializers.ModelSerializer, ReportCommonF
     recover_duration = serializers.SerializerMethodField(help_text=_("恢复花费时间(分钟)"))
     rollback_flow_link = serializers.SerializerMethodField(help_text=_("构造流程链接"))
     delete_flow_link = serializers.SerializerMethodField(help_text=_("销毁流程链接"))
-    ticket_link = serializers.SerializerMethodField(help_text=_("单据链接"))
+    ticket_flow_link = serializers.SerializerMethodField(help_text=_("单据流程链接"))
 
     def get_instance(self, obj):
         """Combine ip:port as instance"""
@@ -47,23 +52,37 @@ class RedisRecoverDrillTaskSerializer(serializers.ModelSerializer, ReportCommonF
             return round(duration.total_seconds() / 60, 2)
         return None
 
+    @cached_property
+    def rollback_exercise_bk_biz_id(self):
+        """Load once per serializer; rollback/delete flows live in the exercise ticket biz."""
+        return RedisRollbackExerciseConfig.from_settings().bk_biz_id
+
+    def get_rollback_exercise_flow_biz_id(self, obj):
+        """Use configured exercise biz for child flows, fallback to report biz if unset."""
+        return self.rollback_exercise_bk_biz_id or obj.bk_biz_id
+
     def get_rollback_flow_link(self, obj):
         """Generate rollback flow link"""
-        if not obj.rollback_flow_obj_id or not obj.bk_biz_id:
+        bk_biz_id = self.get_rollback_exercise_flow_biz_id(obj)
+        if not obj.rollback_flow_obj_id or not bk_biz_id:
             return None
-        return f"{BK_SAAS_HOST}/{obj.bk_biz_id}/task-history/detail/{obj.rollback_flow_obj_id}?from=taskHistoryList"
+        return f"{BK_SAAS_HOST}/{bk_biz_id}/task-history/detail/{obj.rollback_flow_obj_id}?from=taskHistoryList"
 
     def get_delete_flow_link(self, obj):
         """Generate delete flow link"""
-        if not obj.delete_flow_obj_id or not obj.bk_biz_id:
+        bk_biz_id = self.get_rollback_exercise_flow_biz_id(obj)
+        if not obj.delete_flow_obj_id or not bk_biz_id:
             return None
-        return f"{BK_SAAS_HOST}/{obj.bk_biz_id}/task-history/detail/{obj.delete_flow_obj_id}?from=taskHistoryList"
+        return f"{BK_SAAS_HOST}/{bk_biz_id}/task-history/detail/{obj.delete_flow_obj_id}?from=taskHistoryList"
 
-    def get_ticket_link(self, obj):
-        """Generate ticket link"""
-        if not obj.ticket_id:
+    def get_ticket_flow_link(self, obj):
+        """Generate ticket flow link"""
+        if not obj.ticket_id or not obj.bk_biz_id:
             return None
-        return f"{BK_SAAS_HOST}/ticket/{obj.ticket_id}"
+        flow_obj_id = getattr(obj, "ticket_flow_obj_id", "")
+        if not flow_obj_id:
+            return None
+        return f"{BK_SAAS_HOST}/{obj.bk_biz_id}/task-history/detail/{flow_obj_id}?from=taskHistoryList"
 
     class Meta:
         model = RedisRollbackExerciseReport
@@ -77,7 +96,7 @@ class RedisRecoverDrillTaskSerializer(serializers.ModelSerializer, ReportCommonF
             "recover_start_time",
             "recover_duration",
             "state",
-            "ticket_link",
+            "ticket_flow_link",
             "rollback_flow_link",
             "delete_flow_link",
             "task_message",
@@ -89,17 +108,24 @@ class RedisRecoverDrillTaskSerializer(serializers.ModelSerializer, ReportCommonF
 class RedisRecoverDrillTaskViewSet(RecoverDrillTaskViewSet):
     """Redis recover drill task viewset"""
 
-    queryset = RedisRollbackExerciseReport.objects.filter(
-        task_stage__in=[
-            RedisRollbackExerciseTaskStage.DONE,
-            RedisRollbackExerciseTaskStage.TICKET_GEN_FAILED,
-            RedisRollbackExerciseTaskStage.RESOURCE_APPLI_FAILED,
-            RedisRollbackExerciseTaskStage.ROLLBACK_FAILED,
-            RedisRollbackExerciseTaskStage.CLEANUP_FAILED,
-            RedisRollbackExerciseTaskStage.SKIPPED,
-            RedisRollbackExerciseTaskStage.BACKUP_INVALID,
-        ]
-    ).order_by("-update_at")
+    ticket_flow_obj_id_subquery = Flow.objects.filter(
+        ticket_id=OuterRef("ticket_id"), flow_type=FlowType.INNER_FLOW
+    ).values("flow_obj_id")[:1]
+    queryset = (
+        RedisRollbackExerciseReport.objects.filter(
+            task_stage__in=[
+                RedisRollbackExerciseTaskStage.DONE,
+                RedisRollbackExerciseTaskStage.TICKET_GEN_FAILED,
+                RedisRollbackExerciseTaskStage.RESOURCE_APPLI_FAILED,
+                RedisRollbackExerciseTaskStage.ROLLBACK_FAILED,
+                RedisRollbackExerciseTaskStage.CLEANUP_FAILED,
+                RedisRollbackExerciseTaskStage.SKIPPED,
+                RedisRollbackExerciseTaskStage.BACKUP_INVALID,
+            ]
+        )
+        .annotate(ticket_flow_obj_id=Subquery(ticket_flow_obj_id_subquery))
+        .order_by("-update_at")
+    )
     serializer_class = RedisRecoverDrillTaskSerializer
 
     filter_fields = {
@@ -164,8 +190,8 @@ class RedisRecoverDrillTaskViewSet(RecoverDrillTaskViewSet):
             "format": ReportFieldFormat.STATUS.value,
         },
         {
-            "name": "ticket_link",
-            "display_name": _("单据链接"),
+            "name": "ticket_flow_link",
+            "display_name": _("单据流程链接"),
             "format": ReportFieldFormat.LINK.value,
         },
         {

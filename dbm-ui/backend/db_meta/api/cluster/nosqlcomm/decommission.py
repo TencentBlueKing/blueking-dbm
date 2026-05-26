@@ -190,6 +190,12 @@ def decommission_instances(ip: str, bk_cloud_id: int, ports: List) -> bool:
     """
 
     machine_obj = Machine.objects.filter(ip=ip, bk_cloud_id=bk_cloud_id).first()
+    if not machine_obj:
+        logger.warning(
+            "no machine matched for decommission ip={} bk_cloud_id={}, ports={}, skip".format(ip, bk_cloud_id, ports)
+        )
+        return True
+
     keep_machine = False
     cc_manage = CcManage(machine_obj.bk_biz_id, machine_obj.cluster_type)
     if machine_obj.access_layer == AccessLayer.PROXY:
