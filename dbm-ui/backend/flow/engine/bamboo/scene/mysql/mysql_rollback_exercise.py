@@ -196,6 +196,7 @@ class MySQLRollbackExerciseFlow(object):
                 with_push_config=False,
                 with_exporter_config=False,
                 skip_add_domain=True,
+                skip_install_bk_plugin=True,
             )
         )
         # 屏蔽告警
@@ -335,6 +336,7 @@ class MySQLRollbackExerciseFlow(object):
                 domain=master_domain,
                 bk_biz_id=self.rollback_to_bk_biz_id,
                 skip_clean_surrounding_config=True,
+                skip_send_db_actuator_package=True,
             )
         )
         sub_pipeline.add_act(
