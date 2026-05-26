@@ -71,6 +71,9 @@ type PickerObject struct {
 
 	// MAJORITY_ELECTION_DISTRI 按园区跟踪机架 - 用于确保同一园区内的机器跨机架
 	RackIdsBySubZone map[subZone][]string // 每个园区已使用的机架ID列表
+
+	// Affinity 亲和性策略，用于在分配阶段区分 WEAK / STRONG 等场景的算法分流
+	Affinity string
 }
 
 // LockReturnPickers 将匹配好的机器资源,查询出详情结果返回

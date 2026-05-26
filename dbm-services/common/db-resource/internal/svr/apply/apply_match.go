@@ -595,10 +595,28 @@ func (c *PickerObject) PickerMajorityElectionCrossSubzone() {
 	}
 }
 
-// PickerCrossSubzoneWithRackTolerance 跨园区匹配（带机架级容忍度）
+// PickerCrossSubzoneWithRackTolerance 跨园区匹配（带机架级容忍度）调度入口
 // 用于 CROSS_SUBZONE_STRONG 和 CROSS_SUBZONE_WEAK 策略
 // 同时满足跨园区和跨机架的需求
+//
+// 算法分流：
+//   - CROSS_SUBZONE_WEAK 走 BigPoolFirst：按 subzone 剩余库存降序，
+//     在大池子内填到 MaxPerSubZone 上限后再切到下一池子。
+//     原因：真实生产场景下（n 较小、多组顺序消耗）纯均衡策略会过早把小池子
+//     消耗到归零，导致末尾组只剩 1 个 subzone 凑不齐 WEAK 约束。
+//     BigPoolFirst 让大池子充分利用 MaxPerSubZone 上限，把小池子留给后续组使用。
+//   - 其他（含 CROSS_SUBZONE_STRONG）走 pickerCrossSubzoneRoundRobin（原 channel 轮转逻辑）
 func (c *PickerObject) PickerCrossSubzoneWithRackTolerance() {
+	if c.Affinity == CROSS_SUBZONE_WEAK {
+		c.pickerCrossSubzoneBigPoolFirst()
+		return
+	}
+	c.pickerCrossSubzoneRoundRobin()
+}
+
+// pickerCrossSubzoneRoundRobin 原 channel 平均轮转策略
+// 保留作为 CROSS_SUBZONE_STRONG 等场景的实现，行为与改动前完全一致
+func (c *PickerObject) pickerCrossSubzoneRoundRobin() {
 	sortFuncs := []func(cross_subzone bool) []string{
 		c.SortSubZoneByBalance, // 优先使用均衡排序
 		c.sortSubZoneNum,
@@ -659,6 +677,89 @@ func (c *PickerObject) PickerCrossSubzoneWithRackTolerance() {
 			subzoneChan <- subzone
 		}
 	}
+}
+
+// pickerCrossSubzoneBigPoolFirst 按 subzone 剩余库存降序集中分配
+//
+// 算法步骤：
+//  1. 按 subzone 当前剩余库存量降序排序
+//  2. 在最大 subzone 内连续取，直到达到 MaxPerSubZone 或库存耗尽
+//  3. 切到下一个大 subzone 继续
+//  4. 取完一轮后重新排序（库存变化后下一个最大的 subzone 可能不同）
+//  5. 全部 subzone 取完仍未达 n 台 → 失败
+//
+// 由于 subzone tolerance = 1/2，每个 subzone 最多取 ceil(n/2) 台，
+// n 台需求必然分布在 ≥2 个 subzone，WEAK 跨园区约束自然满足。
+func (c *PickerObject) pickerCrossSubzoneBigPoolFirst() {
+	for !c.PickerDone() {
+		sortedSubzones := c.sortSubzonesByRemainingInventoryDesc()
+		if len(sortedSubzones) == 0 {
+			logger.Info("pickerCrossSubzoneBigPoolFirst: no available subzone, exit")
+			return
+		}
+		logger.Info("pickerCrossSubzoneBigPoolFirst sorted subzones: %v", sortedSubzones)
+		allocated := false
+		for _, subzone := range sortedSubzones {
+			// 在该 subzone 内连续取，直到达到 tolerance 或无满足 rack 约束的机器
+			for c.canStillTakeFromSubzone(subzone) && !c.PickerDone() {
+				if !c.pickerOneByPriorityWithDualTolerance(subzone) {
+					// 该 subzone 内剩余机器均不满足 rack tolerance，跳出
+					break
+				}
+				allocated = true
+			}
+			// 该 subzone 已达上限或库存耗尽，从待选移除
+			if !c.canStillTakeFromSubzone(subzone) {
+				delete(c.PriorityElements, subzone)
+			}
+			if c.PickerDone() {
+				logger.Info("资源分布:%v", c.SatisfiedHostIdsMap)
+				logger.Info("机架分布:%v", c.RackDistribute)
+				return
+			}
+		}
+		if !allocated {
+			// 本轮未能从任何 subzone 取到机器 → 资源不足，退出
+			logger.Info("pickerCrossSubzoneBigPoolFirst: no allocation in this round, exit")
+			return
+		}
+	}
+}
+
+// sortSubzonesByRemainingInventoryDesc 按 subzone 剩余库存量降序排序
+// 已耗尽（pq 为空或 nil）的 subzone 被过滤
+func (c *PickerObject) sortSubzonesByRemainingInventoryDesc() []string {
+	type item struct {
+		subzone string
+		inv     int
+	}
+	items := make([]item, 0, len(c.PriorityElements))
+	for sz, pq := range c.PriorityElements {
+		if pq != nil && pq.Len() > 0 {
+			items = append(items, item{subzone: sz, inv: pq.Len()})
+		}
+	}
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].inv > items[j].inv
+	})
+	result := make([]string, 0, len(items))
+	for _, it := range items {
+		result = append(result, it.subzone)
+	}
+	return result
+}
+
+// canStillTakeFromSubzone 判断该 subzone 是否还能继续取
+// 条件：pq 有库存 且 未达到 subzone tolerance 上限
+func (c *PickerObject) canStillTakeFromSubzone(subzone string) bool {
+	pq := c.PriorityElements[subzone]
+	if pq == nil || pq.Len() == 0 {
+		return false
+	}
+	if c.MaxPerSubZone > 0 && c.GetSubZoneCurrentTotal(subzone) >= c.MaxPerSubZone {
+		return false
+	}
+	return true
 }
 
 // sortSubZoneByPriority 按照SubZonePrioritySumMap的value值从大到小排序
