@@ -535,6 +535,7 @@ func (o *SearchContext) PickInstance() (picker *PickerObject, err error) {
 // PickInstanceBase pick instance base
 func (o *SearchContext) PickInstanceBase(picker *PickerObject, items []model.TbRpDetail) (err error) {
 	logger.Info("the anti-affinity is %s", o.Affinity)
+	picker.Affinity = o.Affinity
 	if len(o.SpecialHostIds) > 0 {
 		for _, v := range items {
 			if slices.Contains(o.SpecialHostIds, v.BkHostID) {
