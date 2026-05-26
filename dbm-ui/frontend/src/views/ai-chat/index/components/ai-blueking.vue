@@ -28,24 +28,7 @@
         ref="aiBlueking"
         :draggable="false"
         :hide-nimbus="false"
-        :request-options="{
-          beforeRequest: (requestData: any) => {
-            return {
-              ...requestData,
-              headers: {
-                'X-CSRFToken': CSRFToken,
-              },
-              data: {
-                ...(requestData.data || {}),
-                agent_code: agentInfo.id,
-              },
-              params: {
-                ...(requestData.params || {}),
-                agent_code: agentInfo.id,
-              },
-            };
-          },
-        }"
+        :request-options="requestOptions"
         teleport-to="#dbmAiChatContent"
         :url="url" />
     </div>
@@ -53,6 +36,7 @@
 </template>
 <script setup lang="ts">
   import Cookie from 'js-cookie';
+  import _ from 'lodash';
   import urlJoin from 'url-join';
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
@@ -68,34 +52,6 @@
     agentInfo: { group: string } & ServiceReturnType<typeof getAgentScene>['workbench'][string][number];
   }
 
-  interface SessionItem {
-    created_at: string;
-    created_by: string;
-    model: string;
-    protocol_version: string;
-    role_info: {
-      generate_type: string;
-      role_content: { extra: null | string; id: null | number; role: string }[];
-      role_id: number;
-      role_name: string;
-      role_variable: unknown[];
-      status: string;
-    };
-    session_code: string;
-    session_content_count: number;
-    session_name: string;
-    session_property: {
-      flow_info: null | string;
-      is_auto_clac_prompt: boolean;
-      is_auto_clear: boolean;
-      test_code: null | string;
-    };
-    sessionsession_codeCode: string;
-    status: null | string;
-    updated_at: string;
-    updated_by: string;
-  }
-
   const props = defineProps<Props>();
 
   const CSRFToken = Cookie.get('dbm_csrftoken');
@@ -108,24 +64,38 @@
   const isSessionListLoading = ref(false);
   const activeSessionCode = ref('');
 
-  const sessionList = ref<
-    {
-      sessionCode: string;
-      sessionName: string;
-      updatedAt: string;
-    }[]
-  >([]);
-
   const url = urlJoin(window.PROJECT_ENV.VITE_AJAX_URL_PREFIX, '/apis/ai/agent');
 
   const aiBluekingRef = useTemplateRef<InstanceType<typeof AIBlueking>>('aiBlueking');
   const isSwitchingSessionLoading = ref(false);
 
   const agentPrefix = computed(() => `[${props.agentInfo.id}]`);
+  const sessionList = computed(() => {
+    const list = _.filter(
+      aiBluekingRef.value?.getChatHelper()?.session.list.value || [],
+      (item) => item.sessionCode.startsWith(agentPrefix.value) && item.sessionName !== 'temporary_session',
+    );
+    return list;
+  });
+
+  const requestOptions = computed(() => {
+    return {
+      data: {
+        agent_code: props.agentInfo.id,
+      },
+      headers: {
+        'X-CSRFToken': CSRFToken,
+      },
+      params: {
+        agent_code: props.agentInfo.id,
+      },
+    };
+  });
 
   const switchToSession = (sessionCode: string) => {
     isSwitchingSessionLoading.value = true;
-    aiBluekingRef.value?.switchToSession(sessionCode).finally(() => {
+    const chatHelper = aiBluekingRef.value!.getChatHelper()!;
+    chatHelper.session.chooseSession(sessionCode).finally(() => {
       activeSessionCode.value = sessionCode;
       router.replace({
         name: route.name!,
@@ -139,32 +109,46 @@
     });
   };
 
-  const fetchSessionList = async () => {
-    isSessionListLoading.value = true;
-    try {
-      const dataList: {
-        sessionCode: string;
-        sessionName: string;
-        updatedAt: string;
-      }[] = await aiBluekingRef.value?.getSessionList();
-
-      sessionList.value = dataList.filter(
-        (item) => item.sessionCode.startsWith(agentPrefix.value) && item.sessionName !== 'temporary_session',
-      );
-    } finally {
-      setTimeout(() => {
-        isSessionListLoading.value = false;
+  let isInit = false;
+  watch(
+    () => props.agentInfo,
+    () => {
+      if (!props.agentInfo) {
+        return;
+      }
+      isSwitchingSessionLoading.value = true;
+      setTimeout(async () => {
+        if (!isInit) {
+          // 只需要 show 一次
+          await aiBluekingRef.value?.show();
+        }
+        isInit = true;
+        // show 后，需要等待一下，才能获取到 sessionList
+        nextTick(() => {
+          if (sessionList.value.length > 0) {
+            switchToSession(sessionList.value[0].sessionCode);
+          } else {
+            handleNewChat();
+          }
+        });
       }, 300);
-    }
-  };
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleNewChat = () => {
     isCreatingSession.value = true;
-    aiBluekingRef.value
-      ?.addNewSession(`${agentPrefix.value}${uuid()}`)
-      .then((data: SessionItem) => {
-        fetchSessionList();
-        switchToSession(data.session_code);
+    const chatHelper = aiBluekingRef.value!.getChatHelper()!;
+    chatHelper.session
+      .createSession({
+        labels: [props.agentInfo.id],
+        sessionCode: `${agentPrefix.value}${uuid()}`,
+        sessionName: '新会话',
+      })
+      .then(() => {
+        switchToSession(chatHelper.session.current.value?.sessionCode || '');
       })
       .finally(() => {
         isCreatingSession.value = false;
@@ -177,16 +161,6 @@
 
   onMounted(() => {
     isMounted.value = true;
-    isSwitchingSessionLoading.value = true;
-    setTimeout(async () => {
-      await aiBluekingRef.value?.handleShow();
-      await fetchSessionList();
-      if (sessionList.value.length > 0) {
-        switchToSession(sessionList.value[0].sessionCode);
-      } else {
-        handleNewChat();
-      }
-    });
   });
 </script>
 <style lang="postcss">
@@ -220,30 +194,24 @@
       margin-left: auto;
     }
 
-    .ai-blueking-wrapper {
+    .ai-blueking-v2 {
       position: relative;
       z-index: 0;
       width: 100% !important;
       height: calc(100vh - 104px - var(--notice-height));
 
-      & > div {
-        width: unset !important;
-        height: unset !important;
-      }
-
-      .nimbus-container,
-      .nimbus-bkai-wrapper {
-        width: unset !important;
-        height: unset !important;
-      }
-
-      .ai-blueking-container-wrapper {
+      .draggable-container-wrapper {
+        width: 100% !important;
         height: 100% !important;
         transform: unset !important;
+      }
 
-        .header {
-          display: none;
-        }
+      .ai-blueking-panel {
+        border-radius: 0;
+      }
+
+      .ai-header {
+        display: none !important;
       }
     }
   }
