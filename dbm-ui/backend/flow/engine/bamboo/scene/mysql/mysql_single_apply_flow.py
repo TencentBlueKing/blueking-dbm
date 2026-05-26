@@ -78,6 +78,7 @@ class MySQLSingleApplyFlow(object):
         with_push_config: bool = True,
         with_exporter_config: bool = True,
         skip_add_domain: bool = False,
+        skip_install_bk_plugin: bool = False,
     ) -> SubBuilder:
         """
         定义部署单节点集群的流程，资源是通过手动录入方式，兼容单机多实例的部署
@@ -123,6 +124,12 @@ class MySQLSingleApplyFlow(object):
             )
 
             # 初始新机器
+            if skip_install_bk_plugin:
+                # 不安装节点管理的相关插件
+                bk_host_ids = []
+            else:
+                bk_host_ids = [info["new_ip"]["bk_host_id"]]
+
             sub_pipeline.add_sub_pipeline(
                 sub_flow=init_machine_sub_flow(
                     uid=sub_flow_context["uid"],
@@ -131,7 +138,7 @@ class MySQLSingleApplyFlow(object):
                     sys_init_ips=[info["new_ip"]["ip"]],
                     init_check_ips=[info["new_ip"]["ip"]],
                     yum_install_perl_ips=[info["new_ip"]["ip"]],
-                    bk_host_ids=[info["new_ip"]["bk_host_id"]],
+                    bk_host_ids=bk_host_ids,
                 )
             )
             sub_pipeline.add_act(

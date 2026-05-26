@@ -66,12 +66,14 @@ def bytes_to_gb(bytes: int) -> float:
     return bytes / 1024 / 1024 / 1024
 
 
-def build_resource_apply_params(task_id: str, min_disk_size: int, mysql_version: str) -> Dict[str, Union[str, Any]]:
+def build_resource_apply_params(task_id: str, storage_spec: list, mysql_version: str) -> Dict[str, Union[str, Any]]:
     """Build resource application parameters
 
     Args:
         task_id: The unique task identifier
-        min_disk_size: Minimum disk size required in GB
+        storage_spec: 资源申请的磁盘规格列表，单项格式如:
+            {"mount_point": "/data1", "disk_type": "ssd", "min": 200, "max": 2147483647}
+            mount_point/disk_type 可选；单盘场景下可不带 mount_point 由资源池默认分配。
         mysql_version: MySQL version string
 
     Returns:
@@ -84,12 +86,7 @@ def build_resource_apply_params(task_id: str, min_disk_size: int, mysql_version:
         "group_mark": "backup_recovery_exercise_0",
         "labels": [MYSQL_BACKUPRECOVER_MCH_LABELS_ID],
         "os_type": "Linux",
-        "storage_spec": [
-            {
-                "max": 2147483647,
-                "min": min_disk_size,
-            }
-        ],
+        "storage_spec": storage_spec,
     }
     logger.info(_("apply details: {}").format(details))
     # 如果MySQL版本大于等于8.0，则排除tlinux 1.2操作系统
@@ -151,6 +148,161 @@ def calculate_min_disk_size(total_filesize: int) -> int:
     """
     min_disk_size = bytes_to_gb(total_filesize) * 6  # Double the backup size
     return int(max(min_disk_size, 200))  # Ensure minimum of 50GB
+
+
+def calculate_recovery_min_disk_size_gb(
+    data_dir_size_mb: float,
+    storage_engine: str,
+    backup_type: str,
+    total_filesize: int,
+) -> int:
+    """根据备份信息计算回档所需的最小磁盘大小(GB)
+
+    优先按备份元信息中的 data_dir_size_mb 估算；如果没有，则按 total_filesize 兜底。
+
+    @param data_dir_size_mb: 备份记录中数据目录大小(MB)
+    @param storage_engine: 存储引擎(innodb / 其他)
+    @param backup_type: 备份类型(logical / physical)
+    @param total_filesize: 备份文件总大小(字节，data_dir_size_mb<=0 时作为兜底)
+    @return: 最小磁盘大小(GB)
+    """
+    if data_dir_size_mb and data_dir_size_mb > 0:
+        # 扩大并转换为 GB(MB 转 GB 需要除以 1024)
+        if storage_engine == "innodb":
+            data_dir_size_mb = data_dir_size_mb * 1.6
+            if backup_type == "logical":
+                data_dir_size_mb = data_dir_size_mb * 2.6
+        else:
+            data_dir_size_mb = data_dir_size_mb * 4.3
+        logger.info(_("计算后的数据目录大小: {} MB").format(data_dir_size_mb))
+        min_disk_size = int(data_dir_size_mb / 1024)
+    else:
+        min_disk_size = calculate_min_disk_size(total_filesize)
+    logger.info(_("计算后的最小磁盘大小: {} GB").format(min_disk_size))
+    return min_disk_size
+
+
+def get_master_storage_spec(cluster: Cluster) -> list:
+    """查询集群 master 节点的规格 storage_spec(可能多块盘)
+
+    任何查询异常或缺失都会被吞掉并返回空列表，由调用方退避到原单盘模式。
+
+    @param cluster: 待演练的集群
+    @return: master 节点机器的 spec_config["storage_spec"] 列表，
+        例如：[
+            {"mount_point": "/data", "min": 100, "max": 500, "type": "ssd"},
+            {"mount_point": "/data1", "min": 200, "max": 1000, "type": "ssd"},
+        ]
+        若未获取到则返回空列表
+    """
+    try:
+        main_storage = cluster.main_storage_instances().first()
+        if not main_storage:
+            logger.info(_("集群 {} 未找到 master 节点，退避为单盘模式申请").format(cluster.immute_domain))
+            return []
+
+        spec_config = main_storage.machine.spec_config or {}
+        storage_spec = spec_config.get("storage_spec") or []
+        if not storage_spec:
+            logger.info(
+                _("集群 {} master 节点(IP {}) 无 storage_spec 信息，退避为单盘模式申请").format(
+                    cluster.immute_domain, main_storage.machine.ip
+                )
+            )
+            return []
+
+        logger.info(
+            _("集群 {} master 节点(IP {}) storage_spec: {}").format(
+                cluster.immute_domain, main_storage.machine.ip, storage_spec
+            )
+        )
+        return list(storage_spec)
+    except Exception as e:
+        logger.warning(_("查询集群 {} master 节点规格异常，退避为单盘模式申请: {}").format(cluster.immute_domain, str(e)))
+        return []
+
+
+def build_recovery_storage_spec(
+    cluster: Cluster,
+    data_dir_size_mb: float,
+    storage_engine: str,
+    backup_type: str,
+    total_filesize: int,
+) -> list:
+    """构建回档资源申请所需的 storage_spec
+
+    优先从待演练集群的 master 节点规格中获取盘符布局，多块盘场景下：
+    - 数据盘(/data1 优先，否则 /data)按基于备份估算出的容量申请，且不小于原规格 min 值
+    - 其它盘按原规格 min 值申请，保持 mount_point 与 master 一致
+    - 演练场景只关心磁盘容量是否满足，不限定磁盘类型(SSD/HDD/CLOUD_SSD 等)
+    如果未获取到 master 规格，则按单盘(无 mount_point)申请，由资源池默认处理。
+
+    @param cluster: 待演练的集群
+    @param data_dir_size_mb: 备份记录的数据目录大小(MB)
+    @param storage_engine: 存储引擎
+    @param backup_type: 备份类型
+    @param total_filesize: 备份文件总大小(字节)
+    @return: storage_spec 列表
+    """
+    min_disk_size_gb = calculate_recovery_min_disk_size_gb(
+        data_dir_size_mb=data_dir_size_mb,
+        storage_engine=storage_engine,
+        backup_type=backup_type,
+        total_filesize=total_filesize,
+    )
+
+    # 单盘原模式兜底（不指定 mount_point，由资源池默认处理）
+    fallback_spec = [{"max": 2147483647, "min": min_disk_size_gb}]
+
+    master_storage_spec = get_master_storage_spec(cluster)
+    if not master_storage_spec:
+        logger.info(_("集群 {} 按单盘模式申请，最小容量: {} GB").format(cluster.immute_domain, min_disk_size_gb))
+        return fallback_spec
+
+    # 解析 master 规格构建多盘申请，任何异常都退避到单盘模式
+    try:
+        # 选择数据盘 mount_point：优先 /data1，否则 /data，否则取第一块盘
+        mount_points = [item.get("mount_point") for item in master_storage_spec]
+        if "/data1" in mount_points:
+            data_mount_point = "/data1"
+        elif "/data" in mount_points:
+            data_mount_point = "/data"
+        else:
+            data_mount_point = mount_points[0] if mount_points else None
+
+        # 演练场景只关心磁盘容量是否满足，不限定磁盘类型(SSD/HDD/CLOUD_SSD 等)
+        storage_spec_list = []
+        for item in master_storage_spec:
+            mount_point = item.get("mount_point")
+            original_min = int(item.get("min", 0) or 0)
+
+            # 数据盘按计算值申请，且不小于原规格 min；其它盘保持原规格 min
+            if mount_point == data_mount_point:
+                spec_min = max(min_disk_size_gb, original_min)
+            else:
+                spec_min = original_min
+
+            spec_item = {
+                "max": 2147483647,
+                "min": spec_min,
+            }
+            if mount_point:
+                spec_item["mount_point"] = mount_point
+            storage_spec_list.append(spec_item)
+
+        if not storage_spec_list:
+            logger.warning(_("集群 {} 解析 master 规格后为空，退避为单盘模式申请").format(cluster.immute_domain))
+            return fallback_spec
+
+        logger.info(_("集群 {} 申请 storage_spec(基于 master 盘符布局): {}").format(cluster.immute_domain, storage_spec_list))
+        return storage_spec_list
+    except Exception as e:
+        logger.warning(
+            _("集群 {} 解析 master 规格异常，退避为单盘模式申请: {}, 原始规格: {}").format(
+                cluster.immute_domain, str(e), master_storage_spec
+            )
+        )
+        return fallback_spec
 
 
 def get_last_week_range():
@@ -396,35 +548,31 @@ def gen_rollback_task():
             creator="system",
             updater="system",
         )
-        # Calculate minimum disk size required
-        if data_dir_size_mb > 0:
-            # 扩大1.5倍并转换为GB (MB转GB需要除以1024)
-            if storage_engine == "innodb":
-                data_dir_size_mb = data_dir_size_mb * 1.6
-                if backup_type == "logical":
-                    data_dir_size_mb = data_dir_size_mb * 2.6
-            else:
-                data_dir_size_mb = data_dir_size_mb * 4.3
-            logger.info(_("计算后的数据目录大小: {} MB").format(data_dir_size_mb))
-            min_disk_size = int(data_dir_size_mb / 1024)
-            logger.info(_("计算后的最小磁盘大小: {} GB").format(min_disk_size))
-        else:
-            min_disk_size = calculate_min_disk_size(backup_record["total_filesize"])
+        # 构建资源申请的 storage_spec(自动适配 master 节点的多盘布局)
+        storage_spec_list = build_recovery_storage_spec(
+            cluster=cluster,
+            data_dir_size_mb=data_dir_size_mb,
+            storage_engine=storage_engine,
+            backup_type=backup_type,
+            total_filesize=backup_record["total_filesize"],
+        )
+
         # 申请资源
         mysql_version = backup_record.get("mysql_version", "")
-        apply_params = build_resource_apply_params(root_id, min_disk_size, mysql_version)
+        apply_params = build_resource_apply_params(root_id, storage_spec_list, mysql_version)
         resp = DBResourceApi.resource_apply(params=apply_params, raw=True)
         if resp["code"] != 0:
             if resp["code"] == ResourceApplyErrCode.RESOURCE_LAKE:
                 logger.error(
                     _(
-                        "资源不足申请失败，请前往补货后重试。集群信息: 集群域名={}, 集群ID={}, 备份ID={}, 备份大小={:.2f}GB, 需要最小磁盘={}GB, MySQL版本={}, 错误信息: {}"
+                        "资源不足申请失败，请前往补货后重试。集群信息: 集群域名={}, 集群ID={}, 备份ID={}, "
+                        "备份大小={:.2f}GB, storage_spec={}, MySQL版本={}, 错误信息: {}"
                     ).format(
                         cluster.immute_domain,
                         cluster.id,
                         backup_id,
                         backup_file_size_gb,
-                        min_disk_size,
+                        storage_spec_list,
                         mysql_version,
                         resp.get("message"),
                     )

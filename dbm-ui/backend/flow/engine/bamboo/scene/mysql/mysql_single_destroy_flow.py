@@ -193,7 +193,14 @@ class MySQLSingleDestroyFlow(object):
         mysql_single_destroy_pipeline.run_pipeline(is_drop_random_user=False)
 
     def destroy_mysql_single_subflow(
-        self, ip, port, bk_cloud_id, bk_biz_id, domain, skip_clean_surrounding_config: bool
+        self,
+        ip,
+        port,
+        bk_cloud_id,
+        bk_biz_id,
+        domain,
+        skip_clean_surrounding_config: bool,
+        skip_send_db_actuator_package: bool = False,
     ):
         """下架MySQL单节点集群子流程
 
@@ -219,18 +226,18 @@ class MySQLSingleDestroyFlow(object):
                 )
             ),
         )
-
-        sub_pipeline.add_act(
-            act_name=_("下发db-actuator介质"),
-            act_component_code=TransFileComponent.code,
-            kwargs=asdict(
-                DownloadMediaKwargs(
-                    bk_cloud_id=bk_cloud_id,
-                    exec_ip=ip,
-                    file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-                )
-            ),
-        )
+        if not skip_send_db_actuator_package:
+            sub_pipeline.add_act(
+                act_name=_("下发db-actuator介质"),
+                act_component_code=TransFileComponent.code,
+                kwargs=asdict(
+                    DownloadMediaKwargs(
+                        bk_cloud_id=bk_cloud_id,
+                        exec_ip=ip,
+                        file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                    )
+                ),
+            )
         if not skip_clean_surrounding_config:
             sub_pipeline.add_act(
                 act_name=_("清理实例级别周边配置"),
