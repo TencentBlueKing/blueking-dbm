@@ -14,8 +14,7 @@ from django.utils.translation import gettext as _
 
 from backend.components import DRSApi
 from backend.db_meta.enums import InstanceRole, InstanceStatus
-from backend.db_meta.models import Cluster, Machine
-from backend.flow.engine.validate.exceptions import DuplicateIPException
+from backend.db_meta.models import Cluster
 from backend.flow.engine.validate.mysql_base_validate import MysqlBaseValidator
 
 logger = logging.getLogger("flow")
@@ -29,6 +28,11 @@ class MySQLProxyRescueValidator(MysqlBaseValidator):
     支持两种救援场景：
     1. 有旧 Proxy 元数据：所有原 Proxy 必须不可用
     2. 没有旧 Proxy 元数据：极端场景下仍可按参数继续救援（需补充 proxy_port 等）
+
+    ⚠️ 校验阶段尚未补齐 new_proxies（新机器信息后续才会确定），
+       因此本 Validator 不做任何依赖 new_proxies 的校验。
+       涉及"新机器是否已被 DBM 占用"等校验，需在资源补齐后由 flow 自身或专门的
+       pre-flight 阶段执行。
     """
 
     # ------------------------------------------------------------------ #
@@ -63,11 +67,6 @@ class MySQLProxyRescueValidator(MysqlBaseValidator):
 
         # 校验4: 所有原有 Proxy 必须不可用（核心安全校验）
         error_msg = self.__validate_all_proxies_unavailable(info, index, row_key)
-        if error_msg:
-            return error_msg
-
-        # 校验5: 新机器未被 DBM 系统使用
-        error_msg = self.__validate_new_machines_not_used(info, index, row_key)
         if error_msg:
             return error_msg
 
@@ -143,14 +142,6 @@ class MySQLProxyRescueValidator(MysqlBaseValidator):
 
         return []
 
-    def __validate_new_machines_not_used(self, info: dict, index: int, row_key: str) -> list:
-        """校验该 info 中的新机器未被 DBM 系统使用"""
-        for new_proxy in info.get("new_proxies", []):
-            existing = Machine.objects.filter(ip=new_proxy["ip"], bk_cloud_id=new_proxy["bk_cloud_id"]).first()
-            if existing:
-                return [_("infos[{}] 机器 {} 已在 DBM 系统中，不能用于救援").format(index, new_proxy["ip"])]
-        return []
-
     # ------------------------------------------------------------------ #
     #  辅助工具
     # ------------------------------------------------------------------ #
@@ -179,16 +170,10 @@ class MySQLProxyRescueValidator(MysqlBaseValidator):
         """执行所有校验（多集群模式）"""
         infos = self.data.get("infos", [])
 
-        # 阶段1：逐行校验
         error_msgs = []
         for index, info in enumerate(infos):
             error_msgs += self.__run_check_for_info(info, index)
         if error_msgs:
             return error_msgs
-
-        # 阶段2：聚合校验 — 所有 infos 的 new_proxies IP 不能跨集群重复
-        err = self.pre_check_duplicate_ip("new_proxies")
-        if err:
-            raise DuplicateIPException(err)
 
         return None
