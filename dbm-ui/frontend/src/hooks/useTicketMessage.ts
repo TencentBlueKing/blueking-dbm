@@ -22,7 +22,9 @@ import { getBusinessHref } from '@utils';
 export const useTicketMessage = (
   params: {
     isCurrentBiz?: boolean;
-  } = {},
+  } = {
+    isCurrentBiz: true,
+  },
 ) => {
   const { t } = useI18n();
   const router = useRouter();
@@ -55,9 +57,7 @@ export const useTicketMessage = (
       ? routeInfo.href
       : getBusinessHref(routeInfo.href, systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ);
 
-    const messageText = count === 1
-      ? t('操作提交成功')
-      : t('操作提交成功，已生成 {n} 个单据', { n: count });
+    const messageText = count === 1 ? t('操作提交成功') : t('操作提交成功，已生成 {n} 个单据', { n: count });
 
     Message({
       delay: 6000,
