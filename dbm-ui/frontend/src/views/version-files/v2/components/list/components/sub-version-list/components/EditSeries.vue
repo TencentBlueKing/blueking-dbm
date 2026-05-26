@@ -13,7 +13,8 @@
           class="edit-input"
           :placeholder="t('请输入版本系列名称')"
           @click.stop
-          @enter="handleConfirmAdd" />
+          @enter="handleConfirmAdd"
+          @input="() => (errorMessage = '')" />
         <DbIcon
           v-bk-tooltips="errorMessage"
           class="error-icon"
@@ -27,7 +28,7 @@
         <DbIcon
           class="cancel-icon"
           type="close"
-          @click.stop="() => (isEdit = false)" />
+          @click.stop="handleCancelEdit" />
       </div>
     </div>
     <div
@@ -48,6 +49,7 @@
   interface Props {
     data?: string;
     distributionId?: number;
+    existedList?: string[];
     mode?: 'create' | 'update';
     seriesId?: number;
   }
@@ -61,6 +63,7 @@
   const props = withDefaults(defineProps<Props>(), {
     data: '',
     distributionId: 0,
+    existedList: () => [],
     mode: 'create',
     seriesId: undefined,
   });
@@ -89,7 +92,7 @@
   );
   const handleSuccess = (data: { id: number; name: string }) => {
     emits('confirm', data.id, data.name);
-    messageSuccess(props.mode === 'create' ? t('新增成功') : t('更新成功'));
+    messageSuccess(t('操作成功'));
     isEdit.value = false;
     newVersionName.value = '';
   };
@@ -118,8 +121,21 @@
     },
   );
 
+  const handleCancelEdit = () => {
+    errorMessage.value = '';
+    newVersionName.value = '';
+    isEdit.value = false;
+  };
+
   const handleConfirmAdd = () => {
-    if (newVersionName.value.trim() === '') {
+    const oldValidName = props.data.toLocaleLowerCase();
+    const newValidName = newVersionName.value.toLocaleLowerCase();
+    if (newVersionName.value.trim() === '' || oldValidName === newValidName) {
+      return;
+    }
+
+    if (props.existedList.includes(newValidName) && oldValidName !== newValidName) {
+      errorMessage.value = t('该版本系列已存在');
       return;
     }
 

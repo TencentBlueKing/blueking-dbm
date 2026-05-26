@@ -2,11 +2,15 @@
   <div class="release-version-list-main">
     <div class="title-operate">
       <div class="title">{{ t('发行版') }}</div>
-      <DbIcon
-        v-bk-tooltips="t('新增发行版')"
-        class="add-icon"
-        type="add"
-        @click="() => handleEditRelease(false)" />
+      <AuthTemplate
+        action-id="package_manage"
+        :resource="dbType">
+        <DbIcon
+          v-bk-tooltips="t('新增发行版')"
+          class="add-icon"
+          type="add"
+          @click="() => handleEditRelease(false)" />
+      </AuthTemplate>
     </div>
     <div class="release-list">
       <ScrollFaker ref="scrollFakerRef">
@@ -19,11 +23,16 @@
           <div class="name">{{ item.name }}</div>
           <div class="count">{{ item.dbversion_count }}</div>
           <div class="item-operate">
-            <DbIcon
-              v-bk-tooltips="t('编辑')"
-              class="edit-icon mr-8"
-              type="edit"
-              @click.stop="() => handleEditRelease(true, item)" />
+            <AuthTemplate
+              action-id="package_manage"
+              :permission="item.permission.package_manage"
+              :resource="dbType">
+              <DbIcon
+                v-bk-tooltips="t('编辑')"
+                class="edit-icon mr-8"
+                type="edit"
+                @click.stop="() => handleEditRelease(true, item)" />
+            </AuthTemplate>
             <DeleteRelease
               :data="item"
               :db-type="dbType"
@@ -38,6 +47,7 @@
     v-model:is-show="isShowEditRelease"
     :data="currentRelease"
     :db-type="dbType"
+    :existed-name-list="existedReleaseNames"
     :is-edit="isEditRelease"
     :pkg-type="pkgType"
     :tag-label="pkgLabelMap[pkgType] || '--'"
@@ -74,17 +84,28 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
 
   const scrollFakerRef = useTemplateRef('scrollFakerRef');
   const isShowEditRelease = ref(false);
   const isEditRelease = ref(false);
   const activeReleaseIndex = ref(0);
   const currentRelease = ref<ReleaseItem>();
+  const releaseList = ref<ReleaseItem[]>([]);
 
-  const { data: releaseList, run: runGetReleaseVersionList } = useRequest(getReleaseVersionList, {
+  const existedReleaseNames = computed(() => releaseList.value?.map((item) => item.name.toLowerCase()) || []);
+
+  const VERSION_FILES_RELEASE_LIST_ACTIVE_INDEX = 'VERSION_FILES_RELEASE_LIST_ACTIVE_INDEX';
+
+  const { run: runGetReleaseVersionList } = useRequest(getReleaseVersionList, {
     manual: true,
     onSuccess(data) {
+      releaseList.value = data.sort((a, b) =>
+        a.name.localeCompare(b.name, locale.value, {
+          numeric: true,
+          sensitivity: 'base',
+        }),
+      );
       emits('releaseListCountChange', data.length);
     },
   });
@@ -119,6 +140,21 @@
 
   const handleChooseRelease = (index: number) => {
     activeReleaseIndex.value = index;
+    let newIndexMap = {
+      [props.dbType]: {
+        [props.pkgType]: index,
+      },
+    };
+    const localIndexMapStr = localStorage.getItem(VERSION_FILES_RELEASE_LIST_ACTIVE_INDEX);
+    if (localIndexMapStr) {
+      newIndexMap = JSON.parse(localIndexMapStr);
+      Object.assign(newIndexMap, {
+        [props.dbType]: {
+          [props.pkgType]: index,
+        },
+      });
+    }
+    localStorage.setItem(VERSION_FILES_RELEASE_LIST_ACTIVE_INDEX, JSON.stringify(newIndexMap));
   };
 
   const handleEditRelease = (isEdit: boolean, data?: ReleaseItem) => {
@@ -126,6 +162,17 @@
     isEditRelease.value = isEdit;
     currentRelease.value = data;
   };
+
+  onMounted(() => {
+    const memoryIndexMapStr = localStorage.getItem(VERSION_FILES_RELEASE_LIST_ACTIVE_INDEX);
+    if (memoryIndexMapStr) {
+      const memoryIndexMap = JSON.parse(memoryIndexMapStr);
+      const index = memoryIndexMap[props.dbType][props.pkgType];
+      if (index) {
+        activeReleaseIndex.value = Number(index);
+      }
+    }
+  });
 
   defineExpose<Exposes>({
     refresh: () => {

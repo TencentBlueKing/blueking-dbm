@@ -52,6 +52,12 @@
         <DbIcon type="plus-fill" />
         <span style="margin-left: 4px; font-size: 12px">{{ t('点击上传文件') }}</span>
       </BkButton>
+      <div
+        v-if="duplicateFileName"
+        v-overflow-tips
+        class="duplicate-tip">
+        {{ t('已存在同名文件「x」', { x: duplicateFileName }) }}
+      </div>
     </template>
   </BkUpload>
 </template>
@@ -65,6 +71,7 @@
   interface Props {
     dbType: string;
     pkgType: string;
+    uploadedFileNames: string[];
     version: string;
   }
 
@@ -85,6 +92,7 @@
 
   const uploadUrl = ref('');
   const uploadLoading = ref(false);
+  const duplicateFileName = ref('');
 
   const acceptInfo = computed(() => {
     const limitTypes = ['mysql', 'mysql-proxy'];
@@ -108,10 +116,18 @@
     const dbType = props.dbType;
     const pkgType = props.pkgType;
     const filename = fileObj.name;
+    if (props.uploadedFileNames.includes(filename)) {
+      duplicateFileName.value = filename;
+      uploadLoading.value = false;
+      return false;
+    }
+
+    duplicateFileName.value = '';
     const limitTypes = ['mysql', 'mysql-proxy'];
     if (limitTypes.includes(props.pkgType)) {
       if (!filename.endsWith('tar.gz') && !filename.endsWith('tar.xz')) {
-        return;
+        uploadLoading.value = false;
+        return false;
       }
     }
 
@@ -222,11 +238,25 @@
 <style lang="less">
   .version-upload-file {
     .bk-upload-trigger {
+      position: relative;
+      display: flex;
       width: 150px;
       height: auto;
       background: #fff;
       border: none;
       border-radius: 0;
+
+      .duplicate-tip {
+        position: absolute;
+        top: 8px;
+        left: 0;
+        width: 500px;
+        overflow: hidden;
+        font-size: 12px;
+        color: #ea3636;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
     }
 
     .bk-upload-list {

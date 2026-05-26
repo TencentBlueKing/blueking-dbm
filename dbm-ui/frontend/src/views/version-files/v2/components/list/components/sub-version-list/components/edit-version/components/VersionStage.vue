@@ -1,6 +1,7 @@
 <template>
   <BkSelect
     v-model="localValue"
+    @change="handleValueChange"
     @toggle="handleStageToggle">
     <template #trigger>
       <div
@@ -42,6 +43,10 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  type Emits = (e: 'valueChange') => void;
+
+  const emits = defineEmits<Emits>();
+
   const localValue = defineModel<string>({
     default: '',
   });
@@ -75,6 +80,10 @@
   const displayValue = computed(() => {
     return seriesList.value.find((item) => item.value === localValue.value);
   });
+
+  const handleValueChange = () => {
+    emits('valueChange');
+  };
 
   const handleStageToggle = (isShow: boolean) => {
     isShowPanel.value = isShow;

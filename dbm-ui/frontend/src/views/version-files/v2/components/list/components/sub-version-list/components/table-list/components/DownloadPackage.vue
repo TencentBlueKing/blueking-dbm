@@ -6,7 +6,7 @@
     }"
     placement="bottom"
     :popover-options="{
-      disabled: data?.packages.length === 1,
+      disabled: data.packages.length === 1,
       extCls: 'download-package-confirm',
     }"
     :title="t('请勾选需要下载的文件')"
@@ -18,7 +18,7 @@
       <div class="package-list">
         <BkCheckboxGroup v-model="checkedPackages">
           <BkCheckbox
-            v-for="item in props.data?.packages"
+            v-for="item in data.packages"
             :key="item.id"
             :label="item.path">
             {{ item.name }}
@@ -33,15 +33,18 @@
         </div>
       </div>
     </template>
-    <BkButton
+    <AuthButton
+      action-id="package_manage"
       class="ml-12"
       :loading="downloadSinglePackageLoading"
+      :permission="permission"
+      :resource="dbType"
       size="small"
       text
       theme="primary"
       @click="handleDownloadSinglePackage">
       {{ t('下载文件') }}
-    </BkButton>
+    </AuthButton>
   </BkPopConfirm>
 </template>
 
@@ -54,12 +57,12 @@
   import { downloadUrl, generateBkRepoDownloadUrl, messageSuccess } from '@utils';
 
   interface Props {
-    data?: DbVersionModel;
+    data: DbVersionModel;
+    dbType: string;
+    permission: boolean;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    data: undefined,
-  });
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
@@ -71,7 +74,7 @@
   watch(
     checkedPackages,
     () => {
-      isSelectAll.value = checkedPackages.value.length === props.data?.packages.length;
+      isSelectAll.value = checkedPackages.value.length === props.data.packages.length;
     },
     {
       immediate: true,
@@ -80,7 +83,7 @@
 
   const handleSelectAllChange = (isSelectAll: boolean) => {
     if (isSelectAll) {
-      checkedPackages.value = props.data?.packages.map((item) => item.path) || [];
+      checkedPackages.value = props.data.packages.map((item) => item.path) || [];
     } else {
       checkedPackages.value = [];
     }
@@ -99,13 +102,13 @@
   };
 
   const handleDownloadSinglePackage = async () => {
-    if (props.data?.packages?.length && props.data.packages.length > 1) {
+    if (props.data.packages?.length > 1) {
       return;
     }
 
     try {
       downloadSinglePackageLoading.value = true;
-      const tokenResult = await createBkrepoAccessToken({ file_path: props.data!.packages[0].path });
+      const tokenResult = await createBkrepoAccessToken({ file_path: props.data.packages[0].path });
       const url = generateBkRepoDownloadUrl(tokenResult);
       downloadUrl(url);
       messageSuccess(t('下载成功'));
@@ -131,10 +134,11 @@
         left: 0;
       }
     }
+
     .package-list {
       max-height: 200px;
-      overflow-y: auto;
       margin-bottom: 20px;
+      overflow-y: auto;
 
       .bk-checkbox-group {
         display: flex;
