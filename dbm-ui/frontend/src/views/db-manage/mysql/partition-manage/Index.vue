@@ -557,7 +557,8 @@
               id: row.id,
               immute_domain: row.immute_domain,
               tblike: row.tblike,
-            }))}>
+            }))}
+            height={254}>
             <BkTableColumn
               align='left'
               field='id'
