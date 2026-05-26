@@ -61,7 +61,7 @@ type ReporterConfig struct {
 	Endpoint    string        `yaml:"endpoint"    mapstructure:"endpoint"`
 	DataID      uint64        `yaml:"dataID"      mapstructure:"dataID"`
 	ConnTimeout time.Duration `yaml:"connTimeout" mapstructure:"connTimeout"`
-	BkCloudID   int           `yaml:"bkCloudID" mapstructure:"bkCloudID"`
+	BkCloudID   int           `yaml:"bkCloudID"   mapstructure:"bkCloudID"`
 }
 
 // DbEndpointConfig db instance endpoint config
