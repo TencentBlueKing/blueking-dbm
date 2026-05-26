@@ -245,15 +245,22 @@ func (p ImportMachParam) transHostInfoToDbModule(h *cc.Host, bkCloudId int, labe
 	return buildTbRpItem(h, p.ForBiz, p.BkBizId, bkCloudId, p.RsType, label, p.Operator)
 }
 
+// tlinux12OsName 低版本 tlinux 系统名，命中后需要把公共资源中转到 TransBizId
+const tlinux12OsName = "tlinux-1.2"
+const tlinux32OsName = "tlinux-3.2"
+
 func buildTbRpItem(h *cc.Host, forBizId, bkbizId, bkCloudId int, rsType string, label []byte,
 	operator string) model.TbRpDetail {
 	osType := h.BkOsType
 	if lo.IsEmpty(osType) {
 		osType = bk.OsLinux
 	}
+	cleanOsName := util.CleanOsName(h.OSName)
+	normalizedRsType := dealEmptyRs(rsType)
+	dedicatedBiz := resolveDedicatedBiz(forBizId, cleanOsName, normalizedRsType)
 	return model.TbRpDetail{
-		DedicatedBiz:          forBizId,
-		RsType:                dealEmptyRs(rsType),
+		DedicatedBiz:          dedicatedBiz,
+		RsType:                normalizedRsType,
 		BkCloudID:             bkCloudId,
 		BkBizId:               bkbizId,
 		AssetID:               h.AssetID,
@@ -281,12 +288,35 @@ func buildTbRpItem(h *cc.Host, forBizId, bkbizId, bkCloudId int, rsType string, 
 		OsType:                model.ConvertOsTypeToHuman(osType),
 		OsBit:                 h.BkOsBit,
 		OsVersion:             h.BkOsVersion,
-		OsName:                util.CleanOsName(h.OSName),
+		OsName:                cleanOsName,
 		OsNameOrigin:          h.OSName,
 		Operator:              operator,
 		UpdateTime:            time.Now(),
 		CreateTime:            time.Now(),
 	}
+}
+
+// resolveDedicatedBiz 解析最终落库的专属业务ID
+// 规则：当机器为公共资源(forBizId == PUBLIC_RESOURCE_BIZ)、操作系统为 tlinux-1.2，
+// 且资源类型属于 PUBLIC 或 mysql 时，将专属业务ID替换为配置的中转业务ID(TransBizId)，
+// 避免低版本系统污染默认的公共资源池。其余场景保持原 forBizId 不变。
+func resolveDedicatedBiz(forBizId int, cleanOsName, normalizedRsType string) int {
+	if forBizId != model.PUBLIC_RESOURCE_BIZ {
+		return forBizId
+	}
+	if cleanOsName != tlinux12OsName && cleanOsName != tlinux32OsName {
+		return forBizId
+	}
+	if normalizedRsType != model.RESOURCE_TYPE_PUBLIC && normalizedRsType != model.RESOURCE_TYPE_MYSQL {
+		return forBizId
+	}
+	transBizId := config.AppConfig.TransBizId
+	if transBizId <= 0 {
+		return forBizId
+	}
+	logger.Info("redirect public resource to trans biz, os_name=%s rs_type=%s trans_biz_id=%d",
+		cleanOsName, normalizedRsType, transBizId)
+	return transBizId
 }
 
 func dealEmptyRs(rsType string) string {

@@ -42,6 +42,8 @@ type Config struct {
 	CloudCertificate *CloudCertificate `yaml:"cloudCertificate"`
 	Yunti            yunti.YuntiConfig `yaml:"yunti"`
 	LLM              LLMConfig         `yaml:"llm" mapstructure:"llm"`
+	// 中转业务ID
+	TransBizId int `yaml:"transBizId"`
 }
 
 // LLMConfig LLM 大模型配置
