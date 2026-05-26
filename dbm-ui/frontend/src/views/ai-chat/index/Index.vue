@@ -13,7 +13,6 @@
         <template #main>
           <AiBlueking
             v-if="currentAgent"
-            :key="currentAgent.id"
             ref="aiBlueking"
             :agent-info="currentAgent" />
         </template>
