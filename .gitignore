@@ -21,7 +21,6 @@ package-lock.json
 .cursorignore
 .cursorrules
 .cursor/
-.cursorindexingignore
 # Claude
 CLAUDE.md
 .claude/
@@ -36,6 +35,3 @@ CLAUDE.md
 # Environment config
 .env
 
-# specStory
-.specstory/**
-**/.specstory/**

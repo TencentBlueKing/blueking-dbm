@@ -20,18 +20,12 @@ from backend.flow.utils.spider.spider_bk_config import calc_spider_max_count, ge
 logger = logging.getLogger("root")
 
 
-def get_spider_master_incr(cluster: Cluster, add_spiders: list, cold_disaster_recover: bool = False) -> list:
+def get_spider_master_incr(cluster: Cluster, add_spiders: list) -> list:
     """
     根据待加入的spider-master/spider_mnt节点信息，计算出每个待加入节点的分片初始值
     每个spider节点每个分配到的值目前阶段必须小于等于37
-    @param cold_disaster_recover: 接入层全毁冷启动，无法连中控读取自增元数据时，按序号本地预分配
     """
     new_add_spiders = copy.deepcopy(add_spiders)
-    if cold_disaster_recover:
-        for idx, spider in enumerate(new_add_spiders, start=1):
-            spider["incr_number"] = idx
-        return new_add_spiders
-
     ctl_address = cluster.tendbcluster_ctl_primary_address()  # 随便拿一个spider-master接入层
 
     res = DRSApi.rpc(

@@ -442,31 +442,24 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         }
 
     def get_import_schema_to_tdbctl_payload(self, **kwargs):
-        extend = {
-            "host": kwargs["ip"],
-            "port": self.cluster["ctl_port"],
-            "backend_host": self.cluster["shard_0_host"],
-            "backend_port": self.cluster["shard_0_port"],
-            "spider_port": self.cluster["spider_port"],
-            "use_mydumper": self.cluster["use_mydumper"],
-            "stream": self.cluster["stream"],
-            "drop_before": self.cluster["drop_before"],
-            "threads": self.cluster["threads"],
-            "tdbctl_user": self.cluster["tdbctl_user"],
-            "tdbctl_pass": self.cluster["tdbctl_pass"],
-        }
-        if self.cluster.get("also_import_to_spider"):
-            extend["also_import_to_spider"] = True
-        if self.cluster.get("spider_schema_only"):
-            extend["spider_schema_only"] = True
-        if self.cluster.get("spider_peer_push_hosts"):
-            extend["spider_peer_push_hosts"] = self.cluster["spider_peer_push_hosts"]
         return {
             "db_type": DBActuatorTypeEnum.SpiderCtl.value,
             "action": DBActuatorActionEnum.ImportSchemaToTdbctl.value,
             "payload": {
                 "general": {"runtime_account": self.account},
-                "extend": extend,
+                "extend": {
+                    "host": kwargs["ip"],
+                    "port": self.cluster["ctl_port"],
+                    "backend_host": self.cluster["shard_0_host"],
+                    "backend_port": self.cluster["shard_0_port"],
+                    "spider_port": self.cluster["spider_port"],
+                    "use_mydumper": self.cluster["use_mydumper"],
+                    "stream": self.cluster["stream"],
+                    "drop_before": self.cluster["drop_before"],
+                    "threads": self.cluster["threads"],
+                    "tdbctl_user": self.cluster["tdbctl_user"],
+                    "tdbctl_pass": self.cluster["tdbctl_pass"],
+                },
             },
         }
 
@@ -1909,13 +1902,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
 
         machine = Machine.objects.get(ip=kwargs["ip"], bk_cloud_id=int(self.bk_cloud_id))
         if machine.machine_type == MachineType.SPIDER.value:
-            proxy = machine.proxyinstance_set.select_related("tendbclusterspiderext").first()
-            spider_ext = getattr(proxy, "tendbclusterspiderext", None) if proxy else None
-            if spider_ext is not None:
-                role = spider_ext.spider_role
-            else:
-                # 冷装/元数据尚未写入 ProxyInstance 时仍可能需解压 dbbackup（如 mydumper 路径）
-                role = TenDBClusterSpiderRole.SPIDER_MASTER.value
+            role = machine.proxyinstance_set.first().tendbclusterspiderext.spider_role
         elif machine.machine_type in [MachineType.REMOTE.value, MachineType.BACKEND.value, MachineType.SINGLE.value]:
             # 原来的代码是下面把 role 写死了这个值, 所以保留原逻辑
             role = InstanceInnerRole.MASTER.value

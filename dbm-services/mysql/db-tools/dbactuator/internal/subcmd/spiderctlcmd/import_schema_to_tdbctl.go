@@ -97,31 +97,8 @@ func (d *ImportSchemaFromBackendAct) Init() (err error) {
 	return
 }
 
-// runSpiderSchemaOnly 从节点等：仅向本机 Spider 灌库表结构（中控由主从复制同步，不在从机重复执行）
-func (d *ImportSchemaFromBackendAct) runSpiderSchemaOnly() (err error) {
-	steps := subcmd.Steps{
-		{
-			FunName: "初始化",
-			Func:    d.Service.Init,
-		},
-		{
-			FunName: "从backend导入表结构至本机spider",
-			Func:    d.Service.MigrateSpiderSchemaFromBackend,
-		},
-	}
-	if err = steps.Run(); err != nil {
-		return err
-	}
-	logger.Info("spider-only schema import success on %s", d.Service.Params.Host)
-	return nil
-}
-
 // Run 执行
 func (d *ImportSchemaFromBackendAct) Run() (err error) {
-	if d.Service.Params.SpiderSchemaOnly {
-		return d.runSpiderSchemaOnly()
-	}
-
 	steps := subcmd.Steps{
 		{
 			FunName: "初始化",
@@ -134,14 +111,6 @@ func (d *ImportSchemaFromBackendAct) Run() (err error) {
 		{
 			FunName: "从backend节点导出表结构至tdbctl",
 			Func:    d.Service.Migrate,
-		},
-		{
-			FunName: "从backend节点导出表结构至spider(可选)",
-			Func:    d.Service.MigrateToSpiderIfNeeded,
-		},
-		{
-			FunName: "将 mysqldump 表结构推送到其它 Spider 节点(可选)",
-			Func:    d.Service.PushSpiderSchemaToPeersIfNeeded,
 		},
 		{
 			FunName: "从本地spider导出存储过程、触发器至tdbctl",

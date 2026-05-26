@@ -29,9 +29,6 @@ from backend.flow.engine.bamboo.scene.spider.spider_cluster_flashback import Ten
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_rollback_flow import TenDBRollBackDataFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_truncate_database import SpiderTruncateDatabaseFlow
 from backend.flow.engine.bamboo.scene.spider.spider_keyword_check_flow import SpiderKeywordCheckFlow
-from backend.flow.engine.bamboo.scene.spider.spider_layer_disaster_recover_flow import (
-    TenDBClusterSpiderLayerDisasterRecoverFlow,
-)
 from backend.flow.engine.bamboo.scene.spider.spider_nodes_change_spec import TenDBClusterNodesChangeSpecFlow
 from backend.flow.engine.bamboo.scene.spider.spider_partition import SpiderPartitionFlow
 from backend.flow.engine.bamboo.scene.spider.spider_partition_cron import SpiderPartitionCronFlow
@@ -53,9 +50,6 @@ from backend.flow.engine.bamboo.scene.spider.upgrade.upgrade_tdbctl import Upgra
 from backend.flow.engine.bamboo.scene.spider.validate.remote_upgrade_validate import TenDBClusterRemoteUpgradeValidator
 from backend.flow.engine.bamboo.scene.spider.validate.spider_add_nodes_validate import (
     TenDBClusterAddNodesFlowValidator,
-)
-from backend.flow.engine.bamboo.scene.spider.validate.spider_layer_disaster_recover_validate import (
-    TenDBClusterSpiderLayerDisasterRecoverFlowValidator,
 )
 from backend.flow.engine.bamboo.scene.spider.validate.spider_nodes_change_spec_validate import (
     TenDBClusterNodesChangeSpecValidator,
@@ -313,14 +307,6 @@ class SpiderController(BaseController):
         """
         flow = TenDBClusterSwitchNodesFlow(root_id=self.root_id, data=self.ticket_data)
         flow.switch_spider_nodes()
-
-    @validates_with(TenDBClusterSpiderLayerDisasterRecoverFlowValidator)
-    def tendbcluster_spider_layer_disaster_recover_scene(self):
-        """
-        tendbcluster 接入层全毁灾难恢复
-        """
-        flow = TenDBClusterSpiderLayerDisasterRecoverFlow(root_id=self.root_id, data=self.ticket_data)
-        flow.spider_layer_disaster_recover()
 
     @validates_with(TenDBClusterNodesChangeSpecValidator)
     def tendbcluster_nodes_change_spec_scene(self):
