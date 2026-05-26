@@ -522,7 +522,7 @@ class MySQLDBMeta(object):
             "cluster_ids": [cluster.id],
         }
         try:
-            DBPartitionApi.disable_partition_cluster(params=disable_partition_params)
+            DBPartitionApi.disable_partition_cluster_v2(params=disable_partition_params)
         except Exception as e:  # noqa
             logger.error(e)
 
@@ -539,7 +539,7 @@ class MySQLDBMeta(object):
             "operator": self.ticket_data["created_by"],
             "cluster_ids": [cluster.id],
         }
-        DBPartitionApi.enable_partition_cluster(params=disable_partition_params)
+        DBPartitionApi.enable_partition_cluster_v2(params=disable_partition_params)
 
     def mysql_migrate_cluster_switch_ro_slaves(self):
         """

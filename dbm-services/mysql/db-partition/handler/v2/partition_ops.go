@@ -139,3 +139,67 @@ func EnablePartition(c *gin.Context) {
 	}
 	handler.SendResponse(c, nil, "分区启用成功！")
 }
+
+// DisablePartitionByCluster v2 集群维度禁用分区 /partition/v2/disable_partition_cluster
+func DisablePartitionByCluster(c *gin.Context) {
+	var input service.DisablePartitionInput
+	if err := c.ShouldBind(&input); err != nil {
+		err = errno.ErrReadEntity.Add(err.Error())
+		slog.Error(err.Error())
+		handler.SendResponse(c, err, nil)
+		return
+	}
+	slog.Info("v2 disable_partition_cluster",
+		"cluster_ids", input.ClusterIds,
+		"operator", input.Operator)
+
+	if err := servicev2.DisablePartitionByCluster(&input); err != nil {
+		slog.Error(err.Error())
+		handler.SendResponse(c, fmt.Errorf("分区禁用失败!%s", err.Error()), nil)
+		return
+	}
+	handler.SendResponse(c, nil, "分区禁用成功！")
+}
+
+// EnablePartitionByCluster v2 集群维度启用分区 /partition/v2/enable_partition_cluster
+func EnablePartitionByCluster(c *gin.Context) {
+	var input service.EnablePartitionInput
+	if err := c.ShouldBind(&input); err != nil {
+		err = errno.ErrReadEntity.Add(err.Error())
+		slog.Error(err.Error())
+		handler.SendResponse(c, err, nil)
+		return
+	}
+	slog.Info("v2 enable_partition_cluster",
+		"cluster_ids", input.ClusterIds,
+		"operator", input.Operator)
+
+	if err := servicev2.EnablePartitionByCluster(&input); err != nil {
+		slog.Error(err.Error())
+		handler.SendResponse(c, fmt.Errorf("分区启用失败!%s", err.Error()), nil)
+		return
+	}
+	handler.SendResponse(c, nil, "分区启用成功！")
+}
+
+// DeletePartitionByCluster v2 集群维度删除分区配置 /partition/v2/cluster_del_conf
+func DeletePartitionByCluster(c *gin.Context) {
+	var input service.DeletePartitionConfigByClusterIds
+	if err := c.ShouldBind(&input); err != nil {
+		err = errno.ErrReadEntity.Add(err.Error())
+		slog.Error(err.Error())
+		handler.SendResponse(c, err, nil)
+		return
+	}
+	slog.Info("v2 cluster_del_conf",
+		"bk_biz_id", input.BkBizId,
+		"cluster_ids", input.ClusterIds)
+
+	err, info := servicev2.DeletePartitionsConfigByCluster(&input)
+	if err != nil {
+		slog.Error(err.Error())
+		handler.SendResponse(c, err, nil)
+		return
+	}
+	handler.SendResponse(c, nil, info)
+}
