@@ -39,6 +39,7 @@
   </EditableColumn>
 </template>
 <script lang="ts" setup>
+  import _ from 'lodash';
   import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -130,8 +131,11 @@
   };
 
   watch(
-    () => modelValue.value,
-    () => {
+    modelValue,
+    (newValue, oldValue) => {
+      if (_.isEqual(newValue, oldValue)) {
+        return;
+      }
       localValue.value = modelValue.value.map((item) => item.ip);
     },
     {
