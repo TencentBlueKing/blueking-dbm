@@ -172,7 +172,7 @@
     ],
     [menuEnum.globalConfigManage]: [
       'PlatformVersionFiles',
-      'PlatformVersionFilesV2',
+      'PlatformVersionFilesV1',
       'PlatformDbConfigure',
       'PlatformWhitelist',
       'PlatGlobalStrategy',

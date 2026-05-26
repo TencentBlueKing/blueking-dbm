@@ -12,44 +12,49 @@
 -->
 
 <template>
-  <div class="version-files-page">
-    <DbTab
-      v-model="dbTypeActive"
-      :exclude="[DBTypes.TENDBCLUSTER]" />
-    <div class="veriosn-content-main">
-      <BkTab
-        v-model:active="pkgActive"
-        class="pkg-tab-main"
-        type="card-tab">
-        <BkTabPanel
-          v-for="tab of activeTabInfo?.children"
-          :key="tab.name"
-          :label="tab.label"
-          :name="tab.name" />
-      </BkTab>
-      <div class="content-main">
-        <List
-          :db-type="dbTypeActive"
-          :pkg-label-map="pkgLabelMap"
-          :pkg-type="pkgActive"
-          :tabs="renderTabs" />
+  <ApplyPermissionCatch>
+    <div class="version-files-page">
+      <DbTab
+        v-model="dbTypeActive"
+        :exclude="[DBTypes.TENDBCLUSTER]" />
+      <div class="veriosn-content-main">
+        <BkTab
+          v-model:active="pkgActive"
+          class="pkg-tab-main"
+          type="card-tab">
+          <BkTabPanel
+            v-for="tab of activeTabInfo?.children"
+            :key="tab.name"
+            :label="tab.label"
+            :name="tab.name" />
+        </BkTab>
+        <div class="content-main">
+          <List
+            :db-type="dbTypeActive"
+            :pkg-label-map="pkgLabelMap"
+            :pkg-type="pkgActive"
+            :tabs="renderTabs" />
+        </div>
       </div>
     </div>
-  </div>
+  </ApplyPermissionCatch>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRoute, useRouter } from 'vue-router';
 
   import type {
     ControllerBaseInfo,
     ExtractedControllerDataKeys,
     FunctionKeys,
   } from '@services/model/function-controller/functionController';
+  import { simpleCheckAllowed } from '@services/source/iam';
 
   import { useFunController } from '@stores';
 
   import { DBTypes } from '@common/const';
 
+  import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import DbTab from '@components/db-tab/Index.vue';
 
   import List from './components/list/Index.vue';
@@ -70,8 +75,11 @@
 
   const { t } = useI18n();
   const funControllerStore = useFunController();
+  const route = useRoute();
+  const router = useRouter();
 
   const pkgActive = ref('');
+  const dbTypeActive = ref<DBTypes>(DBTypes.MYSQL);
 
   const tabs: TabItem[] = [
     {
@@ -209,6 +217,10 @@
         {
           label: t('任务执行器'),
           name: 'actuator',
+        },
+        {
+          label: t('ES 插件'),
+          name: 'es-plugin',
         },
       ],
       controller: {
@@ -433,7 +445,6 @@
     return true;
   });
 
-  const dbTypeActive = ref<DBTypes>(DBTypes.MYSQL);
   const activeTabInfo = computed(() => {
     const tabList = renderTabs.find((item) => item.name === dbTypeActive.value);
     return tabList
@@ -454,6 +465,43 @@
       immediate: true,
     },
   );
+
+  watch(
+    [dbTypeActive, pkgActive],
+    () => {
+      router.replace({
+        query: {
+          ...route.query,
+          dbType: dbTypeActive.value,
+          pkgType: pkgActive.value,
+        },
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  simpleCheckAllowed(
+    {
+      action_id: 'package_view',
+      is_raise_exception: true,
+      resource_id: 'package_view',
+    },
+    {
+      permission: 'page',
+    },
+  );
+
+  onMounted(() => {
+    const { dbType, pkgType } = route.query;
+    if (dbType && pkgType) {
+      dbTypeActive.value = dbType as DBTypes;
+      nextTick(() => {
+        pkgActive.value = pkgType as string;
+      });
+    }
+  });
 </script>
 <style lang="less">
   .version-files-page {

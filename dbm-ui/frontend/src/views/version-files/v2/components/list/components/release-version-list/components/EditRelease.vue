@@ -71,6 +71,7 @@
   interface Props {
     data?: ReleaseVersionModel;
     dbType: string;
+    existedNameList: string[];
     isEdit?: boolean;
     pkgType: string;
     tagLabel: string;
@@ -103,6 +104,21 @@
     }[]
   >([]);
 
+  const formRules = computed(() => ({
+    name: [
+      {
+        message: t('以英文字母开头，且只能包含英文字母、数字、连字符-'),
+        trigger: 'blur',
+        validator: (value: string) => /^[a-zA-Z][a-zA-Z0-9-]*$/.test(value),
+      },
+      {
+        message: t('该发行版已存在'),
+        trigger: 'blur',
+        validator: (value: string) => !props.existedNameList.includes(value.toLocaleLowerCase()),
+      },
+    ],
+  }));
+
   useRequest(getMysqlEngineList, {
     onSuccess(data) {
       engineList.value = [
@@ -122,7 +138,7 @@
     manual: true,
     onSuccess() {
       emits('success');
-      messageSuccess(t('新增成功'));
+      messageSuccess(t('操作成功'));
       isShow.value = false;
     },
   });
@@ -131,20 +147,10 @@
     manual: true,
     onSuccess() {
       emits('success');
-      messageSuccess(t('更新成功'));
+      messageSuccess(t('操作成功'));
       isShow.value = false;
     },
   });
-
-  const formRules = {
-    name: [
-      {
-        message: t('以英文字母开头，且只能包含英文字母、数字、连字符-'),
-        trigger: 'blur',
-        validator: (value: string) => /^[a-zA-Z][a-zA-Z0-9-]*$/.test(value),
-      },
-    ],
-  };
 
   watch(
     () => props.data,
