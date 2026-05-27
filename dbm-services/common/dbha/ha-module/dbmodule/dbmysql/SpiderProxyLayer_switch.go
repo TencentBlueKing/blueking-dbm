@@ -315,6 +315,9 @@ func (ins *SpiderProxyLayerSwitch) RollBack() error {
 }
 
 func (ins *SpiderProxyLayerSwitch) DoFinal() error {
+	// 硬编码开关：true=基于位点方式切换，false=基于GTID auto_position方式切换
+	useFilePosition := true
+
 	if ins.PrimaryTdbctl.CurrentServer == 1 {
 		//whether all lived tdbctl do change master to
 		allNodeRepaired := true
@@ -323,17 +326,32 @@ func (ins *SpiderProxyLayerSwitch) DoFinal() error {
 			"primary broke-down and elect success, try to repair new replication")
 		//1. reset slave on new primary
 		ins.ReportLogs(constvar.InfoResult, "do reset slave first")
-		if binlogFile, binlogPosition, err := ins.ResetSlaveExtend(newMaster.Host, newMaster.Port); err != nil {
+		binlogFile, binlogPos, err := ins.ResetSlaveExtend(newMaster.Host, newMaster.Port)
+		if err != nil {
 			ins.ReportLogs(constvar.FailResult, "new primary node do reset slave failed")
 			return err
-		} else {
-			ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("before reset slave, consistent binlog info:%s,%d",
-				binlogFile, binlogPosition))
 		}
 
-		//2. do change master to on all alive tdbctl nodes
-		changeSQL := fmt.Sprintf("change master to master_host='%s', master_port=%d, master_auto_position=1",
-			newMaster.Host, newMaster.Port)
+		//2. 从SetInfo中提取GTID信息，连同位点一起上报
+		var gtidSet string
+		if ok, val := ins.GetInfo(constvar.NewMasterGtidSet); ok {
+			gtidSet = val.(string)
+		}
+		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf(
+			"new primary[%s#%d] master status: binlog_file=%s, binlog_pos=%d, executed_gtid_set=%s",
+			newMaster.Host, newMaster.Port, binlogFile, binlogPos, gtidSet))
+
+		//3. 根据开关决定使用位点方式还是auto_position方式执行change master
+		var changeSQL string
+		if useFilePosition {
+			changeSQL = fmt.Sprintf(
+				"change master to master_host='%s', master_port=%d, master_log_file='%s', master_log_pos=%d, master_auto_position=0",
+				newMaster.Host, newMaster.Port, binlogFile, binlogPos)
+		} else {
+			changeSQL = fmt.Sprintf(
+				"change master to master_host='%s', master_port=%d, master_auto_position=1",
+				newMaster.Host, newMaster.Port)
+		}
 		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("do [%s] on all alive tdbctl nodes", changeSQL))
 		for _, node := range ins.SecondaryNodes {
 			if node.ServerName == ins.NewPrimaryTdbctl.ServerName {
@@ -347,7 +365,7 @@ func (ins *SpiderProxyLayerSwitch) DoFinal() error {
 			}
 		}
 		if !allNodeRepaired {
-			return fmt.Errorf("not all alived node change mastero to success")
+			return fmt.Errorf("not all alived node change master to success")
 		}
 	}
 

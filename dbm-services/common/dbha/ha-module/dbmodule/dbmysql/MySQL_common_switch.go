@@ -635,11 +635,11 @@ func GetSlaveStatus(db *gorm.DB) (BinlogStatus, error) {
 
 // MasterStatus master status struct
 type MasterStatus struct {
-	File            string
-	Position        uint64
-	BinlogDoDB      string
-	BinlogIgnoreDB  string
-	ExecutedGtidSet string
+	File            string `gorm:"column:File"`
+	Position        uint64 `gorm:"column:Position"`
+	BinlogDoDB      string `gorm:"column:Binlog_Do_DB"`
+	BinlogIgnoreDB  string `gorm:"column:Binlog_Ignore_DB"`
+	ExecutedGtidSet string `gorm:"column:Executed_Gtid_Set"`
 }
 
 func (ins *MySQLCommonSwitch) ConnectInstance(host string, port int) (*sql.DB, error) {
@@ -684,8 +684,13 @@ func (ins *MySQLCommonSwitch) ResetSlaveExtend(slaveIp string, slavePort int) (s
 	if err != nil {
 		return "", 0, fmt.Errorf("show master status failed, err:%s", err.Error())
 	}
+	log.Logger.Infof("show master status result: File=%s, Position=%d, Binlog_Do_DB=%s, "+
+		"Binlog_Ignore_DB=%s, Executed_Gtid_Set=%s",
+		masterStatus.File, masterStatus.Position, masterStatus.BinlogDoDB,
+		masterStatus.BinlogIgnoreDB, masterStatus.ExecutedGtidSet)
 	ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("get new master binlog info succeed. binlog_file:%s, "+
-		"binlog_pos:%d", masterStatus.File, masterStatus.Position))
+		"binlog_pos:%d, executed_gtid_set:%s", masterStatus.File, masterStatus.Position,
+		masterStatus.ExecutedGtidSet))
 
 	err = db.Exec(resetSql).Error
 	if err != nil {
@@ -696,6 +701,7 @@ func (ins *MySQLCommonSwitch) ResetSlaveExtend(slaveIp string, slavePort int) (s
 	ins.SetInfo(constvar.NewMasterBinlogPos, masterStatus.Position)
 	ins.SetInfo(constvar.NewMasterHost, slaveIp)
 	ins.SetInfo(constvar.NewMasterPort, slavePort)
+	ins.SetInfo(constvar.NewMasterGtidSet, masterStatus.ExecutedGtidSet)
 
 	return masterStatus.File, masterStatus.Position, nil
 }
@@ -733,7 +739,9 @@ func (ins *MySQLCommonSwitch) ChangeMasterAuto(slaveIp string, slavePort int, ch
 		return fmt.Errorf("show master status failed, err:%s", err.Error())
 	}
 	ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("before change to new master, binlog_file:%s, "+
-		"binlog_pos:%d", slaveStatus.RelayMasterLogFile, slaveStatus.ExecMasterLogPos))
+		"binlog_pos:%d, retrieved_gtid_set:%s, executed_gtid_set:%s",
+		slaveStatus.RelayMasterLogFile, slaveStatus.ExecMasterLogPos,
+		slaveStatus.RetrievedGtidSet, slaveStatus.ExecutedGtidSet))
 
 	err = db.Exec(changeSql).Error
 	if err != nil {
