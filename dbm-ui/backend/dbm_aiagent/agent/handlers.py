@@ -161,7 +161,13 @@ class AgentHandler:
         return sr
 
     @classmethod
-    def compare_risk_reports(cls, last_report: str, current_report: str, username=DEFAULT_USERNAME) -> dict:
+    def compare_risk_reports(
+        cls,
+        last_report: str,
+        current_report: str,
+        username=DEFAULT_USERNAME,
+        agent_code: DBMAgentCode = DBMAgentCode.TASK_GUARDIAN,
+    ) -> dict:
         """
         调用智能体比对两份风险报告是否描述同一风险问题
         单据值守使用的方法
@@ -173,6 +179,7 @@ class AgentHandler:
             last_report: 上一次推送的风险报告内容
             current_report: 本次的风险报告内容
             username: 调用智能体的用户名
+            agent_code: 智能体代码，默认使用通用单据值守智能体，可传入对应DB组件的单据值守智能体
 
         Returns:
             dict: {"is_same_risk": bool, "reason": str}
@@ -186,7 +193,7 @@ class AgentHandler:
         )
         try:
             ai_response = cls.ask_agent_with_content(
-                agent_code=DBMAgentCode.DBM,
+                agent_code=agent_code,
                 content=compare_prompt,
                 username=username,
             )

@@ -21,6 +21,7 @@ import backend.dbm_aiagent.agent.commands as commands
 from backend.configuration.constants import DBType
 from backend.core import notify
 from backend.db_meta.models import Cluster
+from backend.dbm_aiagent.agent.constants import DBMAgentCode
 from backend.dbm_aiagent.agent.handlers import AgentHandler
 from backend.flow.models import FlowTree, FlowWithAITaskGuardianReport
 from backend.flow.plugins.components.collections.common.sidecar_service_abc import SidecarServiceABC
@@ -40,6 +41,20 @@ ASK_AI_COMMAND_MAP = {
     DBType.Pulsar: commands.CheckPulsarClusterCommand,
     DBType.Hdfs: commands.CheckHdfsClusterCommand,
     DBType.Doris: commands.CheckDorisClusterCommand,
+}
+
+# 定义不同DB组件对应的单据值守智能体代码MAP（用于风险报告语义比对等场景）
+TASK_GUARDIAN_AGENT_MAP = {
+    DBType.MySQL: DBMAgentCode.MYSQL_TASK_GUARDIAN,
+    DBType.TenDBCluster: DBMAgentCode.MYSQL_TASK_GUARDIAN,
+    DBType.Sqlserver: DBMAgentCode.SQLSERVER_TASK_GUARDIAN,
+    DBType.Redis: DBMAgentCode.REDIS_TASK_GUARDIAN,
+    DBType.Kafka: DBMAgentCode.KAFKA_TASK_GUARDIAN,
+    DBType.Es: DBMAgentCode.ES_TASK_GUARDIAN,
+    DBType.MongoDB: DBMAgentCode.MONGO_TASK_GUARDIAN,
+    DBType.Pulsar: DBMAgentCode.PULSAR_TASK_GUARDIAN,
+    DBType.Hdfs: DBMAgentCode.HDFS_TASK_GUARDIAN,
+    DBType.Doris: DBMAgentCode.DORIS_TASK_GUARDIAN,
 }
 
 
@@ -113,7 +128,7 @@ class CheckClusterAlarmForAIService(SidecarServiceABC):
         return re.sub(r"\[ai_result]\s*\{.*?}\s*\[ai_result]", "", ai_result, flags=re.DOTALL).strip()
 
     @staticmethod
-    def _compare_reports_with_ai(last_report: str, current_report: str) -> bool:
+    def _compare_reports_with_ai(last_report: str, current_report: str, db_type: DBType) -> bool:
         """
         调用智能体语义比对两份风险报告，判断是否为同一风险
 
@@ -124,6 +139,7 @@ class CheckClusterAlarmForAIService(SidecarServiceABC):
         Args:
             last_report: 上一次推送的风险报告内容
             current_report: 本次的风险报告内容
+            db_type: DB组件类型，用于选择对应的单据值守智能体
 
         Returns:
             bool: True=同一风险（应收敛），False=不同风险（应推送）
@@ -133,9 +149,13 @@ class CheckClusterAlarmForAIService(SidecarServiceABC):
         if not last_report:
             return False
 
+        # 根据DB组件类型选择对应的单据值守智能体，未匹配则使用通用单据值守智能体
+        agent_code = TASK_GUARDIAN_AGENT_MAP.get(db_type, DBMAgentCode.TASK_GUARDIAN)
+
         result = AgentHandler.compare_risk_reports(
             last_report=last_report,
             current_report=current_report,
+            agent_code=agent_code,
         )
         return result.get("is_same_risk", False) if result else False
 
@@ -241,6 +261,7 @@ class CheckClusterAlarmForAIService(SidecarServiceABC):
         enable_converge: bool,
         current_risk_level: str,
         clean_report_text: str,
+        db_type: DBType,
     ) -> bool:
         """
         评估是否应该推送（收敛判断核心逻辑）
@@ -272,6 +293,7 @@ class CheckClusterAlarmForAIService(SidecarServiceABC):
                 is_same_risk = self._compare_reports_with_ai(
                     last_report=report.last_report_content,
                     current_report=clean_report_text,
+                    db_type=db_type,
                 )
                 self.log_info(_("AI比对结果：{}".format("同一风险（收敛）" if is_same_risk else "不同风险（推送）")))
             except Exception as err:
@@ -385,6 +407,7 @@ class CheckClusterAlarmForAIService(SidecarServiceABC):
             enable_converge=ctx["enable_converge"],
             current_risk_level=current_risk_level,
             clean_report_text=clean_report_text,
+            db_type=DBType(ctx["flow_tree"].db_type),
         )
         if not should_send:
             self.log_info(_("本次推送被收敛策略抑制，跳过推送"))
