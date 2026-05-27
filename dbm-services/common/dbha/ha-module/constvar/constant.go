@@ -210,6 +210,8 @@ const (
 	SwitchLogUrl = "switchlogs/"
 	// ShieldConfigUrl api route to request ha_shield_config table
 	ShieldConfigUrl = "shieldconfig/"
+	// BlackWhiteListUrl api route to request t_db_black_white_list table
+	BlackWhiteListUrl = "blackwhitelist/"
 )
 
 const (
