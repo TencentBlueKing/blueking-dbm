@@ -16,7 +16,7 @@ from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryRole, ClusterType, InstanceStatus, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, ProxyInstance
-from backend.flow.consts import AUTH_ADDRESS_DIVIDER, TDBCTL_USER, DnsOpType, PrivRole
+from backend.flow.consts import AUTH_ADDRESS_DIVIDER, LONG_JOB_TIMEOUT, TDBCTL_USER, DnsOpType, PrivRole
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.download_file import add_db_actuator_download_to_pipeline
 from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
@@ -136,6 +136,7 @@ def add_spider_routing_sub_flow(
             "spider_pass": param.spider_pass,
         },
         get_mysql_payload_func=MysqlActPayload.get_add_spider_routing_payload.__name__,
+        job_timeout=LONG_JOB_TIMEOUT,
     )
     sub_pipeline.add_act(
         act_name=_("添加对应路由关系"),
