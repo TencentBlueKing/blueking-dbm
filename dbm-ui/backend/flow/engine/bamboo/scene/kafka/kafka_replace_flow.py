@@ -41,6 +41,7 @@ from backend.flow.plugins.components.collections.common.bigdata_manager_service 
     BigdataManagerComponent,
     get_manager_ip,
 )
+from backend.flow.plugins.components.collections.common.update_hosts_file import UpsertHostsEntryComponent
 from backend.flow.plugins.components.collections.kafka.dns_manage import KafkaDnsManageComponent
 from backend.flow.plugins.components.collections.kafka.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.kafka.get_kafka_resource import GetKafkaResourceComponent
@@ -277,6 +278,19 @@ class KafkaReplaceFlow(object):
                 zk_act_list.append(zookeeper_act)
             kafka_pipeline.add_parallel_acts(acts_list=zk_act_list)
 
+            # 在新 ZK 节点写入 /etc/hosts，将 kafkabroker 指向存活的 broker（供 dbm_kafka_exporter 使用）
+            kafka_pipeline.add_act(
+                act_name=_("写入kafkabroker到新ZK节点hosts"),
+                act_component_code=UpsertHostsEntryComponent.code,
+                kwargs={
+                    "exec_targets": [
+                        {"ip": zk["ip"], "bk_cloud_id": self.data["bk_cloud_id"]}
+                        for zk in self.data["new_nodes"]["zookeeper"]
+                    ],
+                    "hosts_entries": [{"ip": self.data["broker_ip"][0], "domain": "kafkabroker"}],
+                },
+            )
+
             # 动态加入zookeeper
             act_kwargs.exec_ip = [self.data["new_nodes"]["zookeeper"][0]]
             act_kwargs.template = get_base_payload(action=KafkaActuatorActionEnum.ReconfigAdd.value, host="")
@@ -455,6 +469,18 @@ class KafkaReplaceFlow(object):
                 act_name=_("执行替换计划"),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(act_kwargs),
+            )
+
+            # 更新 ZK 节点 /etc/hosts 中 kafkabroker 映射，指向新 broker（供 dbm_kafka_exporter 使用）
+            # 必须在下架旧 broker 之前完成，否则 exporter 可能连接到已下架的节点
+            zk_ips = self.data["zookeeper_ip"].split(",")
+            kafka_pipeline.add_act(
+                act_name=_("更新kafkabroker到ZK节点hosts"),
+                act_component_code=UpsertHostsEntryComponent.code,
+                kwargs={
+                    "exec_targets": [{"ip": ip, "bk_cloud_id": self.data["bk_cloud_id"]} for ip in zk_ips],
+                    "hosts_entries": [{"ip": self.new_nodes["broker"][0]["ip"], "domain": "kafkabroker"}],
+                },
             )
 
             # 下架broker

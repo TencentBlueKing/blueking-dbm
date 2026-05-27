@@ -35,6 +35,7 @@ from backend.flow.engine.bamboo.scene.common.bigdata_common_sub_flow import new_
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.bigdata_manager_service import BigdataManagerComponent
+from backend.flow.plugins.components.collections.common.update_hosts_file import UpsertHostsEntryComponent
 from backend.flow.plugins.components.collections.kafka.dns_manage import KafkaDnsManageComponent
 from backend.flow.plugins.components.collections.kafka.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.kafka.get_kafka_resource import GetKafkaResourceComponent
@@ -321,6 +322,18 @@ class KafkaApplyFlow(object):
             act_name=_("添加集群域名"),
             act_component_code=KafkaDnsManageComponent.code,
             kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
+        )
+
+        # 在 ZK 节点写入 /etc/hosts，将 kafkabroker 指向第一个 broker IP（供 dbm_kafka_exporter 使用）
+        kafka_pipeline.add_act(
+            act_name=_("写入kafkabroker到ZK节点hosts"),
+            act_component_code=UpsertHostsEntryComponent.code,
+            kwargs={
+                "exec_targets": [
+                    {"ip": zk["ip"], "bk_cloud_id": bk_cloud_id} for zk in self.data["nodes"]["zookeeper"]
+                ],
+                "hosts_entries": [{"ip": self.data["nodes"]["broker"][0]["ip"], "domain": "kafkabroker"}],
+            },
         )
 
         kafka_pipeline.add_act(

@@ -134,3 +134,99 @@ class AddHostsEntryComponent(Component):
     name = __name__
     code = "add_hosts_entry"
     bound_service = AddHostsEntryService
+
+
+# /etc/hosts upsert 脚本模板（Jinja2）
+# 参数：
+#   hosts_entries - list[{"ip": str, "domain": str}]，要写入的 hosts 条目列表
+#
+# 逻辑：
+#   1. 备份 /etc/hosts 到 /etc/hosts.bak.<时间戳>（每次执行只备份一次）
+#   2. 逐条检查：如果 domain 已存在则 sed 替换该行，不存在则追加（幂等 upsert）
+upsert_hosts_script = """
+#!/bin/bash
+set -e
+
+BAK_FILE="/etc/hosts.bak.$(date +%Y%m%d%H%M%S)"
+cp -f /etc/hosts "${BAK_FILE}"
+echo "backed up /etc/hosts to ${BAK_FILE}"
+
+{% for entry in hosts_entries %}
+DOMAIN="{{ entry.domain }}"
+NEW_IP="{{ entry.ip }}"
+HOSTS_ENTRY="${NEW_IP} ${DOMAIN}"
+if grep -qE "^[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+[[:space:]]+${DOMAIN}$" /etc/hosts; then
+    sed -i "s/^[0-9]\\+\\.[0-9]\\+\\.[0-9]\\+\\.[0-9]\\+[[:space:]]\\+${DOMAIN}$/${HOSTS_ENTRY}/" /etc/hosts
+    echo "entry updated: ${HOSTS_ENTRY}"
+else
+    echo "${HOSTS_ENTRY}" >> /etc/hosts
+    echo "entry added: ${HOSTS_ENTRY}"
+fi
+{% endfor %}
+
+echo "upsert /etc/hosts done"
+"""  # noqa
+
+
+class UpsertHostsEntryService(BkJobService):
+    """
+    在目标机器的 /etc/hosts 中 upsert 指定条目。
+
+    如果 domain 已存在则替换该行的 IP，不存在则追加新条目。
+    写入前先备份原文件。
+
+    kwargs 说明：
+        exec_targets  list[{"ip": str, "bk_cloud_id": int}]
+                      目标机器列表
+        hosts_entries list[{"ip": str, "domain": str}]
+                      要写入 /etc/hosts 的条目列表
+    """
+
+    def _execute(self, data, parent_data) -> bool:
+        kwargs = data.get_one_of_inputs("kwargs")
+
+        exec_targets = kwargs.get("exec_targets", [])
+        hosts_entries = kwargs.get("hosts_entries", [])
+
+        if not exec_targets:
+            self.log_error(_("exec_targets 参数为空，无目标机器可执行"))
+            return False
+
+        if not hosts_entries:
+            self.log_error(_("hosts_entries 参数为空，无需写入任何条目"))
+            return False
+
+        # 渲染 Jinja2 脚本，将 hosts 条目列表注入模板
+        jinja_env = Environment()
+        template = jinja_env.from_string(upsert_hosts_script)
+        script_content = template.render(hosts_entries=hosts_entries)
+
+        target_ip_info = [{"bk_cloud_id": t["bk_cloud_id"], "ip": t["ip"]} for t in exec_targets]
+
+        body = {
+            "bk_scope_type": "biz_set",
+            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
+            "task_name": "DBM-Upsert-Hosts-File",
+            "script_content": base64_encode(script_content),
+            "script_language": 1,
+            "target_server": {"ip_list": target_ip_info},
+        }
+        self.log_info(_("准备 upsert /etc/hosts，目标机器数: {}").format(len(target_ip_info)))
+        self.log_info(_("待写入条目: {}").format(hosts_entries))
+
+        common_kwargs = copy.deepcopy(fast_execute_script_common_kwargs)
+        common_kwargs["account_alias"] = DBA_ROOT_USER
+
+        resp = JobApi.fast_execute_script({**common_kwargs, **body}, raw=True)
+        self.log_info(f"fast execute script response: {resp}")
+        self.log_info(f"job url: {self.__url__(resp['data']['job_instance_id'])}")
+
+        data.outputs.ext_result = resp
+        data.outputs.exec_ips = [{"ip": t["ip"], "bk_cloud_id": t["bk_cloud_id"]} for t in exec_targets]
+        return True
+
+
+class UpsertHostsEntryComponent(Component):
+    name = __name__
+    code = "upsert_hosts_entry"
+    bound_service = UpsertHostsEntryService
