@@ -253,7 +253,7 @@ class TicketType(StrStructuredEnum):
     MYSQL_SEMANTIC_CHECK = TicketEnumField("MYSQL_SEMANTIC_CHECK", _("MySQL 模拟执行"), register_iam=False)
     MYSQL_PROXY_ADD = TicketEnumField("MYSQL_PROXY_ADD", _("MySQL 添加Proxy"), _("集群维护"))
     MYSQL_PROXY_SWITCH = TicketEnumField("MYSQL_PROXY_SWITCH", _("MySQL 替换Proxy"), _("集群维护"))
-    MYSQL_PROXY_REBUILD = TicketEnumField("MYSQL_PROXY_REBUILD", _("MySQL Proxy实例重建"), _("集群维护"))  # noqa
+    MYSQL_PROXY_REBUILD = TicketEnumField("MYSQL_PROXY_REBUILD", _("MySQL Proxy原地重建"), _("集群维护"))  # noqa
     MYSQL_PROXY_CONF_CHANGE = TicketEnumField("MYSQL_PROXY_CONF_CHANGE", _("MySQL Proxy升降配"), _("集群维护"))  # noqa
     MYSQL_PROXY_MIGRATE = TicketEnumField("MYSQL_PROXY_MIGRATE", _("MySQL 按集群Proxy迁移"), _("集群维护"))  # noqa
     MYSQL_PROXY_MIGRATE_INS = TicketEnumField("MYSQL_PROXY_MIGRATE_INS", _("MySQL 按实例Proxy迁移"),
@@ -328,8 +328,7 @@ class TicketType(StrStructuredEnum):
     MYSQL_CLB_UNBIND_DOMAIN = TicketEnumField("MYSQL_CLB_UNBIND_DOMAIN", _("MySQL 主域名解绑 CLB"))
 
     # mysql proxy rescue
-    MYSQL_PROXY_RESCUE = TicketEnumField("MYSQL_PROXY_RESCUE", _("Proxy 灾难重建"), _("集群维护"))
-
+    MYSQL_PROXY_RESCUE = TicketEnumField("MYSQL_PROXY_RESCUE", _("MySQL Proxy灾难重建"), _("集群维护"))
     MYSQL_FAILOVER_DRILL = TicketEnumField("MYSQL_FAILOVER_DRILL", _("Mysql容灾演练"), register_iam=False)
 
     # SPIDER(TenDB Cluster)
@@ -383,7 +382,7 @@ class TicketType(StrStructuredEnum):
     TENDBCLUSTER_SPIDER_REDUCE_NODES = TicketEnumField("TENDBCLUSTER_SPIDER_REDUCE_NODES",
                                                        _("TenDB Cluster 缩容接入层"), _("集群维护"))  # noqa
     TENDBCLUSTER_SPIDER_REBUILD = TicketEnumField("TENDBCLUSTER_SPIDER_REBUILD",
-                                                  _("TenDB Cluster 接入层重建"), _("集群维护"))  # noqa
+                                                  _("TenDBCluster 接入层原地重建"), _("集群维护"))  # noqa
     TENDBCLUSTER_SPIDER_MNT_APPLY = TicketEnumField("TENDBCLUSTER_SPIDER_MNT_APPLY", _("TenDB Cluster 添加运维节点"),
                                                     _("运维 Spider 管理"))  # noqa
     TENDBCLUSTER_SPIDER_MNT_DESTROY = TicketEnumField("TENDBCLUSTER_SPIDER_MNT_DESTROY",
