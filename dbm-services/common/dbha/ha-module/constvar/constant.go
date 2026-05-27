@@ -449,6 +449,8 @@ const (
 	NewMasterHost = "new_master_host"
 	//NewMasterPort new master's port
 	NewMasterPort = "new_master_port"
+	//NewMasterGtidSet new master's executed gtid set
+	NewMasterGtidSet = "new_master_gtid_set"
 	//GQACheckKey gqa use to set gqa check info
 	GQACheckKey = "gqa_check"
 )
