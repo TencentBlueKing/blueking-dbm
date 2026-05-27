@@ -154,12 +154,15 @@
   const handleGrammarCheck = () => {
     const params = new FormData();
 
-    params.append('script_content[0]', fileData.value.content);
+    params.append('script_content', fileData.value.content);
 
     fileData.value.grammarCheckStart();
     grammarCheckHandle(params)
       .then((data) => {
         const [fileCheckResult] = Object.values(data);
+        const checkItem = {
+          [fileCheckResult.sql_path]: fileCheckResult,
+        };
 
         if (!fileCheckResult) {
           fileData.value.uploadFailed();
@@ -167,9 +170,9 @@
         }
 
         if (fileCheckResult.isError) {
-          fileData.value.grammarCheckFailed(data);
+          fileData.value.grammarCheckFailed(checkItem);
         } else {
-          fileData.value.grammarCheckSuccessed(data);
+          fileData.value.grammarCheckSuccessed(checkItem);
         }
       })
       .catch(() => {

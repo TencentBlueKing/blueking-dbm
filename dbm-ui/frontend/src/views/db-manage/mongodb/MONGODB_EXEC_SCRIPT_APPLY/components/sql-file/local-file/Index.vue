@@ -271,14 +271,14 @@
 
     grammarCheckHandle(params)
       .then((data) => {
-        Object.entries(data).forEach(([, grammarCheckResult]) => {
+        Object.entries(data).forEach(([fileName, grammarCheckResult]) => {
           const result = {
             [grammarCheckResult.sql_path]: grammarCheckResult,
           };
           if (grammarCheckResult.isError) {
-            uploadFileDataMap.value[grammarCheckResult.raw_file_name]!.grammarCheckFailed(result);
+            uploadFileDataMap.value[fileName]!.grammarCheckFailed(result);
           } else {
-            uploadFileDataMap.value[grammarCheckResult.raw_file_name]!.grammarCheckSuccessed(result);
+            uploadFileDataMap.value[fileName]!.grammarCheckSuccessed(result);
           }
         });
       })
