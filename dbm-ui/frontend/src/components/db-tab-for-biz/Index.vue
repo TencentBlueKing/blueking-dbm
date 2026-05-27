@@ -34,6 +34,7 @@
 
   interface Props {
     exclude?: DBTypes[];
+    ignoreClusterCount?: boolean;
     labelConfig?: Record<DBTypes, string>;
     prefixItems?: TabItem[];
   }
@@ -45,6 +46,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     exclude: () => [],
+    ignoreClusterCount: false,
     labelConfig: undefined,
     prefixItems: () => [],
   });
@@ -55,7 +57,9 @@
   });
 
   const funControllerStore = useFunController();
-  const { tabList } = useBizDbDisplay();
+  const { tabList } = useBizDbDisplay({
+    ignoreClusterCount: props.ignoreClusterCount,
+  });
 
   // 解决 labelConfig 变化后渲染样式异常问题
   const renderKey = ref(0);
@@ -88,7 +92,7 @@
     renderTabs,
     () => {
       isShow.value = renderTabs.value.length > 0;
-      if (renderTabs.value.length > 0 && !renderTabs.value.find((item) => item.id === moduleValue.value)) {
+      if (renderTabs.value.length > 0 && renderTabs.value.findIndex((item) => item.id === moduleValue.value) !== 0) {
         moduleValue.value = renderTabs.value[0].id;
       }
     },

@@ -25,9 +25,9 @@
 </template>
 
 <script setup lang="ts">
-  import { useFunController } from '@stores';
+  import { useFunController, useUserProfile } from '@stores';
 
-  import { clusterTypeInfos, ClusterTypes } from '@common/const';
+  import { clusterTypeInfos, ClusterTypes, DBTypes, UserPersonalSettings } from '@common/const';
 
   interface Props {
     excludes?: ClusterTypes[];
@@ -37,13 +37,16 @@
     excludes: () => [],
   });
 
-  const moduleValue = defineModel<ClusterTypes>({
-    default: ClusterTypes.TENDBSINGLE,
-  });
+  const moduleValue = defineModel<ClusterTypes>();
 
   const funControllerStore = useFunController();
+  const userProfileStore = useUserProfile();
 
-  const renderTabs = Object.values(clusterTypeInfos).reduce<
+  let renderTabs: {
+    id: ClusterTypes;
+    name: string;
+  }[] = [];
+  const tabsInfo = Object.values(clusterTypeInfos).reduce<
     {
       id: ClusterTypes;
       name: string;
@@ -59,6 +62,35 @@
     }
     return result;
   }, []);
+
+  const topDbTypes: string[] = userProfileStore.profile[UserPersonalSettings.TOP_DB_TYPES] || [];
+  if (topDbTypes.length > 0) {
+    const tabInfoMap = Object.fromEntries(tabsInfo.map((resultItem) => [resultItem.id, resultItem]));
+    const dbTypeMap = tabsInfo.reduce(
+      (prev, item) => {
+        const dbType = clusterTypeInfos[item.id].dbType;
+        if (prev[dbType]) {
+          return Object.assign(prev, {
+            [dbType]: prev[dbType].concat(item.id),
+          });
+        }
+        return Object.assign(prev, {
+          [dbType]: [item.id],
+        });
+      },
+      {} as Record<DBTypes, ClusterTypes[]>,
+    );
+
+    const topList = topDbTypes.flatMap((topItem) => {
+      const topClusterTypes = dbTypeMap[topItem as DBTypes];
+      return topClusterTypes.map((topClusterType) => tabInfoMap[topClusterType]);
+    });
+    const topMap = Object.fromEntries(topList.map((item) => [item.id, true]));
+    const commonList = tabsInfo.filter((item) => !topMap[item.id]);
+    renderTabs = topList.concat(commonList);
+  } else {
+    renderTabs = tabsInfo;
+  }
 </script>
 
 <style lang="less">
