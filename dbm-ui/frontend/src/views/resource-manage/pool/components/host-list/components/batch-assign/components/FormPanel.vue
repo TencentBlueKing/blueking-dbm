@@ -173,7 +173,10 @@
     getMessageInfo() {
       return {
         bizName: currentApp.value?.name || '',
-        dbName: DBTypeInfos[formData.resource_type as DBTypes].name,
+        dbName:
+          formData.resource_type === SpecialOptions.PUBLIC
+            ? specialOptionLabelMap[SpecialOptions.PUBLIC]
+            : DBTypeInfos[formData.resource_type as DBTypes].name,
         labelName: tagSelectorRef.value?.getLabelNames() || [],
       };
     },

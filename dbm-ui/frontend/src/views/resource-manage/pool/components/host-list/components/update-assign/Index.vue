@@ -184,7 +184,10 @@
     const bizBefore = props.editData.forBizDisplay;
     const bizAfter = currentApp.value?.name || '';
     const dbBefore = props.editData.resourceTypeDisplay;
-    const dbAfter = DBTypeInfos[formData.resource_type as DBTypes].name || '';
+    const dbAfter =
+      formData.resource_type === SpecialOptions.PUBLIC
+        ? specialOptionLabelMap[SpecialOptions.PUBLIC]
+        : DBTypeInfos[formData.resource_type as DBTypes].name || '';
     const tagBefore = props.editData.labels.map((labelItem) => labelItem.name).join('，') || '';
     const tagAfter = tagSelectorRef.value?.getLabelNames().join('，') || '';
 
