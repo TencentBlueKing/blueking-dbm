@@ -719,7 +719,7 @@ class TicketType(StrStructuredEnum):
     FAKE_TICKET = TicketEnumField("FAKE_TICKET", _("测试专用单据"), register_iam=False)
 
     # 注册MCP callee计划
-    REGISTER_MCP_CALLEE_PLAN = TicketEnumField("REGISTER_MCP_CALLEE_PLAN", _("注册MCP callee计划"), register_iam=False)
+    REGISTER_MCP_CALLEE_PLAN = TicketEnumField("REGISTER_MCP_CALLEE_PLAN", _("注册MCP执行计划"), register_iam=False)
 
 
 class FlowType(StrStructuredEnum):
