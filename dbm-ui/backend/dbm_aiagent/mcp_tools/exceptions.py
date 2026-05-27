@@ -94,3 +94,9 @@ class DBMMcpCalleePlanException(DBMMcpBaseException):
     ERROR_CODE = "013"
     MESSAGE = _("MCP 计划异常")
     MESSAGE_TPL = _("{msg}")
+
+
+class DBMMcpInvalidPipelineNodeException(DBMMcpBaseException):
+    ERROR_CODE = "014"
+    MESSAGE = _("非法的 pipeline 节点")
+    MESSAGE_TPL = _("{msg}")

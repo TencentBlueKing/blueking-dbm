@@ -46,6 +46,10 @@ class SQLServerDatabaseRowSerializer(serializers.Serializer):
     is_read_only = serializers.IntegerField(help_text=_("是否只读，1/0"))
     data_size_mb = serializers.IntegerField(help_text=_("数据文件大小 MB"))
     log_size_mb = serializers.IntegerField(help_text=_("日志文件大小 MB"))
+    log_reuse_wait_desc = serializers.CharField(
+        help_text=_("日志重用等待原因，例如 NOTHING/LOG_BACKUP/ACTIVE_TRANSACTION 等，用于排查日志暴涨"),
+        allow_null=True,
+    )
 
 
 class SQLServerListDatabasesItemSerializer(serializers.Serializer):
