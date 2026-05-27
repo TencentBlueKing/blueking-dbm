@@ -71,6 +71,18 @@ func (gcm *GCM) DoSwitchSingle(switchInstance dbutil.DataBaseSwitch) {
 
 	for i := 0; i < 1; i++ {
 		switchInstance.ReportLogs(constvar.InfoResult, "do pre-check before switch")
+
+		// 先检查GQACheckKey，如果实例在v2黑名单中，直接跳过切换，不修改实例状态为unavailable
+		// 避免影响v2的探测和切换流程
+		if ok, v := switchInstance.GetInfo(constvar.GQACheckKey); ok {
+			err = v.(error)
+			log.Logger.Infof("[BlackWhiteList] instance skip switch without setting unavailable, info{%s}",
+				switchInstance.ShowSwitchInstanceInfo())
+			switchInstance.ReportLogs(constvar.InfoResult,
+				fmt.Sprintf("[BlackWhiteList] skip switch: %s", err.Error()))
+			break
+		}
+
 		if switchInstance.GetStatus() != constvar.RUNNING && switchInstance.GetStatus() != constvar.AVAILABLE {
 			err = fmt.Errorf("status:%s not equal RUNNING or AVAILABLE", switchInstance.GetStatus())
 			break
@@ -80,12 +92,6 @@ func (gcm *GCM) DoSwitchSingle(switchInstance dbutil.DataBaseSwitch) {
 		err = gcm.SetUnavailableAndLockInstance(switchInstance)
 		if err != nil {
 			err = fmt.Errorf("set instance to unavailable failed:" + err.Error())
-			log.Logger.Errorf("%s, info{%s}", err.Error(), switchInstance.ShowSwitchInstanceInfo())
-			break
-		}
-
-		if ok, v := switchInstance.GetInfo(constvar.GQACheckKey); ok {
-			err = v.(error)
 			log.Logger.Errorf("%s, info{%s}", err.Error(), switchInstance.ShowSwitchInstanceInfo())
 			break
 		}

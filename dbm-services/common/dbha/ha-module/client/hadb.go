@@ -1,6 +1,7 @@
 package client
 
 import (
+	"dbm-services/common/dbha/hadb-api/pkg/handler/hablackwhitelist"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -885,4 +886,89 @@ func (c *HaDBClient) GetShieldConfig(shield *model.HAShield) (map[string]model.H
 		shieldConfigMap[row.Ip] = row
 	}
 	return shieldConfigMap, nil
+}
+
+// BlackWhiteListRequest 黑白名单查询请求
+type BlackWhiteListRequest struct {
+	DBCloudToken string      `json:"db_cloud_token"`
+	BKCloudID    int         `json:"bk_cloud_id"`
+	Name         string      `json:"name"`
+	QueryArgs    interface{} `json:"query_args,omitempty"`
+}
+
+// BlackWhiteListQueryArgs 黑白名单查询参数
+type BlackWhiteListQueryArgs struct {
+	BkBizID       int    `json:"bk_biz_id,omitempty"`
+	BkCloudID     int    `json:"bk_cloud_id,omitempty"`
+	ClusterID     int    `json:"cluster_id,omitempty"`
+	ClusterName   string `json:"cluster_name,omitempty"`
+	SwitchVersion string `json:"switch_version,omitempty"`
+	Status        string `json:"status,omitempty"`
+}
+
+// BlackWhiteListItem 黑白名单条目
+type BlackWhiteListItem struct {
+	ID            uint   `json:"id"`
+	BkBizID       int    `json:"bk_biz_id"`
+	BkCloudID     int    `json:"bk_cloud_id"`
+	ClusterID     int    `json:"cluster_id"`
+	ClusterName   string `json:"cluster_name"`
+	SwitchVersion string `json:"switch_version"`
+	Status        string `json:"status"`
+}
+
+// QueryBlackWhiteList 查询黑白名单，判断指定集群是否在v2白名单中（即v1应跳过切换）
+func (c *HaDBClient) QueryBlackWhiteList(queryArgs *BlackWhiteListQueryArgs) ([]BlackWhiteListItem, error) {
+	req := BlackWhiteListRequest{
+		DBCloudToken: c.Conf.BKConf.BkToken,
+		BKCloudID:    c.CloudId,
+		Name:         hablackwhitelist.GetBlackWhiteList,
+		QueryArgs:    queryArgs,
+	}
+
+	log.Logger.Debugf("QueryBlackWhiteList param:%#v", util.GraceStructString(req))
+
+	response, err := c.DoNew(http.MethodPost,
+		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.BlackWhiteListUrl, ""), req, nil)
+	if err != nil {
+		return nil, err
+	}
+	if response.Code != 0 {
+		return nil, fmt.Errorf("%s failed, return code:%d, msg:%s", util.AtWhere(), response.Code, response.Msg)
+	}
+	var result []BlackWhiteListItem
+	err = json.Unmarshal(response.Data, &result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// GetAllBlackWhiteList 一次性获取当前cloud下所有v2 enabled的黑白名单记录
+// 返回一个以 cluster_name 为 key 的 map，用于快速判断集群是否在黑名单中
+func (c *HaDBClient) GetAllBlackWhiteList() (map[string]bool, error) {
+	queryArgs := &BlackWhiteListQueryArgs{
+		BkCloudID:     c.CloudId,
+		SwitchVersion: "v2",
+		Status:        "enabled",
+	}
+
+	log.Logger.Infof("[BlackWhiteList] querying all black white list, cloud_id=%d, switch_version=v2, status=enabled",
+		c.CloudId)
+
+	items, err := c.QueryBlackWhiteList(queryArgs)
+	if err != nil {
+		log.Logger.Errorf("[BlackWhiteList] query all black white list failed: %s", err.Error())
+		return nil, fmt.Errorf("query all black white list failed: %s", err.Error())
+	}
+
+	result := make(map[string]bool, len(items))
+	for _, item := range items {
+		result[item.ClusterName] = true
+		log.Logger.Debugf("[BlackWhiteList] loaded entry: bk_biz_id=%d, cluster_id=%d, cluster_name=%s",
+			item.BkBizID, item.ClusterID, item.ClusterName)
+	}
+
+	log.Logger.Infof("[BlackWhiteList] loaded %d entries for cloud %d", len(result), c.CloudId)
+	return result, nil
 }
