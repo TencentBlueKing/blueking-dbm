@@ -381,6 +381,8 @@ def send_todo_remind():
         groups = defaultdict(set)
         # dba人员表按组件架构做分组
         for admin in DBAdministrator.objects.all():
+            if not admin.users:
+                continue
             category = CATEGORY_MAP.get(admin.db_type, "other")
             groups[category].update(admin.users)
 
