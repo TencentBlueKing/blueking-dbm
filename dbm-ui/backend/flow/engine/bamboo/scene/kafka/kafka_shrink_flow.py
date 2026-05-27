@@ -34,6 +34,7 @@ from backend.flow.plugins.components.collections.common.bigdata_manager_service 
     BigdataManagerComponent,
     get_manager_ip,
 )
+from backend.flow.plugins.components.collections.common.update_hosts_file import UpsertHostsEntryComponent
 from backend.flow.plugins.components.collections.kafka.dns_manage import KafkaDnsManageComponent
 from backend.flow.plugins.components.collections.kafka.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.kafka.kafka_db_meta import KafkaDBMetaComponent
@@ -166,6 +167,18 @@ class KafkaShrinkFlow(object):
             act_name=_("删除broker的域名记录"),
             act_component_code=KafkaDnsManageComponent.code,
             kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
+        )
+
+        # 更新 ZK 节点 /etc/hosts 中 kafkabroker 映射，指向存活的 broker（供 dbm_kafka_exporter 使用）
+        # 必须在下架 broker 之前完成，否则 exporter 可能连接到即将下架的节点
+        zk_ips = self.data["zookeeper_ip"].split(",")
+        kafka_pipeline.add_act(
+            act_name=_("更新kafkabroker到ZK节点hosts"),
+            act_component_code=UpsertHostsEntryComponent.code,
+            kwargs={
+                "exec_targets": [{"ip": ip, "bk_cloud_id": self.data["bk_cloud_id"]} for ip in zk_ips],
+                "hosts_entries": [{"ip": self.remain_brokers[0], "domain": "kafkabroker"}],
+            },
         )
 
         # 检查broker是否可以安全移除
