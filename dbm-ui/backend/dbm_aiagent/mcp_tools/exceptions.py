@@ -105,3 +105,9 @@ class DBMMcpForbiddenException(DBMMcpBaseException):
     ERROR_CODE = "015"
     MESSAGE = _("操作不被允许")
     MESSAGE_TPL = _("{msg}")
+
+
+class DBMMcpInvalidPipelineNodeException(DBMMcpBaseException):
+    ERROR_CODE = "014"
+    MESSAGE = _("非法的 pipeline 节点")
+    MESSAGE_TPL = _("{msg}")

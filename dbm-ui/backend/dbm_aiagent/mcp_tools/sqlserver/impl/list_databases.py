@@ -48,13 +48,15 @@ SELECT
     d.collation_name                      AS collation,
     d.create_date                         AS create_date,
     d.is_read_only                        AS is_read_only,
+    d.log_reuse_wait_desc                 AS log_reuse_wait_desc,
     ISNULL(SUM(CASE WHEN mf.type = 0 THEN mf.size END) * 8 / 1024, 0) AS data_size_mb,
     ISNULL(SUM(CASE WHEN mf.type = 1 THEN mf.size END) * 8 / 1024, 0) AS log_size_mb
 FROM sys.databases d
 LEFT JOIN sys.master_files mf ON mf.database_id = d.database_id
 GROUP BY
     d.database_id, d.name, d.state_desc, d.recovery_model_desc,
-    d.compatibility_level, d.collation_name, d.create_date, d.is_read_only
+    d.compatibility_level, d.collation_name, d.create_date, d.is_read_only,
+    d.log_reuse_wait_desc
 {order_by_clause}
 """.strip()
 

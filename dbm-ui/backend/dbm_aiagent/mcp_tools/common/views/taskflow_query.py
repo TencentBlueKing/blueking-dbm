@@ -16,11 +16,16 @@ from rest_framework.response import Response
 from backend.db_periodic_task.models import MySQLBackupRecoverTask, TaskStatus
 from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_default
 from backend.dbm_aiagent.mcp_tools.common.impl.taskflow_error_log import get_taskflow_error_logs
+from backend.dbm_aiagent.mcp_tools.common.impl.taskflow_running_nodes import get_running_nodes_with_duration
 from backend.dbm_aiagent.mcp_tools.common.serializers.taskflow_log_query import (
     FailedTaskflowListInputSerializer,
     FailedTaskflowListOutputSerializer,
     TaskflowErrorLogOutputSerializer,
     TaskflowLogQueryInputSerializer,
+)
+from backend.dbm_aiagent.mcp_tools.common.serializers.taskflow_running_nodes import (
+    TaskflowRunningNodesInputSerializer,
+    TaskflowRunningNodesOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
@@ -47,6 +52,35 @@ class TaskflowQueryMcpToolsViewSet(McpToolsViewSet):
     def get_taskflow_error_logs(self, request, *args, **kwargs):
         root_id = self.get_param("root_id")
         result = get_taskflow_error_logs(root_id)
+        return Response(result)
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                "根据任务 root_id 查询正在运行的节点及其耗时。可选传入 worker_subprocess_id 精确过滤主任务子流程下的节点，不传则查询所有节点。"
+                "支持开启历史耗时对比(enable_historical_comparison=True + cluster_ids)，"
+                "通过同集群同类型历史单据的入参相似度匹配，返回每个运行节点的历史耗时基准数据。"
+            )
+        ),
+        request_slz=TaskflowRunningNodesInputSerializer,
+        response_slz=TaskflowRunningNodesOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        permission_classes=[McpSkipPermission],
+        mcp_auth_parser=auth_default,
+        mcp=[DBMMcpTools.TASKFLOW_QUERY],
+        name_prefix="taskflow_query",
+    )
+    def get_running_nodes_with_duration(self, request, *args, **kwargs):
+        root_id = self.get_param("root_id")
+        worker_subprocess_id = self.get_param("worker_subprocess_id") or None
+        enable_historical_comparison = self.get_param("enable_historical_comparison") or False
+        cluster_ids = self.get_param("cluster_ids") or None
+        result = get_running_nodes_with_duration(
+            root_id=root_id,
+            worker_subprocess_id=worker_subprocess_id,
+            enable_historical_comparison=enable_historical_comparison,
+            cluster_ids=cluster_ids,
+        )
         return Response(result)
 
     @mcp_tools_api_decorator(

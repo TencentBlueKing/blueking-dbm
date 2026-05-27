@@ -15,6 +15,7 @@ from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.sqlserver.impl.blocking_sessions import sqlserver_blocking_sessions
 from backend.dbm_aiagent.mcp_tools.sqlserver.impl.cluster_topo import sqlserver_cluster_topo
+from backend.dbm_aiagent.mcp_tools.sqlserver.impl.database_file_usage import sqlserver_database_file_usage
 from backend.dbm_aiagent.mcp_tools.sqlserver.impl.explain_sql import sqlserver_explain_sql
 from backend.dbm_aiagent.mcp_tools.sqlserver.impl.index_analysis import (
     sqlserver_get_index_fragmentation,
@@ -37,6 +38,10 @@ from backend.dbm_aiagent.mcp_tools.sqlserver.serializers.blocking_sessions impor
 from backend.dbm_aiagent.mcp_tools.sqlserver.serializers.cluster_topo import (
     SQLServerTopoInputSerializer,
     SQLServerTopoOutputSerializer,
+)
+from backend.dbm_aiagent.mcp_tools.sqlserver.serializers.database_file_usage import (
+    SQLServerDatabaseFileUsageInputSerializer,
+    SQLServerDatabaseFileUsageOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.sqlserver.serializers.explain_sql import (
     SQLServerExplainSQLInputSerializer,
@@ -334,6 +339,37 @@ class SqlserverMcpToolsViewSet(McpToolsViewSet):
                 min_duration_ms=min_duration_ms,
                 top=top,
                 order_by=order_by,
+            )
+        )
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                "批量查询 SQLServer 数据库文件（MDF/LDF）容量使用率（已用空间/已分配空间）；"
+                "databases 一次传 1~20 个库名，每个库独立返回 status，"
+                "单库 OFFLINE/RESTORING 不会让整批失败；"
+                "返回文件级明细（file_name/allocated_mb/used_mb/used_pct/growth_desc）"
+                "和库级汇总（data_used_pct/log_used_pct）；"
+                "address 不传时缺省走 master"
+            )
+        ),
+        request_slz=SQLServerDatabaseFileUsageInputSerializer,
+        response_slz=SQLServerDatabaseFileUsageOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.SQLSERVER_QUERY],
+        permission_classes=[McpClusterDetailPermission],
+        mcp_auth_parser=auth_parse_clusters,
+        name_prefix="sqlserver_query",
+    )
+    def database_file_usage(self, request, *args, **kwargs):
+        cluster_domain = self.get_param("cluster_domain")
+        databases = self.get_param("databases")
+        address = self.get_param("address")
+        return Response(
+            sqlserver_database_file_usage(
+                cluster_domain=cluster_domain,
+                databases=databases,
+                address=address,
             )
         )
 
