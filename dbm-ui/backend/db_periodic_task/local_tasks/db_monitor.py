@@ -22,12 +22,14 @@ from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components import BKMonitorV3Api
+from backend.components.bkmonitorv3.client import BKMonitorV3EventApi
 from backend.configuration.constants import PLAT_BIZ_ID, DBType, SystemSettingsEnum
 from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.core.notify.constants import MsgType
 from backend.core.notify.handlers import BkChatHandler, CmsiHandler
 from backend.db_meta.models import Cluster
-from backend.db_monitor.constants import MONITOR_EVENTS
+from backend.db_monitor.constants import MONITOR_EVENTS, MonitorEventType
+from backend.db_monitor.dataclass import BaseEventBody, MonitorEvent
 from backend.db_monitor.exceptions import DutyNoticeScheduleException
 from backend.db_monitor.models import CollectInstance, DispatchGroup, DutyRule, MonitorPolicy, NoticeGroup
 from backend.db_monitor.tasks import update_app_policy, update_dba_notice_group
@@ -36,7 +38,10 @@ from backend.db_periodic_task.local_tasks.context_manager import start_new_span
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_periodic_task.utils import TimeUnit, calculate_countdown
 from backend.exceptions import ApiResultError
+from backend.flow.models import FlowTree
 from backend.flow.utils.cc_manage import operate_collector, parser_operate_collector_cache_key
+from backend.ticket.constants import FlowType, TicketStatus
+from backend.ticket.models import Ticket
 from backend.utils.redis import RedisConn
 
 logger = logging.getLogger("celery")
@@ -295,3 +300,49 @@ def sync_monitor_subscribe():
 
     if update_subscribe_list:
         BKMonitorV3Api.bulk_save_subscribe_in_batch(env.DBA_APP_BK_BIZ_ID, update_subscribe_list)
+
+
+@register_periodic_task(run_every=crontab(minute="*/1"))
+def scan_running_tickets_and_alert():
+    """
+    定时任务：扫描Running单据的内建执行流程，若超过10分钟未生成流程树则告警
+    """
+    try:
+        ten_minutes_ago = timezone.now() - timedelta(minutes=10)
+        running_tickets = Ticket.objects.filter(status=TicketStatus.RUNNING).prefetch_related("flows")
+
+        for ticket in running_tickets:
+            timeout_flows = ticket.flows.filter(flow_type=FlowType.INNER_FLOW, update_at__lt=ten_minutes_ago)
+
+            if not timeout_flows.exists():
+                continue
+
+            if not FlowTree.objects.filter(uid=str(ticket.id)).exists():
+                alert_content = (
+                    f"单据流程树创建超时 | "
+                    f"业务ID: {ticket.bk_biz_id}, "
+                    f"单据类型: {ticket.ticket_type}, "
+                    f"单据ID: {ticket.id}, "
+                    f"流程最后更新时间已超过10分钟。"
+                )
+                logger.info(alert_content)
+                BKMonitorV3EventApi.send_event(
+                    events=[
+                        MonitorEvent(
+                            event_name=MonitorEventType.TICKET_FLOW_TREE_MISSING,
+                            target=str(ticket.id),
+                            event=BaseEventBody(content=alert_content),
+                            dimension={
+                                "appid": ticket.bk_biz_id,
+                                "ticket_type": ticket.ticket_type,
+                                "ticket_id": ticket.id,
+                            },
+                            timestamp=0,
+                        )
+                    ]
+                )
+
+                logger.warning(f"已发送流程树缺失告警: 单据ID={ticket.id}")
+
+    except Exception as e:
+        logger.error(f"定时任务 scan_running_tickets_and_alert 执行失败: {e}")
