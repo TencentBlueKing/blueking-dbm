@@ -33,7 +33,7 @@
   const router = useRouter();
   const route = useRoute();
 
-  const activeTab = ref<ClusterTypes>((route.params.clusterType as ClusterTypes) || ClusterTypes.TENDBSINGLE);
+  const activeTab = ref<ClusterTypes>(route.params.clusterType as ClusterTypes);
 
   /**
    * provide active tab
