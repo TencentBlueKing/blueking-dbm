@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <DbTabForBiz v-model="activeTab" />
+  <DbTabForBiz
+    v-model="activeTab"
+    ignore-cluster-count />
   <div
     v-if="activeTab"
     class="monitor-strategy-content">
