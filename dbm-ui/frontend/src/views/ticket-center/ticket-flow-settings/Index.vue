@@ -12,7 +12,9 @@
 -->
 
 <template>
-  <DbTabForBiz v-model="activeTab" />
+  <DbTabForBiz
+    v-model="activeTab"
+    ignore-cluster-count />
   <List :db-type="activeTab" />
 </template>
 <script setup lang="ts">
@@ -24,5 +26,5 @@
 
   const route = useRoute();
 
-  const activeTab = ref<DBTypes>((route.query.db_type as DBTypes) || DBTypes.MYSQL);
+  const activeTab = ref<DBTypes>(route.query.db_type as DBTypes);
 </script>

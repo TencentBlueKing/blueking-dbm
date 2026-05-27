@@ -20,7 +20,7 @@ import { useFunController, useUserProfile } from '@stores';
 
 import { ClusterTypes, type DBInfoItem, DBTypeInfos, DBTypes, UserPersonalSettings } from '@common/const';
 
-export function useBizDbDisplay(options?: { manual?: boolean }) {
+export function useBizDbDisplay(options?: { ignoreClusterCount?: boolean; manual?: boolean }) {
   const funControllerStore = useFunController();
   const userProfileStore = useUserProfile();
 
@@ -61,23 +61,37 @@ export function useBizDbDisplay(options?: { manual?: boolean }) {
       try {
         const resultList = Object.keys(DBTypeInfos).reduce<DBInfoItem[]>((prevList, dbType) => {
           const dbTypeInfo = DBTypeInfos[dbType as DBTypes];
+          const ignoreClusterCount = options?.ignoreClusterCount || false;
 
           if (dbTypeInfo) {
             if (dbTypeInfo.moduleId === 'bigdata') {
               const data = funControllerStore.funControllerData.getFlatData(dbTypeInfo.moduleId);
-              const clusterCount =
-                clusterInstanceCount.value![dbTypeInfo.id as unknown as ClusterTypes].cluster_count || 0;
-              if (data[dbType as BigdataFunctions] && clusterCount) {
-                return prevList.concat(dbTypeInfo);
+              if (data[dbType as BigdataFunctions]) {
+                if (ignoreClusterCount) {
+                  return prevList.concat(dbTypeInfo);
+                } else {
+                  const clusterCount =
+                    clusterInstanceCount.value![dbTypeInfo.id as unknown as ClusterTypes].cluster_count || 0;
+                  if (clusterCount) {
+                    return prevList.concat(dbTypeInfo);
+                  }
+                }
               }
             } else {
               const controllerData = funControllerStore.funControllerData.getFlatData(dbTypeInfo.moduleId);
-              const clusterCount = countKeyMap[dbTypeInfo.id as string]!.reduce(
-                (prevCount, key) => prevCount + (clusterInstanceCount.value![key as ClusterTypes]?.cluster_count || 0),
-                0,
-              );
-              if (controllerData[dbTypeInfo.moduleId] && clusterCount) {
-                return prevList.concat(dbTypeInfo);
+              if (controllerData[dbTypeInfo.moduleId]) {
+                if (ignoreClusterCount) {
+                  return prevList.concat(dbTypeInfo);
+                } else {
+                  const clusterCount = countKeyMap[dbTypeInfo.id as string]!.reduce(
+                    (prevCount, key) =>
+                      prevCount + (clusterInstanceCount.value![key as ClusterTypes]?.cluster_count || 0),
+                    0,
+                  );
+                  if (clusterCount) {
+                    return prevList.concat(dbTypeInfo);
+                  }
+                }
               }
             }
           }
