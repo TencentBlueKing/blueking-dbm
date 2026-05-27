@@ -14,6 +14,8 @@ import http from '@services/http';
 import GrammarCheckModel from '@services/model/sql-import/grammar-check';
 import type { ListBase, MachineRelatedInstance } from '@services/types';
 
+import { getSQLFilename } from '@utils';
+
 const getRootPath = (bizId = window.PROJECT_CONFIG.BIZ_ID) => `/apis/mongodb/bizs/${bizId}/toolbox`;
 
 /**
@@ -93,17 +95,17 @@ export function listAvailableMongoVersions(params: { cluster_ids: number[] }) {
  */
 export function checkMongoScriptSyntax(params: FormData) {
   return http.post(`${getRootPath()}/check_mongo_script_syntax/`, params).then<Record<string, GrammarCheckModel>>(
-    (data: {
-      scripts: {
+    (
+      data: {
         raw_file_name: string;
         script_content: string;
         script_path: string;
-      }[];
-    }) =>
-      data.scripts.reduce(
+      }[],
+    ) =>
+      data.reduce(
         (result, item) => ({
           ...result,
-          [item.raw_file_name]: new GrammarCheckModel({
+          [getSQLFilename(item.raw_file_name)]: new GrammarCheckModel({
             content: item.script_content,
             raw_file_name: item.raw_file_name,
             sql_path: item.script_path,
