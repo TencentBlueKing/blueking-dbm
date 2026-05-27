@@ -287,6 +287,7 @@ class MonitorEventType(StrStructuredEnum):
     DRS_REQUEST_FAILED = EnumField("drs-request-failed", _("drs 请求异常"))
     MYSQL_DBHA_AUTOFIX_VALIDATE_FAILED = EnumField("mysql-dbha-autofix-validate-failed", _("MySQL DBHA 事件校验失败"))
     MYSQL_DBHA_AUTOFIX_COMMIT_FAILED = EnumField("mysql-dbha-autofix-commit-failed", _("MySQL DBHA自愈提单异常"))
+    TICKET_FLOW_TREE_MISSING = EnumField("ticket-flow-tree-missing", _("单据流程树创建异常"))
 
 
 UNIFY_QUERY_PARAMS = {
