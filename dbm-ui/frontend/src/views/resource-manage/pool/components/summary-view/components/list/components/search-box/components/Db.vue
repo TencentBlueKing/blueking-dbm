@@ -5,7 +5,7 @@
     @change="handleChange">
     <BkOptionGroup group-style="divider">
       <BkOption
-        v-for="item in resourceDbTypes"
+        v-for="item in readResourceDbTypes"
         :key="item.value"
         :label="item.label"
         :value="item.value" />
@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="ts">
-  import { DBTypes, resourceDbTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
+  import { DBTypes, readResourceDbTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
 
   interface Props {
     model: Record<string, string>;

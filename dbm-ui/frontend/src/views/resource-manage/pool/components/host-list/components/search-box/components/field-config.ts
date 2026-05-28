@@ -18,7 +18,7 @@ import { fetchMountPoints } from '@services/source/dbresourceResource';
 import { getResourceSpec } from '@services/source/dbresourceSpec';
 import { getCloudList } from '@services/source/ipchooser';
 
-import { resourceDbTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
+import { readResourceDbTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
 import { ipv4 } from '@common/regex';
 
 import { t } from '@locales/index';
@@ -171,7 +171,7 @@ export default {
     label: t('所属DB类型'),
     service: () =>
       Promise.resolve(
-        resourceDbTypes.concat({
+        readResourceDbTypes.concat({
           label: specialOptionLabelMap[SpecialOptions.PUBLIC],
           value: SpecialOptions.PUBLIC,
         }),
