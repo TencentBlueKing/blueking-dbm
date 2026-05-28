@@ -52,10 +52,20 @@ class Machine(AuditedModel):
     bk_idc_id = models.IntegerField(default=0, help_text=_("机房 ID"))
     bk_cloud_id = models.IntegerField(default=0, help_text=_("云区域 ID"))
     bk_agent_id = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("Agent ID"))
+    cloud_inst_id = models.CharField(
+        max_length=128, default="", blank=True, null=True, help_text=_("云主机实例 ID，例如 ins-xxx")
+    )
     net_device_id = models.CharField(max_length=256, default="", blank=True, null=True)  # 这个 id 是个逗号分割的字符串
     spec_id = models.PositiveBigIntegerField(default=0, help_text=_("虚拟规格ID"))
     spec_config = models.JSONField(default=dict, help_text=_("当前的虚拟规格配置"))
     system_info = models.JSONField(default=dict, help_text=_("机器采集的系统信息"))
+    storage_device = models.JSONField(
+        default=dict,
+        help_text=_(
+            "主机真实磁盘块设备信息: "
+            '{"/data": {"size": 100, "disk_id": "disk-xxx", "disk_type": "CLOUD_PREMIUM", "file_type": "ext4"}}'
+        ),
+    )
 
     class Meta:
         unique_together = ("ip", "bk_cloud_id")
@@ -180,6 +190,7 @@ class Machine(AuditedModel):
                     "bk_disk",
                     "bk_mem",
                     "bk_agent_id",
+                    "bk_cloud_inst_id",
                 ],
                 "host_property_filter": {
                     "condition": "AND",
@@ -209,6 +220,44 @@ class Machine(AuditedModel):
     @property
     def simple_desc(self):
         return model_to_dict(self)
+
+    @property
+    def mount_points(self) -> list:
+        """返回所有挂载点列表，例如 ['/data', '/data1']"""
+        return list((self.storage_device or {}).keys())
+
+    @property
+    def data_mount_point(self):
+        """优先返回 /data1，否则 /data，再否则取首个；全部为空返回 None"""
+        devices = self.storage_device or {}
+        for mp in ("/data1", "/data"):
+            if mp in devices:
+                return mp
+        return next(iter(devices), None)
+
+    def get_disk_info(self, mount_point: str):
+        """返回指定挂载点的完整磁盘信息 dict，挂载点不存在返回 None"""
+        return (self.storage_device or {}).get(mount_point)
+
+    def get_disk_type(self, mount_point: str):
+        """返回指定挂载点的磁盘类型，例如 SSD / HDD"""
+        info = self.get_disk_info(mount_point)
+        return info.get("disk_type") if info else None
+
+    def get_disk_id(self, mount_point: str):
+        """返回指定挂载点的云盘 ID，例如 disk-xxx"""
+        info = self.get_disk_info(mount_point)
+        return info.get("disk_id") if info else None
+
+    def get_disk_size(self, mount_point: str):
+        """返回指定挂载点的磁盘容量（GB）"""
+        info = self.get_disk_info(mount_point)
+        return info.get("size") if info else None
+
+    def get_disk_file_type(self, mount_point: str):
+        """返回指定挂载点的文件系统类型，例如 ext4 / xfs"""
+        info = self.get_disk_info(mount_point)
+        return info.get("file_type") if info else None
 
 
 class DeviceClass(models.Model):

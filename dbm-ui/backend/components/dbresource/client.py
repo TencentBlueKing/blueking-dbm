@@ -139,6 +139,43 @@ class _DBResourceApi(BaseApi):
             url="resource/analysis/result",
             description=_("资源申请不足分析"),
         )
+        # CVM 主机详情查询接口
+        # ---------------------------------------------------------------------
+        # POST /resource/cvm/detail
+        #
+        # 用途：根据内网 IP 列表批量查询云主机（CVM）实例详情。返回的数据来自
+        #       云厂商 OpenAPI（如腾讯云 CVM DescribeInstances + DescribeDisks），
+        #       常用于：
+        #         1. 回填 Machine.storage_device（数据盘 disk_id / 类型 / 大小）
+        #         2. 资源池导入前查询机器机型/规格
+        #       注意: Machine.cloud_inst_id(ins-xxx) 来自 CMDB 的 bk_cloud_inst_id, 不是本接口返回的 instanceAssetId
+        #
+        # 请求体：
+        #   {"ips": ["127.0.0.1", "127.0.0.2"]}
+        #
+        # 响应 data 为 dict，key 为内网 IP，value 为该机器详情：
+        #   {
+        #     "127.0.0.1": {
+        #       "cpu": 2,                                # CPU 核数
+        #       "memory": 4,                             # 内存 (GB)
+        #       "systemDiskDisksize": 100,               # 系统盘大小 (GB)
+        #       "instanceType": "SA2.MEDIUM4",           # 云厂商机型
+        #       "lanIp": "127.0.0.1",                    # 内网 IP
+        #       "datadiskList": [                        # 数据盘列表
+        #         {"DiskSize": 50, "DiskType": "CLOUD_PREMIUM", "DiskId": "disk-xxx"}
+        #         # DiskType 原生云盘类型取值:
+        #         #   CLOUD_PREMIUM 高性能云硬盘 / CLOUD_BSSD 通用型SSD / CLOUD_SSD SSD云硬盘
+        #         #   CLOUD_HSSD 增强型SSD / CLOUD_TSSD 极速型SSD
+        #       ],
+        #       "cloudCampusName": "南京一区",           # 园区名
+        #       "instanceAssetId": "TC220518009547"      # 资产 ID(注意: 非云主机实例 ID ins-xxx)
+        #     }
+        #   }
+        self.resource_cvm_detail = self.generate_data_api(
+            method="POST",
+            url="resource/cvm/detail",
+            description=_("查询 CVM 主机详情"),
+        )
 
 
 DBResourceApi = _DBResourceApi()
