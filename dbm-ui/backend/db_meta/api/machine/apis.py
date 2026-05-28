@@ -58,6 +58,7 @@ def get_create_machines(
             "bk_cloud_id",
             "net_device_id",
             "bk_agent_id",
+            "bk_cloud_inst_id",
         ],
         "host_property_filter": {
             "condition": "AND",
@@ -111,6 +112,7 @@ def get_create_machines(
                 bk_cloud_id=inf.get("bk_cloud_id") or 0,
                 bk_agent_id=inf.get("bk_agent_id") or "",
                 net_device_id=inf.get("net_device_id") or "",  # 这个 id 是个逗号分割的字符串
+                cloud_inst_id=inf.get("bk_cloud_inst_id") or "",
                 spec_id=spec_id,
                 spec_config=spec_config,
                 creator=creator,
@@ -173,6 +175,32 @@ def update_system_info(bk_cloud_id: int, machines: Optional[List] = None):
         if machine.get("system_info"):
             Machine.objects.filter(ip=machine["ip"], bk_cloud_id=bk_cloud_id).update(
                 system_info=machine["system_info"]
+            )
+
+
+@transaction.atomic
+def update_storage_device(bk_cloud_id: int, machines: Optional[List] = None):
+    """
+    更新主机磁盘块设备信息 storage_device
+    machines: [{"ip": "127.0.0.1", "storage_device": {...}}]
+    """
+    for machine in machines:
+        if machine.get("storage_device"):
+            Machine.objects.filter(ip=machine["ip"], bk_cloud_id=bk_cloud_id).update(
+                storage_device=machine["storage_device"]
+            )
+
+
+@transaction.atomic
+def update_cloud_inst_id(bk_cloud_id: int, machines: Optional[List] = None):
+    """
+    更新主机云主机实例 ID cloud_inst_id
+    machines: [{"ip": "127.0.0.1", "cloud_inst_id": "ins-xxx"}]
+    """
+    for machine in machines:
+        if machine.get("cloud_inst_id"):
+            Machine.objects.filter(ip=machine["ip"], bk_cloud_id=bk_cloud_id).update(
+                cloud_inst_id=machine["cloud_inst_id"]
             )
 
 
