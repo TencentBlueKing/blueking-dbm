@@ -90,16 +90,26 @@
       <!-- 7. 操作明细 -->
       <TableColumn
         col-key="conf_value"
-        :min-width="200"
-        :title="t('操作明细')">
+        :min-width="240"
+        :title="t('操作明细')"
+        :width="360">
         <template #default="{ row }">
           <span
             v-if="!row.before_image?.conf_value"
+            v-bk-tooltips="{
+              content: String(row.after_image?.conf_value ?? ''),
+              disabled: !row.after_image?.conf_value,
+              placement: 'top',
+            }"
             class="config-change-value is-add">
-            {{ row.after_image?.conf_value || t('无') }}
+            <span class="config-change-value-text">{{ row.after_image?.conf_value || t('无') }}</span>
           </span>
           <span
             v-else
+            v-bk-tooltips="{
+              content: `${row.before_image?.conf_value ?? ''} → ${row.after_image?.conf_value ?? ''}`,
+              placement: 'top',
+            }"
             class="config-change-value">
             <span class="config-change-value-before">{{ row.before_image?.conf_value }}</span>
             <span class="config-change-value-icon">
@@ -197,6 +207,10 @@
       text: t('新增参数'),
       theme: 'success',
     },
+    cancel_render: {
+      text: t('取消使用'),
+      theme: 'danger',
+    },
     recover: {
       text: t('恢复默认'),
       theme: 'info',
@@ -283,14 +297,26 @@
     align-items: center;
     gap: 8px;
     position: relative;
+    max-width: 100%;
+    overflow: hidden;
+    vertical-align: middle;
 
     &.is-add {
       color: #2caf5e;
     }
 
+    &-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
     &-before {
+      flex: 1 1 0;
+      min-width: 0;
       color: #f59500;
-      flex-shrink: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
       white-space: nowrap;
     }
 
@@ -310,8 +336,11 @@
     }
 
     &-after {
+      flex: 1 1 0;
+      min-width: 0;
       color: #2caf5e;
-      flex-shrink: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
       white-space: nowrap;
     }
   }

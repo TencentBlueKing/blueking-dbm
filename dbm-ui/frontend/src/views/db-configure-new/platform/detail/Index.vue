@@ -25,7 +25,8 @@
           <DbQuickSearch
             v-model="searchValue"
             :data="quickSearchData"
-            :placeholder="t('搜索参数名_显示名_平台默认值_允许值_数据类型')"
+            parse-url
+            :placeholder="t('搜索参数名_显示名_平台默认值_允许值_数据类型_重启生效_业务默认可见_业务可编辑')"
             style="width: 500px; margin-left: auto"
             @change="handleQuickSearchChange" />
         </div>
@@ -33,6 +34,7 @@
           <DbTable
             ref="paramTableRef"
             :data-source="paramDataSource"
+            :filter-value="searchValue"
             row-key="conf_name"
             @clear-search="handleQuickSearchChange"
             @filter-change="handleFilterChange"
@@ -196,175 +198,13 @@
     </div>
 
     <!-- 新增/编辑参数侧滑 -->
-    <BkSideslider
-      v-if="isShowAddParam"
-      :is-show="isShowAddParam"
-      quick-close
-      width="60%"
-      @closed="handleCloseSideslider">
-      <template #header>
-        <span>{{ isEditMode ? t('编辑参数') : t('新建参数') }}</span>
-        <span
-          v-if="isEditMode"
-          class="sideslider-sub-title">
-          {{ addParamForm.conf_name }}
-        </span>
-      </template>
-      <div class="add-param-content">
-        <BkForm
-          ref="addFormRef"
-          form-type="vertical"
-          :model="addParamForm">
-          <!-- 基础定义 -->
-          <div class="form-section">
-            <div class="form-section-title">{{ t('基础定义') }}</div>
-            <!-- 参数名 + 参数显示名 -->
-            <div class="form-row">
-              <BkFormItem
-                :label="t('参数名')"
-                property="conf_name"
-                required>
-                <BkInput
-                  v-model="addParamForm.conf_name"
-                  :disabled="isEditMode"
-                  :placeholder="t('支持字母、数字及常用符号，不允许使用「`」，最大100字符')" />
-              </BkFormItem>
-              <BkFormItem
-                :label="t('参数显示名')"
-                property="conf_name_lc">
-                <BkInput
-                  v-model="addParamForm.conf_name_lc"
-                  :placeholder="t('请输入显示名')" />
-              </BkFormItem>
-            </div>
-            <!-- 数据类型 + 约束类型 -->
-            <div class="form-row">
-              <BkFormItem
-                :label="t('数据类型')"
-                property="value_type"
-                required>
-                <BkSelect
-                  v-model="addParamForm.value_type"
-                  :clearable="false"
-                  @change="handleValueTypeChange">
-                  <BkOption
-                    v-for="opt in valueTypeOptions"
-                    :key="opt.value"
-                    :label="opt.label"
-                    :value="opt.value" />
-                </BkSelect>
-              </BkFormItem>
-              <BkFormItem
-                :label="t('约束类型')"
-                property="value_type_sub"
-                required>
-                <BkSelect
-                  v-model="addParamForm.value_type_sub"
-                  :clearable="false"
-                  :disabled="!addParamForm.value_type"
-                  @change="handleValueTypeSubChange">
-                  <BkOption
-                    v-for="opt in valueTypeSubOptions"
-                    :key="opt.value"
-                    :label="opt.label"
-                    :value="opt.value" />
-                </BkSelect>
-              </BkFormItem>
-            </div>
-            <!-- 允许值 -->
-            <BkFormItem
-              :disabled="isValueAllowedDisabled"
-              :label="t('允许值')"
-              property="value_allowed"
-              :required="isValueAllowedRequired">
-              <BkInput
-                v-model="addParamForm.value_allowed"
-                :disabled="isValueAllowedDisabled"
-                :placeholder="isValueAllowedDisabled ? valueAllowedPlaceholder : t('请输入')" />
-              <p class="form-item-tips">{{ valueAllowedExample }}</p>
-            </BkFormItem>
-          </div>
-
-          <!-- 默认值与安全 -->
-          <div class="form-section">
-            <div class="form-section-title">{{ t('默认值') }}</div>
-            <BkFormItem
-              :key="`default-${addParamForm.flag_empty_string}`"
-              :label="t('平台默认值')"
-              property="value_default"
-              :required="!addParamForm.flag_empty_string">
-              <div class="default-value-row">
-                <BkInput
-                  v-model="addParamForm.value_default"
-                  :disabled="addParamForm.flag_empty_string"
-                  :placeholder="addParamForm.flag_empty_string ? t('空字符串') : t('请输入')" />
-                <BkCheckbox
-                  v-if="showEmptyStringCheckbox"
-                  v-model="addParamForm.flag_empty_string"
-                  class="ml-8 empty-string-checkbox">
-                  {{ t('设为空字符串') }}
-                </BkCheckbox>
-              </div>
-              <p class="form-item-tips">{{ defaultValueHint }}</p>
-            </BkFormItem>
-          </div>
-
-          <!-- 业务配置规则 -->
-          <div class="form-section">
-            <div class="form-section-title">{{ t('业务配置规则') }}</div>
-            <BkCheckboxGroup
-              :model-value="bizRuleCheckboxValue"
-              @change="handleBizRuleCheckboxChange">
-              <BkCheckbox label="flag_visible">
-                {{ t('业务默认可见') }}
-                <span class="checkbox-desc">{{
-                  t('是否在业务配置页默认带出该参数；关闭后业务仍可通过「添加参数」主动加入')
-                }}</span>
-              </BkCheckbox>
-              <BkCheckbox label="flag_readonly_inverse">
-                {{ t('业务可编辑') }}
-                <span class="checkbox-desc">{{ t('控制业务侧是否可编辑该参数数值') }}</span>
-              </BkCheckbox>
-              <BkCheckbox label="need_restart">
-                {{ t('重启生效') }}
-                <span class="checkbox-desc">{{
-                  t('预留配置下发场景；后续下发的存量实例后，是否需要重启实例生效')
-                }}</span>
-              </BkCheckbox>
-            </BkCheckboxGroup>
-          </div>
-
-          <!-- 参数描述 -->
-          <BkFormItem :label="t('参数描述')">
-            <template #label>
-              {{ t('参数描述') }}
-              <span class="form-section-title-tips">{{
-                t('描述不在列表中单独占列_有内容时将显示为参数名后的说明图标')
-              }}</span>
-            </template>
-            <BkInput
-              v-model="addParamForm.description"
-              :maxlength="100"
-              :placeholder="t('请输入参数描述')"
-              show-word-limit
-              type="textarea" />
-          </BkFormItem>
-        </BkForm>
-      </div>
-      <template #footer>
-        <BkButton
-          class="mr-8"
-          :disabled="!isAddParamFormDirty"
-          :loading="submitLoading"
-          theme="primary"
-          @click="handleAddParamConfirm">
-          {{ t('确定') }}
-        </BkButton>
-        <BkButton @click="isShowAddParam = false">
-          {{ t('取消') }}
-        </BkButton>
-      </template>
-    </BkSideslider>
+    <ParamFormSideslider
+      ref="paramFormSliderRef"
+      :cluster-type="clusterType"
+      :conf-name-type-map="confNameTypeMap"
+      :conf-type="confType"
+      :version="version"
+      @success="fetchDetail({ conf_type: confType, meta_cluster_type: clusterType, version: version })" />
   </div>
   <Teleport to="#dbContentTitleAppend">
     <div class="config-detail-header">
@@ -404,6 +244,8 @@
 
   import { messageSuccess } from '@utils';
 
+  import ParamFormSideslider from './components/ParamFormSideslider.vue';
+
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
@@ -414,11 +256,11 @@
     version: string;
   };
 
-  // 无约束标识常量
+  // 无约束标识常量（表格展示用）
   const NO_CONSTRAINT = t('无约束');
 
   const paramTableRef = ref<InstanceType<typeof DbTable>>();
-  const addFormRef = ref();
+  const paramFormSliderRef = ref<InstanceType<typeof ParamFormSideslider>>();
 
   const configTypeName = ref('');
   type DetailResult = ServiceReturnType<typeof getConfigBaseDetails>;
@@ -426,56 +268,61 @@
   const allConfItems = ref<DetailResult['conf_items']>([]);
 
   const paramLoading = ref(false);
-  const filterValues = ref<Record<string, string[]>>({});
 
   // 快速搜索
   const searchValue = ref<Record<string, any>>({});
-  const quickSearchData = [
+  const baseQuickSearchData = [
     { id: 'conf_name', name: t('参数名'), type: 'input' as const },
     { id: 'conf_name_lc', name: t('显示名'), type: 'input' as const },
     { id: 'value_default', name: t('平台默认值'), type: 'input' as const },
     { id: 'value_allowed', name: t('允许值'), type: 'input' as const },
-    { id: 'value_type', name: t('数据类型'), type: 'input' as const },
+    {
+      id: 'value_type',
+      name: t('数据类型'),
+      type: 'multiple' as const,
+    },
+    {
+      id: 'flag_visible',
+      list: [
+        { label: t('是'), value: '1' },
+        { label: t('否'), value: '0' },
+      ],
+      name: t('业务默认可见'),
+      type: 'multiple' as const,
+    },
+    {
+      id: 'flag_readonly',
+      list: [
+        { label: t('是'), value: '0' },
+        { label: t('否'), value: '1' },
+      ],
+      name: t('业务可编辑'),
+      type: 'multiple' as const,
+    },
+    {
+      id: 'need_restart',
+      list: [
+        { label: t('是'), value: '1' },
+        { label: t('否'), value: '0' },
+      ],
+      name: t('重启生效'),
+      type: 'multiple' as const,
+    },
   ];
 
-  const isShowAddParam = ref(false);
-  const isEditMode = ref(false);
-  const submitLoading = ref(false);
+  /** 动态补充 value_type 的选项列表 */
+  const quickSearchData = computed(() =>
+    baseQuickSearchData.map((item) => {
+      if (item.id !== 'value_type') return item;
+      return {
+        ...item,
+        list: Object.keys(confNameTypeMap.value).map((v) => ({ label: v, value: v })),
+      };
+    }),
+  );
 
   // 描述 tippy 实例
   const tippyInstances: Instance[] = [];
-
-  // 新增/编辑表单
-  const addParamForm = reactive({
-    conf_name: '',
-    conf_name_lc: '',
-    description: '',
-    flag_empty_string: false,
-    flag_encrypt: false,
-    flag_readonly_inverse: true, // UI 展示反转：勾选=业务可修改 → flag_readonly=0
-    flag_visible: true, // 默认勾选：业务默认可见
-    need_restart: false,
-    value_allowed: '',
-    value_default: '',
-    value_type: '',
-    value_type_sub: '',
-  });
-
-  // 表单快照（用于判断是否有修改）
-  const formSnapshot = ref<Record<string, any> | null>(null);
-
-  /** 表单是否有修改（与快照对比） */
-  const isAddParamFormDirty = computed(() => {
-    if (!formSnapshot.value) return false;
-    return Object.keys(formSnapshot.value).some((key) => {
-      return (addParamForm as Record<string, any>)[key] !== formSnapshot.value![key];
-    });
-  });
-
-  /** 记录当前表单为快照 */
-  const saveFormSnapshot = () => {
-    formSnapshot.value = { ...addParamForm };
-  };
 
   const confNameTypeMap = ref<Record<string, string[]>>({});
   const availableParams = ref<ServiceReturnType<typeof getConfigNames>>([]);
@@ -506,112 +353,6 @@
     },
     showConfirmAndReset: true,
   };
-
-  // 数据类型选项（接口返回的 key 列表）
-  const valueTypeOptions = computed(() => Object.keys(confNameTypeMap.value).map((v) => ({ label: v, value: v })));
-
-  // 约束类型选项（根据选中的数据类型过滤，仅 STRING 类型可选无约束）
-  const valueTypeSubOptions = computed(() => {
-    if (!addParamForm.value_type) return [];
-    const isString = addParamForm.value_type === 'STRING';
-    const list = (confNameTypeMap.value[addParamForm.value_type] || [])
-      .filter((v) => {
-        // STRING 类型下隐藏 STRING 选项（它和空字符串/无约束是一个意思）
-        if (isString && v === 'STRING') return false;
-        // 非 STRING 类型过滤掉空字符串（无约束选项）
-        return isString || v;
-      })
-      .map((v) => ({
-        label: v || NO_CONSTRAINT,
-        value: v || NO_CONSTRAINT,
-      }));
-    return list.sort((a, b) => {
-      if (a.value === NO_CONSTRAINT && b.value !== NO_CONSTRAINT) return 1;
-      if (a.value !== NO_CONSTRAINT && b.value === NO_CONSTRAINT) return -1;
-      return 0;
-    });
-  });
-
-  // 业务配置规则 Checkbox
-  const bizRuleCheckboxKeys = ['flag_visible', 'flag_readonly_inverse', 'need_restart'] as const;
-  const bizRuleCheckboxValue = computed(() => bizRuleCheckboxKeys.filter((key) => addParamForm[key]));
-
-  // 不需要填写允许值的约束类型（由后端校验合法性）
-  const NO_VALUE_ALLOWED_TYPES = ['JSON', 'MAP', 'LIST', 'REGEX', 'GOVALIDATE', NO_CONSTRAINT];
-
-  // 允许值字段状态
-  const isValueAllowedDisabled = computed(() => NO_VALUE_ALLOWED_TYPES.includes(addParamForm.value_type_sub));
-  const isValueAllowedRequired = computed(() => !NO_VALUE_ALLOWED_TYPES.includes(addParamForm.value_type_sub));
-
-  // 是否显示"设为空字符串"复选框：STRING + 无约束 + 未加密
-  const showEmptyStringCheckbox = computed(
-    () =>
-      addParamForm.value_type === 'STRING' &&
-      addParamForm.value_type_sub === NO_CONSTRAINT &&
-      !addParamForm.flag_encrypt,
-  );
-
-  // 平台默认值的动态提示文案（根据数据类型和约束类型切换）
-  const defaultValueHint = computed(() => {
-    // 场景1: 勾选「设为空字符串」
-    if (addParamForm.flag_empty_string) return t('平台默认值为显式空字符串');
-
-    const vt = addParamForm.value_type;
-    const vts = addParamForm.value_type_sub;
-
-    // 场景2: STRING + 无约束
-    if (vt === 'STRING' && (vts === NO_CONSTRAINT || !vts)) {
-      return t('任意STRING值均可_可勾选「设为空字符串」将默认值显式置为空串');
-    }
-
-    // 场景4: STRING + REGEX/JSON/MAP/LIST/GOVALIDATE（由后端校验）
-    if (vt === 'STRING' && ['GOVALIDATE', 'JSON', 'LIST', 'MAP', 'REGEX'].includes(vts)) {
-      return t('需符合STRING类型_保存时由后端按约束类型校验合法性', { constraintType: vts });
-    }
-
-    // 场景3: BOOL/INT/FLOAT/NUMBER 全部 + STRING 的 ENUM/ENUMS/BYTES/DURATION
-    return t('需符合允许值范围_不符规则保存将失败');
-  });
-
-  watch(
-    () => addParamForm.flag_empty_string,
-    (val) => {
-      if (val) {
-        addParamForm.value_default = '';
-      }
-    },
-  );
-
-  // 允许值置灰时的占位文字
-  const valueAllowedPlaceholder = computed(() => {
-    const placeholderMap: Record<string, string> = {
-      GOVALIDATE: t('合法的 validator 标签'),
-      JSON: t('合法的 JSON'),
-      LIST: t('合法的 JSON 数组'),
-      MAP: t('合法的 JSON 对象'),
-      REGEX: t('合法的正则表达式'),
-    };
-    return placeholderMap[addParamForm.value_type_sub] || t('无约束');
-  });
-
-  // 允许值填写示例（根据数据类型 + 约束类型组合）
-  const valueAllowedExample = computed(() => {
-    const key = `${addParamForm.value_type}_${addParamForm.value_type_sub}`;
-    const exampleMap: Record<string, string> = {
-      BOOL_ENUM: t('填写示例_BOOL_ENUM'),
-      FLOAT_ENUM: t('填写示例_FLOAT_ENUM'),
-      FLOAT_RANGE: t('填写示例_FLOAT_RANGE'),
-      INT_ENUM: t('填写示例_INT_ENUM'),
-      INT_RANGE: t('填写示例_INT_RANGE'),
-      NUMBER_ENUM: t('填写示例_NUMBER_ENUM'),
-      NUMBER_RANGE: t('填写示例_NUMBER_RANGE'),
-      STRING_BYTES: t('填写示例_STRING_BYTES'),
-      STRING_DURATION: t('填写示例_STRING_DURATION'),
-      STRING_ENUM: t('填写示例_STRING_ENUM'),
-      STRING_ENUMS: t('填写示例_STRING_ENUMS'),
-    };
-    return exampleMap[key] || '--';
-  });
 
   // 获取 confType 对应的显示名称
   useRequest(getListConfTypes, {
@@ -654,29 +395,26 @@
   const paramDataSource = (params: { limit: number; offset: number }) => {
     let data = allConfItems.value;
 
-    // 快速搜索过滤
+    // 搜索 + 列筛选统一过滤
     const filters = searchValue.value;
     if (Object.keys(filters).length > 0) {
       data = data.filter((item: Record<string, any>) =>
         Object.entries(filters).every(([key, val]) => {
           if (!val) return true;
+          // multiple 列筛选值为逗号分隔字符串
+          if (['flag_encrypt', 'flag_readonly', 'flag_visible', 'need_restart'].includes(key)) {
+            const selectedVals = val.split(',');
+            if (key === 'flag_readonly') return selectedVals.includes(item.flag_readonly === 0 ? '1' : '0');
+            if (key === 'flag_encrypt') return selectedVals.includes(item.flag_encrypt === 1 ? '1' : '0');
+            return selectedVals.includes(String(item[key] ?? ''));
+          }
+          // input 搜索：模糊匹配
           const search = String(val).toLowerCase();
           const fieldValue = String(item[key] ?? '').toLowerCase();
           return fieldValue.includes(search);
         }),
       );
     }
-
-    // 列筛选过滤
-    Object.entries(filterValues.value).forEach(([key, values]) => {
-      if (!values || values.length === 0) return;
-      data = data.filter((item: Record<string, any>) => {
-        if (key === 'flag_readonly') return values.includes(item.flag_readonly === 0 ? '1' : '0');
-        if (key === 'flag_encrypt') return values.includes(item.flag_encrypt === 1 ? '1' : '0');
-        if (['flag_visible', 'need_restart'].includes(key)) return values.includes(String(item[key]));
-        return values.includes(item[key] || '');
-      });
-    });
 
     const start = params.offset;
     const end = start + params.limit;
@@ -689,11 +427,9 @@
     setTimeout(() => initDescriptionTippy(), 300);
   };
 
-  // 过滤变更
-  const handleFilterChange = (filters: Record<string, string[]>) => {
-    filterValues.value = filters;
-    nextTick(() => paramTableRef.value?.fetchData({}, true));
-    setTimeout(() => initDescriptionTippy(), 300);
+  /** 列筛选变更：同步到 searchValue（表头显示标签） */
+  const handleFilterChange = (filterValue: Record<string, string>) => {
+    searchValue.value = filterValue;
   };
 
   /** 数据请求成功后重新初始化 tippy（含分页切换场景） */
@@ -701,124 +437,14 @@
     setTimeout(() => initDescriptionTippy(), 100);
   };
 
-  // 数据类型变更：BOOL 自动选中 ENUM；STRING 自动选中"无约束"；其它类型留空
-  const handleValueTypeChange = () => {
-    const vt = addParamForm.value_type;
-    if (vt === 'BOOL') {
-      addParamForm.value_type_sub = 'ENUM';
-      addParamForm.value_allowed = '';
-    } else if (vt === 'STRING') {
-      addParamForm.value_type_sub = NO_CONSTRAINT;
-      addParamForm.value_allowed = '';
-    } else {
-      addParamForm.value_type_sub = '';
-      addParamForm.value_allowed = '';
-    }
-  };
-
-  // 约束类型变更：切换到不需要允许值的类型时清空允许值
-  const handleValueTypeSubChange = (value: string) => {
-    if (NO_VALUE_ALLOWED_TYPES.includes(value) && addParamForm.value_allowed) {
-      addParamForm.value_allowed = '';
-    }
-  };
-
-  // 业务配置规则 Checkbox 变更
-  const handleBizRuleCheckboxChange = (values: string[]) => {
-    bizRuleCheckboxKeys.forEach((key) => {
-      addParamForm[key] = values.includes(key) as never;
-    });
-  };
-
   // 新建参数
   const handleAddParam = () => {
-    isEditMode.value = false;
-    Object.assign(addParamForm, {
-      conf_name: '',
-      conf_name_lc: '',
-      description: '',
-      flag_empty_string: false,
-      flag_encrypt: false,
-      flag_readonly_inverse: true,
-      flag_visible: true,
-      need_restart: false,
-      value_allowed: '',
-      value_default: '',
-      value_type: '',
-      value_type_sub: '',
-    });
-    saveFormSnapshot();
-    isShowAddParam.value = true;
-  };
-
-  // 关闭侧栏
-  const handleCloseSideslider = () => {
-    isShowAddParam.value = false;
-    isEditMode.value = false;
-  };
-
-  // 提交新建/编辑参数
-  const handleAddParamConfirm = async () => {
-    try {
-      await addFormRef.value?.validate();
-    } catch {
-      return;
-    }
-
-    submitLoading.value = true;
-    try {
-      await changeConfNames({
-        conf_file: detailData.value.version || version,
-        conf_names: [
-          {
-            conf_name: addParamForm.conf_name,
-            conf_name_lc: addParamForm.conf_name_lc,
-            description: addParamForm.description,
-            flag_encrypt: addParamForm.flag_encrypt ? 1 : 0,
-            flag_readonly: addParamForm.flag_readonly_inverse ? 0 : 1,
-            flag_visible: addParamForm.flag_visible ? 1 : 0,
-            need_restart: addParamForm.need_restart ? 1 : 0,
-            op_type: isEditMode.value ? 'update' : 'add',
-            value_allowed: addParamForm.value_allowed,
-            value_default: addParamForm.value_default,
-            value_type: addParamForm.value_type,
-            value_type_sub: addParamForm.value_type_sub === NO_CONSTRAINT ? '' : addParamForm.value_type_sub,
-          },
-        ],
-        conf_type: confType,
-        meta_cluster_type: clusterType,
-      });
-      isShowAddParam.value = false;
-      messageSuccess(isEditMode.value ? t('编辑成功') : t('新增成功'));
-      isEditMode.value = false;
-      fetchDetail({ conf_type: confType, meta_cluster_type: clusterType, version: version });
-    } finally {
-      submitLoading.value = false;
-    }
+    paramFormSliderRef.value?.openCreate();
   };
 
   // 编辑参数
   const handleEditParam = (row: DetailResult['conf_items'][number]) => {
-    isEditMode.value = true;
-    Object.assign(addParamForm, {
-      conf_name: row.conf_name,
-      conf_name_lc: row.conf_name_lc ?? '',
-      description: row.description,
-      // 历史兼容：STRING 类型的约束类型为 STRING 时，等同于无约束
-      flag_empty_string:
-        !row.value_default && row.value_type === 'STRING' && (!row.value_type_sub || row.value_type_sub === 'STRING'),
-      flag_encrypt: row.flag_encrypt === 1,
-      flag_readonly_inverse: row.flag_readonly === 0,
-      flag_visible: row.flag_visible === 1,
-      need_restart: row.need_restart === 1,
-      value_allowed: row.value_allowed ?? '',
-      value_default: row.value_default ?? '',
-      value_type: row.value_type ?? '',
-      // 历史兼容：STRING 类型的约束类型为 STRING 时，等同于无约束
-      value_type_sub: row.value_type_sub === 'STRING' ? NO_CONSTRAINT : (row.value_type_sub ?? ''),
-    });
-    saveFormSnapshot();
-    isShowAddParam.value = true;
+    paramFormSliderRef.value?.openEdit(row);
   };
 
   // 删除参数
@@ -949,101 +575,7 @@
     border-bottom: 1px dashed #979ba5;
   }
 
-  .add-param-content {
-    padding: 24px;
-
-    .form-section {
-      margin-bottom: 24px;
-      padding: 16px 20px;
-      background: #fafbfd;
-      border-radius: 2px;
-    }
-
-    .form-section + .form-section {
-      margin-top: 0;
-    }
-
-    .form-section-title {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      margin-bottom: 16px;
-      font-size: 14px;
-      font-weight: 600;
-      color: #313238;
-    }
-
-    .form-section-title-tips {
-      margin-left: 4px;
-      font-weight: normal;
-      font-size: 12px;
-      color: #979ba5;
-    }
-
-    .form-row {
-      display: flex;
-      gap: 16px;
-
-      :deep(.bk-form-item) {
-        flex: 1;
-      }
-    }
-
-    .form-item-tips {
-      margin-top: 4px;
-      font-size: 12px;
-      line-height: 20px;
-      color: #979ba5;
-    }
-
-    .default-value-row {
-      display: flex;
-      align-items: center;
-
-      .empty-string-checkbox {
-        white-space: nowrap;
-        flex-shrink: 0;
-      }
-    }
-
-    :deep(.bk-checkbox-group) {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-
-    :deep(.bk-checkbox ~ .bk-checkbox) {
-      margin-left: 0;
-    }
-
-    .checkbox-desc {
-      font-size: 12px;
-      color: #979ba5;
-      margin-left: 4px;
-    }
-  }
-
-  .sideslider-sub-title {
-    position: relative;
-    padding-left: 8px;
-    margin-left: 8px;
-    font-size: 14px;
-    font-weight: normal;
-    color: #979ba5;
-
-    &::before {
-      position: absolute;
-      top: 50%;
-      left: 0;
-      width: 1px;
-      height: 14px;
-      content: '';
-      background: #dcdee5;
-      transform: translateY(-50%);
-    }
-  }
-
+  .bool-icon-yes,
   .bool-icon-yes,
   .bool-icon-no {
     display: inline-flex;

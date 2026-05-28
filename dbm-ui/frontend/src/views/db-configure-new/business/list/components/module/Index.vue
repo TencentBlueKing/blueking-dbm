@@ -75,6 +75,11 @@
           <span class="module-info-item">
             <span class="module-info-label">{{ t('存储层版本') }}：</span>{{ moduleInfo.version || '--' }}
           </span>
+          <span
+            v-if="isTenDBCluster"
+            class="module-info-item">
+            <span class="module-info-label">{{ t('接入层版本') }}：</span>{{ moduleInfo.spiderVersion || '--' }}
+          </span>
           <span class="module-info-item">
             <span class="module-info-label">{{ t('字符集') }}：</span>{{ moduleInfo.charset || '--' }}
           </span>
@@ -148,7 +153,7 @@
 
   import { deleteModuleConfig, getLevelConfig } from '@services/source/configs';
 
-  import { clusterTypeInfos, ClusterTypes, ConfLevels, DBTypes } from '@common/const';
+  import { clusterTypeInfos, ClusterTypes, DBTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
   import type { TreeData, TreeState } from '@views/db-configure-new/common/types';
@@ -183,10 +188,14 @@
     moduleName: '',
     relatedClusterCount: 0,
     relatedClusters: '',
+    spiderVersion: '',
     updatedAt: '',
     updatedBy: '',
     version: '',
   });
+
+  /** 是否为 TenDBCluster（含接入层 spider，需要展示接入层版本） */
+  const isTenDBCluster = computed(() => clusterType.value === ClusterTypes.TENDBCLUSTER);
 
   /** 顶部 tabs: 参数配置 / 操作记录 */
   const activeTopTab = ref((route.query.topTab as string) || 'paramConfig');
@@ -210,6 +219,8 @@
           moduleInfo.version = item.conf_value ?? '';
         } else if (item.conf_name === 'charset') {
           moduleInfo.charset = item.conf_value ?? '';
+        } else if (item.conf_name === 'spider_version') {
+          moduleInfo.spiderVersion = item.conf_value ?? '';
         }
       });
       moduleInfo.updatedBy = result.updated_by || '';
@@ -221,8 +232,8 @@
   const buildRelatedClusters = () => {
     if (!treeNode?.value) return;
 
-    const children = treeNode.value.children || [];
-    const clusterNodes = children.filter((child) => child.levelType === ConfLevels.CLUSTER);
+    // 模块节点的关联集群存放在独立字段 clusters，避免污染 BkTree 的渲染数据
+    const clusterNodes = treeNode.value.clusters || [];
 
     if (clusterNodes.length > 0) {
       moduleInfo.relatedClusterCount = clusterNodes.length;
@@ -277,6 +288,7 @@
       if (node && node.value && node.value.treeId !== old?.value?.treeId) {
         moduleInfo.version = '';
         moduleInfo.charset = '';
+        moduleInfo.spiderVersion = '';
         moduleInfo.moduleId = node.value.id;
         moduleInfo.moduleName = node.value.name;
 
@@ -300,7 +312,9 @@
   /** 克隆模块 */
   const handleCloneModule = () => {
     createModule({
+      charset: moduleInfo.charset || '',
       clusterType: clusterType.value,
+      confFile: moduleInfo.version || '',
       from: String(route.name),
       moduleId: String(moduleInfo.moduleId),
       moduleName: moduleInfo.moduleName,
