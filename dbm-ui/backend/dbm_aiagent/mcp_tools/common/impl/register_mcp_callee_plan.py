@@ -17,12 +17,12 @@ from backend.ticket.models import Ticket
 
 
 @bill_response_wrapper
-def register_mcp_callee_plan(callee_plan: McpCalleePlan, username: str) -> Ticket:
+def register_mcp_callee_plan(callee_plan: McpCalleePlan, username: str, ticket_type: TicketType) -> Ticket:
     ticket_param = {
-        "ticket_type": TicketType.REGISTER_MCP_CALLEE_PLAN,
-        "remark": TicketType.REGISTER_MCP_CALLEE_PLAN,
+        "ticket_type": ticket_type,
+        "remark": ticket_type,
         "creator": username,
-        "helpers": ["admin"],
+        "helpers": [],
         "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
         "details": {
             "plan_id": callee_plan.pk,
@@ -36,7 +36,7 @@ def register_mcp_callee_plan(callee_plan: McpCalleePlan, username: str) -> Ticke
 
     slz = RegisterMcpCalleePlanDetailSerializer(data=ticket_param["details"])
     slz.context["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
-    slz.context["ticket_type"] = TicketType.REGISTER_MCP_CALLEE_PLAN
+    slz.context["ticket_type"] = TicketType.MYSQL_REGISTER_MCP_CALLEE_PLAN
     slz.is_valid(raise_exception=True)
 
     return Ticket.create_ticket(**ticket_param)

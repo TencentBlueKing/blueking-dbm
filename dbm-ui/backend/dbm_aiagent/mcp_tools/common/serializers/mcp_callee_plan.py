@@ -11,6 +11,8 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.configuration.constants import DBType
+
 
 class TzAwareDateTimeField(serializers.DateTimeField):
     def enforce_timezone(self, value):
@@ -25,8 +27,4 @@ class RegisterCalleePlanInputSerializer(serializers.Serializer):
     time_window_start = TzAwareDateTimeField(help_text=_("计划生效起始时间, ISO 8601 格式且必须包含时区信息"))
     time_window_end = TzAwareDateTimeField(help_text=_("计划生效截止时间, ISO 8601 格式且必须包含时区信息"))
     max_call_count = serializers.IntegerField(help_text=_("最大调用次数"), min_value=1)
-
-
-# class RegisterCalleePlanOutputSerializer(serializers.Serializer):
-#     id = serializers.IntegerField(help_text=_("计划记录 ID"))
-#     callee_mcp_id = serializers.CharField(help_text=_("被调用的 MCP 工具 operation_id"))
+    db_type = serializers.ChoiceField(choices=DBType.get_choices(), help_text=_("db 类型"))
