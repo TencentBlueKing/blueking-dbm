@@ -33,26 +33,38 @@
           v-for="(item, index) in dataList"
           :key="index"
           class="mongo-access-entry-item">
-          <span class="mongo-access-entry-item-label">{{ item.label }}：</span>
-          <span class="mongo-access-entry-item-value">
-            <span>{{ item.value || '--' }}</span>
-            <BkButton
-              v-if="item.password && isPasswordExits"
+          <div class="mongo-access-entry-item-label">
+            {{ item.label }}
+            <BkTag
+              v-if="item.tag"
               class="ml-4"
-              text
-              theme="primary"
-              @click="handlePasswordShow">
-              <DbIcon type="visible1" />
-            </BkButton>
-            <BkButton
-              v-bk-tooltips="t('复制xxx', [item.label])"
-              class="copy-btn"
-              text
-              theme="primary"
-              @click="execCopy(item.value)">
-              <DbIcon type="copy" />
-            </BkButton>
-          </span>
+              size="small"
+              theme="info">
+              {{ item.tag }}
+            </BkTag>
+            ：
+          </div>
+          <div class="mongo-access-entry-item-value">
+            <div>
+              <span>{{ item.value || '--' }}</span>
+              <BkButton
+                v-if="item.password && isPasswordExits"
+                class="ml-4"
+                text
+                theme="primary"
+                @click="handlePasswordShow">
+                <DbIcon type="visible1" />
+              </BkButton>
+              <BkButton
+                v-bk-tooltips="t('复制xxx', [item.label])"
+                class="copy-btn"
+                text
+                theme="primary"
+                @click="execCopy(item.value)">
+                <DbIcon type="copy" />
+              </BkButton>
+            </div>
+          </div>
         </div>
       </div>
       <div
@@ -90,6 +102,7 @@
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -101,7 +114,7 @@
   import { getClusterEntries } from '@services/source/clusterEntry';
   import { getPassword } from '@services/source/mongodb';
 
-  import { execCopy } from '@utils';
+  import { compareVersions, execCopy } from '@utils';
 
   interface Props {
     data: MongodbModel | MongodbDetailModel;
@@ -173,21 +186,35 @@
     const entryAccess = getEntryAccess(data, entryDomain);
     const entryAccessClb = getEntryAccessClb(data, clusterEntryList);
 
-    const infoList = [
-      {
-        label: t('集群名称'),
-        value: data.cluster_name,
-      },
-      {
-        label: t('域名'),
-        value: entryDomain,
-      },
-      {
-        label: t('连接字符串'),
-        password: true,
-        value: entryAccess,
-      },
-    ];
+    const infoList: {
+      label: string;
+      password?: boolean;
+      tag?: string;
+      value: string;
+    }[] = _.filter(
+      [
+        {
+          label: t('集群名称'),
+          value: data.cluster_name,
+        },
+        {
+          label: t('域名'),
+          value: entryDomain,
+        },
+        props.data.isShardCluster && {
+          label: t('mongos 列表'),
+          password: true,
+          tag: compareVersions(props.data.major_version.split('-')[1], '4.2') >= 0 ? t('推荐') : '',
+          value: getEntryAccess(data, data.mongos.map((item) => `${item.ip}:${item.port}`).join(',')),
+        },
+        {
+          label: t('连接字符串'),
+          password: true,
+          value: entryAccess,
+        },
+      ],
+      (item) => !!item,
+    );
 
     if (entryAccessClb) {
       infoList.push({
@@ -294,7 +321,7 @@
 
       .mongo-access-entry-item-label {
         flex-shrink: 0;
-        width: 118px;
+        width: 130px;
         text-align: right;
       }
 
