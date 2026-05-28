@@ -48,6 +48,7 @@ class PitrRestoreSubTask(BaseSubTask):
                     "port": int(exec_node.port),
                     "adminUsername": dba_user,
                     "adminPassword": dba_pwd,
+                    "gracefulStop": False,
                     "srcAddr": sub_payload["task_ids"][0]["instance"],
                     "recoverTimeStr": sub_payload["dst_time"],
                     "dryRun": False,

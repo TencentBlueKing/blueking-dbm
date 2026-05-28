@@ -42,6 +42,7 @@ class PitrRebuildSubTask(BaseSubTask):
                     "port": int(exec_node.port),
                     "adminUsername": dba_user,
                     "adminPassword": dba_pwd,
+                    "gracefulStop": False,
                     "src_cluster": src_cluster.__json__(),
                     "dst_cluster": dst_cluster.__json__(),
                     "src_shard": src_shard.__json__(),

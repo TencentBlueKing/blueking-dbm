@@ -84,6 +84,7 @@ RUN_DF_SMOKE_TEST=1 go test -vet=off ./pkg/atomjobs/atommongodb/... -run '^TestD
 | `tests/e2e/mongo_sharded_cluster_deploy.sh`          | 分片集群部署与验收                                            | `TEST_MONGOS_PORT`、`TEST_CONFIGSVR_PORT`、`TEST_SHARD_BASE_PORT`                                                   |
 | `tests/e2e/mongo_add_user_idempotent.sh`             | `add_user` 幂等与不匹配失败验证                                | `TEST_PORT`、`TEST_ADMIN_USER`、`TEST_ADMIN_PASS`                                                                   |
 | `tests/e2e/mongo_os_init_e2e.sh`                     | `os_mongo_init` / `mongo_init_shell` 验证（目录、锁文件、内核参数） | `TEST_OS_INIT_USER`、`TEST_OS_INIT_GROUP`、`TEST_OS_INIT_PASSWORD`、`TEST_DATA_DIR`、`TEST_BACKUP_DIR`、`TEST_BIN_DIR` |
+| `tests/e2e/mongo_instance_op_graceful_stop.sh`       | `mongodb_instance_op` 的 `gracefulStop=true/false` 停主验证并恢复 | `TEST_PORT1/2/3`、`TEST_NODE1_IP/2_IP/3_IP`、`TEST_DBA_USER`、`TEST_DBA_PASS`、`TEST_DATA_DIR`、`TEST_BACKUP_DIR`、`TEST_BIN_DIR` |
 
 
 `mongo_os_init_e2e.sh` 额外说明：
