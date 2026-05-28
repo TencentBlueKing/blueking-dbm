@@ -186,7 +186,7 @@ export default class Mongodb extends ClusterBase {
   }
 
   get isMongoReplicaSet() {
-    return this.cluster_type === 'MongoReplicaSet';
+    return this.cluster_type === ClusterTypes.MONGO_REPLICA_SET;
   }
 
   get isNormal() {
@@ -201,6 +201,10 @@ export default class Mongodb extends ClusterBase {
 
   get isOnlineCLB() {
     return this.cluster_entry.some((item) => item.cluster_entry_type === 'clb');
+  }
+
+  get isShardCluster() {
+    return this.cluster_type === ClusterTypes.MONGO_SHARED_CLUSTER;
   }
 
   get isStarting() {
