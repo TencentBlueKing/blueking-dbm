@@ -112,6 +112,9 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_SWITCH_NODES, t('替换 Spider'), {
       dbConsole: 'tendbCluster.toolbox.switchNodes',
     }),
+    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_REBUILD, t('接入层原地重建'), {
+      dbConsole: 'tendbCluster.toolbox.spiderRebuild',
+    }),
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY, t('部署只读接入层'), {
       dbConsole: 'tendbCluster.toolbox.proxySlaveApply',
     }),
