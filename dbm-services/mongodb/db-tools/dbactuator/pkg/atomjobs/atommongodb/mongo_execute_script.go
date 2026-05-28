@@ -314,16 +314,32 @@ func (e *ExecScript) execScript() error {
 		}
 
 		var stderrBuf bytes.Buffer
-		cmdBuilder := mycmd.New(
-			e.Mongo,
-			"-u", e.ConfParams.AdminUsername,
-			"-p", mycmd.Password(e.ConfParams.AdminPassword),
-			"--host", e.execIP,
-			"--port", strconv.Itoa(e.execPort),
-			"--authenticationDatabase=admin",
-			"--quiet",
-			script,
-		)
+		var cmdBuilder *mycmd.CmdBuilder
+		if e.MainVersion >= 5.0 {
+			cmdBuilder = mycmd.New(
+				e.Mongo,
+				"-u", e.ConfParams.AdminUsername,
+				"-p", mycmd.Password(e.ConfParams.AdminPassword),
+				"--host", e.execIP,
+				"--port", strconv.Itoa(e.execPort),
+				"--authenticationDatabase=admin",
+				"--quiet",
+				"--file",
+				script,
+			)
+		} else {
+			cmdBuilder = mycmd.New(
+				e.Mongo,
+				"-u", e.ConfParams.AdminUsername,
+				"-p", mycmd.Password(e.ConfParams.AdminPassword),
+				"--host", e.execIP,
+				"--port", strconv.Itoa(e.execPort),
+				"--authenticationDatabase=admin",
+				"--quiet",
+				script,
+			)
+		}
+
 		maskedCmdline := cmdBuilder.GetCmdLine("", true)
 		ret, err := cmdBuilder.Run3(timeout, resultF, &stderrBuf)
 		if err != nil {
