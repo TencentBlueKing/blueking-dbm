@@ -21,7 +21,7 @@
     @change="handleChange">
     <BkOptionGroup group-style="divider">
       <BkOption
-        v-for="item in resourceDbTypes"
+        v-for="item in readResourceDbTypes"
         :key="item.value"
         :label="item.label"
         :value="item.value" />
@@ -52,7 +52,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { resourceDbTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
+  import { readResourceDbTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
 
   interface Props {
     defaultValue?: string;

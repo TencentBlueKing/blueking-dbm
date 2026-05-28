@@ -11,7 +11,7 @@ import { useGlobalBizs } from '@stores';
 import {
   DeviceClass,
   deviceClassDisplayMap,
-  resourceDbTypes,
+  readResourceDbTypes,
   specialOptionLabelMap,
   SpecialOptions,
 } from '@common/const';
@@ -42,7 +42,7 @@ export default (props: any) => {
       },
       {
         id: 'resource_type',
-        list: resourceDbTypes.concat({
+        list: readResourceDbTypes.concat({
           label: specialOptionLabelMap[SpecialOptions.PUBLIC],
           value: SpecialOptions.PUBLIC,
         }),
