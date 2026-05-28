@@ -906,7 +906,7 @@ class RedisDBMeta(object):
         return True
 
     # 刷新bkcc 服务实例，触发gse 重新下发GSE，插件配置
-    def flush_ges_exporter_config(self) -> bool:
+    def flush_gse_exporter_config(self) -> bool:
         from backend.db_meta.models import Cluster
         from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
 
@@ -943,6 +943,16 @@ class RedisDBMeta(object):
             bk_instance_ids = list(instances.values_list("bk_instance_id", flat=True))
             # 触发采集器下发，异步任务，1min后生效
             trigger_operate_collector("redis", machine_type, bk_instance_ids, "INSTALL")
+        return True
+
+    def re_standardize_cluster(self) -> bool:
+        """
+        重新标准化集群：
+        1. 将集群所有实例转移到 CC 对应的集群模块（刷新 GSE Exporter 配置）
+        2. 触发 GSE 采集器重新下发（重新安装插件配置）
+        """
+        self.flush_gse_exporter_config()
+        self.trigger_operate_collector_reinstall()
         return True
 
     def redis_role_swap_4_scene(self) -> bool:
