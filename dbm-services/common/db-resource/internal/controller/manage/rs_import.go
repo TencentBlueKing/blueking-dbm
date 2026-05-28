@@ -240,6 +240,33 @@ func buildCvmMachList(hosts []*cc.Host) []string {
 	return machIpList
 }
 
+// QueryCvmDetailParam 查询云梯CVM详情请求参数
+type QueryCvmDetailParam struct {
+	Ips []string `json:"ips" binding:"required,gt=0,dive,ip"`
+}
+
+// QueryCvmDetail 按 IP 列表查询云梯 CVM 详情
+func (c *MachineResourceHandler) QueryCvmDetail(r *rf.Context) {
+	var input QueryCvmDetailParam
+	if err := c.Prepare(r, &input); err != nil {
+		logger.Error("Prepare Error %s", err.Error())
+		return
+	}
+	if !config.AppConfig.Yunti.IsNotEmpty() {
+		err := fmt.Errorf("yunti config is empty, cvm detail api is unavailable")
+		logger.Error(err.Error())
+		c.SendResponse(r, err, nil)
+		return
+	}
+	cvmInfoMap, err := getCvmMachDetailInfo(lo.Uniq(input.Ips))
+	if err != nil {
+		logger.Error("query cvm detail failed: %s", err.Error())
+		c.SendResponse(r, err, nil)
+		return
+	}
+	c.SendResponse(r, nil, cvmInfoMap)
+}
+
 // transHostInfoToDbModule 获取的到的主机信息赋值给db model
 func (p ImportMachParam) transHostInfoToDbModule(h *cc.Host, bkCloudId int, label []byte) model.TbRpDetail {
 	return buildTbRpItem(h, p.ForBiz, p.BkBizId, bkCloudId, p.RsType, label, p.Operator)
