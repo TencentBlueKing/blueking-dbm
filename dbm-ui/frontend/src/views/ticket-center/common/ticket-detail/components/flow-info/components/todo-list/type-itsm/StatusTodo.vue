@@ -82,6 +82,7 @@
     () =>
       props.data.operators.includes(username) ||
       props.ticketData.todo_helpers.includes(username) ||
-      (isSuperuser && props.ticketData.todo_helpers.includes('admin')),
+      (isSuperuser &&
+        (props.ticketData.todo_helpers.includes('admin') || props.ticketData.todo_operators.includes('admin'))),
   );
 </script>
