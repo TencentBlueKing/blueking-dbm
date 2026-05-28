@@ -72,28 +72,28 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@views/db-configure-new/business/create-module/SqlServer.vue'),
       },
       {
-        path: 'create-db-module/:type/:bk_biz_id/',
+        path: 'clone-db-module/:type/:bk_biz_id/',
         name: 'SelfServiceCloneDbModule',
         meta: {
           navName: t('克隆模块'),
         },
-        component: () => import('@views/db-configure-new/business/create-module/Index.vue'),
+        component: () => import('@views/db-configure-new/business/clone-module/Index.vue'),
       },
       {
-        path: 'create-module/:bizId(\\d+)',
+        path: 'clone-module/:bizId(\\d+)',
         name: 'cloneSpiderModule',
         meta: {
           navName: t('克隆模块'),
         },
-        component: () => import('@views/db-configure-new/business/create-module/TendbCluster.vue'),
+        component: () => import('@views/db-configure-new/business/clone-module/TendbCluster.vue'),
       },
       {
-        path: 'sqlserver-create-db-module/:ticketType/:bizId/',
+        path: 'sqlserver-clone-db-module/:ticketType/:bizId/',
         name: 'SqlServerCloneDbModule',
         meta: {
           navName: t('克隆模块'),
         },
-        component: () => import('@views/db-configure-new/business/create-module/SqlServer.vue'),
+        component: () => import('@views/db-configure-new/business/clone-module/SqlServer.vue'),
       },
     ],
   },

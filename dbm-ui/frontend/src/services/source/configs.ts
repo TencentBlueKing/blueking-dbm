@@ -36,6 +36,11 @@ export interface ParameterConfigItem {
   level_name?: string;
   need_restart?: number;
   op_type: string;
+  up_level_value?: {
+    conf_value: string;
+    level_name: string;
+    level_value: string;
+  };
   value_allowed: string;
   value_default?: string;
   value_type: string;
@@ -557,4 +562,89 @@ export function deleteBackupConfig(params: {
   version?: string;
 }) {
   return http.post<null>(`${path}/delete_level_value/`, params);
+}
+
+/**
+ * 克隆模块查询 - 单个参数项
+ */
+export interface CloneConfItem {
+  conf_name: string;
+  conf_value: string;
+  description?: string;
+  /** 差异类型推断 */
+  diff_type?: 'changed' | 'new' | 'none' | 'removed';
+  flag_disable?: number;
+  flag_encrypt?: number;
+  flag_locked?: number;
+  flag_readonly?: number;
+  flag_visible?: number;
+  /** 级别名称 */
+  level_name: string;
+  level_value: string;
+  need_restart?: number;
+  op_type?: string;
+  /** 源版本值（对比用） */
+  source_conf_value?: string;
+  /** 级别：0=平台级(plat), 1=业务/应用级(app) */
+  stage: number;
+  /**
+   * 上一级配置信息（克隆场景下通常为 null）
+   */
+  up_level_value?: {
+    conf_value?: string;
+    level_name?: string;
+    level_value?: string | number;
+  } | null;
+  /** 允许值（如 "OFF | ON"） */
+  value_allowed?: string;
+  /** 默认值 */
+  value_default?: string;
+  /** 值来源推断 */
+  value_source?: 'custom' | 'source';
+  /** 值类型（如 STRING） */
+  value_type?: string;
+  /** 值子类型（如 ENUM） */
+  value_type_sub?: string;
+}
+
+/**
+ * 克隆模块配置查询对比结果
+ */
+export interface CloneModuleQueryResult {
+  bk_biz_id: string;
+  conf_file_info: {
+    conf_file: string;
+    conf_file_lc: string;
+    conf_type: string;
+    conf_type_lc: string;
+    created_at: string;
+    description: string;
+    namespace: string;
+    namespace_info: string;
+    updated_at: string;
+    updated_by: string;
+  };
+  /** 废弃的参数名列表（源版本有但新版本不兼容） */
+  conf_names_deprecated: string[] | null;
+  /** 值差异详情 { conf_name: { source?, target? } } */
+  conf_names_value_diff: Record<string, string>;
+  /** 值被修改过的参数名列表（自定义） */
+  conf_names_value_modified: string[] | null;
+  /** 参数内容（key=conf_name） */
+  content: Record<string, CloneConfItem>;
+  level_name: string;
+  level_value: string;
+}
+
+export function moduleCloneQuery(params: {
+  conf_type: string;
+  meta_cluster_type: string;
+  source_bk_biz_id: string;
+  source_conf_file: string;
+  source_module_id: string;
+  target_bk_biz_id: string;
+  target_conf_file: string;
+  target_module_id?: string | number;
+}) {
+  return http.post<CloneModuleQueryResult>(`${path}/module_clone_query/`, params);
 }

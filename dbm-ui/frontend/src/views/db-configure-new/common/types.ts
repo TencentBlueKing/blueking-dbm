@@ -20,6 +20,8 @@ import type { ConfLevels } from '@common/const';
  */
 export type TreeData = {
   children: TreeData[];
+  /** 模块下挂载的集群列表（不进入树渲染，仅用于展示"关联集群"等业务信息） */
+  clusters?: TreeData[];
   data?: BizConfTopoTreeModel;
   id: number;
   isOpen?: boolean;

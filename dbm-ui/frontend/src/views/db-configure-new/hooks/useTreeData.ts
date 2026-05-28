@@ -221,7 +221,17 @@ export const useTreeData = (treeState: TreeState) => {
     { immediate: true },
   );
 
-  function createModule(query?: { clusterType?: string; from?: string; moduleId?: string; moduleName?: string }) {
+  function createModule(query?: {
+    /** 源模块字符集（克隆场景） */
+    charset?: string;
+    clusterType?: string;
+    /** 源配置文件/版本（克隆场景，如 MySQL-8.0） */
+    confFile?: string;
+    from?: string;
+    /** 源模块 ID（克隆场景，即当前模块 ID） */
+    moduleId?: string;
+    moduleName?: string;
+  }) {
     if (!clusterType?.value) return;
 
     const ticketTypeMap = {
@@ -232,10 +242,12 @@ export const useTreeData = (treeState: TreeState) => {
     } as Record<string, string>;
 
     const baseQuery = {
-      ...(query?.clusterType && { clusterType: query.clusterType }),
+      ...(query?.clusterType && { cluster_type: query.clusterType }),
       ...(query?.from && { from: query.from }),
-      ...(query?.moduleId && { moduleId: query.moduleId }),
-      ...(query?.moduleName && { moduleName: query.moduleName }),
+      ...(query?.moduleId && { module_id: query.moduleId }),
+      ...(query?.moduleName && { module_name: query.moduleName }),
+      ...(query?.confFile && { conf_file: query.confFile }),
+      ...(query?.charset && { charset: query.charset }),
     };
 
     // 是否克隆模块
@@ -272,6 +284,10 @@ export const useTreeData = (treeState: TreeState) => {
 
   /**
    * 格式化拓扑树节点数据
+   *
+   * 注意：cluster 级节点不进入树渲染（被 filter 掉），但模块（module）需要保留挂载在其下的
+   * 集群信息以供"关联集群"展示，因此在构造 module 节点时把原始 cluster children
+   * 单独抽取并赋值到 clusters 字段。
    */
   function formatTreeData(data: BizConfTopoTreeModel[], parentId: string): TreeData[] {
     if (data.length === 0) {
@@ -282,10 +298,27 @@ export const useTreeData = (treeState: TreeState) => {
       .filter((item) => item.obj_id !== ConfLevels.CLUSTER)
       .map((item) => {
         const treeId = `${item.obj_id}-${item.instance_id}`;
-        const children =
-          item.obj_id === ConfLevels.MODULE ? [] : item.children ? formatTreeData(item.children, treeId) : [];
+        const isModule = item.obj_id === ConfLevels.MODULE;
+        const children = isModule ? [] : item.children ? formatTreeData(item.children, treeId) : [];
+        // 模块节点：从原始 children 中抽取 cluster 子节点
+        const clusters = isModule
+          ? (item.children || [])
+              .filter((child) => child.obj_id === ConfLevels.CLUSTER)
+              .map((child) => ({
+                children: [],
+                data: child,
+                id: child.instance_id,
+                levelType: child.obj_id,
+                // 关联集群展示使用 extra.domain（业务可识别的访问入口），instance_name 仅作 fallback
+                name: child.extra?.domain || child.instance_name,
+                parentId: treeId,
+                tag: confLevelInfos[child.obj_id].tagText,
+                treeId: `${child.obj_id}-${child.instance_id}`,
+              }))
+          : undefined;
         return {
           children,
+          ...(clusters ? { clusters } : {}),
           data: item,
           id: item.instance_id,
           levelType: item.obj_id,

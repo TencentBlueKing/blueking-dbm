@@ -60,22 +60,22 @@
           {{ t('仅显示自定义') }}
         </BkCheckbox>
         <DbQuickSearch
-          v-model="paramSearchValue"
-          :data="paramQuickSearchData"
+          v-model="searchValue"
+          :data="quickSearchData"
           :placeholder="t('搜索参数名_当前值_允许值_重启生效')"
           style="width: 500px"
-          @change="handleParamSearchChange" />
+          @change="refreshTable" />
       </div>
     </div>
     <DbTable
       ref="paramTableRef"
       :data-source="paramDataSource"
       :disable-select-method="(row: any) => row.flag_readonly === 1"
-      :filter-value="filterValue"
+      :filter-value="searchValue"
       :fixed-pagination="fixedPagination"
       :row-key="rowKey"
       :selectable="selectable"
-      @clear-search="handleParamSearchChange"
+      @clear-search="refreshTable"
       @filter-change="handleFilterChange"
       @request-success="handleRequestSuccess"
       @selection="handleSelectionChange">
@@ -257,7 +257,7 @@
               {{ t('编辑') }}
             </BkButton>
             <BkButton
-              v-if="row.level_name === levelName"
+              v-if="row.level_name === levelName && row.flag_readonly !== 1"
               text
               theme="primary"
               @click="handleShowRestoreInfoBox(row)">
@@ -363,8 +363,8 @@
   const rowKeyField = computed(() => props.rowKey as keyof ConfItem);
 
   // 参数搜索
-  const paramSearchValue = ref<Record<string, any>>({});
-  const paramQuickSearchData = [
+  const searchValue = ref<Record<string, any>>({});
+  const quickSearchData = [
     { id: 'conf_name', name: t('参数名'), type: 'input' as const },
     { id: 'conf_value', name: t('当前值'), type: 'input' as const },
     { id: 'value_allowed', name: t('允许值'), type: 'input' as const },
@@ -385,7 +385,6 @@
   const selectedRows = ref<ConfItem[]>([]);
 
   // 表格列筛选
-  const filterValue = ref<Record<string, string>>({});
   const needRestartFilter = {
     component: markRaw(MultipleSelect),
     name: t('重启生效'),
@@ -493,29 +492,20 @@
     // 合并本地新增项（排在前面）+ 服务端数据
     let data = [...pendingAddedItems.value, ...allConfItems.value];
 
-    // 前端搜索过滤
-    const filters = paramSearchValue.value;
+    // 前端搜索 + 列筛选统一过滤
+    const filters = searchValue.value;
     if (Object.keys(filters).length > 0) {
       data = data.filter((item) =>
         Object.entries(filters).every(([key, val]) => {
           if (!val) return true;
           if (key === 'need_restart') {
-            // need_restart 是多选，值为逗号分隔的字符串如 "1,0"
-            const searchValues = String(val).split(',');
-            return searchValues.includes(String(item.need_restart));
+            return val.split(',').includes(String(item.need_restart));
           }
           const search = String(val).toLowerCase();
           const fieldValue = String((item as Record<string, any>)[key] ?? '').toLowerCase();
           return fieldValue.includes(search);
         }),
       );
-    }
-
-    // 列筛选过滤
-    const needRestartValue = filterValue.value.need_restart;
-    if (needRestartValue) {
-      const values = Array.isArray(needRestartValue) ? needRestartValue : [needRestartValue];
-      data = data.filter((item) => values.includes(String(item.need_restart)));
     }
 
     // 仅显示自定义
@@ -614,11 +604,6 @@
     { immediate: true },
   );
 
-  /** 搜索变化 */
-  const handleParamSearchChange = () => {
-    refreshTable();
-  };
-
   /** 选中变化 */
   const handleSelectionChange = (_keys: string[], list: ConfItem[]) => {
     selectedRows.value = list;
@@ -642,10 +627,9 @@
     });
   };
 
-  /** 过滤器变化 */
-  const handleFilterChange = (val: Record<string, string>) => {
-    filterValue.value = val;
-    refreshTable();
+  /** 过滤器变化（列筛选 → 同步到 searchValue） */
+  const handleFilterChange = (filterVal: Record<string, string>) => {
+    searchValue.value = filterVal;
   };
 
   /** 数据请求成功后重新初始化 tippy（含分页切换场景） */

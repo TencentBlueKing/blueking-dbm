@@ -5265,6 +5265,11 @@
   "确认恢复默认值？": "Confirm Restore Default?",
   "恢复后，该参数的值降默认继承父级的值，随父级内容变化": "After restoring, the parameter value will inherit from the parent level by default",
   "确认批量恢复 n 个参数默认值？": "Confirm batch restore {n} parameter defaults?",
+  "自动跳过": "Auto skipped",
+  "批量恢复_跳过提示": "Auto skipped {n} parameter(s) (read-only or already default), not affected by this operation.",
+  "本次将影响以下": "The following",
+  "确认批量恢复默认值": "Confirm Batch Restore Defaults",
+  "已选 n 个参数": "{n} parameter(s) selected",
   "参数名称_:_name": "Parameter: {name}",
   "批量编辑_clusterType_参数": "Batch Edit [{clusterType}] Parameters",
   "已选 : n 个参数": "Selected: {n} parameters",
@@ -5311,5 +5316,10 @@
   "填写示例_STRING_DURATION": "Example: [1m,60m]; Unit s(sec) / m(min) / h(hour) / d(day = 24 hours)",
   "填写示例_STRING_ENUM": "Example: ROW\\|MIXED\\|STATEMENT; Values separated by \\|, business can select only one",
   "填写示例_STRING_ENUMS": "Example: read,write,admin; Values separated by comma, business can multi-select",
+  "源版本": "Source Version",
+  "源字符集": "Source Charset",
+  "请先选择目标数据库版本": "Please select the target database version first",
+  "共n个参数将不进入新模块": "{currentTab}: {n} parameters will not be included in the new module",
+  "废弃参数详情": "Deprecated Parameters",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

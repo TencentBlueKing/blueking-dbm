@@ -26,32 +26,15 @@
           @click="handleBatchEdit">
           {{ t('批量编辑') }}
         </BkButton>
-        <BkPopConfirm
-          :cancel-text="t('取消')"
-          :confirm-text="t('确认恢复')"
-          :title="
-            t('确认批量恢复 n 个参数默认值？', {
-              n: selectedRows.filter((item) => item.level_name === levelName).length,
-            })
-          "
-          trigger="click"
-          :width="275"
-          @confirm="handleRestoreDefault">
-          <template #content>
-            <div
-              class="mb-16"
-              style="line-height: 20px">
-              <p>
-                {{ t('恢复后，该参数的值降默认继承父级的值，随父级内容变化') }}
-              </p>
-            </div>
-          </template>
-          <span @click.stop>
-            <BkButton :disabled="selectedRows.every((item) => item.level_name !== levelName)">
-              {{ t('恢复默认') }}
-            </BkButton>
-          </span>
-        </BkPopConfirm>
+        <BkButton
+          v-bk-tooltips="{
+            content: t('请勾选参数'),
+            disabled: selectedRows.length > 0,
+          }"
+          :disabled="selectedRows.length === 0"
+          @click="handleShowBatchRestoreInfoBox">
+          {{ t('恢复默认') }}
+        </BkButton>
       </div>
       <div class="param-operations-right">
         <BkCheckbox
@@ -60,21 +43,21 @@
           {{ t('仅显示自定义') }}
         </BkCheckbox>
         <DbQuickSearch
-          v-model="paramSearchValue"
-          :data="paramQuickSearchData"
+          v-model="searchValue"
+          :data="quickSearchData"
           :placeholder="t('搜索参数名_当前值_允许值_重启生效')"
           style="width: 500px"
-          @change="handleParamSearchChange" />
+          @change="refreshTable" />
       </div>
     </div>
     <DbTable
       ref="paramTableRef"
       :data-source="paramDataSource"
-      :filter-value="filterValue"
+      :filter-value="searchValue"
       :fixed-pagination="fixedPagination"
       :row-key="rowKey"
       :selectable="selectable"
-      @clear-search="handleParamSearchChange"
+      @clear-search="refreshTable"
       @filter-change="handleFilterChange"
       @request-success="handleRequestSuccess"
       @selection="handleSelectionChange">
@@ -255,11 +238,11 @@
               {{ t('编辑') }}
             </BkButton>
             <BkButton
-              v-if="row.level_name === levelName"
+              v-if="(row.level_name === levelName || isCancelUseParam(row)) && row.flag_readonly !== 1"
               text
               theme="primary"
               @click="handleShowRestoreInfoBox(row)">
-              {{ t('恢复默认') }}
+              {{ isCancelUseParam(row) ? t('取消使用') : t('恢复默认') }}
             </BkButton>
           </template>
           <template v-else> -- </template>
@@ -293,6 +276,7 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { ConfLevels } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
   import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
@@ -351,8 +335,8 @@
   const rowKeyField = computed(() => props.rowKey as keyof ConfItem);
 
   // 参数搜索
-  const paramSearchValue = ref<Record<string, any>>({});
-  const paramQuickSearchData = [
+  const searchValue = ref<Record<string, any>>({});
+  const quickSearchData = [
     { id: 'conf_name', name: t('参数名'), type: 'input' as const },
     // { id: 'value_default', name: t('默认值'), type: 'input' as const },
     { id: 'conf_value', name: t('当前值'), type: 'input' as const },
@@ -374,7 +358,6 @@
   const selectedRows = ref<ConfItem[]>([]);
 
   // 表格列筛选
-  const filterValue = ref<Record<string, string>>({});
   const needRestartFilter = {
     component: markRaw(MultipleSelect),
     name: t('重启生效'),
@@ -408,6 +391,19 @@
 
   // 仅显示自定义
   const showCustomOnly = ref(false);
+
+  /**
+   * 判断该参数是否为"取消使用"形态。
+   *
+   * 规则：当行的"上一级配置"层级为 PLAT（平台），且 flag_visible === 0（业务默认不可见）时，
+   * 该参数是用户通过"添加参数"加入的；其语义不是"恢复为父级值"，
+   * 而是"从当前配置中清除"，因此按钮文案与确认文案均需切换。
+   *
+   * 注意：判定来源是 up_level_value.level_name（上一级层级），而非行自身的 level_name；
+   * 后端在该字段中返回参数所继承的上一级配置层级。
+   */
+  const isCancelUseParam = (row: ConfItem) =>
+    row.up_level_value?.level_name === ConfLevels.PLAT && row.flag_visible === 0;
 
   /** 重置编辑状态 */
   const resetEditingState = () => {
@@ -481,29 +477,20 @@
   const paramDataSource = (params: { limit: number; offset: number }) => {
     let data = [...allConfItems.value];
 
-    // 前端搜索过滤
-    const filters = paramSearchValue.value;
+    // 前端搜索 + 列筛选统一过滤
+    const filters = searchValue.value;
     if (Object.keys(filters).length > 0) {
       data = data.filter((item) =>
         Object.entries(filters).every(([key, val]) => {
           if (!val) return true;
           if (key === 'need_restart') {
-            // need_restart 是多选，值为逗号分隔的字符串如 "1,0"
-            const searchValues = String(val).split(',');
-            return searchValues.includes(String(item.need_restart));
+            return val.split(',').includes(String(item.need_restart));
           }
           const search = String(val).toLowerCase();
           const fieldValue = String((item as Record<string, any>)[key] ?? '').toLowerCase();
           return fieldValue.includes(search);
         }),
       );
-    }
-
-    // 列筛选过滤
-    const needRestartValue = filterValue.value.need_restart;
-    if (needRestartValue) {
-      const values = Array.isArray(needRestartValue) ? needRestartValue : [needRestartValue];
-      data = data.filter((item) => values.includes(String(item.need_restart)));
     }
 
     // 仅显示自定义
@@ -600,11 +587,6 @@
     { immediate: true },
   );
 
-  /** 搜索变化 */
-  const handleParamSearchChange = () => {
-    refreshTable();
-  };
-
   /** 选中变化 */
   const handleSelectionChange = (_keys: string[], list: ConfItem[]) => {
     selectedRows.value = list;
@@ -628,10 +610,9 @@
     });
   };
 
-  /** 过滤器变化 */
-  const handleFilterChange = (val: Record<string, string>) => {
-    filterValue.value = val;
-    refreshTable();
+  /** 过滤器变化（列筛选 → 同步到 searchValue） */
+  const handleFilterChange = (filterVal: Record<string, string>) => {
+    searchValue.value = filterVal;
   };
 
   /** 数据请求成功后重新初始化 tippy（含分页切换场景） */
@@ -774,32 +755,144 @@
     batchEditConfig.isShow = true;
   };
 
-  const handleRestoreDefault = () => {
-    const targets = selectedRows.value.length > 0 ? selectedRows.value : allConfItems.value;
-    const confNames = targets.map((r) => r.conf_name);
-    runRecoverDefault({
-      bk_biz_id: globalBizsStore.currentBizId,
-      conf_file: props.version,
-      conf_names: confNames,
-      conf_type: props.confType,
-      level_name: props.levelName || 'app',
-      level_value: String(props.levelValue ?? globalBizsStore.currentBizId),
-      meta_cluster_type: props.clusterType,
+  /**
+   * 批量恢复默认值 InfoBox
+   *
+   * 规则:
+   * - N: 用户勾选总数
+   * - Y: 自动跳过数（只读 或 当前已是默认值即未自定义）
+   * - X: 实际生效数 = N - Y
+   * - X = 0 时确定按钮置灰，提示"选中的参数均不可恢复"
+   * - Y > 0 时显示 infobar 提醒
+   */
+  const handleShowBatchRestoreInfoBox = () => {
+    const selected = selectedRows.value;
+    const total = selected.length;
+
+    // 判断是否可恢复：
+    // 1) 当前层级自定义参数 且 非只读，或
+    // 2) "取消使用"型参数（level_name === PLAT 且 flag_visible === 0）且非只读
+    const isRestorable = (item: ConfItem) =>
+      item.flag_readonly !== 1 && (item.level_name === props.levelName || isCancelUseParam(item));
+
+    const restorableItems = selected.filter(isRestorable);
+    const skipCount = total - restorableItems.length;
+    const affectCount = restorableItems.length;
+
+    InfoBox({
+      // 用 beforeClose 拦截 X=0 时的"确定"操作
+      beforeClose(action: string) {
+        if (action === 'confirm') {
+          if (affectCount === 0) {
+            return false;
+          }
+          runRecoverDefault({
+            bk_biz_id: globalBizsStore.currentBizId,
+            conf_file: props.version,
+            conf_names: restorableItems.map((r) => r.conf_name),
+            conf_type: props.confType,
+            level_name: props.levelName || 'app',
+            level_value: String(props.levelValue ?? globalBizsStore.currentBizId),
+            meta_cluster_type: props.clusterType,
+          });
+        }
+        return true;
+      },
+      cancelText: t('取消'),
+      confirmText: t('确定'),
+      content: () =>
+        h('div', { class: 'param-batch-restore-content' }, [
+          h(
+            'div',
+            { class: 'restore-desc' },
+            t('确认恢复为上一级配置值？恢复后将重新继承上一级配置，并随上一级配置更新自动同步。'),
+          ),
+          skipCount > 0 &&
+            h('div', { class: 'restore-infobar' }, [
+              h('i', { class: 'infobar-icon bk-dbm-icon db-icon-attention' }),
+              h('span', [
+                t('自动跳过'),
+                h('span', { class: 'infobar-num' }, String(skipCount)),
+                t('个参数 (只读、已是默认值)，不受本次操作影响。'),
+              ]),
+            ]),
+          h('div', { class: 'restore-affect-title' }, [
+            t('本次将影响以下'),
+            h('span', { class: 'affect-num' }, String(affectCount)),
+            t('个参数'),
+          ]),
+          h(
+            'div',
+            { class: 'restore-affect-list' },
+            affectCount === 0
+              ? h('div', { class: 'affect-empty' }, t('无可恢复的参数'))
+              : restorableItems.map((item) => {
+                  const originItem = originConfItems.value.find((o) => o.conf_name === item.conf_name);
+                  const oldVal = item.flag_encrypt === 1 ? '******' : (item.conf_value ?? '--');
+                  const newVal = originItem?.value_default ?? '--';
+                  return h('div', { class: 'affect-item', key: item.conf_name }, [
+                    h('span', { class: 'affect-name' }, item.conf_name),
+                    h('span', { class: 'affect-value' }, [
+                      h(
+                        'span',
+                        {
+                          class: 'value-old',
+                          title: String(oldVal),
+                        },
+                        String(oldVal === '' ? t('空字符串') : oldVal),
+                      ),
+                      h('span', { class: 'value-arrow' }, '→'),
+                      h(
+                        'span',
+                        {
+                          class: 'value-new',
+                          title: String(newVal),
+                        },
+                        String(newVal === '' ? t('空字符串') : newVal),
+                      ),
+                    ]),
+                  ]);
+                }),
+          ),
+        ]),
+      contentAlign: 'left',
+      extCls: affectCount === 0 ? 'param-batch-restore-infobox is-confirm-disabled' : 'param-batch-restore-infobox',
+      headerAlign: 'left',
+      title: () =>
+        h('div', { class: 'restore-title' }, [
+          h('span', { class: 'restore-title-text' }, t('确认批量恢复默认值')),
+          h('span', { class: 'restore-sub-title' }, [
+            t('已选'),
+            h('span', { class: 'sub-title-num' }, String(total)),
+            t('个参数'),
+          ]),
+        ]),
+      width: 560,
     });
   };
 
-  /** 恢复单行默认 */
+  /** 恢复单行默认 / 取消使用 */
   const handleShowRestoreInfoBox = (row: ConfItem) => {
+    const isCancel = isCancelUseParam(row);
     const originItem = originConfItems.value.find((o) => o.conf_name === row.conf_name);
     InfoBox({
       cancelText: t('取消'),
       confirmText: t('确认'),
       content: () =>
-        h('div', { class: 'param-restore-content' }, [
-          h('p', `${t('参数名')}：${row.conf_name}`),
-          h('p', `${t('当前值')}：${row.conf_value} → ${originItem?.value_default ?? '--'}`),
-          h('p', t('恢复后该参数重新继承父级配置，随父级配置更新而自动同步')),
-        ]),
+        h(
+          'div',
+          { class: 'param-restore-content' },
+          isCancel
+            ? [
+                h('p', `${t('参数名')}：${row.conf_name}`),
+                h('p', t('该参数将从当前配置中清除；如需再次使用，可通过【添加参数】重新加入。')),
+              ]
+            : [
+                h('p', `${t('参数名')}：${row.conf_name}`),
+                h('p', `${t('当前值')}：${row.conf_value} → ${originItem?.value_default ?? '--'}`),
+                h('p', t('恢复后该参数重新继承父级配置，随父级配置更新而自动同步')),
+              ],
+        ),
       contentAlign: 'left',
       extCls: 'param-restore-infobox',
       infoType: 'warning',
@@ -814,7 +907,7 @@
           meta_cluster_type: props.clusterType,
         });
       },
-      title: t('确认恢复为默认值？'),
+      title: isCancel ? t('确认不再使用该参数？') : t('确认恢复为默认值？'),
     });
   };
 
@@ -1018,6 +1111,162 @@
         margin-bottom: 0;
         margin-top: 10px;
         padding-top: 10px;
+      }
+    }
+  }
+
+  .param-batch-restore-infobox {
+    .restore-title {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 8px;
+
+      .restore-title-text {
+        font-size: 20px;
+        font-weight: 400;
+        line-height: 28px;
+        color: #313238;
+      }
+    }
+
+    .restore-sub-title {
+      display: inline-flex;
+      align-items: center;
+      padding: 0 8px;
+      font-size: 12px;
+      line-height: 22px;
+      color: #63656e;
+      background: #f0f1f5;
+      border-radius: 2px;
+
+      .sub-title-num {
+        padding: 0 4px;
+        font-weight: 700;
+        color: #3a84ff;
+      }
+    }
+
+    &.is-confirm-disabled {
+      .bk-dialog-footer .bk-button-primary {
+        cursor: not-allowed;
+        background-color: #dcdee5 !important;
+        border-color: #dcdee5 !important;
+        color: #ffffff !important;
+        opacity: 1 !important;
+      }
+    }
+
+    .param-batch-restore-content {
+      font-size: 14px;
+      line-height: 22px;
+      color: #63656e;
+
+      .restore-desc {
+        margin-bottom: 12px;
+      }
+
+      .restore-infobar {
+        display: flex;
+        align-items: center;
+        padding: 8px 12px;
+        margin-bottom: 16px;
+        font-size: 12px;
+        line-height: 20px;
+        background: #fff4e2;
+        border: 1px solid #ffdfac;
+        border-radius: 2px;
+        color: #63656e;
+
+        .infobar-icon {
+          margin-right: 8px;
+          font-size: 14px;
+          color: #ff9c01;
+        }
+
+        .infobar-num {
+          padding: 0 4px;
+          font-weight: 700;
+          color: #ff9c01;
+        }
+      }
+
+      .restore-affect-title {
+        margin-bottom: 8px;
+        font-size: 14px;
+        color: #63656e;
+
+        .affect-num {
+          padding: 0 4px;
+          font-weight: 700;
+          color: #3a84ff;
+        }
+      }
+
+      .restore-affect-list {
+        max-height: 240px;
+        overflow-y: auto;
+        background: #f5f7fa;
+        border-radius: 2px;
+
+        .affect-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 8px 16px;
+          font-size: 12px;
+          line-height: 20px;
+          border-bottom: 1px solid #f0f1f5;
+
+          &:last-child {
+            border-bottom: none;
+          }
+
+          .affect-name {
+            flex-shrink: 0;
+            margin-right: 16px;
+            font-family: 'Roboto Mono', Consolas, Menlo, monospace;
+            color: #313238;
+          }
+
+          .affect-value {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            overflow: hidden;
+            color: #979ba5;
+
+            .value-old,
+            .value-new {
+              max-width: 220px;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
+
+            .value-old {
+              color: #ff9c01;
+            }
+
+            .value-new {
+              font-weight: 700;
+              color: #3a84ff;
+            }
+
+            .value-arrow {
+              margin: 0 8px;
+              color: #c4c6cc;
+            }
+          }
+        }
+
+        .affect-empty {
+          padding: 24px 16px;
+          font-size: 12px;
+          text-align: center;
+          color: #c4c6cc;
+        }
       }
     }
   }
