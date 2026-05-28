@@ -26,6 +26,9 @@ class MysqlProxyRebuildDetailSerializer(TicketBaseValidateSerializerMixin, seria
     infos = serializers.ListField(help_text=_("重建实例列表"), child=ProxyInfoSerializer())
     is_safe = serializers.BooleanField(help_text=_("是否做安全检测"), default=True, required=False)
 
+    def to_representation(self, instance):
+        return instance
+
 
 class MysqlProxyRebuildParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_proxy_rebuild_scene
