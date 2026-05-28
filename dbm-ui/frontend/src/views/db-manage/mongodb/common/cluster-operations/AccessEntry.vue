@@ -33,26 +33,38 @@
           v-for="(item, index) in dataList"
           :key="index"
           class="mongo-access-entry-item">
-          <span class="mongo-access-entry-item-label">{{ item.label }}：</span>
-          <span class="mongo-access-entry-item-value">
-            <span>{{ item.value || '--' }}</span>
-            <BkButton
-              v-if="item.password && isPasswordExits"
+          <div class="mongo-access-entry-item-label">
+            {{ item.label }}
+            <BkTag
+              v-if="item.tag"
               class="ml-4"
-              text
-              theme="primary"
-              @click="handlePasswordShow">
-              <DbIcon type="visible1" />
-            </BkButton>
-            <BkButton
-              v-bk-tooltips="t('复制xxx', [item.label])"
-              class="copy-btn"
-              text
-              theme="primary"
-              @click="execCopy(item.value)">
-              <DbIcon type="copy" />
-            </BkButton>
-          </span>
+              size="small"
+              theme="info">
+              {{ item.tag }}
+            </BkTag>
+            ：
+          </div>
+          <div class="mongo-access-entry-item-value">
+            <div>
+              <span>{{ item.value || '--' }}</span>
+              <BkButton
+                v-if="item.password && isPasswordExits"
+                class="ml-4"
+                text
+                theme="primary"
+                @click="() => handlePasswordShow(item.type)">
+                <DbIcon type="visible1" />
+              </BkButton>
+              <BkButton
+                v-bk-tooltips="t('复制xxx', [item.label])"
+                class="copy-btn"
+                text
+                theme="primary"
+                @click="handleCopy(item.value, item.type)">
+                <DbIcon type="copy" />
+              </BkButton>
+            </div>
+          </div>
         </div>
       </div>
       <div
@@ -90,6 +102,8 @@
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -101,7 +115,7 @@
   import { getClusterEntries } from '@services/source/clusterEntry';
   import { getPassword } from '@services/source/mongodb';
 
-  import { execCopy } from '@utils';
+  import { compareVersions, execCopy } from '@utils';
 
   interface Props {
     data: MongodbModel | MongodbDetailModel;
@@ -115,7 +129,19 @@
 
   const { t } = useI18n();
 
-  const passwordShow = ref(false);
+  const dataList = ref<
+    {
+      label: string;
+      password?: boolean;
+      tag?: string;
+      type: string;
+      value: string;
+    }[]
+  >([]);
+
+  const isMongosPasswordShow = ref(false);
+  const isAccessPasswordShow = ref(false);
+  const isAccessClbPasswordShow = ref(false);
 
   const entryInfo = shallowRef<{
     list: {
@@ -128,25 +154,25 @@
 
   const isPasswordExits = computed(() => passwordData.value && passwordData.value.password);
 
-  const getFormatPassword = () => {
+  const getFormatPassword = (isPasswordShow: boolean) => {
     if (isPasswordExits.value) {
-      return `mongodb://${passwordData.value!.username}:${passwordShow.value ? passwordData.value!.password : '******'}@`;
+      return `mongodb://${passwordData.value!.username}:${isPasswordShow ? passwordData.value!.password : '******'}@`;
     }
     return 'mongodb://{username}:{password}@';
   };
 
-  const getEntryAccess = (data: Props['data'], entryDomain: string) => {
+  const getEntryAccess = (data: Props['data'], entryDomain: string, isPasswordShow: boolean) => {
     if (data.isMongoReplicaSet) {
-      return `${getFormatPassword()}${entryDomain}/?replicaSet=${data.cluster_name}&authSource=admin`;
+      return `${getFormatPassword(isPasswordShow)}${entryDomain}/test?replicaSet=${data.cluster_name}&authSource=admin`;
     }
-    return `${getFormatPassword()}${entryDomain}/?authSource=admin`;
+    return `${getFormatPassword(isPasswordShow)}${entryDomain}/test?authSource=admin`;
   };
 
-  const getEntryAccessClb = (data: Props['data'], clusterEntry: ClusterEntryDetailModel[]) => {
+  const getEntryAccessClb = (data: Props['data'], clusterEntry: ClusterEntryDetailModel[], isPasswordShow: boolean) => {
     if (!data.isMongoReplicaSet) {
       const clbItem = clusterEntry.find((entryItem) => entryItem.cluster_entry_type === 'clbDns');
       if (clbItem) {
-        return `${getFormatPassword()}${clbItem.entry}:${data.cluster_access_port}/?authSource=admin`;
+        return `${getFormatPassword(isPasswordShow)}${clbItem.entry}:${data.cluster_access_port}/test?authSource=admin`;
       }
     }
     return '';
@@ -164,41 +190,6 @@
     }
     return `${data.master_domain}:${data.cluster_access_port}`;
   };
-
-  const dataList = computed(() => {
-    const { data } = props;
-    const clusterEntryList = clusterEntryData.value || [];
-
-    const entryDomain = getEntryDomain(data, clusterEntryList);
-    const entryAccess = getEntryAccess(data, entryDomain);
-    const entryAccessClb = getEntryAccessClb(data, clusterEntryList);
-
-    const infoList = [
-      {
-        label: t('集群名称'),
-        value: data.cluster_name,
-      },
-      {
-        label: t('域名'),
-        value: entryDomain,
-      },
-      {
-        label: t('连接字符串'),
-        password: true,
-        value: entryAccess,
-      },
-    ];
-
-    if (entryAccessClb) {
-      infoList.push({
-        label: t('连接字符串（CLB）'),
-        password: true,
-        value: entryAccessClb,
-      });
-    }
-
-    return infoList;
-  });
 
   const {
     data: clusterEntryData,
@@ -239,6 +230,72 @@
     manual: true,
   });
 
+  const getDataList = () => {
+    const { data } = props;
+    const clusterEntryList = clusterEntryData.value || [];
+
+    const entryDomain = getEntryDomain(data, clusterEntryList);
+    const entryAccess = getEntryAccess(data, entryDomain, isAccessPasswordShow.value);
+    const entryAccessClb = getEntryAccessClb(data, clusterEntryList, isAccessClbPasswordShow.value);
+
+    const infoList: UnwrapRef<typeof dataList> = _.filter(
+      [
+        {
+          label: t('集群名称'),
+          type: 'clusterName',
+          value: data.cluster_name,
+        },
+        {
+          label: t('域名'),
+          type: 'domain',
+          value: entryDomain,
+        },
+        props.data.isShardCluster && {
+          label: t('mongos 列表'),
+          password: true,
+          tag: compareVersions(props.data.major_version.split('-')[1], '4.2') >= 0 ? t('推荐') : '',
+          type: 'mongos',
+          value: getEntryAccess(
+            data,
+            data.mongos.map((item) => `${item.ip}:${item.port}`).join(','),
+            isMongosPasswordShow.value,
+          ),
+        },
+        {
+          label: t('连接字符串'),
+          password: true,
+          type: 'access',
+          value: entryAccess,
+        },
+      ],
+      (item) => !!item,
+    );
+
+    if (entryAccessClb) {
+      infoList.push({
+        label: t('连接字符串（CLB）'),
+        password: true,
+        type: 'accessClb',
+        value: entryAccessClb,
+      });
+    }
+
+    dataList.value = infoList;
+  };
+
+  watch(
+    [
+      () => props.data,
+      clusterEntryData,
+      passwordData,
+      isMongosPasswordShow,
+      isAccessPasswordShow,
+      isAccessClbPasswordShow,
+    ],
+    () => getDataList(),
+    { immediate: true },
+  );
+
   watch(
     isShow,
     () => {
@@ -250,7 +307,9 @@
         runGetPassword({ cluster_id: props.data.id });
       } else {
         entryInfo.value = undefined;
-        passwordShow.value = false;
+        isMongosPasswordShow.value = false;
+        isAccessPasswordShow.value = false;
+        isAccessClbPasswordShow.value = false;
       }
     },
     {
@@ -258,16 +317,48 @@
     },
   );
 
+  const getAccessMap = () => {
+    const entryDomain = getEntryDomain(props.data, clusterEntryData.value || []);
+    const entryAccess = getEntryAccess(props.data, entryDomain, true);
+    const entryAccessClb = getEntryAccessClb(props.data, clusterEntryData.value || [], true);
+    const mongosAccess = getEntryAccess(
+      props.data,
+      props.data.mongos.map((item) => `${item.ip}:${item.port}`).join(','),
+      true,
+    );
+
+    return {
+      access: entryAccess,
+      accessClb: entryAccessClb,
+      mongos: mongosAccess,
+    };
+  };
+
   const handleCopyAll = () => {
-    const content = dataList.value.map((dataItem) => `${dataItem.label}：${dataItem.value}`);
+    const accessMap = getAccessMap();
+    const content = dataList.value.map(
+      (dataItem) =>
+        `${dataItem.label}：${['access', 'accessClb', 'mongos'].includes(dataItem.type) ? accessMap[dataItem.type as keyof typeof accessMap] : dataItem.value}`,
+    );
     if (entryInfo.value) {
       content.push(...entryInfo.value.list.map((valueItem) => `${valueItem.title}：${valueItem.value}`));
     }
     execCopy(content.join('\n'));
   };
 
-  const handlePasswordShow = () => {
-    passwordShow.value = !passwordShow.value;
+  const handleCopy = (value: string, type: string) => {
+    const accessMap = getAccessMap();
+    execCopy(['access', 'accessClb', 'mongos'].includes(type) ? accessMap[type as keyof typeof accessMap] : value);
+  };
+
+  const handlePasswordShow = (type: string) => {
+    if (type === 'mongos') {
+      isMongosPasswordShow.value = !isMongosPasswordShow.value;
+    } else if (type === 'access') {
+      isAccessPasswordShow.value = !isAccessPasswordShow.value;
+    } else if (type === 'accessClb') {
+      isAccessClbPasswordShow.value = !isAccessClbPasswordShow.value;
+    }
   };
 
   const handleClose = () => {
@@ -294,7 +385,7 @@
 
       .mongo-access-entry-item-label {
         flex-shrink: 0;
-        width: 118px;
+        width: 130px;
         text-align: right;
       }
 
