@@ -26,6 +26,9 @@ class TendbClusterSpiderRebuildDetailSerializer(TicketBaseValidateSerializerMixi
 
     infos = serializers.ListField(help_text=_("重建 Spider 实例列表"), child=SpiderClusterInfoSerializer())
 
+    def to_representation(self, instance):
+        return instance
+
 
 class TendbClusterSpiderRebuildParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.rebuild_spider_nodes_scene
