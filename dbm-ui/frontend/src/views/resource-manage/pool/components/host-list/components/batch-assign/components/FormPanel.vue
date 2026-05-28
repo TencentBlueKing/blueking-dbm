@@ -50,7 +50,7 @@
         <BkSelect v-model="formData.resource_type">
           <BkOptionGroup group-style="divider">
             <BkOption
-              v-for="item in resourceDbTypes"
+              v-for="item in editResourceDbTypes"
               :key="item.value"
               :label="item.label"
               :value="item.value" />
@@ -87,7 +87,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { DBTypeInfos, DBTypes, resourceDbTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
+  import { DBTypeInfos, DBTypes, editResourceDbTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
 
   import DbAppSelect from '@components/db-app-select/Index.vue';
 
