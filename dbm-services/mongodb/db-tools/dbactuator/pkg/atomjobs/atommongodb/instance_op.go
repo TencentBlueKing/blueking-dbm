@@ -27,6 +27,7 @@ type instOpParams struct {
 	AdminUsername  string `json:"adminUsername"`
 	AdminPassword  string `json:"adminPassword"`
 	Op             string `json:"op"` // start, stop, check_empty_data, start_standalone
+	GracefulStop   *bool  `json:"gracefulStop,omitempty"`
 	SetName        string `json:"set_name,omitempty"`
 	CurrentVersion string `json:"currentVersion,omitempty"`
 	// OldFullVersion mongodb-x.y.z (upgrade hop source); used by backup_mongodata directory name.
@@ -85,7 +86,7 @@ func (s *instOpJob) Run() error {
 	case "unblock_dbmon":
 		return s.doUnblockDbmon()
 	case "stop":
-		return op.DoStop()
+		return op.DoStopWithOptions(common.StopOptions{Graceful: s.isGracefulStop()})
 	case "start":
 		pid, running, err := op.IsRunning()
 		if err != nil {
@@ -128,15 +129,30 @@ func (s *instOpJob) Run() error {
 	return errors.New("unknown op " + s.ConfParams.Op)
 }
 
+func (s *instOpJob) isGracefulStop() bool {
+	if s.ConfParams.GracefulStop == nil {
+		return true
+	}
+	return *s.ConfParams.GracefulStop
+}
+
 func (s *instOpJob) doBackupMongodata() error {
 	op := s.GetInstanceOp()
-	_, running, err := op.IsRunning()
+	pid, running, err := op.IsRunning()
 	if err != nil {
 		return errors.Wrap(err, "IsRunning check before backup")
 	}
 	if running {
-		return fmt.Errorf("instance %s:%d is still running, refuse to backup data directory",
-			s.ConfParams.IP, s.ConfParams.Port)
+		if pid > 0 {
+			return fmt.Errorf(
+				"instance %s:%d still has TCP LISTEN (pid=%d), shutdown is not completed, refuse to backup data directory",
+				s.ConfParams.IP, s.ConfParams.Port, pid,
+			)
+		}
+		return fmt.Errorf(
+			"instance %s:%d still has TCP LISTEN, shutdown is not completed, refuse to backup data directory",
+			s.ConfParams.IP, s.ConfParams.Port,
+		)
 	}
 	dbPath, err := op.GetDBPathFromConfig()
 	if err != nil {

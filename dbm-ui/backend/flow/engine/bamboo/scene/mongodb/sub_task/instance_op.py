@@ -30,10 +30,21 @@ class InstanceOpSubTask(BaseSubTask):
     """
 
     @classmethod
-    def make_kwargs(cls, file_path, exec_node: MongoNode, op: str, username: str = None) -> dict:
+    def make_kwargs(
+        cls, file_path, exec_node: MongoNode, op: str, username: str = None, graceful_stop: Optional[bool] = None
+    ) -> dict:
         if username is None:
             username = MongoDBManagerUser.DbaUser.value
         user, pwd = MongoUtil.get_mongo_user_password(exec_node.ip, exec_node.port, exec_node.bk_cloud_id, username)
+        payload = {
+            "ip": exec_node.ip,
+            "port": int(exec_node.port),
+            "adminUsername": user,
+            "adminPassword": pwd,
+            "op": op,
+        }
+        if graceful_stop is not None:
+            payload["gracefulStop"] = graceful_stop
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,
@@ -44,13 +55,7 @@ class InstanceOpSubTask(BaseSubTask):
                 "file_path": file_path,
                 "exec_account": "mysql",
                 "sudo_account": "mysql",
-                "payload": {
-                    "ip": exec_node.ip,
-                    "port": int(exec_node.port),
-                    "adminUsername": user,
-                    "adminPassword": pwd,
-                    "op": op,
-                },
+                "payload": payload,
             },
         }
 

@@ -21,6 +21,7 @@ type pitrRebuildClusterParams struct {
 	Port          int                 `json:"port"`
 	AdminUsername string              `json:"adminUsername"`
 	AdminPassword string              `json:"adminPassword"`
+	GracefulStop  *bool               `json:"gracefulStop,omitempty"`
 	SrcCluster    common.MongoCluster `json:"src_cluster"`
 	DstCluster    common.MongoCluster `json:"dst_cluster"`
 	SrcShard      common.MongoSet     `json:"src_shard"`
@@ -89,6 +90,14 @@ func (s *PitrRebuildClusterJob) GetInstanceOp() *common.InstanceOp {
 	)
 }
 
+// isGracefulStop 是否优雅停止. pitrRebuild中将节点反复以单机模式启停以重写元数据，默认不需要gracefulStop。
+func (s *PitrRebuildClusterJob) isGracefulStop() bool {
+	if s.ConfParams.GracefulStop == nil {
+		return false
+	}
+	return *s.ConfParams.GracefulStop
+}
+
 // updateConfigsvr 更新配置服务器
 // return error if failed
 func (s *PitrRebuildClusterJob) updateConfigsvr() error {
@@ -101,7 +110,7 @@ func (s *PitrRebuildClusterJob) updateConfigsvr() error {
 	}
 
 	var op = s.GetInstanceOp()
-	err := op.DoStop()
+	err := op.DoStopWithOptions(common.StopOptions{Graceful: s.isGracefulStop()})
 	if err != nil {
 		return errors.New("stop config server failed")
 	}
@@ -171,7 +180,7 @@ func (s *PitrRebuildClusterJob) updateConfigsvr() error {
 		s.runtime.Logger.Info("update config shard success")
 	}
 
-	err = op.DoStop()
+	err = op.DoStopWithOptions(common.StopOptions{Graceful: s.isGracefulStop()})
 	if err != nil {
 		return errors.New("stop failed")
 	}
@@ -197,7 +206,7 @@ func (s *PitrRebuildClusterJob) updateShardsvr() error {
 	s.runtime.Logger.Info("dst shardinfo %+v", s.ConfParams.DstCluster)
 
 	var op = s.GetInstanceOp()
-	err := op.DoStop()
+	err := op.DoStopWithOptions(common.StopOptions{Graceful: s.isGracefulStop()})
 	if err != nil {
 		return errors.New("stop config server failed")
 	}
@@ -278,7 +287,7 @@ func (s *PitrRebuildClusterJob) updateShardsvr() error {
 		return errors.Wrap(err, "update shardIdentity")
 	}
 
-	err = op.DoStop()
+	err = op.DoStopWithOptions(common.StopOptions{Graceful: s.isGracefulStop()})
 	if err != nil {
 		return errors.New("stop failed")
 	}

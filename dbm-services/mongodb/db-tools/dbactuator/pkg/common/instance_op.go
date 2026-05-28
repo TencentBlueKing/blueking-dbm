@@ -85,6 +85,13 @@ type InstanceOp struct {
 	logger *logger.Logger
 }
 
+// StopOptions controls DoStopWithOptions behavior.
+// Graceful=true: 在停实例前，如果当前节点是primary则先执行rs.stepDown并等待变为SECONDARY，再发送SIGINT。
+// Graceful=false: 跳过stepDown，直接SIGINT关停。
+type StopOptions struct {
+	Graceful bool
+}
+
 // NewInstanceOp 新建一个InstanceOp
 func NewInstanceOp(ip string, port int, user, pass string, logger *logger.Logger) *InstanceOp {
 	return &InstanceOp{
@@ -100,6 +107,11 @@ func NewInstanceOp(ip string, port int, user, pass string, logger *logger.Logger
 
 // DoStop 停止mongod/mongos
 func (inst *InstanceOp) DoStop() error {
+	return inst.DoStopWithOptions(StopOptions{Graceful: true})
+}
+
+// DoStopWithOptions 停止mongod/mongos，并按选项决定是否先做stepDown
+func (inst *InstanceOp) DoStopWithOptions(opts StopOptions) error {
 	listenPID, err := getPidByPort(inst.Port)
 	if err != nil {
 		return errors.Wrap(err, "getPidByPort "+strconv.Itoa(inst.Port))
@@ -107,6 +119,21 @@ func (inst *InstanceOp) DoStop() error {
 	if listenPID == 0 {
 		inst.logger.Info("port %d has no TCP listener", inst.Port)
 		return nil
+	}
+	processNameStr, err := getProcessNameByPID(listenPID)
+	if err != nil {
+		return err
+	}
+	inst.logger.Info("process name: %s, pid: %d", processNameStr, listenPID)
+	if !strings.Contains(processNameStr, "mongod") && !strings.Contains(processNameStr, "mongos") {
+		return fmt.Errorf("port %d is occupied by non-mongo process %q (pid=%d), stop aborted", inst.Port, processNameStr, listenPID)
+	}
+	if opts.Graceful {
+		if err = inst.stepDownIfPrimary(processNameStr); err != nil {
+			return errors.Wrap(err, "stepDownIfPrimary before stop")
+		}
+	} else {
+		inst.logger.Info("graceful stop disabled, skip stepDown before kill -2 on %s", inst.Addr())
 	}
 	maxRetry := 10
 	for i := 0; i < maxRetry; i++ {
@@ -118,11 +145,10 @@ func (inst *InstanceOp) DoStop() error {
 		} else if pid == 0 {
 			return inst.waitPortRelease(maxRetry, 10*time.Second)
 		} else if pid > 0 {
-			processName, err := os.ReadFile(fmt.Sprintf("/proc/%d/comm", pid))
+			processNameStr, err := getProcessNameByPID(pid)
 			if err != nil {
-				return errors.Wrap(err, "read process name from /proc/"+strconv.Itoa(pid)+"/comm")
+				return err
 			}
-			processNameStr := strings.TrimSpace(string(processName))
 			inst.logger.Info("process name: %s, pid: %d", processNameStr, pid)
 			if strings.Contains(processNameStr, "mongod") || strings.Contains(processNameStr, "mongos") {
 				inst.logger.Info("kill pid %d (process name: %s) by signal 2", pid, processNameStr)
@@ -144,6 +170,95 @@ func (inst *InstanceOp) DoStop() error {
 		return nil
 	}
 	return fmt.Errorf("port %d still in use after %d retries, stop failed", inst.Port, maxRetry)
+}
+
+func (inst *InstanceOp) stepDownIfPrimary(processName string) error {
+	if !strings.Contains(processName, "mongod") {
+		inst.logger.Info("process %s is not mongod, skip stepDown before stop", processName)
+		return nil
+	}
+
+	isMasterResult, err := inst.IsMasterDirect()
+	if err != nil {
+		return errors.Wrap(err, "IsMaster before stop")
+	}
+	if isMasterResult.SetName == "" || isMasterResult.Primary == "" {
+		inst.logger.Info("instance %s is not replicaset primary candidate, skip stepDown", inst.Addr())
+		return nil
+	}
+	if !isMasterResult.IsMaster {
+		inst.logger.Info("instance %s is not primary (primary=%s), skip stepDown", inst.Addr(), isMasterResult.Primary)
+		return nil
+	}
+
+	inst.logger.Info("instance %s is primary, start stepDown before kill -2", inst.Addr())
+	switched, err := inst.execRsStepDownAndVerify(120 * time.Second)
+	if err != nil {
+		return errors.Wrap(err, "execute rs.stepDown")
+	}
+	if !switched {
+		return fmt.Errorf("instance %s did not become secondary after rs.stepDown", inst.Addr())
+	}
+	inst.logger.Info("instance %s stepDown succeeded before stop", inst.Addr())
+	return nil
+}
+
+func (inst *InstanceOp) execRsStepDownAndVerify(timeout time.Duration) (bool, error) {
+	client, err := inst.ConnectDirect()
+	if err != nil {
+		return false, errors.Wrap(err, "ConnectDirect for rs.stepDown")
+	}
+	defer client.Disconnect(context.Background())
+
+	runErr := client.Database("admin").RunCommand(
+		context.Background(),
+		bson.D{{Key: "replSetStepDown", Value: 60}},
+	).Err()
+	if runErr != nil {
+		// Connection errors right after replSetStepDown are expected in many versions.
+		inst.logger.Warn("rs.stepDown command returned error (may be expected): %v", runErr)
+	}
+
+	deadline := time.Now().Add(timeout)
+	for {
+		isMasterResult, err := inst.IsMasterDirect()
+		if err == nil {
+			if isMasterResult.Secondary {
+				inst.logger.Info("member %s became SECONDARY, waiting 30s before kill -2", inst.Addr())
+				time.Sleep(30 * time.Second)
+				return true, nil
+			}
+			inst.logger.Info(
+				"waiting member %s to become SECONDARY after rs.stepDown: isMaster=%v secondary=%v primary=%s",
+				inst.Addr(), isMasterResult.IsMaster, isMasterResult.Secondary, isMasterResult.Primary,
+			)
+		} else {
+			inst.logger.Warn("wait new primary after stepDown got error: %v", err)
+		}
+
+		if time.Now().After(deadline) {
+			return false, fmt.Errorf("wait member become secondary timeout after rs.stepDown (%s)", timeout)
+		}
+		time.Sleep(1 * time.Second)
+	}
+}
+
+// IsMasterDirect checks local member state by direct connection to inst.IP:inst.Port.
+func (inst *Instance) IsMasterDirect() (*mymongo.IsMasterResult, error) {
+	client, err := inst.ConnectDirect()
+	if err != nil {
+		return nil, errors.Wrap(err, "ConnectDirect")
+	}
+	defer client.Disconnect(context.TODO())
+	return mymongo.IsMaster(client, 60)
+}
+
+func getProcessNameByPID(pid int) (string, error) {
+	processName, err := os.ReadFile(fmt.Sprintf("/proc/%d/comm", pid))
+	if err != nil {
+		return "", errors.Wrap(err, "read process name from /proc/"+strconv.Itoa(pid)+"/comm")
+	}
+	return strings.TrimSpace(string(processName)), nil
 }
 
 // waitPortRelease waits until no TCP LISTEN on the port (/proc/net/tcp + tcp6), not merely any /proc/net/tcp row.
@@ -307,9 +422,9 @@ func (inst *Instance) IsMaster() (*mymongo.IsMasterResult, error) {
 // IsRunning 检查服务是否在运行
 // return pid:int isRunning:bool, err: error
 func (inst *InstanceOp) IsRunning() (pid int, portIsUsing bool, err error) {
-	portIsUsing, err = checkPortInUse(inst.Port)
+	portIsUsing, err = portHasTCPListenIPv4(inst.Port)
 	if err != nil {
-		return 0, false, errors.Wrap(err, "checkPortInUse")
+		return 0, false, errors.Wrap(err, "portHasTCPListenIPv4")
 	}
 
 	if !portIsUsing {
@@ -400,18 +515,6 @@ func replicaSetServiceCheckRoleOK(isMasterResult *mymongo.IsMasterResult) error 
 		return nil
 	}
 	return errors.New("is not primary or secondary")
-}
-
-func checkPortInUse(port int) (bool, error) {
-	tcpRows, err := linuxproc.ProcNetTcp(nil)
-	if err != nil {
-		return false, err
-	}
-	idx := slices.IndexFunc(tcpRows, func(row linuxproc.NetTcp) bool {
-		return row.LocalPort == port
-	})
-
-	return idx >= 0, nil
 }
 
 // getPidByPort 通过端口获取监听进程的 pid（/proc/net/tcp、tcp6 与 /proc/*/fd，不依赖 lsof）。

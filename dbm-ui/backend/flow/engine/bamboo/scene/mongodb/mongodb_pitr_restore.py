@@ -412,7 +412,9 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
                 {
                     "act_name": _("stop_mongos {}:{}".format(mongos.ip, mongos.port)),
                     "act_component_code": ExecJobComponent2.code,
-                    "kwargs": InstanceOpSubTask.make_kwargs(exec_node=mongos, file_path=actuator_workdir, op="stop"),
+                    "kwargs": InstanceOpSubTask.make_kwargs(
+                        exec_node=mongos, file_path=actuator_workdir, op="stop", graceful_stop=False
+                    ),
                 }
             )
 
@@ -505,7 +507,9 @@ class MongoPitrRestoreFlow(MongoBaseFlow):
                     {
                         "act_name": _("stop {}:{}".format(m.ip, m.port)),
                         "act_component_code": ExecJobComponent2.code,
-                        "kwargs": InstanceOpSubTask.make_kwargs(exec_node=m, file_path=actuator_workdir, op="stop"),
+                        "kwargs": InstanceOpSubTask.make_kwargs(
+                            exec_node=m, file_path=actuator_workdir, op="stop", graceful_stop=False
+                        ),
                     }
                 )
 

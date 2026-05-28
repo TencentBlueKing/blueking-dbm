@@ -30,6 +30,7 @@ type pitrRecoverParam struct {
 	Port            int    `json:"port"`
 	AdminUsername   string `json:"adminUsername"`
 	AdminPassword   string `json:"adminPassword"`
+	GracefulStop    *bool  `json:"gracefulStop,omitempty"`
 	SrcAddr         string `json:"srcAddr"`        // ip:port
 	RecoverTimeStr  string `json:"recoverTimeStr"` // recoverTime yyyy-mm-ddTHH:MM:SS
 	DryRun          bool   `json:"dryRun"`         // 测试模式
@@ -94,7 +95,7 @@ func (s *pitrRecoverJob) restartAsStandAlone() error {
 		s.param.AdminPassword,
 		s.runtime.Logger,
 	)
-	err := op.DoStop()
+	err := op.DoStopWithOptions(common.StopOptions{Graceful: s.isGracefulStop()})
 	if err != nil {
 		return errors.New("stop config server failed")
 	}
@@ -103,6 +104,14 @@ func (s *pitrRecoverJob) restartAsStandAlone() error {
 		return errors.New("start config server failed")
 	}
 	return nil
+}
+
+// isGracefulStop 是否优雅停止. 在pitrRecover中，默认不需要gracefulStop
+func (s *pitrRecoverJob) isGracefulStop() bool {
+	if s.param.GracefulStop == nil {
+		return false
+	}
+	return *s.param.GracefulStop
 }
 
 // dropConfigDb 删除configsvr的数据库表

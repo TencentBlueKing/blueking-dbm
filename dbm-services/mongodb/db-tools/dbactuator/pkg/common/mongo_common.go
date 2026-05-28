@@ -2,6 +2,7 @@
 package common
 
 import (
+	"bytes"
 	"context"
 	"crypto/md5"
 	"encoding/hex"
@@ -218,12 +219,21 @@ func StartMongoProcess(binDir string, port int, user string, auth bool) error {
 		}
 	}
 	mongoBin := filepath.Join(binDir, "mongodb", "bin", binName)
+	if _, err := os.Stat(confPath); err != nil {
+		return fmt.Errorf("startup %s failed: config file not found/readable: %s, err:%w", binName, confPath, err)
+	}
 	cmd := fmt.Sprintf(
 		"su %s -c '. /etc/profile >/dev/null 2>&1; if command -v numactl >/dev/null 2>&1; then numactl --interleave=all %s -f %s; else %s -f %s; fi'",
 		user, mongoBin, confPath, mongoBin, confPath,
 	)
-	if _, err := mycmd.New("bash", "-c", cmd).Run3(300*time.Second, nil, nil); err != nil {
-		return err
+	var stdoutBuf bytes.Buffer
+	var stderrBuf bytes.Buffer
+	ret, err := mycmd.New("bash", "-c", cmd).Run3(300*time.Second, &stdoutBuf, &stderrBuf)
+	if err != nil {
+		return fmt.Errorf(
+			"startup %s failed: cmd=%q exitCode=%d err=%v stdout=%q stderr=%q",
+			binName, ret.Cmdline, ret.ExitCode, err, strings.TrimSpace(stdoutBuf.String()), strings.TrimSpace(stderrBuf.String()),
+		)
 	}
 	return nil
 }
