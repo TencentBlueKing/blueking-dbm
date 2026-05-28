@@ -22,7 +22,7 @@ def register_mcp_callee_plan(callee_plan: McpCalleePlan, username: str) -> Ticke
         "ticket_type": TicketType.REGISTER_MCP_CALLEE_PLAN,
         "remark": TicketType.REGISTER_MCP_CALLEE_PLAN,
         "creator": username,
-        "helpers": [],
+        "helpers": ["admin"],
         "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
         "details": {
             "plan_id": callee_plan.pk,

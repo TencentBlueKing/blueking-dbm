@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from backend.components import DRSApi
 from backend.db_meta.enums import ClusterType, InstanceRole, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, Spec
-from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_instances
+from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clusters, auth_parse_instances
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpBaseException
@@ -74,7 +74,7 @@ class MySQLSensitiveMcpViewSet(McpToolsViewSet):
         request_slz=ModifyTenDBHASpecInputSerializer,
         response_slz=ModifyMySQLClusterSpecOutputSerializer,
         permission_classes=[McpClusterDetailPermission, McpIsDbaPermission],
-        mcp_auth_parser=auth_parse_instances,
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.MYSQL_SENSITIVE],
         name_prefix="mysql_sensitive",
@@ -115,7 +115,7 @@ class MySQLSensitiveMcpViewSet(McpToolsViewSet):
         request_slz=ModifyTenDBClusterSpecInputSerializer,
         response_slz=ModifyMySQLClusterSpecOutputSerializer,
         permission_classes=[McpClusterDetailPermission, McpIsDbaPermission],
-        mcp_auth_parser=auth_parse_instances,
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.MYSQL_SENSITIVE],
         name_prefix="mysql_sensitive",
@@ -156,7 +156,7 @@ class MySQLSensitiveMcpViewSet(McpToolsViewSet):
         request_slz=ModifyTenDBSingleSpecInputSerializer,
         response_slz=ModifyMySQLClusterSpecOutputSerializer,
         permission_classes=[McpClusterDetailPermission, McpIsDbaPermission],
-        mcp_auth_parser=auth_parse_instances,
+        mcp_auth_parser=auth_parse_clusters,
         tags=[DBMMCPTags.WRITE],
         mcp=[DBMMcpTools.MYSQL_SENSITIVE],
         name_prefix="mysql_sensitive",
