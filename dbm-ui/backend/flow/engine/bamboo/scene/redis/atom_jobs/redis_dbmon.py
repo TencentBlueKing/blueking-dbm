@@ -242,7 +242,7 @@ def SingleClusterDbmonInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs
                     continue
                 sub_kwargs = deepcopy(act_kwargs)
                 sub_kwargs.cluster = {
-                    "meta_func_name": RedisDBMeta.flush_ges_exporter_config.__name__,
+                    "meta_func_name": RedisDBMeta.flush_gse_exporter_config.__name__,
                     "cluster_id": c["cluster_id"],
                     "immute_domain": c["immute_domain"],
                     "bk_cloud_id": act_kwargs.bk_cloud_id,

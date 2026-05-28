@@ -167,7 +167,7 @@ class RedisDbmonSceneFlow(object):
             # 让GSE-重新下发exporter配置 （集群级别）
             if self.data.get("restart_exporter", False):
                 act_kwargs.cluster = {
-                    "meta_func_name": RedisDBMeta.flush_ges_exporter_config.__name__,
+                    "meta_func_name": RedisDBMeta.flush_gse_exporter_config.__name__,
                     "cluster_id": cluster.id,
                     "immute_domain": cluster.immute_domain,
                 }

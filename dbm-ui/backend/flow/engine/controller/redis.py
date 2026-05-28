@@ -14,6 +14,7 @@ from backend.flow.engine.bamboo.scene.redis.dirty_machine_clear import DirtyMach
 from backend.flow.engine.bamboo.scene.redis.ins_hotkey_analysis import HotkeyAnalysisFlow
 from backend.flow.engine.bamboo.scene.redis.redis_add_dts_server import RedisAddDtsServerFlow
 from backend.flow.engine.bamboo.scene.redis.redis_backend_scale import RedisBackendScaleFlow
+from backend.flow.engine.bamboo.scene.redis.redis_change_biz import RedisChangeBizFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_add_slave import RedisClusterAddSlaveFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_backup import RedisClusterBackupFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_check_repair import RedisClusterDataCheckRepairFlow
@@ -487,6 +488,13 @@ class RedisController(BaseController):
         """
         flow = RedisRollbackExerciseFlow(root_id=self.root_id, data=self.ticket_data)
         flow.rollback_exercise_flow()
+
+    def redis_change_biz(self):
+        """
+        redis 集群转移业务
+        """
+        flow = RedisChangeBizFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run_redis_change_biz_flow()
 
     @validates_with(RedisKeyStatFlowValidator)
     def redis_keystat(self):
