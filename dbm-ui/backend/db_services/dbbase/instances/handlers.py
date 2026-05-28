@@ -124,13 +124,27 @@ class InstanceHandler:
             db_type = ClusterType.cluster_type_to_db_type(cluster_type)
         cluster_handler = get_cluster_service_handler(self.bk_biz_id, db_type)
 
-        # 查询实例关联的集群信息
-        instance_related_clusters: List[Dict[str, Any]] = cluster_handler.find_related_clusters_by_instances(
-            instances=[DBInstance.from_inst_obj(inst) for inst in storages_proxies_instances]
-        )
-        inst_address__related_clusters_map: Dict[str, Dict[str, Any]] = {
-            info["instance_address"]: info for info in instance_related_clusters
-        }
+        # 精确获取每个实例所属的集群信息（解决机器共享场景下的集群匹配问题）
+        inst_address__cluster_info_map: Dict[str, Dict[str, Any]] = {}
+        for inst in storages_proxies_instances:
+            db_inst = DBInstance.from_inst_obj(inst)
+            db_inst_address = f"{db_inst.ip}:{db_inst.port}"
+
+            # 精确获取实例所属的集群（取第一个关联的集群）
+            if isinstance(inst, Dict):
+                # 如果 inst 是字典类型，直接从 cluster 字段获取
+                cluster_obj = inst.get("cluster")
+                if cluster_obj:
+                    inst_address__cluster_info_map[db_inst_address] = cluster_handler._format_cluster_field(
+                        cluster_obj if isinstance(cluster_obj, dict) else cluster_obj.to_dict()
+                    )
+            else:
+                # 如果 inst 是 ORM 对象，从 cluster 关系获取
+                cluster_objs = list(inst.cluster.all())  # 强制使用 prefetch_related 缓存
+                if cluster_objs:
+                    inst_address__cluster_info_map[db_inst_address] = cluster_handler._format_cluster_field(
+                        cluster_objs[0].to_dict()
+                    )
 
         # 补充实例的基本信息，关联集群信息和主机信息
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
@@ -138,26 +152,25 @@ class InstanceHandler:
             db_inst = DBInstance.from_inst_obj(inst)
             db_inst_address = f"{db_inst.ip}:{db_inst.port}"
 
-            # 如果实例不存在与关联集群映射，则忽略。比如对于无意义的admin_proxies
-            db_inst_related_cluster = inst_address__related_clusters_map.get(db_inst_address)
-            if not db_inst_related_cluster:
+            # 从精确映射中获取实例所属的集群信息（解决机器共享场景问题）
+            cluster_info = inst_address__cluster_info_map.get(db_inst_address)
+            if not cluster_info:
                 continue
 
             host_id_instance_map[str(db_inst)] = {
                 **asdict(db_inst),
                 "bk_cloud_name": cloud_info[str(db_inst.bk_cloud_id)]["bk_cloud_name"],
                 "instance_address": f"{db_inst.ip}{IP_PORT_DIVIDER}{db_inst.port}",
-                "cluster_id": db_inst_related_cluster["cluster_info"]["id"],
-                "cluster_name": db_inst_related_cluster["cluster_info"]["cluster_name"],
-                "master_domain": db_inst_related_cluster["cluster_info"]["master_domain"],
-                "cluster_type": db_inst_related_cluster["cluster_info"]["cluster_type"],
-                "db_module_id": db_inst_related_cluster["cluster_info"]["db_module_id"],
-                # 实例的关联集群把本身集群和集群的关联集群合并到一起
+                "cluster_id": cluster_info["id"],
+                "cluster_name": cluster_info["cluster_name"],
+                "master_domain": cluster_info["master_domain"],
+                "cluster_type": cluster_info["cluster_type"],
+                "db_module_id": cluster_info["db_module_id"],
+                # related_clusters 本身所属集群
                 "related_clusters": [
-                    *db_inst_related_cluster["related_clusters"],
-                    db_inst_related_cluster["cluster_info"],
+                    cluster_info,
                 ],
-                # 目前的设计，instance_role 才能更好区分不通集群类型中机器的角色
+                # 目前的设计，instance_role 才能更好区分不同集群类型中机器的角色
                 "create_at": inst["create_at"] if isinstance(inst, Dict) else inst.create_at,
                 "role": inst["role"] if isinstance(inst, Dict) else inst.role,
                 "status": inst["status"] if isinstance(inst, Dict) else inst.status,
