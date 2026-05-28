@@ -5,6 +5,7 @@ export * from './restoreSlave';
 export * from './rollBackCluster';
 export * from './spiderAddNodes';
 export * from './spiderConfUpDown';
+export * from './spiderRebuild';
 export * from './spiderMntApply';
 export * from './spiderMntDestroy';
 export * from './spiderReduceNodes';
