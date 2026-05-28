@@ -69,6 +69,12 @@ export const toolboxMenuList = [
         parentId: 'migrate',
       },
       {
+        dbConsoleValue: 'tendbCluster.toolbox.spiderRebuild',
+        id: TicketTypes.TENDBCLUSTER_SPIDER_REBUILD,
+        name: t('接入层原地重建'),
+        parentId: 'spider_cluster_maintain',
+      },
+      {
         dbConsoleValue: 'tendbCluster.toolbox.masterSlaveClone',
         id: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER,
         name: t('迁移主从'),

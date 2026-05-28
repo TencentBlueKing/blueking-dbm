@@ -84,6 +84,11 @@
         background-color: @bg-danger;
         border-color: #fdd;
       }
+
+      &.db-status-fill--primary .db-status-dot {
+        background-color: @bg-primary;
+        border-color: #e1ecff;
+      }
     }
 
     &.db-status-linear {
@@ -107,6 +112,11 @@
       &.db-status-linear--danger .db-status-dot {
         background-color: #fdd;
         border-color: @border-danger;
+      }
+
+      &.db-status-linear--primary .db-status-dot {
+        background-color: #e1ecff;
+        border-color: @border-primary;
       }
     }
 

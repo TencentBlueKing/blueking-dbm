@@ -149,6 +149,12 @@ export default [
         parentId: 'migrate',
       },
       {
+        dbConsoleValue: 'mysql.toolbox.proxyRebuild',
+        id: TicketTypes.MYSQL_PROXY_REBUILD,
+        name: t('Proxy 原地重建'),
+        parentId: 'migrate',
+      },
+      {
         bind: [TicketTypes.MYSQL_MASTER_FAIL_OVER, TicketTypes.MYSQL_INSTANCE_FAIL_OVER],
         dbConsoleValue: 'mysql.toolbox.instanceFailover',
         id: TicketTypes.MYSQL_MASTER_FAIL_OVER,
