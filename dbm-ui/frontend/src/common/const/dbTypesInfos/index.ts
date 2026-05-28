@@ -39,9 +39,23 @@ export const DBTypeInfos = {
   ...oracle,
 } as RequiredInfoType;
 
-const excludeDbTypeMap = Object.fromEntries([DBTypes.INFLUXDB, DBTypes.TENDBCLUSTER].map((item) => [item, true]));
-export const resourceDbTypes = Object.values(DBTypeInfos)
-  .filter((item) => !excludeDbTypeMap[item.id])
+const readExcludeDbTypeMap = Object.fromEntries([DBTypes.INFLUXDB].map((item) => [item, true]));
+export const readResourceDbTypes = Object.values(DBTypeInfos)
+  .filter((item) => !readExcludeDbTypeMap[item.id])
+  .map((item) => ({
+    label: item.name,
+    value: item.id as string,
+  }))
+  .concat([
+    {
+      label: 'Vm',
+      value: 'vm',
+    },
+  ]);
+
+const editExcludeDbTypeMap = Object.fromEntries([DBTypes.INFLUXDB, DBTypes.TENDBCLUSTER].map((item) => [item, true]));
+export const editResourceDbTypes = Object.values(DBTypeInfos)
+  .filter((item) => !editExcludeDbTypeMap[item.id])
   .map((item) => ({
     label: item.name,
     value: item.id as string,

@@ -36,7 +36,7 @@
         <BkSelect v-model="formData.resource_type">
           <BkOptionGroup group-style="divider">
             <BkOption
-              v-for="item in resourceDbTypes"
+              v-for="item in editResourceDbTypes"
               :key="item.value"
               :label="item.label"
               :value="item.value" />
@@ -90,8 +90,8 @@
   import {
     DBTypeInfos,
     DBTypes,
+    editResourceDbTypes,
     MachineEvents,
-    resourceDbTypes,
     specialOptionLabelMap,
     SpecialOptions,
   } from '@common/const';
