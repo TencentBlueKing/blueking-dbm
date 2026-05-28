@@ -31,6 +31,7 @@ import (
 const (
 	MetricLabelKafka = "kafka"
 	MetricLabelMysql = "mysql"
+	MetricLabelProbe = "probe"
 )
 
 var (
@@ -43,6 +44,10 @@ var (
 	MySqlWriteBytesTotal    *haapm.HaCounter
 	MySqlReadErrorsTotal    *haapm.HaCounter
 	MySqlWriteErrorsTotal   *haapm.HaCounter
+
+	ProbeReceiveMessagesTotal *haapm.HaCounter
+	ProbeReceiveBytesTotal    *haapm.HaCounter
+	ProbeQueueFullTotal       *haapm.HaCounter
 )
 
 func init() {
@@ -90,6 +95,23 @@ func init() {
 		"Total errors write to mysql",
 		MetricLabelMysql,
 	)
+
+	// probe
+	ProbeReceiveMessagesTotal = haapm.NewHaCounter(
+		"probe_receive_messages_total",
+		"Total messages receive from Probe",
+		MetricLabelProbe,
+	)
+	ProbeReceiveBytesTotal = haapm.NewHaCounter(
+		"probe_receive_bytes_total",
+		"Total bytes receive from Probe",
+		MetricLabelProbe,
+	)
+	ProbeQueueFullTotal = haapm.NewHaCounter(
+		"probe_queue_full_total",
+		"Total queue full times happen to Probe",
+		MetricLabelProbe,
+	)
 }
 
 // InitAPM sets service labels for startup metric and registers all metrics to haapm (Option 2).
@@ -110,5 +132,8 @@ func InitAPM(serviceID, serviceName string) {
 		MySqlWriteBytesTotal,
 		MySqlReadErrorsTotal,
 		MySqlWriteErrorsTotal,
+		ProbeReceiveMessagesTotal,
+		ProbeReceiveBytesTotal,
+		ProbeQueueFullTotal,
 	)
 }
