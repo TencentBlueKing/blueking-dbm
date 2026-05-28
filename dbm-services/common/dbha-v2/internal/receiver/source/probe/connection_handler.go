@@ -52,13 +52,13 @@ func (c *connectionHandler) readEvent() {
 		}
 
 		if len(c.savers) == 0 {
-			logger.Debug("no connection handler, drop the data(%v)", msg)
+			logger.Debug("no connection handler, drop the data: %v", msg)
 			continue
 		}
 
 		dataLength := len(msg.Payload)
 		data := &sink.Message{
-			Topic: "",
+			Topic: "probe",
 			Data:  make([]byte, dataLength),
 		}
 
