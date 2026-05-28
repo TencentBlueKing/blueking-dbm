@@ -41,36 +41,34 @@ type connectionHandler struct {
 	savers     []sink.Sinker
 	bufferSize int
 	eventC     requestEventC
-	quit       chan struct{}
 	wg         sync.WaitGroup
 }
 
 func (c *connectionHandler) readEvent() {
 	for {
-		select {
-		case <-c.quit:
+		msg, ok := <-c.eventC
+		if !ok {
 			return
+		}
 
-		case msg := <-c.eventC:
-			if len(c.savers) == 0 {
-				logger.Debug("no connection handler, drop the data(%v)", msg)
-				continue
-			}
+		if len(c.savers) == 0 {
+			logger.Debug("no connection handler, drop the data(%v)", msg)
+			continue
+		}
 
-			dataLength := len(msg.Payload)
-			data := &sink.Message{
-				Topic: "",
-				Data:  make([]byte, dataLength),
-			}
+		dataLength := len(msg.Payload)
+		data := &sink.Message{
+			Topic: "",
+			Data:  make([]byte, dataLength),
+		}
 
-			if dataLength > 0 {
-				copy(data.Data, msg.Payload)
-			}
+		if dataLength > 0 {
+			copy(data.Data, msg.Payload)
+		}
 
-			for _, saver := range c.savers {
-				if err := saver.Save(data); err != nil {
-					logger.Warn("save probe msg failed, errmsg: %s", err)
-				}
+		for _, saver := range c.savers {
+			if err := saver.Save(data); err != nil {
+				logger.Warn("save probe msg failed, errmsg: %s", err)
 			}
 		}
 	}
@@ -95,10 +93,6 @@ func (c *connectionHandler) run() {
 		c.eventC = make(chan *proto.ReceiverRequest, size)
 	}
 
-	if c.quit == nil {
-		c.quit = make(chan struct{}, 1)
-	}
-
 	c.wg.Add(1)
 	go func() {
 		c.readEvent()
@@ -107,15 +101,9 @@ func (c *connectionHandler) run() {
 }
 
 func (c *connectionHandler) close() {
-	if c.quit != nil {
-		close(c.quit)
-	}
-
 	if c.eventC != nil {
 		close(c.eventC)
 	}
 
 	c.wg.Wait()
-	c.quit = nil
-	c.eventC = nil
 }

@@ -31,6 +31,7 @@ import (
 	"dbm-services/common/dbha-v2/internal/receiver/config"
 	"dbm-services/common/dbha-v2/internal/receiver/sink"
 	"dbm-services/common/dbha-v2/internal/receiver/source/kafka"
+	"dbm-services/common/dbha-v2/internal/receiver/source/probe"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 )
 
@@ -46,6 +47,9 @@ func NewInputter(cfg config.SourceConfig) (Inputter, error) {
 	switch strings.ToLower(cfg.Name) {
 	case strings.ToLower(kafka.Name):
 		return kafka.New(cfg)
+
+	case strings.ToLower(probe.Name):
+		return probe.NewProbeServer(cfg)
 
 	default:
 		return nil, gerrors.Newf(gerrors.Unknown, "unknown inputer: %s", cfg.Name)

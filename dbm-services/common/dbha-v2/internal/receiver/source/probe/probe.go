@@ -30,6 +30,7 @@ import (
 	"net"
 	"sync"
 
+	"dbm-services/common/dbha-v2/internal/receiver/apm"
 	"dbm-services/common/dbha-v2/internal/receiver/config"
 	"dbm-services/common/dbha-v2/internal/receiver/sink"
 	"dbm-services/common/dbha-v2/pkg/constant"
@@ -42,25 +43,32 @@ import (
 	"google.golang.org/grpc/keepalive"
 )
 
+const Name = "probe"
+
 // Probe is a gRPC receiver server that accepts probe data streams and dispatches them to configured sinkers.
 type Probe struct {
 	proto.UnimplementedReceiverServiceServer
-	wg     sync.WaitGroup
-	savers []sink.Sinker
-	cfg    config.SourceConfig
-	ep     *hanet.Endpoint
-	svr    *grpc.Server
+	wg          sync.WaitGroup
+	savers      []sink.Sinker
+	cfg         config.SourceConfig
+	ep          *hanet.Endpoint
+	svr         *grpc.Server
+	connHandler *connectionHandler
 }
 
 // NewProbeServer creates a new receiver server. The endpoint is parsed and validated once here;
 // Run reuses the cached result to avoid redundant parsing.
-func NewProbeServer(cfg config.SourceConfig, outputers []sink.Sinker) (*Probe, error) {
+func NewProbeServer(cfg config.SourceConfig) (*Probe, error) {
 	ep, err := hanet.Parse(cfg.Endpoints, "tcp")
 	if err != nil {
 		return nil, gerrors.Newf(gerrors.InvalidConfiguration, "invalid probe source endpoint, errmsg: %s", err)
 	}
 
-	return &Probe{cfg: cfg, ep: ep, savers: outputers}, nil
+	return &Probe{
+		cfg:         cfg,
+		ep:          ep,
+		connHandler: &connectionHandler{bufferSize: cfg.BufferSize},
+	}, nil
 }
 
 // Run starts the gRPC server and blocks until Serve returns or the listener fails.
@@ -116,12 +124,62 @@ func (p *Probe) Run(ctx context.Context) error {
 	return p.svr.Serve(listen)
 }
 
-// Close stops the gRPC server if it was started and waits for in-flight work registered on the wait group.
-func (p *Probe) Close() {
-	if p.svr == nil {
-		return
+func (p *Probe) PushDataUnary(ctx context.Context, req *proto.ReceiverRequest) (*proto.ReceiverResponse, error) {
+	if err := apm.ProbeReceiveMessagesTotal.IncWithLabels(map[string]string{
+		apm.MetricLabelProbe: "probe",
+	}); err != nil {
+		logger.Warn("update probe read messages metric failed, errmsg: %s", err)
 	}
 
-	p.svr.Stop()
-	p.wg.Wait()
+	dataLength := len(req.Payload)
+	if err := apm.ProbeReceiveBytesTotal.AddWithLabels(map[string]string{
+		apm.MetricLabelProbe: "probe",
+	}, float64(dataLength)); err != nil {
+		logger.Warn("update probe read bytes metric failed, errmsg: %s", err)
+	}
+
+	err := p.connHandler.postEvent(req)
+	if err != nil {
+		logger.Warn("postEvent failed, errmsg: %s", err)
+
+		if metricErr := apm.ProbeQueueFullTotal.IncWithLabels(map[string]string{
+			apm.MetricLabelProbe: "probe",
+		}); metricErr != nil {
+			logger.Warn("update probe queue full metric failed, errmsg: %s", metricErr)
+		}
+
+		return &proto.ReceiverResponse{
+			Code:   1,
+			Errmsg: "failed to post event to connection handler",
+		}, nil
+	}
+
+	return &proto.ReceiverResponse{
+		Code:   0,
+		Errmsg: "success",
+	}, nil
+}
+
+func (p *Probe) Harvest(ctx context.Context, savers []sink.Sinker) error {
+	p.wg.Add(1)
+	go func(ctx context.Context) {
+		defer p.wg.Done()
+		p.Run(ctx)
+	}(ctx)
+
+	p.savers, p.connHandler.savers = savers, savers
+	p.connHandler.run()
+	return nil
+}
+
+// Close stops the gRPC server if it was started and waits for in-flight work registered on the wait group.
+func (p *Probe) Close() {
+	if p.svr != nil {
+		p.svr.Stop()
+		p.wg.Wait()
+	}
+
+	if p.connHandler != nil {
+		p.connHandler.close()
+	}
 }
