@@ -20,9 +20,9 @@ class WriteAiReportInputSerializer(serializers.Serializer):
         choices=ResultFormat.get_choices(), default=ResultFormat.MARKDOWN, help_text=_("结果格式：markdown 或 html")
     )
     bk_biz_id = serializers.IntegerField(default=0, help_text=_("业务 ID，0 表示不关联业务"))
-    cluster_domain = serializers.CharField(default="", required=False, help_text=_("集群域名，为空表示不关联集群"))
-    title = serializers.CharField(default="", required=False, help_text=_("报告标题"))
-    summary = serializers.CharField(default="", required=False, help_text=_("报告摘要"))
+    cluster_domain = serializers.CharField(default="", allow_blank=True, required=False, help_text=_("集群域名，为空表示不关联集群"))
+    title = serializers.CharField(default="", allow_blank=True, required=False, help_text=_("报告标题"))
+    summary = serializers.CharField(default="", allow_blank=True, required=False, help_text=_("报告摘要"))
     content = serializers.CharField(help_text=_("分析结果内容"))
 
 
@@ -34,7 +34,7 @@ class WriteAiReportOutputSerializer(serializers.Serializer):
 class ReadAiReportInputSerializer(serializers.Serializer):
     report_id = serializers.CharField(required=True, help_text=_("报告 ID，必填"))
     bk_biz_id = serializers.IntegerField(required=True, help_text=_("业务 ID，必填"))
-    cluster_domain = serializers.CharField(required=False, default="", help_text=_("集群域名，可选"))
+    cluster_domain = serializers.CharField(required=False, allow_blank=True, default="", help_text=_("集群域名，可选"))
 
 
 class AiReportDetailSerializer(serializers.Serializer):

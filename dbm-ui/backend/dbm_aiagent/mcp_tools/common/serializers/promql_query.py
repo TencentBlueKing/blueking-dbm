@@ -110,7 +110,7 @@ class PromQLSeriesItemSerializer(serializers.Serializer):
     dimensions = serializers.DictField(help_text=_("维度标签"))
     target = serializers.CharField(help_text=_("目标标识"))
     datapoints = serializers.ListField(help_text=_("时序数据点列表，每项为 [value, timestamp]"))
-    unit = serializers.CharField(help_text=_("单位"), required=False, default="")
+    unit = serializers.CharField(help_text=_("单位"), allow_blank=True, required=False, default="")
 
 
 class PromQLQueryOutputSerializer(serializers.Serializer):
