@@ -26,19 +26,22 @@ def list_biz_clusters(
 ) -> List[dict]:
     """根据 IP / 实例 / 域名查询集群基本信息"""
 
+    # bk_biz_id 作为基础范围：若指定则所有子查询都限定在该业务下
+    biz_cluster_qs = Cluster.objects.filter(bk_biz_id=bk_biz_id) if bk_biz_id is not None else Cluster.objects.all()
+    biz_entry_filter = Q(cluster__bk_biz_id=bk_biz_id) if bk_biz_id is not None else Q()
+
+    has_sub_filters = bool(ips or instances or cluster_domains)
+
     # 收集所有匹配的 cluster id，每种条件独立查询，避免多表 JOIN 产生笛卡尔积
     cluster_id_sets: List[set] = []
 
     if ips:
-        # storageinstance 关联的集群
-        storage_ids = set(Cluster.objects.filter(storageinstance__machine__ip__in=ips).values_list("id", flat=True))
-        # proxyinstance 关联的集群
-        proxy_ids = set(Cluster.objects.filter(proxyinstance__machine__ip__in=ips).values_list("id", flat=True))
-        # CLB entry 关联的集群
+        storage_ids = set(biz_cluster_qs.filter(storageinstance__machine__ip__in=ips).values_list("id", flat=True))
+        proxy_ids = set(biz_cluster_qs.filter(proxyinstance__machine__ip__in=ips).values_list("id", flat=True))
         clb_ids = set(
-            ClusterEntry.objects.filter(cluster_entry_type=ClusterEntryType.CLB, entry__in=ips).values_list(
-                "cluster_id", flat=True
-            )
+            ClusterEntry.objects.filter(
+                biz_entry_filter, cluster_entry_type=ClusterEntryType.CLB, entry__in=ips
+            ).values_list("cluster_id", flat=True)
         )
         cluster_id_sets.append(storage_ids | proxy_ids | clb_ids)
 
@@ -46,44 +49,39 @@ def list_biz_clusters(
         instance_ids: set = set()
         for instance in instances:
             ip, port = instance.split(":")
-            # storageinstance 匹配
             instance_ids.update(
-                Cluster.objects.filter(storageinstance__machine__ip=ip, storageinstance__port=port).values_list(
+                biz_cluster_qs.filter(storageinstance__machine__ip=ip, storageinstance__port=port).values_list(
                     "id", flat=True
                 )
             )
-            # proxyinstance 匹配
             instance_ids.update(
-                Cluster.objects.filter(proxyinstance__machine__ip=ip, proxyinstance__port=port).values_list(
+                biz_cluster_qs.filter(proxyinstance__machine__ip=ip, proxyinstance__port=port).values_list(
                     "id", flat=True
                 )
             )
         cluster_id_sets.append(instance_ids)
 
     if cluster_domains:
-        # DNS / CLBDNS entry 关联的集群
         domain_ids = set(
             ClusterEntry.objects.filter(
-                cluster_entry_type__in=[ClusterEntryType.DNS, ClusterEntryType.CLBDNS], entry__in=cluster_domains
+                biz_entry_filter,
+                cluster_entry_type__in=[ClusterEntryType.DNS, ClusterEntryType.CLBDNS],
+                entry__in=cluster_domains,
             ).values_list("cluster_id", flat=True)
         )
         cluster_id_sets.append(domain_ids)
 
-    # 合并所有条件匹配的 cluster id（各条件之间是 OR 关系）
-    if not cluster_id_sets:
-        return []
-
-    merged_ids: set = set()
-    for id_set in cluster_id_sets:
-        merged_ids |= id_set
-
-    if not merged_ids:
-        return []
-
-    # 最终只做一次简单的 id__in 查询
-    q = Q(id__in=merged_ids)
-    if bk_biz_id:
-        q &= Q(bk_biz_id=bk_biz_id)
+    if not has_sub_filters:
+        if bk_biz_id is None:
+            return []
+        q = Q(bk_biz_id=bk_biz_id)
+    else:
+        merged_ids: set = set()
+        for id_set in cluster_id_sets:
+            merged_ids |= id_set
+        if not merged_ids:
+            return []
+        q = Q(id__in=merged_ids)
 
     results = []
     for cluster_obj in Cluster.objects.filter(q):
