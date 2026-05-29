@@ -32,6 +32,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="old_master_slave"
+      :get-copy-value="(row: RowData) => row.display_info.old_master_slave.join(',')"
       :min-width="150"
       :title="t('主从主机')">
       <template #default="{ row }: { row: RowData }">
@@ -55,6 +56,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="read_only_slaves"
+      :get-copy-value="(row: RowData) => row.read_only_slaves.map((host) => host.old_slave.ip).join(',')"
       :min-width="150"
       :title="t('只读主机')">
       <template #default="{ row }: { row: RowData }">
@@ -96,6 +98,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="new_master"
+      :get-copy-value="(row: RowData) => `${row.new_master.ip},${row.new_slave.ip}`"
       :min-width="150"
       :title="t('新主从主机')">
       <template #default="{ row }: { row: RowData }">
@@ -119,6 +122,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="new_read_only_slaves"
+      :get-copy-value="(row: RowData) => row.read_only_slaves.map((item) => item.new_slave.ip).join(',')"
       :min-width="200"
       :title="t('新只读主机')">
       <template #default="{ row }: { row: RowData }">
