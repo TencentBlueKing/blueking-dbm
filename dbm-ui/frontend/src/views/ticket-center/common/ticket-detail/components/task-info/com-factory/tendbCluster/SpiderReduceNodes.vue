@@ -32,6 +32,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="type"
+      :get-copy-value="(row: RowData) => row.spider_reduced_hosts?.map((item) => item.ip).join(', ') || ''"
       :title="t('主机选择方式')">
       <template #default="{ row: data }: { row: RowData }">
         <template v-if="data.spider_reduced_hosts">

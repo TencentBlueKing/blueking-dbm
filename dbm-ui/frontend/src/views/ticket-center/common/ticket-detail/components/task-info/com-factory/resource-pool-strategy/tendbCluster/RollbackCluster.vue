@@ -34,6 +34,7 @@
     <TicketInfoTableColumn
       v-if="['BUILD_INTO_EXIST_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)"
       col-key="target_cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.target_cluster_id]?.immute_domain || ''"
       :min-width="180"
       :title="t('目标集群')">
       <template #default="{ row: data }: { row: RowData }">
@@ -43,6 +44,7 @@
     <TicketInfoTableColumn
       v-if="['BUILD_INTO_NEW_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)"
       col-key="resource_spec.remote_hosts.hosts"
+      :get-copy-value="(row: RowData) => row.resource_spec.remote_hosts.hosts.map((item) => item.ip)"
       :min-width="180"
       :title="t('存储层主机')">
       <template #default="{ row: data }: { row: RowData }">
@@ -52,6 +54,7 @@
     <TicketInfoTableColumn
       v-if="['BUILD_INTO_NEW_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)"
       col-key="resource_spec.spider_host.hosts"
+      :get-copy-value="(row: RowData) => row.resource_spec.spider_host.hosts.map((item) => item.ip)"
       :min-width="180"
       :title="t('接入层主机')">
       <template #default="{ row: data }: { row: RowData }">

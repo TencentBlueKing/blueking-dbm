@@ -32,6 +32,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="new_master"
+      :get-copy-value="(row: RowData) => `${row.new_master.ip},${row.new_slave.ip}`"
       :title="t('新主从主机')">
       <template #default="{ row: data }: { row: RowData }">
         <div>

@@ -54,6 +54,7 @@
   <ClusterSelector
     v-model:is-show="showSelector"
     :cluster-types="localClusterTypes"
+    :disable-select-method="disableSelectMethod"
     :selected="selectedClusters"
     @change="handleSelectorChange" />
 </template>
@@ -91,6 +92,11 @@
      * 选择器tab集群类型，不传默认 TENDBHA
      */
     clusterTypes?: (ClusterTypes.TENDBHA | ClusterTypes.TENDBSINGLE)[];
+    /**
+     * 集群选择器禁用方法，返回 true 或字符串时该集群不可选
+     * @example 禁用正常状态的集群：(data) => data.status === 'normal'
+     */
+    disableSelectMethod?: (data: TendbhaModel) => boolean | string;
     /**
      * @example proxy升级的场景，多加一个请求参数role: proxy  表示以proxy维度查询关联集群
      * @example 单节点升级的场景，多加一个请求参数role: orphan  表示以orphan维度查询关联集群
@@ -164,10 +170,12 @@
     return result;
   });
 
+  const disableSelectTip = ref('');
+
   const rules = [
     {
       message: t('集群域名格式不正确'),
-      trigger: 'change',
+      trigger: 'blur',
       validator: (value: string) => !value || domainRegex.test(value),
     },
     {
@@ -191,6 +199,22 @@
       message: t('目标集群不存在'),
       trigger: 'blur',
       validator: (value: string) => !value || Boolean(modelValue.value.id),
+    },
+    {
+      message: () => disableSelectTip.value || t('该集群不可选'),
+      trigger: 'blur',
+      validator: (value: string) => {
+        if (!value || !modelValue.value.id || !props.disableSelectMethod) {
+          return true;
+        }
+        const result = props.disableSelectMethod(modelValue.value as TendbhaModel);
+        if (result) {
+          disableSelectTip.value = typeof result === 'string' ? result : '';
+          return false;
+        }
+        disableSelectTip.value = '';
+        return true;
+      },
     },
   ];
 

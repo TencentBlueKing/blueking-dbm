@@ -145,13 +145,19 @@ export default [
         ],
         dbConsoleValue: 'mysql.toolbox.proxyAdd',
         id: TicketTypes.MYSQL_PROXY_ADD,
-        name: t('接入层变更'),
+        name: t('Proxy 变更'),
         parentId: 'migrate',
       },
       {
         dbConsoleValue: 'mysql.toolbox.proxyRebuild',
         id: TicketTypes.MYSQL_PROXY_REBUILD,
         name: t('Proxy 原地重建'),
+        parentId: 'migrate',
+      },
+      {
+        dbConsoleValue: 'mysql.toolbox.proxyRescue',
+        id: TicketTypes.MYSQL_PROXY_RESCUE,
+        name: t('Proxy 灾难重建'),
         parentId: 'migrate',
       },
       {

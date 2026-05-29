@@ -25,6 +25,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="slave"
+      :get-copy-value="(row: RowData) => `${row.slave.ip}:${row.slave.port}`"
       :title="t('目标从库实例')">
       <template #default="{ row }: { row: RowData }">
         {{ `${row.slave.ip}:${row.slave.port}` }}

@@ -25,6 +25,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="master"
+      :get-copy-value="(row: RowData) => `${row.master.ip}:${row.master.port}`"
       :title="t('修复主库')">
       <template #default="{ row }: { row: RowData }">
         {{ `${row.master.ip}:${row.master.port}` }}
@@ -32,6 +33,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="slave"
+      :get-copy-value="(row: RowData) => row.slaves.map((item) => `${item.ip}:${item.port}`).join(',')"
       :title="t('修复从库')">
       <template #default="{ row }: { row: RowData }">
         {{ row.slaves.map((item) => `${item.ip}:${item.port}`).join(',') }}
