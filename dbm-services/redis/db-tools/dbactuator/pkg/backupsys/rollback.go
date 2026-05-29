@@ -70,7 +70,8 @@ func (task *RedisInsRecoverTask) GetRedisCli() error {
 	redisAddr := fmt.Sprintf("%s:%s", task.NeWTempIP, strconv.Itoa(task.NewTmpPort))
 	msg := fmt.Sprintf("开始获取master:%s的连接...", redisAddr)
 	task.runtime.Logger.Info(msg)
-	redisCli, err := myredis.NewRedisClient(redisAddr, task.NewTmpPassword, 0, consts.TendisTypeTendisplusInsance)
+	redisCli, err := myredis.NewRedisClientWithRetry(redisAddr, task.NewTmpPassword, 0,
+		consts.TendisTypeTendisplusInsance, time.Minute)
 	if err != nil {
 		err = fmt.Errorf("获取连接失败:%v", err)
 		task.runtime.Logger.Error(err.Error())
@@ -416,7 +417,8 @@ func (task *RedisInsRecoverTask) StopSlave() error {
 		task.runtime.Logger.Info(msg)
 
 		// 断开同步关系
-		newCli01, err := myredis.NewRedisClient(slaveNode01.Addr, task.NewTmpPassword, 0, consts.TendisTypeTendisplusInsance)
+		newCli01, err := myredis.NewRedisClientWithRetry(slaveNode01.Addr, task.NewTmpPassword, 0,
+			consts.TendisTypeTendisplusInsance, time.Minute)
 		if err != nil {
 			return err
 		}
@@ -510,7 +512,8 @@ func (task *RedisInsRecoverTask) CheckDecompressedDirIsOK() (isExists, isCompele
 	msg = fmt.Sprintf("开始检查全备(已解压)目录是否存在,是否完整")
 	task.runtime.Logger.Info(msg)
 	// 测试tendisplus连接性
-	redisCli, err := myredis.NewRedisClient(redisAddr, task.NewTmpPassword, 0, consts.TendisTypeTendisplusInsance)
+	redisCli, err := myredis.NewRedisClientWithRetry(redisAddr, task.NewTmpPassword, 0,
+		consts.TendisTypeTendisplusInsance, time.Minute)
 	if err != nil {
 		return false, false, msg
 	}
@@ -739,7 +742,8 @@ func (task *RedisInsRecoverTask) RecoverSlave() error {
 	for _, slaveNode01 := range slaveNodes {
 		slaveNodeItem := slaveNode01
 		slaveAddr := slaveNodeItem.Addr
-		slaveCli02, err := myredis.NewRedisClient(slaveAddr, task.NewTmpPassword, 0, consts.TendisTypeTendisplusInsance)
+		slaveCli02, err := myredis.NewRedisClientWithRetry(slaveAddr, task.NewTmpPassword, 0,
+			consts.TendisTypeTendisplusInsance, time.Minute)
 		if err != nil {
 			return err
 		}
@@ -957,7 +961,8 @@ func (task *RedisInsRecoverTask) RestoreFullbackup() error {
 	msg := fmt.Sprintf("master:%s开始导入全备", redisAddr)
 	task.runtime.Logger.Info(msg)
 	// 再次探测tendisplus连接性
-	redisCli, err := myredis.NewRedisClient(redisAddr, task.NewTmpPassword, 0, consts.TendisTypeTendisplusInsance)
+	redisCli, err := myredis.NewRedisClientWithRetry(redisAddr, task.NewTmpPassword, 0,
+		consts.TendisTypeTendisplusInsance, time.Minute)
 	if err != nil {
 		return err
 	}
@@ -1059,7 +1064,8 @@ func (task *RedisInsRecoverTask) ImportIncrBackup() error {
 	msg := fmt.Sprintf("master:%s开始导入增备(binlog)", redisAddr)
 	task.runtime.Logger.Info(msg)
 	// 再次探测tendisplus连接性
-	redisCli, err := myredis.NewRedisClient(redisAddr, task.NewTmpPassword, 0, consts.TendisTypeTendisplusInsance)
+	redisCli, err := myredis.NewRedisClientWithRetry(redisAddr, task.NewTmpPassword, 0,
+		consts.TendisTypeTendisplusInsance, time.Minute)
 	if err != nil {
 		task.Err = err
 		return task.Err
@@ -1089,7 +1095,8 @@ func (task *RedisInsRecoverTask) CheckRollbackResult() error {
 	msg := fmt.Sprintf("CheckRollbackResult: master:%s开始检查回档结果是否正确", redisAddr)
 	task.runtime.Logger.Info(msg)
 	// 获取redis连接
-	redisCli, err := myredis.NewRedisClient(redisAddr, task.NewTmpPassword, 0, consts.TendisTypeTendisplusInsance)
+	redisCli, err := myredis.NewRedisClientWithRetry(redisAddr, task.NewTmpPassword, 0,
+		consts.TendisTypeTendisplusInsance, time.Minute)
 	if err != nil {
 		task.Err = err
 		return task.Err
@@ -1210,7 +1217,8 @@ func (task *RedisInsRecoverTask) SSDRestoreFullbackup() error {
 	msg := fmt.Sprintf("master:%s start recover_tredis_from_rocksdb ...", redisAddr)
 	task.runtime.Logger.Info(msg)
 	// 获取tendis ssd连接
-	redisCli, err := myredis.NewRedisClient(redisAddr, task.NewTmpPassword, 0, consts.TendisTypeTendisSSDInsance)
+	redisCli, err := myredis.NewRedisClientWithRetry(redisAddr, task.NewTmpPassword, 0,
+		consts.TendisTypeTendisSSDInsance, time.Minute)
 	if err != nil {
 		return err
 	}
@@ -1234,7 +1242,8 @@ func (task *RedisInsRecoverTask) SSDImportIncrBackup() error {
 	msg := fmt.Sprintf("master:%s开始导入增备(binlog)", redisAddr)
 	task.runtime.Logger.Info(msg)
 	// 再次探测tendisplus连接性
-	redisCli, err := myredis.NewRedisClient(redisAddr, task.NewTmpPassword, 0, consts.TendisTypeTendisSSDInsance)
+	redisCli, err := myredis.NewRedisClientWithRetry(redisAddr, task.NewTmpPassword, 0,
+		consts.TendisTypeTendisSSDInsance, time.Minute)
 	if err != nil {
 		task.Err = err
 		return task.Err
@@ -1257,7 +1266,8 @@ func (task *RedisInsRecoverTask) CacheRestoreFullbackup() error {
 	msg := fmt.Sprintf("master:%s start recover redis from aof/rdb ...", redisAddr)
 	task.runtime.Logger.Info(msg)
 	// 获取tendis ssd连接
-	redisCli, err := myredis.NewRedisClient(redisAddr, task.NewTmpPassword, 0, consts.TendisTypeRedisInstance)
+	redisCli, err := myredis.NewRedisClientWithRetry(redisAddr, task.NewTmpPassword, 0,
+		consts.TendisTypeRedisInstance, time.Minute)
 	if err != nil {
 		return err
 	}
@@ -1286,7 +1296,8 @@ func (task *RedisInsRecoverTask) getNeWTempIPClusterNodes() error {
 		return err
 	}
 	// 验证节点是否可连接
-	redisCli, err := myredis.NewRedisClient(redisAddr, password, 0, consts.TendisTypeTendisplusInsance)
+	redisCli, err := myredis.NewRedisClientWithRetry(redisAddr, password, 0,
+		consts.TendisTypeTendisplusInsance, time.Minute)
 	if err != nil {
 		return err
 	}

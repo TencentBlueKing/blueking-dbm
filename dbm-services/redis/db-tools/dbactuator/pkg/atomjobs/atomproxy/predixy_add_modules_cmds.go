@@ -208,7 +208,7 @@ func (job *PredixyAddModulesCmds) startProxy() (err error) {
 		return err
 	}
 	addr := fmt.Sprintf("%s:%d", job.params.IP, port)
-	cli, err := myredis.NewRedisClientWithTimeout(addr, job.proxyPassword, 0,
+	cli, err := myredis.NewRedisClientWithRetry(addr, job.proxyPassword, 0,
 		consts.TendisTypeRedisInstance, 10*time.Second)
 	if err != nil {
 		return err

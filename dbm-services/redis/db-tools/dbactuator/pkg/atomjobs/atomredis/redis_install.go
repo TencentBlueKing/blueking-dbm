@@ -396,7 +396,7 @@ func (job *RedisInstall) IsRedisInstalled(port int) (installed bool, err error) 
 	}
 	// 端口已被使用
 	redisAddr := job.params.IP + ":" + strconv.Itoa(port)
-	redisCli, err := myredis.NewRedisClientWithTimeout(redisAddr, job.params.Password, 0,
+	redisCli, err := myredis.NewRedisClientWithRetry(redisAddr, job.params.Password, 0,
 		consts.TendisTypeRedisInstance, 5*time.Second)
 	if err != nil {
 		err = fmt.Errorf("%d is in used by other process", port)

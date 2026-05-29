@@ -150,7 +150,7 @@ func (job *RedisMaxMemoryDynamicallySet) GetRedisUsedMemory() (err error) {
 		wg.Add(1)
 		go func(memItem *RedisUsedMemItem) {
 			defer wg.Done()
-			memItem.redisCli, memItem.Err = myredis.NewRedisClientWithTimeout(memItem.Addr(), memItem.Password,
+			memItem.redisCli, memItem.Err = myredis.NewRedisClientWithRetry(memItem.Addr(), memItem.Password,
 				0, consts.TendisTypeRedisInstance, 5*time.Second)
 			if memItem.Err != nil {
 				return
@@ -284,7 +284,7 @@ func (job *RedisMaxMemoryDynamicallySet) ConcurrentlyConfigSetMaxmemory() error 
 				func(tmpItem *myredis.InfoReplSlave, password string, maxmemory int64) {
 					var err error
 					// 连接slave 并设置maxmemory
-					slaveCli, err := myredis.NewRedisClientWithTimeout(tmpItem.Addr(), password, 0, consts.TendisTypeRedisInstance,
+					slaveCli, err := myredis.NewRedisClientWithRetry(tmpItem.Addr(), password, 0, consts.TendisTypeRedisInstance,
 						10*time.Second)
 					if err != nil {
 						return

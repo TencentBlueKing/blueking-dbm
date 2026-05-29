@@ -163,7 +163,8 @@ func (job *ClusterMeetSlotsAssign) allInstsAbleToConnect() (err error) {
 		instsAddrs = append(instsAddrs, item.SlaveAddr())
 	}
 	for _, addr01 := range instsAddrs {
-		cli, err := myredis.NewRedisClient(addr01, job.params.Password, 0, consts.TendisTypeRedisInstance)
+		cli, err := myredis.NewRedisClientWithRetry(addr01, job.params.Password, 0,
+			consts.TendisTypeRedisInstance, 1*time.Minute)
 		if err != nil {
 			return err
 		}

@@ -170,14 +170,14 @@ func genSomeDiffKeys(srcAddr, srcPassword, dstAddr, dtsPassword string) {
 	var err error
 	var masterCli, slaveCli *myredis.RedisClient
 	var member *redis.Z
-	masterCli, err = myredis.NewRedisClientWithTimeout(srcAddr, srcPassword, 0,
+	masterCli, err = myredis.NewRedisClientWithRetry(srcAddr, srcPassword, 0,
 		consts.TendisTypeRedisInstance, 10*time.Second)
 	if err != nil {
 		return
 	}
 	defer masterCli.Close()
 
-	slaveCli, err = myredis.NewRedisClientWithTimeout(dstAddr, dtsPassword, 0,
+	slaveCli, err = myredis.NewRedisClientWithRetry(dstAddr, dtsPassword, 0,
 		consts.TendisTypeRedisInstance, 10*time.Second)
 	if err != nil {
 		return

@@ -124,8 +124,13 @@ func (job *ProxyReUse) Run() (err error) {
 	if err = job.getRole(); err != nil {
 		return
 	}
-	if err = myredis.LocalRedisConnectTest(job.params.IP, []int{job.params.Port}, job.params.Password); err != nil {
+	addr := fmt.Sprintf("%s:%d", job.params.IP, job.params.Port)
+	cli, err := myredis.NewRedisClient(addr, job.params.Password, 0,
+		consts.TendisTypeRedisInstance, 5*time.Second)
+	if err != nil {
 		job.runtime.Logger.Warn("try connect 2 proxy %s:%d failed :%+v", job.params.IP, job.params.Port, err)
+	} else {
+		cli.Close()
 	}
 	// 关闭 dbmon,最后再拉起
 	if err = util.StopBkDbmon(); err != nil {
@@ -393,7 +398,7 @@ func (job *ProxyReUse) startProxy() (err error) {
 		return err
 	}
 	addr := fmt.Sprintf("%s:%d", job.params.IP, port)
-	cli, err := myredis.NewRedisClientWithTimeout(addr, job.params.Password, 0,
+	cli, err := myredis.NewRedisClientWithRetry(addr, job.params.Password, 0,
 		consts.TendisTypeRedisInstance, 10*time.Second)
 	if err != nil {
 		return err

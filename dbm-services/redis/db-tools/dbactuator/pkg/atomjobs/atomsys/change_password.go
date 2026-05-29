@@ -271,7 +271,7 @@ func (job *ChangePwd) changeRedisPwd(port int, oldPwd string, newPwd string) err
 	}
 	job.runtime.Logger.Info("rewrite config (%s:%d) success", job.params.IP, port)
 
-	cli, err := myredis.NewRedisClientWithTimeout(insAddr, newPwd, 0,
+	cli, err := myredis.NewRedisClientWithRetry(insAddr, newPwd, 0,
 		consts.TendisTypeRedisInstance, 10*time.Second)
 	if err != nil {
 		return err
@@ -285,7 +285,7 @@ func (job *ChangePwd) changeRedisPwd(port int, oldPwd string, newPwd string) err
 // checkConn 检查用新密码是否能正常连接
 func (job *ChangePwd) checkConn(port int, pwd string) error {
 	addr := fmt.Sprintf("%s:%d", job.params.IP, port)
-	cli, err := myredis.NewRedisClientWithTimeout(addr, pwd, 0,
+	cli, err := myredis.NewRedisClientWithRetry(addr, pwd, 0,
 		consts.TendisTypeRedisInstance, 10*time.Second)
 	defer cli.Close()
 

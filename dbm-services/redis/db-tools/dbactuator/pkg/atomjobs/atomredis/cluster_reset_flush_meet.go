@@ -158,7 +158,7 @@ type clusterResetFlushMeetTask struct {
 
 // createResetConn 创建连接
 func (task *clusterResetFlushMeetTask) createResetConn() {
-	task.resetRedisConn, task.Err = myredis.NewRedisClientWithTimeout(task.ResetRedisAddr(), task.ResetRedisPassword, 0,
+	task.resetRedisConn, task.Err = myredis.NewRedisClientWithRetry(task.ResetRedisAddr(), task.ResetRedisPassword, 0,
 		consts.TendisTypeRedisInstance, 10*time.Hour)
 }
 

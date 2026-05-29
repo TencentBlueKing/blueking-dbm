@@ -165,7 +165,7 @@ func (job *RedisClusterFailover) checkClusterStatus() (err error) {
 		firstMasterAddr = ms.Master.Addr()
 		break
 	}
-	rc, err := myredis.NewRedisClientWithTimeout(firstMasterAddr, job.params.RedisPassword, 0,
+	rc, err := myredis.NewRedisClientWithRetry(firstMasterAddr, job.params.RedisPassword, 0,
 		consts.TendisTypeRedisInstance, 5*time.Second)
 	if err != nil {
 		return
@@ -191,7 +191,7 @@ func (job *RedisClusterFailover) checkAllRedisInCluster() (err error) {
 		firstSlaveAddr = ms.Slave.Addr()
 		break
 	}
-	rc, err := myredis.NewRedisClientWithTimeout(firstSlaveAddr, job.params.RedisPassword, 0,
+	rc, err := myredis.NewRedisClientWithRetry(firstSlaveAddr, job.params.RedisPassword, 0,
 		consts.TendisTypeRedisInstance, 5*time.Second)
 	if err != nil {
 		return
@@ -224,7 +224,7 @@ func (job *RedisClusterFailover) allClusterMastersConfSetMasterauth() (err error
 		firstSlaveAddr = ms.Slave.Addr()
 		break
 	}
-	rc, err := myredis.NewRedisClientWithTimeout(firstSlaveAddr, job.params.RedisPassword, 0,
+	rc, err := myredis.NewRedisClientWithRetry(firstSlaveAddr, job.params.RedisPassword, 0,
 		consts.TendisTypeRedisInstance, 5*time.Second)
 	if err != nil {
 		return
@@ -254,7 +254,7 @@ func (job *RedisClusterFailover) checkAllSlaveLinkStatus() (err error) {
 	var replMasterHost, replMasterPort, replMasterAddr, replLinkStatus string
 	var masterLastIOSecAgo int
 	for _, ms := range job.params.RedisMasterSlavePairs {
-		rc, err := myredis.NewRedisClientWithTimeout(ms.Slave.Addr(), job.params.RedisPassword, 0,
+		rc, err := myredis.NewRedisClientWithRetry(ms.Slave.Addr(), job.params.RedisPassword, 0,
 			consts.TendisTypeRedisInstance, 5*time.Second)
 		if err != nil {
 			return err
@@ -400,7 +400,7 @@ type redisFailOverTask struct {
 
 // newSlaveCli 新建slaveCli
 func (task *redisFailOverTask) newSlaveCli() {
-	task.slaveCli, task.Err = myredis.NewRedisClientWithTimeout(task.SlaveAddr, task.RedisPassword, 0,
+	task.slaveCli, task.Err = myredis.NewRedisClientWithRetry(task.SlaveAddr, task.RedisPassword, 0,
 		consts.TendisTypeRedisInstance, 5*time.Second)
 }
 
@@ -489,7 +489,7 @@ func (task *redisFailOverTask) WaitReplicateStateOK() {
 	defer task.slaveCli.Close()
 	var masterCli *myredis.RedisClient
 	var logTailNData string
-	masterCli, task.Err = myredis.NewRedisClientWithTimeout(task.MasterAddr, task.RedisPassword, 0,
+	masterCli, task.Err = myredis.NewRedisClientWithRetry(task.MasterAddr, task.RedisPassword, 0,
 		consts.TendisTypeRedisInstance, 5*time.Second)
 	if task.Err != nil {
 		return

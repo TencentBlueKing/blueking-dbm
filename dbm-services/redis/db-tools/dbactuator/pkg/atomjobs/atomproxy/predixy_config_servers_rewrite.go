@@ -101,7 +101,7 @@ func (job *PredixyConfServersRewrite) Run() (err error) {
 	return
 }
 func (job *PredixyConfServersRewrite) newConn(password string) (err error) {
-	job.predixyConn, err = myredis.NewRedisClientWithTimeout(job.params.Addr(), password, 0,
+	job.predixyConn, err = myredis.NewRedisClient(job.params.Addr(), password, 0,
 		consts.TendisTypeRedisInstance, 5*time.Second)
 	if err != nil {
 		return err

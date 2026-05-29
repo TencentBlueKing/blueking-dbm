@@ -145,7 +145,7 @@ func (r *RedisLocalDoDR) startAndWetLinkUp(addr, pass string, idx int, instance 
 		return fmt.Errorf("r:%s:e:%+v", rst, err)
 	}
 
-	rConn, err := myredis.NewRedisClientWithTimeout(addr, pass, 0, r.params.ClusterType, time.Second*10)
+	rConn, err := myredis.NewRedisClientWithRetry(addr, pass, 0, r.params.ClusterType, time.Second*10)
 	if err != nil {
 		r.runtime.Logger.Warn("connect instance failed %d:%s:%+v", idx, addr, err)
 		return err
@@ -272,7 +272,7 @@ func (r *RedisLocalDoDR) tryBackupData(src, dst, addr string) error {
 // tryLoginAndShutdown 登陆检查
 // do bgsave [redis-cluster 理论上不会用到这个流程]
 func (r *RedisLocalDoDR) tryLoginAndShutdown(addr string, password string, idx int, instance ReplicaItem) error {
-	rConn, err := myredis.NewRedisClientWithTimeout(addr, password, 0, r.params.ClusterType, time.Second*10)
+	rConn, err := myredis.NewRedisClientWithRetry(addr, password, 0, r.params.ClusterType, time.Second*10)
 	if err != nil {
 		r.runtime.Logger.Warn("connect instance failed %d:%s:%+v , mabye restarted machine.", idx, addr, err)
 	} else {

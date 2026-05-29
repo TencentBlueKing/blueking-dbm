@@ -9,6 +9,7 @@ import (
 
 	"strconv"
 	"sync"
+	"time"
 
 	"dbm-services/redis/db-tools/dbactuator/models/myredis"
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
@@ -142,7 +143,8 @@ func (task *RedisDataStructure) Run() (err error) {
 
 		redisAddr := fmt.Sprintf("%s:%s", task.params.NeWTempIP, strconv.Itoa(task.params.NewTempPorts[0]))
 		// 验证节点是否可连接
-		redisCli, err := myredis.NewRedisClient(redisAddr, task.password, 0, consts.TendisTypeRedisInstance)
+		redisCli, err := myredis.NewRedisClientWithRetry(redisAddr, task.password, 0,
+			consts.TendisTypeRedisInstance, 1*time.Minute)
 		if err != nil {
 			return err
 		}
