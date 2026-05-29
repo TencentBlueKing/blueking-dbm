@@ -39,6 +39,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MYSQL_PROXY_MIGRATE, t('迁移 Proxy (按集群)')),
   createRouteItem(TicketTypes.MYSQL_PROXY_MIGRATE_INS, t('迁移 Proxy (按实例)')),
   createRouteItem(TicketTypes.MYSQL_PROXY_REBUILD, t('Proxy 原地重建')),
+  createRouteItem(TicketTypes.MYSQL_PROXY_RESCUE, t('Proxy 故障重建')),
   createRouteItem(TicketTypes.MYSQL_MASTER_FAIL_OVER, t('主库故障切换')),
   createRouteItem(TicketTypes.MYSQL_INSTANCE_FAIL_OVER, t('主库故障切换')),
   createRouteItem(TicketTypes.MYSQL_HA_DB_TABLE_BACKUP, t('库表备份')),
