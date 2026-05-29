@@ -43,6 +43,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="old_slave"
+      :get-copy-value="(row: RowData) => row.old_nodes.old_slave?.[0]?.ip || ''"
       :min-width="120"
       :title="t('目标从库主机')">
       <template #default="{ row: data }: { row: RowData }">
@@ -67,6 +68,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="immute_domain"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters?.[row.cluster_id]?.immute_domain || ''"
       :min-width="200"
       :title="t('所属集群')">
       <template #default="{ row: data }: { row: RowData }">

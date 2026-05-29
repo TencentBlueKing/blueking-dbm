@@ -33,6 +33,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="new_proxy"
+      :get-copy-value="(row: RowData) => row.new_proxy.ip"
       :title="t('新Proxy主机')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.new_proxy.ip }}

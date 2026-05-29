@@ -33,6 +33,7 @@
     <TicketInfoTableColumn
       v-if="['BUILD_INTO_EXIST_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)"
       col-key="target_cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.target_cluster_id].immute_domain"
       :min-width="180"
       :title="t('目标集群')">
       <template #default="{ row }: { row: RowData }">
@@ -42,6 +43,7 @@
     <TicketInfoTableColumn
       v-if="['BUILD_INTO_NEW_CLUSTER'].includes(ticketDetails.details.rollback_cluster_type)"
       col-key="rollback_host"
+      :get-copy-value="(row: RowData) => row.resource_spec.rollback_host.hosts.map((item) => item.ip)"
       :min-width="180"
       :title="t('回档到新主机')">
       <template #default="{ row }: { row: RowData }">

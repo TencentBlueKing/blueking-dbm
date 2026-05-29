@@ -25,6 +25,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="slave"
+      :get-copy-value="(row: RowData) => row.slave_ip.ip"
       :title="t('从库主机')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.slave_ip.ip }}
@@ -32,6 +33,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="cluster_ids"
+      :get-copy-value="(row: RowData) => row.cluster_ids.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain)"
       :title="t('同机关联的集群')">
       <template #default="{ row: data }: { row: RowData }">
         <div
