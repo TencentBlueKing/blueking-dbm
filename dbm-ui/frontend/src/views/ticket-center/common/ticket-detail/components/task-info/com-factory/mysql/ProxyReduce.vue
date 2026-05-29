@@ -25,6 +25,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="related_instances"
+      :get-copy-value="(row: RowData) => row.related_instances?.map((item) => item.instance_address).join(',') || row.cluster_ids.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain).join(',')"
       :title="t('关联集群实例')">
       <template #default="{ row: data }: { row: RowData }">
         <template v-if="data?.related_instances">

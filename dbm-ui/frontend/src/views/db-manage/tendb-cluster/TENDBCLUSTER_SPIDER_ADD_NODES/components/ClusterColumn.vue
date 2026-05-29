@@ -38,6 +38,7 @@
     :cluster-types="[ClusterTypes.TENDBCLUSTER]"
     :selected="selectedClusters"
     support-offline-data
+    :tab-list-config="tabListConfig"
     @change="handleSelectorChange" />
 </template>
 <script lang="ts" setup>
@@ -50,21 +51,18 @@
   import { ClusterTypes, DBTypes } from '@common/const';
   import { domainRegex } from '@common/regex';
 
-  import ClusterSelector from '@components/cluster-selector/Index.vue';
-
-  interface ClusterSpecModel {
-    bk_cloud_id: number;
-    id: number;
-    master_domain: string;
-    mnt_count: number;
-    region: string;
-    spider_master: TendbClusterModel['spider_master'];
-    spider_master_spec_list: number[];
-    spider_slave: TendbClusterModel['spider_slave'];
-    spider_slave_spec_list: number[];
-  }
+  import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
 
   interface Props {
+    /**
+     * 集群禁用配置：用于在选择器和手动输入域名场景下统一拦截不可选集群（如正常状态集群）
+     */
+    disableSelectConfig?: {
+      /** 命中时返回 true 表示该集群不可选 */
+      handler: (data: TendbClusterModel) => boolean;
+      /** 不可选时的提示文案 */
+      tip: string;
+    };
     selected: {
       id: number;
       master_domain: string;
@@ -96,6 +94,26 @@
     [ClusterTypes.TENDBCLUSTER]: props.selected as TendbClusterModel[],
   }));
 
+  const tabListConfig = computed<Record<string, TabConfig> | undefined>(() => {
+    if (!props.disableSelectConfig) {
+      return undefined;
+    }
+    const { handler, tip } = props.disableSelectConfig;
+    return {
+      [ClusterTypes.TENDBCLUSTER]: {
+        disabledRowConfig: [
+          {
+            handler: (data: any) => handler(data as TendbClusterModel),
+            tip,
+          },
+        ],
+      } as TabConfig,
+    };
+  });
+
+  // 手动输入域名时存储查询到的集群信息，用于校验是否被禁用
+  const queriedCluster = shallowRef<TendbClusterModel>();
+
   const rules = [
     {
       message: t('集群域名格式不正确'),
@@ -112,6 +130,16 @@
       trigger: 'blur',
       validator: (value: string) => !value || Boolean(modelValue.value.id),
     },
+    {
+      message: () => props.disableSelectConfig?.tip || t('该集群不可选'),
+      trigger: 'blur',
+      validator: (value: string) => {
+        if (!value || !modelValue.value.id || !props.disableSelectConfig || !queriedCluster.value) {
+          return true;
+        }
+        return !props.disableSelectConfig.handler(queriedCluster.value);
+      },
+    },
   ];
 
   const { loading, run: queryCluster } = useRequest(filterClusters<TendbClusterModel>, {
@@ -119,6 +147,7 @@
     onSuccess: (data) => {
       const [item] = data;
       if (item) {
+        queriedCluster.value = new TendbClusterModel(item);
         modelValue.value = {
           bk_cloud_id: item.bk_cloud_id,
           id: item.id,
@@ -130,6 +159,8 @@
           spider_slave: item.spider_slave,
           spider_slave_spec_list: item.spider_slave.map((host) => host.spec_config.id),
         };
+      } else {
+        queriedCluster.value = undefined;
       }
     },
   });
@@ -139,6 +170,7 @@
   };
 
   const handleChange = (value: string) => {
+    queriedCluster.value = undefined;
     modelValue.value = {
       bk_cloud_id: 0,
       id: 0,
