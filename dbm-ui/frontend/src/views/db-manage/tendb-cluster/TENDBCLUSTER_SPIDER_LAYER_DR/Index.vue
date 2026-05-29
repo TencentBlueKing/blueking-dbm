@@ -54,8 +54,11 @@
           v-for="(item, index) in formData.tableData"
           :key="index">
           <ClusterColumn
-            :ref="(el: any) => el && (clusterColumnRefs[index] = el)"
             v-model="item.cluster"
+            :disable-select-config="{
+              handler: (cluster: TendbClusterModel) => cluster.status === 'normal',
+              tip: t('正常状态的集群不可用故障重建'),
+            }"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
           <EditableColumn
@@ -123,8 +126,6 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
-  import _ from 'lodash';
-  import { computed, nextTick, reactive, ref, useTemplateRef, watch } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
@@ -162,7 +163,6 @@
 
   const { t } = useI18n();
   const tableRef = useTemplateRef('table');
-  const clusterColumnRefs = ref<InstanceType<typeof ClusterColumn>[]>([]);
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
@@ -269,8 +269,6 @@
           });
         }),
       });
-      await nextTick();
-      clusterColumnRefs.value[0]?.fetchData(formData.tableData);
     },
   });
 
@@ -344,9 +342,6 @@
       return acc;
     }, []);
     formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
-
-    await nextTick();
-    clusterColumnRefs.value[0]?.fetchData(formData.tableData);
   };
 
   const handleBatchInput = async (data: Record<string, any>[], isClear: boolean) => {
@@ -370,9 +365,6 @@
       formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
     }
 
-    await nextTick();
-    clusterColumnRefs.value[0]?.fetchData(formData.tableData);
-    // 延时 300ms 等待 fetchData 完成 + watch 自动回填 count，再触发校验
     setTimeout(() => {
       tableRef.value?.validate();
     }, 300);
