@@ -56,6 +56,62 @@ type K8sCrdClusterProvider interface {
 		[]*metaentity.K8sCrdClusterEntity, error)
 }
 
+// UpdateClusterMetadataRequest 外部系统更新集群元数据请求
+// 定位字段必填，更新字段为可选（nil 表示不更新）
+type UpdateClusterMetadataRequest struct {
+	Namespace   string `json:"namespace" binding:"required"`
+	ClusterName string `json:"clusterName" binding:"required"`
+
+	DbmClusterID        *uint64 `json:"dbmClusterId"`
+	BkBizID             *uint64 `json:"bkBizId"`
+	BkBizName           *string `json:"bkBizName"`
+	BkAppAbbr           *string `json:"bkAppAbbr"`
+	BkAppCode           *string `json:"bkAppCode"`
+	ClusterAlias        *string `json:"clusterAlias"`
+	VIP                 *string `json:"vip"`
+	Description         *string `json:"description"`
+	TopoName            *string `json:"topoName"`
+	ServiceVersion      *string `json:"serviceVersion"`
+	AddonClusterVersion *string `json:"addonClusterVersion"`
+}
+
+// ApplyTo 将请求中的非空更新字段应用到集群实体
+func (r *UpdateClusterMetadataRequest) ApplyTo(entity *metaentity.K8sCrdClusterEntity) {
+	if r.DbmClusterID != nil {
+		entity.DbmClusterID = *r.DbmClusterID
+	}
+	if r.BkBizID != nil {
+		entity.BkBizID = *r.BkBizID
+	}
+	if r.BkBizName != nil {
+		entity.BkBizName = *r.BkBizName
+	}
+	if r.BkAppAbbr != nil {
+		entity.BkAppAbbr = *r.BkAppAbbr
+	}
+	if r.BkAppCode != nil {
+		entity.BkAppCode = *r.BkAppCode
+	}
+	if r.ClusterAlias != nil {
+		entity.ClusterAlias = *r.ClusterAlias
+	}
+	if r.VIP != nil {
+		entity.VIP = *r.VIP
+	}
+	if r.Description != nil {
+		entity.Description = *r.Description
+	}
+	if r.TopoName != nil {
+		entity.TopoName = *r.TopoName
+	}
+	if r.ServiceVersion != nil {
+		entity.ServiceVersion = *r.ServiceVersion
+	}
+	if r.AddonClusterVersion != nil {
+		entity.AddonClusterVersion = *r.AddonClusterVersion
+	}
+}
+
 // K8sCrdClusterProviderImpl K8sCrlClusterProvider 具体实现
 type K8sCrdClusterProviderImpl struct {
 	clusterDbAccess          dbaccess.K8sCrdClusterDbAccess

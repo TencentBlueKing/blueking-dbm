@@ -28,6 +28,7 @@ import (
 	"k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
 	"k8s-dbs/metadata/vo/response"
+	"log/slog"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -161,4 +162,39 @@ func (c *ClusterController) ListCluster(ctx *gin.Context) {
 		Result: data,
 	}
 	api.SuccessResponse(ctx, responseData, commconst.Success)
+}
+
+// UpdateCluster 外部系统传入参数更新集群元数据
+func (c *ClusterController) UpdateCluster(ctx *gin.Context) {
+	var req provider.UpdateClusterMetadataRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		api.HandleValidationError(ctx, err, &req)
+		return
+	}
+
+	clusterEntity, err := c.clusterProvider.FindByParams(&entity.ClusterQueryParams{
+		Namespace:   req.Namespace,
+		ClusterName: req.ClusterName,
+	})
+	if err != nil {
+		slog.Error("获取集群失败", "error", err)
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
+		return
+	}
+	if clusterEntity == nil {
+		notFoundErr := fmt.Errorf("集群不存在 (clusterName=%s, namespace=%s)", req.ClusterName, req.Namespace)
+		slog.Error("获取集群失败", "error", notFoundErr)
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, notFoundErr))
+		return
+	}
+
+	req.ApplyTo(clusterEntity)
+
+	if _, err := c.clusterProvider.UpdateCluster(clusterEntity); err != nil {
+		slog.Error("更新集群元数据失败", "error", err)
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.UpdateMetaDataError, err))
+		return
+	}
+
+	api.SuccessResponse(ctx, nil, "更新集群元数据成功")
 }
