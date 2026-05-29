@@ -397,6 +397,9 @@ class ProxyBaseView(View):
 
         try:
             proxy_response = self._created_proxy_response(request)
+        except PermissionError as err:
+            logger.warning("proxy request forbidden, %s", err)
+            return HttpResponse(status=403)
         except Exception as err:
             logger.exception("proxy request error, %s", err)
             raise Http404
@@ -428,6 +431,7 @@ class ProxyBaseView(View):
             condition = {
                 match["key"]: match["value"][0]
                 for match in json.loads(request.body.decode())["query_configs"][0]["where"]
+                if match.get("value")
             }
         elif url.endswith("/timeseries/graph_promql_query/"):
             # promql 查询
@@ -435,10 +439,10 @@ class ProxyBaseView(View):
         elif url.endswith("/timeseries/grafana/query/") or url.endswith("/timeseries/grafana/query_log/"):
             log_field_map = {"cluster_domain": ["domain", "__ext.cluster_domain"], "app": ["__ext.app"]}
             log_field_map = {value: key for key, values in log_field_map.items() for value in values}
-            # 日志仪表盘查询
             condition = {
                 log_field_map.get(match["key"], match["key"]): match["value"][0]
                 for match in json.loads(request.body.decode())["where"]
+                if match.get("value")
             }
         else:
             return True
