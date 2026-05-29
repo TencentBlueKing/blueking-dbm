@@ -124,12 +124,16 @@ func (c *OnMySQLComponent) oneInstance(port int) error {
 				}
 				_, err = c.dbConn.ExecContext(context.Background(), trigger)
 				if err != nil {
-					logger.Error("create trigger %s in %s on instance %d failed: %s",
-						trigger, db, port, err.Error())
+					logger.Error(
+						"create trigger %s in %s on instance %d failed: %s",
+						trigger, db, port, err.Error(),
+					)
 					return err
 				}
-				logger.Info("create trigger %s in %s on instance %d success",
-					trigger, db, port)
+				logger.Info(
+					"create trigger %s in %s on instance %d success",
+					trigger, db, port,
+				)
 			}
 		}
 	} else if c.Param.TruncateDataType == "drop_database" {
@@ -343,7 +347,7 @@ func (c *OnMySQLComponent) instanceRecreateSourceTable(port int, dbName, stageDB
 	}()
 
 	// 这个超时 5s 应该没问题
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	_, err := c.dbConn.ExecContext(
 		ctx,
