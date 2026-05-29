@@ -195,7 +195,7 @@ func (job *RedisDtsDataCheck) TestConnectable() (err error) {
 	job.runtime.Logger.Info("redis_dts_datacheck TestConnectable success,ip:%s,ports:%+v", job.params.SrcRedisIP, ports)
 
 	// 目的redis可连接
-	cli01, err := myredis.NewRedisClientWithTimeout(job.params.DstClusterAddr, job.params.DstClusterPassword, 0,
+	cli01, err := myredis.NewRedisClientWithRetry(job.params.DstClusterAddr, job.params.DstClusterPassword, 0,
 		consts.TendisTypeRedisInstance, 10*time.Second)
 	if err != nil {
 		return err
@@ -339,7 +339,7 @@ func (task *RedisInsDtsDataCheckAndRepairTask) getRepairHotKeysFile() string {
 
 func (task *RedisInsDtsDataCheckAndRepairTask) isClusterEnabled() (enabled bool) {
 	var cli01 *myredis.RedisClient
-	cli01, task.Err = myredis.NewRedisClientWithTimeout(task.getSrcRedisAddr(), task.keyPatternTask.Password, 0,
+	cli01, task.Err = myredis.NewRedisClientWithRetry(task.getSrcRedisAddr(), task.keyPatternTask.Password, 0,
 		consts.TendisTypeRedisInstance, 10*time.Second)
 	if task.Err != nil {
 		return false

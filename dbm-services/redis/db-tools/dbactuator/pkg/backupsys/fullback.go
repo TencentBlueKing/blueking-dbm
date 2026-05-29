@@ -1091,7 +1091,8 @@ func (full *TplusFullBackPull) RestoreBackup(dstTplusIP string, dstTplusPort int
 	msg := fmt.Sprintf("master:%s开始导入全备", redisAddr)
 	mylog.Logger.Info(msg)
 	//再次探测tendisplus连接性
-	redisCli, err := myredis.NewRedisClient(redisAddr, dstTplusPasswd, 0, consts.TendisTypeTendisplusInsance)
+	redisCli, err := myredis.NewRedisClientWithRetry(redisAddr, dstTplusPasswd, 0,
+		consts.TendisTypeTendisplusInsance, time.Minute)
 	if err != nil {
 		return err
 	}
@@ -1263,7 +1264,8 @@ func (full *TplusFullBackPull) RecoverTredisFromRocksdb(dstTplusIP string,
 	msg := fmt.Sprintf("master:%s开始导入全备", redisAddr)
 	mylog.Logger.Info(msg)
 	//再次探测tendisplus连接性
-	redisCli, err := myredis.NewRedisClient(redisAddr, dstTplusPasswd, 0, consts.TendisTypeTendisSSDInsance)
+	redisCli, err := myredis.NewRedisClientWithRetry(redisAddr, dstTplusPasswd, 0,
+		consts.TendisTypeTendisSSDInsance, time.Minute)
 	if err != nil {
 		return err
 	}
@@ -1381,7 +1383,8 @@ func (full *TplusFullBackPull) RecoverTredisFromRocksdb(dstTplusIP string,
 	time.Sleep(2 * time.Second)
 
 	//再次探测tendisplus连接性->拉起是否成功
-	redisCli, err = myredis.NewRedisClient(redisAddr, dstTplusPasswd, 0, consts.TendisTypeTendisplusInsance)
+	redisCli, err = myredis.NewRedisClientWithRetry(redisAddr, dstTplusPasswd, 0,
+		consts.TendisTypeTendisplusInsance, time.Minute)
 	if err != nil {
 		return err
 	}
@@ -1425,7 +1428,8 @@ func (full *TplusFullBackPull) RecoverCacheRedisFromBackupFile(sourceIP string,
 		"redis:%s from redis:%s aof or rdb ... ", newRedisAddr, oldnewRedisAddr)
 	mylog.Logger.Info(msg)
 	//再次探测tendisplus连接性
-	redisCli, err := myredis.NewRedisClient(newRedisAddr, dstTplusPasswd, 0, consts.TendisTypeRedisInstance)
+	redisCli, err := myredis.NewRedisClientWithRetry(newRedisAddr, dstTplusPasswd, 0,
+		consts.TendisTypeRedisInstance, time.Minute)
 	if err != nil {
 		mylog.Logger.Error(err.Error())
 		full.Err = err
@@ -1588,7 +1592,8 @@ func (full *TplusFullBackPull) RecoverCacheRedisFromBackupFile(sourceIP string,
 	}
 
 	//再次探测tendisplus连接性->拉起是否成功
-	redisCli, err = myredis.NewRedisClient(newRedisAddr, dstTplusPasswd, 0, consts.TendisTypeTendisplusInsance)
+	redisCli, err = myredis.NewRedisClientWithRetry(newRedisAddr, dstTplusPasswd, 0,
+		consts.TendisTypeTendisplusInsance, time.Minute)
 	if err != nil {
 		mylog.Logger.Error("NewRedisClient failed :%v", err)
 		full.Err = err
@@ -1627,7 +1632,8 @@ func (full *TplusFullBackPull) WaitForStartRedis(dstTplusIP string, dstTplusPort
 			break
 		}
 		// NewRedisClient 这里也会去ping
-		_, err = myredis.NewRedisClient(newRedisAddr, dstTplusPasswd, 0, consts.TendisTypeRedisInstance)
+		_, err = myredis.NewRedisClientWithRetry(newRedisAddr, dstTplusPasswd, 0,
+			consts.TendisTypeRedisInstance, time.Minute)
 		if err != nil {
 			if retryTimeLimit > 0 {
 				mylog.Logger.Warn("WaitForStartRedis info:%v", err)

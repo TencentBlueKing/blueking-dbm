@@ -128,7 +128,7 @@ type PredixyInfoServer struct {
 // GetPredixyInfoServersRaw 获取predixy info server原始内容 s
 func GetPredixyInfoServersRaw(ip string, port int, password string) (svrsinfo string, err error) {
 	predixyAddr := fmt.Sprintf("%s:%d", ip, port)
-	cli01, err := NewRedisClientWithTimeout(predixyAddr, password, 0,
+	cli01, err := NewRedisClient(predixyAddr, password, 0,
 		consts.TendisTypeRedisInstance, 5*time.Second)
 	if err != nil {
 		return
@@ -219,7 +219,7 @@ func GetTwemproxyRunTimeVersion(ip string, port int) (version string, err error)
 // GetPredixyRunTimeVersion 获取predixy运行时版本
 func GetPredixyRunTimeVersion(ip string, port int, password string) (version string, err error) {
 	predixyAddr := fmt.Sprintf("%s:%d", ip, port)
-	cli01, err := NewRedisClientWithTimeout(predixyAddr, password, 0,
+	cli01, err := NewRedisClient(predixyAddr, password, 0,
 		consts.TendisTypeRedisInstance, 5*time.Second)
 	if err != nil {
 		return

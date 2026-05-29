@@ -191,7 +191,7 @@ func (job *RedisLoadModules) allInstsAbleToConnect() (err error) {
 		if err != nil {
 			return err
 		}
-		cli, err := myredis.NewRedisClientWithTimeout(addr, password, 0,
+		cli, err := myredis.NewRedisClientWithRetry(addr, password, 0,
 			consts.TendisTypeRedisInstance, 5*time.Second)
 		if err != nil {
 			return err

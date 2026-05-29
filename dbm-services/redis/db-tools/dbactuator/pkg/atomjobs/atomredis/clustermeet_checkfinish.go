@@ -140,7 +140,8 @@ func (task *ClusterMeetCheckFinish) allInstsAbleToConnect() (err error) {
 		instsAddrs = append(instsAddrs, item.MasterAddr())
 	}
 	for _, addr01 := range instsAddrs {
-		cli, err := myredis.NewRedisClient(addr01, task.params.Password, 0, consts.TendisTypeTendisplusInsance)
+		cli, err := myredis.NewRedisClientWithRetry(addr01, task.params.Password, 0,
+			consts.TendisTypeTendisplusInsance, 1*time.Minute)
 		if err != nil {
 			return err
 		}

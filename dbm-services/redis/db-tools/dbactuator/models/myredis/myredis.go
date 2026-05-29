@@ -204,7 +204,7 @@ func LocalRedisConnectTest(ip string, ports []int, password string) (err error) 
 		wg.Add(1)
 		go func(test01 *connTestItem) {
 			defer wg.Done()
-			cli01, err := NewRedisClientWithTimeout(test01.addr(), test01.Password, 0,
+			cli01, err := NewRedisClientWithRetry(test01.addr(), test01.Password, 0,
 				consts.TendisTypeRedisInstance, 10*time.Second)
 			if err != nil {
 				test01.Err = err
@@ -245,7 +245,7 @@ func CheckMultiRedisConnected(addrs []string, password string) (err error) {
 		wg.Add(1)
 		go func(test01 *connTestItem) {
 			defer wg.Done()
-			cli01, err := NewRedisClientWithTimeout(test01.addr(), test01.Password, 0,
+			cli01, err := NewRedisClientWithRetry(test01.addr(), test01.Password, 0,
 				consts.TendisTypeRedisInstance, 10*time.Second)
 			if err != nil {
 				test01.Err = err

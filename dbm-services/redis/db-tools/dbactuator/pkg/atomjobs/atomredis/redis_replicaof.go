@@ -156,13 +156,13 @@ func (task *ReplicaTask) InfoReplMasterAddr() string {
 
 func (task *ReplicaTask) newConnects() {
 	task.runtime.Logger.Info("begin to connect master:%s", task.MasterAddr())
-	task.MasterCli, task.Err = myredis.NewRedisClientWithTimeout(task.MasterAddr(), task.MasterAuth,
+	task.MasterCli, task.Err = myredis.NewRedisClientWithRetry(task.MasterAddr(), task.MasterAuth,
 		0, consts.TendisTypeRedisInstance, 5*time.Second)
 	if task.Err != nil {
 		return
 	}
 	task.runtime.Logger.Info("begin to connect slave:%s", task.SlaveAddr())
-	task.SlaveCli, task.Err = myredis.NewRedisClientWithTimeout(task.SlaveAddr(), task.SlavePassword,
+	task.SlaveCli, task.Err = myredis.NewRedisClientWithRetry(task.SlaveAddr(), task.SlavePassword,
 		0, consts.TendisTypeRedisInstance, 5*time.Second)
 	if task.Err != nil {
 		return

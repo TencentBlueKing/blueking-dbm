@@ -104,7 +104,7 @@ func (job *RedisReshape) allInstCconnect() (err error) {
 		wg.Add(1)
 		go func(task *reshapeTaskItem) {
 			defer wg.Done()
-			task.redisConn, task.Err = myredis.NewRedisClientWithTimeout(task.Addr(), task.Password, 0,
+			task.redisConn, task.Err = myredis.NewRedisClientWithRetry(task.Addr(), task.Password, 0,
 				consts.TendisTypeRedisInstance, 10*time.Hour)
 		}(task)
 	}

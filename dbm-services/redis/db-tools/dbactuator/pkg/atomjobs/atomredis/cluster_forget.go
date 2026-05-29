@@ -152,7 +152,7 @@ func (job *RedisClusterForget) tryGetClusterNodesInfo() (
 		var clusterConn *myredis.RedisClient
 		job.runtime.Logger.Info("try make connect use %s:%s", job.params.ClusterMeta.ImmuteDomain, nodeAddr)
 
-		clusterConn, err = myredis.NewRedisClientWithTimeout(nodeAddr,
+		clusterConn, err = myredis.NewRedisClientWithRetry(nodeAddr,
 			job.params.ClusterMeta.StoragePassword, 0, job.params.ClusterMeta.ClusterType, time.Second*10)
 		if err != nil {
 			job.runtime.Logger.Error("connect cluster node [%d]:%s failed:%+v", idx, nodeAddr, err)
@@ -176,7 +176,7 @@ func (job *RedisClusterForget) tryGetClusterNodesInfo() (
 // DisconnectSlaves 与自身的slave实例进行断连行为
 func (job *RedisClusterForget) DisconnectSlaves(fnode *myredis.ClusterNodeData) (
 	slaveNodes []*myredis.ClusterNodeData, err error) {
-	clusterConn, err := myredis.NewRedisClientWithTimeout(fnode.Addr,
+	clusterConn, err := myredis.NewRedisClientWithRetry(fnode.Addr,
 		job.params.ClusterMeta.StoragePassword, 0, job.params.ClusterMeta.ClusterType, time.Second*10)
 	if err != nil {
 		job.runtime.Logger.Warn("connect cluster node %s failed:%+v", fnode.Addr, err)
@@ -193,7 +193,7 @@ func (job *RedisClusterForget) DisconnectSlaves(fnode *myredis.ClusterNodeData) 
 		return
 	}
 	for _, slave := range slaveNodes {
-		slaveConn, err := myredis.NewRedisClientWithTimeout(slave.Addr,
+		slaveConn, err := myredis.NewRedisClientWithRetry(slave.Addr,
 			job.params.ClusterMeta.StoragePassword, 0, job.params.ClusterMeta.ClusterType, time.Second*10)
 		if err != nil {
 			job.runtime.Logger.Warn("connect cluster node %s failed:%+v", slave.Addr, err)
@@ -224,7 +224,7 @@ func (job *RedisClusterForget) clusterForgetNode(
 		}
 		x, _ := json.Marshal(node)
 		job.runtime.Logger.Info("exec {cluster forget %s:%s} from [%s]", fnode.Addr, fnode.NodeID, node.Addr)
-		nodeConn, err := myredis.NewRedisClientWithTimeout(node.Addr,
+		nodeConn, err := myredis.NewRedisClientWithRetry(node.Addr,
 			job.params.ClusterMeta.StoragePassword, 0, job.params.ClusterMeta.ClusterType, time.Second*10)
 		if err != nil {
 			job.runtime.Logger.Warn("connect node failed %s:%+v", x, err)

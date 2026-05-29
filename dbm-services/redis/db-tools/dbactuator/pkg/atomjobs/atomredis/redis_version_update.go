@@ -324,7 +324,7 @@ func (job *RedisVersionUpdate) allInstsAbleToConnect() (err error) {
 		if err != nil {
 			return err
 		}
-		cli, err := myredis.NewRedisClientWithTimeout(addr, password, 0,
+		cli, err := myredis.NewRedisClientWithRetry(addr, password, 0,
 			consts.TendisTypeRedisInstance, 5*time.Second)
 		if err != nil {
 			return err
@@ -518,7 +518,7 @@ func (job *RedisVersionUpdate) flushDataAfterStart(port int) error {
 	if err != nil {
 		return fmt.Errorf("flush after upgrade: get pwd from conf failed,addr:%s,err:%v", addr, err)
 	}
-	cli, err := myredis.NewRedisClientWithTimeout(addr, password, 0,
+	cli, err := myredis.NewRedisClientWithRetry(addr, password, 0,
 		consts.TendisTypeRedisInstance, 10*time.Second)
 	if err != nil {
 		return fmt.Errorf("flush after upgrade: connect %s failed,err:%v", addr, err)
@@ -721,7 +721,7 @@ func (job *RedisVersionUpdate) startRedis(port int) (err error) {
 		return err
 	}
 	addr := fmt.Sprintf("%s:%d", job.params.IP, port)
-	cli, err := myredis.NewRedisClientWithTimeout(addr, password, 0,
+	cli, err := myredis.NewRedisClientWithRetry(addr, password, 0,
 		consts.TendisTypeRedisInstance, 10*time.Second)
 	if err != nil && strings.Contains(err.Error(), "LOADING Redis is loading") {
 		job.runtime.Logger.Warn(fmt.Sprintf("redis:%s conn warn,err:%v", addr, err))

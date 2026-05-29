@@ -81,10 +81,13 @@ func (job *ProxyVersionUpgrade) Name() string {
 
 // Run Command Run
 func (job *ProxyVersionUpgrade) Run() (err error) {
-	err = myredis.LocalRedisConnectTest(job.params.IP, []int{job.params.Port}, job.params.Password)
+	addr := fmt.Sprintf("%s:%d", job.params.IP, job.params.Port)
+	cli, err := myredis.NewRedisClient(addr, job.params.Password, 0,
+		consts.TendisTypeRedisInstance, 5*time.Second)
 	if err != nil {
 		return err
 	}
+	cli.Close()
 	err = job.getRole()
 	if err != nil {
 		return
@@ -341,7 +344,7 @@ func (job *ProxyVersionUpgrade) startProxy() (err error) {
 		return err
 	}
 	addr := fmt.Sprintf("%s:%d", job.params.IP, port)
-	cli, err := myredis.NewRedisClientWithTimeout(addr, job.params.Password, 0,
+	cli, err := myredis.NewRedisClientWithRetry(addr, job.params.Password, 0,
 		consts.TendisTypeRedisInstance, 10*time.Second)
 	if err != nil {
 		return err

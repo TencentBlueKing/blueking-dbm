@@ -112,7 +112,7 @@ func (job *RedisClientConnsKill) GetExcludedIpMap() (err error) {
 	if err != nil {
 		return err
 	}
-	redisCli, err := myredis.NewRedisClientWithTimeout(firstAddr, password, 0,
+	redisCli, err := myredis.NewRedisClientWithRetry(firstAddr, password, 0,
 		consts.TendisTypeRedisInstance, 5*time.Second)
 	if err != nil {
 		return err
@@ -156,7 +156,7 @@ func (job *RedisClientConnsKill) GetExcludedIpMap() (err error) {
 // ConnectAndRunClientKill 连接并执行client kill操作
 func (job *RedisClientConnsKill) ConnectAndRunClientKill(addr, password string) (err error) {
 	// 连接redis
-	redisCli, err := myredis.NewRedisClientWithTimeout(addr, password, 0,
+	redisCli, err := myredis.NewRedisClientWithRetry(addr, password, 0,
 		consts.TendisTypeRedisInstance, 5*time.Second)
 	if err != nil {
 		return err

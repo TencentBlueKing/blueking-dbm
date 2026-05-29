@@ -39,30 +39,15 @@ const (
 	redisConfigRewriteSaveFixVersion = "6.2.2"
 	newConnMaxRetryDuration          = 3 * time.Minute
 	newConnRetrySleep                = 10 * time.Second
+	newConnDefaultTimeout            = 1 * time.Minute
+	redisClientNoRetries             = -1
 )
 
-// NewRedisClient 建redis客户端
-func NewRedisClient(addr, passwd string, db int, dbType string) (conn *RedisClient, err error) {
-	// 统一不使用智能client,一个连接固定到某个实例上
-	// 智能client连接redis cluster,容易在执行命令时,漂移到cluster的不同实例上
-	dbType = consts.TendisTypeRedisInstance
-	conn = &RedisClient{
-		Addr:         addr,
-		Password:     passwd,
-		DB:           db,
-		MaxRetryTime: 60, // 默认重试60次
-		DbType:       dbType,
-		nodesMu:      &sync.Mutex{},
-	}
-	err = conn.newConn(1 * time.Minute)
-	if err != nil {
-		return nil, err
-	}
-	return
-}
-
-// NewRedisClientWithTimeout 建redis客户端,可指定超时时间
-func NewRedisClientWithTimeout(addr, passwd string, db int, dbType string, timeout time.Duration) (
+// NewRedisClient 建redis客户端,仅尝试一次连接,不重试.
+// timeout 可选,未传时默认为 newConnDefaultTimeout (1 分钟),一般用于确认进程killed.
+// 注意: timeout 会同时作为 DialTimeout/ReadTimeout/WriteTimeout, 并保留在 client 上,
+// 作为后续每条命令的超时时间(贯穿 client 整个生命周期), 而不仅是连接阶段.
+func NewRedisClient(addr, passwd string, db int, dbType string, timeout ...time.Duration) (
 	conn *RedisClient, err error) {
 	// 统一不使用智能client,一个连接固定到某个实例上
 	// 智能client连接redis cluster,容易在执行命令时,漂移到cluster的不同实例上
@@ -71,31 +56,68 @@ func NewRedisClientWithTimeout(addr, passwd string, db int, dbType string, timeo
 		Addr:         addr,
 		Password:     passwd,
 		DB:           db,
-		MaxRetryTime: int(timeout.Seconds()),
+		MaxRetryTime: redisClientNoRetries,
 		DbType:       dbType,
 		nodesMu:      &sync.Mutex{},
 	}
-	err = conn.newConn(timeout)
+	t := newConnDefaultTimeout
+	if len(timeout) > 0 {
+		t = timeout[0]
+	}
+	err = conn.ConnectNoRetry(t)
+	if err != nil {
+		conn.Close()
+		return nil, err
+	}
+	return
+}
+
+// NewRedisClientWithRetry 建redis客户端,在 newConnMaxRetryDuration 总预算内自动重试,
+// 用于需要等待 proxy/redis/tendis 进程就绪的场景.
+// timeout 为单次连接及后续每条命令的 Dial/Read/Write 超时, 同样贯穿 client 整个生命周期;
+// 重试总预算固定为 newConnMaxRetryDuration. 长耗时命令(如 reshape/backup)据此传入较大 timeout.
+func NewRedisClientWithRetry(addr, passwd string, db int, dbType string, timeout time.Duration) (
+	conn *RedisClient, err error) {
+	dbType = consts.TendisTypeRedisInstance
+	conn = &RedisClient{
+		Addr:         addr,
+		Password:     passwd,
+		DB:           db,
+		MaxRetryTime: redisClientNoRetries,
+		DbType:       dbType,
+		nodesMu:      &sync.Mutex{},
+	}
+	err = conn.ConnectWithRetry(timeout, newConnMaxRetryDuration)
 	if err != nil {
 		return nil, err
 	}
 	return
 }
 
-func (db *RedisClient) newConn(timeout time.Duration) (err error) {
+// ConnectNoRetry performs one bounded connection ping without go-redis or outer retries.
+func (db *RedisClient) ConnectNoRetry(timeout time.Duration) (err error) {
+	return db.connect(timeout, 0, 0)
+}
+
+// ConnectWithRetry connects with an explicit overall retry budget.
+func (db *RedisClient) ConnectWithRetry(timeout, retryBudget time.Duration) (err error) {
+	return db.connect(timeout, retryBudget, newConnRetrySleep)
+}
+
+func (db *RedisClient) connect(timeout time.Duration, retryBudget, retrySleep time.Duration) (err error) {
 	// 执行命令失败重连,确保重连后,databases正确
 	var redisConnHook = func(ctx context.Context, cn *redis.Conn) error {
 		pipe01 := cn.Pipeline()
-		_, err := pipe01.Select(context.TODO(), db.DB).Result()
+		_, err := pipe01.Select(ctx, db.DB).Result()
 		if err != nil {
 			err = fmt.Errorf("newConnct pipeline change db fail,err:%v", err)
-			mylog.Logger.Error(err.Error())
+			mylog.Logger.Error("%v", err)
 			return err
 		}
-		_, err = pipe01.Exec(context.TODO())
+		_, err = pipe01.Exec(ctx)
 		if err != nil {
 			err = fmt.Errorf("newConnct pipeline.exec db fail,err:%v", err)
-			mylog.Logger.Error(err.Error())
+			mylog.Logger.Error("%v", err)
 			return err
 		}
 		return nil
@@ -106,8 +128,8 @@ func (db *RedisClient) newConn(timeout time.Duration) (err error) {
 		DialTimeout:     timeout,
 		ReadTimeout:     timeout,
 		MaxConnAge:      24 * time.Hour,
-		MaxRetries:      db.MaxRetryTime, // 失败自动重试,重试次数
-		MinRetryBackoff: 1 * time.Second, // 重试间隔
+		MaxRetries:      redisClientNoRetries, // 统一由外层语义控制是否重试
+		MinRetryBackoff: 1 * time.Second,      // 重试间隔
 		MaxRetryBackoff: 1 * time.Second,
 		PoolSize:        10,
 		OnConnect:       redisConnHook,
@@ -117,8 +139,8 @@ func (db *RedisClient) newConn(timeout time.Duration) (err error) {
 		DialTimeout:     timeout,
 		ReadTimeout:     timeout,
 		MaxConnAge:      24 * time.Hour,
-		MaxRetries:      db.MaxRetryTime, // 失败自动重试,重试次数
-		MinRetryBackoff: 1 * time.Second, // 重试间隔
+		MaxRetries:      redisClientNoRetries, // 统一由外层语义控制是否重试
+		MinRetryBackoff: 1 * time.Second,      // 重试间隔
 		MaxRetryBackoff: 1 * time.Second,
 		PoolSize:        10,
 		OnConnect:       redisConnHook,
@@ -127,12 +149,12 @@ func (db *RedisClient) newConn(timeout time.Duration) (err error) {
 		redisOpt.Password = db.Password
 		clusterOpt.Password = db.Password
 	}
-	ctx := context.TODO()
-	deadline := time.Now().Add(newConnMaxRetryDuration)
+	deadline := time.Now().Add(retryBudget)
 	attempt := 0
 	var pingErr error
 	for {
 		attempt++
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		if db.DbType == consts.TendisTypeRedisCluster {
 			db.ClusterClient = redis.NewClusterClient(clusterOpt)
 			_, pingErr = db.ClusterClient.Ping(ctx).Result()
@@ -140,6 +162,7 @@ func (db *RedisClient) newConn(timeout time.Duration) (err error) {
 			db.InstanceClient = redis.NewClient(redisOpt)
 			_, pingErr = db.InstanceClient.Ping(ctx).Result()
 		}
+		cancel()
 
 		if pingErr != nil && strings.Contains(pingErr.Error(), "LOADING Redis is loading") {
 			mylog.Logger.Warn("redis:%s conn warn,err:%v", db.Addr, pingErr)
@@ -148,13 +171,16 @@ func (db *RedisClient) newConn(timeout time.Duration) (err error) {
 		if pingErr == nil {
 			return nil
 		}
-		// 即将再睡一轮就会越过总预算时, 直接放弃, 避免 sleep 完才发现超时
-		if time.Now().Add(newConnRetrySleep).After(deadline) {
+		if retryBudget <= 0 || retrySleep <= 0 {
 			break
 		}
-		mylog.Logger.Error(
+		// 即将再睡一轮就会越过总预算时, 直接放弃, 避免 sleep 完才发现超时
+		if time.Now().Add(retrySleep).After(deadline) {
+			break
+		}
+		mylog.Logger.Warn(
 			"redis new conn fail (attempt %d),sleep %s then retry.err:%v,addr:%s",
-			attempt, newConnRetrySleep, pingErr, db.Addr)
+			attempt, retrySleep, pingErr, db.Addr)
 		// 释放本轮失败的 client, 防止 goroutine / 连接泄漏
 		if db.ClusterClient != nil {
 			_ = db.ClusterClient.Close()
@@ -164,10 +190,10 @@ func (db *RedisClient) newConn(timeout time.Duration) (err error) {
 			_ = db.InstanceClient.Close()
 			db.InstanceClient = nil
 		}
-		time.Sleep(newConnRetrySleep)
+		time.Sleep(retrySleep)
 	}
 	return fmt.Errorf("redis new conn fail after %d attempts (within %s budget),err:%v addr:%s",
-		attempt, newConnMaxRetryDuration, pingErr, db.Addr)
+		attempt, retryBudget, pingErr, db.Addr)
 }
 
 // RedisClusterConfigSetOnlyMasters run 'config set ' on all redis cluster running masters

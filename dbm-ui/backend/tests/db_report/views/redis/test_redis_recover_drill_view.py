@@ -7,7 +7,6 @@ def _make_report_row(bk_biz_id=100):
     return SimpleNamespace(
         bk_biz_id=bk_biz_id,
         ticket_id=123,
-        ticket_flow_obj_id="ticket-root",
         rollback_flow_obj_id="rollback-root",
         delete_flow_obj_id="delete-root",
     )
@@ -55,26 +54,20 @@ def test_redis_rollback_exercise_flow_links_fallback_to_report_biz_when_config_u
         )
 
 
-def test_redis_rollback_exercise_ticket_flow_link_uses_annotated_flow_obj_id():
+def test_redis_rollback_exercise_ticket_link():
     from backend.db_report.views.redis import redis_recover_drill_view as view
 
     serializer = view.RedisRecoverDrillTaskSerializer()
     obj = _make_report_row(bk_biz_id=100)
 
-    with patch("backend.db_report.views.redis.redis_recover_drill_view.Flow") as flow:
-        assert (
-            serializer.get_ticket_flow_link(obj)
-            == f"{view.BK_SAAS_HOST}/100/task-history/detail/ticket-root?from=taskHistoryList"
-        )
-
-    flow.objects.filter.assert_not_called()
+    assert serializer.get_ticket_link(obj) == f"{view.BK_SAAS_HOST}/ticket/123"
 
 
-def test_redis_rollback_exercise_ticket_flow_link_missing_annotation_returns_none():
+def test_redis_rollback_exercise_ticket_link_missing_ticket_id_returns_none():
     from backend.db_report.views.redis import redis_recover_drill_view as view
 
     serializer = view.RedisRecoverDrillTaskSerializer()
     obj = _make_report_row(bk_biz_id=100)
-    obj.ticket_flow_obj_id = ""
+    obj.ticket_id = 0
 
-    assert serializer.get_ticket_flow_link(obj) is None
+    assert serializer.get_ticket_link(obj) is None

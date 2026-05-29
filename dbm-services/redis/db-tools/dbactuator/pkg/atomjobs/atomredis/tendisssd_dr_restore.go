@@ -271,14 +271,14 @@ func (task *TendisssdDrRestoreTask) Run() {
 }
 func (task *TendisssdDrRestoreTask) newConnect() {
 	task.runtime.Logger.Info("start connect master(%s)", task.MasterAddr())
-	task.MasterCli, task.Err = myredis.NewRedisClient(task.MasterAddr(), task.MasterAuth, 0,
-		consts.TendisTypeRedisInstance)
+	task.MasterCli, task.Err = myredis.NewRedisClientWithRetry(task.MasterAddr(), task.MasterAuth, 0,
+		consts.TendisTypeRedisInstance, 1*time.Minute)
 	if task.Err != nil {
 		return
 	}
 	task.runtime.Logger.Info("start connect slave(%s)", task.SlaveAddr())
-	task.SlaveCli, task.Err = myredis.NewRedisClient(task.SlaveAddr(), task.SlavePassword, 0,
-		consts.TendisTypeRedisInstance)
+	task.SlaveCli, task.Err = myredis.NewRedisClientWithRetry(task.SlaveAddr(), task.SlavePassword, 0,
+		consts.TendisTypeRedisInstance, 1*time.Minute)
 	if task.Err != nil {
 		return
 	}
