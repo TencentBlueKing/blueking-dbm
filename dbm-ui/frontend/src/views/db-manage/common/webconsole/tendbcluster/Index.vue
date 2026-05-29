@@ -95,6 +95,7 @@
   defineProps<Props>();
 
   const { t } = useI18n();
+  const route = useRoute();
 
   const rootRef = ref();
   const clusterTabsRef = ref();
@@ -130,6 +131,19 @@
         });
         return acc;
       }, {});
+
+      if (route.query.clusterId) {
+        const clusterInfo = clusterMap[Number(route.query.clusterId)];
+        handleChangeCurrentCluster({
+          bk_cloud_id: clusterInfo.bk_cloud_id,
+          cluster_type: clusterInfo.cluster_type,
+          id: clusterInfo.id,
+          immute_domain: clusterInfo.master_domain,
+          major_version: clusterInfo.major_version,
+          name: clusterInfo.cluster_name,
+          region: clusterInfo.region,
+        });
+      }
     },
   });
 
