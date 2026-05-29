@@ -61,7 +61,10 @@ class SQLHandler(object):
 
     @staticmethod
     def upload_sql_file(
-        bkrepo_path, sql_content: str = None, sql_file_list: List[InMemoryUploadedFile] = None
+        bkrepo_path,
+        sql_content: str = None,
+        sql_file_list: List[InMemoryUploadedFile] = None,
+        suffix: str = ".sql",
     ) -> List[Dict[str, Any]]:
         """
         - 将sql文本或者sql文件上传到制品库
@@ -73,7 +76,7 @@ class SQLHandler(object):
 
         # 如果上传的是sql内容, 则创建一个sql文件
         if sql_content:
-            sql_file = tempfile.NamedTemporaryFile(suffix=".sql")
+            sql_file = tempfile.NamedTemporaryFile(suffix=suffix)
             content_byte = str.encode(sql_content, encoding="utf-8")
             sql_file.write(content_byte)
             sql_file.size = len(content_byte)
