@@ -39,6 +39,9 @@
           :key="index">
           <WithRelatedClustersColumn
             v-model="item.cluster"
+            :disable-select-method="
+              (cluster: TendbhaModel) => (cluster.status === 'normal' ? t('正常状态的集群不可用故障重建') : false)
+            "
             role="proxy"
             :selected="selected"
             @batch-edit="handleBatchEdit"

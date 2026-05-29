@@ -281,6 +281,7 @@
   .spec-column-option {
     display: flex;
     width: 100%;
+    align-items: center;
     justify-content: space-between;
   }
 </style>
