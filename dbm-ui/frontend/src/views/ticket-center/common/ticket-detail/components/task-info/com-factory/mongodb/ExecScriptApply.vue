@@ -69,6 +69,7 @@
         </div>
         <div class="editor-layout-right">
           <RenderFileContent
+            language="js"
             :model-value="currentFileContent"
             readonly
             :title="selectFileName" />
@@ -76,6 +77,7 @@
       </div>
       <template v-else>
         <RenderFileContent
+          language="js"
           :model-value="currentFileContent"
           readonly
           :title="uploadFileList.toString()" />

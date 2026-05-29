@@ -74,6 +74,7 @@
 
   interface Props {
     grammarCheckInfo?: GrammarCheckInfo;
+    language?: 'sql' | 'js';
     modelValue: string;
     readonly?: boolean;
     title: string;
@@ -90,6 +91,7 @@
       highrisk_warnings: [],
       syntax_fails: [],
     }),
+    language: 'sql',
     readonly: false,
   });
 
@@ -228,10 +230,11 @@
 
   const handleDownload = () => {
     const link = document.createElement('a');
-    link.download = `${props.title.replace(/\s/g, '')}.sql`;
+    link.download = `${props.title.replace(/\s/g, '')}`;
+    // link.download = `${props.title.replace(/\s/g, '')}.sql`;
     link.style.display = 'none';
     // 字符内容转变成blob地址
-    const blob = new Blob([props.modelValue], { type: 'sql' });
+    const blob = new Blob([props.modelValue], { type: props.language });
     link.href = URL.createObjectURL(blob);
     document.body.appendChild(link);
     link.click();
@@ -277,7 +280,7 @@
   onMounted(() => {
     editor = monaco.editor.create(editorRef.value, {
       automaticLayout: true,
-      language: 'sql',
+      language: props.language === 'js' ? 'javascript' : props.language,
       lineNumbersMinChars: 3,
       minimap: {
         enabled: false,
