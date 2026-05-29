@@ -148,6 +148,12 @@ export const toolboxMenuList = [
         parentId: 'migrate',
       },
       {
+        dbConsoleValue: 'mysql.toolbox.proxyRescue',
+        id: TicketTypes.MYSQL_PROXY_RESCUE,
+        name: t('Proxy 灾难重建'),
+        parentId: 'migrate',
+      },
+      {
         bind: [TicketTypes.MYSQL_MASTER_FAIL_OVER, TicketTypes.MYSQL_INSTANCE_FAIL_OVER],
         dbConsoleValue: 'mysql.toolbox.instanceFailover',
         id: TicketTypes.MYSQL_MASTER_FAIL_OVER,

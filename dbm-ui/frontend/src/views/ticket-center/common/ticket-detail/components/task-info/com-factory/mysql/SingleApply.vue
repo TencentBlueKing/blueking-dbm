@@ -97,6 +97,7 @@
         <TicketInfoTableColumn
           v-if="ticketDetails.details.nodes?.backend"
           col-key="backend"
+          :get-copy-value="(_: any, rowIndex: number) => ticketDetails.details.nodes.backend[rowIndex].ip"
           :min-width="180"
           :title="t('服务器')">
           <template #default="{ rowIndex }">
