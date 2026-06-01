@@ -259,12 +259,16 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
         def rs_members(rs: ReplicaSet) -> List[MongoNode]:
             return [n for n in [rs.get_backup_node(), *rs.get_not_backup_nodes()] if n]
 
+        def rs_group(name: str, rs: ReplicaSet) -> Dict:
+            # not_backup 为数据承载成员（其中运行期恰有一个 primary），用于升级阶段2只升 primary。
+            return {"name": name, "members": rs_members(rs), "not_backup": list(rs.get_not_backup_nodes())}
+
         groups = {"replicasets": [], "mongos": []}
         if cluster.cluster_type == ClusterType.MongoReplicaSet:
-            groups["replicasets"].append({"name": cluster.name, "members": rs_members(cluster.get_shards()[0])})
+            groups["replicasets"].append(rs_group(cluster.name, cluster.get_shards()[0]))
         elif cluster.cluster_type == ClusterType.MongoShardedCluster:
             for shard in cluster.get_shards(with_config=True, sort_by_set_name=True):
-                groups["replicasets"].append({"name": shard.set_name, "members": rs_members(shard)})
+                groups["replicasets"].append(rs_group(shard.set_name, shard))
             groups["mongos"] = sorted(cluster.get_mongos(), key=lambda n: (n.ip, n.port))
         else:
             raise Exception(_("unsupported cluster type {}".format(cluster.cluster_type)))
@@ -397,6 +401,9 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
             cluster_sb.add_parallel_acts(acts_list=precheck_acts)
 
         # --- upgrade_cluster: parallel replicaset upgrades ---
+        # 每个 RS 顺序两阶段，使每个 hop 仅发生一次 stepDown：
+        #   阶段1(phase=secondary)：顺序升级全部成员，运行期为 PRIMARY 的节点由 actuator 守卫自动跳过（升 backup/secondary）。
+        #   阶段2(phase=primary)：顺序升级数据承载成员，运行期非 PRIMARY 的节点自动跳过，仅旧 primary 真正执行（唯一一次 stepDown）。
         rs_parallel_pipes = []
         for rs_group in exec_groups["replicasets"]:
             rs_sb = SubBuilder(root_id=self.root_id, data=self.payload)
@@ -410,6 +417,20 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
                         dest_version=dest_version,
                         target_pkg=target_pkg,
                         include_backup=include_backup,
+                        upgrade_phase="secondary",
+                    )
+                )
+            for node in rs_group.get("not_backup", []):
+                rs_sb.add_sub_pipeline(
+                    sub_flow=self._build_member_sub_flow(
+                        node=node,
+                        file_path=file_path,
+                        instance_type="mongod",
+                        current_version=current_version,
+                        dest_version=dest_version,
+                        target_pkg=target_pkg,
+                        include_backup=include_backup,
+                        upgrade_phase="primary",
                     )
                 )
             rs_parallel_pipes.append(rs_sb.build_sub_process(_("replicaset-{}".format(rs_group["name"]))))
@@ -437,11 +458,8 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
         )
         if postcheck_act:
             cluster_sb.add_act(**postcheck_act)
-        persist_version_act = self._build_persist_meta_version_act(
-            cluster=cluster,
-            target_version=self._resolve_persist_version(target_pkg=target_pkg, dest_version=dest_version),
-        )
-        cluster_sb.add_act(**persist_version_act)
+        # 注意：版本元数据回写不在此处，统一挪到 hop barrier 之后（_build_hop_stage_sub_flow），
+        # 确保 barrier 验证全部成员就位再持久化，避免 barrier 失败但元数据已被改动。
 
         process_name = sub_process_name if sub_process_name else _("mongo_upgrade_cluster_{}".format(cluster.name))
         return cluster_sb.build_sub_process(process_name)
@@ -478,6 +496,19 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
         barrier_sf = self._build_hop_barrier_stage_sub_flow(hop=hop, file_path=file_path)
         if barrier_sf:
             hop_sb.add_sub_pipeline(sub_flow=barrier_sf)
+        # barrier 通过后再回写版本元数据，避免成员漏升时元数据被提前更新到目标版本。
+        persist_acts = [
+            self._build_persist_meta_version_act(
+                cluster=item["cluster"],
+                target_version=self._resolve_persist_version(
+                    target_pkg=item["hop_plan_map"][hop]["target_pkg"],
+                    dest_version=item["hop_plan_map"][hop]["dest_version"],
+                ),
+            )
+            for item in self.cluster_infos
+        ]
+        if persist_acts:
+            hop_sb.add_parallel_acts(acts_list=persist_acts)
         return hop_sb.build_sub_process(_("mongo_upgrade_hop_{}->{}".format(from_mm, to_mm)))
 
     def _build_member_sub_flow(
@@ -490,6 +521,7 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
         target_pkg: Package,
         *,
         include_backup: bool = True,
+        upgrade_phase: Optional[str] = None,
     ):
         member_sb = SubBuilder(root_id=self.root_id, data=self.payload)
         self._append_node_upgrade_acts(
@@ -501,8 +533,14 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
             dest_version=dest_version,
             target_pkg=target_pkg,
             include_backup=include_backup,
+            upgrade_phase=upgrade_phase,
         )
-        return member_sb.build_sub_process(_("member-{}:{}".format(node.ip, node.port)))
+        phase_label = {"secondary": _("升从"), "primary": _("升主")}.get(upgrade_phase, "")
+        if phase_label:
+            name = _("member-{}-{}:{}").format(phase_label, node.ip, node.port)
+        else:
+            name = _("member-{}:{}").format(node.ip, node.port)
+        return member_sb.build_sub_process(name)
 
     def _build_mongos_stage_sub_flow(
         self,
@@ -593,15 +631,32 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
         target_pkg: Package,
         *,
         include_backup: bool = True,
+        upgrade_phase: Optional[str] = None,
     ):
-        sb.add_act(**MongoUpgradeVersionSubTask.shield_dbmon_act(file_path=file_path, exec_node=node))
-        sb.add_act(**MongoUpgradeVersionSubTask.stop_act(file_path=file_path, exec_node=node))
+        # upgrade_phase 透传给所有原子步骤：shield_dbmon 在 mongod 在线时判定并持久化跳过决策，
+        # 其余步骤据该决策 no-op；upgrade_phase 为空（如 mongos）时不启用守卫。
+        sb.add_act(
+            **MongoUpgradeVersionSubTask.shield_dbmon_act(
+                file_path=file_path,
+                exec_node=node,
+                upgrade_phase=upgrade_phase,
+                dest_version=dest_version,
+                instance_type=instance_type,
+            )
+        )
+        sb.add_act(
+            **MongoUpgradeVersionSubTask.stop_act(
+                file_path=file_path, exec_node=node, upgrade_phase=upgrade_phase, dest_version=dest_version
+            )
+        )
         if include_backup:
             sb.add_act(
                 **MongoUpgradeVersionSubTask.backup_data_act(
                     file_path=file_path,
                     exec_node=node,
                     old_full_version=normalize_mongodb_full_version(current_version),
+                    upgrade_phase=upgrade_phase,
+                    dest_version=dest_version,
                 )
             )
         sb.add_act(
@@ -613,8 +668,21 @@ class MongoUpgradeVersionFlow(MongoBaseFlow):
                 instance_type=instance_type,
                 pkg=os.path.basename(target_pkg.path),
                 pkg_md5=target_pkg.md5,
+                upgrade_phase=upgrade_phase,
             )
         )
-        sb.add_act(**MongoUpgradeVersionSubTask.start_act(file_path=file_path, exec_node=node))
-        sb.add_act(**MongoUpgradeVersionSubTask.unblock_dbmon_act(file_path=file_path, exec_node=node))
-        sb.add_act(**MongoUpgradeVersionSubTask.service_check_act(file_path=file_path, exec_node=node))
+        sb.add_act(
+            **MongoUpgradeVersionSubTask.start_act(
+                file_path=file_path, exec_node=node, upgrade_phase=upgrade_phase, dest_version=dest_version
+            )
+        )
+        sb.add_act(
+            **MongoUpgradeVersionSubTask.unblock_dbmon_act(
+                file_path=file_path, exec_node=node, upgrade_phase=upgrade_phase, dest_version=dest_version
+            )
+        )
+        sb.add_act(
+            **MongoUpgradeVersionSubTask.service_check_act(
+                file_path=file_path, exec_node=node, upgrade_phase=upgrade_phase, dest_version=dest_version
+            )
+        )

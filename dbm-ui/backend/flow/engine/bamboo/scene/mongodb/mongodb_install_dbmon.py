@@ -19,7 +19,7 @@ from backend import env
 from backend.configuration.constants import DBType
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
-from backend.flow.engine.bamboo.scene.common.builder import Builder
+from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.base_flow import MongoBaseFlow
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.install_dbmon_sub import (
     InstallDBMonSubTask,
@@ -101,12 +101,15 @@ def add_install_dbmon(root_id, flow_data, pipeline, iplist, bk_cloud_id, allow_e
         if not sub_bk_host_list:
             raise Exception("sub_bk_host_list is None")
         bk_host_list.extend(sub_bk_host_list)
-        sub_pipelines.append(sub_pl.build_sub_process(_("dbmon-{}").format(ip)))
+        sub_pipelines.append(sub_pl.build_sub_process(_("安装dbmon-{}").format(ip)))
+
+    # 将安装dbmon相关的动作封装为一个独立子流程，使其在外层流程中作为一个整体节点
+    dbmon_pipeline = SubBuilder(root_id=root_id, data=flow_data)
 
     # 介质下发，包括actuator+dbmon+dbtools
-    pipeline.add_act(
+    dbmon_pipeline.add_act(
         **SendMedia.act(
-            act_name=_("CpFile: actuator+dbmon+dbtools+toolkit"),
+            act_name=_("下发介质(actuator/dbmon/dbtools/toolkit)"),
             file_list=file_list,
             bk_host_list=bk_host_list,
             file_target_path=actuator_workdir,
@@ -114,7 +117,7 @@ def add_install_dbmon(root_id, flow_data, pipeline, iplist, bk_cloud_id, allow_e
     )
 
     # 安装流程中，由prepare_instance_info来填充servers信息. 数据写在global_data -> 'ip' -> instances 中
-    pipeline.add_act(
+    dbmon_pipeline.add_act(
         **PrepareInstanceInfo.process_iplist(
             bk_cloud_id=bk_cloud_id,
             iplist=iplist,
@@ -125,7 +128,9 @@ def add_install_dbmon(root_id, flow_data, pipeline, iplist, bk_cloud_id, allow_e
     )
 
     # 并行执行actuator
-    pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+    dbmon_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+
+    pipeline.add_sub_pipeline(sub_flow=dbmon_pipeline.build_sub_process(sub_name=_("安装dbmon")))
 
 
 class MongoInstallDBMonFlow(MongoBaseFlow):

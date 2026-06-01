@@ -22,6 +22,8 @@ type ReplacePackageConfParams struct {
 	CurrentVersion  string `json:"currentVersion" validate:"required"` // 当前版本
 	DestVersion     string `json:"destVersion" validate:"required"`    // 目标版本
 	InstanceType    string `json:"instanceType" validate:"required"`   // mongos mongod
+	// UpgradePhase 滚动升级两阶段守卫（仅升级流程下传，secondary|primary）：本成员本阶段被判定跳过时直接返回(no-op)。
+	UpgradePhase string `json:"upgradePhase,omitempty"`
 }
 
 // ReplacePackage 安装包替换
@@ -54,6 +56,19 @@ func (r *ReplacePackage) Name() string {
 // 2. 解压安装包并修改属主，重建软链接
 // 3. 检测当前db版本，如果当前版本不是目标版本，则返回错误
 func (r *ReplacePackage) Run() error {
+	// 滚动升级两阶段守卫：读取 shield 阶段持久化的决策，本成员本阶段被判定跳过时直接返回(no-op)。
+	// 注意：此处使用未去前缀的原始 DestVersion，与决策文件写入时保持一致。
+	if r.ConfParams.UpgradePhase != "" {
+		skip, err := upgradePhaseShouldSkip(r.ConfParams.Port, r.ConfParams.UpgradePhase, r.ConfParams.DestVersion)
+		if err != nil {
+			return err
+		}
+		if skip {
+			r.runtime.Logger.Info("upgrade phase %s: skip replace_package for %s:%d",
+				r.ConfParams.UpgradePhase, r.ConfParams.IP, r.ConfParams.Port)
+			return nil
+		}
+	}
 	// fetch File Lock
 	fileLock, err := common.NewFileLock(r.LockFilePath)
 	if err != nil {

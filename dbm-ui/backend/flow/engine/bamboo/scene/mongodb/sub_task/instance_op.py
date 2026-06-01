@@ -31,7 +31,15 @@ class InstanceOpSubTask(BaseSubTask):
 
     @classmethod
     def make_kwargs(
-        cls, file_path, exec_node: MongoNode, op: str, username: str = None, graceful_stop: Optional[bool] = None
+        cls,
+        file_path,
+        exec_node: MongoNode,
+        op: str,
+        username: str = None,
+        graceful_stop: Optional[bool] = None,
+        upgrade_phase: Optional[str] = None,
+        dest_version: Optional[str] = None,
+        instance_type: Optional[str] = None,
     ) -> dict:
         if username is None:
             username = MongoDBManagerUser.DbaUser.value
@@ -45,6 +53,13 @@ class InstanceOpSubTask(BaseSubTask):
         }
         if graceful_stop is not None:
             payload["gracefulStop"] = graceful_stop
+        # 滚动升级两阶段守卫字段：仅升级流程下传，其余流程不带（actuator 侧据此判断是否启用守卫）
+        if upgrade_phase:
+            payload["upgradePhase"] = upgrade_phase
+        if dest_version:
+            payload["destVersion"] = dest_version
+        if instance_type:
+            payload["instanceType"] = instance_type
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,
@@ -69,7 +84,22 @@ class InstanceOpSubTask(BaseSubTask):
         instance_type: str,
         pkg: str,
         pkg_md5: str,
+        upgrade_phase: Optional[str] = None,
     ) -> dict:
+        payload = {
+            "mediapkg": {
+                "pkg": pkg,
+                "pkg_md5": pkg_md5,
+            },
+            "ip": exec_node.ip,
+            "port": int(exec_node.port),
+            "currentVersion": current_version,
+            "destVersion": dest_version,
+            "instanceType": instance_type,
+        }
+        # 滚动升级两阶段守卫字段：仅升级流程下传
+        if upgrade_phase:
+            payload["upgradePhase"] = upgrade_phase
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,
@@ -80,17 +110,7 @@ class InstanceOpSubTask(BaseSubTask):
                 "file_path": file_path,
                 "exec_account": "root",
                 "sudo_account": "root",
-                "payload": {
-                    "mediapkg": {
-                        "pkg": pkg,
-                        "pkg_md5": pkg_md5,
-                    },
-                    "ip": exec_node.ip,
-                    "port": int(exec_node.port),
-                    "currentVersion": current_version,
-                    "destVersion": dest_version,
-                    "instanceType": instance_type,
-                },
+                "payload": payload,
             },
         }
 
