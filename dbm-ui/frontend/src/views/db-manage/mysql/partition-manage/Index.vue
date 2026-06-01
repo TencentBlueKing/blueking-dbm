@@ -471,9 +471,9 @@
     },
   ] as QuickSearchProps['data'];
 
-  watch(searchValue, () => {
-    tableRef.value!.clearSelected();
-  });
+  // watch(searchValue, () => {
+  //   tableRef.value!.clearSelected();
+  // });
 
   const getRowClass = (data: PartitionModel) => {
     const classList: string[] = [];

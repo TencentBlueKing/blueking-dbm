@@ -120,7 +120,6 @@
     </div>
     <DbTable
       ref="tableRef"
-      :clear-selection="false"
       :columns="columns"
       :data-source="getInfluxdbInstanceList"
       :row-class="setRowClass"

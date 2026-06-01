@@ -305,9 +305,9 @@
     };
   });
 
-  watch(isAssist, () => {
-    tableRef.value?.clearSelected();
-  });
+  // watch(isAssist, () => {
+  //   tableRef.value?.clearSelected();
+  // });
 
   watch(dbType, () => {
     fetchData();
@@ -316,7 +316,7 @@
         dbType: dbType.value,
       },
     });
-    tableRef.value?.clearSelected();
+    // tableRef.value?.clearSelected();
   });
 
   const fetchData = () => {
@@ -381,7 +381,8 @@
   };
 
   const handleBatchDeleteSuccess = () => {
-    tableRef.value?.clearSelected();
+    // tableRef.value?.clearSelected();
+    fetchData();
   };
 </script>
 

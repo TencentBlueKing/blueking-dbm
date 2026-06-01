@@ -44,6 +44,7 @@
                   @change="handleWholeSelect" />
               </template>
               <BkPopover
+                v-if="!isOnlyOnePage"
                 :arrow="false"
                 click-content-auto-hide
                 placement="bottom-start"
@@ -369,6 +370,8 @@
   const { getSearchParams } = useUrlSearch();
 
   let isInited = false;
+  let isSortChangeFetch = false;
+  let isPaginationChangeFetch = false;
 
   const table = ref();
 
@@ -391,12 +394,21 @@
 
   const isSearching = computed(() => Object.keys(quickSearchValue.value).length > 0);
   const selectedCount = computed(() => Object.keys(rowSelectMemo.value).length);
+  const isOnlyOnePage = computed(() => Math.ceil(pagination.count / pagination.limit) < 2);
 
   const rowClass = ({ row }: { row: TicketModel<unknown> }) => {
     return row.id === ticketId.value ? 'select-row' : '';
   };
 
   const fetchData = () => {
+    if (props.selectable) {
+      if (!isPaginationChangeFetch && !isSortChangeFetch) {
+        handleClearWholeSelect();
+      }
+      isSortChangeFetch = false;
+      isPaginationChangeFetch = false;
+    }
+
     fetchTicketList(transfromDataToQuery(quickSearchValue.value));
     tableKey.value = Date.now().toString();
   };
@@ -411,17 +423,14 @@
     emits('selection', Object.values(rowSelectMemo.value));
   };
 
-  watch([quickSearchValue], () => {
-    // 第一次请求不充值页码
+  watch(quickSearchValue, () => {
+    // 第一次请求不重置页码
     if (!isInited) {
       isInited = true;
     } else {
       pagination.current = 1;
     }
 
-    if (props.selectable) {
-      handleClearWholeSelect();
-    }
     fetchData();
   });
 
@@ -490,6 +499,11 @@
   };
 
   const handleWholeSelect = () => {
+    // 如果只有一页，直接执行本页全选
+    if (isOnlyOnePage.value) {
+      handleTogglePageSelect(true);
+      return;
+    }
     const rowSelect = { ...rowSelectMemo.value };
     props
       .dataSource({
@@ -522,6 +536,7 @@
       ordering.value = '';
     }
 
+    isSortChangeFetch = true;
     fetchData();
   };
 
@@ -543,12 +558,16 @@
   const handlePageLimitChange = (pageLimit: number) => {
     pagination.limit = pageLimit;
     paginationLimitCache.value = pageLimit;
+
+    isPaginationChangeFetch = true;
     fetchData();
   };
 
   // 切换页码
   const handlePageValueChange = (pageValue: number) => {
     pagination.current = pageValue;
+
+    isPaginationChangeFetch = true;
     fetchData();
   };
 

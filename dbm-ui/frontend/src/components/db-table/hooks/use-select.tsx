@@ -1,7 +1,7 @@
 import { Popover } from 'bkui-vue';
 import _ from 'lodash';
 import { Checkbox, Radio } from 'tdesign-vue-next';
-import { defineComponent, getCurrentInstance, type Ref, ref, shallowRef } from 'vue';
+import { defineComponent, getCurrentInstance, type Reactive, type Ref, ref, shallowRef, type UnwrapRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { TableColumn } from '@blueking/tdesign-ui';
@@ -10,9 +10,12 @@ import DbIcon from '@components/db-icon/index';
 
 import { type Exposes, type Props } from '../IndexNew.vue';
 
+import { type Pagination } from './use-pagination.ts';
+
 export const useSelect = (
   props: Props,
   tableData: Ref<{ results: Record<string, any>[] }>,
+  pagination: Reactive<Pagination>,
   options?: { callback: () => void },
 ) => {
   const { t } = useI18n();
@@ -20,6 +23,8 @@ export const useSelect = (
 
   const selectedRowMap = shallowRef<Record<string | number, Record<any, any>>>({});
   const isWholeChecked = ref(false);
+
+  const isOnlyOnePage = computed(() => Math.ceil(pagination.count / pagination.limit) < 2);
 
   // 是否本页全选
   const isCurrentPageAllSelected = computed(() => {
@@ -32,6 +37,9 @@ export const useSelect = (
     const selectedMap = { ...selectedRowMap.value };
     // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < tableData.value.results.length; i++) {
+      if (props.disableSelectMethod && props.disableSelectMethod(tableData.value.results[i])) {
+        continue;
+      }
       if (!selectedMap[_.get(tableData.value.results[i], props.rowKey)]) {
         return false;
       }
@@ -40,7 +48,7 @@ export const useSelect = (
   });
 
   const handleTogglePageSelect = (checked: boolean) => {
-    const selectedMap = { ...selectedRowMap.value };
+    const selectedMap = {} as UnwrapRef<typeof selectedRowMap>;
     tableData.value.results.forEach((dataItem: any) => {
       if (checked) {
         if (!props.disableSelectMethod?.(dataItem)) {
@@ -55,7 +63,12 @@ export const useSelect = (
     options?.callback();
   };
 
+  // 默认为跨页全选；如果只有一页, 则直接本页全选
   const handleWholeSelect = () => {
+    if (isOnlyOnePage.value) {
+      handleTogglePageSelect(true);
+      return;
+    }
     (currentInstance!.exposeProxy as Exposes).fetchAllData().then((results) => {
       const selectedMap = { ...selectedRowMap.value };
       results.forEach((dataItem: any) => {
@@ -152,35 +165,37 @@ export const useSelect = (
                       )}
                     </>
                   )}
-                  <Popover
-                    v-slots={{
-                      content: () => (
-                        <div class='db-table-select-plan'>
-                          <div
-                            class={`plan-item ${isCurrentPageAllSelected.value ? 'is-selected' : ''}`}
-                            onClick={() => handleTogglePageSelect(true)}>
-                            {t('本页全选')}
+                  {!isOnlyOnePage.value && (
+                    <Popover
+                      v-slots={{
+                        content: () => (
+                          <div class='db-table-select-plan'>
+                            <div
+                              class={`plan-item ${isCurrentPageAllSelected.value ? 'is-selected' : ''}`}
+                              onClick={() => handleTogglePageSelect(true)}>
+                              {t('本页全选')}
+                            </div>
+                            <div
+                              class={`plan-item ${isWholeChecked.value ? 'is-selected' : ''}`}
+                              onClick={handleWholeSelect}>
+                              {t('跨页全选')}
+                            </div>
                           </div>
-                          <div
-                            class={`plan-item ${isWholeChecked.value ? 'is-selected' : ''}`}
-                            onClick={handleWholeSelect}>
-                            {t('跨页全选')}
-                          </div>
-                        </div>
-                      ),
-                      default: () => (
-                        <DbIcon
-                          class='select-menu-flag'
-                          type='down-big'
-                        />
-                      ),
-                    }}
-                    arrow={false}
-                    click-content-auto-hide={true}
-                    placement='bottom-start'
-                    theme='light db-table-select-menu'
-                    trigger='click'
-                  />
+                        ),
+                        default: () => (
+                          <DbIcon
+                            class='select-menu-flag'
+                            type='down-big'
+                          />
+                        ),
+                      }}
+                      arrow={false}
+                      click-content-auto-hide={true}
+                      placement='bottom-start'
+                      theme='light db-table-select-menu'
+                      trigger='click'
+                    />
+                  )}
                 </div>
               ),
           }}

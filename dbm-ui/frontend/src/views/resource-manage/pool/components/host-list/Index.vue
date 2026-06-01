@@ -556,7 +556,7 @@
   };
 
   const handleRefresh = () => {
-    tableRef.value!.clearSelected();
+    // tableRef.value!.clearSelected();
     fetchData();
   };
 
