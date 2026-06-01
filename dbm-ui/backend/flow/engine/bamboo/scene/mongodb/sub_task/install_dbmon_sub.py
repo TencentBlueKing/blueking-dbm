@@ -101,7 +101,7 @@ class InstallDBMonSubTask(BaseSubTask):
         sub_pipeline = SubBuilder(root_id=root_id, data=flow_data)
         kwargs = cls.make_kwargs(ip, bk_cloud_id, nodes, file_path, pkg_info, bk_monitor_beat_config)
         act = {
-            "act_name": _("node-{}".format(kwargs["exec_ip"])),
+            "act_name": _("安装dbmon"),
             "act_component_code": ExecJobComponent2.code,
             "kwargs": kwargs,
         }
@@ -165,7 +165,7 @@ class PrepareInstanceInfo(BaseSubTask):
             bk_monitor_beat_config=bk_monitor_beat_config,
         )
         return {
-            "act_name": _("prepare_instance_info:{} ip".format(len(iplist))),
+            "act_name": _("准备实例信息(共{}个IP)").format(len(iplist)),
             "act_component_code": ExecPrepareInstanceInfoOperationComponent.code,
             "kwargs": kwargs,
         }

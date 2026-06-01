@@ -53,7 +53,8 @@ class _ExecBkJobService(BkJobService):
         trans_data = data.get_one_of_inputs("trans_data")
 
         self.log_info("_execute trans_data {} global_data {} kwargs {}".format(trans_data, global_data, kwargs))
-        if trans_data is None or trans_data == "${trans_data}":
+        # 兜底处理 trans_data 不是合法上下文实例（None / 占位符 / dict 等）的场景，避免后续 trans_data.set(...) 报 AttributeError
+        if trans_data is None or trans_data == "${trans_data}" or not hasattr(trans_data, "set"):
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
             self.log_info("now init trans_data {}".format(trans_data))
 

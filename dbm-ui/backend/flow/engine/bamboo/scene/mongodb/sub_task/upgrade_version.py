@@ -24,32 +24,83 @@ class MongoUpgradeVersionSubTask:
     """MongoDB version-upgrade atom actions for one node."""
 
     @classmethod
-    def shield_dbmon_act(cls, file_path: str, exec_node: MongoNode) -> dict:
+    def shield_dbmon_act(
+        cls,
+        file_path: str,
+        exec_node: MongoNode,
+        upgrade_phase: Optional[str] = None,
+        dest_version: Optional[str] = None,
+        instance_type: Optional[str] = None,
+    ) -> dict:
         return {
             "act_name": _("MongoDB-屏蔽dbmon-{}:{}".format(exec_node.ip, exec_node.port)),
             "act_component_code": ExecJobComponent2.code,
-            "kwargs": InstanceOpSubTask.make_kwargs(file_path=file_path, exec_node=exec_node, op="shield_dbmon"),
+            "kwargs": InstanceOpSubTask.make_kwargs(
+                file_path=file_path,
+                exec_node=exec_node,
+                op="shield_dbmon",
+                upgrade_phase=upgrade_phase,
+                dest_version=dest_version,
+                instance_type=instance_type,
+            ),
         }
 
     @classmethod
-    def unblock_dbmon_act(cls, file_path: str, exec_node: MongoNode) -> dict:
+    def unblock_dbmon_act(
+        cls,
+        file_path: str,
+        exec_node: MongoNode,
+        upgrade_phase: Optional[str] = None,
+        dest_version: Optional[str] = None,
+    ) -> dict:
         return {
             "act_name": _("MongoDB-解除屏蔽dbmon-{}:{}".format(exec_node.ip, exec_node.port)),
             "act_component_code": ExecJobComponent2.code,
-            "kwargs": InstanceOpSubTask.make_kwargs(file_path=file_path, exec_node=exec_node, op="unblock_dbmon"),
+            "kwargs": InstanceOpSubTask.make_kwargs(
+                file_path=file_path,
+                exec_node=exec_node,
+                op="unblock_dbmon",
+                upgrade_phase=upgrade_phase,
+                dest_version=dest_version,
+            ),
         }
 
     @classmethod
-    def stop_act(cls, file_path: str, exec_node: MongoNode) -> dict:
+    def stop_act(
+        cls,
+        file_path: str,
+        exec_node: MongoNode,
+        upgrade_phase: Optional[str] = None,
+        dest_version: Optional[str] = None,
+    ) -> dict:
         return {
             "act_name": _("MongoDB-停实例-{}:{}".format(exec_node.ip, exec_node.port)),
             "act_component_code": ExecJobComponent2.code,
-            "kwargs": InstanceOpSubTask.make_kwargs(file_path=file_path, exec_node=exec_node, op="stop"),
+            "kwargs": InstanceOpSubTask.make_kwargs(
+                file_path=file_path,
+                exec_node=exec_node,
+                op="stop",
+                upgrade_phase=upgrade_phase,
+                dest_version=dest_version,
+            ),
         }
 
     @classmethod
-    def backup_data_act(cls, file_path: str, exec_node: MongoNode, old_full_version: str) -> dict:
-        kwargs = InstanceOpSubTask.make_kwargs(file_path=file_path, exec_node=exec_node, op="backup_mongodata")
+    def backup_data_act(
+        cls,
+        file_path: str,
+        exec_node: MongoNode,
+        old_full_version: str,
+        upgrade_phase: Optional[str] = None,
+        dest_version: Optional[str] = None,
+    ) -> dict:
+        kwargs = InstanceOpSubTask.make_kwargs(
+            file_path=file_path,
+            exec_node=exec_node,
+            op="backup_mongodata",
+            upgrade_phase=upgrade_phase,
+            dest_version=dest_version,
+        )
         kwargs["db_act_template"]["payload"]["oldFullVersion"] = old_full_version
         return {
             "act_name": _("MongoDB-备份数据目录-{}:{}".format(exec_node.ip, exec_node.port)),
@@ -67,6 +118,7 @@ class MongoUpgradeVersionSubTask:
         instance_type: str,
         pkg: str,
         pkg_md5: str,
+        upgrade_phase: Optional[str] = None,
     ) -> dict:
         return {
             "act_name": _("MongoDB-升级二进制-{}:{}".format(exec_node.ip, exec_node.port)),
@@ -79,24 +131,47 @@ class MongoUpgradeVersionSubTask:
                 instance_type=instance_type,
                 pkg=pkg,
                 pkg_md5=pkg_md5,
+                upgrade_phase=upgrade_phase,
             ),
         }
 
     @classmethod
-    def start_act(cls, file_path: str, exec_node: MongoNode) -> dict:
+    def start_act(
+        cls,
+        file_path: str,
+        exec_node: MongoNode,
+        upgrade_phase: Optional[str] = None,
+        dest_version: Optional[str] = None,
+    ) -> dict:
         return {
             "act_name": _("MongoDB-启实例-{}:{}".format(exec_node.ip, exec_node.port)),
             "act_component_code": ExecJobComponent2.code,
-            "kwargs": InstanceOpSubTask.make_kwargs(file_path=file_path, exec_node=exec_node, op="start"),
+            "kwargs": InstanceOpSubTask.make_kwargs(
+                file_path=file_path,
+                exec_node=exec_node,
+                op="start",
+                upgrade_phase=upgrade_phase,
+                dest_version=dest_version,
+            ),
         }
 
     @classmethod
-    def service_check_act(cls, file_path: str, exec_node: MongoNode) -> dict:
+    def service_check_act(
+        cls,
+        file_path: str,
+        exec_node: MongoNode,
+        upgrade_phase: Optional[str] = None,
+        dest_version: Optional[str] = None,
+    ) -> dict:
         return {
             "act_name": _("MongoDB-服务检查-{}:{}".format(exec_node.ip, exec_node.port)),
             "act_component_code": ExecJobComponent2.code,
             "kwargs": InstanceOpSubTask.make_kwargs(
-                file_path=file_path, exec_node=exec_node, op="service_status_check"
+                file_path=file_path,
+                exec_node=exec_node,
+                op="service_status_check",
+                upgrade_phase=upgrade_phase,
+                dest_version=dest_version,
             ),
         }
 

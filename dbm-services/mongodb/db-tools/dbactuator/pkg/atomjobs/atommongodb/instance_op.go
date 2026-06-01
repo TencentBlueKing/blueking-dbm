@@ -30,6 +30,11 @@ type instOpParams struct {
 	GracefulStop   *bool  `json:"gracefulStop,omitempty"`
 	SetName        string `json:"set_name,omitempty"`
 	CurrentVersion string `json:"currentVersion,omitempty"`
+	// 滚动升级两阶段守卫字段（仅升级流程下传）：
+	// UpgradePhase=secondary|primary，DestVersion 用于决策文件归属校验，InstanceType 用于识别 mongos（无主从、不守卫）。
+	UpgradePhase string `json:"upgradePhase,omitempty"`
+	DestVersion  string `json:"destVersion,omitempty"`
+	InstanceType string `json:"instanceType,omitempty"`
 	// OldFullVersion mongodb-x.y.z (upgrade hop source); used by backup_mongodata directory name.
 	OldFullVersion   string `json:"oldFullVersion,omitempty"`
 	GrantRolesToUser struct {
@@ -64,6 +69,29 @@ func (s *instOpJob) Name() string {
 func (s *instOpJob) Run() error {
 	var op = s.GetInstanceOp()
 	s.runtime.Logger.Info("do op %s", s.ConfParams.Op)
+	// 这一段是升级操作特有逻辑，非升级操作时，UpgradePhase为空，直接跳过，不进入下方主 switch。
+	// 滚动升级两阶段守卫：shield_dbmon 是决策点，mongod 在线时一次性判定并持久化跳过决策；
+	// 升级序列其余步骤复用该决策文件。被判定跳过时直接成功返回(no-op)，不进入下方主 switch。
+	if s.ConfParams.UpgradePhase != "" {
+		var (
+			skip bool
+			err  error
+		)
+		switch s.ConfParams.Op {
+		case "shield_dbmon":
+			skip, err = s.decideAndCheckUpgradePhase()
+		case "stop", "start", "backup_mongodata", "service_status_check", "unblock_dbmon":
+			skip, err = upgradePhaseShouldSkip(s.ConfParams.Port, s.ConfParams.UpgradePhase, s.ConfParams.DestVersion)
+		}
+		if err != nil {
+			return err
+		}
+		if skip {
+			s.runtime.Logger.Info("upgrade phase %s: skip op %s for %s:%d",
+				s.ConfParams.UpgradePhase, s.ConfParams.Op, s.ConfParams.IP, s.ConfParams.Port)
+			return nil
+		}
+	}
 	switch s.ConfParams.Op {
 	case "rs_remove_other_node":
 		// remove me from the replica set
@@ -117,7 +145,24 @@ func (s *instOpJob) Run() error {
 		return op.DoFlushRouterConfig()
 	case "service_status_check":
 		// 检查服务状态
-		return op.DoServiceStatusCheck(s.runtime.Logger)
+		if err := op.DoServiceStatusCheck(s.runtime.Logger); err != nil {
+			return err
+		}
+		// 升级链最后一步成功后清理决策文件（best-effort）：本成员本阶段升级真实完成。
+		// 跳过分支不在此清理：旧标签靠 (phase, destVersion) 自然失效，下一阶段 / 下一 hop 的 shield 会覆盖。
+		// 失败仅记 warn，不阻断已成功的升级路径。
+		if s.ConfParams.UpgradePhase != "" {
+			path := upgradePhaseDecisionFile(s.ConfParams.Port)
+			if rmErr := os.Remove(path); rmErr != nil {
+				if !os.IsNotExist(rmErr) {
+					s.runtime.Logger.Warn("cleanup upgrade phase decision file failed (ignored): %s", rmErr)
+				}
+			} else {
+				s.runtime.Logger.Info("removed upgrade phase decision file: %s:%d path=%s",
+					s.ConfParams.IP, s.ConfParams.Port, path)
+			}
+		}
+		return nil
 	case "backup_mongodata":
 		return s.doBackupMongodata()
 	case "precheck_upgrade":
@@ -267,6 +312,97 @@ func (s *instOpJob) doStopDbmon() error {
 		return errors.Wrap(err, "stop dbmon failed")
 	}
 	return nil
+}
+
+// decideAndCheckUpgradePhase 仅在升级序列首个步骤(shield_dbmon)被调用：此时 mongod 仍在线，
+// 一次性判定本成员在本阶段是否需要跳过，并把决策持久化供后续步骤读取。返回值为本步骤是否跳过。
+func (s *instOpJob) decideAndCheckUpgradePhase() (bool, error) {
+	phase := strings.TrimSpace(s.ConfParams.UpgradePhase)
+	if phase == "" {
+		return false, nil
+	}
+	// mongos 无主从概念，不做角色守卫，恒执行。
+	if strings.EqualFold(s.ConfParams.InstanceType, "mongos") {
+		if err := writeUpgradePhaseDecision(s.ConfParams.Port, phase, s.ConfParams.DestVersion, false); err != nil {
+			return false, errors.Wrap(err, "writeUpgradePhaseDecision(mongos)")
+		}
+		s.runtime.Logger.Info("wrote upgrade phase decision file (mongos): %s:%d phase=%s destVersion=%s skip=false path=%s",
+			s.ConfParams.IP, s.ConfParams.Port, phase, s.ConfParams.DestVersion, upgradePhaseDecisionFile(s.ConfParams.Port))
+		return false, nil
+	}
+	// 是否已是目标版本（运行期实测）：阶段2据此判定，避免“角色被改写后误跳过未升级节点”。
+	runningMM, err := s.getRunningVersionMajorMinor()
+	if err != nil {
+		return false, errors.Wrap(err, "get running version for upgrade phase decide")
+	}
+	destMM := versionMajorMinor(s.ConfParams.DestVersion)
+	alreadyTarget := runningMM != "" && runningMM == destMM
+
+	var skip bool
+	switch phase {
+	case UpgradePhaseSecondary:
+		// 升 secondary 阶段：已是目标版本则跳过（幂等重试）；否则运行期为 PRIMARY 的节点本阶段跳过（留到阶段2最后升）。
+		if alreadyTarget {
+			skip = true
+		} else {
+			isMaster, merr := s.GetInstanceOp().IsMasterDirect()
+			if merr != nil {
+				return false, errors.Wrap(merr, "IsMasterDirect for upgrade phase decide")
+			}
+			skip = isMaster.IsMaster
+		}
+	case UpgradePhasePrimary:
+		// 升 primary 阶段：以“是否已是目标版本”判定，而非角色。仍为旧版本的节点（正常即旧 primary）才真正执行，
+		// 其 stop 由 stepDownIfPrimary 决定是否 stepDown（整 hop 至多一次）；已是目标版本的节点跳过(no-op)。
+		// 这样即使阶段间发生选主导致角色翻转，未升级的节点也不会被误跳过。
+		skip = alreadyTarget
+	default:
+		return false, fmt.Errorf("unknown upgradePhase %q", phase)
+	}
+	if err := writeUpgradePhaseDecision(s.ConfParams.Port, phase, s.ConfParams.DestVersion, skip); err != nil {
+		return false, errors.Wrap(err, "writeUpgradePhaseDecision")
+	}
+	s.runtime.Logger.Info("wrote upgrade phase decision file: %s:%d phase=%s destVersion=%s skip=%v path=%s",
+		s.ConfParams.IP, s.ConfParams.Port, phase, s.ConfParams.DestVersion, skip,
+		upgradePhaseDecisionFile(s.ConfParams.Port))
+	s.runtime.Logger.Info("upgrade phase %s decided for %s:%d runningMM=%s destMM=%s alreadyTarget=%v skip=%v",
+		phase, s.ConfParams.IP, s.ConfParams.Port, runningMM, destMM, alreadyTarget, skip)
+	return skip, nil
+}
+
+// getRunningVersionMajorMinor 通过 buildInfo 读取在线 mongod 的运行版本并归一化为 "M.m"，
+// 供升级阶段守卫判定该成员是否“已是目标版本”。复用 doPrecheckUpgrade 的查询方式。
+// 滚动升级期间整集群可能发生选主/瞬时连接失败，因此重试 3 次（间隔 2s）后再判失败，
+// 避免单次抖动让 alreadyTarget 判错而误跳过未升级节点。
+func (s *instOpJob) getRunningVersionMajorMinor() (string, error) {
+	mongoBin := filepath.Join(consts.GetMongoBinDir(), "mongodb", "bin", "mongo")
+	const maxAttempts = 3
+	var lastErr error
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		ret, err := mycmd.New(
+			mongoBin,
+			"-u", s.ConfParams.AdminUsername,
+			"-p", mycmd.Password(s.ConfParams.AdminPassword),
+			"--host", s.ConfParams.IP,
+			"--port", strconv.Itoa(s.ConfParams.Port),
+			"--authenticationDatabase=admin",
+			"--quiet",
+			"--eval", "db.adminCommand({buildInfo:1}).version",
+			"admin",
+		).Run(60 * time.Second)
+		if err == nil {
+			return versionMajorMinor(strings.TrimSpace(ret.GetStdout())), nil
+		}
+		lastErr = fmt.Errorf(
+			"get buildInfo version failed (attempt %d/%d): cmd=%q exitCode=%d err=%v stdout=%q stderr=%q",
+			attempt, maxAttempts, ret.Cmdline, ret.ExitCode, err, ret.GetStdout(), ret.GetStderr(),
+		)
+		s.runtime.Logger.Warn("%s", lastErr.Error())
+		if attempt < maxAttempts {
+			time.Sleep(2 * time.Second)
+		}
+	}
+	return "", lastErr
 }
 
 func (s *instOpJob) doShieldDbmon() error {
