@@ -61,6 +61,7 @@
   </BkNavigation>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
@@ -82,7 +83,7 @@
   const userProfile = useUserProfile();
   const isSideMenuFlod = useStorage('is_side_menu_flod', false);
 
-  const enum menuEnum {
+  enum menuEnum {
     configManage = 'configManage',
     databaseManage = 'databaseManage',
     globalConfigManage = 'globalConfigManage',
