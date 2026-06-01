@@ -57,7 +57,7 @@ class NoticeGroupSerializer(AuditedSerializer, serializers.ModelSerializer):
     used_count = serializers.SerializerMethodField()
 
     def get_used_count(self, obj):
-        return self.context["group_used"].get(obj.id, 0)
+        return self.context["group_used"].get(obj.id, {})
 
     class Meta:
         model = NoticeGroup
