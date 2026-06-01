@@ -8,11 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from collections import Counter
+from collections import defaultdict
 
-from django.db.models import OuterRef, Q, Subquery
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -22,6 +22,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import PLAT_BIZ_ID
 from backend.core.notify import NotifyAdapter
 from backend.db_monitor import serializers
+from backend.db_monitor.filters import NoticeGroupFilter
 from backend.db_monitor.models import MonitorPolicy, NoticeGroup
 from backend.db_monitor.serializers import NoticeGroupSerializer
 from backend.iam_app.dataclass import ResourceEnum
@@ -61,9 +62,11 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
     监控告警组视图
     """
 
-    queryset = NoticeGroup.objects.all().order_by("-update_at")
+    queryset = NoticeGroup.objects.all().order_by("is_built_in", "name")
     serializer_class = NoticeGroupSerializer
     pagination_class = AuditedLimitOffsetPagination
+    filter_backends = [DjangoFilterBackend]
+    filter_class = NoticeGroupFilter
 
     def get_action_permission_map(self):
         return {
@@ -84,36 +87,23 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context["group_used"] = {}
-        if "X-Requested-With" in self.request.META:
+        if self.request.headers.get("X-Requested-With"):
             # 仅在实际API调用时执行查库逻辑。/swagger/文档API忽略查库
-            notify_groups = MonitorPolicy.objects.exclude(notify_groups=[]).values_list("notify_groups", flat=True)
-            context["group_used"] = dict(Counter([item for group in notify_groups for item in group]))
+            policies = MonitorPolicy.objects.exclude(notify_groups=[]).values_list("notify_groups", "db_type")
+            result = defaultdict(lambda: defaultdict(int))
+            for group_list, db_type in policies:
+                for gid in group_list:
+                    result[gid][db_type] += 1
+
+            context["group_used"] = {gid: dict(db_counts) for gid, db_counts in result.items()}
         return context
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        qs = super().get_queryset()
         if self.action in ["list", "list_group_name", "list_default_group"]:
-            # 1. 在指定业务和平台业务的告警组中过滤
             bk_biz_id = self.request.query_params.get("bk_biz_id", PLAT_BIZ_ID)
-            queryset = queryset.filter(bk_biz_id__in=(PLAT_BIZ_ID, bk_biz_id))
-
-            # 2. 指定告警组名字查询
-            name = self.request.query_params.get("name", "")
-            if name:
-                subquery = queryset.filter(name__icontains=name, db_type=OuterRef("db_type")).order_by("-bk_biz_id")
-            else:
-                # 优先获取业务下的告警组，没有则有则返回平台告警组
-                subquery = queryset.filter(db_type=OuterRef("db_type")).order_by("-bk_biz_id")
-            queryset = queryset.filter(bk_biz_id=Subquery(subquery.values("bk_biz_id")[:1])).order_by("-update_at")
-
-            # 3. 获取业务下指定 db 类型的告警组，如果业务
-            db_type = self.request.query_params.get("db_type")
-            if db_type:
-                db_type_group = queryset.filter(db_type=db_type).order_by("bk_biz_id").first()
-                group_id = getattr(db_type_group, "id", 0)
-                queryset = queryset.filter(Q(id=group_id) | Q(db_type=""))
-
-        return queryset
+            qs = qs.filter(bk_biz_id__in=(PLAT_BIZ_ID, bk_biz_id))
+        return qs.order_by("-bk_biz_id", "-update_at")
 
     @Permission.decorator_permission_field(
         id_field=lambda d: d["id"],
@@ -137,7 +127,8 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
     @common_swagger_auto_schema(operation_summary=_("查询告警组名称"), tags=[SWAGGER_TAG])
     @action(methods=["GET"], detail=False)
     def list_group_name(self, request, *args, **kwargs):
-        group_name_infos = list(self.get_queryset().values("id", "name"))
+        queryset = self.filter_queryset(self.get_queryset())
+        group_name_infos = list(queryset.values("id", "name"))
         return Response(group_name_infos)
 
     @common_swagger_auto_schema(operation_summary=_("获取默认告警组名称"), tags=[SWAGGER_TAG])
