@@ -24,7 +24,6 @@
       primary-key="ip"
       selectable
       :selected="selected"
-      show-select-all-page
       @column-filter="handleFilter"
       @selection="handleSelect">
       <BkTableColumn

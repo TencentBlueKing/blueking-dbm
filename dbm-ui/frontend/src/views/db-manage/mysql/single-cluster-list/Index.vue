@@ -280,12 +280,12 @@
     tableRef.value!.fetchData(searchValue.value);
   };
 
-  watch(searchValue, () => {
-    setTimeout(() => {
-      fetchData();
-      tableRef.value!.clearSelected();
-    });
-  });
+  // watch(searchValue, () => {
+  //   setTimeout(() => {
+  //     fetchData();
+  //     tableRef.value!.clearSelected();
+  //   });
+  // });
 
   const hideOperationColumn = () => {
     operationColumnRef.value?.hide();
@@ -324,7 +324,7 @@
   };
   const handleQuickSearchChange = () => {
     fetchData();
-    tableRef.value!.clearSelected();
+    // tableRef.value!.clearSelected();
   };
 
   const handleFilterChange = (filterValue: Record<string, string>) => {

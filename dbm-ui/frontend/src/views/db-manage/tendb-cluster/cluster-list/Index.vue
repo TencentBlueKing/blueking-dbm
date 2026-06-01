@@ -657,8 +657,9 @@
   };
 
   const handleClearSelected = () => {
-    tableRef.value!.clearSelected();
-    selectedList.value = [];
+    // tableRef.value!.clearSelected();
+    // selectedList.value = [];
+    fetchData();
   };
 
   const handleShowDataExportSlider = (data: TendbClusterModel) => {
@@ -672,7 +673,7 @@
 
   const handleQuickSearchChange = () => {
     fetchData();
-    tableRef.value!.clearSelected();
+    // tableRef.value!.clearSelected();
   };
 
   const handleFilterChange = (filterValue: Record<string, string>) => {

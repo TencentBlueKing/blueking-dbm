@@ -239,9 +239,9 @@
     },
   );
 
-  watch(searchValue, () => {
-    tableRef.value!.clearSelected();
-  });
+  // watch(searchValue, () => {
+  //   tableRef.value!.clearSelected();
+  // });
 
   const fetchData = () => {
     tableRef.value.fetchData(
