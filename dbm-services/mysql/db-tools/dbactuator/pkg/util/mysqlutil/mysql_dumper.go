@@ -321,6 +321,15 @@ USE `testdb`;
 这个一般建议带上这个选项， 不然很容易由于dump 没有用好，导致drop了正确的 table 。
 */
 
+// shellSingleQuote 将字符串安全地包裹为 shell 单引号字面量。
+// 由于最终命令是拼成字符串后交给 shell 执行，若 where 条件自身包含单引号
+// （例如 create_time > '2026-6-1'），直接套一层外层单引号会导致内部引号提前闭合，
+// 日期外层引号被 shell 吞掉，进而被 MySQL 当成算术表达式解析。
+// 这里采用 POSIX 标准做法：将每个单引号替换为 '\” 再整体用单引号包裹。
+func shellSingleQuote(s string) string {
+	return `'` + strings.ReplaceAll(s, `'`, `'\''`) + `'`
+}
+
 // getDumpCmd TODO
 /*
 mysqldump --skip-add-drop-table -d testdb > testdb.sql
@@ -409,7 +418,7 @@ func (m *MySQLDumper) getDumpCmd(outputFile, errFile, dumpOption string, appendO
 	)
 
 	if cmutil.IsNotEmpty(m.Where) {
-		dumpCmd += ` --where='` + m.Where + `'`
+		dumpCmd += ` --where=` + shellSingleQuote(m.Where)
 	}
 
 	if m.NoUseDbAndWirteCreateDb {

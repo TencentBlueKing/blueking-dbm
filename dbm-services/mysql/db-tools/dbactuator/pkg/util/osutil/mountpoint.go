@@ -136,7 +136,6 @@ func GetFileSystems() ([]FileSystem, error) {
 			return nil, err
 		}
 
-		fmt.Printf("%+v", fs)
 		partitions = append(partitions, FileSystem{
 			DiskName:   fs.DevName,
 			DiskType:   getDiskType(fs, blk),
