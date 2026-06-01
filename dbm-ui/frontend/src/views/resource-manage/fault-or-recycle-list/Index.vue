@@ -258,19 +258,19 @@
   const isBatchImportResourcePoolShow = ref(false);
   const isBatchConvertToRecyclePool = ref(false);
 
-  watch(
-    () => route.name,
-    () => {
-      quickSearchValue.value = {};
-      selected.value = [];
-      nextTick(() => {
-        tableRef.value!.clearSelected();
-      });
-    },
-    {
-      immediate: true,
-    },
-  );
+  // watch(
+  //   () => route.name,
+  //   () => {
+  //     quickSearchValue.value = {};
+  //     selected.value = [];
+  //     nextTick(() => {
+  //       tableRef.value!.clearSelected();
+  //     });
+  //   },
+  //   {
+  //     immediate: true,
+  //   },
+  // );
 
   const dataSource = (params: ServiceParameters<typeof getMachinePool>) =>
     getMachinePool({
@@ -294,10 +294,10 @@
     selected.value = list;
   };
 
-  const clearSelection = () => {
-    tableRef.value!.clearSelected();
-    selected.value = [];
-  };
+  // const clearSelection = () => {
+  //   tableRef.value!.clearSelected();
+  //   selected.value = [];
+  // };
 
   const handleBatchImport = () => {
     isBatchImportResourcePoolShow.value = true;
@@ -358,7 +358,7 @@
   };
 
   const handleRefresh = () => {
-    clearSelection();
+    // clearSelection();
     fetchData();
   };
 

@@ -280,7 +280,7 @@
   };
 
   const clearSelection = () => {
-    tableRef.value!.clearSelected();
+    // tableRef.value!.clearSelected();
     selected.value = [];
   };
 
