@@ -124,8 +124,8 @@
             {{
               append: () => (
                 <bk-button
-                  theme='primary'
                   text
+                  theme='primary'
                   onClick={() => handleCopy(instance)}>
                   <db-icon
                     class='row-copy-icon ml-4'
@@ -157,8 +157,8 @@
           {{
             append: () => (
               <bk-button
-                theme='primary'
                 text
+                theme='primary'
                 onClick={() => handleCopy(row.password)}>
                 <db-icon
                   class='row-copy-icon ml-4'
@@ -231,7 +231,7 @@
   const hasSelected = computed(() => selected.value.length > 0);
 
   const handleSearchValueChange = () => {
-    tableRef.value!.clearSelected();
+    // tableRef.value!.clearSelected();
     getDataSource();
   };
 

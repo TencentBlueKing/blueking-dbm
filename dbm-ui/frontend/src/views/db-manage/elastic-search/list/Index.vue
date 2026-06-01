@@ -429,7 +429,7 @@
 
   const handleQuickSearchChange = () => {
     fetchData();
-    tableRef.value!.clearSelected();
+    // tableRef.value!.clearSelected();
   };
 
   const handleFilterChange = (filterValue: Record<string, string>) => {

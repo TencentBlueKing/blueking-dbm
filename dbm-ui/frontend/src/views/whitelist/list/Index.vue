@@ -162,8 +162,8 @@
                 class='mr-8'
                 disabled={isDisabled}
                 permission={data.permission[managePermissionActionId]}
-                theme='primary'
                 text
+                theme='primary'
                 onClick={() => handleEdit(data)}>
                 {t('编辑')}
               </auth-button>
@@ -173,8 +173,8 @@
                 action-id={managePermissionActionId}
                 disabled={isDisabled}
                 permission={data.permission[managePermissionActionId]}
-                theme='primary'
                 text
+                theme='primary'
                 onClick={() => handleDelete([data.id])}>
                 {t('删除')}
               </auth-button>
@@ -187,7 +187,7 @@
   ];
 
   const handleKeyWordChange = () => {
-    tableRef.value!.clearSelected();
+    // tableRef.value!.clearSelected();
     fetchTableData();
   };
 

@@ -1,15 +1,17 @@
 import { reactive } from 'vue';
 
+export interface Pagination {
+  align: string;
+  count: number;
+  current: number;
+  layout: Array<string>;
+  limit: number;
+  limitList: Array<number>;
+}
+
 export const usePagination = (options?: { callback: () => void; defaultLimit?: number }) => {
   const defaultLimit = options?.defaultLimit ?? 20;
-  const pagination = reactive<{
-    align: string;
-    count: number;
-    current: number;
-    layout: Array<string>;
-    limit: number;
-    limitList: Array<number>;
-  }>({
+  const pagination = reactive<Pagination>({
     align: 'right',
     count: 0,
     current: 1,

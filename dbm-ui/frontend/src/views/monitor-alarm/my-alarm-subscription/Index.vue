@@ -59,6 +59,7 @@
                     @change="handleToggleWholeSelect" />
                 </template>
                 <BkPopover
+                  v-if="!isOnlyOnePage"
                   :arrow="false"
                   click-content-auto-hide
                   placement="bottom-start"
@@ -262,6 +263,7 @@
     :data="currentRowData" />
 </template>
 <script setup lang="ts">
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRouter } from 'vue-router';
@@ -289,7 +291,7 @@
 
   import EditSingleSubscription from './components/EditSingleSubscription.vue';
 
-  export type IRowData = (typeof subscribedDomainInfo.dataList)[number];
+  export type IRowData = UnwrapRef<typeof subscribedDomainInfo>['dataList'][number];
 
   const { t } = useI18n();
   const router = useRouter();
@@ -352,7 +354,10 @@
     };
   });
 
+  const isOnlyOnePage = computed(() => Math.ceil(pagination.count / pagination.limit) < 2);
+
   let filteredTableData: IRowData[] = [];
+  let isPaginationChangeFetch = false;
 
   const dbTypeNameMap = Object.values(DBTypeInfos).reduce<Record<string, string>>(
     (dataMap, item) => Object.assign(dataMap, { [item.id]: item.name }),
@@ -375,7 +380,19 @@
     },
   });
 
+  // 清除全选
+  const handleClearWholeSelect = () => {
+    rowSelectMemo.value = {};
+    isWholeChecked.value = false;
+    isCurrentPageAllSelected.value = false;
+  };
+
   const refreshTableData = (isFilter = false) => {
+    if (!isPaginationChangeFetch) {
+      handleClearWholeSelect();
+    }
+
+    isPaginationChangeFetch = false;
     const start = (pagination.current - 1) * pagination.limit;
     const end = start + pagination.limit;
     const totalList = isFilter ? filteredTableData : subscribedDomainInfo.value.dataList;
@@ -433,7 +450,6 @@
   const handleFilterChange = (payload: TableChangeData) => {
     pagination.current = 1;
     if (!Object.keys(payload.filter!).length) {
-      // 重置
       refreshTableData();
       return;
     }
@@ -459,8 +475,12 @@
     }
   };
 
-  // 切换跨页全选
+  // 切换跨页全选（如果只有一页则直接本页全选）
   const handleToggleWholeSelect = (checked: boolean) => {
+    if (checked && isOnlyOnePage.value) {
+      handleTogglePageSelect(true);
+      return;
+    }
     isWholeChecked.value = checked;
     isCurrentPageAllSelected.value = false;
     if (checked) {
@@ -486,12 +506,16 @@
   // 切换每页条数
   const handlePageLimitChange = (pageLimit: number) => {
     pagination.limit = pageLimit;
+
+    isPaginationChangeFetch = true;
     refreshTableData();
   };
 
   // 切换页码
   const handlePageValueChange = (pageValue: number) => {
     pagination.current = pageValue;
+
+    isPaginationChangeFetch = true;
     refreshTableData();
   };
 
