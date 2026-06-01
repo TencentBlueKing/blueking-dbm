@@ -148,7 +148,7 @@
   }
 
   export interface Exposes {
-    clearSelected: () => void;
+    // clearSelected: () => void;
     fetchAllData: <T>() => Promise<Array<T>>;
     fetchData: (params?: Record<string, any>, loading?: boolean) => void;
     getData: <T>() => Array<T>;
@@ -213,31 +213,37 @@
     results: [],
   });
 
-  const { handleClearWholeSelect, selectColumn, selectedRowMap } = useSelect(props, tableData, {
-    callback: () => {
-      triggerSelection();
-    },
-  });
-
   const {
     onChange: handlePageValueChange,
     onLimitChange: handlePageLimitChange,
     pagination,
   } = usePagination({
     callback: () => {
+      isPaginationChangeFetch = true;
       fetchListData();
     },
   });
 
+  const { handleClearWholeSelect, isWholeChecked, selectColumn, selectedRowMap } = useSelect(
+    props,
+    tableData,
+    pagination,
+    {
+      callback: () => {
+        triggerSelection();
+      },
+    },
+  );
+
   const isSearching = ref(false);
   const isRequestFailed = ref(false);
-  const isWholeChecked = ref(false);
   const selectedCount = computed(() => Object.keys(selectedRowMap.value).length);
 
   let paramsMemo = {};
   let sortParams = {};
 
   let isReady = false;
+  let isSortChangeFetch = false;
   let isPaginationChangeFetch = false;
 
   /**
@@ -293,11 +299,11 @@
             });
           }
 
-          if (!isPaginationChangeFetch) {
-            isWholeChecked.value = false;
-            isPaginationChangeFetch = false;
-            triggerSelection();
+          if (!isPaginationChangeFetch && !isSortChangeFetch) {
+            handleClearWholeSelect();
           }
+          isSortChangeFetch = false;
+          isPaginationChangeFetch = false;
 
           emits('requestSuccess', data);
         })
@@ -394,6 +400,7 @@
       sortParams = {};
     }
 
+    isSortChangeFetch = true;
     fetchListData();
   };
 
@@ -433,9 +440,9 @@
 
   defineExpose<Exposes>({
     // 清空选择
-    clearSelected() {
-      handleClearWholeSelect();
-    },
+    // clearSelected() {
+    //   handleClearWholeSelect();
+    // },
     // 获取全量数据
     fetchAllData: fetchAllData,
     // 获取远程数据

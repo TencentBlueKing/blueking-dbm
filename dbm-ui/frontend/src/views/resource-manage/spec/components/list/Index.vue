@@ -530,7 +530,7 @@
   };
 
   const fetchData = () => {
-    tableRef.value!.clearSelected();
+    // tableRef.value!.clearSelected();
     const searchSelectorParams = getSearchSelectorParams(searchValue.value);
     const params = {
       spec_cluster_type: props.dbType,
