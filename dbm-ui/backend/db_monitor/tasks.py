@@ -465,7 +465,7 @@ def update_dba_notice_group(dba_id: int):
     from backend.db_monitor.models import NoticeGroup
 
     dba = DBAdministrator.objects.get(id=dba_id)
-    receiver_users = dba.users or DEFAULT_DB_ADMINISTRATORS
+    receiver_users = set(dba.users) or DEFAULT_DB_ADMINISTRATORS
     try:
         group_name = f"{dba.get_db_type_display()}_DBA"
         group_receivers = [{"id": user, "type": "user"} for user in receiver_users if user]
