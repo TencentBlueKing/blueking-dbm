@@ -56,7 +56,7 @@
                   @change="handleWholeSelect" />
               </template>
               <BkPopover
-                v-if="showSelectAllPage"
+                v-if="showSelectAllPage && !isOnlyOnePage"
                 :arrow="false"
                 click-content-auto-hide
                 placement="bottom-start"
@@ -127,7 +127,7 @@
 <script setup lang="tsx">
   import type { Table } from 'bkui-vue';
   import _ from 'lodash';
-  import { computed, nextTick, onMounted, reactive, type Ref, ref, shallowRef, type VNode } from 'vue';
+  import { computed, nextTick, onMounted, reactive, type Ref, ref, shallowRef, type UnwrapRef, type VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -145,7 +145,7 @@
   export interface Props {
     // 是否允许行点击选中
     allowRowClickSelect?: boolean;
-    clearSelection?: boolean;
+    // clearSelection?: boolean;
     columns?: InstanceType<typeof Table>['$props']['columns'];
     // 没提供默认使用浏览器窗口的高度 window.innerHeight
     containerHeight?: number;
@@ -194,7 +194,7 @@
 
   export interface Exposes {
     bkTableRef: Ref<InstanceType<typeof Table>>;
-    clearSelected: () => void;
+    // clearSelected: () => void;
     fetchData: (params?: Record<string, any>, baseParams?: Record<string, any>, loading?: boolean) => void;
     getAllData: <T>() => Promise<Array<T>>;
     getData: <T>() => Array<T>;
@@ -205,7 +205,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     allowRowClickSelect: false,
-    clearSelection: true,
+    // clearSelection: true,
     columns: () => [],
     containerHeight: undefined,
     disableSelectMethod: () => false,
@@ -257,40 +257,42 @@
       return (
         <div class='db-table-select-cell'>
           {renderCheckbox()}
-          <bk-popover
-            v-slots={{
-              content: () => (
-                <div class='db-table-select-plan'>
-                  <div
-                    class={{
-                      'is-selected': isCurrentPageAllSelected.value,
-                      'plan-item': true,
-                    }}
-                    onClick={handlePageSelect}>
-                    {t('本页全选')}
+          {props.showSelectAllPage && !isOnlyOnePage.value && (
+            <bk-popover
+              v-slots={{
+                content: () => (
+                  <div class='db-table-select-plan'>
+                    <div
+                      class={{
+                        'is-selected': isCurrentPageAllSelected.value,
+                        'plan-item': true,
+                      }}
+                      onClick={handlePageSelect}>
+                      {t('本页全选')}
+                    </div>
+                    <div
+                      class={{
+                        'is-selected': isWholeChecked.value,
+                        'plan-item': true,
+                      }}
+                      onClick={handleWholeSelect}>
+                      {t('跨页全选')}
+                    </div>
                   </div>
-                  <div
-                    class={{
-                      'is-selected': isWholeChecked.value,
-                      'plan-item': true,
-                    }}
-                    onClick={handleWholeSelect}>
-                    {t('跨页全选')}
-                  </div>
-                </div>
-              ),
-              default: () => (
-                <db-icon
-                  class='select-menu-flag'
-                  type='down-big'
-                />
-              ),
-            }}
-            arrow={false}
-            click-content-auto-hide={true}
-            placement='bottom-start'
-            theme='light db-table-select-menu'
-            trigger='click'></bk-popover>
+                ),
+                default: () => (
+                  <db-icon
+                    class='select-menu-flag'
+                    type='down-big'
+                  />
+                ),
+              }}
+              arrow={false}
+              click-content-auto-hide={true}
+              placement='bottom-start'
+              theme='light db-table-select-menu'
+              trigger='click'></bk-popover>
+          )}
         </div>
       );
     },
@@ -362,12 +364,17 @@
     const selectMap = { ...rowSelectMemo.value };
     // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < list.length; i++) {
+      if (props.disableSelectMethod(list[i])) {
+        continue;
+      }
       if (!selectMap[_.get(list[i], props.primaryKey)]) {
         return false;
       }
     }
     return true;
   });
+
+  const isOnlyOnePage = computed(() => Math.ceil(pagination.count / pagination.limit) < 2);
 
   const localColumns = computed(() => {
     if (props.selectable && props.columns.length > 0) {
@@ -381,6 +388,7 @@
   let sortParams = {};
 
   let isReady = false;
+  let isSortChangeFetch = false;
   let isPaginationChangeFetch = false;
 
   watch(
@@ -463,20 +471,21 @@
           isAnomalies.value = false;
 
           // 默认清空选项
-          if (props.clearSelection) {
-            handleClearWholeSelect();
-          }
+          // if (props.clearSelection) {
+          //   handleClearWholeSelect();
+          // }
 
           if (!props.fixedPagination && props.releateUrlQuery) {
             router.replace({
               query: replaceSearchParams(params, false),
             });
           }
-          if (!isPaginationChangeFetch) {
-            isWholeChecked.value = false;
-            isPaginationChangeFetch = false;
-            triggerSelection();
+
+          if (!isPaginationChangeFetch && !isSortChangeFetch) {
+            handleClearWholeSelect();
           }
+          isSortChangeFetch = false;
+          isPaginationChangeFetch = false;
 
           emits('requestSuccess', data);
         })
@@ -554,7 +563,7 @@
 
   // 全选当前页
   const handlePageSelect = () => {
-    const selectMap = { ...rowSelectMemo.value };
+    const selectMap = {} as UnwrapRef<typeof rowSelectMemo>;
     tableData.value.results.forEach((dataItem: any) => {
       if (props.disableSelectMethod(dataItem)) {
         return;
@@ -592,10 +601,9 @@
     triggerSelection();
   };
 
-  // 跨页全选
+  // 默认为跨页全选；如果只有一页, 则直接本页全选
   const handleWholeSelect = () => {
-    if (!props.showSelectAllPage) {
-      // 屏蔽跨页全选
+    if (!props.showSelectAllPage || isOnlyOnePage.value) {
       handleTogglePageSelect(true);
       return;
     }
@@ -680,6 +688,8 @@
         [sortPayload.column.field]: valueMap[sortPayload.type as keyof typeof valueMap],
       };
     }
+
+    isSortChangeFetch = true;
     fetchListData();
   };
 
@@ -736,10 +746,10 @@
   defineExpose<Exposes>({
     bkTableRef,
     // 清空选择
-    clearSelected() {
-      // bkTableRef.value?.clearSelection();
-      handleClearWholeSelect();
-    },
+    // clearSelected() {
+    //   // bkTableRef.value?.clearSelection();
+    //   handleClearWholeSelect();
+    // },
     // 获取远程数据
     fetchData(params = {} as Record<string, any>, baseParams = {} as Record<string, any>, loading = true) {
       paramsMemo = {

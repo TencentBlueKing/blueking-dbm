@@ -140,7 +140,7 @@
 
   const fetchData = () => {
     instanceTableRef.value?.fetchData(quickSearchValue.value);
-    instanceTableRef.value?.clearSelected();
+    // instanceTableRef.value?.clearSelected();
   };
 
   const handleQuickSearchChange = _.debounce(() => {

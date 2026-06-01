@@ -38,7 +38,6 @@
       <DbTable
         ref="tableRef"
         class="mongo-record-table"
-        :clear-selection="false"
         :columns="columns"
         :data-source="queryRestoreRecord"
         selectable
@@ -282,13 +281,13 @@
       render: ({ data }: { data: MongodbRollbackRecordModel }) =>
         data.ticket_id ? (
           <router-link
+            target='_blank'
             to={{
               name: 'bizTicketManage',
               params: {
                 ticketId: data.ticket_id,
               },
-            }}
-            target='_blank'>
+            }}>
             {data.ticket_id}
           </router-link>
         ) : (
@@ -354,16 +353,16 @@
           <OperationBtnStatusTips data={data}>
             <bk-button
               disabled={data.operationDisabled}
-              theme='primary'
               text
+              theme='primary'
               onClick={() => handleDestroyCluster(data)}>
               {t('销毁')}
             </bk-button>
           </OperationBtnStatusTips>
           <bk-button
             style='margin-left:10px;'
-            theme='primary'
             text
+            theme='primary'
             onClick={() => execCopy(data.target_cluster.immute_domain, t('复制成功，共n条', { n: 1 }))}>
             {t('复制访问地址')}
           </bk-button>
@@ -376,7 +375,7 @@
 
   watch(searchValue, () => {
     fetchTableData();
-    tableRef.value!.clearSelected();
+    // tableRef.value!.clearSelected();
   });
 
   const fetchTableData = () => {

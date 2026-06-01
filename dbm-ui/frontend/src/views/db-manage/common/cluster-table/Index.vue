@@ -124,7 +124,7 @@
   }
 
   export interface Expose {
-    clearSelected: () => void;
+    // clearSelected: () => void;
     fetchData: (params: Record<string, any>) => void;
     getAllData: <C>() => Promise<C[]>;
     getData: <C>() => C[];
@@ -234,9 +234,9 @@
   };
 
   defineExpose<Expose>({
-    clearSelected() {
-      tableRef.value?.clearSelected();
-    },
+    // clearSelected() {
+    //   tableRef.value?.clearSelected();
+    // },
     fetchData(params: Record<string, any>) {
       fetchDataParams = params;
       fetchData();
