@@ -53,7 +53,7 @@ INIT_DB_PKG_SETTINGS = {
     DBType.MySQL.value: [
         {"value": PackageType.MySQL, "version_num": 6},
         {"value": PackageType.MySQLProxy, "version_num": 3},
-        {"value": PackageType.DBActuator, "version_num": 3},
+        {"value": PackageType.DBActuator, "version_num": 6},
         {"value": PackageType.DbBackup, "version_num": 3},
         {"value": PackageType.DbBackupTXSQL, "version_num": 3},
         {"value": PackageType.MySQLChecksum, "version_num": 3},
@@ -61,9 +61,9 @@ INIT_DB_PKG_SETTINGS = {
         {"value": PackageType.MySQLToolKit, "version_num": 3},
         {"value": PackageType.MySQLMonitor, "version_num": 3},
         {"value": PackageType.MySQLCrond, "version_num": 3},
-        {"value": PackageType.Spider, "version_num": 3},
-        {"value": PackageType.tdbCtl, "version_num": 3},
-        {"value": PackageType.TBinlogDumper, "version_num": 3},
+        {"value": PackageType.Spider, "version_num": 6},
+        {"value": PackageType.tdbCtl, "version_num": 6},
+        {"value": PackageType.TBinlogDumper, "version_num": 6},
     ],
     DBType.Redis.value: [
         {"value": PackageType.Redis, "version_num": 3},
