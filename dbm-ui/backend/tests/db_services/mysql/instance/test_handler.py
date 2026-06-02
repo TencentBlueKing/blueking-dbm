@@ -22,7 +22,6 @@ pytestmark = pytest.mark.django_db
 class TestInstanceHandler:
     @patch("backend.db_services.ipchooser.handlers.host_handler.CCApi", CCApiMock())
     @patch("backend.db_services.ipchooser.query.resource.CCApi", CCApiMock())
-    @patch("backend.db_services.ipchooser.handlers.base.CCApi", CCApiMock())
     @patch("backend.db_services.ipchooser.query.resource.BKNodeManApi", NodemanApiMock())
     def test_find_related_clusters_by_cluster_id(self, bk_biz_id, dbha_cluster):
         assert (
