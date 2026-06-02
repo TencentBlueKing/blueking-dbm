@@ -143,15 +143,16 @@ class InstanceHandler:
             if not db_inst_related_cluster:
                 continue
 
+            cluster_info = db_inst_related_cluster.get("cluster_info", {})
             host_id_instance_map[str(db_inst)] = {
                 **asdict(db_inst),
                 "bk_cloud_name": cloud_info[str(db_inst.bk_cloud_id)]["bk_cloud_name"],
                 "instance_address": f"{db_inst.ip}{IP_PORT_DIVIDER}{db_inst.port}",
-                "cluster_id": db_inst_related_cluster["cluster_info"]["id"],
-                "cluster_name": db_inst_related_cluster["cluster_info"]["cluster_name"],
-                "master_domain": db_inst_related_cluster["cluster_info"]["master_domain"],
-                "cluster_type": db_inst_related_cluster["cluster_info"]["cluster_type"],
-                "db_module_id": db_inst_related_cluster["cluster_info"]["db_module_id"],
+                "cluster_id": cluster_info["id"] if cluster_info else None,
+                "cluster_name": cluster_info["cluster_name"] if cluster_info else "",
+                "master_domain": cluster_info["master_domain"] if cluster_info else "",
+                "cluster_type": cluster_info["cluster_type"] if cluster_info else "",
+                "db_module_id": cluster_info["db_module_id"] if cluster_info else "",
                 # 实例的关联集群把本身集群和集群的关联集群合并到一起
                 "related_clusters": [
                     *db_inst_related_cluster["related_clusters"],

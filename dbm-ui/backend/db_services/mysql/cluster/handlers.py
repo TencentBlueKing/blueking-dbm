@@ -158,10 +158,12 @@ class ClusterServiceHandler(BaseClusterServiceHandler):
 
         # 获得基本的instance_objs
         instance_objs = super()._get_instance_objs(instances)
-        cluster_type = instance_objs[0].cluster.first().cluster_type
+        cluster = instance_objs[0].cluster.first()
+        if not cluster:
+            return instance_objs
 
         # 如果是Tendbcluster，则中控节点混布，需补充
-        if cluster_type == ClusterType.TenDBCluster:
+        if cluster.cluster_type == ClusterType.TenDBCluster:
             controller_instances = list(
                 ProxyInstance.objects.select_related("machine")
                 .prefetch_related("cluster")
