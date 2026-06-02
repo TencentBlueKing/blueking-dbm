@@ -45,3 +45,4 @@ class TendbClearFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbClearDetailSerializer
     inner_flow_builder = TendbClearFlowParamBuilder
     inner_flow_name = _("TenDB Cluster 清档执行")
+    validator = SpiderController.truncate_database.validator
