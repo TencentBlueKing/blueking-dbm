@@ -53,7 +53,7 @@ INIT_DB_PKG_SETTINGS = {
     DBType.MySQL.value: [
         {"value": PackageType.MySQL, "version_num": 6},
         {"value": PackageType.MySQLProxy, "version_num": 3},
-        {"value": PackageType.DBActuator, "version_num": 6},
+        {"value": PackageType.DBActuator, "version_num": 3},
         {"value": PackageType.DbBackup, "version_num": 3},
         {"value": PackageType.DbBackupTXSQL, "version_num": 3},
         {"value": PackageType.MySQLChecksum, "version_num": 3},
