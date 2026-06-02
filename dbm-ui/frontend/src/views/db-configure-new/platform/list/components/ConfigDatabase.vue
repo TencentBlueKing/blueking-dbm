@@ -13,14 +13,14 @@
 
 <template>
   <div class="platform-config-list-table">
-    <div class="mb-16">
+    <!-- <div class="mb-16">
       <DbQuickSearch
         v-model="searchValue"
         :data="quickSearchData"
         :placeholder="t('搜索配置名称_配置文件_描述_更新人_更新时间')"
         style="width: 500px"
         @change="handleQuickSearchChange" />
-    </div>
+    </div> -->
     <DbTable
       ref="tableRef"
       :custom-sort-method="handleCustomSort"
@@ -70,12 +70,15 @@
 
 <script setup lang="ts">
   import type { TableSort } from 'tdesign-vue-next';
+  import { onMounted } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
   import { getPlatformConfigList } from '@services/source/configs';
 
   import DbTable from '@components/db-table/IndexNew.vue';
+
+  type ConfigListItem = ServiceReturnType<typeof getPlatformConfigList>;
 
   interface Props {
     clusterType: string;
@@ -90,41 +93,8 @@
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const searchValue = ref<Record<string, any>>({});
 
-  // 受控排序状态
-  const tableSort = ref<{ descending: boolean; sortBy: string }>({
-    descending: true,
-    sortBy: 'updated_at',
-  });
-
-  const quickSearchData = [
-    {
-      id: 'name',
-      name: t('配置名称'),
-      type: 'input' as const,
-    },
-    {
-      id: 'version',
-      name: t('配置文件'),
-      type: 'input' as const,
-    },
-    {
-      id: 'description',
-      name: t('描述'),
-      type: 'input' as const,
-    },
-    {
-      id: 'updated_by',
-      name: t('更新人'),
-      type: 'input' as const,
-    },
-    {
-      id: 'updated_at',
-      name: t('更新时间'),
-      type: 'input' as const,
-    },
-  ];
-
-  type ConfigItem = ServiceReturnType<typeof getPlatformConfigList>[number];
+  // 受控排序状态（不默认排序，由用户点击表头触发）
+  const tableSort = ref<TableSort | undefined>(undefined);
 
   const dataSource = (params: { limit: number; offset: number }) => {
     return getPlatformConfigList(
@@ -136,12 +106,19 @@
     ).then((res) => {
       let filteredData = res;
 
-      // 按当前排序状态动态排序
-      filteredData.sort((a, b) => {
-        const valA = String((a as Record<string, any>)[tableSort.value.sortBy] ?? '');
-        const valB = String((b as Record<string, any>)[tableSort.value.sortBy] ?? '');
-        return tableSort.value.descending ? valB.localeCompare(valA) : valA.localeCompare(valB);
-      });
+      // 按当前排序状态动态排序（自然序）
+      if (tableSort.value) {
+        const sortItem = Array.isArray(tableSort.value) ? tableSort.value[0] : tableSort.value;
+        if (sortItem?.sortBy) {
+          filteredData.sort((a, b) => {
+            const valA = String((a as Record<string, any>)[sortItem.sortBy] ?? '');
+            const valB = String((b as Record<string, any>)[sortItem.sortBy] ?? '');
+            const compare = valA.localeCompare(valB, undefined, { numeric: true });
+            return sortItem.descending ? -compare : compare;
+          });
+        }
+      }
+
       const filters = searchValue.value;
       if (Object.keys(filters).length > 0) {
         filteredData = res.filter((item) =>
@@ -153,6 +130,8 @@
           }),
         );
       }
+
+      // 前端分页
       const start = params.offset;
       const end = start + params.limit;
       return {
@@ -168,13 +147,16 @@
 
   /** 自定义排序方法：更新排序状态并重新拉取数据 */
   const handleCustomSort = (sort: TableSort) => {
-    if (!Array.isArray(sort) && sort?.sortBy) {
-      tableSort.value = { descending: sort.descending, sortBy: sort.sortBy };
+    const sortItem = Array.isArray(sort) ? sort[0] : sort;
+    if (sortItem?.sortBy) {
+      tableSort.value = { descending: sortItem.descending, sortBy: sortItem.sortBy };
+    } else {
+      tableSort.value = undefined;
     }
     tableRef.value?.fetchData({}, true);
   };
 
-  const handleToDetail = (row: ConfigItem) => {
+  const handleToDetail = (row: ConfigListItem[number]) => {
     router.push({
       name: 'PlatformDbConfigureDetail',
       params: {
@@ -184,6 +166,10 @@
       },
     });
   };
+
+  onMounted(() => {
+    tableRef.value?.fetchData({}, true);
+  });
 </script>
 
 <style lang="less" scoped>

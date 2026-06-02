@@ -48,7 +48,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@views/db-configure-new/business/detail/Index.vue'),
       },
       {
-        path: 'create-db-module/:type/:bk_biz_id/',
+        path: 'create-db-module/',
         name: 'SelfServiceCreateDbModule',
         meta: {
           navName: t('新建模块'),
@@ -56,7 +56,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@views/db-configure-new/business/create-module/Index.vue'),
       },
       {
-        path: 'create-module/:bizId(\\d+)',
+        path: 'create-module/',
         name: 'createSpiderModule',
         meta: {
           navName: t('新建模块'),
@@ -64,7 +64,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@views/db-configure-new/business/create-module/TendbCluster.vue'),
       },
       {
-        path: 'sqlserver-create-db-module/:ticketType/:bizId/',
+        path: 'sqlserver-create-db-module/',
         name: 'SqlServerCreateDbModule',
         meta: {
           navName: t('新建模块'),
@@ -72,7 +72,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@views/db-configure-new/business/create-module/SqlServer.vue'),
       },
       {
-        path: 'clone-db-module/:type/:bk_biz_id/',
+        path: 'clone-db-module/',
         name: 'SelfServiceCloneDbModule',
         meta: {
           navName: t('克隆模块'),
@@ -80,7 +80,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@views/db-configure-new/business/clone-module/Index.vue'),
       },
       {
-        path: 'clone-module/:bizId(\\d+)',
+        path: 'clone-module/',
         name: 'cloneSpiderModule',
         meta: {
           navName: t('克隆模块'),
@@ -88,7 +88,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@views/db-configure-new/business/clone-module/TendbCluster.vue'),
       },
       {
-        path: 'sqlserver-clone-db-module/:ticketType/:bizId/',
+        path: 'sqlserver-clone-db-module/',
         name: 'SqlServerCloneDbModule',
         meta: {
           navName: t('克隆模块'),

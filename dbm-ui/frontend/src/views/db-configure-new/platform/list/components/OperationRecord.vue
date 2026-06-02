@@ -17,7 +17,7 @@
       v-model="searchValue"
       class="mb-16"
       :data="quickSearchData"
-      :placeholder="t('搜索操作人_操作时间_配置类型_配置文件_操作类型_操作参数')"
+      :placeholder="t('搜索操作时间_操作人_配置类型_配置文件_操作类型_操作参数')"
       style="width: 500px"
       @change="handleQuickSearchChange" />
     <DbTable
@@ -209,11 +209,14 @@
 </template>
 
 <script setup lang="ts">
+  import dayjs from 'dayjs';
   import type { TableSort } from 'tdesign-vue-next';
+  import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import ConfigNameChangeModel, { type ConfigNameChangeImage } from '@services/model/config/config-name-change';
   import { getConfigNameChanges } from '@services/source/configs';
+  import { getUserList } from '@services/source/user';
 
   import DbTable from '@components/db-table/IndexNew.vue';
 
@@ -234,50 +237,167 @@
     sortBy: 'updated_at',
   });
 
+  /** 配置类型枚举列表（从 getConfigNameChanges 返回数据中提取） */
+  const confTypeList = ref<{ label: string; value: string }[]>([]);
+
+  /** 配置文件枚举列表（从 getConfigNameChanges 返回数据中提取） */
+  const confFileList = ref<{ label: string; value: string }[]>([]);
+
+  /** 更新枚举列表：从数据中提取值并去重 */
+  const updateEnumLists = (data: Record<string, any>[]) => {
+    const confTypeSet = new Set<string>();
+    const confFileSet = new Set<string>();
+
+    data.forEach((item) => {
+      const confTypeLc = item.conf_type_lc ?? '';
+      if (confTypeLc) confTypeSet.add(confTypeLc);
+
+      const confFileLc = item.conf_file_lc ?? '';
+      if (confFileLc) confFileSet.add(confFileLc);
+    });
+
+    confTypeList.value = Array.from(confTypeSet).map((name) => ({
+      label: name,
+      value: name,
+    }));
+    confFileList.value = Array.from(confFileSet).map((name) => ({
+      label: name,
+      value: name,
+    }));
+  };
+
   const isShowDetail = ref(false);
   const detailRow = ref<ConfigNameChangeModel>();
 
-  const quickSearchData = [
-    {
-      id: 'op_user',
-      name: t('操作人'),
-      type: 'input' as const,
-    },
+  /** 搜索配置：字段顺序与表格列对齐 */
+  const quickSearchData = computed(() => [
+    // 1. 操作时间
     {
       id: 'updated_at',
       name: t('操作时间'),
-      type: 'input' as const,
+      props: {
+        shortcuts: [
+          {
+            text: t('近 1 小时'),
+            value: () => [dayjs().subtract(1, 'hour').toDate(), dayjs().toDate()],
+          },
+          {
+            text: t('近 12 小时'),
+            value: () => [dayjs().subtract(12, 'hour').toDate(), dayjs().toDate()],
+          },
+          {
+            text: t('今天'),
+            value: () => [dayjs().startOf('day').toDate(), dayjs().endOf('day').toDate()],
+          },
+          {
+            text: t('近 7 天'),
+            value: () => [dayjs().subtract(6, 'day').startOf('day').toDate(), dayjs().endOf('day').toDate()],
+          },
+          {
+            text: t('近 1 个月'),
+            value: () => [dayjs().subtract(1, 'month').startOf('day').toDate(), dayjs().endOf('day').toDate()],
+          },
+          {
+            text: t('近 3 个月'),
+            value: () => [dayjs().subtract(3, 'month').startOf('day').toDate(), dayjs().endOf('day').toDate()],
+          },
+          {
+            text: t('近 6 个月'),
+            value: () => [dayjs().subtract(6, 'month').startOf('day').toDate(), dayjs().endOf('day').toDate()],
+          },
+        ],
+      },
+      type: 'datetime-range' as const,
     },
+    // 2. 操作人（人员选择器）
     {
-      id: 'conf_type',
-      name: t('配置类型'),
-      type: 'input' as const,
+      id: 'op_user',
+      name: t('操作人'),
+      remoteMethod: (params: { defaultValue?: string; keyword?: string }) => {
+        const requestParams: Record<string, string> = {};
+        if (params.defaultValue) {
+          Object.assign(requestParams, { exact_lookups: params.defaultValue });
+        }
+        if (params.keyword) {
+          Object.assign(requestParams, { fuzzy_lookups: params.keyword });
+        }
+        return getUserList(requestParams).then((data) =>
+          data.results.map((item) => ({
+            label: `${item.username} (${item.display_name})`,
+            value: item.username,
+          })),
+        );
+      },
+      remoteSearch: true,
+      type: 'multiple' as const,
     },
+    // 3. 配置类型（枚举下拉，从返回数据中动态提取）
+    {
+      id: 'conf_type_lc',
+      list: confTypeList.value,
+      name: t('配置类型'),
+      type: 'multiple' as const,
+    },
+    // 4. 配置文件（枚举下拉，从返回数据中动态提取）
     {
       id: 'conf_file_lc',
+      list: confFileList.value,
       name: t('配置文件'),
-      type: 'input' as const,
+      type: 'multiple' as const,
     },
+    // 5. 操作类型（枚举下拉）
     {
       id: 'op_type',
+      list: Object.entries(operateTypeThemeMap).map(([value, item]) => ({
+        label: item.text,
+        value,
+      })),
       name: t('操作类型'),
-      type: 'input' as const,
+      type: 'multiple' as const,
     },
+    // 6. 操作参数（文本输入，支持模糊匹配）
     {
+      description: t('支持模糊搜索'),
       id: 'conf_name',
       name: t('操作参数'),
       type: 'input' as const,
     },
-  ];
+  ]);
 
   type TagTheme = '' | 'danger' | 'info' | 'success' | 'warning';
 
-  const operateTypeThemeMap: Record<string, { text: string; theme: TagTheme }> = {
-    add: { text: t('新增参数'), theme: 'success' },
-    recover: { text: t('恢复默认'), theme: 'info' },
-    remove: { text: t('删除参数'), theme: 'danger' },
-    update: { text: t('修改参数'), theme: 'warning' },
-    upsert: { text: t('新增参数'), theme: 'success' },
+  /** 操作类型标签主题映射 */
+  const operateTypeThemeMap: Record<
+    string,
+    {
+      text: string;
+      theme: TagTheme;
+    }
+  > = {
+    add: {
+      text: t('新增参数'),
+      theme: 'success',
+    },
+    cancel_render: {
+      text: t('取消使用'),
+      theme: 'danger',
+    },
+    recover: {
+      text: t('恢复默认'),
+      theme: 'info',
+    },
+    remove: {
+      text: t('删除参数'),
+      theme: 'danger',
+    },
+    update: {
+      text: t('修改参数'),
+      theme: 'warning',
+    },
+    // upsert: {
+    //   text: t('新增参数'),
+    //   theme: 'success',
+    // },
   };
 
   const dataSource = async (params: { limit: number; offset: number }) => {
@@ -288,6 +408,9 @@
       namespace: props.clusterType,
     });
 
+    // 更新枚举列表（配置类型、配置文件）
+    updateEnumLists(res.results || []);
+
     let filteredData = res.results || [];
 
     // 按当前排序状态动态排序
@@ -296,11 +419,27 @@
       const valB = String((b as Record<string, any>)[tableSort.value.sortBy] ?? '');
       return tableSort.value.descending ? valB.localeCompare(valA) : valA.localeCompare(valB);
     });
+
     const filters = searchValue.value;
     if (Object.keys(filters).length > 0) {
       filteredData = filteredData.filter((item) =>
         Object.entries(filters).every(([key, val]) => {
-          if (!val) return true;
+          if (!val || (Array.isArray(val) && val.length === 0)) return true;
+
+          // multiple 类型：值是数组
+          if (Array.isArray(val)) {
+            // datetime-range：值是 [Date, Date]
+            if (key === 'updated_at') {
+              const [start, end] = val as Date[];
+              const itemDate = new Date((item as Record<string, any>)[key]);
+              return itemDate >= start && itemDate <= end;
+            }
+            // multiple 枚举：值是字符串数组，判断数据中对应字段是否包含在数组中
+            const fieldValue = String((item as Record<string, any>)[key] ?? '');
+            return val.includes(fieldValue);
+          }
+
+          // input 类型：字符串模糊匹配
           const search = String(val).toLowerCase();
           const fieldValue = String((item as Record<string, any>)[key] ?? '').toLowerCase();
           return fieldValue.includes(search);

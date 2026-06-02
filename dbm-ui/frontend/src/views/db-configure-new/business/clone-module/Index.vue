@@ -12,12 +12,12 @@
       closable
       theme="info"
       :title="
-        t('基于源模块创建新模块_常用于数据库版本升级_源模块自定义值将保留_新版本不兼容的参数将被废弃_请审慎后创建')
+        t('基于源模块创建新模块_常用于数据库版本升级_源模块自定义值将保留_新版本不兼容的参数将被废弃_请审慎后创建_')
       " />
     <DbForm
       ref="formRef"
       class="clone-module-page db-scroll-y"
-      :label-width="168"
+      :label-width="100"
       :model="formData"
       :rules="rules">
       <!-- 模块信息 -->
@@ -30,11 +30,13 @@
           required>
           <BkInput
             v-model="formData.alias_name"
-            :placeholder="t('由英文字母_数字_连字符_组成')" />
+            :maxlength="63"
+            :placeholder="t('请输入模块名')"
+            show-word-limit />
           <div
             v-if="isValueAllowed"
             class="form-item-tips">
-            {{ t('模块名由英文字母、数字、连字符-组成；同时也会参与集群域名生成') }}
+            {{ t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，创建后不可改') }}
           </div>
         </BkFormItem>
         <!-- 数据库信息 -->
@@ -49,7 +51,7 @@
               <template #icon>
                 <i class="db-icon-mysql mr-5" />
               </template>
-              {{ ticketInfo.name }}
+              {{ clusterTypeInfos[clusterType]?.name || 'MySQL' }}
             </BkTag>
             <DbVersionSelect
               v-model="formData.db_version"
@@ -181,9 +183,7 @@
 
   <Teleport to="#dbContentTitleAppend">
     <span class="clone-nav-desc"> {{ t('业务') }}：{{ bizInfo.name }} </span>
-    <span class="clone-nav-desc">
-      {{ t('源模块') }}：{{ cloneResult.conf_file_info?.conf_file || String(route.query.conf_file) || '--' }}
-    </span>
+    <span class="clone-nav-desc"> {{ t('源模块') }}：{{ String(route.query.module_name) || '--' }} </span>
   </Teleport>
 </template>
 
@@ -203,7 +203,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { DBTypes, mysqlType, type MysqlTypeString } from '@common/const';
+  import { clusterTypeInfos, ClusterTypes, DBTypes } from '@common/const';
 
   import DbTable from '@components/db-table/IndexNew.vue';
 
@@ -222,8 +222,7 @@
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
 
-  const ticketType = route.params.type as MysqlTypeString;
-  const ticketInfo = mysqlType[ticketType];
+  const clusterType = ref(route.query.cluster_type as ClusterTypes);
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
 
   // 业务信息
@@ -269,22 +268,19 @@
   const rules = {
     alias_name: [
       {
-        message: t('模块名称不能为空'),
+        message: '',
         required: true,
         trigger: 'blur',
         validator: (value: string) => {
-          if (value) {
-            return true;
-          }
-          isValueAllowed.value = false;
-          return false;
+          if (value) return true;
+          return '';
         },
       },
       {
-        message: t('只能英文字母开头'),
+        message: t('模块名格式不正确'),
         trigger: 'blur',
         validator: (value: string) => {
-          if (/^[A-Za-z]/.test(value)) {
+          if (/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(value) || /^[a-z0-9]$/.test(value)) {
             return true;
           }
           isValueAllowed.value = false;
@@ -292,10 +288,10 @@
         },
       },
       {
-        message: t('由英文字母_数字_连字符_组成'),
+        message: t('模块名不能以连字符开头或结尾'),
         trigger: 'blur',
         validator: (value: string) => {
-          if (/^[0-9a-zA-Z-]+$/.test(value)) {
+          if (!/^-|-$/.test(value[0]) && !/^-|-$/.test(value[value.length - 1])) {
             return true;
           }
           isValueAllowed.value = false;
@@ -303,18 +299,24 @@
         },
       },
       {
-        message: t('该模块名已存在'),
+        message: '',
         trigger: 'blur',
         async validator() {
           if (!formData.alias_name || !formData.db_version || !formData.charset) return true;
           try {
             const data = await checkDbModuleUnique({
               bk_biz_id: String(bizId),
-              cluster_type: ticketInfo.type,
+              cluster_type: clusterType.value,
               db_module_name: `${formData.alias_name}-${formData.db_version}-${formData.charset}`,
             });
             isValueAllowed.value = !!data.is_unique;
-            return data.is_unique;
+            return data.is_unique
+              ? true
+              : t('该名称已被占用（{type} ：{version} / {charset}）', {
+                  charset: formData.charset,
+                  type: clusterTypeInfos[clusterType.value].name,
+                  version: formData.db_version,
+                });
           } catch {
             isValueAllowed.value = false;
             return false;
@@ -470,6 +472,7 @@
   // 源字符集从路由取（由源模块列表页 moduleInfo.charset 传入）
   if (route.query.charset) {
     sourceCharset.value = String(route.query.charset);
+    formData.charset = String(route.query.charset);
   }
 
   // 版本变化时：刷新 Tab 列表 + 重新拉取参数对比结果
@@ -479,11 +482,11 @@
       fetchConfTabs({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         deploy_versions: JSON.stringify({ db_version: formData.db_version }),
-        meta_cluster_type: ticketInfo.type,
+        meta_cluster_type: clusterType.value,
       });
       fetchCloneResult({
         conf_type: 'dbconf',
-        meta_cluster_type: ticketInfo.type,
+        meta_cluster_type: clusterType.value,
         source_bk_biz_id: String(bizId),
         source_conf_file: String(route.query.conf_file || ''),
         source_module_id: String(route.query.module_id || ''),
@@ -511,7 +514,7 @@
       conf_type: currentTab.conf_type,
       level_name: 'module',
       level_value: String(route.query.module_id || ''),
-      meta_cluster_type: ticketInfo.type,
+      meta_cluster_type: clusterType.value,
       version: tabKey,
     });
   });
@@ -543,7 +546,7 @@
       const createResult = await createModules({
         alias_name: formData.alias_name,
         biz_id: Number(bizId),
-        cluster_type: ticketInfo.type,
+        cluster_type: clusterType.value,
         db_module_name: dbModuleName,
       });
 
@@ -557,14 +560,14 @@
         conf_type: 'deploy',
         level_name: 'module',
         level_value: createResult.db_module_id,
-        meta_cluster_type: ticketInfo.type,
+        meta_cluster_type: clusterType.value,
         version: 'deploy_info',
       });
 
       window.changeConfirm = false;
       router.push({
         name: 'DbConfigureList',
-        params: { clusterType: ticketInfo.type },
+        params: { clusterType: clusterType.value },
         query: { parentId: `app-${bizId}`, treeId: `module-${createResult.db_module_id}` },
       });
     } catch (e) {
