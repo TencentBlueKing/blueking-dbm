@@ -269,7 +269,7 @@ class ClusterServiceHandler:
         for inst_obj in instance_objs:
             inst_data = DBInstance.from_inst_obj(inst_obj).__str__()
             cluster = inst_obj.cluster.first()
-            inst_cluster_map[inst_data] = cluster.to_dict()
+            inst_cluster_map[inst_data] = cluster.to_dict() if cluster else {}
             host_id_related_cluster[inst_obj.machine.bk_host_id].append(cluster)
             same_role_host_related_cluster[inst_obj.machine.bk_host_id][inst_obj.role].append(cluster)
 
@@ -285,7 +285,7 @@ class ClusterServiceHandler:
             related_clusters = [
                 self._format_cluster_field(cluster.to_dict())
                 for cluster in clusters
-                if cluster.id != inst_cluster_map[inst_data]["id"]
+                if inst_cluster_map.get(inst_data) and cluster.id != inst_cluster_map[inst_data]["id"]
             ]
 
             info = {
@@ -350,6 +350,8 @@ class ClusterServiceHandler:
         return intersected_machines_info
 
     def _format_cluster_field(self, cluster_info: Dict[str, Any]):
+        if not cluster_info:
+            return {}
         cluster_info["cluster_name"] = cluster_info["name"]
         cluster_info["master_domain"] = cluster_info["immute_domain"]
         if cluster_info.get("zone_list"):
