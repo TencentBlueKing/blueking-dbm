@@ -36,7 +36,8 @@ from backend.db_services.dbresource.mock import (
 )
 from backend.db_services.dbresource.models import ResourceReplenishRecord
 from backend.db_services.ipchooser.constants import BkOsType, BkOsTypeCode
-from backend.db_services.ipchooser.serializers.base import QueryHostsBaseSer
+from backend.db_services.ipchooser.serializers.base import PaginationSer
+from backend.exceptions import HostImportValidationError
 from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.constants import TICKET_RUNNING_STATUS_SET, TicketStatus, TicketType
@@ -68,11 +69,13 @@ class ResourceImportSerializer(serializers.Serializer):
     label_names = serializers.ListField(help_text=_("标签"), child=serializers.CharField(), required=False)
 
     def validate(self, attrs):
+        error_groups = {}
+        error_extra = {}
         # 如果主机存在元数据，则拒绝导入
         host_ids = [host["host_id"] for host in attrs["hosts"]]
         exist_hosts = list(Machine.objects.filter(bk_host_id__in=host_ids).values_list("ip", flat=True))
         if exist_hosts:
-            raise serializers.ValidationError(_("导入失败，主机{}存在元数据，请检查后重新导入").format(exist_hosts))
+            error_groups.setdefault("machine_exists", []).extend(exist_hosts)
 
         # 如果主机存在同云区域的重复IP，则拒绝导入
         ip_cloud_tuples = [(host["ip"], host["bk_cloud_id"]) for host in attrs["hosts"]]
@@ -80,7 +83,7 @@ class ResourceImportSerializer(serializers.Serializer):
         exist_hosts = list(Machine.objects.filter(ip__in=ips).values("ip", "bk_cloud_id"))
         for host in exist_hosts:
             if (host["ip"], host["bk_cloud_id"]) in ip_cloud_tuples:
-                raise serializers.ValidationError(_("导入失败，主机{}存在云区域重复IP，请检查后重新导入").format(host["ip"]))
+                error_groups.setdefault("duplicate_ip", []).append(host["ip"])
 
         dissolved_switch = SystemSettings.get_setting_value(
             key=SystemSettingsEnum.HOST_DISSOLVED_SWITCH, default=False
@@ -97,29 +100,57 @@ class ResourceImportSerializer(serializers.Serializer):
         check_uwork = {} if not host_to_fault_switch else HCMApi.check_host_has_uwork(direct_host_ids)
         if check_uwork:
             ips = [host_id__ip_map[host_id] for host_id in check_uwork.keys()]
-            raise serializers.ValidationError(_("导入失败，检测主机{}有关联的uwork单据，请检查后重新导入").format(ips))
+            error_groups.setdefault("uwork_xwork", []).extend(ips)
 
         check_xwork = {} if not host_to_fault_switch else XworkApi.check_xwork_list(host_ip__host_id_map)
         if check_xwork:
             ips = [host_id__ip_map[host_id] for host_id in check_xwork.keys()]
-            raise serializers.ValidationError(_("导入失败，检测主机{}有关联的xwork单据，请检查后重新导入").format(ips))
+            error_groups.setdefault("uwork_xwork", []).extend(ips)
 
         check_dissolved = [] if not dissolved_switch else HCMApi.check_host_is_dissolved(direct_host_ids)
         if check_dissolved:
             ips = [host_id__ip_map[host_id] for host_id in check_dissolved]
-            raise serializers.ValidationError(_("导入失败，检测主机{}为待裁撤主机，请检查后重新导入").format(ips))
+            error_groups.setdefault("dissolved", []).extend(ips)
 
         # 存在正在运行的已下架主机处理单据，则不允许导入
         recycling_tickets = Ticket.objects.filter(
             ticket_type__in=[TicketType.RECYCLE_OLD_HOST, TicketType.RECYCLE_APPLY_HOST],
             status__in=TICKET_RUNNING_STATUS_SET,
         )
-        recycling_map = {host["bk_host_id"]: t.id for t in recycling_tickets for host in t.details["recycle_hosts"]}
-        conflict_host = next(iter(set(host_ids) & recycling_map.keys()), None)
-        if conflict_host:
-            raise serializers.ValidationError(
-                _("导入失败，检测主机{}关联已下架主机处理单据{}").format(conflict_host, recycling_map[conflict_host])
-            )
+        recycling_map = {host["bk_host_id"]: t for t in recycling_tickets for host in t.details["recycle_hosts"]}
+        conflict_hosts = set(host_ids) & recycling_map.keys()
+        if conflict_hosts:
+            host_id_ip_map = {host["host_id"]: host["ip"] for host in attrs["hosts"]}
+            sorted_conflict_hosts = sorted(conflict_hosts, key=lambda host_id: host_id_ip_map[host_id])
+            conflict_ips = [host_id_ip_map[host_id] for host_id in sorted_conflict_hosts]
+            error_groups.setdefault("recycling_ticket", []).extend(conflict_ips)
+            error_extra["recycling_ticket"] = {
+                "tickets": [
+                    {"id": recycling_map[host_id].id, "bk_biz_id": recycling_map[host_id].bk_biz_id}
+                    for host_id in sorted_conflict_hosts
+                ],
+            }
+
+        error_map = {
+            "machine_exists": _("主机已被 DBM 管理，无法重复导入"),
+            "duplicate_ip": _("主机已被 DBM 管理，无法重复导入"),
+            "uwork_xwork": _("主机存在关联的 uwork/xwork 单据"),
+            "dissolved": _("主机处于待裁撤状态"),
+            "recycling_ticket": _("主机存在进行中的「已下架主机处理」单据"),
+        }
+        non_field_errors = []
+
+        for error_type, ips in error_groups.items():
+            error_info = {
+                "message": error_map.get(error_type, error_type),
+                "ips": ips if error_type == "recycling_ticket" else sorted(set(ips)),
+            }
+            error_info.update(error_extra.get(error_type, {}))
+            non_field_errors.append(error_info)
+
+        # 验证完统一抛出异常
+        if error_groups:
+            raise HostImportValidationError(non_field_errors)
 
         return attrs
 
@@ -275,20 +306,78 @@ class ResourceListResponseSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": RESOURCE_LIST_DATA}
 
 
-class ListDBAHostsSerializer(QueryHostsBaseSer):
+class ListDBAHostsSerializer(PaginationSer):
+    search_content = serializers.CharField(
+        label=_("模糊搜索内容（支持同时对`主机IP`/`主机名`/`操作系统`进行模糊搜索"), required=False, allow_blank=True
+    )
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False, default=env.DBA_APP_BK_BIZ_ID)
+    operator = serializers.CharField(help_text=_("主要负责人"), required=False, allow_blank=True, allow_null=True)
+    bk_svr_device_class_name = serializers.CharField(
+        help_text=_("机型"), required=False, allow_blank=True, allow_null=True
+    )
+    bk_idc_city_name = serializers.CharField(help_text=_("地域"), required=False, allow_blank=True, allow_null=True)
+    bk_sub_zone = serializers.CharField(
+        help_text=_("园区"), required=False, allow_blank=True, max_length=64, allow_null=True
+    )
+    os_name = serializers.CharField(
+        help_text=_("操作系统名称"), required=False, allow_blank=True, max_length=64, allow_null=True
+    )
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
-        if not attrs.get("conditions"):
-            return attrs
-
-        # ip这里需要精确查询
-        attrs["conditions"] = [cond for cond in attrs["conditions"] if cond["field"] == "bk_host_innerip"]
-        for cond in attrs["conditions"]:
-            cond["operator"] = "equal"
+        self.format_data(attrs)
 
         return attrs
+
+    def format_data(self, data):
+        data["page"] = {"start": data.pop("start", 0), "page_size": data.pop("page_size", 100)}
+
+        # 构建 IP 过滤规则
+        ip_rules = self._build_ip_rules(data.pop("search_content", ""))
+        filter_rules = [ip_rules] if ip_rules else []
+
+        # 构建其他字段过滤规则
+        filter_rules.extend(self._build_field_rules(data))
+
+        data["conditions"] = [{"all_rules": filter_rules}] if filter_rules else []
+
+    @staticmethod
+    def _build_ip_rules(ip_str):
+        """构建 IP 的 OR 规则组
+
+        Args:
+           ip_str (str): 逗号分隔的 IP 地址字符串。
+
+        """
+        if not ip_str:
+            return None
+
+        ips = [ip.strip() for ip in ip_str.split(",") if ip.strip()]
+        if not ips:
+            return None
+
+        return {
+            "condition": "OR",
+            "rules": [{"field": "bk_host_innerip", "operator": "equal", "value": ip} for ip in ips],
+        }
+
+    @staticmethod
+    def _build_field_rules(data):
+        """构建普通字段的筛选规则"""
+        field_mapping = {
+            "operator": "operator",
+            "bk_svr_device_class_name": "bk_svr_device_cls_name",
+            "bk_idc_city_name": "idc_city_name",
+            "bk_sub_zone": "sub_zone",
+            "os_name": "bk_os_name",
+        }
+
+        rules = []
+        for src_field, dst_field in field_mapping.items():
+            value = data.pop(src_field, "").strip()
+            if value:
+                rules.append({"field": dst_field, "operator": "equal", "value": value})
+        return rules
 
 
 class QueryDBAHostsSerializer(serializers.Serializer):

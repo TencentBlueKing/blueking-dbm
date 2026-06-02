@@ -32,7 +32,6 @@ class TestDBHAResources:
 
     @patch("backend.db_services.ipchooser.handlers.host_handler.CCApi", CCApiMock())
     @patch("backend.db_services.ipchooser.query.resource.CCApi", CCApiMock())
-    @patch("backend.db_services.ipchooser.handlers.base.CCApi", CCApiMock())
     @patch("backend.db_services.ipchooser.query.resource.BKNodeManApi", NodemanApiMock())
     @patch.object(views.DBHAViewSet, "get_permissions", lambda x: [])
     def test_list(self, dbha_cluster, bk_biz_id, dbha_master_ip, dbha_slave_ip, dbha_proxy_ip_list):
@@ -56,7 +55,6 @@ class TestDBHAResources:
 
     @patch("backend.db_services.ipchooser.handlers.host_handler.CCApi", CCApiMock())
     @patch("backend.db_services.ipchooser.query.resource.CCApi", CCApiMock())
-    @patch("backend.db_services.ipchooser.handlers.base.CCApi", CCApiMock())
     @patch("backend.db_services.ipchooser.query.resource.BKNodeManApi", NodemanApiMock())
     @patch.object(views.DBHAViewSet, "get_permissions", lambda x: [])
     def test_list_by_ip(self, dbha_cluster, bk_biz_id, dbha_master_ip, dbha_slave_ip, dbha_proxy_ip_list):
@@ -70,7 +68,6 @@ class TestDBHAResources:
 
     @patch("backend.db_services.ipchooser.handlers.host_handler.CCApi", CCApiMock())
     @patch("backend.db_services.ipchooser.query.resource.CCApi", CCApiMock())
-    @patch("backend.db_services.ipchooser.handlers.base.CCApi", CCApiMock())
     @patch("backend.db_services.ipchooser.query.resource.BKNodeManApi", NodemanApiMock())
     @patch.object(views.DBHAViewSet, "get_permissions", lambda x: [])
     def test_retrieve(self, dbha_cluster, bk_biz_id, dbha_master_ip, dbha_proxy_ip_list):
