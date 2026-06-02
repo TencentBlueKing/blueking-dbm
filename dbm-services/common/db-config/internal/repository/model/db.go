@@ -65,7 +65,6 @@ func openDB(username, password, addr, name string, options string) *gorm.DB {
 		addr,
 		name,
 		true,
-		// "Asia/Shanghai"),
 		"Local")
 	if options != "" {
 		dsn += "&" + options

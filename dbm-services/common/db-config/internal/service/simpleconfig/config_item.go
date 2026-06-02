@@ -62,7 +62,10 @@ func UpsertConfigItems(db *gorm.DB, configsOp []*model.ConfigModelOp, revision s
 	configsDel := make([]*model.ConfigModel, 0)
 	// 记录 update/delete 操作的 before_image，需要在实际操作前查询
 	beforeImages := make(map[string]api.ConfItem, 0)
-	upLevelConfValues := make(map[string]string, 0)
+	//upLevelConfValues := make(map[string]string, 0)
+	type UpLevelConfItem map[string]string
+	upLevelConfItems := make(map[string]UpLevelConfItem, 0)
+	configNamesDef := make(map[string]*model.ConfigNameDefModel, 0)
 	for _, c := range configsOp {
 		if c.OPType == constvar.OPTypeRemoveRef || c.OPType == constvar.OPTypeRemove {
 			// remove 不检验 平台值是否存在
@@ -92,7 +95,7 @@ func UpsertConfigItems(db *gorm.DB, configsOp []*model.ConfigModelOp, revision s
 				ConfName: c.Config.ConfName,
 				View:     "merge",
 			}
-			beforeModels, err := GetMergedConfig(db, &baseInfo, upLevel, &baseOptions)
+			beforeModels, namesDef, err := GetMergedConfig(db, &baseInfo, upLevel, &baseOptions)
 			if err != nil {
 				return nil, err
 			}
@@ -101,11 +104,13 @@ func UpsertConfigItems(db *gorm.DB, configsOp []*model.ConfigModelOp, revision s
 			} else if len(beforeModels) == 0 {
 				beforeImages[c.Config.ConfName] = api.ConfItem{}
 			} else {
+				configNamesDef[c.Config.ConfName] = namesDef[c.Config.ConfName]
 				before = *beforeModels[0]
 				beforeImages[c.Config.ConfName] = model.NewConfItemFromModel(&before)
 				if before.UpLevelValue != nil {
 					// 这里给 recover 操作，也记录恢复默认后的 新值。recover 操作是删除当前级别的旧值
-					upLevelConfValues[c.Config.ConfName] = before.UpLevelValue["conf_value"]
+					//upLevelConfValues[c.Config.ConfName] = before.UpLevelValue["conf_value"]
+					upLevelConfItems[c.Config.ConfName] = before.UpLevelValue
 				}
 			}
 		}
@@ -156,8 +161,13 @@ func UpsertConfigItems(db *gorm.DB, configsOp []*model.ConfigModelOp, revision s
 		if c.OPType != constvar.OPTypeRemove {
 			afterImage = model.NewConfItemFromModel(c.Config)
 		} else {
-			c.OPType = "recover"
-			afterImage.ConfValue = upLevelConfValues[c.Config.ConfName]
+			flagVisible := configNamesDef[c.Config.ConfName].FlagVisible
+			if len(upLevelConfItems[c.Config.ConfName]) == 0 && flagVisible == 0 {
+				c.OPType = "cancel_render"
+			} else {
+				c.OPType = "recover" // recoverdefault
+			}
+			afterImage.ConfValue = upLevelConfItems[c.Config.ConfName]["conf_value"]
 		}
 		changes = append(changes, &model.ConfItemChangesModel{
 			BKBizID:     c.Config.BKBizID,
@@ -189,48 +199,6 @@ func getParentLevelValue(s *api.BaseConfigNode) (map[string]string, error) {
 	return levelValue, nil
 }
 
-// GetMergedConfigForUplevel TODO
-func GetMergedConfigForUplevel(db *gorm.DB, s *api.BaseConfigNode, upLevelInfo *api.UpLevelInfo,
-	options *api.QueryConfigOptions) ([]*model.ConfigModel, error) {
-	logger.Info("GetMergedConfigForUplevel: %+v  upLevelInfo: %+v  options: %+v", s, upLevelInfo, options)
-	var levelName, levelValue string
-	if s.LevelName == constvar.LevelCluster {
-		levelName = constvar.LevelModule
-		if module, ok := upLevelInfo.LevelInfo[constvar.LevelModule]; !ok {
-			upLevel, err := model.QueryParentLevelValue(s)
-			if err != nil {
-				return nil, err
-			}
-			levelValue = upLevel[constvar.LevelModule]
-		} else {
-			levelValue = module
-		}
-	} else {
-		levelName = constvar.LevelApp
-		levelValue = s.BKBizID
-	}
-	upLevelNode := &api.BaseConfigNode{
-		BKBizID: s.BKBizID,
-		BaseConfFileDef: api.BaseConfFileDef{
-			Namespace: s.Namespace,
-			ConfType:  s.ConfType,
-			ConfFile:  s.ConfFile,
-		},
-		BaseLevelDef: api.BaseLevelDef{
-			LevelName:  levelName,
-			LevelValue: levelValue,
-		},
-	}
-	configs, err := model.GetSimpleConfig(db, upLevelNode, &api.UpLevelInfo{}, options)
-	if err != nil {
-		return nil, err
-	}
-	if configs, err = MergeConfig(configs, options.View); err != nil {
-		return nil, err
-	}
-	return configs, nil
-}
-
 func QueryParentLevelName(fileDef api.BaseConfFileDef, levelName string) (string, error) {
 	confFileDef, err := model.CacheGetConfigFile(fileDef)
 	if err != nil {
@@ -242,7 +210,7 @@ func QueryParentLevelName(fileDef api.BaseConfFileDef, levelName string) (string
 
 // GetMergedConfig TODO
 func GetMergedConfig(db *gorm.DB, s *api.BaseConfigNode, upLevelInfo *api.UpLevelInfo,
-	options *api.QueryConfigOptions) ([]*model.ConfigModel, error) {
+	options *api.QueryConfigOptions) ([]*model.ConfigModel, map[string]*model.ConfigNameDefModel, error) {
 	// 获取集群的配置，必须要有上层级模块的信息
 	if options.Module == "" && options.Cluster != "" {
 		// we get module from backend
@@ -259,14 +227,14 @@ func GetMergedConfig(db *gorm.DB, s *api.BaseConfigNode, upLevelInfo *api.UpLeve
 			if levelInfo, err := model.QueryParentLevelValue(s); err == nil {
 				upLevelInfo.LevelInfo = util.MapMerge(upLevelInfo.LevelInfo, levelInfo)
 			} else {
-				return nil, err
+				return nil, nil, err
 			}
 		}
 	}
 
-	configs, err := model.GetSimpleConfig(db, s, upLevelInfo, options)
+	configs, confNamesDef, err := model.GetSimpleConfig(db, s, upLevelInfo, options)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if s.LevelName != constvar.LevelPlat {
 		upConfigs, _ := MergeConfigLevelUp(configs, s.LevelName, options.View)
@@ -281,6 +249,7 @@ func GetMergedConfig(db *gorm.DB, s *api.BaseConfigNode, upLevelInfo *api.UpLeve
 						"level_name":  upConfig.LevelName,
 						"level_value": upConfig.LevelValue,
 						"conf_value":  upConfig.ConfValue,
+						//"flag_visible": confNamesDef[cg.ConfName].FlagVisible,
 					}
 				} else {
 					logger.Error("NO UP LEVEL FOUND: conf_name=%s (%s=%s)",
@@ -292,11 +261,11 @@ func GetMergedConfig(db *gorm.DB, s *api.BaseConfigNode, upLevelInfo *api.UpLeve
 	}
 
 	if configs, err = MergeConfig(configs, options.View); err != nil {
-		return nil, err
+		return nil, nil, err
 	} else {
 		configs = ProcessConfig(configs)
 	}
-	return configs, nil
+	return configs, confNamesDef, nil
 }
 
 // ConfigLevels TODO
@@ -326,19 +295,6 @@ func NewBaseConfItemWithModel(c *model.ConfigModel, opType string) interface{} {
 		baseItem.OPType = opType
 	}
 	return baseItem
-}
-
-// NewBaseConfItemWithModels TODO
-func NewBaseConfItemWithModels(configs []*model.ConfigModel) map[string]interface{} {
-	confItems := make(map[string]interface{}, len(configs))
-	for _, c := range configs {
-		confItems[c.ConfName] = NewBaseConfItemWithModel(c, "")
-	}
-	return confItems
-}
-
-func getLevelNameFromMap(levels api.UpLevelInfo) {
-
 }
 
 // NewConfigModelsWithItemReq TODO
@@ -497,20 +453,12 @@ func QueryConfigItems(r *api.SimpleConfigQueryReq, queryFileInfo bool) (*api.Get
 		},
 	}
 	r.Decrypt = true
-	if model.IsConfigLevelEntityVersioned(r.Namespace, r.ConfType, r.ConfFile, r.LevelName) {
-		if ret, err := QueryConfigItemsFromVersion(r, true); err != nil {
-			return nil, err
-		} else {
-			resp.Content = ret.Content
-		}
-	} else {
-		// 查询合并 nodeLevel
-		ret, err := GenerateConfigFile(model.DB.Self, r, constvar.MethodGenerateOnly, nil)
-		if err != nil {
-			return nil, err
-		}
-		resp.Content = ret.Content
+	// 查询合并 nodeLevel
+	ret, err := GenerateConfigFile(model.DB.Self, r, constvar.MethodGenerateOnly, nil)
+	if err != nil {
+		return nil, err
 	}
+	resp.Content = ret.Content
 	if queryFileInfo {
 		cf, err := GetConfigFileSimpleInfo(&r.BaseConfigNode)
 		if err != nil {
@@ -616,7 +564,7 @@ func GenerateConfigFile(db *gorm.DB, r *api.SimpleConfigQueryReq,
 	if err := copier.Copy(&options, r); err != nil {
 		return nil, err
 	}
-	configs, err := GetMergedConfig(db, &r.BaseConfigNode, &r.UpLevelInfo, &options) // @TODO use transaction
+	configs, _, err := GetMergedConfig(db, &r.BaseConfigNode, &r.UpLevelInfo, &options) // @TODO use transaction
 	if err != nil {
 		return nil, err
 	}
@@ -719,7 +667,7 @@ func GenerateAndPublish(db *gorm.DB, r *api.BaseConfigNode, o *api.QueryConfigOp
 		}
 
 		// 重新基于最新的 tb_config_node 生成 merged_configs
-		configs, err := GetMergedConfig(tx, r, up, o)
+		configs, _, err := GetMergedConfig(tx, r, up, o)
 		if err != nil {
 			return err
 		}

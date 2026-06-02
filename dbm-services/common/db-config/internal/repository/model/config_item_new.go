@@ -32,10 +32,10 @@ func buildPlatConfigSql(whereMap map[string]interface{}, columns []string) (stri
 
 func queryPlat(namespace, confType, confFile string, o *api.QueryConfigOptions, db *gorm.DB) ([]*ConfigNameDefModel, error) {
 	whereMap := map[string]interface{}{
-		"namespace":    namespace,
-		"conf_type":    confType,
-		"conf_file":    confFile,
-		"flag_visible": "1",
+		"namespace": namespace,
+		"conf_type": confType,
+		"conf_file": confFile,
+		// "flag_visible": "1",
 	}
 	if o.ConfName != "" {
 		//confNameList := strings.Split(o.ConfName, ",")
@@ -56,7 +56,7 @@ func queryPlat(namespace, confType, confFile string, o *api.QueryConfigOptions, 
 	return res, nil
 }
 
-func newConfigFromNameDef(names []*ConfigNameDefModel) []*ConfigModel {
+func newConfigFromNameDef2(names []*ConfigNameDefModel) []*ConfigModel {
 	var res []*ConfigModel
 	for _, name := range names {
 		res = append(res, &ConfigModel{
@@ -77,13 +77,31 @@ func newConfigFromNameDef(names []*ConfigNameDefModel) []*ConfigModel {
 	return res
 }
 
+func newConfigFromNameDef(nameDef *ConfigNameDefModel) *ConfigModel {
+	var res *ConfigModel = &ConfigModel{
+		Namespace:       nameDef.Namespace,
+		ConfType:        nameDef.ConfType,
+		ConfFile:        nameDef.ConfFile,
+		ConfName:        nameDef.ConfName,
+		ConfValue:       nameDef.ValueDefault,
+		LevelName:       "plat",
+		LevelValue:      "0",
+		BKBizID:         "0",
+		UpdatedRevision: "",
+		Description:     nameDef.ConfNameLC,
+		FlagDisable:     nameDef.FlagDisable,
+		FlagLocked:      nameDef.FlagLocked,
+	}
+	return res
+}
+
 func GetSimpleConfig(db *gorm.DB, r *api.BaseConfigNode, up *api.UpLevelInfo,
-	o *api.QueryConfigOptions) ([]*ConfigModel, error) {
+	o *api.QueryConfigOptions) ([]*ConfigModel, map[string]*ConfigNameDefModel, error) {
 	var allLevelConfigs []*ConfigModel
 
 	upLevel, err := GetUpLevelInfo(r, up)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	upLevel.LevelInfo[r.LevelName] = r.LevelValue
 	upLevel.LevelInfo["app"] = r.BKBizID
@@ -108,9 +126,14 @@ func GetSimpleConfig(db *gorm.DB, r *api.BaseConfigNode, up *api.UpLevelInfo,
 	}
 	configsPlat, err := queryPlat(r.Namespace, r.ConfType, r.ConfFile, o, db)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	allLevelConfigs = append(allLevelConfigs, newConfigFromNameDef(configsPlat)...)
+	for _, oneNameDef := range configsPlat {
+		if oneNameDef.FlagVisible == 1 {
+			allLevelConfigs = append(allLevelConfigs, newConfigFromNameDef(oneNameDef))
+		}
+	}
+	//allLevelConfigs = append(allLevelConfigs, newConfigFromNameDef(configsPlat)...)
 
 	tx := db.Transaction(func(tx *gorm.DB) error {
 		for levelName, levelValue := range upLevel.LevelInfo {
@@ -148,9 +171,24 @@ func GetSimpleConfig(db *gorm.DB, r *api.BaseConfigNode, up *api.UpLevelInfo,
 		for _, c := range allLevelConfigs {
 			err = c.MayDecrypt()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		}
 	}
-	return allLevelConfigs, tx
+	// remove configsPlat that doses not in allLevelConfigs
+	configNamesPlat := removeConfigsPlat(configsPlat, allLevelConfigs)
+	return allLevelConfigs, configNamesPlat, tx
+}
+
+// removeConfigsPlat filter and convert confNames
+func removeConfigsPlat(allPlat []*ConfigNameDefModel, configs []*ConfigModel) map[string]*ConfigNameDefModel {
+	var newPlat = make(map[string]*ConfigNameDefModel, 0)
+	for _, config := range configs {
+		for _, plat := range allPlat {
+			if config.ConfName == plat.ConfName {
+				newPlat[config.ConfName] = plat
+			}
+		}
+	}
+	return newPlat
 }

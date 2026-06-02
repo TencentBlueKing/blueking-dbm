@@ -123,7 +123,7 @@ func (r *GoApplyBinlog) ParseBinlogFiles() error {
 	logger.Info("start to parse binlog files with concurrency %d", r.ParseConcurrency)
 
 	binlogParseLockFile := "/tmp/mysql_binlog_parse.lock.yaml"
-	fileLock, err := filecontext.NewIncrFile(binlogParseLockFile, 4, 10*time.Second)
+	fileLock, err := filecontext.NewIncrFile(binlogParseLockFile, 4, 2*time.Second)
 	if err != nil {
 		return err
 	}
