@@ -110,6 +110,7 @@
 
   interface Props {
     dbType: string;
+    hasPackageManagePermission: boolean;
     pkgType: string;
     releaseVersion?: ReleaseVersionModel;
   }
@@ -141,7 +142,9 @@
   const currentDbVersion = ref<DbVersionModel>();
 
   const isPureMysql = computed(() => props.dbType === 'mysql' && props.pkgType === 'mysql');
-  const commonPermission = computed(() => props.releaseVersion?.permission.package_manage || false);
+  const commonPermission = computed(
+    () => props.releaseVersion?.permission.package_manage || props.hasPackageManagePermission,
+  );
 
   const { data: versionSeriesList, run: runGetVersionSeriesList } = useRequest(getVersionSeriesList, {
     manual: true,
