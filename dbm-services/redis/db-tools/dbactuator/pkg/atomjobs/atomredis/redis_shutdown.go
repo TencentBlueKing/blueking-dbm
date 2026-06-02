@@ -22,7 +22,10 @@ type RedisShutdownParams struct {
 	IP                     string `json:"ip" validate:"required"`
 	Ports                  []int  `json:"ports" validate:"required"`
 	IsAllInstancesShutdown bool   `json:"is_all_instances_shutdown"`
-	Debug                  bool   `json:"debug"`
+	// 是否是集群下架，来区分实例下架场景。如果slot != 0&cluster status is ok & !is_cluster_shutdown需要报错
+	// 默认值: false，表示非集群下架场景，会进行slot检查
+	IsClusterShutdown bool `json:"is_cluster_shutdown"`
+	Debug             bool `json:"debug"`
 }
 
 // RedisShutdown redis shutdown 结构体
@@ -83,6 +86,13 @@ func (job *RedisShutdown) Run() (err error) {
 	job.InitRealDataDir()
 	ports := job.params.Ports
 
+	// 非集群下架场景下，检查实例是否仍拥有slot且集群状态ok
+	if !job.params.IsClusterShutdown {
+		if err = job.checkInstanceSlotsBeforeShutdown(ports); err != nil {
+			return err
+		}
+	}
+
 	wg := sync.WaitGroup{}
 	for _, port := range ports {
 		wg.Add(1)
@@ -127,6 +137,73 @@ func (job *RedisShutdown) InitRealDataDir() {
 	job.runtime.Logger.Info("GeRedisBackupDir success,backupDir:%s", job.RedisBackupDir)
 
 	job.errChan = make(chan error, len(job.params.Ports))
+}
+
+// checkInstanceSlotsBeforeShutdown 非集群下架场景下，检查实例是否仍拥有slot且集群状态ok
+// 判断条件: IsClusterShutdown == false && cluster state is ok && 实例拥有slot => 报错
+func (job *RedisShutdown) checkInstanceSlotsBeforeShutdown(ports []int) error {
+	for _, port := range ports {
+		insAddr := fmt.Sprintf("%s:%d", job.params.IP, port)
+		pwd, err := myredis.GetRedisPasswdFromConfFile(port)
+		if err != nil {
+			err = fmt.Errorf("checkInstanceSlotsBeforeShutdown: get redis port[%d] password failed: %v", port, err)
+			job.runtime.Logger.Error(err.Error())
+			return err
+		}
+		redisClient, err := myredis.NewRedisClient(insAddr, pwd, 0, consts.TendisTypeRedisInstance)
+		if err != nil {
+			err = fmt.Errorf("checkInstanceSlotsBeforeShutdown: connect redis %s failed: %v", insAddr, err)
+			job.runtime.Logger.Error(err.Error())
+			return err
+		}
+
+		// 检查是否为集群模式
+		clusterEnabled, err := redisClient.IsClusterEnabled()
+		if err != nil {
+			redisClient.Close()
+			err = fmt.Errorf("checkInstanceSlotsBeforeShutdown: check %s cluster_enabled failed: %v", insAddr, err)
+			job.runtime.Logger.Error(err.Error())
+			return err
+		}
+		if !clusterEnabled {
+			redisClient.Close()
+			job.runtime.Logger.Info("redis %s is not cluster mode, skip slot check", insAddr)
+			continue
+		}
+
+		// 检查集群状态是否ok
+		clusterInfo, err := redisClient.ClusterInfo()
+		if err != nil {
+			redisClient.Close()
+			err = fmt.Errorf("checkInstanceSlotsBeforeShutdown: get %s cluster info failed: %v", insAddr, err)
+			job.runtime.Logger.Error(err.Error())
+			return err
+		}
+		if clusterInfo.ClusterState != consts.ClusterStateOK {
+			redisClient.Close()
+			job.runtime.Logger.Info("redis %s cluster state is %s, not ok, skip slot check", insAddr, clusterInfo.ClusterState)
+			continue
+		}
+
+		// 集群状态ok，检查实例是否拥有slot
+		addrToNodes, err := redisClient.GetAddrMapToNodes()
+		redisClient.Close()
+		if err != nil {
+			err = fmt.Errorf("checkInstanceSlotsBeforeShutdown: get %s cluster nodes failed: %v", insAddr, err)
+			job.runtime.Logger.Error(err.Error())
+			return err
+		}
+		nodeData, ok := addrToNodes[insAddr]
+		if ok && len(nodeData.Slots) > 0 {
+			err = fmt.Errorf(
+				"cannot shutdown redis %s: instance still has %d slots and cluster state is ok, "+
+					"please migrate slots first or set is_cluster_shutdown=true", insAddr, len(nodeData.Slots))
+			job.runtime.Logger.Error(err.Error())
+			return err
+		}
+		job.runtime.Logger.Info("redis %s has 0 slots in a healthy cluster, safe to shutdown", insAddr)
+	}
+	return nil
 }
 
 // Shutdown 停止进程

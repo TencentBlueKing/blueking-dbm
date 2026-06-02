@@ -1154,6 +1154,8 @@ class RedisActPayload(object):
         """
         ip = kwargs["ip"]
         ports = self.cluster[ip]
+        params = kwargs.get("params", {})
+        is_cluster_shutdown = params.get("is_cluster_shutdown", False)
 
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
@@ -1162,6 +1164,7 @@ class RedisActPayload(object):
                 "ip": ip,
                 "ports": ports,
                 "is_all_instances_shutdown": self.__is_all_instances_shutdown(ip, ports),
+                "IsClusterShutdown": is_cluster_shutdown,
             },
         }
 
@@ -1687,6 +1690,7 @@ class RedisActPayload(object):
 
         ip = params["exec_ip"]
         ports = params["shutdown_ports"]
+        is_cluster_shutdown = params.get("is_cluster_shutdown", False)
 
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
@@ -1695,6 +1699,7 @@ class RedisActPayload(object):
                 "ip": ip,
                 "ports": ports,
                 "is_all_instances_shutdown": self.__is_all_instances_shutdown(ip, ports),
+                "IsClusterShutdown": is_cluster_shutdown,
             },
         }
 
@@ -2284,17 +2289,39 @@ class RedisActPayload(object):
         # 如果返回None，表示需要继承所有配置项（版本升级场景）
         if conf_names is None:
             conf_names = list(src_resp["content"].keys())
+
+        # 获取目标版本plat级别的配置项
+        target_conf_items = DBConfigApi.query_conf_item(
+            params={
+                "bk_biz_id": str(cluster_map["bk_biz_id"]),
+                "level_name": LevelName.PLAT,
+                "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
+                "conf_file": cluster_map["target_version"],
+                "conf_type": ConfigTypeEnum.DBConf,
+                "namespace": cluster_map["cluster_type"],
+                "format": FormatType.MAP,
+            }
+        )
+        target_conf_names = list(target_conf_items["content"].keys())
         conf_items = []
-        for conf_name in conf_names:
-            if conf_name in src_resp["content"]:
-                conf_items.append(
-                    {"conf_name": conf_name, "conf_value": src_resp["content"][conf_name], "op_type": OpType.UPDATE}
-                )
         remove_items = []
         for conf_name in conf_names:
-            if conf_name == "cluster-enabled" and cluster_map["current_version"] == RedisVersion.Redis20.value:
-                continue
-            remove_items.append({"conf_name": conf_name, "op_type": OpType.REMOVE})
+            # 构建写入项：只包含源版本存在且目标版本定义中也有的配置项
+            if conf_name in src_resp["content"] and conf_name in target_conf_names:
+                # 如果目标版本>=5，需要将slave-lazy-flush替换为replica-lazy-flush
+                new_conf_name = self._replace_legacy_conf_name(conf_name, _target_version or "")
+                conf_items.append(
+                    {
+                        "conf_name": new_conf_name,
+                        "conf_value": src_resp["content"][conf_name],
+                        "op_type": OpType.UPDATE,
+                    }
+                )
+            # 构建删除项：只删除源版本中实际存在的配置项
+            if conf_name in src_resp["content"]:
+                if conf_name == "cluster-enabled" and cluster_map["current_version"] == RedisVersion.Redis20.value:
+                    continue
+                remove_items.append({"conf_name": conf_name, "op_type": OpType.REMOVE})
         upsert_param = {
             "conf_file_info": {
                 "conf_file": "",  # 需要替换成真实值
