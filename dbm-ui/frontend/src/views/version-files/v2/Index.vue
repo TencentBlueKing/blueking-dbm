@@ -19,6 +19,7 @@
         :exclude="[DBTypes.TENDBCLUSTER]" />
       <div class="veriosn-content-main">
         <BkTab
+          :key="pkgActive"
           v-model:active="pkgActive"
           class="pkg-tab-main"
           type="card-tab">
@@ -31,6 +32,7 @@
         <div class="content-main">
           <List
             :db-type="dbTypeActive"
+            :has-package-manage-permission="hasPackageManagePermission"
             :pkg-label-map="pkgLabelMap"
             :pkg-type="pkgActive"
             :tabs="renderTabs" />
@@ -80,6 +82,7 @@
 
   const pkgActive = ref('');
   const dbTypeActive = ref<DBTypes>(DBTypes.MYSQL);
+  const hasPackageManagePermission = ref(false);
 
   const tabs: TabItem[] = [
     {
@@ -445,6 +448,8 @@
     return true;
   });
 
+  let hasPackageViewPermission = false;
+
   const activeTabInfo = computed(() => {
     const tabList = renderTabs.find((item) => item.name === dbTypeActive.value);
     return tabList
@@ -456,10 +461,23 @@
         };
   });
 
+  const checkPackageManagePermission = async () => {
+    hasPackageManagePermission.value = await simpleCheckAllowed({
+      action_id: 'package_manage',
+      resource_id: dbTypeActive.value,
+    });
+  };
+
   watch(
     dbTypeActive,
     () => {
       pkgActive.value = activeTabInfo.value?.children[0]?.name || '';
+
+      if (!hasPackageViewPermission) {
+        return;
+      }
+
+      checkPackageManagePermission();
     },
     {
       immediate: true,
@@ -482,16 +500,25 @@
     },
   );
 
-  simpleCheckAllowed(
-    {
-      action_id: 'package_view',
-      is_raise_exception: true,
-      resource_id: 'package_view',
-    },
-    {
-      permission: 'page',
-    },
-  );
+  const checkPackagePermission = async () => {
+    hasPackageViewPermission = await simpleCheckAllowed(
+      {
+        action_id: 'package_view',
+        is_raise_exception: true,
+        resource_id: '',
+      },
+      {
+        permission: 'page',
+      },
+    );
+    if (!hasPackageViewPermission) {
+      return;
+    }
+
+    checkPackageManagePermission();
+  };
+
+  checkPackagePermission();
 
   onMounted(() => {
     const { dbType, pkgType } = route.query;
