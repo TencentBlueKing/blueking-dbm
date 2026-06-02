@@ -116,6 +116,11 @@ class AppBaseException(Exception):
         return err_code_map
 
 
+class HostImportValidationError(AppBaseException):
+    MESSAGE = _("主机导入校验异常")
+    ERROR_CODE = "026"
+
+
 class ApiError(AppBaseException):
     pass
 

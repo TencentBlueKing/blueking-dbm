@@ -177,7 +177,17 @@ class ResourceQueryHelper:
 
         # rules不能为空
         if conditions:
-            if bk_cloud_id is None:
+            # 「导入主机」界面列表查询过滤条件（支持 IP 多值搜索 + 多维度字段筛选）
+            # conditions 结构说明：
+            # - conditions[0].all_rules：来自导入页面的统一过滤规则
+            #   包含：
+            #   1) IP 搜索（支持多个 IP） OR 关系
+            #   2) 维度字段筛选（主要负责人 / 机型 / 地域 / 园区 / 操作系统名称） AND 关系
+            if conditions[0].get("all_rules", []):
+                params.update(
+                    {"host_property_filter": {"condition": "AND", "rules": conditions[0].get("all_rules", [])}}
+                )
+            elif bk_cloud_id is None:
                 params.update({"host_property_filter": {"condition": "OR", "rules": conditions}})
             else:
                 params["host_property_filter"]["rules"].append({"condition": "OR", "rules": conditions})

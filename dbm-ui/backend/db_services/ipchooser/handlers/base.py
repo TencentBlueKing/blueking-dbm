@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import typing
 
-from backend.components import CCApi
+from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 
 from .. import constants, types
 from ..query import resource
@@ -33,12 +33,11 @@ class BaseHandler:
             biz_info["bk_biz_id"]: biz_info for biz_info in resource.ResourceQueryHelper.fetch_biz_list()
         }
 
-        # TODO: 暂不支持 >1000
-        resp = CCApi.search_cloud_area({"page": {"start": 0, "limit": 1000}}, use_admin=True)
+        cloud_map = ResourceQueryHelper.search_cc_cloud(get_cache=True)
 
-        if resp.get("info"):
+        if cloud_map:
             cloud_id__info_map: typing.Dict[int, typing.Dict] = {
-                cloud_info["bk_cloud_id"]: cloud_info["bk_cloud_name"] for cloud_info in resp["info"]
+                cloud_info["bk_cloud_id"]: cloud_info["bk_cloud_name"] for cloud_info in cloud_map.values()
             }
         else:
             # 默认存在直连区域
@@ -53,6 +52,8 @@ class BaseHandler:
         for host in hosts:
             bk_cloud_id = host["bk_cloud_id"]
             formatted_host_info = {
+                "operator": host.get("operator", ""),
+                "bk_bak_operator": host.get("bk_bak_operator", ""),
                 "host_id": host["bk_host_id"],
                 "ip": host["bk_host_innerip"],
                 "ipv6": host.get("bk_host_innerip_v6", ""),
