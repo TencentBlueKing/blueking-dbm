@@ -29,7 +29,6 @@ class MysqlProxyRescueDetailSerializer(MySQLBaseOperateDetailSerializer):
         old_nodes = OldProxySerializer(help_text=_("旧Proxy实例信息"))
         resource_spec = serializers.JSONField(help_text=_("资源规格"))
         cluster_id = serializers.IntegerField(help_text=_("集群 ID"))
-        proxy_version = serializers.CharField(max_length=64, help_text=_("Proxy 版本号"))
         auto_cleanup_old_proxies = serializers.BooleanField(help_text=_("是否自动清理旧 Proxy"))
 
     infos = serializers.ListField(help_text=_("重建 Proxy 集群列表"), child=ClusterInfoSerializer())
