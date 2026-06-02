@@ -14,9 +14,9 @@ type DBTime struct {
 // DBTimeFormat TODO
 const DBTimeFormat = "2006-01-02 15:04:05"
 
-// MarshalJSON TODO
+// MarshalJSON 序列化为 RFC3339 格式
 func (t DBTime) MarshalJSON() ([]byte, error) {
-	str := fmt.Sprintf(`"%s"`, t.Format(DBTimeFormat))
+	str := fmt.Sprintf(`"%s"`, t.Format(time.RFC3339))
 	return []byte(str), nil
 }
 

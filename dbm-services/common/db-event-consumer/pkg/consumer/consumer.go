@@ -173,7 +173,7 @@ func (s *AnySinker) HandleMessages(msgs []*sarama.ConsumerMessage, sk *Sinker) e
 	result := reflect.MakeSlice(sliceType, 0, 0)
 
 	for _, message := range msgs {
-		slog.Debug("process message", slog.String("Value", string(message.Value)))
+		// slog.Debug("process message", slog.String("Value", string(message.Value)))
 		objValue := reflect.New(s.modelType)
 		obj := objValue.Interface()
 
@@ -199,7 +199,7 @@ func (s *AnySinker) HandleMessagesXorm(msgs []*sarama.ConsumerMessage, sk *Sinke
 	}
 	var objs []base.ModelSinker
 	for _, message := range msgs {
-		slog.Debug("process message", slog.String("Value", string(message.Value)))
+		// slog.Debug("process message", slog.String("Value", string(message.Value)))
 		obj := reflect.New(s.modelType).Interface()
 
 		err := json.Unmarshal(message.Value, &obj)
@@ -224,7 +224,7 @@ func (s *AnySinker) HandleMessagesMapper(msgs []*sarama.ConsumerMessage, sk *Sin
 	}
 	var objs []map[string]interface{}
 	for _, message := range msgs {
-		slog.Debug("process message", slog.String("Value", string(message.Value)))
+		// slog.Debug("process message", slog.String("Value", string(message.Value)))
 		var obj map[string]interface{}
 		// map 形式，无法正确处理时区问题
 		err := json.Unmarshal(message.Value, &obj)
@@ -344,7 +344,7 @@ func (s *AnySinker) HandleMessagesBklogMapper(msgs []*sarama.ConsumerMessage, sk
 	}
 	var objs []map[string]interface{}
 	for _, message := range msgs {
-		slog.Debug("process message", slog.String("Value", string(message.Value)))
+		// slog.Debug("process message", slog.String("Value", string(message.Value)))
 		var msg base.MessageWrapper
 		err := json.Unmarshal(message.Value, &msg)
 		if err != nil {

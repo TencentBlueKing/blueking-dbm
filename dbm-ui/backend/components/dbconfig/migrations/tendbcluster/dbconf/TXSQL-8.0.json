@@ -2,7 +2,7 @@
   {
     "conf_name": "mysql.default-character-set",
     "value_default": "{{.Mysqld.CharacterSetServer}}",
-    "value_allowed": "LATIN1| UTF8| GBK| UTF8MB4 |{{mysqld.character_set_server}}",
+    "value_allowed": "latin1 | utf8 | utf8mb4 | gbk | {{.Mysqld.CharacterSetServer}}",
     "value_type": "STRING",
     "value_type_sub": "ENUM",
     "conf_name_lc": "",
@@ -322,7 +322,7 @@
   {
     "conf_name": "mysqld.character_set_server",
     "value_default": "{{.Mysqld.CharacterSetServer}}",
-    "value_allowed": "LATIN1| UTF8| GBK| UTF8MB4 |{{mysqld.character_set_server}}",
+    "value_allowed": "latin1 | utf8 | utf8mb4 | gbk | {{.Mysqld.CharacterSetServer}}",
     "value_type": "STRING",
     "value_type_sub": "ENUM",
     "conf_name_lc": "",
@@ -3954,7 +3954,7 @@
   {
     "conf_name": "mysqldump.default-character-set",
     "value_default": "{{.Mysqld.CharacterSetServer}}",
-    "value_allowed": "LATIN1| UTF8| GBK| UTF8MB4 |{{mysqld.character_set_server}}",
+    "value_allowed": "latin1 | utf8 | utf8mb4 | gbk | {{.Mysqld.CharacterSetServer}}",
     "value_type": "STRING",
     "value_type_sub": "ENUM",
     "conf_name_lc": "",

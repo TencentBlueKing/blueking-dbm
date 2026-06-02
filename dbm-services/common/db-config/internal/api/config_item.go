@@ -190,4 +190,5 @@ type RecoverDefaultConfItemsReq struct {
 	BaseLevelDef
 	BaseConfFileDef
 	ConfNames []string `json:"conf_names" form:"conf_names"`
+	// CancelRender bool     `json:"cancel_render" form:"cancel_render"`
 }

@@ -274,7 +274,9 @@ func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
 			} else {
 				taskStatus, err := backupClient.Query(f.BackupTaskid)
 				if err != nil {
-					return err
+					logger.Error("backup_client query status: %s, taskid:%s, err: %v",
+						f.Filename, f.BackupTaskid, err.Error())
+					continue
 				}
 
 				if taskStatus == models.IBStatusSuccess {
