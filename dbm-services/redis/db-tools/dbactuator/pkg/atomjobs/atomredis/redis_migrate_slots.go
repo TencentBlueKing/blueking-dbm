@@ -959,7 +959,7 @@ func (job *ClusterMigrateSlots) MigrateSpecificSlots(srcAddr,
 			break
 
 		}
-		if (otherErrRetryTimes == 5 || deleteSlotErrRetryTimes == 30) && err != nil {
+		if (otherErrRetryTimes >= 5 || deleteSlotErrRetryTimes >= 30) && err != nil {
 			job.Err = fmt.Errorf("otherErrRetryTimes is 5 and deleteSlotErrRetryTimes is 30 always failed:%v", err)
 			job.runtime.Logger.Error(job.Err.Error())
 			return
@@ -2123,9 +2123,10 @@ func (job *ClusterMigrateSlots) ReBalanceSlot() error {
 // 与 ReBalanceSlot 的区别：RedisCluster 的 redis-cli --cluster reshard 不支持指定具体 slot，
 // 只能指定迁移数量（从 src 随机选 slot 迁出），因此需要从全局视角计算最少迁移量。
 // 算法：
-// 1. 计算每个 finalNode 的期望 slot 数 = 16384 / finalNodeCount
-// 2. 计算每个节点的 balance = 当前 slot 数 - 期望数（正数=多余，负数=不足）
-// 3. 多余节点迁出，不足节点接收，贪心配对最小化迁移次数
+//  1. 使用余数分配法计算每个 finalNode 的期望 slot 数：baseExpected = totalSlots / count，
+//     前 remainder 个节点分配 baseExpected+1，其余分配 baseExpected，保证总期望恰好等于总 slot 数
+//  2. 计算每个节点的 balance = 当前 slot 数 - 期望数（正数=多余，负数=不足）
+//  3. 多余节点迁出，不足节点接收，贪心配对最小化迁移次数
 func (job *ClusterMigrateSlots) redisClusterRebalanceSlot() error {
 	finalNodes, toBeDelNodes, err := job.GetMigrateNodes()
 	if err != nil {
@@ -2146,7 +2147,6 @@ func (job *ClusterMigrateSlots) redisClusterRebalanceSlot() error {
 	}
 
 	finalNodeCount := len(finalNodes)
-	expectedSlotNum := (consts.DefaultMaxSlots + 1) / finalNodeCount
 
 	// 构建待删节点集合
 	toBeDelNodesMap := make(map[string]bool)
@@ -2154,7 +2154,7 @@ func (job *ClusterMigrateSlots) redisClusterRebalanceSlot() error {
 		toBeDelNodesMap[addr] = true
 	}
 
-	// 计算每个 finalNode 的当前 slot 数和期望数
+	// 计算每个 finalNode 的当前 slot 数
 	type nodeBalance struct {
 		addr     string
 		curSlots int
@@ -2162,7 +2162,6 @@ func (job *ClusterMigrateSlots) redisClusterRebalanceSlot() error {
 		balance  int // 正数=多余需要迁出, 负数=不足需要接收
 	}
 	var balances []nodeBalance
-	totalMigrateSlots := 0
 
 	for _, addr := range finalNodes {
 		curSlots := 0
@@ -2172,42 +2171,46 @@ func (job *ClusterMigrateSlots) redisClusterRebalanceSlot() error {
 				break
 			}
 		}
-		b := curSlots - expectedSlotNum
 		balances = append(balances, nodeBalance{
 			addr:     addr,
 			curSlots: curSlots,
-			expected: expectedSlotNum,
-			balance:  b,
 		})
-		if b > 0 {
-			totalMigrateSlots += b
-		}
 	}
 
-	// 缩容场景：待删节点的 slot 也需要被迁出
+	// 确定总 slot 数：缩容场景使用集群实际 slot 总数，否则使用 16384
+	totalSlotsInCluster := consts.DefaultMaxSlots + 1
 	toBeDelTotalSlots := 0
 	for _, node := range clusterNodes {
-		if node.Role == consts.RedisMasterRole && toBeDelNodesMap[node.Addr] {
-			toBeDelTotalSlots += len(node.Slots)
+		if node.Role == consts.RedisMasterRole {
+			if toBeDelNodesMap[node.Addr] {
+				toBeDelTotalSlots += len(node.Slots)
+			}
 		}
 	}
 	if toBeDelTotalSlots > 0 {
-		// 缩容时，待删节点的 slot 全部需要迁出，重新计算期望
-		// 期望数 = (所有master的slot总数) / finalNodeCount
-		totalSlotsInCluster := 0
+		totalSlotsInCluster = 0
 		for _, node := range clusterNodes {
 			if node.Role == consts.RedisMasterRole {
 				totalSlotsInCluster += len(node.Slots)
 			}
 		}
-		newExpected := totalSlotsInCluster / finalNodeCount
-		totalMigrateSlots = 0
-		for i := range balances {
-			balances[i].expected = newExpected
-			balances[i].balance = balances[i].curSlots - newExpected
-			if balances[i].balance < 0 {
-				totalMigrateSlots += -balances[i].balance
-			}
+	}
+
+	// 余数分配法：前 remainder 个节点分配 baseExpected+1，其余分配 baseExpected
+	// 保证 totalExpected = remainder*(base+1) + (count-remainder)*base = totalSlotsInCluster
+	baseExpected := totalSlotsInCluster / finalNodeCount
+	remainder := totalSlotsInCluster % finalNodeCount
+
+	totalMigrateSlots := 0
+	for i := range balances {
+		expected := baseExpected
+		if i < remainder {
+			expected = baseExpected + 1
+		}
+		balances[i].expected = expected
+		balances[i].balance = balances[i].curSlots - expected
+		if balances[i].balance > 0 {
+			totalMigrateSlots += balances[i].balance
 		}
 	}
 
@@ -2299,7 +2302,7 @@ func (job *ClusterMigrateSlots) redisClusterRebalanceSlot() error {
 	// 打印迁移计划汇总
 	totalPlannedMigrate := 0
 	for _, task := range migrateTasks {
-		totalPlannedMigrate += len(task.MigrateSlots)
+		totalPlannedMigrate += task.MigrateCount
 	}
 	// 用实际的 reshard 数量统计
 	job.runtime.Logger.Info("[rediscluster] ===== 迁移执行计划开始 =====")
@@ -2310,16 +2313,16 @@ func (job *ClusterMigrateSlots) redisClusterRebalanceSlot() error {
 	}
 	job.runtime.Logger.Info("[rediscluster] ===== 迁移执行计划结束 =====")
 
-	if len(migrateTasks) == 0 {
+	if len(migrateTasks) > 0 {
+		err = job.ParallelMigrateSpecificSlots(migrateTasks)
+		if err != nil {
+			return err
+		}
+	} else {
 		job.runtime.Logger.Info("[rediscluster] no migration needed, cluster is already balanced")
-		return nil
 	}
 
-	err = job.ParallelMigrateSpecificSlots(migrateTasks)
-	if err != nil {
-		return err
-	}
-
+	// 无论是否需要迁移 slot，都要 forget 待删节点
 	err = job.ForgetDelNodes(toBeDelNodes)
 	if err != nil {
 		return err

@@ -217,7 +217,7 @@ class RedisClusterShutdownFlow(object):
             )
 
         for ip in redis_ips:
-            act_kwargs.cluster = {}
+            act_kwargs.cluster = {"is_cluster_shutdown": True}
             act_kwargs.exec_ip = ip
             act_kwargs.get_redis_payload_func = RedisActPayload.redis_shutdown_payload.__name__
             acts_list.append(
