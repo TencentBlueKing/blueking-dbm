@@ -190,7 +190,7 @@
     <template #footer>
       <BkButton
         v-bk-tooltips="{
-          disabled: !isAddParamFormDirty,
+          disabled: isAddParamFormDirty,
           content: t('当前无变更，请先修改内容'),
         }"
         class="mr-8"

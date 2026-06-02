@@ -119,7 +119,6 @@
       </TableColumn>
       <TableColumn
         col-key="conf_value"
-        ellipsis
         :title="t('当前值')"
         :width="200">
         <template #default="{ row, rowIndex }">
@@ -174,9 +173,18 @@
           </template>
           <template v-else>
             <span class="value-cell">
-              <span class="value-cell-text">{{ row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--') }}</span>
+              <span
+                v-bk-tooltips="{
+                  content: row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--'),
+                  disabled: !row.conf_value,
+                  maxWidth: 400,
+                }"
+                class="value-cell-text">
+                {{ row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--') }}
+              </span>
               <BkTag
                 v-if="row.level_name === levelName"
+                class="value-cell-tag"
                 size="small"
                 theme="warning">
                 {{ t('自定义') }}
@@ -917,9 +925,11 @@
   }
 
   .value-cell-text {
+    max-width: 240px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    cursor: default;
   }
 
   .value-cell-tag {

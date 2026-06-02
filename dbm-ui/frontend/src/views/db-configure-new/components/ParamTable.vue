@@ -101,7 +101,6 @@
       </TableColumn>
       <TableColumn
         col-key="conf_value"
-        ellipsis
         :title="t('当前值')"
         :width="300">
         <template #default="{ row, rowIndex }">
@@ -155,7 +154,15 @@
           </template>
           <template v-else>
             <span class="value-cell">
-              <span class="value-cell-text">{{ row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--') }}</span>
+              <span
+                v-bk-tooltips="{
+                  content: row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--'),
+                  disabled: !row.conf_value,
+                  maxWidth: 400,
+                }"
+                class="value-cell-text">
+                {{ row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--') }}
+              </span>
               <BkTag
                 v-if="row.level_name === levelName || row.op_type === 'add'"
                 size="small"
@@ -403,7 +410,7 @@
    * 后端在该字段中返回参数所继承的上一级配置层级。
    */
   const isCancelUseParam = (row: ConfItem) =>
-    row.up_level_value?.level_name === ConfLevels.PLAT && row.flag_visible === 0;
+    row.level_name !== ConfLevels.PLAT && !row.up_level_value;
 
   /** 重置编辑状态 */
   const resetEditingState = () => {
@@ -890,7 +897,7 @@
             : [
                 h('p', `${t('参数名')}：${row.conf_name}`),
                 h('p', `${t('当前值')}：${row.conf_value} → ${originItem?.value_default ?? '--'}`),
-                h('p', t('恢复后该参数重新继承父级配置，随父级配置更新而自动同步')),
+                h('p', t('恢复后该参数重新继承父级配置，\n随父级配置更新而自动同步')),
               ],
         ),
       contentAlign: 'left',
@@ -997,6 +1004,7 @@
   }
 
   .value-cell-text {
+    max-width: 240px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1116,6 +1124,10 @@
   }
 
   .param-batch-restore-infobox {
+    .bk-infobox-title {
+      margin-top: 0;
+    }
+
     .restore-title {
       display: flex;
       align-items: center;
@@ -1148,8 +1160,9 @@
     }
 
     &.is-confirm-disabled {
-      .bk-dialog-footer .bk-button-primary {
+      .bk-infobox-footer .bk-button-primary {
         cursor: not-allowed;
+        pointer-events: none;
         background-color: #dcdee5 !important;
         border-color: #dcdee5 !important;
         color: #ffffff !important;

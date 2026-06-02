@@ -55,18 +55,27 @@
       </TableColumn>
       <TableColumn
         col-key="conf_value"
-        ellipsis
         :title="t('参数值')"
         :width="300">
         <template #default="{ row }">
-          <span class="value-cell-text">{{ row.conf_value ?? '--' }}</span>
-          <BkTag
-            v-if="isCustomRow(row)"
-            class="ml-8"
-            size="small"
-            theme="warning">
-            {{ t('自定义') }}
-          </BkTag>
+          <span class="value-cell">
+            <span
+              v-bk-tooltips="{
+                content: row.conf_value ?? '--',
+                disabled: !row.conf_value,
+                maxWidth: 400,
+              }"
+              class="value-cell-text">
+              {{ row.conf_value ?? '--' }}
+            </span>
+            <BkTag
+              v-if="isCustomRow(row)"
+              class="value-cell-tag"
+              size="small"
+              theme="warning">
+              {{ t('自定义') }}
+            </BkTag>
+          </span>
         </template>
       </TableColumn>
       <TableColumn
@@ -332,10 +341,28 @@
     background: #f59500;
   }
 
+  .value-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
   .value-cell-text {
+    max-width: 240px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    cursor: default;
+  }
+
+  .value-cell-tag {
+    padding: 0 4px;
+    font-size: 12px;
+    line-height: 18px;
+    color: #ff9c01;
+    white-space: nowrap;
+    background: #fff3e1;
+    border-radius: 2px;
   }
 
   .param-desc-icon {

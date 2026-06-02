@@ -20,7 +20,7 @@
       <div class="config-tree-search">
         <BkInput
           v-model="treeState.search"
-          :placeholder="t('请输入节点名称')"
+          :placeholder="t('请输入模块名')"
           type="search" />
       </div>
       <BkTree

@@ -289,6 +289,11 @@ export const useTreeData = (treeState: TreeState) => {
    * 集群信息以供"关联集群"展示，因此在构造 module 节点时把原始 cluster children
    * 单独抽取并赋值到 clusters 字段。
    */
+  /**
+   * 自然序排序比较函数（将字符串中的数字按数值比较）
+   */
+  const naturalSort = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true });
+
   function formatTreeData(data: BizConfTopoTreeModel[], parentId: string): TreeData[] {
     if (data.length === 0) {
       return [];
@@ -296,14 +301,17 @@ export const useTreeData = (treeState: TreeState) => {
 
     return data
       .filter((item) => item.obj_id !== ConfLevels.CLUSTER)
+      .sort((a, b) => naturalSort(a.instance_name, b.instance_name))
       .map((item) => {
         const treeId = `${item.obj_id}-${item.instance_id}`;
         const isModule = item.obj_id === ConfLevels.MODULE;
-        const children = isModule ? [] : item.children ? formatTreeData(item.children, treeId) : [];
+        const rawChildren = item.children || [];
+        const children = isModule ? [] : formatTreeData(rawChildren, treeId);
         // 模块节点：从原始 children 中抽取 cluster 子节点
         const clusters = isModule
-          ? (item.children || [])
+          ? rawChildren
               .filter((child) => child.obj_id === ConfLevels.CLUSTER)
+              .sort((a, b) => naturalSort(a.extra?.domain || a.instance_name, b.extra?.domain || b.instance_name))
               .map((child) => ({
                 children: [],
                 data: child,

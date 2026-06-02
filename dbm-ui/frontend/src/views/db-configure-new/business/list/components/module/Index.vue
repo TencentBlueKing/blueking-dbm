@@ -109,16 +109,16 @@
           :label="t('参数配置')"
           name="paramConfig"
           render-directive="if">
+          <BkAlert
+            class="mt-16 mb-16"
+            closable
+            theme="info"
+            :title="t('模块配置参数说明')" />
           <!-- 参数配置子 tabs -->
           <ConfTab
             class="module-conf-tab mt-16"
             :db-module-id="moduleInfo.moduleId">
             <template #default="{ tab }">
-              <BkAlert
-                class="mb-16"
-                closable
-                theme="info"
-                :title="t('模块配置参数说明')" />
               <ParamTable
                 :cluster-type="clusterType"
                 :conf-type="tab.conf_type"

@@ -13,15 +13,6 @@
 
 <template>
   <BkLoading :loading="loading">
-    <BkAlert
-      class="mb-16"
-      closable
-      theme="info"
-      :title="
-        t(
-          '新建模块的参数默认继承业务级当前值；所有修改在草稿态，点「创建模块」时与模块信息一起原子提交，提交前可随时取消。',
-        )
-      " />
     <div class="param-operations mb-16">
       <div class="param-operations-left">
         <BkButton
@@ -114,7 +105,6 @@
       </TableColumn>
       <TableColumn
         col-key="conf_value"
-        ellipsis
         :title="t('当前值')"
         :width="300">
         <template #default="{ row, rowIndex }">
@@ -167,7 +157,15 @@
           </template>
           <template v-else>
             <span class="value-cell">
-              <span class="value-cell-text">{{ row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--') }}</span>
+              <span
+                v-bk-tooltips="{
+                  content: row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--'),
+                  disabled: !row.conf_value,
+                  maxWidth: 400,
+                }"
+                class="value-cell-text">
+                {{ row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--') }}
+              </span>
               <DbIcon
                 v-if="row.flag_readonly !== 1"
                 v-bk-tooltips="{ content: t('编辑参数') }"
@@ -844,9 +842,11 @@
   }
 
   .value-cell-text {
+    max-width: 240px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    cursor: default;
   }
 
   .value-cell-tag {

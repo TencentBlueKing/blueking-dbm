@@ -18,12 +18,12 @@
       closable
       theme="info"
       :title="
-        t('基于源模块创建新模块_常用于数据库版本升级_源模块自定义值将保留_新版本不兼容的参数将被废弃_请审慎后创建')
+        t('基于源模块创建新模块_常用于数据库版本升级_源模块自定义值将保留_新版本不兼容的参数将被废弃_请审慎后创建_')
       " />
     <DbForm
       ref="formRef"
       class="clone-module-page db-scroll-y"
-      :label-width="168"
+      :label-width="100"
       :model="formData"
       :rules="rules">
       <!-- 模块信息 -->
@@ -36,12 +36,13 @@
           required>
           <BkInput
             v-model="formData.alias_name"
-            :placeholder="t('由英文字母_数字_连字符_组成')"
-            @blur="handleValidate" />
+            :maxlength="63"
+            :placeholder="t('请输入模块名')"
+            show-word-limit />
           <div
             v-if="isValueAllowed"
             class="form-item-tips">
-            {{ t('模块名由英文字母、数字、连字符-组成；同时也会参与集群域名生成') }}
+            {{ t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，创建后不可改') }}
           </div>
         </BkFormItem>
         <!-- 数据库信息 -->
@@ -196,9 +197,7 @@
 
   <Teleport to="#dbContentTitleAppend">
     <span class="clone-nav-desc"> {{ t('业务') }}：{{ bizInfo.name }} </span>
-    <span class="clone-nav-desc">
-      {{ t('源模块') }}：{{ cloneResult.conf_file_info?.conf_file || String(route.query.conf_file) || '--' }}
-    </span>
+    <span class="clone-nav-desc"> {{ t('源模块') }}：{{ String(route.query.module_name) || '--' }} </span>
   </Teleport>
 </template>
 
@@ -283,35 +282,34 @@
   const rules = {
     alias_name: [
       {
-        message: t('模块名称不能为空'),
+        message: '',
         required: true,
         trigger: 'blur',
         validator: (value: string) => {
           if (value) return true;
-          isValueAllowed.value = false;
-          return false;
+          return '';
         },
       },
       {
-        message: t('只能英文字母开头'),
+        message: t('模块名格式不正确'),
         trigger: 'blur',
         validator: (value: string) => {
-          if (/^[A-Za-z]/.test(value)) return true;
+          if (/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(value) || /^[a-z0-9]$/.test(value)) return true;
           isValueAllowed.value = false;
           return false;
         },
       },
       {
-        message: t('由英文字母_数字_连字符_组成'),
+        message: t('模块名不能以连字符开头或结尾'),
         trigger: 'blur',
         validator: (value: string) => {
-          if (/^[0-9a-zA-Z-]+$/.test(value)) return true;
+          if (!/^-|-$/.test(value[0]) && !/^-|-$/.test(value[value.length - 1])) return true;
           isValueAllowed.value = false;
           return false;
         },
       },
       {
-        message: t('该模块名已存在'),
+        message: '',
         trigger: 'blur',
         async validator() {
           if (!formData.alias_name || !formData.db_version || !formData.spider_version || !formData.charset)
@@ -323,7 +321,14 @@
               db_module_name: `${formData.alias_name}-${formData.spider_version}-${formData.db_version}-${formData.charset}`,
             });
             isValueAllowed.value = !!data.is_unique;
-            return data.is_unique;
+            return data.is_unique
+              ? true
+              : t('该名称已被占用（{type} ：{spiderVersion}-{version} / {charset}）', {
+                  charset: formData.charset,
+                  spiderVersion: formData.spider_version,
+                  type: 'TenDBCluster',
+                  version: formData.db_version,
+                });
           } catch {
             isValueAllowed.value = false;
             return false;
@@ -639,7 +644,7 @@
     font-size: 12px;
     line-height: 20px;
     color: #979ba5;
-    margin-top: 4px;
+    position: absolute;
   }
 
   .param-config-wrapper {
