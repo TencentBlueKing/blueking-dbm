@@ -70,6 +70,9 @@ from backend.flow.engine.bamboo.scene.spider.validate.spider_reduce_nodes_valida
 from backend.flow.engine.bamboo.scene.spider.validate.spider_switch_nodes_validate import (
     TenDBClusterSwitchNodesFlowValidator,
 )
+from backend.flow.engine.bamboo.scene.spider.validate.spider_truncate_database_validate import (
+    SpiderTruncateDatabaseFlowValidator,
+)
 from backend.flow.engine.bamboo.scene.spider.validate.spider_upgrade_validate import TenDBClusterSpiderUpgradeValidator
 from backend.flow.engine.controller.base import BaseController
 from backend.flow.engine.revoke.base import revoke_with
@@ -180,6 +183,7 @@ class SpiderController(BaseController):
         flow = ImportSQLFlow(root_id=self.root_id, data=self.ticket_data)
         flow.import_sqlfile_flow()
 
+    @validates_with(SpiderTruncateDatabaseFlowValidator)
     def truncate_database(self):
         flow = SpiderTruncateDatabaseFlow(
             root_id=self.root_id, data=self.ticket_data, cluster_type=ClusterType.TenDBCluster.value
