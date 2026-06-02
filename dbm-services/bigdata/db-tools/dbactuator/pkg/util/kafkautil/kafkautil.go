@@ -137,6 +137,28 @@ func GetBrokerIDByHost(conn *zk.Conn, host string, root string) (string, error) 
 	return "", fmt.Errorf("broker id for host %s not found", host)
 }
 
+// GetDeadBrokerIDs 从 partitionCount（kafka-topics --describe 解析出的 broker_id→分区数）中
+// 找出不在 ZK /brokers/ids 中的 broker_id（即故障/离线 broker）。
+// 返回 dead broker_id 列表。
+func GetDeadBrokerIDs(conn *zk.Conn, root string, partitionCount map[string]int) ([]string, error) {
+	liveIDs, err := GetBrokerIds(conn, root)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get live broker ids: %w", err)
+	}
+	liveSet := make(map[string]bool)
+	for _, lid := range liveIDs {
+		liveSet[lid] = true
+	}
+
+	var deadIDs []string
+	for bid := range partitionCount {
+		if !liveSet[bid] {
+			deadIDs = append(deadIDs, bid)
+		}
+	}
+	return deadIDs, nil
+}
+
 // PickRandom TODO
 func PickRandom(arr []string) string {
 	rand.Seed(time.Now().Unix())

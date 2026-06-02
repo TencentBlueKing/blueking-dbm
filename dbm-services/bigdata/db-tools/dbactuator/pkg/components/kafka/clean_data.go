@@ -114,5 +114,13 @@ func (d *CleanDataComp) CleanData() (err error) {
 		return err
 	}
 
+	// 清理JDK环变量
+	extraCmd = `sed -i '/JAVA_HOME/,$d' /etc/profile`
+	logger.Info("清理JDK环变量, [%s]", extraCmd)
+	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+		logger.Error("[%s] execute failed, %v", extraCmd, err)
+		return err
+	}
+
 	return nil
 }

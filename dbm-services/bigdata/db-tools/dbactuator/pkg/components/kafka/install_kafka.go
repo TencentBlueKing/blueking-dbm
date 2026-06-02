@@ -530,7 +530,7 @@ func (i *InstallKafkaComp) InitKafkaUser() (err error) {
 		"--entity-type users --entity-name",
 		username)
 	if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
-		logger.Error("copy basedir failed, %s, %s", output, err.Error())
+		logger.Error("create user failed, %s, %s", output, err.Error())
 	}
 
 	extraCmd = fmt.Sprintf(
