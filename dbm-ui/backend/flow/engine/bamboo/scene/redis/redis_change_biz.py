@@ -22,7 +22,7 @@ from backend.db_meta.enums import ClusterEntryType, ClusterType
 from backend.db_meta.models import AppCache, Cluster, ClusterEntry, Machine, NosqlStorageSetDtl
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
-    ClusterIPsDbmonInstallAtomJob,
+    ClusterDbmonInstallAtomJob,
     SingleClusterDbmonInstallAtomJob,
 )
 from backend.flow.plugins.components.collections.common.base_service import BaseService
@@ -80,7 +80,7 @@ class RedisUpdateDBMetaService(BaseService):
                 machine_ids = set()
                 machine_ids.update(cluster.storageinstance_set.values_list("machine_id", flat=True))
                 machine_ids.update(cluster.proxyinstance_set.values_list("machine_id", flat=True))
-                Machine.objects.filter(id__in=machine_ids).update(bk_biz_id=target_bk_biz_id)
+                Machine.objects.filter(bk_host_id__in=machine_ids).update(bk_biz_id=target_bk_biz_id)
                 self.log_info(_("更新机器业务ID完成: 共更新 {} 台机器").format(len(machine_ids)))
 
                 # 更新集群业务ID
@@ -225,8 +225,8 @@ class RedisUpdateConfigCenterService(BaseService):
             self.log_info(_("开始调用配置中心接口更新业务ID"))
             DBConfigApi.change_bk_biz_id(
                 params={
-                    "bk_biz_id": source_bk_biz_id,
-                    "new_bk_biz_id": target_bk_biz_id,
+                    "bk_biz_id": str(source_bk_biz_id),
+                    "new_bk_biz_id": str(target_bk_biz_id),
                     "cluster_domains": [cluster.immute_domain],
                 }
             )
@@ -516,7 +516,7 @@ class RedisChangeBizFlow(object):
     def _build_cluster_sub_pipelines(self, cluster_ids, source_bk_biz_id, target_bk_biz_id):
         """
         构建集群版变更业务的 sub_pipeline 列表。
-        Step1~5 复用公共逻辑，Step6 用 ClusterIPsDbmonInstallAtomJob 按集群维度重装 dbmon。
+        Step1~5 复用公共逻辑，Step6 用 ClusterDbmonInstallAtomJob 按集群维度重装 dbmon。
         """
         logger.info(_("开始构建集群类型子流程，集群数量: {}").format(len(cluster_ids)))
         sub_pipelines = []
@@ -527,27 +527,26 @@ class RedisChangeBizFlow(object):
                 _("构建第 {} 个集群子流程: cluster_id={}, domain={}").format(cluster_idx + 1, cluster_id, cluster.immute_domain)
             )
 
-            sub_name = _("Redis集群变更业务-{}").format(cluster.immute_domain)
-            sub_process, act_kwargs = self._build_single_cluster_sub_pipeline(
+            sub_name = _("变更业务-{}").format(cluster.immute_domain)
+            cluster_change_sub_process, act_kwargs = self._build_single_cluster_sub_pipeline(
                 cluster_id, source_bk_biz_id, target_bk_biz_id, sub_name
             )
-            sub_pipelines.append(sub_process)
+
+            # 外层包一层子流程，保证 dbmon 串行跟在集群变更子流程之后执行
+            cluster_sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
+            cluster_sub_pipeline.add_sub_pipeline(cluster_change_sub_process)
 
             # Step6: 重装 dbmon（集群版：一台机器只属于一个集群，按集群维度重装即可）
-            cluster_ips = list(
-                set(
-                    list(cluster.storageinstance_set.values_list("machine__ip", flat=True))
-                    + list(cluster.proxyinstance_set.values_list("machine__ip", flat=True))
-                )
-            )
-            logger.info(_("集群 {} 涉及 {} 台机器，开始构建 dbmon 重装任务").format(cluster.immute_domain, len(cluster_ips)))
-
+            logger.info(_("集群 {} 开始构建 dbmon 重装任务").format(cluster.immute_domain))
             dbmon_params = {
                 "cluster_domain": cluster.immute_domain,
-                "ips": cluster_ips,
                 "is_stop": False,
             }
-            sub_pipelines.append(ClusterIPsDbmonInstallAtomJob(self.root_id, self.data, act_kwargs, dbmon_params))
+            cluster_sub_pipeline.add_sub_pipeline(
+                ClusterDbmonInstallAtomJob(self.root_id, self.data, act_kwargs, dbmon_params)
+            )
+
+            sub_pipelines.append(cluster_sub_pipeline.build_sub_process(sub_name=sub_name))
 
         logger.info(_("集群类型子流程构建完成，共 {} 个子流程").format(len(sub_pipelines)))
         return sub_pipelines
@@ -598,7 +597,6 @@ class RedisChangeBizFlow(object):
 
         # Step1~5：每个 cluster 各自构建 sub_pipeline（复用公共逻辑，不含 dbmon 重装）
         sub_pipelines = []
-        act_kwargs_ref = None  # 保留最后一个 act_kwargs 供 dbmon 重装使用
 
         for cluster_idx, cluster_id in enumerate(cluster_ids):
             cluster = Cluster.objects.get(id=cluster_id)
@@ -612,22 +610,25 @@ class RedisChangeBizFlow(object):
             sub_process, act_kwargs = self._build_single_cluster_sub_pipeline(
                 cluster_id, source_bk_biz_id, target_bk_biz_id, sub_name
             )
-            sub_pipelines.append(sub_process)
-            act_kwargs_ref = act_kwargs
 
-        # Step6: 重装 dbmon —— 按机器去重，用 SingleClusterDbmonInstallAtomJob 统一处理
-        clusters = [Cluster.objects.get(id=cid) for cid in cluster_ids]
-        if act_kwargs_ref and clusters:
-            logger.info(_("开始构建 dbmon 重装任务，涉及 {} 个集群，统一处理机器上的所有实例").format(len(clusters)))
-            sub_pipelines.append(
-                SingleClusterDbmonInstallAtomJob(
-                    self.root_id,
-                    self.data,
-                    act_kwargs_ref,
-                    clusters,
-                    {"is_stop": False},
-                )
-            )
+            # 如果是最后一个集群，将dbmon重装任务添加到该子流程中
+            if cluster_idx == len(cluster_ids) - 1:
+                clusters = [Cluster.objects.get(id=cid) for cid in cluster_ids]
+                if clusters:
+                    logger.info(_("开始构建 dbmon 重装任务，涉及 {} 个集群，统一处理机器上的所有实例").format(len(clusters)))
+                    sub_process.add_parallel_sub_pipeline(
+                        sub_flow_list=[
+                            SingleClusterDbmonInstallAtomJob(
+                                self.root_id,
+                                self.data,
+                                act_kwargs,
+                                clusters,
+                                {"is_stop": False},
+                            )
+                        ]
+                    )
+
+            sub_pipelines.append(sub_process)
 
         logger.info(_("单实例类型子流程构建完成，共 {} 个子流程").format(len(sub_pipelines)))
         return sub_pipelines
