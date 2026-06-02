@@ -52,6 +52,6 @@ class MysqlProxySwitchResourceParamBuilder(BaseOperateResourceParamBuilder):
 class MysqlProxyRescueFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlProxyRescueDetailSerializer
     inner_flow_builder = MysqlProxyRescueParamBuilder
-    inner_flow_name = _("Mysql Proxy故障重建执行")
+    inner_flow_name = _("MySQL Proxy 灾难重建")
     resource_batch_apply_builder = MysqlProxySwitchResourceParamBuilder
     # validator = MySQLController.mysql_proxy_rescue_scene.validator
