@@ -64,17 +64,17 @@ COMMON_DBM_API_POLARIS_UNBIND_TOKEN=""
 COMMON_DBM_API_DUMPER_SWITCH_API=""
 COMMON_DBM_API_DUMPER_SWITCH_TOKEN=""
 
+# DBHA v1 API (workflow.dbhav1ApiBlackWhitelistGet)
+COMMON_DBHAV1_API_TIMEOUT=10s
+COMMON_DBHAV1_API_BLACK_WHITELIST_GET_API=""
+COMMON_DBHAV1_API_BLACK_WHITELIST_GET_TOKEN=""
+
 # storage tcp endpoint/user/password/timeout shared by admin, analysis,
 # and receiver sink mysql
 COMMON_STORAGE_TCP_ENDPOINT=""
 COMMON_STORAGE_USER=root
 COMMON_STORAGE_PASSWORD=dbhatest
 COMMON_STORAGE_TIMEOUT=10s
-
-# v1 storage tcp endpoint/user/password shared by analysis
-COMMON_V1STORAGE_TCP_ENDPOINT=""
-COMMON_V1STORAGE_USER=root
-COMMON_V1STORAGE_PASSWORD=dbhatest
 
 # --- receiver ---
 
