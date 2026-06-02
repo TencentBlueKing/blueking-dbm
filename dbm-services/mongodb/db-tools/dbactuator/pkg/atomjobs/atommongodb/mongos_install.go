@@ -273,7 +273,8 @@ func (s *MongoSInstall) checkParams() (bool, error) {
 					return false, fmt.Errorf("mongos has been installed, port:%d, check mongos version fail. error:%s",
 						s.ConfParams.Port, version)
 				}
-				if version == s.DbVersion {
+				// 兼容 major.minor 版本号(如 dbVersion 4.2 与二进制 4.2.25)，按主次版本对齐忽略 patch
+				if versionMajorMinor(version) == versionMajorMinor(s.DbVersion) {
 					s.runtime.Logger.Info("mongos has been installed, port:%d, version:%s", s.ConfParams.Port, version)
 					return true, nil
 				}
@@ -347,7 +348,8 @@ func (s *MongoSInstall) unTarAndCreateSoftLink() error {
 		return fmt.Errorf("%s has been existed, check mongodb version, error:%s",
 			installPath, err)
 	}
-	if version != s.DbVersion {
+	// 兼容 major.minor 版本号(如 dbVersion 4.2 与二进制 4.2.25)，按主次版本对齐忽略 patch
+	if versionMajorMinor(version) != versionMajorMinor(s.DbVersion) {
 		s.runtime.Logger.Error("%s has been existed, check mongodb version, version:%s is incorrect", installPath, version)
 		return fmt.Errorf("%s has been existed, check mongodb version, version:%s is incorrect",
 			installPath, version)
