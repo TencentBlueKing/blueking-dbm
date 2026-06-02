@@ -96,6 +96,11 @@ workflow:
     timeout: {{COMMON_DBM_API_TIMEOUT}}
     token: "{{COMMON_DBM_API_DUMPER_SWITCH_TOKEN}}"
 
+  dbhav1ApiBlackWhitelistGet:
+    api: "{{COMMON_DBHAV1_API_BLACK_WHITELIST_GET_API}}"
+    timeout: {{COMMON_DBHAV1_API_TIMEOUT}}
+    token: "{{COMMON_DBHAV1_API_BLACK_WHITELIST_GET_TOKEN}}"
+
 database:
   mysql:
     user: "{{ANALYSIS_DATABASE_MYSQL_CTRL_USER}}"
@@ -123,11 +128,6 @@ storage:
   user: "{{COMMON_STORAGE_USER}}"
   password: "{{COMMON_STORAGE_PASSWORD}}"
   timeout: {{COMMON_STORAGE_TIMEOUT}}
-
-v1storage:
-  endpoint: "{{COMMON_V1STORAGE_TCP_ENDPOINT}}"
-  user: "{{COMMON_V1STORAGE_USER}}"
-  password: "{{COMMON_V1STORAGE_PASSWORD}}"
 
 log:
   path: "{{ANALYSIS_LOG_PATH}}"

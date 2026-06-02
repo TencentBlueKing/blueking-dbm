@@ -88,6 +88,12 @@ collect_common() {
     prompt_secret DBM_API_TOKEN "DBM API token" \
         "${DBM_API_TOKEN:-}"
 
+    section "DBHA v1 API"
+    prompt DBHAV1_API_BASE "DBHA v1 API base URL" \
+        "${DBHAV1_API_BASE:-http://127.0.0.1:8080}"
+    prompt_secret DBHAV1_API_TOKEN "DBHA v1 API token" \
+        "${DBHAV1_API_TOKEN:-}"
+
     HADB_ENDPOINT="tcp://${HADB_HOST}:${HADB_PORT}"
     COMMON_DONE=1
     echo ""
@@ -395,6 +401,11 @@ workflow:
     api: ${DBM_API_BASE}/apis/proxypass/dumper/switch/
     timeout: 10s
     token: "${DBM_API_TOKEN}"
+
+  dbhav1ApiBlackWhitelistGet:
+    api: ${DBHAV1_API_BASE}/blackwhitelist/
+    timeout: 10s
+    token: "${DBHAV1_API_TOKEN}"
 
 database:
   mysql:

@@ -321,3 +321,12 @@ func (s *Synchronizer) reportSyncedMetadata(start time.Time, hasError bool) {
 		}
 	}
 }
+
+// queryBlackWhiteListFromDbhaV1 queries black white list from dbha-v1.
+func (s *Synchronizer) queryBlackWhiteListFromDbhaV1(ctx context.Context, bkBizId int, bkCloudId int) ([]*dbm.Dbhav1BlackWhiteListItem, error) {
+	if s.cli == nil {
+		return nil, gerrors.Newf(gerrors.Failure, "dbm client is not initialized")
+	}
+
+	return s.cli.GetBlackWhiteListFromDbhaV1(ctx, bkCloudId, bkBizId)
+}

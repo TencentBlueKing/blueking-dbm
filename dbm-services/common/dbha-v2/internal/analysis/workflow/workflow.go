@@ -564,17 +564,14 @@ func (w *Workflow) filterWhitelistedInstances(ctx context.Context, group *Failur
 
 	bkBizID := group.Instances[0].BkBizID
 
-	qCtx, cancel := context.WithTimeout(ctx, config.Cfg.Storage.Timeout)
-	defer cancel()
-
-	whiteList, err := w.hadata.ReadBlackWhiteList(qCtx, bkBizID, group.BkCloudID)
+	whiteList, err := w.dbmSync.queryBlackWhiteListFromDbhaV1(ctx, bkBizID, group.BkCloudID)
 	if err != nil {
-		logger.Warn("failed to read the black-white list, bkBizId: %d, bkCloudId: %d, errmsg: %s",
+		logger.Warn("failed to query the black-white list from dbha-v1, bkBizId: %d, bkCloudId: %d, errmsg: %s",
 			bkBizID, group.BkCloudID, err)
 		return
 	}
 
-	whiteListMap := make(map[string]*hamodel.DbBlackWhiteList, len(whiteList))
+	whiteListMap := make(map[string]*dbm.Dbhav1BlackWhiteListItem, len(whiteList))
 	for _, item := range whiteList {
 		whiteListMap[item.ClusterName] = item
 	}

@@ -145,6 +145,7 @@ type WorkflowConfig struct {
 	DbmApiCLBDeregister        DbmApi           `yaml:"dbmApiCLBDeregister"        mapstructure:"dbmApiCLBDeregister"`
 	DbmApiPolarisUnbind        DbmApi           `yaml:"dbmApiPolarisUnbind"        mapstructure:"dbmApiPolarisUnbind"`
 	DbmApiDumperSwitch         DbmApi           `yaml:"dbmApiDumperSwitch"         mapstructure:"dbmApiDumperSwitch"`
+	Dbhav1ApiBlackWhitelistGet DbmApi           `yaml:"dbhav1ApiBlackWhitelistGet" mapstructure:"dbhav1ApiBlackWhitelistGet"`
 }
 
 // MysqlDatabaseConfig mysql's configuration
