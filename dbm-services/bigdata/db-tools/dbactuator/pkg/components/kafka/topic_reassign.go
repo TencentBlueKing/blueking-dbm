@@ -217,14 +217,40 @@ func (t *TopicReassignComp) GenerateReassignmentPlans() error {
 		} else {
 			// 获取 exclude/new broker 的ID
 			bIDs := make([]string, 0)
+			var failedExcludeIPs []string
 			for _, ip := range t.Params.ExcludeBrokers {
 				id, err := kafkautil.GetBrokerIDByHost(conn, ip, zkPath)
 				if err != nil {
-					return fmt.Errorf("failed to get broker ID for exclude %s: %w", ip, err)
+					// broker 可能已故障，不在 /brokers/ids 中，先记录后降级处理
+					logger.Warn("broker ID for exclude %s not found in /brokers/ids: %v", ip, err)
+					failedExcludeIPs = append(failedExcludeIPs, ip)
+					continue
 				}
 				bIDs = append(bIDs, id)
 				intID, _ := strconv.Atoi(id)
 				excludeIDs = append(excludeIDs, intID)
+			}
+			// 降级路径：通过 partitionCount 推断故障 broker 的 ID
+			if len(failedExcludeIPs) > 0 {
+				deadIDs, err := kafkautil.GetDeadBrokerIDs(conn, zkPath, partitionCount)
+				if err != nil {
+					return fmt.Errorf("fallback failed for dead brokers %v: %w", failedExcludeIPs, err)
+				}
+				if len(deadIDs) == len(failedExcludeIPs) {
+					// dead broker 数量与未找到的 IP 数量一致，直接使用
+					logger.Info("fallback: found dead broker IDs %v for offline hosts %v", deadIDs, failedExcludeIPs)
+					for _, did := range deadIDs {
+						bIDs = append(bIDs, did)
+						intID, _ := strconv.Atoi(did)
+						excludeIDs = append(excludeIDs, intID)
+					}
+				} else if len(deadIDs) > len(failedExcludeIPs) {
+					return fmt.Errorf("fallback failed: found %d dead broker IDs %v but only %d offline hosts %v, cannot determine mapping",
+						len(deadIDs), deadIDs, len(failedExcludeIPs), failedExcludeIPs)
+				} else {
+					return fmt.Errorf("fallback failed: found %d dead broker IDs %v but %d offline hosts %v, some dead brokers have no partitions",
+						len(deadIDs), deadIDs, len(failedExcludeIPs), failedExcludeIPs)
+				}
 			}
 			for _, ip := range t.Params.NewBrokers {
 				id, err := kafkautil.GetBrokerIDByHost(conn, ip, zkPath)
