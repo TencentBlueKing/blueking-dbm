@@ -114,10 +114,11 @@ def _sync_config_items(namespace: str, conf_type: str, conf_file: str, conf_name
         "conf_type": conf_type,
         "conf_file": conf_file,
         "op_user": "system",  # 后台会把 system 不记录操作记录
+        "table": "def",  # def 表是系统初始化表，plat 表是页面操作的表
         "conf_names": conf_names,
     }
     # 调用 API
-    result = DBConfigApi.change_plat_config(params=params, raw=True)
+    result = DBConfigApi.init_plat_config(params=params, raw=True)
 
     # 检查返回结果
     if result.get("code") != 0:

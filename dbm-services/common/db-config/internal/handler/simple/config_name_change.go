@@ -56,7 +56,7 @@ func (cf *Config) ChangeConfNameDef(ctx *gin.Context) {
 		ConfType:  r.ConfType,
 		ConfFile:  r.ConfFile,
 	}
-	if err := simpleconfig.ConfigNamesBatchUpsert(model.DB.Self, confFile, r.ConfNames, r.OpUser); err != nil {
+	if err := simpleconfig.ConfigNamesBatchUpsert(model.DB.Self, confFile, r.ConfNames, r.OpUser, r.Table); err != nil {
 		handler.SendResponse(ctx, err, nil)
 		return
 	} else {

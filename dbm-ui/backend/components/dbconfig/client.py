@@ -88,6 +88,11 @@ class _DBConfigApi(BaseApi):
             url="bkconfig/v1/version/change-bkbizid",
             description=_("集群转移业务"),
         )
+        self.init_plat_config = self.generate_data_api(
+            method="POST",
+            url="bkconfig/v1/confname/init",
+            description=_("发布初始化平台级配置项定义"),
+        )
         self.change_plat_config = self.generate_data_api(
             method="POST",
             url="bkconfig/v1/confname/change",

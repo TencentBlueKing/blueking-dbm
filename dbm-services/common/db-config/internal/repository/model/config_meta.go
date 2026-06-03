@@ -17,19 +17,27 @@ func QueryConfigNames(namespace, confType, confFile, confName string) ([]*Config
 	confNames := make([]*ConfigNameDefModel, 0)
 	columns := "conf_name,value_type,value_type_sub,value_default,value_allowed," +
 		"flag_readonly,flag_visible,flag_locked,flag_disable,flag_encrypt," +
-		"need_restart,conf_name_lc,description"
-	sqlRes = DB.Self.Debug().Model(ConfigNameDefModel{}).Select(columns).
+		"need_restart,conf_name_lc,description,deleted"
+	sqlRes = DB.Self.Debug().Select(columns).
 		Where("namespace = ? and conf_type = ? and conf_file = ? ",
 			namespace, confType, confFile)
 	if confName != "" {
 		confName = confName + "%"
 		sqlRes = sqlRes.Where("conf_name like ?", confName)
 	}
-	if err = sqlRes.Find(&confNames).Error; err != nil {
+	if err = sqlRes.Model(ConfigNameDefModel{}).Find(&confNames).Error; err != nil {
 		if err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 	}
+	confNamesPlat := make([]*ConfigNamePlatModel, 0)
+	if err = sqlRes.Table(ConfigNamePlatModel{}.TableName()).Find(&confNamesPlat).Error; err != nil {
+		if err != gorm.ErrRecordNotFound {
+			return nil, err
+		}
+	}
+	confNames = mergeConfNamePlat(confNames, confNamesPlat)
+
 	key := config.GetString("encrypt.keyPrefix")
 	for _, cn := range confNames {
 		cn.ValueDefault, err = crypt.DecryptString(cn.ValueDefault, key, constvar.EncryptEnableZip)
@@ -49,19 +57,27 @@ func QueryConfigNamesPlat(namespace, confType, confFile, confName string) ([]*Co
 	confNames := make([]*ConfigNameDefModel, 0)
 	columns := "conf_name,value_type,value_type_sub,value_default,value_allowed," +
 		"flag_readonly,flag_visible,flag_locked,flag_disable,flag_encrypt," +
-		"need_restart,conf_name_lc,description"
-	sqlRes = DB.Self.Debug().Model(ConfigNameDefModel{}).Select(columns).
+		"need_restart,conf_name_lc,description,deleted"
+	sqlRes = DB.Self.Debug().Select(columns).
 		Where("namespace = ? and conf_type = ? and conf_file = ? ",
 			namespace, confType, confFile)
 	if confName != "" {
 		confName = confName + "%"
 		sqlRes = sqlRes.Where("conf_name like ?", confName)
 	}
-	if err := sqlRes.Find(&confNames).Error; err != nil {
+	if err := sqlRes.Model(ConfigNameDefModel{}).Find(&confNames).Error; err != nil {
 		if err != gorm.ErrRecordNotFound {
 			return nil, err
 		}
 	}
+	confNamesPlat := make([]*ConfigNamePlatModel, 0)
+	if err := sqlRes.Table(ConfigNamePlatModel{}.TableName()).Find(&confNamesPlat).Error; err != nil {
+		if err != gorm.ErrRecordNotFound {
+			return nil, err
+		}
+	}
+	confNames = mergeConfNamePlat(confNames, confNamesPlat)
+
 	key := config.GetString("encrypt.keyPrefix")
 	for _, cn := range confNames {
 		cn.ValueDefault, err = crypt.DecryptString(cn.ValueDefault, key, constvar.EncryptEnableZip)

@@ -19,7 +19,7 @@ type BaseConfItemDef struct {
 	// 是否锁定，默认 0 表上不锁定
 	FlagLocked int8 `json:"flag_locked" form:"flag_locked" example:"0"`
 	// 返回该 conf_name 的发布、应用状态. 1: 已发布未应用 2: 已应用
-	Stage int8 `json:"stage" form:"stage" example:"0"`
+	// Stage int8 `json:"stage" form:"stage" example:"0"`
 }
 
 // BaseConfItemResp TODO

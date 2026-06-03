@@ -1,4 +1,4 @@
-DR0P TABLE IF EXISTS tb_config_name_plat;
+DROP TABLE IF EXISTS tb_config_name_plat;
 CREATE TABLE `tb_config_name_plat` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `namespace` varchar(100) DEFAULT NULL,
@@ -24,7 +24,7 @@ CREATE TABLE `tb_config_name_plat` (
   `description` varchar(255) DEFAULT NULL,
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `stage` tinyint(4) NOT NULL DEFAULT '0',
+  `deleted` tinyint(4) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uni_ns_type_file_name` (`namespace`,`conf_type`,`conf_file`,`conf_name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=70919 DEFAULT CHARSET=utf8;

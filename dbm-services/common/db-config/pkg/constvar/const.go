@@ -79,3 +79,8 @@ const DraftVersion = "v_draft"
 
 // EncryptEnableZip TODO
 const EncryptEnableZip = false
+
+const (
+	PlatTypeDef  = "def"
+	PlatTypePlat = "plat"
+)

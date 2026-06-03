@@ -16,9 +16,16 @@ import (
 	"bk-dbconfig/pkg/util/crypt"
 )
 
-// ConfigNamesBatchUpdate TODO
+type ConfNameOperation struct {
+	OpUser string
+	// def / plat
+	Table     string
+	ConfNames []*ConfigNameDefModel
+}
+
+// BatchUpdate TODO
 // update 逐个进行，开启事务
-func ConfigNamesBatchUpdate(db *gorm.DB, confNames []*ConfigNameDefModel, opUser string) error {
+func (op *ConfNameOperation) BatchUpdate(db *gorm.DB, confNames []*ConfigNameDefModel) error {
 	return db.Transaction(func(tx *gorm.DB) error {
 		changes := make([]*ConfNameChangesModel, 0, len(confNames))
 		for _, c := range confNames {
@@ -34,12 +41,16 @@ func ConfigNamesBatchUpdate(db *gorm.DB, confNames []*ConfigNameDefModel, opUser
 				key := config.GetString("encrypt.keyPrefix")
 				c.ValueDefault, _ = crypt.EncryptString(c.ValueDefault, key, constvar.EncryptEnableZip)
 			}
-			if err1 := tx.Debug().Select(
+			dbOp := tx.Debug().Select(
 				"value_default",
 				"value_allowed", "value_type", "value_type_sub",
 				"flag_status", "flag_locked", "flag_readonly", "flag_visible", "need_restart", "flag_encrypt",
-				"description", "conf_name_lc").
-				Where(c.UniqueWhere()).Updates(c).Error; err1 != nil {
+				"description", "conf_name_lc", "deleted").
+				Where(c.UniqueWhere())
+			if op.Table != constvar.PlatTypeDef {
+				dbOp = dbOp.Model(ConfigNamePlatModel{})
+			}
+			if err1 := dbOp.Updates(c).Error; err1 != nil {
 				return errors.WithMessage(err1, c.ConfName)
 			}
 
@@ -50,25 +61,25 @@ func ConfigNamesBatchUpdate(db *gorm.DB, confNames []*ConfigNameDefModel, opUser
 				ConfName:    c.ConfName,
 				BeforeImage: beforeImage,
 				AfterImage:  NewConfNameFromDef(c),
-				OpUser:      opUser,
+				OpUser:      op.OpUser,
 				OpType:      constvar.OPTypeUpdate,
 			})
 		}
-		if opUser == "system" {
+		if op.OpUser == "system" || op.Table == constvar.PlatTypeDef {
 			return nil
 		}
 		return ConfNameChangesCreate(tx, changes)
 	})
 }
 
-// ConfigNamesBatchDelete TODO
+// BatchDelete TODO
 // 删除有两种逻辑：这里假设每一批删除都是同一个逻辑，任意取1元素的FlagDisable判断是那种逻辑
 // // 1. 从平台配置列表移除
 //
 //	   只修改 namestatus
 //	2. 从 conf_name 表删除
 //	   delete 根据主键id删除，或者使用唯一键. 这个操作目前没有对外 @todo
-func ConfigNamesBatchDelete(db *gorm.DB, confNames []*ConfigNameDefModel, opUser string) error {
+func (op *ConfNameOperation) BatchDelete(db *gorm.DB, confNames []*ConfigNameDefModel) error {
 	return db.Transaction(func(tx *gorm.DB) error {
 		nodes := []*ConfigModel{}
 		changes := make([]*ConfNameChangesModel, 0, len(confNames))
@@ -92,8 +103,11 @@ func ConfigNamesBatchDelete(db *gorm.DB, confNames []*ConfigNameDefModel, opUser
 			if err := tx.Where(c.UniqueWhere()).First(&before).Error; err == nil {
 				beforeImage = NewConfNameFromDef(&before)
 			}
-
-			if err := DeleteByUnique(tx, c.TableName(), c.UniqueWhere()); err != nil {
+			tableName := c.TableName()
+			if op.Table != constvar.PlatTypeDef {
+				tableName = ConfigNamePlatModel{}.TableName()
+			}
+			if err := DeleteByUnique(tx, tableName, c.UniqueWhere()); err != nil {
 				return errors.WithMessage(err, c.ConfName)
 			}
 
@@ -104,24 +118,29 @@ func ConfigNamesBatchDelete(db *gorm.DB, confNames []*ConfigNameDefModel, opUser
 				ConfName:    c.ConfName,
 				BeforeImage: beforeImage,
 				AfterImage:  api.ConfName{},
-				OpUser:      opUser,
+				OpUser:      op.OpUser,
 				OpType:      constvar.OPTypeRemove,
 			})
 		}
-		if opUser == "system" {
+		if op.OpUser == "system" || op.Table == constvar.PlatTypeDef {
 			return nil
 		}
 		return ConfNameChangesCreate(tx, changes)
 	})
 }
 
-// ConfigNamesBatchCreate TODO
-func ConfigNamesBatchCreate(db *gorm.DB, confNames []*ConfigNameDefModel, opUser string) error {
+// BatchCreate TODO
+func (op *ConfNameOperation) BatchCreate(db *gorm.DB, confNames []*ConfigNameDefModel) error {
 	return db.Transaction(func(tx *gorm.DB) error {
 		// handle encrypt like update?
-		sqlRes := tx.Omit("time_created", "time_updated").Create(&confNames)
+
+		dbOp := tx.Omit("time_created", "time_updated")
+		if op.Table != constvar.PlatTypeDef {
+			dbOp = dbOp.Model(ConfigNamePlatModel{})
+		}
+
 		// sqlRes = DB.Self.Omit("time_created", "time_updated").Save(&confNames)
-		if err := sqlRes.Error; err != nil {
+		if err := dbOp.Create(&confNames).Error; err != nil {
 			logger.Errorf("add conf_names :%+v, err:%s", confNames, err.Error())
 			if errors.Is(err, gorm.ErrDuplicatedKey) {
 				// 目前页面修改，都是一个一个提交的
@@ -138,21 +157,21 @@ func ConfigNamesBatchCreate(db *gorm.DB, confNames []*ConfigNameDefModel, opUser
 				ConfName:    c.ConfName,
 				BeforeImage: api.ConfName{},
 				AfterImage:  NewConfNameFromDef(c),
-				OpUser:      opUser,
+				OpUser:      op.OpUser,
 				OpType:      constvar.OPTypeAdd,
 			})
 		}
-		if opUser == "system" {
+		if op.OpUser == "system" || op.Table == constvar.PlatTypeDef {
 			return nil
 		}
 		return ConfNameChangesCreate(tx, changes)
 	})
 }
 
-// ConfigNamesBatchSave upsert
+// BatchSave upsert
 // 聚合 create 和 update 的操作，通过唯一键来判断是否是一条记录
 // 先执行 create，当报 duplicate key 时，根据唯一键来执行 update 其它非唯一键字段
-func ConfigNamesBatchSave(db *gorm.DB, confNames []*ConfigNameDefModel, opUser string) error {
+func (op *ConfNameOperation) BatchSave(db *gorm.DB, confNames []*ConfigNameDefModel) error {
 	return db.Transaction(func(tx *gorm.DB) error {
 		changes := make([]*ConfNameChangesModel, 0, len(confNames))
 		for _, c := range confNames {
@@ -164,21 +183,20 @@ func ConfigNamesBatchSave(db *gorm.DB, confNames []*ConfigNameDefModel, opUser s
 				beforeImage = NewConfNameFromDef(&before)
 				opType = constvar.OPTypeUpdate
 			}
-
-			if err := tx.Debug().Omit("time_created", "time_updated").Create(c).Error; err != nil {
-				fmt.Println(err)
-				fmt.Println(gorm.ErrDuplicatedKey)
+			dbTx := tx.Debug().Omit("time_created", "time_updated")
+			if op.Table != constvar.PlatTypeDef {
+				dbTx = dbTx.Model(ConfigNamePlatModel{})
+			}
+			if err := dbTx.Create(c).Error; err != nil {
 				if errors.Is(err, gorm.ErrDuplicatedKey) || strings.Contains(err.Error(), "Duplicate entry") {
 					// 当遇到重复键错误时，根据唯一键执行 update
-					if err := tx.Debug().Model(c).Where(c.UniqueWhere()).Updates(c).Error; err != nil {
+					if err := dbTx.Where(c.UniqueWhere()).Updates(c).Error; err != nil {
 						return errors.WithMessage(err, c.ConfName)
 					}
 				} else {
 					// 其他错误直接返回
 					return errors.WithMessage(err, c.ConfName)
 				}
-			} else {
-				fmt.Println("create ok")
 			}
 
 			changes = append(changes, &ConfNameChangesModel{
@@ -188,11 +206,11 @@ func ConfigNamesBatchSave(db *gorm.DB, confNames []*ConfigNameDefModel, opUser s
 				ConfName:    c.ConfName,
 				BeforeImage: beforeImage,
 				AfterImage:  NewConfNameFromDef(c),
-				OpUser:      opUser,
+				OpUser:      op.OpUser,
 				OpType:      opType,
 			})
 		}
-		if opUser == "system" {
+		if op.OpUser == "system" || op.Table == constvar.PlatTypeDef {
 			return nil
 		}
 		return ConfNameChangesCreate(tx, changes)

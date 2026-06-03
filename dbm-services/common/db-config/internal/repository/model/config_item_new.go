@@ -1,6 +1,8 @@
 package model
 
 import (
+	"slices"
+
 	"bk-dbconfig/internal/api"
 	"bk-dbconfig/pkg/constvar"
 
@@ -19,10 +21,10 @@ func buildLevelConfigSql(whereMap map[string]interface{}, columns []string) (str
 	return sqlbuilder.MySQL.Interpolate(sqlStr, sqlArgs)
 }
 
-func buildPlatConfigSql(whereMap map[string]interface{}, columns []string) (string, error) {
-	m := &ConfigNameDefModel{}
+func buildPlatConfigSql(whereMap map[string]interface{}, tableName string, columns []string) (string, error) {
+	//m := &ConfigNameDefModel{}
 
-	sb := sqlbuilder.NewSelectBuilder().Select(columns...).From(m.TableName())
+	sb := sqlbuilder.NewSelectBuilder().Select(columns...).From(tableName)
 	for k, v := range whereMap {
 		sb.Where(sb.Equal(k, v))
 	}
@@ -45,36 +47,50 @@ func queryPlat(namespace, confType, confFile string, o *api.QueryConfigOptions, 
 	if o.ConfValue != "" {
 		whereMap["value_default"] = o.ConfValue
 	}
-	sql, err := buildPlatConfigSql(whereMap, []string{"*"})
+	sql1, err := buildPlatConfigSql(whereMap, ConfigNameDefModel{}.TableName(), []string{"*"})
 	if err != nil {
 		return nil, err
 	}
-	var res []*ConfigNameDefModel
-	if err := db.Debug().Raw(sql).Scan(&res).Error; err != nil {
+
+	sql2, err := buildPlatConfigSql(whereMap, ConfigNamePlatModel{}.TableName(), []string{"*"})
+	if err != nil {
 		return nil, err
 	}
-	return res, nil
+	var namesDef []*ConfigNameDefModel
+	if err := db.Debug().Raw(sql1).Scan(&namesDef).Error; err != nil {
+		return nil, err
+	}
+	var namesPlat []*ConfigNamePlatModel
+	if err := db.Debug().Raw(sql2).Scan(&namesPlat).Error; err != nil {
+		return nil, err
+	}
+	namesDef = mergeConfNamePlat(namesDef, namesPlat)
+	return namesDef, nil
 }
 
-func newConfigFromNameDef2(names []*ConfigNameDefModel) []*ConfigModel {
-	var res []*ConfigModel
-	for _, name := range names {
-		res = append(res, &ConfigModel{
-			Namespace:       name.Namespace,
-			ConfType:        name.ConfType,
-			ConfFile:        name.ConfFile,
-			ConfName:        name.ConfName,
-			ConfValue:       name.ValueDefault,
-			LevelName:       "plat",
-			LevelValue:      "0",
-			BKBizID:         "0",
-			UpdatedRevision: "",
-			Description:     name.ConfNameLC,
-			FlagDisable:     name.FlagDisable,
-			FlagLocked:      name.FlagLocked,
-		})
+// mergeConfNamePlat merge confNamesPlat to confNamesDef with overwrite
+func mergeConfNamePlat(confNamesDef []*ConfigNameDefModel, confNamesPlat []*ConfigNamePlatModel) []*ConfigNameDefModel {
+	for _, namePlat := range confNamesPlat {
+		matched := false
+		namePlat.ID = 0
+		for i, nameDef := range confNamesDef {
+			if nameDef.ConfName == namePlat.ConfName {
+				if namePlat.Deleted > 0 {
+					confNamesDef = slices.Delete(confNamesDef, i, i+1)
+				} else {
+					converted := ConfigNameDefModel(*namePlat)
+					confNamesDef[i] = &converted
+				}
+				matched = true
+				break
+			}
+		}
+		if !matched && namePlat.Deleted <= 0 {
+			converted := ConfigNameDefModel(*namePlat)
+			confNamesDef = append(confNamesDef, &converted)
+		}
 	}
-	return res
+	return confNamesDef
 }
 
 func newConfigFromNameDef(nameDef *ConfigNameDefModel) *ConfigModel {
@@ -95,8 +111,9 @@ func newConfigFromNameDef(nameDef *ConfigNameDefModel) *ConfigModel {
 	return res
 }
 
+// GetSimpleConfig no  merge, all levels
 func GetSimpleConfig(db *gorm.DB, r *api.BaseConfigNode, up *api.UpLevelInfo,
-	o *api.QueryConfigOptions) ([]*ConfigModel, map[string]*ConfigNameDefModel, error) {
+	o *api.QueryConfigOptions) ([]*ConfigModel, []*ConfigNameDefModel, error) {
 	var allLevelConfigs []*ConfigModel
 
 	upLevel, err := GetUpLevelInfo(r, up)
@@ -119,7 +136,6 @@ func GetSimpleConfig(db *gorm.DB, r *api.BaseConfigNode, up *api.UpLevelInfo,
 		"flag_locked",
 		"flag_disable",
 		"updated_revision",
-		"stage",
 		"description",
 		"created_at",
 		"updated_at",
@@ -175,20 +191,6 @@ func GetSimpleConfig(db *gorm.DB, r *api.BaseConfigNode, up *api.UpLevelInfo,
 			}
 		}
 	}
-	// remove configsPlat that doses not in allLevelConfigs
-	configNamesPlat := removeConfigsPlat(configsPlat, allLevelConfigs)
-	return allLevelConfigs, configNamesPlat, tx
-}
 
-// removeConfigsPlat filter and convert confNames
-func removeConfigsPlat(allPlat []*ConfigNameDefModel, configs []*ConfigModel) map[string]*ConfigNameDefModel {
-	var newPlat = make(map[string]*ConfigNameDefModel, 0)
-	for _, config := range configs {
-		for _, plat := range allPlat {
-			if config.ConfName == plat.ConfName {
-				newPlat[config.ConfName] = plat
-			}
-		}
-	}
-	return newPlat
+	return allLevelConfigs, configsPlat, tx
 }
