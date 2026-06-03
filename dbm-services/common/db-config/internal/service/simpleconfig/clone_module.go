@@ -173,12 +173,16 @@ func ModuleCloneQuery(r *api.CloneModuleConfigReq, db *gorm.DB) (*api.CloneModul
 			confNamesDeprecated = append(confNamesDeprecated, confName)
 			continue
 		}
-		valueTarget = api.BaseConfItemResp{} // 参数在目标模块不存在，是因为 flag_visible=0，合法
+		if valueTarget == nil {
+			// 参数在目标模块不存在，是因为 flag_visible=0，合法
+			valueTarget = api.BaseConfItemResp{}
+		}
 		sourceValueObj := valueSource.(api.BaseConfItemResp)
 		targetValueObj := valueTarget.(api.BaseConfItemResp)
 		if sourceValueObj.LevelName == "module" {
 			// 将原 module的自定义配置，同步给新的 module，标记为自定义
 			// 这里只是返回给前端，最终需要前端根据自定义的标记，向后端发起保存
+			targetValueObj.ConfName = sourceValueObj.ConfName
 			targetValueObj.ConfValue = sourceValueObj.ConfValue
 			targetValueObj.LevelName = "module"
 			targetValueObj.LevelValue = r.TargetModuleID

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"bk-dbconfig/pkg/core/logger"
 	"bk-dbconfig/pkg/util"
@@ -265,18 +266,19 @@ func (c ConfigTaskModel) TableName() string {
 // ConfigFileNodeModel TODO
 // tb_config_file_node
 type ConfigFileNodeModel struct {
-	ID          uint64 `json:"id" gorm:"column:id;type:int;AUTO_INCREMENT;PRIMARY_KEY"`
-	BKBizID     string `json:"bk_biz_id" gorm:"column:bk_biz_id;type:varchar(120);not null"`
-	Namespace   string `json:"namespace" gorm:"column:namespace;type:varchar(120)"`
-	LevelName   string `json:"level_name" gorm:"column:level_name;type:varchar(120)"`
-	LevelValue  string `json:"level_value" gorm:"column:level_value;type:varchar(120)"`
-	ConfType    string `json:"conf_type" gorm:"column:conf_type;type:varchar(60)"`
-	ConfTypeLC  string `json:"conf_type_lc" gorm:"column:conf_type_lc;type:varchar(60)"`
-	ConfFile    string `json:"conf_file" gorm:"column:conf_file;type:varchar(120)"`
-	ConfFileLC  string `json:"conf_file_lc" gorm:"column:conf_file_lc;type:varchar(120)"`
-	Description string `json:"description" gorm:"column:description;type:varchar(255)"`
-	UpdatedBy   string `json:"updated_by" gorm:"column:updated_by;type:varchar(120)"`
-	util.BaseDatetime
+	ID          uint64    `json:"id" gorm:"column:id;type:int;AUTO_INCREMENT;PRIMARY_KEY"`
+	BKBizID     string    `json:"bk_biz_id" gorm:"column:bk_biz_id;type:varchar(120);not null"`
+	Namespace   string    `json:"namespace" gorm:"column:namespace;type:varchar(120)"`
+	LevelName   string    `json:"level_name" gorm:"column:level_name;type:varchar(120)"`
+	LevelValue  string    `json:"level_value" gorm:"column:level_value;type:varchar(120)"`
+	ConfType    string    `json:"conf_type" gorm:"column:conf_type;type:varchar(60)"`
+	ConfTypeLC  string    `json:"conf_type_lc" gorm:"column:conf_type_lc;type:varchar(60)"`
+	ConfFile    string    `json:"conf_file" gorm:"column:conf_file;type:varchar(120)"`
+	ConfFileLC  string    `json:"conf_file_lc" gorm:"column:conf_file_lc;type:varchar(120)"`
+	Description string    `json:"description" gorm:"column:description;type:varchar(255)"`
+	UpdatedBy   string    `json:"updated_by" gorm:"column:updated_by;type:varchar(120)"`
+	CreatedAt   time.Time `json:"created_at" gorm:"column:created_at;type:timestamp"`
+	UpdatedAt   time.Time `json:"updated_at" gorm:"column:updated_at;type:timestamp"`
 }
 
 // TableName TODO

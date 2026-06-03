@@ -5,3 +5,5 @@ vendor/
 ./bkconfigcli
 *exe
 *.log
+conf/
+config.yaml

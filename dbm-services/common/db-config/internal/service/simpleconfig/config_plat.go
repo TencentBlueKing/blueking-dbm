@@ -5,13 +5,11 @@ import (
 	"fmt"
 
 	"bk-dbconfig/internal/api"
-	"bk-dbconfig/internal/pkg/errno"
 	"bk-dbconfig/internal/repository/model"
 	"bk-dbconfig/pkg/constvar"
 	"bk-dbconfig/pkg/core/logger"
 
 	"github.com/jinzhu/copier"
-	errs "github.com/pkg/errors"
 	"gorm.io/gorm"
 )
 
@@ -159,25 +157,6 @@ func UpsertConfigFilePlat(r *api.UpsertConfFilePlatReq, clientOPType, opUser str
 	}
 	// build config item model
 	configs, configsDiff := NewConfigModels(r)
-	// 平台配置永远可以修改，如果与下级存在锁冲突，后面会生成修复提示
-	configsRef, err := BatchPreCheckPlat(r, configs)
-	if err != nil {
-		return nil, err
-	}
-
-	// configsDiff 是用于操作db的差异部分
-	// configsRef 是展示给前端的差异部分
-	configsRefDiff := AddConfigsRefToDiff(configsRef)
-	configsDiff = append(configsDiff, configsRefDiff...)
-	logger.Info("UpsertConfigFilePlat configsRefDiff=%+v", configsRefDiff)
-	// 存在下层级配置与当前配置冲突，confirm=1 确认修改
-	if len(configsRefDiff) > 0 && r.Confirm == 0 {
-		names := []string{}
-		for _, conf := range configsRefDiff {
-			names = append(names, conf.Config.ConfName)
-		}
-		return nil, errs.WithMessagef(errno.ErrConflictWithLowerConfigLevel, "%v", names)
-	}
 
 	txErr := model.DB.Self.Transaction(func(tx *gorm.DB) error {
 		// 保存逻辑

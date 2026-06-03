@@ -30,7 +30,9 @@ mysql_instance_role_choices = [
     (InstanceRole.BACKEND_SLAVE.value, InstanceRole.BACKEND_SLAVE.name),
     (InstanceRole.REMOTE_MASTER.value, InstanceRole.REMOTE_MASTER.name),
     (InstanceRole.REMOTE_SLAVE.value, InstanceRole.REMOTE_SLAVE.name),
-    (TenDBClusterSpiderRole.SPIDER_MASTER, TenDBClusterSpiderRole.SPIDER_MASTER.name),
+    (TenDBClusterSpiderRole.SPIDER_MASTER.value, TenDBClusterSpiderRole.SPIDER_MASTER.name),
+    (TenDBClusterSpiderRole.SPIDER_SLAVE.value, TenDBClusterSpiderRole.SPIDER_SLAVE.name),
+    (InstanceRole.ORPHAN.value, InstanceRole.ORPHAN.name),
 ]
 
 # 容量采集场景使用的角色（覆盖 tendbsingle 的 orphan、tendbha/tendbcluster 的 master/slave）
