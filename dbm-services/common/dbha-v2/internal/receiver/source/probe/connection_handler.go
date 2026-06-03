@@ -57,14 +57,17 @@ func (c *connectionHandler) readEvent() {
 		}
 
 		dataLength := len(msg.Payload)
+		if dataLength <= 0 {
+			logger.Debug("no payload in message, drop the data: %v", msg)
+			continue
+		}
+
 		data := &sink.Message{
 			Topic: "probe",
 			Data:  make([]byte, dataLength),
 		}
 
-		if dataLength > 0 {
-			copy(data.Data, msg.Payload)
-		}
+		copy(data.Data, msg.Payload)
 
 		for _, saver := range c.savers {
 			if err := saver.Save(data); err != nil {
