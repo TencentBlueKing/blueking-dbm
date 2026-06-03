@@ -50,8 +50,13 @@ const (
 	TdbctlDropNodeSql           = "TDBCTL DROP NODE %s"
 	TdbctlFlushRouteSql         = "TDBCTL FLUSH ROUTING"
 	TdbctlFlushRouteForceSql    = "TDBCTL FLUSH ROUTING FORCE"
-	TdbctlChangeMasterSql       = "CHANGE MASTER TO MASTER_HOST='%s', MASTER_PORT=%d, MASTER_AUTO_POSITION=1"
 	TdbctlAlterNodeSql          = "TDBCTL ALTER NODE %s OPTIONS(HOST '%s', Port %d, USER '%s', PASSWORD '%s')"
+	TdbctlChangeMasterSql       = `
+		CHANGE MASTER TO 
+		MASTER_HOST='%s', MASTER_PORT=%d, 
+		MASTER_LOG_FILE='%s', MASTER_LOG_POS=%d, 
+		MASTER_AUTO_POSITION=0;
+	`
 )
 
 // Types of CLUSTER_ROLE in information_schema.TDBCTL_NODES
@@ -102,6 +107,8 @@ type TdbctlPrimaryNodeInfo struct {
 	ClusterRole string `json:"cluster_role"`
 	Status      string `json:"status"`
 	IsInvolved  bool   `json:"is_involved"`
+	BinlogFile  string `json:"binlog_file"`
+	BinlogPos   uint64 `json:"binlog_pos"`
 }
 
 // TdbctlNodeReplInfo holds replication information for TDBCTL node
@@ -893,6 +900,14 @@ func (op *TdbctlOperator) HandleInvolvedPrimaryTdbctl() error {
 		return err
 	}
 
+	binlogFile, binlogPos, resetErr := DoResetSlaveWithBinlogPos(
+		newPrimaryTdbctl.Host, newPrimaryTdbctl.Port, op.reportLogf)
+	if resetErr != nil {
+		op.Logf(switchlogger.SwitchWarn, "failed to reset slave on new primary(%s:%d): %s",
+			newPrimaryTdbctl.Host, newPrimaryTdbctl.Port, resetErr.Error())
+		return resetErr
+	}
+
 	if err = op.TdbctlEnablePrimary(
 		newPrimaryTdbctl.Host, newPrimaryTdbctl.Port, true,
 	); err != nil {
@@ -911,6 +926,8 @@ func (op *TdbctlOperator) HandleInvolvedPrimaryTdbctl() error {
 		ClusterRole: newPrimaryTdbctl.ClusterRole,
 		Status:      newPrimaryTdbctl.Status,
 		IsInvolved:  op.IsInvolved(newPrimaryTdbctl.Host, newPrimaryTdbctl.Port),
+		BinlogFile:  binlogFile,
+		BinlogPos:   binlogPos,
 	}
 
 	if op.PrimaryTdbctl.IsInvolved {
@@ -1008,23 +1025,21 @@ func (op *TdbctlOperator) RepairTdbctlReplication() error {
 		return nil
 	}
 
-	op.Logf(switchlogger.SwitchInfo, "try to repair replication relationship for new primary tdbctl")
-
 	if op.PrimaryTdbctl == nil {
 		return gerrors.New(gerrors.Failure,
 			"when repairing replication relationship, primary tdbctl is nil")
 	}
 	primaryHost := op.PrimaryTdbctl.Host
 	primaryPort := op.PrimaryTdbctl.Port
+	primaryBinlogFile := op.PrimaryTdbctl.BinlogFile
+	primaryBinlogPos := op.PrimaryTdbctl.BinlogPos
 
-	_, _, resetErr := DoResetSlaveWithBinlogPos(primaryHost, primaryPort, op.reportLogf)
-	if resetErr != nil {
-		op.Logf(switchlogger.SwitchWarn, "failed to reset slave on new primary(%s:%d): %s",
-			primaryHost, primaryPort, resetErr.Error())
-		return resetErr
-	}
+	op.Logf(switchlogger.SwitchInfo,
+		"try to repair replication relationship for tdbctl nodes, primary: %s:%d, binlog file: %s, binlog position: %d",
+		primaryHost, primaryPort, primaryBinlogFile, primaryBinlogPos)
 
-	changeMasterSql := fmt.Sprintf(TdbctlChangeMasterSql, primaryHost, primaryPort)
+	changeMasterSql := fmt.Sprintf(TdbctlChangeMasterSql, primaryHost, primaryPort,
+		primaryBinlogFile, primaryBinlogPos)
 	var succeededNodes, failedNodes []string
 
 	for _, node := range op.SecondaryTdbctlNodes {
