@@ -105,6 +105,7 @@ func dbMigrate() error {
 	if err := repository.DoMigrateFromEmbed(); err == nil {
 		return nil
 	} else {
+		logger.Error(err.Error())
 		logger.Warn("sleep 60s to return. " +
 			"you may need ./bkconfigsvr --migrate --migrate-force=VersionNo after you fix it")
 		time.Sleep(60 * time.Second)

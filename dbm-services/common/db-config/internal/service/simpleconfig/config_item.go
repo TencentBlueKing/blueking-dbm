@@ -232,10 +232,12 @@ func GetMergedConfig(db *gorm.DB, s *api.BaseConfigNode, upLevelInfo *api.UpLeve
 		}
 	}
 
-	configs, confNamesDef, err := model.GetSimpleConfig(db, s, upLevelInfo, options)
+	configs, confNames, err := model.GetSimpleConfig(db, s, upLevelInfo, options)
 	if err != nil {
 		return nil, nil, err
 	}
+	confNamesDef := removeConfigsPlat(confNames, nil)
+
 	if s.LevelName != constvar.LevelPlat {
 		upConfigs, _ := MergeConfigLevelUp(configs, s.LevelName, options.View)
 		confMap := make(map[string]*model.ConfigModel)
@@ -268,6 +270,27 @@ func GetMergedConfig(db *gorm.DB, s *api.BaseConfigNode, upLevelInfo *api.UpLeve
 	return configs, confNamesDef, nil
 }
 
+// removeConfigsPlat filter and convert confNames
+// if configs is nil, return all
+func removeConfigsPlat(allPlat []*model.ConfigNameDefModel,
+	configs []*model.ConfigModel) map[string]*model.ConfigNameDefModel {
+	var newPlat = make(map[string]*model.ConfigNameDefModel, 0)
+	if len(configs) == 0 {
+		for _, plat := range allPlat {
+			newPlat[plat.ConfName] = plat
+		}
+		return newPlat
+	}
+	for _, config := range configs {
+		for _, plat := range allPlat {
+			if config.ConfName == plat.ConfName {
+				newPlat[config.ConfName] = plat
+			}
+		}
+	}
+	return newPlat
+}
+
 // ConfigLevels TODO
 type ConfigLevels map[string][]*model.ConfigModel
 
@@ -283,7 +306,6 @@ func NewBaseConfItemWithModel(c *model.ConfigModel, opType string) interface{} {
 			FlagLocked:  c.FlagLocked,
 			FlagDisable: c.FlagDisable,
 			// Description: c.Description,
-			Stage: c.Stage,
 		},
 		BaseLevelDef: api.BaseLevelDef{
 			LevelName:  c.LevelName,
@@ -441,8 +463,6 @@ func UpdateConfigFileItems(r *api.UpsertConfItemsReq, opUser string) (*api.Upser
 }
 
 // QueryConfigItems godoc
-// 如果是 entity level, 则查询 tb_config_versioned 返回
-// 如果是 template level, 则查询 tb_config_node 合并
 // queryFileInfo 选项控制是否查询 conf_file 信息。一般对 web 页面需要 info，对接后端 api 不需要 info
 func QueryConfigItems(r *api.SimpleConfigQueryReq, queryFileInfo bool) (*api.GetConfigItemsResp, error) {
 	resp := &api.GetConfigItemsResp{
@@ -553,6 +573,26 @@ func ProcessConfigsDiff(configs []*model.ConfigModel, configsDiff []*model.Confi
 		configsProcessed = append(configsProcessed, c)
 	}
 	return configsProcessed, affectedRows, nil
+}
+
+func QueryConfig(db *gorm.DB, r *api.SimpleConfigQueryReq) (*api.GenerateConfigResp,
+	map[string]*model.ConfigNameDefModel, error) {
+	// query
+	var options = api.QueryConfigOptions{}
+	if err := copier.Copy(&options, r); err != nil {
+		return nil, nil, err
+	}
+	configs, confNamesDef, err := GetMergedConfig(db, &r.BaseConfigNode, &r.UpLevelInfo, &options) // @TODO use transaction
+	if err != nil {
+		return nil, nil, err
+	}
+	// response
+	resp, err := FormatConfigFileForResp(r, configs)
+	if err != nil {
+		return nil, nil, err
+	}
+	resp.Revision = r.Revision
+	return resp, confNamesDef, nil
 }
 
 // GenerateConfigFile TODO

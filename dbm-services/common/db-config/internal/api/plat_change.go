@@ -14,6 +14,9 @@ type ChangeConfNameDefReq struct {
 	ConfNames []*UpsertConfNames `json:"conf_names" form:"conf_names"`
 	// OpUser, if empty, use system,get it from Header
 	OpUser string `json:"op_user" form:"op_user"`
+	// Table def: sys init config names definition. only for api: /confname/init
+	// empty or plat: user managed config names
+	Table string `json:"table" form:"table"`
 }
 
 // Validate validate

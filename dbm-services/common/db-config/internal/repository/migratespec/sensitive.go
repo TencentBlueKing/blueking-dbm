@@ -130,7 +130,7 @@ func MigrateSensitive(db *gorm.DB) error {
 	}
 	err := db.Transaction(func(tx *gorm.DB) error {
 
-		if err1 := tx.Omit("value_formula", "order_index", "since_version", "stage").
+		if err1 := tx.Omit("value_formula", "order_index", "since_version").
 			Create(confNames).Error; err1 != nil {
 			return errors.WithMessage(err1, "init sensitive conf_name")
 		}

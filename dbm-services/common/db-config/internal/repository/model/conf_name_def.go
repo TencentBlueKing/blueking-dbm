@@ -30,7 +30,9 @@ type ConfigNameDefModel struct {
 	OrderIndex   int    `json:"order_index" gorm:"column:order_index;type:int"`
 	SinceVersion string `json:"since_version" gorm:"column:since_version;type:varchar(120)"`
 	Description  string `json:"description" gorm:"column:description;type:text"`
-	Stage        int8   `json:"stage" gorm:"column:stage;type:tinyint"`
+	// Stage        int8   `json:"stage" gorm:"column:stage;type:tinyint"`
+	// Deleted only for confName plat
+	Deleted int8 `json:"deleted" gorm:"column:deleted;type:tinyint"`
 	util.BaseDatetime
 }
 

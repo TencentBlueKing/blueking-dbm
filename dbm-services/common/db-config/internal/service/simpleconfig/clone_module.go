@@ -9,6 +9,7 @@ import (
 	"bk-dbconfig/pkg/core/logger"
 
 	"github.com/huandu/go-sqlbuilder"
+	"github.com/samber/lo"
 	"gorm.io/gorm"
 )
 
@@ -153,11 +154,11 @@ func ModuleCloneQuery(r *api.CloneModuleConfigReq, db *gorm.DB) (*api.CloneModul
 		Format:  constvar.FormatList,
 		View:    constvar.ViewMerge,
 	}
-	retSource, err := GenerateConfigFile(db, reqSource, constvar.MethodGenerateOnly, nil)
+	retSource, _, err := QueryConfig(db, reqSource)
 	if err != nil {
 		return nil, err
 	}
-	retTarget, err := GenerateConfigFile(db, reqTarget, constvar.MethodGenerateOnly, nil)
+	retTarget, targetConfNamesDef, err := QueryConfig(db, reqTarget)
 	if err != nil {
 		return nil, err
 	}
@@ -167,11 +168,12 @@ func ModuleCloneQuery(r *api.CloneModuleConfigReq, db *gorm.DB) (*api.CloneModul
 	var confNamesValueModified []string                     // 源模块需要同步给模板模块的自定义配置项
 	for confName, valueSource := range retSource.Content {
 		valueTarget, ok := retTarget.Content[confName]
-		if !ok {
+		if !ok && !lo.HasKey(targetConfNamesDef, confName) {
 			// 如果 retSource 里面有 retTarget 里面不存在的配置项，说明目标废弃了这个配置项
 			confNamesDeprecated = append(confNamesDeprecated, confName)
 			continue
 		}
+		valueTarget = api.BaseConfItemResp{} // 参数在目标模块不存在，是因为 flag_visible=0，合法
 		sourceValueObj := valueSource.(api.BaseConfItemResp)
 		targetValueObj := valueTarget.(api.BaseConfItemResp)
 		if sourceValueObj.LevelName == "module" {

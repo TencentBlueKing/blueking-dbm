@@ -16,7 +16,8 @@ import (
 )
 
 // ConfigNamesBatchUpsert TODO
-func ConfigNamesBatchUpsert(db *gorm.DB, cf api.BaseConfFileDef, confNames []*api.UpsertConfNames, opUser string) error {
+func ConfigNamesBatchUpsert(db *gorm.DB, cf api.BaseConfFileDef,
+	confNames []*api.UpsertConfNames, opUser string, table string) error {
 	adds := make([]*model.ConfigNameDefModel, 0)
 	updates := make([]*model.ConfigNameDefModel, 0)
 	deletes := make([]*model.ConfigNameDefModel, 0)
@@ -73,22 +74,42 @@ func ConfigNamesBatchUpsert(db *gorm.DB, cf api.BaseConfFileDef, confNames []*ap
 	}
 	err := db.Transaction(func(tx *gorm.DB) error {
 		if len(adds) > 0 {
-			if err := model.ConfigNamesBatchCreate(tx, adds, opUser); err != nil {
+			namesAdd := model.ConfNameOperation{
+				ConfNames: adds,
+				OpUser:    opUser,
+				Table:     table,
+			}
+			if err := namesAdd.BatchCreate(tx, adds); err != nil {
 				return err
 			}
 		}
 		if len(updates) > 0 {
-			if err := model.ConfigNamesBatchUpdate(tx, updates, opUser); err != nil {
+			namesUpdate := model.ConfNameOperation{
+				ConfNames: updates,
+				OpUser:    opUser,
+				Table:     table,
+			}
+			if err := namesUpdate.BatchUpdate(tx, updates); err != nil {
 				return err
 			}
 		}
 		if len(deletes) > 0 {
-			if err := model.ConfigNamesBatchDelete(tx, deletes, opUser); err != nil {
+			namesDelete := model.ConfNameOperation{
+				ConfNames: deletes,
+				OpUser:    opUser,
+				Table:     table,
+			}
+			if err := namesDelete.BatchDelete(tx, deletes); err != nil {
 				return err
 			}
 		}
 		if len(upserts) > 0 {
-			if err := model.ConfigNamesBatchSave(tx, upserts, opUser); err != nil {
+			namesUpsert := model.ConfNameOperation{
+				ConfNames: upserts,
+				OpUser:    opUser,
+				Table:     table,
+			}
+			if err := namesUpsert.BatchSave(tx, upserts); err != nil {
 				return err
 			}
 		}
@@ -171,7 +192,7 @@ func UpsertConfigFilePlat(r *api.UpsertConfFilePlatReq, clientOPType, opUser str
 			if len(configs) == 0 { // 如果 items 为空，只修改 conf_file 信息
 				return nil
 			}
-			if err := ConfigNamesBatchUpsert(tx, fileDef, r.ConfNames, opUser); err != nil {
+			if err := ConfigNamesBatchUpsert(tx, fileDef, r.ConfNames, opUser, "plat"); err != nil {
 				return err
 			}
 			resp.IsPublished = 0

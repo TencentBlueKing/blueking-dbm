@@ -58,6 +58,7 @@ func (cf *Config) Routes() []*gin.RouteInfo {
 		{Method: http.MethodGet, Path: "/conftype/query", HandlerFunc: cf.QueryConfigTypeInfo},
 		{Method: http.MethodGet, Path: "/confname/list", HandlerFunc: cf.QueryConfigTypeNames},
 		{Method: http.MethodPost, Path: "/confname/change", HandlerFunc: cf.ChangeConfNameDef},
+		{Method: http.MethodPost, Path: "/confname/init", HandlerFunc: cf.InitializeConfNameDef},
 		{Method: http.MethodGet, Path: "/confname/types", HandlerFunc: cf.ListDataTypes},
 		{Method: http.MethodGet, Path: "/confname/changes", HandlerFunc: cf.QueryConfNameChanges},
 	}
