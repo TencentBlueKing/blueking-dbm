@@ -17,6 +17,7 @@ specific language governing permissions and limitations under the License.
 
 storage_device 数据格式示例:
     {"/data": {"size": 100, "disk_id": "disk-xxx", "disk_type": "CLOUD_PREMIUM", "file_type": "ext4"}}
+    IT 开头机型本地盘: {"/data": {"size": 3301, "disk_id": "", "disk_type": "nvme_ssd", "file_type": "ext3"}}
 """
 import logging
 import time
@@ -50,6 +51,10 @@ STORAGE_DEVICE_SENTINEL = "STORAGE_DEVICE"
 #   CLOUD_SSD     : SSD 云硬盘
 #   CLOUD_HSSD    : 增强型 SSD 云硬盘
 #   CLOUD_TSSD    : 极速型 SSD 云硬盘
+#   SSD      : IT 开头机型上的本地NVMe SSD(无云盘 disk_id, 由机型规则补全 disk_type)
+
+# IT 开头标准设备类型(如 IT3c.4XLARGE32) 为本地盘, 无 CVM 云盘 disk_id, 统一录入 disk_type
+IT_LOCAL_SSD_DISK_TYPE = "SSD"
 
 # 远程采集脚本: 动态发现所有 /dataN 数据盘挂载点, 逐个输出 "挂载点|设备|disk_id|文件系统|容量GB"
 DISK_COLLECT_SCRIPT = """#!/bin/sh
@@ -156,10 +161,17 @@ def _fetch_job_ip_logs(job_instance_id: int):
     return ip_logs
 
 
-def _build_storage_device(log_content: str, cvm_disk_map: Dict[str, dict]) -> dict:
+def _is_it_local_disk_device_class(bk_svr_device_cls_name: str) -> bool:
+    """标准设备类型以 IT 开头时为本地盘机型(无云盘 disk_id)."""
+    name = (bk_svr_device_cls_name or "").strip().upper()
+    return bool(name) and name.startswith("IT")
+
+
+def _build_storage_device(log_content: str, cvm_disk_map: Dict[str, dict], bk_svr_device_cls_name: str = "") -> dict:
     """
     解析单台机器的采集脚本输出, 合并 cvm 的云盘类型, 生成 storage_device
     cvm_disk_map: {disk_id: {"DiskType": ..., "DiskSize": ...}}
+    bk_svr_device_cls_name: CMDB 标准设备类型; IT 开头机型为本地 SSD, disk_type 固定为 nvme_ssd
     """
     storage_device: dict = {}
     for line in (log_content or "").splitlines():
@@ -171,10 +183,13 @@ def _build_storage_device(log_content: str, cvm_disk_map: Dict[str, dict]) -> di
             continue
         __, mount_point, device, disk_id, file_type, size = parts
         cvm_info = cvm_disk_map.get(disk_id, {})
+        disk_type = cvm_info.get("DiskType", "")  # 云盘原始值, 不映射
+        if _is_it_local_disk_device_class(bk_svr_device_cls_name):
+            disk_type = IT_LOCAL_SSD_DISK_TYPE
         storage_device[mount_point] = {
             "size": int(size) if size.isdigit() else cvm_info.get("DiskSize", 0),
             "disk_id": disk_id,
-            "disk_type": cvm_info.get("DiskType", ""),  # 云盘原始值, 不映射
+            "disk_type": disk_type,
             "file_type": file_type,
         }
     return storage_device
@@ -201,6 +216,8 @@ def fill_machine_storage_device(machines) -> Dict[str, dict]:
     # 查询 cvm 磁盘类型信息
     cvm_disk_map = _query_cvm_disk_map(all_ips)
 
+    ip_to_device_cls = {m.ip: (getattr(m, "bk_svr_device_cls_name", None) or "") for m in machines}
+
     updated: Dict[str, dict] = {}
     for bk_cloud_id, target_ips in cloud_to_targets.items():
         # 单个云区域失败(JOB 超时/接口异常)不影响其他云区域的回填
@@ -208,7 +225,9 @@ def fill_machine_storage_device(machines) -> Dict[str, dict]:
             ip_logs = _exec_disk_collect_script(target_ips)
             update_machines = []
             for ip, log_content in ip_logs.items():
-                storage_device = _build_storage_device(log_content, cvm_disk_map.get(ip, {}))
+                storage_device = _build_storage_device(
+                    log_content, cvm_disk_map.get(ip, {}), ip_to_device_cls.get(ip, "")
+                )
                 if storage_device:
                     update_machines.append({"ip": ip, "storage_device": storage_device})
                     updated[ip] = storage_device
