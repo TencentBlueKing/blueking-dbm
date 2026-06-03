@@ -20,6 +20,7 @@ from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Machine
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.storage_set_dtl import DorisResourceSet
+from backend.db_services.bigdata.doris.upgrade_policy import DorisUpgradeVersionPolicy
 from backend.db_services.bigdata.resources.query import (
     BigDataBaseExportQueryResourceMixin,
     BigDataBaseListRetrieveResource,
@@ -125,3 +126,16 @@ class DorisListRetrieveResource(BigDataBaseListRetrieveResource, DorisExportQuer
         details = cls._retrieve_cluster(cluster_details, cluster_id)
         details["cold_resource"] = cls.get_cold_resource(bk_biz_id, cluster_id)
         return details
+
+    @classmethod
+    def list_upgradable_versions(cls, bk_biz_id: int, cluster_id: int) -> list:
+        """
+        查询 Doris 集群可升级到的版本列表
+
+        规则收敛在 DorisUpgradeVersionPolicy 中（series 白名单 + 严格大于 + 介质存在性），
+        此处只负责定位集群、调用 policy 并对结果做保序去重。
+        """
+        cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id, cluster_type=ClusterType.Doris)
+        candidates = DorisUpgradeVersionPolicy.list_candidates(cluster.major_version)
+        # 保序去重（同一 version 可能因 priority/update_at 维度有多条 Package 记录）
+        return list(dict.fromkeys(candidates.values_list("version", flat=True)))

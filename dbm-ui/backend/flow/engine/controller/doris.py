@@ -20,7 +20,10 @@ from backend.flow.engine.bamboo.scene.doris.doris_reboot_flow import DorisReboot
 from backend.flow.engine.bamboo.scene.doris.doris_replace_flow import DorisReplaceFlow
 from backend.flow.engine.bamboo.scene.doris.doris_scale_up_flow import DorisScaleUpFlow
 from backend.flow.engine.bamboo.scene.doris.doris_shrink_flow import DorisShrinkFlow
+from backend.flow.engine.bamboo.scene.doris.doris_upgrade_flow import DorisUpgradeFlow
+from backend.flow.engine.bamboo.scene.doris.validate.doris_upgrade_validator import DorisUpgradeValidator
 from backend.flow.engine.controller.base import BaseController
+from backend.flow.engine.validate.base_validate import validates_with
 
 logger = logging.getLogger("Controller")
 
@@ -99,3 +102,11 @@ class DorisController(BaseController):
         """
         flow = ClearDorisMachineFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()
+
+    @validates_with(DorisUpgradeValidator)
+    def doris_upgrade_scene(self):
+        """
+        doris集群原地升级
+        """
+        flow = DorisUpgradeFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.upgrade_doris_flow()

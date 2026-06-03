@@ -12,6 +12,7 @@ import base64
 import logging
 from typing import List
 
+from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
@@ -21,6 +22,7 @@ from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum, MySQLPrivComponent, NameSpaceEnum
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.doris.consts import DorisConfigEnum
+from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
 
@@ -32,6 +34,15 @@ class WriteBackDorisConfigService(BaseService):
 
     def _execute(self, data, parent_data) -> bool:
         global_data = data.get_one_of_inputs("global_data")
+        # 根据 ticket_type 显式区分升级与非升级场景，避免 `new_version or db_version`
+        # 在 new_version 误传空串/None 时悄无声息回退到旧版本 conf_file
+        if global_data.get("ticket_type") == TicketType.DORIS_UPGRADE.value:
+            new_version = global_data.get("new_version")
+            if not new_version:
+                raise ValueError(_("DORIS_UPGRADE 单据缺少 new_version 字段"))
+            conf_file_version = new_version
+        else:
+            conf_file_version = global_data["db_version"]
         conf_items = [
             {
                 "conf_name": DorisConfigEnum.FrontendQueryPort,
@@ -47,7 +58,7 @@ class WriteBackDorisConfigService(BaseService):
         DBConfigApi.upsert_conf_item(
             {
                 "conf_file_info": {
-                    "conf_file": global_data["db_version"],
+                    "conf_file": conf_file_version,
                     "conf_type": ConfigTypeEnum.DBConf,
                     "namespace": NameSpaceEnum.Doris,
                 },
@@ -61,8 +72,9 @@ class WriteBackDorisConfigService(BaseService):
             }
         )
         self.log_info("successfully write back doris config to dbconfig")
-        # 理论上应该判断单据类型再执行回写权限配置
-        self.write_auth_to_prv_manager(global_data)
+        # 仅上架单据需要回写权限配置，升级等场景不需要
+        if global_data.get("ticket_type") == TicketType.DORIS_APPLY.value:
+            self.write_auth_to_prv_manager(global_data)
         return True
 
     def inputs_format(self) -> List:

@@ -30,6 +30,7 @@ from backend.flow.views.doris_reboot import RebootDorisSceneApiView
 from backend.flow.views.doris_replace import ReplaceDorisSceneApiView
 from backend.flow.views.doris_scale_up import ScaleUpDorisSceneApiView
 from backend.flow.views.doris_shrink import ShrinkDorisSceneApiView
+from backend.flow.views.doris_upgrade import UpgradeDorisSceneApiView
 from backend.flow.views.download_dbactor import DownloadDbactorApiView
 from backend.flow.views.download_file import DownloadFileApiView
 from backend.flow.views.es_apply import InstallEsSceneApiView
@@ -625,6 +626,7 @@ urlpatterns = [
     url(r"^scene/reboot_doris$", RebootDorisSceneApiView.as_view()),
     url(r"^scene/shrink_doris$", ShrinkDorisSceneApiView.as_view()),
     url(r"^scene/replace_doris$", ReplaceDorisSceneApiView.as_view()),
+    url(r"^scene/upgrade_doris$", UpgradeDorisSceneApiView.as_view()),
     url("^scene/mysql_data_migrate$", MysqlDataMigrateSceneApiView.as_view()),
     url("^scene/download_dbactor$", DownloadDbactorApiView.as_view()),
     url("^scene/download_file$", DownloadFileApiView.as_view()),
