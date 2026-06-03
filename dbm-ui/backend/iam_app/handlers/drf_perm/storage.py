@@ -54,7 +54,7 @@ class StoragePermission(ResourceActionPermission):
         # 版本文件 对应 PACKAGE_MANAGE，业务文件 对应 DB_MANAGE
         try:
             if is_all_pkg.pop():
-                self.actions = [ActionEnum.PACKAGE_MANAGE]
+                self.actions = [ActionEnum.PACKAGE_VIEW]
                 self.resource_meta = ResourceEnum.DBTYPE
                 db_types = set([path.strip("/").split("/")[0] for path in file_path_list])
                 return list(db_types)

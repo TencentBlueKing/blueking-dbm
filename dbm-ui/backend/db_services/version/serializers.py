@@ -116,6 +116,7 @@ class DBPackageTypeItemSerializer(serializers.Serializer):
     - version_num: 该 pkg 类型对应的版本号段数
     - related_versions: 仅 list 接口返回; 表示当前 db_type + pkg_type 下关联的 DBVersion 数量;
     - related_distributions: 仅 list 接口返回; 表示当前 db_type + pkg_type 下关联的 Distribution 数量;
+    - can_delete: 仅 list 接口返回; 是否可从配置中删除 (规则见 view 层 _build_pkg_delete_rules)
     """
 
     name = serializers.CharField(help_text=_("pkg 类型名称(只读, 由 value 派生)"), required=False)
@@ -123,6 +124,7 @@ class DBPackageTypeItemSerializer(serializers.Serializer):
     version_num = serializers.IntegerField(help_text=_("版本号段数"), min_value=1)
     related_versions = serializers.IntegerField(help_text=_("关联的介质版本数量"), read_only=True, min_value=0)
     related_distributions = serializers.IntegerField(help_text=_("关联的发行版数量"), read_only=True, min_value=0)
+    can_delete = serializers.BooleanField(help_text=_("是否可删除"), read_only=True)
 
 
 class DBPackageTypeUpdateSerializer(serializers.Serializer):
@@ -133,53 +135,6 @@ class DBPackageTypeUpdateSerializer(serializers.Serializer):
 
     db_type = serializers.ChoiceField(help_text=_("DB 类型"), choices=DBType.get_choices())
     items = DBPackageTypeItemSerializer(many=True, help_text=_("pkg 类型配置项列表(全量覆盖)"), allow_empty=True)
-
-    def validate(self, attrs):
-        """
-        校验: 不允许删除仍存在 DBVersion / Distribution 记录的 pkg 类型
-        (与 list 接口 related_versions / related_distributions 口径一致)
-        - 基线: 优先取 SystemSettings.DB_PACKAGE_SETTINGS 里该 db_type 的现有配置
-               若尚未存储, 则回退到 INIT_DB_PKG_SETTINGS 内置默认
-        - 删除项 = 基线 value 集合 - 新提交 value 集合
-        - 任一删除项在 DBVersion 或 Distribution 中仍有数据, 则拒绝整次更新
-        """
-        attrs = super().validate(attrs)
-        db_type = attrs["db_type"]
-        new_values = {item["value"] for item in attrs["items"]}
-
-        pkg_settings = SystemSettings.get_setting_value(
-            key=SystemSettingsEnum.DB_PACKAGE_SETTINGS, default=INIT_DB_PKG_SETTINGS
-        )
-        # PackageType 是 StrEnum, 这里统一转成 str 比较, 兼容 enum / 字符串两种来源
-        origin_settings = pkg_settings.get(db_type, [])
-        origin_values = {str(item["value"]) for item in origin_settings}
-        removed_values = origin_values - new_values
-
-        if not removed_values:
-            return attrs
-
-        blocked_by_dbversion = set(
-            DBVersion.objects.filter(
-                version_series__distribution__db_type=db_type,
-                version_series__distribution__pkg_type__in=removed_values,
-            ).values_list("version_series__distribution__pkg_type", flat=True)
-        )
-        if blocked_by_dbversion:
-            raise serializers.ValidationError(
-                _("以下 pkg 类型仍存在 DBVersion 记录, 不允许删除: {}").format(sorted(blocked_by_dbversion))
-            )
-
-        blocked_by_distribution = set(
-            Distribution.objects.filter(db_type=db_type, pkg_type__in=removed_values).values_list(
-                "pkg_type", flat=True
-            )
-        )
-        if blocked_by_distribution:
-            raise serializers.ValidationError(
-                _("以下 pkg 类型仍存在 Distribution 记录, 不允许删除: {}").format(sorted(blocked_by_distribution))
-            )
-
-        return attrs
 
 
 class DBVersionSerializer(AuditedSerializer, serializers.ModelSerializer):

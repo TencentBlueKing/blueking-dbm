@@ -38,6 +38,7 @@ class VersionSeriesViewSet(viewsets.AuditedModelViewSet):
     pagination_class = None
     filterset_fields = ["distribution"]
 
+    action_permission_map = {("list",): []}
     default_permission_class = [
         ResourceActionPermission([ActionEnum.PACKAGE_MANAGE], ResourceEnum.DBTYPE, instance_getter)
     ]

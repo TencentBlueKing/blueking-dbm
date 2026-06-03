@@ -18,7 +18,6 @@ from django.utils.translation import gettext_lazy as _
 from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import DBType
 from backend.db_meta.enums.version_phase import VersionPhase
-from backend.db_package.constants import PackageType
 
 
 class Distribution(AuditedModel):
@@ -59,13 +58,17 @@ class Distribution(AuditedModel):
 
     @classmethod
     def init_distribution(cls):
-        """初始化发行版，只在一个环境初始化的时候发起"""
+        """
+        初始化发行版，只在一个环境初始化的时候发起
+        以 INIT_DB_PKG_SETTINGS 为准, 而不是 DBType x PackageType 的笛卡尔积
+        MySQL/TendbCluster 需要单独维护发行版(Tokudb/Rocksdb 等), 不在这里初始化占位
+        """
+        from backend.db_package.constants import INIT_DB_PKG_SETTINGS
+
         distribution_list = [
-            cls(name="DBM", engine="default", db_type=db_type, pkg_type=pkg_type)
-            for db_type in DBType.get_values()
-            for pkg_type in PackageType.get_values()
-            # MySQL/TendbCluster 需要维护发行版，先不要初始化
-            if db_type not in [DBType.MySQL, DBType.TenDBCluster]
+            cls(name="DBM", engine="", db_type=db_type, pkg_type=str(pkg["value"]))
+            for db_type, pkgs in INIT_DB_PKG_SETTINGS.items()
+            for pkg in pkgs
         ]
         cls.objects.bulk_create(distribution_list)
 
