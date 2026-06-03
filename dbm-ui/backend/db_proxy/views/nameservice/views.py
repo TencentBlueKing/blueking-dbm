@@ -45,6 +45,21 @@ class NameServiceProxyPassViewSet(BaseProxyPassViewSet):
         return Response(NameServiceApi.clb_deregister_part_target(validated_data))
 
     @common_swagger_auto_schema(
+        operation_summary=_("[name service]clb新增绑定部分后端主机"),
+        request_body=CLBDeregisterPartTargetSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=CLBDeregisterPartTargetSerializer,
+        url_path="nameservice/clb_register_part_target",
+    )
+    def clb_register_part_target(self, request):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(NameServiceApi.clb_register_part_target(validated_data))
+
+    @common_swagger_auto_schema(
         operation_summary=_("[name service]获取clb已绑定后端主机的IP"),
         request_body=CLBGetTargetPrivateIps(),
         tags=[SWAGGER_TAG],

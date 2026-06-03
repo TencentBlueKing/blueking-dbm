@@ -52,6 +52,11 @@ class _HADBApi(BaseApi):
             url="shieldconfig/",
             description=_("DBHA切换屏蔽配置"),
         )
+        self.black_white_list = self.generate_data_api(
+            method="POST",
+            url="blackwhitelist/",
+            description=_("DBHA黑白名单"),
+        )
 
 
 HADBApi = _HADBApi()
