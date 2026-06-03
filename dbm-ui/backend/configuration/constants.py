@@ -159,6 +159,8 @@ class SystemSettingsEnum(StrStructuredEnum):
     DORIS_COS_TAGGING = EnumField("DORIS_COS_TAGGING", _("Doris使用COS标签"))
     # Doris 低频存储开关
     DORIS_COS_SWITCH = EnumField("DORIS_COS_SWITCH", _("Doris低频存储开关"))
+    # Doris 原地升级版本映射: 取版本号前两位作为 key, value 为允许升级到的 版本号列表
+    DORIS_UPGRADE_VERSION_MAP = EnumField("DORIS_UPGRADE_VERSION_MAP", _("Doris原地升级版本映射"))
     # 小额绿通单据申请
     QUICK_MINOR_POAA = EnumField("QUICK_MINOR_POAA", _("小额绿通单据申请"))
     # 资源池独立业务,如果配置该变量,需要联动修改 MANAGE_TOPO::resource.idle.module的值

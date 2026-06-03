@@ -66,7 +66,19 @@ class ResourceUnsupportException(DorisFlowBaseException):
     MESSAGE_TPL = _("Doris不支持冷存储资源管理")
 
 
+class DorisUpgradeParamCheckFailedException(DorisFlowBaseException):
+    ERROR_CODE = "009"
+    MESSAGE = _("Doris升级参数校验失败")
+    MESSAGE_TPL = _("{message}")
+
+
+class MasterNotFoundException(DorisFlowBaseException):
+    ERROR_CODE = "010"
+    MESSAGE = _("Doris集群没有master节点")
+    MESSAGE_TPL = _("Doris集群({domain})没有master节点")
+
+
 class ResourceExistsException(DorisFlowBaseException):
-    ERROR_CODE = "008"
+    ERROR_CODE = "011"
     MESSAGE = _("集群资源已存在")
     MESSAGE_TPL = _("Doris集群{cluster_name}已存在资源")

@@ -19,6 +19,7 @@ from backend.db_meta.enums.cluster_type import ClusterType
 from backend.flow.consts import DBActuatorTypeEnum, DorisActuatorActionEnum, MySQLPrivComponent
 from backend.flow.utils.doris.consts import DorisMetaOperation, DorisNodeOperation
 from backend.flow.utils.doris.doris_context_dataclass import DorisResourceContext
+from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
 
@@ -136,14 +137,41 @@ class DorisActPayload(object):
             },
         }
 
-    # 添加节点到元数据
-    def get_add_metadata_payload(self, **kwargs) -> dict:
+    def get_decompress_pkg_v2_payload(self, **kwargs) -> dict:
         """
-        拼接 集群添加节点元数据 payload参数
+        拼接 解压缩Doris介质包V2 payload参数
+        通过 operation_type 区分场景，兼容升级和非升级（安装/扩缩容等）：
+        - 升级场景(ticket_type=DORIS_UPGRADE)：version 切换为 new_version，解压到新版本服务目录
+        - 非升级场景：version 沿用 get_common_extend 的 db_version
+        复用 get_common_extend 保证 username/password/http_port/query_port 等公共字段不漏传。
+        """
+        common_extend = self.get_common_extend(**kwargs)
+        ticket_type = self.ticket_data.get("ticket_type")
+        # 升级场景需将 version 切换为 new_version
+        if ticket_type == TicketType.DORIS_UPGRADE.value:
+            common_extend["version"] = self.ticket_data.get("new_version")
+        extend_dict = {
+            # 传参单据类型，actuator 端区分升级与常规安装
+            "operation_type": ticket_type,
+        }
+        return {
+            "db_type": DBActuatorTypeEnum.Doris.value,
+            "action": DorisActuatorActionEnum.DecompressPkgV2.value,
+            "payload": {
+                "general": {},
+                "extend": dict(**common_extend, **extend_dict),
+            },
+        }
+
+    # 元数据管理：通用方法
+    def _get_metadata_payload(self, operation: DorisMetaOperation, **kwargs) -> dict:
+        """
+        拼接 集群元数据操作的通用 payload参数
+        :param operation: 元数据操作类型，DorisMetaOperation 枚举成员
         """
         extend_dict = {
             "master_fe_ip": self.ticket_data["master_fe_ip"],
-            "operation": DorisMetaOperation.Add.value,
+            "operation": operation.value,
             "host_map": self.ticket_data["host_meta_map"],
             "root_password": self.ticket_data["root_password"],
             "admin_password": self.ticket_data["admin_password"],
@@ -156,69 +184,22 @@ class DorisActPayload(object):
                 "extend": dict(**(self.get_common_extend(**kwargs)), **extend_dict),
             },
         }
+
+    # 元数据管理：添加节点
+    def get_add_metadata_payload(self, **kwargs) -> dict:
+        return self._get_metadata_payload(DorisMetaOperation.Add, **kwargs)
 
     # 元数据管理：删除节点
     def get_drop_metadata_payload(self, **kwargs) -> dict:
-        """
-        拼接 集群Drop节点元数据 payload参数
-        """
-        extend_dict = {
-            "master_fe_ip": self.ticket_data["master_fe_ip"],
-            "operation": DorisMetaOperation.Drop.value,
-            "host_map": self.ticket_data["host_meta_map"],
-            "root_password": self.ticket_data["root_password"],
-            "admin_password": self.ticket_data["admin_password"],
-        }
-        return {
-            "db_type": DBActuatorTypeEnum.Doris.value,
-            "action": DorisActuatorActionEnum.UpdateMetadata.value,
-            "payload": {
-                "general": {},
-                "extend": dict(**(self.get_common_extend(**kwargs)), **extend_dict),
-            },
-        }
+        return self._get_metadata_payload(DorisMetaOperation.Drop, **kwargs)
 
-    # 元数据管理：强制删除节点 适用于BE节点
+    # 元数据管理：强制删除节点，适用于BE节点
     def get_force_drop_metadata_payload(self, **kwargs) -> dict:
-        """
-        拼接 集群强制下线节点元数据 payload参数
-        """
-        extend_dict = {
-            "master_fe_ip": self.ticket_data["master_fe_ip"],
-            "operation": DorisMetaOperation.ForceDrop.value,
-            "host_map": self.ticket_data["host_meta_map"],
-            "root_password": self.ticket_data["root_password"],
-            "admin_password": self.ticket_data["admin_password"],
-        }
-        return {
-            "db_type": DBActuatorTypeEnum.Doris.value,
-            "action": DorisActuatorActionEnum.UpdateMetadata.value,
-            "payload": {
-                "general": {},
-                "extend": dict(**(self.get_common_extend(**kwargs)), **extend_dict),
-            },
-        }
+        return self._get_metadata_payload(DorisMetaOperation.ForceDrop, **kwargs)
 
     # 元数据管理：退役BE节点
     def get_decommission_metadata_payload(self, **kwargs) -> dict:
-        """
-        拼接 集群退役BE节点元数据操作 payload参数
-        """
-        extend_dict = {
-            "master_fe_ip": self.ticket_data["master_fe_ip"],
-            "operation": DorisMetaOperation.Decommission.value,
-            "host_map": self.ticket_data["host_meta_map"],
-            "root_password": self.ticket_data["root_password"],
-            "admin_password": self.ticket_data["admin_password"],
-        }
-        return {
-            "db_type": DBActuatorTypeEnum.Doris.value,
-            "action": DorisActuatorActionEnum.UpdateMetadata.value,
-            "payload": {
-                "general": {},
-                "extend": dict(**(self.get_common_extend(**kwargs)), **extend_dict),
-            },
-        }
+        return self._get_metadata_payload(DorisMetaOperation.Decommission, **kwargs)
 
     def get_stop_process_payload(self, **kwargs) -> dict:
         """
@@ -414,6 +395,54 @@ class DorisActPayload(object):
             "payload": {
                 "general": {},
                 "extend": dict(**(self.get_common_extend(**kwargs)), **extend_dict),
+            },
+        }
+
+    def get_upgrade_node_payload(self, **kwargs) -> dict:
+        """
+        拼接 升级单个Doris服务节点 payload参数
+        """
+        extend_dict = {
+            # 原集群版本
+            "old_version": self.ticket_data["db_version"],
+            "new_version": self.ticket_data["new_version"],
+            "master_fe_ip": self.ticket_data["master_fe_ip"],
+        }
+        return {
+            "db_type": DBActuatorTypeEnum.Doris.value,
+            "action": DorisActuatorActionEnum.UpgradeNode.value,
+            "payload": {
+                "general": {},
+                "extend": dict(**(self.get_common_extend(**kwargs)), **extend_dict),
+            },
+        }
+
+    def get_render_config_v2_payload(self, **kwargs) -> dict:
+        """
+        拼接 渲染集群配置V2版本 payload参数
+        通过 operation_type 区分场景，兼容升级和非升级（安装/扩缩容等）：
+        - 升级场景(ticket_type=DORIS_UPGRADE)：version 使用 new_version，渲染配置到新版本的服务目录下
+        - 非升级场景：version 使用 db_version（沿用 get_common_extend 的默认值）
+        复用 get_common_extend 保证 username/password/http_port/query_port 等公共字段不漏传，
+        """
+        common_extend = self.get_common_extend(**kwargs)
+        ticket_type = self.ticket_data.get("ticket_type")
+        # 升级场景需将 version 切换为 new_version，渲染到新版本目录
+        if ticket_type == TicketType.DORIS_UPGRADE.value:
+            common_extend["version"] = self.ticket_data.get("new_version")
+        extend_dict = {
+            # 传参单据类型，actuator 端区分升级与常规安装的渲染目录
+            "operation_type": ticket_type,
+            "fe_conf": self.ticket_data["fe_conf"],
+            "be_conf": self.ticket_data["be_conf"],
+            "master_fe_ip": self.ticket_data["master_fe_ip"],
+        }
+        return {
+            "db_type": DBActuatorTypeEnum.Doris.value,
+            "action": DorisActuatorActionEnum.RenderConfigV2.value,
+            "payload": {
+                "general": {},
+                "extend": dict(**common_extend, **extend_dict),
             },
         }
 

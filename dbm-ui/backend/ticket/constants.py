@@ -627,6 +627,7 @@ class TicketType(StrStructuredEnum):
     DORIS_ENABLE = TicketEnumField("DORIS_ENABLE", _("Doris 集群启用"), register_iam=False)
     DORIS_DISABLE = TicketEnumField("DORIS_DISABLE", _("Doris 集群禁用"), register_iam=False)
     DORIS_DESTROY = TicketEnumField("DORIS_DESTROY", _("Doris 集群删除"), _("集群管理"))
+    DORIS_UPGRADE = TicketEnumField("DORIS_UPGRADE", _("Doris 集群升级"), _("集群管理"))
 
     # Riak
     RIAK_CLUSTER_APPLY = TicketEnumField("RIAK_CLUSTER_APPLY", _("Riak 集群部署"), register_iam=False)

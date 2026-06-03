@@ -783,6 +783,10 @@ class DorisActuatorActionEnum(StrStructuredEnum):
     CheckProcessStart = EnumField("check_process_start", _("check_process_start"))
     CreateResource = EnumField("create_resource", _("create_resource"))
     DropResource = EnumField("drop_resource", _("drop_resource"))
+    DecompressPkgV2 = EnumField("decompress_pkg_v2", _("decompress_pkg_v2"))
+    UpgradeNode = EnumField("upgrade_node", _("upgrade_node"))
+    CheckUpgrade = EnumField("check_upgrade", _("check_upgrade"))
+    RenderConfigV2 = EnumField("render_config_v2", _("render_config_v2"))
 
 
 class RiakModuleId(IntStructuredEnum):

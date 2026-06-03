@@ -173,6 +173,17 @@ class DorisDBMeta(object):
         )
         return True
 
+    def doris_upgrade(self) -> bool:
+        cluster_id = self.ticket_data["cluster_id"]
+        new_version = self.ticket_data["new_version"]
+        logger.info("doris_upgrade meta start: cluster_id=%s, new_version=%s", cluster_id, new_version)
+        api.cluster.doris.upgrade(
+            cluster_id=cluster_id,
+            new_major_version=new_version,
+        )
+        logger.info("doris_upgrade meta done: cluster_id=%s", cluster_id)
+        return True
+
     def clear_machines(self):
         """
         清理机器信息

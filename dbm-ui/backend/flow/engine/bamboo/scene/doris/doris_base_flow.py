@@ -21,6 +21,7 @@ from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.flow.consts import DorisRoleEnum, LevelInfoEnum, NameSpaceEnum
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.doris.exceptions import MasterNotFoundException
 from backend.flow.plugins.components.collections.doris.exec_doris_actuator_script import (
     ExecuteDorisActuatorScriptComponent,
 )
@@ -66,6 +67,15 @@ class DorisBaseFlow(object):
     Doris Flow基类
     """
 
+    # InstanceRole 到 DorisRoleEnum 的映射
+    INSTANCE_ROLE_DORIS_ROLE_MAP = {
+        InstanceRole.DORIS_BACKEND_HOT: DorisRoleEnum.HOT.value,
+        InstanceRole.DORIS_BACKEND_WARM: DorisRoleEnum.WARM.value,
+        InstanceRole.DORIS_BACKEND_COLD: DorisRoleEnum.COLD.value,
+        InstanceRole.DORIS_FOLLOWER: DorisRoleEnum.FOLLOWER.value,
+        InstanceRole.DORIS_OBSERVER: DorisRoleEnum.OBSERVER.value,
+    }
+
     def __init__(self, root_id: str, data: Optional[Dict]):
         """
         :param root_id: 任务流程定义的root_id
@@ -84,6 +94,8 @@ class DorisBaseFlow(object):
         self.nodes = data.get("nodes")
         # 仅 IP来源为资源池时，会有传值
         self.resource_spec = data.get("resource_spec")
+        # APPLY 单据无 cluster_id，cluster 留空，避免后续基类方法 AttributeError
+        self.cluster = None
         if self.ticket_type == TicketType.DORIS_APPLY:
             self.cluster_id = -1
             self.cluster_name = data.get("cluster_name")
@@ -115,13 +127,12 @@ class DorisBaseFlow(object):
             cluster = Cluster.objects.get(id=self.cluster_id)
             self.cluster = cluster
             self.cluster_name = cluster.name
-            masters = StorageInstance.objects.filter(cluster=cluster, instance_role=InstanceRole.DORIS_FOLLOWER)
-            if not masters:
-                logger.info("found 0 master node")
-                raise Exception(f"the cluster({self.cluster_id}, {self.cluster_name}) has no master node")
+            followers = StorageInstance.objects.filter(cluster=cluster, instance_role=InstanceRole.DORIS_FOLLOWER)
+            if not followers:
+                raise MasterNotFoundException(domain=cluster.immute_domain)
             self.db_version = cluster.major_version
             self.domain = cluster.immute_domain
-            self.http_port = masters.first().port
+            self.http_port = followers.first().port
             self.bk_cloud_id = cluster.bk_cloud_id
             self.city_code = cluster.region
 
@@ -149,7 +160,9 @@ class DorisBaseFlow(object):
             auth_info = PayloadHandler.get_bigdata_auth_by_cluster(cluster, 0)
             self.username = auth_info["username"]
             self.password = auth_info["password"]
-            self.master_ips = [master.machine.ip for master in masters]
+            # 实际取的是当前集群所有 follower 节点 IP（master 一定在 follower 列表中），
+            # 命名为 master_ips 易误导阅读者；统一改名为 follower_ips 以反映真实语义
+            self.follower_ips = [follower.machine.ip for follower in followers]
 
     def get_flow_base_data(self) -> dict:
         flow_data = {
@@ -189,12 +202,14 @@ class DorisBaseFlow(object):
         pass
 
     def get_all_node_ips_in_dbmeta(self) -> list:
-        cluster = Cluster.objects.get(id=self.cluster_id)
+        # 优先复用 __init__ 已加载的 self.cluster，避免重复 ORM 查询；
+        # APPLY 流程未赋值 self.cluster，做一次兜底
+        cluster = self.cluster or Cluster.objects.get(id=self.cluster_id)
         storage_ips = list(set(StorageInstance.objects.filter(cluster=cluster).values_list("machine__ip", flat=True)))
         return storage_ips
 
     def get_role_ips_in_dbmeta(self, role: InstanceRole) -> list:
-        cluster = Cluster.objects.get(id=self.cluster_id)
+        cluster = self.cluster or Cluster.objects.get(id=self.cluster_id)
         role_ips = list(cluster.storageinstance_set.filter(instance_role=role).values_list("machine__ip", flat=True))
         return role_ips
 

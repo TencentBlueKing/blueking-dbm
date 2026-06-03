@@ -81,6 +81,13 @@ from backend.db_services.dbbase.resources import serializers
         tags=[constants.RESOURCE_TAG],
     ),
 )
+@method_decorator(
+    name="list_upgradable_versions",
+    decorator=common_swagger_auto_schema(
+        operation_summary=_("获取Doris集群可升级版本列表"),
+        tags=[constants.RESOURCE_TAG],
+    ),
+)
 class DorisClusterViewSetBigdata(BigdataResourceViewSet):
     query_class = DorisListRetrieveResource
     query_serializer_class = serializers.ListResourceSLZ
@@ -102,3 +109,8 @@ class DorisClusterViewSetBigdata(BigdataResourceViewSet):
     def get_cold_resource(self, request, bk_biz_id: int, cluster_id: int):
         """获取 Doris 集群绑定的独立存储资源"""
         return Response(self.query_class.get_cold_resource(bk_biz_id, cluster_id))
+
+    @action(methods=["GET"], detail=True, url_path="list_upgradable_versions")
+    def list_upgradable_versions(self, request, bk_biz_id: int, cluster_id: int):
+        """获取 Doris 集群可升级到的版本列表"""
+        return Response(self.query_class.list_upgradable_versions(bk_biz_id, cluster_id))
