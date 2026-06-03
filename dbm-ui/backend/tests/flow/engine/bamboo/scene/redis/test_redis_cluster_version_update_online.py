@@ -202,7 +202,11 @@ def _install_recorder_build_stubs(monkeypatch, meta_by_id, host_ports=None):
         lambda *args, **kwargs: SimpleNamespace(redis_cluster_version_update=lambda version: []),
     )
     monkeypatch.setattr(mod, "get_major_version_by_version_name", lambda version: TARGET_MAJOR_VERSION)
-    monkeypatch.setattr(mod, "get_cluster_info_by_cluster_id", lambda cluster_id: meta_by_id[cluster_id])
+    monkeypatch.setattr(
+        mod,
+        "async_get_multi_cluster_info_by_cluster_ids",
+        lambda cluster_ids: {cid: meta_by_id[cid] for cid in cluster_ids},
+    )
     monkeypatch.setattr(
         mod,
         "get_cluster_info_by_ip",
@@ -295,8 +299,8 @@ def test_validate_backend_target_pair_rejects_unsupported_target_version():
 def test_validate_backend_target_pair_rejects_downgrade(monkeypatch):
     flow = _new_flow()
     cluster = _FakeCluster(cluster_type=ClusterType.TendisPredixyRedisCluster)
+    flow.cluster_cache[cluster.id] = _cluster_meta(cluster.cluster_type)
     monkeypatch.setattr(mod, "get_redis_version_by_ip", lambda *args, **kwargs: "redis-7.0.0")
-    monkeypatch.setattr(mod, "get_cluster_info_by_cluster_id", lambda cluster_id: _cluster_meta(cluster.cluster_type))
 
     with pytest.raises(Exception, match="不支持降级"):
         flow._validate_backend_target_pair(cluster, [TARGET_VERSION], TARGET_VERSION, {"1.1.1.2"})
@@ -305,8 +309,8 @@ def test_validate_backend_target_pair_rejects_downgrade(monkeypatch):
 def test_validate_backend_target_pair_rejects_unknown_ip(monkeypatch):
     flow = _new_flow()
     cluster = _FakeCluster(cluster_type=ClusterType.TendisPredixyRedisCluster)
+    flow.cluster_cache[cluster.id] = _cluster_meta(cluster.cluster_type)
     monkeypatch.setattr(mod, "get_redis_version_by_ip", lambda *args, **kwargs: CURRENT_VERSION)
-    monkeypatch.setattr(mod, "get_cluster_info_by_cluster_id", lambda cluster_id: _cluster_meta(cluster.cluster_type))
 
     with pytest.raises(Exception, match="既不是master也不是slave"):
         flow._validate_backend_target_pair(cluster, [TARGET_VERSION], TARGET_VERSION, {UNKNOWN_CLUSTER_IP})
@@ -315,8 +319,8 @@ def test_validate_backend_target_pair_rejects_unknown_ip(monkeypatch):
 def test_validate_backend_target_pair_rejects_master_without_paired_slave(monkeypatch):
     flow = _new_flow()
     cluster = _FakeCluster(cluster_type=ClusterType.TendisPredixyRedisCluster)
+    flow.cluster_cache[cluster.id] = _cluster_meta(cluster.cluster_type)
     monkeypatch.setattr(mod, "get_redis_version_by_ip", lambda *args, **kwargs: CURRENT_VERSION)
-    monkeypatch.setattr(mod, "get_cluster_info_by_cluster_id", lambda cluster_id: _cluster_meta(cluster.cluster_type))
 
     with pytest.raises(Exception, match="必须同时将对应 Slave"):
         flow._validate_backend_target_pair(cluster, [TARGET_VERSION], TARGET_VERSION, {"1.1.1.1"})
@@ -325,8 +329,8 @@ def test_validate_backend_target_pair_rejects_master_without_paired_slave(monkey
 def test_validate_backend_target_pair_accepts_master_and_slave(monkeypatch):
     flow = _new_flow()
     cluster = _FakeCluster(cluster_type=ClusterType.TendisPredixyRedisCluster)
+    flow.cluster_cache[cluster.id] = _cluster_meta(cluster.cluster_type)
     monkeypatch.setattr(mod, "get_redis_version_by_ip", lambda *args, **kwargs: CURRENT_VERSION)
-    monkeypatch.setattr(mod, "get_cluster_info_by_cluster_id", lambda cluster_id: _cluster_meta(cluster.cluster_type))
 
     flow._validate_backend_target_pair(cluster, [TARGET_VERSION], TARGET_VERSION, {"1.1.1.1", "1.1.1.2"})
 
@@ -671,7 +675,11 @@ def test_real_builder_smoke_validates_representative_proxy_and_backend_pipeline(
         lambda *args, **kwargs: SimpleNamespace(redis_cluster_version_update=lambda version: []),
     )
     monkeypatch.setattr(mod, "get_major_version_by_version_name", lambda version: TARGET_MAJOR_VERSION)
-    monkeypatch.setattr(mod, "get_cluster_info_by_cluster_id", lambda cluster_id: meta_by_id[cluster_id])
+    monkeypatch.setattr(
+        mod,
+        "async_get_multi_cluster_info_by_cluster_ids",
+        lambda cluster_ids: {cid: meta_by_id[cid] for cid in cluster_ids},
+    )
     monkeypatch.setattr(mod, "get_redis_version_by_ip", lambda *args, **kwargs: CURRENT_VERSION)
     monkeypatch.setattr(mod, "get_proxy_version_by_ip", lambda *args, **kwargs: "predixy-1.3.0")
     monkeypatch.setattr(common_builder.FlowTree.objects, "create", lambda **kwargs: None)

@@ -19,8 +19,8 @@ from rest_framework.test import APIClient
 
 from backend.configuration.constants import PLAT_BIZ_ID, DBType
 from backend.tests.mock_data.iam_app.permission import PermissionMock
-from backend.ticket.constants import FlowTypeConfig, TicketStatus, TicketType
-from backend.ticket.models import TicketFlowsConfig
+from backend.ticket.constants import FlowType, FlowTypeConfig, TicketStatus, TicketType
+from backend.ticket.models import ClusterOperateRecord, Flow, Ticket, TicketFlowsConfig
 
 pytestmark = pytest.mark.django_db
 logger = logging.getLogger("test")
@@ -619,6 +619,74 @@ class TestTicketViewSet:
         assert response.status_code == status.HTTP_200_OK
 
         record.delete()
+
+    def test_get_cluster_operate_records_excludes_redis_rollback_exercise(self, test_ticket_bk_biz_id):
+        """Rollback exercise records are hidden from cluster 单据记录 API."""
+        cluster_id = 88001
+        exercise_ticket = Ticket.objects.create(
+            id=99001,
+            bk_biz_id=test_ticket_bk_biz_id,
+            ticket_type=TicketType.REDIS_ROLLBACK_EXERCISE,
+            status=TicketStatus.RUNNING,
+            creator="admin",
+            updater="admin",
+            remark="rollback exercise",
+            details={"infos": []},
+            group=TicketType.REDIS_ROLLBACK_EXERCISE.value,
+        )
+        visible_ticket = Ticket.objects.create(
+            id=99002,
+            bk_biz_id=test_ticket_bk_biz_id,
+            ticket_type=TicketType.MYSQL_HA_APPLY,
+            status=TicketStatus.RUNNING,
+            creator="admin",
+            updater="admin",
+            remark="visible ticket",
+            details={"infos": []},
+            group=TicketType.MYSQL_HA_APPLY.value,
+        )
+        exercise_flow = Flow.objects.create(
+            ticket=exercise_ticket,
+            flow_type=FlowType.INNER_FLOW,
+            flow_alias="Redis rollback exercise",
+            status=TicketStatus.RUNNING,
+        )
+        visible_flow = Flow.objects.create(
+            ticket=visible_ticket,
+            flow_type=FlowType.INNER_FLOW,
+            flow_alias="MySQL HA apply",
+            status=TicketStatus.RUNNING,
+        )
+        exercise_record = ClusterOperateRecord.objects.create(
+            cluster_id=cluster_id,
+            flow=exercise_flow,
+            ticket=exercise_ticket,
+            creator="admin",
+            updater="admin",
+        )
+        visible_record = ClusterOperateRecord.objects.create(
+            cluster_id=cluster_id,
+            flow=visible_flow,
+            ticket=visible_ticket,
+            creator="admin",
+            updater="admin",
+        )
+
+        url = "/apis/tickets/get_cluster_operate_records/"
+        response = client.get(url, {"cluster_id": cluster_id, "limit": 10, "offset": 0})
+
+        assert response.status_code == status.HTTP_200_OK
+        results = response.json()["data"]["results"]
+        ticket_ids = {item["ticket_id"] for item in results}
+        assert exercise_ticket.id not in ticket_ids
+        assert visible_ticket.id in ticket_ids
+
+        exercise_record.delete()
+        visible_record.delete()
+        exercise_flow.delete()
+        visible_flow.delete()
+        exercise_ticket.delete()
+        visible_ticket.delete()
 
     @patch("backend.ticket.views.TicketViewSet.paginate_queryset")
     @patch("backend.ticket.views.TicketViewSet.filter_queryset")

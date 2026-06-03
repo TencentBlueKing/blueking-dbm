@@ -619,6 +619,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
                 to_attr="prefetched_running_todos",
             )
         )
+        .exclude(ticket__ticket_type=TicketType.REDIS_ROLLBACK_EXERCISE)
         .order_by("-create_at"),
         filter_class=ClusterOpRecordListFilter,
     )

@@ -358,4 +358,5 @@ class RedisRollbackExerciseFlow(object):
             act_name=_("15 分钟后解除主机 {} 告警屏蔽").format(temp_host_ip),
             act_component_code=DisableAlarmShieldComponent.code,
             kwargs={},
+            error_ignorable=True,  # Don't let bkmonitor affect the task flow
         )
