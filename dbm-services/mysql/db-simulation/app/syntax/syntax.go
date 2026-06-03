@@ -594,15 +594,18 @@ func (tf *TmysqlParseFile) Downloadfile() (err error) {
 	wg := &sync.WaitGroup{}
 	errCh := make(chan error)
 	c := make(chan struct{}, 5)
-	for _, fileName := range tf.Param.FileNames {
+	// 文件名去重：同一文件名会被下载到 tmpWorkdir 的同一路径，
+	// 若重复并发下载会因 os.Create(O_TRUNC) 互相截断，导致 md5 校验读到空文件。
+	// 每个文件只需下载一次即可（下游按文件名读取本地文件）。
+	uniqFileNames := lo.Uniq(tf.Param.FileNames)
+	for _, fileName := range uniqFileNames {
 		wg.Add(1)
 		go func(fileName string) {
 			c <- struct{}{}
 			defer func() { wg.Done(); <-c }()
-			err = tf.bkRepoClient.Download(tf.Param.BkRepoBasePath, fileName, tf.tmpWorkdir)
-			if err != nil {
-				logger.Error("download %s from bkrepo failed :%s", fileName, err.Error())
-				errCh <- err
+			if derr := tf.bkRepoClient.Download(tf.Param.BkRepoBasePath, fileName, tf.tmpWorkdir); derr != nil {
+				logger.Error("download %s from bkrepo failed :%s", fileName, derr.Error())
+				errCh <- derr
 			}
 		}(fileName)
 	}
