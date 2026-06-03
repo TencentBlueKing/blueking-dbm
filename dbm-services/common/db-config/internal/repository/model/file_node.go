@@ -16,14 +16,10 @@ func (c *ConfigFileNodeModel) CreateOrUpdate(create bool, db *gorm.DB) (uint64, 
 	}
 	id, _ := RecordExists(db, c.TableName(), 0, c.UniqueWhere())
 	if id > 0 {
-		// node_id 已经存在，且本次是 generate，不覆盖原 description 信息. 见 GenerateConfigVersion
-		if c.ConfFileLC == "" && c.Description == "generated" {
-			return c.ID, nil
-		}
 		c.ID = id
-		return c.ID, db.Updates(c).Error
+		return c.ID, db.Debug().Updates(c).Error
 	} else {
-		return c.ID, db.Create(c).Error
+		return c.ID, db.Debug().Create(c).Error
 	}
 }
 

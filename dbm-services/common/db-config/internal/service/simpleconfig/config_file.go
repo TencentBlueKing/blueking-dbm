@@ -2,6 +2,7 @@ package simpleconfig
 
 import (
 	"strconv"
+	"time"
 
 	"bk-dbconfig/internal/api"
 	"bk-dbconfig/internal/repository/model"
@@ -163,8 +164,8 @@ func GetConfigFileSimpleInfo(r *api.BaseConfigNode) (*api.ConfFileResp, error) {
 		resp.ConfFileLC = cf.ConfFileLC
 		resp.ConfTypeLC = cf.ConfTypeLC
 		resp.Description = cf.Description
-		resp.CreatedAt = cf.CreatedAt.String()
-		resp.UpdatedAt = cf.UpdatedAt.String()
+		resp.CreatedAt = cf.CreatedAt.Format(time.RFC3339)
+		resp.UpdatedAt = cf.UpdatedAt.Format(time.RFC3339)
 		resp.UpdatedBy = cf.UpdatedBy
 	}
 	return resp, nil

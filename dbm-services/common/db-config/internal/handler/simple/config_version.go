@@ -115,11 +115,6 @@ func (cf *Config) GenerateConfigVersion(ctx *gin.Context) {
 	} else {
 		logger.Info("generate the first time: %+v", r)
 	}
-	// generated version 不存在，或者存在但已过期，都需进行 generate
-	if err := simpleconfig.SaveConfigFileNode(model.DB.Self, &levelNode, opUser, "generated", ""); err != nil {
-		handler.SendResponse(ctx, err, nil)
-		return
-	}
 	// generate 有 3 种情况：
 	// 1. 第一次 generate, 且顺利完成
 	// 2. 多个请求并行generate，报重复错误的，直接读取

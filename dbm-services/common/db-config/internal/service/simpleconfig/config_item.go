@@ -2,6 +2,7 @@ package simpleconfig
 
 import (
 	"fmt"
+	"time"
 
 	"bk-dbconfig/internal/api"
 	"bk-dbconfig/internal/pkg/errno"
@@ -369,23 +370,7 @@ func UpdateConfigFileItems(r *api.UpsertConfItemsReq, opUser string) (*api.Upser
 		BaseConfFileDef: fileDef,
 	}
 	configs, configsDiff := NewConfigModelsWithItemReq(r)
-	// 先判断上层级是否安全, 强制约束，confirm=1 无效
-	configsRef, err := BatchPreCheck(configs)
-	if err != nil {
-		return nil, err
-	}
 
-	configsRefDiff := AddConfigsRefToDiff(configsRef)
-	configsDiff = append(configsDiff, configsRefDiff...)
-
-	// 存在下层级配置与当前配置冲突，confirm=1 确认修改
-	if len(configsRefDiff) > 0 && r.Confirm == 0 {
-		names := []string{}
-		for _, conf := range configsRefDiff {
-			names = append(names, conf.Config.ConfName)
-		}
-		return nil, errors.WithMessagef(errno.ErrConflictWithLowerConfigLevel, "%v", names)
-	}
 	txErr := model.DB.Self.Transaction(func(tx *gorm.DB) error {
 		// 保存到 to tb_config_file_node
 		levelNode := api.BaseConfigNode{}
@@ -670,6 +655,7 @@ func SaveConfigFileNode(db *gorm.DB, r *api.BaseConfigNode, opUser, description,
 		UpdatedBy:   opUser,
 		ConfFileLC:  confFileLC,
 		Description: description,
+		UpdatedAt:   time.Now(),
 	}
 	if _, err := configFile.CreateOrUpdate(false, db); err != nil {
 		return err
