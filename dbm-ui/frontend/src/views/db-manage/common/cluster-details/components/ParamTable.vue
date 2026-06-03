@@ -70,6 +70,7 @@
     <DbTable
       ref="paramTableRef"
       :data-source="paramDataSource"
+      :default-limit="100"
       :disable-select-method="(row: any) => row.flag_readonly === 1"
       :filter-value="searchValue"
       :fixed-pagination="fixedPagination"
@@ -176,10 +177,11 @@
               <span
                 v-bk-tooltips="{
                   content: row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--'),
-                  disabled: !row.conf_value,
-                  maxWidth: 400,
+                  disabled: !row.conf_value || !overflowStates[row.conf_name],
+                  extCls: 'param-table-value-tooltip',
                 }"
-                class="value-cell-text">
+                class="value-cell-text"
+                @mouseenter="handleCellMouseEnter($event, row)">
                 {{ row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--') }}
               </span>
               <BkTag
@@ -391,6 +393,8 @@
   const paramTableRef = ref<InstanceType<typeof DbTable>>();
   const tippyInstances: Instance[] = [];
   const selectedRows = ref<ConfItem[]>([]);
+  // 记录单元格文本是否溢出（key: conf_name，用于控制 tooltip 仅在溢出时显示）
+  const overflowStates = ref<Record<string, boolean>>({});
 
   // 表格列筛选
   const needRestartFilter = {
@@ -433,6 +437,12 @@
     editingValue.value = '';
     editingOriginValue.value = '';
     refreshTable();
+  };
+
+  /** 检测单元格文本是否溢出（用于控制 tooltip 仅在溢出时显示） */
+  const handleCellMouseEnter = (e: MouseEvent, row: ConfItem) => {
+    const el = e.target as HTMLElement;
+    overflowStates.value[row.conf_name] = el.scrollWidth > el.clientWidth;
   };
 
   /** 刷新表格数据 */
@@ -548,10 +558,17 @@
 
     const start = params.offset;
     const end = start + params.limit;
-    return Promise.resolve({
+    const result = {
       count: data.length,
       results: data.slice(start, end),
+    };
+
+    // 数据返回后，在 DOM 更新完成再初始化 tippy（避免分页/搜索后 tippy 失效）
+    nextTick(() => {
+      initDescriptionTippy();
     });
+
+    return Promise.resolve(result);
   };
 
   /** 获取配置 */
@@ -806,14 +823,13 @@
 
   /** 恢复单行默认 */
   const handleShowRestoreInfoBox = (row: ConfItem) => {
-    const originItem = originConfItems.value.find((o) => o.conf_name === row.conf_name);
     InfoBox({
       cancelText: t('取消'),
       confirmText: t('确认'),
       content: () =>
         h('div', { class: 'param-restore-content' }, [
           h('p', `${t('参数名')}：${row.conf_name}`),
-          h('p', `${t('当前值')}：${row.conf_value} → ${originItem?.value_default ?? '--'}`),
+          h('p', `${t('当前值')}：${row.conf_value} → ${row.up_level_value?.conf_value ?? '--'}`),
           h('p', t('恢复后该参数重新继承父级配置，随父级配置更新而自动同步')),
         ]),
       contentAlign: 'left',

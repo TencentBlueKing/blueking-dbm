@@ -93,10 +93,6 @@
             </span>
             <span v-else>--</span>
           </span>
-          <span class="module-info-item">
-            <span class="module-info-label">{{ t('最近更新') }}：</span>{{ moduleInfo.updatedBy || '--' }} /
-            {{ moduleInfo.updatedAt || '--' }}
-          </span>
         </div>
       </DbCard>
 
@@ -351,7 +347,11 @@
   }
 
   .module-header-card {
-    box-shadow: none;
+    box-shadow:
+      0 -2px 4px -2px rgba(25, 25, 41, 0.05),
+      2px 0 4px -2px rgba(25, 25, 41, 0.05),
+      -2px 0 4px -2px rgba(25, 25, 41, 0.05);
+    /* 底部无阴影 */
     padding-bottom: 0;
 
     :deep(.db-card-content) {
@@ -391,7 +391,7 @@
 
   .module-top-tab {
     :deep(.bk-tab-header) {
-      box-shadow: none;
+      box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
       border-bottom: none;
     }
 
@@ -408,6 +408,8 @@
   }
 
   .module-conf-tab {
+    box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
+
     :deep(.bk-tab-content) {
       padding: 16px 16px 0;
       background: #fff;
@@ -418,6 +420,7 @@
     background: #fff;
     margin-top: 16px;
     padding-top: 16px;
+    box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
   }
 </style>
 

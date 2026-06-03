@@ -53,6 +53,7 @@
     <DbTable
       ref="paramTableRef"
       :data-source="paramDataSource"
+      :default-limit="100"
       :filter-value="searchValue"
       :fixed-pagination="fixedPagination"
       :row-key="rowKey"
@@ -157,10 +158,11 @@
               <span
                 v-bk-tooltips="{
                   content: row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--'),
-                  disabled: !row.conf_value,
-                  maxWidth: 400,
+                  disabled: !row.conf_value || !overflowStates[row.conf_name],
+                  extCls: 'param-table-value-tooltip',
                 }"
-                class="value-cell-text">
+                class="value-cell-text"
+                @mouseenter="handleCellMouseEnter($event, row)">
                 {{ row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--') }}
               </span>
               <BkTag
@@ -245,7 +247,7 @@
               {{ t('编辑') }}
             </BkButton>
             <BkButton
-              v-if="(row.level_name === levelName || isCancelUseParam(row)) && row.flag_readonly !== 1"
+              v-if="row.level_name === levelName && row.flag_readonly !== 1"
               text
               theme="primary"
               @click="handleShowRestoreInfoBox(row)">
@@ -363,6 +365,8 @@
   const paramTableRef = ref<InstanceType<typeof DbTable>>();
   const tippyInstances: Instance[] = [];
   const selectedRows = ref<ConfItem[]>([]);
+  // 记录单元格文本是否溢出（key: conf_name，用于控制 tooltip 仅在溢出时显示）
+  const overflowStates = ref<Record<string, boolean>>({});
 
   // 表格列筛选
   const needRestartFilter = {
@@ -409,8 +413,7 @@
    * 注意：判定来源是 up_level_value.level_name（上一级层级），而非行自身的 level_name；
    * 后端在该字段中返回参数所继承的上一级配置层级。
    */
-  const isCancelUseParam = (row: ConfItem) =>
-    row.level_name !== ConfLevels.PLAT && !row.up_level_value;
+  const isCancelUseParam = (row: ConfItem) => row.level_name !== ConfLevels.PLAT && !row.up_level_value;
 
   /** 重置编辑状态 */
   const resetEditingState = () => {
@@ -420,10 +423,15 @@
     refreshTable();
   };
 
+  /** 检测单元格文本是否溢出（用于控制 tooltip 仅在溢出时显示） */
+  const handleCellMouseEnter = (e: MouseEvent, row: ConfItem) => {
+    const el = e.target as HTMLElement;
+    overflowStates.value[row.conf_name] = el.scrollWidth > el.clientWidth;
+  };
+
   /** 刷新表格数据 */
   const refreshTable = () => {
     paramTableRef.value?.fetchData({}, true);
-    setTimeout(() => initDescriptionTippy(), 300);
   };
 
   /** 初始化描述 tippy 提示 */
@@ -532,10 +540,17 @@
 
     const start = params.offset;
     const end = start + params.limit;
-    return Promise.resolve({
+    const result = {
       count: data.length,
       results: data.slice(start, end),
+    };
+
+    // 数据返回后，在 DOM 更新完成再初始化 tippy（避免分页/搜索后 tippy 失效）
+    nextTick(() => {
+      initDescriptionTippy();
     });
+
+    return Promise.resolve(result);
   };
 
   /** 获取配置 */
@@ -834,9 +849,8 @@
             affectCount === 0
               ? h('div', { class: 'affect-empty' }, t('无可恢复的参数'))
               : restorableItems.map((item) => {
-                  const originItem = originConfItems.value.find((o) => o.conf_name === item.conf_name);
                   const oldVal = item.flag_encrypt === 1 ? '******' : (item.conf_value ?? '--');
-                  const newVal = originItem?.value_default ?? '--';
+                  const newVal = item.up_level_value?.conf_value ?? '--';
                   return h('div', { class: 'affect-item', key: item.conf_name }, [
                     h('span', { class: 'affect-name' }, item.conf_name),
                     h('span', { class: 'affect-value' }, [
@@ -881,7 +895,6 @@
   /** 恢复单行默认 / 取消使用 */
   const handleShowRestoreInfoBox = (row: ConfItem) => {
     const isCancel = isCancelUseParam(row);
-    const originItem = originConfItems.value.find((o) => o.conf_name === row.conf_name);
     InfoBox({
       cancelText: t('取消'),
       confirmText: t('确认'),
@@ -896,7 +909,7 @@
               ]
             : [
                 h('p', `${t('参数名')}：${row.conf_name}`),
-                h('p', `${t('当前值')}：${row.conf_value} → ${originItem?.value_default ?? '--'}`),
+                h('p', `${t('当前值')}：${row.conf_value} → ${row.up_level_value?.conf_value ?? '--'}`),
                 h('p', t('恢复后该参数重新继承父级配置，\n随父级配置更新而自动同步')),
               ],
         ),
@@ -1004,10 +1017,11 @@
   }
 
   .value-cell-text {
-    max-width: 240px;
+    max-width: 300px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    cursor: default;
   }
 
   .value-cell-tag {
@@ -1082,6 +1096,11 @@
 </style>
 
 <style lang="less">
+  .param-table-value-tooltip {
+    max-width: 400px;
+    word-break: break-word;
+  }
+
   .description-tippy-content {
     max-width: 320px;
     padding: 12px 16px;

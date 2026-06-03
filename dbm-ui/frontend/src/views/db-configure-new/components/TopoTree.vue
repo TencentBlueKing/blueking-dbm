@@ -47,7 +47,7 @@
               {{ item.name }}
             </span>
             <BkButton
-              v-if="item.levelType === ConfLevels.APP"
+              v-if="item.levelType === ConfLevels.APP && isShowAddBtn"
               v-bk-tooltips="t('新建DB模块')"
               class="config-tree-add-btn"
               size="small"
@@ -73,7 +73,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
 
-  import { clusterTypeInfos, ClusterTypes, ConfLevels } from '@common/const';
+  import { clusterTypeInfos, ClusterTypes, ConfLevels, DBTypes } from '@common/const';
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
@@ -95,6 +95,11 @@
 
   const clusterType = computed(() => (route.params.clusterType as ClusterTypes) || ClusterTypes.TENDBSINGLE);
 
+  const isShowAddBtn = computed(() => {
+    const { dbType } = clusterTypeInfos[clusterType.value as ClusterTypes];
+    return [DBTypes.MYSQL, DBTypes.SQLSERVER, DBTypes.TENDBCLUSTER].includes(dbType);
+  });
+
   const getIconText = (item: TreeData) => {
     if (item.levelType === ConfLevels.APP) {
       return '业';
@@ -111,7 +116,9 @@
 
   const handleRefresh = () => {
     const { dbType } = clusterTypeInfos[clusterType.value as ClusterTypes];
-    dbType && fetchBusinessTopoTree(dbType);
+    if (dbType) {
+      fetchBusinessTopoTree(dbType);
+    }
   };
 
   const handleCreateModule = () => {

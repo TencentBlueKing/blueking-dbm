@@ -1,6 +1,7 @@
 import { reactive } from 'vue';
 
-export const usePagination = (options?: { callback: () => void }) => {
+export const usePagination = (options?: { callback: () => void; defaultLimit?: number }) => {
+  const defaultLimit = options?.defaultLimit ?? 20;
   const pagination = reactive<{
     align: string;
     count: number;
@@ -13,7 +14,7 @@ export const usePagination = (options?: { callback: () => void }) => {
     count: 0,
     current: 1,
     layout: ['total', 'limit', 'list'],
-    limit: 20,
+    limit: defaultLimit,
     limitList: [10, 20, 50, 100, 200, 500],
   });
 

@@ -65,7 +65,7 @@
   const props = withDefaults(defineProps<Props>(), {
     placeholder: t('请选择数据库版本'),
     prefix: t('存储层版本'),
-    queryKey: 'mysql',
+    queryKey: '',
     sourceVersion: '',
   });
 
@@ -89,7 +89,7 @@
     () => {
       fetchVersions({
         db_type: props.dbType,
-        query_key: props.queryKey,
+        query_key: props.queryKey || props.dbType,
       });
     },
     { immediate: true },

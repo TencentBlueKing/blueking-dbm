@@ -10,7 +10,6 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 -->
-
 <template>
   <SmartAction>
     <BkAlert
@@ -23,13 +22,12 @@
     <DbForm
       ref="formRef"
       class="clone-module-page db-scroll-y"
-      :label-width="168"
+      :label-width="100"
       :model="formData"
       :rules="rules">
-      <!-- 模块信息 & 绑定数据库配置（紧凑布局） -->
-      <DbCard
-        mode="collapse"
-        :title="t('模块信息')">
+      <!-- 模块信息 -->
+      <div class="module-info-card">
+        <!-- 模块名称 -->
         <BkFormItem
           class="form-item-name"
           :label="t('模块名称')"
@@ -37,15 +35,18 @@
           required>
           <BkInput
             v-model="formData.alias_name"
+            class="module-name-input"
             :maxlength="63"
             :placeholder="t('请输入模块名')"
-            show-word-limit />
+            show-word-limit
+            @change="handleValidate" />
           <div
             v-if="isValueAllowed"
             class="form-item-tips">
             {{ t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，创建后不可改') }}
           </div>
         </BkFormItem>
+        <!-- 数据库信息 -->
         <BkFormItem
           :label="t('数据库信息')"
           required>
@@ -65,13 +66,20 @@
               v-model="formData.version"
               class="version-select-inline"
               :db-type="DBTypes.SQLSERVER"
+              :prefix="t('存储层版本')"
+              :source-version="String(route.query.conf_file || '')"
               @change="handleValidate" />
+            <BkInput
+              class="ha-mode-input"
+              disabled
+              :model-value="haModeDisplay"
+              :prefix="t('主从方式')" />
             <BkSelect
-              v-model="formData.charset"
+              v-model="formData.character_set"
               class="charset-select-inline"
               :clearable="false"
               filterable
-              :placeholder="t('请选择字符集')"
+              :placeholder="t('请选择')"
               :prefix="t('字符集')"
               @change="handleValidate">
               <BkOption
@@ -90,77 +98,87 @@
             </BkSelect>
           </div>
         </BkFormItem>
-      </DbCard>
-
-      <!-- SQLServer 额外配置 -->
-      <DbCard
-        class="mt-16"
-        mode="collapse"
-        :title="t('绑定数据库配置')">
+        <!-- 部署规格 -->
         <BkFormItem
-          :label="t('操作系统版本')"
-          property="operatingSystemVersion"
+          :label="t('部署规格')"
           required>
-          <BkSelect
-            v-model="formData.operatingSystemVersion"
-            collapse-tags
-            filterable
-            multiple
-            multiple-mode="tag"
-            :placeholder="t('请选择操作系统版本')">
-            <BkOption
-              v-for="item in operatingSystemVersionList"
-              :key="item"
-              :label="item"
-              :value="item" />
-          </BkSelect>
-        </BkFormItem>
-        <BkFormItem
-          :label="t('实例内存分配比率 (50~80%)')"
-          property="memoryAllocationRatio"
-          required>
-          <div class="input-box">
+          <div class="db-config-row">
+            <BkSelect
+              v-model="formData.operatingSystemVersion"
+              class="os-version-select-inline"
+              filterable
+              multiple
+              :placeholder="t('请选择（可多选）')"
+              :prefix="t('操作系统版本')">
+              <BkOption
+                v-for="item in operatingSystemVersionList"
+                :key="item"
+                :label="item"
+                :value="item" />
+            </BkSelect>
             <BkInput
               v-model="formData.memoryAllocationRatio"
-              class="num-input"
+              class="memory-allocation-ratio-input"
               :max="80"
               :min="50"
-              :placeholder="t('请输入')"
+              :prefix="t('内存分配比率')"
+              suffix="%"
               type="number" />
-            <span class="unit-text">%</span>
-          </div>
-        </BkFormItem>
-        <BkFormItem
-          :label="t('最大系统保留内存')"
-          property="maxSystemReservedMemory"
-          required>
-          <div class="input-box">
             <BkInput
               v-model="formData.maxSystemReservedMemory"
-              class="num-input"
+              class="reserved-memory-input"
               disabled
               :min="1"
-              :placeholder="t('请输入')"
+              :prefix="t('最大 OS 保留内存')"
+              suffix="GB"
               type="number" />
-            <span class="unit-text">GB</span>
           </div>
         </BkFormItem>
-        <BkFormItem
-          :label="t('主从方式')"
-          property="haMode"
-          required>
-          <BkRadioGroup
-            v-model="formData.haMode"
-            disabled>
-            <BkRadio
-              v-for="item in haModeList"
-              :key="item.value"
-              :label="item.value">
-              {{ item.label }}
-            </BkRadio>
-          </BkRadioGroup>
-        </BkFormItem>
-      </DbCard>
+      </div>
+
+      <!-- 参数配置 — 克隆对比模式 -->
+      <div class="param-config-wrapper mt-16">
+        <BkException
+          v-if="!formData.version || confTabs.length === 0"
+          :description="t('请先选择目标数据库版本')"
+          scene="part"
+          type="empty" />
+        <template v-else>
+          <BkTab
+            :key="tabRenderKey"
+            v-model:active="activeConfType"
+            type="card-tab">
+            <BkTabPanel
+              v-for="tab of confTabs"
+              :key="tab.conf_file"
+              :name="tab.conf_file"
+              render-directive="show">
+              <template #label>
+                {{ tab.name }}
+                <span
+                  v-if="(tabChangedCountMap[tab.conf_file] ?? 0) > 0"
+                  class="tab-modified-dot" />
+              </template>
+              <!-- 首个 Tab（dbconf）：克隆对比模式，含 diff/废弃 -->
+              <ParamTable
+                v-if="tab.conf_type === 'dbconf'"
+                :ref="(el: any) => setTableRef(tab.conf_file, el)"
+                :cluster-type="clusterType"
+                :conf-type="tab.conf_type"
+                :deprecated-count="removedCount"
+                :version="tab.conf_file"
+                @deprecated-click="handleShowDeprecated" />
+              <!-- 其他 Tab：层级配置模式，仅自定义过滤 -->
+              <LevelConfigTable
+                v-else
+                :ref="(el: any) => setTableRef(tab.conf_file, el)"
+                :cluster-type="clusterType"
+                :conf-type="tab.conf_type"
+                :version="tab.conf_file" />
+            </BkTabPanel>
+          </BkTab>
+        </template>
+      </div>
     </DbForm>
     <template #action>
       <BkButton
@@ -176,12 +194,58 @@
         @click="handleCancel">
         {{ t('取消') }}
       </BkButton>
+      <!-- 全 Tab 统计汇总 -->
+      <template v-if="totalCounts.custom > 0 || totalCounts.changed > 0 || totalCounts.removed > 0">
+        <span
+          v-if="totalCounts.custom > 0"
+          class="action-stat-chip custom ml-16">
+          {{ t('自定义') }}<span class="stat-num">{{ totalCounts.custom }}</span>
+        </span>
+        <span
+          v-if="totalCounts.changed > 0"
+          class="action-stat-chip changed">
+          {{ t('参数值变化') }}<span class="stat-num">{{ totalCounts.changed }}</span>
+        </span>
+        <span
+          v-if="totalCounts.removed > 0"
+          class="action-stat-chip removed"
+          @click="handleShowDeprecated">
+          {{ t('已废弃') }}<span class="stat-num">{{ totalCounts.removed }}</span>
+        </span>
+      </template>
     </template>
   </SmartAction>
 
+  <!-- 废弃参数侧滑 -->
+  <BkSideslider
+    :is-show="isShowSlider"
+    quick-close
+    width="600px"
+    @closed="isShowSlider = false">
+    <template #header>
+      {{ t('废弃参数详情') }}
+      <span class="sideslider-sub-title">
+        {{ activeConfType }}：{{ t('共n个参数将不进入新模块', { n: deprecatedItems.length }) }}
+      </span>
+    </template>
+    <div class="deprecated-sider-body">
+      <DbTable
+        ref="sliderTableRef"
+        :data-source="deprecatedDataSource"
+        row-key="conf_name">
+        <TableColumn
+          col-key="conf_name"
+          :min-width="300"
+          :title="t('参数名')" />
+      </DbTable>
+    </div>
+  </BkSideslider>
+
   <Teleport to="#dbContentTitleAppend">
-    <span class="clone-nav-desc"> {{ t('业务') }}：{{ bizInfo.name }} </span>
-    <span class="clone-nav-desc"> {{ t('源模块') }}：{{ String(route.query.module_name) || '--' }} </span>
+    <span class="clone-module-meta">
+      <span> {{ t('业务') }}：{{ bizInfo.name || '--' }} </span>
+      <span> {{ t('源模块') }}：{{ String(route.query.module_name) || '--' }} </span>
+    </span>
   </Teleport>
 </template>
 
@@ -190,14 +254,27 @@
   import { useRequest } from 'vue-request';
 
   import { checkDbModuleUnique, createModules } from '@services/source/cmdb';
-  import { saveModulesDeployInfo } from '@services/source/configs';
+  import {
+    type CloneConfItem,
+    type CloneModuleQueryResult,
+    getLevelConfig,
+    getListClusterModuleConfFiles,
+    moduleCloneQuery,
+    saveModulesDeployInfo,
+  } from '@services/source/configs';
   import { listSqlserverSystemVersion } from '@services/source/version';
 
   import { useGlobalBizs } from '@stores';
 
   import { clusterTypeInfos, ClusterTypes, DBTypes } from '@common/const';
 
+  import DbTable from '@components/db-table/IndexNew.vue';
+
+  import { random } from '@utils';
+
   import DbVersionSelect from './components/DbVersionSelect.vue';
+  import LevelConfigTable from './components/LevelConfigTable.vue';
+  import ParamTable from './components/ParamTable.vue';
 
   defineOptions({
     name: 'SelfServiceCloneSqlServer',
@@ -216,20 +293,17 @@
 
   const isSubmitting = ref(false);
 
-  const haModeList = [
-    { label: t('镜像'), value: 'mirroring' },
-    { label: 'always on', value: 'always_on' },
-  ];
-
   const characterSets = ['Chinese_PRC_CI_AS', 'Latin1_General_100_CI_AS'];
-  /** 源字符集（从路由取，由源模块列表页 moduleInfo.charset 传入） */
-  const sourceCharset = ref<string>('');
+
   const isValueAllowed = ref(true);
 
-  // 表单数据
+  /** 源字符集（从路由取，由源模块列表页 moduleInfo.charset 传入） */
+  const sourceCharset = ref<string>('');
+
+  // 表单数据（与新建模块保持一致）
   const getFormData = () => ({
     alias_name: '',
-    charset: 'Chinese_PRC_CI_AS',
+    character_set: 'Chinese_PRC_CI_AS',
     haMode: 'mirroring',
     maxSystemReservedMemory: 32,
     memoryAllocationRatio: 80,
@@ -239,8 +313,11 @@
   const formData = reactive(getFormData());
   const formRef = ref();
 
+  const haModeDisplay = computed(() => (formData.haMode === 'mirroring' ? t('镜像') : 'always on'));
+
   /** 触发表单校验（版本或字符集 change 时） */
   const handleValidate = () => {
+    isValueAllowed.value = true;
     formRef.value?.validate();
   };
 
@@ -256,19 +333,23 @@
         },
       },
       {
-        message: t('模块名格式不正确'),
+        message: t('格式不正确_请勿使用大写_空格_下划线或特殊符号'),
         trigger: 'blur',
         validator: (value: string) => {
-          if (/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(value) || /^[a-z0-9]$/.test(value)) return true;
+          if (/^[a-z0-9-]+$/.test(value)) {
+            return true;
+          }
           isValueAllowed.value = false;
           return false;
         },
       },
       {
-        message: t('模块名不能以连字符开头或结尾'),
+        message: t('不能以连字符开头或结尾'),
         trigger: 'blur',
         validator: (value: string) => {
-          if (!/^-|-$/.test(value[0]) && !/^-|-$/.test(value[value.length - 1])) return true;
+          if (/^(?!-).*(?<!-)$/.test(value)) {
+            return true;
+          }
           isValueAllowed.value = false;
           return false;
         },
@@ -277,7 +358,7 @@
         message: '',
         trigger: 'blur',
         async validator() {
-          if (!formData.alias_name || !formData.version || !formData.charset) return true;
+          if (!formData.alias_name || !formData.version || !formData.character_set) return true;
           try {
             const data = await checkDbModuleUnique({
               bk_biz_id: String(bizId),
@@ -305,22 +386,11 @@
     manual: true,
   });
 
-  // 初始化：从路由回填源模块名
-  if (route.query.module_name) {
-    formData.alias_name = String(route.query.module_name);
-  }
-  // 源字符集从路由取（由源模块列表页 moduleInfo.charset 传入）
-  if (route.query.charset) {
-    sourceCharset.value = String(route.query.charset);
-    formData.charset = String(route.query.charset);
-  }
-
   // 版本变化时重新获取操作系统版本、更新主从方式
   watch(
     () => formData.version,
     (version) => {
       if (version) {
-        formData.operatingSystemVersion = [];
         formData.haMode = Number(version.slice(-4)) > 2017 ? 'always_on' : 'mirroring';
         fetchSystemVersions({ sqlserver_version: version });
       }
@@ -328,9 +398,244 @@
     { immediate: true },
   );
 
-  // 初始化回填
-  if (route.query.module_name) formData.alias_name = String(route.query.module_name);
-  if (route.query.charset) formData.charset = String(route.query.charset);
+  // 初始化：从路由回填源模块信息
+  if (route.query.module_name) {
+    formData.alias_name = String(route.query.module_name);
+  }
+  // 源字符集从路由取（由源模块列表页 moduleInfo.charset 传入）
+  if (route.query.charset) {
+    sourceCharset.value = String(route.query.charset);
+    formData.character_set = String(route.query.charset);
+  }
+
+  // 克隆查询原始结果
+  const cloneResult = ref<CloneModuleQueryResult>({
+    bk_biz_id: '',
+    conf_file_info: {
+      conf_file: '',
+      conf_file_lc: '',
+      conf_type: '',
+      conf_type_lc: '',
+      created_at: '',
+      description: '',
+      namespace: '',
+      namespace_info: '',
+      updated_at: '',
+      updated_by: '',
+    },
+    conf_names_deprecated: null,
+    conf_names_value_diff: {},
+    conf_names_value_modified: null,
+    content: {},
+    level_name: '',
+    level_value: '',
+  });
+
+  /** 将 content 对象转为数组，并标注 value_source 和 diff_type */
+  const currentConfItems = computed<CloneConfItem[]>(() => {
+    if (!cloneResult.value.content) return [];
+    const modifiedSet = new Set(cloneResult.value.conf_names_value_modified || []);
+    const diffMap = cloneResult.value.conf_names_value_diff || {};
+
+    return Object.values(cloneResult.value.content).map((item) => {
+      const diffValue = (diffMap as Record<string, string>)[item.conf_name];
+      const isInDiff = diffValue !== undefined;
+
+      return {
+        ...item,
+        diff_type: !isInDiff ? 'none' : diffValue === '_NONE_' ? 'new' : 'changed',
+        source_conf_value: diffValue && diffValue !== '_NONE_' ? diffValue : undefined,
+        value_source: modifiedSet.has(item.conf_name) ? 'custom' : 'source',
+      };
+    });
+  });
+
+  // 参数配置 Tab
+  const activeConfType = ref('dbconf');
+  const tabRenderKey = ref(random());
+  const confTabs = ref<ServiceReturnType<typeof getListClusterModuleConfFiles>>([]);
+
+  // 每个 confFile 对应一个 Table 实例
+  const tableRefs = ref<Record<string, any>>({});
+  const setTableRef = (name: string, el: any) => {
+    if (el) {
+      tableRefs.value[name] = el;
+    }
+  };
+
+  /** 所有 Tab 的总计已修改数量（用于 Tab 小黄点） */
+  const tabChangedCountMap = computed(() => {
+    const map: Record<string, number> = {};
+    confTabs.value.forEach((tab) => {
+      if (tab.conf_type === 'dbconf') {
+        const tableRef = tableRefs.value[tab.conf_file];
+        map[tab.conf_file] = tableRef?.changedCount ?? 0;
+      } else {
+        map[tab.conf_file] = 0;
+      }
+    });
+    return map;
+  });
+
+  /** 全 Tab 汇总统计（用于底部操作栏展示） */
+  const totalCounts = computed(() => {
+    const items = currentConfItems.value;
+    return {
+      changed: items.filter((i) => i.diff_type === 'changed' || i.diff_type === 'new').length,
+      custom: items.filter((i) => i.value_source === 'custom').length,
+      removed: deprecatedNames.value.length,
+    };
+  });
+
+  /** 废弃数量 */
+  const removedCount = computed(() => deprecatedNames.value.length);
+
+  /** 废弃参数名列表 */
+  const deprecatedNames = computed(() => cloneResult.value.conf_names_deprecated || []);
+
+  /** 废弃参数列表（用于侧滑展示） */
+  const deprecatedItems = computed<CloneConfItem[]>(() =>
+    deprecatedNames.value.map((name) => {
+      const item = cloneResult.value.content[name];
+      return item
+        ? { ...item, diff_type: 'removed' as const, value_source: 'source' as const }
+        : ({
+            conf_name: name,
+            conf_value: '',
+            description: '',
+            diff_type: 'removed' as const,
+            flag_disable: 0,
+            flag_locked: 0,
+            level_name: 'plat',
+            level_value: '',
+            op_type: '',
+            stage: 0,
+            up_level_value: null,
+            value_source: 'source' as const,
+          } satisfies CloneConfItem);
+    }),
+  );
+
+  /** 废弃侧滑数据源 */
+  const deprecatedDataSource = () =>
+    Promise.resolve({ count: deprecatedItems.value.length, results: deprecatedItems.value });
+
+  const sliderTableRef = ref();
+  const isShowSlider = ref(false);
+
+  /** 获取克隆对比结果 */
+  const { run: fetchCloneResult } = useRequest(moduleCloneQuery, {
+    manual: true,
+    onSuccess(res) {
+      cloneResult.value = res;
+      nextTick(() => {
+        const currentTable = tableRefs.value[activeConfType.value];
+        currentTable?.refreshData?.();
+      });
+    },
+  });
+
+  /** 获取配置文件 Tab 列表 */
+  const { run: fetchConfTabs } = useRequest(getListClusterModuleConfFiles, {
+    manual: true,
+    onSuccess(rawConfTabs) {
+      const tabs = rawConfTabs || [];
+      tabs[0] = { conf_file: formData.version, conf_type: 'dbconf', name: formData.version };
+      confTabs.value = tabs;
+      tabRenderKey.value = random();
+    },
+  });
+
+  /** 获取非 dbconf Tab 的层级配置数据 */
+  const { run: fetchLevelConfig } = useRequest(getLevelConfig, {
+    manual: true,
+    onSuccess(res) {
+      const items: CloneConfItem[] = (res.conf_items || []).map((item) => ({
+        conf_name: item.conf_name,
+        conf_value: item.conf_value ?? '',
+        description: item.description || '',
+        diff_type: 'none' as const,
+        flag_disable: item.flag_disable ?? 0,
+        flag_encrypt: item.flag_encrypt ?? 0,
+        flag_locked: item.flag_locked ?? 0,
+        flag_readonly: item.flag_readonly ?? 0,
+        flag_visible: item.flag_visible ?? 1,
+        level_name: (item.level_name as any) || 'plat',
+        level_value: item.leval_value ?? '',
+        need_restart: item.need_restart ?? 0,
+        op_type: item.op_type || '',
+        source_conf_value: undefined,
+        stage: 0,
+        up_level_value: null,
+        value_allowed: item.value_allowed || '',
+        value_default: item.value_default || '',
+        value_source: 'source' as const,
+        value_type: item.value_type || 'STRING',
+        value_type_sub: item.value_type_sub || '',
+      }));
+      nextTick(() => {
+        const currentTable = tableRefs.value[activeConfType.value];
+        currentTable?.setData?.(items);
+      });
+    },
+  });
+
+  // 版本变化时：刷新 Tab 列表 + 重新拉取参数对比结果
+  watch(
+    () => formData.version,
+    () => {
+      if (!formData.version) return;
+      fetchConfTabs({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        deploy_versions: JSON.stringify({ db_version: formData.version }),
+        meta_cluster_type: clusterType.value,
+      });
+      fetchCloneResult({
+        conf_type: 'dbconf',
+        meta_cluster_type: clusterType.value,
+        source_bk_biz_id: String(bizId),
+        source_conf_file: String(route.query.conf_file || ''),
+        source_module_id: String(route.query.module_id || ''),
+        target_bk_biz_id: String(bizId),
+        target_conf_file: formData.version,
+      });
+    },
+  );
+
+  // 克隆对比结果变化时，刷新当前 Tab 的表格数据
+  watch(
+    currentConfItems,
+    (items) => {
+      nextTick(() => {
+        const currentTable = tableRefs.value[activeConfType.value];
+        currentTable?.setData?.(items);
+      });
+    },
+    { immediate: true },
+  );
+
+  /** Tab 切换时：非 dbconf 调用 getLevelConfig */
+  watch(activeConfType, (tabKey) => {
+    const currentTab = confTabs.value.find((t) => t.conf_file === tabKey);
+    if (!currentTab || currentTab.conf_type === 'dbconf') return;
+
+    fetchLevelConfig({
+      bk_biz_id: Number(bizId),
+      conf_type: currentTab.conf_type,
+      level_name: 'module',
+      level_value: String(route.query.module_id || ''),
+      meta_cluster_type: clusterType.value,
+      version: tabKey,
+    });
+  });
+
+  // 显示废弃参数侧滑
+  const handleShowDeprecated = () => {
+    isShowSlider.value = true;
+    nextTick(() => {
+      sliderTableRef.value?.fetchData?.();
+    });
+  };
 
   // 创建模块 + 绑定配置
   let latestModuleId = 0;
@@ -351,13 +656,13 @@
       if (createResult.db_module_id) {
         latestModuleId = createResult.db_module_id;
 
-        // 绑定数据库配置
+        // 绑定数据库配置（部署规格）
         await saveModulesDeployInfo({
           bk_biz_id: bizId,
           conf_items: [
             {
               conf_name: 'charset',
-              conf_value: formData.charset,
+              conf_value: formData.character_set,
               description: t('字符集'),
               op_type: 'update',
             },
@@ -398,6 +703,12 @@
           meta_cluster_type: clusterType.value,
           version: 'deploy_info',
         });
+
+        // 绑定各 tab 参数配置（克隆模式：仅提交有变化的 ParamTable）
+        const bindTasks = Object.values(tableRefs.value)
+          .filter((ref) => ref?.hasChange?.())
+          .map((ref) => ref.bindConfigParameters?.());
+        await Promise.all(bindTasks);
       }
 
       window.changeConfirm = false;
@@ -453,27 +764,62 @@
     }
   }
 
-  .db-config-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    .version-select-inline,
-    .charset-select-inline {
-      width: auto;
-      min-width: 160px;
-    }
-
-    .charset-select-inline {
-      min-width: 140px;
-    }
+  .module-info-card {
+    padding: 24px;
+    background: #fff;
+    border-radius: 2px;
+    box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
   }
 
-  .db-type-tag {
-    height: 30px;
-    color: @primary-color;
-    background: white;
-    border: 1px solid @border-primary;
+  .module-name-input {
+    min-width: 844px;
+  }
+
+  .db-config-row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+
+    > *:not(.db-type-tag) {
+      min-width: 140px;
+    }
+
+    .db-type-tag {
+      flex: 0 0 auto;
+      justify-content: center;
+      min-width: 140px;
+      height: 32px;
+      color: @primary-color;
+      background: white;
+      border: 1px solid @border-primary;
+    }
+
+    .version-select-inline {
+      min-width: 268px;
+    }
+
+    .ha-mode-input {
+      min-width: 180px;
+    }
+
+    .charset-select-inline {
+      min-width: 220px;
+    }
+
+    .os-version-select-inline {
+      min-width: 420px;
+    }
+
+    .memory-allocation-ratio-input {
+      min-width: 180px;
+    }
+
+    .reserved-memory-input {
+      min-width: 220px;
+    }
   }
 
   .form-item-tips {
@@ -483,23 +829,66 @@
     position: absolute;
   }
 
-  .input-box {
-    display: flex;
-    align-items: center;
-    width: 100%;
+  .param-config-wrapper {
+    margin-top: 16px;
+    background: #fff;
+    box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
+    border-radius: 2px;
 
-    .num-input {
-      height: 32px;
-    }
-
-    .unit-text {
-      margin-left: 12px;
-      font-size: 12px;
-      color: #63656e;
+    :deep(.bk-tab-content) {
+      padding: 16px 16px 0;
     }
   }
 
-  .clone-nav-desc {
+  .tab-modified-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-left: 4px;
+    background: #f59500;
+    border-radius: 50%;
+  }
+
+  .action-stat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    font-size: 12px;
+    line-height: 18px;
+    color: #63656e;
+
+    .stat-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      border-radius: 9px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    &.custom .stat-num {
+      background: #f59500;
+    }
+
+    &.changed .stat-num {
+      background: #3a84ff;
+    }
+
+    &.removed {
+      cursor: pointer;
+
+      .stat-num {
+        background: #ea3636;
+      }
+    }
+  }
+
+  .sideslider-sub-title {
     position: relative;
     padding-left: 8px;
     margin-left: 8px;
@@ -517,6 +906,27 @@
       content: '';
       background: #dcdee5;
       transform: translateY(-50%);
+    }
+  }
+
+  .clone-module-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #979ba5;
+    margin-left: 8px;
+
+    & > span + span {
+      margin-left: 8px;
+    }
+
+    &::before {
+      content: '';
+      display: inline-block;
+      width: 1px;
+      height: 14px;
+      background: #dcdee5;
     }
   }
 

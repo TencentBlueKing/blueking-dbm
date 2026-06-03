@@ -112,6 +112,7 @@
     // 自定义排序方法
     customSortMethod?: (sort: TableSort) => any;
     dataSource: (params: any, payload?: IRequestPayload) => Promise<any>;
+    defaultLimit?: number;
     disableSelectMethod?: (data: any) => boolean | string;
     filterValue?: Record<string, string>;
     // 固定分页，不通过容器高度自动计算
@@ -163,6 +164,7 @@
     bkUiSettings: undefined,
     containerHeight: undefined,
     customSortMethod: undefined,
+    defaultLimit: undefined,
     disableSelectMethod: () => false,
     filterValue: undefined,
     fixedPagination: false,
@@ -230,6 +232,7 @@
     callback: () => {
       fetchListData();
     },
+    defaultLimit: props.defaultLimit,
   });
 
   const isSearching = ref(false);

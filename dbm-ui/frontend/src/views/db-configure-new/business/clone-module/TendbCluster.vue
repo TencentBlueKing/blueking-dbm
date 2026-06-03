@@ -38,7 +38,8 @@
             v-model="formData.alias_name"
             :maxlength="63"
             :placeholder="t('请输入模块名')"
-            show-word-limit />
+            show-word-limit
+            @change="handleValidate" />
           <div
             v-if="isValueAllowed"
             class="form-item-tips">
@@ -196,8 +197,10 @@
   </BkSideslider>
 
   <Teleport to="#dbContentTitleAppend">
-    <span class="clone-nav-desc"> {{ t('业务') }}：{{ bizInfo.name }} </span>
-    <span class="clone-nav-desc"> {{ t('源模块') }}：{{ String(route.query.module_name) || '--' }} </span>
+    <span class="clone-module-meta">
+      <span> {{ t('业务') }}：{{ bizInfo.name }} </span>
+      <span> {{ t('源模块') }}：{{ String(route.query.module_name) || '--' }} </span>
+    </span>
   </Teleport>
 </template>
 
@@ -275,6 +278,7 @@
 
   /** 触发表单校验（版本或字符集 change 时） */
   const handleValidate = () => {
+    isValueAllowed.value = true;
     formRef.value?.validate();
   };
 
@@ -291,19 +295,23 @@
         },
       },
       {
-        message: t('模块名格式不正确'),
+        message: t('格式不正确_请勿使用大写_空格_下划线或特殊符号'),
         trigger: 'blur',
         validator: (value: string) => {
-          if (/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(value) || /^[a-z0-9]$/.test(value)) return true;
+          if (/^[a-z0-9-]+$/.test(value)) {
+            return true;
+          }
           isValueAllowed.value = false;
           return false;
         },
       },
       {
-        message: t('模块名不能以连字符开头或结尾'),
+        message: t('不能以连字符开头或结尾'),
         trigger: 'blur',
         validator: (value: string) => {
-          if (!/^-|-$/.test(value[0]) && !/^-|-$/.test(value[value.length - 1])) return true;
+          if (/^(?!-).*(?<!-)$/.test(value)) {
+            return true;
+          }
           isValueAllowed.value = false;
           return false;
         },
@@ -626,6 +634,7 @@
     padding: 24px;
     background: #fff;
     border-radius: 2px;
+    box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
   }
 
   .db-config-row {
@@ -650,6 +659,8 @@
   .param-config-wrapper {
     margin-top: 16px;
     background: #fff;
+    box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
+    border-radius: 2px;
 
     :deep(.bk-tab-content) {
       padding: 16px 16px 0;
@@ -684,24 +695,24 @@
     }
   }
 
-  .clone-nav-desc {
-    position: relative;
-    padding-left: 8px;
-    margin-left: 8px;
-    font-family: 'Microsoft YaHei', sans-serif;
+  .clone-module-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     font-size: 14px;
-    line-height: 22px;
     color: #979ba5;
+    margin-left: 8px;
+
+    & > span + span {
+      margin-left: 8px;
+    }
 
     &::before {
-      position: absolute;
-      top: 50%;
-      left: 0;
-      width: 1px;
-      height: 16px;
       content: '';
+      display: inline-block;
+      width: 1px;
+      height: 14px;
       background: #dcdee5;
-      transform: translateY(-50%);
     }
   }
 

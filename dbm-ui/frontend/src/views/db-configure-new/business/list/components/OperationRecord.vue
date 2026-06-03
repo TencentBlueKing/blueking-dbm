@@ -17,16 +17,17 @@
       v-model="searchValue"
       class="mb-16"
       :data="quickSearchData"
+      parse-url
       :placeholder="t('搜索操作时间_操作人_配置类型_配置文件_操作类型_操作参数')"
       style="width: 500px"
-      @change="handleQuickSearchChange" />
+      @change="refreshTable" />
     <DbTable
       ref="tableRef"
       :custom-sort-method="handleCustomSort"
       :data-source="dataSource"
       row-key="id"
       :sort="tableSort"
-      @clear-search="handleQuickSearchChange">
+      @clear-search="refreshTable">
       <!-- 1. 操作时间 -->
       <TableColumn
         col-key="updated_at"
@@ -100,21 +101,21 @@
           <span
             v-else-if="isAddType(row.op_type)"
             class="config-change-value is-add"
-            :data-tool-tip="row.after_image?.conf_value ?? ''">
+            :data-tool-tip="JSON.stringify({ type: 'add', after: row.after_image?.conf_value ?? '' })">
             <span class="config-change-value-text">{{ row.after_image?.conf_value || t('无') }}</span>
           </span>
           <!-- 修改参数/恢复默认/删除参数 -->
           <span
             v-else
             class="config-change-value"
-            :data-tool-tip="getChangeTooltip(row)">
-            <span class="config-change-value-before">{{ truncateText(row.before_image?.conf_value) }}</span>
+            :data-tool-tip="JSON.stringify({ type: 'change', before: row.before_image?.conf_value ?? '', after: row.after_image?.conf_value ?? '' })">
+            <span class="config-change-value-before">{{ row.before_image?.conf_value ?? '' }}</span>
             <span class="config-change-value-icon">
               <DbIcon
                 size="small"
                 type="bk-dbm-icon db-icon-arrow-right" />
             </span>
-            <span class="config-change-value-after">{{ truncateText(row.after_image?.conf_value) }}</span>
+            <span class="config-change-value-after">{{ row.after_image?.conf_value ?? '' }}</span>
           </span>
         </template>
       </TableColumn>
@@ -126,8 +127,7 @@
   import dayjs from 'dayjs';
   import type { TableSort } from 'tdesign-vue-next';
   import type { Instance } from 'tippy.js';
-  import type { Ref } from 'vue';
-  import { computed } from 'vue';
+  import { computed, inject, nextTick, onUnmounted, type Ref, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getConfigItemChanges } from '@services/source/configs';
@@ -153,6 +153,7 @@
 
   const { t } = useI18n();
   const activeClusterType = inject<Ref<string>>('activeClusterType');
+  const confTabs = inject<Ref<{ conf_file: string; conf_type: string; name: string }[]>>('confTabs');
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const searchValue = ref<Record<string, any>>({});
@@ -169,54 +170,10 @@
   /** 配置文件枚举列表（从 getConfigItemChanges 返回数据中提取） */
   const confFileList = ref<{ label: string; value: string }[]>([]);
 
-  /** 更新枚举列表：从数据中提取值并去重 */
-  const updateEnumLists = (data: Record<string, any>[]) => {
-    const confTypeSet = new Set<string>();
-    const confFileSet = new Set<string>();
-
-    data.forEach((item) => {
-      const confTypeLc = item.conf_type_lc ?? '';
-      if (confTypeLc) confTypeSet.add(confTypeLc);
-
-      const confFileLc = item.conf_file_lc ?? '';
-      if (confFileLc) confFileSet.add(confFileLc);
-    });
-
-    confTypeList.value = Array.from(confTypeSet).map((name) => ({
-      label: name,
-      value: name,
-    }));
-    confFileList.value = Array.from(confFileSet).map((name) => ({
-      label: name,
-      value: name,
-    }));
-  };
+  /** tippy 实例管理 */
+  const tippyInstances: Instance[] = [];
 
   type TagTheme = '' | 'danger' | 'info' | 'success' | 'warning';
-
-  /** 操作明细文本最大显示长度 */
-  const MAX_TEXT_LEN = 20;
-
-  /** 截断文本，超出显示 ... */
-  const truncateText = (text: string | undefined | null, maxLen: number = MAX_TEXT_LEN): string => {
-    if (!text) return '';
-    return text.length > maxLen ? text.slice(0, maxLen) + '...' : text;
-  };
-
-  /** 是否为新增类型 */
-  const isAddType = (opType: string): boolean => opType === 'add' || opType === 'upsert';
-
-  /** 获取变更 tooltip 内容（修改前/修改后） */
-  const getChangeTooltip = (row: any): string => {
-    const before = row.before_image?.conf_value ?? '';
-    const after = row.after_image?.conf_value ?? '';
-    return `
-      <div class="change-title">修改前：</div>
-      <div class="change-text">${before}</div>
-      <div class="change-title" style="margin-top: 8px;">修改后：</div>
-      <div class="change-text">${after}</div>
-    `;
-  };
 
   /** 操作类型标签主题映射 */
   const operateTypeThemeMap: Record<
@@ -246,10 +203,232 @@
       text: t('修改参数'),
       theme: 'warning',
     },
-    // upsert: {
-    //   text: t('新增参数'),
-    //   theme: 'success',
-    // },
+  };
+
+  /** 是否为新增类型 */
+  const isAddType = (opType: string): boolean => opType === 'add' || opType === 'upsert';
+
+  /** 更新枚举列表：从数据中提取值并去重 */
+  const updateEnumLists = (data: Record<string, any>[]) => {
+    const confTypeSet = new Set<string>();
+    const confFileSet = new Set<string>();
+
+    data.forEach((item) => {
+      const confTypeLc = item.conf_type_lc ?? '';
+      if (confTypeLc) confTypeSet.add(confTypeLc);
+
+      const confFileLc = item.conf_file_lc ?? '';
+      if (confFileLc) confFileSet.add(confFileLc);
+    });
+
+    confTypeList.value = Array.from(confTypeSet).map((name) => ({
+      label: name,
+      value: name,
+    }));
+    confFileList.value = Array.from(confFileSet).map((name) => ({
+      label: name,
+      value: name,
+    }));
+  };
+
+  /** 初始化操作明细列的 tippy */
+  const initChangeTippy = () => {
+    tippyInstances.forEach((inst) => inst.destroy());
+    tippyInstances.length = 0;
+
+    nextTick(() => {
+      const cells = document.querySelectorAll('.config-change-value');
+      cells.forEach((el) => {
+        const cellEl = el as HTMLElement;
+        const rawData = cellEl.dataset.toolTip;
+        if (!rawData) return;
+
+        // 解析 JSON 数据
+        let data: { after?: string; before?: string; type: string };
+        try {
+          data = JSON.parse(rawData);
+        } catch {
+          return;
+        }
+
+        // 检查实际文本元素是否溢出（触发了 ellipsis）
+        let isOverflow = false;
+        if (data.type === 'add') {
+          const textEl = cellEl.querySelector('.config-change-value-text') as HTMLElement;
+          if (textEl) {
+            isOverflow = textEl.scrollWidth > textEl.clientWidth;
+          }
+        } else if (data.type === 'change') {
+          const beforeEl = cellEl.querySelector('.config-change-value-before') as HTMLElement;
+          const afterEl = cellEl.querySelector('.config-change-value-after') as HTMLElement;
+          const beforeOverflow = beforeEl ? beforeEl.scrollWidth > beforeEl.clientWidth : false;
+          const afterOverflow = afterEl ? afterEl.scrollWidth > afterEl.clientWidth : false;
+          isOverflow = beforeOverflow || afterOverflow;
+        }
+
+        if (!isOverflow) return; // 内容未溢出，不创建 tippy
+
+        if (data.type === 'add') {
+          // 新增类型：显示新增的值
+          const text = data.after ?? '--';
+
+          const contentEl = document.createElement('div');
+          contentEl.className = 'change-tippy-content';
+
+          const titleDiv = document.createElement('div');
+          titleDiv.className = 'change-title';
+          titleDiv.textContent = `${t('新增：')}`;
+          contentEl.appendChild(titleDiv);
+
+          const textDiv = document.createElement('div');
+          textDiv.className = 'change-text';
+          textDiv.textContent = text;
+          contentEl.appendChild(textDiv);
+
+          const instance = dbTippy(cellEl, {
+            allowHTML: true,
+            appendTo: () => document.body,
+            arrow: true,
+            content: contentEl,
+            hideOnClick: false,
+            interactive: false,
+            placement: 'top',
+            theme: 'light',
+            trigger: 'mouseenter focus',
+            zIndex: 9999,
+          });
+          tippyInstances.push(instance);
+        } else if (data.type === 'change') {
+          // 修改类型：显示 修改前 / 修改后
+          const beforeText = data.before ?? '--';
+          const afterText = data.after ?? '--';
+
+          const contentEl = document.createElement('div');
+          contentEl.className = 'change-tippy-content';
+
+          // 修改前
+          const beforeTitleDiv = document.createElement('div');
+          beforeTitleDiv.className = 'change-title';
+          beforeTitleDiv.textContent = t('修改前：');
+          contentEl.appendChild(beforeTitleDiv);
+
+          const beforeTextDiv = document.createElement('div');
+          beforeTextDiv.className = 'change-text';
+          beforeTextDiv.textContent = beforeText;
+          contentEl.appendChild(beforeTextDiv);
+
+          // 修改后（与修改前之间增加间距）
+          const afterTitleDiv = document.createElement('div');
+          afterTitleDiv.className = 'change-title';
+          afterTitleDiv.style.marginTop = '8px';
+          afterTitleDiv.textContent = t('修改后：');
+          contentEl.appendChild(afterTitleDiv);
+
+          const afterTextDiv = document.createElement('div');
+          afterTextDiv.className = 'change-text';
+          afterTextDiv.textContent = afterText;
+          contentEl.appendChild(afterTextDiv);
+
+          const instance = dbTippy(cellEl, {
+            allowHTML: true,
+            appendTo: () => document.body,
+            arrow: true,
+            content: contentEl,
+            hideOnClick: false,
+            interactive: false,
+            placement: 'top',
+            theme: 'light',
+            trigger: 'mouseenter focus',
+            zIndex: 9999,
+          });
+          tippyInstances.push(instance);
+        }
+      });
+    });
+  };
+
+  /** 数据源函数 - 适配 DbTable 组件 */
+  const dataSource = async (params: { limit: number; offset: number }) => {
+    const defaultConfType = [...new Set(confTabs?.value.map((item) => item.conf_type))].join(',');
+    if (!activeClusterType?.value || !defaultConfType) {
+      return { count: 0, results: [] };
+    }
+    const res = await getConfigItemChanges({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      conf_file: props.confFile || undefined,
+      conf_type: props.confType || defaultConfType || undefined,
+      level_name: props.levelName || undefined,
+      level_value: props.levelValue,
+      namespace: activeClusterType.value,
+    });
+
+    // 更新枚举列表（配置类型、配置文件）
+    updateEnumLists(res.results || []);
+
+    // 前端过滤
+    let filteredData = res.results || [];
+
+    // 按当前排序状态动态排序
+    filteredData.sort((a, b) => {
+      const valA = String((a as Record<string, any>)[tableSort.value.sortBy] ?? '');
+      const valB = String((b as Record<string, any>)[tableSort.value.sortBy] ?? '');
+      return tableSort.value.descending ? valB.localeCompare(valA) : valA.localeCompare(valB);
+    });
+
+    const filters = searchValue.value;
+    if (Object.keys(filters).length > 0) {
+      filteredData = filteredData.filter((item) =>
+        Object.entries(filters).every(([key, val]) => {
+          if (!val || (Array.isArray(val) && val.length === 0)) return true;
+
+          // multiple 类型：值是数组
+          if (Array.isArray(val)) {
+            // datetime-range：值是 [Date, Date]
+            if (key === 'updated_at') {
+              const [start, end] = val as Date[];
+              const itemDate = new Date((item as Record<string, any>)[key]);
+              return itemDate >= start && itemDate <= end;
+            }
+            // multiple 枚举：值是字符串数组，判断数据中对应字段是否包含在数组中
+            const fieldValue = String((item as Record<string, any>)[key] ?? '');
+            return val.includes(fieldValue);
+          }
+
+          // input 类型：字符串模糊匹配
+          const search = String(val).toLowerCase();
+          const fieldValue = String((item as Record<string, any>)[key] ?? '').toLowerCase();
+          return fieldValue.includes(search);
+        }),
+      );
+    }
+
+    // 前端分页
+    const start = params.offset;
+    const end = start + params.limit;
+    const result = {
+      count: filteredData.length,
+      results: filteredData.slice(start, end),
+    };
+
+    // 数据返回后，在 DOM 更新完成再初始化 tippy（避免分页/搜索后 tippy 失效）
+    nextTick(() => {
+      initChangeTippy();
+    });
+
+    return result;
+  };
+
+  /** 刷新表格 */
+  const refreshTable = () => {
+    tableRef.value?.fetchData({}, true);
+  };
+
+  /** 自定义排序方法：更新排序状态并重新拉取数据 */
+  const handleCustomSort = (sort: TableSort) => {
+    if (!Array.isArray(sort) && sort?.sortBy) {
+      tableSort.value = { descending: sort.descending, sortBy: sort.sortBy };
+    }
+    refreshTable();
   };
 
   /** 搜索配置：字段顺序与表格列对齐 */
@@ -347,128 +526,12 @@
     },
   ]);
 
-  /** tippy 实例管理 */
-  const tippyInstances: Instance[] = [];
-
-  /** 初始化操作明细列的 tippy */
-  const initChangeTippy = () => {
-    tippyInstances.forEach((inst) => inst.destroy());
-    tippyInstances.length = 0;
-
-    nextTick(() => {
-      const cells = document.querySelectorAll('.config-change-value');
-      cells.forEach((el) => {
-        const cellEl = el as HTMLElement;
-        const content = cellEl.dataset.toolTip;
-        if (!content) return;
-        if (content === '--' || content === '') return;
-
-        // 创建带样式的 DOM 元素作为 content
-        const contentEl = document.createElement('div');
-        contentEl.className = 'change-tippy-content';
-        contentEl.innerHTML = content;
-
-        const instance = dbTippy(cellEl, {
-          allowHTML: true,
-          appendTo: () => document.body,
-          arrow: true,
-          content: contentEl,
-          hideOnClick: false,
-          interactive: false,
-          placement: 'top',
-          theme: 'light',
-          trigger: 'mouseenter focus',
-          zIndex: 9999,
-        });
-        tippyInstances.push(instance);
-      });
-    });
-  };
-
-  /** 数据源函数 - 适配 DbTable 组件 */
-  const dataSource = async (params: { limit: number; offset: number }) => {
-    if (!activeClusterType?.value) {
-      return { count: 0, results: [] };
-    }
-    const res = await getConfigItemChanges({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      conf_file: props.confFile || undefined,
-      conf_type: props.confType || undefined,
-      level_name: props.levelName || undefined,
-      level_value: props.levelValue,
-      namespace: activeClusterType.value,
-    });
-
-    // 更新枚举列表（配置类型、配置文件）
-    updateEnumLists(res.results || []);
-
-    // 前端过滤
-    let filteredData = res.results || [];
-
-    // 按当前排序状态动态排序
-    filteredData.sort((a, b) => {
-      const valA = String((a as Record<string, any>)[tableSort.value.sortBy] ?? '');
-      const valB = String((b as Record<string, any>)[tableSort.value.sortBy] ?? '');
-      return tableSort.value.descending ? valB.localeCompare(valA) : valA.localeCompare(valB);
-    });
-
-    const filters = searchValue.value;
-    if (Object.keys(filters).length > 0) {
-      filteredData = filteredData.filter((item) =>
-        Object.entries(filters).every(([key, val]) => {
-          if (!val || (Array.isArray(val) && val.length === 0)) return true;
-
-          // multiple 类型：值是数组
-          if (Array.isArray(val)) {
-            // datetime-range：值是 [Date, Date]
-            if (key === 'updated_at') {
-              const [start, end] = val as Date[];
-              const itemDate = new Date((item as Record<string, any>)[key]);
-              return itemDate >= start && itemDate <= end;
-            }
-            // multiple 枚举：值是字符串数组，判断数据中对应字段是否包含在数组中
-            const fieldValue = String((item as Record<string, any>)[key] ?? '');
-            return val.includes(fieldValue);
-          }
-
-          // input 类型：字符串模糊匹配
-          const search = String(val).toLowerCase();
-          const fieldValue = String((item as Record<string, any>)[key] ?? '').toLowerCase();
-          return fieldValue.includes(search);
-        }),
-      );
-    }
-
-    // 前端分页
-    const start = params.offset;
-    const end = start + params.limit;
-    return {
-      count: filteredData.length,
-      results: filteredData.slice(start, end),
-    };
-  };
-
-  const handleQuickSearchChange = () => {
-    tableRef.value?.fetchData({}, true);
-  };
-
-  /** 自定义排序方法：更新排序状态并重新拉取数据 */
-  const handleCustomSort = (sort: TableSort) => {
-    if (!Array.isArray(sort) && sort?.sortBy) {
-      tableSort.value = { descending: sort.descending, sortBy: sort.sortBy };
-    }
-    tableRef.value?.fetchData({}, true);
-  };
-
-  /** 刷新表格并重新初始化 tippy */
-  const refreshTable = () => {
-    tableRef.value?.fetchData({}, true);
-    setTimeout(() => initChangeTippy(), 300);
-  };
-
-  onMounted(() => {
-    refreshTable();
-  });
+  watch(
+    () => confTabs?.value,
+    () => {
+      refreshTable();
+    },
+  );
 
   onUnmounted(() => {
     tippyInstances.forEach((inst) => inst.destroy());
@@ -495,18 +558,25 @@
     }
 
     &-text {
+      display: block;
+      flex: 1 1 0;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &-before,
+    &-after {
+      flex: 0 1 auto;
+      min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     &-before {
-      flex: 0 0 auto;
-      max-width: 240px;
       color: #f59500;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
     }
 
     &-icon {
@@ -525,12 +595,7 @@
     }
 
     &-after {
-      flex: 0 0 auto;
-      max-width: 240px;
       color: #2caf5e;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
     }
   }
 </style>

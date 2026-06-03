@@ -41,16 +41,17 @@
           parse-url
           :placeholder="t('搜索参数名_当前值_允许值_重启生效')"
           style="width: 500px"
-          @change="refreshTable" />
+          @change="refreshData" />
       </div>
     </div>
     <DbTable
       ref="tableRef"
       :data-source="filteredDataSource"
+      :default-limit="100"
       :filter-value="searchValue"
       :fixed-pagination="false"
       row-key="conf_name"
-      @clear-search="refreshTable"
+      @clear-search="refreshData"
       @filter-change="handleColumnFilterChange">
       <TableColumn
         col-key="conf_name"
@@ -81,7 +82,16 @@
         :title="t('参数值')"
         :width="300">
         <template #default="{ row }">
-          <span class="value-cell-text">{{ row.conf_value ?? '--' }}</span>
+          <span
+            v-bk-tooltips="{
+              content: row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--'),
+              disabled: !row.conf_value || !overflowStates[row.conf_name],
+              extCls: 'param-table-value-tooltip',
+            }"
+            class="value-cell-text"
+            @mouseenter="handleCellMouseEnter($event, row)">
+            {{ row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--') }}
+          </span>
           <!-- 新增标注 -->
           <span
             v-if="row.diff_type === 'new'"
@@ -92,7 +102,7 @@
           <span
             v-if="row.diff_type === 'changed' && row.source_conf_value !== undefined"
             class="value-tag">
-            ({{ t('源值') }}: {{ row.source_conf_value }})
+            ({{ t('源值') }}: {{ row.flag_encrypt === 1 ? '******' : (row.source_conf_value ?? '--') }})
           </span>
           <!-- 自定义标注 -->
           <BkTag
@@ -168,6 +178,8 @@
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const tippyInstances: Instance[] = [];
   const loading = ref(false);
+  /** 记录单元格文本是否溢出 */
+  const overflowStates = ref<Record<string, boolean>>({});
   /** 内部过滤状态 */
   const activeFilter = ref<'all' | 'custom' | 'changed' | 'removed'>('all');
   // 搜索
@@ -210,55 +222,20 @@
   }));
 
   // ====== 方法 ======
+  /** 刷新表格 */
+  const refreshData = () => {
+    tableRef.value?.fetchData({}, true);
+  };
+
   /** 切换过滤类型（胶囊） */
   const handleCapsuleFilterChange = (type: 'custom' | 'changed') => {
     activeFilter.value = activeFilter.value === type ? 'all' : type;
-    refreshTable();
+    refreshData();
   };
 
   /** 列筛选值变化（表头筛选） */
   const handleColumnFilterChange = (filterValue: Record<string, string>) => {
     searchValue.value = filterValue;
-  };
-
-  /** 过滤后的数据源 */
-  const filteredDataSource = (params: { limit: number; offset: number }) => {
-    let data = [...allItems.value];
-
-    if (activeFilter.value === 'custom') {
-      data = data.filter((i) => i.value_source === 'custom');
-    } else if (activeFilter.value === 'changed') {
-      data = data.filter((i) => i.diff_type === 'changed' || i.diff_type === 'new');
-    }
-
-    // 搜索 + 列筛选统一过滤
-    const filters = searchValue.value;
-    if (Object.keys(filters).length > 0) {
-      data = data.filter((item) =>
-        Object.entries(filters).every(([key, val]) => {
-          if (!val) return true;
-          if (key === 'need_restart') {
-            return val.split(',').includes(String(item.need_restart));
-          }
-          const search = String(val).toLowerCase();
-          const fieldValue = String((item as Record<string, any>)[key] ?? '').toLowerCase();
-          return fieldValue.includes(search);
-        }),
-      );
-    }
-
-    return Promise.resolve({ count: data.length, results: data.slice(params.offset, params.offset + params.limit) });
-  };
-
-  /** 刷新表格 */
-  const refreshTable = () => {
-    tableRef.value?.fetchData({}, true);
-    setTimeout(() => initDescriptionTippy(), 300);
-  };
-
-  /** 显示废弃参数侧滑 */
-  const handleShowDeprecated = () => {
-    emit('deprecatedClick');
   };
 
   /** 初始化描述 tippy 提示 */
@@ -296,13 +273,62 @@
     });
   };
 
-  /** 刷新数据（供父组件调用） */
-  const refreshData = () => refreshTable();
+  /** 过滤后的数据源 */
+  const filteredDataSource = (params: { limit: number; offset: number }) => {
+    let data = [...allItems.value];
+
+    if (activeFilter.value === 'custom') {
+      data = data.filter((i) => i.value_source === 'custom');
+    } else if (activeFilter.value === 'changed') {
+      data = data.filter((i) => i.diff_type === 'changed' || i.diff_type === 'new');
+    }
+
+    // 搜索 + 列筛选统一过滤
+    const filters = searchValue.value;
+    if (Object.keys(filters).length > 0) {
+      data = data.filter((item) =>
+        Object.entries(filters).every(([key, val]) => {
+          if (!val) return true;
+          if (key === 'need_restart') {
+            return val.split(',').includes(String(item.need_restart));
+          }
+          const search = String(val).toLowerCase();
+          const fieldValue = String((item as Record<string, any>)[key] ?? '').toLowerCase();
+          return fieldValue.includes(search);
+        }),
+      );
+    }
+
+    const start = params.offset;
+    const end = start + params.limit;
+    const result = {
+      count: data.length,
+      results: data.slice(start, end),
+    };
+
+    // 数据返回后，在 DOM 更新完成再初始化 tippy（避免分页/搜索后 tippy 失效）
+    nextTick(() => {
+      initDescriptionTippy();
+    });
+
+    return Promise.resolve(result);
+  };
+
+  /** 显示废弃参数侧滑 */
+  const handleShowDeprecated = () => {
+    emit('deprecatedClick');
+  };
+
+  /** 检测单元格文本是否溢出 */
+  const handleCellMouseEnter = (e: MouseEvent, row: CloneConfItem) => {
+    const el = e.target as HTMLElement;
+    overflowStates.value[row.conf_name] = el.scrollWidth > el.clientWidth;
+  };
 
   /** 设置数据（由父组件调用） */
   const setData = (items: CloneConfItem[]) => {
     allItems.value = items;
-    nextTick(() => refreshTable());
+    nextTick(() => refreshData());
   };
 
   // ====== 生命周期 ======
@@ -430,9 +456,11 @@
   }
 
   .value-cell-text {
+    max-width: 300px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    cursor: default;
   }
 
   .value-tag {
@@ -459,6 +487,11 @@
 </style>
 
 <style lang="less">
+  .param-table-value-tooltip {
+    max-width: 400px;
+    word-break: break-word;
+  }
+
   .description-tippy-content {
     max-width: 320px;
     padding: 12px 16px;
