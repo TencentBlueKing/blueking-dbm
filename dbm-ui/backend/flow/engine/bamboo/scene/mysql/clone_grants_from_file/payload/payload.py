@@ -60,9 +60,8 @@ class CloneGrantsFromFilePayload(PayloadBase, MySQLAccountMixed):
         }
 
     def on_dest(self, **kwargs):
-        ip = kwargs["ip"]  # self.cluster["ip"]
-        m = Machine.objects.get(ip=ip, bk_cloud_id=self.bk_cloud_id)
-        if m.machine_type == MachineType.SPIDER:
+        is_spider = self.cluster.get("is_spider", False)
+        if is_spider:
             db_type = DBActuatorTypeEnum.Spider.value
         else:
             db_type = DBActuatorTypeEnum.MySQL.value
@@ -98,7 +97,7 @@ class CloneGrantsFromFilePayload(PayloadBase, MySQLAccountMixed):
                     "source_priv_file_path": self.cluster["source_priv_file_path"],
                     "target_ip": kwargs["ip"],
                     "target_port": int(self.cluster["dest_port"]),
-                    "is_spider": self.cluster["is_spider"],
+                    "is_spider": is_spider,
                 },
             },
         }

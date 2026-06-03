@@ -1,9 +1,10 @@
 package drs
 
 func RPCMySQL(
-	bkCloudId int64, addresses, cmds []string, force bool, timeout int64) ([]*OneAddressResult, error) {
+	bkCloudId int64, addresses, cmds []string, force bool, timeout int64,
+) ([]*OneAddressResult, error) {
 	return dc.rpc(
-		"/mysql/rpc/",
+		"/v2/mysql/rpc/",
 		&drsRequest{
 			Addresses:    addresses,
 			Cmds:         cmds,
@@ -15,7 +16,8 @@ func RPCMySQL(
 }
 
 func RPCProxyAdmin(
-	bkCloudId int64, addresses, cmds []string, force bool, timeout int64) ([]*OneAddressResult, error) {
+	bkCloudId int64, addresses, cmds []string, force bool, timeout int64,
+) ([]*OneAddressResult, error) {
 	return dc.rpc(
 		"/proxy-admin/rpc/",
 		&drsRequest{

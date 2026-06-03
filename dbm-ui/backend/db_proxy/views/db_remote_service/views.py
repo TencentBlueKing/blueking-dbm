@@ -38,6 +38,17 @@ class DRSApiProxyPassViewSet(BaseProxyPassViewSet):
         return Response(DRSApi.rpc(params=validated_data))
 
     @common_swagger_auto_schema(
+        operation_summary=_("[db-remote-service]SQL远程执行 v2"),
+        request_body=RPCSerializer(),
+        responses={status.HTTP_200_OK: RPCResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=RPCSerializer, url_path="drs/v2/mysql/rpc")
+    def v2_mysql_rpc(self, request):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(DRSApi.v2_mysql_rpc(params=validated_data))
+
+    @common_swagger_auto_schema(
         operation_summary=_("[db-remote-service]Proxy SQL远程执行"),
         request_body=RPCSerializer(),
         responses={status.HTTP_200_OK: RPCResponseSerializer()},
