@@ -116,11 +116,11 @@ type SlaveTimeDelayInfo struct {
 
 // MasterStatusInfo represents MySQL master status information
 type MasterStatusInfo struct {
-	File            string
-	Position        uint64
-	BinlogDoDB      string
-	BinlogIgnoreDB  string
-	ExecutedGtidSet string
+	File            string `gorm:"column:File"              json:"File"`
+	Position        uint64 `gorm:"column:Position"          json:"Position"`
+	BinlogDoDB      string `gorm:"column:Binlog_Do_DB"      json:"Binlog_Do_DB"`
+	BinlogIgnoreDB  string `gorm:"column:Binlog_Ignore_DB"  json:"Binlog_Ignore_DB"`
+	ExecutedGtidSet string `gorm:"column:Executed_Gtid_Set" json:"Executed_Gtid_Set"`
 }
 
 // ProxyBackendInfo contains proxy backend connection information
@@ -691,8 +691,8 @@ func DoResetSlaveWithBinlogPos(
 
 	if reportLogf != nil {
 		reportLogf(switchlogger.SwitchInfo, "successfully reset slave status for the slave node(%s:%d), "+
-			"binlog info: [binlog_file:%s, binlog_pos:%d]",
-			slaveIp, slavePort, masterStatus.File, masterStatus.Position)
+			"binlog file: \"%s\", binlog position: %d, executed_gtid_set: \"%s\"",
+			slaveIp, slavePort, masterStatus.File, masterStatus.Position, masterStatus.ExecutedGtidSet)
 	}
 
 	return masterStatus.File, masterStatus.Position, nil

@@ -53,11 +53,11 @@ type ProxyBackendInfo struct {
 
 // MasterStatusInfo represents MySQL master status information
 type MasterStatusInfo struct {
-	File            string
-	Position        uint64
-	BinlogDoDB      string
-	BinlogIgnoreDB  string
-	ExecutedGtidSet string
+	File            string `gorm:"column:File"              json:"File"`
+	Position        uint64 `gorm:"column:Position"          json:"Position"`
+	BinlogDoDB      string `gorm:"column:Binlog_Do_DB"      json:"Binlog_Do_DB"`
+	BinlogIgnoreDB  string `gorm:"column:Binlog_Ignore_DB"  json:"Binlog_Ignore_DB"`
+	ExecutedGtidSet string `gorm:"column:Executed_Gtid_Set" json:"Executed_Gtid_Set"`
 }
 
 // SlaveStatusInfo represents MySQL slave status information

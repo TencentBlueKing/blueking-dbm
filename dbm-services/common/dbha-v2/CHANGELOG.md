@@ -5,6 +5,7 @@
 
 ## v2.0.0-beta.8
 - 【新增】通过 DBHA v1 提供的查询 API，与 DBHA v1 共享同一个白名单。
+- 【优化】切换流程里修复 Tdbctl 主从同步关系时采用位点同步方式。
 
 ## v2.0.0-beta.7
 - 【新增】Probe 维护/查询 `master_slave_heartbeat`，上报mysql实例心跳状态以及mysql slave的心跳延迟。
