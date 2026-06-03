@@ -60,6 +60,8 @@ class Machine(AuditedModel):
     spec_config = models.JSONField(default=dict, help_text=_("当前的虚拟规格配置"))
     system_info = models.JSONField(default=dict, help_text=_("机器采集的系统信息"))
     storage_device = models.JSONField(
+        null=True,
+        blank=True,
         default=dict,
         help_text=_(
             "主机真实磁盘块设备信息: "

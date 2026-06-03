@@ -20,6 +20,8 @@ class Migration(migrations.Migration):
             name="storage_device",
             field=models.JSONField(
                 default=dict,
+                null=True,
+                blank=True,
                 help_text='主机真实磁盘块设备信息: {"/data": {"size": 100, "disk_id": "disk-xxx", "disk_type": "CLOUD_PREMIUM", "file_type": "ext4"}}',
             ),
         ),
