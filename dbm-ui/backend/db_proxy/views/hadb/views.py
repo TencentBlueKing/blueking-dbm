@@ -18,7 +18,7 @@ from backend.components.hadb.client import HADBApi
 from backend.db_proxy.constants import SWAGGER_TAG
 
 from ..views import BaseProxyPassViewSet
-from .serializers import HADBProxyPassSerializer
+from .serializers import HADBBlackWhiteListSerializer, HADBProxyPassSerializer
 
 
 class HADBProxyPassViewSet(BaseProxyPassViewSet):
@@ -85,3 +85,15 @@ class HADBProxyPassViewSet(BaseProxyPassViewSet):
     def shieldconfig(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
         return Response(HADBApi.shieldconfig(params=validated_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("[hadb]DBHA黑白名单"),
+        request_body=HADBBlackWhiteListSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"], detail=False, serializer_class=HADBBlackWhiteListSerializer, url_path="hadb/blackwhitelist"
+    )
+    def black_white_list(self, request, *args, **kwargs):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(HADBApi.black_white_list(params=validated_data))
