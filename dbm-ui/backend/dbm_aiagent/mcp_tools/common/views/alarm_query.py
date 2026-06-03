@@ -13,7 +13,6 @@ from rest_framework.response import Response
 from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clusters
 from backend.dbm_aiagent.mcp_tools.common.impl.query_monitor_alarm_info import QueryMonitorAlarm
 from backend.dbm_aiagent.mcp_tools.common.serializers.alarm_query import (
-    QueryAlertInputSerializer,
     SearchAlertInputSerializer,
     SearchAlertOutputSerializer,
 )
@@ -42,36 +41,17 @@ class MonitorQueryMcpToolsViewSet(McpToolsViewSet):
         cluster_domains = self.get_param("cluster_domains")
         start_time = self.get_param("start_time")
         end_time = self.get_param("end_time")
+        exclude_shielded = self.get_param("exclude_shielded")
+        severities = self.get_param("severities")
+        statuses = self.get_param("statuses")
         return Response(
             QueryMonitorAlarm.query_alarm_for_cluster_ids(
                 bk_biz_id=bk_biz_id,
                 cluster_domains=cluster_domains,
                 start_time=start_time,
                 end_time=end_time,
-            )
-        )
-
-    @mcp_tools_api_decorator(
-        description=str(_("""查询集群的某段时间内的告警记录，支持传入告警状态。不传则查所有状态""")),
-        request_slz=QueryAlertInputSerializer,
-        response_slz=SearchAlertOutputSerializer,
-        tags=[DBMMCPTags.READ],
-        permission_classes=[McpClusterDetailPermission],
-        mcp_auth_parser=auth_parse_clusters,
-        mcp=[DBMMcpTools.MYSQL_METRICS],
-        name_prefix="alarm",
-    )
-    def query_with_status(self, request, *args, **kwargs):
-        bk_biz_id = int(self.get_param("bk_biz_id"))
-        cluster_domains = self.get_param("cluster_domains")
-        start_time = self.get_param("start_time")
-        end_time = self.get_param("end_time")
-        # status = self.get_param("status")
-        return Response(
-            QueryMonitorAlarm.query_alarm_for_cluster_ids(
-                bk_biz_id=bk_biz_id,
-                cluster_domains=cluster_domains,
-                start_time=start_time,
-                end_time=end_time,
+                exclude_shielded=exclude_shielded,
+                severities=severities,
+                statuses=statuses,
             )
         )

@@ -24,7 +24,7 @@ def sqlserver_cluster_topo(cluster_domain: str) -> Dict:
         sync_mode = None
 
     return {
-        "cluster_type": cluster.cluster_type.value,
+        "cluster_type": cluster.cluster_type,
         "cluster_domain": cluster_domain,
         "region": cluster.region,
         "tolerance_level": cluster.disaster_tolerance_level,
