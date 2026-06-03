@@ -33,8 +33,8 @@ class HCMResourceReplenishService(BaseService):
 
     __need_schedule__ = True
     interval = StaticIntervalGenerator(10)
-    # 候选机型数量，先固定为3
-    CANDIDATE_DEVICE_NUM = 3
+    # 候选机型数量，先固定为10
+    CANDIDATE_DEVICE_NUM = 10
 
     def __get_ticket_flow(self, global_data):
         try:
@@ -45,31 +45,44 @@ class HCMResourceReplenishService(BaseService):
             raise Exception(_("关联单据/flow不存在，推测此流程已结束/已废弃，建议终止任务"))
 
     def __do_create_apply(self, bk_biz_id, ticket, spec, kwargs, apply_count, device_index):
-        return HCMApi.create_apply(
-            bk_biz_id=bk_biz_id,
-            username=ticket.creator,
-            city=kwargs["city"],
-            subzone=kwargs["subzone"],
-            os_name=kwargs["os_name"],
-            device_types=spec.device_class,
-            disk=[{"disk_type": s["type"], "disk_size": s["min"]} for s in spec.storage_spec if s.get("min")],
-            count=apply_count,
-            ticket_id=ticket.id,
-            device_index=device_index,
-        )
+        device_index = self.__find_candidate_device(spec, kwargs, device_index)
+        try:
+            apply_id = HCMApi.create_apply(
+                bk_biz_id=bk_biz_id,
+                ticket_id=ticket.id,
+                username=ticket.creator,
+                city=kwargs["city"],
+                subzone=kwargs["subzone"],
+                os_name=kwargs["os_name"],
+                device_types=spec.device_class,
+                disk=[{"disk_type": s["type"], "disk_size": s["min"]} for s in spec.storage_spec if s.get("min")],
+                count=apply_count,
+                device_index=device_index,
+            )
+            return apply_id, device_index
+        except Exception as e:
+            self.log_error(_("创建申请单错误: {}, 尝试下一个机型申请").format(e))
+            return self.__do_create_apply(bk_biz_id, ticket, spec, kwargs, apply_count, device_index + 1)
 
     def __do_modify_apply(self, suborder_id, bk_biz_id, ticket, spec, kwargs, apply_count, device_index):
-        return HCMApi.modify_apply(
-            suborder_id=suborder_id,
-            bk_biz_id=bk_biz_id,
-            username=ticket.creator,
-            subzone=kwargs["subzone"],
-            os_name=kwargs["os_name"],
-            device_types=spec.device_class,
-            disk=[{"disk_type": s["type"], "disk_size": s["min"]} for s in spec.storage_spec if s.get("min")],
-            count=apply_count,
-            device_index=device_index,
-        )
+        device_index = self.__find_candidate_device(spec, kwargs, device_index)
+        try:
+            HCMApi.modify_apply(
+                suborder_id=suborder_id,
+                bk_biz_id=bk_biz_id,
+                ticket_id=ticket.id,
+                username=ticket.creator,
+                subzone=kwargs["subzone"],
+                os_name=kwargs["os_name"],
+                device_types=spec.device_class,
+                disk=[{"disk_type": s["type"], "disk_size": s["min"]} for s in spec.storage_spec if s.get("min")],
+                count=apply_count,
+                device_index=device_index,
+            )
+            return device_index
+        except Exception as e:
+            self.log_error(_("修改申请单错误: {}, 尝试下一个机型申请").format(e))
+            return self.__do_modify_apply(suborder_id, bk_biz_id, ticket, spec, kwargs, apply_count, device_index + 1)
 
     def __find_candidate_device(self, spec, kwargs, candidate_index):
         for index in range(candidate_index, min(len(spec.device_class), self.CANDIDATE_DEVICE_NUM)):
@@ -77,7 +90,7 @@ class HCMResourceReplenishService(BaseService):
             if capacity > 0:
                 return index
 
-        return -1
+        raise Exception(_("在所有候选机型中，都没有库存容量，请稍后重试"))
 
     def _execute(self, data, parent_data):
         global_data = data.get_one_of_inputs("global_data")
@@ -101,23 +114,20 @@ class HCMResourceReplenishService(BaseService):
             self.log_error(_("该规格{}不存在机型，无法进行资源补货").format(spec.spec_name))
             return False
 
-        # 查询有容量申请的机型
-        device_index = self.__find_candidate_device(spec, kwargs, 0)
-        if device_index < 0:
-            self.log_error(_("在所有候选机型中，都没有库存容量，请稍后重试"))
-            return False
-
         # 第一次申请发起新的申请单，如果已有申请单，则重试申请。
+        device_index = 0
         apply_id, suborder_id = flow.context.get("apply_id"), flow.context.get("suborder_id")
         if not suborder_id:
-            apply_id = self.__do_create_apply(bk_biz_id, ticket, spec, kwargs, apply_count, device_index)
+            apply_id, device_index = self.__do_create_apply(bk_biz_id, ticket, spec, kwargs, apply_count, device_index)
         else:
             # 先判断单据状态，如果已经非失败暂停，则不进行重试(可能是在海磊平台操作了)
             apply_ticket = HCMApi.get_apply_status(params={"order_id": apply_id}, use_admin=True)["info"][0]
             if apply_ticket["stage"] != "SUSPEND":
                 self.log_info(_("单据{}状态为{}，非失败暂停状态跳过重试").format(apply_id, apply_ticket["stage"]))
             else:
-                self.__do_modify_apply(suborder_id, bk_biz_id, ticket, spec, kwargs, apply_count, device_index)
+                device_index = self.__do_modify_apply(
+                    suborder_id, bk_biz_id, ticket, spec, kwargs, apply_count, device_index
+                )
 
         self.log_info(_("海磊资源单发起成功，单号: {}").format(apply_id))
         data.outputs.apply_id = apply_id
@@ -160,14 +170,10 @@ class HCMResourceReplenishService(BaseService):
 
         # 当前机型没有申请到任何资源，则更换机型进行再次申请
         if not apply_detail:
-            device_index = self.__find_candidate_device(spec, kwargs, device_index + 1)
-            if device_index < 0:
-                self.log_error(_("在所有候选机型中，都没有库存容量，请稍后重试"))
-                return False
-            else:
-                self.__do_modify_apply(suborder_id, bk_biz_id, ticket, spec, kwargs, apply_count, device_index)
-                data.outputs.device_index = device_index
-                return True
+            data.outputs.device_index = self.__do_modify_apply(
+                suborder_id, bk_biz_id, ticket, spec, kwargs, apply_count, device_index + 1
+            )
+            return True
 
         # 格式化申请的主机信息
         host_ips = [host["ip"] for host in apply_detail]

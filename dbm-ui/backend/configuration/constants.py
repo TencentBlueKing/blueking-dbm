@@ -192,6 +192,7 @@ class SystemSettingsEnum(StrStructuredEnum):
     REPLENISH_RATIO_MAP = EnumField("REPLENISH_RATIO_MAP", _("补货比例"))
     REPLENISH_OS_MAP = EnumField("REPLENISH_OS_MAP", _("补货操作系统映射"))
     REPLENISH_SUBZONE_MAP = EnumField("REPLENISH_SUBZONE_MAP", _("补货园区映射"))
+    REPLENISH_EXCLUDED_CITY = EnumField("REPLENISH_EXCLUDED_CITY", _("补货排除城市"))
     # 主机池转移开发配置
     HOST_DISSOLVED_SWITCH = EnumField("HOST_DISSOLVED_SWITCH", _("判断待裁撤主机开关"))
     HOST_TO_FAULT_SWITCH = EnumField("HOST_TO_FAULT_SWITCH", _("转入故障池主机开关"))

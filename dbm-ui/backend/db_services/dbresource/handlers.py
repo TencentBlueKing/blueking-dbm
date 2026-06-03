@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import itertools
 import math
+import time
 from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List
@@ -543,6 +544,7 @@ class ResourceHandler(object):
     def create_replenish(cls, username, bk_biz_id: int, infos: List[Dict], remark: str = "", record_id: int = None):
         """创建海磊资源池补货单
         @param record_id: 已预创建的补货记录ID，异步调用时传入；为空则自动创建
+        注：因为这个接口有限频，所以必须！！异步调用！！
         """
         ticket_ids, details = [], defaultdict(lambda: 0)
         # 海磊限制，每个单据最大申请数量不超过100
@@ -568,6 +570,8 @@ class ResourceHandler(object):
                 # 填充补货记录信息
                 details[replenish_info["db_type"]] += replenish_info["count"]
                 ticket_ids.append(ticket.id)
+                # 暂停一下，控制提交频率
+                time.sleep(0.5)
 
         # 更新或创建补货记录
         if record_id:
@@ -587,6 +591,7 @@ class ResourceHandler(object):
         os_map = {os_name: os_key for os_key, os_names in os_map.items() for os_name in os_names}
         subzone_map = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_SUBZONE_MAP, {})
         subzone_map = {name: zone_key for zone_key, zone_names in subzone_map.items() for name in zone_names}
+        excluded_city = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_EXCLUDED_CITY, ["default"])
 
         # 不符合水位数据的统计函数定义
         exclusive_spec = []
@@ -656,7 +661,7 @@ class ResourceHandler(object):
             for subzone, subzone_info in city_info.items()
             # 过滤掉：操作系统为空，机型为空，城市为空(default)
             if spec_id in spec_map and spec_map[spec_id].device_class
-            if bk_os_name and subzone and city_name and city_name != "default"
+            if bk_os_name and subzone and city_name and city_name not in excluded_city
         ]
         # 仅展示需要补货资源信息（重新计算 machine_refer_count）
         if need_replenish:
