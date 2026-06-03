@@ -101,6 +101,8 @@ func (b *BkRepoClient) Download(sqlpath, filename, downloaddir string) (err erro
 	if err != nil {
 		return err
 	}
+	// 原代码未关闭文件句柄，存在句柄泄漏；这里统一在函数退出时关闭
+	defer func() { _ = f.Close() }()
 	req.SetBasicAuth(b.BkRepoUser, b.BkRepoPwd)
 	resp, err := b.Client.Do(req)
 	if err != nil {
@@ -116,16 +118,29 @@ func (b *BkRepoClient) Download(sqlpath, filename, downloaddir string) (err erro
 	}
 	size, err := io.Copy(f, resp.Body)
 	if err != nil {
+		logger.Error("io.Copy resp.Body to file %s failed: %s", fileAbPath, err.Error())
+		return err
+	}
+	// 确保数据落盘，避免后续计算 md5 时读到未刷盘的内容
+	if err = f.Sync(); err != nil {
+		logger.Error("sync file %s failed: %s", fileAbPath, err.Error())
 		return err
 	}
 	logger.GetLogger().Info(fmt.Sprintf("Downloaded a file %s with size %d", filename, size))
+
+	// 落盘后再从磁盘读取实际大小，与 io.Copy 返回值对比，定位是否存在写入不完整/被截断
+	onDiskSize := util.GetFileSize(fileAbPath)
+	logger.Info("download detail: fileAbPath=%s, downloaddir=%s, io.Copy size=%d, on-disk size=%d",
+		fileAbPath, downloaddir, size, onDiskSize)
+
 	fileNodeInfo, err := b.QueryFileNodeInfo(sqlpath, filename)
 	if err != nil {
 		return err
 	}
-	logger.Info("node detail %v", fileNodeInfo)
+	logger.Info("node detail %+v", fileNodeInfo)
 	if size != int64(fileNodeInfo.Size) {
 		bs, _ := os.ReadFile(fileAbPath)
+		logger.Error("size mismatch, downloaded content:\n%s", string(bs))
 		return fmt.Errorf("body:%s,current file:%s source file size is inconsistent,current file is:%d,bkrepo file is：%d",
 			string(bs), filename, size,
 			fileNodeInfo.Size)
@@ -135,7 +150,17 @@ func (b *BkRepoClient) Download(sqlpath, filename, downloaddir string) (err erro
 	if err != nil {
 		return err
 	}
+	logger.Info("md5 check: filename=%s, on-disk size=%d, current md5=%s, bkrepo md5=%s",
+		filename, util.GetFileSize(fileAbPath), currentFileMd5, fileNodeInfo.Md5)
 	if currentFileMd5 != fileNodeInfo.Md5 {
+		// 输出下载到本地的文件实际内容，便于排查为什么 md5 不一致（如内容为空、被覆盖、写入了错误响应体等）
+		bs, readErr := os.ReadFile(fileAbPath)
+		if readErr != nil {
+			logger.Error("read downloaded file %s for debug failed: %s", fileAbPath, readErr.Error())
+		} else {
+			logger.Error("md5 mismatch, fileAbPath=%s, downloaded file content (size=%d):\n%s",
+				fileAbPath, len(bs), string(bs))
+		}
 		return fmt.Errorf("current file:%s  source file md5 is inconsistent,current file is:%s,bkrepo file is:%s", filename,
 			currentFileMd5,
 			fileNodeInfo.Md5)
