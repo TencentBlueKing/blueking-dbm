@@ -1,5 +1,8 @@
 # DBHA-v2 Change Log
 
+## v2.0.0-beta.9-unreleased
+- 【优化】升级grpc and x/crypto版本。
+
 ## v2.0.0-beta.8
 - 【新增】通过 DBHA v1 提供的查询 API，与 DBHA v1 共享同一个白名单。
 
