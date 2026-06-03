@@ -1,8 +1,6 @@
 module dbm-services/mysql/db-tools/dbactuator
 
-go 1.24.0
-
-toolchain go1.24.2
+go 1.25.11
 
 require (
 	ariga.io/atlas v0.14.0
@@ -25,9 +23,9 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/xdg-go/scram v1.1.2
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b
-	golang.org/x/sync v0.17.0
+	golang.org/x/sync v0.18.0
 	gopkg.in/ini.v1 v1.67.0
-	vitess.io/vitess v0.21.3
+	vitess.io/vitess v0.22.4
 )
 
 require (
@@ -42,13 +40,12 @@ require (
 	github.com/eapache/queue v1.1.0 // indirect
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-mysql-org/go-mysql v1.7.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-openapi/inflect v0.19.0 // indirect
 	github.com/go-test/deep v1.1.0 // indirect
 	github.com/golang/glog v1.2.4 // indirect
-	github.com/golang/snappy v0.0.4 // indirect
+	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/pprof v0.0.0-20240727154555-813a5fbdbec8 // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -76,11 +73,10 @@ require (
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/pingcap/errors v0.11.5-0.20240311024730-e056997136bb // indirect
-	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
+	github.com/planetscale/vtprotobuf v0.6.1-0.20241121165744-79df5c4772f2 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
-	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/satori/go.uuid v1.2.0 // indirect
 	github.com/sergi/go-diff v1.3.1 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
@@ -96,10 +92,10 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	github.com/zclconf/go-cty v1.14.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
-	golang.org/x/mod v0.27.0 // indirect
-	golang.org/x/sys v0.36.0 // indirect
-	golang.org/x/text v0.29.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250303144028-a0af3efb3deb // indirect
+	golang.org/x/mod v0.30.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250313205543-e70fdf4c4cb4 // indirect
 	google.golang.org/grpc v1.72.0 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
@@ -118,7 +114,7 @@ require (
 	github.com/pkg/sftp v1.13.9
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/spf13/cast v1.10.0
-	golang.org/x/crypto v0.42.0
-	golang.org/x/net v0.44.0
+	golang.org/x/crypto v0.44.0
+	golang.org/x/net v0.47.0
 	gopkg.in/yaml.v2 v2.4.0
 )
