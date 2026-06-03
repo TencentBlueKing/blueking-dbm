@@ -13,6 +13,13 @@
 
 <template>
   <SmartAction>
+    <BkAlert
+      class="mb-16"
+      closable
+      theme="info"
+      :title="
+        t('模块是配置管理单元_用于组织一组使用相同数据库配置_版本_字符集等_的集群_新建模块的参数默认继承业务级当前值_')
+      " />
     <DbForm
       ref="formRef"
       class="create-module-page db-scroll-y"
@@ -30,7 +37,8 @@
             v-model="formData.alias_name"
             :maxlength="63"
             :placeholder="t('请输入模块名')"
-            show-word-limit />
+            show-word-limit
+            @change="handleValidate" />
           <div
             v-if="isValueAllowed"
             class="form-item-tips">
@@ -200,6 +208,7 @@
 
   /** 触发表单校验（版本或字符集 change 时） */
   const handleValidate = () => {
+    isValueAllowed.value = true;
     formRef.value?.validate();
   };
 
@@ -215,19 +224,23 @@
         },
       },
       {
-        message: t('模块名格式不正确'),
+        message: t('格式不正确_请勿使用大写_空格_下划线或特殊符号'),
         trigger: 'blur',
         validator: (value: string) => {
-          if (/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(value) || /^[a-z0-9]$/.test(value)) return true;
+          if (/^[a-z0-9-]+$/.test(value)) {
+            return true;
+          }
           isValueAllowed.value = false;
           return false;
         },
       },
       {
-        message: t('模块名不能以连字符开头或结尾'),
+        message: t('不能以连字符开头或结尾'),
         trigger: 'blur',
         validator: (value: string) => {
-          if (!/^-|-$/.test(value[0]) && !/^-|-$/.test(value[value.length - 1])) return true;
+          if (/^(?!-).*(?<!-)$/.test(value)) {
+            return true;
+          }
           isValueAllowed.value = false;
           return false;
         },
@@ -443,6 +456,7 @@
     padding: 24px;
     background: #fff;
     border-radius: 2px;
+    box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
   }
 
   .db-config-row {
@@ -460,6 +474,8 @@
   .param-config-wrapper {
     margin-top: 16px;
     background: #fff;
+    box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
+    border-radius: 2px;
 
     :deep(.bk-tab-content) {
       padding: 16px 16px 0;

@@ -37,7 +37,10 @@
   </ApplyPermissionCatch>
 </template>
 <script setup lang="ts">
+  import { useRequest } from 'vue-request';
   import { useRoute } from 'vue-router';
+
+  import { getListClusterModuleConfFiles } from '@services/source/configs.ts';
 
   import { ClusterTypes, ConfLevels } from '@common/const';
 
@@ -51,6 +54,9 @@
   const route = useRoute();
 
   const configTreeRef = ref<InstanceType<typeof ConfigTree>>();
+  // 提供配置文件列表给子组件
+  const confTabs = ref<ServiceReturnType<typeof getListClusterModuleConfFiles>>([]);
+  provide('confTabs', confTabs);
 
   // 将当前选中的树节点 provide 给子组件（biz/module）
   const activeTreeNode = computed(() => configTreeRef.value?.treeState?.activeNode);
@@ -76,6 +82,29 @@
     }
     return '';
   });
+
+  const { run: fetchConfTabs } = useRequest(getListClusterModuleConfFiles, {
+    manual: true,
+    onSuccess(res) {
+      confTabs.value = res;
+    },
+  });
+
+  watch(
+    () => activeTreeNode.value?.id,
+    (moduleId) => {
+      if (moduleId) {
+        fetchConfTabs({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          db_module_id: moduleId,
+          meta_cluster_type: clusterType.value,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 
 <style lang="less" scoped>

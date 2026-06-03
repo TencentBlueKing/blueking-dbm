@@ -1,4 +1,4 @@
-<!--
+﻿<!--
  * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
  *
  * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -15,7 +15,7 @@
   <div class="platform-detail-page">
     <div class="platform-detail-content">
       <!-- 参数信息 -->
-      <DbCard>
+      <div class="platform-info-card">
         <div class="param-operations mb-16">
           <BkButton
             theme="primary"
@@ -34,11 +34,11 @@
           <DbTable
             ref="paramTableRef"
             :data-source="paramDataSource"
+            :default-limit="100"
             :filter-value="searchValue"
             row-key="conf_name"
             @clear-search="handleQuickSearchChange"
-            @filter-change="handleFilterChange"
-            @request-success="handleRequestSuccess">
+            @filter-change="handleFilterChange">
             <TableColumn
               col-key="conf_name"
               ellipsis
@@ -194,7 +194,7 @@
             </TableColumn>
           </DbTable>
         </BkLoading>
-      </DbCard>
+      </div>
     </div>
 
     <!-- 新增/编辑参数侧滑 -->
@@ -212,11 +212,9 @@
         {{ configTypeName }}
       </span>
       <span class="config-detail-meta">
-        <span v-if="detailData.name">{{ t('配置名称') }}：{{ detailData.name }}</span>
-        <span v-if="detailData.updated_by || detailData.updated_at">
-          {{ t('最近更新') }}：{{ detailData.updated_by || '--' }} / {{ detailData.updated_at || '--' }}
-        </span>
-        <span v-if="detailData.description">{{ t('描述') }}：{{ detailData.description }}</span>
+        <span>{{ t('配置名称') }}：{{ detailData?.name || '--' }}</span>
+        <span> {{ t('最近更新') }}：{{ detailData?.updated_by || '--' }} / {{ detailData?.updated_at || '--' }} </span>
+        <span>{{ t('描述') }}：{{ detailData?.description || '--' }}</span>
       </span>
     </div>
   </Teleport>
@@ -370,8 +368,6 @@
       detailData.value = res;
       allConfItems.value = res.conf_items || [];
       paramTableRef.value?.fetchData({}, true);
-      // 延迟等待表格异步渲染完成后再初始化 tippy
-      setTimeout(() => initDescriptionTippy(), 300);
     },
   });
 
@@ -418,23 +414,24 @@
 
     const start = params.offset;
     const end = start + params.limit;
-    return Promise.resolve({ count: data.length, results: data.slice(start, end) });
+    const result = { count: data.length, results: data.slice(start, end) };
+
+    // 数据返回后，在 DOM 更新完成再初始化 tippy（避免分页/搜索后 tippy 失效）
+    nextTick(() => {
+      initDescriptionTippy();
+    });
+
+    return Promise.resolve(result);
   };
 
   // 快速搜索变更
   const handleQuickSearchChange = () => {
     paramTableRef.value?.fetchData({}, true);
-    setTimeout(() => initDescriptionTippy(), 300);
   };
 
   /** 列筛选变更：同步到 searchValue（表头显示标签） */
   const handleFilterChange = (filterValue: Record<string, string>) => {
     searchValue.value = filterValue;
-  };
-
-  /** 数据请求成功后重新初始化 tippy（含分页切换场景） */
-  const handleRequestSuccess = () => {
-    setTimeout(() => initDescriptionTippy(), 100);
   };
 
   // 新建参数
@@ -531,14 +528,12 @@
 
   .platform-detail-content {
     padding: 24px;
-    border-radius: 2px;
 
-    :deep(.db-card) {
-      padding-bottom: 0;
-    }
-
-    :deep(.db-card-content) {
-      padding-top: 0;
+    .platform-info-card {
+      padding: 24px 24px 0;
+      background: #fff;
+      border-radius: 2px;
+      box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
     }
   }
 
@@ -554,6 +549,10 @@
     gap: 8px;
     font-size: 14px;
     color: #979ba5;
+
+    & > span + span {
+      margin-left: 8px;
+    }
 
     &::before {
       content: '';

@@ -18,7 +18,8 @@
     filterable
     :loading="loading"
     :placeholder="placeholder"
-    :prefix="prefix">
+    :prefix="prefix"
+    @change="(val: string | number) => emit('change', val)">
     <BkOption
       v-for="(item, index) of versionList"
       :key="item"
@@ -62,8 +63,10 @@
   const props = withDefaults(defineProps<Props>(), {
     placeholder: t('请选择数据库版本'),
     prefix: t('存储层版本'),
-    queryKey: 'mysql',
+    queryKey: '',
   });
+
+  const emit = defineEmits<(e: 'change', val: string | number) => void>();
 
   const modelValue = defineModel<string>({
     default: '',
@@ -86,7 +89,7 @@
     () => {
       fetchVersions({
         db_type: props.dbType,
-        query_key: props.queryKey,
+        query_key: props.queryKey || props.dbType,
       });
     },
     { immediate: true },

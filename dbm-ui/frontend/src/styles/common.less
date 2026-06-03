@@ -19,6 +19,14 @@
 @import './td-patch.less';
 @import './element-plus-patch.less';
 
+/* ===== db-tippy 主题全局样式 ===== */
+.tippy-box[data-theme~='db-tippy'] {
+  background-color: #fff;
+  border: 1px solid #dcdee5 !important;
+  border-radius: 2px !important;
+  box-shadow: 0 0 6px 0 #dcdee5 !important;
+}
+
 .app-exception {
   height: 100%;
   text-align: center;
@@ -41,13 +49,20 @@
   }
 }
 
-.db-login-popover {
-  .bk-modal-header {
-    display: none;
+  .tippy-box[data-theme~='db-tippy'] {
+    background-color: #fff;
+    border: 1px solid #dcdee5 !important;
+    border-radius: 2px !important;
+    box-shadow: 0 0 6px 0 #dcdee5 !important;
   }
 
-  .bk-modal-content {
-    padding: 0 !important;
+  .db-login-popover {
+    .bk-modal-header {
+      display: none;
+    }
+
+    .bk-modal-content {
+      padding: 0 !important;
   }
 
   .db-info-dialog__content {

@@ -18,18 +18,18 @@
       closable
       theme="info"
       :title="
-        t('模块是配置管理单元_用于组织一组使用相同数据库配置_版本_字符集等_的集群_新建模块的参数默认继承业务级当前值_')
+        t(
+          '模块是配置管理单元_用于组织一组使用相同数据库配置_版本_字符集_部署规格等_的集群_新建模块的参数默认继承业务级当前值_',
+        )
       " />
     <DbForm
       ref="formRef"
       class="create-module-page db-scroll-y"
-      :label-width="168"
+      :label-width="100"
       :model="formData"
       :rules="rules">
-      <!-- 模块信息 & 绑定数据库配置（紧凑布局） -->
-      <DbCard
-        mode="collapse"
-        :title="t('模块信息')">
+      <!-- 模块信息 & 部署规格（紧凑布局） -->
+      <div class="module-info-card">
         <BkFormItem
           class="form-item-name"
           :label="t('模块名称')"
@@ -37,15 +37,18 @@
           required>
           <BkInput
             v-model="formData.alias_name"
+            class="module-name-input"
             :maxlength="63"
             :placeholder="t('请输入模块名')"
-            show-word-limit />
+            show-word-limit
+            @change="handleValidate" />
           <div
             v-if="isValueAllowed"
             class="form-item-tips">
             {{ t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，创建后不可改') }}
           </div>
         </BkFormItem>
+        <!-- 数据库信息 -->
         <BkFormItem
           :label="t('数据库信息')"
           required>
@@ -65,13 +68,19 @@
               v-model="formData.version"
               class="version-select-inline"
               :db-type="DBTypes.SQLSERVER"
+              :prefix="t('存储层版本')"
               @change="handleValidate" />
+            <BkInput
+              class="ha-mode-input"
+              disabled
+              :model-value="haModeDisplay"
+              :prefix="t('主从方式')" />
             <BkSelect
               v-model="formData.character_set"
               class="charset-select-inline"
               :clearable="false"
               filterable
-              :placeholder="t('请选择字符集')"
+              :placeholder="t('请选择')"
               :prefix="t('字符集')"
               @change="handleValidate">
               <BkOption
@@ -82,77 +91,69 @@
             </BkSelect>
           </div>
         </BkFormItem>
-      </DbCard>
-
-      <!-- SQLServer 额外配置 -->
-      <DbCard
-        class="mt-16"
-        mode="collapse"
-        :title="t('绑定数据库配置')">
+        <!-- 部署规格 -->
         <BkFormItem
-          :label="t('操作系统版本')"
-          property="operatingSystemVersion"
+          :label="t('部署规格')"
           required>
-          <BkSelect
-            v-model="formData.operatingSystemVersion"
-            collapse-tags
-            filterable
-            multiple
-            multiple-mode="tag"
-            :placeholder="t('请选择操作系统版本')">
-            <BkOption
-              v-for="item in operatingSystemVersionList"
-              :key="item"
-              :label="item"
-              :value="item" />
-          </BkSelect>
-        </BkFormItem>
-        <BkFormItem
-          :label="t('实例内存分配比率 (50~80%)')"
-          property="memoryAllocationRatio"
-          required>
-          <div class="input-box">
+          <div class="db-config-row">
+            <BkSelect
+              v-model="formData.operatingSystemVersion"
+              class="os-version-select-inline"
+              filterable
+              multiple
+              :placeholder="t('请选择（可多选）')"
+              :prefix="t('操作系统版本')">
+              <BkOption
+                v-for="item in operatingSystemVersionList"
+                :key="item"
+                :label="item"
+                :value="item" />
+            </BkSelect>
             <BkInput
               v-model="formData.memoryAllocationRatio"
-              class="num-input"
+              class="memory-allocation-ratio-input"
               :max="80"
               :min="50"
-              :placeholder="t('请输入')"
+              :prefix="t('内存分配比率')"
+              suffix="%"
               type="number" />
-            <span class="unit-text">%</span>
-          </div>
-        </BkFormItem>
-        <BkFormItem
-          :label="t('最大系统保留内存')"
-          property="maxSystemReservedMemory"
-          required>
-          <div class="input-box">
             <BkInput
               v-model="formData.maxSystemReservedMemory"
-              class="num-input"
+              class="reserved-memory-input"
               disabled
               :min="1"
-              :placeholder="t('请输入')"
+              :prefix="t('最大 OS 保留内存')"
+              suffix="GB"
               type="number" />
-            <span class="unit-text">GB</span>
           </div>
         </BkFormItem>
-        <BkFormItem
-          :label="t('主从方式')"
-          property="haMode"
-          required>
-          <BkRadioGroup
-            v-model="formData.haMode"
-            disabled>
-            <BkRadio
-              v-for="item in haModeList"
-              :key="item.value"
-              :label="item.value">
-              {{ item.label }}
-            </BkRadio>
-          </BkRadioGroup>
-        </BkFormItem>
-      </DbCard>
+      </div>
+
+      <!-- 参数配置 — 四个 Tab -->
+      <div class="param-config-wrapper mt-16">
+        <BkTab
+          :key="tabRenderKey"
+          v-model:active="activeConfType"
+          type="card-tab">
+          <BkTabPanel
+            v-for="tab of confTabs"
+            :key="tab.conf_file"
+            :name="tab.conf_file"
+            render-directive="show">
+            <template #label>
+              {{ tab.name }}
+              <span
+                v-if="(tabChangedCountMap[tab.conf_file] ?? 0) > 0"
+                class="tab-modified-dot" />
+            </template>
+            <ParamTable
+              :ref="(el: any) => setTableRef(tab.name, el)"
+              :cluster-type="clusterType"
+              :conf-type="tab.conf_type"
+              :version="tab.conf_file" />
+          </BkTabPanel>
+        </BkTab>
+      </div>
     </DbForm>
     <template #action>
       <BkButton
@@ -174,6 +175,17 @@
         @click="handleCancel">
         {{ t('取消') }}
       </BkButton>
+      <template v-if="totalChangedCount > 0">
+        <I18nT
+          class="total-change-stats"
+          keypath="总计已修改n项"
+          tag="span">
+          <template #n>
+            <span class="change-count">{{ totalChangedCount }}</span>
+          </template>
+        </I18nT>
+        <span class="stats-tips">{{ t('提交后将固化为【自定义】，不再随业务变化') }}</span>
+      </template>
     </template>
   </SmartAction>
   <Teleport to="#dbContentTitleAppend">
@@ -183,18 +195,21 @@
 
 <script setup lang="ts">
   import InfoBox from 'bkui-vue/lib/info-box';
-  import { useI18n } from 'vue-i18n';
+  import { I18nT, useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { checkDbModuleUnique, createModules } from '@services/source/cmdb';
-  import { saveModulesDeployInfo } from '@services/source/configs';
+  import { getListClusterModuleConfFiles, saveModulesDeployInfo } from '@services/source/configs';
   import { listSqlserverSystemVersion } from '@services/source/version';
 
   import { useGlobalBizs } from '@stores';
 
   import { clusterTypeInfos, ClusterTypes, DBTypes } from '@common/const';
 
+  import { random } from '@utils';
+
   import DbVersionSelect from './components/DbVersionSelect.vue';
+  import ParamTable from './components/ParamTable.vue';
 
   const { t } = useI18n();
   const router = useRouter();
@@ -209,17 +224,13 @@
 
   const isSubmitting = ref(false);
 
-  const haModeList = [
-    { label: t('镜像'), value: 'mirroring' },
-    { label: 'always on', value: 'always_on' },
-  ];
-
   const characterSets = ['Chinese_PRC_CI_AS', 'Latin1_General_100_CI_AS'];
 
   const isValueAllowed = ref(true);
 
   /** 触发表单校验（版本或字符集 change 时） */
   const handleValidate = () => {
+    isValueAllowed.value = true;
     formRef.value?.validate();
   };
 
@@ -236,6 +247,8 @@
   const formData = reactive(getFormData());
   const formRef = ref();
 
+  const haModeDisplay = computed(() => (formData.haMode === 'mirroring' ? t('镜像') : 'always on'));
+
   const rules = {
     alias_name: [
       {
@@ -248,19 +261,23 @@
         },
       },
       {
-        message: t('模块名格式不正确'),
+        message: t('格式不正确_请勿使用大写_空格_下划线或特殊符号'),
         trigger: 'blur',
         validator: (value: string) => {
-          if (/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(value) || /^[a-z0-9]$/.test(value)) return true;
+          if (/^[a-z0-9-]+$/.test(value)) {
+            return true;
+          }
           isValueAllowed.value = false;
           return false;
         },
       },
       {
-        message: t('模块名不能以连字符开头或结尾'),
+        message: t('不能以连字符开头或结尾'),
         trigger: 'blur',
         validator: (value: string) => {
-          if (!/^-|-$/.test(value[0]) && !/^-|-$/.test(value[value.length - 1])) return true;
+          if (/^(?!-).*(?<!-)$/.test(value)) {
+            return true;
+          }
           isValueAllowed.value = false;
           return false;
         },
@@ -302,13 +319,61 @@
     () => formData.version,
     (version) => {
       if (version) {
-        formData.operatingSystemVersion = [];
         formData.haMode = Number(version.slice(-4)) > 2017 ? 'always_on' : 'mirroring';
         fetchSystemVersions({ sqlserver_version: version });
       }
     },
     { immediate: true },
   );
+
+  // 参数配置 Tab — 用 db_version 作为渲染 key，版本切换时强制重建整个 BkTab 及其子组件
+  const activeConfType = ref('dbconf');
+  const tabRenderKey = ref(random());
+  const confTabs = ref<ServiceReturnType<typeof getListClusterModuleConfFiles>>([]);
+
+  const { run: fetchConfTabs } = useRequest(getListClusterModuleConfFiles, {
+    manual: true,
+    onSuccess(res) {
+      const rawConfTabs = res || [];
+      rawConfTabs[0] = { conf_file: formData.version, conf_type: 'dbconf', name: formData.version };
+      confTabs.value = rawConfTabs;
+      tabRenderKey.value = random();
+    },
+  });
+
+  watch(
+    () => formData.version,
+    () => {
+      fetchConfTabs({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        deploy_versions: JSON.stringify({ db_version: formData.version }),
+        meta_cluster_type: clusterType.value,
+      });
+    },
+  );
+
+  // 每个 confType 对应一个 ParamTable 实例
+  const tableRefs = ref<Record<string, InstanceType<typeof ParamTable>>>({});
+  const setTableRef = (name: string, el: any) => {
+    if (el) {
+      tableRefs.value[name] = el;
+    }
+  };
+
+  /** 所有 Tab 的总计已修改数量 */
+  const totalChangedCount = computed(() =>
+    Object.values(tableRefs.value).reduce((sum, ref) => sum + (ref?.changedCount ?? 0), 0),
+  );
+
+  /** 每个 Tab 的已修改数量（用于 Tab 小黄点） */
+  const tabChangedCountMap = computed(() => {
+    const map: Record<string, number> = {};
+    confTabs.value.forEach((tab) => {
+      const tableRef = tableRefs.value[tab.name];
+      map[tab.conf_file] = tableRef?.changedCount ?? 0;
+    });
+    return map;
+  });
 
   // 创建模块 + 绑定配置
   let latestModuleId = 0;
@@ -376,6 +441,12 @@
           meta_cluster_type: clusterType.value,
           version: 'deploy_info',
         });
+
+        // 绑定各 tab 参数配置
+        const bindTasks = Object.values(tableRefs.value)
+          .filter((ref) => ref?.hasChange?.())
+          .map((ref) => ref.bindConfigParameters());
+        await Promise.all(bindTasks);
       }
 
       window.changeConfirm = false;
@@ -403,6 +474,7 @@
       content: t('重置后_将会清空当前填写的内容'),
       onConfirm: () => {
         Object.assign(formData, getFormData());
+        Object.values(tableRefs.value).forEach((ref) => ref?.handleReset?.());
         nextTick(() => {
           window.changeConfirm = false;
         });
@@ -447,27 +519,62 @@
     }
   }
 
-  .db-config-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    .version-select-inline,
-    .charset-select-inline {
-      width: auto;
-      min-width: 160px;
-    }
-
-    .charset-select-inline {
-      min-width: 140px;
-    }
+  .module-info-card {
+    padding: 24px;
+    background: #fff;
+    border-radius: 2px;
+    box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
   }
 
-  .db-type-tag {
-    height: 30px;
-    color: @primary-color;
-    background: white;
-    border: 1px solid @border-primary;
+  .module-name-input {
+    min-width: 844px;
+  }
+
+  .db-config-row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+
+    > *:not(.db-type-tag) {
+      min-width: 140px;
+    }
+
+    .db-type-tag {
+      flex: 0 0 auto;
+      justify-content: center;
+      min-width: 140px;
+      height: 32px;
+      color: @primary-color;
+      background: white;
+      border: 1px solid @border-primary;
+    }
+
+    .version-select-inline {
+      min-width: 268px;
+    }
+
+    .ha-mode-input {
+      min-width: 180px;
+    }
+
+    .charset-select-inline {
+      min-width: 220px;
+    }
+
+    .os-version-select-inline {
+      min-width: 420px;
+    }
+
+    .memory-allocation-ratio-input {
+      min-width: 180px;
+    }
+
+    .reserved-memory-input {
+      min-width: 220px;
+    }
   }
 
   .form-item-tips {
@@ -477,20 +584,44 @@
     position: absolute;
   }
 
-  .input-box {
-    display: flex;
-    align-items: center;
-    width: 100%;
+  .param-config-wrapper {
+    margin-top: 16px;
+    background: #fff;
+    box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
+    border-radius: 2px;
 
-    .num-input {
-      height: 32px;
+    :deep(.bk-tab-content) {
+      padding: 16px 16px 0;
     }
+  }
 
-    .unit-text {
-      margin-left: 12px;
-      font-size: 12px;
-      color: #63656e;
+  .total-change-stats {
+    margin-left: 16px;
+    font-size: 13px;
+    line-height: 20px;
+    color: #63656e;
+
+    .change-count {
+      margin: 0 2px;
+      font-weight: 700;
+      color: #f59500;
     }
+  }
+
+  .stats-tips {
+    margin-left: 8px;
+    font-size: 12px;
+    line-height: 20px;
+    color: #979ba5;
+  }
+
+  .tab-modified-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-left: 4px;
+    background: #f59500;
+    border-radius: 50%;
   }
 
   .create-module-nav-desc {

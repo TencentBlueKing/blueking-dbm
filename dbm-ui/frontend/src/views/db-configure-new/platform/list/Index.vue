@@ -19,6 +19,7 @@
     <div class="platform-config-content">
       <BkTab
         v-model:active="activeConfType"
+        class="platform-config-tab"
         type="card-tab">
         <BkTabPanel
           v-for="tab of confTypeTabs"
@@ -104,5 +105,10 @@
       background: #fff;
       padding-bottom: 0;
     }
+  }
+
+  .platform-config-tab {
+    box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
+    border-radius: 2px;
   }
 </style>
