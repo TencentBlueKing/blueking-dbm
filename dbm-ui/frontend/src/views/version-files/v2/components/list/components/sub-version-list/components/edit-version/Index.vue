@@ -221,6 +221,7 @@
   const dbPkgSixMaxMap: Record<string, Record<string, boolean>> = {
     mysql: {
       mysql: true,
+      spider: true,
     },
     redis: {
       twemproxy: true,
