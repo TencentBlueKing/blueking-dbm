@@ -10,17 +10,15 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging.config
-from collections import defaultdict
 from copy import deepcopy
 from dataclasses import asdict
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from django.utils.translation import gettext as _
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
-from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta import api
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
@@ -42,6 +40,7 @@ from backend.flow.plugins.components.collections.redis.redis_update_version impo
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
+from backend.flow.utils.redis.redis_proxy_util import async_get_multi_cluster_info_by_cluster_ids
 
 logger = logging.getLogger("flow")
 
@@ -91,93 +90,55 @@ class RedisClusterCMRSceneFlow(object):
         self.precheck_for_compelete_replace()
         self.cluster_cache = {}
 
-    def get_cluster_info(self, bk_biz_id: int, cluster_id: int) -> dict:
-        """获取集群现有信息
-        1. master 对应 slave 机器
-        2. master 上的端口列表
-        3. 实例对应关系：{master:port:slave:port}
-        """
-        if self.cluster_cache.get(cluster_id):
-            return self.cluster_cache[cluster_id]
-
-        cluster = Cluster.objects.prefetch_related(
-            "proxyinstance_set",
-            "storageinstance_set",
-            "proxyinstance_set__machine",
-            "storageinstance_set__machine",
-            "storageinstance_set__as_ejector",
-        ).get(id=cluster_id, bk_biz_id=bk_biz_id)
-        master_ports, slave_ports = defaultdict(list), defaultdict(list)
-        ins_pair_map, slave_ins_map = defaultdict(), defaultdict()
-        master_slave_map, slave_master_map = defaultdict(), defaultdict()
-
-        for master_obj in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value):
-            slave_obj = master_obj.as_ejector.get().receiver
-            master_ports[master_obj.machine.ip].append(master_obj.port)
-            slave_ports[slave_obj.machine.ip].append(slave_obj.port)
-            ins_pair_map["{}{}{}".format(master_obj.machine.ip, IP_PORT_DIVIDER, master_obj.port)] = "{}{}{}".format(
-                slave_obj.machine.ip, IP_PORT_DIVIDER, slave_obj.port
-            )
-
-            ifslave = master_slave_map.get(master_obj.machine.ip)
-            if ifslave and ifslave != slave_obj.machine.ip:
-                raise Exception(
-                    "unsupport mutil slave with cluster {} 4:{}".format(cluster.immute_domain, master_obj.machine.ip)
-                )
-            else:
-                master_slave_map[master_obj.machine.ip] = slave_obj.machine.ip
-
-            slave_ins_map["{}{}{}".format(slave_obj.machine.ip, IP_PORT_DIVIDER, slave_obj.port)] = "{}{}{}".format(
-                master_obj.machine.ip, IP_PORT_DIVIDER, master_obj.port
-            )
-
-            ifmaster = slave_master_map.get(slave_obj.machine.ip)
-            if ifmaster and ifmaster != master_obj.machine.ip:
-                raise Exception(
-                    "unsupport mutil master for cluster {}:{}".format(cluster.immute_domain, slave_obj.machine.ip)
-                )
-            else:
-                slave_master_map[slave_obj.machine.ip] = master_obj.machine.ip
-
-        cluster_info = api.cluster.nosqlcomm.other.get_cluster_detail(cluster_id)[0]
-        redis_master_set, redis_slave_set, servers = (
-            cluster_info["redis_master_set"],
-            cluster_info["redis_slave_set"],
-            [],
-        )
-        if is_twemproxy_proxy_type(cluster.cluster_type):
+    @staticmethod
+    def _build_cmr_cluster_info(base_info: dict) -> dict:
+        """将 get_cluster_info_by_cluster_id 返回值转换为 CMR 场景所需结构."""
+        cluster_id = base_info["cluster_id"]
+        cluster_detail = api.cluster.nosqlcomm.other.get_cluster_detail(cluster_id)[0]
+        redis_master_set, redis_slave_set = cluster_detail["redis_master_set"], cluster_detail["redis_slave_set"]
+        if is_twemproxy_proxy_type(base_info["cluster_type"]):
+            servers = []
             for set in redis_master_set:
                 ip_port, seg_range = str.split(set)
-                servers.append("{} {} {} {}".format(ip_port, cluster.name, seg_range, 1))
+                servers.append("{} {} {} {}".format(ip_port, base_info["cluster_name"], seg_range, 1))
         else:
             servers = redis_master_set + redis_slave_set
 
-        proxy_port, proxy_ips = 0, []
-        if cluster.cluster_type != ClusterType.TendisRedisInstance.value:
-            proxy_port = cluster.proxyinstance_set.first().port
-            proxy_ips = [proxy_obj.machine.ip for proxy_obj in cluster.proxyinstance_set.all()]
-
-        cluster_info = {
-            "immute_domain": cluster.immute_domain,
-            "bk_biz_id": str(cluster.bk_biz_id),
-            "bk_cloud_id": cluster.bk_cloud_id,
-            "cluster_type": cluster.cluster_type,
-            "cluster_name": cluster.name,
-            "cluster_id": cluster.id,
-            "slave_ports": dict(slave_ports),
-            "master_ports": dict(master_ports),
-            "ins_pair_map": dict(ins_pair_map),
-            "slave_ins_map": dict(slave_ins_map),
-            "slave_master_map": dict(slave_master_map),
-            "master_slave_map": dict(master_slave_map),
-            "proxy_port": proxy_port,
-            "proxy_ips": proxy_ips,
-            "db_version": cluster.major_version,
+        return {
+            "immute_domain": base_info["immute_domain"],
+            "bk_biz_id": base_info["bk_biz_id"],
+            "bk_cloud_id": base_info["bk_cloud_id"],
+            "cluster_type": base_info["cluster_type"],
+            "cluster_name": base_info["cluster_name"],
+            "cluster_id": base_info["cluster_id"],
+            "slave_ports": base_info["slave_ports"],
+            "master_ports": base_info["master_ports"],
+            "ins_pair_map": base_info["master_ins_to_slave_ins"],
+            "slave_ins_map": base_info["slave_ins_to_master_ins"],
+            "slave_master_map": base_info["slave_ip_to_master_ip"],
+            "master_slave_map": base_info["master_ip_to_slave_ip"],
+            "proxy_port": base_info["proxy_port"],
+            "proxy_ips": base_info["proxy_ips"],
+            "db_version": base_info["major_version"],
             "backend_servers": servers,
         }
 
-        # 加到这一次的缓存里边
-        self.cluster_cache[cluster_id] = cluster_info
+    def _prefetch_cluster_cache(self, cluster_ids: List[int]):
+        missing_ids = [cid for cid in cluster_ids if cid not in self.cluster_cache]
+        if not missing_ids:
+            return
+        base_infos = async_get_multi_cluster_info_by_cluster_ids(cluster_ids=missing_ids)
+        for cluster_id in missing_ids:
+            if str(base_infos[cluster_id]["bk_biz_id"]) != str(self.data["bk_biz_id"]):
+                raise Exception(
+                    _("redis cluster {} does not exist in bk_biz_id {}").format(cluster_id, self.data["bk_biz_id"])
+                )
+            self.cluster_cache[cluster_id] = self._build_cmr_cluster_info(base_infos[cluster_id])
+
+    def get_cluster_info(self, cluster_id: int) -> dict:
+        """获取集群现有信息 (优先读 prefetch 缓存)."""
+        if cluster_id not in self.cluster_cache:
+            self._prefetch_cluster_cache([cluster_id])
         return self.cluster_cache[cluster_id]
 
     @staticmethod
@@ -221,11 +182,18 @@ class RedisClusterCMRSceneFlow(object):
     def complete_machine_replace(self):
         redis_pipeline, act_kwargs = self.__init_builder(_("REDIS-整机替换"))
         sub_pipelines, cluster_ids = [], []
+        unique_cluster_ids = {
+            int(cluster_id)
+            for cluster_replacement in self.data["infos"]
+            for cluster_id in cluster_replacement["cluster_ids"]
+        }
+        self._prefetch_cluster_cache(list(unique_cluster_ids))
+
         for cluster_replacement in self.data["infos"]:
             for cluster_id in cluster_replacement["cluster_ids"]:
                 cluster_ids.append(int(cluster_id))
                 cluster_kwargs = deepcopy(act_kwargs)
-                cluster_info = self.get_cluster_info(self.data["bk_biz_id"], cluster_id)
+                cluster_info = self.get_cluster_info(cluster_id)
                 sync_type = SyncType.SYNC_MMS.value  # ssd sync from master
                 if cluster_info["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
                     sync_type = SyncType.SYNC_SMS.value

@@ -47,9 +47,9 @@ from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_proxy_util import (
+    async_get_multi_cluster_info_by_cluster_ids,
     async_multi_clusters_precheck,
     get_cache_backup_mode,
-    get_cluster_info_by_cluster_id,
     get_cluster_info_by_ip,
     get_major_version_by_version_name,
     get_proxy_version_by_ip,
@@ -172,6 +172,7 @@ class RedisClusterVersionUpdateOnline(object):
         for input_item in self.data["infos"]:
             self._index_info_item(input_item)
 
+        self._prefetch_cluster_cache()
         self._validate_proxy_buckets()
         self._validate_backend_buckets()
         self._validate_instance_pair_buckets()
@@ -190,6 +191,23 @@ class RedisClusterVersionUpdateOnline(object):
             cluster = Cluster.objects.get(id=cluster_id)
             self._cluster_objs[cluster_id] = cluster
         return cluster
+
+    def _collect_upgraded_cluster_ids(self) -> List[int]:
+        cluster_ids: Set[int] = set()
+        for node_type in (RedisVerUpdateNodeType.Proxy.value, RedisVerUpdateNodeType.Backend.value):
+            for cluster_id in self.cluster_versions_ips.get(node_type, {}):
+                cluster_ids.add(int(cluster_id))
+        for bucket in self.instance_pair_buckets.values():
+            cluster_ids.update(int(cid) for cid in bucket["cluster_ids"])
+        return list(cluster_ids)
+
+    def _prefetch_cluster_cache(self):
+        """并发批量拉取 cluster meta, 填充 self.cluster_cache."""
+        cluster_ids = self._collect_upgraded_cluster_ids()
+        missing_ids = [cid for cid in cluster_ids if cid not in self.cluster_cache]
+        if not missing_ids:
+            return
+        self.cluster_cache.update(async_get_multi_cluster_info_by_cluster_ids(cluster_ids=missing_ids))
 
     def _index_info_item(self, input_item: Dict):
         """解析单条 info 项, 分流到 cluster_versions_ips 或 instance_pair_buckets."""
@@ -271,7 +289,7 @@ class RedisClusterVersionUpdateOnline(object):
             )
         cluster_id = cluster.id
         ip_cur_ver = {ip: get_redis_version_by_ip(cluster_id, ip) for ip in ips}
-        cluster_info = get_cluster_info_by_cluster_id(cluster_id)
+        cluster_info = self.cluster_cache[cluster_id]
         master_ip_to_slave_ip = cluster_info.get("master_ip_to_slave_ip", {})
         master_ports = cluster_info.get("master_ports", {})
         slave_ports = cluster_info.get("slave_ports", {})
@@ -524,6 +542,8 @@ class RedisClusterVersionUpdateOnline(object):
                 - 升级 Master 节点
         """
         redis_pipeline = Builder(root_id=self.root_id, data=self.data)
+        # precheck() 已填充 cluster_cache; 此处仅补全缺失项, 正常路径下为 no-op.
+        self._prefetch_cluster_cache()
 
         # 先升级 proxy
         proxy_to_upgrade = self.cluster_versions_ips.get("Proxy")
@@ -554,7 +574,7 @@ class RedisClusterVersionUpdateOnline(object):
     def _create_proxy_upgrade_sub_flow(self, cluster_id, version_pairs: dict):
         """创建代理升级子流水线"""
         version_pipelines = []
-        cluster_meta_data = get_cluster_info_by_cluster_id(cluster_id)
+        cluster_meta_data = self.cluster_cache[cluster_id]
         act_kwargs = self._make_act_kwargs()
 
         for version, ips in version_pairs.items():
@@ -585,9 +605,6 @@ class RedisClusterVersionUpdateOnline(object):
     def _create_storage_upgrade_sub_flow(self, cluster_id, version_pairs: dict):
         """创建存储升级子流水线(非 TendisRedisInstance 架构)"""
         act_kwargs = self._make_act_kwargs()
-        # 加个缓存
-        if not self.cluster_cache.get(cluster_id):
-            self.cluster_cache[cluster_id] = get_cluster_info_by_cluster_id(cluster_id)
         cluster_meta_data = self.cluster_cache[cluster_id]
         act_kwargs.bk_cloud_id = cluster_meta_data["bk_cloud_id"]
         act_kwargs.cluster.update(cluster_meta_data)
@@ -647,10 +664,7 @@ class RedisClusterVersionUpdateOnline(object):
 
         act_kwargs = self._make_act_kwargs()
         # 用桶内第一个 cluster 的 meta 填充通用字段 (bk_cloud_id 等跨兄弟集群一致)
-        anchor_cluster_id = cluster_ids[0]
-        if not self.cluster_cache.get(anchor_cluster_id):
-            self.cluster_cache[anchor_cluster_id] = get_cluster_info_by_cluster_id(anchor_cluster_id)
-        anchor_meta = self.cluster_cache[anchor_cluster_id]
+        anchor_meta = self.cluster_cache[cluster_ids[0]]
         act_kwargs.bk_cloud_id = anchor_meta["bk_cloud_id"]
 
         sub_builder = self.redisinstance_version_update_sub_flow(
@@ -1080,10 +1094,7 @@ class RedisClusterVersionUpdateOnline(object):
         master_ports_union: List[int] = []
         slave_ports_union: List[int] = []
         for cid in cluster_ids:
-            cm = self.cluster_cache.get(cid)
-            if cm is None:
-                cm = get_cluster_info_by_cluster_id(cid)
-                self.cluster_cache[cid] = cm
+            cm = self.cluster_cache[cid]
             per_cluster_meta[cid] = cm
             # 预期每个 cluster 的 master/slave 恰好落在 pair 的两个 IP 上
             if master_ip not in cm["master_ports"] or slave_ip not in cm["slave_ports"]:
