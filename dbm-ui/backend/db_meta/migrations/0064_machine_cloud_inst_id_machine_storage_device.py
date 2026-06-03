@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("db_meta", "0063_alter_mongodbstorageinstanceext_instance"),
+        ("db_meta", "0063_alter_dbversion_unique_together_and_more"),
     ]
 
     operations = [
