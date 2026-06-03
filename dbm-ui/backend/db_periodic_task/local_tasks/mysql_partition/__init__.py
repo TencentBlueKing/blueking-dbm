@@ -8,4 +8,5 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from .mysql_check_partition_v2 import mysql_check_partition_v2
 from .task import tendbcluster_partition_task, tendbha_partition_task

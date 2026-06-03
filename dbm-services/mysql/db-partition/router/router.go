@@ -49,5 +49,8 @@ func RegisterRouter(engine *gin.Engine) {
 	p2.POST("/disable_partition_cluster", v2.DisablePartitionByCluster)
 	p2.POST("/enable_partition_cluster", v2.EnablePartitionByCluster)
 	p2.POST("/cluster_del_conf", v2.DeletePartitionByCluster)
+	// v2 巡检：配置侧枚举（执行结果由 Django 查 report 库）
+	p2.POST("/check/list_biz", v2.ListCheckBiz)
+	p2.POST("/check/list_conf_ids", v2.ListCheckConfIds)
 
 }

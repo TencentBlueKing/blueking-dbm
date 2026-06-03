@@ -140,6 +140,22 @@ class _PartitionApi(BaseApi):
             url="partition/v2/disable_partition_cluster",
             description=_("禁用分区"),
         )
+        # v2 巡检：按 cluster_type 分页列出待检业务（含 db_app_abbr、配置总数）
+        self.list_check_biz_v2 = self.generate_data_api(
+            method="POST",
+            url="partition/v2/check/list_biz",
+            description=_("分区v2巡检-按业务分页列表"),
+            default_timeout=300,
+            max_retry_times=1,
+        )
+        # v2 巡检：按 cluster_type + bk_biz_id 分页返回待检 config_id（服务端已做 phase/create_time 过滤）
+        self.list_check_conf_ids_v2 = self.generate_data_api(
+            method="POST",
+            url="partition/v2/check/list_conf_ids",
+            description=_("分区v2巡检-按业务分页配置ID"),
+            default_timeout=300,
+            max_retry_times=1,
+        )
 
 
 DBPartitionApi = _PartitionApi()

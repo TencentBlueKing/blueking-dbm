@@ -213,7 +213,11 @@ func (pc *TdbCluPartConf) ExecuteOneConfPartition(conn *native.DbWorker, partiti
 func (pc *TdbCluPartConf) ExecuteOneTbPartition(pd *PartitionDetail, conn *native.DbWorker, forceInitInfo *ForceInitInfo, partialForce bool) (ptError *PartitionTableExecInfo) {
 
 	defer func() {
-		_, _ = conn.Exec(fmt.Sprintf("FLUSH TABLES `%s`.`%s`", pd.DbName, pd.TbName))
+		// _, _ = conn.Exec(fmt.Sprintf("set session lock_wait_timeout=%d; FLUSH TABLES `%s`.`%s`", LockWaitTimeout, pd.DbName, pd.TbName))
+		flushSQL := fmt.Sprintf("FLUSH TABLES `%s`.`%s`", pd.DbName, pd.TbName)
+		_, _ = conn.ExecWithTimeout(
+			ExecTimeout,
+			fmt.Sprintf("set session lock_wait_timeout=%d; %s", LockWaitTimeout, flushSQL))
 	}()
 
 	ptError = &PartitionTableExecInfo{
