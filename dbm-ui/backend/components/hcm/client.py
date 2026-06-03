@@ -231,13 +231,14 @@ class _HCMApi(BaseApi):
             "suborders": [suborder_params],
             "remark": _("DBM资源补货申请，来源单据ID: {}").format(ticket_id),
         }
-        ticket_id = self.create_biz_apply(params=apply_params, use_admin=True)["order_id"]
+        ticket_id = self.create_biz_apply(params=apply_params, use_param_user=True)["order_id"]
         return ticket_id
 
     def modify_apply(
         self,
         suborder_id: str,
         bk_biz_id: str,
+        ticket_id: int,
         username: str,
         subzone: str,
         os_name: str,
@@ -284,9 +285,9 @@ class _HCMApi(BaseApi):
             "bk_username": username,
             "replicas": count,
             "spec": suborder_spec_params,
-            "remark": _("DBM资源补货申请修改，新机型: {}").format(device_types[device_index]),
+            "remark": _("DBM资源补货申请修改，来源单据ID: {}, 新机型: {}").format(ticket_id, device_types[device_index]),
         }
-        self.modify_biz_apply(params=modify_apply_params, use_admin=True)
+        self.modify_biz_apply(params=modify_apply_params, use_param_user=True)
 
     def get_cvm_device_capacity(self, device_type: str, subzone: str) -> int:
         """
