@@ -9,9 +9,12 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+from collections import defaultdict
+from typing import Dict, Iterable, List, Optional
 
 from django.db.models import Count
 from django.utils.translation import gettext_lazy as _
+from rest_framework import serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -70,6 +73,9 @@ class DBVersionViewSet(viewsets.AuditedModelViewSet):
         "phase": ["exact", "in"],
     }
 
+    action_permission_map = {
+        ("list_pkg_types", "check_name_conflict", "list"): [],
+    }
     default_permission_class = [
         ResourceActionPermission([ActionEnum.PACKAGE_MANAGE], ResourceEnum.DBTYPE, instance_getter)
     ]
@@ -233,6 +239,8 @@ class DBVersionViewSet(viewsets.AuditedModelViewSet):
             .annotate(cnt=Count("id"))
             .values_list("pkg_type", "cnt")
         )
+        # 是否可删除
+        delete_rules = _build_pkg_delete_rules(db_type, pkg_type_values)
 
         db_pkg_settings = [
             {
@@ -241,6 +249,7 @@ class DBVersionViewSet(viewsets.AuditedModelViewSet):
                 "version_num": item["version_num"],
                 "related_versions": version_count_map.get(item["value"], 0),
                 "related_distributions": distribution_count_map.get(item["value"], 0),
+                "can_delete": delete_rules[item["value"]] is not None,
             }
             for item in items
         ]
@@ -264,17 +273,31 @@ class DBVersionViewSet(viewsets.AuditedModelViewSet):
         - 要求前端全量传递该 db_type 下的所有 pkg 定义, 服务端按 db_type 整段替换
         - 其他 db_type 的配置不受影响
         - 仅入库 value/version_num; name 在读时动态派生
+        - 对新增的 pkg 类型, 创建占位发行版 (name=DBM, engine="")
+        - 对删除的 pkg 类型, 按 _build_pkg_delete_rules 规则校验, 允许时级联删除 DBM 占位
         """
         data = self.params_validate(self.get_serializer_class())
-        items = [
-            {"value": item["value"], "version_num": item["version_num"], "name": item["name"]}
-            for item in data["items"]
-        ]
-        # 覆盖更新
+        db_type = data["db_type"]
+
+        # 计算新增 / 删除项 (相对于现有配置)
         pkg_settings = SystemSettings.get_setting_value(
             key=SystemSettingsEnum.DB_PACKAGE_SETTINGS, default=INIT_DB_PKG_SETTINGS
         )
-        pkg_settings[data["db_type"]] = items
+        origin_values = {str(item["value"]) for item in pkg_settings.get(db_type, [])}
+        new_values = {str(item["value"]) for item in data["items"]}
+        added_pkg_types = new_values - origin_values
+        removed_pkg_types = origin_values - new_values
+
+        # 校验删除项, 不可删的拒绝整次更新; 允许的收集要级联删除的 DBM 占位 ID
+        cascade_distribution_ids: List[int] = []
+        if removed_pkg_types:
+            delete_rules = _build_pkg_delete_rules(db_type, removed_pkg_types)
+            if any(ids is None for ids in delete_rules.values()):
+                raise serializers.ValidationError(_("存在关联发行版/介质版本，不允许删除"))
+            cascade_distribution_ids = [i for ids in delete_rules.values() if ids for i in ids]
+
+        # 1. 覆盖更新 pkg 配置
+        pkg_settings[db_type] = data["items"]
         SystemSettings.insert_setting_value(
             key=SystemSettingsEnum.DB_PACKAGE_SETTINGS,
             value=pkg_settings,
@@ -282,4 +305,41 @@ class DBVersionViewSet(viewsets.AuditedModelViewSet):
             user=request.user.username,
         )
 
+        # 2. 对新增的 pkg 类型直接创建 DBM 占位发行版
+        add_dbs = [Distribution(name="DBM", engine="", db_type=db_type, pkg_type=pt) for pt in added_pkg_types]
+        if add_dbs:
+            Distribution.objects.bulk_create(add_dbs)
+
+        # 3. 级联删除可删 pkg 类型下的 DBM 占位发行版
+        VersionSeries.objects.filter(distribution_id__in=cascade_distribution_ids).delete()
+        Distribution.objects.filter(id__in=cascade_distribution_ids).delete()
+
         return Response()
+
+
+def _build_pkg_delete_rules(db_type: str, pkg_types: Iterable[str]) -> Dict[str, Optional[List[int]]]:
+    """
+    判断每个 pkg_type 是否可删除, 返回 {pkg_type: dbm_distribution_ids 或 None}
+    - None: 不可删 (存在非 DBM 发行版 或 存在 DBVersion)
+    - list: 可删, 元素为需级联删除的 DBM 占位发行版 ID (无 DBM 时为空列表)
+    """
+    pkg_types = list(pkg_types)
+    if not pkg_types:
+        return {}
+
+    dbm_ids: Dict[str, List[int]] = defaultdict(list)
+    blocked: set = set()
+    for d in Distribution.objects.filter(db_type=db_type, pkg_type__in=pkg_types).values("id", "name", "pkg_type"):
+        if d["name"].lower() == "dbm":
+            dbm_ids[d["pkg_type"]].append(d["id"])
+        else:
+            blocked.add(d["pkg_type"])
+
+    blocked |= set(
+        DBVersion.objects.filter(
+            version_series__distribution__db_type=db_type,
+            version_series__distribution__pkg_type__in=pkg_types,
+        ).values_list("version_series__distribution__pkg_type", flat=True)
+    )
+
+    return {pt: None if pt in blocked else dbm_ids[pt] for pt in pkg_types}

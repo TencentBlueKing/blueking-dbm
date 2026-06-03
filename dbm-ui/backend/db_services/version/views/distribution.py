@@ -41,6 +41,7 @@ class DistributionViewSet(viewsets.AuditedModelViewSet):
     filter_fields = ["db_type", "pkg_type"]
     pagination_class = None
 
+    action_permission_map = {("list",): []}
     default_permission_class = [
         ResourceActionPermission([ActionEnum.PACKAGE_MANAGE], ResourceEnum.DBTYPE, instance_getter)
     ]
