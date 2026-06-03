@@ -34,16 +34,27 @@ class SearchAlertInputSerializer(serializers.Serializer):
     cluster_domains = serializers.ListField(child=serializers.CharField(), help_text=_("待查询的集群域名列表"))
     start_time = serializers.DateTimeField(help_text=_("查询的起始时间"))
     end_time = serializers.DateTimeField(help_text=_("查询的截止时间"))
-
-
-class QueryAlertInputSerializer(serializers.Serializer):
-    bk_biz_id = serializers.IntegerField(help_text=_("业务Id"))
-    cluster_domains = serializers.ListField(child=serializers.CharField(), help_text=_("待查询的集群域名列表"))
-    status = serializers.ChoiceField(
-        help_text=_("告警状态，查询所有状态的告警，可不传改 status 字段"), choices=AlertStatusEnum.get_choices()
+    exclude_shielded = serializers.BooleanField(
+        help_text=_("是否过滤掉已屏蔽的告警记录，默认 False 表示不过滤（屏蔽与未屏蔽都返回）"),
+        required=False,
+        default=False,
     )
-    start_time = serializers.DateTimeField(help_text=_("查询的起始时间"))
-    end_time = serializers.DateTimeField(help_text=_("查询的截止时间"))
+    severities = serializers.ListField(
+        child=serializers.ChoiceField(choices=AlertLevelEnum.get_choices()),
+        help_text=_("告警级别过滤列表（1=致命/2=预警/3=提醒），默认不传表示全部级别都返回"),
+        required=False,
+        allow_null=True,
+        allow_empty=True,
+        default=None,
+    )
+    statuses = serializers.ListField(
+        child=serializers.ChoiceField(choices=AlertStatusEnum.get_choices()),
+        help_text=_("告警状态过滤列表（ABNORMAL/RECOVERED/CLOSED），默认不传表示全部状态都返回"),
+        required=False,
+        allow_null=True,
+        allow_empty=True,
+        default=None,
+    )
 
 
 class SearchAlertOutputSerializer(serializers.Serializer):

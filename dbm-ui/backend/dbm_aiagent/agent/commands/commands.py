@@ -91,6 +91,9 @@ class CheckMysqlClusterCommand(CommandHandler):
         集群主域名列表：{{ cluster_domains }}
         查询起始时间点：{{ start_time }}
         查询截止时间点：{{ end_time }}
+        是否过滤掉已屏蔽的告警记录：True
+        告警级别过滤列表：[1]
+        告警状态过滤列表：["ABNORMAL"]
         """
 
 
@@ -107,4 +110,7 @@ class CheckSQLServerClusterCommand(CommandHandler):
         集群主域名列表：{{ cluster_domains }}
         查询起始时间点：{{ start_time }}
         查询截止时间点：{{ end_time }}
+        是否过滤掉已屏蔽的告警记录：True
+        告警级别过滤列表：[1]
+        告警状态过滤列表：["ABNORMAL"]
         """
