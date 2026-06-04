@@ -207,7 +207,7 @@ class TestTicketViewSet:
         """测试查询单据状态"""
         ticket_ids = ",".join([str(t.id) for t in test_multiple_tickets])
         url = "/apis/tickets/list_ticket_status/"
-        response = client.get(url, {"ticket_ids": ticket_ids})
+        response = client.post(url, {"ticket_ids": ticket_ids})
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()["data"]
@@ -220,7 +220,7 @@ class TestTicketViewSet:
         """测试查询单据状态 - 包含待办的单据状态应为INNER_TODO"""
         ticket, flow, todo = test_ticket_with_todo
         url = "/apis/tickets/list_ticket_status/"
-        response = client.get(url, {"ticket_ids": str(ticket.id)})
+        response = client.post(url, {"ticket_ids": str(ticket.id)})
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()["data"]
@@ -491,7 +491,7 @@ class TestTicketViewSet:
         ]
 
         url = "/apis/tickets/get_inner_flow_infos/"
-        response = client.get(url, {"ticket_ids": f"{ticket.id}"})
+        response = client.post(url, {"ticket_ids": f"{ticket.id}"})
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()["data"]
