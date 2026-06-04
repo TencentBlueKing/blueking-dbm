@@ -15,6 +15,7 @@ from django.utils.translation import gettext as _
 
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder, SubProcess
+from backend.flow.engine.bamboo.scene.common.deploy_probe_sub_flow import deploy_probe_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.cc_trans_module import cc_standardize
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.collect_sysinfo import collect_sysinfo
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs import (
@@ -46,12 +47,15 @@ def standardize_mysql_cluster_subflow(
     with_instance_standardize: bool = True,
     with_backup_client: bool = True,
     with_exporter_config: bool = True,
+    with_probe: bool = False,
 ) -> SubProcess:
     """
     使用反向接口生成周边配置
     所以根本不要业务, 集群等信息
     只要知道实例地址, 去机器上执行配置生成就行
     参数输入了 bk_cloud_id, 所以隐式的约束是 instances 都是这个 bk_cloud_id
+
+    @param with_probe: 是否部署探针, 默认关闭（目前仅对 `部署MySQL高可用集群` 流程开启, 其他流程暂未做测试和验证, 谨慎启用！）
     """
 
     # 多租户环境临时默认做实例初始化
@@ -158,6 +162,17 @@ def standardize_mysql_cluster_subflow(
         pipe.add_sub_pipeline(
             sub_flow=gen_reload_departs_config(
                 root_id=root_id, data=data, bk_cloud_id=bk_cloud_id, instances=instances, departs=departs
+            )
+        )
+
+    # 探针部署（在当前子流程中，能够确保获取到正确的集群元数据，探针的配置生成依赖该元数据）
+    if with_probe:
+        pipe.add_sub_pipeline(
+            sub_flow=deploy_probe_sub_flow(
+                root_id=root_id,
+                data=data,
+                bk_cloud_id=bk_cloud_id,
+                ips=ips,
             )
         )
 

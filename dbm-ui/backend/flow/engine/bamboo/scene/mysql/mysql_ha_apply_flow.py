@@ -309,6 +309,7 @@ class MySQLHAApplyFlow(object):
                 instances=instances,
                 with_actuator=False,
                 with_bk_plugin=False,
+                with_probe=True,
             )
         )
 
