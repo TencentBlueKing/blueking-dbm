@@ -28,8 +28,9 @@
           theme="info"
           :title="t('集群配置参数说明')" />
         <ParamTable
-          :cluster="cluster"
+          :cluster-type="cluster.cluster_type"
           :conf-type="tab.conf_type"
+          :config-name="tab.name"
           level-name="cluster"
           :level-value="cluster.master_domain"
           selectable
@@ -47,7 +48,7 @@
 
   import type { ClusterTypes } from '@common/const';
 
-  import ParamTable from './ParamTable.vue';
+  import ParamTable from '@views/db-configure-new/components/ParamTable.vue';
 
   interface Props {
     cluster: {

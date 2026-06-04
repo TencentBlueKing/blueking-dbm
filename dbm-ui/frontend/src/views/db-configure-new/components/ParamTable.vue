@@ -60,7 +60,7 @@
       :selectable="selectable"
       @clear-search="refreshTable"
       @filter-change="handleFilterChange"
-      @request-success="handleRequestSuccess"
+      @request-success="initDescriptionTippy"
       @selection="handleSelectionChange">
       <TableColumn
         col-key="conf_name"
@@ -234,10 +234,9 @@
         :width="150">
         <template #default="{ row, rowIndex }: { row: ConfItem, rowIndex: number }">
           <!-- 编辑/新增状态下不显示操作按钮（已移至当前值列） -->
-          <template v-if="isAddingRow && rowIndex === 0 || editingRowKey === row[rowKey as keyof ConfItem]">
-            --
-          </template>
+          <template v-if="(isAddingRow && rowIndex === 0) || editingRowKey === String(row[rowKeyField])"> -- </template>
           <template v-else-if="row.flag_readonly !== 1 || row.level_name === levelName">
+            <!-- 编辑按钮：非只读参数可编辑 -->
             <BkButton
               v-if="row.flag_readonly !== 1"
               class="mr-16"
@@ -246,6 +245,7 @@
               @click="handleStartEdit(row)">
               {{ t('编辑') }}
             </BkButton>
+            <!-- 恢复按钮：自定义参数（level_name === levelName 即「自定义」）可恢复 -->
             <BkButton
               v-if="row.level_name === levelName && row.flag_readonly !== 1"
               text
@@ -312,7 +312,7 @@
     /** 层级名称 */
     levelName?: string;
     /** 层级值 */
-    levelValue?: number;
+    levelValue?: number | string;
     /** 行唯一标识字段 */
     rowKey?: string;
     /** 是否支持行选择（批量编辑） */
@@ -336,8 +336,11 @@
   const globalBizsStore = useGlobalBizs();
 
   const saveLoading = ref(false);
+  // 所有配置项
   const allConfItems = ref<ConfItem[]>([]);
+  // 原始配置项
   const originConfItems = ref<ConfItem[]>([]);
+  // 可添加的参数
   const availableParams = ref<ConfItem[]>([]);
 
   // 行唯一标识字段
@@ -413,7 +416,9 @@
    * 注意：判定来源是 up_level_value.level_name（上一级层级），而非行自身的 level_name；
    * 后端在该字段中返回参数所继承的上一级配置层级。
    */
-  const isCancelUseParam = (row: ConfItem) => row.level_name !== ConfLevels.PLAT && !row.up_level_value;
+  const isCancelUseParam = (row: ConfItem) =>
+    (row.level_name !== ConfLevels.PLAT && !row.up_level_value) || // row.up_level_value 返回null
+    (row.level_name !== ConfLevels.PLAT && row.up_level_value && Object.keys(row.up_level_value).length === 0); // row.up_level_value 返回空对象{}
 
   /** 重置编辑状态 */
   const resetEditingState = () => {
@@ -488,7 +493,7 @@
     version: props.version,
   }));
 
-  /** 参数数据源函数 */
+  /** 参数列表数据源 */
   const paramDataSource = (params: { limit: number; offset: number }) => {
     let data = [...allConfItems.value];
 
@@ -544,11 +549,6 @@
       count: data.length,
       results: data.slice(start, end),
     };
-
-    // 数据返回后，在 DOM 更新完成再初始化 tippy（避免分页/搜索后 tippy 失效）
-    nextTick(() => {
-      initDescriptionTippy();
-    });
 
     return Promise.resolve(result);
   };
@@ -637,11 +637,6 @@
     searchValue.value = filterVal;
   };
 
-  /** 数据请求成功后重新初始化 tippy（含分页切换场景） */
-  const handleRequestSuccess = () => {
-    setTimeout(() => initDescriptionTippy(), 100);
-  };
-
   /** 监听新增行选择参数变化 */
   watch(
     () => newRow.value.conf_name,
@@ -683,6 +678,7 @@
     allConfItems.value.unshift({
       ...paramInfo,
       conf_value: confValue,
+      level_name: props.levelName,
       op_type: 'add',
     });
 
@@ -690,6 +686,7 @@
     try {
       await updateBusinessConfig(buildUpdateParams([{ ...paramInfo, conf_value: confValue, op_type: 'add' }]));
       messageSuccess(t('操作成功'));
+      refreshTable(); // 仅刷新表格
       emit('change');
     } finally {
       saveLoading.value = false;
@@ -753,7 +750,7 @@
         messageSuccess(
           target.level_name === props.levelName ? t('操作成功_参数已修改') : t('操作成功_参数已转为自定义'),
         );
-        fetchLevelConfig(fetchParams.value);
+        fetchLevelConfig(fetchParams.value); // 重新拉取配置列表（并且刷新表格）
         emit('change');
       } finally {
         saveLoading.value = false;
@@ -1021,7 +1018,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    cursor: default;
   }
 
   .value-cell-tag {

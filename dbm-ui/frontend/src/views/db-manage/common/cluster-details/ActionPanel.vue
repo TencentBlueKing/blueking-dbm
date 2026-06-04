@@ -126,7 +126,11 @@
                   :label="t('操作记录')"
                   name="configRecord">
                   <ConfigOperationRecord
-                    :cluster="clusterData" />
+                    ref="configRecordRef"
+                    class="config-record"
+                    :cluster-type="clusterData.cluster_type"
+                    level-name="cluster"
+                    :level-value="clusterData.master_domain" />
                 </BkTabPanel>
                 <BkTabPanel
                   :label="t('单据记录')"
@@ -172,10 +176,11 @@
 
   import { clusterTypeInfos, ClusterTypes } from '@common/const';
 
+  import ConfigOperationRecord from '@views/db-configure-new/business/list/components/OperationRecord.vue';
+
   import AlarmSubscription from './components/AlarmSubscription.vue';
   import BaseInfo from './components/BaseInfo.vue';
   import ClusterTopo from './components/cluster-topo/Index.vue';
-  import ConfigOperationRecord from './components/ConfigOperationRecord.vue';
   import HostList from './components/HostList.vue';
   import Instancelist from './components/InstanceList.vue';
   import MonitorDashboard from './components/MonitorDashboard.vue';
@@ -249,6 +254,7 @@
   const recordSubTab = ref('configRecord');
 
   const rootRef = useTemplateRef('root');
+  const configRecordRef = ref();
   const activePanel = ref(String(route.query[URL_CLUSTER_DETAIL_MEMO_KEY]) || '');
   const visitedPanels = reactive(new Set<string>());
   const tabcontentheight = ref('0');
@@ -298,6 +304,18 @@
       isFixedTab.value = fixedTabList.includes(activePanel.value);
       if (activePanel.value) {
         visitedPanels.add(activePanel.value);
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  watch(
+    recordSubTab,
+    (value) => {
+      if (value === 'configRecord') {
+        configRecordRef.value?.fetchData();
       }
     },
     {
@@ -357,6 +375,10 @@
     .cluster-specific-flag {
       color: #531dab !important;
       background: #f9f0ff !important;
+    }
+
+    .config-record {
+      padding: 0;
     }
   }
 </style>
