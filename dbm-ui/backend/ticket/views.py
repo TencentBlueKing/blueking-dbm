@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import inspect
 import logging
-from collections import Counter
+from collections import Counter, defaultdict
 from typing import Dict, List
 
 from django.db import transaction
@@ -418,30 +418,29 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["GET"], detail=False, filter_class=None, pagination_class=None, serializer_class=TicketTypeSLZ)
     def ticket_group_types(self, request, *args, **kwargs):
         is_apply = self.params_validate(self.get_serializer_class())["is_apply"]
-        ticket_type_list = []
 
-        resource_type = [("resource", "Resource"), ("recycle", "Recycle")]
-        all_type = resource_type + DBType.get_choices()
-        for db_type in all_type:
-            children = []
-            # 获取该DB类型的所有单据键值
-            ticket_keys = TicketType.get_ticket_type_by_db(db_type[0])
+        grouped_tickets = defaultdict(list)
 
-            # 遍历每个单据键值，获取其详细信息
-            for ticket_key in ticket_keys:
-                # 获取该单据的枚举字段对象
-                ticket_field = TicketType.get_choice_label(ticket_key)
+        for ticket_type in TicketType.get_values():
+            db_type = TicketType.get_db_type_by_ticket(ticket_type)
 
-                # 检查是否满足过滤条件
-                if not is_apply or ticket_key in BuilderFactory.apply_ticket_type:
-                    children.append({"label": ticket_field, "value": ticket_key})
-            ticket_type_list.append(
-                {
-                    "children": children,
-                    "label": db_type[1],
-                    "value": db_type[0],
-                }
-            )
+            # 找不到该DB类型，设为common
+            if not db_type:
+                db_type = "common"
+                db_type_label = "Common"
+            else:
+                db_type_label = DBType.get_choice_label(db_type)
+
+            ticket_label = TicketType.get_choice_label(ticket_type)
+
+            if not is_apply or ticket_type in BuilderFactory.apply_ticket_type:
+                # 按DB类型分组
+                grouped_tickets[(db_type, db_type_label)].append({"label": ticket_label, "value": ticket_type})
+
+        ticket_type_list = [
+            {"children": children, "label": db_type_label, "value": db_type}
+            for (db_type, db_type_label), children in grouped_tickets.items()
+        ]
 
         return Response(ticket_type_list)
 
