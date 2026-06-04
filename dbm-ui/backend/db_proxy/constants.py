@@ -41,6 +41,10 @@ class ExtensionType(StrStructuredEnum):
     CONSOLE_DUMP_CENTER = EnumField("CONSOLE_DUMP_CENTER", _("控制台转储中心"))
     MONGODB_EXPORT_CENTER = EnumField("MONGODB_EXPORT_CENTER", _("MongoDB 数据导出中心"))
     REDIS_KEYSTAT_CENTER = EnumField("REDIS_KEYSTAT_CENTER", _("Redis内存分析统计中转机器"))
+    # dbha-v2 相关扩展类型
+    DBHA_V2_ADMIN = EnumField("dbha-v2-admin", _("dbha-v2 Admin 服务"))
+    DBHA_V2_AM = EnumField("dbha-v2-am", _("dbha-v2 AM 服务"))
+    DBHA_V2_RM = EnumField("dbha-v2-rm", _("dbha-v2 RM 服务"))
 
 
 class ExtensionServiceStatus(StrStructuredEnum):

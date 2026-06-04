@@ -29,6 +29,7 @@ from backend.db_proxy.constants import (
     ExtensionType,
 )
 from backend.db_proxy.exceptions import ProxyPassBaseException
+from backend.flow.utils.cloud.cloud_context_dataclass import CloudDBHAV2AdminDetail
 
 
 class DBCloudProxy(AuditedModel):
@@ -136,6 +137,26 @@ class DBExtension(AuditedModel):
                 extension_info[ext.extension.lower()][dbha_type].append({"id": ext.id, **ext.details})
 
         return extension_info
+
+    @classmethod
+    def get_dbha_v2_admin_endpoints(cls) -> str:
+        """
+        查询所有 running 状态的 dbha-v2-admin 记录，
+        按 ip:port/path 格式拼接，多个地址用 ; 分隔。
+        details 格式示例：{"ip": "127.0.0.1", "port": 8080, "path": "/api/v1"}
+        """
+        extensions = cls.objects.filter(
+            extension=ExtensionType.DBHA_V2_ADMIN,
+            status=ExtensionServiceStatus.RUNNING.value,
+        )
+        endpoints = []
+        for ext in extensions:
+            detail = CloudDBHAV2AdminDetail(**ext.details)
+            path = detail.path.lstrip("/")
+
+            if detail.ip and detail.port:
+                endpoints.append(f"{detail.ip}:{detail.port}/{path}" if path else f"{detail.ip}:{detail.port}")
+        return ";".join(endpoints)
 
     def update_details(self, **kwargs):
         for key, value in kwargs.items():

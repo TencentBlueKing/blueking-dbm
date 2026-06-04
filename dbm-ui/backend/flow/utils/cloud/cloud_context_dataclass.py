@@ -182,3 +182,14 @@ class CloudRedisDTSDetail(CloudServiceDetail):
     bk_city_name: str = ""  # 部署机器的城市信息
 
     pass
+
+
+@dataclass()
+class CloudDBHAV2AdminDetail:
+    """
+    dbha-v2-admin 服务的 detail 数据类
+    """
+
+    ip: Optional[str] = None  # Admin 服务 IP 地址
+    port: Optional[int] = None  # Admin 服务端口
+    path: str = ""  # Admin 服务路径（可选），如 /api/v1
