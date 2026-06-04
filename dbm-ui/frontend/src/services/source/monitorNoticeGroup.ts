@@ -14,6 +14,8 @@
 import NoticGroupModel from '@services/model/notice-group/notice-group';
 import type { ListBase } from '@services/types';
 
+import { DBTypes } from '@common/const';
+
 import http, { type IRequestPayload } from '../http';
 
 const path = '/apis/monitor/notice_group';
@@ -25,7 +27,7 @@ export function getAlarmGroupList(
   params: {
     bk_biz_id: number;
     limit: number;
-    name: string;
+    name?: string;
     offset: number;
   },
   payload = {} as IRequestPayload,
@@ -50,7 +52,7 @@ export function insertAlarmGroup(params: {
   bk_biz_id: number;
   details: NoticGroupModel['details'];
   name: string;
-  receivers: NoticGroupModel['receivers'][];
+  receivers: NoticGroupModel['receivers'];
 }) {
   return http.post(`${path}/`, params);
 }
@@ -63,7 +65,7 @@ export function updateAlarmGroup(params: {
   details: NoticGroupModel['details'];
   id: number;
   name: string;
-  receivers: NoticGroupModel['receivers'][];
+  receivers: NoticGroupModel['receivers'];
 }) {
   return http.put(`${path}/${params.id}/`, params);
 }
@@ -72,10 +74,10 @@ export function updateAlarmGroup(params: {
  * 编辑告警组(部分)
  */
 export function patchAlarmGroup(params: {
-  details: { channels: string[] } & NoticGroupModel['details'];
+  details: NoticGroupModel['details'];
   id: number;
   name: string;
-  receivers: NoticGroupModel['receivers'][];
+  receivers: NoticGroupModel['receivers'];
 }) {
   return http.patch(`${path}/${params.id}/`, params);
 }
@@ -106,15 +108,11 @@ export function getAlarmGroupNotifyList(params: {
   >(`${path}/get_msg_type/`, params);
 }
 
-export function getSimpleList(params: { bk_biz_id: number; db_type: string }) {
+export function listGroupName(params: { bk_biz_id: number; db_type: DBTypes }) {
   return http.get<
     {
       id: number;
       name: string;
-      receivers: {
-        id: string;
-        type: string;
-      }[];
     }[]
   >(`${path}/list_group_name/`, params);
 }
