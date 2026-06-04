@@ -1,6 +1,33 @@
+import { DBTypes, MessageTypes } from '@common/const';
+
 import { isRecentDays, utcDisplayTime } from '@utils';
 
+import { t } from '@locales/index';
+
 export default class NoticGroup {
+  static NoticeMethodList = [
+    {
+      icon: 'youjian',
+      label: t('邮件'),
+      type: MessageTypes.MAIL,
+    },
+    {
+      icon: 'yuyin',
+      label: t('语音'),
+      type: MessageTypes.VOICE,
+    },
+    {
+      icon: 'qiyeweixin',
+      label: t('企微'),
+      type: MessageTypes.RTX,
+    },
+    {
+      icon: 'qiweiqunliao',
+      label: t('企微群聊'),
+      type: MessageTypes.WXWORK_BOT,
+    },
+  ];
+
   bk_biz_id: number;
   create_at: string;
   creator: string;
@@ -17,6 +44,7 @@ export default class NoticGroup {
       }[];
       time_range: string;
     }[];
+    channels: string[];
   };
   id: number;
   is_built_in: boolean;
@@ -36,7 +64,7 @@ export default class NoticGroup {
   sync_at: string;
   update_at: string;
   updater: string;
-  used_count: number;
+  used_count: Record<DBTypes, number>;
 
   constructor(payload = {} as NoticGroup) {
     this.bk_biz_id = payload.bk_biz_id;
@@ -64,5 +92,9 @@ export default class NoticGroup {
 
   get updateAtDisplay() {
     return utcDisplayTime(this.update_at);
+  }
+
+  get usedCountTotal() {
+    return Object.values(this.used_count).reduce((prevCount, currCount) => prevCount + currCount, 0);
   }
 }

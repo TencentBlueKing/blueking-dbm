@@ -11,6 +11,7 @@ export enum MessageTypes {
   VOICE = 'voice',
   WECOM_ROBOT = 'wecom_robot',
   WEIXIN = 'weixin',
+  WXWORK_BOT = 'wxwork-bot',
 }
 
 export const InputMessageTypes = [MessageTypes.WECOM_ROBOT] as string[];
