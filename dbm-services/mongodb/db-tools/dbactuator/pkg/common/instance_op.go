@@ -286,7 +286,7 @@ func getMongoBinRootDir() string {
 }
 
 // DoStart 启动 mongod/mongos
-// 直接使用 mongod --config，避免依赖 start_mongo.sh 中的固定路径。
+// 直接使用对应进程 --config，避免依赖 start_mongo.sh 中的固定路径。
 func (inst *InstanceOp) DoStart(mode string) error {
 	dataDir := consts.GetMongoDataDir(strconv.Itoa(inst.Port))
 	if dataDir == "" {
@@ -301,13 +301,27 @@ func (inst *InstanceOp) DoStart(mode string) error {
 		return errors.New("unknown mode " + mode)
 	}
 	confPath := filepath.Join(dataDir, "mongodata", strconv.Itoa(inst.Port), confName)
-	mongodBin := filepath.Join(getMongoBinRootDir(), "mongodb", "bin", "mongod")
+	mongoBin := filepath.Join(getMongoBinRootDir(), "mongodb", "bin", inst.startProcessNameByDBType())
 	shellCmd := fmt.Sprintf(
 		"if command -v numactl >/dev/null 2>&1; then numactl --interleave=all %s --config %s; else %s --config %s; fi",
-		mongodBin, confPath, mongodBin, confPath,
+		mongoBin, confPath, mongoBin, confPath,
 	)
 	_, err := mycmd.New("bash", "-c", shellCmd).Run3(time.Second*60, nil, nil)
 	return err
+}
+
+// IsMongosByDBType reports whether mongodata/<port>/dbtype records this instance as mongos.
+// Missing/unreadable files and any value other than "mongos" fall back to mongod behavior.
+func (inst *InstanceOp) IsMongosByDBType() bool {
+	return inst.startProcessNameByDBType() == "mongos"
+}
+
+func (inst *InstanceOp) startProcessNameByDBType() string {
+	dbTypePath := filepath.Join(consts.GetMongoDataDir(strconv.Itoa(inst.Port)), "mongodata", strconv.Itoa(inst.Port), "dbtype")
+	if content, err := os.ReadFile(dbTypePath); err == nil && strings.TrimSpace(string(content)) == "mongos" {
+		return "mongos"
+	}
+	return "mongod"
 }
 
 // DoStartAsStandAlone 启动为单节点

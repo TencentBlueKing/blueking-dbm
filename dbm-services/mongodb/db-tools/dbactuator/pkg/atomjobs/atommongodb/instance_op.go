@@ -183,6 +183,10 @@ func (s *instOpJob) isGracefulStop() bool {
 
 func (s *instOpJob) doBackupMongodata() error {
 	op := s.GetInstanceOp()
+	if op.IsMongosByDBType() {
+		s.runtime.Logger.Info("instance %s:%d dbtype is mongos, skip backup data directory", s.ConfParams.IP, s.ConfParams.Port)
+		return nil
+	}
 	pid, running, err := op.IsRunning()
 	if err != nil {
 		return errors.Wrap(err, "IsRunning check before backup")
