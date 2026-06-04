@@ -36,6 +36,7 @@ class ExecuteShellScriptService(BkJobService):
         root_id = kwargs["root_id"]
         node_name = kwargs["node_name"]
         node_id = kwargs["node_id"]
+        account_alias = kwargs.get("account_alias")
 
         exec_ips = self.splice_exec_ips_list(ticket_ips=kwargs["exec_ip"])
         if not exec_ips:
@@ -55,6 +56,9 @@ class ExecuteShellScriptService(BkJobService):
             "script_language": 1,
             "target_server": {"ip_list": target_ip_info},
         }
+
+        if account_alias:
+            body["account_alias"] = account_alias
 
         self.log_info("[{}] ready start task with body {}".format(node_name, body))
         resp = JobApi.fast_execute_script({**redis_fast_execute_script_common_kwargs, **body}, raw=True)

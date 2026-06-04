@@ -364,6 +364,7 @@ class MediumEnum(StrStructuredEnum):
     Vm = EnumField("vm", _("vm"))
     Oracle = EnumField("oracle", _("oracle"))
     TLinux4Dependencies = EnumField("tlinux4-dependencies", _("tlinux4-dependencies"))
+    DBHAV2Probe = EnumField("dbha-v2-probe", _("dbha-v2-probe 探针"))
 
 
 class CloudServiceName(StrStructuredEnum):

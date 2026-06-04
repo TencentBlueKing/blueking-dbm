@@ -771,3 +771,21 @@ class GetFileList(object):
             else:
                 non_perl_pkgs.append(pkg_info)
         return non_perl_pkgs + perl_pkgs
+
+    @classmethod
+    def get_dbha_v2_probe_package(cls) -> tuple:
+        """
+        获取最新的 dbha-v2-probe 探针介质包
+        返回 (file_list, pkg_name) 元组：
+        - file_list: 用于 TransFileComponent 下发的文件路径列表
+        - pkg_name: 包文件名，用于 shell 脚本中动态解压（自动适配版本更新）
+        """
+        probe_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest,
+            pkg_type=MediumEnum.DBHAV2Probe,
+            db_type=DBType.Cloud,
+        )
+        return (
+            [f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{probe_pkg.path}"],
+            probe_pkg.name,
+        )

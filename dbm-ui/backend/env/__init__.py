@@ -291,3 +291,6 @@ MYSQL_SLOW_LOG_INDEX_SET_ID = get_type_env(key="MYSQL_SLOW_LOG_INDEX_SET_ID", _t
 
 # 用户管理前端APIGW域名
 USER_MANAGE_FRONTEND_APIGW_DOMAIN = get_type_env(key="USER_MANAGE_FRONTEND_APIGW_DOMAIN", _type=str, default="")
+
+# dbha-v2 探针总开关，默认关闭
+ENABLE_DBHA_V2 = get_type_env(key="ENABLE_DBHA_V2", _type=bool, default=False)
