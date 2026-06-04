@@ -96,6 +96,7 @@ func UpsertConfigItems(db *gorm.DB, configsOp []*model.ConfigModelOp, revision s
 				ConfName: c.Config.ConfName,
 				View:     "merge",
 			}
+			// beforeModels 重新获取当前的值
 			beforeModels, namesDef, err := GetMergedConfig(db, &baseInfo, upLevel, &baseOptions)
 			if err != nil {
 				return nil, err
@@ -110,7 +111,6 @@ func UpsertConfigItems(db *gorm.DB, configsOp []*model.ConfigModelOp, revision s
 				beforeImages[c.Config.ConfName] = model.NewConfItemFromModel(&before)
 				if before.UpLevelValue != nil {
 					// 这里给 recover 操作，也记录恢复默认后的 新值。recover 操作是删除当前级别的旧值
-					//upLevelConfValues[c.Config.ConfName] = before.UpLevelValue["conf_value"]
 					upLevelConfItems[c.Config.ConfName] = before.UpLevelValue
 				}
 			}
@@ -252,12 +252,11 @@ func GetMergedConfig(db *gorm.DB, s *api.BaseConfigNode, upLevelInfo *api.UpLeve
 						"level_name":  upConfig.LevelName,
 						"level_value": upConfig.LevelValue,
 						"conf_value":  upConfig.ConfValue,
-						//"flag_visible": confNamesDef[cg.ConfName].FlagVisible,
 					}
 				} else {
 					logger.Error("NO UP LEVEL FOUND: conf_name=%s (%s=%s)",
 						cg.ConfName, cg.LevelName, cg.LevelValue)
-					cg.UpLevelValue = make(map[string]string)
+					//cg.UpLevelValue = make(map[string]string)
 				}
 			}
 		}
@@ -416,12 +415,6 @@ func UpdateConfigFileItems(r *api.UpsertConfItemsReq, opUser string) (*api.Upser
 			if !checkVersionable(r.ConfFileInfo.Namespace, r.ConfFileInfo.ConfType) {
 				return errors.WithMessagef(errno.ErrUnversionable, "%s,%s", fileDef.Namespace, fileDef.ConfType)
 			}
-			/*
-			   // confirm 处理下层级冲突 tb_config_node
-			   if err := ProcessOPConfig(opConfigs); err != nil {
-			       return err
-			   }
-			*/
 			// 保存到 tb_config_versioned
 			// 保存到 tb_config_node
 			if v, err := GenerateConfigFile(tx, publishReq, constvar.MethodGenAndPublish, configsDiff); err != nil {
