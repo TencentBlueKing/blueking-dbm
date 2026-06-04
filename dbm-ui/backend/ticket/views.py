@@ -249,7 +249,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         auto_schema=PaginatedResponseSwaggerAutoSchema,
         tags=[TICKET_TAG],
     )
-    @action(methods=["GET"], detail=False, serializer_class=ListTicketStatusSerializer, filter_class=None)
+    @action(methods=["POST"], detail=False, serializer_class=ListTicketStatusSerializer, filter_class=None)
     def list_ticket_status(self, request, *args, **kwargs):
         ticket_ids = self.params_validate(self.get_serializer_class())["ticket_ids"].split(",")
         tickets = Ticket.objects.filter(id__in=ticket_ids)
@@ -753,7 +753,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         query_serializer=GetInnerFlowSerializer(),
         tags=[TICKET_TAG],
     )
-    @action(methods=["GET"], detail=False, serializer_class=GetInnerFlowSerializer, filter_class=None)
+    @action(methods=["POST"], detail=False, serializer_class=GetInnerFlowSerializer, filter_class=None)
     def get_inner_flow_infos(self, request, *args, **kwargs):
         """
         获取单据关联后台任务的信息
