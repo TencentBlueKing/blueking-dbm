@@ -28,6 +28,13 @@ from backend.iam_app.handlers.drf_perm.cluster import ClusterDetailPermission
 from .. import constants
 from ..constants import DashboardType
 
+# 视图名称到标识符的映射
+VIEW_ID_MAPPING = {
+    _("慢查询"): "slowQuery",
+    _("表容量视图"): "tableCapacityView",
+    _("集群监控视图"): "clusterMonitoringView",
+}
+
 
 class MonitorGrafanaViewSet(viewsets.SystemViewSet):
 
@@ -56,7 +63,14 @@ class MonitorGrafanaViewSet(viewsets.SystemViewSet):
             org_id=DEFAULT_ORG_ID, org_name=DEFAULT_ORG_NAME, cluster_type=cluster_type, type=DashboardType.CLUSTER
         )
         if dashes.exists():
-            dash_urls = [{"view": dash.view, "url": dash.get_url(bk_biz_id, cluster_id)} for dash in dashes]
+            dash_urls = [
+                {
+                    "id": VIEW_ID_MAPPING.get(dash.view, dash.view),
+                    "view": _(dash.view),
+                    "url": dash.get_url(bk_biz_id, cluster_id),
+                }
+                for dash in dashes
+            ]
             url = dash_urls[0]["url"]
         else:
             dash_urls, url = [], "#"
@@ -80,7 +94,8 @@ class MonitorGrafanaViewSet(viewsets.SystemViewSet):
         if dashes.exists():
             dash_urls = [
                 {
-                    "view": dash.view,
+                    "id": VIEW_ID_MAPPING.get(dash.view, dash.view),
+                    "view": _(dash.view),
                     "url": dash.get_business_url(bk_biz_id),
                     "db_type": dash.db_type,
                     "type": dash.type,
