@@ -302,3 +302,112 @@ func (c *Client) AddInstanceToDomain(ip string, port int, domain string, bkBizId
 	}
 	return nil
 }
+
+// GetClbTargetPrivateIps queries private IPs bound to a CLB listener.
+func (c *Client) GetClbTargetPrivateIps(clb *config.ClbConfig) ([]string, error) {
+	apiCfg := config.ClusterConfig.DbmServices.DbmApiClbGetTargetPrivateIps
+	if apiCfg.Api == "" {
+		return nil, gerrors.New(gerrors.InvalidParameter,
+			"dbmApiClbGetTargetPrivateIps.api is empty, please configure it in cluster.yaml")
+	}
+
+	req := ClbGetTargetPrivateIpsRequest{
+		DbCloudToken:   apiCfg.Token,
+		BkCloudID:      clb.BkCloudID,
+		Region:         clb.Region,
+		ListenerID:     clb.ListenerID,
+		LoadBalancerID: clb.LoadBalancerID,
+	}
+
+	resp, err := c.SendRequest(apiCfg.Api, hanet.HttpMethodPost, req, apiCfg.Timeout)
+	if err != nil {
+		return nil, err
+	}
+
+	clbResp := &ClbGetTargetPrivateIpsResponse{}
+	if err := json.Unmarshal(resp, clbResp); err != nil {
+		return nil, gerrors.Newf(gerrors.InvalidJson, "failed to unmarshal clb get response: %s", err.Error())
+	}
+
+	if !clbResp.Result {
+		return nil, gerrors.Newf(gerrors.Failure, "request failed: %s", clbResp.Message)
+	}
+
+	return clbResp.Data.IPs, nil
+}
+
+// RegisterClbPartTarget registers instances to a CLB listener.
+func (c *Client) RegisterClbPartTarget(clb *config.ClbConfig, ips []string) error {
+	if len(ips) == 0 {
+		return nil
+	}
+
+	apiCfg := config.ClusterConfig.DbmServices.DbmApiClbRegisterPartTarget
+	if apiCfg.Api == "" {
+		return gerrors.New(gerrors.InvalidParameter,
+			"dbmApiClbRegisterPartTarget.api is empty, please configure it in cluster.yaml")
+	}
+
+	req := ClbRegisterPartTargetRequest{
+		BkCloudID:      clb.BkCloudID,
+		DbCloudToken:   apiCfg.Token,
+		Region:         clb.Region,
+		ListenerID:     clb.ListenerID,
+		LoadBalancerID: clb.LoadBalancerID,
+		IPs:            ips,
+	}
+
+	resp, err := c.SendRequest(apiCfg.Api, hanet.HttpMethodPost, req, apiCfg.Timeout)
+	if err != nil {
+		return err
+	}
+
+	clbResp := &ClbPartTargetResponse{}
+	if err := json.Unmarshal(resp, clbResp); err != nil {
+		return gerrors.Newf(gerrors.InvalidJson, "failed to unmarshal clb register response: %s", err.Error())
+	}
+
+	if !clbResp.Result {
+		return gerrors.Newf(gerrors.Failure, "request failed: %s", clbResp.Message)
+	}
+
+	return nil
+}
+
+// DeregisterClbPartTarget deregisters instances from a CLB listener.
+func (c *Client) DeregisterClbPartTarget(clb *config.ClbConfig, ips []string) error {
+	if len(ips) == 0 {
+		return nil
+	}
+
+	apiCfg := config.ClusterConfig.DbmServices.DbmApiClbDeregisterPartTarget
+	if apiCfg.Api == "" {
+		return gerrors.New(gerrors.InvalidParameter,
+			"dbmApiClbDeregisterPartTarget.api is empty, please configure it in cluster.yaml")
+	}
+
+	req := ClbDeregisterPartTargetRequest{
+		BkCloudID:      clb.BkCloudID,
+		DbCloudToken:   apiCfg.Token,
+		Region:         clb.Region,
+		ListenerID:     clb.ListenerID,
+		LoadBalancerID: clb.LoadBalancerID,
+		IPs:            ips,
+	}
+
+	resp, err := c.SendRequest(apiCfg.Api, hanet.HttpMethodPost, req, apiCfg.Timeout)
+	if err != nil {
+		return err
+	}
+
+	clbResp := &ClbPartTargetResponse{}
+	if err := json.Unmarshal(resp, clbResp); err != nil {
+		return gerrors.Newf(gerrors.InvalidJson, "failed to unmarshal clb deregister response: %s", err.Error())
+	}
+
+	if !clbResp.Result {
+		return gerrors.Newf(gerrors.Failure, "request failed: %s", clbResp.Message)
+	}
+
+	return nil
+}

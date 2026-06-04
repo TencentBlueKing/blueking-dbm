@@ -20,6 +20,17 @@ mysqlClusters:
         port: 3306
       - host: xxx.xxx.xxx.5
         port: 3306
+    
+    clb:
+      - bkCloudId: 0
+        region: "广州"
+        listenerId: "xxx"
+        loadbalancerId: "xxx"
+        instances:
+          - host: xxx.xxx.xxx.6
+            port: 3306
+          - host: xxx.xxx.xxx.7
+            port: 3306
 
 # tenDB cluster
 tenDBClusters:
@@ -86,6 +97,17 @@ tenDBClusters:
         port: 3306
         masterHost: test-tendb-spt1
         masterPort: 3306
+    
+    clb:
+      - bkCloudId: 0
+        region: "广州"
+        listenerId: "xxx"
+        loadbalancerId: "xxx"
+        instances:
+          - host: xxx.xxx.xxx.6
+            port: 3306
+          - host: xxx.xxx.xxx.7
+            port: 3306
 
 dbmServices:
   dbmApiMetadata:
@@ -112,6 +134,21 @@ dbmServices:
     api: http://127.0.0.1:80/apis/proxypass/dns/domain/put/
     timeout: 10s
     token: ""
+
+  dbmApiClbGetTargetPrivateIps:
+    api: http://127.0.0.1:80/apis/proxypass/nameservice/clb_get_target_private_ips/
+    timeout: 10s
+    token: "xxx"
+
+  dbmApiClbRegisterPartTarget:
+    api: http://127.0.0.1:80/apis/proxypass/nameservice/clb_register_part_target/
+    timeout: 10s
+    token: "xxx"
+
+  dbmApiClbDeregisterPartTarget:
+    api: http://127.0.0.1:80/apis/proxypass/nameservice/clb_deregister_part_target/
+    timeout: 10s
+    token: "xxx"
 
 authInfo:
   user: "mysql"

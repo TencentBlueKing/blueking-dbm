@@ -695,6 +695,7 @@ func (hdl *TenDBClusterHandler) addSpiderNodesToDomain(spiderList []config.TenDB
 // Step 9: delete and insert a new mysql.servers, flush routing
 // Step 10: update all instances status to running
 // Step 11: add all spiders to the domain
+// Step 12: reset clb binding (optional; skip when clb is omitted or empty)
 func (hdl *TenDBClusterHandler) resetSingleTenDBCluster(cluster *config.TenDBCluster) error {
 	hdl.printOneTenDBCluster(cluster)
 	fmt.Printf("Resetting cluster %s...\n", cluster.Domain)
@@ -765,6 +766,14 @@ func (hdl *TenDBClusterHandler) resetSingleTenDBCluster(cluster *config.TenDBClu
 		return err
 	}
 	fmt.Printf("Step 11 <add all spiders to the domain> done\n")
+
+	if len(cluster.Clb) > 0 {
+		if err := hdl.resetAllClbBindings(cluster.Clb); err != nil {
+			fmt.Printf("Failed at step 12 <reset clb binding>, errmsg: %s\n", err.Error())
+			return err
+		}
+		fmt.Printf("Step 12 <reset clb binding> done\n")
+	}
 
 	return nil
 }
