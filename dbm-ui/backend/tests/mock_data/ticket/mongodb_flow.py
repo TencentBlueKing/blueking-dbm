@@ -28,7 +28,7 @@ MONGODB_EXEC_SCRIPT_TICKET_DATA = {
             {
                 "name": "",
                 "content": "var mongo = db;\r\n"
-                'var thisdb = mongo.getSisterDB("test_db");\r\n'
+                'var thisdb = mongo.getSiblingDB("test_db");\r\n'
                 'thisdb.test_tb.insertOne({ name: "A", age: 1 });',
             }
         ],

@@ -239,9 +239,10 @@ killall -9 prome_exporter_manager | echo true
 """
 
 # 分片集群初始化设置
+# 只支持mongodb version >= 3.2 ; 存量没有3.0版本的分片集群; 也不要再部署了.
 mongodb_cluster_inti_js_script = """
 sh.setBalancerState(false);
-db.getSisterDB('config').settings.save({ _id:'chunksize', value: 512 });
+db.getSiblingDB('config').settings.updateOne({ _id:'chunksize' }, { $set: { value: 512 } }, { upsert: true });
 """
 
 # 禁用bk-dbmon 监控

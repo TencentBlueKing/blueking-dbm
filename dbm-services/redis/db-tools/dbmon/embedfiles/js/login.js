@@ -1,6 +1,6 @@
 
 const mi = db.isMaster();
-db = db.getSisterDB('admin');
+db = db.getSiblingDB('admin');
 let mongo_type = '';
 if (typeof mi['setName'] != 'undefined' ) {
   if (mi.arbiterOnly) {
@@ -31,7 +31,7 @@ print ('mongo_type:' + mongo_type);
 
 if (mongo_type == 'primary') {
   print ("me ", mi.me , "connect ok update test.dbmon_heartbeat");
-  var testdb= db.getSisterDB('test');
+  var testdb= db.getSiblingDB('test');
   testdb.dbmon_heartbeat.update ({_id:'hb'}, {"$set":{mi:mi}}, true,true);
   //printjson(testdb.dbmon_heartbeat.findOne());
 } else {
