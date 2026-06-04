@@ -1,7 +1,7 @@
 import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 /**
- * TenDBCluster 接入层故障重建（故障修复类）
+ * TenDBCluster 接入层灾难重建（故障修复类）
  * 集群所选接入层角色（Spider Master / Spider Slave）整组不可用、无法在原机器上立即恢复时，
  * 按集群整组申请新机重建并下架旧机
  */

@@ -23,7 +23,7 @@
         theme="warning"
         :title="
           t(
-            'Proxy 原地重建：在原主机上重建异常的 Proxy 进程（拓扑/IP/端口不变）。如整组 Proxy 不可用，请使用「Proxy 故障重建」'
+            'Proxy 原地重建：在原主机上重建异常的 Proxy 进程（拓扑/IP/端口不变）。如整组 Proxy 不可用，请使用「Proxy 灾难重建」',
           )
         " />
       <BatchInput

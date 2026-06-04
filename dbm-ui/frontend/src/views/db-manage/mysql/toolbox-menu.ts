@@ -157,7 +157,7 @@ export default [
       {
         dbConsoleValue: 'mysql.toolbox.proxyRescue',
         id: TicketTypes.MYSQL_PROXY_RESCUE,
-        name: t('Proxy 故障重建'),
+        name: t('Proxy 灾难重建'),
         parentId: 'migrate',
       },
       {
