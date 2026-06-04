@@ -27,7 +27,7 @@ func ParseV1Log(line []byte) (*MongoLogMsg, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "parse time error")
 	}
-	msg.T.DateTime = primitive.NewDateTimeFromTime(dt)
+	msg.DateTime = primitive.NewDateTimeFromTime(dt)
 	msg.S = "I"
 	msg.Id = 0
 	msg.Ctx = getField(line, segs[4])
@@ -36,7 +36,6 @@ func ParseV1Log(line []byte) (*MongoLogMsg, error) {
 		msg.Id = LogTypeSlowlog
 		msg.C = "slowquery"
 	}
-	msg.Id = 0
 	msg.Msg = string(line[pos:])
 	msg.ParseMore()
 	msg.OriginLine = nil

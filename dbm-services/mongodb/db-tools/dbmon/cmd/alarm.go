@@ -4,6 +4,8 @@ import (
 	"dbm-services/mongodb/db-tools/dbmon/config"
 	"dbm-services/mongodb/db-tools/dbmon/mylog"
 	"fmt"
+	"os"
+	"syscall"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -33,7 +35,7 @@ var (
 		Short: "shield",
 		Long:  `shield`,
 		Run: func(cmd *cobra.Command, args []string) {
-			shieldConfigMain()
+			withClusterConfigFileLock(shieldConfigMain)
 		},
 	}
 
@@ -42,7 +44,7 @@ var (
 		Short: "unblock",
 		Long:  `unblock`,
 		Run: func(cmd *cobra.Command, args []string) {
-			unblockAlarmMain()
+			withClusterConfigFileLock(unblockAlarmMain)
 		},
 	}
 )
@@ -58,6 +60,42 @@ func init() {
 	alarmCmd.AddCommand(showShieldCmd)
 	alarmCmd.AddCommand(shieldCmd)
 	alarmCmd.AddCommand(unblockCmd)
+}
+
+func withClusterConfigFileLock(fn func()) {
+	lockFile := clusterConfigFile + ".lock"
+	fd, err := os.OpenFile(lockFile, os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		fatalClusterConfigFileLockError("open cluster config lock file failed", lockFile, err)
+	}
+	defer fd.Close()
+
+	if err := syscall.Flock(int(fd.Fd()), syscall.LOCK_EX); err != nil {
+		fatalClusterConfigFileLockError("lock cluster config file failed", lockFile, err)
+	}
+	defer func() {
+		if err := syscall.Flock(int(fd.Fd()), syscall.LOCK_UN); err != nil {
+			logClusterConfigFileLockError("unlock cluster config file failed", lockFile, err)
+		}
+	}()
+
+	fn()
+}
+
+func logClusterConfigFileLockError(msg string, lockFile string, err error) {
+	if mylog.Logger != nil {
+		mylog.Logger.Error(msg, zap.String("lockFile", lockFile), zap.Error(err))
+		return
+	}
+	_, _ = fmt.Fprintf(os.Stderr, "%s, lockFile:%s, error:%s\n", msg, lockFile, err)
+}
+
+func fatalClusterConfigFileLockError(msg string, lockFile string, err error) {
+	if mylog.Logger != nil {
+		mylog.Logger.Fatal(msg, zap.String("lockFile", lockFile), zap.Error(err))
+	}
+	_, _ = fmt.Fprintf(os.Stderr, "%s, lockFile:%s, error:%s\n", msg, lockFile, err)
+	os.Exit(1)
 }
 
 // showAlarmMain    show alarm list

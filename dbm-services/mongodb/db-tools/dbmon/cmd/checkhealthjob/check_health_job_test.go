@@ -20,7 +20,16 @@ func parsePort(t *testing.T, portStr string) int {
 	return port
 }
 
+func requireTestDumpEnv(t *testing.T, keys ...string) {
+	for _, key := range keys {
+		if os.Getenv(key) == "" {
+			t.Skipf("skip checkService integration test: env %s is not set", key)
+		}
+	}
+}
+
 func TestCheckService(t *testing.T) {
+	requireTestDumpEnv(t, "TestDump_HOST", "TestDump_PORT", "TestDump_USER", "TestDump_PASS")
 	mylog.InitLoggerStdout(false)
 	var err error
 	logger := mylog.Logger.With(zap.String("test", "TestCheckService"))
@@ -41,6 +50,7 @@ func TestCheckService(t *testing.T) {
 }
 
 func TestCheckServiceConnectionFailed(t *testing.T) {
+	requireTestDumpEnv(t, "TestDump_HOST", "TestDump_USER", "TestDump_PASS")
 	mylog.InitLoggerStdout(false)
 
 	logger := mylog.Logger.With(zap.String("test", "TestCheckServiceConnectionFailed"))
@@ -63,6 +73,7 @@ func TestCheckServiceConnectionFailed(t *testing.T) {
 }
 
 func TestCheckServiceAuthenticationFailed(t *testing.T) {
+	requireTestDumpEnv(t, "TestDump_HOST", "TestDump_PORT")
 	mylog.InitLoggerStdout(false)
 
 	logger := mylog.Logger.With(zap.String("test", "TestCheckService"))
