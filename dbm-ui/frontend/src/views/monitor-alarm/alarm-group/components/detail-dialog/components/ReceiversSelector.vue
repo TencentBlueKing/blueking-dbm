@@ -13,7 +13,9 @@
 
 <template>
   <div class="receivers-selector-wrapper">
-    <MemberSelector v-model="modelValue" />
+    <MemberSelector
+      v-model="modelValue"
+      :placeholder="t('请选择通知对象')" />
     <div
       v-if="memberList.length > 0"
       class="receivers-list">

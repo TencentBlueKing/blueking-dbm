@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
-import { getSimpleList } from '@services/source/monitorNoticeGroup';
+import { listGroupName } from '@services/source/monitorNoticeGroup';
 import { getUserList } from '@services/source/user';
 
 import { DBTypes } from '@common/const';
@@ -14,7 +14,7 @@ enum TargetLevelFilter {
   CUSTOM = 'custom',
   INNER = 'inner',
 }
-export const useStrategyQuickSearch = (isPlatform: boolean, dbType?: DBTypes) => {
+export const useStrategyQuickSearch = (isPlatform: boolean, dbType: DBTypes) => {
   const { t } = useI18n();
 
   const searchValue = ref<Record<string, string>>({});
@@ -92,9 +92,9 @@ export const useStrategyQuickSearch = (isPlatform: boolean, dbType?: DBTypes) =>
         id: 'notify_groups',
         name: t('告警组'),
         remoteMethod: () => {
-          return getSimpleList({
+          return listGroupName({
             bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-            db_type: dbType || DBTypes.MYSQL,
+            db_type: dbType,
           }).then((results) =>
             results.map((item) => ({
               label: item.name,
