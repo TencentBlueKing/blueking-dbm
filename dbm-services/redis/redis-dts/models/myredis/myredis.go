@@ -242,9 +242,9 @@ func (db *RedisWorker) TendisSSDInfoBackups() (*InfoBackups, error) {
 		list01[0] = strings.TrimSpace(list01[0])
 		list01[1] = strings.TrimSpace(list01[1])
 		if list01[0] == "backup-count" {
-			ret.BackupCount, _ = strconv.Atoi(list01[0])
+			ret.BackupCount, _ = strconv.Atoi(list01[1])
 		} else if list01[0] == "last-backup-time" {
-			ret.LastBackupTime, _ = strconv.Atoi(list01[0])
+			ret.LastBackupTime, _ = strconv.Atoi(list01[1])
 		} else if list01[0] == "current-backup-running" {
 			ret.CurrentBackupRunning = list01[1]
 		}
