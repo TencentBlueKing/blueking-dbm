@@ -20,12 +20,12 @@
     <template #header>
       <div
         v-if="type === 'copy'"
-        class="detail-dialog-head">
-        <div class="detail-dialog-head-text">{{ sidesliderTitle }}【</div>
-        <div class="detail-dialog-head-name">
+        class="alarm-group-detail-dialog-head">
+        <div class="alarm-group-detail-dialog-head-text">{{ sidesliderTitle }}【</div>
+        <div class="alarm-group-detail-dialog-head-name">
           {{ detailData.name }}
         </div>
-        <div class="detail-dialog-head-text">】</div>
+        <div class="alarm-group-detail-dialog-head-text">】</div>
       </div>
       <div v-else>
         {{ sidesliderTitle }}
@@ -33,10 +33,12 @@
     </template>
     <DbForm
       ref="formRef"
-      class="detail-form"
+      class="alarm-group-detail-form"
       form-type="vertical"
-      :model="formData">
+      :model="formData"
+      @validate="handleFormValidate">
       <BkFormItem
+        :class="{ 'is-hide-tip': !formData.name }"
         :label="t('告警组名称')"
         property="name"
         required
@@ -44,9 +46,26 @@
         <BkInput
           v-model="formData.name"
           :disabled="editDisabled"
-          :placeholder="t('请输入告警组名称')" />
+          :maxlength="50"
+          :placeholder="t('请输入告警组名称')"
+          show-word-limit />
+        <div
+          v-if="!hideTipMap.name"
+          class="form-item-desc">
+          {{ t('支持中文、字母、数字、连字符、下划线、点号，创建后可修改') }}
+        </div>
       </BkFormItem>
+      <NoticeMethodFormItem
+        ref="noticeMethodRef"
+        v-model:is-receivers-selector-show="isReceiversSelectorShow"
+        :details="detailData.details"
+        :disabled="editDisabled"
+        :is-submiting="isSubmiting"
+        :type="type" />
       <BkFormItem
+        v-if="isReceiversSelectorShow"
+        class="receivers-selector-form-item"
+        :class="{ 'is-hide-tip': !formData.receivers.length }"
         :label="t('通知对象')"
         property="receivers"
         required>
@@ -58,11 +77,6 @@
           :is-built-in="detailData.is_built_in"
           :type="type" />
       </BkFormItem>
-      <NoticeMethodFormItem
-        ref="noticeMethodRef"
-        :details="detailData.details"
-        :disabled="editDisabled"
-        :type="type" />
     </DbForm>
     <template #footer>
       <BkButton
@@ -83,6 +97,7 @@
 </template>
 
 <script setup lang="ts">
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -90,10 +105,12 @@
 
   import { useBeforeClose } from '@hooks';
 
+  import { noticeGroupNameRegex } from '@common/regex.ts';
+
   import { messageSuccess } from '@utils';
 
-  import NoticeMethodFormItem from './NoticeMethodFormItem.vue';
-  import ReceiversSelector from './ReceiversSelector.vue';
+  import NoticeMethodFormItem from './components/NoticeMethodFormItemNew.vue';
+  import ReceiversSelector from './components/ReceiversSelector.vue';
 
   interface Props {
     bizId: number;
@@ -120,14 +137,32 @@
   };
 
   const nameRules = [
+    // {
+    //   message: '',
+    //   required: true,
+    //   trigger: 'blur',
+    //   validator: (value: string) => {
+    //     if (value) {
+    //       return true;
+    //     }
+    //     return '';
+    //   },
+    // },
+    // {
+    //   message: t('长度不能大于n', [80]),
+    //   validator: (value: string) => value.length <= 80,
+    // },
     {
-      message: t('长度不能大于n', [80]),
-      validator: (value: string) => value.length <= 80,
+      message: t('格式不正确，请勿使用特殊符号'),
+      trigger: 'blur',
+      validator: (value: string) => {
+        return noticeGroupNameRegex.test(value);
+      },
     },
     {
       message: t('告警组名称重复'),
       validator: (name: string) => {
-        if (props.type === 'copy') {
+        if (props.type !== 'edit') {
           return !props.nameList.includes(name);
         }
 
@@ -136,13 +171,20 @@
     },
   ];
 
-  const formRef = ref();
-  const receiversSelectorRef = ref();
-  const noticeMethodRef = ref();
+  const formRef = useTemplateRef('formRef');
+  const receiversSelectorRef = useTemplateRef('receiversSelectorRef');
+  const noticeMethodRef = useTemplateRef('noticeMethodRef');
+
+  const isReceiversSelectorShow = ref(false);
   const formData = reactive({
     name: '',
     receivers: [] as string[],
   });
+  const hideTipMap = ref<Record<keyof UnwrapRef<typeof formData>, boolean>>({
+    name: false,
+    receivers: false,
+  });
+  const isSubmiting = ref(false);
 
   const loading = computed(() => insertLoading.value || patchLoading.value);
   const editDisabled = computed(() => props.type === 'edit' && props.detailData.is_built_in);
@@ -170,6 +212,19 @@
     }
   });
 
+  watch(
+    () => formData.receivers,
+    () => {
+      formRef.value?.validate('receivers');
+    },
+  );
+
+  const handleFormValidate = (property: string, result: boolean) => {
+    hideTipMap.value[property as keyof typeof hideTipMap.value] =
+      !result &&
+      (property === 'receivers' ? formData.receivers.length > 0 : !!formData[property as keyof typeof formData]);
+  };
+
   const runSuccess = (message: string) => {
     messageSuccess(message);
     handleClose(true);
@@ -177,30 +232,38 @@
   };
 
   const handleSubmit = async () => {
-    await formRef.value.validate();
+    try {
+      isSubmiting.value = true;
+      await formRef.value!.validate();
 
-    const { name } = formData;
-    const { alertNotice, channels } = noticeMethodRef.value.getSubmitData();
-    const receivers = receiversSelectorRef.value.getSelectedReceivers();
+      const { name } = formData;
+      const { alertNotice, channels } = noticeMethodRef.value!.getSubmitData();
+      const receivers = receiversSelectorRef.value?.getSelectedReceivers() || [];
 
-    if (props.type === 'edit') {
-      patchAlarmGroupRun({
-        details: {
-          alert_notice: alertNotice,
-          channels,
-        },
-        id: props.detailData.id,
-        name,
-        receivers,
-      });
-    } else {
-      insertAlarmGroupRun({
-        bk_biz_id: props.bizId,
-        details: {
-          alert_notice: alertNotice,
-        },
-        name,
-        receivers,
+      if (props.type === 'edit') {
+        patchAlarmGroupRun({
+          details: {
+            alert_notice: alertNotice,
+            channels,
+          },
+          id: props.detailData.id,
+          name,
+          receivers: isReceiversSelectorShow.value ? receivers : [],
+        });
+      } else {
+        insertAlarmGroupRun({
+          bk_biz_id: props.bizId,
+          details: {
+            alert_notice: alertNotice,
+            channels,
+          },
+          name,
+          receivers: isReceiversSelectorShow.value ? receivers : [],
+        });
+      }
+    } finally {
+      setTimeout(() => {
+        isSubmiting.value = false;
       });
     }
   };
@@ -223,30 +286,57 @@
   };
 </script>
 
-<style lang="less" scoped>
-  .detail-dialog-head {
+<style lang="less">
+  .alarm-group-detail-dialog-head {
     display: flex;
     width: 100%;
     padding-right: 16px;
 
-    .detail-dialog-head-name {
+    .alarm-group-detail-dialog-head-name {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    .detail-dialog-head-text {
+    .alarm-group-detail-dialog-head-text {
       flex-shrink: 0;
     }
   }
 
-  .detail-form {
-    padding: 24px 20px 0;
+  .alarm-group-detail-form {
+    padding: 24px;
+
+    .form-item-desc {
+      position: absolute;
+      top: 34px;
+      font-size: 12px;
+      line-height: 20px;
+      color: #979ba5;
+
+      &.is-last-tip {
+        margin-top: -6px;
+      }
+    }
+
+    .is-hide-tip {
+      .bk-form-error {
+        display: none;
+      }
+    }
+
+    .receivers-selector-form-item {
+      &.is-error {
+        .user-selector-container {
+          border-color: #ea3636;
+          transition: all 0.15s;
+        }
+      }
+    }
   }
 
-  :deep(.bk-tab-header-nav::-webkit-scrollbar) {
-    display: block;
-    width: 4px;
-    height: 4px;
-  }
+  // .bk-tab-header-nav::-webkit-scrollbar {
+  //   display: block;
+  //   width: 4px;
+  //   height: 4px;
+  // }
 </style>

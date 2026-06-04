@@ -241,7 +241,10 @@
   const router = useRouter();
   const { locale, t } = useI18n();
   const { getSearchParams, replaceSearchParams } = useUrlSearch();
-  const { handleFilterList, handleMergeSearchParams, quickSearchData, searchValue } = useStrategyQuickSearch(true);
+  const { handleFilterList, handleMergeSearchParams, quickSearchData, searchValue } = useStrategyQuickSearch(
+    true,
+    props.dbType,
+  );
   const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.MONITOR_STRATEGY_GLOBAL_SETTINGS, {
     disabled: ['name'],
   });
