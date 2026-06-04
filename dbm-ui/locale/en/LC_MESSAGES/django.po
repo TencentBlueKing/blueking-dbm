@@ -21,6 +21,18 @@ msgstr ""
 msgid "集群监控视图"
 msgstr "Cluster monitoring view"
 
+#: backend/db_monitor/views/grafana.py:59
+msgid "慢查询"
+msgstr "Slow Query"
+
+#: backend/db_monitor/views/grafana.py:59
+msgid "表容量视图"
+msgstr "Table Capacity View"
+
+#: backend/db_monitor/views/grafana.py:59
+msgid "Key统计分析"
+msgstr "Key Statistical Analysis"
+
 #: backend/bk_web/exceptions.py:19
 msgid "外部路由转发异常"
 msgstr "External route forwarding exception"
