@@ -38,7 +38,8 @@
             :filter-value="searchValue"
             row-key="conf_name"
             @clear-search="handleQuickSearchChange"
-            @filter-change="handleFilterChange">
+            @filter-change="handleFilterChange"
+            @request-success="initDescriptionTippy">
             <TableColumn
               col-key="conf_name"
               ellipsis
@@ -415,11 +416,6 @@
     const start = params.offset;
     const end = start + params.limit;
     const result = { count: data.length, results: data.slice(start, end) };
-
-    // 数据返回后，在 DOM 更新完成再初始化 tippy（避免分页/搜索后 tippy 失效）
-    nextTick(() => {
-      initDescriptionTippy();
-    });
 
     return Promise.resolve(result);
   };

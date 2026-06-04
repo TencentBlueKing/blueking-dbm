@@ -27,7 +27,8 @@
       :data-source="dataSource"
       row-key="id"
       :sort="tableSort"
-      @clear-search="refreshTable">
+      @clear-search="refreshTable"
+      @request-success="initChangeTippy">
       <!-- 1. 操作时间 -->
       <TableColumn
         col-key="updated_at"
@@ -108,7 +109,13 @@
           <span
             v-else
             class="config-change-value"
-            :data-tool-tip="JSON.stringify({ type: 'change', before: row.before_image?.conf_value ?? '', after: row.after_image?.conf_value ?? '' })">
+            :data-tool-tip="
+              JSON.stringify({
+                type: 'change',
+                before: row.before_image?.conf_value ?? '',
+                after: row.after_image?.conf_value ?? '',
+              })
+            ">
             <span class="config-change-value-before">{{ row.before_image?.conf_value ?? '' }}</span>
             <span class="config-change-value-icon">
               <DbIcon
@@ -138,17 +145,19 @@
   import DbTable from '@components/db-table/IndexNew.vue';
 
   interface Props {
+    clusterType?: string;
     confFile?: string;
     confType?: string;
     levelName?: string;
-    levelValue?: number;
+    levelValue?: number | string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    clusterType: '',
     confFile: '',
     confType: '',
     levelName: '',
-    levelValue: undefined,
+    levelValue: '',
   });
 
   const { t } = useI18n();
@@ -350,16 +359,13 @@
   /** 数据源函数 - 适配 DbTable 组件 */
   const dataSource = async (params: { limit: number; offset: number }) => {
     const defaultConfType = [...new Set(confTabs?.value.map((item) => item.conf_type))].join(',');
-    if (!activeClusterType?.value || !defaultConfType) {
-      return { count: 0, results: [] };
-    }
     const res = await getConfigItemChanges({
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       conf_file: props.confFile || undefined,
       conf_type: props.confType || defaultConfType || undefined,
       level_name: props.levelName || undefined,
-      level_value: props.levelValue,
-      namespace: activeClusterType.value,
+      level_value: props.levelValue || undefined,
+      namespace: props.clusterType || (activeClusterType?.value as string),
     });
 
     // 更新枚举列表（配置类型、配置文件）
@@ -409,11 +415,6 @@
       count: filteredData.length,
       results: filteredData.slice(start, end),
     };
-
-    // 数据返回后，在 DOM 更新完成再初始化 tippy（避免分页/搜索后 tippy 失效）
-    nextTick(() => {
-      initChangeTippy();
-    });
 
     return result;
   };
@@ -536,6 +537,10 @@
   onUnmounted(() => {
     tippyInstances.forEach((inst) => inst.destroy());
     tippyInstances.length = 0;
+  });
+
+  defineExpose({
+    fetchData: refreshTable,
   });
 </script>
 

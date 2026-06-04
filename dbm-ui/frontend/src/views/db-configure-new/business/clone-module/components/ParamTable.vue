@@ -52,7 +52,8 @@
       :fixed-pagination="false"
       row-key="conf_name"
       @clear-search="refreshData"
-      @filter-change="handleColumnFilterChange">
+      @filter-change="handleColumnFilterChange"
+      @request-success="initDescriptionTippy">
       <TableColumn
         col-key="conf_name"
         fixed="left"
@@ -306,11 +307,6 @@
       results: data.slice(start, end),
     };
 
-    // 数据返回后，在 DOM 更新完成再初始化 tippy（避免分页/搜索后 tippy 失效）
-    nextTick(() => {
-      initDescriptionTippy();
-    });
-
     return Promise.resolve(result);
   };
 
@@ -460,7 +456,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    cursor: default;
   }
 
   .value-tag {

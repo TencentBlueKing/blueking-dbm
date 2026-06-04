@@ -65,6 +65,7 @@
       :selectable="selectable"
       @clear-search="refreshTable"
       @filter-change="handleFilterChange"
+      @request-success="initDescriptionTippy"
       @selection="handleSelectionChange">
       <TableColumn
         col-key="conf_name"
@@ -531,11 +532,6 @@
       results: data.slice(start, end),
     };
 
-    // 数据返回后，在 DOM 更新完成再初始化 tippy（避免分页/搜索后 tippy 失效）
-    nextTick(() => {
-      initDescriptionTippy();
-    });
-
     return Promise.resolve(result);
   };
 
@@ -862,7 +858,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    cursor: default;
   }
 
   .value-cell-tag {
