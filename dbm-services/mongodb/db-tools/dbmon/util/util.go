@@ -13,8 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"dbm-services/mongodb/db-tools/dbmon/mylog"
-
 	"golang.org/x/sys/unix"
 )
 
@@ -240,41 +238,4 @@ func GetFileSize(filename string) (size int64, err error) {
 		return
 	}
 	return fileInfo.Size(), nil
-}
-
-// LockFileOnStart LockFileOnStart
-func LockFileOnStart(lockfile string, doneCh chan struct{}) {
-	os.Create(lockfile)
-	fh, _ := os.Open(lockfile)
-	var c int
-	for {
-		c++
-		err := syscall.Flock(int(fh.Fd()), syscall.LOCK_EX|syscall.LOCK_NB)
-		if err != nil {
-			mylog.Logger.Error(fmt.Sprintf("lock file %s failed :%v", lockfile, err))
-			if c > 120 {
-				os.Exit(1)
-			} else {
-				mylog.Logger.Warn(fmt.Sprintf("waiting get lock file [%s] [%d]...", lockfile, c))
-				time.Sleep(time.Second * time.Duration(60))
-			}
-		} else {
-			break
-		}
-	}
-	mylog.Logger.Info(fmt.Sprintf("get lock file success [%s]..", lockfile))
-	go func(fh *os.File) {
-		defer mylog.Logger.Debug(fmt.Sprintf("job done,close lock file handler :[%s]", lockfile))
-		defer fh.Close()
-		for {
-			select {
-			case <-doneCh:
-				mylog.Logger.Info(fmt.Sprintf("job done ,realse lock file :[%s]", lockfile))
-				goto TagEnd
-			default:
-				time.Sleep(time.Second)
-			}
-		}
-	TagEnd:
-	}(fh)
 }

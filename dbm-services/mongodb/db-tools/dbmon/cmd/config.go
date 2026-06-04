@@ -46,7 +46,7 @@ var (
 		Short: "set",
 		Long:  `set`,
 		Run: func(cmd *cobra.Command, args []string) {
-			setConfigCmdMain()
+			withClusterConfigFileLock(setConfigCmdMain)
 		},
 	}
 )

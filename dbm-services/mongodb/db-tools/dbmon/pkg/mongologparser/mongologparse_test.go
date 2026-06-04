@@ -70,7 +70,6 @@ func TestParseV3Log(t *testing.T) {
 		[]byte(`{"t":{"$date":"2024-04-29T18:04:28.239+08:00"},"s":"I",  "c":"COMMAND",  "id":51803,   "ctx":"conn15148443","msg":"Slow query","attr":{"type":"query","ns":"game.tradesellorders","command":{"find":"tradesellorders","filter":{"aid":{"$oid":"5fd8d1a8b4396631a4bbc6b0"}},"$db":"game"},"nShards":64,"cursorExhausted":true,"numYields":0,"nreturned":0,"reslen":249,"durationMillis":105}}`),
 	}
 	for _, line := range in {
-
 		p, err := GetParser(line)
 		if err != nil {
 			fmt.Printf("failed to get parser: %s\n", err)
@@ -78,7 +77,6 @@ func TestParseV3Log(t *testing.T) {
 		}
 		msg, err := p.Parse(line)
 		t.Logf("p %+v msg %+v, err :%v", p.Name(), msg, err)
-
 	}
 
 }
@@ -91,6 +89,12 @@ func TestParseV1Log(t *testing.T) {
 		t.Errorf("ParseV2Log(%s) failed: %v", in, err)
 	} else {
 		t.Logf("ParseV2Log(%s)", in)
+		if msg.DateTime == 0 {
+			t.Errorf("ParseV1Log(%s) DateTime is empty", in)
+		}
+		if msg.Id != LogTypeSlowlog {
+			t.Errorf("ParseV1Log(%s) Id = %d, want %d", in, msg.Id, LogTypeSlowlog)
+		}
 		v, _ := json.Marshal(msg)
 		t.Logf("json (%s)", v)
 
