@@ -328,7 +328,7 @@ class TicketType(StrStructuredEnum):
     MYSQL_CLB_UNBIND_DOMAIN = TicketEnumField("MYSQL_CLB_UNBIND_DOMAIN", _("MySQL 主域名解绑 CLB"))
 
     # mysql proxy rescue
-    MYSQL_PROXY_RESCUE = TicketEnumField("MYSQL_PROXY_RESCUE", _("MySQL Proxy 救援"), _("集群维护"))
+    MYSQL_PROXY_RESCUE = TicketEnumField("MYSQL_PROXY_RESCUE", _("Proxy 灾难重建"), _("集群维护"))
 
     MYSQL_FAILOVER_DRILL = TicketEnumField("MYSQL_FAILOVER_DRILL", _("Mysql容灾演练"), register_iam=False)
 
@@ -396,7 +396,7 @@ class TicketType(StrStructuredEnum):
                                                        _("TenDB Cluster 替换接入层"), _("运维 Spider 管理"))  # noqa
     TENDBCLUSTER_SPIDER_LAYER_DR = TicketEnumField(
         "TENDBCLUSTER_SPIDER_LAYER_DR",
-        _("TenDB Cluster 接入层全毁灾难恢复"),
+        _("TenDB Cluster 接入层灾难重建"),
         _("运维 Spider 管理"),
     )  # noqa
     TENDBCLUSTER_SPIDER_CONF_UP_DOWN = TicketEnumField("TENDBCLUSTER_SPIDER_CONF_UP_DOWN",

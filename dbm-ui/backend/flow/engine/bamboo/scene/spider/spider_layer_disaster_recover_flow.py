@@ -637,23 +637,30 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
         # DNS 摘除已在 Pre-Stage 做过；缩容确认 Pause 已在 Stage 4 做过；
         # 因此直接调底层 reduce_spiders_flow，只做：CC 服务实例清理 + 卸载 spider/ctl 进程 + 清理 DBMeta
         if recover_master:
+            master_reduce_spiders = [{"ip": h["ip"]} for h in master_old]
+            # reduce_spiders_flow 内 SpiderDBMeta.reduce_spider_nodes_apply 从 global_data["reduce_spiders"] 读取
+            master_reduce_ctx = {**cluster_ticket, "reduce_spiders": master_reduce_spiders}
             sub_pipeline.add_sub_pipeline(
                 sub_flow=reduce_spiders_flow(
                     cluster=cluster,
-                    reduce_spiders=[{"ip": h["ip"]} for h in master_old],
+                    reduce_spiders=master_reduce_spiders,
                     root_id=self.root_id,
-                    parent_global_data=cluster_ticket,
+                    parent_global_data=master_reduce_ctx,
                     spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value,
+                    is_disaster_recover=True,
                 )
             )
         if recover_slave:
+            slave_reduce_spiders = [{"ip": h["ip"]} for h in slave_old]
+            slave_reduce_ctx = {**cluster_ticket, "reduce_spiders": slave_reduce_spiders}
             sub_pipeline.add_sub_pipeline(
                 sub_flow=reduce_spiders_flow(
                     cluster=cluster,
-                    reduce_spiders=[{"ip": h["ip"]} for h in slave_old],
+                    reduce_spiders=slave_reduce_spiders,
                     root_id=self.root_id,
-                    parent_global_data=cluster_ticket,
+                    parent_global_data=slave_reduce_ctx,
                     spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value,
+                    is_disaster_recover=True,
                 )
             )
 
@@ -759,7 +766,6 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
         pipeline = Builder(
             root_id=self.root_id,
             data=self.data,
-            need_random_pass_cluster_ids=list({int(i["cluster_id"]) for i in self.data["infos"]}),
         )
         sub_list = [self._cluster_sub_flow(info) for info in self.data["infos"]]
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_list)
