@@ -36,6 +36,14 @@ bk-dbmon meta delete --port 27017,27018
 --port all # 所有实例
 --port 0 # 所有实例
 
+# mongo-cmd.py
+```bash
+# 默认隐藏日志中的密码
+python3 mongo-cmd.py 27017 "db.serverStatus().ok"
+
+# 需要排查时显式打印明文密码
+python3 mongo-cmd.py --show-password 27017 "db.serverStatus().ok"
+```
 
 # conn.sh
 ```bash
@@ -43,11 +51,17 @@ bk-dbmon meta delete --port 27017,27018
 sh conn.sh <端口号>
 # 示例：
 sh conn.sh 27017
+sh conn.sh 27017 shell
+
+# 指定使用 mongo/mongosh shell
+sh conn.sh <端口号> mongo
+sh conn.sh <端口号> mongosh
 
 # 执行单个命令（非交互模式）
 sh conn.sh <端口号> "<MongoDB命令>"
 # 示例：
 sh conn.sh 27017 "db.serverStatus().ok"
+sh conn.sh 27017 mongosh "db.serverStatus().ok"
 
 # 批量执行命令（支持特殊参数）
 sh conn.sh all "<MongoDB命令>"    # 所有实例执行

@@ -88,7 +88,7 @@ def load_config(config_file):
     yaml_content = open(config_file, 'r').read()
     # remove the line contain app_name, app_name 存在中文的情况下，会报错
     yaml_content = re.sub(r'^.*app_name:.*\n', '', yaml_content, flags=re.MULTILINE)
-    print(yaml_content)
+    # print(yaml_content)
     yaml_data = yaml.safe_load(yaml_content)
     return yaml_data
 
@@ -100,8 +100,9 @@ def list_instance_from_config(yaml_data: dict):
 
 
 class mongo_instance:
-    def __init__(self, port):
+    def __init__(self, port, show_password=False):
         self.port = port
+        self.show_password = show_password
         self.server_config = None
         
 
@@ -127,7 +128,7 @@ class mongo_instance:
             cmdline = [MONGO_CMD_PATH, "--quiet", *auth_args, "--port", str(self.port), "--eval", " ".join(cmd)]
         else:
             cmdline = [MONGO_CMD_PATH, "--quiet", "--port", str(self.port), "--eval", " ".join(cmd)]
-        print(" ".join(cmdline))
+        self.print_cmdline(cmdline)
         time_start = datetime.now()
         result = subprocess.run(cmdline, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60)
         print ("result: ", result.returncode)
@@ -156,10 +157,21 @@ class mongo_instance:
         else:
             return []
 
+    def print_cmdline(self, cmdline: List[str]):
+        if self.show_password:
+            print(" ".join(cmdline))
+            return
+
+        display_cmdline = cmdline[:]
+        for index, arg in enumerate(display_cmdline):
+            if arg == "--password" and index + 1 < len(display_cmdline):
+                display_cmdline[index + 1] = "xxx"
+        print(" ".join(display_cmdline))
+
     # python 3.6.8 用List[str] 不使用list[str]
     def exec_mongostat(self):
         cmdline = [MONGOSTAT_CMD_PATH, "--port", str(self.port), *self.get_auth_args()]
-        print(" ".join(cmdline))
+        self.print_cmdline(cmdline)
         time_start = datetime.now()
         try:
             subprocess.call(cmdline)
@@ -171,7 +183,7 @@ class mongo_instance:
 
     def exec_mongotop(self):
         cmdline = [MONOTOP_CMD_PATH, "--port", str(self.port), *self.get_auth_args()]
-        print(" ".join(cmdline))
+        self.print_cmdline(cmdline)
         time_start = datetime.now()
         try:
             subprocess.call(cmdline)
@@ -180,7 +192,7 @@ class mongo_instance:
         time_end = datetime.now()
         print(self.port, "time cost: ", (time_end - time_start).total_seconds(), "s")
 
-    def exec_shell(self, shell: str):
+    def exec_shell(self, shell: str = "mongo"):
         if shell == "mongo":
             cmdline = [MONGO_CMD_PATH, "--port", str(self.port), *self.get_auth_args()]
         elif shell == "mongosh":
@@ -189,20 +201,15 @@ class mongo_instance:
             print("Error: invalid shell: ", shell)
             return
         
-        print(" ".join(cmdline))
-        time_start = datetime.now()
-        try:
-            subprocess.call(cmdline)
-        except Exception as e:
-            print ("done")  
-        time_end = datetime.now()
-        print(self.port, "time cost: ", (time_end - time_start).total_seconds(), "s")
+        self.print_cmdline(cmdline)
+        os.execv(cmdline[0], cmdline)
 
 def main():
     parser = argparse.ArgumentParser(description='mongodb cmd helper' + usage(), 
         formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('--config', default="/home/mysql/bk-dbmon/dbmon-config.yaml", help='Config file')
     parser.add_argument('--skip-bad-port', action='store_true', default=False, help='Skip bad port')
+    parser.add_argument('--show-password', action='store_true', default=False, help='Show password in command log')
     parser.add_argument('--usage', action='store_true', default=False, help='Show usage')
     args, unknown = parser.parse_known_args()
 
@@ -242,7 +249,7 @@ def main():
     
     instance_list = []
     for port in port_list:
-        instance = mongo_instance(port)
+        instance = mongo_instance(port, args.show_password)
         if not instance.init_in_dbm_env(yaml_data):
             if args.skip_bad_port:
                 print("Error: init_in_dbm_env failed, please check the port: ", port, "skip it")
@@ -273,6 +280,8 @@ def usage():
     Usage: mongo-cmd.py  <port> mongostat
     Usage: mongo-cmd.py  <port> mongotop
     Usage: mongo-cmd.py  0|all "cmd..."\t# run cmd on all port
+    Options:
+      --show-password\t# show password in command log
     """
 if __name__ == "__main__":
     __init_script__()
