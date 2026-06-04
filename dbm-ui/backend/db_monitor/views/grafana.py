@@ -56,7 +56,7 @@ class MonitorGrafanaViewSet(viewsets.SystemViewSet):
             org_id=DEFAULT_ORG_ID, org_name=DEFAULT_ORG_NAME, cluster_type=cluster_type, type=DashboardType.CLUSTER
         )
         if dashes.exists():
-            dash_urls = [{"view": dash.view, "url": dash.get_url(bk_biz_id, cluster_id)} for dash in dashes]
+            dash_urls = [{"view": _(dash.view), "url": dash.get_url(bk_biz_id, cluster_id)} for dash in dashes]
             url = dash_urls[0]["url"]
         else:
             dash_urls, url = [], "#"
@@ -80,7 +80,7 @@ class MonitorGrafanaViewSet(viewsets.SystemViewSet):
         if dashes.exists():
             dash_urls = [
                 {
-                    "view": dash.view,
+                    "view": _(dash.view),
                     "url": dash.get_business_url(bk_biz_id),
                     "db_type": dash.db_type,
                     "type": dash.type,
