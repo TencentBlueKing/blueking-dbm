@@ -74,8 +74,8 @@ func (e *ExecScript) Name() string {
 
 // Run 运行原子任务
 func (e *ExecScript) Run() error {
-	// 获取主版本 设置客户端
-	if err := e.getMainVersion(); err != nil {
+	// 获取主版本并设置客户端（mongo/mongosh）
+	if err := e.resolveMongoShellByVersion(); err != nil {
 		return err
 	}
 
@@ -86,6 +86,11 @@ func (e *ExecScript) Run() error {
 
 	// 判断是否在secondary节点执行script
 	if err := e.secondaryExecuteScriptChange(); err != nil {
+		return err
+	}
+
+	// 兼容 mongosh: 老脚本里可能使用 mongo shell 的别名 getSisterDB，mongosh 仅支持 getSiblingDB。
+	if err := e.normalizeScriptCompatibility(); err != nil {
 		return err
 	}
 
@@ -256,8 +261,8 @@ func (e *ExecScript) createScriptFile() error {
 	return nil
 }
 
-// getMainVersion 获取主版本
-func (e *ExecScript) getMainVersion() error {
+// resolveMongoShellByVersion 获取主版本并选择 mongo shell 客户端
+func (e *ExecScript) resolveMongoShellByVersion() error {
 	// 获取mongo版本呢
 	mongoName := "mongod"
 	version, err := common.CheckMongoVersion(e.BinDir, mongoName)
@@ -265,37 +270,71 @@ func (e *ExecScript) getMainVersion() error {
 		e.runtime.Logger.Error("get mongo service main version fail, error:%s", err)
 		return fmt.Errorf("get mongo service main version fail, error:%s", err)
 	}
-	splitVersion := strings.Split(version, ".")
-	mainVersion, _ := strconv.ParseFloat(strings.Join([]string{splitVersion[0], splitVersion[1]}, "."), 32)
-	e.MainVersion = mainVersion
-	if e.MainVersion >= 5.0 {
-		e.Mongo = filepath.Join(e.BinDir, "mongodb", "bin", "mongosh")
+	mainVersion, err := strconv.ParseFloat(versionMajorMinor(version), 64)
+	if err != nil {
+		e.runtime.Logger.Error("parse mongo service major.minor version fail, version:%s, error:%s", version, err)
+		return fmt.Errorf("parse mongo service major.minor version fail, version:%s, error:%s", version, err)
 	}
-	e.runtime.Logger.Info("get mongo service main version:%f successfully", mainVersion)
+	e.MainVersion = mainVersion
+	mongoExeName := "mongo"
+	if e.MainVersion >= 5.0 {
+		mongoExeName = "mongosh"
+	}
+	e.Mongo = filepath.Join(e.BinDir, "mongodb", "bin", mongoExeName)
+	e.runtime.Logger.Info("resolveMongoShellByVersion successfully, mongoExeName:%s, mainVersion:%f", mongoExeName, mainVersion)
 	return nil
 }
 
 // secondaryExecuteScriptChange secondary执行script需要添加rs.slaveOk或者rs.secondaryOk
 func (e *ExecScript) secondaryExecuteScriptChange() error {
 	// 复制集，判断在primary节点还是在secondary节点执行脚本
-	if e.ConfParams.Type == "replicaset" && e.ConfParams.Secondary == true {
-		e.runtime.Logger.Info("secondary execute script start to add rs content")
-		// secondary执行script
-		secondaryOk := "rs.slaveOk()\n"
-		if e.MainVersion >= 3.6 {
-			secondaryOk = "rs.secondaryOk()\n"
+	if e.ConfParams.Type != "replicaset" || !e.ConfParams.Secondary {
+		return nil
+	}
+
+	e.runtime.Logger.Info("secondary execute script start to add rs content")
+	secondaryOk := "rs.slaveOk()\n"
+	if e.MainVersion >= 3.6 {
+		secondaryOk = "rs.secondaryOk()\n"
+	}
+
+	for _, script := range e.ScriptFilePathList {
+		content, err := os.ReadFile(script)
+		if err != nil {
+			e.runtime.Logger.Error("read script file %s fail, error:%s", script, err)
+			return fmt.Errorf("read script file %s fail, error:%s", script, err)
 		}
-		for _, script := range e.ScriptFilePathList {
-			if _, err := util.RunBashCmd(
-				fmt.Sprintf("sed -i '1i\\%s' %s", secondaryOk, script),
-				"", nil,
-				60*time.Second); err != nil {
-				e.runtime.Logger.Error("%s add %s content fail, error:%s", script, secondaryOk, err)
-				return fmt.Errorf("%s add %s content fail, error:%s", script, secondaryOk, err)
-			}
-			e.runtime.Logger.Info("%s add %s content successfully", script, secondaryOk)
+		if strings.HasPrefix(string(content), secondaryOk) {
+			e.runtime.Logger.Info("%s already has %s content", script, strings.TrimSpace(secondaryOk))
+			continue
 		}
-		e.runtime.Logger.Info("secondary execute script add rs content successfully")
+		if err := os.WriteFile(script, append([]byte(secondaryOk), content...), DefaultPerm); err != nil {
+			e.runtime.Logger.Error("%s add %s content fail, error:%s", script, strings.TrimSpace(secondaryOk), err)
+			return fmt.Errorf("%s add %s content fail, error:%s", script, strings.TrimSpace(secondaryOk), err)
+		}
+		e.runtime.Logger.Info("%s add %s content successfully", script, strings.TrimSpace(secondaryOk))
+	}
+	e.runtime.Logger.Info("secondary execute script add rs content successfully")
+	return nil
+}
+
+// normalizeScriptCompatibility 执行前兼容老 mongo shell 脚本写法
+func (e *ExecScript) normalizeScriptCompatibility() error {
+	for _, script := range e.ScriptFilePathList {
+		content, err := os.ReadFile(script)
+		if err != nil {
+			e.runtime.Logger.Error("read script file %s fail, error:%s", script, err)
+			return fmt.Errorf("read script file %s fail, error:%s", script, err)
+		}
+		normalized := strings.ReplaceAll(string(content), "getSisterDB", "getSiblingDB")
+		if normalized == string(content) {
+			continue
+		}
+		if err := os.WriteFile(script, []byte(normalized), DefaultPerm); err != nil {
+			e.runtime.Logger.Error("normalize script file %s fail, error:%s", script, err)
+			return fmt.Errorf("normalize script file %s fail, error:%s", script, err)
+		}
+		e.runtime.Logger.Info("normalize getSisterDB to getSiblingDB for script file %s successfully", script)
 	}
 	return nil
 }
@@ -315,7 +354,7 @@ func (e *ExecScript) execScript() error {
 
 		var stderrBuf bytes.Buffer
 		var cmdBuilder *mycmd.CmdBuilder
-		if e.MainVersion >= 5.0 {
+		if strings.HasSuffix(e.Mongo, "mongosh") {
 			cmdBuilder = mycmd.New(
 				e.Mongo,
 				"-u", e.ConfParams.AdminUsername,
