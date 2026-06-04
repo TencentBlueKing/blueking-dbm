@@ -1,6 +1,7 @@
 package dtsJob
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"runtime/debug"
@@ -58,40 +59,62 @@ func (job *DtsJobBase) GetTaskParallelLimit(taskType string) int {
 // BgDtsTaskRunnerWithConcurrency 执行子task,限制并发度,如backup、tredisdump等task任务
 // 如拉起5个goroutine执行 backup tasks, 拉起 5个goroutine执行 tredisdump tasks
 func (job *DtsJobBase) BgDtsTaskRunnerWithConcurrency(taskType, dbType string) {
-	var err error
 	wg := sync.WaitGroup{}
-	genChan := make(chan *tendisdb.TbTendisDTSTask)
 	limit := job.GetTaskParallelLimit(taskType)
 	status := 0
 	perTaskNum := 5
+	// Bug修复2: 使用缓冲channel,避免所有worker阻塞时生产者死锁
+	genChan := make(chan *tendisdb.TbTendisDTSTask, limit)
+	// Bug修复3: 使用context控制生产者goroutine退出
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	for worker := 0; worker < limit; worker++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			defer func() {
-				if r := recover(); r != nil {
-					job.logger.Error(string(debug.Stack()))
-				}
-			}()
 			for oldRow := range genChan {
-				// 可能在等待调度过程中row01数据已经改变,所以重新获取数据
-				latestRow, err := tendisdb.GetTaskByID(oldRow.ID, job.logger)
-				if err != nil {
-					latestRow = oldRow
-				}
-				if latestRow == nil {
-					job.logger.Warn(fmt.Sprintf("根据task_id:%d获取task row失败,taskRow:%v", oldRow.ID, latestRow))
-					continue
-				}
-				if latestRow.Status != 0 || latestRow.TaskType != taskType {
-					job.logger.Info(fmt.Sprintf("task_id:%d src_slave:%s:%d status=%d taskType=%s. 期待的taskType:%s 已经在运行中,不做任何处理",
-						latestRow.ID, latestRow.SrcIP, latestRow.SrcPort, latestRow.Status, latestRow.TaskType, taskType))
-					continue
-				}
-				task01 := factory.MyTendisDtsTaskFactory(latestRow)
-				task01.Init() // 执行Init,成功则status=1,失败则status=-1
-				task01.Execute()
+				// Bug修复1: recover移到循环内部,panic后worker继续处理下一个task
+				func() {
+					defer func() {
+						if r := recover(); r != nil {
+							job.logger.Error(fmt.Sprintf("task_id:%d panic recovered: %s", oldRow.ID, string(debug.Stack())))
+						}
+					}()
+					// 可能在等待调度过程中row01数据已经改变,所以重新获取数据
+					latestRow, err := tendisdb.GetTaskByID(oldRow.ID, job.logger)
+					if err != nil {
+						latestRow = oldRow
+					}
+					if latestRow == nil {
+						job.logger.Warn(fmt.Sprintf("根据task_id:%d获取task row失败,taskRow:%v", oldRow.ID, latestRow))
+						return
+					}
+					if latestRow.Status != 0 || latestRow.TaskType != taskType {
+						job.logger.Info(fmt.Sprintf("task_id:%d src_slave:%s:%d status=%d taskType=%s. 期待的taskType:%s 已经在运行中,不做任何处理",
+							latestRow.ID, latestRow.SrcIP, latestRow.SrcPort, latestRow.Status, latestRow.TaskType, taskType))
+						return
+					}
+					// Bug修复5: 用分布式锁防止同一task被多个worker并发执行
+					scrCli, lockErr := scrdbclient.NewClient(viper.GetString("serviceName"), job.logger)
+					if lockErr != nil {
+						job.logger.Error(fmt.Sprintf("task_id:%d 获取scrdbclient失败,err:%v", latestRow.ID, lockErr))
+						return
+					}
+					lockKey := fmt.Sprintf("dts_task_execute_lock_%d", latestRow.ID)
+					lockOK, lockErr := scrCli.DtsLockKey(lockKey, job.ServerIP, 7200)
+					if lockErr != nil {
+						job.logger.Error(fmt.Sprintf("task_id:%d 获取执行锁失败,err:%v", latestRow.ID, lockErr))
+						return
+					}
+					if !lockOK {
+						job.logger.Info(fmt.Sprintf("task_id:%d 已有其他worker在执行,跳过", latestRow.ID))
+						return
+					}
+					task01 := factory.MyTendisDtsTaskFactory(latestRow)
+					task01.Init() // 执行Init,成功则status=1,失败则status=-1
+					task01.Execute()
+				}()
 			}
 		}()
 	}
@@ -99,12 +122,22 @@ func (job *DtsJobBase) BgDtsTaskRunnerWithConcurrency(taskType, dbType string) {
 		defer close(genChan)
 		var toExecuteRows []*tendisdb.TbTendisDTSTask
 		for {
+			select {
+			case <-ctx.Done():
+				// Bug修复3: 收到退出信号,结束生产者goroutine
+				return
+			default:
+			}
 			if !tendisdb.IsAllDtsTasksToForceKill(toExecuteRows) {
 				// 如果所有dts tasks都是 ForceKillTaskTodo 状态,则大概率该dts job用户已强制终止, 无需sleep
 				// 否则 sleep 10s
-				time.Sleep(10 * time.Second)
+				select {
+				case <-time.After(10 * time.Second):
+				case <-ctx.Done():
+					return
+				}
 			}
-			toExecuteRows, err = tendisdb.GetLast30DaysToExecuteTasks(job.BkCloudID, job.ServerIP, taskType, dbType,
+			toExecuteRows, err := tendisdb.GetLast30DaysToExecuteTasks(job.BkCloudID, job.ServerIP, taskType, dbType,
 				status, perTaskNum, job.logger)
 			if err != nil {
 				continue
@@ -115,8 +148,13 @@ func (job *DtsJobBase) BgDtsTaskRunnerWithConcurrency(taskType, dbType string) {
 			}
 			for _, row := range toExecuteRows {
 				toDoRow := row
-				// 将task放入channel,等待消费者goroutine真正处理
-				genChan <- toDoRow
+				select {
+				case genChan <- toDoRow:
+					// 将task放入channel,等待消费者goroutine真正处理
+				case <-ctx.Done():
+					// Bug修复3: 发送时也能响应退出信号
+					return
+				}
 			}
 		}
 	}()
@@ -126,31 +164,60 @@ func (job *DtsJobBase) BgDtsTaskRunnerWithConcurrency(taskType, dbType string) {
 // BgDtsTaskRunnerWithoutLimit 执行子task,不限制并发度,执行makeSync、watchCacheSync 等增量同步不能限制并发度
 func (job *DtsJobBase) BgDtsTaskRunnerWithoutLimit(taskType, dbType string) {
 	wg := sync.WaitGroup{}
-	genChan := make(chan *tendisdb.TbTendisDTSTask)
+	// Bug修复2: 使用缓冲channel,避免生产者死锁
+	genChan := make(chan *tendisdb.TbTendisDTSTask, 100)
 	status := 0
 	perTaskNum := 5
-	var err error
+	// Bug修复3: 使用context控制生产者goroutine退出
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	wg.Add(1)
 	go func() {
 		// 消费者:处理task
 		defer wg.Done()
-		defer func() {
-			if r := recover(); r != nil {
-				job.logger.Error(string(debug.Stack()))
-			}
-		}()
 		for row01 := range genChan {
 			rowItem := row01
 			wg.Add(1)
 			go func(rowData *tendisdb.TbTendisDTSTask) {
 				defer wg.Done()
+				// Bug修复1: recover在goroutine内部,panic后不影响其他task
 				defer func() {
 					if r := recover(); r != nil {
-						job.logger.Error(string(debug.Stack()))
+						job.logger.Error(fmt.Sprintf("task_id:%d panic recovered: %s", rowData.ID, string(debug.Stack())))
 					}
 				}()
-				task01 := factory.MyTendisDtsTaskFactory(rowData)
+				// 二次检查task状态,防止重复执行
+				latestRow, err := tendisdb.GetTaskByID(rowData.ID, job.logger)
+				if err != nil {
+					latestRow = rowData
+				}
+				if latestRow == nil {
+					job.logger.Warn(fmt.Sprintf("根据task_id:%d获取task row失败", rowData.ID))
+					return
+				}
+				if latestRow.Status != 0 || latestRow.TaskType != taskType {
+					job.logger.Info(fmt.Sprintf("task_id:%d status=%d taskType=%s, 期待的taskType:%s, 不做任何处理",
+						latestRow.ID, latestRow.Status, latestRow.TaskType, taskType))
+					return
+				}
+				// Bug修复5: 用分布式锁防止同一task被多个worker并发执行
+				scrCli, lockErr := scrdbclient.NewClient(viper.GetString("serviceName"), job.logger)
+				if lockErr != nil {
+					job.logger.Error(fmt.Sprintf("task_id:%d 获取scrdbclient失败,err:%v", latestRow.ID, lockErr))
+					return
+				}
+				lockKey := fmt.Sprintf("dts_task_execute_lock_%d", latestRow.ID)
+				lockOK, lockErr := scrCli.DtsLockKey(lockKey, job.ServerIP, 7200)
+				if lockErr != nil {
+					job.logger.Error(fmt.Sprintf("task_id:%d 获取执行锁失败,err:%v", latestRow.ID, lockErr))
+					return
+				}
+				if !lockOK {
+					job.logger.Info(fmt.Sprintf("task_id:%d 已有其他worker在执行,跳过", latestRow.ID))
+					return
+				}
+				task01 := factory.MyTendisDtsTaskFactory(latestRow)
 				task01.Init()
 				task01.Execute()
 			}(rowItem)
@@ -162,13 +229,23 @@ func (job *DtsJobBase) BgDtsTaskRunnerWithoutLimit(taskType, dbType string) {
 		defer close(genChan)
 		var toExecuteRows []*tendisdb.TbTendisDTSTask
 		for {
+			select {
+			case <-ctx.Done():
+				// Bug修复3: 收到退出信号,结束生产者goroutine
+				return
+			default:
+			}
 			// 生产者: 获取task
 			// 如果所有dts tasks都是 ForceKillTaskTodo 状态,则大概率该dts job用户已强制终止, 无需sleep
 			// 否则 sleep 10s
 			if !tendisdb.IsAllDtsTasksToForceKill(toExecuteRows) {
-				time.Sleep(10 * time.Second)
+				select {
+				case <-time.After(10 * time.Second):
+				case <-ctx.Done():
+					return
+				}
 			}
-			toExecuteRows, err = tendisdb.GetLast30DaysToExecuteTasks(job.BkCloudID, job.ServerIP, taskType, dbType,
+			toExecuteRows, err := tendisdb.GetLast30DaysToExecuteTasks(job.BkCloudID, job.ServerIP, taskType, dbType,
 				status, perTaskNum, job.logger)
 			if err != nil {
 				continue
@@ -180,8 +257,13 @@ func (job *DtsJobBase) BgDtsTaskRunnerWithoutLimit(taskType, dbType string) {
 			}
 			for _, row := range toExecuteRows {
 				toDoRow := row
-				// 将task放入channel,等待消费者goroutine真正处理
-				genChan <- toDoRow
+				select {
+				case genChan <- toDoRow:
+					// 将task放入channel,等待消费者goroutine真正处理
+				case <-ctx.Done():
+					// Bug修复3: 发送时也能响应退出信号
+					return
+				}
 			}
 		}
 	}()
