@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 from datetime import timedelta
 
+from django.db import connections, router
 from django.db.models import Q
 from django.utils import timezone
 
@@ -20,6 +21,32 @@ from backend.db_report.models.mysql_binlog_backup_result import MysqlBinlogResul
 from .file_tag import BACKUP_FILE_TAG_TABLE
 
 logger = logging.getLogger("root")
+
+
+def _batch_delete(model, where_clause, params, batch_size=1000):
+    """
+    批量删除，每次 DELETE LIMIT batch_size，避免大数据量一次性删除导致报错
+    :param model: Django Model 类，用于获取表名和数据库连接
+    :param where_clause: WHERE 条件子句（不含 WHERE 关键字）
+    :param params: SQL 参数列表
+    :param batch_size: 每批删除条数
+    :return: 总删除行数
+    """
+    table_name = model._meta.db_table
+    db_alias = router.db_for_write(model) or "default"
+    total_deleted = 0
+    while True:
+        with connections[db_alias].cursor() as cursor:
+            cursor.execute(
+                f"DELETE FROM {table_name} WHERE {where_clause} LIMIT %s",
+                params + [batch_size],
+            )
+            rows_deleted = cursor.rowcount
+        if rows_deleted == 0:
+            break
+        total_deleted += rows_deleted
+        logger.info(f"==== batch deleted {total_deleted} records from {table_name} ====")
+    return total_deleted
 
 
 def clean_expired_mysql_backup_records():
@@ -64,10 +91,14 @@ def clean_expired_mysql_backup_records():
 
             count = expired_records.count()
             if count > 0:
-                logger.info(f"==== found {count} expired records for tag {tag_name}, deleting... ====")
-                expired_records.delete()
-                deleted_count += count
-                logger.info(f"==== successfully deleted {count} expired records for tag {tag_name} ====")
+                logger.info(f"==== found {count} expired records for tag {tag_name}, deleting in batches... ====")
+                batch_deleted = _batch_delete(
+                    MysqlBackupResult,
+                    "file_retention_tag = %s AND backup_consistent_time < %s",
+                    [tag_name, expire_time],
+                )
+                deleted_count += batch_deleted
+                logger.info(f"==== successfully deleted {batch_deleted} expired records for tag {tag_name} ====")
             else:
                 logger.info(f"==== no expired records found for tag {tag_name} ====")
 
@@ -113,14 +144,24 @@ def clean_expired_mysql_binlog_records():
 
             # 查询该标签下所有过期的 binlog 备份记录
             # stop_time < expire_time 表示已过期
-            expired_records = MysqlBinlogResult.objects.filter(file_mtime__lt=expire_time)
+            expired_records = MysqlBinlogResult.objects.filter(
+                Q(file_retention_tag=tag_name) & Q(file_mtime__lt=expire_time)
+            )
 
             count = expired_records.count()
             if count > 0:
-                logger.info(f"==== found {count} expired binlog records for tag {tag_name}, deleting... ====")
-                expired_records.delete()
-                deleted_count += count
-                logger.info(f"==== successfully deleted {count} expired binlog records for tag {tag_name} ====")
+                logger.info(
+                    f"==== found {count} expired binlog records for tag {tag_name}, deleting in batches... ===="
+                )
+                batch_deleted = _batch_delete(
+                    MysqlBinlogResult,
+                    "file_mtime < %s AND file_retention_tag= %s",
+                    [expire_time, tag_name],
+                )
+                deleted_count += batch_deleted
+                logger.info(
+                    f"==== successfully deleted {batch_deleted} expired binlog records for tag {tag_name} ===="
+                )
             else:
                 logger.info(f"==== no expired binlog records found for tag {tag_name} ====")
 

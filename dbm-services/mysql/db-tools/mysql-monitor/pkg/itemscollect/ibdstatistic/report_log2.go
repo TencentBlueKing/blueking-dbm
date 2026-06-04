@@ -54,7 +54,13 @@ func reportLog2(dbPort int, dbTableSize map[string]int64, dbSize map[string]int6
 		slog.Error("failed to create database size reports directory", slog.String("error", err.Error()))
 		return errors.Wrap(err, "failed to create database size reports directory")
 	}
-	resultReport, err := reportlog.NewReporter(dbsizeReportBaseDir, fmt.Sprintf("report_%d.log", dbPort), nil)
+	logOpt := &reportlog.LoggerOption{
+		MaxSize:    200, // MB, 100M 大概 20万表的数据，遇到过超过 20万的表上报触发 rotate导致截断
+		MaxBackups: 10,  // num
+		MaxAge:     30,  // days
+		Compress:   true,
+	}
+	resultReport, err := reportlog.NewReporter(dbsizeReportBaseDir, fmt.Sprintf("report_%d.log", dbPort), logOpt)
 	if err != nil {
 		return err
 	}

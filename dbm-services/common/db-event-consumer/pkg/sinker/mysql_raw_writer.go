@@ -71,7 +71,7 @@ func (w *MysqlRawWriter) WriteBatch(table interface{}, models interface{}) error
 
 	objs := models.([]map[string]interface{})
 	if err = w.writeDbUsingMapWithSqlBuilderBatch(table, objs); err != nil {
-		return err
+		return errors.Wrap(err, "writeDbUsingMapWithSqlBuilderBatch failed")
 	}
 	return nil
 }
@@ -173,9 +173,9 @@ func (w *MysqlRawWriter) writeDbUsingMapWithSqlBuilderBatch(table interface{}, o
 	}
 	// 	if _, err = w.db.Exec(context.Background(), sqlFull); err != nil {
 	if _, err = w.DB().ExecContext(context.Background(), sqlFull); err != nil {
+		slog.Warn("MysqlRawWriter sqlbuilder", slog.Any("err", err), slog.Any("sql", sqlFull))
 		return err
 	}
-
 	return nil
 }
 

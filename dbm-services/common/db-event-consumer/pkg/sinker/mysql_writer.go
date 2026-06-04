@@ -62,7 +62,7 @@ func (w *MysqlWriter) OnDuplicate(objs interface{}) error {
 		return nil
 	}
 	if w.writeMode == cst.ModeUpsert || w.writeMode == cst.ModeReplace {
-		slog.Info("MysqlWriter upsert duplicate key error", slog.Any("model", objs))
+		// slog.Info("MysqlWriter upsert duplicate key handler", slog.Any("model", objs))
 		// 是用 model 上的唯一键定义
 		return w.db.Clauses(clause.OnConflict{UpdateAll: true}).Create(objs).Error
 	}

@@ -106,8 +106,8 @@ func ListConfigFiles(r *api.ListConfFileReq) ([]*api.ListConfFileResp, error) {
 				ConfTypeLC:  f.ConfTypeLC,
 				Description: f.Description,
 			},
-			CreatedAt: f.CreatedAt.String(),
-			UpdatedAt: f.UpdatedAt.String(),
+			CreatedAt: f.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: f.UpdatedAt.Format(time.RFC3339),
 			UpdatedBy: f.UpdatedBy,
 		}
 		resp = append(resp, p)
