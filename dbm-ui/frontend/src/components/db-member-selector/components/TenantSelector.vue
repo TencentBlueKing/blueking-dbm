@@ -2,6 +2,7 @@
   <BkUserSelector
     v-model="modelValue"
     :api-base-url="apiBaseUrl"
+    v-bind="$attrs"
     draggable
     multiple
     :tenant-id="tenantId" />
