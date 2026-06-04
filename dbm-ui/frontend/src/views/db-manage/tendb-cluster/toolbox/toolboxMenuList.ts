@@ -77,7 +77,7 @@ export const toolboxMenuList = [
       {
         dbConsoleValue: 'tendbCluster.toolbox.spiderLayerDr',
         id: TicketTypes.TENDBCLUSTER_SPIDER_LAYER_DR,
-        name: t('接入层故障重建'),
+        name: t('接入层灾难重建'),
         parentId: 'spider_cluster_maintain',
       },
       {

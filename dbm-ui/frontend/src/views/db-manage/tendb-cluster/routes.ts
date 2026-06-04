@@ -115,7 +115,7 @@ const spiderToolboxRoute = {
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_REBUILD, t('接入层原地重建'), {
       dbConsole: 'tendbCluster.toolbox.spiderRebuild',
     }),
-    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_LAYER_DR, t('接入层故障重建'), {
+    createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_LAYER_DR, t('接入层灾难重建'), {
       dbConsole: 'tendbCluster.toolbox.spiderLayerDr',
     }),
     createRouteItem(TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY, t('部署只读接入层'), {

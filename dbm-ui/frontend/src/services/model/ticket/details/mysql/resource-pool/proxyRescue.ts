@@ -1,7 +1,7 @@
 import type { ResourcePoolDetailBase } from '../../resource-pool';
 
 /**
- * MySQL Proxy 故障重建（故障修复类）
+ * MySQL Proxy 灾难重建（故障修复类）
  * 集群所选 Proxy 整组不可用、无法在原机器上立即恢复时（如大范围主机故障），
  * 按集群整组申请新机重建并下架旧机
  */
