@@ -20,24 +20,179 @@
         @click="handleOpenDetail('add')">
         {{ t('新建') }}
       </AuthButton>
-      <BkInput
-        v-model="keyword"
-        class="search-input"
-        clearable
-        :placeholder="t('请输入告警组名称')"
-        type="search"
-        @clear="fetchTableData"
-        @enter="fetchTableData" />
+      <DbQuickSearch
+        v-model="quickSearchValue"
+        class="mb-16"
+        :data="quickSearchData"
+        parse-url
+        :placeholder="t('请输入或选择条件搜索')"
+        style="width: 500px; margin-left: auto"
+        @change="handleQuickSearchChange" />
     </div>
     <DbTable
       ref="tableRef"
       class="alert-group-table"
-      :columns="columns"
       :data-source="getAlarmGroupList"
       releate-url-query
-      :row-class="setRowClass"
-      :show-overflow="false"
-      @request-success="handleRequestSuccess" />
+      :row-class-name="setRowClass"
+      row-key="id"
+      @request-success="handleRequestSuccess">
+      <TableColumn
+        col-key="name"
+        :ellipsis="false"
+        :filter="columnFilter.name"
+        fixed="left"
+        :title="t('告警组名称')"
+        :width="240">
+        <template #default="{ row }: { row: NoticGroupModel }">
+          <TextOverflowLayout>
+            <template #append>
+              <BkTag
+                v-if="row.is_built_in"
+                class="ml-4"
+                size="small">
+                {{ t('内置') }}
+              </BkTag>
+              <BkTag
+                v-if="row.isNew"
+                class="ml-4"
+                size="small"
+                theme="success">
+                NEW
+              </BkTag>
+            </template>
+            <template #default>
+              <AuthButton
+                :action-id="row.is_built_in ? 'global_notify_group_update' : 'notify_group_update'"
+                :permission="
+                  row.is_built_in ? row.permission.global_notify_group_update : row.permission.notify_group_update
+                "
+                :resource="row.id"
+                text
+                theme="primary"
+                @click="handleOpenDetail('edit', row)">
+                {{ row.name }}
+              </AuthButton>
+            </template>
+          </TextOverflowLayout>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="receivers"
+        :filter="columnFilter.receivers"
+        :min-width="400"
+        :title="t('通知对象')">
+        <template #default="{ row }: { row: NoticGroupModel }">
+          <RenderRow
+            v-if="Object.keys(userGroupMap).length && row.receivers.length"
+            :data="getReceivers(row)" />
+          <span v-else>--</span>
+        </template>
+      </TableColumn>
+      <NoticeMethodColumn />
+      <TableColumn
+        col-key="usedCountTotal"
+        :title="t('关联策略')"
+        :width="100">
+        <template #default="{ row }: { row: NoticGroupModel }">
+          <BkPopover
+            v-if="row.usedCountTotal"
+            placement="top"
+            theme="light">
+            <span style="cursor: pointer; color: #3a84ff; font-weight: bolder">{{ row.usedCountTotal }}</span>
+            <template #content>
+              <div>
+                <div
+                  v-for="[dbType, count] in Object.entries(row.used_count)"
+                  :key="dbType"
+                  style="display: flex">
+                  <div>{{ DBTypeInfos[dbType as DBTypes].name }}：</div>
+                  <BkButton
+                    text
+                    theme="primary"
+                    @click="toRelatedPolicy(row.id, dbType)">
+                    {{ count }}
+                  </BkButton>
+                </div>
+              </div>
+            </template>
+          </BkPopover>
+          <span
+            v-else
+            v-bk-tooltips="t('暂无策略使用此告警组')"
+            style="cursor: pointer">
+            0
+          </span>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="update_at"
+        sorter
+        :title="t('更新时间')"
+        :width="250">
+        <template #default="{ row }: { row: NoticGroupModel }">
+          <span>{{ row.updateAtDisplay || '--' }}</span>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="updater"
+        :title="t('更新人')"
+        :width="180">
+        <template #default="{ row }: { row: NoticGroupModel }">
+          <span>{{ row.updater || '--' }}</span>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="operation"
+        fixed="right"
+        :title="t('操作')"
+        :width="130">
+        <template #default="{ row }: { row: NoticGroupModel }">
+          <AuthButton
+            v-bk-tooltips="{
+              content: t('内置告警组不可编辑，可通过克隆创建自定义副本后再编辑'),
+              disabled: !row.is_built_in,
+            }"
+            action-id="notify_group_update"
+            :disabled="row.is_built_in"
+            :permission="row.permission.notify_group_update"
+            :resource="row.id"
+            text
+            theme="primary"
+            @click="handleOpenDetail('edit', row)">
+            {{ t('编辑') }}
+          </AuthButton>
+          <AuthButton
+            action-id="notify_group_create"
+            class="ml-16"
+            :permission="row.permission.notify_group_create"
+            text
+            theme="primary"
+            @click="handleOpenDetail('copy', row)">
+            {{ t('克隆') }}
+          </AuthButton>
+          <AuthButton
+            v-bk-tooltips="{
+              content: row.is_built_in
+                ? t('内置告警组不可删除')
+                : row.usedCountTotal > 0
+                  ? t('已被 n 个策略使用，无法删除', { n: row.usedCountTotal })
+                  : '',
+              disabled: !(row.is_built_in || row.usedCountTotal > 0),
+            }"
+            action-id="notify_group_delete"
+            class="ml-16"
+            :disabled="row.is_built_in || row.usedCountTotal > 0"
+            :permission="row.permission.notify_group_delete"
+            :resource="row.id"
+            text
+            theme="primary"
+            @click="handleDelete(row.id)">
+            {{ t('删除') }}
+          </AuthButton>
+        </template>
+      </TableColumn>
+    </DbTable>
     <DetailDialog
       v-model="detailDialogShow"
       :biz-id="currentBizId"
@@ -48,7 +203,7 @@
   </div>
 </template>
 
-<script setup lang="tsx">
+<script setup lang="ts">
   import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -60,183 +215,39 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { DBTypeInfos, DBTypes } from '@common/const/index.ts';
+
+  import DbTable from '@components/db-table/IndexNew.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { messageSuccess } from '@utils';
 
-  import DetailDialog from './components/DetailDialog.vue';
+  import DetailDialog from './components/detail-dialog/Index.vue';
+  import NoticeMethodColumn from './components/NoticeMethodColumn.vue';
   import RenderRow from './components/RenderRow.vue';
-
-  interface TableRenderData {
-    data: NoticGroupModel;
-  }
+  import { useColumnFilter } from './useColumnFilter.ts';
+  import { useQuickSearch } from './useQuickSearch.ts';
 
   interface UserGroupMap {
     [key: string]: ServiceReturnType<typeof getUserGroupList>[number];
   }
 
+  interface ReceiverItem {
+    display_name: string;
+    id: string;
+    logo: string;
+    members: string[];
+    type: string;
+  }
+
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
   const router = useRouter();
+  const { quickSearchData, quickSearchValue } = useQuickSearch();
+  const { data: columnFilter } = useColumnFilter();
 
-  const columns = [
-    {
-      field: 'name',
-      fixed: 'left',
-      label: t('告警组名称'),
-      render: ({ data }: TableRenderData) => (
-        <TextOverflowLayout>
-          {{
-            append: () => (
-              <>
-                {data.is_built_in && (
-                  <bk-tag
-                    class='ml-4'
-                    size='small'>
-                    {t('内置')}
-                  </bk-tag>
-                )}
-                {data.isNew && (
-                  <bk-tag
-                    class='ml-4'
-                    size='small'
-                    theme='success'>
-                    NEW
-                  </bk-tag>
-                )}
-              </>
-            ),
-            default: () => {
-              if (data.is_built_in) {
-                return (
-                  <bk-button
-                    theme='primary'
-                    text
-                    onClick={() => handleOpenDetail('edit', data)}>
-                    {data.name}
-                  </bk-button>
-                );
-              }
-              return (
-                <auth-button
-                  actionId='notify_group_update'
-                  permission={data.permission.notify_group_update}
-                  resource={data.id}
-                  theme='primary'
-                  text
-                  onClick={() => handleOpenDetail('edit', data)}>
-                  {data.name}
-                </auth-button>
-              );
-            },
-          }}
-        </TextOverflowLayout>
-      ),
-      showOverflow: false,
-      width: 240,
-    },
-    {
-      field: 'recipient',
-      label: t('通知对象'),
-      minWidth: 400,
-      render: ({ data }: TableRenderData) => {
-        const userGroup = userGroupMap.value;
+  const tableRef = useTemplateRef('tableRef');
 
-        if (Object.keys(userGroup).length) {
-          const receivers = data.receivers.map((item) => {
-            if (item.type === 'group') {
-              return userGroup[item.id];
-            }
-            return {
-              ...item,
-              display_name: item.id,
-              logo: '',
-              members: [],
-            };
-          });
-
-          return <RenderRow data={receivers} />;
-        }
-      },
-    },
-    {
-      field: 'relatedPolicyCount',
-      label: t('应用策略'),
-      render: ({ data }: TableRenderData) => {
-        const { used_count: usedCount } = data;
-
-        return usedCount ? (
-          <bk-button
-            theme='primary'
-            text
-            onClick={() => toRelatedPolicy(data.id, data.db_type)}>
-            {usedCount}
-          </bk-button>
-        ) : (
-          <span>0</span>
-        );
-      },
-      width: 100,
-    },
-    {
-      field: 'update_at',
-      label: t('更新时间'),
-      render: ({ data }: TableRenderData) => <span>{data.updateAtDisplay || '--'}</span>,
-      sort: true,
-      width: 250,
-    },
-    {
-      field: 'updater',
-      label: t('更新人'),
-      render: ({ data }: TableRenderData) => <span>{data.updater || '--'}</span>,
-      width: 180,
-    },
-    {
-      fixed: 'right',
-      label: t('操作'),
-      render: ({ data }: TableRenderData) => (
-        <>
-          <auth-button
-            actionId='notify_group_create'
-            class='mr-8'
-            permission={data.permission.notify_group_create}
-            theme='primary'
-            text
-            onClick={() => handleOpenDetail('copy', data)}>
-            {t('克隆')}
-          </auth-button>
-          {!data.is_built_in && (
-            <auth-button
-              actionId='notify_group_update'
-              class='mr-8'
-              permission={data.permission.notify_group_update}
-              resource={data.id}
-              theme='primary'
-              text
-              onClick={() => handleOpenDetail('edit', data)}>
-              {t('编辑')}
-            </auth-button>
-          )}
-          {!data.is_built_in && (
-            <auth-button
-              action-id='notify_group_delete'
-              permission={data.permission.notify_group_delete}
-              resource={data.id}
-              theme='primary'
-              text
-              onClick={() => handleDelete(data.id)}>
-              {t('删除')}
-            </auth-button>
-          )}
-        </>
-      ),
-      showOverflow: false,
-      width: 120,
-    },
-  ];
-
-  const tableRef = ref();
-  const keyword = ref('');
   const detailDialogShow = ref(false);
   const detailType = ref<'add' | 'edit' | 'copy'>('add');
   const detailData = ref({} as NoticGroupModel);
@@ -256,28 +267,39 @@
     },
   });
 
-  const fetchTableData = () => {
-    tableRef.value.fetchData(
-      {
-        name: keyword.value,
-      },
-      {
-        bk_biz_id: currentBizId,
-      },
-    );
+  const getReceivers = (data: NoticGroupModel): ReceiverItem[] => {
+    return data.receivers.map((item) => {
+      if (item.type === 'group') {
+        return userGroupMap.value[item.id] || item;
+      }
+      return {
+        ...item,
+        display_name: item.id,
+        logo: '',
+        members: [],
+      };
+    });
   };
 
-  const setRowClass = (data: NoticGroupModel) => (data.isNew ? 'is-new' : '');
+  const handleQuickSearchChange = () => {
+    fetchTableData();
+  };
 
-  const toRelatedPolicy = (notifyGroupId: number, dbType: string) => {
+  const fetchTableData = () => {
+    tableRef.value!.fetchData({
+      ...quickSearchValue.value,
+      bk_biz_id: currentBizId,
+    });
+  };
+
+  const setRowClass = ({ row }: { row: NoticGroupModel }) => (row.isNew ? 'is-new' : '');
+
+  const toRelatedPolicy = (notifyGroups: number, dbType: string) => {
     const routerData = router.resolve({
       name: 'monitorStrategy',
-      params: {
-        bizId: currentBizId,
-      },
       query: {
-        dbType,
-        notifyGroupId,
+        db_type: dbType,
+        notify_groups: notifyGroups,
       },
     });
 

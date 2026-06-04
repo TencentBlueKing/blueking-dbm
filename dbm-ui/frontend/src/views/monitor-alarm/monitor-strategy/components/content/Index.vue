@@ -403,7 +403,7 @@
     queryMonitorPolicyList,
     updatePolicy,
   } from '@services/source/monitor';
-  import { getSimpleList } from '@services/source/monitorNoticeGroup';
+  import { listGroupName } from '@services/source/monitorNoticeGroup';
 
   import { useTableSettings, useUrlSearch } from '@hooks';
 
@@ -495,7 +495,7 @@
   );
 
   const alarmGroupNameMap: Record<string, string> = {};
-  const { run: fetchAlarmGroupList } = useRequest(getSimpleList, {
+  const { run: fetchAlarmGroupList } = useRequest(listGroupName, {
     manual: true,
     onSuccess: (res) => {
       const groupList: SelectItem<number>[] = [];

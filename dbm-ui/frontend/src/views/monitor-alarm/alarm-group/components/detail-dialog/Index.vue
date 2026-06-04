@@ -46,7 +46,14 @@
           :disabled="editDisabled"
           :placeholder="t('请输入告警组名称')" />
       </BkFormItem>
+      <NoticeMethodFormItem
+        ref="noticeMethodRef"
+        v-model:is-receivers-selector-show="isReceiversSelectorShow"
+        :details="detailData.details"
+        :disabled="editDisabled"
+        :type="type" />
       <BkFormItem
+        v-if="isReceiversSelectorShow"
         :label="t('通知对象')"
         property="receivers"
         required>
@@ -58,11 +65,6 @@
           :is-built-in="detailData.is_built_in"
           :type="type" />
       </BkFormItem>
-      <NoticeMethodFormItem
-        ref="noticeMethodRef"
-        :details="detailData.details"
-        :disabled="editDisabled"
-        :type="type" />
     </DbForm>
     <template #footer>
       <BkButton
@@ -92,8 +94,8 @@
 
   import { messageSuccess } from '@utils';
 
-  import NoticeMethodFormItem from './NoticeMethodFormItem.vue';
-  import ReceiversSelector from './ReceiversSelector.vue';
+  import NoticeMethodFormItem from './components/NoticeMethodFormItemNew.vue';
+  import ReceiversSelector from './components/ReceiversSelector.vue';
 
   interface Props {
     bizId: number;
@@ -136,9 +138,11 @@
     },
   ];
 
-  const formRef = ref();
-  const receiversSelectorRef = ref();
-  const noticeMethodRef = ref();
+  const formRef = useTemplateRef('formRef');
+  const receiversSelectorRef = useTemplateRef('receiversSelectorRef');
+  const noticeMethodRef = useTemplateRef('noticeMethodRef');
+
+  const isReceiversSelectorShow = ref(false);
   const formData = reactive({
     name: '',
     receivers: [] as string[],
@@ -170,6 +174,13 @@
     }
   });
 
+  watch(
+    () => formData.receivers,
+    () => {
+      formRef.value?.validate('receivers');
+    },
+  );
+
   const runSuccess = (message: string) => {
     messageSuccess(message);
     handleClose(true);
@@ -177,11 +188,11 @@
   };
 
   const handleSubmit = async () => {
-    await formRef.value.validate();
+    await formRef.value!.validate();
 
     const { name } = formData;
-    const { alertNotice, channels } = noticeMethodRef.value.getSubmitData();
-    const receivers = receiversSelectorRef.value.getSelectedReceivers();
+    const { alertNotice, channels } = noticeMethodRef.value!.getSubmitData();
+    const receivers = receiversSelectorRef.value?.getSelectedReceivers() || [];
 
     if (props.type === 'edit') {
       patchAlarmGroupRun({
@@ -191,16 +202,17 @@
         },
         id: props.detailData.id,
         name,
-        receivers,
+        receivers: isReceiversSelectorShow.value ? receivers : [],
       });
     } else {
       insertAlarmGroupRun({
         bk_biz_id: props.bizId,
         details: {
           alert_notice: alertNotice,
+          channels,
         },
         name,
-        receivers,
+        receivers: isReceiversSelectorShow.value ? receivers : [],
       });
     }
   };
@@ -241,7 +253,7 @@
   }
 
   .detail-form {
-    padding: 24px 20px 0;
+    padding: 24px;
   }
 
   :deep(.bk-tab-header-nav::-webkit-scrollbar) {
