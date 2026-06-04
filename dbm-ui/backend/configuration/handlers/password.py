@@ -203,7 +203,7 @@ class DBPasswordHandler(object):
             data = resp["data"]
         else:
             data = root_id = generate_root_id()
-            params.update(ticket_type=TicketType.ADMIN_PASSWORD_MODIFY, bk_biz_id=bk_biz_id, created_by=operator)
+            params.update(ticket_type=TicketType.MYSQL_ADMIN_PASSWORD_MODIFY, bk_biz_id=bk_biz_id, created_by=operator)
             MySQLController(root_id=root_id, ticket_data=params).mysql_randomize_password()
         return data
 
