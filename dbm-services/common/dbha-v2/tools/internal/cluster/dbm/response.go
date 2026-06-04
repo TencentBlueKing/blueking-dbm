@@ -71,6 +71,7 @@ type DbInstMetadata struct {
 	SpiderRole         string `json:"spider_role"`
 }
 
+// GetMySQLRole returns the role of a MySQL instance
 func (m *DbInstMetadata) GetMySQLRole() string {
 	if m.InstanceRole != "" {
 		return m.InstanceRole
@@ -79,6 +80,7 @@ func (m *DbInstMetadata) GetMySQLRole() string {
 	return m.MachineType
 }
 
+// GetTenDBClusterRole returns the role of a TenDBCluster instance
 func (m *DbInstMetadata) GetTenDBClusterRole() string {
 	if m.MachineType == "spider" {
 		return m.SpiderRole
@@ -142,4 +144,24 @@ type DomainPutResponse struct {
 		Detail  []InstanceInfoInDomain `json:"detail"`
 		RowsNum int                    `json:"rowsNum"`
 	} `json:"data"`
+}
+
+// ClbGetTargetPrivateIpsResponse represents the response for querying CLB bound instances.
+type ClbGetTargetPrivateIpsResponse struct {
+	Result    bool   `json:"result"`
+	Code      int    `json:"code"`
+	Message   string `json:"message"`
+	RequestID string `json:"request_id"`
+	Data      struct {
+		IPs []string `json:"ips"`
+	} `json:"data"`
+}
+
+// ClbPartTargetResponse represents the response for CLB register/deregister operations.
+type ClbPartTargetResponse struct {
+	Result    bool   `json:"result"`
+	Code      int    `json:"code"`
+	Message   string `json:"message"`
+	RequestID string `json:"request_id"`
+	Data      int    `json:"data"`
 }

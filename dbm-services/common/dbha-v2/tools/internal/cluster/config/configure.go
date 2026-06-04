@@ -45,6 +45,15 @@ type ProxyAddress struct {
 	AdminPort int    `yaml:"adminPort"`
 }
 
+// ClbConfig represents a Clb binding for cluster instances.
+type ClbConfig struct {
+	BkCloudID      int               `yaml:"bkCloudId"`
+	Region         string            `yaml:"region"`
+	ListenerID     string            `yaml:"listenerId"`
+	LoadBalancerID string            `yaml:"loadbalancerId"`
+	Instances      []InstanceAddress `yaml:"instances"`
+}
+
 // MysqlCluster represents a MySQL cluster.
 type MysqlCluster struct {
 	Domain      string            `yaml:"domain"`
@@ -53,6 +62,7 @@ type MysqlCluster struct {
 	Proxy       []ProxyAddress    `yaml:"proxy"`
 	Master      InstanceAddress   `yaml:"master"`
 	Slave       []InstanceAddress `yaml:"slave"`
+	Clb         []ClbConfig       `yaml:"clb,omitempty"`
 }
 
 // TenDBClusterNodeInfo represents the information of a TenDBCluster node.
@@ -83,6 +93,7 @@ type TenDBCluster struct {
 	CtlSlave     []TenDBClusterNodeInfo `yaml:"ctlSlave"`
 	RemoteMaster []TenDBClusterNodeInfo `yaml:"remoteMaster"`
 	RemoteSlave  []RemoteSlaveInfo      `yaml:"remoteSlave"`
+	Clb          []ClbConfig            `yaml:"clb,omitempty"`
 }
 
 // BinlogInfo represents mysql binlog information.
@@ -101,11 +112,14 @@ type APIConfig struct {
 
 // DbmApis represents DBM apis configurations
 type DbmApis struct {
-	DbmApiMetadata      APIConfig `yaml:"dbmApiMetadata"`
-	DbmApiUpdateStatus  APIConfig `yaml:"dbmApiUpdateStatus"`
-	DbmApiSwapMysqlRole APIConfig `yaml:"dbmApiSwapMysqlRole"`
-	DbmApiDomainGet     APIConfig `yaml:"dbmApiDomainGet"`
-	DbmApiDomainPut     APIConfig `yaml:"dbmApiDomainPut"`
+	DbmApiMetadata                APIConfig `yaml:"dbmApiMetadata"`
+	DbmApiUpdateStatus            APIConfig `yaml:"dbmApiUpdateStatus"`
+	DbmApiSwapMysqlRole           APIConfig `yaml:"dbmApiSwapMysqlRole"`
+	DbmApiDomainGet               APIConfig `yaml:"dbmApiDomainGet"`
+	DbmApiDomainPut               APIConfig `yaml:"dbmApiDomainPut"`
+	DbmApiClbGetTargetPrivateIps  APIConfig `yaml:"dbmApiClbGetTargetPrivateIps"`
+	DbmApiClbRegisterPartTarget   APIConfig `yaml:"dbmApiClbRegisterPartTarget"`
+	DbmApiClbDeregisterPartTarget APIConfig `yaml:"dbmApiClbDeregisterPartTarget"`
 }
 
 // AuthInfo represents authentication information for MySQL instances

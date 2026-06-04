@@ -26,6 +26,7 @@ package handler
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -473,6 +474,98 @@ func (hdl *MysqlClusterHandler) correctBackendRole(cluster *config.MysqlCluster)
 	return nil
 }
 
+func clbInstanceToIPPort(host string, port int) string {
+	return fmt.Sprintf("%s:%d", host, port)
+}
+
+func clbInstancesToIPPorts(instances []config.InstanceAddress) []string {
+	ips := make([]string, 0, len(instances))
+	for _, inst := range instances {
+		ips = append(ips, clbInstanceToIPPort(inst.Host, inst.Port))
+	}
+	return ips
+}
+
+func diffClbIPPortSets(desired, current []string) (missing, extra []string) {
+	desiredSet := make(map[string]struct{}, len(desired))
+	currentSet := make(map[string]struct{}, len(current))
+
+	for _, ip := range desired {
+		desiredSet[ip] = struct{}{}
+	}
+	for _, ip := range current {
+		currentSet[ip] = struct{}{}
+	}
+
+	for ip := range desiredSet {
+		if _, ok := currentSet[ip]; !ok {
+			missing = append(missing, ip)
+		}
+	}
+	for ip := range currentSet {
+		if _, ok := desiredSet[ip]; !ok {
+			extra = append(extra, ip)
+		}
+	}
+
+	sort.Strings(missing)
+	sort.Strings(extra)
+	return missing, extra
+}
+
+func validateClbConfig(clb *config.ClbConfig) error {
+	if clb.Region == "" {
+		return gerrors.New(gerrors.InvalidParameter, "clb.region is empty, please configure it in cluster.yaml")
+	}
+	if clb.ListenerID == "" {
+		return gerrors.New(gerrors.InvalidParameter, "clb.listenerId is empty, please configure it in cluster.yaml")
+	}
+	if clb.LoadBalancerID == "" {
+		return gerrors.New(gerrors.InvalidParameter,
+			"clb.loadbalancerId is empty, please configure it in cluster.yaml")
+	}
+	return nil
+}
+
+func (hdl *MysqlBaseHandler) syncClbBinding(clb *config.ClbConfig) error {
+	if err := validateClbConfig(clb); err != nil {
+		return err
+	}
+
+	currentIPs, err := hdl.dbmClient.GetClbTargetPrivateIps(clb)
+	if err != nil {
+		return gerrors.Newf(gerrors.Failure,
+			"failed to get clb target private ips (region=%s, listenerId=%s), errmsg: %s",
+			clb.Region, clb.ListenerID, err.Error())
+	}
+
+	desiredIPs := clbInstancesToIPPorts(clb.Instances)
+	missing, extra := diffClbIPPortSets(desiredIPs, currentIPs)
+
+	if err := hdl.dbmClient.RegisterClbPartTarget(clb, missing); err != nil {
+		return gerrors.Newf(gerrors.Failure,
+			"failed to register clb targets (region=%s, listenerId=%s), errmsg: %s",
+			clb.Region, clb.ListenerID, err.Error())
+	}
+
+	if err := hdl.dbmClient.DeregisterClbPartTarget(clb, extra); err != nil {
+		return gerrors.Newf(gerrors.Failure,
+			"failed to deregister clb targets (region=%s, listenerId=%s), errmsg: %s",
+			clb.Region, clb.ListenerID, err.Error())
+	}
+
+	return nil
+}
+
+func (hdl *MysqlBaseHandler) resetAllClbBindings(clbList []config.ClbConfig) error {
+	for i := range clbList {
+		if err := hdl.syncClbBinding(&clbList[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (hdl *MysqlClusterHandler) addNodesToDomain(instList []config.InstanceAddress, domain string, bkBizId int) error {
 	instInfoList, err := hdl.dbmClient.GetAllInstancesOfDomain(domain)
 	if err != nil {
@@ -532,6 +625,7 @@ func (hdl *MysqlClusterHandler) addAllNodesToDomain(cluster *config.MysqlCluster
 // Step 6: reset all proxies' backends to master backend
 // Step 7: update all instances status to running
 // Step 8: add nodes to corresponding domain
+// Step 9: reset clb binding (optional; skip when clb is omitted or empty)
 func (hdl *MysqlClusterHandler) resetSingleMysqlCluster(cluster *config.MysqlCluster) error {
 	hdl.printOneCluster(cluster)
 	fmt.Printf("Resetting cluster %s...\n", cluster.Domain)
@@ -586,6 +680,14 @@ func (hdl *MysqlClusterHandler) resetSingleMysqlCluster(cluster *config.MysqlClu
 		return err
 	}
 	fmt.Printf("Step 8 <add nodes to corresponding domain> done\n")
+
+	if len(cluster.Clb) > 0 {
+		if err := hdl.resetAllClbBindings(cluster.Clb); err != nil {
+			fmt.Printf("Failed at step 9 <reset clb binding>, errmsg: %s\n", err.Error())
+			return err
+		}
+		fmt.Printf("Step 9 <reset clb binding> done\n")
+	}
 
 	return nil
 }

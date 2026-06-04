@@ -96,3 +96,32 @@ type DomainPutRequest struct {
 	DbCloudToken   string              `json:"db_cloud_token"`
 	InstancesToAdd []InstancesOfDomain `json:"domains"`
 }
+
+// ClbGetTargetPrivateIpsRequest represents the request for querying CLB bound instances.
+type ClbGetTargetPrivateIpsRequest struct {
+	BkCloudID      int    `json:"bk_cloud_id"`
+	DbCloudToken   string `json:"db_cloud_token"`
+	Region         string `json:"region"`
+	ListenerID     string `json:"listenerid"`
+	LoadBalancerID string `json:"loadbalancerid"`
+}
+
+// ClbRegisterPartTargetRequest represents the request for registering instances to CLB.
+type ClbRegisterPartTargetRequest struct {
+	BkCloudID      int      `json:"bk_cloud_id"`
+	DbCloudToken   string   `json:"db_cloud_token"`
+	Region         string   `json:"region"`
+	ListenerID     string   `json:"listenerid"`
+	LoadBalancerID string   `json:"loadbalancerid"`
+	IPs            []string `json:"ips"`
+}
+
+// ClbDeregisterPartTargetRequest represents the request for deregistering instances from CLB.
+type ClbDeregisterPartTargetRequest struct {
+	BkCloudID      int      `json:"bk_cloud_id"`
+	DbCloudToken   string   `json:"db_cloud_token"`
+	Region         string   `json:"region"`
+	ListenerID     string   `json:"listenerid"`
+	LoadBalancerID string   `json:"loadbalancerid"`
+	IPs            []string `json:"ips"`
+}
