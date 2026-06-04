@@ -711,6 +711,7 @@ def reduce_spiders_flow(
     parent_global_data: dict,
     spider_role: TenDBClusterSpiderRole,
     is_rebuild: bool = False,
+    is_disaster_recover: bool = False,
 ):
     """
     减少spider节点的子流程, 提供给集群缩容接入层或者替换类单据所用
@@ -855,12 +856,18 @@ def reduce_spiders_flow(
     # 阶段3 如果这次卸载的是spider-master，需要卸载对应的中控实例
     if spider_role == TenDBClusterSpiderRole.SPIDER_MASTER.value:
         # 回收对应ctl的路由信息，如果涉及到ctl primary，先切换，再回收
-        reduce_ctls = cluster.proxyinstance_set.filter(machine__ip__in=[ip_info["ip"] for ip_info in reduce_spiders])
-        sub_pipeline.add_sub_pipeline(
-            sub_flow=reduce_ctls_routing(
-                root_id=root_id, parent_global_data=parent_global_data, cluster=cluster, reduce_ctls=list(reduce_ctls)
+        if not is_disaster_recover:
+            reduce_ctls = cluster.proxyinstance_set.filter(
+                machine__ip__in=[ip_info["ip"] for ip_info in reduce_spiders]
             )
-        )
+            sub_pipeline.add_sub_pipeline(
+                sub_flow=reduce_ctls_routing(
+                    root_id=root_id,
+                    parent_global_data=parent_global_data,
+                    cluster=cluster,
+                    reduce_ctls=list(reduce_ctls),
+                )
+            )
 
         # 卸载ctl的进程
         acts_list = []
