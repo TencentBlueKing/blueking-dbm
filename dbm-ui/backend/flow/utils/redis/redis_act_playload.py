@@ -20,7 +20,7 @@ from django.utils.translation import gettext as _
 from backend import env
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName, OpType, ReqType
-from backend.configuration.constants import DBType
+from backend.configuration.constants import PLAT_BIZ_ID, DBType
 from backend.configuration.models.system import SystemSettings
 from backend.constants import BACKUP_SYS_STATUS, IP_PORT_DIVIDER
 from backend.db_meta import api as metaApi
@@ -2293,7 +2293,7 @@ class RedisActPayload(object):
         # 获取目标版本plat级别的配置项
         target_conf_items = DBConfigApi.query_conf_item(
             params={
-                "bk_biz_id": str(cluster_map["bk_biz_id"]),
+                "bk_biz_id": str(PLAT_BIZ_ID),
                 "level_name": LevelName.PLAT,
                 "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
                 "conf_file": cluster_map["target_version"],
