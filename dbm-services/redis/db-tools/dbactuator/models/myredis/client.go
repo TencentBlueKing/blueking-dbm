@@ -1717,13 +1717,6 @@ func (db *RedisClient) IsReplicaStatusOk(masterIP, masterPort string) (ok bool, 
 
 // IsTendisSSDReplicaStatusOk '我'是tendisssd slave,判断我和master的复制状态是否ok
 func (db *RedisClient) IsTendisSSDReplicaStatusOk(masterIP, masterPort string) (ok bool, err error) {
-	ok, err = db.IsReplicaStatusOk(masterIP, masterPort)
-	if err != nil {
-		return
-	}
-	if !ok {
-		return
-	}
 	ok = false
 	// master上执行 info slaves,结果中 slave的状态必须是 IncrSync/REPL_FOLLOW
 	var confRet map[string]string
@@ -1764,6 +1757,13 @@ func (db *RedisClient) IsTendisSSDReplicaStatusOk(masterIP, masterPort string) (
 		}
 	}
 	mylog.Logger.Info("master(%s) 'info slaves' ret:%s", masterAddr, slavesState.String())
+	ok, err = db.IsReplicaStatusOk(masterIP, masterPort)
+	if err != nil {
+		return
+	}
+	if !ok {
+		return
+	}
 	err = fmt.Errorf("slave(%s) master_link_status:up but master(%s) 'info slaves' not found record", db.Addr, masterAddr)
 	return
 }

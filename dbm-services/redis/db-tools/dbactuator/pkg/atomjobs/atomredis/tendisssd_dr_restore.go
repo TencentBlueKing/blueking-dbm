@@ -269,6 +269,7 @@ func (task *TendisssdDrRestoreTask) Run() {
 	}
 	task.TendisSSDSetLougCount()
 }
+
 func (task *TendisssdDrRestoreTask) newConnect() {
 	task.runtime.Logger.Info("start connect master(%s)", task.MasterAddr())
 	task.MasterCli, task.Err = myredis.NewRedisClientWithRetry(task.MasterAddr(), task.MasterAuth, 0,
@@ -574,8 +575,20 @@ export LD_LIBRARY_PATH=LD_LIBRARY_PATH:%s
 
 	// waiting server change inner stats.
 	time.Sleep(time.Second * 2)
-	// slave 'confxx set disk-delete-count 50'
-	_, task.Err = task.SlaveCli.ConfigSet("disk-delete-count", "50")
+	// 从master同步disk-delete-count参数到slave
+	var diskDeleteCountConf map[string]string
+	diskDeleteCountConf, task.Err = task.MasterCli.ConfigGet("disk-delete-count")
+	if task.Err != nil {
+		task.runtime.Logger.Error("get master(%s) disk-delete-count failed:%v", task.MasterAddr(), task.Err)
+		return
+	}
+	diskDeleteCountVal, ok := diskDeleteCountConf["disk-delete-count"]
+	if !ok || diskDeleteCountVal == "" {
+		task.runtime.Logger.Info("master(%s) disk-delete-count not found, use default value 50", task.MasterAddr())
+		diskDeleteCountVal = "50"
+	}
+	task.runtime.Logger.Info("slave(%s) set disk-delete-count=%s (synced from master)", task.SlaveAddr(), diskDeleteCountVal)
+	_, task.Err = task.SlaveCli.ConfigSet("disk-delete-count", diskDeleteCountVal)
 	if task.Err != nil {
 		return
 	}
@@ -587,22 +600,19 @@ export LD_LIBRARY_PATH=LD_LIBRARY_PATH:%s
 
 	// 最多等待10分钟
 	maxRetryTimes := 120
-	var i int = 0
-	for {
-		i++
-		if i >= maxRetryTimes {
-			break
-		}
-		task.Err = nil
-		_, task.Err = task.SlaveCli.IsTendisSSDReplicaStatusOk(task.MasterIP, strconv.Itoa(task.MasterPort))
-		if task.Err != nil {
-			task.runtime.Logger.Info(task.Err.Error() + ",sleep 5 seconds and retry...")
-			time.Sleep(5 * time.Second)
+	var lastErr error
+	for i := 0; i < maxRetryTimes; i++ {
+		time.Sleep(5 * time.Second)
+		_, lastErr = task.SlaveCli.IsTendisSSDReplicaStatusOk(task.MasterIP, strconv.Itoa(task.MasterPort))
+		if lastErr != nil {
+			task.runtime.Logger.Warn("IsTendisSSDReplicaStatusOk failed:%s,sleep 5 seconds and retry...", lastErr.Error())
 			continue
 		}
 		break
 	}
-	if task.Err != nil {
+	// 如果循环结束仍有错误，说明达到最大重试次数仍未成功
+	if lastErr != nil {
+		task.Err = lastErr
 		return
 	}
 	task.runtime.Logger.Info("tendisSSD slave(%s) master(%s) create replicate link success", task.SlaveAddr(),
