@@ -32,6 +32,13 @@ type TdbctlAccoutParam struct {
 	TdbctlPwd  string `json:"tdbctl_pwd,omitempty"`
 }
 
+// SpiderAccoutParam spider 内置账号(由上层单据一次性随机生成, 通过 general.runtime_account 注入,
+// 避免在 extend 中明文透传, 同时确保重试时密码稳定不变)
+type SpiderAccoutParam struct {
+	SpiderUser string `json:"spider_user,omitempty"`
+	SpiderPwd  string `json:"spider_pwd,omitempty"`
+}
+
 // PartitionAccoutParam TODO
 type PartitionAccoutParam struct {
 	PartitionYwUser string `json:"partition_yw_user,omitempty"`
