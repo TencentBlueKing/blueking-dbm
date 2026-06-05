@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging
 import os
+import re
 from dataclasses import asdict
 from typing import Dict, Optional
 
@@ -19,6 +20,7 @@ from pipeline.exceptions import InvalidOperationException
 
 from backend import env
 from backend.configuration.constants import DBType
+from backend.db_services.dbresource.machine_storage import fetch_merged_storage_device_for_hosts
 from backend.flow.consts import DBA_ROOT_USER, LONG_JOB_TIMEOUT
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -36,6 +38,15 @@ logger = logging.getLogger("flow")
 # 详见 dbm-services/mysql/db-tools/dbactuator/pkg/components/oscomp/disk_benchmark.go
 _ALLOWED_TARGET_PREFIXES = ("/data/", "/data1/", "/tmp/", "/var/tmp/")
 
+_DATA_MOUNT_PREFIX_RE = re.compile(r"^(/data[0-9]*)(/|$)")
+
+
+def _data_mount_prefix_from_target(target: str) -> Optional[str]:
+    """从压测 target 路径解析数据盘挂载点前缀 /data、/data1 等；/tmp 等非 data 盘路径返回 None。"""
+    norm = os.path.normpath(target or "")
+    m = _DATA_MOUNT_PREFIX_RE.match(norm)
+    return m.group(1) if m else None
+
 
 class BaselineDiskBenchmarkFlow(object):
     """
@@ -49,6 +60,13 @@ class BaselineDiskBenchmarkFlow(object):
         - actuator 层在跑测前再做一次 DB 进程黑名单检查 (在 dbactuator 内部做)
 
     入参 (来自 ticket_data) 示例:
+        - target 在 /data、/data1 等数据盘路径下, 可省略 disk_name、disk_type、capacity_gb、is_local,
+          流程在校验后会调用 fetch_merged_storage_device_for_hosts(与 fill_machine_storage_device 同源) 按挂载点回填
+          capacity_gb / disk_type / is_local, 并生成 disk_name(形如 NVME_SSD_3570)。
+        - target 在 /tmp 等路径下合并采集无法解析数据盘时, 须自行提供 disk_name。
+        - disk_model 不入库, 写 BaselineDisk 时留空。
+        - is_local 默认 False; IT 开头机型(本地盘)由合并结果置为 True。
+        - 无需传机型: IT 本地盘判定由 CVM instanceType 兜底, 不再需要入参 bk_svr_device_cls_name。
     {
         "uid": "<unique_uid>",
         "created_by": "admin",
@@ -66,12 +84,7 @@ class BaselineDiskBenchmarkFlow(object):
                 "disks": [
                     {
                         "target": "/data/baseline_bench/fio.bin",
-                        "size": "8G",
-                        "disk_name": "NVMe_SSD_3570",
-                        "disk_type": "NVME_SSD",
-                        "disk_model": "3570",
-                        "is_local": true,
-                        "capacity_gb": 3570
+                        "test_file_size": "8G"
                     }
                 ]
             }
@@ -89,10 +102,11 @@ class BaselineDiskBenchmarkFlow(object):
 
         校验项:
             - hosts 非空, 每个 host 有 ip
-            - disks 非空, 每个 disk 有 target / disk_name
+            - disks 非空, 每个 disk 有 target
             - target 是绝对路径
             - target 不以 /dev/ 开头 (拒裸盘)
             - target 落在白名单目录下 (拒系统关键文件)
+            - disk_name: 必填, 除非 target 在 /dataN 下(由后续合并回填 disk_type/容量后生成 disk_name)
 
         这是与 Serializer / actuator 三层中的中间一层, 即便其它两层失效, 这里也会挡住。
         """
@@ -124,14 +138,93 @@ class BaselineDiskBenchmarkFlow(object):
                         )
                     )
                 if not d.get("disk_name"):
-                    raise InvalidOperationException(_("host {} 的 disk {} 缺少 disk_name").format(h["ip"], target))
+                    if _data_mount_prefix_from_target(target):
+                        # target 落在 /dataN 时, disk_name / disk_type / capacity_gb 均可由合并结果回填
+                        continue
+                    raise InvalidOperationException(
+                        _("host {} 的 disk {} 缺少 disk_name (target 在 /dataN 时可省略, 由流程合并回填后生成)").format(h["ip"], target)
+                    )
+
+    def _validate_disk_identity_after_enrich(self) -> None:
+        """合并回填后每块盘须具备 disk_name, 否则后续写 BaselineDisk 与 actuator 展示无键可用。"""
+        for h in self.data.get("hosts") or []:
+            ip = h.get("ip") or ""
+            for d in h.get("disks") or []:
+                target = d.get("target") or ""
+                if not d.get("disk_name"):
+                    raise InvalidOperationException(
+                        _("host {} 的 disk {} 在合并回填后仍缺少 disk_name, 请确认 CVM/Job 采集成功且能解析出 disk_type 与容量").format(
+                            ip, target
+                        )
+                    )
+
+    def _enrich_hosts_disks_from_merged_storage(self) -> None:
+        """
+        按 fill_machine_storage_device 同源逻辑拉取 CVM+Job 合并的 storage_device,
+        为落在 /dataN 下的 target 回填 capacity_gb / disk_type / is_local, 并刷新 disk_name。
+        - disk_type: 入参未给出时, 用合并结果(CVM 云盘类型, 或 IT 本地盘的 NVME_SSD)兜底
+        - is_local: 入参未显式给出时, 用合并结果(IT 开头机型为 True, 否则 False)
+        """
+        hosts = self.data.get("hosts") or []
+        meta = []
+        for h in hosts:
+            ip = h.get("ip")
+            if not ip:
+                continue
+            meta.append(
+                {
+                    "ip": ip,
+                    "bk_cloud_id": int(h.get("bk_cloud_id", self.data.get("bk_cloud_id", 0))),
+                    # 不再要求入参传机型: IT 本地盘判定改由 CVM instanceType(等价 bk_svr_device_cls_name) 兜底
+                }
+            )
+        if not meta:
+            return
+        merged = fetch_merged_storage_device_for_hosts(meta)
+        if not merged:
+            logger.warning(_("未能从 CVM/Job 合并得到任何主机的 storage_device, 使用入参原有磁盘容量等元数据"))
+            return
+        for h in hosts:
+            ip = h.get("ip")
+            if not ip:
+                continue
+            sd = merged.get(ip)
+            if not sd:
+                continue
+            for disk in h.get("disks") or []:
+                mp = _data_mount_prefix_from_target(disk.get("target", ""))
+                if not mp:
+                    continue
+                info = sd.get(mp)
+                if not info:
+                    continue
+                self._apply_merged_disk_info(disk, info)
+
+    @staticmethod
+    def _apply_merged_disk_info(disk: Dict, info: Dict) -> None:
+        """用合并结果回填单块盘的 capacity_gb / disk_type / is_local, 并据此刷新 disk_name。"""
+        sz = info.get("size")
+        if sz is not None:
+            try:
+                disk["capacity_gb"] = int(sz)
+            except (TypeError, ValueError):
+                pass
+        # disk_type: 入参优先, 缺失时用合并结果兜底
+        if not disk.get("disk_type") and info.get("disk_type"):
+            disk["disk_type"] = info["disk_type"]
+        # is_local: 入参显式给出则尊重, 否则用合并结果(IT 机型 True, 否则 False)
+        if disk.get("is_local") is None:
+            disk["is_local"] = bool(info.get("is_local", False))
+        if disk.get("disk_type") and disk.get("capacity_gb") is not None:
+            disk["disk_name"] = "{}_{}".format(disk["disk_type"], disk["capacity_gb"])
 
     def run_flow(self):
         """主流程入口"""
         self._validate()
+        self._enrich_hosts_disks_from_merged_storage()
+        self._validate_disk_identity_after_enrich()
 
         pipeline = Builder(root_id=self.root_id, data=self.data)
-
         # 每台机器一个子流程, 机器间并发
         sub_pipelines = []
         for host in self.data["hosts"]:
@@ -210,7 +303,8 @@ class BaselineDiskBenchmarkFlow(object):
                 "exec_ip": ip,
                 "component_kwargs": {
                     "target": target,
-                    "size": disk.get("size", self.data.get("size", "8G")),
+                    # actuator(dbactuator os disk-benchmark) 端 extend.size 固定, 入参用语义更明确的 test_file_size 映射过来
+                    "size": disk.get("test_file_size", self.data.get("test_file_size", "8G")),
                     "runtime": disk.get("runtime", self.data.get("runtime", 30)),
                     "jobs": disk.get("jobs", self.data.get("jobs", 64)),
                     "throughput_jobs": disk.get("throughput_jobs", self.data.get("throughput_jobs", 16)),
@@ -240,7 +334,7 @@ class BaselineDiskBenchmarkFlow(object):
             kwargs={
                 "disk_name": disk_name,
                 "disk_type": disk.get("disk_type"),
-                "disk_model": disk.get("disk_model"),
+                "disk_model": "",
                 "is_local": disk.get("is_local"),
                 "capacity_gb": disk.get("capacity_gb"),
             },
