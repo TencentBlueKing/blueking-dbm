@@ -12,8 +12,10 @@ import (
 	"context"
 	"log/slog"
 	"reflect"
+	"strings"
 	"time"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/util/gconv"
 	sb "github.com/huandu/go-sqlbuilder"
@@ -171,8 +173,26 @@ func (w *MysqlRawWriter) writeDbUsingMapWithSqlBuilderBatch(table interface{}, o
 	if err != nil {
 		return err
 	}
-	// 	if _, err = w.db.Exec(context.Background(), sqlFull); err != nil {
-	if _, err = w.DB().ExecContext(context.Background(), sqlFull); err != nil {
+	// replace 容易产生死锁，加重试机制
+	err = retry.Do(
+		func() error {
+			if _, execErr := w.DB().ExecContext(context.Background(), sqlFull); execErr != nil {
+				if isDeadlockError(execErr) {
+					slog.Warn("MysqlRawWriter deadlock detected, retrying",
+						slog.Any("err", execErr), slog.String("table", t.TableName()))
+					return execErr
+				}
+				// 非死锁错误，不重试
+				return retry.Unrecoverable(execErr)
+			}
+			return nil
+		},
+		retry.Attempts(5),
+		retry.Delay(100*time.Millisecond),
+		retry.MaxDelay(2*time.Second),
+		retry.DelayType(retry.BackOffDelay),
+	)
+	if err != nil {
 		slog.Warn("MysqlRawWriter sqlbuilder", slog.Any("err", err), slog.Any("sql", sqlFull))
 		return err
 	}
@@ -221,7 +241,24 @@ func (w *MysqlRawWriter) writeDbUsingMapWithSqlBuilderOne(table interface{}, obj
 		if err != nil {
 			return err
 		}
-		if _, err = w.db.Exec(context.Background(), sqlFull); err != nil {
+		err = retry.Do(
+			func() error {
+				if _, execErr := w.db.Exec(context.Background(), sqlFull); execErr != nil {
+					if isDeadlockError(execErr) {
+						slog.Warn("MysqlRawWriter deadlock detected in single insert, retrying",
+							slog.Any("err", execErr), slog.String("table", t.TableName()))
+						return execErr
+					}
+					return retry.Unrecoverable(execErr)
+				}
+				return nil
+			},
+			retry.Attempts(3),
+			retry.Delay(100*time.Millisecond),
+			retry.MaxDelay(1*time.Second),
+			retry.DelayType(retry.BackOffDelay),
+		)
+		if err != nil {
 			return err
 		}
 	}
@@ -249,6 +286,15 @@ func (w *MysqlRawWriter) CloseGormDB() error {
 func (w *MysqlRawWriter) DB() base.DbExec {
 	db, _ := w.dbGorm.DB()
 	return db
+}
+
+// isDeadlockError 判断是否为 MySQL 死锁错误（error code 1213）
+func isDeadlockError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errMsg := err.Error()
+	return strings.Contains(errMsg, "1213") || strings.Contains(errMsg, "Deadlock found")
 }
 
 // convertMapSliceToSliceSliceWithKeys 将 []map[string]interface{} 转换为 [][]interface{}

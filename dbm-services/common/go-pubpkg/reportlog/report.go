@@ -75,6 +75,7 @@ func NewReporter(reportDir, filename string, logOpt *LoggerOption) (*Reporter, e
 		logOpt = defaultLoggerOpt()
 	}
 
+	// TODO planto replace with: https://github.com/DeRuina/timberjack
 	resultLogger := &lumberjack.Logger{
 		Filename:   logFilePath,
 		MaxSize:    logOpt.MaxSize,

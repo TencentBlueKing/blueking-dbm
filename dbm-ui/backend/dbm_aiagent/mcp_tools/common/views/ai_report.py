@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+import struct
 import zlib
 
 from django.http import Http404
@@ -54,8 +55,9 @@ class AiReportMcpToolsViewSet(McpToolsViewSet):
         # 获取当前用户作为创建者
         creator = request.user.username if hasattr(request, "user") and request.user else ""
 
-        # 使用 zlib 压缩 content 后存储
-        compressed_content = zlib.compress(content.encode("utf-8"))
+        # 使用 zlib 压缩 content 后存储（兼容 MySQL UNCOMPRESS() 格式：4字节小端序原始长度 + zlib 数据）
+        content_bytes = content.encode("utf-8")
+        compressed_content = struct.pack("<I", len(content_bytes)) + zlib.compress(content_bytes)
 
         report = AiAnalysisReport.objects.create(
             ai_agent=ai_agent,
