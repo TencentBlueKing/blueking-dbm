@@ -8757,9 +8757,9 @@ tdesign-icons-vue-next@~0.4.4:
     "@babel/runtime" "^7.16.5"
 
 tdesign-vue-next@^1.11.5:
-  version "1.20.0"
-  resolved "https://mirrors.tencent.com/npm/tdesign-vue-next/-/tdesign-vue-next-1.20.0.tgz#c5a13112ee95412207f8ef1c017e199e3b43bae1"
-  integrity sha512-e/14cz4wUEt0wl9yslp8Wc4BvbzCfImgzidElbcO6vqW2+demQ09OdXGB+zjRg8aCZZefUJ6gFhdbfLeDES+FQ==
+  version "1.20.1"
+  resolved "https://mirrors.tencent.com/npm/tdesign-vue-next/-/tdesign-vue-next-1.20.1.tgz#5d829e63d15fa718a834cd4c7bc93b5a5be00e54"
+  integrity sha512-E8S6pSAiOvq20wxkMuXScVTVJPvoYgoUl1FLCemdrcvEbDWni+ZsT8F5y2Y2LP4FqRvdCNmDwC1LiZ8ecKifDA==
   dependencies:
     "@babel/runtime" "^7.22.6"
     "@popperjs/core" "^2.11.8"
@@ -8768,7 +8768,7 @@ tdesign-vue-next@^1.11.5:
     "@types/tinycolor2" "^1.4.3"
     "@types/validator" "^13.7.17"
     dayjs "^1.11.10"
-    lodash-es "^4.17.21"
+    lodash-es "^4.18.1"
     mitt "^3.0.1"
     sortablejs "^1.15.0"
     tdesign-icons-vue-next "~0.4.4"
