@@ -22,7 +22,6 @@
           theme="info"
           :title="t('业务配置参数说明')" />
         <ParamTable
-          ref="paramTableRef"
           :cluster-type="clusterType"
           :conf-type="confType"
           :config-name="configName"
@@ -42,11 +41,9 @@
         {{ configTypeName }}
       </span>
       <span class="config-detail-meta">
-        <span v-if="detailData.name">{{ t('配置名称') }}：{{ detailData.name }}</span>
-        <span v-if="detailData.updated_by || detailData.updated_at">
-          {{ t('最近更新') }}：{{ detailData.updated_by || '--' }} / {{ detailData.updated_at || '--' }}
-        </span>
-        <span v-if="detailData.description">{{ t('描述') }}：{{ detailData.description }}</span>
+        <span>{{ t('配置名称') }}：{{ detailData?.name || '--' }}</span>
+        <span> {{ t('最近更新') }}：{{ detailData?.updated_by || '--' }} / {{ detailData?.updated_at || '--' }} </span>
+        <span>{{ t('描述') }}：{{ detailData?.description || '--' }}</span>
       </span>
     </div>
   </Teleport>
@@ -59,32 +56,33 @@
 
   import { getLevelConfig, getListConfTypes } from '@services/source/configs';
 
+  import { type ClusterTypes, ConfLevels } from '@common/const';
+
   import ParamTable from '@views/db-configure-new/components/ParamTable.vue';
   import { useLevelParams } from '@views/db-configure-new/hooks/useLevelParams';
 
-  interface Props {
-    clusterType: string;
-    confType: string;
-    version: string;
-  }
-
-  const props = defineProps<Props>();
+  import { getConfigureState } from '../../utils/configureState';
 
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
 
-  const paramTableRef = ref<InstanceType<typeof ParamTable>>();
+  const { clusterType, confType, version } = route.params as {
+    clusterType: ClusterTypes;
+    confType: string;
+    version: string;
+  };
+
+  const configTypeName = ref('');
 
   const configName = computed(() => detailData.value.name || '');
-  const configTypeName = ref('');
 
   // 获取 confType 对应的显示名称
   useRequest(getListConfTypes, {
-    defaultParams: [{ meta_cluster_type: props.clusterType }],
+    defaultParams: [{ meta_cluster_type: clusterType }],
     onSuccess(res) {
-      const matched = res.find((item) => item.conf_type === props.confType);
-      configTypeName.value = matched?.name || props.confType;
+      const matched = res.find((item) => item.conf_type === confType);
+      configTypeName.value = matched?.name || '--';
     },
   });
 
@@ -96,9 +94,11 @@
   const levelParams = useLevelParams(false);
 
   const fetchParams = computed(() => ({
-    conf_type: props.confType,
-    meta_cluster_type: props.clusterType,
-    version: props.version,
+    conf_type: confType,
+    level_name: ConfLevels.APP,
+    level_value: window.PROJECT_CONFIG.BIZ_ID,
+    meta_cluster_type: clusterType,
+    version,
     ...levelParams.value,
   }));
 
@@ -117,22 +117,14 @@
 
   defineExpose({
     routerBack() {
-      if (!route.query.from) {
-        router.push({
-          name: 'DbConfigureList',
-          params: {
-            clusterType: props.clusterType,
-          },
-        });
-        return;
-      }
+      const savedState = getConfigureState();
       router.push({
-        name: route.query.from as string,
+        name: 'DbConfigureList',
         params: {
-          clusterType: props.clusterType,
-          confType: route.params.confType as string,
-          parentId: route.params.parentId as string,
-          treeId: route.params.treeId as string,
+          clusterType: route.params.clusterType,
+          parentId: savedState.selectedParentId,
+          tabName: savedState.activeTab,
+          treeId: savedState.selectedTreeId,
         },
       });
     },
@@ -158,6 +150,10 @@
     gap: 8px;
     font-size: 14px;
     color: #979ba5;
+
+    & > span + span {
+      margin-left: 8px;
+    }
 
     &::before {
       content: '';

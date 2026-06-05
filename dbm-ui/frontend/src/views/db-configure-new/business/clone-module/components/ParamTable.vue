@@ -147,7 +147,6 @@
 
 <script setup lang="ts">
   import type { Instance } from 'tippy.js';
-  import { computed, markRaw, nextTick, onUnmounted, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type { CloneConfItem } from '@services/source/configs';

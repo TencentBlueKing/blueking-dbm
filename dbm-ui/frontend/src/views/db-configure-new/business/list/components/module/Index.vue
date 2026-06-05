@@ -19,7 +19,7 @@
       :z-index="12">
       <!-- 模块头部信息 -->
       <DbCard
-        class="module-header-card"
+        class="module-header-card mb-16"
         mode="collapse"
         :title="treeNode?.name">
         <template #desc>
@@ -68,91 +68,46 @@
             </BkPopConfirm>
           </div>
         </template>
-        <div class="module-info-bar">
-          <span class="module-info-item">
-            <span class="module-info-label">{{ t('ID') }}：</span>{{ moduleInfo.moduleId || '--' }}
-          </span>
-          <span class="module-info-item">
-            <span class="module-info-label">{{ t('存储层版本') }}：</span>{{ moduleInfo.version || '--' }}
-          </span>
-          <span
-            v-if="isTenDBCluster"
-            class="module-info-item">
-            <span class="module-info-label">{{ t('接入层版本') }}：</span>{{ moduleInfo.spiderVersion || '--' }}
-          </span>
-          <span class="module-info-item">
-            <span class="module-info-label">{{ t('字符集') }}：</span>{{ moduleInfo.charset || '--' }}
-          </span>
-          <span class="module-info-item related-clusters-wrapper">
-            <span class="module-info-label">{{ t('关联集群') }}：</span>
-            <span
-              v-if="moduleInfo.relatedClusterCount > 0"
-              ref="relatedClustersRef"
-              class="related-clusters-count">
-              {{ moduleInfo.relatedClusterCount }}
-            </span>
-            <span v-else>--</span>
-          </span>
-        </div>
+        <Component
+          :is="moduleInfoComponent[dbType]"
+          ref="moduleInfoRef"
+          :module-info="moduleInfo" />
       </DbCard>
 
-      <!-- 参数配置 / 操作记录 tabs -->
-      <BkTab
-        v-model:active="activeTopTab"
-        class="module-top-tab"
-        type="unborder-card">
-        <BkTabPanel
-          :label="t('参数配置')"
-          name="paramConfig"
-          render-directive="if">
-          <BkAlert
-            class="mt-16 mb-16"
-            closable
-            theme="info"
-            :title="t('模块配置参数说明')" />
-          <!-- 参数配置子 tabs -->
-          <ConfTab
-            class="module-conf-tab mt-16"
-            :db-module-id="moduleInfo.moduleId">
-            <template #default="{ tab }">
-              <ParamTable
-                :cluster-type="clusterType"
-                :conf-type="tab.conf_type"
-                level-name="module"
-                :level-value="moduleInfo.moduleId"
-                selectable
-                :version="tab.conf_file" />
-            </template>
-          </ConfTab>
-        </BkTabPanel>
-        <BkTabPanel
-          :label="t('操作记录')"
-          name="operationRecord"
-          render-directive="if">
-          <div class="module-operation-record">
-            <OperationRecord
-              level-name="module"
-              :level-value="moduleInfo.moduleId" />
-          </div>
-        </BkTabPanel>
-      </BkTab>
+      <ConfTab
+        class="module-conf-tab"
+        :db-module-id="moduleInfo.moduleId"
+        show-operation-record-tab>
+        <template #default="{ tab }">
+          <OperationRecord
+            v-if="tab.conf_type === 'operationRecord'"
+            level-name="module"
+            :level-value="moduleInfo.moduleId" />
+          <ParamTable
+            v-else
+            :cluster-type="clusterType"
+            :conf-type="tab.conf_type"
+            level-name="module"
+            :level-value="moduleInfo.moduleId"
+            selectable
+            :version="tab.conf_file" />
+        </template>
+      </ConfTab>
     </BkLoading>
   </div>
 </template>
 
 <script setup lang="ts">
-  import type { Instance } from 'tippy.js';
-  import type { ComputedRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import { useRoute, useRouter } from 'vue-router';
+  import { useRoute } from 'vue-router';
 
+  import type { ParameterConfigItem } from '@services/source/configs';
   import { deleteModuleConfig, getLevelConfig } from '@services/source/configs';
 
   import { clusterTypeInfos, ClusterTypes, DBTypes } from '@common/const';
-  import { dbTippy } from '@common/tippy';
 
-  import type { TreeData, TreeState } from '@views/db-configure-new/common/types';
+  import type { ModuleInfo, TreeData, TreeState } from '@views/db-configure-new/common/types';
   import ConfTab from '@views/db-configure-new/components/ConfTab.vue';
   import ParamTable from '@views/db-configure-new/components/ParamTable.vue';
   import { useTreeData } from '@views/db-configure-new/hooks/useTreeData';
@@ -161,8 +116,20 @@
 
   import OperationRecord from '../OperationRecord.vue';
 
+  import MySql from './com-factory/MySql.vue';
+  import SqlServer from './com-factory/SqlServer.vue';
+  import TendbCluster from './com-factory/TendbCluster.vue';
+
+  /** 子组件暴露的方法接口 */
+  interface ModuleInfoComponentExposes {
+    getResetValues: () => Partial<ModuleInfo>;
+    parseConfig: (confItems: ParameterConfigItem[]) => Partial<ModuleInfo>;
+  }
+
+  /** 动态组件 ref */
+  const moduleInfoRef = ref<ModuleInfoComponentExposes | null>(null);
+
   const route = useRoute();
-  const router = useRouter();
   const { t } = useI18n();
 
   const treeState = reactive<TreeState>({
@@ -171,54 +138,44 @@
     loading: false,
     search: '',
   });
-  const { createModule } = useTreeData(treeState);
+  const { cloneModule } = useTreeData(treeState);
 
   const treeNode = inject<ComputedRef<TreeData>>('treeNode');
 
   const clusterType = computed(() => (route.params.clusterType as ClusterTypes) || ClusterTypes.TENDBSINGLE);
   const dbType = computed(() => clusterTypeInfos[clusterType.value].dbType);
 
-  const moduleInfo = reactive({
+  const moduleInfo: ModuleInfo = reactive({
+    bufferPercent: '', // 内存分片比率 (SqlServer)
     charset: '',
+    maxRemainMemGb: '', // 最大OS保留内存 (SqlServer)
     moduleId: 0,
     moduleName: '',
     relatedClusterCount: 0,
     relatedClusters: '',
-    spiderVersion: '',
+    spiderVersion: '', // 接入层版本 (TenDBCluster)
+    syncType: '', // 主从方式 (SqlServer)
+    systemVersion: '', // 操作系统版本 (SqlServer)
     updatedAt: '',
     updatedBy: '',
-    version: '',
+    version: '', // 数据库版本
   });
 
-  /** 是否为 TenDBCluster（含接入层 spider，需要展示接入层版本） */
-  const isTenDBCluster = computed(() => clusterType.value === ClusterTypes.TENDBCLUSTER);
-
-  /** 顶部 tabs: 参数配置 / 操作记录 */
-  const activeTopTab = ref((route.query.topTab as string) || 'paramConfig');
-
-  /** 同步顶部 tab 到 URL */
-  watch(activeTopTab, (value) => {
-    router.replace({
-      query: {
-        ...route.query,
-        topTab: value || undefined,
-      },
-    });
-  });
+  /** 根据 dbType 渲染对应的模块信息组件 */
+  const moduleInfoComponent = {
+    [DBTypes.MYSQL]: MySql,
+    [DBTypes.SQLSERVER]: SqlServer,
+    [DBTypes.TENDBCLUSTER]: TendbCluster,
+  } as Record<DBTypes, any>;
 
   /** 获取模块部署信息 */
   const { loading, run: fetchModuleConfig } = useRequest(getLevelConfig, {
     manual: true,
     onSuccess(result) {
-      result.conf_items.forEach((item) => {
-        if (item.conf_name === 'db_version') {
-          moduleInfo.version = item.conf_value ?? '';
-        } else if (item.conf_name === 'charset') {
-          moduleInfo.charset = item.conf_value ?? '';
-        } else if (item.conf_name === 'spider_version') {
-          moduleInfo.spiderVersion = item.conf_value ?? '';
-        }
-      });
+      // 通过 ref 调用子组件的 parseConfig 方法并获取返回值
+      const updates = moduleInfoRef.value?.parseConfig(result.conf_items) || {};
+      Object.assign(moduleInfo, updates);
+
       moduleInfo.updatedBy = result.updated_by || '';
       moduleInfo.updatedAt = result.updated_at || '';
     },
@@ -240,57 +197,20 @@
     }
   };
 
-  /** 关联集群 tooltip 纵向展示 */
-  const relatedClustersRef = ref<HTMLElement>();
-  let relatedClustersTippy: Instance | null = null;
-
-  const relatedClustersTooltip = computed(() => {
-    if (!moduleInfo.relatedClusters) return '';
-    const items = moduleInfo.relatedClusters.split(', ');
-    return `
-      <div class="related-clusters-tooltip">
-        <div class="related-clusters-list">
-          ${items.map((name) => `<div class="related-cluster-item">${name}</div>`).join('')}
-        </div>
-      </div>
-    `;
-  });
-
-  watch(
-    [relatedClustersRef, relatedClustersTooltip],
-    ([el, content]) => {
-      relatedClustersTippy?.destroy();
-      if (el && content) {
-        relatedClustersTippy = dbTippy(el, {
-          allowHTML: true,
-          appendTo: () => document.body,
-          arrow: true,
-          content,
-          hideOnClick: true,
-          interactive: true,
-          placement: 'top',
-          trigger: 'mouseenter click',
-          zIndex: 9999,
-        });
-      }
-    },
-    { immediate: true },
-  );
-
-  /** 监听树节点变化 */
   watch(
     () => treeNode,
     (node, old) => {
       if (node && node.value && node.value.treeId !== old?.value?.treeId) {
-        moduleInfo.version = '';
-        moduleInfo.charset = '';
-        moduleInfo.spiderVersion = '';
+        // 通过 ref 调用子组件的 getResetValues 方法并重置模块信息
+        const resetValues = moduleInfoRef.value?.getResetValues() || {};
+        Object.assign(moduleInfo, resetValues);
+
         moduleInfo.moduleId = node.value.id;
         moduleInfo.moduleName = node.value.name;
 
         buildRelatedClusters();
 
-        if ([DBTypes.MYSQL, DBTypes.SQLSERVER, DBTypes.TENDBCLUSTER].includes(dbType.value)) {
+        if (Object.keys(moduleInfoComponent).includes(dbType.value)) {
           fetchModuleConfig({
             bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
             conf_type: 'deploy',
@@ -307,12 +227,10 @@
 
   /** 克隆模块 */
   const handleCloneModule = () => {
-    createModule({
-      charset: moduleInfo.charset || '',
-      clusterType: clusterType.value,
-      confFile: moduleInfo.version || '',
-      from: String(route.name),
-      moduleId: String(moduleInfo.moduleId),
+    cloneModule({
+      charset: moduleInfo.charset,
+      confFile: moduleInfo.version,
+      moduleId: moduleInfo.moduleId,
       moduleName: moduleInfo.moduleName,
     });
   };
@@ -335,10 +253,6 @@
       meta_cluster_type: clusterType.value,
     });
   };
-
-  onUnmounted(() => {
-    relatedClustersTippy?.destroy();
-  });
 </script>
 
 <style lang="less" scoped>
@@ -347,13 +261,6 @@
   }
 
   .module-header-card {
-    box-shadow:
-      0 -2px 4px -2px rgba(25, 25, 41, 0.05),
-      2px 0 4px -2px rgba(25, 25, 41, 0.05),
-      -2px 0 4px -2px rgba(25, 25, 41, 0.05);
-    /* 底部无阴影 */
-    padding-bottom: 0;
-
     :deep(.db-card-content) {
       padding: 0;
     }
@@ -363,48 +270,6 @@
     display: flex;
     gap: 8px;
     align-items: center;
-  }
-
-  .module-info-bar {
-    display: flex;
-    align-items: center;
-    gap: 32px;
-    padding: 12px 24px;
-  }
-
-  .module-info-item {
-    display: inline-flex;
-    align-items: center;
-    font-size: 12px;
-    line-height: 20px;
-    white-space: nowrap;
-  }
-
-  .related-clusters-wrapper {
-    .related-clusters-count {
-      margin-left: 4px;
-      font-weight: 700;
-      color: #3a84ff;
-      cursor: default;
-    }
-  }
-
-  .module-top-tab {
-    :deep(.bk-tab-header) {
-      box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
-      border-bottom: none;
-    }
-
-    :deep(.bk-tab-content) {
-      padding: 0;
-      background: #f6f7fb;
-    }
-
-    :deep(.bk-tab-header-active-bar) {
-      width: 56px !important;
-      bottom: 2px !important;
-      margin: 0 20px !important;
-    }
   }
 
   .module-conf-tab {
@@ -427,6 +292,10 @@
 <style lang="less">
   .related-clusters-tooltip {
     padding: 8px 0;
+    background-color: #333;
+    color: #fff;
+    border-radius: 2px;
+    box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.2);
 
     .related-clusters-list {
       max-height: 240px;
@@ -436,6 +305,7 @@
 
     .related-cluster-item {
       line-height: 28px;
+      color: #fff;
     }
   }
 </style>

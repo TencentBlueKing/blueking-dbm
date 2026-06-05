@@ -211,7 +211,6 @@
 <script setup lang="ts">
   import dayjs from 'dayjs';
   import type { TableSort } from 'tdesign-vue-next';
-  import { computed } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import ConfigNameChangeModel, { type ConfigNameChangeImage } from '@services/model/config/config-name-change';

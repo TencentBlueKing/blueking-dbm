@@ -13,21 +13,13 @@
 
 <template>
   <div class="platform-config-list-table">
-    <!-- <div class="mb-16">
-      <DbQuickSearch
-        v-model="searchValue"
-        :data="quickSearchData"
-        :placeholder="t('搜索配置名称_配置文件_描述_更新人_更新时间')"
-        style="width: 500px"
-        @change="handleQuickSearchChange" />
-    </div> -->
     <DbTable
       ref="tableRef"
       :custom-sort-method="handleCustomSort"
       :data-source="dataSource"
       row-key="name"
       :sort="tableSort"
-      @clear-search="handleQuickSearchChange">
+      @clear-search="refreshTable">
       <TableColumn
         col-key="name"
         ellipsis
@@ -70,7 +62,6 @@
 
 <script setup lang="ts">
   import type { TableSort } from 'tdesign-vue-next';
-  import { onMounted } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -141,7 +132,7 @@
     });
   };
 
-  const handleQuickSearchChange = () => {
+  const refreshTable = () => {
     tableRef.value?.fetchData({}, true);
   };
 
@@ -153,7 +144,7 @@
     } else {
       tableSort.value = undefined;
     }
-    tableRef.value?.fetchData({}, true);
+    refreshTable();
   };
 
   const handleToDetail = (row: ConfigListItem[number]) => {
@@ -168,7 +159,7 @@
   };
 
   onMounted(() => {
-    tableRef.value?.fetchData({}, true);
+    refreshTable();
   });
 </script>
 

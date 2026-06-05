@@ -134,7 +134,6 @@
   import dayjs from 'dayjs';
   import type { TableSort } from 'tdesign-vue-next';
   import type { Instance } from 'tippy.js';
-  import { computed, inject, nextTick, onUnmounted, type Ref, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getConfigItemChanges } from '@services/source/configs';
@@ -527,28 +526,13 @@
     },
   ]);
 
-  watch(
-    () => confTabs?.value,
-    () => {
-      refreshTable();
-    },
-  );
-
   onUnmounted(() => {
     tippyInstances.forEach((inst) => inst.destroy());
     tippyInstances.length = 0;
   });
-
-  defineExpose({
-    fetchData: refreshTable,
-  });
 </script>
 
 <style lang="less" scoped>
-  .operation-record {
-    padding: 0 16px;
-  }
-
   .config-change-value {
     display: inline-flex;
     align-items: center;

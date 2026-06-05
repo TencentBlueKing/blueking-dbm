@@ -205,7 +205,6 @@
 
 <script setup lang="ts">
   import _ from 'lodash';
-  import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { PrimaryTable } from '@blueking/tdesign-ui';

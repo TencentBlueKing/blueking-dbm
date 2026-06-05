@@ -4,7 +4,7 @@
  * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
  *
  * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
  *
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
@@ -56,20 +56,13 @@
               <template #icon>
                 <i class="db-icon-mysql mr-5" />
               </template>
-              {{ clusterTypeInfos[clusterType]?.name || 'TendbCluster' }}
+              {{ clusterTypeInfos[clusterType]?.name }}
             </BkTag>
             <DbVersionSelect
               v-model="formData.db_version"
               class="version-select-inline"
               :db-type="DBTypes.MYSQL"
-              @change="handleValidate" />
-            <DbVersionSelect
-              v-model="formData.spider_version"
-              class="version-select-inline"
-              :db-type="DBTypes.MYSQL"
-              :placeholder="t('请选择xx', [t('接入层版本')])"
-              :prefix="t('接入层版本')"
-              query-key="spider"
+              :prefix="t('存储层版本')"
               @change="handleValidate" />
             <BkSelect
               v-model="formData.charset"
@@ -90,9 +83,10 @@
         </BkFormItem>
       </div>
 
-      <!-- 参数配置 -->
+      <!-- 参数配置 — 四个 Tab -->
       <div class="param-config-wrapper">
         <BkTab
+          :key="tabRenderKey"
           v-model:active="activeConfType"
           type="card-tab">
           <BkTabPanel
@@ -108,15 +102,9 @@
             </template>
             <ParamTable
               :ref="(el: any) => setTableRef(tab.name, el)"
-              cluster-type="tendbcluster"
+              :cluster-type="clusterType"
               :conf-type="tab.conf_type"
-              :version="
-                tab.conf_type === 'proxyconf'
-                  ? formData.spider_version
-                  : tab.conf_type === 'dbconf'
-                    ? formData.db_version
-                    : tab.conf_file
-              " />
+              :version="tab.conf_file" />
           </BkTabPanel>
         </BkTab>
       </div>
@@ -174,15 +162,19 @@
 
   import { random } from '@utils';
 
-  import DbVersionSelect from './components/DbVersionSelect.vue';
-  import ParamTable from './components/ParamTable.vue';
+  import DbVersionSelect from '../components/DbVersionSelect.vue';
+  import ParamTable from '../components/ParamTable.vue';
+
+  type Emits = (e: 'routerBack') => void;
+
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
 
-  const clusterType = ref(route.query.cluster_type as ClusterTypes);
+  const clusterType = ref(route.params.clusterType as ClusterTypes);
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
 
   // 业务信息
@@ -197,7 +189,6 @@
     alias_name: (route.query.alias_name ?? '') as string,
     charset: '',
     db_version: '',
-    spider_version: '',
   });
   const formData = reactive(getFormData());
   const formRef = ref();
@@ -249,21 +240,19 @@
         message: '',
         trigger: 'blur',
         async validator() {
-          if (!formData.alias_name || !formData.db_version || !formData.spider_version || !formData.charset)
-            return true;
+          if (!formData.alias_name || !formData.db_version || !formData.charset) return true;
           try {
             const data = await checkDbModuleUnique({
               bk_biz_id: String(bizId),
-              cluster_type: ClusterTypes.TENDBCLUSTER,
-              db_module_name: `${formData.alias_name}-${formData.spider_version}-${formData.db_version}-${formData.charset}`,
+              cluster_type: clusterType.value,
+              db_module_name: `${formData.alias_name}-${formData.db_version}-${formData.charset}`,
             });
             isValueAllowed.value = !!data.is_unique;
             return data.is_unique
               ? true
-              : t('该名称已被占用（{type} ：{spiderVersion}-{version} / {charset}）', {
+              : t('该名称已被占用（{type} ：{version} / {charset}）', {
                   charset: formData.charset,
-                  spiderVersion: formData.spider_version,
-                  type: 'TenDBCluster',
+                  type: clusterTypeInfos[clusterType.value].name,
                   version: formData.db_version,
                 });
           } catch {
@@ -275,7 +264,7 @@
     ],
   };
 
-  // 参数配置 Tab — 用版本组合作为渲染 key，版本切换时强制重建 BkTab 及子组件
+  // 参数配置 Tab — 用 db_version 作为渲染 key，版本切换时强制重建整个 BkTab 及其子组件
   const activeConfType = ref('dbconf');
   const tabRenderKey = ref(random());
   const confTabs = ref<ServiceReturnType<typeof getListClusterModuleConfFiles>>([]);
@@ -284,24 +273,21 @@
     manual: true,
     onSuccess(res) {
       const rawConfTabs = res || [];
-      rawConfTabs[0] = { conf_file: formData.db_version, conf_type: 'dbconf', name: formData.db_version };
-      rawConfTabs[1] = {
-        conf_file: formData.spider_version,
-        conf_type: 'proxyconf',
-        name: formData.spider_version,
-      };
+      if (formData.db_version) {
+        rawConfTabs[0] = { conf_file: formData.db_version, conf_type: 'dbconf', name: formData.db_version };
+      }
       confTabs.value = rawConfTabs;
       tabRenderKey.value = random();
     },
   });
 
   watch(
-    () => [formData.db_version, formData.spider_version],
+    () => formData.db_version,
     () => {
       fetchConfTabs({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         deploy_versions: JSON.stringify({ db_version: formData.db_version }),
-        meta_cluster_type: ClusterTypes.TENDBCLUSTER,
+        meta_cluster_type: clusterType.value,
       });
     },
   );
@@ -339,8 +325,8 @@
       const createResult = await createModules({
         alias_name: formData.alias_name,
         biz_id: bizId,
-        cluster_type: ClusterTypes.TENDBCLUSTER,
-        db_module_name: `${formData.alias_name}-${formData.spider_version}-${formData.db_version}-${formData.charset}`,
+        cluster_type: clusterType.value,
+        db_module_name: `${formData.alias_name}-${formData.db_version}-${formData.charset}`,
       });
       moduleId.value = createResult.db_module_id;
 
@@ -360,17 +346,11 @@
             description: t('数据库版本'),
             op_type: 'update',
           },
-          {
-            conf_name: 'spider_version',
-            conf_value: formData.spider_version,
-            description: t('Spider版本'),
-            op_type: 'update',
-          },
         ],
         conf_type: 'deploy',
         level_name: 'module',
         level_value: moduleId.value,
-        meta_cluster_type: ClusterTypes.TENDBCLUSTER,
+        meta_cluster_type: clusterType.value,
         version: 'deploy_info',
       });
       isBindSuccessfully.value = true;
@@ -387,7 +367,7 @@
       router.push({
         name: 'DbConfigureList',
         params: {
-          clusterType: ClusterTypes.TENDBCLUSTER,
+          clusterType: clusterType.value,
         },
         query: {
           parentId: `app-${bizId}`,
@@ -419,27 +399,8 @@
 
   /** 取消 */
   const handleCancel = () => {
-    routerBack();
+    emits('routerBack');
   };
-
-  const routerBack = () => {
-    if (!route.query.from) {
-      router.push({
-        name: 'serviceApply',
-      });
-      return;
-    }
-    router.push({
-      name: String(route.query.from),
-      params: {
-        clusterType: route.query.clusterType as string,
-      },
-    });
-  };
-
-  defineExpose({
-    routerBack,
-  });
 </script>
 
 <style lang="less" scoped>
@@ -467,8 +428,15 @@
     .version-select-inline,
     .charset-select-inline {
       width: auto;
-      min-width: 240px;
+      min-width: 160px;
     }
+  }
+
+  .form-item-tips {
+    font-size: 12px;
+    line-height: 20px;
+    color: #979ba5;
+    position: absolute;
   }
 
   .param-config-wrapper {
@@ -503,17 +471,10 @@
   }
 
   .stats-tips {
-    margin-left: 4px;
+    margin-left: 8px;
     font-size: 12px;
     line-height: 20px;
     color: #979ba5;
-  }
-
-  .form-item-tips {
-    font-size: 12px;
-    line-height: 20px;
-    color: #979ba5;
-    position: absolute;
   }
 
   .tab-modified-dot {

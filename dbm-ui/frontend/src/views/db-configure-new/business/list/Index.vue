@@ -28,6 +28,8 @@
 
   import ClusterTab from '@components/cluster-tab/Index.vue';
 
+  import { resetConfigureTab } from '@/views/db-configure-new/utils/configureState.ts';
+
   import Content from './components/Content.vue';
 
   const router = useRouter();
@@ -40,14 +42,24 @@
    */
   provide('activeClusterType', activeClusterType);
 
-  watch(activeClusterType, (value, old) => {
-    router.replace({
-      params: {
-        clusterType: value,
-      },
-      query: old ? {} : route.query, // 根据 old 判断是否为点击切换
-    });
-  });
+  watch(
+    activeClusterType,
+    (value, old) => {
+      router.replace({
+        params: {
+          clusterType: value,
+        },
+      });
+
+      // 切换 clusterTab 时重置 sessionStorage 中的 activeTab（不同集群类型的 tabs 不同）
+      if (old) {
+        resetConfigureTab();
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>
 <style lang="less">
   .business-db-configure-list-page {

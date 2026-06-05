@@ -12,67 +12,56 @@
 -->
 
 <template>
-  <div class="biz-database">
-    <!-- <div class="biz-database-operations mb-16">
-      <DbQuickSearch
-        v-model="searchValue"
-        :data="quickSearchData"
-        :placeholder="t('搜索配置名称_配置文件_更新人_描述')"
-        style="width: 500px"
-        @change="handleQuickSearchChange" />
-    </div> -->
-    <DbTable
-      ref="tableRef"
-      :custom-sort-method="handleCustomSort"
-      :data-source="dataSource"
-      row-key="name"
-      :sort="tableSort"
-      @clear-search="handleQuickSearchChange">
-      <TableColumn
-        col-key="name"
-        ellipsis
-        :title="t('配置名称')">
-        <template #default="{ row }">
-          <BkButton
-            text
-            theme="primary"
-            @click="handleToDetails(row)">
-            {{ row.name }}
-          </BkButton>
-        </template>
-      </TableColumn>
-      <TableColumn
-        col-key="version"
-        ellipsis
-        :title="t('配置文件')" />
-      <TableColumn
-        col-key="description"
-        ellipsis
-        :title="t('描述')">
-        <template #default="{ row }">
-          {{ row.description || '--' }}
-        </template>
-      </TableColumn>
-      <TableColumn
-        col-key="updated_by"
-        :title="t('更新人')">
-        <template #default="{ row }">
-          {{ row.updated_by || '--' }}
-        </template>
-      </TableColumn>
-      <TableColumn
-        col-key="updated_at"
-        sorter
-        :title="t('更新时间')" />
-    </DbTable>
-  </div>
+  <DbTable
+    ref="tableRef"
+    :custom-sort-method="handleCustomSort"
+    :data-source="dataSource"
+    row-key="name"
+    :sort="tableSort"
+    @clear-search="refreshTable">
+    <TableColumn
+      col-key="name"
+      ellipsis
+      :title="t('配置名称')">
+      <template #default="{ row }">
+        <BkButton
+          text
+          theme="primary"
+          @click="handleToDetails(row)">
+          {{ row.name }}
+        </BkButton>
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="version"
+      ellipsis
+      :title="t('配置文件')" />
+    <TableColumn
+      col-key="description"
+      ellipsis
+      :title="t('描述')">
+      <template #default="{ row }">
+        {{ row.description || '--' }}
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="updated_by"
+      :title="t('更新人')">
+      <template #default="{ row }">
+        {{ row.updated_by || '--' }}
+      </template>
+    </TableColumn>
+    <TableColumn
+      col-key="updated_at"
+      sorter
+      :title="t('更新时间')" />
+  </DbTable>
 </template>
 
 <script setup lang="ts">
   import type { TableSort } from 'tdesign-vue-next';
-  import type { ComputedRef, Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useRoute, useRouter } from 'vue-router';
+  import { useRouter } from 'vue-router';
 
   import { getBusinessConfigList } from '@services/source/configs';
 
@@ -82,6 +71,8 @@
 
   import type { TreeData } from '@views/db-configure-new/common/types';
 
+  import { saveConfigureState } from '@/views/db-configure-new/utils/configureState';
+
   type ConfigListItem = ServiceReturnType<typeof getBusinessConfigList>;
 
   interface Props {
@@ -90,46 +81,17 @@
 
   const props = defineProps<Props>();
 
-  const route = useRoute();
   const router = useRouter();
   const globalBizsStore = useGlobalBizs();
   const { t } = useI18n();
   const activeClusterType = inject<Ref<string>>('activeClusterType');
-  const treeNode = inject<ComputedRef<TreeData>>('treeNode');
+  const treeNode = inject<Ref<TreeData>>('treeNode');
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const searchValue = ref<Record<string, any>>({});
 
   // 受控排序状态（不默认排序，由用户点击表头触发）
   const tableSort = ref<TableSort | undefined>(undefined);
-
-  // const quickSearchData = [
-  //   {
-  //     id: 'name',
-  //     name: t('配置名称'),
-  //     type: 'input' as const,
-  //   },
-  //   {
-  //     id: 'version',
-  //     name: t('配置文件'),
-  //     type: 'input' as const,
-  //   },
-  //   {
-  //     id: 'description',
-  //     name: t('描述'),
-  //     type: 'input' as const,
-  //   },
-  //   {
-  //     id: 'updated_by',
-  //     name: t('更新人'),
-  //     type: 'input' as const,
-  //   },
-  //   {
-  //     id: 'updated_at',
-  //     name: t('更新时间'),
-  //     type: 'input' as const,
-  //   },
-  // ];
 
   /** 数据源函数 - 适配 DbTable 组件 */
   const dataSource = (params: { limit: number; offset: number }) => {
@@ -182,7 +144,7 @@
     });
   };
 
-  const handleQuickSearchChange = () => {
+  const refreshTable = () => {
     tableRef.value?.fetchData({}, true);
   };
 
@@ -194,33 +156,29 @@
     } else {
       tableSort.value = undefined;
     }
-    tableRef.value?.fetchData({}, true);
+    refreshTable();
   };
 
   /** 查看详情 */
   const handleToDetails = (row: ConfigListItem[number]) => {
+    // 保存当前状态到 sessionStorage（返回时自动恢复）
+    saveConfigureState({
+      activeTab: props.confType,
+      selectedParentId: treeNode?.value?.parentId,
+      selectedTreeId: treeNode?.value?.treeId,
+    });
+
     router.push({
       name: 'DbConfigureDetail',
       params: {
         clusterType: activeClusterType?.value,
         confType: props.confType,
-        parentId: treeNode?.value?.parentId || undefined,
-        treeId: treeNode?.value?.treeId || undefined,
         version: row.version,
-      },
-      query: {
-        from: route.name as string,
       },
     });
   };
 
   onMounted(() => {
-    tableRef.value?.fetchData({}, true);
+    refreshTable();
   });
 </script>
-
-<style lang="less" scoped>
-  .biz-database {
-    padding: 0 16px;
-  }
-</style>

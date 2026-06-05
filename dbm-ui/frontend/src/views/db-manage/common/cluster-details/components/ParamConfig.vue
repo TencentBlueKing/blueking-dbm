@@ -22,19 +22,26 @@
         :label="tab.name"
         :name="tab.conf_file"
         render-directive="if">
-        <BkAlert
-          class="mb-16"
-          closable
-          theme="info"
-          :title="t('集群配置参数说明')" />
-        <ParamTable
+        <OperationRecord
+          v-if="tab.conf_type === 'operationRecord'"
           :cluster-type="cluster.cluster_type"
-          :conf-type="tab.conf_type"
-          :config-name="tab.name"
           level-name="cluster"
-          :level-value="cluster.master_domain"
-          selectable
-          :version="tab.conf_file" />
+          :level-value="cluster.master_domain" />
+        <template v-else>
+          <BkAlert
+            class="mb-16"
+            closable
+            theme="info"
+            :title="t('集群配置参数说明')" />
+          <ParamTable
+            :cluster-type="cluster.cluster_type"
+            :conf-type="tab.conf_type"
+            :config-name="tab.name"
+            level-name="cluster"
+            :level-value="cluster.master_domain"
+            selectable
+            :version="tab.conf_file" />
+        </template>
       </BkTabPanel>
     </BkTab>
   </div>
@@ -48,6 +55,7 @@
 
   import type { ClusterTypes } from '@common/const';
 
+  import OperationRecord from '@views/db-configure-new/business/list/components/OperationRecord.vue';
   import ParamTable from '@views/db-configure-new/components/ParamTable.vue';
 
   interface Props {
@@ -68,7 +76,14 @@
   const { run: fetchConfTabs } = useRequest(getListClusterModuleConfFiles, {
     manual: true,
     onSuccess(res) {
-      confTabs.value = res;
+      confTabs.value = [
+        ...res,
+        {
+          conf_file: 'operationRecord',
+          conf_type: 'operationRecord',
+          name: t('配置变更记录'),
+        },
+      ];
       activeTab.value = res[0]?.conf_file || '';
     },
   });

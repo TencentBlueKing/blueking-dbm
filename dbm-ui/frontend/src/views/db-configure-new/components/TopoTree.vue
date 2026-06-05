@@ -52,7 +52,7 @@
               class="config-tree-add-btn"
               size="small"
               theme="primary"
-              @click.stop="handleCreateModule">
+              @click.stop="createModule">
               <DbIcon type="add" />
             </BkButton>
           </div>
@@ -119,13 +119,6 @@
     if (dbType) {
       fetchBusinessTopoTree(dbType);
     }
-  };
-
-  const handleCreateModule = () => {
-    createModule({
-      clusterType: clusterType.value,
-      from: String(route.name),
-    });
   };
 
   defineExpose({

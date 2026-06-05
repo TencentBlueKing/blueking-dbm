@@ -123,16 +123,6 @@
                 v-model:active="recordSubTab"
                 type="unborder-card">
                 <BkTabPanel
-                  :label="t('操作记录')"
-                  name="configRecord">
-                  <ConfigOperationRecord
-                    ref="configRecordRef"
-                    class="config-record"
-                    :cluster-type="clusterData.cluster_type"
-                    level-name="cluster"
-                    :level-value="clusterData.master_domain" />
-                </BkTabPanel>
-                <BkTabPanel
                   :label="t('单据记录')"
                   name="ticketRecord">
                   <OperationRecord
@@ -175,8 +165,6 @@
   import { useAlarmSubscribe, useUrlSearch } from '@hooks';
 
   import { clusterTypeInfos, ClusterTypes } from '@common/const';
-
-  import ConfigOperationRecord from '@views/db-configure-new/business/list/components/OperationRecord.vue';
 
   import AlarmSubscription from './components/AlarmSubscription.vue';
   import BaseInfo from './components/BaseInfo.vue';
@@ -251,10 +239,9 @@
   const { metricsMap } = useAlarmSubscribe();
 
   const isFixedTab = ref(false);
-  const recordSubTab = ref('configRecord');
+  const recordSubTab = ref('ticketRecord');
 
   const rootRef = useTemplateRef('root');
-  const configRecordRef = ref();
   const activePanel = ref(String(route.query[URL_CLUSTER_DETAIL_MEMO_KEY]) || '');
   const visitedPanels = reactive(new Set<string>());
   const tabcontentheight = ref('0');
@@ -304,18 +291,6 @@
       isFixedTab.value = fixedTabList.includes(activePanel.value);
       if (activePanel.value) {
         visitedPanels.add(activePanel.value);
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  watch(
-    recordSubTab,
-    (value) => {
-      if (value === 'configRecord') {
-        configRecordRef.value?.fetchData();
       }
     },
     {
@@ -375,10 +350,6 @@
     .cluster-specific-flag {
       color: #531dab !important;
       background: #f9f0ff !important;
-    }
-
-    .config-record {
-      padding: 0;
     }
   }
 </style>

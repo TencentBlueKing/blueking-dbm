@@ -10,6 +10,7 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 -->
+
 <template>
   <SmartAction>
     <BkAlert
@@ -27,7 +28,7 @@
       :rules="rules">
       <!-- 模块信息 -->
       <div class="module-info-card">
-        <!-- 模块名称 -->
+        <!-- 模块名 -->
         <BkFormItem
           class="form-item-name"
           :label="t('模块名称')"
@@ -35,7 +36,6 @@
           required>
           <BkInput
             v-model="formData.alias_name"
-            class="module-name-input"
             :maxlength="63"
             :placeholder="t('请输入模块名')"
             show-word-limit
@@ -56,30 +56,31 @@
               theme="info"
               type="stroke">
               <template #icon>
-                <DbIcon
-                  class="mr-4"
-                  type="sqlserver" />
+                <i class="db-icon-mysql mr-5" />
               </template>
-              {{ clusterTypeInfos[clusterType]?.name || 'SQLServer' }}
+              {{ clusterTypeInfos[ClusterTypes.TENDBCLUSTER]?.name }}
             </BkTag>
             <DbVersionSelect
-              v-model="formData.version"
+              v-model="formData.db_version"
               class="version-select-inline"
-              :db-type="DBTypes.SQLSERVER"
+              :db-type="DBTypes.MYSQL"
               :prefix="t('存储层版本')"
-              :source-version="String(route.query.conf_file || '')"
+              :source-version="String(route.query.confFile || '')"
               @change="handleValidate" />
-            <BkInput
-              class="ha-mode-input"
-              disabled
-              :model-value="haModeDisplay"
-              :prefix="t('主从方式')" />
+            <DbVersionSelect
+              v-model="formData.spider_version"
+              class="version-select-inline"
+              :db-type="DBTypes.MYSQL"
+              :placeholder="t('请选择xx', [t('接入层版本')])"
+              :prefix="t('接入层版本')"
+              query-key="spider"
+              @change="handleValidate" />
             <BkSelect
-              v-model="formData.character_set"
+              v-model="formData.charset"
               class="charset-select-inline"
               :clearable="false"
               filterable
-              :placeholder="t('请选择')"
+              :placeholder="t('请选择字符集')"
               :prefix="t('字符集')"
               @change="handleValidate">
               <BkOption
@@ -98,48 +99,12 @@
             </BkSelect>
           </div>
         </BkFormItem>
-        <!-- 部署规格 -->
-        <BkFormItem
-          :label="t('部署规格')"
-          required>
-          <div class="db-config-row">
-            <BkSelect
-              v-model="formData.operatingSystemVersion"
-              class="os-version-select-inline"
-              filterable
-              multiple
-              :placeholder="t('请选择（可多选）')"
-              :prefix="t('操作系统版本')">
-              <BkOption
-                v-for="item in operatingSystemVersionList"
-                :key="item"
-                :label="item"
-                :value="item" />
-            </BkSelect>
-            <BkInput
-              v-model="formData.memoryAllocationRatio"
-              class="memory-allocation-ratio-input"
-              :max="80"
-              :min="50"
-              :prefix="t('内存分配比率')"
-              suffix="%"
-              type="number" />
-            <BkInput
-              v-model="formData.maxSystemReservedMemory"
-              class="reserved-memory-input"
-              disabled
-              :min="1"
-              :prefix="t('最大 OS 保留内存')"
-              suffix="GB"
-              type="number" />
-          </div>
-        </BkFormItem>
       </div>
 
-      <!-- 参数配置 — 克隆对比模式 -->
-      <div class="param-config-wrapper mt-16">
+      <!-- 参数配置 Tab -->
+      <div class="param-config-wrapper">
         <BkException
-          v-if="!formData.version || confTabs.length === 0"
+          v-if="!formData.db_version || confTabs.length === 0"
           :description="t('请先选择目标数据库版本')"
           scene="part"
           type="empty" />
@@ -155,26 +120,17 @@
               render-directive="show">
               <template #label>
                 {{ tab.name }}
-                <span
-                  v-if="(tabChangedCountMap[tab.conf_file] ?? 0) > 0"
-                  class="tab-modified-dot" />
               </template>
               <!-- 首个 Tab（dbconf）：克隆对比模式，含 diff/废弃 -->
               <ParamTable
                 v-if="tab.conf_type === 'dbconf'"
                 :ref="(el: any) => setTableRef(tab.conf_file, el)"
-                :cluster-type="clusterType"
-                :conf-type="tab.conf_type"
                 :deprecated-count="removedCount"
-                :version="tab.conf_file"
                 @deprecated-click="handleShowDeprecated" />
               <!-- 其他 Tab：层级配置模式，仅自定义过滤 -->
               <LevelConfigTable
                 v-else
-                :ref="(el: any) => setTableRef(tab.conf_file, el)"
-                :cluster-type="clusterType"
-                :conf-type="tab.conf_type"
-                :version="tab.conf_file" />
+                :ref="(el: any) => setTableRef(tab.conf_file, el)" />
             </BkTabPanel>
           </BkTab>
         </template>
@@ -243,8 +199,8 @@
 
   <Teleport to="#dbContentTitleAppend">
     <span class="clone-module-meta">
-      <span> {{ t('业务') }}：{{ bizInfo.name || '--' }} </span>
-      <span> {{ t('源模块') }}：{{ String(route.query.module_name) || '--' }} </span>
+      <span> {{ t('业务') }}：{{ bizInfo.name }} </span>
+      <span> {{ t('源模块') }}：{{ String(route.query.moduleName) || '--' }} </span>
     </span>
   </Teleport>
 </template>
@@ -262,7 +218,6 @@
     moduleCloneQuery,
     saveModulesDeployInfo,
   } from '@services/source/configs';
-  import { listSqlserverSystemVersion } from '@services/source/version';
 
   import { useGlobalBizs } from '@stores';
 
@@ -272,48 +227,55 @@
 
   import { random } from '@utils';
 
-  import DbVersionSelect from './components/DbVersionSelect.vue';
-  import LevelConfigTable from './components/LevelConfigTable.vue';
-  import ParamTable from './components/ParamTable.vue';
+  import DbVersionSelect from '../components/DbVersionSelect.vue';
+  import LevelConfigTable from '../components/LevelConfigTable.vue';
+  import ParamTable from '../components/ParamTable.vue';
 
-  defineOptions({
-    name: 'SelfServiceCloneSqlServer',
-  });
+  type Emits = (e: 'routerBack') => void;
+
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
 
-  const clusterType = ref(route.query.cluster_type as ClusterTypes);
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
 
   // 业务信息
   const bizInfo = computed(() => globalBizsStore.bizs.find((info) => info.bk_biz_id === bizId) || { name: '' });
 
   const isSubmitting = ref(false);
+  // 每个 confFile 对应一个 ParamTable 实例
+  const tableRefs = ref<Record<string, InstanceType<typeof ParamTable>>>({});
+  /** 当前活跃 Tab 对应的 ParamTable 实例 */
+  const currentParamTable = computed(() => tableRefs.value[activeConfType.value]);
+  const setTableRef = (name: string, el: any) => {
+    if (el) {
+      tableRefs.value[name] = el;
+    }
+  };
 
-  const characterSets = ['Chinese_PRC_CI_AS', 'Latin1_General_100_CI_AS'];
+  // 表单数据
+  const formData = reactive({
+    alias_name: '',
+    charset: '',
+    db_version: '',
+    spider_version: '',
+  });
+  const formRef = ref();
+  const sliderTableRef = ref();
+  /** 源字符集（从路由取） */
+  const sourceCharset = ref<string>('');
+  const isShowSlider = ref(false);
+  // 当前活跃 Tab
+  const activeConfType = ref('dbconf');
+  const tabRenderKey = ref(random());
+  const confTabs = ref<ServiceReturnType<typeof getListClusterModuleConfFiles>>([]);
+
+  const characterSets = ['utf8', 'utf8mb4', 'gbk', 'latin1', 'gb2312'];
 
   const isValueAllowed = ref(true);
-
-  /** 源字符集（从路由取，由源模块列表页 moduleInfo.charset 传入） */
-  const sourceCharset = ref<string>('');
-
-  // 表单数据（与新建模块保持一致）
-  const getFormData = () => ({
-    alias_name: '',
-    character_set: 'Chinese_PRC_CI_AS',
-    haMode: 'mirroring',
-    maxSystemReservedMemory: 32,
-    memoryAllocationRatio: 80,
-    operatingSystemVersion: [] as string[],
-    version: '',
-  });
-  const formData = reactive(getFormData());
-  const formRef = ref();
-
-  const haModeDisplay = computed(() => (formData.haMode === 'mirroring' ? t('镜像') : 'always on'));
 
   /** 触发表单校验（版本或字符集 change 时） */
   const handleValidate = () => {
@@ -321,6 +283,7 @@
     formRef.value?.validate();
   };
 
+  // 模块名校验规则
   const rules = {
     alias_name: [
       {
@@ -358,19 +321,22 @@
         message: '',
         trigger: 'blur',
         async validator() {
-          if (!formData.alias_name || !formData.version || !formData.character_set) return true;
+          if (!formData.alias_name || !formData.db_version || !formData.spider_version || !formData.charset)
+            return true;
           try {
             const data = await checkDbModuleUnique({
               bk_biz_id: String(bizId),
-              cluster_type: clusterType.value,
-              db_module_name: `${formData.alias_name}`,
+              cluster_type: ClusterTypes.TENDBCLUSTER,
+              db_module_name: `${formData.alias_name}-${formData.spider_version}-${formData.db_version}-${formData.charset}`,
             });
             isValueAllowed.value = !!data.is_unique;
             return data.is_unique
               ? true
-              : t('该名称已被占用（{type} ：{version}）', {
-                  type: clusterTypeInfos[clusterType.value].name,
-                  version: formData.version,
+              : t('该名称已被占用（{type} ：{spiderVersion}-{version} / {charset}）', {
+                  charset: formData.charset,
+                  spiderVersion: formData.spider_version,
+                  type: 'TenDBCluster',
+                  version: formData.db_version,
                 });
           } catch {
             isValueAllowed.value = false;
@@ -380,33 +346,6 @@
       },
     ],
   };
-
-  // 操作系统版本列表
-  const { data: operatingSystemVersionList, run: fetchSystemVersions } = useRequest(listSqlserverSystemVersion, {
-    manual: true,
-  });
-
-  // 版本变化时重新获取操作系统版本、更新主从方式
-  watch(
-    () => formData.version,
-    (version) => {
-      if (version) {
-        formData.haMode = Number(version.slice(-4)) > 2017 ? 'always_on' : 'mirroring';
-        fetchSystemVersions({ sqlserver_version: version });
-      }
-    },
-    { immediate: true },
-  );
-
-  // 初始化：从路由回填源模块信息
-  if (route.query.module_name) {
-    formData.alias_name = String(route.query.module_name);
-  }
-  // 源字符集从路由取（由源模块列表页 moduleInfo.charset 传入）
-  if (route.query.charset) {
-    sourceCharset.value = String(route.query.charset);
-    formData.character_set = String(route.query.charset);
-  }
 
   // 克隆查询原始结果
   const cloneResult = ref<CloneModuleQueryResult>({
@@ -450,34 +389,7 @@
     });
   });
 
-  // 参数配置 Tab
-  const activeConfType = ref('dbconf');
-  const tabRenderKey = ref(random());
-  const confTabs = ref<ServiceReturnType<typeof getListClusterModuleConfFiles>>([]);
-
-  // 每个 confFile 对应一个 Table 实例
-  const tableRefs = ref<Record<string, any>>({});
-  const setTableRef = (name: string, el: any) => {
-    if (el) {
-      tableRefs.value[name] = el;
-    }
-  };
-
-  /** 所有 Tab 的总计已修改数量（用于 Tab 小黄点） */
-  const tabChangedCountMap = computed(() => {
-    const map: Record<string, number> = {};
-    confTabs.value.forEach((tab) => {
-      if (tab.conf_type === 'dbconf') {
-        const tableRef = tableRefs.value[tab.conf_file];
-        map[tab.conf_file] = tableRef?.changedCount ?? 0;
-      } else {
-        map[tab.conf_file] = 0;
-      }
-    });
-    return map;
-  });
-
-  /** 全 Tab 汇总统计（用于底部操作栏展示） */
+  /** 全 Tab 汇总统计 */
   const totalCounts = computed(() => {
     const items = currentConfItems.value;
     return {
@@ -520,18 +432,12 @@
   const deprecatedDataSource = () =>
     Promise.resolve({ count: deprecatedItems.value.length, results: deprecatedItems.value });
 
-  const sliderTableRef = ref();
-  const isShowSlider = ref(false);
-
   /** 获取克隆对比结果 */
   const { run: fetchCloneResult } = useRequest(moduleCloneQuery, {
     manual: true,
     onSuccess(res) {
       cloneResult.value = res;
-      nextTick(() => {
-        const currentTable = tableRefs.value[activeConfType.value];
-        currentTable?.refreshData?.();
-      });
+      nextTick(() => currentParamTable.value?.refreshData());
     },
   });
 
@@ -540,7 +446,16 @@
     manual: true,
     onSuccess(rawConfTabs) {
       const tabs = rawConfTabs || [];
-      tabs[0] = { conf_file: formData.version, conf_type: 'dbconf', name: formData.version };
+      if (formData.db_version) {
+        tabs[0] = { conf_file: formData.db_version, conf_type: 'dbconf', name: formData.db_version };
+      }
+      if (formData.spider_version) {
+        tabs[1] = {
+          conf_file: formData.spider_version,
+          conf_type: 'proxyconf',
+          name: formData.spider_version,
+        };
+      }
       confTabs.value = tabs;
       tabRenderKey.value = random();
     },
@@ -573,43 +488,48 @@
         value_type: item.value_type || 'STRING',
         value_type_sub: item.value_type_sub || '',
       }));
-      nextTick(() => {
-        const currentTable = tableRefs.value[activeConfType.value];
-        currentTable?.setData?.(items);
-      });
+      nextTick(() => currentParamTable.value?.setData(items));
     },
   });
 
+  // 初始化：从路由回填源模块名
+  if (route.query.moduleName) {
+    formData.alias_name = String(route.query.moduleName);
+  }
+  if (route.query.confFile) {
+    cloneResult.value.conf_file_info.conf_file = String(route.query.confFile);
+  }
+  // 源字符集从路由取（由源模块列表页 moduleInfo.charset 传入）
+  if (route.query.charset) {
+    sourceCharset.value = String(route.query.charset);
+    formData.charset = String(route.query.charset);
+  }
+
   // 版本变化时：刷新 Tab 列表 + 重新拉取参数对比结果
   watch(
-    () => formData.version,
+    () => [formData.db_version, formData.spider_version],
     () => {
-      if (!formData.version) return;
       fetchConfTabs({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        deploy_versions: JSON.stringify({ db_version: formData.version }),
-        meta_cluster_type: clusterType.value,
+        deploy_versions: JSON.stringify({ db_version: formData.db_version }),
+        meta_cluster_type: ClusterTypes.TENDBCLUSTER,
       });
       fetchCloneResult({
         conf_type: 'dbconf',
-        meta_cluster_type: clusterType.value,
+        meta_cluster_type: ClusterTypes.TENDBCLUSTER,
         source_bk_biz_id: String(bizId),
-        source_conf_file: String(route.query.conf_file || ''),
-        source_module_id: String(route.query.module_id || ''),
+        source_conf_file: String(route.query.confFile || ''),
+        source_module_id: String(route.query.moduleId || ''),
         target_bk_biz_id: String(bizId),
-        target_conf_file: formData.version,
+        target_conf_file: formData.db_version,
       });
     },
   );
 
-  // 克隆对比结果变化时，刷新当前 Tab 的表格数据
   watch(
     currentConfItems,
     (items) => {
-      nextTick(() => {
-        const currentTable = tableRefs.value[activeConfType.value];
-        currentTable?.setData?.(items);
-      });
+      nextTick(() => currentParamTable.value?.setData(items));
     },
     { immediate: true },
   );
@@ -623,135 +543,79 @@
       bk_biz_id: Number(bizId),
       conf_type: currentTab.conf_type,
       level_name: 'module',
-      level_value: String(route.query.module_id || ''),
-      meta_cluster_type: clusterType.value,
+      level_value: String(route.query.moduleId || ''),
+      meta_cluster_type: ClusterTypes.TENDBCLUSTER,
       version: tabKey,
     });
+  });
+
+  // 初始化首屏数据（dbconf）
+  nextTick(() => {
+    if (currentConfItems.value.length) {
+      currentParamTable.value?.setData(currentConfItems.value);
+    }
   });
 
   // 显示废弃参数侧滑
   const handleShowDeprecated = () => {
     isShowSlider.value = true;
     nextTick(() => {
-      sliderTableRef.value?.fetchData?.();
+      sliderTableRef.value?.fetchData();
     });
   };
 
-  // 创建模块 + 绑定配置
-  let latestModuleId = 0;
-
   /** 提交 */
   const handleSubmit = async () => {
-    isSubmitting.value = true;
     try {
       await formRef.value?.validate();
 
-      // 新建模块
+      isSubmitting.value = true;
+
+      // 创建模块
+      const dbModuleName = `${formData.alias_name}-${formData.spider_version}-${formData.db_version}-${formData.charset}`;
       const createResult = await createModules({
         alias_name: formData.alias_name,
-        biz_id: bizId,
-        cluster_type: clusterType.value,
-        db_module_name: formData.alias_name,
+        biz_id: Number(bizId),
+        cluster_type: ClusterTypes.TENDBCLUSTER,
+        db_module_name: dbModuleName,
       });
-      if (createResult.db_module_id) {
-        latestModuleId = createResult.db_module_id;
 
-        // 绑定数据库配置（部署规格）
-        await saveModulesDeployInfo({
-          bk_biz_id: bizId,
-          conf_items: [
-            {
-              conf_name: 'charset',
-              conf_value: formData.character_set,
-              description: t('字符集'),
-              op_type: 'update',
-            },
-            {
-              conf_name: 'db_version',
-              conf_value: formData.version,
-              description: t('数据库版本'),
-              op_type: 'update',
-            },
-            {
-              conf_name: 'buffer_percent',
-              conf_value: `${formData.memoryAllocationRatio}`,
-              description: t('实际内存分配比率'),
-              op_type: 'update',
-            },
-            {
-              conf_name: 'max_remain_mem_gb',
-              conf_value: String(formData.maxSystemReservedMemory),
-              description: t('最大系统保留内存'),
-              op_type: 'update',
-            },
-            {
-              conf_name: 'sync_type',
-              conf_value: formData.haMode,
-              description: t('主从方式'),
-              op_type: 'update',
-            },
-            {
-              conf_name: 'system_version',
-              conf_value: formData.operatingSystemVersion.map((v) => v.replace(/\s*/g, '')).join(','),
-              description: t('操作系统版本'),
-              op_type: 'update',
-            },
-          ],
-          conf_type: 'deploy',
-          level_name: 'module',
-          level_value: createResult.db_module_id,
-          meta_cluster_type: clusterType.value,
-          version: 'deploy_info',
-        });
-
-        // 绑定各 tab 参数配置（克隆模式：仅提交有变化的 ParamTable）
-        const bindTasks = Object.values(tableRefs.value)
-          .filter((ref) => ref?.hasChange?.())
-          .map((ref) => ref.bindConfigParameters?.());
-        await Promise.all(bindTasks);
-      }
+      // 绑定部署信息
+      await saveModulesDeployInfo({
+        bk_biz_id: Number(bizId),
+        conf_items: [
+          { conf_name: 'charset', conf_value: formData.charset, description: t('字符集'), op_type: 'update' },
+          { conf_name: 'db_version', conf_value: formData.db_version, description: t('数据库版本'), op_type: 'update' },
+          {
+            conf_name: 'spider_version',
+            conf_value: formData.spider_version,
+            description: t('Spider版本'),
+            op_type: 'update',
+          },
+        ],
+        conf_type: 'deploy',
+        level_name: 'module',
+        level_value: createResult.db_module_id,
+        meta_cluster_type: ClusterTypes.TENDBCLUSTER,
+        version: 'deploy_info',
+      });
 
       window.changeConfirm = false;
-
       router.push({
         name: 'DbConfigureList',
-        params: {
-          clusterType: clusterType.value,
-        },
-        query: {
-          parentId: `app-${bizId}`,
-          treeId: latestModuleId ? `module-${latestModuleId}` : '',
-        },
+        params: { clusterType: ClusterTypes.TENDBCLUSTER },
+        query: { parentId: `app-${bizId}`, treeId: `module-${createResult.db_module_id}` },
       });
     } catch (e) {
-      console.log(e);
+      console.error(e);
     }
     isSubmitting.value = false;
   };
 
   /** 取消 */
   const handleCancel = () => {
-    routerBack();
+    emits('routerBack');
   };
-
-  const routerBack = () => {
-    if (!route.query.from) {
-      router.push({
-        name: 'serviceApply',
-      });
-      return;
-    }
-    router.push({
-      name: String(route.query.from),
-      params: {
-        clusterType: route.query.clusterType as string,
-      },
-    });
-  };
-
-  defineExpose({
-    routerBack,
-  });
 </script>
 
 <style lang="less" scoped>
@@ -771,54 +635,15 @@
     box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
   }
 
-  .module-name-input {
-    min-width: 844px;
-  }
-
   .db-config-row {
     display: flex;
-    flex-wrap: nowrap;
     align-items: center;
     gap: 12px;
-    width: 100%;
-    min-width: 0;
 
-    > *:not(.db-type-tag) {
-      min-width: 140px;
-    }
-
-    .db-type-tag {
-      flex: 0 0 auto;
-      justify-content: center;
-      min-width: 140px;
-      height: 32px;
-      color: @primary-color;
-      background: white;
-      border: 1px solid @border-primary;
-    }
-
-    .version-select-inline {
-      min-width: 268px;
-    }
-
-    .ha-mode-input {
-      min-width: 180px;
-    }
-
+    .version-select-inline,
     .charset-select-inline {
-      min-width: 220px;
-    }
-
-    .os-version-select-inline {
-      min-width: 420px;
-    }
-
-    .memory-allocation-ratio-input {
+      width: auto;
       min-width: 180px;
-    }
-
-    .reserved-memory-input {
-      min-width: 220px;
     }
   }
 
@@ -840,13 +665,53 @@
     }
   }
 
-  .tab-modified-dot {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    margin-left: 4px;
-    background: #f59500;
-    border-radius: 50%;
+  .db-type-tag {
+    height: 30px;
+    color: @primary-color;
+    background: white;
+    border: 1px solid @border-primary;
+  }
+
+  .sideslider-sub-title {
+    position: relative;
+    padding-left: 8px;
+    margin-left: 8px;
+    font-family: 'Microsoft YaHei', sans-serif;
+    font-size: 14px;
+    line-height: 22px;
+    color: #979ba5;
+
+    &::before {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 1px;
+      height: 14px;
+      content: '';
+      background: #dcdee5;
+      transform: translateY(-50%);
+    }
+  }
+
+  .clone-module-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #979ba5;
+    margin-left: 8px;
+
+    & > span + span {
+      margin-left: 8px;
+    }
+
+    &::before {
+      content: '';
+      display: inline-block;
+      width: 1px;
+      height: 14px;
+      background: #dcdee5;
+    }
   }
 
   .action-stat-chip {
@@ -885,48 +750,6 @@
       .stat-num {
         background: #ea3636;
       }
-    }
-  }
-
-  .sideslider-sub-title {
-    position: relative;
-    padding-left: 8px;
-    margin-left: 8px;
-    font-family: 'Microsoft YaHei', sans-serif;
-    font-size: 14px;
-    line-height: 22px;
-    color: #979ba5;
-
-    &::before {
-      position: absolute;
-      top: 50%;
-      left: 0;
-      width: 1px;
-      height: 16px;
-      content: '';
-      background: #dcdee5;
-      transform: translateY(-50%);
-    }
-  }
-
-  .clone-module-meta {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    color: #979ba5;
-    margin-left: 8px;
-
-    & > span + span {
-      margin-left: 8px;
-    }
-
-    &::before {
-      content: '';
-      display: inline-block;
-      width: 1px;
-      height: 14px;
-      background: #dcdee5;
     }
   }
 

@@ -50,8 +50,8 @@ export const useLevelParams = (isPlat: boolean): ComputedRef<LevelParams> => {
     const params = {
       bk_biz_id: globalBizsStore.currentBizId,
       level_info: undefined as any,
-      level_name: ConfLevels.PLAT,
-      level_value: 0,
+      level_name: ConfLevels.APP,
+      level_value: globalBizsStore.currentBizId,
     };
     // 处理路由参数
     const [levelType, nodeId] = (treeId as string).split('-');
