@@ -45,8 +45,11 @@ class PeripheralToolsPayload(PayloadBase, MySQLAccountMixed, ProxyAccountMixed):
                 res = remove_departs(res, DeployPeripheralToolsDepart.MySQLDBBackup)
             else:  # spider
                 ins = ProxyInstance.objects.filter(machine=m).first()
-                # spider slave, spider mnt 不用备份
-                if not ins.tendbclusterspiderext.spider_role == TenDBClusterSpiderRole.SPIDER_MASTER:
+                # 只需要 slave, spider master 备份
+                if ins.tendbclusterspiderext.spider_role not in [
+                    TenDBClusterSpiderRole.SPIDER_MASTER,
+                    TenDBClusterSpiderRole.SPIDER_SLAVE,
+                ]:
                     res = remove_departs(res, DeployPeripheralToolsDepart.MySQLDBBackup)
 
         if m.machine_type == MachineType.SINGLE:

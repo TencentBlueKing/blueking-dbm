@@ -122,27 +122,48 @@ def add_spider_routing_sub_flow(
 
     # 3) 在中控 primary 本机执行 spiderctl add-spider-routing
     spider_inst = cluster.proxyinstance_set.first()
-    add_routing_act_kwargs = ExecActuatorKwargs(
-        cluster_type=ClusterType.TenDBCluster,
-        bk_cloud_id=cluster.bk_cloud_id,
-        exec_ip=ctl_primary_ip,
-        component_kwargs={
-            "ctl_primary_port": int(ctl_primary_port),
-            "spider_port": spider_inst.port,
-            "admin_port": spider_inst.admin_port,
-            "add_spiders": param.add_spiders,
-            "add_spider_role": role_value,
-            "spider_user": param.spider_user,
-            "spider_pass": param.spider_pass,
-        },
-        get_mysql_payload_func=MysqlActPayload.get_add_spider_routing_payload.__name__,
-        job_timeout=LONG_JOB_TIMEOUT,
-    )
     sub_pipeline.add_act(
-        act_name=_("添加对应路由关系"),
+        act_name=_("添加对应spider节点路由关系"),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
-        kwargs=asdict(add_routing_act_kwargs),
+        kwargs=asdict(
+            ExecActuatorKwargs(
+                cluster_type=ClusterType.TenDBCluster,
+                bk_cloud_id=cluster.bk_cloud_id,
+                exec_ip=ctl_primary_ip,
+                component_kwargs={
+                    "ctl_primary_port": int(ctl_primary_port),
+                    "add_port": spider_inst.port,
+                    "add_spiders": param.add_spiders,
+                    "add_spider_role": role_value,
+                    "spider_pwd": param.spider_pass,
+                },
+                get_mysql_payload_func=MysqlActPayload.get_add_spider_routing_payload.__name__,
+                job_timeout=LONG_JOB_TIMEOUT,
+            )
+        ),
     )
+    if role_value == TenDBClusterSpiderRole.SPIDER_MASTER.value:
+        # 如果添加的spider_master, 则增加对应节点spider_ctl节点的路由信息
+        sub_pipeline.add_act(
+            act_name=_("添加对应spider_ctl节点路由关系"),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(
+                ExecActuatorKwargs(
+                    cluster_type=ClusterType.TenDBCluster,
+                    bk_cloud_id=cluster.bk_cloud_id,
+                    exec_ip=ctl_primary_ip,
+                    component_kwargs={
+                        "ctl_primary_port": int(ctl_primary_port),
+                        "add_port": spider_inst.admin_port,
+                        "add_spiders": param.add_spiders,
+                        "add_spider_role": TenDBClusterSpiderRole.SPIDER_CTL.value,
+                        "spider_pwd": param.spider_pass,
+                    },
+                    get_mysql_payload_func=MysqlActPayload.get_add_spider_routing_payload.__name__,
+                    job_timeout=LONG_JOB_TIMEOUT,
+                )
+            ),
+        )
 
     return sub_pipeline.build_sub_process(sub_name=_("集群[{}]添加spider节点路由[{}]".format(cluster.name, role_value)))
 

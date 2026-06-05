@@ -1345,6 +1345,18 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         - exec_ip 必须是中控 primary 节点本机 (子命令本身会做 PreCheck)
         - tdbctl_pass 仅在 add_spider_role == spider_master 时必填,
           上游编排时统一从 self.cluster 透传过来。
+
+        关于 runtime_account 中的凭证字段说明 (与 Go 侧 RuntimeAccountParam 一一对应,
+        Go 侧 getCredByRole 按角色名取值):
+          - tdbctl_user / tdbctl_pwd: 中控自身使用的账号, 由 read_ctl_pass_from_ctl_primary
+            从中控 mysql.servers 共享密码读取, Go 侧 getCredByRole("tdbctl") 取此字段。
+          - spider_user / spider_pwd: 中控反向连接被加入的 spider 节点时使用的账号,
+            由调用方通过 kwargs["spider_pwd"] (即上游 param.spider_pass) 显式透传,
+            Go 侧 getCredByRole("spider") 取此字段。
+        本子命令场景下 spider 与 tdbctl 共用同一个 user 名称 = TDBCTL_USER, 且上游
+        common_sub_flow.add_spider_masters_sub_flow / add_spider_slaves_sub_flow 中
+        均以 spider_pass=tdbctl_pass 的方式透传, 故二者密码值实际一致, 但字段定位与
+        Go 侧消费路径不同, 不可互相覆盖。
         """
 
         tdbctl_account = self.account | {
@@ -1352,6 +1364,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 f'{kwargs["ip"]}{IP_PORT_DIVIDER}{kwargs["ctl_primary_port"]}', self.bk_cloud_id
             ),
             "tdbctl_user": TDBCTL_USER,
+            "spider_user": TDBCTL_USER,
+            "spider_pwd": kwargs["spider_pwd"],
         }
         return {
             "db_type": DBActuatorTypeEnum.SpiderCtl.value,
@@ -1361,12 +1375,9 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "extend": {
                     "host": kwargs["ip"],
                     "port": kwargs["ctl_primary_port"],
-                    "spider_port": kwargs["spider_port"],
-                    "admin_port": kwargs["admin_port"],
+                    "add_port": kwargs["add_port"],
                     "add_spiders": [i["ip"] for i in kwargs["add_spiders"]],
                     "add_spider_role": kwargs["add_spider_role"],
-                    "spider_user": kwargs["spider_user"],
-                    "spider_pass": kwargs["spider_pass"],
                 },
             },
         }

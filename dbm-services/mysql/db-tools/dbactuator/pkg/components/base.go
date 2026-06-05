@@ -37,6 +37,7 @@ type RuntimeAccountParam struct {
 	MySQLAccountParam
 	ProxyAccountParam
 	TdbctlAccoutParam
+	SpiderAccoutParam
 	TBinlogDumperAccoutParam
 	PartitionAccoutParam
 }

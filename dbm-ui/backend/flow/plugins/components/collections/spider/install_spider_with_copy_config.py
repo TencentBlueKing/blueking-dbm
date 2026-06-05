@@ -15,6 +15,7 @@ from pipeline.component_framework.component import Component
 
 from backend.components import DRSApi
 from backend.db_meta.enums import InstanceStatus
+from backend.db_meta.enums.instance_role import TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, ProxyInstance
 from backend.db_package.models import Package
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptService
@@ -167,9 +168,14 @@ class InstallSpiderWithCopyConfigService(ExecuteDBActuatorScriptService):
         source_spiders = cluster.proxyinstance_set.filter(
             status=InstanceStatus.RUNNING, tendbclusterspiderext__spider_role=install_spider_role
         )
-        data.get_one_of_inputs("kwargs")[
-            "get_mysql_payload_func"
-        ] = MysqlActPayload.get_install_spider_payload.__name__
+        # 根据待安装的 Spider 角色选择对应的 payload 生成函数：
+        # - spider_slave 角色使用 get_install_slave_spider_payload
+        # - 其他角色（spider_master / spider_mnt 等）使用 get_install_spider_payload
+        if install_spider_role == TenDBClusterSpiderRole.SPIDER_SLAVE.value:
+            get_mysql_payload_func = MysqlActPayload.get_install_slave_spider_payload.__name__
+        else:
+            get_mysql_payload_func = MysqlActPayload.get_install_spider_payload.__name__
+        data.get_one_of_inputs("kwargs")["get_mysql_payload_func"] = get_mysql_payload_func
         if not source_spiders:
             # 首次添加该角色的 Spider，无需克隆配置，直接走默认安装流程
             self.log_info(_("集群不存在同角色的spider，不执行克隆配置操作，本次新装的spider配置一切以配置系统为准"))
