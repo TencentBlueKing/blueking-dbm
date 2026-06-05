@@ -126,7 +126,13 @@ def _collect_replace_info(slave_replace_detail, act_kwargs):
 
 
 def _deploy_new_instances(
-    root_id, ticket_data, act_kwargs, slave_replace_detail, slave_replace_info, twemproxy_server_shards
+    root_id,
+    ticket_data,
+    act_kwargs,
+    slave_replace_detail,
+    slave_replace_info,
+    twemproxy_server_shards,
+    cache_backup_mode,
 ):
     """部署新实例"""
     sub_pipelines = []
@@ -142,9 +148,7 @@ def _deploy_new_instances(
             "spec_id": slave_replace_info["slave_spec"].get("id", 0),
             "spec_config": slave_replace_info["slave_spec"],
             "server_shards": twemproxy_server_shards.get(new_slave, {}),
-            "cache_backup_mode": get_cache_backup_mode(
-                act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"]
-            ),
+            "cache_backup_mode": cache_backup_mode,
         }
         if act_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
             params["start_port"] = min(act_kwargs.cluster["slave_ports"][old_slave])
@@ -154,7 +158,13 @@ def _deploy_new_instances(
 
 
 def _setup_sync_relations(
-    root_id, ticket_data, act_kwargs, slave_replace_detail, replace_link_info, twemproxy_server_shards
+    root_id,
+    ticket_data,
+    act_kwargs,
+    slave_replace_detail,
+    replace_link_info,
+    twemproxy_server_shards,
+    cache_backup_mode,
 ):
     """建立同步关系"""
     sub_pipelines = []
@@ -168,9 +178,7 @@ def _setup_sync_relations(
             "sync_dst1": new_slave,
             "ins_link": [],
             "server_shards": twemproxy_server_shards.get(new_slave, {}),
-            "cache_backup_mode": get_cache_backup_mode(
-                act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"]
-            ),
+            "cache_backup_mode": cache_backup_mode,
         }
         for slave_port in act_kwargs.cluster["slave_ports"][old_slave]:
             old_ins = "{}{}{}".format(old_slave, IP_PORT_DIVIDER, slave_port)
@@ -381,16 +389,29 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
     twemproxy_server_shards = get_twemproxy_cluster_server_shards(
         act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"], newslave_to_master
     )
+    cache_backup_mode = get_cache_backup_mode(act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"])
 
     # 部署新实例
     deploy_sub_pipelines = _deploy_new_instances(
-        root_id, ticket_data, act_kwargs, slave_replace_detail, slave_replace_info, twemproxy_server_shards
+        root_id,
+        ticket_data,
+        act_kwargs,
+        slave_replace_detail,
+        slave_replace_info,
+        twemproxy_server_shards,
+        cache_backup_mode,
     )
     redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=deploy_sub_pipelines)
 
     # 建立同步关系
     sync_sub_pipelines = _setup_sync_relations(
-        root_id, ticket_data, act_kwargs, slave_replace_detail, replace_link_info, twemproxy_server_shards
+        root_id,
+        ticket_data,
+        act_kwargs,
+        slave_replace_detail,
+        replace_link_info,
+        twemproxy_server_shards,
+        cache_backup_mode,
     )
     redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_sub_pipelines)
 

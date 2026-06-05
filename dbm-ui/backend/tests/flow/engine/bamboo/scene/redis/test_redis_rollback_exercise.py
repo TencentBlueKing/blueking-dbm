@@ -112,6 +112,16 @@ def test_best_effort_cleanup_uses_parent_ticket_for_rollback_tasks():
     assert service._get_rollback_task_ticket_id({"uid": 999}) == 999
 
 
+def test_enrich_drill_prod_temp_instance_pairs_sets_expected_mapping():
+    info = {
+        "instance_ip": "1.1.1.4",
+        "instance_port": 30000,
+        "redis": [{"ip": "1.1.1.3"}],
+    }
+    RedisRollbackExerciseFlow._enrich_drill_prod_temp_instance_pairs(info)
+    assert info["drill_prod_temp_instance_pairs"] == [["1.1.1.4:30000", "1.1.1.3:30000"]]
+
+
 def test_revoke_applied_hosts_service_outputs_unique_redis_hosts():
     service = RedisExerciseRevokeAppliedHostsService()
     data = FakeData(

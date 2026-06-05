@@ -16,7 +16,7 @@ from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.models import Cluster
-from backend.db_services.redis.redis_modules.util import get_redis_moudles_detail
+from backend.db_services.redis.redis_modules.util import get_redis_modules_detail
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import ClusterLoadModulesAtomJob
@@ -56,7 +56,7 @@ class RedisClusterLoadModulesSceneFlow(object):
         cluster = Cluster.objects.get(id=cluster_id)
         major_version = cluster.major_version
         for load_module in load_modules:
-            module_row = get_redis_moudles_detail(major_version=major_version, module_names=[load_module])
+            module_row = get_redis_modules_detail(major_version=major_version, module_names=[load_module])
             if not module_row:
                 raise Exception(
                     _("cluster:{} major_version:{}  redis module {}").format(

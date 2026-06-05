@@ -19,10 +19,12 @@ from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum
 from .models import TbRedisModuleSupport
 
 
-def get_redis_moudles_detail(major_version: str, module_names: list = []) -> list:
+def get_redis_modules_detail(major_version: str, module_names: list = None) -> list:
     """
     根据major_version获取redis module详情信息
     """
+    if module_names is None:
+        module_names = []
     if not major_version:
         return []
     if not module_names:
@@ -65,10 +67,10 @@ def get_cluster_redis_module_names(cluster_id: int) -> list:
     return modules_name
 
 
-def get_cluster_redis_modules_detial(cluster_id: int) -> list:
+def get_cluster_redis_modules_detail(cluster_id: int) -> list:
     """
     获取集群的redis module详情信息
     """
     cluster = Cluster.objects.get(id=cluster_id)
     modules_name = get_cluster_redis_module_names(cluster_id)
-    return get_redis_moudles_detail(cluster.major_version, modules_name)
+    return get_redis_modules_detail(cluster.major_version, modules_name)

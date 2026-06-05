@@ -37,7 +37,7 @@ from backend.db_services.redis.maxmemory_set.util import (
 )
 from backend.db_services.redis.redis_dts.models.tb_tendis_dts_switch_backup import TbTendisDtsSwitchBackup
 from backend.db_services.redis.redis_modules.models.redis_module_support import ClusterRedisModuleAssociate
-from backend.db_services.redis.redis_modules.util import get_cluster_redis_modules_detial, get_redis_moudles_detail
+from backend.db_services.redis.redis_modules.util import get_cluster_redis_modules_detail, get_redis_modules_detail
 from backend.db_services.redis.util import (
     is_predixy_proxy_type,
     is_redis_instance_type,
@@ -828,7 +828,7 @@ class RedisActPayload(object):
             servers = redis_master_set + redis_slave_set
 
         # 从dbconfig中获取load_modules
-        module_rows = get_cluster_redis_modules_detial(cluster_id=cluster.id)
+        module_rows = get_cluster_redis_modules_detail(cluster_id=cluster.id)
         load_modules = [module_row["module_name"] for module_row in module_rows]
 
         payload.update(
@@ -1608,7 +1608,7 @@ class RedisActPayload(object):
             "inst_num": int(params["inst_num"]),
             "start_port": int(params["start_port"]),
             "redis_conf_configs": redis_conf,
-            "load_modules_detail": get_cluster_redis_modules_detial(cluster_id=cluster.id),
+            "load_modules_detail": get_cluster_redis_modules_detail(cluster_id=cluster.id),
         }
         # tendisplus cluster 模式暂时不需要特别指定这两个参数
         if is_twemproxy_proxy_type(self.namespace):
@@ -1653,7 +1653,7 @@ class RedisActPayload(object):
                 "ip": params["exec_ip"],
                 # "inst_num": params["inst_num"],
                 # "start_port": int(params["start_port"]),
-                "load_modules_detail": get_redis_moudles_detail(
+                "load_modules_detail": get_redis_modules_detail(
                     major_version=params["db_version"], module_names=params.get("load_modules", [])
                 ),
             },
