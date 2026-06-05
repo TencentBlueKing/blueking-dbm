@@ -38,7 +38,8 @@ type viaCtlCtx struct {
 func (c *ViaCtlComponent) Init(uid string) error {
 	db, err := sqlx.Connect(
 		"mysql",
-		fmt.Sprintf("%s:%s@tcp(%s:%d)/",
+		fmt.Sprintf(
+			"%s:%s@tcp(%s:%d)/",
 			c.GeneralParam.RuntimeAccountParam.AdminUser, c.GeneralParam.RuntimeAccountParam.AdminPwd,
 			c.Param.Host, c.Param.Port,
 		),
@@ -103,10 +104,29 @@ func (c *ViaCtlComponent) CreateSchemaInToDB() error {
 		sedCmd.Stderr = &stderr
 		err = sedCmd.Run()
 		if err != nil {
-			logger.Error("sed backup file %s failed: %s: %s", backupFilePath, err, stderr.String())
+			logger.Error("sed backup file %s delete use db failed: %s: %s", backupFilePath, err, stderr.String())
 			return err
 		}
-		logger.Info("sed backup file %s success", backupFilePath)
+		logger.Info("sed backup file %s delete use db success", backupFilePath)
+
+		// 不去改公共的 dump 方法而是在这里 sed 是为了减少为止的影响范围
+		sedCmd = exec.Command("sed", "-i", `/^SET.*SQL_LOG_BIN.*;/d`, backupFilePath)
+		err = sedCmd.Run()
+		if err != nil {
+			logger.Error("sed backup file %s delete set log bin failed: %s: %s", backupFilePath, err, stderr.String())
+			return err
+		}
+		logger.Info("sed backup file %s delete set log bin success", backupFilePath)
+
+		sedCmd = exec.Command("sed", "-i", `/^SET.*GTID_PURGED.*;/d`, backupFilePath)
+		err = sedCmd.Run()
+		if err != nil {
+			logger.Error(
+				"sed backup file %s delete set GTID_PURGED failed: %s: %s", backupFilePath, err, stderr.String(),
+			)
+			return err
+		}
+		logger.Info("sed backup file %s delete set GTID_PURGED success", backupFilePath)
 
 		err = pkg.ImportDBSchema(
 			c.Param.Host, c.Param.Port,
