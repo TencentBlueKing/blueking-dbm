@@ -74,23 +74,23 @@ func NewProbeServer(cfg config.SourceConfig) (*Probe, error) {
 // Run starts the gRPC server and blocks until Serve returns or the listener fails.
 func (p *Probe) Run(ctx context.Context) error {
 	serverPingTime := p.cfg.GrpcServerPingTime
-	if serverPingTime == 0 {
+	if serverPingTime <= 0 {
 		serverPingTime = constant.DefaultServerPingTime
 	}
 	pingTimeout := p.cfg.GrpcPingTimeout
-	if pingTimeout == 0 {
+	if pingTimeout <= 0 {
 		pingTimeout = constant.DefaultPingTimeout
 	}
 	keepAliveMinTime := p.cfg.GrpcKeepAliveMinTime
-	if keepAliveMinTime == 0 {
+	if keepAliveMinTime <= 0 {
 		keepAliveMinTime = constant.DefaultKeepAliveMiniTime
 	}
 	maxRecvMsgSize := p.cfg.GrpcMaxReceiveMessageSize
-	if maxRecvMsgSize == 0 {
+	if maxRecvMsgSize <= 0 {
 		maxRecvMsgSize = constant.DefaultMaxReceiveMessageSize
 	}
 	maxSendMsgSize := p.cfg.GrpcMaxSendMessageSize
-	if maxSendMsgSize == 0 {
+	if maxSendMsgSize <= 0 {
 		maxSendMsgSize = constant.DefaultMaxSendMessageSize
 	}
 
@@ -139,24 +139,24 @@ func (p *Probe) PushDataUnary(ctx context.Context, req *proto.ReceiverRequest) (
 	}
 
 	err := p.connHandler.postEvent(req)
-	if err != nil {
-		logger.Warn("postEvent failed, errmsg: %s", err)
-
-		if metricErr := apm.ProbeQueueFullTotal.IncWithLabels(map[string]string{
-			apm.MetricLabelProbe: "probe",
-		}); metricErr != nil {
-			logger.Warn("update probe queue full metric failed, errmsg: %s", metricErr)
-		}
-
+	if err == nil {
 		return &proto.ReceiverResponse{
-			Code:   1,
-			Errmsg: "failed to post event to connection handler",
+			Code:   0,
+			Errmsg: "success",
 		}, nil
 	}
 
+	logger.Warn("postEvent failed, errmsg: %s", err)
+
+	if metricErr := apm.ProbeQueueFullTotal.IncWithLabels(map[string]string{
+		apm.MetricLabelProbe: "probe",
+	}); metricErr != nil {
+		logger.Warn("update probe queue full metric failed, errmsg: %s", metricErr)
+	}
+
 	return &proto.ReceiverResponse{
-		Code:   0,
-		Errmsg: "success",
+		Code:   1,
+		Errmsg: "failed to post event to connection handler",
 	}, nil
 }
 
@@ -164,7 +164,9 @@ func (p *Probe) Harvest(ctx context.Context, savers []sink.Sinker) error {
 	p.wg.Add(1)
 	go func(ctx context.Context) {
 		defer p.wg.Done()
-		p.Run(ctx)
+		if err := p.Run(ctx); err != nil {
+			logger.Error("run probe source failed, errmsg: %s", err)
+		}
 	}(ctx)
 
 	p.savers, p.connHandler.savers = savers, savers

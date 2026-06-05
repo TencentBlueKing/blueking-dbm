@@ -34,6 +34,8 @@ import (
 	"dbm-services/common/dbha-v2/pkg/proto"
 )
 
+const SinkMessageTopic = "probe"
+
 type requestEventC chan *proto.ReceiverRequest
 
 // connectionHandler service connection handler
@@ -63,7 +65,7 @@ func (c *connectionHandler) readEvent() {
 		}
 
 		data := &sink.Message{
-			Topic: "probe",
+			Topic: SinkMessageTopic,
 			Data:  make([]byte, dataLength),
 		}
 
