@@ -200,12 +200,15 @@
                   class="member-selector-tip"></div>
               </DbFormItem>
               <template v-else>
-                <div v-if="row.level2_dba.length > 0">
-                  <TagBlock
-                    :copy-data="row.level2_dba"
-                    copyenable
-                    :data="row.level2_dba.map((item) => `${item}（${userDataMap[item]}）`)" />
-                </div>
+                <template v-if="row.users.length">
+                  <div v-if="row.level2_dba.length > 0">
+                    <TagBlock
+                      :copy-data="row.level2_dba"
+                      copyenable
+                      :data="row.level2_dba.map((item) => `${item}（${userDataMap[item]}）`)" />
+                  </div>
+                  <span v-else>--</span>
+                </template>
                 <template v-else>
                   <div v-if="defaultAdminsDataMap[row.db_type as DBTypes]?.users?.length">
                     <div class="fallback-dba">
