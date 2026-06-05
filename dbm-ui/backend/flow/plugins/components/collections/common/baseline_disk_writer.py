@@ -22,9 +22,9 @@ class BaselineDiskWriteService(BaseService):
     它会把 actuator 的 <ctx>...</ctx> JSON 解析后写入 trans_data.benchmark_result
 
     本 act 的 kwargs (来自 flow):
-        disk_name    : (必填) BaselineDisk 唯一键, 决定 update_or_create
+        disk_name    : (必填) BaselineDisk 唯一键, 约定为 disk_type 与 capacity_gb 下划线拼接, 决定 update_or_create
         disk_type    : 磁盘类型枚举值, 如 NVME_SSD; 缺失时不更新该字段
-        disk_model   : 磁盘型号, 如 3570; 缺失时不更新
+        disk_model   : 磁盘型号; 传入空字符串表示显式留空且不从 actuator environment 回落
         is_local     : 是否本地盘, 缺失时不更新
         capacity_gb  : 单盘容量 GB; 缺失时回落 actuator 上报的 environment.capacity_gb
     """
@@ -60,8 +60,11 @@ class BaselineDiskWriteService(BaseService):
         env = result.get("environment") or {}
         if kwargs.get("disk_type"):
             defaults["disk_type"] = kwargs["disk_type"]
-        if kwargs.get("disk_model"):
-            defaults["disk_model"] = kwargs["disk_model"]
+        if "disk_model" in kwargs:
+            if kwargs.get("disk_model"):
+                defaults["disk_model"] = kwargs["disk_model"]
+            else:
+                defaults["disk_model"] = ""
         elif env.get("disk_model"):
             defaults["disk_model"] = env["disk_model"]
         if "is_local" in kwargs and kwargs["is_local"] is not None:

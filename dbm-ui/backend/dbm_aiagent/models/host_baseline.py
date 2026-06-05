@@ -78,16 +78,26 @@ class BaselineDisk(AuditedModel):
     """
     基线磁盘配置表（独立基准数据）
     用于记录磁盘的硬件规格和性能数据作为基准数据，不与主机配置强绑定
+
+    disk_name 命名约定：由 disk_type（DiskType 枚举取值）与 capacity_gb（单盘容量，整数 GB）
+    用单个下划线拼接，即「{disk_type}_{capacity_gb}」，全局唯一。例如 disk_type=NVME_SSD 且
+    capacity_gb=3570 时，disk_name 为 NVME_SSD_3570。capacity_gb 为空时不在此约定内，需业务另行约定 disk_name。
     """
 
     disk_name = models.CharField(
-        _("磁盘配置名称"), max_length=LEN_MIDDLE, unique=True, help_text=_("磁盘配置的唯一名称，如 NVMe_SSD_3570")
+        _("磁盘配置名称"),
+        max_length=LEN_MIDDLE,
+        unique=True,
+        help_text=_(
+            "唯一名称约定为 disk_type 与 capacity_gb 的下划线拼接：disk_type 为 DiskType 枚举取值，"
+            "capacity_gb 为单盘容量整数 GB，形如 NVME_SSD_3570"
+        ),
     )
     disk_type = models.CharField(
         _("磁盘类型"), max_length=LEN_SHORT, choices=DiskType.choices, help_text=_("磁盘类型，如 NVMe SSD")
     )
     disk_model = models.CharField(_("磁盘型号"), max_length=LEN_NORMAL, help_text=_("磁盘型号或系列编码，如 3570"))
-    is_local = models.BooleanField(_("是否本地盘"), default=True, help_text=_("指示磁盘是否为本地盘"))
+    is_local = models.BooleanField(_("是否本地盘"), default=False, help_text=_("指示磁盘是否为本地盘, 默认否; IT 开头机型为本地盘"))
     capacity_gb = models.IntegerField(_("单盘容量(GB)"), null=True, blank=True, help_text=_("单块磁盘的容量大小，如 3570"))
     performance_iops = models.IntegerField(_("性能IOPS"), null=True, blank=True, help_text=_("磁盘的平均IOPS性能指标"))
     performance_throughput_mbps = models.IntegerField(

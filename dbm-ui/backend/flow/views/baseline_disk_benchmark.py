@@ -30,11 +30,29 @@ ALLOWED_TARGET_PREFIXES = ("/data/", "/data1/", "/tmp/", "/var/tmp/")
 
 class _DiskItemSerializer(serializers.Serializer):
     target = serializers.CharField(help_text=_("测试目标文件绝对路径 (必须落在 /data/ /tmp/ /var/tmp/ 之一下)"))
-    disk_name = serializers.CharField(help_text=_("BaselineDisk 唯一键"))
-    size = serializers.CharField(required=False, default="8G", help_text=_("测试文件大小, 默认 8G"))
-    disk_type = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    disk_name = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        default=None,
+        help_text=_(
+            "BaselineDisk 唯一键；约定为 disk_type 与 capacity_gb 下划线拼接。target 在 /dataN 下时可省略,"
+            "由流程按 CVM+Job 合并结果回填 disk_type/capacity_gb 后自动生成"
+        ),
+    )
+    test_file_size = serializers.CharField(
+        required=False, default="8G", help_text=_("fio 压测时写入的测试文件大小(非磁盘容量), 如 8G、4G; 默认 8G")
+    )
+    disk_type = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text=_("磁盘类型；target 在 /dataN 下时可省略, 由合并结果(CVM 云盘类型/IT 本地盘)兜底"),
+    )
     disk_model = serializers.CharField(required=False, allow_blank=True, allow_null=True)
-    is_local = serializers.BooleanField(required=False, allow_null=True, default=None)
+    is_local = serializers.BooleanField(
+        required=False, allow_null=True, default=None, help_text=_("是否本地盘；默认 False, IT 开头机型由合并结果置 True")
+    )
     capacity_gb = serializers.IntegerField(required=False, allow_null=True, default=None)
     runtime = serializers.IntegerField(required=False, default=None, allow_null=True)
     jobs = serializers.IntegerField(required=False, default=None, allow_null=True)
@@ -80,6 +98,9 @@ class BaselineDiskBenchmarkSceneApiView(FlowTestView):
 
     权限: 限超管或 DEBUG 模式 (继承自 FlowTestView)
 
+    入参说明: target 在 /dataN 且提供 disk_type 时, disk_name、capacity_gb 可省略, 由 BaselineDiskBenchmarkFlow
+    在 run_flow 内合并 CVM+Job 后回填并生成 disk_name；其它路径须自带 disk_name。
+
     入参示例:
     {
         "bk_biz_id": 100100,
@@ -93,12 +114,7 @@ class BaselineDiskBenchmarkSceneApiView(FlowTestView):
                 "disks": [
                     {
                         "target": "/data/baseline_bench/fio.bin",
-                        "size": "8G",
-                        "disk_name": "NVMe_SSD_3570",
-                        "disk_type": "NVME_SSD",
-                        "disk_model": "3570",
-                        "is_local": true,
-                        "capacity_gb": 3570
+                        "test_file_size": "8G"
                     }
                 ]
             }

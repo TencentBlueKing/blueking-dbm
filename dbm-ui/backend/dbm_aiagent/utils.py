@@ -14,6 +14,7 @@ from typing import Callable, Dict, List, Optional, Tuple, Type
 
 from django.db.models import QuerySet
 
+from backend.db_meta.models import Machine
 from backend.dbm_aiagent.models import (
     BaselineDisk,
     BaselineHost,
@@ -134,11 +135,11 @@ def query_baseline_disk_by_name(disk_name: str) -> Optional[BaselineDisk]:
     """
     根据磁盘配置名称查询基线磁盘配置
 
-    @param disk_name: 磁盘配置名称，如 "NVMe_SSD_3570"
+    @param disk_name: 磁盘配置名称，约定为 disk_type 与 capacity_gb 下划线拼接，如 "NVME_SSD_3570"
     @return: BaselineDisk实例或None
 
     使用示例：
-        baseline_disk = query_baseline_disk_by_name("NVMe_SSD_3570")
+        baseline_disk = query_baseline_disk_by_name("NVME_SSD_3570")
         if baseline_disk:
             print(f"基线磁盘配置: {baseline_disk.disk_name}, IOPS: {baseline_disk.performance_iops}")
     """
@@ -394,3 +395,100 @@ def query_tendbcluster_benchmark(
 
     except (BaselineHost.DoesNotExist, BaselineDisk.DoesNotExist):
         return TenDBClusterBenchmark.objects.none()
+
+
+def _match_baseline_disk(disk_type: str, size: Optional[int]) -> Optional[BaselineDisk]:
+    """
+    按磁盘类型与容量匹配基线磁盘配置
+
+    匹配策略：
+        1. 先按 disk_type 精确过滤 BaselineDisk
+        2. 再在过滤结果中取 capacity_gb 与 size 最接近的一条（差值绝对值最小）
+
+    @param disk_type: 磁盘类型，如 "NVME_SSD"、"CLOUD_PREMIUM"
+    @param size: 挂载点磁盘容量（GB），可为空
+    @return: 匹配到的 BaselineDisk 实例或 None
+
+    匹配规则补充：
+        - disk_type 为空或该类型无基线数据：返回 None
+        - size 为空：返回该类型按 capacity_gb 排序的第一条
+        - size 非空：取 capacity_gb 最接近 size 的一条；capacity_gb 为空的项不参与最近匹配，
+          仅在不存在任何有 capacity_gb 的项时兜底返回
+    """
+    if not disk_type:
+        return None
+
+    disks = list(BaselineDisk.objects.filter(disk_type=disk_type).order_by("capacity_gb"))
+    if not disks:
+        return None
+
+    if size is None:
+        return disks[0]
+
+    # 优先在有 capacity_gb 的磁盘中按容量最接近匹配
+    sized_disks = [disk for disk in disks if disk.capacity_gb is not None]
+    if not sized_disks:
+        return disks[0]
+
+    return min(sized_disks, key=lambda disk: abs(disk.capacity_gb - size))
+
+
+def query_host_performance(ip: str, bk_cloud_id: int) -> Dict:
+    """
+    根据 ip + bk_cloud_id 查询主机性能参数
+
+    数据关联链路：
+        1. 按 ip + bk_cloud_id 唯一定位 Machine
+        2. 根据 Machine.bk_svr_device_cls_name 关联 BaselineHost 取机型性能配置
+        3. 遍历 Machine.storage_device 各挂载点，按 disk_type + 容量最接近关联 BaselineDisk 取磁盘性能
+
+    @param ip: 主机 IP，如 "127.0.0.1"
+    @param bk_cloud_id: 云区域 ID
+    @return: 主机性能参数字典
+        {
+            "machine": Machine 实例或 None,
+            "baseline_host": BaselineHost 实例或 None,
+            "disks": [
+                {
+                    "mount_point": 挂载点，如 "/data",
+                    "disk_type": 磁盘类型，如 "NVME_SSD",
+                    "size": 挂载点容量(GB)或 None,
+                    "baseline_disk": 匹配到的 BaselineDisk 实例或 None,
+                },
+                ...
+            ],
+        }
+
+    使用示例：
+        result = query_host_performance("127.0.0.1", 0)
+        if result["baseline_host"]:
+            print(f"机型: {result['baseline_host'].device_class}, vCPU: {result['baseline_host'].vcpu}")
+        for disk in result["disks"]:
+            baseline_disk = disk["baseline_disk"]
+            if baseline_disk:
+                print(f"{disk['mount_point']} IOPS: {baseline_disk.performance_iops}")
+    """
+    result = {"machine": None, "baseline_host": None, "disks": []}
+
+    machine = Machine.objects.filter(ip=ip, bk_cloud_id=bk_cloud_id).first()
+    if not machine:
+        return result
+
+    result["machine"] = machine
+    result["baseline_host"] = query_baseline_host(machine.bk_svr_device_cls_name)
+
+    storage_device = machine.storage_device or {}
+    for mount_point, disk_info in storage_device.items():
+        disk_info = disk_info or {}
+        disk_type = disk_info.get("disk_type") or ""
+        size = disk_info.get("size")
+        result["disks"].append(
+            {
+                "mount_point": mount_point,
+                "disk_type": disk_type,
+                "size": size,
+                "baseline_disk": _match_baseline_disk(disk_type, size),
+            }
+        )
+
+    return result
