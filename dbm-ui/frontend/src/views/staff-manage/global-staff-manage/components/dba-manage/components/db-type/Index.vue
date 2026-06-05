@@ -213,26 +213,31 @@
                     v-model="row.level2_dba_edit" />
                 </BkFormItem>
                 <template v-else>
-                  <template v-if="row.level2_dba.length > 0">
-                    <TagBlock
-                      :copy-data="row.level2_dba"
-                      copyenable
-                      :data="row.level2_dba.map((item) => `${item}（${userDataMap[item]}）`)" />
+                  <template v-if="row.isAssigned">
+                    <template v-if="row.level2_dba.length > 0">
+                      <TagBlock
+                        :copy-data="row.level2_dba"
+                        copyenable
+                        :data="row.level2_dba.map((item) => `${item}（${userDataMap[item]}）`)" />
+                    </template>
+                    <span v-else>--</span>
                   </template>
-                  <template v-else-if="defaultUserData.username">
-                    <div class="fallback-dba">
-                      <span class="allback-dba-value">{{ defaultUserData.displayText }}</span>
-                      <span class="allback-dba-alert">（{{ t('兜底') }}）</span>
-                      <BkButton
-                        class="copy-btn"
-                        text
-                        theme="primary"
-                        @click="() => handleCopy([defaultUserData.username])">
-                        <DbIcon type="copy" />
-                      </BkButton>
-                    </div>
+                  <template v-else>
+                    <template v-if="defaultUserData.username">
+                      <div class="fallback-dba">
+                        <span class="allback-dba-value">{{ defaultUserData.displayText }}</span>
+                        <span class="allback-dba-alert">（{{ t('兜底') }}）</span>
+                        <BkButton
+                          class="copy-btn"
+                          text
+                          theme="primary"
+                          @click="() => handleCopy([defaultUserData.username])">
+                          <DbIcon type="copy" />
+                        </BkButton>
+                      </div>
+                    </template>
+                    <span v-else>--</span>
                   </template>
-                  <span v-else>--</span>
                 </template>
               </template>
             </TableColumn>
