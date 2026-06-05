@@ -115,6 +115,7 @@ def TwemproxyClusterMasterReplaceJob(
     twemproxy_server_shards = get_twemproxy_cluster_server_shards(
         act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"], new_instances_to_master
     )
+    cache_backup_mode = get_cache_backup_mode(act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"])
 
     # ## 部署实例 #############################################################################
     sub_pipelines = []
@@ -132,9 +133,7 @@ def TwemproxyClusterMasterReplaceJob(
             "spec_id": master_replace_info["master_spec"].get("id", 0),
             "spec_config": master_replace_info["master_spec"],
             "server_shards": twemproxy_server_shards.get(new_host_master, {}),
-            "cache_backup_mode": get_cache_backup_mode(
-                act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"]
-            ),
+            "cache_backup_mode": cache_backup_mode,
         }
         if act_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
             params["start_port"] = min(act_kwargs.cluster["master_ports"][old_master])
@@ -224,9 +223,7 @@ def TwemproxyClusterMasterReplaceJob(
                     "sync_dst1": rep_link.new_master_port,
                     "sync_dst2": rep_link.new_slave_port,
                     "server_shards": twemproxy_server_shards.get(rep_link.new_master_ip, {}),
-                    "cache_backup_mode": get_cache_backup_mode(
-                        act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"]
-                    ),
+                    "cache_backup_mode": cache_backup_mode,
                 }
             )
         sync_relations.append(sync_params)

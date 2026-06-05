@@ -19,6 +19,7 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.models import Cluster
 from backend.db_report.enums import RedisRollbackExerciseTaskStage as TaskStage
 from backend.db_report.models import RedisRollbackExerciseReport as Report
+from backend.flow.consts import DEFAULT_REDIS_START_PORT
 from backend.flow.engine.bamboo.scene.common.builder import Builder, Conditions, SubBuilder
 from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.redis.redis_rollback_exercise import (
@@ -72,10 +73,31 @@ class RedisRollbackExerciseFlow(object):
 
         logger.info("ticket_data: %s", self.ticket_data)
 
+    @staticmethod
+    def _enrich_drill_prod_temp_instance_pairs(info: dict) -> None:
+        """Persist drill prod/temp pairs on ticket info for best-effort cleanup when task row is missing."""
+        if info.get("drill_prod_temp_instance_pairs"):
+            return
+        resource_applied = info.get("redis") or []
+        instance_ip = info.get("instance_ip")
+        instance_port = info.get("instance_port")
+        if not resource_applied or instance_ip is None or instance_port is None:
+            return
+        temp_host_ip = resource_applied[0]["ip"]
+        info["drill_prod_temp_instance_pairs"] = [
+            [
+                "{}{}{}".format(instance_ip, IP_PORT_DIVIDER, instance_port),
+                "{}{}{}".format(temp_host_ip, IP_PORT_DIVIDER, DEFAULT_REDIS_START_PORT),
+            ]
+        ]
+
     def rollback_exercise_flow(self):
         """
         Composes data-structure + cleanup steps directly instead of spawning inner pipelines and polling.
         """
+        for info in self.ticket_data["infos"]:
+            self._enrich_drill_prod_temp_instance_pairs(info)
+
         pipeline = Builder(root_id=self.root_id, data=copy.deepcopy(self.ticket_data))
 
         sub_flows = []

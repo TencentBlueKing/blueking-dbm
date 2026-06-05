@@ -22,6 +22,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta import api
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
+from backend.db_services.redis.redis_modules.util import get_cluster_redis_modules_detail
 from backend.db_services.redis.util import is_twemproxy_proxy_type
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum, DnsOpType, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -320,6 +321,8 @@ class RedisClusterCMRSceneFlow(object):
             act_kwargs.cluster["immute_domain"],
             proxy_version,
         )
+        module_rows = get_cluster_redis_modules_detail(cluster_id=act_kwargs.cluster["cluster_id"])
+        load_modules = [module_row["module_name"] for module_row in module_rows]
 
         for proxy_ip in new_proxies:
             replace_kwargs = copy.deepcopy(act_kwargs)
@@ -334,7 +337,9 @@ class RedisClusterCMRSceneFlow(object):
                 "spec_id": proxy_replace_info["proxy_spec"].get("id", 0),
                 "spec_config": proxy_replace_info["proxy_spec"],
             }
-            sub_builder = ProxyBatchInstallAtomJob(self.root_id, self.data, replace_kwargs, params)
+            sub_builder = ProxyBatchInstallAtomJob(
+                self.root_id, self.data, replace_kwargs, params, load_modules=load_modules
+            )
             sub_pipelines.append(sub_builder)
         sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
@@ -414,19 +419,23 @@ class RedisClusterCMRSceneFlow(object):
                     ).get(id=cluster_id, bk_biz_id=self.data["bk_biz_id"])
                 except Cluster.DoesNotExist as e:
                     raise Exception("redis cluster does not exist,{}", e)
+                existing_proxy_ips = {p.machine.ip for p in cluster.proxyinstance_set.all()}
+                existing_slave_ips = set()
+                existing_master_ips = set()
+                for inst in cluster.storageinstance_set.all():
+                    if inst.instance_role == InstanceRole.REDIS_SLAVE.value:
+                        existing_slave_ips.add(inst.machine.ip)
+                    elif inst.instance_role == InstanceRole.REDIS_MASTER.value:
+                        existing_master_ips.add(inst.machine.ip)
                 # check proxy
                 for proxy in cluster_replacement.get("proxy", []):
-                    if not cluster.proxyinstance_set.filter(machine__ip=proxy["ip"]):
+                    if proxy["ip"] not in existing_proxy_ips:
                         raise Exception("proxy {} does not exist in cluster {}", proxy["ip"], cluster.immute_domain)
                 # check slave
                 for slave in cluster_replacement.get("redis_slave", []):
-                    if not cluster.storageinstance_set.filter(
-                        machine__ip=slave["ip"], instance_role=InstanceRole.REDIS_SLAVE.value
-                    ):
+                    if slave["ip"] not in existing_slave_ips:
                         raise Exception("slave {} does not exist in cluster {}", slave["ip"], cluster.immute_domain)
                 # check master
                 for master in cluster_replacement.get("redis_master", []):
-                    if not cluster.storageinstance_set.filter(
-                        machine__ip=master["ip"], instance_role=InstanceRole.REDIS_MASTER.value
-                    ):
+                    if master["ip"] not in existing_master_ips:
                         raise Exception("master {} does not exist in cluster {}", master["ip"], cluster.immute_domain)

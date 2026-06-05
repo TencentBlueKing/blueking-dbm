@@ -18,7 +18,7 @@ from django.utils.translation import gettext as _
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceStatus
 from backend.db_meta.models import Cluster
-from backend.db_services.redis.redis_modules.util import get_redis_moudles_detail
+from backend.db_services.redis.redis_modules.util import get_redis_modules_detail
 from backend.db_services.redis.util import is_predixy_proxy_type
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -74,7 +74,7 @@ def ClusterLoadModulesAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param
         act_kwargs.exec_ip = ip
         act_kwargs.cluster["ip"] = ip
         act_kwargs.cluster["ports"] = ports
-        act_kwargs.cluster["load_modules_detail"] = get_redis_moudles_detail(
+        act_kwargs.cluster["load_modules_detail"] = get_redis_modules_detail(
             cluster.major_version, param["load_modules"]
         )
         act_kwargs.get_redis_payload_func = RedisActPayload.redis_load_modules.__name__
@@ -90,7 +90,7 @@ def ClusterLoadModulesAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param
         act_kwargs.exec_ip = ip
         act_kwargs.cluster["ip"] = ip
         act_kwargs.cluster["ports"] = ports
-        act_kwargs.cluster["load_modules_detail"] = get_redis_moudles_detail(
+        act_kwargs.cluster["load_modules_detail"] = get_redis_modules_detail(
             cluster.major_version, param["load_modules"]
         )
         act_kwargs.get_redis_payload_func = RedisActPayload.redis_load_modules.__name__

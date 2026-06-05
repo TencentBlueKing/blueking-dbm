@@ -21,13 +21,14 @@ from pipeline.core.flow.activity import StaticIntervalGenerator
 
 from backend import env
 from backend.components import JobApi
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.api.cluster.nosqlcomm.decommission import decommission_instances
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_report.enums import RedisRollbackExerciseTaskStage as TaskStage
 from backend.db_report.models import RedisRollbackExerciseReport as Report
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
-from backend.flow.consts import StateType
+from backend.flow.consts import DEFAULT_REDIS_START_PORT, StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.engine.bamboo.scene.common.machine_os_init import RecycleOutputContext
 from backend.flow.engine.bamboo.scene.redis.redis_data_structure import RedisDataStructureFlow
@@ -505,6 +506,45 @@ class RedisExerciseBestEffortCleanupService(RedisLogCapturingService, BkJobServi
                 temp_addrs.add(temp_addr)
         return prod_addrs, temp_addrs
 
+    def _extract_allowlisted_temp_ports(
+        self,
+        temp_host_ip: str,
+        prod_temp_instance_pairs: list,
+        temp_instance_range: Optional[list] = None,
+        prod_instance_range: Optional[list] = None,
+        task_id: Optional[int] = None,
+    ) -> list:
+        task_temp_addrs = self._parse_instance_set(temp_instance_range)
+        task_prod_addrs = self._parse_instance_set(prod_instance_range)
+        pair_prod_addrs, pair_temp_addrs = self._parse_prod_temp_pairs(prod_temp_instance_pairs)
+        if not pair_temp_addrs:
+            if task_id is not None:
+                self.log_warning(
+                    _("Rollback task {} has no prod/temp instance pairs, skipping work-dir cleanup").format(task_id)
+                )
+            return []
+
+        if task_temp_addrs:
+            allowed_temp_addrs = task_temp_addrs & pair_temp_addrs
+        else:
+            allowed_temp_addrs = set(pair_temp_addrs)
+
+        unsafe_addrs = allowed_temp_addrs & (task_prod_addrs | pair_prod_addrs)
+        if unsafe_addrs:
+            label = _("Rollback task {}").format(task_id) if task_id is not None else _("Drill fallback")
+            self.log_warning(
+                _("{} temp addresses overlap source/prod addresses {}, skipping them").format(
+                    label, sorted("{}:{}".format(ip, port) for ip, port in unsafe_addrs)
+                )
+            )
+            allowed_temp_addrs -= unsafe_addrs
+
+        ports = set()
+        for ip, port in allowed_temp_addrs:
+            if ip == temp_host_ip:
+                ports.add(port)
+        return sorted(ports)
+
     def _get_task_temp_ports(self, ticket_id, bk_biz_id, cluster_id, temp_host_ip: str) -> list:
         if not ticket_id or not bk_biz_id or not cluster_id:
             return []
@@ -515,29 +555,39 @@ class RedisExerciseBestEffortCleanupService(RedisLogCapturingService, BkJobServi
         )
         ports = set()
         for task in tasks:
-            task_temp_addrs = self._parse_instance_set(task.temp_instance_range)
-            task_prod_addrs = self._parse_instance_set(task.prod_instance_range)
-            pair_prod_addrs, pair_temp_addrs = self._parse_prod_temp_pairs(task.prod_temp_instance_pairs)
-            if not pair_temp_addrs:
-                self.log_warning(
-                    _("Rollback task {} has no prod/temp instance pairs, skipping work-dir cleanup").format(task.id)
-                )
-                continue
-
-            allowed_temp_addrs = task_temp_addrs & pair_temp_addrs
-            unsafe_addrs = allowed_temp_addrs & (task_prod_addrs | pair_prod_addrs)
-            if unsafe_addrs:
-                self.log_warning(
-                    _("Rollback task {} temp addresses overlap source/prod addresses {}, skipping them").format(
-                        task.id, sorted("{}:{}".format(ip, port) for ip, port in unsafe_addrs)
-                    )
-                )
-                allowed_temp_addrs -= unsafe_addrs
-
-            for ip, port in allowed_temp_addrs:
-                if ip == temp_host_ip:
-                    ports.add(port)
+            for port in self._extract_allowlisted_temp_ports(
+                temp_host_ip,
+                task.prod_temp_instance_pairs,
+                temp_instance_range=task.temp_instance_range,
+                prod_instance_range=task.prod_instance_range,
+                task_id=task.id,
+            ):
+                ports.add(port)
         return sorted(ports)
+
+    @classmethod
+    def _get_drill_prod_temp_instance_pairs(cls, info: dict):
+        pairs = info.get("drill_prod_temp_instance_pairs")
+        if pairs:
+            return pairs
+        resource_applied = info.get("redis") or []
+        instance_ip = info.get("instance_ip")
+        instance_port = info.get("instance_port")
+        if not resource_applied or instance_ip is None or instance_port is None:
+            return None
+        temp_host_ip = resource_applied[0]["ip"]
+        return [
+            [
+                "{}{}{}".format(instance_ip, IP_PORT_DIVIDER, instance_port),
+                "{}{}{}".format(temp_host_ip, IP_PORT_DIVIDER, DEFAULT_REDIS_START_PORT),
+            ]
+        ]
+
+    def _get_drill_fallback_temp_ports(self, info: dict, temp_host_ip: str) -> list:
+        pairs = self._get_drill_prod_temp_instance_pairs(info)
+        if not pairs:
+            return []
+        return self._extract_allowlisted_temp_ports(temp_host_ip, pairs)
 
     @staticmethod
     def _get_rollback_task_ticket_id(global_data: dict):
@@ -580,6 +630,12 @@ class RedisExerciseBestEffortCleanupService(RedisLogCapturingService, BkJobServi
                 continue
 
             ports = self._get_task_temp_ports(ticket_id, ticket_bk_biz_id, cluster.id, temp_host_ip)
+            if not ports:
+                ports = self._get_drill_fallback_temp_ports(info, temp_host_ip)
+                if ports:
+                    self.log_info(
+                        _("Using drill ticket pairs fallback for {} (no TbTendisRollbackTasks)").format(temp_host_ip)
+                    )
             source_instance = self._parse_ip_port("{}:{}".format(info.get("instance_ip"), info.get("instance_port")))
             if source_instance and source_instance[0] == temp_host_ip and source_instance[1] in ports:
                 self.log_warning(
