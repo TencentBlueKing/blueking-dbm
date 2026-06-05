@@ -398,6 +398,7 @@ class SqlserverActPayload(PayloadHandler):
                     "host": kwargs["ips"][0]["ip"],
                     "port": self.global_data["port"],
                     "is_force_kill": kwargs["custom_params"].get("is_force_kill", False),
+                    "db_list": kwargs["custom_params"].get("db_list", []),
                 },
             },
         }

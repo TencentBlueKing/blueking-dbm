@@ -89,9 +89,11 @@ func (u *UnInstallSQLServerComp) PreCheck() error {
 		}
 		if len(procinfos) != 0 && !u.Params.Force {
 			// 存在用户连接且安全下架情况，退出异常
-			for _, info := range procinfos {
-				logger.Error("process:[%s]", info.String())
-			}
+			sqlserver.LogProcessInfos(
+				"error",
+				fmt.Sprintf("%s:%d active business connections", u.Params.Host, port),
+				procinfos,
+			)
 			logger.Error("There is a business connections [%d] on this port [%d]", len(procinfos), port)
 			isPass = false
 

@@ -122,7 +122,7 @@ class SqlserverRenameDBSFlow(BaseFlow):
                 ),
             )
 
-            # 执行数据库备份,默认3小时超时
+            # 执行数据库重命名,12小时超时
             sub_pipeline.add_act(
                 act_name=_("执行数据库重命名"),
                 act_component_code=SqlserverActuatorScriptComponent.code,
@@ -130,6 +130,7 @@ class SqlserverRenameDBSFlow(BaseFlow):
                     ExecActuatorKwargs(
                         exec_ips=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
                         get_payload_func=SqlserverActPayload.get_rename_dbs_payload.__name__,
+                        job_timeout=3600 * 12,
                     )
                 ),
             )

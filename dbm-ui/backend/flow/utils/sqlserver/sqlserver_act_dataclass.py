@@ -334,7 +334,7 @@ class CheckDBExistKwargs(ValidateHandler):
     @attributes is_get_old_backup_config 是否要获取旧的备份配置信息，内部导入标准化使用
     """
 
-    cluster_id: str
+    cluster_id: int
     check_dbs: List[str] = field(default_factory=list)
 
 
