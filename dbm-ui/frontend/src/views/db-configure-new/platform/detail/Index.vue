@@ -73,7 +73,14 @@
               :title="t('平台默认值')"
               :width="180">
               <template #default="{ row }">
-                {{ row.flag_encrypt === 1 ? '******' : row.value_default }}
+                <span v-if="row.value_default">
+                  {{ row.flag_encrypt === 1 ? '******' : row.value_default }}
+                </span>
+                <span
+                  v-else
+                  class="no-constraint-text">
+                  {{ t('空字符串') }}
+                </span>
               </template>
             </TableColumn>
             <TableColumn
@@ -235,6 +242,7 @@
     getListConfTypes,
   } from '@services/source/configs';
 
+  import type { ClusterTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
   import DbQuickSearch from '@components/db-quick-search/Index.vue';
@@ -250,7 +258,7 @@
   const { t } = useI18n();
 
   const { clusterType, confType, version } = route.params as {
-    clusterType: string;
+    clusterType: ClusterTypes;
     confType: string;
     version: string;
   };
@@ -510,7 +518,7 @@
 
   defineExpose({
     routerBack() {
-      router.push({ name: 'PlatformDbConfigureList' });
+      router.back();
     },
   });
 </script>
@@ -568,29 +576,6 @@
   .column-title-tips {
     cursor: help;
     border-bottom: 1px dashed #979ba5;
-  }
-
-  .bool-icon-yes,
-  .bool-icon-yes,
-  .bool-icon-no {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-  }
-
-  .bool-icon-yes {
-    font-size: 12px;
-    color: #65c389;
-    background: #ebfaf0;
-  }
-
-  .bool-icon-no {
-    font-size: 16px;
-    color: #ff5656;
-    background: #ffebeb;
   }
 
   .no-constraint-text {

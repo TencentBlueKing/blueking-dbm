@@ -29,7 +29,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@views/db-configure-new/Index.vue'),
     children: [
       {
-        path: 'list/:clusterType?',
+        path: 'list/:clusterType?/:parentId?/:treeId?/:tabName?',
         name: 'DbConfigureList',
         meta: {
           fullscreen: true,
@@ -38,7 +38,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@views/db-configure-new/business/list/Index.vue'),
       },
       {
-        path: 'detail/:clusterType/:version/:confType/:treeId/:parentId?',
+        path: 'detail/:clusterType/:confType/:version',
         name: 'DbConfigureDetail',
         meta: {
           fullscreen: true,
@@ -48,52 +48,20 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@views/db-configure-new/business/detail/Index.vue'),
       },
       {
-        path: 'create-db-module/',
-        name: 'SelfServiceCreateDbModule',
+        path: 'create-module/:clusterType',
+        name: 'DbConfigureCreateModule',
         meta: {
           navName: t('新建模块'),
         },
         component: () => import('@views/db-configure-new/business/create-module/Index.vue'),
       },
       {
-        path: 'create-module/',
-        name: 'createSpiderModule',
-        meta: {
-          navName: t('新建模块'),
-        },
-        component: () => import('@views/db-configure-new/business/create-module/TendbCluster.vue'),
-      },
-      {
-        path: 'sqlserver-create-db-module/',
-        name: 'SqlServerCreateDbModule',
-        meta: {
-          navName: t('新建模块'),
-        },
-        component: () => import('@views/db-configure-new/business/create-module/SqlServer.vue'),
-      },
-      {
-        path: 'clone-db-module/',
-        name: 'SelfServiceCloneDbModule',
+        path: 'clone-module/:clusterType',
+        name: 'DbConfigureCloneModule',
         meta: {
           navName: t('克隆模块'),
         },
         component: () => import('@views/db-configure-new/business/clone-module/Index.vue'),
-      },
-      {
-        path: 'clone-module/',
-        name: 'cloneSpiderModule',
-        meta: {
-          navName: t('克隆模块'),
-        },
-        component: () => import('@views/db-configure-new/business/clone-module/TendbCluster.vue'),
-      },
-      {
-        path: 'sqlserver-clone-db-module/',
-        name: 'SqlServerCloneDbModule',
-        meta: {
-          navName: t('克隆模块'),
-        },
-        component: () => import('@views/db-configure-new/business/clone-module/SqlServer.vue'),
       },
     ],
   },

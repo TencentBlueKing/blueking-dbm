@@ -93,7 +93,16 @@
   watch(
     () => activeTreeNode.value?.id,
     (moduleId) => {
-      if (moduleId) {
+      if (
+        moduleId &&
+        [
+          ClusterTypes.SQLSERVER_HA,
+          ClusterTypes.SQLSERVER_SINGLE,
+          ClusterTypes.TENDBCLUSTER,
+          ClusterTypes.TENDBHA,
+          ClusterTypes.TENDBSINGLE,
+        ].includes(clusterType.value)
+      ) {
         fetchConfTabs({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           db_module_id: moduleId,
@@ -122,6 +131,5 @@
 
   .content-details {
     margin: 20px 24px;
-    background-color: @bg-white;
   }
 </style>

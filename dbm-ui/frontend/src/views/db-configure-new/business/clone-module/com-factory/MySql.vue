@@ -2,13 +2,7 @@
  * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
  *
  * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
- *
  * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at https://opensource.org/licenses/MIT
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
- * the specific language governing permissions and limitations under the License.
 -->
 
 <template>
@@ -58,21 +52,14 @@
               <template #icon>
                 <i class="db-icon-mysql mr-5" />
               </template>
-              TenDBCluster
+              {{ clusterTypeInfos[clusterType]?.name }}
             </BkTag>
             <DbVersionSelect
               v-model="formData.db_version"
               class="version-select-inline"
               :db-type="DBTypes.MYSQL"
-              :source-version="String(route.query.conf_file || '')"
-              @change="handleValidate" />
-            <DbVersionSelect
-              v-model="formData.spider_version"
-              class="version-select-inline"
-              :db-type="DBTypes.MYSQL"
-              :placeholder="t('请选择xx', [t('接入层版本')])"
-              :prefix="t('接入层版本')"
-              query-key="spider"
+              :prefix="t('存储层版本')"
+              :source-version="String(route.query.confFile || '')"
               @change="handleValidate" />
             <BkSelect
               v-model="formData.charset"
@@ -198,8 +185,8 @@
 
   <Teleport to="#dbContentTitleAppend">
     <span class="clone-module-meta">
-      <span> {{ t('业务') }}：{{ bizInfo.name }} </span>
-      <span> {{ t('源模块') }}：{{ String(route.query.module_name) || '--' }} </span>
+      <span> {{ t('业务') }}：{{ bizInfo.name || '--' }} </span>
+      <span> {{ t('源模块') }}：{{ String(route.query.moduleName) || '--' }} </span>
     </span>
   </Teleport>
 </template>
@@ -220,25 +207,26 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, DBTypes } from '@common/const';
+  import { clusterTypeInfos, ClusterTypes, DBTypes } from '@common/const';
 
   import DbTable from '@components/db-table/IndexNew.vue';
 
   import { random } from '@utils';
 
-  import DbVersionSelect from './components/DbVersionSelect.vue';
-  import LevelConfigTable from './components/LevelConfigTable.vue';
-  import ParamTable from './components/ParamTable.vue';
+  import DbVersionSelect from '../components/DbVersionSelect.vue';
+  import LevelConfigTable from '../components/LevelConfigTable.vue';
+  import ParamTable from '../components/ParamTable.vue';
 
-  defineOptions({
-    name: 'SelfServiceCloneTendbCluster',
-  });
+  type Emits = (e: 'routerBack') => void;
+
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
 
+  const clusterType = ref(route.params.clusterType as ClusterTypes);
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
 
   // 业务信息
@@ -260,11 +248,10 @@
     alias_name: '',
     charset: '',
     db_version: '',
-    spider_version: '',
   });
   const formRef = ref();
   const sliderTableRef = ref();
-  /** 源字符集（从路由取） */
+  /** 源字符集（从路由取，由源模块列表页 moduleInfo.charset 传入） */
   const sourceCharset = ref<string>('');
   const isShowSlider = ref(false);
   // 当前活跃 Tab
@@ -320,21 +307,19 @@
         message: '',
         trigger: 'blur',
         async validator() {
-          if (!formData.alias_name || !formData.db_version || !formData.spider_version || !formData.charset)
-            return true;
+          if (!formData.alias_name || !formData.db_version || !formData.charset) return true;
           try {
             const data = await checkDbModuleUnique({
               bk_biz_id: String(bizId),
-              cluster_type: ClusterTypes.TENDBCLUSTER,
-              db_module_name: `${formData.alias_name}-${formData.spider_version}-${formData.db_version}-${formData.charset}`,
+              cluster_type: clusterType.value,
+              db_module_name: `${formData.alias_name}-${formData.db_version}-${formData.charset}`,
             });
             isValueAllowed.value = !!data.is_unique;
             return data.is_unique
               ? true
-              : t('该名称已被占用（{type} ：{spiderVersion}-{version} / {charset}）', {
+              : t('该名称已被占用（{type} ：{version} / {charset}）', {
                   charset: formData.charset,
-                  spiderVersion: formData.spider_version,
-                  type: 'TenDBCluster',
+                  type: clusterTypeInfos[clusterType.value].name,
                   version: formData.db_version,
                 });
           } catch {
@@ -388,7 +373,7 @@
     });
   });
 
-  /** 全 Tab 汇总统计 */
+  /** 全 Tab 汇总统计（用于底部操作栏展示） */
   const totalCounts = computed(() => {
     const items = currentConfItems.value;
     return {
@@ -445,12 +430,9 @@
     manual: true,
     onSuccess(rawConfTabs) {
       const tabs = rawConfTabs || [];
-      tabs[0] = { conf_file: formData.db_version, conf_type: 'dbconf', name: formData.db_version };
-      tabs[1] = {
-        conf_file: formData.spider_version,
-        conf_type: 'proxyconf',
-        name: formData.spider_version,
-      };
+      if (formData.db_version) {
+        tabs[0] = { conf_file: formData.db_version, conf_type: 'dbconf', name: formData.db_version };
+      }
       confTabs.value = tabs;
       tabRenderKey.value = random();
     },
@@ -488,31 +470,33 @@
   });
 
   // 初始化：从路由回填源模块名
-  if (route.query.module_name) {
-    formData.alias_name = String(route.query.module_name);
+  if (route.query.moduleName) {
+    formData.alias_name = String(route.query.moduleName);
   }
-  if (route.query.conf_file) {
-    cloneResult.value.conf_file_info.conf_file = String(route.query.conf_file);
+  if (route.query.confFile) {
+    cloneResult.value.conf_file_info.conf_file = String(route.query.confFile);
   }
+  // 源字符集从路由取（由源模块列表页 moduleInfo.charset 传入）
   if (route.query.charset) {
     sourceCharset.value = String(route.query.charset);
+    formData.charset = String(route.query.charset);
   }
 
   // 版本变化时：刷新 Tab 列表 + 重新拉取参数对比结果
   watch(
-    () => [formData.db_version, formData.spider_version],
+    () => formData.db_version,
     () => {
       fetchConfTabs({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         deploy_versions: JSON.stringify({ db_version: formData.db_version }),
-        meta_cluster_type: ClusterTypes.TENDBCLUSTER,
+        meta_cluster_type: clusterType.value,
       });
       fetchCloneResult({
         conf_type: 'dbconf',
-        meta_cluster_type: ClusterTypes.TENDBCLUSTER,
+        meta_cluster_type: clusterType.value,
         source_bk_biz_id: String(bizId),
-        source_conf_file: String(route.query.conf_file || ''),
-        source_module_id: String(route.query.module_id || ''),
+        source_conf_file: String(route.query.confFile || ''),
+        source_module_id: String(route.query.moduleId || ''),
         target_bk_biz_id: String(bizId),
         target_conf_file: formData.db_version,
       });
@@ -536,8 +520,8 @@
       bk_biz_id: Number(bizId),
       conf_type: currentTab.conf_type,
       level_name: 'module',
-      level_value: String(route.query.module_id || ''),
-      meta_cluster_type: ClusterTypes.TENDBCLUSTER,
+      level_value: String(route.query.moduleId || ''),
+      meta_cluster_type: clusterType.value,
       version: tabKey,
     });
   });
@@ -565,11 +549,11 @@
       isSubmitting.value = true;
 
       // 创建模块
-      const dbModuleName = `${formData.alias_name}-${formData.spider_version}-${formData.db_version}-${formData.charset}`;
+      const dbModuleName = `${formData.alias_name}-${formData.db_version}-${formData.charset}`;
       const createResult = await createModules({
         alias_name: formData.alias_name,
         biz_id: Number(bizId),
-        cluster_type: ClusterTypes.TENDBCLUSTER,
+        cluster_type: clusterType.value,
         db_module_name: dbModuleName,
       });
 
@@ -579,24 +563,18 @@
         conf_items: [
           { conf_name: 'charset', conf_value: formData.charset, description: t('字符集'), op_type: 'update' },
           { conf_name: 'db_version', conf_value: formData.db_version, description: t('数据库版本'), op_type: 'update' },
-          {
-            conf_name: 'spider_version',
-            conf_value: formData.spider_version,
-            description: t('Spider版本'),
-            op_type: 'update',
-          },
         ],
         conf_type: 'deploy',
         level_name: 'module',
         level_value: createResult.db_module_id,
-        meta_cluster_type: ClusterTypes.TENDBCLUSTER,
+        meta_cluster_type: clusterType.value,
         version: 'deploy_info',
       });
 
       window.changeConfirm = false;
       router.push({
         name: 'DbConfigureList',
-        params: { clusterType: ClusterTypes.TENDBCLUSTER },
+        params: { clusterType: clusterType.value },
         query: { parentId: `app-${bizId}`, treeId: `module-${createResult.db_module_id}` },
       });
     } catch (e) {
@@ -607,17 +585,8 @@
 
   /** 取消 */
   const handleCancel = () => {
-    routerBack();
+    emits('routerBack');
   };
-
-  const routerBack = () => {
-    router.push({
-      name: String(route.query.from || 'serviceApply'),
-      params: { clusterType: ClusterTypes.TENDBCLUSTER },
-    });
-  };
-
-  defineExpose({ routerBack });
 </script>
 
 <style lang="less" scoped>
@@ -672,6 +641,16 @@
     color: @primary-color;
     background: white;
     border: 1px solid @border-primary;
+  }
+
+  .action-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 16px 24px;
+    background: #fff;
+    border-radius: 2px;
   }
 
   .sideslider-sub-title {

@@ -25,8 +25,7 @@
         <OperationRecord v-if="tab.conf_type === 'operationRecord'" />
         <ConfigDatabase
           v-else
-          :conf-type="tab.conf_type"
-          :conf-type-name="tab.name" />
+          :conf-type="tab.conf_type" />
       </BkTabPanel>
     </BkTab>
   </div>
@@ -39,56 +38,81 @@
 
   import { getListConfTypes } from '@services/source/configs';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes } from '@common/const/clusterTypes.ts';
+
+  import { getConfigureState, saveConfigureState } from '@/views/db-configure-new/utils/configureState.ts';
 
   import OperationRecord from '../OperationRecord.vue';
 
   import ConfigDatabase from './components/ConfigDatabase.vue';
 
-  const props = defineProps<{
-    clusterType?: ClusterTypes;
-  }>();
-
   const route = useRoute();
   const router = useRouter();
   const { t } = useI18n();
 
-  const activeConfType = ref((route.query.confType as string) || (route.params.confType as string) || '');
+  const activeClusterType = inject('activeClusterType', ref(ClusterTypes.TENDBSINGLE));
 
-  /** 同步 confType 到 URL */
-  watch(activeConfType, (value) => {
-    router.replace({
-      query: {
-        ...route.query,
-        confType: value || undefined,
-      },
-    });
-  });
+  /** 初始化 activeConfType（优先从 sessionStorage 恢复 tab） */
+  const getInitialActiveConfType = (): string => {
+    const savedState = getConfigureState();
+    return savedState.activeTab || (route.params.tabName as string) || '';
+  };
+  const activeConfType = ref(getInitialActiveConfType());
+
+  /** 同步 confType 到 URL 并保存 tab 到 sessionStorage */
+  watch(
+    activeConfType,
+    (value) => {
+      // 有值时才同步到 URL，避免空值清掉已有的 tabName
+      if (value) {
+        router.replace({
+          params: {
+            ...route.params,
+            tabName: value,
+          },
+        });
+        saveConfigureState({ activeTab: value });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const confTypeTabs = ref<ServiceReturnType<typeof getListConfTypes>>([]);
 
   const { run: fetchConfTypeTabs } = useRequest(getListConfTypes, {
     manual: true,
     onSuccess(res) {
-      confTypeTabs.value = [
+      const base = [
         ...res,
         {
           conf_type: 'operationRecord',
-          name: t('操作记录'),
+          name: t('配置变更记录'),
         },
       ];
-      if (!activeConfType.value) {
+      confTypeTabs.value = base;
+
+      // 从 sessionStorage 恢复 activeTab
+      const savedState = getConfigureState();
+      if (!activeConfType.value && savedState.activeTab) {
+        if (base.find((tab) => tab.conf_type === savedState.activeTab)) {
+          activeConfType.value = savedState.activeTab;
+          return;
+        }
+      }
+
+      // 如果没有保存的状态，使用默认值
+      if (!activeConfType.value && res.length > 0) {
         activeConfType.value = res[0]?.conf_type;
       }
     },
   });
 
   watch(
-    () => props.clusterType,
+    activeClusterType,
     () => {
-      if (props.clusterType) {
-        fetchConfTypeTabs({ meta_cluster_type: props.clusterType });
-      }
+      fetchConfTypeTabs({ meta_cluster_type: activeClusterType.value });
     },
     { immediate: true },
   );
@@ -96,11 +120,12 @@
 
 <style lang="less" scoped>
   .biz-content {
+    background-color: #fff;
     border-radius: 2px;
     box-shadow: 0 2px 4px 0 rgba(25, 25, 41, 0.05);
 
     :deep(.bk-tab-content) {
-      padding-bottom: 0;
+      padding: 16px 16px 0;
     }
   }
 </style>

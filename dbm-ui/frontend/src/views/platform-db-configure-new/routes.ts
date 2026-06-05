@@ -29,7 +29,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@views/platform-db-configure-new/Index.vue'),
     children: [
       {
-        path: 'list/:clusterType?',
+        path: 'list/:clusterType?/:confType?',
         name: 'PlatformDbConfigureList',
         meta: {
           fullscreen: true,
@@ -38,7 +38,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@views/db-configure-new/platform/list/Index.vue'),
       },
       {
-        path: 'detail/:clusterType/:version/:confType',
+        path: 'detail/:clusterType/:confType/:version',
         name: 'PlatformDbConfigureDetail',
         meta: {
           fullscreen: true,

@@ -62,13 +62,12 @@
                   class="mr-4"
                   type="sqlserver" />
               </template>
-              {{ clusterTypeInfos[clusterType]?.name || 'SQLServer' }}
+              {{ clusterTypeInfos[clusterType]?.name }}
             </BkTag>
             <DbVersionSelect
               v-model="formData.version"
               class="version-select-inline"
               :db-type="DBTypes.SQLSERVER"
-              :prefix="t('存储层版本')"
               @change="handleValidate" />
             <BkInput
               class="ha-mode-input"
@@ -208,15 +207,19 @@
 
   import { random } from '@utils';
 
-  import DbVersionSelect from './components/DbVersionSelect.vue';
-  import ParamTable from './components/ParamTable.vue';
+  import DbVersionSelect from '../components/DbVersionSelect.vue';
+  import ParamTable from '../components/ParamTable.vue';
+
+  type Emits = (e: 'routerBack') => void;
+
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
 
-  const clusterType = ref(route.query.cluster_type as ClusterTypes);
+  const clusterType = ref(route.params.clusterType as ClusterTypes);
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
 
   // 业务信息
@@ -335,7 +338,9 @@
     manual: true,
     onSuccess(res) {
       const rawConfTabs = res || [];
-      rawConfTabs[0] = { conf_file: formData.version, conf_type: 'dbconf', name: formData.version };
+      if (formData.version) {
+        rawConfTabs[0] = { conf_file: formData.version, conf_type: 'dbconf', name: formData.version };
+      }
       confTabs.value = rawConfTabs;
       tabRenderKey.value = random();
     },
@@ -486,27 +491,8 @@
 
   /** 取消 */
   const handleCancel = () => {
-    routerBack();
+    emits('routerBack');
   };
-
-  const routerBack = () => {
-    if (!route.query.from) {
-      router.push({
-        name: 'serviceApply',
-      });
-      return;
-    }
-    router.push({
-      name: String(route.query.from),
-      params: {
-        clusterType: route.query.clusterType as string,
-      },
-    });
-  };
-
-  defineExpose({
-    routerBack,
-  });
 </script>
 
 <style lang="less" scoped>

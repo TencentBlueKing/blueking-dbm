@@ -62,7 +62,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     placeholder: t('请选择数据库版本'),
-    prefix: t('存储层版本'),
+    prefix: t('数据库版本'),
     queryKey: '',
   });
 

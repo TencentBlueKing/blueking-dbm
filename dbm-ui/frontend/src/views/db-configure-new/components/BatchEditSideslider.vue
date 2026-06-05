@@ -16,8 +16,9 @@
     :before-close="handleBeforeClose"
     class="config-edit-diff-sideslider"
     :is-show="isShow"
+    quick-close
     render-directive="if"
-    width="70%"
+    width="60%"
     @closed="handleClose">
     <template #header>
       {{ t('批量编辑参数') }}
@@ -206,7 +207,6 @@
 
 <script setup lang="ts">
   import _ from 'lodash';
-  import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { PrimaryTable } from '@blueking/tdesign-ui';

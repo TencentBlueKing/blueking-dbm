@@ -325,7 +325,7 @@
     fixedPagination: false,
     levelInfo: undefined,
     levelName: 'app',
-    levelValue: undefined,
+    levelValue: window.PROJECT_CONFIG.BIZ_ID,
     rowKey: 'conf_name',
     selectable: false,
   });
@@ -487,7 +487,7 @@
     bk_biz_id: globalBizsStore.currentBizId,
     conf_type: props.confType,
     level_info: props.levelInfo,
-    level_name: props.levelName as any,
+    level_name: (props.levelName as any) ?? 'app',
     level_value: props.levelValue ?? globalBizsStore.currentBizId,
     meta_cluster_type: props.clusterType,
     version: props.version,
@@ -587,7 +587,7 @@
   const { run: runRecoverDefault } = useRequest(recoverDefaultConfigItem, {
     manual: true,
     onSuccess() {
-      messageSuccess(t('操作成功'));
+      messageSuccess(t('操作成功，参数已恢复为默认值'));
       fetchLevelConfig(fetchParams.value);
       emit('change');
     },
@@ -811,7 +811,7 @@
             conf_names: restorableItems.map((r) => r.conf_name),
             conf_type: props.confType,
             level_name: props.levelName || 'app',
-            level_value: String(props.levelValue ?? globalBizsStore.currentBizId),
+            level_value: String(props.levelValue),
             meta_cluster_type: props.clusterType,
           });
         }
@@ -920,7 +920,7 @@
           conf_names: [row.conf_name],
           conf_type: props.confType,
           level_name: props.levelName || 'app',
-          level_value: String(props.levelValue ?? globalBizsStore.currentBizId),
+          level_value: String(props.levelValue),
           meta_cluster_type: props.clusterType,
         });
       },

@@ -27,7 +27,8 @@
       <BkForm
         ref="addFormRef"
         form-type="vertical"
-        :model="addParamForm">
+        :model="addParamForm"
+        :rules="formRules">
         <!-- 基础定义 -->
         <div class="form-section">
           <div class="form-section-title">{{ t('基础定义') }}</div>
@@ -40,16 +41,30 @@
               <BkInput
                 v-model="addParamForm.conf_name"
                 :disabled="isEditMode"
-                :placeholder="t('支持字母、数字及常用符号，不允许使用「`」，最大100字符')"
+                :maxlength="100"
+                :placeholder="t('请输入参数名')"
+                show-word-limit
                 @change="markDirty" />
+              <div
+                v-if="isConfNameAllowed"
+                class="form-item-tips">
+                {{ t('仅支持字母、数字、连字符、下划线、点号') }}
+              </div>
             </BkFormItem>
             <BkFormItem
               :label="t('参数显示名')"
               property="conf_name_lc">
               <BkInput
                 v-model="addParamForm.conf_name_lc"
-                :placeholder="t('请输入显示名')"
+                :maxlength="100"
+                :placeholder="t('请输入参数显示名')"
+                show-word-limit
                 @change="markDirty" />
+              <div
+                v-if="isConfNameLcAllowed"
+                class="form-item-tips">
+                {{ t('支持中文、字母、数字、空格，及连字符、下划线、点号，创建后可修改') }}
+              </div>
             </BkFormItem>
           </div>
           <!-- 数据类型 + 约束类型 -->
@@ -286,8 +301,8 @@
         value: v || NO_CONSTRAINT,
       }));
     return list.sort((a, b) => {
-      if (a.value === NO_CONSTRAINT && b.value !== NO_CONSTRAINT) return 1;
-      if (a.value !== NO_CONSTRAINT && b.value === NO_CONSTRAINT) return -1;
+      if (a.value === NO_CONSTRAINT && b.value !== NO_CONSTRAINT) return -1;
+      if (a.value !== NO_CONSTRAINT && b.value === NO_CONSTRAINT) return 1;
       return 0;
     });
   });
@@ -368,6 +383,72 @@
     };
     return exampleMap[key];
   });
+
+  const isConfNameAllowed = ref(true);
+  const isConfNameLcAllowed = ref(true);
+
+  // 表单验证规则
+  const formRules = {
+    conf_name: [
+      {
+        message: '',
+        required: true,
+        trigger: 'blur',
+        validator: (value: string) => {
+          if (value) return true;
+          return '';
+        },
+      },
+      {
+        message: t('格式不正确，请勿使用中文'),
+        trigger: 'blur',
+        validator: (value: string) => {
+          // 包含中文时校验失败
+          if (value && /[\u4e00-\u9fff\u3400-\u4dbf]/.test(value)) {
+            isConfNameAllowed.value = false;
+            return false;
+          }
+          return true;
+        },
+      },
+      {
+        message: t('格式不正确，请勿使用空格或特殊符号'),
+        trigger: 'blur',
+        validator: (value: string) => {
+          // 包含空格或反引号时校验失败
+          if (value && /[\s`]/.test(value)) {
+            isConfNameAllowed.value = false;
+            return false;
+          }
+          return true;
+        },
+      },
+      // 唯一性校验（需调用接口，根据实际接口补充）
+      // {
+      //   message: t('该参数名已存在'),
+      //   trigger: 'blur',
+      //   validator: async (value: string) => {
+      //     if (!value) return true;
+      //     const res = await checkConfNameUnique({ conf_name: value, ... });
+      //     return res.isUnique;
+      //   },
+      // },
+    ],
+    conf_name_lc: [
+      {
+        message: t('格式不正确，请勿使用特殊符号'),
+        trigger: 'blur',
+        validator: (value: string) => {
+          // 参数显示名校验正则：支持中文、字母、数字、空格，及连字符、下划线、点号
+          if (/^[\u4e00-\u9fff\u3400-\u4dbf0-9A-Za-z._\-\s]+$/.test(value)) {
+            return true;
+          }
+          isConfNameLcAllowed.value = false;
+          return false;
+        },
+      },
+    ],
+  };
 
   // 数据类型变更：BOOL 自动选中 ENUM；STRING 自动选中"无约束"；其它类型留空
   const handleValueTypeChange = () => {
@@ -495,7 +576,7 @@
       value_allowed: row.value_allowed ?? '',
       value_default: row.value_default ?? '',
       value_type: row.value_type ?? '',
-      value_type_sub: row.value_type_sub === 'STRING' ? NO_CONSTRAINT : (row.value_type_sub ?? ''),
+      value_type_sub: row.value_type === 'STRING' && row.value_type_sub === '' ? NO_CONSTRAINT : row.value_type_sub,
     });
     isAddParamFormDirty.value = false;
     isShowAddParam.value = true;
@@ -546,10 +627,10 @@
     }
 
     .form-item-tips {
-      margin-top: 4px;
       font-size: 12px;
       line-height: 20px;
       color: #979ba5;
+      position: absolute;
     }
 
     .default-value-row {

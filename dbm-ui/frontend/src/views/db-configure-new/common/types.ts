@@ -44,3 +44,20 @@ export type TreeState = {
   search: string;
   selected?: TreeData;
 };
+
+/** 模块信息类型定义 */
+export interface ModuleInfo {
+  bufferPercent?: string; // 内存分片比率 (SqlServer)
+  charset: string; // 字符集
+  maxRemainMemGb?: string; // 最大OS保留内存 (SqlServer)
+  moduleId: number;
+  moduleName: string;
+  relatedClusterCount: number;
+  relatedClusters: string;
+  spiderVersion?: string; // 接入层版本 (TenDBCluster)
+  syncType?: string; // 主从方式 (SqlServer)
+  systemVersion?: string; // 操作系统版本 (SqlServer)
+  updatedAt: string;
+  updatedBy: string;
+  version: string; // 数据库版本
+}

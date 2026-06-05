@@ -18,6 +18,7 @@
       :excludes="[ClusterTypes.ORACLE_SINGLE_NONE, ClusterTypes.ORACLE_PRIMARY_STANDBY]" />
     <div class="platform-config-content">
       <BkTab
+        v-if="activeClusterType"
         v-model:active="activeConfType"
         class="platform-config-tab"
         type="card-tab">
@@ -53,12 +54,12 @@
   import ConfigDatabase from './components/ConfigDatabase.vue';
   import OperationRecord from './components/OperationRecord.vue';
 
+  const router = useRouter();
+  const route = useRoute();
   const { t } = useI18n();
 
-  const activeClusterType = ref<ClusterTypes>(ClusterTypes.TENDBSINGLE);
-  const activeConfType = ref('');
-
-  provide('activeClusterType', activeClusterType);
+  const activeClusterType = ref<ClusterTypes>((route.params.clusterType as ClusterTypes) || ClusterTypes.TENDBSINGLE);
+  const activeConfType = ref<string>((route.params.confType as string) || 'dbconf');
 
   const confTypeTabs = ref<ServiceReturnType<typeof getListConfTypes>>([]);
 
@@ -69,7 +70,7 @@
         ...res,
         {
           conf_type: 'operationRecord',
-          name: t('操作记录'),
+          name: t('配置变更记录'),
         },
       ];
       if (!activeConfType.value) {
@@ -80,14 +81,35 @@
 
   watch(
     activeClusterType,
-    (val) => {
-      if (val) {
-        activeConfType.value = '';
-        fetchConfTypeTabs({ meta_cluster_type: val });
+    (value, oldValue) => {
+      if (value) {
+        router.replace({
+          params: {
+            clusterType: value,
+          },
+        });
+
+        // 用户切换集群类型时重置配置类型
+        if (oldValue) {
+          activeConfType.value = '';
+        }
+
+        fetchConfTypeTabs({ meta_cluster_type: value });
       }
     },
     { immediate: true },
   );
+
+  watch(activeConfType, (value) => {
+    if (value) {
+      router.replace({
+        params: {
+          clusterType: activeClusterType.value,
+          confType: value,
+        },
+      });
+    }
+  });
 </script>
 
 <style lang="less" scoped>

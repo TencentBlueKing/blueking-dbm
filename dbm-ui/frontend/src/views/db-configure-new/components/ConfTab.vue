@@ -27,6 +27,7 @@
 </template>
 
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
 
@@ -34,35 +35,79 @@
 
   import { ClusterTypes } from '@common/const';
 
+  import { getConfigureState, saveConfigureState } from '@/views/db-configure-new/utils/configureState';
+
   interface Props {
     clusterId?: number;
     dbModuleId?: number;
+    showOperationRecordTab?: boolean;
   }
 
   const props = defineProps<Props>();
+
+  const { t } = useI18n();
 
   const route = useRoute();
   const router = useRouter();
 
   const clusterType = computed(() => (route.params.clusterType as ClusterTypes) || ClusterTypes.TENDBSINGLE);
 
-  const activeTab = ref((route.query.confFile as string) || '');
+  /** 初始化 activeTab（优先从 sessionStorage 恢复） */
+  const getInitialActiveTab = (): string => {
+    const savedState = getConfigureState();
+    if (savedState.activeTab) {
+      return savedState.activeTab;
+    }
+    const urlConfFile = (route.params.tabName as string) || '';
+    // 如果从 URL 获取了 confFile，保存到 sessionStorage
+    if (urlConfFile) {
+      saveConfigureState({ activeTab: urlConfFile });
+    }
+    return urlConfFile;
+  };
+
+  const activeTab = ref(getInitialActiveTab());
   const confTabs = ref<ServiceReturnType<typeof getListClusterModuleConfFiles>>([]);
 
-  /** 同步 confFile 到 URL */
+  /** 同步 confFile 到 URL 并保存 tab 到 sessionStorage */
   watch(activeTab, (value) => {
     router.replace({
-      query: {
-        ...route.query,
-        confFile: value || undefined,
+      params: {
+        ...route.params,
+        tabName: value || undefined,
       },
     });
+
+    // 保存 activeTab 到 sessionStorage（存储 conf_file 字符串）
+    if (value) {
+      saveConfigureState({ activeTab: value });
+    }
   });
 
   const { run: fetchConfTabs } = useRequest(getListClusterModuleConfFiles, {
     manual: true,
     onSuccess(res) {
-      confTabs.value = res;
+      const base = res;
+      if (props.showOperationRecordTab) {
+        base.push({
+          conf_file: 'operationRecord',
+          conf_type: 'operationRecord',
+          name: t('配置变更记录'),
+        });
+      }
+
+      confTabs.value = base;
+
+      // 从 sessionStorage 恢复 activeTab
+      const savedState = getConfigureState();
+      if (!activeTab.value && savedState.activeTab) {
+        if (base.find((tab) => tab.conf_file === savedState.activeTab)) {
+          activeTab.value = savedState.activeTab;
+          return;
+        }
+      }
+
+      // 如果没有保存的状态，使用默认值
       if (!activeTab.value && res.length > 0) {
         activeTab.value = res[0].conf_file || '';
       }

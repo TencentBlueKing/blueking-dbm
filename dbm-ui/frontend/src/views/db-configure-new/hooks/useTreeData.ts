@@ -24,16 +24,15 @@ import { geSqlserverResourceTree } from '@services/source/sqlserver';
 
 import { useGlobalBizs } from '@stores';
 
-import {
-  type ClusterTypeInfos,
-  clusterTypeInfos,
-  ClusterTypes,
-  confLevelInfos,
-  ConfLevels,
-  TicketTypes,
-} from '@common/const';
+import { type ClusterTypeInfos, clusterTypeInfos, ClusterTypes, confLevelInfos, ConfLevels } from '@common/const';
 
 import type { TreeData, TreeState } from '@views/db-configure-new/common/types';
+
+import {
+  getConfigureState,
+  resetConfigureTab,
+  saveConfigureState,
+} from '@/views/db-configure-new/utils/configureState';
 
 /**
  * 处理拓扑树数据及操作
@@ -85,6 +84,14 @@ export const useTreeData = (treeState: TreeState) => {
     treeState.activeNode = node;
     // eslint-disable-next-line no-param-reassign
     treeState.selected = node;
+
+    // 保存选中的 treeNode 到 sessionStorage，同时重置 activeTab（不同节点 tabs 不同）
+    saveConfigureState({
+      selectedParentId: node.parentId,
+      selectedTreeId: node.treeId,
+    });
+    resetConfigureTab();
+
     if (!isOpen && !isSelected) {
       treeRef.value.setNodeOpened(node, true);
       treeRef.value.setSelect(node, true);
@@ -106,7 +113,7 @@ export const useTreeData = (treeState: TreeState) => {
     (node) => {
       if (node) {
         router.replace({
-          query: {
+          params: {
             parentId: (node as TreeData).parentId,
             treeId: (node as TreeData).treeId,
           },
@@ -132,19 +139,46 @@ export const useTreeData = (treeState: TreeState) => {
     }
     return undefined;
   };
+
   const setDefaultNode = () => {
     const { data = [] } = treeRef.value.getData();
-    // 从 query 参数获取 treeId 和 parentId（URL 格式为 ?parentId=app-3&treeId=module-39）
-    const { treeId: queryTreeId } = route.query;
     let node = data[0] as TreeData | undefined;
+    let needSaveState = false;
+
+    // 优先从 sessionStorage 恢复选中的 treeNode
+    const savedState = getConfigureState();
+    if (savedState.selectedTreeId) {
+      const targetNode = findTreeNodeById(data, String(savedState.selectedTreeId));
+      if (targetNode) {
+        node = targetNode;
+        // eslint-disable-next-line no-param-reassign
+        treeState.selected = node;
+        // eslint-disable-next-line no-param-reassign
+        treeState.activeNode = node;
+        return;
+      }
+    }
+
+    const { parentId: queryParentId, treeId: queryTreeId } = route.params;
     if (queryTreeId) {
       const targetNode = findTreeNodeById(data, String(queryTreeId));
-      if (targetNode) node = targetNode;
+      if (targetNode) {
+        node = targetNode;
+        needSaveState = true; // 需要从 URL 参数保存状态
+      }
     }
     // eslint-disable-next-line no-param-reassign
     treeState.selected = node;
     // eslint-disable-next-line no-param-reassign
     treeState.activeNode = node;
+
+    // 如果从 URL 参数恢复了节点，保存到 sessionStorage
+    if (needSaveState) {
+      saveConfigureState({
+        selectedParentId: queryParentId as string,
+        selectedTreeId: queryTreeId as string,
+      });
+    }
   };
 
   /**
@@ -221,65 +255,40 @@ export const useTreeData = (treeState: TreeState) => {
     { immediate: true },
   );
 
-  function createModule(query?: {
-    /** 源模块字符集（克隆场景） */
-    charset?: string;
-    clusterType?: string;
-    /** 源配置文件/版本（克隆场景，如 MySQL-8.0） */
-    confFile?: string;
-    from?: string;
+  /*
+   * 创建模块
+   */
+  function createModule() {
+    if (!clusterType?.value) return;
+    router.push({
+      name: 'DbConfigureCreateModule',
+      params: {
+        clusterType: clusterType?.value,
+      },
+    });
+  }
+
+  /*
+   * 克隆模块
+   */
+  function cloneModule(query: {
+    /** 源模块字符集（克隆场景，即当前模块字符集） */
+    charset: string;
+    /** 源模块版本（克隆场景，即当前模块版本） */
+    confFile: string;
     /** 源模块 ID（克隆场景，即当前模块 ID） */
-    moduleId?: string;
-    moduleName?: string;
+    moduleId: string | number;
+    /** 源模块名称（克隆场景，即当前模块名称） */
+    moduleName: string;
   }) {
     if (!clusterType?.value) return;
-
-    const ticketTypeMap = {
-      [ClusterTypes.SQLSERVER_HA]: TicketTypes.SQLSERVER_HA_APPLY,
-      [ClusterTypes.SQLSERVER_SINGLE]: TicketTypes.SQLSERVER_SINGLE_APPLY,
-      [ClusterTypes.TENDBHA]: TicketTypes.MYSQL_HA_APPLY,
-      [ClusterTypes.TENDBSINGLE]: TicketTypes.MYSQL_SINGLE_APPLY,
-    } as Record<string, string>;
-
-    const baseQuery = {
-      ...(query?.clusterType && { cluster_type: query.clusterType }),
-      ...(query?.from && { from: query.from }),
-      ...(query?.moduleId && { module_id: query.moduleId }),
-      ...(query?.moduleName && { module_name: query.moduleName }),
-      ...(query?.confFile && { conf_file: query.confFile }),
-      ...(query?.charset && { charset: query.charset }),
-    };
-
-    // 是否克隆模块
-    const isCloneModule = query?.moduleId || query?.moduleName;
-
-    if ([ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE].includes(clusterType.value as ClusterTypes)) {
-      router.push({
-        name: isCloneModule ? 'SelfServiceCloneDbModule' : 'SelfServiceCreateDbModule',
-        params: {
-          bk_biz_id: globalBizsStore.currentBizId,
-          type: ticketTypeMap[clusterType.value as ClusterTypes],
-        },
-        query: Object.keys(baseQuery).length > 0 ? baseQuery : undefined,
-      });
-    } else if ([ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE].includes(clusterType.value as ClusterTypes)) {
-      router.push({
-        name: isCloneModule ? 'SqlServerCloneDbModule' : 'SqlServerCreateDbModule',
-        params: {
-          bizId: globalBizsStore.currentBizId,
-          ticketType: ticketTypeMap[clusterType.value as ClusterTypes],
-        },
-        query: Object.keys(baseQuery).length > 0 ? baseQuery : undefined,
-      });
-    } else {
-      router.push({
-        name: isCloneModule ? 'cloneSpiderModule' : 'createSpiderModule',
-        params: {
-          bizId: globalBizsStore.currentBizId,
-        },
-        query: Object.keys(baseQuery).length > 0 ? baseQuery : undefined,
-      });
-    }
+    router.push({
+      name: 'DbConfigureCloneModule',
+      params: {
+        clusterType: clusterType?.value,
+      },
+      query,
+    });
   }
 
   /**
@@ -339,6 +348,7 @@ export const useTreeData = (treeState: TreeState) => {
   }
 
   return {
+    cloneModule,
     createModule,
     fetchBusinessTopoTree,
     handleSelectedTreeNode,
