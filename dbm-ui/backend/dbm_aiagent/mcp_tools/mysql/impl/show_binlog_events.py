@@ -26,8 +26,17 @@ def _build_show_binlog_events_sql(
     from_pos: Optional[int],
     limit_offset: Optional[int],
     limit_row_count: int,
+    event_type: str = "BINLOG",
 ) -> str:
-    parts: List[str] = ["SHOW BINLOG EVENTS"]
+    """构建 SHOW BINLOG/RELAYLOG EVENTS SQL。
+
+    Args:
+        event_type: "BINLOG" 或 "RELAYLOG"，决定生成的 SQL 类型。
+    """
+    if event_type not in ("BINLOG", "RELAYLOG"):
+        raise DBMMcpBaseException(msg=_("event_type 仅支持 BINLOG 或 RELAYLOG"))
+
+    parts: List[str] = ["SHOW {} EVENTS".format(event_type)]
     if log_name is not None:
         if not _SAFE_BINLOG_NAME_PATTERN.match(log_name):
             raise DBMMcpBaseException(msg=_("log_name 不合法, 仅允许字母、数字、点、下划线与连字符"))
@@ -58,7 +67,35 @@ def show_binlog_events(
     if machine_type not in [MachineType.SINGLE, MachineType.BACKEND, MachineType.REMOTE, MachineType.SPIDER]:
         raise DBMMcpNotSupportMachineTypeException(machine_type=machine_type)
 
-    cmd = _build_show_binlog_events_sql(log_name, from_pos, limit_offset, limit_row_count)
+    cmd = _build_show_binlog_events_sql(log_name, from_pos, limit_offset, limit_row_count, event_type="BINLOG")
+    raw_drs_res = DRSApi.rpc({"addresses": [address], "cmds": [cmd], "bk_cloud_id": bk_cloud_id})
+    address_res = raw_drs_res[0]
+    if address_res["error_msg"]:
+        raise DBMMcpBaseException(msg=address_res["error_msg"])
+
+    cmd_res = address_res["cmd_results"][0]
+    if cmd_res["error_msg"]:
+        raise DBMMcpBaseException(msg=cmd_res["error_msg"])
+
+    return {
+        "events": _extract_events(cmd_res.get("table_data") or []),
+    }
+
+
+def show_relaylog_events(
+    bk_cloud_id: int,
+    address: str,
+    machine_type: MachineType,
+    log_name: Optional[str],
+    from_pos: Optional[int],
+    limit_offset: Optional[int],
+    limit_row_count: int,
+) -> Dict:
+    """执行 SHOW RELAYLOG EVENTS，仅支持 slave 角色的实例（BACKEND / REMOTE）。"""
+    if machine_type not in [MachineType.SINGLE, MachineType.BACKEND, MachineType.REMOTE]:
+        raise DBMMcpNotSupportMachineTypeException(machine_type=machine_type)
+
+    cmd = _build_show_binlog_events_sql(log_name, from_pos, limit_offset, limit_row_count, event_type="RELAYLOG")
     raw_drs_res = DRSApi.rpc({"addresses": [address], "cmds": [cmd], "bk_cloud_id": bk_cloud_id})
     address_res = raw_drs_res[0]
     if address_res["error_msg"]:

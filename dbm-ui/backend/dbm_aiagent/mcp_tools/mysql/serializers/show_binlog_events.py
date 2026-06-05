@@ -25,7 +25,7 @@ class ShowBinlogEventsInputSerializer(serializers.Serializer):
         allow_null=True,
         allow_blank=True,
         default=None,
-        help_text=_("binlog 文件名, 对应 IN 子句, 如 mysql-bin.000001, 不填则省略 IN"),
+        help_text=_("binlog/relaylog 文件名, 对应 IN 子句, 如 mysql-bin.000001, 不填则省略 IN"),
     )
     from_pos = serializers.IntegerField(
         required=False,
@@ -57,5 +57,5 @@ class ShowBinlogEventsInputSerializer(serializers.Serializer):
 class ShowBinlogEventsOutputSerializer(serializers.Serializer):
     events = serializers.ListField(
         child=serializers.DictField(child=serializers.JSONField()),
-        help_text=_("SHOW BINLOG EVENTS 结果行, 每行为列名到值的 JSON 对象, 列随 MySQL 版本可能不同"),
+        help_text=_("SHOW EVENTS 结果行, 每行为列名到值的 JSON 对象, 列随 MySQL 版本可能不同"),
     )

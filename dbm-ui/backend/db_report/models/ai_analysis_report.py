@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import struct
 import zlib
 
 from django.db import models
@@ -57,16 +58,26 @@ class AiAnalysisReport(models.Model):
         ]
 
     def set_content(self, text: str):
-        """压缩并设置 content 字段"""
-        self.content = zlib.compress(text.encode("utf-8"))
+        """压缩并设置 content 字段（兼容 MySQL UNCOMPRESS() 格式：4字节小端序原始长度 + zlib 压缩数据）"""
+        content_bytes = text.encode("utf-8")
+        compressed = zlib.compress(content_bytes)
+        # 前 4 字节存储原始数据长度（小端序），与 MySQL COMPRESS()/UNCOMPRESS() 格式一致
+        self.content = struct.pack("<I", len(content_bytes)) + compressed
 
     def get_content(self) -> str:
-        """解压并返回 content 字段的文本内容"""
+        """解压并返回 content 字段的文本内容（兼容 MySQL COMPRESS() 格式和纯 zlib 格式）"""
         if not self.content:
             return ""
         raw = self.content
         if isinstance(raw, memoryview):
             raw = bytes(raw)
+        # MySQL COMPRESS() 格式：前 4 字节为原始长度（小端序），之后为 zlib 数据
+        # 尝试跳过 4 字节头解压；如果失败则按纯 zlib 格式解压（兼容历史数据）
+        if len(raw) > 4:
+            try:
+                return zlib.decompress(raw[4:]).decode("utf-8")
+            except zlib.error:
+                pass
         return zlib.decompress(raw).decode("utf-8")
 
     def __str__(self):
