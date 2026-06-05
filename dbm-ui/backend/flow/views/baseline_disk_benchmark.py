@@ -133,7 +133,7 @@ class BaselineDiskBenchmarkSceneApiView(FlowTestView):
         ticket_data = dict(serializer.validated_data)
 
         # 注入 FlowTree 必需字段, 用户无需在 payload 里填
-        ticket_data["ticket_type"] = TicketType.RESOURCE_OS_DISK_BENCHMARK.value
+        ticket_data["ticket_type"] = TicketType.OS_DISK_BENCHMARK.value
         ticket_data["created_by"] = request.user.username or "admin"
         ticket_data.setdefault("uid", "")
 
