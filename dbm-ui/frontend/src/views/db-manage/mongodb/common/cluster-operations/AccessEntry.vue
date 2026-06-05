@@ -163,16 +163,16 @@
 
   const getEntryAccess = (data: Props['data'], entryDomain: string, isPasswordShow: boolean) => {
     if (data.isMongoReplicaSet) {
-      return `${getFormatPassword(isPasswordShow)}${entryDomain}/?replicaSet=${data.cluster_name}&authSource=admin`;
+      return `${getFormatPassword(isPasswordShow)}${entryDomain}/test?replicaSet=${data.cluster_name}&authSource=admin`;
     }
-    return `${getFormatPassword(isPasswordShow)}${entryDomain}/?authSource=admin`;
+    return `${getFormatPassword(isPasswordShow)}${entryDomain}/test?authSource=admin`;
   };
 
   const getEntryAccessClb = (data: Props['data'], clusterEntry: ClusterEntryDetailModel[], isPasswordShow: boolean) => {
     if (!data.isMongoReplicaSet) {
       const clbItem = clusterEntry.find((entryItem) => entryItem.cluster_entry_type === 'clbDns');
       if (clbItem) {
-        return `${getFormatPassword(isPasswordShow)}${clbItem.entry}:${data.cluster_access_port}/?authSource=admin`;
+        return `${getFormatPassword(isPasswordShow)}${clbItem.entry}:${data.cluster_access_port}/test?authSource=admin`;
       }
     }
     return '';
