@@ -716,11 +716,11 @@ class TicketType(StrStructuredEnum):
 
     # 资源池
     RESOURCE_IMPORT = EnumField("RESOURCE_IMPORT", _("主机导入资源池"))
-    MYSQL_ADMIN_PASSWORD_MODIFY = EnumField("MYSQL_ADMIN_PASSWORD_MODIFY", _("临时密码修改"))
+    ADMIN_PASSWORD_MODIFY = EnumField("ADMIN_PASSWORD_MODIFY", _("临时密码修改"))
     RECYCLE_APPLY_HOST = EnumField("RECYCLE_APPLY_HOST", _("已申领主机退回"))
     RECYCLE_OLD_HOST = EnumField("RECYCLE_OLD_HOST", _("已下架主机处理"))
     RESOURCE_HCM_REPLENISH = EnumField("RESOURCE_HCM_REPLENISH", _("海磊-主机资源补货"))
-    RESOURCE_OS_DISK_BENCHMARK = EnumField("RESOURCE_OS_DISK_BENCHMARK", _("磁盘性能基线压测"))
+    OS_DISK_BENCHMARK = EnumField("OS_DISK_BENCHMARK", _("磁盘性能基线压测"))
     # fmt: on
 
     # VM
