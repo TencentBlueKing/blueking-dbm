@@ -1,38 +1,36 @@
 <template>
-  <BkLoading :loading="(isSwitchingSessionLoading || isSessionListLoading) && !isCreatingSession">
-    <div id="dbmAiChatContent">
-      <div class="content-header">
-        <div style="font-size: 16px; color: #313238">{{ agentInfo.name }}</div>
-        <div class="agent-group-tag">
-          {{ agentInfo.group }}
-        </div>
-        <div class="action-box">
-          <BkButton
-            :loading="isCreatingSession"
-            theme="primary"
-            @click="handleNewChat">
-            <DbIcon
-              class="mr-4"
-              type="add" />
-            {{ t('新建会话') }}
-          </BkButton>
-          <ChatHistorySelect
-            :active-session-code="activeSessionCode"
-            :is-loading="isSessionListLoading"
-            :session-list="sessionList"
-            @select="handleSelectSession" />
-        </div>
+  <div id="dbmAiChatContent">
+    <div class="content-header">
+      <div style="font-size: 16px; color: #313238">{{ agentInfo.name }}</div>
+      <div class="agent-group-tag">
+        {{ agentInfo.group }}
       </div>
-      <AIBlueking
-        v-if="isMounted"
-        ref="aiBlueking"
-        :draggable="false"
-        :hide-nimbus="false"
-        :request-options="requestOptions"
-        teleport-to="#dbmAiChatContent"
-        :url="url" />
+      <div class="action-box">
+        <BkButton
+          :loading="isCreatingSession"
+          theme="primary"
+          @click="handleNewChat">
+          <DbIcon
+            class="mr-4"
+            type="add" />
+          {{ t('新建会话') }}
+        </BkButton>
+        <ChatHistorySelect
+          :active-session-code="activeSessionCode"
+          :is-loading="isSessionListLoading"
+          :session-list="sessionList"
+          @select="handleSelectSession" />
+      </div>
     </div>
-  </BkLoading>
+    <AIBlueking
+      v-if="isMounted"
+      ref="aiBlueking"
+      :draggable="false"
+      :hide-nimbus="false"
+      :request-options="requestOptions"
+      teleport-to="#dbmAiChatContent"
+      :url="url" />
+  </div>
 </template>
 <script setup lang="ts">
   import Cookie from 'js-cookie';
@@ -125,6 +123,7 @@
         isInit = true;
         // show 后，需要等待一下，才能获取到 sessionList
         nextTick(() => {
+          aiBluekingRef.value?.updateAgentInfo();
           if (sessionList.value.length > 0) {
             switchToSession(sessionList.value[0].sessionCode);
           } else {
@@ -143,9 +142,11 @@
     const chatHelper = aiBluekingRef.value!.getChatHelper()!;
     chatHelper.session
       .createSession({
-        labels: [props.agentInfo.id],
         sessionCode: `${agentPrefix.value}${uuid()}`,
         sessionName: '新会话',
+        sessionProperty: {
+          labels: [props.agentInfo.id],
+        },
       })
       .then(() => {
         switchToSession(chatHelper.session.current.value?.sessionCode || '');
