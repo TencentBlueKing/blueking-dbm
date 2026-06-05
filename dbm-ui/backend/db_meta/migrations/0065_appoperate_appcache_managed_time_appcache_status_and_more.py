@@ -10,7 +10,7 @@ from backend.configuration.models import DBAdministrator
 from backend.db_meta.models import AppCache, Cluster
 
 
-def sync_appcache_managed():
+def sync_appcache_managed(apps, schema_editor):
     all_biz_ids = set(AppCache.objects.all().values_list("bk_biz_id", flat=True))
     managed_ids = set(Cluster.objects.exclude(phase="destroy").all().values_list("bk_biz_id", flat=True))
 
