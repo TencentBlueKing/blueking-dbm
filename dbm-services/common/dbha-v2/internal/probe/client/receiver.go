@@ -61,28 +61,28 @@ type ReceiverClient struct {
 // NewReceiverClient creates a ReceiverClient connected to the given endpoints.
 func NewReceiverClient(ctx context.Context, endpoints string, clientId string) (*ReceiverClient, error) {
 	pingTime := config.Cfg.Client.PingTime
-	if pingTime == 0 {
+	if pingTime <= 0 {
 		pingTime = constant.DefaultClientPingTime
 	}
 	pingTimeout := config.Cfg.Client.PingTimeout
-	if pingTimeout == 0 {
+	if pingTimeout <= 0 {
 		pingTimeout = constant.DefaultPingTimeout
 	}
 	maxRecvMsgSize := config.Cfg.Client.MaxReceiveMessageSize
-	if maxRecvMsgSize == 0 {
+	if maxRecvMsgSize <= 0 {
 		maxRecvMsgSize = constant.DefaultMaxReceiveMessageSize
 	}
 	maxSendMsgSize := config.Cfg.Client.MaxSendMessageSize
-	if maxSendMsgSize == 0 {
+	if maxSendMsgSize <= 0 {
 		maxSendMsgSize = constant.DefaultMaxSendMessageSize
 	}
 
 	reconnectInterval := config.Cfg.Client.ReceiverReconnectInterval
-	if reconnectInterval == 0 {
+	if reconnectInterval <= 0 {
 		reconnectInterval = constant.DefaultClientReconnectInterval
 	}
 	maxReconnectAttempts := config.Cfg.Client.ReceiverMaxReconnectAttempts
-	if maxReconnectAttempts == 0 {
+	if maxReconnectAttempts <= 0 {
 		maxReconnectAttempts = constant.DefaultClientMaxReconnectAttempts
 	}
 
