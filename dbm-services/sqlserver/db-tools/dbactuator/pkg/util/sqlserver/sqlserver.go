@@ -70,6 +70,92 @@ func (p ProcessInfo) String() string {
 		osutil.NullStringValue(p.LoginTime))
 }
 
+// FormatProcessInfos formats process list as a pretty-printed ASCII table.
+// title is an optional header describing the context (e.g. db name or instance addr).
+// Returns a multi-line string suitable for direct logger output.
+func FormatProcessInfos(title string, procs []ProcessInfo) string {
+	if len(procs) == 0 {
+		if title != "" {
+			return fmt.Sprintf("[%s] no active business connections", title)
+		}
+		return "no active business connections"
+	}
+	// table headers
+	headers := []string{"SPID", "DB", "CMD", "STATUS", "PROGRAM", "HOST", "LOGIN_TIME"}
+	rows := make([][]string, 0, len(procs))
+	for _, p := range procs {
+		rows = append(rows, []string{
+			fmt.Sprintf("%d", p.Spid),
+			osutil.NullStringValue(p.DbName),
+			osutil.NullStringValue(p.Cmd),
+			osutil.NullStringValue(p.Status),
+			osutil.NullStringValue(p.ProgramName),
+			osutil.NullStringValue(p.Hostname),
+			osutil.NullStringValue(p.LoginTime),
+		})
+	}
+	// compute column widths
+	widths := make([]int, len(headers))
+	for i, h := range headers {
+		widths[i] = len(h)
+	}
+	for _, row := range rows {
+		for i, cell := range row {
+			if l := len(cell); l > widths[i] {
+				widths[i] = l
+			}
+		}
+	}
+	// build separator like +----+----+
+	var sep strings.Builder
+	sep.WriteByte('+')
+	for _, w := range widths {
+		sep.WriteString(strings.Repeat("-", w+2))
+		sep.WriteByte('+')
+	}
+	sepLine := sep.String()
+
+	formatRow := func(cells []string) string {
+		var b strings.Builder
+		b.WriteByte('|')
+		for i, c := range cells {
+			b.WriteString(fmt.Sprintf(" %-*s |", widths[i], c))
+		}
+		return b.String()
+	}
+
+	var out strings.Builder
+	out.WriteByte('\n')
+	if title != "" {
+		out.WriteString(fmt.Sprintf("==== [%s] active connections: %d ====\n", title, len(procs)))
+	} else {
+		out.WriteString(fmt.Sprintf("==== active connections: %d ====\n", len(procs)))
+	}
+	out.WriteString(sepLine + "\n")
+	out.WriteString(formatRow(headers) + "\n")
+	out.WriteString(sepLine + "\n")
+	for _, row := range rows {
+		out.WriteString(formatRow(row) + "\n")
+	}
+	out.WriteString(sepLine)
+	return out.String()
+}
+
+// LogProcessInfos prints process list in a pretty-printed table via logger.
+// level: "info" | "warn" | "error" (default "info" when empty / unknown).
+// title is optional; pass "" if not needed.
+func LogProcessInfos(level string, title string, procs []ProcessInfo) {
+	msg := FormatProcessInfos(title, procs)
+	switch strings.ToLower(level) {
+	case "error":
+		logger.Error("%s", msg)
+	case "warn", "warning":
+		logger.Warn("%s", msg)
+	default:
+		logger.Info("%s", msg)
+	}
+}
+
 type DefaultPathInfo struct {
 	DefaultDataPath string `db:"Default_Data_Path"`
 	DefaultLogPath  string `db:"Default_Log_Path"`
@@ -325,15 +411,22 @@ func (h *DbWorker) CheckDBProcessExist(dbName string) bool {
 		// 没有返回异常db列表则正常退出
 		return true
 	}
-	// 异常退出
+	// 区分可自动 kill 的 SSMS 连接 与 业务连接
+	var ssmsProcs, bizProcs []ProcessInfo
 	for _, info := range procinfos {
 		if strings.Contains(info.ProgramName.String, "Microsoft SQL Server Management Studio") {
-			logger.Warn("process:[%s], kill this", info.String())
+			ssmsProcs = append(ssmsProcs, info)
 			killCmd = append(killCmd, fmt.Sprintf("kill %d", info.Spid))
 		} else {
+			bizProcs = append(bizProcs, info)
 			isNoErr = false
-			logger.Error("process:[%s]", info.String())
 		}
+	}
+	if len(ssmsProcs) > 0 {
+		LogProcessInfos("warn", fmt.Sprintf("db:%s SSMS connections will be killed", dbName), ssmsProcs)
+	}
+	if len(bizProcs) > 0 {
+		LogProcessInfos("error", fmt.Sprintf("db:%s business connections", dbName), bizProcs)
 	}
 	if !isNoErr {
 		return false
@@ -365,12 +458,10 @@ func (h *DbWorker) DisableBackupJob(isForce bool) (err error) {
 		"exec msdb.dbo.sp_update_job @job_name='TC_BACKUP_LOG',@enabled=0;",
 	}
 	if _, err := h.ExecMore(cmds); err != nil {
-		log := fmt.Sprintf("disable backup jobs failed %v", err)
 		if isForce {
-			return fmt.Errorf(log)
-		} else {
-			logger.Warn(log)
+			return fmt.Errorf("disable backup jobs failed %v", err)
 		}
+		logger.Warn("disable backup jobs failed %v", err)
 	}
 	return nil
 }
@@ -475,14 +566,65 @@ func (h *DbWorker) DBRestoreForLogBackup(dbname string, logBakFile string, resto
 
 }
 
-// GetTableListOnDB 在db匹配符合的表列表
+// TableSchema 表的 schema/table 名信息
+type TableSchema struct {
+	SchemaName string `db:"schema_name"`
+	TableName  string `db:"table_name"`
+}
+
+// FKRelation 外键关系（parent → referenced）
+//   - Parent 表是"引用方"，其上定义了 FK 列
+//   - Referenced 表是"被引用方"，被 FK 指向
+type FKRelation struct {
+	FKName       string `db:"fk_name"`
+	ParentSchema string `db:"parent_schema"`
+	ParentTable  string `db:"parent_table"`
+	RefSchema    string `db:"ref_schema"`
+	RefTable     string `db:"ref_table"`
+}
+
+// GetFKRelationsOnDB 拉取指定数据库下所有用户表的外键关系
+func (h *DbWorker) GetFKRelationsOnDB(dbName string) ([]FKRelation, error) {
+	var rs []FKRelation
+	getSQL := fmt.Sprintf(cst.LIST_FKS_ON_DB_SQL, dbName)
+	if err := h.Queryx(&rs, getSQL); err != nil {
+		return nil, fmt.Errorf("get fk-relations on db [%s] failed: %v", dbName, err)
+	}
+	return rs, nil
+}
+
+// SchemaBoundRef schema-bound 对象（视图/UDF 等）对表的引用
+type SchemaBoundRef struct {
+	Referencing string `db:"referencing"` // 引用方（schema-bound 对象）
+	Referenced  string `db:"referenced"`  // 被引用方（表）
+}
+
+// GetSchemaBoundRefsOnDB 拉取数据库内所有 schema-bound 对象对用户表的引用
+// 用于 DROP TABLE 前的预检查，避免被 SQL Server 抛 3729 错误
+func (h *DbWorker) GetSchemaBoundRefsOnDB(dbName string) ([]SchemaBoundRef, error) {
+	var rs []SchemaBoundRef
+	getSQL := fmt.Sprintf(cst.LIST_SCHEMABOUND_REFS_SQL, dbName)
+	if err := h.Queryx(&rs, getSQL); err != nil {
+		return nil, fmt.Errorf("get schema-bound refs on db [%s] failed: %v", dbName, err)
+	}
+	return rs, nil
+}
+
+// GetTableListOnDB 在db匹配符合的表列表，返回包含 schema 信息的表列表
+// 匹配/忽略规则均按表名（不含 schema）作正则匹配，与历史行为保持一致
 func (h *DbWorker) GetTableListOnDB(
 	dbName string,
 	intentionRegex []string,
-	ignoreRegex []string) (realTables []string, err error) {
+	ignoreRegex []string) (realTables []TableSchema, err error) {
 
-	var allTables []string
-	getTablesSQL := fmt.Sprintf("select name from [%s].[sys].[tables]", dbName)
+	var allTables []TableSchema
+	getTablesSQL := fmt.Sprintf(
+		`SELECT t.name AS table_name, s.name AS schema_name
+FROM [%s].sys.tables t
+JOIN [%s].sys.schemas s ON s.schema_id = t.schema_id
+WHERE t.is_ms_shipped = 0`,
+		dbName, dbName,
+	)
 	logger.Info("get table list: %s", getTablesSQL)
 
 	if err = h.Queryx(&allTables, getTablesSQL); err != nil {
@@ -492,18 +634,36 @@ func (h *DbWorker) GetTableListOnDB(
 		// 如果数据库没有数据表，则正常返回
 		return realTables, nil
 	}
+	// 抽取表名用于正则匹配
+	allTableNames := make([]string, 0, len(allTables))
+	for _, t := range allTables {
+		allTableNames = append(allTableNames, t.TableName)
+	}
 	// 获取匹配到表列表
-	intentionTables, err := util.DbMatch(allTables, util.ChangeToMatch(intentionRegex))
+	intentionTables, err := util.DbMatch(allTableNames, util.ChangeToMatch(intentionRegex))
 	if err != nil {
 		return realTables, err
 	}
 	// 获取匹配到忽略表列表
-	ignoreTables, err := util.DbMatch(allTables, util.ChangeToMatch(ignoreRegex))
+	ignoreTables, err := util.DbMatch(allTableNames, util.ChangeToMatch(ignoreRegex))
 	if err != nil {
 		return realTables, err
 	}
-	// 获取最终需要匹配到的表
-	realTables = util.FilterOutStringSlice(intentionTables, ignoreTables)
+	// 获取最终需要匹配到的表名集合
+	finalTableNames := util.FilterOutStringSlice(intentionTables, ignoreTables)
+	if len(finalTableNames) == 0 {
+		return realTables, nil
+	}
+	finalSet := make(map[string]struct{}, len(finalTableNames))
+	for _, n := range finalTableNames {
+		finalSet[n] = struct{}{}
+	}
+	// 回填 schema 信息
+	for _, t := range allTables {
+		if _, ok := finalSet[t.TableName]; ok {
+			realTables = append(realTables, t)
+		}
+	}
 	return
 
 }

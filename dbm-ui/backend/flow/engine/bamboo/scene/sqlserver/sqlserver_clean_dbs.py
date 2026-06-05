@@ -122,7 +122,20 @@ class SqlserverCleanDBSFlow(BaseFlow):
                 ),
             )
 
+            sub_pipeline.add_act(
+                act_name=_("检查实例{}:{}是否有DB链接".format(master_instance.machine.ip, master_instance.port)),
+                act_component_code=SqlserverActuatorScriptComponent.code,
+                kwargs=asdict(
+                    ExecActuatorKwargs(
+                        exec_ips=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
+                        get_payload_func=SqlserverActPayload.get_check_inst_process_payload.__name__,
+                        custom_params={"is_force_kill": False, "db_list": sub_flow_context["clean_dbs"]},
+                    )
+                ),
+            )
+
             # 执行数据库清档
+            # 12小时超时
             sub_pipeline.add_act(
                 act_name=_("执行数据库清档"),
                 act_component_code=SqlserverActuatorScriptComponent.code,
@@ -130,6 +143,7 @@ class SqlserverCleanDBSFlow(BaseFlow):
                     ExecActuatorKwargs(
                         exec_ips=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
                         get_payload_func=SqlserverActPayload.get_clean_dbs_payload.__name__,
+                        job_timeout=3600 * 12,
                     )
                 ),
             )

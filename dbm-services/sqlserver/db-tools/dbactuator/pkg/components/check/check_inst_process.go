@@ -12,6 +12,7 @@ package check
 
 import (
 	"fmt"
+	"strings"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/components"
@@ -28,9 +29,10 @@ type CheckInstProcessComp struct {
 
 // CheckInstProcessParam 参数
 type CheckInstProcessParam struct {
-	Host        string `json:"host" validate:"required,ip" `   // 本地hostip
-	Port        int    `json:"port"  validate:"required,gt=0"` // 需要操作的实例端口
-	IsFroceKill bool   `json:"is_force_kill"`                  // 隐藏参数，是否强制回收业务进程
+	Host        string   `json:"host" validate:"required,ip" `   // 本地hostip
+	Port        int      `json:"port"  validate:"required,gt=0"` // 需要操作的实例端口
+	IsFroceKill bool     `json:"is_force_kill"`                  // 隐藏参数，是否强制回收业务进程
+	DBList      []string `json:"db_list"`                        // 指定需要检查连接的db列表，不传则检查实例上所有业务库
 }
 
 // Init 初始化
@@ -57,7 +59,24 @@ func (c *CheckInstProcessComp) Init() error {
 // CheckInstProcess 检查db连接情况
 func (c *CheckInstProcessComp) CheckInstProcess() error {
 	var procinfos []sqlserver.ProcessInfo
-	if err := c.DB.Queryx(&procinfos, cst.CHECK_INST_SQL); err != nil {
+	checkSQL := cst.CHECK_INST_SQL
+	if len(c.Params.DBList) > 0 {
+		// 如果指定了db列表，则只检查这些db的连接情况
+		quoted := make([]string, 0, len(c.Params.DBList))
+		for _, db := range c.Params.DBList {
+			// 单引号转义，避免SQL注入与语法异常
+			quoted = append(quoted, fmt.Sprintf("'%s'", strings.ReplaceAll(db, "'", "''")))
+		}
+		dbFilter := fmt.Sprintf(" and DB_NAME(dbid) in (%s) ", strings.Join(quoted, ","))
+		// 在 order by 之前插入过滤条件
+		if idx := strings.Index(strings.ToLower(checkSQL), "order by"); idx >= 0 {
+			checkSQL = checkSQL[:idx] + dbFilter + checkSQL[idx:]
+		} else {
+			checkSQL = checkSQL + dbFilter
+		}
+		logger.Info("check inst process with db_list: %v", c.Params.DBList)
+	}
+	if err := c.DB.Queryx(&procinfos, checkSQL); err != nil {
 		return fmt.Errorf("check-inst-process failed %v", err)
 	}
 	if len(procinfos) == 0 {
@@ -77,9 +96,11 @@ func (c *CheckInstProcessComp) CheckInstProcess() error {
 		return nil
 	} else {
 		// 如果IsFroceKill为false，异常退出输出；
-		for _, info := range procinfos {
-			logger.Error("process:[%s]", info.String())
-		}
+		sqlserver.LogProcessInfos(
+			"error",
+			fmt.Sprintf("%s:%d active business connections", c.Params.Host, c.Params.Port),
+			procinfos,
+		)
 		return fmt.Errorf(
 			"[%s:%d] there is a business connections [%d], please check",
 			c.Params.Host,
