@@ -16,6 +16,11 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
+#: backend/bk_dataview/grafana/views.py:209
+#: backend/db_monitor/models/dashboard.py:29
+msgid "集群监控视图"
+msgstr "Cluster monitoring view"
+
 #: backend/db_monitor/views/grafana.py:59
 msgid "慢查询"
 msgstr "Slow Query"
