@@ -13,6 +13,7 @@ from typing import Dict, List
 
 from django.utils.translation import gettext as _
 
+from backend import env
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder, SubProcess
 from backend.flow.engine.bamboo.scene.common.deploy_probe_sub_flow import deploy_probe_sub_flow
@@ -55,7 +56,8 @@ def standardize_mysql_cluster_subflow(
     只要知道实例地址, 去机器上执行配置生成就行
     参数输入了 bk_cloud_id, 所以隐式的约束是 instances 都是这个 bk_cloud_id
 
-    @param with_probe: 是否部署探针, 默认关闭（目前仅对 `部署MySQL高可用集群` 流程开启, 其他流程暂未做测试和验证, 谨慎启用！）
+    @param with_probe: 是否部署探针, 默认关闭, 当 with_probe 和 env.ENABLE_DBHA_V2 都为 True 时才开启。
+                       目前探针部署仅配置到了 `部署MySQL高可用集群` 的流程中, 其他流程如果未做测试和验证, 请勿启用！
     """
 
     # 多租户环境临时默认做实例初始化
@@ -166,7 +168,8 @@ def standardize_mysql_cluster_subflow(
         )
 
     # 探针部署（在当前子流程中，能够确保获取到正确的集群元数据，探针的配置生成依赖该元数据）
-    if with_probe:
+    # 当 env.ENABLE_DBHA_V2 = False 时禁用部署流程
+    if with_probe and env.ENABLE_DBHA_V2:
         pipe.add_sub_pipeline(
             sub_flow=deploy_probe_sub_flow(
                 root_id=root_id,
