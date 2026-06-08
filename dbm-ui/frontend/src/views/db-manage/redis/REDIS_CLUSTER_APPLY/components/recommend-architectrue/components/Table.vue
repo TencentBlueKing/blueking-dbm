@@ -47,24 +47,6 @@
       </TableColumn>
       <TableColumn
         :class-name="getColumnClassName"
-        :col-key="ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE"
-        :title="t('TendisSSD 集群')">
-        <template #title>
-          <div>
-            <span>{{ t('TendisSSD 集群') }}</span>
-            <div
-              v-if="recommendArchitectrue === ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE"
-              class="recommend-head-tip">
-              <div class="tip-text">{{ t('推荐') }}</div>
-            </div>
-          </div>
-        </template>
-        <template #default="{ row }: {row: RowData}">
-          {{ row.value[ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE].text }}
-        </template>
-      </TableColumn>
-      <TableColumn
-        :class-name="getColumnClassName"
         :col-key="ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER"
         :title="t('Tendisplus 集群')">
         <template #title>
@@ -97,6 +79,24 @@
         </template>
         <template #default="{ row }: {row: RowData}">
           {{ row.value[ClusterTypes.PREDIXY_REDIS_CLUSTER].text }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        :class-name="getColumnClassName"
+        :col-key="ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE"
+        :title="t('TendisSSD 集群')">
+        <template #title>
+          <div>
+            <span>{{ t('TendisSSD 集群') }}</span>
+            <div
+              v-if="recommendArchitectrue === ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE"
+              class="recommend-head-tip">
+              <div class="tip-text">{{ t('推荐') }}</div>
+            </div>
+          </div>
+        </template>
+        <template #default="{ row }: {row: RowData}">
+          {{ row.value[ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE].text }}
         </template>
       </TableColumn>
     </PrimaryTable>
