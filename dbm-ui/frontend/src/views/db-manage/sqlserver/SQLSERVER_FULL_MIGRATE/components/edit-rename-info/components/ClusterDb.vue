@@ -66,12 +66,20 @@
       ignore_db_list: tableData.value[0].dbIgnoreName,
     });
 
-    modelValue.value.renameInfoList = dbs.map((item) => ({
-      db_name: item,
-      rename_cluster_list: [],
-      rename_db_name: '',
-      target_db_name: item,
-    }));
+    const existingMap = new Map(modelValue.value.renameInfoList.map((item) => [item.db_name, item]));
+
+    modelValue.value.renameInfoList = dbs.map((item) => {
+      const existing = existingMap.get(item);
+      if (existing) {
+        return existing;
+      }
+      return {
+        db_name: item,
+        rename_cluster_list: [],
+        rename_db_name: '',
+        target_db_name: item,
+      };
+    });
   };
 
   watch(() => [tableData.value[0].dbName, tableData.value[0].dbIgnoreName], fetchData);

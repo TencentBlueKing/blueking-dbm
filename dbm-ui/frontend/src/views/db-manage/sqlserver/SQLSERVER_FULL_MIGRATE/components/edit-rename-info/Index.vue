@@ -47,6 +47,7 @@
   </BkSideslider>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { messageError } from '@utils';
@@ -121,9 +122,9 @@
   watch(isShow, () => {
     if (isShow.value) {
       localValue.value = {
-        dbIgnoreName: props.data.dbIgnoreName,
-        dbName: props.data.dbName,
-        renameInfoList: props.data.renameInfoList,
+        dbIgnoreName: _.cloneDeep(props.data.dbIgnoreName),
+        dbName: _.cloneDeep(props.data.dbName),
+        renameInfoList: _.cloneDeep(props.data.renameInfoList),
       };
     }
   });

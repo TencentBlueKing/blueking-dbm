@@ -30,7 +30,8 @@
     </template>
     <EditableInput
       v-model="modelValue.master_domain"
-      :placeholder="t('请输入集群域名')">
+      :placeholder="t('请输入集群域名')"
+      @change="handleDomainChange">
       <template #append>
         <DbIcon
           class="host-select"
@@ -54,6 +55,7 @@
     @change="handleSingleSelectorChange" />
 </template>
 <script lang="ts" setup>
+  import { onMounted } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -177,24 +179,29 @@
     },
   });
 
-  watch(
-    () => modelValue.value.master_domain,
-    () => {
-      if (!modelValue.value.id && modelValue.value.master_domain) {
-        modelValue.value.id = undefined;
-        queryCluster({
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-          exact_domain: modelValue.value.master_domain,
-        });
-      }
-      if (!modelValue.value.master_domain) {
-        modelValue.value.id = undefined;
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
+  const fetchCluster = (domain: string) => {
+    if (domain) {
+      modelValue.value.master_domain = domain;
+      return queryCluster({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        exact_domain: domain,
+      });
+    }
+    return Promise.resolve();
+  };
+
+  const handleDomainChange = (value: string) => {
+    if (value && !modelValue.value.id) {
+      modelValue.value.id = undefined;
+      queryCluster({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        exact_domain: value,
+      });
+    }
+    if (!value) {
+      modelValue.value.id = undefined;
+    }
+  };
 
   const handleBatchSelect = () => {
     showBatchSelector.value = true;
@@ -203,21 +210,6 @@
   const handleSingleSelect = () => {
     showSingleSelector.value = true;
   };
-
-  // const handleInputChange = (value: string) => {
-  //   modelValue.value = {
-  //     cluster_type: ClusterTypes.SQLSERVER_HA,
-  //     id: undefined,
-  //     major_version: '',
-  //     master_domain: value,
-  //   };
-  //   if (value) {
-  //     queryCluster({
-  //       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-  //       exact_domain: value,
-  //     });
-  //   }
-  // };
 
   const handleBatchSelectorChange = (selected: Record<string, SqlServerHaModel[]>) => {
     const data = [...selected[ClusterTypes.SQLSERVER_HA], ...selected[ClusterTypes.SQLSERVER_SINGLE]];
@@ -237,6 +229,19 @@
       Object.assign(currentSelected, selected);
     }
   };
+
+  onMounted(() => {
+    if (modelValue.value.master_domain && !modelValue.value.id) {
+      queryCluster({
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        exact_domain: modelValue.value.master_domain,
+      });
+    }
+  });
+
+  defineExpose({
+    fetchCluster,
+  });
 </script>
 <style lang="less" scoped>
   .batch-host-select {
