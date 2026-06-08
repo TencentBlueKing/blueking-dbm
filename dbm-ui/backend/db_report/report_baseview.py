@@ -73,11 +73,19 @@ class ReportBaseViewSet(AuditedModelViewSet):
         state_map.update({info["state"]: info["count"] for info in state_count_info})
         return state_map
 
+    def get_total_count(self):
+        """
+        获取全量数据的总记录数，不受搜索/过滤条件影响
+        """
+        queryset = self.get_queryset()
+        return queryset.count()
+
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
         response.data["name"] = self.report_name or ReportType.get_choice_label(self.report_type)
         response.data["title"] = self.report_title
         response.data["state_count"] = self.summary_state_count()
+        response.data["total_count"] = self.get_total_count()
         return response
 
 

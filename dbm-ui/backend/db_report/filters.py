@@ -10,8 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 import functools
 import operator
+import re
 
 from django.db.models import Q
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django_filters import rest_framework as filters
 from django_filters.rest_framework import DjangoFilterBackend
@@ -25,6 +27,7 @@ class ReportListFilter(filters.FilterSet):
     )
     dba = filters.CharFilter(field_name="dba", method="filter_dba", label=_("DBA"), help_text=_("DBA过滤"))
     cluster = filters.CharFilter(field_name="cluster", method="filter_cluster", label=_("集群名"))
+    time_range = filters.CharFilter(field_name="time_range", method="filter_time_range", label=_("时间范围"))
 
     def filter_manage(self, queryset, name, value):
         username = self.request.user.username
@@ -52,6 +55,60 @@ class ReportListFilter(filters.FilterSet):
         first_dba_filters = functools.reduce(operator.or_, [Q(db_type=db_type, users__0=user) for user in users])
         manage_bizs = DBAdministrator.objects.filter(first_dba_filters).values_list("bk_biz_id", flat=True)
         return queryset.filter(bk_biz_id__in=list(manage_bizs))
+
+    def filter_time_range(self, queryset, name, value):
+        """
+        根据时间范围筛选，支持以下格式：
+        - now -7d / now -24h
+        - 7d / 24h (简写格式)
+        - 7days / 24hours (完整格式)
+        """
+        now = timezone.now()
+        # 解析时间范围参数
+        delta = timezone.timedelta(hours=24)  # 默认使用最近24小时
+        if value:
+            try:
+                # 统一处理输入格式
+                time_input = value.strip().lower()
+                # 检查是否为-0d或-0h格式
+                if time_input in ["-0d", "-0h", "now -0d", "now -0h"]:
+                    return queryset
+                # 支持多种格式：
+                # 1. "now -7d" 格式
+                if time_input.startswith("now"):
+                    parts = time_input.split()
+                    if len(parts) >= 2:
+                        time_str = parts[1]
+                        delta = self._parse_time_delta(time_str)
+                # 2. 直接时间格式 "7d", "24h"
+                else:
+                    delta = self._parse_time_delta(time_input)
+
+            except (ValueError, IndexError):
+                delta = timezone.timedelta(hours=24)
+
+        start_time = now - delta
+        return queryset.filter(create_at__gte=start_time)
+
+    def _parse_time_delta(self, time_str):
+        """解析时间字符串为timedelta对象"""
+        # 匹配数字和单位
+        pattern = r"^(-?\d+)([dh]|days?|hours?)$"
+        match = re.match(pattern, time_str)
+
+        if not match:
+            raise ValueError(f"Invalid time format: {time_str}")
+
+        number = int(match.group(1))
+        unit = match.group(2)
+
+        # 处理单位
+        if unit in ["d", "day", "days"]:
+            return timezone.timedelta(days=abs(number))
+        elif unit in ["h", "hour", "hours"]:
+            return timezone.timedelta(hours=abs(number))
+        else:
+            raise ValueError(f"Unsupported time unit: {unit}")
 
 
 class DrillReportFilter(ReportListFilter):
