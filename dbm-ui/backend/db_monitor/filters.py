@@ -34,8 +34,9 @@ class NoticeGroupFilter(filters.FilterSet):
         if not value:
             return queryset.filter(db_type="")
 
-        subquery = queryset.filter(db_type=value).order_by("bk_biz_id").values("id")[:1]
-        return queryset.filter(Q(id__in=subquery) | Q(db_type=""))
+        db_type_group = queryset.filter(db_type=value).first()
+        group_id = getattr(db_type_group, "id", 0)
+        return queryset.filter(Q(id=group_id) | Q(db_type=""))
 
     def filter_receivers(self, queryset, name, value):
         if not value:
