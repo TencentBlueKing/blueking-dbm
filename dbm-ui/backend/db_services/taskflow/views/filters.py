@@ -8,9 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from django_filters import rest_framework as filters
 
+from backend.configuration.constants import DBType
 from backend.flow.models import FlowTree
 
 
@@ -33,7 +35,13 @@ class TaskFlowFilter(filters.FilterSet):
 
     def filter_db_type(self, queryset, name, value):
         db_types = [db_type for db_type in value.split(",")]
-        return queryset.filter(db_type__in=db_types)
+        query = Q(db_type__in=db_types)
+
+        # 只要不在DBType里面的db类型,都归到'common'里面
+        if "common" in db_types:
+            query |= ~Q(db_type__in=DBType.get_values())
+
+        return queryset.filter(query)
 
     def filter_root_ids(self, queryset, name, value):
         return queryset.filter(root_id__in=value.split(","))
