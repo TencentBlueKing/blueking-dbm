@@ -646,7 +646,7 @@ func getSQLParseResultFile(fileName, version string) string {
 
 // getCommand generates the command string for running TmysqlParse
 // It takes the input filename and MySQL version as parameters
-func (t *TmysqlParse) getCommand(filename, version string) string {
+func (t *TmysqlParse) getCommand(filename, version, cluster_type string) string {
 	// Construct input and output file paths
 	inputPath := path.Join(t.tmpWorkdir, filename)
 	outputFileName := getSQLParseResultFile(filename, version)
@@ -661,7 +661,11 @@ func (t *TmysqlParse) getCommand(filename, version string) string {
 	if lo.IsNotEmpty(version) {
 		cmd += fmt.Sprintf(" --mysql-version=%s", version)
 	}
-
+	if lo.Contains([]string{app.Spider, app.TendbCluster}, cluster_type) {
+		cmd += (" --mysql-variant=mariadb")
+	} else {
+		cmd += (" --mysql-variant=mysql")
+	}
 	return cmd
 }
 
@@ -681,7 +685,7 @@ func (tf *TmysqlParseFile) Execute(executedSqlFileCh chan string, version string
 			c <- struct{}{}
 			defer func() { <-c; wg.Done() }()
 			//nolint
-			command := exec.Command("/bin/bash", "-c", tf.getCommand(sqlfile, ver))
+			command := exec.Command("/bin/bash", "-c", tf.getCommand(sqlfile, ver, tf.Param.ClusterType))
 			logger.Info("command is %s", command)
 
 			output, err := command.CombinedOutput()
