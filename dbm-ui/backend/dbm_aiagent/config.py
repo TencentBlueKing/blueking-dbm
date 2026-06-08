@@ -403,6 +403,18 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "tools": [],
     },
     {
+        "name": "host-performance-query",
+        "description": """Host hardware and baseline performance query: by IP (DBA) or by cluster/domain
+        with optional instance_roles filter. Returns machine summary, host baseline, and per-mount disk baselines.
+        主机硬件与基线性能查询：按 IP（DBA）或按集群/域名及可选实例角色过滤，返回主机摘要、机型基线与各挂载点磁盘基线。
+        """,
+        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "labels": ["host-performance-query"],
+        "status": 1,
+        "is_public": False,
+        "tools": [],
+    },
+    {
         "name": "taskflow-query",
         "description": """Task flow query services for DBM.
 

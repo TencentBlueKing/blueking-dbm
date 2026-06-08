@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import importlib
-from typing import Callable, Dict, List, Optional, Tuple, Type
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 
 from django.db.models import QuerySet
 
@@ -433,9 +433,79 @@ def _match_baseline_disk(disk_type: str, size: Optional[int]) -> Optional[Baseli
     return min(sized_disks, key=lambda disk: abs(disk.capacity_gb - size))
 
 
-def query_host_performance(ip: str, bk_cloud_id: int) -> Dict:
+def _baseline_host_to_dict(host: BaselineHost) -> Dict[str, Any]:
+    """将 BaselineHost 转为对外暴露的性能相关字段（可 JSON 序列化）。"""
+    return {
+        "device_class": host.device_class,
+        "cpu_model": host.cpu_model or "",
+        "cpu_frequency_ghz": host.cpu_frequency_ghz,
+        "network_card_speed": host.network_card_speed or "",
+        "vcpu": host.vcpu,
+        "memory_gb": host.memory_gb,
+        "network_pps_w": host.network_pps_w,
+        "intranet_bandwidth_gbps": host.intranet_bandwidth_gbps,
+        "queue_count": host.queue_count,
+    }
+
+
+def _baseline_disk_to_dict(disk: BaselineDisk) -> Dict[str, Any]:
+    """将 BaselineDisk 转为对外暴露的性能相关字段（可 JSON 序列化）。"""
+    return {
+        "disk_name": disk.disk_name,
+        "disk_type": disk.disk_type,
+        "capacity_gb": disk.capacity_gb,
+        "performance_iops": disk.performance_iops,
+        "performance_throughput_mbps": disk.performance_throughput_mbps,
+        "random_read_iops": disk.random_read_iops,
+        "sequential_write_throughput_mbps": disk.sequential_write_throughput_mbps,
+        "write_latency_ms": disk.write_latency_ms,
+    }
+
+
+def _machine_summary_dict(machine: Machine) -> Dict[str, Any]:
+    """主机定位摘要（不含整块 storage_device）。"""
+    return {
+        "ip": machine.ip,
+        "bk_cloud_id": machine.bk_cloud_id,
+        "bk_svr_device_cls_name": machine.bk_svr_device_cls_name or "",
+    }
+
+
+def query_host_performance_for_machine(machine: Machine) -> Dict[str, Any]:
     """
-    根据 ip + bk_cloud_id 查询主机性能参数
+    对已加载的 Machine 查询主机性能参数（不再查询 Machine 表）。
+
+    @return: 与 query_host_performance 相同结构的纯 dict，字段含义见 query_host_performance 文档。
+    """
+    baseline_orm = query_baseline_host(machine.bk_svr_device_cls_name)
+    host_baseline = _baseline_host_to_dict(baseline_orm) if baseline_orm else None
+
+    disks_out: List[Dict[str, Any]] = []
+    storage_device = machine.storage_device or {}
+    for mount_point, disk_info in storage_device.items():
+        disk_info = disk_info or {}
+        disk_type = disk_info.get("disk_type") or ""
+        size = disk_info.get("size")
+        baseline_disk_orm = _match_baseline_disk(disk_type, size)
+        disks_out.append(
+            {
+                "mount_point": mount_point,
+                "disk_type": disk_type,
+                "size": size,
+                "baseline": _baseline_disk_to_dict(baseline_disk_orm) if baseline_disk_orm else None,
+            }
+        )
+
+    return {
+        "machine": _machine_summary_dict(machine),
+        "host_baseline": host_baseline,
+        "disks": disks_out,
+    }
+
+
+def query_host_performance(ip: str, bk_cloud_id: int) -> Dict[str, Any]:
+    """
+    根据 ip + bk_cloud_id 查询主机性能参数（返回可 JSON 序列化的纯字典）。
 
     数据关联链路：
         1. 按 ip + bk_cloud_id 唯一定位 Machine
@@ -444,51 +514,17 @@ def query_host_performance(ip: str, bk_cloud_id: int) -> Dict:
 
     @param ip: 主机 IP，如 "127.0.0.1"
     @param bk_cloud_id: 云区域 ID
-    @return: 主机性能参数字典
-        {
-            "machine": Machine 实例或 None,
-            "baseline_host": BaselineHost 实例或 None,
-            "disks": [
-                {
-                    "mount_point": 挂载点，如 "/data",
-                    "disk_type": 磁盘类型，如 "NVME_SSD",
-                    "size": 挂载点容量(GB)或 None,
-                    "baseline_disk": 匹配到的 BaselineDisk 实例或 None,
-                },
-                ...
-            ],
-        }
+    @return: 主机性能字典，顶层键：
+        - machine (dict|null): 命中主机时为 {{ip, bk_cloud_id, bk_svr_device_cls_name}}；无主机时为 null。
+        - host_baseline (dict|null): 机型在 BaselineHost 中有配置时为性能相关字段；无匹配机型时为 null。
+        - disks (list): 按 storage_device 挂载点展开；每项含 mount_point、disk_type、size(GB 或 null)、
+          baseline(dict|null) 为匹配到的磁盘基线性能子集；无主机时为 []。
 
-    使用示例：
-        result = query_host_performance("127.0.0.1", 0)
-        if result["baseline_host"]:
-            print(f"机型: {result['baseline_host'].device_class}, vCPU: {result['baseline_host'].vcpu}")
-        for disk in result["disks"]:
-            baseline_disk = disk["baseline_disk"]
-            if baseline_disk:
-                print(f"{disk['mount_point']} IOPS: {baseline_disk.performance_iops}")
+        单位与 null 语义：memory_gb/capacity_gb 等为 GB；intranet_bandwidth_gbps 为 Gbps；
+        network_pps_w 为「万」为单位（与模型 help_text 一致）；无磁盘基线时 baseline 为 null。
     """
-    result = {"machine": None, "baseline_host": None, "disks": []}
-
     machine = Machine.objects.filter(ip=ip, bk_cloud_id=bk_cloud_id).first()
     if not machine:
-        return result
+        return {"machine": None, "host_baseline": None, "disks": []}
 
-    result["machine"] = machine
-    result["baseline_host"] = query_baseline_host(machine.bk_svr_device_cls_name)
-
-    storage_device = machine.storage_device or {}
-    for mount_point, disk_info in storage_device.items():
-        disk_info = disk_info or {}
-        disk_type = disk_info.get("disk_type") or ""
-        size = disk_info.get("size")
-        result["disks"].append(
-            {
-                "mount_point": mount_point,
-                "disk_type": disk_type,
-                "size": size,
-                "baseline_disk": _match_baseline_disk(disk_type, size),
-            }
-        )
-
-    return result
+    return query_host_performance_for_machine(machine)
