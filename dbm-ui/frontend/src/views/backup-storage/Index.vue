@@ -35,8 +35,8 @@
         row-key="bk_cloud_id">
         <TableColumn
           col-key="bk_cloud_name"
-          :title="t('云区域')"
-          :width="180">
+          :min-width="180"
+          :title="t('云区域')">
           <template #default="{ row }: { row: BackupConfigRow }">
             <BkButton
               text
@@ -48,32 +48,48 @@
         </TableColumn>
         <TableColumn
           col-key="storage_type"
-          :title="t('存储类型')"
-          :width="100">
+          :min-width="100"
+          :title="t('存储类型')">
           <template #default="{ row }: { row: BackupConfigRow }">
             {{ getConfValue(row, 'cos_auth.storage_type') }}
           </template>
         </TableColumn>
         <TableColumn
+          col-key="region"
+          :min-width="180"
+          title="Region">
+          <template #default="{ row }: { row: BackupConfigRow }">
+            {{ getConfValue(row, 'cos_auth.region') }}
+          </template>
+        </TableColumn>
+        <TableColumn
           col-key="endpoint"
-          :title="t('COS Endpoint')"
-          :width="260">
+          :min-width="180"
+          title="Endpoint">
           <template #default="{ row }: { row: BackupConfigRow }">
             {{ getConfValue(row, 'cos_auth.endpoint') }}
           </template>
         </TableColumn>
         <TableColumn
+          col-key="bucket"
+          :min-width="180"
+          title="Bucket">
+          <template #default="{ row }: { row: BackupConfigRow }">
+            {{ getConfValue(row, 'cos_auth.bucket') }}
+          </template>
+        </TableColumn>
+        <TableColumn
           col-key="updated_by"
-          :title="t('更新人')"
-          :width="100">
+          :min-width="100"
+          :title="t('更新人')">
           <template #default="{ row }: { row: BackupConfigRow }">
             {{ row.updated_by || '--' }}
           </template>
         </TableColumn>
         <TableColumn
           col-key="updated_at"
-          :title="t('更新时间')"
-          :width="180" />
+          :min-width="180"
+          :title="t('更新时间')" />
         <TableColumn
           col-key="operation"
           fixed="right"
