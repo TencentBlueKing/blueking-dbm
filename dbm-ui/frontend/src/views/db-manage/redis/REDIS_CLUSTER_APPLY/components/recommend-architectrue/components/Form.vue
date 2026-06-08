@@ -110,22 +110,22 @@
     await formRef.value!.validate();
     const { complexity, method, use } = formData;
     const architectrueMap: Record<string, ClusterTypes[]> = {
-      cache: [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.TWEMPROXY_REDIS_INSTANCE],
+      cache: [ClusterTypes.TWEMPROXY_REDIS_INSTANCE],
       no: [
         ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-        ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+        // ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
         ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
         ClusterTypes.PREDIXY_REDIS_CLUSTER,
       ],
       normal: [
         ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-        ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+        // ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
         ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
         ClusterTypes.PREDIXY_REDIS_CLUSTER,
       ],
       smart: [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER],
       storage: [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER],
-      yes: [ClusterTypes.PREDIXY_REDIS_CLUSTER, ClusterTypes.TWEMPROXY_REDIS_INSTANCE],
+      yes: [ClusterTypes.TWEMPROXY_REDIS_INSTANCE],
     };
 
     const intersectedArrayList = intersection([
@@ -133,6 +133,8 @@
       architectrueMap[method],
       architectrueMap[complexity],
     ]);
+
+    console.log(intersectedArrayList);
 
     if (intersectedArrayList.length === 0) {
       recommendArchitectrue.value = ClusterTypes.TWEMPROXY_REDIS_INSTANCE;
