@@ -54,6 +54,7 @@
             :selected="selected"
             @batch-edit="handleBatchEditCluster" />
           <DstClusterColumn
+            :ref="(el: any) => setDstClusterRef(el, index)"
             v-model="item.dstCluster"
             :selected-map="selectedMap"
             :src-cluster="item.srcCluster"
@@ -121,7 +122,7 @@
   </SmartAction>
 </template>
 <script lang="ts" setup>
-  import { reactive, useTemplateRef } from 'vue';
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import SqlServerHaModel from '@services/model/sqlserver/sqlserver-ha';
@@ -202,6 +203,14 @@
     Object.fromEntries(formData.tableData.map((cur) => [cur.srcCluster.master_domain, true])),
   );
 
+  const dstClusterRefs = ref<Record<number, InstanceType<typeof DstClusterColumn> | null>>({});
+
+  const setDstClusterRef = (el: any, index: number) => {
+    if (el) {
+      dstClusterRefs.value[index] = el;
+    }
+  };
+
   const batchInputConfig = [
     {
       case: 'sqlserver.test.dba.db',
@@ -248,9 +257,9 @@
               };
             }),
             renameInfoList: item.rename_infos.map((cur) => ({
-              db_name: cur.old_db_name,
+              db_name: cur.db_name,
               rename_cluster_list: [],
-              rename_db_name: cur.db_name,
+              rename_db_name: cur.rename_db_name,
               target_db_name: cur.target_db_name,
             })),
             srcCluster: {
@@ -261,6 +270,17 @@
             },
           });
         }),
+      });
+
+      // 调用每行的 DstClusterColumn 的 fetchCluster 方法以正确设置 localValue
+      nextTick(() => {
+        formData.tableData.forEach((row, index) => {
+          const dstClusterRef = dstClusterRefs.value[index];
+          if (dstClusterRef && row.dstCluster.length > 0) {
+            const domains = row.dstCluster.map((cluster) => cluster.master_domain);
+            dstClusterRef.fetchCluster(domains);
+          }
+        });
       });
     },
   });
@@ -334,7 +354,7 @@
   const handleBatchEdit = (value: any, field: string) => {
     formData.tableData.forEach((item) => {
       Object.assign(item, {
-        [field as keyof RowData]: value,
+        [field as keyof RowData]: _.cloneDeep(value),
       });
     });
   };
@@ -362,6 +382,17 @@
     } else {
       formData.tableData = [...(formData.tableData[0].srcCluster.master_domain ? formData.tableData : []), ...dataList];
     }
+
+    // 调用每行的 DstClusterColumn 的 fetchCluster 方法
+    nextTick(() => {
+      formData.tableData.forEach((row, index) => {
+        const dstClusterRef = dstClusterRefs.value[index];
+        if (dstClusterRef && row.dstCluster.length > 0) {
+          const domains = row.dstCluster.map((cluster) => cluster.master_domain);
+          dstClusterRef.fetchCluster(domains);
+        }
+      });
+    });
   };
 </script>
 
