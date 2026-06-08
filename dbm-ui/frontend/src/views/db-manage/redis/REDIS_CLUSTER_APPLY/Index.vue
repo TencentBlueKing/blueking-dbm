@@ -54,7 +54,9 @@
                 :popover-delay="0"
                 theme="light"
                 trigger="hover">
-                <BkRadioButton :label="item.id">
+                <BkRadioButton
+                  :label="item.id"
+                  style="flex: 1">
                   {{ item.text }}
                 </BkRadioButton>
                 <template #content>
