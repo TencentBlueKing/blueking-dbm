@@ -35,16 +35,16 @@ export type RedisIpSources = keyof typeof redisIpSources;
 
 // redis 部署架构
 export const redisClusterTypes = {
-  [ClusterTypes.PREDIXY_REDIS_CLUSTER]: {
-    id: ClusterTypes.PREDIXY_REDIS_CLUSTER,
-    image: TendisClusterImg,
-    text: 'RedisCluster',
+  [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: {
+    id: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+    text: 'TendisCache',
     tipContent: {
-      desc: t('原生 Redis Cluster'),
-      img: TendisClusterImg,
-      title: 'Redis Cluster',
+      desc: t('TendisCache_支持高读写性能的集群Cache版本_Cache版本后端Redis主从对原理和社区一致'),
+      img: TendisCacheImg,
+      title: 'TendisCache',
     },
   },
+  // eslint-disable-next-line perfectionist/sort-objects
   [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: {
     id: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
     image: TendisplusImg,
@@ -55,13 +55,15 @@ export const redisClusterTypes = {
       title: 'Tendisplus',
     },
   },
-  [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: {
-    id: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-    text: 'TendisCache',
+  // eslint-disable-next-line perfectionist/sort-objects
+  [ClusterTypes.PREDIXY_REDIS_CLUSTER]: {
+    id: ClusterTypes.PREDIXY_REDIS_CLUSTER,
+    image: TendisClusterImg,
+    text: 'RedisCluster',
     tipContent: {
-      desc: t('TendisCache_支持高读写性能的集群Cache版本_Cache版本后端Redis主从对原理和社区一致'),
-      img: TendisCacheImg,
-      title: 'TendisCache',
+      desc: t('原生 Redis Cluster'),
+      img: TendisClusterImg,
+      title: 'Redis Cluster',
     },
   },
   [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: {
