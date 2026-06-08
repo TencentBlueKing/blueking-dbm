@@ -14,55 +14,62 @@
 <template>
   <DbSideslider
     v-model:is-show="isShow"
-    :title="isEdit ? t('编辑配置') : t('新增配置')"
+    :title="isEditMode ? t('编辑配置') : t('新增配置')"
     :width="640">
+    <template #header>
+      <div class="header-title">
+        <span>{{ isEditMode ? t('编辑配置') : t('新增配置') }}</span>
+        <span
+          v-if="isEditMode"
+          class="sideslider-sub-title">
+          {{ editingData!.bk_cloud_name }}[{{ editingData!.bk_cloud_id }}]
+        </span>
+      </div>
+    </template>
     <BkForm
       ref="formRef"
       class="backup-config-form"
       form-type="vertical"
       :model="formData"
       :rules="formRules">
-      <BkFormItem
-        :label="t('云区域')"
-        property="bk_cloud_id"
-        required>
-        <template v-if="isEdit">
-          <span class="cloud-text">{{ editingData!.bk_cloud_name }}[{{ editingData!.bk_cloud_id }}]</span>
-        </template>
-        <BkSelect
-          v-else
-          v-model="formData.bk_cloud_id"
-          filterable
-          :input-search="false"
-          :loading="cloudLoading"
-          :placeholder="t('请选择云区域')">
-          <BkOption
-            v-for="item in cloudList"
-            :key="item.bk_cloud_id"
-            :disabled="existingCloudIds.includes(item.bk_cloud_id)"
-            :label="`${item.bk_cloud_name}[${item.bk_cloud_id}]`"
-            :value="item.bk_cloud_id">
-            <template #default>
-              <div class="cloud-option">
-                <span>{{ item.bk_cloud_name }}[{{ item.bk_cloud_id }}]</span>
-                <BkTag
-                  v-if="existingCloudIds.includes(item.bk_cloud_id)"
-                  class="ml-auto"
-                  size="small"
-                  theme=""
-                  type="filled">
-                  {{ t('已配置') }}
-                </BkTag>
-              </div>
-            </template>
-          </BkOption>
-        </BkSelect>
-      </BkFormItem>
-
-      <hr class="form-divider" />
+      <template v-if="!isEditMode">
+        <BkFormItem
+          :label="t('云区域')"
+          property="bk_cloud_id"
+          required>
+          <BkSelect
+            v-model="formData.bk_cloud_id"
+            filterable
+            :input-search="false"
+            :loading="cloudLoading"
+            :placeholder="t('请选择云区域')">
+            <BkOption
+              v-for="item in cloudList"
+              :key="item.bk_cloud_id"
+              :disabled="existingCloudIds.includes(item.bk_cloud_id)"
+              :label="`${item.bk_cloud_name}[${item.bk_cloud_id}]`"
+              :value="item.bk_cloud_id">
+              <template #default>
+                <div class="cloud-option">
+                  <span>{{ item.bk_cloud_name }}[{{ item.bk_cloud_id }}]</span>
+                  <BkTag
+                    v-if="existingCloudIds.includes(item.bk_cloud_id)"
+                    class="ml-auto"
+                    size="small"
+                    theme=""
+                    type="filled">
+                    {{ t('已配置') }}
+                  </BkTag>
+                </div>
+              </template>
+            </BkOption>
+          </BkSelect>
+        </BkFormItem>
+        <hr class="form-divider" />
+      </template>
 
       <BkFormItem
-        :label="t('COS Region')"
+        label="Region"
         property="region"
         required>
         <BkInput
@@ -71,7 +78,7 @@
       </BkFormItem>
 
       <BkFormItem
-        :label="t('COS Endpoint')"
+        label="Endpoint"
         property="endpoint"
         required>
         <BkInput
@@ -80,7 +87,7 @@
       </BkFormItem>
 
       <BkFormItem
-        :label="t('COS SecretId')"
+        label="SecretId"
         property="secret_id"
         required>
         <BkInput
@@ -97,7 +104,7 @@
       </BkFormItem>
 
       <BkFormItem
-        :label="t('COS SecretKey')"
+        label="SecretKey"
         property="secret_key"
         required>
         <BkInput
@@ -114,7 +121,7 @@
       </BkFormItem>
 
       <BkFormItem
-        :label="t('COS Bucket')"
+        label="Bucket"
         property="bucket_name"
         required>
         <BkInput
@@ -183,7 +190,7 @@
   });
   const { t } = useI18n();
 
-  const isEdit = computed(() => !!props.data);
+  const isEditMode = computed(() => !!props.data);
   const editingData = computed(() => props.data);
 
   const formRef = ref();
@@ -232,7 +239,7 @@
 
   // 初始化表单数据
   const initFormData = () => {
-    if (isEdit.value && editingData.value) {
+    if (isEditMode.value && editingData.value) {
       formData.bk_cloud_id = editingData.value.bk_cloud_id;
       Object.entries(confKeyMap).forEach(([key, confName]) => {
         (formData as any)[key] =
@@ -265,35 +272,35 @@
     ],
     bucket_name: [
       {
-        message: t('请输入 COS Bucket'),
+        message: t('请输入 Bucket'),
         required: true,
         trigger: 'blur',
       },
     ],
     endpoint: [
       {
-        message: t('请输入 COS Endpoint'),
+        message: t('请输入 Endpoint'),
         required: true,
         trigger: 'blur',
       },
     ],
     region: [
       {
-        message: t('请输入 COS Region'),
+        message: t('请输入 Region'),
         required: true,
         trigger: 'blur',
       },
     ],
     secret_id: [
       {
-        message: t('请输入 COS SecretId'),
+        message: t('请输入 SecretId'),
         required: true,
         trigger: 'blur',
       },
     ],
     secret_key: [
       {
-        message: t('请输入 COS SecretKey'),
+        message: t('请输入 SecretKey'),
         required: true,
         trigger: 'blur',
       },
@@ -349,7 +356,7 @@
         meta_cluster_type: 'common',
         version: 'cosinfo.toml',
       });
-      messageSuccess(isEdit.value ? t('保存成功') : t('新增成功'));
+      messageSuccess(isEditMode.value ? t('保存成功') : t('新增成功'));
       emit('saved');
     } finally {
       submitLoading.value = false;
@@ -358,6 +365,26 @@
 </script>
 
 <style lang="less" scoped>
+  .sideslider-sub-title {
+    position: relative;
+    padding-left: 8px;
+    margin-left: 8px;
+    font-size: 14px;
+    font-weight: normal;
+    color: #979ba5;
+
+    &::before {
+      position: absolute;
+      top: 50%;
+      left: 0;
+      width: 1px;
+      height: 14px;
+      content: '';
+      background: #dcdee5;
+      transform: translateY(-50%);
+    }
+  }
+
   .backup-config-form {
     padding: 24px;
 
