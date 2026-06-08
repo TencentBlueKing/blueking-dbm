@@ -24,10 +24,23 @@ class ReportCommonFieldSerializerMixin(serializers.Serializer):
     def get_dba_map(self, db_type):
         if hasattr(self, "_dba_map"):
             return self._dba_map
-        self._dba_map = {
-            dba["bk_biz_id"]: dba["users"][0]
-            for dba in DBAdministrator.objects.filter(db_type=db_type).values("bk_biz_id", "users")
-        }
+        biz_dba_map = {}
+        for dba in DBAdministrator.objects.filter(db_type=db_type).values("bk_biz_id", "users"):
+            biz_dba_map[dba["bk_biz_id"]] = dba["users"]
+
+        # 获取平台级别（bk_biz_id=0）的 DBA 配置作为默认值
+        platform_dba = DBAdministrator.objects.filter(db_type=db_type, bk_biz_id=0).first()
+        platform_users = platform_dba.users if platform_dba and platform_dba.users else []
+        # 构建最终的 dba_map，如果业务的 users 为空，则使用平台级别的 users
+        self._dba_map = {}
+        for bk_biz_id, users in biz_dba_map.items():
+            if users and len(users) > 0:
+                self._dba_map[bk_biz_id] = users[0]
+            elif platform_users and len(platform_users) > 0:
+                # 业务的 users 为空，使用平台级别的第一个用户
+                self._dba_map[bk_biz_id] = platform_users[0]
+            else:
+                self._dba_map[bk_biz_id] = ""
         return self._dba_map
 
     def get_dba(self, obj):
@@ -42,5 +55,7 @@ class GetReportOverviewSerializer(serializers.Serializer):
 
 
 class GetReportCountSerializer(serializers.Serializer):
+    time_range = serializers.CharField(help_text=_("时间范围"), required=False, default="")
+
     class Meta:
         swagger_schema_fields = {"example": mock_data.REPORT_COUNT_DATA}
