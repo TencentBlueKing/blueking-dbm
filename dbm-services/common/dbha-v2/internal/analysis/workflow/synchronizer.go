@@ -46,7 +46,11 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-const electionName = "sync-dbm-metadata"
+const (
+	electionName                     = "sync-dbm-metadata"
+	blackWhiteListQueryMaxAttempts   = 3
+	blackWhiteListQueryRetryInterval = 2 * time.Second
+)
 
 // Synchronizer periodically syncs DBM metadata into the local database cache.
 type Synchronizer struct {
@@ -328,5 +332,35 @@ func (s *Synchronizer) queryBlackWhiteListFromDbhaV1(ctx context.Context, bkBizI
 		return nil, gerrors.Newf(gerrors.Failure, "dbm client is not initialized")
 	}
 
-	return s.cli.GetBlackWhiteListFromDbhaV1(ctx, bkCloudId, bkBizId)
+	var lastErr error
+	for attempt := 1; attempt <= blackWhiteListQueryMaxAttempts; attempt++ {
+		items, err := s.cli.GetBlackWhiteListFromDbhaV1(ctx, bkCloudId, bkBizId)
+		if err == nil {
+			return items, nil
+		}
+
+		lastErr = err
+		if attempt >= blackWhiteListQueryMaxAttempts {
+			logger.Warn(
+				"failed to query black white list from dbha-v1 after %d attempts, bk_biz_id: %d, bk_cloud_id: %d, errmsg: %s",
+				blackWhiteListQueryMaxAttempts, bkBizId, bkCloudId, err,
+			)
+			continue
+		}
+
+		logger.Warn(
+			"failed to query black white list from dbha-v1, will retry after %s, bk_biz_id: %d, bk_cloud_id: %d, errmsg: %s",
+			blackWhiteListQueryRetryInterval, bkBizId, bkCloudId, err,
+		)
+
+		select {
+		case <-ctx.Done():
+			return nil, gerrors.Newf(gerrors.Failure,
+				"query black white list from dbha-v1 cancelled during retry, bk_biz_id: %d, bk_cloud_id: %d, errmsg: %s",
+				bkBizId, bkCloudId, ctx.Err())
+		case <-time.After(blackWhiteListQueryRetryInterval):
+		}
+	}
+
+	return nil, lastErr
 }
