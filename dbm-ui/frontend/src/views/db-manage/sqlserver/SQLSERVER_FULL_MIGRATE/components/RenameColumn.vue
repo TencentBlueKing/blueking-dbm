@@ -32,7 +32,6 @@
 </template>
 
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { batchCheckClusterDatabase } from '@services/source/dbbase';
@@ -143,21 +142,30 @@
         ignore_db_list: dbIgnoreName.value,
       });
 
-      renameInfoList.value = dbs.map((item) => ({
-        db_name: item,
-        rename_cluster_list: [],
-        rename_db_name: '',
-        target_db_name: item,
-      }));
+      const existingMap = new Map(renameInfoList.value.map((item) => [item.db_name, item]));
+      renameInfoList.value = dbs.map((item) => {
+        const existing = existingMap.get(item);
+        if (existing) {
+          return existing;
+        }
+        return {
+          db_name: item,
+          rename_cluster_list: [],
+          rename_db_name: '',
+          target_db_name: item,
+        };
+      });
 
       if (dbs.length < 1) {
         return;
       }
 
+      const targetDbNames = renameInfoList.value.map((item) => item.target_db_name);
+
       const result = await batchCheckClusterDatabase({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         cluster_ids: props.data.dstCluster.map((item) => item.id),
-        db_list: dbs,
+        db_list: targetDbNames,
       });
 
       conflictDbList.value = Object.keys(
@@ -172,6 +180,14 @@
           return acc;
         }, {}),
       );
+
+      // 从单据恢复时，若 target_db_name 已修改且冲突已解决，标记为已编辑
+      if (conflictDbList.value.length === 0) {
+        const hasModified = renameInfoList.value.some((item) => item.target_db_name !== item.db_name);
+        if (hasModified) {
+          hasEditRename.value = true;
+        }
+      }
     } finally {
       loading.value = false;
     }
@@ -187,10 +203,9 @@
       srcClusterId: props.data.srcCluster.id,
     }),
     (data) => {
-      if (_.isEqual(cloneData, data)) {
-        hasEditRename.value = false;
+      if (hasEditRename.value) {
+        return;
       }
-      if (hasEditRename.value) return;
       Object.assign(cloneData, data);
       fetchData();
     },

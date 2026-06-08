@@ -70,8 +70,6 @@
   import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
   interface Props {
-    // 用于检查当前集群是否被包含在源集群中
-    selectedMap: Record<string, boolean>;
     srcCluster: {
       cluster_type: ClusterTypes;
       id: number;
@@ -115,14 +113,6 @@
           handler: (data: SqlServerHaModel) => data.isOffline,
           tip: t('集群已禁用'),
         },
-        // {
-        //   handler: (data: SqlServerHaModel) => data.id === props.srcCluster.id,
-        //   tip: t('不允许选择源集群'),
-        // },
-        // {
-        //   handler: (data: SqlServerHaModel) => props.selectedMap[data.master_domain],
-        //   tip: t('集群是已被选中的源集群'),
-        // },
         {
           handler: (data: SqlServerHaModel) => compareVersion(data.major_version, props.srcCluster.major_version),
           tip: t('不允许高版本往低版本迁移'),
@@ -138,14 +128,6 @@
           handler: (data: SqlServerSingleModel) => data.isOffline,
           tip: t('集群已禁用'),
         },
-        // {
-        //   handler: (data: SqlServerSingleModel) => data.id === props.srcCluster.id,
-        //   tip: t('不允许选择源集群'),
-        // },
-        // {
-        //   handler: (data: SqlServerSingleModel) => props.selectedMap[data.master_domain],
-        //   tip: t('集群是已被选中的源集群'),
-        // },
         {
           handler: (data: SqlServerSingleModel) => compareVersion(data.major_version, props.srcCluster!.major_version),
           tip: t('不允许高版本往低版本迁移'),
@@ -169,27 +151,21 @@
     ) as SqlServerHaModel[],
   }));
 
-  let batchEditRowCount = 0;
-
   const rules = [
     {
       message: t('集群域名格式不正确'),
       trigger: 'change',
       validator: () => modelValue.value.every((item) => domainRegex.test(item.master_domain)),
     },
-    // {
-    //   message: '',
-    //   trigger: 'change',
-    //   validator: () => {
-    //     const conflictList: string[] = [];
-    //     modelValue.value.forEach((item) => {
-    //       if (props.selectedMap[item.master_domain]) {
-    //         conflictList.push(item.master_domain);
-    //       }
-    //     });
-    //     return conflictList.length > 0 ? t('集群xx是已被选中的源集群', [conflictList.join(',')]) : true;
-    //   },
-    // },
+    {
+      message: t('不允许高版本往低版本迁移'),
+      trigger: 'change',
+      validator: () =>
+        modelValue.value.every(
+          (item) =>
+            !props.srcCluster.major_version || !compareVersion(item.major_version, props.srcCluster.major_version),
+        ),
+    },
     {
       message: t('目标集群不存在'),
       trigger: 'blur',
@@ -205,44 +181,59 @@
     showBatchSelector.value = true;
   };
 
+  const fetchClusterData = async (domainStr: string): Promise<typeof modelValue.value> => {
+    loading.value = true;
+    return Promise.all([
+      getHaClusterList({
+        domain: domainStr,
+        limit: -1,
+      }),
+      getSingleClusterList({
+        domain: domainStr,
+        limit: -1,
+      }),
+    ])
+      .then((dataList) => {
+        const temp: typeof modelValue.value = [];
+        dataList.forEach((data) => {
+          if (data.count) {
+            temp.push(
+              ...data.results.map((item) => ({
+                cluster_type: item.cluster_type,
+                id: item.id,
+                major_version: item.major_version,
+                master_domain: item.master_domain,
+              })),
+            );
+          }
+        });
+        return temp;
+      })
+      .finally(() => {
+        loading.value = false;
+      });
+  };
+
   const handleInputChange = (value: string) => {
     if (value) {
-      loading.value = true;
-      Promise.all([
-        getHaClusterList({
-          domain: value.split(batchSplitRegex).join(','),
-          limit: -1,
-        }),
-        getSingleClusterList({
-          domain: value.split(batchSplitRegex).join(','),
-          limit: -1,
-        }),
-      ])
-        .then((dataList) => {
-          const temp: typeof modelValue.value = [];
-          dataList.forEach((data) => {
-            if (data.count) {
-              temp.push(
-                ...data.results.map((item) => ({
-                  cluster_type: item.cluster_type,
-                  id: item.id,
-                  major_version: item.major_version,
-                  master_domain: item.master_domain,
-                })),
-              );
-            }
-          });
-          modelValue.value = temp;
-        })
-        .finally(() => {
-          loading.value = false;
-        });
+      const domainStr = value.split(batchSplitRegex).join(',');
+      fetchClusterData(domainStr).then((temp) => {
+        modelValue.value = temp;
+      });
     }
   };
 
   const handleBatchEditChange = (value: string | string[]) => {
-    batchEditRowCount = Object.keys(props.selectedMap).length;
-    handleInputChange(value as string);
+    // 将输入值转换为域名字符串
+    const domains = Array.isArray(value) ? value : value.split(batchSplitRegex);
+    const domainStr = domains.join(',');
+    // 获取集群数据
+    fetchClusterData(domainStr).then((temp) => {
+      modelValue.value = temp;
+      localValue.value = temp.map((item) => item.master_domain).join('\n');
+      // 触发批量编辑事件
+      emits('batch-edit', temp, 'dstCluster');
+    });
   };
 
   const handleBatchSelectorChange = (selected: Record<string, SqlServerHaModel[]>) => {
@@ -253,28 +244,21 @@
       major_version: item.major_version,
       master_domain: item.master_domain,
     }));
+    localValue.value = data.map((item) => item.master_domain).join('\n');
   };
 
-  watch(
-    modelValue,
-    () => {
-      localValue.value = modelValue.value.map((item) => item.master_domain).join('\n');
-      const renderText = modelValue.value
-        .filter((item) => item.master_domain && !item.id)
-        .map((item) => item.master_domain)
-        .join('\n');
-      if (renderText) {
-        handleBatchEditChange(renderText);
-      }
-      if (batchEditRowCount) {
-        emits('batch-edit', modelValue.value, 'dstCluster');
-        batchEditRowCount--;
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
+  const fetchCluster = async (domains: string[]) => {
+    if (domains.length === 0) return;
+    const domainStr = domains.join(',');
+    const temp = await fetchClusterData(domainStr);
+    modelValue.value = temp;
+    localValue.value = temp.map((item) => item.master_domain).join('\n');
+    return temp;
+  };
+
+  defineExpose({
+    fetchCluster,
+  });
 </script>
 <style lang="less" scoped>
   .batch-edit-btn {
