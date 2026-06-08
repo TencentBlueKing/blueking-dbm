@@ -23,6 +23,7 @@ from .kafka_affinity_report import KafkaBrokerAffinityReport, KafkaZookeeperAffi
 from .meta_check_report import MetaCheckReport
 from .monogdb_check_report import MongodbBackupCheckReport
 from .mysql_backup_progress import MysqlBackupProgress
+from .mysql_config_check_result import MysqlConfigCheckResult
 from .mysql_db_table_size import MysqlDbTableSize
 from .mysql_inspect_ignore import MysqlInspectIgnore
 from .mysql_slowlog_ai_analysis import MysqlSlowlogAiAnalysis

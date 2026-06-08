@@ -50,6 +50,7 @@ class DBMMcpTools(StrStructuredEnum):
     KAFKA_BILL = EnumField("kafka-bill", "kafka-bill")
     KAFKA_METRICS = EnumField("kafka-metrics", "kafka-metrics")
     HOST_DECOMMISSION_QUERY = EnumField("host-decommission-query", _("主机裁撤信息查询"))
+    HOST_PERFORMANCE_QUERY = EnumField("host-performance-query", _("主机性能查询"))
     TASKFLOW_QUERY = EnumField("taskflow-query", _("任务流查询"))
     KAFKA_TOOLBOX = EnumField("kafka-toolbox", "kafka-toolbox")
     PROMQL_QUERY = EnumField("promql-query", _("通用PromQL指标查询"))

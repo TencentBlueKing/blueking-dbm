@@ -24,10 +24,12 @@ from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import (
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.exceptions import (
+    DBMMcpClusterNotFoundException,
     DBMMcpNotSupportClusterTypeException,
     DBMMcpNotSupportMachineTypeException,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.helpers.assert_clustertype import assert_cluster_type
+from backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_runtime_variables import cluster_runtime_variables
 from backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_topo import mysql_cluster_topo
 from backend.dbm_aiagent.mcp_tools.mysql.impl.explain_sql import explain_sql
 from backend.dbm_aiagent.mcp_tools.mysql.impl.query_table_data_free import query_table_data_free
@@ -48,6 +50,10 @@ from backend.dbm_aiagent.mcp_tools.mysql.impl.show_processlist import (
 )
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_status import mysql_show_slave_status, show_instance_status
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_variables import show_instance_variables
+from backend.dbm_aiagent.mcp_tools.mysql.serializers.cluster_runtime_variables import (
+    MySQLClusterRuntimeVariablesInputSerializer,
+    MySQLClusterRuntimeVariablesOutputSerializer,
+)
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.cluster_topo import (
     MySQLClusterTopoInputSerializer,
     MySQLClusterTopoOutputSerializer,
@@ -223,6 +229,38 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
                 "tolerance_level": cluster_obj.disaster_tolerance_level,
                 "time_zone": cluster_obj.time_zone,
                 **mysql_cluster_topo(cluster_obj=cluster_obj),
+            }
+        )
+
+    @mcp_tools_api_decorator(
+        description=str(_("查询集群所有角色实例的运行时核心配置(已过滤目录/路径类), 带版本信息; 各实例另含 datadir、data_dir_mount")),
+        request_slz=MySQLClusterRuntimeVariablesInputSerializer,
+        response_slz=MySQLClusterRuntimeVariablesOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.MYSQL_QUERY],
+        permission_classes=[McpClusterDetailPermission],
+        mcp_auth_parser=auth_parse_clusters,
+        name_prefix="mysql_query",
+    )
+    def cluster_runtime_variables(self, request, *args, **kwargs):
+        cluster_id = self.get_param("cluster_id")
+        cluster_domain = self.get_param("cluster_domain")
+
+        try:
+            if cluster_id is not None:
+                cluster_obj = Cluster.objects.get(id=cluster_id)
+            else:
+                cluster_obj = Cluster.objects.get(immute_domain=cluster_domain)
+        except Cluster.DoesNotExist:
+            if cluster_id is not None:
+                raise DBMMcpClusterNotFoundException(msg=_("集群 id={} 不存在").format(cluster_id))
+            raise DBMMcpClusterNotFoundException(msg=_("集群域名 {} 不存在").format(cluster_domain))
+        assert_cluster_type(cluster_obj, [ClusterType.TenDBSingle, ClusterType.TenDBCluster, ClusterType.TenDBHA])
+
+        return Response(
+            {
+                "cluster_type": cluster_obj.cluster_type,
+                **cluster_runtime_variables(cluster_obj=cluster_obj),
             }
         )
 
