@@ -62,7 +62,7 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
     监控告警组视图
     """
 
-    queryset = NoticeGroup.objects.all().order_by("is_built_in", "name")
+    queryset = NoticeGroup.objects.all()
     serializer_class = NoticeGroupSerializer
     pagination_class = AuditedLimitOffsetPagination
     filter_backends = [DjangoFilterBackend]
@@ -103,7 +103,7 @@ class MonitorNoticeGroupViewSet(viewsets.AuditedModelViewSet):
         if self.action in ["list", "list_group_name", "list_default_group"]:
             bk_biz_id = self.request.query_params.get("bk_biz_id", PLAT_BIZ_ID)
             qs = qs.filter(bk_biz_id__in=(PLAT_BIZ_ID, bk_biz_id))
-        return qs.order_by("-bk_biz_id", "-update_at")
+        return qs.order_by("is_built_in")
 
     @Permission.decorator_permission_field(
         id_field=lambda d: d["id"],
