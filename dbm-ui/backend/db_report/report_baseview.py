@@ -9,10 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from collections import defaultdict
-from datetime import datetime, timezone
 from typing import Dict
 
-from django.core.cache import cache
 from django.db.models import Count
 from django.utils.translation import gettext_lazy as _
 from rest_framework import status
@@ -26,8 +24,8 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import AuditedModelViewSet
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import DBAdministrator, SystemSettings
-from backend.db_report.enums import REPORT_COUNT_CACHE_KEY, SWAGGER_TAG, ReportStateType, ReportType
-from backend.db_report.filters import DrillReportFilterBackend, ReportFilterBackend
+from backend.db_report.enums import SWAGGER_TAG, ReportStateType, ReportType
+from backend.db_report.filters import DrillReportFilterBackend, ReportFilterBackend, ReportListFilter
 from backend.db_report.register import db_report_maps, report_kind_register_map
 from backend.db_report.serializers import GetReportCountSerializer, GetReportOverviewSerializer
 from backend.iam_app.handlers.drf_perm.db_report import DBReportPermission
@@ -47,7 +45,6 @@ class ReportBaseViewSet(AuditedModelViewSet):
     # 巡检过滤/排序
     filter_backends = [ReportFilterBackend, OrderingFilter]
     filter_fields = {
-        "bk_biz_id": ["exact"],
         "cluster_type": ["exact", "in"],
         "create_at": ["gte", "lte"],
         "status": ["exact", "in"],
@@ -65,19 +62,83 @@ class ReportBaseViewSet(AuditedModelViewSet):
         exclude_bk_biz_ids = SystemSettings.get_setting_value(SystemSettingsEnum.DB_REPORT_EXCLUDE_BIZS, default=[])
         return queryset.exclude(bk_biz_id__in=exclude_bk_biz_ids)
 
+    def _get_time_filtered_queryset(self):
+        """
+        获取经过 time_range、bk_biz_id 和 manage 过滤的查询集，不受其他搜索/过滤条件影响
+        """
+        queryset = self.get_queryset()
+
+        # 应用 time_range 过滤
+        time_range = self.request.query_params.get("time_range", "")
+        filter_instance = ReportListFilter(
+            data=self.request.query_params,
+            queryset=queryset,
+            request=self.request,
+        )
+        queryset = filter_instance.filter_time_range(queryset, "time_range", time_range)
+
+        # 应用 bk_biz_id 过滤
+        bk_biz_id = self.request.query_params.get("bk_biz_id")
+        if bk_biz_id:
+            queryset = queryset.filter(bk_biz_id=bk_biz_id)
+
+        # 应用 manage 过滤
+        manage = self.request.query_params.get("manage")
+        if manage:
+            username = self.request.user.username
+            # 从请求路径中获取 db_type
+            db_type = self.request.path.strip("/").split("/")[1]
+            manage_bizs, assist_bizs = DBAdministrator.get_manage_bizs(db_type, username)
+            # 待我处理
+            if manage == "todo":
+                queryset = queryset.filter(bk_biz_id__in=manage_bizs)
+            # 待我协助
+            elif manage == "assist":
+                queryset = queryset.filter(bk_biz_id__in=assist_bizs)
+
+        # 全局过滤排除掉特定业务
+        exclude_bk_biz_ids = SystemSettings.get_setting_value(SystemSettingsEnum.DB_REPORT_EXCLUDE_BIZS, default=[])
+        if exclude_bk_biz_ids:
+            queryset = queryset.exclude(bk_biz_id__in=exclude_bk_biz_ids)
+
+        return queryset
+
     def summary_state_count(self):
-        queryset = self.filter_queryset(self.get_queryset())
+        """
+        统计各状态的数量，受 time_range、manage 和 bk_biz_id(可观测页面) 影响，不受其他过滤参数(state等)影响
+        """
+        # 应用 time_range、manage、bk_biz_id 过滤和业务排除，不应用其他过滤条件
+        queryset = self._get_time_filtered_queryset()
+
         # 这里使用order_by()清除排序字段，否则会加到group_by中，影响聚合逻辑
         state_count_info = queryset.order_by().values("state").annotate(count=Count("state"))
         state_map = {state: 0 for state in ReportStateType.get_values()}
         state_map.update({info["state"]: info["count"] for info in state_count_info})
         return state_map
 
+    def get_total_count(self):
+        """
+        获取全量数据的总记录数，为 state_count 的总和
+        """
+        return self._get_time_filtered_queryset().count()
+
+    def get_total_abnormal_count(self):
+        """
+        获取状态为异常或预警的总数，为 state_count 中异常+预警的总和
+        """
+        return (
+            self._get_time_filtered_queryset()
+            .filter(state__in=[ReportStateType.ABNORMAL, ReportStateType.WARNING])
+            .count()
+        )
+
     def list(self, request, *args, **kwargs):
         response = super().list(request, *args, **kwargs)
         response.data["name"] = self.report_name or ReportType.get_choice_label(self.report_type)
         response.data["title"] = self.report_title
         response.data["state_count"] = self.summary_state_count()
+        response.data["total_count"] = self.get_total_count()
+        response.data["total_abnormal_count"] = self.get_total_abnormal_count()
         return response
 
 
@@ -124,26 +185,37 @@ class ReportCommonViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False, serializer_class=GetReportCountSerializer)
     def get_report_count(self, request, *args, **kwargs):
         username = request.user.username
-        cache_key = REPORT_COUNT_CACHE_KEY.format(user=username)
-
+        # cache_key = REPORT_COUNT_CACHE_KEY.format(user=username)
+        # 获取 time_range 参数
+        time_range = request.query_params.get("time_range", "")
+        bk_biz_id = request.query_params.get("bk_biz_id")
         # 有缓存优先返回缓存，数量精确性要求性不高
-        report_count_cache = cache.get(cache_key)
-        if report_count_cache:
-            return Response(report_count_cache)
+        # report_count_cache = cache.get(cache_key)
+        # if report_count_cache:
+        #     return Response(report_count_cache)
 
         report_count_map: Dict[str, Dict[str, Dict]] = defaultdict(lambda: defaultdict(dict))
         for db_type, report_classes in db_report_maps.items():
             # 获取用户的管理业务和协助业务
             manage_bizs, assist_bizs = DBAdministrator.get_manage_bizs(db_type, username)
             for cls in report_classes:
-                # 过滤当天的代办
-                now_date = datetime.now(timezone.utc).date()
-                queryset = cls.queryset.filter(state=ReportStateType.ABNORMAL, update_at__gte=now_date)
+                # 基础过滤：状态为异常或预警（与列表页面统计逻辑一致）
+                queryset = cls.queryset.filter(state__in=[ReportStateType.ABNORMAL, ReportStateType.WARNING])
+                # 应用 time_range 过滤
+                if time_range:
+                    filter_instance = ReportListFilter(
+                        data=request.query_params,
+                        queryset=queryset,
+                        request=request,
+                    )
+                    queryset = filter_instance.filter_time_range(queryset, "time_range", time_range)
+                if bk_biz_id:
+                    queryset = queryset.filter(bk_biz_id=bk_biz_id)
                 report_count_map[db_type][cls.report_type].update(
-                    manage_count=queryset.filter(state=ReportStateType.ABNORMAL, bk_biz_id__in=manage_bizs).count(),
-                    assist_count=queryset.filter(state=ReportStateType.ABNORMAL, bk_biz_id__in=assist_bizs).count(),
+                    manage_count=queryset.filter(bk_biz_id__in=manage_bizs).count(),
+                    assist_count=queryset.filter(bk_biz_id__in=assist_bizs).count(),
                 )
 
         # 默认可以做1h的缓存
-        cache.set(cache_key, report_count_map, 60 * 10)
+        # cache.set(cache_key, report_count_map, 60 * 10)
         return Response(report_count_map)
