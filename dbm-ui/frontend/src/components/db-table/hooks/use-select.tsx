@@ -37,6 +37,9 @@ export const useSelect = (
     const selectedMap = { ...selectedRowMap.value };
     // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < tableData.value.results.length; i++) {
+      if (props.disableSelectMethod && props.disableSelectMethod(tableData.value.results[i])) {
+        continue;
+      }
       if (!selectedMap[_.get(tableData.value.results[i], props.rowKey)]) {
         return false;
       }

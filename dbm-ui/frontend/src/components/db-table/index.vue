@@ -364,6 +364,9 @@
     const selectMap = { ...rowSelectMemo.value };
     // eslint-disable-next-line @typescript-eslint/prefer-for-of
     for (let i = 0; i < list.length; i++) {
+      if (props.disableSelectMethod(list[i])) {
+        continue;
+      }
       if (!selectMap[_.get(list[i], props.primaryKey)]) {
         return false;
       }
