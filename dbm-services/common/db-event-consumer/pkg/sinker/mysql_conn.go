@@ -36,7 +36,7 @@ func GetGormDB(dsn *InstanceDsn) (*gorm.DB, error) {
 		"loc":                   "UTC",
 		"time_zone":             "'+00:00'",
 		"parseTime":             "True",
-		"transaction_isolation": "READ-COMMITTED",
+		"transaction_isolation": "'READ-COMMITTED'",
 	}
 	dbc, err := GetConn(dsn, defaultSessionVars)
 	slowLogger := logger.New(
@@ -118,7 +118,7 @@ func GetXormDB(dsn *InstanceDsn) (*xorm.Engine, error) {
 		"loc":                   "UTC",
 		"time_zone":             "'+00:00'",
 		"parseTime":             "True",
-		"transaction_isolation": "READ-COMMITTED",
+		"transaction_isolation": "'READ-COMMITTED'",
 	}
 	dsn.SessionVariables = lo.Assign(defaultSessionVars, dsn.SessionVariables)
 	sessionParams := toUrlParams(dsn.SessionVariables)
@@ -160,7 +160,7 @@ func GetGoframeDB(dsn *InstanceDsn) (gdb.DB, error) {
 		"loc": "UTC",
 		//"time_zone": "'+00:00'", // cause error: unknown time zone ' 00:00'
 		"parseTime":             "True",
-		"transaction_isolation": "READ-COMMITTED",
+		"transaction_isolation": "'READ-COMMITTED'",
 	}
 	dsn.SessionVariables = lo.Assign(defaultSessionVars, dsn.SessionVariables)
 	slog.Info("sessionVars", slog.String("db", dsn.Address), slog.Any("sessionVars", dsn.SessionVariables))

@@ -209,7 +209,8 @@ func (b GlobalBackupModel) queryBackupTasks(retries int, db *sqlx.DB) (backupTas
 	if err = db.Select(&backupTasks, sqlStr, sqlArgs...); err != nil {
 		logger.Log.Warnf("fail to queryBackupTasks: %s, retries %d", err.Error(), retries)
 		mysqlErr := cmutil.NewMySQLError(err)
-		if mysqlErr.Code == 1146 { // 定时查询备份任务里，遇到表不存在，不重建表结构
+		if mysqlErr.Code == 1146 && cmutil.StringsHas([]string{cst.WrapperRemote, cst.WrapperRemoteSlave}, b.Wrapper) {
+			// 定时查询备份任务里，遇到表不存在，不重建表结构
 			return nil, errors.WithMessagef(err, "queryBackupTasks")
 		}
 		if err2 := migrateBackupSchema(mysqlErr, db); err2 != nil {

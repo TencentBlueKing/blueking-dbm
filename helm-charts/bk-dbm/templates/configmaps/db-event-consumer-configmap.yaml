@@ -54,7 +54,7 @@ data:
         database: "{{ $reportDB.name }}"
         charset: utf8
     - name: doris_bk_dbm_stats
-      type: mysql
+      type: doris
       dsn:
         address: "{{ $statsDB.host }}:{{ $statsDB.port }}"
         user: "{{ $statsDB.user }}"

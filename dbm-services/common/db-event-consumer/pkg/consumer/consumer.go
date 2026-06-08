@@ -78,6 +78,7 @@ func (s *AnySinker) ConsumeClaim(session sarama.ConsumerGroupSession, claim sara
 			slog.Any("topic", claim.Topic()),
 			slog.Any("partition", claim.Partition()),
 			slog.Any("groupId", s.Sinker.RuntimeConfig.Topic+s.Sinker.RuntimeConfig.GroupIdSuffix),
+			slog.Any("model", s.Sinker.RuntimeConfig.ModelTable),
 			slog.Any("offset", claim.InitialOffset()))
 	}
 	BatchSize := 10
