@@ -566,8 +566,19 @@ func (w *Workflow) filterWhitelistedInstances(ctx context.Context, group *Failur
 
 	whiteList, err := w.dbmSync.queryBlackWhiteListFromDbhaV1(ctx, bkBizID, group.BkCloudID)
 	if err != nil {
-		logger.Warn("failed to query the black-white list from dbha-v1, bkBizId: %d, bkCloudId: %d, errmsg: %s",
-			bkBizID, group.BkCloudID, err)
+		instanceAddrs := make([]string, 0, len(req.MySqlInstData))
+		for _, meta := range req.MySqlInstData {
+			instanceAddrs = append(instanceAddrs, instanceKey(meta.BkCloudID, meta.IP, meta.Port))
+		}
+
+		msg := fmt.Sprintf(
+			"fault instances filtered because whitelist query failed, instances: [%s], bkBizId: %d, bkCloudId: %d, errmsg: %s",
+			strings.Join(instanceAddrs, ", "), bkBizID, group.BkCloudID, err,
+		)
+		logger.Warn("%s", msg)
+		w.alarm.TriggerWithBizId(bkBizID, msg)
+
+		req.MySqlInstData = make([]*dbm.DbInstMetadata, 0)
 		return
 	}
 
