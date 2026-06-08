@@ -9,6 +9,14 @@ def add_user_channel_to_notice_groups(apps, schema_editor):
     for notice in NoticeGroup.objects.all():
         try:
             old_details = notice.details
+            for alert_notice in old_details.get("alert_notice", []):
+                for config in alert_notice.get("notify_config", []):
+                    config["notice_ways"] = [
+                        way
+                        for way in config.get("notice_ways", [])
+                        if way.get("name") in ["mail", "rtx", "voice", "wxwork-bot"]
+                    ]
+
             old_details["channels"] = ["user"]
             notice.details = old_details
             notice_group_list.append(notice)
