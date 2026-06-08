@@ -48,6 +48,19 @@ class ExecuteShellScriptService(BkJobService):
         FlowNode.objects.filter(root_id=root_id, node_id=node_id).update(hosts=exec_ips)
 
         shell_command = kwargs["cluster"]["shell_command"]
+
+        if kwargs.get("dynamic_admin_endpoints", False):
+            try:
+                # 动态查询最新的 admin_endpoints
+                from backend.db_proxy.models import DBExtension
+
+                admin_endpoints = DBExtension.get_dbha_v2_admin_endpoints()
+                # 替换占位符
+                shell_command = shell_command.replace("${ADMIN_ENDPOINTS}", admin_endpoints)
+                self.log_info(f"[{node_name}] get admin_endpoints: {admin_endpoints}")
+            except Exception as e:
+                self.log_error(f"[{node_name}] get admin_endpoints failed: {str(e)}")
+
         body = {
             "bk_scope_type": "biz_set",
             "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,

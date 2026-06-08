@@ -16,11 +16,9 @@ from django.utils.translation import gettext as _
 
 from backend import env
 from backend.core.consts import BK_PKG_INSTALL_PATH
-from backend.db_proxy.models import DBExtension
 from backend.flow.consts import ExecuteShellScriptUser
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.plugins.components.collections.common.empty_node import EmptyNodeComponent
 from backend.flow.plugins.components.collections.common.exec_shell_script import ExecuteShellScriptComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs
@@ -31,19 +29,6 @@ _HOME_MYSQL_DIR = "/home/mysql"
 _PROBE_DIR = f"{_HOME_MYSQL_DIR}/dbha-v2"
 
 
-def _build_disabled_sub_flow(root_id: str, data: Dict, sub_name: str) -> SubProcess:
-    """
-    构建一个禁用状态的空子流程，当 ENABLE_DBHA_V2 关闭时返回。
-    """
-    sp = SubBuilder(root_id=root_id, data=data)
-    sp.add_act(
-        act_name=_("{} (已禁用，ENABLE_DBHA_V2=False)").format(sub_name),
-        act_component_code=EmptyNodeComponent.code,
-        kwargs={},
-    )
-    return sp.build_sub_process(sub_name=sub_name)
-
-
 def probe_install_sub_flow(
     root_id: str,
     data: Dict,
@@ -52,7 +37,7 @@ def probe_install_sub_flow(
 ) -> SubProcess:
     """
     探针安装子流程包含：下发介质包 + 解压到目标目录。
-    当 ENABLE_DBHA_V2=False 时返回空流程（显示禁用状态，直接跳过）。
+    当 ENABLE_DBHA_V2=False 时禁用该子流程，需要在调用处也增加该校验。
 
     :param root_id: 流程 root_id
     :param data: global_data
@@ -60,7 +45,7 @@ def probe_install_sub_flow(
     :param ips: 需要安装探针的机器 IP 列表
     """
     if not env.ENABLE_DBHA_V2:
-        return _build_disabled_sub_flow(root_id, data, _("探针安装"))
+        return
 
     sp = SubBuilder(root_id=root_id, data=data)
 
@@ -130,8 +115,7 @@ def probe_start_sub_flow(
 ) -> SubProcess:
     """
     探针启动子流程包含：生成配置文件 + 启动探针 + 检查探针健康状态。
-    admin_endpoints 从 DBExtension 表中查询。
-    当 ENABLE_DBHA_V2=False 时返回空流程（显示禁用状态，直接跳过）。
+    当 ENABLE_DBHA_V2=False 时禁用该子流程，需要在调用处也增加该校验。
 
     :param root_id: 流程 root_id
     :param data: global_data
@@ -139,19 +123,17 @@ def probe_start_sub_flow(
     :param ips: 需要启动探针的机器 IP 列表
     """
     if not env.ENABLE_DBHA_V2:
-        return _build_disabled_sub_flow(root_id, data, _("探针启动"))
+        return
 
     sp = SubBuilder(root_id=root_id, data=data)
 
-    admin_endpoints = DBExtension.get_dbha_v2_admin_endpoints()
-
-    # 启动探针
+    # 启动探针，ADMIN_ENDPOINTS 在执行 shell 组件的 _execute 中动态获取和替换
     start_script = f"""#!/bin/bash
 set -e
 
 cd "{_PROBE_DIR}"
 
-./bin/dbha-probe gen-config --admin-endpoints '{admin_endpoints}' -o etc/probe.yaml
+./bin/dbha-probe gen-config --admin-endpoints '${{ADMIN_ENDPOINTS}}' -o etc/probe.yaml
 
 ./start-probe.sh
 
@@ -167,6 +149,7 @@ ps -ef | grep dbha-probe
             "exec_ip": ips,
             "cluster": {"shell_command": start_script},
             "account_alias": ExecuteShellScriptUser.Mysql.value,
+            "dynamic_admin_endpoints": True,
         },
     )
 
@@ -181,7 +164,7 @@ def probe_restart_sub_flow(
 ) -> SubProcess:
     """
     探针重启子流程包含：停止探针 + 启动探针 + 检查探针健康状态。
-    当 ENABLE_DBHA_V2=False 时返回空流程（显示禁用状态，直接跳过）。
+    当 ENABLE_DBHA_V2=False 时禁用该子流程，需要在调用处也增加该校验。
 
     :param root_id: 流程 root_id
     :param data: global_data
@@ -189,7 +172,7 @@ def probe_restart_sub_flow(
     :param ips: 需要重启探针的机器 IP 列表
     """
     if not env.ENABLE_DBHA_V2:
-        return _build_disabled_sub_flow(root_id, data, _("探针重启"))
+        return
 
     sp = SubBuilder(root_id=root_id, data=data)
 
@@ -229,7 +212,7 @@ def probe_stop_sub_flow(
 ) -> SubProcess:
     """
     探针停止子流程包含：停止探针进程 + 检查探针健康状态。
-    当 ENABLE_DBHA_V2=False 时返回空流程（显示禁用状态，直接跳过）。
+    当 ENABLE_DBHA_V2=False 时禁用该子流程，需要在调用处也增加该校验。
 
     :param root_id: 流程 root_id
     :param data: global_data
@@ -237,7 +220,7 @@ def probe_stop_sub_flow(
     :param ips: 需要停止探针的机器 IP 列表
     """
     if not env.ENABLE_DBHA_V2:
-        return _build_disabled_sub_flow(root_id, data, _("探针停止"))
+        return
 
     sp = SubBuilder(root_id=root_id, data=data)
 
@@ -275,8 +258,7 @@ def probe_upgrade_sub_flow(
 ) -> SubProcess:
     """
     探针升级子流程包含：下发最新介质包 + 停止旧探针 + 解压覆盖 + 生成配置文件 + 启动探针 + 检查探针健康状态。
-    admin_endpoints 从 DBExtension 表中自动查询。
-    当 ENABLE_DBHA_V2=False 时返回空流程（显示禁用状态，直接跳过）。
+    当 ENABLE_DBHA_V2=False 时禁用该子流程，需要在调用处也增加该校验。
 
     :param root_id: 流程 root_id
     :param data: 流程全局数据（global_data）
@@ -284,7 +266,7 @@ def probe_upgrade_sub_flow(
     :param ips: 需要升级探针的机器 IP 列表
     """
     if not env.ENABLE_DBHA_V2:
-        return _build_disabled_sub_flow(root_id, data, _("探针升级"))
+        return
 
     sp = SubBuilder(root_id=root_id, data=data)
 
@@ -371,7 +353,7 @@ def deploy_probe_sub_flow(
     """
     探针部署合成子流程：install + start。
     用于在标准化集群子流程等场景中，一次性完成介质包下发解压并启动探针。
-    当 ENABLE_DBHA_V2=False 时返回空流程（显示禁用状态，直接跳过）。
+    当 ENABLE_DBHA_V2=False 时禁用该子流程，需要在调用处也增加该校验。
 
     :param root_id: 流程 root_id
     :param data: global_data
@@ -379,7 +361,7 @@ def deploy_probe_sub_flow(
     :param ips: 需要部署探针的机器 IP 列表
     """
     if not env.ENABLE_DBHA_V2:
-        return _build_disabled_sub_flow(root_id, data, _("探针部署"))
+        return
 
     sp = SubBuilder(root_id=root_id, data=data)
 
