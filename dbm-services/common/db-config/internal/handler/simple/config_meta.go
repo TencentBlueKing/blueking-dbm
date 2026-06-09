@@ -46,3 +46,32 @@ func (cf *Config) QueryConfigTypeInfo(ctx *gin.Context) {
 	}
 	handler.SendResponse(ctx, err, resp)
 }
+
+// ValidateConfigNameExists godoc
+//
+// @Summary      判断配置名是否已存在
+// @Description  从 tb_config_name_def / tb_config_name_plat 两个表判断 conf_name 是否已存在
+// @Tags         config_meta
+// @Produce      json
+// @Param        body query     api.QueryConfigNamesReq  true  "query"
+// @Success      200  {object}  map[string]bool
+// @Failure      400  {object}  api.HTTPClientErrResp
+// @Router       /bkconfig/v1/confname/exists [get]
+func (cf *Config) ValidateConfigNameExists(ctx *gin.Context) {
+	var r api.QueryConfigNamesReq
+	if err := ctx.BindQuery(&r); err != nil {
+		handler.SendResponse(ctx, err, nil)
+		return
+	}
+	if _, err := simpleconfig.CheckValidConfFile(r.Namespace, r.ConfType, r.ConfFile, ""); err != nil {
+		handler.SendResponse(ctx, err, nil)
+		return
+	}
+
+	exists, err := simpleconfig.ValidateConfigNameExists(&r)
+	if err != nil {
+		handler.SendResponse(ctx, err, nil)
+		return
+	}
+	handler.SendResponse(ctx, nil, map[string]bool{"exists": exists})
+}

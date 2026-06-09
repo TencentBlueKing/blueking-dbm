@@ -45,7 +45,7 @@ func CacheGetConfigFile(fd api.BaseConfFileDef) (*ConfigFileDefModel, error) {
 		}
 		f := ConfigFileDefModel{}
 		serialize.UnSerializeString(cacheValStr, &f, false)
-		logger.Info("GetConfigFile from cache: %+v", f)
+		// logger.Info("GetConfigFile from cache: %+v", f)
 		return &f, nil
 	}
 }

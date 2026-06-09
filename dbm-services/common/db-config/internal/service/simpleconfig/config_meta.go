@@ -69,6 +69,14 @@ func CheckConfNameAndValue(c *model.ConfigModel, checkValue bool, valueType, val
 	return nil
 }
 
+// ValidateConfigNameExists 判断 conf_name 是否已存在于 tb_config_name_def 或 tb_config_name_plat 表中
+func ValidateConfigNameExists(r *api.QueryConfigNamesReq) (bool, error) {
+	if r.ConfName == "" {
+		return false, errors.New("conf_name is required")
+	}
+	return model.ConfigNameExists(r.Namespace, r.ConfType, r.ConfFile, r.ConfName)
+}
+
 // QueryConfigNames TODO
 func QueryConfigNames(r *api.QueryConfigNamesReq, isPub bool) (*api.QueryConfigNamesResp, error) {
 	var confNames []*model.ConfigNameDefModel

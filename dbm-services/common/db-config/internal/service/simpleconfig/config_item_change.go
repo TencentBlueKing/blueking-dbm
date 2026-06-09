@@ -12,6 +12,7 @@ func QueryConfItemChanges(req *api.ConfItemChangesQueryReq) (resp []*api.ConfIte
 	if err != nil {
 		return nil, err
 	}
+	resp = make([]*api.ConfItemChangesQueryRowResp, 0)
 	// 这里返回的 changes 可能包含多个 conf_file
 	// 分别在下面补齐 conf_file_lc 的信息
 	for _, change := range changes {

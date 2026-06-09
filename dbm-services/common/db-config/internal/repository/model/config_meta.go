@@ -128,6 +128,30 @@ func GetConfigFileList(namespace, confType, confFile string) ([]*ConfigFileDefMo
 	return confFiles, nil
 }
 
+// ConfigNameExists 判断 conf_name 是否已存在于 tb_config_name_def 或 tb_config_name_plat 表中
+// 返回 true 表示存在
+func ConfigNameExists(namespace, confType, confFile, confName string) (bool, error) {
+	whereMap := map[string]interface{}{
+		"namespace": namespace,
+		"conf_type": confType,
+		"conf_file": confFile,
+		"conf_name": confName,
+	}
+	// 先查 tb_config_name_def
+	var count int64
+	if err := DB.Self.Model(ConfigNameDefModel{}).Where(whereMap).Count(&count).Error; err != nil {
+		return false, err
+	}
+	if count > 0 {
+		return true, nil
+	}
+	// 再查 tb_config_name_plat（排除已标记删除的记录）
+	if err := DB.Self.Table(ConfigNamePlatModel{}.TableName()).Where(whereMap).Where("deleted = 0").Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
 // QueryConfigLevel TODO
 func QueryConfigLevel(levels []string) ([]*ConfigLevelDefModel, error) {
 	var sqlRes *gorm.DB
