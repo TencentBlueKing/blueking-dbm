@@ -111,14 +111,16 @@
       const oldNodesItem = item.old_nodes!;
       const masterItem = oldNodesItem.master[0];
       const slaveItem = oldNodesItem.slave[0];
-      instances = [
-        {
-          cluster_id: item.cluster_id!,
-          domain: clusters[item.cluster_id!].immute_domain,
-          master_ins: `${masterItem.ip}:${masterItem.port}`,
-          slave_ins: `${slaveItem.ip}:${slaveItem.port}`,
-        },
-      ];
+      if (masterItem && slaveItem) {
+        instances = [
+          {
+            cluster_id: item.cluster_id!,
+            domain: clusters[item.cluster_id!]?.immute_domain,
+            master_ins: `${masterItem.ip}:${masterItem.port}`,
+            slave_ins: `${slaveItem.ip}:${slaveItem.port}`,
+          },
+        ];
+      }
     } else {
       instances = item.src_cluster.map((srcClusterItem) => ({
         domain: clusters[srcClusterItem.cluster_id].immute_domain,

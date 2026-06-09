@@ -369,7 +369,7 @@ export function updateTicketFlowConfig(params: {
 }
 
 export function getTicketStatus(params: { ticket_ids: string }) {
-  return http.get<Record<string, string>>(`${path}/list_ticket_status/`, params, {
+  return http.post<Record<string, string>>(`${path}/list_ticket_status/`, params, {
     cache: 1000,
   });
 }
