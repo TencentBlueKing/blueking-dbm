@@ -716,12 +716,14 @@ func (s *instOpJob) doAddMember() error {
 }
 
 func (s *instOpJob) GetInstanceOp() *common.InstanceOp {
-	return common.NewInstanceOp(s.ConfParams.IP,
+	op := common.NewInstanceOp(s.ConfParams.IP,
 		s.ConfParams.Port,
 		s.ConfParams.AdminUsername,
 		s.ConfParams.AdminPassword,
 		s.runtime.Logger,
 	)
+	op.InstanceType = s.ConfParams.InstanceType
+	return op
 }
 
 // Init 初始化

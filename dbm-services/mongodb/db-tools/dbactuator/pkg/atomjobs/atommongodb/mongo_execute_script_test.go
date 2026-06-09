@@ -55,13 +55,16 @@ func newTestExecScript(t *testing.T, tempDir, mongoBin string) *ExecScript {
 	if err := os.WriteFile(scriptPath, []byte("print('ok')\n"), 0o644); err != nil {
 		t.Fatalf("write js script failed: %v", err)
 	}
+	resultPath := filepath.Join(tempDir, "result.txt")
 	return &ExecScript{
-		runtime:        runtime,
-		Mongo:          mongoBin,
-		execIP:         host,
-		execPort:       port,
-		ScriptFilePath: scriptPath,
-		ResultFilePath: filepath.Join(tempDir, "result.txt"),
+		runtime:            runtime,
+		Mongo:              mongoBin,
+		execIP:             host,
+		execPort:           port,
+		ScriptFilePath:     scriptPath,
+		ResultFilePath:     resultPath,
+		ScriptFilePathList: []string{scriptPath},
+		ResultFilePathList: []string{resultPath},
 		ConfParams: &ExecScriptConfParams{
 			AdminUsername: user,
 			AdminPassword: pass,
