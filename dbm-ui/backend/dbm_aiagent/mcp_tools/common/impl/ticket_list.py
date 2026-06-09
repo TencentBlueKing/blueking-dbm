@@ -9,12 +9,16 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+import time
 from datetime import timedelta
 from typing import List
 
 from django.db.models import Q
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
+from backend import env
+from backend.dbm_aiagent.agent.handlers import AgentHandler
 from backend.dbm_aiagent.apps import TICKET_SCHEMA
 from backend.dbm_aiagent.mcp_tools.common.helps.extract_ticket_info_by_schema.extracter import extract_by_schema
 from backend.ticket.constants import TicketStatus, TicketType
@@ -83,7 +87,7 @@ def ticket_list(
                     "status": t.status,
                     "relate_clusters": "\n".join(relate_cluster_domains),
                     "created_at": t.create_at,
-                    "ticket_param": rebuild_ticket_param(t),
+                    "ticket_param": rebuild_ticket_param_by_ai(t),
                     "current_flow": current_flow,
                     "todos": get_ticket_todos(t),
                     "cost_time_seconds": t.get_cost_time(),
@@ -92,6 +96,24 @@ def ticket_list(
             )
 
     return want_tickets
+
+
+def rebuild_ticket_param_by_ai(tk: Ticket):
+    if env.ENABLE_DBM_AI:
+        try:
+            t1 = time.monotonic()
+            ai_response = AgentHandler.ask_agent_with_content(
+                agent_code="ai-mysql-inspect",  # DBMAgentCode.DBM,
+                content=str(_("{} 总结下需求摘要".format(tk.details))),
+                timeout=25,
+            )
+            logger.info("ask ai for param summary cost %.2fs", time.monotonic() - t1)
+            return ai_response
+        except Exception:  # noqa
+            logger.exception("ask ai for param summary failed")
+            return rebuild_ticket_param(tk)
+    else:
+        return rebuild_ticket_param(tk)
 
 
 def rebuild_ticket_param(tk: Ticket):
