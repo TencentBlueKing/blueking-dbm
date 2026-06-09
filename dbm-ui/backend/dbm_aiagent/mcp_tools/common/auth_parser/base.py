@@ -211,13 +211,17 @@ def auth_parse_instances(request: HttpRequest, *args, **kwargs) -> ClusterIdList
     else:
         raise ValueError("instances/address/instance/ip_port is required")
 
-    filters = Q()
+    # 分两条查询聚合 cluster id，避免单条 SQL 同时对 storage / proxy 做 LEFT JOIN 再用 OR（难优化、易放大行数）
+    storage_filter = Q()
+    proxy_filter = Q()
     for addr_ip, addr_port in ip_ports:
-        filters |= Q(storageinstance__machine__ip=addr_ip, storageinstance__port=addr_port) | Q(
-            proxyinstance__machine__ip=addr_ip, proxyinstance__port=addr_port
-        )
+        storage_filter |= Q(storageinstance__machine__ip=addr_ip, storageinstance__port=addr_port)
+        proxy_filter |= Q(proxyinstance__machine__ip=addr_ip, proxyinstance__port=addr_port)
 
-    cluster_ids = list(Cluster.objects.filter(filters).values_list("id", flat=True).distinct())
+    id_set = set()
+    id_set.update(Cluster.objects.filter(storage_filter).values_list("id", flat=True))
+    id_set.update(Cluster.objects.filter(proxy_filter).values_list("id", flat=True))
+    cluster_ids = list(id_set)
     if not cluster_ids:
         raise ValueError("parse error, no clusters found for the given params")
 
