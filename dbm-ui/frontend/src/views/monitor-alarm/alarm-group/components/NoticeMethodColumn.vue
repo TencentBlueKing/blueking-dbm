@@ -18,7 +18,7 @@
               v-for="noticeItem in item.notice_ways"
               :key="noticeItem.name"
               v-bk-tooltips="{
-                content: `${messageInfoMap[noticeItem.name as keyof typeof messageInfoMap]?.label}${noticeItem?.receivers?.length ? `：\n${noticeItem.receivers.join('\n')}` : ''}`,
+                content: `${messageInfoMap[noticeItem.name as keyof typeof messageInfoMap]?.label}`,
               }"
               class="notice-method-icon"
               :type="messageInfoMap[noticeItem.name as keyof typeof messageInfoMap]?.icon">

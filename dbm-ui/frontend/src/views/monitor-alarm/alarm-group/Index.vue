@@ -98,8 +98,10 @@
         <template #default="{ row }: { row: NoticGroupModel }">
           <BkPopover
             v-if="row.usedCountTotal >= 2"
+            click-content-auto-hide
             placement="top"
             theme="light"
+            trigger="click"
             :width="180">
             <span style="cursor: pointer; color: #3a84ff">{{ row.usedCountTotal }}</span>
             <template #content>
