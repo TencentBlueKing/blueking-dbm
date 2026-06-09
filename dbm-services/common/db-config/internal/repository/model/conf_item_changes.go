@@ -54,8 +54,8 @@ func ConfItemChangesCreate(db *gorm.DB, changes []*ConfItemChangesModel) error {
 
 // QueryConfItemChanges 查询 conf_item 变更历史
 func QueryConfItemChanges(db *gorm.DB, req *api.ConfItemChangesQueryReq) ([]*ConfItemChangesModel, error) {
-	var changes []*ConfItemChangesModel
-	query := db.Where("bk_biz_id = ? AND namespace = ?", req.BKBizID, req.Namespace)
+	var changes = make([]*ConfItemChangesModel, 0)
+	query := db.Debug().Where("bk_biz_id = ? AND namespace = ?", req.BKBizID, req.Namespace)
 	if len(req.ConfType) > 0 {
 		query = query.Where("conf_type in ?", req.ConfType)
 	}

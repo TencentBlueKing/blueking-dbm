@@ -2,7 +2,6 @@ package model
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -13,6 +12,8 @@ import (
 	"gorm.io/gorm"
 
 	"bk-dbconfig/pkg/core/config"
+
+	"dbm-services/common/go-pubpkg/cmutil"
 )
 
 // Database TODO
@@ -58,19 +59,19 @@ func resetDatabase(db *gorm.DB) {
 // openDB godoc
 // options="multiStatements=true&interpolateParams=true"
 func openDB(username, password, addr, name string, options string) *gorm.DB {
-	// multiStatements
-	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=%t&loc=%s",
-		username,
-		password,
-		addr,
-		name,
-		true,
-		"Local")
-	if options != "" {
-		dsn += "&" + options
+	defaultSessionVars := map[string]interface{}{
+		"loc":       "Asia/Shanghai",
+		"parseTime": "True",
+		"time_zone": "'+08:00'",
 	}
-	// log.Printf("connect string: %s", dsn)
-	sqlDB, err := sql.Open("mysql", dsn)
+	dsnInstance := &cmutil.InstanceDsn{
+		User:     username,
+		Password: password,
+		Address:  addr,
+		Database: name,
+	}
+	sqlDB, err := cmutil.GetConn(dsnInstance, defaultSessionVars)
+
 	db, err := gorm.Open(mysql.New(mysql.Config{Conn: sqlDB}), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("Database connection failed. Database name: %s, error: %v", name, err)

@@ -41,7 +41,7 @@ func ConfNameChangesCreate(db *gorm.DB, changes []*ConfNameChangesModel) error {
 // QueryConfNameChanges 查询 conf_name_def 变更历史
 // 按操作时间逆序 (id DESC)
 func QueryConfNameChanges(db *gorm.DB, req *api.ConfNameChangesQueryReq) ([]*ConfNameChangesModel, error) {
-	var changes []*ConfNameChangesModel
+	var changes = make([]*ConfNameChangesModel, 0)
 	query := db.Where("namespace = ?", req.Namespace)
 	if len(req.ConfType) > 0 {
 		query = query.Where("conf_type in ?", req.ConfType)
