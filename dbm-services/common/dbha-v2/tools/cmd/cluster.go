@@ -161,6 +161,33 @@ func ShowReplicationRun(cmd *cobra.Command, args []string) error {
 	}
 }
 
+// ShowClbRun executes the show clb subcommand
+func ShowClbRun(cmd *cobra.Command, args []string) error {
+	if configFilePath == "" {
+		return gerrors.Newf(gerrors.Failure, "config file path is required")
+	}
+
+	clusterConfig, err := config.LoadConfig(configFilePath)
+	if err != nil {
+		return gerrors.Newf(gerrors.Failure, "failed to load config: %s", err.Error())
+	}
+
+	config.SetClusterConfig(clusterConfig)
+
+	clusterType, _ := cmd.Flags().GetString("type")
+
+	switch clusterType {
+	case ClusterTypeTendbha:
+		clusterHdl := handler.NewMysqlClusterHandler()
+		return clusterHdl.ShowAllMysqlClustersClb()
+	case ClusterTypeTenDBCluster:
+		tenDBClusterHdl := handler.NewTenDBClusterHandler()
+		return tenDBClusterHdl.ShowAllTenDBClustersClb()
+	default:
+		return gerrors.Newf(gerrors.Failure, typeOptionsHint)
+	}
+}
+
 // ShowRoutingRun executes the show routing subcommand
 func ShowRoutingRun(cmd *cobra.Command, args []string) error {
 	if configFilePath == "" {
@@ -267,10 +294,17 @@ func main() {
 		RunE:  ShowRoutingRun,
 	}
 
+	showClbCmd := &cobra.Command{
+		Use:   "clb",
+		Short: "Show CLB binding information (JSON format)",
+		RunE:  ShowClbRun,
+	}
+
 	showCmd.AddCommand(showDomainCmd)
 	showCmd.AddCommand(showNodesCmd)
 	showCmd.AddCommand(showReplicationCmd)
 	showCmd.AddCommand(showRoutingCmd)
+	showCmd.AddCommand(showClbCmd)
 
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(newResetCmd())

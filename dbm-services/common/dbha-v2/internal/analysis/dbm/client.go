@@ -182,7 +182,7 @@ func (c *Client) GetAddressNumberOfDomain(bkCloudId int, domainName string) (int
 	}
 	logger.Debug("query domain address count response, domain: %s, resp_len: %d", domainName, len(resp))
 
-	domainGetRes := &DomainGetRespond{}
+	domainGetRes := &DomainGetResponse{}
 	if err := json.Unmarshal(resp, domainGetRes); err != nil {
 		return 0, gerrors.Newf(gerrors.Failure, "failed to unmarshal response: %s", err.Error())
 	}
@@ -236,7 +236,7 @@ func (c *Client) UpdateBatchInstancesStatus(bkCloudId int, insts []InstWithinClu
 		len(response),
 	)
 
-	updateStatusResp := &UpdateInstanceStatusRespond{}
+	updateStatusResp := &UpdateInstanceStatusResponse{}
 	if err := json.Unmarshal(response, updateStatusResp); err != nil {
 		return gerrors.Newf(gerrors.InvalidJson, "failed to unmarshal status update response, errmsg: %s", err.Error())
 	}
@@ -285,7 +285,7 @@ func (c *Client) DeleteFromDomain(bkCloudId int, domainName string, instance str
 	}
 	logger.Debug("delete from domain response, domain: %s, instance: %s, resp_len: %d", domainName, instance, len(resp))
 
-	domainDeleteRes := &DomainDeleteRespond{}
+	domainDeleteRes := &DomainDeleteResponse{}
 	if err := json.Unmarshal(resp, domainDeleteRes); err != nil {
 		return gerrors.Newf(gerrors.Failure, "failed to unmarshal response: %s", err.Error())
 	}
@@ -331,7 +331,15 @@ func (c *Client) DeleteFromCLB(bkCloudId int, region string, lbid string, lnid s
 
 	logger.Debug("delete from clb response, instance: %s, resp_len: %d", ins, len(response))
 
-	// TODO: parse response and check if result is success
+	clbDeleteResp := &ClbDeleteResponse{}
+	if err := json.Unmarshal(response, clbDeleteResp); err != nil {
+		return gerrors.Newf(gerrors.InvalidJson, "failed to unmarshal clb delete response, errmsg: %s", err.Error())
+	}
+
+	if !clbDeleteResp.Result {
+		return gerrors.Newf(gerrors.Failure,
+			"failed to deregister instance (%s) from CLB, errmsg: %s", ins, clbDeleteResp.Message)
+	}
 
 	return nil
 }
@@ -406,7 +414,7 @@ func (c *Client) SwapMySQLRole(bkCloudId int, masterIp string, masterPort int, s
 	logger.Debug("swap mysql role response, master: %s:%d, slave: %s:%d, resp_len: %d",
 		masterIp, masterPort, slaveIp, slavePort, len(response))
 
-	swapResp := &SwapRoleRespond{}
+	swapResp := &SwapRoleResponse{}
 	if err := json.Unmarshal(response, swapResp); err != nil {
 		return err
 	}
@@ -444,7 +452,15 @@ func (c *Client) SwitchBinlogDumper(bkCloudId int, app string, switchInfos []Dum
 
 	logger.Debug("switch binlogdumper response, bk_biz_id: %s, resp_len: %d", app, len(response))
 
-	// TODO: parse response and check if result is success
+	dumperSwitchResp := &DumperSwitchResponse{}
+	if err := json.Unmarshal(response, dumperSwitchResp); err != nil {
+		return gerrors.Newf(gerrors.InvalidJson, "failed to unmarshal dumper switch response, errmsg: %s", err.Error())
+	}
+
+	if !dumperSwitchResp.Result {
+		return gerrors.Newf(gerrors.Failure,
+			"failed to switch binlogdumper, bk_biz_id: %s, errmsg: %s", app, dumperSwitchResp.Message)
+	}
 
 	return nil
 }

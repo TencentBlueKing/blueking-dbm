@@ -58,6 +58,20 @@ type ClusterDomainInfo struct {
 	Domains []DomainInstanceList `json:"domains"`
 }
 
+// ClbBindingInfo represents CLB binding information for a listener.
+type ClbBindingInfo struct {
+	ClbID        string   `json:"clb_id"`
+	ListenerID   string   `json:"listener_id"`
+	Region       string   `json:"region"`
+	InstanceList []string `json:"instance_list"`
+}
+
+// ClusterClbInfo represents all CLB bindings for a cluster.
+type ClusterClbInfo struct {
+	Cluster string           `json:"cluster"`
+	ClbList []ClbBindingInfo `json:"clb_list"`
+}
+
 // NodeInfo represents node status and role information
 type NodeInfo struct {
 	ServerName string `json:"server_name,omitempty"`
