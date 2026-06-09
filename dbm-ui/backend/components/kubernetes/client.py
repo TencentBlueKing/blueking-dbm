@@ -133,6 +133,9 @@ class _KubernetesApi(BaseApi):
         self.disable_cluster = self.generate_data_api(
             method="POST", url="/v4/dbs/opsRequest/stop", description=_("禁用集群")
         )
+        self.enable_cluster = self.generate_data_api(
+            method="POST", url="/v4/dbs/opsRequest/start", description=_("启用集群")
+        )
 
 
 KubernetesApi = _KubernetesApi()
