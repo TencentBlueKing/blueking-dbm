@@ -240,6 +240,12 @@ func (a *MonitorAgent) FetchDBInstance() error {
 		log.Logger.Errorf("get hash module info failed and wait next refresh time. err:%s", err.Error())
 		return err
 	}
+	// 第一次部署时，db中mod和modValue可能为null（零值），需要设置默认值
+	if mod == 0 {
+		log.Logger.Warnf("hash mod is 0 (maybe first deploy), set default mod=1, modValue=0")
+		mod = 1
+		modValue = 0
+	}
 	//set current agent's hash mod, hash value, and report to DB later
 	log.Logger.Debugf("hash mod:%d, hash value:%d, dbType:%s", mod, modValue, a.DetectType)
 	a.HashMod = mod

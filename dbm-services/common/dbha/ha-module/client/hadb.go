@@ -806,7 +806,14 @@ func (c *HaDBClient) AgentGetHashValueByIP(cityID, interval int, dbType, agentIP
 	}
 	for _, agent := range agents {
 		if agent.IP == agentIP {
-			return agent.HashMod, agent.HashValue, nil
+			mod, value := agent.HashMod, agent.HashValue
+			// 第一次部署时，db中hash_mod和hash_value可能为NULL，反序列化后为0，需要设置默认值
+			if mod == 0 {
+				log.Logger.Warnf("hash_mod is 0 from db (maybe NULL on first deploy), set default mod=1, value=0")
+				mod = 1
+				value = 0
+			}
+			return mod, value, nil
 		}
 	}
 
