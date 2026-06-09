@@ -45,6 +45,8 @@ class TbinlogdumperSwitchNodesFlowBuilder(BaseDumperTicketFlowBuilder):
     serializer = TbinlogdumperSwitchNodesDetailSerializer
     inner_flow_builder = TbinlogdumperSwitchNodesFlowParamBuilder
     inner_flow_name = _("Tbinlogdumper 切换")
+    default_need_itsm = False
+    default_need_manual_confirm = False
 
     def patch_ticket_detail(self):
         dumper_instance_ids = []
