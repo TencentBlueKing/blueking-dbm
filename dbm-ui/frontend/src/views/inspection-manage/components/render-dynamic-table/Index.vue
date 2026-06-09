@@ -1,11 +1,12 @@
 <template>
   <BkLoading
     class="render-dynamic-table"
+    :class="{ 'is-empty': total === 0 || totalAbnormalCount === 0 }"
     :loading="loading">
     <CollapseCard>
       <template #title>
         <span style="font-weight: 700">{{ tableName }}</span>
-        <template v-if="isShowStateCount">
+        <template v-if="isTodo">
           <span class="ml-6 mr-2">(</span>
           <template v-if="!isOnlyAbnormal">
             <span>{{ t('正常') }}</span>
@@ -23,7 +24,23 @@
           <span class="ml-2">)</span>
         </template>
       </template>
+      <div
+        v-if="emptyDescription"
+        style="font-size: 14px; line-height: 40px; color: #999; text-align: center">
+        {{ emptyDescription }}
+        <I18nT
+          v-if="route.query.time_range !== 'now -30d'"
+          keypath="若想查看更早结果，请扩大时间范围">
+          <BkButton
+            text
+            theme="primary"
+            @click="handleExpandTimeRange">
+            {{ t('扩大时间范围') }}
+          </BkButton>
+        </I18nT>
+      </div>
       <PrimaryTable
+        v-else
         class="dynamic-table-main"
         :data="tableData"
         :max-height="485"
@@ -34,7 +51,7 @@
         <template #empty>
           <slot name="empty">
             <BkException
-              :description="t('暂无数据')"
+              :description="t('搜索为空')"
               scene="part"
               type="empty" />
           </slot>
@@ -86,6 +103,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
+  import { useRoute, useRouter } from 'vue-router';
 
   import { getReport } from '@services/source/report';
 
@@ -100,8 +118,7 @@
 
   interface Props {
     isOnlyAbnormal?: boolean;
-    isPlatform?: boolean;
-    isShowStateCount?: boolean;
+    isTodo?: boolean;
     searchParams: Record<string, any>;
     serviceUrl: string;
   }
@@ -119,11 +136,12 @@
 
   const props = withDefaults(defineProps<Props>(), {
     isOnlyAbnormal: false,
-    isPlatform: false,
-    isShowStateCount: true,
+    isTodo: false,
   });
 
   const { t } = useI18n();
+  const route = useRoute();
+  const router = useRouter();
   const globalBizsStore = useGlobalBizs();
 
   const pagination = reactive({
@@ -133,6 +151,8 @@
   });
 
   const tableName = ref('');
+  const total = ref(0);
+  const totalAbnormalCount = ref(0);
   const isShowFailSlaveInstance = ref(false);
   const failSlaveInstanceReportId = ref(0);
   const stateCountsMap = ref({
@@ -154,11 +174,32 @@
     }, {}),
   );
 
+  const emptyDescription = computed(() => {
+    const timeRange = (props.searchParams.time_range as string) || 'now -1d';
+    const timeRangeTextMap: Record<string, string> = {
+      'now -1d': t('近 24 小时'),
+      'now -30d': t('近 30 天'),
+      'now -3d': t('近 3 天'),
+      'now -7d': t('近 7 天'),
+    };
+
+    const timeRangeText = timeRangeTextMap[timeRange] || timeRangeTextMap['now -1d'];
+    if (total.value === 0) {
+      return t('{timeRange}内无巡检记录', { timeRange: timeRangeText });
+    }
+    if (props.isOnlyAbnormal && totalAbnormalCount.value === 0) {
+      return t('{timeRange}内无预警或异常', { timeRange: timeRangeText });
+    }
+    return '';
+  });
+
   const { loading, run: fetchInspectionData } = useRequest(getReport, {
     manual: true,
     onSuccess(result) {
       stateCountsMap.value = result.state_count;
       pagination.total = result.count;
+      total.value = result.total_count;
+      totalAbnormalCount.value = result.total_abnormal_count;
       tableName.value = result.name;
       const rawTitleList = result.title;
       const failedDaysIndex = rawTitleList.findIndex((item) => item.name === 'failed_days');
@@ -233,7 +274,6 @@
         offset: (pagination.current - 1) * pagination.pageSize,
         // 默认排序，优先按失败天数排序，其次按创建时间排序
         ordering: '-failed_days,-create_at',
-        platform: props.isPlatform,
         ...searchParams,
       },
       {
@@ -271,6 +311,22 @@
     }
   };
 
+  // 时间范围档位，从小到大排序
+  const timeRangeLevels = ['now -1d', 'now -3d', 'now -7d', 'now -30d'];
+
+  const handleExpandTimeRange = () => {
+    const currentTimeRange = (route.query.time_range as string) || 'now -1d';
+    const currentIndex = timeRangeLevels.indexOf(currentTimeRange);
+    // 取下一档位，已是最大档位则保持不变
+    const nextTimeRange = timeRangeLevels[currentIndex + 1] || timeRangeLevels[timeRangeLevels.length - 1];
+    router.push({
+      query: {
+        ...route.query,
+        time_range: nextTimeRange,
+      },
+    });
+  };
+
   defineExpose<Exposes>({
     async getExportExcelSheetData() {
       const searchParams = _.cloneDeep(props.searchParams);
@@ -288,7 +344,6 @@
           limit: -1,
           offset: 0,
           ordering: '-failed_days,-create_at',
-          platform: props.isPlatform,
           ...searchParams,
         },
         {
@@ -327,6 +382,23 @@
   .render-dynamic-table {
     & ~ .render-dynamic-table {
       margin-top: 16px;
+    }
+
+    &.is-empty {
+      .collapse-card-main.is-toggle {
+        padding-bottom: 0;
+
+        .card-content {
+          margin-top: 0;
+        }
+      }
+    }
+
+    .dynamic-table-empty {
+      display: flex;
+      height: 80px;
+      align-items: center;
+      justify-content: center;
     }
 
     .dynamic-table-main {

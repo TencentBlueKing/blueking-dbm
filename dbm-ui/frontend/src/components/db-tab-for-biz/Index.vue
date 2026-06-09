@@ -85,14 +85,19 @@
     () => {
       renderKey.value += 1;
     },
-    { immediate: true },
+    {
+      immediate: true,
+    },
   );
 
   watch(
     renderTabs,
     () => {
       isShow.value = renderTabs.value.length > 0;
-      if (renderTabs.value.length > 0 && renderTabs.value.findIndex((item) => item.id === moduleValue.value) === -1) {
+      if (
+        !moduleValue.value ||
+        (renderTabs.value.length > 0 && renderTabs.value.findIndex((item) => item.id === moduleValue.value) === -1)
+      ) {
         moduleValue.value = renderTabs.value[0].id;
       }
     },

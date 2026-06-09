@@ -1,25 +1,21 @@
 <template>
-  <div class="inspection-manage-page">
-    <div
-      v-show="!isEmptyShow"
-      class="page-content">
+  <div class="inspection-report-page">
+    <Teleport to="#dbContentHeaderAppend">
+      <DbDayQuickSelect
+        v-model="timeRange"
+        class="ml-20" />
+    </Teleport>
+    <div class="page-content">
       <BkLoading :loading="overviewLoading">
-        <DbaDbTab
-          v-if="isTodoPage"
-          v-model="tabType"
-          :count-config="dbCountConfig"
-          :include="availableDbs" />
         <DbTab
-          v-else-if="isPlatform"
+          v-if="isPlatform"
           v-model="tabType"
-          :exclude="excludeDbs"
-          :label-config="labelConfig" />
+          :exclude="excludeDbs" />
         <DbTabForBiz
           v-else
           v-model="tabType"
           v-model:is-show="isTabShow"
-          :exclude="excludeDbs"
-          :label-config="labelConfig" />
+          :exclude="excludeDbs" />
       </BkLoading>
       <div class="content-wrapper">
         <div class="operation-main">
@@ -30,184 +26,185 @@
             @click="handleExport">
             {{ t('导出') }}
           </BkButton>
-          <SearchBox
-            :is-assist="isTodoAssist"
-            :is-show-all="isPlatform"
-            :is-todos="!isInspectionReport"
-            :show-only-abnormal="!isTodoPage"
-            style="margin-bottom: 16px"
-            @change="handleSearchChange" />
+          <div class="inspection-search-operations">
+            <BkCheckbox v-model="isOnlyAbnormal">
+              {{ t('仅显示预警 / 异常') }}
+            </BkCheckbox>
+            <DbQuickSearch
+              v-model="searchValue"
+              class="search-select-main"
+              :data="searchData"
+              unique-select
+              value-split-code="," />
+          </div>
         </div>
         <RenderDynamicTable
           v-for="url in serviceList"
           :key="url"
           ref="dynamicTablesRef"
           :is-only-abnormal="isOnlyAbnormal"
-          :is-platform="isPlatform"
-          :is-show-state-count="!isTodoPage"
-          :search-params="searchParams"
+          :search-params="requestParams"
           :service-url="url" />
       </div>
     </div>
-    <BkException
-      v-show="isEmptyShow"
-      class="empty-exception"
-      :description="t('暂无巡检待办')"
-      scene="page"
-      type="empty" />
   </div>
 </template>
 <script setup lang="ts">
-  import BkLoading from 'bkui-vue/lib/loading';
   import _ from 'lodash';
+  import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import * as XLSX from 'xlsx';
 
   import { getReportOverview } from '@services/source/report';
+  import { getUserList } from '@services/source/user';
 
-  import { useReportCount } from '@hooks';
+  import { useGlobalBizs } from '@stores';
 
   import { DBTypeInfos, DBTypes } from '@common/const';
 
+  import DbDayQuickSelect from '@components/db-day-quick-select/Index.vue';
+  import DbQuickSearch from '@components/db-quick-search/Index.vue';
   import DbTab from '@components/db-tab/Index.vue';
   import DbTabForBiz from '@components/db-tab-for-biz/Index.vue';
-  import DbaDbTab from '@components/dba-db-tab/Index.vue';
 
-  import RenderDynamicTable from './components/render-dynamic-table/Index.vue';
-  import SearchBox from './components/SearchBox.vue';
+  import RenderDynamicTable from '../components/render-dynamic-table/Index.vue';
 
-  const { dbReportCountMap } = useReportCount();
+  const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
-  const { t } = useI18n();
+  const globalBizsStore = useGlobalBizs();
 
-  const exportLoading = ref(false);
-  const tabType = ref((route.query.tabType as DBTypes) || DBTypes.MYSQL);
-  const searchParams = ref<Record<string, any>>({});
-  const excludeDbs = ref<DBTypes[]>([]);
-  const availableDbs = ref<DBTypes[]>([]);
-  const dynamicTablesRef = ref<InstanceType<typeof RenderDynamicTable>[]>([]);
-  const isTabShow = ref(true);
-  const isOnlyAbnormal = ref(false);
-
-  const isTodoAssist = computed(() => route.query.manage === 'assist');
   const isPlatform = computed(() => route.name === 'inspectionReportGlobal');
-  const isInspectionReport = computed(() => route.name === 'inspectionReport');
-  const isTodoPage = computed(() => route.name === 'inspectionTodosGlobal');
-  const isEmptyShow = computed(() => {
-    if (!isTodoPage.value) return false;
-    if (!dbCountConfig.value) return false;
-    const totalCount = Object.values(dbCountConfig.value).reduce((sum, val) => sum + (val || 0), 0);
-    return totalCount === 0;
-  });
 
-  // 为 DbaDbTab 提供计数配置，内部自动选中第一个计数 > 0 的 Tab
-  // 待我处理取 manageCount，待我协助取 assistCount
-  const dbCountConfig = computed(() => {
-    if (!dbReportCountMap.value || !Object.keys(dbReportCountMap.value).length) {
-      return undefined;
-    }
-    return Object.entries(dbReportCountMap.value).reduce(
-      (result, [key, val]) => {
-        Object.assign(result, { [key]: isTodoAssist.value ? val.assistCount || 0 : val.manageCount || 0 });
-        return result;
-      },
-      {} as Record<string, number>,
-    );
-  });
-
-  const serviceList = computed(() => {
-    if (!dbOverviewConfig.value?.[tabType.value]) {
-      return [];
-    }
-
-    const pathList = dbOverviewConfig.value[tabType.value]!;
-    return pathList.map((path) => `/db_report/${tabType.value}/${path}/`);
-  });
-
-  const labelConfig = computed(() => {
-    if (
-      isInspectionReport.value ||
-      isPlatform.value ||
-      !dbOverviewConfig.value ||
-      !Object.keys(dbReportCountMap.value).length
-    ) {
-      return undefined;
-    }
-
-    return Object.keys(dbOverviewConfig.value).reduce(
-      (results, item) => {
-        Object.assign(results, {
-          [item]: `${item}(${dbReportCountMap.value[item]?.manageCount || 0})`,
-        });
-        return results;
-      },
-      {} as Record<DBTypes, string>,
-    );
-  });
+  const tabType = ref<DBTypes | undefined>();
+  const searchParams = ref<Record<string, any>>({});
+  const timeRange = ref('');
+  const isOnlyAbnormal = ref(true);
+  const excludeDbs = ref<DBTypes[]>([]);
+  const isTabShow = ref(true);
+  const searchValue = ref<Record<string, any>>({});
+  const exportLoading = ref(false);
+  const dynamicTablesRef = ref<InstanceType<typeof RenderDynamicTable>[]>([]);
 
   const { data: dbOverviewConfig, loading: overviewLoading } = useRequest(getReportOverview, {
     onSuccess: (data) => {
-      const dbs = Object.keys(data) as DBTypes[];
-      const totalDbs = Object.keys(DBTypeInfos);
-      availableDbs.value = dbs;
-      excludeDbs.value = _.difference(totalDbs, dbs) as DBTypes[];
+      excludeDbs.value = _.difference(Object.keys(DBTypeInfos), Object.keys(data)) as DBTypes[];
     },
+  });
+
+  const serviceList = computed(() => {
+    if (!tabType.value || !dbOverviewConfig.value?.[tabType.value]) {
+      return [];
+    }
+    return dbOverviewConfig.value[tabType.value]!.map((path) => `/db_report/${tabType.value}/${path}/`);
+  });
+
+  // 平台视角支持按业务、主 DBA 过滤；业务视角仅支持集群、状态过滤
+  const searchData = computed(() => {
+    return _.filter(
+      [
+        isPlatform.value && {
+          id: 'select_biz_id',
+          list: globalBizsStore.bizs.map((biz) => ({
+            label: biz.name,
+            value: biz.bk_biz_id,
+          })),
+          name: t('业务'),
+          type: 'single',
+        },
+        isPlatform.value && {
+          id: 'dba',
+          name: t('主DBA'),
+          remoteMethod: (params: { defaultValue?: string; keyword?: string }) => {
+            const requestParams = {};
+            if (params.defaultValue) {
+              Object.assign(requestParams, { exact_lookups: params.defaultValue });
+            }
+            if (params.keyword) {
+              Object.assign(requestParams, { fuzzy_lookups: params.keyword });
+            }
+            return getUserList(requestParams).then((data) =>
+              data.results.map((item) => ({
+                label: `${item.username} (${item.display_name})`,
+                value: item.username,
+              })),
+            );
+          },
+          remoteSearch: true,
+          type: 'single',
+        },
+        {
+          id: 'cluster',
+          name: t('集群'),
+        },
+        !isOnlyAbnormal.value && {
+          id: 'state',
+          list: [
+            {
+              label: t('正常'),
+              value: 'normal',
+            },
+            {
+              label: t('异常'),
+              value: 'abnormal',
+            },
+            {
+              label: t('预警'),
+              value: 'warning',
+            },
+          ],
+          name: t('状态'),
+          type: 'single',
+        },
+      ],
+      (item) => item,
+    ) as ComponentProps<typeof DbQuickSearch>['data'];
+  });
+
+  const requestParams = computed(() => {
+    const params: Record<string, any> = {
+      ..._.cloneDeep(searchValue.value),
+      isOnlyAbnormal: String(isOnlyAbnormal.value),
+      platform: isPlatform.value,
+      tabType: tabType.value,
+      time_range: timeRange.value,
+    };
+    // 业务视角下的巡检报告需要携带业务 ID
+    if (!isPlatform.value) {
+      Object.assign(params, { bk_biz_id: window.PROJECT_CONFIG.BIZ_ID });
+    }
+    return params;
   });
 
   watch(
     () => route.query,
     () => {
-      if (!Object.keys(route.query).length) {
-        return;
-      }
+      const routerQuery = _.cloneDeep(route.query) as Record<string, string>;
 
-      const queryObj = _.cloneDeep(route.query);
-      delete queryObj.tabType;
-      searchParams.value = queryObj;
+      searchParams.value = {};
+      ['bk_biz_id', 'cluster', 'dba', 'state'].forEach((item) => {
+        if (routerQuery[item]) {
+          searchValue.value[item] = routerQuery[item];
+        }
+      });
+
+      timeRange.value = routerQuery.time_range || 'now -1d';
+      isOnlyAbnormal.value = routerQuery.isOnlyAbnormal ? routerQuery.isOnlyAbnormal === 'true' : true;
+      tabType.value = routerQuery.tabType as DBTypes;
     },
     {
       immediate: true,
     },
   );
 
-  watch(tabType, () => {
-    updateRouteQuery();
-  });
-
-  const updateRouteQuery = (payload?: Record<string, string>) => {
-    const query = payload
-      ? {
-          ...payload,
-          tabType: tabType.value,
-        }
-      : {
-          ...searchParams.value,
-          tabType: tabType.value,
-        };
-    if (route.query.manage) {
-      Object.assign(query, { manage: route.query.manage });
-    }
-    if (isInspectionReport.value) {
-      Object.assign(query, { bk_biz_id: window.PROJECT_CONFIG.BIZ_ID });
-    }
-
-    if (!isInspectionReport.value && !isPlatform.value) {
-      if (!route.query.manage) {
-        Object.assign(query, { manage: 'todo' });
-      }
-    }
+  watch(requestParams, () => {
+    const routerQuery = _.omit({ ...requestParams.value }, ['platform']) as Record<string, string>;
     router.replace({
-      name: route.name,
-      query,
+      name: route.name as string,
+      query: routerQuery,
     });
-  };
-
-  const handleSearchChange = (payload: Record<string, any>) => {
-    isOnlyAbnormal.value = payload.isOnlyAbnormal;
-    updateRouteQuery(payload);
-  };
+  });
 
   const handleExport = async () => {
     exportLoading.value = true;
@@ -227,7 +224,7 @@
   };
 </script>
 <style lang="less">
-  .inspection-manage-page {
+  .inspection-report-page {
     height: 100%;
 
     .page-content {
@@ -245,20 +242,6 @@
       }
     }
 
-    .list-type-box {
-      padding: 0 24px;
-      background-color: #fff;
-
-      .bk-tab-content {
-        display: none;
-      }
-
-      .bk-tab-header {
-        border: none;
-        box-shadow: 0 3px 4px 0 #0000000a;
-      }
-    }
-
     .content-wrapper {
       padding: 20px;
       flex: 1;
@@ -266,19 +249,17 @@
 
       .operation-main {
         display: flex;
+        margin-bottom: 16px;
         justify-content: space-between;
       }
-    }
 
-    .empty-exception {
-      display: flex;
-      height: 100%;
-      background-color: #fff;
-      align-items: center;
-      justify-content: center;
+      .inspection-search-operations {
+        display: flex;
+        gap: 8px;
 
-      .bk-exception-description {
-        font-size: 24px;
+        .search-select-main {
+          width: 580px;
+        }
       }
     }
   }

@@ -48,9 +48,7 @@
     labelConfig: undefined,
   });
 
-  const moduleValue = defineModel<DBTypes>({
-    default: DBTypes.MYSQL,
-  });
+  const moduleValue = defineModel<DBTypes>();
 
   const funControllerStore = useFunController();
   const userProfileStore = useUserProfile();
@@ -97,7 +95,20 @@
 
       renderKey.value += 1;
     },
-    { immediate: true },
+    {
+      immediate: true,
+    },
+  );
+  watch(
+    renderTabs,
+    () => {
+      if (!moduleValue.value && renderTabs.value.length > 0) {
+        moduleValue.value = renderTabs.value[0].id;
+      }
+    },
+    {
+      immediate: true,
+    },
   );
 </script>
 

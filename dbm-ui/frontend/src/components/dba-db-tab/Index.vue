@@ -31,6 +31,8 @@
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
+
   import { useUserDbaComponents } from '@hooks';
 
   import { useUserProfile } from '@stores';
@@ -45,7 +47,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    countConfig: () => ({}) as NonNullable<Props['countConfig']>,
+    countConfig: undefined,
     include: () => [] as NonNullable<Props['include']>,
   });
 
@@ -92,30 +94,32 @@
 
   // Tab 列表变化时递增 renderKey 重新渲染，并自动选中合适的 Tab
   watch(
-    renderTabs,
-    (tabs) => {
-      renderKey.value += 1;
-      if (tabs.length > 0 && !tabs.some((tab) => tab.id === moduleValue.value)) {
-        nextTick(() => {
-          moduleValue.value = tabs[0].id;
-        });
-      }
+    () => [renderTabs.value, props.countConfig],
+    () =>
+      _.throttle(() => {
+        renderKey.value += 1;
+        if (moduleValue.value) {
+          return;
+        }
+        // 如果有 countConfig，自动选中第一个非 0 的 tab
+        if (props.countConfig !== undefined) {
+          const activeTab = Object.keys(props.countConfig).find((key) => props.countConfig![key] > 0);
+          if (activeTab) {
+            nextTick(() => {
+              moduleValue.value = activeTab;
+            });
+          }
+        }
+        // 如果 Tab 列表有值，且没有选中任何 tab，则选中第一个 tab
+        if (renderTabs.value.length > 0) {
+          nextTick(() => {
+            moduleValue.value = renderTabs.value[0].id;
+          });
+        }
+      }, 100),
+    {
+      immediate: true,
     },
-    { immediate: true },
-  );
-
-  // 如果有 countConfig，自动选中第一个非 0 的 tab
-  watch(
-    () => props.countConfig,
-    (countConfig) => {
-      const activeTab = Object.keys(countConfig).find((key) => countConfig[key] > 0);
-      if (activeTab) {
-        nextTick(() => {
-          moduleValue.value = activeTab;
-        });
-      }
-    },
-    { immediate: true },
   );
 </script>
 
