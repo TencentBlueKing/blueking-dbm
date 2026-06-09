@@ -96,7 +96,7 @@ export function batchProcessTodo(params: {
 
 // 获取单据关联任务流程信息
 export function getInnerFlowInfo(params: { ticket_ids: string }) {
-  return http.get<
+  return http.post<
     Record<
       number,
       {
