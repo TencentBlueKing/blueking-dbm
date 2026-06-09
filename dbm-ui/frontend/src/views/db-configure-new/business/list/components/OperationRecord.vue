@@ -36,7 +36,7 @@
         :title="t('操作时间')"
         :width="180">
         <template #default="{ row }">
-          {{ row.updated_at || '--' }}
+          {{ row.updated_at ? utcDisplayTime(row.updated_at) : '--' }}
         </template>
       </TableColumn>
       <!-- 2. 操作人 -->
@@ -142,6 +142,8 @@
   import { dbTippy } from '@common/tippy';
 
   import DbTable from '@components/db-table/IndexNew.vue';
+
+  import { utcDisplayTime } from '@utils';
 
   interface Props {
     clusterType?: string;

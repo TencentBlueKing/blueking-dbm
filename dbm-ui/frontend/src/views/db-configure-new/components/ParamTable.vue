@@ -156,27 +156,34 @@
           <template v-else>
             <span class="value-cell">
               <span
-                v-bk-tooltips="{
-                  content: row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--'),
-                  disabled: !row.conf_value || !overflowStates[row.conf_name],
-                  extCls: 'param-table-value-tooltip',
-                }"
-                class="value-cell-text"
-                @mouseenter="handleCellMouseEnter($event, row)">
-                {{ row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--') }}
+                v-if="row.conf_value === ''"
+                class="no-constraint-text">
+                {{ t('空字符串') }}
               </span>
-              <BkTag
-                v-if="row.level_name === levelName || row.op_type === 'add'"
-                size="small"
-                theme="warning">
-                {{ t('自定义') }}
-              </BkTag>
-              <DbIcon
-                v-if="row.flag_readonly !== 1"
-                v-bk-tooltips="{ content: t('编辑参数') }"
-                class="value-cell-edit"
-                type="bk-dbm-icon db-icon-edit"
-                @click="handleStartEdit(row)" />
+              <template v-else>
+                <span
+                  v-bk-tooltips="{
+                    content: row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--'),
+                    disabled: !row.conf_value || !overflowStates[row.conf_name],
+                    extCls: 'param-table-value-tooltip',
+                  }"
+                  class="value-cell-text"
+                  @mouseenter="handleCellMouseEnter($event, row)">
+                  {{ row.flag_encrypt === 1 ? '******' : (row.conf_value ?? '--') }}
+                </span>
+                <BkTag
+                  v-if="row.level_name === levelName || row.op_type === 'add'"
+                  size="small"
+                  theme="warning">
+                  {{ t('自定义') }}
+                </BkTag>
+                <DbIcon
+                  v-if="row.flag_readonly !== 1"
+                  v-bk-tooltips="{ content: t('编辑参数') }"
+                  class="value-cell-edit"
+                  type="bk-dbm-icon db-icon-edit"
+                  @click="handleStartEdit(row)" />
+              </template>
             </span>
           </template>
         </template>

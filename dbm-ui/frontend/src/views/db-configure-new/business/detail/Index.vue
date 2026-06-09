@@ -42,7 +42,10 @@
       </span>
       <span class="config-detail-meta">
         <span>{{ t('配置名称') }}：{{ detailData?.name || '--' }}</span>
-        <span> {{ t('最近更新') }}：{{ detailData?.updated_by || '--' }} / {{ detailData?.updated_at || '--' }} </span>
+        <span>
+          {{ t('最近更新') }}：{{ detailData?.updated_by || '--' }} /
+          {{ detailData?.updated_at ? utcDisplayTime(detailData.updated_at) : '--' }}
+        </span>
         <span>{{ t('描述') }}：{{ detailData?.description || '--' }}</span>
       </span>
     </div>
@@ -60,6 +63,8 @@
 
   import ParamTable from '@views/db-configure-new/components/ParamTable.vue';
   import { useLevelParams } from '@views/db-configure-new/hooks/useLevelParams';
+
+  import { utcDisplayTime } from '@utils';
 
   import { getConfigureState } from '../../utils/configureState';
 

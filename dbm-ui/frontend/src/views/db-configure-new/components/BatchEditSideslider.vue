@@ -89,8 +89,20 @@
           <TableColumn
             col-key="value_allowed"
             ellipsis
-            :min-width="200"
-            :title="t('约束值')" />
+            :title="t('允许值')"
+            :width="300">
+            <template #default="{ row }">
+              <template v-if="row.value_type_sub && row.value_type_sub !== 'STRING'">
+                <BkTag>{{ row.value_type_sub }}</BkTag>
+                <span class="ml-4">{{ row.value_allowed || '--' }}</span>
+              </template>
+              <span
+                v-else
+                class="no-constraint-text">
+                {{ t('无约束') }}
+              </span>
+            </template>
+          </TableColumn>
           <TableColumn
             col-key="need_restart"
             :filter="needRestartFilter"
@@ -487,6 +499,10 @@
     .batch-edit-count {
       font-size: 14px;
       color: #979ba5;
+    }
+
+    .no-constraint-text {
+      color: #c4c6cc;
     }
 
     .diff-table-scroll {

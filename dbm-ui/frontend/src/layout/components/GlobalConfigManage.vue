@@ -36,7 +36,7 @@
         </BkMenuGroup>
         <BkMenuGroup
           v-db-console="'globalConfigManage.dbConfig'"
-          :name="t('配置管理')">
+          :name="t('参数配置')">
           <BkMenuItem key="PlatformDbConfigure">
             <template #icon>
               <DbIcon type="db-config" />

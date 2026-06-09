@@ -54,7 +54,11 @@
     <TableColumn
       col-key="updated_at"
       sorter
-      :title="t('更新时间')" />
+      :title="t('更新时间')">
+      <template #default="{ row }">
+        {{ row.updated_at ? utcDisplayTime(row.updated_at) : '--' }}
+      </template>
+    </TableColumn>
   </DbTable>
 </template>
 
@@ -71,6 +75,7 @@
 
   import type { TreeData } from '@views/db-configure-new/common/types';
 
+  import { utcDisplayTime } from '@/utils';
   import { saveConfigureState } from '@/views/db-configure-new/utils/configureState';
 
   type ConfigListItem = ServiceReturnType<typeof getBusinessConfigList>;

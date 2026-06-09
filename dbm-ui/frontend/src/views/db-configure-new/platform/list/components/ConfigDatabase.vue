@@ -55,7 +55,11 @@
       <TableColumn
         col-key="updated_at"
         sorter
-        :title="t('更新时间')" />
+        :title="t('更新时间')">
+        <template #default="{ row }">
+          {{ row.updated_at ? utcDisplayTime(row.updated_at) : '--' }}
+        </template>
+      </TableColumn>
     </DbTable>
   </div>
 </template>
@@ -68,6 +72,8 @@
   import { getPlatformConfigList } from '@services/source/configs';
 
   import DbTable from '@components/db-table/IndexNew.vue';
+
+  import { utcDisplayTime } from '@utils';
 
   type ConfigListItem = ServiceReturnType<typeof getPlatformConfigList>;
 
