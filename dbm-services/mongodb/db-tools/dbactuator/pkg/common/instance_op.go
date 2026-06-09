@@ -310,9 +310,12 @@ func (inst *InstanceOp) DoStart(mode string) error {
 	return err
 }
 
-// IsMongosByDBType reports whether mongodata/<port>/dbtype records this instance as mongos.
-// Missing/unreadable files and any value other than "mongos" fall back to mongod behavior.
+// IsMongosByDBType reports whether this instance should be treated as mongos.
+// Payload InstanceType takes precedence; missing values fall back to the dbtype file.
 func (inst *InstanceOp) IsMongosByDBType() bool {
+	if strings.TrimSpace(inst.InstanceType) != "" {
+		return strings.EqualFold(strings.TrimSpace(inst.InstanceType), "mongos")
+	}
 	return inst.startProcessNameByDBType() == "mongos"
 }
 

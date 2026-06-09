@@ -9,6 +9,7 @@ import (
 	"dbm-services/mongodb/db-tools/dbmon/config"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path"
@@ -413,15 +414,67 @@ func untarMedia(prevFile, newFile, dstDir string) (skipped bool, err error) {
 			return
 		}
 	} else {
-		cpCmd := mycmd.New("cp", newFile, dstDir)
-		o, err = cpCmd.Run(time.Hour)
-		if err != nil {
-			err = errors.Errorf("untar failed cmd:%s, err:%v", o.Cmdline, err)
+		dstFile := path.Join(dstDir, path.Base(newFile))
+		if err = replaceFileAtomically(newFile, dstFile); err != nil {
+			err = errors.Wrapf(err, "replace %s to %s", newFile, dstFile)
 			return
 		}
 	}
 
 	return
+}
+
+func replaceFileAtomically(src, dst string) (err error) {
+	if !util.FileExists(src) {
+		return errors.New("src not exists")
+	}
+	srcInfo, err := os.Stat(src)
+	if err != nil {
+		return errors.Wrap(err, "stat src")
+	}
+	if srcInfo.IsDir() {
+		return errors.Errorf("src %s is a directory", src)
+	}
+
+	dstDir := path.Dir(dst)
+	if !util.DirExists(dstDir) {
+		return errors.Errorf("dstDir %s not exists", dstDir)
+	}
+
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return errors.Wrap(err, "open src")
+	}
+	defer srcFile.Close()
+
+	tmpFile, err := os.CreateTemp(dstDir, "."+path.Base(dst)+".tmp.")
+	if err != nil {
+		return errors.Wrap(err, "create temp file")
+	}
+	tmpName := tmpFile.Name()
+	defer func() {
+		_ = tmpFile.Close()
+		if err != nil {
+			_ = os.Remove(tmpName)
+		}
+	}()
+
+	if _, err = io.Copy(tmpFile, srcFile); err != nil {
+		return errors.Wrap(err, "copy to temp file")
+	}
+	if err = tmpFile.Chmod(srcInfo.Mode().Perm()); err != nil {
+		return errors.Wrap(err, "chmod temp file")
+	}
+	if err = tmpFile.Sync(); err != nil {
+		return errors.Wrap(err, "sync temp file")
+	}
+	if err = tmpFile.Close(); err != nil {
+		return errors.Wrap(err, "close temp file")
+	}
+	if err = os.Rename(tmpName, dst); err != nil {
+		return errors.Wrap(err, "rename temp file")
+	}
+	return nil
 }
 
 func cpfile(src, dst string) error {
