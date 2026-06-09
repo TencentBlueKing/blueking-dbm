@@ -73,13 +73,13 @@
               :title="t('平台默认值')"
               :width="180">
               <template #default="{ row }">
-                <span v-if="row.value_default">
-                  {{ row.flag_encrypt === 1 ? '******' : row.value_default }}
-                </span>
                 <span
-                  v-else
+                  v-if="row.value_default === ''"
                   class="no-constraint-text">
                   {{ t('空字符串') }}
+                </span>
+                <span v-else>
+                  {{ row.flag_encrypt === 1 ? '******' : row.value_default }}
                 </span>
               </template>
             </TableColumn>
@@ -221,7 +221,7 @@
       </span>
       <span class="config-detail-meta">
         <span>{{ t('配置名称') }}：{{ detailData?.name || '--' }}</span>
-        <span> {{ t('最近更新') }}：{{ detailData?.updated_by || '--' }} / {{ detailData?.updated_at || '--' }} </span>
+        <span> {{ t('最近更新') }}：{{ detailData?.updated_by || '--' }} / {{ detailData?.updated_at ? utcDisplayTime(detailData.updated_at) : '--' }} </span>
         <span>{{ t('描述') }}：{{ detailData?.description || '--' }}</span>
       </span>
     </div>
@@ -249,7 +249,7 @@
   import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
 
-  import { messageSuccess } from '@utils';
+  import { messageSuccess, utcDisplayTime } from '@utils';
 
   import ParamFormSideslider from './components/ParamFormSideslider.vue';
 
