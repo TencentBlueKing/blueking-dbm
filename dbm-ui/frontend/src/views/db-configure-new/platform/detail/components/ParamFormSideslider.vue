@@ -439,6 +439,10 @@
         message: t('格式不正确，请勿使用特殊符号'),
         trigger: 'blur',
         validator: (value: string) => {
+          // 参数显示名是可选的，仅当有输入时才触发校验
+          if (!value) {
+            return true;
+          }
           // 参数显示名校验正则：支持中文、字母、数字、空格，及连字符、下划线、点号
           if (/^[\u4e00-\u9fff\u3400-\u4dbf0-9A-Za-z._\-\s]+$/.test(value)) {
             return true;
