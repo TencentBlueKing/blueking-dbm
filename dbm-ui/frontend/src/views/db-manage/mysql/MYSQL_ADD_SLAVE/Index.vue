@@ -255,7 +255,7 @@
           cluster: {
             master_domain: item.master_domain,
           },
-          newSlave: (item.new_slave as string).split(',').map((ip) => ({
+          newSlave: (item.new_slave as string)?.split(',').map((ip) => ({
             bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
             bk_cloud_id: 0,
             bk_host_id: 0,
