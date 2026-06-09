@@ -33,6 +33,10 @@ class QdrantDBMeta(object):
         logger.error(_("找不到单据类型需要变更的cmdb函数{}，请联系系统管理员").format(function_name))
         return {}
 
+    def k8s_qdrant_enable(self) -> dict:
+        api.cluster.qdrantha.enable(self.ticket_data["cluster_id"])
+        return {"id": self.ticket_data["cluster_id"]}
+
     def k8s_qdrant_disable(self) -> dict:
         api.cluster.qdrantha.disable(self.ticket_data["cluster_id"])
         return {"id": self.ticket_data["cluster_id"]}
