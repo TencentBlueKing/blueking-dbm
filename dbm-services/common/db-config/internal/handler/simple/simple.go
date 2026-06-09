@@ -57,6 +57,7 @@ func (cf *Config) Routes() []*gin.RouteInfo {
 		// config_meta
 		{Method: http.MethodGet, Path: "/conftype/query", HandlerFunc: cf.QueryConfigTypeInfo},
 		{Method: http.MethodGet, Path: "/confname/list", HandlerFunc: cf.QueryConfigTypeNames},
+		{Method: http.MethodGet, Path: "/confname/exists", HandlerFunc: cf.ValidateConfigNameExists},
 		{Method: http.MethodPost, Path: "/confname/change", HandlerFunc: cf.ChangeConfNameDef},
 		{Method: http.MethodPost, Path: "/confname/init", HandlerFunc: cf.InitializeConfNameDef},
 		{Method: http.MethodGet, Path: "/confname/types", HandlerFunc: cf.ListDataTypes},
