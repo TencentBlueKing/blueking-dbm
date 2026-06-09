@@ -12,11 +12,11 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import AffinityEnum
-from backend.db_meta.enums import MachineType
 from backend.db_meta.models import AppCache
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import get_mongodb_cluster_tolerance
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
     BaseMongoDBOperateResourceParamBuilder,
@@ -57,7 +57,9 @@ class MongoDBAddShardFlowParamBuilder(builders.FlowParamBuilder):
 class MongoDBAddShardResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder):
     def format(self):
         # 资源申请的一些参数补充
-        self.patch_info_common_affinity(role="mongodb", remain_machine_type=MachineType.MONGODB, tolerance=0.5)
+        self.patch_info_common_affinity(
+            role="mongodb", tolerance=get_mongodb_cluster_tolerance, tolerance_type="mongodb"
+        )
         for info in self.ticket_data["infos"]:
             add_group = int(info["add_shards_num"] / info["node_replicaset_count"])  # 新增组数
             origin_group_info = info["resource_spec"].pop("mongodb")
