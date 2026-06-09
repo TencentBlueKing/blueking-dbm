@@ -13,6 +13,7 @@ export const useColumnFilter = () => {
         placement: 'bottom',
       },
       showConfirmAndReset: true,
+      type: 'input',
     },
     notice_ways: {
       component: markRaw(MultipleSelect),

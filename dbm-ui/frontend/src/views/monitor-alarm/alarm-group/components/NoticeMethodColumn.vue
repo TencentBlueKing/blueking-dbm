@@ -13,15 +13,18 @@
           <div :class="[`notice-method-${levelMap[item.level].type}`]">
             <span class="ml-4">{{ levelMap[item.level].label }}</span>
           </div>
-          <DbIcon
-            v-for="noticeItem in item.notice_ways"
-            :key="noticeItem.name"
-            v-bk-tooltips="{
-              content: `${messageInfoMap[noticeItem.name as keyof typeof messageInfoMap].label}${noticeItem?.receivers?.length ? `：${noticeItem.receivers.join('，')}` : ''}`,
-            }"
-            class="notice-method-icon"
-            :type="messageInfoMap[noticeItem.name as keyof typeof messageInfoMap].icon">
-          </DbIcon>
+          <template v-if="item.notice_ways.length > 0">
+            <DbIcon
+              v-for="noticeItem in item.notice_ways"
+              :key="noticeItem.name"
+              v-bk-tooltips="{
+                content: `${messageInfoMap[noticeItem.name as keyof typeof messageInfoMap]?.label}${noticeItem?.receivers?.length ? `：\n${noticeItem.receivers.join('\n')}` : ''}`,
+              }"
+              class="notice-method-icon"
+              :type="messageInfoMap[noticeItem.name as keyof typeof messageInfoMap]?.icon">
+            </DbIcon>
+          </template>
+          <span v-else>--</span>
         </div>
       </div>
     </template>
@@ -88,6 +91,7 @@
 
       .notice-method-icon {
         font-size: 16px;
+        color: #7d828c;
         cursor: pointer;
       }
     }
