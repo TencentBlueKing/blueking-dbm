@@ -22748,6 +22748,10 @@ msgstr "Recycle vmselect instance domain name records"
 msgid "Vm集群节点清理-{}"
 msgstr "Vm cluster node cleanup-{}"
 
+#: backend/flow/engine/bamboo/scene/qdrant/qdrant_disable_flow.py
+msgid "禁用Qdrant集群"
+msgstr "Disable Qdrant cluster"
+
 #: backend/flow/engine/exceptions.py:28
 msgid "组件服务未部署"
 msgstr "Component Services is not deployed"

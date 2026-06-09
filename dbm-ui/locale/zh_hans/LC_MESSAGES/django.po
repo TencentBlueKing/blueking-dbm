@@ -22654,6 +22654,10 @@ msgstr "启动vm集群进程-{}"
 msgid "下发 actuator"
 msgstr "下发 actuator"
 
+#: backend/flow/engine/bamboo/scene/qdrant/qdrant_disable_flow.py
+msgid "禁用Qdrant集群"
+msgstr "Disable Qdrant cluster"
+
 #: backend/flow/engine/bamboo/scene/vm/vm_replace_flow.py:155
 #: backend/flow/engine/bamboo/scene/vm/vm_scale_up_flow.py:135
 #: backend/flow/engine/bamboo/scene/vm/vm_shrink_flow.py:131
