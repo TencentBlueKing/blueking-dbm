@@ -67,68 +67,6 @@
         </BkFormItem>
         <hr class="form-divider" />
       </template>
-
-      <BkFormItem
-        label="Region"
-        property="region"
-        required>
-        <BkInput
-          v-model="formData.region"
-          :placeholder="t('如 ap-guangzhou')" />
-      </BkFormItem>
-
-      <BkFormItem
-        label="Endpoint"
-        property="endpoint"
-        required>
-        <BkInput
-          v-model="formData.endpoint"
-          :placeholder="t('如 cos.ap-guangzhou.myqcloud.com')" />
-      </BkFormItem>
-
-      <BkFormItem
-        label="SecretId"
-        property="secret_id"
-        required>
-        <BkInput
-          v-model="formData.secret_id"
-          :placeholder="t('请输入')"
-          :type="showSecretId ? 'text' : 'password'">
-          <template #suffix>
-            <DbIcon
-              class="password-toggle-icon"
-              :type="showSecretId ? 'eye' : 'eye-slash'"
-              @click="showSecretId = !showSecretId" />
-          </template>
-        </BkInput>
-      </BkFormItem>
-
-      <BkFormItem
-        label="SecretKey"
-        property="secret_key"
-        required>
-        <BkInput
-          v-model="formData.secret_key"
-          :placeholder="t('请输入')"
-          :type="showSecretKey ? 'text' : 'password'">
-          <template #suffix>
-            <DbIcon
-              class="password-toggle-icon"
-              :type="showSecretKey ? 'eye' : 'eye-slash'"
-              @click="showSecretKey = !showSecretKey" />
-          </template>
-        </BkInput>
-      </BkFormItem>
-
-      <BkFormItem
-        label="Bucket"
-        property="bucket_name"
-        required>
-        <BkInput
-          v-model="formData.bucket_name"
-          :placeholder="t('存储桶名称')" />
-      </BkFormItem>
-
       <BkFormItem
         :label="t('存储类型')"
         property="storage_type"
@@ -143,6 +81,62 @@
             :label="item"
             :value="item" />
         </BkSelect>
+      </BkFormItem>
+      <BkFormItem
+        label="Region"
+        property="region"
+        required>
+        <BkInput
+          v-model="formData.region"
+          :placeholder="t('如 ap-guangzhou')" />
+      </BkFormItem>
+      <BkFormItem
+        label="Endpoint"
+        property="endpoint"
+        required>
+        <BkInput
+          v-model="formData.endpoint"
+          :placeholder="t('如 cos.ap-guangzhou.myqcloud.com')" />
+      </BkFormItem>
+      <BkFormItem
+        label="SecretId"
+        property="secret_id"
+        required>
+        <BkInput
+          v-model="formData.secret_id"
+          :placeholder="t('请输入 SecretId')"
+          :type="showSecretId ? 'text' : 'password'">
+          <template #suffix>
+            <DbIcon
+              class="password-toggle-icon"
+              :type="showSecretId ? 'eye' : 'eye-slash'"
+              @click="showSecretId = !showSecretId" />
+          </template>
+        </BkInput>
+      </BkFormItem>
+      <BkFormItem
+        label="SecretKey"
+        property="secret_key"
+        required>
+        <BkInput
+          v-model="formData.secret_key"
+          :placeholder="t('请输入 SecretKey')"
+          :type="showSecretKey ? 'text' : 'password'">
+          <template #suffix>
+            <DbIcon
+              class="password-toggle-icon"
+              :type="showSecretKey ? 'eye' : 'eye-slash'"
+              @click="showSecretKey = !showSecretKey" />
+          </template>
+        </BkInput>
+      </BkFormItem>
+      <BkFormItem
+        label="Bucket"
+        property="bucket_name"
+        required>
+        <BkInput
+          v-model="formData.bucket_name"
+          :placeholder="t('请输入 Bucket')" />
       </BkFormItem>
     </BkForm>
     <template #footer>

@@ -71,11 +71,11 @@
           </template>
         </TableColumn>
         <TableColumn
-          col-key="bucket"
+          col-key="bucket_name"
           :min-width="180"
           title="Bucket">
           <template #default="{ row }: { row: BackupConfigRow }">
-            {{ getConfValue(row, 'cos_auth.bucket') }}
+            {{ getConfValue(row, 'cos_auth.bucket_name') }}
           </template>
         </TableColumn>
         <TableColumn

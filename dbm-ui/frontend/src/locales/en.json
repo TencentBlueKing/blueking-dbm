@@ -5418,7 +5418,6 @@
   "确定删除「{n}（{id}）」的备份存储配置？": "Sure to delete the backup storage configuration of 「{n} ({id})」?",
   "请选择云区域": "Select cloud region",
   "已配置": "Configured",
-  "存储桶名称": "Bucket Name",
   "请选择存储类型": "Select storage type",
   "如 ap-guangzhou": "e.g. ap-guangzhou",
   "如 cos.ap-guangzhou.myqcloud.com": "e.g. cos.ap-guangzhou.myqcloud.com",
