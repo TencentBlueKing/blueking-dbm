@@ -1,5 +1,10 @@
 # DBHA-v2 Change Log
 
+## v2.0.0-beta.10-unreleased
+- 【新增】cluster 工具 `reset` 流程支持 CLB 实例恢复：自动注册缺失实例、注销多余实例。
+- 【新增】cluster 工具新增 `show clb` 子命令，支持以 JSON 格式输出 tendbha、tendbcluster 集群的 CLB 绑定信息。
+- 【修复】切换流程中 CLB 实例注销、TBinlogDumper 切换补充 DBM API 响应解析与结果校验。
+
 ## v2.0.0-beta.9
 - 【优化】升级grpc and x/crypto版本。
 - 【优化】切换流程里修复 Tdbctl 主从同步关系时采用位点同步方式。
