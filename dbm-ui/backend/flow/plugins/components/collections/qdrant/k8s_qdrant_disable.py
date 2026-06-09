@@ -15,33 +15,32 @@ from typing import List
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
-import backend.flow.utils.qdrant.qdrant_context_dataclass as flow_context
+from backend.components import KubernetesApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.flow.utils.qdrant.qdrant_db_meta import QdrantDBMeta
 
 logger = logging.getLogger("flow")
 
 
-class QdrantDBMetaService(BaseService):
+class DisableK8sQdrantService(BaseService):
     """
-    根据单据类型来更新cmdb
+    禁用qdrant集群
     """
 
     def _execute(self, data, parent_data):
-        kwargs = data.get_one_of_inputs("kwargs")
         global_data = data.get_one_of_inputs("global_data")
-        trans_data = data.get_one_of_inputs("trans_data")
 
-        if trans_data is None or trans_data == "${trans_data}":
-            # 表示没有加载上下文内容，则在此添加
-            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
+        cluster_id = global_data["cluster_id"]
+        cluster_detail = KubernetesApi.cluster_detail({"cluster_id": cluster_id}, use_admin=True)
 
-        global_data["region"] = trans_data.region_code
-        global_data["domain"] = trans_data.domain
-        qdrant_meta = QdrantDBMeta(ticket_data=global_data)
-        result = qdrant_meta.write()
-        trans_data.cluster_id = result["id"]
-        data.outputs["trans_data"] = trans_data
+        params = {
+            "k8sClusterName": cluster_detail["k8sClusterConfig"]["clusterName"],
+            "namespace": cluster_detail["namespace"],
+            "clusterName": cluster_detail["clusterName"],
+            "async_to_dbm": False,
+            "bk_username": global_data["created_by"],
+        }
+        KubernetesApi.disable_cluster(params, use_admin=True)
+
         return True
 
     def inputs_format(self) -> List:
@@ -51,7 +50,7 @@ class QdrantDBMetaService(BaseService):
         ]
 
 
-class QdrantDBMetaComponent(Component):
+class DisableK8sQdrantComponent(Component):
     name = __name__
-    code = "qdrant_db_meta"
-    bound_service = QdrantDBMetaService
+    code = "disable_k8s_qdrant"
+    bound_service = DisableK8sQdrantService
