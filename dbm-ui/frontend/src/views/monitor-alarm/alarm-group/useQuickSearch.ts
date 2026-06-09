@@ -18,30 +18,21 @@ export const useQuickSearch = () => {
       name: t('告警组名称'),
       type: 'input',
     },
-    {
-      id: 'is_built_in',
-      list: [
-        {
-          label: t('内置'),
-          value: 'true',
-        },
-        {
-          label: t('自定义'),
-          value: 'false',
-        },
-      ],
-      name: t('类型'),
-      type: 'single',
-    },
-    {
-      id: 'notice_ways',
-      list: NoticGroupModel.NoticeMethodList.map((item) => ({
-        label: item.label,
-        value: item.type,
-      })),
-      name: t('通知方式'),
-      type: 'multiple',
-    },
+    // {
+    //   id: 'is_built_in',
+    //   list: [
+    //     {
+    //       label: t('内置'),
+    //       value: 'true',
+    //     },
+    //     {
+    //       label: t('自定义'),
+    //       value: 'false',
+    //     },
+    //   ],
+    //   name: t('类型'),
+    //   type: 'single',
+    // },
     {
       id: 'receivers',
       name: t('通知对象'),
@@ -62,6 +53,15 @@ export const useQuickSearch = () => {
         );
       },
       remoteSearch: true,
+      type: 'multiple',
+    },
+    {
+      id: 'notice_ways',
+      list: NoticGroupModel.NoticeMethodList.map((item) => ({
+        label: item.label,
+        value: item.type,
+      })),
+      name: t('通知方式'),
       type: 'multiple',
     },
   ] as QuickSearchProps['data'];

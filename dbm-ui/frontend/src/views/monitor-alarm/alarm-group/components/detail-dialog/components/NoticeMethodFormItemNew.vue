@@ -20,9 +20,6 @@
     required
     :rules="methodRules">
     <div>
-      <p class="notice-text">
-        {{ t('每个告警级别至少勾选一种渠道；勾选企微群聊时需填写群 ID（可按级别填不同群）') }}
-      </p>
       <div
         v-for="(item, index) in panelList"
         :key="item.name"
@@ -34,11 +31,11 @@
             class="table-row-item table-row-head-item"
             :class="{
               'table-row-type': !headItem.type,
-              'table-row-checkbox': headItem.type && headItem.type !== MessageTypes.WXWORK_BOT,
-              'table-row-input': headItem.type && headItem.type === MessageTypes.WXWORK_BOT,
+              'table-row-checkbox-cell': headItem.type && headItem.type !== MessageTypes.WXWORK_BOT,
+              'table-row-input-cell': headItem.type && headItem.type === MessageTypes.WXWORK_BOT,
             }">
             <DbIcon
-              style="font-size: 16px"
+              class="table-row-head-icon"
               :type="headItem.icon" />
             <span
               class="ml-4"
@@ -66,8 +63,8 @@
           <div
             v-for="(formDataItem, formDataIndex) in dataItem.formData"
             :key="formDataIndex"
-            class="table-row-item table-row-checkbox"
-            :class="{ 'table-row-input': formDataItem.type === MessageTypes.WXWORK_BOT }">
+            class="table-row-item table-row-checkbox-cell"
+            :class="{ 'table-row-input-cell': formDataItem.type === MessageTypes.WXWORK_BOT }">
             <BkCheckbox
               v-model="formDataItem.checked"
               :disabled="disabled"
@@ -76,11 +73,17 @@
               v-if="formDataItem.type === MessageTypes.WXWORK_BOT"
               v-model="formDataItem.input"
               class="ml-8"
+              :class="{ 'cell-input-error': formDataItem.checked && !formDataItem.input }"
               :disabled="disabled || !formDataItem.checked"
               :placeholder="formDataItem.checked ? t('请输入群 ID，多个 ID 以分号隔开') : t('不通知')" />
           </div>
         </div>
       </div>
+    </div>
+    <div
+      v-if="!isErrorShow"
+      class="notice-text">
+      {{ t('每个告警级别至少勾选一种渠道；勾选企微群聊时需填写群 ID（可按级别填不同群）') }}
     </div>
   </BkFormItem>
 </template>
@@ -97,6 +100,7 @@
   interface Props {
     details: AlarmGroupDetail;
     disabled: boolean;
+    isSubmiting: boolean;
     type: 'add' | 'edit' | 'copy' | '';
   }
 
@@ -203,11 +207,16 @@
         for (const panelItem of panelList.value) {
           for (const dataItem of panelItem.dataList) {
             if (dataItem.formData.every((formDataItem) => !formDataItem.checked)) {
-              return t('level 级别请至少配置一种通知方式', { level: levelMap[dataItem.level].label });
+              if (props.isSubmiting) {
+                isErrorShow.value = true;
+                return t('level 级别请至少配置一种通知方式', { level: levelMap[dataItem.level].label });
+              }
+              return '';
             }
             for (const formDataItem of dataItem.formData) {
               if (formDataItem.type === MessageTypes.WXWORK_BOT && formDataItem.checked && formDataItem.input === '') {
-                return t('level 级别请输入企微群 ID', { level: levelMap[dataItem.level].label });
+                // return t('level 级别请输入企微群 ID', { level: levelMap[dataItem.level].label });
+                return '';
               }
             }
           }
@@ -221,6 +230,7 @@
   const noticeMethodRef = useTemplateRef('noticeMethodRef');
 
   const active = ref('');
+  const isErrorShow = ref(false);
   const panelList = ref<
     {
       dataList: ({
@@ -248,6 +258,7 @@
           ),
         ),
       );
+      isErrorShow.value = false;
       noticeMethodRef.value?.validate();
     },
     { deep: true, immediate: true },
@@ -396,6 +407,10 @@
 <style lang="less" scoped>
   .bk-form-item.is-error .bk-input {
     border-color: #c4c6cc;
+
+    &.cell-input-error {
+      border-color: #ea3636;
+    }
   }
 
   .notice-mothod {
@@ -427,8 +442,12 @@
     }
 
     .notice-text {
+      position: absolute;
+      left: 0;
+      // padding-top: 4px;
       font-size: 12px;
-      color: @gray-color;
+      line-height: 20px;
+      color: #979ba5;
     }
 
     .panel-item-table {
@@ -459,6 +478,11 @@
           background-color: #fafbfd;
         }
 
+        .table-row-head-icon {
+          font-size: 16px;
+          color: #7d828c;
+        }
+
         .table-row-type {
           width: 120px;
 
@@ -482,12 +506,12 @@
           }
         }
 
-        .table-row-checkbox {
+        .table-row-checkbox-cell {
           min-width: 120px;
           // flex: 1;
         }
 
-        .table-row-input {
+        .table-row-input-cell {
           flex: 5;
         }
 

@@ -33,13 +33,14 @@
       ref="tableRef"
       class="alert-group-table"
       :data-source="getAlarmGroupList"
+      :filter-value="quickSearchValue"
       releate-url-query
       :row-class-name="setRowClass"
       row-key="id"
+      @filter-change="handleFilterChange"
       @request-success="handleRequestSuccess">
       <TableColumn
         col-key="name"
-        :ellipsis="false"
         :filter="columnFilter.name"
         fixed="left"
         :title="t('告警组名称')"
@@ -96,27 +97,47 @@
         :width="100">
         <template #default="{ row }: { row: NoticGroupModel }">
           <BkPopover
-            v-if="row.usedCountTotal"
+            v-if="row.usedCountTotal >= 2"
             placement="top"
-            theme="light">
-            <span style="cursor: pointer; color: #3a84ff; font-weight: bolder">{{ row.usedCountTotal }}</span>
+            theme="light"
+            :width="180">
+            <span style="cursor: pointer; color: #3a84ff">{{ row.usedCountTotal }}</span>
             <template #content>
               <div>
+                <I18nT
+                  class="mb-12"
+                  keypath="共n条策略"
+                  tag="div">
+                  <template #n>
+                    <span style="font-weight: bolder">{{ row.usedCountTotal }}</span>
+                  </template>
+                </I18nT>
                 <div
                   v-for="[dbType, count] in Object.entries(row.used_count)"
                   :key="dbType"
-                  style="display: flex">
-                  <div>{{ DBTypeInfos[dbType as DBTypes].name }}：</div>
+                  class="alert-group-used-count-item">
                   <BkButton
                     text
                     theme="primary"
                     @click="toRelatedPolicy(row.id, dbType)">
-                    {{ count }}
+                    {{ DBTypeInfos[dbType as DBTypes].name }}
                   </BkButton>
+                  <BkTag
+                    radius="50%"
+                    size="small">
+                    {{ count }}
+                  </BkTag>
                 </div>
               </div>
             </template>
           </BkPopover>
+          <BkButton
+            v-else-if="row.usedCountTotal === 1"
+            text
+            theme="primary"
+            @click="toRelatedPolicy(row.id, Object.keys(row.used_count)[0])">
+            {{ row.usedCountTotal }}
+          </BkButton>
           <span
             v-else
             v-bk-tooltips="t('暂无策略使用此告警组')"
@@ -285,6 +306,11 @@
     fetchTableData();
   };
 
+  const handleFilterChange = (filterValue: Record<string, string>) => {
+    quickSearchValue.value = filterValue;
+    fetchTableData();
+  };
+
   const fetchTableData = () => {
     tableRef.value!.fetchData({
       ...quickSearchValue.value,
@@ -337,6 +363,19 @@
 </script>
 
 <style lang="less" scoped>
+  .alert-group-used-count-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 32px;
+    line-height: 32px;
+    border-top: 1px solid #dcdee5;
+
+    &:last-child {
+      border-bottom: 1px solid #dcdee5;
+    }
+  }
+
   .alert-group {
     .alert-group-operations {
       display: flex;
