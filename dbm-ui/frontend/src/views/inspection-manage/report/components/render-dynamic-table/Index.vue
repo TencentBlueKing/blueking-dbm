@@ -23,7 +23,14 @@
           <span class="ml-2">)</span>
         </template>
       </template>
+      <div v-if="total === 0">
+        <BkException
+          :description="emptyDescription"
+          scene="part"
+          type="empty" />
+      </div>
       <PrimaryTable
+        v-else
         class="dynamic-table-main"
         :data="tableData"
         :max-height="485"
@@ -34,7 +41,7 @@
         <template #empty>
           <slot name="empty">
             <BkException
-              :description="t('暂无数据')"
+              :description="t('搜索为空')"
               scene="part"
               type="empty" />
           </slot>
@@ -86,6 +93,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
+  import { useRoute } from 'vue-router';
 
   import { getReport } from '@services/source/report';
 
@@ -124,7 +132,10 @@
   });
 
   const { t } = useI18n();
+  const route = useRoute();
   const globalBizsStore = useGlobalBizs();
+
+  const isTodoPage = computed(() => route.name === 'inspectionTodosGlobal');
 
   const pagination = reactive({
     current: 1,
@@ -133,6 +144,7 @@
   });
 
   const tableName = ref('');
+  const total = ref(0);
   const isShowFailSlaveInstance = ref(false);
   const failSlaveInstanceReportId = ref(0);
   const stateCountsMap = ref({
@@ -154,11 +166,35 @@
     }, {}),
   );
 
+  const emptyDescription = computed(() => {
+    const timeRange = (props.searchParams.time_range as string) || 'now -1d';
+    const timeRangeTextMap: Record<string, string> = {
+      'now -0d': t('今天'),
+      'now -1d': t('近 24 小时'),
+      'now -30d': t('近 30 天'),
+      'now -3d': t('近 3 天'),
+      'now -7d': t('近 7 天'),
+    };
+    const timeRangeText = timeRangeTextMap[timeRange] || timeRangeTextMap['now -1d'];
+    if (isTodoPage.value) {
+      // 近 30 天为最大档位，不再提示扩大时间范围
+      if (timeRange === 'now -30d') {
+        return t('{timeRange}内无预警或异常', { timeRange: timeRangeText });
+      }
+      return t('{timeRange}内无预警或异常，若想查看更早结果，请扩大时间范围', { timeRange: timeRangeText });
+    }
+    if (props.isOnlyAbnormal) {
+      return t('{timeRange}内无预警或异常', { timeRange: timeRangeText });
+    }
+    return t('{timeRange}内无巡检记录', { timeRange: timeRangeText });
+  });
+
   const { loading, run: fetchInspectionData } = useRequest(getReport, {
     manual: true,
     onSuccess(result) {
       stateCountsMap.value = result.state_count;
       pagination.total = result.count;
+      total.value = result.total_count;
       tableName.value = result.name;
       const rawTitleList = result.title;
       const failedDaysIndex = rawTitleList.findIndex((item) => item.name === 'failed_days');
@@ -327,6 +363,13 @@
   .render-dynamic-table {
     & ~ .render-dynamic-table {
       margin-top: 16px;
+    }
+
+    .dynamic-table-empty {
+      display: flex;
+      height: 80px;
+      align-items: center;
+      justify-content: center;
     }
 
     .dynamic-table-main {
