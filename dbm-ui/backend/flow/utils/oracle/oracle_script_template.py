@@ -35,7 +35,7 @@ chmod +x oracle-dbactuator
 """
 
 
-def make_script_common_kwargs(timeout=3600, exec_account="root", is_param_sensitive=0):
+def make_script_common_kwargs(timeout=259200, exec_account="root", is_param_sensitive=0):
     """
     make_script_common_kwargs 生成脚本执行的公共参数
     """
