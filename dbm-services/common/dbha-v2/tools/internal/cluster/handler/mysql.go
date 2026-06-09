@@ -566,6 +566,44 @@ func (hdl *MysqlBaseHandler) resetAllClbBindings(clbList []config.ClbConfig) err
 	return nil
 }
 
+func (hdl *MysqlBaseHandler) queryClbBinding(clb *config.ClbConfig) (ClbBindingInfo, error) {
+	if err := validateClbConfig(clb); err != nil {
+		return ClbBindingInfo{}, err
+	}
+
+	instanceList, err := hdl.dbmClient.GetClbTargetPrivateIps(clb)
+	if err != nil {
+		return ClbBindingInfo{}, err
+	}
+	if instanceList == nil {
+		instanceList = make([]string, 0)
+	}
+
+	return ClbBindingInfo{
+		ClbID:        clb.LoadBalancerID,
+		ListenerID:   clb.ListenerID,
+		Region:       clb.Region,
+		InstanceList: instanceList,
+	}, nil
+}
+
+func (hdl *MysqlBaseHandler) buildClusterClbInfo(domain string, clbConfigs []config.ClbConfig) (ClusterClbInfo, error) {
+	clbList := make([]ClbBindingInfo, 0, len(clbConfigs))
+	for i := range clbConfigs {
+		binding, err := hdl.queryClbBinding(&clbConfigs[i])
+		if err != nil {
+			return ClusterClbInfo{}, gerrors.Newf(gerrors.Failure,
+				"failed to get clb info for cluster(%s), errmsg: %s", domain, err.Error())
+		}
+		clbList = append(clbList, binding)
+	}
+
+	return ClusterClbInfo{
+		Cluster: domain,
+		ClbList: clbList,
+	}, nil
+}
+
 func (hdl *MysqlClusterHandler) addNodesToDomain(instList []config.InstanceAddress, domain string, bkBizId int) error {
 	instInfoList, err := hdl.dbmClient.GetAllInstancesOfDomain(domain)
 	if err != nil {
@@ -777,6 +815,32 @@ func (hdl *MysqlClusterHandler) ShowAllMysqlClustersDomain() error {
 	}
 
 	return printJSON(clusterDomainInfoList)
+}
+
+// ShowAllMysqlClustersClb shows CLB binding information for all MySQL clusters
+func (hdl *MysqlClusterHandler) ShowAllMysqlClustersClb() error {
+	if config.ClusterConfig == nil {
+		return printErrorResponse("config is not loaded")
+	}
+
+	if hdl.dbmClient == nil {
+		return printErrorResponse("dbm client is nil")
+	}
+
+	clusterClbInfoList := make([]ClusterClbInfo, 0)
+
+	for _, cluster := range config.ClusterConfig.MysqlClusters {
+		if len(cluster.Clb) == 0 {
+			continue
+		}
+		info, err := hdl.buildClusterClbInfo(cluster.Domain, cluster.Clb)
+		if err != nil {
+			return printErrorResponse(err.Error())
+		}
+		clusterClbInfoList = append(clusterClbInfoList, info)
+	}
+
+	return printJSON(clusterClbInfoList)
 }
 
 // ShowAllMysqlClustersNodes shows all nodes status and role for all MySQL clusters

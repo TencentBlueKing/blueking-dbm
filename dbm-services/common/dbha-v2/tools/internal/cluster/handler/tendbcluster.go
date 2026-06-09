@@ -865,6 +865,32 @@ func (hdl *TenDBClusterHandler) ShowAllTenDBClustersDomain() error {
 	return printJSON(clusterDomainInfoList)
 }
 
+// ShowAllTenDBClustersClb shows CLB binding information for all TenDB clusters
+func (hdl *TenDBClusterHandler) ShowAllTenDBClustersClb() error {
+	if config.ClusterConfig == nil {
+		return printErrorResponse("config is not loaded")
+	}
+
+	if hdl.dbmClient == nil {
+		return printErrorResponse("dbm client is nil")
+	}
+
+	clusterClbInfoList := make([]ClusterClbInfo, 0)
+
+	for _, cluster := range config.ClusterConfig.TenDBClusters {
+		if len(cluster.Clb) == 0 {
+			continue
+		}
+		info, err := hdl.buildClusterClbInfo(cluster.Domain, cluster.Clb)
+		if err != nil {
+			return printErrorResponse(err.Error())
+		}
+		clusterClbInfoList = append(clusterClbInfoList, info)
+	}
+
+	return printJSON(clusterClbInfoList)
+}
+
 // ShowAllTenDBClustersNodes shows all nodes status and role for all TenDB clusters
 func (hdl *TenDBClusterHandler) ShowAllTenDBClustersNodes() error {
 	if config.ClusterConfig == nil {

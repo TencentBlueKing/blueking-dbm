@@ -131,8 +131,8 @@ type Response struct {
 	Data []*DbInstMetadata `json:"data"`
 }
 
-// UpdateInstanceStatusRespond represents the response for updating database instance status
-type UpdateInstanceStatusRespond struct {
+// UpdateInstanceStatusResponse represents the response for updating database instance status
+type UpdateInstanceStatusResponse struct {
 	ResponseCommonInfo
 
 	Data string `json:"data"`
@@ -154,8 +154,8 @@ type InstanceInfoInDomain struct {
 	Uid            int       `json:"uid"`
 }
 
-// DomainGetRespond represents the response structure for domain information query
-type DomainGetRespond struct {
+// DomainGetResponse represents the response structure for domain information query
+type DomainGetResponse struct {
 	ResponseCommonInfo
 
 	Data struct {
@@ -164,8 +164,8 @@ type DomainGetRespond struct {
 	} `json:"data"`
 }
 
-// DomainDeleteRespond represents the response structure for domain deletion operation
-type DomainDeleteRespond struct {
+// DomainDeleteResponse represents the response structure for domain deletion operation
+type DomainDeleteResponse struct {
 	ResponseCommonInfo
 
 	Data struct {
@@ -174,9 +174,21 @@ type DomainDeleteRespond struct {
 	} `json:"data"`
 }
 
-// SwapRoleRespond represents the response structure for role swapping
-type SwapRoleRespond struct {
+// SwapRoleResponse represents the response structure for role swapping
+type SwapRoleResponse struct {
 	ResponseCommonInfo
 
 	Data string `json:"data"`
+}
+
+// ClbDeleteResponse represents the response structure for CLB deregistration.
+// data is omitted intentionally: DBM may return number, string, or object; we only check result.
+type ClbDeleteResponse struct {
+	ResponseCommonInfo
+}
+
+// DumperSwitchResponse represents the response structure for binlog dumper switching.
+// data is omitted intentionally: DBM returns a large nested object; we only check result.
+type DumperSwitchResponse struct {
+	ResponseCommonInfo
 }
