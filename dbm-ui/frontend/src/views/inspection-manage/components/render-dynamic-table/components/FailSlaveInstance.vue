@@ -95,12 +95,12 @@
       label: t('表名'),
       render: ({ data, index }: { data: IDataRow; index: number }) => (
         <p
+          row-key={`row-${index}`}
           v-bk-tooltips={{
             content: data.table_name,
             disabled: !isTextOverflow.value[`row-${index}`],
           }}
-          class='table-name'
-          row-key={`row-${index}`}>
+          class='table-name'>
           {data.table_name}
         </p>
       ),
