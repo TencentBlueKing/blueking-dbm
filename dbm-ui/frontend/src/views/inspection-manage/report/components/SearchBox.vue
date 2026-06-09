@@ -5,12 +5,9 @@
       v-model="isOnlyAbnormal">
       {{ t('仅显示预警 / 异常') }}
     </BkCheckbox>
-    <BkDatePicker
-      append-to-body
-      class="date-picker-main"
-      clearable
-      :model-value="dateValue"
-      @change="handleDatePickerChange" />
+    <DbDayQuickSelect
+      v-model="timeRange"
+      class="date-picker-main" />
     <DbQuickSearch
       v-model="searchValue"
       class="search-select-main"
@@ -21,7 +18,6 @@
 </template>
 <script setup lang="ts">
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
-  import dayjs from 'dayjs';
   import _ from 'lodash';
   import type { ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -30,6 +26,7 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import DbDayQuickSelect from '@components/db-day-quick-select/Index.vue';
   import DbQuickSearch from '@components/db-quick-search/Index.vue';
 
   interface Props {
@@ -54,7 +51,7 @@
   const globalBizsStore = useGlobalBizs();
 
   const isOnlyAbnormal = ref(true);
-  const dateValue = ref(dayjs().format('YYYY-MM-DD'));
+  const timeRange = ref('now -1d');
   const searchValue = ref<Record<string, any>>({});
 
   const searchData = computed<ComponentProps<typeof DbQuickSearch>['data']>(() => {
@@ -115,13 +112,12 @@
   });
 
   watch(
-    () => [searchValue.value, dateValue.value, isOnlyAbnormal.value],
+    () => [searchValue.value, timeRange.value, isOnlyAbnormal.value],
     () => {
       const searchObj = _.cloneDeep(searchValue.value);
-      if (dateValue.value) {
+      if (timeRange.value) {
         Object.assign(searchObj, {
-          create_at__gte: dayjs(dateValue.value).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
-          create_at__lte: dayjs(dateValue.value).endOf('day').format('YYYY-MM-DD HH:mm:ss'),
+          time_range: timeRange.value,
         });
       }
 
@@ -136,8 +132,8 @@
   );
 
   const initSearchSelect = () => {
-    if (route.query.create_at__gte && route.query.create_at__lte) {
-      dateValue.value = dayjs(route.query.create_at__gte as string).format('YYYY-MM-DD');
+    if (route.query.time_range) {
+      timeRange.value = route.query.time_range as string;
     }
     if (route.query.isOnlyAbnormal) {
       isOnlyAbnormal.value = route.query.isOnlyAbnormal === 'true';
@@ -165,10 +161,6 @@
         value: item.username,
       })),
     );
-  };
-
-  const handleDatePickerChange = (value: string) => {
-    dateValue.value = value;
   };
 
   initSearchSelect();

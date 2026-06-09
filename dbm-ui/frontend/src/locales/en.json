@@ -6046,5 +6046,11 @@
   "请输入 SecretKey": "Please enter SecretKey",
   "该集群状态正常，无需灾难重建": "The cluster is in normal state; no need for disaster rebuild",
   "重建后数量（台）": "Rebuild Count (units)",
+  "{tableName}内无预警或异常": "No warnings or exceptions in {tableName}",
+  "{tableName}内无巡检记录": "No inspection records in {tableName}",
+  "{timeRange}内无预警或异常": "No warnings or exceptions in the {timeRange}",
+  "{timeRange}内无巡检记录": "No inspection records in the {timeRange}",
+  "{timeRange}内无预警或异常，若想查看更早结果，请扩大时间范围": "No warnings or exceptions in the {timeRange}. To view earlier results, please expand the time range",
+  "近 24 小时": "last 24 hours",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

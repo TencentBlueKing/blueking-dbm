@@ -1,8 +1,6 @@
 <template>
   <div class="inspection-manage-page">
-    <div
-      v-show="!isEmptyShow"
-      class="page-content">
+    <div class="page-content">
       <BkLoading :loading="overviewLoading">
         <DbaDbTab
           v-if="isTodoPage"
@@ -49,12 +47,6 @@
           :service-url="url" />
       </div>
     </div>
-    <BkException
-      v-show="isEmptyShow"
-      class="empty-exception"
-      :description="t('暂无巡检待办')"
-      scene="page"
-      type="empty" />
   </div>
 </template>
 <script setup lang="ts">
@@ -95,12 +87,6 @@
   const isPlatform = computed(() => route.name === 'inspectionReportGlobal');
   const isInspectionReport = computed(() => route.name === 'inspectionReport');
   const isTodoPage = computed(() => route.name === 'inspectionTodosGlobal');
-  const isEmptyShow = computed(() => {
-    if (!isTodoPage.value) return false;
-    if (!dbCountConfig.value) return false;
-    const totalCount = Object.values(dbCountConfig.value).reduce((sum, val) => sum + (val || 0), 0);
-    return totalCount === 0;
-  });
 
   // 为 DbaDbTab 提供计数配置，内部自动选中第一个计数 > 0 的 Tab
   // 待我处理取 manageCount，待我协助取 assistCount
