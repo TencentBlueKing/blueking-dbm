@@ -12,23 +12,25 @@ from pathlib import Path
 from typing import Dict
 
 import pymysql
-from backend import env
-from backend.core.encrypt.interceptors import SymmetricInterceptor
 from bkcrypto import constants
 from bkcrypto.asymmetric.options import RSAAsymmetricOptions, SM2AsymmetricOptions
 from bkcrypto.symmetric.options import AESSymmetricOptions, SM4SymmetricOptions
 from blueapps.conf.default_settings import *  # pylint: disable=wildcard-import
 from blueapps.core.celery.celery import app
-from blueking.mysql_patch import PatchFeatures
 from django.db.backends.mysql.features import DatabaseFeatures
+
+from backend import env
+from backend.core.encrypt.interceptors import SymmetricInterceptor
+from blueking.mysql_patch import PatchFeatures
 
 DatabaseFeatures.minimum_database_version = PatchFeatures.minimum_database_version
 
 if env.RUN_VER == "open":
     from blueapps.patch.settings_open_saas import *  # pylint: disable=wildcard-import
+
     # 社区版额外加上bkoauth的配置
     OAUTH_COOKIES_PARAMS = {"bk_token": "bk_token"}
-    INSTALLED_APPS += ("bkoauth", )
+    INSTALLED_APPS += ("bkoauth",)
 else:
     from blueapps.patch.settings_paas_services import *  # pylint: disable=wildcard-import
 
@@ -283,6 +285,17 @@ DATABASES = {
             "RECYCLE": 60 * 60,
         },
     },
+    "doris": {
+        'ENGINE': 'django.db.backends.mysql',
+        'HOST': os.environ.get("DORIS_HOST", "127.0.0.1"),
+        'PORT': os.environ.get("DORIS_PORT", 9030),
+        'USER': os.environ.get("DORIS_USER", "root"),
+        'PASSWORD': os.environ.get("DORIS_PASSWORD", ""),
+        'NAME': os.environ.get("DORIS_DB_NAME", APP_CODE),
+        'TEST': {
+            'MIRROR': 'default'
+        }
+    }
 }
 
 DATABASE_ROUTERS = [
@@ -493,7 +506,7 @@ def get_logging_config(log_dir: str, log_level: str = "ERROR") -> Dict:
         "formatters": {
             "verbose": {
                 "format": "%(levelname)s [%(asctime)s] [%(request_id)s] %(name)s %(pathname)s %(lineno)d %(funcName)s "
-                "%(process)d %(thread)d \n \t %(message)s \n",
+                          "%(process)d %(thread)d \n \t %(message)s \n",
                 # noqa
                 "datefmt": "%Y-%m-%d %H:%M:%S",
             },
@@ -659,7 +672,6 @@ if env.BKAPP_MONITOR_REPORTER_ENABLE:
     config.monitor_celery_report_config()
     config.monitor_web_report_config()
 
-
 # 接入告警屏蔽的延迟秒, 默认 10s 无延迟，最小 10s
 DISABLE_ALARM_SHIELD_DELAY = max(int(os.getenv("DISABLE_ALARM_SHIELD_DELAY", 10)), 10)
 
@@ -669,7 +681,6 @@ DISABLE_ALARM_SHIELD_DELAY = max(int(os.getenv("DISABLE_ALARM_SHIELD_DELAY", 10)
 # 开启DEBUG_TOOL_BAR，需要内联IP
 if env.DEBUG_TOOL_BAR:
     INTERNAL_IPS = ["127.0.0.1", "localhost"]
-
 
 # ================================ DBM AIDEV 配置 =========================================
 # 基础的Agent配置
