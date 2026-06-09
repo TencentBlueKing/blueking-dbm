@@ -1,6 +1,6 @@
 # DBHA-v2 Change Log
 
-## v2.0.0-beta.9-unreleased
+## v2.0.0-beta.9
 - 【优化】升级grpc and x/crypto版本。
 - 【优化】切换流程里修复 Tdbctl 主从同步关系时采用位点同步方式。
 - 【修复】白名单查询增加重试逻辑，若最终仍查询失败，丢弃采集的故障实例，不进行切换。
