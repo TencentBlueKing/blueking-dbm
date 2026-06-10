@@ -32,6 +32,7 @@ from backend.dbm_aiagent.mcp_tools.mysql.helpers.assert_clustertype import asser
 from backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_runtime_variables import cluster_runtime_variables
 from backend.dbm_aiagent.mcp_tools.mysql.impl.cluster_topo import mysql_cluster_topo
 from backend.dbm_aiagent.mcp_tools.mysql.impl.explain_sql import explain_sql
+from backend.dbm_aiagent.mcp_tools.mysql.impl.query_cluster_skew_data import query_cluster_skew_data
 from backend.dbm_aiagent.mcp_tools.mysql.impl.query_table_data_free import query_table_data_free
 from backend.dbm_aiagent.mcp_tools.mysql.impl.query_trx import query_long_running_trx
 from backend.dbm_aiagent.mcp_tools.mysql.impl.show_binlog_events import show_binlog_events as run_show_binlog_events
@@ -61,6 +62,10 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.cluster_topo import (
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.explain_sql import (
     ExplainSQLInputSerializer,
     ExplainSQLOutputSerializer,
+)
+from backend.dbm_aiagent.mcp_tools.mysql.serializers.query_cluster_skew_data import (
+    QueryClusterSkewDataInputSerializer,
+    QueryClusterSkewDataOutputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.query_table_data_free import (
     QueryTableDataFreeInputSerializer,
@@ -719,6 +724,40 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
                 cluster_domain=cluster_domain,
                 dbs=dbs,
                 ignore_dbs=ignore_dbs,
+            )
+        )
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                "查询集群给定时间段内的倾斜事件段。"
+                "返回 has_skew、episodes（metric/role/pattern/start/end/hot_deviations/cold_deviations/transitions）。"
+                "hot_deviations/cold_deviations 格式为 node:+pct 或 node:pct，表示相对均值的偏离百分比及严重程度；"
+                "pattern 仅看高于均值的节点集合是否随时间切换：fixed 或 migrating。"
+            )
+        ),
+        request_slz=QueryClusterSkewDataInputSerializer,
+        response_slz=QueryClusterSkewDataOutputSerializer,
+        permission_classes=[McpClusterDetailPermission],
+        mcp_auth_parser=auth_parse_clusters,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.MYSQL_QUERY],
+        name_prefix="mysql_query",
+    )
+    def query_cluster_skew_data(self, request, *args, **kwargs):
+        cluster_domain = self.get_param("cluster_domain")
+        from_date = self.get_param("from_date")
+        to_date = self.get_param("to_date")
+
+        cluster_obj = Cluster.objects.get(
+            immute_domain=cluster_domain, cluster_type__in=[ClusterType.TenDBHA, ClusterType.TenDBCluster]
+        )
+
+        return Response(
+            query_cluster_skew_data(
+                cluster_obj=cluster_obj,
+                from_date=from_date,
+                to_date=to_date,
             )
         )
 
