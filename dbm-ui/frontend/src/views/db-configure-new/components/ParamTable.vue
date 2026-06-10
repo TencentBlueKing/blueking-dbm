@@ -718,13 +718,12 @@
       resetEditingState();
     }
     editingRowKey.value = row[rowKeyField.value] as any;
+    editingOriginValue.value = row.conf_value ?? '';
     // 加密参数不带入原值，由用户输入新值
     if (row.flag_encrypt === 1) {
       editingValue.value = '';
-      editingOriginValue.value = '';
     } else {
       editingValue.value = row.conf_value ?? '';
-      editingOriginValue.value = row.conf_value ?? '';
     }
   };
 

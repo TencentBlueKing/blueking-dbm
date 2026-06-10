@@ -648,3 +648,15 @@ export function moduleCloneQuery(params: {
 }) {
   return http.post<CloneModuleQueryResult>(`${path}/module_clone_query/`, params);
 }
+
+/**
+ * 检查配置项名称是否已存在
+ */
+export function checkConfNameExists(params: {
+  conf_file: string;
+  conf_name: string;
+  conf_type?: string;
+  meta_cluster_type: string;
+}) {
+  return http.get<{ exists: boolean }>(`${path}/check_conf_name_exists/`, params);
+}
