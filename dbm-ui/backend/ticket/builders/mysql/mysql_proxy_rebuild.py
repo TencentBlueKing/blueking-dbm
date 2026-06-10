@@ -38,5 +38,5 @@ class MysqlProxyRebuildParamBuilder(builders.FlowParamBuilder):
 class MysqlProxyRebuildFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlProxyRebuildDetailSerializer
     inner_flow_builder = MysqlProxyRebuildParamBuilder
-    inner_flow_name = _("MySQL Proxy实例重建执行")
+    inner_flow_name = _("MySQL Proxy原地重建")
     validator = MySQLController.mysql_proxy_rebuild_scene.validator
