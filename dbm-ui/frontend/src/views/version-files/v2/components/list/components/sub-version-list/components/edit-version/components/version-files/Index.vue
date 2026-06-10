@@ -1,36 +1,40 @@
 <template>
-  <table class="version-files-table">
-    <thead>
-      <tr>
-        <th style="width: 340px">{{ t('文件') }}</th>
-        <th style="width: 152px">OS</th>
-        <th style="width: 356px">{{ t('OS版本') }}</th>
-        <th style="width: 64px"></th>
-      </tr>
-    </thead>
-    <tbody>
-      <VersionRow
-        v-for="(item, index) in tableData"
-        :key="item.rowKey"
-        ref="versionRowRefs"
-        :able-to-delete="tableData.length > 1"
-        :data="item"
-        :is-applied="isApplied"
-        :is-only-one-file="isOnlyOneFile"
-        :selected-systems="selectedSystems"
-        :selected-versions="selectedVersions"
-        @delete="() => handleDeleteRow(index)"
-        @system-os-type-change="handleOsTypeChange"
-        @system-os-version-change="handleOsVersionChange">
-      </VersionRow>
-    </tbody>
-  </table>
-  <UploadFile
-    :db-type="dbType"
-    :pkg-type="pkgType"
-    :uploaded-file-names="uploadedFileNames"
-    :version="version"
-    @success="handleAdd" />
+  <div
+    class="version-files-table-container"
+    :class="{ 'is-valid-error': isValidError }">
+    <table class="version-files-table">
+      <thead>
+        <tr>
+          <th style="width: 340px">{{ t('文件') }}</th>
+          <th style="width: 152px">OS</th>
+          <th style="width: 356px">{{ t('OS版本') }}</th>
+          <th style="width: 64px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <VersionRow
+          v-for="(item, index) in tableData"
+          :key="item.rowKey"
+          ref="versionRowRefs"
+          :data="item"
+          :is-applied="isApplied"
+          :is-only-one-file="isOnlyOneFile"
+          :selected-systems="selectedSystems"
+          :selected-versions="selectedVersions"
+          @delete="() => handleDeleteRow(index)"
+          @system-os-type-change="handleOsTypeChange"
+          @system-os-version-change="handleOsVersionChange">
+        </VersionRow>
+      </tbody>
+    </table>
+    <UploadFile
+      ref="uploadFileRef"
+      :db-type="dbType"
+      :pkg-type="pkgType"
+      :uploaded-file-names="uploadedFileNames"
+      :version="version"
+      @success="handleAdd" />
+  </div>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -51,7 +55,7 @@
   type Emits = (e: 'valueChange') => void;
 
   interface Exposes {
-    getValue: () => ReturnType<InstanceType<typeof VersionRow>['getValue']>[] | null;
+    getValue: () => ReturnType<InstanceType<typeof VersionRow>['getValue']>[] | string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -63,9 +67,11 @@
 
   const { t } = useI18n();
 
+  const uploadFileRef = ref<InstanceType<typeof UploadFile>>();
   const versionRowRefs = ref<InstanceType<typeof VersionRow>[]>([]);
   const selectedSystems = ref<Set<string>>(new Set());
   const selectedVersions = ref<Record<string, Set<string>>>({});
+  const isValidError = ref(false);
   const tableData = ref<
     {
       id?: number;
@@ -129,19 +135,27 @@
   };
 
   const handleDeleteRow = (index: number) => {
+    uploadFileRef.value!.clearDuplicateTip();
     tableData.value.splice(index, 1);
+    if (tableData.value.length === 0) {
+      selectedSystems.value.clear();
+      selectedVersions.value = {};
+    }
     emits('valueChange');
   };
 
   defineExpose<Exposes>({
     getValue() {
+      isValidError.value = false;
       if (tableData.value.length === 0) {
-        return null;
+        isValidError.value = true;
+        return t('请至少添加 1 个版本文件');
       }
 
       const filesInfo = versionRowRefs.value.map((item) => item.getValue());
       if (filesInfo.some((item) => !item.permit_os.length || !item.permit_os_type)) {
-        return null;
+        isValidError.value = true;
+        return t('请补全版本文件信息');
       }
 
       return filesInfo;
@@ -149,33 +163,43 @@
   });
 </script>
 <style lang="less">
-  .version-files-table {
+  .version-files-table-container {
     width: 100%;
-    font-family: MicrosoftYaHei, sans-serif;
-    font-size: 12px;
-    table-layout: fixed;
+    border: 1px solid transparent;
+    box-sizing: content-box;
 
-    thead {
-      border-bottom: 4px solid #fff;
+    &.is-valid-error {
+      border-color: #ed3f14;
     }
 
-    th {
-      padding-left: 16px;
-      margin-bottom: 4px;
-      font-weight: normal;
-      color: #313238;
-      background: #f0f1f5;
-    }
+    .version-files-table {
+      width: 100%;
+      font-family: MicrosoftYaHei, sans-serif;
+      font-size: 12px;
+      table-layout: fixed;
 
-    tbody {
-      tr {
-        border-bottom: 10px solid #fff;
+      thead {
+        border-bottom: 4px solid #fff;
       }
-    }
 
-    td {
-      padding: 5px 16px;
-      background: #f5f7fa;
+      th {
+        padding-left: 16px;
+        margin-bottom: 4px;
+        font-weight: normal;
+        color: #313238;
+        background: #f0f1f5;
+      }
+
+      tbody {
+        tr {
+          border-bottom: 10px solid #fff;
+        }
+      }
+
+      td {
+        padding: 5px 16px;
+        background: #f5f7fa;
+      }
     }
   }
 </style>

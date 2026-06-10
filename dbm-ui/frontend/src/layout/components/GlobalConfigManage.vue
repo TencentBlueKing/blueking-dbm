@@ -10,7 +10,7 @@
         @click="handleMenuChange">
         <BkMenuGroup
           v-db-console="'globalConfigManage.versionFile'"
-          :name="t('文件管理')">
+          :name="t('版本')">
           <BkMenuItem key="PlatformVersionFiles">
             <template #icon>
               <DbIcon type="version" />
@@ -18,7 +18,7 @@
             <span
               v-overflow-tips.right
               class="text-overflow">
-              {{ t('版本文件') }}
+              {{ t('版本管理') }}
             </span>
           </BkMenuItem>
           <BkMenuItem
@@ -30,7 +30,7 @@
             <span
               v-overflow-tips.right
               class="text-overflow">
-              {{ t('版本文件') }}
+              {{ t('版本管理') }}
             </span>
           </BkMenuItem>
         </BkMenuGroup>

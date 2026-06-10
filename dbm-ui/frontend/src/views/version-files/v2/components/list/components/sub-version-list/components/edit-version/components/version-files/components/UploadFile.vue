@@ -85,6 +85,10 @@
     },
   ) => void;
 
+  interface Exposes {
+    clearDuplicateTip: () => void;
+  }
+
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
@@ -234,9 +238,18 @@
     uploadLoading.value = false;
     emits('success', fileInfo);
   };
+
+  defineExpose<Exposes>({
+    clearDuplicateTip() {
+      duplicateFileName.value = '';
+    },
+  });
 </script>
 <style lang="less">
   .version-upload-file {
+    padding: 0 16px 8px;
+    margin-top: 8px;
+
     .bk-upload-trigger {
       position: relative;
       display: flex;

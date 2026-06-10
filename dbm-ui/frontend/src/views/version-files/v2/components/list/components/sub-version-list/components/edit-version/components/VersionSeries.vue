@@ -4,6 +4,7 @@
     :clearable="false"
     :disabled="!!versionSeriesId"
     filterable
+    :placeholder="t('请选择xx', [t('系列')])"
     @change="handleValueChange">
     <BkOption
       v-for="system in seriesList"

@@ -1,51 +1,50 @@
 <template>
-  <BkPopConfirm
-    :confirm-config="{
-      loading: downloadPackagesLoading,
-      disabled: !checkedPackages.length,
-    }"
-    placement="bottom"
-    :popover-options="{
-      disabled: data.packages.length === 1,
-      extCls: 'download-package-confirm',
-    }"
-    :title="t('请勾选需要下载的文件')"
-    trigger="click"
-    :width="380"
-    @after-hidden="handleAfterHidden"
-    @confirm="handleDownloadPackages">
-    <template #content>
-      <div class="package-list">
-        <BkCheckboxGroup v-model="checkedPackages">
-          <BkCheckbox
-            v-for="item in data.packages"
-            :key="item.id"
-            :label="item.path">
-            {{ item.name }}
-          </BkCheckbox>
-        </BkCheckboxGroup>
-        <div class="select-all-main">
-          <BkCheckbox
-            v-model="isSelectAll"
-            @change="handleSelectAllChange">
-            {{ t('全选') }}
-          </BkCheckbox>
-        </div>
-      </div>
+  <BkButton
+    class="ml-12"
+    :loading="downloadSinglePackageLoading"
+    size="small"
+    text
+    theme="primary"
+    @click="handleDownloadClick">
+    {{ t('下载') }}
+  </BkButton>
+  <BkDialog
+    v-model:is-show="isShow"
+    class="download-package-dialog"
+    quick-close
+    render-directive="if"
+    :title="t('下载版本文件')"
+    :width="480"
+    @closed="handleDialogClosed">
+    <div class="package-list">
+      <BkCheckbox
+        v-model="isSelectAll"
+        @change="handleSelectAllChange">
+        {{ t('全选') }}
+      </BkCheckbox>
+      <BkCheckboxGroup v-model="checkedPackages">
+        <BkCheckbox
+          v-for="item in data.packages"
+          :key="item.id"
+          :label="item.path">
+          {{ item.name }}
+        </BkCheckbox>
+      </BkCheckboxGroup>
+    </div>
+    <template #footer>
+      <BkButton
+        class="mr-8"
+        :disabled="!checkedPackages.length"
+        :loading="downloadPackagesLoading"
+        theme="primary"
+        @click="handleDownloadPackages">
+        {{ t('下载') }}
+      </BkButton>
+      <BkButton @click="handleCancel">
+        {{ t('取消') }}
+      </BkButton>
     </template>
-    <AuthButton
-      action-id="package_manage"
-      class="ml-12"
-      :loading="downloadSinglePackageLoading"
-      :permission="permission"
-      :resource="dbType"
-      size="small"
-      text
-      theme="primary"
-      @click="handleDownloadSinglePackage">
-      {{ t('下载文件') }}
-    </AuthButton>
-  </BkPopConfirm>
+  </BkDialog>
 </template>
 
 <script setup lang="ts">
@@ -58,14 +57,13 @@
 
   interface Props {
     data: DbVersionModel;
-    dbType: string;
-    permission: boolean;
   }
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
 
+  const isShow = ref(false);
   const downloadPackagesLoading = ref(false);
   const downloadSinglePackageLoading = ref(false);
   const checkedPackages = ref<string[]>([]);
@@ -89,20 +87,11 @@
     }
   };
 
-  const handleDownloadPackages = async () => {
-    try {
-      downloadPackagesLoading.value = true;
-      const tokenResult = await batchCreateBkrepoAccessToken({ file_path_list: checkedPackages.value });
-      const urls = tokenResult.map((item) => generateBkRepoDownloadUrl(item));
-      urls.forEach((url) => downloadUrl(url));
-      messageSuccess(t('下载成功'));
-    } finally {
-      downloadPackagesLoading.value = false;
-    }
-  };
-
-  const handleDownloadSinglePackage = async () => {
+  const handleDownloadClick = async () => {
     if (props.data.packages?.length > 1) {
+      checkedPackages.value = props.data.packages.map((item) => item.path);
+      isSelectAll.value = true;
+      isShow.value = true;
       return;
     }
 
@@ -117,37 +106,50 @@
     }
   };
 
-  const handleAfterHidden = () => {
+  const handleDownloadPackages = async () => {
+    if (!checkedPackages.value.length) {
+      return;
+    }
+
+    try {
+      downloadPackagesLoading.value = true;
+      const tokenResult = await batchCreateBkrepoAccessToken({ file_path_list: checkedPackages.value });
+      const urls = tokenResult.map((item) => generateBkRepoDownloadUrl(item));
+      urls.forEach((url) => downloadUrl(url));
+      messageSuccess(t('下载成功'));
+      isShow.value = false;
+    } finally {
+      downloadPackagesLoading.value = false;
+    }
+  };
+
+  const handleCancel = () => {
+    isShow.value = false;
+  };
+
+  const handleDialogClosed = () => {
     checkedPackages.value = [];
     isSelectAll.value = false;
   };
 </script>
 
 <style lang="less">
-  .download-package-confirm {
-    .bk-pop-confirm {
-      position: relative;
-
-      .select-all-main {
-        position: absolute;
-        bottom: 3px;
-        left: 0;
-      }
-    }
-
+  .download-package-dialog {
     .package-list {
-      max-height: 200px;
-      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 320px;
       overflow-y: auto;
+
+      .bk-checkbox {
+        margin-left: 0 !important;
+      }
 
       .bk-checkbox-group {
         display: flex;
         flex-direction: column;
         gap: 12px;
-
-        .bk-checkbox {
-          margin-left: 0 !important;
-        }
       }
     }
   }
