@@ -13,9 +13,13 @@ from rest_framework.response import Response
 
 from backend.db_meta.models import Cluster
 from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clusters
-from backend.dbm_aiagent.mcp_tools.common.impl.host_performance_query import query_cluster_hosts_performance
+from backend.dbm_aiagent.mcp_tools.common.impl.host_performance_query import (
+    query_cluster_hosts_performance,
+    query_host_db_instance_ports,
+)
 from backend.dbm_aiagent.mcp_tools.common.serializers.host_performance_query import (
     ClusterHostPerformanceOutputSerializer,
+    HostInstancePortsOutputSerializer,
     HostPerformanceByClusterInputSerializer,
     HostPerformanceByIpInputSerializer,
     SingleHostPerformanceOutputSerializer,
@@ -51,6 +55,26 @@ class HostPerformanceQueryMcpToolsViewSet(McpToolsViewSet):
         ip = self.get_param("ip")
         bk_cloud_id = self.get_param("bk_cloud_id")
         return Response(query_host_performance(ip=ip, bk_cloud_id=bk_cloud_id))
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                "根据主机 IP 与云区域查询该机器在 DBM 元数据中的存储实例与代理实例数量，"
+                "并返回各实例监听端口列表（升序去重）。无对应主机时 machine 为 null、instance_count 为 0、ports 为空列表。"
+                "仅 DBA 可调用。"
+            )
+        ),
+        request_slz=HostPerformanceByIpInputSerializer,
+        response_slz=HostInstancePortsOutputSerializer,
+        permission_classes=[McpIsDbaPermission],
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.HOST_PERFORMANCE_QUERY],
+        name_prefix="host_performance_query",
+    )
+    def query_host_instance_ports_by_ip(self, request, *args, **kwargs):
+        ip = self.get_param("ip")
+        bk_cloud_id = self.get_param("bk_cloud_id")
+        return Response(query_host_db_instance_ports(ip=ip, bk_cloud_id=bk_cloud_id))
 
     @mcp_tools_api_decorator(
         description=str(

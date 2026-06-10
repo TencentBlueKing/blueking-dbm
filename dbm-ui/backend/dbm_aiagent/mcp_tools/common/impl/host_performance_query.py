@@ -94,3 +94,28 @@ def query_cluster_hosts_performance(
         "immute_domain": cluster.immute_domain,
         "hosts": hosts,
     }
+
+
+def query_host_db_instance_ports(*, ip: str, bk_cloud_id: int) -> Dict[str, Any]:
+    """
+    按 ip + bk_cloud_id 定位 Machine，统计该机上的 StorageInstance 与 ProxyInstance，
+    返回实例数量与监听端口列表（升序去重）。
+    """
+    machine = Machine.objects.filter(ip=ip, bk_cloud_id=bk_cloud_id).first()
+    if not machine:
+        return {
+            "machine": None,
+            "instance_count": 0,
+            "ports": [],
+        }
+
+    storage_ports = list(machine.storageinstance_set.values_list("port", flat=True))
+    proxy_ports = list(machine.proxyinstance_set.values_list("port", flat=True))
+    instance_count = len(storage_ports) + len(proxy_ports)
+    ports_sorted = sorted(set(storage_ports) | set(proxy_ports))
+
+    return {
+        "machine": {"ip": machine.ip, "bk_cloud_id": machine.bk_cloud_id},
+        "instance_count": instance_count,
+        "ports": ports_sorted,
+    }
