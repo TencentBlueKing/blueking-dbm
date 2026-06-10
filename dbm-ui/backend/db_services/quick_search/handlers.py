@@ -178,7 +178,7 @@ class QSearchHandler(object):
             object["db_type"] = ClusterType.cluster_type_to_db_type(object["cluster_type"])
 
             # 获取dba人员  # DBA 人员获取优先级： 业务 > 平台 > 默认空值
-            dba_list = DBAdministrator.list_biz_admins({"bk_biz_id": object["bk_biz_id"]})
+            dba_list = DBAdministrator.list_biz_admins(bk_biz_id=object["bk_biz_id"])
             dba_content = next(
                 (dba for dba in dba_list if dba["db_type"] == object["db_type"]), {"users": [], "is_show": True}
             )
