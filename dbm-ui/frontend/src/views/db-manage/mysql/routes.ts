@@ -13,8 +13,10 @@
 
 import type { RouteRecordRaw } from 'vue-router';
 
-import type { MySQLFunctions } from '@services/model/function-controller/functionController';
-import FunctionControllModel from '@services/model/function-controller/functionController';
+import FunctionControllModel, {
+  type ExtractedControllerDataKeys,
+  type MySQLFunctions,
+} from '@services/model/function-controller/functionController';
 
 import { AccountTypes, DBTypes, TicketTypes } from '@common/const';
 
@@ -23,63 +25,6 @@ import { checkDbConsole, createToolboxRoute } from '@utils';
 import { t } from '@locales/index';
 
 const { createRouteItem } = createToolboxRoute(DBTypes.MYSQL);
-
-export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
-  createRouteItem(TicketTypes.MYSQL_IMPORT_SQLFILE, t('变更SQL执行'), {}, { params: '/:step?' }),
-  createRouteItem(TicketTypes.MYSQL_RENAME_DATABASE, t('DB重命名')),
-  createRouteItem(TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, t('重建从库')),
-  createRouteItem(TicketTypes.MYSQL_RESTORE_SLAVE, t('重建从库')),
-  createRouteItem(TicketTypes.MYSQL_ADD_SLAVE, t('添加从库')),
-  createRouteItem(TicketTypes.MYSQL_MIGRATE_CLUSTER, t('迁移主从')),
-  createRouteItem(TicketTypes.MYSQL_MASTER_SLAVE_SWITCH, t('主从互切')),
-  createRouteItem(TicketTypes.MYSQL_PROXY_ADD, t('添加 Proxy')),
-  createRouteItem(TicketTypes.MYSQL_PROXY_REDUCE, t('减少 Proxy')),
-  createRouteItem(TicketTypes.MYSQL_PROXY_CONF_CHANGE, t('Proxy 升降配')),
-  createRouteItem(TicketTypes.MYSQL_PROXY_SWITCH, t('替换 Proxy')),
-  createRouteItem(TicketTypes.MYSQL_PROXY_MIGRATE, t('迁移 Proxy (按集群)')),
-  createRouteItem(TicketTypes.MYSQL_PROXY_MIGRATE_INS, t('迁移 Proxy (按实例)')),
-  createRouteItem(TicketTypes.MYSQL_PROXY_REBUILD, t('Proxy 原地重建')),
-  createRouteItem(TicketTypes.MYSQL_PROXY_RESCUE, t('Proxy 灾难重建')),
-  createRouteItem(TicketTypes.MYSQL_MASTER_FAIL_OVER, t('主库故障切换')),
-  createRouteItem(TicketTypes.MYSQL_INSTANCE_FAIL_OVER, t('主库故障切换')),
-  createRouteItem(TicketTypes.MYSQL_HA_DB_TABLE_BACKUP, t('库表备份')),
-  createRouteItem(TicketTypes.MYSQL_HA_FULL_BACKUP, t('全库备份')),
-  createRouteItem(TicketTypes.MYSQL_HA_TRUNCATE_DATA, t('清档')),
-  createRouteItem(TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA, t('清档')),
-  createRouteItem(TicketTypes.MYSQL_ROLLBACK_CLUSTER, t('定点构造')),
-  createRouteItem(TicketTypes.MYSQL_CHECKSUM, t('数据校验修复')),
-  createRouteItem(TicketTypes.MYSQL_CLIENT_CLONE_RULES, t('客户端权限克隆')),
-  createRouteItem(TicketTypes.MYSQL_INSTANCE_CLONE_RULES, t('DB实例权限克隆')),
-  createRouteItem(TicketTypes.MYSQL_DATA_MIGRATE, t('DB 数据克隆')),
-  createRouteItem(TicketTypes.MYSQL_PROXY_UPGRADE, t('版本升级')),
-  createRouteItem(TicketTypes.MYSQL_CLUSTER_STANDARDIZE, t('集群标准化')),
-  createRouteItem(TicketTypes.MYSQL_FLASHBACK, t('回档')),
-  createRouteItem(TicketTypes.MYSQL_ROLLBACK, t('回档')),
-  createRouteItem(TicketTypes.MYSQL_MIGRATE_SINGLE, t('单节点迁移')),
-  createRouteItem(TicketTypes.MYSQL_OPEN_AREA, t('开区模版')),
-  {
-    path: 'webconsole',
-    name: 'MySQLWebconsole',
-    meta: {
-      navName: 'Webconsole',
-    },
-    component: () => import('@views/db-manage/mysql/webconsole/Index.vue'),
-  },
-  {
-    path: 'merge-disk-space',
-    name: 'MySQLMergeDiskSpace',
-    meta: {
-      navName: t('DB 数据合并空间评估'),
-    },
-    component: () => import('@views/db-manage/mysql/merge-disk-space/Index.vue'),
-  },
-  createRouteItem(TicketTypes.MYSQL_PROXY_UPGRADE, t('版本升级')), // 接入层升级
-  createRouteItem(TicketTypes.MYSQL_LOCAL_UPGRADE, t('版本升级')), // 主从/单节点-存储层-本地升级
-  createRouteItem(TicketTypes.MYSQL_MIGRATE_UPGRADE, t('版本升级')), // 主从-存储层-迁移升级
-  createRouteItem(TicketTypes.MYSQL_CLUSTER_STANDARDIZE, t('集群标准化')),
-  createRouteItem(TicketTypes.MYSQL_FIXPOINT_EXIST_CLUSTER, t('构造')),
-  createRouteItem(TicketTypes.MYSQL_FIXPOINT_NEW_CLUSTER, t('构造')),
-];
 
 const singleRoutes: RouteRecordRaw[] = [
   {
@@ -159,21 +104,107 @@ const haRoutes: RouteRecordRaw[] = [
   },
 ];
 
-const mysqlToolboxRouters: RouteRecordRaw[] = [
-  {
-    path: 'toolbox',
-    name: 'MySQLToolbox',
-    meta: {
-      fullscreen: true,
-      navName: t('工具箱'),
-    },
-    redirect: {
-      name: TicketTypes.MYSQL_IMPORT_SQLFILE,
-    },
-    component: () => import('@views/db-manage/mysql/toolbox/IndexNew.vue'),
-    children: [...mysqlToolboxChildrenRouters],
+const mysqlToolboxRouter = {
+  path: 'toolbox',
+  name: 'MysqlToolbox',
+  redirect: {
+    name: 'MysqlToolboxIndex',
   },
-];
+  component: () => import('@views/db-manage/mysql/toolbox/Index.vue'),
+  children: [
+    {
+      path: 'index',
+      name: 'MysqlToolboxIndex',
+      meta: {
+        fullscreen: false,
+        navName: t('MySQL 工具箱'),
+      },
+      component: () => import('@views/db-manage/mysql/toolbox/Index.vue'),
+    },
+    createRouteItem(
+      TicketTypes.MYSQL_IMPORT_SQLFILE,
+      t('变更SQL执行'),
+      {
+        dbConsole: 'mysql.toolbox.sqlExecute',
+      },
+      { params: '/:step?' },
+    ),
+    createRouteItem(TicketTypes.MYSQL_RENAME_DATABASE, t('DB重命名'), { dbConsole: 'mysql.toolbox.dbRename' }),
+    createRouteItem(TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, t('重建从库'), { dbConsole: 'mysql.toolbox.slaveRebuild' }),
+    createRouteItem(TicketTypes.MYSQL_RESTORE_SLAVE, t('重建从库'), { dbConsole: 'mysql.toolbox.slaveRebuild' }),
+    createRouteItem(TicketTypes.MYSQL_ADD_SLAVE, t('添加从库'), { dbConsole: 'mysql.toolbox.slaveAdd' }),
+    createRouteItem(TicketTypes.MYSQL_MIGRATE_CLUSTER, t('迁移主从'), { dbConsole: 'mysql.toolbox.masterSlaveClone' }),
+    createRouteItem(TicketTypes.MYSQL_MASTER_SLAVE_SWITCH, t('主从互切'), {
+      dbConsole: 'mysql.toolbox.masterSlaveSwap',
+    }),
+    createRouteItem(TicketTypes.MYSQL_PROXY_ADD, t('添加 Proxy'), { dbConsole: 'mysql.toolbox.proxyAdd' }),
+    createRouteItem(TicketTypes.MYSQL_PROXY_REDUCE, t('减少 Proxy'), { dbConsole: 'mysql.toolbox.proxyAdd' }),
+    createRouteItem(TicketTypes.MYSQL_PROXY_CONF_CHANGE, t('Proxy 升降配'), { dbConsole: 'mysql.toolbox.proxyAdd' }),
+    createRouteItem(TicketTypes.MYSQL_PROXY_SWITCH, t('替换 Proxy'), { dbConsole: 'mysql.toolbox.proxyAdd' }),
+    createRouteItem(TicketTypes.MYSQL_PROXY_MIGRATE, t('迁移 Proxy (按集群)'), { dbConsole: 'mysql.toolbox.proxyAdd' }),
+    createRouteItem(TicketTypes.MYSQL_PROXY_MIGRATE_INS, t('迁移 Proxy (按实例)'), {
+      dbConsole: 'mysql.toolbox.proxyAdd',
+    }),
+    createRouteItem(TicketTypes.MYSQL_MASTER_FAIL_OVER, t('主库故障切换'), {
+      dbConsole: 'mysql.toolbox.instanceFailover',
+    }),
+    createRouteItem(TicketTypes.MYSQL_INSTANCE_FAIL_OVER, t('主库故障切换'), {
+      dbConsole: 'mysql.toolbox.instanceFailover',
+    }),
+    createRouteItem(TicketTypes.MYSQL_HA_DB_TABLE_BACKUP, t('库表备份'), { dbConsole: 'mysql.toolbox.dbTableBackup' }),
+    createRouteItem(TicketTypes.MYSQL_HA_FULL_BACKUP, t('全库备份'), { dbConsole: 'mysql.toolbox.dbBackup' }),
+    createRouteItem(TicketTypes.MYSQL_HA_TRUNCATE_DATA, t('清档'), { dbConsole: 'mysql.toolbox.dbClear' }),
+    createRouteItem(TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA, t('清档'), { dbConsole: 'mysql.toolbox.dbClear' }),
+    // createRouteItem(TicketTypes.MYSQL_ROLLBACK_CLUSTER, t('定点构造'), { dbConsole: 'mysql.toolbox.rollback' }),
+    createRouteItem(TicketTypes.MYSQL_CHECKSUM, t('数据校验修复'), { dbConsole: 'mysql.toolbox.checksum' }),
+    createRouteItem(TicketTypes.MYSQL_CLIENT_CLONE_RULES, t('客户端权限克隆'), {
+      dbConsole: 'mysql.toolbox.clientPermissionClone',
+    }),
+    createRouteItem(TicketTypes.MYSQL_INSTANCE_CLONE_RULES, t('DB实例权限克隆'), {
+      dbConsole: 'mysql.toolbox.dbInstancePermissionClone',
+    }),
+    createRouteItem(TicketTypes.MYSQL_DATA_MIGRATE, t('DB 数据克隆'), { dbConsole: 'mysql.toolbox.dataMigrate' }),
+    createRouteItem(TicketTypes.MYSQL_PROXY_UPGRADE, t('版本升级'), { dbConsole: 'mysql.toolbox.versionUpgrade' }),
+    createRouteItem(TicketTypes.MYSQL_CLUSTER_STANDARDIZE, t('标准化'), {
+      dbConsole: 'mysql.toolbox.clusterStandardize',
+    }),
+    createRouteItem(TicketTypes.MYSQL_FLASHBACK, t('回档'), { dbConsole: 'mysql.toolbox.flashback' }),
+    createRouteItem(TicketTypes.MYSQL_ROLLBACK, t('回档'), { dbConsole: 'mysql.toolbox.flashback' }),
+    createRouteItem(TicketTypes.MYSQL_MIGRATE_SINGLE, t('单节点迁移'), { dbConsole: 'mysql.toolbox.migrateSingle' }),
+    createRouteItem(TicketTypes.MYSQL_OPEN_AREA, t('开区模版'), { dbConsole: 'mysql.toolbox.openareaTemplate' }),
+    createRouteItem(TicketTypes.MYSQL_PROXY_UPGRADE, t('版本升级'), { dbConsole: 'mysql.toolbox.versionUpgrade' }), // 接入层升级
+    createRouteItem(TicketTypes.MYSQL_LOCAL_UPGRADE, t('版本升级'), { dbConsole: 'mysql.toolbox.versionUpgrade' }), // 主从/单节点-存储层-本地升级
+    createRouteItem(TicketTypes.MYSQL_MIGRATE_UPGRADE, t('版本升级'), { dbConsole: 'mysql.toolbox.versionUpgrade' }), // 主从-存储层-迁移升级
+    createRouteItem(TicketTypes.MYSQL_FIXPOINT_EXIST_CLUSTER, t('构造'), { dbConsole: 'mysql.toolbox.fixpoint' }),
+    createRouteItem(TicketTypes.MYSQL_FIXPOINT_NEW_CLUSTER, t('构造'), { dbConsole: 'mysql.toolbox.fixpoint' }),
+    createRouteItem(TicketTypes.MYSQL_PROXY_REBUILD, t('Proxy 原地重建'), { dbConsole: 'mysql.toolbox.proxyRebuild' }),
+    createRouteItem(TicketTypes.MYSQL_PROXY_RESCUE, t('Proxy 灾难重建'), { dbConsole: 'mysql.toolbox.proxyRescue' }),
+    // TODO 功能未合主分支，注释
+    // createRouteItem(TicketTypes.MYSQL_DUMP_DATA, t('数据导出'), { dbConsole: 'mysql.toolbox.dataExport' }),
+    {
+      path: 'webconsole',
+      name: 'MySQLWebconsole',
+      meta: {
+        dbConsole: 'mysql.toolbox.webconsole',
+        fullscreen: true,
+        hideTitle: true,
+        navName: 'Webconsole',
+      },
+      component: () => import('@views/db-manage/mysql/webconsole/Index.vue'),
+    },
+    {
+      path: 'merge-disk-space',
+      name: 'MySQLMergeDiskSpace',
+      meta: {
+        dbConsole: 'mysql.toolbox.mergeDiskSpace',
+        fullscreen: true,
+        hideTitle: true,
+        navName: t('DB 数据合并空间评估'),
+      },
+      component: () => import('@views/db-manage/mysql/merge-disk-space/Index.vue'),
+    },
+  ],
+};
 
 const dumperDataSubscription = {
   path: 'dumper-data-subscribe/:dumperId(\\d+)?',
@@ -283,8 +314,23 @@ export default function getRoutes(funControllerData: FunctionControllModel) {
     renderRoutes.children?.push(...haRoutes);
   }
 
-  if (controller.toolbox) {
-    renderRoutes.children?.push(...mysqlToolboxRouters);
+  const mysqlController = funControllerData.getFlatData<MySQLFunctions, 'mysql'>('mysql');
+  if (mysqlController.toolbox) {
+    const toolboxRoutes = mysqlToolboxRouter.children.filter((item) => {
+      const dbConsole = item.meta.dbConsole as ExtractedControllerDataKeys;
+      return !funControllerData[dbConsole] || (funControllerData[dbConsole] as { is_enabled: boolean }).is_enabled;
+    });
+
+    if (toolboxRoutes.length > 0) {
+      renderRoutes.children?.push({
+        ...mysqlToolboxRouter,
+        redirect: {
+          name: toolboxRoutes[0].name,
+        },
+        children: toolboxRoutes,
+      });
+    }
   }
+
   return commonRouters;
 }

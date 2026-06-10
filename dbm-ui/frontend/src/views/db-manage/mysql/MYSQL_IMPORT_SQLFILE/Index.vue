@@ -16,13 +16,14 @@
 </template>
 <script setup lang="ts">
   import { computed, ref, watch } from 'vue';
-  import { useRoute } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import Step1 from './steps/step1/Index.vue';
   import Step2 from './steps/step2/Index.vue';
   import Step3 from './steps/step3/Index.vue';
 
   const route = useRoute();
+  const router = useRouter();
 
   const comMap = {
     execute: Step1,
@@ -49,4 +50,12 @@
       immediate: true,
     },
   );
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'MysqlToolboxIndex',
+      });
+    },
+  });
 </script>

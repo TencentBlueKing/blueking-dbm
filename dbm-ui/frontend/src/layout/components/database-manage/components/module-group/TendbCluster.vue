@@ -79,18 +79,8 @@
           </span>
         </BkMenuItem>
       </BkSubmenu>
-      <div
-        v-if="Object.keys(toolboxFavorMap).length > 0"
-        class="split-line" />
-      <ToolboxMenu
-        v-for="toolboxGroupId in toolboxMenuSortList"
-        :id="toolboxGroupId"
-        :key="toolboxGroupId"
-        v-db-console="'tendbCluster.toolbox'"
-        :favor-map="toolboxFavorMap"
-        :toolbox-menu-config="toolboxMenuList" />
       <BkMenuItem
-        key="spiderToolbox"
+        key="TendbclusterToolbox"
         v-db-console="'tendbCluster.toolbox'">
         <template #icon>
           <DbIcon type="tools" />
@@ -109,12 +99,8 @@
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
-  import { toolboxMenuList } from '@views/db-manage/tendb-cluster/toolbox/toolboxMenuList';
-
   import CountTag from './components/CountTag.vue';
   import MenuGroup from './components/MenuGroup.vue';
-  import ToolboxMenu from './components/ToolboxMenu.vue';
-  import { useToolboxFavor } from './hooks/useToolboxFavor';
 
   interface Props {
     isError: boolean;
@@ -123,6 +109,4 @@
   defineProps<Props>();
 
   const { t } = useI18n();
-
-  const { toolboxFavorMap, toolboxMenuSortList } = useToolboxFavor(DBTypes.TENDBCLUSTER, toolboxMenuList);
 </script>

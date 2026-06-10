@@ -16,7 +16,7 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="t('对已部署的集群重新进行标准化动作')" />
+      :title="t('标准化：对已部署的集群重新进行标准化动作。')" />
     <BatchInput
       :config="batchInputConfig"
       @change="handleBatchInput" />
@@ -113,6 +113,7 @@
   }
 
   const { t } = useI18n();
+  const router = useRouter();
   const tableRef = useTemplateRef('table');
 
   const batchInputConfig = [
@@ -235,4 +236,12 @@
       formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
     }
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'MysqlToolboxIndex',
+      });
+    },
+  });
 </script>
