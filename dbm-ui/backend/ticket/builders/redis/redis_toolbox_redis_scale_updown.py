@@ -75,6 +75,7 @@ class RedisScaleUpDownDetailSerializer(RedisBaseOperateDetailSerializer):
         def validate(self, attr):
             if attr["shard_num"] % attr["group_num"] != 0:
                 raise serializers.ValidationError(_("所选方案分片数不能整除机器组数"))
+            self.check_not_tendisplus_cluster(attr["cluster_id"], _("集群容量变更"))
             return attr
 
     ip_source = serializers.ChoiceField(

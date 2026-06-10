@@ -67,6 +67,7 @@ class RedisShardUpdateDetailSerializer(RedisBaseOperateDetailSerializer):
         def validate(self, attr):
             """业务逻辑校验"""
             cluster = Cluster.objects.get(id=attr.get("src_cluster"))
+            self.check_not_tendisplus_cluster(attr["src_cluster"], _("集群分片变更"))
             if attr.get("current_shard_num") == attr.get("cluster_shard_num"):
                 raise serializers.ValidationError(
                     _("集群({})：目标分片数({})和原始分片数({})相同.").format(
