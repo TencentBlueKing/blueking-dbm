@@ -426,14 +426,19 @@ class DataAPI(object):
                 "blueking-language": translation.get_language(),
             }
         )
-        # 增加鉴权信息
-        if not isinstance(params, dict):
-            return
-        bkapi_auth_headers = {
-            "bk_app_code": params.pop("bk_app_code", env.APP_CODE),
-            "bk_app_secret": params.pop("bk_app_secret", env.SECRET_KEY),
-            "bk_username": params.get("bk_username", "Anonymous"),
-        }
+        # 增加鉴权信息，非 dict 类型的 params 使用默认值
+        if isinstance(params, dict):
+            bkapi_auth_headers = {
+                "bk_app_code": params.pop("bk_app_code", env.APP_CODE),
+                "bk_app_secret": params.pop("bk_app_secret", env.SECRET_KEY),
+                "bk_username": params.get("bk_username", "Anonymous"),
+            }
+        else:
+            bkapi_auth_headers = {
+                "bk_app_code": env.APP_CODE,
+                "bk_app_secret": env.SECRET_KEY,
+                "bk_username": "Anonymous",
+            }
         if use_admin:
             # 使用管理员/平台身份调用接口
             bkapi_auth_headers["bk_username"] = env.DEFAULT_USERNAME

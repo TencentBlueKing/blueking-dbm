@@ -13,6 +13,7 @@ from urllib.parse import urljoin
 from django.utils.translation import gettext_lazy as _
 
 from ... import env
+from ...dbm_init.constants import CC_HOST_DBM_ATTR
 from ..base import BaseApi
 from ..domains import BKBASE_APIGW_DOMAIN
 
@@ -30,6 +31,11 @@ class _BKBaseApi(BaseApi):
         self.report_data = self.generate_data_api(
             method="POST",
             url="v4/report_data/",
+            description=_("数据上报"),
+        )
+        self.report_host_metrics = self.generate_data_api(
+            method="POST",
+            url="v4/metrics/cmdb/host_extra_dimensions/",
             description=_("数据上报"),
         )
 
@@ -77,6 +83,40 @@ class _BKBaseApi(BaseApi):
         if not env.BKDATA_FRONTEND_DATA_ID:
             return ""
         return urljoin(self.report_data.url, f"{env.BKDATA_FRONTEND_DATA_ID}/")
+
+    def report_dbm_host_dimensions(self, host_infos):
+        # TODO: 暂时只在多租户开启
+        if not env.ENABLE_BKBASE_METRICS_REPORT:
+            return
+
+        def decompress_dbm_meta_content(dbm_meta: str) -> list:
+            """解压 dbm_meta"""
+            import base64
+            import gzip
+            import json
+
+            dbm_meta = json.loads(dbm_meta)
+            if not dbm_meta:
+                return []
+
+            dbm_meta = dbm_meta["content"]
+            compressed_data = base64.b64decode(dbm_meta)
+            raw_data = json.loads(gzip.decompress(compressed_data))
+
+            # 增加bkbase 额外上报维度
+            if env.ENABLE_BKBASE_INTERNAL_METRICS:
+                for dimension in raw_data["custom"]:
+                    dimension["app_for_bkbase_system_rt"] = "dbm"
+
+            return raw_data["custom"]
+
+        # 解码dbm_meta 信息，批量上报
+        host_report_infos = []
+        for host_info in host_infos:
+            dimensions = decompress_dbm_meta_content(host_info[CC_HOST_DBM_ATTR])
+            host_report_infos.append({"dimensions": dimensions, "host_id": host_info["bk_host_id"]})
+
+        self.report_host_metrics(params=host_report_infos)
 
 
 BKBaseApi = _BKBaseApi()

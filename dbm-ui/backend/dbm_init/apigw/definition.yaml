@@ -20,7 +20,7 @@ stages:
           timeout: 120
           loadbalance: roundrobin
           hosts:
-            - host: {{ settings.BK_SAAS_HOST }}
+            - host: {{ settings.BK_SAAS_BACKEND_HOST }}
               weight: 100
     rate_limit:
       enabled: false
