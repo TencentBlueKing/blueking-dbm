@@ -15,6 +15,7 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.configuration.constants import DBType
 from backend.configuration.filters import AppOperateLogFilter
 from backend.configuration.handlers.dba import DBAdministratorHandler
 from backend.configuration.models.dba import DBAdministrator
@@ -51,8 +52,24 @@ class DBAdminViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False, serializer_class=ListDBAdminSerializer)
     def list_admins(self, request, *args, **kwargs):
         validated_data = self.params_validate(self.get_serializer_class())
-        # bk_biz_id = validated_data["bk_biz_id"]
-        return Response(DBAdministrator.list_biz_admins(validated_data))
+        if "db_type" not in validated_data:
+            valid_db_types = DBType.get_values()
+            validated_data["db_type__in"] = valid_db_types
+
+        db_admins = []
+        for biz_dba in DBAdministrator.objects.filter(**validated_data):
+            db_admins.append(
+                {
+                    "db_type": biz_dba.db_type,
+                    "db_type_display": DBType.get_choice_label(biz_dba.db_type),
+                    "users": biz_dba.users,
+                    "is_show": True if biz_dba.db_type != DBType.Cloud.value else False,
+                    "updater": biz_dba.updater,
+                    "update_at": biz_dba.update_at,
+                    "bk_biz_id": biz_dba.bk_biz_id,
+                }
+            )
+        return Response(db_admins)
 
     @common_swagger_auto_schema(operation_summary=_("更新DBA人员"), tags=[SWAGGER_TAG])
     @action(methods=["POST"], detail=False, serializer_class=UpsertDBAdminSerializer)
