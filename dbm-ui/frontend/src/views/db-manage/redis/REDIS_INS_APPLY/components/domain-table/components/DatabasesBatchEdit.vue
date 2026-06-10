@@ -37,9 +37,9 @@
           <BkInput
             v-model="databases"
             class="batch-edit-input"
-            :max="64"
+            :max="16"
             :min="2"
-            :placeholder="t('范围 2～64')"
+            :placeholder="t('范围 2～16')"
             type="number" />
         </div>
         <div class="batch-edit-footer">
