@@ -1004,6 +1004,7 @@ CLUSTER_APPLY_TICKET_TO_CLUSTER_TYPE = {
         ClusterType.TendisPredixyTendisplusCluster,
         ClusterType.TendisTwemproxyRedisInstance,
         ClusterType.TwemproxyTendisSSDInstance,
+        ClusterType.TendisPredixyTendisplusInstance,
     ],
     TicketType.REDIS_INS_APPLY: ClusterType.TendisRedisInstance,
     TicketType.RIAK_CLUSTER_APPLY: ClusterType.Riak,
