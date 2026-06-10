@@ -28,16 +28,19 @@
         ref="addFormRef"
         form-type="vertical"
         :model="addParamForm"
-        :rules="formRules">
+        :rules="rules">
         <!-- 基础定义 -->
         <div class="form-section">
           <div class="form-section-title">{{ t('基础定义') }}</div>
           <!-- 参数名 + 参数显示名 -->
           <div class="form-row">
-            <BkFormItem
+            <FormItemWithHint
+              :hint="t('仅支持字母、数字、连字符、下划线、点号')"
               :label="t('参数名')"
+              :model="addParamForm.conf_name"
               property="conf_name"
-              required>
+              required
+              :rules="rules.conf_name">
               <BkInput
                 v-model="addParamForm.conf_name"
                 :disabled="isEditMode"
@@ -45,37 +48,32 @@
                 :placeholder="t('请输入参数名')"
                 show-word-limit
                 @change="markDirty" />
-              <div
-                v-if="isConfNameAllowed"
-                class="form-item-tips">
-                {{ t('仅支持字母、数字、连字符、下划线、点号') }}
-              </div>
-            </BkFormItem>
-            <BkFormItem
+            </FormItemWithHint>
+            <FormItemWithHint
+              :hint="t('支持中文、字母、数字、空格，及连字符、下划线、点号，创建后可修改')"
               :label="t('参数显示名')"
-              property="conf_name_lc">
+              :model="addParamForm.conf_name_lc"
+              property="conf_name_lc"
+              :rules="rules.conf_name_lc">
               <BkInput
                 v-model="addParamForm.conf_name_lc"
                 :maxlength="100"
                 :placeholder="t('请输入参数显示名')"
                 show-word-limit
                 @change="markDirty" />
-              <div
-                v-if="isConfNameLcAllowed"
-                class="form-item-tips">
-                {{ t('支持中文、字母、数字、空格，及连字符、下划线、点号，创建后可修改') }}
-              </div>
-            </BkFormItem>
+            </FormItemWithHint>
           </div>
           <!-- 数据类型 + 约束类型 -->
           <div class="form-row">
-            <BkFormItem
+            <FormItemWithHint
               :label="t('数据类型')"
+              :model="addParamForm.value_type"
               property="value_type"
               required>
               <BkSelect
                 v-model="addParamForm.value_type"
                 :clearable="false"
+                :placeholder="t('请选择数据类型')"
                 @change="
                   () => {
                     handleValueTypeChange();
@@ -88,15 +86,17 @@
                   :label="opt.label"
                   :value="opt.value" />
               </BkSelect>
-            </BkFormItem>
-            <BkFormItem
+            </FormItemWithHint>
+            <FormItemWithHint
               :label="t('约束类型')"
+              :model="addParamForm.value_type_sub"
               property="value_type_sub"
               required>
               <BkSelect
                 v-model="addParamForm.value_type_sub"
                 :clearable="false"
                 :disabled="!addParamForm.value_type"
+                :placeholder="t('请选择约束类型')"
                 @change="
                   (val: string) => {
                     handleValueTypeSubChange(val);
@@ -109,33 +109,31 @@
                   :label="opt.label"
                   :value="opt.value" />
               </BkSelect>
-            </BkFormItem>
+            </FormItemWithHint>
           </div>
           <!-- 允许值 -->
-          <BkFormItem
-            :disabled="isValueAllowedDisabled"
+          <FormItemWithHint
+            :hint="valueAllowedExample"
             :label="t('允许值')"
+            :model="addParamForm.value_allowed"
             property="value_allowed"
             :required="isValueAllowedRequired">
             <BkInput
               v-model="addParamForm.value_allowed"
               :disabled="isValueAllowedDisabled"
-              :placeholder="isValueAllowedDisabled ? valueAllowedPlaceholder : t('请输入')"
+              :placeholder="isValueAllowedDisabled ? valueAllowedPlaceholder : t('请输入允许值')"
               @change="markDirty" />
-            <p
-              v-if="valueAllowedExample"
-              class="form-item-tips">
-              {{ valueAllowedExample }}
-            </p>
-          </BkFormItem>
+          </FormItemWithHint>
         </div>
 
         <!-- 默认值与安全 -->
         <div class="form-section">
           <div class="form-section-title">{{ t('默认值') }}</div>
-          <BkFormItem
+          <FormItemWithHint
             :key="`default-${addParamForm.flag_empty_string}`"
+            :hint="defaultValueHint"
             :label="t('平台默认值')"
+            :model="addParamForm.value_default"
             property="value_default"
             :required="!addParamForm.flag_empty_string">
             <div class="default-value-row">
@@ -152,8 +150,7 @@
                 {{ t('设为空字符串') }}
               </BkCheckbox>
             </div>
-            <p class="form-item-tips">{{ defaultValueHint }}</p>
-          </BkFormItem>
+          </FormItemWithHint>
         </div>
 
         <!-- 业务配置规则 -->
@@ -225,7 +222,9 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { changeConfNames } from '@services/source/configs';
+  import { changeConfNames, checkConfNameExists } from '@services/source/configs';
+
+  import FormItemWithHint from '@views/db-configure-new/components/FormItemWithHint.vue';
 
   import { messageSuccess } from '@utils';
 
@@ -384,28 +383,15 @@
     return exampleMap[key];
   });
 
-  const isConfNameAllowed = ref(true);
-  const isConfNameLcAllowed = ref(true);
-
-  // 表单验证规则
-  const formRules = {
+  const rules = {
+    // 参数名校验规则
     conf_name: [
-      {
-        message: '',
-        required: true,
-        trigger: 'blur',
-        validator: (value: string) => {
-          if (value) return true;
-          return '';
-        },
-      },
       {
         message: t('格式不正确，请勿使用中文'),
         trigger: 'blur',
         validator: (value: string) => {
-          // 包含中文时校验失败
-          if (value && /[\u4e00-\u9fff\u3400-\u4dbf]/.test(value)) {
-            isConfNameAllowed.value = false;
+          if (!value) return true; // 为空由 required 处理
+          if (/[\u4e00-\u9fff\u3400-\u4dbf]/.test(value)) {
             return false;
           }
           return true;
@@ -415,25 +401,33 @@
         message: t('格式不正确，请勿使用空格或特殊符号'),
         trigger: 'blur',
         validator: (value: string) => {
-          // 包含空格或反引号时校验失败
-          if (value && /[\s`]/.test(value)) {
-            isConfNameAllowed.value = false;
+          if (!value) return true; // 为空由 required 处理
+          // 仅支持字母、数字、连字符、下划线、点号
+          if (/^[a-zA-Z0-9_\-.]+$/.test(value)) {
+            return true;
+          }
+          return false;
+        },
+      },
+      {
+        message: t('该参数名已存在'),
+        trigger: 'blur',
+        validator: async (value: string) => {
+          if (!value || isEditMode.value) return true;
+          const res = await checkConfNameExists({
+            conf_file: props.version,
+            conf_name: value,
+            conf_type: props.confType,
+            meta_cluster_type: props.clusterType,
+          });
+          if (res.exists) {
             return false;
           }
           return true;
         },
       },
-      // 唯一性校验（需调用接口，根据实际接口补充）
-      // {
-      //   message: t('该参数名已存在'),
-      //   trigger: 'blur',
-      //   validator: async (value: string) => {
-      //     if (!value) return true;
-      //     const res = await checkConfNameUnique({ conf_name: value, ... });
-      //     return res.isUnique;
-      //   },
-      // },
     ],
+    // 参数显示名校验规则
     conf_name_lc: [
       {
         message: t('格式不正确，请勿使用特殊符号'),
@@ -447,7 +441,6 @@
           if (/^[\u4e00-\u9fff\u3400-\u4dbf0-9A-Za-z._\-\s]+$/.test(value)) {
             return true;
           }
-          isConfNameLcAllowed.value = false;
           return false;
         },
       },

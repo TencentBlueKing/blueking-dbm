@@ -10,6 +10,7 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 -->
+
 <template>
   <SmartAction>
     <BkAlert
@@ -28,11 +29,14 @@
       <!-- 模块信息 -->
       <div class="module-info-card">
         <!-- 模块名称 -->
-        <BkFormItem
+        <FormItemWithHint
           class="form-item-name"
+          :hint="t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，创建后不可改')"
           :label="t('模块名称')"
+          :model="formData.alias_name"
           property="alias_name"
-          required>
+          required
+          :rules="rules.alias_name">
           <BkInput
             v-model="formData.alias_name"
             class="module-name-input"
@@ -40,12 +44,7 @@
             :placeholder="t('请输入模块名')"
             show-word-limit
             @change="handleValidate" />
-          <div
-            v-if="isValueAllowed"
-            class="form-item-tips">
-            {{ t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，创建后不可改') }}
-          </div>
-        </BkFormItem>
+        </FormItemWithHint>
         <!-- 数据库信息 -->
         <BkFormItem
           :label="t('数据库信息')"
@@ -269,6 +268,8 @@
 
   import DbTable from '@components/db-table/IndexNew.vue';
 
+  import FormItemWithHint from '@views/db-configure-new/components/FormItemWithHint.vue';
+
   import { random } from '@utils';
 
   import DbVersionSelect from '../components/DbVersionSelect.vue';
@@ -294,8 +295,6 @@
 
   const characterSets = ['Chinese_PRC_CI_AS', 'Latin1_General_100_CI_AS'];
 
-  const isValueAllowed = ref(true);
-
   /** 源字符集（从路由取，由源模块列表页 moduleInfo.charset 传入） */
   const sourceCharset = ref<string>('');
 
@@ -316,21 +315,11 @@
 
   /** 触发表单校验（版本或字符集 change 时） */
   const handleValidate = () => {
-    isValueAllowed.value = true;
     formRef.value?.validate();
   };
 
   const rules = {
     alias_name: [
-      {
-        message: '',
-        required: true,
-        trigger: 'blur',
-        validator: (value: string) => {
-          if (value) return true;
-          return '';
-        },
-      },
       {
         message: t('格式不正确_请勿使用大写_空格_下划线或特殊符号'),
         trigger: 'blur',
@@ -338,7 +327,6 @@
           if (/^[a-z0-9-]+$/.test(value)) {
             return true;
           }
-          isValueAllowed.value = false;
           return false;
         },
       },
@@ -349,7 +337,6 @@
           if (/^(?!-).*(?<!-)$/.test(value)) {
             return true;
           }
-          isValueAllowed.value = false;
           return false;
         },
       },
@@ -364,7 +351,6 @@
               cluster_type: clusterType.value,
               db_module_name: `${formData.alias_name}`,
             });
-            isValueAllowed.value = !!data.is_unique;
             return data.is_unique
               ? true
               : t('该名称已被占用（{type} ：{version}）', {
@@ -372,7 +358,6 @@
                   version: formData.version,
                 });
           } catch {
-            isValueAllowed.value = false;
             return false;
           }
         },
@@ -802,13 +787,6 @@
     .reserved-memory-input {
       min-width: 220px;
     }
-  }
-
-  .form-item-tips {
-    font-size: 12px;
-    line-height: 20px;
-    color: #979ba5;
-    position: absolute;
   }
 
   .param-config-wrapper {

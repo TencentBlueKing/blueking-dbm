@@ -29,23 +29,21 @@
       <!-- 模块信息 -->
       <div class="module-info-card">
         <!-- 模块名 -->
-        <BkFormItem
+        <FormItemWithHint
           class="form-item-name"
+          :hint="t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，创建后不可改')"
           :label="t('模块名称')"
+          :model="formData.alias_name"
           property="alias_name"
-          required>
+          required
+          :rules="rules.alias_name">
           <BkInput
             v-model="formData.alias_name"
             :maxlength="63"
             :placeholder="t('请输入模块名')"
             show-word-limit
             @change="handleValidate" />
-          <div
-            v-if="isValueAllowed"
-            class="form-item-tips">
-            {{ t('仅支持小写字母、数字、连字符，同时会参与集群域名生成，创建后不可改') }}
-          </div>
-        </BkFormItem>
+        </FormItemWithHint>
         <!-- 数据库信息 -->
         <BkFormItem
           :label="t('数据库信息')"
@@ -225,6 +223,8 @@
 
   import DbTable from '@components/db-table/IndexNew.vue';
 
+  import FormItemWithHint from '@views/db-configure-new/components/FormItemWithHint.vue';
+
   import { random } from '@utils';
 
   import DbVersionSelect from '../components/DbVersionSelect.vue';
@@ -275,11 +275,8 @@
 
   const characterSets = ['utf8', 'utf8mb4', 'gbk', 'latin1', 'gb2312'];
 
-  const isValueAllowed = ref(true);
-
   /** 触发表单校验（版本或字符集 change 时） */
   const handleValidate = () => {
-    isValueAllowed.value = true;
     formRef.value?.validate();
   };
 
@@ -287,22 +284,12 @@
   const rules = {
     alias_name: [
       {
-        message: '',
-        required: true,
-        trigger: 'blur',
-        validator: (value: string) => {
-          if (value) return true;
-          return '';
-        },
-      },
-      {
         message: t('格式不正确_请勿使用大写_空格_下划线或特殊符号'),
         trigger: 'blur',
         validator: (value: string) => {
           if (/^[a-z0-9-]+$/.test(value)) {
             return true;
           }
-          isValueAllowed.value = false;
           return false;
         },
       },
@@ -313,7 +300,6 @@
           if (/^(?!-).*(?<!-)$/.test(value)) {
             return true;
           }
-          isValueAllowed.value = false;
           return false;
         },
       },
@@ -329,7 +315,6 @@
               cluster_type: ClusterTypes.TENDBCLUSTER,
               db_module_name: `${formData.alias_name}-${formData.spider_version}-${formData.db_version}-${formData.charset}`,
             });
-            isValueAllowed.value = !!data.is_unique;
             return data.is_unique
               ? true
               : t('该名称已被占用（{type} ：{spiderVersion}-{version} / {charset}）', {
@@ -339,7 +324,6 @@
                   version: formData.db_version,
                 });
           } catch {
-            isValueAllowed.value = false;
             return false;
           }
         },
@@ -645,13 +629,6 @@
       width: auto;
       min-width: 180px;
     }
-  }
-
-  .form-item-tips {
-    font-size: 12px;
-    line-height: 20px;
-    color: #979ba5;
-    position: absolute;
   }
 
   .param-config-wrapper {

@@ -82,7 +82,8 @@
             <template #default="{ row }">
               <ValueEditor
                 v-model="row.conf_value"
-                :value-default="row.conf_value"
+                :is-encrypted="row.flag_encrypt === 1"
+                :value-allowed="row.value_allowed || ''"
                 :value-type-sub="row.value_type_sub || ''" />
             </template>
           </TableColumn>
