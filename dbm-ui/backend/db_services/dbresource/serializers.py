@@ -782,3 +782,8 @@ class SetSpecReplenishRatioSerializer(serializers.Serializer):
 
     class Meta:
         swagger_schema_fields = {"ratio_map": {1: 0.05, 2: 0.1}}
+
+
+class BatchRetryReplenishTicketsSerializer(serializers.Serializer):
+    replenish_record_id = serializers.IntegerField(help_text=_("补货记录ID"))
+    ticket_ids = serializers.ListField(help_text=_("单据ID列表"), child=serializers.IntegerField(), required=False)
