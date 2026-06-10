@@ -235,10 +235,10 @@
             label-width={0}
             property={`details.infos.${index}.databases`}>
             <bk-input
-              max={64}
+              max={16}
               min={2}
               model-value={domains.value[index]?.databases}
-              placeholder={t('范围 2～64')}
+              placeholder={t('范围 2～16')}
               type='number'
               onChange={(value: string) => handleChangeCellValue(value, index, 'databases')}
             />
