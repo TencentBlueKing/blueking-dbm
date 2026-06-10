@@ -1,6 +1,6 @@
 <template>
   <div
-    v-bk-loading="{ isLoading: isLoading }"
+    v-bk-loading="{ loading: isLoading }"
     class="table-ticket-detail-box">
     <PermissionCatch>
       <div

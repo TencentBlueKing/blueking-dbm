@@ -1,6 +1,6 @@
 <template>
   <div
-    v-bk-loading="{ isLoading: isPreChecking }"
+    v-bk-loading="{ loading: isPreChecking }"
     class="ticket-self-todo-page">
     <div class="header-action-box">
       <BkRadioGroup

@@ -3113,7 +3113,7 @@ bkui-vue@2.0.2-beta.63:
 
 bkui-vue@2.0.2-beta.81:
   version "2.0.2-beta.81"
-  resolved "https://mirrors.tencent.com/npm/bkui-vue/-/bkui-vue-2.0.2-beta.81.tgz#ba0b7cb09822132c066a9de892575b63ef7e2ba2"
+  resolved "https://registry.yarnpkg.com/bkui-vue/-/bkui-vue-2.0.2-beta.81.tgz#ba0b7cb09822132c066a9de892575b63ef7e2ba2"
   integrity sha512-Tdq1MI2YjKN9takjE0Wt4bC/dfIRvJ+ywOmnkIMKZDjZmlZVN3ZmOaLfrWlhTWKN/LsP/rckuYPnhAJl74L2pw==
   dependencies:
     "@floating-ui/dom" "~1.5.0"
@@ -3128,7 +3128,7 @@ bkui-vue@2.0.2-beta.81:
 
 bkui-vue@2.1.0-beta.11:
   version "2.1.0-beta.11"
-  resolved "https://mirrors.tencent.com/npm/bkui-vue/-/bkui-vue-2.1.0-beta.11.tgz#2d5a8398e1e6c4ab0c3778adbbb82e4a56547285"
+  resolved "https://registry.yarnpkg.com/bkui-vue/-/bkui-vue-2.1.0-beta.11.tgz#2d5a8398e1e6c4ab0c3778adbbb82e4a56547285"
   integrity sha512-BNVJXJ2Inottns507oTiL6H7Xs7WMmWh0flkuv8iCb/8iXh/OZE6WS8abWsDRgmfdQwHxN/gmKjzMnHwFvLZjw==
   dependencies:
     "@blueking/login-userinfo" "~0.0.2"

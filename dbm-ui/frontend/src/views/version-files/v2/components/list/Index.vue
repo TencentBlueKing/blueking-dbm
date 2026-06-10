@@ -5,6 +5,7 @@
       :key="renderKey"
       ref="releaseVersionListRef"
       :db-type="dbType"
+      :has-package-manage-permission="hasPackageManagePermission"
       :pkg-label-map="pkgLabelMap"
       :pkg-type="pkgType"
       @choose-release="handleChooseRelease"
@@ -37,7 +38,10 @@
     tabs: TabItem[];
   }
 
+  type Emits = (e: 'refreshPkgTypeList') => void;
+
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const releaseVersionListRef = ref<InstanceType<typeof ReleaseVersionList>>();
   const subVersionListRef = ref<InstanceType<typeof SubVersionList>>();
@@ -54,7 +58,7 @@
   });
 
   watch(
-    () => [props.dbType, props.pkgType],
+    () => [props.dbType, props.pkgType, props.tabs],
     () => {
       activeReleaseVersion.value = undefined;
       if (!isPureMysql.value) {
@@ -86,6 +90,7 @@
 
   const handleRefreshReleaseList = () => {
     releaseVersionListRef.value?.refresh();
+    emits('refreshPkgTypeList');
   };
 </script>
 <style lang="less">

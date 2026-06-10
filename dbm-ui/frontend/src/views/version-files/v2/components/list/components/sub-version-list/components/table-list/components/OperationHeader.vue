@@ -26,23 +26,21 @@
         }">
         <AuthTemplate
           action-id="package_manage"
+          class="operate-item add-veriosn"
+          :class="{ 'is-disabled': !permission }"
           :permission="permission"
-          :resource="dbType">
-          <div
-            class="operate-item add-veriosn"
-            @click.stop="handleAddVersion">
-            {{ t('添加版本') }}
-          </div>
+          :resource="dbType"
+          @click.stop="handleAddVersion">
+          {{ t('添加版本') }}
         </AuthTemplate>
         <AuthTemplate
           action-id="package_manage"
+          class="operate-item"
+          :class="{ 'is-disabled': !permission }"
           :permission="permission"
-          :resource="dbType">
-          <div
-            class="operate-item"
-            @click.stop="handleEditName">
-            {{ t('编辑系列') }}
-          </div>
+          :resource="dbType"
+          @click.stop="handleEditName">
+          {{ t('编辑系列') }}
         </AuthTemplate>
         <BkPopConfirm
           :confirm-config="{
@@ -58,20 +56,18 @@
           width="280"
           @confirm="handleDeleteVersionSeries">
           <AuthTemplate
+            v-bk-tooltips="{
+              content: t('该版本系列下存在 n 个版本，请删除后再操作', { n: dbVersionListCount }),
+              placement: 'right',
+              disabled: dbVersionListCount === 0,
+            }"
             action-id="package_manage"
+            class="operate-item"
+            :class="{ 'is-disabled': dbVersionListCount > 0 || !permission }"
             :permission="permission"
-            :resource="dbType">
-            <div
-              v-bk-tooltips="{
-                content: t('该版本系列下存在 n 个版本，请删除后再操作', { n: dbVersionListCount }),
-                placement: 'right',
-                disabled: dbVersionListCount === 0,
-              }"
-              class="operate-item"
-              :class="{ 'is-disabled': dbVersionListCount > 0 }"
-              @click.stop>
-              {{ t('删除系列') }}
-            </div>
+            :resource="dbType"
+            @click.stop>
+            {{ t('删除系列') }}
           </AuthTemplate>
         </BkPopConfirm>
       </div>
