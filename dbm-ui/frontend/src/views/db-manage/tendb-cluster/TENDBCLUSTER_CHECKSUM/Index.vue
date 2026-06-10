@@ -248,6 +248,7 @@
   }
 
   const { t } = useI18n();
+  const router = useRouter();
   const { format: formatDateToUTC } = useTimeZoneFormat();
 
   const tableRef = useTemplateRef('table');
@@ -530,6 +531,14 @@
       formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
     }
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'TendbclusterToolboxIndex',
+      });
+    },
+  });
 </script>
 <style lang="less">
   .mysql-checksum-page {

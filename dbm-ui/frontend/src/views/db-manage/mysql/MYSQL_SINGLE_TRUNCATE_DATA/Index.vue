@@ -24,11 +24,20 @@
 
   import TruncateData from '@views/db-manage/mysql/MYSQL_HA_TRUNCATE_DATA/truncate-data/Index.vue';
 
+  const router = useRouter();
   const truncateRef = ref();
 
   useTicketDetail<Mysql.TruncateData>(TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA, {
     onSuccess(ticketDetail) {
       truncateRef.value.cloneTicket(ticketDetail);
+    },
+  });
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'MysqlToolboxIndex',
+      });
     },
   });
 </script>

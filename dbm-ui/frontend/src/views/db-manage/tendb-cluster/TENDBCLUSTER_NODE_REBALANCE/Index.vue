@@ -121,6 +121,7 @@
   }
 
   const { t } = useI18n();
+  const router = useRouter();
   const tableRef = useTemplateRef('table');
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
@@ -338,4 +339,12 @@
       tableRef.value?.validate();
     }, 200);
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'TendbclusterToolboxIndex',
+      });
+    },
+  });
 </script>

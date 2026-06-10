@@ -234,7 +234,7 @@
     };
     return comMap[menuType.value as keyof typeof comMap];
   });
-  const contentTitle = computed(() => route.meta.navName);
+  const contentTitle = computed(() => (route.meta.hideTitle ? '' : route.meta.navName));
   const isContendFullscreen = computed(() => Boolean(route.meta.fullscreen));
   // 全局搜索结果页面不显示，点击顶部导航栏后显示并自动跳转
   const needMenu = computed(() => Boolean(menuType.value));

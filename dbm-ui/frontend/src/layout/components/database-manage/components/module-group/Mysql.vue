@@ -116,21 +116,11 @@
           </span>
         </BkMenuItem>
       </FunController>
-      <div
-        v-if="Object.keys(toolboxFavorMap).length > 0"
-        class="split-line" />
-      <ToolboxMenu
-        v-for="toolboxGroupId in toolboxMenuSortList"
-        :id="toolboxGroupId"
-        :key="toolboxGroupId"
-        v-db-console="'mysql.toolbox'"
-        :favor-map="toolboxFavorMap"
-        :toolbox-menu-config="toolboxMenuList" />
       <FunController
         controller-id="toolbox"
         module-id="mysql">
         <BkMenuItem
-          key="MySQLToolbox"
+          key="MysqlToolbox"
           v-db-console="'mysql.toolbox'">
           <template #icon>
             <DbIcon type="tools" />
@@ -152,12 +142,8 @@
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
-  import { toolboxMenuList } from '@views/db-manage/mysql/toolbox/toolboxMenuList';
-
   import CountTag from './components/CountTag.vue';
   import MenuGroup from './components/MenuGroup.vue';
-  import ToolboxMenu from './components/ToolboxMenu.vue';
-  import { useToolboxFavor } from './hooks/useToolboxFavor';
 
   interface Props {
     isError: boolean;
@@ -168,6 +154,4 @@
   const { t } = useI18n();
 
   const dumperControlId = `dumper_biz_${window.PROJECT_CONFIG.BIZ_ID}` as FunctionKeys;
-
-  const { toolboxFavorMap, toolboxMenuSortList } = useToolboxFavor(DBTypes.MYSQL, toolboxMenuList);
 </script>

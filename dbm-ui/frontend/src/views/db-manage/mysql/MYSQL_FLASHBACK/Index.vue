@@ -3,7 +3,7 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="t('支持构造回档、库表闪回、记录级闪回')" />
+      :title="t('回档：支持构造回档、库表闪回、记录级闪回。')" />
     <BkForm
       ref="formRef"
       class="mb-24 toolbox-form"
@@ -85,4 +85,12 @@
       });
     }
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'MysqlToolboxIndex',
+      });
+    },
+  });
 </script>

@@ -16,7 +16,7 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="t('指定库表备份_支持模糊匹配')" />
+      :title="t('库表备份：指定库表备份，支持模糊匹配。')" />
     <BatchInput
       :config="batchInputConfig"
       @change="handleBatchInput" />
@@ -130,6 +130,7 @@
   }
 
   const { t } = useI18n();
+  const router = useRouter();
 
   const tableRef = useTemplateRef('table');
   const tableKey = ref(random());
@@ -282,4 +283,12 @@
       formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
     }
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'MysqlToolboxIndex',
+      });
+    },
+  });
 </script>
