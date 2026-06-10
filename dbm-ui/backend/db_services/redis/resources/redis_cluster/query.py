@@ -18,6 +18,7 @@ from backend.db_meta.api.cluster.rediscluster.handler import RedisClusterHandler
 from backend.db_meta.api.cluster.redisinstance.handler import RedisInstanceHandler
 from backend.db_meta.api.cluster.tendiscache.handler import TendisCacheClusterHandler
 from backend.db_meta.api.cluster.tendispluscluster.handler import TendisPlusClusterHandler
+from backend.db_meta.api.cluster.tendisplusinstance.handler import TendisPredixyTendisplusInstanceHandler
 from backend.db_meta.api.cluster.tendisssd.handler import TendisSSDClusterHandler
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
@@ -128,6 +129,7 @@ class RedisListRetrieveResource(query.ListRetrieveResource, RedisExportQueryReso
         ClusterType.TwemproxyTendisSSDInstance: TendisSSDClusterHandler,
         ClusterType.TendisTwemproxyRedisInstance: TendisCacheClusterHandler,
         ClusterType.TendisPredixyTendisplusCluster: TendisPlusClusterHandler,
+        ClusterType.TendisPredixyTendisplusInstance: TendisPredixyTendisplusInstanceHandler,
         ClusterType.TendisPredixyRedisCluster: RedisClusterHandler,
         ClusterType.RedisInstance: RedisInstanceHandler,
     }
