@@ -165,7 +165,7 @@
             <template #default="{ row }: { row: IRowData }">
               <AlertSeverityGroup
                 v-model="row.alert_severity"
-                v-bk-loading="{ isLoading: saveLoading }"
+                v-bk-loading="{ loading: saveLoading }"
                 class="alarm-level-column"
                 @change="(data) => handleAlarmLevelChange(row, data)" />
             </template>
@@ -178,7 +178,7 @@
             <template #default="{ row }: { row: IRowData }">
               <NoticeWaysGroup
                 v-model="row.notice_ways"
-                v-bk-loading="{ isLoading: saveLoading }"
+                v-bk-loading="{ loading: saveLoading }"
                 class="notify-channel-column"
                 @change="(data) => handleNotifyChannelChange(row, data)" />
             </template>

@@ -21,8 +21,10 @@
         class="form-main"
         form-type="vertical"
         :model="formModel"
-        :rules="formRules">
+        :rules="formRules"
+        @validate="handleFormValidate">
         <BkFormItem
+          :class="{ 'is-hide-tip': !formModel.version_series }"
           property="version_series"
           required>
           <template #label>
@@ -40,18 +42,27 @@
         <div class="version-row">
           <BkFormItem
             class="version-item"
+            :class="{ 'is-hide-tip': !formModel.full_version }"
             :label="t('版本号')"
             property="full_version"
             required>
             <BkInput
               v-model="formModel.full_version"
               :disabled="!!dbVersion"
-              :placeholder="fullVersionPlaceholder"
+              :maxlength="50"
+              :placeholder="t('请输入xx', [t('版本号')])"
+              show-word-limit
               @blur="handleResetDefaultVersionName"
               @input="handleValueChange" />
+            <div
+              v-if="!hideTipMap.full_version && !isEdit"
+              class="item-tip">
+              {{ fullVersionPlaceholder }}
+            </div>
           </BkFormItem>
           <BkFormItem
-            class="version-item"
+            class="version-item version-name-item"
+            :class="{ 'is-hide-tip': !formModel.name }"
             :label="t('版本名')"
             property="name"
             required>
@@ -66,10 +77,19 @@
             </BkButton>
             <BkInput
               v-model="formModel.name"
+              :maxlength="50"
+              :placeholder="t('请输入xx', [t('版本名')])"
+              show-word-limit
               @input="handleValueChange" />
+            <div
+              v-if="!hideTipMap.name"
+              class="item-tip">
+              {{ t('仅支持字母、数字、连字符、下划线、点号，可随时修改') }}
+            </div>
           </BkFormItem>
           <BkFormItem
             class="version-item"
+            :class="{ 'is-hide-tip': !formModel.phase }"
             :label="t('版本阶段')"
             property="phase"
             required>
@@ -79,6 +99,7 @@
           </BkFormItem>
         </div>
         <BkFormItem
+          class="mt-16"
           :label="t('版本文件')"
           property="files"
           :required="!isEdit">
@@ -107,9 +128,11 @@
           property="description">
           <BkInput
             v-model="formModel.description"
+            :maxlength="500"
             :placeholder="t('请输入子版本描述，如：“修复 XX 漏洞”“优化性能”')"
             :resize="false"
             :rows="5"
+            show-word-limit
             type="textarea"
             @input="handleValueChange" />
         </BkFormItem>
@@ -229,12 +252,17 @@
   };
 
   const enableTip = `${t('启用：所有场景均可使用，如：部署、升级')}\n${t('停用：存量集群替换不受影响，其它场景不可使用。注意：停用将自动清除推荐')}`;
+  let fileErrorMessage = '';
 
   const formRef = ref();
   const versionFilesRef = ref<InstanceType<typeof VersionFiles>>();
   const versionSeriesRef = ref<InstanceType<typeof VersionSeries>>();
   const formModel = ref(initFormModel());
   const confirmDisabled = ref(true);
+  const hideTipMap = ref({
+    full_version: false,
+    name: false,
+  });
 
   const isPureMysql = computed(() => props.dbType === 'mysql' && props.pkgType === 'mysql');
 
@@ -243,7 +271,7 @@
   });
 
   const fullVersionPlaceholder = computed(() =>
-    isFullVersionSixMax.value ? t('请输入6位点分数字，如 1.2.1.0.0.1') : t('请输入3位点分数字，如 1.2.1'),
+    isFullVersionSixMax.value ? t('6 段点分数字，如 8.0.3.1.0.0') : t('3 段点分数字，如 5.0.14'),
   );
   const isApplied = computed(() => {
     const packages = props.dbVersion?.packages;
@@ -268,15 +296,22 @@
   const formRules = computed(() => ({
     files: [
       {
-        message: t('请补全版本文件信息'),
+        message: () => fileErrorMessage,
         trigger: 'blur',
-        validator: () => !!versionFilesRef.value!.getValue(),
+        validator: () => {
+          const value = versionFilesRef.value!.getValue();
+          if (typeof value === 'string') {
+            fileErrorMessage = value;
+            return false;
+          }
+          fileErrorMessage = '';
+          return true;
+        },
       },
     ],
     full_version: [
       {
-        message: () =>
-          isFullVersionSixMax.value ? t('请输入6位点分数字，如 1.2.1.0.0.1') : t('请输入3位点分数字，如 1.2.1'),
+        message: t('格式不正确，须为 {n} 段点分数字', { n: isFullVersionSixMax.value ? 6 : 3 }),
         trigger: 'blur',
         validator: (value: string) =>
           isFullVersionSixMax.value ? /^(\d+\.){5}\d+$/.test(value) : /^(\d+\.){2}\d+$/.test(value),
@@ -297,6 +332,16 @@
       },
     ],
     name: [
+      {
+        message: t('请勿使用中文'),
+        trigger: 'blur',
+        validator: (value: string) => !/[\u4e00-\u9fa5]/.test(value),
+      },
+      {
+        message: t('格式不正确，请勿使用空格或特殊符号'),
+        trigger: 'blur',
+        validator: (value: string) => /^[A-Za-z0-9_.-]+$/.test(value),
+      },
       {
         message: t('该版本名已存在'),
         validator: async (value: string) => {
@@ -322,7 +367,8 @@
   }));
 
   const handleBatchCreatePackages = (data: { id: number }) => {
-    const versionFilesInfo = versionFilesRef.value!.getValue()!;
+    const value = versionFilesRef.value!.getValue()!;
+    const versionFilesInfo = typeof value === 'string' ? [] : value;
     const seriesLabel = versionSeriesRef.value!.getCurrentLabel();
     const updateParams = versionFilesInfo.map((item) => ({
       ...item,
@@ -398,6 +444,11 @@
     formModel.value.name = formModel.value.full_version ? defaultAutoVersionName.value : '';
   };
 
+  const handleFormValidate = (property: string, result: boolean) => {
+    hideTipMap.value[property as keyof typeof hideTipMap.value] =
+      !result && !!formModel.value[property as keyof typeof formModel.value];
+  };
+
   const handleSubmit = () => {
     formRef.value.validate().then(() => {
       const commonParams = {
@@ -416,7 +467,8 @@
         version_series: formModel.value.version_series,
       };
       if (props.isEdit) {
-        const versionFilesInfo = versionFilesRef.value!.getValue()!;
+        const value = versionFilesRef.value!.getValue()!;
+        const versionFilesInfo = typeof value === 'string' ? [] : value;
         const newPackageIds = versionFilesInfo.reduce<number[]>((results, item) => {
           if (item.id) {
             results.push(item.id);
@@ -449,6 +501,10 @@
       return;
     }
     formModel.value = initFormModel();
+    hideTipMap.value = {
+      full_version: false,
+      name: false,
+    };
   };
 </script>
 <style lang="less">
@@ -492,6 +548,10 @@
             flex: 1;
             position: relative;
 
+            &.version-name-item {
+              min-width: 300px;
+            }
+
             .reset-default-btn {
               position: absolute;
               top: -22px;
@@ -508,11 +568,24 @@
           color: #979ba5;
         }
 
+        .item-tip {
+          position: absolute;
+          top: 28px;
+          font-size: 12px;
+          color: #979ba5;
+        }
+
         .enable-tip-icon {
           margin-left: 4px;
           font-size: 14px;
           color: #979ba5;
           cursor: pointer;
+        }
+
+        .is-hide-tip {
+          .bk-form-error {
+            display: none;
+          }
         }
       }
 

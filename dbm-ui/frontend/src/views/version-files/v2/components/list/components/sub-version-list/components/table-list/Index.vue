@@ -169,10 +169,7 @@
           @click="() => handleEditDbVersion(row)">
           {{ t('编辑') }}
         </AuthButton>
-        <DownloadPackage
-          :data="row"
-          :db-type="dbType"
-          :permission="permission" />
+        <DownloadPackage :data="row" />
         <DeleteVersion
           :data="row"
           :db-type="dbType"
@@ -303,7 +300,6 @@
           );
         }
       });
-
       localTableData = _.cloneDeep(handleList);
       localBeforeSortTableData = localTableData;
       if (collapseIdSet.value.size > 0) {
@@ -315,6 +311,12 @@
         tableData.value = handleList;
       }
       emits('listChange', handleList.filter((item) => !item.versionSeriesInfo).length);
+      // 针对过滤场景下操作后重新获取数据，需要等待数据更新后重新触发过滤
+      setTimeout(() => {
+        if (Object.keys(tableFilterValue.value).length > 0) {
+          handleFilterChange({ filter: tableFilterValue.value });
+        }
+      });
     },
   });
 
@@ -362,43 +364,58 @@
     },
   );
 
+  const parseVersionSegments = (versionStr: string): number[] =>
+    versionStr.split('.').map((part) => Number.parseInt(part, 10));
+
+  /** 版本段数值比较，从高到低（段值大者排前） */
+  const compareSegmentsDesc = (sa: number[], sb: number[]): number => {
+    const len = Math.max(sa.length, sb.length);
+    for (let i = 0; i < len; i += 1) {
+      const na = sa[i] ?? 0;
+      const nb = sb[i] ?? 0;
+      if (Number.isNaN(na) || Number.isNaN(nb)) {
+        return 0;
+      }
+      if (na !== nb) {
+        return nb - na;
+      }
+    }
+    return 0;
+  };
+
   /** 按版本名排序：同系列内版本号从高到低（如 MySQL-10 → MySQL-8.0 → MySQL-5.7）；支持无中划线（如 MySQL8.0、mysql10） */
   const compareName = (a: string, b: string): number => {
     const parse = (raw: string) => {
       const trimmed = raw.trim();
-      // 取末尾连续「数字.数字…」作为版本段，前面为产品前缀（可有/可无中划线、下划线）
-      const verMatch = trimmed.match(/(\d+(?:\.\d+)*)$/);
-      if (verMatch && verMatch.index !== undefined && verMatch[1].length > 0) {
-        const prefix = trimmed
-          .slice(0, verMatch.index)
+      const toParsed = (versionStr: string, versionStart: number) => ({
+        prefix: trimmed
+          .slice(0, versionStart)
           .replace(/[-_.\s]+$/u, '')
-          .toLowerCase();
-        return {
-          prefix,
-          raw: trimmed,
-          segments: verMatch[1].split('.').map((part) => Number.parseInt(part, 10)),
-        };
+          .toLowerCase(),
+        raw: trimmed,
+        segments: parseVersionSegments(versionStr),
+        versionStr,
+      });
+
+      // 优先：最后一个 - / _ / 空格 后的纯数字版本（如 dbm-mysql-proxy-0.82.10）
+      const lastSepMatch = trimmed.match(/(?:^|[-_\s])(\d+(?:\.\d+)*)\s*$/u);
+      if (lastSepMatch?.[1]) {
+        const versionStr = lastSepMatch[1];
+        return toParsed(versionStr, trimmed.length - versionStr.length);
       }
+
+      // 兼容无分隔符：MySQL8.0、mysql10
+      const suffixMatch = trimmed.match(/(\d+(?:\.\d+)*)\s*$/u);
+      if (suffixMatch?.[1] && suffixMatch.index !== undefined) {
+        return toParsed(suffixMatch[1], suffixMatch.index);
+      }
+
       return {
         prefix: trimmed.toLowerCase(),
         raw: trimmed,
         segments: [] as number[],
+        versionStr: '',
       };
-    };
-
-    const compareSegmentsAsc = (sa: number[], sb: number[]): number => {
-      const len = Math.max(sa.length, sb.length);
-      for (let i = 0; i < len; i += 1) {
-        const na = sa[i] ?? 0;
-        const nb = sb[i] ?? 0;
-        if (Number.isNaN(na) || Number.isNaN(nb)) {
-          return 0;
-        }
-        if (na !== nb) {
-          return na - nb;
-        }
-      }
-      return 0;
     };
 
     const pa = parse(a);
@@ -407,9 +424,18 @@
     if (prefixCmp !== 0) {
       return prefixCmp;
     }
-    const segCmp = compareSegmentsAsc(pa.segments, pb.segments);
+    const segCmp = compareSegmentsDesc(pa.segments, pb.segments);
     if (segCmp !== 0) {
-      return -segCmp;
+      return segCmp;
+    }
+    if (pa.versionStr && pb.versionStr) {
+      const versionCmp = pa.versionStr.localeCompare(pb.versionStr, undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      });
+      if (versionCmp !== 0) {
+        return versionCmp;
+      }
     }
     return pa.raw.localeCompare(pb.raw, undefined, { sensitivity: 'base' });
   };
@@ -432,9 +458,13 @@
     handleFilterChange({ filter: {} });
   };
 
-  // 版本号比较函数：比较 full_version 格式如 1.2.0.0.0.0
+  // 版本号比较函数：比较 full_version 格式如 1.2.0.0.0.0，按段数值从高到低
   const compareVersion = (versionA: string, versionB: string): number => {
-    return versionA > versionB ? -1 : versionA < versionB ? 1 : 0;
+    const segCmp = compareSegmentsDesc(parseVersionSegments(versionA.trim()), parseVersionSegments(versionB.trim()));
+    if (segCmp !== 0) {
+      return segCmp;
+    }
+    return versionA.localeCompare(versionB, undefined, { numeric: true, sensitivity: 'base' });
   };
 
   const handleVersionSeriesToggle = (toggle: boolean, rowIndex: number) => {

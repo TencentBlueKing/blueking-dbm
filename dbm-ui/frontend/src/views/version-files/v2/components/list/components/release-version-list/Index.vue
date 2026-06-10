@@ -4,6 +4,7 @@
       <div class="title">{{ t('发行版') }}</div>
       <AuthTemplate
         action-id="package_manage"
+        :permission="hasPackageManagePermission"
         :resource="dbType">
         <DbIcon
           v-bk-tooltips="t('新增发行版')"
@@ -66,6 +67,7 @@
 
   interface Props {
     dbType: string;
+    hasPackageManagePermission: boolean;
     pkgLabelMap: Record<string, string>;
     pkgType: string;
   }

@@ -12,37 +12,135 @@
 -->
 
 <template>
-  <ApplyPermissionCatch>
-    <div class="version-files-page">
-      <DbTab
-        v-model="dbTypeActive"
-        :exclude="[DBTypes.TENDBCLUSTER]" />
-      <div class="veriosn-content-main">
+  <div class="version-files-page">
+    <DbTab
+      v-model="dbTypeActive"
+      :exclude="[DBTypes.TENDBCLUSTER]" />
+    <div
+      v-if="renderPkgTypeList.length > 0"
+      class="veriosn-content-main">
+      <div
+        v-bk-loading="{ loading: pkgTypeListLoading }"
+        class="pkg-tab-main-container">
         <BkTab
-          :key="pkgActive"
+          :key="dbTypeActive"
           v-model:active="pkgActive"
           class="pkg-tab-main"
+          :class="{ 'pkg-tab-main-scroll': isPkgTabScroll }"
           type="card-tab">
+          <template #add>
+            <AuthTemplate
+              action-id="package_manage"
+              class="manage-pkg-type-main"
+              :permission="hasPackageManagePermission"
+              :resource="dbTypeActive"
+              @click="handleCreatePkgType">
+              <div class="manage-pkg-type-icon">
+                <DbIcon type="add" />
+              </div>
+            </AuthTemplate>
+          </template>
           <BkTabPanel
-            v-for="tab of activeTabInfo?.children"
+            v-for="tab of renderPkgTypeList"
             :key="tab.name"
             :label="tab.label"
-            :name="tab.name" />
+            :name="tab.name">
+            <template #label>
+              <div class="tab-label-main">
+                <span>{{ tab.label }}</span>
+                <BkDropdown trigger="click">
+                  <div class="tab-label-more">
+                    <DbIcon type="more" />
+                  </div>
+                  <template #content>
+                    <BkDropdownMenu>
+                      <BkDropdownItem>
+                        <AuthButton
+                          action-id="package_manage"
+                          :permission="hasPackageManagePermission"
+                          :resource="dbTypeActive"
+                          text
+                          @click="() => handleEditPkgType(tab)">
+                          {{ t('编辑包类型') }}
+                        </AuthButton>
+                      </BkDropdownItem>
+                      <BkPopConfirm
+                        :confirm-config="{
+                          theme: 'danger',
+                        }"
+                        :confirm-text="t('删除')"
+                        :content="t('删除操作无法撤回，请谨慎操作！')"
+                        :popover-options="{
+                          placement: 'bottom-start',
+                        }"
+                        :title="t('确认删除该包类型？')"
+                        trigger="click"
+                        width="280"
+                        @confirm="() => handleConfirmDeletePkgType(tab)">
+                        <BkDropdownItem
+                          v-bk-tooltips="{
+                            content: t('该包类型存在 n 个版本，请清理后再操作', {
+                              n: pkgTypeItemMap[tab.name].related_versions,
+                            }),
+                            disabled: pkgTypeItemMap[tab.name].can_delete,
+                            placement: 'right',
+                          }">
+                          <AuthButton
+                            action-id="package_manage"
+                            :disabled="!pkgTypeItemMap[tab.name].can_delete"
+                            :permission="hasPackageManagePermission"
+                            :resource="dbTypeActive"
+                            text>
+                            {{ t('删除包类型') }}
+                          </AuthButton>
+                        </BkDropdownItem>
+                      </BkPopConfirm>
+                    </BkDropdownMenu>
+                  </template>
+                </BkDropdown>
+              </div>
+            </template>
+          </BkTabPanel>
         </BkTab>
-        <div class="content-main">
-          <List
-            :db-type="dbTypeActive"
-            :has-package-manage-permission="hasPackageManagePermission"
-            :pkg-label-map="pkgLabelMap"
-            :pkg-type="pkgActive"
-            :tabs="renderTabs" />
-        </div>
+      </div>
+      <div class="content-main">
+        <List
+          :db-type="dbTypeActive"
+          :has-package-manage-permission="hasPackageManagePermission"
+          :pkg-label-map="pkgLabelMap"
+          :pkg-type="pkgActive"
+          :tabs="renderTabs"
+          @refresh-pkg-type-list="handleGetPkgTypeList" />
       </div>
     </div>
-  </ApplyPermissionCatch>
+    <BkException
+      v-else
+      class="pkg-type-empty-main"
+      type="empty">
+      <span>{{ t('该数据库类型下暂无包类型') }}</span>
+      <span class="ml-4 mr-4">,</span>
+      <span class="mr-4">{{ t('立即') }}</span>
+      <BkButton
+        size="small"
+        text
+        theme="primary"
+        @click="handleCreatePkgType">
+        {{ t('新建包类型') }}
+      </BkButton>
+    </BkException>
+  </div>
+  <EditPkgType
+    v-model:is-show="isShowPkgTypeManage"
+    :data="currentPkgType"
+    :db-type="dbTypeActive"
+    :existed-identifier-list="existedIdentifierList"
+    :is-edit="isEditPkgType"
+    :total-list="pkgTypeList || []"
+    @success="handleGetPkgTypeList" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
 
   import type {
@@ -51,14 +149,17 @@
     FunctionKeys,
   } from '@services/model/function-controller/functionController';
   import { simpleCheckAllowed } from '@services/source/iam';
+  import { getPkgTypeList, updatePkgType } from '@services/source/version';
 
   import { useFunController } from '@stores';
 
   import { DBTypes } from '@common/const';
 
-  import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import DbTab from '@components/db-tab/Index.vue';
 
+  import { messageSuccess } from '@utils';
+
+  import EditPkgType from './components/EditPkgType.vue';
   import List from './components/list/Index.vue';
 
   export interface TabItem {
@@ -75,69 +176,32 @@
     name: string;
   }
 
+  export type PkgTypeItem = ServiceReturnType<typeof getPkgTypeList>[number];
+
   const { t } = useI18n();
   const funControllerStore = useFunController();
   const route = useRoute();
   const router = useRouter();
 
+  const tabChildrenControllerIdMap: Record<string, FunctionKeys> = {
+    tendisplus: 'PredixyTendisplusCluster',
+    tendisssd: 'TwemproxyTendisSSDInstance',
+    twemproxy: 'TwemproxyRedisInstance',
+  };
+
   const pkgActive = ref('');
   const dbTypeActive = ref<DBTypes>(DBTypes.MYSQL);
+  const isShowPkgTypeManage = ref(false);
   const hasPackageManagePermission = ref(false);
-
-  const tabs: TabItem[] = [
+  const isEditPkgType = ref(false);
+  const currentPkgType = ref<PkgTypeItem>();
+  const isPkgTabScroll = ref(false);
+  const tabs = ref<TabItem[]>([
     {
       children: [
         {
           label: 'MySQL',
           name: DBTypes.MYSQL,
-        },
-        {
-          label: 'MySQL-Proxy',
-          name: 'mysql-proxy',
-        },
-        {
-          label: t('任务执行器'),
-          name: 'actuator',
-        },
-        {
-          label: t('备份工具'),
-          name: 'dbbackup',
-        },
-        {
-          label: t('备份工具-TXSQL'),
-          name: 'dbbackup-txsql',
-        },
-        {
-          label: t('校验工具'),
-          name: 'mysql-checksum',
-        },
-        {
-          label: t('Binlog滚动备份工具'),
-          name: 'rotate-binlog',
-        },
-        {
-          label: t('DBA工具集'),
-          name: 'dba-toolkit',
-        },
-        {
-          label: t('MySQL监控'),
-          name: 'mysql-monitor',
-        },
-        {
-          label: 'MySQL Crond',
-          name: 'mysql-crond',
-        },
-        {
-          label: 'Spider',
-          name: 'spider',
-        },
-        {
-          label: 'TDBCTL',
-          name: 'tdbctl',
-        },
-        {
-          label: 'tbinlogdumper',
-          name: 'tbinlogdumper',
         },
       ],
       controller: {
@@ -165,45 +229,6 @@
           label: 'Redis',
           name: DBTypes.REDIS,
         },
-        {
-          controllerId: 'TwemproxyRedisInstance',
-          label: 'TwemProxy',
-          name: 'twemproxy',
-        },
-        {
-          controllerId: 'PredixyTendisplusCluster',
-          label: 'Tendisplus',
-          name: 'tendisplus',
-        },
-        {
-          controllerId: 'TwemproxyTendisSSDInstance',
-          label: 'TendisSSD',
-          name: 'tendisssd',
-        },
-        {
-          label: 'Predixy',
-          name: 'predixy',
-        },
-        {
-          label: t('任务执行器'),
-          name: 'actuator',
-        },
-        {
-          label: t('工具包'),
-          name: 'tools',
-        },
-        {
-          label: t('DB监控工具'),
-          name: 'dbmon',
-        },
-        {
-          label: 'RedisDTS',
-          name: 'redis-dts',
-        },
-        {
-          label: 'RedisModules',
-          name: 'redis-modules',
-        },
       ],
       controller: {
         moduleId: 'redis',
@@ -216,14 +241,6 @@
         {
           label: 'ES',
           name: DBTypes.ES,
-        },
-        {
-          label: t('任务执行器'),
-          name: 'actuator',
-        },
-        {
-          label: t('ES 插件'),
-          name: 'es-plugin',
         },
       ],
       controller: {
@@ -239,10 +256,6 @@
           label: 'Kafka',
           name: DBTypes.KAFKA,
         },
-        {
-          label: t('任务执行器'),
-          name: 'actuator',
-        },
       ],
       controller: {
         id: 'kafka',
@@ -256,10 +269,6 @@
         {
           label: 'HDFS',
           name: DBTypes.HDFS,
-        },
-        {
-          label: t('任务执行器'),
-          name: 'actuator',
         },
       ],
       controller: {
@@ -275,10 +284,6 @@
           label: 'Plusar',
           name: DBTypes.PULSAR,
         },
-        {
-          label: t('任务执行器'),
-          name: 'actuator',
-        },
       ],
       controller: {
         id: 'pulsar',
@@ -292,10 +297,6 @@
         {
           label: 'InfluxDB',
           name: DBTypes.INFLUXDB,
-        },
-        {
-          label: t('任务执行器'),
-          name: 'actuator',
         },
       ],
       controller: {
@@ -311,14 +312,6 @@
           label: 'Riak',
           name: DBTypes.RIAK,
         },
-        {
-          label: t('任务执行器'),
-          name: 'actuator',
-        },
-        {
-          label: t('Riak监控'),
-          name: 'riak-monitor',
-        },
       ],
       controller: {
         id: 'riak',
@@ -333,22 +326,6 @@
           label: 'MongoDB',
           name: DBTypes.MONGODB,
         },
-        {
-          label: t('任务执行器'),
-          name: 'actuator',
-        },
-        {
-          label: t('DB监控工具'),
-          name: 'dbmon',
-        },
-        {
-          label: t('工具包'),
-          name: 'dbtools',
-        },
-        {
-          label: t('工具集'),
-          name: 'mongo-toolkit',
-        },
       ],
       controller: {
         moduleId: 'mongodb',
@@ -362,10 +339,6 @@
           label: 'SQLServer',
           name: DBTypes.SQLSERVER,
         },
-        {
-          label: t('任务执行器'),
-          name: 'actuator',
-        },
       ],
       controller: {
         moduleId: 'sqlserver',
@@ -378,10 +351,6 @@
         {
           label: 'Doris',
           name: DBTypes.DORIS,
-        },
-        {
-          label: t('任务执行器'),
-          name: 'actuator',
         },
       ],
       controller: {
@@ -397,10 +366,6 @@
           label: 'Oracle',
           name: DBTypes.ORACLE,
         },
-        {
-          label: t('任务执行器'),
-          name: 'actuator',
-        },
       ],
       controller: {
         moduleId: 'oracle',
@@ -408,50 +373,51 @@
       label: 'Oracle',
       name: DBTypes.ORACLE,
     },
-  ];
+  ]);
 
-  const pkgLabelMap = tabs.reduce<Record<string, string>>((dataMap, item) => {
-    item.children.forEach((child) => {
-      Object.assign(dataMap, {
-        [child.name]: child.label,
+  const existedIdentifierList = computed(() => pkgTypeList.value?.map((item) => item.value.toLocaleLowerCase()) || []);
+
+  const pkgLabelMap = computed(() =>
+    tabs.value.reduce<Record<string, string>>((dataMap, item) => {
+      item.children.forEach((child) => {
+        Object.assign(dataMap, {
+          [child.name]: child.label,
+        });
       });
-    });
-    return dataMap;
-  }, {});
+      return dataMap;
+    }, {}),
+  );
 
-  const renderTabs = tabs.filter((item) => {
-    const { id, moduleId } = item.controller;
-    const data = funControllerStore.funControllerData[moduleId] as any;
-    // 整个模块没有开启
-    if (!data || data.is_enabled !== true) {
-      return false;
-    }
-    const children = data.children as Record<FunctionKeys, ControllerBaseInfo>;
-    // 模块中的功能没开启
-    if (id && !children[id]?.is_enabled) {
-      return false;
-    }
-
-    // 处理 tab.children
-    const tabChildren = item.children.filter((child) => {
-      // 不需要校验功能是否开启
-      if (child.controllerId === undefined) {
-        return true;
+  const renderTabs = computed(() =>
+    tabs.value.reduce<TabItem[]>((result, item) => {
+      const { id, moduleId } = item.controller;
+      const data = funControllerStore.funControllerData[moduleId] as any;
+      // 整个模块没有开启
+      if (!data || data.is_enabled !== true) {
+        return result;
       }
-
-      return children[child.controllerId].is_enabled;
-    });
-    Object.assign(item, {
-      children: tabChildren,
-    });
-
-    return true;
-  });
-
-  let hasPackageViewPermission = false;
+      const children = data.children as Record<FunctionKeys, ControllerBaseInfo>;
+      // 模块中的功能没开启
+      if (id && !children[id]?.is_enabled) {
+        return result;
+      }
+      const tabChildren = item.children.filter((child) => {
+        // 不需要校验功能是否开启
+        if (child.controllerId === undefined) {
+          return true;
+        }
+        return children[child.controllerId]?.is_enabled;
+      });
+      result.push({
+        ...item,
+        children: tabChildren,
+      });
+      return result;
+    }, []),
+  );
 
   const activeTabInfo = computed(() => {
-    const tabList = renderTabs.find((item) => item.name === dbTypeActive.value);
+    const tabList = renderTabs.value.find((item) => item.name === dbTypeActive.value);
     return tabList
       ? tabList
       : {
@@ -461,51 +427,77 @@
         };
   });
 
-  const checkPackageManagePermission = async () => {
-    hasPackageManagePermission.value = await simpleCheckAllowed({
-      action_id: 'package_manage',
-      resource_id: dbTypeActive.value,
+  const renderPkgTypeList = computed(() => activeTabInfo.value?.children || []);
+  const pkgTypeItemMap = computed(
+    () =>
+      pkgTypeList.value?.reduce<Record<string, PkgTypeItem>>((acc, item) => {
+        Object.assign(acc, {
+          [item.value]: item,
+        });
+        return acc;
+      }, {}) || {},
+  );
+
+  const {
+    data: pkgTypeList,
+    loading: pkgTypeListLoading,
+    run: fetchPkgTypeList,
+  } = useRequest(getPkgTypeList, {
+    manual: true,
+    onSuccess(data) {
+      const targetTabIndex = tabs.value.findIndex((item) => item.name === dbTypeActive.value);
+      if (targetTabIndex !== -1) {
+        tabs.value[targetTabIndex].children = data.map((item) => ({
+          controllerId: tabChildrenControllerIdMap[item.value],
+          label: item.name,
+          name: item.value,
+        }));
+      }
+      setTimeout(() => {
+        checkPkgTabScroll();
+      }, 1000);
+    },
+  });
+
+  const { run: runDeletePkgType } = useRequest(updatePkgType, {
+    manual: true,
+    onSuccess() {
+      messageSuccess(t('操作成功'));
+      handleGetPkgTypeList();
+    },
+  });
+
+  let isFirstLoad = true;
+
+  const handleConfirmDeletePkgType = (tab: { label: string; name: string }) => {
+    if (!pkgTypeList.value?.length) {
+      return;
+    }
+
+    runDeletePkgType({
+      db_type: dbTypeActive.value,
+      items: pkgTypeList.value.filter((item) => item.value !== tab.name),
     });
   };
 
-  watch(
-    dbTypeActive,
-    () => {
-      pkgActive.value = activeTabInfo.value?.children[0]?.name || '';
+  const handleEditPkgType = (tab: { label: string; name: string }) => {
+    isEditPkgType.value = true;
+    isShowPkgTypeManage.value = true;
+    currentPkgType.value = pkgTypeList.value?.find((item) => item.value === tab.name);
+  };
 
-      if (!hasPackageViewPermission) {
-        return;
-      }
-
-      checkPackageManagePermission();
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  watch(
-    [dbTypeActive, pkgActive],
-    () => {
-      router.replace({
-        query: {
-          ...route.query,
-          dbType: dbTypeActive.value,
-          pkgType: pkgActive.value,
-        },
-      });
-    },
-    {
-      immediate: true,
-    },
-  );
+  const handleGetPkgTypeList = () => {
+    fetchPkgTypeList({
+      db_type: dbTypeActive.value,
+    });
+  };
 
   const checkPackagePermission = async () => {
-    hasPackageViewPermission = await simpleCheckAllowed(
+    const hasPackageViewPermission = await simpleCheckAllowed(
       {
         action_id: 'package_view',
         is_raise_exception: true,
-        resource_id: '',
+        resource_id: dbTypeActive.value,
       },
       {
         permission: 'page',
@@ -515,19 +507,90 @@
       return;
     }
 
-    checkPackageManagePermission();
+    hasPackageManagePermission.value = await simpleCheckAllowed({
+      action_id: 'package_manage',
+      resource_id: dbTypeActive.value,
+    });
   };
 
-  checkPackagePermission();
+  watch(dbTypeActive, handleGetPkgTypeList, {
+    immediate: true,
+  });
+
+  watch([dbTypeActive, pkgActive], () => {
+    if (!dbTypeActive.value || !pkgActive.value) {
+      return;
+    }
+
+    const { dbType, pkgType } = route.query;
+    if (dbType === dbTypeActive.value && pkgType === pkgActive.value) {
+      return;
+    }
+
+    router.replace({
+      query: {
+        ...route.query,
+        dbType: dbTypeActive.value,
+        pkgType: pkgActive.value,
+      },
+    });
+  });
+
+  watch(dbTypeActive, checkPackagePermission, {
+    immediate: true,
+  });
+
+  watch(pkgTypeList, () => {
+    nextTick(() => {
+      checkPkgTabScroll();
+    });
+
+    if (!pkgTypeList.value?.length) {
+      return;
+    }
+
+    if (isFirstLoad) {
+      isFirstLoad = false;
+      return;
+    }
+
+    const valueList = pkgTypeList.value.map((item) => item.value);
+    if (pkgActive.value && valueList.includes(pkgActive.value)) {
+      return;
+    }
+
+    pkgActive.value = pkgTypeList.value[0]?.value || '';
+  });
+
+  const handleCreatePkgType = () => {
+    isEditPkgType.value = false;
+    currentPkgType.value = undefined;
+    isShowPkgTypeManage.value = true;
+  };
+
+  const checkPkgTabScroll = () => {
+    const tabListDom = document.querySelector('.tab-header-auto');
+    const scrollWidth = tabListDom?.scrollWidth || 0;
+    const clientWidth = tabListDom?.clientWidth || 0;
+    isPkgTabScroll.value = scrollWidth > clientWidth;
+  };
 
   onMounted(() => {
     const { dbType, pkgType } = route.query;
-    if (dbType && pkgType) {
+    if (dbType) {
       dbTypeActive.value = dbType as DBTypes;
-      nextTick(() => {
-        pkgActive.value = pkgType as string;
-      });
     }
+    if (pkgType) {
+      setTimeout(() => {
+        pkgActive.value = pkgType as string;
+      }, 500);
+    }
+
+    window.addEventListener('resize', checkPkgTabScroll);
+  });
+
+  onBeforeUnmount(() => {
+    window.removeEventListener('resize', checkPkgTabScroll);
   });
 </script>
 <style lang="less">
@@ -537,15 +600,92 @@
     flex-direction: column;
 
     .veriosn-content-main {
-      flex: 1;
       display: flex;
       padding: 20px 24px;
-      flex-direction: column;
       overflow: hidden;
+      flex: 1;
+      flex-direction: column;
+
+      .pkg-tab-main-container {
+        position: relative;
+        height: 42px;
+
+        .bk-tab-header-operation {
+          display: flex;
+          width: 42px;
+          height: 42px;
+          background: #f0f1f5;
+          border-radius: 0 4px 0 0;
+          justify-content: center;
+          align-items: center;
+
+          .bk-tab-header-item {
+            padding: 0;
+
+            &::after {
+              display: none;
+            }
+          }
+        }
+      }
 
       .pkg-tab-main {
+        &.pkg-tab-main-scroll {
+          .bk-tab-header-operation {
+            box-shadow: -2px 0 4px 0 #0000001a;
+          }
+        }
+
         .bk-tab-content {
           display: none;
+        }
+
+        .bk-tab-header--active {
+          .tab-label-more {
+            display: flex !important;
+          }
+        }
+
+        .tab-label-main {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          .tab-label-more {
+            justify-content: center;
+            align-items: center;
+            display: none;
+            width: 26px;
+            height: 26px;
+            margin-left: 8px;
+            border-radius: 2px;
+
+            &:hover {
+              background: #e1ecff;
+            }
+          }
+        }
+      }
+
+      .manage-pkg-type-main {
+        display: flex;
+        width: 42px;
+        height: 42px;
+        justify-content: center;
+        align-items: center;
+
+        .manage-pkg-type-icon {
+          display: flex;
+          width: 26px;
+          height: 26px;
+          color: #3a84ff;
+          border-radius: 2px;
+          justify-content: center;
+          align-items: center;
+
+          &:hover {
+            background: #e1ecff;
+          }
         }
       }
 
