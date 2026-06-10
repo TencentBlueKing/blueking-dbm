@@ -16,14 +16,18 @@ from backend.flow.engine.controller.redis import RedisController
 from backend.flow.utils.redis.redis_proxy_util import get_major_version_by_version_name
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisBaseOperateDetailSerializer
+from backend.ticket.builders.redis.base import (
+    BaseRedisTicketFlowBuilder,
+    ClusterValidateMixin,
+    RedisBaseOperateDetailSerializer,
+)
 from backend.ticket.constants import TicketType
 
 
 class RedisShardAddDetailSerializer(RedisBaseOperateDetailSerializer):
     """redis集群容量变更"""
 
-    class InfoSerializer(serializers.Serializer):
+    class InfoSerializer(ClusterValidateMixin, serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
         shard_num = serializers.IntegerField(help_text=_("集群分片数"))
@@ -34,6 +38,10 @@ class RedisShardAddDetailSerializer(RedisBaseOperateDetailSerializer):
         update_mode = serializers.CharField(help_text=_("容量变更类型"), required=False)
         resource_spec = serializers.JSONField(help_text=_("资源申请"))
         row_key = serializers.CharField(help_text=_("唯一值"), required=False)
+
+        def validate(self, attr):
+            self.check_not_tendisplus_cluster(attr["cluster_id"], _("分片变更（Slot 迁移）"))
+            return attr
 
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL

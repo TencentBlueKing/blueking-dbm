@@ -147,6 +147,8 @@ class RedisClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
         ClusterType.TwemproxyTendisSSDInstance: RedisController.twemproxy_cluster_apply_scene,
         # redis-cluster部署flow
         ClusterType.TendisPredixyRedisCluster: RedisController.predixy_cluster_apply_scene,
+        # tendis-plus 标准版部署flow
+        ClusterType.TendisPredixyTendisplusInstance: RedisController.predixy_tendisplus_ins_apply_scene,
     }
 
     def build_controller_info(self) -> dict:
@@ -227,7 +229,11 @@ class RedisClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
             domain_prefix = "rediscluster"
         elif ticket_type == ClusterType.TendisTwemproxyRedisInstance:
             domain_prefix = "cache"
-        elif ticket_type in [ClusterType.TendisTwemproxyTendisplusIns, ClusterType.TendisPredixyTendisplusCluster]:
+        elif ticket_type in [
+            ClusterType.TendisTwemproxyTendisplusIns,
+            ClusterType.TendisPredixyTendisplusCluster,
+            ClusterType.TendisPredixyTendisplusInstance,
+        ]:
             domain_prefix = "tendisplus"
         domain_name = "{}.{}.{}.db".format(
             domain_prefix,
