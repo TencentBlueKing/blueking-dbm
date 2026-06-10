@@ -174,6 +174,19 @@ class ClusterValidateMixin(object):
 
         return cluster_id
 
+    @staticmethod
+    def check_not_tendisplus_cluster(cluster_id, operation_name=None):
+        """校验 TendisPlus 标准版集群不支持当前操作。"""
+        operation_name = operation_name or _("该操作")
+        try:
+            cluster = Cluster.objects.get(pk=cluster_id)
+            if cluster.cluster_type == ClusterType.TendisPredixyTendisplusInstance.value:
+                raise serializers.ValidationError(_("TendisPlus标准版不支持{}").format(operation_name))
+        except Cluster.DoesNotExist:
+            raise serializers.ValidationError(_("集群{}不存在.").format(cluster_id))
+
+        return cluster_id
+
     def validate_cluster_id(self, cluster_id):
         return self.check_cluster_phase(cluster_id)
 

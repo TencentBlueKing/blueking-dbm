@@ -644,6 +644,7 @@ CLUSTER_TYPE_LOAD_RULES = {
     ClusterType.TendisTwemproxyRedisInstance: [MachineType.REDIS, MachineType.TWEMPROXY],
     ClusterType.TendisPredixyRedisCluster: [MachineType.REDIS, MachineType.PREDIXY],
     ClusterType.TendisPredixyTendisplusCluster: [MachineType.TENDISPLUS, MachineType.PREDIXY],
+    ClusterType.TendisPredixyTendisplusInstance: [MachineType.TENDISPLUS, MachineType.PREDIXY],
     ClusterType.TwemproxyTendisSSDInstance: [MachineType.TENDISSSD, MachineType.TWEMPROXY],
 }
 
