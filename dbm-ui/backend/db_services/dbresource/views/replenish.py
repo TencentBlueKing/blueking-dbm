@@ -25,9 +25,14 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums.spec import SpecMachineType
 from backend.db_services.dbresource.constants import SWAGGER_TAG
 from backend.db_services.dbresource.filters import ReplenishRecordFilter
-from backend.db_services.dbresource.handlers import ResourceHandler, async_create_replenish
+from backend.db_services.dbresource.handlers import (
+    ResourceHandler,
+    async_create_replenish,
+    async_retry_replenish_tickets,
+)
 from backend.db_services.dbresource.models import ResourceReplenishRecord
 from backend.db_services.dbresource.serializers import (  # CheckFaultHostsSerializer,
+    BatchRetryReplenishTicketsSerializer,
     CreateResourceReplenishSerializer,
     ExportReplenishTicketSerializer,
     ListTicketApplyCountSerializer,
@@ -196,3 +201,17 @@ class DBReplenishViewSet(viewsets.AuditedModelViewSet):
         wb = ExcelHandler.serialize(rows, headers=headers, match_header=True, sheet_name=_("补货单据导出"))
         filename = f"replenish_tickets_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
         return ExcelHandler.response(wb, filename)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("批量重试海磊资源补货单"),
+        request_body=BatchRetryReplenishTicketsSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(detail=False, methods=["POST"], serializer_class=BatchRetryReplenishTicketsSerializer, filter_class=None)
+    def batch_retry_replenish_tickets(self, request):
+        data = self.params_validate(self.get_serializer_class())
+        params = {"replenish_record_id": data["replenish_record_id"], "username": request.user.username}
+        if data.get("ticket_ids"):
+            params["ticket_ids"] = data["ticket_ids"]
+        async_retry_replenish_tickets.apply_async(kwargs=params)
+        return Response()
