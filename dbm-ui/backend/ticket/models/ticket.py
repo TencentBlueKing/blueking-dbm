@@ -573,9 +573,12 @@ class ClusterOperateRecordManager(models.Manager):
 
         exclusive_map = defaultdict(dict)
         exclusive_matrix = ExcelHandler.paser_matrix(EXCLUSIVE_TICKET_EXCEL_PATH)
+        # 缓存 label -> value 的解析结果，避免对同一标签重复触发 get_choice_value 的全量惰性翻译扫描
+        label_value_map = {TicketType.get_choice_label(v): v for v in TicketType.get_values()}
+
         for row_label, inner_dict in exclusive_matrix.items():
             for col_label, value in inner_dict.items():
-                row_key, col_key = TicketType.get_choice_value(row_label), TicketType.get_choice_value(col_label)
+                row_key, col_key = label_value_map[row_label], label_value_map[col_label]
                 exclusive_map[row_key][col_key] = value == "N"
 
         SystemSettings.insert_setting_value(
