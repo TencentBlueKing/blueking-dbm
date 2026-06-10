@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import itertools
+import logging
 import math
 import time
 from collections import defaultdict
@@ -34,11 +35,15 @@ from backend.db_services.ipchooser.constants import ModeType
 from backend.db_services.ipchooser.handlers.topo_handler import TopoHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.ipchooser.types import ScopeList
+from backend.db_services.taskflow.handlers import TaskFlowHandler
+from backend.flow.consts import StateType
 from backend.flow.utils.cc_manage import CcManage
-from backend.ticket.constants import TicketType
-from backend.ticket.models import Ticket, Todo
+from backend.ticket.constants import FlowErrCode, TicketFlowStatus, TicketStatus, TicketType
+from backend.ticket.models import Flow, Ticket, Todo
 from backend.utils.cache import func_cache_decorator
 from backend.utils.excel import ExcelHandler
+
+logger = logging.getLogger("root")
 
 
 class ClusterSpecFilter(object):
@@ -888,3 +893,36 @@ class ResourceHandler(object):
 def async_create_replenish(username, bk_biz_id, infos, remark="", record_id=None):
     """异步创建补货单据，避免前端同步请求超时"""
     ResourceHandler.create_replenish(username, bk_biz_id, infos, remark, record_id=record_id)
+
+
+@shared_task
+def async_retry_replenish_tickets(replenish_record_id, username, ticket_ids=None):
+    from backend.ticket.flow_manager.inner import HCMReplenishResourceTaskFlow
+
+    # 对补货记录加行锁， 防止多次重试
+    replenish = ResourceReplenishRecord.objects.select_for_update().filter(id=replenish_record_id).first()
+    if not replenish:
+        return
+
+    # 对传过来的单据id进行过滤
+    retry_ticket_ids = (
+        [ticket_id for ticket_id in replenish.ticket_ids if ticket_id in ticket_ids]
+        if ticket_ids
+        else replenish.ticket_ids
+    )
+    tickets = Ticket.objects.filter(id__in=retry_ticket_ids, status=TicketStatus.FAILED)
+    if not tickets:
+        return
+
+    error_flows = Flow.objects.filter(ticket__in=tickets, status=TicketFlowStatus.FAILED)
+    for flow in error_flows:
+        if flow.err_code == FlowErrCode.HCM_APPLY_LACK_RESOURCE_ERROR:
+            HCMReplenishResourceTaskFlow(flow).retry()
+        else:
+            flow_handler = TaskFlowHandler(root_id=flow.flow_obj_id)
+            node_ids = flow_handler.get_specific_node_ids(status=StateType.FAILED)
+            for node_id in node_ids:
+                try:
+                    flow_handler.retry_node(node_id, username)
+                except Exception as err:
+                    logger.error("retry replenish ticket node error: {}".format(err))
