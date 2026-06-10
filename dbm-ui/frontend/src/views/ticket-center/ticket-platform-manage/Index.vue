@@ -1,6 +1,6 @@
 <template>
   <div
-    v-bk-loading="{ isLoading: isPreChecking }"
+    v-bk-loading="{ loading: isPreChecking }"
     class="ticket-platform-manage-page">
     <div class="header-action-box">
       <DbQuickSearch

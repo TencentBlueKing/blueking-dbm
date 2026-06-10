@@ -5,13 +5,12 @@
       class="edit-main">
       <div
         class="edit-input-main"
-        :class="{ 'is-error': errorMessage }">
+        :class="{ 'is-error': errorMessage, 'is-empty': !newVersionName }">
         <BkInput
           ref="editInputRef"
           v-model="newVersionName"
-          v-bk-tooltips="t('同一版本系列（如 5.7.20）代表核心功能兼容，支持原地升级')"
           class="edit-input"
-          :placeholder="t('请输入版本系列名称')"
+          :placeholder="t('请输入xx', [t('系列名')])"
           @click.stop
           @enter="handleConfirmAdd"
           @input="() => (errorMessage = '')" />
@@ -134,8 +133,18 @@
       return;
     }
 
+    if (/[\u4e00-\u9fa5]/.test(newVersionName.value)) {
+      errorMessage.value = t('请勿使用中文');
+      return;
+    }
+
+    if (!/^[A-Za-z0-9_.-]+$/.test(newVersionName.value)) {
+      errorMessage.value = t('格式不正确，请勿使用空格或特殊符号');
+      return;
+    }
+
     if (props.existedList.includes(newValidName) && oldValidName !== newValidName) {
-      errorMessage.value = t('该版本系列已存在');
+      errorMessage.value = t('该系列名已存在');
       return;
     }
 
@@ -170,6 +179,12 @@
       .edit-input-main {
         flex: 1;
         position: relative;
+
+        &.is-empty {
+          .edit-input {
+            border-color: #ea3636;
+          }
+        }
 
         &.is-error {
           .edit-input {

@@ -66,8 +66,13 @@ export function getMysqlEngineList(params?: { limit?: number; offset?: number })
 /**
  * 发行版列表
  */
-export function getReleaseVersionList(params: { db_type: string; engine?: string; name?: string; pkg_type: string }) {
-  return http.get<ReleaseVersionModel[]>(`${path}/distribution/`, params, { cache: 3000 });
+export function getReleaseVersionList(
+  params: { db_type: string; engine?: string; name?: string; pkg_type: string },
+  payload?: IRequestPayload,
+) {
+  return http.get<ReleaseVersionModel[]>(`${path}/distribution/`, params, payload).then((data) => {
+    return data.map((item) => new ReleaseVersionModel(item));
+  });
 }
 
 /**
@@ -223,4 +228,30 @@ export function updateVersionSeries(params: { distribution?: number; id: number;
  */
 export function deleteVersionSeries(params: { distribution: number; id: number }) {
   return http.delete<null>(`${path}/version_series/${params.id}/`, params);
+}
+
+/**
+ * 包类型列表
+ */
+export function getPkgTypeList(params: { db_type: string }, payload?: IRequestPayload) {
+  return http.get<
+    {
+      can_delete: boolean;
+      name: string;
+      related_distributions: number;
+      related_versions: number;
+      value: string;
+      version_num: number;
+    }[]
+  >(`${path}/dbversion/list_pkg_types/`, params, payload);
+}
+
+/**
+ * 更新包类型
+ */
+export function updatePkgType(params: {
+  db_type: string;
+  items: { name: string; value: string; version_num: number }[];
+}) {
+  return http.post<null>(`${path}/dbversion/update_pkg_types/`, params);
 }

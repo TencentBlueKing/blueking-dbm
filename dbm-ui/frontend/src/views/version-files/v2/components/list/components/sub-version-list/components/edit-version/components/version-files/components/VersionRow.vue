@@ -1,10 +1,17 @@
 <template>
   <tr>
     <td>
-      <div
-        v-overflow-tips
-        class="text-overflow">
-        {{ data.name }}
+      <div class="version-file-name-container">
+        <div
+          v-overflow-tips
+          class="text-overflow">
+          {{ data.name }}
+        </div>
+        <div
+          v-overflow-tips
+          class="version-file-md5 text-overflow">
+          {{ data.md5 }}
+        </div>
       </div>
     </td>
     <td>
@@ -97,11 +104,11 @@
     <td>
       <DbIcon
         v-bk-tooltips="{
-          content: !ableToDelete ? t('至少保留1个版本文件') : t('该版本已被应用，无法删除'),
-          disabled: ableToDelete && !isApplied,
+          content: t('该版本已被应用，无法删除'),
+          disabled: !isApplied,
         }"
         class="version-row-delete-icon"
-        :class="{ 'is-disabled': !ableToDelete || isApplied }"
+        :class="{ 'is-disabled': isApplied }"
         type="delete"
         @click="handleDelete" />
     </td>
@@ -115,7 +122,6 @@
   import { listSupportSystems } from '@services/source/package';
 
   interface Props {
-    ableToDelete?: boolean;
     data: {
       id?: number;
       md5: string;
@@ -144,7 +150,6 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    ableToDelete: true,
     isApplied: false,
   });
   const emits = defineEmits<Emits>();
@@ -274,7 +279,7 @@
   };
 
   const handleDelete = () => {
-    if (props.ableToDelete && !props.isApplied) {
+    if (!props.isApplied) {
       emits('delete');
     }
   };
@@ -417,5 +422,20 @@
 
   .version-files-version-row-select {
     z-index: 99999;
+  }
+
+  .version-file-name-container {
+    width: 100%;
+    overflow: hidden;
+
+    .version-file-md5 {
+      width: 100%;
+      height: 18px;
+      margin-top: -4px;
+      margin-bottom: 10px;
+      font-size: 12px;
+      line-height: 18px;
+      color: #c4c6cc;
+    }
   }
 </style>

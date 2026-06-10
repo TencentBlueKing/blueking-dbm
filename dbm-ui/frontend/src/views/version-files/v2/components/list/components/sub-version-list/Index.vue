@@ -157,16 +157,6 @@
   };
 
   watch(
-    () => [props.dbType, props.pkgType],
-    () => {
-      versionSeriesList.value = [];
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  watch(
     () => props.releaseVersion,
     () => {
       if (props.releaseVersion) {
@@ -179,6 +169,7 @@
   );
 
   const handleAddVersionSuccess = () => {
+    fetchVersionSeriesList();
     emits('refreshReleaseList');
   };
 
@@ -247,6 +238,7 @@
     const index = versionSeriesList.value!.findIndex((item) => item.id === versionSeriesId);
     if (index !== -1) {
       subVersionRefs.value!.refresh();
+      emits('refreshReleaseList');
     } else {
       emits('refreshReleaseList');
       fetchVersionSeriesList();
