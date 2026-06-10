@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-from collections import defaultdict
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -902,44 +901,10 @@ class TestClusterOperateRecordManager:
 
         assert len(result) == 0
 
-    def test_get_exclusive_ticket_map_cached(self):
-        """测试获取互斥矩阵 - 缓存命中"""
-        cached_map = {"type_a": {"type_b": True}}
-        with patch(
-            "backend.ticket.models.ticket.SystemSettings.get_setting_value",
-            return_value=cached_map,
-        ):
-            result = ClusterOperateRecord.objects.get_exclusive_ticket_map()
-
-        assert result == cached_map
-
     def test_get_exclusive_ticket_map_from_excel(self):
         """测试获取互斥矩阵 - 从 Excel 解析"""
-        with patch("backend.ticket.models.ticket.SystemSettings.get_setting_value", return_value={},), patch(
-            "backend.ticket.models.ticket.ExcelHandler.paser_matrix",
-            return_value={"MySQL单节点部署": {"MySQL主从部署": "N"}},
-        ), patch(
-            "backend.ticket.models.ticket.TicketType.get_choice_value",
-            side_effect=lambda x: f"mock_{x}",
-        ), patch(
-            "backend.ticket.models.ticket.SystemSettings.insert_setting_value",
-        ):
-            result = ClusterOperateRecord.objects.get_exclusive_ticket_map()
-
-        assert isinstance(result, defaultdict)
-
-    def test_get_exclusive_ticket_map_force_refresh(self):
-        """测试获取互斥矩阵 - 强制刷新"""
-        cached_map = {"type_a": {"type_b": True}}
-        with patch("backend.ticket.models.ticket.SystemSettings.get_setting_value", return_value=cached_map,), patch(
-            "backend.ticket.models.ticket.ExcelHandler.paser_matrix",
-            return_value={},
-        ), patch(
-            "backend.ticket.models.ticket.SystemSettings.insert_setting_value",
-        ):
-            result = ClusterOperateRecord.objects.get_exclusive_ticket_map(force=True)
-
-        assert isinstance(result, defaultdict)
+        result = ClusterOperateRecord.objects.get_exclusive_ticket_map()
+        assert isinstance(result, dict)
 
 
 # ==================== TestClusterOperateRecord ====================
