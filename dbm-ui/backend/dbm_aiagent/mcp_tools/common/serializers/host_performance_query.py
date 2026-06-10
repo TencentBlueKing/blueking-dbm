@@ -168,3 +168,23 @@ class ClusterHostPerformanceOutputSerializer(serializers.Serializer):
         many=True,
         help_text=_("去重后的各主机性能数据：在单机查询结构基础上含 instance_roles；过滤后无机器时为 []"),
     )
+
+
+class HostInstancePortsMachineSerializer(serializers.Serializer):
+    ip = serializers.CharField(help_text=_("主机 IP"))
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"))
+
+
+class HostInstancePortsOutputSerializer(serializers.Serializer):
+    machine = HostInstancePortsMachineSerializer(
+        allow_null=True,
+        required=False,
+        help_text=_("命中 DBM Machine 时为 ip 与 bk_cloud_id；无主机时为 null"),
+    )
+    instance_count = serializers.IntegerField(
+        help_text=_("该机上的存储实例与代理实例条数之和（StorageInstance + ProxyInstance）"),
+    )
+    ports = serializers.ListField(
+        child=serializers.IntegerField(),
+        help_text=_("上述实例的监听端口，合并后升序去重；无实例时为 []"),
+    )
