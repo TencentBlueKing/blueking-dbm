@@ -130,6 +130,7 @@
   }
 
   const { t } = useI18n();
+  const router = useRouter();
   const route = useRoute();
   const tableRef = useTemplateRef('table');
 
@@ -313,4 +314,12 @@
     Object.assign(formData, defaultData());
     tableKey.value = random();
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'MysqlToolboxIndex',
+      });
+    },
+  });
 </script>

@@ -16,7 +16,8 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="t('Slave提升成主库_断开同步_切换后集成成单点状态_一般用于紧急切换')" />
+      theme="warning"
+      :title="t('主库故障切换：Slave 提升成主库，断开同步，切换后集群成单节点状态，一般用于紧急切换。')" />
     <div class="mb-16">
       <div class="title-spot mt-12 mb-10">{{ t('切换类型') }}<span class="required" /></div>
       <CardCheckbox
@@ -290,4 +291,12 @@
       formData.tableData = [...(selected.value.length ? formData.tableData : []), ...dataList];
     }
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'MysqlToolboxIndex',
+      });
+    },
+  });
 </script>

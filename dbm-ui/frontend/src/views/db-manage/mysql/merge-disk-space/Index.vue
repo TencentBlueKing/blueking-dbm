@@ -116,6 +116,7 @@
   }
 
   const { t } = useI18n();
+  const router = useRouter();
 
   const tableRef = useTemplateRef('table');
   const tableKey = ref(random());
@@ -232,4 +233,12 @@
       tableRef.value?.validate();
     }, 200);
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'MysqlToolboxIndex',
+      });
+    },
+  });
 </script>

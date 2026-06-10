@@ -157,6 +157,7 @@
 
   const { t } = useI18n();
   const { format: formatDateToUTC } = useTimeZoneFormat();
+  const router = useRouter();
 
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
@@ -450,4 +451,12 @@
   const handleReset = () => {
     Object.assign(formData, defaultData());
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'MysqlToolboxIndex',
+      });
+    },
+  });
 </script>

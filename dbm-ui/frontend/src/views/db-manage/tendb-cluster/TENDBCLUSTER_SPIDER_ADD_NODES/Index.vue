@@ -149,6 +149,7 @@
   }
 
   const { t } = useI18n();
+  const router = useRouter();
   const tableRef = useTemplateRef('table');
   const clusterColumnRefs = ref<InstanceType<typeof ClusterColumn>[]>([]);
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
@@ -338,4 +339,12 @@
       });
     });
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'TendbclusterToolboxIndex',
+      });
+    },
+  });
 </script>

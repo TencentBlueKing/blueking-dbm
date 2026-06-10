@@ -16,7 +16,7 @@
     v-if="taskCount < 1"
     closable
     theme="info"
-    :title="$t('提供多个集群批量执行sql文件功能')" />
+    :title="t('变更 SQL 执行：提供多个集群批量执行sql文件功能')" />
   <div v-else>
     <BkAlert
       :show-icon="false"
@@ -30,13 +30,13 @@
             type="sync-pending" />
         </div>
         <div style="padding-left: 4px">
-          <span>{{ $t('目前已有') }}</span>
+          <span>{{ t('目前已有') }}</span>
           <span
             ref="rootRef"
             class="strong-number">
             {{ taskCount }}
           </span>
-          <span>{{ $t('个模拟执行任务待确认_可点击查看最新动态') }}</span>
+          <span>{{ t('个模拟执行任务待确认_可点击查看最新动态') }}</span>
         </div>
       </div>
     </BkAlert>
@@ -66,12 +66,12 @@
           </div>
           <div class="task-create-action">
             <div
-              v-bk-tooltips="$t('移除')"
+              v-bk-tooltips="t('移除')"
               @click="handleRevokeTask(item)">
               <DbIcon type="delete" />
             </div>
             <div
-              v-bk-tooltips="$t('执行日志')"
+              v-bk-tooltips="t('执行日志')"
               @click="handleGoTaskLog(item)">
               <DbIcon
                 class="ml-8"
@@ -84,6 +84,8 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import { useTaskCount } from '@hooks';
 
   import { DBTypes } from '@common/const';
@@ -94,6 +96,7 @@
 
   const props = defineProps<Props>();
 
+  const { t } = useI18n();
   const { handleGoTaskLog, handleRevokeTask, popRef, rootRef, taskCount, taskList } = useTaskCount(props.dbType);
 </script>
 <style lang="less">
