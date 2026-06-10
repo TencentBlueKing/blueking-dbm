@@ -37,6 +37,7 @@
   import { TicketTypes } from '@common/const';
 
   const { t } = useI18n();
+  const router = useRouter();
   const { currentBizId } = useGlobalBizs();
   const ticketMessage = useTicketMessage();
 
@@ -126,13 +127,13 @@
       label: t('关联单据'),
       render: ({ data }: { data: FixpointLogModel }) => (
         <router-link
+          target='_blank'
           to={{
             name: 'bizTicketManage',
             params: {
               ticketId: data.ticket_id,
             },
-          }}
-          target='_blank'>
+          }}>
           {data.ticket_id}
         </router-link>
       ),
@@ -149,8 +150,8 @@
           title={t('确认销毁选中的实例')}>
           <bk-button
             disabled={!data.isDestoryEnable}
-            theme='primary'
-            text>
+            text
+            theme='primary'>
             {t('销毁')}
           </bk-button>
         </db-popconfirm>
@@ -197,5 +198,13 @@
 
   onMounted(() => {
     fetchData();
+  });
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'TendbclusterToolboxIndex',
+      });
+    },
   });
 </script>

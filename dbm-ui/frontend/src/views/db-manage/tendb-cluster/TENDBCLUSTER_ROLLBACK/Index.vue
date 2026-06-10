@@ -3,7 +3,7 @@
     <BkAlert
       class="mb-20"
       closable
-      :title="t('在选择原集群上进行原地数据回滚，支持构造回档、库表闪回、记录级闪回')" />
+      :title="t('回档：在选择原集群上进行原地数据回滚，支持构造回档、库表闪回、记录级闪回。')" />
     <BkForm
       ref="formRef"
       class="mb-24 toolbox-form"
@@ -450,4 +450,12 @@
   const handleReset = () => {
     Object.assign(formData, defaultData());
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'TendbclusterToolboxIndex',
+      });
+    },
+  });
 </script>

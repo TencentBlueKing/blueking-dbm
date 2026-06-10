@@ -193,6 +193,14 @@
   onMounted(() => {
     fetchData();
   });
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'TendbclusterToolboxIndex',
+      });
+    },
+  });
 </script>
 
 <style lang="less" scoped>

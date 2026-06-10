@@ -104,6 +104,7 @@
   }
 
   const { t } = useI18n();
+  const router = useRouter();
   const tableRef = useTemplateRef('table');
 
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
@@ -272,6 +273,14 @@
       formData.tableData = [...(formData.tableData[0].cluster.id ? formData.tableData : []), ...dataList];
     }
   };
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'MysqlToolboxIndex',
+      });
+    },
+  });
 </script>
 <style lang="less" scoped>
   :deep(.is-error .related-clusters) {

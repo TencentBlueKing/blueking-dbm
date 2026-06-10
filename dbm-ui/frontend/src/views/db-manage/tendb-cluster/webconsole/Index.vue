@@ -5,4 +5,14 @@
   import { DBTypes } from '@common/const';
 
   import WebConsole from '@views/db-manage/common/webconsole/Index.vue';
+
+  const router = useRouter();
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'TendbclusterToolboxIndex',
+      });
+    },
+  });
 </script>

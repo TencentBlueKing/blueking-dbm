@@ -200,6 +200,14 @@
   onMounted(() => {
     fetchData();
   });
+
+  defineExpose({
+    routerBack() {
+      router.push({
+        name: 'MysqlToolboxIndex',
+      });
+    },
+  });
 </script>
 
 <style lang="less" scoped>
