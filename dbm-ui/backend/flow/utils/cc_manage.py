@@ -19,7 +19,7 @@ from django.db import transaction
 from django.db.models import Q
 
 from backend import env
-from backend.components import BKLogApi, BKMonitorV3Api, CCApi
+from backend.components import BKBaseApi, BKLogApi, BKMonitorV3Api, CCApi
 from backend.configuration.constants import DBType
 from backend.configuration.models import BizSettings, DBAdministrator
 from backend.db_meta.enums import ClusterType, ClusterTypeMachineTypeDefine
@@ -243,7 +243,13 @@ class CcManage(object):
             else:
                 host_info_list = [{"bk_host_id": bk_host_id} for bk_host_id in bk_host_ids]
 
+        # 更新CC主机属性
         __, failed_updates = self.batch_update_host(host_info_list, need_monitor)
+        # 上报bkbase主机自定义维度信息
+        try:
+            BKBaseApi.report_dbm_host_dimensions(host_info_list)
+        except Exception as e:
+            logger.error(f"report bkbase dbm_host_dimensions error: {e}")
 
         # 容错处理：逐台机器、逐个属性更新，避免批量更新误伤有效ip
         for fail_update in failed_updates:

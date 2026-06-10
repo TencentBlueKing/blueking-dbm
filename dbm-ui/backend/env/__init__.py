@@ -37,6 +37,9 @@ REDIS_URL = f"redis://{f':{REDIS_PASSWORD}@' if REDIS_PASSWORD else ''}{REDIS_HO
 BROKER_URL = get_type_env(key="BROKER_URL", default=REDIS_URL, _type=str)
 SESSION_COOKIE_DOMAIN = get_type_env(key="SESSION_COOKIE_DOMAIN", default="", _type=str)
 
+ENABLE_BKBASE_METRICS_REPORT = get_type_env(key="ENABLE_BKBASE_METRICS_REPORT", _type=bool, default=False)
+ENABLE_BKBASE_INTERNAL_METRICS = get_type_env(key="ENABLE_BKBASE_INTERNAL_METRICS", _type=bool, default=False)
+
 # CC业务模型中的英文业务简称
 BK_APP_ABBR = get_type_env(key="BK_APP_ABBR", _type=str, default="")
 # CMDB 监控相关字段
@@ -113,6 +116,7 @@ CSRF_TRUSTED_ORIGINS = get_type_env(key="CSRF_TRUSTED_ORIGINS", _type=list, defa
 
 # SaaS访问地址，用于用户访问/第三方应用跳转/Iframe/Grafana 等场景
 BK_SAAS_HOST = get_type_env(key="BK_SAAS_HOST", _type=str, default="http://bk-dbm.example.com")
+BK_SAAS_BACKEND_HOST = get_type_env(key="BK_SAAS_BACKEND_HOST", _type=str, default=BK_SAAS_HOST)
 # BK_SAAS_CALLBACK_URL 用于 接口回调/权限中心访问 等场景
 # 通常因证书问题，这里需要使用 http
 BK_SAAS_CALLBACK_URL = get_type_env(key="BK_SAAS_CALLBACK_URL", _type=str, default="") or BK_SAAS_HOST.replace(

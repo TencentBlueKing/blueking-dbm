@@ -111,3 +111,16 @@ COMPONENT_CONFIG_ITEMS = {
         ConfType.ALARM: [ConfFile.ALARM_CONF],
     },
 }
+
+
+# 组件配置对应的命名空间
+COMPONENT_CONFIG_NAMESPACE = {
+    ClusterType.SqlserverSingle: {
+        ConfType.BACKUP: "sqlservercomm",
+        ConfType.ALARM: "sqlservercomm",
+    },
+    ClusterType.SqlserverHA: {
+        ConfType.BACKUP: "sqlservercomm",
+        ConfType.ALARM: "sqlservercomm",
+    },
+}

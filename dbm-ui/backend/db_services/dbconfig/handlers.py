@@ -14,7 +14,11 @@ from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import ConfFile, ConfType, FormatType, LevelName, ReqType
 from backend.configuration.constants import PLAT_BIZ_ID
 from backend.db_meta.models import Cluster, DBModule
-from backend.db_services.dbconfig.config_mapping import CLUSTER_VERSION_MODULE, COMPONENT_CONFIG_ITEMS
+from backend.db_services.dbconfig.config_mapping import (
+    CLUSTER_VERSION_MODULE,
+    COMPONENT_CONFIG_ITEMS,
+    COMPONENT_CONFIG_NAMESPACE,
+)
 from backend.db_services.dbconfig.dataclass import (
     DBBaseConfig,
     DBConfigDeployData,
@@ -328,34 +332,6 @@ class DBConfigHandler:
         version_detail.update(conf_detail)
         return version_detail
 
-    @staticmethod
-    def _format_conf_item(dbconfig: Dict[str, str]) -> Dict[str, str]:
-        """将dbconfig的配置转化为统一格式"""
-        return {
-            "name": dbconfig["conf_file_lc"],
-            "version": dbconfig["conf_file"],
-            "updated_at": dbconfig["updated_at"],
-            "updated_by": dbconfig["updated_by"],
-            "description": dbconfig["description"],
-        }
-
-    @staticmethod
-    def _patch_plat_conf_item(conf_detail: Dict, plat_conf_item: Dict) -> Dict:
-        conf_detail.update(
-            {
-                "value_allowed": plat_conf_item.get("value_allowed", ""),
-                "value_default": plat_conf_item.get("value_default", ""),
-                "need_restart": plat_conf_item.get("need_restart", 0),
-                "value_type_sub": plat_conf_item.get("value_type_sub", ""),
-                "value_type": plat_conf_item.get("value_type", ""),
-                "flag_readonly": plat_conf_item.get("flag_readonly", 1),
-                "flag_visible": plat_conf_item.get("flag_visible", 0),
-                "flag_encrypt": plat_conf_item.get("flag_encrypt", 0),
-                "description": plat_conf_item.get("description", ""),
-            }
-        )
-        return conf_detail
-
     def get_module_by_id(self, dbconfig_deploy_data: DBConfigDeployData) -> List[Dict]:
         """通过模块id查询部署集配置详情"""
         data = DBConfigApi.query_conf_item(
@@ -470,7 +446,15 @@ class DBConfigHandler:
         查询组件支持的配置类型
         """
         conf_type_map = COMPONENT_CONFIG_ITEMS.get(self.meta_cluster_type, {})
-        return [{"conf_type": ct, "name": str(ConfType.get_choice_label(ct))} for ct in conf_type_map]
+        conf_types = [
+            {
+                "conf_type": ct,
+                "name": str(ConfType.get_choice_label(ct)),
+                "namespace": self._patch_conf_type_namespace(self.meta_cluster_type, ct),
+            }
+            for ct in conf_type_map
+        ]
+        return conf_types
 
     def list_cluster_module_conf_files(
         self,
@@ -493,7 +477,8 @@ class DBConfigHandler:
         for ct, conf_files in conf_type_map.items():
             for cf in conf_files:
                 name = str(ConfFile.get_choice_label(cf)) if cf in conf_file_values else cf
-                results.append({"conf_type": ct, "conf_file": cf, "name": name})
+                namespace = self._patch_conf_type_namespace(self.meta_cluster_type, ct)
+                results.append({"conf_type": ct, "conf_file": cf, "name": name, "namespace": namespace})
 
         # 重新查询配置版本文件
         base_deploy_params = {
@@ -659,3 +644,37 @@ class DBConfigHandler:
             self._patch_plat_conf_item(conf_detail, plat_conf_item)
 
         return module_clone_query
+
+    @staticmethod
+    def _format_conf_item(dbconfig: Dict[str, str]) -> Dict[str, str]:
+        """将dbconfig的配置转化为统一格式"""
+        return {
+            "name": dbconfig["conf_file_lc"],
+            "version": dbconfig["conf_file"],
+            "updated_at": dbconfig["updated_at"],
+            "updated_by": dbconfig["updated_by"],
+            "description": dbconfig["description"],
+        }
+
+    @staticmethod
+    def _patch_plat_conf_item(conf_detail: Dict, plat_conf_item: Dict) -> Dict:
+        conf_detail.update(
+            {
+                "value_allowed": plat_conf_item.get("value_allowed", ""),
+                "value_default": plat_conf_item.get("value_default", ""),
+                "need_restart": plat_conf_item.get("need_restart", 0),
+                "value_type_sub": plat_conf_item.get("value_type_sub", ""),
+                "value_type": plat_conf_item.get("value_type", ""),
+                "flag_readonly": plat_conf_item.get("flag_readonly", 1),
+                "flag_visible": plat_conf_item.get("flag_visible", 0),
+                "flag_encrypt": plat_conf_item.get("flag_encrypt", 0),
+                "description": plat_conf_item.get("description", ""),
+            }
+        )
+        return conf_detail
+
+    @staticmethod
+    def _patch_conf_type_namespace(cluster_type: str, conf_type):
+        default_conf_namespace = cluster_type
+        namespace = COMPONENT_CONFIG_NAMESPACE.get(cluster_type, {}).get(conf_type, default_conf_namespace)
+        return namespace
