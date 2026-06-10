@@ -67,6 +67,7 @@ SQL_QUERY_MASTER_SLAVE_STATUS = (
 REDIS_LIST_CLUSTER_TYPE = [
     ClusterType.TendisPredixyRedisCluster.value,
     ClusterType.TendisPredixyTendisplusCluster.value,
+    ClusterType.TendisPredixyTendisplusInstance.value,
     ClusterType.TendisTwemproxyRedisInstance.value,
     ClusterType.TwemproxyTendisSSDInstance.value,
     ClusterType.TendisTwemproxyTendisplusIns.value,
