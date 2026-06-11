@@ -20,8 +20,8 @@ from backend.dbm_aiagent.mcp_tools.exceptions import DBMMcpNoneBillSubmittedExce
 from backend.dbm_aiagent.mcp_tools.mysql.auth_parser.bill import auth_parse_mysql_tdbctl_upgrade_ticket
 from backend.dbm_aiagent.mcp_tools.mysql.helpers.assert_clustertype import assert_cluster_type
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_apply_priv import bill_apply_priv
+from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_construct_rollback import bill_construct_rollback
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_db_table_backup import bill_db_table_backup
-from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_fixpoint_exist_cluster import bill_fixpoint_construction
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_fullbackup import mysql_full_backup
 from backend.dbm_aiagent.mcp_tools.mysql.impl.bill_machine_replace.bill_backend_slave_replace import (
     bill_backend_slave_replace,
@@ -42,12 +42,12 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.bill_output import SubmitBi
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_apply_priv_bill import (
     SubmitBillMySQLApplyPrivInputSerializer,
 )
+from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_construct_rollback_bill import (
+    SubmitBillMySQLConstructRollbackInputSerializer,
+)
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_db_rename_bill import SubmitBillMySQLDBRenameInputSerializer
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_db_table_backup import (
     SubmitBillMySQLDBTableBackupInputSerializer,
-)
-from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_fixpoint_exist_cluster_bill import (
-    SubmitBillMySQLFixpointExistClusterInputSerializer,
 )
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_full_backup_bill import (
     SubmitBillMySQLFullBackupInputSerializer,
@@ -56,7 +56,6 @@ from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_machine_replace impor
     SubmitBillMySQLMachineReplaceSerializer,
     SubmitBillTenDBClusterMachineReplaceSerializer,
 )
-from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_rollback import SubmitBillMySQLRollbackInputSerializer
 from backend.dbm_aiagent.mcp_tools.mysql.serializers.mysql_standardize_bill import (
     SubmitBillMySQLStandardizeInputSerializer,
 )
@@ -421,7 +420,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
     @mcp_tools_api_decorator(
         description=str(
             _(
-                """创建 TenDBHA, TenDBCluster 数据构造到已有集群单据
+                """创建 TenDBHA, TenDBCluster 数据构造到已有集群单据、回档单据
 参数说明：
 - bk_biz_id: 业务ID（必填）
 - cluster_domain: 集群域名（必填）
@@ -433,7 +432,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
 """
             )
         ),
-        request_slz=SubmitBillMySQLFixpointExistClusterInputSerializer,
+        request_slz=SubmitBillMySQLConstructRollbackInputSerializer,
         response_slz=SubmitBillOutputSerializer,
         permission_classes=[McpTicketToolPermission],
         mcp_auth_parser=auth_parse_clusters,
@@ -441,7 +440,7 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
         mcp=[DBMMcpTools.MYSQL_BILL],
         name_prefix="mysql_bill",
     )
-    def submit_bill_mysql_fixpoint_exist_cluster(self, request, *args, **kwargs):
+    def submit_bill_mysql_construct_rollback(self, request, *args, **kwargs):
         bk_biz_id = self.get_param("bk_biz_id")
         cluster_domain = self.get_param("cluster_domain")
         target_cluster_domain = self.get_param("target_cluster_domain")
@@ -455,57 +454,11 @@ class MySQLBillMcpToolsViewSet(McpToolsViewSet):
             raise DBMMcpUsernameNotFoundException()
 
         return Response(
-            bill_fixpoint_construction(
+            bill_construct_rollback(
                 bk_biz_id=bk_biz_id,
                 username=username,
                 cluster_domain=cluster_domain,
                 target_cluster_domain=target_cluster_domain,
-                databases=databases,
-                tables=tables,
-                rollback_time=rollback_time,
-                backup_id=backup_id,
-            )
-        )
-
-    @mcp_tools_api_decorator(
-        description=str(
-            _(
-                """创建 TenDBHA, TenDBCluster 构造回档单据
-参数说明：
-- bk_biz_id: 业务ID（必填）
-- cluster_domain: 集群域名（必填）
-- databases: 数据库列表（缺省 ["*"]，需用户确认）
-- tables: 表列表（缺省 ["*"]，需用户确认）
-- rollback_time: 构造时间点 ISO 8601（与 backup_id 二选一）
-- backup_id: 备份ID（可选, 与 rollback_time 二选一）
-"""
-            )
-        ),
-        request_slz=SubmitBillMySQLRollbackInputSerializer,
-        response_slz=SubmitBillOutputSerializer,
-        permission_classes=[McpTicketToolPermission],
-        mcp_auth_parser=auth_parse_clusters,
-        tags=[DBMMCPTags.READ, DBMMCPTags.WRITE],
-        mcp=[DBMMcpTools.MYSQL_BILL],
-        name_prefix="mysql_bill",
-    )
-    def submit_bill_mysql_rollback(self, request, *args, **kwargs):
-        bk_biz_id = self.get_param("bk_biz_id")
-        cluster_domain = self.get_param("cluster_domain")
-        databases = self.get_param("databases")
-        tables = self.get_param("tables")
-        rollback_time = self.get_param("rollback_time", None)
-        backup_id = self.get_param("backup_id", None)
-
-        username = request.user.username
-        if not username:
-            raise DBMMcpUsernameNotFoundException()
-
-        return Response(
-            bill_fixpoint_construction(
-                bk_biz_id=bk_biz_id,
-                username=username,
-                cluster_domain=cluster_domain,
                 databases=databases,
                 tables=tables,
                 rollback_time=rollback_time,
