@@ -79,16 +79,24 @@ func (k *ClusterRequestRecordController) buildListParams(ctx *gin.Context) (
 	*metaentity.ClusterRequestQueryParams,
 	error,
 ) {
+	var startTime, endTime time.Time
+	var err error
+
 	startTimeStr := ctx.Query("startTime")
-	startTime, err := time.Parse(time.DateTime, startTimeStr)
-	if err != nil {
-		return nil, errors.NewK8sDbsError(errors.ParameterValueError, err)
+	if startTimeStr != "" {
+		startTime, err = time.Parse(time.DateTime, startTimeStr)
+		if err != nil {
+			return nil, errors.NewK8sDbsError(errors.ParameterValueError, err)
+		}
 	}
 	endTimeStr := ctx.Query("endTime")
-	endTime, err := time.Parse(time.DateTime, endTimeStr)
-	if err != nil {
-		return nil, errors.NewK8sDbsError(errors.ParameterValueError, err)
+	if endTimeStr != "" {
+		endTime, err = time.Parse(time.DateTime, endTimeStr)
+		if err != nil {
+			return nil, errors.NewK8sDbsError(errors.ParameterValueError, err)
+		}
 	}
+	// 如果 startTime 或 endTime 为空，则不限制时间范围，查询所有数据
 	requestPrams := metaentity.ClusterRequestQueryParams{
 		ClusterNames:   ctx.QueryArray("clusterName"),
 		Creators:       ctx.QueryArray("creator"),
