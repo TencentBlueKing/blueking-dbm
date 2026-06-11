@@ -1,0 +1,28 @@
+# DBHA v2 Black-White List Manager (bwmgr) configuration template
+#
+# Configuration priority (high -> low):
+#   1. Command line flags (e.g. --api-endpoint, --api-bk-cloud-id, --api-token, --api-timeout)
+#   2. Environment variables:
+#        BWMGR_API_ENDPOINT    - HADB API endpoint
+#        BWMGR_API_BK_CLOUD_ID - bk_cloud_id in the request payload
+#        BWMGR_API_TOKEN       - DBHA API token (db_cloud_token)
+#        BWMGR_API_TIMEOUT     - HTTP timeout, e.g. "30s"
+#   3. This YAML configuration file
+#
+# The black-white list service is reached at:
+#   POST ${api.endpoint}
+
+api:
+  # HADB API endpoint (BWMGR_API_ENDPOINT). It should include the full URI path.
+  endpoint: "http://127.0.0.1:80/blackwhitelist/"
+
+  # bk_cloud_id in the request payload (BWMGR_API_BK_CLOUD_ID).
+  bk_cloud_id: 0
+
+  # HTTP request timeout for each API call.
+  timeout: 30s
+
+  # DBHA API token (db_cloud_token). Required.
+  # For production deployments it is strongly recommended to provide this
+  # via the BWMGR_API_TOKEN environment variable instead of a config file.
+  token: ""
