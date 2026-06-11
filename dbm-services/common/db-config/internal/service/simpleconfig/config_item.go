@@ -386,52 +386,10 @@ func UpdateConfigFileItems(r *api.UpsertConfItemsReq, opUser string) (*api.Upser
 		if len(configs) == 0 { // 如果 items 为空，只修改 conf_file 信息
 			return nil
 		}
-		publishReq := &api.SimpleConfigQueryReq{
-			BaseConfigNode: levelNode,
-			InheritFrom:    "0",
-			View:           fmt.Sprintf("merge.%s", r.LevelName),
-			Format:         constvar.FormatMap,
-			Description:    r.Description, // 发布描述
-			Revision:       r.Revision,
-			CreatedBy:      opUser,
-			UpLevelInfo:    r.UpLevelInfo,
-		}
-		publishReq.Decrypt = false
-		if err = publishReq.Validate(); err != nil {
+		if _, err := UpsertConfigItems(tx, configsDiff, "", opUser, &r.UpLevelInfo); err != nil {
 			return err
 		}
-		if r.ReqType == constvar.MethodSaveOnly {
-			if !checkVersionable(r.ConfFileInfo.Namespace, r.ConfFileInfo.ConfType) {
-				return errors.WithMessagef(errno.ErrUnversionable, "%s,%s", fileDef.Namespace, fileDef.ConfType)
-			}
-			// 保存到 tb_config_versioned
-			if v, err := GenerateConfigFile(tx, publishReq, constvar.MethodGenAndSave, configsDiff); err != nil {
-				return err
-			} else {
-				resp.Revision = v.Revision
-				resp.IsPublished = 0
-			}
-		} else if r.ReqType == constvar.MethodSaveAndPublish || r.ReqType == constvar.MethodGenAndPublish {
-			if !checkVersionable(r.ConfFileInfo.Namespace, r.ConfFileInfo.ConfType) {
-				return errors.WithMessagef(errno.ErrUnversionable, "%s,%s", fileDef.Namespace, fileDef.ConfType)
-			}
-			// 保存到 tb_config_versioned
-			// 保存到 tb_config_node
-			if v, err := GenerateConfigFile(tx, publishReq, constvar.MethodGenAndPublish, configsDiff); err != nil {
-				return err
-			} else {
-				resp.Revision = v.Revision
-				resp.IsPublished = 1
-			}
-		} else if r.ReqType == constvar.MethodSave {
-			if checkVersionable(r.ConfFileInfo.Namespace, r.ConfFileInfo.ConfType) {
-				return errno.ErrVersionable
-			}
-			if _, err := UpsertConfigItems(tx, configsDiff, "", opUser, &r.UpLevelInfo); err != nil {
-				return err
-			}
-			resp.IsPublished = 1
-		}
+		resp.IsPublished = 1
 		return nil
 	})
 	if txErr == nil {
@@ -449,6 +407,7 @@ func QueryConfigItems(r *api.SimpleConfigQueryReq, queryFileInfo bool) (*api.Get
 			LevelName:  r.LevelName,
 			LevelValue: r.LevelValue,
 		},
+		ConfFile: r.BaseConfigNode.BaseConfFileDef.ConfFile,
 	}
 	r.Decrypt = true
 	// 查询合并 nodeLevel
@@ -465,34 +424,6 @@ func QueryConfigItems(r *api.SimpleConfigQueryReq, queryFileInfo bool) (*api.Get
 		resp.ConfFileResp = *cf
 	}
 	return resp, nil
-}
-
-// QueryConfigItemsFromVersion 直接查询已发布的配置
-// hasApplied 表示必须要求已经 applied 过的，才能获取它的 published 。applied 表示曾经 generate 过
-func QueryConfigItemsFromVersion(r *api.SimpleConfigQueryReq, hasApplied bool) (*api.GenerateConfigResp, error) {
-	v := model.ConfigVersionedModel{
-		BKBizID:    r.BKBizID,
-		Namespace:  r.Namespace,
-		ConfType:   r.ConfType,
-		ConfFile:   r.ConfFile,
-		LevelName:  r.LevelName,
-		LevelValue: r.LevelValue,
-	}
-	if hasApplied {
-		if _, err := v.ExistsAppliedVersion(model.DB.Self); err != nil {
-			return nil, errors.WithMessage(err, "get published config need applied")
-		}
-	}
-	if vConfigs, err := v.GetVersionPublished(model.DB.Self); err != nil {
-		// 没有找到也会返回错误
-		return nil, err
-	} else {
-		if resp, err := FormatConfigFileForResp(r, vConfigs.Configs); err != nil {
-			return nil, err
-		} else {
-			return resp, nil
-		}
-	}
 }
 
 // GetConfigItemsForFiles godoc
@@ -582,57 +513,27 @@ func GenerateConfigFile(db *gorm.DB, r *api.SimpleConfigQueryReq,
 	if err := copier.Copy(&options, r); err != nil {
 		return nil, err
 	}
+	// 回写 tb_config_node 保存到层级树
+	_, err := UpsertConfigItems(db, configsDiff, "", r.CreatedBy, &api.UpLevelInfo{})
+	if err != nil {
+		return nil, err
+	}
+
 	configs, _, err := GetMergedConfig(db, &r.BaseConfigNode, &r.UpLevelInfo, &options) // @TODO use transaction
 	if err != nil {
 		return nil, err
 	}
-	var m = model.ConfigVersionedModel{
-		BKBizID:    r.BKBizID,
-		Namespace:  r.Namespace,
-		LevelName:  r.LevelName,
-		LevelValue: r.LevelValue,
-		ConfType:   r.ConfType,
-		ConfFile:   r.ConfFile,
-
-		Description: r.Description,
-		Module:      r.Module,
-		Cluster:     r.Cluster,
-		CreatedBy:   r.CreatedBy,
-	}
-	// todo 根据前端输入，当前已发布版本的snapshot + 变更的diffs，生成新的 configs
-	// 是否改成直接根据后端 published 来判断影响行数？
-	configsNew, affected, err := ProcessConfigsDiff(configs, configsDiff)
-	if err != nil {
-		return nil, err
-	}
-	m.RowsAffected = affected
-	options.RowsAffected = affected
-
 	if r.Revision == "" {
-		r.Revision = m.NewRevisionName() // m.Revision
+		r.Revision = (&model.ConfigVersionedModel{}).NewRevisionName()
 	}
-	// @TODO 需要启用事务
-	if method == constvar.MethodGenAndPublish { // release: save and publish
-		if err := GenerateAndPublish(db, &r.BaseConfigNode, &options, &r.UpLevelInfo, r.Revision, configsDiff); err != nil {
-			return nil, err
-		}
-	} else if method == constvar.MethodGenAndSave { // save
-		if _, err = m.FormatAndSaveConfigVersioned(db, configsNew, configsDiff); err != nil {
-			return nil, err
-		}
-	} else if method == constvar.MethodGenerateOnly {
-		r.Revision = ""
-	} else {
-		err = fmt.Errorf("illegal param method: %s", method)
-		return nil, err
-	}
+
 	// response
-	resp, err := FormatConfigFileForResp(r, configsNew)
+	resp, err := FormatConfigFileForResp(r, configs)
 	if err != nil {
 		return nil, err
-	} else {
-		resp.Revision = r.Revision
 	}
+	resp.Revision = r.Revision
+
 	return resp, nil
 }
 
@@ -654,61 +555,4 @@ func SaveConfigFileNode(db *gorm.DB, r *api.BaseConfigNode, opUser, description,
 		return err
 	}
 	return nil
-}
-
-// GenerateAndPublish todo revision 可以去掉
-func GenerateAndPublish(db *gorm.DB, r *api.BaseConfigNode, o *api.QueryConfigOptions, up *api.UpLevelInfo,
-	revision string, configsDiff []*model.ConfigModelOp) (err error) {
-	if revision == "" {
-		return errors.New("revision should not be empty")
-	}
-	var m = model.ConfigVersionedModel{}
-	copier.Copy(&m, r)
-	m.CreatedBy = o.CreatedBy
-	m.Description = o.Description
-	m.RowsAffected = o.RowsAffected
-	if val, ok := up.LevelInfo[constvar.LevelModule]; ok {
-		m.Module = val
-	} else {
-		m.Module = o.Module
-	}
-	if val, ok := up.LevelInfo[constvar.LevelCluster]; ok {
-		m.Cluster = val
-	} else if r.LevelName == constvar.LevelCluster {
-		m.Cluster = r.LevelValue
-	}
-	// copier.Copy(&m, o)
-	txErr := db.Transaction(func(tx *gorm.DB) error { // new transaction
-		// 回写 tb_config_node 保存到层级树
-		configsLocked, err := UpsertConfigItems(tx, configsDiff, revision, o.CreatedBy, up)
-		if err != nil {
-			return err
-		}
-
-		// 重新基于最新的 tb_config_node 生成 merged_configs
-		configs, _, err := GetMergedConfig(tx, r, up, o)
-		if err != nil {
-			return err
-		}
-		// 保存新版本到 tb_config_versioned
-		if _, err = m.FormatAndSaveConfigVersioned(tx, configs, configsDiff); err != nil {
-			return err
-		}
-		// logger.Info("GenerateConfigFile ConfigVersionedModel=%+v", m)
-		publish := PublishConfig{
-			Versioned:     &m,
-			ConfigsLocked: configsLocked,
-			Patch:         nil,
-			FromGenerated: o.Generate,
-			Revision:      revision,
-		}
-		if err = publish.PublishAndApplyVersioned(tx, o.FromNodeConfigApplied); err != nil {
-			return err
-		}
-		return nil
-	})
-	if txErr != nil {
-		return txErr
-	}
-	return txErr
 }

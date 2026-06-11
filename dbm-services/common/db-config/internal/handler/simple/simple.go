@@ -22,8 +22,6 @@ func (cf *Config) Routes() []*gin.RouteInfo {
 	return []*gin.RouteInfo{
 		// config_file
 		{Method: http.MethodPost, Path: "/conffile/change", HandlerFunc: cf.ChangeConfigFilePlat},
-		{Method: http.MethodPost, Path: "/conffile/add", HandlerFunc: cf.UpsertConfigFilePlat},
-		{Method: http.MethodPost, Path: "/conffile/update", HandlerFunc: cf.UpdateConfigFilePlat},
 		{Method: http.MethodGet, Path: "/conffile/list", HandlerFunc: cf.ListConfigFiles},
 		{Method: http.MethodGet, Path: "/conffile/list_level_value", HandlerFunc: cf.ListConfigLevel},
 		{Method: http.MethodPost, Path: "/conffile/delete_level_value", HandlerFunc: cf.DeleteConfigLevel},
@@ -31,13 +29,7 @@ func (cf *Config) Routes() []*gin.RouteInfo {
 
 		// config_version
 		{Method: http.MethodGet, Path: "/version/list", HandlerFunc: cf.ListConfigFileVersions},
-		{Method: http.MethodGet, Path: "/version/detail", HandlerFunc: cf.GetVersionedDetail},
 		{Method: http.MethodPost, Path: "/version/generate", HandlerFunc: cf.GenerateConfigVersion},
-		{Method: http.MethodPost, Path: "/version/publish", HandlerFunc: cf.PublishConfigFile},
-		{Method: http.MethodPost, Path: "/version/applyinfo", HandlerFunc: cf.VersionApplyInfo},
-		{Method: http.MethodPost, Path: "/version/applied", HandlerFunc: cf.VersionApplyStat},
-		{Method: http.MethodPost, Path: "/version/status", HandlerFunc: cf.VersionStat},
-		{Method: http.MethodPost, Path: "/version/applyitem", HandlerFunc: cf.ItemApply},
 		{Method: http.MethodPost, Path: "/version/change-bkbizid", HandlerFunc: cf.ChangeBizBizId},
 
 		// config_item

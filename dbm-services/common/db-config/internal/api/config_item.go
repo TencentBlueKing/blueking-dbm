@@ -113,15 +113,17 @@ type GetConfigItemsReq struct {
 	RespFormatDef
 	// 指定要查询的 conf_name， 多个值以,分隔，为空表示查询该 conf_file 的所有conf_name
 	ConfName string `json:"conf_name" form:"conf_name"`
+	// Method 无效兼容占位
+	Method string `json:"method" form:"method"`
 } // @name GetConfigItemsReq
 
 // GetConfigItemsResp TODO
 type GetConfigItemsResp struct {
 	BKBizID string `json:"bk_biz_id"`
-	// Module   string `json:"module"`
-	// Cluster  string `json:"cluster"`
 	BaseLevelDef
 	ConfFileResp `json:"conf_file_info"`
+	ConfFile     string `json:"conf_file"`
+	Revision     string `json:"revision"`
 	// content is a {conf_name:conf_type} dict like {"a":1, "b":"string"}
 	Content map[string]interface{} `json:"content"`
 } // @name GetConfigItemsResp
@@ -139,38 +141,10 @@ func (v *GetConfigItemsReq) Validate() error {
 
 // GenerateConfigReq TODO
 // Description Generate config file request
-type GenerateConfigReq struct {
-	BaseConfigNode
-	UpLevelInfo
-	// method must be one of GenerateOnly|GenerateAndSave|GenerateAndPublish
-	// `GenerateOnly`: generate merged config
-	// `GenerateAndSave`: generate and save the merged config to db (snapshot).
-	// `GenerateAndPublish`: generate and save the merged config to db, and mark it as published (release)
-	Method string `json:"method" form:"method" validate:"required,enums" enums:"GenerateAndSave,GenerateAndPublish"`
-	RespFormatDef
-} // @name GenerateConfigReq
+type GenerateConfigReq GetConfigItemsReq
 
 // GenerateConfigResp TODO
-type GenerateConfigResp struct {
-	BKBizID string `json:"bk_biz_id"`
-	BaseLevelDef
-	ConfFile string `json:"conf_file"`
-	// content is a {conf_name:conf_type} dict like {"a":1, "b":"string"}
-	Content map[string]interface{} `json:"content"`
-	// version name for this config_file generation
-	Revision string `json:"revision"`
-} // @name GenerateConfigResp
-
-// Validate TODO
-func (v *GenerateConfigReq) Validate() error {
-	if err := ValidateAppWithLevelName(v.BKBizID, v.LevelName, v.LevelValue); err != nil {
-		return err
-	}
-	if err := validate.GoValidateStruct(*v, true); err != nil {
-		return err
-	}
-	return nil
-}
+type GenerateConfigResp GetConfigItemsResp
 
 // ValidateAppWithLevelName TODO
 func ValidateAppWithLevelName(bkBizID, levelName, levelValue string) error {

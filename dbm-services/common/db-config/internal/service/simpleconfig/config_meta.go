@@ -203,17 +203,3 @@ func CheckValidConfType(namespace, confType, confFiles2, levelName string, needV
 	}
 	return nil
 }
-
-// checkVersionable 判断是否可以版本化
-// 需先确认namespace confType 已合法
-// 从 cache 中取，不涉及 DB 操作
-func checkVersionable(namespace, confType string) bool {
-	if namespaceInfo, ok := model.CacheNamespaceType[namespace]; ok {
-		if typeInfo, ok := namespaceInfo[confType]; ok {
-			if typeInfo.LevelVersioned != "" {
-				return true
-			}
-		}
-	}
-	return false
-}

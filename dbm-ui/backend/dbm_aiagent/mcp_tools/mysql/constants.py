@@ -70,6 +70,16 @@ DISK_USAGE = {
 }
 
 CPU_SUMMARY = {
+    "default": PromQLQueryBuilder(
+        metric_name="cpu_summary:usage",
+        group_by=["instance_role", "bk_target_ip"],
+        aggregation="max",
+        range_function="max",
+        step="1m",
+        filters=[
+            {"label_name": "instance_role", "op": "match", "value": "orphan"},
+        ],
+    ),
     ClusterType.TenDBHA: PromQLQueryBuilder(
         metric_name="cpu_summary:usage",
         group_by=["instance_role"],
@@ -104,6 +114,16 @@ MEMORY_USAGE = {
 }
 
 QPS_SUMMARY = {
+    "default": PromQLQueryBuilder(
+        metric_name="mysql_global_status_questions",
+        group_by=["instance_role", "bk_target_ip"],
+        aggregation="max",
+        range_function="rate",
+        step="1m",
+        filters=[
+            {"label_name": "instance_role", "op": "match", "value": "orphan"},
+        ],
+    ),
     ClusterType.TenDBHA: PromQLQueryBuilder(
         metric_name="mysql_global_status_questions",
         group_by=["instance_role"],
@@ -127,14 +147,14 @@ QPS_SUMMARY = {
 }
 
 SLOW_COUNT = {
-    ClusterType.TenDBHA: PromQLQueryBuilder(
+    "default": PromQLQueryBuilder(
         metric_name="mysql_global_status_slow_queries",
         group_by=["instance_role"],
         aggregation="sum",
         range_function="increase",
         step="1m",
         filters=[
-            {"label_name": "instance_role", "op": "match", "value": "backend_master"},
+            {"label_name": "instance_role", "op": "match", "value": "backend_master|orphan"},
         ],
     ),
     ClusterType.TenDBCluster: PromQLQueryBuilder(
@@ -150,14 +170,14 @@ SLOW_COUNT = {
 }
 
 THREADS_RUNNING = {
-    ClusterType.TenDBHA: PromQLQueryBuilder(
+    "default": PromQLQueryBuilder(
         metric_name="mysql_global_status_threads_running",
         group_by=["instance_role"],
         aggregation="max",
         range_function="max",
         step="1m",
         filters=[
-            {"label_name": "instance_role", "op": "match", "value": "backend_master"},
+            {"label_name": "instance_role", "op": "match", "value": "backend_master|orphan"},
         ],
     ),
     ClusterType.TenDBCluster: PromQLQueryBuilder(
@@ -173,14 +193,14 @@ THREADS_RUNNING = {
 }
 
 CONNECTIONS = {
-    ClusterType.TenDBHA: PromQLQueryBuilder(
+    "default": PromQLQueryBuilder(
         metric_name="mysql_global_status_threads_connected",
         group_by=["instance_role"],
         aggregation="max",
         range_function="max",
         step="1m",
         filters=[
-            {"label_name": "instance_role", "op": "match", "value": "backend_master"},
+            {"label_name": "instance_role", "op": "match", "value": "backend_master|orphan"},
         ],
     ),
     ClusterType.TenDBCluster: PromQLQueryBuilder(

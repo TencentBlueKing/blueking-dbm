@@ -7,7 +7,6 @@ import (
 	"bk-dbconfig/internal/api"
 	"bk-dbconfig/internal/repository/model"
 	"bk-dbconfig/pkg/constvar"
-	"bk-dbconfig/pkg/core/logger"
 
 	"github.com/jinzhu/copier"
 	"gorm.io/gorm"
@@ -126,89 +125,4 @@ func CheckConfigInherit(db *gorm.DB, cf api.BaseConfFileDef,
 		return nil, err
 	}
 	return configNodes, nil
-}
-
-// UpsertConfigFilePlat TODO
-// 添加平台配置
-// 如果 conf_file 已经存在，则报错
-// 新建 conf_file，保存操作在 def 表，发布时进入 node 表，生成revision并发布
-func UpsertConfigFilePlat(r *api.UpsertConfFilePlatReq, clientOPType, opUser string) (*api.UpsertConfFilePlatResp,
-	error) {
-	fileDef := r.ConfFileInfo.BaseConfFileDef
-	exists, cf, err := checkConfigFileExists(&fileDef)
-	if err != nil {
-		return nil, err
-	} else {
-		cf.Description = r.ConfFileInfo.Description // 文件描述
-		cf.ConfTypeLC = r.ConfFileInfo.ConfTypeLC
-		cf.ConfFileLC = r.ConfFileInfo.ConfFileLC
-		cf.UpdatedBy = opUser
-	}
-	logger.Info("UpsertConfigFilePlat conf_file info %+v", cf)
-	if exists && r.FileID == 0 {
-		if clientOPType == "new" {
-			return nil, fmt.Errorf("conf_file %s for %s already exists with id=%d",
-				cf.ConfFile, cf.Namespace, cf.ID)
-		} else { // edit
-		}
-	}
-	resp := &api.UpsertConfFilePlatResp{
-		BaseConfFileDef: fileDef,
-	}
-	// build config item model
-	configs, configsDiff := NewConfigModels(r)
-
-	txErr := model.DB.Self.Transaction(func(tx *gorm.DB) error {
-		// 保存逻辑
-		{
-			// 保存到 tb_config_file_def
-			if fileID, err := cf.SaveAndGetID(tx); err != nil {
-				return err
-			} else {
-				resp.FileID = fileID
-				cf.ID = fileID
-			}
-			if len(configs) == 0 { // 如果 items 为空，只修改 conf_file 信息
-				return nil
-			}
-			if err := ConfigNamesBatchUpsert(tx, fileDef, r.ConfNames, opUser, "plat"); err != nil {
-				return err
-			}
-			resp.IsPublished = 0
-		}
-		// 发布逻辑
-		if r.ReqType == constvar.MethodSaveAndPublish {
-			if !checkVersionable(r.ConfFileInfo.Namespace, r.ConfFileInfo.ConfType) {
-				resp.IsPublished = 1
-				return nil
-			}
-			// 保存到 tb_config_node
-			levelNode := api.BaseConfigNode{}
-			levelNode.Set(constvar.BKBizIDForPlat, fileDef.Namespace, fileDef.ConfType, fileDef.ConfFile, constvar.LevelPlat,
-				constvar.BKBizIDForPlat)
-			publishReq := &api.SimpleConfigQueryReq{
-				BaseConfigNode: levelNode,
-				InheritFrom:    "",
-				View:           constvar.ViewRaw, // plat不存在合并的问题
-				Description:    r.Description,    // 发布描述
-				Format:         constvar.FormatList,
-				CreatedBy:      opUser,
-			}
-			publishReq.Decrypt = false
-			// todo 从 tb_config_node 移除 flag_status = -1 的平台配置
-
-			// 保存到 tb_config_versioned, 增量回写 tb_config_node
-			if v, err := GenerateConfigFile(tx, publishReq, constvar.MethodGenAndPublish, configsDiff); err != nil {
-				return err
-			} else {
-				resp.Revision = v.Revision
-				resp.IsPublished = 1
-			}
-		}
-		return nil
-	})
-	if txErr == nil {
-		model.CacheSetAndGetConfigFile(fileDef)
-	}
-	return resp, txErr
 }
