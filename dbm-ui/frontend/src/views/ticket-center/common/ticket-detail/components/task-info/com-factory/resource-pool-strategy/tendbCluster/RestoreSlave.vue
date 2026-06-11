@@ -42,6 +42,11 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="related_clusters"
+      :get-copy-value="(row: RowData) => {
+        const ip = row.old_nodes.old_slave?.[0]?.ip;
+        if (!ip || !ticketDetails.details.machine_infos?.[ip]?.related_clusters) return '';
+        return ticketDetails.details.machine_infos[ip].related_clusters.map((clusterId) => ticketDetails.details.clusters[clusterId]?.immute_domain || '').join(', ');
+      }"
       :min-width="220"
       :title="t('同机关联集群')">
       <template #default="{ row: data }: { row: RowData }">

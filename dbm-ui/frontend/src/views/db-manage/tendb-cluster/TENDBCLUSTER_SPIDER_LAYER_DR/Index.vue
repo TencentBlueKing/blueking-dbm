@@ -57,7 +57,7 @@
             v-model="item.cluster"
             :disable-select-config="{
               handler: (cluster: TendbClusterModel) => cluster.status === 'normal',
-              tip: t('正常状态的集群不可用故障重建'),
+              tip: t('该集群状态正常，无需灾难重建'),
             }"
             :selected="selected"
             @batch-edit="handleBatchEdit" />
@@ -203,7 +203,7 @@
     {
       case: '2',
       key: 'count',
-      label: t('目标数量（台）'),
+      label: t('重建后数量（台）'),
     },
     {
       case: '通用proxy配置',

@@ -17,6 +17,7 @@
     row-key="cluster_ids">
     <TicketInfoTableColumn
       col-key="old_nodes.proxy"
+      :get-copy-value="(row: RowData) => row.old_nodes.proxy.map((item) => item.ip)"
       :min-width="150"
       :title="t('目标Proxy主机')">
       <template #default="{ row: data }: { row: RowData }">
@@ -31,6 +32,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="cluster_ids"
+      :get-copy-value="(row: RowData) => row.cluster_ids.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain)"
       :min-width="250"
       :title="t('关联集群')">
       <template #default="{ row: data }: { row: RowData }">

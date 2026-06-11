@@ -40,7 +40,7 @@
           <WithRelatedClustersColumn
             v-model="item.cluster"
             :disable-select-method="
-              (cluster: TendbhaModel) => (cluster.status === 'normal' ? t('正常状态的集群不可用故障重建') : false)
+              (cluster: TendbhaModel) => (cluster.status === 'normal' ? t('该集群状态正常，无需灾难重建') : false)
             "
             role="proxy"
             :selected="selected"
@@ -181,7 +181,7 @@
     {
       case: '2',
       key: 'count',
-      label: t('目标数量（台）'),
+      label: t('重建后数量（台）'),
     },
     {
       case: '2核_4G_50G',
