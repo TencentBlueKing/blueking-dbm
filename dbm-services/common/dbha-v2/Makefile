@@ -63,7 +63,7 @@ define GO_BUILD
 				-o $(BUILD_DIR)/$(BIN_PREFIX)$(1) cmd/$(1)/main.go
 endef
 
-.PHONY: all proto $(SERVICES) doc toolkits cluster clean format test \
+.PHONY: all proto $(SERVICES) doc toolkits cluster bwmgr clean format test \
         package package-server package-probe help
 
 # package
@@ -117,13 +117,19 @@ doc:
 	$(BUILD_DIR)/swag init -g cmd/admin/main.go --parseDependency --parseDepth 3
 
 
-toolkits: cluster
+toolkits: cluster bwmgr
 
 # test toolkits build target
 cluster:
 	@mkdir -p $(BUILD_DIR)
 	CGO_ENABLED=0 GOOS=${GO_OS} GOARCH=amd64 go build -ldflags=$(BUILD_FLAG) -gcflags="all=-trimpath=$(PWD)" \
-				-asmflags="all=-trimpath=$(PWD)" -o $(BUILD_DIR)/$(BIN_PREFIX)$@ tools/cmd/cluster.go
+				-asmflags="all=-trimpath=$(PWD)" -o $(BUILD_DIR)/$(BIN_PREFIX)$@ ./tools/cmd/cluster
+
+# black-white list manager toolkit
+bwmgr:
+	@mkdir -p $(BUILD_DIR)
+	CGO_ENABLED=0 GOOS=${GO_OS} GOARCH=amd64 go build -ldflags=$(BUILD_FLAG) -gcflags="all=-trimpath=$(PWD)" \
+				-asmflags="all=-trimpath=$(PWD)" -o $(BUILD_DIR)/$(BIN_PREFIX)$@ ./tools/cmd/bwmgr
 
 # build protobuf to go
 $(GEN_DIR)/%.pb.go: $(PROTO_DIR)/%.proto
@@ -149,6 +155,7 @@ package-server: admin analysis receiver toolkits
 		$(SERVER_PKG_DIR)/toolkits
 	@cp $(addprefix $(BUILD_DIR)/,$(SERVER_BINS)) $(SERVER_PKG_DIR)/bin/
 	@cp $(BUILD_DIR)/$(BIN_PREFIX)cluster $(SERVER_PKG_DIR)/toolkits/
+	@cp $(BUILD_DIR)/$(BIN_PREFIX)bwmgr $(SERVER_PKG_DIR)/toolkits/
 	@cp $(SERVER_SCRIPTS) $(SERVER_PKG_DIR)/
 	@chmod +x $(SERVER_PKG_DIR)/render_configs.py
 	@mkdir -p $(SERVER_PKG_DIR)/lib
@@ -161,6 +168,9 @@ package-server: admin analysis receiver toolkits
 		$(SERVER_PKG_DIR)/etc/templates/snippets/
 	@cp etc/dbha-v2.server.rc.example \
 		$(SERVER_PKG_DIR)/etc/dbha-v2.server.rc.example
+	@if [ -f etc/bwmgr.yaml ]; then \
+		cp etc/bwmgr.yaml $(SERVER_PKG_DIR)/etc/bwmgr.yaml; \
+	fi
 	@sed -i 's/__VERSION__/$(VERSION)/g' $(SERVER_PKG_DIR)/setup.sh
 	@cd $(BUILD_DIR) && tar -czf $(SERVER_PKG_NAME) $(PROJECT)-server
 	@rm -rf $(SERVER_PKG_DIR)
@@ -203,7 +213,9 @@ help:
 	@echo "  analysis   - Build analysis service"
 	@echo "  receiver   - Build receiver service"
 	@echo "  probe      - Build probe service"
-	@echo "  toolkits   - Build toolkit binaries"
+	@echo "  toolkits   - Build toolkit binaries (cluster, bwmgr)"
+	@echo "  cluster    - Build cluster toolkit (dbha-cluster)"
+	@echo "  bwmgr      - Build black-white list manager (dbha-bwmgr)"
 	@echo "  package    - Build and create both server and probe release packages"
 	@echo "  package-server - Create server release package ($(VERSION)-server.tar.gz)"
 	@echo "  package-probe  - Create probe release package ($(VERSION)-probe.tar.gz)"

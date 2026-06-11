@@ -222,7 +222,7 @@ func newResetCmd() *cobra.Command {
 		RunE:  ResetRun,
 	}
 	resetCmd.Flags().String("type", "", "cluster type (tendbha, tendbcluster)")
-	resetCmd.MarkFlagRequired("type")
+	_ = resetCmd.MarkFlagRequired("type")
 	resetCmd.PersistentFlags().StringVarP(&configFilePath, "config", "c",
 		"./etc/cluster.yaml", "Path to configuration file")
 	return resetCmd
@@ -239,7 +239,7 @@ func newShowCmd() *cobra.Command {
 	showCmd.PersistentFlags().StringVarP(&configFilePath, "config", "c",
 		"./etc/cluster.yaml", "Path to configuration file")
 	showCmd.PersistentFlags().String("type", "", "cluster type (tendbha, tendbcluster)")
-	showCmd.MarkPersistentFlagRequired("type")
+	_ = showCmd.MarkPersistentFlagRequired("type")
 	return showCmd
 }
 
