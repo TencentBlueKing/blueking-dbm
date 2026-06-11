@@ -27,7 +27,7 @@ from backend.bk_web.viewsets import AuditedModelViewSet
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.db_report.enums import REPORT_COUNT_CACHE_KEY, SWAGGER_TAG, ReportStateType, ReportType
-from backend.db_report.filters import DrillReportFilterBackend, ReportFilterBackend
+from backend.db_report.filters import DrillReportFilterBackend, ReportFilterBackend, ReportListFilter
 from backend.db_report.register import db_report_maps, report_kind_register_map
 from backend.db_report.serializers import GetReportCountSerializer, GetReportOverviewSerializer
 from backend.iam_app.handlers.drf_perm.db_report import DBReportPermission
@@ -78,6 +78,15 @@ class ReportBaseViewSet(AuditedModelViewSet):
         获取全量数据的总记录数，不受搜索/过滤条件影响
         """
         queryset = self.get_queryset()
+        # 获取 time_range 参数
+        time_range = self.request.query_params.get("time_range", "")
+        filter_instance = ReportListFilter(
+            data=self.request.query_params,
+            queryset=queryset,
+            request=self.request,
+        )
+        queryset = filter_instance.filter_time_range(queryset, "time_range", time_range)
+
         return queryset.count()
 
     def list(self, request, *args, **kwargs):
