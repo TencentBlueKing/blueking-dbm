@@ -27,49 +27,50 @@
             <BkTag theme="info">
               {{ t('模块配置') }}
             </BkTag>
-            <AuthButton
+            <AuthTemplate
               action-id="dbconfig_edit"
-              :resource="dbType"
-              size="small"
-              theme="primary"
-              @click="handleCloneModule">
-              {{ t('克隆') }}
-            </AuthButton>
-            <BkPopConfirm
-              :cancel-text="t('取消')"
-              :confirm-config="{ theme: 'danger' } as any"
-              :confirm-text="t('确认删除')"
-              :disabled="moduleInfo.relatedClusterCount > 0"
-              :title="t('确认删除？')"
-              trigger="click"
-              :width="275"
-              @confirm="handleDeleteModule">
-              <template #content>
-                <div
-                  class="mb-16"
-                  style="line-height: 20px">
-                  <p class="mb-6">
-                    {{ t('模块名称_:_name', { name: moduleInfo.moduleName }) }}
-                  </p>
-                  <p>
-                    {{ t('删除后无法恢复，请谨慎修改！') }}
-                  </p>
-                </div>
-              </template>
-              <span @click.stop>
-                <AuthButton
-                  v-bk-tooltips="{
-                    content: t('关联集群不为空，不能删除'),
-                    disabled: moduleInfo.relatedClusterCount <= 0,
-                  }"
-                  action-id="dbconfig_edit"
-                  :disabled="moduleInfo.relatedClusterCount > 0"
-                  :resource="dbType"
-                  size="small">
-                  {{ t('删除') }}
-                </AuthButton>
-              </span>
-            </BkPopConfirm>
+              class="module-header-actions"
+              :resource="dbType">
+              <BkButton
+                size="small"
+                theme="primary"
+                @click="handleCloneModule">
+                {{ t('克隆') }}
+              </BkButton>
+              <BkPopConfirm
+                :cancel-text="t('取消')"
+                :confirm-config="{ theme: 'danger' } as any"
+                :confirm-text="t('确认删除')"
+                :disabled="moduleInfo.relatedClusterCount > 0"
+                :title="t('确认删除？')"
+                trigger="click"
+                :width="275"
+                @confirm="handleDeleteModule">
+                <template #content>
+                  <div
+                    class="mb-16"
+                    style="line-height: 20px">
+                    <p class="mb-6">
+                      {{ t('模块名称_:_name', { name: moduleInfo.moduleName }) }}
+                    </p>
+                    <p>
+                      {{ t('删除后无法恢复，请谨慎修改！') }}
+                    </p>
+                  </div>
+                </template>
+                <span @click.stop>
+                  <BkButton
+                    v-bk-tooltips="{
+                      content: t('关联集群不为空，不能删除'),
+                      disabled: moduleInfo.relatedClusterCount <= 0,
+                    }"
+                    :disabled="moduleInfo.relatedClusterCount > 0"
+                    size="small">
+                    {{ t('删除') }}
+                  </BkButton>
+                </span>
+              </BkPopConfirm>
+            </AuthTemplate>
           </div>
         </template>
         <Component

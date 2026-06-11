@@ -15,36 +15,33 @@
   <ApplyPermissionCatch>
     <BkLoading :loading="loading">
       <div class="param-operations mb-16">
-        <div class="param-operations-left">
-          <AuthButton
+        <div>
+          <AuthTemplate
             :action-id="actionId"
+            class="param-operations-left"
             :permission="permissions[actionId]"
-            :resource="resourceId"
-            theme="primary"
-            @click="handleAddParam">
-            {{ t('添加参数') }}
-          </AuthButton>
-          <AuthButton
-            v-if="selectable"
-            :action-id="actionId"
-            :disabled="selectedRows.length === 0"
-            :permission="permissions[actionId]"
-            :resource="resourceId"
-            @click="handleBatchEdit">
-            {{ t('批量编辑') }}
-          </AuthButton>
-          <AuthButton
-            v-bk-tooltips="{
-              content: t('请勾选参数'),
-              disabled: selectedRows.length > 0,
-            }"
-            :action-id="actionId"
-            :disabled="selectedRows.length === 0"
-            :permission="permissions[actionId]"
-            :resource="resourceId"
-            @click="handleShowBatchRestoreInfoBox">
-            {{ t('恢复默认') }}
-          </AuthButton>
+            :resource="resourceId">
+            <BkButton
+              theme="primary"
+              @click="handleAddParam">
+              {{ t('添加参数') }}
+            </BkButton>
+            <BkButton
+              v-if="selectable"
+              :disabled="selectedRows.length === 0"
+              @click="handleBatchEdit">
+              {{ t('批量编辑') }}
+            </BkButton>
+            <BkButton
+              v-bk-tooltips="{
+                content: t('请勾选参数'),
+                disabled: selectedRows.length > 0,
+              }"
+              :disabled="selectedRows.length === 0"
+              @click="handleShowBatchRestoreInfoBox">
+              {{ t('恢复默认') }}
+            </BkButton>
+          </AuthTemplate>
         </div>
         <div class="param-operations-right">
           <BkCheckbox
@@ -552,6 +549,13 @@
     meta_cluster_type: props.clusterType,
     version: props.version,
   }));
+
+  watch(
+    () => props.levelValue,
+    () => {
+      console.log(props.levelValue, 'ww');
+    },
+  );
 
   /** 参数列表数据源 */
   const paramDataSource = (params: { limit: number; offset: number }) => {

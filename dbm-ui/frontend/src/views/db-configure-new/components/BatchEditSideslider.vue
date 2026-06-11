@@ -387,7 +387,7 @@
         description: '',
         level_info: props.fetchParams.level_info,
         level_name: props.fetchParams.level_name,
-        level_value: Number(props.fetchParams.level_value),
+        level_value: props.fetchParams.level_value,
         meta_cluster_type: props.fetchParams.meta_cluster_type,
         name: props.fetchParams.name || '',
         publish_description: '',

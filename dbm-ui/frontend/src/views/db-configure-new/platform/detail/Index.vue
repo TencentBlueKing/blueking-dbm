@@ -20,6 +20,7 @@
           <div class="param-operations mb-16">
             <AuthButton
               action-id="global_dbconfig_edit"
+              :permission="permissions.global_dbconfig_edit"
               :resource="dbType"
               theme="primary"
               @click="handleAddParam">
@@ -166,41 +167,46 @@
                 :title="t('操作')"
                 :width="120">
                 <template #default="{ row }">
-                  <BkButton
-                    class="mr-16"
-                    text
-                    theme="primary"
-                    @click="handleEditParam(row)">
-                    {{ t('编辑') }}
-                  </BkButton>
-                  <BkPopConfirm
-                    :cancel-text="t('取消')"
-                    :confirm-config="{ theme: 'danger' }"
-                    :confirm-text="t('删除')"
-                    :title="t('确认删除该参数？')"
-                    trigger="click"
-                    :width="275"
-                    @confirm="handleDeleteParam(row)">
-                    <template #content>
-                      <div
-                        class="mb-16"
-                        style="line-height: 20px">
-                        <p class="mb-6">
-                          {{ t('参数名称_:_name', { name: row.conf_name }) }}
-                        </p>
-                        <p>
-                          {{ t('删除后，将不可恢复，请谨慎操作！') }}
-                        </p>
-                      </div>
-                    </template>
-                    <span @click.stop>
-                      <BkButton
-                        text
-                        theme="primary">
-                        {{ t('删除') }}
-                      </BkButton>
-                    </span>
-                  </BkPopConfirm>
+                  <AuthTemplate
+                    action-id="global_dbconfig_edit"
+                    :permission="permissions.global_dbconfig_edit"
+                    :resource="dbType">
+                    <BkButton
+                      class="mr-16"
+                      text
+                      theme="primary"
+                      @click="handleEditParam(row)">
+                      {{ t('编辑') }}
+                    </BkButton>
+                    <BkPopConfirm
+                      :cancel-text="t('取消')"
+                      :confirm-config="{ theme: 'danger' }"
+                      :confirm-text="t('删除')"
+                      :title="t('确认删除该参数？')"
+                      trigger="click"
+                      :width="275"
+                      @confirm="handleDeleteParam(row)">
+                      <template #content>
+                        <div
+                          class="mb-16"
+                          style="line-height: 20px">
+                          <p class="mb-6">
+                            {{ t('参数名称_:_name', { name: row.conf_name }) }}
+                          </p>
+                          <p>
+                            {{ t('删除后，将不可恢复，请谨慎操作！') }}
+                          </p>
+                        </div>
+                      </template>
+                      <span @click.stop>
+                        <BkButton
+                          text
+                          theme="primary">
+                          {{ t('删除') }}
+                        </BkButton>
+                      </span>
+                    </BkPopConfirm>
+                  </AuthTemplate>
                 </template>
               </TableColumn>
             </DbTable>
@@ -343,6 +349,11 @@
   const confNameTypeMap = ref<Record<string, string[]>>({});
   const availableParams = ref<ServiceReturnType<typeof getConfigNames>>([]);
 
+  // 权限
+  const permissions = ref<ServiceReturnType<typeof getConfigBaseDetails>['permission']>({
+    global_dbconfig_edit: false,
+  });
+
   // 是否为标准 DB 配置，此类配置隐藏「显示名」列
   const isStandardDbConfig = computed(() => ['dbconf', 'proxyconf'].includes(confType));
 
@@ -383,6 +394,7 @@
   const { run: fetchDetail } = useRequest(getConfigBaseDetails, {
     manual: true,
     onSuccess(res: DetailResult) {
+      permissions.value = res.permission;
       detailData.value = res;
       allConfItems.value = res.conf_items || [];
       paramTableRef.value?.fetchData({}, true);

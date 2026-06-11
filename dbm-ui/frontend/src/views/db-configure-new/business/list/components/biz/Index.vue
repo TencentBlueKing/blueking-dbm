@@ -68,6 +68,7 @@
         router.replace({
           params: {
             ...route.params,
+            clusterType: activeClusterType.value,
             tabName: value,
           },
         });

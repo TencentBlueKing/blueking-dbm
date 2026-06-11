@@ -12,29 +12,27 @@
 -->
 
 <template>
-  <ApplyPermissionCatch>
-    <BkResizeLayout
-      :border="false"
-      class="database-content"
-      collapsible
-      initial-divide="312px"
-      :max="500"
-      :min="312">
-      <template #aside>
-        <ConfigTree ref="configTreeRef" />
-      </template>
-      <template #main>
-        <div
-          v-if="configTreeRef?.treeState?.activeNode"
-          :key="configTreeRef.treeState.activeNode.id"
-          class="content-details">
-          <Component
-            :is="activeComponent"
-            :cluster-type="clusterType" />
-        </div>
-      </template>
-    </BkResizeLayout>
-  </ApplyPermissionCatch>
+  <BkResizeLayout
+    :border="false"
+    class="database-content"
+    collapsible
+    initial-divide="312px"
+    :max="500"
+    :min="312">
+    <template #aside>
+      <ConfigTree ref="configTreeRef" />
+    </template>
+    <template #main>
+      <div
+        v-if="configTreeRef?.treeState?.activeNode"
+        :key="configTreeRef.treeState.activeNode.id"
+        class="content-details">
+        <Component
+          :is="activeComponent"
+          :cluster-type="clusterType" />
+      </div>
+    </template>
+  </BkResizeLayout>
 </template>
 <script setup lang="ts">
   import { useRequest } from 'vue-request';
@@ -43,8 +41,6 @@
   import { getListClusterModuleConfFiles } from '@services/source/configs.ts';
 
   import { ClusterTypes, ConfLevels } from '@common/const';
-
-  import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
 
   import ConfigTree from '@views/db-configure-new/components/TopoTree.vue';
 
@@ -93,16 +89,7 @@
   watch(
     () => activeTreeNode.value?.id,
     (moduleId) => {
-      if (
-        moduleId &&
-        [
-          ClusterTypes.SQLSERVER_HA,
-          ClusterTypes.SQLSERVER_SINGLE,
-          ClusterTypes.TENDBCLUSTER,
-          ClusterTypes.TENDBHA,
-          ClusterTypes.TENDBSINGLE,
-        ].includes(clusterType.value)
-      ) {
+      if (moduleId) {
         fetchConfTabs({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           db_module_id: moduleId,
