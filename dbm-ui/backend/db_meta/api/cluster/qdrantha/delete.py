@@ -8,8 +8,26 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 
-from .create import create
-from .delete import delete
-from .disable import disable
-from .enable import enable
+from django.db import transaction
+
+from backend.db_meta.models import Cluster, ClusterEntry
+
+logger = logging.getLogger("root")
+
+
+@transaction.atomic
+def delete(cluster_id: int):
+    """
+    清理DBMeta
+    """
+
+    cluster = Cluster.objects.get(id=cluster_id)
+
+    # 删除entry
+    for ce in ClusterEntry.objects.filter(cluster=cluster).all():
+        ce.delete(keep_parents=True)
+
+    # 删除集群
+    cluster.delete(keep_parents=True)
