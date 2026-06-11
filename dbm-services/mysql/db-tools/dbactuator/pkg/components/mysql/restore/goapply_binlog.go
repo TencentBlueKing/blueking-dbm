@@ -159,10 +159,12 @@ func (r *GoApplyBinlog) ParseBinlogFiles() error {
 				}
 			}()
 			logger.Info("parse %s", f)
+			// 深拷贝 BinlogOpt，避免多个 goroutine 并发读写同一个对象导致数据竞争
+			localOpt := *r.BinlogOpt
 			if f == r.BinlogStartFile {
-				r.BinlogOpt.StartPos = r.BinlogStartPos
+				localOpt.StartPos = r.BinlogStartPos
 			} else {
-				r.BinlogOpt.StartPos = 0
+				localOpt.StartPos = 0
 			}
 			select {
 			case <-ctx.Done():
@@ -170,7 +172,7 @@ func (r *GoApplyBinlog) ParseBinlogFiles() error {
 				return ctx.Err()
 			default:
 			}
-			_, internalErr := r.BinlogOpt.Parse(r.BinlogDir, f, r.QuickMode)
+			_, internalErr := localOpt.Parse(r.BinlogDir, f, r.QuickMode)
 			if internalErr != nil {
 				logger.Error("parse failed %s: %s", f, internalErr.Error())
 			}
