@@ -55,6 +55,7 @@ type InstallEsParams struct {
 	RackID         string          `json:"rack_id"`     // 机架id
 	IdcID          string          `json:"idc_id"`      // 机房id
 	SubZoneID      string          `json:"sub_zone_id"` // 园区id
+	PluginList     []string        `json:"plugin_list"` // 插件列表
 }
 
 // InitDirs TODO
@@ -503,6 +504,16 @@ func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
 		if err = os.WriteFile(esiniFile, esini, 0644); err != nil {
 			logger.Error("write %s failed, %v", esiniFile, err)
 		}
+
+		pluginInstallDir := fmt.Sprintf("%s/plugins", esLink)
+		for _, plugin := range i.Params.PluginList {
+			extraCmd = fmt.Sprintf("tar -zxf %s/%s.tar.gz -C %s", i.PkgDir, plugin, pluginInstallDir)
+			if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+				logger.Error("exec [%s] failed, %s", extraCmd, err.Error())
+				return err
+			}
+		}
+
 		port++
 	}
 

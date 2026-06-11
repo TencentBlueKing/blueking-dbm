@@ -75,11 +75,111 @@ es:
 - es:
     buildPath: /install/es/espack-7.10.2.tar.gz
     name: espack-7.10.2.tar.gz
-    version: 7.2.0
+    version: 7.10.2
     installation: true
     distribution_name: DBM
     version_series: Elasitcsearch-7.10.2
     full_version: 7.10.2
+    os_type: "Linux"
+    os_version:
+- es-plugin:
+    buildPath: /install/es/analysis-icu-7.10.2.tar.gz
+    name: analysis-icu-7.10.2.tar.gz
+    version: analysis-icu-7.10.2
+    installation: true
+    distribution_name: DBM
+    version_series: analysis-icu-7.10.2
+    full_version: 7.10.2.0.0.1
+    os_type: "Linux"
+    os_version:
+- es-plugin:
+    buildPath: /install/es/analysis-ik-7.10.2.tar.gz
+    name: analysis-ik-7.10.2.tar.gz
+    version: analysis-ik-7.10.2
+    installation: true
+    distribution_name: DBM
+    version_series: analysis-ik-7.10.2
+    full_version: 7.10.2.0.0.2
+    os_type: "Linux"
+    os_version:
+- es-plugin:
+    buildPath: /install/es/analysis-pinyin-7.10.2.tar.gz
+    name: analysis-pinyin-7.10.2.tar.gz
+    version: analysis-pinyin-7.10.2
+    installation: true
+    distribution_name: DBM
+    version_series: analysis-pinyin-7.10.2
+    full_version: 7.10.2.0.0.3
+    os_type: "Linux"
+    os_version:
+- es-plugin:
+    buildPath: /install/es/opendistro_security-1.13.1.0.tar.gz
+    name: opendistro_security-1.13.1.0.tar.gz
+    version: opendistro_security-1.13.1.0
+    installation: true
+    distribution_name: DBM
+    version_series: opendistro_security-1.13.1.0
+    full_version: 1.13.1.0.0.1
+    os_type: "Linux"
+    os_version:
+- es-plugin:
+    buildPath: /install/es/opendistro-alerting-1.13.1.0.tar.gz
+    name: opendistro-alerting-1.13.1.0.tar.gz
+    version: opendistro-alerting-1.13.1.0
+    installation: true
+    distribution_name: DBM
+    version_series: opendistro-alerting-1.13.1.0
+    full_version: 1.13.1.0.0.2
+    os_type: "Linux"
+    os_version:
+- es-plugin:
+    buildPath: /install/es/opendistro-job-scheduler-1.13.0.0.tar.gz
+    name: opendistro-job-scheduler-1.13.0.0.tar.gz
+    version: opendistro-job-scheduler-1.13.0.0
+    installation: true
+    distribution_name: DBM
+    version_series: opendistro-job-scheduler-1.13.0.0
+    full_version: 1.13.0.0.0.1
+    os_type: "Linux"
+    os_version:
+- es-plugin:
+    buildPath: /install/es/opendistro-knn-1.12.0.0.tar.gz
+    name: opendistro-knn-1.12.0.0.tar.gz
+    version: opendistro-knn-1.12.0.0
+    installation: true
+    distribution_name: DBM
+    version_series: opendistro-knn-1.12.0.0
+    full_version: 1.12.0.0.0.1
+    os_type: "Linux"
+    os_version:
+- es-plugin:
+    buildPath: /install/es/opendistro-sql-1.13.2.0.tar.gz
+    name: opendistro-sql-1.13.2.0.tar.gz
+    version: opendistro-sql-1.13.2.0
+    installation: true
+    distribution_name: DBM
+    version_series: opendistro-sql-1.13.2.0
+    full_version: 1.13.2.0.0.1
+    os_type: "Linux"
+    os_version:
+- es-plugin:
+    buildPath: /install/es/repository-cos-7.10.2.tar.gz
+    name: repository-cos-7.10.2.tar.gz
+    version: repository-cos-7.10.2
+    installation: true
+    distribution_name: DBM
+    version_series: repository-cos-7.10.2
+    full_version: 7.10.2.0.0.4
+    os_type: "Linux"
+    os_version:
+- es-plugin:
+    buildPath: /install/es/repository-hdfs-7.10.2.tar.gz
+    name: repository-hdfs-7.10.2.tar.gz
+    version: repository-hdfs-7.10.2
+    installation: true
+    distribution_name: DBM
+    version_series: repository-hdfs-7.10.2
+    full_version: 7.10.2.0.0.5
     os_type: "Linux"
     os_version:
 - exporter:

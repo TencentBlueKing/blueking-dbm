@@ -199,6 +199,7 @@ class EsActPayload(object):
                     "rack_id": kwargs["rack_id"],  # 机架id
                     "idc_id": kwargs["idc_id"],  # 机房id
                     "sub_zone_id": kwargs["sub_zone_id"],  # 园区id
+                    "plugin_list": kwargs["plugin_list"],  # 插件列表
                 },
             },
         }

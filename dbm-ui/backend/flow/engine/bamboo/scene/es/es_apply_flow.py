@@ -14,8 +14,16 @@ from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
 
+from backend.components import DBConfigApi
+from backend.components.dbconfig.constants import ConfType, FormatType, LevelName
 from backend.configuration.constants import DBType
-from backend.flow.consts import ES_DEFAULT_INSTANCE_NUM, ManagerDefaultPort, ManagerOpType, ManagerServiceType
+from backend.flow.consts import (
+    ES_DEFAULT_INSTANCE_NUM,
+    ManagerDefaultPort,
+    ManagerOpType,
+    ManagerServiceType,
+    NameSpaceEnum,
+)
 from backend.flow.engine.bamboo.scene.common.bigdata_common_sub_flow import new_machine_common_sub_flow
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -58,6 +66,29 @@ class EsApplyFlow(EsFlow):
         self.cer_target_path = "/data/install/"
         self.file_list = ["/tmp/es_cerfiles.tar.gz"]
 
+        # 从dbconfig获取安装的插件列表
+        try:
+            plugin_list = DBConfigApi.query_conf_item(
+                {
+                    "bk_biz_id": str(self.bk_biz_id),
+                    "level_name": LevelName.APP,
+                    "level_value": str(self.bk_biz_id),
+                    "conf_file": self.db_version,
+                    "conf_type": ConfType.DEPLOY,
+                    "namespace": NameSpaceEnum.Es,
+                    "format": FormatType.MAP,
+                }
+            )
+            # 检查返回结果是否有效
+            if plugin_list and "content" in plugin_list:
+                for plugin_name, flag in plugin_list["content"].items():
+                    if plugin_name and flag == "ON":
+                        self.plugin_list.append(plugin_name)
+            else:
+                logger.warning(_("dbconfig查询返回空结果或格式不正确，使用默认插件列表"))
+        except Exception as e:
+            logger.warning(f"dbconfig exception: {e}")
+
     def __get_flow_data(self) -> dict:
         flow_data = self.get_flow_base_data()
         flow_data["cluster_alias"] = self.cluster_alias
@@ -77,7 +108,7 @@ class EsApplyFlow(EsFlow):
 
         act_kwargs = EsActKwargs(bk_cloud_id=self.bk_cloud_id)
         act_kwargs.set_trans_data_dataclass = EsApplyContext.__name__
-        act_kwargs.file_list = trans_files.es_apply(db_version=self.db_version)
+        act_kwargs.file_list = trans_files.es_apply(db_version=self.db_version, install_plugin_list=self.plugin_list)
         es_pipeline.add_act(
             act_name=_("获取集群部署配置"), act_component_code=GetEsActPayloadComponent.code, kwargs=asdict(act_kwargs)
         )
@@ -165,6 +196,9 @@ class EsApplyFlow(EsFlow):
                 act_kwargs.sub_zone_id = node.get("sub_zone_id") or ""
                 act_kwargs.idc_id = node.get("idc_id") or ""
                 act_kwargs.rack_id = node.get("rack_id") or ""
+                # 安装插件列表
+                act_kwargs.plugin_list = self.plugin_list
+
                 sub_pipeline.add_act(
                     act_name=_("安装ES {}-{}节点").format(role, ip),
                     act_component_code=ExecuteEsActuatorScriptComponent.code,
@@ -209,20 +243,6 @@ class EsApplyFlow(EsFlow):
             act_name=_("回写集群配置信息"), act_component_code=WriteBackEsConfigComponent.code, kwargs=asdict(act_kwargs)
         )
 
-        # 添加域名
-        """
-        dns_kwargs = DnsKwargs(
-            bk_cloud_id=es_deploy_data["bk_cloud_id"],
-            dns_op_type=DnsOpType.CREATE,
-            domain_name=self.domain,
-            dns_op_exec_port=self.http_port,
-        )
-        es_pipeline.add_act(
-            act_name=_("添加域名"),
-            act_component_code=EsDnsManageComponent.code,
-            kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
-        )
-        """
         sub_pipeline_access = get_access_manager_atom_job(root_id=self.root_id, ticket_data=es_deploy_data)
         if sub_pipeline_access:
             es_pipeline.add_sub_pipeline(sub_pipeline_access)
