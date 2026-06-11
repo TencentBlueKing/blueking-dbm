@@ -212,6 +212,10 @@ class DownloadBackupFileKwargs:
     login_passwd: str
     cluster: dict = None
     tendis_backup_info: list = None  # 占位：执行备份后的信息
+    source_ip: str = None
+    full_count: int = None
+    binlog_count: int = None
+    total_bytes: int = None
 
 
 @dataclass()

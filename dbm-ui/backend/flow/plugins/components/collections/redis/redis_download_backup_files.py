@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging.config
+import time
 
 from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
@@ -19,8 +20,11 @@ import backend.flow.utils.redis.redis_context_dataclass as flow_context
 from backend.components.mysql_backup.client import RedisBackupApi
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.redis.redis_context_dataclass import RedisDataStructureContext
+from backend.utils.string import format_size
 
 logger = logging.getLogger("flow")
+
+_PROGRESS_LOG_INTERVAL_SEC = 60
 
 
 class RedisDownloadBackupfile(BaseService):
@@ -29,7 +33,7 @@ class RedisDownloadBackupfile(BaseService):
     """
 
     __need_schedule__ = True
-    interval = StaticIntervalGenerator(3)  # poll every 3 sec
+    interval = StaticIntervalGenerator(15)
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
@@ -47,44 +51,70 @@ class RedisDownloadBackupfile(BaseService):
             "dest_dir": dest_dir,
             "reason": kwargs["reason"],
         }
-        logger.info("+==RedisDownloadBackupfile params :{} +++ ".format(params))
+        self.log_debug({k: v for k, v in params.items() if k != "login_passwd"})
 
-        self.log_debug(params)
         response = RedisBackupApi.download(params=params)
         backup_bill_id = response.get("bill_id", -1)
         if backup_bill_id > 0:
-            self.log_debug(_("调起下载 {}").format(backup_bill_id))
+            file_count = len(kwargs["task_ids"])
+            total_bytes = kwargs.get("total_bytes")
+            total_size = format_size(total_bytes) if total_bytes is not None else _("未知")
+            self.log_info(
+                _(
+                    "下载备份到 {dest_ip}: source={source_ip}, full={full_count}, binlog={binlog_count}, "
+                    "files={file_count}, size={total_size}, bill={bill_id}"
+                ).format(
+                    dest_ip=kwargs["dest_ip"],
+                    source_ip=kwargs.get("source_ip") or "-",
+                    full_count=kwargs.get("full_count") if kwargs.get("full_count") is not None else "-",
+                    binlog_count=kwargs.get("binlog_count") if kwargs.get("binlog_count") is not None else "-",
+                    file_count=file_count,
+                    total_size=total_size,
+                    bill_id=backup_bill_id,
+                )
+            )
             data.outputs.backup_bill_id = backup_bill_id
             return True
         else:
             return False
 
     def _schedule(self, data, parent_data, callback_data=None):
-        # 定义异步扫描
         backup_bill_id = data.get_one_of_outputs("backup_bill_id")
-        self.log_info(_("下载单据ID {}").format(backup_bill_id))
+        self.log_debug(_("轮询下载单据 {}").format(backup_bill_id))
         result_response = RedisBackupApi.download_result({"bill_id": backup_bill_id})
-        # 如何判断
         if result_response is not None and "total" in result_response:
-            if (
-                result_response["total"]["todo"] == 0
-                and result_response["total"]["doing"] == 0
-                and result_response["total"]["fail"] == 0
-            ):
+            total = result_response["total"]
+            if total["todo"] == 0 and total["doing"] == 0 and total["fail"] == 0:
                 self.log_info(_("{} 下载成功").format(backup_bill_id))
                 self.finish_schedule()
                 return True
-            elif result_response["total"]["fail"] > 0:
+            elif total["fail"] > 0:
                 self.log_error(_("{} 下载失败").format(backup_bill_id))
                 self.log_debug(str(result_response))
                 self.finish_schedule()
                 return False
             else:
-                self.log_debug(_("{} 下载中: todo {}").format(backup_bill_id, result_response["total"]["todo"]))
+                self._log_download_progress(data, backup_bill_id, total)
         else:
             self.log_debug("result response fail")
             self.finish_schedule()
             return False
+
+    def _log_download_progress(self, data, backup_bill_id, total):
+        todo = total["todo"]
+        doing = total["doing"]
+        last_todo = data.get_one_of_outputs("last_todo")
+        last_doing = data.get_one_of_outputs("last_doing")
+        last_log_ts = data.get_one_of_outputs("last_progress_log_ts") or 0
+        now = time.time()
+        progress_changed = todo != last_todo or doing != last_doing
+        if progress_changed or (now - last_log_ts) >= _PROGRESS_LOG_INTERVAL_SEC:
+            self.log_info(_("{} 下载中: todo={} doing={}").format(backup_bill_id, todo, doing))
+            data.outputs.last_todo = todo
+            data.outputs.last_doing = doing
+            data.outputs.last_progress_log_ts = now
+        else:
+            self.log_debug(_("{} 下载中: todo={} doing={}").format(backup_bill_id, todo, doing))
 
 
 class RedisDownloadBackupfileComponent(Component):

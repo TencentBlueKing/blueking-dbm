@@ -73,6 +73,7 @@ from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_cluster_nodes import convert_slot_to_str
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, RedisDataStructureContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
+from backend.utils.string import format_size
 from backend.utils.time import str2datetime
 
 logger = logging.getLogger("flow")
@@ -350,24 +351,20 @@ class RedisDataStructureFlow(object):
 
         # ### 检查新机器磁盘空间和内存是否够##############################################
         acts_list_disk_check = self.generate_acts_list_disk_check(
-            info["redis"], acts_list, cluster_type, first_act_kwargs
+            info["redis"], acts_list, tendis_type, first_act_kwargs
         )
         redis_pipeline.add_parallel_acts(acts_list=acts_list_disk_check)
 
-        # 并发下载 节点维度的备份文件
-        sub_pipelines = []
+        # Part2: 备份下载 || (redis 安装 -> CC 模块 -> cluster meet -> proxy -> payload json)
+        sub_pipelines_download = []
         for act in acts_list:
             data_params = act["kwargs"]["cluster"]
-            # source_ports = data_params["source_ports"]
-            # for source_port in source_ports:
-            # 这里可以一次下载，不用按端口分批下载
             sub_builder = redis_backupfile_download(
                 self.root_id,
                 cluster_ticket_data,
                 info,
                 {
                     "source_ip": data_params["source_ip"],
-                    # "source_port": source_port,
                     "new_temp_ip": data_params["new_temp_ip"],
                     "full_file_list": data_params["full_file_list"],
                     "binlog_file_list": data_params["binlog_file_list"],
@@ -375,42 +372,45 @@ class RedisDataStructureFlow(object):
                     "tendis_type": data_params["tendis_type"],
                 },
             )
-            sub_pipelines.append(sub_builder)
-            # 并发下载
-        redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+            sub_pipelines_download.append(sub_builder)
 
-        # 检查备份信息存在，机器磁盘是否够，然后下载到临时机器，这里最后再部署redis 节点，免得做无用步骤
-        redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines_install)
+        install_setup_pipeline = SubBuilder(root_id=self.root_id, data=cluster_ticket_data)
+        install_setup_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines_install)
 
-        # # ###cc 转移机器模块 ################################################################
         cluster_kwargs.cluster["meta_func_name"] = RedisDBMeta.redis_rollback_host_transfer.__name__
         cluster_kwargs.cluster["tendiss"] = []
         for instance in cluster_dst_instance:
             ip, port = instance.split(":")
             cluster_kwargs.cluster["tendiss"].append({"receiver": {"ip": ip, "port": int(port)}})
-        redis_pipeline.add_act(
+        install_setup_pipeline.add_act(
             act_name=_("Redis-临时节点加入源集群cc模块"),
             act_component_code=RedisDBMetaComponent.code,
             kwargs=asdict(cluster_kwargs),
         )
-        # # ### cc 转移机器模块完成 ############################################################
 
-        # 人工确认文件下发完成的节点
+        if is_redis_cluster_protocal(cluster_type) and not is_drill:
+            self._setup_cluster_meet(cluster_type, act_kwargs, cluster_dst_instance, info, install_setup_pipeline)
+
+        self._deploy_proxy_instance(
+            cluster_type,
+            act_kwargs,
+            info,
+            redis_instance_set,
+            node_pairs,
+            cluster_dst_instance,
+            install_setup_pipeline,
+        )
+        if acts_list_push_json:
+            install_setup_pipeline.add_parallel_acts(acts_list=acts_list_push_json)
+
+        part2_parallel_branches = sub_pipelines_download + [
+            install_setup_pipeline.build_sub_process(sub_name=_("Redis实例部署及环境准备"))
+        ]
+        redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=part2_parallel_branches)
+
         if not cluster_ticket_data.get("skip_mannual_confirm", False):
             redis_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
-        # ### 如果是tendisplus,需要构建tendis cluster关系 ############################################################
-        if is_redis_cluster_protocal(cluster_type) and not is_drill:
-            self._setup_cluster_meet(cluster_type, act_kwargs, cluster_dst_instance, info, redis_pipeline)
-        # ### 构建tendisplus集群关系结束 #############################################################################
-
-        # ### 部署proxy实例 #############################################################################
-        self._deploy_proxy_instance(
-            cluster_type, act_kwargs, info, redis_instance_set, node_pairs, cluster_dst_instance, redis_pipeline
-        )
-        # ### 数据构造payload json下发 #########################################################################
-        redis_pipeline.add_parallel_acts(acts_list=acts_list_push_json)
-        # ### 数据构造下发actuator #############################################################################
         redis_pipeline.add_parallel_acts(acts_list=acts_list)
 
         # # ###  # ### 如果是tendisplus,需要重新构建 cluster关系,因为tendisplus数据构造需要reset集群关系  ##############
@@ -455,31 +455,35 @@ class RedisDataStructureFlow(object):
 
     @staticmethod
     def generate_acts_list_disk_check(
-        redis_hosts: List[Dict], acts_list: List[Dict], cluster_type: str, first_act_kwargs: ActKwargs
+        redis_hosts: List[Dict], acts_list: List[Dict], tendis_type: str, first_act_kwargs: ActKwargs
     ) -> List:
         acts_list_disk_check = []
+        include_binlog = tendis_type in [
+            ClusterType.TendisplusInstance.value,
+            ClusterType.TendisSSDInstance.value,
+        ]
         for index, new_master in enumerate([host["ip"] for host in redis_hosts]):
             # 计算待下载的备份文件大小和获取对应机器磁盘大小,这里是单个任务的时候，还有多个任务的时候
             multi_total_size = 0
+            host_full_count = 0
+            host_binlog_count = 0
             for act in acts_list:
                 data_params = act["kwargs"]["cluster"]
-                logger.info(_("generate_acts_list_disk_check_data_params: {}".format(data_params)))
-                full_size = 0
+                full_size = sum(int(full["size"]) for full in data_params["full_file_list"])
                 all_binlog_size = 0
-                for full in data_params["full_file_list"]:
-                    logger.info(_("generate_acts_list_disk_check full: {}".format(full)))
-                    full_size += int(full["size"])
-                # ssd和tendisplus才有binlog文件
-                if cluster_type in [
-                    ClusterType.TendisTwemproxyRedisInstance.value,
-                    ClusterType.TwemproxyTendisSSDInstance.value,
-                ]:
-                    for binlog in data_params["binlog_file_list"]:
-                        logger.info(_("generate_acts_list_disk_check binlog: {}".format(binlog)))
-                        all_binlog_size += int(binlog["size"])
+                if include_binlog:
+                    all_binlog_size = sum(int(binlog["size"]) for binlog in data_params["binlog_file_list"])
                 total_size = full_size + all_binlog_size
                 if data_params["new_temp_ip"] == new_master:
                     multi_total_size += total_size
+                    host_full_count += len(data_params["full_file_list"])
+                    if include_binlog:
+                        host_binlog_count += len(data_params["binlog_file_list"])
+            logger.debug(
+                _("generate_acts_list_disk_check host={} full_files={} binlog_files={} total_size={}").format(
+                    new_master, host_full_count, host_binlog_count, format_size(multi_total_size)
+                )
+            )
             first_act_kwargs.cluster["multi_total_size"] = multi_total_size
             first_act_kwargs.exec_ip = new_master
             acts_list_disk_check.append(
