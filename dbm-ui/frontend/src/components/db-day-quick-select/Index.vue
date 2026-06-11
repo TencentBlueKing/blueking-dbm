@@ -34,7 +34,7 @@
   }
 
   withDefaults(defineProps<Props>(), {
-    clearable: true,
+    clearable: false,
   });
 
   // v-model 绑定 time_range 相对时间表达式，默认最近 24 小时，支持清空为空值

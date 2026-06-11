@@ -23,11 +23,10 @@
           <span class="ml-2">)</span>
         </template>
       </template>
-      <div v-if="total === 0">
-        <BkException
-          :description="emptyDescription"
-          scene="part"
-          type="empty" />
+      <div
+        v-if="total === 0"
+        style="padding: 20px; font-size: 14px; color: #999; text-align: center">
+        {{ emptyDescription }}
       </div>
       <PrimaryTable
         v-else
@@ -179,9 +178,9 @@
     if (isTodoPage.value) {
       // 近 30 天为最大档位，不再提示扩大时间范围
       if (timeRange === 'now -30d') {
-        return t('{timeRange}内无预警或异常', { timeRange: timeRangeText });
+        return t('{timeRange}内无巡检记录', { timeRange: timeRangeText });
       }
-      return t('{timeRange}内无预警或异常，若想查看更早结果，请扩大时间范围', { timeRange: timeRangeText });
+      return t('{timeRange}内无巡检记录，若想查看更早结果，请扩大时间范围', { timeRange: timeRangeText });
     }
     if (props.isOnlyAbnormal) {
       return t('{timeRange}内无预警或异常', { timeRange: timeRangeText });
