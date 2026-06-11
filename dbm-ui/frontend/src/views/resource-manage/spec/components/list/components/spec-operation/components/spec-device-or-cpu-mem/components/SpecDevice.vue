@@ -256,15 +256,23 @@
   };
 
   const handleSelectChange = (list: string[]) => {
+    // 新增项排在前面
+    const oldSet = new Set(modelValue.value);
+    const added = list.filter((item) => !oldSet.has(item));
+    const existing = list.filter((item) => oldSet.has(item));
+    const orderedList = [...added, ...existing];
+
     selectedCpuMem = getInitCpuMem();
-    list.forEach((item) => {
+    orderedList.forEach((item) => {
       const itemInfo = deviceListMap.value[item];
-      selectedCpuMem.cpu.min = Math.min(itemInfo.cpu, selectedCpuMem.cpu.min);
-      selectedCpuMem.cpu.max = Math.max(itemInfo.cpu, selectedCpuMem.cpu.max);
-      selectedCpuMem.mem.min = Math.min(itemInfo.mem, selectedCpuMem.mem.min);
-      selectedCpuMem.mem.max = Math.max(itemInfo.mem, selectedCpuMem.mem.max);
+      const cpu = itemInfo?.cpu || 0;
+      const mem = itemInfo?.mem || 0;
+      selectedCpuMem.cpu.min = Math.min(cpu, selectedCpuMem.cpu.min);
+      selectedCpuMem.cpu.max = Math.max(cpu, selectedCpuMem.cpu.max);
+      selectedCpuMem.mem.min = Math.min(mem, selectedCpuMem.mem.min);
+      selectedCpuMem.mem.max = Math.max(mem, selectedCpuMem.mem.max);
     });
-    modelValue.value = list;
+    modelValue.value = orderedList;
   };
 
   defineExpose<Exposes>({
