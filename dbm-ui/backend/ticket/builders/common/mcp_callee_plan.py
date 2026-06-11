@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.configuration.constants import DBType
 from backend.flow.engine.controller.base import BaseController
 from backend.ticket import builders
 from backend.ticket.builders import TicketFlowBuilder
@@ -40,7 +39,8 @@ class RegisterMcpCalleePlanFlowParamBuilder(builders.FlowParamBuilder):
     controller = BaseController.register_mcp_callee_plan
 
 
-class BaseMcpCalleePlanFlowBuilder(TicketFlowBuilder):
+@builders.BuilderFactory.register(TicketType.REGISTER_MCP_CALLEE_PLAN)
+class McpCalleePlanFlowBuilder(TicketFlowBuilder):
     """MCP 执行计划注册单据流程的抽象基类。
 
     由于 DBM 当前的单据审批设计，单据必须绑定在某个 DBType 下才能正常走审批流程，
@@ -51,19 +51,9 @@ class BaseMcpCalleePlanFlowBuilder(TicketFlowBuilder):
     inner_flow_builder = RegisterMcpCalleePlanFlowParamBuilder
     retry_type = FlowRetryType.MANUAL_RETRY
 
-    default_need_itsm = True
-    default_need_manual_confirm = False
+    default_need_itsm = False
+    default_need_manual_confirm = True
+    enable_ai_details_summary = True
 
-    group: str = None
-    inner_flow_name: str = None
-
-
-@builders.BuilderFactory.register(TicketType.MYSQL_REGISTER_MCP_CALLEE_PLAN)
-class MySQLMcpCalleePlanFlowBuilder(BaseMcpCalleePlanFlowBuilder):
-    """
-    大部分时候 TenDBHA, TenDBSingle, TenDBCluster 的 DBA 是同一个人
-    所以这里就统一到 MySQL 下了, 不细分出多一个 TenDBCluster group 单据来
-    """
-
-    group = DBType.MySQL.value
-    inner_flow_name = _("注册 MYSQL MCP 执行计划")
+    group = "common"
+    inner_flow_name = _("注册 MCP 执行计划")

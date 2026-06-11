@@ -231,6 +231,7 @@ def _save_skew_records(skew_results: dict[str, dict], now: datetime) -> tuple[in
         ClusterSkewDetection.objects.using("doris").bulk_create(records)
     except Exception:  # noqa
         logger.exception("write result to doris failed")
+        raise
     write_elapsed = time.monotonic() - t_write
 
     return len(records), write_elapsed

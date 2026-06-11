@@ -10,15 +10,13 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import importlib
-import itertools
 import json
 import logging
-import math
 import os
 from collections import defaultdict
 from typing import Callable, Dict, List, Union
 
-from django.db.models import Count, Q
+from django.db.models import Q
 from django.utils.translation import gettext as _
 from rest_framework import serializers
 
@@ -28,6 +26,8 @@ from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.db_meta.enums import MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import AppCache, Cluster, Machine, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.constants import IpSource
+from backend.dbm_aiagent.agent.constants import DBMAgentCode
+from backend.dbm_aiagent.agent.handlers import AgentHandler
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket.constants import TICKET_EXPIRE_DEFAULT_CONFIG, FlowRetryType, FlowType, TicketType
 from backend.ticket.exceptions import TicketResourceApplyException
@@ -499,6 +499,7 @@ class TicketFlowBuilder:
     group = None
     serializer = None
     alarm_transform_serializer = None
+    enable_ai_details_summary = False
 
     # 默认任务参数构造器
     inner_flow_name: str = ""
@@ -526,6 +527,21 @@ class TicketFlowBuilder:
 
     def __init__(self, ticket: Ticket):
         self.ticket = ticket
+
+    @classmethod
+    def ai_summary_details(cls, ticket: Ticket) -> str:
+        try:
+            if env.ENABLE_DBM_AI:
+                return AgentHandler.ask_agent_with_content(
+                    agent_code=DBMAgentCode.LOG_ANALYSIS,
+                    content=str(_("{} 总结需求摘要").format(ticket.details)),
+                    timeout=30,
+                )
+            else:
+                return ""
+        except Exception:  # noqa
+            logger.exception("ask ai for details summary failed")
+            return ""
 
     @classmethod
     def name(cls):
@@ -703,6 +719,13 @@ class BuilderFactory:
     ticket_type__cluster_phase = {}
     # 单据和权限动作/资源类型的映射
     ticket_type__iam_action = {}
+
+    @classmethod
+    def ai_details_summary_enabled(cls, ticket_type: str) -> bool:
+        try:
+            return env.ENABLE_DBM_AI and cls.get_builder_cls(ticket_type).enable_ai_details_summary
+        except NotImplementedError:
+            return False
 
     @classmethod
     def register(cls, ticket_type: str, **kwargs) -> Callable:

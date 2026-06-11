@@ -71,7 +71,7 @@ class TicketOperationMcpToolsViewSet(McpToolsViewSet):
         raise DBMMcpBaseException(msg="bk_biz_id, ticket_ids and cluster_domains must input at least 1")
 
     @mcp_tools_api_decorator(
-        description=str(_("""查询单据列表, 每个单据一行返回结果, 单据参数是个 json, 搞的好看点""")),
+        description=str(_("""查询单据列表""")),
         request_slz=TicketListInputSerializer,
         response_slz=TicketListOutputSerializer,
         tags=[DBMMCPTags.READ],
