@@ -104,21 +104,25 @@ func (cf *Config) MergeAndGetConfigItemsOne(ctx *gin.Context) {
 		return
 	}
 	levelNode := api.BaseConfigNode{}
-	levelNode.Set(r.BKBizID, r.Namespace, r.ConfType, r.ConfType, r.LevelName, r.LevelValue)
+	levelNode.Set(r.BKBizID, r.Namespace, r.ConfType, r.ConfFile, r.LevelName, r.LevelValue)
 	var r2 = &api.SimpleConfigQueryReq{
 		BaseConfigNode: levelNode,
 		Format:         r.Format,
 		View:           constvar.ViewMerge,
-		InheritFrom:    "0",
+		InheritFrom:    constvar.BKBizIDForPlat,
 		ConfName:       r.ConfName,
 		UpLevelInfo:    r.UpLevelInfo,
+		Decrypt:        true,
 	}
 	if err := r2.Validate(); err != nil {
 		handler.SendResponse(ctx, err, nil)
 		return
 	}
-
-	if resp, err := simpleconfig.QueryConfigItems(r2, true); err != nil {
+	queryFileInfo := true
+	if r.Method != "" {
+		queryFileInfo = false
+	}
+	if resp, err := simpleconfig.QueryConfigItems(r2, queryFileInfo); err != nil {
 		handler.SendResponse(ctx, err, nil)
 		return
 	} else {

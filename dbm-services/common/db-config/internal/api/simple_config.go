@@ -80,8 +80,6 @@ type SimpleConfigQueryReq struct {
 
 	UpLevelInfo
 
-	// 是否是生成配置文件
-	Generate bool
 	// 是否是解密
 	Decrypt bool
 }

@@ -3,12 +3,8 @@ package simpleconfig
 import (
 	"bk-dbconfig/internal/api"
 	"bk-dbconfig/internal/repository/model"
-	"bk-dbconfig/pkg/constvar"
-	"bk-dbconfig/pkg/core/logger"
 
-	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
-	"gorm.io/gorm"
 )
 
 // ListConfigFileVersions TODO
@@ -114,123 +110,4 @@ type PublishConfig struct {
 	Patch         map[string]string
 	FromGenerated bool
 	Revision      string
-}
-
-// PublishAndApplyVersioned TODO
-// 只发布版本，之前已生成revision. is_published=true, is_applied=false
-// 如果 configsLocked 数大于 1，表示修改了锁定配置，需要应用到下级
-// level_config 在发布包含 locked config 时，都会 apply
-func (p *PublishConfig) PublishAndApplyVersioned(db *gorm.DB, isFromApplied bool) error {
-	logger.Info("PublishAndApplyVersioned %+v", p)
-	c := p.Versioned
-	if p.Patch != nil {
-		// update tb_config_versioned
-		if err := c.PatchConfig(db, p.Patch); err != nil {
-			return err
-		}
-		// update tb_config_node，不检查冲突、是否只读
-		var cms []*model.ConfigModelOp
-		for confName, confValue := range p.Patch {
-			cm := &model.ConfigModelOp{
-				Config: &model.ConfigModel{
-					BKBizID:         p.LevelNode.BKBizID,
-					Namespace:       p.LevelNode.Namespace,
-					ConfType:        p.LevelNode.ConfType,
-					ConfFile:        p.LevelNode.ConfFile,
-					LevelName:       p.LevelNode.LevelName,
-					LevelValue:      p.LevelNode.LevelValue,
-					UpdatedRevision: p.Revision,
-					ConfName:        confName,
-					ConfValue:       confValue,
-					Description:     "updated by internal api",
-				},
-				OPType: constvar.OPTypeAdd,
-			}
-			cms = append(cms, cm)
-		}
-		if _, err := UpsertConfigItems(db, cms, p.Revision, p.Versioned.CreatedBy,
-			&api.UpLevelInfo{LevelInfo: map[string]string{
-				"module": "fake",
-			}}); err != nil {
-			return err
-		}
-		// 走 delete version + update + GenAndPublish 流程
-	}
-	if err := c.PublishConfig(db); err != nil {
-		logger.Errorf("PublishConfig error: %+v", err)
-		return err
-	}
-
-	levelNode := api.BaseConfigNode{}
-	copier.Copy(&levelNode, c)
-	p.LevelNode = levelNode
-	if model.IsConfigLevelEntityVersioned(c.Namespace, c.ConfType, c.ConfFile, c.LevelName) && !p.FromGenerated {
-		// versioned config 有修改，就生成更新提示
-		return p.GenTaskForApplyEntityConfig(db)
-	}
-	if isFromApplied { // 不做级联应用
-		return nil
-	}
-
-	if p.FromGenerated { // 来自 generate 接口，直接设置为 applied，只有 entity level 才能 generate
-		if err := p.Versioned.VersionApplyStatus(db); err != nil {
-			return err
-		}
-	} else {
-		// level config，仅有 locked 配置修改时，生成更新提示
-		if p.ConfigsLocked == nil || len(p.ConfigsLocked) == 0 {
-			return p.Versioned.VersionApplyStatus(db)
-		}
-		return p.ApplyLevelConfig(db)
-	}
-	return nil
-}
-
-// ApplyLevelConfig 向下应用 level config 配置
-// 应用行为，会删除与上级锁定冲突的配置
-func (p *PublishConfig) ApplyLevelConfig(db *gorm.DB) error {
-	logger.Info("ApplyLevelConfig %+v", p)
-	applyReq := api.VersionApplyReq{
-		BaseConfigNode: p.LevelNode,
-		RevisionApply:  p.Versioned.Revision,
-	}
-	if err := p.ApplyVersionLevelNode(db, &applyReq); err != nil {
-		return err
-	}
-	if err := p.Versioned.VersionApplyStatus(db); err != nil {
-		return err
-	}
-	return nil
-}
-
-// GenTaskForApplyEntityConfig 将未应用的配置项，写入 node_task
-func (p *PublishConfig) GenTaskForApplyEntityConfig(db *gorm.DB) error {
-	// versioned_config 无论是否应用，都生成 node_task，且保持未应用状态
-	applyInfo := api.ApplyConfigInfoReq{BaseConfigNode: p.LevelNode}
-	diffInfo, err := GetConfigsToApply(db, applyInfo)
-	if err != nil {
-		return err
-	}
-	nodeTasks := make([]*model.NodeTaskModel, 0)
-	for confName, diff := range diffInfo.ConfigsDiff {
-		task := &model.NodeTaskModel{
-			VersionID:       diffInfo.VersionID,
-			NodeID:          diffInfo.NodeID,
-			Revision:        diffInfo.RevisionToApply,
-			UpdatedRevision: diff.UpdatedRevision,
-			ConfName:        confName,
-			ConfValue:       diff.ConfValue,
-			OPType:          diff.OPType,
-			ValueBefore:     diff.ValueBefore,
-		}
-		nodeTasks = append(nodeTasks, task)
-	}
-	if len(nodeTasks) == 0 {
-		if err := p.Versioned.VersionApplyStatus(db); err != nil {
-			return err
-		}
-		return nil
-	} else {
-		return model.GenTaskForApply(db, diffInfo.NodeID, nodeTasks)
-	}
 }
