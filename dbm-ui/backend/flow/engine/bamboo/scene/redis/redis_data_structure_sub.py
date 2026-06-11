@@ -37,49 +37,47 @@ def redis_backupfile_download(root_id: str, ticket_data: dict, cluster_info: dic
 
     sub_pipeline = SubBuilder(root_id=root_id, data=copy.deepcopy(ticket_data))
     redis_os_account = PayloadHandler.redis_get_os_account()
-    logger.info("+==redis_backupfile_download download_kwargs redis_os_account:{} +++ ".format(redis_os_account))
 
-    # 全备份文件下载
-    task_ids = [file_info["task_id"] for file_info in param["full_file_list"]]
+    full_file_list = param["full_file_list"]
+    binlog_file_list = param.get("binlog_file_list") or []
+
+    # cache类型的情况，只有全备份文件,ssd和tendisplus 必须有binlog文件
+    if param["tendis_type"] in [ClusterType.TendisplusInstance.value, ClusterType.TendisSSDInstance.value]:
+        if len(binlog_file_list) == 0:
+            raise TendisGetBinlogFailedException(
+                message=_("集群类型为:{},但是下载的binlog备份信息为0，不符合预期，最少有2个binlog".format(param["tendis_type"]))
+            )
+
+    all_files = full_file_list + binlog_file_list
+    task_ids = [file_info["task_id"] for file_info in all_files]
+    total_bytes = sum(int(file_info["size"]) for file_info in all_files)
+
     download_kwargs = DownloadBackupFileKwargs(
         bk_cloud_id=cluster_info["bk_cloud_id"],
         task_ids=task_ids,
         dest_ip=param["new_temp_ip"],
         dest_dir=param["dest_dir"],
-        reason="redis data structure full backup file download",
+        reason="redis data structure backup download",
         login_user=redis_os_account["os_user"],
         login_passwd=redis_os_account["os_password"],
+        source_ip=param["source_ip"],
+        full_count=len(full_file_list),
+        binlog_count=len(binlog_file_list),
+        total_bytes=total_bytes,
     )
-    logger.info("+==redis_backupfile_download download_kwargs download_kwargs:{} +++ ".format(download_kwargs))
+    logger.info(
+        "redis_backupfile_download source={} dest={} full={} binlog={} total_bytes={}".format(
+            param["source_ip"],
+            param["new_temp_ip"],
+            len(full_file_list),
+            len(binlog_file_list),
+            total_bytes,
+        )
+    )
     sub_pipeline.add_act(
-        act_name=_("下载{}全备文件到{}").format(param["source_ip"], param["new_temp_ip"]),
+        act_name=_("下载{}备份到{}").format(param["source_ip"], param["new_temp_ip"]),
         act_component_code=RedisDownloadBackupfileComponent.code,
         kwargs=asdict(download_kwargs),
     )
-
-    # cache类型的情况，只有全备份文件,ssd和tendisplus 必须有binlog文件
-    if param["tendis_type"] in [ClusterType.TendisplusInstance.value, ClusterType.TendisSSDInstance.value]:
-
-        if len(param["binlog_file_list"]) == 0:
-            raise TendisGetBinlogFailedException(
-                message=_("集群类型为:{},但是下载的binlog备份信息为0，不符合预期，最少有2个binlog".format(param["tendis_type"]))
-            )
-        # binlog文件下载
-        task_ids = [file_info["task_id"] for file_info in param["binlog_file_list"]]
-        download_kwargs = DownloadBackupFileKwargs(
-            bk_cloud_id=cluster_info["bk_cloud_id"],
-            task_ids=task_ids,
-            dest_ip=param["new_temp_ip"],
-            dest_dir=param["dest_dir"],
-            reason="redis data structure binlog backup file download",
-            login_user=redis_os_account["os_user"],
-            login_passwd=redis_os_account["os_password"],
-        )
-        logger.info("+==redis_backupfile_download download_kwargs download_kwargs:{} +++ ".format(download_kwargs))
-        sub_pipeline.add_act(
-            act_name=_("下载{}binlog文件到{}").format(param["source_ip"], param["new_temp_ip"]),
-            act_component_code=RedisDownloadBackupfileComponent.code,
-            kwargs=asdict(download_kwargs),
-        )
 
     return sub_pipeline.build_sub_process(sub_name=_("下载备份文件到{}".format(param["new_temp_ip"])))

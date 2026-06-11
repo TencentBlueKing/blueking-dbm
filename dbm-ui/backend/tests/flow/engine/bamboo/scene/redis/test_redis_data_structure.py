@@ -11,6 +11,50 @@ from backend.flow.plugins.components.collections.common.disable_alarm_shield imp
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
 
 
+def _make_disk_check_act(new_temp_ip, full_size, binlog_size=0, binlog_count=0):
+    return {
+        "kwargs": {
+            "cluster": {
+                "new_temp_ip": new_temp_ip,
+                "full_file_list": [{"size": full_size, "task_id": "full-1"}],
+                "binlog_file_list": [{"size": binlog_size, "task_id": f"binlog-{i}"} for i in range(binlog_count)],
+            }
+        }
+    }
+
+
+def test_generate_acts_list_disk_check_includes_binlog_for_tendisplus():
+    acts_list = [_make_disk_check_act("1.1.1.3", full_size=100, binlog_size=50, binlog_count=2)]
+    act_kwargs = ActKwargs()
+    act_kwargs.cluster = {}
+
+    result = RedisDataStructureFlow.generate_acts_list_disk_check(
+        [{"ip": "1.1.1.3"}],
+        acts_list,
+        ClusterType.TendisplusInstance.value,
+        act_kwargs,
+    )
+
+    assert len(result) == 1
+    assert result[0]["kwargs"]["cluster"]["multi_total_size"] == 200  # 100 full + 2 * 50 binlog
+
+
+def test_generate_acts_list_disk_check_excludes_binlog_for_cache():
+    acts_list = [_make_disk_check_act("1.1.1.3", full_size=100, binlog_size=50, binlog_count=2)]
+    act_kwargs = ActKwargs()
+    act_kwargs.cluster = {}
+
+    result = RedisDataStructureFlow.generate_acts_list_disk_check(
+        [{"ip": "1.1.1.3"}],
+        acts_list,
+        ClusterType.RedisInstance.value,
+        act_kwargs,
+    )
+
+    assert len(result) == 1
+    assert result[0]["kwargs"]["cluster"]["multi_total_size"] == 100
+
+
 def test_parse_shard_value_ranges_accepts_multiple_slot_ranges():
     shard_value = "1365-1637 10651-10923\n13382-13654 15020-15292 16111-16383"
 
@@ -201,7 +245,31 @@ def test_build_cluster_data_structure_installs_dbmon_only_when_not_drill(
     ), patch.object(
         RedisDataStructureFlow,
         "get_prod_temp_instance_pairs",
-        return_value=([], []),
+        return_value=(
+            [
+                {
+                    "act_name": "data-structure-act",
+                    "act_component_code": "redis_data_structure_actuator_execute",
+                    "kwargs": {
+                        "cluster": {
+                            "source_ip": "1.1.1.2",
+                            "new_temp_ip": "1.1.1.3",
+                            "full_file_list": [{"size": 100, "task_id": "full-1"}],
+                            "binlog_file_list": [],
+                            "dest_dir": "",
+                            "tendis_type": ClusterType.RedisInstance.value,
+                        }
+                    },
+                }
+            ],
+            [
+                {
+                    "act_name": "push-json",
+                    "act_component_code": "push_data_structure_json_script",
+                    "kwargs": {"cluster": {"new_temp_ip": "1.1.1.3"}},
+                }
+            ],
+        ),
     ):
         flow.build_cluster_data_structure(info)
 
@@ -210,10 +278,19 @@ def test_build_cluster_data_structure_installs_dbmon_only_when_not_drill(
     for call in mock_install_atom.call_args_list:
         assert call.args[1] is cluster_global_data
         assert call.args[1]["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value
+        assert call.kwargs.get("to_trans_files", True) is True
         assert call.kwargs["to_install_dbmon"] is expected_install_dbmon, (
             f"to_install_dbmon must be {expected_install_dbmon} when is_drill={is_drill}, "
             f"got {call.kwargs.get('to_install_dbmon')!r}"
         )
+
+    part2_calls = [
+        call.kwargs["sub_flow_list"]
+        for call in pipeline.add_parallel_sub_pipeline.call_args_list
+        if mock_backup_download.return_value in call.kwargs["sub_flow_list"]
+    ]
+    assert part2_calls, "backup download should be in Part2 parallel branches"
+    assert len(part2_calls[0]) >= 2, "Part2 should include backup download and install-setup sub-process"
     component_codes = [call.kwargs.get("act_component_code") for call in pipeline.add_act.call_args_list]
     assert (AddAlarmShieldComponent.code in component_codes) is (not is_drill)
     assert (DisableAlarmShieldComponent.code in component_codes) is (not is_drill)

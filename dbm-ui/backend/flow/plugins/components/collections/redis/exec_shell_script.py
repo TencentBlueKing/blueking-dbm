@@ -24,7 +24,7 @@ from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BaseService, BkJobService
 from backend.flow.utils.redis.redis_context_dataclass import RedisDataStructureContext
 from backend.flow.utils.redis.redis_script_template import redis_fast_execute_script_common_kwargs
-from backend.utils.string import base64_encode
+from backend.utils.string import base64_encode, format_size
 
 logger = logging.getLogger("json")
 
@@ -154,10 +154,6 @@ class RedisDataStructurePrecheckService(BaseService):
             # 表示没有加载上下文内容，则在此添加
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
 
-        # 打印信息
-        self.log_info(" RedisDataStructurePrecheckService start")
-        self.log_info("kwargs: {}".format(kwargs))
-
         try:
             # 临时机器磁盘空间是否足够
             if not self.check_src_redis_host_disk(trans_data, kwargs):
@@ -188,21 +184,50 @@ class RedisDataStructurePrecheckService(BaseService):
         ret["mount_on"] = l01[5]
         return ret
 
-    def log_disk_error(self, exec_ip, disk_info):
-        error_message = _("源Redis服务器：{} {} 磁盘使用率：{}% > 85%").format(
-            exec_ip["ip"], disk_info["filesystem"], disk_info["used_ratio"]
-        )
-        self.log_error(error_message)
-        return False
-
-    def check_disk_usage(self, disk_info, exec_ip, data_size):
-        if disk_info["used_ratio"] > 85:
-            return self.log_disk_error(exec_ip, disk_info)
-        if (disk_info["used"] + data_size) / disk_info["total"] > 0.9:
-            error_message = _("源Redis服务器：{} 磁盘使用情况：{}+Redis数据大小：{} 将会 >=90%").format(
-                exec_ip, disk_info["used"], data_size
+    def log_disk_usage_summary(self, exec_ip, dir_label, disk_info, data_size):
+        self.log_info(
+            _("临时机 {} [{}] {}: 需要 {} / 可用 {} (已用 {}%, 总量 {})").format(
+                exec_ip,
+                dir_label,
+                disk_info["mount_on"],
+                format_size(data_size),
+                format_size(disk_info["avail"]),
+                disk_info["used_ratio"],
+                format_size(disk_info["total"]),
             )
-            self.log_error(error_message)
+        )
+
+    def check_disk_usage(self, exec_ip, dir_label, disk_info, data_size):
+        self.log_disk_usage_summary(exec_ip, dir_label, disk_info, data_size)
+        if disk_info["used_ratio"] > 85:
+            self.log_error(
+                _("临时机 {} [{}] {} 磁盘使用率 {}% > 85%").format(
+                    exec_ip, dir_label, disk_info["mount_on"], disk_info["used_ratio"]
+                )
+            )
+            return False
+        if data_size > disk_info["avail"]:
+            self.log_error(
+                _("临时机 {} [{}] {} 空间不足: 需要 {} > 可用 {}").format(
+                    exec_ip,
+                    dir_label,
+                    disk_info["mount_on"],
+                    format_size(data_size),
+                    format_size(disk_info["avail"]),
+                )
+            )
+            return False
+        if (disk_info["used"] + data_size) / disk_info["total"] > 0.9:
+            self.log_error(
+                _("临时机 {} [{}] {} 预计占用达 90%: 已用 {} + 需要 {} / 总量 {}").format(
+                    exec_ip,
+                    dir_label,
+                    disk_info["mount_on"],
+                    format_size(disk_info["used"]),
+                    format_size(data_size),
+                    format_size(disk_info["total"]),
+                )
+            )
             return False
         return True
 
@@ -221,25 +246,26 @@ class RedisDataStructurePrecheckService(BaseService):
 
         # # 当所有机器的备份目录一样时，对backup_dir赋值
         trans_data.backup_dir = backup_dir
-        self.log_info(_("检查源Redis服务器磁盘使用情况：{}").format(disk_used))
-        self.log_info("check_src_redis_host_disk  disk_used:{}".format(disk_used))
 
         exec_ip = kwargs["exec_ip"]
         cluster = kwargs["cluster"]
+        needed_size = cluster["multi_total_size"]
+        self.log_info(_("临时机 {} 待下载备份总量: {}").format(exec_ip, format_size(needed_size)))
+
         # 检查备份目录
         redis_backup_dir_data = disk_used.get(exec_ip)["redis_backup_dir_data"]
         cluster["backup_dir"] = disk_used.get(exec_ip)["backup_dir"]
         disk_info = self.decode_slave_host_disk_info(redis_backup_dir_data)
-        if not self.check_disk_usage(disk_info, exec_ip, cluster["multi_total_size"]):
+        if not self.check_disk_usage(exec_ip, _("备份"), disk_info, needed_size):
             return False
 
         # 检查数据目录
         redis_data_dir_data = disk_used.get(exec_ip)["redis_data_dir_data"]
         data_disk_info = self.decode_slave_host_disk_info(redis_data_dir_data)
-        if not self.check_disk_usage(data_disk_info, exec_ip, cluster["multi_total_size"]):
+        if not self.check_disk_usage(exec_ip, _("数据"), data_disk_info, needed_size):
             return False
 
-        self.log_info(_("redis 临时机器:{} 磁盘空间检查通过").format(kwargs["exec_ip"]))
+        self.log_info(_("临时机 {} 磁盘空间检查通过").format(exec_ip))
         return True
 
     @staticmethod
