@@ -140,13 +140,15 @@
       </BkFormItem>
     </BkForm>
     <template #footer>
-      <BkButton
+      <AuthButton
+        action-id="dbconfig_edit"
         class="w-88"
         :loading="submitLoading"
+        resource="common"
         theme="primary"
         @click="handleSubmit">
         {{ t('提交') }}
-      </BkButton>
+      </AuthButton>
       <BkButton
         class="w-88 ml-8"
         @click="handleCancel">
