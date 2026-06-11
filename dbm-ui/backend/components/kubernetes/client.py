@@ -139,6 +139,9 @@ class _KubernetesApi(BaseApi):
         self.restart_cluster = self.generate_data_api(
             method="POST", url="/v4/dbs/opsRequest/restart", description=_("重启集群")
         )
+        self.delete_cluster = self.generate_data_api(
+            method="POST", url="/v4/dbs/cluster/delete", description=_("删除集群")
+        )
 
 
 KubernetesApi = _KubernetesApi()
