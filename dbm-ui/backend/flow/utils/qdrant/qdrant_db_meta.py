@@ -37,6 +37,10 @@ class QdrantDBMeta(object):
         api.cluster.qdrantha.enable(self.ticket_data["cluster_id"])
         return {"id": self.ticket_data["cluster_id"]}
 
+    def k8s_qdrant_delete(self) -> dict:
+        api.cluster.qdrantha.delete(self.ticket_data["cluster_id"])
+        return {"id": self.ticket_data["cluster_id"]}
+
     def k8s_qdrant_disable(self) -> dict:
         api.cluster.qdrantha.disable(self.ticket_data["cluster_id"])
         return {"id": self.ticket_data["cluster_id"]}

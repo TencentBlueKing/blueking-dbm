@@ -16,6 +16,7 @@ from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
+import backend.flow.utils.qdrant.qdrant_context_dataclass as flow_context
 from backend.flow.consts import DnsOpType
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.dns_manage import DnsManage
@@ -28,6 +29,9 @@ class QdrantDnsManageService(BaseService):
         kwargs = data.get_one_of_inputs("kwargs")
         global_data = data.get_one_of_inputs("global_data")
         trans_data = data.get_one_of_inputs("trans_data")
+        if trans_data is None or trans_data == "${trans_data}":
+            # 表示没有加载上下文内容，则在此添加
+            trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
         result = False
         clb_detail = trans_data.clb_detail
         trans_data.domain = kwargs["domain_name"]
@@ -41,7 +45,12 @@ class QdrantDnsManageService(BaseService):
                 return False
             add_instance_list = [f"{vip}#6333"]
             result = dns_manage.create_domain(instance_list=add_instance_list, add_domain_name=kwargs["domain_name"])
-        data.outputs["trans_data"] = trans_data
+            data.outputs["trans_data"] = trans_data
+        elif dns_op_type == DnsOpType.CLUSTER_DELETE:
+            result = dns_manage.delete_domain(cluster_id=global_data["cluster_id"])
+        else:
+            self.log_error(_("无法适配到传入的域名处理类型,请联系系统管理员:{}").format(dns_op_type))
+            return result
         return result
 
     def inputs_format(self) -> List:
