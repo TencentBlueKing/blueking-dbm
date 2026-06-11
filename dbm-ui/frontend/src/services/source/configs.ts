@@ -496,8 +496,11 @@ export interface BackupConfigRow {
 /**
  * 查询备份存储配置列表 (COS)
  */
-export function getBackupConfigList(params: { bk_biz_id: number; limit?: number; offset?: number }) {
-  return http.get<BackupConfigRow[]>(`${path}/list_cos_configs/`, params);
+export function getBackupConfigList(
+  params: { bk_biz_id: number; limit?: number; offset?: number },
+  payload = {} as IRequestPayload,
+) {
+  return http.get<BackupConfigRow[]>(`${path}/list_cos_configs/`, params, payload);
 }
 
 /**
