@@ -13,12 +13,12 @@ from rest_framework import serializers
 
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import InstanceInfoSerializer, TicketBaseValidateSerializerMixin
-from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder
+from backend.ticket.builders.common.base import InstanceInfoSerializer
+from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
-class MysqlProxyRebuildDetailSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
+class MysqlProxyRebuildDetailSerializer(MySQLBaseOperateDetailSerializer):
     class ProxyInfoSerializer(serializers.Serializer):
         rebuild_proxy_hosts = serializers.ListField(help_text=_("实例信息"), child=InstanceInfoSerializer())
         cluster_id = serializers.IntegerField(help_text=_("集群ID"), required=True)
