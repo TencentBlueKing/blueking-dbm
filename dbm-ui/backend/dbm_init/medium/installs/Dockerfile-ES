@@ -8,6 +8,16 @@ ENV VERSION=v1.0.0
 RUN set -ex && \
     mkdir /data && cd /data && \
     wget -qO espack-7.10.2.tar.gz ${DOWNLOAD_URL}/${VERSION}/espack-7.10.2.tar.gz --no-check-certificate  && \
+    wget -qO analysis-icu-7.10.2.tar.gz ${DOWNLOAD_URL}/${VERSION}/analysis-icu-7.10.2.tar.gz --no-check-certificate  && \
+    wget -qO analysis-ik-7.10.2.tar.gz ${DOWNLOAD_URL}/${VERSION}/analysis-ik-7.10.2.tar.gz --no-check-certificate  && \
+    wget -qO analysis-pinyin-7.10.2.tar.gz ${DOWNLOAD_URL}/${VERSION}/analysis-pinyin-7.10.2.tar.gz --no-check-certificate  && \
+    wget -qO opendistro_security-1.13.1.0.tar.gz ${DOWNLOAD_URL}/${VERSION}/opendistro_security-1.13.1.0.tar.gz --no-check-certificate  && \
+    wget -qO opendistro-alerting-1.13.1.0.tar.gz ${DOWNLOAD_URL}/${VERSION}/opendistro-alerting-1.13.1.0.tar.gz --no-check-certificate  && \
+    wget -qO opendistro-job-scheduler-1.13.0.0.tar.gz ${DOWNLOAD_URL}/${VERSION}/opendistro-job-scheduler-1.13.0.0.tar.gz --no-check-certificate  && \
+    wget -qO opendistro-knn-1.12.0.0.tar.gz ${DOWNLOAD_URL}/${VERSION}/opendistro-knn-1.12.0.0.tar.gz --no-check-certificate  && \
+    wget -qO opendistro-sql-1.13.2.0.tar.gz ${DOWNLOAD_URL}/${VERSION}/opendistro-sql-1.13.2.0.tar.gz --no-check-certificate  && \
+    wget -qO repository-cos-7.10.2.tar.gz ${DOWNLOAD_URL}/${VERSION}/repository-cos-7.10.2.tar.gz --no-check-certificate  && \
+    wget -qO repository-hdfs-7.10.2.tar.gz ${DOWNLOAD_URL}/${VERSION}/repository-hdfs-7.10.2.tar.gz --no-check-certificate  && \
     wget -qO dbm_elasticsearch_exporter.tgz ${DOWNLOAD_URL}/${VERSION}/dbm_elasticsearch_exporter.tgz --no-check-certificate
 
 ## 将install的文件移动到/install/xxx，这样通过挂载/install可以共享文件

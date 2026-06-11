@@ -387,21 +387,32 @@ class GetFileList(object):
         # fileaddrs.append(f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}")
         return fileaddrs
 
-    def es_apply(self, db_version: str) -> list:
+    def es_apply(self, db_version: str, install_plugin_list: list) -> list:
         # 部署es所有节点需要的pkg列表
         es_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.Es, db_type=DBType.Es)
-        return [
+        file_list = [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{es_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
         ]
 
-    def es_scale_up(self, db_version: str) -> list:
+        for plugin in install_plugin_list:
+            plugin_pkg = Package.get_latest_package(version=plugin, pkg_type=MediumEnum.EsPlugin, db_type=DBType.Es)
+            file_list.append(f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{plugin_pkg.path}")
+
+        return file_list
+
+    def es_scale_up(self, db_version: str, install_plugin_list: list) -> list:
         # 扩容es所有节点需要的pkg列表
         es_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.Es, db_type=DBType.Es)
-        return [
+        file_list = [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{es_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
         ]
+        for plugin in install_plugin_list:
+            plugin_pkg = Package.get_latest_package(version=plugin, pkg_type=MediumEnum.EsPlugin, db_type=DBType.Es)
+            file_list.append(f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{plugin_pkg.path}")
+
+        return file_list
 
     def es_disable(self) -> list:
         # 禁用集群只需要actuator

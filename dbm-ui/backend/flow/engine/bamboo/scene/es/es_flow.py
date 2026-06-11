@@ -44,6 +44,7 @@ class EsFlow(object):
         self.nodes = data.get("nodes")
         # 仅 IP来源为资源池时，会有传值
         self.resource_spec = data.get("resource_spec")
+        self.plugin_list = []
         if self.ticket_type == TicketType.ES_APPLY:
             self.cluster_id = -1
             self.cluster_name = data.get("cluster_name")
@@ -63,7 +64,7 @@ class EsFlow(object):
                     "conf_file": self.db_version,
                     "conf_type": ConfType.DBCONF,
                     "namespace": NameSpaceEnum.Es,
-                    "format": FormatType.MAP,
+                    "format": FormatType.MAP_LEVEL,
                 }
             )
             self.es_config = dbconfig["content"]
@@ -135,6 +136,7 @@ class EsFlow(object):
             "created_by": self.created_by,
             "domain": self.domain,
             "es_config": self.es_config,
+            "plugin_list": self.plugin_list,
             "resource_spec": self.resource_spec,
             "city_code": self.city_code,
             "disaster_tolerance_level": self.disaster_tolerance_level,

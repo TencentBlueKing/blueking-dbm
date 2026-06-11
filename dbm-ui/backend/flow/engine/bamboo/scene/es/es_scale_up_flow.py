@@ -14,8 +14,10 @@ from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
 
+from backend.components import DBConfigApi
+from backend.components.dbconfig.constants import ConfType, FormatType, LevelName, ReqType
 from backend.configuration.constants import DBType
-from backend.flow.consts import ES_DEFAULT_INSTANCE_NUM
+from backend.flow.consts import ES_DEFAULT_INSTANCE_NUM, LevelInfoEnum, NameSpaceEnum
 from backend.flow.engine.bamboo.scene.common.bigdata_common_sub_flow import new_machine_common_sub_flow
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -51,6 +53,31 @@ class EsScaleUpFlow(EsFlow):
         self.cer_target_path = "/data/install/"
         self.file_list = ["/tmp/es_cerfiles.tar.gz"]
 
+        # 从dbconfig获取安装的插件列表
+        try:
+            plugin_list = DBConfigApi.get_or_generate_instance_config(
+                {
+                    "bk_biz_id": str(self.bk_biz_id),
+                    "level_name": LevelName.CLUSTER,
+                    "level_value": self.domain,
+                    "level_info": {"module": LevelInfoEnum.TendataModuleDefault},
+                    "conf_file": self.db_version,
+                    "conf_type": ConfType.DEPLOY,
+                    "namespace": NameSpaceEnum.Es,
+                    "format": FormatType.MAP,
+                    "method": ReqType.GENERATE_AND_PUBLISH,
+                }
+            )
+            # 检查返回结果是否有效
+            if plugin_list and "content" in plugin_list:
+                for plugin_name, flag in plugin_list["content"].items():
+                    if plugin_name and flag == "ON":
+                        self.plugin_list.append(plugin_name)
+            else:
+                logger.warning(_("dbconfig查询返回空结果或格式不正确，使用默认插件列表"))
+        except Exception as e:
+            logger.warning(f"dbconfig exception: {e}")
+
     def __get_flow_data(self) -> dict:
         flow_data = self.get_flow_base_data()
         flow_data["nodes"] = self.nodes
@@ -68,7 +95,9 @@ class EsScaleUpFlow(EsFlow):
 
         act_kwargs = EsActKwargs(bk_cloud_id=self.bk_cloud_id)
         act_kwargs.set_trans_data_dataclass = EsApplyContext.__name__
-        act_kwargs.file_list = trans_files.es_scale_up(db_version=self.db_version)
+        act_kwargs.file_list = trans_files.es_scale_up(
+            db_version=self.db_version, install_plugin_list=self.plugin_list
+        )
         es_pipeline.add_act(
             act_name=_("获取集群部署配置"), act_component_code=GetEsActPayloadComponent.code, kwargs=asdict(act_kwargs)
         )
@@ -162,6 +191,9 @@ class EsScaleUpFlow(EsFlow):
                 act_kwargs.sub_zone_id = node.get("sub_zone_id") or ""
                 act_kwargs.idc_id = node.get("idc_id") or ""
                 act_kwargs.rack_id = node.get("rack_id") or ""
+                # 安装插件列表
+                act_kwargs.plugin_list = self.plugin_list
+
                 sub_pipeline.add_act(
                     act_name=_("安装ES {}-{}节点").format(role, ip),
                     act_component_code=ExecuteEsActuatorScriptComponent.code,
