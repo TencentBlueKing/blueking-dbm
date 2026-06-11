@@ -40,15 +40,15 @@ CLUSTER_TYPE_TICKET_MAP = {
 }
 
 
-def _get_ticket_type(cluster_type: str, has_target: bool):
-    """根据集群类型和是否有目标集群，返回 (ticket_type, rollback_cluster_type)"""
+def _get_ticket_type(cluster_type: str, same_cluster: bool):
+    """根据集群类型、源集群与目标集群是否相同判断单据类型"""
     if cluster_type not in CLUSTER_TYPE_TICKET_MAP:
         raise DBMMcpNotSupportClusterTypeException(cluster_type=cluster_type)
 
-    fixpoint_exist_ticket, rollback_ticket = CLUSTER_TYPE_TICKET_MAP[cluster_type]
-    if has_target:
-        return fixpoint_exist_ticket, RollbackBuildClusterType.BUILD_INTO_EXIST_CLUSTER
-    return rollback_ticket, RollbackBuildClusterType.BUILD_INTO_METACLUSTER
+    fixpoint_exist_cluster_ticket, rollback_ticket = CLUSTER_TYPE_TICKET_MAP[cluster_type]
+    if same_cluster:
+        return rollback_ticket, RollbackBuildClusterType.BUILD_INTO_METACLUSTER
+    return fixpoint_exist_cluster_ticket, RollbackBuildClusterType.BUILD_INTO_EXIST_CLUSTER
 
 
 def _get_rollback_type(rollback_time: datetime = None, backup_id: str = None) -> RollbackType:
@@ -76,15 +76,15 @@ def check_cluster_ai_permission(cluster_obj: Cluster, ticket_type: TicketType):
 
 
 @bill_response_wrapper
-def bill_fixpoint_construction(
+def bill_construct_rollback(
     bk_biz_id: int,
     username: str,
     cluster_domain: str,
+    target_cluster_domain: str,
     databases: list,
     tables: list,
     rollback_time: datetime = None,
     backup_id: str = None,
-    target_cluster_domain: str = None,
 ) -> Ticket:
     """
     创建 MySQL/TENDBCLUSTER 数据构造到已有集群 / 回档原集群 单据
@@ -93,21 +93,19 @@ def bill_fixpoint_construction(
         bk_biz_id: 业务ID
         username: 创建人用户名
         cluster_domain: 源集群域名
-        target_cluster_domain: 目标集群域名（为空时回档到原集群）
+        target_cluster_domain: 目标集群域名
         databases: 需要构造的数据库
         tables: 需要构造的表
         rollback_time: 构造的时间点
         backup_id: 备份ID
     """
     cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
-
-    # 确定单据类型、回档类型
-    ticket_type, rollback_cluster_type = _get_ticket_type(cluster_obj.cluster_type, bool(target_cluster_domain))
-
-    # 如果没有指定目标集群，则回档原集群
-    if not target_cluster_domain:
-        target_cluster_domain = cluster_domain
     target_cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=target_cluster_domain)
+
+    # 确定单据类型(构造还是回档）、回档类型（指定时间还是指定备份ID）
+    ticket_type, rollback_cluster_type = _get_ticket_type(
+        cluster_obj.cluster_type, bool(target_cluster_domain == cluster_domain)
+    )
 
     check_cluster_ai_permission(target_cluster_obj, ticket_type)
 
