@@ -16,20 +16,26 @@
     <ClusterTab
       v-model="activeClusterType"
       :excludes="[ClusterTypes.ORACLE_SINGLE_NONE, ClusterTypes.ORACLE_PRIMARY_STANDBY]" />
-    <div class="content-main">
+    <ApplyPermissionCatch :key="activeClusterType">
       <Content
-        v-if="activeClusterType"
-        :key="activeClusterType" />
-    </div>
+        v-if="hasModule"
+        class="content-main" />
+      <ConfigBusiness
+        v-else
+        class="content-details"
+        :cluster-type="activeClusterType" />
+    </ApplyPermissionCatch>
   </div>
 </template>
 <script setup lang="ts">
   import { ClusterTypes } from '@common/const';
 
+  import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import ClusterTab from '@components/cluster-tab/Index.vue';
 
   import { resetConfigureTab } from '@/views/db-configure-new/utils/configureState.ts';
 
+  import ConfigBusiness from './components/biz/Index.vue';
   import Content from './components/Content.vue';
 
   const router = useRouter();
@@ -41,6 +47,16 @@
    * provide active tab
    */
   provide('activeClusterType', activeClusterType);
+
+  const hasModule = computed(() =>
+    [
+      ClusterTypes.SQLSERVER_HA,
+      ClusterTypes.SQLSERVER_SINGLE,
+      ClusterTypes.TENDBCLUSTER,
+      ClusterTypes.TENDBHA,
+      ClusterTypes.TENDBSINGLE,
+    ].includes(activeClusterType.value),
+  );
 
   watch(
     activeClusterType,
@@ -69,6 +85,10 @@
 
     .content-main {
       flex: 1;
+    }
+
+    .content-details {
+      margin: 20px 24px;
     }
   }
 </style>

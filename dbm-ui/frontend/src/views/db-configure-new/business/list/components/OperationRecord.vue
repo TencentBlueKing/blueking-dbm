@@ -360,14 +360,19 @@
   /** 数据源函数 - 适配 DbTable 组件 */
   const dataSource = async (params: { limit: number; offset: number }) => {
     const defaultConfType = [...new Set(confTabs?.value.map((item) => item.conf_type))].join(',');
-    const res = await getConfigItemChanges({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      conf_file: props.confFile || undefined,
-      conf_type: props.confType || defaultConfType || undefined,
-      level_name: props.levelName || undefined,
-      level_value: props.levelValue || undefined,
-      namespace: props.clusterType || (activeClusterType?.value as string),
-    });
+    const res = await getConfigItemChanges(
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        conf_file: props.confFile || undefined,
+        conf_type: props.confType || defaultConfType || undefined,
+        level_name: props.levelName || undefined,
+        level_value: props.levelValue || undefined,
+        namespace: props.clusterType || (activeClusterType?.value as string),
+      },
+      {
+        permission: 'catch',
+      },
+    );
 
     // 更新枚举列表（配置类型、配置文件）
     updateEnumLists(res.results || []);

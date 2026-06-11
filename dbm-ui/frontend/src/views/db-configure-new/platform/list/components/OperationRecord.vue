@@ -405,9 +405,14 @@
     if (!props.clusterType) {
       return { count: 0, results: [] };
     }
-    const res = await getConfigNameChanges({
-      namespace: props.clusterType,
-    });
+    const res = await getConfigNameChanges(
+      {
+        namespace: props.clusterType,
+      },
+      {
+        permission: 'catch',
+      },
+    );
 
     // 更新枚举列表（配置类型、配置文件）
     updateEnumLists(res.results || []);

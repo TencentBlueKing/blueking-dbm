@@ -142,6 +142,7 @@ export function getConfigBaseDetails(
     conf_items: ParameterConfigItem[];
     description: string;
     name: string;
+    permission: Record<string, boolean>;
     updated_at?: string;
     updated_by?: string;
     version: string;
@@ -334,15 +335,18 @@ export function getModuleDetail(params: { module_id: number }) {
 /**
  * 查询平台配置变更记录（操作记录）
  */
-export function getConfigNameChanges(params: {
-  conf_file?: string;
-  conf_name?: string;
-  conf_type?: string;
-  limit?: number;
-  namespace: string;
-  offset?: number;
-}) {
-  return http.get<ConfigNameChangeModel[]>(`${path}/list_confname_changes/`, params).then((data) => ({
+export function getConfigNameChanges(
+  params: {
+    conf_file?: string;
+    conf_name?: string;
+    conf_type?: string;
+    limit?: number;
+    namespace: string;
+    offset?: number;
+  },
+  payload = {} as IRequestPayload,
+) {
+  return http.get<ConfigNameChangeModel[]>(`${path}/list_confname_changes/`, params, payload).then((data) => ({
     ...data,
     results: data.map((item) => new ConfigNameChangeModel(item)),
   }));
@@ -351,18 +355,21 @@ export function getConfigNameChanges(params: {
 /**
  * 查询业务配置名称变更记录（操作记录）
  */
-export function getConfigItemChanges(params: {
-  bk_biz_id: number;
-  conf_file?: string;
-  conf_name?: string;
-  conf_type?: string;
-  level_name?: string;
-  level_value?: number | string;
-  limit?: number;
-  namespace: string;
-  offset?: number;
-}) {
-  return http.get<ConfigItemChangeModel[]>(`${path}/list_confitem_changes/`, params).then((data) => ({
+export function getConfigItemChanges(
+  params: {
+    bk_biz_id: number;
+    conf_file?: string;
+    conf_name?: string;
+    conf_type?: string;
+    level_name?: string;
+    level_value?: number | string;
+    limit?: number;
+    namespace: string;
+    offset?: number;
+  },
+  payload = {} as IRequestPayload,
+) {
+  return http.get<ConfigItemChangeModel[]>(`${path}/list_confitem_changes/`, params, payload).then((data) => ({
     ...data,
     results: data.map((item) => new ConfigItemChangeModel(item)),
   }));

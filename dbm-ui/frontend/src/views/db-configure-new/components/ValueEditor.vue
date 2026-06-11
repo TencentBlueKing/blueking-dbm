@@ -127,11 +127,7 @@
   /** 组件渲染时默认聚焦 */
   onMounted(() => {
     nextTick(() => {
-      if (typeSub.value === ConstraintType.ENUM) {
-        enumSelectRef.value?.focus();
-      } else if (typeSub.value === ConstraintType.ENUMS) {
-        enumSMultipleSelectRef.value?.focus();
-      } else if (typeSub.value === ConstraintType.RANGE) {
+      if (typeSub.value === ConstraintType.RANGE) {
         numberInputRef.value?.focus();
       } else if (isMultiLineType(typeSub.value)) {
         textareaRef.value?.focus();
