@@ -12,196 +12,200 @@
 -->
 
 <template>
-  <div class="platform-detail-page">
-    <div class="platform-detail-content">
-      <!-- 参数信息 -->
-      <div class="platform-info-card">
-        <div class="param-operations mb-16">
-          <BkButton
-            theme="primary"
-            @click="handleAddParam">
-            {{ t('新增参数') }}
-          </BkButton>
-          <DbQuickSearch
-            v-model="searchValue"
-            :data="quickSearchData"
-            parse-url
-            :placeholder="t('搜索参数名_显示名_平台默认值_允许值_数据类型_重启生效_业务默认可见_业务可编辑')"
-            style="width: 500px; margin-left: auto"
-            @change="handleQuickSearchChange" />
-        </div>
-        <BkLoading :loading="paramLoading">
-          <DbTable
-            ref="paramTableRef"
-            :data-source="paramDataSource"
-            :default-limit="100"
-            :filter-value="searchValue"
-            row-key="conf_name"
-            @clear-search="handleQuickSearchChange"
-            @filter-change="handleFilterChange"
-            @request-success="initDescriptionTippy">
-            <TableColumn
-              col-key="conf_name"
-              ellipsis
-              fixed="left"
-              :min-width="250"
-              :title="t('参数名')"
-              :width="250">
-              <template #default="{ row }">
-                {{ row.conf_name }}
-                <DbIcon
-                  v-if="row.description"
-                  class="param-desc-icon ml-4"
-                  :data-conf-name="row.conf_name"
-                  :data-description="row.description"
-                  type="bk-dbm-icon db-icon-attention" />
-              </template>
-            </TableColumn>
-            <TableColumn
-              v-if="!isStandardDbConfig"
-              col-key="conf_name_lc"
-              ellipsis
-              :title="t('显示名')"
-              :width="120">
-              <template #default="{ row }">
-                {{ row.conf_name_lc || '--' }}
-              </template>
-            </TableColumn>
-            <TableColumn
-              col-key="value_default"
-              ellipsis
-              :title="t('平台默认值')"
-              :width="180">
-              <template #default="{ row }">
-                <span
-                  v-if="row.value_default === ''"
-                  class="no-constraint-text">
-                  {{ t('空字符串') }}
-                </span>
-                <span v-else>
-                  {{ row.flag_encrypt === 1 ? '******' : row.value_default }}
-                </span>
-              </template>
-            </TableColumn>
-            <TableColumn
-              col-key="value_allowed"
-              ellipsis
-              :title="t('允许值')"
-              :width="220">
-              <template #default="{ row }">
-                <template v-if="row.value_type_sub && row.value_type_sub !== 'STRING'">
-                  <BkTag>{{ row.value_type_sub }}</BkTag>
-                  <span class="ml-4">{{ row.value_allowed || '--' }}</span>
+  <ApplyPermissionCatch>
+    <div class="platform-detail-page">
+      <div class="platform-detail-content">
+        <!-- 参数信息 -->
+        <div class="platform-info-card">
+          <div class="param-operations mb-16">
+            <AuthButton
+              action-id="global_dbconfig_edit"
+              :resource="dbType"
+              theme="primary"
+              @click="handleAddParam">
+              {{ t('新增参数') }}
+            </AuthButton>
+            <DbQuickSearch
+              v-model="searchValue"
+              :data="quickSearchData"
+              parse-url
+              :placeholder="t('搜索参数名_显示名_平台默认值_允许值_数据类型_重启生效_业务默认可见_业务可编辑')"
+              style="width: 500px; margin-left: auto"
+              @change="handleQuickSearchChange" />
+          </div>
+          <BkLoading :loading="paramLoading">
+            <DbTable
+              ref="paramTableRef"
+              :data-source="paramDataSource"
+              :default-limit="100"
+              :filter-value="searchValue"
+              row-key="conf_name"
+              @clear-search="handleQuickSearchChange"
+              @filter-change="handleFilterChange"
+              @request-success="initDescriptionTippy">
+              <TableColumn
+                col-key="conf_name"
+                ellipsis
+                fixed="left"
+                :min-width="250"
+                :title="t('参数名')"
+                :width="250">
+                <template #default="{ row }">
+                  {{ row.conf_name }}
+                  <DbIcon
+                    v-if="row.description"
+                    class="param-desc-icon ml-4"
+                    :data-conf-name="row.conf_name"
+                    :data-description="row.description"
+                    type="bk-dbm-icon db-icon-attention" />
                 </template>
-                <span
-                  v-else
-                  class="no-constraint-text">
-                  {{ NO_CONSTRAINT }}
-                </span>
-              </template>
-            </TableColumn>
-            <TableColumn
-              col-key="value_type"
-              :filter="valueTypeFilter"
-              :title="t('数据类型')"
-              :width="100">
-              <template #default="{ row }">
-                <BkTag v-if="row.value_type">
-                  {{ row.value_type }}
-                </BkTag>
-                <span v-else>--</span>
-              </template>
-            </TableColumn>
-            <TableColumn
-              col-key="flag_visible"
-              :filter="boolFilter"
-              :width="120">
-              <template #title>
-                <span
-                  v-bk-tooltips="t('是否在业务配置页默认带出该参数；关闭后业务仍可通过「添加参数」主动加入')"
-                  class="column-title-tips">
-                  {{ t('业务默认可见') }}
-                </span>
-              </template>
-              <template #default="{ row }">
-                {{ row.flag_visible === 1 ? t('是') : t('否') }}
-              </template>
-            </TableColumn>
-            <TableColumn
-              col-key="flag_readonly"
-              :filter="boolFilter"
-              :width="120">
-              <template #title>
-                <span
-                  v-bk-tooltips="t('控制业务侧是否可编辑该参数数值')"
-                  class="column-title-tips">
-                  {{ t('业务可编辑') }}
-                </span>
-              </template>
-              <template #default="{ row }">
-                {{ row.flag_readonly === 0 ? t('是') : t('否') }}
-              </template>
-            </TableColumn>
-            <TableColumn
-              col-key="need_restart"
-              :filter="boolFilter"
-              :width="100">
-              <template #title>
-                <span
-                  v-bk-tooltips="t('预留配置下发场景；后续下发的存量实例后，是否需要重启实例生效')"
-                  class="column-title-tips">
-                  {{ t('重启生效') }}
-                </span>
-              </template>
-              <template #default="{ row }">
-                {{ row.need_restart === 1 ? t('是') : t('否') }}
-              </template>
-            </TableColumn>
-            <TableColumn
-              col-key="operation"
-              fixed="right"
-              :title="t('操作')"
-              :width="120">
-              <template #default="{ row }">
-                <BkButton
-                  class="mr-16"
-                  text
-                  theme="primary"
-                  @click="handleEditParam(row)">
-                  {{ t('编辑') }}
-                </BkButton>
-                <BkPopConfirm
-                  :cancel-text="t('取消')"
-                  :confirm-config="{ theme: 'danger' }"
-                  :confirm-text="t('删除')"
-                  :title="t('确认删除该参数？')"
-                  trigger="click"
-                  :width="275"
-                  @confirm="handleDeleteParam(row)">
-                  <template #content>
-                    <div
-                      class="mb-16"
-                      style="line-height: 20px">
-                      <p class="mb-6">
-                        {{ t('参数名称_:_name', { name: row.conf_name }) }}
-                      </p>
-                      <p>
-                        {{ t('删除后，将不可恢复，请谨慎操作！') }}
-                      </p>
-                    </div>
-                  </template>
-                  <span @click.stop>
-                    <BkButton
-                      text
-                      theme="primary">
-                      {{ t('删除') }}
-                    </BkButton>
+              </TableColumn>
+              <TableColumn
+                v-if="!isStandardDbConfig"
+                col-key="conf_name_lc"
+                ellipsis
+                :title="t('显示名')"
+                :width="120">
+                <template #default="{ row }">
+                  {{ row.conf_name_lc || '--' }}
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="value_default"
+                ellipsis
+                :title="t('平台默认值')"
+                :width="180">
+                <template #default="{ row }">
+                  <span
+                    v-if="row.value_default === ''"
+                    class="no-constraint-text">
+                    {{ t('空字符串') }}
                   </span>
-                </BkPopConfirm>
-              </template>
-            </TableColumn>
-          </DbTable>
-        </BkLoading>
+                  <span v-else>
+                    {{ row.flag_encrypt === 1 ? '******' : row.value_default }}
+                  </span>
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="value_allowed"
+                ellipsis
+                :title="t('允许值')"
+                :width="220">
+                <template #default="{ row }">
+                  <template v-if="row.value_type_sub && row.value_type_sub !== 'STRING'">
+                    <BkTag>{{ row.value_type_sub }}</BkTag>
+                    <span class="ml-4">{{ row.value_allowed || '--' }}</span>
+                  </template>
+                  <span
+                    v-else
+                    class="no-constraint-text">
+                    {{ NO_CONSTRAINT }}
+                  </span>
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="value_type"
+                :filter="valueTypeFilter"
+                :title="t('数据类型')"
+                :width="100">
+                <template #default="{ row }">
+                  <BkTag v-if="row.value_type">
+                    {{ row.value_type }}
+                  </BkTag>
+                  <span v-else>--</span>
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="flag_visible"
+                :filter="boolFilter"
+                :width="120">
+                <template #title>
+                  <span
+                    v-bk-tooltips="t('是否在业务配置页默认带出该参数；关闭后业务仍可通过「添加参数」主动加入')"
+                    class="column-title-tips">
+                    {{ t('业务默认可见') }}
+                  </span>
+                </template>
+                <template #default="{ row }">
+                  {{ row.flag_visible === 1 ? t('是') : t('否') }}
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="flag_readonly"
+                :filter="boolFilter"
+                :width="120">
+                <template #title>
+                  <span
+                    v-bk-tooltips="t('控制业务侧是否可编辑该参数数值')"
+                    class="column-title-tips">
+                    {{ t('业务可编辑') }}
+                  </span>
+                </template>
+                <template #default="{ row }">
+                  {{ row.flag_readonly === 0 ? t('是') : t('否') }}
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="need_restart"
+                :filter="boolFilter"
+                :width="100">
+                <template #title>
+                  <span
+                    v-bk-tooltips="t('预留配置下发场景；后续下发的存量实例后，是否需要重启实例生效')"
+                    class="column-title-tips">
+                    {{ t('重启生效') }}
+                  </span>
+                </template>
+                <template #default="{ row }">
+                  {{ row.need_restart === 1 ? t('是') : t('否') }}
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="operation"
+                fixed="right"
+                :title="t('操作')"
+                :width="120">
+                <template #default="{ row }">
+                  <BkButton
+                    class="mr-16"
+                    text
+                    theme="primary"
+                    @click="handleEditParam(row)">
+                    {{ t('编辑') }}
+                  </BkButton>
+                  <BkPopConfirm
+                    :cancel-text="t('取消')"
+                    :confirm-config="{ theme: 'danger' }"
+                    :confirm-text="t('删除')"
+                    :title="t('确认删除该参数？')"
+                    trigger="click"
+                    :width="275"
+                    @confirm="handleDeleteParam(row)">
+                    <template #content>
+                      <div
+                        class="mb-16"
+                        style="line-height: 20px">
+                        <p class="mb-6">
+                          {{ t('参数名称_:_name', { name: row.conf_name }) }}
+                        </p>
+                        <p>
+                          {{ t('删除后，将不可恢复，请谨慎操作！') }}
+                        </p>
+                      </div>
+                    </template>
+                    <span @click.stop>
+                      <BkButton
+                        text
+                        theme="primary">
+                        {{ t('删除') }}
+                      </BkButton>
+                    </span>
+                  </BkPopConfirm>
+                </template>
+              </TableColumn>
+            </DbTable>
+          </BkLoading>
+        </div>
       </div>
     </div>
 
@@ -212,8 +216,8 @@
       :conf-name-type-map="confNameTypeMap"
       :conf-type="confType"
       :version="version"
-      @success="fetchDetail({ conf_type: confType, meta_cluster_type: clusterType, version: version })" />
-  </div>
+      @success="fetchDetailData" />
+  </ApplyPermissionCatch>
   <Teleport to="#dbContentTitleAppend">
     <div class="config-detail-header">
       <span class="config-detail-nav-title">
@@ -221,7 +225,10 @@
       </span>
       <span class="config-detail-meta">
         <span>{{ t('配置名称') }}：{{ detailData?.name || '--' }}</span>
-        <span> {{ t('最近更新') }}：{{ detailData?.updated_by || '--' }} / {{ detailData?.updated_at ? utcDisplayTime(detailData.updated_at) : '--' }} </span>
+        <span>
+          {{ t('最近更新') }}：{{ detailData?.updated_by || '--' }} /
+          {{ detailData?.updated_at ? utcDisplayTime(detailData.updated_at) : '--' }}
+        </span>
         <span>{{ t('描述') }}：{{ detailData?.description || '--' }}</span>
       </span>
     </div>
@@ -242,9 +249,10 @@
     getListConfTypes,
   } from '@services/source/configs';
 
-  import type { ClusterTypes } from '@common/const';
+  import { clusterTypeInfos, type ClusterTypes, DBTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
+  import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import DbQuickSearch from '@components/db-quick-search/Index.vue';
   import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
@@ -262,6 +270,7 @@
     confType: string;
     version: string;
   };
+  const dbType = clusterTypeInfos[clusterType as ClusterTypes]?.dbType || DBTypes.MYSQL;
 
   // 无约束标识常量（表格展示用）
   const NO_CONSTRAINT = t('无约束');
@@ -372,13 +381,20 @@
 
   // 获取配置详情
   const { run: fetchDetail } = useRequest(getConfigBaseDetails, {
-    defaultParams: [{ conf_type: confType, meta_cluster_type: clusterType, version: version }],
-    onSuccess(res) {
+    manual: true,
+    onSuccess(res: DetailResult) {
       detailData.value = res;
       allConfItems.value = res.conf_items || [];
       paramTableRef.value?.fetchData({}, true);
     },
   });
+
+  const fetchDetailData = () => {
+    fetchDetail({ conf_type: confType, meta_cluster_type: clusterType, version: version }, { permission: 'catch' });
+  };
+
+  // 初始加载详情数据（传入 permission: 'catch' 由 ApplyPermissionCatch 拦截无权限场景）
+  fetchDetailData();
 
   // 获取数据类型与约束类型联动选项
   useRequest(getListConfNameTypes, {
