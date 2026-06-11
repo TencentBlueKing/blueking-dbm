@@ -18,7 +18,7 @@ from backend.ticket.constants import InstanceType
 
 def collect_machine_ids_for_cluster(cluster: Cluster, instance_roles: Optional[List[str]]) -> List[int]:
     """
-    收集集群关联的去重 Machine.id，可选按实例角色过滤。
+    收集集群关联的去重 Machine 主键（bk_host_id，与 Storage/Proxy 上 machine_id 一致），可选按实例角色过滤。
 
     Storage 使用 StorageInstance.instance_role；Proxy 使用 InstanceType.PROXY.value（"proxy"）作为过滤标记。
     """
@@ -28,20 +28,18 @@ def collect_machine_ids_for_cluster(cluster: Cluster, instance_roles: Optional[L
     machine_ids: Set[int] = set()
 
     if not role_set:
-        for inst in StorageInstance.objects.filter(cluster=cluster).select_related("machine"):
-            machine_ids.add(inst.machine_id)
-        for inst in ProxyInstance.objects.filter(cluster=cluster).select_related("machine"):
-            machine_ids.add(inst.machine_id)
+        machine_ids.update(StorageInstance.objects.filter(cluster=cluster).values_list("machine_id", flat=True))
+        machine_ids.update(ProxyInstance.objects.filter(cluster=cluster).values_list("machine_id", flat=True))
     else:
         storage_roles = [r for r in role_set if r != proxy_marker]
         if storage_roles:
-            for inst in StorageInstance.objects.filter(
-                cluster=cluster, instance_role__in=storage_roles
-            ).select_related("machine"):
-                machine_ids.add(inst.machine_id)
+            machine_ids.update(
+                StorageInstance.objects.filter(cluster=cluster, instance_role__in=storage_roles).values_list(
+                    "machine_id", flat=True
+                )
+            )
         if proxy_marker in role_set:
-            for inst in ProxyInstance.objects.filter(cluster=cluster).select_related("machine"):
-                machine_ids.add(inst.machine_id)
+            machine_ids.update(ProxyInstance.objects.filter(cluster=cluster).values_list("machine_id", flat=True))
 
     return sorted(machine_ids)
 
@@ -82,12 +80,12 @@ def query_cluster_hosts_performance(
     查询集群内各主机硬件与基线性能；每台在 query_host_performance 结构基础上附带 instance_roles。
     """
     machine_ids = collect_machine_ids_for_cluster(cluster, instance_roles)
-    machines = list(Machine.objects.filter(id__in=machine_ids).order_by("id"))
+    machines = list(Machine.objects.filter(bk_host_id__in=machine_ids).order_by("bk_host_id"))
     roles_map = collect_instance_roles_by_machine_id(cluster, machine_ids)
     hosts = []
     for m in machines:
         row = query_host_performance_for_machine(m)
-        row["instance_roles"] = roles_map.get(m.id, [])
+        row["instance_roles"] = roles_map.get(m.pk, [])
         hosts.append(row)
     return {
         "cluster_id": cluster.id,

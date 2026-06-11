@@ -32,6 +32,11 @@ _PATH_LIKE_NAME_SUFFIXES = ("dir", "_file", "_path", "_home")
 # 目录/路径/文件类变量名关键字(小写匹配)
 _PATH_LIKE_NAME_KEYWORDS = ("socket", "secure_file_priv", "log_error", "character_sets_dir")
 
+# MyISAM 引擎相关变量名前缀(小写匹配); 如 myisam_sort_buffer_size、myisam_mmap_size 等, 业务巡检极少使用, 默认不输出
+_MYISAM_VARIABLE_PREFIX = "myisam_"
+# Performance Schema 消费者类变量名前缀(小写匹配); 仅过滤 performance_schema_* , 保留顶层 performance_schema 开关
+_PERFORMANCE_SCHEMA_VARIABLE_PREFIX = "performance_schema_"
+
 # 数据盘挂载点前缀 /data、/data1 …（与 flow 中 disk_benchmark 等约定一致）
 _DATA_MOUNT_PREFIX_RE = re.compile(r"^(/data[0-9]*)(/|$)")
 
@@ -50,12 +55,17 @@ def _is_path_like_variable(name: str, value: str) -> bool:
 
 
 def _filter_variables(table_data: List[Dict]) -> Dict[str, str]:
-    """黑名单过滤: 去除目录/路径/文件类配置, 仅保留核心关键参数。"""
+    """黑名单过滤: 去除目录/路径/文件类、MyISAM 与 performance_schema_* 变量, 仅保留核心关键参数。"""
     variables = {}
     for row in table_data:
         name = row.get("Variable_name", "")
         value = row.get("Value", "")
         if not name:
+            continue
+        lname = name.lower()
+        if lname.startswith(_MYISAM_VARIABLE_PREFIX):
+            continue
+        if lname.startswith(_PERFORMANCE_SCHEMA_VARIABLE_PREFIX):
             continue
         if _is_path_like_variable(name, value):
             continue
@@ -255,7 +265,7 @@ def _tendbcluster_variables(
 
 
 def cluster_runtime_variables(cluster_obj: Cluster) -> Dict:
-    """查询集群所有角色实例的运行时核心配置(已过滤目录/路径类), 带版本信息; 另返回 datadir 及推导的 data_dir_mount。"""
+    """查询集群所有角色实例的运行时核心配置(已过滤目录/路径类、myisam_* 与 performance_schema_* 变量), 带版本信息; 另返回 datadir 及推导的 data_dir_mount。"""
     addr_to_variables, addr_to_datadir_meta = _query_variables_for_addresses(
         bk_cloud_id=cluster_obj.bk_cloud_id, addresses=_collect_query_addresses(cluster_obj)
     )
