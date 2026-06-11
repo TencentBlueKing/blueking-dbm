@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import inspect
+import logging
 from collections import Counter
 from typing import Dict, List
 
@@ -91,6 +92,8 @@ from backend.ticket.serializers import (
     UpdateTicketFlowConfigSerializer,
 )
 from backend.ticket.todos import TodoActorFactory
+
+logger = logging.getLogger("ticket.views")
 
 TICKET_TAG = "ticket"
 
@@ -223,7 +226,17 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             instance.is_reviewed = int(is_reviewed)
             instance.save()
 
-        return super().retrieve(request, *args, **kwargs)
+        instance = self.get_object()
+        resp = super().retrieve(request, *args, **kwargs)
+
+        if BuilderFactory.ai_details_summary_enabled(instance.ticket_type):
+            try:
+                builder_cls = BuilderFactory.get_builder_cls(instance.ticket_type)
+                resp.data["ai_details_summary"] = builder_cls.ai_summary_details(instance)
+            except NotImplementedError:
+                return resp
+
+        return resp
 
     @common_swagger_auto_schema(
         operation_summary=_("单据列表"),

@@ -26,21 +26,24 @@ class QueryClusterSkewDataInputSerializer(serializers.Serializer):
 class QueryClusterSkewDataPeriodSerializer(serializers.Serializer):
     from_ = serializers.CharField(source="from", help_text=_("查询起始日期，ISO 8601 格式"))
     to = serializers.CharField(help_text=_("查询截止日期，ISO 8601 格式"))
+    time_zone = serializers.CharField(help_text=_("集群时区，如 +08:00"))
 
 
 class QueryClusterSkewEpisodesTableSerializer(serializers.Serializer):
     columns = serializers.ListField(
         child=serializers.CharField(),
-        help_text=_("列名：metric, role, pattern, start, end, hot_deviations, cold_deviations, transitions"),
+        help_text=_("列名：metric, role, pattern, start, end, group_mean, hot_nodes, cold_nodes, transitions"),
     )
     rows = serializers.ListField(
         child=serializers.ListField(),
         help_text=_(
             "倾斜事件段行数据。"
-            "每行对应一列 columns 中的字段："
-            "pattern 为 fixed（热点节点固定）或 migrating（热点节点随时间迁移）；"
-            "hot_deviations/cold_deviations 格式为 node:+pct 或 node:pct，表示 episode 内各节点相对均值的最大偏离百分比；"
-            "transitions 仅在 pattern=migrating 时有值，格式为 HH:MM→nodes 的逗号分隔列表"
+            "group_mean 为 episode 内 role 组均值代表值；"
+            "hot_nodes/cold_nodes 每条格式为 "
+            "node value=X mean=Y pct=±Z% abs_dev=W，多条以 ; 分隔；"
+            "pattern 为 fixed 或 migrating；"
+            "transitions 仅在 migrating 时有值，格式为 HH:MM→nodes；"
+            "start/end/transitions 时间为集群时区"
         ),
     )
 

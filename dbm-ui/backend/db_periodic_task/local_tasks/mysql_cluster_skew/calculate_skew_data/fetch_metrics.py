@@ -67,7 +67,7 @@ def _fetch_key_metrics_of_cluster_instances(
     time_window_len: timedelta = timedelta(minutes=5),
 ) -> dict[str, list[dict]]:
     res = {}
-    for metric_name in ["cpu_summary", "qps_summary", "connections"]:
+    for metric_name in ["cpu_summary", "qps_summary", "connections", "memory_usage", "disk_used"]:
         metric_res = _fetch_metric_of_cluster_instances(
             cluster_type=cluster_type,
             cluster_domains=cluster_domains,

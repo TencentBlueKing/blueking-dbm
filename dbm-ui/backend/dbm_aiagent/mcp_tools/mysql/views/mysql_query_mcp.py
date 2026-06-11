@@ -731,8 +731,8 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
         description=str(
             _(
                 "查询集群给定时间段内的倾斜事件段。"
-                "返回 has_skew、episodes（metric/role/pattern/start/end/hot_deviations/cold_deviations/transitions）。"
-                "hot_deviations/cold_deviations 格式为 node:+pct 或 node:pct，表示相对均值的偏离百分比及严重程度；"
+                "返回 has_skew、episodes（metric/role/pattern/start/end/group_mean/hot_nodes/cold_nodes/transitions）。"
+                "hot_nodes/cold_nodes 含 value、mean、pct、abs_dev；低绝对值倾斜在查询侧过滤；"
                 "pattern 仅看高于均值的节点集合是否随时间切换：fixed 或 migrating。"
             )
         ),

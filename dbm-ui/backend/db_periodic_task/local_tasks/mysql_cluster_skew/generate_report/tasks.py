@@ -28,7 +28,7 @@ def generate_report():
 
     for cluster_obj in Cluster.objects.filter(cluster_type__in=[ClusterType.TenDBHA, ClusterType.TenDBCluster]):
         AgentHandler.ask_agent_with_content(
-            agent_code="ai-mysql-inspect",
+            agent_code="",
             content=str(_("{} 生成最近 24 小时的集群倾斜报告".format(cluster_obj.immute_domain))),
             timeout=100,
         )
