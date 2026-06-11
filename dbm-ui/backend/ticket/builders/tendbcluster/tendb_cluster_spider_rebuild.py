@@ -13,12 +13,12 @@ from rest_framework import serializers
 
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import TicketBaseValidateSerializerMixin
 from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder
+from backend.ticket.builders.tendbcluster.base import TendbBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
-class TendbClusterSpiderRebuildDetailSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
+class TendbClusterSpiderRebuildDetailSerializer(TendbBaseOperateDetailSerializer):
     class SpiderClusterInfoSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群 ID"), required=True)
         spider_ip_list = serializers.ListField(help_text=_("待重建的 Spider IP 列表"), child=serializers.DictField())
