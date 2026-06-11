@@ -26,6 +26,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="spider_ip_list"
+      :get-copy-value="(row: RowData) => row.old_nodes.spider_ip_list.map((item) => item.ip)"
       :title="t('节点IP')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.old_nodes.spider_ip_list.map((item) => item.ip).join(', ') }}

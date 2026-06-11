@@ -35,6 +35,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="spider_ip_list"
+      :get-copy-value="(row: RowData) => row.resource_spec.spider_ip_list.hosts.map((item) => item.ip)"
       :min-width="180"
       :title="t('运维节点 IP')">
       <template #default="{ row: data }: { row: RowData }">

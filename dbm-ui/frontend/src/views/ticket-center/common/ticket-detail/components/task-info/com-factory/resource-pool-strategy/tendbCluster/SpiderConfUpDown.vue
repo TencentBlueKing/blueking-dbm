@@ -33,6 +33,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="spider_old_ip_list"
+      :get-copy-value="(row: RowData) => row.spider_old_ip_list.map((item) => item.ip)"
       :min-width="200"
       :title="t('当前规格')">
       <template #default="{ row: data }: { row: RowData }">

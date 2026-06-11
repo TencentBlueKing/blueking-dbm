@@ -31,6 +31,7 @@
     <TicketInfoTableColumn
       v-if="isHostReplace"
       col-key="related_instances"
+      :get-copy-value="(row: RowData) => row.display_info.related_instances.join(',')"
       :title="t('关联实例')">
       <template #default="{ row: data }: { row: RowData }">
         <p
@@ -42,6 +43,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="related_clusters"
+      :get-copy-value="(row: RowData) => row.display_info.related_clusters.join(',')"
       :title="t('关联集群')">
       <template #default="{ row: data }: { row: RowData }">
         <p
@@ -53,6 +55,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="target_proxy"
+      :get-copy-value="(row: RowData) => row.target_proxy.ip"
       :title="t('新Proxy主机')">
       <template #default="{ row: data }: { row: RowData }">
         {{ data.target_proxy.ip }}

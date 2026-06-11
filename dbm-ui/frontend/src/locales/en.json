@@ -5433,5 +5433,7 @@
   "近 3 天": "last 3 days",
   "近 7 天": "last 7 days",
   "近 30 天": "last 30 days",
+  "该集群状态正常，无需灾难重建": "The cluster is in normal state; no need for disaster rebuild",
+  "重建后数量（台）": "Rebuild Count (units)",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

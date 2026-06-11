@@ -15,13 +15,13 @@
   <EditableColumn
     :append-rules="rules"
     field="count"
-    :label="t('目标数量（台）')"
+    :label="t('重建后数量（台）')"
     :min-width="180"
     required>
     <template #headAppend>
       <BatchEditColumn
         v-model="showBatchEdit"
-        :title="t('目标数量（台）')"
+        :title="t('重建后数量（台）')"
         type="number-input"
         @change="handleBatchEditChange">
         <span

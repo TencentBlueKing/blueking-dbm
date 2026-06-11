@@ -17,6 +17,7 @@
     row-key="cluster_id">
     <TicketInfoTableColumn
       col-key="cluster_id"
+      :get-copy-value="(row: RowData) => ticketDetails.details.clusters[row.cluster_id].immute_domain"
       :min-width="220"
       :title="t('目标集群')">
       <template #default="{ row: data }: { row: RowData }">
@@ -24,18 +25,11 @@
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
-      col-key="old_nodes"
-      :get-copy-value="(row: RowData) => (row.old_nodes?.proxy || []).map((item) => item.ip)"
-      :min-width="200"
-      :title="t('旧 Proxy 主机')">
+      col-key="current_count"
+      :min-width="120"
+      :title="t('当前数量（台）')">
       <template #default="{ row: data }: { row: RowData }">
-        <span v-if="!data.old_nodes?.proxy?.length">--</span>
-        <p
-          v-for="item in data.old_nodes?.proxy"
-          v-else
-          :key="item.ip">
-          {{ item.ip }}
-        </p>
+        {{ (data.old_nodes?.proxy || []).length || 0 }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn

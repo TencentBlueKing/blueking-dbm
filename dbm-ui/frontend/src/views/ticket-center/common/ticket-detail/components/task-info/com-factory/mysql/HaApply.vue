@@ -113,6 +113,7 @@
           :title="t('主访问入口')" />
         <TicketInfoTableColumn
           col-key="slave"
+          :get-copy-value="(row: Props['ticketDetails']['details']['domains'][number]) => row.slave"
           :min-width="240"
           :title="t('从访问入口')" />
         <TicketInfoTableColumn

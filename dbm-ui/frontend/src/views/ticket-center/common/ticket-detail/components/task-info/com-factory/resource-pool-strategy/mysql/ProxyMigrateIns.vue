@@ -32,6 +32,7 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="cluster_ids"
+      :get-copy-value="(row: RowData) => row.cluster_ids.map((clusterId) => ticketDetails.details.clusters[clusterId].immute_domain)"
       :min-width="250"
       :title="t('关联集群')">
       <template #default="{ row }: { row: RowData }">
